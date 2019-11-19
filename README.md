@@ -7,7 +7,12 @@ This requires Blender 2.81.
 
 This is a Blender plugin that allows one to export display lists, geolayouts, and animations to Super Mario 64, either directly into a ROM or to C code. It supports custom color combiners / geometry modes, and different geolayout node types. 
 
-Make sure to save often, as this plugin is prone to crashing when undoing quickly.
+Make sure to save often, as this plugin is prone to crashing when creating materials / undoing material creation. This is a Blender issue.
+
+<https://developer.blender.org/T70574>
+
+<https://developer.blender.org/T68406>
+
 
 ![alt-text](https://bitbucket.org/kurethedead/fast64/raw/master/images/mat_inspector.png)
 
