@@ -2,13 +2,17 @@
 # Fast64
 
 This requires Blender 2.81.
+
 ![alt-text](https://bitbucket.org/kurethedead/fast64/raw/master/images/mario_running.gif)
+
 This is a Blender plugin that allows one to export display lists, geolayouts, and animations to Super Mario 64, either directly into a ROM or to C code. It supports custom color combiners / geometry modes, and different geolayout node types. 
 
 Make sure to save often, as this plugin is prone to crashing when undoing quickly.
 
 ![alt-text](https://bitbucket.org/kurethedead/fast64/raw/master/images/mat_inspector.png)
+
 ![alt-text](https://bitbucket.org/kurethedead/fast64/raw/master/images/bone_inspector.png)
+
 ### Features (import means import into Blender)  
 -   Geolayout import/export 
 -   Display List import/export 
@@ -78,4 +82,5 @@ To add a switch mesh node, duplicate your switch bone and move it off to the sid
 
 ### Common Issues
 Inivisible Mesh : Bone is not set to deform, or geometry is skinned to more than one bone.
+
 Game crashes: Invalid function address for switch/function/held object bones.
