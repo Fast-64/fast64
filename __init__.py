@@ -315,7 +315,6 @@ class SM64_ExportGeolayout(bpy.types.Operator):
 	# Called on demand (i.e. button press, menu item)
 	# Can also be called from operator search menu (Spacebar)
 	def execute(self, context):
-		tempROM = tempName(self.outputRom)
 		armatureObj = None
 		if context.mode != 'OBJECT':
 			raise ValueError("Operator can only be used in object mode.")
@@ -379,6 +378,7 @@ class SM64_ExportGeolayout(bpy.types.Operator):
 				self.report({'INFO'}, 'Success! Geolayout at ' + \
 					self.geoExportPath + ', DL at ' + self.geoExportPathDL)
 			else:
+				tempROM = tempName(self.outputRom)
 				checkExpanded(bpy.path.abspath(self.exportRom))
 				romfileExport = open(bpy.path.abspath(self.exportRom), 'rb')	
 				shutil.copy(bpy.path.abspath(self.exportRom), 
@@ -459,8 +459,9 @@ class SM64_ExportGeolayout(bpy.types.Operator):
 			bpy.ops.object.transform_apply(location = False, rotation = True,
 				scale = False, properties =  False)
 
-			romfileOutput.close()
-			os.remove(bpy.path.abspath(tempROM))
+			if self.geoExportType != 'C':
+				romfileOutput.close()
+				os.remove(bpy.path.abspath(tempROM))
 			if armatureObj is not None:
 				armatureObj.select_set(True)
 				context.view_layer.objects.active = armatureObj
@@ -650,8 +651,7 @@ class SM64_ExportDL(bpy.types.Operator):
 	# Called on demand (i.e. button press, menu item)
 	# Can also be called from operator search menu (Spacebar)
 	def execute(self, context):
-		checkExpanded(bpy.path.abspath(self.exportRom))
-		tempROM = tempName(self.outputRom)
+		
 		if context.mode != 'OBJECT':
 			raise ValueError("Operator can only be used in object mode.")	
 		allObjs = context.selected_objects
@@ -677,6 +677,8 @@ class SM64_ExportDL(bpy.types.Operator):
 					self.DLExportPath + '.')
 				return {'FINISHED'} # must return a set
 			else:
+				checkExpanded(bpy.path.abspath(self.exportRom))
+				tempROM = tempName(self.outputRom)
 				romfileExport = open(bpy.path.abspath(self.exportRom), 'rb')	
 				shutil.copy(bpy.path.abspath(self.exportRom), 
 					bpy.path.abspath(tempROM))
@@ -729,8 +731,9 @@ class SM64_ExportDL(bpy.types.Operator):
 		except:
 			if context.mode != 'OBJECT':
 				bpy.ops.object.mode_set(mode = 'OBJECT')
-			romfileOutput.close()
-			os.remove(bpy.path.abspath(tempROM))
+			if self.DLExportType != 'C':
+				romfileOutput.close()
+				os.remove(bpy.path.abspath(tempROM))
 			self.report({'ERROR'}, traceback.format_exc())
 			return {'CANCELLED'} # must return a set
 
@@ -1259,8 +1262,7 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 	# Called on demand (i.e. button press, menu item)
 	# Can also be called from operator search menu (Spacebar)
 	def execute(self, context):
-		checkExpanded(bpy.path.abspath(self.exportRom))
-		tempROM = tempName(self.outputRom)
+		
 		if len(context.selected_objects) == 0 or not \
 			isinstance(context.selected_objects[0].data, bpy.types.Armature):
 			raise ValueError("Armature not selected.")
@@ -1277,6 +1279,8 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 				return {'CANCELLED'} # must return a set
 		else:
 			try:
+				checkExpanded(bpy.path.abspath(self.exportRom))
+				tempROM = tempName(self.outputRom)
 				romfileExport = open(bpy.path.abspath(self.exportRom), 'rb')	
 				shutil.copy(bpy.path.abspath(self.exportRom), 
 					bpy.path.abspath(tempROM))
@@ -1424,7 +1428,7 @@ class SM64_ExportCollision(bpy.types.Operator):
 		name = 'Overwrite 0x2A Behaviour Command')
 
 	def execute(self, context):
-		tempROM = tempName(self.outputRom)
+		
 		obj = None
 		if context.mode != 'OBJECT':
 			raise ValueError("Operator can only be used in object mode.")
@@ -1447,6 +1451,7 @@ class SM64_ExportCollision(bpy.types.Operator):
 				self.report({'INFO'}, 'Success! Collision at ' + \
 					self.colExportPath)
 			else:
+				tempROM = tempName(self.outputRom)
 				checkExpanded(bpy.path.abspath(self.exportRom))
 				romfileExport = open(bpy.path.abspath(self.exportRom), 'rb')	
 				shutil.copy(bpy.path.abspath(self.exportRom), 
@@ -1496,8 +1501,9 @@ class SM64_ExportCollision(bpy.types.Operator):
 			obj.select_set(True)
 			context.view_layer.objects.active = obj
 
-			romfileOutput.close()
-			os.remove(bpy.path.abspath(tempROM))
+			if self.colExportType != 'C':
+				romfileOutput.close()
+				os.remove(bpy.path.abspath(tempROM))
 			obj.select_set(True)
 			context.view_layer.objects.active = obj
 			self.report({'ERROR'}, traceback.format_exc())
