@@ -1514,29 +1514,40 @@ class FModel:
 			if texInfo[1] != 'PAL':
 				filename = getNameFromPath(image.filepath, True) + '.' + \
 					texInfo[0].lower() + '.png'
+				cName = getNameFromPath(image.filepath, True) + '.' + \
+					texInfo[0].lower() + '.inc.c'
 			else:
-				filename = image.filepath
-				raise ValueError("n64graphics cannot currently convert PNGs " +\
-					"to CI textures, so it is pointless to export a PNG " +\
-					"for this purpose. Disable 'Save Textures as PNGs.'")
+				#filename = image.filepath + 'png'
+				cName = image.filepath + '.inc.c'
+				#raise ValueError("n64graphics cannot currently convert PNGs " +\
+				#	"to CI textures, so it is pointless to export a PNG " +\
+				#	"for this purpose. Disable 'Save Textures as PNGs.'")
 			
 			if texSeparate:
 				texC += texture.to_c_tex_separate(
-					os.path.join(texDir, filename)) + '\n'
+					os.path.join(texDir, cName)) + '\n'
 			else:
 				data += texture.to_c_tex_separate(
-					os.path.join(texDir, filename)) + '\n'
+					os.path.join(texDir, cName)) + '\n'
 
 			if texInfo[1] != 'PAL':
-				oldpath = image.filepath
-				try:
-					image.filepath = \
-						os.path.join(dirpath, filename)
-					image.save()
-				except Exception as e:
+				if False:
+					image.save_render(os.path.join(dirpath, filename))
+				else:
+					isPacked = image.packed_file is not None
+					if not isPacked:
+						image.pack()
+					oldpath = image.filepath
+					try:
+						image.filepath = \
+							os.path.join(dirpath, filename)
+						image.save()
+						if not isPacked:
+							image.unpack()
+					except Exception as e:
+						image.filepath = oldpath
+						raise Exception(str(e))
 					image.filepath = oldpath
-					raise Exception(str(e))
-				image.filepath = oldpath
 
 		for name, (material, texDimensions) in self.materials.items():
 			data += material.to_c(static) + '\n'

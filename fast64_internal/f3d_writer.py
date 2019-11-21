@@ -1076,7 +1076,7 @@ def savePaletteDefinition(fModel, image, imageName, texFmt, palFmt):
 	paletteTex = bpy.data.images.new(paletteName, 1, len(palette))
 	paletteTex.pixels = palette
 	paletteTex.filepath = getNameFromPath(image.filepath, True) + '.' + \
-		texFmt.lower() + '_' + palFmt.lower() + '.png'
+		texFmt.lower() + '.pal'
 
 	for color in palette:
 		fPalette.data.extend(color.to_bytes(2, 'big')) 
