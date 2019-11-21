@@ -2,6 +2,7 @@ from .utility import *
 from .sm64_constants import *
 from bpy.utils import register_class, unregister_class
 import bpy, bmesh
+import os
 
 class CollisionVertex:
 	def __init__(self, position):
@@ -253,8 +254,15 @@ def exportCollisionBinary(obj, transformMatrix, romfile, startAddress,
 	collision.save_binary(romfile)
 	return start, end
 
-def exportCollisionC(obj, transformMatrix, filePath, addEntities):
-	fileObj = open(filePath, 'w')
+def exportCollisionC(obj, transformMatrix, dirPath, addEntities):
+	colDirPath = os.path.join(dirPath, toAlnum(obj.name))
+
+	if not os.path.exists(colDirPath):
+		os.mkdir(colDirPath)
+
+	colPath = os.path.join(colDirPath, 'collision.inc.c')
+
+	fileObj = open(colPath, 'w')
 	collision = exportCollisionCommon(obj, transformMatrix, addEntities)
 	fileObj.write(collision.to_c())
 	fileObj.close()

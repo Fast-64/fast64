@@ -4,6 +4,7 @@ import math
 import copy
 
 from os.path import basename
+import os
 from io import BytesIO
 
 from .sm64_geolayout_bone import getSwitchOptionBone
@@ -88,22 +89,35 @@ def exportGeolayoutCommon(armatureObj, obj, convertTransformMatrix,
 	return geolayout.rootNode, fModel
 
 def exportGeolayoutC(armatureObj, obj, convertTransformMatrix, f3dType, isHWv1,
-	geoPath, dlPath, cDefPath):
+	dirPath, texDir, savePNG, texSeparate):
 	rootNode, fModel = exportGeolayoutCommon(armatureObj, obj,
 		convertTransformMatrix, f3dType, isHWv1)
 
-	dlData = fModel.to_c(True)
-	dlFile = open(dlPath, 'w')
-	dlFile.write(dlData)
-	dlFile.close()
+	geoDirPath = os.path.join(dirPath, toAlnum(armatureObj.name))
 
+	if not os.path.exists(geoDirPath):
+		os.mkdir(geoDirPath)
+
+	if savePNG:
+		fModel.save_c_tex_separate(True, texDir, geoDirPath, texSeparate)
+		fModel.freePalettes()
+	else:
+		fModel.freePalettes()
+		modelPath = os.path.join(geoDirPath, 'model.inc.c')
+		dlData = fModel.to_c(True)
+		dlFile = open(modelPath, 'w')
+		dlFile.write(dlData)
+		dlFile.close()
+
+	geoPath = os.path.join(geoDirPath, 'geo.inc.c')
 	geoData = rootNode.to_c()
 	geoFile = open(geoPath, 'w')
 	geoFile.write(geoData)
 	geoFile.close()
 
+	headerPath = os.path.join(geoDirPath, 'header.h')
 	cDefine = rootNode.to_c_def() + fModel.to_c_def()
-	cDefFile = open(cDefPath, 'w')
+	cDefFile = open(headerPath, 'w')
 	cDefFile.write(cDefine)
 	cDefFile.close()
 
@@ -113,6 +127,7 @@ def exportGeolayoutBinaryBank0(romfile, armatureObj, obj, exportRange,
 	segmentData = copy.copy(bank0Segment)
 	rootNode, fModel = exportGeolayoutCommon(armatureObj, obj,
 		convertTransformMatrix, f3dType, isHWv1)
+	fModel.freePalettes()
 
 	startRAM = get64bitAlignedAddr(RAMAddr)
 	nonGeoStartAddr = startRAM + len(rootNode.to_binary(None))
@@ -147,6 +162,7 @@ def exportGeolayoutBinary(romfile, armatureObj, obj, exportRange,
 
 	rootNode, fModel = exportGeolayoutCommon(armatureObj, obj,
 		convertTransformMatrix, f3dType, isHWv1)
+	fModel.freePalettes()
 
 	# Get length of data, then actually write it after relative addresses 
 	# are found.

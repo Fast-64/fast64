@@ -3,6 +3,7 @@ import bmesh
 import mathutils
 from math import pi
 from io import BytesIO
+import os
 
 import copy
 from math import pi, ceil
@@ -89,17 +90,30 @@ def exportF3DCommon(obj, f3dType, isHWv1, transformMatrix):
 	revertMatAndEndDraw(fMeshGroup.mesh.draw)
 	return fModel, fMeshGroup
 
-def exportF3DtoC(filePath, cDefPath, obj, isStatic, transformMatrix, 
-	f3dType, isHWv1):
+def exportF3DtoC(dirPath, obj, isStatic, transformMatrix, 
+	f3dType, isHWv1, texDir, savePNG, texSeparate):
 	fModel, fMeshGroup = exportF3DCommon(obj, f3dType, isHWv1, transformMatrix)
 
-	data = fModel.to_c(isStatic)
-	outFile = open(filePath, 'w')
-	outFile.write(data)
-	outFile.close()
+	modelDirPath = os.path.join(dirPath, toAlnum(obj.name))
 
+	if not os.path.exists(modelDirPath):
+		os.mkdir(modelDirPath)
+
+	if savePNG:
+		fModel.save_c_tex_separate(isStatic, texDir, modelDirPath, texSeparate)
+		fModel.freePalettes()
+	else:
+		fModel.freePalettes()
+		modelPath = os.path.join(modelDirPath, 'model.inc.c')
+	
+		data = fModel.to_c(isStatic)
+		outFile = open(modelPath, 'w')
+		outFile.write(data)
+		outFile.close()
+
+	headerPath = os.path.join(modelDirPath, 'header.h')
 	cDefine = fModel.to_c_def()
-	cDefFile = open(cDefPath, 'w')
+	cDefFile = open(headerPath, 'w')
 	cDefFile.write(cDefine)
 	cDefFile.close()
 
@@ -108,6 +122,7 @@ def exportF3DtoC(filePath, cDefPath, obj, isStatic, transformMatrix,
 def exportF3DtoBinary(romfile, exportRange, transformMatrix, 
 	obj, f3dType, isHWv1, segmentData):
 	fModel, fMeshGroup = exportF3DCommon(obj, f3dType, isHWv1, transformMatrix)
+	fModel.freePalettes()
 
 	addrRange = fModel.set_addr(exportRange[0])
 	if addrRange[1] > exportRange[1]:
@@ -124,6 +139,7 @@ def exportF3DtoBinary(romfile, exportRange, transformMatrix,
 def exportF3DtoBinaryBank0(romfile, exportRange, transformMatrix, 
 	obj, f3dType, isHWv1, RAMAddr):
 	fModel, fMeshGroup = exportF3DCommon(obj, f3dType, isHWv1, transformMatrix)
+	fModel.freePalettes()
 	segmentData = copy.copy(bank0Segment)
 
 	addrRange = fModel.set_addr(RAMAddr)
@@ -867,9 +883,11 @@ def saveTextureIndex(useDict, material, fModel, fMaterial, texProp,
 		tex = texProp.tex
 		if tex is None:
 			raise ValueError('No ' + name + ' selected.')
+		
 		texFormat = texProp.tex_format
-		palFormat = texProp.ci_format
-		texName = getNameFromPath(tex.filepath) + '_' + texFormat
+		isCITexture = texFormat[:2] == 'CI'
+		palFormat = texProp.ci_format if isCITexture else ''
+		texName = getNameFromPath(tex.filepath, True) + '_' + texFormat.lower()
 
 		nextTmem = tmem + ceil(bitSizeDict[texBitSizeOf[texFormat]] * \
 			tex.size[0] * tex.size[1] / 64) 
@@ -895,24 +913,23 @@ def saveTextureIndex(useDict, material, fModel, fMaterial, texProp,
 		mask_T = texProp.T.mask
 		shift_T = texProp.T.shift
 
-		if texFormat == 'CI4' or texFormat == 'CI8':
-			fImage, fPalette = savePaletteDefinition(
-				fModel, tex, texName, texFormatOf[texFormat], 
-				texFormatOf[palFormat], texBitSizeOf[texFormat])
-			fModel.textures[texName] = fImage
-			fModel.textures[fPalette.name] = fPalette
+		if isCITexture:
+			fImage, fPalette, paletteTex = savePaletteDefinition(
+				fModel, tex, texName, texFormat, palFormat)
+			fModel.textures[(tex, (texFormat, palFormat))] = fImage
+			fModel.textures[(paletteTex, (palFormat, 'PAL'))] = fPalette
 			savePaletteLoading(fModel, fMaterial, fPalette, 
 				palFormat, 0, fPalette.height, fModel.f3d)
 		else:
 			fImage = saveTextureDefinition(fModel, tex, texName, 
 				texFormatOf[texFormat], texBitSizeOf[texFormat])
-			fModel.textures[texName] = fImage
+			fModel.textures[(tex, (texFormat, 'NONE'))] = fImage
 
 		saveTextureLoading(fImage, fMaterial, clamp_S,
 		 	mirror_S, clamp_T, mirror_T,
 			mask_S, mask_T, shift_S, 
 			shift_T, tex_SL, tex_TL, tex_SH, 
-			tex_TH, material.tex0.tex_format, index, fModel.f3d, tmem)
+			tex_TH, texFormat, index, fModel.f3d, tmem)
 		texDimensions = fImage.width, fImage.height
 		#fImage = saveTextureDefinition(fModel, tex, texName, 
 		#	texFormatOf[texFormat], texBitSizeOf[texFormat])
@@ -1016,10 +1033,12 @@ def savePaletteLoading(fModel, fMaterial, fPalette, palFormat, pal,
             	palFmt, 'G_IM_SIZ_16b', 4*colorCount, 1,
             	pal, cms, cmt, 0, 0, 0, 0)])
 	
-def savePaletteDefinition(fModel, image, imageName, texFormat, palFormat,
-	bitSize):
+def savePaletteDefinition(fModel, image, imageName, texFmt, palFmt):
+	texFormat = texFormatOf[texFmt]
+	palFormat = texFormatOf[palFmt]
+	bitSize = texBitSizeOf[texFmt]
 	# If image already loaded, return that data.
-	paletteName = toAlnum(imageName) + '_pal_' + palFormat
+	paletteName = toAlnum(imageName) + '_pal_' + palFmt.lower()
 	if paletteName in fModel.textures:
 		return fModel.textures[paletteName]
 
@@ -1054,6 +1073,10 @@ def savePaletteDefinition(fModel, image, imageName, texFormat, palFormat,
 		image.size[0], image.size[1])
 
 	fPalette = FImage(paletteName, palFormat, 'G_IM_SIZ_16b', 1, len(palette))
+	paletteTex = bpy.data.images.new(paletteName, 1, len(palette))
+	paletteTex.pixels = palette
+	paletteTex.filepath = getNameFromPath(image.filepath, True) + '.' + \
+		texFmt.lower() + '_' + palFmt.lower() + '.png'
 
 	for color in palette:
 		fPalette.data.extend(color.to_bytes(2, 'big')) 
@@ -1063,7 +1086,7 @@ def savePaletteDefinition(fModel, image, imageName, texFormat, palFormat,
 	else:	
 		fImage.data = bytearray(texture)
 
-	return fImage, fPalette
+	return fImage, fPalette, paletteTex
 
 def compactNibbleArray(texture, width, height):
 	nibbleData = bytearray(0)
@@ -1275,8 +1298,8 @@ def saveOtherModeHDefinition(fMaterial, settings, defaults):
 	saveModeSetting(fMaterial, settings.g_mdsft_text_filt,
 		defaults.g_mdsft_text_filt, DPSetTextureFilter)
 
-	saveModeSetting(fMaterial, settings.g_mdsft_textlut,
-		defaults.g_mdsft_textlut, DPSetTextureLUT)
+	#saveModeSetting(fMaterial, settings.g_mdsft_textlut,
+	#	defaults.g_mdsft_textlut, DPSetTextureLUT)
 
 	saveModeSetting(fMaterial, settings.g_mdsft_textlod,
 		defaults.g_mdsft_textlod, DPSetTextureLOD)

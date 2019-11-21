@@ -372,9 +372,10 @@ class SM64_ExportGeolayout(bpy.types.Operator):
 			if self.geoExportType == 'C':
 				exportGeolayoutC(armatureObj, obj, finalTransform,
 					context.scene.f3d_type, context.scene.isHWv1,
-					bpy.path.abspath(self.geoExportPath), 
-					bpy.path.abspath(self.geoExportPathDL),
-					bpy.path.abspath(self.geoDefinePath))
+					bpy.path.abspath(self.geoExportPath),
+					bpy.context.scene.geoTexDir,
+					bpy.context.scene.geoSaveTextures,
+					bpy.context.scene.geoSeparateTextureDef)
 				self.report({'INFO'}, 'Success! Geolayout at ' + \
 					self.geoExportPath + ', DL at ' + self.geoExportPathDL)
 			else:
@@ -503,8 +504,12 @@ class SM64_ExportGeolayoutPanel(bpy.types.Panel):
 		col.prop(context.scene, 'geoExportType')
 		if propsGeoE.geoExportType == 'C':
 			col.prop(context.scene, 'geoExportPath')
-			col.prop(context.scene, 'geoExportPathDL')
-			col.prop(context.scene, 'geoDefinePath')
+			col.prop(context.scene, 'geoSaveTextures')
+			if context.scene.geoSaveTextures:
+				col.prop(context.scene, 'geoTexDir')	
+				col.prop(context.scene, 'geoSeparateTextureDef')
+			#col.prop(context.scene, 'geoExportPathDL')
+			#col.prop(context.scene, 'geoDefinePath')
 		else:
 			prop_split(col, context.scene, 'geoExportStart', 'Start Address')
 			prop_split(col, context.scene, 'geoExportEnd', 'End Address')
@@ -669,10 +674,12 @@ class SM64_ExportDL(bpy.types.Operator):
 		
 		try:
 			if self.DLExportType == 'C':
-				exportF3DtoC(bpy.path.abspath(self.DLExportPath), 
-					bpy.path.abspath(self.DLDefinePath), obj,
+				exportF3DtoC(bpy.path.abspath(self.DLExportPath), obj,
 					self.DLExportisStatic, finalTransform,
-					context.scene.f3d_type, context.scene.isHWv1)
+					context.scene.f3d_type, context.scene.isHWv1,
+					bpy.context.scene.DLTexDir,
+					bpy.context.scene.DLSaveTextures,
+					bpy.context.scene.DLSeparateTextureDef)
 				self.report({'INFO'}, 'Success! DL at ' + \
 					self.DLExportPath + '.')
 				return {'FINISHED'} # must return a set
@@ -770,7 +777,11 @@ class SM64_ExportDLPanel(bpy.types.Panel):
 		if propsDLE.DLExportType == 'C':
 			col.prop(context.scene, 'DLExportPath')
 			col.prop(context.scene, 'DLExportisStatic')
-			col.prop(context.scene, 'DLDefinePath')
+			col.prop(context.scene, 'DLSaveTextures')
+			if context.scene.DLSaveTextures:
+				col.prop(context.scene, 'DLTexDir')	
+				col.prop(context.scene, 'DLSeparateTextureDef')
+			#col.prop(context.scene, 'DLDefinePath')
 		else:
 			prop_split(col, context.scene, 'DLExportStart', 'Start Address')
 			prop_split(col, context.scene, 'DLExportEnd', 'End Address')
@@ -1669,7 +1680,7 @@ def register():
 	bpy.types.Scene.DLExportType = bpy.props.EnumProperty(
 		items = enumExportType, name = 'Export', default = 'Binary')
 	bpy.types.Scene.DLExportPath = bpy.props.StringProperty(
-		name = 'Filepath', subtype = 'FILE_PATH')
+		name = 'Directory', subtype = 'FILE_PATH')
 	bpy.types.Scene.DLExportisStatic = bpy.props.BoolProperty(
 		name = 'Static DL', default = True)
 	bpy.types.Scene.DLDefinePath = bpy.props.StringProperty(
@@ -1677,6 +1688,12 @@ def register():
 	bpy.types.Scene.DLUseBank0 = bpy.props.BoolProperty(name = 'Use Bank 0')
 	bpy.types.Scene.DLRAMAddr = bpy.props.StringProperty(name = 'RAM Address', 
 		default = '80000000')
+	bpy.types.Scene.DLTexDir = bpy.props.StringProperty(
+		name ='Include Path', default = '/level/ddd/')
+	bpy.types.Scene.DLSaveTextures = bpy.props.BoolProperty(
+		name = 'Save Textures As PNGs')
+	bpy.types.Scene.DLSeparateTextureDef = bpy.props.BoolProperty(
+		name = 'Save texture.inc.c separately')
 	
 	# Geolayouts
 	bpy.types.Scene.levelGeoImport = bpy.props.EnumProperty(items = level_enums,
@@ -1706,7 +1723,7 @@ def register():
 	bpy.types.Scene.geoExportType = bpy.props.EnumProperty(
 		items = enumExportType, name = 'Export', default = 'Binary')
 	bpy.types.Scene.geoExportPath = bpy.props.StringProperty(
-		name = 'Geo Filepath', subtype = 'FILE_PATH')
+		name = 'Directory', subtype = 'FILE_PATH')
 	bpy.types.Scene.geoExportPathDL = bpy.props.StringProperty(
 		name = 'DL Filepath', subtype = 'FILE_PATH')
 	bpy.types.Scene.geoDefinePath = bpy.props.StringProperty(
@@ -1714,6 +1731,12 @@ def register():
 	bpy.types.Scene.geoUseBank0 = bpy.props.BoolProperty(name = 'Use Bank 0')
 	bpy.types.Scene.geoRAMAddr = bpy.props.StringProperty(name = 'RAM Address', 
 		default = '80000000')
+	bpy.types.Scene.geoTexDir = bpy.props.StringProperty(
+		name ='Include Path', default = '/level/ddd/')
+	bpy.types.Scene.geoSaveTextures = bpy.props.BoolProperty(
+		name = 'Save Textures As PNGs')
+	bpy.types.Scene.geoSeparateTextureDef = bpy.props.BoolProperty(
+		name = 'Save texture.inc.c separately')
 
 	# Level
 	bpy.types.Scene.levelLevel = bpy.props.EnumProperty(items = level_enums, 
@@ -1742,13 +1765,13 @@ def register():
 	bpy.types.Scene.animExportType = bpy.props.EnumProperty(
 		items = enumExportType, name = 'Export', default = 'Binary')
 	bpy.types.Scene.animExportPath = bpy.props.StringProperty(
-		name = 'Filepath', subtype = 'FILE_PATH')
+		name = 'Directory', subtype = 'FILE_PATH')
 	bpy.types.Scene.animOverwriteDMAEntry = bpy.props.BoolProperty(
 		name = 'Overwrite DMA Entry')
 
 	# Collision
 	bpy.types.Scene.colExportPath = bpy.props.StringProperty(
-		name = 'Filepath', subtype = 'FILE_PATH')
+		name = 'Directory', subtype = 'FILE_PATH')
 	bpy.types.Scene.colExportType = bpy.props.EnumProperty(
 		items = enumExportType, name = 'Export', default = 'Binary')
 	bpy.types.Scene.colExportLevel = bpy.props.EnumProperty(items = level_enums, 
@@ -1759,7 +1782,7 @@ def register():
 		name = 'Overwrite 0x2A Behaviour Command')
 	bpy.types.Scene.colStartAddr = bpy.props.StringProperty(name ='Start Address',
 		default = '11D8930')
-	bpy.types.Scene.colEndAddr = bpy.props.StringProperty(name ='Start Address', 
+	bpy.types.Scene.colEndAddr = bpy.props.StringProperty(name ='Start Address',
 		default = '11FFF00')
 
 	# ROM
@@ -1799,6 +1822,9 @@ def unregister():
 	del bpy.types.Scene.geoDefinePath
 	del bpy.types.Scene.geoUseBank0
 	del bpy.types.Scene.geoRAMAddr
+	del bpy.types.Scene.geoTexDir
+	del bpy.types.Scene.geoSaveTextures
+	del bpy.types.Scene.geoSeparateTextureDef
 
 	# Animation
 	del bpy.types.Scene.animStartImport
@@ -1845,6 +1871,9 @@ def unregister():
 	del bpy.types.Scene.DLDefinePath
 	del bpy.types.Scene.DLUseBank0
 	del bpy.types.Scene.DLRAMAddr
+	del bpy.types.Scene.DLTexDir
+	del bpy.types.Scene.DLSaveTextures
+	del bpy.types.Scene.DLSeparateTextureDef
 
 	# Level
 	del bpy.types.Scene.levelLevel

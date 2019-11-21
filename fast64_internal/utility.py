@@ -47,16 +47,25 @@ def get64bitAlignedAddr(address):
 		address = ceil(address / 8) * 8
 	return address
 
-def getNameFromPath(path):
+def getNameFromPath(path, removeExtension = False):
 	index = len(path) - 1
+	extensionIndex = len(path)
 	n = path[index]
+	extensionFound = not removeExtension
 	while n != '/' and n != '\\' and index > 0:
 		index -= 1
+		if not extensionFound:
+			extensionIndex -= 1
+		if n == '.':
+			extensionFound = True
+
 		n = path[index]
 	if index == 0 and n != '/' and n != '\\':
-		return toAlnum(path)
+		name = toAlnum(path[:extensionIndex])
 	else:
-		return toAlnum(path[index + 1:])
+		name = toAlnum(path[index + 1:extensionIndex])
+
+	return name
 	
 def gammaCorrect(color):
 	return [

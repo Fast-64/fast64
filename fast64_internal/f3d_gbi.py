@@ -1,6 +1,9 @@
 # Macros are all copied over from gbi.h
+import bpy
 from .utility import decodeSegmentedAddr, encodeSegmentedAddr, get64bitAlignedAddr
 from math import ceil
+import os
+from .utility import getNameFromPath
 
 lightIndex = {
 	'LIGHT_1' : 1,
@@ -1442,7 +1445,7 @@ class FModel:
 	def __init__(self, f3dType, isHWv1):
 		# dict of light name : Lights
 		self.lights = {}
-		# dict of texture name : FImage
+		# dict of (texture, (texture format, palette format)) : FImage
 		self.textures = {}
 		# dict of material: (FMaterial, (width, height))
 		self.materials = {} 
@@ -1466,7 +1469,7 @@ class FModel:
 			if not startAddrSet:
 				startAddrSet = True
 				startAddress = addrRange[0]
-		for name, texture in self.textures.items():
+		for info, texture in self.textures.items():
 			addrRange = texture.set_addr(addrRange[1])
 			if not startAddrSet:
 				startAddrSet = True
@@ -1481,7 +1484,7 @@ class FModel:
 	def save_binary(self, romfile, segments):
 		for name, light in self.lights.items():
 			light.save_binary(romfile)
-		for name, texture in self.textures.items():
+		for info, texture in self.textures.items():
 			texture.save_binary(romfile)
 		for name, (material, texDimensions) in self.materials.items():
 			material.save_binary(romfile, self.f3d, segments)
@@ -1492,13 +1495,70 @@ class FModel:
 		data = ''
 		for name, light in self.lights.items():
 			data += light.to_c() + '\n'
-		for name, texture in self.textures.items():
+		for info, texture in self.textures.items():
 			data += texture.to_c() + '\n'
 		for name, (material, texDimensions) in self.materials.items():
 			data += material.to_c(static) + '\n'
 		for name, meshGroup in self.meshGroups.items():
 			data += meshGroup.to_c(static) + '\n'
 		return data
+
+	def save_c_tex_separate(self, static, texDir, dirpath, texSeparate):
+		data = ''
+		texC = ''
+		for name, light in self.lights.items():
+			data += light.to_c() + '\n'
+		#for info, texture in self.textures.items():
+		#	data += texture.to_c_tex_separate() + '\n'
+		for (image, texInfo), texture in self.textures.items():
+			if texInfo[1] != 'PAL':
+				filename = getNameFromPath(image.filepath, True) + '.' + \
+					texInfo[0].lower() + '.png'
+			else:
+				filename = image.filepath
+				raise ValueError("n64graphics cannot currently convert PNGs " +\
+					"to CI textures, so it is pointless to export a PNG " +\
+					"for this purpose. Disable 'Save Textures as PNGs.'")
+			
+			if texSeparate:
+				texC += texture.to_c_tex_separate(
+					os.path.join(texDir, filename)) + '\n'
+			else:
+				data += texture.to_c_tex_separate(
+					os.path.join(texDir, filename)) + '\n'
+
+			if texInfo[1] != 'PAL':
+				oldpath = image.filepath
+				try:
+					image.filepath = \
+						os.path.join(dirpath, filename)
+					image.save()
+				except Exception as e:
+					image.filepath = oldpath
+					raise Exception(str(e))
+				image.filepath = oldpath
+
+		for name, (material, texDimensions) in self.materials.items():
+			data += material.to_c(static) + '\n'
+		for name, meshGroup in self.meshGroups.items():
+			data += meshGroup.to_c(static) + '\n'
+		
+		modelPath = os.path.join(dirpath, 'model.inc.c')
+		modelFile = open(modelPath, 'w')
+		modelFile.write(data)
+		modelFile.close()
+
+		if texSeparate:
+			texPath = os.path.join(dirpath, 'texture.inc.c')
+			texFile = open(texPath, 'w')
+			texFile.write(texC)
+			texFile.close()
+	
+	def freePalettes(self):
+		for (image, texInfo), texture in self.textures.items():
+			#texDict[name] = texture.to_c_data() + '\n'
+			if texInfo[1] == 'PAL':
+				bpy.data.images.remove(image)
 	
 	def to_c_def(self):
 		data = ''
@@ -1842,14 +1902,25 @@ class FImage:
 	
 	def to_c(self):
 		code = 'static const u8 ' + self.name + '[] = {\n\t'
+		code += self.to_c_data()
+		code += '\n};\n'
+		return code
+
+	def to_c_tex_separate(self, texPath):
+		code = 'static const u8 ' + self.name + '[] = {\n\t'
+		code += '#include "' + texPath + '"'
+		code += '\n};\n'
+		return code
+
+	def to_c_data(self):
+		code = ''
 		counter = 0
 		for i in range(len(self.data)):
 			code += '0x' + format(self.data[i], 'X') + ', '
 			counter += 1
 			if counter > 8:
 				code += '\n\t'
-				counter = 0 
-		code += '\n};\n'
+				counter = 0
 		return code
 
 	

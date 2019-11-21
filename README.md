@@ -43,6 +43,9 @@ The F3D material inspector can be found in the properties editor under the mater
 The geolayout inspector can be found in the properties editor under the bone tab in Pose Mode.
 The RDP default settings can be found in the properties editor under the world tab.
 
+### C Exporting
+When exporting data to C, a folder will be created (if it does not yet exist) and will be named after the object/armature it is based off of. The C files will be saved within this new folder. Any previous C files of the same name will be overwritten.
+
 ### ROM File Settings
 When importing from a ROM, the plugin will import from the ROM at filepath 'Import ROM', When exporting to a ROM, the plugin will make a copy of the file at 'Export ROM', modify it, and save the file to 'Output ROM'. The ROM must be expanded.
 
@@ -79,8 +82,7 @@ Basically, Mario's DMA table starts at 0x4EC000. There is an 8 byte header, and 
 Often times it is hard to rig an existing SM64 geolayout, as there are many intermediate non-deform bones and bones don't point to their children. To make this easier you can use the 'Create Animatable Metarig' operator in the SM64 Armature Tools header. This will generate a metarig which can be used with IK. The metarig bones will be placed on armature layers 3 and 4.
 
 ### Exporting Geolayouts to C
-When you export in C, there will be 3 paths. Geo Filepath is for geolayout data. DL Filepath is for f3d data. Definitions Filepath is for extern definitions of objects.
-To replace a model in decomp, replace its geo.inc.c and model.inc.c contents with the geolayout file and the dl file respectively. Use the contents of the define file to replace existing defines in one of the group header files (ex. mario is in group0.h). Make sure that the name of your geolayout is the same the name of the geolayout you're replacing.
+To replace an actor model in decomp, replace its geo.inc.c and model.inc.c contents with the geolayout file and the dl file respectively. Use the contents of the header file to replace existing extern declarations in one of the group header files (ex. mario is in group0.h). Make sure that the name of your geolayout is the same the name of the geolayout you're replacing.
 
 ### Switch Statements
 To add a switch mesh node, duplicate your switch bone and move it off to the side. Set the bone geolayout command to be Switch Option. Any nodes in this switch option must be children of this bone. Add any other bones to this bone. Add your switch geometry into your existing mesh in the correct position and skin it.

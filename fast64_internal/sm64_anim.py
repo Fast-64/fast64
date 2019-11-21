@@ -5,6 +5,7 @@ import re
 from .utility import *
 from .sm64_constants import *
 from math import pi
+import os
 
 sm64_anim_types = {'ROTATE', 'TRANSLATE'}
 
@@ -124,11 +125,22 @@ def getLastKeyframeTime(keyframes):
 			last = keyframe.co[0]
 	return last
 
-def exportAnimationC(armatureObj, loopAnim, filePath):
+def exportAnimationC(armatureObj, loopAnim, dirPath):
 	sm64_anim = exportAnimationCommon(armatureObj, loopAnim)
+	animName = armatureObj.animation_data.action.name
+
+	geoDirPath = os.path.join(dirPath, toAlnum(armatureObj.name))
+	if not os.path.exists(geoDirPath):
+		os.mkdir(geoDirPath)
+
+	animDirPath = os.path.join(geoDirPath, 'anims')
+	if not os.path.exists(animDirPath):
+		os.mkdir(animDirPath)
+
+	animPath = os.path.join(animDirPath, 'anim_' + toAlnum(animName) + '.inc.c')
 
 	data = sm64_anim.to_c()
-	outFile = open(filePath, 'w')
+	outFile = open(animPath, 'w')
 	outFile.write(data)
 	outFile.close()
 
