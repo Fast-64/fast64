@@ -74,7 +74,8 @@ def parseGeoLayout(romfile, startAddress, scene, level,
 		listObj.data.update()
 
 		if shadeSmooth:
-			bpy.ops.object.mode_set(mode = 'OBJECT')
+			if bpy.context.mode != 'OBJECT':
+				bpy.ops.object.mode_set(mode = 'OBJECT')
 			bpy.ops.object.select_all(action = 'DESELECT')
 			listObj.select_set(True)
 			bpy.ops.object.shade_smooth()
@@ -92,7 +93,8 @@ def parseGeoLayout(romfile, startAddress, scene, level,
 			obj = armatureMeshGroups[i][2]
 			switchArmatureObj = armatureMeshGroups[i][0]
 			# Apply mesh to armature.	
-			bpy.ops.object.mode_set(mode = 'OBJECT')
+			if bpy.context.mode != 'OBJECT':
+				bpy.ops.object.mode_set(mode = 'OBJECT')
 			bpy.ops.object.select_all(action = 'DESELECT')
 			obj.select_set(True)
 			switchArmatureObj.select_set(True)
@@ -327,10 +329,12 @@ def generateMetarig(armatureObj):
 	createBoneGroups(armatureObj)
 	traverseArmatureForMetarig(armatureObj, 'root', None)
 	armatureObj.data.layers = createBoneLayerMask([boneLayers['visual']])
-	bpy.ops.object.mode_set(mode = "OBJECT")
+	if bpy.context.mode != 'OBJECT':
+		bpy.ops.object.mode_set(mode = "OBJECT")
 
 def traverseArmatureForMetarig(armatureObj, boneName, parentName):
-	bpy.ops.object.mode_set(mode = "OBJECT")
+	if bpy.context.mode != 'OBJECT':
+		bpy.ops.object.mode_set(mode = "OBJECT")
 	poseBone = armatureObj.pose.bones[boneName]
 	if poseBone.bone_group is None:
 		processBoneMeta(armatureObj, boneName, parentName)
@@ -364,7 +368,8 @@ def processBoneMeta(armatureObj, boneName, parentName):
 	metaboneName = metabone.name
 	visualBoneName = visualBone.name
 
-	bpy.ops.object.mode_set(mode = 'OBJECT')
+	if bpy.context.mode != 'OBJECT':
+		bpy.ops.object.mode_set(mode = 'OBJECT')
 	poseBone = armatureObj.pose.bones[boneName]
 	metabonePose = armatureObj.pose.bones[metaboneName]
 	visualBonePose = armatureObj.pose.bones[visualBoneName]
@@ -452,7 +457,8 @@ def createConnectBone(armatureObj, childName, parentName):
 	else:
 		child.use_connect = True
 
-	bpy.ops.object.mode_set(mode = 'OBJECT')
+	if bpy.context.mode != 'OBJECT':
+		bpy.ops.object.mode_set(mode = 'OBJECT')
 	connectPoseBone = armatureObj.pose.bones[connectBoneName]
 	connectBone = armatureObj.data.bones[connectBoneName]
 	connectBone.layers = createBoneLayerMask([boneLayers['visual']])
@@ -463,7 +469,8 @@ def createConnectBone(armatureObj, childName, parentName):
 
 def createBone(armatureObj, parentBoneName, boneName, currentTransform,
 	boneGroup, loadDL):
-	bpy.ops.object.mode_set(mode="OBJECT")
+	if bpy.context.mode != 'OBJECT':
+		bpy.ops.object.mode_set(mode="OBJECT")
 	bpy.ops.object.select_all(action = 'DESELECT')
 	bpy.context.view_layer.objects.active = armatureObj
 	bpy.ops.object.mode_set(mode="EDIT")
@@ -646,7 +653,8 @@ def parseDLWithOffset(romfile, currentAddress,
 		if armatureObj is not None:
 			# Create bone
 			boneName = createBone(armatureObj, parentBoneName, boneName, 	finalTransform, None, hasMeshData)
-			bpy.ops.object.mode_set(mode = 'OBJECT')
+			if bpy.context.mode != 'OBJECT':
+				bpy.ops.object.mode_set(mode = 'OBJECT')
 			bone = armatureObj.data.bones[boneName]
 			bone.draw_layer = str(drawLayer)
 			armatureObj.data.bones[boneName].use_deform = hasMeshData

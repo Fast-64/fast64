@@ -104,6 +104,7 @@ def exportF3DCommon(obj, f3dType, isHWv1, transformMatrix):
 	obj.original_name = obj.name
 	bpy.ops.object.select_all(action = 'DESELECT')
 	obj.select_set(True)
+	bpy.context.view_layer.objects.active = obj
 	bpy.ops.object.duplicate()
 	fModel = FModel(f3dType, isHWv1)
 	try:
@@ -118,10 +119,12 @@ def exportF3DCommon(obj, f3dType, isHWv1, transformMatrix):
 		fMeshGroup = saveStaticModel(fModel, tempObj, transformMatrix)
 		cleanupDuplicatedObjects([tempObj])
 		obj.select_set(True)
+		bpy.context.view_layer.objects.active = obj
 	except Exception as e:
 		cleanupDuplicatedObjects([tempObj])
 		raise Exception(str(e))
 		obj.select_set(True)
+		bpy.context.view_layer.objects.active = obj
 
 	return fModel, fMeshGroup
 
@@ -152,7 +155,8 @@ def exportF3DtoC(dirPath, obj, isStatic, transformMatrix,
 	cDefFile.write(cDefine)
 	cDefFile.close()
 
-	bpy.ops.object.mode_set(mode = 'OBJECT')
+	if bpy.context.mode != 'OBJECT':
+		bpy.ops.object.mode_set(mode = 'OBJECT')
 
 def exportF3DtoBinary(romfile, exportRange, transformMatrix, 
 	obj, f3dType, isHWv1, segmentData):
@@ -195,7 +199,8 @@ def exportF3DtoBinaryBank0(romfile, exportRange, transformMatrix,
 	romfile.seek(startAddress)
 	romfile.write(data)
 
-	bpy.ops.object.mode_set(mode = 'OBJECT')
+	if bpy.context.mode != 'OBJECT':
+		bpy.ops.object.mode_set(mode = 'OBJECT')
 
 	segPointerData = encodeSegmentedAddr(
 		fMeshGroup.mesh.draw.startAddress, segmentData)

@@ -130,8 +130,12 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 		processMesh(fModel, tempObj, convertTransformMatrix,
 			geolayout.rootNode, True)
 		cleanupDuplicatedObjects(allObjs)
+		obj.select_set(True)
+		bpy.context.view_layer.objects.active = obj
 	except Exception as e:
 		cleanupDuplicatedObjects(allObjs)
+		obj.select_set(True)
+		bpy.context.view_layer.objects.active = obj
 		raise Exception(str(e))
 
 	return geolayout.rootNode, fModel

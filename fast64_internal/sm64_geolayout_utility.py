@@ -61,7 +61,8 @@ def createBoneGroups(armatureObj):
 
 def addBoneToGroup(armatureObj, boneName, groupName):
 	if groupName is None:
-		bpy.ops.object.mode_set(mode="OBJECT")
+		if bpy.context.mode != 'OBJECT':
+			bpy.ops.object.mode_set(mode="OBJECT")
 		posebone = armatureObj.pose.bones[boneName]
 		bone = armatureObj.data.bones[boneName]
 		posebone.bone_group = None
@@ -75,7 +76,8 @@ def addBoneToGroup(armatureObj, boneName, groupName):
 	elif groupName not in boneNodeProperties:
 		raise ValueError("Bone group " + groupName + " doesn't exist.")
 
-	bpy.ops.object.mode_set(mode="OBJECT")
+	if bpy.context.mode != 'OBJECT':
+		bpy.ops.object.mode_set(mode="OBJECT")
 	posebone = armatureObj.pose.bones[boneName]
 	bone = armatureObj.data.bones[boneName]
 	posebone.bone_group_index = getBoneGroupIndex(armatureObj, groupName)

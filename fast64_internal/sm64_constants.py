@@ -112,6 +112,11 @@ S_UNLIT_TEX = ['0', '0', '0', 'TEXEL0',
 			  	'0', '0', '0', 'TEXEL0',
 			  	'0', '0', '0', 'ENVIRONMENT']
 
+S_UNLIT_TEX_CUTOUT = ['0', '0', '0', 'TEXEL0',
+				'TEXEL0', '0', 'ENVIRONMENT', '0',
+				'0', '0', '0', 'TEXEL0',
+				'TEXEL0', '0', 'ENVIRONMENT', '0']
+
 # SM64 CUSTOM IMPORTER CC
 S_SHADED_TEX_NOALPHA = ['TEXEL0', '0', 'SHADE', '0',
 							'0', '0', '0', 'SHADE',

@@ -1647,6 +1647,12 @@ sm64_unlit_texture = F3DMaterialSettings()
 sm64_unlit_texture.color_combiner = tuple(S_UNLIT_TEX + S_UNLIT_TEX)
 sm64_unlit_texture.set_env = False
 
+sm64_unlit_texture_cutout = F3DMaterialSettings()
+sm64_unlit_texture_cutout.color_combiner = \
+	tuple(S_UNLIT_TEX_CUTOUT + S_UNLIT_TEX_CUTOUT)
+sm64_unlit_texture_cutout.set_env = False
+sm64_unlit_texture_cutout.g_cull_back = False
+
 sm64_shaded_texture = F3DMaterialSettings()
 sm64_shaded_texture.color_combiner = tuple(S_SHADED_TEX + S_SHADED_TEX)
 sm64_shaded_texture.set_env = False
@@ -1686,6 +1692,7 @@ sm64_prim_transparent_shade.g_cull_back = False
 enumMaterialPresets = [
     ('Custom', 'Custom', 'Custom'),
     ('Unlit Texture', 'Unlit Texture', 'Unlit Texture'),
+	('Unlit Texture Cutout', 'Unlit Texture Cutout', 'Unlit Texture Cutout'),
 	('Shaded Solid', 'Shaded Solid', 'Shaded Solid'),
 	('Decal On Shaded Solid', 'Decal On Shaded Solid', 'Decal On Shaded Solid'),
     ('Shaded Texture', 'Shaded Texture', 'Shaded Texture'),
@@ -1697,6 +1704,7 @@ enumMaterialPresets = [
 
 materialPresetDict = {
     'Unlit Texture' : sm64_unlit_texture,
+	'Unlit Texture Cutout' : sm64_unlit_texture_cutout,
 	'Shaded Solid' : sm64_shaded_solid,
     'Shaded Texture' : sm64_shaded_texture,
     'Shaded Texture Cutout' : sm64_shaded_texture_cutout,
