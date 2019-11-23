@@ -60,7 +60,9 @@ def getAllArmatures(armatureObj, currentArmatures):
 	for linkedArmature in linkedArmatures:
 		getAllArmatures(linkedArmature, currentArmatures)
 
-def exportGeolayoutCommon(armatureObj, obj, convertTransformMatrix, 
+
+# Convert to Geolayout
+def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix, 
 	f3dType, isHWv1):
 	
 	fModel = FModel(f3dType, isHWv1)
@@ -88,12 +90,72 @@ def exportGeolayoutCommon(armatureObj, obj, convertTransformMatrix,
 	generateSwitchOptions(geolayout.rootNode)
 	return geolayout.rootNode, fModel
 
-def exportGeolayoutC(armatureObj, obj, convertTransformMatrix, f3dType, isHWv1,
-	dirPath, texDir, savePNG, texSeparate):
-	rootNode, fModel = exportGeolayoutCommon(armatureObj, obj,
+def selectMeshChildrenOnly(obj):
+	obj.select_set(True)
+	obj.original_name = obj.name
+	for child in obj.children:
+		if isinstance(child.data, bpy.types.Mesh):
+			selectMeshChildrenOnly(child)
+
+def convertObjectToGeolayout(obj, convertTransformMatrix, 
+	f3dType, isHWv1):
+	
+	fModel = FModel(f3dType, isHWv1)
+	
+	#convertTransformMatrix = convertTransformMatrix @ \
+	#	mathutils.Matrix.Diagonal(obj.scale).to_4x4()
+
+	# Start geolayout
+	geolayout = Geolayout()
+	geolayout.rootNode = RootTransformNode(StartNode(), toAlnum(obj.name))
+
+	# Duplicate objects to apply scale / modifiers / linked data
+	bpy.ops.object.select_all(action = 'DESELECT')
+	selectMeshChildrenOnly(obj)
+	obj.select_set(True)
+	bpy.context.view_layer.objects.active = obj
+	bpy.ops.object.duplicate()
+	try:
+		tempObj = bpy.context.view_layer.objects.active
+		allObjs = bpy.context.selected_objects
+		bpy.ops.object.make_single_user(obdata = True)
+		bpy.ops.object.transform_apply(location = False, 
+			rotation = False, scale = True, properties =  False)
+		for selectedObj in allObjs:
+			bpy.ops.object.select_all(action = 'DESELECT')
+			selectedObj.select_set(True)
+			for modifier in selectedObj.modifiers:
+				bpy.ops.object.modifier_apply(apply_as='DATA',
+					modifier=modifier.name)
+		processMesh(fModel, tempObj, convertTransformMatrix,
+			geolayout.rootNode, True)
+		cleanupDuplicatedObjects(allObjs)
+	except Exception as e:
+		cleanupDuplicatedObjects(allObjs)
+		raise Exception(str(e))
+
+	return geolayout.rootNode, fModel
+
+# C Export
+def exportGeolayoutArmatureC(armatureObj, obj, convertTransformMatrix, 
+	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate):
+	rootNode, fModel = convertArmatureToGeolayout(armatureObj, obj,
 		convertTransformMatrix, f3dType, isHWv1)
 
-	geoDirPath = os.path.join(dirPath, toAlnum(armatureObj.name))
+	saveGeolayoutC(armatureObj.name, rootNode, fModel, dirPath, texDir,
+		savePNG, texSeparate)
+
+def exportGeolayoutObjectC(obj, convertTransformMatrix, 
+	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate):
+	rootNode, fModel = convertObjectToGeolayout(obj, 
+		convertTransformMatrix, f3dType, isHWv1)
+
+	saveGeolayoutC(obj.name, rootNode, fModel, dirPath, texDir,
+		savePNG, texSeparate)
+
+def saveGeolayoutC(dirName, rootNode, fModel, dirPath, texDir, savePNG,
+ 	texSeparate):
+	geoDirPath = os.path.join(dirPath, toAlnum(dirName))
 
 	if not os.path.exists(geoDirPath):
 		os.mkdir(geoDirPath)
@@ -121,14 +183,32 @@ def exportGeolayoutC(armatureObj, obj, convertTransformMatrix, f3dType, isHWv1,
 	cDefFile.write(cDefine)
 	cDefFile.close()
 
-def exportGeolayoutBinaryBank0(romfile, armatureObj, obj, exportRange,	
+
+# Binary Bank 0 Export
+def exportGeolayoutArmatureBinaryBank0(romfile, armatureObj, obj, exportRange,	
  	convertTransformMatrix, levelCommandPos, modelID, textDumpFilePath, 
 	f3dType, isHWv1, RAMAddr):
-	segmentData = copy.copy(bank0Segment)
-	rootNode, fModel = exportGeolayoutCommon(armatureObj, obj,
+	
+	rootNode, fModel = convertArmatureToGeolayout(armatureObj, obj,
 		convertTransformMatrix, f3dType, isHWv1)
-	fModel.freePalettes()
+	
+	return saveGeolayoutBinaryBank0(romfile, fModel, rootNode, exportRange,	
+ 		levelCommandPos, modelID, textDumpFilePath, f3dType, isHWv1, RAMAddr)
 
+def exportGeolayoutObjectBinaryBank0(romfile, obj, exportRange,	
+ 	convertTransformMatrix, levelCommandPos, modelID, textDumpFilePath, 
+	f3dType, isHWv1, RAMAddr):
+	
+	rootNode, fModel = convertObjectToGeolayout(obj, 
+		convertTransformMatrix, f3dType, isHWv1)
+	
+	return saveGeolayoutBinaryBank0(romfile, fModel, rootNode, exportRange,	
+ 		levelCommandPos, modelID, textDumpFilePath, f3dType, isHWv1, RAMAddr)
+
+def saveGeolayoutBinaryBank0(romfile, fModel, rootNode, exportRange,	
+ 	levelCommandPos, modelID, textDumpFilePath, f3dType, isHWv1, RAMAddr):
+	fModel.freePalettes()
+	segmentData = copy.copy(bank0Segment)
 	startRAM = get64bitAlignedAddr(RAMAddr)
 	nonGeoStartAddr = startRAM + len(rootNode.to_binary(None))
 
@@ -155,13 +235,34 @@ def exportGeolayoutBinaryBank0(romfile, armatureObj, obj, exportRange,
 	geoWriteTextDump(textDumpFilePath, rootNode, segmentData)
 	
 	return ((startAddress, startAddress + len(data)), startRAM + 0x80000000)
+	
 
-def exportGeolayoutBinary(romfile, armatureObj, obj, exportRange,	
+# Binary Export
+def exportGeolayoutArmatureBinary(romfile, armatureObj, obj, exportRange,	
  	convertTransformMatrix, levelData, levelCommandPos, modelID,
 	textDumpFilePath, f3dType, isHWv1):
 
-	rootNode, fModel = exportGeolayoutCommon(armatureObj, obj,
+	rootNode, fModel = convertArmatureToGeolayout(armatureObj, obj,
 		convertTransformMatrix, f3dType, isHWv1)
+
+	return saveGeolayoutBinary(romfile, rootNode, fModel, exportRange,	
+ 		convertTransformMatrix, levelData, levelCommandPos, modelID,
+		textDumpFilePath, f3dType, isHWv1)
+
+def exportGeolayoutObjectBinary(romfile, obj, exportRange,	
+ 	convertTransformMatrix, levelData, levelCommandPos, modelID,
+	textDumpFilePath, f3dType, isHWv1):
+	
+	rootNode, fModel = convertObjectToGeolayout(obj, 
+		convertTransformMatrix, f3dType, isHWv1)
+	
+	return saveGeolayoutBinary(romfile, rootNode, fModel, exportRange,	
+ 		convertTransformMatrix, levelData, levelCommandPos, modelID,
+		textDumpFilePath, f3dType, isHWv1)
+	
+def saveGeolayoutBinary(romfile, rootNode, fModel, exportRange,	
+ 	convertTransformMatrix, levelData, levelCommandPos, modelID,
+	textDumpFilePath, f3dType, isHWv1):
 	fModel.freePalettes()
 
 	# Get length of data, then actually write it after relative addresses 
@@ -182,6 +283,7 @@ def exportGeolayoutBinary(romfile, armatureObj, obj, exportRange,
 	geoWriteTextDump(textDumpFilePath, rootNode, levelData)
 	
 	return (startAddress, addrRange[1]), bytesToHex(segPointerData)
+
 
 def geoWriteLevelCommand(romfile, segPointerData, levelCommandPos, modelID):
 	if levelCommandPos is not None and modelID is not None:
@@ -267,10 +369,17 @@ def duplicateNode(transformNode, parentNode, index):
 	parentNode.children.insert(index, optionNode)
 	return optionNode
 
-def addPreTranslateRotateNode(armatureObj, parentTransformNode, 
+def addPreTranslateRotateNode(parentTransformNode, 
 	translate, rotate):
 	preNodeTransform = TransformNode(
-		TranslateRotateNode(armatureObj, None, translate, rotate))
+		TranslateRotateNode(1, 0, False, translate, rotate))
+
+	preNodeTransform.parent = parentTransformNode
+	parentTransformNode.children.append(preNodeTransform)
+	return preNodeTransform
+
+def addPreRenderAreaNode(parentTransformNode, cullingRadius):
+	preNodeTransform = TransformNode(StartRenderAreaNode(cullingRadius))
 
 	preNodeTransform.parent = parentTransformNode
 	parentTransformNode.children.append(preNodeTransform)
@@ -404,6 +513,60 @@ class TransformNode:
 			raise ValueError("A switch bone must have at least one child bone.")
 		return data
 
+# This function should be called on a copy of an object
+# The copy will have modifiers / scale applied and will be made single user
+def processMesh(fModel, obj, transformMatrix, parentTransformNode, isRoot):
+	#finalTransform = copy.deepcopy(transformMatrix)
+
+	if not isinstance(obj.data, bpy.types.Mesh):
+		return
+
+	translate = obj.matrix_local.decompose()[0]
+	rotate = obj.matrix_local.decompose()[1]
+
+	#translation = mathutils.Matrix.Translation(translate)
+	#rotation = rotate.to_matrix().to_4x4()
+
+	geoCmd = obj.geo_cmd_static
+
+	if obj.use_render_area:
+		parentTransformNode = \
+			addPreRenderAreaNode(parentTransformNode, obj.culling_radius)
+
+	rotAxis, rotAngle = rotate.to_axis_angle()
+	if rotAngle > 0.00001:
+		if geoCmd == 'Billboard':
+			node = BillboardNode(int(obj.draw_layer_static), True, 
+				mathutils.Vector((0,0,0)))
+		else:
+			node = DisplayListWithOffsetNode(int(obj.draw_layer_static), True,
+				mathutils.Vector((0,0,0)))	
+
+		parentTransformNode = addPreTranslateRotateNode(
+			parentTransformNode, translate, rotate)
+
+	else:
+		if geoCmd == 'Billboard':
+			node = BillboardNode(int(obj.draw_layer_static), True, translate)
+		else:
+			node = DisplayListWithOffsetNode(int(obj.draw_layer_static), True,
+				translate)
+
+	transformNode = TransformNode(node)
+
+	meshGroup = saveStaticModel(fModel, obj, transformMatrix)
+	if meshGroup is None:
+		node.hasDL = False
+	else:
+		node.DLmicrocode = meshGroup.mesh.draw
+		node.fMesh = meshGroup.mesh
+
+	parentTransformNode.children.append(transformNode)
+	transformNode.parent = parentTransformNode
+	
+	for childObj in obj.children:
+		processMesh(fModel, childObj, transformMatrix, transformNode, False)
+
 # need to remember last geometry holding parent bone.
 # to do skinning, add the 0x15 command before any non-geometry bone groups.
 # 
@@ -455,38 +618,49 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 	if boneGroup is None:
 		rotAxis, rotAngle = rotate.to_axis_angle()
 		if rotAngle > 0.00001:
-
-			node = DisplayListWithOffsetNode(armatureObj, boneName, 
-				mathutils.Vector((0,0,0)))	
+			node = DisplayListWithOffsetNode(int(bone.draw_layer),
+				bone.use_deform, mathutils.Vector((0,0,0)))	
 
 			parentTransformNode = addPreTranslateRotateNode(
-				armatureObj, parentTransformNode, translate, rotate)
+				parentTransformNode, translate, rotate)
 
 			lastTranslateName = boneName
 			lastRotateName = boneName
 		else:
-			node = DisplayListWithOffsetNode(armatureObj, boneName, translate)
+			node = DisplayListWithOffsetNode(int(bone.draw_layer),
+				bone.use_deform, translate)
 			lastTranslateName = boneName
 		
 		finalTransform = transformMatrix @ translation	
 	
 	elif boneGroup.name == 'Function':
-		node = FunctionNode(armatureObj, boneName)
+		if bone.geo_func == '':
+			raise ValueError('Function bone ' + boneName + ' function value is empty.')
+		node = FunctionNode(bone.geo_func, bone.func_param)
 	elif boneGroup.name == 'HeldObject':
-		node = HeldObjectNode(armatureObj, boneName, translate)
+		if bone.geo_func == '':
+			raise ValueError('Held object bone ' + boneName + ' function value is empty.')
+		node = HeldObjectNode(bone.geo_func, translate)
 	else:
 		if boneGroup.name == 'Switch':
 			# This is done so we can easily calculate transforms 
 			# of switch options.
 			
-
-			node = SwitchNode(armatureObj, boneName)
+			if bone.geo_func == '':
+				raise ValueError('Switch bone ' + boneName + \
+					' function value is empty.')
+			node = SwitchNode(bone.geo_func, bone.func_param)
 			processSwitchBoneMatOverrides(materialOverrides, bone)
 			
 		elif boneGroup.name == 'Start':
 			node = StartNode()
 		elif boneGroup.name == 'TranslateRotate':
-			node = TranslateRotateNode(armatureObj, boneName, translate, rotate)
+			drawLayer = int(bone.draw_layer)
+			fieldLayout = int(bone.field_layout)
+			hasDL = bone.use_deform
+
+			node = TranslateRotateNode(drawLayer, fieldLayout, hasDL, 
+				translate, rotate)
 			
 			if node.fieldLayout == 0:
 				finalTransform = transformMatrix @ translation @ rotation
@@ -505,29 +679,35 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 				lastRotateName = boneName
 			
 		elif boneGroup.name == 'Translate':
-			node = TranslateNode(armatureObj, boneName, translate)
+			node = TranslateNode(int(bone.draw_layer), bone.use_deform,
+				translate)
 			finalTransform = transformMatrix @ translation
 			lastTranslateName = boneName
 		elif boneGroup.name == 'Rotate':
-			node = RotateNode(armatureObj, boneName, rotate)
+			node = RotateNode(int(bone.draw_layer), bone.use_deform, rotate)
 			finalTransform = transformMatrix @ rotation
 			lastRotateName = boneName
 		elif boneGroup.name == 'Billboard':
-			node = BillboardNode(armatureObj, boneName, translate)
+			node = BillboardNode(int(bone.draw_layer), bone.use_deform,
+				translate)
 			finalTransform = transformMatrix @ translation
 			lastTranslateName = boneName
 		elif boneGroup.name == 'DisplayList':
-			node = DisplayListNode(armatureObj, boneName)
+			node = DisplayListNode(int(bone.draw_layer))
 			if not armatureObj.data.bones[boneName].use_deform:
 				raise ValueError("Display List (0x15) " + boneName + ' must be a deform bone. Make sure deform is checked in bone properties.')
 		elif boneGroup.name == 'Shadow':
-			node = ShadowNode(armatureObj, boneName)
+			shadowType = int(bone.shadow_type)
+			shadowSolidity = bone.shadow_solidity 
+			shadowScale = bone.shadow_scale
+			node = ShadowNode(shadowType, shadowSolidity, shadowScale)
 		elif boneGroup.name == 'Scale':
-			node = ScaleNode(armatureObj, boneName)
+			node = ScaleNode(int(bone.draw_layer), bone.geo_scale,
+				bone.use_deform)
 			finalTransform = transformMatrix @ \
 				mathutils.Matrix.Scale(node.scaleValue, 4)
 		elif boneGroup.name == 'StartRenderArea':
-			node = StartRenderAreaNode(armatureObj, boneName)
+			node = StartRenderAreaNode(bone.culling_radius)
 		else:
 			raise ValueError("Invalid bone group " + boneGroup.name)
 	
@@ -625,8 +805,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 
 				# Armature doesn't matter here since node is not based off bone
 				translateRotateNode = addPreTranslateRotateNode(
-					optionArmature, switchTransformNode, translate, 
-					rotate @ switchOptionRotate)
+					switchTransformNode, translate, rotate @ switchOptionRotate)
 				
 				geolayout.secondaryGeolayouts[optionArmature] = translateRotateNode
 	
@@ -721,12 +900,9 @@ class SwitchOverrideNode:
 # 0x15 commands should go before them, as they are usually preceding
 # an empty transform command (of which they modify?)
 class FunctionNode:
-	def __init__(self, armatureObj, boneName):
-		bone = armatureObj.data.bones[boneName]
-		if bone.geo_func == '':
-			raise ValueError('Function bone ' + boneName + ' function value is empty.')
-		self.geo_func = bone.geo_func
-		self.func_param = bone.func_param
+	def __init__(self, geo_func, func_param):
+		self.geo_func = geo_func
+		self.func_param = func_param
 		self.hasDL = False
 		
 	def to_binary(self, segmentData):
@@ -740,11 +916,8 @@ class FunctionNode:
 			toAlnum(self.geo_func) + '),'
 
 class HeldObjectNode:
-	def __init__(self, armatureObj, boneName, translate):
-		bone = armatureObj.data.bones[boneName]
-		if bone.geo_func == '':
-			raise ValueError('Held object bone ' + boneName + ' function value is empty.')
-		self.geo_func = bone.geo_func
+	def __init__(self, geo_func, translate):
+		self.geo_func = geo_func
 		self.translate = translate
 		self.hasDL = False
 	
@@ -789,12 +962,9 @@ class EndNode:
 # Afterward, for each switch node the node hierarchy is duplicated and
 # the correct diplsay lists are added.
 class SwitchNode:
-	def __init__(self, armatureObj, boneName):
-		bone = armatureObj.data.bones[boneName]
-		if bone.geo_func == '':
-			raise ValueError('Switch bone ' + boneName + ' function value is empty.')
-		self.switchFunc = bone.geo_func
-		self.defaultCase = bone.func_param
+	def __init__(self, geo_func, func_param):
+		self.switchFunc = geo_func
+		self.defaultCase = func_param
 		self.hasDL = False
 	
 	def to_binary(self, segmentData):
@@ -809,16 +979,11 @@ class SwitchNode:
 			toAlnum(self.switchFunc) + '),'
 
 class TranslateRotateNode:
-	def __init__(self, armatureObj, boneName, translate, rotate):
-		if boneName is not None:
-			bone = armatureObj.data.bones[boneName]
-			self.drawLayer = int(bone.draw_layer)
-			self.fieldLayout = int(bone.field_layout)
-			self.hasDL = bone.use_deform
-		else:
-			self.drawLayer = 1
-			self.fieldLayout = 0
-			self.hasDL = False
+	def __init__(self, drawLayer, fieldLayout, hasDL, translate, rotate):
+
+		self.drawLayer = drawLayer
+		self.fieldLayout = fieldLayout
+		self.hasDL = hasDL
 
 		self.translate = translate
 		self.rotate = rotate
@@ -897,11 +1062,9 @@ class TranslateRotateNode:
 				((', ' + self.DLmicrocode.name + '),') if self.hasDL else '),')
 
 class TranslateNode:
-	def __init__(self, armatureObj, boneName, translate):
-		bone = armatureObj.data.bones[boneName]
-		self.drawLayer = int(bone.draw_layer)
-
-		self.hasDL = bone.use_deform
+	def __init__(self, drawLayer, useDeform, translate):
+		self.drawLayer = drawLayer
+		self.hasDL = useDeform
 		self.translate = translate
 		self.fMesh = None
 		self.DLmicrocode = None
@@ -928,24 +1091,15 @@ class TranslateNode:
 			((', ' + self.DLmicrocode.name + '),') if self.hasDL else '),')
 
 class RotateNode:
-	def __init__(self, armatureObj, boneName, rotate):
+	def __init__(self, drawLayer, hasDL, rotate):
 		# In the case for automatically inserting rotate nodes between
 		# 0x13 bones.
-		if boneName is not None:
-			bone = armatureObj.data.bones[boneName]
-			self.drawLayer = int(bone.draw_layer)
 
-			self.hasDL = bone.use_deform
-			self.rotate = rotate
-			self.fMesh = None
-			self.DLmicrocode = None
-		else:
-			self.drawLayer = 1
-			self.hasDL = False
-			self.rotate = rotate
-			self.fMesh = None
-			self.DLmicrocode = None
-
+		self.drawLayer = drawLayer
+		self.hasDL = hasDL
+		self.rotate = rotate
+		self.fMesh = None
+		self.DLmicrocode = None
 		
 	def to_binary(self, segmentData):
 		params = ((1 if self.hasDL else 0) << 7) | self.drawLayer
@@ -973,11 +1127,9 @@ class RotateNode:
 			((', ' + self.DLmicrocode.name + '),') if self.hasDL else '),')
 	
 class BillboardNode:
-	def __init__(self, armatureObj, boneName, translate):
-		bone = armatureObj.data.bones[boneName]
-		self.drawLayer = int(bone.draw_layer)
-		
-		self.hasDL = bone.use_deform
+	def __init__(self, drawLayer, hasDL, translate):
+		self.drawLayer = drawLayer
+		self.hasDL = hasDL
 		self.translate = translate
 		self.fMesh = None
 		self.DLmicrocode = None
@@ -1004,9 +1156,8 @@ class BillboardNode:
 			((', ' + self.DLmicrocode.name + '),') if self.hasDL else '),')
 
 class DisplayListNode:
-	def __init__(self, armatureObj, boneName):
-		bone = armatureObj.data.bones[boneName]
-		self.drawLayer = int(bone.draw_layer)
+	def __init__(self, drawLayer):
+		self.drawLayer = drawLayer
 		self.hasDL = True
 		self.fMesh = None
 		self.DLmicrocode = None
@@ -1027,11 +1178,10 @@ class DisplayListNode:
 			self.DLmicrocode.name + '),'
 
 class ShadowNode:
-	def __init__(self, armatureObj, boneName):
-		bone = armatureObj.data.bones[boneName]
-		self.shadowType = int(bone.shadow_type)
-		self.shadowSolidity = int(round(bone.shadow_solidity * 0xFF))
-		self.shadowScale = bone.shadow_scale
+	def __init__(self, shadow_type, shadow_solidity, shadow_scale):
+		self.shadowType = int(shadow_type)
+		self.shadowSolidity = int(round(shadow_solidity * 0xFF))
+		self.shadowScale = shadow_scale
 		self.hasDL = False
 
 	def to_binary(self, segmentData):
@@ -1048,12 +1198,10 @@ class ShadowNode:
 			str(self.shadowScale) + '),'
 
 class ScaleNode:
-	def __init__(self, armatureObj, boneName):
-		bone = armatureObj.data.bones[boneName]
-		self.drawLayer = int(bone.draw_layer)
-
-		self.scaleValue = bone.geo_scale
-		self.hasDL = bone.use_deform
+	def __init__(self, drawLayer, geo_scale, use_deform):
+		self.drawLayer = drawLayer
+		self.scaleValue = geo_scale
+		self.hasDL = use_deform
 		self.fMesh = None
 		self.DLmicrocode = None
 	
@@ -1075,9 +1223,8 @@ class ScaleNode:
 			((', ' + self.DLmicrocode.name + '),') if self.hasDL else '),')
 
 class StartRenderAreaNode:
-	def __init__(self, armatureObj, boneName):
-		bone = armatureObj.data.bones[boneName]
-		self.cullingRadius = bone.culling_radius
+	def __init__(self, cullingRadius):
+		self.cullingRadius = cullingRadius
 		self.hasDL = False
 
 	def to_binary(self, segmentData):
@@ -1089,11 +1236,9 @@ class StartRenderAreaNode:
 		return 'GEO_CULLING_RADIUS(' + str(self.cullingRadius) + '),'
 
 class DisplayListWithOffsetNode:
-	def __init__(self, armatureObj, boneName, translate):
-		bone = armatureObj.data.bones[boneName]
-		self.drawLayer = int(bone.draw_layer)
-		
-		self.hasDL = bone.use_deform
+	def __init__(self, drawLayer, use_deform, translate):
+		self.drawLayer = drawLayer
+		self.hasDL = use_deform
 		self.translate = translate
 		self.fMesh = None
 		self.DLmicrocode = None
@@ -1181,7 +1326,8 @@ def addSkinnedMeshNode(armatureObj, boneName, skinnedMesh, transformNode, parent
 	#	print("Skinned mesh exists.")
 
 	# Get skinned node
-	skinnedNode = DisplayListNode(armatureObj, boneName)
+	bone = armatureObj.data.bones[boneName]
+	skinnedNode = DisplayListNode(int(bone.draw_layer))
 	skinnedNode.fMesh = skinnedMesh
 	skinnedNode.DLmicrocode = skinnedMesh.draw
 	skinnedTransformNode = TransformNode(skinnedNode)

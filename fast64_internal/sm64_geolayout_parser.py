@@ -371,6 +371,8 @@ def processBoneMeta(armatureObj, boneName, parentName):
 
 	metabone = armatureObj.data.bones[metaboneName]
 	visualBone = armatureObj.data.bones[visualBoneName]
+	metabone.geo_cmd = 'Ignore'
+	visualBone.geo_cmd = 'Ignore'
 
 	# apply rotation constraint
 	constraint = poseBone.constraints.new(type = "COPY_ROTATION")

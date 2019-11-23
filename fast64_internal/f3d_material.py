@@ -1460,7 +1460,7 @@ node_categories = [
 	]),
 ]
 
-classes = (
+mat_classes = (
 	#MyCustomSocket,
 	#MyCustomNode,
 	#F3DNode,
@@ -1503,9 +1503,9 @@ def set_global_time():
 def loadTimer(param):
 	bpy.app.timers.register(set_global_time)
 
-def register():
+def mat_register():
 	#bpy.app.handlers.load_post.append(loadTimer)
-	for cls in classes:
+	for cls in mat_classes:
 		register_class(cls)
 
 	nodeitems_utils.register_node_categories('CUSTOM_NODES', node_categories)
@@ -1635,13 +1635,10 @@ def register():
 	bpy.types.Material.rdp_settings = bpy.props.PointerProperty(
 		type = RDPSettings)
 
-def unregister():
+def mat_unregister():
 	nodeitems_utils.unregister_node_categories('CUSTOM_NODES')
-	for cls in reversed(classes):
+	for cls in reversed(mat_classes):
 		unregister_class(cls)
-
-if __name__ == "__main__":
-	register()
 
 #from .f3d_material import *
 

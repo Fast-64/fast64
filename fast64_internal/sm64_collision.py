@@ -245,8 +245,9 @@ class SM64ObjectPanel(bpy.types.Panel):
 			prop_split(box, obj, 'sm64_water_box', 'Water Box Type')
 
 def exportCollisionBinary(obj, transformMatrix, romfile, startAddress,
-	endAddress, addEntities):
-	collision = exportCollisionCommon(obj, transformMatrix, addEntities)
+	endAddress, addEntities, includeChildren):
+	collision = exportCollisionCommon(obj, transformMatrix, addEntities,
+		includeChildren)
 	start, end = collision.set_addr(startAddress)
 	if end > endAddress:
 		raise ValueError('Size too big: Data ends at ' + hex(end) +\
@@ -254,7 +255,8 @@ def exportCollisionBinary(obj, transformMatrix, romfile, startAddress,
 	collision.save_binary(romfile)
 	return start, end
 
-def exportCollisionC(obj, transformMatrix, dirPath, addEntities):
+def exportCollisionC(obj, transformMatrix, dirPath, addEntities, 
+	includeChildren):
 	colDirPath = os.path.join(dirPath, toAlnum(obj.name))
 
 	if not os.path.exists(colDirPath):
@@ -263,42 +265,26 @@ def exportCollisionC(obj, transformMatrix, dirPath, addEntities):
 	colPath = os.path.join(colDirPath, 'collision.inc.c')
 
 	fileObj = open(colPath, 'w')
-	collision = exportCollisionCommon(obj, transformMatrix, addEntities)
+	collision = exportCollisionCommon(obj, transformMatrix, addEntities,
+		includeChildren)
 	fileObj.write(collision.to_c())
 	fileObj.close()
 
-def exportCollisionCommon(obj, transformMatrix, addEntities):
+def exportCollisionCommon(obj, transformMatrix, addEntities, includeChildren):
 	bpy.ops.object.select_all(action = 'DESELECT')
 	obj.select_set(True)
 
-	bMesh = bmesh.new()
-	bMesh.from_mesh(obj.data)
-	bmesh.ops.triangulate(bMesh, faces = bMesh.faces[:])
-	bMesh.verts.ensure_lookup_table()
-	bMesh.edges.ensure_lookup_table()
-	bMesh.verts.index_update()
-	bMesh.faces.index_update()
-
-	if len(obj.data.materials) == 0:
-		raise ValueError(obj.name + " must have a material associated with it.")
-
 	# dict of collisionType : faces
 	collisionDict = {}
-	for face in bMesh.faces:
-		material = obj.data.materials[face.material_index]
-		colType = material.collision_type if material.collision_all_options else \
-			material.collision_type_simple
-		if colType not in collisionDict:
-			collisionDict[colType] = []
-		collisionDict[colType].append(face)
+	addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix)
 	
 	collision = Collision(toAlnum(obj.name) + '_collision')
 	for collisionType, faces in collisionDict.items():
 		collision.triangles[collisionType] = []
-		for face in faces:
+		for faceVerts in faces:
 			indices = []
-			for vert in face.verts:
-				roundedPosition = roundPosition(transformMatrix @ vert.co)
+			for vert in faceVerts:
+				roundedPosition = roundPosition(vert)
 				index = collisionVertIndex(roundedPosition, collision.vertices)
 				if index is None:
 					collision.vertices.append(CollisionVertex(roundedPosition))
@@ -324,6 +310,30 @@ def exportCollisionCommon(obj, transformMatrix, addEntities):
 	
 	return collision
 
+def addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix):
+	if len(obj.data.materials) == 0:
+		raise ValueError(obj.name + " must have a material associated with it.")
+
+	obj.data.calc_loop_triangles()
+
+	# dict of collisionType : faces
+	for face in obj.data.loop_triangles:
+		material = obj.data.materials[face.material_index]
+		colType = material.collision_type if material.collision_all_options else\
+			material.collision_type_simple
+		if colType not in collisionDict:
+			collisionDict[colType] = []
+		collisionDict[colType].append((
+			transformMatrix @ obj.data.vertices[face.vertices[0]].co,
+			transformMatrix @ obj.data.vertices[face.vertices[1]].co,
+			transformMatrix @ obj.data.vertices[face.vertices[2]].co))
+	
+	if includeChildren:
+		for child in obj.children:
+			if isinstance(child.data, bpy.types.Mesh):
+				addCollisionTriangles(child, collisionDict, includeChildren,
+					transformMatrix @ child.matrix_local)
+
 def roundPosition(position):
 	return (int(round(position[0])),
 		int(round(position[1])),
@@ -336,13 +346,13 @@ def collisionVertIndex(vert, vertArray):
 			return i
 	return None
 
-classes = (
+col_classes = (
 	CollisionPanel,
 	#SM64ObjectPanel,
 )
 
-def register():
-	for cls in classes:
+def col_register():
+	for cls in col_classes:
 		register_class(cls)
 	
 	bpy.types.Material.collision_type = bpy.props.EnumProperty(
@@ -366,8 +376,16 @@ def register():
 		name = 'SM64 Special', items = enumSpecialType, 
 		default = 'special_yellow_coin')
 
-def unregister():
-	for cls in reversed(classes):
+def col_unregister():
+	del bpy.types.Material.collision_type
+	del bpy.types.Material.collision_type_simple
+	del bpy.types.Material.collision_all_options
+	
+	del bpy.types.Object.sm64_obj_type
+	del bpy.types.Object.sm64_water_box
+	del bpy.types.Object.sm64_special_preset
+
+	for cls in reversed(col_classes):
 		unregister_class(cls)
 
 enumWaterBoxType = [

@@ -6,6 +6,15 @@ from .sm64_geolayout_constants import *
 import random
 import string
 
+def applyRotation(objList, angle, axis):
+	bpy.ops.object.select_all(action = "DESELECT")
+	for obj in objList:
+		obj.select_set(True)
+	bpy.context.view_layer.objects.active = objList[0]
+	bpy.ops.transform.rotate(value = angle, orient_axis = axis)
+	bpy.ops.object.transform_apply(location = False, 
+		rotation = True, scale = False, properties =  False)
+
 def getAddressFromRAMAddress(RAMAddress):
 	addr = RAMAddress - 0x80000000
 	if addr < 0:

@@ -9,7 +9,7 @@ enumBoneType = [
 	("TranslateRotate", "Translate Rotate (0x10)", "Translate Rotate"), 
 	("Translate", "Translate (0x11)", "Translate"), 
 	("Rotate", "Rotate (0x12)", "Rotate"), 
-	("Billboard", "Billboard (0x14)", "Billboard"), 
+	
 	("DisplayList", "Display List (0x15)", "Display List"), 
 	("Shadow", "Shadow (0x16)", "Shadow"), 
 	("Function", "Function (0x18)", "Function"), 
@@ -18,6 +18,12 @@ enumBoneType = [
 	("StartRenderArea", "Start Render Area (0x20)", "Start Render Area"), 
 	("Ignore", "Ignore", "Ignore bones when exporting."), 
 	("SwitchOption", "Switch Option", "Switch Option"), 
+	("DisplayListWithOffset", "Display List With Offset (0x13)", 
+		"Display List With Offset"), 
+]
+
+enumGeoStaticType = [
+	("Billboard", "Billboard (0x14)", "Billboard"), 
 	("DisplayListWithOffset", "Display List With Offset (0x13)", 
 		"Display List With Offset"), 
 ]
@@ -127,6 +133,45 @@ def drawGeoInfo(panel, bone):
 		'Other bones are on armature layer 1.')
 	layerInfoBox.label(text = 
 		"'Ignore' bones are on any layer.")
+
+class GeolayoutBonePanel(bpy.types.Panel):
+	bl_label = "Geolayout Inspector"
+	bl_idname = "SM64_Geolayout_Inspector"
+	bl_space_type = 'PROPERTIES'
+	bl_region_type = 'WINDOW'
+	bl_context = "bone"
+	bl_options = {'HIDE_HEADER'} 
+
+	#@classmethod
+	#def poll(cls, context):
+	#	return (context.bone is not None)
+
+	def draw(self, context):
+		drawGeoInfo(self, context.bone)
+
+class GeolayoutStaticPanel(bpy.types.Panel):
+	bl_label = "Static Geolayout Inspector"
+	bl_idname = "SM64_Static_Geolayout_Inspector"
+	bl_space_type = 'PROPERTIES'
+	bl_region_type = 'WINDOW'
+	bl_context = "object"
+	bl_options = {'HIDE_HEADER'} 
+
+	@classmethod
+	def poll(cls, context):
+		return context.object is not None and \
+			isinstance(context.object.data, bpy.types.Mesh)
+
+	def draw(self, context):
+		obj = context.object
+		col = self.layout.column().box()
+		col.box().label(text = 'Static Geolayout Inspector')
+
+		prop_split(col, obj, 'geo_cmd_static', 'Geolayout Command')
+		prop_split(col, obj, 'draw_layer_static', 'Draw layer')
+		col.prop(obj, 'use_render_area')
+		if obj.use_render_area:
+			prop_split(col, obj, 'culling_radius', 'Culling Radius')
 
 class MaterialPointerProperty(bpy.types.PropertyGroup):
 	material : bpy.props.PointerProperty(type = bpy.types.Material)
@@ -238,21 +283,6 @@ class RemoveSwitchOptionMat(bpy.types.Operator):
 		self.report({'INFO'}, 'Success!')
 		return {'FINISHED'} 
 
-class GeolayoutBonePanel(bpy.types.Panel):
-	bl_label = "Geolayout Inspector"
-	bl_idname = "SM64_Geolayout_Inspector"
-	bl_space_type = 'PROPERTIES'
-	bl_region_type = 'WINDOW'
-	bl_context = "bone"
-	bl_options = {'HIDE_HEADER'} 
-
-	#@classmethod
-	#def poll(cls, context):
-	#	return (context.bone is not None)
-
-	def draw(self, context):
-		drawGeoInfo(self, context.bone)
-
 class AddSwitchOption(bpy.types.Operator):
 	bl_idname = 'bone.add_switch_option'
 	bl_label = 'Add Switch Option'
@@ -329,8 +359,9 @@ def updateBone(self, context):
 		addBoneToGroup(armatureObj, context.bone.name, None)
 		bpy.ops.object.mode_set(mode="POSE")
 
-classes = (
+bone_classes = (
 	GeolayoutBonePanel,
+	GeolayoutStaticPanel,
 	#GeolayoutBoneSidePanel
 	AddSwitchOption,
 	RemoveSwitchOption,
@@ -341,8 +372,8 @@ classes = (
 	SwitchOptionProperty,
 )
 
-def register():
-	for cls in classes:
+def bone_register():
+	for cls in bone_classes:
 		register_class(cls)
 	
 	bpy.types.Bone.geo_cmd = bpy.props.EnumProperty(
@@ -390,17 +421,37 @@ def register():
 	bpy.types.Bone.switch_options = bpy.props.CollectionProperty(
 		type = SwitchOptionProperty)
 
-def unregister():
-	for cls in reversed(classes):
+	# Static Geolayout
+	bpy.types.Object.geo_cmd_static = bpy.props.EnumProperty(
+		name = 'Geolayout Command',
+		items = enumGeoStaticType, default = 'DisplayListWithOffset')
+	bpy.types.Object.draw_layer_static = bpy.props.EnumProperty(
+		name = 'Draw Layer', items = enumDrawLayers, default = '1')
+	bpy.types.Object.use_render_area = bpy.props.BoolProperty(
+		name = 'Use Render Area')
+	bpy.types.Object.culling_radius = bpy.props.IntProperty(
+		name = 'Culling Radius', min=-2**(15), max=2**(15)-1, default=2000)
+
+	# Used during object duplication on export
+	bpy.types.Object.original_name = bpy.props.StringProperty()
+
+def bone_unregister():
+	for cls in reversed(bone_classes):
 		unregister_class(cls)
 
-	#del bpy.types.Bone.geo_cmd
-	#del bpy.types.Bone.draw_layer
-	#del bpy.types.Bone.geo_scale
-	#del bpy.types.Bone.geo_func
-	#del bpy.types.Bone.func_param
-	#del bpy.types.Bone.field_layout
-	#del bpy.types.Bone.shadow_type
-	#del bpy.types.Bone.shadow_solidity
-	#del bpy.types.Bone.shadow_scale
-	#del bpy.types.Bone.culling_radius
+	del bpy.types.Bone.geo_cmd
+	del bpy.types.Bone.draw_layer
+	del bpy.types.Bone.geo_scale
+	del bpy.types.Bone.geo_func
+	del bpy.types.Bone.func_param
+	del bpy.types.Bone.field_layout
+	del bpy.types.Bone.shadow_type
+	del bpy.types.Bone.shadow_solidity
+	del bpy.types.Bone.shadow_scale
+	del bpy.types.Bone.culling_radius
+	del bpy.types.Bone.switch_options
+
+	del bpy.types.Object.geo_cmd_static
+	del bpy.types.Object.draw_layer_static
+	del bpy.types.Object.use_render_area
+	del bpy.types.Object.culling_radius

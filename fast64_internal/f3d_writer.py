@@ -66,19 +66,19 @@ def getVertToFaceDict(mesh):
 				vertDict[vertIndex].append(face)
 	return vertDict
 
-def exportF3DCommon(obj, f3dType, isHWv1, transformMatrix):
-	checkForF3DMaterial(obj)
-	bpy.ops.object.select_all(action = 'DESELECT')
-	obj.select_set(True)
+# Make sure to set original_name before calling this
+# used when duplicating an object
+def saveStaticModel(fModel, obj, transformMatrix):
+	if len(obj.data.polygons) == 0:
+		return None
 
 	obj.data.calc_loop_triangles()
 	obj.data.calc_normals_split()
 	edgeDict = getEdgeToFaceDict(obj.data)
 
-	fModel = FModel(f3dType, isHWv1)
-	fMeshGroup = FMeshGroup(toAlnum(obj.name), 
-		FMesh(toAlnum(obj.name) + '_mesh'), None)
-	fModel.meshGroups[obj.name] = fMeshGroup
+	fMeshGroup = FMeshGroup(toAlnum(obj.original_name), 
+		FMesh(toAlnum(obj.original_name) + '_mesh'), None)
+	fModel.meshGroups[obj.original_name] = fMeshGroup
 
 	for material_index in range(len(obj.data.materials)):
 		material = obj.data.materials[material_index]
@@ -88,6 +88,41 @@ def exportF3DCommon(obj, f3dType, isHWv1, transformMatrix):
 			fModel, fMeshGroup.mesh, obj, transformMatrix, edgeDict)
 	
 	revertMatAndEndDraw(fMeshGroup.mesh.draw)
+	return fMeshGroup
+
+def cleanupDuplicatedObjects(selected_objects):
+	meshData = []
+	for selectedObj in selected_objects:
+		meshData.append(selectedObj.data)
+	for selectedObj in selected_objects:
+		bpy.data.objects.remove(selectedObj)
+	for mesh in meshData:
+		bpy.data.meshes.remove(mesh)
+
+def exportF3DCommon(obj, f3dType, isHWv1, transformMatrix):
+	checkForF3DMaterial(obj)
+	obj.original_name = obj.name
+	bpy.ops.object.select_all(action = 'DESELECT')
+	obj.select_set(True)
+	bpy.ops.object.duplicate()
+	fModel = FModel(f3dType, isHWv1)
+	try:
+		# duplicate obj and apply modifiers / make single user
+		tempObj = bpy.context.selected_objects[0]
+		bpy.ops.object.make_single_user(obdata = True)
+		bpy.ops.object.transform_apply(location = False, 
+			rotation = False, scale = True, properties =  False)
+		for modifier in tempObj.modifiers:
+			bpy.ops.object.modifier_apply(apply_as='DATA',
+				modifier=modifier.name)
+		fMeshGroup = saveStaticModel(fModel, tempObj, transformMatrix)
+		cleanupDuplicatedObjects([tempObj])
+		obj.select_set(True)
+	except Exception as e:
+		cleanupDuplicatedObjects([tempObj])
+		raise Exception(str(e))
+		obj.select_set(True)
+
 	return fModel, fMeshGroup
 
 def exportF3DtoC(dirPath, obj, isStatic, transformMatrix, 
@@ -121,7 +156,8 @@ def exportF3DtoC(dirPath, obj, isStatic, transformMatrix,
 
 def exportF3DtoBinary(romfile, exportRange, transformMatrix, 
 	obj, f3dType, isHWv1, segmentData):
-	fModel, fMeshGroup = exportF3DCommon(obj, f3dType, isHWv1, transformMatrix)
+	fModel, fMeshGroup = exportF3DCommon(obj, f3dType, isHWv1, 
+		transformMatrix)
 	fModel.freePalettes()
 
 	addrRange = fModel.set_addr(exportRange[0])
@@ -129,7 +165,8 @@ def exportF3DtoBinary(romfile, exportRange, transformMatrix,
 		raise ValueError('Size too big: Data ends at ' + hex(addrRange[1]) +\
 			', which is larger than the specified range.')
 	fModel.save_binary(romfile, segmentData)
-	bpy.ops.object.mode_set(mode = 'OBJECT')
+	if bpy.context.mode != 'OBJECT':
+		bpy.ops.object.mode_set(mode = 'OBJECT')
 
 	segPointerData = encodeSegmentedAddr(
 		fMeshGroup.mesh.draw.startAddress, segmentData)
@@ -642,8 +679,10 @@ def convertVertexData(mesh, loopPos, loopUV, loopColorOrNormal,
 	return Vtx(position, uv, colorOrNormal)
 
 def getLoopColor(loop, mesh):
-	color_layer = mesh.vertex_colors['Col'].data
-	alpha_layer = mesh.vertex_colors['Alpha'].data
+	color_layer = mesh.vertex_colors['Col'].data if 'Col' in \
+		mesh.vertex_colors else None
+	alpha_layer = mesh.vertex_colors['Alpha'].data if 'Alpha' in \
+		mesh.vertex_colors else None
 
 	if color_layer is not None:
 		normalizedRGB = color_layer[loop.index].color
@@ -914,17 +953,13 @@ def saveTextureIndex(useDict, material, fModel, fMaterial, texProp,
 		shift_T = texProp.T.shift
 
 		if isCITexture:
-			fImage, fPalette, paletteTex = savePaletteDefinition(
+			fImage, fPalette = saveOrGetPaletteDefinition(
 				fModel, tex, texName, texFormat, palFormat)
-			fModel.textures[(tex, (texFormat, palFormat))] = fImage
-			fModel.textures[(paletteTex, (palFormat, 'PAL'))] = fPalette
 			savePaletteLoading(fModel, fMaterial, fPalette, 
 				palFormat, 0, fPalette.height, fModel.f3d)
 		else:
-			fImage = saveTextureDefinition(fModel, tex, texName, 
-				texFormatOf[texFormat], texBitSizeOf[texFormat])
-			fModel.textures[(tex, (texFormat, 'NONE'))] = fImage
-
+			fImage = saveOrGetTextureDefinition(fModel, tex, texName, 
+				texFormat)
 		saveTextureLoading(fImage, fMaterial, clamp_S,
 		 	mirror_S, clamp_T, mirror_T,
 			mask_S, mask_T, shift_S, 
@@ -1033,14 +1068,16 @@ def savePaletteLoading(fModel, fMaterial, fPalette, palFormat, pal,
             	palFmt, 'G_IM_SIZ_16b', 4*colorCount, 1,
             	pal, cms, cmt, 0, 0, 0, 0)])
 	
-def savePaletteDefinition(fModel, image, imageName, texFmt, palFmt):
+def saveOrGetPaletteDefinition(fModel, image, imageName, texFmt, palFmt):
 	texFormat = texFormatOf[texFmt]
 	palFormat = texFormatOf[palFmt]
 	bitSize = texBitSizeOf[texFmt]
 	# If image already loaded, return that data.
 	paletteName = toAlnum(imageName) + '_pal_' + palFmt.lower()
-	if paletteName in fModel.textures:
-		return fModel.textures[paletteName]
+	imageKey = (image, (texFmt, palFmt))
+	palKey = (image, (palFmt, 'PAL'))
+	if imageKey in fModel.textures:
+		return fModel.textures[imageKey], fModel.textures[palKey]
 
 	palette = []
 	texture = []
@@ -1069,14 +1106,19 @@ def savePaletteDefinition(fModel, image, imageName, texFmt, palFmt):
 					str(maxColors) + ' colors.')
 		texture.append(palette.index(pixelColor))
 	
-	fImage = FImage(toAlnum(imageName), texFormat, bitSize, 
-		image.size[0], image.size[1])
-
-	fPalette = FImage(paletteName, palFormat, 'G_IM_SIZ_16b', 1, len(palette))
-	paletteTex = bpy.data.images.new(paletteName, 1, len(palette))
-	paletteTex.pixels = palette
-	paletteTex.filepath = getNameFromPath(image.filepath, True) + '.' + \
+	filename = getNameFromPath(image.filepath, True) + '.' + \
+		texFmt.lower() + '.inc.c'
+	paletteFilename = getNameFromPath(image.filepath, True) + '.' + \
 		texFmt.lower() + '.pal'
+	fImage = FImage(toAlnum(imageName), texFormat, bitSize, 
+		image.size[0], image.size[1], filename)
+
+	fPalette = FImage(paletteName, palFormat, 'G_IM_SIZ_16b', 1, 
+		len(palette), paletteFilename)
+	#paletteTex = bpy.data.images.new(paletteName, 1, len(palette))
+	#paletteTex.pixels = palette
+	#paletteTex.filepath = getNameFromPath(image.filepath, True) + '.' + \
+	#	texFmt.lower() + '.pal'
 
 	for color in palette:
 		fPalette.data.extend(color.to_bytes(2, 'big')) 
@@ -1085,8 +1127,11 @@ def savePaletteDefinition(fModel, image, imageName, texFmt, palFmt):
 		fImage.data = compactNibbleArray(texture, image.size[0], image.size[1])
 	else:	
 		fImage.data = bytearray(texture)
+	
+	fModel.textures[(image, (texFmt, palFmt))] = fImage
+	fModel.textures[(image, (palFmt, 'PAL'))] = fPalette
 
-	return fImage, fPalette, paletteTex
+	return fImage, fPalette #, paletteTex
 
 def compactNibbleArray(texture, width, height):
 	nibbleData = bytearray(0)
@@ -1103,13 +1148,20 @@ def compactNibbleArray(texture, width, height):
 	
 	return nibbleData
 
-def saveTextureDefinition(fModel, image, imageName, fmt, bitSize):
+def saveOrGetTextureDefinition(fModel, image, imageName, texFormat):
+	fmt = texFormatOf[texFormat]
+	bitSize = texBitSizeOf[texFormat]
+
 	# If image already loaded, return that data.
-	if toAlnum(imageName) in fModel.textures:
-		return fModel.textures[toAlnum(imageName)]
+	imageKey = (image, (texFormat, 'NONE'))
+	if imageKey in fModel.textures:
+		return fModel.textures[imageKey]
+
+	filename = getNameFromPath(image.filepath, True) + '.' + \
+		texFormat.lower() + '.inc.c'
 
 	fImage = FImage(toAlnum(imageName), fmt, bitSize, 
-		image.size[0], image.size[1])
+		image.size[0], image.size[1], filename)
 
 	for i in range(image.size[0] * image.size[1]):
 		color = [1,1,1,1]
@@ -1171,6 +1223,7 @@ def saveTextureDefinition(fModel, image, imageName, fmt, bitSize):
 		fImage.data = \
 			compactNibbleArray(fImage.data, image.size[0], image.size[1])
 	
+	fModel.textures[(image, (texFormat, 'NONE'))] = fImage
 	return fImage
 
 def saveLightsDefinition(fModel, material, lightsName):

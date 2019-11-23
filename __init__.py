@@ -175,34 +175,34 @@ class SM64_ImportGeolayout(bpy.types.Operator):
 	bl_label = "Import Geolayout"
 	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
-	geoImportAddr : bpy.props.StringProperty(name ='Start Address', default = '1F1D60')
-	generateArmature : bpy.props.BoolProperty(name ='Generate Armature?')
-	levelGeoImport : bpy.props.EnumProperty(items = level_enums, name = 'Level Used By Geolayout Import', default = 'HMC')
-	importRom : bpy.props.StringProperty(name ='Import ROM', subtype = 'FILE_PATH')
-	ignoreSwitch : bpy.props.BoolProperty(name = 'Ignore Switch Nodes', default = True)
-
 	# Called on demand (i.e. button press, menu item)
 	# Can also be called from operator search menu (Spacebar)
 	def execute(self, context):
+		geoImportAddr = context.scene.geoImportAddr
+		generateArmature = context.scene.generateArmature
+		levelGeoImport = context.scene.levelGeoImport
+		importRom = context.scene.importRom
+		ignoreSwitch = context.scene.ignoreSwitch
+
 		#finalTransform = mathutils.Matrix.Rotation(math.radians(-90), 4, 'X')
 		finalTransform = mathutils.Matrix.Identity(4)
 		if context.mode != 'OBJECT':
 			raise ValueError("Operator can only be used in object mode.")
 		try:
-			romfileSrc = open(bpy.path.abspath(self.importRom), 'rb')
-			checkExpanded(bpy.path.abspath(self.importRom))
+			romfileSrc = open(bpy.path.abspath(importRom), 'rb')
+			checkExpanded(bpy.path.abspath(importRom))
 
 			armatureObj = None
-			#cProfile.runctx('armatureMeshGroups, armatureObj = parseGeoLayout(romfileSrc, int(self.geoImportAddr, 16),context.scene, self.levelGeoImport, finalTransform, self.generateArmature, self.ignoreSwitch, True, context.scene.f3d_type, context.scene.isHWv1)', globals(), locals(), "E:/Non-Steam Games/emulators/Project 64 1.6/SM64 Romhack Tools/_Data/blender.prof")
+			#cProfile.runctx('armatureMeshGroups, armatureObj = parseGeoLayout(romfileSrc, int(geoImportAddr, 16),context.scene, levelGeoImport, finalTransform, generateArmature, ignoreSwitch, True, context.scene.f3d_type, context.scene.isHWv1)', globals(), locals(), "E:/Non-Steam Games/emulators/Project 64 1.6/SM64 Romhack Tools/_Data/blender.prof")
 			#p = pstats.Stats("E:/Non-Steam Games/emulators/Project 64 1.6/SM64 Romhack Tools/_Data/blender.prof")
 			#p.sort_stats("cumulative").print_stats(2000)
 
 			# Armature mesh groups includes armatureObj.
 			armatureMeshGroups, armatureObj = parseGeoLayout(romfileSrc, 
-				int(self.geoImportAddr, 16),
-			 	context.scene, self.levelGeoImport, 
-				finalTransform, self.generateArmature, 
-				self.ignoreSwitch, True, context.scene.f3d_type, 
+				int(geoImportAddr, 16),
+			 	context.scene, levelGeoImport, 
+				finalTransform, generateArmature, 
+				ignoreSwitch, True, context.scene.f3d_type, 
 				context.scene.isHWv1)
 			romfileSrc.close()
 
@@ -253,12 +253,6 @@ class SM64_ImportGeolayoutPanel(bpy.types.Panel):
 		col = self.layout.column()
 		propsGeoI = col.operator(SM64_ImportGeolayout.bl_idname)
 
-		propsGeoI.generateArmature = context.scene.generateArmature
-		propsGeoI.geoImportAddr = context.scene.geoImportAddr
-		propsGeoI.levelGeoImport = context.scene.levelGeoImport
-		propsGeoI.importRom = context.scene.importRom
-		propsGeoI.ignoreSwitch = context.scene.ignoreSwitch
-		
 		#col.prop(context.scene, 'rotationOrder')
 		#col.prop(context.scene, 'rotationAxis')
 		#col.prop(context.scene, 'rotationAngle')
@@ -274,43 +268,127 @@ class SM64_ImportGeolayoutPanel(bpy.types.Panel):
 		for i in range(panelSeparatorSize):
 			col.separator()
 
-class SM64_ExportGeolayout(bpy.types.Operator):
+class SM64_ExportGeolayoutObject(bpy.types.Operator):
 	# set bl_ properties
-	bl_idname = 'object.sm64_export_geolayout'
-	bl_label = "Export Geolayout"
+	bl_idname = 'object.sm64_export_geolayout_object'
+	bl_label = "Export Geolayout Object"
 	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
-	geoExportStart : bpy.props.StringProperty(name = 'Start',
-		default = '11D8930')
-	geoExportEnd : bpy.props.StringProperty(name = 'End',
-		default = '11FFF00')
-	overwriteModelLoad: bpy.props.BoolProperty(
-		name = 'Overwrite model load in level script?', default = True)
-	modelLoadLevelScriptCmd : bpy.props.StringProperty(
-		name = 'Level script model load command', default = '2ABD90')
-	modelID : bpy.props.IntProperty(name = 'Model ID', default = 0xBB)
-	geoUseBank0 : bpy.props.BoolProperty(name = 'Use Bank 0')
-	geoRAMAddr : bpy.props.StringProperty(name = 'RAM Address', 
-		default = '80000000')
+	# Called on demand (i.e. button press, menu item)
+	# Can also be called from operator search menu (Spacebar)
+	def execute(self, context):
+		obj = None
+		if context.mode != 'OBJECT':
+			raise ValueError("Operator can only be used in object mode.")
+		if len(context.selected_objects) == 0:
+			raise ValueError("Object not selected.")
+		obj = context.active_object
+		if type(obj.data) is not bpy.types.Mesh:
+			raise ValueError("Mesh not selected.")
 
-	exportRom : bpy.props.StringProperty(name ='Export ROM', subtype = 'FILE_PATH')
-	outputRom : bpy.props.StringProperty(name ='Output ROM', subtype = 'FILE_PATH')
-	levelGeoExport : bpy.props.EnumProperty(items = level_enums, 
-		name = 'Level Used By Geolayout Export', default = 'CG')
-	
-	textDumpGeo : bpy.props.BoolProperty(
-		name = 'Dump geolayout as text', default = False)
-	textDumpGeoPath :  bpy.props.StringProperty(
-		name ='Text Dump Path', subtype = 'FILE_PATH')
+		finalTransform = mathutils.Matrix.Identity(4)
+		#finalTransform = (blenderToSM64Rotation * \
+		#	(1/sm64ToBlenderScale)).to_4x4() @ objTransform]
+		finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((
+			1/sm64ToBlenderScale, 1/sm64ToBlenderScale, 1/sm64ToBlenderScale
+		))).to_4x4()
 
-	geoExportType : bpy.props.EnumProperty(
-		items = enumExportType, name = 'Export', default = 'Binary')
-	geoExportPath : bpy.props.StringProperty(
-		name = 'Geo Path', subtype = 'FILE_PATH')
-	geoExportPathDL : bpy.props.StringProperty(
-		name = 'DL Path', subtype = 'FILE_PATH')
-	geoDefinePath : bpy.props.StringProperty(
-		name = 'Defines Path', subtype = 'FILE_PATH')
+		try:
+			# Rotate all armatures 90 degrees
+			applyRotation([obj], math.radians(90), 'X')
+
+			if context.scene.geoExportType == 'C':
+				exportGeolayoutObjectC(obj, finalTransform,
+					context.scene.f3d_type, context.scene.isHWv1,
+					bpy.path.abspath(context.scene.geoExportPath),
+					bpy.context.scene.geoTexDir,
+					bpy.context.scene.geoSaveTextures,
+					bpy.context.scene.geoSeparateTextureDef)
+				self.report({'INFO'}, 'Success! Geolayout at ' + \
+					context.scene.geoExportPath + ', DL at ' + \
+					context.scene.geoExportPathDL)
+			else:
+				tempROM = tempName(context.scene.outputRom)
+				checkExpanded(bpy.path.abspath(context.scene.exportRom))
+				romfileExport = open(
+					bpy.path.abspath(context.scene.exportRom), 'rb')	
+				shutil.copy(bpy.path.abspath(context.scene.exportRom), 
+					bpy.path.abspath(tempROM))
+				romfileExport.close()
+				romfileOutput = open(bpy.path.abspath(tempROM), 'rb+')
+
+				levelParsed = parseLevelAtPointer(romfileOutput, 
+					level_pointers[context.scene.levelGeoExport])
+				segmentData = levelParsed.segmentData
+
+				if context.scene.extendBank4:
+					ExtendBank0x04(romfileOutput, segmentData, 
+						defaultExtendSegment4)
+
+				exportRange = [int(context.scene.geoExportStart, 16), 
+					int(context.scene.geoExportEnd, 16)]
+				textDumpFilePath = \
+					bpy.path.abspath(context.scene.textDumpGeoPath) \
+					if context.scene.textDumpGeo else None
+				if context.scene.overwriteModelLoad:
+					modelLoadInfo = \
+						(int(context.scene.modelLoadLevelScriptCmd, 16),
+						int(context.scene.modelID,16))
+				else:
+					modelLoadInfo = (None, None)
+
+				if context.scene.geoUseBank0:
+					addrRange, startRAM = exportGeolayoutObjectBinaryBank0(
+						romfileOutput, obj, exportRange, 
+ 						finalTransform, *modelLoadInfo, textDumpFilePath,
+						context.scene.f3d_type, context.scene.isHWv1, 
+						getAddressFromRAMAddress(int(
+						context.scene.geoRAMAddr, 16)))
+				else:
+					addrRange, segPointer = exportGeolayoutObjectBinary(
+						romfileOutput, obj,
+						exportRange, finalTransform, segmentData,
+						*modelLoadInfo, textDumpFilePath, 
+						context.scene.f3d_type, context.scene.isHWv1)
+
+				romfileOutput.close()
+				bpy.ops.object.select_all(action = 'DESELECT')
+				obj.select_set(True)
+				context.view_layer.objects.active = obj
+
+				os.remove(bpy.path.abspath(context.scene.outputRom))
+				os.rename(bpy.path.abspath(tempROM), 
+					bpy.path.abspath(context.scene.outputRom))
+
+				if context.scene.geoUseBank0:
+					self.report({'INFO'}, 'Success! Geolayout at (' + \
+						hex(addrRange[0]) + ', ' + hex(addrRange[1]) + \
+						'), to write to RAM Address ' + hex(startRAM))
+				else:
+					self.report({'INFO'}, 'Success! Geolayout at (' + \
+						hex(addrRange[0]) + ', ' + hex(addrRange[1]) + \
+						') (Seg. ' + segPointer + ').')
+			
+			applyRotation([obj], math.radians(-90), 'X')
+			return {'FINISHED'} # must return a set
+
+		except:
+			if context.mode != 'OBJECT':
+				bpy.ops.object.mode_set(mode = 'OBJECT')
+
+			applyRotation([obj], math.radians(-90), 'X')
+
+			if context.scene.geoExportType != 'C':
+				romfileOutput.close()
+				os.remove(bpy.path.abspath(tempROM))
+			self.report({'ERROR'}, traceback.format_exc())
+			return {'CANCELLED'} # must return a set
+
+class SM64_ExportGeolayoutArmature(bpy.types.Operator):
+	# set bl_ properties
+	bl_idname = 'object.sm64_export_geolayout_armature'
+	bl_label = "Export Geolayout Armature"
+	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
 	# Called on demand (i.e. button press, menu item)
 	# Can also be called from operator search menu (Spacebar)
@@ -348,71 +426,69 @@ class SM64_ExportGeolayout(bpy.types.Operator):
 			linkedMesh = optionObjs[0]
 			prepareGeolayoutExport(linkedArmature, linkedMesh)
 			linkedArmatureDict[linkedArmature] = linkedMesh
-		
-		# Rotate all armatures 90 degrees
-		bpy.ops.object.select_all(action = "DESELECT")
-		for linkedArmature in linkedArmatures:
-			linkedArmature.select_set(True)
-		armatureObj.select_set(True)
-
-		bpy.ops.transform.rotate(value = math.radians(90), orient_axis='X')
-		bpy.ops.object.transform_apply(location = False, rotation = True,
-			scale = False, properties =  False)
-		
-		# You must ALSO apply object rotation after armature rotation.
-		bpy.ops.object.select_all(action = "DESELECT")
-		for linkedArmature, linkedMesh in linkedArmatureDict.items():
-			linkedMesh.select_set(True)
-		obj.select_set(True)
-		bpy.context.view_layer.objects.active = obj
-		bpy.ops.object.transform_apply(location = False, rotation = True,
-			scale = False, properties =  False)
 
 		try:
-			if self.geoExportType == 'C':
-				exportGeolayoutC(armatureObj, obj, finalTransform,
+			# Rotate all armatures 90 degrees
+			applyRotation([armatureObj] + linkedArmatures, 
+				math.radians(90), 'X')
+
+			# You must ALSO apply object rotation after armature rotation.
+			bpy.ops.object.select_all(action = "DESELECT")
+			for linkedArmature, linkedMesh in linkedArmatureDict.items():
+				linkedMesh.select_set(True)
+			obj.select_set(True)
+			bpy.context.view_layer.objects.active = obj
+			bpy.ops.object.transform_apply(location = False, rotation = True,
+				scale = False, properties =  False)
+			if context.scene.geoExportType == 'C':
+				exportGeolayoutArmatureC(armatureObj, obj, finalTransform,
 					context.scene.f3d_type, context.scene.isHWv1,
-					bpy.path.abspath(self.geoExportPath),
+					bpy.path.abspath(context.scene.geoExportPath),
 					bpy.context.scene.geoTexDir,
 					bpy.context.scene.geoSaveTextures,
 					bpy.context.scene.geoSeparateTextureDef)
 				self.report({'INFO'}, 'Success! Geolayout at ' + \
-					self.geoExportPath + ', DL at ' + self.geoExportPathDL)
+					context.scene.geoExportPath + ', DL at ' + \
+					context.scene.geoExportPathDL)
 			else:
-				tempROM = tempName(self.outputRom)
-				checkExpanded(bpy.path.abspath(self.exportRom))
-				romfileExport = open(bpy.path.abspath(self.exportRom), 'rb')	
-				shutil.copy(bpy.path.abspath(self.exportRom), 
+				tempROM = tempName(context.scene.outputRom)
+				checkExpanded(bpy.path.abspath(context.scene.exportRom))
+				romfileExport = open(
+					bpy.path.abspath(context.scene.exportRom), 'rb')	
+				shutil.copy(bpy.path.abspath(context.scene.exportRom), 
 					bpy.path.abspath(tempROM))
 				romfileExport.close()
 				romfileOutput = open(bpy.path.abspath(tempROM), 'rb+')
 
 				levelParsed = parseLevelAtPointer(romfileOutput, 
-					level_pointers[self.levelGeoExport])
+					level_pointers[context.scene.levelGeoExport])
 				segmentData = levelParsed.segmentData
 
 				if context.scene.extendBank4:
 					ExtendBank0x04(romfileOutput, segmentData, 
 						defaultExtendSegment4)
 
-				exportRange = [int(self.geoExportStart, 16), 
-					int(self.geoExportEnd, 16)]
-				textDumpFilePath = bpy.path.abspath(self.textDumpGeoPath) \
-					if self.textDumpGeo else None
-				if self.overwriteModelLoad:
-					modelLoadInfo = (int(self.modelLoadLevelScriptCmd, 16),
-						self.modelID)
+				exportRange = [int(context.scene.geoExportStart, 16), 
+					int(context.scene.geoExportEnd, 16)]
+				textDumpFilePath = \
+					bpy.path.abspath(context.scene.textDumpGeoPath) \
+					if context.scene.textDumpGeo else None
+				if context.scene.overwriteModelLoad:
+					modelLoadInfo = \
+						(int(context.scene.modelLoadLevelScriptCmd, 16),
+						int(context.scene.modelID, 16))
 				else:
 					modelLoadInfo = (None, None)
 
-				if self.geoUseBank0:
-					addrRange, startRAM = exportGeolayoutBinaryBank0(
+				if context.scene.geoUseBank0:
+					addrRange, startRAM = exportGeolayoutArmatureBinaryBank0(
 						romfileOutput, armatureObj, obj, exportRange, 
  						finalTransform, *modelLoadInfo, textDumpFilePath,
 						context.scene.f3d_type, context.scene.isHWv1, 
-						getAddressFromRAMAddress(int(self.geoRAMAddr, 16)))
+						getAddressFromRAMAddress(int(
+						context.scene.geoRAMAddr, 16)))
 				else:
-					addrRange, segPointer = exportGeolayoutBinary(
+					addrRange, segPointer = exportGeolayoutArmatureBinary(
 						romfileOutput, armatureObj, obj,
 						exportRange, finalTransform, segmentData,
 						*modelLoadInfo, textDumpFilePath, 
@@ -423,11 +499,11 @@ class SM64_ExportGeolayout(bpy.types.Operator):
 				armatureObj.select_set(True)
 				context.view_layer.objects.active = armatureObj
 
-				os.remove(bpy.path.abspath(self.outputRom))
+				os.remove(bpy.path.abspath(context.scene.outputRom))
 				os.rename(bpy.path.abspath(tempROM), 
-					bpy.path.abspath(self.outputRom))
+					bpy.path.abspath(context.scene.outputRom))
 
-				if self.geoUseBank0:
+				if context.scene.geoUseBank0:
 					self.report({'INFO'}, 'Success! Geolayout at (' + \
 						hex(addrRange[0]) + ', ' + hex(addrRange[1]) + \
 						'), to write to RAM Address ' + hex(startRAM))
@@ -436,14 +512,8 @@ class SM64_ExportGeolayout(bpy.types.Operator):
 						hex(addrRange[0]) + ', ' + hex(addrRange[1]) + \
 						') (Seg. ' + segPointer + ').')
 
-			bpy.ops.object.select_all(action = "DESELECT")
-			for linkedArmature in linkedArmatures:
-				linkedArmature.select_set(True)
-			armatureObj.select_set(True)
-			context.view_layer.objects.active = armatureObj
-			bpy.ops.transform.rotate(value = math.radians(-90), orient_axis='X')
-			bpy.ops.object.transform_apply(location = False, rotation = True,
-				scale = False, properties =  False)
+			applyRotation([armatureObj] + linkedArmatures, 
+				math.radians(-90), 'X')
 
 			return {'FINISHED'} # must return a set
 
@@ -451,16 +521,10 @@ class SM64_ExportGeolayout(bpy.types.Operator):
 			if context.mode != 'OBJECT':
 				bpy.ops.object.mode_set(mode = 'OBJECT')
 
-			bpy.ops.object.select_all(action = "DESELECT")
-			for linkedArmature in linkedArmatures:
-				linkedArmature.select_set(True)
-			armatureObj.select_set(True)
-			context.view_layer.objects.active = armatureObj
-			bpy.ops.transform.rotate(value = math.radians(-90), orient_axis='X')
-			bpy.ops.object.transform_apply(location = False, rotation = True,
-				scale = False, properties =  False)
+			applyRotation([armatureObj] + linkedArmatures, 
+				math.radians(-90), 'X')
 
-			if self.geoExportType != 'C':
+			if context.scene.geoExportType != 'C':
 				romfileOutput.close()
 				os.remove(bpy.path.abspath(tempROM))
 			if armatureObj is not None:
@@ -483,26 +547,11 @@ class SM64_ExportGeolayoutPanel(bpy.types.Panel):
 	# called every frame
 	def draw(self, context):
 		col = self.layout.column()
-		propsGeoE = col.operator(SM64_ExportGeolayout.bl_idname)
-		propsGeoE.geoExportStart = context.scene.geoExportStart
-		propsGeoE.geoExportEnd = context.scene.geoExportEnd
-		propsGeoE.levelGeoExport = context.scene.levelGeoExport
-		propsGeoE.exportRom = context.scene.exportRom
-		propsGeoE.outputRom = context.scene.outputRom
-		propsGeoE.overwriteModelLoad = context.scene.overwriteModelLoad
-		propsGeoE.modelLoadLevelScriptCmd = context.scene.modelLoadLevelScriptCmd
-		propsGeoE.modelID = context.scene.modelID
-		propsGeoE.textDumpGeo = context.scene.textDumpGeo
-		propsGeoE.textDumpGeoPath = context.scene.textDumpGeoPath
-		propsGeoE.geoExportType = context.scene.geoExportType
-		propsGeoE.geoExportPath = context.scene.geoExportPath
-		propsGeoE.geoExportPathDL = context.scene.geoExportPathDL
-		propsGeoE.geoDefinePath = context.scene.geoDefinePath
-		propsGeoE.geoUseBank0 = context.scene.geoUseBank0
-		propsGeoE.geoRAMAddr = context.scene.geoRAMAddr
+		propsGeoE = col.operator(SM64_ExportGeolayoutArmature.bl_idname)
+		propsGeoE = col.operator(SM64_ExportGeolayoutObject.bl_idname)
 
 		col.prop(context.scene, 'geoExportType')
-		if propsGeoE.geoExportType == 'C':
+		if context.scene.geoExportType == 'C':
 			col.prop(context.scene, 'geoExportPath')
 			col.prop(context.scene, 'geoSaveTextures')
 			if context.scene.geoSaveTextures:
@@ -515,7 +564,7 @@ class SM64_ExportGeolayoutPanel(bpy.types.Panel):
 			prop_split(col, context.scene, 'geoExportEnd', 'End Address')
 
 			col.prop(context.scene, 'geoUseBank0')
-			if propsGeoE.geoUseBank0:
+			if context.scene.geoUseBank0:
 				prop_split(col, context.scene, 'geoRAMAddr', 'RAM Address')
 			else:
 				col.prop(context.scene, 'levelGeoExport')
@@ -523,7 +572,7 @@ class SM64_ExportGeolayoutPanel(bpy.types.Panel):
 			col.prop(context.scene, 'overwriteModelLoad')
 			if context.scene.overwriteModelLoad:
 				prop_split(col, context.scene, 'modelLoadLevelScriptCmd', 'Model Load Command')
-				col.prop(context.scene, 'modelID')
+				prop_split(col, context.scene, 'modelID', 'Model ID')
 			col.prop(context.scene, 'textDumpGeo')
 			if context.scene.textDumpGeo:
 				col.prop(context.scene, 'textDumpGeoPath')
@@ -559,27 +608,21 @@ class SM64_ImportDL(bpy.types.Operator):
 	bl_label = "Import Display List"
 	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
-	DLImportStart : bpy.props.StringProperty(name ='Import Start', 
-		default = 'A3BE1C')
-	levelDLImport : bpy.props.EnumProperty(items = level_enums, name = 'Level Used By Display List', default = 'CG')
-	importRom : bpy.props.StringProperty(name ='Import ROM', subtype = 'FILE_PATH')
-	isSegmentedAddrDLImport : bpy.props.BoolProperty(name = 'Is Segmented Address', default = False)
-
 	# Called on demand (i.e. button press, menu item)
 	# Can also be called from operator search menu (Spacebar)
 	def execute(self, context):
 		if context.mode != 'OBJECT':
 			raise ValueError("Operator can only be used in object mode.")
 		try:
-			checkExpanded(bpy.path.abspath(self.importRom))
-			romfileSrc = open(bpy.path.abspath(self.importRom), 'rb')
+			checkExpanded(bpy.path.abspath(context.scene.importRom))
+			romfileSrc = open(bpy.path.abspath(context.scene.importRom), 'rb')
 			levelParsed = parseLevelAtPointer(romfileSrc, 
-				level_pointers[self.levelDLImport])
+				level_pointers[context.scene.levelDLImport])
 			segmentData = levelParsed.segmentData
 			start = decodeSegmentedAddr(
-				int(self.DLImportStart, 16).to_bytes(4, 'big'), segmentData)\
-				if self.isSegmentedAddrDLImport else \
-				int(self.DLImportStart, 16)
+				int(context.scene.DLImportStart, 16).to_bytes(4, 'big'),
+				segmentData) if context.scene.isSegmentedAddrDLImport else \
+				int(context.scene.DLImportStart, 16)
 			readObj = F3DtoBlenderObject(romfileSrc, start, 
 				context.scene, 'sm64_mesh', 
 				blenderToSM64Rotation.to_4x4().inverted(),
@@ -612,10 +655,6 @@ class SM64_ImportDLPanel(bpy.types.Panel):
 		col = self.layout.column()
 		propsDLI = col.operator(SM64_ImportDL.bl_idname)
 
-		propsDLI.DLImportStart = context.scene.DLImportStart
-		propsDLI.levelDLImport = context.scene.levelDLImport
-		propsDLI.importRom = context.scene.importRom
-		propsDLI.isSegmentedAddrDLImport = context.scene.isSegmentedAddrDLImport
 		prop_split(col, context.scene, 'DLImportStart', 'Start Address')
 		col.prop(context.scene, 'levelDLImport')
 		col.prop(context.scene, 'isSegmentedAddrDLImport')
@@ -629,29 +668,6 @@ class SM64_ExportDL(bpy.types.Operator):
 	bl_idname = 'object.sm64_export_dl'
 	bl_label = "Export Display List"
 	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
-
-	exportRom : bpy.props.StringProperty(name ='Export ROM', subtype = 'FILE_PATH')
-	outputRom : bpy.props.StringProperty(name ='Output ROM', subtype = 'FILE_PATH')
-	levelDLExport : bpy.props.EnumProperty(items = level_enums, 
-		name = 'Level Used By Display List', default = 'CG')
-	DLExportStart : bpy.props.StringProperty(
-		name = 'Start', default = 'A3BE1C')
-	DLExportEnd : bpy.props.StringProperty(
-		name = 'End', default = 'A4BE1C')
-	DLExportGeoPtr : bpy.props.StringProperty(
-		name ='Geolayout Pointer', default = 'A3BE1C')
-	overwriteGeoPtr : bpy.props.BoolProperty(name = "Overwrite geolayout pointer", default = False)
-	DLExportType : bpy.props.EnumProperty(
-		items = enumExportType, name = 'Export', default = 'Binary')
-	DLExportPath : bpy.props.StringProperty(
-		name = 'Path', subtype = 'FILE_PATH')
-	DLDefinePath : bpy.props.StringProperty(
-		name = 'Defines Path', subtype = 'FILE_PATH')
-	DLExportisStatic : bpy.props.BoolProperty(name = 'Static DL', 
-		default = True)
-	DLUseBank0 : bpy.props.BoolProperty(name = 'Use Bank 0')
-	DLRAMAddr : bpy.props.StringProperty(name = 'RAM Address', 
-		default = '80000000')
 
 	# Called on demand (i.e. button press, menu item)
 	# Can also be called from operator search menu (Spacebar)
@@ -673,56 +689,59 @@ class SM64_ExportDL(bpy.types.Operator):
 			(1/sm64ToBlenderScale)).to_4x4() @ objTransform
 		
 		try:
-			if self.DLExportType == 'C':
-				exportF3DtoC(bpy.path.abspath(self.DLExportPath), obj,
-					self.DLExportisStatic, finalTransform,
+			if context.scene.DLExportType == 'C':
+				exportF3DtoC(bpy.path.abspath(context.scene.DLExportPath), obj,
+					context.scene.DLExportisStatic, finalTransform,
 					context.scene.f3d_type, context.scene.isHWv1,
 					bpy.context.scene.DLTexDir,
 					bpy.context.scene.DLSaveTextures,
 					bpy.context.scene.DLSeparateTextureDef)
 				self.report({'INFO'}, 'Success! DL at ' + \
-					self.DLExportPath + '.')
+					context.scene.DLExportPath + '.')
 				return {'FINISHED'} # must return a set
 			else:
-				checkExpanded(bpy.path.abspath(self.exportRom))
-				tempROM = tempName(self.outputRom)
-				romfileExport = open(bpy.path.abspath(self.exportRom), 'rb')	
-				shutil.copy(bpy.path.abspath(self.exportRom), 
+				checkExpanded(bpy.path.abspath(context.scene.exportRom))
+				tempROM = tempName(context.scene.outputRom)
+				romfileExport = \
+					open(bpy.path.abspath(context.scene.exportRom), 'rb')	
+				shutil.copy(bpy.path.abspath(context.scene.exportRom), 
 					bpy.path.abspath(tempROM))
 				romfileExport.close()
 				romfileOutput = open(bpy.path.abspath(tempROM), 'rb+')
 
 				levelParsed = parseLevelAtPointer(romfileOutput, 
-					level_pointers[self.levelDLExport])
+					level_pointers[context.scene.levelDLExport])
 				segmentData = levelParsed.segmentData
 				if context.scene.extendBank4:
 					ExtendBank0x04(romfileOutput, segmentData, 
 						defaultExtendSegment4)
 
-				if self.DLUseBank0:
+				if context.scene.DLUseBank0:
 					startAddress, addrRange, segPointerData = \
 						exportF3DtoBinaryBank0(romfileOutput, 
-						[int(self.DLExportStart, 16), int(self.DLExportEnd, 16)],
+						[int(context.scene.DLExportStart, 16), 
+						int(context.scene.DLExportEnd, 16)],
 					 	finalTransform, obj, context.scene.f3d_type,
-						context.scene.isHWv1, 
-						getAddressFromRAMAddress(int(self.DLRAMAddr, 16)))
+						context.scene.isHWv1, getAddressFromRAMAddress(
+						int(context.scene.DLRAMAddr, 16)))
 				else:
 					startAddress, addrRange, segPointerData = \
 						exportF3DtoBinary(romfileOutput, 
-						[int(self.DLExportStart, 16), int(self.DLExportEnd, 16)],
+						[int(context.scene.DLExportStart, 16), 
+						int(context.scene.DLExportEnd, 16)],
 					 	finalTransform, obj, context.scene.f3d_type,
 						context.scene.isHWv1, segmentData)
 				
-				if self.overwriteGeoPtr:
-					romfileOutput.seek(int(self.DLExportGeoPtr, 16))
+				if context.scene.overwriteGeoPtr:
+					romfileOutput.seek(int(context.scene.DLExportGeoPtr, 16))
 					romfileOutput.write(segPointerData)
 	
 				romfileOutput.close()
-				os.remove(bpy.path.abspath(self.outputRom))
+				os.remove(bpy.path.abspath(context.scene.outputRom))
 				os.rename(bpy.path.abspath(tempROM), 
-					bpy.path.abspath(self.outputRom))
+					bpy.path.abspath(context.scene.outputRom))
 				
-				if self.DLUseBank0:
+				if context.scene.DLUseBank0:
 					self.report({'INFO'}, 'Success! DL at (' + \
 						hex(addrRange[0]) + ', ' + hex(addrRange[1]) + \
 						'), ' +\
@@ -738,7 +757,7 @@ class SM64_ExportDL(bpy.types.Operator):
 		except:
 			if context.mode != 'OBJECT':
 				bpy.ops.object.mode_set(mode = 'OBJECT')
-			if self.DLExportType != 'C':
+			if context.scene.DLExportType != 'C':
 				romfileOutput.close()
 				os.remove(bpy.path.abspath(tempROM))
 			self.report({'ERROR'}, traceback.format_exc())
@@ -759,22 +778,9 @@ class SM64_ExportDLPanel(bpy.types.Panel):
 	def draw(self, context):
 		col = self.layout.column()
 		propsDLE = col.operator(SM64_ExportDL.bl_idname)
-		propsDLE.DLExportStart= context.scene.DLExportStart
-		propsDLE.DLExportEnd = context.scene.DLExportEnd
-		propsDLE.exportRom = context.scene.exportRom
-		propsDLE.outputRom = context.scene.outputRom
-		propsDLE.levelDLExport = context.scene.levelDLExport
-		propsDLE.DLExportGeoPtr = context.scene.DLExportGeoPtr
-		propsDLE.overwriteGeoPtr = context.scene.overwriteGeoPtr
-		propsDLE.DLExportType = context.scene.DLExportType
-		propsDLE.DLExportPath = context.scene.DLExportPath
-		propsDLE.DLExportisStatic = context.scene.DLExportisStatic
-		propsDLE.DLDefinePath = context.scene.DLDefinePath
-		propsDLE.DLUseBank0 = context.scene.DLUseBank0
-		propsDLE.DLRAMAddr = context.scene.DLRAMAddr
 
 		col.prop(context.scene, 'DLExportType')
-		if propsDLE.DLExportType == 'C':
+		if context.scene.DLExportType == 'C':
 			col.prop(context.scene, 'DLExportPath')
 			col.prop(context.scene, 'DLExportisStatic')
 			col.prop(context.scene, 'DLSaveTextures')
@@ -786,7 +792,7 @@ class SM64_ExportDLPanel(bpy.types.Panel):
 			prop_split(col, context.scene, 'DLExportStart', 'Start Address')
 			prop_split(col, context.scene, 'DLExportEnd', 'End Address')
 			col.prop(context.scene, 'DLUseBank0')
-			if propsDLE.DLUseBank0:
+			if context.scene.DLUseBank0:
 				prop_split(col, context.scene, 'DLRAMAddr', 'RAM Address')
 			else:
 				col.prop(context.scene, 'levelDLExport')
@@ -804,101 +810,9 @@ class SM64_ExportMario(bpy.types.Operator):
 	bl_label = "Export Character"
 	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
-	exportRom : bpy.props.StringProperty(name ='Export ROM', subtype = 'FILE_PATH')
-	outputRom : bpy.props.StringProperty(name ='Output ROM', subtype = 'FILE_PATH')
-	useFaceAnimation : bpy.props.BoolProperty(name ='Use Face Animation?')
-	overwriteWingPositions : bpy.props.BoolProperty(name ='Overwrite Wing Positions? (See attatched diagram)')
-	segment4 : bpy.props.IntVectorProperty(name="Segment 4", 
-		default=defaultExtendSegment4, size = 2)
-	exportRange : bpy.props.IntVectorProperty(name="Export range", 
-		default=marioFullRomInterval, size = 2)
-	useCustomSegment4 : bpy.props.BoolProperty(name = "Use custom segment 4?", default = True)
-	sm64_character : bpy.props.EnumProperty(
-		items = character_enums, name = 'SM64 Character', default = 'Mario'
-	)
-
-	useLogFile : bpy.props.BoolProperty(name ='Write log file?')
-	logFilePath : bpy.props.StringProperty(name = 'Log File', subtype = 'FILE_PATH')
-
 	def execute(self, context):
-		tempROM = tempName(self.outputRom)
-		try:
-			romfileExport = open(self.exportRom, 'rb')		
-			shutil.copy(self.exportRom, tempROM)
-			romfileExport.close()
-			romfileOutput = open(tempROM, 'rb+')
-
-			segmentData = {}
-			readSegment4(romfileOutput, segmentData)
-			print("Export range: " + hex(self.exportRange[0]) + " - " + hex(self.exportRange[1]))
-
-			armatureData = character_data[self.sm64_character]
-			isMario = self.sm64_character == 'Mario'
-	
-			if self.useCustomSegment4:
-				ExtendBank0x04(romfileOutput, segmentData, self.segment4)
-
-			if isMario:
-				DisableLowPolyMario(romfileOutput, armatureData.geolayoutStart)
-	
-			# Find armature.
-			armatureObj = None
-			armature = None
-			for obj in bpy.context.selected_objects:
-				if isinstance(obj.data, bpy.types.Armature):
-					armatureObj = obj
-					armature = armatureObj.data
-					break
-			if armature is None:
-				romfileOutput.close()
-				self.report({'ERROR'}, 'Mario armature not selected.')
-				return {'CANCELLED'} # must return a set
-	
-			# Update geolayout translation offsets
-
-			if isMario and not self.overwriteWingPositions:
-				saveExistingGeolayoutTransforms(romfileOutput, armatureObj, 
-					armatureData.geolayoutStart, armatureData, blenderToSM64Rotation, 
-					True)
-			elif isMario:
-				saveExistingGeolayoutTransforms(romfileOutput, armatureObj, 
-					armatureData.geolayoutStart, armatureData, blenderToSM64Rotation, False) 
-
-			bodyParts = []
-			for obj in bpy.context.scene.objects:
-				if isinstance(obj.data, bpy.types.Mesh) and\
-					len(obj.data.loops) > 0:
-	
-					for constraint in obj.constraints:
-						if isinstance(constraint, bpy.types.ChildOfConstraint) and\
-							constraint.target == armatureObj:
-	
-							bodyParts.append(obj)
-	
-			if isMario:
-				success = importMario(bodyParts, self, romfileOutput, context, 'Y', segmentData, armatureObj,
-					self.exportRange[0], self.exportRange[1])
-			else:
-				success = importGeolayout(bodyParts, self, romfileOutput, context, 'Y', segmentData, 
-					armatureObj, self.exportRange[0], self.exportRange[1],
-					armatureData, False)
-
-			armatureObj.select_set(True)
-			romfileOutput.close()
-			os.remove(self.outputRom)
-			os.rename(tempROM, self.outputRom)
-	
-			if success:
-				self.report({'INFO'}, 'Export succeeded.')
-				return {'FINISHED'} # must return a set
-			else:
-				self.report({'INFO'}, 'Export failed.')
-				return {'CANCELLED'} # must return a set
-		except:
-			self.report({'ERROR'}, traceback.format_exc())
-			romfileOutput.close()
-			os.remove(tempROM)
-			return {'CANCELLED'} # must return a set
+		self.report({'ERROR'}, 'Not Implemented.')
+		return {'CANCELLED'} # must return a set
 
 class SM64_ExportCharacterPanel(bpy.types.Panel):
 	bl_idname = "SM64_PT_export_character"
@@ -915,23 +829,6 @@ class SM64_ExportCharacterPanel(bpy.types.Panel):
 	def draw(self, context):
 		col = self.layout.column()
 		propsE = col.operator(SM64_ExportMario.bl_idname)
-		propsE.sm64_character = context.scene.sm64_character
-		propsE.exportRom = context.scene.exportRom
-		propsE.outputRom = context.scene.outputRom
-		propsE.useFaceAnimation = context.scene.useFaceAnimation
-		propsE.overwriteWingPositions = context.scene.overwriteWingPositions
-		propsE.exportRange = context.scene.exportRange
-		propsE.useCustomSegment4 = context.scene.useCustomSegment4
-		propsE.segment4 = context.scene.segment4
-		propsE.useLogFile = context.scene.useLogFile
-		propsE.logFilePath = context.scene.logFilePath
-
-		col.prop(context.scene, 'useFaceAnimation')
-		col.prop(context.scene, 'overwriteWingPositions')
-		col.prop(context.scene, 'useCustomSegment4')
-		if context.scene.useCustomSegment4:
-			col.prop(context.scene, 'segment4')
-		col.prop(context.scene, 'exportRange')
 	
 		for i in range(panelSeparatorSize):
 			col.separator()
@@ -942,65 +839,13 @@ class SM64_ImportMario(bpy.types.Operator):
 	bl_label = "Import Character"
 	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
-	sm64_character : bpy.props.EnumProperty(
-		items = character_enums, name = 'SM64 Character', default = 'Mario'
-	)
-
-	importRom : bpy.props.StringProperty(name ='Import ROM', subtype = 'FILE_PATH')
-	characterIgnoreSwitch : bpy.props.BoolProperty(name = 'Ignore Switch Nodes', default = True)
-
 	# Called on demand (i.e. button press, menu item)
 	# Can also be called from operator search menu (Spacebar)
 	def execute(self, context):
-		#finalTransform = mathutils.Matrix.Rotation(math.radians(-90), 4, 'X')
-		finalTransform = mathutils.Matrix.Identity(4)
-		if context.mode != 'OBJECT':
-			raise ValueError("Operator can only be used in object mode.")
-		try:
-			romfileSrc = open(bpy.path.abspath(self.importRom), 'rb')
-			checkExpanded(bpy.path.abspath(self.importRom))
-
-			characterImportData = sm64_character_data[self.sm64_character]
-
-			# Armature mesh groups includes armatureObj.
-			armatureMeshGroups, armatureObj = parseGeoLayout(romfileSrc, 
-				int(characterImportData.geoAddr, 16),
-			 	context.scene, characterImportData.level, 
-				finalTransform, True, 
-				self.characterIgnoreSwitch, True, context.scene.f3d_type, 
-				context.scene.isHWv1, characterImportData.switchDict)
-			romfileSrc.close()
-
-			bpy.ops.object.select_all(action = 'DESELECT')
-			if armatureObj is not None:
-				for armatureMeshGroup in armatureMeshGroups:
-					armatureMeshGroup[0].select_set(True)
-				bpy.ops.transform.rotate(value = math.radians(-90),
-					orient_axis='X')
-
-				for armatureMeshGroup in armatureMeshGroups:
-					bpy.ops.object.select_all(action = 'DESELECT')
-					armatureMeshGroup[0].select_set(True)
-					bpy.context.view_layer.objects.active = armatureMeshGroup[0]
-					bpy.ops.object.make_single_user(obdata = True)
-					bpy.ops.object.transform_apply(location = False, 
-						rotation = True, scale = False, properties =  False)
-			else:
-				bpy.ops.transform.rotate(value = math.radians(-90),
-					orient_axis='X')
-			bpy.ops.object.select_all(action = 'DESELECT')
-			#objs[-1].select_set(True)
-
-			self.report({'INFO'}, 'Generic import succeeded.')
-			return {'FINISHED'} # must return a set
-
-		except:
-			if context.mode != 'OBJECT':
-				bpy.ops.object.mode_set(mode = 'OBJECT')
-
-			romfileSrc.close()
-			self.report({'ERROR'}, traceback.format_exc())
-			return {'CANCELLED'} # must return a set
+		characterImportData = sm64_character_data[context.scene.sm64_character]
+			
+		self.report({'ERROR'}, 'Not Implemented.')
+		return {'CANCELLED'} # must return a set
 
 class SM64_ImportCharacterPanel(bpy.types.Panel):
 	bl_idname = "SM64_PT_import_character"
@@ -1019,9 +864,6 @@ class SM64_ImportCharacterPanel(bpy.types.Panel):
 		col.prop(context.scene, 'sm64_character')
 		col.prop(context.scene, 'characterIgnoreSwitch')
 		propsI = col.operator(SM64_ImportMario.bl_idname)
-		propsI.importRom = context.scene.importRom
-		propsI.sm64_character = context.scene.sm64_character
-		propsI.characterIgnoreSwitch = context.scene.characterIgnoreSwitch
 
 		for i in range(panelSeparatorSize):
 			col.separator()
@@ -1032,35 +874,11 @@ class SM64_ImportLevel(bpy.types.Operator):
 	bl_label = "Import Level"
 	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
-	importRom : bpy.props.StringProperty(name ='Import ROM', subtype = 'FILE_PATH')
-	levelLevel : bpy.props.EnumProperty(items = level_enums, 
-		name = 'Level', default = 'CG')
-
 	# Called on demand (i.e. button press, menu item)
 	# Can also be called from operator search menu (Spacebar)
 	def execute(self, context):
-		if context.mode != 'OBJECT':
-			raise ValueError("Operator can only be used in object mode.")
-		try:
-			romfileSrc = open(self.importRom, 'rb')
-			levelParsed = parseLevelAtPointer(romfileSrc, level_pointers[self.levelLevel])
-			segmentData = levelParsed.segmentData
-
-			areaGeos = [parseGeoLayout(romfileSrc, decodeSegmentedAddr(
-				area.geoAddress, segmentData), context.scene, self.levelLevel,
-				mathutils.Matrix.Rotation(math.radians(90), 4, 'X'), False,
-				True, False, context.scene.f3d_type, context.scene.isHWv1) \
-				for area in levelParsed.areas]
-	
-			romfileSrc.close()
-	
-			return {'FINISHED'} # must return a set
-		except:
-			if context.mode != 'OBJECT':
-				bpy.ops.object.mode_set(mode = 'OBJECT')
-			self.report({'ERROR'}, traceback.format_exc())
-			romfileSrc.close()
-			return {'CANCELLED'} # must return a set
+		self.report({'ERROR'}, "Not Implemented.")
+		return {'CANCELLED'} # must return a set
 
 class SM64_ImportLevelPanel(bpy.types.Panel):
 	bl_idname = "SM64_PT_import_level"
@@ -1077,10 +895,6 @@ class SM64_ImportLevelPanel(bpy.types.Panel):
 	def draw(self, context):
 		col = self.layout.column()
 		propsLI = col.operator(SM64_ImportLevel.bl_idname)
-		#propsLE = col.operator(SM64_ExportLevel.bl_idname)
-
-		propsLI.levelLevel = context.scene.levelLevel
-		propsLI.importRom = context.scene.importRom
 		col.prop(context.scene, 'levelLevel')
 
 		for i in range(panelSeparatorSize):
@@ -1092,68 +906,9 @@ class SM64_ExportLevel(bpy.types.Operator):
 	bl_label = "Export Level"
 	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
-	exportRom : bpy.props.StringProperty(name ='Export ROM', subtype = 'FILE_PATH')
-	outputRom : bpy.props.StringProperty(name ='Output ROM', subtype = 'FILE_PATH')
-	levelLevel : bpy.props.EnumProperty(items = level_enums, 
-		name = 'Level', default = 'CG')
-
 	def execute(self, context):
-		tempROM = tempName(self.outputRom)
-		try:
-			romfileExport = open(bpy.path.abspath(self.exportRom), 'rb')		
-			shutil.copy(bpy.path.abspath(self.exportRom), 
-				bpy.path.abspath(tempROM))
-			romfileExport.close()
-			romfileOutput = open(bpy.path.abspath(tempROM), 'rb+')
-
-			segmentData = {}
-			ExtendBank0x04(romfileOutput, segmentData, defaultExtendSegment4)
-			DisableLowPolyMario(romfileOutput, character_data["Mario"].geolayoutStart)
-	
-			allObjs = context.selected_objects
-			bpy.ops.object.select_all(action = 'DESELECT')
-			for obj in allObjs:
-				if 'sm64_rom_start' in obj and \
-					'sm64_rom_end' in obj and \
-					'sm64_geolayout_pointers' in obj:
-	
-					start = obj['sm64_rom_start']
-					end = obj['sm64_rom_end']
-					geo = obj['sm64_geolayout_pointers']
-
-					if 'sm64_draw_layer' in obj:
-						drawLayer = obj['sm64_draw_layer']
-					else:
-						drawLayer = 0x01
-	
-					success = importGeneric(romfileOutput, obj, context, 'Y', start, 
-						end, levelEnum, geo, blenderToSM64Rotation,
-						drawLayer, verbose = True)
-					if not success:
-						self.report({'ERROR'}, 'Model is too large.')
-						romfileOutput.close()
-						return {'CANCELLED'} # must return a set
-
-					obj.select_set(True)
-	
-				else:
-					self.report({'ERROR'}, obj.name + \
-						" does not have correct custom properties.")
-	
-	
-			romfileOutput.close()
-			os.remove(self.outputRom)
-			os.rename(tempROM, self.outputRom)
-			self.report({'INFO'}, 'Export succeeded.')
-			return {'FINISHED'} # must return a set
-
-		except:
-			if context.mode != 'OBJECT':
-				bpy.ops.object.mode_set(mode = 'OBJECT')
-			romfileOutput.close()
-			os.remove(tempROM)
-			self.report({'ERROR'}, traceback.format_exc())
-			return {'CANCELLED'} # must return a set
+		self.report({'ERROR'}, 'Not Implemented.')
+		return {'CANCELLED'} # must return a set
 
 class SM64_ExportLevelPanel(bpy.types.Panel):
 	bl_idname = "SM64_PT_export_level"
@@ -1169,9 +924,6 @@ class SM64_ExportLevelPanel(bpy.types.Panel):
 	# called every frame
 	def draw(self, context):
 		col = self.layout.column()
-		propsLE.exportRom = context.scene.exportRom
-		propsLE.outputRom = context.scene.outputRom
-		propsLE.levelLevel = context.scene.levelLevel
 
 		for i in range(panelSeparatorSize):
 			col.separator()
@@ -1181,17 +933,11 @@ class SM64_ImportAnimMario(bpy.types.Operator):
 	bl_label = "Import Animation"
 	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
-	animStartImport : bpy.props.StringProperty(name ='Import Start', 
-		default = '4EC690')
-	importRom : bpy.props.StringProperty(name ='Import ROM', subtype = 'FILE_PATH')
-	isDMAImport: bpy.props.BoolProperty(name = 'Is DMA Animation Import')
-	levelAnimImport : bpy.props.EnumProperty(items = level_enums, name = 'Level Used By Animation', default = 'CG')
-
 	# Called on demand (i.e. button press, menu item)
 	# Can also be called from operator search menu (Spacebar)
 	def execute(self, context):
-		checkExpanded(bpy.path.abspath(self.importRom))
-		romfileSrc = open(bpy.path.abspath(self.importRom), 'rb')
+		checkExpanded(bpy.path.abspath(context.scene.importRom))
+		romfileSrc = open(bpy.path.abspath(context.scene.importRom), 'rb')
 		try:
 			# Note actual level doesn't matter for Mario, since he is in all of them
 			#levelParsed = parseLevelAtPointer(romfileSrc, level_pointers['CC'])
@@ -1201,12 +947,13 @@ class SM64_ImportAnimMario(bpy.types.Operator):
 			armatureObj = context.active_object
 			if type(armatureObj.data) is not bpy.types.Armature:
 				raise ValueError("Armature not selected.")
-			levelParsed = parseLevelAtPointer(romfileSrc, level_pointers	[self.levelAnimImport])
+			levelParsed = parseLevelAtPointer(romfileSrc, level_pointers	[context.scene.levelAnimImport])
 			segmentData = levelParsed.segmentData
 			importAnimationToBlender(romfileSrc, 
-				int(self.animStartImport, 16), armatureObj, 
-				segmentData, self.isDMAImport)
+				int(context.scene.animStartImport, 16), armatureObj, 
+				segmentData, context.scene.isDMAImport)
 			romfileSrc.close()
+			self.report({'INFO'}, 'Success!')
 		except:
 			romfileSrc.close()
 			self.report({'ERROR'}, traceback.format_exc())
@@ -1229,10 +976,6 @@ class SM64_ImportAnimPanel(bpy.types.Panel):
 	def draw(self, context):
 		col = self.layout.column()
 		propsAnimImport = col.operator(SM64_ImportAnimMario.bl_idname)
-		propsAnimImport.animStartImport = context.scene.animStartImport
-		propsAnimImport.importRom = context.scene.importRom
-		propsAnimImport.isDMAImport = context.scene.isDMAImport
-		propsAnimImport.levelAnimImport = context.scene.levelAnimImport
 		col.prop(context.scene, 'isDMAImport')
 		prop_split(col, context.scene, 'animStartImport', 'Start Address')
 		col.prop(context.scene, 'levelAnimImport')
@@ -1245,31 +988,6 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 	bl_label = "Export Animation"
 	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
-	animExportStart : bpy.props.StringProperty(name ='Start', 
-		default = '11D8930')
-	animExportEnd : bpy.props.StringProperty(name ='End', 
-		default = '11FFF00')
-	exportRom : bpy.props.StringProperty(name ='Export ROM', subtype = 'FILE_PATH')
-	outputRom : bpy.props.StringProperty(name ='Output ROM', subtype = 'FILE_PATH')
-	isDMAExport : bpy.props.BoolProperty(name = 'Is DMA Animation Export')
-	DMAEntryAddress : bpy.props.StringProperty(name = 'DMA Entry Address')
-	DMAStartAddress : bpy.props.StringProperty(name = 'DMA Start Address')
-	levelAnimExport : bpy.props.EnumProperty(items = level_enums, name = 'Level Used By Animation', default = 'CG')
-	loopAnimation : bpy.props.BoolProperty(name = 'Loop Animation', default = True)
-	overwrite_0x27 : bpy.props.BoolProperty(
-		name = 'Overwrite 0x27 behaviour command')
-	overwrite_0x28 : bpy.props.BoolProperty(
-		name = 'Overwrite 0x28 behaviour command')
-	addr_0x27 : bpy.props.StringProperty(name = '0x27 Command Address', 
-		default = '21CD00')
-	addr_0x28 : bpy.props.StringProperty(name = '0x28 Command Address', 
-		default = '21CD08')
-	animExportType : bpy.props.EnumProperty(
-		items = enumExportType, name = 'Export', default = 'Binary')
-	animExportPath : bpy.props.StringProperty(
-		name = 'Path', subtype = 'FILE_PATH')
-	animOverwriteDMAEntry : bpy.props.BoolProperty(name = 'Overwrite DMA Entry')
-
 	# Called on demand (i.e. button press, menu item)
 	# Can also be called from operator search menu (Spacebar)
 	def execute(self, context):
@@ -1279,61 +997,65 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 			raise ValueError("Armature not selected.")
 		armatureObj = context.selected_objects[0]
 
-		if self.animExportType == 'C':
+		if context.scene.animExportType == 'C':
 			try:
-				exportAnimationC(armatureObj, self.loopAnimation, 
-					bpy.path.abspath(self.animExportPath))
+				exportAnimationC(armatureObj, context.scene.loopAnimation, 
+					bpy.path.abspath(context.scene.animExportPath))
 				self.report({'INFO'}, 'Success! Animation at ' +\
-					self.animExportPath)
+					context.scene.animExportPath)
 			except:
 				self.report({'ERROR'}, traceback.format_exc())
 				return {'CANCELLED'} # must return a set
 		else:
 			try:
-				checkExpanded(bpy.path.abspath(self.exportRom))
-				tempROM = tempName(self.outputRom)
-				romfileExport = open(bpy.path.abspath(self.exportRom), 'rb')	
-				shutil.copy(bpy.path.abspath(self.exportRom), 
+				checkExpanded(bpy.path.abspath(context.scene.exportRom))
+				tempROM = tempName(context.scene.outputRom)
+				romfileExport = \
+					open(bpy.path.abspath(context.scene.exportRom), 'rb')	
+				shutil.copy(bpy.path.abspath(context.scene.exportRom), 
 					bpy.path.abspath(tempROM))
 				romfileExport.close()
 				romfileOutput = open(bpy.path.abspath(tempROM), 'rb+')
 			
 				# Note actual level doesn't matter for Mario, since he is in all of 	them
-				levelParsed = parseLevelAtPointer(romfileOutput, level_pointers		[self.levelAnimExport])
+				levelParsed = parseLevelAtPointer(romfileOutput, level_pointers		[context.scene.levelAnimExport])
 				segmentData = levelParsed.segmentData
 				if context.scene.extendBank4:
 					ExtendBank0x04(romfileOutput, segmentData, 
 						defaultExtendSegment4)
 
 				DMAAddresses = None
-				if self.animOverwriteDMAEntry:
+				if context.scene.animOverwriteDMAEntry:
 					DMAAddresses = {}
-					DMAAddresses['start'] = int(self.DMAStartAddress, 16)
-					DMAAddresses['entry'] = int(self.DMAEntryAddress, 16)
+					DMAAddresses['start'] = \
+						int(context.scene.DMAStartAddress, 16)
+					DMAAddresses['entry'] = \
+						int(context.scene.DMAEntryAddress, 16)
 
 				addrRange, nonDMAListPtr = exportAnimationBinary(
-					romfileOutput, [int(self.animExportStart, 16), 
-					int(self.animExportEnd, 16)], bpy.context.active_object,
-					DMAAddresses, segmentData, self.isDMAExport,
-					self.loopAnimation)
+					romfileOutput, [int(context.scene.animExportStart, 16), 
+					int(context.scene.animExportEnd, 16)],
+					bpy.context.active_object,
+					DMAAddresses, segmentData, context.scene.isDMAExport,
+					context.scene.loopAnimation)
 
-				if not self.isDMAExport:
+				if not context.scene.isDMAExport:
 					segmentedPtr = encodeSegmentedAddr(nonDMAListPtr, segmentData)
-					if self.overwrite_0x27:
-						romfileOutput.seek(int(self.addr_0x27, 16) + 4)
+					if context.scene.overwrite_0x27:
+						romfileOutput.seek(int(context.scene.addr_0x27, 16) + 4)
 						romfileOutput.write(segmentedPtr)
-					if self.overwrite_0x28:
-						romfileOutput.seek(int(self.addr_0x28, 16) + 1)
+					if context.scene.overwrite_0x28:
+						romfileOutput.seek(int(context.scene.addr_0x28, 16) + 1)
 						romfileOutput.write(bytearray([0x00]))
 				else:
 					segmentedPtr = None
 						
 				romfileOutput.close()
-				os.remove(bpy.path.abspath(self.outputRom))
+				os.remove(bpy.path.abspath(context.scene.outputRom))
 				os.rename(bpy.path.abspath(tempROM),
-					bpy.path.abspath(self.outputRom))
+					bpy.path.abspath(context.scene.outputRom))
 	
-				if not self.isDMAExport:
+				if not context.scene.isDMAExport:
 					self.report({'INFO'}, 'Sucess! Animation table at ' + \
 						hex(nonDMAListPtr) + ' (Seg. ' + \
 						bytesToHex(segmentedPtr) + '), animation at (' + \
@@ -1364,27 +1086,10 @@ class SM64_ExportAnimPanel(bpy.types.Panel):
 	def draw(self, context):
 		col = self.layout.column()
 		propsAnimExport = col.operator(SM64_ExportAnimMario.bl_idname)
-		propsAnimExport.animExportStart = context.scene.animExportStart
-		propsAnimExport.animExportEnd = context.scene.animExportEnd
-		propsAnimExport.exportRom = context.scene.exportRom
-		propsAnimExport.outputRom = context.scene.outputRom
-		propsAnimExport.isDMAExport = context.scene.isDMAExport
-		propsAnimExport.DMAEntryAddress = context.scene.DMAEntryAddress
-		propsAnimExport.DMAStartAddress = context.scene.DMAStartAddress
-		propsAnimExport.levelAnimExport = context.scene.levelAnimExport
-		propsAnimExport.loopAnimation = context.scene.loopAnimation
-		propsAnimExport.overwrite_0x27 = context.scene.overwrite_0x27
-		propsAnimExport.addr_0x27 = context.scene.addr_0x27
-		propsAnimExport.overwrite_0x28 = context.scene.overwrite_0x28
-		propsAnimExport.addr_0x28 = context.scene.addr_0x28
-		propsAnimExport.animExportType = context.scene.animExportType 
-		propsAnimExport.animExportPath = context.scene.animExportPath
-		propsAnimExport.animOverwriteDMAEntry = \
-			context.scene.animOverwriteDMAEntry
 		
 		col.prop(context.scene, 'animExportType')
 		col.prop(context.scene, 'loopAnimation')
-		if propsAnimExport.animExportType == 'C':
+		if context.scene.animExportType == 'C':
 			col.prop(context.scene, 'animExportPath')
 		else:
 			col.prop(context.scene, 'isDMAExport')
@@ -1419,25 +1124,6 @@ class SM64_ExportCollision(bpy.types.Operator):
 	bl_label = "Export Collision"
 	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
-	colStartAddr : bpy.props.StringProperty(name ='Start Address', 
-		default = '11D8930')
-	colEndAddr : bpy.props.StringProperty(name ='Start Address', 
-		default = '11FFF00')
-	exportRom : bpy.props.StringProperty(name ='Export ROM', 
-		subtype = 'FILE_PATH')
-	outputRom : bpy.props.StringProperty(name ='Output ROM', 
-		subtype = 'FILE_PATH')
-	colExportPath : bpy.props.StringProperty(
-		name = 'Path', subtype = 'FILE_PATH')
-	colExportType : bpy.props.EnumProperty(
-		items = enumExportType, name = 'Export', default = 'Binary')
-	colExportLevel : bpy.props.EnumProperty(items = level_enums, 
-		name = 'Level Used By Collision', default = 'CG')
-	addr_0x2A : bpy.props.StringProperty(name = '0x2A Behaviour Command Address',
-		default = '0')
-	set_addr_0x2A : bpy.props.BoolProperty(
-		name = 'Overwrite 0x2A Behaviour Command')
-
 	def execute(self, context):
 		
 		obj = None
@@ -1452,26 +1138,33 @@ class SM64_ExportCollision(bpy.types.Operator):
 		T, R, S = obj.matrix_world.decompose()
 		objTransform = R.to_matrix().to_4x4() @ \
 			mathutils.Matrix.Diagonal(S).to_4x4()
-		finalTransform = (blenderToSM64Rotation * \
-			(1/sm64ToBlenderScale)).to_4x4() @ objTransform
-
+		#finalTransform = (blenderToSM64Rotation * \
+		#	(1/sm64ToBlenderScale)).to_4x4() @ objTransform
+		#finalTransform = mathutils.Matrix.Identity(4)
+		finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((
+			1/sm64ToBlenderScale, 1/sm64ToBlenderScale, 1/sm64ToBlenderScale
+		))).to_4x4()
+		
 		try:
-			if self.colExportType == 'C':
+			applyRotation([obj], math.radians(90), 'X')
+			if context.scene.colExportType == 'C':
 				exportCollisionC(obj, finalTransform,
-					bpy.path.abspath(self.colExportPath), False)
+					bpy.path.abspath(context.scene.colExportPath), False,
+					context.scene.colIncludeChildren)
 				self.report({'INFO'}, 'Success! Collision at ' + \
-					self.colExportPath)
+					context.scene.colExportPath)
 			else:
-				tempROM = tempName(self.outputRom)
-				checkExpanded(bpy.path.abspath(self.exportRom))
-				romfileExport = open(bpy.path.abspath(self.exportRom), 'rb')	
-				shutil.copy(bpy.path.abspath(self.exportRom), 
+				tempROM = tempName(context.scene.outputRom)
+				checkExpanded(bpy.path.abspath(context.scene.exportRom))
+				romfileExport = \
+					open(bpy.path.abspath(context.scene.exportRom), 'rb')	
+				shutil.copy(bpy.path.abspath(context.scene.exportRom), 
 					bpy.path.abspath(tempROM))
 				romfileExport.close()
 				romfileOutput = open(bpy.path.abspath(tempROM), 'rb+')
 
 				levelParsed = parseLevelAtPointer(romfileOutput, 
-					level_pointers[self.colExportLevel])
+					level_pointers[context.scene.colExportLevel])
 				segmentData = levelParsed.segmentData
 
 				if context.scene.extendBank4:
@@ -1480,39 +1173,36 @@ class SM64_ExportCollision(bpy.types.Operator):
 
 				addrRange = \
 					exportCollisionBinary(obj, finalTransform, romfileOutput, 
-						int(self.colStartAddr, 16), int(self.colEndAddr, 16),
-						False)
+						int(context.scene.colStartAddr, 16), 
+						int(context.scene.colEndAddr, 16),
+						False, context.scene.colIncludeChildren)
 
 				segAddress = encodeSegmentedAddr(addrRange[0], segmentData)
-				if self.set_addr_0x2A:
-					romfileOutput.seek(int(self.addr_0x2A, 16) + 4)
+				if context.scene.set_addr_0x2A:
+					romfileOutput.seek(int(context.scene.addr_0x2A, 16) + 4)
 					romfileOutput.write(segAddress)
 				segPointer = bytesToHex(segAddress)
 
 				romfileOutput.close()
-				bpy.ops.object.select_all(action = 'DESELECT')
-				obj.select_set(True)
-				context.view_layer.objects.active = obj
 
-				os.remove(bpy.path.abspath(self.outputRom))
+				os.remove(bpy.path.abspath(context.scene.outputRom))
 				os.rename(bpy.path.abspath(tempROM), 
-					bpy.path.abspath(self.outputRom))
+					bpy.path.abspath(context.scene.outputRom))
 
 				self.report({'INFO'}, 'Success! Collision at (' + \
 					hex(addrRange[0]) + ', ' + hex(addrRange[1]) + \
 					') (Seg. ' + segPointer + ').')
 
+			applyRotation([obj], math.radians(-90), 'X')
 			return {'FINISHED'} # must return a set
 
 		except:
 			if context.mode != 'OBJECT':
 				bpy.ops.object.mode_set(mode = 'OBJECT')
 
-			bpy.ops.object.select_all(action = "DESELECT")
-			obj.select_set(True)
-			context.view_layer.objects.active = obj
+			applyRotation([obj], math.radians(-90), 'X')
 
-			if self.colExportType != 'C':
+			if context.scene.colExportType != 'C':
 				romfileOutput.close()
 				os.remove(bpy.path.abspath(tempROM))
 			obj.select_set(True)
@@ -1536,18 +1226,9 @@ class SM64_ExportCollisionPanel(bpy.types.Panel):
 		col = self.layout.column()
 		propsColE = col.operator(SM64_ExportCollision.bl_idname)
 
-		propsColE.colExportType = context.scene.colExportType
-		propsColE.colStartAddr = context.scene.colStartAddr
-		propsColE.colEndAddr = context.scene.colEndAddr
-		propsColE.colExportPath = context.scene.colExportPath
-		propsColE.colExportLevel = context.scene.colExportLevel
-		propsColE.exportRom = context.scene.exportRom
-		propsColE.outputRom = context.scene.outputRom
-		propsColE.addr_0x2A = context.scene.addr_0x2A
-		propsColE.set_addr_0x2A = context.scene.set_addr_0x2A
-
 		col.prop(context.scene, 'colExportType')
-		if propsColE.colExportType == 'C':
+		col.prop(context.scene, 'colIncludeChildren')
+		if context.scene.colExportType == 'C':
 			col.prop(context.scene, 'colExportPath')
 		else:
 			prop_split(col, context.scene, 'colStartAddr', 'Start Address')
@@ -1555,7 +1236,7 @@ class SM64_ExportCollisionPanel(bpy.types.Panel):
 			prop_split(col, context.scene, 'colExportLevel', 
 				'Level Used By Collision')
 			col.prop(context.scene, 'set_addr_0x2A')
-			if propsColE.set_addr_0x2A:
+			if context.scene.set_addr_0x2A:
 				prop_split(col, context.scene, 'addr_0x2A', 
 					'0x2A Behaviour Command Address')
 		for i in range(panelSeparatorSize):
@@ -1596,47 +1277,53 @@ class SM64_FileSettingsPanel(bpy.types.Panel):
 		col.prop(context.scene, 'exportRom')
 		col.prop(context.scene, 'outputRom')
 		col.prop(context.scene, 'extendBank4')
+		col.prop(context.scene, 'decomp_compatible')
 
+classes = (
+	ArmatureApplyWithMesh,
+	AddBoneGroups,
+	CreateMetarig,
+	N64_AddF3dMat,
+
+	F3D_GlobalSettingsPanel,
+	SM64_FileSettingsPanel,
+	#SM64_ImportCharacterPanel,
+	#SM64_ExportCharacterPanel,
+	SM64_ImportGeolayoutPanel,
+	SM64_ExportGeolayoutPanel,
+	SM64_ArmatureToolsPanel,
+	SM64_ImportAnimPanel,
+	SM64_ExportAnimPanel,
+	SM64_ImportDLPanel,
+	SM64_ExportDLPanel,
+	#SM64_ImportLevelPanel,
+	#SM64_ExportLevelPanel,
+	SM64_ExportCollisionPanel,
+
+	#SM64_ImportMario,
+	#SM64_ExportMario,
+	SM64_ImportGeolayout,
+	SM64_ExportGeolayoutArmature,
+	SM64_ExportGeolayoutObject,
+	SM64_ImportDL,
+	SM64_ExportDL,
+	SM64_ImportAnimMario,
+	SM64_ExportAnimMario,
+	#SM64_ImportLevel
+	#SM64_ExportLevel
+	SM64_ExportCollision,
+)
 
 # called on add-on enabling
 # register operators and panels here
 # append menu layout drawing function to an existing window
 def register():
-	sm64_collision.register() # register first, so panel goes above mat panel
-	f3d_material.register()
-	sm64_geolayout_bone.register()
-	
-	bpy.utils.register_class(ArmatureApplyWithMesh)
-	bpy.utils.register_class(AddBoneGroups)
-	bpy.utils.register_class(CreateMetarig)
-	bpy.utils.register_class(N64_AddF3dMat)
+	col_register() # register first, so panel goes above mat panel
+	mat_register()
+	bone_register()
 
-	bpy.utils.register_class(F3D_GlobalSettingsPanel)
-	bpy.utils.register_class(SM64_FileSettingsPanel)
-	#bpy.utils.register_class(SM64_ImportCharacterPanel)
-	#bpy.utils.register_class(SM64_ExportCharacterPanel)
-	bpy.utils.register_class(SM64_ImportGeolayoutPanel)
-	bpy.utils.register_class(SM64_ExportGeolayoutPanel)
-	bpy.utils.register_class(SM64_ArmatureToolsPanel)
-	bpy.utils.register_class(SM64_ImportAnimPanel)
-	bpy.utils.register_class(SM64_ExportAnimPanel)
-	bpy.utils.register_class(SM64_ImportDLPanel)
-	bpy.utils.register_class(SM64_ExportDLPanel)
-	#bpy.utils.register_class(SM64_ImportLevelPanel)
-	#bpy.utils.register_class(SM64_ExportLevelPanel)
-	bpy.utils.register_class(SM64_ExportCollisionPanel)
-	
-	#bpy.utils.register_class(SM64_ImportMario)
-	#bpy.utils.register_class(SM64_ExportMario)
-	bpy.utils.register_class(SM64_ImportGeolayout)
-	bpy.utils.register_class(SM64_ExportGeolayout)
-	bpy.utils.register_class(SM64_ImportDL)
-	bpy.utils.register_class(SM64_ExportDL)
-	bpy.utils.register_class(SM64_ImportAnimMario)
-	bpy.utils.register_class(SM64_ExportAnimMario)
-	#bpy.utils.register_class(SM64_ImportLevel)
-	#bpy.utils.register_class(SM64_ExportLevel)
-	bpy.utils.register_class(SM64_ExportCollision)
+	for cls in classes:
+		register_class(cls)
 
 	# Character
 	bpy.types.Scene.rotationAxis = bpy.props.FloatVectorProperty(
@@ -1712,8 +1399,8 @@ def register():
 		name = 'Modify level script', default = True)
 	bpy.types.Scene.modelLoadLevelScriptCmd = bpy.props.StringProperty(
 		name = 'Level script model load command', default = '2ABCE0')
-	bpy.types.Scene.modelID = bpy.props.IntProperty(name = 'Model ID', 
-		default = 1, min = 0)
+	bpy.types.Scene.modelID = bpy.props.StringProperty(name = 'Model ID', 
+		default = '1')
 	bpy.types.Scene.ignoreSwitch = bpy.props.BoolProperty(
 		name = 'Ignore Switch Nodes', default = True)
 	bpy.types.Scene.textDumpGeo = bpy.props.BoolProperty(
@@ -1784,6 +1471,8 @@ def register():
 		default = '11D8930')
 	bpy.types.Scene.colEndAddr = bpy.props.StringProperty(name ='Start Address',
 		default = '11FFF00')
+	bpy.types.Scene.colIncludeChildren = bpy.props.BoolProperty(
+		name = 'Include child objects', default = True)
 
 	# ROM
 	bpy.types.Scene.importRom = bpy.props.StringProperty(
@@ -1797,13 +1486,15 @@ def register():
 		description = 'Sets bank 4 range to (' +\
 			hex(defaultExtendSegment4[0]) + ', ' + \
 			hex(defaultExtendSegment4[1]) + ') and copies data from old bank')
+	bpy.types.Scene.decomp_compatible = bpy.props.BoolProperty(
+		name = 'Decomp Compatibility', default = True)
 
 	bpy.types.Scene.characterIgnoreSwitch = \
 		bpy.props.BoolProperty(name = 'Ignore Switch Nodes', default = True)
 
-	
 # called on add-on disabling
 def unregister():
+
 	del bpy.types.Scene.rotationAxis
 	del bpy.types.Scene.rotationAngle
 	del bpy.types.Scene.rotationOrder
@@ -1898,37 +1589,8 @@ def unregister():
 	del bpy.types.Scene.outputRom
 	del bpy.types.Scene.extendBank4
 
-	f3d_material.unregister()
-	sm64_geolayout_bone.unregister()
-	sm64_collision.unregister()
-	bpy.utils.unregister_class(ArmatureApplyWithMesh)
-	bpy.utils.unregister_class(AddBoneGroups)
-	bpy.utils.unregister_class(CreateMetarig)
-	bpy.utils.unregister_class(N64_AddF3dMat)
-	
-	bpy.utils.unregister_class(F3D_GlobalSettingsPanel)
-	bpy.utils.unregister_class(SM64_FileSettingsPanel)
-	#bpy.utils.unregister_class(SM64_ImportCharacterPanel)
-	#bpy.utils.unregister_class(SM64_ExportCharacterPanel)
-	bpy.utils.unregister_class(SM64_ImportGeolayoutPanel)
-	bpy.utils.unregister_class(SM64_ExportGeolayoutPanel)
-	bpy.utils.unregister_class(SM64_ArmatureToolsPanel)
-	bpy.utils.unregister_class(SM64_ImportAnimPanel)
-	bpy.utils.unregister_class(SM64_ExportAnimPanel)
-	bpy.utils.unregister_class(SM64_ImportDLPanel)
-	bpy.utils.unregister_class(SM64_ExportDLPanel)
-	#bpy.utils.unregister_class(SM64_ImportLevelPanel)
-	#bpy.utils.unregister_class(SM64_ExportLevelPanel)
-	bpy.utils.unregister_class(SM64_ExportCollisionPanel)
-	bpy.utils.unregister_class(SM64_ExportCollision)
-
-	#bpy.utils.unregister_class(SM64_ImportMario)
-	#bpy.utils.unregister_class(SM64_ExportMario)
-	bpy.utils.unregister_class(SM64_ImportGeolayout)
-	bpy.utils.unregister_class(SM64_ExportGeolayout)
-	bpy.utils.unregister_class(SM64_ImportDL)
-	bpy.utils.unregister_class(SM64_ExportDL)
-	bpy.utils.unregister_class(SM64_ImportAnimMario)
-	bpy.utils.unregister_class(SM64_ExportAnimMario)
-	#bpy.utils.unregister_class(SM64_ImportLevel)
-	#bpy.utils.unregister_class(SM64_ExportLevel)
+	mat_unregister()
+	bone_unregister()
+	col_unregister()
+	for cls in classes:
+		unregister_class(cls)

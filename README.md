@@ -40,7 +40,8 @@ Unzip and drag the entire folder into your blender addons folder (usually at C:\
 ### Tool Locations
 The tools can be found in the properties sidebar under the 'Tools' tab (toggled by pressing N).
 The F3D material inspector can be found in the properties editor under the material tab.
-The geolayout inspector can be found in the properties editor under the bone tab in Pose Mode.
+The armature geolayout inspector can be found in the properties editor under the bone tab in Pose Mode.
+The object geolayout inspector can be found in the properties editor under the object tab.
 The RDP default settings can be found in the properties editor under the world tab.
 
 ### C Exporting
@@ -61,8 +62,11 @@ Any exported meshes must have an F3D Material, which can be added by the 'Create
 ### RDP State Optimization
 A material will not set every single geometry mode / other mode option. Instead, each property will be checked against the default settings located in the world tab in the properties sidebar. If the values are the same, then the code to change it is not added. 
 
-### Geolayouts
-There are many different geolayout node types. In Blender, each node type is represented by a bone group. Imported geolayouts will already have these bone groups, but if you want to add them to your own armature use the 'Add Bone Groups' operator in the SM64 Armature Tools header. All regular bones (aka 0x13 commands) and 0x15 command bones are placed on armature layer 0. All other geolayout commands are placed on layer 1. Metarig generated bones are placed on layers 3 and 4 (see 'Animating Existing Geolayouts'). If you change a bone's geolayout command type and it dissapears, it might have been moved to a different layer. Make sure to go to the armature properties editor and set both layers 0 and 1 to be visible. Geolayout command types can be editted in the properties editor under the bone tab in pose mode.
+### Geolayouts (Armature)
+There are many different geolayout node types. In Blender, each node type is represented by a bone group. Imported geolayouts will already have these bone groups, but if you want to add them to your own armature use the 'Add Bone Groups' operator in the SM64 Armature Tools header. All regular bones (aka 0x13 commands) and 0x15 command bones are placed on armature layer 0. All other geolayout commands are placed on layer 1. Metarig generated bones are placed on layers 3 and 4 (see 'Animating Existing Geolayouts'). If you change a bone's geolayout command type and it dissapears, it might have been moved to a different layer. Make sure to go to the armature properties editor and set both layers 0 and 1 to be visible. Geolayout command types can be edited in the properties editor under the bone tab in pose mode.
+
+### Geolayouts (Object)
+Alternatively, for simple static geolayouts you can export object hierarchies. Geolayout properties such as draw layer can be located in the object properties tab. 
 
 ### Exporting Geolayouts and Skinned Meshes
 The N64 supports binary skinning, meaning each vertex will be influenced by one bone only. When skinning an exported geolayout, do NOT use automatic skinning, as this results in a smooth weight falloff. Instead, when weight painting set the weight to either 1 or 0, and set the brush Falloff to square. Skinning can only occur between an immediate parent and a child deform bone, not between siblings / across ancestors.
@@ -86,6 +90,9 @@ To replace an actor model in decomp, replace its geo.inc.c and model.inc.c conte
 
 ### Switch Statements
 To add a switch mesh node, duplicate your switch bone and move it off to the side. Set the bone geolayout command to be Switch Option. Any nodes in this switch option must be children of this bone. Add any other bones to this bone. Add your switch geometry into your existing mesh in the correct position and skin it.
+
+# Decomp vs Homebrew Compatibility
+There may occur cases where code is formatted differently based on the code use case. In the tools panel under the SM64 File Settings subheader, you can set which use case you want.
 
 ### Common Issues
 Inivisible Mesh : Bone is not set to deform, or geometry is skinned to more than one bone.

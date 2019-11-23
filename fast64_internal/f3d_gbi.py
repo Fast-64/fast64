@@ -1317,23 +1317,37 @@ class Vtx:
 			bytearray(self.colorOrNormal)
 
 	def to_c(self):
-		return '{{' + \
-			'{' +\
+		if bpy.context.scene.decomp_compatible:
+			return '{{' + \
+				'{' +\
+					str(self.position[0]) + ', ' + \
+					str(self.position[1]) + ', ' + \
+					str(self.position[2]) + \
+				'},' +\
+				'0, ' + \
+				'{' +\
+					'0x' + format(self.uv[0], 'X') + ", " +\
+					'0x' + format(self.uv[1], 'X') + \
+				'},' +\
+				'{' +\
+					'0x' + format(self.colorOrNormal[0], 'X') + ', ' + \
+					'0x' + format(self.colorOrNormal[1], 'X') + ', ' + \
+					'0x' + format(self.colorOrNormal[2], 'X') + ', ' + \
+					'0x' + format(self.colorOrNormal[3], 'X') + \
+				'}' + '}}'
+		else:
+			return '{' + \
 				str(self.position[0]) + ', ' + \
 				str(self.position[1]) + ', ' + \
-				str(self.position[2]) + \
-			'},' +\
-			'0, ' + \
-			'{' +\
+				str(self.position[2]) + ', ' + \
+				'0, ' + \
 				'0x' + format(self.uv[0], 'X') + ", " +\
-				'0x' + format(self.uv[1], 'X') + \
-			'},' +\
-			'{' +\
+				'0x' + format(self.uv[1], 'X') + ", " +\
 				'0x' + format(self.colorOrNormal[0], 'X') + ', ' + \
 				'0x' + format(self.colorOrNormal[1], 'X') + ', ' + \
 				'0x' + format(self.colorOrNormal[2], 'X') + ', ' + \
 				'0x' + format(self.colorOrNormal[3], 'X') + \
-			'}' + '}}'
+				'}'
 	
 	def to_sm64_decomp_s(self):
 		return 'vertex ' + \
@@ -1506,33 +1520,26 @@ class FModel:
 	def save_c_tex_separate(self, static, texDir, dirpath, texSeparate):
 		data = ''
 		texC = ''
+
+		# since decomp is linux, don't use os.path.join 
+		# on windows this results in '\', which is incorrect (should be '/')
+		if texDir[-1] != '/':
+			texDir += '/'
 		for name, light in self.lights.items():
 			data += light.to_c() + '\n'
 		#for info, texture in self.textures.items():
 		#	data += texture.to_c_tex_separate() + '\n'
 		for (image, texInfo), texture in self.textures.items():
-			if texInfo[1] != 'PAL':
-				filename = getNameFromPath(image.filepath, True) + '.' + \
-					texInfo[0].lower() + '.png'
-				cName = getNameFromPath(image.filepath, True) + '.' + \
-					texInfo[0].lower() + '.inc.c'
-			else:
-				#filename = image.filepath + 'png'
-				cName = image.filepath + '.inc.c'
-				#raise ValueError("n64graphics cannot currently convert PNGs " +\
-				#	"to CI textures, so it is pointless to export a PNG " +\
-				#	"for this purpose. Disable 'Save Textures as PNGs.'")
-			
 			if texSeparate:
-				texC += texture.to_c_tex_separate(
-					os.path.join(texDir, cName)) + '\n'
+				texC += texture.to_c_tex_separate(texDir) + '\n'
 			else:
-				data += texture.to_c_tex_separate(
-					os.path.join(texDir, cName)) + '\n'
+				data += texture.to_c_tex_separate(texDir) + '\n'
 
 			if texInfo[1] != 'PAL':
+				# remove '.inc.c'
+				imageFileName = texture.filename[:-6] + '.png'
 				if False:
-					image.save_render(os.path.join(dirpath, filename))
+					image.save_render(os.path.join(dirpath, imageFileName))
 				else:
 					isPacked = image.packed_file is not None
 					if not isPacked:
@@ -1540,7 +1547,7 @@ class FModel:
 					oldpath = image.filepath
 					try:
 						image.filepath = \
-							os.path.join(dirpath, filename)
+							os.path.join(dirpath, imageFileName)
 						image.save()
 						if not isPacked:
 							image.unpack()
@@ -1566,6 +1573,8 @@ class FModel:
 			texFile.close()
 	
 	def freePalettes(self):
+		# Palettes no longer saved
+		return 
 		for (image, texInfo), texture in self.textures.items():
 			#texDict[name] = texture.to_c_data() + '\n'
 			if texInfo[1] == 'PAL':
@@ -1896,7 +1905,7 @@ class LookAt:
 
 # A palette is just a RGBA16 texture with width = 1.
 class FImage:
-	def __init__(self, name, fmt, bitSize, width, height):
+	def __init__(self, name, fmt, bitSize, width, height, filename):
 		self.name = name
 		self.fmt = fmt
 		self.bitSize = bitSize
@@ -1904,6 +1913,7 @@ class FImage:
 		self.height = height
 		self.startAddress = 0
 		self.data = bytearray(0)
+		self.filename = filename
 	
 	def size(self):
 		return len(self.data)
@@ -1919,7 +1929,7 @@ class FImage:
 
 	def to_c_tex_separate(self, texPath):
 		code = 'static const u8 ' + self.name + '[] = {\n\t'
-		code += '#include "' + texPath + '"'
+		code += '#include "' + texPath + self.filename + '"'
 		code += '\n};\n'
 		return code
 
@@ -3346,12 +3356,13 @@ class DPSetCombineMode:
 		Ac1 = self.Ac1 # 'G_ACMUX_' + self.Ac1
 		Ad1 = self.Ad1 # 'G_ACMUX_' + self.Ad1
 
+		# No tabs/line breaks, breaks macros
 		header = 'gsDPSetCombineLERP(' if static else \
 			'gDPSetCombineLERP(glistp++, '
 		return header + a0 + ', ' + b0 + ', ' + c0 + ', ' + \
-			d0 + ',\n\t\t' + Aa0 + ', ' + Ab0 + ', ' + \
-			Ac0 + ', ' + Ad0 + ',\n\t\t' + a1 + ', ' + \
-			b1 + ', ' + c1 + ', ' + d1 + ',\n\t\t' + Aa1 + \
+			d0 + ', ' + Aa0 + ', ' + Ab0 + ', ' + \
+			Ac0 + ', ' + Ad0 + ', ' + a1 + ', ' + \
+			b1 + ', ' + c1 + ', ' + d1 + ', ' + Aa1 + \
 			', ' + Ab1 + ', ' + Ac1 + ', ' + Ad1 + ')'
 
 	def to_sm64_decomp_s(self):
@@ -3620,10 +3631,11 @@ class DPSetTile:
 		return words[0].to_bytes(4, 'big') + words[1].to_bytes(4, 'big')
 
 	def to_c(self, static = True):
+		# no tabs/line breaks, breaks macros
 		header = 'gsDPSetTile(' if static else 'gDPSetTile(glistp++, '
 		return header + self.fmt + ', ' + self.siz + ', ' + \
 			str(self.line) + ', ' + str(self.tmem) + ', ' + \
-			str(self.tile) + ', ' + str(self.palette) + ',\n\t\t' + \
+			str(self.tile) + ', ' + str(self.palette) + ', ' + \
 			self.cmt[0] + ' | ' + self.cmt[1] + ', ' + str(self.maskt) + \
 			', ' + str(self.shiftt) + ', ' + self.cms[0] + ' | ' + \
 			self.cms[1] + ', ' + str(self.masks) + ', ' + str(self.shifts) + ')'
