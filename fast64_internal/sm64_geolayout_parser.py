@@ -11,7 +11,7 @@ from .sm64_geolayout_utility import *
 from .f3d_parser import *
 from .utility import *
 from .sm64_constants import *
-from .f3d_material import createF3DMat
+from .f3d_material import createF3DMat, update_preset_manual
 
 blender_modes = {'OBJECT', 'BONE'}
 
@@ -35,8 +35,8 @@ def parseGeoLayout(romfile, startAddress, scene, level,
 	obj = bpy.data.objects.new('skinned', mesh)
 	scene.collection.objects.link(obj)
 	material = createF3DMat(obj)
-	material.node_tree.nodes['Case A 1'].inA = '1'
-	material.set_env = False
+	material.f3d_preset = 'Shaded Solid'
+	update_preset_manual(material, bpy.context)
 
 	bMesh = bmesh.new()
 	bMesh.from_mesh(mesh)
