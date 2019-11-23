@@ -9,7 +9,7 @@ enumBoneType = [
 	("TranslateRotate", "Translate Rotate (0x10)", "Translate Rotate"), 
 	("Translate", "Translate (0x11)", "Translate"), 
 	("Rotate", "Rotate (0x12)", "Rotate"), 
-	
+	("Billboard", "Billboard (0x14)", "Billboard"), 
 	("DisplayList", "Display List (0x15)", "Display List"), 
 	("Shadow", "Shadow (0x16)", "Shadow"), 
 	("Function", "Function (0x18)", "Function"), 
