@@ -5,7 +5,7 @@ This requires Blender 2.81.
 
 ![alt-text](https://bitbucket.org/kurethedead/fast64/raw/master/images/mario_running.gif)
 
-This is a Blender plugin that allows one to export display lists, geolayouts, and animations to Super Mario 64, either directly into a ROM or to C code. It supports custom color combiners / geometry modes, and different geolayout node types. 
+This is a Blender plugin that allows one to export display lists, geolayouts, and animations to Super Mario 64, either directly into a ROM or to C code. It supports custom color combiners / geometry modes, and different geolayout node types. It is also possible to use exported C code in homebrew applications.
 
 Make sure to save often, as this plugin is prone to crashing when creating materials / undoing material creation. This is a Blender issue.
 
@@ -47,6 +47,9 @@ The RDP default settings can be found in the properties editor under the world t
 ### C Exporting
 When exporting data to C, a folder will be created (if it does not yet exist) and will be named after the object/armature it is based off of. The C files will be saved within this new folder. Any previous C files of the same name will be overwritten.
 
+### Decomp vs Homebrew Compatibility
+There may occur cases where code is formatted differently based on the code use case. In the tools panel under the SM64 File Settings subheader, you can toggle decomp compatibility.
+
 ### ROM File Settings
 When importing from a ROM, the plugin will import from the ROM at filepath 'Import ROM', When exporting to a ROM, the plugin will make a copy of the file at 'Export ROM', modify it, and save the file to 'Output ROM'. The ROM must be expanded.
 
@@ -79,7 +82,7 @@ To import an animation to blender, select an armature for the animation to be ex
 
 ### Exporting Mario Animations
 Mario animations use a DMA table, which contains 8 byte entries of (offset from table start, animation size). Documentation about this table is here:
-https://dudaw.webs.com/sm64docs/sm64_marios_animation_table.txt
+https://dudaw.webs.com/sm64docs/sm64_marios_animation_table.txt.
 Basically, Mario's DMA table starts at 0x4EC000. There is an 8 byte header, and then the animation entries afterward. Thus the 'climb up ledge' DMA entry is at 0x4EC008. The first 8 bytes at that address indicate the offset from 0x4EC000 at which the actual animation exists. Using this table you can find animations you want to overwrite.
 
 ### Animating Existing Geolayouts
@@ -90,9 +93,6 @@ To replace an actor model in decomp, replace its geo.inc.c and model.inc.c conte
 
 ### Switch Statements
 To add a switch mesh node, duplicate your switch bone and move it off to the side. Set the bone geolayout command to be Switch Option. Any nodes in this switch option must be children of this bone. Add any other bones to this bone. Add your switch geometry into your existing mesh in the correct position and skin it.
-
-# Decomp vs Homebrew Compatibility
-There may occur cases where code is formatted differently based on the code use case. In the tools panel under the SM64 File Settings subheader, you can set which use case you want.
 
 ### Common Issues
 Inivisible Mesh : Bone is not set to deform, or geometry is skinned to more than one bone.
