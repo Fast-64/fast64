@@ -1348,8 +1348,8 @@ def addSkinnedMeshNode(armatureObj, boneName, skinnedMesh, transformNode, parent
 	while highestChildNode.parent is not None and\
 		not (highestChildNode.parent.node.hasDL): # empty 0x13 command?
 		isFirstChild &= checkIfFirstNonASMNode(highestChildNode)
-		hasNonDeform0x13Command &= highestChildNode.parent.node is \
-			DisplayListWithOffsetNode
+		hasNonDeform0x13Command |= isinstance(highestChildNode.parent.node,
+			DisplayListWithOffsetNode)
 
 		acrossSwitchNode |= isinstance(highestChildNode.parent.node, SwitchNode)
 			
@@ -1359,6 +1359,7 @@ def addSkinnedMeshNode(armatureObj, boneName, skinnedMesh, transformNode, parent
 		highestChildCopy.parent = highestChildCopyParent
 		#print(str(highestChildCopy.node) + " " + str(isFirstChild))
 		highestChildCopy = highestChildCopyParent
+	isFirstChild &= checkIfFirstNonASMNode(highestChildNode)
 	if highestChildNode.parent is None:
 		raise ValueError("There shouldn't be a skinned mesh section if there is no deform parent. This error may have ocurred if a switch option node is trying to skin to a parent but no deform parent exists.")
 
