@@ -66,26 +66,87 @@ def getVertToFaceDict(mesh):
 				vertDict[vertIndex].append(face)
 	return vertDict
 
+def getLoopFromVert(inputIndex, face):
+	for i in range(len(face.vertices)):
+		if face.vertices[i] == inputIndex:
+			return face.loops[i]
+
+def getInfoDict(obj):
+	infoDict = {
+		'vert' : {}, # all faces connected to a vert
+		'edge' : {}, # all faces connected to an edge
+		'f3dVert' : {}, # f3d vertex of a given loop
+		'edgeValid' : {}, # bool given two faces
+		'validNeighbors' : {} # all neighbors of a face with a valid connecting edge
+	}
+	vertDict = infoDict['vert']
+	edgeDict = infoDict['edge']
+	f3dVertDict = infoDict['f3dVert']
+	edgeValidDict = infoDict['edgeValid']
+	validNeighborDict = infoDict['validNeighbors']
+
+	mesh = obj.data
+	uv_layer = obj.data.uv_layers.active.data
+	for face in mesh.loop_triangles:
+		validNeighborDict[face] = []
+		for vertIndex in face.vertices:
+			if vertIndex not in vertDict:
+				vertDict[vertIndex] = []
+			if face not in vertDict[vertIndex]:
+				vertDict[vertIndex].append(face)
+		for edgeKey in face.edge_keys:
+			if edgeKey not in edgeDict:
+				edgeDict[edgeKey] = []
+			if face not in edgeDict[edgeKey]:
+				edgeDict[edgeKey].append(face)
+		for loopIndex in face.loops:
+			convertInfo = LoopConvertInfo(uv_layer, obj, 
+				isLightingDisabled(mesh.materials[face.material_index]))
+			f3dVertDict[loopIndex] = getF3DVert(mesh.loops[loopIndex], face, convertInfo, mesh)
+	for face in mesh.loop_triangles:	
+		for edgeKey in face.edge_keys:
+			for otherFace in edgeDict[edgeKey]:
+				if otherFace == face:
+					continue
+				if (otherFace, face) not in edgeValidDict and \
+					(face, otherFace) not in edgeValidDict:
+					edgeValid = \
+						f3dVertDict[getLoopFromVert(edgeKey[0], face)] == \
+						f3dVertDict[getLoopFromVert(edgeKey[0], otherFace)] and \
+						f3dVertDict[getLoopFromVert(edgeKey[1], face)] == \
+						f3dVertDict[getLoopFromVert(edgeKey[1], otherFace)]
+					edgeValidDict[(otherFace, face)] = edgeValid
+					if edgeValid:
+						validNeighborDict[face].append(otherFace)
+						validNeighborDict[otherFace].append(face)
+	return infoDict
+
 # Make sure to set original_name before calling this
 # used when duplicating an object
 def saveStaticModel(fModel, obj, transformMatrix):
 	if len(obj.data.polygons) == 0:
 		return None
+	
+	checkForF3DMaterial(obj)
 
 	obj.data.calc_loop_triangles()
 	obj.data.calc_normals_split()
-	edgeDict = getEdgeToFaceDict(obj.data)
+	infoDict = getInfoDict(obj)
 
 	fMeshGroup = FMeshGroup(toAlnum(obj.original_name), 
 		FMesh(toAlnum(obj.original_name) + '_mesh'), None)
 	fModel.meshGroups[obj.original_name] = fMeshGroup
 
-	for material_index in range(len(obj.data.materials)):
+	facesByMat = {}
+	for face in obj.data.loop_triangles:
+		if face.material_index not in facesByMat:
+			facesByMat[face.material_index] = []
+		facesByMat[face.material_index].append(face)
+
+	for material_index, faces in facesByMat.items():
 		material = obj.data.materials[material_index]
-		saveMeshByFaces(material, 
-			[face for face in obj.data.loop_triangles if \
-				face.material_index == material_index], 
-			fModel, fMeshGroup.mesh, obj, transformMatrix, edgeDict)
+		saveMeshByFaces(material, faces, 
+			fModel, fMeshGroup.mesh, obj, transformMatrix, infoDict)
 	
 	revertMatAndEndDraw(fMeshGroup.mesh.draw)
 	return fMeshGroup
@@ -100,7 +161,6 @@ def cleanupDuplicatedObjects(selected_objects):
 		bpy.data.meshes.remove(mesh)
 
 def exportF3DCommon(obj, f3dType, isHWv1, transformMatrix):
-	checkForF3DMaterial(obj)
 	obj.original_name = obj.name
 	bpy.ops.object.select_all(action = 'DESELECT')
 	obj.select_set(True)
@@ -234,67 +294,30 @@ def getCommonEdge(face1, face2, mesh):
 	raise ValueError("No common edge between faces " + str(face1.index) + \
 		' and ' + str(face2.index))
 
-def edgeValid(face1, face2, convertInfo, mesh):
-	edgeKey = getCommonEdge(face1, face2, mesh)
+def edgeValid(edgeValidDict, face, otherFace):
+	if (face, otherFace) in edgeValidDict:
+		return edgeValidDict[(face, otherFace)]
+	else:
+		return edgeValidDict[(otherFace, face)]
 
-	vertPairs = [[],[]]
-
-	for loopIndex in face1.loops:
-		vertIndex = mesh.loops[loopIndex].vertex_index
-		if vertIndex in edgeKey:
-			index = 0 if vertIndex == edgeKey[0] else 1
-			vertPairs[index].append([loopIndex, face1])
-
-	for loopIndex in face2.loops:
-		vertIndex = mesh.loops[loopIndex].vertex_index
-		if vertIndex in edgeKey:
-			index = 0 if vertIndex == edgeKey[0] else 1
-			vertPairs[index].append([loopIndex, face2])
-
-	vertPairs[0] = [(mesh.loops[i], face) for i, face in vertPairs[0]]
-	vertPairs[1] = [(mesh.loops[i], face) for i, face in vertPairs[1]]
-
-	for vertPair in vertPairs:
-		if getF3DVert(vertPair[0][0], vertPair[0][1], convertInfo, mesh) != \
-			getF3DVert(vertPair[1][0], vertPair[1][1], convertInfo, mesh):
-			return False
-
-	return True
-
-def getNumUnvisitedNeighbors(face, faces, visitedNeighbors, convertInfo,
-	edgeDict, mesh):
-	neighbors = []
-
-	for edgeKey in face.edge_keys:
-		for linkedFace in edgeDict[edgeKey]:
-			if linkedFace.index != face.index:
-				if linkedFace in faces and linkedFace not in neighbors and\
-					linkedFace not in visitedNeighbors and \
-					edgeValid(face, linkedFace, convertInfo, mesh):
-					neighbors.append(linkedFace)
-	return len(neighbors)
-
-def getLowestUnvisitedNeighborCountFace(faces, visitedFaces, convertInfo, 
-	edgeDict, mesh):
+def getLowestUnvisitedNeighborCountFace(faces, visitedFaces, infoDict):
 	lowestNeighborFace = None
 	for face in faces:
 		if face not in visitedFaces:
 			lowestNeighborFace = face
 			break
-	lowestNeighborCount = getNumUnvisitedNeighbors(
-		lowestNeighborFace, faces, visitedFaces, convertInfo, edgeDict, mesh)
+	lowestNeighborCount = len(infoDict['validNeighbors'][lowestNeighborFace])
 	for face in faces:
 		if face in visitedFaces:
 			continue
-		neighborCount = getNumUnvisitedNeighbors(
-			face, faces, visitedFaces, convertInfo, edgeDict, mesh)
+		neighborCount = len(infoDict['validNeighbors'][face])
 		if neighborCount < lowestNeighborCount:
 			lowestNeighborFace = face
 			lowestNeighborCount = neighborCount
 	return lowestNeighborFace
 
 def getNextNeighborFace(faces, face, lastEdgeKey, visitedFaces, possibleFaces,
-	convertInfo, mesh, edgeDict):
+	infoDict):
 	
 	if lastEdgeKey is not None:
 		handledEdgeKeys = [lastEdgeKey]
@@ -306,10 +329,10 @@ def getNextNeighborFace(faces, face, lastEdgeKey, visitedFaces, possibleFaces,
 
 	nextFaceAndEdge = (None, None)
 	while nextEdgeKey not in handledEdgeKeys:
-		for linkedFace in edgeDict[nextEdgeKey]:
+		for linkedFace in infoDict['edge'][nextEdgeKey]:
 			if linkedFace == face or linkedFace not in faces:
 				continue
-			elif edgeValid(linkedFace, face, convertInfo, mesh) and \
+			elif edgeValid(infoDict['edgeValid'], linkedFace, face) and \
 				linkedFace not in visitedFaces:
 				if nextFaceAndEdge[0] is None:
 					#print(nextLoop.face)
@@ -326,12 +349,12 @@ def getNextNeighborFace(faces, face, lastEdgeKey, visitedFaces, possibleFaces,
 
 def saveTriangleStrip(faces, convertInfo, triList, vtxList, f3d, 
 	texDimensions, transformMatrix, isPointSampled, exportVertexColors,
-	existingVertexData, existingVertexMaterialRegions, edgeDict, mesh):
+	existingVertexData, existingVertexMaterialRegions, infoDict, mesh):
 	visitedFaces = []
 	possibleFaces = []
 	lastEdgeKey = None
 	neighborFace = getLowestUnvisitedNeighborCountFace(
-		faces, visitedFaces, convertInfo, edgeDict, mesh)
+		faces, visitedFaces, infoDict)
 
 	triConverter = TriangleConverter(mesh, convertInfo, triList, vtxList, f3d, 
 		texDimensions, transformMatrix, isPointSampled, exportVertexColors,
@@ -348,7 +371,7 @@ def saveTriangleStrip(faces, convertInfo, triList, vtxList, f3d,
 			else:
 				#print('get new neighbor')
 				neighborFace =  getLowestUnvisitedNeighborCountFace(
-					faces, visitedFaces, convertInfo, edgeDict, mesh)
+					faces, visitedFaces, infoDict)
 				lastEdgeKey = None
 		
 		triConverter.addFace(neighborFace)
@@ -357,10 +380,11 @@ def saveTriangleStrip(faces, convertInfo, triList, vtxList, f3d,
 		visitedFaces.append(neighborFace)
 		if neighborFace in possibleFaces:
 			possibleFaces.remove(neighborFace)
+		for otherFace in infoDict['validNeighbors'][neighborFace]:
+			infoDict['validNeighbors'][otherFace].remove(neighborFace)
 
 		neighborFace, lastEdgeKey = getNextNeighborFace(faces, 
-			neighborFace, lastEdgeKey, visitedFaces, possibleFaces, convertInfo,
-			mesh, edgeDict)
+			neighborFace, lastEdgeKey, visitedFaces, possibleFaces, infoDict)
 	
 	triConverter.finish()
 
@@ -376,7 +400,7 @@ def checkIfFlatShaded(material):
 	return not material.rdp_settings.g_shade_smooth
 
 def saveMeshByFaces(material, faces, fModel, fMesh, obj, transformMatrix,
-	edgeDict):
+	infoDict):
 	if len(faces) == 0:
 		print('0 Faces Provided.')
 		return
@@ -396,7 +420,7 @@ def saveMeshByFaces(material, faces, fModel, fMesh, obj, transformMatrix,
 	#	exportVertexColors, fModel.f3d)
 	saveTriangleStrip(faces, convertInfo, triList, fMesh.vertexList,
 		fModel.f3d, texDimensions, transformMatrix, isPointSampled,
-		exportVertexColors, None, None, edgeDict, obj.data)
+		exportVertexColors, None, None, infoDict, obj.data)
 	
 	if fMaterial.revert is not None:
 		fMesh.draw.commands.append(SPDisplayList(fMaterial.revert))

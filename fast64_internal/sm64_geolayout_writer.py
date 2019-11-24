@@ -72,8 +72,7 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix,
 
 	obj.data.calc_loop_triangles()
 	obj.data.calc_normals_split()
-	edgeDict = getEdgeToFaceDict(obj.data)
-	vertDict = getVertToFaceDict(obj.data)
+	infoDict = getInfoDict(obj)
 
 	# Find start bone, which is not root. Root is the start for animation.
 	startBoneName = findStartBone(armatureObj)
@@ -86,7 +85,7 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix,
 	geolayout.rootNode = RootTransformNode(StartNode(), toAlnum(armatureObj.name))
 	processBone(fModel, startBoneName, obj, armatureObj, 
 		convertTransformMatrix, None, None, None, geolayout.rootNode, [], '',
-		geolayout, edgeDict, vertDict)
+		geolayout, infoDict)
 	generateSwitchOptions(geolayout.rootNode)
 	return geolayout.rootNode, fModel
 
@@ -525,8 +524,12 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode, isRoot):
 	if not isinstance(obj.data, bpy.types.Mesh):
 		return
 
-	translate = obj.matrix_local.decompose()[0]
-	rotate = obj.matrix_local.decompose()[1]
+	if isRoot:
+		translate = mathutils.Vector((0,0,0))
+		rotate = mathutils.Quaternion()
+	else:
+		translate = obj.matrix_local.decompose()[0]
+		rotate = obj.matrix_local.decompose()[1]
 
 	#translation = mathutils.Matrix.Translation(translate)
 	#rotation = rotate.to_matrix().to_4x4()
@@ -588,7 +591,7 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode, isRoot):
 
 def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 	lastTranslateName, lastRotateName, lastDeformName, parentTransformNode,
-	materialOverrides, namePrefix, geolayout, edgeDict, vertDict):
+	materialOverrides, namePrefix, geolayout, infoDict):
 	bone = armatureObj.data.bones[boneName]
 	poseBone = armatureObj.pose.bones[boneName]
 	boneGroup = poseBone.bone_group
@@ -721,8 +724,8 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 	if node.hasDL:
 		meshGroup = saveModelGivenVertexGroup(
 			fModel, obj, bone.name, lastDeformName,
-			finalTransform, armatureObj, materialOverrides, namePrefix, edgeDict,
-			vertDict)
+			finalTransform, armatureObj, materialOverrides, 
+			namePrefix, infoDict)
 
 		if meshGroup is None:
 			#print("No mesh data.")
@@ -774,7 +777,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 			processBone(fModel, name, obj, armatureObj, 
 				finalTransform, lastTranslateName, lastRotateName, 
 				lastDeformName, transformNode, materialOverrides, namePrefix, 
-				geolayout, edgeDict, vertDict)
+				geolayout, infoDict)
 			#transformNode.children.append(childNode)
 			#childNode.parent = transformNode
 	
@@ -834,14 +837,12 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 					optionObj = optionObjs[0]
 					optionObj.data.calc_loop_triangles()
 					optionObj.data.calc_normals_split()
-					optionEdgeDict = getEdgeToFaceDict(optionObj.data)
-					optionVertDict = getVertToFaceDict(optionObj.data)
+					optionInfoDict = getInfoDict(optionObj)
 					processBone(fModel, name, optionObj,
 						optionArmature,
 						finalTransform, optionBone.name, optionBone.name,
 						optionBone.name, translateRotateNode, materialOverrides,
-						optionBone.name, geolayout, optionEdgeDict, 
-						optionVertDict)
+						optionBone.name, geolayout, optionInfoDict)
 			else:
 				if switchOption.switchType == 'Material':
 					material = switchOption.materialOverride
@@ -1446,7 +1447,7 @@ def checkUniqueBoneNames(fModel, name, vertexGroup):
 
 def saveModelGivenVertexGroup(fModel, obj, vertexGroup, 
 	parentGroup, transformMatrix, armatureObj, materialOverrides, namePrefix,
-	edgeDict, vertDict):
+	infoDict):
 	checkForF3DMaterial(obj)
 
 	mesh = obj.data
@@ -1481,11 +1482,9 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 
 	handledFaces = []
 	for vertIndex in vertIndices:
-		if vertIndex not in vertDict:
+		if vertIndex not in infoDict['vert']:
 			continue
-		for face in vertDict[vertIndex]:
-			# generate a vertDict
-
+		for face in infoDict['vert'][vertIndex]:
 			# Ignore repeat faces
 			if face in handledFaces:
 				continue
@@ -1528,7 +1527,7 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 	if len(skinnedFaces) > 0:
 		#print("Skinned")
 		fMeshGroup = saveSkinnedMeshByMaterial(skinnedFaces, fModel,
-			vertexGroup, obj, currentMatrix, parentMatrix, namePrefix, edgeDict)
+			vertexGroup, obj, currentMatrix, parentMatrix, namePrefix, infoDict)
 	else:
 		fMeshGroup = FMeshGroup(toAlnum(namePrefix + vertexGroup), 
 			FMesh(toAlnum(namePrefix + vertexGroup) + '_mesh'), None)
@@ -1541,7 +1540,7 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 	for material_index, bFaces in groupFaces.items():
 		material = obj.data.materials[material_index]
 		saveMeshByFaces(material, bFaces, 
-			fModel, fMeshGroup.mesh, obj, currentMatrix, edgeDict)
+			fModel, fMeshGroup.mesh, obj, currentMatrix, infoDict)
 	
 	# End mesh drawing
 	# Reset settings to prevent issues with other models
@@ -1654,7 +1653,7 @@ def getGroupVertCount(group):
 	return count
 
 def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj, 
-	currentMatrix, parentMatrix, namePrefix, edgeDict):
+	currentMatrix, parentMatrix, namePrefix, infoDict):
 	# We choose one or more loops per vert to represent a material from which 
 	# texDimensions can be found, since it is required for UVs.
 	uv_layer = obj.data.uv_layers.active.data
@@ -1731,7 +1730,7 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj,
 			convertInfo, triList, fMesh.vertexList, fModel.f3d, 
 			texDimensions, currentMatrix, isPointSampled, exportVertexColors,
 			copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict),
-			edgeDict, obj.data)
+			infoDict, obj.data)
 	
 	return FMeshGroup(toAlnum(namePrefix + name), fMesh, fSkinnedMesh)
 

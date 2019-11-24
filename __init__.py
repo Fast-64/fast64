@@ -193,9 +193,6 @@ class SM64_ImportGeolayout(bpy.types.Operator):
 			checkExpanded(bpy.path.abspath(importRom))
 
 			armatureObj = None
-			#cProfile.runctx('armatureMeshGroups, armatureObj = parseGeoLayout(romfileSrc, int(geoImportAddr, 16),context.scene, levelGeoImport, finalTransform, generateArmature, ignoreSwitch, True, context.scene.f3d_type, context.scene.isHWv1)', globals(), locals(), "E:/Non-Steam Games/emulators/Project 64 1.6/SM64 Romhack Tools/_Data/blender.prof")
-			#p = pstats.Stats("E:/Non-Steam Games/emulators/Project 64 1.6/SM64 Romhack Tools/_Data/blender.prof")
-			#p.sort_stats("cumulative").print_stats(2000)
 
 			# Armature mesh groups includes armatureObj.
 			armatureMeshGroups, armatureObj = parseGeoLayout(romfileSrc, 
@@ -687,6 +684,16 @@ class SM64_ExportDL(bpy.types.Operator):
 			mathutils.Matrix.Diagonal(S).to_4x4()
 		finalTransform = (blenderToSM64Rotation * \
 			(1/sm64ToBlenderScale)).to_4x4() @ objTransform
+
+		#cProfile.runctx('exportF3DtoC(bpy.path.abspath(context.scene.DLExportPath), obj,' +\
+		#	'context.scene.DLExportisStatic, finalTransform,' +\
+		#	'context.scene.f3d_type, context.scene.isHWv1,' +\
+		#	'bpy.context.scene.DLTexDir,' +\
+		#	'bpy.context.scene.DLSaveTextures,' +\
+		#	'bpy.context.scene.DLSeparateTextureDef)',
+		#	globals(), locals(), "E:/Non-Steam Games/emulators/Project 64 1.6/SM64 Romhack Tools/_Data/blender.prof")
+		#p = pstats.Stats("E:/Non-Steam Games/emulators/Project 64 1.6/SM64 Romhack Tools/_Data/blender.prof")
+		#p.sort_stats("cumulative").print_stats(2000)
 		
 		try:
 			if context.scene.DLExportType == 'C':
