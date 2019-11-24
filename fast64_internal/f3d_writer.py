@@ -300,16 +300,10 @@ def edgeValid(edgeValidDict, face, otherFace):
 	else:
 		return edgeValidDict[(otherFace, face)]
 
-def getLowestUnvisitedNeighborCountFace(faces, visitedFaces, infoDict):
-	lowestNeighborFace = None
-	for face in faces:
-		if face not in visitedFaces:
-			lowestNeighborFace = face
-			break
+def getLowestUnvisitedNeighborCountFace(unvisitedFaces, infoDict):
+	lowestNeighborFace = unvisitedFaces[0]
 	lowestNeighborCount = len(infoDict['validNeighbors'][lowestNeighborFace])
-	for face in faces:
-		if face in visitedFaces:
-			continue
+	for face in unvisitedFaces:
 		neighborCount = len(infoDict['validNeighbors'][face])
 		if neighborCount < lowestNeighborCount:
 			lowestNeighborFace = face
@@ -351,10 +345,10 @@ def saveTriangleStrip(faces, convertInfo, triList, vtxList, f3d,
 	texDimensions, transformMatrix, isPointSampled, exportVertexColors,
 	existingVertexData, existingVertexMaterialRegions, infoDict, mesh):
 	visitedFaces = []
+	unvisitedFaces = copy.copy(faces)
 	possibleFaces = []
 	lastEdgeKey = None
-	neighborFace = getLowestUnvisitedNeighborCountFace(
-		faces, visitedFaces, infoDict)
+	neighborFace = getLowestUnvisitedNeighborCountFace(unvisitedFaces, infoDict)
 
 	triConverter = TriangleConverter(mesh, convertInfo, triList, vtxList, f3d, 
 		texDimensions, transformMatrix, isPointSampled, exportVertexColors,
@@ -371,13 +365,14 @@ def saveTriangleStrip(faces, convertInfo, triList, vtxList, f3d,
 			else:
 				#print('get new neighbor')
 				neighborFace =  getLowestUnvisitedNeighborCountFace(
-					faces, visitedFaces, infoDict)
+					unvisitedFaces, infoDict)
 				lastEdgeKey = None
 		
 		triConverter.addFace(neighborFace)
 		if neighborFace in visitedFaces:
 			raise ValueError("Repeated face")
 		visitedFaces.append(neighborFace)
+		unvisitedFaces.remove(neighborFace)
 		if neighborFace in possibleFaces:
 			possibleFaces.remove(neighborFace)
 		for otherFace in infoDict['validNeighbors'][neighborFace]:

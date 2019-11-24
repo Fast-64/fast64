@@ -54,6 +54,8 @@ enumShadowType = [
 	('10', 'Square Permanent', 'Square Permanent'),
 	('11', 'Square Scalable', 'Square Scalable'),
 	('12', 'Square Togglable', 'Square Togglable'),
+	('50', 'Rectangle', 'Rectangle'),
+	('99', 'Circle Player', 'Circle Player'),
 ]
 
 enumSwitchOptions = [

@@ -6,6 +6,7 @@ import copy
 from math import pi
 
 from .sm64_level_parser import *
+from .sm64_geolayout_bone import enumShadowType
 from .sm64_geolayout_constants import *
 from .sm64_geolayout_utility import *
 from .f3d_parser import *
@@ -929,6 +930,13 @@ def parseShadow(romfile, currentAddress, currentTransform,
 	romfile.seek(currentAddress)
 	command = romfile.read(commandSize)
 	shadowType = int.from_bytes(command[2:4], 'big')
+	if str(shadowType) not in enumShadowType:
+		if shadowType > 12 and shadowType < 50: # Square Shadow
+			shadowType = 12
+		elif shadowType > 50 and shadowType < 99: # Rectangle Shadow
+			shadowType = 50
+		else: # Invalid shadow
+			shadowType = 0 
 	shadowSolidity = int.from_bytes(command[4:6], 'big')
 	shadowScale = int.from_bytes(command[6:8], 'big')
 
