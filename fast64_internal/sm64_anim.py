@@ -296,9 +296,12 @@ def convertAnimationData(anim, armatureObj):
 			currentBone = armatureObj.data.bones[boneName]
 			currentPoseBone = armatureObj.pose.bones[boneName]
 			
-			rotationValue = currentPoseBone.matrix.to_quaternion()
+			rotationValue = \
+				(currentBone.matrix.to_4x4().inverted() @ \
+				currentPoseBone.matrix).to_quaternion()
 			if currentBone.parent is not None:
-				rotationValue = (currentPoseBone.parent.matrix.inverted() @ \
+				rotationValue = (
+					currentBone.matrix.to_4x4().inverted() @ currentPoseBone.parent.matrix.inverted() @ \
 					currentPoseBone.matrix).to_quaternion()
 			
 			saveQuaternionFrame(armatureFrameData[boneIndex], rotationValue)

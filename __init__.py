@@ -239,7 +239,7 @@ class SM64_ImportGeolayoutPanel(bpy.types.Panel):
 	bl_label = "SM64 Geolayout Importer"
 	bl_space_type = 'VIEW_3D'
 	bl_region_type = 'UI'
-	bl_category = 'Tools'
+	bl_category = 'Fast64'
 
 	@classmethod
 	def poll(cls, context):
@@ -282,6 +282,11 @@ class SM64_ExportGeolayoutObject(bpy.types.Operator):
 		obj = context.active_object
 		if type(obj.data) is not bpy.types.Mesh:
 			raise ValueError("Mesh not selected.")
+		if context.scene.saveCameraSettings and \
+			context.scene.levelCamera is None:
+			raise ValueError("Cannot save camera settings with no camera provided.")
+		levelCamera = context.scene.levelCamera if \
+			context.scene.saveCameraSettings else None
 
 		finalTransform = mathutils.Matrix.Identity(4)
 		#finalTransform = (blenderToSM64Rotation * \
@@ -300,7 +305,8 @@ class SM64_ExportGeolayoutObject(bpy.types.Operator):
 					bpy.path.abspath(context.scene.geoExportPath),
 					bpy.context.scene.geoTexDir,
 					bpy.context.scene.geoSaveTextures,
-					bpy.context.scene.geoSeparateTextureDef)
+					bpy.context.scene.geoSeparateTextureDef,
+					levelCamera)
 				self.report({'INFO'}, 'Success! Geolayout at ' + \
 					context.scene.geoExportPath + ', DL at ' + \
 					context.scene.geoExportPathDL)
@@ -340,13 +346,15 @@ class SM64_ExportGeolayoutObject(bpy.types.Operator):
  						finalTransform, *modelLoadInfo, textDumpFilePath,
 						context.scene.f3d_type, context.scene.isHWv1, 
 						getAddressFromRAMAddress(int(
-						context.scene.geoRAMAddr, 16)))
+						context.scene.geoRAMAddr, 16)),
+						levelCamera)
 				else:
 					addrRange, segPointer = exportGeolayoutObjectBinary(
 						romfileOutput, obj,
 						exportRange, finalTransform, segmentData,
 						*modelLoadInfo, textDumpFilePath, 
-						context.scene.f3d_type, context.scene.isHWv1)
+						context.scene.f3d_type, context.scene.isHWv1,
+						levelCamera)
 
 				romfileOutput.close()
 				bpy.ops.object.select_all(action = 'DESELECT')
@@ -399,6 +407,16 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 		if type(armatureObj.data) is not bpy.types.Armature:
 			raise ValueError("Armature not selected.")
 
+		if len(armatureObj.children) == 0 or \
+			not isinstance(armatureObj.children[0].data, bpy.types.Mesh):
+			raise ValueError("Armature does not have any mesh children, or " +\
+				'has a non-mesh child.')
+		if context.scene.saveCameraSettings and \
+			context.scene.levelCamera is None:
+			raise ValueError("Cannot save camera settings with no camera provided.")
+		levelCamera = context.scene.levelCamera if \
+			context.scene.saveCameraSettings else None
+
 		obj = armatureObj.children[0]
 		finalTransform = mathutils.Matrix.Identity(4)
 
@@ -443,7 +461,8 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 					bpy.path.abspath(context.scene.geoExportPath),
 					bpy.context.scene.geoTexDir,
 					bpy.context.scene.geoSaveTextures,
-					bpy.context.scene.geoSeparateTextureDef)
+					bpy.context.scene.geoSeparateTextureDef,
+					levelCamera)
 				self.report({'INFO'}, 'Success! Geolayout at ' + \
 					context.scene.geoExportPath + ', DL at ' + \
 					context.scene.geoExportPathDL)
@@ -483,13 +502,14 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
  						finalTransform, *modelLoadInfo, textDumpFilePath,
 						context.scene.f3d_type, context.scene.isHWv1, 
 						getAddressFromRAMAddress(int(
-						context.scene.geoRAMAddr, 16)))
+						context.scene.geoRAMAddr, 16)), levelCamera)
 				else:
 					addrRange, segPointer = exportGeolayoutArmatureBinary(
 						romfileOutput, armatureObj, obj,
 						exportRange, finalTransform, segmentData,
 						*modelLoadInfo, textDumpFilePath, 
-						context.scene.f3d_type, context.scene.isHWv1)
+						context.scene.f3d_type, context.scene.isHWv1,
+						levelCamera)
 
 				romfileOutput.close()
 				bpy.ops.object.select_all(action = 'DESELECT')
@@ -535,7 +555,7 @@ class SM64_ExportGeolayoutPanel(bpy.types.Panel):
 	bl_label = "SM64 Geolayout Exporter"
 	bl_space_type = 'VIEW_3D'
 	bl_region_type = 'UI'
-	bl_category = 'Tools'
+	bl_category = 'Fast64'
 
 	@classmethod
 	def poll(cls, context):
@@ -574,6 +594,10 @@ class SM64_ExportGeolayoutPanel(bpy.types.Panel):
 			if context.scene.textDumpGeo:
 				col.prop(context.scene, 'textDumpGeoPath')
 		
+		col.prop(context.scene, 'saveCameraSettings')
+		if context.scene.saveCameraSettings:
+			prop_split(col, context.scene, 'levelCamera', 'Level Camera')
+		
 		for i in range(panelSeparatorSize):
 			col.separator()
 		
@@ -582,7 +606,7 @@ class SM64_ArmatureToolsPanel(bpy.types.Panel):
 	bl_label = "SM64 Armature Tools"
 	bl_space_type = 'VIEW_3D'
 	bl_region_type = 'UI'
-	bl_category = 'Tools'
+	bl_category = 'Fast64'
 
 	@classmethod
 	def poll(cls, context):
@@ -641,7 +665,7 @@ class SM64_ImportDLPanel(bpy.types.Panel):
 	bl_label = "SM64 DL Importer"
 	bl_space_type = 'VIEW_3D'
 	bl_region_type = 'UI'
-	bl_category = 'Tools'
+	bl_category = 'Fast64'
 
 	@classmethod
 	def poll(cls, context):
@@ -775,7 +799,7 @@ class SM64_ExportDLPanel(bpy.types.Panel):
 	bl_label = "SM64 DL Exporter"
 	bl_space_type = 'VIEW_3D'
 	bl_region_type = 'UI'
-	bl_category = 'Tools'
+	bl_category = 'Fast64'
 
 	@classmethod
 	def poll(cls, context):
@@ -826,7 +850,7 @@ class SM64_ExportCharacterPanel(bpy.types.Panel):
 	bl_label = "SM64 Character Exporter"
 	bl_space_type = 'VIEW_3D'
 	bl_region_type = 'UI'
-	bl_category = 'Tools'
+	bl_category = 'Fast64'
 
 	@classmethod
 	def poll(cls, context):
@@ -859,7 +883,7 @@ class SM64_ImportCharacterPanel(bpy.types.Panel):
 	bl_label = "SM64 Character Importer"
 	bl_space_type = 'VIEW_3D'
 	bl_region_type = 'UI'
-	bl_category = 'Tools'
+	bl_category = 'Fast64'
 
 	@classmethod
 	def poll(cls, context):
@@ -892,7 +916,7 @@ class SM64_ImportLevelPanel(bpy.types.Panel):
 	bl_label = "SM64 Level Importer"
 	bl_space_type = 'VIEW_3D'
 	bl_region_type = 'UI'
-	bl_category = 'Tools'
+	bl_category = 'Fast64'
 
 	@classmethod
 	def poll(cls, context):
@@ -922,7 +946,7 @@ class SM64_ExportLevelPanel(bpy.types.Panel):
 	bl_label = "SM64 Level Exporter"
 	bl_space_type = 'VIEW_3D'
 	bl_region_type = 'UI'
-	bl_category = 'Tools'
+	bl_category = 'Fast64'
 
 	@classmethod
 	def poll(cls, context):
@@ -973,7 +997,7 @@ class SM64_ImportAnimPanel(bpy.types.Panel):
 	bl_label = "SM64 Animation Importer"
 	bl_space_type = 'VIEW_3D'
 	bl_region_type = 'UI'
-	bl_category = 'Tools'
+	bl_category = 'Fast64'
 
 	@classmethod
 	def poll(cls, context):
@@ -1083,7 +1107,7 @@ class SM64_ExportAnimPanel(bpy.types.Panel):
 	bl_label = "SM64 Animation Exporter"
 	bl_space_type = 'VIEW_3D'
 	bl_region_type = 'UI'
-	bl_category = 'Tools'
+	bl_category = 'Fast64'
 
 	@classmethod
 	def poll(cls, context):
@@ -1222,7 +1246,7 @@ class SM64_ExportCollisionPanel(bpy.types.Panel):
 	bl_label = "SM64 Collision Exporter"
 	bl_space_type = 'VIEW_3D'
 	bl_region_type = 'UI'
-	bl_category = 'Tools'
+	bl_category = 'Fast64'
 
 	@classmethod
 	def poll(cls, context):
@@ -1254,7 +1278,7 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
 	bl_label = "F3D Global Settings"
 	bl_space_type = 'VIEW_3D'
 	bl_region_type = 'UI'
-	bl_category = 'Tools'
+	bl_category = 'Fast64'
 
 	@classmethod
 	def poll(cls, context):
@@ -1271,7 +1295,7 @@ class SM64_FileSettingsPanel(bpy.types.Panel):
 	bl_label = "SM64 File Settings"
 	bl_space_type = 'VIEW_3D'
 	bl_region_type = 'UI'
-	bl_category = 'Tools'
+	bl_category = 'Fast64'
 
 	@classmethod
 	def poll(cls, context):
@@ -1328,9 +1352,16 @@ def register():
 	col_register() # register first, so panel goes above mat panel
 	mat_register()
 	bone_register()
+	cam_register()
 
 	for cls in classes:
 		register_class(cls)
+
+	# Camera
+	bpy.types.Scene.saveCameraSettings = bpy.props.BoolProperty(
+		name = 'Save Level Camera Settings', default = False)
+	bpy.types.Scene.levelCamera = bpy.props.PointerProperty(
+		type = bpy.types.Camera, name = 'Level Camera')
 
 	# Character
 	bpy.types.Scene.rotationAxis = bpy.props.FloatVectorProperty(
@@ -1502,6 +1533,10 @@ def register():
 # called on add-on disabling
 def unregister():
 
+	# Camera
+	del bpy.types.Scene.saveCameraSettings
+	del bpy.types.Scene.levelCamera
+
 	del bpy.types.Scene.rotationAxis
 	del bpy.types.Scene.rotationAngle
 	del bpy.types.Scene.rotationOrder
@@ -1599,5 +1634,6 @@ def unregister():
 	mat_unregister()
 	bone_unregister()
 	col_unregister()
+	cam_unregister()
 	for cls in classes:
 		unregister_class(cls)

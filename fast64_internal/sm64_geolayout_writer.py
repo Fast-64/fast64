@@ -14,6 +14,8 @@ from .utility import *
 from .sm64_constants import *
 from .f3d_material import all_combiner_uses
 from .f3d_writer import *
+from .sm64_camera import saveCameraSettingsToGeolayout
+from .sm64_geolayout_classes import *
 
 def findStartBone(armatureObj):
 	noParentBones = [poseBone for poseBone in armatureObj.pose.bones if \
@@ -60,10 +62,16 @@ def getAllArmatures(armatureObj, currentArmatures):
 	for linkedArmature in linkedArmatures:
 		getAllArmatures(linkedArmature, currentArmatures)
 
+def getCameraObj(camera):
+	for obj in bpy.data.objects:
+		if obj.data == camera:
+			return obj
+	raise ValueError('The level camera ' + camera.name + \
+		' is no longer in the scene.')
 
 # Convert to Geolayout
 def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix, 
-	f3dType, isHWv1):
+	f3dType, isHWv1, camera):
 	
 	fModel = FModel(f3dType, isHWv1)
 
@@ -81,13 +89,19 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix,
 		mathutils.Matrix.Diagonal(armatureObj.scale).to_4x4()
 
 	# Start geolayout
-	geolayout = Geolayout()
-	geolayout.rootNode = RootTransformNode(StartNode(), toAlnum(armatureObj.name))
+	geolayout = Geolayout(armatureObj.name)
+	if camera is not None:
+		cameraObj = getCameraObj(camera)
+		rootNode = saveCameraSettingsToGeolayout(
+			geolayout, cameraObj, armatureObj)
+	else:
+		rootNode = TransformNode(StartNode())
+		geolayout.nodes.append(rootNode)
 	processBone(fModel, startBoneName, obj, armatureObj, 
-		convertTransformMatrix, None, None, None, geolayout.rootNode, [], '',
+		convertTransformMatrix, None, None, None, rootNode, [], '',
 		geolayout, infoDict)
-	generateSwitchOptions(geolayout.rootNode)
-	return geolayout.rootNode, fModel
+	generateSwitchOptions(geolayout.nodes[0])
+	return geolayout, fModel
 
 def selectMeshChildrenOnly(obj):
 	obj.select_set(True)
@@ -97,7 +111,7 @@ def selectMeshChildrenOnly(obj):
 			selectMeshChildrenOnly(child)
 
 def convertObjectToGeolayout(obj, convertTransformMatrix, 
-	f3dType, isHWv1):
+	f3dType, isHWv1, camera):
 	
 	fModel = FModel(f3dType, isHWv1)
 	
@@ -105,8 +119,15 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 	#	mathutils.Matrix.Diagonal(obj.scale).to_4x4()
 
 	# Start geolayout
-	geolayout = Geolayout()
-	geolayout.rootNode = RootTransformNode(StartNode(), toAlnum(obj.name))
+	geolayout = Geolayout(obj.name)
+	if camera is not None:
+		cameraObj = getCameraObj(camera)
+		rootNode = saveCameraSettingsToGeolayout(
+			geolayout, cameraObj, obj)
+	else:
+		rootNode = TransformNode(StartNode())
+		geolayout.nodes.append(rootNode)
+	geolayout.nodes.append(TransformNode(StartNode()))
 
 	# Duplicate objects to apply scale / modifiers / linked data
 	bpy.ops.object.select_all(action = 'DESELECT')
@@ -127,7 +148,7 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 				bpy.ops.object.modifier_apply(apply_as='DATA',
 					modifier=modifier.name)
 		processMesh(fModel, tempObj, convertTransformMatrix,
-			geolayout.rootNode, True)
+			rootNode, True)
 		cleanupDuplicatedObjects(allObjs)
 		obj.select_set(True)
 		bpy.context.view_layer.objects.active = obj
@@ -137,26 +158,26 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 		bpy.context.view_layer.objects.active = obj
 		raise Exception(str(e))
 
-	return geolayout.rootNode, fModel
+	return geolayout, fModel
 
 # C Export
 def exportGeolayoutArmatureC(armatureObj, obj, convertTransformMatrix, 
-	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate):
-	rootNode, fModel = convertArmatureToGeolayout(armatureObj, obj,
-		convertTransformMatrix, f3dType, isHWv1)
+	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera):
+	geolayout, fModel = convertArmatureToGeolayout(armatureObj, obj,
+		convertTransformMatrix, f3dType, isHWv1, camera)
 
-	saveGeolayoutC(armatureObj.name, rootNode, fModel, dirPath, texDir,
+	saveGeolayoutC(armatureObj.name, geolayout, fModel, dirPath, texDir,
 		savePNG, texSeparate)
 
 def exportGeolayoutObjectC(obj, convertTransformMatrix, 
-	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate):
-	rootNode, fModel = convertObjectToGeolayout(obj, 
-		convertTransformMatrix, f3dType, isHWv1)
+	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera):
+	geolayout, fModel = convertObjectToGeolayout(obj, 
+		convertTransformMatrix, f3dType, isHWv1, camera)
 
-	saveGeolayoutC(obj.name, rootNode, fModel, dirPath, texDir,
+	saveGeolayoutC(obj.name, geolayout, fModel, dirPath, texDir,
 		savePNG, texSeparate)
 
-def saveGeolayoutC(dirName, rootNode, fModel, dirPath, texDir, savePNG,
+def saveGeolayoutC(dirName, geolayout, fModel, dirPath, texDir, savePNG,
  	texSeparate):
 	geoDirPath = os.path.join(dirPath, toAlnum(dirName))
 
@@ -175,13 +196,13 @@ def saveGeolayoutC(dirName, rootNode, fModel, dirPath, texDir, savePNG,
 		dlFile.close()
 
 	geoPath = os.path.join(geoDirPath, 'geo.inc.c')
-	geoData = rootNode.to_c()
+	geoData = geolayout.to_c()
 	geoFile = open(geoPath, 'w')
 	geoFile.write(geoData)
 	geoFile.close()
 
 	headerPath = os.path.join(geoDirPath, 'header.h')
-	cDefine = rootNode.to_c_def() + fModel.to_c_def()
+	cDefine = geolayout.to_c_def() + fModel.to_c_def()
 	cDefFile = open(headerPath, 'w')
 	cDefFile.write(cDefine)
 	cDefFile.close()
@@ -190,30 +211,30 @@ def saveGeolayoutC(dirName, rootNode, fModel, dirPath, texDir, savePNG,
 # Binary Bank 0 Export
 def exportGeolayoutArmatureBinaryBank0(romfile, armatureObj, obj, exportRange,	
  	convertTransformMatrix, levelCommandPos, modelID, textDumpFilePath, 
-	f3dType, isHWv1, RAMAddr):
+	f3dType, isHWv1, RAMAddr, camera):
 	
-	rootNode, fModel = convertArmatureToGeolayout(armatureObj, obj,
-		convertTransformMatrix, f3dType, isHWv1)
+	geolayout, fModel = convertArmatureToGeolayout(armatureObj, obj,
+		convertTransformMatrix, f3dType, isHWv1, camera)
 	
-	return saveGeolayoutBinaryBank0(romfile, fModel, rootNode, exportRange,	
+	return saveGeolayoutBinaryBank0(romfile, fModel, geolayout, exportRange,	
  		levelCommandPos, modelID, textDumpFilePath, f3dType, isHWv1, RAMAddr)
 
 def exportGeolayoutObjectBinaryBank0(romfile, obj, exportRange,	
  	convertTransformMatrix, levelCommandPos, modelID, textDumpFilePath, 
-	f3dType, isHWv1, RAMAddr):
+	f3dType, isHWv1, RAMAddr, camera):
 	
-	rootNode, fModel = convertObjectToGeolayout(obj, 
-		convertTransformMatrix, f3dType, isHWv1)
+	geolayout, fModel = convertObjectToGeolayout(obj, 
+		convertTransformMatrix, f3dType, isHWv1, camera)
 	
-	return saveGeolayoutBinaryBank0(romfile, fModel, rootNode, exportRange,	
+	return saveGeolayoutBinaryBank0(romfile, fModel, geolayout, exportRange,	
  		levelCommandPos, modelID, textDumpFilePath, f3dType, isHWv1, RAMAddr)
 
-def saveGeolayoutBinaryBank0(romfile, fModel, rootNode, exportRange,	
+def saveGeolayoutBinaryBank0(romfile, fModel, geolayout, exportRange,	
  	levelCommandPos, modelID, textDumpFilePath, f3dType, isHWv1, RAMAddr):
 	fModel.freePalettes()
 	segmentData = copy.copy(bank0Segment)
 	startRAM = get64bitAlignedAddr(RAMAddr)
-	nonGeoStartAddr = startRAM + len(rootNode.to_binary(None))
+	nonGeoStartAddr = startRAM + len(geolayout.to_binary(None))
 
 	addrRange = fModel.set_addr(nonGeoStartAddr)
 	addrEndInROM = addrRange[1] - startRAM + exportRange[0]
@@ -223,7 +244,7 @@ def saveGeolayoutBinaryBank0(romfile, fModel, rootNode, exportRange,
 	bytesIO = BytesIO()
 	#actualRAMAddr = get64bitAlignedAddr(RAMAddr)
 	bytesIO.seek(startRAM)
-	bytesIO.write(rootNode.to_binary(segmentData))
+	bytesIO.write(geolayout.to_binary(segmentData))
 	fModel.save_binary(bytesIO, segmentData)
 
 	data = bytesIO.getvalue()[startRAM:]
@@ -235,7 +256,7 @@ def saveGeolayoutBinaryBank0(romfile, fModel, rootNode, exportRange,
 
 	segPointerData = encodeSegmentedAddr(startRAM, segmentData)
 	geoWriteLevelCommand(romfile, segPointerData, levelCommandPos, modelID)
-	geoWriteTextDump(textDumpFilePath, rootNode, segmentData)
+	geoWriteTextDump(textDumpFilePath, geolayout, segmentData)
 	
 	return ((startAddress, startAddress + len(data)), startRAM + 0x80000000)
 	
@@ -243,27 +264,27 @@ def saveGeolayoutBinaryBank0(romfile, fModel, rootNode, exportRange,
 # Binary Export
 def exportGeolayoutArmatureBinary(romfile, armatureObj, obj, exportRange,	
  	convertTransformMatrix, levelData, levelCommandPos, modelID,
-	textDumpFilePath, f3dType, isHWv1):
+	textDumpFilePath, f3dType, isHWv1, camera):
 
-	rootNode, fModel = convertArmatureToGeolayout(armatureObj, obj,
-		convertTransformMatrix, f3dType, isHWv1)
+	geolayout, fModel = convertArmatureToGeolayout(armatureObj, obj,
+		convertTransformMatrix, f3dType, isHWv1, camera)
 
-	return saveGeolayoutBinary(romfile, rootNode, fModel, exportRange,	
+	return saveGeolayoutBinary(romfile, geolayout, fModel, exportRange,	
  		convertTransformMatrix, levelData, levelCommandPos, modelID,
 		textDumpFilePath, f3dType, isHWv1)
 
 def exportGeolayoutObjectBinary(romfile, obj, exportRange,	
  	convertTransformMatrix, levelData, levelCommandPos, modelID,
-	textDumpFilePath, f3dType, isHWv1):
+	textDumpFilePath, f3dType, isHWv1, camera):
 	
-	rootNode, fModel = convertObjectToGeolayout(obj, 
-		convertTransformMatrix, f3dType, isHWv1)
+	geolayout, fModel = convertObjectToGeolayout(obj, 
+		convertTransformMatrix, f3dType, isHWv1, camera)
 	
-	return saveGeolayoutBinary(romfile, rootNode, fModel, exportRange,	
+	return saveGeolayoutBinary(romfile, geolayout, fModel, exportRange,	
  		convertTransformMatrix, levelData, levelCommandPos, modelID,
 		textDumpFilePath, f3dType, isHWv1)
 	
-def saveGeolayoutBinary(romfile, rootNode, fModel, exportRange,	
+def saveGeolayoutBinary(romfile, geolayout, fModel, exportRange,	
  	convertTransformMatrix, levelData, levelCommandPos, modelID,
 	textDumpFilePath, f3dType, isHWv1):
 	fModel.freePalettes()
@@ -271,19 +292,19 @@ def saveGeolayoutBinary(romfile, rootNode, fModel, exportRange,
 	# Get length of data, then actually write it after relative addresses 
 	# are found.
 	startAddress = get64bitAlignedAddr(exportRange[0])
-	nonGeoStartAddr = startAddress + len(rootNode.to_binary(None))
+	nonGeoStartAddr = startAddress + len(geolayout.to_binary(None))
 
 	addrRange = fModel.set_addr(nonGeoStartAddr)
 	if addrRange[1] > exportRange[1]:
 		raise ValueError('Size too big: Data ends at ' + hex(addrRange[1]) +\
 			', which is larger than the specified range.')
 	romfile.seek(startAddress)
-	romfile.write(rootNode.to_binary(levelData))
+	romfile.write(geolayout.to_binary(levelData))
 	fModel.save_binary(romfile, levelData)
 
 	segPointerData = encodeSegmentedAddr(startAddress, levelData)
 	geoWriteLevelCommand(romfile, segPointerData, levelCommandPos, modelID)
-	geoWriteTextDump(textDumpFilePath, rootNode, levelData)
+	geoWriteTextDump(textDumpFilePath, geolayout, levelData)
 	
 	return (startAddress, addrRange[1]), bytesToHex(segPointerData)
 
@@ -295,10 +316,10 @@ def geoWriteLevelCommand(romfile, segPointerData, levelCommandPos, modelID):
 		romfile.seek(levelCommandPos + 4)
 		romfile.write(segPointerData)
 
-def geoWriteTextDump(textDumpFilePath, rootNode, levelData):
+def geoWriteTextDump(textDumpFilePath, geolayout, levelData):
 	if textDumpFilePath is not None:
 		openfile = open(textDumpFilePath, 'w')
-		openfile.write(rootNode.toTextDump(levelData))
+		openfile.write(geolayout.toTextDump(levelData))
 		openfile.close()
 
 # Switch Handling Process
@@ -387,134 +408,6 @@ def addPreRenderAreaNode(parentTransformNode, cullingRadius):
 	preNodeTransform.parent = parentTransformNode
 	parentTransformNode.children.append(preNodeTransform)
 	return preNodeTransform
-
-class Geolayout:
-	def __init__(self):
-		self.rootNode = None
-		# dict of Object : geolayout
-		self.secondaryGeolayouts = {}
-
-class RootTransformNode:
-	def __init__(self, node, name):
-		self.name = name
-		self.node = node
-		self.children = []
-		self.parent = None
-
-		# dict of Object : node
-		self.switchArmatures = {}
-	
-	def to_binary(self, segmentData):
-		data = self.node.to_binary(segmentData)
-		if len(self.children) > 0:
-			if data[0] in nodeGroupCmds:
-				data.extend(bytearray([GEO_NODE_OPEN, 0x00, 0x00, 0x00]))
-			for child in self.children:
-				data.extend(child.to_binary(segmentData))
-			if data[0] in nodeGroupCmds:
-				data.extend(bytearray([GEO_NODE_CLOSE, 0x00, 0x00, 0x00]))
-		elif type(self.node) is SwitchNode:
-			raise ValueError("A switch bone must have at least one child bone.")
-		data.extend(bytearray([GEO_END, 0x00, 0x00, 0x00]))
-		return data
-	
-	def to_c(self):
-		data = 'const GeoLayout ' + self.name + '[] = {\n'
-		data += '\t' + self.node.to_c() + '\n'
-		if len(self.children) > 0:
-			if type(self.node) in nodeGroupClasses:
-				data += '\t' + 'GEO_OPEN_NODE(),\n'
-			for child in self.children:
-				data += child.to_c(2)
-			if type(self.node) in nodeGroupClasses:
-				data += '\t' + 'GEO_CLOSE_NODE(),\n'
-		elif type(self.node) is SwitchNode:
-			raise ValueError("A switch bone must have at least one child bone.")
-		data += '\t' + 'GEO_RETURN(),\n'
-		data += '};\n'
-		return data
-
-	def to_c_def(self):
-		return 'extern const GeoLayout ' + self.name + '[];\n'
-	
-	def toTextDump(self, segmentData):
-		data = ''
-		command = self.node.to_binary(segmentData)
-
-		for byteVal in command:
-			data += (format(byteVal, '02X') + ' ')
-		data += '\n'
-
-		if len(self.children) > 0:
-			if command[0] in nodeGroupCmds:
-				data += '04 00 00 00\n'
-			for child in self.children:
-				data += child.toTextDump(1, segmentData)
-			if command[0] in nodeGroupCmds:
-				data += '05 00 00 00\n'
-		elif type(self.node) is SwitchNode:
-			raise ValueError("A switch bone must have at least one child bone.")
-		data += '01 00 00 00'
-		return data
-
-class TransformNode:
-	def __init__(self, node):
-		self.node = node
-		self.children = []
-		self.parent = None
-	
-	# Function commands usually effect the following command, so it is similar
-	# to a parent child relationship.
-	def to_binary(self, segmentData):
-		data = self.node.to_binary(segmentData)
-		if len(self.children) > 0:
-			if type(self.node) is DisplayListNode:
-				raise ValueError("A DisplayListNode cannot have children.")
-			elif type(self.node) is FunctionNode:
-				raise ValueError("An FunctionNode cannot have children.")
-
-			if data[0] in nodeGroupCmds:
-				data.extend(bytearray([GEO_NODE_OPEN, 0x00, 0x00, 0x00]))
-			for child in self.children:
-				data.extend(child.to_binary(segmentData))
-			if data[0] in nodeGroupCmds:
-				data.extend(bytearray([GEO_NODE_CLOSE, 0x00, 0x00, 0x00]))
-		elif type(self.node) is SwitchNode:
-			raise ValueError("A switch bone must have at least one child bone.")
-		return data
-
-	def to_c(self, depth):
-		data = depth * '\t' + self.node.to_c() + '\n'
-		if len(self.children) > 0:
-			if type(self.node) in nodeGroupClasses:
-				data += depth * '\t' + 'GEO_OPEN_NODE(),\n'
-			for child in self.children:
-				data += child.to_c(depth + 1)
-			if type(self.node) in nodeGroupClasses:
-				data += depth * '\t' + 'GEO_CLOSE_NODE(),\n'
-		elif type(self.node) is SwitchNode:
-			raise ValueError("A switch bone must have at least one child bone.")
-		return data
-	
-	def toTextDump(self, nodeLevel, segmentData):
-		data = ''
-		command = self.node.to_binary(segmentData)
-
-		data += '\t' * nodeLevel
-		for byteVal in command:
-			data += (format(byteVal, '02X') + ' ')
-		data += '\n'
-
-		if len(self.children) > 0:
-			if command[0] in nodeGroupCmds:
-				data += '\t' * nodeLevel + '04 00 00 00\n'
-			for child in self.children:
-				data += child.toTextDump(nodeLevel + 1, segmentData)
-			if command[0] in nodeGroupCmds:
-				data += '\t' * nodeLevel + '05 00 00 00\n'
-		elif type(self.node) is SwitchNode:
-			raise ValueError("A switch bone must have at least one child bone.")
-		return data
 
 # This function should be called on a copy of an object
 # The copy will have modifiers / scale applied and will be made single user
@@ -894,378 +787,6 @@ def processSwitchBoneMatOverrides(materialOverrides, switchBone):
 			materialOverrides.append((switchOption.materialOverride, specificMat,
 				switchOption.materialOverrideType))
 
-class SwitchOverrideNode:
-	def __init__(self, material, specificMat, drawLayer, overrideType):
-		self.material = material
-		self.specificMat = specificMat
-		self.drawLayer = drawLayer
-		self.overrideType = overrideType
-
-# We add Function commands to nonDeformTransformData because any skinned
-# 0x15 commands should go before them, as they are usually preceding
-# an empty transform command (of which they modify?)
-class FunctionNode:
-	def __init__(self, geo_func, func_param):
-		self.geo_func = geo_func
-		self.func_param = func_param
-		self.hasDL = False
-		
-	def to_binary(self, segmentData):
-		command = bytearray([GEO_CALL_ASM, 0x00])
-		command.extend(self.func_param.to_bytes(2, 'big', signed = True))
-		command.extend(bytes.fromhex(self.geo_func))
-		return command
-
-	def to_c(self):
-		return "GEO_ASM(" + str(self.func_param) + ', ' + \
-			toAlnum(self.geo_func) + '),'
-
-class HeldObjectNode:
-	def __init__(self, geo_func, translate):
-		self.geo_func = geo_func
-		self.translate = translate
-		self.hasDL = False
-	
-	def to_binary(self, segmentData):
-		command = bytearray([GEO_HELD_OBJECT, 0x00])
-		command.extend(bytearray([0x00] * 6))
-		writeVectorToShorts(command, 2, self.translate)
-		command.extend(bytes.fromhex(self.geo_func))
-		return command
-	
-	def to_c(self):
-		return "GEO_HELD_OBJECT(0, " + \
-			str(convertFloatToShort(self.translate[0])) + ', ' +\
-			str(convertFloatToShort(self.translate[1])) + ', ' +\
-			str(convertFloatToShort(self.translate[2])) + ', ' +\
-			toAlnum(self.geo_func) + '),'
-
-class StartNode:
-	def __init__(self):
-		self.hasDL = False
-	
-	def to_binary(self, segmentData):
-		command = bytearray([GEO_START, 0x00, 0x00, 0x00])
-		return command
-
-	def to_c(self):
-		return "GEO_NODE_START(),"
-
-class EndNode:
-	def __init__(self):
-		self.hasDL = False
-	
-	def to_binary(self, segmentData):
-		command = bytearray([GEO_END, 0x00, 0x00, 0x00])
-		return command
-
-	def to_c(self):
-		return 'GEO_END(),'
-
-# Geolayout node hierarchy is first generated without material/draw layer
-# override options, but with material override DL's being generated.
-# Afterward, for each switch node the node hierarchy is duplicated and
-# the correct diplsay lists are added.
-class SwitchNode:
-	def __init__(self, geo_func, func_param):
-		self.switchFunc = geo_func
-		self.defaultCase = func_param
-		self.hasDL = False
-	
-	def to_binary(self, segmentData):
-		command = bytearray([GEO_SWITCH, 0x00])
-		command.extend(self.defaultCase.to_bytes(2, 'big', signed = True))
-		command.extend(bytes.fromhex(self.switchFunc))
-		return command
-
-	def to_c(self):
-		return "GEO_SWITCH_CASE(" + \
-			str(self.defaultCase) + ', ' +\
-			toAlnum(self.switchFunc) + '),'
-
-class TranslateRotateNode:
-	def __init__(self, drawLayer, fieldLayout, hasDL, translate, rotate):
-
-		self.drawLayer = drawLayer
-		self.fieldLayout = fieldLayout
-		self.hasDL = hasDL
-
-		self.translate = translate
-		self.rotate = rotate
-
-		self.fMesh = None
-		self.DLmicrocode = None
-		
-	def to_binary(self, segmentData):
-		params = ((1 if self.hasDL else 0) << 7) & \
-			(self.fieldLayout << 4) | self.drawLayer
-
-		command = bytearray([GEO_TRANSLATE_ROTATE, params])
-		if self.fieldLayout == 0:
-			command.extend(bytearray([0x00] * 14))
-			writeVectorToShorts(command, 4, self.translate)
-			writeEulerVectorToShorts(command, 10, 
-				self.rotate.to_euler(geoNodeRotateOrder))
-		elif self.fieldLayout == 1:
-			command.extend(bytearray([0x00] * 6))
-			writeVectorToShorts(command, 2, self.translate)
-		elif self.fieldLayout == 2:
-			command.extend(bytearray([0x00] * 6))
-			writeEulerVectorToShorts(command, 2, 
-				self.rotate.to_euler(geoNodeRotateOrder))
-		elif self.fieldLayout == 3:
-			command.extend(bytearray([0x00] * 2))
-			writeFloatToShort(command, 2, 
-			self.rotate.to_euler(geoNodeRotateOrder).y)
-		if self.hasDL:
-			if segmentData is not None:
-				command.extend(encodeSegmentedAddr(self.DLmicrocode.startAddress,segmentData))
-			else:
-				command.extend(bytearray([0x00] * 4))
-		return command
-
-	def to_c(self):
-		if self.fieldLayout == 0:
-			return ("GEO_TRANSLATE_ROTATE_WITH_DL" if self.hasDL else \
-				"GEO_TRANSLATE_ROTATE") + "(" + \
-				str(self.drawLayer) + ', ' +\
-				str(convertFloatToShort(self.translate[0])) + ', ' +\
-				str(convertFloatToShort(self.translate[1])) + ', ' +\
-				str(convertFloatToShort(self.translate[2])) + ', ' +\
-				str(convertEulerFloatToShort(self.rotate.to_euler(
-					geoNodeRotateOrder)[0])) + ', ' +\
-				str(convertEulerFloatToShort(self.rotate.to_euler(
-					geoNodeRotateOrder)[1])) + ', ' +\
-				str(convertEulerFloatToShort(self.rotate.to_euler(
-					geoNodeRotateOrder)[2])) + \
-				((', ' + self.DLmicrocode.name + '),') if self.hasDL else '),')
-		elif self.fieldLayout == 1:
-			return ("GEO_TRANSLATE_WITH_DL" if self.hasDL else \
-				"GEO_TRANSLATE") + "(" + \
-				str(self.drawLayer) + ', ' +\
-				str(convertFloatToShort(self.translate[0])) + ', ' +\
-				str(convertFloatToShort(self.translate[1])) + ', ' +\
-				str(convertFloatToShort(self.translate[2])) +\
-				((', ' + self.DLmicrocode.name + '),') if self.hasDL else '),')
-		elif self.fieldLayout == 2:
-			return ("GEO_ROTATE_WITH_DL" if self.hasDL else \
-				"GEO_ROTATE") + "(" + \
-				str(self.drawLayer) + ', ' +\
-				str(convertEulerFloatToShort(self.rotate.to_euler(
-					geoNodeRotateOrder)[0])) + ', ' +\
-				str(convertEulerFloatToShort(self.rotate.to_euler(
-					geoNodeRotateOrder)[1])) + ', ' +\
-				str(convertEulerFloatToShort(self.rotate.to_euler(
-					geoNodeRotateOrder)[2])) + \
-				((', ' + self.DLmicrocode.name + '),') if self.hasDL else '),')
-		elif self.fieldLayout == 3:
-			return ("GEO_ROTATE_Y_WITH_DL" if self.hasDL else \
-				"GEO_ROTATE_Y") + "(" + \
-				str(self.drawLayer) + ', ' +\
-				str(convertEulerFloatToShort(self.rotate.to_euler(
-					geoNodeRotateOrder)[1])) +\
-				((', ' + self.DLmicrocode.name + '),') if self.hasDL else '),')
-
-class TranslateNode:
-	def __init__(self, drawLayer, useDeform, translate):
-		self.drawLayer = drawLayer
-		self.hasDL = useDeform
-		self.translate = translate
-		self.fMesh = None
-		self.DLmicrocode = None
-		
-	def to_binary(self, segmentData):
-		params = ((1 if self.hasDL else 0) << 7) | self.drawLayer
-		command = bytearray([GEO_TRANSLATE, params])
-		command.extend(bytearray([0x00] * 6))
-		writeVectorToShorts(command, 2, self.translate)
-		if self.hasDL:
-			if segmentData is not None:
-				command.extend(encodeSegmentedAddr(self.DLmicrocode.startAddress,segmentData))
-			else:
-				command.extend(bytearray([0x00] * 4))
-		return command
-	
-	def to_c(self):
-		return ("GEO_TRANSLATE_NODE_WITH_DL" if self.hasDL else \
-			"GEO_TRANSLATE_NODE") + "(" + \
-			str(self.drawLayer) + ', ' +\
-			str(convertFloatToShort(self.translate[0])) + ', ' +\
-			str(convertFloatToShort(self.translate[1])) + ', ' +\
-			str(convertFloatToShort(self.translate[2])) +\
-			((', ' + self.DLmicrocode.name + '),') if self.hasDL else '),')
-
-class RotateNode:
-	def __init__(self, drawLayer, hasDL, rotate):
-		# In the case for automatically inserting rotate nodes between
-		# 0x13 bones.
-
-		self.drawLayer = drawLayer
-		self.hasDL = hasDL
-		self.rotate = rotate
-		self.fMesh = None
-		self.DLmicrocode = None
-		
-	def to_binary(self, segmentData):
-		params = ((1 if self.hasDL else 0) << 7) | self.drawLayer
-		command = bytearray([GEO_ROTATE, params])
-		command.extend(bytearray([0x00] * 6))
-		writeEulerVectorToShorts(command, 2, 
-			self.rotate.to_euler(geoNodeRotateOrder))
-		if self.hasDL:
-			if segmentData is not None:
-				command.extend(encodeSegmentedAddr(self.DLmicrocode.startAddress,segmentData))
-			else:
-				command.extend(bytearray([0x00] * 4))
-		return command
-
-	def to_c(self):
-		return ("GEO_ROTATION_NODE_WITH_DL" if self.hasDL else \
-			"GEO_ROTATION_NODE") + "(" + \
-			str(self.drawLayer) + ', ' +\
-				str(convertEulerFloatToShort(self.rotate.to_euler(
-					geoNodeRotateOrder)[0])) + ', ' +\
-				str(convertEulerFloatToShort(self.rotate.to_euler(
-					geoNodeRotateOrder)[1])) + ', ' +\
-				str(convertEulerFloatToShort(self.rotate.to_euler(
-					geoNodeRotateOrder)[2])) + \
-			((', ' + self.DLmicrocode.name + '),') if self.hasDL else '),')
-	
-class BillboardNode:
-	def __init__(self, drawLayer, hasDL, translate):
-		self.drawLayer = drawLayer
-		self.hasDL = hasDL
-		self.translate = translate
-		self.fMesh = None
-		self.DLmicrocode = None
-
-	def to_binary(self, segmentData):
-		params = ((1 if self.hasDL else 0) << 7) | self.drawLayer
-		command = bytearray([GEO_BILLBOARD, params])
-		command.extend(bytearray([0x00] * 6))
-		writeVectorToShorts(command, 2, self.translate)
-		if self.hasDL:
-			if segmentData is not None:
-				command.extend(encodeSegmentedAddr(self.DLmicrocode.startAddress,segmentData))
-			else:
-				command.extend(bytearray([0x00] * 4))
-		return command
-
-	def to_c(self):
-		return ("GEO_BILLBOARD_WITH_PARAMS_AND_DL" if self.hasDL else \
-			"GEO_BILLBOARD_WITH_PARAMS") + "(" + \
-			str(self.drawLayer) + ', ' +\
-			str(convertFloatToShort(self.translate[0])) + ', ' +\
-			str(convertFloatToShort(self.translate[1])) + ', ' +\
-			str(convertFloatToShort(self.translate[2])) +\
-			((', ' + self.DLmicrocode.name + '),') if self.hasDL else '),')
-
-class DisplayListNode:
-	def __init__(self, drawLayer):
-		self.drawLayer = drawLayer
-		self.hasDL = True
-		self.fMesh = None
-		self.DLmicrocode = None
-
-	def to_binary(self, segmentData):
-		if self.DLmicrocode is None:
-			raise ValueError("No mesh data associated with this 0x15 command. Make sure you have assigned vertices to this node.")
-		command = bytearray([GEO_LOAD_DL, self.drawLayer, 0x00, 0x00])
-		if segmentData is not None:
-			command.extend(encodeSegmentedAddr(self.DLmicrocode.startAddress,segmentData))
-		else:
-			command.extend(bytearray([0x00] * 4))
-		return command
-
-	def to_c(self):
-		return "GEO_DISPLAY_LIST(" + \
-			str(self.drawLayer) + ', ' +\
-			self.DLmicrocode.name + '),'
-
-class ShadowNode:
-	def __init__(self, shadow_type, shadow_solidity, shadow_scale):
-		self.shadowType = int(shadow_type)
-		self.shadowSolidity = int(round(shadow_solidity * 0xFF))
-		self.shadowScale = shadow_scale
-		self.hasDL = False
-
-	def to_binary(self, segmentData):
-		command = bytearray([GEO_START_W_SHADOW, 0x00])
-		command.extend(self.shadowType.to_bytes(2, 'big'))
-		command.extend(self.shadowSolidity.to_bytes(2, 'big'))
-		command.extend(self.shadowScale.to_bytes(2, 'big'))
-		return command
-	
-	def to_c(self):
-		return "GEO_SHADOW(" + \
-			str(self.shadowType) + ', ' +\
-			str(self.shadowSolidity) + ', ' +\
-			str(self.shadowScale) + '),'
-
-class ScaleNode:
-	def __init__(self, drawLayer, geo_scale, use_deform):
-		self.drawLayer = drawLayer
-		self.scaleValue = geo_scale
-		self.hasDL = use_deform
-		self.fMesh = None
-		self.DLmicrocode = None
-	
-	def to_binary(self, segmentData):
-		params = ((1 if self.hasDL else 0) << 7) | self.drawLayer
-		command = bytearray([GEO_SCALE, params, 0x00, 0x00])
-		command.extend(int(self.scaleValue * 0x10000).to_bytes(4, 'big'))
-		if self.hasDL:
-			if segmentData is not None:
-				command.extend(encodeSegmentedAddr(self.DLmicrocode.startAddress,segmentData))
-			else:
-				command.extend(bytearray([0x00] * 4))
-		return command
-	
-	def to_c(self):
-		return ("GEO_SCALE_WITH_DL" if self.hasDL else "GEO_SCALE") + "(" + \
-			str(self.drawLayer) + ', ' +\
-			str(int(round(self.scaleValue * 0x10000))) +\
-			((', ' + self.DLmicrocode.name + '),') if self.hasDL else '),')
-
-class StartRenderAreaNode:
-	def __init__(self, cullingRadius):
-		self.cullingRadius = cullingRadius
-		self.hasDL = False
-
-	def to_binary(self, segmentData):
-		command = bytearray([GEO_START_W_RENDERAREA, 0x00])
-		command.extend(self.cullingRadius.to_bytes(2, 'big'))
-		return command
-	
-	def to_c(self):
-		return 'GEO_CULLING_RADIUS(' + str(self.cullingRadius) + '),'
-
-class DisplayListWithOffsetNode:
-	def __init__(self, drawLayer, use_deform, translate):
-		self.drawLayer = drawLayer
-		self.hasDL = use_deform
-		self.translate = translate
-		self.fMesh = None
-		self.DLmicrocode = None
-
-	def to_binary(self, segmentData):
-		command = bytearray([GEO_LOAD_DL_W_OFFSET, self.drawLayer])
-		command.extend(bytearray([0x00] * 6))
-		writeVectorToShorts(command, 2, self.translate)
-		if self.hasDL and self.DLmicrocode is not None and segmentData is not None:
-			command.extend(encodeSegmentedAddr(self.DLmicrocode.startAddress,segmentData))
-		else:
-			command.extend(bytearray([0x00] * 4))
-		return command
-
-	def to_c(self):
-		return "GEO_ANIMATED_PART(" + \
-			str(self.drawLayer) + ', ' +\
-			str(convertFloatToShort(self.translate[0])) + ', ' +\
-			str(convertFloatToShort(self.translate[1])) + ', ' +\
-			str(convertFloatToShort(self.translate[2])) + ', ' +\
-			(self.DLmicrocode.name if self.hasDL else 'NULL') + '),'
-
 def getGroupIndexFromname(obj, name):
 	for group in obj.vertex_groups:
 		if group.name == name:
@@ -1360,7 +881,7 @@ def addSkinnedMeshNode(armatureObj, boneName, skinnedMesh, transformNode, parent
 		highestChildCopy.parent = highestChildCopyParent
 		#print(str(highestChildCopy.node) + " " + str(isFirstChild))
 		highestChildCopy = highestChildCopyParent
-	isFirstChild &= checkIfFirstNonASMNode(highestChildNode)
+	#isFirstChild &= checkIfFirstNonASMNode(highestChildNode)
 	if highestChildNode.parent is None:
 		raise ValueError("There shouldn't be a skinned mesh section if there is no deform parent. This error may have ocurred if a switch option node is trying to skin to a parent but no deform parent exists.")
 
@@ -1733,16 +1254,3 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj,
 			infoDict, obj.data)
 	
 	return FMeshGroup(toAlnum(namePrefix + name), fMesh, fSkinnedMesh)
-
-nodeGroupClasses = [
-	StartNode,
-	SwitchNode,
-	TranslateRotateNode,
-	TranslateNode,
-	RotateNode,
-	DisplayListWithOffsetNode,
-	BillboardNode,
-	ShadowNode,
-	ScaleNode,
-	StartRenderAreaNode
-]

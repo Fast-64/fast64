@@ -8,3 +8,4 @@ from .sm64_anim import *
 from .f3d_material import *
 from .sm64_geolayout_bone import *
 from .sm64_collision import *
+from .sm64_camera import *

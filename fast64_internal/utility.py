@@ -6,6 +6,14 @@ from .sm64_geolayout_constants import *
 import random
 import string
 
+def colorTo16bitRGBA(color):
+	r = int(round(color[0] * 31))
+	g = int(round(color[1] * 31))
+	b = int(round(color[2] * 31))
+	a = 1 if color[3] > 0.5 else 0
+
+	return (r << 11) | (g << 6) | (b << 1) | a
+
 def applyRotation(objList, angle, axis):
 	bpy.ops.object.select_all(action = "DESELECT")
 	for obj in objList:
