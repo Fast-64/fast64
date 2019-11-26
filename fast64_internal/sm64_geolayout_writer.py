@@ -108,13 +108,6 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix,
 	geolayoutGraph.generateSortedList()
 	return geolayoutGraph, fModel
 
-def selectMeshChildrenOnly(obj):
-	obj.select_set(True)
-	obj.original_name = obj.name
-	for child in obj.children:
-		if isinstance(child.data, bpy.types.Mesh):
-			selectMeshChildrenOnly(child)
-
 def convertObjectToGeolayout(obj, convertTransformMatrix, 
 	f3dType, isHWv1, camera):
 	

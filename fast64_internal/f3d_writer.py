@@ -151,6 +151,13 @@ def saveStaticModel(fModel, obj, transformMatrix):
 	revertMatAndEndDraw(fMeshGroup.mesh.draw)
 	return fMeshGroup
 
+def selectMeshChildrenOnly(obj):
+	obj.select_set(True)
+	obj.original_name = obj.name
+	for child in obj.children:
+		if isinstance(child.data, bpy.types.Mesh):
+			selectMeshChildrenOnly(child)
+
 def cleanupDuplicatedObjects(selected_objects):
 	meshData = []
 	for selectedObj in selected_objects:
@@ -160,28 +167,56 @@ def cleanupDuplicatedObjects(selected_objects):
 	for mesh in meshData:
 		bpy.data.meshes.remove(mesh)
 
-def exportF3DCommon(obj, f3dType, isHWv1, transformMatrix):
+def exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren):
 	obj.original_name = obj.name
+	fModel = FModel(f3dType, isHWv1)
+
+	# Duplicate objects to apply scale / modifiers / linked data
 	bpy.ops.object.select_all(action = 'DESELECT')
+	if includeChildren:
+		selectMeshChildrenOnly(obj)
 	obj.select_set(True)
 	bpy.context.view_layer.objects.active = obj
 	bpy.ops.object.duplicate()
-	fModel = FModel(f3dType, isHWv1)
+	objJoined = False
 	try:
 		# duplicate obj and apply modifiers / make single user
-		tempObj = bpy.context.selected_objects[0]
+		tempObj = bpy.context.view_layer.objects.active
+		allObjs = bpy.context.selected_objects
 		bpy.ops.object.make_single_user(obdata = True)
 		bpy.ops.object.transform_apply(location = False, 
 			rotation = False, scale = True, properties =  False)
-		for modifier in tempObj.modifiers:
-			bpy.ops.object.modifier_apply(apply_as='DATA',
-				modifier=modifier.name)
+		for selectedObj in allObjs:
+			bpy.ops.object.select_all(action = 'DESELECT')
+			selectedObj.select_set(True)
+			for modifier in selectedObj.modifiers:
+				bpy.ops.object.modifier_apply(apply_as='DATA',
+					modifier=modifier.name)
+					
+		bpy.ops.object.select_all(action = 'DESELECT')
+
+		# Joining causes orphan data, so we remove it manually.
+		meshList = []
+		for selectedObj in allObjs:
+			if selectedObj is not tempObj:
+				selectedObj.select_set(True)
+				meshList.append(selectedObj.data)
+		tempObj.select_set(True)
+		bpy.context.view_layer.objects.active = tempObj
+		bpy.ops.object.join()
+		objJoined = True
+
 		fMeshGroup = saveStaticModel(fModel, tempObj, transformMatrix)
+		for mesh in meshList:
+			bpy.data.meshes.remove(mesh)
 		cleanupDuplicatedObjects([tempObj])
 		obj.select_set(True)
 		bpy.context.view_layer.objects.active = obj
 	except Exception as e:
-		cleanupDuplicatedObjects([tempObj])
+		if objJoined:
+			cleanupDuplicatedObjects([tempObj])
+		else:
+			cleanupDuplicatedObjects(allObjs)
 		raise Exception(str(e))
 		obj.select_set(True)
 		bpy.context.view_layer.objects.active = obj
@@ -189,8 +224,9 @@ def exportF3DCommon(obj, f3dType, isHWv1, transformMatrix):
 	return fModel, fMeshGroup
 
 def exportF3DtoC(dirPath, obj, isStatic, transformMatrix, 
-	f3dType, isHWv1, texDir, savePNG, texSeparate):
-	fModel, fMeshGroup = exportF3DCommon(obj, f3dType, isHWv1, transformMatrix)
+	f3dType, isHWv1, texDir, savePNG, texSeparate, includeChildren):
+	fModel, fMeshGroup = \
+		exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren)
 
 	modelDirPath = os.path.join(dirPath, toAlnum(obj.name))
 
@@ -219,9 +255,9 @@ def exportF3DtoC(dirPath, obj, isStatic, transformMatrix,
 		bpy.ops.object.mode_set(mode = 'OBJECT')
 
 def exportF3DtoBinary(romfile, exportRange, transformMatrix, 
-	obj, f3dType, isHWv1, segmentData):
+	obj, f3dType, isHWv1, segmentData, includeChildren):
 	fModel, fMeshGroup = exportF3DCommon(obj, f3dType, isHWv1, 
-		transformMatrix)
+		transformMatrix, includeChildren)
 	fModel.freePalettes()
 
 	addrRange = fModel.set_addr(exportRange[0])
@@ -238,8 +274,9 @@ def exportF3DtoBinary(romfile, exportRange, transformMatrix,
 	return fMeshGroup.mesh.draw.startAddress, addrRange, segPointerData
 
 def exportF3DtoBinaryBank0(romfile, exportRange, transformMatrix, 
-	obj, f3dType, isHWv1, RAMAddr):
-	fModel, fMeshGroup = exportF3DCommon(obj, f3dType, isHWv1, transformMatrix)
+	obj, f3dType, isHWv1, RAMAddr, includeChildren):
+	fModel, fMeshGroup = \
+		exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren)
 	fModel.freePalettes()
 	segmentData = copy.copy(bank0Segment)
 

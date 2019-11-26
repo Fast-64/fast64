@@ -730,7 +730,8 @@ class SM64_ExportDL(bpy.types.Operator):
 					context.scene.f3d_type, context.scene.isHWv1,
 					bpy.context.scene.DLTexDir,
 					bpy.context.scene.DLSaveTextures,
-					bpy.context.scene.DLSeparateTextureDef)
+					bpy.context.scene.DLSeparateTextureDef,
+					bpy.context.scene.DLincludeChildren)
 				self.report({'INFO'}, 'Success! DL at ' + \
 					context.scene.DLExportPath + '.')
 				return {'FINISHED'} # must return a set
@@ -758,14 +759,16 @@ class SM64_ExportDL(bpy.types.Operator):
 						int(context.scene.DLExportEnd, 16)],
 					 	finalTransform, obj, context.scene.f3d_type,
 						context.scene.isHWv1, getAddressFromRAMAddress(
-						int(context.scene.DLRAMAddr, 16)))
+						int(context.scene.DLRAMAddr, 16)),
+						bpy.context.scene.DLincludeChildren)
 				else:
 					startAddress, addrRange, segPointerData = \
 						exportF3DtoBinary(romfileOutput, 
 						[int(context.scene.DLExportStart, 16), 
 						int(context.scene.DLExportEnd, 16)],
 					 	finalTransform, obj, context.scene.f3d_type,
-						context.scene.isHWv1, segmentData)
+						context.scene.isHWv1, segmentData,
+						bpy.context.scene.DLincludeChildren)
 				
 				if context.scene.overwriteGeoPtr:
 					romfileOutput.seek(int(context.scene.DLExportGeoPtr, 16))
@@ -835,6 +838,7 @@ class SM64_ExportDLPanel(bpy.types.Panel):
 			if context.scene.overwriteGeoPtr:
 				prop_split(col, context.scene, 'DLExportGeoPtr', 
 					'Geolayout Pointer')
+		col.prop(context.scene, 'DLincludeChildren')
 		
 		for i in range(panelSeparatorSize):
 			col.separator()
@@ -1424,6 +1428,9 @@ def register():
 	bpy.types.Scene.DLSeparateTextureDef = bpy.props.BoolProperty(
 		name = 'Save texture.inc.c separately')
 	
+	bpy.types.Scene.DLincludeChildren = bpy.props.BoolProperty(
+		name = 'Include Children')
+	
 	# Geolayouts
 	bpy.types.Scene.levelGeoImport = bpy.props.EnumProperty(items = level_enums,
 		name = 'Level', default = 'HMC')
@@ -1611,6 +1618,7 @@ def unregister():
 	del bpy.types.Scene.DLTexDir
 	del bpy.types.Scene.DLSaveTextures
 	del bpy.types.Scene.DLSeparateTextureDef
+	del bpy.types.Scene.DLincludeChildren
 
 	# Level
 	del bpy.types.Scene.levelLevel
