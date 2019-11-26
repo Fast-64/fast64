@@ -3,26 +3,147 @@ from .sm64_geolayout_utility import *
 from .utility import *
 from .sm64_constants import *
 import struct
+import copy
+
+class GeolayoutGraph:
+	def __init__(self, name):
+		self.startGeolayout = Geolayout(name, True)
+		# dict of Object : Geolayout
+		self.secondaryGeolayouts = {}
+		# dict of Geolayout : Geolayout List (which geolayouts are called)
+		self.geolayoutCalls = {}
+		self.sortedList = []
+		self.sortedListGenerated = False
+
+	def checkListSorted(self):
+		if not self.sortedListGenerated:
+			raise ValueError("Must generate sorted geolayout list first " +\
+				'before calling this function.')
+
+	def size(self):
+		self.checkListSorted()
+		size = 0
+		for geolayout in self.sortedList:
+			size += geolayout.size()
+
+		return size
+
+	def addGeolayout(self, obj, name):
+		geolayout = Geolayout(name, False)
+		self.secondaryGeolayouts[obj] = geolayout
+		return geolayout
+
+	def addJumpNode(self, parentNode, caller, callee, index = None):
+		if index is None:
+			parentNode.children.append(TransformNode(JumpNode(
+				True, callee)))
+		else:
+			parentNode.children.insert(index, TransformNode(JumpNode(
+				True, callee)))
+		self.addGeolayoutCall(caller, callee)
+
+	def addGeolayoutCall(self, caller, callee):
+		if caller not in self.geolayoutCalls:
+			self.geolayoutCalls[caller] = []
+		self.geolayoutCalls[caller].append(callee)
+
+	def sortGeolayouts(self, geolayoutList, geolayout, callOrder):
+		if geolayout in self.geolayoutCalls:
+			for calledGeolayout in self.geolayoutCalls[geolayout]:
+				geoIndex = geolayoutList.index(geolayout)
+				if calledGeolayout in geolayoutList:
+					callIndex = geolayoutList.index(calledGeolayout)
+					if callIndex < geoIndex:
+						continue
+					else:
+						raise ValueError('Circular geolayout dependency.' +\
+							str(callOrder))
+				else:
+					geolayoutList.insert(geolayoutList.index(geolayout),
+						calledGeolayout)
+					callOrder = copy.copy(callOrder)
+					callOrder.append(calledGeolayout)
+					self.sortGeolayouts(geolayoutList, calledGeolayout,
+						callOrder)
+		return geolayoutList
+
+	def generateSortedList(self):
+		self.sortedList = self.sortGeolayouts([self.startGeolayout],
+			self.startGeolayout, [self.startGeolayout])
+		self.sortedListGenerated = True
+
+	def set_addr(self, address):
+		self.checkListSorted()
+		for geolayout in self.sortedList:
+			geolayout.startAddress = address
+			address += geolayout.size()
+			print(geolayout.name + " - " + \
+				str(geolayout.startAddress))
+		return address
+	
+	def to_binary(self, segmentData):
+		self.checkListSorted()
+		data = bytearray(0)
+		for geolayout in self.sortedList:
+			data += geolayout.to_binary(segmentData)
+		return data
+
+	def save_binary(self, romfile, segmentData):
+		for geolayout in self.sortedList:
+			geolayout.save_binary(romfile, segmentData)
+
+	def to_c(self):
+		self.checkListSorted()
+		data = ''
+		for geolayout in self.sortedList:
+			data += geolayout.to_c()
+		return data
+	
+	def to_c_def(self):
+		self.checkListSorted()
+		data = ''
+		for geolayout in self.sortedList:
+			data += geolayout.to_c_def()
+		return data
+
+	def toTextDump(self, segmentData):
+		self.checkListSorted()
+		data = ''
+		for geolayout in self.sortedList:
+			data += geolayout.toTextDump(segmentData) + '\n'
+		return data
 
 class Geolayout:
-	def __init__(self, name):
+	def __init__(self, name, isStartGeo):
 		self.nodes = []
 		self.name = toAlnum(name)
-		# dict of Object : geolayout
-		self.secondaryGeolayouts = {}
+		self.startAddress = 0
+		self.isStartGeo = isStartGeo
+	
+	def size(self):
+		size = 4 # end command
+		for node in self.nodes:
+			size += node.size()
+		return size
 
 	def to_binary(self, segmentData):
+		endCmd = GEO_END if self.isStartGeo else GEO_RETURN
 		data = bytearray(0)
 		for node in self.nodes:
 			data += node.to_binary(segmentData)
-		data += bytearray([GEO_END, 0x00, 0x00, 0x00])
+		data += bytearray([endCmd, 0x00, 0x00, 0x00])
 		return data
 
+	def save_binary(self, romfile, segmentData):
+		romfile.seek(self.startAddress)
+		romfile.write(self.to_binary(segmentData))
+
 	def to_c(self):
+		endCmd = 'GEO_END' if self.isStartGeo else 'GEO_RETURN'
 		data = 'const GeoLayout ' + self.name + '[] = {\n'
 		for node in self.nodes:
 			data += node.to_c(1)
-		data += '\t' + 'GEO_END(),\n'
+		data += '\t' + endCmd + '(),\n'
 		data += '};\n'
 		return data
 	
@@ -30,10 +151,11 @@ class Geolayout:
 		return 'extern const GeoLayout ' + self.name + '[];\n'
 
 	def toTextDump(self, segmentData):
+		endCmd = '01' if self.isStartGeo else '03'
 		data = ''
 		for node in self.nodes:
-			data += node.toTextDump(1, segmentData)
-		data += '01 00 00 00'
+			data += node.toTextDump(0, segmentData)
+		data += endCmd + ' 00 00 00\n'
 		return data
 		
 class TransformNode:
@@ -41,7 +163,16 @@ class TransformNode:
 		self.node = node
 		self.children = []
 		self.parent = None
-	
+
+	def size(self):
+		size = self.node.size() if self.node is not None else 0
+		if len(self.children) > 0 and type(self.node) in nodeGroupClasses:
+			size += 8 # node open/close
+			for child in self.children:
+				size += child.size()
+			
+		return size
+
 	# Function commands usually effect the following command, so it is similar
 	# to a parent child relationship.
 	def to_binary(self, segmentData):
@@ -104,13 +235,36 @@ class TransformNode:
 			raise ValueError("A switch bone must have at least one child bone.")
 		return data
 
-
 class SwitchOverrideNode:
 	def __init__(self, material, specificMat, drawLayer, overrideType):
 		self.material = material
 		self.specificMat = specificMat
 		self.drawLayer = drawLayer
 		self.overrideType = overrideType
+
+class JumpNode:
+	def __init__(self, storeReturn, geolayout):
+		self.geolayout = geolayout
+		self.storeReturn = storeReturn
+		self.hasDL = False
+	
+	def size(self):
+		return 8
+
+	def to_binary(self, segmentData):
+		if segmentData is not None:
+			startAddress = encodeSegmentedAddr(self.geolayout.startAddress,
+				segmentData)
+		else:
+			startAddress = bytearray([0x00] * 4)
+		command = bytearray([GEO_BRANCH, 
+			0x01 if self.storeReturn else 0x00, 0x00, 0x00])
+		command.extend(startAddress)
+		return command
+
+	def to_c(self):
+		return "GEO_BRANCH(" + ('1, ' if self.storeReturn else '0, ') + \
+			self.geolayout.name + '),'
 
 # We add Function commands to nonDeformTransformData because any skinned
 # 0x15 commands should go before them, as they are usually preceding
@@ -120,6 +274,9 @@ class FunctionNode:
 		self.geo_func = geo_func
 		self.func_param = func_param
 		self.hasDL = False
+
+	def size(self):
+		return 8
 		
 	def to_binary(self, segmentData):
 		command = bytearray([GEO_CALL_ASM, 0x00])
@@ -136,6 +293,9 @@ class HeldObjectNode:
 		self.geo_func = geo_func
 		self.translate = translate
 		self.hasDL = False
+
+	def size(self):
+		return 12
 	
 	def to_binary(self, segmentData):
 		command = bytearray([GEO_HELD_OBJECT, 0x00])
@@ -155,6 +315,9 @@ class StartNode:
 	def __init__(self):
 		self.hasDL = False
 	
+	def size(self):
+		return 4
+	
 	def to_binary(self, segmentData):
 		command = bytearray([GEO_START, 0x00, 0x00, 0x00])
 		return command
@@ -165,6 +328,9 @@ class StartNode:
 class EndNode:
 	def __init__(self):
 		self.hasDL = False
+
+	def size(self):
+		return 4
 	
 	def to_binary(self, segmentData):
 		command = bytearray([GEO_END, 0x00, 0x00, 0x00])
@@ -178,10 +344,14 @@ class EndNode:
 # Afterward, for each switch node the node hierarchy is duplicated and
 # the correct diplsay lists are added.
 class SwitchNode:
-	def __init__(self, geo_func, func_param):
+	def __init__(self, geo_func, func_param, name):
 		self.switchFunc = geo_func
 		self.defaultCase = func_param
 		self.hasDL = False
+		self.name = name
+
+	def size(self):
+		return 8
 	
 	def to_binary(self, segmentData):
 		command = bytearray([GEO_SWITCH, 0x00])
@@ -206,6 +376,20 @@ class TranslateRotateNode:
 
 		self.fMesh = None
 		self.DLmicrocode = None
+	
+	def size(self):
+		if self.fieldLayout == 0:
+			size = 16
+		elif self.fieldLayout == 1:
+			size = 8
+		elif self.fieldLayout == 2:
+			size = 8
+		elif self.fieldLayout == 3:
+			size = 4
+
+		if self.hasDL:
+			size += 4
+		return size
 		
 	def to_binary(self, segmentData):
 		params = ((1 if self.hasDL else 0) << 7) & \
@@ -284,6 +468,9 @@ class TranslateNode:
 		self.translate = translate
 		self.fMesh = None
 		self.DLmicrocode = None
+
+	def size(self):
+		return 12 if self.hasDL else 8
 		
 	def to_binary(self, segmentData):
 		params = ((1 if self.hasDL else 0) << 7) | self.drawLayer
@@ -316,6 +503,9 @@ class RotateNode:
 		self.rotate = rotate
 		self.fMesh = None
 		self.DLmicrocode = None
+	
+	def size(self):
+		return 12 if self.hasDL else 8
 		
 	def to_binary(self, segmentData):
 		params = ((1 if self.hasDL else 0) << 7) | self.drawLayer
@@ -349,6 +539,9 @@ class BillboardNode:
 		self.translate = translate
 		self.fMesh = None
 		self.DLmicrocode = None
+	
+	def size(self):
+		return 12 if self.hasDL else 8
 
 	def to_binary(self, segmentData):
 		params = ((1 if self.hasDL else 0) << 7) | self.drawLayer
@@ -377,6 +570,9 @@ class DisplayListNode:
 		self.hasDL = True
 		self.fMesh = None
 		self.DLmicrocode = None
+	
+	def size(self):
+		return 8
 
 	def to_binary(self, segmentData):
 		if self.DLmicrocode is None:
@@ -400,6 +596,9 @@ class ShadowNode:
 		self.shadowScale = shadow_scale
 		self.hasDL = False
 
+	def size(self):
+		return 8
+
 	def to_binary(self, segmentData):
 		command = bytearray([GEO_START_W_SHADOW, 0x00])
 		command.extend(self.shadowType.to_bytes(2, 'big'))
@@ -420,6 +619,9 @@ class ScaleNode:
 		self.hasDL = use_deform
 		self.fMesh = None
 		self.DLmicrocode = None
+	
+	def size(self):
+		return 12 if self.hasDL else 8
 	
 	def to_binary(self, segmentData):
 		params = ((1 if self.hasDL else 0) << 7) | self.drawLayer
@@ -442,6 +644,9 @@ class StartRenderAreaNode:
 	def __init__(self, cullingRadius):
 		self.cullingRadius = cullingRadius
 		self.hasDL = False
+	
+	def size(self):
+		return 4
 
 	def to_binary(self, segmentData):
 		command = bytearray([GEO_START_W_RENDERAREA, 0x00])
@@ -458,6 +663,9 @@ class DisplayListWithOffsetNode:
 		self.translate = translate
 		self.fMesh = None
 		self.DLmicrocode = None
+	
+	def size(self):
+		return 12
 
 	def to_binary(self, segmentData):
 		command = bytearray([GEO_LOAD_DL_W_OFFSET, self.drawLayer])
@@ -478,22 +686,25 @@ class DisplayListWithOffsetNode:
 			(self.DLmicrocode.name if self.hasDL else 'NULL') + '),'
 
 class ScreenAreaNode:
-	def __init__(self, useDefaults, entryMinus2Count, position, size):
+	def __init__(self, useDefaults, entryMinus2Count, position, dimensions):
 		self.useDefaults = useDefaults
 		self.entryMinus2Count = entryMinus2Count
 		self.position = position
-		self.size = size
+		self.dimensions = dimensions
+	
+	def size(self):
+		return 12
 		
 	def to_binary(self, segmentData):
 		position = [160, 120] if self.useDefaults else self.position
-		size = [160, 120] if self.useDefaults else self.size
+		dimensions = [160, 120] if self.useDefaults else self.dimensions
 		entryMinus2Count = 0xA if self.useDefaults else self.entryMinus2Count
 		command = bytearray([GEO_SET_RENDER_AREA, 0x00])
 		command.extend(entryMinus2Count.to_bytes(2, 'big', signed = False))
 		command.extend(position[0].to_bytes(2, 'big', signed = True))
 		command.extend(position[1].to_bytes(2, 'big', signed = True))
-		command.extend(size[0].to_bytes(2, 'big', signed = True))
-		command.extend(size[1].to_bytes(2, 'big', signed = True))
+		command.extend(dimensions[0].to_bytes(2, 'big', signed = True))
+		command.extend(dimensions[1].to_bytes(2, 'big', signed = True))
 		return command
 
 	def to_c(self):
@@ -504,11 +715,15 @@ class ScreenAreaNode:
 		else:
 			return 'GEO_NODE_SCREEN_AREA(' + str(self.entryMinus2Count) +\
 				', ' + str(self.position[0]) + ', ' + str(self.position[1]) +\
-				', ' + str(self.size[0]) + ', ' + str(self.size[1]) + '),'
+				', ' + str(self.dimensions[0]) + ', ' + \
+				str(self.dimensions[1]) + '),'
 
 class OrthoNode:
 	def __init__(self, scale):
 		self.scale = scale
+	
+	def size(self):
+		return 4
 		
 	def to_binary(self, segmentData):
 		command = bytearray([GEO_SET_ORTHO, 0x00])
@@ -524,19 +739,24 @@ class FrustumNode:
 		self.fov = fov
 		self.near = int(round(100 * near))
 		self.far = int(round(100 * far))
+		self.useFunc = True # Always use function?
+	
+	def size(self):
+		return 12 if self.useFunc else 8
 		
 	def to_binary(self, segmentData):
-		command = bytearray([GEO_SET_CAMERA_FRUSTRUM, 0x00])
+		command = bytearray([GEO_SET_CAMERA_FRUSTRUM, 
+			0x01 if self.useFunc else 0x00])
 		command.extend(bytearray(struct.pack(">f", self.fov)))
 		command.extend(self.near.to_bytes(2, 'big', signed = True)) # Conversion?
 		command.extend(self.far.to_bytes(2, 'big', signed = True)) # Conversion?
 
-		if True: # Always use function?
+		if self.useFunc: 
 			command.extend(bytes.fromhex('8029AA3C'))
 		return command
 
 	def to_c(self):
-		if False: # Always use function?
+		if not self.useFunc:
 			return 'GEO_CAMERA_FRUSTUM(' + format(self.fov, '.4f') +\
 				', ' + str(self.near) + ', ' + str(self.far) + '),'
 		else:
@@ -547,6 +767,9 @@ class FrustumNode:
 class ZBufferNode:
 	def __init__(self, enable):
 		self.enable = enable
+
+	def size(self):
+		return 4
 		
 	def to_binary(self, segmentData):
 		command = bytearray([GEO_SET_Z_BUF, 0x01 if self.enable else 0x00,
@@ -564,6 +787,9 @@ class CameraNode:
 		self.lookAt = \
 			[int(round(value / sm64ToBlenderScale)) for value in lookAt]
 	
+	def size(self):
+		return 20
+
 	def to_binary(self, segmentData):
 		command = bytearray([GEO_CAMERA, 0x00])
 		command.extend(self.camType.to_bytes(2, 'big', signed = True))
@@ -589,6 +815,9 @@ class CameraNode:
 class RenderObjNode:
 	def __init__(self):
 		pass
+
+	def size(self):
+		return 4
 		
 	def to_binary(self, segmentData):
 		command = bytearray([GEO_SETUP_OBJ_RENDER, 0x00, 0x00, 0x00])
@@ -601,6 +830,9 @@ class BackgroundNode:
 	def __init__(self, isColor, backgroundValue):
 		self.isColor = isColor
 		self.backgroundValue = backgroundValue
+
+	def size(self):
+		return 8
 		
 	def to_binary(self, segmentData):
 		command = bytearray([GEO_SET_BG, 0x00])
@@ -623,6 +855,9 @@ class BackgroundNode:
 class EnvFunctionNode:
 	def __init__(self, index):
 		self.index = index
+
+	def size(self):
+		return 8
 	
 	def to_binary(self, segmentData):
 		command = bytearray([GEO_CALL_ASM, 0x00])

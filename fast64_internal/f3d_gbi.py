@@ -1677,6 +1677,8 @@ class FMesh:
 		data = self.draw.to_c_def()
 		for triangleList in self.triangleLists:
 			data += triangleList.to_c_def()
+		for materialTuple, drawOverride in self.drawMatOverrides.items():
+			data += drawOverride.to_c_def()
 		return data
 
 class FMaterial:

@@ -61,7 +61,8 @@ class CameraSettingsPanel(bpy.types.Panel):
 		prop_split(layout, camera, 'camType', 'Camera Type')
 		prop_split(layout, camera, 'envType', 'Environment Type')
 
-def saveCameraSettingsToGeolayout(geolayout, cameraObj, rootObj):
+def saveCameraSettingsToGeolayout(geolayoutGraph, cameraObj, rootObj):
+	geolayout = geolayoutGraph.startGeolayout
 	camera = cameraObj.data
 	screenAreaNode = TransformNode(ScreenAreaNode(
 		camera.useDefaultScreenRect, 0xA, camera.screenPos, camera.screenSize))
@@ -93,14 +94,16 @@ def saveCameraSettingsToGeolayout(geolayout, cameraObj, rootObj):
 	frustumNode.children.append(cameraNode)
 
 	startDLNode = TransformNode(StartNode())
-	cameraNode.children.append(startDLNode)
+	meshGeolayout = geolayoutGraph.addGeolayout(rootObj, rootObj.name)
+	meshGeolayout.nodes.append(startDLNode)
+	geolayoutGraph.addJumpNode(cameraNode, geolayout, meshGeolayout)
 
 	# Moving textures here
 
 	cameraNode.children.append(TransformNode(RenderObjNode()))
 	cameraNode.children.append(TransformNode(EnvFunctionNode(camera.envType)))
 
-	return startDLNode
+	return meshGeolayout
 
 cam_classes = (
 	CameraSettingsPanel,

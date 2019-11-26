@@ -341,7 +341,8 @@ class SM64_ExportGeolayoutObject(bpy.types.Operator):
 					modelLoadInfo = (None, None)
 
 				if context.scene.geoUseBank0:
-					addrRange, startRAM = exportGeolayoutObjectBinaryBank0(
+					addrRange, startRAM, geoStart = \
+						exportGeolayoutObjectBinaryBank0(
 						romfileOutput, obj, exportRange, 
  						finalTransform, *modelLoadInfo, textDumpFilePath,
 						context.scene.f3d_type, context.scene.isHWv1, 
@@ -368,7 +369,8 @@ class SM64_ExportGeolayoutObject(bpy.types.Operator):
 				if context.scene.geoUseBank0:
 					self.report({'INFO'}, 'Success! Geolayout at (' + \
 						hex(addrRange[0]) + ', ' + hex(addrRange[1]) + \
-						'), to write to RAM Address ' + hex(startRAM))
+						'), to write to RAM Address ' + hex(startRAM) + \
+						', with geolayout starting at ' + hex(geoStart))
 				else:
 					self.report({'INFO'}, 'Success! Geolayout at (' + \
 						hex(addrRange[0]) + ', ' + hex(addrRange[1]) + \
@@ -497,7 +499,8 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 					modelLoadInfo = (None, None)
 
 				if context.scene.geoUseBank0:
-					addrRange, startRAM = exportGeolayoutArmatureBinaryBank0(
+					addrRange, startRAM, geoStart = \
+						exportGeolayoutArmatureBinaryBank0(
 						romfileOutput, armatureObj, obj, exportRange, 
  						finalTransform, *modelLoadInfo, textDumpFilePath,
 						context.scene.f3d_type, context.scene.isHWv1, 
@@ -523,7 +526,8 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 				if context.scene.geoUseBank0:
 					self.report({'INFO'}, 'Success! Geolayout at (' + \
 						hex(addrRange[0]) + ', ' + hex(addrRange[1]) + \
-						'), to write to RAM Address ' + hex(startRAM))
+						'), to write to RAM Address ' + hex(startRAM) + \
+						', with geolayout starting at ' + hex(geoStart))
 				else:
 					self.report({'INFO'}, 'Success! Geolayout at (' + \
 						hex(addrRange[0]) + ', ' + hex(addrRange[1]) + \
@@ -1457,7 +1461,7 @@ def register():
 	bpy.types.Scene.geoRAMAddr = bpy.props.StringProperty(name = 'RAM Address', 
 		default = '80000000')
 	bpy.types.Scene.geoTexDir = bpy.props.StringProperty(
-		name ='Include Path', default = '/level/ddd/')
+		name ='Include Path', default = '/actors/mario/')
 	bpy.types.Scene.geoSaveTextures = bpy.props.BoolProperty(
 		name = 'Save Textures As PNGs')
 	bpy.types.Scene.geoSeparateTextureDef = bpy.props.BoolProperty(

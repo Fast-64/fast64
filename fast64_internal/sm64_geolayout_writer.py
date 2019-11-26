@@ -26,7 +26,8 @@ def findStartBone(armatureObj):
 			(poseBone.bone_group.name != "SwitchOption" and \
 			poseBone.bone_group.name != "Ignore"):
 			return poseBone.name
-	raise ValueError("No non switch option start bone could be found.")
+	raise ValueError("No non switch option start bone could be found " +\
+		'in ' + armatureObj.name + '. Is this the root armature?')
 
 def prepareGeolayoutExport(armatureObj, obj):
 	# Make object and armature space the same.
@@ -89,19 +90,23 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix,
 		mathutils.Matrix.Diagonal(armatureObj.scale).to_4x4()
 
 	# Start geolayout
-	geolayout = Geolayout(armatureObj.name)
 	if camera is not None:
+		geolayoutGraph = GeolayoutGraph(armatureObj.name + '_level')
 		cameraObj = getCameraObj(camera)
-		rootNode = saveCameraSettingsToGeolayout(
-			geolayout, cameraObj, armatureObj)
+		meshGeolayout = saveCameraSettingsToGeolayout(
+			geolayoutGraph, cameraObj, armatureObj)
 	else:
+		geolayoutGraph = GeolayoutGraph(armatureObj.name)
 		rootNode = TransformNode(StartNode())
-		geolayout.nodes.append(rootNode)
+		geolayoutGraph.startGeolayout.nodes.append(rootNode)
+		meshGeolayout = geolayoutGraph.startGeolayout
 	processBone(fModel, startBoneName, obj, armatureObj, 
-		convertTransformMatrix, None, None, None, rootNode, [], '',
-		geolayout, infoDict)
-	generateSwitchOptions(geolayout.nodes[0])
-	return geolayout, fModel
+		convertTransformMatrix, None, None, None, meshGeolayout.nodes[0], 
+		[], '', meshGeolayout, geolayoutGraph, infoDict)
+	generateSwitchOptions(meshGeolayout.nodes[0], meshGeolayout, geolayoutGraph,
+		'')
+	geolayoutGraph.generateSortedList()
+	return geolayoutGraph, fModel
 
 def selectMeshChildrenOnly(obj):
 	obj.select_set(True)
@@ -119,15 +124,16 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 	#	mathutils.Matrix.Diagonal(obj.scale).to_4x4()
 
 	# Start geolayout
-	geolayout = Geolayout(obj.name)
 	if camera is not None:
+		geolayoutGraph = GeolayoutGraph(obj.name + '_level')
 		cameraObj = getCameraObj(camera)
-		rootNode = saveCameraSettingsToGeolayout(
-			geolayout, cameraObj, obj)
+		meshGeolayout = saveCameraSettingsToGeolayout(
+			geolayoutGraph, cameraObj, obj)
 	else:
+		geolayoutGraph = GeolayoutGraph(obj.name)
 		rootNode = TransformNode(StartNode())
-		geolayout.nodes.append(rootNode)
-	geolayout.nodes.append(TransformNode(StartNode()))
+		geolayoutGraph.startGeolayout.nodes.append(rootNode)
+		meshGeolayout = geolayoutGraph.startGeolayout
 
 	# Duplicate objects to apply scale / modifiers / linked data
 	bpy.ops.object.select_all(action = 'DESELECT')
@@ -148,7 +154,8 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 				bpy.ops.object.modifier_apply(apply_as='DATA',
 					modifier=modifier.name)
 		processMesh(fModel, tempObj, convertTransformMatrix,
-			rootNode, True)
+			meshGeolayout.nodes[0], True, geolayoutGraph.startGeolayout,
+			geolayoutGraph)
 		cleanupDuplicatedObjects(allObjs)
 		obj.select_set(True)
 		bpy.context.view_layer.objects.active = obj
@@ -158,26 +165,27 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 		bpy.context.view_layer.objects.active = obj
 		raise Exception(str(e))
 
-	return geolayout, fModel
+	geolayoutGraph.generateSortedList()
+	return geolayoutGraph, fModel
 
 # C Export
 def exportGeolayoutArmatureC(armatureObj, obj, convertTransformMatrix, 
 	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera):
-	geolayout, fModel = convertArmatureToGeolayout(armatureObj, obj,
+	geolayoutGraph, fModel = convertArmatureToGeolayout(armatureObj, obj,
 		convertTransformMatrix, f3dType, isHWv1, camera)
 
-	saveGeolayoutC(armatureObj.name, geolayout, fModel, dirPath, texDir,
+	saveGeolayoutC(armatureObj.name, geolayoutGraph, fModel, dirPath, texDir,
 		savePNG, texSeparate)
 
 def exportGeolayoutObjectC(obj, convertTransformMatrix, 
 	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera):
-	geolayout, fModel = convertObjectToGeolayout(obj, 
+	geolayoutGraph, fModel = convertObjectToGeolayout(obj, 
 		convertTransformMatrix, f3dType, isHWv1, camera)
 
-	saveGeolayoutC(obj.name, geolayout, fModel, dirPath, texDir,
+	saveGeolayoutC(obj.name, geolayoutGraph, fModel, dirPath, texDir,
 		savePNG, texSeparate)
 
-def saveGeolayoutC(dirName, geolayout, fModel, dirPath, texDir, savePNG,
+def saveGeolayoutC(dirName, geolayoutGraph, fModel, dirPath, texDir, savePNG,
  	texSeparate):
 	geoDirPath = os.path.join(dirPath, toAlnum(dirName))
 
@@ -196,13 +204,13 @@ def saveGeolayoutC(dirName, geolayout, fModel, dirPath, texDir, savePNG,
 		dlFile.close()
 
 	geoPath = os.path.join(geoDirPath, 'geo.inc.c')
-	geoData = geolayout.to_c()
+	geoData = geolayoutGraph.to_c()
 	geoFile = open(geoPath, 'w')
 	geoFile.write(geoData)
 	geoFile.close()
 
 	headerPath = os.path.join(geoDirPath, 'header.h')
-	cDefine = geolayout.to_c_def() + fModel.to_c_def()
+	cDefine = geolayoutGraph.to_c_def() + fModel.to_c_def()
 	cDefFile = open(headerPath, 'w')
 	cDefFile.write(cDefine)
 	cDefFile.close()
@@ -213,29 +221,32 @@ def exportGeolayoutArmatureBinaryBank0(romfile, armatureObj, obj, exportRange,
  	convertTransformMatrix, levelCommandPos, modelID, textDumpFilePath, 
 	f3dType, isHWv1, RAMAddr, camera):
 	
-	geolayout, fModel = convertArmatureToGeolayout(armatureObj, obj,
+	geolayoutGraph, fModel = convertArmatureToGeolayout(armatureObj, obj,
 		convertTransformMatrix, f3dType, isHWv1, camera)
 	
-	return saveGeolayoutBinaryBank0(romfile, fModel, geolayout, exportRange,	
- 		levelCommandPos, modelID, textDumpFilePath, f3dType, isHWv1, RAMAddr)
+	return saveGeolayoutBinaryBank0(romfile, fModel, geolayoutGraph,
+		exportRange, levelCommandPos, modelID, textDumpFilePath, 
+		f3dType, isHWv1, RAMAddr)
 
 def exportGeolayoutObjectBinaryBank0(romfile, obj, exportRange,	
  	convertTransformMatrix, levelCommandPos, modelID, textDumpFilePath, 
 	f3dType, isHWv1, RAMAddr, camera):
 	
-	geolayout, fModel = convertObjectToGeolayout(obj, 
+	geolayoutGraph, fModel = convertObjectToGeolayout(obj, 
 		convertTransformMatrix, f3dType, isHWv1, camera)
 	
-	return saveGeolayoutBinaryBank0(romfile, fModel, geolayout, exportRange,	
- 		levelCommandPos, modelID, textDumpFilePath, f3dType, isHWv1, RAMAddr)
+	return saveGeolayoutBinaryBank0(romfile, fModel, geolayoutGraph,
+		exportRange, levelCommandPos, modelID, textDumpFilePath, 
+		f3dType, isHWv1, RAMAddr)
 
-def saveGeolayoutBinaryBank0(romfile, fModel, geolayout, exportRange,	
+def saveGeolayoutBinaryBank0(romfile, fModel, geolayoutGraph, exportRange,	
  	levelCommandPos, modelID, textDumpFilePath, f3dType, isHWv1, RAMAddr):
 	fModel.freePalettes()
 	segmentData = copy.copy(bank0Segment)
 	startRAM = get64bitAlignedAddr(RAMAddr)
-	nonGeoStartAddr = startRAM + len(geolayout.to_binary(None))
+	nonGeoStartAddr = startRAM + geolayoutGraph.size()
 
+	geolayoutGraph.set_addr(startRAM)
 	addrRange = fModel.set_addr(nonGeoStartAddr)
 	addrEndInROM = addrRange[1] - startRAM + exportRange[0]
 	if addrEndInROM > exportRange[1]:
@@ -243,8 +254,7 @@ def saveGeolayoutBinaryBank0(romfile, fModel, geolayout, exportRange,
 			', which is larger than the specified range.')
 	bytesIO = BytesIO()
 	#actualRAMAddr = get64bitAlignedAddr(RAMAddr)
-	bytesIO.seek(startRAM)
-	bytesIO.write(geolayout.to_binary(segmentData))
+	geolayoutGraph.save_binary(bytesIO, segmentData)
 	fModel.save_binary(bytesIO, segmentData)
 
 	data = bytesIO.getvalue()[startRAM:]
@@ -254,11 +264,13 @@ def saveGeolayoutBinaryBank0(romfile, fModel, geolayout, exportRange,
 	romfile.seek(startAddress)
 	romfile.write(data)
 
-	segPointerData = encodeSegmentedAddr(startRAM, segmentData)
+	geoStart = geolayoutGraph.startGeolayout.startAddress
+	segPointerData = encodeSegmentedAddr(geoStart, segmentData)
 	geoWriteLevelCommand(romfile, segPointerData, levelCommandPos, modelID)
-	geoWriteTextDump(textDumpFilePath, geolayout, segmentData)
+	geoWriteTextDump(textDumpFilePath, geolayoutGraph, segmentData)
 	
-	return ((startAddress, startAddress + len(data)), startRAM + 0x80000000)
+	return ((startAddress, startAddress + len(data)), startRAM + 0x80000000,
+		geoStart + 0x80000000)
 	
 
 # Binary Export
@@ -266,10 +278,10 @@ def exportGeolayoutArmatureBinary(romfile, armatureObj, obj, exportRange,
  	convertTransformMatrix, levelData, levelCommandPos, modelID,
 	textDumpFilePath, f3dType, isHWv1, camera):
 
-	geolayout, fModel = convertArmatureToGeolayout(armatureObj, obj,
+	geolayoutGraph, fModel = convertArmatureToGeolayout(armatureObj, obj,
 		convertTransformMatrix, f3dType, isHWv1, camera)
 
-	return saveGeolayoutBinary(romfile, geolayout, fModel, exportRange,	
+	return saveGeolayoutBinary(romfile, geolayoutGraph, fModel, exportRange,	
  		convertTransformMatrix, levelData, levelCommandPos, modelID,
 		textDumpFilePath, f3dType, isHWv1)
 
@@ -277,14 +289,14 @@ def exportGeolayoutObjectBinary(romfile, obj, exportRange,
  	convertTransformMatrix, levelData, levelCommandPos, modelID,
 	textDumpFilePath, f3dType, isHWv1, camera):
 	
-	geolayout, fModel = convertObjectToGeolayout(obj, 
+	geolayoutGraph, fModel = convertObjectToGeolayout(obj, 
 		convertTransformMatrix, f3dType, isHWv1, camera)
 	
-	return saveGeolayoutBinary(romfile, geolayout, fModel, exportRange,	
+	return saveGeolayoutBinary(romfile, geolayoutGraph, fModel, exportRange,	
  		convertTransformMatrix, levelData, levelCommandPos, modelID,
 		textDumpFilePath, f3dType, isHWv1)
 	
-def saveGeolayoutBinary(romfile, geolayout, fModel, exportRange,	
+def saveGeolayoutBinary(romfile, geolayoutGraph, fModel, exportRange,	
  	convertTransformMatrix, levelData, levelCommandPos, modelID,
 	textDumpFilePath, f3dType, isHWv1):
 	fModel.freePalettes()
@@ -292,19 +304,20 @@ def saveGeolayoutBinary(romfile, geolayout, fModel, exportRange,
 	# Get length of data, then actually write it after relative addresses 
 	# are found.
 	startAddress = get64bitAlignedAddr(exportRange[0])
-	nonGeoStartAddr = startAddress + len(geolayout.to_binary(None))
+	nonGeoStartAddr = startAddress + geolayoutGraph.size()
 
+	geolayoutGraph.set_addr(startAddress)
 	addrRange = fModel.set_addr(nonGeoStartAddr)
 	if addrRange[1] > exportRange[1]:
 		raise ValueError('Size too big: Data ends at ' + hex(addrRange[1]) +\
 			', which is larger than the specified range.')
-	romfile.seek(startAddress)
-	romfile.write(geolayout.to_binary(levelData))
+	geolayoutGraph.save_binary(romfile, levelData)
 	fModel.save_binary(romfile, levelData)
 
-	segPointerData = encodeSegmentedAddr(startAddress, levelData)
+	geoStart = geolayoutGraph.startGeolayout.startAddress
+	segPointerData = encodeSegmentedAddr(geoStart, levelData)
 	geoWriteLevelCommand(romfile, segPointerData, levelCommandPos, modelID)
-	geoWriteTextDump(textDumpFilePath, geolayout, levelData)
+	geoWriteTextDump(textDumpFilePath, geolayoutGraph, levelData)
 	
 	return (startAddress, addrRange[1]), bytesToHex(segPointerData)
 
@@ -316,10 +329,10 @@ def geoWriteLevelCommand(romfile, segPointerData, levelCommandPos, modelID):
 		romfile.seek(levelCommandPos + 4)
 		romfile.write(segPointerData)
 
-def geoWriteTextDump(textDumpFilePath, geolayout, levelData):
+def geoWriteTextDump(textDumpFilePath, geolayoutGraph, levelData):
 	if textDumpFilePath is not None:
 		openfile = open(textDumpFilePath, 'w')
-		openfile.write(geolayout.toTextDump(levelData))
+		openfile.write(geolayoutGraph.toTextDump(levelData))
 		openfile.close()
 
 # Switch Handling Process
@@ -330,11 +343,19 @@ def geoWriteTextDump(textDumpFilePath, geolayout, levelData):
 
 # Afterward, the node hierarchy is traversed again, and any SwitchOverride
 # nodes are converted to actual geolayout node hierarchies.
-def generateSwitchOptions(transformNode):
+def generateSwitchOptions(transformNode, geolayout, geolayoutGraph, prefix):
+	if isinstance(transformNode.node, JumpNode):
+		for node in transformNode.node.geolayout.nodes:
+			generateSwitchOptions(node, transformNode.node.geolayout, 
+			geolayoutGraph, prefix)
 	overrideNodes = []
 	if isinstance(transformNode.node, SwitchNode):
+		switchName = transformNode.node.name
+		prefix += '_' + switchName
+		#prefix = switchName
 		i = 0
 		while i < len(transformNode.children):
+			prefixName = prefix + '_opt' + str(i)
 			childNode = transformNode.children[i]
 			if isinstance(childNode.node, SwitchOverrideNode):
 				drawLayer = childNode.node.drawLayer
@@ -343,24 +364,55 @@ def generateSwitchOptions(transformNode):
 				overrideType = childNode.node.overrideType
 
 				# This should be a 0xB node
-				copyNode = duplicateNode(transformNode.children[0],
-					transformNode, transformNode.children.index(childNode))
+				#copyNode = duplicateNode(transformNode.children[0],
+				#	transformNode, transformNode.children.index(childNode))
 				index = transformNode.children.index(childNode)
 				transformNode.children.remove(childNode)
+
+				# Switch option bones should have unique names across all 
+				# armatures.
+				optionGeolayout = geolayoutGraph.addGeolayout(
+					childNode, prefixName)
+				geolayoutGraph.addJumpNode(transformNode, geolayout,
+					optionGeolayout, index)
+				optionGeolayout.nodes.append(TransformNode(StartNode()))
+				copyNode = optionGeolayout.nodes[0]
+
 				#i -= 1
-				# Assumes each switch child has only one child
-				for overrideChild in transformNode.children[0].children:
-					generateOverrideHierarchy(copyNode, overrideChild, 
-						material, specificMat, overrideType, drawLayer, index)
+				# Assumes first child is a jump node to option 0
+				# assumes overrideChild starts with a Start node
+				option0Nodes = transformNode.children[0].node.geolayout.nodes
+				if len(option0Nodes) == 1 and \
+					isinstance(option0Nodes[0].node, StartNode):
+					for startChild in option0Nodes[0].children:
+						generateOverrideHierarchy(copyNode, startChild, 
+							material, specificMat, overrideType, drawLayer,
+							option0Nodes[0].children.index(startChild),
+							optionGeolayout, geolayoutGraph, 
+							optionGeolayout.name)
+				else:
+					for overrideChild in option0Nodes:
+						generateOverrideHierarchy(copyNode, overrideChild, 
+							material, specificMat, overrideType, drawLayer,
+							option0Nodes.index(overrideChild),
+							optionGeolayout, geolayoutGraph, 
+							optionGeolayout.name)
 				if material is not None:
 					overrideNodes.append(copyNode)
 			i += 1
-	for childNode in transformNode.children:
+	for i in range(len(transformNode.children)):
+		childNode = transformNode.children[i]
+		if isinstance(transformNode.node, SwitchNode):
+			prefixName = prefix + '_opt' + str(i)
+		else:
+			prefixName = prefix
+		
 		if childNode not in overrideNodes:
-			generateSwitchOptions(childNode)
+			generateSwitchOptions(childNode, geolayout, geolayoutGraph, prefixName)
 
 def generateOverrideHierarchy(parentCopyNode, transformNode, 
-	material, specificMat, overrideType, drawLayer, index):
+	material, specificMat, overrideType, drawLayer, index, geolayout,
+	geolayoutGraph, switchOptionName):
 	#print(transformNode.node)
 	if isinstance(transformNode.node, SwitchOverrideNode) and \
 		material is not None:
@@ -369,7 +421,29 @@ def generateOverrideHierarchy(parentCopyNode, transformNode,
 	copyNode = TransformNode(copy.copy(transformNode.node))
 	copyNode.parent = parentCopyNode
 	parentCopyNode.children.insert(index, copyNode)
-	if not isinstance(copyNode.node, SwitchOverrideNode) and\
+	if isinstance(transformNode.node, JumpNode):
+		jumpName = switchOptionName + '_jump_' +\
+			transformNode.node.geolayout.name
+		jumpGeolayout = geolayoutGraph.addGeolayout(transformNode, jumpName)
+		oldGeolayout = copyNode.node.geolayout
+		copyNode.node.geolayout = jumpGeolayout
+		geolayoutGraph.addGeolayoutCall(geolayout, jumpGeolayout)
+		startNode = TransformNode(StartNode())
+		jumpGeolayout.nodes.append(startNode)
+		if len(oldGeolayout.nodes) == 1 and \
+			isinstance(oldGeolayout.nodes[0].node, StartNode):
+			for node in oldGeolayout.nodes[0].children:
+				generateOverrideHierarchy(startNode, node, material, specificMat,
+				overrideType, drawLayer, 
+				oldGeolayout.nodes[0].children.index(node),
+				jumpGeolayout, geolayoutGraph, jumpName)
+		else:
+			for node in oldGeolayout.nodes:
+				generateOverrideHierarchy(startNode, node, material, specificMat,
+				overrideType, drawLayer, oldGeolayout.nodes.index(node),
+				jumpGeolayout, geolayoutGraph, jumpName)
+
+	elif not isinstance(copyNode.node, SwitchOverrideNode) and\
 		copyNode.node.hasDL:
 		if material is not None:
 			copyNode.node.DLmicrocode = \
@@ -378,8 +452,9 @@ def generateOverrideHierarchy(parentCopyNode, transformNode,
 			copyNode.node.drawLayer = drawLayer
 
 	for child in transformNode.children:
-		generateOverrideHierarchy(copyNode, child, material, specificMat, overrideType,
-			drawLayer, transformNode.children.index(child))
+		generateOverrideHierarchy(copyNode, child, material, specificMat, 
+			overrideType, drawLayer, transformNode.children.index(child),
+			geolayout, geolayoutGraph, switchOptionName)
 		
 def addStartNode(transformNode):
 	optionNode = TransformNode(StartNode())
@@ -411,7 +486,8 @@ def addPreRenderAreaNode(parentTransformNode, cullingRadius):
 
 # This function should be called on a copy of an object
 # The copy will have modifiers / scale applied and will be made single user
-def processMesh(fModel, obj, transformMatrix, parentTransformNode, isRoot):
+def processMesh(fModel, obj, transformMatrix, parentTransformNode,
+	geolayout, geolayoutGraph, isRoot):
 	#finalTransform = copy.deepcopy(transformMatrix)
 
 	if not isinstance(obj.data, bpy.types.Mesh):
@@ -465,7 +541,8 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode, isRoot):
 	transformNode.parent = parentTransformNode
 	
 	for childObj in obj.children:
-		processMesh(fModel, childObj, transformMatrix, transformNode, False)
+		processMesh(fModel, childObj, transformMatrix, transformNode, 
+			geolayout, geolayoutGraph, False)
 
 # need to remember last geometry holding parent bone.
 # to do skinning, add the 0x15 command before any non-geometry bone groups.
@@ -484,7 +561,7 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode, isRoot):
 
 def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 	lastTranslateName, lastRotateName, lastDeformName, parentTransformNode,
-	materialOverrides, namePrefix, geolayout, infoDict):
+	materialOverrides, namePrefix, geolayout, geolayoutGraph, infoDict):
 	bone = armatureObj.data.bones[boneName]
 	poseBone = armatureObj.pose.bones[boneName]
 	boneGroup = poseBone.bone_group
@@ -549,7 +626,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 			if bone.geo_func == '':
 				raise ValueError('Switch bone ' + boneName + \
 					' function value is empty.')
-			node = SwitchNode(bone.geo_func, bone.func_param)
+			node = SwitchNode(bone.geo_func, bone.func_param, boneName)
 			processSwitchBoneMatOverrides(materialOverrides, bone)
 			
 		elif boneGroup.name == 'Start':
@@ -613,7 +690,6 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 	
 	transformNode = TransformNode(node)
 
-	# TODO: HERE!!!
 	if node.hasDL:
 		meshGroup = saveModelGivenVertexGroup(
 			fModel, obj, bone.name, lastDeformName,
@@ -646,36 +722,48 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 	else:
 		parentTransformNode.children.append(transformNode)
 		transformNode.parent = parentTransformNode
-	
-	isSwitch = isinstance(transformNode.node, SwitchNode)
-	if isSwitch:
-		switchTransformNode = transformNode
-		option0Node = addStartNode(transformNode)
-		#option0Node = addPreTranslateRotateNode(armatureObj, transformNode,
-		#	mathutils.Vector((0,0,0)), mathutils.Quaternion())
-		transformNode = option0Node
 
-	#print(boneGroup.name if boneGroup is not None else "Offset")
-	if len(bone.children) > 0: 
-		#print("\tHas Children")
-		if boneGroup is not None and boneGroup.name == 'Function':
-			raise ValueError("Function bones cannot have children. They instead affect the next sibling bone in alphabetical order.")
+	if not isinstance(transformNode.node, SwitchNode):
+		#print(boneGroup.name if boneGroup is not None else "Offset")
+		if len(bone.children) > 0: 
+			#print("\tHas Children")
+			if boneGroup is not None and boneGroup.name == 'Function':
+				raise ValueError("Function bones cannot have children. They instead affect the next sibling bone in alphabetical order.")
 
-		# Handle child nodes
-		# nonDeformTransformData should be modified to be sent to children,
-		# otherwise it should not be modified for parent.
-		# This is so it can be used for siblings.
-		childrenNames = sorted([bone.name for bone in bone.children])
-		for name in childrenNames:
-			processBone(fModel, name, obj, armatureObj, 
-				finalTransform, lastTranslateName, lastRotateName, 
-				lastDeformName, transformNode, materialOverrides, namePrefix, 
-				geolayout, infoDict)
-			#transformNode.children.append(childNode)
-			#childNode.parent = transformNode
-	
+			# Handle child nodes
+			# nonDeformTransformData should be modified to be sent to children,
+			# otherwise it should not be modified for parent.
+			# This is so it can be used for siblings.
+			childrenNames = sorted([bone.name for bone in bone.children])
+			for name in childrenNames:
+				processBone(fModel, name, obj, armatureObj, 
+					finalTransform, lastTranslateName, lastRotateName, 
+					lastDeformName, transformNode, materialOverrides, 
+					namePrefix, geolayout,
+					geolayoutGraph, infoDict)
+				#transformNode.children.append(childNode)
+				#childNode.parent = transformNode
+
 	# see generateSwitchOptions() for explanation.
-	if isSwitch:
+	else:
+		#print(boneGroup.name if boneGroup is not None else "Offset")
+		if len(bone.children) > 0: 
+			optionGeolayout = \
+				geolayoutGraph.addGeolayout(
+					transformNode, boneName + '_opt0')
+			geolayoutGraph.addJumpNode(transformNode, geolayout, 
+				optionGeolayout)
+			optionGeolayout.nodes.append(TransformNode(StartNode()))
+			childrenNames = sorted([bone.name for bone in bone.children])
+			for name in childrenNames:
+				processBone(fModel, name, obj, armatureObj, 
+					finalTransform, lastTranslateName, lastRotateName, 
+					lastDeformName, optionGeolayout.nodes[0], materialOverrides, 
+					namePrefix, optionGeolayout,
+					geolayoutGraph, infoDict)
+				#transformNode.children.append(childNode)
+				#childNode.parent = transformNode
+
 		bone = armatureObj.data.bones[boneName]
 		for switchIndex in range(len( bone.switch_options)):
 			switchOption = bone.switch_options[switchIndex]
@@ -689,11 +777,12 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 					raise ValueError('Error: In switch bone ' + boneName +\
 						' for option ' + str(switchIndex) + \
 						', the object provided is not an armature.')
-				elif optionArmature in geolayout.secondaryGeolayouts:
-					raise ValueError('Error: In switch bone ' + boneName +\
-						' for option ' + str(switchIndex) + \
-						', the armature provided cannot be used more than once' + \
-						' as a switch option in the entire geolayout.')
+				elif optionArmature in geolayoutGraph.secondaryGeolayouts:
+					optionGeolayout = geolayoutGraph.secondaryGeolayouts[
+						optionArmature]
+					geolayoutGraph.addJumpNode(
+						transformNode, geolayout, optionGeolayout)
+					continue
 
 				#optionNode = addStartNode(switchTransformNode)
 				
@@ -704,10 +793,21 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 				switchOptionRotate = mathutils.Quaternion()
 
 				# Armature doesn't matter here since node is not based off bone
-				translateRotateNode = addPreTranslateRotateNode(
-					switchTransformNode, translate, rotate @ switchOptionRotate)
+				optionGeolayout = \
+					geolayoutGraph.addGeolayout(
+						optionArmature, optionArmature.name)
+				geolayoutGraph.addJumpNode(transformNode, geolayout, 
+					optionGeolayout)
 				
-				geolayout.secondaryGeolayouts[optionArmature] = translateRotateNode
+				rotAxis, rotAngle = (rotate @ switchOptionRotate
+					).to_axis_angle()
+				if rotAngle > 0.00001 or translate.length > 0.0001:
+					startNode = TransformNode(
+						TranslateRotateNode(1, 0, False, translate, 
+						rotate @ switchOptionRotate))
+				else:
+					startNode = TransformNode(StartNode())
+				optionGeolayout.nodes.append(startNode)
 	
 				childrenNames = sorted(
 					[bone.name for bone in optionBone.children])
@@ -734,8 +834,9 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 					processBone(fModel, name, optionObj,
 						optionArmature,
 						finalTransform, optionBone.name, optionBone.name,
-						optionBone.name, translateRotateNode, materialOverrides,
-						optionBone.name, geolayout, optionInfoDict)
+						optionBone.name, startNode,
+						materialOverrides, optionBone.name, 
+						optionGeolayout, geolayoutGraph, optionInfoDict)
 			else:
 				if switchOption.switchType == 'Material':
 					material = switchOption.materialOverride
@@ -757,8 +858,8 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 				overrideNode = TransformNode(SwitchOverrideNode(
 					material, specificMat, drawLayer,
 					switchOption.materialOverrideType))
-				overrideNode.parent = switchTransformNode
-				switchTransformNode.children.append(overrideNode)
+				overrideNode.parent = transformNode
+				transformNode.children.append(overrideNode)
 
 def processSwitchBoneMatOverrides(materialOverrides, switchBone):
 	for switchOption in switchBone.switch_options:
@@ -1050,11 +1151,13 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 		fMeshGroup = saveSkinnedMeshByMaterial(skinnedFaces, fModel,
 			vertexGroup, obj, currentMatrix, parentMatrix, namePrefix, infoDict)
 	else:
-		fMeshGroup = FMeshGroup(toAlnum(namePrefix + vertexGroup), 
+		fMeshGroup = FMeshGroup(toAlnum(namePrefix + \
+			('_' if namePrefix != '' else '') + vertexGroup), 
 			FMesh(toAlnum(namePrefix + vertexGroup) + '_mesh'), None)
 	
 	# Save mesh group
-	checkUniqueBoneNames(fModel, toAlnum(namePrefix + vertexGroup), vertexGroup)
+	checkUniqueBoneNames(fModel, toAlnum(namePrefix + \
+		('_' if namePrefix != '' else '') + vertexGroup), vertexGroup)
 	fModel.meshGroups[toAlnum(namePrefix + vertexGroup)] = fMeshGroup
 
 	# Save unskinned mesh
