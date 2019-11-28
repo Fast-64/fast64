@@ -28,7 +28,7 @@ Make sure to save often, as this plugin is prone to crashing when creating mater
 
 ### Restrictions
 -   No YUV textures supported.
--   When importing display lists / geolayouts from SM64 to Blender, only the mesh is imported (no material)
+-   When importing display lists / geolayouts from SM64 to Blender, only the mesh/UVs are imported (no material)
 
 ### Credits
 Thanks to anonymous_moose, Cheezepin, Rovert, and especially InTheBeef for testing.
@@ -42,6 +42,7 @@ The tools can be found in the properties sidebar under the 'Tools' tab (toggled 
 The F3D material inspector can be found in the properties editor under the material tab.
 The armature geolayout inspector can be found in the properties editor under the bone tab in Pose Mode.
 The object geolayout inspector can be found in the properties editor under the object tab.
+The level camera settings can be found in the properties editor under the camera tab.
 The RDP default settings can be found in the properties editor under the world tab.
 
 ### C Exporting

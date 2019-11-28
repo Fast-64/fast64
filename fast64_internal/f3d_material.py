@@ -721,6 +721,12 @@ def update_tex_values_index(self, context, texProperty, texNodeName,
 			nodes[texNodeName + ' Has Alpha'].outputs[0].default_value = \
      		    1 if ('A' in texFormat or \
 				(texFormat[:2] == 'CI' and 'A' in ciFormat))else 0
+			
+			if texNodeName + " Is Intensity" in nodes:
+				nodes[texNodeName + " Is Intensity"].outputs[0].default_value =\
+					1 if (texFormat == 'I4' or texFormat == 'I8') else 0
+			else:
+				print("Using old node graph, cannot set intensity as alpha.")
 
 def update_tex_values(self, context):
 	if hasattr(context, 'material') and context.material is not None:

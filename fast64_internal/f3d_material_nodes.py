@@ -706,6 +706,9 @@ def createTexFormatNodes(node_tree, location, index, nodeDict):
 	hasAlpha, x, y = addNodeAt(node_tree, 'ShaderNodeValue', 
 		'Texture ' + str(index) + ' Has Alpha', location[0], y)
 	hasAlpha.outputs[0].default_value = 1
+	isIntensity, x, y = addNodeAt(node_tree, 'ShaderNodeValue', 
+		'Texture ' + str(index) + ' Is Intensity', location[0], y)
+	isIntensity.outputs[0].default_value = 0
 
 	greyMix, x, y = addNodeAt(node_tree, 'ShaderNodeMixRGB', 
 		None, location[0], y)
@@ -719,7 +722,13 @@ def createTexFormatNodes(node_tree, location, index, nodeDict):
 	links.new(alphaMix.inputs[0], hasAlpha.outputs[0])
 	links.new(alphaMix.inputs[2], nodes['Texture ' + str(index)].outputs[1])
 	alphaMix.inputs[1].default_value = (1,1,1,1)
-	nodeDict['Texture ' + str(index) + ' Alpha'] = alphaMix
+
+	alphaMixIntensity, x, y = addNodeAt(node_tree, 'ShaderNodeMixRGB', 
+		None, location[0], y)
+	links.new(alphaMixIntensity.inputs[0], isIntensity.outputs[0])
+	links.new(alphaMixIntensity.inputs[1], alphaMix.outputs[0])
+	links.new(alphaMixIntensity.inputs[2], greyNode.outputs[2])
+	nodeDict['Texture ' + str(index) + ' Alpha'] = alphaMixIntensity
 
 	return y
 

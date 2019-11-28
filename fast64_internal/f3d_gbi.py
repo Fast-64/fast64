@@ -2013,9 +2013,8 @@ class SPVertex:
 			str(self.count) + ', ' + str(self.index) + ')'
 
 	def to_sm64_decomp_s(self):
-		raise ValueError('gbi.inc is DEAD')
-		return 'gsSPVertex ' + self.vertList.name + ", " + \
-			str(self.count) + ', ' + str(self.index)
+		return 'gsSPVertex ' + self.vertList.name + ", " + str(self.offset) +\
+			', ' + str(self.count) + ', ' + str(self.index)
 	
 	def size(self, f3d):
 		return GFX_SIZE
@@ -2060,7 +2059,6 @@ class SPDisplayList:
 			return 'glistp = ' + self.displayList.name + '(glistp)'
 
 	def to_sm64_decomp_s(self):
-		raise ValueError('gbi.inc is DEAD')
 		return 'gsSPDisplayList ' + self.displayList.name
 	
 	def size(self, f3d):
@@ -3199,12 +3197,12 @@ class DPSetRenderMode:
 		return data[:-3] + ')'
 
 	def to_sm64_decomp_s(self):
-		raise ValueError('gbi.inc is DEAD')
+		raise ValueError("Cannot use DPSetRenderMode with gbi.inc.")
+		flagWord = renderFlagListToWord(self.flagList, f3d)
 		data = 'gsDPSetRenderMode '
-		data += format(self.getGBL_c(f3d), 'X') + ', '
-		for name in self.flagList:
-			data += name + ' | '
-		return data[:-3]
+		data += '0x' + format(flagWord, 'X') + ', '
+		data += '0x' + format(self.getGBL_c(f3d), 'X')
+		return data
 
 		'''
 		# G_SETOTHERMODE_L gSetRenderMode
@@ -3368,13 +3366,12 @@ class DPSetCombineMode:
 			', ' + Ab1 + ', ' + Ac1 + ', ' + Ad1 + ')'
 
 	def to_sm64_decomp_s(self):
-		raise ValueError('gbi.inc is DEAD')
-		return 'gsDPSetCombineMode ' + a0 + ', ' + b0 + ', ' +\
-			c0 + ', ' + d0 + ', ' + Aa0 + ', ' + \
-			Ab0 + ', ' + Ac0 + ', ' + Ad0 + ', ' + \
-			a1 + ', ' + b1 + ', ' + c1 + ', ' + d1 + \
-			', ' +	Aa1 + ', ' + Ab1 + ', ' + Ac1 + \
-			', ' + Ad1 
+		return 'gsDPSetCombineLERP ' + self.a0 + ', ' + self.b0 + ', ' +\
+			self.c0 + ', ' + self.d0 + ', ' + self.Aa0 + ', ' + \
+			self.Ab0 + ', ' + self.Ac0 + ', ' + self.Ad0 + ', ' + \
+			self.a1 + ', ' + self.b1 + ', ' + self.c1 + ', ' + self.d1 + \
+			', ' +	self.Aa1 + ', ' + self.Ab1 + ', ' + self.Ac1 + \
+			', ' + self.Ad1 
 	
 	def size(self, f3d):
 		return GFX_SIZE
@@ -3569,9 +3566,8 @@ class DPSetTileSize:
 			str(self.ult) + ', ' + str(self.lrs) + ', ' + str(self.lrt) + ')'
 
 	def to_sm64_decomp_s(self):
-		raise ValueError('gbi.inc is DEAD')
-		return 'gsDPSetTileSize ' + self.t + ', ' + self.uls + ', ' + \
-			self.ult + ', ' + self.lrs + ', ' + self.lrt
+		return 'gsDPSetTileSize ' + str(self.t) + ', ' + str(self.uls) + ', ' + \
+			str(self.ult) + ', ' + str(self.lrs) + ', ' + str(self.lrt)
 	
 	def size(self, f3d):
 		return GFX_SIZE
@@ -3594,9 +3590,8 @@ class DPLoadTile:
 			str(self.ult) + ', ' + str(self.lrs) + ', ' + str(self.lrt) + ')'
 
 	def to_sm64_decomp_s(self):
-		raise ValueError('gbi.inc is DEAD')
-		return 'gsDPLoadTile ' + self.t + ', ' + self.uls + ', ' + \
-			self.ult + ', ' + self.lrs + ', ' + self.lrt
+		return 'gsDPLoadTile ' + str(self.t) + ', ' + str(self.uls) + ', ' + \
+			str(self.ult) + ', ' + str(self.lrs) + ', ' + str(self.lrt)
 	
 	def size(self, f3d):
 		return GFX_SIZE
@@ -3643,13 +3638,12 @@ class DPSetTile:
 			self.cms[1] + ', ' + str(self.masks) + ', ' + str(self.shifts) + ')'
 
 	def to_sm64_decomp_s(self):
-		raise ValueError("gbi.inc is DEAD")
 		return 'gsDPSetTile ' + self.fmt + ', ' + self.siz + ', ' + \
 			str(self.line) + ', ' + str(self.tmem) + ', ' + \
 			str(self.tile) + ', ' + str(self.palette) + ', ' + \
-			str(self.cmt) + ', ' + str(self.maskt) + ', ' + \
-			str(self.shiftt) + ', ' + str(self.cms) + ', ' + \
-			str(self.masks) + ', ' + str(self.shifts)
+			self.cmt[0] + ' | ' + self.cmt[1] + ', ' + str(self.maskt) + \
+			', ' + str(self.shiftt) + ', ' + self.cms[0] + ' | ' + \
+			self.cms[1] + ', ' + str(self.masks) + ', ' + str(self.shifts)
 	
 	def size(self, f3d):
 		return GFX_SIZE
@@ -3675,9 +3669,8 @@ class DPLoadBlock:
 			str(self.ult) + ', ' + str(self.lrs) + ', ' + str(self.dxt) + ')'
 
 	def to_sm64_decomp_s(self):
-		raise ValueError("gbi.inc is DEAD")
-		return 'gsDPLoadBlock ' + self.tile + ', ' + self.uls + ', ' + \
-			self.ult + ', ' + self.lrs + ', ' + self.dxt
+		return 'gsDPLoadBlock ' + str(self.tile) + ', ' + str(self.uls) + ', ' + \
+			str(self.ult) + ', ' + str(self.lrs) + ', ' + str(self.dxt)
 	
 	def size(self, f3d):
 		return GFX_SIZE
