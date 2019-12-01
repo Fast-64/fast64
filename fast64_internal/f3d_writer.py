@@ -151,75 +151,20 @@ def saveStaticModel(fModel, obj, transformMatrix):
 	revertMatAndEndDraw(fMeshGroup.mesh.draw)
 	return fMeshGroup
 
-def selectMeshChildrenOnly(obj):
-	obj.select_set(True)
-	obj.original_name = obj.name
-	for child in obj.children:
-		if isinstance(child.data, bpy.types.Mesh):
-			selectMeshChildrenOnly(child)
-
-def cleanupDuplicatedObjects(selected_objects):
-	meshData = []
-	for selectedObj in selected_objects:
-		meshData.append(selectedObj.data)
-	for selectedObj in selected_objects:
-		bpy.data.objects.remove(selectedObj)
-	for mesh in meshData:
-		bpy.data.meshes.remove(mesh)
-
 def exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren):
-	obj.original_name = obj.name
 	fModel = FModel(f3dType, isHWv1)
 
-	# Duplicate objects to apply scale / modifiers / linked data
-	bpy.ops.object.select_all(action = 'DESELECT')
-	if includeChildren:
-		selectMeshChildrenOnly(obj)
-	obj.select_set(True)
-	bpy.context.view_layer.objects.active = obj
-	bpy.ops.object.duplicate()
-	objJoined = False
+	tempObj, meshList = combineObjects(obj, includeChildren)
 	try:
-		# duplicate obj and apply modifiers / make single user
-		tempObj = bpy.context.view_layer.objects.active
-		allObjs = bpy.context.selected_objects
-		bpy.ops.object.make_single_user(obdata = True)
-		bpy.ops.object.transform_apply(location = False, 
-			rotation = False, scale = True, properties =  False)
-		for selectedObj in allObjs:
-			bpy.ops.object.select_all(action = 'DESELECT')
-			selectedObj.select_set(True)
-			for modifier in selectedObj.modifiers:
-				bpy.ops.object.modifier_apply(apply_as='DATA',
-					modifier=modifier.name)
-					
-		bpy.ops.object.select_all(action = 'DESELECT')
-
-		# Joining causes orphan data, so we remove it manually.
-		meshList = []
-		for selectedObj in allObjs:
-			if selectedObj is not tempObj:
-				selectedObj.select_set(True)
-				meshList.append(selectedObj.data)
-		tempObj.select_set(True)
-		bpy.context.view_layer.objects.active = tempObj
-		bpy.ops.object.join()
-		objJoined = True
-
 		fMeshGroup = saveStaticModel(fModel, tempObj, transformMatrix)
-		for mesh in meshList:
-			bpy.data.meshes.remove(mesh)
-		cleanupDuplicatedObjects([tempObj])
+		cleanupCombineObj(tempObj, meshList)
 		obj.select_set(True)
 		bpy.context.view_layer.objects.active = obj
 	except Exception as e:
-		if objJoined:
-			cleanupDuplicatedObjects([tempObj])
-		else:
-			cleanupDuplicatedObjects(allObjs)
-		raise Exception(str(e))
+		cleanupCombineObj(tempObj, meshList)
 		obj.select_set(True)
 		bpy.context.view_layer.objects.active = obj
+		raise Exception(str(e))
 
 	return fModel, fMeshGroup
 
@@ -277,20 +222,9 @@ def exportF3DtoBinaryBank0(romfile, exportRange, transformMatrix,
 	obj, f3dType, isHWv1, RAMAddr, includeChildren):
 	fModel, fMeshGroup = \
 		exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren)
-	fModel.freePalettes()
 	segmentData = copy.copy(bank0Segment)
 
-	addrRange = fModel.set_addr(RAMAddr)
-	if addrRange[1] - RAMAddr > exportRange[1] - exportRange[0]:
-		raise ValueError('Size too big: Data ends at ' + hex(addrRange[1]) +\
-			', which is larger than the specified range.')
-
-	bytesIO = BytesIO()
-	#actualRAMAddr = get64bitAlignedAddr(RAMAddr)
-	bytesIO.seek(RAMAddr)
-	fModel.save_binary(bytesIO, segmentData)
-	data = bytesIO.getvalue()[RAMAddr:]
-	bytesIO.close()
+	data, startRAM = getBinaryBank0F3DData(fModel, RAMAddr, exportRange)
 
 	startAddress = get64bitAlignedAddr(exportRange[0])
 	romfile.seek(startAddress)
@@ -304,6 +238,36 @@ def exportF3DtoBinaryBank0(romfile, exportRange, transformMatrix,
 
 	return (fMeshGroup.mesh.draw.startAddress, \
 		(startAddress, startAddress + len(data)), segPointerData)
+
+def exportF3DtoInsertableBinary(filepath, transformMatrix, 
+	obj, f3dType, isHWv1, includeChildren):
+	fModel, fMeshGroup = \
+		exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren)
+	
+	data, startRAM = getBinaryBank0F3DData(fModel, 0, [0, 0xFFFFFF])
+	# must happen after getBinaryBank0F3DData
+	address_ptrs = fModel.get_ptr_addresses(f3dType) 
+
+	writeInsertableFile(filepath, insertableBinaryTypes['Display List'],
+		address_ptrs, fMeshGroup.mesh.draw.startAddress, data)
+
+def getBinaryBank0F3DData(fModel, RAMAddr, exportRange):
+	fModel.freePalettes()
+	segmentData = copy.copy(bank0Segment)
+
+	addrRange = fModel.set_addr(RAMAddr)
+	if addrRange[1] - RAMAddr > exportRange[1] - exportRange[0]:
+	    raise ValueError('Size too big: Data ends at ' + hex(addrRange[1]) +\
+	        ', which is larger than the specified range.')
+
+	bytesIO = BytesIO()
+	#actualRAMAddr = get64bitAlignedAddr(RAMAddr)
+	bytesIO.seek(RAMAddr)
+	fModel.save_binary(bytesIO, segmentData)
+	data = bytesIO.getvalue()[RAMAddr:]
+	bytesIO.close()
+	return data, RAMAddr
+
 
 def checkForF3DMaterial(obj):
 	if len(obj.material_slots) == 0:
@@ -589,11 +553,14 @@ def getF3DVert(loop, face, convertInfo, mesh):
 	return (position, uv, colorOrNormal)
 
 def getLoopNormal(loop, face, isFlatShaded):
-	if isFlatShaded:
-		normal = -face.normal #???
-	else:
-		normal = -loop.normal #???
-	return get8bitRoundedNormal(normal).freeze()
+	# This is a workaround for flat shading not working well.
+	# Since we support custom blender normals we can now ignore this.
+	#if isFlatShaded:
+	#	normal = -face.normal #???
+	#else:
+	#	normal = -loop.normal #???
+	#return get8bitRoundedNormal(normal).freeze()
+	return get8bitRoundedNormal(-loop.normal).freeze()
 
 '''
 def getLoopNormalCreased(bLoop, obj):
@@ -987,7 +954,11 @@ def saveTextureIndex(useDict, material, fModel, fMaterial, texProp,
 		texFormat = texProp.tex_format
 		isCITexture = texFormat[:2] == 'CI'
 		palFormat = texProp.ci_format if isCITexture else ''
-		texName = getNameFromPath(tex.filepath, True) + '_' + texFormat.lower()
+		if tex.filepath == "":
+			name = tex.name
+		else:
+			name = tex.filepath
+		texName = getNameFromPath(name, True) + '_' + texFormat.lower()
 
 		nextTmem = tmem + ceil(bitSizeDict[texBitSizeOf[texFormat]] * \
 			tex.size[0] * tex.size[1] / 64) 
@@ -1167,9 +1138,13 @@ def saveOrGetPaletteDefinition(fModel, image, imageName, texFmt, palFmt):
 					str(maxColors) + ' colors.')
 		texture.append(palette.index(pixelColor))
 	
-	filename = getNameFromPath(image.filepath, True) + '.' + \
+	if image.filepath == "":
+		name = image.name
+	else:
+		name = image.filepath
+	filename = getNameFromPath(name, True) + '.' + \
 		texFmt.lower() + '.inc.c'
-	paletteFilename = getNameFromPath(image.filepath, True) + '.' + \
+	paletteFilename = getNameFromPath(name, True) + '.' + \
 		texFmt.lower() + '.pal'
 	fImage = FImage(toAlnum(imageName), texFormat, bitSize, 
 		image.size[0], image.size[1], filename)
@@ -1178,7 +1153,7 @@ def saveOrGetPaletteDefinition(fModel, image, imageName, texFmt, palFmt):
 		len(palette), paletteFilename)
 	#paletteTex = bpy.data.images.new(paletteName, 1, len(palette))
 	#paletteTex.pixels = palette
-	#paletteTex.filepath = getNameFromPath(image.filepath, True) + '.' + \
+	#paletteTex.filepath = getNameFromPath(name, True) + '.' + \
 	#	texFmt.lower() + '.pal'
 
 	for color in palette:
@@ -1218,7 +1193,11 @@ def saveOrGetTextureDefinition(fModel, image, imageName, texFormat):
 	if imageKey in fModel.textures:
 		return fModel.textures[imageKey]
 
-	filename = getNameFromPath(image.filepath, True) + '.' + \
+	if image.filepath == "":
+		name = image.name
+	else:
+		name = image.filepath
+	filename = getNameFromPath(name, True) + '.' + \
 		texFormat.lower() + '.inc.c'
 
 	fImage = FImage(toAlnum(imageName), fmt, bitSize, 

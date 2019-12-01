@@ -328,3 +328,10 @@ level_pointers = {
 	"BTB":  0x2AC2D8,
 	"TTM":  0x2AC2EC,
 }
+
+insertableBinaryTypes = {
+	'Display List' : 0,
+	'Geolayout' : 1,
+	'Animation' : 2,
+	'Collision' : 3
+}

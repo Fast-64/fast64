@@ -209,6 +209,32 @@ def saveGeolayoutC(dirName, geolayoutGraph, fModel, dirPath, texDir, savePNG,
 	cDefFile.close()
 
 
+# Insertable Binary
+def exportGeolayoutArmatureInsertableBinary(armatureObj, obj,
+	convertTransformMatrix, f3dType, isHWv1, filepath, camera):
+	geolayoutGraph, fModel = convertArmatureToGeolayout(armatureObj, obj,
+		convertTransformMatrix, f3dType, isHWv1, camera)
+	
+	saveGeolayoutInsertableBinary(geolayoutGraph, fModel, filepath, f3dType)
+
+def exportGeolayoutObjectInsertableBinary(obj, convertTransformMatrix, 
+	f3dType, isHWv1, filepath, camera):
+	geolayoutGraph, fModel = convertObjectToGeolayout(obj, 
+		convertTransformMatrix, f3dType, isHWv1, camera)
+	
+	saveGeolayoutInsertableBinary(geolayoutGraph, fModel, filepath, f3dType)
+
+def saveGeolayoutInsertableBinary(geolayoutGraph, fModel, filepath, f3d):
+	data, startRAM = \
+		getBinaryBank0GeolayoutData(fModel, geolayoutGraph, 0, [0, 0xFFFFFF])
+	
+	address_ptrs = geolayoutGraph.get_ptr_addresses()
+	address_ptrs.extend(fModel.get_ptr_addresses(f3d))
+
+	writeInsertableFile(filepath, insertableBinaryTypes['Geolayout'],
+		address_ptrs, geolayoutGraph.startGeolayout.startAddress, data)
+
+
 # Binary Bank 0 Export
 def exportGeolayoutArmatureBinaryBank0(romfile, armatureObj, obj, exportRange,	
  	convertTransformMatrix, levelCommandPos, modelID, textDumpFilePath, 
@@ -218,8 +244,7 @@ def exportGeolayoutArmatureBinaryBank0(romfile, armatureObj, obj, exportRange,
 		convertTransformMatrix, f3dType, isHWv1, camera)
 	
 	return saveGeolayoutBinaryBank0(romfile, fModel, geolayoutGraph,
-		exportRange, levelCommandPos, modelID, textDumpFilePath, 
-		f3dType, isHWv1, RAMAddr)
+		exportRange, levelCommandPos, modelID, textDumpFilePath, RAMAddr)
 
 def exportGeolayoutObjectBinaryBank0(romfile, obj, exportRange,	
  	convertTransformMatrix, levelCommandPos, modelID, textDumpFilePath, 
@@ -229,11 +254,27 @@ def exportGeolayoutObjectBinaryBank0(romfile, obj, exportRange,
 		convertTransformMatrix, f3dType, isHWv1, camera)
 	
 	return saveGeolayoutBinaryBank0(romfile, fModel, geolayoutGraph,
-		exportRange, levelCommandPos, modelID, textDumpFilePath, 
-		f3dType, isHWv1, RAMAddr)
+		exportRange, levelCommandPos, modelID, textDumpFilePath, RAMAddr)
 
 def saveGeolayoutBinaryBank0(romfile, fModel, geolayoutGraph, exportRange,	
- 	levelCommandPos, modelID, textDumpFilePath, f3dType, isHWv1, RAMAddr):
+ 	levelCommandPos, modelID, textDumpFilePath, RAMAddr):
+	data, startRAM = getBinaryBank0GeolayoutData(
+		fModel, geolayoutGraph, RAMAddr, exportRange)
+	segmentData = copy.copy(bank0Segment)
+
+	startAddress = get64bitAlignedAddr(exportRange[0])
+	romfile.seek(startAddress)
+	romfile.write(data)
+
+	geoStart = geolayoutGraph.startGeolayout.startAddress
+	segPointerData = encodeSegmentedAddr(geoStart, segmentData)
+	geoWriteLevelCommand(romfile, segPointerData, levelCommandPos, modelID)
+	geoWriteTextDump(textDumpFilePath, geolayoutGraph, segmentData)
+	
+	return ((startAddress, startAddress + len(data)), startRAM + 0x80000000,
+		geoStart + 0x80000000)
+	
+def getBinaryBank0GeolayoutData(fModel, geolayoutGraph, RAMAddr, exportRange):
 	fModel.freePalettes()
 	segmentData = copy.copy(bank0Segment)
 	startRAM = get64bitAlignedAddr(RAMAddr)
@@ -252,18 +293,7 @@ def saveGeolayoutBinaryBank0(romfile, fModel, geolayoutGraph, exportRange,
 
 	data = bytesIO.getvalue()[startRAM:]
 	bytesIO.close()
-
-	startAddress = get64bitAlignedAddr(exportRange[0])
-	romfile.seek(startAddress)
-	romfile.write(data)
-
-	geoStart = geolayoutGraph.startGeolayout.startAddress
-	segPointerData = encodeSegmentedAddr(geoStart, segmentData)
-	geoWriteLevelCommand(romfile, segPointerData, levelCommandPos, modelID)
-	geoWriteTextDump(textDumpFilePath, geolayoutGraph, segmentData)
-	
-	return ((startAddress, startAddress + len(data)), startRAM + 0x80000000,
-		geoStart + 0x80000000)
+	return data, startRAM
 	
 
 # Binary Export
@@ -275,8 +305,7 @@ def exportGeolayoutArmatureBinary(romfile, armatureObj, obj, exportRange,
 		convertTransformMatrix, f3dType, isHWv1, camera)
 
 	return saveGeolayoutBinary(romfile, geolayoutGraph, fModel, exportRange,	
- 		convertTransformMatrix, levelData, levelCommandPos, modelID,
-		textDumpFilePath, f3dType, isHWv1)
+ 		levelData, levelCommandPos, modelID, textDumpFilePath)
 
 def exportGeolayoutObjectBinary(romfile, obj, exportRange,	
  	convertTransformMatrix, levelData, levelCommandPos, modelID,
@@ -286,12 +315,10 @@ def exportGeolayoutObjectBinary(romfile, obj, exportRange,
 		convertTransformMatrix, f3dType, isHWv1, camera)
 	
 	return saveGeolayoutBinary(romfile, geolayoutGraph, fModel, exportRange,	
- 		convertTransformMatrix, levelData, levelCommandPos, modelID,
-		textDumpFilePath, f3dType, isHWv1)
+ 		levelData, levelCommandPos, modelID, textDumpFilePath)
 	
 def saveGeolayoutBinary(romfile, geolayoutGraph, fModel, exportRange,	
- 	convertTransformMatrix, levelData, levelCommandPos, modelID,
-	textDumpFilePath, f3dType, isHWv1):
+ 	levelData, levelCommandPos, modelID, textDumpFilePath):
 	fModel.freePalettes()
 
 	# Get length of data, then actually write it after relative addresses 

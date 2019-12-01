@@ -27,7 +27,8 @@ axis_enums = [
 
 enumExportType = [
 	('C', 'C', 'C'),
-	('Binary', 'Binary', 'Binary')
+	('Binary', 'Binary', 'Binary'),
+	('Insertable Binary', 'Insertable Binary', 'Insertable Binary')
 ]
 
 panelSeparatorSize = 5
@@ -310,6 +311,14 @@ class SM64_ExportGeolayoutObject(bpy.types.Operator):
 				self.report({'INFO'}, 'Success! Geolayout at ' + \
 					context.scene.geoExportPath + ', DL at ' + \
 					context.scene.geoExportPathDL)
+			elif context.scene.geoExportType == 'Insertable Binary':
+				exportGeolayoutObjectInsertableBinary(obj,
+					finalTransform, context.scene.f3d_type,
+					context.scene.isHWv1, 
+					bpy.path.abspath(bpy.context.scene.geoInsertableBinaryPath),
+					levelCamera)
+				self.report({'INFO'}, 'Success! Data at ' + \
+					context.scene.geoInsertableBinaryPath)
 			else:
 				tempROM = tempName(context.scene.outputRom)
 				checkExpanded(bpy.path.abspath(context.scene.exportRom))
@@ -362,7 +371,8 @@ class SM64_ExportGeolayoutObject(bpy.types.Operator):
 				obj.select_set(True)
 				context.view_layer.objects.active = obj
 
-				os.remove(bpy.path.abspath(context.scene.outputRom))
+				if os.path.exists(bpy.path.abspath(context.scene.outputRom)):
+					os.remove(bpy.path.abspath(context.scene.outputRom))
 				os.rename(bpy.path.abspath(tempROM), 
 					bpy.path.abspath(context.scene.outputRom))
 
@@ -385,9 +395,10 @@ class SM64_ExportGeolayoutObject(bpy.types.Operator):
 
 			applyRotation([obj], math.radians(-90), 'X')
 
-			if context.scene.geoExportType != 'C':
+			if context.scene.geoExportType == 'Binary':
 				romfileOutput.close()
-				os.remove(bpy.path.abspath(tempROM))
+				if os.path.exists(bpy.path.abspath(tempROM)):
+					os.remove(bpy.path.abspath(tempROM))
 			self.report({'ERROR'}, traceback.format_exc())
 			return {'CANCELLED'} # must return a set
 
@@ -468,6 +479,14 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 				self.report({'INFO'}, 'Success! Geolayout at ' + \
 					context.scene.geoExportPath + ', DL at ' + \
 					context.scene.geoExportPathDL)
+			elif context.scene.geoExportType == 'Insertable Binary':
+				exportGeolayoutArmatureInsertableBinary(armatureObj, obj,
+					finalTransform, context.scene.f3d_type,
+					context.scene.isHWv1, 
+					bpy.path.abspath(bpy.context.scene.geoInsertableBinaryPath),
+					levelCamera)
+				self.report({'INFO'}, 'Success! Data at ' + \
+					context.scene.geoInsertableBinaryPath)
 			else:
 				tempROM = tempName(context.scene.outputRom)
 				checkExpanded(bpy.path.abspath(context.scene.exportRom))
@@ -519,7 +538,8 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 				armatureObj.select_set(True)
 				context.view_layer.objects.active = armatureObj
 
-				os.remove(bpy.path.abspath(context.scene.outputRom))
+				if os.path.exists(bpy.path.abspath(context.scene.outputRom)):
+					os.remove(bpy.path.abspath(context.scene.outputRom))
 				os.rename(bpy.path.abspath(tempROM), 
 					bpy.path.abspath(context.scene.outputRom))
 
@@ -545,9 +565,10 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 			applyRotation([armatureObj] + linkedArmatures, 
 				math.radians(-90), 'X')
 
-			if context.scene.geoExportType != 'C':
+			if context.scene.geoExportType == 'Binary':
 				romfileOutput.close()
-				os.remove(bpy.path.abspath(tempROM))
+				if os.path.exists(bpy.path.abspath(tempROM)):
+					os.remove(bpy.path.abspath(tempROM))
 			if armatureObj is not None:
 				armatureObj.select_set(True)
 				context.view_layer.objects.active = armatureObj
@@ -580,6 +601,8 @@ class SM64_ExportGeolayoutPanel(bpy.types.Panel):
 				col.prop(context.scene, 'geoSeparateTextureDef')
 			#col.prop(context.scene, 'geoExportPathDL')
 			#col.prop(context.scene, 'geoDefinePath')
+		elif context.scene.geoExportType == 'Insertable Binary':
+			col.prop(context.scene, 'geoInsertableBinaryPath')
 		else:
 			prop_split(col, context.scene, 'geoExportStart', 'Start Address')
 			prop_split(col, context.scene, 'geoExportEnd', 'End Address')
@@ -735,6 +758,14 @@ class SM64_ExportDL(bpy.types.Operator):
 				self.report({'INFO'}, 'Success! DL at ' + \
 					context.scene.DLExportPath + '.')
 				return {'FINISHED'} # must return a set
+			elif context.scene.DLExportType == 'Insertable Binary':
+				exportF3DtoInsertableBinary(
+					bpy.path.abspath(context.scene.DLInsertableBinaryPath),
+					finalTransform, obj, context.scene.f3d_type,
+					context.scene.isHWv1, bpy.context.scene.DLincludeChildren)
+				self.report({'INFO'}, 'Success! DL at ' + \
+					context.scene.DLInsertableBinaryPath + '.')
+				return {'FINISHED'} # must return a set
 			else:
 				checkExpanded(bpy.path.abspath(context.scene.exportRom))
 				tempROM = tempName(context.scene.outputRom)
@@ -775,7 +806,8 @@ class SM64_ExportDL(bpy.types.Operator):
 					romfileOutput.write(segPointerData)
 	
 				romfileOutput.close()
-				os.remove(bpy.path.abspath(context.scene.outputRom))
+				if os.path.exists(bpy.path.abspath(context.scene.outputRom)):
+					os.remove(bpy.path.abspath(context.scene.outputRom))
 				os.rename(bpy.path.abspath(tempROM), 
 					bpy.path.abspath(context.scene.outputRom))
 				
@@ -795,9 +827,10 @@ class SM64_ExportDL(bpy.types.Operator):
 		except:
 			if context.mode != 'OBJECT':
 				bpy.ops.object.mode_set(mode = 'OBJECT')
-			if context.scene.DLExportType != 'C':
+			if context.scene.DLExportType == 'Binary':
 				romfileOutput.close()
-				os.remove(bpy.path.abspath(tempROM))
+				if os.path.exists(bpy.path.abspath(tempROM)):
+					os.remove(bpy.path.abspath(tempROM))
 			self.report({'ERROR'}, traceback.format_exc())
 			return {'CANCELLED'} # must return a set
 
@@ -826,6 +859,8 @@ class SM64_ExportDLPanel(bpy.types.Panel):
 				col.prop(context.scene, 'DLTexDir')	
 				col.prop(context.scene, 'DLSeparateTextureDef')
 			#col.prop(context.scene, 'DLDefinePath')
+		elif context.scene.DLExportType == 'Insertable Binary':
+			col.prop(context.scene, 'DLInsertableBinaryPath')
 		else:
 			prop_split(col, context.scene, 'DLExportStart', 'Start Address')
 			prop_split(col, context.scene, 'DLExportEnd', 'End Address')
@@ -1045,6 +1080,13 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 			except:
 				self.report({'ERROR'}, traceback.format_exc())
 				return {'CANCELLED'} # must return a set
+		elif context.scene.animExportType == 'Insertable Binary':
+			exportAnimationInsertableBinary(
+				bpy.path.abspath(context.scene.animInsertableBinaryPath),
+				armatureObj, context.scene.isDMAExport, 
+				context.scene.loopAnimation)
+			self.report({'INFO'}, 'Success! Animation at ' +\
+				context.scene.animInsertableBinaryPath)
 		else:
 			try:
 				checkExpanded(bpy.path.abspath(context.scene.exportRom))
@@ -1090,7 +1132,8 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 					segmentedPtr = None
 						
 				romfileOutput.close()
-				os.remove(bpy.path.abspath(context.scene.outputRom))
+				if os.path.exists(bpy.path.abspath(context.scene.outputRom)):
+					os.remove(bpy.path.abspath(context.scene.outputRom))
 				os.rename(bpy.path.abspath(tempROM),
 					bpy.path.abspath(context.scene.outputRom))
 	
@@ -1104,7 +1147,8 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 						hex(addrRange[0]) + ', ' + hex(addrRange[1]) + ').')
 			except:
 				romfileOutput.close()
-				os.remove(bpy.path.abspath(tempROM))
+				if os.path.exists(bpy.path.abspath(tempROM)):
+					os.remove(bpy.path.abspath(tempROM))
 				self.report({'ERROR'}, traceback.format_exc())
 				return {'CANCELLED'} # must return a set
 
@@ -1130,6 +1174,9 @@ class SM64_ExportAnimPanel(bpy.types.Panel):
 		col.prop(context.scene, 'loopAnimation')
 		if context.scene.animExportType == 'C':
 			col.prop(context.scene, 'animExportPath')
+		elif context.scene.animExportType == 'Insertable Binary':
+			col.prop(context.scene, 'isDMAExport')
+			col.prop(context.scene, 'animInsertableBinaryPath')
 		else:
 			col.prop(context.scene, 'isDMAExport')
 			if context.scene.isDMAExport:
@@ -1177,21 +1224,27 @@ class SM64_ExportCollision(bpy.types.Operator):
 		T, R, S = obj.matrix_world.decompose()
 		objTransform = R.to_matrix().to_4x4() @ \
 			mathutils.Matrix.Diagonal(S).to_4x4()
-		#finalTransform = (blenderToSM64Rotation * \
-		#	(1/sm64ToBlenderScale)).to_4x4() @ objTransform
+		finalTransform = (blenderToSM64Rotation * \
+			(1/sm64ToBlenderScale)).to_4x4() @ objTransform
 		#finalTransform = mathutils.Matrix.Identity(4)
-		finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((
-			1/sm64ToBlenderScale, 1/sm64ToBlenderScale, 1/sm64ToBlenderScale
-		))).to_4x4()
+		#finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((
+		#	1/sm64ToBlenderScale, 1/sm64ToBlenderScale, 1/sm64ToBlenderScale
+		#))).to_4x4()
 		
 		try:
-			applyRotation([obj], math.radians(90), 'X')
+			#applyRotation([obj], math.radians(90), 'X')
 			if context.scene.colExportType == 'C':
 				exportCollisionC(obj, finalTransform,
 					bpy.path.abspath(context.scene.colExportPath), False,
 					context.scene.colIncludeChildren)
 				self.report({'INFO'}, 'Success! Collision at ' + \
 					context.scene.colExportPath)
+			elif context.scene.colExportType == 'Insertable Binary':
+				exportCollisionInsertableBinary(obj, finalTransform, 
+					bpy.path.abspath(context.scene.colInsertableBinaryPath), 
+					False, context.scene.colIncludeChildren)
+				self.report({'INFO'}, 'Success! Collision at ' + \
+					context.scene.colInsertableBinaryPath)
 			else:
 				tempROM = tempName(context.scene.outputRom)
 				checkExpanded(bpy.path.abspath(context.scene.exportRom))
@@ -1224,7 +1277,8 @@ class SM64_ExportCollision(bpy.types.Operator):
 
 				romfileOutput.close()
 
-				os.remove(bpy.path.abspath(context.scene.outputRom))
+				if os.path.exists(bpy.path.abspath(context.scene.outputRom)):
+					os.remove(bpy.path.abspath(context.scene.outputRom))
 				os.rename(bpy.path.abspath(tempROM), 
 					bpy.path.abspath(context.scene.outputRom))
 
@@ -1232,18 +1286,19 @@ class SM64_ExportCollision(bpy.types.Operator):
 					hex(addrRange[0]) + ', ' + hex(addrRange[1]) + \
 					') (Seg. ' + segPointer + ').')
 
-			applyRotation([obj], math.radians(-90), 'X')
+			#applyRotation([obj], math.radians(-90), 'X')
 			return {'FINISHED'} # must return a set
 
 		except:
 			if context.mode != 'OBJECT':
 				bpy.ops.object.mode_set(mode = 'OBJECT')
 
-			applyRotation([obj], math.radians(-90), 'X')
+			#applyRotation([obj], math.radians(-90), 'X')
 
-			if context.scene.colExportType != 'C':
+			if context.scene.colExportType == 'Binary':
 				romfileOutput.close()
-				os.remove(bpy.path.abspath(tempROM))
+				if os.path.exists(bpy.path.abspath(tempROM)):
+					os.remove(bpy.path.abspath(tempROM))
 			obj.select_set(True)
 			context.view_layer.objects.active = obj
 			self.report({'ERROR'}, traceback.format_exc())
@@ -1269,6 +1324,8 @@ class SM64_ExportCollisionPanel(bpy.types.Panel):
 		col.prop(context.scene, 'colIncludeChildren')
 		if context.scene.colExportType == 'C':
 			col.prop(context.scene, 'colExportPath')
+		elif context.scene.colExportType == 'Insertable Binary':
+			col.prop(context.scene, 'colInsertableBinaryPath')
 		else:
 			prop_split(col, context.scene, 'colStartAddr', 'Start Address')
 			prop_split(col, context.scene, 'colEndAddr', 'End Address')
@@ -1430,6 +1487,8 @@ def register():
 	
 	bpy.types.Scene.DLincludeChildren = bpy.props.BoolProperty(
 		name = 'Include Children')
+	bpy.types.Scene.DLInsertableBinaryPath = bpy.props.StringProperty(
+		name = 'Filepath', subtype = 'FILE_PATH')
 	
 	# Geolayouts
 	bpy.types.Scene.levelGeoImport = bpy.props.EnumProperty(items = level_enums,
@@ -1473,6 +1532,8 @@ def register():
 		name = 'Save Textures As PNGs')
 	bpy.types.Scene.geoSeparateTextureDef = bpy.props.BoolProperty(
 		name = 'Save texture.inc.c separately')
+	bpy.types.Scene.geoInsertableBinaryPath = bpy.props.StringProperty(
+		name = 'Filepath', subtype = 'FILE_PATH')
 
 	# Level
 	bpy.types.Scene.levelLevel = bpy.props.EnumProperty(items = level_enums, 
@@ -1504,6 +1565,8 @@ def register():
 		name = 'Directory', subtype = 'FILE_PATH')
 	bpy.types.Scene.animOverwriteDMAEntry = bpy.props.BoolProperty(
 		name = 'Overwrite DMA Entry')
+	bpy.types.Scene.animInsertableBinaryPath = bpy.props.StringProperty(
+		name = 'Filepath', subtype = 'FILE_PATH')
 
 	# Collision
 	bpy.types.Scene.colExportPath = bpy.props.StringProperty(
@@ -1522,6 +1585,8 @@ def register():
 		default = '11FFF00')
 	bpy.types.Scene.colIncludeChildren = bpy.props.BoolProperty(
 		name = 'Include child objects', default = True)
+	bpy.types.Scene.colInsertableBinaryPath = bpy.props.StringProperty(
+		name = 'Filepath', subtype = 'FILE_PATH')
 
 	# ROM
 	bpy.types.Scene.importRom = bpy.props.StringProperty(
@@ -1569,6 +1634,7 @@ def unregister():
 	del bpy.types.Scene.geoTexDir
 	del bpy.types.Scene.geoSaveTextures
 	del bpy.types.Scene.geoSeparateTextureDef
+	del bpy.types.Scene.geoInsertableBinaryPath
 
 	# Animation
 	del bpy.types.Scene.animStartImport
@@ -1588,6 +1654,7 @@ def unregister():
 	del bpy.types.Scene.animExportType
 	del bpy.types.Scene.animExportPath
 	del bpy.types.Scene.animOverwriteDMAEntry
+	del bpy.types.Scene.animInsertableBinaryPath
 
 	# Character
 	del bpy.types.Scene.characterIgnoreSwitch
@@ -1619,6 +1686,7 @@ def unregister():
 	del bpy.types.Scene.DLSaveTextures
 	del bpy.types.Scene.DLSeparateTextureDef
 	del bpy.types.Scene.DLincludeChildren
+	del bpy.types.Scene.DLInsertableBinaryPath
 
 	# Level
 	del bpy.types.Scene.levelLevel
@@ -1636,6 +1704,7 @@ def unregister():
 	del bpy.types.Scene.set_addr_0x2A
 	del bpy.types.Scene.colStartAddr
 	del bpy.types.Scene.colEndAddr
+	del bpy.types.Scene.colInsertableBinaryPath
 
 	# ROM
 	del bpy.types.Scene.importRom

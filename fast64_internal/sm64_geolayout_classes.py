@@ -20,6 +20,13 @@ class GeolayoutGraph:
 			raise ValueError("Must generate sorted geolayout list first " +\
 				'before calling this function.')
 
+	def get_ptr_addresses(self):
+		self.checkListSorted()
+		addresses = []
+		for geolayout in self.sortedList:
+			addresses.extend(geolayout.get_ptr_addresses())
+		return addresses
+
 	def size(self):
 		self.checkListSorted()
 		size = 0
@@ -125,6 +132,14 @@ class Geolayout:
 		for node in self.nodes:
 			size += node.size()
 		return size
+	
+	def get_ptr_addresses(self):
+		address = self.startAddress
+		addresses = []
+		for node in self.nodes:
+			address, ptrs = node.get_ptr_addresses(address)
+			addresses.extend(ptrs)
+		return addresses
 
 	def to_binary(self, segmentData):
 		endCmd = GEO_END if self.isStartGeo else GEO_RETURN
@@ -163,6 +178,23 @@ class TransformNode:
 		self.node = node
 		self.children = []
 		self.parent = None
+	
+	def get_ptr_addresses(self, address):
+		addresses = []
+		if self.node is not None:
+			if type(self.node) in DLNodes:
+				for offset in self.node.get_ptr_offsets():
+					addresses.append(address + offset)
+			else:
+				addresses = []
+			address += self.node.size()
+		if len(self.children) > 0:
+			address += 4
+			for node in self.children:
+				address, ptrs = node.get_ptr_addresses(address)
+				addresses.extend(ptrs)
+			address += 4
+		return address, addresses
 
 	def size(self):
 		size = self.node.size() if self.node is not None else 0
@@ -250,6 +282,9 @@ class JumpNode:
 	
 	def size(self):
 		return 8
+	
+	def get_ptr_offsets(self):
+		return [4]
 
 	def to_binary(self, segmentData):
 		if segmentData is not None:
@@ -377,6 +412,19 @@ class TranslateRotateNode:
 		self.fMesh = None
 		self.DLmicrocode = None
 	
+	def get_ptr_offsets(self):
+		if self.hasDL:
+			if self.fieldLayout == 0:
+				return [16]
+			elif self.fieldLayout == 1:
+				return [8]
+			elif self.fieldLayout == 2:
+				return [8]
+			elif self.fieldLayout == 3:
+				return [4]
+		else:
+			return []
+	
 	def size(self):
 		if self.fieldLayout == 0:
 			size = 16
@@ -468,6 +516,9 @@ class TranslateNode:
 		self.translate = translate
 		self.fMesh = None
 		self.DLmicrocode = None
+	
+	def get_ptr_offsets(self):
+		return [8] if self.hasDL else []
 
 	def size(self):
 		return 12 if self.hasDL else 8
@@ -503,6 +554,9 @@ class RotateNode:
 		self.rotate = rotate
 		self.fMesh = None
 		self.DLmicrocode = None
+	
+	def get_ptr_offsets(self):
+		return [8] if self.hasDL else []
 	
 	def size(self):
 		return 12 if self.hasDL else 8
@@ -540,6 +594,9 @@ class BillboardNode:
 		self.fMesh = None
 		self.DLmicrocode = None
 	
+	def get_ptr_offsets(self):
+		return [8] if self.hasDL else []
+	
 	def size(self):
 		return 12 if self.hasDL else 8
 
@@ -570,6 +627,9 @@ class DisplayListNode:
 		self.hasDL = True
 		self.fMesh = None
 		self.DLmicrocode = None
+	
+	def get_ptr_offsets(self):
+		return [4]
 	
 	def size(self):
 		return 8
@@ -620,6 +680,9 @@ class ScaleNode:
 		self.fMesh = None
 		self.DLmicrocode = None
 	
+	def get_ptr_offsets(self):
+		return [8] if self.hasDL else []
+	
 	def size(self):
 		return 12 if self.hasDL else 8
 	
@@ -666,6 +729,9 @@ class DisplayListWithOffsetNode:
 	
 	def size(self):
 		return 12
+	
+	def get_ptr_offsets(self):
+		return [8] if self.hasDL else []
 
 	def to_binary(self, segmentData):
 		command = bytearray([GEO_LOAD_DL_W_OFFSET, self.drawLayer])
@@ -888,4 +954,14 @@ nodeGroupClasses = [
 	FrustumNode,
 	ZBufferNode,
 	CameraNode
+]
+
+DLNodes = [
+	JumpNode,
+	TranslateRotateNode,
+	TranslateNode,
+	RotateNode,
+	ScaleNode,
+	DisplayListNode,
+	DisplayListWithOffsetNode
 ]

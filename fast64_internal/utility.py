@@ -6,6 +6,106 @@ from .sm64_geolayout_constants import *
 import random
 import string
 
+def selectMeshChildrenOnly(obj):
+	obj.select_set(True)
+	obj.original_name = obj.name
+	for child in obj.children:
+		if isinstance(child.data, bpy.types.Mesh):
+			selectMeshChildrenOnly(child)
+
+def cleanupDuplicatedObjects(selected_objects):
+	meshData = []
+	for selectedObj in selected_objects:
+		meshData.append(selectedObj.data)
+	for selectedObj in selected_objects:
+		bpy.data.objects.remove(selectedObj)
+	for mesh in meshData:
+		bpy.data.meshes.remove(mesh)
+
+def combineObjects(obj, includeChildren):
+	obj.original_name = obj.name
+
+	# Duplicate objects to apply scale / modifiers / linked data
+	bpy.ops.object.select_all(action = 'DESELECT')
+	if includeChildren:
+		selectMeshChildrenOnly(obj)
+	obj.select_set(True)
+	bpy.context.view_layer.objects.active = obj
+	bpy.ops.object.duplicate()
+	try:
+		# duplicate obj and apply modifiers / make single user
+		tempObj = bpy.context.view_layer.objects.active
+		allObjs = bpy.context.selected_objects
+		bpy.ops.object.make_single_user(obdata = True)
+		bpy.ops.object.transform_apply(location = False, 
+			rotation = False, scale = True, properties =  False)
+		for selectedObj in allObjs:
+			bpy.ops.object.select_all(action = 'DESELECT')
+			selectedObj.select_set(True)
+			for modifier in selectedObj.modifiers:
+				bpy.ops.object.modifier_apply(apply_as='DATA',
+					modifier=modifier.name)
+					
+		bpy.ops.object.select_all(action = 'DESELECT')
+
+		# Joining causes orphan data, so we remove it manually.
+		meshList = []
+		for selectedObj in allObjs:
+			if selectedObj is not tempObj:
+				selectedObj.select_set(True)
+				meshList.append(selectedObj.data)
+		tempObj.select_set(True)
+		bpy.context.view_layer.objects.active = tempObj
+		bpy.ops.object.join()
+
+	except Exception as e:
+		cleanupDuplicatedObjects(allObjs)
+		obj.select_set(True)
+		bpy.context.view_layer.objects.active = obj
+		raise Exception(str(e))
+
+	return tempObj, meshList
+
+def cleanupCombineObj(tempObj, meshList):
+	for mesh in meshList:
+		bpy.data.meshes.remove(mesh)
+	cleanupDuplicatedObjects([tempObj])
+	#obj.select_set(True)
+	#bpy.context.view_layer.objects.active = obj
+
+def writeInsertableFile(filepath, dataType, address_ptrs, startPtr, data):
+	address = 0
+	openfile = open(filepath, 'wb')
+
+	# 0-4 - Data Type
+	openfile.write(dataType.to_bytes(4, 'big'))
+	address += 4
+
+	# 4-8 - Data Size
+	openfile.seek(address)
+	openfile.write(len(data).to_bytes(4, 'big'))
+	address += 4
+
+	# 8-12 Start Address
+	openfile.seek(address)
+	openfile.write(startPtr.to_bytes(4, 'big'))
+	address += 4
+
+	# 12-16 - Number of pointer addresses
+	openfile.seek(address)
+	openfile.write(len(address_ptrs).to_bytes(4, 'big'))
+	address += 4
+
+	# 16-? - Pointer address list
+	for i in range(len(address_ptrs)):
+		openfile.seek(address)
+		openfile.write(address_ptrs[i].to_bytes(4, 'big'))
+		address += 4
+
+	openfile.seek(address)
+	openfile.write(data)	
+	openfile.close()
+
 def colorTo16bitRGBA(color):
 	r = int(round(color[0] * 31))
 	g = int(round(color[1] * 31))

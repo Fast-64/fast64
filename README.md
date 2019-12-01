@@ -48,6 +48,29 @@ The RDP default settings can be found in the properties editor under the world t
 ### C Exporting
 When exporting data to C, a folder will be created (if it does not yet exist) and will be named after the object/armature it is based off of. The C files will be saved within this new folder. Any previous C files of the same name will be overwritten.
 
+### Insertable Binary Exporting
+Insertable Binary exporting will generate a binary file, with a header containing metadata about pointer locations. It is formatted as such:
+
+    0x00-0x04 : Data Type
+        0 = Display List
+        1 = Geolayout
+        2 = Animation
+        3 = Collision
+
+    0x04-0x08 : Data Size (size in bytes of Data Section)
+    0x08-0x0C : Start Address (start address of data, relative to start of Data Section)
+    0x0C-0x10 : Number of Pointer Addresses (number of pointer addresses to be resolved)
+    0x10-?    : List of 4-byte pointer addresses. Each address relative to start of Data Section.
+    ?-end     : Data Section (actual binary data)
+
+To resolve pointer addresses, for each pointer address,
+
+    # Get current offset
+    current_offset = data[start_address + pointer_address]
+
+    # Convert offset to segmented address
+    data[start_address + pointer_address] = encode_segmented_address(export_address + current_offset)
+
 ### Decomp vs Homebrew Compatibility
 There may occur cases where code is formatted differently based on the code use case. In the tools panel under the SM64 File Settings subheader, you can toggle decomp compatibility.
 

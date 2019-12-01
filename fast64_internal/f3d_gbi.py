@@ -1426,6 +1426,16 @@ class GfxList:
 			size += command.size(f3d)
 		return size
 	
+	def get_ptr_addresses(self, f3d):
+		ptrs = []
+		address = self.startAddress
+		for command in self.commands:
+			if type(command) in F3DClassesWithPointers:
+				for offset in command.get_ptr_offsets(f3d):
+					ptrs.append(address + offset)
+			address += command.size(f3d)
+		return ptrs
+	
 	def to_binary(self, f3d, segments):
 		data = bytearray(0)
 		for command in self.commands:
@@ -1468,6 +1478,14 @@ class FModel:
 		# F3D library
 		self.f3d = F3D(f3dType, isHWv1)
 	
+	def get_ptr_addresses(self, f3d):
+		addresses = []
+		for name, meshGroup in self.meshGroups.items():
+			addresses.extend(meshGroup.get_ptr_addresses(f3d))
+		for material, (fMaterial, texDimensions) in self.materials.items():
+			addresses.extend(fMaterial.get_ptr_addresses(f3d))
+		return addresses
+	
 	def set_addr(self, startAddress):
 		addrRange = (startAddress, startAddress)
 		startAddrSet = False
@@ -1488,8 +1506,8 @@ class FModel:
 			if not startAddrSet:
 				startAddrSet = True
 				startAddress = addrRange[0]
-		for name, (material, texDimensions) in self.materials.items():
-			addrRange = material.set_addr(addrRange[1], self.f3d)
+		for material, (fMaterial, texDimensions) in self.materials.items():
+			addrRange = fMaterial.set_addr(addrRange[1], self.f3d)
 			if not startAddrSet:
 				startAddrSet = True
 				startAddress = addrRange[0]
@@ -1500,8 +1518,8 @@ class FModel:
 			light.save_binary(romfile)
 		for info, texture in self.textures.items():
 			texture.save_binary(romfile)
-		for name, (material, texDimensions) in self.materials.items():
-			material.save_binary(romfile, self.f3d, segments)
+		for material, (fMaterial, texDimensions) in self.materials.items():
+			fMaterial.save_binary(romfile, self.f3d, segments)
 		for name, meshGroup in self.meshGroups.items():
 			meshGroup.save_binary(romfile, self.f3d, segments)
 	
@@ -1511,8 +1529,8 @@ class FModel:
 			data += light.to_c() + '\n'
 		for info, texture in self.textures.items():
 			data += texture.to_c() + '\n'
-		for name, (material, texDimensions) in self.materials.items():
-			data += material.to_c(static) + '\n'
+		for material, (fMaterial, texDimensions) in self.materials.items():
+			data += fMaterial.to_c(static) + '\n'
 		for name, meshGroup in self.meshGroups.items():
 			data += meshGroup.to_c(static) + '\n'
 		return data
@@ -1556,8 +1574,8 @@ class FModel:
 						raise Exception(str(e))
 					image.filepath = oldpath
 
-		for name, (material, texDimensions) in self.materials.items():
-			data += material.to_c(static) + '\n'
+		for material, (fMaterial, texDimensions) in self.materials.items():
+			data += fMaterial.to_c(static) + '\n'
 		for name, meshGroup in self.meshGroups.items():
 			data += meshGroup.to_c(static) + '\n'
 		
@@ -1582,8 +1600,8 @@ class FModel:
 	
 	def to_c_def(self):
 		data = ''
-		for name, (material, texDimensions) in self.materials.items():
-			data += material.to_c_def()
+		for material, (fMaterial, texDimensions) in self.materials.items():
+			data += fMaterial.to_c_def()
 		for name, meshGroup in self.meshGroups.items():
 			data += meshGroup.to_c_def()
 		return data + '\n'
@@ -1595,6 +1613,14 @@ class FMeshGroup:
 		self.mesh = mesh
 		# FMesh
 		self.skinnedMesh = skinnedMesh
+	
+	def get_ptr_addresses(self, f3d):
+		addresses = []
+		if self.mesh is not None:
+			addresses.extend(self.mesh.get_ptr_addresses(f3d))
+		if self.skinnedMesh is not None:
+			addresses.extend(self.skinnedMesh.get_ptr_addresses(f3d))
+		return addresses
 	
 	def set_addr(self, startAddress, f3d):
 		addrRange = (startAddress, startAddress)
@@ -1640,6 +1666,14 @@ class FMesh:
 		self.vertexList = VtxList(name + '_vtx')
 		# dict of (override Material, specified Material to override) : GfxList
 		self.drawMatOverrides = {}
+	
+	def get_ptr_addresses(self, f3d):
+		addresses = self.draw.get_ptr_addresses(f3d)
+		for triangleList in self.triangleLists:
+			addresses.extend(triangleList.get_ptr_addresses(f3d))
+		for materialTuple, drawOverride in self.drawMatOverrides.items():
+			addresses.extend(drawOverride.get_ptr_addresses(f3d))
+		return addresses
 
 	def tri_list_new(self):
 		triList = GfxList(self.name + '_tri_' + str(len(self.triangleLists)))
@@ -1685,6 +1719,12 @@ class FMaterial:
 	def __init__(self, name):
 		self.material = GfxList('mat_' + name)
 		self.revert = GfxList('mat_revert_' + name)
+
+	def get_ptr_addresses(self, f3d):
+		addresses = self.material.get_ptr_addresses(f3d)
+		if self.revert is not None:
+			addresses.extend(self.revert.get_ptr_addresses(f3d))
+		return addresses
 	
 	def set_addr(self, startAddress, f3d):
 		addrRange = self.material.set_addr(startAddress, f3d)
@@ -1986,6 +2026,9 @@ class SPVertex:
 		self.count = count
 		self.index = index
 
+	def get_ptr_offsets(self, f3d):
+		return [4]
+
 	def to_binary(self, f3d, segments):
 		vertPtr = int.from_bytes(encodeSegmentedAddr(
 			self.vertList.startAddress + self.offset * VTX_SIZE, 
@@ -2023,6 +2066,9 @@ class SPViewport:
 	# v = seg pointer, n = count, v0  = ?
 	def __init__(self, viewport):
 		self.viewport = viewport
+	
+	def get_ptr_offsets(self, f3d):
+		return [4]
 
 	def to_binary(self, f3d, segments):
 		vpPtr = int.from_bytes(encodeSegmentedAddr(
@@ -2046,6 +2092,9 @@ class SPViewport:
 class SPDisplayList:
 	def __init__(self, displayList):
 		self.displayList = displayList
+	
+	def get_ptr_offsets(self, f3d):
+		return [4]
 
 	def to_binary(self, f3d, segments):
 		dlPtr = int.from_bytes(encodeSegmentedAddr(
@@ -2067,6 +2116,9 @@ class SPDisplayList:
 class SPBranchList:
 	def __init__(self, displayList):
 		self.displayList = displayList
+	
+	def get_ptr_offsets(self, f3d):
+		return [4]
 
 	def to_binary(self, f3d, segments):
 		dlPtr = int.from_bytes(encodeSegmentedAddr(
@@ -2413,6 +2465,9 @@ class SPLight:
 		self.light = light # start address of light
 		self.n = n
 	
+	def get_ptr_offsets(self, f3d):
+		return [4]
+	
 	def to_binary(self, f3d, segments):
 		lightPtr = int.from_bytes(encodeSegmentedAddr(
 			self.light, segments), 'big')
@@ -2462,6 +2517,17 @@ class SPSetLights:
 	def __init__(self, lights):
 		self.lights = lights
 	
+	def get_ptr_offsets(self, f3d):
+		offsets = []
+		if len(self.lights.l) == 0:
+			offsets = [12, 20]
+		else:
+			lightNum = len(self.lights.l)
+			for i in range(lightNum):
+				offsets.append((i+1) * 8 + 4)
+			offsets.append((lightNum + 1) * 8 + 4)
+		return offsets
+	
 	def to_binary(self, f3d, segments):
 		data = SPNumLights('NUMLIGHTS_' + str(len(self.lights.l))).to_binary(
 			f3d, segments)
@@ -2510,6 +2576,9 @@ def gsSPLookAtY(l, f3d):
 class SPLookAt:
 	def __init__(self, la):
 		self.la = la
+	
+	def get_ptr_offsets(self, f3d):
+		return [4]
 	
 	def to_binary(self, f3d, segments):
 		light0Ptr = int.from_bytes(encodeSegmentedAddr(
@@ -3255,6 +3324,9 @@ class DPSetTextureImage:
 		self.width = width
 		self.image = img
 	
+	def get_ptr_offsets(self, f3d):
+		return [4]
+	
 	def to_binary(self, f3d, segments):
 		fmt = f3d.G_IM_FMT_VARS[self.fmt]
 		siz = f3d.G_IM_SIZ_VARS[self.siz]
@@ -3710,6 +3782,9 @@ class DPLoadTextureBlock:
 		self.maskt = maskt
 		self.shifts = shifts
 		self.shiftt = shiftt
+	
+	def get_ptr_offsets(self, f3d):
+		return [4]
 		
 	def to_binary(self, f3d, segments):
 		return \
@@ -3774,6 +3849,9 @@ class DPLoadTextureBlockYuv:
 		self.maskt = maskt
 		self.shifts = shifts
 		self.shiftt = shiftt
+	
+	def get_ptr_offsets(self, f3d):
+		return [4]
 		
 	def to_binary(self, f3d, segments):
 		return \
@@ -3843,6 +3921,9 @@ class _DPLoadTextureBlock:
 		self.maskt = maskt
 		self.shifts = shifts
 		self.shiftt = shiftt
+
+	def get_ptr_offsets(self, f3d):
+		return [4]
 		
 	def to_binary(self, f3d, segments):
 		return \
@@ -3911,6 +3992,9 @@ class DPLoadTextureBlock_4b:
 		self.maskt = maskt
 		self.shifts = shifts
 		self.shiftt = shiftt
+	
+	def get_ptr_offsets(self, f3d):
+		return [4]
 		
 	def to_binary(self, f3d, segments):
 		return \
@@ -3980,6 +4064,9 @@ class DPLoadTextureTile:
 		self.maskt = maskt
 		self.shifts = shifts
 		self.shiftt = shiftt
+	
+	def get_ptr_offsets(self, f3d):
+		return [4]
 		
 	def to_binary(self, f3d, segments):
 		return \
@@ -4058,6 +4145,9 @@ class DPLoadTextureTile_4b:
 		self.maskt = maskt
 		self.shifts = shifts
 		self.shiftt = shiftt
+	
+	def get_ptr_offsets(self, f3d):
+		return [4]
 		
 	def to_binary(self, f3d, segments):
 		return \
@@ -4119,6 +4209,9 @@ class DPLoadTLUT_pal16:
 	def __init__(self, pal, dram):
 		self.pal = pal
 		self.dram = dram # pallete object
+	
+	def get_ptr_offsets(self, f3d):
+		return [4]
 		
 	def to_binary(self, f3d, segments):
 		if not f3d._HW_VERSION_1:
@@ -4157,6 +4250,9 @@ class DPLoadTLUT_pal16:
 class DPLoadTLUT_pal256:
 	def __init__(self, dram):
 		self.dram = dram # pallete object
+	
+	def get_ptr_offsets(self, f3d):
+		return [4]
 		
 	def to_binary(self, f3d, segments):
 		if not f3d._HW_VERSION_1:
@@ -4195,6 +4291,9 @@ class DPLoadTLUT:
 		self.count = count
 		self.tmemaddr = tmemaddr
 		self.dram = dram # pallete object
+	
+	def get_ptr_offsets(self, f3d):
+		return [4]
 		
 	def to_binary(self, f3d, segments):
 		if not f3d._HW_VERSION_1:
@@ -4398,3 +4497,23 @@ class DPLoadSync:
 	
 	def size(self, f3d):
 		return GFX_SIZE
+
+F3DClassesWithPointers = [
+	SPVertex,
+	SPDisplayList,
+	SPViewport,
+	SPBranchList,
+	SPLight,
+	SPSetLights,
+	SPLookAt,
+	DPSetTextureImage,
+	DPLoadTextureBlock,
+	DPLoadTextureBlockYuv,
+	_DPLoadTextureBlock,
+	DPLoadTextureBlock_4b,
+	DPLoadTextureTile,
+	DPLoadTextureTile_4b,
+	DPLoadTLUT_pal16,
+	DPLoadTLUT_pal256,
+	DPLoadTLUT,
+]

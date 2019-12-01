@@ -6,6 +6,7 @@ from .utility import *
 from .sm64_constants import *
 from math import pi
 import os
+import copy
 
 sm64_anim_types = {'ROTATE', 'TRANSLATE'}
 
@@ -15,6 +16,9 @@ class SM64_Animation:
 		self.header = None
 		self.indices = SM64_ShortArray(name + '_indices', False)
 		self.values = SM64_ShortArray(name + '_values', False)
+	
+	def get_ptr_offsets(self, isDMA):
+		return [12, 16] if not isDMA else []
 
 	def to_binary(self, segmentData, isDMA, startAddress):
 		return self.header.to_binary(segmentData, isDMA, startAddress) + \
@@ -175,6 +179,22 @@ def exportAnimationBinary(romfile, exportRange, armatureObj, DMAAddresses,
 			romfile.seek(DMAAddresses['entry'] + 4)
 			romfile.write(len(animData).to_bytes(4, byteorder='big'))
 		return addrRange, None
+
+def exportAnimationInsertableBinary(filepath, armatureObj, isDMA, loopAnim):
+	startAddress = get64bitAlignedAddr(0)
+	sm64_anim = exportAnimationCommon(armatureObj, loopAnim)
+	segmentData = copy.copy(bank0Segment)
+
+	animData = sm64_anim.to_binary(segmentData, isDMA, startAddress)
+	
+	if startAddress + len(animData) > 0xFFFFFF:
+		raise ValueError('Size too big: Data ends at ' + \
+			hex(startAddress + len(animData)) +\
+			', which is larger than the specified range.')
+	
+	writeInsertableFile(filepath, insertableBinaryTypes['Animation'],
+		sm64_anim.get_ptr_offsets(isDMA), startAddress, animData)
+	
 
 def exportAnimationCommon(armatureObj, loopAnim):
 	if armatureObj.animation_data is None or \

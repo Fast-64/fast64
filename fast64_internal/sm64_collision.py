@@ -3,6 +3,7 @@ from .sm64_constants import *
 from bpy.utils import register_class, unregister_class
 import bpy, bmesh
 import os
+from io import BytesIO
 
 class CollisionVertex:
 	def __init__(self, position):
@@ -270,6 +271,25 @@ def exportCollisionC(obj, transformMatrix, dirPath, addEntities,
 	fileObj.write(collision.to_c())
 	fileObj.close()
 
+def exportCollisionInsertableBinary(obj, transformMatrix, filepath, 
+	addEntities, includeChildren):
+	collision = exportCollisionCommon(obj, transformMatrix, addEntities,
+		includeChildren)
+	start, end = collision.set_addr(0)
+	if end > 0xFFFFFF:
+		raise ValueError('Size too big: Data ends at ' + hex(end) +\
+			', which is larger than the specified range.')
+	
+	bytesIO = BytesIO()
+	collision.save_binary(bytesIO)
+	data = bytesIO.getvalue()[start:]
+	bytesIO.close()
+
+	writeInsertableFile(filepath, insertableBinaryTypes['Collision'], 
+		[], collision.startAddress, data)
+
+	return data
+
 def exportCollisionCommon(obj, transformMatrix, addEntities, includeChildren):
 	bpy.ops.object.select_all(action = 'DESELECT')
 	obj.select_set(True)
@@ -311,28 +331,29 @@ def exportCollisionCommon(obj, transformMatrix, addEntities, includeChildren):
 	return collision
 
 def addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix):
-	if len(obj.data.materials) == 0:
+	tempObj, meshList = combineObjects(obj, includeChildren)
+	if len(tempObj.data.materials) == 0:
 		raise ValueError(obj.name + " must have a material associated with it.")
-
-	obj.data.calc_loop_triangles()
-
-	# dict of collisionType : faces
-	for face in obj.data.loop_triangles:
-		material = obj.data.materials[face.material_index]
-		colType = material.collision_type if material.collision_all_options else\
-			material.collision_type_simple
-		if colType not in collisionDict:
-			collisionDict[colType] = []
-		collisionDict[colType].append((
-			transformMatrix @ obj.data.vertices[face.vertices[0]].co,
-			transformMatrix @ obj.data.vertices[face.vertices[1]].co,
-			transformMatrix @ obj.data.vertices[face.vertices[2]].co))
-	
-	if includeChildren:
-		for child in obj.children:
-			if isinstance(child.data, bpy.types.Mesh):
-				addCollisionTriangles(child, collisionDict, includeChildren,
-					transformMatrix @ child.matrix_local)
+	try:
+		tempObj.data.calc_loop_triangles()
+		for face in tempObj.data.loop_triangles:
+			material = tempObj.data.materials[face.material_index]
+			colType = material.collision_type if material.collision_all_options\
+				else material.collision_type_simple
+			if colType not in collisionDict:
+				collisionDict[colType] = []
+			collisionDict[colType].append((
+				transformMatrix @ tempObj.data.vertices[face.vertices[0]].co,
+				transformMatrix @ tempObj.data.vertices[face.vertices[1]].co,
+				transformMatrix @ tempObj.data.vertices[face.vertices[2]].co))
+		cleanupCombineObj(tempObj, meshList)
+		obj.select_set(True)
+		bpy.context.view_layer.objects.active = obj
+	except Exception as e:
+		cleanupCombineObj(tempObj, meshList)
+		obj.select_set(True)
+		bpy.context.view_layer.objects.active = obj
+		raise Exception(str(e))
 
 def roundPosition(position):
 	return (int(round(position[0])),
