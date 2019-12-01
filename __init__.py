@@ -169,6 +169,40 @@ class N64_AddF3dMat(bpy.types.Operator):
 		self.report({'INFO'}, 'Created F3D material.')
 		return {'FINISHED'} # must return a set
 
+class SM64_AddrConv(bpy.types.Operator):
+	# set bl_ properties
+	bl_idname = 'object.addr_conv'
+	bl_label = "Convert Address"
+	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
+
+	segToVirt : bpy.props.BoolProperty()
+
+	def execute(self, context):
+		address = int(context.scene.convertibleAddr, 16)
+		try:
+			importRom = context.scene.importRom
+			romfileSrc = open(bpy.path.abspath(importRom), 'rb')
+			checkExpanded(bpy.path.abspath(importRom))
+			levelParsed = parseLevelAtPointer(romfileSrc, 
+				level_pointers[context.scene.levelConvert])
+			segmentData = levelParsed.segmentData
+			if self.segToVirt:
+				ptr = decodeSegmentedAddr(
+					address.to_bytes(4, 'big'), segmentData)
+				self.report({'INFO'}, 
+					'Virtual pointer is 0x' + format(ptr, '08X'))
+			else:
+				ptr = int.from_bytes(
+					encodeSegmentedAddr(address, segmentData), 'big')
+				self.report({'INFO'}, 
+					'Segmented pointer is 0x' + format(ptr, '08X'))
+			romfileSrc.close()
+			return {'FINISHED'}
+		except:
+			romfileSrc.close()
+			self.report({'ERROR'}, traceback.format_exc())
+			return {'CANCELLED'} # must return a set
+
 # See SM64GeoLayoutPtrsByLevels.txt by VLTone
 class SM64_ImportGeolayout(bpy.types.Operator):
 	# set bl_ properties
@@ -1013,18 +1047,28 @@ class SM64_ImportAnimMario(bpy.types.Operator):
 		checkExpanded(bpy.path.abspath(context.scene.importRom))
 		romfileSrc = open(bpy.path.abspath(context.scene.importRom), 'rb')
 		try:
-			# Note actual level doesn't matter for Mario, since he is in all of them
-			#levelParsed = parseLevelAtPointer(romfileSrc, level_pointers['CC'])
-			#segmentData = levelParsed.segmentData
+			levelParsed = parseLevelAtPointer(romfileSrc, 
+				level_pointers[context.scene.levelAnimImport])
+			segmentData = levelParsed.segmentData
+
+			animStart = int(context.scene.animStartImport, 16)
+			if context.scene.animIsSegPtr:
+				animStart = decodeSegmentedAddr(
+					animStart.to_bytes(4, 'big'), segmentData)
+
+			if context.scene.animIsAnimList:
+				romfileSrc.seek(animStart + 4 * context.scene.animListIndex)
+				actualPtr = romfileSrc.read(4)
+				animStart = decodeSegmentedAddr(actualPtr, segmentData)
+
 			if len(context.selected_objects) == 0:
 				raise ValueError("Armature not selected.")
 			armatureObj = context.active_object
 			if type(armatureObj.data) is not bpy.types.Armature:
 				raise ValueError("Armature not selected.")
-			levelParsed = parseLevelAtPointer(romfileSrc, level_pointers	[context.scene.levelAnimImport])
-			segmentData = levelParsed.segmentData
+			
 			importAnimationToBlender(romfileSrc, 
-				int(context.scene.animStartImport, 16), armatureObj, 
+				animStart, armatureObj, 
 				segmentData, context.scene.isDMAImport)
 			romfileSrc.close()
 			self.report({'INFO'}, 'Success!')
@@ -1051,7 +1095,14 @@ class SM64_ImportAnimPanel(bpy.types.Panel):
 		col = self.layout.column()
 		propsAnimImport = col.operator(SM64_ImportAnimMario.bl_idname)
 		col.prop(context.scene, 'isDMAImport')
+		if not context.scene.isDMAImport:
+			col.prop(context.scene, 'animIsAnimList')
+			if context.scene.animIsAnimList:
+				prop_split(col, context.scene, 'animListIndex', 
+					'Anim List Index')
+
 		prop_split(col, context.scene, 'animStartImport', 'Start Address')
+		col.prop(context.scene, 'animIsSegPtr')
 		col.prop(context.scene, 'levelAnimImport')
 
 		for i in range(panelSeparatorSize):
@@ -1375,14 +1426,39 @@ class SM64_FileSettingsPanel(bpy.types.Panel):
 		col.prop(context.scene, 'extendBank4')
 		col.prop(context.scene, 'decomp_compatible')
 
+class SM64_AddressConvertPanel(bpy.types.Panel):
+	bl_idname = "SM64_PT_addr_conv"
+	bl_label = "SM64 Address Converter"
+	bl_space_type = 'VIEW_3D'
+	bl_region_type = 'UI'
+	bl_category = 'Fast64'
+
+	@classmethod
+	def poll(cls, context):
+		return True
+
+	# called every frame
+	def draw(self, context):
+		col = self.layout.column()
+		segToVirtOp = col.operator(SM64_AddrConv.bl_idname, 
+			text = "Convert Segmented To Virtual")
+		segToVirtOp.segToVirt = True
+		virtToSegOp = col.operator(SM64_AddrConv.bl_idname, 
+			text = "Convert Virtual To Segmented")
+		virtToSegOp.segToVirt = False
+		prop_split(col, context.scene, 'convertibleAddr', 'Address')
+		col.prop(context.scene, 'levelConvert')
+
 classes = (
 	ArmatureApplyWithMesh,
 	AddBoneGroups,
 	CreateMetarig,
 	N64_AddF3dMat,
+	SM64_AddrConv,
 
 	F3D_GlobalSettingsPanel,
 	SM64_FileSettingsPanel,
+	SM64_AddressConvertPanel,
 	#SM64_ImportCharacterPanel,
 	#SM64_ExportCharacterPanel,
 	SM64_ImportGeolayoutPanel,
@@ -1567,6 +1643,13 @@ def register():
 		name = 'Overwrite DMA Entry')
 	bpy.types.Scene.animInsertableBinaryPath = bpy.props.StringProperty(
 		name = 'Filepath', subtype = 'FILE_PATH')
+	bpy.types.Scene.animIsSegPtr = bpy.props.BoolProperty(
+		name = 'Is Segmented Pointer', default = False)
+	bpy.types.Scene.animIsAnimList = bpy.props.BoolProperty(
+		name = 'Is Anim List', default = True)
+	bpy.types.Scene.animListIndex = bpy.props.IntProperty(
+		name = 'Anim List Index', min = 0)
+	
 
 	# Collision
 	bpy.types.Scene.colExportPath = bpy.props.StringProperty(
@@ -1602,6 +1685,10 @@ def register():
 			hex(defaultExtendSegment4[1]) + ') and copies data from old bank')
 	bpy.types.Scene.decomp_compatible = bpy.props.BoolProperty(
 		name = 'Decomp Compatibility', default = True)
+	bpy.types.Scene.convertibleAddr = bpy.props.StringProperty(
+		name = 'Address')
+	bpy.types.Scene.levelConvert = bpy.props.EnumProperty(
+		items = level_enums, name = 'Level', default = 'IC')
 
 	bpy.types.Scene.characterIgnoreSwitch = \
 		bpy.props.BoolProperty(name = 'Ignore Switch Nodes', default = True)
@@ -1655,6 +1742,9 @@ def unregister():
 	del bpy.types.Scene.animExportPath
 	del bpy.types.Scene.animOverwriteDMAEntry
 	del bpy.types.Scene.animInsertableBinaryPath
+	del bpy.types.Scene.animIsSegPtr
+	del bpy.types.Scene.animIsAnimList
+	del bpy.types.Scene.animListIndex
 
 	# Character
 	del bpy.types.Scene.characterIgnoreSwitch
@@ -1711,6 +1801,8 @@ def unregister():
 	del bpy.types.Scene.exportRom
 	del bpy.types.Scene.outputRom
 	del bpy.types.Scene.extendBank4
+	del bpy.types.Scene.convertibleAddr
+	del bpy.types.Scene.levelConvert
 
 	mat_unregister()
 	bone_unregister()

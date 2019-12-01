@@ -101,16 +101,43 @@ Alternatively, for simple static geolayouts you can export object hierarchies. G
 ### Exporting Geolayouts and Skinned Meshes
 The N64 supports binary skinning, meaning each vertex will be influenced by one bone only. When skinning an exported geolayout, do NOT use automatic skinning, as this results in a smooth weight falloff. Instead, when weight painting set the weight to either 1 or 0, and set the brush Falloff to square. Skinning can only occur between an immediate parent and a child deform bone, not between siblings / across ancestors.
 
+### Importing/Exporting SM64 Geolayouts
+Download these documents:
+
+[SM64MainLevelScripts.txt](http://qubedstudios.rustedlogic.net/SM64MainLevelScripts.txt)
+
+[SM64GeoLayoutPtrsByLevels.txt](http://qubedstudios.rustedlogic.net/SM64GeoLayoutPtrsByLevels.txt)
+
+For importing/exporting geolayouts:
+- In SM64GeoLayoutPtrsByLevels.txt, search the name of the model.
+    - There you can get the modelID (Obj) and geolayout start (ROM Address start + offset)
+    - Note that these are decimal values, and must be converted to hex when used as inputs for fast64.
+- In SM64MainLevelScripts, search '22 08 00 MM' where MM = modelID.
+    - There may be multiple instances, in which case you must use the offset field from before and check if it matches the last 3 bytes of the line.
+    - There you can get the level command.
+
+Plug these values into the SM64 Geolayout Exporter/Importer panels.
+
 ### Replacing Existing SM64 Geolayout Geometry
 SM64 geolayouts are often in strange rest poses, which makes it hard to modify their geometry. It often helps to import an animation belonging to that geolayout to see what the idle pose of a geolayout should be. Once you know, you can rotate the bones of the armature in pose mode to a usable position and then use the 'Apply as Rest Pose' operator under the SM64 Armature Tools header. Skin your new mesh to that armature, then rotate the bones back to the original position and use 'Apply as Rest Pose' again. You can now export the geolayout to SM64 and it will be able to use existing animations.
 
-### Importing An Animation To Blender
-To import an animation to blender, select an armature for the animation to be exported to, and press 'Import animation'. Note that the armature's root 0x13 (i.e. regular) bone must be named 'root'. Animations can be found by looking at behaviour scripts where 27 and 28 commands are.
+### Importing/Exporting SM64 Animations (Not Mario)
+For importing/exporting animations:
+- Download Quad64, open the desired level, and go to Misc -> Script Dumps.
+- Go to the objects header, find the object you want, and view the Behaviour Script tab.
+- For most models with animation, you can will see a 27 command, and optionally a 28 command.
+- The last 4 bytes of the 27 command will be the animation list pointer.
+    - Make sure 'Is DMA Animation' is unchecked, 'Is Anim List' is checked, and 'Is Segmented Pointer' is checked. 
+    - Set the animation importer start address as those 4 bytes.
+    - If a 28 command exists, then the second byte will be the anim list index.
+    - Otherwise, the anim list index is usually 0.
 
-### Exporting Mario Animations
+Select an armature for the animation to be exported to, and press 'Import animation'. Note that the armature's root 0x13 (i.e. regular) bone must be named 'root'.
+
+### Importing/Exporting Mario Animations
 Mario animations use a DMA table, which contains 8 byte entries of (offset from table start, animation size). Documentation about this table is here:
 https://dudaw.webs.com/sm64docs/sm64_marios_animation_table.txt.
-Basically, Mario's DMA table starts at 0x4EC000. There is an 8 byte header, and then the animation entries afterward. Thus the 'climb up ledge' DMA entry is at 0x4EC008. The first 8 bytes at that address indicate the offset from 0x4EC000 at which the actual animation exists. Using this table you can find animations you want to overwrite.
+Basically, Mario's DMA table starts at 0x4EC000. There is an 8 byte header, and then the animation entries afterward. Thus the 'climb up ledge' DMA entry is at 0x4EC008. The first 8 bytes at that address indicate the offset from 0x4EC000 at which the actual animation exists. Thus the 'climb up ledge' animation address is at 0x4EC690. Using this table you can find animations you want to overwrite. Make sure the 'Is DMA Animation' option is checked when importing/exporting.
 
 ### Animating Existing Geolayouts
 Often times it is hard to rig an existing SM64 geolayout, as there are many intermediate non-deform bones and bones don't point to their children. To make this easier you can use the 'Create Animatable Metarig' operator in the SM64 Armature Tools header. This will generate a metarig which can be used with IK. The metarig bones will be placed on armature layers 3 and 4.
