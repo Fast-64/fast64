@@ -109,12 +109,13 @@ Download these documents:
 [SM64GeoLayoutPtrsByLevels.txt](http://qubedstudios.rustedlogic.net/SM64GeoLayoutPtrsByLevels.txt)
 
 For importing/exporting geolayouts:
-- In SM64GeoLayoutPtrsByLevels.txt, search the name of the model.
-    - There you can get the modelID (Obj) and geolayout start (ROM Address start + offset)
-    - Note that these are decimal values, and must be converted to hex when used as inputs for fast64.
-- In SM64MainLevelScripts, search '22 08 00 MM' where MM = modelID.
-    - There may be multiple instances, in which case you must use the offset field from before and check if it matches the last 3 bytes of the line.
-    - There you can get the level command.
+
+-   In SM64GeoLayoutPtrsByLevels.txt, search the name of the model.
+    -   There you can get the modelID (Obj) and geolayout start (ROM Address start + offset)
+    -   Note that these are decimal values, and must be converted to hex when used as inputs for fast64.
+-   In SM64MainLevelScripts, search '22 08 00 MM' where MM = modelID.
+    -   There may be multiple instances, in which case you must use the offset field from before and check if it matches the last 3 bytes of the line.
+    -   There you can get the level command.
 
 Plug these values into the SM64 Geolayout Exporter/Importer panels.
 
@@ -123,14 +124,15 @@ SM64 geolayouts are often in strange rest poses, which makes it hard to modify t
 
 ### Importing/Exporting SM64 Animations (Not Mario)
 For importing/exporting animations:
-- Download Quad64, open the desired level, and go to Misc -> Script Dumps.
-- Go to the objects header, find the object you want, and view the Behaviour Script tab.
-- For most models with animation, you can will see a 27 command, and optionally a 28 command.
-- The last 4 bytes of the 27 command will be the animation list pointer.
-    - Make sure 'Is DMA Animation' is unchecked, 'Is Anim List' is checked, and 'Is Segmented Pointer' is checked. 
-    - Set the animation importer start address as those 4 bytes.
-    - If a 28 command exists, then the second byte will be the anim list index.
-    - Otherwise, the anim list index is usually 0.
+
+-   Download Quad64, open the desired level, and go to Misc -> Script Dumps.
+-   Go to the objects header, find the object you want, and view the Behaviour Script tab.
+-   For most models with animation, you can will see a 27 command, and optionally a 28 command.
+-   The last 4 bytes of the 27 command will be the animation list pointer.
+    -   Make sure 'Is DMA Animation' is unchecked, 'Is Anim List' is checked, and 'Is Segmented Pointer' is checked. 
+    -   Set the animation importer start address as those 4 bytes.
+    -   If a 28 command exists, then the second byte will be the anim list index.
+    -   Otherwise, the anim list index is usually 0.
 
 Select an armature for the animation to be exported to, and press 'Import animation'. Note that the armature's root 0x13 (i.e. regular) bone must be named 'root'.
 
