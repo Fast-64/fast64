@@ -60,16 +60,19 @@ Insertable Binary exporting will generate a binary file, with a header containin
     0x04-0x08 : Data Size (size in bytes of Data Section)
     0x08-0x0C : Start Address (start address of data, relative to start of Data Section)
     0x0C-0x10 : Number of Pointer Addresses (number of pointer addresses to be resolved)
-    0x10-?    : List of 4-byte pointer addresses. Each address relative to start of Data Section.
-    ?-end     : Data Section (actual binary data)
+    0x10-N    : List of 4-byte pointer addresses. Each address relative to start of Data Section.
+    N-end     : Data Section (actual binary data)
 
 To resolve pointer addresses, for each pointer address,
 
+    # Get data section only
+    data = fileData[N:]
+
     # Get current offset
-    current_offset = data[start_address + pointer_address]
+    current_offset = data[pointer_address]
 
     # Convert offset to segmented address
-    data[start_address + pointer_address] = encode_segmented_address(export_address + current_offset)
+    data[pointer_address] = encode_segmented_address(export_address + current_offset)
 
 ### Decomp vs Homebrew Compatibility
 There may occur cases where code is formatted differently based on the code use case. In the tools panel under the SM64 File Settings subheader, you can toggle decomp compatibility.
