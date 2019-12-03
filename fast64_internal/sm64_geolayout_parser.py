@@ -20,15 +20,11 @@ blender_modes = {'OBJECT', 'BONE'}
 # It will only handle transform/mesh related commands.
 # For switch cases, only the first option will be chosen.
 
-def parseGeoLayout(romfile, startAddress, scene, level,
+def parseGeoLayout(romfile, startAddress, scene, segmentData,
 	convertTransformMatrix, useArmature, ignoreSwitch, shadeSmooth,
 	f3dType, isHWv1):
 	currentAddress = startAddress
 	romfile.seek(currentAddress)
-
-	# Get segment data
-	levelParsed = parseLevelAtPointer(romfile, level_pointers[level])
-	segmentData = levelParsed.segmentData
 
 	# Create new skinned mesh
 	#bpy.ops.object.mode_set(mode = 'OBJECT')

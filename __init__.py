@@ -229,10 +229,19 @@ class SM64_ImportGeolayout(bpy.types.Operator):
 
 			armatureObj = None
 
+			# Get segment data
+			levelParsed = parseLevelAtPointer(romfileSrc, 
+				level_pointers[levelGeoImport])
+			segmentData = levelParsed.segmentData
+			geoStart = int(geoImportAddr, 16)
+			if context.scene.geoIsSegPtr:
+				geoStart = decodeSegmentedAddr(
+					geoStart.to_bytes(4, 'big'), segmentData)
+
 			# Armature mesh groups includes armatureObj.
 			armatureMeshGroups, armatureObj = parseGeoLayout(romfileSrc, 
-				int(geoImportAddr, 16),
-			 	context.scene, levelGeoImport, 
+				geoStart,
+			 	context.scene, segmentData, 
 				finalTransform, generateArmature, 
 				ignoreSwitch, True, context.scene.f3d_type, 
 				context.scene.isHWv1)
@@ -289,6 +298,7 @@ class SM64_ImportGeolayoutPanel(bpy.types.Panel):
 		#col.prop(context.scene, 'rotationAxis')
 		#col.prop(context.scene, 'rotationAngle')
 		prop_split(col, context.scene, 'geoImportAddr', 'Start Address')
+		col.prop(context.scene, 'geoIsSegPtr')
 		col.prop(context.scene, 'levelGeoImport')
 		col.prop(context.scene, 'generateArmature')
 		col.prop(context.scene, 'ignoreSwitch')
@@ -501,7 +511,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 			obj.select_set(True)
 			bpy.context.view_layer.objects.active = obj
 			bpy.ops.object.transform_apply(location = False, rotation = True,
-				scale = False, properties =  False)
+				scale = True, properties =  False)
 			if context.scene.geoExportType == 'C':
 				exportGeolayoutArmatureC(armatureObj, obj, finalTransform,
 					context.scene.f3d_type, context.scene.isHWv1,
@@ -1610,6 +1620,8 @@ def register():
 		name = 'Save texture.inc.c separately')
 	bpy.types.Scene.geoInsertableBinaryPath = bpy.props.StringProperty(
 		name = 'Filepath', subtype = 'FILE_PATH')
+	bpy.types.Scene.geoIsSegPtr = bpy.props.BoolProperty(
+		name = 'Is Segmented Address')
 
 	# Level
 	bpy.types.Scene.levelLevel = bpy.props.EnumProperty(items = level_enums, 
@@ -1644,7 +1656,7 @@ def register():
 	bpy.types.Scene.animInsertableBinaryPath = bpy.props.StringProperty(
 		name = 'Filepath', subtype = 'FILE_PATH')
 	bpy.types.Scene.animIsSegPtr = bpy.props.BoolProperty(
-		name = 'Is Segmented Pointer', default = False)
+		name = 'Is Segmented Address', default = False)
 	bpy.types.Scene.animIsAnimList = bpy.props.BoolProperty(
 		name = 'Is Anim List', default = True)
 	bpy.types.Scene.animListIndex = bpy.props.IntProperty(
@@ -1722,6 +1734,7 @@ def unregister():
 	del bpy.types.Scene.geoSaveTextures
 	del bpy.types.Scene.geoSeparateTextureDef
 	del bpy.types.Scene.geoInsertableBinaryPath
+	del bpy.types.Scene.geoIsSegPtr
 
 	# Animation
 	del bpy.types.Scene.animStartImport

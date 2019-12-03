@@ -276,7 +276,7 @@ def checkForF3DMaterial(obj):
 		if materialSlot.material is None or \
 			not materialSlot.material.is_f3d:
 			raise ValueError(obj.name + " has either empty material slots " +\
-				'or non-Fast3D materials.')
+				'or non-Fast3D materials. Remove any regular blender materials / empty slots.')
 
 def revertMatAndEndDraw(gfxList):
 	gfxList.commands.extend([
@@ -1276,24 +1276,24 @@ def saveLightsDefinition(fModel, material, lightsName):
 		int(ambientColor[2] * 255)])
 	
 	if material.f3d_light1 is not None:
-		addLightDefinition(material.f3d_light1, lights)
+		addLightDefinition(material, material.f3d_light1, lights)
 	if material.f3d_light2 is not None:
-		addLightDefinition(material.f3d_light2, lights)
+		addLightDefinition(material, material.f3d_light2, lights)
 	if material.f3d_light3 is not None:
-		addLightDefinition(material.f3d_light3, lights)
+		addLightDefinition(material, material.f3d_light3, lights)
 	if material.f3d_light4 is not None:
-		addLightDefinition(material.f3d_light4, lights)
+		addLightDefinition(material, material.f3d_light4, lights)
 	if material.f3d_light5 is not None:
-		addLightDefinition(material.f3d_light5, lights)
+		addLightDefinition(material, material.f3d_light5, lights)
 	if material.f3d_light6 is not None:
-		addLightDefinition(material.f3d_light6, lights)
+		addLightDefinition(material, material.f3d_light6, lights)
 	if material.f3d_light7 is not None:
-		addLightDefinition(material.f3d_light7, lights)
+		addLightDefinition(material, material.f3d_light7, lights)
 	
 	fModel.lights[lightsName] = lights
 	return lights
 
-def addLightDefinition(f3d_light, fLights):
+def addLightDefinition(mat, f3d_light, fLights):
 	lightObj = None
 	for obj in bpy.context.scene.objects:
 		if obj.data == f3d_light:
@@ -1301,7 +1301,7 @@ def addLightDefinition(f3d_light, fLights):
 			break
 	if lightObj is None:
 		raise ValueError(
-			"You are referencing a light that is no longer in the scene.")
+			"The material \"" + mat.name + "\" is referencing a light that is no longer in the scene (i.e. has been deleted).")
 	
 	#spaceRot = blenderToSM64Rotation.to_4x4().to_quaternion()
 	spaceRot = mathutils.Euler((-pi / 2, 0, 0)).to_quaternion()

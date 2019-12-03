@@ -121,7 +121,7 @@ def applyRotation(objList, angle, axis):
 	bpy.context.view_layer.objects.active = objList[0]
 	bpy.ops.transform.rotate(value = angle, orient_axis = axis)
 	bpy.ops.object.transform_apply(location = False, 
-		rotation = True, scale = False, properties =  False)
+		rotation = True, scale = True, properties =  False)
 
 def getAddressFromRAMAddress(RAMAddress):
 	addr = RAMAddress - 0x80000000
