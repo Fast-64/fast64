@@ -303,8 +303,8 @@ class JumpNode:
 			self.geolayout.name + '),'
 
 def convertAddrToFunc(addr):
-	if addr in func_map:
-		return func_map[addr]
+	if addr.lower() in func_map:
+		return func_map[addr.lower()]
 	else:
 		return toAlnum(addr)
 

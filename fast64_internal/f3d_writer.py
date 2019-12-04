@@ -1060,7 +1060,7 @@ def saveTextureLoading(fImage, fMaterial, clamp_S, mirror_S, clamp_T,
 		
 		# Load Tile version
 		DPSetTextureImage(fmt, siz, fImage.width, fImage),
-		DPSetTile(fmt, siz + '_LOAD_BLOCK', line, tmem, 
+		DPSetTile(fmt, siz, line, tmem, 
 			f3d.G_TX_LOADTILE - texIndex, 0, cmt, maskt, shiftt, 
 		 	cms, masks, shifts),
 		DPLoadSync(),
