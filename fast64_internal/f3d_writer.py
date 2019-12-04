@@ -546,7 +546,10 @@ class TriangleConverter:
 	
 def getF3DVert(loop, face, convertInfo, mesh):
 	position = mesh.vertices[loop.vertex_index].co.copy().freeze()
-	uv = convertInfo.uv_layer[loop.index].uv.copy().freeze()
+	# N64 is -Y, Blender is +Y
+	uv = convertInfo.uv_layer[loop.index].uv.copy()
+	uv[1] = 1 - uv[1]
+	uv = uv.freeze()
 	colorOrNormal = getLoopColorOrNormal(loop, face, 
 		convertInfo.obj.data, convertInfo.obj, convertInfo.exportVertexColors)
 	
@@ -1114,29 +1117,32 @@ def saveOrGetPaletteDefinition(fModel, image, imageName, texFmt, palFmt):
 	palette = []
 	texture = []
 	maxColors = 16 if bitSize == 'G_IM_SIZ_4b' else 256
-	for i in range(image.size[0] * image.size[1]):
-		color = [1,1,1,1]
-		for field in range(image.channels):
-			color[field] = image.pixels[i * image.channels + field]
-		if palFormat == 'G_IM_FMT_RGBA':
-			pixelColor = \
-				((int(color[0] * 0x1F) & 0x1F) << 11) | \
-				((int(color[1] * 0x1F) & 0x1F) << 6) | \
-				((int(color[2] * 0x1F) & 0x1F) << 1) | \
-				(1 if color[3] > 0.5 else 0)
-		elif palFormat == 'G_IM_FMT_IA':
-			intensity = mathutils.Color(color[0:3]).v
-			alpha = color[3]
-			pixelColor = (int(intensity * 0xFF) << 8) | int(alpha * 0xFF)
-		else:
-			raise ValueError("Invalid combo: " + palFormat + ', ' + bitSize)
+	# N64 is -Y, Blender is +Y
+	for j in reversed(range(image.size[1])):
+		for i in range(image.size[0]):
+			color = [1,1,1,1]
+			for field in range(image.channels):
+				color[field] = image.pixels[
+					(j * image.size[0] + i) * image.channels + field]
+			if palFormat == 'G_IM_FMT_RGBA':
+				pixelColor = \
+					((int(color[0] * 0x1F) & 0x1F) << 11) | \
+					((int(color[1] * 0x1F) & 0x1F) << 6) | \
+					((int(color[2] * 0x1F) & 0x1F) << 1) | \
+					(1 if color[3] > 0.5 else 0)
+			elif palFormat == 'G_IM_FMT_IA':
+				intensity = mathutils.Color(color[0:3]).v
+				alpha = color[3]
+				pixelColor = (int(intensity * 0xFF) << 8) | int(alpha * 0xFF)
+			else:
+				raise ValueError("Invalid combo: " + palFormat + ', ' + bitSize)
 
-		if pixelColor not in palette:
-			palette.append(pixelColor)
-			if len(palette) > maxColors:
-				raise ValueError('Texture ' + imageName + ' has more than ' + \
-					str(maxColors) + ' colors.')
-		texture.append(palette.index(pixelColor))
+			if pixelColor not in palette:
+				palette.append(pixelColor)
+				if len(palette) > maxColors:
+					raise ValueError('Texture ' + imageName + ' has more than ' + \
+						str(maxColors) + ' colors.')
+			texture.append(palette.index(pixelColor))
 	
 	if image.filepath == "":
 		name = image.name
@@ -1203,61 +1209,64 @@ def saveOrGetTextureDefinition(fModel, image, imageName, texFormat):
 	fImage = FImage(toAlnum(imageName), fmt, bitSize, 
 		image.size[0], image.size[1], filename)
 
-	for i in range(image.size[0] * image.size[1]):
-		color = [1,1,1,1]
-		for field in range(image.channels):
-			color[field] = image.pixels[i * image.channels + field]
-		if fmt == 'G_IM_FMT_RGBA':
-			if bitSize == 'G_IM_SIZ_16b':
-				words = \
-					((int(color[0] * 0x1F) & 0x1F) << 11) | \
-					((int(color[1] * 0x1F) & 0x1F) << 6) | \
-					((int(color[2] * 0x1F) & 0x1F) << 1) | \
-					(1 if color[3] > 0.5 else 0)
-				fImage.data.extend(bytearray(words.to_bytes(2, 'big')))
-			elif bitSize == 'G_IM_SIZ_32b':
-				fImage.data.extend(bytearray([
-					int(value * 0xFF) & 0xFF for value in color]))
-			else:
-				raise ValueError("Invalid combo: " + fmt + ', ' + bitSize)
+	# N64 is -Y, Blender is +Y
+	for j in reversed(range(image.size[1])):
+		for i in range(image.size[0]):
+			color = [1,1,1,1]
+			for field in range(image.channels):
+				color[field] = image.pixels[
+					(j * image.size[0] + i) * image.channels + field]
+			if fmt == 'G_IM_FMT_RGBA':
+				if bitSize == 'G_IM_SIZ_16b':
+					words = \
+						((int(color[0] * 0x1F) & 0x1F) << 11) | \
+						((int(color[1] * 0x1F) & 0x1F) << 6) | \
+						((int(color[2] * 0x1F) & 0x1F) << 1) | \
+						(1 if color[3] > 0.5 else 0)
+					fImage.data.extend(bytearray(words.to_bytes(2, 'big')))
+				elif bitSize == 'G_IM_SIZ_32b':
+					fImage.data.extend(bytearray([
+						int(value * 0xFF) & 0xFF for value in color]))
+				else:
+					raise ValueError("Invalid combo: " + fmt + ', ' + bitSize)
 
-		elif fmt == 'G_IM_FMT_YUV':
-			raise ValueError("YUV not yet implemented.")
-			if bitSize == 'G_IM_SIZ_16b':
-				pass
-			else:
-				raise ValueError("Invalid combo: " + fmt + ', ' + bitSize)
+			elif fmt == 'G_IM_FMT_YUV':
+				raise ValueError("YUV not yet implemented.")
+				if bitSize == 'G_IM_SIZ_16b':
+					pass
+				else:
+					raise ValueError("Invalid combo: " + fmt + ', ' + bitSize)
 
-		elif fmt == 'G_IM_FMT_CI':
-			raise ValueError("CI not yet implemented.")
+			elif fmt == 'G_IM_FMT_CI':
+				raise ValueError("CI not yet implemented.")
 
-		elif fmt == 'G_IM_FMT_IA':
-			intensity = mathutils.Color(color[0:3]).v
-			alpha = color[3]
-			if bitSize == 'G_IM_SIZ_4b':
-				fImage.data.append(
-					((int(intensity * 0x7) & 0x7) << 1) | \
-					(1 if alpha > 0.5 else 0))
-			elif bitSize == 'G_IM_SIZ_8b':
-				fImage.data.append(
-					((int(intensity * 0xF) & 0xF) << 4) | \
-					(int(alpha * 0xF) & 0xF))
-			elif bitSize == 'G_IM_SIZ_16b':
-				fImage.data.extend(bytearray(
-					[int(intensity * 0xFF), int(alpha * 0xFF)]))
+			elif fmt == 'G_IM_FMT_IA':
+				intensity = mathutils.Color(color[0:3]).v
+				alpha = color[3]
+				if bitSize == 'G_IM_SIZ_4b':
+					fImage.data.append(
+						((int(intensity * 0x7) & 0x7) << 1) | \
+						(1 if alpha > 0.5 else 0))
+				elif bitSize == 'G_IM_SIZ_8b':
+					fImage.data.append(
+						((int(intensity * 0xF) & 0xF) << 4) | \
+						(int(alpha * 0xF) & 0xF))
+				elif bitSize == 'G_IM_SIZ_16b':
+					fImage.data.extend(bytearray(
+						[int(intensity * 0xFF), int(alpha * 0xFF)]))
+				else:
+					raise ValueError("Invalid combo: " + fmt + ', ' + bitSize)
+			elif fmt == 'G_IM_FMT_I':
+				intensity = mathutils.Color(color[0:3]).v
+				if bitSize == 'G_IM_SIZ_4b':
+					fImage.data.append(int(intensity * 0xF))
+				elif bitSize == 'G_IM_SIZ_8b':
+					fImage.data.append(int(intensity * 0xFF))
+				else:
+					raise ValueError("Invalid combo: " + fmt + ', ' + bitSize)
 			else:
-				raise ValueError("Invalid combo: " + fmt + ', ' + bitSize)
-		elif fmt == 'G_IM_FMT_I':
-			intensity = mathutils.Color(color[0:3]).v
-			if bitSize == 'G_IM_SIZ_4b':
-				fImage.data.append(int(intensity * 0xF))
-			elif bitSize == 'G_IM_SIZ_8b':
-				fImage.data.append(int(intensity * 0xFF))
-			else:
-				raise ValueError("Invalid combo: " + fmt + ', ' + bitSize)
-		else:
-			raise ValueError("Invalid image format " + fmt)
-	
+				raise ValueError("Invalid image format " + fmt)
+			
 	# We stored 4bit values in byte arrays, now to convert
 	if bitSize == 'G_IM_SIZ_4b':
 		fImage.data = \
