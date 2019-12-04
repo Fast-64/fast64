@@ -2,6 +2,7 @@ from .sm64_geolayout_constants import *
 from .sm64_geolayout_utility import *
 from .utility import *
 from .sm64_constants import *
+from .sm64_function_map import func_map 
 import struct
 import copy
 
@@ -301,6 +302,12 @@ class JumpNode:
 		return "GEO_BRANCH(" + ('1, ' if self.storeReturn else '0, ') + \
 			self.geolayout.name + '),'
 
+def convertAddrToFunc(addr):
+	if addr in func_map:
+		return func_map[addr]
+	else:
+		return toAlnum(addr)
+
 # We add Function commands to nonDeformTransformData because any skinned
 # 0x15 commands should go before them, as they are usually preceding
 # an empty transform command (of which they modify?)
@@ -321,7 +328,7 @@ class FunctionNode:
 
 	def to_c(self):
 		return "GEO_ASM(" + str(self.func_param) + ', ' + \
-			toAlnum(self.geo_func) + '),'
+			convertAddrToFunc(self.geo_func) + '),'
 
 class HeldObjectNode:
 	def __init__(self, geo_func, translate):
@@ -344,7 +351,7 @@ class HeldObjectNode:
 			str(convertFloatToShort(self.translate[0])) + ', ' +\
 			str(convertFloatToShort(self.translate[1])) + ', ' +\
 			str(convertFloatToShort(self.translate[2])) + ', ' +\
-			toAlnum(self.geo_func) + '),'
+			convertAddrToFunc(self.geo_func) + '),'
 
 class StartNode:
 	def __init__(self):
@@ -397,7 +404,7 @@ class SwitchNode:
 	def to_c(self):
 		return "GEO_SWITCH_CASE(" + \
 			str(self.defaultCase) + ', ' +\
-			toAlnum(self.switchFunc) + '),'
+			convertAddrToFunc(self.switchFunc) + '),'
 
 class TranslateRotateNode:
 	def __init__(self, drawLayer, fieldLayout, hasDL, translate, rotate):
@@ -852,6 +859,7 @@ class CameraNode:
 			[int(round(value / sm64ToBlenderScale)) for value in position]
 		self.lookAt = \
 			[int(round(value / sm64ToBlenderScale)) for value in lookAt]
+		self.geo_func = '80287D30'
 	
 	def size(self):
 		return 20
@@ -865,7 +873,7 @@ class CameraNode:
 		command.extend(self.lookAt[0].to_bytes(2, 'big', signed = True))
 		command.extend(self.lookAt[1].to_bytes(2, 'big', signed = True))
 		command.extend(self.lookAt[2].to_bytes(2, 'big', signed = True))
-		command.extend(bytes.fromhex('80287D30'))
+		command.extend(bytes.fromhex(self.geo_func))
 		return command
 
 	def to_c(self):
@@ -876,7 +884,7 @@ class CameraNode:
 			str(self.lookAt[0]) + ', ' + \
 			str(self.lookAt[1]) + ', ' + \
 			str(self.lookAt[2]) + ', ' + \
-			'geo_camera_preset_and_pos),'
+			convertAddrToFunc(self.geo_func) + '),'
 
 class RenderObjNode:
 	def __init__(self):
@@ -896,6 +904,7 @@ class BackgroundNode:
 	def __init__(self, isColor, backgroundValue):
 		self.isColor = isColor
 		self.backgroundValue = backgroundValue
+		self.geo_func = '802763D4'
 
 	def size(self):
 		return 8
@@ -906,7 +915,7 @@ class BackgroundNode:
 		if self.isColor:
 			command.extend(bytes.fromhex('00000000'))
 		else:
-			command.extend(bytes.fromhex('802763D4'))
+			command.extend(bytes.fromhex(self.geo_func))
 		return command
 
 	def to_c(self):
@@ -916,27 +925,7 @@ class BackgroundNode:
 		else:
 			return 'GEO_BACKGROUND(0x' + \
 				format(self.backgroundValue, '04x').upper() + \
-				', geo_skybox_main),'
-
-class EnvFunctionNode:
-	def __init__(self, index):
-		self.index = index
-
-	def size(self):
-		return 8
-	
-	def to_binary(self, segmentData):
-		command = bytearray([GEO_CALL_ASM, 0x00])
-		command.extend(self.index.to_bytes(2, 'big', signed = False))
-		command.extend(bytes.fromhex('802761D0'))
-		return command
-
-	def to_c(self):
-		return 'GEO_ASM(' + str(self.index) + ', geo_enfvx_main),'
-
-# geo_movtex_pause_control = 802D01E0 
-# geo_movtex_draw_nocolor = 802D1B70 
-# geo_switch_area = 8029DBD4
+				', ' + convertAddrToFunc(self.geo_func) + '),'
 
 nodeGroupClasses = [
 	StartNode,

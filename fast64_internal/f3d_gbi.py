@@ -1964,13 +1964,15 @@ class FImage:
 		return self.data
 	
 	def to_c(self):
-		code = 'static const u8 ' + self.name + '[] = {\n\t'
+		code = ('ALIGNED8 ' if bpy.context.scene.decomp_compatible else "") +\
+			'static const u8 ' + self.name + '[] = {\n\t'
 		code += self.to_c_data()
 		code += '\n};\n'
 		return code
 
 	def to_c_tex_separate(self, texPath):
-		code = 'static const u8 ' + self.name + '[] = {\n\t'
+		code = ('ALIGNED8 ' if bpy.context.scene.decomp_compatible else "") +\
+			'static const u8 ' + self.name + '[] = {\n\t'
 		code += '#include "' + texPath + self.filename + '"'
 		code += '\n};\n'
 		return code

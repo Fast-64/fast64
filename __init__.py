@@ -1067,7 +1067,7 @@ class SM64_ImportAnimMario(bpy.types.Operator):
 					animStart.to_bytes(4, 'big'), segmentData)
 
 			if context.scene.animIsAnimList:
-				romfileSrc.seek(animStart + 4 * context.scene.animListIndex)
+				romfileSrc.seek(animStart + 4 * context.scene.animListIndexImport)
 				actualPtr = romfileSrc.read(4)
 				animStart = decodeSegmentedAddr(actualPtr, segmentData)
 
@@ -1108,7 +1108,7 @@ class SM64_ImportAnimPanel(bpy.types.Panel):
 		if not context.scene.isDMAImport:
 			col.prop(context.scene, 'animIsAnimList')
 			if context.scene.animIsAnimList:
-				prop_split(col, context.scene, 'animListIndex', 
+				prop_split(col, context.scene, 'animListIndexImport', 
 					'Anim List Index')
 
 		prop_split(col, context.scene, 'animStartImport', 'Start Address')
@@ -1182,13 +1182,16 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 					context.scene.loopAnimation)
 
 				if not context.scene.isDMAExport:
-					segmentedPtr = encodeSegmentedAddr(nonDMAListPtr, segmentData)
-					if context.scene.overwrite_0x27:
+					segmentedPtr = encodeSegmentedAddr(addrRange[0], segmentData)
+					if context.scene.setAnimListIndex:
 						romfileOutput.seek(int(context.scene.addr_0x27, 16) + 4)
+						segAnimPtr = romfileOutput.read(4)
+						virtAnimPtr = decodeSegmentedAddr(segAnimPtr, segmentData)
+						romfileOutput.seek(virtAnimPtr + 4 * context.scene.animListIndexExport)
 						romfileOutput.write(segmentedPtr)
 					if context.scene.overwrite_0x28:
 						romfileOutput.seek(int(context.scene.addr_0x28, 16) + 1)
-						romfileOutput.write(bytearray([0x00]))
+						romfileOutput.write(bytearray([context.scene.animListIndexExport]))
 				else:
 					segmentedPtr = None
 						
@@ -1200,9 +1203,9 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 	
 				if not context.scene.isDMAExport:
 					self.report({'INFO'}, 'Sucess! Animation table at ' + \
-						hex(nonDMAListPtr) + ' (Seg. ' + \
-						bytesToHex(segmentedPtr) + '), animation at (' + \
-						hex(addrRange[0]) + ', ' + hex(addrRange[1]) + ').')
+						hex(virtAnimPtr) + ', animation at (' + \
+						hex(addrRange[0]) + ', ' + hex(addrRange[1]) + ') ' +\
+						'(Seg. ' + bytesToHex(segmentedPtr) + ').')
 				else:
 					self.report({'INFO'}, 'Success! Animation at (' + \
 						hex(addrRange[0]) + ', ' + hex(addrRange[1]) + ').')
@@ -1248,14 +1251,16 @@ class SM64_ExportAnimPanel(bpy.types.Panel):
 					prop_split(col, context.scene, 'DMAEntryAddress', 
 						'DMA Entry Address')
 			else:
-				col.prop(context.scene, 'overwrite_0x27')
-				if context.scene.overwrite_0x27:
+				col.prop(context.scene, 'setAnimListIndex')
+				if context.scene.setAnimListIndex:
 					prop_split(col, context.scene, 'addr_0x27', 
 						'27 Command Address')
-				col.prop(context.scene, 'overwrite_0x28')
-				if context.scene.overwrite_0x28:
-					prop_split(col, context.scene, 'addr_0x28', 
-						'28 Command Address')
+					prop_split(col, context.scene, 'animListIndexExport',
+						'Anim List Index')
+					col.prop(context.scene, 'overwrite_0x28')
+					if context.scene.overwrite_0x28:
+						prop_split(col, context.scene, 'addr_0x28', 
+							'28 Command Address')
 				col.prop(context.scene, 'levelAnimExport')
 			col.separator()
 			prop_split(col, context.scene, 'animExportStart', 'Start Address')
@@ -1641,7 +1646,7 @@ def register():
 	bpy.types.Scene.levelAnimImport = bpy.props.EnumProperty(items = level_enums, name = 'Level', default = 'IC')
 	bpy.types.Scene.levelAnimExport = bpy.props.EnumProperty(items = level_enums, name = 'Level', default = 'IC')
 	bpy.types.Scene.loopAnimation = bpy.props.BoolProperty(name = 'Loop Animation', default = True)
-	bpy.types.Scene.overwrite_0x27 = bpy.props.BoolProperty(name = 'Overwrite 0x27 behaviour command', default = True)
+	bpy.types.Scene.setAnimListIndex = bpy.props.BoolProperty(name = 'Set Anim List Entry', default = True)
 	bpy.types.Scene.overwrite_0x28 = bpy.props.BoolProperty(name = 'Overwrite 0x28 behaviour command', default = True)
 	bpy.types.Scene.addr_0x27 = bpy.props.StringProperty(
 		name = '0x27 Command Address', default = '21CD00')
@@ -1659,8 +1664,10 @@ def register():
 		name = 'Is Segmented Address', default = False)
 	bpy.types.Scene.animIsAnimList = bpy.props.BoolProperty(
 		name = 'Is Anim List', default = True)
-	bpy.types.Scene.animListIndex = bpy.props.IntProperty(
-		name = 'Anim List Index', min = 0)
+	bpy.types.Scene.animListIndexImport = bpy.props.IntProperty(
+		name = 'Anim List Index', min = 0, max = 255)
+	bpy.types.Scene.animListIndexExport = bpy.props.IntProperty(
+		name = "Anim List Index", min = 0, max = 255)
 	
 
 	# Collision
@@ -1747,7 +1754,7 @@ def unregister():
 	del bpy.types.Scene.DMAStartAddress
 	del bpy.types.Scene.DMAEntryAddress
 	del bpy.types.Scene.loopAnimation
-	del bpy.types.Scene.overwrite_0x27
+	del bpy.types.Scene.setAnimListIndex
 	del bpy.types.Scene.overwrite_0x28
 	del bpy.types.Scene.addr_0x27
 	del bpy.types.Scene.addr_0x28
@@ -1757,7 +1764,8 @@ def unregister():
 	del bpy.types.Scene.animInsertableBinaryPath
 	del bpy.types.Scene.animIsSegPtr
 	del bpy.types.Scene.animIsAnimList
-	del bpy.types.Scene.animListIndex
+	del bpy.types.Scene.animListIndexImport
+	del bpy.types.Scene.animListIndexExport
 
 	# Character
 	del bpy.types.Scene.characterIgnoreSwitch

@@ -32,6 +32,7 @@ Make sure to save often, as this plugin is prone to crashing when creating mater
 
 ### Credits
 Thanks to anonymous_moose, Cheezepin, Rovert, and especially InTheBeef for testing.
+Thanks to InTheBeef for LowPolySkinnedMario.
 
 # Instructions
 ### Installation
@@ -107,8 +108,11 @@ For importing:
     -   Otherwise, the anim list index is usually 0.
 
 For exporting:
+-   Make sure 'Set Anim List Entry' is checked.
 -   Copy the addresses of the 27 command, which is the first number before the slash on that line.
 -   Optionally do the same for the 28 command, which may not exist.
+-   If a 28 command exists, then the second byte will be the anim list index.
+-   Otherwise, the anim list index is usually 0.
 
 Select an armature for the animation, and press 'Import/Export animation'. Note that the armature's root 0x13 (i.e. regular) bone must be named 'root'.
 
@@ -121,7 +125,7 @@ Basically, Mario's DMA table starts at 0x4EC000. There is an 8 byte header, and 
 Often times it is hard to rig an existing SM64 geolayout, as there are many intermediate non-deform bones and bones don't point to their children. To make this easier you can use the 'Create Animatable Metarig' operator in the SM64 Armature Tools header. This will generate a metarig which can be used with IK. The metarig bones will be placed on armature layers 3 and 4.
 
 ### Exporting Geolayouts to C
-To replace an actor model in decomp, replace its geo.inc.c and model.inc.c contents with the geolayout file and the dl file respectively. Use the contents of the header file to replace existing extern declarations in one of the group header files (ex. mario is in group0.h). Make sure that the name of your geolayout is the same the name of the geolayout you're replacing.
+To replace an actor model in decomp, replace its geo.inc.c and model.inc.c contents with the geolayout file and the dl file respectively. Use the contents of the header file to replace existing extern declarations in one of the group header files (ex. mario is in group0.h). Make sure that the name of your geolayout is the same the name of the geolayout you're replacing. Note that any function addresses in geolayout nodes will be converted to decomp function names if possible.
 
 ### Switch Statements
 To add a switch mesh node, duplicate your switch bone and move it off to the side. Set the bone geolayout command to be Switch Option. Any nodes in this switch option must be children of this bone. Add any other bones to this bone. Add your switch geometry into your existing mesh in the correct position and skin it.

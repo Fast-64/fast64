@@ -101,7 +101,10 @@ def saveCameraSettingsToGeolayout(geolayoutGraph, cameraObj, rootObj):
 	# Moving textures here
 
 	cameraNode.children.append(TransformNode(RenderObjNode()))
-	cameraNode.children.append(TransformNode(EnvFunctionNode(camera.envType)))
+
+	# corresponds to geo_enfvx_main
+	cameraNode.children.append(TransformNode(
+		FunctionNode('802761D0', camera.envType)))
 
 	return meshGeolayout
 
