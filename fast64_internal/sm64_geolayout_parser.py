@@ -180,7 +180,12 @@ def parseNode(romfile, geoStartAddress, currentAddress, currentCmd, jumps,
 				armatureObj = armatureMeshTuple[0]
 			switchLevel = switchCount
 
-		if currentCmd[0] == GEO_BRANCH and not ignoreNode: # 0x02
+		if currentCmd[0] == GEO_BRANCH_STORE and not ignoreNode: #0x00
+			currentAddress = parseBranchStore(romfile, currentCmd, currentAddress,
+				jumps, segmentData = segmentData)
+			singleChildStack.append(False)
+			nodeIndex.append(0)
+		elif currentCmd[0] == GEO_BRANCH and not ignoreNode: # 0x02
 			currentAddress = parseBranch(romfile, currentCmd, currentAddress,
 				jumps, segmentData = segmentData)
 			singleChildStack.append(False)
@@ -682,6 +687,19 @@ def parseBranch(romfile, currentCmd, currentAddress, jumps,
 
 	if currentCmd[1] == 1:
 		jumps.append(postJumpAddr)
+	currentAddress = decodeSegmentedAddr(currentCmd[4:8],
+		segmentData = segmentData)
+
+	return currentAddress
+
+def parseBranchStore(romfile, currentCmd, currentAddress, jumps,
+	segmentData = None):
+	print("BRANCH AND STORE " + hex(currentAddress))
+	romfile.seek(currentAddress)
+	postJumpAddr = currentAddress + getGeoLayoutCmdLength(*currentCmd)
+	currentCmd = romfile.read(getGeoLayoutCmdLength(*currentCmd))
+
+	jumps.append(postJumpAddr)
 	currentAddress = decodeSegmentedAddr(currentCmd[4:8],
 		segmentData = segmentData)
 
