@@ -74,7 +74,7 @@ Alternatively, for simple static geolayouts you can export object hierarchies. G
 The N64 supports binary skinning, meaning each vertex will be influenced by one bone only. When skinning an exported geolayout, do NOT use automatic skinning, as this results in a smooth weight falloff. Instead, when weight painting set the weight to either 1 or 0, and set the brush Falloff to square. Skinning can only occur between an immediate parent and a child deform bone, not between siblings / across ancestors.
 
 ### Importing/Exporting SM64 Geolayouts
-Download these documents:
+Download these documents by VL Tone:
 
 [SM64MainLevelScripts.txt](http://qubedstudios.rustedlogic.net/SM64MainLevelScripts.txt)
 
@@ -101,6 +101,7 @@ SM64 geolayouts are often in strange rest poses, which makes it hard to modify t
 -   For most models with animation, you can will see a 27 command, and optionally a 28 command.
 
 For importing:
+
 -   The last 4 bytes of the 27 command will be the animation list pointer.
     -   Make sure 'Is DMA Animation' is unchecked, 'Is Anim List' is checked, and 'Is Segmented Pointer' is checked. 
     -   Set the animation importer start address as those 4 bytes.
@@ -108,6 +109,7 @@ For importing:
     -   Otherwise, the anim list index is usually 0.
 
 For exporting:
+
 -   Make sure 'Set Anim List Entry' is checked.
 -   Copy the addresses of the 27 command, which is the first number before the slash on that line.
 -   Optionally do the same for the 28 command, which may not exist.
