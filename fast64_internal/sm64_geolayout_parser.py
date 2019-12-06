@@ -209,6 +209,7 @@ def parseNode(romfile, geoStartAddress, currentAddress, currentCmd, jumps,
 				singleChild = switchActive, segmentData = segmentData)
 			armatureMeshGroups.extend(newArmatureMeshGroups)
 			switchActive = False
+			nextParentTransform = copy.deepcopy(currentTransform)
 		
 		elif currentCmd[0] == GEO_START: # 0x0B
 			currentAddress, nextParentBoneName, nextParentTransform = \
