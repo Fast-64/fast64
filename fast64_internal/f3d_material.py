@@ -659,7 +659,7 @@ def update_node_values_of_material(material, context):
 	update_tex_values_manual(material, context)
 
 def update_tex_values_field(self, fieldProperty, texCoordNode, pixelLength,
-	isTexGen, uvBasisScale, scale, autoprop):
+	isTexGen, uvBasisScale, scale, autoprop, reverseValues):
 	clamp = fieldProperty.clamp
 	mirror = fieldProperty.mirror
 
@@ -679,7 +679,10 @@ def update_tex_values_field(self, fieldProperty, texCoordNode, pixelLength,
 	mask = fieldProperty.mask
 	shift = fieldProperty.shift
 
-	texCoordNode['Normalized L'].outputs[0].default_value = L / pixelLength
+	if reverseValues:
+		texCoordNode['Normalized L'].outputs[0].default_value = -L / pixelLength
+	else:
+		texCoordNode['Normalized L'].outputs[0].default_value = L / pixelLength
 	texCoordNode['Normalized H'].outputs[0].default_value = (H + 1)/pixelLength
 	texCoordNode['Normalized Mask'].outputs[0].default_value = \
 		(2 ** mask) / pixelLength if mask > 0 else 0
@@ -708,10 +711,10 @@ def update_tex_values_index(self, context, texProperty, texNodeName,
 				].default_value = 1024 / tex_size[1]
 			update_tex_values_field(self, texProperty.S, tex_x, tex_size[0],
 				self.rdp_settings.g_tex_gen or self.rdp_settings.g_tex_gen_linear,
-				uvBasisScale[0], scale[0], texProperty.autoprop)
+				uvBasisScale[0], scale[0], texProperty.autoprop, False)
 			update_tex_values_field(self, texProperty.T, tex_y, tex_size[1],
 				self.rdp_settings.g_tex_gen or self.rdp_settings.g_tex_gen_linear,
-				uvBasisScale[1], scale[1], texProperty.autoprop)
+				uvBasisScale[1], scale[1], texProperty.autoprop, True)
 
 			texFormat = texProperty.tex_format
 			ciFormat = texProperty.ci_format

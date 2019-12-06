@@ -1004,7 +1004,8 @@ def addSkinnedMeshNode(armatureObj, boneName, skinnedMesh, transformNode, parent
 		highestChildCopy = highestChildCopyParent
 	#isFirstChild &= checkIfFirstNonASMNode(highestChildNode)
 	if highestChildNode.parent is None:
-		raise ValueError("There shouldn't be a skinned mesh section if there is no deform parent. This error may have ocurred if a switch option node is trying to skin to a parent but no deform parent exists.")
+		raise ValueError("Issue with \"" + boneName + "\": You cannot skin a mesh across a switch node.")
+		#raise ValueError("There shouldn't be a skinned mesh section if there is no deform parent. This error may have ocurred if a switch option node is trying to skin to a parent but no deform parent exists.")
 
 	# Otherwise, remove the transformNode from the parent and 
 	# duplicate the node heirarchy up to the last deform parent.
