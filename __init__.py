@@ -1066,7 +1066,7 @@ class SM64_ImportAnimMario(bpy.types.Operator):
 				animStart = decodeSegmentedAddr(
 					animStart.to_bytes(4, 'big'), segmentData)
 
-			if context.scene.animIsAnimList:
+			if not context.scene.isDMAImport and context.scene.animIsAnimList:
 				romfileSrc.seek(animStart + 4 * context.scene.animListIndexImport)
 				actualPtr = romfileSrc.read(4)
 				animStart = decodeSegmentedAddr(actualPtr, segmentData)
