@@ -303,8 +303,9 @@ class JumpNode:
 			self.geolayout.name + '),'
 
 def convertAddrToFunc(addr):
-	if addr.lower() in func_map:
-		return func_map[addr.lower()]
+	refresh_func_map = func_map[bpy.context.scene.refreshVer]
+	if addr.lower() in refresh_func_map:
+		return refresh_func_map[addr.lower()]
 	else:
 		return toAlnum(addr)
 

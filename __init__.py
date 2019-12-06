@@ -31,6 +31,11 @@ enumExportType = [
 	('Insertable Binary', 'Insertable Binary', 'Insertable Binary')
 ]
 
+enumRefreshVer = [
+	("Refresh 3", "Refresh 3", "Refresh 3"),
+	("Refresh 4", "Refresh 4", "Refresh 4"),
+]
+
 panelSeparatorSize = 5
 
 def checkExpanded(filepath):
@@ -1440,6 +1445,7 @@ class SM64_FileSettingsPanel(bpy.types.Panel):
 		col.prop(context.scene, 'outputRom')
 		col.prop(context.scene, 'extendBank4')
 		col.prop(context.scene, 'decomp_compatible')
+		prop_split(col, context.scene, 'refreshVer', 'Decomp Func Map')
 
 class SM64_AddressConvertPanel(bpy.types.Panel):
 	bl_idname = "SM64_PT_addr_conv"
@@ -1708,6 +1714,8 @@ def register():
 		name = 'Address')
 	bpy.types.Scene.levelConvert = bpy.props.EnumProperty(
 		items = level_enums, name = 'Level', default = 'IC')
+	bpy.types.Scene.refreshVer = bpy.props.EnumProperty(
+		items = enumRefreshVer, name = 'Refresh', default = 'Refresh 4')
 
 	bpy.types.Scene.characterIgnoreSwitch = \
 		bpy.props.BoolProperty(name = 'Ignore Switch Nodes', default = True)
@@ -1824,6 +1832,7 @@ def unregister():
 	del bpy.types.Scene.extendBank4
 	del bpy.types.Scene.convertibleAddr
 	del bpy.types.Scene.levelConvert
+	del bpy.types.Scene.refreshVer
 
 	mat_unregister()
 	bone_unregister()

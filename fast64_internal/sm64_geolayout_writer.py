@@ -1170,10 +1170,12 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 		#print("Skinned")
 		fMeshGroup = saveSkinnedMeshByMaterial(skinnedFaces, fModel,
 			vertexGroup, obj, currentMatrix, parentMatrix, namePrefix, infoDict)
-	else:
+	elif len(groupFaces) > 0:
 		fMeshGroup = FMeshGroup(toAlnum(namePrefix + \
 			('_' if namePrefix != '' else '') + vertexGroup), 
 			FMesh(toAlnum(namePrefix + vertexGroup) + '_mesh'), None)
+	else:
+		return None
 	
 	# Save mesh group
 	checkUniqueBoneNames(fModel, toAlnum(namePrefix + \
