@@ -1170,7 +1170,7 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 	if len(skinnedFaces) > 0:
 		#print("Skinned")
 		fMeshGroup = saveSkinnedMeshByMaterial(skinnedFaces, fModel,
-			vertexGroup, obj, currentMatrix, parentMatrix, namePrefix, infoDict)
+			vertexGroup, obj, currentMatrix, parentMatrix, namePrefix, infoDict, vertexGroup)
 	elif len(groupFaces) > 0:
 		fMeshGroup = FMeshGroup(toAlnum(namePrefix + \
 			('_' if namePrefix != '' else '') + vertexGroup), 
@@ -1300,7 +1300,7 @@ def getGroupVertCount(group):
 	return count
 
 def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj, 
-	currentMatrix, parentMatrix, namePrefix, infoDict):
+	currentMatrix, parentMatrix, namePrefix, infoDict, vertexGroup):
 	# We choose one or more loops per vert to represent a material from which 
 	# texDimensions can be found, since it is required for UVs.
 	uv_layer = obj.data.uv_layers.active.data
@@ -1310,14 +1310,12 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj,
 	notInGroupCount = getGroupVertCount(notInGroupVertArray)
 	if notInGroupCount > fModel.f3d.vert_load_size - 2:
 		raise ValueError("Too many connecting vertices in skinned " +\
-			"triangles, max is " + str(fModel.f3d.vert_load_size - 2) + \
+			"triangles for bone '" + vertexGroup + "'. Max is " + str(fModel.f3d.vert_load_size - 2) + \
 			" on parent bone, currently at " + str(notInGroupCount) +\
 			". Note that a vertex with different UVs/normals/materials in " +\
 			"connected faces will count more than once. Try " +\
-			"keeping UVs contiguous, minimize edge creasing, and don't " +\
-			"disable 'Smooth Shading'. " +\
-			"Note that Blender's 'Shade Flat/Smooth' does not actually " +\
-			"modify normal data.")
+			"keeping UVs contiguous, and avoid using " +\
+			"split normals. ")
 	
 	# Load parent group vertices
 	fSkinnedMesh = FMesh(toAlnum(namePrefix + name) + '_skinned')
