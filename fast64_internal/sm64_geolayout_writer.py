@@ -1207,8 +1207,13 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh):
 	fOverrideMat, texDimensions = \
 		saveOrGetF3DMaterial(material, fModel, obj)
+	overrideIndex = str(len(fMesh.drawMatOverrides))
+	if (material, specificMat, overrideType) in fMesh.drawMatOverrides:
+		overrideIndex = fMesh.drawMatOverrides[(material, specificMat, overrideType)].name[-1]
 	meshMatOverride = GfxList(
-		fMesh.name + '_mat_override_' + toAlnum(material.name))
+		fMesh.name + '_mat_override_' + toAlnum(material.name) + \
+		'_' + overrideIndex)
+	print(fMesh.drawMatOverrides)
 	#print('fdddddddddddddddd ' + str(fMesh.name) + " " + str(material) + " " + str(specificMat) + " " + str(overrideType))
 	fMesh.drawMatOverrides[(material, specificMat, overrideType)] = meshMatOverride
 	removeReverts = []

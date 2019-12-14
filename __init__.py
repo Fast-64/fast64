@@ -358,8 +358,7 @@ class SM64_ExportGeolayoutObject(bpy.types.Operator):
 					bpy.context.scene.geoSeparateTextureDef,
 					levelCamera)
 				self.report({'INFO'}, 'Success! Geolayout at ' + \
-					context.scene.geoExportPath + ', DL at ' + \
-					context.scene.geoExportPathDL)
+					context.scene.geoExportPath)
 			elif context.scene.geoExportType == 'Insertable Binary':
 				exportGeolayoutObjectInsertableBinary(obj,
 					finalTransform, context.scene.f3d_type,
@@ -526,8 +525,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 					bpy.context.scene.geoSeparateTextureDef,
 					levelCamera)
 				self.report({'INFO'}, 'Success! Geolayout at ' + \
-					context.scene.geoExportPath + ', DL at ' + \
-					context.scene.geoExportPathDL)
+					context.scene.geoExportPath)
 			elif context.scene.geoExportType == 'Insertable Binary':
 				exportGeolayoutArmatureInsertableBinary(armatureObj, obj,
 					finalTransform, context.scene.f3d_type,
@@ -648,8 +646,6 @@ class SM64_ExportGeolayoutPanel(bpy.types.Panel):
 			if context.scene.geoSaveTextures:
 				col.prop(context.scene, 'geoTexDir')	
 				col.prop(context.scene, 'geoSeparateTextureDef')
-			#col.prop(context.scene, 'geoExportPathDL')
-			#col.prop(context.scene, 'geoDefinePath')
 		elif context.scene.geoExportType == 'Insertable Binary':
 			col.prop(context.scene, 'geoInsertableBinaryPath')
 		else:
@@ -1616,10 +1612,6 @@ def register():
 		items = enumExportType, name = 'Export', default = 'Binary')
 	bpy.types.Scene.geoExportPath = bpy.props.StringProperty(
 		name = 'Directory', subtype = 'FILE_PATH')
-	bpy.types.Scene.geoExportPathDL = bpy.props.StringProperty(
-		name = 'DL Filepath', subtype = 'FILE_PATH')
-	bpy.types.Scene.geoDefinePath = bpy.props.StringProperty(
-		name = 'Definitions Filepath', subtype = 'FILE_PATH')
 	bpy.types.Scene.geoUseBank0 = bpy.props.BoolProperty(name = 'Use Bank 0')
 	bpy.types.Scene.geoRAMAddr = bpy.props.StringProperty(name = 'RAM Address', 
 		default = '80000000')
@@ -1741,8 +1733,6 @@ def unregister():
 	del bpy.types.Scene.textDumpGeoPath
 	del bpy.types.Scene.geoExportType
 	del bpy.types.Scene.geoExportPath
-	del bpy.types.Scene.geoExportPathDL
-	del bpy.types.Scene.geoDefinePath
 	del bpy.types.Scene.geoUseBank0
 	del bpy.types.Scene.geoRAMAddr
 	del bpy.types.Scene.geoTexDir
