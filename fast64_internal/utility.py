@@ -43,8 +43,11 @@ def combineObjects(obj, includeChildren):
 			bpy.ops.object.select_all(action = 'DESELECT')
 			selectedObj.select_set(True)
 			for modifier in selectedObj.modifiers:
-				bpy.ops.object.modifier_apply(apply_as='DATA',
-					modifier=modifier.name)
+				try:
+					bpy.ops.object.modifier_apply(apply_as='DATA',
+						modifier=modifier.name)
+				except RuntimeError as error:
+					print(str(error))
 					
 		bpy.ops.object.select_all(action = 'DESELECT')
 
