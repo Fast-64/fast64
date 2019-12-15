@@ -339,11 +339,9 @@ class SM64_ExportGeolayoutObject(bpy.types.Operator):
 			context.scene.saveCameraSettings else None
 
 		finalTransform = mathutils.Matrix.Identity(4)
-		#finalTransform = (blenderToSM64Rotation * \
-		#	(1/sm64ToBlenderScale)).to_4x4() @ objTransform]
+		scaleValue = bpy.context.scene.blenderToSM64Scale
 		finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((
-			1/sm64ToBlenderScale, 1/sm64ToBlenderScale, 1/sm64ToBlenderScale
-		))).to_4x4()
+			scaleValue, scaleValue, scaleValue))).to_4x4()
 
 		try:
 			# Rotate all armatures 90 degrees
@@ -779,7 +777,7 @@ class SM64_ExportDL(bpy.types.Operator):
 		objTransform = R.to_matrix().to_4x4() @ \
 			mathutils.Matrix.Diagonal(S).to_4x4()
 		finalTransform = (blenderToSM64Rotation * \
-			(1/sm64ToBlenderScale)).to_4x4() @ objTransform
+			(bpy.context.scene.blenderToSM64Scale)).to_4x4() @ objTransform
 
 		#cProfile.runctx('exportF3DtoC(bpy.path.abspath(context.scene.DLExportPath), obj,' +\
 		#	'context.scene.DLExportisStatic, finalTransform,' +\
@@ -1292,11 +1290,7 @@ class SM64_ExportCollision(bpy.types.Operator):
 		objTransform = R.to_matrix().to_4x4() @ \
 			mathutils.Matrix.Diagonal(S).to_4x4()
 		finalTransform = (blenderToSM64Rotation * \
-			(1/sm64ToBlenderScale)).to_4x4() @ objTransform
-		#finalTransform = mathutils.Matrix.Identity(4)
-		#finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((
-		#	1/sm64ToBlenderScale, 1/sm64ToBlenderScale, 1/sm64ToBlenderScale
-		#))).to_4x4()
+			(bpy.context.scene.blenderToSM64Scale)).to_4x4() @ objTransform
 		
 		try:
 			#applyRotation([obj], math.radians(90), 'X')
@@ -1442,6 +1436,7 @@ class SM64_FileSettingsPanel(bpy.types.Panel):
 		col.prop(context.scene, 'extendBank4')
 		col.prop(context.scene, 'decomp_compatible')
 		prop_split(col, context.scene, 'refreshVer', 'Decomp Func Map')
+		prop_split(col, context.scene, 'blenderToSM64Scale', 'Blender To SM64 Scale')
 
 class SM64_AddressConvertPanel(bpy.types.Panel):
 	bl_idname = "SM64_PT_addr_conv"
@@ -1708,6 +1703,8 @@ def register():
 		items = level_enums, name = 'Level', default = 'IC')
 	bpy.types.Scene.refreshVer = bpy.props.EnumProperty(
 		items = enumRefreshVer, name = 'Refresh', default = 'Refresh 4')
+	bpy.types.Scene.blenderToSM64Scale = bpy.props.FloatProperty(
+		name = 'Blender To SM64 Scale', default = 212.766)
 
 	bpy.types.Scene.characterIgnoreSwitch = \
 		bpy.props.BoolProperty(name = 'Ignore Switch Nodes', default = True)
@@ -1823,6 +1820,7 @@ def unregister():
 	del bpy.types.Scene.convertibleAddr
 	del bpy.types.Scene.levelConvert
 	del bpy.types.Scene.refreshVer
+	del bpy.types.Scene.blenderToSM64Scale
 
 	mat_unregister()
 	bone_unregister()

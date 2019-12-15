@@ -811,8 +811,8 @@ class OrthoNode:
 class FrustumNode:
 	def __init__(self, fov, near, far):
 		self.fov = fov
-		self.near = int(round(100 * near))
-		self.far = int(round(100 * far))
+		self.near = int(round(bpy.context.scene.blenderToSM64Scale * near))
+		self.far = int(round(bpy.context.scene.blenderToSM64Scale * far))
 		self.useFunc = True # Always use function?
 	
 	def size(self):
@@ -857,9 +857,9 @@ class CameraNode:
 	def __init__(self, camType, position, lookAt):
 		self.camType = camType
 		self.position = \
-			[int(round(value / sm64ToBlenderScale)) for value in position]
+			[int(round(value * bpy.context.scene.blenderToSM64Scale)) for value in position]
 		self.lookAt = \
-			[int(round(value / sm64ToBlenderScale)) for value in lookAt]
+			[int(round(value * bpy.context.scene.blenderToSM64Scale)) for value in lookAt]
 		self.geo_func = '80287D30'
 	
 	def size(self):

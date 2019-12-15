@@ -31,9 +31,7 @@ def parseGeoLayout(romfile, startAddress, scene, segmentData,
 	mesh = bpy.data.meshes.new('skinnned-mesh')
 	obj = bpy.data.objects.new('skinned', mesh)
 	scene.collection.objects.link(obj)
-	material = createF3DMat(obj)
-	material.f3d_preset = 'Shaded Solid'
-	update_preset_manual(material, bpy.context)
+	createBlankMaterial(obj)
 
 	bMesh = bmesh.new()
 	bMesh.from_mesh(mesh)

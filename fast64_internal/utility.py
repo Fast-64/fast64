@@ -264,7 +264,7 @@ def readVectorFromShorts(command, offset):
 
 def readFloatFromShort(command, offset):
 	return int.from_bytes(command[offset: offset + 2], 
-		'big', signed = True) * sm64ToBlenderScale
+		'big', signed = True) / bpy.context.scene.blenderToSM64Scale
 
 def writeVectorToShorts(command, offset, values):
 	for i in range(3):
@@ -273,11 +273,11 @@ def writeVectorToShorts(command, offset, values):
 
 def writeFloatToShort(command, offset, value):
 	command[offset : offset + 2] = \
-		int(round(value / sm64ToBlenderScale)).to_bytes(
+		int(round(value * bpy.context.scene.blenderToSM64Scale)).to_bytes(
 		2, 'big', signed = True)
 
 def convertFloatToShort(value):
-	return int(round((value / sm64ToBlenderScale)))
+	return int(round((value * bpy.context.scene.blenderToSM64Scale)))
 
 def convertEulerFloatToShort(value):
 	return int(round(degrees(value)))

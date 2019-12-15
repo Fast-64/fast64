@@ -32,7 +32,7 @@ loadSegmentAddresses = {
 
 geoNodeRotateOrder = 'ZXY'
 
-sm64ToBlenderScale = 0.0047
+#sm64ToBlenderScale = 0.0047
 marioScale = 0.25
 
 sm64BoneUp = mathutils.Vector([1,0,0])

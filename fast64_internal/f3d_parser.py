@@ -5,6 +5,7 @@ import pprint
 from .f3d_gbi import *
 from .utility import *
 from .sm64_constants import *
+from .f3d_material import createF3DMat, update_preset_manual
 
 def getAxisVector(enumValue):
 	sign = -1 if enumValue[0] == '-' else 1
@@ -172,9 +173,9 @@ def getPosition(vertexBuffer, index):
 	yBytes = vertexBuffer[yStart : yStart + 2]
 	zBytes = vertexBuffer[zStart : zStart + 2]
 
-	x = int.from_bytes(xBytes, 'big', signed=True) * sm64ToBlenderScale
-	y = int.from_bytes(yBytes, 'big', signed=True) * sm64ToBlenderScale
-	z = int.from_bytes(zBytes, 'big', signed=True) * sm64ToBlenderScale
+	x = int.from_bytes(xBytes, 'big', signed=True) / bpy.context.scene.blenderToSM64Scale
+	y = int.from_bytes(yBytes, 'big', signed=True) / bpy.context.scene.blenderToSM64Scale
+	z = int.from_bytes(zBytes, 'big', signed=True) / bpy.context.scene.blenderToSM64Scale
 
 	return (x, y, z)
 
@@ -303,8 +304,12 @@ def printvbuf(vertexBuffer):
 
 
 def createBlankMaterial(obj):
-	newMat = bpy.data.materials.new('sm64_material')
-	obj.data.materials.append(newMat)
+	material = createF3DMat(obj)
+	material.f3d_preset = 'Shaded Solid'
+	update_preset_manual(material, bpy.context)
+
+	#newMat = bpy.data.materials.new('sm64_material')
+	#obj.data.materials.append(newMat)
 
 def createNewTextureMaterial(romfile, textureStart, textureSize, texelCount, colorFormat, colorDepth, obj):
 	newMat = bpy.data.materials.new('sm64_material')

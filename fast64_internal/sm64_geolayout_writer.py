@@ -1107,14 +1107,14 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 
 	bone = armatureObj.data.bones[vertexGroup]
 	
-	currentMatrix = mathutils.Matrix.Scale(1 / sm64ToBlenderScale, 4) @ \
+	currentMatrix = mathutils.Matrix.Scale(1 * bpy.context.scene.blenderToSM64Scale, 4) @ \
 		bone.matrix_local.inverted()
 	
 	if parentGroup is None:
-		parentMatrix = mathutils.Matrix.Scale(1 / sm64ToBlenderScale, 4)
+		parentMatrix = mathutils.Matrix.Scale(1 * bpy.context.scene.blenderToSM64Scale, 4)
 	else:
 		parentBone = armatureObj.data.bones[parentGroup]
-		parentMatrix = mathutils.Matrix.Scale(1 / sm64ToBlenderScale, 4) @ \
+		parentMatrix = mathutils.Matrix.Scale(1 * bpy.context.scene.blenderToSM64Scale, 4) @ \
 		parentBone.matrix_local.inverted()
 	
 	# dict of material_index keys to face array values
