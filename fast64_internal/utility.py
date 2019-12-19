@@ -6,12 +6,13 @@ from .sm64_geolayout_constants import *
 import random
 import string
 
-def selectMeshChildrenOnly(obj):
-	obj.select_set(True)
-	obj.original_name = obj.name
-	for child in obj.children:
-		if isinstance(child.data, bpy.types.Mesh):
-			selectMeshChildrenOnly(child)
+def selectMeshChildrenOnly(obj, ignoreAttr):
+	ignoreObj = ignoreAttr is not None and getattr(obj, ignoreAttr)
+	if isinstance(obj.data, bpy.types.Mesh) and not ignoreObj:
+		obj.select_set(True)
+		obj.original_name = obj.name
+		for child in obj.children:
+			selectMeshChildrenOnly(child, ignoreAttr)
 
 def cleanupDuplicatedObjects(selected_objects):
 	meshData = []
@@ -22,13 +23,13 @@ def cleanupDuplicatedObjects(selected_objects):
 	for mesh in meshData:
 		bpy.data.meshes.remove(mesh)
 
-def combineObjects(obj, includeChildren):
+def combineObjects(obj, includeChildren, ignoreAttr):
 	obj.original_name = obj.name
 
 	# Duplicate objects to apply scale / modifiers / linked data
 	bpy.ops.object.select_all(action = 'DESELECT')
 	if includeChildren:
-		selectMeshChildrenOnly(obj)
+		selectMeshChildrenOnly(obj, ignoreAttr)
 	obj.select_set(True)
 	bpy.context.view_layer.objects.active = obj
 	bpy.ops.object.duplicate()

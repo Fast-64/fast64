@@ -174,6 +174,8 @@ class GeolayoutStaticPanel(bpy.types.Panel):
 		col.prop(obj, 'use_render_area')
 		if obj.use_render_area:
 			prop_split(col, obj, 'culling_radius', 'Culling Radius')
+		col.prop(obj, 'ignore_render')
+		col.prop(obj, 'ignore_collision')
 
 class MaterialPointerProperty(bpy.types.PropertyGroup):
 	material : bpy.props.PointerProperty(type = bpy.types.Material)
@@ -433,6 +435,10 @@ def bone_register():
 		name = 'Use Render Area')
 	bpy.types.Object.culling_radius = bpy.props.IntProperty(
 		name = 'Culling Radius', min=-2**(15), max=2**(15)-1, default=2000)
+	bpy.types.Object.ignore_render = bpy.props.BoolProperty(
+		name = 'Ignore Render (Including Children)')
+	bpy.types.Object.ignore_collision = bpy.props.BoolProperty(
+		name = 'Ignore Collision (Including Children)')
 
 	# Used during object duplication on export
 	bpy.types.Object.original_name = bpy.props.StringProperty()
@@ -457,3 +463,5 @@ def bone_unregister():
 	del bpy.types.Object.draw_layer_static
 	del bpy.types.Object.use_render_area
 	del bpy.types.Object.culling_radius
+	del bpy.types.Object.ignore_render
+	del bpy.types.Object.ignore_collision

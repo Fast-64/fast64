@@ -130,7 +130,7 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 
 	# Duplicate objects to apply scale / modifiers / linked data
 	bpy.ops.object.select_all(action = 'DESELECT')
-	selectMeshChildrenOnly(obj)
+	selectMeshChildrenOnly(obj, 'ignore_render')
 	obj.select_set(True)
 	bpy.context.view_layer.objects.active = obj
 	bpy.ops.object.duplicate()
@@ -510,7 +510,7 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode,
 	geolayout, geolayoutGraph, isRoot):
 	#finalTransform = copy.deepcopy(transformMatrix)
 
-	if not isinstance(obj.data, bpy.types.Mesh):
+	if not isinstance(obj.data, bpy.types.Mesh) or obj.ignore_render:
 		return
 
 	if isRoot:

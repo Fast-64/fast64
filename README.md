@@ -165,3 +165,5 @@ There may occur cases where code is formatted differently based on the code use 
 Inivisible Mesh : Bone is not set to deform, or geometry is skinned to more than one bone.
 
 Game crashes: Invalid function address for switch/function/held object bones.
+
+Incorrect Collision Rotation: Collisions are not affected by SM64 object rotations, i.e. Thwomps.

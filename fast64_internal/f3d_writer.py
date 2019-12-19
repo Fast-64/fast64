@@ -155,7 +155,7 @@ def saveStaticModel(fModel, obj, transformMatrix):
 def exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren):
 	fModel = FModel(f3dType, isHWv1)
 
-	tempObj, meshList = combineObjects(obj, includeChildren)
+	tempObj, meshList = combineObjects(obj, includeChildren, None)
 	try:
 		fMeshGroup = saveStaticModel(fModel, tempObj, transformMatrix)
 		cleanupCombineObj(tempObj, meshList)

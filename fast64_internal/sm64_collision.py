@@ -290,6 +290,7 @@ def exportCollisionInsertableBinary(obj, transformMatrix, filepath,
 
 	return data
 
+# Note: Collision is not affected by sm64 object rotation.
 def exportCollisionCommon(obj, transformMatrix, addEntities, includeChildren):
 	bpy.ops.object.select_all(action = 'DESELECT')
 	obj.select_set(True)
@@ -331,7 +332,7 @@ def exportCollisionCommon(obj, transformMatrix, addEntities, includeChildren):
 	return collision
 
 def addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix):
-	tempObj, meshList = combineObjects(obj, includeChildren)
+	tempObj, meshList = combineObjects(obj, includeChildren, 'ignore_collision')
 	if len(tempObj.data.materials) == 0:
 		raise ValueError(obj.name + " must have a material associated with it.")
 	try:
