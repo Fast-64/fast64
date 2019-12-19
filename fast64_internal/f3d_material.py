@@ -125,27 +125,17 @@ def ui_geo_mode(settings, dataHolder, layout):
 		inputGroup.prop(settings, 'g_cull_front', text = 'Cull Front')
 		inputGroup.prop(settings, 'g_cull_back', text = 'Cull Back')
 		inputGroup.prop(settings, 'g_fog', text = 'Fog')
-		if isinstance(dataHolder, bpy.types.Material) and \
-			settings.g_fog:
-			material = dataHolder
-			inputGroup.prop(material, 'set_fog', text = 'Set Fog')
-			fogGroup = inputGroup.column()
-			fogColorGroup = fogGroup.row().split(factor = 0.5)
-			fogColorGroup.label(text = 'Fog Color')
-			fogColorGroup.prop(material, 'fog_color', text = '')
-			fogPositionGroup = fogGroup.row().split(factor = 0.5)
-			fogPositionGroup.label(text = 'Fog Range')
-			fogPositionGroup.prop(material, 'fog_position', text = '')
-			fogGroup.enabled = material.set_fog
-			inputGroup.box().label(text = 'NOTE: Fog will break with draw layer overrides.')
-			fogInfoBox = inputGroup.box()
-			fogInfoBox.label(text = 'To enable fog, make sure to do these things:')
-			fogInfoBox.label(text = '(Ignore this if you used the preset)')
-			fogInfoBox.label(text = 'In Other Mode Upper Settings, set Cycle Type to "2 Cycle".')
-			fogInfoBox.label(text = 'Use a combiner that has "Shade Color".')
-			fogInfoBox.label(text = 'In Render Settings, check "Set Render Mode".')
-			fogInfoBox.label(text = 'Set the first field to "Fog Shade".')
-			fogInfoBox.label(text = 'Set the second to the material\'s draw layer, usually "Opaque".')
+		#if isinstance(dataHolder, bpy.types.Material) and \
+		#	settings.g_fog:
+		#	material = dataHolder
+		#	fogInfoBox = inputGroup.box()
+		#	fogInfoBox.label(text = 'To enable fog, make sure to do these things:')
+		#	fogInfoBox.label(text = '(Ignore this if you used the preset)')
+		#	fogInfoBox.label(text = 'In Other Mode Upper Settings, set Cycle Type to "2 Cycle".')
+		#	fogInfoBox.label(text = 'Use a combiner that has "Shade Color".')
+		#	fogInfoBox.label(text = 'In Render Settings, check "Set Render Mode".')
+		#	fogInfoBox.label(text = 'Set the first field to "Fog Shade".')
+		#	fogInfoBox.label(text = 'Set the second to the material\'s draw layer, usually "Opaque".')
 			
 		inputGroup.prop(settings, 'g_lighting', text = 'Lighting')
 		inputGroup.prop(settings, 'g_tex_gen', text = 'Texture UV Generate')
@@ -587,6 +577,19 @@ class F3DPanel(bpy.types.Panel):
 			
 			if useDict['Convert']:
 				self.ui_convert(material, inputCol)
+
+			if material.rdp_settings.g_fog:
+				inputGroup = inputCol.column()
+				inputGroup.prop(material, 'set_fog', text = 'Set Fog')
+				fogGroup = inputGroup.column()
+				fogColorGroup = fogGroup.row().split(factor = 0.5)
+				fogColorGroup.label(text = 'Fog Color')
+				fogColorGroup.prop(material, 'fog_color', text = '')
+				fogPositionGroup = fogGroup.row().split(factor = 0.5)
+				fogPositionGroup.label(text = 'Fog Range')
+				fogPositionGroup.prop(material, 'fog_position', text = '')
+				fogGroup.enabled = material.set_fog
+				inputGroup.box().label(text = 'NOTE: Fog will break with draw layer overrides.')
 			
 			#self.ui_procAnim(material, inputCol, 
 			#	useDict['Texture 0'], useDict['Texture 1'])
