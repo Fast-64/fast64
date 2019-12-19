@@ -789,7 +789,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer):
 	if len(obj.data.materials) == 0:
 		raise ValueError("Mesh must have at least one material.")
 	materialName = toAlnum(material.name) + (('_layer' + str(drawLayer)) \
-		if material.rdp_settings.set_rendermode else '') 
+		if material.rdp_settings.set_rendermode and drawLayer is not None else '') 
 	fMaterial = FMaterial(materialName)
 	fMaterial.material.commands.append(DPPipeSync())
 	fMaterial.revert.commands.append(DPPipeSync())
