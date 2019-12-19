@@ -1611,7 +1611,7 @@ def register():
 	bpy.types.Scene.geoRAMAddr = bpy.props.StringProperty(name = 'RAM Address', 
 		default = '80000000')
 	bpy.types.Scene.geoTexDir = bpy.props.StringProperty(
-		name ='Include Path', default = '/actors/mario/')
+		name ='Include Path', default = 'actors/mario/')
 	bpy.types.Scene.geoSaveTextures = bpy.props.BoolProperty(
 		name = 'Save Textures As PNGs')
 	bpy.types.Scene.geoSeparateTextureDef = bpy.props.BoolProperty(
