@@ -146,7 +146,8 @@ def saveStaticModel(fModel, obj, transformMatrix):
 	for material_index, faces in facesByMat.items():
 		material = obj.data.materials[material_index]
 		saveMeshByFaces(material, faces, 
-			fModel, fMeshGroup.mesh, obj, transformMatrix, infoDict)
+			fModel, fMeshGroup.mesh, obj, transformMatrix, 
+			infoDict, None)
 	
 	revertMatAndEndDraw(fMeshGroup.mesh.draw)
 	return fMeshGroup
@@ -396,12 +397,12 @@ def checkIfFlatShaded(material):
 	return not material.rdp_settings.g_shade_smooth
 
 def saveMeshByFaces(material, faces, fModel, fMesh, obj, transformMatrix,
-	infoDict):
+	infoDict, drawLayer):
 	if len(faces) == 0:
 		print('0 Faces Provided.')
 		return
 	fMaterial, texDimensions = \
-		saveOrGetF3DMaterial(material, fModel, obj)
+		saveOrGetF3DMaterial(material, fModel, obj, drawLayer)
 	isPointSampled = isTexturePointSampled(material)
 	exportVertexColors = isLightingDisabled(material)
 	uv_layer = obj.data.uv_layers.active.data
@@ -778,14 +779,18 @@ defaultLighting = [
 	(mathutils.Vector((1,1,1)), mathutils.Vector((1, 1, 1)).normalized()),
 	(mathutils.Vector((0.5, 0.5, 0.5)), mathutils.Vector((1, 1, 1)).normalized())]
 
-def saveOrGetF3DMaterial(material, fModel, obj):
-	if material in fModel.materials:
-		return fModel.materials[material]
+def saveOrGetF3DMaterial(material, fModel, obj, drawLayer):
+	if material.rdp_settings.set_rendermode:
+		if (material, drawLayer) in fModel.materials:
+			return fModel.materials[(material, drawLayer)]
+	elif (material, None) in fModel.materials:
+		return fModel.materials[(material, None)]
 	
 	if len(obj.data.materials) == 0:
 		raise ValueError("Mesh must have at least one material.")
-	
-	fMaterial = FMaterial(toAlnum(material.name))
+	materialName = toAlnum(material.name) + (('_layer' + str(drawLayer)) \
+		if material.rdp_settings.set_rendermode else '') 
+	fMaterial = FMaterial(materialName)
 	fMaterial.material.commands.append(DPPipeSync())
 	fMaterial.revert.commands.append(DPPipeSync())
 	
@@ -852,7 +857,8 @@ def saveOrGetF3DMaterial(material, fModel, obj):
 	defaults = bpy.context.scene.world.rdp_defaults
 	saveGeoModeDefinition(fMaterial, material.rdp_settings, defaults)
 	saveOtherModeHDefinition(fMaterial, material.rdp_settings, defaults)
-	saveOtherModeLDefinition(fMaterial, material.rdp_settings, defaults)
+	saveOtherModeLDefinition(fMaterial, material.rdp_settings, defaults,
+		drawLayerRenderMode[drawLayer] if drawLayer is not None else None)
 
 	# Set scale
 	s = int(material.tex_scale[0] * 0xFFFF)
@@ -901,7 +907,7 @@ def saveOrGetF3DMaterial(material, fModel, obj):
 	
 	if useDict['Shade'] and material.set_lights:
 		fLights = saveLightsDefinition(fModel, material, 
-			fMaterial.material.name + '_lights')
+			materialName + '_lights')
 		fMaterial.material.commands.extend([
 			SPSetLights(fLights) # TODO: handle synching: NO NEED?
 		])
@@ -938,12 +944,15 @@ def saveOrGetF3DMaterial(material, fModel, obj):
 		
 	# End Display List
 	fMaterial.material.commands.append(SPEndDisplayList())
+
 	#revertMatAndEndDraw(fMaterial.revert)
 	if len(fMaterial.revert.commands) > 1: # 1 being the pipe sync
 		fMaterial.revert.commands.append(SPEndDisplayList())
 	else:
 		fMaterial.revert = None
-	fModel.materials[material] = (fMaterial, texDimensions)
+	
+	materialKey = material, (drawLayer if material.rdp_settings.set_rendermode else None)
+	fModel.materials[materialKey] = (fMaterial, texDimensions)
 
 	return fMaterial, texDimensions
 
@@ -1299,6 +1308,8 @@ def saveLightsDefinition(fModel, material, lightsName):
 	if material.f3d_light7 is not None:
 		addLightDefinition(material, material.f3d_light7, lights)
 	
+	if lightsName in fModel.lights:
+		raise ValueError("Duplicate light name.")
 	fModel.lights[lightsName] = lights
 	return lights
 
@@ -1422,7 +1433,7 @@ def saveOtherModeHDefinition(fMaterial, settings, defaults):
 	saveModeSetting(fMaterial, settings.g_mdsft_pipeline,
 		defaults.g_mdsft_pipeline, DPPipelineMode)
 
-def saveOtherModeLDefinition(fMaterial, settings, defaults):
+def saveOtherModeLDefinition(fMaterial, settings, defaults, defaultRenderMode):
 	saveModeSetting(fMaterial, settings.g_mdsft_alpha_compare,
 		defaults.g_mdsft_alpha_compare, DPSetAlphaCompare)
 
@@ -1431,39 +1442,56 @@ def saveOtherModeLDefinition(fMaterial, settings, defaults):
 
 	# cycle independent
 	if settings.set_rendermode:
-		if settings.g_mdsft_cycletype == 'G_CYC_2CYCLE':
-			renderModeSet = DPSetRenderMode([], 
-				settings.blend_p1, settings.blend_a1, 
-				settings.blend_m1, settings.blend_b1,
-				settings.blend_p2, settings.blend_a2, 
-				settings.blend_m2, settings.blend_b2)
+		if not settings.rendermode_advanced_enabled:
+			fMaterial.renderModeUseDrawLayer = [
+				settings.rendermode_preset_cycle_1 == 'Use Draw Layer',
+				settings.rendermode_preset_cycle_2 == 'Use Draw Layer']
+
+			if settings.g_mdsft_cycletype == 'G_CYC_2CYCLE':
+				renderModeSet = DPSetRenderMode([
+					settings.rendermode_preset_cycle_1, 
+					settings.rendermode_preset_cycle_2], None)
+			else: # ???
+				renderModeSet = DPSetRenderMode([
+					settings.rendermode_preset_cycle_1, 
+					settings.rendermode_preset_cycle_2], None)
 		else:
-			renderModeSet = DPSetRenderMode([], 
-				settings.blend_p1, settings.blend_a1, 
-				settings.blend_m1, settings.blend_b1,
-				settings.blend_p1, settings.blend_a1, 
-				settings.blend_m1, settings.blend_b1)
+			if settings.g_mdsft_cycletype == 'G_CYC_2CYCLE':
+				renderModeSet = DPSetRenderMode([], 
+					[[settings.blend_p1, settings.blend_a1, 
+					settings.blend_m1, settings.blend_b1],
+					[settings.blend_p2, settings.blend_a2, 
+					settings.blend_m2, settings.blend_b2]])
+			else:
+				renderModeSet = DPSetRenderMode([], 
+					[[settings.blend_p1, settings.blend_a1, 
+					settings.blend_m1, settings.blend_b1],
+					[settings.blend_p1, settings.blend_a1, 
+					settings.blend_m1, settings.blend_b1]])
 
-		if settings.aa_en:
-			renderModeSet.flagList.append("AA_EN")
-		if settings.z_cmp:
-			renderModeSet.flagList.append("Z_CMP")
-		if settings.z_upd:
-			renderModeSet.flagList.append("Z_UPD")
-		if settings.im_rd:
-			renderModeSet.flagList.append("IM_RD")
-		if settings.clr_on_cvg:
-			renderModeSet.flagList.append("CLR_ON_CVG")
+			if settings.aa_en:
+				renderModeSet.flagList.append("AA_EN")
+			if settings.z_cmp:
+				renderModeSet.flagList.append("Z_CMP")
+			if settings.z_upd:
+				renderModeSet.flagList.append("Z_UPD")
+			if settings.im_rd:
+				renderModeSet.flagList.append("IM_RD")
+			if settings.clr_on_cvg:
+				renderModeSet.flagList.append("CLR_ON_CVG")
 
-		renderModeSet.flagList.append(settings.cvg_dst)
-		renderModeSet.flagList.append(settings.zmode)
-		
-		if settings.cvg_x_alpha:
-			renderModeSet.flagList.append("CVG_X_ALPHA")
-		if settings.alpha_cvg_sel:
-			renderModeSet.flagList.append("ALPHA_CVG_SEL")
-		if settings.force_bl:
-			renderModeSet.flagList.append("FORCE_BL")
-		
+			renderModeSet.flagList.append(settings.cvg_dst)
+			renderModeSet.flagList.append(settings.zmode)
+
+			if settings.cvg_x_alpha:
+				renderModeSet.flagList.append("CVG_X_ALPHA")
+			if settings.alpha_cvg_sel:
+				renderModeSet.flagList.append("ALPHA_CVG_SEL")
+			if settings.force_bl:
+				renderModeSet.flagList.append("FORCE_BL")
+			
 		fMaterial.material.commands.append(renderModeSet)
+		if defaultRenderMode is not None:
+			fMaterial.revert.commands.append(
+				DPSetRenderMode(defaultRenderMode, None))
 		#fMaterial.revert.commands.append(defaultRenderMode)

@@ -714,7 +714,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 		meshGroup = saveModelGivenVertexGroup(
 			fModel, obj, bone.name, lastDeformName,
 			finalTransform, armatureObj, materialOverrides, 
-			namePrefix, infoDict)
+			namePrefix, infoDict, node.drawLayer)
 
 		if meshGroup is None:
 			#print("No mesh data.")
@@ -1090,7 +1090,7 @@ def checkUniqueBoneNames(fModel, name, vertexGroup):
 
 def saveModelGivenVertexGroup(fModel, obj, vertexGroup, 
 	parentGroup, transformMatrix, armatureObj, materialOverrides, namePrefix,
-	infoDict):
+	infoDict, drawLayer):
 	checkForF3DMaterial(obj)
 
 	mesh = obj.data
@@ -1170,7 +1170,8 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 	if len(skinnedFaces) > 0:
 		#print("Skinned")
 		fMeshGroup = saveSkinnedMeshByMaterial(skinnedFaces, fModel,
-			vertexGroup, obj, currentMatrix, parentMatrix, namePrefix, infoDict, vertexGroup)
+			vertexGroup, obj, currentMatrix, parentMatrix, namePrefix, 
+			infoDict, vertexGroup, drawLayer)
 	elif len(groupFaces) > 0:
 		fMeshGroup = FMeshGroup(toAlnum(namePrefix + \
 			('_' if namePrefix != '' else '') + vertexGroup), 
@@ -1187,7 +1188,7 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 	for material_index, bFaces in groupFaces.items():
 		material = obj.data.materials[material_index]
 		saveMeshByFaces(material, bFaces, 
-			fModel, fMeshGroup.mesh, obj, currentMatrix, infoDict)
+			fModel, fMeshGroup.mesh, obj, currentMatrix, infoDict, drawLayer)
 	
 	# End mesh drawing
 	# Reset settings to prevent issues with other models
@@ -1197,23 +1198,23 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 	for (material, specificMat, overrideType) in materialOverrides:
 		if fMeshGroup.mesh is not None:
 			saveOverrideDraw(obj, fModel, material, specificMat, overrideType,
-			fMeshGroup.mesh)
+			fMeshGroup.mesh, drawLayer)
 		if fMeshGroup.skinnedMesh is not None:
 			saveOverrideDraw(obj, fModel, material, specificMat, overrideType,
-			fMeshGroup.skinnedMesh)
+			fMeshGroup.skinnedMesh, drawLayer)
 	
 	return fMeshGroup
 
-def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh):
+def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, drawLayer):
 	fOverrideMat, texDimensions = \
-		saveOrGetF3DMaterial(material, fModel, obj)
+		saveOrGetF3DMaterial(material, fModel, obj, drawLayer)
 	overrideIndex = str(len(fMesh.drawMatOverrides))
 	if (material, specificMat, overrideType) in fMesh.drawMatOverrides:
 		overrideIndex = fMesh.drawMatOverrides[(material, specificMat, overrideType)].name[-1]
 	meshMatOverride = GfxList(
 		fMesh.name + '_mat_override_' + toAlnum(material.name) + \
 		'_' + overrideIndex)
-	print(fMesh.drawMatOverrides)
+	#print(fMesh.drawMatOverrides)
 	#print('fdddddddddddddddd ' + str(fMesh.name) + " " + str(material) + " " + str(specificMat) + " " + str(overrideType))
 	fMesh.drawMatOverrides[(material, specificMat, overrideType)] = meshMatOverride
 	removeReverts = []
@@ -1266,7 +1267,7 @@ def convertVertDictToArray(vertDict):
 	return data, matRegions
 
 # This collapses similar loops together IF they are in the same material.
-def splitSkinnedFacesIntoTwoGroups(skinnedFaces, fModel, obj, uv_layer):
+def splitSkinnedFacesIntoTwoGroups(skinnedFaces, fModel, obj, uv_layer, drawLayer):
 	inGroupVertArray = []
 	notInGroupVertArray = []
 	loopDict = {}
@@ -1280,7 +1281,7 @@ def splitSkinnedFacesIntoTwoGroups(skinnedFaces, fModel, obj, uv_layer):
 
 		material = obj.data.materials[material_index]
 		fMaterial, texDimensions = \
-			saveOrGetF3DMaterial(material, fModel, obj)
+			saveOrGetF3DMaterial(material, fModel, obj, drawLayer)
 		
 		exportVertexColors = isLightingDisabled(material)
 		convertInfo = LoopConvertInfo(uv_layer, obj, exportVertexColors)
@@ -1305,12 +1306,12 @@ def getGroupVertCount(group):
 	return count
 
 def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj, 
-	currentMatrix, parentMatrix, namePrefix, infoDict, vertexGroup):
+	currentMatrix, parentMatrix, namePrefix, infoDict, vertexGroup, drawLayer):
 	# We choose one or more loops per vert to represent a material from which 
 	# texDimensions can be found, since it is required for UVs.
 	uv_layer = obj.data.uv_layers.active.data
 	inGroupVertArray, notInGroupVertArray, loopDict = \
-		splitSkinnedFacesIntoTwoGroups(skinnedFaces, fModel, obj, uv_layer)
+		splitSkinnedFacesIntoTwoGroups(skinnedFaces, fModel, obj, uv_layer, drawLayer)
 
 	notInGroupCount = getGroupVertCount(notInGroupVertArray)
 	if notInGroupCount > fModel.f3d.vert_load_size - 2:
@@ -1331,7 +1332,11 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj,
 	curIndex = 0
 	for material_index, vertData in notInGroupVertArray:
 		material = obj.data.materials[material_index]
-		fMaterial, texDimensions = fModel.materials[material]
+		if material.rdp_settings.set_rendermode:
+			drawLayerKey = drawLayer
+		else:
+			drawLayerKey = None
+		fMaterial, texDimensions = fModel.materials[(material, drawLayerKey)]
 		isPointSampled = isTexturePointSampled(material)
 		exportVertexColors = isLightingDisabled(material)
 
@@ -1364,7 +1369,7 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj,
 		# We've already saved all materials, this just returns the existing ones.
 		material = obj.data.materials[material_index]
 		fMaterial, texDimensions = \
-			saveOrGetF3DMaterial(material, fModel, obj)
+			saveOrGetF3DMaterial(material, fModel, obj, drawLayer)
 		isPointSampled = isTexturePointSampled(material)
 		exportVertexColors = isLightingDisabled(material)
 

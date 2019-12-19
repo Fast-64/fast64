@@ -12,6 +12,7 @@ from .f3d_material_nodes import *
 from .sm64_constants import *
 from .utility import prop_split
 from bpy.utils import register_class, unregister_class
+import copy
 
 def F3DOrganizeLights(self, context):
 	# Flag to prevent infinite recursion on update callback
@@ -127,8 +128,8 @@ def ui_geo_mode(settings, dataHolder, layout):
 		if isinstance(dataHolder, bpy.types.Material) and \
 			settings.g_fog:
 			material = dataHolder
-			layout.prop(material, 'set_fog', text = 'Set Fog')
-			fogGroup = layout.column()
+			inputGroup.prop(material, 'set_fog', text = 'Set Fog')
+			fogGroup = inputGroup.column()
 			fogColorGroup = fogGroup.row().split(factor = 0.5)
 			fogColorGroup.label(text = 'Fog Color')
 			fogColorGroup.prop(material, 'fog_color', text = '')
@@ -136,6 +137,16 @@ def ui_geo_mode(settings, dataHolder, layout):
 			fogPositionGroup.label(text = 'Fog Range')
 			fogPositionGroup.prop(material, 'fog_position', text = '')
 			fogGroup.enabled = material.set_fog
+			inputGroup.box().label(text = 'NOTE: Fog will break with draw layer overrides.')
+			fogInfoBox = inputGroup.box()
+			fogInfoBox.label(text = 'To enable fog, make sure to do these things:')
+			fogInfoBox.label(text = '(Ignore this if you used the preset)')
+			fogInfoBox.label(text = 'In Other Mode Upper Settings, set Cycle Type to "2 Cycle".')
+			fogInfoBox.label(text = 'Use a combiner that has "Shade Color".')
+			fogInfoBox.label(text = 'In Render Settings, check "Set Render Mode".')
+			fogInfoBox.label(text = 'Set the first field to "Fog Shade".')
+			fogInfoBox.label(text = 'Set the second to the material\'s draw layer, usually "Opaque".')
+			
 		inputGroup.prop(settings, 'g_lighting', text = 'Lighting')
 		inputGroup.prop(settings, 'g_tex_gen', text = 'Texture UV Generate')
 		inputGroup.prop(settings, 'g_tex_gen_linear', 
@@ -381,51 +392,60 @@ class F3DPanel(bpy.types.Panel):
 		# cycle independent
 		inputGroup = layout.column()
 		inputGroup.prop(material, 'menu_lower_render', 
-			text = 'Other Mode Lower Render Settings', 
+			text = 'Render Settings', 
 			icon = 'TRIA_DOWN' if material.menu_lower_render else 'TRIA_RIGHT')
 		if material.menu_lower_render:
-			inputGroup.prop(material, 'set_rendermode', 
+			inputGroup.prop(material.rdp_settings, 'set_rendermode', 
 				text ='Set Render Mode?')
 
 			renderGroup = inputGroup.column()
-			prop_split(renderGroup, material.rdp_settings, 'aa_en', 'Antialiasing')
-			prop_split(renderGroup, material.rdp_settings, 'z_cmp', 'Z Testing')
-			prop_split(renderGroup, material.rdp_settings, 'z_upd', 'Z Writing')
-			prop_split(renderGroup, material.rdp_settings, 'im_rd', 'IM_RD (?)')
-			prop_split(renderGroup, material.rdp_settings, 'clr_on_cvg', 
-				'Clear On Coverage')
-			prop_split(renderGroup, material.rdp_settings, 'cvg_dst', 
-				'Coverage Destination')
-			prop_split(renderGroup, material.rdp_settings, 'zmode', 'Z Mode')
-			prop_split(renderGroup, material.rdp_settings, 'cvg_x_alpha', 
-				'Multiply Coverage And Alpha')
-			prop_split(renderGroup, material.rdp_settings, 'alpha_cvg_sel',
-				'Use Coverage For Alpha')
-			prop_split(renderGroup, material.rdp_settings, 'force_bl', 'Force Blending')
+			renderGroup.prop(material.rdp_settings, 'rendermode_advanced_enabled',
+				text = 'Show Advanced Settings')
+			if not material.rdp_settings.rendermode_advanced_enabled:
+				prop_split(renderGroup, material.rdp_settings, 
+					'rendermode_preset_cycle_1', "Render Mode")
+				if material.rdp_settings.g_mdsft_cycletype == 'G_CYC_2CYCLE':
+					prop_split(renderGroup, material.rdp_settings, 
+						'rendermode_preset_cycle_2', "Render Mode Cycle 2")
+			else:
+				prop_split(renderGroup, material.rdp_settings, 'aa_en', 'Antialiasing')
+				prop_split(renderGroup, material.rdp_settings, 'z_cmp', 'Z Testing')
+				prop_split(renderGroup, material.rdp_settings, 'z_upd', 'Z Writing')
+				prop_split(renderGroup, material.rdp_settings, 'im_rd', 'IM_RD (?)')
+				prop_split(renderGroup, material.rdp_settings, 'clr_on_cvg', 
+					'Clear On Coverage')
+				prop_split(renderGroup, material.rdp_settings, 'cvg_dst', 
+					'Coverage Destination')
+				prop_split(renderGroup, material.rdp_settings, 'zmode', 'Z Mode')
+				prop_split(renderGroup, material.rdp_settings, 'cvg_x_alpha', 
+					'Multiply Coverage And Alpha')
+				prop_split(renderGroup, material.rdp_settings, 'alpha_cvg_sel',
+					'Use Coverage For Alpha')
+				prop_split(renderGroup, material.rdp_settings, 'force_bl', 'Force Blending')
 
-			# cycle dependent - (P * A + M - B) / (A + B) 
-			combinerBox = renderGroup.box()
-			combinerBox.label(text='Blender (Color = (P * A + M - B) / (A + B)')
-			combinerCol = combinerBox.row()
-			rowColor = combinerCol.column()
-			rowAlpha = combinerCol.column()
-			rowColor.prop(material.rdp_settings, 'blend_p1', text = 'P')
-			rowColor.prop(material.rdp_settings, 'blend_m1', text = 'M')
-			rowAlpha.prop(material.rdp_settings, 'blend_a1', text = 'A')
-			rowAlpha.prop(material.rdp_settings, 'blend_b1', text = 'B')
+				# cycle dependent - (P * A + M - B) / (A + B) 
+				combinerBox = renderGroup.box()
+				combinerBox.label(text='Blender (Color = (P * A + M - B) / (A + B)')
+				combinerCol = combinerBox.row()
+				rowColor = combinerCol.column()
+				rowAlpha = combinerCol.column()
+				rowColor.prop(material.rdp_settings, 'blend_p1', text = 'P')
+				rowColor.prop(material.rdp_settings, 'blend_m1', text = 'M')
+				rowAlpha.prop(material.rdp_settings, 'blend_a1', text = 'A')
+				rowAlpha.prop(material.rdp_settings, 'blend_b1', text = 'B')
 
-			if material.rdp_settings.g_mdsft_cycletype == 'G_CYC_2CYCLE':
-				combinerBox2 = renderGroup.box()
-				combinerBox2.label(text='Blender Cycle 2')
-				combinerCol2 = combinerBox2.row()
-				rowColor2 = combinerCol2.column()
-				rowAlpha2 = combinerCol2.column()
-				rowColor2.prop(material.rdp_settings, 'blend_p2', text = 'P')
-				rowColor2.prop(material.rdp_settings, 'blend_m2', text = 'M')
-				rowAlpha2.prop(material.rdp_settings, 'blend_a2', text = 'A')
-				rowAlpha2.prop(material.rdp_settings, 'blend_b2', text = 'B')
+				if material.rdp_settings.g_mdsft_cycletype == 'G_CYC_2CYCLE':
+					combinerBox2 = renderGroup.box()
+					combinerBox2.label(text='Blender Cycle 2')
+					combinerCol2 = combinerBox2.row()
+					rowColor2 = combinerCol2.column()
+					rowAlpha2 = combinerCol2.column()
+					rowColor2.prop(material.rdp_settings, 'blend_p2', text = 'P')
+					rowColor2.prop(material.rdp_settings, 'blend_m2', text = 'M')
+					rowAlpha2.prop(material.rdp_settings, 'blend_a2', text = 'A')
+					rowAlpha2.prop(material.rdp_settings, 'blend_b2', text = 'B')
 
-			renderGroup.enabled = material.set_rendermode
+			renderGroup.enabled = material.rdp_settings.set_rendermode
 		
 	def ui_procAnimVec(self, procAnimVec, layout, name, vecType):
 		layout.prop(procAnimVec, 'menu', text = name, 
@@ -574,8 +594,8 @@ class F3DPanel(bpy.types.Panel):
 			ui_geo_mode(material.rdp_settings, material, layout)
 			ui_upper_mode(material.rdp_settings, material, layout)
 			ui_lower_mode(material.rdp_settings, material, layout)
-			layout.box().label(text = \
-				'WARNING: Render mode settings not reset after drawing.')
+			#layout.box().label(text = \
+			#	'WARNING: Render mode settings not reset after drawing.')
 			self.ui_lower_render_mode(material, layout)
 
 def update_node_values(self, context):
@@ -989,6 +1009,7 @@ class F3DMaterialSettings:
 		self.g_cull_front = False
 		self.g_cull_back = True
 		self.g_fog = False
+		self.set_fog = False
 		self.g_lighting = True
 		self.g_tex_gen = False
 		self.g_tex_gen_linear = False
@@ -1029,14 +1050,17 @@ class F3DMaterialSettings:
 		self.force_bl = False
 
 		# cycle dependent - (P * A + M - B) / (A + B)
-		self.blend_p1 = None
-		self.blend_p2 = None
-		self.blend_m1 = None
-		self.blend_m2 = None
-		self.blend_a1 = None
-		self.blend_a2 = None
-		self.blend_b1 = None
-		self.blend_b2 = None
+		self.rendermode_advanced_enabled = False
+		self.rendermode_preset_cycle_1 = 'G_RM_AA_ZB_OPA_SURF'
+		self.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
+		self.blend_p1 = 'G_BL_CLR_IN'
+		self.blend_p2 = 'G_BL_CLR_IN'
+		self.blend_m1 = 'G_BL_CLR_IN'
+		self.blend_m2 = 'G_BL_CLR_IN'
+		self.blend_a1 = 'G_BL_A_IN'
+		self.blend_a2 = 'G_BL_A_IN'
+		self.blend_b1 = 'G_BL_1MA'
+		self.blend_b2 = 'G_BL_1MA'
 
 	def loadFromMaterial(self, material):
 		if not material.is_f3d:
@@ -1056,10 +1080,10 @@ class F3DMaterialSettings:
 			material.combiner2.B,
 			material.combiner2.C,
 			material.combiner2.D,
-			material.combiner1.A_alpha,
-			material.combiner1.B_alpha,
-			material.combiner1.C_alpha,
-			material.combiner1.D_alpha,
+			material.combiner2.A_alpha,
+			material.combiner2.B_alpha,
+			material.combiner2.C_alpha,
+			material.combiner2.D_alpha,
 		)
 		self.set_texture0 = material.tex0.tex_set
 		self.set_texture1 = material.tex1.tex_set
@@ -1069,7 +1093,7 @@ class F3DMaterialSettings:
 		self.set_key = material.set_key
 		self.set_k0_5 = material.set_k0_5
 		self.set_combiner = material.set_combiner
-		self.set_rendermode = material.set_rendermode
+		self.set_rendermode = material.rdp_settings.set_rendermode
 		self.scale_autoprop = material.scale_autoprop
 
 		# geometry mode
@@ -1078,6 +1102,7 @@ class F3DMaterialSettings:
 		self.g_cull_front = material.rdp_settings.g_cull_front
 		self.g_cull_back = material.rdp_settings.g_cull_back
 		self.g_fog = material.rdp_settings.g_fog
+		self.set_fog = material.set_fog
 		self.g_lighting = material.rdp_settings.g_lighting
 		self.g_tex_gen = material.rdp_settings.g_tex_gen
 		self.g_tex_gen_linear = material.rdp_settings.g_tex_gen_linear
@@ -1118,6 +1143,9 @@ class F3DMaterialSettings:
 		self.force_bl = material.rdp_settings.force_bl
 
 		# cycle dependent - (P * A + M - B) / (A + B)
+		self.rendermode_advanced_enabled = material.rdp_settings.rendermode_advanced_enabled
+		self.rendermode_preset_cycle_1 = material.rdp_settings.rendermode_preset_cycle_1
+		self.rendermode_preset_cycle_2 = material.rdp_settings.rendermode_preset_cycle_2
 		self.blend_p1 = material.rdp_settings.blend_p1
 		self.blend_p2 = material.rdp_settings.blend_p2
 		self.blend_m1 = material.rdp_settings.blend_m1
@@ -1145,10 +1173,10 @@ class F3DMaterialSettings:
 		material.combiner2.B = self.color_combiner[9]
 		material.combiner2.C = self.color_combiner[10]
 		material.combiner2.D = self.color_combiner[11]
-		material.combiner1.A_alpha = self.color_combiner[12]
-		material.combiner1.B_alpha = self.color_combiner[13]
-		material.combiner1.C_alpha = self.color_combiner[14]
-		material.combiner1.D_alpha = self.color_combiner[15]
+		material.combiner2.A_alpha = self.color_combiner[12]
+		material.combiner2.B_alpha = self.color_combiner[13]
+		material.combiner2.C_alpha = self.color_combiner[14]
+		material.combiner2.D_alpha = self.color_combiner[15]
 
 		material.tex0.tex_set = self.set_texture0
 		material.tex1.tex_set = self.set_texture1
@@ -1158,7 +1186,7 @@ class F3DMaterialSettings:
 		material.set_key = self.set_key
 		material.set_k0_5 = self.set_k0_5
 		material.set_combiner = self.set_combiner
-		material.set_rendermode = self.set_rendermode
+		material.rdp_settings.set_rendermode = self.set_rendermode
 		material.scale_autoprop = self.scale_autoprop
 
 		# geometry mode
@@ -1167,6 +1195,7 @@ class F3DMaterialSettings:
 		material.rdp_settings.g_cull_front = self.g_cull_front
 		material.rdp_settings.g_cull_back = self.g_cull_back
 		material.rdp_settings.g_fog = self.g_fog
+		material.set_fog = self.set_fog
 		material.rdp_settings.g_lighting = self.g_lighting
 		material.rdp_settings.g_tex_gen = self.g_tex_gen
 		material.rdp_settings.g_tex_gen_linear = self.g_tex_gen_linear
@@ -1195,6 +1224,9 @@ class F3DMaterialSettings:
 
 		# cycle independent
 		if self.set_rendermode:
+			material.rdp_settings.rendermode_advanced_enabled = self.rendermode_advanced_enabled
+			material.rdp_settings.rendermode_preset_cycle_1 = self.rendermode_preset_cycle_1
+			material.rdp_settings.rendermode_preset_cycle_2 = self.rendermode_preset_cycle_2
 			material.rdp_settings.aa_en = self.aa_en
 			material.rdp_settings.z_cmp = self.z_cmp
 			material.rdp_settings.z_upd = self.z_upd
@@ -1379,37 +1411,43 @@ class RDPSettings(bpy.types.PropertyGroup):
 		default = 'G_ZS_PIXEL')
 
 	# cycle independent
-	set_rendermode : bpy.props.BoolProperty(default = False)
-	aa_en : bpy.props.BoolProperty()
-	z_cmp : bpy.props.BoolProperty()
-	z_upd : bpy.props.BoolProperty()
-	im_rd : bpy.props.BoolProperty()
-	clr_on_cvg : bpy.props.BoolProperty()
+	set_rendermode : bpy.props.BoolProperty(default = False, update = update_node_values)
+	rendermode_advanced_enabled : bpy.props.BoolProperty(default = False, update = update_node_values)
+	rendermode_preset_cycle_1 : bpy.props.EnumProperty(items = enumRenderModesCycle1,
+		default = 'G_RM_AA_ZB_OPA_SURF', name = 'Render Mode Cycle 1', update = update_node_values)
+	rendermode_preset_cycle_2 : bpy.props.EnumProperty(items = enumRenderModesCycle2,
+		default = 'G_RM_AA_ZB_OPA_SURF2', name = 'Render Mode Cycle 2', update = update_node_values)
+	aa_en : bpy.props.BoolProperty(update = update_node_values)
+	z_cmp : bpy.props.BoolProperty(update = update_node_values)
+	z_upd : bpy.props.BoolProperty(update = update_node_values)
+	im_rd : bpy.props.BoolProperty(update = update_node_values)
+	clr_on_cvg : bpy.props.BoolProperty(update = update_node_values)
 	cvg_dst : bpy.props.EnumProperty(
-		name = 'Coverage Destination', items = enumCoverage)
+		name = 'Coverage Destination', items = enumCoverage,
+		update = update_node_values)
 	zmode : bpy.props.EnumProperty(
-		name = 'Z Mode', items = enumZMode)
-	cvg_x_alpha : bpy.props.BoolProperty()
-	alpha_cvg_sel : bpy.props.BoolProperty()
-	force_bl : bpy.props.BoolProperty()
+		name = 'Z Mode', items = enumZMode, update = update_node_values)
+	cvg_x_alpha : bpy.props.BoolProperty(update = update_node_values)
+	alpha_cvg_sel : bpy.props.BoolProperty(update = update_node_values)
+	force_bl : bpy.props.BoolProperty(update = update_node_values)
 
 	# cycle dependent - (P * A + M - B) / (A + B) 
 	blend_p1 : bpy.props.EnumProperty(
-		name = 'Color Source 1', items = enumBlendColor)
+		name = 'Color Source 1', items = enumBlendColor, update = update_node_values)
 	blend_p2 : bpy.props.EnumProperty(
-		name = 'Color Source 1', items = enumBlendColor)
+		name = 'Color Source 1', items = enumBlendColor, update = update_node_values)
 	blend_m1 : bpy.props.EnumProperty(
-		name = 'Color Source 2', items = enumBlendColor)
+		name = 'Color Source 2', items = enumBlendColor, update = update_node_values)
 	blend_m2 : bpy.props.EnumProperty(
-		name = 'Color Source 2', items = enumBlendColor)
+		name = 'Color Source 2', items = enumBlendColor, update = update_node_values)
 	blend_a1 : bpy.props.EnumProperty(
-		name = 'Alpha Source', items = enumBlendAlpha)
+		name = 'Alpha Source', items = enumBlendAlpha, update = update_node_values)
 	blend_a2 : bpy.props.EnumProperty(
-		name = 'Alpha Source', items = enumBlendAlpha)
+		name = 'Alpha Source', items = enumBlendAlpha, update = update_node_values)
 	blend_b1 : bpy.props.EnumProperty(
-		name = 'Alpha Mix', items = enumBlendMix)
+		name = 'Alpha Mix', items = enumBlendMix, update = update_node_values)
 	blend_b2 : bpy.props.EnumProperty(
-		name = 'Alpha Mix', items = enumBlendMix)
+		name = 'Alpha Mix', items = enumBlendMix, update = update_node_values)
 
 class DefaultRDPSettingsPanel(bpy.types.Panel):
 	bl_label = "RDP Default Settings"
@@ -1632,7 +1670,7 @@ def mat_register():
 	bpy.types.Material.fog_color = bpy.props.FloatVectorProperty(
 		name = 'Fog Color', subtype='COLOR', size = 4, min = 0, max = 1, default = (0,0,0,1))
 	bpy.types.Material.fog_position = bpy.props.IntVectorProperty(
-		name = 'Fog Range', size = 2, min = 0, max = 1000, default = (500,1000))
+		name = 'Fog Range', size = 2, min = 0, max = 1000, default = (900,1000))
 	bpy.types.Material.set_fog = bpy.props.BoolProperty()
 
 	# geometry mode
@@ -1640,7 +1678,6 @@ def mat_register():
 	bpy.types.Material.menu_upper = bpy.props.BoolProperty()
 	bpy.types.Material.menu_lower = bpy.props.BoolProperty()
 	bpy.types.Material.menu_lower_render = bpy.props.BoolProperty()
-	bpy.types.Material.set_rendermode = bpy.props.BoolProperty(default = False)
 	bpy.types.Material.rdp_settings = bpy.props.PointerProperty(
 		type = RDPSettings)
 
@@ -1698,6 +1735,29 @@ sm64_prim_transparent_shade.color_combiner = tuple(S_PRIM_TRANSPARENT_SHADE + \
 sm64_prim_transparent_shade.set_env = False
 sm64_prim_transparent_shade.g_cull_back = False
 
+sm64_fog_shaded_texture = F3DMaterialSettings()
+sm64_fog_shaded_texture.g_fog = True
+sm64_fog_shaded_texture.color_combiner = tuple(S_SHADED_TEX + S_SHADED_TEX)
+sm64_fog_shaded_texture.set_env = False
+sm64_fog_shaded_texture.set_fog = True
+sm64_fog_shaded_texture.g_mdsft_cycletype = 'G_CYC_2CYCLE'
+sm64_fog_shaded_texture.set_rendermode = True
+sm64_fog_shaded_texture.rendermode_advanced_enabled = False
+sm64_fog_shaded_texture.rendermode_preset_cycle_1 = 'G_RM_FOG_SHADE_A'
+sm64_fog_shaded_texture.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
+
+sm64_fog_shaded_texture_cutout = copy.deepcopy(sm64_fog_shaded_texture)
+sm64_fog_shaded_texture_cutout.color_combiner = \
+	tuple(S_SHADED_TEX_CUTOUT + S_SHADED_TEX_CUTOUT)
+sm64_fog_shaded_texture_cutout.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_TEX_EDGE2'
+sm64_fog_shaded_texture_cutout.g_cull_back = False
+
+sm64_fog_shaded_texture_transparent = copy.deepcopy(sm64_fog_shaded_texture)
+sm64_fog_shaded_texture_transparent.color_combiner = \
+	tuple(S_PRIM_TRANSPARENT_SHADE + S_PRIM_TRANSPARENT_SHADE)
+sm64_fog_shaded_texture_transparent.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_XLU_SURF2'
+sm64_fog_shaded_texture_transparent.g_cull_back = False
+
 enumMaterialPresets = [
     ('Custom', 'Custom', 'Custom'),
     ('Unlit Texture', 'Unlit Texture', 'Unlit Texture'),
@@ -1706,9 +1766,12 @@ enumMaterialPresets = [
 	('Decal On Shaded Solid', 'Decal On Shaded Solid', 'Decal On Shaded Solid'),
     ('Shaded Texture', 'Shaded Texture', 'Shaded Texture'),
     ('Shaded Texture Cutout', 'Shaded Texture Cutout', 'Shaded Texture Cutout'),
-	('Shaded Texture Transparent', 'Shaded Texture Transparent', 'Shaded Texture Transparent'),
+	('Shaded Texture Transparent', 'Shaded Texture Transparent (Prim Alpha)', 'Shaded Texture Transparent (Prim Alpha)'),
 	('Vertex Colored Texture', 'Vertex Colored Texture', 'Vertex Colored Texture'),
     ('Environment Mapped', 'Environment Mapped', 'Environment Mapped'),
+	('Fog Shaded Texture', 'Fog Shaded Texture', 'Fog Shaded Texture'),
+	('Fog Shaded Texture Cutout', 'Fog Shaded Texture Cutout', 'Fog Shaded Texture Cutout'),
+	('Fog Shaded Texture Transparent', 'Fog Shaded Texture Transparent (Prim Alpha)', 'Fog Shaded Texture Transparent (Prim Alpha)'),
 ]
 
 materialPresetDict = {
@@ -1721,5 +1784,7 @@ materialPresetDict = {
     'Environment Mapped' : sm64_unlit_env_map,
     'Decal On Shaded Solid' : sm64_decal,
     'Vertex Colored Texture' : sm64_vert_colored_tex,
-	
+	'Fog Shaded Texture' : sm64_fog_shaded_texture,
+	'Fog Shaded Texture Cutout' : sm64_fog_shaded_texture_cutout,
+	'Fog Shaded Texture Transparent' : sm64_fog_shaded_texture_transparent,
 }

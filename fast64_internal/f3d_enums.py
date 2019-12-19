@@ -230,6 +230,36 @@ enumBlendMix = [
 	('G_BL_0', '0', '0')
 ]
 
+enumRenderModesCycle1 = [
+	#('Use Draw Layer', 'Use Draw Layer', 'Use Draw Layer'),
+	('G_RM_ZB_OPA_SURF', 'Background', 'G_RM_ZB_OPA_SURF'),
+    ('G_RM_AA_ZB_OPA_SURF', 'Opaque', 'G_RM_AA_ZB_OPA_SURF'),
+    ('G_RM_AA_ZB_OPA_DECAL', 'Opaque Decal', 'G_RM_AA_ZB_OPA_DECAL'),
+    ('G_RM_AA_ZB_OPA_INTER', 'Opaque Intersecting', 'G_RM_AA_ZB_OPA_INTER'),
+    ('G_RM_AA_ZB_TEX_EDGE', 'Cutout', 'G_RM_AA_ZB_TEX_EDGE'),
+    ('G_RM_AA_ZB_XLU_SURF', 'Transparent', 'G_RM_AA_ZB_XLU_SURF'),
+    ('G_RM_AA_ZB_XLU_DECAL', 'Transparent Decal', 'G_RM_AA_ZB_XLU_DECAL'),
+    ('G_RM_AA_ZB_XLU_INTER', 'Transparent Intersecting', 'G_RM_AA_ZB_XLU_INTER'),
+	('G_RM_FOG_SHADE_A', 'Fog Shade', 'G_RM_FOG_SHADE_A'),
+	('G_RM_FOG_PRIM_A', 'Fog Primitive', 'G_RM_FOG_PRIM_A'),
+	('G_RM_ADD', 'Add', 'G_RM_ADD'),
+	('G_RM_NOOP', 'No Op', 'G_RM_NOOP'),
+]
+
+enumRenderModesCycle2 = [
+	#('Use Draw Layer', 'Use Draw Layer', 'Use Draw Layer'),
+	('G_RM_ZB_OPA_SURF2', 'Background', 'G_RM_ZB_OPA_SURF2'),
+    ('G_RM_AA_ZB_OPA_SURF2', 'Opaque', 'G_RM_AA_ZB_OPA_SURF2'),
+    ('G_RM_AA_ZB_OPA_DECAL2', 'Opaque Decal', 'G_RM_AA_ZB_OPA_DECAL2'),
+    ('G_RM_AA_ZB_OPA_INTER2', 'Opaque Intersecting', 'G_RM_AA_ZB_OPA_INTER2'),
+    ('G_RM_AA_ZB_TEX_EDGE2', 'Cutout', 'G_RM_AA_ZB_TEX_EDGE2'),
+    ('G_RM_AA_ZB_XLU_SURF2', 'Transparent', 'G_RM_AA_ZB_XLU_SURF2'),
+    ('G_RM_AA_ZB_XLU_DECAL2', 'Transparent Decal', 'G_RM_AA_ZB_XLU_DECAL2'),
+    ('G_RM_AA_ZB_XLU_INTER2', 'Transparent Intersecting', 'G_RM_AA_ZB_XLU_INTER2'),
+	('G_RM_ADD2', 'Add', 'G_RM_ADD2'),
+	('G_RM_NOOP', 'No Op', 'G_RM_NOOP'),
+]
+
 enumTexFormat = [
 	('I4','Intensity 4-bit', 'Intensity 4-bit'),
 	('I8','Intensity 8-bit', 'Intensity 8-bit'),

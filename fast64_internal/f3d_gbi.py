@@ -4,6 +4,7 @@ from .utility import decodeSegmentedAddr, encodeSegmentedAddr, get64bitAlignedAd
 from math import ceil
 import os
 from .utility import getNameFromPath
+import copy
 
 lightIndex = {
 	'LIGHT_1' : 1,
@@ -24,6 +25,17 @@ vertexBufferSize = {
 	'F3DLP.Rej' : (80, 32),
 	'F3DEX2/LX2' : (32, 32),
 	'F3DEX2.Rej/LX2.Rej' : (64, 64),
+}
+
+drawLayerRenderMode = {
+	0: ('G_RM_ZB_OPA_SURF', 'G_RM_NOOP2'),
+	1: ('G_RM_AA_ZB_OPA_SURF', 'G_RM_NOOP2'),
+	2: ('G_RM_AA_ZB_OPA_DECAL', 'G_RM_NOOP2'),
+	3: ('G_RM_AA_ZB_OPA_INTER', 'G_RM_NOOP2'),
+	4: ('G_RM_AA_ZB_TEX_EDGE', 'G_RM_NOOP2'),
+	5: ('G_RM_AA_ZB_XLU_SURF', 'G_RM_NOOP2'),
+	6: ('G_RM_AA_ZB_XLU_DECAL', 'G_RM_NOOP2'),
+	7: ('G_RM_AA_ZB_XLU_INTER', 'G_RM_NOOP2'),
 }
 
 class F3D:
@@ -1471,7 +1483,7 @@ class FModel:
 		self.lights = {}
 		# dict of (texture, (texture format, palette format)) : FImage
 		self.textures = {}
-		# dict of material: (FMaterial, (width, height))
+		# dict of (material, drawLayer): (FMaterial, (width, height))
 		self.materials = {} 
 		# dict of body part name : FMeshGroup
 		self.meshGroups = {}
@@ -1482,7 +1494,7 @@ class FModel:
 		addresses = []
 		for name, meshGroup in self.meshGroups.items():
 			addresses.extend(meshGroup.get_ptr_addresses(f3d))
-		for material, (fMaterial, texDimensions) in self.materials.items():
+		for (material, drawLayer), (fMaterial, texDimensions) in self.materials.items():
 			addresses.extend(fMaterial.get_ptr_addresses(f3d))
 		return addresses
 	
@@ -1506,7 +1518,7 @@ class FModel:
 			if not startAddrSet:
 				startAddrSet = True
 				startAddress = addrRange[0]
-		for material, (fMaterial, texDimensions) in self.materials.items():
+		for (material, drawLayer), (fMaterial, texDimensions) in self.materials.items():
 			addrRange = fMaterial.set_addr(addrRange[1], self.f3d)
 			if not startAddrSet:
 				startAddrSet = True
@@ -1518,7 +1530,7 @@ class FModel:
 			light.save_binary(romfile)
 		for info, texture in self.textures.items():
 			texture.save_binary(romfile)
-		for material, (fMaterial, texDimensions) in self.materials.items():
+		for (material, drawLayer), (fMaterial, texDimensions) in self.materials.items():
 			fMaterial.save_binary(romfile, self.f3d, segments)
 		for name, meshGroup in self.meshGroups.items():
 			meshGroup.save_binary(romfile, self.f3d, segments)
@@ -1529,7 +1541,7 @@ class FModel:
 			data += light.to_c() + '\n'
 		for info, texture in self.textures.items():
 			data += texture.to_c() + '\n'
-		for material, (fMaterial, texDimensions) in self.materials.items():
+		for (material, drawLayer), (fMaterial, texDimensions) in self.materials.items():
 			data += fMaterial.to_c(static) + '\n'
 		for name, meshGroup in self.meshGroups.items():
 			data += meshGroup.to_c(static) + '\n'
@@ -1574,7 +1586,7 @@ class FModel:
 						raise Exception(str(e))
 					image.filepath = oldpath
 
-		for material, (fMaterial, texDimensions) in self.materials.items():
+		for (material, drawLayer), (fMaterial, texDimensions) in self.materials.items():
 			data += fMaterial.to_c(static) + '\n'
 		for name, meshGroup in self.meshGroups.items():
 			data += meshGroup.to_c(static) + '\n'
@@ -1600,7 +1612,7 @@ class FModel:
 	
 	def to_c_def(self):
 		data = ''
-		for material, (fMaterial, texDimensions) in self.materials.items():
+		for (material, drawLayer), (fMaterial, texDimensions) in self.materials.items():
 			data += fMaterial.to_c_def()
 		for name, meshGroup in self.meshGroups.items():
 			data += meshGroup.to_c_def()
@@ -1664,7 +1676,8 @@ class FMesh:
 		self.triangleLists	= []
 		# VtxList
 		self.vertexList = VtxList(name + '_vtx')
-		# dict of (override Material, specified Material to override) : GfxList
+		# dict of (override Material, specified Material to override, 
+		# overrideType, draw layer) : GfxList
 		self.drawMatOverrides = {}
 	
 	def get_ptr_addresses(self, f3d):
@@ -1720,6 +1733,40 @@ class FMaterial:
 		self.material = GfxList('mat_' + name)
 		self.revert = GfxList('mat_revert_' + name)
 
+	def sets_rendermode(self):
+		for command in self.material.commands:
+			if isinstance(command, DPSetRenderMode):
+				return True
+		return False
+
+	def createOrGetDrawLayerSpecific(self, drawLayer):
+		if not self.sets_rendermode() or drawLayer == self.defaultDrawlayer:
+			return [self.material, self.revert]
+		elif drawLayer in self.drawLayerOverrides:
+			return self.drawLayerOverrides[drawLayer]
+		else:
+			overrideMat = []
+			for command in self.material.commands:
+				if isinstance(command, DPSetRenderMode):
+					overrideMat.append(DPSetRenderMode([
+						command.flagList[0] if not self.renderModeUseDrawLayer[0] \
+							else drawLayerRenderMode[drawLayer][0],
+						command.flagList[1] if not self.renderModeUseDrawLayer[1] \
+							else drawLayerRenderMode[drawLayer][1],
+					], []))
+					
+				overrideMat.append(copy.copy(command))
+			overrideRevert = []
+			for command in self.revert.commands:
+				if isinstance(command, DPSetRenderMode):
+					overrideRevert.append(DPSetRenderMode(drawLayerRenderMode[drawLayer], []))
+				else:
+					overrideRevert.append(copy.copy(command))
+				
+			
+			self.drawLayerOverrides[drawLayer] = [overrideMat, overrideRevert]
+			return self.drawLayerOverrides[drawLayer]
+
 	def get_ptr_addresses(self, f3d):
 		addresses = self.material.get_ptr_addresses(f3d)
 		if self.revert is not None:
@@ -1737,7 +1784,7 @@ class FMaterial:
 		self.material.save_binary(romfile, f3d, segments)
 		if self.revert is not None:
 			self.revert.save_binary(romfile, f3d, segments)
-	
+
 	def to_c(self, static):
 		data = self.material.to_c(static) + '\n'
 		if self.revert is not None:
@@ -2167,7 +2214,7 @@ def gsMoveWd(index, offset, data, f3d):
 	if f3d.F3DEX_GBI_2:
 		return gsDma1p(f3d.G_MOVEWORD, data, offset, index)
 	else:
-		return gsImmp21(f3d.G_MOVEWORD, data, offset, index)
+		return gsImmp21(f3d.G_MOVEWORD, offset, index, data)
 
 # SPSprite2DScaleFlip
 # SPSprite2DDraw
@@ -2672,8 +2719,8 @@ class SPFogFactor:
 
 class SPFogPosition:
 	def __init__(self, minVal, maxVal):
-		self.minVal = minVal
-		self.maxVal = maxVal
+		self.minVal = int(round(minVal))
+		self.maxVal = int(round(maxVal))
 	
 	def to_binary(self, f3d, segments):
 		return gsMoveWd(f3d.G_MW_FOG, f3d.G_MWO_FOG,\
@@ -3200,24 +3247,7 @@ class DPSetDepthSource:
 def renderFlagListToWord(flagList, f3d):
 	word = 0
 	for name in flagList:
-		if   name == 'AA_EN': word += f3d.AA_EN
-		elif name == 'Z_CMP': word += f3d.Z_CMP
-		elif name == 'Z_UPD': word += f3d.Z_UPD
-		elif name == 'IM_RD': word += f3d.IM_RD
-		elif name == 'CLR_ON_CVG': word += f3d.CLR_ON_CVG
-		elif name == 'CVG_DST_CLAMP': word += f3d.CVG_DST_CLAMP
-		elif name == 'CVG_DST_WRAP': word += f3d.CVG_DST_WRAP
-		elif name == 'CVG_DST_FULL': word += f3d.CVG_DST_FULL
-		elif name == 'CVG_DST_SAVE': word += f3d.CVG_DST_SAVE
-		elif name == 'ZMODE_OPA': word += f3d.ZMODE_OPA
-		elif name == 'ZMODE_INTER': word += f3d.ZMODE_INTER
-		elif name == 'ZMODE_XLU': word += f3d.ZMODE_XLU
-		elif name == 'ZMODE_DEC': word += f3d.ZMODE_DEC
-		elif name == 'CVG_X_ALPHA': word += f3d.CVG_X_ALPHA
-		elif name == 'ALPHA_CVG_SEL': word += f3d.ALPHA_CVG_SEL
-		elif name == 'FORCE_BL': word += f3d.FORCE_BL
-		elif name == 'TEX_EDGE': word += f3d.TEX_EDGE
-		else: raise ValueError("Invalid render mode flag " + name)
+		word += getattr(f3d, name)
 	
 	return word
 
@@ -3228,17 +3258,18 @@ def	GBL_c2(m1a, m1b, m2a, m2b):
 
 class DPSetRenderMode:
 	# bl0-3 are string for each blender enum
-	def __init__(self, flagList, bl00, bl01, bl02, bl03, 
-		bl10, bl11, bl12, bl13):
+	def __init__(self, flagList, blendList):
 		self.flagList = flagList
-		self.bl00 = bl00
-		self.bl01 = bl01
-		self.bl02 = bl02
-		self.bl03 = bl03
-		self.bl10 = bl10
-		self.bl11 = bl11
-		self.bl12 = bl12
-		self.bl13 = bl13
+		self.use_preset = blendList is None
+		if not self.use_preset:
+			self.bl00 = blendList[0][0]
+			self.bl01 = blendList[0][1]
+			self.bl02 = blendList[0][2]
+			self.bl03 = blendList[0][3]
+			self.bl10 = blendList[1][0]
+			self.bl11 = blendList[1][1]
+			self.bl12 = blendList[1][2]
+			self.bl13 = blendList[1][3]
 	
 	def getGBL_c(self, f3d):
 		bl00 = getattr(f3d, self.bl00)
@@ -3254,18 +3285,30 @@ class DPSetRenderMode:
 	
 	def to_binary(self, f3d, segments):
 		flagWord = renderFlagListToWord(self.flagList, f3d)
-		return gsSPSetOtherMode(f3d.G_SETOTHERMODE_L, 
-			f3d.G_MDSFT_RENDERMODE, 29, flagWord | self.getGBL_c(f3d), f3d)
+
+		if not self.use_preset:
+			return gsSPSetOtherMode(f3d.G_SETOTHERMODE_L, 
+				f3d.G_MDSFT_RENDERMODE, 29, flagWord | self.getGBL_c(f3d), f3d)
+		else:
+			return gsSPSetOtherMode(f3d.G_SETOTHERMODE_L, 
+				f3d.G_MDSFT_RENDERMODE, 29, flagWord, f3d)
 
 	def to_c(self, static = True):
 		data = 'gsDPSetRenderMode(' if static else \
 			'gsDPSetRenderMode(glistp++, '
-		data += 'GBL_c1(' + self.bl00 + ', ' + self.bl01 + ', ' + \
-			self.bl02 + ', ' + self.bl03 + ') | GBL_c2(' + self.bl10 + \
-			', ' + self.bl11 + ', ' + self.bl12 + ', ' + self.bl13 + '), '
-		for name in self.flagList:
-			data += name + ' | '
-		return data[:-3] + ')'
+
+		if not self.use_preset:
+			data += 'GBL_c1(' + self.bl00 + ', ' + self.bl01 + ', ' + \
+				self.bl02 + ', ' + self.bl03 + ') | GBL_c2(' + self.bl10 + \
+				', ' + self.bl11 + ', ' + self.bl12 + ', ' + self.bl13 + '), '
+			for name in self.flagList:
+				data += name + ' | '
+			return data[:-3] + ')'
+		else:
+			if len(self.flagList) != 2:
+				raise ValueError("For a rendermode preset, only two fields should be used.")
+			data += self.flagList[0] + ', ' + self.flagList[1] + ')'
+			return data
 
 	def to_sm64_decomp_s(self):
 		raise ValueError("Cannot use DPSetRenderMode with gbi.inc.")
