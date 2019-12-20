@@ -588,7 +588,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 	finalTransform = copy.deepcopy(transformMatrix)
 	materialOverrides = copy.copy(materialOverrides)
 	
-	if boneGroup is not None and boneGroup.name == 'Ignore':
+	if bone.geo_cmd == 'Ignore':
 		return
 
 	# Get translate
@@ -612,7 +612,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 	translation = mathutils.Matrix.Translation(translate)
 	rotation = rotate.to_matrix().to_4x4()
 
-	if boneGroup is None:
+	if bone.geo_cmd == 'DisplayListWithOffset':
 		rotAxis, rotAngle = rotate.to_axis_angle()
 		if rotAngle > 0.00001:
 			node = DisplayListWithOffsetNode(int(bone.draw_layer),
@@ -630,16 +630,16 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 		
 		finalTransform = transformMatrix @ translation	
 	
-	elif boneGroup.name == 'Function':
+	elif bone.geo_cmd == 'Function':
 		if bone.geo_func == '':
 			raise ValueError('Function bone ' + boneName + ' function value is empty.')
 		node = FunctionNode(bone.geo_func, bone.func_param)
-	elif boneGroup.name == 'HeldObject':
+	elif bone.geo_cmd == 'HeldObject':
 		if bone.geo_func == '':
 			raise ValueError('Held object bone ' + boneName + ' function value is empty.')
 		node = HeldObjectNode(bone.geo_func, translate)
 	else:
-		if boneGroup.name == 'Switch':
+		if bone.geo_cmd == 'Switch':
 			# This is done so we can easily calculate transforms 
 			# of switch options.
 			
@@ -649,9 +649,9 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 			node = SwitchNode(bone.geo_func, bone.func_param, boneName)
 			processSwitchBoneMatOverrides(materialOverrides, bone)
 			
-		elif boneGroup.name == 'Start':
+		elif bone.geo_cmd == 'Start':
 			node = StartNode()
-		elif boneGroup.name == 'TranslateRotate':
+		elif bone.geo_cmd == 'TranslateRotate':
 			drawLayer = int(bone.draw_layer)
 			fieldLayout = int(bone.field_layout)
 			hasDL = bone.use_deform
@@ -675,38 +675,38 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 				finalTransform = transformMatrix @ rotation
 				lastRotateName = boneName
 			
-		elif boneGroup.name == 'Translate':
+		elif bone.geo_cmd == 'Translate':
 			node = TranslateNode(int(bone.draw_layer), bone.use_deform,
 				translate)
 			finalTransform = transformMatrix @ translation
 			lastTranslateName = boneName
-		elif boneGroup.name == 'Rotate':
+		elif bone.geo_cmd == 'Rotate':
 			node = RotateNode(int(bone.draw_layer), bone.use_deform, rotate)
 			finalTransform = transformMatrix @ rotation
 			lastRotateName = boneName
-		elif boneGroup.name == 'Billboard':
+		elif bone.geo_cmd == 'Billboard':
 			node = BillboardNode(int(bone.draw_layer), bone.use_deform,
 				translate)
 			finalTransform = transformMatrix @ translation
 			lastTranslateName = boneName
-		elif boneGroup.name == 'DisplayList':
+		elif bone.geo_cmd == 'DisplayList':
 			node = DisplayListNode(int(bone.draw_layer))
 			if not armatureObj.data.bones[boneName].use_deform:
 				raise ValueError("Display List (0x15) " + boneName + ' must be a deform bone. Make sure deform is checked in bone properties.')
-		elif boneGroup.name == 'Shadow':
+		elif bone.geo_cmd == 'Shadow':
 			shadowType = int(bone.shadow_type)
 			shadowSolidity = bone.shadow_solidity 
 			shadowScale = bone.shadow_scale
 			node = ShadowNode(shadowType, shadowSolidity, shadowScale)
-		elif boneGroup.name == 'Scale':
+		elif bone.geo_cmd == 'Scale':
 			node = ScaleNode(int(bone.draw_layer), bone.geo_scale,
 				bone.use_deform)
 			finalTransform = transformMatrix @ \
 				mathutils.Matrix.Scale(node.scaleValue, 4)
-		elif boneGroup.name == 'StartRenderArea':
+		elif bone.geo_cmd == 'StartRenderArea':
 			node = StartRenderAreaNode(bone.culling_radius)
 		else:
-			raise ValueError("Invalid bone group " + boneGroup.name)
+			raise ValueError("Invalid geometry command: " + bone.geo_cmd)
 	
 	transformNode = TransformNode(node)
 
@@ -747,7 +747,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 		#print(boneGroup.name if boneGroup is not None else "Offset")
 		if len(bone.children) > 0: 
 			#print("\tHas Children")
-			if boneGroup is not None and boneGroup.name == 'Function':
+			if bone.geo_cmd == 'Function':
 				raise ValueError("Function bones cannot have children. They instead affect the next sibling bone in alphabetical order.")
 
 			# Handle child nodes
@@ -1222,7 +1222,7 @@ def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, dr
 		meshMatOverride.commands.append(copy.copy(command))
 	for command in meshMatOverride.commands:
 		if isinstance(command, SPDisplayList):
-			for modelMaterial, (fMaterial, texDimensions) in \
+			for (modelMaterial, modelDrawLayer), (fMaterial, texDimensions) in \
 				fModel.materials.items():
 				shouldModify = \
 					(overrideType == 'Specific' and modelMaterial in specificMat) or \
