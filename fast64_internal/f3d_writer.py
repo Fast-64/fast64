@@ -149,7 +149,7 @@ def saveStaticModel(fModel, obj, transformMatrix):
 			fModel, fMeshGroup.mesh, obj, transformMatrix, 
 			infoDict, None)
 	
-	revertMatAndEndDraw(fMeshGroup.mesh.draw)
+	revertMatAndEndDraw(fMeshGroup.mesh.draw, [])
 	return fMeshGroup
 
 def exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren):
@@ -192,7 +192,7 @@ def exportF3DtoC(dirPath, obj, isStatic, transformMatrix,
 		outFile.close()
 
 	headerPath = os.path.join(modelDirPath, 'header.h')
-	cDefine = fModel.to_c_def()
+	cDefine = fModel.to_c_def(isStatic)
 	cDefFile = open(headerPath, 'w')
 	cDefFile.write(cDefine)
 	cDefFile.close()
@@ -279,14 +279,15 @@ def checkForF3DMaterial(obj):
 			raise ValueError(obj.name + " has either empty material slots " +\
 				'or non-Fast3D materials. Remove any regular blender materials / empty slots.')
 
-def revertMatAndEndDraw(gfxList):
+def revertMatAndEndDraw(gfxList, otherCommands):
 	gfxList.commands.extend([
 		DPPipeSync(),
 		SPSetGeometryMode(['G_LIGHTING']),
 		SPClearGeometryMode(['G_TEXTURE_GEN']),
 		DPSetCombineMode(*S_SHADED_SOLID),
-		SPTexture(0xFFFF, 0xFFFF, 0, 0, 0),
-		SPEndDisplayList()])
+		SPTexture(0xFFFF, 0xFFFF, 0, 0, 0)] +\
+		otherCommands +\
+		[SPEndDisplayList()])
 
 def getCommonEdge(face1, face2, mesh):
 	for edgeKey1 in face1.edge_keys:
@@ -1030,8 +1031,8 @@ def saveTextureLoading(fImage, fMaterial, clamp_S, mirror_S, clamp_T,
 		('G_TX_MIRROR' if mirror_T else 'G_TX_NOMIRROR')]
 	masks = mask_S
 	maskt = mask_T
-	shifts = shift_S if shift_S > 0 else (shift_S + 16)
-	shiftt = shift_T if shift_T > 0 else (shift_T + 16)
+	shifts = shift_S if shift_S >= 0 else (shift_S + 16)
+	shiftt = shift_T if shift_T >= 0 else (shift_T + 16)
 
 	#print('Low ' + str(SL) + ' ' + str(TL))
 	sl = int(SL * (2 ** f3d.G_TEXTURE_IMAGE_FRAC))
@@ -1042,47 +1043,59 @@ def saveTextureLoading(fImage, fMaterial, clamp_S, mirror_S, clamp_T,
 	fmt = texFormatOf[tex_format]
 	siz = texBitSizeOf[tex_format]
 	pal = 0 if fmt[:2] != 'CI' else 0 # handle palettes
-	dxt = f3d.CALC_DXT_4b(fImage.width) if siz == 'G_IM_SIZ_4b' else \
-		f3d.CALC_DXT(fImage.width, f3d.G_IM_SIZ_VARS[siz + '_BYTES'])
-	
-	# Note that _LINE_BYTES and _TILE_BYTES variables are the same.
-	line = (((fImage.width >> 1) + 7) >> 3) if siz == 'G_IM_SIZ_4b' else \
-		(((fImage.width * f3d.G_IM_SIZ_VARS[siz + '_LINE_BYTES']) + 7) >> 3)
 
 	# LoadTile will pad rows to 64 bit word alignment, while
 	# LoadBlock assumes this is already done.
+	if siz == 'G_IM_SIZ_4b':
+		dxt = f3d.CALC_DXT_4b(fImage.width)
+		line = ((fImage.width >> 1) + 7) >> 3
 
+		fMaterial.material.commands.extend([
+			DPTileSync(), # added in
+			DPSetTextureImage(fmt, 'G_IM_SIZ_8b', fImage.width >> 1, fImage),
+			DPSetTile(fmt, 'G_IM_SIZ_8b', line, tmem, 
+				f3d.G_TX_LOADTILE - texIndex, 0, cmt, maskt, shiftt, 
+			 	cms, masks, shifts),])
+
+	else:
+		dxt = f3d.CALC_DXT(fImage.width, f3d.G_IM_SIZ_VARS[siz + '_BYTES'])
+		# Note that _LINE_BYTES and _TILE_BYTES variables are the same.
+		line = ((fImage.width * \
+			f3d.G_IM_SIZ_VARS[siz + '_LINE_BYTES']) + 7) >> 3
+
+		fMaterial.material.commands.extend([
+			DPTileSync(), # added in
+
+			# Load Block version
+			#DPSetTextureImage(fmt, siz + '_LOAD_BLOCK', 1, fImage),
+			#DPSetTile(fmt, siz + '_LOAD_BLOCK', 0, tmem, 
+			#	f3d.G_TX_LOADTILE - texIndex, 0, cmt, maskt, shiftt, 
+			# 	cms, masks, shifts),
+			#DPLoadSync(),
+			#DPLoadBlock(f3d.G_TX_LOADTILE - texIndex, 0, 0, \
+			#	(((fImage.width)*(fImage.height) + \
+			#	f3d.G_IM_SIZ_VARS[siz + '_INCR']) >> \
+			#	f3d.G_IM_SIZ_VARS[siz + '_SHIFT'])-1, \
+			#	dxt),
+
+			# Load Tile version
+			DPSetTextureImage(fmt, siz, fImage.width, fImage),
+			DPSetTile(fmt, siz, line, tmem, 
+				f3d.G_TX_LOADTILE - texIndex, 0, cmt, maskt, shiftt, 
+			 	cms, masks, shifts),]) # added in
+	
 	fMaterial.material.commands.extend([
-		DPTileSync(), # added in
-		
-		# Load Block version
-		#DPSetTextureImage(fmt, siz + '_LOAD_BLOCK', 1, fImage),
-		#DPSetTile(fmt, siz + '_LOAD_BLOCK', 0, tmem, 
-		#	f3d.G_TX_LOADTILE - texIndex, 0, cmt, maskt, shiftt, 
-		# 	cms, masks, shifts),
-		#DPLoadSync(),
-		#DPLoadBlock(f3d.G_TX_LOADTILE - texIndex, 0, 0, \
-		#	(((fImage.width)*(fImage.height) + \
-		#	f3d.G_IM_SIZ_VARS[siz + '_INCR']) >> \
-		#	f3d.G_IM_SIZ_VARS[siz + '_SHIFT'])-1, \
-		#	dxt),
-		
-		# Load Tile version
-		DPSetTextureImage(fmt, siz, fImage.width, fImage),
-		DPSetTile(fmt, siz, line, tmem, 
-			f3d.G_TX_LOADTILE - texIndex, 0, cmt, maskt, shiftt, 
-		 	cms, masks, shifts),
 		DPLoadSync(),
 		DPLoadTile(f3d.G_TX_LOADTILE - texIndex, 0, 0,
 			(fImage.width - 1) << f3d.G_TEXTURE_IMAGE_FRAC,
 			(fImage.height - 1) << f3d.G_TEXTURE_IMAGE_FRAC),
-			
+
 		DPPipeSync(),
 		DPSetTile(fmt, siz, line, tmem,	\
 			f3d.G_TX_RENDERTILE + texIndex, pal, cmt, maskt, \
 			shiftt, cms, masks, shifts),
 		DPSetTileSize(f3d.G_TX_RENDERTILE + texIndex, sl, tl, sh, th)
-		]) # added in
+	]) # added in)
 
 # palette stored in upper half of TMEM (words 256-511)
 # pal is palette number (0-16), for CI8 always set to 0

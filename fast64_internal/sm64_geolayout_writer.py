@@ -70,6 +70,23 @@ def getCameraObj(camera):
 	raise ValueError('The level camera ' + camera.name + \
 		' is no longer in the scene.')
 
+def appendRevertToGeolayout(geolayoutGraph, fModel):
+	fModel.materialRevert = GfxList('material_revert_render_settings')
+	revertMatAndEndDraw(fModel.materialRevert, 
+		[DPSetEnvColor(0xFF, 0xFF, 0xFF, 0xFF),
+		DPSetAlphaCompare("G_AC_NONE")])
+
+	# Revert settings in each draw layer
+	for i in range(8):
+		dlNode = DisplayListNode(i)
+		dlNode.DLmicrocode = fModel.materialRevert
+
+		# Assume first node is start render area
+		# This is important, since a render area groups things separately.
+		# If we added these nodes outside the render area, they would not happen
+		# right after the nodes inside.
+		geolayoutGraph.startGeolayout.nodes[0].children.append(TransformNode(dlNode))
+
 # Convert to Geolayout
 def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix, 
 	f3dType, isHWv1, camera):
@@ -105,6 +122,7 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix,
 		[], '', meshGeolayout, geolayoutGraph, infoDict)
 	generateSwitchOptions(meshGeolayout.nodes[0], meshGeolayout, geolayoutGraph,
 		'')
+	appendRevertToGeolayout(geolayoutGraph, fModel)
 	geolayoutGraph.generateSortedList()
 	return geolayoutGraph, fModel
 
@@ -158,6 +176,7 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 		bpy.context.view_layer.objects.active = obj
 		raise Exception(str(e))
 
+	appendRevertToGeolayout(geolayoutGraph, fModel)
 	geolayoutGraph.generateSortedList()
 	return geolayoutGraph, fModel
 
@@ -203,7 +222,7 @@ def saveGeolayoutC(dirName, geolayoutGraph, fModel, dirPath, texDir, savePNG,
 	geoFile.close()
 
 	headerPath = os.path.join(geoDirPath, 'header.h')
-	cDefine = geolayoutGraph.to_c_def() + fModel.to_c_def()
+	cDefine = geolayoutGraph.to_c_def() + fModel.to_c_def(True)
 	cDefFile = open(headerPath, 'w')
 	cDefFile.write(cDefine)
 	cDefFile.close()
@@ -1192,7 +1211,10 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 	
 	# End mesh drawing
 	# Reset settings to prevent issues with other models
-	revertMatAndEndDraw(fMeshGroup.mesh.draw)
+	#revertMatAndEndDraw(fMeshGroup.mesh.draw)
+	fMeshGroup.mesh.draw.commands.extend([
+		SPEndDisplayList(),
+	])
 
 	# Must be done after all geometry saved
 	for (material, specificMat, overrideType) in materialOverrides:

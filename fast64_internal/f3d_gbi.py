@@ -1468,8 +1468,11 @@ class GfxList:
 			data += '\treturn glistp;\n}\n'	
 		return data
 
-	def to_c_def(self):
-		return 'extern const Gfx ' + self.name + '[];\n'
+	def to_c_def(self, static):
+		if static:
+			return 'extern const Gfx ' + self.name + '[];\n'
+		else:
+			return 'Gfx* ' + self.name + '(Gfx* glistp);\n'
 	
 	def to_sm64_decomp_s(self):
 		data = 'glabel ' + self.name + '\n'
@@ -1487,6 +1490,8 @@ class FModel:
 		self.materials = {} 
 		# dict of body part name : FMeshGroup
 		self.meshGroups = {}
+		# GfxList
+		self.materialRevert = None
 		# F3D library
 		self.f3d = F3D(f3dType, isHWv1)
 	
@@ -1496,6 +1501,8 @@ class FModel:
 			addresses.extend(meshGroup.get_ptr_addresses(f3d))
 		for (material, drawLayer), (fMaterial, texDimensions) in self.materials.items():
 			addresses.extend(fMaterial.get_ptr_addresses(f3d))
+		if self.materialRevert is not None:
+			addresses.extend(self.materialRevert.get_ptr_addresses(f3d))
 		return addresses
 	
 	def set_addr(self, startAddress):
@@ -1523,6 +1530,11 @@ class FModel:
 			if not startAddrSet:
 				startAddrSet = True
 				startAddress = addrRange[0]
+		if self.materialRevert is not None:
+			addrRange = self.materialRevert.set_addr(addrRange[1], self.f3d)
+			if not startAddrSet:
+				startAddrSet = True
+				startAddress = addrRange[0]
 		return startAddress, addrRange[1]
 
 	def save_binary(self, romfile, segments):
@@ -1534,6 +1546,8 @@ class FModel:
 			fMaterial.save_binary(romfile, self.f3d, segments)
 		for name, meshGroup in self.meshGroups.items():
 			meshGroup.save_binary(romfile, self.f3d, segments)
+		if self.materialRevert is not None:
+			self.materialRevert.save_binary(romfile, self.f3d, segments)
 	
 	def to_c(self, static):
 		data = ''
@@ -1545,6 +1559,8 @@ class FModel:
 			data += fMaterial.to_c(static) + '\n'
 		for name, meshGroup in self.meshGroups.items():
 			data += meshGroup.to_c(static) + '\n'
+		if self.materialRevert is not None:
+			data += self.materialRevert.to_c(static) + '\n'
 		return data
 
 	def save_c_tex_separate(self, static, texDir, dirpath, texSeparate):
@@ -1590,6 +1606,8 @@ class FModel:
 			data += fMaterial.to_c(static) + '\n'
 		for name, meshGroup in self.meshGroups.items():
 			data += meshGroup.to_c(static) + '\n'
+		if self.materialRevert is not None:
+			data += self.materialRevert.to_c(static) + '\n'
 		
 		modelPath = os.path.join(dirpath, 'model.inc.c')
 		modelFile = open(modelPath, 'w')
@@ -1610,12 +1628,14 @@ class FModel:
 			if texInfo[1] == 'PAL':
 				bpy.data.images.remove(image)
 	
-	def to_c_def(self):
+	def to_c_def(self, static):
 		data = ''
 		for (material, drawLayer), (fMaterial, texDimensions) in self.materials.items():
-			data += fMaterial.to_c_def()
+			data += fMaterial.to_c_def(static)
 		for name, meshGroup in self.meshGroups.items():
-			data += meshGroup.to_c_def()
+			data += meshGroup.to_c_def(static)
+		if self.materialRevert is not None:
+			data += self.materialRevert.to_c_def(static)
 		return data + '\n'
 
 class FMeshGroup:
@@ -1659,12 +1679,12 @@ class FMeshGroup:
 			data += self.skinnedMesh.to_c(static) + '\n'
 		return data
 	
-	def to_c_def(self):
+	def to_c_def(self, static):
 		data = ""
 		if self.mesh is not None:
-			data += self.mesh.to_c_def()
+			data += self.mesh.to_c_def(static)
 		if self.skinnedMesh is not None:
-			data += self.skinnedMesh.to_c_def()
+			data += self.skinnedMesh.to_c_def(static)
 		return data
 
 class FMesh:
@@ -1720,12 +1740,12 @@ class FMesh:
 			data += drawOverride.to_c(static) + '\n'
 		return data
 
-	def to_c_def(self):
-		data = self.draw.to_c_def()
+	def to_c_def(self, static):
+		data = self.draw.to_c_def(static)
 		for triangleList in self.triangleLists:
-			data += triangleList.to_c_def()
+			data += triangleList.to_c_def(static)
 		for materialTuple, drawOverride in self.drawMatOverrides.items():
-			data += drawOverride.to_c_def()
+			data += drawOverride.to_c_def(static)
 		return data
 
 class FMaterial:
@@ -1739,33 +1759,33 @@ class FMaterial:
 				return True
 		return False
 
-	def createOrGetDrawLayerSpecific(self, drawLayer):
-		if not self.sets_rendermode() or drawLayer == self.defaultDrawlayer:
-			return [self.material, self.revert]
-		elif drawLayer in self.drawLayerOverrides:
-			return self.drawLayerOverrides[drawLayer]
-		else:
-			overrideMat = []
-			for command in self.material.commands:
-				if isinstance(command, DPSetRenderMode):
-					overrideMat.append(DPSetRenderMode([
-						command.flagList[0] if not self.renderModeUseDrawLayer[0] \
-							else drawLayerRenderMode[drawLayer][0],
-						command.flagList[1] if not self.renderModeUseDrawLayer[1] \
-							else drawLayerRenderMode[drawLayer][1],
-					], []))
-					
-				overrideMat.append(copy.copy(command))
-			overrideRevert = []
-			for command in self.revert.commands:
-				if isinstance(command, DPSetRenderMode):
-					overrideRevert.append(DPSetRenderMode(drawLayerRenderMode[drawLayer], []))
-				else:
-					overrideRevert.append(copy.copy(command))
-				
-			
-			self.drawLayerOverrides[drawLayer] = [overrideMat, overrideRevert]
-			return self.drawLayerOverrides[drawLayer]
+	#def createOrGetDrawLayerSpecific(self, drawLayer):
+	#	if not self.sets_rendermode() or drawLayer == self.defaultDrawlayer:
+	#		return [self.material, self.revert]
+	#	elif drawLayer in self.drawLayerOverrides:
+	#		return self.drawLayerOverrides[drawLayer]
+	#	else:
+	#		overrideMat = []
+	#		for command in self.material.commands:
+	#			if isinstance(command, DPSetRenderMode):
+	#				overrideMat.append(DPSetRenderMode([
+	#					command.flagList[0] if not self.renderModeUseDrawLayer[0] \
+	#						else drawLayerRenderMode[drawLayer][0],
+	#					command.flagList[1] if not self.renderModeUseDrawLayer[1] \
+	#						else drawLayerRenderMode[drawLayer][1],
+	#				], []))
+	#				
+	#			overrideMat.append(copy.copy(command))
+	#		overrideRevert = []
+	#		for command in self.revert.commands:
+	#			if isinstance(command, DPSetRenderMode):
+	#				overrideRevert.append(DPSetRenderMode(drawLayerRenderMode[drawLayer], []))
+	#			else:
+	#				overrideRevert.append(copy.copy(command))
+	#			
+	#		
+	#		self.drawLayerOverrides[drawLayer] = [overrideMat, overrideRevert]
+	#		return self.drawLayerOverrides[drawLayer]
 
 	def get_ptr_addresses(self, f3d):
 		addresses = self.material.get_ptr_addresses(f3d)
@@ -1791,10 +1811,10 @@ class FMaterial:
 			data += self.revert.to_c(static) + '\n'
 		return data
 	
-	def to_c_def(self):
-		data = self.material.to_c_def()
+	def to_c_def(self, static):
+		data = self.material.to_c_def(static)
 		if self.revert is not None:
-			data += self.revert.to_c_def()
+			data += self.revert.to_c_def(static)
 		return data
 
 # viewport

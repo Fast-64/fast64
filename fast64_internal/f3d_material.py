@@ -694,7 +694,8 @@ def update_tex_values_field(self, fieldProperty, texCoordNode, pixelLength,
 	if autoprop:
 		fieldProperty.low = 0
 		fieldProperty.high = pixelLength - 1
-		fieldProperty.mask =  math.ceil(math.log(pixelLength, 2) - 0.001)
+		#fieldProperty.mask =  math.ceil(math.log(pixelLength, 2) - 0.001)
+		fieldProperty.mask = 0
 		fieldProperty.shift = 0
 	
 	L = fieldProperty.low
