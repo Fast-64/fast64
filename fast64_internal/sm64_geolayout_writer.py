@@ -949,7 +949,13 @@ def getGroupIndex(vert, armatureObj, obj):
 	if len(actualGroups) == 0:
 		raise ValueError("All vertices must be part of a vertex group (weight painted), and the vertex group must correspond to a bone in the armature.")
 	vertGroup = actualGroups[0]
+	significantWeightFound = False
 	for group in actualGroups:
+		if group.weight > 0.5:
+			if not significantWeightFound:
+				significantWeightFound = True
+			else:
+				raise ValueError("A vertex was found that was significantly weighted to multiple groups. Make sure each vertex only belongs to one group whose weight is greater than 0.5.")
 		if group.weight > vertGroup.weight:
 			vertGroup = group
 
