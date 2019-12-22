@@ -694,8 +694,8 @@ def update_tex_values_field(self, fieldProperty, texCoordNode, pixelLength,
 	if autoprop:
 		fieldProperty.low = 0
 		fieldProperty.high = pixelLength - 1
-		#fieldProperty.mask =  math.ceil(math.log(pixelLength, 2) - 0.001)
-		fieldProperty.mask = 0
+		fieldProperty.mask =  math.ceil(math.log(pixelLength, 2) - 0.001)
+		#fieldProperty.mask = 0
 		fieldProperty.shift = 0
 	
 	L = fieldProperty.low
@@ -709,7 +709,7 @@ def update_tex_values_field(self, fieldProperty, texCoordNode, pixelLength,
 		texCoordNode['Normalized L'].outputs[0].default_value = L / pixelLength
 	texCoordNode['Normalized H'].outputs[0].default_value = (H + 1)/pixelLength
 	texCoordNode['Normalized Mask'].outputs[0].default_value = \
-		(2 ** mask) / pixelLength if mask > 0 else 1024 # sorta hacky, this is the max UV value
+		(2 ** mask) / pixelLength if mask > 0 else 0
 	
 	texCoordNode['Shift'].outputs[0].default_value = shift
 	texCoordNode['Scale'].outputs[0].default_value = scale * uvBasisScale
