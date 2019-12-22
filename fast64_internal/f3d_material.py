@@ -818,7 +818,8 @@ def update_preset_manual(material, context):
 def createF3DMat(obj):
 	material = bpy.data.materials.new('sm64_material')
 	obj.data.materials.append(material)
-	bpy.context.object.active_material_index = len(obj.material_slots) - 1
+	if bpy.context.object is not None:
+		bpy.context.object.active_material_index = len(obj.material_slots) - 1
 
 	material.is_f3d = True
 
