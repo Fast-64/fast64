@@ -86,7 +86,10 @@ def getInfoDict(obj):
 	validNeighborDict = infoDict['validNeighbors']
 
 	mesh = obj.data
-	uv_layer = obj.data.uv_layers.active.data
+	if obj.data.uv_layers.active is None:
+		uv_layer = obj.data.uv_layers.new()
+	else:
+		uv_layer = obj.data.uv_layers.active.data
 	for face in mesh.loop_triangles:
 		validNeighborDict[face] = []
 		for vertIndex in face.vertices:
