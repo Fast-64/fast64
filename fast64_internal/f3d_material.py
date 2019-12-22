@@ -605,8 +605,8 @@ def update_node_values(self, context):
 	if hasattr(context.scene, 'world') and \
 		self == context.scene.world.rdp_defaults:
 		pass
-	elif hasattr(context, 'material') and context.material is not None:
-		material = context.material # Handles case of texture property groups
+	elif hasattr(context, 'material_slot') and context.material_slot is not None:
+		material = context.material_slot.material # Handles case of texture property groups
 		if not material.is_f3d or material.f3d_update_flag:
 			return
 		material.f3d_update_flag = True
@@ -804,10 +804,11 @@ def update_tex_values_manual(self, context):
 		'Get UV.001', isTexGen, uvBasisScale1, self.tex_scale)
 
 def update_preset(self, context):
-	if hasattr(context, 'material') and context.material is not None:
-		if context.material.f3d_preset != 'Custom':
-			materialSettings = materialPresetDict[context.material.f3d_preset]
-			materialSettings.applyToMaterial(context.material)
+	if hasattr(context, 'material_slot') and context.material_slot is not None:
+		material = context.material_slot.material
+		if material.f3d_preset != 'Custom':
+			materialSettings = materialPresetDict[material.f3d_preset]
+			materialSettings.applyToMaterial(material)
 
 def update_preset_manual(material, context):
 	if material.f3d_preset != 'Custom':
@@ -817,6 +818,7 @@ def update_preset_manual(material, context):
 def createF3DMat(obj):
 	material = bpy.data.materials.new('sm64_material')
 	obj.data.materials.append(material)
+	bpy.context.object.active_material_index = len(obj.material_slots) - 1
 
 	material.is_f3d = True
 
