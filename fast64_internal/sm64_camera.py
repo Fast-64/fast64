@@ -150,10 +150,11 @@ def cam_register():
 		name = 'Use Default Screen Rect', default = True)
 
 def cam_unregister():
+	del bpy.types.Camera.useBackgroundColor
 	del bpy.types.Camera.backgroundID
 	del bpy.types.Camera.backgroundColor
 	del bpy.types.Camera.dynamicFOV
-	del bpy.types.Camera.orthoScale
+	#del bpy.types.Camera.orthoScale
 	del bpy.types.Camera.screenPos
 	del bpy.types.Camera.screenSize
 	del bpy.types.Camera.camType
