@@ -618,8 +618,9 @@ def parseDL(romfile, currentAddress, currentTransform, bMesh, obj, armatureObj,
 			currentTransform, True, command, segmentData, bMesh, obj,
 			nodeIndex, 'DisplayList', vertexBuffer,
 			f3dType, isHWv1)
-		bone = armatureObj.data.bones[boneName]
-		bone.draw_layer = str(drawLayer)
+		if armatureObj is not None:
+			bone = armatureObj.data.bones[boneName]
+			bone.draw_layer = str(drawLayer)
 
 	currentAddress += commandSize
 	return currentAddress	
@@ -857,8 +858,9 @@ def parseTranslate(romfile, currentAddress,
 			finalTransform, loadDL, command, segmentData, bMesh, obj,
 			nodeIndex, 'Translate', vertexBuffer, 
 			f3dType, isHWv1)
-		bone = armatureObj.data.bones[boneName]
-		bone.draw_layer = str(drawLayer)
+		if armatureObj is not None:
+			bone = armatureObj.data.bones[boneName]
+			bone.draw_layer = str(drawLayer)
 	else:
 		boneName = None
 
@@ -891,8 +893,9 @@ def parseRotate(romfile, currentAddress,
 			finalTransform, loadDL, command, segmentData, bMesh, obj,
 			nodeIndex, 'Rotate', vertexBuffer, 
 			f3dType, isHWv1)
-		bone = armatureObj.data.bones[boneName]
-		bone.draw_layer = str(drawLayer)
+		if armatureObj is not None:
+			bone = armatureObj.data.bones[boneName]
+			bone.draw_layer = str(drawLayer)
 	else:
 		boneName = None
 
@@ -925,8 +928,9 @@ def parseBillboard(romfile, currentAddress,
 			finalTransform, loadDL, command, segmentData, bMesh, obj,
 			nodeIndex, 'Billboard', vertexBuffer, 
 			f3dType, isHWv1)
-		bone = armatureObj.data.bones[boneName]
-		bone.draw_layer = str(drawLayer)
+		if armatureObj is not None:
+			bone = armatureObj.data.bones[boneName]
+			bone.draw_layer = str(drawLayer)
 	else:
 		boneName = None
 

@@ -418,9 +418,9 @@ def generateSwitchOptions(transformNode, geolayout, geolayoutGraph, prefix):
 				copyNode = optionGeolayout.nodes[0]
 
 				#i -= 1
-				# Assumes first child is a jump node to option 0
+				# Assumes first child is a start node, where option 0 is
 				# assumes overrideChild starts with a Start node
-				option0Nodes = transformNode.children[0].node.geolayout.nodes
+				option0Nodes = [transformNode.children[0]]
 				if len(option0Nodes) == 1 and \
 					isinstance(option0Nodes[0].node, StartNode):
 					for startChild in option0Nodes[0].children:
@@ -787,18 +787,22 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 	else:
 		#print(boneGroup.name if boneGroup is not None else "Offset")
 		if len(bone.children) > 0: 
-			optionGeolayout = \
-				geolayoutGraph.addGeolayout(
-					transformNode, boneName + '_opt0')
-			geolayoutGraph.addJumpNode(transformNode, geolayout, 
-				optionGeolayout)
-			optionGeolayout.nodes.append(TransformNode(StartNode()))
+			#optionGeolayout = \
+			#	geolayoutGraph.addGeolayout(
+			#		transformNode, boneName + '_opt0')
+			#geolayoutGraph.addJumpNode(transformNode, geolayout, 
+			#	optionGeolayout)
+			#optionGeolayout.nodes.append(TransformNode(StartNode()))
+			nextStartNode = TransformNode(StartNode())
+			transformNode.children.append(nextStartNode)
+			nextStartNode.parent = transformNode
+
 			childrenNames = sorted([bone.name for bone in bone.children])
 			for name in childrenNames:
 				processBone(fModel, name, obj, armatureObj, 
 					finalTransform, lastTranslateName, lastRotateName, 
-					lastDeformName, optionGeolayout.nodes[0], materialOverrides, 
-					namePrefix, optionGeolayout,
+					lastDeformName, nextStartNode, materialOverrides, 
+					namePrefix, geolayout,
 					geolayoutGraph, infoDict)
 				#transformNode.children.append(childNode)
 				#childNode.parent = transformNode

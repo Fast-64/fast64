@@ -275,7 +275,7 @@ def getBinaryBank0F3DData(fModel, RAMAddr, exportRange):
 
 def checkForF3DMaterial(obj):
 	if len(obj.material_slots) == 0:
-		raise ValueError(obj.name + " has no Fast3D material.")
+		raise ValueError(obj.name + " has no Fast3D material. Make sure to add a Fast3D material to it.")
 	for materialSlot in obj.material_slots:
 		if materialSlot.material is None or \
 			not materialSlot.material.is_f3d:
