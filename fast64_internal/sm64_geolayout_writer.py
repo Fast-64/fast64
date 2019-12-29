@@ -740,7 +740,9 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 			if isinstance(node, DisplayListNode):
 				raise ValueError("Display List (0x15) " + boneName + " must have vertices assigned to it. If you have already done this, make sure there aren't any other bones that also own these vertices with greater or equal weighting.")
 			node.hasDL = False
-			bone.use_deform = False
+			#bone.use_deform = False
+			if bone.use_deform:
+				lastDeformName = boneName
 			parentTransformNode.children.append(transformNode)
 			transformNode.parent = parentTransformNode
 		else:
@@ -1132,6 +1134,7 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 	ancestorGroups = getAncestorGroups(parentGroup, armatureObj, obj)
 
 	if len(vertIndices) == 0:
+		print("No vert indices in " + vertexGroup)
 		return None
 
 	bone = armatureObj.data.bones[vertexGroup]
@@ -1206,6 +1209,7 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 			('_' if namePrefix != '' else '') + vertexGroup), 
 			FMesh(toAlnum(namePrefix + vertexGroup) + '_mesh'), None)
 	else:
+		print("No faces in " + vertexGroup)
 		return None
 	
 	# Save mesh group
