@@ -180,6 +180,15 @@ def ui_lower_mode(settings, dataHolder, layout):
 		prop_split(inputGroup, settings, 'g_mdsft_alpha_compare', 'Alpha Compare')
 		prop_split(inputGroup, settings, 'g_mdsft_zsrcsel', 'Z Source Selection')
 
+def ui_other(settings, dataHolder, layout):
+	inputGroup = layout.column()
+	inputGroup.prop(dataHolder, 'menu_other', 
+		text = 'Other Settings', 
+		icon = 'TRIA_DOWN' if dataHolder.menu_other else 'TRIA_RIGHT')
+	if dataHolder.menu_other:
+		clipRatioGroup = inputGroup.column()
+		prop_split(clipRatioGroup, settings, 'clip_ratio', "Clip Ratio")
+
 # UI Assumptions:
 # shading = 1
 # lighting = 1
@@ -436,7 +445,7 @@ class F3DPanel(bpy.types.Panel):
 					rowAlpha2.prop(material.rdp_settings, 'blend_b2', text = 'B')
 
 			renderGroup.enabled = material.rdp_settings.set_rendermode
-		
+	
 	def ui_procAnimVec(self, procAnimVec, layout, name, vecType):
 		layout.prop(procAnimVec, 'menu', text = name, 
 			icon = 'TRIA_DOWN' if procAnimVec.menu else 'TRIA_RIGHT')
@@ -600,6 +609,7 @@ class F3DPanel(bpy.types.Panel):
 			#layout.box().label(text = \
 			#	'WARNING: Render mode settings not reset after drawing.')
 			self.ui_lower_render_mode(material, layout)
+			ui_other(material.rdp_settings, material, layout)
 
 def update_node_values(self, context):
 	if hasattr(context.scene, 'world') and \
@@ -1010,6 +1020,8 @@ class F3DMaterialSettings:
 		self.set_rendermode = False
 		self.scale_autoprop = True
 
+		self.clip_ratio = 1
+
 		# geometry mode
 		self.g_zbuffer = True
 		self.g_shade = True
@@ -1103,6 +1115,8 @@ class F3DMaterialSettings:
 		self.set_rendermode = material.rdp_settings.set_rendermode
 		self.scale_autoprop = material.scale_autoprop
 
+		self.clip_ratio = material.rdp_settings.clip_ratio
+
 		# geometry mode
 		self.g_zbuffer = material.rdp_settings.g_zbuffer
 		self.g_shade = material.rdp_settings.g_shade
@@ -1195,6 +1209,8 @@ class F3DMaterialSettings:
 		material.set_combiner = self.set_combiner
 		material.rdp_settings.set_rendermode = self.set_rendermode
 		material.scale_autoprop = self.scale_autoprop
+
+		material.rdp_settings.clip_ratio = self.clip_ratio
 
 		# geometry mode
 		material.rdp_settings.g_zbuffer = self.g_zbuffer
@@ -1417,6 +1433,9 @@ class RDPSettings(bpy.types.PropertyGroup):
 		name = 'Z Source Selection', items = enumDepthSource, 
 		default = 'G_ZS_PIXEL')
 
+	clip_ratio : bpy.props.IntProperty(default = 1,
+		min = 1, max = 2**15 - 1, update = update_node_values)
+
 	# cycle independent
 	set_rendermode : bpy.props.BoolProperty(default = False, update = update_node_values)
 	rendermode_advanced_enabled : bpy.props.BoolProperty(default = False, update = update_node_values)
@@ -1473,6 +1492,7 @@ class DefaultRDPSettingsPanel(bpy.types.Panel):
 		ui_geo_mode(world.rdp_defaults, world, layout)
 		ui_upper_mode(world.rdp_defaults, world, layout)
 		ui_lower_mode(world.rdp_defaults, world, layout)
+		ui_other(world.rdp_defaults, world, layout)
 
 ### Node Categories ###
 # Node categories are a python system for automatically
@@ -1579,6 +1599,7 @@ def mat_register():
 	bpy.types.World.menu_geo = bpy.props.BoolProperty()
 	bpy.types.World.menu_upper = bpy.props.BoolProperty()
 	bpy.types.World.menu_lower = bpy.props.BoolProperty()
+	bpy.types.World.menu_other = bpy.props.BoolProperty()
 
 	bpy.types.Material.scale_autoprop = bpy.props.BoolProperty(
 		name = 'Auto Set Scale', default = True,
@@ -1684,6 +1705,7 @@ def mat_register():
 	bpy.types.Material.menu_geo = bpy.props.BoolProperty()
 	bpy.types.Material.menu_upper = bpy.props.BoolProperty()
 	bpy.types.Material.menu_lower = bpy.props.BoolProperty()
+	bpy.types.Material.menu_other = bpy.props.BoolProperty()
 	bpy.types.Material.menu_lower_render = bpy.props.BoolProperty()
 	bpy.types.Material.rdp_settings = bpy.props.PointerProperty(
 		type = RDPSettings)

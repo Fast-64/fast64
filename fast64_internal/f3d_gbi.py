@@ -2463,7 +2463,34 @@ class SPSegment:
 	def size(self, f3d):
 		return GFX_SIZE
 
-# SPClipRatio
+class SPClipRatio:
+	def __init__(self, ratio):
+		self.ratio = ratio
+
+	def to_binary(self, f3d, segments):
+
+		# These values are supposed to be flipped.
+		shortRatioPos = int.from_bytes((-self.ratio).to_bytes(
+			2, 'big', signed = True), 'big', signed = False)
+		shortRatioNeg = int.from_bytes(self.ratio.to_bytes(
+			2, 'big', signed = True), 'big', signed = False)
+
+		return \
+			gsMoveWd(f3d.G_MW_CLIP, f3d.G_MWO_CLIP_RNX, shortRatioNeg, f3d) +\
+			gsMoveWd(f3d.G_MW_CLIP, f3d.G_MWO_CLIP_RNY, shortRatioNeg, f3d) +\
+			gsMoveWd(f3d.G_MW_CLIP, f3d.G_MWO_CLIP_RPX, shortRatioPos, f3d) +\
+			gsMoveWd(f3d.G_MW_CLIP, f3d.G_MWO_CLIP_RPY, shortRatioPos, f3d)
+
+	def to_c(self, static = True):
+		header = 'gsSPClipRatio(' if static else 'gSPClipRatio(glistp++, '
+		return header + str(self.ratio) + ')'
+
+	def to_sm64_decomp_s(self):
+		return 'gsSPClipRatio ' + str(self.ratio)
+	
+	def size(self, f3d):
+		return GFX_SIZE * 4
+
 # SPInsertMatrix
 # SPForceMatrix
 
@@ -2486,7 +2513,7 @@ class SPModifyVertex:
 		return words[0].to_bytes(4, 'big') + words[1].to_bytes(4, 'big')
 
 	def to_c(self, static = True):
-		header = 'gsSPModifyVertex(' if static else 'gSPMoidfyVertex(glistp++, '
+		header = 'gsSPModifyVertex(' if static else 'gSPModifyVertex(glistp++, '
 		return header + str(self.vtx) + ', ' + str(self.where) + ', ' + \
 			str(self.val) + ')'
 

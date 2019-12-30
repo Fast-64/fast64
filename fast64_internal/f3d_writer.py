@@ -863,6 +863,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer):
 	saveOtherModeHDefinition(fMaterial, material.rdp_settings, defaults)
 	saveOtherModeLDefinition(fMaterial, material.rdp_settings, defaults,
 		drawLayerRenderMode[drawLayer] if drawLayer is not None else None)
+	saveOtherDefinition(fMaterial, material.rdp_settings, defaults)
 
 	# Set scale
 	s = int(material.tex_scale[0] * 0xFFFF)
@@ -1511,3 +1512,8 @@ def saveOtherModeLDefinition(fMaterial, settings, defaults, defaultRenderMode):
 			fMaterial.revert.commands.append(
 				DPSetRenderMode(defaultRenderMode, None))
 		#fMaterial.revert.commands.append(defaultRenderMode)
+
+def saveOtherDefinition(fMaterial, settings, defaults):
+	if settings.clip_ratio != defaults.clip_ratio:
+		fMaterial.material.commands.append(SPClipRatio(settings.clip_ratio))
+		fMaterial.revert.commands.append(SPClipRatio(defaults.clip_ratio))
