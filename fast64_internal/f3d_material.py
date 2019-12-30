@@ -76,7 +76,7 @@ def combiner_uses(material, checkList, is2Cycle):
 
 	return display
 
-def all_combiner_uses(material, is2Cycle):
+def all_combiner_uses(material):
 	useDict = {
 		'Texture' : combiner_uses(material, 
 			['TEXEL0', 'TEXEL0_ALPHA', 'TEXEL1', 'TEXEL1_ALPHA', 
@@ -555,8 +555,7 @@ class F3DPanel(bpy.types.Panel):
 				text = 'Note: Alpha preview is not 100% accurate.')
 
 			inputCol = layout.column()
-			useDict = all_combiner_uses(material, 
-				material.rdp_settings.g_mdsft_cycletype == 'G_CYC_2CYCLE')
+			useDict = all_combiner_uses(material)
 			
 			if useDict['Texture']:
 				self.ui_scale(material, inputCol)
@@ -793,7 +792,11 @@ def update_tex_values_manual(self, context):
 		else:
 			self.tex_scale = (1,1)
 	
-	if self.tex0.tex is not None and self.tex1.tex is not None and\
+
+	useDict = all_combiner_uses(self)
+		
+	if useDict['Texture 0'] and self.tex0.tex is not None and \
+		useDict['Texture 1'] and self.tex1.tex is not None and\
 		self.tex0.tex.size[0] > 0 and self.tex0.tex.size[1] > 0 and\
 		self.tex1.tex.size[0] > 0 and self.tex1.tex.size[1] > 0:
 		if self.uv_basis == 'TEXEL0':

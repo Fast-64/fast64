@@ -855,8 +855,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer):
 			SPFogPosition(material.fog_position[0], material.fog_position[1])
 		])
 
-	useDict = all_combiner_uses(material,
-		material.rdp_settings.g_mdsft_cycletype == '1')
+	useDict = all_combiner_uses(material)
 
 	defaults = bpy.context.scene.world.rdp_defaults
 	saveGeoModeDefinition(fMaterial, material.rdp_settings, defaults)

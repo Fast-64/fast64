@@ -12,7 +12,6 @@ from .sm64_geolayout_constants import *
 from .sm64_geolayout_utility import *
 from .utility import *
 from .sm64_constants import *
-from .f3d_material import all_combiner_uses
 from .f3d_writer import *
 from .sm64_camera import saveCameraSettingsToGeolayout
 from .sm64_geolayout_classes import *
