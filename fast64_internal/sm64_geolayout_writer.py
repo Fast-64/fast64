@@ -1423,3 +1423,18 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj,
 			infoDict, obj.data)
 	
 	return FMeshGroup(toAlnum(namePrefix + name), fMesh, fSkinnedMesh)
+
+def writeDynamicMeshFunction(name, displayList):
+	data = \
+"""Gfx *{}(s32 callContext, struct GraphNode *node, UNUSED Mat4 *c) {
+	struct GraphNodeGenerated *asmNode = (struct GraphNodeGenerated *) node;
+    Gfx *displayListStart = NULL;
+    if (callContext == GEO_CONTEXT_RENDER) {
+        displayListStart = alloc_display_list({} * sizeof(*displayListStart));
+        Gfx* glistp = displayListStart;
+		{}
+    }
+    return displayListStart;
+}""".format(name, str(len(displayList.commands)), displayList.to_c(False))
+
+	return data

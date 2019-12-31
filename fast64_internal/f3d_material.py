@@ -221,7 +221,14 @@ class F3DPanel(bpy.types.Panel):
 				nodes[name].image_user)
 			prop_input.enabled = textureProp.tex_set
 
-			#prop_input.box().label(text = "YUV and CI not yet supported.")
+			tex = textureProp.tex
+			if tex is not None and tex.size[0] > 0 and tex.size[1] > 0:
+				tmemUsage = int(tex.size[0] * tex.size[1] * texBitSize[textureProp.tex_format] / 8 + 0.5)
+				tmemMax = 4096 if textureProp.tex_format[:2] != 'CI' else 2048
+				prop_input.label(text = 'TMEM Usage: ' + str(tmemUsage) + ' / ' + str(tmemMax) + ' bytes')
+				if tmemUsage > tmemMax:
+					prop_input.box().label(text = 'WARNING: Texture size is too large.')
+
 			prop_input.prop(textureProp, 'tex_format', text = 'Format')
 			if textureProp.tex_format[:2] == 'CI':
 				prop_input.prop(textureProp, 'ci_format', text = 'CI Format')
@@ -243,7 +250,6 @@ class F3DPanel(bpy.types.Panel):
 				prop_input.prop(textureProp.S, "high", text = 'S High')
 				prop_input.prop(textureProp.T, "high", text = 'T High')
 
-			tex = textureProp.tex
 			if tex is not None and tex.size[0] > 0 and tex.size[1] > 0 and \
 				(math.log(tex.size[0], 2) % 1 > 0.000001 or \
 				math.log(tex.size[1], 2) % 1 > 0.000001):
