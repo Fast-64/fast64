@@ -980,10 +980,10 @@ def saveTextureIndex(useDict, material, fModel, fMaterial, texProp,
 			tex.size[0] * tex.size[1] / 64) 
 		if nextTmem > (512 if texFormat[:2] != 'CI' else 256):
 			print(nextTmem)
-			raise ValueError("Textures are too big. Max TMEM size is 4k " + \
+			raise ValueError("Error in material \"" + material.name + "\": Textures are too big. Max TMEM size is 4k " + \
 				"bytes, ex. 2 32x32 RGBA 16 bit textures.")
 		if tex.size[0] > 1024 or tex.size[1] > 1024:
-			raise ValueError("Any side of an image cannot be greater " +\
+			raise ValueError("Error in material \"" + material.name + "\": Any side of an image cannot be greater " +\
 				"than 1024.")
 
 		clamp_S = texProp.S.clamp
