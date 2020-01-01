@@ -773,11 +773,11 @@ class SM64_ExportDL(bpy.types.Operator):
 		if not isinstance(obj.data, bpy.types.Mesh):
 			raise ValueError("Object is not a mesh.")
 
-		T, R, S = obj.matrix_world.decompose()
-		objTransform = R.to_matrix().to_4x4() @ \
-			mathutils.Matrix.Diagonal(S).to_4x4()
+		#T, R, S = obj.matrix_world.decompose()
+		#objTransform = R.to_matrix().to_4x4() @ \
+		#	mathutils.Matrix.Diagonal(S).to_4x4()
 		finalTransform = (blenderToSM64Rotation * \
-			(bpy.context.scene.blenderToSM64Scale)).to_4x4() @ objTransform
+			(bpy.context.scene.blenderToSM64Scale)).to_4x4()
 
 		#cProfile.runctx('exportF3DtoC(bpy.path.abspath(context.scene.DLExportPath), obj,' +\
 		#	'context.scene.DLExportisStatic, finalTransform,' +\
@@ -1286,11 +1286,11 @@ class SM64_ExportCollision(bpy.types.Operator):
 		if type(obj.data) is not bpy.types.Mesh:
 			raise ValueError("Mesh not selected.")
 		
-		T, R, S = obj.matrix_world.decompose()
-		objTransform = R.to_matrix().to_4x4() @ \
-			mathutils.Matrix.Diagonal(S).to_4x4()
+		#T, R, S = obj.matrix_world.decompose()
+		#objTransform = R.to_matrix().to_4x4() @ \
+		#	mathutils.Matrix.Diagonal(S).to_4x4()
 		finalTransform = (blenderToSM64Rotation * \
-			(bpy.context.scene.blenderToSM64Scale)).to_4x4() @ objTransform
+			(bpy.context.scene.blenderToSM64Scale)).to_4x4()
 		
 		try:
 			#applyRotation([obj], math.radians(90), 'X')

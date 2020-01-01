@@ -991,7 +991,7 @@ def createF3DMat(obj):
 	#update_tex_values(material, bpy.context)
 
 	# This won't update because material is not in context
-	material.f3d_preset = 'Shaded Texture'
+	material.f3d_preset = 'Shaded Solid'
 	# That's why we force update
 	update_preset_manual(material, bpy.context)
 	#materialPresetDict['Shaded Texture'].applyToMaterial(material)
