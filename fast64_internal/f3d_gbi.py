@@ -1630,8 +1630,8 @@ class FModel:
 	
 	def to_c_def(self, static):
 		data = ''
-		for (material, drawLayer), (fMaterial, texDimensions) in self.materials.items():
-			data += fMaterial.to_c_def(static)
+		#for (material, drawLayer), (fMaterial, texDimensions) in self.materials.items():
+		#	data += fMaterial.to_c_def(static)
 		for name, meshGroup in self.meshGroups.items():
 			data += meshGroup.to_c_def(static)
 		if self.materialRevert is not None:
@@ -1742,8 +1742,8 @@ class FMesh:
 
 	def to_c_def(self, static):
 		data = self.draw.to_c_def(static)
-		for triangleList in self.triangleLists:
-			data += triangleList.to_c_def(static)
+		#for triangleList in self.triangleLists:
+		#	data += triangleList.to_c_def(static)
 		for materialTuple, drawOverride in self.drawMatOverrides.items():
 			data += drawOverride.to_c_def(static)
 		return data
