@@ -242,6 +242,7 @@ enumRenderModesCycle1 = [
     ('G_RM_AA_ZB_XLU_INTER', 'Transparent Intersecting', 'G_RM_AA_ZB_XLU_INTER'),
 	('G_RM_FOG_SHADE_A', 'Fog Shade', 'G_RM_FOG_SHADE_A'),
 	('G_RM_FOG_PRIM_A', 'Fog Primitive', 'G_RM_FOG_PRIM_A'),
+	('G_RM_PASS', 'Pass', 'G_RM_PASS'),
 	('G_RM_ADD', 'Add', 'G_RM_ADD'),
 	('G_RM_NOOP', 'No Op', 'G_RM_NOOP'),
 ]
