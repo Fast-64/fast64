@@ -776,8 +776,13 @@ class SM64_ExportDL(bpy.types.Operator):
 		#T, R, S = obj.matrix_world.decompose()
 		#objTransform = R.to_matrix().to_4x4() @ \
 		#	mathutils.Matrix.Diagonal(S).to_4x4()
-		finalTransform = (blenderToSM64Rotation * \
-			(bpy.context.scene.blenderToSM64Scale)).to_4x4()
+
+		#finalTransform = (blenderToSM64Rotation * \
+		#	(bpy.context.scene.blenderToSM64Scale)).to_4x4()
+		#finalTransform = mathutils.Matrix.Identity(4)
+		scaleValue = bpy.context.scene.blenderToSM64Scale
+		finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((
+			scaleValue, scaleValue, scaleValue))).to_4x4()
 
 		#cProfile.runctx('exportF3DtoC(bpy.path.abspath(context.scene.DLExportPath), obj,' +\
 		#	'context.scene.DLExportisStatic, finalTransform,' +\
@@ -790,6 +795,7 @@ class SM64_ExportDL(bpy.types.Operator):
 		#p.sort_stats("cumulative").print_stats(2000)
 		
 		try:
+			applyRotation([obj], math.radians(90), 'X')
 			if context.scene.DLExportType == 'C':
 				exportF3DtoC(bpy.path.abspath(context.scene.DLExportPath), obj,
 					context.scene.DLExportisStatic, finalTransform,
@@ -800,7 +806,7 @@ class SM64_ExportDL(bpy.types.Operator):
 					bpy.context.scene.DLincludeChildren)
 				self.report({'INFO'}, 'Success! DL at ' + \
 					context.scene.DLExportPath + '.')
-				return {'FINISHED'} # must return a set
+				
 			elif context.scene.DLExportType == 'Insertable Binary':
 				exportF3DtoInsertableBinary(
 					bpy.path.abspath(context.scene.DLInsertableBinaryPath),
@@ -808,7 +814,6 @@ class SM64_ExportDL(bpy.types.Operator):
 					context.scene.isHWv1, bpy.context.scene.DLincludeChildren)
 				self.report({'INFO'}, 'Success! DL at ' + \
 					context.scene.DLInsertableBinaryPath + '.')
-				return {'FINISHED'} # must return a set
 			else:
 				checkExpanded(bpy.path.abspath(context.scene.exportRom))
 				tempROM = tempName(context.scene.outputRom)
@@ -853,7 +858,7 @@ class SM64_ExportDL(bpy.types.Operator):
 					os.remove(bpy.path.abspath(context.scene.outputRom))
 				os.rename(bpy.path.abspath(tempROM), 
 					bpy.path.abspath(context.scene.outputRom))
-				
+					
 				if context.scene.DLUseBank0:
 					self.report({'INFO'}, 'Success! DL at (' + \
 						hex(addrRange[0]) + ', ' + hex(addrRange[1]) + \
@@ -865,11 +870,14 @@ class SM64_ExportDL(bpy.types.Operator):
 					self.report({'INFO'}, 'Success! DL at (' + \
 						hex(addrRange[0]) + ', ' + hex(addrRange[1]) + \
 						') (Seg. ' + bytesToHex(segPointerData) + ').')
-				return {'FINISHED'} # must return a set
+
+			applyRotation([obj], math.radians(-90), 'X')
+			return {'FINISHED'} # must return a set
 
 		except:
 			if context.mode != 'OBJECT':
 				bpy.ops.object.mode_set(mode = 'OBJECT')
+			applyRotation([obj], math.radians(-90), 'X')
 			if context.scene.DLExportType == 'Binary':
 				romfileOutput.close()
 				if os.path.exists(bpy.path.abspath(tempROM)):
@@ -1289,11 +1297,16 @@ class SM64_ExportCollision(bpy.types.Operator):
 		#T, R, S = obj.matrix_world.decompose()
 		#objTransform = R.to_matrix().to_4x4() @ \
 		#	mathutils.Matrix.Diagonal(S).to_4x4()
-		finalTransform = (blenderToSM64Rotation * \
-			(bpy.context.scene.blenderToSM64Scale)).to_4x4()
+		#finalTransform = (blenderToSM64Rotation * \
+		#	(bpy.context.scene.blenderToSM64Scale)).to_4x4()
+		#finalTransform = mathutils.Matrix.Identity(4)
+
+		scaleValue = bpy.context.scene.blenderToSM64Scale
+		finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((
+			scaleValue, scaleValue, scaleValue))).to_4x4()
 		
 		try:
-			#applyRotation([obj], math.radians(90), 'X')
+			applyRotation([obj], math.radians(90), 'X')
 			if context.scene.colExportType == 'C':
 				exportCollisionC(obj, finalTransform,
 					bpy.path.abspath(context.scene.colExportPath), False,
@@ -1347,14 +1360,14 @@ class SM64_ExportCollision(bpy.types.Operator):
 					hex(addrRange[0]) + ', ' + hex(addrRange[1]) + \
 					') (Seg. ' + segPointer + ').')
 
-			#applyRotation([obj], math.radians(-90), 'X')
+			applyRotation([obj], math.radians(-90), 'X')
 			return {'FINISHED'} # must return a set
 
 		except:
 			if context.mode != 'OBJECT':
 				bpy.ops.object.mode_set(mode = 'OBJECT')
 
-			#applyRotation([obj], math.radians(-90), 'X')
+			applyRotation([obj], math.radians(-90), 'X')
 
 			if context.scene.colExportType == 'Binary':
 				romfileOutput.close()

@@ -189,6 +189,14 @@ def ui_other(settings, dataHolder, layout):
 		clipRatioGroup = inputGroup.column()
 		prop_split(clipRatioGroup, settings, 'clip_ratio', "Clip Ratio")
 
+		if isinstance(dataHolder, bpy.types.Material):
+			blend_color_group = layout.row()
+			prop_input_name = blend_color_group.column()
+			prop_input = blend_color_group.column()
+			prop_input_name.prop(dataHolder, 'set_blend', text = "Blend Color")
+			prop_input.prop(dataHolder, 'blend_color', text='')
+			prop_input.enabled = dataHolder.set_blend
+
 # UI Assumptions:
 # shading = 1
 # lighting = 1
@@ -1023,12 +1031,13 @@ class F3DMaterialSettings:
 		self.set_prim = True
 		self.set_lights = True
 		self.set_env = True
+		self.set_blend = False
 		self.set_key = True
 		self.set_k0_5 = True
 		self.set_combiner = True
 		self.set_rendermode = False
 		self.scale_autoprop = True
-
+		
 		self.clip_ratio = 1
 
 		# geometry mode
@@ -1118,6 +1127,7 @@ class F3DMaterialSettings:
 		self.set_prim = material.set_prim
 		self.set_lights = material.set_lights
 		self.set_env = material.set_env
+		self.set_blend = material.set_blend
 		self.set_key = material.set_key
 		self.set_k0_5 = material.set_k0_5
 		self.set_combiner = material.set_combiner
@@ -1213,6 +1223,7 @@ class F3DMaterialSettings:
 		material.set_prim = self.set_prim
 		material.set_lights = self.set_lights
 		material.set_env = self.set_env
+		material.set_blend = self.set_blend
 		material.set_key = self.set_key
 		material.set_k0_5 = self.set_k0_5
 		material.set_combiner = self.set_combiner
@@ -1650,12 +1661,18 @@ def mat_register():
 		update = update_node_values)
 	bpy.types.Material.set_env = bpy.props.BoolProperty(default = False,
 		update = update_node_values)
+	bpy.types.Material.set_blend = bpy.props.BoolProperty(default = False,
+		update = update_node_values)
 	bpy.types.Material.set_key = bpy.props.BoolProperty(default = True,
 		update = update_node_values)
 	bpy.types.Material.set_k0_5 = bpy.props.BoolProperty(default = True,
 		update = update_node_values)
 	bpy.types.Material.set_combiner = bpy.props.BoolProperty(default = True,
 		update = update_node_values)
+
+	# Blend Color
+	bpy.types.Material.blend_color = bpy.props.FloatVectorProperty(
+		name = 'Blend Color', subtype='COLOR', size = 4, min = 0, max = 1, default = (0,0,0,1))
 
 	# Chroma
 	bpy.types.Material.key_scale = bpy.props.FloatVectorProperty(

@@ -29,6 +29,9 @@ class SM64_Animation:
 		return self.values.to_c() + '\n' +\
 			self.indices.to_c() + '\n' +\
 			self.header.to_c() + '\n'
+		#return self.header.to_c() + '\n' +\
+		#	self.indices.to_c() + '\n' +\
+		#	self.values.to_c() + '\n'
 
 class SM64_ShortArray:
 	def __init__(self, name, signed):

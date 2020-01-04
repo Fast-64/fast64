@@ -3245,6 +3245,9 @@ class DPSetAlphaDither:
 
 	def to_sm64_decomp_s(self):
 		return 'gsDPSetAlphaDither ' + self.mode
+	
+	def size(self, f3d):
+		return GFX_SIZE
 
 class DPSetAlphaCompare:
 	# mask is a string

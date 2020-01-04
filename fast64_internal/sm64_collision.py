@@ -333,9 +333,9 @@ def exportCollisionCommon(obj, transformMatrix, addEntities, includeChildren):
 
 def addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix):
 	tempObj, meshList = combineObjects(obj, includeChildren, 'ignore_collision')
-	if len(tempObj.data.materials) == 0:
-		raise ValueError(obj.name + " must have a material associated with it.")
 	try:
+		if len(tempObj.data.materials) == 0:
+			raise ValueError(obj.name + " must have a material associated with it.")
 		tempObj.data.calc_loop_triangles()
 		for face in tempObj.data.loop_triangles:
 			material = tempObj.data.materials[face.material_index]
