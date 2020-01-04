@@ -34,6 +34,7 @@ enumExportType = [
 enumRefreshVer = [
 	("Refresh 3", "Refresh 3", "Refresh 3"),
 	("Refresh 4", "Refresh 4", "Refresh 4"),
+	("Refresh 5", "Refresh 5", "Refresh 5"),
 ]
 
 panelSeparatorSize = 5
@@ -1715,7 +1716,7 @@ def register():
 	bpy.types.Scene.levelConvert = bpy.props.EnumProperty(
 		items = level_enums, name = 'Level', default = 'IC')
 	bpy.types.Scene.refreshVer = bpy.props.EnumProperty(
-		items = enumRefreshVer, name = 'Refresh', default = 'Refresh 4')
+		items = enumRefreshVer, name = 'Refresh', default = 'Refresh 5')
 	bpy.types.Scene.blenderToSM64Scale = bpy.props.FloatProperty(
 		name = 'Blender To SM64 Scale', default = 212.766)
 
