@@ -319,7 +319,7 @@ class SM64_ImportGeolayoutPanel(bpy.types.Panel):
 class SM64_ExportGeolayoutObject(bpy.types.Operator):
 	# set bl_ properties
 	bl_idname = 'object.sm64_export_geolayout_object'
-	bl_label = "Export Geolayout Object"
+	bl_label = "Export Object Geolayout"
 	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
 	# Called on demand (i.e. button press, menu item)
@@ -452,7 +452,7 @@ class SM64_ExportGeolayoutObject(bpy.types.Operator):
 class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 	# set bl_ properties
 	bl_idname = 'object.sm64_export_geolayout_armature'
-	bl_label = "Export Geolayout Armature"
+	bl_label = "Export Armature Geolayout"
 	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
 	# Called on demand (i.e. button press, menu item)
