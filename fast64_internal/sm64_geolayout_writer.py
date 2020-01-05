@@ -630,11 +630,13 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 	translation = mathutils.Matrix.Translation(translate)
 	rotation = rotate.to_matrix().to_4x4()
 
+	#hasDL = bone.use_deform
+	hasDL = True
 	if bone.geo_cmd == 'DisplayListWithOffset':
 		rotAxis, rotAngle = rotate.to_axis_angle()
 		if rotAngle > 0.00001:
 			node = DisplayListWithOffsetNode(int(bone.draw_layer),
-				bone.use_deform, mathutils.Vector((0,0,0)))	
+				hasDL, mathutils.Vector((0,0,0)))	
 
 			parentTransformNode = addPreTranslateRotateNode(
 				parentTransformNode, translate, rotate)
@@ -643,7 +645,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 			lastRotateName = boneName
 		else:
 			node = DisplayListWithOffsetNode(int(bone.draw_layer),
-				bone.use_deform, translate)
+				hasDL, translate)
 			lastTranslateName = boneName
 		
 		finalTransform = transformMatrix @ translation	
@@ -672,8 +674,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 		elif bone.geo_cmd == 'TranslateRotate':
 			drawLayer = int(bone.draw_layer)
 			fieldLayout = int(bone.field_layout)
-			hasDL = bone.use_deform
-
+			
 			node = TranslateRotateNode(drawLayer, fieldLayout, hasDL, 
 				translate, rotate)
 			
@@ -694,16 +695,16 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 				lastRotateName = boneName
 			
 		elif bone.geo_cmd == 'Translate':
-			node = TranslateNode(int(bone.draw_layer), bone.use_deform,
+			node = TranslateNode(int(bone.draw_layer), hasDL,
 				translate)
 			finalTransform = transformMatrix @ translation
 			lastTranslateName = boneName
 		elif bone.geo_cmd == 'Rotate':
-			node = RotateNode(int(bone.draw_layer), bone.use_deform, rotate)
+			node = RotateNode(int(bone.draw_layer), hasDL, rotate)
 			finalTransform = transformMatrix @ rotation
 			lastRotateName = boneName
 		elif bone.geo_cmd == 'Billboard':
-			node = BillboardNode(int(bone.draw_layer), bone.use_deform,
+			node = BillboardNode(int(bone.draw_layer), hasDL,
 				translate)
 			finalTransform = transformMatrix @ translation
 			lastTranslateName = boneName
@@ -718,7 +719,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 			node = ShadowNode(shadowType, shadowSolidity, shadowScale)
 		elif bone.geo_cmd == 'Scale':
 			node = ScaleNode(int(bone.draw_layer), bone.geo_scale,
-				bone.use_deform)
+				hasDL)
 			finalTransform = transformMatrix @ \
 				mathutils.Matrix.Scale(node.scaleValue, 4)
 		elif bone.geo_cmd == 'StartRenderArea':
@@ -740,11 +741,13 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 				raise ValueError("Display List (0x15) " + boneName + " must have vertices assigned to it. If you have already done this, make sure there aren't any other bones that also own these vertices with greater or equal weighting.")
 			node.hasDL = False
 			#bone.use_deform = False
-			if bone.use_deform:
-				lastDeformName = boneName
+			#if bone.use_deform:
+			#	lastDeformName = boneName
 			parentTransformNode.children.append(transformNode)
 			transformNode.parent = parentTransformNode
 		else:
+			if not bone.use_deform:
+				raise ValueError(bone.name + " has vertices in its vertex group but is not set to deformable. Make sure to enable deform on this bone.")
 			node.DLmicrocode = meshGroup.mesh.draw
 			node.fMesh = meshGroup.mesh # Used for material override switches
 			if lastDeformName is not None and \
@@ -1034,7 +1037,7 @@ def addSkinnedMeshNode(armatureObj, boneName, skinnedMesh, transformNode, parent
 		highestChildCopy = highestChildCopyParent
 	#isFirstChild &= checkIfFirstNonASMNode(highestChildNode)
 	if highestChildNode.parent is None:
-		raise ValueError("Issue with \"" + boneName + "\": You cannot skin a mesh across a switch node.")
+		raise ValueError("Issue with \"" + boneName + "\": Deform parent bone not found for skinning.")
 		#raise ValueError("There shouldn't be a skinned mesh section if there is no deform parent. This error may have ocurred if a switch option node is trying to skin to a parent but no deform parent exists.")
 
 	# Otherwise, remove the transformNode from the parent and 

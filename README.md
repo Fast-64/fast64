@@ -164,6 +164,4 @@ To resolve pointer addresses, for each pointer address,
 There may occur cases where code is formatted differently based on the code use case. In the tools panel under the SM64 File Settings subheader, you can toggle decomp compatibility.
 
 ### Common Issues
-Inivisible Mesh : Bone is not set to deform, or geometry is skinned to more than one bone.
-
 Game crashes: Invalid function address for switch/function/held object bones.
