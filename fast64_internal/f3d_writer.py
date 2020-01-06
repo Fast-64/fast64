@@ -1058,7 +1058,11 @@ def saveTextureLoading(fImage, fMaterial, clamp_S, mirror_S, clamp_T,
 			DPSetTextureImage(fmt, 'G_IM_SIZ_8b', fImage.width >> 1, fImage),
 			DPSetTile(fmt, 'G_IM_SIZ_8b', line, tmem, 
 				f3d.G_TX_LOADTILE - texIndex, 0, cmt, maskt, shiftt, 
-			 	cms, masks, shifts),])
+			 	cms, masks, shifts),
+			DPLoadSync(),
+			DPLoadTile(f3d.G_TX_LOADTILE - texIndex, 0, 0,
+				(fImage.width - 1) << (f3d.G_TEXTURE_IMAGE_FRAC - 1),
+				(fImage.height - 1) << f3d.G_TEXTURE_IMAGE_FRAC),])
 
 	else:
 		dxt = f3d.CALC_DXT(fImage.width, f3d.G_IM_SIZ_VARS[siz + '_BYTES'])
@@ -1085,14 +1089,13 @@ def saveTextureLoading(fImage, fMaterial, clamp_S, mirror_S, clamp_T,
 			DPSetTextureImage(fmt, siz, fImage.width, fImage),
 			DPSetTile(fmt, siz, line, tmem, 
 				f3d.G_TX_LOADTILE - texIndex, 0, cmt, maskt, shiftt, 
-			 	cms, masks, shifts),]) # added in
+			 	cms, masks, shifts),
+			DPLoadSync(),
+			DPLoadTile(f3d.G_TX_LOADTILE - texIndex, 0, 0,
+				(fImage.width - 1) << f3d.G_TEXTURE_IMAGE_FRAC,
+				(fImage.height - 1) << f3d.G_TEXTURE_IMAGE_FRAC),]) # added in
 	
 	fMaterial.material.commands.extend([
-		DPLoadSync(),
-		DPLoadTile(f3d.G_TX_LOADTILE - texIndex, 0, 0,
-			(fImage.width - 1) << f3d.G_TEXTURE_IMAGE_FRAC,
-			(fImage.height - 1) << f3d.G_TEXTURE_IMAGE_FRAC),
-
 		DPPipeSync(),
 		DPSetTile(fmt, siz, line, tmem,	\
 			f3d.G_TX_RENDERTILE + texIndex, pal, cmt, maskt, \
