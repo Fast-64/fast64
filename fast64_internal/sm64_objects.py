@@ -82,7 +82,7 @@ class SM64_Special_Object:
 				str(int(round(self.position[1]))) + ', ' + \
 				str(int(round(self.position[2]))) + ', ' + \
 				str(int(round(math.degrees(self.rotation[1])))) + ', ' + \
-				str(int(round(self.bparam))) + ')'
+				str(self.bparam) + ')'
 
 class SM64_Mario_Start:
 	def __init__(self, area, position, rotation):
