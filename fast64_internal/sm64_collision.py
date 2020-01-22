@@ -223,6 +223,7 @@ class CollisionPanel(bpy.types.Panel):
 		#	'For special params, make a vert color layer named "Collision."')
 		#infoBox.label(text = 'The red value 0-1 will be converted to 0-65535.')
 
+'''
 class SM64ObjectPanel(bpy.types.Panel):
 	bl_label = "Object Inspector"
 	bl_idname = "SM64_Object_Inspector"
@@ -244,6 +245,7 @@ class SM64ObjectPanel(bpy.types.Panel):
 			prop_split(box, obj, 'sm64_special_preset', 'Special Preset')
 		elif obj.sm64_obj_type == 'Water Box':
 			prop_split(box, obj, 'sm64_water_box', 'Water Box Type')
+'''
 
 def exportCollisionBinary(obj, transformMatrix, romfile, startAddress,
 	endAddress, addEntities, includeChildren):
@@ -290,7 +292,6 @@ def exportCollisionInsertableBinary(obj, transformMatrix, filepath,
 
 	return data
 
-# Note: Collision is not affected by sm64 object rotation.
 def exportCollisionCommon(obj, transformMatrix, addEntities, includeChildren):
 	bpy.ops.object.select_all(action = 'DESELECT')
 	obj.select_set(True)
@@ -314,6 +315,7 @@ def exportCollisionCommon(obj, transformMatrix, addEntities, includeChildren):
 					indices.append(index)
 			collision.triangles[collisionType].append(CollisionTriangle(indices))
 	
+	'''
 	if addEntities:
 		childArray = obj.children
 		while len(childArray) > 0:
@@ -328,6 +330,7 @@ def exportCollisionCommon(obj, transformMatrix, addEntities, includeChildren):
 			elif childObj.sm64_obj_type == 'Water Box':
 				pass
 			childArray.extend(childObj.children)
+	'''
 	
 	return collision
 
@@ -388,8 +391,8 @@ def col_register():
 	bpy.types.Material.collision_all_options = bpy.props.BoolProperty(
 		name = 'Show All Options')
 
-	bpy.types.Object.sm64_obj_type = bpy.props.EnumProperty(
-		name = 'SM64 Object Type', items = enumObjectType, default = 'None')
+	#bpy.types.Object.sm64_obj_type = bpy.props.EnumProperty(
+	#	name = 'SM64 Object Type', items = enumObjectType, default = 'None')
 
 	bpy.types.Object.sm64_water_box = bpy.props.EnumProperty(
 		name = 'SM64 Water Box', items = enumWaterBoxType, default = 'Water')
@@ -403,7 +406,7 @@ def col_unregister():
 	del bpy.types.Material.collision_type_simple
 	del bpy.types.Material.collision_all_options
 	
-	del bpy.types.Object.sm64_obj_type
+	#del bpy.types.Object.sm64_obj_type
 	del bpy.types.Object.sm64_water_box
 	del bpy.types.Object.sm64_special_preset
 

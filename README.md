@@ -23,6 +23,7 @@ Make sure to save often, as this plugin is prone to crashing when creating mater
 -   Display List import/export 
 -   Animation import/export
 -   Collision export
+-   Object Placement export (decomp only)
 -   Skinned mesh support
 -   Custom normals
 
@@ -133,6 +134,15 @@ To replace an actor model in decomp, replace its geo.inc.c and model.inc.c conte
 To create a switch node, and a bone to your armature and set its geolayout type to "Switch". Any bones that will be switched should be parented to this switch bone. The switch bone can do either material, draw layer, or mesh switching.
 
 To add a mesh switch option node, duplicate and separate your switch bone into its own armature and move it off to the side. Set the bone geolayout command to "Switch Option". This bone must be the root bone of all other bones in the armature. Skin your switch option geometry to this armature, then add your switch option armature to the switch bone options in your original armature.
+
+### Exporting Object Placement
+To add an object, create an Empty in the scene and parent it to any object in your object geolayout hierarchy. Go to the object properties window to see the options for objects. To export, select the root geolayout object and click "Export Objects". This will generate a C file whose contents you can copy and paste to other level files.
+
+For convenience's sake it is best to use a different Empty display type for each object type (object, macro, specials). Also, in order to see empties better, use the Solid rendering view when editing object positions.
+
+Model IDs are located at include/model_ids.h.
+Macro presets are defined in include/macro_presets.h.
+Special presets are defined in include/special_presets.h.
 
 ### Insertable Binary Exporting
 Insertable Binary exporting will generate a binary file, with a header containing metadata about pointer locations. It is formatted as such:

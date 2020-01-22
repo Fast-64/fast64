@@ -1413,6 +1413,70 @@ class SM64_ExportCollisionPanel(bpy.types.Panel):
 		for i in range(panelSeparatorSize):
 			col.separator()
 
+class SM64_ExportObjects(bpy.types.Operator):
+	# set bl_ properties
+	bl_idname = 'object.sm64_export_objects'
+	bl_label = "Export Objects"
+	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
+
+	def execute(self, context):
+		
+		obj = None
+		if context.mode != 'OBJECT':
+			raise ValueError("Operator can only be used in object mode.")
+		if len(context.selected_objects) == 0:
+			raise ValueError("Object not selected.")
+		obj = context.active_object
+		if type(obj.data) is not bpy.types.Mesh:
+			raise ValueError("Mesh not selected.")
+
+		scaleValue = bpy.context.scene.blenderToSM64Scale
+		finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((
+			scaleValue, scaleValue, scaleValue))).to_4x4()
+		
+		try:
+			applyRotation([obj], math.radians(90), 'X')
+			exportObjectsC(obj, finalTransform, 
+				mathutils.Euler((math.radians(90), 0, 0)).to_quaternion(), 
+				bpy.path.abspath(context.scene.objExportPath))
+			self.report({'INFO'}, 'Success! Objects at ' + \
+				context.scene.objExportPath)
+
+			applyRotation([obj], math.radians(-90), 'X')
+			return {'FINISHED'} # must return a set
+
+		except:
+			if context.mode != 'OBJECT':
+				bpy.ops.object.mode_set(mode = 'OBJECT')
+
+			applyRotation([obj], math.radians(-90), 'X')
+
+			obj.select_set(True)
+			context.view_layer.objects.active = obj
+			self.report({'ERROR'}, traceback.format_exc())
+			return {'CANCELLED'} # must return a set
+
+class SM64_ExportObjectsPanel(bpy.types.Panel):
+	bl_idname = "SM64_PT_export_objects"
+	bl_label = "SM64 Object Exporter"
+	bl_space_type = 'VIEW_3D'
+	bl_region_type = 'UI'
+	bl_category = 'Fast64'
+
+	@classmethod
+	def poll(cls, context):
+		return True
+
+	# called every frame
+	def draw(self, context):
+		col = self.layout.column()
+		col.label(text = 'This is for decomp only.')
+		propsObjE = col.operator(SM64_ExportObjects.bl_idname)
+
+		col.prop(context.scene, 'objExportPath')
+		for i in range(panelSeparatorSize):
+			col.separator()
+
 class F3D_GlobalSettingsPanel(bpy.types.Panel):
 	bl_idname = "F3D_PT_global_settings"
 	bl_label = "F3D Global Settings"
@@ -1497,6 +1561,7 @@ classes = (
 	#SM64_ImportLevelPanel,
 	#SM64_ExportLevelPanel,
 	SM64_ExportCollisionPanel,
+	SM64_ExportObjectsPanel,
 
 	#SM64_ImportMario,
 	#SM64_ExportMario,
@@ -1510,6 +1575,7 @@ classes = (
 	#SM64_ImportLevel
 	#SM64_ExportLevel
 	SM64_ExportCollision,
+	SM64_ExportObjects,
 )
 
 # called on add-on enabling
@@ -1520,6 +1586,7 @@ def register():
 	mat_register()
 	bone_register()
 	cam_register()
+	sm64_obj_register()
 
 	for cls in classes:
 		register_class(cls)
@@ -1697,6 +1764,10 @@ def register():
 	bpy.types.Scene.colInsertableBinaryPath = bpy.props.StringProperty(
 		name = 'Filepath', subtype = 'FILE_PATH')
 
+	# Objects
+	bpy.types.Scene.objExportPath = bpy.props.StringProperty(
+		name = 'Directory', subtype = 'FILE_PATH')
+
 	# ROM
 	bpy.types.Scene.importRom = bpy.props.StringProperty(
 		name ='Import ROM', subtype = 'FILE_PATH')
@@ -1826,6 +1897,9 @@ def unregister():
 	del bpy.types.Scene.colEndAddr
 	del bpy.types.Scene.colInsertableBinaryPath
 
+	# Objects
+	del bpy.types.Scene.objExportPath
+
 	# ROM
 	del bpy.types.Scene.importRom
 	del bpy.types.Scene.exportRom
@@ -1836,6 +1910,7 @@ def unregister():
 	del bpy.types.Scene.refreshVer
 	del bpy.types.Scene.blenderToSM64Scale
 
+	sm64_obj_unregister()
 	mat_unregister()
 	bone_unregister()
 	col_unregister()
