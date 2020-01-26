@@ -717,8 +717,10 @@ class SM64_ImportDL(bpy.types.Operator):
 				int(context.scene.DLImportStart, 16)
 			readObj = F3DtoBlenderObject(romfileSrc, start, 
 				context.scene, 'sm64_mesh', 
-				blenderToSM64Rotation.to_4x4().inverted(),
+				Matrix.Identity(4),
 				segmentData, True)
+			
+			applyRotation([readObj], math.radians(-90), 'X')
 			romfileSrc.close()
 
 			self.report({'INFO'}, 'Generic import succeeded.')
