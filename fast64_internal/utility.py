@@ -5,6 +5,24 @@ from .sm64_constants import *
 from .sm64_geolayout_constants import *
 import random
 import string
+import os
+
+def writeIfNotFound(filePath, stringValue, hasEndIf):
+	if os.path.exists(filePath):
+		fileData = open(filePath, 'r')
+		fileData.seek(0)
+		stringData = fileData.read()
+		fileData.close()
+		if stringValue not in stringData:
+			if hasEndIf:
+				stringData = stringData[:-7] + '\n' + stringValue + '\n\n#endif'
+			else:
+				stringData += stringValue
+			fileData = open(filePath, 'w')
+			fileData.write(stringData)
+		fileData.close()
+	else:
+		raise ValueError(filePath + " does not exist. Group name may be invalid.")
 
 def selectMeshChildrenOnly(obj, ignoreAttr):
 	ignoreObj = ignoreAttr is not None and getattr(obj, ignoreAttr)
@@ -153,7 +171,7 @@ def prop_split(layout, data, field, name):
 	split.prop(data, field, text = '')
 
 def toAlnum(name):
-	if name == '':
+	if name is None or name == '':
 		return None
 	for i in range(len(name)):
 		if not name[i].isalnum():

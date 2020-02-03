@@ -355,7 +355,9 @@ class SM64_ExportGeolayoutObject(bpy.types.Operator):
 					bpy.context.scene.geoTexDir,
 					bpy.context.scene.geoSaveTextures,
 					bpy.context.scene.geoSeparateTextureDef,
-					levelCamera)
+					levelCamera, bpy.context.scene.geoGroupName if \
+					bpy.context.scene.geoWriteHeaders else None, 
+					context.scene.geoName)
 				self.report({'INFO'}, 'Success! Geolayout at ' + \
 					context.scene.geoExportPath)
 			elif context.scene.geoExportType == 'Insertable Binary':
@@ -522,7 +524,9 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 					bpy.context.scene.geoTexDir,
 					bpy.context.scene.geoSaveTextures,
 					bpy.context.scene.geoSeparateTextureDef,
-					levelCamera)
+					levelCamera, bpy.context.scene.geoGroupName if \
+					bpy.context.scene.geoWriteHeaders else None,
+					context.scene.geoName)
 				self.report({'INFO'}, 'Success! Geolayout at ' + \
 					context.scene.geoExportPath)
 			elif context.scene.geoExportType == 'Insertable Binary':
@@ -641,6 +645,10 @@ class SM64_ExportGeolayoutPanel(bpy.types.Panel):
 		col.prop(context.scene, 'geoExportType')
 		if context.scene.geoExportType == 'C':
 			col.prop(context.scene, 'geoExportPath')
+			prop_split(col, context.scene, 'geoName', 'Name')
+			col.prop(context.scene, 'geoWriteHeaders')
+			if context.scene.geoWriteHeaders:
+				prop_split(col, context.scene, 'geoGroupName', 'Group Name')
 			col.prop(context.scene, 'geoSaveTextures')
 			if context.scene.geoSaveTextures:
 				col.prop(context.scene, 'geoTexDir')	
@@ -1703,6 +1711,12 @@ def register():
 		name = 'Filepath', subtype = 'FILE_PATH')
 	bpy.types.Scene.geoIsSegPtr = bpy.props.BoolProperty(
 		name = 'Is Segmented Address')
+	bpy.types.Scene.geoName = bpy.props.StringProperty(
+		name = 'Name', default = 'mario')
+	bpy.types.Scene.geoGroupName = bpy.props.StringProperty(
+		name = 'Name', default = 'group0')
+	bpy.types.Scene.geoWriteHeaders = bpy.props.BoolProperty(
+		name = 'Write Headers For Actor', default = True)
 
 	# Level
 	bpy.types.Scene.levelLevel = bpy.props.EnumProperty(items = level_enums, 
@@ -1824,6 +1838,9 @@ def unregister():
 	del bpy.types.Scene.geoSeparateTextureDef
 	del bpy.types.Scene.geoInsertableBinaryPath
 	del bpy.types.Scene.geoIsSegPtr
+	del bpy.types.Scene.geoName
+	del bpy.types.Scene.geoGroupName
+	del bpy.types.Scene.geoWriteHeaders
 
 	# Animation
 	del bpy.types.Scene.animStartImport

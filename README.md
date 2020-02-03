@@ -128,7 +128,9 @@ Basically, Mario's DMA table starts at 0x4EC000. There is an 8 byte header, and 
 Often times it is hard to rig an existing SM64 geolayout, as there are many intermediate non-deform bones and bones don't point to their children. To make this easier you can use the 'Create Animatable Metarig' operator in the SM64 Armature Tools header. This will generate a metarig which can be used with IK. The metarig bones will be placed on armature layers 3 and 4.
 
 ### Exporting Geolayouts to C
-To replace an actor model in decomp, replace its geo.inc.c and model.inc.c contents with the geolayout file and the dl file respectively. Use the contents of the header file to replace existing extern declarations in one of the group header files (ex. mario is in group0.h). Make sure that the name of your geolayout is the same the name of the geolayout you're replacing. Note that any function addresses in geolayout nodes will be converted to decomp function names if possible.
+To replace an actor model in decomp, make sure "Write Headers for Actor" is checked and set the correct group name. Make sure the "Name" field is the folder name of the actor, and the directory is the /actors folder.
+
+To replace an actor model manually, replace its geo.inc.c and model.inc.c contents with the geolayout file and the dl file respectively. Use the contents of the header file to replace existing extern declarations in one of the group header files (ex. mario is in group0.h). Make sure that the name of your geolayout is the same the name of the geolayout you're replacing. Note that any function addresses in geolayout nodes will be converted to decomp function names if possible.
 
 ### Switch Statements
 To create a switch node, and a bone to your armature and set its geolayout type to "Switch". Any bones that will be switched should be parented to this switch bone. The switch bone can do either material, draw layer, or mesh switching.

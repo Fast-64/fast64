@@ -88,7 +88,7 @@ def appendRevertToGeolayout(geolayoutGraph, fModel):
 
 # Convert to Geolayout
 def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix, 
-	f3dType, isHWv1, camera):
+	f3dType, isHWv1, camera, name):
 	
 	fModel = FModel(f3dType, isHWv1)
 
@@ -107,12 +107,12 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix,
 
 	# Start geolayout
 	if camera is not None:
-		geolayoutGraph = GeolayoutGraph(armatureObj.name + '_level')
+		geolayoutGraph = GeolayoutGraph(name + '_level')
 		cameraObj = getCameraObj(camera)
 		meshGeolayout = saveCameraSettingsToGeolayout(
 			geolayoutGraph, cameraObj, armatureObj)
 	else:
-		geolayoutGraph = GeolayoutGraph(armatureObj.name)
+		geolayoutGraph = GeolayoutGraph(name + "_geo")
 		rootNode = TransformNode(StartNode())
 		geolayoutGraph.startGeolayout.nodes.append(rootNode)
 		meshGeolayout = geolayoutGraph.startGeolayout
@@ -126,7 +126,7 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix,
 	return geolayoutGraph, fModel
 
 def convertObjectToGeolayout(obj, convertTransformMatrix, 
-	f3dType, isHWv1, camera):
+	f3dType, isHWv1, camera, name):
 	
 	fModel = FModel(f3dType, isHWv1)
 	
@@ -135,12 +135,12 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 
 	# Start geolayout
 	if camera is not None:
-		geolayoutGraph = GeolayoutGraph(obj.name + '_level')
+		geolayoutGraph = GeolayoutGraph(name + '_level')
 		cameraObj = getCameraObj(camera)
 		meshGeolayout = saveCameraSettingsToGeolayout(
 			geolayoutGraph, cameraObj, obj)
 	else:
-		geolayoutGraph = GeolayoutGraph(obj.name)
+		geolayoutGraph = GeolayoutGraph(name + '_geo')
 		rootNode = TransformNode(StartNode())
 		geolayoutGraph.startGeolayout.nodes.append(rootNode)
 		meshGeolayout = geolayoutGraph.startGeolayout
@@ -181,23 +181,25 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 
 # C Export
 def exportGeolayoutArmatureC(armatureObj, obj, convertTransformMatrix, 
-	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera):
+	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera, groupName, name):
 	geolayoutGraph, fModel = convertArmatureToGeolayout(armatureObj, obj,
-		convertTransformMatrix, f3dType, isHWv1, camera)
+		convertTransformMatrix, f3dType, isHWv1, camera, name)
 
-	saveGeolayoutC(armatureObj.name, geolayoutGraph, fModel, dirPath, texDir,
-		savePNG, texSeparate)
+	saveGeolayoutC(name, geolayoutGraph, fModel, dirPath, texDir,
+		savePNG, texSeparate, groupName)
 
 def exportGeolayoutObjectC(obj, convertTransformMatrix, 
-	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera):
+	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera, groupName, name):
 	geolayoutGraph, fModel = convertObjectToGeolayout(obj, 
-		convertTransformMatrix, f3dType, isHWv1, camera)
+		convertTransformMatrix, f3dType, isHWv1, camera, name)
 
-	saveGeolayoutC(obj.name, geolayoutGraph, fModel, dirPath, texDir,
-		savePNG, texSeparate)
+	saveGeolayoutC(name, geolayoutGraph, fModel, dirPath, texDir,
+		savePNG, texSeparate, groupName)
 
 def saveGeolayoutC(dirName, geolayoutGraph, fModel, dirPath, texDir, savePNG,
- 	texSeparate):
+ 	texSeparate, groupName):
+	dirName = toAlnum(dirName)
+	groupName = toAlnum(groupName)
 	geoDirPath = os.path.join(dirPath, toAlnum(dirName))
 
 	if not os.path.exists(geoDirPath):
@@ -213,6 +215,11 @@ def saveGeolayoutC(dirName, geolayoutGraph, fModel, dirPath, texDir, savePNG,
 		dlFile = open(modelPath, 'w')
 		dlFile.write(dlData)
 		dlFile.close()
+	
+	# group.c include
+	if groupName is not None:
+		groupPathC = os.path.join(dirPath, groupName + ".c")
+		writeIfNotFound(groupPathC, '#include "' + dirName + '/model.inc.c"', False)
 
 	geoPath = os.path.join(geoDirPath, 'geo.inc.c')
 	geoData = geolayoutGraph.to_c()
@@ -220,25 +227,35 @@ def saveGeolayoutC(dirName, geolayoutGraph, fModel, dirPath, texDir, savePNG,
 	geoFile.write(geoData)
 	geoFile.close()
 
+	# group_geo.c include
+	if groupName is not None:
+		groupPathGeoC = os.path.join(dirPath, groupName + "_geo.c")
+		writeIfNotFound(groupPathGeoC, '#include "' + dirName + '/geo.inc.c"', False)
+
 	headerPath = os.path.join(geoDirPath, 'header.h')
 	cDefine = geolayoutGraph.to_c_def() + fModel.to_c_def(True)
 	cDefFile = open(headerPath, 'w')
 	cDefFile.write(cDefine)
 	cDefFile.close()
 
+	# group.h declaration
+	if groupName is not None:
+		groupPathH = os.path.join(dirPath, groupName + ".h")
+		writeIfNotFound(groupPathH, '#include "' + dirName + '/header.h"', True)
+
 
 # Insertable Binary
 def exportGeolayoutArmatureInsertableBinary(armatureObj, obj,
 	convertTransformMatrix, f3dType, isHWv1, filepath, camera):
 	geolayoutGraph, fModel = convertArmatureToGeolayout(armatureObj, obj,
-		convertTransformMatrix, f3dType, isHWv1, camera)
+		convertTransformMatrix, f3dType, isHWv1, camera, armatureObj.name)
 	
 	saveGeolayoutInsertableBinary(geolayoutGraph, fModel, filepath, f3dType)
 
 def exportGeolayoutObjectInsertableBinary(obj, convertTransformMatrix, 
 	f3dType, isHWv1, filepath, camera):
 	geolayoutGraph, fModel = convertObjectToGeolayout(obj, 
-		convertTransformMatrix, f3dType, isHWv1, camera)
+		convertTransformMatrix, f3dType, isHWv1, camera, obj.name)
 	
 	saveGeolayoutInsertableBinary(geolayoutGraph, fModel, filepath, f3dType)
 
@@ -259,7 +276,7 @@ def exportGeolayoutArmatureBinaryBank0(romfile, armatureObj, obj, exportRange,
 	f3dType, isHWv1, RAMAddr, camera):
 	
 	geolayoutGraph, fModel = convertArmatureToGeolayout(armatureObj, obj,
-		convertTransformMatrix, f3dType, isHWv1, camera)
+		convertTransformMatrix, f3dType, isHWv1, camera, armatureObj.name)
 	
 	return saveGeolayoutBinaryBank0(romfile, fModel, geolayoutGraph,
 		exportRange, levelCommandPos, modelID, textDumpFilePath, RAMAddr)
@@ -269,7 +286,7 @@ def exportGeolayoutObjectBinaryBank0(romfile, obj, exportRange,
 	f3dType, isHWv1, RAMAddr, camera):
 	
 	geolayoutGraph, fModel = convertObjectToGeolayout(obj, 
-		convertTransformMatrix, f3dType, isHWv1, camera)
+		convertTransformMatrix, f3dType, isHWv1, camera, obj.name)
 	
 	return saveGeolayoutBinaryBank0(romfile, fModel, geolayoutGraph,
 		exportRange, levelCommandPos, modelID, textDumpFilePath, RAMAddr)
@@ -320,7 +337,7 @@ def exportGeolayoutArmatureBinary(romfile, armatureObj, obj, exportRange,
 	textDumpFilePath, f3dType, isHWv1, camera):
 
 	geolayoutGraph, fModel = convertArmatureToGeolayout(armatureObj, obj,
-		convertTransformMatrix, f3dType, isHWv1, camera)
+		convertTransformMatrix, f3dType, isHWv1, camera, armatureObj.name)
 
 	return saveGeolayoutBinary(romfile, geolayoutGraph, fModel, exportRange,	
  		levelData, levelCommandPos, modelID, textDumpFilePath)
@@ -330,7 +347,7 @@ def exportGeolayoutObjectBinary(romfile, obj, exportRange,
 	textDumpFilePath, f3dType, isHWv1, camera):
 	
 	geolayoutGraph, fModel = convertObjectToGeolayout(obj, 
-		convertTransformMatrix, f3dType, isHWv1, camera)
+		convertTransformMatrix, f3dType, isHWv1, camera, obj.name)
 	
 	return saveGeolayoutBinary(romfile, geolayoutGraph, fModel, exportRange,	
  		levelData, levelCommandPos, modelID, textDumpFilePath)
