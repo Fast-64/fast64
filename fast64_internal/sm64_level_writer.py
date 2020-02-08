@@ -31,8 +31,8 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
     for child in childAreas:
         if child.areaIndex in areaDict:
             raise ValueError(child.name + " shares the same area index as " + areaDict[child.areaIndex].name)
-        if child.areaCamera is None:
-            raise ValueError(child.name + ' does not have an area camera set.')
+        #if child.areaCamera is None:
+        #    raise ValueError(child.name + ' does not have an area camera set.')
         #setOrigin(obj, child)
         areaDict[child.areaIndex] = child
         
