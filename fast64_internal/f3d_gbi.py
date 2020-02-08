@@ -1481,7 +1481,8 @@ class GfxList:
 		return data
 
 class FModel:
-	def __init__(self, f3dType, isHWv1):
+	def __init__(self, f3dType, isHWv1, name):
+		self.name = name # used for texture prefixing
 		# dict of light name : Lights
 		self.lights = {}
 		# dict of (texture, (texture format, palette format)) : FImage
@@ -1563,7 +1564,7 @@ class FModel:
 			data += self.materialRevert.to_c(static) + '\n'
 		return data
 
-	def save_c_tex_separate(self, static, texDir, dirpath, texSeparate):
+	def save_c_tex_separate(self, static, texDir, dirpath, texSeparate, texFileName):
 		data = ''
 		texC = ''
 
@@ -1615,7 +1616,7 @@ class FModel:
 		modelFile.close()
 
 		if texSeparate:
-			texPath = os.path.join(dirpath, 'texture.inc.c')
+			texPath = os.path.join(dirpath, texFileName)
 			texFile = open(texPath, 'w')
 			texFile.write(texC)
 			texFile.close()

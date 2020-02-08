@@ -56,9 +56,6 @@ The object geolayout inspector can be found in the properties editor under the o
 The level camera settings can be found in the properties editor under the camera tab.
 The RDP default settings can be found in the properties editor under the world tab.
 
-### C Exporting
-When exporting data to C, a folder will be created (if it does not yet exist) and will be named after the object/armature it is based off of. The C files will be saved within this new folder. Any previous C files of the same name will be overwritten.
-
 ### Vertex Colors
 To use vertex colors, select the "Vertex Colored Texture" preset and add two vertex color layers to your mesh named 'Col' and 'Alpha'. The alpha layer will use the greyscale value of the vertex color to determine alpha.
 
@@ -127,24 +124,27 @@ Basically, Mario's DMA table starts at 0x4EC000. There is an 8 byte header, and 
 ### Animating Existing Geolayouts
 Often times it is hard to rig an existing SM64 geolayout, as there are many intermediate non-deform bones and bones don't point to their children. To make this easier you can use the 'Create Animatable Metarig' operator in the SM64 Armature Tools header. This will generate a metarig which can be used with IK. The metarig bones will be placed on armature layers 3 and 4.
 
+### C Exporting 
+When exporting data to C, a folder will be created (if it does not yet exist) and will be named after the user-provided name. The C files will be saved within this new folder. Any previous C files of the same name will be overwritten.
+
+### Decomp And Extended RAM
+By default decomp uses 4MB of RAM which means space runs out quickly when exporting custom assets. To handle this, make sure to add "#define USE_EXT_RAM" at the top of include/segments.h after the include guards.
+
 ### Exporting Geolayouts to C
 To replace an actor model in decomp, make sure "Write Headers for Actor" is checked and set the correct group name. Make sure the "Name" field is the folder name of the actor, and the directory is the /actors folder.
 
-To replace an actor model manually, replace its geo.inc.c and model.inc.c contents with the geolayout file and the dl file respectively. Use the contents of the header file to replace existing extern declarations in one of the group header files (ex. mario is in group0.h). Make sure that the name of your geolayout is the same the name of the geolayout you're replacing. Note that any function addresses in geolayout nodes will be converted to decomp function names if possible.
+To replace an actor model manually, replace its geo.inc.c and model.inc.c contents with the geolayout file and the dl file respectively. Use the contents of the header file to replace existing extern declarations in one of the group header files (ex. mario is in group0.h). Make sure that the name of your geolayout is the same the name of the geolayout you're replacing. Note that any function addresses in geolayout nodes will be converted to decomp function names if possible. Make sure to also use extended RAM as described in the sections above.
+
+### Exporting Levels to C
+Add an Empty and check its SM64 object type in the object properties sidebar. Change the type to "Level Root."
+Add another Empty and change its type to "Area Root", and parent it to the level root object. You can now add any geometry/empties as child of the area root and it will be exported with the area. Empties are also used for placing specials, macros, and objects. Backgrounds are set in level root options, and warp nodes are set in area root options. Make sure to also use extended RAM as described in the sections above.
+
+The directory field should be the /levels directory if exporting directly to decomp, and the name should be the level folder name.
 
 ### Switch Statements
 To create a switch node, and a bone to your armature and set its geolayout type to "Switch". Any bones that will be switched should be parented to this switch bone. The switch bone can do either material, draw layer, or mesh switching.
 
 To add a mesh switch option node, duplicate and separate your switch bone into its own armature and move it off to the side. Set the bone geolayout command to "Switch Option". This bone must be the root bone of all other bones in the armature. Skin your switch option geometry to this armature, then add your switch option armature to the switch bone options in your original armature.
-
-### Exporting Object Placement
-To add an object, create an Empty in the scene and parent it to any object in your object geolayout hierarchy. Go to the object properties window to see the options for objects. To export, select the root geolayout object and click "Export Objects". This will generate a C file whose contents you can copy and paste to other level files.
-
-For convenience's sake it is best to use a different Empty display type for each object type (object, macro, specials). Also, in order to see empties better, use the Solid rendering view when editing object positions.
-
-Model IDs are located at include/model_ids.h.
-Macro presets are defined in include/macro_presets.h.
-Special presets are defined in include/special_presets.h.
 
 ### Insertable Binary Exporting
 Insertable Binary exporting will generate a binary file, with a header containing metadata about pointer locations. It is formatted as such:

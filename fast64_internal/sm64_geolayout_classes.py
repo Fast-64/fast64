@@ -811,8 +811,8 @@ class OrthoNode:
 class FrustumNode:
 	def __init__(self, fov, near, far):
 		self.fov = fov
-		self.near = int(round(bpy.context.scene.blenderToSM64Scale * near))
-		self.far = int(round(bpy.context.scene.blenderToSM64Scale * far))
+		self.near = int(round(near))
+		self.far = int(round(far))
 		self.useFunc = True # Always use function?
 	
 	def size(self):
@@ -924,8 +924,8 @@ class BackgroundNode:
 			return 'GEO_BACKGROUND_COLOR(0x' + \
 				format(self.backgroundValue, '04x').upper() + '),'
 		else:
-			return 'GEO_BACKGROUND(0x' + \
-				format(self.backgroundValue, '04x').upper() + \
+			return 'GEO_BACKGROUND(' + \
+				str(self.backgroundValue) + \
 				', ' + convertAddrToFunc(self.geo_func) + '),'
 
 nodeGroupClasses = [

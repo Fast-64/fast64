@@ -48,24 +48,29 @@ class CameraSettingsPanel(bpy.types.Panel):
 		camera = context.object.data
 		layout = self.layout.box()
 		layout.box().label(text = 'SM64 Camera Settings')
-		layout.prop(camera, 'useBackgroundColor')
-		if camera.useBackgroundColor:
-			prop_split(layout, camera, 'backgroundColor', 'Background Color')
-		else:
-			prop_split(layout, camera, 'backgroundID', 'Background ID')
-		layout.prop(camera, 'dynamicFOV')
-		layout.prop(camera, 'useDefaultScreenRect')
-		if not camera.useDefaultScreenRect:
-			prop_split(layout, camera, 'screenPos', 'Screen Position')
-			prop_split(layout, camera, 'screenSize', 'Screen Size')
-		prop_split(layout, camera, 'camType', 'Camera Type')
-		prop_split(layout, camera, 'envType', 'Environment Type')
+		#layout.prop(camera, 'useBackgroundColor')
+		#if camera.useBackgroundColor:
+		#	prop_split(layout, camera, 'backgroundColor', 'Background Color')
+		#else:
+		#	prop_split(layout, camera, 'backgroundID', 'Background ID')
+		#	layout.box().label(text = 'Background IDs defined in include/geo_commands.h.')
+		#layout.prop(camera, 'dynamicFOV')
+		#if not camera.dynamicFOV:
+		#	prop_split(layout, camera, 'fov', 'Field Of View')
+		#layout.prop(camera, 'useDefaultScreenRect')
+		#if not camera.useDefaultScreenRect:
+		#	prop_split(layout, camera, 'screenPos', 'Screen Position')
+		#	prop_split(layout, camera, 'screenSize', 'Screen Size')
+		
+		
+		#prop_split(layout, camera, 'clipPlanes', 'Clip Planes')
+		#prop_split(layout, camera, 'camType', 'Camera Type')
+		#prop_split(layout, camera, 'envType', 'Environment Type')
 
-def saveCameraSettingsToGeolayout(geolayoutGraph, cameraObj, rootObj):
+def saveCameraSettingsToGeolayout(geolayoutGraph, areaObj, rootObj, name):
 	geolayout = geolayoutGraph.startGeolayout
-	camera = cameraObj.data
 	screenAreaNode = TransformNode(ScreenAreaNode(
-		camera.useDefaultScreenRect, 0xA, camera.screenPos, camera.screenSize))
+		areaObj.useDefaultScreenRect, 0xA, areaObj.screenPos, areaObj.screenSize))
 	geolayout.nodes.insert(0, screenAreaNode)
 	
 	zBufferDisable = TransformNode(ZBufferNode(False))
@@ -74,27 +79,34 @@ def saveCameraSettingsToGeolayout(geolayoutGraph, cameraObj, rootObj):
 	orthoNode = TransformNode(OrthoNode(0x64))
 	zBufferDisable.children.append(orthoNode)
 
-	bgColor = colorTo16bitRGBA(gammaCorrect(camera.backgroundColor) + [1])
+
+	# Uses Level Root here
+	bgColor = colorTo16bitRGBA(gammaCorrect(rootObj.backgroundColor) + [1])
 	bgNode = TransformNode(BackgroundNode(
-		camera.useBackgroundColor, bgColor))
+		rootObj.useBackgroundColor, bgColor if rootObj.useBackgroundColor \
+		else ('BACKGROUND_' + rootObj.background)))
 	orthoNode.children.append(bgNode)
 
 	zBufferEnable = TransformNode(ZBufferNode(True))
 	screenAreaNode.children.append(zBufferEnable)
 
+	#frustumNode = TransformNode(FrustumNode(
+	#	math.degrees(camera.angle), camera.clip_start, camera.clip_end))
 	frustumNode = TransformNode(FrustumNode(
-		math.degrees(camera.angle), camera.clip_start, camera.clip_end))
+		areaObj.fov, 
+		areaObj.clipPlanes[0], 
+		areaObj.clipPlanes[1]))
 	zBufferEnable.children.append(frustumNode)
 
-	relativeTransform = rootObj.matrix_world.inverted() @ cameraObj.matrix_world
+	relativeTransform = rootObj.matrix_world.inverted() @ areaObj.matrix_world
 	relativePosition = relativeTransform.decompose()[0]
 	relativeRotation = relativeTransform.decompose()[1]
-	cameraNode = TransformNode(CameraNode(camera.camType, relativePosition,
+	cameraNode = TransformNode(CameraNode(areaObj.camType, relativePosition,
 		relativePosition + relativeRotation @ mathutils.Vector((0,0,-1))))
 	frustumNode.children.append(cameraNode)
 
 	startDLNode = TransformNode(StartNode())
-	meshGeolayout = geolayoutGraph.addGeolayout(rootObj, rootObj.name)
+	meshGeolayout = geolayoutGraph.addGeolayout(rootObj, name + "_" + rootObj.name)
 	meshGeolayout.nodes.append(startDLNode)
 	geolayoutGraph.addJumpNode(cameraNode, geolayout, meshGeolayout)
 
@@ -104,12 +116,12 @@ def saveCameraSettingsToGeolayout(geolayoutGraph, cameraObj, rootObj):
 
 	# corresponds to geo_enfvx_main
 	cameraNode.children.append(TransformNode(
-		FunctionNode('802761D0', camera.envType)))
+		FunctionNode('802761D0', areaObj.envType)))
 
 	return meshGeolayout
 
 cam_classes = (
-	CameraSettingsPanel,
+	#CameraSettingsPanel,
 )
 
 #  802763D4 - ASM function for background
@@ -119,47 +131,60 @@ def cam_register():
 	for cls in cam_classes:
 		register_class(cls)
 
-	bpy.types.Camera.useBackgroundColor = bpy.props.BoolProperty(
-		name = 'Use Solid Color For Background', default = False)
+	# Moved to Level Root
+	#bpy.types.Camera.useBackgroundColor = bpy.props.BoolProperty(
+	#	name = 'Use Solid Color For Background', default = False)
 
-	bpy.types.Camera.backgroundID = bpy.props.IntProperty(
-		name = 'Background ID', min = 0, max = 2**16 - 1)
+	#bpy.types.Camera.backgroundID = bpy.props.StringProperty(
+	#	name = 'Background ID', default = 'BACKGROUND_OCEAN_SKY')
+	#
+	#bpy.types.Camera.backgroundColor = bpy.props.FloatVectorProperty(
+	#	name = 'Background Color', subtype='COLOR', size = 4, 
+	#	min = 0, max = 1, default = (0,0,0,1))
 	
-	bpy.types.Camera.backgroundColor = bpy.props.FloatVectorProperty(
-		name = 'Background Color', subtype='COLOR', size = 4, 
-		min = 0, max = 1, default = (0,0,0,1))
+	#bpy.types.Camera.dynamicFOV = bpy.props.BoolProperty(
+	#	name = 'Dynamic FOV', default = True)
 	
-	bpy.types.Camera.dynamicFOV = bpy.props.BoolProperty(
-		name = 'Dynamic FOV', default = True)
-	
-	bpy.types.Camera.screenPos = bpy.props.IntVectorProperty(
-		name = 'Screen Position', size = 2, default = (160, 120), 
-		min = -2**15, max = 2**15 - 1)
+	# Moved to Area Root
+	#bpy.types.Camera.screenPos = bpy.props.IntVectorProperty(
+	#	name = 'Screen Position', size = 2, default = (160, 120), 
+	#	min = -2**15, max = 2**15 - 1)
 
-	bpy.types.Camera.screenSize = bpy.props.IntVectorProperty(
-		name = 'Screen Size', size = 2, default = (160, 120), 
-		min = -2**15, max = 2**15 - 1)
+	#bpy.types.Camera.screenSize = bpy.props.IntVectorProperty(
+	#	name = 'Screen Size', size = 2, default = (160, 120), 
+	#	min = -2**15, max = 2**15 - 1)
 	
-	bpy.types.Camera.camType = bpy.props.IntProperty(
-		name = 'Camera Type', min = 0, max = 2 ** 16 - 1)
+	#bpy.types.Camera.camType = bpy.props.StringProperty(
+	#	name = 'Camera Type', default = '1')
 
-	bpy.types.Camera.envType = bpy.props.IntProperty(
-		name = 'Environment Type', min = 0, max = 2 ** 16 - 1)
+	#bpy.types.Camera.envType = bpy.props.StringProperty(
+	#	name = 'Environment Type', default = '0')
 
-	bpy.types.Camera.useDefaultScreenRect = bpy.props.BoolProperty(
-		name = 'Use Default Screen Rect', default = True)
+	# Moved to Area Root
+	#bpy.types.Camera.useDefaultScreenRect = bpy.props.BoolProperty(
+	#	name = 'Use Default Screen Rect', default = True)
+
+	#bpy.types.Camera.clipPlanes = bpy.props.IntVectorProperty(
+	#	name = 'Clip Planes', size = 2, min = 0, default = (100, 30000)
+	#)
+
+	#bpy.types.Camera.fov = bpy.props.FloatProperty(
+	#	name = 'Field Of View', min = 0, max = 180, default = 45
+	#)
 
 def cam_unregister():
-	del bpy.types.Camera.useBackgroundColor
-	del bpy.types.Camera.backgroundID
-	del bpy.types.Camera.backgroundColor
-	del bpy.types.Camera.dynamicFOV
+	#del bpy.types.Camera.useBackgroundColor
+	#del bpy.types.Camera.backgroundID
+	#del bpy.types.Camera.backgroundColor
+	#del bpy.types.Camera.dynamicFOV
 	#del bpy.types.Camera.orthoScale
-	del bpy.types.Camera.screenPos
-	del bpy.types.Camera.screenSize
-	del bpy.types.Camera.camType
-	del bpy.types.Camera.envType
-	del bpy.types.Camera.useDefaultScreenRect
+	#del bpy.types.Camera.screenPos
+	#del bpy.types.Camera.screenSize
+	#del bpy.types.Camera.camType
+	#del bpy.types.Camera.envType
+	#del bpy.types.Camera.useDefaultScreenRect
+	#del bpy.types.Camera.clipPlanes
+	#del bpy.types.Camera.fov
 
 	for cls in cam_classes:
 		unregister_class(cls)

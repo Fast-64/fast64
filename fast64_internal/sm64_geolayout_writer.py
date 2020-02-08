@@ -30,12 +30,7 @@ def findStartBone(armatureObj):
 
 def prepareGeolayoutExport(armatureObj, obj):
 	# Make object and armature space the same.
-	bpy.ops.object.select_all(action = "DESELECT")
-	obj.select_set(True)
-	bpy.context.view_layer.objects.active = obj
-	bpy.ops.object.transform_apply()
-	bpy.context.scene.cursor.location = armatureObj.location
-	bpy.ops.object.origin_set(type = 'ORIGIN_CURSOR')
+	setOrigin(armatureObj, obj)
 
 	# Apply armature scale.
 	bpy.ops.object.select_all(action = "DESELECT")
@@ -90,7 +85,7 @@ def appendRevertToGeolayout(geolayoutGraph, fModel):
 def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix, 
 	f3dType, isHWv1, camera, name):
 	
-	fModel = FModel(f3dType, isHWv1)
+	fModel = FModel(f3dType, isHWv1, name)
 
 	if len(armatureObj.children) == 0:
 		raise ValueError("No mesh parented to armature.")
@@ -110,7 +105,7 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix,
 		geolayoutGraph = GeolayoutGraph(name + '_level')
 		cameraObj = getCameraObj(camera)
 		meshGeolayout = saveCameraSettingsToGeolayout(
-			geolayoutGraph, cameraObj, armatureObj)
+			geolayoutGraph, cameraObj, armatureObj, name)
 	else:
 		geolayoutGraph = GeolayoutGraph(name + "_geo")
 		rootNode = TransformNode(StartNode())
@@ -125,20 +120,22 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix,
 	geolayoutGraph.generateSortedList()
 	return geolayoutGraph, fModel
 
+# Camera is unused here
 def convertObjectToGeolayout(obj, convertTransformMatrix, 
-	f3dType, isHWv1, camera, name):
+	f3dType, isHWv1, camera, name, fModel, areaObj):
 	
-	fModel = FModel(f3dType, isHWv1)
+	if fModel is None:
+		fModel = FModel(f3dType, isHWv1, name)
 	
 	#convertTransformMatrix = convertTransformMatrix @ \
 	#	mathutils.Matrix.Diagonal(obj.scale).to_4x4()
 
 	# Start geolayout
-	if camera is not None:
+	if areaObj is not None:
 		geolayoutGraph = GeolayoutGraph(name + '_level')
-		cameraObj = getCameraObj(camera)
+		#cameraObj = getCameraObj(camera)
 		meshGeolayout = saveCameraSettingsToGeolayout(
-			geolayoutGraph, cameraObj, obj)
+			geolayoutGraph, areaObj, obj, name)
 	else:
 		geolayoutGraph = GeolayoutGraph(name + '_geo')
 		rootNode = TransformNode(StartNode())
@@ -147,7 +144,7 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 
 	# Duplicate objects to apply scale / modifiers / linked data
 	bpy.ops.object.select_all(action = 'DESELECT')
-	selectMeshChildrenOnly(obj, 'ignore_render')
+	selectMeshChildrenOnly(obj, None, True, areaObj.areaIndex)
 	obj.select_set(True)
 	bpy.context.view_layer.objects.active = obj
 	bpy.ops.object.duplicate()
@@ -156,13 +153,22 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 		allObjs = bpy.context.selected_objects
 		bpy.ops.object.make_single_user(obdata = True)
 		bpy.ops.object.transform_apply(location = False, 
-			rotation = False, scale = True, properties =  False)
+			rotation = True, scale = True, properties =  False)
 		for selectedObj in allObjs:
 			bpy.ops.object.select_all(action = 'DESELECT')
 			selectedObj.select_set(True)
 			for modifier in selectedObj.modifiers:
 				bpy.ops.object.modifier_apply(apply_as='DATA',
 					modifier=modifier.name)
+		for selectedObj in allObjs:
+			if selectedObj.ignore_render:
+				for child in selectedObj.children:
+					bpy.ops.object.select_all(action = 'DESELECT')
+					child.select_set(True)
+					bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
+					selectedObj.parent.select_set(True)
+					bpy.ops.object.parent_set(keep_transform = True)
+				selectedObj.parent = None
 		processMesh(fModel, tempObj, convertTransformMatrix,
 			meshGeolayout.nodes[0], True, geolayoutGraph.startGeolayout,
 			geolayoutGraph)
@@ -181,23 +187,25 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 
 # C Export
 def exportGeolayoutArmatureC(armatureObj, obj, convertTransformMatrix, 
-	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera, groupName, name):
+	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera, groupName, name,
+	writeDefinitionsFile):
 	geolayoutGraph, fModel = convertArmatureToGeolayout(armatureObj, obj,
 		convertTransformMatrix, f3dType, isHWv1, camera, name)
 
-	saveGeolayoutC(name, geolayoutGraph, fModel, dirPath, texDir,
-		savePNG, texSeparate, groupName)
+	return saveGeolayoutC(name, geolayoutGraph, fModel, dirPath, texDir,
+		savePNG, texSeparate, groupName, writeDefinitionsFile)
 
 def exportGeolayoutObjectC(obj, convertTransformMatrix, 
-	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera, groupName, name):
+	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera, groupName, name,
+	writeDefinitionsFile):
 	geolayoutGraph, fModel = convertObjectToGeolayout(obj, 
-		convertTransformMatrix, f3dType, isHWv1, camera, name)
+		convertTransformMatrix, f3dType, isHWv1, camera, name, None, None)
 
-	saveGeolayoutC(name, geolayoutGraph, fModel, dirPath, texDir,
-		savePNG, texSeparate, groupName)
+	return saveGeolayoutC(name, geolayoutGraph, fModel, dirPath, texDir,
+		savePNG, texSeparate, groupName, writeDefinitionsFile)
 
 def saveGeolayoutC(dirName, geolayoutGraph, fModel, dirPath, texDir, savePNG,
- 	texSeparate, groupName):
+ 	texSeparate, groupName, writeDefinitionsFile):
 	dirName = toAlnum(dirName)
 	groupName = toAlnum(groupName)
 	geoDirPath = os.path.join(dirPath, toAlnum(dirName))
@@ -206,7 +214,7 @@ def saveGeolayoutC(dirName, geolayoutGraph, fModel, dirPath, texDir, savePNG,
 		os.mkdir(geoDirPath)
 
 	if savePNG:
-		fModel.save_c_tex_separate(True, texDir, geoDirPath, texSeparate)
+		fModel.save_c_tex_separate(True, texDir, geoDirPath, texSeparate, 'texture.inc.c')
 		fModel.freePalettes()
 	else:
 		fModel.freePalettes()
@@ -232,16 +240,19 @@ def saveGeolayoutC(dirName, geolayoutGraph, fModel, dirPath, texDir, savePNG,
 		groupPathGeoC = os.path.join(dirPath, groupName + "_geo.c")
 		writeIfNotFound(groupPathGeoC, '#include "' + dirName + '/geo.inc.c"', False)
 
-	headerPath = os.path.join(geoDirPath, 'header.h')
 	cDefine = geolayoutGraph.to_c_def() + fModel.to_c_def(True)
-	cDefFile = open(headerPath, 'w')
-	cDefFile.write(cDefine)
-	cDefFile.close()
+	if writeDefinitionsFile:
+		headerPath = os.path.join(geoDirPath, 'geo_declarations.h')
+		cDefFile = open(headerPath, 'w')
+		cDefFile.write(cDefine)
+		cDefFile.close()
 
-	# group.h declaration
-	if groupName is not None:
-		groupPathH = os.path.join(dirPath, groupName + ".h")
-		writeIfNotFound(groupPathH, '#include "' + dirName + '/header.h"', True)
+		# group.h declaration
+		if groupName is not None:
+			groupPathH = os.path.join(dirPath, groupName + ".h")
+			writeIfNotFound(groupPathH, '#include "' + dirName + '/geo_declarations.h"', True)
+	
+	return cDefine
 
 
 # Insertable Binary
@@ -255,7 +266,7 @@ def exportGeolayoutArmatureInsertableBinary(armatureObj, obj,
 def exportGeolayoutObjectInsertableBinary(obj, convertTransformMatrix, 
 	f3dType, isHWv1, filepath, camera):
 	geolayoutGraph, fModel = convertObjectToGeolayout(obj, 
-		convertTransformMatrix, f3dType, isHWv1, camera, obj.name)
+		convertTransformMatrix, f3dType, isHWv1, camera, obj.name, None, None)
 	
 	saveGeolayoutInsertableBinary(geolayoutGraph, fModel, filepath, f3dType)
 
@@ -286,7 +297,7 @@ def exportGeolayoutObjectBinaryBank0(romfile, obj, exportRange,
 	f3dType, isHWv1, RAMAddr, camera):
 	
 	geolayoutGraph, fModel = convertObjectToGeolayout(obj, 
-		convertTransformMatrix, f3dType, isHWv1, camera, obj.name)
+		convertTransformMatrix, f3dType, isHWv1, camera, obj.name, None, None)
 	
 	return saveGeolayoutBinaryBank0(romfile, fModel, geolayoutGraph,
 		exportRange, levelCommandPos, modelID, textDumpFilePath, RAMAddr)
@@ -347,7 +358,7 @@ def exportGeolayoutObjectBinary(romfile, obj, exportRange,
 	textDumpFilePath, f3dType, isHWv1, camera):
 	
 	geolayoutGraph, fModel = convertObjectToGeolayout(obj, 
-		convertTransformMatrix, f3dType, isHWv1, camera, obj.name)
+		convertTransformMatrix, f3dType, isHWv1, camera, obj.name, None, None)
 	
 	return saveGeolayoutBinary(romfile, geolayoutGraph, fModel, exportRange,	
  		levelData, levelCommandPos, modelID, textDumpFilePath)
@@ -545,7 +556,18 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode,
 	geolayout, geolayoutGraph, isRoot):
 	#finalTransform = copy.deepcopy(transformMatrix)
 
-	if not isinstance(obj.data, bpy.types.Mesh) or obj.ignore_render:
+	useGeoEmpty = obj.data is None and \
+		(obj.sm64_obj_type == 'None' or \
+		obj.sm64_obj_type == 'Level Root' or \
+		obj.sm64_obj_type == 'Area Root')
+	
+	useAreaEmpty = obj.data is None and \
+		obj.sm64_obj_type == 'Area Root'
+		
+	#if useAreaEmpty and areaIndex is not None and obj.areaIndex != areaIndex:
+	#	return
+		
+	if not (isinstance(obj.data, bpy.types.Mesh) or useGeoEmpty) or obj.ignore_render:
 		return
 
 	if isRoot:
@@ -559,6 +581,8 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode,
 	#rotation = rotate.to_matrix().to_4x4()
 
 	geoCmd = obj.geo_cmd_static
+	if useGeoEmpty:
+		geoCmd = 'DisplayListWithOffset'
 
 	if obj.use_render_area:
 		parentTransformNode = \
@@ -585,7 +609,11 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode,
 
 	transformNode = TransformNode(node)
 
-	meshGroup = saveStaticModel(fModel, obj, transformMatrix)
+	if obj.data is None:
+		meshGroup = None
+	else:
+		meshGroup = saveStaticModel(fModel, obj, transformMatrix)
+
 	if meshGroup is None:
 		node.hasDL = False
 	else:

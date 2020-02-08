@@ -1,9 +1,11 @@
 from .utility import *
 from .sm64_constants import *
+from .sm64_objects import *
 from bpy.utils import register_class, unregister_class
 import bpy, bmesh
 import os
 from io import BytesIO
+import math
 
 class CollisionVertex:
 	def __init__(self, position):
@@ -52,47 +54,6 @@ class CollisionTriangle:
 				str(int(round(self.indices[1]))) + ', ' + \
 				str(int(round(self.indices[2]))) + ', ' + \
 				str(int(self.specialParam)) + '),\n'
-
-class CollisionSpecial:
-	def __init__(self):
-		self.preset = None
-		self.position = [None] * 3
-		self.yaw = None
-		self.specialParam = None
-
-	def to_binary(self):
-		data = int(self.preset).to_bytes(2, 'big')
-		if len(self.position) > 3:
-			raise ValueError("Object position should not be " + \
-				str(len(self.position) + ' fields long.'))
-		for index in self.position:
-			data.extend(int(round(index)).to_bytes(2, 'big', signed = False))
-		if self.yaw is not None:
-			data.extend(int(self.yaw).to_bytes(2, 'big'))
-			if self.specialParam is not None:
-				data.extend(int(self.specialParam).to_bytes(2, 'big'))
-		return data
-	
-	def to_c(self):
-		if self.yaw is None:
-			data = 'SPECIAL_OBJECT('
-		elif self.specialParam is None:
-			data = 'SPECIAL_OBJECT_WITH_YAW('
-		else:
-			data = 'SPECIAL_OBJECT_WITH_YAW_AND_PARAM('
-
-		data += str(self.preset) + ', ' +\
-			str(int(round(self.position[0]))) + ', ' + \
-			str(int(round(self.position[1]))) + ', ' + \
-			str(int(round(self.position[2])))
-		
-		if self.yaw is None:
-			data += '),\n'
-		elif self.specialParam is None:
-			data += ', ' + str(self.yaw) + '),\n'
-		else:
-			data += ', ' + str(self.yaw) + ', ' + str(self.specialParam) + '),\n'
-		return data
 
 class CollisionWaterBox:
 	def __init__(self):
@@ -143,6 +104,9 @@ class Collision:
 
 	def size(self):
 		return len(self.to_binary())
+
+	def to_c_def(self):
+		return 'extern const Collision ' + self.name + '[];\n'
 
 	def to_c(self):
 		data = 'const Collision ' + self.name + '[] = {\n'
@@ -248,9 +212,9 @@ class SM64ObjectPanel(bpy.types.Panel):
 '''
 
 def exportCollisionBinary(obj, transformMatrix, romfile, startAddress,
-	endAddress, addEntities, includeChildren):
-	collision = exportCollisionCommon(obj, transformMatrix, addEntities,
-		includeChildren)
+	endAddress, includeSpecials, includeChildren):
+	collision = exportCollisionCommon(obj, transformMatrix, includeSpecials,
+		includeChildren, obj.name, None)
 	start, end = collision.set_addr(startAddress)
 	if end > endAddress:
 		raise ValueError('Size too big: Data ends at ' + hex(end) +\
@@ -258,9 +222,9 @@ def exportCollisionBinary(obj, transformMatrix, romfile, startAddress,
 	collision.save_binary(romfile)
 	return start, end
 
-def exportCollisionC(obj, transformMatrix, dirPath, addEntities, 
-	includeChildren):
-	colDirPath = os.path.join(dirPath, toAlnum(obj.name))
+def exportCollisionC(obj, transformMatrix, dirPath, includeSpecials, 
+	includeChildren, name, writeDefinitionsFile):
+	colDirPath = os.path.join(dirPath, toAlnum(name))
 
 	if not os.path.exists(colDirPath):
 		os.mkdir(colDirPath)
@@ -268,15 +232,23 @@ def exportCollisionC(obj, transformMatrix, dirPath, addEntities,
 	colPath = os.path.join(colDirPath, 'collision.inc.c')
 
 	fileObj = open(colPath, 'w')
-	collision = exportCollisionCommon(obj, transformMatrix, addEntities,
-		includeChildren)
+	collision = exportCollisionCommon(obj, transformMatrix, includeSpecials,
+		includeChildren, obj.name, None)
 	fileObj.write(collision.to_c())
 	fileObj.close()
 
+	cDefine = collision.to_c_def()
+	if writeDefinitionsFile:
+		headerPath = os.path.join(dirPath, 'collision_declarations.h')
+		cDefFile = open(headerPath, 'w')
+		cDefFile.write(cDefine)
+		cDefFile.close()
+	return cDefine
+
 def exportCollisionInsertableBinary(obj, transformMatrix, filepath, 
-	addEntities, includeChildren):
-	collision = exportCollisionCommon(obj, transformMatrix, addEntities,
-		includeChildren)
+	includeSpecials, includeChildren):
+	collision = exportCollisionCommon(obj, transformMatrix, includeSpecials,
+		includeChildren, obj.name, None)
 	start, end = collision.set_addr(0)
 	if end > 0xFFFFFF:
 		raise ValueError('Size too big: Data ends at ' + hex(end) +\
@@ -292,15 +264,16 @@ def exportCollisionInsertableBinary(obj, transformMatrix, filepath,
 
 	return data
 
-def exportCollisionCommon(obj, transformMatrix, addEntities, includeChildren):
+def exportCollisionCommon(obj, transformMatrix, includeSpecials, includeChildren, 
+	name, areaIndex):
 	bpy.ops.object.select_all(action = 'DESELECT')
 	obj.select_set(True)
 
 	# dict of collisionType : faces
 	collisionDict = {}
-	addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix)
+	addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix, areaIndex)
 	
-	collision = Collision(toAlnum(obj.name) + '_collision')
+	collision = Collision(toAlnum(name + '_' + obj.name) + '_collision')
 	for collisionType, faces in collisionDict.items():
 		collision.triangles[collisionType] = []
 		for faceVerts in faces:
@@ -315,27 +288,15 @@ def exportCollisionCommon(obj, transformMatrix, addEntities, includeChildren):
 					indices.append(index)
 			collision.triangles[collisionType].append(CollisionTriangle(indices))
 	
-	'''
-	if addEntities:
-		childArray = obj.children
-		while len(childArray) > 0:
-			childObj = childArray[0]
-			childArray = childArray[1:]
-			if childObj.sm64_obj_type == 'Special':
-				special = CollisionSpecial()
-				special.preset = childObj.sm64_special_preset
-				special.position = roundPosition(transformMatrix @ \
-					childObj.location)
-				collision.specials.append(special)
-			elif childObj.sm64_obj_type == 'Water Box':
-				pass
-			childArray.extend(childObj.children)
-	'''
-	
+	if includeSpecials:
+		area = SM64_Area(areaIndex, '', '', '', None, None, [], obj.name)
+		process_sm64_objects(obj, area, obj.matrix_world, transformMatrix, True)
+		collision.specials = area.specials
+
 	return collision
 
-def addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix):
-	tempObj, meshList = combineObjects(obj, includeChildren, 'ignore_collision')
+def addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix, areaIndex):
+	tempObj, meshList = combineObjects(obj, includeChildren, 'ignore_collision', areaIndex)
 	try:
 		if len(tempObj.data.materials) == 0:
 			raise ValueError(obj.name + " must have a material associated with it.")

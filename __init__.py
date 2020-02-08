@@ -35,6 +35,7 @@ enumRefreshVer = [
 	("Refresh 3", "Refresh 3", "Refresh 3"),
 	("Refresh 4", "Refresh 4", "Refresh 4"),
 	("Refresh 5", "Refresh 5", "Refresh 5"),
+	("Refresh 6", "Refresh 6", "Refresh 6"),
 ]
 
 panelSeparatorSize = 5
@@ -333,11 +334,11 @@ class SM64_ExportGeolayoutObject(bpy.types.Operator):
 		obj = context.active_object
 		if type(obj.data) is not bpy.types.Mesh:
 			raise ValueError("Mesh not selected.")
-		if context.scene.saveCameraSettings and \
-			context.scene.levelCamera is None:
-			raise ValueError("Cannot save camera settings with no camera provided.")
-		levelCamera = context.scene.levelCamera if \
-			context.scene.saveCameraSettings else None
+		#if context.scene.saveCameraSettings and \
+		#	context.scene.levelCamera is None:
+		#	raise ValueError("Cannot save camera settings with no camera provided.")
+		#levelCamera = context.scene.levelCamera if \
+		#	context.scene.saveCameraSettings else None
 
 		finalTransform = mathutils.Matrix.Identity(4)
 		scaleValue = bpy.context.scene.blenderToSM64Scale
@@ -355,9 +356,9 @@ class SM64_ExportGeolayoutObject(bpy.types.Operator):
 					bpy.context.scene.geoTexDir,
 					bpy.context.scene.geoSaveTextures,
 					bpy.context.scene.geoSeparateTextureDef,
-					levelCamera, bpy.context.scene.geoGroupName if \
+					None, bpy.context.scene.geoGroupName if \
 					bpy.context.scene.geoWriteHeaders else None, 
-					context.scene.geoName)
+					context.scene.geoName, True)
 				self.report({'INFO'}, 'Success! Geolayout at ' + \
 					context.scene.geoExportPath)
 			elif context.scene.geoExportType == 'Insertable Binary':
@@ -365,7 +366,7 @@ class SM64_ExportGeolayoutObject(bpy.types.Operator):
 					finalTransform, context.scene.f3d_type,
 					context.scene.isHWv1, 
 					bpy.path.abspath(bpy.context.scene.geoInsertableBinaryPath),
-					levelCamera)
+					None)
 				self.report({'INFO'}, 'Success! Data at ' + \
 					context.scene.geoInsertableBinaryPath)
 			else:
@@ -406,14 +407,14 @@ class SM64_ExportGeolayoutObject(bpy.types.Operator):
 						context.scene.f3d_type, context.scene.isHWv1, 
 						getAddressFromRAMAddress(int(
 						context.scene.geoRAMAddr, 16)),
-						levelCamera)
+						None)
 				else:
 					addrRange, segPointer = exportGeolayoutObjectBinary(
 						romfileOutput, obj,
 						exportRange, finalTransform, segmentData,
 						*modelLoadInfo, textDumpFilePath, 
 						context.scene.f3d_type, context.scene.isHWv1,
-						levelCamera)
+						None)
 
 				romfileOutput.close()
 				bpy.ops.object.select_all(action = 'DESELECT')
@@ -473,11 +474,11 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 			not isinstance(armatureObj.children[0].data, bpy.types.Mesh):
 			raise ValueError("Armature does not have any mesh children, or " +\
 				'has a non-mesh child.')
-		if context.scene.saveCameraSettings and \
-			context.scene.levelCamera is None:
-			raise ValueError("Cannot save camera settings with no camera provided.")
-		levelCamera = context.scene.levelCamera if \
-			context.scene.saveCameraSettings else None
+		#if context.scene.saveCameraSettings and \
+		#	context.scene.levelCamera is None:
+		#	raise ValueError("Cannot save camera settings with no camera provided.")
+		#levelCamera = context.scene.levelCamera if \
+		#	context.scene.saveCameraSettings else None
 
 		obj = armatureObj.children[0]
 		finalTransform = mathutils.Matrix.Identity(4)
@@ -524,9 +525,9 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 					bpy.context.scene.geoTexDir,
 					bpy.context.scene.geoSaveTextures,
 					bpy.context.scene.geoSeparateTextureDef,
-					levelCamera, bpy.context.scene.geoGroupName if \
+					None, bpy.context.scene.geoGroupName if \
 					bpy.context.scene.geoWriteHeaders else None,
-					context.scene.geoName)
+					context.scene.geoName, True)
 				self.report({'INFO'}, 'Success! Geolayout at ' + \
 					context.scene.geoExportPath)
 			elif context.scene.geoExportType == 'Insertable Binary':
@@ -534,7 +535,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 					finalTransform, context.scene.f3d_type,
 					context.scene.isHWv1, 
 					bpy.path.abspath(bpy.context.scene.geoInsertableBinaryPath),
-					levelCamera)
+					None)
 				self.report({'INFO'}, 'Success! Data at ' + \
 					context.scene.geoInsertableBinaryPath)
 			else:
@@ -574,14 +575,14 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
  						finalTransform, *modelLoadInfo, textDumpFilePath,
 						context.scene.f3d_type, context.scene.isHWv1, 
 						getAddressFromRAMAddress(int(
-						context.scene.geoRAMAddr, 16)), levelCamera)
+						context.scene.geoRAMAddr, 16)), None)
 				else:
 					addrRange, segPointer = exportGeolayoutArmatureBinary(
 						romfileOutput, armatureObj, obj,
 						exportRange, finalTransform, segmentData,
 						*modelLoadInfo, textDumpFilePath, 
 						context.scene.f3d_type, context.scene.isHWv1,
-						levelCamera)
+						None)
 
 				romfileOutput.close()
 				bpy.ops.object.select_all(action = 'DESELECT')
@@ -653,6 +654,7 @@ class SM64_ExportGeolayoutPanel(bpy.types.Panel):
 			if context.scene.geoSaveTextures:
 				col.prop(context.scene, 'geoTexDir')	
 				col.prop(context.scene, 'geoSeparateTextureDef')
+			extendedRAMLabel(col)
 		elif context.scene.geoExportType == 'Insertable Binary':
 			col.prop(context.scene, 'geoInsertableBinaryPath')
 		else:
@@ -673,9 +675,9 @@ class SM64_ExportGeolayoutPanel(bpy.types.Panel):
 			if context.scene.textDumpGeo:
 				col.prop(context.scene, 'textDumpGeoPath')
 		
-		col.prop(context.scene, 'saveCameraSettings')
-		if context.scene.saveCameraSettings:
-			prop_split(col, context.scene, 'levelCamera', 'Level Camera')
+		#col.prop(context.scene, 'saveCameraSettings')
+		#if context.scene.saveCameraSettings:
+		#	prop_split(col, context.scene, 'levelCamera', 'Level Camera')
 		
 		for i in range(panelSeparatorSize):
 			col.separator()
@@ -1038,13 +1040,50 @@ class SM64_ImportLevelPanel(bpy.types.Panel):
 
 class SM64_ExportLevel(bpy.types.Operator):
 	# set bl_ properties
-	bl_idname = 'object.sm64_export_lvl'
+	bl_idname = 'object.sm64_export_level'
 	bl_label = "Export Level"
 	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
 	def execute(self, context):
-		self.report({'ERROR'}, 'Not Implemented.')
-		return {'CANCELLED'} # must return a set
+		
+		if context.mode != 'OBJECT':
+			raise ValueError("Operator can only be used in object mode.")
+		if len(context.selected_objects) == 0:
+			raise ValueError("Object not selected.")
+		obj = context.selected_objects[0]
+		if obj.data is not None or obj.sm64_obj_type != 'Level Root':
+			raise ValueError("The selected object is not an empty with the Level Root type.")
+
+		#obj = context.active_object
+
+		scaleValue = bpy.context.scene.blenderToSM64Scale
+		finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((
+			scaleValue, scaleValue, scaleValue))).to_4x4()
+		
+		try:
+			applyRotation([obj], math.radians(90), 'X')
+			exportLevelC(obj, finalTransform,
+				context.scene.f3d_type, context.scene.isHWv1, context.scene.levelName, 
+				bpy.path.abspath(context.scene.levelExportPath),
+    			context.scene.levelSaveTextures, context.scene.levelWriteScript)
+			self.report({'INFO'}, 'Success! Level at ' + \
+				context.scene.levelExportPath)
+
+			applyRotation([obj], math.radians(-90), 'X')
+			#applyRotation(obj.children, math.radians(0), 'X')
+			return {'FINISHED'} # must return a set
+
+		except:
+			if context.mode != 'OBJECT':
+				bpy.ops.object.mode_set(mode = 'OBJECT')
+
+			applyRotation([obj], math.radians(-90), 'X')
+			#applyRotation(obj.children, math.radians(0), 'X')
+
+			obj.select_set(True)
+			context.view_layer.objects.active = obj
+			self.report({'ERROR'}, traceback.format_exc())
+			return {'CANCELLED'} # must return a set
 
 class SM64_ExportLevelPanel(bpy.types.Panel):
 	bl_idname = "SM64_PT_export_level"
@@ -1060,9 +1099,24 @@ class SM64_ExportLevelPanel(bpy.types.Panel):
 	# called every frame
 	def draw(self, context):
 		col = self.layout.column()
+		col.label(text = 'This is for decomp only.')
+		col.operator(SM64_ExportLevel.bl_idname)
 
+		prop_split(col, context.scene, 'levelExportPath', 'Directory')
+		prop_split(col, context.scene, 'levelName', 'Name')
+		col.prop(context.scene, 'levelSaveTextures')
+		col.prop(context.scene, 'levelWriteScript')
+		extendedRAMLabel(col)
+		#prop_split(col, context.scene, 'levelCamera', 'Camera')
 		for i in range(panelSeparatorSize):
 			col.separator()
+
+def extendedRAMLabel(layout):
+	infoBox = layout.box()
+	infoBox.label(text = 'Be sure to add: ')
+	infoBox.label(text = '"#define USE_EXT_RAM"')
+	infoBox.label(text = 'to include/segments.h.')
+	infoBox.label(text = 'Extended RAM prevents crashes.')
 
 class SM64_ImportAnimMario(bpy.types.Operator):
 	bl_idname = 'object.sm64_import_anim'
@@ -1321,7 +1375,8 @@ class SM64_ExportCollision(bpy.types.Operator):
 			if context.scene.colExportType == 'C':
 				exportCollisionC(obj, finalTransform,
 					bpy.path.abspath(context.scene.colExportPath), False,
-					context.scene.colIncludeChildren)
+					context.scene.colIncludeChildren, 
+					obj.name, True)
 				self.report({'INFO'}, 'Success! Collision at ' + \
 					context.scene.colExportPath)
 			elif context.scene.colExportType == 'Insertable Binary':
@@ -1423,70 +1478,6 @@ class SM64_ExportCollisionPanel(bpy.types.Panel):
 		for i in range(panelSeparatorSize):
 			col.separator()
 
-class SM64_ExportObjects(bpy.types.Operator):
-	# set bl_ properties
-	bl_idname = 'object.sm64_export_objects'
-	bl_label = "Export Objects"
-	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
-
-	def execute(self, context):
-		
-		obj = None
-		if context.mode != 'OBJECT':
-			raise ValueError("Operator can only be used in object mode.")
-		if len(context.selected_objects) == 0:
-			raise ValueError("Object not selected.")
-		obj = context.active_object
-		if type(obj.data) is not bpy.types.Mesh:
-			raise ValueError("Mesh not selected.")
-
-		scaleValue = bpy.context.scene.blenderToSM64Scale
-		finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((
-			scaleValue, scaleValue, scaleValue))).to_4x4()
-		
-		try:
-			applyRotation([obj], math.radians(90), 'X')
-			exportObjectsC(obj, finalTransform, 
-				mathutils.Euler((math.radians(90), 0, 0)).to_quaternion(), 
-				bpy.path.abspath(context.scene.objExportPath))
-			self.report({'INFO'}, 'Success! Objects at ' + \
-				context.scene.objExportPath)
-
-			applyRotation([obj], math.radians(-90), 'X')
-			return {'FINISHED'} # must return a set
-
-		except:
-			if context.mode != 'OBJECT':
-				bpy.ops.object.mode_set(mode = 'OBJECT')
-
-			applyRotation([obj], math.radians(-90), 'X')
-
-			obj.select_set(True)
-			context.view_layer.objects.active = obj
-			self.report({'ERROR'}, traceback.format_exc())
-			return {'CANCELLED'} # must return a set
-
-class SM64_ExportObjectsPanel(bpy.types.Panel):
-	bl_idname = "SM64_PT_export_objects"
-	bl_label = "SM64 Object Exporter"
-	bl_space_type = 'VIEW_3D'
-	bl_region_type = 'UI'
-	bl_category = 'Fast64'
-
-	@classmethod
-	def poll(cls, context):
-		return True
-
-	# called every frame
-	def draw(self, context):
-		col = self.layout.column()
-		col.label(text = 'This is for decomp only.')
-		propsObjE = col.operator(SM64_ExportObjects.bl_idname)
-
-		col.prop(context.scene, 'objExportPath')
-		for i in range(panelSeparatorSize):
-			col.separator()
-
 class F3D_GlobalSettingsPanel(bpy.types.Panel):
 	bl_idname = "F3D_PT_global_settings"
 	bl_label = "F3D Global Settings"
@@ -1569,9 +1560,8 @@ classes = (
 	SM64_ImportDLPanel,
 	SM64_ExportDLPanel,
 	#SM64_ImportLevelPanel,
-	#SM64_ExportLevelPanel,
+	SM64_ExportLevelPanel,
 	SM64_ExportCollisionPanel,
-	SM64_ExportObjectsPanel,
 
 	#SM64_ImportMario,
 	#SM64_ExportMario,
@@ -1583,9 +1573,8 @@ classes = (
 	SM64_ImportAnimMario,
 	SM64_ExportAnimMario,
 	#SM64_ImportLevel
-	#SM64_ExportLevel
+	SM64_ExportLevel,
 	SM64_ExportCollision,
-	SM64_ExportObjects,
 )
 
 # called on add-on enabling
@@ -1597,15 +1586,16 @@ def register():
 	bone_register()
 	cam_register()
 	sm64_obj_register()
+	level_register()
 
 	for cls in classes:
 		register_class(cls)
 
 	# Camera
-	bpy.types.Scene.saveCameraSettings = bpy.props.BoolProperty(
-		name = 'Save Level Camera Settings', default = False)
-	bpy.types.Scene.levelCamera = bpy.props.PointerProperty(
-		type = bpy.types.Camera, name = 'Level Camera')
+	#bpy.types.Scene.saveCameraSettings = bpy.props.BoolProperty(
+	#	name = 'Save Level Camera Settings', default = False)
+	#bpy.types.Scene.levelCamera = bpy.props.PointerProperty(
+	#	type = bpy.types.Camera, name = 'Level Camera')
 
 	# Character
 	bpy.types.Scene.rotationAxis = bpy.props.FloatVectorProperty(
@@ -1781,8 +1771,14 @@ def register():
 		name = 'Filepath', subtype = 'FILE_PATH')
 
 	# Objects
-	bpy.types.Scene.objExportPath = bpy.props.StringProperty(
+	#bpy.types.Scene.levelCamera = bpy.props.PointerProperty(type = bpy.types.Camera)
+	bpy.types.Scene.levelName = bpy.props.StringProperty(name = 'Name', default = 'bob')
+	bpy.types.Scene.levelExportPath = bpy.props.StringProperty(
 		name = 'Directory', subtype = 'FILE_PATH')
+	bpy.types.Scene.levelSaveTextures = bpy.props.BoolProperty(
+		name = 'Save Textures As PNGs')
+	bpy.types.Scene.levelWriteScript = bpy.props.BoolProperty(
+		name = 'Write to script file')
 
 	# ROM
 	bpy.types.Scene.importRom = bpy.props.StringProperty(
@@ -1814,8 +1810,8 @@ def register():
 def unregister():
 
 	# Camera
-	del bpy.types.Scene.saveCameraSettings
-	del bpy.types.Scene.levelCamera
+	#del bpy.types.Scene.saveCameraSettings
+	#del bpy.types.Scene.levelCamera
 
 	del bpy.types.Scene.rotationAxis
 	del bpy.types.Scene.rotationAngle
@@ -1906,6 +1902,13 @@ def unregister():
 	del bpy.types.Scene.useLogFile
 	del bpy.types.Scene.logFilePath
 
+	del bpy.types.Scene.levelName
+	del bpy.types.Scene.levelExportPath 
+	del bpy.types.Scene.levelSaveTextures
+	del bpy.types.Scene.levelWriteScript
+	#del bpy.types.Scene.levelCamera	
+
+
 	# Collision
 	del bpy.types.Scene.colExportPath
 	del bpy.types.Scene.colExportType
@@ -1914,10 +1917,7 @@ def unregister():
 	del bpy.types.Scene.set_addr_0x2A
 	del bpy.types.Scene.colStartAddr
 	del bpy.types.Scene.colEndAddr
-	del bpy.types.Scene.colInsertableBinaryPath
-
-	# Objects
-	del bpy.types.Scene.objExportPath
+	del bpy.types.Scene.colInsertableBinaryPath	
 
 	# ROM
 	del bpy.types.Scene.importRom
@@ -1929,6 +1929,7 @@ def unregister():
 	del bpy.types.Scene.refreshVer
 	del bpy.types.Scene.blenderToSM64Scale
 
+	level_unregister()
 	sm64_obj_unregister()
 	mat_unregister()
 	bone_unregister()

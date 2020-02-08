@@ -6,6 +6,16 @@ from .sm64_geolayout_constants import *
 import random
 import string
 import os
+import math
+
+def setOrigin(target, obj):
+	bpy.ops.object.select_all(action = "DESELECT")
+	obj.select_set(True)
+	bpy.context.view_layer.objects.active = obj
+	bpy.ops.object.transform_apply()
+	bpy.context.scene.cursor.location = target.location
+	bpy.ops.object.origin_set(type = 'ORIGIN_CURSOR')
+	bpy.ops.object.select_all(action = "DESELECT")
 
 def writeIfNotFound(filePath, stringValue, hasEndIf):
 	if os.path.exists(filePath):
@@ -24,40 +34,63 @@ def writeIfNotFound(filePath, stringValue, hasEndIf):
 	else:
 		raise ValueError(filePath + " does not exist. Group name may be invalid.")
 
-def selectMeshChildrenOnly(obj, ignoreAttr):
+def deleteIfFound(filePath, stringValue):
+	if os.path.exists(filePath):
+		fileData = open(filePath, 'r')
+		fileData.seek(0)
+		stringData = fileData.read()
+		fileData.close()
+		if stringValue in stringData:
+			stringData = stringData.replace(stringValue, '')
+			fileData = open(filePath, 'w')
+			fileData.write(stringData)
+		fileData.close()
+
+def selectMeshChildrenOnly(obj, ignoreAttr, includeEmpties, areaIndex):
+	checkArea = areaIndex is not None and obj.data is None
+	if checkArea and obj.sm64_obj_type == 'Area Root' and obj.areaIndex != areaIndex:
+		return
+		
 	ignoreObj = ignoreAttr is not None and getattr(obj, ignoreAttr)
-	if isinstance(obj.data, bpy.types.Mesh) and not ignoreObj:
+	isMesh = isinstance(obj.data, bpy.types.Mesh)
+	isEmpty = (obj.data is None) and includeEmpties and \
+		(obj.sm64_obj_type == 'Level Root' or \
+		obj.sm64_obj_type == 'Area Root' or \
+		obj.sm64_obj_type == 'None')
+	if (isMesh or isEmpty) and not ignoreObj:
 		obj.select_set(True)
 		obj.original_name = obj.name
-		for child in obj.children:
-			selectMeshChildrenOnly(child, ignoreAttr)
+	for child in obj.children:
+		if checkArea and obj.sm64_obj_type == 'Level Root':
+			if not (child.data is None and child.sm64_obj_type == 'Area Root'):
+				continue
+		selectMeshChildrenOnly(child, ignoreAttr, includeEmpties, areaIndex)
 
 def cleanupDuplicatedObjects(selected_objects):
 	meshData = []
 	for selectedObj in selected_objects:
-		meshData.append(selectedObj.data)
+		if selectedObj.data is not None:
+			meshData.append(selectedObj.data)
 	for selectedObj in selected_objects:
 		bpy.data.objects.remove(selectedObj)
 	for mesh in meshData:
 		bpy.data.meshes.remove(mesh)
 
-def combineObjects(obj, includeChildren, ignoreAttr):
+def combineObjects(obj, includeChildren, ignoreAttr, areaIndex):
 	obj.original_name = obj.name
 
 	# Duplicate objects to apply scale / modifiers / linked data
 	bpy.ops.object.select_all(action = 'DESELECT')
 	if includeChildren:
-		selectMeshChildrenOnly(obj, ignoreAttr)
-	obj.select_set(True)
-	bpy.context.view_layer.objects.active = obj
+		selectMeshChildrenOnly(obj, ignoreAttr, False, areaIndex)
 	bpy.ops.object.duplicate()
+	joinedObj = None
 	try:
 		# duplicate obj and apply modifiers / make single user
-		tempObj = bpy.context.view_layer.objects.active
 		allObjs = bpy.context.selected_objects
 		bpy.ops.object.make_single_user(obdata = True)
 		bpy.ops.object.transform_apply(location = False, 
-			rotation = False, scale = True, properties =  False)
+			rotation = True, scale = True, properties =  False)
 		for selectedObj in allObjs:
 			bpy.ops.object.select_all(action = 'DESELECT')
 			selectedObj.select_set(True)
@@ -69,16 +102,32 @@ def combineObjects(obj, includeChildren, ignoreAttr):
 					print(str(error))
 					
 		bpy.ops.object.select_all(action = 'DESELECT')
-
+		
 		# Joining causes orphan data, so we remove it manually.
 		meshList = []
 		for selectedObj in allObjs:
-			if selectedObj is not tempObj:
-				selectedObj.select_set(True)
-				meshList.append(selectedObj.data)
-		tempObj.select_set(True)
-		bpy.context.view_layer.objects.active = tempObj
+			selectedObj.select_set(True)
+			meshList.append(selectedObj.data)
+		
+		joinedObj = bpy.context.selected_objects[0]
+		bpy.context.view_layer.objects.active = joinedObj
+		joinedObj.select_set(True)
+		meshList.remove(joinedObj.data)
 		bpy.ops.object.join()
+		setOrigin(obj, joinedObj)
+
+		bpy.ops.object.select_all(action = 'DESELECT')
+		bpy.context.view_layer.objects.active = joinedObj
+		joinedObj.select_set(True)
+
+		# Need to clear parent transform in order to correctly apply transform.
+		bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
+		bpy.ops.object.transform_apply(location = False, 
+			rotation = True, scale = True, properties =  False)
+		bpy.context.view_layer.objects.active = joinedObj
+		joinedObj.select_set(True)
+		bpy.ops.object.transform_apply(location = False, 
+			rotation = True, scale = True, properties =  False)
 
 	except Exception as e:
 		cleanupDuplicatedObjects(allObjs)
@@ -86,7 +135,7 @@ def combineObjects(obj, includeChildren, ignoreAttr):
 		bpy.context.view_layer.objects.active = obj
 		raise Exception(str(e))
 
-	return tempObj, meshList
+	return joinedObj, meshList
 
 def cleanupCombineObj(tempObj, meshList):
 	for mesh in meshList:

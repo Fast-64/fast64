@@ -155,8 +155,8 @@ def saveStaticModel(fModel, obj, transformMatrix):
 	revertMatAndEndDraw(fMeshGroup.mesh.draw, [])
 	return fMeshGroup
 
-def exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren):
-	fModel = FModel(f3dType, isHWv1)
+def exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren, name):
+	fModel = FModel(f3dType, isHWv1, name)
 
 	tempObj, meshList = combineObjects(obj, includeChildren, None)
 	try:
@@ -175,7 +175,7 @@ def exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren):
 def exportF3DtoC(dirPath, obj, isStatic, transformMatrix, 
 	f3dType, isHWv1, texDir, savePNG, texSeparate, includeChildren):
 	fModel, fMeshGroup = \
-		exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren)
+		exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren, obj.name)
 
 	modelDirPath = os.path.join(dirPath, toAlnum(obj.name))
 
@@ -206,7 +206,7 @@ def exportF3DtoC(dirPath, obj, isStatic, transformMatrix,
 def exportF3DtoBinary(romfile, exportRange, transformMatrix, 
 	obj, f3dType, isHWv1, segmentData, includeChildren):
 	fModel, fMeshGroup = exportF3DCommon(obj, f3dType, isHWv1, 
-		transformMatrix, includeChildren)
+		transformMatrix, includeChildren, obj.name)
 	fModel.freePalettes()
 
 	addrRange = fModel.set_addr(exportRange[0])
@@ -225,7 +225,8 @@ def exportF3DtoBinary(romfile, exportRange, transformMatrix,
 def exportF3DtoBinaryBank0(romfile, exportRange, transformMatrix, 
 	obj, f3dType, isHWv1, RAMAddr, includeChildren):
 	fModel, fMeshGroup = \
-		exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren)
+		exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren,
+			obj.name)
 	segmentData = copy.copy(bank0Segment)
 
 	data, startRAM = getBinaryBank0F3DData(fModel, RAMAddr, exportRange)
@@ -246,7 +247,8 @@ def exportF3DtoBinaryBank0(romfile, exportRange, transformMatrix,
 def exportF3DtoInsertableBinary(filepath, transformMatrix, 
 	obj, f3dType, isHWv1, includeChildren):
 	fModel, fMeshGroup = \
-		exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren)
+		exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren,
+			obj.name)
 	
 	data, startRAM = getBinaryBank0F3DData(fModel, 0, [0, 0xFFFFFF])
 	# must happen after getBinaryBank0F3DData
@@ -974,7 +976,7 @@ def saveTextureIndex(useDict, material, fModel, fMaterial, texProp,
 			name = tex.name
 		else:
 			name = tex.filepath
-		texName = getNameFromPath(name, True) + '_' + texFormat.lower()
+		texName = fModel.name + '_' + getNameFromPath(name, True) + '_' + texFormat.lower()
 
 		nextTmem = tmem + ceil(bitSizeDict[texBitSizeOf[texFormat]] * \
 			tex.size[0] * tex.size[1] / 64) 

@@ -195,15 +195,15 @@ class SwitchOptionProperty(bpy.types.PropertyGroup):
 		name = 'Specified Materials To Ignore')
 	overrideDrawLayer : bpy.props.BoolProperty()
 	drawLayer : bpy.props.EnumProperty(items = enumDrawLayers, name = 'Draw Layer')
-	collapse : bpy.props.BoolProperty()
+	expand : bpy.props.BoolProperty()
 
 def drawSwitchOptionProperty(layout, switchOption, index):
 	box = layout.box()
 	#box.box().label(text = 'Switch Option ' + str(index + 1))
-	box.prop(switchOption, 'collapse', text = 'Switch Option ' + \
-		str(index + 1), icon = 'TRIA_DOWN' if not switchOption.collapse else \
+	box.prop(switchOption, 'expand', text = 'Switch Option ' + \
+		str(index + 1), icon = 'TRIA_DOWN' if switchOption.expand else \
 		'TRIA_RIGHT')
-	if not switchOption.collapse:
+	if switchOption.expand:
 		prop_split(box, switchOption, 'switchType', 'Type')
 		if switchOption.switchType == 'Material':
 			prop_split(box, switchOption, 'materialOverride', 'Material')
@@ -436,9 +436,9 @@ def bone_register():
 	bpy.types.Object.culling_radius = bpy.props.IntProperty(
 		name = 'Culling Radius', min=-2**(15), max=2**(15)-1, default=2000)
 	bpy.types.Object.ignore_render = bpy.props.BoolProperty(
-		name = 'Ignore Render (Including Children)')
+		name = 'Ignore Render')
 	bpy.types.Object.ignore_collision = bpy.props.BoolProperty(
-		name = 'Ignore Collision (Including Children)')
+		name = 'Ignore Collision')
 
 	# Used during object duplication on export
 	bpy.types.Object.original_name = bpy.props.StringProperty()
