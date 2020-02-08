@@ -83,6 +83,8 @@ def combineObjects(obj, includeChildren, ignoreAttr, areaIndex):
 	bpy.ops.object.select_all(action = 'DESELECT')
 	if includeChildren:
 		selectMeshChildrenOnly(obj, ignoreAttr, False, areaIndex)
+	if len(bpy.context.selected_objects) == 0:
+		return None, []
 	bpy.ops.object.duplicate()
 	joinedObj = None
 	try:

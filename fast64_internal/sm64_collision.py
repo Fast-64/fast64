@@ -297,6 +297,8 @@ def exportCollisionCommon(obj, transformMatrix, includeSpecials, includeChildren
 
 def addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix, areaIndex):
 	tempObj, meshList = combineObjects(obj, includeChildren, 'ignore_collision', areaIndex)
+	if tempObj is None:
+		return
 	try:
 		if len(tempObj.data.materials) == 0:
 			raise ValueError(obj.name + " must have a material associated with it.")
