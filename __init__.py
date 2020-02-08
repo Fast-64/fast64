@@ -1041,7 +1041,7 @@ class SM64_ImportLevelPanel(bpy.types.Panel):
 class SM64_ExportLevel(bpy.types.Operator):
 	# set bl_ properties
 	bl_idname = 'object.sm64_export_level'
-	bl_label = "Export Level"
+	bl_label = "Replace Level"
 	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
 	def execute(self, context):
@@ -1087,7 +1087,7 @@ class SM64_ExportLevel(bpy.types.Operator):
 
 class SM64_ExportLevelPanel(bpy.types.Panel):
 	bl_idname = "SM64_PT_export_level"
-	bl_label = "SM64 Level Exporter"
+	bl_label = "SM64 Level Replacer"
 	bl_space_type = 'VIEW_3D'
 	bl_region_type = 'UI'
 	bl_category = 'Fast64'

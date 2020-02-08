@@ -137,9 +137,9 @@ To replace an actor model manually, replace its geo.inc.c and model.inc.c conten
 
 ### Exporting Levels to C
 Add an Empty and check its SM64 object type in the object properties sidebar. Change the type to "Level Root."
-Add another Empty and change its type to "Area Root", and parent it to the level root object. You can now add any geometry/empties as child of the area root and it will be exported with the area. Empties are also used for placing specials, macros, and objects. Backgrounds are set in level root options, and warp nodes are set in area root options. Make sure to also use extended RAM as described in the sections above.
+Add another Empty and change its type to "Area Root", and parent it to the level root object. You can now add any geometry/empties as child of the area root and it will be exported with the area. They do not have to directly parent to the area root, just to something within the area root's descendants. Empties are also used for placing specials, macros, and objects. Backgrounds are set in level root options, and warp nodes are set in area root options. Make sure to also use extended RAM as described in the sections above.
 
-The directory field should be the /levels directory if exporting directly to decomp, and the name should be the level folder name. 
+The directory field should be the /levels directory if exporting directly to decomp, and the name should be the level folder name. Note that the level folder should be an existing level to replace.
 
 To replace a level manually, replace the contents of a level folder with your exported folder. Then,
 

@@ -32,7 +32,7 @@ def writeIfNotFound(filePath, stringValue, hasEndIf):
 			fileData.write(stringData)
 		fileData.close()
 	else:
-		raise ValueError(filePath + " does not exist. Group name may be invalid.")
+		raise ValueError(filePath + " does not exist.")
 
 def deleteIfFound(filePath, stringValue):
 	if os.path.exists(filePath):
