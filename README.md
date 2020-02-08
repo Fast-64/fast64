@@ -139,7 +139,22 @@ To replace an actor model manually, replace its geo.inc.c and model.inc.c conten
 Add an Empty and check its SM64 object type in the object properties sidebar. Change the type to "Level Root."
 Add another Empty and change its type to "Area Root", and parent it to the level root object. You can now add any geometry/empties as child of the area root and it will be exported with the area. Empties are also used for placing specials, macros, and objects. Backgrounds are set in level root options, and warp nodes are set in area root options. Make sure to also use extended RAM as described in the sections above.
 
-The directory field should be the /levels directory if exporting directly to decomp, and the name should be the level folder name.
+The directory field should be the /levels directory if exporting directly to decomp, and the name should be the level folder name. 
+
+To replace a level manually, replace the contents of a level folder with your exported folder. Then,
+
+Add '#include "levels/mylevel/geo.inc.c"' to geo.c.
+
+Add '#include "levels/mylevel/leveldata.inc.c"' to leveldata.c.
+
+Add '#include "levels/mylevel/header.inc.h"' to header.h.
+
+Add '#include "levels/mylevel/texture_include.inc.c"' to texture.inc.c. (If saving textures as PNGs.)
+
+Comment out any AREA() commands and their contents in script.c and add '#include "levels/mylevel/script.inc.c"' in their place.
+
+Change the LOAD_MIO0() command for segment 0x0A to get the correct skybox segment as defined in include/segment_symbols.h.
+
 
 ### Switch Statements
 To create a switch node, and a bone to your armature and set its geolayout type to "Switch". Any bones that will be switched should be parented to this switch bone. The switch bone can do either material, draw layer, or mesh switching.
