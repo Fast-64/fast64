@@ -144,7 +144,7 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 
 	# Duplicate objects to apply scale / modifiers / linked data
 	bpy.ops.object.select_all(action = 'DESELECT')
-	selectMeshChildrenOnly(obj, None, True, areaObj.areaIndex)
+	selectMeshChildrenOnly(obj, None, True, None if areaObj is None else areaObj.areaIndex)
 	obj.select_set(True)
 	bpy.context.view_layer.objects.active = obj
 	bpy.ops.object.duplicate()
