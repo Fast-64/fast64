@@ -74,7 +74,7 @@ def addBoneToGroup(armatureObj, boneName, groupName):
 		return
 
 	elif groupName not in boneNodeProperties:
-		raise ValueError("Bone group " + groupName + " doesn't exist.")
+		raise PluginError("Bone group " + groupName + " doesn't exist.")
 
 	if bpy.context.mode != 'OBJECT':
 		bpy.ops.object.mode_set(mode="OBJECT")

@@ -158,7 +158,7 @@ def saveStaticModel(fModel, obj, transformMatrix):
 def exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren, name):
 	fModel = FModel(f3dType, isHWv1, name)
 
-	tempObj, meshList = combineObjects(obj, includeChildren, None)
+	tempObj, meshList = combineObjects(obj, includeChildren, None, None)
 	try:
 		fMeshGroup = saveStaticModel(fModel, tempObj, transformMatrix)
 		cleanupCombineObj(tempObj, meshList)
@@ -183,7 +183,7 @@ def exportF3DtoC(dirPath, obj, isStatic, transformMatrix,
 		os.mkdir(modelDirPath)
 
 	if savePNG:
-		fModel.save_c_tex_separate(isStatic, texDir, modelDirPath, texSeparate)
+		fModel.save_c_tex_separate(isStatic, texDir, modelDirPath, texSeparate, 'texture.inc.c')
 		fModel.freePalettes()
 	else:
 		fModel.freePalettes()
@@ -211,7 +211,7 @@ def exportF3DtoBinary(romfile, exportRange, transformMatrix,
 
 	addrRange = fModel.set_addr(exportRange[0])
 	if addrRange[1] > exportRange[1]:
-		raise ValueError('Size too big: Data ends at ' + hex(addrRange[1]) +\
+		raise PluginError('Size too big: Data ends at ' + hex(addrRange[1]) +\
 			', which is larger than the specified range.')
 	fModel.save_binary(romfile, segmentData)
 	if bpy.context.mode != 'OBJECT':
@@ -263,7 +263,7 @@ def getBinaryBank0F3DData(fModel, RAMAddr, exportRange):
 
 	addrRange = fModel.set_addr(RAMAddr)
 	if addrRange[1] - RAMAddr > exportRange[1] - exportRange[0]:
-	    raise ValueError('Size too big: Data ends at ' + hex(addrRange[1]) +\
+	    raise PluginError('Size too big: Data ends at ' + hex(addrRange[1]) +\
 	        ', which is larger than the specified range.')
 
 	bytesIO = BytesIO()
@@ -277,11 +277,11 @@ def getBinaryBank0F3DData(fModel, RAMAddr, exportRange):
 
 def checkForF3DMaterial(obj):
 	if len(obj.material_slots) == 0:
-		raise ValueError(obj.name + " has no Fast3D material. Make sure to add a Fast3D material to it.")
+		raise PluginError(obj.name + " has no Fast3D material. Make sure to add a Fast3D material to it.")
 	for materialSlot in obj.material_slots:
 		if materialSlot.material is None or \
 			not materialSlot.material.is_f3d:
-			raise ValueError(obj.name + " has either empty material slots " +\
+			raise PluginError(obj.name + " has either empty material slots " +\
 				'or non-Fast3D materials. Remove any regular blender materials / empty slots.')
 
 def revertMatAndEndDraw(gfxList, otherCommands):
@@ -299,7 +299,7 @@ def getCommonEdge(face1, face2, mesh):
 		for edgeKey2 in face2.edge_keys:
 			if edgeKey1 == edgeKey2:
 				return edgeKey1
-	raise ValueError("No common edge between faces " + str(face1.index) + \
+	raise PluginError("No common edge between faces " + str(face1.index) + \
 		' and ' + str(face2.index))
 
 def edgeValid(edgeValidDict, face, otherFace):
@@ -378,7 +378,7 @@ def saveTriangleStrip(faces, convertInfo, triList, vtxList, f3d,
 		
 		triConverter.addFace(neighborFace)
 		if neighborFace in visitedFaces:
-			raise ValueError("Repeated face")
+			raise PluginError("Repeated face")
 		visitedFaces.append(neighborFace)
 		unvisitedFaces.remove(neighborFace)
 		if neighborFace in possibleFaces:
@@ -793,7 +793,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer):
 		return fModel.materials[(material, None)]
 	
 	if len(obj.data.materials) == 0:
-		raise ValueError("Mesh must have at least one material.")
+		raise PluginError("Mesh must have at least one material.")
 	materialName = toAlnum(material.name) + (('_layer' + str(drawLayer)) \
 		if material.rdp_settings.set_rendermode and drawLayer is not None else '') 
 	fMaterial = FMaterial(materialName)
@@ -801,7 +801,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer):
 	fMaterial.revert.commands.append(DPPipeSync())
 	
 	if not material.is_f3d:
-		raise ValueError("Material named " +  material.name + \
+		raise PluginError("Material named " +  material.name + \
 			' is not an F3D material.')
 	nodes = material.node_tree.nodes
 
@@ -967,7 +967,7 @@ def saveTextureIndex(useDict, material, fModel, fMaterial, texProp,
 	if useDict[name] and texProp.tex_set:
 		tex = texProp.tex
 		if tex is None:
-			raise ValueError('No ' + name + ' selected.')
+			raise PluginError('No ' + name + ' selected.')
 		
 		texFormat = texProp.tex_format
 		isCITexture = texFormat[:2] == 'CI'
@@ -982,10 +982,10 @@ def saveTextureIndex(useDict, material, fModel, fMaterial, texProp,
 			tex.size[0] * tex.size[1] / 64) 
 		if nextTmem > (512 if texFormat[:2] != 'CI' else 256):
 			print(nextTmem)
-			raise ValueError("Error in material \"" + material.name + "\": Textures are too big. Max TMEM size is 4k " + \
+			raise PluginError("Error in material \"" + material.name + "\": Textures are too big. Max TMEM size is 4k " + \
 				"bytes, ex. 2 32x32 RGBA 16 bit textures.")
 		if tex.size[0] > 1024 or tex.size[1] > 1024:
-			raise ValueError("Error in material \"" + material.name + "\": Any side of an image cannot be greater " +\
+			raise PluginError("Error in material \"" + material.name + "\": Any side of an image cannot be greater " +\
 				"than 1024.")
 
 		clamp_S = texProp.S.clamp
@@ -1165,12 +1165,12 @@ def saveOrGetPaletteDefinition(fModel, image, imageName, texFmt, palFmt):
 				alpha = color[3]
 				pixelColor = (int(intensity * 0xFF) << 8) | int(alpha * 0xFF)
 			else:
-				raise ValueError("Invalid combo: " + palFormat + ', ' + bitSize)
+				raise PluginError("Invalid combo: " + palFormat + ', ' + bitSize)
 
 			if pixelColor not in palette:
 				palette.append(pixelColor)
 				if len(palette) > maxColors:
-					raise ValueError('Texture ' + imageName + ' has more than ' + \
+					raise PluginError('Texture ' + imageName + ' has more than ' + \
 						str(maxColors) + ' colors.')
 			texture.append(palette.index(pixelColor))
 	
@@ -1258,17 +1258,17 @@ def saveOrGetTextureDefinition(fModel, image, imageName, texFormat):
 					fImage.data.extend(bytearray([
 						int(value * 0xFF) & 0xFF for value in color]))
 				else:
-					raise ValueError("Invalid combo: " + fmt + ', ' + bitSize)
+					raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
 
 			elif fmt == 'G_IM_FMT_YUV':
-				raise ValueError("YUV not yet implemented.")
+				raise PluginError("YUV not yet implemented.")
 				if bitSize == 'G_IM_SIZ_16b':
 					pass
 				else:
-					raise ValueError("Invalid combo: " + fmt + ', ' + bitSize)
+					raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
 
 			elif fmt == 'G_IM_FMT_CI':
-				raise ValueError("CI not yet implemented.")
+				raise PluginError("CI not yet implemented.")
 
 			elif fmt == 'G_IM_FMT_IA':
 				intensity = mathutils.Color(color[0:3]).v
@@ -1285,7 +1285,7 @@ def saveOrGetTextureDefinition(fModel, image, imageName, texFormat):
 					fImage.data.extend(bytearray(
 						[int(intensity * 0xFF), int(alpha * 0xFF)]))
 				else:
-					raise ValueError("Invalid combo: " + fmt + ', ' + bitSize)
+					raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
 			elif fmt == 'G_IM_FMT_I':
 				intensity = mathutils.Color(color[0:3]).v
 				if bitSize == 'G_IM_SIZ_4b':
@@ -1293,9 +1293,9 @@ def saveOrGetTextureDefinition(fModel, image, imageName, texFormat):
 				elif bitSize == 'G_IM_SIZ_8b':
 					fImage.data.append(int(intensity * 0xFF))
 				else:
-					raise ValueError("Invalid combo: " + fmt + ', ' + bitSize)
+					raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
 			else:
-				raise ValueError("Invalid image format " + fmt)
+				raise PluginError("Invalid image format " + fmt)
 			
 	# We stored 4bit values in byte arrays, now to convert
 	if bitSize == 'G_IM_SIZ_4b':
@@ -1330,7 +1330,7 @@ def saveLightsDefinition(fModel, material, lightsName):
 		addLightDefinition(material, material.f3d_light7, lights)
 	
 	if lightsName in fModel.lights:
-		raise ValueError("Duplicate light name.")
+		raise PluginError("Duplicate light name.")
 	fModel.lights[lightsName] = lights
 	return lights
 
@@ -1341,7 +1341,7 @@ def addLightDefinition(mat, f3d_light, fLights):
 			lightObj = obj
 			break
 	if lightObj is None:
-		raise ValueError(
+		raise PluginError(
 			"The material \"" + mat.name + "\" is referencing a light that is no longer in the scene (i.e. has been deleted).")
 	
 	#spaceRot = blenderToSM64Rotation.to_4x4().to_quaternion()

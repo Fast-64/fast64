@@ -325,7 +325,7 @@ def parseNode(romfile, geoStartAddress, currentAddress, currentCmd, jumps,
 
 def generateMetarig(armatureObj):
 	if 'root' not in armatureObj.data.bones:
-		raise ValueError('Cannot find bone named "root". The first ' + \
+		raise PluginError('Cannot find bone named "root". The first ' + \
 			'animatable (0x13) bone in the armature must be named "root."')
 	createBoneGroups(armatureObj)
 	traverseArmatureForMetarig(armatureObj, 'root', None)

@@ -18,7 +18,7 @@ def ExtendBank0x04(romfile, segmentData, segment4):
 
 	if oldEnd - oldStart > segment4[1] - segment4[0]:
 		print("Not enough space to copy old data.")
-		raise ValueError("Not enough space to copy old data.")
+		raise PluginError("Not enough space to copy old data.")
 
 	romfile.seek(segment4[0])
 	romfile.write(oldData)

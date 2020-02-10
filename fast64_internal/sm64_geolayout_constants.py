@@ -103,4 +103,4 @@ def getGeoLayoutCmdLength(byte0, byte1):
 	if byte0 in [0x0A]:
 		return 0x08 if byte1 == 0 else 0x0C
 	else:
-		raise ValueError("Unhandled geolayout command: " + hex(byte0))
+		raise PluginError("Unhandled geolayout command: " + hex(byte0))

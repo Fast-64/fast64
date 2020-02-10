@@ -3,7 +3,7 @@ import bpy
 from .utility import decodeSegmentedAddr, encodeSegmentedAddr, get64bitAlignedAddr
 from math import ceil
 import os
-from .utility import getNameFromPath
+from .utility import getNameFromPath, PluginError
 import copy
 
 lightIndex = {
@@ -55,7 +55,7 @@ class F3D:
 			self.F3DEX_GBI_2 = False
 			self.F3DLP_GBI = False
 		else:
-			raise ValueError("Invalid F3D version " + F3D_VER + ".")
+			raise PluginError("Invalid F3D version " + F3D_VER + ".")
 
 		self.vert_buffer_size = vertexBufferSize[F3D_VER][0]
 		self.vert_load_size = vertexBufferSize[F3D_VER][1]
@@ -1290,7 +1290,7 @@ class F3D:
 		elif n == 'G_MWO_aLIGHT_6': return self.G_MWO_aLIGHT_6
 		elif n == 'G_MWO_aLIGHT_7': return self.G_MWO_aLIGHT_7
 		elif n == 'G_MWO_aLIGHT_8': return self.G_MWO_aLIGHT_8
-		else: raise ValueError('Invalid G_MWO_a value for lights: ' + n)
+		else: raise PluginError('Invalid G_MWO_a value for lights: ' + n)
 	
 	def getLightMWO_b(self, n):
 		if   n == 'G_MWO_bLIGHT_1': return self.G_MWO_bLIGHT_1
@@ -1301,7 +1301,7 @@ class F3D:
 		elif n == 'G_MWO_bLIGHT_6': return self.G_MWO_bLIGHT_6
 		elif n == 'G_MWO_bLIGHT_7': return self.G_MWO_bLIGHT_7
 		elif n == 'G_MWO_bLIGHT_8': return self.G_MWO_bLIGHT_8
-		else: raise ValueError('Invalid G_MWO_b value for lights: ' + n)	
+		else: raise PluginError('Invalid G_MWO_b value for lights: ' + n)	
 
 def _SHIFTL(value, amount, mask):
 	return (int(value) & ((1 << mask) - 1)) << amount
@@ -2398,7 +2398,7 @@ class SP2Triangles:
 				_gsSP1Triangle_w1f(
 					self.v10, self.v11, self.v12, self.flag1, f3d)
 		else:
-			raise ValueError("SP2Triangles not available in Fast3D.")
+			raise PluginError("SP2Triangles not available in Fast3D.")
 		
 		return words[0].to_bytes(4, 'big') + words[1].to_bytes(4, 'big')
 
@@ -2889,7 +2889,7 @@ def geoFlagListToWord(flagList, f3d):
 		elif name == 'G_TEXTURE_GEN_LINEAR': word += f3d.G_TEXTURE_GEN_LINEAR
 		elif name == 'G_LOD': word += f3d.G_LOD
 		elif name == 'G_CLIPPING': word += f3d.G_CLIPPING
-		else: raise ValueError("Invalid geometry mode flag " + name)
+		else: raise PluginError("Invalid geometry mode flag " + name)
 	
 	return word
 
@@ -2958,7 +2958,7 @@ class SPLoadGeometryMode:
 		if f3d.F3DEX_GBI_2:
 			return gsSPGeometryMode_F3DEX_GBI_2(-1, word, f3d)
 		else:
-			raise ValueError("LoadGeometryMode only available in F3DEX_GBI_2.")
+			raise PluginError("LoadGeometryMode only available in F3DEX_GBI_2.")
 
 	def to_c(self, static = True):
 		data = 'gsSPLoadGeometryMode(' if static else \
@@ -3237,7 +3237,7 @@ class DPSetAlphaDither:
 			return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, 
 				f3d.G_MDSFT_ALPHADITHER, 2, modeVal, f3d)
 		else:
-			raise ValueError("SetAlphaDither not available in HW v1.")
+			raise PluginError("SetAlphaDither not available in HW v1.")
 
 	def to_c(self, static = True):
 		header = 'gsDPSetAlphaDither(' if static else \
@@ -3357,12 +3357,12 @@ class DPSetRenderMode:
 			return data[:-3] + ')'
 		else:
 			if len(self.flagList) != 2:
-				raise ValueError("For a rendermode preset, only two fields should be used.")
+				raise PluginError("For a rendermode preset, only two fields should be used.")
 			data += self.flagList[0] + ', ' + self.flagList[1] + ')'
 			return data
 
 	def to_sm64_decomp_s(self):
-		raise ValueError("Cannot use DPSetRenderMode with gbi.inc.")
+		raise PluginError("Cannot use DPSetRenderMode with gbi.inc.")
 		flagWord = renderFlagListToWord(self.flagList, f3d)
 		data = 'gsDPSetRenderMode '
 		data += '0x' + format(flagWord, 'X') + ', '

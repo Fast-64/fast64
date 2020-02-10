@@ -18,7 +18,7 @@ class GeolayoutGraph:
 
 	def checkListSorted(self):
 		if not self.sortedListGenerated:
-			raise ValueError("Must generate sorted geolayout list first " +\
+			raise PluginError("Must generate sorted geolayout list first " +\
 				'before calling this function.')
 
 	def get_ptr_addresses(self):
@@ -64,7 +64,7 @@ class GeolayoutGraph:
 					if callIndex < geoIndex:
 						continue
 					else:
-						raise ValueError('Circular geolayout dependency.' +\
+						raise PluginError('Circular geolayout dependency.' +\
 							str(callOrder))
 				else:
 					geolayoutList.insert(geolayoutList.index(geolayout),
@@ -215,9 +215,9 @@ class TransformNode:
 			data = bytearray(0)
 		if len(self.children) > 0:
 			if type(self.node) is DisplayListNode:
-				raise ValueError("A DisplayListNode cannot have children.")
+				raise PluginError("A DisplayListNode cannot have children.")
 			elif type(self.node) is FunctionNode:
-				raise ValueError("An FunctionNode cannot have children.")
+				raise PluginError("An FunctionNode cannot have children.")
 
 			if data[0] in nodeGroupCmds:
 				data.extend(bytearray([GEO_NODE_OPEN, 0x00, 0x00, 0x00]))
@@ -226,7 +226,7 @@ class TransformNode:
 			if data[0] in nodeGroupCmds:
 				data.extend(bytearray([GEO_NODE_CLOSE, 0x00, 0x00, 0x00]))
 		elif type(self.node) is SwitchNode:
-			raise ValueError("A switch bone must have at least one child bone.")
+			raise PluginError("A switch bone must have at least one child bone.")
 		return data
 
 	def to_c(self, depth):
@@ -242,7 +242,7 @@ class TransformNode:
 			if type(self.node) in nodeGroupClasses:
 				data += depth * '\t' + 'GEO_CLOSE_NODE(),\n'
 		elif type(self.node) is SwitchNode:
-			raise ValueError("A switch bone must have at least one child bone.")
+			raise PluginError("A switch bone must have at least one child bone.")
 		return data
 	
 	def toTextDump(self, nodeLevel, segmentData):
@@ -265,7 +265,7 @@ class TransformNode:
 			if len(command) == 0 or command[0] in nodeGroupCmds:
 				data += '\t' * nodeLevel + '05 00 00 00\n'
 		elif type(self.node) is SwitchNode:
-			raise ValueError("A switch bone must have at least one child bone.")
+			raise PluginError("A switch bone must have at least one child bone.")
 		return data
 
 class SwitchOverrideNode:
@@ -644,7 +644,7 @@ class DisplayListNode:
 
 	def to_binary(self, segmentData):
 		if self.DLmicrocode is None:
-			raise ValueError("No mesh data associated with this 0x15 command. Make sure you have assigned vertices to this node.")
+			raise PluginError("No mesh data associated with this 0x15 command. Make sure you have assigned vertices to this node.")
 		command = bytearray([GEO_LOAD_DL, self.drawLayer, 0x00, 0x00])
 		if segmentData is not None:
 			command.extend(encodeSegmentedAddr(self.DLmicrocode.startAddress,segmentData))

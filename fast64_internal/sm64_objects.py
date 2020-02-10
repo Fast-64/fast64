@@ -81,7 +81,7 @@ class SM64_Special_Object:
 	def to_binary(self):
 		data = int(self.preset).to_bytes(2, 'big')
 		if len(self.position) > 3:
-			raise ValueError("Object position should not be " + \
+			raise PluginError("Object position should not be " + \
 				str(len(self.position) + ' fields long.'))
 		for index in self.position:
 			data.extend(int(round(index)).to_bytes(2, 'big', signed = False))

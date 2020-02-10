@@ -25,7 +25,7 @@ def findStartBone(armatureObj):
 			(poseBone.bone_group.name != "SwitchOption" and \
 			poseBone.bone_group.name != "Ignore"):
 			return poseBone.name
-	raise ValueError("No non switch option start bone could be found " +\
+	raise PluginError("No non switch option start bone could be found " +\
 		'in ' + armatureObj.name + '. Is this the root armature?')
 
 def prepareGeolayoutExport(armatureObj, obj):
@@ -46,7 +46,7 @@ def getAllArmatures(armatureObj, currentArmatures):
 			for switchOption in bone.switch_options:
 				if switchOption.switchType == 'Mesh':
 					if switchOption.optionArmature is None:
-						raise ValueError('"' + bone.name + '" in armature "' +\
+						raise PluginError('"' + bone.name + '" in armature "' +\
 							armatureObj.name + '" has a mesh switch option ' +\
 							'with no defined mesh.')
 					elif switchOption.optionArmature not in linkedArmatures and \
@@ -61,7 +61,7 @@ def getCameraObj(camera):
 	for obj in bpy.data.objects:
 		if obj.data == camera:
 			return obj
-	raise ValueError('The level camera ' + camera.name + \
+	raise PluginError('The level camera ' + camera.name + \
 		' is no longer in the scene.')
 
 def appendRevertToGeolayout(geolayoutGraph, fModel):
@@ -88,7 +88,7 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix,
 	fModel = FModel(f3dType, isHWv1, name)
 
 	if len(armatureObj.children) == 0:
-		raise ValueError("No mesh parented to armature.")
+		raise PluginError("No mesh parented to armature.")
 
 	obj.data.calc_loop_triangles()
 	obj.data.calc_normals_split()
@@ -330,7 +330,7 @@ def getBinaryBank0GeolayoutData(fModel, geolayoutGraph, RAMAddr, exportRange):
 	addrRange = fModel.set_addr(nonGeoStartAddr)
 	addrEndInROM = addrRange[1] - startRAM + exportRange[0]
 	if addrEndInROM > exportRange[1]:
-		raise ValueError('Size too big: Data ends at ' + hex(addrEndInROM) +\
+		raise PluginError('Size too big: Data ends at ' + hex(addrEndInROM) +\
 			', which is larger than the specified range.')
 	bytesIO = BytesIO()
 	#actualRAMAddr = get64bitAlignedAddr(RAMAddr)
@@ -375,7 +375,7 @@ def saveGeolayoutBinary(romfile, geolayoutGraph, fModel, exportRange,
 	geolayoutGraph.set_addr(startAddress)
 	addrRange = fModel.set_addr(nonGeoStartAddr)
 	if addrRange[1] > exportRange[1]:
-		raise ValueError('Size too big: Data ends at ' + hex(addrRange[1]) +\
+		raise PluginError('Size too big: Data ends at ' + hex(addrRange[1]) +\
 			', which is larger than the specified range.')
 	geolayoutGraph.save_binary(romfile, levelData)
 	fModel.save_binary(romfile, levelData)
@@ -697,11 +697,11 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 	
 	elif bone.geo_cmd == 'Function':
 		if bone.geo_func == '':
-			raise ValueError('Function bone ' + boneName + ' function value is empty.')
+			raise PluginError('Function bone ' + boneName + ' function value is empty.')
 		node = FunctionNode(bone.geo_func, bone.func_param)
 	elif bone.geo_cmd == 'HeldObject':
 		if bone.geo_func == '':
-			raise ValueError('Held object bone ' + boneName + ' function value is empty.')
+			raise PluginError('Held object bone ' + boneName + ' function value is empty.')
 		node = HeldObjectNode(bone.geo_func, translate)
 	else:
 		if bone.geo_cmd == 'Switch':
@@ -709,7 +709,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 			# of switch options.
 			
 			if bone.geo_func == '':
-				raise ValueError('Switch bone ' + boneName + \
+				raise PluginError('Switch bone ' + boneName + \
 					' function value is empty.')
 			node = SwitchNode(bone.geo_func, bone.func_param, boneName)
 			processSwitchBoneMatOverrides(materialOverrides, bone)
@@ -756,7 +756,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 		elif bone.geo_cmd == 'DisplayList':
 			node = DisplayListNode(int(bone.draw_layer))
 			if not armatureObj.data.bones[boneName].use_deform:
-				raise ValueError("Display List (0x15) " + boneName + ' must be a deform bone. Make sure deform is checked in bone properties.')
+				raise PluginError("Display List (0x15) " + boneName + ' must be a deform bone. Make sure deform is checked in bone properties.')
 		elif bone.geo_cmd == 'Shadow':
 			shadowType = int(bone.shadow_type)
 			shadowSolidity = bone.shadow_solidity 
@@ -770,7 +770,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 		elif bone.geo_cmd == 'StartRenderArea':
 			node = StartRenderAreaNode(bone.culling_radius)
 		else:
-			raise ValueError("Invalid geometry command: " + bone.geo_cmd)
+			raise PluginError("Invalid geometry command: " + bone.geo_cmd)
 	
 	transformNode = TransformNode(node)
 
@@ -783,7 +783,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 		if meshGroup is None:
 			#print("No mesh data.")
 			if isinstance(node, DisplayListNode):
-				raise ValueError("Display List (0x15) " + boneName + " must have vertices assigned to it. If you have already done this, make sure there aren't any other bones that also own these vertices with greater or equal weighting.")
+				raise PluginError("Display List (0x15) " + boneName + " must have vertices assigned to it. If you have already done this, make sure there aren't any other bones that also own these vertices with greater or equal weighting.")
 			node.hasDL = False
 			#bone.use_deform = False
 			#if bone.use_deform:
@@ -792,13 +792,13 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 			transformNode.parent = parentTransformNode
 		else:
 			if not bone.use_deform:
-				raise ValueError(bone.name + " has vertices in its vertex group but is not set to deformable. Make sure to enable deform on this bone.")
+				raise PluginError(bone.name + " has vertices in its vertex group but is not set to deformable. Make sure to enable deform on this bone.")
 			node.DLmicrocode = meshGroup.mesh.draw
 			node.fMesh = meshGroup.mesh # Used for material override switches
 			if lastDeformName is not None and \
 				armatureObj.data.bones[lastDeformName].geo_cmd == 'SwitchOption' \
 				and meshGroup.skinnedMesh is not None:
-				raise ValueError("Cannot skin geometry to a Switch Option " +\
+				raise PluginError("Cannot skin geometry to a Switch Option " +\
 					"bone. Skinning cannot occur across a switch node.")
 
 
@@ -816,7 +816,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 		if len(bone.children) > 0: 
 			#print("\tHas Children")
 			if bone.geo_cmd == 'Function':
-				raise ValueError("Function bones cannot have children. They instead affect the next sibling bone in alphabetical order.")
+				raise PluginError("Function bones cannot have children. They instead affect the next sibling bone in alphabetical order.")
 
 			# Handle child nodes
 			# nonDeformTransformData should be modified to be sent to children,
@@ -862,11 +862,11 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 			if switchOption.switchType == 'Mesh':
 				optionArmature = switchOption.optionArmature
 				if optionArmature is None:
-					raise ValueError('Error: In switch bone ' + boneName +\
+					raise PluginError('Error: In switch bone ' + boneName +\
 						' for option ' + str(switchIndex) + \
 						', the switch option armature is None.')
 				elif not isinstance(optionArmature.data, bpy.types.Armature):
-					raise ValueError('Error: In switch bone ' + boneName +\
+					raise PluginError('Error: In switch bone ' + boneName +\
 						' for option ' + str(switchIndex) + \
 						', the object provided is not an armature.')
 				elif optionArmature in geolayoutGraph.secondaryGeolayouts:
@@ -912,11 +912,11 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 						if isinstance(childObj.data, bpy.types.Mesh):
 							optionObjs.append(childObj)
 					if len(optionObjs) > 1:
-						raise ValueError('Error: In switch bone ' + boneName +\
+						raise PluginError('Error: In switch bone ' + boneName +\
 						' for option ' + str(switchIndex) + \
 						', the switch option armature has more than one mesh child.')
 					elif len(optionObjs) < 1:
-						raise ValueError('Error: In switch bone ' + boneName +\
+						raise PluginError('Error: In switch bone ' + boneName +\
 						' for option ' + str(switchIndex) + \
 						', the switch option armature has no mesh children.')
 					optionObj = optionObjs[0]
@@ -957,13 +957,13 @@ def processSwitchBoneMatOverrides(materialOverrides, switchBone):
 	for switchOption in switchBone.switch_options:
 		if switchOption.switchType == 'Material':
 			if switchOption.materialOverride is None:
-				raise ValueError("Error: On switch bone " + \
+				raise PluginError("Error: On switch bone " + \
 					switchBone.name + ', a switch option' + \
 					' is a Material Override, but no material is provided.')
 			if switchOption.materialOverrideType == 'Specific':
 				for mat in switchOption.specificOverrideArray:
 					if mat is None:
-						raise ValueError("Error: On switch bone " + \
+						raise PluginError("Error: On switch bone " + \
 							switchBone.name + ', a switch option' + \
 							' has a material override field that is None.')
 				specificMat = tuple([matPtr.material for matPtr in \
@@ -971,7 +971,7 @@ def processSwitchBoneMatOverrides(materialOverrides, switchBone):
 			else:
 				for mat in switchOption.specificIgnoreArray:
 					if mat is None:
-						raise ValueError("Error: On switch bone " + \
+						raise PluginError("Error: On switch bone " + \
 							switchBone.name + ', a switch option' + \
 							' has a material ignore field that is None.')
 				specificMat = tuple([matPtr.material for matPtr in \
@@ -1000,7 +1000,7 @@ def getGroupIndex(vert, armatureObj, obj):
 			actualGroups.append(group)
 
 	if len(actualGroups) == 0:
-		raise ValueError("All vertices must be part of a vertex group (weight painted), and the vertex group must correspond to a bone in the armature.")
+		raise PluginError("All vertices must be part of a vertex group (weight painted), and the vertex group must correspond to a bone in the armature.")
 	vertGroup = actualGroups[0]
 	significantWeightFound = False
 	for group in actualGroups:
@@ -1008,7 +1008,7 @@ def getGroupIndex(vert, armatureObj, obj):
 			if not significantWeightFound:
 				significantWeightFound = True
 			else:
-				raise ValueError("A vertex was found that was significantly weighted to multiple groups. Make sure each vertex only belongs to one group whose weight is greater than 0.5.")
+				raise PluginError("A vertex was found that was significantly weighted to multiple groups. Make sure each vertex only belongs to one group whose weight is greater than 0.5.")
 		if group.weight > vertGroup.weight:
 			vertGroup = group
 
@@ -1082,8 +1082,8 @@ def addSkinnedMeshNode(armatureObj, boneName, skinnedMesh, transformNode, parent
 		highestChildCopy = highestChildCopyParent
 	#isFirstChild &= checkIfFirstNonASMNode(highestChildNode)
 	if highestChildNode.parent is None:
-		raise ValueError("Issue with \"" + boneName + "\": Deform parent bone not found for skinning.")
-		#raise ValueError("There shouldn't be a skinned mesh section if there is no deform parent. This error may have ocurred if a switch option node is trying to skin to a parent but no deform parent exists.")
+		raise PluginError("Issue with \"" + boneName + "\": Deform parent bone not found for skinning.")
+		#raise PluginError("There shouldn't be a skinned mesh section if there is no deform parent. This error may have ocurred if a switch option node is trying to skin to a parent but no deform parent exists.")
 
 	# Otherwise, remove the transformNode from the parent and 
 	# duplicate the node heirarchy up to the last deform parent.
@@ -1093,10 +1093,10 @@ def addSkinnedMeshNode(armatureObj, boneName, skinnedMesh, transformNode, parent
 		if not isFirstChild:
 			#print("Hierarchy but not first child.")
 			if hasNonDeform0x13Command:
-				raise ValueError("Error with " + boneName + ': You cannot have more that one child skinned mesh connected to a parent skinned mesh with a non deform 0x13 bone in between. Try removing any unnecessary non-deform bones.')
+				raise PluginError("Error with " + boneName + ': You cannot have more that one child skinned mesh connected to a parent skinned mesh with a non deform 0x13 bone in between. Try removing any unnecessary non-deform bones.')
 		
 			if acrossSwitchNode:
-				raise ValueError("Error with " + boneName + ': You can not' +\
+				raise PluginError("Error with " + boneName + ': You can not' +\
 				' skin across a switch node with more than one child.')
 
 			# Remove transformNode
@@ -1162,7 +1162,7 @@ def getAncestorGroups(parentGroup, armatureObj, obj):
 
 def checkUniqueBoneNames(fModel, name, vertexGroup):
 	if name in fModel.meshGroups:
-		raise ValueError(vertexGroup + " has already been processed. Make " +\
+		raise PluginError(vertexGroup + " has already been processed. Make " +\
 			"sure this bone name is unique, even across all switch option " +\
 			"armatures.")
 
@@ -1231,7 +1231,7 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 					isChildSkinnedFace = True
 					break
 				else:
-					raise ValueError("Error with " + vertexGroup + ": Verts attached to one bone can not be attached to any of its ancestor bones besides its first immediate deformable parent bone. For example, a foot vertex can be connected to a leg vertex, but a foot vertex cannot be connected to a thigh vertex.")
+					raise PluginError("Error with " + vertexGroup + ": Verts attached to one bone can not be attached to any of its ancestor bones besides its first immediate deformable parent bone. For example, a foot vertex can be connected to a leg vertex, but a foot vertex cannot be connected to a thigh vertex.")
 			if isChildSkinnedFace:
 				continue
 			
@@ -1398,7 +1398,7 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj,
 
 	notInGroupCount = getGroupVertCount(notInGroupVertArray)
 	if notInGroupCount > fModel.f3d.vert_load_size - 2:
-		raise ValueError("Too many connecting vertices in skinned " +\
+		raise PluginError("Too many connecting vertices in skinned " +\
 			"triangles for bone '" + vertexGroup + "'. Max is " + str(fModel.f3d.vert_load_size - 2) + \
 			" on parent bone, currently at " + str(notInGroupCount) +\
 			". Note that a vertex with different UVs/normals/materials in " +\

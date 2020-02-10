@@ -342,10 +342,10 @@ def getSwitchOptionBone(switchArmature):
 			poseBone.bone_group.name == 'SwitchOption':
 			optionBones.append(poseBone.name)
 	if len(optionBones) > 1:
-		raise ValueError("There should only be one switch option bone in " +\
+		raise PluginError("There should only be one switch option bone in " +\
 			switchArmature.name + '.')
 	elif len(optionBones) < 1:
-		raise ValueError("Could not find a switch option bone in " +\
+		raise PluginError("Could not find a switch option bone in " +\
 			switchArmature.name + ', which should be the root bone in the hierarchy.')
 	return optionBones[0]
 

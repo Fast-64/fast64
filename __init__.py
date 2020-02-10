@@ -43,7 +43,7 @@ panelSeparatorSize = 5
 def checkExpanded(filepath):
 	size = os.path.getsize(filepath)
 	if size < 9000000: # check if 8MB
-		raise ValueError("ROM at " + filepath + " is too small. You may be using an unexpanded ROM. You can expand a ROM by opening it in SM64 Editor or ROM Manager.")
+		raise PluginError("ROM at " + filepath + " is too small. You may be using an unexpanded ROM. You can expand a ROM by opening it in SM64 Editor or ROM Manager.")
 
 class ArmatureApplyWithMesh(bpy.types.Operator):
 	# set bl_ properties
@@ -58,38 +58,42 @@ class ArmatureApplyWithMesh(bpy.types.Operator):
 	# Called on demand (i.e. button press, menu item)
 	# Can also be called from operator search menu (Spacebar)
 	def execute(self, context):
-		if context.mode != 'OBJECT' and context.mode != 'POSE':
-			raise ValueError("Operator can only be used in object or pose mode.")
-		elif context.mode == 'POSE':
-			bpy.ops.object.mode_set(mode = "OBJECT")
-		
-		if len(context.selected_objects) == 0:
-			raise ValueError("Armature not selected.")
-		elif type(context.selected_objects[0].data) is not\
-			bpy.types.Armature:
-			raise ValueError("Armature not selected.")
-		
-		armatureObj = context.selected_objects[0]
-		for child in armatureObj.children:
-			if type(child.data) is not bpy.types.Mesh:
-				continue
-			armatureModifier = None
-			for modifier in child.modifiers:
-				if isinstance(modifier, bpy.types.ArmatureModifier):
-					armatureModifier = modifier
-			if armatureModifier is None:
-				continue
-			print(armatureModifier.name)
-			bpy.ops.object.select_all(action = "DESELECT")
-			context.view_layer.objects.active = child
-			bpy.ops.object.modifier_copy(modifier=armatureModifier.name)
-			print(len(child.modifiers))
-			bpy.ops.object.modifier_apply(modifier=armatureModifier.name)
+		try:
+			if context.mode != 'OBJECT' and context.mode != 'POSE':
+				raise PluginError("Operator can only be used in object or pose mode.")
+			elif context.mode == 'POSE':
+				bpy.ops.object.mode_set(mode = "OBJECT")
 
-		bpy.ops.object.select_all(action = "DESELECT")
-		context.view_layer.objects.active = armatureObj
-		bpy.ops.object.mode_set(mode = "POSE")
-		bpy.ops.pose.armature_apply()
+			if len(context.selected_objects) == 0:
+				raise PluginError("Armature not selected.")
+			elif type(context.selected_objects[0].data) is not\
+				bpy.types.Armature:
+				raise PluginError("Armature not selected.")
+			
+			armatureObj = context.selected_objects[0]
+			for child in armatureObj.children:
+				if type(child.data) is not bpy.types.Mesh:
+					continue
+				armatureModifier = None
+				for modifier in child.modifiers:
+					if isinstance(modifier, bpy.types.ArmatureModifier):
+						armatureModifier = modifier
+				if armatureModifier is None:
+					continue
+				print(armatureModifier.name)
+				bpy.ops.object.select_all(action = "DESELECT")
+				context.view_layer.objects.active = child
+				bpy.ops.object.modifier_copy(modifier=armatureModifier.name)
+				print(len(child.modifiers))
+				bpy.ops.object.modifier_apply(modifier=armatureModifier.name)
+
+			bpy.ops.object.select_all(action = "DESELECT")
+			context.view_layer.objects.active = armatureObj
+			bpy.ops.object.mode_set(mode = "POSE")
+			bpy.ops.pose.armature_apply()
+		except Exception as e:
+			raisePluginError(self, e)
+			return {"CANCELLED"}
 
 		self.report({'INFO'}, 'Applied armature with mesh.')
 		return {'FINISHED'} # must return a set
@@ -105,19 +109,23 @@ class AddBoneGroups(bpy.types.Operator):
 	# Called on demand (i.e. button press, menu item)
 	# Can also be called from operator search menu (Spacebar)
 	def execute(self, context):
-		if context.mode != 'OBJECT' and context.mode != 'POSE':
-			raise ValueError("Operator can only be used in object or pose mode.")
-		elif context.mode == 'POSE':
-			bpy.ops.object.mode_set(mode = "OBJECT")
-		
-		if len(context.selected_objects) == 0:
-			raise ValueError("Armature not selected.")
-		elif type(context.selected_objects[0].data) is not\
-			bpy.types.Armature:
-			raise ValueError("Armature not selected.")
-		
-		armatureObj = context.selected_objects[0]
-		createBoneGroups(armatureObj)
+		try:
+			if context.mode != 'OBJECT' and context.mode != 'POSE':
+				raise PluginError("Operator can only be used in object or pose mode.")
+			elif context.mode == 'POSE':
+				bpy.ops.object.mode_set(mode = "OBJECT")
+
+			if len(context.selected_objects) == 0:
+				raise PluginError("Armature not selected.")
+			elif type(context.selected_objects[0].data) is not\
+				bpy.types.Armature:
+				raise PluginError("Armature not selected.")
+			
+			armatureObj = context.selected_objects[0]
+			createBoneGroups(armatureObj)
+		except Exception as e:
+			raisePluginError(self, e)
+			return {"CANCELLED"}
 
 		self.report({'INFO'}, 'Created bone groups.')
 		return {'FINISHED'} # must return a set
@@ -135,19 +143,23 @@ class CreateMetarig(bpy.types.Operator):
 	# Called on demand (i.e. button press, menu item)
 	# Can also be called from operator search menu (Spacebar)
 	def execute(self, context):
-		if context.mode != 'OBJECT' and context.mode != 'POSE':
-			raise ValueError("Operator can only be used in object or pose mode.")
-		elif context.mode == 'POSE':
-			bpy.ops.object.mode_set(mode = "OBJECT")
-		
-		if len(context.selected_objects) == 0:
-			raise ValueError("Armature not selected.")
-		elif type(context.selected_objects[0].data) is not\
-			bpy.types.Armature:
-			raise ValueError("Armature not selected.")
-		
-		armatureObj = context.selected_objects[0]
-		generateMetarig(armatureObj)
+		try:
+			if context.mode != 'OBJECT' and context.mode != 'POSE':
+				raise PluginError("Operator can only be used in object or pose mode.")
+			elif context.mode == 'POSE':
+				bpy.ops.object.mode_set(mode = "OBJECT")
+
+			if len(context.selected_objects) == 0:
+				raise PluginError("Armature not selected.")
+			elif type(context.selected_objects[0].data) is not\
+				bpy.types.Armature:
+				raise PluginError("Armature not selected.")
+			
+			armatureObj = context.selected_objects[0]
+			generateMetarig(armatureObj)
+		except Exception as e:
+			raisePluginError(self, e)
+			return {"CANCELLED"}
 
 		self.report({'INFO'}, 'Created metarig.')
 		return {'FINISHED'} # must return a set
@@ -161,17 +173,21 @@ class N64_AddF3dMat(bpy.types.Operator):
 	# Called on demand (i.e. button press, menu item)
 	# Can also be called from operator search menu (Spacebar)
 	def execute(self, context):
-		if context.mode != 'OBJECT':
-			raise ValueError("Operator can only be used in object mode.")
-		
-		if len(context.selected_objects) == 0:
-			raise ValueError("Mesh not selected.")
-		elif type(context.selected_objects[0].data) is not\
-			bpy.types.Mesh:
-			raise ValueError("Mesh not selected.")
-		
-		obj = context.selected_objects[0]
-		createF3DMat(obj)
+		try:
+			if context.mode != 'OBJECT':
+				raise PluginError("Operator can only be used in object mode.")
+			
+			if len(context.selected_objects) == 0:
+				raise PluginError("Mesh not selected.")
+			elif type(context.selected_objects[0].data) is not\
+				bpy.types.Mesh:
+				raise PluginError("Mesh not selected.")
+			
+			obj = context.selected_objects[0]
+			createF3DMat(obj)
+		except Exception as e:
+			raisePluginError(self, e)
+			return {"CANCELLED"}
 
 		self.report({'INFO'}, 'Created F3D material.')
 		return {'FINISHED'} # must return a set
@@ -185,8 +201,9 @@ class SM64_AddrConv(bpy.types.Operator):
 	segToVirt : bpy.props.BoolProperty()
 
 	def execute(self, context):
-		address = int(context.scene.convertibleAddr, 16)
+		romfileSrc = None
 		try:
+			address = int(context.scene.convertibleAddr, 16)
 			importRom = context.scene.importRom
 			romfileSrc = open(bpy.path.abspath(importRom), 'rb')
 			checkExpanded(bpy.path.abspath(importRom))
@@ -205,9 +222,10 @@ class SM64_AddrConv(bpy.types.Operator):
 					'Segmented pointer is 0x' + format(ptr, '08X'))
 			romfileSrc.close()
 			return {'FINISHED'}
-		except:
-			romfileSrc.close()
-			self.report({'ERROR'}, traceback.format_exc())
+		except Exception as e:
+			if romfileSrc is not None:
+				romfileSrc.close()
+			raisePluginError(self, e)
 			return {'CANCELLED'} # must return a set
 
 # See SM64GeoLayoutPtrsByLevels.txt by VLTone
@@ -220,16 +238,21 @@ class SM64_ImportGeolayout(bpy.types.Operator):
 	# Called on demand (i.e. button press, menu item)
 	# Can also be called from operator search menu (Spacebar)
 	def execute(self, context):
-		geoImportAddr = context.scene.geoImportAddr
-		generateArmature = context.scene.generateArmature
-		levelGeoImport = context.scene.levelGeoImport
-		importRom = context.scene.importRom
-		ignoreSwitch = context.scene.ignoreSwitch
+		romfileSrc = None
+		try:
+			geoImportAddr = context.scene.geoImportAddr
+			generateArmature = context.scene.generateArmature
+			levelGeoImport = context.scene.levelGeoImport
+			importRom = context.scene.importRom
+			ignoreSwitch = context.scene.ignoreSwitch
 
-		#finalTransform = mathutils.Matrix.Rotation(math.radians(-90), 4, 'X')
-		finalTransform = mathutils.Matrix.Identity(4)
-		if context.mode != 'OBJECT':
-			raise ValueError("Operator can only be used in object mode.")
+			#finalTransform = mathutils.Matrix.Rotation(math.radians(-90), 4, 'X')
+			finalTransform = mathutils.Matrix.Identity(4)
+			if context.mode != 'OBJECT':
+				raise PluginError("Operator can only be used in object mode.")
+		except Exception as e:
+			raisePluginError(self, e)
+			return {'CANCELLED'}
 		try:
 			romfileSrc = open(bpy.path.abspath(importRom), 'rb')
 			checkExpanded(bpy.path.abspath(importRom))
@@ -277,12 +300,13 @@ class SM64_ImportGeolayout(bpy.types.Operator):
 			self.report({'INFO'}, 'Generic import succeeded.')
 			return {'FINISHED'} # must return a set
 
-		except:
+		except Exception as e:
 			if context.mode != 'OBJECT':
 				bpy.ops.object.mode_set(mode = 'OBJECT')
-
-			romfileSrc.close()
-			self.report({'ERROR'}, traceback.format_exc())
+			
+			if romfileSrc is not None:
+				romfileSrc.close()
+			raisePluginError(self, e)
 			return {'CANCELLED'} # must return a set
 
 class SM64_ImportGeolayoutPanel(bpy.types.Panel):
@@ -326,24 +350,30 @@ class SM64_ExportGeolayoutObject(bpy.types.Operator):
 	# Called on demand (i.e. button press, menu item)
 	# Can also be called from operator search menu (Spacebar)
 	def execute(self, context):
-		obj = None
-		if context.mode != 'OBJECT':
-			raise ValueError("Operator can only be used in object mode.")
-		if len(context.selected_objects) == 0:
-			raise ValueError("Object not selected.")
-		obj = context.active_object
-		if type(obj.data) is not bpy.types.Mesh:
-			raise ValueError("Mesh not selected.")
-		#if context.scene.saveCameraSettings and \
-		#	context.scene.levelCamera is None:
-		#	raise ValueError("Cannot save camera settings with no camera provided.")
-		#levelCamera = context.scene.levelCamera if \
-		#	context.scene.saveCameraSettings else None
+		romfileOutput = None
+		tempROM = None
+		try:
+			obj = None
+			if context.mode != 'OBJECT':
+				raise PluginError("Operator can only be used in object mode.")
+			if len(context.selected_objects) == 0:
+				raise PluginError("Object not selected.")
+			obj = context.active_object
+			if type(obj.data) is not bpy.types.Mesh:
+				raise PluginError("Mesh not selected.")
+			#if context.scene.saveCameraSettings and \
+			#	context.scene.levelCamera is None:
+			#	raise PluginError("Cannot save camera settings with no camera provided.")
+			#levelCamera = context.scene.levelCamera if \
+			#	context.scene.saveCameraSettings else None
 
-		finalTransform = mathutils.Matrix.Identity(4)
-		scaleValue = bpy.context.scene.blenderToSM64Scale
-		finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((
-			scaleValue, scaleValue, scaleValue))).to_4x4()
+			finalTransform = mathutils.Matrix.Identity(4)
+			scaleValue = bpy.context.scene.blenderToSM64Scale
+			finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((
+				scaleValue, scaleValue, scaleValue))).to_4x4()
+		except Exception as e:
+			raisePluginError(self, e)
+			return {'CANCELLED'}
 
 		try:
 			# Rotate all armatures 90 degrees
@@ -439,17 +469,18 @@ class SM64_ExportGeolayoutObject(bpy.types.Operator):
 			applyRotation([obj], math.radians(-90), 'X')
 			return {'FINISHED'} # must return a set
 
-		except:
+		except Exception as e:
 			if context.mode != 'OBJECT':
 				bpy.ops.object.mode_set(mode = 'OBJECT')
 
 			applyRotation([obj], math.radians(-90), 'X')
 
 			if context.scene.geoExportType == 'Binary':
-				romfileOutput.close()
-				if os.path.exists(bpy.path.abspath(tempROM)):
+				if romfileOutput is not None:
+					romfileOutput.close()
+				if tempROM is not None and os.path.exists(bpy.path.abspath(tempROM)):
 					os.remove(bpy.path.abspath(tempROM))
-			self.report({'ERROR'}, traceback.format_exc())
+			raisePluginError(self, e)
 			return {'CANCELLED'} # must return a set
 
 class SM64_ExportGeolayoutArmature(bpy.types.Operator):
@@ -461,49 +492,55 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 	# Called on demand (i.e. button press, menu item)
 	# Can also be called from operator search menu (Spacebar)
 	def execute(self, context):
-		armatureObj = None
-		if context.mode != 'OBJECT':
-			raise ValueError("Operator can only be used in object mode.")
-		if len(context.selected_objects) == 0:
-			raise ValueError("Armature not selected.")
-		armatureObj = context.active_object
-		if type(armatureObj.data) is not bpy.types.Armature:
-			raise ValueError("Armature not selected.")
+		romfileOutput = None
+		tempROM = None
+		try:
+			armatureObj = None
+			if context.mode != 'OBJECT':
+				raise PluginError("Operator can only be used in object mode.")
+			if len(context.selected_objects) == 0:
+				raise PluginError("Armature not selected.")
+			armatureObj = context.active_object
+			if type(armatureObj.data) is not bpy.types.Armature:
+				raise PluginError("Armature not selected.")
 
-		if len(armatureObj.children) == 0 or \
-			not isinstance(armatureObj.children[0].data, bpy.types.Mesh):
-			raise ValueError("Armature does not have any mesh children, or " +\
-				'has a non-mesh child.')
-		#if context.scene.saveCameraSettings and \
-		#	context.scene.levelCamera is None:
-		#	raise ValueError("Cannot save camera settings with no camera provided.")
-		#levelCamera = context.scene.levelCamera if \
-		#	context.scene.saveCameraSettings else None
+			if len(armatureObj.children) == 0 or \
+				not isinstance(armatureObj.children[0].data, bpy.types.Mesh):
+				raise PluginError("Armature does not have any mesh children, or " +\
+					'has a non-mesh child.')
+			#if context.scene.saveCameraSettings and \
+			#	context.scene.levelCamera is None:
+			#	raise PluginError("Cannot save camera settings with no camera provided.")
+			#levelCamera = context.scene.levelCamera if \
+			#	context.scene.saveCameraSettings else None
 
-		obj = armatureObj.children[0]
-		finalTransform = mathutils.Matrix.Identity(4)
+			obj = armatureObj.children[0]
+			finalTransform = mathutils.Matrix.Identity(4)
 
-		# get all switch option armatures as well
-		linkedArmatures = [armatureObj]
-		getAllArmatures(armatureObj, linkedArmatures)
+			# get all switch option armatures as well
+			linkedArmatures = [armatureObj]
+			getAllArmatures(armatureObj, linkedArmatures)
 
-		linkedArmatureDict = {}
+			linkedArmatureDict = {}
 
-		for linkedArmature in linkedArmatures:
-			# IMPORTANT: Do this BEFORE rotation
-			optionObjs = []
-			for childObj in linkedArmature.children:
-				if isinstance(childObj.data, bpy.types.Mesh):
-					optionObjs.append(childObj)
-			if len(optionObjs) > 1:
-				raise ValueError('Error: ' + linkedArmature.name +\
-					' has more than one mesh child.')
-			elif len(optionObjs) < 1:
-				raise ValueError('Error: ' + linkedArmature.name +\
-					' has no mesh children.')
-			linkedMesh = optionObjs[0]
-			prepareGeolayoutExport(linkedArmature, linkedMesh)
-			linkedArmatureDict[linkedArmature] = linkedMesh
+			for linkedArmature in linkedArmatures:
+				# IMPORTANT: Do this BEFORE rotation
+				optionObjs = []
+				for childObj in linkedArmature.children:
+					if isinstance(childObj.data, bpy.types.Mesh):
+						optionObjs.append(childObj)
+				if len(optionObjs) > 1:
+					raise PluginError('Error: ' + linkedArmature.name +\
+						' has more than one mesh child.')
+				elif len(optionObjs) < 1:
+					raise PluginError('Error: ' + linkedArmature.name +\
+						' has no mesh children.')
+				linkedMesh = optionObjs[0]
+				prepareGeolayoutExport(linkedArmature, linkedMesh)
+				linkedArmatureDict[linkedArmature] = linkedMesh
+		except Exception as e:
+			raisePluginError(self, e)
+			return {'CANCELLED'}
 
 		try:
 			# Rotate all armatures 90 degrees
@@ -609,21 +646,22 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 
 			return {'FINISHED'} # must return a set
 
-		except:
+		except Exception as e:
 			if context.mode != 'OBJECT':
 				bpy.ops.object.mode_set(mode = 'OBJECT')
-
+			
 			applyRotation([armatureObj] + linkedArmatures, 
 				math.radians(-90), 'X')
 
 			if context.scene.geoExportType == 'Binary':
-				romfileOutput.close()
-				if os.path.exists(bpy.path.abspath(tempROM)):
+				if romfileOutput is not None:
+					romfileOutput.close()
+				if tempROM is not None and os.path.exists(bpy.path.abspath(tempROM)):
 					os.remove(bpy.path.abspath(tempROM))
 			if armatureObj is not None:
 				armatureObj.select_set(True)
 				context.view_layer.objects.active = armatureObj
-			self.report({'ERROR'}, traceback.format_exc())
+			raisePluginError(self, e)
 			return {'CANCELLED'} # must return a set
 
 class SM64_ExportGeolayoutPanel(bpy.types.Panel):
@@ -713,8 +751,13 @@ class SM64_ImportDL(bpy.types.Operator):
 	# Called on demand (i.e. button press, menu item)
 	# Can also be called from operator search menu (Spacebar)
 	def execute(self, context):
-		if context.mode != 'OBJECT':
-			raise ValueError("Operator can only be used in object mode.")
+		romfileSrc = None
+		try:
+			if context.mode != 'OBJECT':
+				raise PluginError("Operator can only be used in object mode.")
+		except Exception as e:
+			raisePluginError(self, e)
+			return {'CANCELLED'}
 		try:
 			checkExpanded(bpy.path.abspath(context.scene.importRom))
 			romfileSrc = open(bpy.path.abspath(context.scene.importRom), 'rb')
@@ -736,12 +779,13 @@ class SM64_ImportDL(bpy.types.Operator):
 			self.report({'INFO'}, 'Generic import succeeded.')
 			return {'FINISHED'} # must return a set
 
-		except:
+		except Exception as e:
 			if context.mode != 'OBJECT':
 				bpy.ops.object.mode_set(mode = 'OBJECT')
-			romfileSrc.close()
-			self.report({'ERROR'}, traceback.format_exc())
-			return {'CANCELLED'} # must return a set
+			if romfileSrc is not None:
+				romfileSrc.close()
+			raisePluginError(self, e)
+			return {'CANCELLED'}
 
 class SM64_ImportDLPanel(bpy.types.Panel):
 	bl_idname = "SM64_PT_import_dl"
@@ -776,36 +820,41 @@ class SM64_ExportDL(bpy.types.Operator):
 	# Called on demand (i.e. button press, menu item)
 	# Can also be called from operator search menu (Spacebar)
 	def execute(self, context):
-		
-		if context.mode != 'OBJECT':
-			raise ValueError("Operator can only be used in object mode.")	
-		allObjs = context.selected_objects
-		if len(allObjs) == 0:
-			raise ValueError("No objects selected.")
-		obj = context.selected_objects[0]
-		if not isinstance(obj.data, bpy.types.Mesh):
-			raise ValueError("Object is not a mesh.")
+		romfileOutput = None
+		tempROM = None
+		try:
+			if context.mode != 'OBJECT':
+				raise PluginError("Operator can only be used in object mode.")	
+			allObjs = context.selected_objects
+			if len(allObjs) == 0:
+				raise PluginError("No objects selected.")
+			obj = context.selected_objects[0]
+			if not isinstance(obj.data, bpy.types.Mesh):
+				raise PluginError("Object is not a mesh.")
 
-		#T, R, S = obj.matrix_world.decompose()
-		#objTransform = R.to_matrix().to_4x4() @ \
-		#	mathutils.Matrix.Diagonal(S).to_4x4()
+			#T, R, S = obj.matrix_world.decompose()
+			#objTransform = R.to_matrix().to_4x4() @ \
+			#	mathutils.Matrix.Diagonal(S).to_4x4()
 
-		#finalTransform = (blenderToSM64Rotation * \
-		#	(bpy.context.scene.blenderToSM64Scale)).to_4x4()
-		#finalTransform = mathutils.Matrix.Identity(4)
-		scaleValue = bpy.context.scene.blenderToSM64Scale
-		finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((
-			scaleValue, scaleValue, scaleValue))).to_4x4()
+			#finalTransform = (blenderToSM64Rotation * \
+			#	(bpy.context.scene.blenderToSM64Scale)).to_4x4()
+			#finalTransform = mathutils.Matrix.Identity(4)
+			scaleValue = bpy.context.scene.blenderToSM64Scale
+			finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((
+				scaleValue, scaleValue, scaleValue))).to_4x4()
 
-		#cProfile.runctx('exportF3DtoC(bpy.path.abspath(context.scene.DLExportPath), obj,' +\
-		#	'context.scene.DLExportisStatic, finalTransform,' +\
-		#	'context.scene.f3d_type, context.scene.isHWv1,' +\
-		#	'bpy.context.scene.DLTexDir,' +\
-		#	'bpy.context.scene.DLSaveTextures,' +\
-		#	'bpy.context.scene.DLSeparateTextureDef)',
-		#	globals(), locals(), "E:/Non-Steam Games/emulators/Project 64 1.6/SM64 Romhack Tools/_Data/blender.prof")
-		#p = pstats.Stats("E:/Non-Steam Games/emulators/Project 64 1.6/SM64 Romhack Tools/_Data/blender.prof")
-		#p.sort_stats("cumulative").print_stats(2000)
+			#cProfile.runctx('exportF3DtoC(bpy.path.abspath(context.scene.DLExportPath), obj,' +\
+			#	'context.scene.DLExportisStatic, finalTransform,' +\
+			#	'context.scene.f3d_type, context.scene.isHWv1,' +\
+			#	'bpy.context.scene.DLTexDir,' +\
+			#	'bpy.context.scene.DLSaveTextures,' +\
+			#	'bpy.context.scene.DLSeparateTextureDef)',
+			#	globals(), locals(), "E:/Non-Steam Games/emulators/Project 64 1.6/SM64 Romhack Tools/_Data/blender.prof")
+			#p = pstats.Stats("E:/Non-Steam Games/emulators/Project 64 1.6/SM64 Romhack Tools/_Data/blender.prof")
+			#p.sort_stats("cumulative").print_stats(2000)
+		except Exception as e:
+			raisePluginError(self, e)
+			return {"CANCELLED"}
 		
 		try:
 			applyRotation([obj], math.radians(90), 'X')
@@ -887,15 +936,16 @@ class SM64_ExportDL(bpy.types.Operator):
 			applyRotation([obj], math.radians(-90), 'X')
 			return {'FINISHED'} # must return a set
 
-		except:
+		except Exception as e:
 			if context.mode != 'OBJECT':
 				bpy.ops.object.mode_set(mode = 'OBJECT')
 			applyRotation([obj], math.radians(-90), 'X')
 			if context.scene.DLExportType == 'Binary':
-				romfileOutput.close()
-				if os.path.exists(bpy.path.abspath(tempROM)):
+				if romfileOutput is not None:
+					romfileOutput.close()
+				if tempROM is not None and os.path.exists(bpy.path.abspath(tempROM)):
 					os.remove(bpy.path.abspath(tempROM))
-			self.report({'ERROR'}, traceback.format_exc())
+			raisePluginError(self, e)
 			return {'CANCELLED'} # must return a set
 
 class SM64_ExportDLPanel(bpy.types.Panel):
@@ -1046,20 +1096,24 @@ class SM64_ExportLevel(bpy.types.Operator):
 
 	def execute(self, context):
 		
-		if context.mode != 'OBJECT':
-			raise ValueError("Operator can only be used in object mode.")
-		if len(context.selected_objects) == 0:
-			raise ValueError("Object not selected.")
-		obj = context.selected_objects[0]
-		if obj.data is not None or obj.sm64_obj_type != 'Level Root':
-			raise ValueError("The selected object is not an empty with the Level Root type.")
+		try:
+			if context.mode != 'OBJECT':
+				raise PluginError("Operator can only be used in object mode.")
+			if len(context.selected_objects) == 0:
+				raise PluginError("Object not selected.")
+			obj = context.selected_objects[0]
+			if obj.data is not None or obj.sm64_obj_type != 'Level Root':
+				raise PluginError("The selected object is not an empty with the Level Root type.")
 
-		#obj = context.active_object
+			#obj = context.active_object
 
-		scaleValue = bpy.context.scene.blenderToSM64Scale
-		finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((
-			scaleValue, scaleValue, scaleValue))).to_4x4()
+			scaleValue = bpy.context.scene.blenderToSM64Scale
+			finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((
+				scaleValue, scaleValue, scaleValue))).to_4x4()
 		
+		except Exception as e:
+			raisePluginError(self, e)
+			return {'CANCELLED'} # must return a set
 		try:
 			applyRotation([obj], math.radians(90), 'X')
 			exportLevelC(obj, finalTransform,
@@ -1073,7 +1127,7 @@ class SM64_ExportLevel(bpy.types.Operator):
 			#applyRotation(obj.children, math.radians(0), 'X')
 			return {'FINISHED'} # must return a set
 
-		except:
+		except Exception as e:
 			if context.mode != 'OBJECT':
 				bpy.ops.object.mode_set(mode = 'OBJECT')
 
@@ -1082,7 +1136,7 @@ class SM64_ExportLevel(bpy.types.Operator):
 
 			obj.select_set(True)
 			context.view_layer.objects.active = obj
-			self.report({'ERROR'}, traceback.format_exc())
+			raisePluginError(self, e)
 			return {'CANCELLED'} # must return a set
 
 class SM64_ExportLevelPanel(bpy.types.Panel):
@@ -1111,6 +1165,12 @@ class SM64_ExportLevelPanel(bpy.types.Panel):
 		for i in range(panelSeparatorSize):
 			col.separator()
 
+def raisePluginError(operator, exception):
+	if bpy.context.scene.fullTraceback:
+		operator.report({'ERROR'}, traceback.format_exc())
+	else:
+		operator.report({'ERROR'}, str(exception))
+
 def extendedRAMLabel(layout):
 	infoBox = layout.box()
 	infoBox.label(text = 'Be sure to add: ')
@@ -1126,8 +1186,13 @@ class SM64_ImportAnimMario(bpy.types.Operator):
 	# Called on demand (i.e. button press, menu item)
 	# Can also be called from operator search menu (Spacebar)
 	def execute(self, context):
-		checkExpanded(bpy.path.abspath(context.scene.importRom))
-		romfileSrc = open(bpy.path.abspath(context.scene.importRom), 'rb')
+		romfileSrc = None
+		try:
+			checkExpanded(bpy.path.abspath(context.scene.importRom))
+			romfileSrc = open(bpy.path.abspath(context.scene.importRom), 'rb')
+		except Exception as e:
+			raisePluginError(self, e)
+			return {'CANCELLED'}
 		try:
 			levelParsed = parseLevelAtPointer(romfileSrc, 
 				level_pointers[context.scene.levelAnimImport])
@@ -1144,19 +1209,20 @@ class SM64_ImportAnimMario(bpy.types.Operator):
 				animStart = decodeSegmentedAddr(actualPtr, segmentData)
 
 			if len(context.selected_objects) == 0:
-				raise ValueError("Armature not selected.")
+				raise PluginError("Armature not selected.")
 			armatureObj = context.active_object
 			if type(armatureObj.data) is not bpy.types.Armature:
-				raise ValueError("Armature not selected.")
+				raise PluginError("Armature not selected.")
 			
 			importAnimationToBlender(romfileSrc, 
 				animStart, armatureObj, 
 				segmentData, context.scene.isDMAImport)
 			romfileSrc.close()
 			self.report({'INFO'}, 'Success!')
-		except:
-			romfileSrc.close()
-			self.report({'ERROR'}, traceback.format_exc())
+		except Exception as e:
+			if romfileSrc is not None:
+				romfileSrc.close()
+			raisePluginError(self, e)
 			return {'CANCELLED'} # must return a set
 
 		return {'FINISHED'} # must return a set
@@ -1198,11 +1264,16 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 	# Called on demand (i.e. button press, menu item)
 	# Can also be called from operator search menu (Spacebar)
 	def execute(self, context):
-		
-		if len(context.selected_objects) == 0 or not \
-			isinstance(context.selected_objects[0].data, bpy.types.Armature):
-			raise ValueError("Armature not selected.")
-		armatureObj = context.selected_objects[0]
+		romfileOutput = None
+		tempROM = None
+		try:
+			if len(context.selected_objects) == 0 or not \
+				isinstance(context.selected_objects[0].data, bpy.types.Armature):
+				raise PluginError("Armature not selected.")
+			armatureObj = context.selected_objects[0]
+		except Exception as e:
+			raisePluginError(self, e)
+			return {"CANCELLED"}
 
 		if context.scene.animExportType == 'C':
 			try:
@@ -1210,16 +1281,20 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 					bpy.path.abspath(context.scene.animExportPath))
 				self.report({'INFO'}, 'Success! Animation at ' +\
 					context.scene.animExportPath)
-			except:
-				self.report({'ERROR'}, traceback.format_exc())
+			except Exception as e:
+				raisePluginError(self, e)
 				return {'CANCELLED'} # must return a set
 		elif context.scene.animExportType == 'Insertable Binary':
-			exportAnimationInsertableBinary(
-				bpy.path.abspath(context.scene.animInsertableBinaryPath),
-				armatureObj, context.scene.isDMAExport, 
-				context.scene.loopAnimation)
-			self.report({'INFO'}, 'Success! Animation at ' +\
-				context.scene.animInsertableBinaryPath)
+			try:
+				exportAnimationInsertableBinary(
+					bpy.path.abspath(context.scene.animInsertableBinaryPath),
+					armatureObj, context.scene.isDMAExport, 
+					context.scene.loopAnimation)
+				self.report({'INFO'}, 'Success! Animation at ' +\
+					context.scene.animInsertableBinaryPath)
+			except Exception as e:
+				raisePluginError(self, e)
+				return {"CANCELLED"}
 		else:
 			try:
 				checkExpanded(bpy.path.abspath(context.scene.exportRom))
@@ -1281,11 +1356,12 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 				else:
 					self.report({'INFO'}, 'Success! Animation at (' + \
 						hex(addrRange[0]) + ', ' + hex(addrRange[1]) + ').')
-			except:
-				romfileOutput.close()
-				if os.path.exists(bpy.path.abspath(tempROM)):
+			except Exception as e:
+				if romfileOutput is not None:
+					romfileOutput.close()
+				if tempROM is not None and os.path.exists(bpy.path.abspath(tempROM)):
 					os.remove(bpy.path.abspath(tempROM))
-				self.report({'ERROR'}, traceback.format_exc())
+				raisePluginError(self, e)
 				return {'CANCELLED'} # must return a set
 
 		return {'FINISHED'} # must return a set
@@ -1349,26 +1425,31 @@ class SM64_ExportCollision(bpy.types.Operator):
 	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
 	def execute(self, context):
+		romfileOutput = None
+		tempROM = None
+		try:
+			obj = None
+			if context.mode != 'OBJECT':
+				raise PluginError("Operator can only be used in object mode.")
+			if len(context.selected_objects) == 0:
+				raise PluginError("Object not selected.")
+			obj = context.active_object
+			if type(obj.data) is not bpy.types.Mesh:
+				raise PluginError("Mesh not selected.")
 		
-		obj = None
-		if context.mode != 'OBJECT':
-			raise ValueError("Operator can only be used in object mode.")
-		if len(context.selected_objects) == 0:
-			raise ValueError("Object not selected.")
-		obj = context.active_object
-		if type(obj.data) is not bpy.types.Mesh:
-			raise ValueError("Mesh not selected.")
-		
-		#T, R, S = obj.matrix_world.decompose()
-		#objTransform = R.to_matrix().to_4x4() @ \
-		#	mathutils.Matrix.Diagonal(S).to_4x4()
-		#finalTransform = (blenderToSM64Rotation * \
-		#	(bpy.context.scene.blenderToSM64Scale)).to_4x4()
-		#finalTransform = mathutils.Matrix.Identity(4)
+			#T, R, S = obj.matrix_world.decompose()
+			#objTransform = R.to_matrix().to_4x4() @ \
+			#	mathutils.Matrix.Diagonal(S).to_4x4()
+			#finalTransform = (blenderToSM64Rotation * \
+			#	(bpy.context.scene.blenderToSM64Scale)).to_4x4()
+			#finalTransform = mathutils.Matrix.Identity(4)
 
-		scaleValue = bpy.context.scene.blenderToSM64Scale
-		finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((
-			scaleValue, scaleValue, scaleValue))).to_4x4()
+			scaleValue = bpy.context.scene.blenderToSM64Scale
+			finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((
+				scaleValue, scaleValue, scaleValue))).to_4x4()
+		except Exception as e:
+			raisePluginError(self, e)
+			return {"CANCELLED"}
 		
 		try:
 			applyRotation([obj], math.radians(90), 'X')
@@ -1429,19 +1510,20 @@ class SM64_ExportCollision(bpy.types.Operator):
 			applyRotation([obj], math.radians(-90), 'X')
 			return {'FINISHED'} # must return a set
 
-		except:
+		except Exception as e:
 			if context.mode != 'OBJECT':
 				bpy.ops.object.mode_set(mode = 'OBJECT')
 
 			applyRotation([obj], math.radians(-90), 'X')
 
 			if context.scene.colExportType == 'Binary':
-				romfileOutput.close()
-				if os.path.exists(bpy.path.abspath(tempROM)):
+				if romfileOutput is not None:
+					romfileOutput.close()
+				if tempROM is not None and os.path.exists(bpy.path.abspath(tempROM)):
 					os.remove(bpy.path.abspath(tempROM))
 			obj.select_set(True)
 			context.view_layer.objects.active = obj
-			self.report({'ERROR'}, traceback.format_exc())
+			raisePluginError(self, e)
 			return {'CANCELLED'} # must return a set
 
 class SM64_ExportCollisionPanel(bpy.types.Panel):
@@ -1514,6 +1596,7 @@ class SM64_FileSettingsPanel(bpy.types.Panel):
 		col.prop(context.scene, 'outputRom')
 		col.prop(context.scene, 'extendBank4')
 		col.prop(context.scene, 'decomp_compatible')
+		col.prop(context.scene, 'fullTraceback')
 		prop_split(col, context.scene, 'refreshVer', 'Decomp Func Map')
 		prop_split(col, context.scene, 'blenderToSM64Scale', 'Blender To SM64 Scale')
 
@@ -1587,6 +1670,7 @@ def register():
 	cam_register()
 	sm64_obj_register()
 	level_register()
+	render_engine_register()
 
 	for cls in classes:
 		register_class(cls)
@@ -1805,9 +1889,12 @@ def register():
 
 	bpy.types.Scene.characterIgnoreSwitch = \
 		bpy.props.BoolProperty(name = 'Ignore Switch Nodes', default = True)
+	bpy.types.Scene.fullTraceback = \
+		bpy.props.BoolProperty(name = 'Show Full Error Traceback', default = False)
 
 # called on add-on disabling
 def unregister():
+	render_engine_unregister()
 
 	# Camera
 	#del bpy.types.Scene.saveCameraSettings
@@ -1928,6 +2015,7 @@ def unregister():
 	del bpy.types.Scene.levelConvert
 	del bpy.types.Scene.refreshVer
 	del bpy.types.Scene.blenderToSM64Scale
+	del bpy.types.Scene.fullTraceback
 
 	level_unregister()
 	sm64_obj_unregister()

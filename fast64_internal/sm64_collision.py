@@ -14,7 +14,7 @@ class CollisionVertex:
 	def to_binary(self):
 		data = bytearray(0)
 		if len(self.position) > 3:
-			raise ValueError("Vertex position should not be " + \
+			raise PluginError("Vertex position should not be " + \
 				str(len(self.position) + ' fields long.'))
 		for field in self.position:
 			data.extend(int(round(field)).to_bytes(2, 'big', signed = True))
@@ -34,7 +34,7 @@ class CollisionTriangle:
 	def to_binary(self):
 		data = bytearray(0)
 		if len(self.indices) > 3:
-			raise ValueError("Triangle indices should not be " + \
+			raise PluginError("Triangle indices should not be " + \
 				str(len(self.indices) + ' fields long.'))
 		for index in self.indices:
 			data.extend(int(round(index)).to_bytes(2, 'big', signed = False))
@@ -217,7 +217,7 @@ def exportCollisionBinary(obj, transformMatrix, romfile, startAddress,
 		includeChildren, obj.name, None)
 	start, end = collision.set_addr(startAddress)
 	if end > endAddress:
-		raise ValueError('Size too big: Data ends at ' + hex(end) +\
+		raise PluginError('Size too big: Data ends at ' + hex(end) +\
 			', which is larger than the specified range.')
 	collision.save_binary(romfile)
 	return start, end
@@ -251,7 +251,7 @@ def exportCollisionInsertableBinary(obj, transformMatrix, filepath,
 		includeChildren, obj.name, None)
 	start, end = collision.set_addr(0)
 	if end > 0xFFFFFF:
-		raise ValueError('Size too big: Data ends at ' + hex(end) +\
+		raise PluginError('Size too big: Data ends at ' + hex(end) +\
 			', which is larger than the specified range.')
 	
 	bytesIO = BytesIO()
@@ -301,7 +301,7 @@ def addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix, 
 		return
 	try:
 		if len(tempObj.data.materials) == 0:
-			raise ValueError(obj.name + " must have a material associated with it.")
+			raise PluginError(obj.name + " must have a material associated with it.")
 		tempObj.data.calc_loop_triangles()
 		for face in tempObj.data.loop_triangles:
 			material = tempObj.data.materials[face.material_index]

@@ -160,7 +160,7 @@ def exportAnimationBinary(romfile, exportRange, armatureObj, DMAAddresses,
 	animData = sm64_anim.to_binary(segmentData, isDMA, startAddress)
 	
 	if startAddress + len(animData) > exportRange[1]:
-		raise ValueError('Size too big: Data ends at ' + \
+		raise PluginError('Size too big: Data ends at ' + \
 			hex(startAddress + len(animData)) +\
 			', which is larger than the specified range.')
 
@@ -191,7 +191,7 @@ def exportAnimationInsertableBinary(filepath, armatureObj, isDMA, loopAnim):
 	animData = sm64_anim.to_binary(segmentData, isDMA, startAddress)
 	
 	if startAddress + len(animData) > 0xFFFFFF:
-		raise ValueError('Size too big: Data ends at ' + \
+		raise PluginError('Size too big: Data ends at ' + \
 			hex(startAddress + len(animData)) +\
 			', which is larger than the specified range.')
 	
@@ -202,7 +202,7 @@ def exportAnimationInsertableBinary(filepath, armatureObj, isDMA, loopAnim):
 def exportAnimationCommon(armatureObj, loopAnim):
 	if armatureObj.animation_data is None or \
 		armatureObj.animation_data.action is None:
-		raise ValueError("No active animation selected.")
+		raise PluginError("No active animation selected.")
 	anim = armatureObj.animation_data.action
 	sm64_anim = SM64_Animation(toAlnum(anim.name))
 
@@ -229,7 +229,7 @@ def exportAnimationCommon(armatureObj, loopAnim):
 		sm64_anim.indices.shortData.append(frameCount)
 		sm64_anim.indices.shortData.append(transformValuesOffset)
 		if(transformValuesOffset) > 2**16 - 1:
-			raise ValueError('Animation is too large.')
+			raise PluginError('Animation is too large.')
 		transformValuesOffset += frameCount
 		transformValuesStart += 4
 		for value in translationFrameProperty:
@@ -241,7 +241,7 @@ def exportAnimationCommon(armatureObj, loopAnim):
 			sm64_anim.indices.shortData.append(frameCount)
 			sm64_anim.indices.shortData.append(transformValuesOffset)
 			if(transformValuesOffset) > 2**16 - 1:
-				raise ValueError('Animation is too large.')
+				raise PluginError('Animation is too large.')
 			transformValuesOffset += frameCount
 			transformValuesStart += 4
 			for value in boneFrameDataProperty:
@@ -282,7 +282,7 @@ def saveTranslationFrame(frameData, translation):
 
 def convertAnimationData(anim, armatureObj):
 	if 'root' not in armatureObj.data.bones:
-		raise ValueError('Cannot find bone named "root". The first animatable' +\
+		raise PluginError('Cannot find bone named "root". The first animatable' +\
 			' (0x13) bone in the armature must be named "root."')
 			
 	currentBone = armatureObj.data.bones["root"]
@@ -337,7 +337,7 @@ def convertAnimationData(anim, armatureObj):
 
 def getNextBone(boneStack, armatureObj):
 	if len(boneStack) == 0:
-		raise ValueError("More bones in animation than on armature.")
+		raise PluginError("More bones in animation than on armature.")
 	bone = armatureObj.data.bones[boneStack[0]]
 	boneStack = boneStack[1:]
 	boneStack = sorted([child.name for child in bone.children]) + boneStack
@@ -345,7 +345,7 @@ def getNextBone(boneStack, armatureObj):
 	# Only return 0x13 bone
 	while armatureObj.pose.bones[bone.name].bone_group is not None:
 		if len(boneStack) == 0:
-			raise ValueError("More bones in animation than on armature.")
+			raise PluginError("More bones in animation than on armature.")
 		bone = armatureObj.data.bones[boneStack[0]]
 		boneStack = boneStack[1:]
 		boneStack = sorted([child.name for child in bone.children]) + boneStack
@@ -354,14 +354,14 @@ def getNextBone(boneStack, armatureObj):
 
 def importAnimationToBlender(romfile, startAddress, armatureObj, segmentData, isDMA):
 	if 'root' not in armatureObj.data.bones:
-		raise ValueError('Cannot find bone named "root". The first animatable' +\
+		raise PluginError('Cannot find bone named "root". The first animatable' +\
 			'(0x13) bone in the armature must be named "root."')
 
 	animationHeader, armatureFrameData = \
 		readAnimation('sm64_anim', romfile, startAddress, segmentData, isDMA)
 
 	if len(armatureFrameData) > len(armatureObj.data.bones) + 1:
-		raise ValueError('More bones in animation than on armature.')
+		raise PluginError('More bones in animation than on armature.')
 
 	#bpy.context.scene.render.fps = 30
 	bpy.context.scene.frame_end = animationHeader.frameInterval[1]

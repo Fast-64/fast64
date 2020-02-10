@@ -8,6 +8,9 @@ import string
 import os
 import math
 
+class PluginError(Exception):
+	pass
+
 def setOrigin(target, obj):
 	bpy.ops.object.select_all(action = "DESELECT")
 	obj.select_set(True)
@@ -32,7 +35,7 @@ def writeIfNotFound(filePath, stringValue, hasEndIf):
 			fileData.write(stringData)
 		fileData.close()
 	else:
-		raise ValueError(filePath + " does not exist.")
+		raise PluginError(filePath + " does not exist.")
 
 def deleteIfFound(filePath, stringValue):
 	if os.path.exists(filePath):
@@ -50,7 +53,6 @@ def selectMeshChildrenOnly(obj, ignoreAttr, includeEmpties, areaIndex):
 	checkArea = areaIndex is not None and obj.data is None
 	if checkArea and obj.sm64_obj_type == 'Area Root' and obj.areaIndex != areaIndex:
 		return
-		
 	ignoreObj = ignoreAttr is not None and getattr(obj, ignoreAttr)
 	isMesh = isinstance(obj.data, bpy.types.Mesh)
 	isEmpty = (obj.data is None) and includeEmpties and \
@@ -83,6 +85,8 @@ def combineObjects(obj, includeChildren, ignoreAttr, areaIndex):
 	bpy.ops.object.select_all(action = 'DESELECT')
 	if includeChildren:
 		selectMeshChildrenOnly(obj, ignoreAttr, False, areaIndex)
+	else:
+		obj.select_set(True)
 	if len(bpy.context.selected_objects) == 0:
 		return None, []
 	bpy.ops.object.duplicate()
@@ -199,7 +203,7 @@ def applyRotation(objList, angle, axis):
 def getAddressFromRAMAddress(RAMAddress):
 	addr = RAMAddress - 0x80000000
 	if addr < 0:
-		raise ValueError("Invalid RAM address.")
+		raise PluginError("Invalid RAM address.")
 	return addr
 
 def getObjectQuaternion(obj):
@@ -310,6 +314,8 @@ def intToBytes(value, byteSize):
 # returns an integer, usually used for file seeking positions
 def decodeSegmentedAddr(address, segmentData):
 	#print(bytesAsHex(address))
+	if address[0] not in segmentData:
+		raise PluginError("Segment " + str(address[0]) + ' not found in segment list.')
 	segmentStart = segmentData[address[0]][0]
 	return segmentStart + bytesToInt(address[1:4])
 
@@ -327,7 +333,7 @@ def getSegment(address, segmentData):
 		if address in range(*interval):
 			return segment
 
-	raise ValueError("Address " + hex(address) + \
+	raise PluginError("Address " + hex(address) + \
 		" is not found in any of the provided segments.")
 
 # Position

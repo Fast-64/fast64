@@ -97,7 +97,7 @@ def parseLevel(romfile, startAddress, segmentData):
 
 		elif currentCmd[0] == L_AREA_START:
 			if currentArea is not currentLevel.nonArea:
-				raise ValueError("Nested areas not supported.")
+				raise PluginError("Nested areas not supported.")
 			else:
 				currentArea = SM64_Area(currentAddress, currentCmd)
 

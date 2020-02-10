@@ -27,12 +27,14 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
     fModel = FModel(f3dType, isHWv1, levelName)
     childAreas = [child for child in obj.children if child.data is None and child.sm64_obj_type == 'Area Root']
     if len(childAreas) == 0:
-        raise ValueError("The level root has no child empties with the 'Area Root' object type.")
+        raise PluginError("The level root has no child empties with the 'Area Root' object type.")
     for child in childAreas:
+        if len(child.children) == 0:
+            raise PluginError("Area for " + child.name + " has no children.")
         if child.areaIndex in areaDict:
-            raise ValueError(child.name + " shares the same area index as " + areaDict[child.areaIndex].name)
+            raise PluginError(child.name + " shares the same area index as " + areaDict[child.areaIndex].name)
         #if child.areaCamera is None:
-        #    raise ValueError(child.name + ' does not have an area camera set.')
+        #    raise PluginError(child.name + ' does not have an area camera set.')
         #setOrigin(obj, child)
         areaDict[child.areaIndex] = child
         
@@ -170,7 +172,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
         if scriptInclude not in scriptData:
             areaPos = scriptData.find('FREE_LEVEL_POOL(),')
             if areaPos == -1:
-                raise ValueError("Could not find FREE_LEVEL_POOL() call in level script.c.")
+                raise PluginError("Could not find FREE_LEVEL_POOL() call in level script.c.")
             scriptData = scriptData[:areaPos] + scriptInclude + "\n\n\t" + scriptData[areaPos:]
         
         # Changes skybox mio0 segment
