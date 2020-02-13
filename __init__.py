@@ -1860,9 +1860,9 @@ def register():
 	bpy.types.Scene.levelExportPath = bpy.props.StringProperty(
 		name = 'Directory', subtype = 'FILE_PATH')
 	bpy.types.Scene.levelSaveTextures = bpy.props.BoolProperty(
-		name = 'Save Textures As PNGs')
+		name = 'Save Textures As PNGs', default = True)
 	bpy.types.Scene.levelWriteScript = bpy.props.BoolProperty(
-		name = 'Write to script file')
+		name = 'Write to script file', default = True)
 
 	# ROM
 	bpy.types.Scene.importRom = bpy.props.StringProperty(
