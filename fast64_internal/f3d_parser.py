@@ -120,6 +120,7 @@ def parseF3D(romfile, startAddress, scene,
 			interpretLoadVertices(romfile, vertexBuffer, transformMatrix, 
 				command, segmentData)
 
+		# Note: size can usually be indicated in LoadTile / LoadBlock.
 		elif command[0] == cmdToPositiveInt(f3d.G_SETTILESIZE):
 			textureSize = interpretSetTileSize(
 				int.from_bytes(command[4:8], 'big'))

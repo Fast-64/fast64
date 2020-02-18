@@ -1350,7 +1350,7 @@ def convertVertDictToArray(vertDict):
 	return data, matRegions
 
 # This collapses similar loops together IF they are in the same material.
-def splitSkinnedFacesIntoTwoGroups(skinnedFaces, fModel, obj, uv_layer, drawLayer):
+def splitSkinnedFacesIntoTwoGroups(skinnedFaces, fModel, obj, uv_data, drawLayer):
 	inGroupVertArray = []
 	notInGroupVertArray = []
 	loopDict = {}
@@ -1367,7 +1367,7 @@ def splitSkinnedFacesIntoTwoGroups(skinnedFaces, fModel, obj, uv_layer, drawLaye
 			saveOrGetF3DMaterial(material, fModel, obj, drawLayer)
 		
 		exportVertexColors = isLightingDisabled(material)
-		convertInfo = LoopConvertInfo(uv_layer, obj, exportVertexColors)
+		convertInfo = LoopConvertInfo(uv_data, obj, exportVertexColors)
 		for skinnedFace in skinnedFaceArray:
 			for (face, loop) in skinnedFace.loopsInGroup:
 				f3dVert = getF3DVert(loop, face, convertInfo, obj.data)
@@ -1392,9 +1392,9 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj,
 	currentMatrix, parentMatrix, namePrefix, infoDict, vertexGroup, drawLayer):
 	# We choose one or more loops per vert to represent a material from which 
 	# texDimensions can be found, since it is required for UVs.
-	uv_layer = obj.data.uv_layers.active.data
+	uv_data = obj.data.uv_layers.active.data
 	inGroupVertArray, notInGroupVertArray, loopDict = \
-		splitSkinnedFacesIntoTwoGroups(skinnedFaces, fModel, obj, uv_layer, drawLayer)
+		splitSkinnedFacesIntoTwoGroups(skinnedFaces, fModel, obj, uv_data, drawLayer)
 
 	notInGroupCount = getGroupVertCount(notInGroupVertArray)
 	if notInGroupCount > fModel.f3d.vert_load_size - 2:
@@ -1462,7 +1462,7 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj,
 		if fMaterial.revert is not None:
 			fMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
 
-		convertInfo = LoopConvertInfo(uv_layer, obj, exportVertexColors)
+		convertInfo = LoopConvertInfo(uv_data, obj, exportVertexColors)
 		saveTriangleStrip(
 			[skinnedFace.bFace for skinnedFace in skinnedFaceArray],
 			convertInfo, triList, fMesh.vertexList, fModel.f3d, 

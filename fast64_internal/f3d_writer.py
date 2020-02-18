@@ -87,9 +87,9 @@ def getInfoDict(obj):
 
 	mesh = obj.data
 	if obj.data.uv_layers.active is None:
-		uv_layer = obj.data.uv_layers.new()
+		uv_data = obj.data.uv_layers.new().data
 	else:
-		uv_layer = obj.data.uv_layers.active.data
+		uv_data = obj.data.uv_layers.active.data
 	for face in mesh.loop_triangles:
 		validNeighborDict[face] = []
 		for vertIndex in face.vertices:
@@ -103,7 +103,7 @@ def getInfoDict(obj):
 			if face not in edgeDict[edgeKey]:
 				edgeDict[edgeKey].append(face)
 		for loopIndex in face.loops:
-			convertInfo = LoopConvertInfo(uv_layer, obj, 
+			convertInfo = LoopConvertInfo(uv_data, obj, 
 				isLightingDisabled(mesh.materials[face.material_index]))
 			f3dVertDict[loopIndex] = getF3DVert(mesh.loops[loopIndex], face, convertInfo, mesh)
 	for face in mesh.loop_triangles:	
@@ -411,8 +411,8 @@ def saveMeshByFaces(material, faces, fModel, fMesh, obj, transformMatrix,
 		saveOrGetF3DMaterial(material, fModel, obj, drawLayer)
 	isPointSampled = isTexturePointSampled(material)
 	exportVertexColors = isLightingDisabled(material)
-	uv_layer = obj.data.uv_layers.active.data
-	convertInfo = LoopConvertInfo(uv_layer, obj, exportVertexColors)
+	uv_data = obj.data.uv_layers.active.data
+	convertInfo = LoopConvertInfo(uv_data, obj, exportVertexColors)
 
 	fMesh.draw.commands.append(SPDisplayList(fMaterial.material))
 	triList = fMesh.tri_list_new()
@@ -436,8 +436,8 @@ def get8bitRoundedNormal(normal):
 	)
 
 class LoopConvertInfo:
-	def __init__(self, uv_layer, obj, exportVertexColors):
-		self.uv_layer = uv_layer
+	def __init__(self, uv_data, obj, exportVertexColors):
+		self.uv_data = uv_data
 		self.obj = obj
 		self.exportVertexColors = exportVertexColors
 
@@ -554,7 +554,7 @@ class TriangleConverter:
 def getF3DVert(loop, face, convertInfo, mesh):
 	position = mesh.vertices[loop.vertex_index].co.copy().freeze()
 	# N64 is -Y, Blender is +Y
-	uv = convertInfo.uv_layer[loop.index].uv.copy()
+	uv = convertInfo.uv_data[loop.index].uv.copy()
 	uv[1] = 1 - uv[1]
 	uv = uv.freeze()
 	colorOrNormal = getLoopColorOrNormal(loop, face, 
