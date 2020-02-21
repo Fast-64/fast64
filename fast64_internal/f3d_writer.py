@@ -130,7 +130,7 @@ def saveStaticModel(fModel, obj, transformMatrix):
 	if len(obj.data.polygons) == 0:
 		return None
 	
-	checkForF3DMaterial(obj)
+	#checkForF3DMaterial(obj)
 
 	obj.data.calc_loop_triangles()
 	obj.data.calc_normals_split()
@@ -148,6 +148,7 @@ def saveStaticModel(fModel, obj, transformMatrix):
 
 	for material_index, faces in facesByMat.items():
 		material = obj.data.materials[material_index]
+		checkForF3dMaterialInFaces(obj, material)
 		saveMeshByFaces(material, faces, 
 			fModel, fMeshGroup.mesh, obj, transformMatrix, 
 			infoDict, None)
@@ -274,6 +275,10 @@ def getBinaryBank0F3DData(fModel, RAMAddr, exportRange):
 	bytesIO.close()
 	return data, RAMAddr
 
+def checkForF3dMaterialInFaces(obj, material):
+	if not material.is_f3d:
+		raise PluginError("Material '" + material.name + "' on object '" + obj.name +\
+			"' is not a Fast3D material. Replace it with a Fast3D material.")
 
 def checkForF3DMaterial(obj):
 	if len(obj.material_slots) == 0:

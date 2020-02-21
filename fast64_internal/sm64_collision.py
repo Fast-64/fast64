@@ -27,9 +27,9 @@ class CollisionVertex:
 			str(int(round(self.position[2]))) + '),\n'
 
 class CollisionTriangle:
-	def __init__(self, indices):
+	def __init__(self, indices, specialParam):
 		self.indices = indices
-		self.specialParam = None
+		self.specialParam = specialParam
 	
 	def to_binary(self):
 		data = bytearray(0)
@@ -39,7 +39,7 @@ class CollisionTriangle:
 		for index in self.indices:
 			data.extend(int(round(index)).to_bytes(2, 'big', signed = False))
 		if self.specialParam is not None:
-			data.extend(int(self.specialParam).to_bytes(2, 'big', signed=False))
+			data.extend(int(self.specialParam, 16).to_bytes(2, 'big', signed=False))
 		return data
 	
 	def to_c(self):
@@ -53,33 +53,7 @@ class CollisionTriangle:
 				str(int(round(self.indices[0]))) + ', ' + \
 				str(int(round(self.indices[1]))) + ', ' + \
 				str(int(round(self.indices[2]))) + ', ' + \
-				str(int(self.specialParam)) + '),\n'
-
-class CollisionWaterBox:
-	def __init__(self):
-		self.waterBoxType = 'Water'
-		self.low = (0,0)
-		self.high = (0,0)
-		self.height = 0
-
-	def to_binary(self):
-		data = bytearray([0x00, 0x00 if self.waterBoxType == 'Water' else 0x32])
-		data.extend(int(round(self.low[0])).to_bytes(2, 'big', signed=True))
-		data.extend(int(round(self.low[1])).to_bytes(2, 'big', signed=True))
-		data.extend(int(round(self.high[0])).to_bytes(2, 'big', signed=True))
-		data.extend(int(round(self.high[1])).to_bytes(2, 'big', signed=True))
-		data.extend(int(round(self.height)).to_bytes(2, 'big', signed=True))
-		return data
-	
-	def to_c(self):
-		data = 'COL_WATER_BOX(' + \
-			('0x00' if self.waterBoxType == 'Water' else '0x32') + ', ' + \
-			str(int(round(self.low[0]))) + ', ' + \
-			str(int(round(self.low[1]))) + ', ' + \
-			str(int(round(self.high[0]))) + ', ' + \
-			str(int(round(self.high[1]))) + ', ' + \
-			str(int(round(self.height))) + '),\n'
-		return data
+				str(self.specialParam) + '),\n'
 
 class Collision:
 	def __init__(self, name):
@@ -89,7 +63,7 @@ class Collision:
 		# dict of collision type : triangle list
 		self.triangles = {}
 		self.specials = []
-		self.waterBoxes = []
+		self.water_boxes = []
 
 	def set_addr(self, startAddress):
 		startAddress = get64bitAlignedAddr(startAddress)
@@ -124,9 +98,9 @@ class Collision:
 			data += '\tCOL_SPECIAL_INIT(' + str(len(self.specials)) + '),\n'
 			for special in self.specials:
 				data += '\t' + special.to_c()
-		if len(self.waterBoxes) > 0:
-			data += '\tCOL_WATER_BOX_INIT(' + str(len(self.waterBoxes)) + '),\n'
-			for waterBox in self.waterBoxes:
+		if len(self.water_boxes) > 0:
+			data += '\tCOL_WATER_BOX_INIT(' + str(len(self.water_boxes)) + '),\n'
+			for waterBox in self.water_boxes:
 				data += '\t' + waterBox.to_c()
 		data += '\tCOL_END()\n' + '};\n'
 		return data
@@ -148,10 +122,10 @@ class Collision:
 			data += len(self.specials).to_bytes(2, 'big')
 			for special in self.specials:
 				data += special.to_binary()
-		if len(self.waterBoxes) > 0:
+		if len(self.water_boxes) > 0:
 			data += bytearray([0x00, 0x44])
-			data += len(self.waterBoxes).to_bytes(2, 'big')
-			for waterBox in self.waterBoxes:
+			data += len(self.water_boxes).to_bytes(2, 'big')
+			for waterBox in self.water_boxes:
 				data += waterBox.to_binary()
 		data += bytearray([0x00, 0x42])
 		return data
@@ -167,6 +141,13 @@ class CollisionPanel(bpy.types.Panel):
 	@classmethod
 	def poll(cls, context):
 		return (context.material is not None)
+	
+	def paramInfo(self, layout):
+		box = layout.box()
+		box.label(text = "Parameter is two bytes.")
+		box.label(text = "First byte is an index into an array of speed values.")
+		box.label(text = "(See: sMovingSandSpeeds, sWaterCurrentSpeeds)")
+		box.label(text = "Second byte is a rotation value.")
 
 	def draw(self, context):
 		box = self.layout.box()
@@ -175,13 +156,29 @@ class CollisionPanel(bpy.types.Panel):
 		if not material.collision_all_options:
 			prop_split(box, material, 'collision_type_simple', 
 				'SM64 Collision Type')
+			#if material.collision_type_simple in specialSurfaces:
+			#	prop_split(box, material, 'collision_param', 'Parameter')
+			#	self.paramInfo(box)
 		else:
 			prop_split(box, material, 'collision_type', 
 				'SM64 Collision Type All')
-		
+			#if material.collision_type in specialSurfaces:
+			#	prop_split(box, material, 'collision_param', 'Parameter')
+			#	self.paramInfo(box)
+
 		split = box.split(factor = 0.5)
 		split.label(text = '')
 		split.prop(material, 'collision_all_options')
+
+		if not material.collision_all_options:
+			if material.collision_type_simple in specialSurfaces:
+				prop_split(box, material, 'collision_param', 'Parameter')
+				self.paramInfo(box)
+		else:
+			if material.collision_type in specialSurfaces:
+				prop_split(box, material, 'collision_param', 'Parameter')
+				self.paramInfo(box)
+				
 		#infoBox = box.box()
 		#infoBox.label(text = \
 		#	'For special params, make a vert color layer named "Collision."')
@@ -276,7 +273,7 @@ def exportCollisionCommon(obj, transformMatrix, includeSpecials, includeChildren
 	collision = Collision(toAlnum(name + '_' + obj.name) + '_collision')
 	for collisionType, faces in collisionDict.items():
 		collision.triangles[collisionType] = []
-		for faceVerts in faces:
+		for (faceVerts, specialParam) in faces:
 			indices = []
 			for vert in faceVerts:
 				roundedPosition = roundPosition(vert)
@@ -286,12 +283,13 @@ def exportCollisionCommon(obj, transformMatrix, includeSpecials, includeChildren
 					indices.append(len(collision.vertices) - 1)
 				else:
 					indices.append(index)
-			collision.triangles[collisionType].append(CollisionTriangle(indices))
+			collision.triangles[collisionType].append(CollisionTriangle(indices, specialParam))
 	
 	if includeSpecials:
 		area = SM64_Area(areaIndex, '', '', '', None, None, [], obj.name)
 		process_sm64_objects(obj, area, obj.matrix_world, transformMatrix, True)
 		collision.specials = area.specials
+		collision.water_boxes = area.water_boxes
 
 	return collision
 
@@ -307,12 +305,13 @@ def addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix, 
 			material = tempObj.data.materials[face.material_index]
 			colType = material.collision_type if material.collision_all_options\
 				else material.collision_type_simple
+			specialParam = material.collision_param if colType in specialSurfaces else None
 			if colType not in collisionDict:
 				collisionDict[colType] = []
-			collisionDict[colType].append((
+			collisionDict[colType].append(((
 				transformMatrix @ tempObj.data.vertices[face.vertices[0]].co,
 				transformMatrix @ tempObj.data.vertices[face.vertices[1]].co,
-				transformMatrix @ tempObj.data.vertices[face.vertices[2]].co))
+				transformMatrix @ tempObj.data.vertices[face.vertices[2]].co), specialParam))
 		cleanupCombineObj(tempObj, meshList)
 		obj.select_set(True)
 		bpy.context.view_layer.objects.active = obj
@@ -354,6 +353,10 @@ def col_register():
 	bpy.types.Material.collision_all_options = bpy.props.BoolProperty(
 		name = 'Show All Options')
 
+	bpy.types.Material.collision_param = bpy.props.StringProperty(
+		name = "Parameter", default = '0x0000'
+	)
+
 	#bpy.types.Object.sm64_obj_type = bpy.props.EnumProperty(
 	#	name = 'SM64 Object Type', items = enumObjectType, default = 'None')
 
@@ -368,6 +371,7 @@ def col_unregister():
 	del bpy.types.Material.collision_type
 	del bpy.types.Material.collision_type_simple
 	del bpy.types.Material.collision_all_options
+	del bpy.types.Material.collision_param
 	
 	#del bpy.types.Object.sm64_obj_type
 	del bpy.types.Object.sm64_water_box
@@ -379,6 +383,16 @@ def col_unregister():
 enumWaterBoxType = [
 	("Water", 'Water', "Water"),
 	('Toxic Haze', 'Toxic Haze', 'Toxic Haze')
+]
+
+specialSurfaces = [
+	'SURFACE_0004',
+	'SURFACE_FLOWING_WATER',
+	'SURFACE_DEEP_MOVING_QUICKSAND',
+	'SURFACE_SHALLOW_MOVING_QUICKSAND',
+	'SURFACE_MOVING_QUICKSAND',
+	'SURFACE_HORIZONTAL_WIND',
+	'SURFACE_INSTANT_MOVING_QUICKSAND',
 ]
 
 class CollisionTypeDefinition:

@@ -131,6 +131,7 @@ class SM64_Area:
 		self.objects = []
 		self.macros = []
 		self.specials = []
+		self.water_boxes = []
 		self.music_preset = music_preset
 		self.music_seq = music_seq
 		self.terrain_type = terrain_type
@@ -148,7 +149,10 @@ class SM64_Area:
 			data += '\t\t' + obj.to_c() + ',\n'
 		data += '\t\tTERRAIN(' + self.collision.name + '),\n'
 		data += '\t\tMACRO_OBJECTS(' + self.macros_name() + '),\n'
-		data += '\t\tSET_BACKGROUND_MUSIC(' + self.music_preset + ', ' + self.music_seq + '),\n'
+		if self.music_seq is None:
+			data += '\t\tSTOP_MUSIC(0),\n'
+		else:
+			data += '\t\tSET_BACKGROUND_MUSIC(' + self.music_preset + ', ' + self.music_seq + '),\n'
 		data += '\t\tTERRAIN_TYPE(' + self.terrain_type + '),\n'
 		data += '\tEND_AREA(),\n\n'
 		return data
@@ -165,11 +169,39 @@ class SM64_Area:
 	def to_c_def_macros(self):
 		return 'extern const MacroObject ' + self.macros_name() + '[];\n'
 
+class CollisionWaterBox:
+	def __init__(self, waterBoxType, position, blenderSize):
+		size = (blenderSize[0] * bpy.context.scene.blenderToSM64Scale, 
+			blenderSize[1] * bpy.context.scene.blenderToSM64Scale)
+		self.waterBoxType = waterBoxType
+		self.low = (position[0] - size[0] / 2, position[2] - size[1] / 2)
+		self.high = (position[0] + size[0] / 2, position[2] + size[1] / 2)
+		self.height = position[1]
+
+	def to_binary(self):
+		data = bytearray([0x00, 0x00 if self.waterBoxType == 'Water' else 0x32])
+		data.extend(int(round(self.low[0])).to_bytes(2, 'big', signed=True))
+		data.extend(int(round(self.low[1])).to_bytes(2, 'big', signed=True))
+		data.extend(int(round(self.high[0])).to_bytes(2, 'big', signed=True))
+		data.extend(int(round(self.high[1])).to_bytes(2, 'big', signed=True))
+		data.extend(int(round(self.height)).to_bytes(2, 'big', signed=True))
+		return data
+	
+	def to_c(self):
+		data = 'COL_WATER_BOX(' + \
+			('0x00' if self.waterBoxType == 'Water' else '0x32') + ', ' + \
+			str(int(round(self.low[0]))) + ', ' + \
+			str(int(round(self.low[1]))) + ', ' + \
+			str(int(round(self.high[0]))) + ', ' + \
+			str(int(round(self.high[1]))) + ', ' + \
+			str(int(round(self.height))) + '),\n'
+		return data
+
 def exportAreaCommon(levelObj, areaObj, transformMatrix, geolayout, collision, name):
 	bpy.ops.object.select_all(action = 'DESELECT')
 	areaObj.select_set(True)
 
-	area = SM64_Area(areaObj.areaIndex, areaObj.music_seq, areaObj.music_preset, 
+	area = SM64_Area(areaObj.areaIndex, areaObj.music_seq if not areaObj.noMusic else None, areaObj.music_preset, 
 		areaObj.terrain_type, geolayout, collision, 
 		[areaObj.warpNodes[i].to_c() for i in range(len(areaObj.warpNodes))],
 		name + '_' + areaObj.name)
@@ -184,10 +216,14 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
 		translation, rotation, scale = \
 			(transformMatrix @ rootMatrix.inverted() @ obj.matrix_world).decompose()
 
-		if specialsOnly and obj.sm64_obj_type == 'Special':
-			area.specials.append(SM64_Special_Object(obj.sm64_obj_preset, translation, 
-				rotation.to_euler() if obj.sm64_obj_set_yaw else None, 
-				obj.sm64_obj_bparam if (obj.sm64_obj_set_yaw and obj.sm64_obj_set_bparam) else None))
+		if specialsOnly:
+			if obj.sm64_obj_type == 'Special':
+				area.specials.append(SM64_Special_Object(obj.sm64_obj_preset, translation, 
+					rotation.to_euler() if obj.sm64_obj_set_yaw else None, 
+					obj.sm64_obj_bparam if (obj.sm64_obj_set_yaw and obj.sm64_obj_set_bparam) else None))
+			elif obj.sm64_obj_type == 'Water Box':
+				area.water_boxes.append(CollisionWaterBox(obj.waterBoxType, 
+					translation, obj.waterBoxSize))
 		else:
 			if obj.sm64_obj_type == 'Object':
 				area.objects.append(SM64_Object(obj.sm64_obj_model, translation, rotation.to_euler(), 
@@ -202,6 +238,7 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
 			elif obj.sm64_obj_type == 'Whirpool':
 				area.objects.append(SM64_Whirpool(obj.whirlpool_index, 
 					obj.whirpool_condition, obj.whirpool_strength, translation))
+			
 
 	for child in obj.children:
 		process_sm64_objects(child, area, rootMatrix, transformMatrix, specialsOnly)
@@ -276,6 +313,9 @@ class SM64ObjectPanel(bpy.types.Panel):
 			prop_split(box, obj, 'whirpool_condition', 'Condition')
 			prop_split(box, obj, 'whirpool_strength', 'Strength')
 			pass
+		elif obj.sm64_obj_type == 'Water Box':
+			prop_split(box, obj, 'waterBoxType', 'Water Box Type')
+			prop_split(box, obj, 'waterBoxSize', 'Water Box Size (Blender Units)')
 		elif obj.sm64_obj_type == 'Level Root':
 			
 			if obj.useBackgroundColor:
@@ -341,6 +381,10 @@ def sm64_obj_register():
 		name = 'Condition', default = '3')
 	bpy.types.Object.whirpool_strength = bpy.props.StringProperty(
 		name = 'Strength', default = '-30')
+	bpy.types.Object.waterBoxType = bpy.props.EnumProperty(
+		name = 'Water Box Type', items = enumWaterBoxType, default = 'Water')
+	bpy.types.Object.waterBoxSize = bpy.props.FloatVectorProperty(
+		name = 'Water Box Size (Blender Units)', size = 2, default = (1,1), min = 0)
 
 	bpy.types.Object.sm64_obj_use_act1 = bpy.props.BoolProperty(
 		name = 'Act 1', default = True)
@@ -414,6 +458,9 @@ def sm64_obj_unregister():
 	del bpy.types.Object.whirpool_condition
 	del bpy.types.Object.whirpool_strength
 
+	del bpy.types.Object.waterBoxType
+	del bpy.types.Object.waterBoxSize
+
 	del bpy.types.Object.sm64_obj_use_act1
 	del bpy.types.Object.sm64_obj_use_act2
 	del bpy.types.Object.sm64_obj_use_act3
@@ -481,6 +528,7 @@ enumObjectType = [
 	('Special', 'Special', 'Special'),
 	('Mario Start', 'Mario Start', 'Mario Start'),
 	('Whirlpool', 'Whirlpool', 'Whirlpool'),
+	('Water Box', 'Water Box', 'Water Box'),
 	#('Trajectory', 'Trajectory', 'Trajectory'),
 ]
 

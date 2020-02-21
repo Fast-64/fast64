@@ -281,9 +281,11 @@ class SM64AreaPanel(bpy.types.Panel):
         box.box().label(text = 'SM64 Area Inspector')
         prop_split(box, obj, 'areaIndex', 'Area Index')
         #prop_split(box, obj, 'areaCamera', 'Area Camera')
-        prop_split(box, obj, 'music_preset', 'Music Preset')
-        prop_split(box, obj, 'music_seq', 'Music Sequence')
-        box.box().label(text = 'Sequence IDs defined in include/seq_ids.h.')
+        prop_split(box, obj, 'noMusic', 'Disable Music')
+        if not obj.noMusic:
+            prop_split(box, obj, 'music_preset', 'Music Preset')
+            prop_split(box, obj, 'music_seq', 'Music Sequence')
+            box.box().label(text = 'Sequence IDs defined in include/seq_ids.h.')
         prop_split(box, obj, 'terrain_type', 'Terrain Type')
         box.box().label(text = 'Terrain IDs defined in include/surface_terrains.h.')
 
@@ -361,6 +363,8 @@ def level_register():
         name = "Music Preset", default = '0x00')
     bpy.types.Object.music_seq = bpy.props.StringProperty(
         name = "Music Sequence", default = 'SEQ_LEVEL_GRASS')
+    bpy.types.Object.noMusic = bpy.props.BoolProperty(
+        name = 'No Music', default = False)
     bpy.types.Object.terrain_type = bpy.props.StringProperty(
         name = "Terrain Type", default = 'TERRAIN_GRASS')
 
@@ -375,6 +379,7 @@ def level_unregister():
     del bpy.types.Object.music_seq
     del bpy.types.Object.terrain_type
     del bpy.types.Object.areaCamera
+    del bpy.types.Object.noMusic
 
     for cls in reversed(level_classes):
     	unregister_class(cls)

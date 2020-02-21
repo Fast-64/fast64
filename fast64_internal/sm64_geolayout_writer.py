@@ -1169,7 +1169,7 @@ def checkUniqueBoneNames(fModel, name, vertexGroup):
 def saveModelGivenVertexGroup(fModel, obj, vertexGroup, 
 	parentGroup, transformMatrix, armatureObj, materialOverrides, namePrefix,
 	infoDict, drawLayer):
-	checkForF3DMaterial(obj)
+	#checkForF3DMaterial(obj)
 
 	mesh = obj.data
 	currentGroupIndex = getGroupIndexFromname(obj, vertexGroup)
@@ -1267,6 +1267,7 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 	# Save unskinned mesh
 	for material_index, bFaces in groupFaces.items():
 		material = obj.data.materials[material_index]
+		checkForF3dMaterialInFaces(obj, material)
 		saveMeshByFaces(material, bFaces, 
 			fModel, fMeshGroup.mesh, obj, currentMatrix, infoDict, drawLayer)
 	
@@ -1415,6 +1416,7 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj,
 	curIndex = 0
 	for material_index, vertData in notInGroupVertArray:
 		material = obj.data.materials[material_index]
+		checkForF3dMaterialInFaces(obj, material)
 		if material.rdp_settings.set_rendermode:
 			drawLayerKey = drawLayer
 		else:
