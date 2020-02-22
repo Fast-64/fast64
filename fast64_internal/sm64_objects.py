@@ -140,7 +140,7 @@ class SM64_Area:
 	def macros_name(self):
 		return self.name + '_macro_objs'
 
-	def to_c_script(self):
+	def to_c_script(self, includeRooms):
 		data = ''
 		data += '\tAREA(' + str(self.index) + ', ' + self.geolayout.name + '),\n'
 		for warpNode in self.warpNodes:
@@ -148,6 +148,8 @@ class SM64_Area:
 		for obj in self.objects:
 			data += '\t\t' + obj.to_c() + ',\n'
 		data += '\t\tTERRAIN(' + self.collision.name + '),\n'
+		if includeRooms:
+			data += '\t\tROOMS(' + self.collision.rooms_name() + '),\n'
 		data += '\t\tMACRO_OBJECTS(' + self.macros_name() + '),\n'
 		if self.music_seq is None:
 			data += '\t\tSTOP_MUSIC(0),\n'

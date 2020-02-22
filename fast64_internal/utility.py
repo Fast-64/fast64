@@ -49,6 +49,41 @@ def deleteIfFound(filePath, stringValue):
 			fileData.write(stringData)
 		fileData.close()
 
+def duplicateHierarchy(obj, ignoreAttr, includeEmpties, areaIndex):
+	# Duplicate objects to apply scale / modifiers / linked data
+	bpy.ops.object.select_all(action = 'DESELECT')
+	selectMeshChildrenOnly(obj, None, includeEmpties, areaIndex)
+	obj.select_set(True)
+	bpy.context.view_layer.objects.active = obj
+	bpy.ops.object.duplicate()
+	try:
+		tempObj = bpy.context.view_layer.objects.active
+		allObjs = bpy.context.selected_objects
+		bpy.ops.object.make_single_user(obdata = True)
+		bpy.ops.object.transform_apply(location = False, 
+			rotation = True, scale = True, properties =  False)
+		for selectedObj in allObjs:
+			bpy.ops.object.select_all(action = 'DESELECT')
+			selectedObj.select_set(True)
+			for modifier in selectedObj.modifiers:
+				bpy.ops.object.modifier_apply(apply_as='DATA',
+					modifier=modifier.name)
+		for selectedObj in allObjs:
+			if ignoreAttr is not None and getattr(selectedObj, ignoreAttr):
+				for child in selectedObj.children:
+					bpy.ops.object.select_all(action = 'DESELECT')
+					child.select_set(True)
+					bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
+					selectedObj.parent.select_set(True)
+					bpy.ops.object.parent_set(keep_transform = True)
+				selectedObj.parent = None
+		return tempObj, allObjs
+	except Exception as e:
+		cleanupDuplicatedObjects(allObjs)
+		obj.select_set(True)
+		bpy.context.view_layer.objects.active = obj
+		raise Exception(str(e))
+
 def selectMeshChildrenOnly(obj, ignoreAttr, includeEmpties, areaIndex):
 	checkArea = areaIndex is not None and obj.data is None
 	if checkArea and obj.sm64_obj_type == 'Area Root' and obj.areaIndex != areaIndex:

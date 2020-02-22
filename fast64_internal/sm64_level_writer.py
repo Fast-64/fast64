@@ -12,7 +12,7 @@ import re
 import shutil
 
 def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
-    savePNG, writeScriptFile):
+    savePNG, writeScriptFile, exportRooms):
     
     levelDir = os.path.join(exportDir, levelName)
     if not os.path.exists(levelDir):
@@ -65,10 +65,18 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
         levelDataString += '#include "levels/' + levelName + '/' + areaName + '/collision.inc.c"\n'
         headerString += collision.to_c_def()
 
+        # Write rooms
+        if exportRooms:
+            roomFile = open(os.path.join(areaDir, 'room.inc.c'), 'w')
+            roomFile.write(collision.to_c_rooms())
+            roomFile.close()
+            levelDataString += '#include "levels/' + levelName + '/' + areaName + '/room.inc.c"\n'
+            headerString += collision.to_c_rooms_def()
+
         # Get area
         area = exportAreaCommon(obj, child, transformMatrix, 
             geolayoutGraph.startGeolayout, collision, levelName + '_' + areaName)
-        areaString += area.to_c_script()
+        areaString += area.to_c_script(exportRooms)
 
         # Write macros
         macroFile = open(os.path.join(areaDir, 'macro.inc.c'), 'w')
@@ -126,7 +134,6 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
             '#include "levels/' + levelName + '/leveldata.inc.c"\n', False)
         writeIfNotFound(os.path.join(levelDir, 'header.h'), 
             '#include "levels/' + levelName + '/header.inc.h"\n', True)
-
         
         if savePNG:
             writeIfNotFound(os.path.join(levelDir, 'texture.inc.c'), 

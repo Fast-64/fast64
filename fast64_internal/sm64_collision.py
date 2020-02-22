@@ -27,9 +27,10 @@ class CollisionVertex:
 			str(int(round(self.position[2]))) + '),\n'
 
 class CollisionTriangle:
-	def __init__(self, indices, specialParam):
+	def __init__(self, indices, specialParam, room):
 		self.indices = indices
 		self.specialParam = specialParam
+		self.room = room
 	
 	def to_binary(self):
 		data = bytearray(0)
@@ -104,6 +105,25 @@ class Collision:
 				data += '\t' + waterBox.to_c()
 		data += '\tCOL_END()\n' + '};\n'
 		return data
+	
+	def rooms_name(self):
+		return self.name + '_rooms'
+
+	def to_c_rooms(self):
+		data = 'const u8 ' + self.rooms_name() + '[] = {\n\t'
+		newlineCount = 0
+		for collisionType, triangles, in self.triangles.items():
+			for triangle in triangles:
+				data += str(triangle.room) + ', '
+				newlineCount += 1
+				if newlineCount >= 8:
+					newlineCount = 0
+					data += '\n\t'
+		data += '\n};\n'
+		return data
+
+	def to_c_rooms_def(self):
+		return 'extern const u8 ' + self.rooms_name() + '[];\n'
 
 	def to_binary(self):
 		colTypeDef = CollisionTypeDefinition()
@@ -220,7 +240,7 @@ def exportCollisionBinary(obj, transformMatrix, romfile, startAddress,
 	return start, end
 
 def exportCollisionC(obj, transformMatrix, dirPath, includeSpecials, 
-	includeChildren, name, writeDefinitionsFile):
+	includeChildren, name, writeDefinitionsFile, writeRoomsFile):
 	colDirPath = os.path.join(dirPath, toAlnum(name))
 
 	if not os.path.exists(colDirPath):
@@ -235,11 +255,19 @@ def exportCollisionC(obj, transformMatrix, dirPath, includeSpecials,
 	fileObj.close()
 
 	cDefine = collision.to_c_def()
+	if writeRoomsFile:
+		cDefine += collision.to_c_rooms_def()
+		roomsPath = os.path.join(colDirPath, 'rooms.inc.c')
+		roomsFile = open(roomsPath, 'w')
+		roomsFile.write(collision.to_c_rooms())
+		roomsFile.close()
+
 	if writeDefinitionsFile:
-		headerPath = os.path.join(dirPath, 'collision_declarations.h')
+		headerPath = os.path.join(colDirPath, 'collision_declarations.h')
 		cDefFile = open(headerPath, 'w')
 		cDefFile.write(cDefine)
 		cDefFile.close()
+		
 	return cDefine
 
 def exportCollisionInsertableBinary(obj, transformMatrix, filepath, 
@@ -268,12 +296,24 @@ def exportCollisionCommon(obj, transformMatrix, includeSpecials, includeChildren
 
 	# dict of collisionType : faces
 	collisionDict = {}
-	addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix, areaIndex)
-	
+	#addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix, areaIndex)
+	tempObj, allObjs = \
+		duplicateHierarchy(obj, None, True, areaIndex)
+	try:
+		addCollisionTriangles(tempObj, collisionDict, includeChildren, transformMatrix, areaIndex)
+		cleanupDuplicatedObjects(allObjs)
+		obj.select_set(True)
+		bpy.context.view_layer.objects.active = obj
+	except Exception as e:
+		cleanupDuplicatedObjects(allObjs)
+		obj.select_set(True)
+		bpy.context.view_layer.objects.active = obj
+		raise Exception(str(e))
+
 	collision = Collision(toAlnum(name + '_' + obj.name) + '_collision')
 	for collisionType, faces in collisionDict.items():
 		collision.triangles[collisionType] = []
-		for (faceVerts, specialParam) in faces:
+		for (faceVerts, specialParam, room) in faces:
 			indices = []
 			for vert in faceVerts:
 				roundedPosition = roundPosition(vert)
@@ -283,8 +323,7 @@ def exportCollisionCommon(obj, transformMatrix, includeSpecials, includeChildren
 					indices.append(len(collision.vertices) - 1)
 				else:
 					indices.append(index)
-			collision.triangles[collisionType].append(CollisionTriangle(indices, specialParam))
-	
+			collision.triangles[collisionType].append(CollisionTriangle(indices, specialParam, room))
 	if includeSpecials:
 		area = SM64_Area(areaIndex, '', '', '', None, None, [], obj.name)
 		process_sm64_objects(obj, area, obj.matrix_world, transformMatrix, True)
@@ -294,32 +333,26 @@ def exportCollisionCommon(obj, transformMatrix, includeSpecials, includeChildren
 	return collision
 
 def addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix, areaIndex):
-	tempObj, meshList = combineObjects(obj, includeChildren, 'ignore_collision', areaIndex)
-	if tempObj is None:
-		return
-	try:
-		if len(tempObj.data.materials) == 0:
+	if isinstance(obj.data, bpy.types.Mesh) and not obj.ignore_collision:
+		if len(obj.data.materials) == 0:
 			raise PluginError(obj.name + " must have a material associated with it.")
-		tempObj.data.calc_loop_triangles()
-		for face in tempObj.data.loop_triangles:
-			material = tempObj.data.materials[face.material_index]
+		obj.data.calc_loop_triangles()
+		for face in obj.data.loop_triangles:
+			material = obj.data.materials[face.material_index]
 			colType = material.collision_type if material.collision_all_options\
 				else material.collision_type_simple
 			specialParam = material.collision_param if colType in specialSurfaces else None
 			if colType not in collisionDict:
 				collisionDict[colType] = []
 			collisionDict[colType].append(((
-				transformMatrix @ tempObj.data.vertices[face.vertices[0]].co,
-				transformMatrix @ tempObj.data.vertices[face.vertices[1]].co,
-				transformMatrix @ tempObj.data.vertices[face.vertices[2]].co), specialParam))
-		cleanupCombineObj(tempObj, meshList)
-		obj.select_set(True)
-		bpy.context.view_layer.objects.active = obj
-	except Exception as e:
-		cleanupCombineObj(tempObj, meshList)
-		obj.select_set(True)
-		bpy.context.view_layer.objects.active = obj
-		raise Exception(str(e))
+				transformMatrix @ obj.data.vertices[face.vertices[0]].co,
+				transformMatrix @ obj.data.vertices[face.vertices[1]].co,
+				transformMatrix @ obj.data.vertices[face.vertices[2]].co), specialParam, obj.room_num))
+	
+	if includeChildren:
+		for child in obj.children:
+			addCollisionTriangles(child, collisionDict, includeChildren, transformMatrix @ child.matrix_local, areaIndex)
+
 
 def roundPosition(position):
 	return (int(round(position[0])),
@@ -367,6 +400,9 @@ def col_register():
 		name = 'SM64 Special', items = enumSpecialType, 
 		default = 'special_yellow_coin')
 
+	bpy.types.Object.room_num = bpy.props.IntProperty(
+		name = 'Room', default = 0, min = 0)
+
 def col_unregister():
 	del bpy.types.Material.collision_type
 	del bpy.types.Material.collision_type_simple
@@ -376,6 +412,8 @@ def col_unregister():
 	#del bpy.types.Object.sm64_obj_type
 	del bpy.types.Object.sm64_water_box
 	del bpy.types.Object.sm64_special_preset
+
+	del bpy.types.Object.room_num
 
 	for cls in reversed(col_classes):
 		unregister_class(cls)

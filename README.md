@@ -92,6 +92,12 @@ Plug these values into the SM64 Geolayout Exporter/Importer panels.
 ### Replacing Existing SM64 Geolayout Geometry
 SM64 geolayouts are often in strange rest poses, which makes it hard to modify their geometry. It often helps to import an animation belonging to that geolayout to see what the idle pose of a geolayout should be. Once you know, you can rotate the bones of the armature in pose mode to a usable position and then use the 'Apply as Rest Pose' operator under the SM64 Armature Tools header. Skin your new mesh to that armature, then rotate the bones back to the original position and use 'Apply as Rest Pose' again. You can now export the geolayout to SM64 and it will be able to use existing animations.
 
+For example, for Mario you would rotate the four limb joints around the Y-axis 180 degrees, then just the arms 90/-90 degrees as such:
+
+![alt-text](https://bitbucket.org/kurethedead/fast64/raw/master/images/mario_t_pose.gif)
+
+Then after applying the rest pose and skinning, you would apply those operations in reverse order then apply rest pose again.
+
 ### Importing/Exporting SM64 Animations (Not Mario)
 
 -   Download Quad64, open the desired level, and go to Misc -> Script Dumps.

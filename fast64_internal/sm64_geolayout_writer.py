@@ -143,32 +143,9 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 		meshGeolayout = geolayoutGraph.startGeolayout
 
 	# Duplicate objects to apply scale / modifiers / linked data
-	bpy.ops.object.select_all(action = 'DESELECT')
-	selectMeshChildrenOnly(obj, None, True, None if areaObj is None else areaObj.areaIndex)
-	obj.select_set(True)
-	bpy.context.view_layer.objects.active = obj
-	bpy.ops.object.duplicate()
+	tempObj, allObjs = \
+		duplicateHierarchy(obj, 'ignore_render', True, None if areaObj is None else areaObj.areaIndex)
 	try:
-		tempObj = bpy.context.view_layer.objects.active
-		allObjs = bpy.context.selected_objects
-		bpy.ops.object.make_single_user(obdata = True)
-		bpy.ops.object.transform_apply(location = False, 
-			rotation = True, scale = True, properties =  False)
-		for selectedObj in allObjs:
-			bpy.ops.object.select_all(action = 'DESELECT')
-			selectedObj.select_set(True)
-			for modifier in selectedObj.modifiers:
-				bpy.ops.object.modifier_apply(apply_as='DATA',
-					modifier=modifier.name)
-		for selectedObj in allObjs:
-			if selectedObj.ignore_render:
-				for child in selectedObj.children:
-					bpy.ops.object.select_all(action = 'DESELECT')
-					child.select_set(True)
-					bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
-					selectedObj.parent.select_set(True)
-					bpy.ops.object.parent_set(keep_transform = True)
-				selectedObj.parent = None
 		processMesh(fModel, tempObj, convertTransformMatrix,
 			meshGeolayout.nodes[0], True, geolayoutGraph.startGeolayout,
 			geolayoutGraph)

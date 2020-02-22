@@ -1119,7 +1119,8 @@ class SM64_ExportLevel(bpy.types.Operator):
 			exportLevelC(obj, finalTransform,
 				context.scene.f3d_type, context.scene.isHWv1, context.scene.levelName, 
 				bpy.path.abspath(context.scene.levelExportPath),
-    			context.scene.levelSaveTextures, context.scene.levelWriteScript)
+    			context.scene.levelSaveTextures, context.scene.levelWriteScript, 
+				context.scene.levelExportRooms)
 			self.report({'INFO'}, 'Success! Level at ' + \
 				context.scene.levelExportPath)
 
@@ -1160,6 +1161,7 @@ class SM64_ExportLevelPanel(bpy.types.Panel):
 		prop_split(col, context.scene, 'levelName', 'Name')
 		col.prop(context.scene, 'levelSaveTextures')
 		col.prop(context.scene, 'levelWriteScript')
+		col.prop(context.scene, 'levelExportRooms')
 		extendedRAMLabel(col)
 		#prop_split(col, context.scene, 'levelCamera', 'Camera')
 		for i in range(panelSeparatorSize):
@@ -1434,8 +1436,8 @@ class SM64_ExportCollision(bpy.types.Operator):
 			if len(context.selected_objects) == 0:
 				raise PluginError("Object not selected.")
 			obj = context.active_object
-			if type(obj.data) is not bpy.types.Mesh:
-				raise PluginError("Mesh not selected.")
+			#if type(obj.data) is not bpy.types.Mesh:
+			#	raise PluginError("Mesh not selected.")
 		
 			#T, R, S = obj.matrix_world.decompose()
 			#objTransform = R.to_matrix().to_4x4() @ \
@@ -1457,7 +1459,7 @@ class SM64_ExportCollision(bpy.types.Operator):
 				exportCollisionC(obj, finalTransform,
 					bpy.path.abspath(context.scene.colExportPath), False,
 					context.scene.colIncludeChildren, 
-					obj.name, True)
+					obj.name, True, context.scene.colExportRooms)
 				self.report({'INFO'}, 'Success! Collision at ' + \
 					context.scene.colExportPath)
 			elif context.scene.colExportType == 'Insertable Binary':
@@ -1546,6 +1548,7 @@ class SM64_ExportCollisionPanel(bpy.types.Panel):
 		col.prop(context.scene, 'colIncludeChildren')
 		if context.scene.colExportType == 'C':
 			col.prop(context.scene, 'colExportPath')
+			col.prop(context.scene, 'colExportRooms')
 		elif context.scene.colExportType == 'Insertable Binary':
 			col.prop(context.scene, 'colInsertableBinaryPath')
 		else:
@@ -1853,6 +1856,8 @@ def register():
 		name = 'Include child objects', default = True)
 	bpy.types.Scene.colInsertableBinaryPath = bpy.props.StringProperty(
 		name = 'Filepath', subtype = 'FILE_PATH')
+	bpy.types.Scene.colExportRooms = bpy.props.BoolProperty(
+		name = 'Export Rooms', default = False)
 
 	# Objects
 	#bpy.types.Scene.levelCamera = bpy.props.PointerProperty(type = bpy.types.Camera)
@@ -1863,6 +1868,8 @@ def register():
 		name = 'Save Textures As PNGs', default = True)
 	bpy.types.Scene.levelWriteScript = bpy.props.BoolProperty(
 		name = 'Write to script file', default = True)
+	bpy.types.Scene.levelExportRooms = bpy.props.BoolProperty(
+		name = 'Export Rooms', default = False)
 
 	# ROM
 	bpy.types.Scene.importRom = bpy.props.StringProperty(
@@ -1994,6 +2001,7 @@ def unregister():
 	del bpy.types.Scene.levelSaveTextures
 	del bpy.types.Scene.levelWriteScript
 	#del bpy.types.Scene.levelCamera	
+	del bpy.types.Scene.levelExportRooms
 
 
 	# Collision
@@ -2005,6 +2013,7 @@ def unregister():
 	del bpy.types.Scene.colStartAddr
 	del bpy.types.Scene.colEndAddr
 	del bpy.types.Scene.colInsertableBinaryPath	
+	del bpy.types.Scene.colExportRooms
 
 	# ROM
 	del bpy.types.Scene.importRom

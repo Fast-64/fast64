@@ -176,6 +176,7 @@ class GeolayoutStaticPanel(bpy.types.Panel):
 			prop_split(col, obj, 'culling_radius', 'Culling Radius')
 		col.prop(obj, 'ignore_render')
 		col.prop(obj, 'ignore_collision')
+		prop_split(col, obj, 'room_num', 'Room')
 
 class MaterialPointerProperty(bpy.types.PropertyGroup):
 	material : bpy.props.PointerProperty(type = bpy.types.Material)
