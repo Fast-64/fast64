@@ -1269,6 +1269,8 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 		romfileOutput = None
 		tempROM = None
 		try:
+			if context.mode != 'OBJECT':
+				raise PluginError("Operator can only be used in object mode.")
 			if len(context.selected_objects) == 0 or not \
 				isinstance(context.selected_objects[0].data, bpy.types.Armature):
 				raise PluginError("Armature not selected.")

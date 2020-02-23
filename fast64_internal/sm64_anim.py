@@ -32,6 +32,9 @@ class SM64_Animation:
 		#return self.header.to_c() + '\n' +\
 		#	self.indices.to_c() + '\n' +\
 		#	self.values.to_c() + '\n'
+	
+	def to_c_def(self):
+		return "extern const struct Animation *const " + self.name + '[];\n'
 
 class SM64_ShortArray:
 	def __init__(self, name, signed):
@@ -132,6 +135,10 @@ def getLastKeyframeTime(keyframes):
 			last = keyframe.co[0]
 	return last
 
+
+# add definition to groupN.h
+# add data/table includes to groupN.c (bin_id?)
+# add data/table files
 def exportAnimationC(armatureObj, loopAnim, dirPath):
 	sm64_anim = exportAnimationCommon(armatureObj, loopAnim)
 	animName = armatureObj.animation_data.action.name
@@ -207,13 +214,14 @@ def exportAnimationCommon(armatureObj, loopAnim):
 	sm64_anim = SM64_Animation(toAlnum(anim.name))
 
 	nodeCount = len(armatureObj.data.bones)
-	translationData, armatureFrameData = convertAnimationData(anim, armatureObj)
+	frameInterval = [int(round(anim.frame_range[0])), 
+		min(bpy.context.scene.frame_end, 
+			int(round(anim.frame_range[1])) + 1)]
+	translationData, armatureFrameData = convertAnimationData(anim, armatureObj, frameInterval[1])
 
 	repetitions = 0 if loopAnim else 1
 	marioYOffset = 0x00 # ??? Seems to be this value for most animations
-	frameInterval = [int(round(anim.frame_range[0])), 
-		int(round(anim.frame_range[1])) + 1]
-
+	
 	transformValuesOffset = 0
 	headerSize = 0x1A
 	transformIndicesStart = headerSize #0x18 if including animSize?
@@ -280,7 +288,7 @@ def saveTranslationFrame(frameData, translation):
 		frameData[i].append(min(int(round(translation[i] * bpy.context.scene.blenderToSM64Scale)),
 			2**16 - 1))
 
-def convertAnimationData(anim, armatureObj):
+def convertAnimationData(anim, armatureObj, frameEnd):
 	if 'root' not in armatureObj.data.bones:
 		raise PluginError('Cannot find bone named "root". The first animatable' +\
 			' (0x13) bone in the armature must be named "root."')
@@ -309,7 +317,7 @@ def convertAnimationData(anim, armatureObj):
 	armatureFrameData = []
 	for i in range(len(animBones)):
 		armatureFrameData.append([[],[],[]])
-	for frame in range(int(round(anim.frame_range[1])) + 1):
+	for frame in range(frameEnd):
 		bpy.context.scene.frame_set(frame)
 		translation = armatureObj.pose.bones["root"].location
 		saveTranslationFrame(translationData, translation)
