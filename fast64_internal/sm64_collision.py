@@ -310,7 +310,7 @@ def exportCollisionCommon(obj, transformMatrix, includeSpecials, includeChildren
 		bpy.context.view_layer.objects.active = obj
 		raise Exception(str(e))
 
-	collision = Collision(toAlnum(name + '_' + obj.name) + '_collision')
+	collision = Collision(toAlnum(name) + '_collision')
 	for collisionType, faces in collisionDict.items():
 		collision.triangles[collisionType] = []
 		for (faceVerts, specialParam, room) in faces:
@@ -325,7 +325,7 @@ def exportCollisionCommon(obj, transformMatrix, includeSpecials, includeChildren
 					indices.append(index)
 			collision.triangles[collisionType].append(CollisionTriangle(indices, specialParam, room))
 	if includeSpecials:
-		area = SM64_Area(areaIndex, '', '', '', None, None, [], obj.name)
+		area = SM64_Area(areaIndex, '', '', '', None, None, [], name)
 		process_sm64_objects(obj, area, obj.matrix_world, transformMatrix, True)
 		collision.specials = area.specials
 		collision.water_boxes = area.water_boxes
