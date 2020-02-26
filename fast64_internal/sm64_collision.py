@@ -250,7 +250,7 @@ def exportCollisionC(obj, transformMatrix, dirPath, includeSpecials,
 
 	fileObj = open(colPath, 'w')
 	collision = exportCollisionCommon(obj, transformMatrix, includeSpecials,
-		includeChildren, obj.name, None)
+		includeChildren, name, None)
 	fileObj.write(collision.to_c())
 	fileObj.close()
 

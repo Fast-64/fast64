@@ -848,7 +848,7 @@ class SM64_ExportDL(bpy.types.Operator):
 			#	'context.scene.f3d_type, context.scene.isHWv1,' +\
 			#	'bpy.context.scene.DLTexDir,' +\
 			#	'bpy.context.scene.DLSaveTextures,' +\
-			#	'bpy.context.scene.DLSeparateTextureDef)',
+			#	'bpy.context.scene.DLSeparateTextureDef, bpy.context.scene.DLName)',
 			#	globals(), locals(), "E:/Non-Steam Games/emulators/Project 64 1.6/SM64 Romhack Tools/_Data/blender.prof")
 			#p = pstats.Stats("E:/Non-Steam Games/emulators/Project 64 1.6/SM64 Romhack Tools/_Data/blender.prof")
 			#p.sort_stats("cumulative").print_stats(2000)
@@ -865,7 +865,7 @@ class SM64_ExportDL(bpy.types.Operator):
 					bpy.context.scene.DLTexDir,
 					bpy.context.scene.DLSaveTextures,
 					bpy.context.scene.DLSeparateTextureDef,
-					bpy.context.scene.DLincludeChildren)
+					bpy.context.scene.DLincludeChildren, bpy.context.scene.DLName)
 				self.report({'INFO'}, 'Success! DL at ' + \
 					context.scene.DLExportPath + '.')
 				
@@ -967,6 +967,7 @@ class SM64_ExportDLPanel(bpy.types.Panel):
 		col.prop(context.scene, 'DLExportType')
 		if context.scene.DLExportType == 'C':
 			col.prop(context.scene, 'DLExportPath')
+			prop_split(col, context.scene, 'DLName', 'Name')
 			col.prop(context.scene, 'DLExportisStatic')
 			col.prop(context.scene, 'DLSaveTextures')
 			if context.scene.DLSaveTextures:
@@ -1274,6 +1275,8 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 			if len(context.selected_objects) == 0 or not \
 				isinstance(context.selected_objects[0].data, bpy.types.Armature):
 				raise PluginError("Armature not selected.")
+			if len(context.selected_objects) > 1 :
+				raise PluginError("Multiple objects selected, make sure to select only one.")
 			armatureObj = context.selected_objects[0]
 		except Exception as e:
 			raisePluginError(self, e)
@@ -1282,7 +1285,7 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 		if context.scene.animExportType == 'C':
 			try:
 				exportAnimationC(armatureObj, context.scene.loopAnimation, 
-					bpy.path.abspath(context.scene.animExportPath))
+					bpy.path.abspath(context.scene.animExportPath), bpy.context.scene.animName)
 				self.report({'INFO'}, 'Success! Animation at ' +\
 					context.scene.animExportPath)
 			except Exception as e:
@@ -1390,6 +1393,7 @@ class SM64_ExportAnimPanel(bpy.types.Panel):
 		col.prop(context.scene, 'loopAnimation')
 		if context.scene.animExportType == 'C':
 			col.prop(context.scene, 'animExportPath')
+			prop_split(col, context.scene, 'animName', 'Name')
 		elif context.scene.animExportType == 'Insertable Binary':
 			col.prop(context.scene, 'isDMAExport')
 			col.prop(context.scene, 'animInsertableBinaryPath')
@@ -1461,7 +1465,7 @@ class SM64_ExportCollision(bpy.types.Operator):
 				exportCollisionC(obj, finalTransform,
 					bpy.path.abspath(context.scene.colExportPath), False,
 					context.scene.colIncludeChildren, 
-					obj.name, True, context.scene.colExportRooms)
+					bpy.context.scene.colName, True, context.scene.colExportRooms)
 				self.report({'INFO'}, 'Success! Collision at ' + \
 					context.scene.colExportPath)
 			elif context.scene.colExportType == 'Insertable Binary':
@@ -1550,6 +1554,7 @@ class SM64_ExportCollisionPanel(bpy.types.Panel):
 		col.prop(context.scene, 'colIncludeChildren')
 		if context.scene.colExportType == 'C':
 			col.prop(context.scene, 'colExportPath')
+			prop_split(col, context.scene, 'colName', 'Name')
 			col.prop(context.scene, 'colExportRooms')
 		elif context.scene.colExportType == 'Insertable Binary':
 			col.prop(context.scene, 'colInsertableBinaryPath')
@@ -1747,6 +1752,8 @@ def register():
 		name = 'Include Children')
 	bpy.types.Scene.DLInsertableBinaryPath = bpy.props.StringProperty(
 		name = 'Filepath', subtype = 'FILE_PATH')
+	bpy.types.Scene.DLName = bpy.props.StringProperty(
+		name = 'Name', default = 'mario')
 	
 	# Geolayouts
 	bpy.types.Scene.levelGeoImport = bpy.props.EnumProperty(items = level_enums,
@@ -1837,7 +1844,8 @@ def register():
 		name = 'Anim List Index', min = 0, max = 255)
 	bpy.types.Scene.animListIndexExport = bpy.props.IntProperty(
 		name = "Anim List Index", min = 0, max = 255)
-	
+	bpy.types.Scene.animName = bpy.props.StringProperty(
+		name = 'Name', default = 'mario')
 
 	# Collision
 	bpy.types.Scene.colExportPath = bpy.props.StringProperty(
@@ -1860,6 +1868,8 @@ def register():
 		name = 'Filepath', subtype = 'FILE_PATH')
 	bpy.types.Scene.colExportRooms = bpy.props.BoolProperty(
 		name = 'Export Rooms', default = False)
+	bpy.types.Scene.colName = bpy.props.StringProperty(
+		name = 'Name', default = 'mario')
 
 	# Objects
 	#bpy.types.Scene.levelCamera = bpy.props.PointerProperty(type = bpy.types.Camera)
@@ -1957,6 +1967,7 @@ def unregister():
 	del bpy.types.Scene.animIsAnimList
 	del bpy.types.Scene.animListIndexImport
 	del bpy.types.Scene.animListIndexExport
+	del bpy.types.Scene.animName
 
 	# Character
 	del bpy.types.Scene.characterIgnoreSwitch
@@ -1989,6 +2000,7 @@ def unregister():
 	del bpy.types.Scene.DLSeparateTextureDef
 	del bpy.types.Scene.DLincludeChildren
 	del bpy.types.Scene.DLInsertableBinaryPath
+	del bpy.types.Scene.DLName
 
 	# Level
 	del bpy.types.Scene.levelLevel
@@ -2016,6 +2028,7 @@ def unregister():
 	del bpy.types.Scene.colEndAddr
 	del bpy.types.Scene.colInsertableBinaryPath	
 	del bpy.types.Scene.colExportRooms
+	del bpy.types.Scene.colName
 
 	# ROM
 	del bpy.types.Scene.importRom

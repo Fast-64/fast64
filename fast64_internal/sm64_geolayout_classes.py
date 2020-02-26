@@ -179,6 +179,7 @@ class TransformNode:
 		self.node = node
 		self.children = []
 		self.parent = None
+		self.skinned = False
 	
 	def get_ptr_addresses(self, address):
 		addresses = []

@@ -126,7 +126,7 @@ def getInfoDict(obj):
 
 # Make sure to set original_name before calling this
 # used when duplicating an object
-def saveStaticModel(fModel, obj, transformMatrix):
+def saveStaticModel(fModel, obj, transformMatrix, name):
 	if len(obj.data.polygons) == 0:
 		return None
 	
@@ -136,9 +136,9 @@ def saveStaticModel(fModel, obj, transformMatrix):
 	obj.data.calc_normals_split()
 	infoDict = getInfoDict(obj)
 
-	fMeshGroup = FMeshGroup(toAlnum(obj.original_name), 
-		FMesh(toAlnum(obj.original_name) + '_mesh'), None)
-	fModel.meshGroups[obj.original_name] = fMeshGroup
+	fMeshGroup = FMeshGroup(toAlnum(name + "_" + obj.original_name), 
+		FMesh(toAlnum(name + "_" + obj.original_name) + '_mesh'), None)
+	fModel.meshGroups[name + "_" + obj.original_name] = fMeshGroup
 
 	facesByMat = {}
 	for face in obj.data.loop_triangles:
@@ -161,7 +161,7 @@ def exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren, name
 
 	tempObj, meshList = combineObjects(obj, includeChildren, None, None)
 	try:
-		fMeshGroup = saveStaticModel(fModel, tempObj, transformMatrix)
+		fMeshGroup = saveStaticModel(fModel, tempObj, transformMatrix, name)
 		cleanupCombineObj(tempObj, meshList)
 		obj.select_set(True)
 		bpy.context.view_layer.objects.active = obj
@@ -174,11 +174,11 @@ def exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren, name
 	return fModel, fMeshGroup
 
 def exportF3DtoC(dirPath, obj, isStatic, transformMatrix, 
-	f3dType, isHWv1, texDir, savePNG, texSeparate, includeChildren):
+	f3dType, isHWv1, texDir, savePNG, texSeparate, includeChildren, name):
 	fModel, fMeshGroup = \
-		exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren, obj.name)
+		exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren, name)
 
-	modelDirPath = os.path.join(dirPath, toAlnum(obj.name))
+	modelDirPath = os.path.join(dirPath, toAlnum(name))
 
 	if not os.path.exists(modelDirPath):
 		os.mkdir(modelDirPath)
@@ -799,7 +799,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer):
 	
 	if len(obj.data.materials) == 0:
 		raise PluginError("Mesh must have at least one material.")
-	materialName = toAlnum(material.name) + (('_layer' + str(drawLayer)) \
+	materialName = fModel.name + "_" + toAlnum(material.name) + (('_layer' + str(drawLayer)) \
 		if material.rdp_settings.set_rendermode and drawLayer is not None else '') 
 	fMaterial = FMaterial(materialName)
 	fMaterial.material.commands.append(DPPipeSync())

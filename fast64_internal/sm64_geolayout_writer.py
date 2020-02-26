@@ -113,7 +113,7 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix,
 		meshGeolayout = geolayoutGraph.startGeolayout
 	processBone(fModel, startBoneName, obj, armatureObj, 
 		convertTransformMatrix, None, None, None, meshGeolayout.nodes[0], 
-		[], '', meshGeolayout, geolayoutGraph, infoDict)
+		[], name, meshGeolayout, geolayoutGraph, infoDict)
 	generateSwitchOptions(meshGeolayout.nodes[0], meshGeolayout, geolayoutGraph,
 		'')
 	appendRevertToGeolayout(geolayoutGraph, fModel)
@@ -589,7 +589,7 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode,
 	if obj.data is None:
 		meshGroup = None
 	else:
-		meshGroup = saveStaticModel(fModel, obj, transformMatrix)
+		meshGroup = saveStaticModel(fModel, obj, transformMatrix, fModel.name)
 
 	if meshGroup is None:
 		node.hasDL = False
@@ -1002,7 +1002,8 @@ def checkIfFirstNonASMNode(childNode):
 	if index == 0:
 		return True
 	while index > 0 and \
-		isinstance(childNode.parent.children[index - 1].node, FunctionNode):
+		(isinstance(childNode.parent.children[index - 1].node, FunctionNode) or \
+		not childNode.parent.children[index - 1].skinned):
 		index -= 1
 	return index == 0
 
@@ -1024,8 +1025,9 @@ def addSkinnedMeshNode(armatureObj, boneName, skinnedMesh, transformNode, parent
 
 	if skinnedMesh is None:
 		return transformNode
-	#else:
-	#	print("Skinned mesh exists.")
+	else:
+		transformNode.skinned = True
+		#print("Skinned mesh exists.")
 
 	# Get skinned node
 	bone = armatureObj.data.bones[boneName]
@@ -1231,7 +1233,8 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 	elif len(groupFaces) > 0:
 		fMeshGroup = FMeshGroup(toAlnum(namePrefix + \
 			('_' if namePrefix != '' else '') + vertexGroup), 
-			FMesh(toAlnum(namePrefix + vertexGroup) + '_mesh'), None)
+			FMesh(toAlnum(namePrefix + \
+			('_' if namePrefix != '' else '') + vertexGroup) + '_mesh'), None)
 	else:
 		print("No faces in " + vertexGroup)
 		return None
@@ -1385,7 +1388,8 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj,
 			"split normals. ")
 	
 	# Load parent group vertices
-	fSkinnedMesh = FMesh(toAlnum(namePrefix + name) + '_skinned')
+	fSkinnedMesh = FMesh(toAlnum(namePrefix + \
+			('_' if namePrefix != '' else '') + name) + '_skinned')
 
 	# Load verts into buffer by material.
 	# It seems like material setup must be done BEFORE triangles are drawn.
@@ -1421,7 +1425,8 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj,
 	# End skinned mesh vertices.
 	fSkinnedMesh.draw.commands.append(SPEndDisplayList())
 
-	fMesh = FMesh(toAlnum(namePrefix + name) + '_mesh')
+	fMesh = FMesh(toAlnum(namePrefix + \
+			('_' if namePrefix != '' else '') + name) + '_mesh')
 
 	# Load current group vertices, then draw commands by material
 	existingVertData, matRegionDict = \
@@ -1449,7 +1454,8 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj,
 			copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict),
 			infoDict, obj.data)
 	
-	return FMeshGroup(toAlnum(namePrefix + name), fMesh, fSkinnedMesh)
+	return FMeshGroup(toAlnum(namePrefix + \
+			('_' if namePrefix != '' else '') + name), fMesh, fSkinnedMesh)
 
 def writeDynamicMeshFunction(name, displayList):
 	data = \

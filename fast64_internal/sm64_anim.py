@@ -139,11 +139,11 @@ def getLastKeyframeTime(keyframes):
 # add definition to groupN.h
 # add data/table includes to groupN.c (bin_id?)
 # add data/table files
-def exportAnimationC(armatureObj, loopAnim, dirPath):
-	sm64_anim = exportAnimationCommon(armatureObj, loopAnim)
+def exportAnimationC(armatureObj, loopAnim, dirPath, name):
+	sm64_anim = exportAnimationCommon(armatureObj, loopAnim, name)
 	animName = armatureObj.animation_data.action.name
 
-	geoDirPath = os.path.join(dirPath, toAlnum(armatureObj.name))
+	geoDirPath = os.path.join(dirPath, toAlnum(name))
 	if not os.path.exists(geoDirPath):
 		os.mkdir(geoDirPath)
 
@@ -206,12 +206,12 @@ def exportAnimationInsertableBinary(filepath, armatureObj, isDMA, loopAnim):
 		sm64_anim.get_ptr_offsets(isDMA), startAddress, animData)
 	
 
-def exportAnimationCommon(armatureObj, loopAnim):
+def exportAnimationCommon(armatureObj, loopAnim, name):
 	if armatureObj.animation_data is None or \
 		armatureObj.animation_data.action is None:
 		raise PluginError("No active animation selected.")
 	anim = armatureObj.animation_data.action
-	sm64_anim = SM64_Animation(toAlnum(anim.name))
+	sm64_anim = SM64_Animation(toAlnum(name + "_" + anim.name))
 
 	nodeCount = len(armatureObj.data.bones)
 	frameInterval = [int(round(anim.frame_range[0])), 
