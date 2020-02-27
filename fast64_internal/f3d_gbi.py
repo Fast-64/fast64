@@ -6,6 +6,12 @@ import os
 from .utility import getNameFromPath, PluginError
 import copy
 
+dlTypeEnum = [
+	('STATIC', "Static", "Static"),
+	('MATERIAL', 'Dynamic Material', 'Dynamic Material'),
+	('PROCEDURAL', 'Procedural', 'Procedural'),
+]
+
 lightIndex = {
 	'LIGHT_1' : 1,
 	'LIGHT_2' :	2,
@@ -1550,21 +1556,22 @@ class FModel:
 		if self.materialRevert is not None:
 			self.materialRevert.save_binary(romfile, self.f3d, segments)
 	
-	def to_c(self, static):
+	# See dlTypeEnum at top of f3d_gbi.py
+	def to_c(self, dlType):
 		data = ''
 		for name, light in self.lights.items():
 			data += light.to_c() + '\n'
 		for info, texture in self.textures.items():
 			data += texture.to_c() + '\n'
 		for (material, drawLayer), (fMaterial, texDimensions) in self.materials.items():
-			data += fMaterial.to_c(static) + '\n'
+			data += fMaterial.to_c(dlType == 'STATIC') + '\n'
 		for name, meshGroup in self.meshGroups.items():
-			data += meshGroup.to_c(static) + '\n'
+			data += meshGroup.to_c(dlType) + '\n'
 		if self.materialRevert is not None:
-			data += self.materialRevert.to_c(static) + '\n'
+			data += self.materialRevert.to_c(dlType == 'STATIC') + '\n'
 		return data
 
-	def save_c_tex_separate(self, static, texDir, dirpath, texSeparate, texFileName):
+	def save_c_tex_separate(self, dlType, texDir, dirpath, texSeparate, texFileName):
 		data = ''
 		texC = ''
 
@@ -1604,11 +1611,11 @@ class FModel:
 					image.filepath = oldpath
 
 		for (material, drawLayer), (fMaterial, texDimensions) in self.materials.items():
-			data += fMaterial.to_c(static) + '\n'
+			data += fMaterial.to_c(dlType == 'STATIC') + '\n'
 		for name, meshGroup in self.meshGroups.items():
-			data += meshGroup.to_c(static) + '\n'
+			data += meshGroup.to_c(dlType) + '\n'
 		if self.materialRevert is not None:
-			data += self.materialRevert.to_c(static) + '\n'
+			data += self.materialRevert.to_c(dlType == 'STATIC') + '\n'
 		
 		modelPath = os.path.join(dirpath, 'model.inc.c')
 		modelFile = open(modelPath, 'w')
@@ -1629,14 +1636,14 @@ class FModel:
 			if texInfo[1] == 'PAL':
 				bpy.data.images.remove(image)
 	
-	def to_c_def(self, static):
+	def to_c_def(self, dlType):
 		data = ''
 		#for (material, drawLayer), (fMaterial, texDimensions) in self.materials.items():
 		#	data += fMaterial.to_c_def(static)
 		for name, meshGroup in self.meshGroups.items():
-			data += meshGroup.to_c_def(static)
+			data += meshGroup.to_c_def(dlType)
 		if self.materialRevert is not None:
-			data += self.materialRevert.to_c_def(static)
+			data += self.materialRevert.to_c_def(dlType == 'STATIC')
 		return data + '\n'
 
 class FMeshGroup:
@@ -1672,20 +1679,20 @@ class FMeshGroup:
 		if self.skinnedMesh is not None:
 			self.skinnedMesh.save_binary(romfile, f3d, segments)
 	
-	def to_c(self, static):
+	def to_c(self, dlType):
 		data = ""
 		if self.mesh is not None:
-			data += self.mesh.to_c(static) + '\n'
+			data += self.mesh.to_c(dlType) + '\n'
 		if self.skinnedMesh is not None:
-			data += self.skinnedMesh.to_c(static) + '\n'
+			data += self.skinnedMesh.to_c(dlType) + '\n'
 		return data
 	
-	def to_c_def(self, static):
+	def to_c_def(self, dlType):
 		data = ""
 		if self.mesh is not None:
-			data += self.mesh.to_c_def(static)
+			data += self.mesh.to_c_def(dlType)
 		if self.skinnedMesh is not None:
-			data += self.skinnedMesh.to_c_def(static)
+			data += self.skinnedMesh.to_c_def(dlType)
 		return data
 
 class FMesh:
@@ -1732,21 +1739,21 @@ class FMesh:
 		for materialTuple, drawOverride in self.drawMatOverrides.items():
 			drawOverride.save_binary(romfile, f3d, segments)
 	
-	def to_c(self, static):
+	def to_c(self, dlType):
 		data = self.vertexList.to_c() + '\n'
 		for triangleList in self.triangleLists:
-			data += triangleList.to_c(static) + '\n'
-		data += self.draw.to_c(static) + '\n'
+			data += triangleList.to_c(dlType != 'PROCEDURAL') + '\n'
+		data += self.draw.to_c(dlType == 'STATIC') + '\n'
 		for materialTuple, drawOverride in self.drawMatOverrides.items():
-			data += drawOverride.to_c(static) + '\n'
+			data += drawOverride.to_c(dlType == 'STATIC') + '\n'
 		return data
 
-	def to_c_def(self, static):
-		data = self.draw.to_c_def(static)
+	def to_c_def(self, dlType):
+		data = self.draw.to_c_def(dlType == 'STATIC')
 		#for triangleList in self.triangleLists:
 		#	data += triangleList.to_c_def(static)
 		for materialTuple, drawOverride in self.drawMatOverrides.items():
-			data += drawOverride.to_c_def(static)
+			data += drawOverride.to_c_def(dlType == 'STATIC')
 		return data
 
 class FMaterial:

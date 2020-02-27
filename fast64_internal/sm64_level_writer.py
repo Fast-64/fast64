@@ -96,18 +96,18 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
                 shutil.rmtree(os.path.join(levelDir, f))
     
     if savePNG:
-        fModel.save_c_tex_separate(True, 'levels/' + levelName, levelDir, True, 'texture_include.inc.c')
+        fModel.save_c_tex_separate("STATIC", 'levels/' + levelName, levelDir, True, 'texture_include.inc.c')
         fModel.freePalettes()
     else:
         fModel.freePalettes()
         modelPath = os.path.join(levelDir, 'model.inc.c')
-        dlData = fModel.to_c(True)
+        dlData = fModel.to_c("STATIC")
         dlFile = open(modelPath, 'w')
         dlFile.write(dlData)
         dlFile.close()
 
     levelDataString += '#include "levels/' + levelName + '/model.inc.c"\n'
-    headerString += fModel.to_c_def(True)
+    headerString += fModel.to_c_def("STATIC")
     #headerString += '\nextern const LevelScript level_' + levelName + '_entry[];\n'
     #headerString += '\n#endif\n'
 

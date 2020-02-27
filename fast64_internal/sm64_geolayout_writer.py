@@ -65,7 +65,7 @@ def getCameraObj(camera):
 		' is no longer in the scene.')
 
 def appendRevertToGeolayout(geolayoutGraph, fModel):
-	fModel.materialRevert = GfxList('material_revert_render_settings')
+	fModel.materialRevert = GfxList(fModel.name + "_" + 'material_revert_render_settings')
 	revertMatAndEndDraw(fModel.materialRevert, 
 		[DPSetEnvColor(0xFF, 0xFF, 0xFF, 0xFF),
 		DPSetAlphaCompare("G_AC_NONE")])
@@ -191,12 +191,12 @@ def saveGeolayoutC(dirName, geolayoutGraph, fModel, dirPath, texDir, savePNG,
 		os.mkdir(geoDirPath)
 
 	if savePNG:
-		fModel.save_c_tex_separate(True, texDir, geoDirPath, texSeparate, 'texture.inc.c')
+		fModel.save_c_tex_separate("STATIC", texDir, geoDirPath, texSeparate, 'texture.inc.c')
 		fModel.freePalettes()
 	else:
 		fModel.freePalettes()
 		modelPath = os.path.join(geoDirPath, 'model.inc.c')
-		dlData = fModel.to_c(True)
+		dlData = fModel.to_c("STATIC")
 		dlFile = open(modelPath, 'w')
 		dlFile.write(dlData)
 		dlFile.close()
@@ -204,7 +204,7 @@ def saveGeolayoutC(dirName, geolayoutGraph, fModel, dirPath, texDir, savePNG,
 	# group.c include
 	if groupName is not None:
 		groupPathC = os.path.join(dirPath, groupName + ".c")
-		writeIfNotFound(groupPathC, '#include "' + dirName + '/model.inc.c"', False)
+		writeIfNotFound(groupPathC, '#include "' + dirName + '/model.inc.c"\n', False)
 
 	geoPath = os.path.join(geoDirPath, 'geo.inc.c')
 	geoData = geolayoutGraph.to_c()
@@ -215,7 +215,7 @@ def saveGeolayoutC(dirName, geolayoutGraph, fModel, dirPath, texDir, savePNG,
 	# group_geo.c include
 	if groupName is not None:
 		groupPathGeoC = os.path.join(dirPath, groupName + "_geo.c")
-		writeIfNotFound(groupPathGeoC, '#include "' + dirName + '/geo.inc.c"', False)
+		writeIfNotFound(groupPathGeoC, '#include "' + dirName + '/geo.inc.c"\n', False)
 
 	cDefine = geolayoutGraph.to_c_def() + fModel.to_c_def(True)
 	if writeDefinitionsFile:
@@ -227,7 +227,7 @@ def saveGeolayoutC(dirName, geolayoutGraph, fModel, dirPath, texDir, savePNG,
 		# group.h declaration
 		if groupName is not None:
 			groupPathH = os.path.join(dirPath, groupName + ".h")
-			writeIfNotFound(groupPathH, '#include "' + dirName + '/geo_declarations.h"', True)
+			writeIfNotFound(groupPathH, '#include "' + dirName + '/geo_declarations.h"\n', True)
 	
 	return cDefine
 

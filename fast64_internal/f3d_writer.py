@@ -184,19 +184,19 @@ def exportF3DtoC(dirPath, obj, isStatic, transformMatrix,
 		os.mkdir(modelDirPath)
 
 	if savePNG:
-		fModel.save_c_tex_separate(isStatic, texDir, modelDirPath, texSeparate, 'texture.inc.c')
+		fModel.save_c_tex_separate("STATIC" if isStatic else "PROCEDURAL", texDir, modelDirPath, texSeparate, 'texture.inc.c')
 		fModel.freePalettes()
 	else:
 		fModel.freePalettes()
 		modelPath = os.path.join(modelDirPath, 'model.inc.c')
 	
-		data = fModel.to_c(isStatic)
+		data = fModel.to_c("STATIC" if isStatic else "PROCEDURAL")
 		outFile = open(modelPath, 'w')
 		outFile.write(data)
 		outFile.close()
 
 	headerPath = os.path.join(modelDirPath, 'header.h')
-	cDefine = fModel.to_c_def(isStatic)
+	cDefine = fModel.to_c_def("STATIC" if isStatic else "PROCEDURAL")
 	cDefFile = open(headerPath, 'w')
 	cDefFile.write(cDefine)
 	cDefFile.close()
