@@ -72,6 +72,8 @@ def getLoopFromVert(inputIndex, face):
 			return face.loops[i]
 
 def getInfoDict(obj):
+	if len(obj.data.materials) == 0:
+		raise PluginError("Mesh does not have any Fast3D materials.")
 	infoDict = {
 		'vert' : {}, # all faces connected to a vert
 		'edge' : {}, # all faces connected to an edge
