@@ -115,7 +115,7 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix,
 		convertTransformMatrix, None, None, None, meshGeolayout.nodes[0], 
 		[], name, meshGeolayout, geolayoutGraph, infoDict)
 	generateSwitchOptions(meshGeolayout.nodes[0], meshGeolayout, geolayoutGraph,
-		'')
+		name)
 	appendRevertToGeolayout(geolayoutGraph, fModel)
 	geolayoutGraph.generateSortedList()
 	return geolayoutGraph, fModel
@@ -864,7 +864,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 				# Armature doesn't matter here since node is not based off bone
 				optionGeolayout = \
 					geolayoutGraph.addGeolayout(
-						optionArmature, optionArmature.name)
+						optionArmature, namePrefix + "_" + optionArmature.name)
 				geolayoutGraph.addJumpNode(transformNode, geolayout, 
 					optionGeolayout)
 				
@@ -904,7 +904,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 						optionArmature,
 						finalTransform, optionBone.name, optionBone.name,
 						optionBone.name, startNode,
-						materialOverrides, optionBone.name, 
+						materialOverrides, namePrefix + '_' + optionBone.name, 
 						optionGeolayout, geolayoutGraph, optionInfoDict)
 			else:
 				if switchOption.switchType == 'Material':
