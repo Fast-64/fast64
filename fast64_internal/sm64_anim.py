@@ -139,11 +139,11 @@ def getLastKeyframeTime(keyframes):
 # add definition to groupN.h
 # add data/table includes to groupN.c (bin_id?)
 # add data/table files
-def exportAnimationC(armatureObj, loopAnim, dirPath, name):
-	sm64_anim = exportAnimationCommon(armatureObj, loopAnim, name)
+def exportAnimationC(armatureObj, loopAnim, dirPath, dirName, groupName):
+	sm64_anim = exportAnimationCommon(armatureObj, loopAnim, dirName + "_anim")
 	animName = armatureObj.animation_data.action.name
 
-	geoDirPath = os.path.join(dirPath, toAlnum(name))
+	geoDirPath = os.path.join(dirPath, toAlnum(dirName))
 	if not os.path.exists(geoDirPath):
 		os.mkdir(geoDirPath)
 
@@ -151,18 +151,56 @@ def exportAnimationC(armatureObj, loopAnim, dirPath, name):
 	if not os.path.exists(animDirPath):
 		os.mkdir(animDirPath)
 
-	animPath = os.path.join(animDirPath, 'anim_' + toAlnum(animName) + '.inc.c')
+	animsName = dirName + '_anims'
+	animFileName = 'anim_' + toAlnum(animName) + '.inc.c'
+	animPath = os.path.join(animDirPath, animFileName)
 
 	data = sm64_anim.to_c()
 	outFile = open(animPath, 'w')
 	outFile.write(data)
 	outFile.close()
 
+	headerPath = os.path.join(geoDirPath, 'anim_header.h')
+	headerFile = open(headerPath, 'w')
+	headerFile.write('extern const struct Animation *const ' + animsName + '[];\n')
+	headerFile.close()
+
+	# write to data.inc.c
+	dataFilePath = os.path.join(animDirPath, 'data.inc.c')
+	if not os.path.exists(dataFilePath):
+		dataFile = open(dataFilePath, 'w')
+		dataFile.close()
+	writeIfNotFound(dataFilePath, '#include "' + animFileName + '"\n', '')
+
+	# write to table.inc.c
+	tableFilePath = os.path.join(animDirPath, 'table.inc.c')
+	if not os.path.exists(tableFilePath):
+		tableFile = open(tableFilePath, 'w')
+		tableFile.write('const struct Animation *const ' + \
+			animsName + '[] = {\n\tNULL,\n};\n')
+		tableFile.close()
+	writeIfNotFound(tableFilePath, '\t&' + sm64_anim.header.name + ',\n', '\n\tNULL,\n};\n')
+
+	if groupName is not None:
+
+		# group.c include
+		groupPathGeoC = os.path.join(dirPath, groupName + ".c")
+		writeIfNotFound(groupPathGeoC, '#include "' + dirName + '/anims/data.inc.c"\n', '')
+		writeIfNotFound(groupPathGeoC, '#include "' + dirName + '/anims/table.inc.c"\n', '')
+
+		# group.h declaration
+		groupPathH = os.path.join(dirPath, groupName + ".h")
+		writeIfNotFound(groupPathH, '#include "' + dirName + '/anim_header.h"\n', '\n\n#endif')
+
+		# group.h declaration
+		groupPathH = os.path.join(dirPath, groupName + ".h")
+		writeIfNotFound(groupPathH, '#include "' + dirName + '/anim_header.h"\n', '\n\n#endif')
+
 def exportAnimationBinary(romfile, exportRange, armatureObj, DMAAddresses,
 	segmentData, isDMA, loopAnim):
 
 	startAddress = get64bitAlignedAddr(exportRange[0])
-	sm64_anim = exportAnimationCommon(armatureObj, loopAnim)
+	sm64_anim = exportAnimationCommon(armatureObj, loopAnim, armatureObj.name)
 
 	animData = sm64_anim.to_binary(segmentData, isDMA, startAddress)
 	
@@ -192,7 +230,7 @@ def exportAnimationBinary(romfile, exportRange, armatureObj, DMAAddresses,
 
 def exportAnimationInsertableBinary(filepath, armatureObj, isDMA, loopAnim):
 	startAddress = get64bitAlignedAddr(0)
-	sm64_anim = exportAnimationCommon(armatureObj, loopAnim)
+	sm64_anim = exportAnimationCommon(armatureObj, loopAnim, armatureObj.name)
 	segmentData = copy.copy(bank0Segment)
 
 	animData = sm64_anim.to_binary(segmentData, isDMA, startAddress)

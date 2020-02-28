@@ -259,7 +259,7 @@ def exportCollisionC(obj, transformMatrix, dirPath, includeSpecials,
 		roomsFile.close()
 
 	if writeDefinitionsFile:
-		headerPath = os.path.join(colDirPath, 'collision_declarations.h')
+		headerPath = os.path.join(colDirPath, 'collision_header.h')
 		cDefFile = open(headerPath, 'w')
 		cDefFile.write(cDefine)
 		cDefFile.close()

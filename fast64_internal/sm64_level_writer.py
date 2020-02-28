@@ -129,15 +129,15 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 
     if writeScriptFile:
         writeIfNotFound(os.path.join(levelDir, 'geo.c'), 
-            '#include "levels/' + levelName + '/geo.inc.c"\n', False)
+            '#include "levels/' + levelName + '/geo.inc.c"\n', '')
         writeIfNotFound(os.path.join(levelDir, 'leveldata.c'), 
-            '#include "levels/' + levelName + '/leveldata.inc.c"\n', False)
+            '#include "levels/' + levelName + '/leveldata.inc.c"\n', '')
         writeIfNotFound(os.path.join(levelDir, 'header.h'), 
-            '#include "levels/' + levelName + '/header.inc.h"\n', True)
+            '#include "levels/' + levelName + '/header.inc.h"\n', '\n\n#endif')
         
         if savePNG:
             writeIfNotFound(os.path.join(levelDir, 'texture.inc.c'), 
-                '#include "levels/' + levelName + '/texture_include.inc.c"\n', False)
+                '#include "levels/' + levelName + '/texture_include.inc.c"\n', '')
         else:
             textureIncludePath = os.path.join(levelDir, 'texture_include.inc.c')
             if os.path.exists(textureIncludePath):

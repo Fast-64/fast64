@@ -388,7 +388,7 @@ class SM64_ExportGeolayoutObject(bpy.types.Operator):
 					bpy.context.scene.geoSeparateTextureDef,
 					None, bpy.context.scene.geoGroupName if \
 					bpy.context.scene.geoWriteHeaders else None, 
-					context.scene.geoName, True)
+					context.scene.geoName)
 				self.report({'INFO'}, 'Success! Geolayout at ' + \
 					context.scene.geoExportPath)
 			elif context.scene.geoExportType == 'Insertable Binary':
@@ -564,7 +564,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 					bpy.context.scene.geoSeparateTextureDef,
 					None, bpy.context.scene.geoGroupName if \
 					bpy.context.scene.geoWriteHeaders else None,
-					context.scene.geoName, True)
+					context.scene.geoName)
 				self.report({'INFO'}, 'Success! Geolayout at ' + \
 					context.scene.geoExportPath)
 			elif context.scene.geoExportType == 'Insertable Binary':
@@ -1285,7 +1285,9 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 		if context.scene.animExportType == 'C':
 			try:
 				exportAnimationC(armatureObj, context.scene.loopAnimation, 
-					bpy.path.abspath(context.scene.animExportPath), bpy.context.scene.animName)
+					bpy.path.abspath(context.scene.animExportPath), bpy.context.scene.animName,
+					bpy.context.scene.animGroupName if \
+					bpy.context.scene.animWriteHeaders else None)
 				self.report({'INFO'}, 'Success! Animation at ' +\
 					context.scene.animExportPath)
 			except Exception as e:
@@ -1394,6 +1396,9 @@ class SM64_ExportAnimPanel(bpy.types.Panel):
 		if context.scene.animExportType == 'C':
 			col.prop(context.scene, 'animExportPath')
 			prop_split(col, context.scene, 'animName', 'Name')
+			col.prop(context.scene, 'animWriteHeaders')
+			if context.scene.animWriteHeaders:
+				prop_split(col, context.scene, 'animGroupName', 'Group Name')
 		elif context.scene.animExportType == 'Insertable Binary':
 			col.prop(context.scene, 'isDMAExport')
 			col.prop(context.scene, 'animInsertableBinaryPath')
@@ -1846,6 +1851,10 @@ def register():
 		name = "Anim List Index", min = 0, max = 255)
 	bpy.types.Scene.animName = bpy.props.StringProperty(
 		name = 'Name', default = 'mario')
+	bpy.types.Scene.animGroupName = bpy.props.StringProperty(
+		name = 'Group Name', default = 'group0')
+	bpy.types.Scene.animWriteHeaders = bpy.props.BoolProperty(
+		name = 'Write Headers For Actor', default = True)
 
 	# Collision
 	bpy.types.Scene.colExportPath = bpy.props.StringProperty(
@@ -1968,6 +1977,8 @@ def unregister():
 	del bpy.types.Scene.animListIndexImport
 	del bpy.types.Scene.animListIndexExport
 	del bpy.types.Scene.animName
+	del bpy.types.Scene.animGroupName
+	del bpy.types.Scene.animWriteHeaders
 
 	# Character
 	del bpy.types.Scene.characterIgnoreSwitch

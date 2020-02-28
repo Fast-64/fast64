@@ -20,15 +20,15 @@ def setOrigin(target, obj):
 	bpy.ops.object.origin_set(type = 'ORIGIN_CURSOR')
 	bpy.ops.object.select_all(action = "DESELECT")
 
-def writeIfNotFound(filePath, stringValue, hasEndIf):
+def writeIfNotFound(filePath, stringValue, footer):
 	if os.path.exists(filePath):
 		fileData = open(filePath, 'r')
 		fileData.seek(0)
 		stringData = fileData.read()
 		fileData.close()
 		if stringValue not in stringData:
-			if hasEndIf:
-				stringData = stringData[:-7] + '\n' + stringValue + '\n\n#endif'
+			if len(footer) > 0:
+				stringData = stringData[:-len(footer)] + '\n' + stringValue + footer
 			else:
 				stringData += stringValue
 			fileData = open(filePath, 'w')

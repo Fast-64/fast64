@@ -164,25 +164,23 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 
 # C Export
 def exportGeolayoutArmatureC(armatureObj, obj, convertTransformMatrix, 
-	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera, groupName, name,
-	writeDefinitionsFile):
+	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera, groupName, name):
 	geolayoutGraph, fModel = convertArmatureToGeolayout(armatureObj, obj,
 		convertTransformMatrix, f3dType, isHWv1, camera, name)
 
 	return saveGeolayoutC(name, geolayoutGraph, fModel, dirPath, texDir,
-		savePNG, texSeparate, groupName, writeDefinitionsFile)
+		savePNG, texSeparate, groupName)
 
 def exportGeolayoutObjectC(obj, convertTransformMatrix, 
-	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera, groupName, name,
-	writeDefinitionsFile):
+	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera, groupName, name):
 	geolayoutGraph, fModel = convertObjectToGeolayout(obj, 
 		convertTransformMatrix, f3dType, isHWv1, camera, name, None, None)
 
 	return saveGeolayoutC(name, geolayoutGraph, fModel, dirPath, texDir,
-		savePNG, texSeparate, groupName, writeDefinitionsFile)
+		savePNG, texSeparate, groupName)
 
 def saveGeolayoutC(dirName, geolayoutGraph, fModel, dirPath, texDir, savePNG,
- 	texSeparate, groupName, writeDefinitionsFile):
+ 	texSeparate, groupName):
 	dirName = toAlnum(dirName)
 	groupName = toAlnum(groupName)
 	geoDirPath = os.path.join(dirPath, toAlnum(dirName))
@@ -200,34 +198,33 @@ def saveGeolayoutC(dirName, geolayoutGraph, fModel, dirPath, texDir, savePNG,
 		dlFile = open(modelPath, 'w')
 		dlFile.write(dlData)
 		dlFile.close()
-	
-	# group.c include
-	if groupName is not None:
-		groupPathC = os.path.join(dirPath, groupName + ".c")
-		writeIfNotFound(groupPathC, '#include "' + dirName + '/model.inc.c"\n', False)
 
+	# save geolayout
 	geoPath = os.path.join(geoDirPath, 'geo.inc.c')
 	geoData = geolayoutGraph.to_c()
 	geoFile = open(geoPath, 'w')
 	geoFile.write(geoData)
 	geoFile.close()
 
-	# group_geo.c include
-	if groupName is not None:
-		groupPathGeoC = os.path.join(dirPath, groupName + "_geo.c")
-		writeIfNotFound(groupPathGeoC, '#include "' + dirName + '/geo.inc.c"\n', False)
-
+	# save header
 	cDefine = geolayoutGraph.to_c_def() + fModel.to_c_def(True)
-	if writeDefinitionsFile:
-		headerPath = os.path.join(geoDirPath, 'geo_declarations.h')
-		cDefFile = open(headerPath, 'w')
-		cDefFile.write(cDefine)
-		cDefFile.close()
+	headerPath = os.path.join(geoDirPath, 'geo_header.h')
+	cDefFile = open(headerPath, 'w')
+	cDefFile.write(cDefine)
+	cDefFile.close()
+	
+	if groupName is not None:
+		# group.c include
+		groupPathC = os.path.join(dirPath, groupName + ".c")
+		writeIfNotFound(groupPathC, '#include "' + dirName + '/model.inc.c"\n', '')
+
+		# group_geo.c include
+		groupPathGeoC = os.path.join(dirPath, groupName + "_geo.c")
+		writeIfNotFound(groupPathGeoC, '#include "' + dirName + '/geo.inc.c"\n', '')
 
 		# group.h declaration
-		if groupName is not None:
-			groupPathH = os.path.join(dirPath, groupName + ".h")
-			writeIfNotFound(groupPathH, '#include "' + dirName + '/geo_declarations.h"\n', True)
+		groupPathH = os.path.join(dirPath, groupName + ".h")
+		writeIfNotFound(groupPathH, '#include "' + dirName + '/geo_header.h"\n', '\n\n#endif')
 	
 	return cDefine
 
