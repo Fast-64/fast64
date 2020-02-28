@@ -190,14 +190,10 @@ class CollisionPanel(bpy.types.Panel):
 		split.label(text = '')
 		split.prop(material, 'collision_all_options')
 
-		if not material.collision_all_options:
-			if material.collision_type_simple in specialSurfaces:
-				prop_split(box, material, 'collision_param', 'Parameter')
-				self.paramInfo(box)
-		else:
-			if material.collision_type in specialSurfaces:
-				prop_split(box, material, 'collision_param', 'Parameter')
-				self.paramInfo(box)
+		box.prop(material, 'use_collision_param')
+		if material.use_collision_param:
+			prop_split(box, material, 'collision_param', 'Parameter')
+			self.paramInfo(box)
 				
 		#infoBox = box.box()
 		#infoBox.label(text = \
@@ -341,7 +337,7 @@ def addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix, 
 			material = obj.data.materials[face.material_index]
 			colType = material.collision_type if material.collision_all_options\
 				else material.collision_type_simple
-			specialParam = material.collision_param if colType in specialSurfaces else None
+			specialParam = material.collision_param if material.use_collision_param else None
 			if colType not in collisionDict:
 				collisionDict[colType] = []
 			collisionDict[colType].append(((
@@ -386,9 +382,11 @@ def col_register():
 	bpy.types.Material.collision_all_options = bpy.props.BoolProperty(
 		name = 'Show All Options')
 
+	bpy.types.Material.use_collision_param = bpy.props.BoolProperty(
+		name = 'Use Collision Parameter')
+
 	bpy.types.Material.collision_param = bpy.props.StringProperty(
-		name = "Parameter", default = '0x0000'
-	)
+		name = "Parameter", default = '0x0000')
 
 	#bpy.types.Object.sm64_obj_type = bpy.props.EnumProperty(
 	#	name = 'SM64 Object Type', items = enumObjectType, default = 'None')
