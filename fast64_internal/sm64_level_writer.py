@@ -28,6 +28,8 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
     childAreas = [child for child in obj.children if child.data is None and child.sm64_obj_type == 'Area Root']
     if len(childAreas) == 0:
         raise PluginError("The level root has no child empties with the 'Area Root' object type.")
+
+    mario_start = None
     for child in childAreas:
         if len(child.children) == 0:
             raise PluginError("Area for " + child.name + " has no children.")
@@ -76,6 +78,8 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
         # Get area
         area = exportAreaCommon(obj, child, transformMatrix, 
             geolayoutGraph.startGeolayout, collision, levelName + '_' + areaName)
+        if area.mario_start is not None:
+            mario_start = area.mario_start
         areaString += area.to_c_script(exportRooms)
 
         # Write macros
@@ -190,6 +194,12 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
             bgSegment + '_skybox_mio0SegmentRomEnd),'
         scriptData = re.sub(
             'LOAD\_MIO0\(\s*.*0x0A\,\s*\_.*\_skybox\_mio0SegmentRomStart\,\s*\_.*\_skybox\_mio0SegmentRomEnd\)\s*\,', segmentString, scriptData)
+
+        # Writes mario pos if in script.c.
+        if mario_start is not None:
+            marioPosString = mario_start.to_c() + ","
+            scriptData = re.sub(
+                'MARIO\_POS\(.*\)\,', marioPosString, scriptData)
         
         scriptFile = open(os.path.join(levelDir, 'script.c'), 'w')
         scriptFile.write(scriptData)

@@ -136,6 +136,7 @@ class SM64_Area:
 		self.music_seq = music_seq
 		self.terrain_type = terrain_type
 		self.warpNodes = warpNodes
+		self.mario_start = None
 
 	def macros_name(self):
 		return self.name + '_macro_objs'
@@ -172,13 +173,13 @@ class SM64_Area:
 		return 'extern const MacroObject ' + self.macros_name() + '[];\n'
 
 class CollisionWaterBox:
-	def __init__(self, waterBoxType, position, blenderSize):
-		size = (blenderSize[0] * bpy.context.scene.blenderToSM64Scale, 
-			blenderSize[1] * bpy.context.scene.blenderToSM64Scale)
+	def __init__(self, waterBoxType, position, scale, emptyScale):
+		# The scale ordering is due to the fact that scaling happens AFTER rotation.
+		# Thus the translation uses Y-up, while the scale uses Z-up.
 		self.waterBoxType = waterBoxType
-		self.low = (position[0] - size[0] / 2, position[2] - size[1] / 2)
-		self.high = (position[0] + size[0] / 2, position[2] + size[1] / 2)
-		self.height = position[1]
+		self.low = (position[0] - scale[0] * emptyScale, position[2] - scale[1] * emptyScale)
+		self.high = (position[0] + scale[0] * emptyScale, position[2] + scale[1] * emptyScale)
+		self.height = position[1] + scale[2] * emptyScale
 
 	def to_binary(self):
 		data = bytearray([0x00, 0x00 if self.waterBoxType == 'Water' else 0x32])
@@ -224,8 +225,9 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
 					rotation.to_euler() if obj.sm64_obj_set_yaw else None, 
 					obj.sm64_obj_bparam if (obj.sm64_obj_set_yaw and obj.sm64_obj_set_bparam) else None))
 			elif obj.sm64_obj_type == 'Water Box':
+				checkIdentityRotation(obj, rotation, False)
 				area.water_boxes.append(CollisionWaterBox(obj.waterBoxType, 
-					translation, obj.waterBoxSize))
+					translation, scale, obj.empty_display_size))
 		else:
 			if obj.sm64_obj_type == 'Object':
 				area.objects.append(SM64_Object(obj.sm64_obj_model, translation, rotation.to_euler(), 
@@ -234,7 +236,9 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
 				area.macros.append(SM64_Macro_Object(obj.sm64_obj_preset, translation, rotation.to_euler(), 
 					obj.sm64_obj_bparam if obj.sm64_obj_set_bparam else None))
 			elif obj.sm64_obj_type == 'Mario Start':
-				area.objects.append(SM64_Mario_Start(obj.sm64_obj_mario_start_area, translation, rotation.to_euler()))
+				mario_start = SM64_Mario_Start(obj.sm64_obj_mario_start_area, translation, rotation.to_euler())
+				area.objects.append(mario_start)
+				area.mario_start = mario_start
 			elif obj.sm64_obj_type == 'Trajectory':
 				pass
 			elif obj.sm64_obj_type == 'Whirpool':
@@ -317,7 +321,6 @@ class SM64ObjectPanel(bpy.types.Panel):
 			pass
 		elif obj.sm64_obj_type == 'Water Box':
 			prop_split(box, obj, 'waterBoxType', 'Water Box Type')
-			prop_split(box, obj, 'waterBoxSize', 'Water Box Size (Blender Units)')
 		elif obj.sm64_obj_type == 'Level Root':
 			
 			if obj.useBackgroundColor:
@@ -351,6 +354,10 @@ class SM64ObjectPanel(bpy.types.Panel):
 		layout.label(text = str(value))
 		layout.prop(obj, 'sm64_obj_use_act' + str(value), text = '')
 
+def onUpdateObjectType(self, context):
+	if self.sm64_obj_type == 'Water Box':
+		self.empty_display_type = "CUBE"
+
 sm64_obj_classes = (
 	SM64ObjectPanel,
 )
@@ -360,7 +367,7 @@ def sm64_obj_register():
 		register_class(cls)
 	
 	bpy.types.Object.sm64_obj_type = bpy.props.EnumProperty(
-		name = 'SM64 Object Type', items = enumObjectType, default = 'None')
+		name = 'SM64 Object Type', items = enumObjectType, default = 'None', update = onUpdateObjectType)
 	
 	bpy.types.Object.sm64_obj_model = bpy.props.StringProperty(
 		name = 'Model')
@@ -385,8 +392,6 @@ def sm64_obj_register():
 		name = 'Strength', default = '-30')
 	bpy.types.Object.waterBoxType = bpy.props.EnumProperty(
 		name = 'Water Box Type', items = enumWaterBoxType, default = 'Water')
-	bpy.types.Object.waterBoxSize = bpy.props.FloatVectorProperty(
-		name = 'Water Box Size (Blender Units)', size = 2, default = (1,1), min = 0)
 
 	bpy.types.Object.sm64_obj_use_act1 = bpy.props.BoolProperty(
 		name = 'Act 1', default = True)
@@ -461,7 +466,6 @@ def sm64_obj_unregister():
 	del bpy.types.Object.whirpool_strength
 
 	del bpy.types.Object.waterBoxType
-	del bpy.types.Object.waterBoxSize
 
 	del bpy.types.Object.sm64_obj_use_act1
 	del bpy.types.Object.sm64_obj_use_act2

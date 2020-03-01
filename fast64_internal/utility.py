@@ -11,6 +11,12 @@ import math
 class PluginError(Exception):
 	pass
 
+def checkIdentityRotation(obj, rotation, allowYaw):
+	# Hacky way to handle y-up conversion
+	rotationDiff = (mathutils.Quaternion((1, 0, 0), math.radians(90.0)) @ rotation).to_euler()
+	if abs(rotationDiff.x) > 0.001 or abs(rotationDiff.y) > 0.001 or abs(rotationDiff.z) > 0.001:
+		raise PluginError("Water box \"" + obj.name + "\" cannot have a non-zero world rotation.")
+
 def setOrigin(target, obj):
 	bpy.ops.object.select_all(action = "DESELECT")
 	obj.select_set(True)
