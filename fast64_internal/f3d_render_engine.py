@@ -8,12 +8,16 @@ from bpy.utils import register_class, unregister_class
 vertexShader = '''
 #version 330 core
 layout (location = 0) in vec3 pos;
+layout (location = 1) in vec2 uv;
+layout (location = 2) in vec3 colorOrNormal;
+
+uniform mat4 transform;
   
 out vec3 vertexColor;
 
 void main()
 {
-	gl_Position = vec4(aPos, 1.0); // see how we directly give a vec3 to vec4's constructor
+	gl_Position = transform * vec4(pos, 1.0); // see how we directly give a vec3 to vec4's constructor
 	vertexColor = vec4(0.5, 0.0, 0.0, 1.0); // set the output variable to a dark-red color
 }
 '''
@@ -87,18 +91,23 @@ class F3DRenderEngine(bpy.types.RenderEngine):
 		# Get viewport dimensions
 		dimensions = region.width, region.height
 
+		print("Start View Update: " + str(glGetError()))
 		if not self.first_time:
 			# First time initialization
 			self.first_time = True
 			for datablock in depsgraph.ids:
+				print(datablock)
 				if isinstance(datablock, bpy.types.Image):
 					self.draw_data.textures[datablock.name] = F3DRendererTexture(datablock)
+					print("Create Texture: " + str(glGetError()))
 				elif isinstance(datablock, bpy.types.Material):
 					self.draw_data.materials[datablock.name] = F3DRendererMaterial(datablock)
+					print("Create Material: " + str(glGetError()))
 				elif isinstance(datablock, bpy.types.Mesh):
 					pass
 				elif isinstance(datablock, bpy.types.Object) and isinstance(datablock.data, bpy.types.Mesh):
 					self.draw_data.objects[datablock.name] = F3DRendererObject(datablock.data, self.draw_data)
+					print("Create Object: " + str(glGetError()))
 		else:
 			# Test which datablocks changed
 			for update in depsgraph.updates:
@@ -117,6 +126,7 @@ class F3DRenderEngine(bpy.types.RenderEngine):
 				pass
 
 		context.region_data.perspective_matrix
+		print("End View Update: " + str(glGetError()))
 
 	# For viewport renders, this method is called whenever Blender redraws
 	# the 3D viewport. The renderer is expected to quickly draw the render
@@ -130,6 +140,7 @@ class F3DRenderEngine(bpy.types.RenderEngine):
 		# Get viewport dimensions
 		dimensions = region.width, region.height
 
+		print("Start View Draw: " + str(glGetError()))
 		glEnable(GL_BLEND)
 		glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA)
 		self.draw_data.draw()
@@ -176,6 +187,7 @@ class F3DRendererObject:
 	def __init__(self, mesh, render_data):
 		self.submeshes = []
 		facesByMat = {}
+		mesh.calc_loop_triangles()
 		for face in mesh.loop_triangles:
 			if face.material_index not in facesByMat:
 				facesByMat[face.material_index] = []
@@ -184,20 +196,23 @@ class F3DRendererObject:
 		for material_index, faces in facesByMat.items():
 			material = mesh.materials[material_index]
 			# Material should always be added in view_update
-			f3d_material = render_data.materials[material]
+			#f3d_material = render_data.materials[material]
+			f3d_material = None
 
-			self.submeshes.append(F3DRendererSubmesh(f3d_material, mesh, faces))
+			self.submeshes.append(F3DRendererSubmesh(f3d_material, mesh, faces, render_data))
 
 	def draw(self):
+		print("Draw Object: " + str(glGetError()))
 		for submesh in self.submeshes:
 			submesh.draw()
 
 class F3DRendererSubmesh:
-	def __init__(self, f3d_material, mesh, triangles):
-		loops = []
+	def __init__(self, f3d_material, mesh, triangles, render_data):
+		print("Begin submesh: " + str(glGetError()))
+		loopIndices = []
 		for triangle in triangles:
-			for loop in triangle.loops:
-				loops.append(loop)
+			for loopIndex in triangle.loops:
+				loopIndices.append(loopIndex)
 
 		self.material = f3d_material
 
@@ -205,71 +220,92 @@ class F3DRendererSubmesh:
 		glGenVertexArrays(1, self.vertex_array)
 		glBindVertexArray(self.vertex_array[0])
 
+		print("Gen/Bind VAO: " + str(glGetError()))
+
 		self.vertex_buffer = Buffer(GL_INT, 3)
-		self.size = len(loops)
+		self.size = len(loopIndices)
+		glGenBuffers(3, self.vertex_buffer)
 		
 		position = []
-		for loop in loops:
-			position += mesh.vertices[loop.vertex_index].co
+		for loopIndex in loopIndices:
+			position.extend(mesh.vertices[mesh.loops[loopIndex].vertex_index].co[0:3])
 		self.position_buffer = Buffer(GL_FLOAT, len(position), position)
 		
 		uv = []
-		if mesh.uv_layers.active is None:
-			uv = [0, 0] * len(loops)
+		if 'UVMap' in mesh.uv_layers:
+			uv = [0, 0] * len(loopIndices)
 		else:
-			for loopUV in mesh.uv_layers.active.data:
-				uv += loopUV.uv
+			for loopUV in mesh.uv_layers['UVMap'].data:
+				uv.extend(loopUV.uv[0:2])
 		self.uv_buffer = Buffer(GL_FLOAT, len(uv), uv)
 		
 		colorOrNormal = []
 		if True: # TODO: Choose normal or vertex color
-			for loop in loops:
-				colorOrNormal += loop.normal
+			for loopIndex in loopIndices:
+				colorOrNormal.extend(mesh.loops[loopIndex].normal[0:3])
 		else:
 			if 'Col' in mesh.vertex_colors:
 				color_data = mesh.vertex_colors['Col'].data
 			else:
-				color_data = [0,0,0] * len(loops)
+				color_data = [0,0,0] * len(loopIndices)
 
 			if 'Alpha' in mesh.vertex_colors:
 				alpha_data = mesh.vertex_colors['Alpha'].data
 			else:
-				alpha_data = [0,0,0] * len(loops)
+				alpha_data = [0,0,0] * len(loopIndices)
 			
-			for loop in loops:
+			for loopIndex in loopIndices:
 				# TODO: Fix Alpha
-				colorOrNormal += color_data[loop.index][0:3] + [alpha_data[loop.index][0]]
+				colorOrNormal.extend(color_data[loopIndex][0:3] + [alpha_data[loopIndex][0]])
 		self.colorOrNormal_buffer = Buffer(GL_FLOAT, len(colorOrNormal), colorOrNormal)
 
-		position_location = glGetAttribLocation(shader_program[0], "pos")
-		uv_location = glGetAttribLocation(shader_program[0], "uv")
-		colorOrNormal_location = glGetAttribLocation(shader_program[0], "colorOrNormal")
+		position_location = glGetAttribLocation(render_data.shaderProgram, "pos")
+		uv_location = glGetAttribLocation(render_data.shaderProgram, "uv")
+		colorOrNormal_location = glGetAttribLocation(render_data.shaderProgram, "colorOrNormal")
+		print("pos: " + str(position_location) + ', uv: ' + str(uv_location) +\
+			", colorOrNormal: " + str(colorOrNormal_location))
+		print("Get Attribute Locations: " + str(glGetError()))
 		
 		# Floats and Ints are 4 bytes?
 		glBindBuffer(GL_ARRAY_BUFFER, self.vertex_buffer[0])
-		glBufferData(GL_ARRAY_BUFFER, len(position) * 3 * 4, position_buffer, GL_STATIC_DRAW)
-		glVertexAttribPointer(position_location, 2, GL_FLOAT, GL_FALSE, 0, None)
+		print("Bind vertex buffer position: " + str(glGetError()))
+		glBufferData(GL_ARRAY_BUFFER, len(position) * 4, self.position_buffer, GL_STATIC_DRAW)
+		print("Buffer position data: " + str(glGetError()))
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, None)
+		glEnableVertexAttribArray(0)
+		print("Set Attribute Pointer: " + str(glGetError()))
 
 		glBindBuffer(GL_ARRAY_BUFFER, self.vertex_buffer[1])
-		glBufferData(GL_ARRAY_BUFFER, len(uv) * 2 * 4, uv_buffer, GL_STATIC_DRAW)
-		glVertexAttribPointer(uv_location, 2, GL_FLOAT, GL_FALSE, 0, None)
+		glBufferData(GL_ARRAY_BUFFER, len(uv) * 4, self.uv_buffer, GL_STATIC_DRAW)
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, None)
+		glEnableVertexAttribArray(0)
 
 		glBindBuffer(GL_ARRAY_BUFFER, self.vertex_buffer[2])
-		glBufferData(GL_ARRAY_BUFFER, len(colorOrNormal) * 4 * 4, colorOrNormal_buffer, GL_STATIC_DRAW)
-		glVertexAttribPointer(colorOrNormal_location, 2, GL_FLOAT, GL_FALSE, 0, None)
+		glBufferData(GL_ARRAY_BUFFER, len(colorOrNormal) * 4, self.colorOrNormal_buffer, GL_STATIC_DRAW)
+		glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, None)
+		glEnableVertexAttribArray(2)
 
 		glBindBuffer(GL_ARRAY_BUFFER, 0)
 		glBindVertexArray(0)
 
+		print("End submesh: " + str(glGetError()))
+
 
 	def draw(self):
+		print("Draw Start Submesh: " + str(glGetError()))
 		#glActiveTexture(GL_TEXTURE0)
 		#glBindTexture(GL_TEXTURE_2D, self.texture[0])
-		self.material.apply()
+		
+		# Ignore material for now
+		#self.material.apply()
+
+		#transformLocation = glGetUniformLocation(draw_data.shaderProgram, "transform")
+		#glUniformMatrix4fv(transformLocation, 1, GL_FALSE, )
 		glBindVertexArray(self.vertex_array[0])
 		glDrawArrays(GL_TRIANGLES, 0, self.size)
 		glBindVertexArray(0)
 		glBindTexture(GL_TEXTURE_2D, 0)
+		print("Draw End Submesh: " + str(glGetError()))
 
 	def __del__(self):
 		glDeleteBuffers(3, self.vertex_buffer)
@@ -287,6 +323,7 @@ class F3DDrawData:
 		self.textures = {}
 		self.materials = {}
 		self.objects = {}
+		print("Start: " + str(glGetError()))
 
 		# Create shader program
 		vertexHandle = glCreateShader(GL_VERTEX_SHADER)
@@ -296,6 +333,8 @@ class F3DDrawData:
 		glCompileShader(vertexHandle)
 		glCompileShader(fragmentHandle)
 
+		print("Shader Created: " + str(glGetError()))
+
 		self.shaderProgram = glCreateProgram()
 		glAttachShader(self.shaderProgram, vertexHandle)
 		glAttachShader(self.shaderProgram, fragmentHandle)
@@ -303,19 +342,23 @@ class F3DDrawData:
 		glDeleteShader(vertexHandle)
 		glDeleteShader(fragmentHandle)
 
-		messageSize = Buffer(GL_INT, 1)
-		message = Buffer(GL_BYTE, 1000)
-		glGetShaderInfoLog(self.shaderProgram, 1000, messageSize, message)
-		print(message[:])
+		print("Program Created: " + str(glGetError()))
+
+		#messageSize = Buffer(GL_INT, 1)
+		#message = Buffer(GL_BYTE, 1000)
+		#glGetShaderInfoLog(self.shaderProgram, 1000, messageSize, message)
+		print("End: " + str(glGetError()))
 
 	def __del__(self):
 		for idName, f3dObject in self.objects.items():
 			del f3dObject
 
 	def draw(self):
+		print("Start Draw Data: " + str(glGetError()))
 		glClearColor(0.2, 0.3, 0.3, 1.0)
 		glClear(GL_COLOR_BUFFER_BIT)
 
+		print("Before use program: " + str(glGetError()))
 		glUseProgram(self.shaderProgram)
 		for idName, f3dObject in self.objects.items():
 			f3dObject.draw()

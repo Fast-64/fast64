@@ -88,10 +88,15 @@ def getInfoDict(obj):
 	validNeighborDict = infoDict['validNeighbors']
 
 	mesh = obj.data
-	if obj.data.uv_layers.active is None:
+	if len(obj.data.uv_layers) == 0:
 		uv_data = obj.data.uv_layers.new().data
 	else:
-		uv_data = obj.data.uv_layers.active.data
+		uv_data = None
+		for uv_layer in obj.data.uv_layers:
+			if uv_layer.name == 'UVMap':
+				uv_data = uv_layer.data
+		if uv_data is None:
+			raise PluginError("Object \'" + obj.name + "\' does not have a UV layer named \'UVMap.\'")
 	for face in mesh.loop_triangles:
 		validNeighborDict[face] = []
 		for vertIndex in face.vertices:
@@ -418,7 +423,7 @@ def saveMeshByFaces(material, faces, fModel, fMesh, obj, transformMatrix,
 		saveOrGetF3DMaterial(material, fModel, obj, drawLayer)
 	isPointSampled = isTexturePointSampled(material)
 	exportVertexColors = isLightingDisabled(material)
-	uv_data = obj.data.uv_layers.active.data
+	uv_data = obj.data.uv_layers['UVMap'].data
 	convertInfo = LoopConvertInfo(uv_data, obj, exportVertexColors)
 
 	fMesh.draw.commands.append(SPDisplayList(fMaterial.material))

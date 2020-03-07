@@ -505,6 +505,15 @@ class F3DPanel(bpy.types.Panel):
 			self.ui_procAnimVec(material.colorAnim, procAnimBox, "Color",
 			 	'RGB')
 
+	def ui_uvCheck(self, layout, context):
+		if hasattr(context, 'object') and context.object is not None and \
+			isinstance(context.object.data, bpy.types.Mesh):
+			uv_layers = context.object.data.uv_layers
+			if uv_layers.active is None or uv_layers.active.name != 'UVMap':
+				uvErrorBox = layout.box()
+				uvErrorBox.label(text = 'Warning: This mesh\'s active UV layer is not named \"UVMap\".')
+				uvErrorBox.label(text = 'This will cause incorrect UVs to display.')
+
 	# texture convert/LUT controlled by texture settings
 	# add node support for geo mode settings
 	def draw(self, context):
@@ -567,6 +576,8 @@ class F3DPanel(bpy.types.Panel):
 
 			layout.box().label(
 				text = 'Note: Alpha preview is not 100% accurate.')
+			
+			self.ui_uvCheck(layout, context)
 
 			inputCol = layout.column()
 			useDict = all_combiner_uses(material)

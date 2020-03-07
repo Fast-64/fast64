@@ -1370,7 +1370,7 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj,
 	currentMatrix, parentMatrix, namePrefix, infoDict, vertexGroup, drawLayer):
 	# We choose one or more loops per vert to represent a material from which 
 	# texDimensions can be found, since it is required for UVs.
-	uv_data = obj.data.uv_layers.active.data
+	uv_data = obj.data.uv_layers['UVMap'].data
 	inGroupVertArray, notInGroupVertArray, loopDict = \
 		splitSkinnedFacesIntoTwoGroups(skinnedFaces, fModel, obj, uv_data, drawLayer)
 
