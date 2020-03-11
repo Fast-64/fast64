@@ -749,7 +749,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 	transformNode = TransformNode(node)
 
 	if node.hasDL:
-		meshGroup = saveModelGivenVertexGroup(
+		meshGroup, makeLastDeformBone = saveModelGivenVertexGroup(
 			fModel, obj, bone.name, lastDeformName,
 			finalTransform, armatureObj, materialOverrides, 
 			namePrefix, infoDict, node.drawLayer)
@@ -759,9 +759,10 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 			if isinstance(node, DisplayListNode):
 				raise PluginError("Display List (0x15) " + boneName + " must have vertices assigned to it. If you have already done this, make sure there aren't any other bones that also own these vertices with greater or equal weighting.")
 			node.hasDL = False
+			transformNode.skinnedWithoutDL = makeLastDeformBone
 			#bone.use_deform = False
-			#if bone.use_deform:
-			#	lastDeformName = boneName
+			if makeLastDeformBone:
+				lastDeformName = boneName
 			parentTransformNode.children.append(transformNode)
 			transformNode.parent = parentTransformNode
 		else:
@@ -1043,7 +1044,7 @@ def addSkinnedMeshNode(armatureObj, boneName, skinnedMesh, transformNode, parent
 	hasNonDeform0x13Command = False
 	acrossSwitchNode = False
 	while highestChildNode.parent is not None and\
-		not (highestChildNode.parent.node.hasDL): # empty 0x13 command?
+		not (highestChildNode.parent.node.hasDL or highestChildNode.parent.skinnedWithoutDL): # empty 0x13 command?
 		isFirstChild &= checkIfFirstNonASMNode(highestChildNode)
 		hasNonDeform0x13Command |= isinstance(highestChildNode.parent.node,
 			DisplayListWithOffsetNode)
@@ -1122,19 +1123,28 @@ def addSkinnedMeshNode(armatureObj, boneName, skinnedMesh, transformNode, parent
 
 	return transformNode	
 
-def getAncestorGroups(parentGroup, armatureObj, obj):
-	if parentGroup is None:
-		return []
-	processingBones = \
-		[bone for bone in armatureObj.data.bones if bone.parent is None]
-	ancestorBones = []
-	while len(processingBones) > 0:
-		currentBone = processingBones[0]
-		processingBones = processingBones[1:]
-		if currentBone.name != parentGroup:
-			ancestorBones.append(getGroupIndexFromname(obj, currentBone.name))
-			processingBones.extend(currentBone.children)
-	return ancestorBones
+def getAncestorGroups(parentGroup, vertexGroup, armatureObj, obj):
+    if parentGroup is None:
+        return []
+    ancestorBones = []
+    processingBones = [armatureObj.data.bones[vertexGroup]]
+    while len(processingBones) > 0:
+        currentBone = processingBones[0]
+        processingBones = processingBones[1:]
+        
+        ancestorBones.append(currentBone)
+        processingBones.extend(currentBone.children)
+    
+    currentBone = armatureObj.data.bones[vertexGroup].parent
+    while currentBone is not None and currentBone.name != parentGroup:
+        ancestorBones.append(currentBone)
+        currentBone = currentBone.parent
+    ancestorBones.append(armatureObj.data.bones[parentGroup])
+    
+    #print(vertexGroup + ", " + parentGroup)
+    #print([bone.name for bone in ancestorBones])
+    return [getGroupIndexFromname(obj, bone.name) for bone in armatureObj.data.bones if bone not in ancestorBones]
+
 
 def checkUniqueBoneNames(fModel, name, vertexGroup):
 	if name in fModel.meshGroups:
@@ -1142,6 +1152,7 @@ def checkUniqueBoneNames(fModel, name, vertexGroup):
 			"sure this bone name is unique, even across all switch option " +\
 			"armatures.")
 
+# returns fMeshGroup, makeLastDeformBone
 def saveModelGivenVertexGroup(fModel, obj, vertexGroup, 
 	parentGroup, transformMatrix, armatureObj, materialOverrides, namePrefix,
 	infoDict, drawLayer):
@@ -1154,11 +1165,11 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 	parentGroupIndex = getGroupIndexFromname(obj, parentGroup) \
 		if parentGroup is not None else -1
 
-	ancestorGroups = getAncestorGroups(parentGroup, armatureObj, obj)
+	ancestorGroups = getAncestorGroups(parentGroup, vertexGroup, armatureObj, obj)
 
 	if len(vertIndices) == 0:
 		print("No vert indices in " + vertexGroup)
-		return None
+		return None, False
 
 	bone = armatureObj.data.bones[vertexGroup]
 	
@@ -1207,7 +1218,7 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 					isChildSkinnedFace = True
 					break
 				else:
-					raise PluginError("Error with " + vertexGroup + ": Verts attached to one bone can not be attached to any of its ancestor bones besides its first immediate deformable parent bone. For example, a foot vertex can be connected to a leg vertex, but a foot vertex cannot be connected to a thigh vertex.")
+					raise PluginError("Error with " + vertexGroup + ": Verts attached to one bone can not be attached to any of its ancestor or sibling bones besides its first immediate deformable parent bone. For example, a foot vertex can be connected to a leg vertex, but a foot vertex cannot be connected to a thigh vertex.")
 			if isChildSkinnedFace:
 				continue
 			
@@ -1234,7 +1245,7 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 			('_' if namePrefix != '' else '') + vertexGroup) + '_mesh'), None)
 	else:
 		print("No faces in " + vertexGroup)
-		return None
+		return None, True
 	
 	# Save mesh group
 	checkUniqueBoneNames(fModel, toAlnum(namePrefix + \
@@ -1264,7 +1275,7 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 			saveOverrideDraw(obj, fModel, material, specificMat, overrideType,
 			fMeshGroup.skinnedMesh, drawLayer)
 	
-	return fMeshGroup
+	return fMeshGroup, True
 
 def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, drawLayer):
 	fOverrideMat, texDimensions = \

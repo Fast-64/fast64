@@ -180,6 +180,7 @@ class TransformNode:
 		self.children = []
 		self.parent = None
 		self.skinned = False
+		self.skinnedWithoutDL = False
 	
 	def get_ptr_addresses(self, address):
 		addresses = []
