@@ -756,8 +756,6 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 
 		if meshGroup is None:
 			#print("No mesh data.")
-			if isinstance(node, DisplayListNode):
-				raise PluginError("Display List (0x15) " + boneName + " must have vertices assigned to it. If you have already done this, make sure there aren't any other bones that also own these vertices with greater or equal weighting.")
 			node.hasDL = False
 			transformNode.skinnedWithoutDL = makeLastDeformBone
 			#bone.use_deform = False
@@ -975,7 +973,8 @@ def getGroupIndex(vert, armatureObj, obj):
 			actualGroups.append(group)
 
 	if len(actualGroups) == 0:
-		raise PluginError("All vertices must be part of a vertex group (weight painted), and the vertex group must correspond to a bone in the armature.")
+		highlightWeightErrors(obj, [vert], "VERT")
+		raise VertexWeightError("All vertices must be part of a vertex group (weight painted), and the vertex group must correspond to a bone in the armature.")
 	vertGroup = actualGroups[0]
 	significantWeightFound = False
 	for group in actualGroups:
@@ -983,7 +982,8 @@ def getGroupIndex(vert, armatureObj, obj):
 			if not significantWeightFound:
 				significantWeightFound = True
 			else:
-				raise PluginError("A vertex was found that was significantly weighted to multiple groups. Make sure each vertex only belongs to one group whose weight is greater than 0.5.")
+				highlightWeightErrors(obj, [vert], "VERT")
+				raise VertexWeightError("A vertex was found that was significantly weighted to multiple groups. Make sure each vertex only belongs to one group whose weight is greater than 0.5.")
 		if group.weight > vertGroup.weight:
 			vertGroup = group
 
@@ -1218,7 +1218,8 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 					isChildSkinnedFace = True
 					break
 				else:
-					raise PluginError("Error with " + vertexGroup + ": Verts attached to one bone can not be attached to any of its ancestor or sibling bones besides its first immediate deformable parent bone. For example, a foot vertex can be connected to a leg vertex, but a foot vertex cannot be connected to a thigh vertex.")
+					highlightWeightErrors(obj, [face], 'FACE')
+					raise VertexWeightError("Error with " + vertexGroup + ": Verts attached to one bone can not be attached to any of its ancestor or sibling bones besides its first immediate deformable parent bone. For example, a foot vertex can be connected to a leg vertex, but a foot vertex cannot be connected to a thigh vertex.")
 			if isChildSkinnedFace:
 				continue
 			
@@ -1342,6 +1343,9 @@ def convertVertDictToArray(vertDict):
 def splitSkinnedFacesIntoTwoGroups(skinnedFaces, fModel, obj, uv_data, drawLayer):
 	inGroupVertArray = []
 	notInGroupVertArray = []
+
+	# For selecting on error
+	notInGroupBlenderVerts = []
 	loopDict = {}
 	for material_index, skinnedFaceArray in skinnedFaces.items():
 		# These MUST be arrays (not dicts) as order is important
@@ -1364,12 +1368,15 @@ def splitSkinnedFacesIntoTwoGroups(skinnedFaces, fModel, obj, uv_data, drawLayer
 					inGroupVerts.append(f3dVert)
 				loopDict[loop] = f3dVert
 			for (face, loop) in skinnedFace.loopsNotInGroup:
+				vert = obj.data.vertices[loop.vertex_index]
+				if vert not in notInGroupBlenderVerts:
+					notInGroupBlenderVerts.append(vert)
 				f3dVert = getF3DVert(loop, face, convertInfo, obj.data)
 				if f3dVert not in notInGroupVerts:
 					notInGroupVerts.append(f3dVert)
 				loopDict[loop] = f3dVert
 	
-	return inGroupVertArray, notInGroupVertArray, loopDict
+	return inGroupVertArray, notInGroupVertArray, loopDict, notInGroupBlenderVerts
 
 def getGroupVertCount(group):
 	count = 0
@@ -1382,18 +1389,19 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj,
 	# We choose one or more loops per vert to represent a material from which 
 	# texDimensions can be found, since it is required for UVs.
 	uv_data = obj.data.uv_layers['UVMap'].data
-	inGroupVertArray, notInGroupVertArray, loopDict = \
+	inGroupVertArray, notInGroupVertArray, loopDict, notInGroupBlenderVerts = \
 		splitSkinnedFacesIntoTwoGroups(skinnedFaces, fModel, obj, uv_data, drawLayer)
 
 	notInGroupCount = getGroupVertCount(notInGroupVertArray)
 	if notInGroupCount > fModel.f3d.vert_load_size - 2:
-		raise PluginError("Too many connecting vertices in skinned " +\
+		highlightWeightErrors(obj, notInGroupBlenderVerts, 'VERT')
+		raise VertexWeightError("Too many connecting vertices in skinned " +\
 			"triangles for bone '" + vertexGroup + "'. Max is " + str(fModel.f3d.vert_load_size - 2) + \
 			" on parent bone, currently at " + str(notInGroupCount) +\
 			". Note that a vertex with different UVs/normals/materials in " +\
 			"connected faces will count more than once. Try " +\
 			"keeping UVs contiguous, and avoid using " +\
-			"split normals. ")
+			"split normals.")
 	
 	# Load parent group vertices
 	fSkinnedMesh = FMesh(toAlnum(namePrefix + \

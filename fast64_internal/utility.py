@@ -12,11 +12,29 @@ import traceback
 class PluginError(Exception):
 	pass
 
+class VertexWeightError(PluginError):
+	pass
+
 def raisePluginError(operator, exception):
 	if bpy.context.scene.fullTraceback:
 		operator.report({'ERROR'}, traceback.format_exc())
 	else:
 		operator.report({'ERROR'}, str(exception))
+
+def highlightWeightErrors(obj, elements, elementType):
+	return # Doesn't work currently
+	if bpy.context.mode != 'OBJECT':
+		bpy.ops.object.mode_set(mode = 'OBJECT')
+	bpy.ops.object.select_all(action = "DESELECT")
+	obj.select_set(True)
+	bpy.context.view_layer.objects.active = obj
+	bpy.ops.object.mode_set(mode = 'EDIT')
+	bpy.ops.mesh.select_all(action = "DESELECT")
+	bpy.ops.mesh.select_mode(type = elementType)
+	bpy.ops.object.mode_set(mode = 'OBJECT')
+	print(elements)
+	for element in elements:
+		element.select = True
 
 def checkIdentityRotation(obj, rotation, allowYaw):
 	# Hacky way to handle y-up conversion

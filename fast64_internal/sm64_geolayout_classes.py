@@ -645,10 +645,8 @@ class DisplayListNode:
 		return 8
 
 	def to_binary(self, segmentData):
-		if self.DLmicrocode is None:
-			raise PluginError("No mesh data associated with this 0x15 command. Make sure you have assigned vertices to this node.")
 		command = bytearray([GEO_LOAD_DL, self.drawLayer, 0x00, 0x00])
-		if segmentData is not None:
+		if self.hasDL and self.DLmicrocode is not None and segmentData is not None:
 			command.extend(encodeSegmentedAddr(self.DLmicrocode.startAddress,segmentData))
 		else:
 			command.extend(bytearray([0x00] * 4))
@@ -657,7 +655,7 @@ class DisplayListNode:
 	def to_c(self):
 		return "GEO_DISPLAY_LIST(" + \
 			str(self.drawLayer) + ', ' +\
-			self.DLmicrocode.name + '),'
+			(self.DLmicrocode.name if self.hasDL else 'NULL') + '),'
 
 class ShadowNode:
 	def __init__(self, shadow_type, shadow_solidity, shadow_scale):
