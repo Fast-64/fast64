@@ -7,9 +7,16 @@ import random
 import string
 import os
 import math
+import traceback
 
 class PluginError(Exception):
 	pass
+
+def raisePluginError(operator, exception):
+	if bpy.context.scene.fullTraceback:
+		operator.report({'ERROR'}, traceback.format_exc())
+	else:
+		operator.report({'ERROR'}, str(exception))
 
 def checkIdentityRotation(obj, rotation, allowYaw):
 	# Hacky way to handle y-up conversion

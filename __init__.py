@@ -1169,12 +1169,6 @@ class SM64_ExportLevelPanel(bpy.types.Panel):
 		for i in range(panelSeparatorSize):
 			col.separator()
 
-def raisePluginError(operator, exception):
-	if bpy.context.scene.fullTraceback:
-		operator.report({'ERROR'}, traceback.format_exc())
-	else:
-		operator.report({'ERROR'}, str(exception))
-
 def extendedRAMLabel(layout):
 	infoBox = layout.box()
 	infoBox.label(text = 'Be sure to add: ')
@@ -1687,6 +1681,7 @@ def register():
 	sm64_obj_register()
 	level_register()
 	render_engine_register()
+	bsdf_conv_register()
 
 	for cls in classes:
 		register_class(cls)
@@ -2059,5 +2054,6 @@ def unregister():
 	bone_unregister()
 	col_unregister()
 	cam_unregister()
+	bsdf_conv_unregister()
 	for cls in classes:
 		unregister_class(cls)

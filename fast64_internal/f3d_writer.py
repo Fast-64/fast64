@@ -582,7 +582,7 @@ def getLoopNormal(loop, face, isFlatShaded):
 	#else:
 	#	normal = -loop.normal #???
 	#return get8bitRoundedNormal(normal).freeze()
-	return get8bitRoundedNormal(-loop.normal).freeze()
+	return get8bitRoundedNormal(loop.normal).freeze()
 
 '''
 def getLoopNormalCreased(bLoop, obj):
@@ -1318,29 +1318,43 @@ def saveOrGetTextureDefinition(fModel, image, imageName, texFormat):
 	return fImage
 
 def saveLightsDefinition(fModel, material, lightsName):
-	nodes = material.node_tree.nodes
-	ambientColor = gammaCorrect(nodes['Ambient Color'].outputs[0].default_value)
+	
 	lights = Lights(toAlnum(lightsName))
-	lights.a = Ambient(
-		[int(ambientColor[0] * 255),
-		int(ambientColor[1] * 255),
-		int(ambientColor[2] * 255)])
-	
-	if material.f3d_light1 is not None:
-		addLightDefinition(material, material.f3d_light1, lights)
-	if material.f3d_light2 is not None:
-		addLightDefinition(material, material.f3d_light2, lights)
-	if material.f3d_light3 is not None:
-		addLightDefinition(material, material.f3d_light3, lights)
-	if material.f3d_light4 is not None:
-		addLightDefinition(material, material.f3d_light4, lights)
-	if material.f3d_light5 is not None:
-		addLightDefinition(material, material.f3d_light5, lights)
-	if material.f3d_light6 is not None:
-		addLightDefinition(material, material.f3d_light6, lights)
-	if material.f3d_light7 is not None:
-		addLightDefinition(material, material.f3d_light7, lights)
-	
+
+	if material.use_default_lighting:
+		color = gammaCorrect(material.default_light_color)
+		lights.a = Ambient(
+			[int(color[0] * 255 / 2),
+			int(color[1] * 255 / 2),
+			int(color[2] * 255 / 2)])
+		lights.l.append(Light(
+			[int(color[0] * 255),
+			int(color[1] * 255),
+			int(color[2] * 255)], 
+			[0x28, 0x28, 0x28]))
+	else:
+		ambientColor = gammaCorrect(material.ambient_light_color)
+
+		lights.a = Ambient(
+			[int(ambientColor[0] * 255),
+			int(ambientColor[1] * 255),
+			int(ambientColor[2] * 255)])
+
+		if material.f3d_light1 is not None:
+			addLightDefinition(material, material.f3d_light1, lights)
+		if material.f3d_light2 is not None:
+			addLightDefinition(material, material.f3d_light2, lights)
+		if material.f3d_light3 is not None:
+			addLightDefinition(material, material.f3d_light3, lights)
+		if material.f3d_light4 is not None:
+			addLightDefinition(material, material.f3d_light4, lights)
+		if material.f3d_light5 is not None:
+			addLightDefinition(material, material.f3d_light5, lights)
+		if material.f3d_light6 is not None:
+			addLightDefinition(material, material.f3d_light6, lights)
+		if material.f3d_light7 is not None:
+			addLightDefinition(material, material.f3d_light7, lights)
+
 	if lightsName in fModel.lights:
 		raise PluginError("Duplicate light name.")
 	fModel.lights[lightsName] = lights
@@ -1360,7 +1374,7 @@ def addLightDefinition(mat, f3d_light, fLights):
 	spaceRot = mathutils.Euler((-pi / 2, 0, 0)).to_quaternion()
 	rotation = spaceRot @ getObjectQuaternion(lightObj)
 		
-	normal = (rotation @ mathutils.Vector((0,0,-1))).normalized()
+	normal = (rotation @ mathutils.Vector((0,0,1))).normalized()
 	color = gammaCorrect(f3d_light.color)
 	
 	fLights.l.append(Light(
