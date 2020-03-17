@@ -1704,9 +1704,14 @@ class FMesh:
 		self.triangleLists	= []
 		# VtxList
 		self.vertexList = VtxList(name + '_vtx')
+		# VtxList
+		self.cullVertexList = None
 		# dict of (override Material, specified Material to override, 
 		# overrideType, draw layer) : GfxList
 		self.drawMatOverrides = {}
+	
+	def add_cull_vtx(self):
+		self.cullVertexList = VtxList(self.name + '_vtx_cull')
 	
 	def get_ptr_addresses(self, f3d):
 		addresses = self.draw.get_ptr_addresses(f3d)
@@ -1727,6 +1732,8 @@ class FMesh:
 		for triangleList in self.triangleLists:
 			addrRange = triangleList.set_addr(addrRange[1], f3d)
 		addrRange = self.vertexList.set_addr(addrRange[1])
+		if self.cullVertexList is not None:
+			addrRange = self.cullVertexList.set_addr(addrRange[1])
 		for materialTuple, drawOverride in self.drawMatOverrides.items():
 			addrRange = drawOverride.set_addr(addrRange[1], f3d)
 		return startAddress, addrRange[1]
@@ -1736,11 +1743,15 @@ class FMesh:
 		for triangleList in self.triangleLists:
 			triangleList.save_binary(romfile, f3d, segments)
 		self.vertexList.save_binary(romfile)
+		if self.cullVertexList is not None:
+			self.cullVertexList.save_binary(romfile)
 		for materialTuple, drawOverride in self.drawMatOverrides.items():
 			drawOverride.save_binary(romfile, f3d, segments)
 	
 	def to_c(self, dlType):
 		data = self.vertexList.to_c() + '\n'
+		if self.cullVertexList is not None:
+			data += self.cullVertexList.to_c() + '\n'
 		for triangleList in self.triangleLists:
 			data += triangleList.to_c(dlType != 'PROCEDURAL') + '\n'
 		data += self.draw.to_c(dlType == 'STATIC') + '\n'

@@ -176,6 +176,7 @@ class GeolayoutStaticPanel(bpy.types.Panel):
 			prop_split(col, obj, 'culling_radius', 'Culling Radius')
 		col.prop(obj, 'ignore_render')
 		col.prop(obj, 'ignore_collision')
+		col.prop(obj, 'use_f3d_culling')
 		prop_split(col, obj, 'room_num', 'Room')
 
 class MaterialPointerProperty(bpy.types.PropertyGroup):
@@ -441,6 +442,9 @@ def bone_register():
 	bpy.types.Object.ignore_collision = bpy.props.BoolProperty(
 		name = 'Ignore Collision')
 
+	bpy.types.Object.use_f3d_culling = bpy.props.BoolProperty(
+		name = 'Enable Culling (Applies to F3DEX and up)', default = True)
+
 	# Used during object duplication on export
 	bpy.types.Object.original_name = bpy.props.StringProperty()
 
@@ -466,3 +470,4 @@ def bone_unregister():
 	del bpy.types.Object.culling_radius
 	del bpy.types.Object.ignore_render
 	del bpy.types.Object.ignore_collision
+	del bpy.types.Object.use_f3d_culling

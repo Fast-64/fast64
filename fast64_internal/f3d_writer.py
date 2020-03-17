@@ -147,6 +147,9 @@ def saveStaticModel(fModel, obj, transformMatrix, name):
 		FMesh(toAlnum(name + "_" + obj.original_name) + '_mesh'), None)
 	fModel.meshGroups[name + "_" + obj.original_name] = fMeshGroup
 
+	if obj.use_f3d_culling and (fModel.f3d.F3DEX_GBI or fModel.f3d.F3DEX_GBI_2):
+		addCullCommand(obj, fMeshGroup.mesh, transformMatrix)
+
 	facesByMat = {}
 	for face in obj.data.loop_triangles:
 		if face.material_index not in facesByMat:
@@ -162,6 +165,32 @@ def saveStaticModel(fModel, obj, transformMatrix, name):
 	
 	revertMatAndEndDraw(fMeshGroup.mesh.draw, [])
 	return fMeshGroup
+
+def addCullCommand(obj, fMesh, transformMatrix):
+	fMesh.add_cull_vtx()
+	for vertexPos in obj.bound_box:
+		# Most other fields of convertVertexData are unnecessary for bounding box verts
+		fMesh.cullVertexList.vertices.append(
+			convertVertexData(obj.data, 
+				mathutils.Vector(vertexPos), [0,0], 
+				mathutils.Vector([0,0,0]), [32, 32],
+				transformMatrix, False, False))
+
+
+	defaults = bpy.context.scene.world.rdp_defaults
+	if defaults.g_lighting:
+		cullCommands = [
+			SPClearGeometryMode(['G_LIGHTING']),
+			SPVertex(fMesh.cullVertexList, 0, 8, 0),
+			SPSetGeometryMode(['G_LIGHTING']),
+			SPCullDisplayList(0, 7)
+		]
+	else:
+		cullCommands = [
+			SPVertex(fMesh.cullVertexList, 0, 8, 0),
+			SPCullDisplayList(0, 7)
+		]
+	fMesh.draw.commands = cullCommands + fMesh.draw.commands
 
 def exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren, name):
 	fModel = FModel(f3dType, isHWv1, name)
