@@ -511,12 +511,12 @@ backgroundSegments = {
 	'OCEAN_SKY' : 'water',
 	'FLAMING_SKY' : 'bitfs',
 	'UNDERWATER_CITY' : 'wdw',
-	'BELOW_CLOUDS' : 'clouds',
+	'BELOW_CLOUDS' : 'cloud_floor',
 	'SNOW_MOUNTAINS' : 'ccm',
 	'DESERT' : 'ssl',
 	'HAUNTED' : 'bbh',
 	'GREEN_SKY' : 'bidw',
-	'ABOVE_CLOUDS' : 'cloud_floor',
+	'ABOVE_CLOUDS' : 'clouds',
 	'PURPLE_SKY' : 'bits',
 }
 
