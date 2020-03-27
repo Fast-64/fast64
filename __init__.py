@@ -1353,10 +1353,15 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 					bpy.path.abspath(context.scene.outputRom))
 	
 				if not context.scene.isDMAExport:
-					self.report({'INFO'}, 'Sucess! Animation table at ' + \
-						hex(virtAnimPtr) + ', animation at (' + \
-						hex(addrRange[0]) + ', ' + hex(addrRange[1]) + ') ' +\
-						'(Seg. ' + bytesToHex(segmentedPtr) + ').')
+					if context.scene.setAnimListIndex:
+						self.report({'INFO'}, 'Sucess! Animation table at ' + \
+							hex(virtAnimPtr) + ', animation at (' + \
+							hex(addrRange[0]) + ', ' + hex(addrRange[1]) + ') ' +\
+							'(Seg. ' + bytesToHex(segmentedPtr) + ').')
+					else:
+						self.report({'INFO'}, 'Sucess! Animation at (' + \
+							hex(addrRange[0]) + ', ' + hex(addrRange[1]) + ') ' +\
+							'(Seg. ' + bytesToHex(segmentedPtr) + ').')
 				else:
 					self.report({'INFO'}, 'Success! Animation at (' + \
 						hex(addrRange[0]) + ', ' + hex(addrRange[1]) + ').')
