@@ -170,22 +170,22 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 
 # C Export
 def exportGeolayoutArmatureC(armatureObj, obj, convertTransformMatrix, 
-	f3dType, isHWv1, dirPath, savePNG, texSeparate, camera, headerDestName, headerType, name):
+	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera, headerDestName, headerType, name):
 	geolayoutGraph, fModel = convertArmatureToGeolayout(armatureObj, obj,
 		convertTransformMatrix, f3dType, isHWv1, camera, name)
 
-	return saveGeolayoutC(name, geolayoutGraph, fModel, dirPath, 
+	return saveGeolayoutC(name, geolayoutGraph, fModel, dirPath, texDir, 
 		savePNG, texSeparate, headerDestName, headerType)
 
 def exportGeolayoutObjectC(obj, convertTransformMatrix, 
-	f3dType, isHWv1, dirPath, savePNG, texSeparate, camera, headerDestName, headerType, name):
+	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera, headerDestName, headerType, name):
 	geolayoutGraph, fModel = convertObjectToGeolayout(obj, 
 		convertTransformMatrix, f3dType, isHWv1, camera, name, None, None)
 
-	return saveGeolayoutC(name, geolayoutGraph, fModel, dirPath,
+	return saveGeolayoutC(name, geolayoutGraph, fModel, dirPath, texDir, 
 		savePNG, texSeparate, headerDestName, headerType)
 
-def saveGeolayoutC(dirName, geolayoutGraph, fModel, dirPath, savePNG,
+def saveGeolayoutC(dirName, geolayoutGraph, fModel, dirPath, texDir, savePNG,
  	texSeparate, headerDestName, headerType):
 	dirName = toAlnum(dirName)
 	headerDestName = toAlnum(headerDestName)
@@ -199,9 +199,9 @@ def saveGeolayoutC(dirName, geolayoutGraph, fModel, dirPath, savePNG,
 	if not os.path.exists(geoDirPath):
 		os.mkdir(geoDirPath)
 	
-	if headerType == 'Actor' or headerType == 'None':
+	if headerType == 'Actor':
 		texDir = 'actors/' + dirName
-	else:
+	elif headerType == 'Level':
 		texDir = 'levels/' + dirFolder
 	data, texC = fModel.to_c("STATIC", texSeparate, savePNG, texDir)
 	
