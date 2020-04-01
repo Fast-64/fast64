@@ -137,7 +137,8 @@ When exporting data to C, a folder will be created (if it does not yet exist) an
 By default decomp uses 4MB of RAM which means space runs out quickly when exporting custom assets. To handle this, make sure to add "#define USE_EXT_RAM" at the top of include/segments.h after the include guards.
 
 ### Exporting Geolayouts to C
-To replace an actor model in decomp, make sure "Write Headers for Actor" is checked and set the correct group name. Make sure the "Name" field is the folder name of the actor, and the directory is the /actors folder.
+You can choose to have the plugin automatically add header definitions/declarations to the appropriate files when exporting actors to C by setting the "Write Headers" enum to something other than "None."
+To replace an actor model, set the enum to "Actor" and set the correct group name. Make sure the "Name" field is the folder name of the actor, and the directory is the /actors folder. To add a geolayout to a level folder, set the enum to "Level". The directory should be the specific level folder in /levels.
 
 To replace an actor model manually, replace its geo.inc.c and model.inc.c contents with the geolayout file and the dl file respectively. Use the contents of the header file to replace existing extern declarations in one of the group header files (ex. mario is in group0.h). Make sure that the name of your geolayout is the same the name of the geolayout you're replacing. Note that any function addresses in geolayout nodes will be converted to decomp function names if possible. Make sure to also use extended RAM as described in the sections above.
 

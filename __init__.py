@@ -398,8 +398,8 @@ class SM64_ExportGeolayoutObject(bpy.types.Operator):
 					bpy.context.scene.geoTexDir,
 					bpy.context.scene.geoSaveTextures,
 					bpy.context.scene.geoSeparateTextureDef,
-					None, bpy.context.scene.geoGroupName if \
-					bpy.context.scene.geoWriteHeaders else None, 
+					None, bpy.context.scene.geoGroupName, 
+					context.scene.geoExportHeaderType,
 					context.scene.geoName)
 				self.report({'INFO'}, 'Success! Geolayout at ' + \
 					context.scene.geoExportPath)
@@ -574,8 +574,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 					bpy.context.scene.geoTexDir,
 					bpy.context.scene.geoSaveTextures,
 					bpy.context.scene.geoSeparateTextureDef,
-					None, bpy.context.scene.geoGroupName if \
-					bpy.context.scene.geoWriteHeaders else None,
+					None, bpy.context.scene.geoGroupName, context.scene.geoExportHeaderType,
 					context.scene.geoName)
 				self.report({'INFO'}, 'Success! Geolayout at ' + \
 					context.scene.geoExportPath)
@@ -697,8 +696,8 @@ class SM64_ExportGeolayoutPanel(bpy.types.Panel):
 		if context.scene.geoExportType == 'C':
 			col.prop(context.scene, 'geoExportPath')
 			prop_split(col, context.scene, 'geoName', 'Name')
-			col.prop(context.scene, 'geoWriteHeaders')
-			if context.scene.geoWriteHeaders:
+			prop_split(col, context.scene, 'geoExportHeaderType', 'Write Headers')
+			if context.scene.geoExportHeaderType == 'Actor':
 				prop_split(col, context.scene, 'geoGroupName', 'Group Name')
 			col.prop(context.scene, 'geoSaveTextures')
 			if context.scene.geoSaveTextures:
@@ -1913,8 +1912,8 @@ def register():
 		name = 'Name', default = 'mario')
 	bpy.types.Scene.geoGroupName = bpy.props.StringProperty(
 		name = 'Name', default = 'group0')
-	bpy.types.Scene.geoWriteHeaders = bpy.props.BoolProperty(
-		name = 'Write Headers For Actor', default = True)
+	bpy.types.Scene.geoExportHeaderType = bpy.props.EnumProperty(
+		name = 'Header Export', items = enumGeoExportHeaderType)
 
 	# Level
 	bpy.types.Scene.levelLevel = bpy.props.EnumProperty(items = level_enums, 
@@ -2068,7 +2067,7 @@ def unregister():
 	del bpy.types.Scene.geoIsSegPtr
 	del bpy.types.Scene.geoName
 	del bpy.types.Scene.geoGroupName
-	del bpy.types.Scene.geoWriteHeaders
+	del bpy.types.Scene.geoExportHeaderType
 
 	# Animation
 	del bpy.types.Scene.animStartImport

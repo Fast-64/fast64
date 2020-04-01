@@ -16,6 +16,12 @@ from .f3d_writer import *
 from .sm64_camera import saveCameraSettingsToGeolayout
 from .sm64_geolayout_classes import *
 
+enumGeoExportHeaderType = [
+	('None', 'None', 'Headers are not written'),
+	('Actor', 'Actor', 'Headers are written to a group in actors/'),
+	('Level', 'Level', 'Headers are written to a specific level in levels/')
+]
+
 def findStartBone(armatureObj):
 	noParentBones = [poseBone for poseBone in armatureObj.pose.bones if \
 		poseBone.parent is None]
@@ -164,25 +170,25 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 
 # C Export
 def exportGeolayoutArmatureC(armatureObj, obj, convertTransformMatrix, 
-	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera, groupName, name):
+	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera, headerDestName, headerType, name):
 	geolayoutGraph, fModel = convertArmatureToGeolayout(armatureObj, obj,
 		convertTransformMatrix, f3dType, isHWv1, camera, name)
 
 	return saveGeolayoutC(name, geolayoutGraph, fModel, dirPath, texDir,
-		savePNG, texSeparate, groupName)
+		savePNG, texSeparate, headerDestName, headerType)
 
 def exportGeolayoutObjectC(obj, convertTransformMatrix, 
-	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera, groupName, name):
+	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera, headerDestName, headerType, name):
 	geolayoutGraph, fModel = convertObjectToGeolayout(obj, 
 		convertTransformMatrix, f3dType, isHWv1, camera, name, None, None)
 
 	return saveGeolayoutC(name, geolayoutGraph, fModel, dirPath, texDir,
-		savePNG, texSeparate, groupName)
+		savePNG, texSeparate, headerDestName, headerType)
 
 def saveGeolayoutC(dirName, geolayoutGraph, fModel, dirPath, texDir, savePNG,
- 	texSeparate, groupName):
+ 	texSeparate, headerDestName, headerType):
 	dirName = toAlnum(dirName)
-	groupName = toAlnum(groupName)
+	headerDestName = toAlnum(headerDestName)
 	geoDirPath = os.path.join(dirPath, toAlnum(dirName))
 
 	if not os.path.exists(geoDirPath):
@@ -220,18 +226,27 @@ def saveGeolayoutC(dirName, geolayoutGraph, fModel, dirPath, texDir, savePNG,
 	cDefFile.write(cDefine)
 	cDefFile.close()
 	
-	if groupName is not None:
-		# group.c include
-		groupPathC = os.path.join(dirPath, groupName + ".c")
-		writeIfNotFound(groupPathC, '#include "' + dirName + '/model.inc.c"\n', '')
+	restOfPath, dirFolder = os.path.split(dirPath)
+	if dirFolder == '':
+		restOfPath, dirFolder = os.path.split(restOfPath)
+	if headerType == 'Actor':
+		# Write to group files
+		if headerDestName == '' or headerDestName is None:
+			raise PluginError("Actor header type chosen but group name not provided.")
 
-		# group_geo.c include
-		groupPathGeoC = os.path.join(dirPath, groupName + "_geo.c")
-		writeIfNotFound(groupPathGeoC, '#include "' + dirName + '/geo.inc.c"\n', '')
+		groupPathC = os.path.join(dirPath, headerDestName + ".c")
+		groupPathGeoC = os.path.join(dirPath, headerDestName + "_geo.c")
+		groupPathH = os.path.join(dirPath, headerDestName + ".h")
+	
+	elif headerType == 'Level':
+		groupPathC = os.path.join(dirPath, "leveldata.c")
+		groupPathGeoC = os.path.join(dirPath, "geo.c")
+		groupPathH = os.path.join(dirPath, "header.h")
 
-		# group.h declaration
-		groupPathH = os.path.join(dirPath, groupName + ".h")
-		writeIfNotFound(groupPathH, '#include "' + dirName + '/geo_header.h"\n', '#endif')
+	if headerType != 'None':
+		writeIfNotFound(groupPathC, '\n#include "levels/' + dirFolder + '/' + dirName + '/model.inc.c"', '')
+		writeIfNotFound(groupPathGeoC, '\n#include "levels/' + dirFolder + '/' + dirName + '/geo.inc.c"', '')
+		writeIfNotFound(groupPathH, '\n#include "levels/' + dirFolder + '/' + dirName + '/geo_header.h"', '\n#endif')
 	
 	return cDefine
 
