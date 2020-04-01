@@ -395,7 +395,6 @@ class SM64_ExportGeolayoutObject(bpy.types.Operator):
 				exportGeolayoutObjectC(obj, finalTransform,
 					context.scene.f3d_type, context.scene.isHWv1,
 					bpy.path.abspath(context.scene.geoExportPath),
-					bpy.context.scene.geoTexDir,
 					bpy.context.scene.geoSaveTextures,
 					bpy.context.scene.geoSeparateTextureDef,
 					None, bpy.context.scene.geoGroupName, 
@@ -571,7 +570,6 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 				exportGeolayoutArmatureC(armatureObj, obj, finalTransform,
 					context.scene.f3d_type, context.scene.isHWv1,
 					bpy.path.abspath(context.scene.geoExportPath),
-					bpy.context.scene.geoTexDir,
 					bpy.context.scene.geoSaveTextures,
 					bpy.context.scene.geoSeparateTextureDef,
 					None, bpy.context.scene.geoGroupName, context.scene.geoExportHeaderType,
@@ -701,7 +699,7 @@ class SM64_ExportGeolayoutPanel(bpy.types.Panel):
 				prop_split(col, context.scene, 'geoGroupName', 'Group Name')
 			col.prop(context.scene, 'geoSaveTextures')
 			if context.scene.geoSaveTextures:
-				col.prop(context.scene, 'geoTexDir')	
+				#col.prop(context.scene, 'geoTexDir')	
 				col.prop(context.scene, 'geoSeparateTextureDef')
 			extendedRAMLabel(col)
 		elif context.scene.geoExportType == 'Insertable Binary':
