@@ -1914,7 +1914,7 @@ def register():
 	bpy.types.Scene.geoGroupName = bpy.props.StringProperty(
 		name = 'Name', default = 'group0')
 	bpy.types.Scene.geoExportHeaderType = bpy.props.EnumProperty(
-		name = 'Header Export', items = enumGeoExportHeaderType)
+		name = 'Header Export', items = enumGeoExportHeaderType, default = 'Actor')
 
 	# Level
 	bpy.types.Scene.levelLevel = bpy.props.EnumProperty(items = level_enums, 
