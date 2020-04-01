@@ -187,29 +187,36 @@ def saveGeolayoutC(dirName, geolayoutGraph, fModel, dirPath, texDir, savePNG,
 
 	if not os.path.exists(geoDirPath):
 		os.mkdir(geoDirPath)
+	
+	data, texC = fModel.to_c("STATIC", texSeparate, savePNG, texDir)
 
 	if savePNG:
-		fModel.save_c_tex_separate("STATIC", texDir, geoDirPath, texSeparate, 'texture.inc.c')
-		fModel.freePalettes()
-	else:
-		fModel.freePalettes()
-		modelPath = os.path.join(geoDirPath, 'model.inc.c')
-		dlData = fModel.to_c("STATIC")
-		dlFile = open(modelPath, 'w')
-		dlFile.write(dlData)
-		dlFile.close()
+		fModel.save_textures(geoDirPath)
+		
+	modelPath = os.path.join(geoDirPath, 'model.inc.c')
+	modelFile = open(modelPath, 'w', newline='\n')
+	modelFile.write(data)
+	modelFile.close()
+
+	if texSeparate:
+		texPath = os.path.join(geoDirPath, 'texture.inc.c')
+		texFile = open(texPath, 'w', newline='\n')
+		texFile.write(texC)
+		texFile.close()
+
+	fModel.freePalettes()
 
 	# save geolayout
 	geoPath = os.path.join(geoDirPath, 'geo.inc.c')
 	geoData = geolayoutGraph.to_c()
-	geoFile = open(geoPath, 'w')
+	geoFile = open(geoPath, 'w', newline='\n')
 	geoFile.write(geoData)
 	geoFile.close()
 
 	# save header
 	cDefine = geolayoutGraph.to_c_def() + fModel.to_c_def(True)
 	headerPath = os.path.join(geoDirPath, 'geo_header.h')
-	cDefFile = open(headerPath, 'w')
+	cDefFile = open(headerPath, 'w', newline='\n')
 	cDefFile.write(cDefine)
 	cDefFile.close()
 	
@@ -224,7 +231,7 @@ def saveGeolayoutC(dirName, geolayoutGraph, fModel, dirPath, texDir, savePNG,
 
 		# group.h declaration
 		groupPathH = os.path.join(dirPath, groupName + ".h")
-		writeIfNotFound(groupPathH, '#include "' + dirName + '/geo_header.h"\n', '\n\n#endif')
+		writeIfNotFound(groupPathH, '#include "' + dirName + '/geo_header.h"\n', '#endif')
 	
 	return cDefine
 
@@ -371,7 +378,7 @@ def geoWriteLevelCommand(romfile, segPointerData, levelCommandPos, modelID):
 
 def geoWriteTextDump(textDumpFilePath, geolayoutGraph, levelData):
 	if textDumpFilePath is not None:
-		openfile = open(textDumpFilePath, 'w')
+		openfile = open(textDumpFilePath, 'w', newline='\n')
 		openfile.write(geolayoutGraph.toTextDump(levelData))
 		openfile.close()
 

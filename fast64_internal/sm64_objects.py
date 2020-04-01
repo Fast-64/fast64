@@ -208,7 +208,9 @@ def exportAreaCommon(levelObj, areaObj, transformMatrix, geolayout, collision, n
 		areaObj.terrain_type, geolayout, collision, 
 		[areaObj.warpNodes[i].to_c() for i in range(len(areaObj.warpNodes))],
 		name + '_' + areaObj.name)
-	process_sm64_objects(levelObj, area, levelObj.matrix_world, transformMatrix, False)
+
+	process_sm64_objects(levelObj, area, 
+		levelObj.matrix_world, transformMatrix, False)
 
 	return area
 
@@ -218,6 +220,9 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
 			return
 		translation, rotation, scale = \
 			(transformMatrix @ rootMatrix.inverted() @ obj.matrix_world).decompose()
+
+		# Hacky solution to handle Z-up to Y-up conversion
+		rotation = mathutils.Quaternion((1, 0, 0), math.radians(90.0)) @ rotation
 
 		if specialsOnly:
 			if obj.sm64_obj_type == 'Special':

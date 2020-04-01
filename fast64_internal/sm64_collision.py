@@ -244,7 +244,7 @@ def exportCollisionC(obj, transformMatrix, dirPath, includeSpecials,
 
 	colPath = os.path.join(colDirPath, 'collision.inc.c')
 
-	fileObj = open(colPath, 'w')
+	fileObj = open(colPath, 'w', newline='\n')
 	collision = exportCollisionCommon(obj, transformMatrix, includeSpecials,
 		includeChildren, name, None)
 	fileObj.write(collision.to_c())
@@ -254,13 +254,13 @@ def exportCollisionC(obj, transformMatrix, dirPath, includeSpecials,
 	if writeRoomsFile:
 		cDefine += collision.to_c_rooms_def()
 		roomsPath = os.path.join(colDirPath, 'rooms.inc.c')
-		roomsFile = open(roomsPath, 'w')
+		roomsFile = open(roomsPath, 'w', newline='\n')
 		roomsFile.write(collision.to_c_rooms())
 		roomsFile.close()
 
 	if writeDefinitionsFile:
 		headerPath = os.path.join(colDirPath, 'collision_header.h')
-		cDefFile = open(headerPath, 'w')
+		cDefFile = open(headerPath, 'w', newline='\n')
 		cDefFile.write(cDefine)
 		cDefFile.close()
 		

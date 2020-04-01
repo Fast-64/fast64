@@ -51,7 +51,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 	        f3dType, isHWv1, child.areaCamera, levelName + '_' + areaName, fModel, child)
 
         # Write geolayout
-        geoFile = open(os.path.join(areaDir, 'geo.inc.c'), 'w')
+        geoFile = open(os.path.join(areaDir, 'geo.inc.c'), 'w', newline = '\n')
         geoFile.write(geolayoutGraph.to_c())
         geoFile.close()
         geoString += '#include "levels/' + levelName + '/' + areaName + '/geo.inc.c"\n'
@@ -61,7 +61,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
         collision = \
             exportCollisionCommon(obj, transformMatrix, True, True, 
                 levelName + '_' + areaName, child.areaIndex)
-        colFile = open(os.path.join(areaDir, 'collision.inc.c'), 'w')
+        colFile = open(os.path.join(areaDir, 'collision.inc.c'), 'w', newline = '\n')
         colFile.write(collision.to_c())
         colFile.close()
         levelDataString += '#include "levels/' + levelName + '/' + areaName + '/collision.inc.c"\n'
@@ -69,7 +69,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 
         # Write rooms
         if exportRooms:
-            roomFile = open(os.path.join(areaDir, 'room.inc.c'), 'w')
+            roomFile = open(os.path.join(areaDir, 'room.inc.c'), 'w', newline = '\n')
             roomFile.write(collision.to_c_rooms())
             roomFile.close()
             levelDataString += '#include "levels/' + levelName + '/' + areaName + '/room.inc.c"\n'
@@ -83,7 +83,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
         areaString += area.to_c_script(exportRooms)
 
         # Write macros
-        macroFile = open(os.path.join(areaDir, 'macro.inc.c'), 'w')
+        macroFile = open(os.path.join(areaDir, 'macro.inc.c'), 'w', newline = '\n')
         macroFile.write(area.to_c_macros())
         macroFile.close()
         levelDataString += '#include "levels/' + levelName + '/' + areaName + '/macro.inc.c"\n'
@@ -99,35 +99,40 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
             if not existingArea:
                 shutil.rmtree(os.path.join(levelDir, f))
     
+    data, texC = fModel.to_c("STATIC", savePNG, savePNG, 'levels/' + levelName)
     if savePNG:
-        fModel.save_c_tex_separate("STATIC", 'levels/' + levelName, levelDir, True, 'texture_include.inc.c')
-        fModel.freePalettes()
-    else:
-        fModel.freePalettes()
-        modelPath = os.path.join(levelDir, 'model.inc.c')
-        dlData = fModel.to_c("STATIC")
-        dlFile = open(modelPath, 'w')
-        dlFile.write(dlData)
-        dlFile.close()
+        fModel.save_textures(levelDir)
+
+        texPath = os.path.join(levelDir, 'texture_include.inc.c')
+        texFile = open(texPath, 'w', newline='\n')
+        texFile.write(texC)
+        texFile.close()
+
+    modelPath = os.path.join(levelDir, 'model.inc.c')
+    modelFile = open(modelPath, 'w', newline='\n')
+    modelFile.write(data)
+    modelFile.close()
+
+    fModel.freePalettes()
 
     levelDataString += '#include "levels/' + levelName + '/model.inc.c"\n'
     headerString += fModel.to_c_def("STATIC")
     #headerString += '\nextern const LevelScript level_' + levelName + '_entry[];\n'
     #headerString += '\n#endif\n'
 
-    geoFile = open(os.path.join(levelDir, 'geo.inc.c'), 'w')
+    geoFile = open(os.path.join(levelDir, 'geo.inc.c'), 'w', newline='\n')
     geoFile.write(geoString)
     geoFile.close()
 
-    levelDataFile = open(os.path.join(levelDir, 'leveldata.inc.c'), 'w')
+    levelDataFile = open(os.path.join(levelDir, 'leveldata.inc.c'), 'w', newline='\n')
     levelDataFile.write(levelDataString)
     levelDataFile.close()
 
-    headerFile = open(os.path.join(levelDir, 'header.inc.h'), 'w')
+    headerFile = open(os.path.join(levelDir, 'header.inc.h'), 'w', newline='\n')
     headerFile.write(headerString)
     headerFile.close()
 
-    areaFile = open(os.path.join(levelDir, 'script.inc.c'), 'w')
+    areaFile = open(os.path.join(levelDir, 'script.inc.c'), 'w', newline='\n')
     areaFile.write(areaString)
     areaFile.close()
 
@@ -137,7 +142,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
         writeIfNotFound(os.path.join(levelDir, 'leveldata.c'), 
             '#include "levels/' + levelName + '/leveldata.inc.c"\n', '')
         writeIfNotFound(os.path.join(levelDir, 'header.h'), 
-            '#include "levels/' + levelName + '/header.inc.h"\n', '\n\n#endif')
+            '#include "levels/' + levelName + '/header.inc.h"\n', '#endif')
         
         if savePNG:
             writeIfNotFound(os.path.join(levelDir, 'texture.inc.c'), 
@@ -201,7 +206,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
             scriptData = re.sub(
                 'MARIO\_POS\(.*\)\,', marioPosString, scriptData)
         
-        scriptFile = open(os.path.join(levelDir, 'script.c'), 'w')
+        scriptFile = open(os.path.join(levelDir, 'script.c'), 'w', newline = '\n')
         scriptFile.write(scriptData)
         scriptFile.close()
 

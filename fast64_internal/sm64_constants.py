@@ -101,6 +101,11 @@ S_VERTEX_COLORED_TEX = ['TEXEL0', '0', 'SHADE', '0',
 				'TEXEL0', '0', 'SHADE', '0',
 				'ENVIRONMENT', '0', 'SHADE', '0']
 
+S_VERTEX_COLORED_TEX_TRANSPARENT = ['TEXEL0', '0', 'SHADE', '0',
+				'TEXEL0', '0', 'SHADE', '0',
+				'TEXEL0', '0', 'SHADE', '0',
+				'TEXEL0', '0', 'SHADE', '0']
+
 S_SHADED_TEX_CUTOUT = ['TEXEL0', '0', 'SHADE', '0',
 				'TEXEL0', '0', 'ENVIRONMENT', '0',
 				'TEXEL0', '0', 'SHADE', '0',

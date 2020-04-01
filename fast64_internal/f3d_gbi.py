@@ -1407,10 +1407,10 @@ class VtxList:
 		return data
 	
 	def to_c(self):
-		data = 'static const Vtx ' + self.name + '[] = {\n'
+		data = 'const Vtx ' + self.name + '[] = {\n'
 		for vert in self.vertices:
 			data += '\t' + vert.to_c() + ',\n'
-		data += '};\n'
+		data += '};'
 		return data
 	
 	def to_sm64_decomp_s(self):
@@ -1466,12 +1466,12 @@ class GfxList:
 			data = 'const Gfx ' + self.name + '[] = {\n'
 			for command in self.commands:
 				data += '\t' + command.to_c(True) + ',\n'
-			data += '};\n'	
+			data += '};'	
 		else:
 			data = 'Gfx* ' + self.name + '(Gfx* glistp) {\n'
 			for command in self.commands:
 				data += '\t' + command.to_c(False) + ';\n'
-			data += '\treturn glistp;\n}\n'	
+			data += '\treturn glistp;\n}'	
 		return data
 
 	def to_c_def(self, static):
@@ -1484,6 +1484,89 @@ class GfxList:
 		data = 'glabel ' + self.name + '\n'
 		for command in self.commands:
 			data += command.to_sm64_decomp_s() + '\n'
+		return data
+
+class FTexRect:
+	def __init__(self, f3dType, isHWv1, name):
+		self.name = name # used for texture prefixing
+		self.textures = {} # only one, but use dict for compatibility
+		self.draw = GfxList(name)
+		# F3D library
+		self.f3d = F3D(f3dType, isHWv1)
+
+	def get_ptr_addresses(self, f3d):
+		return []
+	
+	def set_addr(self, startAddress):
+		addrRange = (startAddress, startAddress)
+		startAddrSet = False
+		# Important to set mesh groups first, so that
+		# export address corrseponds to drawing start.
+		addrRange = self.draw.set_addr(addrRange[1], self.f3d)
+		if not startAddrSet:
+			startAddrSet = True
+			startAddress = addrRange[0]
+		for info, texture in self.textures.items():
+			addrRange = texture.set_addr(addrRange[1])
+			if not startAddrSet:
+				startAddrSet = True
+				startAddress = addrRange[0]
+		return startAddress, addrRange[1]
+
+	def save_binary(self, romfile, segments):
+		for info, texture in self.textures.items():
+			texture.save_binary(romfile)
+		self.draw.save_binary(romfile, self.f3d, segments)
+	
+	def to_c(self, savePNG, texDir):
+		data = ''
+		code = ''
+		# since decomp is linux, don't use os.path.join 
+		# on windows this results in '\', which is incorrect (should be '/')
+		if texDir[-1] != '/':
+			texDir += '/'
+		for info, texture in self.textures.items():
+			if savePNG:
+				data += texture.to_c_tex_separate(texDir)
+			else:
+				data += texture.to_c()
+		code += self.draw.to_c(False)
+		return data, code
+
+	def save_textures(self, dirpath):
+		for (image, texInfo), texture in self.textures.items():
+			if texInfo[1] != 'PAL':
+				# remove '.inc.c'
+				imageFileName = texture.filename[:-6] + '.png'
+				if False:
+					image.save_render(os.path.join(dirpath, imageFileName))
+				else:
+					isPacked = image.packed_file is not None
+					if not isPacked:
+						image.pack()
+					oldpath = image.filepath
+					try:
+						image.filepath = \
+							os.path.join(dirpath, imageFileName)
+						image.save()
+						if not isPacked:
+							image.unpack()
+					except Exception as e:
+						image.filepath = oldpath
+						raise Exception(str(e))
+					image.filepath = oldpath
+	
+	def freePalettes(self):
+		# Palettes no longer saved
+		return
+	
+	def to_c_def(self):
+		return self.draw.to_c_def(False) + '\n'
+	
+	def to_c_def_tex(self):
+		data = ''
+		for (image, texInfo), texture in self.textures.items():
+			data += texture.to_c_def() + '\n'
 		return data
 
 class FModel:
@@ -1557,38 +1640,38 @@ class FModel:
 			self.materialRevert.save_binary(romfile, self.f3d, segments)
 	
 	# See dlTypeEnum at top of f3d_gbi.py
-	def to_c(self, dlType):
-		data = ''
-		for name, light in self.lights.items():
-			data += light.to_c() + '\n'
-		for info, texture in self.textures.items():
-			data += texture.to_c() + '\n'
-		for (material, drawLayer), (fMaterial, texDimensions) in self.materials.items():
-			data += fMaterial.to_c(dlType == 'STATIC') + '\n'
-		for name, meshGroup in self.meshGroups.items():
-			data += meshGroup.to_c(dlType) + '\n'
-		if self.materialRevert is not None:
-			data += self.materialRevert.to_c(dlType == 'STATIC') + '\n'
-		return data
-
-	def save_c_tex_separate(self, dlType, texDir, dirpath, texSeparate, texFileName):
+	def to_c(self, dlType, texCSeparate, savePNG, texDir):
 		data = ''
 		texC = ''
-
 		# since decomp is linux, don't use os.path.join 
 		# on windows this results in '\', which is incorrect (should be '/')
 		if texDir[-1] != '/':
 			texDir += '/'
 		for name, light in self.lights.items():
 			data += light.to_c() + '\n'
-		#for info, texture in self.textures.items():
-		#	data += texture.to_c_tex_separate() + '\n'
-		for (image, texInfo), texture in self.textures.items():
-			if texSeparate:
-				texC += texture.to_c_tex_separate(texDir) + '\n'
+		for info, texture in self.textures.items():
+			if savePNG:
+				if texCSeparate:
+					texC += texture.to_c_tex_separate(texDir) + '\n'
+				else:
+					data += texture.to_c_tex_separate(texDir) + '\n'
 			else:
-				data += texture.to_c_tex_separate(texDir) + '\n'
+				if texCSeparate:
+					texC += texture.to_c() + '\n'
+				else:
+					data += texture.to_c() + '\n'
+		for (material, drawLayer), (fMaterial, texDimensions) in self.materials.items():
+			data += fMaterial.to_c(dlType == 'STATIC') + '\n'
+		for name, meshGroup in self.meshGroups.items():
+			data += meshGroup.to_c(dlType) + '\n'
+		if self.materialRevert is not None:
+			data += self.materialRevert.to_c(dlType == 'STATIC') + '\n'
+		if not texCSeparate:
+			texC = None
+		return data, texC
 
+	def save_textures(self, dirpath):
+		for (image, texInfo), texture in self.textures.items():
 			if texInfo[1] != 'PAL':
 				# remove '.inc.c'
 				imageFileName = texture.filename[:-6] + '.png'
@@ -1609,24 +1692,6 @@ class FModel:
 						image.filepath = oldpath
 						raise Exception(str(e))
 					image.filepath = oldpath
-
-		for (material, drawLayer), (fMaterial, texDimensions) in self.materials.items():
-			data += fMaterial.to_c(dlType == 'STATIC') + '\n'
-		for name, meshGroup in self.meshGroups.items():
-			data += meshGroup.to_c(dlType) + '\n'
-		if self.materialRevert is not None:
-			data += self.materialRevert.to_c(dlType == 'STATIC') + '\n'
-		
-		modelPath = os.path.join(dirpath, 'model.inc.c')
-		modelFile = open(modelPath, 'w')
-		modelFile.write(data)
-		modelFile.close()
-
-		if texSeparate:
-			texPath = os.path.join(dirpath, texFileName)
-			texFile = open(texPath, 'w')
-			texFile.write(texC)
-			texFile.close()
 	
 	def freePalettes(self):
 		# Palettes no longer saved
@@ -1749,14 +1814,14 @@ class FMesh:
 			drawOverride.save_binary(romfile, f3d, segments)
 	
 	def to_c(self, dlType):
-		data = self.vertexList.to_c() + '\n'
+		data = self.vertexList.to_c() + '\n\n'
 		if self.cullVertexList is not None:
-			data += self.cullVertexList.to_c() + '\n'
+			data += self.cullVertexList.to_c() + '\n\n'
 		for triangleList in self.triangleLists:
-			data += triangleList.to_c(dlType != 'PROCEDURAL') + '\n'
-		data += self.draw.to_c(dlType == 'STATIC') + '\n'
+			data += triangleList.to_c(dlType != 'PROCEDURAL') + '\n\n'
+		data += self.draw.to_c(dlType == 'STATIC') + '\n\n'
 		for materialTuple, drawOverride in self.drawMatOverrides.items():
-			data += drawOverride.to_c(dlType == 'STATIC') + '\n'
+			data += drawOverride.to_c(dlType == 'STATIC') + '\n\n'
 		return data
 
 	def to_c_def(self, dlType):
@@ -1825,9 +1890,9 @@ class FMaterial:
 			self.revert.save_binary(romfile, f3d, segments)
 
 	def to_c(self, static):
-		data = self.material.to_c(static) + '\n'
+		data = self.material.to_c(static) + '\n\n'
 		if self.revert is not None:
-			data += self.revert.to_c(static) + '\n'
+			data += self.revert.to_c(static) + '\n\n'
 		return data
 	
 	def to_c_def(self, static):
@@ -1966,7 +2031,7 @@ class Lights:
 		return data
 
 	def to_c(self):
-		data = 'static const Lights' + str(len(self.l)) + " " + self.name + " = " +\
+		data = 'const Lights' + str(len(self.l)) + " " + self.name + " = " +\
 			'gdSPDefLights' + str(len(self.l)) + '(\n'
 		data += '\t' + self.a.to_c()
 		for light in self.l:
@@ -2048,19 +2113,20 @@ class FImage:
 
 	def to_binary(self):
 		return self.data
+
+	def to_c_def(self):
+		return 'extern u8 ' + self.name + '[];'
 	
 	def to_c(self):
-		code = ('ALIGNED8 ' if bpy.context.scene.decomp_compatible else "") +\
-			'static const u8 ' + self.name + '[] = {\n\t'
+		code = 'const u8 ' + self.name + '[] = {\n\t'
 		code += self.to_c_data()
-		code += '\n};\n'
+		code += '\n};'
 		return code
 
 	def to_c_tex_separate(self, texPath):
-		code = ('ALIGNED8 ' if bpy.context.scene.decomp_compatible else "") +\
-			'static const u8 ' + self.name + '[] = {\n\t'
+		code = 'const u8 ' + self.name + '[] = {\n\t'
 		code += '#include "' + texPath + self.filename + '"'
-		code += '\n};\n'
+		code += '\n};'
 		return code
 
 	def to_c_data(self):
@@ -2874,7 +2940,7 @@ class SPEndDisplayList:
 
 	def to_c(self, static = True):
 		return 'gsSPEndDisplayList()' if static else \
-			'gSPSPEndDisplayList(glistp++)'
+			'gSPEndDisplayList(glistp++)'
 
 	def to_sm64_decomp_s(self):
 		return 'gsSPEndDisplayList'
@@ -3016,7 +3082,7 @@ class DPPipelineMode:
 
 	def to_c(self, static = True):
 		header = 'gsDPPipelineMode(' if static else \
-			'gsDPPipelineMode(glistp++, '
+			'gDPPipelineMode(glistp++, '
 		return header + self.mode + ')'
 
 
@@ -3041,7 +3107,7 @@ class DPSetCycleType:
 
 	def to_c(self, static = True):
 		header = 'gsDPSetCycleType(' if static else \
-			'gsDPSetCycleType(glistp++, '
+			'gDPSetCycleType(glistp++, '
 		return header + self.mode + ')'
 
 
@@ -3064,7 +3130,7 @@ class DPSetTexturePersp:
 
 	def to_c(self, static = True):
 		header = 'gsDPSetTexturePersp(' if static else \
-			'gsDPSetTexturePersp(glistp++, '
+			'gDPSetTexturePersp(glistp++, '
 		return header + self.mode + ')'
 
 	def to_sm64_decomp_s(self):
@@ -3087,7 +3153,7 @@ class DPSetTextureDetail:
 
 	def to_c(self, static = True):
 		header = 'gsDPSetTextureDetail(' if static else \
-			'gsDPSetTextureDetail(glistp++, '
+			'gDPSetTextureDetail(glistp++, '
 		return header + self.mode + ')'
 
 	def to_sm64_decomp_s(self):
@@ -3109,7 +3175,7 @@ class DPSetTextureLOD:
 
 	def to_c(self, static = True):
 		header = 'gsDPSetTextureLOD(' if static else \
-			'gsDPSetTextureLOD(glistp++, '
+			'gDPSetTextureLOD(glistp++, '
 		return header + self.mode + ')'
 
 	def to_sm64_decomp_s(self):
@@ -3133,7 +3199,7 @@ class DPSetTextureLUT:
 
 	def to_c(self, static = True):
 		header = 'gsDPSetTextureLUT(' if static else \
-			'gsDPSetTextureLUT(glistp++, '
+			'gDPSetTextureLUT(glistp++, '
 		return header + self.mode + ')'
 
 	def to_sm64_decomp_s(self):
@@ -3156,7 +3222,7 @@ class DPSetTextureFilter:
 
 	def to_c(self, static = True):
 		header = 'gsDPSetTextureFilter(' if static else \
-			'gsDPSetTextureFilter(glistp++, '
+			'gDPSetTextureFilter(glistp++, '
 		return header + self.mode + ')'
 
 	def to_sm64_decomp_s(self):
@@ -3179,7 +3245,7 @@ class DPSetTextureConvert:
 
 	def to_c(self, static = True):
 		header = 'gsDPSetTextureConvert(' if static else \
-			'gsDPSetTextureConvert(glistp++, '
+			'gDPSetTextureConvert(glistp++, '
 		return header + self.mode + ')'
 
 	def to_sm64_decomp_s(self):
@@ -3201,7 +3267,7 @@ class DPSetCombineKey:
 
 	def to_c(self, static = True):
 		header = 'gsDPSetCombineKey(' if static else \
-			'gsDPSetCombineKey(glistp++, '
+			'gDPSetCombineKey(glistp++, '
 		return header + self.mode + ')'
 
 	def to_sm64_decomp_s(self):
@@ -3232,7 +3298,7 @@ class DPSetColorDither:
 
 	def to_c(self, static = True):
 		header = 'gsDPSetColorDither(' if static else \
-			'gsDPSetColorDither(glistp++, '
+			'gDPSetColorDither(glistp++, '
 		return header + self.mode + ')'
 
 	def to_sm64_decomp_s(self):
@@ -3259,7 +3325,7 @@ class DPSetAlphaDither:
 
 	def to_c(self, static = True):
 		header = 'gsDPSetAlphaDither(' if static else \
-			'gsDPSetAlphaDither(glistp++, '
+			'gDPSetAlphaDither(glistp++, '
 		return header + self.mode + ')'
 
 	def to_sm64_decomp_s(self):
@@ -3282,7 +3348,7 @@ class DPSetAlphaCompare:
 
 	def to_c(self, static = True):
 		header = 'gsDPSetAlphaCompare(' if static else \
-			'gsDPSetAlphaCompare(glistp++, '
+			'gDPSetAlphaCompare(glistp++, '
 		return header + self.mask + ')'
 
 	def to_sm64_decomp_s(self):
@@ -3304,7 +3370,7 @@ class DPSetDepthSource:
 
 	def to_c(self, static = True):
 		header = 'gsDPSetDepthSource(' if static else \
-			'gsDPSetDepthSource(glistp++, '
+			'gDPSetDepthSource(glistp++, '
 		return header + self.src + ')'
 
 	def to_sm64_decomp_s(self):
@@ -3364,7 +3430,7 @@ class DPSetRenderMode:
 
 	def to_c(self, static = True):
 		data = 'gsDPSetRenderMode(' if static else \
-			'gsDPSetRenderMode(glistp++, '
+			'gDPSetRenderMode(glistp++, '
 
 		if not self.use_preset:
 			data += 'GBL_c1(' + self.bl00 + ', ' + self.bl01 + ', ' + \
@@ -3450,7 +3516,7 @@ class DPSetTextureImage:
 
 	def to_c(self, static = True):
 		header = 'gsDPSetTextureImage(' if static else \
-			'gsDPSetTextureImage(glistp++, '
+			'gDPSetTextureImage(glistp++, '
 		return header + self.fmt + ', ' + self.siz + ', ' + \
 			str(self.width) + ', ' + self.image.name + ')'
 
@@ -3473,7 +3539,7 @@ def	GCCc1w0(saRGB1, mRGB1):
 	return (_SHIFTL((saRGB1), 5, 4) | _SHIFTL((mRGB1), 0, 5))
 
 def GCCc0w1(sbRGB0, aRGB0, sbA0, aA0):
-    return (_SHIFTL((sbRGB0), 28, 4) | _SHIFTL((aRGB0), 15, 3) |\
+	return (_SHIFTL((sbRGB0), 28, 4) | _SHIFTL((aRGB0), 15, 3) |\
 		_SHIFTL((sbA0), 12, 3) | _SHIFTL((aA0), 9, 3))
 
 def	GCCc1w1(sbRGB1, saA1, mA1, aRGB1, sbA1, aA1):
@@ -3509,13 +3575,13 @@ class DPSetCombineMode:
 				GCCc0w0(
 					f3d.CCMUXDict[self.a0], f3d.CCMUXDict[self.c0], \
 					f3d.ACMUXDict[self.Aa0], f3d.ACMUXDict[self.Ac0]) |	\
-	       		GCCc1w0(
+		   		GCCc1w0(
 					f3d.CCMUXDict[self.a1], f3d.CCMUXDict[self.c1]), \
 			0, 24),\
 			GCCc0w1(
 				f3d.CCMUXDict[self.b0], f3d.CCMUXDict[self.d0], \
 				f3d.ACMUXDict[self.Ab0], f3d.ACMUXDict[self.Ad0]) |	\
-		    GCCc1w1(
+			GCCc1w1(
 				f3d.CCMUXDict[self.b1], f3d.ACMUXDict[self.Aa1], \
 				f3d.ACMUXDict[self.Ac1], f3d.CCMUXDict[self.d1], \
 				f3d.ACMUXDict[self.Ab1], f3d.ACMUXDict[self.Ad1])
@@ -4343,9 +4409,9 @@ class DPLoadTLUT_pal16:
 		else:
 			return _DPLoadTextureBlock(self.dram, \
 				(256+(((self.pal)&0xf)*16)), \
-                f3d.G_IM_FMT_VARS['G_IM_FMT_RGBA'], \
+				f3d.G_IM_FMT_VARS['G_IM_FMT_RGBA'], \
 				f3d.G_IM_SIZ_VARS['G_IM_SIZ_16b'], 4*16, 1,
-                self.pal, 0, 0, 0, 0, 0, 0).to_binary(f3d, segments)
+				self.pal, 0, 0, 0, 0, 0, 0).to_binary(f3d, segments)
 
 	def to_c(self, static = True):
 		header = 'gsDPLoadTLUT_pal16(' if static else \
@@ -4382,9 +4448,9 @@ class DPLoadTLUT_pal256:
 				DPPipeSync().to_binary(f3d, segments)
 		else:
 			return _DPLoadTextureBlock(self.dram, 256, \
-                f3d.G_IM_FMT_VARS['G_IM_FMT_RGBA'], \
+				f3d.G_IM_FMT_VARS['G_IM_FMT_RGBA'], \
 				f3d.G_IM_SIZ_VARS['G_IM_SIZ_16b'], 4*256, 1,
-                0, 0, 0, 0, 0, 0, 0).to_binary(f3d, segments)
+				0, 0, 0, 0, 0, 0, 0).to_binary(f3d, segments)
 
 	def to_c(self, static = True):
 		header = 'gsDPLoadTLUT_pal256(' if static else \
@@ -4423,9 +4489,9 @@ class DPLoadTLUT:
 				DPPipeSync().to_binary(f3d, segments)
 		else:
 			return _DPLoadTextureBlock(self.dram, self.tmemaddr, \
-                f3d.G_IM_FMT_VARS['G_IM_FMT_RGBA'], \
+				f3d.G_IM_FMT_VARS['G_IM_FMT_RGBA'], \
 				f3d.G_IM_SIZ_VARS['G_IM_SIZ_16b'], 4, self.count,
-                0, 0, 0, 0, 0, 0, 0).to_binary(f3d, segments)
+				0, 0, 0, 0, 0, 0, 0).to_binary(f3d, segments)
 
 	def to_c(self, static = True):
 		header = 'gsDPLoadTLUT(' if static else \
@@ -4543,8 +4609,75 @@ def gsDPParam(cmd, param):
 
 # gsDPTextureRectangle
 # gsDPTextureRectangleFlip
-# gsSPTextureRectangle
-# gSPScisTextureRectangle
+
+class SPTextureRectangle:
+	def __init__(self, xl, yl, xh, yh, tile, s, t, dsdx = 4 << 10, dtdy = 1 << 10):
+		self.xl = xl
+		self.yl = yl
+		self.xh = xh
+		self.yh = yh
+		self.tile = tile
+		self.s = s
+		self.t = t
+		self.dsdx = dsdx
+		self.dtdy = dtdy
+					
+	def to_binary(self, f3d, segments):
+		words = (_SHIFTL(f3d.G_TEXRECT, 24, 8) | _SHIFTL(self.xh, 12, 12) |	\
+			_SHIFTL(self.yh, 0, 12)), \
+			(_SHIFTL(self.tile, 24, 3) | _SHIFTL(self.xl, 12, 12) |	\
+			_SHIFTL(self.yl, 0, 12)), \
+			gsImmp1(f3d.G_RDPHALF_1, (_SHIFTL(self.s, 16, 16) | _SHIFTL(self.t, 0, 16))), \
+			gsImmp1(f3d.G_RDPHALF_2, (_SHIFTL(self.dsdx, 16, 16) | _SHIFTL(self.dtdy, 0, 16)))
+
+		return words[0].to_bytes(4, 'big') + words[1].to_bytes(4, 'big') +\
+			words[2].to_bytes(4, 'big') + words[3].to_bytes(4, 'big')
+
+	def to_c(self, static = True):
+		header = 'gsSPTextureRectangle(' if static else 'gSPTextureRectangle(glistp++, '
+		return header + str(self.xl) + ', ' + str(self.yl) + ', ' + \
+			str(self.xh) + ', ' + str(self.yh) + ', ' + str(self.tile) + \
+			', ' + str(self.s) + ', ' + str(self.t) + ', ' + str(self.dsdx) + ', ' + str(self.dtdy) + ')'
+
+	def to_sm64_decomp_s(self):
+		return 'gsSPTextureRectangle ' + str(self.xl) + ', ' + str(self.yl) + ', ' + \
+			str(self.xh) + ', ' + str(self.yh) + ', ' + str(self.tile) + \
+			', ' + str(self.s) + ', ' + str(self.t) + ', ' + str(self.dsdx) + ', ' + str(self.dtdy) 
+
+	def size(self, f3d):
+		return GFX_SIZE * 2
+
+class SPScisTextureRectangle:
+	def __init__(self, xl, yl, xh, yh, tile, s, t, dsdx = 4 << 10, dtdy = 1 << 10):
+		self.xl = xl
+		self.yl = yl
+		self.xh = xh
+		self.yh = yh
+		self.tile = tile
+		self.s = s
+		self.t = t
+		self.dsdx = dsdx
+		self.dtdy = dtdy
+					
+	def to_binary(self, f3d, segments):
+		raise PluginError("SPScisTextureRectangle not implemented for binary.")
+
+	def to_c(self, static = True):
+		if static:
+			raise PluginError("SPScisTextureRectangle is dynamic only.")
+		header = 'gSPScisTextureRectangle(glistp++, '
+		return header + str(self.xl) + ', ' + str(self.yl) + ', ' + \
+			str(self.xh) + ', ' + str(self.yh) + ', ' + str(self.tile) + \
+			', ' + str(self.s) + ', ' + str(self.t) + ', ' + str(self.dsdx) + ', ' + str(self.dtdy) + ')'
+
+	def to_sm64_decomp_s(self):
+		return 'gsSPScisTextureRectangle ' + str(self.xl) + ', ' + str(self.yl) + ', ' + \
+			str(self.xh) + ', ' + str(self.yh) + ', ' + str(self.tile) + \
+			', ' + str(self.s) + ', ' + str(self.t) + ', ' + str(self.dsdx) + ', ' + str(self.dtdy) 
+
+	def size(self, f3d):
+		return GFX_SIZE * 2           
+
 # gsSPTextureRectangleFlip
 # gsDPWord
 

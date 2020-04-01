@@ -156,30 +156,30 @@ def exportAnimationC(armatureObj, loopAnim, dirPath, dirName, groupName):
 	animPath = os.path.join(animDirPath, animFileName)
 
 	data = sm64_anim.to_c()
-	outFile = open(animPath, 'w')
+	outFile = open(animPath, 'w', newline='\n')
 	outFile.write(data)
 	outFile.close()
 
 	headerPath = os.path.join(geoDirPath, 'anim_header.h')
-	headerFile = open(headerPath, 'w')
+	headerFile = open(headerPath, 'w', newline='\n')
 	headerFile.write('extern const struct Animation *const ' + animsName + '[];\n')
 	headerFile.close()
 
 	# write to data.inc.c
 	dataFilePath = os.path.join(animDirPath, 'data.inc.c')
 	if not os.path.exists(dataFilePath):
-		dataFile = open(dataFilePath, 'w')
+		dataFile = open(dataFilePath, 'w', newline='\n')
 		dataFile.close()
 	writeIfNotFound(dataFilePath, '#include "' + animFileName + '"\n', '')
 
 	# write to table.inc.c
 	tableFilePath = os.path.join(animDirPath, 'table.inc.c')
 	if not os.path.exists(tableFilePath):
-		tableFile = open(tableFilePath, 'w')
+		tableFile = open(tableFilePath, 'w', newline='\n')
 		tableFile.write('const struct Animation *const ' + \
 			animsName + '[] = {\n\tNULL,\n};\n')
 		tableFile.close()
-	writeIfNotFound(tableFilePath, '\t&' + sm64_anim.header.name + ',\n', '\n\tNULL,\n};\n')
+	writeIfNotFound(tableFilePath, '\t&' + sm64_anim.header.name + ',\n', '\tNULL,\n};')
 
 	if groupName is not None:
 
@@ -190,11 +190,11 @@ def exportAnimationC(armatureObj, loopAnim, dirPath, dirName, groupName):
 
 		# group.h declaration
 		groupPathH = os.path.join(dirPath, groupName + ".h")
-		writeIfNotFound(groupPathH, '#include "' + dirName + '/anim_header.h"\n', '\n\n#endif')
+		writeIfNotFound(groupPathH, '#include "' + dirName + '/anim_header.h"\n', '#endif')
 
 		# group.h declaration
 		groupPathH = os.path.join(dirPath, groupName + ".h")
-		writeIfNotFound(groupPathH, '#include "' + dirName + '/anim_header.h"\n', '\n\n#endif')
+		writeIfNotFound(groupPathH, '#include "' + dirName + '/anim_header.h"\n', '#endif')
 
 def exportAnimationBinary(romfile, exportRange, armatureObj, DMAAddresses,
 	segmentData, isDMA, loopAnim):

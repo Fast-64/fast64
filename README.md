@@ -161,6 +161,11 @@ Comment out any AREA() commands and their contents in script.c and add '#include
 
 Change the LOAD_MIO0() command for segment 0x0A to get the correct skybox segment as defined in include/segment_symbols.h.
 
+### Exporting HUD to C
+The HUD exporter will export a texture and a function to draw it to the screen as a texture rectangle.
+If you want the plugin to handle setting up references, set your export path to your decomp folder. Enable "Modify project files." This will write the texture declaration to src/game/segment2.h, texture definition to bin/segment2.c, and the actual texture to textures/segment2 (if saving pngs separately.) This will also write the drawing function to either src/game/hud.c or src/game/ingame_menu.c depending on the "Export Type". Note that this operator can be called multiple times and it will replace the old code from previous exports. It will not delete old textures in the textures/segment2 folder, although they won't be built in the project. It also won't delete any palette data. If you want to manually setup references, disable "Modify project files".
+
+The draw function will be in the format "void myfunc(x, y, width, height, s, t)". Width and height are used to take advantage of texture clamp/repeating, or to mask parts of the texture (ex. a health meter). s and t are the rectangles start UVs, which can be used to scroll the image. Negative positions are automatically handled. For basic texture drawing, set width/height to your texture dimensions and s/t to 0.
 
 ### Switch Statements
 To create a switch node, and a bone to your armature and set its geolayout type to "Switch". Any bones that will be switched should be parented to this switch bone. The switch bone can do either material, draw layer, or mesh switching.

@@ -3,7 +3,7 @@ import bmesh
 import mathutils
 from math import pi
 from io import BytesIO
-import os
+import os, re
 
 import copy
 from math import pi, ceil
@@ -192,6 +192,180 @@ def addCullCommand(obj, fMesh, transformMatrix):
 		]
 	fMesh.draw.commands = cullCommands + fMesh.draw.commands
 
+def exportTexRectToC(dirPath, texProp, f3dType, isHWv1, texDir, 
+	savePNG, name, exportToProject, projectExportData):
+	fTexRect = exportTexRectCommon(texProp, f3dType, isHWv1, name)
+
+	if name is None or name == '':
+		raise PluginError("Name cannot be empty.")
+
+	data, code = fTexRect.to_c(savePNG, texDir)
+	declaration = fTexRect.to_c_def_tex()
+	code = modifyDLForHUD(code)
+
+	if exportToProject:	
+		seg2CPath = os.path.join(dirPath, "bin/segment2.c")
+		seg2HPath = os.path.join(dirPath, "src/game/segment2.h")
+		seg2TexDir = os.path.join(dirPath, "textures/segment2")
+		hudPath = os.path.join(dirPath, projectExportData[0])
+
+		# Append/Overwrite texture definition to segment2.c
+		if savePNG:
+			fTexRect.save_textures(seg2TexDir)
+
+		seg2CFile = open(seg2CPath, 'r')
+		seg2CData = seg2CFile.read()
+		seg2CFile.close()
+
+		textures = []
+		for info, texture in fTexRect.textures.items():
+			textures.append(texture)
+			
+		matchResult = re.search('const\s*u8\s*' + textures[0].name + '\[\]\s*\=\s*\{(((?!\}).)*)\}\s*\;', seg2CData, re.DOTALL)
+		if matchResult:
+			seg2CData = seg2CData[:matchResult.start(0)] + data + seg2CData[matchResult.end(0):]
+		else:
+			seg2CData += '\n' + data
+		seg2CFile = open(seg2CPath, 'w', newline='\n')
+		seg2CFile.write(seg2CData)
+		seg2CFile.close()
+		
+		# Append texture declaration to segment2.h
+		writeIfNotFound(seg2HPath, declaration, '#endif')
+
+		# Write/Overwrite function to hud.c
+		hudFile = open(hudPath, 'r')
+		hudData = hudFile.read()
+		hudFile.close()
+		
+		matchResult = re.search('void\s*' + fTexRect.name + '\s*\((((?!\)).)*)\)\s*\{(((?!\}).)*)\}', hudData, re.DOTALL)
+		if matchResult:
+			hudData = hudData[:matchResult.start(0)] + code + hudData[matchResult.end(0):]
+		else:
+			renderCmdPos = hudData.find(projectExportData[1])
+			if renderCmdPos == -1:
+				raise PluginError("Could not find '" + projectExportData[1] + "' in '" + projectExportData[0] + "'.")
+			hudData = hudData[:renderCmdPos] + code + '\n' + hudData[renderCmdPos:]
+		hudFile = open(hudPath, 'w', newline='\n')
+		hudFile.write(hudData)
+		hudFile.close()
+
+	else:
+		singleFileData = ''
+		singleFileData += '// Copy this function to src/game/hud.c or src/game/ingame_menu.c.\n'
+		singleFileData += '// Call the function in render_hud() or render_menus_and_dialogs() respectively.\n'
+		singleFileData += code
+		singleFileData += '// Copy this declaration to src/game/segment2.h.\n'
+		singleFileData += declaration
+		singleFileData += '// Copy this texture data to bin/segment2.c\n'
+		singleFileData += '// If texture data is being included from an inc.c, make sure to copy the png to textures/segment2.\n'
+		singleFileData += data
+		singleFilePath = os.path.join(dirPath, fTexRect.name + '.c')
+		singleFile = open(singleFilePath, 'w', newline='\n')
+		singleFile.write(singleFileData)
+		singleFile.close()
+
+	if bpy.context.mode != 'OBJECT':
+		bpy.ops.object.mode_set(mode = 'OBJECT')
+
+def modifyDLForHUD(data):
+	# Use sm64 master dl pointer
+	data = re.sub('glistp', 'gDisplayListHead', data)
+
+	# Add positional arguments to drawing, along with negative pos handling
+	negativePosHandling = \
+		'\ts32 xl = MAX(0, x);\n' +\
+    	'\ts32 yl = MAX(0, y);\n' +\
+		'\ts32 xh = MAX(0, x + width - 1);\n' +\
+    	'\ts32 yh = MAX(0, y + height - 1);\n' +\
+    	'\ts = (x < 0) ? s - x : s;\n' +\
+    	'\tt = (y < 0) ? t - y : t;\n'
+		
+	data = re.sub('Gfx\* gDisplayListHead\) \{\n', 
+		's32 x, s32 y, s32 width, s32 height, s32 s, s32 t) {\n' + \
+		negativePosHandling, data)
+
+	# Remove display list end command and return value
+	data = re.sub('\tgSPEndDisplayList\(gDisplayListHead\+\+\)\;\n\treturn gDisplayListHead;\n', '', data)
+	data = 'void' + data[4:]
+
+	# Apply positional arguments to SPScisTextureRectangle
+	matchResult = re.search('gSPScisTextureRectangle\(gDisplayListHead\+\+\,' + \
+		' (((?!\,).)*)\, (((?!\,).)*)\, (((?!\,).)*)\, (((?!\,).)*)\, (((?!\,).)*)\, (((?!\,).)*)\, (((?!\,).)*)\,', data)
+	if matchResult:
+		#data = data[:matchResult.start(0)] + \
+		#	'gSPScisTextureRectangle(gDisplayListHead++, (x << 2) + ' + \
+		#	matchResult.group(1) + ', (y << 2) + ' + \
+		#	matchResult.group(3) + ', (x << 2) + ' + \
+		#	matchResult.group(5) + ', (y << 2) + ' + \
+		#	matchResult.group(7) + ',' + data[matchResult.end(0):]
+		data = data[:matchResult.start(0)] + \
+			'gSPTextureRectangle(gDisplayListHead++, ' +\
+			'xl << 2, yl << 2, xh << 2, yh << 2, ' +\
+			matchResult.group(11) + ', s << 5, t << 5, ' + data[matchResult.end(0):]
+
+	# Make sure to convert segmented texture pointer to virtual
+	matchResult = re.search('gDPSetTextureImage\(gDisplayListHead\+\+\,' +\
+		'(((?!\,).)*)\, (((?!\,).)*)\, (((?!\,).)*)\, (((?!\,).)*)\)', data)
+	if matchResult:
+		data = data[:matchResult.start(7)] + 'segmented_to_virtual(&' + \
+			matchResult.group(7) + ")" +data[matchResult.end(7):]
+	
+	return data
+
+def exportTexRectCommon(texProp, f3dType, isHWv1, name):
+	tex = texProp.tex
+	if tex is None:
+		raise PluginError('No texture is selected.')
+	
+	texProp.S.low = 0
+	texProp.S.high = texProp.tex.size[0] - 1
+	texProp.S.mask =  math.ceil(math.log(texProp.tex.size[0], 2) - 0.001)
+	texProp.S.shift = 0
+
+	texProp.T.low = 0
+	texProp.T.high = texProp.tex.size[1] - 1
+	texProp.T.mask =  math.ceil(math.log(texProp.tex.size[1], 2) - 0.001)
+	texProp.T.shift = 0
+
+	fTexRect = FTexRect(f3dType, isHWv1, toAlnum(name))
+
+	# dl_hud_img_begin
+	fTexRect.draw.commands.extend([
+		DPPipeSync(),
+		DPSetCycleType('G_CYC_COPY'),
+		DPSetTexturePersp('G_TP_NONE'),
+		DPSetAlphaCompare('G_AC_THRESHOLD'),
+		DPSetBlendColor(0xFF, 0xFF, 0xFF, 0xFF),
+		DPSetRenderMode(['G_RM_AA_XLU_SURF', 'G_RM_AA_XLU_SURF2'], None)
+	])
+
+	drawEndCommands = GfxList("temp")
+
+	texDimensions, nextTmem = saveTextureIndex(texProp.tex.name, fTexRect, 
+		fTexRect.draw, drawEndCommands, texProp, 0, 0, 'texture')
+
+	fTexRect.draw.commands.append(
+		SPScisTextureRectangle(0, 0, 
+			(texDimensions[0] - 1) << 2, (texDimensions[1] - 1) << 2,
+			0, 0, 0)
+	)
+
+	fTexRect.draw.commands.extend(drawEndCommands.commands)
+
+	# dl_hud_img_end
+	fTexRect.draw.commands.extend([
+		DPPipeSync(),
+		DPSetCycleType('G_CYC_1CYCLE'),
+		SPTexture(0xFFFF, 0xFFFF, 0, 'G_TX_RENDERTILE', 'G_OFF'),
+		DPSetTexturePersp('G_TP_PERSP'),
+		DPSetAlphaCompare('G_AC_NONE'),
+		DPSetRenderMode(['G_RM_AA_ZB_OPA_SURF', 'G_RM_AA_ZB_OPA_SURF2'], None),
+		SPEndDisplayList()
+	])
+	
+	return fTexRect
+
 def exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren, name):
 	fModel = FModel(f3dType, isHWv1, name)
 
@@ -219,21 +393,25 @@ def exportF3DtoC(dirPath, obj, isStatic, transformMatrix,
 	if not os.path.exists(modelDirPath):
 		os.mkdir(modelDirPath)
 
+	data, texC = fModel.to_c("STATIC" if isStatic else "PROCEDURAL", texSeparate, savePNG, texDir)
 	if savePNG:
-		fModel.save_c_tex_separate("STATIC" if isStatic else "PROCEDURAL", texDir, modelDirPath, texSeparate, 'texture.inc.c')
-		fModel.freePalettes()
-	else:
-		fModel.freePalettes()
-		modelPath = os.path.join(modelDirPath, 'model.inc.c')
-	
-		data = fModel.to_c("STATIC" if isStatic else "PROCEDURAL")
-		outFile = open(modelPath, 'w')
-		outFile.write(data)
-		outFile.close()
+		fModel.save_textures(modelDirPath)
+
+	fModel.freePalettes()
+
+	if texSeparate:
+		texCFile = open(os.path.join(modelDirPath, 'texture.inc.c'), 'w', newline='\n')
+		texCFile.write(texC)
+		texCFile.close()
+
+	modelPath = os.path.join(modelDirPath, 'model.inc.c')
+	outFile = open(modelPath, 'w', newline='\n')
+	outFile.write(data)
+	outFile.close()
 
 	headerPath = os.path.join(modelDirPath, 'header.h')
 	cDefine = fModel.to_c_def("STATIC" if isStatic else "PROCEDURAL")
-	cDefFile = open(headerPath, 'w')
+	cDefFile = open(headerPath, 'w', newline='\n')
 	cDefFile.write(cDefine)
 	cDefFile.close()
 
@@ -914,10 +1092,19 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer):
 		SPTexture(s, t, 0, fModel.f3d.G_TX_RENDERTILE, 1))
 
 	# Save textures
-	texDimensions0, nextTmem = saveTextureIndex(useDict, material, fModel, 
-		fMaterial, material.tex0, 0, 'Texture 0', 0)
-	texDimensions1, nextTmem = saveTextureIndex(useDict, material, fModel, 
-		fMaterial, material.tex1, 1, 'Texture 1', nextTmem)
+	texDimensions0 = None
+	texDimensions1 = None
+	nextTmem = 0
+	if useDict['Texture 0'] and material.tex0.tex_set:
+		if material.tex0.tex is None:
+			raise PluginError('In material \"' + material.name + '\", a texture has not been set.')
+		texDimensions0, nextTmem = saveTextureIndex(material.name, fModel, 
+			fMaterial.material, fMaterial.revert, material.tex0, 0, nextTmem, None)	
+	if useDict['Texture 1'] and material.tex1.tex_set:
+		if material.tex1.tex is None:
+			raise PluginError('In material \"' + material.name + '\", a texture has not been set.')
+		texDimensions1, nextTmem = saveTextureIndex(material.name, fModel, 
+			fMaterial.material, fMaterial.revert, material.tex1, 1, nextTmem, None)
 
 	# Used so we know how to convert normalized UVs when saving verts.
 	if texDimensions0 is not None and texDimensions1 is not None:
@@ -1003,72 +1190,68 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer):
 
 	return fMaterial, texDimensions
 
-def saveTextureIndex(useDict, material, fModel, fMaterial, texProp, 
-	index, name, tmem):
-	if useDict[name] and texProp.tex_set:
-		tex = texProp.tex
-		if tex is None:
-			raise PluginError('No ' + name + ' selected.')
-		
-		texFormat = texProp.tex_format
-		isCITexture = texFormat[:2] == 'CI'
-		palFormat = texProp.ci_format if isCITexture else ''
-		if tex.filepath == "":
-			name = tex.name
-		else:
-			name = tex.filepath
-		texName = fModel.name + '_' + getNameFromPath(name, True) + '_' + texFormat.lower()
-
-		nextTmem = tmem + ceil(bitSizeDict[texBitSizeOf[texFormat]] * \
-			tex.size[0] * tex.size[1] / 64) 
-		if nextTmem > (512 if texFormat[:2] != 'CI' else 256):
-			print(nextTmem)
-			raise PluginError("Error in material \"" + material.name + "\": Textures are too big. Max TMEM size is 4k " + \
-				"bytes, ex. 2 32x32 RGBA 16 bit textures.")
-		if tex.size[0] > 1024 or tex.size[1] > 1024:
-			raise PluginError("Error in material \"" + material.name + "\": Any side of an image cannot be greater " +\
-				"than 1024.")
-
-		clamp_S = texProp.S.clamp
-		mirror_S = texProp.S.mirror
-		tex_SL = texProp.S.low
-		tex_SH = texProp.S.high
-		mask_S = texProp.S.mask
-		shift_S = texProp.S.shift
-
-		clamp_T = texProp.T.clamp
-		mirror_T = texProp.T.mirror
-		tex_TL = texProp.T.low
-		tex_TH = texProp.T.high
-		mask_T = texProp.T.mask
-		shift_T = texProp.T.shift
-
-		if isCITexture:
-			fImage, fPalette = saveOrGetPaletteDefinition(
-				fModel, tex, texName, texFormat, palFormat)
-			savePaletteLoading(fModel, fMaterial, fPalette, 
-				palFormat, 0, fPalette.height, fModel.f3d)
-		else:
-			fImage = saveOrGetTextureDefinition(fModel, tex, texName, 
-				texFormat)
-		saveTextureLoading(fImage, fMaterial, clamp_S,
-		 	mirror_S, clamp_T, mirror_T,
-			mask_S, mask_T, shift_S, 
-			shift_T, tex_SL, tex_TL, tex_SH, 
-			tex_TH, texFormat, index, fModel.f3d, tmem)
-		texDimensions = fImage.width, fImage.height
-		#fImage = saveTextureDefinition(fModel, tex, texName, 
-		#	texFormatOf[texFormat], texBitSizeOf[texFormat])
-		#fModel.textures[texName] = fImage	
-		
+def saveTextureIndex(propName, fModel, loadTexGfx, revertTexGfx, texProp, index, tmem, overrideName):
+	tex = texProp.tex
+	if tex is None:
+		raise PluginError('In ' + propName + ", no texture is selected.")
+	
+	texFormat = texProp.tex_format
+	isCITexture = texFormat[:2] == 'CI'
+	palFormat = texProp.ci_format if isCITexture else ''
+	if tex.filepath == "":
+		name = tex.name
 	else:
-		texDimensions = None
-		nextTmem = tmem
+		name = tex.filepath
+	texName = fModel.name + '_' + \
+		(getNameFromPath(name, True) + '_' + texFormat.lower() if overrideName is None else overrideName)
+		
+
+	nextTmem = tmem + ceil(bitSizeDict[texBitSizeOf[texFormat]] * \
+		tex.size[0] * tex.size[1] / 64) 
+	if nextTmem > (512 if texFormat[:2] != 'CI' else 256):
+		print(nextTmem)
+		raise PluginError("Error in \"" + propName + "\": Textures are too big. Max TMEM size is 4k " + \
+			"bytes, ex. 2 32x32 RGBA 16 bit textures.")
+	if tex.size[0] > 1024 or tex.size[1] > 1024:
+		raise PluginError("Error in \"" + propName + "\": Any side of an image cannot be greater " +\
+			"than 1024.")
+
+	clamp_S = texProp.S.clamp
+	mirror_S = texProp.S.mirror
+	tex_SL = texProp.S.low
+	tex_SH = texProp.S.high
+	mask_S = texProp.S.mask
+	shift_S = texProp.S.shift
+
+	clamp_T = texProp.T.clamp
+	mirror_T = texProp.T.mirror
+	tex_TL = texProp.T.low
+	tex_TH = texProp.T.high
+	mask_T = texProp.T.mask
+	shift_T = texProp.T.shift
+
+	if isCITexture:
+		fImage, fPalette = saveOrGetPaletteDefinition(
+			fModel, tex, texName, texFormat, palFormat)
+		savePaletteLoading(loadTexGfx, revertTexGfx, fPalette, 
+			palFormat, 0, fPalette.height, fModel.f3d)
+	else:
+		fImage = saveOrGetTextureDefinition(fModel, tex, texName, 
+			texFormat)
+	saveTextureLoading(fImage, loadTexGfx, clamp_S,
+	 	mirror_S, clamp_T, mirror_T,
+		mask_S, mask_T, shift_S, 
+		shift_T, tex_SL, tex_TL, tex_SH, 
+		tex_TH, texFormat, index, fModel.f3d, tmem)
+	texDimensions = fImage.width, fImage.height
+	#fImage = saveTextureDefinition(fModel, tex, texName, 
+	#	texFormatOf[texFormat], texBitSizeOf[texFormat])
+	#fModel.textures[texName] = fImage	
 
 	return texDimensions, nextTmem
 
 # texIndex: 0 for texture0, 1 for texture1
-def saveTextureLoading(fImage, fMaterial, clamp_S, mirror_S, clamp_T,
+def saveTextureLoading(fImage, loadTexGfx, clamp_S, mirror_S, clamp_T,
 	mirror_T, mask_S, mask_T, shift_S, shift_T,
 	SL, TL, SH, TH, tex_format, texIndex, f3d, tmem):
 	cms = [('G_TX_CLAMP' if clamp_S else 'G_TX_WRAP'),
@@ -1096,7 +1279,7 @@ def saveTextureLoading(fImage, fMaterial, clamp_S, mirror_S, clamp_T,
 		dxt = f3d.CALC_DXT_4b(fImage.width)
 		line = ((fImage.width >> 1) + 7) >> 3
 
-		fMaterial.material.commands.extend([
+		loadTexGfx.commands.extend([
 			DPTileSync(), # added in
 			DPSetTextureImage(fmt, 'G_IM_SIZ_8b', fImage.width >> 1, fImage),
 			DPSetTile(fmt, 'G_IM_SIZ_8b', line, tmem, 
@@ -1113,7 +1296,7 @@ def saveTextureLoading(fImage, fMaterial, clamp_S, mirror_S, clamp_T,
 		line = ((fImage.width * \
 			f3d.G_IM_SIZ_VARS[siz + '_LINE_BYTES']) + 7) >> 3
 
-		fMaterial.material.commands.extend([
+		loadTexGfx.commands.extend([
 			DPTileSync(), # added in
 
 			# Load Block version
@@ -1138,7 +1321,7 @@ def saveTextureLoading(fImage, fMaterial, clamp_S, mirror_S, clamp_T,
 				(fImage.width - 1) << f3d.G_TEXTURE_IMAGE_FRAC,
 				(fImage.height - 1) << f3d.G_TEXTURE_IMAGE_FRAC),]) # added in
 	
-	fMaterial.material.commands.extend([
+	loadTexGfx.commands.extend([
 		DPPipeSync(),
 		DPSetTile(fmt, siz, line, tmem,	\
 			f3d.G_TX_RENDERTILE + texIndex, pal, cmt, maskt, \
@@ -1148,18 +1331,18 @@ def saveTextureLoading(fImage, fMaterial, clamp_S, mirror_S, clamp_T,
 
 # palette stored in upper half of TMEM (words 256-511)
 # pal is palette number (0-16), for CI8 always set to 0
-def savePaletteLoading(fModel, fMaterial, fPalette, palFormat, pal, 
+def savePaletteLoading(loadTexGfx, revertTexGfx, fPalette, palFormat, pal, 
 	colorCount, f3d):
 	palFmt = texFormatOf[palFormat]
 	cms = ['G_TX_WRAP', 'G_TX_NOMIRROR']
 	cmt = ['G_TX_WRAP', 'G_TX_NOMIRROR']
 
-	fMaterial.material.commands.append(DPSetTextureLUT(
+	loadTexGfx.commands.append(DPSetTextureLUT(
 		'G_TT_RGBA16' if palFmt == 'G_IM_FMT_RGBA' else 'G_TT_IA16'))
-	fMaterial.revert.commands.append(DPSetTextureLUT('G_TT_NONE'))
+	revertTexGfx.commands.append(DPSetTextureLUT('G_TT_NONE'))
 
 	if not f3d._HW_VERSION_1:
-		fMaterial.material.commands.extend([
+		loadTexGfx.commands.extend([
 			DPSetTextureImage(palFmt, 'G_IM_SIZ_16b', 1, fPalette),
 			DPTileSync(),
 			DPSetTile('0', '0', 0, (256+(((pal)&0xf)*16)),\
@@ -1168,13 +1351,13 @@ def savePaletteLoading(fModel, fMaterial, fPalette, palFormat, pal,
 			DPLoadTLUTCmd(f3d.G_TX_LOADTILE, colorCount - 1),
 			DPPipeSync()])
 	else:
-		fMaterial.material.commands.extend([
+		loadTexGfx.commands.extend([
 			_DPLoadTextureBlock(fPalette, \
 				(256+(((pal)&0xf)*16)), \
             	palFmt, 'G_IM_SIZ_16b', 4*colorCount, 1,
             	pal, cms, cmt, 0, 0, 0, 0)])
 	
-def saveOrGetPaletteDefinition(fModel, image, imageName, texFmt, palFmt):
+def saveOrGetPaletteDefinition(fModelOrTexRect, image, imageName, texFmt, palFmt):
 	texFormat = texFormatOf[texFmt]
 	palFormat = texFormatOf[palFmt]
 	bitSize = texBitSizeOf[texFmt]
@@ -1182,8 +1365,8 @@ def saveOrGetPaletteDefinition(fModel, image, imageName, texFmt, palFmt):
 	paletteName = toAlnum(imageName) + '_pal_' + palFmt.lower()
 	imageKey = (image, (texFmt, palFmt))
 	palKey = (image, (palFmt, 'PAL'))
-	if imageKey in fModel.textures:
-		return fModel.textures[imageKey], fModel.textures[palKey]
+	if imageKey in fModelOrTexRect.textures:
+		return fModelOrTexRect.textures[imageKey], fModelOrTexRect.textures[palKey]
 
 	palette = []
 	texture = []
@@ -1241,8 +1424,8 @@ def saveOrGetPaletteDefinition(fModel, image, imageName, texFmt, palFmt):
 	else:	
 		fImage.data = bytearray(texture)
 	
-	fModel.textures[(image, (texFmt, palFmt))] = fImage
-	fModel.textures[(image, (palFmt, 'PAL'))] = fPalette
+	fModelOrTexRect.textures[(image, (texFmt, palFmt))] = fImage
+	fModelOrTexRect.textures[(image, (palFmt, 'PAL'))] = fPalette
 
 	return fImage, fPalette #, paletteTex
 

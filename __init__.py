@@ -39,6 +39,17 @@ enumRefreshVer = [
 	("Refresh 7", "Refresh 7", "Refresh 7"),
 ]
 
+enumHUDExportLocation = [
+	('HUD', 'HUD', 'Exports to src/game/hud.c'),
+	('Menu', 'Menu', 'Exports to src/game/ingame_menu.c')
+]
+
+# filepath, function to insert before
+enumHUDPaths = {
+	"HUD" : ('src/game/hud.c', 'void render_hud(void)'),
+	'Menu' : ('src/game/ingame_menu.c', 's16 render_menus_and_dialogs()'),
+}
+
 panelSeparatorSize = 5
 
 def checkExpanded(filepath):
@@ -1553,6 +1564,7 @@ class SM64_ExportCollisionPanel(bpy.types.Panel):
 	# called every frame
 	def draw(self, context):
 		col = self.layout.column()
+		col.label(text = 'This is for decomp only.')
 		propsColE = col.operator(SM64_ExportCollision.bl_idname)
 
 		col.prop(context.scene, 'colExportType')
@@ -1572,6 +1584,97 @@ class SM64_ExportCollisionPanel(bpy.types.Panel):
 			if context.scene.set_addr_0x2A:
 				prop_split(col, context.scene, 'addr_0x2A', 
 					'0x2A Behaviour Command Address')
+		for i in range(panelSeparatorSize):
+			col.separator()
+
+class ExportTexRectDraw(bpy.types.Operator):
+	# set bl_ properties
+	bl_idname = 'object.f3d_texrect_draw'
+	bl_label = "Export F3D Texture Rectangle"
+	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
+
+	# Called on demand (i.e. button press, menu item)
+	# Can also be called from operator search menu (Spacebar)
+	def execute(self, context):
+		try:
+			if context.scene.texrect.tex is None:
+				raise PluginError("No texture selected.")
+			else:
+				exportTexRectToC(bpy.path.abspath(context.scene.TexRectExportPath), 
+					context.scene.texrect,
+					context.scene.f3d_type, context.scene.isHWv1,
+					#context.scene.TexRectTexDir,
+					'textures/segment2',
+					context.scene.TexRectSaveTextures, context.scene.TexRectName,
+					context.scene.TexRectExportToProject, enumHUDPaths[context.scene.TexRectExportProjectFile])
+
+				self.report({'INFO'}, 'Success!')
+		except Exception as e:
+			raisePluginError(self, e)
+			return {"CANCELLED"}
+		return {'FINISHED'} # must return a set
+
+class UnlinkTexRect(bpy.types.Operator):
+	bl_idname = 'image.texrect_unlink'
+	bl_label = "Unlink TexRect Image"
+	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
+
+	# Called on demand (i.e. button press, menu item)
+	# Can also be called from operator search menu (Spacebar)
+	def execute(self, context):
+		context.scene.texrect.tex = None
+		return {'FINISHED'} # must return a set
+
+class ExportTexRectDrawPanel(bpy.types.Panel):
+	bl_idname = "export_texrect"
+	bl_label = "SM64 UI Image Exporter"
+	bl_space_type = 'VIEW_3D'
+	bl_region_type = 'UI'
+	bl_category = 'Fast64'
+
+	@classmethod
+	def poll(cls, context):
+		return True
+
+	# called every frame
+	def draw(self, context):
+		col = self.layout.column()
+		propsTexRectE = col.operator(ExportTexRectDraw.bl_idname)
+
+		textureProp = context.scene.texrect
+		tex = textureProp.tex
+		col.label(text = 'This is for decomp only.')
+		col.template_ID(textureProp, 'tex', new="image.new", open="image.open", unlink="image.texrect_unlink")
+		#col.prop(textureProp, 'tex')
+		if tex is not None and tex.size[0] > 0 and tex.size[1] > 0:
+			tmemUsage = int(tex.size[0] * tex.size[1] * texBitSize[textureProp.tex_format] / 8 + 0.5)
+			tmemMax = 4096 if textureProp.tex_format[:2] != 'CI' else 2048
+			col.label(text = 'TMEM Usage: ' + str(tmemUsage) + ' / ' + str(tmemMax) + ' bytes')
+			if tmemUsage > tmemMax:
+				col.box().label(text = 'WARNING: Texture size is too large.')
+
+			col.prop(textureProp, 'tex_format', text = 'Format')
+			if textureProp.tex_format[:2] == 'CI':
+				col.prop(textureProp, 'ci_format', text = 'CI Format')
+			col.prop(textureProp.S, 'clamp', text = 'Clamp S')
+			col.prop(textureProp.T, 'clamp', text = 'Clamp T')
+			col.prop(textureProp.S, 'mirror', text = 'Mirror S')
+			col.prop(textureProp.T, 'mirror', text = 'Mirror T')
+			
+		col.prop(context.scene, 'TexRectExportPath')
+		pathBox = col.box()
+		pathBox.label(text = 'If \"Modify project files\" enabled, set path to decomp folder.')
+		#prop_split(col, context.scene, 'TexRectTexDir', 'Include Directory')
+		prop_split(col, context.scene, 'TexRectName', 'Name')
+		col.prop(context.scene, 'TexRectExportToProject')
+		if context.scene.TexRectExportToProject:
+			prop_split(col, context.scene, 'TexRectExportProjectFile', 'Export Type')
+			infoBox = col.box()
+			infoBox.label(text = 'After export, call your hud\'s draw function in ')
+			infoBox.label(text = enumHUDPaths[context.scene.TexRectExportProjectFile][0] + ': ')
+			infoBox.label(text = enumHUDPaths[context.scene.TexRectExportProjectFile][1] + '.')
+		col.prop(context.scene, 'TexRectSaveTextures')
+	
 		for i in range(panelSeparatorSize):
 			col.separator()
 
@@ -1660,6 +1763,8 @@ classes = (
 	#SM64_ImportLevelPanel,
 	SM64_ExportLevelPanel,
 	SM64_ExportCollisionPanel,
+	ExportTexRectDrawPanel,
+	UnlinkTexRect,
 
 	#SM64_ImportMario,
 	#SM64_ExportMario,
@@ -1673,6 +1778,7 @@ classes = (
 	#SM64_ImportLevel
 	SM64_ExportLevel,
 	SM64_ExportCollision,
+	ExportTexRectDraw,
 )
 
 # called on add-on enabling
@@ -1881,6 +1987,16 @@ def register():
 	bpy.types.Scene.colName = bpy.props.StringProperty(
 		name = 'Name', default = 'mario')
 
+	# Texrect
+	bpy.types.Scene.texrect = bpy.props.PointerProperty(type = TextureProperty)
+	bpy.types.Scene.texrectImageTexture = bpy.props.PointerProperty(type = bpy.types.ImageTexture)
+	bpy.types.Scene.TexRectExportPath = bpy.props.StringProperty(name = 'Export Path', subtype='FILE_PATH')
+	bpy.types.Scene.TexRectTexDir = bpy.props.StringProperty(name = 'Include Path', default = 'textures/segment2')
+	bpy.types.Scene.TexRectSaveTextures = bpy.props.BoolProperty(name = 'Save Textures as PNGs')
+	bpy.types.Scene.TexRectName = bpy.props.StringProperty(name = 'Name', default = 'render_hud_image')
+	bpy.types.Scene.TexRectExportToProject = bpy.props.BoolProperty(name = 'Modify project files')
+	bpy.types.Scene.TexRectExportProjectFile = bpy.props.EnumProperty(name = 'Export Type', items = enumHUDExportLocation)
+
 	# Objects
 	#bpy.types.Scene.levelCamera = bpy.props.PointerProperty(type = bpy.types.Camera)
 	bpy.types.Scene.levelName = bpy.props.StringProperty(name = 'Name', default = 'bob')
@@ -2041,6 +2157,16 @@ def unregister():
 	del bpy.types.Scene.colInsertableBinaryPath	
 	del bpy.types.Scene.colExportRooms
 	del bpy.types.Scene.colName
+
+	# Texrect
+	del bpy.types.Scene.texrect
+	del bpy.types.Scene.TexRectExportPath
+	del bpy.types.Scene.TexRectTexDir
+	del bpy.types.Scene.TexRectSaveTextures
+	del bpy.types.Scene.TexRectName
+	del bpy.types.Scene.texrectImageTexture
+	del bpy.types.Scene.TexRectExportToProject
+	del bpy.types.Scene.TexRectExportProjectFile
 
 	# ROM
 	del bpy.types.Scene.importRom

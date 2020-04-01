@@ -59,10 +59,13 @@ def writeIfNotFound(filePath, stringValue, footer):
 		fileData.close()
 		if stringValue not in stringData:
 			if len(footer) > 0:
-				stringData = stringData[:-len(footer)] + '\n' + stringValue + footer
+				footerIndex = stringData.index(footer)
+				if footerIndex == -1:
+					raise PluginError("Footer " + footer + " does not exist.")
+				stringData = stringData[:footerIndex] + stringValue + '\n' + stringData[footerIndex:]
 			else:
 				stringData += stringValue
-			fileData = open(filePath, 'w')
+			fileData = open(filePath, 'w', newline = '\n')
 			fileData.write(stringData)
 		fileData.close()
 	else:
@@ -76,7 +79,7 @@ def deleteIfFound(filePath, stringValue):
 		fileData.close()
 		if stringValue in stringData:
 			stringData = stringData.replace(stringValue, '')
-			fileData = open(filePath, 'w')
+			fileData = open(filePath, 'w', newline = '\n')
 			fileData.write(stringData)
 		fileData.close()
 
