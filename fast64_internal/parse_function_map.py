@@ -1,6 +1,6 @@
 import re
 
-refresh_name = 'Refresh 7'
+refresh_name = 'Refresh 8'
 function_map_path = './sm64.us.map.txt'
 output_map_path = './sm64_function_map_output.py'
 
