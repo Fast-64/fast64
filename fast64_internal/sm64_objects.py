@@ -124,6 +124,7 @@ class SM64_Mario_Start:
 class SM64_Area:
 	def __init__(self, index, music_seq, music_preset, 
 		terrain_type, geolayout, collision, warpNodes, name):
+		self.cameraVolumes = []
 		self.name = toAlnum(name)
 		self.geolayout = geolayout
 		self.collision = collision
@@ -172,6 +173,12 @@ class SM64_Area:
 	def to_c_def_macros(self):
 		return 'extern const MacroObject ' + self.macros_name() + '[];\n'
 
+	def to_c_camera_volumes(self):
+		data = ''
+		for camVolume in self.cameraVolumes:
+			data +=  '\t' + camVolume.to_c() + '\n'
+		return data
+
 class CollisionWaterBox:
 	def __init__(self, waterBoxType, position, scale, emptyScale):
 		# The scale ordering is due to the fact that scaling happens AFTER rotation.
@@ -200,6 +207,31 @@ class CollisionWaterBox:
 			str(int(round(self.height))) + '),\n'
 		return data
 
+class CameraVolume:
+	def __init__(self, area, functionName, position, rotation, scale, emptyScale):
+		# The scale ordering is due to the fact that scaling happens AFTER rotation.
+		# Thus the translation uses Y-up, while the scale uses Z-up.
+		self.area = area
+		self.functionName = functionName
+		self.position = position
+		self.scale = mathutils.Vector((scale[0], scale[2], scale[1])) * emptyScale
+		self.rotation = rotation
+
+	def to_binary(self):
+		raise PluginError("Binary exporting not implemented for camera volumens.")
+	
+	def to_c(self):
+		data = '{' + \
+			str(self.area) + ', ' + str(self.functionName) + ', ' + \
+			str(int(round(self.position[0]))) + ', ' + \
+			str(int(round(self.position[1]))) + ', ' + \
+			str(int(round(self.position[2]))) + ', ' + \
+			str(int(round(self.scale[0]))) + ', ' + \
+			str(int(round(self.scale[1]))) + ', ' + \
+			str(int(round(self.scale[2]))) + ', ' + \
+			str(convertRadiansToS16(self.rotation[1])) + '},'
+		return data
+
 def exportAreaCommon(levelObj, areaObj, transformMatrix, geolayout, collision, name):
 	bpy.ops.object.select_all(action = 'DESELECT')
 	areaObj.select_set(True)
@@ -222,7 +254,7 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
 			(transformMatrix @ rootMatrix.inverted() @ obj.matrix_world).decompose()
 
 		# Hacky solution to handle Z-up to Y-up conversion
-		rotation = mathutils.Quaternion((1, 0, 0), math.radians(90.0)) @ rotation
+		rotation = rotation @ mathutils.Quaternion((1, 0, 0), math.radians(90.0))
 
 		if specialsOnly:
 			if obj.sm64_obj_type == 'Special':
@@ -249,6 +281,14 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
 			elif obj.sm64_obj_type == 'Whirpool':
 				area.objects.append(SM64_Whirpool(obj.whirlpool_index, 
 					obj.whirpool_condition, obj.whirpool_strength, translation))
+			elif obj.sm64_obj_type == 'Camera Volume':
+				checkIdentityRotation(obj, rotation, True)
+				if obj.cameraVolumeGlobal:
+					triggerIndex = -1
+				else:
+					triggerIndex = area.index
+				area.cameraVolumes.append(CameraVolume(triggerIndex, obj.cameraVolumeFunction,
+					translation, rotation.to_euler(), scale, obj.empty_display_size))
 			
 
 	for child in obj.children:
@@ -326,6 +366,7 @@ class SM64ObjectPanel(bpy.types.Panel):
 			pass
 		elif obj.sm64_obj_type == 'Water Box':
 			prop_split(box, obj, 'waterBoxType', 'Water Box Type')
+			box.box().label(text = "No rotation allowed.")
 		elif obj.sm64_obj_type == 'Level Root':
 			
 			if obj.useBackgroundColor:
@@ -343,6 +384,10 @@ class SM64ObjectPanel(bpy.types.Panel):
 				prop_split(box, obj, 'screenSize', 'Screen Size')
 		
 			prop_split(box, obj, 'clipPlanes', 'Clip Planes')
+		elif obj.sm64_obj_type == 'Camera Volume':
+			prop_split(box, obj, 'cameraVolumeFunction', 'Camera Function')
+			box.prop(obj, 'cameraVolumeGlobal')
+			box.box().label(text = "Only vertical axis rotation allowed.")
 
 	def draw_acts(self, obj, layout):
 		layout.label(text = 'Acts')
@@ -458,6 +503,11 @@ def sm64_obj_register():
 	bpy.types.Object.dynamicFOV = bpy.props.BoolProperty(
 		name = 'Dynamic FOV', default = True)
 
+	bpy.types.Object.cameraVolumeFunction = bpy.props.StringProperty(
+		name = 'Camera Function', default = 'cam_castle_hmc_start_pool_cutscene')
+	bpy.types.Object.cameraVolumeGlobal = bpy.props.BoolProperty(
+		name = 'Is Global')
+
 def sm64_obj_unregister():
 	
 	del bpy.types.Object.sm64_obj_type
@@ -495,6 +545,9 @@ def sm64_obj_unregister():
 	del bpy.types.Object.envType
 	del bpy.types.Object.fov
 	del bpy.types.Object.dynamicFOV
+
+	del bpy.types.Object.cameraVolumeFunction
+	del bpy.types.Object.cameraVolumeGlobal
 
 	for cls in reversed(sm64_obj_classes):
 		unregister_class(cls)
@@ -540,6 +593,7 @@ enumObjectType = [
 	('Mario Start', 'Mario Start', 'Mario Start'),
 	('Whirlpool', 'Whirlpool', 'Whirlpool'),
 	('Water Box', 'Water Box', 'Water Box'),
+	('Camera Volume', 'Camera Volume', 'Camera Volume'),
 	#('Trajectory', 'Trajectory', 'Trajectory'),
 ]
 

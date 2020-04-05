@@ -139,7 +139,11 @@ def getLastKeyframeTime(keyframes):
 # add definition to groupN.h
 # add data/table includes to groupN.c (bin_id?)
 # add data/table files
-def exportAnimationC(armatureObj, loopAnim, dirPath, dirName, groupName):
+def exportAnimationC(armatureObj, loopAnim, dirPath, dirName, groupName,
+	customExport, headerType, levelName):
+	dirPath, texDir = getExportDir(customExport, dirPath, headerType, 
+		levelName, '', dirName)
+
 	sm64_anim = exportAnimationCommon(armatureObj, loopAnim, dirName + "_anim")
 	animName = armatureObj.animation_data.action.name
 
@@ -181,20 +185,21 @@ def exportAnimationC(armatureObj, loopAnim, dirPath, dirName, groupName):
 		tableFile.close()
 	writeIfNotFound(tableFilePath, '\t&' + sm64_anim.header.name + ',\n', '\tNULL,\n};')
 
-	if groupName is not None:
+	if not customExport:
+		if headerType == 'Actor':
+			groupPathC = os.path.join(dirPath, groupName + ".c")
+			groupPathH = os.path.join(dirPath, groupName + ".h")
 
-		# group.c include
-		groupPathGeoC = os.path.join(dirPath, groupName + ".c")
-		writeIfNotFound(groupPathGeoC, '#include "' + dirName + '/anims/data.inc.c"\n', '')
-		writeIfNotFound(groupPathGeoC, '#include "' + dirName + '/anims/table.inc.c"\n', '')
+			writeIfNotFound(groupPathC, '\n#include "' + dirName + '/anims/data.inc.c"', '')
+			writeIfNotFound(groupPathC, '\n#include "' + dirName + '/anims/table.inc.c"', '')
+			writeIfNotFound(groupPathH, '\n#include "' + dirName + '/anim_header.h"', '#endif')
+		elif headerType == 'Level':
+			groupPathC = os.path.join(dirPath, "leveldata.c")
+			groupPathH = os.path.join(dirPath, "header.h")
 
-		# group.h declaration
-		groupPathH = os.path.join(dirPath, groupName + ".h")
-		writeIfNotFound(groupPathH, '#include "' + dirName + '/anim_header.h"\n', '#endif')
-
-		# group.h declaration
-		groupPathH = os.path.join(dirPath, groupName + ".h")
-		writeIfNotFound(groupPathH, '#include "' + dirName + '/anim_header.h"\n', '#endif')
+			writeIfNotFound(groupPathC, '\n#include "levels/' + levelName + '/' + dirName + '/anims/data.inc.c"', '')
+			writeIfNotFound(groupPathC, '\n#include "levels/' + levelName + '/' + dirName + '/anims/table.inc.c"', '')
+			writeIfNotFound(groupPathH, '\n#include "levels/' + levelName + '/' + dirName + '/anim_header.h"', '\n#endif')
 
 def exportAnimationBinary(romfile, exportRange, armatureObj, DMAAddresses,
 	segmentData, isDMA, loopAnim):

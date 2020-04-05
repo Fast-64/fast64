@@ -8,12 +8,26 @@ import string
 import os
 import math
 import traceback
+import re
 
 class PluginError(Exception):
 	pass
 
 class VertexWeightError(PluginError):
 	pass
+
+def convertRadiansToS16(value):
+	value = math.degrees(value)
+	# ??? Why is this negative?
+	# TODO: Figure out why this has to be this way
+	value = 360 - (value % 360)
+	return hex(round(value / 360 * 0xFFFF))
+
+def decompFolderMessage(layout):
+	layout.box().label(text = 'This will export to your decomp folder.')
+
+def customExportWarning(layout):
+	layout.box().label(text = 'This will not write any headers/dependencies.')
 
 def raisePluginError(operator, exception):
 	if bpy.context.scene.fullTraceback:
@@ -37,10 +51,11 @@ def highlightWeightErrors(obj, elements, elementType):
 		element.select = True
 
 def checkIdentityRotation(obj, rotation, allowYaw):
-	# Hacky way to handle y-up conversion
-	rotationDiff = (mathutils.Quaternion((1, 0, 0), math.radians(90.0)) @ rotation).to_euler()
-	if abs(rotationDiff.x) > 0.001 or abs(rotationDiff.y) > 0.001 or abs(rotationDiff.z) > 0.001:
-		raise PluginError("Water box \"" + obj.name + "\" cannot have a non-zero world rotation.")
+	rotationDiff = rotation.to_euler()
+	if abs(rotationDiff.x) > 0.001 or (not allowYaw and abs(rotationDiff.y) > 0.001) or abs(rotationDiff.z) > 0.001:
+		raise PluginError("Box \"" + obj.name + "\" cannot have a non-zero world rotation " + \
+			("(except yaw)" if allowYaw else "") + ", currently at (" + \
+			str(rotationDiff[0]) + ', ' + str(rotationDiff[1]) + ', ' + str(rotationDiff[2]) + ')')
 
 def setOrigin(target, obj):
 	bpy.ops.object.select_all(action = "DESELECT")
@@ -50,6 +65,146 @@ def setOrigin(target, obj):
 	bpy.context.scene.cursor.location = target.location
 	bpy.ops.object.origin_set(type = 'ORIGIN_CURSOR')
 	bpy.ops.object.select_all(action = "DESELECT")
+
+def checkIfPathExists(filePath):
+	if not os.path.exists(filePath):
+		raise PluginError(filePath + " does not exist.")
+
+def makeWriteInfoBox(layout):
+	writeBox = layout.box()
+	writeBox.label(text = 'Along with header edits, this will write to:')
+	return writeBox
+
+def writeBoxExportType(writeBox, headerType, name, levelName, levelOption):
+	if headerType == 'Actor':
+		writeBox.label(text = 'actors/' + toAlnum(name))
+	elif headerType == 'Level':
+		if levelOption != 'custom':
+			levelName = levelOption
+		writeBox.label(text = 'levels/' + toAlnum(levelName) + '/' + toAlnum(name))
+
+def getExportDir(customExport, dirPath, headerType, levelName, texDir, dirName):
+	# Get correct directory from decomp base, and overwrite texDir
+	if not customExport:
+		if headerType == 'Actor':
+			dirPath = os.path.join(dirPath, 'actors')
+			texDir = 'actors/' + dirName
+		elif headerType == 'Level':
+			dirPath = os.path.join(dirPath, 'levels/' + levelName)
+			texDir = 'levels/' + levelName
+	
+	return dirPath, texDir
+
+def readLevelDefines(levelDefinesPath, levelName):
+	if not os.path.exists(levelDefinesPath):
+		raise PluginError(levelDefinesPath + " does not exist.")
+	levelDefinesFile = open(levelDefinesPath, 'r')
+	levelDefinesData = levelDefinesFile.read()
+	levelDefinesFile.close()
+	matchResult = re.search('DEFINE\_LEVEL\(\s*' + \
+		'(((?!\,).)*)\,\s*' + # internal name
+		'(((?!\,).)*)\,\s*' + # level enum
+		'(((?!\,).)*)\,\s*' + # course enum
+		levelName + '\,\s*' + # folder name
+		'(((?!\,).)*)\,\s*' + # texture bin
+		'(((?!\,).)*)\,\s*' + # acoustic reach
+		'(((?!\,).)*)\,\s*' + # echo level 1
+		'(((?!\,).)*)\,\s*' + # echo level 2
+		'(((?!\,).)*)\,\s*' + # echo level 3
+		'(((?!\,).)*)\,\s*' + # dynamic music table
+		'(((?!\)).)*)\)',  # camera table
+		levelDefinesData)
+	if matchResult:
+		#data = data[:matchResult.start(0)] + \
+		#	'gSPScisTextureRectangle(gDisplayListHead++, (x << 2) + ' + \
+		#	matchResult.group(1) + ', (y << 2) + ' + \
+		#	matchResult.group(3) + ', (x << 2) + ' + \
+		#	matchResult.group(5) + ', (y << 2) + ' + \
+		#	matchResult.group(7) + ',' + data[matchResult.end(0):]
+		return {
+			'internal name' : matchResult.group(1), 
+			'level enum' : matchResult.group(3), 
+			'course name' : matchResult.group(5),
+			'folder name' : levelName, 
+			'texture bin' : matchResult.group(7), 
+			'acoustic reach' : matchResult.group(9),
+			'echo level 1' : matchResult.group(11), 
+			'echo level 2' : matchResult.group(13), 
+			'echo level 3' : matchResult.group(15), 
+			'dynamic music table' : matchResult.group(17), 
+			'camera table' : matchResult.group(19)
+		}
+	else:
+		raise PluginError('DEFINE_LEVEL not defined for folder ' + levelName + ' in levels/level_defines.h.')
+
+def writeLevelDefines(levelDefinesPath, levelName, levelDefine):
+	if not os.path.exists(levelDefinesPath):
+		raise PluginError(levelDefinesPath + " does not exist.")
+	levelDefinesString = 'DEFINE_LEVEL(' + \
+		levelDefine['internal name'] + ', ' +\
+		levelDefine['level enum'] + ', ' +\
+		levelDefine['course name'] + ', ' +\
+		levelDefine['folder name'] + ', ' +\
+		levelDefine['texture bin'] + ', ' +\
+		levelDefine['acoustic reach'] + ', ' +\
+		levelDefine['echo level 1'] + ', ' +\
+		levelDefine['echo level 2'] + ', ' +\
+		levelDefine['echo level 3'] + ', ' +\
+		levelDefine['dynamic music table'] + ', ' +\
+		levelDefine['camera table'] + ')'
+
+	levelDefinesFile = open(levelDefinesPath, 'r')
+	levelDefinesData = levelDefinesFile.read()
+	levelDefinesFile.close()
+	if levelDefinesString in levelDefinesData:
+		return
+	matchResult = re.search('DEFINE\_LEVEL\(\s*' + \
+		'(((?!\,).)*)\,\s*' + # internal name
+		'(((?!\,).)*)\,\s*' + # level enum
+		'(((?!\,).)*)\,\s*' + # course enum
+		levelName + '\,\s*' + # folder name
+		'(((?!\,).)*)\,\s*' + # texture bin
+		'(((?!\,).)*)\,\s*' + # acoustic reach
+		'(((?!\,).)*)\,\s*' + # echo level 1
+		'(((?!\,).)*)\,\s*' + # echo level 2
+		'(((?!\,).)*)\,\s*' + # echo level 3
+		'(((?!\,).)*)\,\s*' + # dynamic music table
+		'(((?!\)).)*)\)',  # camera table
+		levelDefinesData)
+	if matchResult:
+		levelDefinesData = levelDefinesData[:matchResult.start(0)] + \
+			levelDefinesString + levelDefinesData[matchResult.end(0):]
+	else:
+		levelDefinesData += '\n' + levelDefinesString
+	
+	levelDefinesFile = open(levelDefinesPath, 'w', newline='\n')
+	levelDefinesFile.write(levelDefinesData)
+	levelDefinesFile.close()
+
+def overwriteData(headerRegex, name, value, filePath, writeNewBeforeString, isFunction):
+	if os.path.exists(filePath):
+		dataFile = open(filePath, 'r')
+		data = dataFile.read()
+		dataFile.close()
+
+		matchResult = re.search(headerRegex + re.escape(name) + \
+			('\s*\((((?!\)).)*)\)\s*\{(((?!\}).)*)\}' if isFunction else \
+			'\[\]\s*=\s*\{(((?!;).)*);'), data, re.DOTALL)
+		if matchResult:
+			data = data[:matchResult.start(0)] + value + data[matchResult.end(0):]
+		else:
+			if writeNewBeforeString is not None:
+				cmdPos = data.find(writeNewBeforeString)
+				if cmdPos == -1:
+					raise PluginError("Could not find '" + writeNewBeforeString + "'.")
+				data = data[:cmdPos] + value + '\n' + data[cmdPos:]
+			else:
+				data += '\n' + value
+		dataFile = open(filePath, 'w', newline='\n')
+		dataFile.write(data)
+		dataFile.close()
+	else:
+		raise PluginError(filePath + " does not exist.")
 
 def writeIfNotFound(filePath, stringValue, footer):
 	if os.path.exists(filePath):

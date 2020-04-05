@@ -209,46 +209,26 @@ def exportTexRectToC(dirPath, texProp, f3dType, isHWv1, texDir,
 		seg2TexDir = os.path.join(dirPath, "textures/segment2")
 		hudPath = os.path.join(dirPath, projectExportData[0])
 
-		# Append/Overwrite texture definition to segment2.c
+		checkIfPathExists(seg2CPath)
+		checkIfPathExists(seg2HPath)
+		checkIfPathExists(seg2TexDir)
+		checkIfPathExists(hudPath)
+		
 		if savePNG:
 			fTexRect.save_textures(seg2TexDir)
-
-		seg2CFile = open(seg2CPath, 'r')
-		seg2CData = seg2CFile.read()
-		seg2CFile.close()
 
 		textures = []
 		for info, texture in fTexRect.textures.items():
 			textures.append(texture)
+
+		# Append/Overwrite texture definition to segment2.c
+		overwriteData('const\s*u8\s*', textures[0].name, data, seg2CPath, None, False)
 			
-		matchResult = re.search('const\s*u8\s*' + textures[0].name + '\[\]\s*\=\s*\{(((?!\}).)*)\}\s*\;', seg2CData, re.DOTALL)
-		if matchResult:
-			seg2CData = seg2CData[:matchResult.start(0)] + data + seg2CData[matchResult.end(0):]
-		else:
-			seg2CData += '\n' + data
-		seg2CFile = open(seg2CPath, 'w', newline='\n')
-		seg2CFile.write(seg2CData)
-		seg2CFile.close()
-		
 		# Append texture declaration to segment2.h
 		writeIfNotFound(seg2HPath, declaration, '#endif')
 
 		# Write/Overwrite function to hud.c
-		hudFile = open(hudPath, 'r')
-		hudData = hudFile.read()
-		hudFile.close()
-		
-		matchResult = re.search('void\s*' + fTexRect.name + '\s*\((((?!\)).)*)\)\s*\{(((?!\}).)*)\}', hudData, re.DOTALL)
-		if matchResult:
-			hudData = hudData[:matchResult.start(0)] + code + hudData[matchResult.end(0):]
-		else:
-			renderCmdPos = hudData.find(projectExportData[1])
-			if renderCmdPos == -1:
-				raise PluginError("Could not find '" + projectExportData[1] + "' in '" + projectExportData[0] + "'.")
-			hudData = hudData[:renderCmdPos] + code + '\n' + hudData[renderCmdPos:]
-		hudFile = open(hudPath, 'w', newline='\n')
-		hudFile.write(hudData)
-		hudFile.close()
+		overwriteData('void\s*', fTexRect.name, code, hudPath, projectExportData[1], True)
 
 	else:
 		singleFileData = ''
@@ -384,7 +364,10 @@ def exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren, name
 	return fModel, fMeshGroup
 
 def exportF3DtoC(dirPath, obj, isStatic, transformMatrix, 
-	f3dType, isHWv1, texDir, savePNG, texSeparate, includeChildren, name):
+	f3dType, isHWv1, texDir, savePNG, texSeparate, includeChildren, name, levelName, groupName, customExport, headerType):
+	dirPath, texDir = getExportDir(customExport, dirPath, headerType, 
+		levelName, texDir, name)
+
 	fModel, fMeshGroup = \
 		exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren, name)
 
@@ -414,6 +397,25 @@ def exportF3DtoC(dirPath, obj, isStatic, transformMatrix,
 	cDefFile = open(headerPath, 'w', newline='\n')
 	cDefFile.write(cDefine)
 	cDefFile.close()
+
+	if not customExport:
+		if headerType == 'Actor':
+			# Write to group files
+			if groupName == '' or groupName is None:
+				raise PluginError("Actor header type chosen but group name not provided.")
+
+			groupPathC = os.path.join(dirPath, groupName + ".c")
+			groupPathH = os.path.join(dirPath, groupName + ".h")
+
+			writeIfNotFound(groupPathC, '\n#include "' + name + '/model.inc.c"', '')
+			writeIfNotFound(groupPathH, '\n#include "' + name + '/header.h"', '\n#endif')
+		
+		elif headerType == 'Level':
+			groupPathC = os.path.join(dirPath, "leveldata.c")
+			groupPathH = os.path.join(dirPath, "header.h")
+
+			writeIfNotFound(groupPathC, '\n#include "levels/' + levelName + '/' + name + '/model.inc.c"', '')
+			writeIfNotFound(groupPathH, '\n#include "levels/' + levelName + '/' + name + '/header.h"', '\n#endif')
 
 	if bpy.context.mode != 'OBJECT':
 		bpy.ops.object.mode_set(mode = 'OBJECT')

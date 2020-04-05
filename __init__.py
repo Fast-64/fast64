@@ -51,12 +51,30 @@ enumHUDPaths = {
 	'Menu' : ('src/game/ingame_menu.c', 's16 render_menus_and_dialogs()'),
 }
 
+enumExportHeaderType = [
+	#('None', 'None', 'Headers are not written'),
+	('Actor', 'Actor Data', 'Headers are written to a group in actors/'),
+	('Level', 'Level Data', 'Headers are written to a specific level in levels/')
+]
+
 panelSeparatorSize = 5
 
 def checkExpanded(filepath):
 	size = os.path.getsize(filepath)
 	if size < 9000000: # check if 8MB
 		raise PluginError("ROM at " + filepath + " is too small. You may be using an unexpanded ROM. You can expand a ROM by opening it in SM64 Editor or ROM Manager.")
+
+def getPathAndLevel(customExport, exportPath, levelName, levelOption):
+	if customExport:
+		exportPath = bpy.path.abspath(exportPath)
+		levelName = levelName
+	else:
+		exportPath = bpy.path.abspath(bpy.context.scene.decompPath)
+		if levelOption == 'custom':
+			levelName = levelName
+		else:
+			levelName = levelOption
+	return exportPath, levelName
 
 class ArmatureApplyWithMesh(bpy.types.Operator):
 	# set bl_ properties
@@ -393,17 +411,20 @@ class SM64_ExportGeolayoutObject(bpy.types.Operator):
 			applyRotation([obj], math.radians(90), 'X')
 
 			if context.scene.geoExportType == 'C':
+				exportPath, levelName = getPathAndLevel(context.scene.geoCustomExport, 
+					context.scene.geoExportPath, context.scene.geoLevelName, 
+					context.scene.geoLevelOption)
+
 				exportGeolayoutObjectC(obj, finalTransform,
 					context.scene.f3d_type, context.scene.isHWv1,
-					bpy.path.abspath(context.scene.geoExportPath),
+					exportPath,
 					bpy.context.scene.geoTexDir,
 					bpy.context.scene.geoSaveTextures,
 					bpy.context.scene.geoSeparateTextureDef,
 					None, bpy.context.scene.geoGroupName, 
 					context.scene.geoExportHeaderType,
-					context.scene.geoName)
-				self.report({'INFO'}, 'Success! Geolayout at ' + \
-					context.scene.geoExportPath)
+					context.scene.geoName, levelName, context.scene.geoCustomExport)
+				self.report({'INFO'}, 'Success!')
 			elif context.scene.geoExportType == 'Insertable Binary':
 				exportGeolayoutObjectInsertableBinary(obj,
 					finalTransform, context.scene.f3d_type,
@@ -569,16 +590,19 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 			bpy.ops.object.transform_apply(location = False, rotation = True,
 				scale = True, properties =  False)
 			if context.scene.geoExportType == 'C':
+				exportPath, levelName = getPathAndLevel(context.scene.geoCustomExport, 
+					context.scene.geoExportPath, context.scene.geoLevelName, 
+					context.scene.geoLevelOption)
+
 				exportGeolayoutArmatureC(armatureObj, obj, finalTransform,
 					context.scene.f3d_type, context.scene.isHWv1,
-					bpy.path.abspath(context.scene.geoExportPath),
+					exportPath,
 					bpy.context.scene.geoTexDir,
 					bpy.context.scene.geoSaveTextures,
 					bpy.context.scene.geoSeparateTextureDef,
 					None, bpy.context.scene.geoGroupName, context.scene.geoExportHeaderType,
-					context.scene.geoName)
-				self.report({'INFO'}, 'Success! Geolayout at ' + \
-					context.scene.geoExportPath)
+					context.scene.geoName, levelName, context.scene.geoCustomExport)
+				self.report({'INFO'}, 'Success!')
 			elif context.scene.geoExportType == 'Insertable Binary':
 				exportGeolayoutArmatureInsertableBinary(armatureObj, obj,
 					finalTransform, context.scene.f3d_type,
@@ -695,16 +719,32 @@ class SM64_ExportGeolayoutPanel(bpy.types.Panel):
 
 		col.prop(context.scene, 'geoExportType')
 		if context.scene.geoExportType == 'C':
-			col.prop(context.scene, 'geoExportPath')
-			prop_split(col, context.scene, 'geoName', 'Name')
-			prop_split(col, context.scene, 'geoExportHeaderType', 'Write Headers')
-			if context.scene.geoExportHeaderType == 'Actor':
-				prop_split(col, context.scene, 'geoGroupName', 'Group Name')
 			col.prop(context.scene, 'geoSaveTextures')
 			if context.scene.geoSaveTextures:
 				if context.scene.geoExportHeaderType == 'None':
 					prop_split(col, context.scene, 'geoTexDir', 'Texture Include Path')	
 				col.prop(context.scene, 'geoSeparateTextureDef')
+			
+			col.prop(context.scene, 'geoCustomExport')
+			if context.scene.geoCustomExport:
+				col.prop(context.scene, 'geoExportPath')
+				prop_split(col, context.scene, 'geoName', 'Name')
+				customExportWarning(col)
+			else:
+				prop_split(col, context.scene, 'geoName', 'Name')
+				prop_split(col, context.scene, 'geoExportHeaderType', 'Export Type')
+				if context.scene.geoExportHeaderType == 'Actor':
+					prop_split(col, context.scene, 'geoGroupName', 'Group Name')
+				elif context.scene.geoExportHeaderType == 'Level':
+					prop_split(col, context.scene, 'geoLevelOption', 'Level')
+					if context.scene.geoLevelOption == 'custom':
+						prop_split(col, context.scene, 'geoLevelName', 'Level Name')
+				decompFolderMessage(col)
+				writeBox = makeWriteInfoBox(col)
+				writeBoxExportType(writeBox, context.scene.geoExportHeaderType, 
+					context.scene.geoName, context.scene.geoLevelName,
+					context.scene.geoLevelOption)
+			
 			extendedRAMLabel(col)
 		elif context.scene.geoExportType == 'Insertable Binary':
 			col.prop(context.scene, 'geoInsertableBinaryPath')
@@ -872,15 +912,19 @@ class SM64_ExportDL(bpy.types.Operator):
 		try:
 			applyRotation([obj], math.radians(90), 'X')
 			if context.scene.DLExportType == 'C':
-				exportF3DtoC(bpy.path.abspath(context.scene.DLExportPath), obj,
+				exportPath, levelName = getPathAndLevel(context.scene.DLCustomExport, 
+					context.scene.DLExportPath, context.scene.DLLevelName, 
+					context.scene.DLLevelOption)
+				exportF3DtoC(exportPath, obj,
 					context.scene.DLExportisStatic, finalTransform,
 					context.scene.f3d_type, context.scene.isHWv1,
 					bpy.context.scene.DLTexDir,
 					bpy.context.scene.DLSaveTextures,
 					bpy.context.scene.DLSeparateTextureDef,
-					bpy.context.scene.DLincludeChildren, bpy.context.scene.DLName)
-				self.report({'INFO'}, 'Success! DL at ' + \
-					context.scene.DLExportPath + '.')
+					bpy.context.scene.DLincludeChildren, bpy.context.scene.DLName, levelName, context.scene.DLGroupName,
+					context.scene.DLCustomExport,
+					context.scene.DLExportHeaderType)
+				self.report({'INFO'}, 'Success!')
 				
 			elif context.scene.DLExportType == 'Insertable Binary':
 				exportF3DtoInsertableBinary(
@@ -979,14 +1023,37 @@ class SM64_ExportDLPanel(bpy.types.Panel):
 
 		col.prop(context.scene, 'DLExportType')
 		if context.scene.DLExportType == 'C':
-			col.prop(context.scene, 'DLExportPath')
-			prop_split(col, context.scene, 'DLName', 'Name')
 			col.prop(context.scene, 'DLExportisStatic')
-			col.prop(context.scene, 'DLSaveTextures')
-			if context.scene.DLSaveTextures:
-				col.prop(context.scene, 'DLTexDir')	
-				col.prop(context.scene, 'DLSeparateTextureDef')
-			#col.prop(context.scene, 'DLDefinePath')
+			
+			
+			col.prop(context.scene, 'DLCustomExport')
+			if context.scene.DLCustomExport:
+				col.prop(context.scene, 'DLExportPath')
+				prop_split(col, context.scene, 'DLName', 'Name')
+				col.prop(context.scene, 'DLSaveTextures')
+				if context.scene.DLSaveTextures:
+					prop_split(col, context.scene, 'DLTexDir',
+						'Texture Include Path')	
+					col.prop(context.scene, 'DLSeparateTextureDef')
+				customExportWarning(col)
+			else:
+				prop_split(col, context.scene, 'DLExportHeaderType', 'Export Type')
+				prop_split(col, context.scene, 'DLName', 'Name')
+				if context.scene.DLExportHeaderType == 'Actor':
+					prop_split(col, context.scene, 'DLGroupName', 'Group Name')
+				elif context.scene.DLExportHeaderType == 'Level':
+					prop_split(col, context.scene, 'DLLevelOption', 'Level')
+					if context.scene.DLLevelOption == 'custom':
+						prop_split(col, context.scene, 'DLLevelName', 'Level Name')
+				col.prop(context.scene, 'DLSaveTextures')
+				if context.scene.DLSaveTextures:
+					col.prop(context.scene, 'DLSeparateTextureDef')
+				
+				decompFolderMessage(col)
+				writeBox = makeWriteInfoBox(col)
+				writeBoxExportType(writeBox, context.scene.DLExportHeaderType, 
+					context.scene.DLName, context.scene.DLLevelName, context.scene.DLLevelOption)
+			
 		elif context.scene.DLExportType == 'Insertable Binary':
 			col.prop(context.scene, 'DLInsertableBinaryPath')
 		else:
@@ -1130,13 +1197,23 @@ class SM64_ExportLevel(bpy.types.Operator):
 			return {'CANCELLED'} # must return a set
 		try:
 			applyRotation([obj], math.radians(90), 'X')
+			if context.scene.levelCustomExport:
+				exportPath = bpy.path.abspath(context.scene.levelExportPath)
+				levelName = context.scene.levelName
+				triggerName = context.scene.levelCameraVolumeName
+			else:
+				exportPath = bpy.path.abspath(context.scene.decompPath)
+				if context.scene.levelOption == 'custom':
+					levelName = context.scene.levelName
+					triggerName = context.scene.levelCameraVolumeName
+				else:
+					levelName = context.scene.levelOption
+					triggerName = cameraTriggerNames[context.scene.levelOption]
 			exportLevelC(obj, finalTransform,
-				context.scene.f3d_type, context.scene.isHWv1, context.scene.levelName, 
-				bpy.path.abspath(context.scene.levelExportPath),
-    			context.scene.levelSaveTextures, context.scene.levelWriteScript, 
-				context.scene.levelExportRooms)
-			self.report({'INFO'}, 'Success! Level at ' + \
-				context.scene.levelExportPath)
+				context.scene.f3d_type, context.scene.isHWv1, levelName, 
+				exportPath, context.scene.levelSaveTextures, context.scene.levelCustomExport, 
+				context.scene.levelExportRooms, triggerName)
+			self.report({'INFO'}, 'Success!')
 
 			applyRotation([obj], math.radians(-90), 'X')
 			#applyRotation(obj.children, math.radians(0), 'X')
@@ -1170,12 +1247,28 @@ class SM64_ExportLevelPanel(bpy.types.Panel):
 		col = self.layout.column()
 		col.label(text = 'This is for decomp only.')
 		col.operator(SM64_ExportLevel.bl_idname)
-
-		prop_split(col, context.scene, 'levelExportPath', 'Directory')
-		prop_split(col, context.scene, 'levelName', 'Name')
 		col.prop(context.scene, 'levelSaveTextures')
-		col.prop(context.scene, 'levelWriteScript')
 		col.prop(context.scene, 'levelExportRooms')
+		col.prop(context.scene, 'levelCustomExport')
+		if context.scene.levelCustomExport:
+			prop_split(col, context.scene, 'levelExportPath', 'Directory')
+			prop_split(col, context.scene, 'levelName', 'Name')
+			prop_split(col, context.scene, 'levelCameraVolumeName', "Camera Trigger Name")
+			customExportWarning(col)
+		else:
+			col.prop(context.scene, 'levelOption')
+			if context.scene.levelOption == 'custom':
+				levelName = context.scene.levelName
+				prop_split(col, context.scene, 'levelName', 'Name')
+				prop_split(col, context.scene, 'levelCameraVolumeName', "Camera Trigger Name")
+			else:
+				levelName = context.scene.levelOption
+			decompFolderMessage(col)
+			writeBox = makeWriteInfoBox(col)
+			writeBox.label(text = 'levels/' + toAlnum(levelName) + ' (data).')
+			writeBox.label(text = 'src/game/camera.c (camera volume).')
+			writeBox.label(text = 'levels/level_defines.h (camera volume).')
+		
 		extendedRAMLabel(col)
 		#prop_split(col, context.scene, 'levelCamera', 'Camera')
 		for i in range(panelSeparatorSize):
@@ -1291,12 +1384,14 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 
 		if context.scene.animExportType == 'C':
 			try:
+				exportPath, levelName = getPathAndLevel(context.scene.animCustomExport, 
+					context.scene.animExportPath, context.scene.animLevelName, 
+					context.scene.animLevelOption)
 				exportAnimationC(armatureObj, context.scene.loopAnimation, 
-					bpy.path.abspath(context.scene.animExportPath), bpy.context.scene.animName,
-					bpy.context.scene.animGroupName if \
-					bpy.context.scene.animWriteHeaders else None)
-				self.report({'INFO'}, 'Success! Animation at ' +\
-					context.scene.animExportPath)
+					exportPath, bpy.context.scene.animName,
+					bpy.context.scene.animGroupName,
+					context.scene.animCustomExport, context.scene.animExportHeaderType, levelName)
+				self.report({'INFO'}, 'Success!')
 			except Exception as e:
 				raisePluginError(self, e)
 				return {'CANCELLED'} # must return a set
@@ -1406,11 +1501,27 @@ class SM64_ExportAnimPanel(bpy.types.Panel):
 		col.prop(context.scene, 'animExportType')
 		col.prop(context.scene, 'loopAnimation')
 		if context.scene.animExportType == 'C':
-			col.prop(context.scene, 'animExportPath')
-			prop_split(col, context.scene, 'animName', 'Name')
-			col.prop(context.scene, 'animWriteHeaders')
-			if context.scene.animWriteHeaders:
-				prop_split(col, context.scene, 'animGroupName', 'Group Name')
+			col.prop(context.scene, 'animCustomExport')
+			if context.scene.animCustomExport:
+				col.prop(context.scene, 'animExportPath')
+				prop_split(col, context.scene, 'animName', 'Name')
+				customExportWarning(col)
+			else:
+				prop_split(col, context.scene, 'animExportHeaderType', 'Export Type')
+				prop_split(col, context.scene, 'animName', 'Name')
+				if context.scene.animExportHeaderType == 'Actor':
+					prop_split(col, context.scene, 'animGroupName', 'Group Name')
+				elif context.scene.animExportHeaderType == 'Level':
+					prop_split(col, context.scene, 'animLevelOption', 'Level')
+					if context.scene.animLevelOption == 'custom':
+						prop_split(col, context.scene, 'animLevelName', 'Level Name')
+				
+				decompFolderMessage(col)
+				writeBox = makeWriteInfoBox(col)
+				writeBoxExportType(writeBox, context.scene.animExportHeaderType, 
+					context.scene.animName, context.scene.animLevelName,
+					context.scene.animLevelOption)
+
 		elif context.scene.animExportType == 'Insertable Binary':
 			col.prop(context.scene, 'isDMAExport')
 			col.prop(context.scene, 'animInsertableBinaryPath')
@@ -1479,12 +1590,16 @@ class SM64_ExportCollision(bpy.types.Operator):
 		try:
 			applyRotation([obj], math.radians(90), 'X')
 			if context.scene.colExportType == 'C':
+				exportPath, levelName = getPathAndLevel(context.scene.colCustomExport, 
+					context.scene.colExportPath, context.scene.colLevelName, 
+					context.scene.colLevelOption)
+
 				exportCollisionC(obj, finalTransform,
-					bpy.path.abspath(context.scene.colExportPath), False,
+					exportPath, False,
 					context.scene.colIncludeChildren, 
-					bpy.context.scene.colName, True, context.scene.colExportRooms)
-				self.report({'INFO'}, 'Success! Collision at ' + \
-					context.scene.colExportPath)
+					bpy.context.scene.colName, context.scene.colCustomExport, context.scene.colExportRooms,
+					context.scene.colExportHeaderType, context.scene.colGroupName, levelName)
+				self.report({'INFO'}, 'Success!')
 			elif context.scene.colExportType == 'Insertable Binary':
 				exportCollisionInsertableBinary(obj, finalTransform, 
 					bpy.path.abspath(context.scene.colInsertableBinaryPath), 
@@ -1570,10 +1685,29 @@ class SM64_ExportCollisionPanel(bpy.types.Panel):
 
 		col.prop(context.scene, 'colExportType')
 		col.prop(context.scene, 'colIncludeChildren')
+		
 		if context.scene.colExportType == 'C':
-			col.prop(context.scene, 'colExportPath')
-			prop_split(col, context.scene, 'colName', 'Name')
 			col.prop(context.scene, 'colExportRooms')
+			col.prop(context.scene, 'colCustomExport')
+			if context.scene.colCustomExport:
+				col.prop(context.scene, 'colExportPath')
+				prop_split(col, context.scene, 'colName', 'Name')
+				customExportWarning(col)
+			else:
+				prop_split(col, context.scene, 'colExportHeaderType', 'Export Type')
+				prop_split(col, context.scene, 'colName', 'Name')
+				if context.scene.colExportHeaderType == 'Actor':
+					prop_split(col, context.scene, 'colGroupName', 'Group Name')
+				elif context.scene.colExportHeaderType == 'Level':
+					prop_split(col, context.scene, 'colLevelOption', 'Level')
+					if context.scene.colLevelOption == 'custom':
+						prop_split(col, context.scene, 'colLevelName', 'Level Name')
+				
+				decompFolderMessage(col)
+				writeBox = makeWriteInfoBox(col)
+				writeBoxExportType(writeBox, context.scene.colExportHeaderType, 
+					context.scene.colName, context.scene.colLevelName, context.scene.colLevelOption)
+			
 		elif context.scene.colExportType == 'Insertable Binary':
 			col.prop(context.scene, 'colInsertableBinaryPath')
 		else:
@@ -1601,13 +1735,21 @@ class ExportTexRectDraw(bpy.types.Operator):
 			if context.scene.texrect.tex is None:
 				raise PluginError("No texture selected.")
 			else:
-				exportTexRectToC(bpy.path.abspath(context.scene.TexRectExportPath), 
+				if context.scene.decompPath == "":
+					raise PluginError("Decomp path has not been set in File Settings.")
+
+				if context.scene.TexRectCustomExport:
+					exportPath = context.scene.TexRectExportPath
+				else:
+					exportPath = context.scene.decompPath
+
+				exportTexRectToC(bpy.path.abspath(exportPath), 
 					context.scene.texrect,
 					context.scene.f3d_type, context.scene.isHWv1,
-					#context.scene.TexRectTexDir,
 					'textures/segment2',
 					context.scene.TexRectSaveTextures, context.scene.TexRectName,
-					context.scene.TexRectExportToProject, enumHUDPaths[context.scene.TexRectExportProjectFile])
+					not context.scene.TexRectCustomExport,
+					enumHUDPaths[context.scene.TexRectExportType])
 
 				self.report({'INFO'}, 'Success!')
 		except Exception as e:
@@ -1662,20 +1804,25 @@ class ExportTexRectDrawPanel(bpy.types.Panel):
 			col.prop(textureProp.S, 'mirror', text = 'Mirror S')
 			col.prop(textureProp.T, 'mirror', text = 'Mirror T')
 			
-		col.prop(context.scene, 'TexRectExportPath')
-		pathBox = col.box()
-		pathBox.label(text = 'If \"Modify project files\" enabled, set path to decomp folder.')
-		#prop_split(col, context.scene, 'TexRectTexDir', 'Include Directory')
 		prop_split(col, context.scene, 'TexRectName', 'Name')
-		col.prop(context.scene, 'TexRectExportToProject')
-		if context.scene.TexRectExportToProject:
-			prop_split(col, context.scene, 'TexRectExportProjectFile', 'Export Type')
+		col.prop(context.scene, 'TexRectSaveTextures')
+		col.prop(context.scene, 'TexRectCustomExport')
+		if context.scene.TexRectCustomExport:
+			col.prop(context.scene, 'TexRectExportPath')
+			customExportWarning(col)
+		else:
+			prop_split(col, context.scene, 'TexRectExportType', 'Export Type')
+			if not context.scene.TexRectCustomExport:
+				decompFolderMessage(col)
+				writeBox = makeWriteInfoBox(col)
+				writeBox.label(text = 'bin/segment2.c')
+				writeBox.label(text = 'src/game/segment2.h')
+				writeBox.label(text = 'textures/segment2')
 			infoBox = col.box()
 			infoBox.label(text = 'After export, call your hud\'s draw function in ')
-			infoBox.label(text = enumHUDPaths[context.scene.TexRectExportProjectFile][0] + ': ')
-			infoBox.label(text = enumHUDPaths[context.scene.TexRectExportProjectFile][1] + '.')
-		col.prop(context.scene, 'TexRectSaveTextures')
-	
+			infoBox.label(text = enumHUDPaths[context.scene.TexRectExportType][0] + ': ')
+			infoBox.label(text = enumHUDPaths[context.scene.TexRectExportType][1] + '.')
+
 		for i in range(panelSeparatorSize):
 			col.separator()
 
@@ -1709,15 +1856,18 @@ class SM64_FileSettingsPanel(bpy.types.Panel):
 
 	# called every frame
 	def draw(self, context):
-		col = self.layout.column()
+		col = self.layout.column()	
+		prop_split(col, context.scene, 'blenderToSM64Scale', 'Blender To SM64 Scale')
+		col.prop(context.scene, 'fullTraceback')
+
 		col.prop(context.scene, 'importRom')
 		col.prop(context.scene, 'exportRom')
 		col.prop(context.scene, 'outputRom')
 		col.prop(context.scene, 'extendBank4')
+		
 		col.prop(context.scene, 'decomp_compatible')
-		col.prop(context.scene, 'fullTraceback')
+		col.prop(context.scene, 'decompPath')
 		prop_split(col, context.scene, 'refreshVer', 'Decomp Func Map')
-		prop_split(col, context.scene, 'blenderToSM64Scale', 'Blender To SM64 Scale')
 
 class SM64_AddressConvertPanel(bpy.types.Panel):
 	bl_idname = "SM64_PT_addr_conv"
@@ -1855,7 +2005,7 @@ def register():
 	bpy.types.Scene.DLRAMAddr = bpy.props.StringProperty(name = 'RAM Address', 
 		default = '80000000')
 	bpy.types.Scene.DLTexDir = bpy.props.StringProperty(
-		name ='Include Path', default = '/level/ddd/')
+		name ='Include Path', default = 'level/bob')
 	bpy.types.Scene.DLSaveTextures = bpy.props.BoolProperty(
 		name = 'Save Textures As PNGs')
 	bpy.types.Scene.DLSeparateTextureDef = bpy.props.BoolProperty(
@@ -1867,6 +2017,16 @@ def register():
 		name = 'Filepath', subtype = 'FILE_PATH')
 	bpy.types.Scene.DLName = bpy.props.StringProperty(
 		name = 'Name', default = 'mario')
+	bpy.types.Scene.DLCustomExport = bpy.props.BoolProperty(
+		name = 'Custom Export Path')
+	bpy.types.Scene.DLExportHeaderType = bpy.props.EnumProperty(
+		items = enumExportHeaderType, name = 'Header Export', default = 'Actor')
+	bpy.types.Scene.DLGroupName = bpy.props.StringProperty(name = 'Group Name', 
+		default = 'group0')
+	bpy.types.Scene.DLLevelName = bpy.props.StringProperty(name = 'Level', 
+		default = 'bob')
+	bpy.types.Scene.DLLevelOption = bpy.props.EnumProperty(
+		items = enumLevelNames, name = 'Level', default = 'bob')
 	
 	# Geolayouts
 	bpy.types.Scene.levelGeoImport = bpy.props.EnumProperty(items = level_enums,
@@ -1915,7 +2075,13 @@ def register():
 	bpy.types.Scene.geoGroupName = bpy.props.StringProperty(
 		name = 'Name', default = 'group0')
 	bpy.types.Scene.geoExportHeaderType = bpy.props.EnumProperty(
-		name = 'Header Export', items = enumGeoExportHeaderType, default = 'Actor')
+		name = 'Header Export', items = enumExportHeaderType, default = 'Actor')
+	bpy.types.Scene.geoCustomExport = bpy.props.BoolProperty(
+		name = 'Custom Export Path')
+	bpy.types.Scene.geoLevelName = bpy.props.StringProperty(name = 'Level', 
+		default = 'bob')
+	bpy.types.Scene.geoLevelOption = bpy.props.EnumProperty(
+		items = enumLevelNames, name = 'Level', default = 'bob')
 
 	# Level
 	bpy.types.Scene.levelLevel = bpy.props.EnumProperty(items = level_enums, 
@@ -1963,6 +2129,16 @@ def register():
 		name = 'Group Name', default = 'group0')
 	bpy.types.Scene.animWriteHeaders = bpy.props.BoolProperty(
 		name = 'Write Headers For Actor', default = True)
+	bpy.types.Scene.animCustomExport = bpy.props.BoolProperty(
+		name = 'Custom Export Path')
+	bpy.types.Scene.animExportHeaderType = bpy.props.EnumProperty(
+		items = enumExportHeaderType, name = 'Header Export', default = 'Actor')
+	bpy.types.Scene.animGroupName = bpy.props.StringProperty(name = 'Group Name', 
+		default = 'group0')
+	bpy.types.Scene.animLevelName = bpy.props.StringProperty(name = 'Level', 
+		default = 'bob')
+	bpy.types.Scene.animLevelOption = bpy.props.EnumProperty(
+		items = enumLevelNames, name = 'Level', default = 'bob')
 
 	# Collision
 	bpy.types.Scene.colExportPath = bpy.props.StringProperty(
@@ -1987,6 +2163,16 @@ def register():
 		name = 'Export Rooms', default = False)
 	bpy.types.Scene.colName = bpy.props.StringProperty(
 		name = 'Name', default = 'mario')
+	bpy.types.Scene.colCustomExport = bpy.props.BoolProperty(
+		name = 'Custom Export Path')
+	bpy.types.Scene.colExportHeaderType = bpy.props.EnumProperty(
+		items = enumExportHeaderType, name = 'Header Export', default = 'Actor')
+	bpy.types.Scene.colGroupName = bpy.props.StringProperty(name = 'Group Name', 
+		default = 'group0')
+	bpy.types.Scene.colLevelName = bpy.props.StringProperty(name = 'Level', 
+		default = 'bob')
+	bpy.types.Scene.colLevelOption = bpy.props.EnumProperty(
+		items = enumLevelNames, name = 'Level', default = 'bob')
 
 	# Texrect
 	bpy.types.Scene.texrect = bpy.props.PointerProperty(type = TextureProperty)
@@ -1995,20 +2181,23 @@ def register():
 	bpy.types.Scene.TexRectTexDir = bpy.props.StringProperty(name = 'Include Path', default = 'textures/segment2')
 	bpy.types.Scene.TexRectSaveTextures = bpy.props.BoolProperty(name = 'Save Textures as PNGs')
 	bpy.types.Scene.TexRectName = bpy.props.StringProperty(name = 'Name', default = 'render_hud_image')
-	bpy.types.Scene.TexRectExportToProject = bpy.props.BoolProperty(name = 'Modify project files')
-	bpy.types.Scene.TexRectExportProjectFile = bpy.props.EnumProperty(name = 'Export Type', items = enumHUDExportLocation)
+	bpy.types.Scene.TexRectCustomExport = bpy.props.BoolProperty(name = 'Custom Export Path')
+	bpy.types.Scene.TexRectExportType = bpy.props.EnumProperty(name = 'Export Type', items = enumHUDExportLocation)
 
 	# Objects
 	#bpy.types.Scene.levelCamera = bpy.props.PointerProperty(type = bpy.types.Camera)
 	bpy.types.Scene.levelName = bpy.props.StringProperty(name = 'Name', default = 'bob')
+	bpy.types.Scene.levelOption = bpy.props.EnumProperty(name = "Level", items = enumLevelNames, default = 'bob')
 	bpy.types.Scene.levelExportPath = bpy.props.StringProperty(
 		name = 'Directory', subtype = 'FILE_PATH')
 	bpy.types.Scene.levelSaveTextures = bpy.props.BoolProperty(
 		name = 'Save Textures As PNGs', default = True)
-	bpy.types.Scene.levelWriteScript = bpy.props.BoolProperty(
-		name = 'Write to script file', default = True)
 	bpy.types.Scene.levelExportRooms = bpy.props.BoolProperty(
 		name = 'Export Rooms', default = False)
+	bpy.types.Scene.levelCustomExport = bpy.props.BoolProperty(
+		name = 'Custom Export Path')
+	bpy.types.Scene.levelCameraVolumeName = bpy.props.StringProperty(
+		name = 'Camera Trigger Name', default = 'sCamBOB')
 
 	# ROM
 	bpy.types.Scene.importRom = bpy.props.StringProperty(
@@ -2032,6 +2221,8 @@ def register():
 		items = enumRefreshVer, name = 'Refresh', default = 'Refresh 8')
 	bpy.types.Scene.blenderToSM64Scale = bpy.props.FloatProperty(
 		name = 'Blender To SM64 Scale', default = 212.766)
+	bpy.types.Scene.decompPath = bpy.props.StringProperty(
+		name ='Decomp Folder', subtype = 'FILE_PATH')
 
 	bpy.types.Scene.characterIgnoreSwitch = \
 		bpy.props.BoolProperty(name = 'Ignore Switch Nodes', default = True)
@@ -2070,6 +2261,9 @@ def unregister():
 	del bpy.types.Scene.geoName
 	del bpy.types.Scene.geoGroupName
 	del bpy.types.Scene.geoExportHeaderType
+	del bpy.types.Scene.geoCustomExport
+	del bpy.types.Scene.geoLevelName
+	del bpy.types.Scene.geoLevelOption
 
 	# Animation
 	del bpy.types.Scene.animStartImport
@@ -2097,6 +2291,11 @@ def unregister():
 	del bpy.types.Scene.animName
 	del bpy.types.Scene.animGroupName
 	del bpy.types.Scene.animWriteHeaders
+	del bpy.types.Scene.animCustomExport
+	del bpy.types.Scene.animExportHeaderType
+	del bpy.types.Scene.animGroupName
+	del bpy.types.Scene.animLevelName
+	del bpy.types.Scene.animLevelOption
 
 	# Character
 	del bpy.types.Scene.characterIgnoreSwitch
@@ -2130,6 +2329,11 @@ def unregister():
 	del bpy.types.Scene.DLincludeChildren
 	del bpy.types.Scene.DLInsertableBinaryPath
 	del bpy.types.Scene.DLName
+	del bpy.types.Scene.DLCustomExport
+	del bpy.types.Scene.DLExportHeaderType
+	del bpy.types.Scene.DLGroupName
+	del bpy.types.Scene.DLLevelName
+	del bpy.types.Scene.DLLevelOption
 
 	# Level
 	del bpy.types.Scene.levelLevel
@@ -2142,10 +2346,11 @@ def unregister():
 	del bpy.types.Scene.levelName
 	del bpy.types.Scene.levelExportPath 
 	del bpy.types.Scene.levelSaveTextures
-	del bpy.types.Scene.levelWriteScript
 	#del bpy.types.Scene.levelCamera	
 	del bpy.types.Scene.levelExportRooms
-
+	del bpy.types.Scene.levelCustomExport
+	del bpy.types.Scene.levelOption
+	del bpy.types.Scene.levelCameraVolumeName
 
 	# Collision
 	del bpy.types.Scene.colExportPath
@@ -2158,6 +2363,11 @@ def unregister():
 	del bpy.types.Scene.colInsertableBinaryPath	
 	del bpy.types.Scene.colExportRooms
 	del bpy.types.Scene.colName
+	del bpy.types.Scene.colCustomExport
+	del bpy.types.Scene.colExportHeaderType
+	del bpy.types.Scene.colGroupName
+	del bpy.types.Scene.colLevelName
+	del bpy.types.Scene.colLevelOption
 
 	# Texrect
 	del bpy.types.Scene.texrect
@@ -2166,8 +2376,8 @@ def unregister():
 	del bpy.types.Scene.TexRectSaveTextures
 	del bpy.types.Scene.TexRectName
 	del bpy.types.Scene.texrectImageTexture
-	del bpy.types.Scene.TexRectExportToProject
-	del bpy.types.Scene.TexRectExportProjectFile
+	del bpy.types.Scene.TexRectCustomExport
+	del bpy.types.Scene.TexRectExportType
 
 	# ROM
 	del bpy.types.Scene.importRom
@@ -2179,6 +2389,8 @@ def unregister():
 	del bpy.types.Scene.refreshVer
 	del bpy.types.Scene.blenderToSM64Scale
 	del bpy.types.Scene.fullTraceback
+	del bpy.types.Scene.decompPath
+	del bpy.types.Scene.decomp_compatible
 
 	level_unregister()
 	sm64_obj_unregister()

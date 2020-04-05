@@ -12,340 +12,368 @@ import re
 import shutil
 
 def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
-    savePNG, writeScriptFile, exportRooms):
-    
-    levelDir = os.path.join(exportDir, levelName)
-    if not os.path.exists(levelDir):
-        os.mkdir(levelDir)
-    areaDict = {}
+	savePNG, customExport, exportRooms, levelCameraVolumeName):
+	
+	if customExport:
+		levelDir = os.path.join(exportDir, levelName)
+	else:
+		levelDir = os.path.join(exportDir, 'levels/' + levelName)
 
-    geoString = ''
-    levelDataString = ''
-    headerString = ''
-    areaString = ''
+	if not os.path.exists(levelDir):
+		os.mkdir(levelDir)
+	areaDict = {}
 
-    fModel = FModel(f3dType, isHWv1, levelName)
-    childAreas = [child for child in obj.children if child.data is None and child.sm64_obj_type == 'Area Root']
-    if len(childAreas) == 0:
-        raise PluginError("The level root has no child empties with the 'Area Root' object type.")
+	geoString = ''
+	levelDataString = ''
+	headerString = ''
+	areaString = ''
+	cameraVolumeString = "struct CameraTrigger " + levelCameraVolumeName + "[] = {\n"
 
-    mario_start = None
-    for child in childAreas:
-        if len(child.children) == 0:
-            raise PluginError("Area for " + child.name + " has no children.")
-        if child.areaIndex in areaDict:
-            raise PluginError(child.name + " shares the same area index as " + areaDict[child.areaIndex].name)
-        #if child.areaCamera is None:
-        #    raise PluginError(child.name + ' does not have an area camera set.')
-        #setOrigin(obj, child)
-        areaDict[child.areaIndex] = child
-        
-        areaIndex = child.areaIndex
-        areaName = 'area_' + str(areaIndex)
-        areaDir = os.path.join(levelDir, areaName)
-        if not os.path.exists(areaDir):
-            os.mkdir(areaDir)
+	fModel = FModel(f3dType, isHWv1, levelName)
+	childAreas = [child for child in obj.children if child.data is None and child.sm64_obj_type == 'Area Root']
+	if len(childAreas) == 0:
+		raise PluginError("The level root has no child empties with the 'Area Root' object type.")
 
-        geolayoutGraph, fModel = \
-            convertObjectToGeolayout(obj, transformMatrix, 
-	        f3dType, isHWv1, child.areaCamera, levelName + '_' + areaName, fModel, child)
+	mario_start = None
+	for child in childAreas:
+		if len(child.children) == 0:
+			raise PluginError("Area for " + child.name + " has no children.")
+		if child.areaIndex in areaDict:
+			raise PluginError(child.name + " shares the same area index as " + areaDict[child.areaIndex].name)
+		#if child.areaCamera is None:
+		#    raise PluginError(child.name + ' does not have an area camera set.')
+		#setOrigin(obj, child)
+		areaDict[child.areaIndex] = child
+		
+		areaIndex = child.areaIndex
+		areaName = 'area_' + str(areaIndex)
+		areaDir = os.path.join(levelDir, areaName)
+		if not os.path.exists(areaDir):
+			os.mkdir(areaDir)
 
-        # Write geolayout
-        geoFile = open(os.path.join(areaDir, 'geo.inc.c'), 'w', newline = '\n')
-        geoFile.write(geolayoutGraph.to_c())
-        geoFile.close()
-        geoString += '#include "levels/' + levelName + '/' + areaName + '/geo.inc.c"\n'
-        headerString += geolayoutGraph.to_c_def()
+		geolayoutGraph, fModel = \
+			convertObjectToGeolayout(obj, transformMatrix, 
+			f3dType, isHWv1, child.areaCamera, levelName + '_' + areaName, fModel, child)
 
-        # Write collision
-        collision = \
-            exportCollisionCommon(obj, transformMatrix, True, True, 
-                levelName + '_' + areaName, child.areaIndex)
-        colFile = open(os.path.join(areaDir, 'collision.inc.c'), 'w', newline = '\n')
-        colFile.write(collision.to_c())
-        colFile.close()
-        levelDataString += '#include "levels/' + levelName + '/' + areaName + '/collision.inc.c"\n'
-        headerString += collision.to_c_def()
+		# Write geolayout
+		geoFile = open(os.path.join(areaDir, 'geo.inc.c'), 'w', newline = '\n')
+		geoFile.write(geolayoutGraph.to_c())
+		geoFile.close()
+		geoString += '#include "levels/' + levelName + '/' + areaName + '/geo.inc.c"\n'
+		headerString += geolayoutGraph.to_c_def()
 
-        # Write rooms
-        if exportRooms:
-            roomFile = open(os.path.join(areaDir, 'room.inc.c'), 'w', newline = '\n')
-            roomFile.write(collision.to_c_rooms())
-            roomFile.close()
-            levelDataString += '#include "levels/' + levelName + '/' + areaName + '/room.inc.c"\n'
-            headerString += collision.to_c_rooms_def()
+		# Write collision
+		collision = \
+			exportCollisionCommon(obj, transformMatrix, True, True, 
+				levelName + '_' + areaName, child.areaIndex)
+		colFile = open(os.path.join(areaDir, 'collision.inc.c'), 'w', newline = '\n')
+		colFile.write(collision.to_c())
+		colFile.close()
+		levelDataString += '#include "levels/' + levelName + '/' + areaName + '/collision.inc.c"\n'
+		headerString += collision.to_c_def()
 
-        # Get area
-        area = exportAreaCommon(obj, child, transformMatrix, 
-            geolayoutGraph.startGeolayout, collision, levelName + '_' + areaName)
-        if area.mario_start is not None:
-            mario_start = area.mario_start
-        areaString += area.to_c_script(exportRooms)
+		# Write rooms
+		if exportRooms:
+			roomFile = open(os.path.join(areaDir, 'room.inc.c'), 'w', newline = '\n')
+			roomFile.write(collision.to_c_rooms())
+			roomFile.close()
+			levelDataString += '#include "levels/' + levelName + '/' + areaName + '/room.inc.c"\n'
+			headerString += collision.to_c_rooms_def()
 
-        # Write macros
-        macroFile = open(os.path.join(areaDir, 'macro.inc.c'), 'w', newline = '\n')
-        macroFile.write(area.to_c_macros())
-        macroFile.close()
-        levelDataString += '#include "levels/' + levelName + '/' + areaName + '/macro.inc.c"\n'
-        headerString += area.to_c_def_macros()
+		# Get area
+		area = exportAreaCommon(obj, child, transformMatrix, 
+			geolayoutGraph.startGeolayout, collision, levelName + '_' + areaName)
+		if area.mario_start is not None:
+			mario_start = area.mario_start
+		areaString += area.to_c_script(exportRooms)
+		cameraVolumeString += area.to_c_camera_volumes()
 
-    # Remove old areas.
-    for f in os.listdir(levelDir):
-        if re.search('area\_\d+', f):
-            existingArea = False
-            for index, areaObj in areaDict.items():
-                if f == 'area_' + str(index):
-                    existingArea = True
-            if not existingArea:
-                shutil.rmtree(os.path.join(levelDir, f))
-    
-    data, texC = fModel.to_c("STATIC", savePNG, savePNG, 'levels/' + levelName)
-    if savePNG:
-        fModel.save_textures(levelDir)
+		# Write macros
+		macroFile = open(os.path.join(areaDir, 'macro.inc.c'), 'w', newline = '\n')
+		macroFile.write(area.to_c_macros())
+		macroFile.close()
+		levelDataString += '#include "levels/' + levelName + '/' + areaName + '/macro.inc.c"\n'
+		headerString += area.to_c_def_macros()
 
-        texPath = os.path.join(levelDir, 'texture_include.inc.c')
-        texFile = open(texPath, 'w', newline='\n')
-        texFile.write(texC)
-        texFile.close()
+	cameraVolumeString += '\tNULL_TRIGGER\n};'
 
-    modelPath = os.path.join(levelDir, 'model.inc.c')
-    modelFile = open(modelPath, 'w', newline='\n')
-    modelFile.write(data)
-    modelFile.close()
+	# Remove old areas.
+	for f in os.listdir(levelDir):
+		if re.search('area\_\d+', f):
+			existingArea = False
+			for index, areaObj in areaDict.items():
+				if f == 'area_' + str(index):
+					existingArea = True
+			if not existingArea:
+				shutil.rmtree(os.path.join(levelDir, f))
+	
+	data, texC = fModel.to_c("STATIC", savePNG, savePNG, 'levels/' + levelName)
+	if savePNG:
+		fModel.save_textures(levelDir)
 
-    fModel.freePalettes()
+		texPath = os.path.join(levelDir, 'texture_include.inc.c')
+		texFile = open(texPath, 'w', newline='\n')
+		texFile.write(texC)
+		texFile.close()
 
-    levelDataString += '#include "levels/' + levelName + '/model.inc.c"\n'
-    headerString += fModel.to_c_def("STATIC")
-    #headerString += '\nextern const LevelScript level_' + levelName + '_entry[];\n'
-    #headerString += '\n#endif\n'
+	modelPath = os.path.join(levelDir, 'model.inc.c')
+	modelFile = open(modelPath, 'w', newline='\n')
+	modelFile.write(data)
+	modelFile.close()
 
-    geoFile = open(os.path.join(levelDir, 'geo.inc.c'), 'w', newline='\n')
-    geoFile.write(geoString)
-    geoFile.close()
+	fModel.freePalettes()
 
-    levelDataFile = open(os.path.join(levelDir, 'leveldata.inc.c'), 'w', newline='\n')
-    levelDataFile.write(levelDataString)
-    levelDataFile.close()
+	levelDataString += '#include "levels/' + levelName + '/model.inc.c"\n'
+	headerString += fModel.to_c_def("STATIC")
+	#headerString += '\nextern const LevelScript level_' + levelName + '_entry[];\n'
+	#headerString += '\n#endif\n'
 
-    headerFile = open(os.path.join(levelDir, 'header.inc.h'), 'w', newline='\n')
-    headerFile.write(headerString)
-    headerFile.close()
+	geoFile = open(os.path.join(levelDir, 'geo.inc.c'), 'w', newline='\n')
+	geoFile.write(geoString)
+	geoFile.close()
 
-    areaFile = open(os.path.join(levelDir, 'script.inc.c'), 'w', newline='\n')
-    areaFile.write(areaString)
-    areaFile.close()
+	levelDataFile = open(os.path.join(levelDir, 'leveldata.inc.c'), 'w', newline='\n')
+	levelDataFile.write(levelDataString)
+	levelDataFile.close()
 
-    if writeScriptFile:
-        writeIfNotFound(os.path.join(levelDir, 'geo.c'), 
-            '#include "levels/' + levelName + '/geo.inc.c"\n', '')
-        writeIfNotFound(os.path.join(levelDir, 'leveldata.c'), 
-            '#include "levels/' + levelName + '/leveldata.inc.c"\n', '')
-        writeIfNotFound(os.path.join(levelDir, 'header.h'), 
-            '#include "levels/' + levelName + '/header.inc.h"\n', '#endif')
-        
-        if savePNG:
-            writeIfNotFound(os.path.join(levelDir, 'texture.inc.c'), 
-                '#include "levels/' + levelName + '/texture_include.inc.c"\n', '')
-        else:
-            textureIncludePath = os.path.join(levelDir, 'texture_include.inc.c')
-            if os.path.exists(textureIncludePath):
-                os.remove(textureIncludePath)
-            deleteIfFound(os.path.join(levelDir, 'texture.inc.c'), 
-                '#include "levels/' + levelName + '/texture_include.inc.c"')
+	headerFile = open(os.path.join(levelDir, 'header.inc.h'), 'w', newline='\n')
+	headerFile.write(headerString)
+	headerFile.close()
+
+	areaFile = open(os.path.join(levelDir, 'script.inc.c'), 'w', newline='\n')
+	areaFile.write(areaString)
+	areaFile.close()
+
+	if customExport:
+		cameraVolumeString = '// Replace the level specific camera volume struct in src/game/camera.c with this.\n' +\
+			'// Make sure to also add the struct name to the LEVEL_DEFINE in levels/level_defines.h.\n' +\
+			cameraVolumeString
+		cameraFile = open(os.path.join(levelDir, 'camera_trigger.inc.c'), 'w', newline='\n')
+		cameraFile.write(cameraVolumeString)
+		cameraFile.close()
+
+	if not customExport:
+		# Export camera triggers
+		cameraPath = os.path.join(exportDir, 'src/game/camera.c')
+		overwriteData('struct\s*CameraTrigger\s*', levelCameraVolumeName, cameraVolumeString, cameraPath,
+			'struct CameraTrigger *sCameraTriggers', False)
+
+		levelDefinesPath = os.path.join(exportDir, 'levels/level_defines.h')
+		levelDefines = readLevelDefines(levelDefinesPath, levelName)
+		levelDefines['camera table'] = levelCameraVolumeName
+		writeLevelDefines(levelDefinesPath, levelName, levelDefines)
+
+		# Write level data
+		writeIfNotFound(os.path.join(levelDir, 'geo.c'), 
+			'#include "levels/' + levelName + '/geo.inc.c"\n', '')
+		writeIfNotFound(os.path.join(levelDir, 'leveldata.c'), 
+			'#include "levels/' + levelName + '/leveldata.inc.c"\n', '')
+		writeIfNotFound(os.path.join(levelDir, 'header.h'), 
+			'#include "levels/' + levelName + '/header.inc.h"\n', '#endif')
+		
+		if savePNG:
+			writeIfNotFound(os.path.join(levelDir, 'texture.inc.c'), 
+				'#include "levels/' + levelName + '/texture_include.inc.c"\n', '')
+		else:
+			textureIncludePath = os.path.join(levelDir, 'texture_include.inc.c')
+			if os.path.exists(textureIncludePath):
+				os.remove(textureIncludePath)
+			deleteIfFound(os.path.join(levelDir, 'texture.inc.c'), 
+				'#include "levels/' + levelName + '/texture_include.inc.c"')
 
 
-        # modifies script.c
-        scriptFile = open(os.path.join(levelDir, 'script.c'), 'r')
-        scriptData = scriptFile.read()
-        scriptFile.close()
+		# modifies script.c
+		scriptFile = open(os.path.join(levelDir, 'script.c'), 'r')
+		scriptData = scriptFile.read()
+		scriptFile.close()
 
-        # removes old AREA() commands
-        #prog = re.compile('\sAREA\(.*END\_AREA\(\)\,', re.MULTILINE)
-        #prog.sub('', scriptData)
-        #scriptData = re.sub('\sAREA\(.*END\_AREA\(\)\,', '', scriptData)
-        #scriptData = re.sub('\sAREA\(', '/*AREA(', scriptData)
-        #scriptData = re.sub('END\_AREA\(\)\,', 'END_AREA(),*/', scriptData)
+		# removes old AREA() commands
+		#prog = re.compile('\sAREA\(.*END\_AREA\(\)\,', re.MULTILINE)
+		#prog.sub('', scriptData)
+		#scriptData = re.sub('\sAREA\(.*END\_AREA\(\)\,', '', scriptData)
+		#scriptData = re.sub('\sAREA\(', '/*AREA(', scriptData)
+		#scriptData = re.sub('END\_AREA\(\)\,', 'END_AREA(),*/', scriptData)
 
-        # comment out old AREA() commands
-        i = 0
-        isArea = False
-        while i < len(scriptData):
-            if isArea and scriptData[i] == '\n' and scriptData[i+1:i+3] != '//':
-                scriptData = scriptData[:i + 1] + '//' + scriptData[i+1:]
-                i += 2
-            if scriptData[i:i+5] == 'AREA(' and scriptData[max(i-1, 0)] != '_' and \
-                scriptData[max(i-2, 0):i] != '//':
-                scriptData = scriptData[:i] + '//' + scriptData[i:]
-                i += 2
-                isArea = True
-            if scriptData[i:i+9] == 'END_AREA(':
-                isArea = False
-            i += 1
+		# comment out old AREA() commands
+		i = 0
+		isArea = False
+		while i < len(scriptData):
+			if isArea and scriptData[i] == '\n' and scriptData[i+1:i+3] != '//':
+				scriptData = scriptData[:i + 1] + '//' + scriptData[i+1:]
+				i += 2
+			if scriptData[i:i+5] == 'AREA(' and scriptData[max(i-1, 0)] != '_' and \
+				scriptData[max(i-2, 0):i] != '//':
+				scriptData = scriptData[:i] + '//' + scriptData[i:]
+				i += 2
+				isArea = True
+			if scriptData[i:i+9] == 'END_AREA(':
+				isArea = False
+			i += 1
 
-        # Adds new script include 
-        scriptInclude =  '#include "levels/' + levelName + '/script.inc.c"'
-        if scriptInclude not in scriptData:
-            areaPos = scriptData.find('FREE_LEVEL_POOL(),')
-            if areaPos == -1:
-                raise PluginError("Could not find FREE_LEVEL_POOL() call in level script.c.")
-            scriptData = scriptData[:areaPos] + scriptInclude + "\n\n\t" + scriptData[areaPos:]
-        
-        # Changes skybox mio0 segment
-        #if not re.match('LOAD\_MIO0\(\s*.*0x0A\,\s*\_' + bgSegment + '\_skybox\_mio0SegmentRomStart\,\s*\_' + \
-        #    bgSegment + '\_skybox\_mio0SegmentRomEnd\)\s*\,', scriptData):
-        bgSegment = backgroundSegments[obj.background]
-        segmentString = 'LOAD_MIO0(0x0A, _' + bgSegment + '_skybox_mio0SegmentRomStart, _' +\
-            bgSegment + '_skybox_mio0SegmentRomEnd),'
-        scriptData = re.sub(
-            'LOAD\_MIO0\(\s*.*0x0A\,\s*\_.*\_skybox\_mio0SegmentRomStart\,\s*\_.*\_skybox\_mio0SegmentRomEnd\)\s*\,', segmentString, scriptData)
+		# Adds new script include 
+		scriptInclude =  '#include "levels/' + levelName + '/script.inc.c"'
+		if scriptInclude not in scriptData:
+			areaPos = scriptData.find('FREE_LEVEL_POOL(),')
+			if areaPos == -1:
+				raise PluginError("Could not find FREE_LEVEL_POOL() call in level script.c.")
+			scriptData = scriptData[:areaPos] + scriptInclude + "\n\n\t" + scriptData[areaPos:]
+		
+		# Changes skybox mio0 segment
+		#if not re.match('LOAD\_MIO0\(\s*.*0x0A\,\s*\_' + bgSegment + '\_skybox\_mio0SegmentRomStart\,\s*\_' + \
+		#    bgSegment + '\_skybox\_mio0SegmentRomEnd\)\s*\,', scriptData):
+		bgSegment = backgroundSegments[obj.background]
+		segmentString = 'LOAD_MIO0(0x0A, _' + bgSegment + '_skybox_mio0SegmentRomStart, _' +\
+			bgSegment + '_skybox_mio0SegmentRomEnd),'
+		scriptData = re.sub(
+			'LOAD\_MIO0\(\s*.*0x0A\,\s*\_.*\_skybox\_mio0SegmentRomStart\,\s*\_.*\_skybox\_mio0SegmentRomEnd\)\s*\,', segmentString, scriptData)
 
-        # Writes mario pos if in script.c.
-        if mario_start is not None:
-            marioPosString = mario_start.to_c() + ","
-            scriptData = re.sub(
-                'MARIO\_POS\(.*\)\,', marioPosString, scriptData)
-        
-        scriptFile = open(os.path.join(levelDir, 'script.c'), 'w', newline = '\n')
-        scriptFile.write(scriptData)
-        scriptFile.close()
+		# Writes mario pos if in script.c.
+		if mario_start is not None:
+			marioPosString = mario_start.to_c() + ","
+			scriptData = re.sub(
+				'MARIO\_POS\(.*\)\,', marioPosString, scriptData)
+		
+		scriptFile = open(os.path.join(levelDir, 'script.c'), 'w', newline = '\n')
+		scriptFile.write(scriptData)
+		scriptFile.close()
+
 
 def addGeoC(levelName):
-    header = \
-        '#include <ultra64.h>\n' \
-        '#include "sm64.h"\n' \
-        '#include "geo_commands.h"\n' \
-        '\n' \
-        '#include "game/level_geo.h"\n' \
-        '#include "game/geo_misc.h"\n' \
-        '#include "game/camera.h"\n' \
-        '#include "game/moving_texture.h"\n' \
-        '#include "game/screen_transition.h"\n' \
-        '#include "game/paintings.h"\n\n'
-    
-    header += '#include "levels/' + levelName + '/header.h"\n'
-    return header
+	header = \
+		'#include <ultra64.h>\n' \
+		'#include "sm64.h"\n' \
+		'#include "geo_commands.h"\n' \
+		'\n' \
+		'#include "game/level_geo.h"\n' \
+		'#include "game/geo_misc.h"\n' \
+		'#include "game/camera.h"\n' \
+		'#include "game/moving_texture.h"\n' \
+		'#include "game/screen_transition.h"\n' \
+		'#include "game/paintings.h"\n\n'
+	
+	header += '#include "levels/' + levelName + '/header.h"\n'
+	return header
 
 def addLevelDataC(levelName):
-    header = \
-        '#include <ultra64.h>\n' \
-        '#include "sm64.h"\n' \
-        '#include "surface_terrains.h"\n' \
-        '#include "moving_texture_macros.h"\n' \
-        '#include "level_misc_macros.h"\n' \
-        '#include "macro_preset_names.h"\n' \
-        '#include "special_preset_names.h"\n' \
-        '#include "textures.h"\n' \
-        '#include "dialog_ids.h"\n' \
-        '\n' \
-        '#include "make_const_nonconst.h"\n'
-    
-    return header
+	header = \
+		'#include <ultra64.h>\n' \
+		'#include "sm64.h"\n' \
+		'#include "surface_terrains.h"\n' \
+		'#include "moving_texture_macros.h"\n' \
+		'#include "level_misc_macros.h"\n' \
+		'#include "macro_preset_names.h"\n' \
+		'#include "special_preset_names.h"\n' \
+		'#include "textures.h"\n' \
+		'#include "dialog_ids.h"\n' \
+		'\n' \
+		'#include "make_const_nonconst.h"\n'
+	
+	return header
 
 def addHeaderC(levelName):
-    header = \
-        '#ifndef ' + levelName.upper() + '_HEADER_H\n' +\
-        '#define ' + levelName.upper() + '_HEADER_H\n' +\
-        '\n' \
-        '#include "types.h"\n' \
-        '#include "game/moving_texture.h"\n\n'
-    
-    return header
+	header = \
+		'#ifndef ' + levelName.upper() + '_HEADER_H\n' +\
+		'#define ' + levelName.upper() + '_HEADER_H\n' +\
+		'\n' \
+		'#include "types.h"\n' \
+		'#include "game/moving_texture.h"\n\n'
+	
+	return header
 
 def drawWarpNodeProperty(layout, warpNode, index):
-    box = layout.box()
-    #box.box().label(text = 'Switch Option ' + str(index + 1))
-    box.prop(warpNode, 'expand', text = 'Warp Node ' + \
-        str(warpNode.warpID), icon = 'TRIA_DOWN' if warpNode.expand else \
-        'TRIA_RIGHT')
-    if warpNode.expand:
-        prop_split(box, warpNode, 'warpType', 'Warp Type')
-        if warpNode.warpType == 'Instant':
-            prop_split(box, warpNode, 'warpID', 'Warp ID')
-            prop_split(box, warpNode, 'destArea', 'Destination Area')
-            prop_split(box, warpNode, 'instantOffset', 'Offset')
-        else:
-            prop_split(box, warpNode, 'warpID', 'Warp ID')
-            prop_split(box, warpNode, 'destLevel', 'Destination Level')
-            prop_split(box, warpNode, 'destArea', 'Destination Area')
-            prop_split(box, warpNode, 'destNode', 'Destination Node')
-            prop_split(box, warpNode, 'warpFlags', 'Warp Flags')
+	box = layout.box()
+	#box.box().label(text = 'Switch Option ' + str(index + 1))
+	box.prop(warpNode, 'expand', text = 'Warp Node ' + \
+		str(warpNode.warpID), icon = 'TRIA_DOWN' if warpNode.expand else \
+		'TRIA_RIGHT')
+	if warpNode.expand:
+		prop_split(box, warpNode, 'warpType', 'Warp Type')
+		if warpNode.warpType == 'Instant':
+			prop_split(box, warpNode, 'warpID', 'Warp ID')
+			prop_split(box, warpNode, 'destArea', 'Destination Area')
+			prop_split(box, warpNode, 'instantOffset', 'Offset')
+		else:
+			prop_split(box, warpNode, 'warpID', 'Warp ID')
+			prop_split(box, warpNode, 'destLevel', 'Destination Level')
+			prop_split(box, warpNode, 'destArea', 'Destination Area')
+			prop_split(box, warpNode, 'destNode', 'Destination Node')
+			prop_split(box, warpNode, 'warpFlags', 'Warp Flags')
 		
-        buttons = box.row(align = True)
-        buttons.operator(RemoveWarpNode.bl_idname,
-        	text = 'Remove Option').option = index
-        buttons.operator(AddWarpNode.bl_idname, 
-        	text = 'Add Option').option = index + 1
+		buttons = box.row(align = True)
+		buttons.operator(RemoveWarpNode.bl_idname,
+			text = 'Remove Option').option = index
+		buttons.operator(AddWarpNode.bl_idname, 
+			text = 'Add Option').option = index + 1
 
 class SM64AreaPanel(bpy.types.Panel):
-    bl_label = "Area Inspector"
-    bl_idname = "SM64_Area_Inspector"
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = "object"
-    bl_options = {'HIDE_HEADER'} 
+	bl_label = "Area Inspector"
+	bl_idname = "SM64_Area_Inspector"
+	bl_space_type = 'PROPERTIES'
+	bl_region_type = 'WINDOW'
+	bl_context = "object"
+	bl_options = {'HIDE_HEADER'} 
 
-    @classmethod
-    def poll(cls, context):
-        if context.object is not None:
-            obj = context.object
-            return obj.data is None and obj.sm64_obj_type == 'Area Root'
-        #if context.object is not None and isinstance(context.object.data, bpy.types.Mesh):
-        #    obj = context.object
-        #    if obj.parent is not None:
-        #        parent = obj.parent
-        #        return parent.data is None and parent.sm64_obj_type == 'Level Root'
-        return False
+	@classmethod
+	def poll(cls, context):
+		if context.object is not None:
+			obj = context.object
+			return obj.data is None and obj.sm64_obj_type == 'Area Root'
+		#if context.object is not None and isinstance(context.object.data, bpy.types.Mesh):
+		#    obj = context.object
+		#    if obj.parent is not None:
+		#        parent = obj.parent
+		#        return parent.data is None and parent.sm64_obj_type == 'Level Root'
+		return False
 
-    def draw(self, context):
-        obj = context.object
-        box = self.layout.box()
-        box.box().label(text = 'SM64 Area Inspector')
-        prop_split(box, obj, 'areaIndex', 'Area Index')
-        #prop_split(box, obj, 'areaCamera', 'Area Camera')
-        prop_split(box, obj, 'noMusic', 'Disable Music')
-        if not obj.noMusic:
-            prop_split(box, obj, 'music_preset', 'Music Preset')
-            prop_split(box, obj, 'music_seq', 'Music Sequence')
-            box.box().label(text = 'Sequence IDs defined in include/seq_ids.h.')
-        prop_split(box, obj, 'terrain_type', 'Terrain Type')
-        box.box().label(text = 'Terrain IDs defined in include/surface_terrains.h.')
+	def draw(self, context):
+		obj = context.object
+		box = self.layout.box()
+		box.box().label(text = 'SM64 Area Inspector')
+		prop_split(box, obj, 'areaIndex', 'Area Index')
+		#prop_split(box, obj, 'areaCamera', 'Area Camera')
+		prop_split(box, obj, 'noMusic', 'Disable Music')
+		if not obj.noMusic:
+			prop_split(box, obj, 'music_preset', 'Music Preset')
+			prop_split(box, obj, 'music_seq', 'Music Sequence')
+			box.box().label(text = 'Sequence IDs defined in include/seq_ids.h.')
+		prop_split(box, obj, 'terrain_type', 'Terrain Type')
+		box.box().label(text = 'Terrain IDs defined in include/surface_terrains.h.')
 
-        box.operator(AddWarpNode.bl_idname).option = len(obj.warpNodes)
-        for i in range(len(obj.warpNodes)):
-            drawWarpNodeProperty(box, obj.warpNodes[i], i)
+		box.operator(AddWarpNode.bl_idname).option = len(obj.warpNodes)
+		for i in range(len(obj.warpNodes)):
+			drawWarpNodeProperty(box, obj.warpNodes[i], i)
 
 warpTypeEnum = [
-    ("Warp", "Warp", "Warp"),
-    ("Painting", "Painting", "Painting"),
-    ("Instant", "Instant", "Instant"),
+	("Warp", "Warp", "Warp"),
+	("Painting", "Painting", "Painting"),
+	("Instant", "Instant", "Instant"),
 ]
 
 class WarpNodeProperty(bpy.types.PropertyGroup):
-    warpType : bpy.props.EnumProperty(name = 'Warp Type', items = warpTypeEnum, default = 'Warp')
-    warpID : bpy.props.StringProperty(name = 'Warp ID', default = '0x0A')
-    destLevel : bpy.props.StringProperty(name = 'Destination Level', default = 'LEVEL_BOB')
-    destArea : bpy.props.StringProperty(name = 'Destination Area', default = '0x01')
-    destNode : bpy.props.StringProperty(name = 'Destination Node', default = '0x0A')
-    warpFlags : bpy.props.StringProperty(name = 'Warp Flags', default = 'WARP_NO_CHECKPOINT')
-    instantOffset : bpy.props.IntVectorProperty(name = 'Offset',
-        size = 3, default = (0,0,0))
+	warpType : bpy.props.EnumProperty(name = 'Warp Type', items = warpTypeEnum, default = 'Warp')
+	warpID : bpy.props.StringProperty(name = 'Warp ID', default = '0x0A')
+	destLevel : bpy.props.StringProperty(name = 'Destination Level', default = 'LEVEL_BOB')
+	destArea : bpy.props.StringProperty(name = 'Destination Area', default = '0x01')
+	destNode : bpy.props.StringProperty(name = 'Destination Node', default = '0x0A')
+	warpFlags : bpy.props.StringProperty(name = 'Warp Flags', default = 'WARP_NO_CHECKPOINT')
+	instantOffset : bpy.props.IntVectorProperty(name = 'Offset',
+		size = 3, default = (0,0,0))
 
-    expand : bpy.props.BoolProperty()
+	expand : bpy.props.BoolProperty()
 
-    def to_c(self):
-        if self.warpType == 'Instant':
-            return 'INSTANT_WARP(' + str(self.warpID) + ', ' + str(self.destArea) +\
-                ', ' + str(self.instantOffset[0]) + ', ' + str(self.instantOffset[1]) + \
-                ', ' + str(self.instantOffset[2]) + ')'
-        else:
-            if self.warpType == 'Warp':
-                cmd = 'WARP_NODE'
-            elif self.warpType == 'Painting':
-                cmd = 'PAINTING_WARP_NODE'
+	def to_c(self):
+		if self.warpType == 'Instant':
+			return 'INSTANT_WARP(' + str(self.warpID) + ', ' + str(self.destArea) +\
+				', ' + str(self.instantOffset[0]) + ', ' + str(self.instantOffset[1]) + \
+				', ' + str(self.instantOffset[2]) + ')'
+		else:
+			if self.warpType == 'Warp':
+				cmd = 'WARP_NODE'
+			elif self.warpType == 'Painting':
+				cmd = 'PAINTING_WARP_NODE'
 
-            return cmd + '(' + str(self.warpID) + ', ' + str(self.destLevel) + ', ' +\
-                str(self.destArea) + ', ' + str(self.destNode) + ', ' + str(self.warpFlags) + ')'
+			return cmd + '(' + str(self.warpID) + ', ' + str(self.destLevel) + ', ' +\
+				str(self.destArea) + ', ' + str(self.destNode) + ', ' + str(self.warpFlags) + ')'
 
 class AddWarpNode(bpy.types.Operator):
 	bl_idname = 'bone.add_warp_node'
@@ -369,39 +397,39 @@ class RemoveWarpNode(bpy.types.Operator):
 
 level_classes = (
 	SM64AreaPanel,
-    WarpNodeProperty,
-    AddWarpNode,
-    RemoveWarpNode,
+	WarpNodeProperty,
+	AddWarpNode,
+	RemoveWarpNode,
 )
 
 def level_register():
-    for cls in level_classes:
-    	register_class(cls)
-        
-    bpy.types.Object.areaIndex = bpy.props.IntProperty(name = 'Index',
-        min = 1, default = 1)
+	for cls in level_classes:
+		register_class(cls)
+		
+	bpy.types.Object.areaIndex = bpy.props.IntProperty(name = 'Index',
+		min = 1, default = 1)
 
-    bpy.types.Object.music_preset = bpy.props.StringProperty(
-        name = "Music Preset", default = '0x00')
-    bpy.types.Object.music_seq = bpy.props.StringProperty(
-        name = "Music Sequence", default = 'SEQ_LEVEL_GRASS')
-    bpy.types.Object.noMusic = bpy.props.BoolProperty(
-        name = 'No Music', default = False)
-    bpy.types.Object.terrain_type = bpy.props.StringProperty(
-        name = "Terrain Type", default = 'TERRAIN_GRASS')
+	bpy.types.Object.music_preset = bpy.props.StringProperty(
+		name = "Music Preset", default = '0x00')
+	bpy.types.Object.music_seq = bpy.props.StringProperty(
+		name = "Music Sequence", default = 'SEQ_LEVEL_GRASS')
+	bpy.types.Object.noMusic = bpy.props.BoolProperty(
+		name = 'No Music', default = False)
+	bpy.types.Object.terrain_type = bpy.props.StringProperty(
+		name = "Terrain Type", default = 'TERRAIN_GRASS')
 
-    bpy.types.Object.areaCamera = bpy.props.PointerProperty(type = bpy.types.Camera)
-    bpy.types.Object.warpNodes = bpy.props.CollectionProperty(
+	bpy.types.Object.areaCamera = bpy.props.PointerProperty(type = bpy.types.Camera)
+	bpy.types.Object.warpNodes = bpy.props.CollectionProperty(
 		type = WarpNodeProperty)
 
 def level_unregister():
 	
-    del bpy.types.Object.areaIndex
-    del bpy.types.Object.music_preset
-    del bpy.types.Object.music_seq
-    del bpy.types.Object.terrain_type
-    del bpy.types.Object.areaCamera
-    del bpy.types.Object.noMusic
+	del bpy.types.Object.areaIndex
+	del bpy.types.Object.music_preset
+	del bpy.types.Object.music_seq
+	del bpy.types.Object.terrain_type
+	del bpy.types.Object.areaCamera
+	del bpy.types.Object.noMusic
 
-    for cls in reversed(level_classes):
-    	unregister_class(cls)
+	for cls in reversed(level_classes):
+		unregister_class(cls)

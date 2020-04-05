@@ -236,7 +236,13 @@ def exportCollisionBinary(obj, transformMatrix, romfile, startAddress,
 	return start, end
 
 def exportCollisionC(obj, transformMatrix, dirPath, includeSpecials, 
-	includeChildren, name, writeDefinitionsFile, writeRoomsFile):
+	includeChildren, name, customExport, writeRoomsFile, headerType,
+	groupName, levelName):
+
+	dirPath, texDir = getExportDir(customExport, dirPath, headerType, 
+		levelName, '', name)
+
+	name = toAlnum(name)
 	colDirPath = os.path.join(dirPath, toAlnum(name))
 
 	if not os.path.exists(colDirPath):
@@ -258,11 +264,37 @@ def exportCollisionC(obj, transformMatrix, dirPath, includeSpecials,
 		roomsFile.write(collision.to_c_rooms())
 		roomsFile.close()
 
-	if writeDefinitionsFile:
-		headerPath = os.path.join(colDirPath, 'collision_header.h')
-		cDefFile = open(headerPath, 'w', newline='\n')
-		cDefFile.write(cDefine)
-		cDefFile.close()
+	headerPath = os.path.join(colDirPath, 'collision_header.h')
+	cDefFile = open(headerPath, 'w', newline='\n')
+	cDefFile.write(cDefine)
+	cDefFile.close()
+
+	if not customExport:
+		if headerType == 'Actor':
+			# Write to group files
+			if groupName == '' or groupName is None:
+				raise PluginError("Actor header type chosen but group name not provided.")
+
+			groupPathC = os.path.join(dirPath, groupName + ".c")
+			groupPathH = os.path.join(dirPath, groupName + ".h")
+
+			writeIfNotFound(groupPathC, '\n#include "' + name + '/collision.inc.c"', '')
+			if writeRoomsFile:
+				writeIfNotFound(groupPathC, '\n#include "' + name + '/rooms.inc.c"', '')
+			else:
+				deleteIfFound(groupPathC, '\n#include "' + name + '/rooms.inc.c"')
+			writeIfNotFound(groupPathH, '\n#include "' + name + '/collision_header.h"', '\n#endif')
+		
+		elif headerType == 'Level':
+			groupPathC = os.path.join(dirPath, "leveldata.c")
+			groupPathH = os.path.join(dirPath, "header.h")
+
+			writeIfNotFound(groupPathC, '\n#include "levels/' + levelName + '/' + name + '/collision.inc.c"', '')
+			if writeRoomsFile:
+				writeIfNotFound(groupPathC, '\n#include "levels/' + levelName + '/' + name + '/rooms.inc.c"', '')
+			else:
+				deleteIfFound(groupPathC, '\n#include "levels/' + levelName + '/' + name + '/rooms.inc.c"')
+			writeIfNotFound(groupPathH, '\n#include "levels/' + levelName + '/' + name + '/collision_header.h"', '\n#endif')
 		
 	return cDefine
 

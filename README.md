@@ -130,43 +130,58 @@ Basically, Mario's DMA table starts at 0x4EC000. There is an 8 byte header, and 
 ### Animating Existing Geolayouts
 Often times it is hard to rig an existing SM64 geolayout, as there are many intermediate non-deform bones and bones don't point to their children. To make this easier you can use the 'Create Animatable Metarig' operator in the SM64 Armature Tools header. This will generate a metarig which can be used with IK. The metarig bones will be placed on armature layers 3 and 4.
 
-### C Exporting 
-When exporting data to C, a folder will be created (if it does not yet exist) and will be named after the user-provided name. The C files will be saved within this new folder. Any previous C files of the same name will be overwritten.
+## Decomp
+To start, set your base decomp folder in SM64 File Settings. This allows the plugin to automatically add headers/includes to the correct locations. You can always choose to export to a custom location, although headers/includes won't be written.
+
+### Decomp Export Types
+Most exports will let you choose an export type. 
+
+"Actor" will export data to an actor folder. The headers modified will be:
+
+- actors/my\_group.h
+- actors/my\_group.c
+- actors/my\_group\_geo.c (for geolayouts)
+
+"Level" will export data to a level folder. The headers modified will be:
+
+- levels/my\_level/leveldata.c
+- levels/my\_level/header.h
 
 ### Decomp And Extended RAM
-By default decomp uses 4MB of RAM which means space runs out quickly when exporting custom assets. To handle this, make sure to add "#define USE_EXT_RAM" at the top of include/segments.h after the include guards.
+By default decomp uses 4MB of RAM which means space runs out quickly when exporting custom assets. To handle this, make sure to add "#define USE\_EXT\_RAM" at the top of include/segments.h after the include guards.
 
 ### Exporting Geolayouts to C
-You can choose to have the plugin automatically add header definitions/declarations to the appropriate files when exporting actors to C by setting the "Write Headers" enum to something other than "None."
-To replace an actor model, set the enum to "Actor" and set the correct group name. Make sure the "Name" field is the folder name of the actor, and the directory is the /actors folder. To add a geolayout to a level folder, set the enum to "Level". The directory should be the specific level folder in /levels.
+Set the "Name" field to the actor folder name.
+To replace an actor model, set the enum to "Actor" and set the correct group name. To find the group name, look at the group or common header files in actors/ to see where the actor is defined in.
 
 To replace an actor model manually, replace its geo.inc.c and model.inc.c contents with the geolayout file and the dl file respectively. Use the contents of the header file to replace existing extern declarations in one of the group header files (ex. mario is in group0.h). Make sure that the name of your geolayout is the same the name of the geolayout you're replacing. Note that any function addresses in geolayout nodes will be converted to decomp function names if possible. Make sure to also use extended RAM as described in the sections above.
 
 ### Exporting Levels to C
 Add an Empty and check its SM64 object type in the object properties sidebar. Change the type to "Level Root."
-Add another Empty and change its type to "Area Root", and parent it to the level root object. You can now add any geometry/empties as child of the area root and it will be exported with the area. They do not have to directly parent to the area root, just to something within the area root's descendants. Empties are also used for placing specials, macros, and objects. Backgrounds are set in level root options, and warp nodes are set in area root options. Make sure to also use extended RAM as described in the sections above.
-
-The directory field should be the /levels directory if exporting directly to decomp, and the name should be the level folder name. Note that the level folder should be an existing level to replace.
+Add another Empty and change its type to "Area Root", and parent it to the level root object. You can now add any geometry/empties as child of the area root and it will be exported with the area. They do not have to directly parent to the area root, just to something within the area root's descendants. Empties are also used for placing specials, macros, objects, water boxes, and camera volumes. Backgrounds are set in level root options, and warp nodes are set in area root options. Make sure to also use extended RAM as described in the sections above.
 
 To replace a level manually, replace the contents of a level folder with your exported folder. Then,
 
-Add '#include "levels/mylevel/geo.inc.c"' to geo.c.
-
-Add '#include "levels/mylevel/leveldata.inc.c"' to leveldata.c.
-
-Add '#include "levels/mylevel/header.inc.h"' to header.h.
-
-Add '#include "levels/mylevel/texture_include.inc.c"' to texture.inc.c. (If saving textures as PNGs.)
-
-Comment out any AREA() commands and their contents in script.c and add '#include "levels/mylevel/script.inc.c"' in their place.
-
-Change the LOAD_MIO0() command for segment 0x0A to get the correct skybox segment as defined in include/segment_symbols.h.
+- Add '#include "levels/mylevel/geo.inc.c"' to geo.c.
+- Add '#include "levels/mylevel/leveldata.inc.c"' to leveldata.c.
+- Add '#include "levels/mylevel/header.inc.h"' to header.h.
+- Add '#include "levels/mylevel/texture\_include.inc.c"' to texture.inc.c. (If saving textures as PNGs.)
+- Comment out any AREA() commands and their contents in script.c and add '#include "levels/mylevel/script.inc.c"' in their place.
+- Change the LOAD_MIO0() command for segment 0x0A to get the correct skybox segment as defined in include/segment\_symbols.h.
 
 ### Exporting HUD to C
-The HUD exporter will export a texture and a function to draw it to the screen as a texture rectangle.
-If you want the plugin to handle setting up references, set your export path to your decomp folder. Enable "Modify project files." This will write the texture declaration to src/game/segment2.h, texture definition to bin/segment2.c, and the actual texture to textures/segment2 (if saving pngs separately.) This will also write the drawing function to either src/game/hud.c or src/game/ingame_menu.c depending on the "Export Type". Note that this operator can be called multiple times and it will replace the old code from previous exports. It will not delete old textures in the textures/segment2 folder, although they won't be built in the project. It also won't delete any palette data. If you want to manually setup references, disable "Modify project files".
+The HUD exporter will export a texture and a function to draw it to the screen as a texture rectangle. The data will be written to segment2, and the headers modified will be:
+
+- src/game/segment2.h (texture declaration) 
+- bin/segment2.c (texture definition)
+- textures/segment2 (texture file, if saving pngs separately) 
+
+This will also write the drawing function to either src/game/hud.c or src/game/ingame_menu.c depending on the "Export Type". Note that this operator can be called multiple times and it will replace the old code from previous exports. It will not delete old textures in the textures/segment2 folder, although they won't be built in the project. It also won't delete any palette data.
 
 The draw function will be in the format "void myfunc(x, y, width, height, s, t)". Width and height are used to take advantage of texture clamp/repeating, or to mask parts of the texture (ex. a health meter). s and t are the rectangles start UVs, which can be used to scroll the image. Negative positions are automatically handled. For basic texture drawing, set width/height to your texture dimensions and s/t to 0.
+
+### Decomp vs Homebrew Compatibility
+There may occur cases where code is formatted differently based on the code use case. In the tools panel under the SM64 File Settings subheader, you can toggle decomp compatibility.
 
 ### Switch Statements
 To create a switch node, and a bone to your armature and set its geolayout type to "Switch". Any bones that will be switched should be parented to this switch bone. The switch bone can do either material, draw layer, or mesh switching.
@@ -198,9 +213,6 @@ To resolve pointer addresses, for each pointer address,
 
     # Convert offset to segmented address
     data[pointer_address] = encode_segmented_address(export_address + current_offset)
-
-### Decomp vs Homebrew Compatibility
-There may occur cases where code is formatted differently based on the code use case. In the tools panel under the SM64 File Settings subheader, you can toggle decomp compatibility.
 
 ### Common Issues
 Game crashes: Invalid function address for switch/function/held object bones.
