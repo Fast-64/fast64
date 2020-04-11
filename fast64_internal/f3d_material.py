@@ -820,6 +820,9 @@ def update_tex_values_and_formats(self, context):
 		material.f3d_update_flag = False
 		
 		update_tex_values(material, context)
+	else:
+		if self.tex is not None:
+			self.tex_format = getOptimalFormat(self.tex)
 
 def update_tex_values(self, context):
 	if hasattr(context, 'material') and context.material is not None:
