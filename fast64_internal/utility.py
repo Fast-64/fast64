@@ -16,6 +16,17 @@ class PluginError(Exception):
 class VertexWeightError(PluginError):
 	pass
 
+def getRGBA16Tuple(color):
+	return ((int(color[0] * 0x1F) & 0x1F) << 11) | \
+		((int(color[1] * 0x1F) & 0x1F) << 6) | \
+		((int(color[2] * 0x1F) & 0x1F) << 1) | \
+		(1 if color[3] > 0.5 else 0)
+
+def getIA16Tuple(color):
+	intensity = mathutils.Color(color[0:3]).v
+	alpha = color[3]
+	return (int(intensity * 0xFF) << 8) | int(alpha * 0xFF)
+
 def convertRadiansToS16(value):
 	value = math.degrees(value)
 	# ??? Why is this negative?

@@ -264,6 +264,7 @@ def drawMatArrayProperty(layout, materialPointer, option, index, isSpecific):
 class AddSwitchOptionMat(bpy.types.Operator):
 	bl_idname = 'bone.add_switch_option_mat'
 	bl_label = 'Add Switch Option Material'
+	bl_options = {'REGISTER', 'UNDO'} 
 	option : bpy.props.IntProperty()
 	isSpecific : bpy.props.BoolProperty()
 	def execute(self, context):
@@ -278,6 +279,7 @@ class AddSwitchOptionMat(bpy.types.Operator):
 class RemoveSwitchOptionMat(bpy.types.Operator):
 	bl_idname = 'bone.remove_switch_option_mat'
 	bl_label = 'Remove Switch Option Material'
+	bl_options = {'REGISTER', 'UNDO'} 
 	option : bpy.props.IntProperty()
 	index : bpy.props.IntProperty()
 	isSpecific : bpy.props.BoolProperty()
@@ -292,6 +294,7 @@ class RemoveSwitchOptionMat(bpy.types.Operator):
 class AddSwitchOption(bpy.types.Operator):
 	bl_idname = 'bone.add_switch_option'
 	bl_label = 'Add Switch Option'
+	bl_options = {'REGISTER', 'UNDO'} 
 	option : bpy.props.IntProperty()
 	def execute(self, context):
 		bone = context.bone
@@ -303,6 +306,7 @@ class AddSwitchOption(bpy.types.Operator):
 class RemoveSwitchOption(bpy.types.Operator):
 	bl_idname = 'bone.remove_switch_option'
 	bl_label = 'Remove Switch Option'
+	bl_options = {'REGISTER', 'UNDO'} 
 	option : bpy.props.IntProperty()
 	def execute(self, context):
 		context.bone.switch_options.remove(self.option)
@@ -312,6 +316,7 @@ class RemoveSwitchOption(bpy.types.Operator):
 class MoveSwitchOption(bpy.types.Operator):
 	bl_idname = 'bone.move_switch_option'
 	bl_label = 'Move Switch Option'
+	bl_options = {'REGISTER', 'UNDO'} 
 	option : bpy.props.IntProperty()
 	offset : bpy.props.IntProperty()
 	def execute(self, context):

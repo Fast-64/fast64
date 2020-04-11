@@ -4,7 +4,7 @@ from .utility import *
 from .sm64_geolayout_constants import *
 from .sm64_geolayout_classes import *
 import math
-from .f3d_material import createF3DMat, update_preset_manual
+from .f3d_material import createF3DMat, update_preset_manual, enumMaterialPresets
 
 def convertAllBSDFtoF3D(objs, renameUV):
 	# Dict of non-f3d materials : converted f3d materials
@@ -29,16 +29,27 @@ def convertBSDFtoF3D(obj, index, material, materialDict):
 		updateMatWithName(f3dMat, material, materialDict)
 
 	elif "Principled BSDF" in material.node_tree.nodes:
-		colorNode = material.node_tree.nodes['Principled BSDF'].inputs['Base Color']
-		if len(colorNode.links) == 0:
+		tex0Node = material.node_tree.nodes['Principled BSDF'].inputs['Base Color']
+		tex1Node = material.node_tree.nodes['Principled BSDF'].inputs['Subsurface Color']
+		if len(tex0Node.links) == 0:
 			f3dMat = createF3DMat(obj, preset = 'Shaded Solid', index = index)
-			f3dMat.default_light_color = colorNode.default_value
+			f3dMat.default_light_color = tex0Node.default_value
 			updateMatWithName(f3dMat, material, materialDict)
 		else:
-			if isinstance(colorNode.links[0].from_node, bpy.types.ShaderNodeTexImage):
-				f3dMat = createF3DMat(obj, preset = 'Shaded Texture', index = index)
-				f3dMat.tex0.tex = colorNode.links[0].from_node.image
-				updateMatWithName(f3dMat, material, materialDict)
+			if isinstance(tex0Node.links[0].from_node, bpy.types.ShaderNodeTexImage):
+				if 'convert_preset' in material:
+					presetName = material['convert_preset']
+					if presetName not in [enumValue[0] for enumValue in enumMaterialPresets]:
+						raise PluginError('During BSDF to F3D conversion, for material \'' + material.name + '\',' + \
+							' enum \'' + presetName + '\' was not found in material preset enum list.')
+				else:
+					presetName = 'Shaded Texture'
+				f3dMat = createF3DMat(obj, preset = presetName, index = index)
+				f3dMat.tex0.tex = tex0Node.links[0].from_node.image
+				if len(tex1Node.links) > 0 and \
+					isinstance(tex1Node.links[0].from_node, bpy.types.ShaderNodeTexImage):
+					f3dMat.tex1.tex = tex1Node.links[0].from_node.image
+				updateMatWithName(f3dMat, material, materialDict)		
 			else:
 				print("Principled BSDF material does not have an Image Node attached to its Base Color.")
 	else:

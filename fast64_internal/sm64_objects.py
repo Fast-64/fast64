@@ -5,6 +5,7 @@ import bpy, bmesh
 import os
 from io import BytesIO
 import math
+from .sm64_function_map import func_map
 
 class SM64_Object:
 	def __init__(self, model, position, rotation, behaviour, bparam, acts):
@@ -246,6 +247,48 @@ def exportAreaCommon(levelObj, areaObj, transformMatrix, geolayout, collision, n
 
 	return area
 
+# These are all done in reference to refresh 8
+def handleRefreshDiffModelIDs(modelID):
+	if bpy.context.scene.refreshVer == 'Refresh 8' or \
+		bpy.context.scene.refreshVer == 'Refresh 7':
+		pass
+	elif bpy.context.scene.refreshVer == 'Refresh 6':
+		if modelID == 'MODEL_TWEESTER':
+			modelID = 'MODEL_TORNADO'
+	elif bpy.context.scene.refreshVer == 'Refresh 5' or \
+		bpy.context.scene.refreshVer == 'Refresh 4' or \
+		bpy.context.scene.refreshVer == 'Refresh 3':
+		if modelID == 'MODEL_TWEESTER':
+			modelID = 'MODEL_TORNADO'
+		elif modelID == 'MODEL_WAVE_TRAIL':
+			modelID = "MODEL_WATER_WAVES"
+		elif modelID == 'MODEL_IDLE_WATER_WAVE':
+			modelID = 'MODEL_WATER_WAVES_SURF'
+		elif modelID == 'MODEL_SMALL_WATER_SPLASH':
+			modelID = 'MODEL_SPOT_ON_GROUND'
+
+	return modelID
+
+def handleRefreshDiffSpecials(preset):
+	if bpy.context.scene.refreshVer == 'Refresh 8' or \
+		bpy.context.scene.refreshVer == 'Refresh 7' or \
+		bpy.context.scene.refreshVer == 'Refresh 6' or \
+		bpy.context.scene.refreshVer == 'Refresh 5' or \
+		bpy.context.scene.refreshVer == 'Refresh 4' or \
+		bpy.context.scene.refreshVer == 'Refresh 3':
+		pass
+	return preset
+
+def handleRefreshDiffMacros(preset):
+	if bpy.context.scene.refreshVer == 'Refresh 8' or \
+		bpy.context.scene.refreshVer == 'Refresh 7' or \
+		bpy.context.scene.refreshVer == 'Refresh 6' or \
+		bpy.context.scene.refreshVer == 'Refresh 5' or \
+		bpy.context.scene.refreshVer == 'Refresh 4' or \
+		bpy.context.scene.refreshVer == 'Refresh 3':
+		pass
+	return preset
+
 def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
 	if obj.data is None:
 		if obj.sm64_obj_type == 'Area Root' and obj.areaIndex != area.index:
@@ -258,7 +301,9 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
 
 		if specialsOnly:
 			if obj.sm64_obj_type == 'Special':
-				area.specials.append(SM64_Special_Object(obj.sm64_obj_preset, translation, 
+				preset = obj.sm64_special_enum if obj.sm64_special_enum != 'Custom' else obj.sm64_obj_preset
+				preset = handleRefreshDiffSpecials(preset)
+				area.specials.append(SM64_Special_Object(preset, translation, 
 					rotation.to_euler() if obj.sm64_obj_set_yaw else None, 
 					obj.sm64_obj_bparam if (obj.sm64_obj_set_yaw and obj.sm64_obj_set_bparam) else None))
 			elif obj.sm64_obj_type == 'Water Box':
@@ -267,10 +312,15 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
 					translation, scale, obj.empty_display_size))
 		else:
 			if obj.sm64_obj_type == 'Object':
-				area.objects.append(SM64_Object(obj.sm64_obj_model, translation, rotation.to_euler(), 
-					obj.sm64_obj_behaviour, obj.sm64_obj_bparam, get_act_string(obj)))
+				modelID = obj.sm64_model_enum if obj.sm64_model_enum != 'Custom' else obj.sm64_obj_model
+				modelID = handleRefreshDiffModelIDs(modelID)
+				behaviour = func_map[bpy.context.scene.refreshVer][obj.sm64_behaviour_enum] if \
+					obj.sm64_behaviour_enum != 'Custom' else obj.sm64_obj_behaviour
+				area.objects.append(SM64_Object(modelID, translation, rotation.to_euler(), 
+					behaviour, obj.sm64_obj_bparam, get_act_string(obj)))
 			elif obj.sm64_obj_type == 'Macro':
-				area.macros.append(SM64_Macro_Object(obj.sm64_obj_preset, translation, rotation.to_euler(), 
+				macro = obj.sm64_macro_enum if obj.sm64_macro_enum != 'Custom' else obj.sm64_obj_preset
+				area.macros.append(SM64_Macro_Object(macro, translation, rotation.to_euler(), 
 					obj.sm64_obj_bparam if obj.sm64_obj_set_bparam else None))
 			elif obj.sm64_obj_type == 'Mario Start':
 				mario_start = SM64_Mario_Start(obj.sm64_obj_mario_start_area, translation, rotation.to_euler())
@@ -314,6 +364,80 @@ def get_act_string(obj):
 			data += (" | " if len(data) > 0 else '') + 'ACT_6'
 		return data
 
+class SearchModelIDEnumOperator(bpy.types.Operator):
+	bl_idname = "object.search_model_id_enum_operator"
+	bl_label = "Search Model IDs"
+	bl_property = "sm64_model_enum"
+	bl_options = {'REGISTER', 'UNDO'} 
+
+	sm64_model_enum = bpy.props.EnumProperty(items = enumModelIDs)
+
+	def execute(self, context):
+		context.object.sm64_model_enum = self.sm64_model_enum
+		bpy.context.region.tag_redraw()
+		self.report({'INFO'}, "Selected: " + self.sm64_model_enum)
+		return {'FINISHED'}
+
+	def invoke(self, context, event):
+		context.window_manager.invoke_search_popup(self)
+		return {'RUNNING_MODAL'}
+
+class SearchBehaviourEnumOperator(bpy.types.Operator):
+	bl_idname = "object.search_behaviour_enum_operator"
+	bl_label = "Search Behaviours"
+	bl_property = "sm64_behaviour_enum"
+	bl_options = {'REGISTER', 'UNDO'} 
+
+	sm64_behaviour_enum = bpy.props.EnumProperty(items = enumBehaviourPresets)
+
+	def execute(self, context):
+		context.object.sm64_behaviour_enum = self.sm64_behaviour_enum
+		bpy.context.region.tag_redraw()
+		name = func_map[context.scene.refreshVer][self.sm64_behaviour_enum] if \
+			self.sm64_behaviour_enum != 'Custom' else 'Custom'
+		self.report({'INFO'}, "Selected: " + name)
+		return {'FINISHED'}
+
+	def invoke(self, context, event):
+		context.window_manager.invoke_search_popup(self)
+		return {'RUNNING_MODAL'}
+
+class SearchMacroEnumOperator(bpy.types.Operator):
+	bl_idname = "object.search_macro_enum_operator"
+	bl_label = "Search Macros"
+	bl_property = "sm64_macro_enum"
+	bl_options = {'REGISTER', 'UNDO'} 
+
+	sm64_macro_enum = bpy.props.EnumProperty(items = enumMacrosNames)
+
+	def execute(self, context):
+		context.object.sm64_macro_enum = self.sm64_macro_enum
+		bpy.context.region.tag_redraw()
+		self.report({'INFO'}, "Selected: " + self.sm64_macro_enum)
+		return {'FINISHED'}
+
+	def invoke(self, context, event):
+		context.window_manager.invoke_search_popup(self)
+		return {'RUNNING_MODAL'}
+
+class SearchSpecialEnumOperator(bpy.types.Operator):
+	bl_idname = "object.search_special_enum_operator"
+	bl_label = "Search Specials"
+	bl_property = "sm64_special_enum"
+	bl_options = {'REGISTER', 'UNDO'} 
+
+	sm64_special_enum = bpy.props.EnumProperty(items = enumSpecialsNames)
+
+	def execute(self, context):
+		context.object.sm64_special_enum = self.sm64_special_enum
+		bpy.context.region.tag_redraw()
+		self.report({'INFO'}, "Selected: " + self.sm64_special_enum)
+		return {'FINISHED'}
+
+	def invoke(self, context, event):
+		context.window_manager.invoke_search_popup(self)
+		return {'RUNNING_MODAL'}
+
 class SM64ObjectPanel(bpy.types.Panel):
 	bl_label = "Object Inspector"
 	bl_idname = "SM64_Object_Inspector"
@@ -332,24 +456,35 @@ class SM64ObjectPanel(bpy.types.Panel):
 		obj = context.object
 		prop_split(box, obj, 'sm64_obj_type', 'Object Type')
 		if obj.sm64_obj_type == 'Object':
-			
-			prop_split(box, obj, 'sm64_obj_model', 'Model')
+			prop_split(box, obj, 'sm64_model_enum', 'Model')
+			if obj.sm64_model_enum == 'Custom':
+				prop_split(box, obj, 'sm64_obj_model', 'Model ID')
+			box.operator(SearchModelIDEnumOperator.bl_idname, icon = 'VIEWZOOM')
 			box.box().label(text = 'Model IDs defined in include/model_ids.h.')
-			prop_split(box, obj, 'sm64_obj_behaviour', 'Behaviour')
+			prop_split(box, obj, 'sm64_behaviour_enum', 'Behaviour')
+			if obj.sm64_behaviour_enum == 'Custom':
+				prop_split(box, obj, 'sm64_obj_behaviour', 'Behaviour Name')
+			box.operator(SearchBehaviourEnumOperator.bl_idname, icon = 'VIEWZOOM')
 			behaviourLabel = box.box()
 			behaviourLabel.label(text = 'Behaviours defined in include/behaviour_data.h.')
 			behaviourLabel.label(text = 'Actual contents in data/behaviour_data.c.')
 			prop_split(box, obj, 'sm64_obj_bparam', 'Behaviour Parameter')
 			self.draw_acts(obj, box)
 		elif obj.sm64_obj_type == 'Macro':
-			prop_split(box, obj, 'sm64_obj_preset', 'Preset')
-			box.box().label(text = 'Macro presets defined in include/macro_presets.h.')
+			prop_split(box, obj, 'sm64_macro_enum', 'Preset')
+			if obj.sm64_macro_enum == 'Custom':
+				prop_split(box, obj, 'sm64_obj_preset', 'Preset Name')
+			box.operator(SearchMacroEnumOperator.bl_idname, icon = 'VIEWZOOM')
+			box.box().label(text = 'Macro presets defined in include/macro_preset_names.h.')
 			box.prop(obj, 'sm64_obj_set_bparam', text = 'Set Behaviour Parameter')
 			if obj.sm64_obj_set_bparam:
 				prop_split(box, obj, 'sm64_obj_bparam', 'Behaviour Parameter')
 		elif obj.sm64_obj_type == 'Special':
-			prop_split(box, obj, 'sm64_obj_preset', 'Preset')
-			box.box().label(text = 'Special presets defined in include/special_presets.h.')
+			prop_split(box, obj, 'sm64_special_enum', 'Preset')
+			if obj.sm64_special_enum == 'Custom':
+				prop_split(box, obj, 'sm64_obj_preset', 'Preset Name')
+			box.operator(SearchSpecialEnumOperator.bl_idname, icon = 'VIEWZOOM')
+			box.box().label(text = 'Special presets defined in include/special_preset_names.h.')
 			box.prop(obj, 'sm64_obj_set_yaw', text = 'Set Yaw')
 			if obj.sm64_obj_set_yaw:
 				box.prop(obj, 'sm64_obj_set_bparam', text = 'Set Behaviour Parameter')
@@ -409,24 +544,49 @@ def onUpdateObjectType(self, context):
 		self.empty_display_type = "CUBE"
 
 sm64_obj_classes = (
+	SearchModelIDEnumOperator,
+	SearchBehaviourEnumOperator,
+	SearchSpecialEnumOperator,
+	SearchMacroEnumOperator,
 	SM64ObjectPanel,
 )
 
 def sm64_obj_register():
 	for cls in sm64_obj_classes:
 		register_class(cls)
+
+	bpy.types.Object.sm64_model_enum = bpy.props.EnumProperty(
+		name = 'Model', items = enumModelIDs)
+
+	bpy.types.Object.sm64_macro_enum = bpy.props.EnumProperty(
+		name = 'Macro', items = enumMacrosNames)
+
+	bpy.types.Object.sm64_special_enum = bpy.props.EnumProperty(
+		name = 'Special', items = enumSpecialsNames)
+
+	bpy.types.Object.sm64_behaviour_enum = bpy.props.EnumProperty(
+		name = 'Behaviour', items = enumBehaviourPresets)
+
+	#bpy.types.Object.sm64_model = bpy.props.StringProperty(
+	#	name = 'Model Name')
+	#bpy.types.Object.sm64_macro = bpy.props.StringProperty(
+	#	name = 'Macro Name')
+	#bpy.types.Object.sm64_special = bpy.props.StringProperty(
+	#	name = 'Special Name')
+	#bpy.types.Object.sm64_behaviour = bpy.props.StringProperty(
+	#	name = 'Behaviour Name')
 	
 	bpy.types.Object.sm64_obj_type = bpy.props.EnumProperty(
 		name = 'SM64 Object Type', items = enumObjectType, default = 'None', update = onUpdateObjectType)
 	
 	bpy.types.Object.sm64_obj_model = bpy.props.StringProperty(
-		name = 'Model')
+		name = 'Model', default = 'MODEL_NONE')
 
 	bpy.types.Object.sm64_obj_preset = bpy.props.StringProperty(
 		name = 'Preset')
 
 	bpy.types.Object.sm64_obj_bparam = bpy.props.StringProperty(
-		name = 'Behaviour Parameter')
+		name = 'Behaviour Parameter', default = '0x00000000')
 
 	bpy.types.Object.sm64_obj_behaviour = bpy.props.StringProperty(
 		name = 'Behaviour')
@@ -509,6 +669,15 @@ def sm64_obj_register():
 		name = 'Is Global')
 
 def sm64_obj_unregister():
+	del bpy.types.Object.sm64_model_enum
+	del bpy.types.Object.sm64_macro_enum
+	del bpy.types.Object.sm64_special_enum
+	del bpy.types.Object.sm64_behaviour_enum
+
+	#del bpy.types.Object.sm64_model
+	#del bpy.types.Object.sm64_macro
+	#del bpy.types.Object.sm64_special
+	#del bpy.types.Object.sm64_behaviour
 	
 	del bpy.types.Object.sm64_obj_type
 	del bpy.types.Object.sm64_obj_model

@@ -1,7 +1,7 @@
 import re
 
 refresh_name = 'Refresh 8'
-function_map_path = './sm64.us.map.txt'
+function_map_path = './sm64.us.map'
 output_map_path = './sm64_function_map_output.py'
 
 def parse_func_map():
@@ -13,7 +13,7 @@ def parse_func_map():
     nextLine = mapfile.readline()
     while nextLine != '' and nextLine != 'Linker script and memory map\n':
         nextLine = mapfile.readline()
-    while nextLine != '' and nextLine != ' build/us/src/game/main.o(.data*)\n':
+    while nextLine != '' and nextLine != ' build/us/src/menu/level_select_menu.o(.text)\n':
         if nextLine[:17] == ' ' * 16 + '0':
             outfile.write('\t\t"' + nextLine[26:34] + '" : ')
             searchName = nextLine[34:]

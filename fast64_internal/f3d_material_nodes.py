@@ -8,6 +8,11 @@ from .f3d_gbi import F3D
 from .f3d_enums import *
 from bpy.utils import register_class, unregister_class
 
+def createGroupLink(node_tree, inputSocket, outputSocket, outputType, outputName):
+	if outputType is not None:
+		node_tree.outputs.new(outputType, outputName)
+	node_tree.links.new(inputSocket, outputSocket)
+
 def addNodeAt(node_tree, name, label, x, y):
 	node = node_tree.nodes.new(name)
 	if label is not None:
@@ -93,6 +98,8 @@ def createNodeSwitch(node_tree, caseDict, caseSocket, caseName,
 	# Add case node links
 	groupNode.inputs.new('NodeSocketInt', caseName)
 	node_tree.links.new(groupNode.inputs[0], caseSocket)
+	input_node.outputs.new('NodeSocketInt', caseName)
+	output_node.inputs.new('NodeSocketInt', caseName)
 	caseNodeInternal = input_node.outputs[0]
 
 	internalSocketDict = socketDictToInternalSocket(node_tree, 
@@ -142,18 +149,22 @@ def createNodeCombiner(node_tree, nodeA, nodeB, nodeC, nodeD, location, isAlpha)
 	# Add input source to group input
 	socketType = 'NodeSocketColor' if not isAlpha else 'NodeSocketFloat'
 	groupNode.inputs.new(socketType, 'A')
+	input_node.outputs.new(socketType, 'A')
 	inputA = groupNode.inputs[0]
 	node_tree.links.new(inputA, nodeA.outputs[0])
 
 	groupNode.inputs.new(socketType, 'B')
+	input_node.outputs.new(socketType, 'B')
 	inputB = groupNode.inputs[1]
 	node_tree.links.new(inputB, nodeB.outputs[0])
 
 	groupNode.inputs.new(socketType, 'C')
+	input_node.outputs.new(socketType, 'C')
 	inputC = groupNode.inputs[2]
 	node_tree.links.new(inputC, nodeC.outputs[0])
 
 	groupNode.inputs.new(socketType, 'D')
+	input_node.outputs.new(socketType, 'D')
 	inputD = groupNode.inputs[3]
 	node_tree.links.new(inputD, nodeD.outputs[0])
 
@@ -193,6 +204,9 @@ def createNodeCombiner(node_tree, nodeA, nodeB, nodeC, nodeD, location, isAlpha)
 	group_tree.links.new(nodeMultiply.inputs[index2], input_node.outputs[2])
 	group_tree.links.new(nodeAdd.inputs[index1], nodeMultiply.outputs[0])
 	group_tree.links.new(nodeAdd.inputs[index2], input_node.outputs[3])
+
+	output_node.inputs.new(socketType, 'Output')
+	groupNode.outputs.new(socketType, 'Output')
 	group_tree.links.new(output_node.inputs[0], nodeAdd.outputs[0])
 	
 	return groupNode
@@ -234,7 +248,9 @@ def createNodeFinal(node_tree, caseNodeDict, nodeDict, texAlphaList,
 		caseNodes['Case D Alpha ' + str(cycleIndex)], nodePos, True)
 
 	groupNode.outputs.new('NodeSocketColor', 'Color Combiner')
+	output_node.inputs.new('NodeSocketColor', 'Color Combiner')
 	groupNode.outputs.new('NodeSocketFloat', 'Color Combiner Alpha')
+	output_node.inputs.new('NodeSocketFloat', 'Color Combiner Alpha')
 	group_tree.links.new(output_node.inputs[0], out1.outputs[0])
 	group_tree.links.new(output_node.inputs[1], out_alpha1.outputs[0])
 
@@ -249,6 +265,7 @@ def createSocketToGroupLink(socket, groupNode, groupInputNode,
 	node_tree, nodeIndex, name):
 	inputType = str(type(socket))[18:-2] # convert class to string
 	groupNode.inputs.new(inputType, name)
+	groupInputNode.outputs.new(inputType, name)
 	nodeExternal = groupNode.inputs[nodeIndex]
 	node_tree.links.new(nodeExternal, socket)
 
@@ -651,7 +668,9 @@ def createShadeNode(node_tree, location, shadingNode, lightingNode, ambientNode)
 	ambientInternal = createSocketToGroupLink(ambientNode.outputs[0], 
 		groupNode, input_node, node_tree, 2, 'Ambient Color')
 	groupNode.outputs.new('NodeSocketColor', 'Color')
+	output_node.inputs.new('NodeSocketColor', 'Color')
 	groupNode.outputs.new('NodeSocketFloat', 'Alpha')
+	output_node.inputs.new('NodeSocketFloat', 'Alpha')
 
 	diffuseNode, x, y = addNodeAt(group_tree, 'ShaderNodeBsdfDiffuse', None, 0, 0)
 	colorNode, x, y = addNodeAt(group_tree, 'ShaderNodeRGB', None, 0, y)

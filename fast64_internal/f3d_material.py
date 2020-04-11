@@ -10,7 +10,7 @@ from .f3d_gbi import F3D
 from .f3d_enums import *
 from .f3d_material_nodes import *
 from .sm64_constants import *
-from .utility import prop_split
+from .utility import prop_split, PluginError, getRGBA16Tuple
 from bpy.utils import register_class, unregister_class
 import copy
 
@@ -807,6 +807,20 @@ def update_tex_values_index(self, context, texProperty, texNodeName,
 			else:
 				print("Using old node graph, cannot set intensity as alpha.")
 
+def update_tex_values_and_formats(self, context):
+	if hasattr(context, 'material') and context.material is not None:
+		material = context.material # Handles case of texture property groups
+		if material.f3d_update_flag:
+			return
+		material.f3d_update_flag = True
+		if material.tex0 == self and material.tex0.tex is not None:
+			material.tex0.tex_format = getOptimalFormat(material.tex0.tex)
+		if material.tex1 == self and material.tex1.tex is not None:
+			material.tex1.tex_format = getOptimalFormat(material.tex1.tex)
+		material.f3d_update_flag = False
+		
+		update_tex_values(material, context)
+
 def update_tex_values(self, context):
 	if hasattr(context, 'material') and context.material is not None:
 		material = context.material # Handles case of texture property groups
@@ -943,8 +957,11 @@ def createF3DMat(obj, preset = 'Shaded Solid', index = None):
 		texGenNode, texGenLinearNode)
 	uvNode1 = createUVNode(node_tree, [-300,-400], 
 		texGenNode, texGenLinearNode)
-	links.new(nodeDict['Texture 0'].inputs[0], uvNode0.outputs[0])
-	links.new(nodeDict['Texture 1'].inputs[0], uvNode1.outputs[0])
+
+	createGroupLink(node_tree, nodeDict['Texture 0'].inputs[0], 
+		uvNode0.outputs[0], 'NodeSocketVector', 'UV0Output')
+	createGroupLink(node_tree, nodeDict['Texture 1'].inputs[0], 
+		uvNode1.outputs[0], 'NodeSocketVector', 'UV1Output')
 	
 	# Add texture format mixes
 	y = createTexFormatNodes(node_tree, [300, 0], 0, nodeDict)
@@ -969,8 +986,10 @@ def createF3DMat(obj, preset = 'Shaded Solid', index = None):
 		['Combined Color', 'Shade Color'], ['Environment Color', 'Primitive Color'], 2)
 	groupNode2.location = [1200, -800]
 
-	links.new(groupNode2.inputs[8], groupNode.outputs[0])
-	links.new(groupNode2.inputs[9], groupNode.outputs[1])
+	createGroupLink(node_tree, groupNode2.inputs[8], 
+		groupNode.outputs[0], 'NodeSocketColor', 'CombinerColorOutput')
+	createGroupLink(node_tree, groupNode2.inputs[9], 
+		groupNode.outputs[1], 'NodeSocketFloat', 'CombinerAlphaOutput')
 
 	mixCycleNodeRGB, x, y = \
 		addNodeAt(node_tree, 'ShaderNodeMixRGB', 'Cycle Mix RGB', 1500, -600)
@@ -979,10 +998,14 @@ def createF3DMat(obj, preset = 'Shaded Solid', index = None):
 	cycleTypeNode, x, y = \
 		addNodeAt(node_tree, 'ShaderNodeValue', 'Cycle Type', 1500, -1200)
 	
-	links.new(mixCycleNodeRGB.inputs[1], groupNode.outputs[0])
-	links.new(mixCycleNodeRGB.inputs[2], groupNode2.outputs[0])
-	links.new(mixCycleNodeAlpha.inputs[1], groupNode.outputs[1])
-	links.new(mixCycleNodeAlpha.inputs[2], groupNode2.outputs[1])
+	createGroupLink(node_tree, mixCycleNodeRGB.inputs[1],
+		groupNode.outputs[0], None, 'CombinerColorOutput')
+	createGroupLink(node_tree, mixCycleNodeRGB.inputs[2],
+		groupNode2.outputs[0], 'NodeSocketColor', 'CombinerColorOutput2')
+	createGroupLink(node_tree, mixCycleNodeAlpha.inputs[1],
+		groupNode.outputs[1], 'NodeSocketFloat', 'CombinerAlphaOutput')
+	createGroupLink(node_tree, mixCycleNodeAlpha.inputs[2],
+		groupNode2.outputs[1], 'NodeSocketFloat', 'CombinerAlphaOutput2')
 	links.new(mixCycleNodeRGB.inputs[0], cycleTypeNode.outputs[0])
 	links.new(mixCycleNodeAlpha.inputs[0], cycleTypeNode.outputs[0])
 
@@ -1033,7 +1056,10 @@ def createF3DMat(obj, preset = 'Shaded Solid', index = None):
 	#update_tex_values(material, bpy.context)
 
 	# This won't update because material is not in context
-	material.f3d_preset = preset
+	if preset in [enumValue[0] for enumValue in enumMaterialPresets]:
+		material.f3d_preset = preset
+	else:
+		raise PluginError('Enum \'' + preset + '\' not found in material preset enum list.')
 	# That's why we force update
 	update_preset_manual(material, bpy.context)
 	#materialPresetDict['Shaded Texture'].applyToMaterial(material)
@@ -1346,7 +1372,7 @@ class TextureFieldProperty(bpy.types.PropertyGroup):
 class TextureProperty(bpy.types.PropertyGroup):
 	tex : bpy.props.PointerProperty(
 		type = bpy.types.Image, name = 'Texture',
-		update = update_tex_values)
+		update = update_tex_values_and_formats)
 
 	# this is done in material so that greyscale/nonalpha formats will
 	# be reflected in preview
@@ -1587,6 +1613,55 @@ node_categories = [
 		'''	
 	]),
 ]
+
+def getOptimalFormat(tex):
+	texFormat = 'RGBA16'
+	if tex.size[0] * tex.size[1] > 8192: # Image too big
+		return 'RGBA16'
+	
+	isGreyscale = True
+	hasAlpha4bit = False
+	hasAlpha1bit = False
+	pixelValues = []
+
+	# N64 is -Y, Blender is +Y
+	for j in reversed(range(tex.size[1])):
+		for i in range(tex.size[0]):
+			color = [1,1,1,1]
+			for field in range(tex.channels):
+				color[field] = tex.pixels[
+					(j * tex.size[0] + i) * tex.channels + field]
+			if not (color[0] == color[1] and color[1] == color[2]):
+				isGreyscale = False
+			if color[3] < 0.9375:
+				hasAlpha4bit = True
+			if color[3] < 0.5:
+				hasAlpha1bit = True
+			pixelColor = getRGBA16Tuple(color)
+			if pixelColor not in pixelValues:
+				pixelValues.append(pixelColor)
+	
+	if isGreyscale:
+		if tex.size[0] * tex.size[1] >= 4096:
+			if not hasAlpha1bit:
+				texFormat = 'I4'
+			else:
+				texFormat = 'IA4'
+		else:
+			if not hasAlpha4bit:
+				texFormat = 'I8'
+			else:
+				texFormat = 'IA8'
+	else:
+		if len(pixelValues) <= 16:
+			texFormat = 'CI4'
+		elif len(pixelValues) <= 256:
+			texFormat = 'CI8'
+		else:
+			texFormat = 'RGBA16'
+	
+	return texFormat
+	
 
 mat_classes = (
 	#MyCustomSocket,

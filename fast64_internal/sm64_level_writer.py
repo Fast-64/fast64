@@ -378,6 +378,7 @@ class WarpNodeProperty(bpy.types.PropertyGroup):
 class AddWarpNode(bpy.types.Operator):
 	bl_idname = 'bone.add_warp_node'
 	bl_label = 'Add Warp Node'
+	bl_options = {'REGISTER', 'UNDO'} 
 	option : bpy.props.IntProperty()
 	def execute(self, context):
 		obj = context.object
@@ -389,6 +390,7 @@ class AddWarpNode(bpy.types.Operator):
 class RemoveWarpNode(bpy.types.Operator):
 	bl_idname = 'bone.remove_warp_node'
 	bl_label = 'Remove Warp Node'
+	bl_options = {'REGISTER', 'UNDO'} 
 	option : bpy.props.IntProperty()
 	def execute(self, context):
 		context.object.warpNodes.remove(self.option)

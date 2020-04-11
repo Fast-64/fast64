@@ -29,7 +29,7 @@ Make sure to save often, as this plugin is prone to crashing when creating mater
 
 ### Restrictions
 -   No YUV textures supported.
--   When importing display lists / geolayouts from SM64 to Blender, only the mesh/UVs are imported (no material)
+-   When importing display lists / geolayouts from SM64 to Blender, only the mesh is imported (no material)
 
 ### Credits
 Thanks to anonymous_moose, Cheezepin, Rovert, and especially InTheBeef for testing.
@@ -39,15 +39,6 @@ Thanks to InTheBeef for LowPolySkinnedMario.
 ### Installation
 Unzip and drag the entire folder into your blender addons folder (usually at C:\Program Files\Blender Foundation\Blender\2.80\scripts\addons). Note that you must drag the ENTIRE folder, not just the 'fast64_internal' folder. Then in Blender, go to Edit -> Preferences -> Add-Ons and find/check the 'Fast64' plugin. If it does not show up, go to Edit -> Preferences -> Save&Load and make sure 'Auto Run Python Scripts' is enabled.
 
-### F3D Materials
-Any exported mesh must use an F3D Material, which can be added by the 'Create F3D Material' button in the material inspector window. You CANNOT use regular blender materials, and you must remove any blender materials / empty materials slots from any mesh.
-
-### ROM File Settings
-When importing from a ROM, the plugin will import from the ROM at filepath 'Import ROM', When exporting to a ROM, the plugin will make a copy of the file at 'Export ROM', modify it, and save the file to 'Output ROM'. The ROM must be expanded.
-
-### Where Can I Export To?
-By default, when exporting to ROM, the plugin will copy the contents of bank 4 to the range (0x11A35B8 - 0x11FFF00). This will leave you with free space to export assets to range (0x11D8930 - 0x11FFF00).
-
 ### Tool Locations
 The tools can be found in the properties sidebar under the 'Tools' tab (toggled by pressing N).
 The F3D material inspector can be found in the properties editor under the material tab.
@@ -55,6 +46,15 @@ The armature geolayout inspector can be found in the properties editor under the
 The object geolayout inspector can be found in the properties editor under the object tab.
 The level camera settings can be found in the properties editor under the camera tab.
 The RDP default settings can be found in the properties editor under the world tab.
+
+### F3D Materials
+Any exported mesh must use an F3D Material, which can be added by the 'Create F3D Material' button in the material inspector window. You CANNOT use regular blender materials. If you have a model with Principled BSDF materials, you can use the Principled BSDF to F3D conversion operator to automatically convert them. The image in the "Base Color" slot will be set as texture 0, while the image in the "Subsurface Color" slot will be set as texture 1. If you want the converter to use a specific material preset other than "Shaded Solid" or "Shaded Texture", add a custom property with the name "convert_preset" and set the preset name there.
+
+### ROM File Settings
+When importing from a ROM, the plugin will import from the ROM at filepath 'Import ROM', When exporting to a ROM, the plugin will make a copy of the file at 'Export ROM', modify it, and save the file to 'Output ROM'. The ROM must be expanded.
+
+### Where Can I Export To?
+By default, when exporting to ROM, the plugin will copy the contents of bank 4 to the range (0x11A35B8 - 0x11FFF00). This will leave you with free space to export assets to range (0x11D8930 - 0x11FFF00).
 
 ### Vertex Colors
 To use vertex colors, select the "Vertex Colored Texture" preset and add two vertex color layers to your mesh named 'Col' and 'Alpha'. The alpha layer will use the greyscale value of the vertex color to determine alpha.
@@ -158,7 +158,7 @@ To replace an actor model manually, replace its geo.inc.c and model.inc.c conten
 
 ### Exporting Levels to C
 Add an Empty and check its SM64 object type in the object properties sidebar. Change the type to "Level Root."
-Add another Empty and change its type to "Area Root", and parent it to the level root object. You can now add any geometry/empties as child of the area root and it will be exported with the area. They do not have to directly parent to the area root, just to something within the area root's descendants. Empties are also used for placing specials, macros, objects, water boxes, and camera volumes. Backgrounds are set in level root options, and warp nodes are set in area root options. Make sure to also use extended RAM as described in the sections above.
+Add another Empty and change its type to "Area Root", and parent it to the level root object. You can now add any geometry/empties as child of the area root and it will be exported with the area. They do not have to directly parent to the area root, just to something within the area root's descendants. Empties are also used for placing specials, macros, objects, water boxes, and camera volumes. You can search the available options using the relevant search operators, or set an option to "Custom" to write in your own values. Backgrounds are set in level root options, and warp nodes are set in area root options. Make sure to also use extended RAM as described in the sections above.
 
 To replace a level manually, replace the contents of a level folder with your exported folder. Then,
 

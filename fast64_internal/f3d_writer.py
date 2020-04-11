@@ -1381,15 +1381,9 @@ def saveOrGetPaletteDefinition(fModelOrTexRect, image, imageName, texFmt, palFmt
 				color[field] = image.pixels[
 					(j * image.size[0] + i) * image.channels + field]
 			if palFormat == 'G_IM_FMT_RGBA':
-				pixelColor = \
-					((int(color[0] * 0x1F) & 0x1F) << 11) | \
-					((int(color[1] * 0x1F) & 0x1F) << 6) | \
-					((int(color[2] * 0x1F) & 0x1F) << 1) | \
-					(1 if color[3] > 0.5 else 0)
+				pixelColor = getRGBA16Tuple(color)
 			elif palFormat == 'G_IM_FMT_IA':
-				intensity = mathutils.Color(color[0:3]).v
-				alpha = color[3]
-				pixelColor = (int(intensity * 0xFF) << 8) | int(alpha * 0xFF)
+				pixelColor = getIA16Tuple(color)
 			else:
 				raise PluginError("Invalid combo: " + palFormat + ', ' + bitSize)
 
