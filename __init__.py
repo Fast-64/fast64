@@ -2189,7 +2189,7 @@ def register():
 	bpy.types.Scene.levelExportPath = bpy.props.StringProperty(
 		name = 'Directory', subtype = 'FILE_PATH')
 	bpy.types.Scene.levelSaveTextures = bpy.props.BoolProperty(
-		name = 'Save Textures As PNGs', default = True)
+		name = 'Save Textures As PNGs')
 	bpy.types.Scene.levelExportRooms = bpy.props.BoolProperty(
 		name = 'Export Rooms', default = False)
 	bpy.types.Scene.levelCustomExport = bpy.props.BoolProperty(
