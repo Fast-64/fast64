@@ -2133,8 +2133,6 @@ def register():
 		name = 'Custom Export Path')
 	bpy.types.Scene.animExportHeaderType = bpy.props.EnumProperty(
 		items = enumExportHeaderType, name = 'Header Export', default = 'Actor')
-	bpy.types.Scene.animGroupName = bpy.props.StringProperty(name = 'Group Name', 
-		default = 'group0')
 	bpy.types.Scene.animLevelName = bpy.props.StringProperty(name = 'Level', 
 		default = 'bob')
 	bpy.types.Scene.animLevelOption = bpy.props.EnumProperty(
@@ -2293,7 +2291,6 @@ def unregister():
 	del bpy.types.Scene.animWriteHeaders
 	del bpy.types.Scene.animCustomExport
 	del bpy.types.Scene.animExportHeaderType
-	del bpy.types.Scene.animGroupName
 	del bpy.types.Scene.animLevelName
 	del bpy.types.Scene.animLevelOption
 
