@@ -423,7 +423,7 @@ class SM64_ExportGeolayoutObject(bpy.types.Operator):
 					bpy.context.scene.geoSeparateTextureDef,
 					None, bpy.context.scene.geoGroupName, 
 					context.scene.geoExportHeaderType,
-					context.scene.geoName, levelName, context.scene.geoCustomExport)
+					context.scene.geoName, levelName, context.scene.geoCustomExport, "Static")
 				self.report({'INFO'}, 'Success!')
 			elif context.scene.geoExportType == 'Insertable Binary':
 				exportGeolayoutObjectInsertableBinary(obj,
@@ -601,7 +601,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 					bpy.context.scene.geoSaveTextures,
 					bpy.context.scene.geoSeparateTextureDef,
 					None, bpy.context.scene.geoGroupName, context.scene.geoExportHeaderType,
-					context.scene.geoName, levelName, context.scene.geoCustomExport)
+					context.scene.geoName, levelName, context.scene.geoCustomExport, "Static")
 				self.report({'INFO'}, 'Success!')
 			elif context.scene.geoExportType == 'Insertable Binary':
 				exportGeolayoutArmatureInsertableBinary(armatureObj, obj,
@@ -916,7 +916,7 @@ class SM64_ExportDL(bpy.types.Operator):
 					context.scene.DLExportPath, context.scene.DLLevelName, 
 					context.scene.DLLevelOption)
 				exportF3DtoC(exportPath, obj,
-					context.scene.DLExportisStatic, finalTransform,
+					"Static" if context.scene.DLExportisStatic else "Dynamic", finalTransform,
 					context.scene.f3d_type, context.scene.isHWv1,
 					bpy.context.scene.DLTexDir,
 					bpy.context.scene.DLSaveTextures,
@@ -1212,7 +1212,7 @@ class SM64_ExportLevel(bpy.types.Operator):
 			exportLevelC(obj, finalTransform,
 				context.scene.f3d_type, context.scene.isHWv1, levelName, 
 				exportPath, context.scene.levelSaveTextures, context.scene.levelCustomExport, 
-				context.scene.levelExportRooms, triggerName)
+				context.scene.levelExportRooms, triggerName, "Static")
 			self.report({'INFO'}, 'Success!')
 
 			applyRotation([obj], math.radians(-90), 'X')

@@ -180,6 +180,16 @@ This will also write the drawing function to either src/game/hud.c or src/game/i
 
 The draw function will be in the format "void myfunc(x, y, width, height, s, t)". Width and height are used to take advantage of texture clamp/repeating, or to mask parts of the texture (ex. a health meter). s and t are the rectangles start UVs, which can be used to scroll the image. Negative positions are automatically handled. For basic texture drawing, set width/height to your texture dimensions and s/t to 0.
 
+### Scrolling Textures in Decomp
+Scrolling texture settings can be found in the material properties window before the "Geomtry Mode Settings" tab.
+This is the process for how scrolling textures is implemented:
+
+- Add a sSegmentROMTable to src/game/memory.c/h in order to keep track of which ROM locations are loaded into memory. ROM locations will be stored in this table during segment loading function calls.
+- Add src/game/texscroll.c/h which will scroll any vertex data that is currently loaded.
+- Add src/game/texscroll/ which contains segment specific texture scroll files (Ex. group0_texscroll.inc.c/h). These will be included in the texscroll.c/h file.
+- The segment specific files will include texscroll.inc.c/h files from all the geometry within it that uses scrolling. These files will be generated in the same location as the vertex data being scrolled (Ex. where model.inc.c, leveldata.c is).
+- Add a function call to update_level in src/game/level_update.c which calls the main scroll function.
+
 ### Decomp vs Homebrew Compatibility
 There may occur cases where code is formatted differently based on the code use case. In the tools panel under the SM64 File Settings subheader, you can toggle decomp compatibility.
 

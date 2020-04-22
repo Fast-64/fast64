@@ -121,6 +121,12 @@ class GeolayoutGraph:
 			data += geolayout.toTextDump(segmentData) + '\n'
 		return data
 
+	def convertToDynamic(self):
+		self.checkListSorted()
+		for geolayout in self.sortedList:
+			for node in geolayout.nodes:
+				node.convertToDynamic()
+
 class Geolayout:
 	def __init__(self, name, isStartGeo):
 		self.nodes = []
@@ -181,6 +187,20 @@ class TransformNode:
 		self.parent = None
 		self.skinned = False
 		self.skinnedWithoutDL = False
+
+	def convertToDynamic(self):
+		if self.node.hasDL:
+			funcNode = FunctionNode(self.node.DLmicrocode.name, self.node.drawLayer)
+
+			if isinstance(self.node, DisplayListNode):
+				self.node = funcNode
+			else:
+				self.node.hasDL = False
+				transformNode = TransformNode(funcNode)
+				self.children.insert(0, transformNode)
+		
+		for child in self.children:
+			child.convertToDynamic()
 	
 	def get_ptr_addresses(self, address):
 		addresses = []
@@ -765,6 +785,7 @@ class ScreenAreaNode:
 		self.entryMinus2Count = entryMinus2Count
 		self.position = position
 		self.dimensions = dimensions
+		self.hasDL = False
 	
 	def size(self):
 		return 12
@@ -795,6 +816,7 @@ class ScreenAreaNode:
 class OrthoNode:
 	def __init__(self, scale):
 		self.scale = scale
+		self.hasDL = False
 	
 	def size(self):
 		return 4
@@ -814,6 +836,7 @@ class FrustumNode:
 		self.near = int(round(near))
 		self.far = int(round(far))
 		self.useFunc = True # Always use function?
+		self.hasDL = False
 	
 	def size(self):
 		return 12 if self.useFunc else 8
@@ -841,6 +864,7 @@ class FrustumNode:
 class ZBufferNode:
 	def __init__(self, enable):
 		self.enable = enable
+		self.hasDL = False
 
 	def size(self):
 		return 4
@@ -861,6 +885,7 @@ class CameraNode:
 		self.lookAt = \
 			[int(round(value * bpy.context.scene.blenderToSM64Scale)) for value in lookAt]
 		self.geo_func = '80287D30'
+		self.hasDL = False
 	
 	def size(self):
 		return 20
@@ -889,6 +914,7 @@ class CameraNode:
 
 class RenderObjNode:
 	def __init__(self):
+		self.hasDL = False
 		pass
 
 	def size(self):
@@ -906,6 +932,7 @@ class BackgroundNode:
 		self.isColor = isColor
 		self.backgroundValue = backgroundValue
 		self.geo_func = '802763D4'
+		self.hasDL = False
 
 	def size(self):
 		return 8

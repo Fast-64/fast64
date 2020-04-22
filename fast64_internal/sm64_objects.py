@@ -237,8 +237,21 @@ def exportAreaCommon(levelObj, areaObj, transformMatrix, geolayout, collision, n
 	bpy.ops.object.select_all(action = 'DESELECT')
 	areaObj.select_set(True)
 
-	area = SM64_Area(areaObj.areaIndex, areaObj.music_seq if not areaObj.noMusic else None, areaObj.music_preset, 
-		areaObj.terrain_type, geolayout, collision, 
+	if not areaObj.noMusic:
+		if areaObj.musicSeqEnum != 'Custom':
+			musicSeq = areaObj.musicSeqEnum
+		else:
+			musicSeq = areaObj.music_seq
+	else:
+		musicSeq = None
+
+	if areaObj.terrainEnum != 'Custom':
+		terrainType = areaObj.terrainEnum
+	else:
+		terrainType = areaObj.terrain_type
+
+	area = SM64_Area(areaObj.areaIndex, musicSeq, areaObj.music_preset, 
+		terrainType, geolayout, collision, 
 		[areaObj.warpNodes[i].to_c() for i in range(len(areaObj.warpNodes))],
 		name + '_' + areaObj.name)
 

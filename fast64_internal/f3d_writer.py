@@ -9,9 +9,10 @@ import copy
 from math import pi, ceil
 from .utility import *
 from .sm64_constants import *
-from .f3d_material import all_combiner_uses
+from .f3d_material import all_combiner_uses, getMaterialScrollDimensions
 from .f3d_gbi import *
 from .f3d_gbi import _DPLoadTextureBlock
+from .sm64_texscroll import *
 
 bitSizeDict = {
 	'G_IM_SIZ_4b' : 4,
@@ -133,7 +134,7 @@ def getInfoDict(obj):
 
 # Make sure to set original_name before calling this
 # used when duplicating an object
-def saveStaticModel(fModel, obj, transformMatrix, name):
+def saveStaticModel(fModel, obj, transformMatrix, name, DLFormat):
 	if len(obj.data.polygons) == 0:
 		return None
 	
@@ -144,7 +145,7 @@ def saveStaticModel(fModel, obj, transformMatrix, name):
 	infoDict = getInfoDict(obj)
 
 	fMeshGroup = FMeshGroup(toAlnum(name + "_" + obj.original_name), 
-		FMesh(toAlnum(name + "_" + obj.original_name) + '_mesh'), None)
+		FMesh(toAlnum(name + "_" + obj.original_name) + '_mesh', DLFormat), None, DLFormat)
 	fModel.meshGroups[name + "_" + obj.original_name] = fMeshGroup
 
 	if obj.use_f3d_culling and (fModel.f3d.F3DEX_GBI or fModel.f3d.F3DEX_GBI_2):
@@ -285,11 +286,11 @@ def modifyDLForHUD(data):
 			matchResult.group(11) + ', s << 5, t << 5, ' + data[matchResult.end(0):]
 
 	# Make sure to convert segmented texture pointer to virtual
-	matchResult = re.search('gDPSetTextureImage\(gDisplayListHead\+\+\,' +\
-		'(((?!\,).)*)\, (((?!\,).)*)\, (((?!\,).)*)\, (((?!\,).)*)\)', data)
-	if matchResult:
-		data = data[:matchResult.start(7)] + 'segmented_to_virtual(&' + \
-			matchResult.group(7) + ")" +data[matchResult.end(7):]
+	#matchResult = re.search('gDPSetTextureImage\(gDisplayListHead\+\+\,' +\
+	#	'(((?!\,).)*)\, (((?!\,).)*)\, (((?!\,).)*)\, (((?!\,).)*)\)', data)
+	#if matchResult:
+	#	data = data[:matchResult.start(7)] + 'segmented_to_virtual(&' + \
+	#		matchResult.group(7) + ")" +data[matchResult.end(7):]
 	
 	return data
 
@@ -320,7 +321,7 @@ def exportTexRectCommon(texProp, f3dType, isHWv1, name):
 		DPSetRenderMode(['G_RM_AA_XLU_SURF', 'G_RM_AA_XLU_SURF2'], None)
 	])
 
-	drawEndCommands = GfxList("temp")
+	drawEndCommands = GfxList("temp", "Dynamic")
 
 	texDimensions, nextTmem = saveTextureIndex(texProp.tex.name, fTexRect, 
 		fTexRect.draw, drawEndCommands, texProp, 0, 0, 'texture')
@@ -346,12 +347,12 @@ def exportTexRectCommon(texProp, f3dType, isHWv1, name):
 	
 	return fTexRect
 
-def exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren, name):
-	fModel = FModel(f3dType, isHWv1, name)
+def exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren, name, DLFormat):
+	fModel = FModel(f3dType, isHWv1, name, DLFormat)
 
 	tempObj, meshList = combineObjects(obj, includeChildren, None, None)
 	try:
-		fMeshGroup = saveStaticModel(fModel, tempObj, transformMatrix, name)
+		fMeshGroup = saveStaticModel(fModel, tempObj, transformMatrix, name, DLFormat)
 		cleanupCombineObj(tempObj, meshList)
 		obj.select_set(True)
 		bpy.context.view_layer.objects.active = obj
@@ -363,20 +364,39 @@ def exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren, name
 
 	return fModel, fMeshGroup
 
-def exportF3DtoC(dirPath, obj, isStatic, transformMatrix, 
+def exportF3DtoC(basePath, obj, DLFormat, transformMatrix, 
 	f3dType, isHWv1, texDir, savePNG, texSeparate, includeChildren, name, levelName, groupName, customExport, headerType):
-	dirPath, texDir = getExportDir(customExport, dirPath, headerType, 
+	dirPath, texDir = getExportDir(customExport, basePath, headerType, 
 		levelName, texDir, name)
 
 	fModel, fMeshGroup = \
-		exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren, name)
+		exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, 
+		includeChildren, name, DLFormat)
 
 	modelDirPath = os.path.join(dirPath, toAlnum(name))
 
 	if not os.path.exists(modelDirPath):
 		os.mkdir(modelDirPath)
 
-	data, texC = fModel.to_c("STATIC" if isStatic else "PROCEDURAL", texSeparate, savePNG, texDir)
+	if headerType == 'Actor':
+		scrollName = 'actor_dl_' + name
+	elif headerType == 'Level':
+		scrollName = levelName + '_level_dl_' + name
+
+	static_data, dynamic_data, texC, scroll_data = fModel.to_c(texSeparate, savePNG, texDir, scrollName)
+	cDefineStatic, cDefineDynamic, cDefineScroll = fModel.to_c_def(scrollName)
+
+	writeTexScrollFiles(basePath, modelDirPath, cDefineScroll, scroll_data)
+	
+	if DLFormat == "Static":
+		static_data += '\n' + dynamic_data
+		cDefineStatic += cDefineDynamic
+	else:
+		geoString = writeMaterialFiles(basePath, modelDirPath, 
+			'#include "actors/' + toAlnum(name) + '/header.h"', 
+			'#include "actors/' + toAlnum(name) + '/material.inc.h"',
+			cDefineDynamic, dynamic_data, '', customExport)
+
 	if savePNG:
 		fModel.save_textures(modelDirPath)
 
@@ -389,15 +409,14 @@ def exportF3DtoC(dirPath, obj, isStatic, transformMatrix,
 
 	modelPath = os.path.join(modelDirPath, 'model.inc.c')
 	outFile = open(modelPath, 'w', newline='\n')
-	outFile.write(data)
+	outFile.write(static_data)
 	outFile.close()
-
+		
 	headerPath = os.path.join(modelDirPath, 'header.h')
-	cDefine = fModel.to_c_def("STATIC" if isStatic else "PROCEDURAL")
 	cDefFile = open(headerPath, 'w', newline='\n')
-	cDefFile.write(cDefine)
+	cDefFile.write(cDefineStatic)
 	cDefFile.close()
-
+		
 	if not customExport:
 		if headerType == 'Actor':
 			# Write to group files
@@ -407,15 +426,40 @@ def exportF3DtoC(dirPath, obj, isStatic, transformMatrix,
 			groupPathC = os.path.join(dirPath, groupName + ".c")
 			groupPathH = os.path.join(dirPath, groupName + ".h")
 
-			writeIfNotFound(groupPathC, '\n#include "' + name + '/model.inc.c"', '')
-			writeIfNotFound(groupPathH, '\n#include "' + name + '/header.h"', '\n#endif')
+			writeIfNotFound(groupPathC, '\n#include "' + toAlnum(name) + '/model.inc.c"', '')
+			writeIfNotFound(groupPathH, '\n#include "' + toAlnum(name) + '/header.h"', '\n#endif')
+
+			if DLFormat != "Static": # Change this
+				writeMaterialHeaders(basePath, 
+					'#include "actors/' + toAlnum(name) + '/material.inc.c"',
+					'#include "actors/' + toAlnum(name) + '/material.inc.h"')
+
+			texscrollIncludeC = '#include "actors/' + name + '/texscroll.inc.c"'
+			texscrollIncludeH = '#include "actors/' + name + '/texscroll.inc.h"'
+			texscrollGroup = groupName
+			texscrollGroupInclude = '#include "actors/' + groupName + '.h"'
 		
 		elif headerType == 'Level':
 			groupPathC = os.path.join(dirPath, "leveldata.c")
 			groupPathH = os.path.join(dirPath, "header.h")
 
-			writeIfNotFound(groupPathC, '\n#include "levels/' + levelName + '/' + name + '/model.inc.c"', '')
-			writeIfNotFound(groupPathH, '\n#include "levels/' + levelName + '/' + name + '/header.h"', '\n#endif')
+			writeIfNotFound(groupPathC, '\n#include "levels/' + levelName + '/' + \
+				toAlnum(name) + '/model.inc.c"', '')
+			writeIfNotFound(groupPathH, '\n#include "levels/' + levelName + '/' + \
+				toAlnum(name) + '/header.h"', '\n#endif')
+
+			if DLFormat != "Static": # Change this
+				writeMaterialHeaders(basePath,
+					'#include "levels/' + levelName + '/' + toAlnum(name) + '/material.inc.c"',
+					'#include "levels/' + levelName + '/' + toAlnum(name) + '/material.inc.h"')
+			
+			texscrollIncludeC = '#include "levels/' + levelName + '/' + name + '/texscroll.inc.c"'
+			texscrollIncludeH = '#include "levels/' + levelName + '/' + name + '/texscroll.inc.h"'
+			texscrollGroup = levelName
+			texscrollGroupInclude = '#include "levels/' + levelName + '/header.h"'
+
+		writeTexScrollHeadersGroup(basePath, texscrollIncludeC, texscrollIncludeH, 
+			texscrollGroup, cDefineScroll, texscrollGroupInclude)
 
 	if bpy.context.mode != 'OBJECT':
 		bpy.ops.object.mode_set(mode = 'OBJECT')
@@ -423,7 +467,7 @@ def exportF3DtoC(dirPath, obj, isStatic, transformMatrix,
 def exportF3DtoBinary(romfile, exportRange, transformMatrix, 
 	obj, f3dType, isHWv1, segmentData, includeChildren):
 	fModel, fMeshGroup = exportF3DCommon(obj, f3dType, isHWv1, 
-		transformMatrix, includeChildren, obj.name)
+		transformMatrix, includeChildren, obj.name, "Static")
 	fModel.freePalettes()
 
 	addrRange = fModel.set_addr(exportRange[0])
@@ -443,7 +487,7 @@ def exportF3DtoBinaryBank0(romfile, exportRange, transformMatrix,
 	obj, f3dType, isHWv1, RAMAddr, includeChildren):
 	fModel, fMeshGroup = \
 		exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren,
-			obj.name)
+			obj.name, "Static")
 	segmentData = copy.copy(bank0Segment)
 
 	data, startRAM = getBinaryBank0F3DData(fModel, RAMAddr, exportRange)
@@ -465,7 +509,7 @@ def exportF3DtoInsertableBinary(filepath, transformMatrix,
 	obj, f3dType, isHWv1, includeChildren):
 	fModel, fMeshGroup = \
 		exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren,
-			obj.name)
+			obj.name, "Static")
 	
 	data, startRAM = getBinaryBank0F3DData(fModel, 0, [0, 0xFFFFFF])
 	# must happen after getBinaryBank0F3DData
@@ -512,8 +556,10 @@ def revertMatAndEndDraw(gfxList, otherCommands):
 		SPClearGeometryMode(['G_TEXTURE_GEN']),
 		DPSetCombineMode(*S_SHADED_SOLID),
 		SPTexture(0xFFFF, 0xFFFF, 0, 0, 0)] +\
-		otherCommands +\
-		[SPEndDisplayList()])
+		otherCommands)
+
+	if gfxList.DLFormat != "Dynamic":
+		gfxList.commands.append(SPEndDisplayList())
 
 def getCommonEdge(face1, face2, mesh):
 	for edgeKey1 in face1.edge_keys:
@@ -636,13 +682,13 @@ def saveMeshByFaces(material, faces, fModel, fMesh, obj, transformMatrix,
 	convertInfo = LoopConvertInfo(uv_data, obj, exportVertexColors)
 
 	fMesh.draw.commands.append(SPDisplayList(fMaterial.material))
-	triList = fMesh.tri_list_new()
-	fMesh.draw.commands.append(SPDisplayList(triList))
+	triGroup = fMesh.tri_group_new(fMaterial)
+	fMesh.draw.commands.append(SPDisplayList(triGroup.triList))
 
 	#saveGeometry(obj, triList, fMesh.vertexList, bFaces, 
 	#	bMesh, texDimensions, transformMatrix, isPointSampled, isFlatShaded,
 	#	exportVertexColors, fModel.f3d)
-	saveTriangleStrip(faces, convertInfo, triList, fMesh.vertexList,
+	saveTriangleStrip(faces, convertInfo, triGroup.triList, triGroup.vertexList,
 		fModel.f3d, texDimensions, transformMatrix, isPointSampled,
 		exportVertexColors, None, None, infoDict, obj.data)
 	
@@ -1017,13 +1063,16 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer):
 		raise PluginError("Mesh must have at least one material.")
 	materialName = fModel.name + "_" + toAlnum(material.name) + (('_layer' + str(drawLayer)) \
 		if material.rdp_settings.set_rendermode and drawLayer is not None else '') 
-	fMaterial = FMaterial(materialName)
+	fMaterial = FMaterial(materialName, "Static" if fModel.DLFormat == "Static" else "Dynamic")
 	fMaterial.material.commands.append(DPPipeSync())
 	fMaterial.revert.commands.append(DPPipeSync())
 	
 	if not material.is_f3d:
 		raise PluginError("Material named " +  material.name + \
 			' is not an F3D material.')
+
+	fMaterial.getScrollData(material, getMaterialScrollDimensions(material))
+	
 	nodes = material.node_tree.nodes
 
 	if material.set_combiner:
@@ -1179,11 +1228,14 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer):
 		])
 		
 	# End Display List
-	fMaterial.material.commands.append(SPEndDisplayList())
+	# For dynamic calls, materials will be called as functions and should not end the DL.
+	if fModel.DLFormat != 'SM64 Function Node':
+		fMaterial.material.commands.append(SPEndDisplayList())
 
 	#revertMatAndEndDraw(fMaterial.revert)
 	if len(fMaterial.revert.commands) > 1: # 1 being the pipe sync
-		fMaterial.revert.commands.append(SPEndDisplayList())
+		if fMaterial.DLFormat == 'Static':
+			fMaterial.revert.commands.append(SPEndDisplayList())
 	else:
 		fMaterial.revert = None
 	
@@ -1196,6 +1248,8 @@ def saveTextureIndex(propName, fModel, loadTexGfx, revertTexGfx, texProp, index,
 	tex = texProp.tex
 	if tex is None:
 		raise PluginError('In ' + propName + ", no texture is selected.")
+	elif len(tex.pixels) == 0:
+		raise PluginError("Could not load missing texture: " + tex.name + ". Make sure this texture has not been deleted or moved on disk.")
 	
 	texFormat = texProp.tex_format
 	isCITexture = texFormat[:2] == 'CI'
@@ -1402,10 +1456,10 @@ def saveOrGetPaletteDefinition(fModelOrTexRect, image, imageName, texFmt, palFmt
 		texFmt.lower() + '.inc.c'
 	paletteFilename = getNameFromPath(name, True) + '.' + \
 		texFmt.lower() + '.pal'
-	fImage = FImage(toAlnum(imageName), texFormat, bitSize, 
+	fImage = FImage(fModelOrTexRect.checkDuplicateTextureName(toAlnum(imageName)), texFormat, bitSize, 
 		image.size[0], image.size[1], filename)
 
-	fPalette = FImage(paletteName, palFormat, 'G_IM_SIZ_16b', 1, 
+	fPalette = FImage(fModelOrTexRect.checkDuplicateTextureName(paletteName), palFormat, 'G_IM_SIZ_16b', 1, 
 		len(palette), paletteFilename)
 	#paletteTex = bpy.data.images.new(paletteName, 1, len(palette))
 	#paletteTex.pixels = palette
@@ -1456,7 +1510,7 @@ def saveOrGetTextureDefinition(fModel, image, imageName, texFormat):
 	filename = getNameFromPath(name, True) + '.' + \
 		texFormat.lower() + '.inc.c'
 
-	fImage = FImage(toAlnum(imageName), fmt, bitSize, 
+	fImage = FImage(fModel.checkDuplicateTextureName(toAlnum(imageName)), fmt, bitSize, 
 		image.size[0], image.size[1], filename)
 
 	# N64 is -Y, Blender is +Y

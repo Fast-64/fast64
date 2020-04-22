@@ -9,12 +9,65 @@ import os
 import math
 import traceback
 import re
+import os
 
 class PluginError(Exception):
 	pass
 
 class VertexWeightError(PluginError):
 	pass
+
+def writeMaterialHeaders(exportDir, matCInclude, matHInclude):
+	writeIfNotFound(os.path.join(exportDir, 'src/game/materials.c'), 
+		'\n' + matCInclude, '')
+	writeIfNotFound(os.path.join(exportDir, 'src/game/materials.h'), 
+		'\n' + matHInclude, '#endif')
+
+def writeMaterialFiles(exportDir, assetDir, headerInclude, matHInclude,
+	headerDynamic, dynamic_data, geoString, customExport):
+	if not customExport:
+		writeMaterialBase(exportDir)
+	levelMatCPath = os.path.join(assetDir, 'material.inc.c')
+	levelMatHPath = os.path.join(assetDir, 'material.inc.h')
+
+	levelMatCFile = open(levelMatCPath, 'w', newline = '\n')
+	levelMatCFile.write(dynamic_data)
+	levelMatCFile.close()
+
+	headerDynamic = headerInclude + '\n\n' + headerDynamic
+	levelMatHFile = open(levelMatHPath, 'w', newline = '\n')
+	levelMatHFile.write(headerDynamic)
+	levelMatHFile.close()
+
+	return matHInclude + '\n\n' + geoString
+
+def writeMaterialBase(baseDir):
+	matHPath = os.path.join(baseDir, 'src/game/materials.h')
+	if not os.path.exists(matHPath):
+		matHFile = open(matHPath, 'w', newline = '\n')
+
+		# Write material.inc.h
+		matHFile.write(
+			'#ifndef MATERIALS_H\n' +\
+			'#define MATERIALS_H\n\n' + \
+			'#endif')
+
+		matHFile.close()
+	
+	matCPath = os.path.join(baseDir, 'src/game/materials.c')
+	if not os.path.exists(matCPath):
+		matCFile = open(matCPath, 'w', newline = '\n')
+		matCFile.write(
+			'#include "types.h"\n' +\
+            '#include "rendering_graph_node.h"\n' +\
+            '#include "object_fields.h"\n' +\
+            '#include "materials.h"')
+
+		# Write global texture load function here
+		# Write material.inc.c
+		# Write update_materials
+
+		matCFile.close()
 
 def getRGBA16Tuple(color):
 	return ((int(color[0] * 0x1F) & 0x1F) << 11) | \
@@ -225,7 +278,7 @@ def writeIfNotFound(filePath, stringValue, footer):
 		fileData.close()
 		if stringValue not in stringData:
 			if len(footer) > 0:
-				footerIndex = stringData.index(footer)
+				footerIndex = stringData.rfind(footer)
 				if footerIndex == -1:
 					raise PluginError("Footer " + footer + " does not exist.")
 				stringData = stringData[:footerIndex] + stringValue + '\n' + stringData[footerIndex:]

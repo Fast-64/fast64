@@ -11,8 +11,58 @@ import math
 import re
 import shutil
 
+enumTerrain = [
+	('Custom', 'Custom', 'Custom'),
+	('TERRAIN_GRASS', 'Grass', 'Grass'),
+	('TERRAIN_STONE', 'Stone', 'Stone'),
+	('TERRAIN_SNOW', 'Snow', 'Snow'),
+	('TERRAIN_SAND', 'Sand', 'Sand'),
+	('TERRAIN_SPOOKY', 'Spooky', 'Spooky'),
+	('TERRAIN_WATER', 'Water', 'Water'),
+	('TERRAIN_SLIDE', 'Slide', 'Slide'),
+]
+
+enumMusicSeq = [
+	('Custom', 'Custom', 'Custom'),
+	('SEQ_LEVEL_BOSS_KOOPA', 'Boss Koopa', 'Boss Koopa'),
+    ('SEQ_LEVEL_BOSS_KOOPA_FINAL', 'Boss Koopa Final', 'Boss Koopa Final'),
+    ('SEQ_LEVEL_GRASS', 'Grass Level', 'Grass Level'),
+    ('SEQ_LEVEL_HOT', 'Hot Level', 'Hot Level'),
+    ('SEQ_LEVEL_INSIDE_CASTLE', 'Inside Castle', 'Inside Castle'),
+    ('SEQ_LEVEL_KOOPA_ROAD', 'Koopa Road', 'Koopa Road'),
+    ('SEQ_LEVEL_SLIDE', 'Slide Level', 'Slide Level'),
+    ('SEQ_LEVEL_SNOW', 'Snow Level', 'Snow Level'),
+    ('SEQ_LEVEL_SPOOKY', 'Spooky Level', 'Spooky Level'),
+    ('SEQ_LEVEL_UNDERGROUND', 'Underground Level', 'Underground Level'),
+    ('SEQ_LEVEL_WATER', 'Water Level', 'Water Level'),
+    ('SEQ_MENU_FILE_SELECT', 'File Select', 'File Select'),
+    ('SEQ_MENU_STAR_SELECT', 'Star Select Menu', 'Star Select Menu'),
+    ('SEQ_MENU_TITLE_SCREEN', 'Title Screen', 'Title Screen'),
+    ('SEQ_EVENT_BOSS', 'Boss', 'Boss'),
+    ('SEQ_EVENT_CUTSCENE_COLLECT_KEY', 'Collect Key', 'Collect Key'),
+    ('SEQ_EVENT_CUTSCENE_COLLECT_STAR', 'Collect Star', 'Collect Star'),
+    ('SEQ_EVENT_CUTSCENE_CREDITS', 'Credits', 'Credits'),
+    ('SEQ_EVENT_CUTSCENE_ENDING', 'Ending Cutscene', 'Ending Cutscene'),
+    ('SEQ_EVENT_CUTSCENE_INTRO', 'Intro Cutscene', 'Intro Cutscene'),
+    ('SEQ_EVENT_CUTSCENE_LAKITU', 'Lakitu Cutscene', 'Lakitu Cutscene'),
+    ('SEQ_EVENT_CUTSCENE_STAR_SPAWN', 'Star Spawn', 'Star Spawn'),
+    ('SEQ_EVENT_CUTSCENE_VICTORY', 'Victory Cutscene', 'Victory Cutscene'),
+    ('SEQ_EVENT_ENDLESS_STAIRS', 'Endless Stairs', 'Endless Stairs'),
+    ('SEQ_EVENT_HIGH_SCORE', 'High Score', 'High Score'),
+    ('SEQ_EVENT_KOOPA_MESSAGE', 'Koopa Message', 'Koopa Message'),
+    ('SEQ_EVENT_MERRY_GO_ROUND', 'Merry Go Round', 'Merry Go Round'),
+    ('SEQ_EVENT_METAL_CAP', 'Metal Cap', 'Metal Cap'),
+    ('SEQ_EVENT_PEACH_MESSAGE', 'Peach Message', 'Peach Message'),
+    ('SEQ_EVENT_PIRANHA_PLANT', 'Piranha Lullaby', 'Piranha Lullaby'),
+    ('SEQ_EVENT_POWERUP', 'Powerup', 'Powerup'),
+    ('SEQ_EVENT_RACE', 'Race', 'Race'),
+    ('SEQ_EVENT_SOLVE_PUZZLE', 'Solve Puzzle', 'Solve Puzzle'),
+	('SEQ_SOUND_PLAYER', 'Sound Player', 'Sound Player'),
+    ('SEQ_EVENT_TOAD_MESSAGE', 'Toad Message', 'Toad Message'),
+]
+
 def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
-	savePNG, customExport, exportRooms, levelCameraVolumeName):
+	savePNG, customExport, exportRooms, levelCameraVolumeName, DLFormat):
 	
 	if customExport:
 		levelDir = os.path.join(exportDir, levelName)
@@ -29,7 +79,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 	areaString = ''
 	cameraVolumeString = "struct CameraTrigger " + levelCameraVolumeName + "[] = {\n"
 
-	fModel = FModel(f3dType, isHWv1, levelName)
+	fModel = FModel(f3dType, isHWv1, levelName, DLFormat)
 	childAreas = [child for child in obj.children if child.data is None and child.sm64_obj_type == 'Area Root']
 	if len(childAreas) == 0:
 		raise PluginError("The level root has no child empties with the 'Area Root' object type.")
@@ -53,7 +103,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 
 		geolayoutGraph, fModel = \
 			convertObjectToGeolayout(obj, transformMatrix, 
-			f3dType, isHWv1, child.areaCamera, levelName + '_' + areaName, fModel, child)
+			f3dType, isHWv1, child.areaCamera, levelName + '_' + areaName, fModel, child, DLFormat)
 
 		# Write geolayout
 		geoFile = open(os.path.join(areaDir, 'geo.inc.c'), 'w', newline = '\n')
@@ -107,7 +157,8 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 			if not existingArea:
 				shutil.rmtree(os.path.join(levelDir, f))
 	
-	data, texC = fModel.to_c("STATIC", savePNG, savePNG, 'levels/' + levelName)
+	static_data, dynamic_data, texC, scroll_data = fModel.to_c(savePNG, savePNG, 'levels/' + levelName, levelName)
+	headerStatic, headerDynamic, headerScroll = fModel.to_c_def(levelName)
 	if savePNG:
 		fModel.save_textures(levelDir)
 
@@ -116,18 +167,31 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 		texFile.write(texC)
 		texFile.close()
 
+	writeTexScrollFiles(exportDir, levelDir, headerScroll, scroll_data)
+
+	# Write materials
+	if DLFormat == "Static":
+		static_data += dynamic_data
+		headerStatic += headerDynamic
+	else:
+		geoString = writeMaterialFiles(exportDir, levelDir, 
+			'#include "levels/' + levelName + '/header.h"', 
+			'#include "levels/' + levelName + '/material.inc.h"',
+			headerDynamic, dynamic_data, geoString, customExport)
+
 	modelPath = os.path.join(levelDir, 'model.inc.c')
 	modelFile = open(modelPath, 'w', newline='\n')
-	modelFile.write(data)
+	modelFile.write(static_data)
 	modelFile.close()
 
 	fModel.freePalettes()
 
 	levelDataString += '#include "levels/' + levelName + '/model.inc.c"\n'
-	headerString += fModel.to_c_def("STATIC")
+	headerString += headerStatic
 	#headerString += '\nextern const LevelScript level_' + levelName + '_entry[];\n'
 	#headerString += '\n#endif\n'
 
+	# Write geolayout
 	geoFile = open(os.path.join(levelDir, 'geo.inc.c'), 'w', newline='\n')
 	geoFile.write(geoString)
 	geoFile.close()
@@ -153,6 +217,12 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 		cameraFile.close()
 
 	if not customExport:
+		if DLFormat != 'Static':
+			# Write material headers
+			writeMaterialHeaders(exportDir,  
+				'#include "levels/' + levelName + '/material.inc.c"',
+				'#include "levels/' + levelName + '/material.inc.h"')
+
 		# Export camera triggers
 		cameraPath = os.path.join(exportDir, 'src/game/camera.c')
 		overwriteData('struct\s*CameraTrigger\s*', levelCameraVolumeName, cameraVolumeString, cameraPath,
@@ -180,6 +250,14 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 				os.remove(textureIncludePath)
 			deleteIfFound(os.path.join(levelDir, 'texture.inc.c'), 
 				'#include "levels/' + levelName + '/texture_include.inc.c"')
+		
+		texscrollIncludeC = '#include "levels/' + levelName + '/texscroll.inc.c"'
+		texscrollIncludeH = '#include "levels/' + levelName + '/texscroll.inc.h"'
+		texscrollGroup = levelName
+		texscrollGroupInclude = '#include "levels/' + levelName + '/header.h"'
+
+		writeTexScrollHeadersGroup(exportDir, texscrollIncludeC, texscrollIncludeH, 
+			texscrollGroup, headerScroll, texscrollGroupInclude)
 
 
 		# modifies script.c
@@ -294,10 +372,14 @@ def drawWarpNodeProperty(layout, warpNode, index):
 			prop_split(box, warpNode, 'instantOffset', 'Offset')
 		else:
 			prop_split(box, warpNode, 'warpID', 'Warp ID')
-			prop_split(box, warpNode, 'destLevel', 'Destination Level')
+			prop_split(box, warpNode, 'destLevelEnum', 'Destination Level')
+			if warpNode.destLevelEnum == 'custom':
+				prop_split(box, warpNode, 'destLevel', 'Destination Level Value')
 			prop_split(box, warpNode, 'destArea', 'Destination Area')
 			prop_split(box, warpNode, 'destNode', 'Destination Node')
-			prop_split(box, warpNode, 'warpFlags', 'Warp Flags')
+			prop_split(box, warpNode, 'warpFlagEnum', 'Warp Flags')
+			if warpNode.warpFlagEnum == 'Custom':
+				prop_split(box, warpNode, 'warpFlags', 'Warp Flags Value')
 		
 		buttons = box.row(align = True)
 		buttons.operator(RemoveWarpNode.bl_idname,
@@ -333,29 +415,41 @@ class SM64AreaPanel(bpy.types.Panel):
 		#prop_split(box, obj, 'areaCamera', 'Area Camera')
 		prop_split(box, obj, 'noMusic', 'Disable Music')
 		if not obj.noMusic:
+			prop_split(box, obj, 'musicSeqEnum', 'Music Sequence')
+			if obj.musicSeqEnum == 'Custom':
+				prop_split(box, obj, 'music_seq', 'Music Sequence Value')
 			prop_split(box, obj, 'music_preset', 'Music Preset')
-			prop_split(box, obj, 'music_seq', 'Music Sequence')
 			box.box().label(text = 'Sequence IDs defined in include/seq_ids.h.')
-		prop_split(box, obj, 'terrain_type', 'Terrain Type')
+		prop_split(box, obj, 'terrainEnum', 'Terrain')
+		if obj.terrainEnum == 'Custom':
+			prop_split(box, obj, 'terrain_type', 'Terrain Type')
 		box.box().label(text = 'Terrain IDs defined in include/surface_terrains.h.')
 
 		box.operator(AddWarpNode.bl_idname).option = len(obj.warpNodes)
 		for i in range(len(obj.warpNodes)):
 			drawWarpNodeProperty(box, obj.warpNodes[i], i)
 
-warpTypeEnum = [
+enumWarpType = [
 	("Warp", "Warp", "Warp"),
 	("Painting", "Painting", "Painting"),
 	("Instant", "Instant", "Instant"),
 ]
 
+enumWarpFlag = [
+	("Custom", "Custom", "Custom"),
+	("WARP_NO_CHECKPOINT", 'No Checkpoint', 'No Checkpoint'),
+	("WARP_CHECKPOINT", 'Checkpoint', 'Checkpoint'),
+]
+
 class WarpNodeProperty(bpy.types.PropertyGroup):
-	warpType : bpy.props.EnumProperty(name = 'Warp Type', items = warpTypeEnum, default = 'Warp')
+	warpType : bpy.props.EnumProperty(name = 'Warp Type', items = enumWarpType, default = 'Warp')
 	warpID : bpy.props.StringProperty(name = 'Warp ID', default = '0x0A')
-	destLevel : bpy.props.StringProperty(name = 'Destination Level', default = 'LEVEL_BOB')
+	destLevelEnum : bpy.props.EnumProperty(name = 'Destination Level', default = 'custom', items = enumLevelNames)
+	destLevel : bpy.props.StringProperty(name = 'Destination Level Value', default = 'LEVEL_BOB')
 	destArea : bpy.props.StringProperty(name = 'Destination Area', default = '0x01')
 	destNode : bpy.props.StringProperty(name = 'Destination Node', default = '0x0A')
 	warpFlags : bpy.props.StringProperty(name = 'Warp Flags', default = 'WARP_NO_CHECKPOINT')
+	warpFlagEnum : bpy.props.EnumProperty(name = 'Warp Flags Value', default = 'WARP_NO_CHECKPOINT', items = enumWarpFlag)
 	instantOffset : bpy.props.IntVectorProperty(name = 'Offset',
 		size = 3, default = (0,0,0))
 
@@ -372,8 +466,17 @@ class WarpNodeProperty(bpy.types.PropertyGroup):
 			elif self.warpType == 'Painting':
 				cmd = 'PAINTING_WARP_NODE'
 
-			return cmd + '(' + str(self.warpID) + ', ' + str(self.destLevel) + ', ' +\
-				str(self.destArea) + ', ' + str(self.destNode) + ', ' + str(self.warpFlags) + ')'
+			if self.destLevelEnum == 'custom':
+				destLevel = self.destLevel
+			else:
+				destLevel = levelIDNames[self.destLevelEnum]
+
+			if self.warpFlagEnum == 'Custom':
+				warpFlags = self.warpFlags
+			else:
+				warpFlags = self.warpFlagEnum
+			return cmd + '(' + str(self.warpID) + ', ' + str(destLevel) + ', ' +\
+				str(self.destArea) + ', ' + str(self.destNode) + ', ' + str(warpFlags) + ')'
 
 class AddWarpNode(bpy.types.Operator):
 	bl_idname = 'bone.add_warp_node'
@@ -414,11 +517,15 @@ def level_register():
 	bpy.types.Object.music_preset = bpy.props.StringProperty(
 		name = "Music Preset", default = '0x00')
 	bpy.types.Object.music_seq = bpy.props.StringProperty(
-		name = "Music Sequence", default = 'SEQ_LEVEL_GRASS')
+		name = "Music Sequence Value", default = 'SEQ_LEVEL_GRASS')
 	bpy.types.Object.noMusic = bpy.props.BoolProperty(
 		name = 'No Music', default = False)
 	bpy.types.Object.terrain_type = bpy.props.StringProperty(
 		name = "Terrain Type", default = 'TERRAIN_GRASS')
+	bpy.types.Object.terrainEnum = bpy.props.EnumProperty(
+		name = 'Terrain', items = enumTerrain, default = "Custom")
+	bpy.types.Object.musicSeqEnum = bpy.props.EnumProperty(
+		name = 'Music Sequence', items = enumMusicSeq, default = "Custom")
 
 	bpy.types.Object.areaCamera = bpy.props.PointerProperty(type = bpy.types.Camera)
 	bpy.types.Object.warpNodes = bpy.props.CollectionProperty(

@@ -14,6 +14,14 @@ from .utility import prop_split, PluginError, getRGBA16Tuple
 from bpy.utils import register_class, unregister_class
 import copy
 
+enumTexScroll = [
+	("None", "None", "None"),
+	("Linear", "Linear", "Linear"),
+	("Sine", "Sine", "Sine"),
+	("Noise", "Noise", "Noise"),
+	#("Rotation", "Rotation", "Rotation"),
+]
+
 def F3DOrganizeLights(self, context):
 	# Flag to prevent infinite recursion on update callback
 	if self.f3d_update_flag:
@@ -474,14 +482,59 @@ class F3DPanel(bpy.types.Panel):
 			if len(vecType) > 2:
 				self.ui_procAnimField(procAnimVec.z, box, vecType[2])
 
+	def ui_procAnimVecEnum(self, procAnimVec, layout, name, vecType):
+		layout.prop(procAnimVec, 'menu', text = name, 
+			icon = 'TRIA_DOWN' if procAnimVec.menu else 'TRIA_RIGHT')
+		if procAnimVec.menu:
+			box = layout.box()
+			box.box().label(text = 'NOTE: Scrolling not visible in preview.')
+			box.box().label(text = 'This is decomp only.')
+
+			combinedOption = None
+			xCombined = procAnimVec.x.animType == 'Rotation'
+			if xCombined:
+				combinedOption = procAnimVec.x.animType
+			yCombined = procAnimVec.y.animType == 'Rotation'
+			if yCombined:
+				combinedOption = procAnimVec.y.animType
+			if not yCombined:
+				self.ui_procAnimFieldEnum(procAnimVec.x, box, vecType[0], "UV" if xCombined else None)
+			if not xCombined:
+				self.ui_procAnimFieldEnum(procAnimVec.y, box, vecType[1], "UV" if yCombined else None)
+			if len(vecType) > 2:
+				self.ui_procAnimFieldEnum(procAnimVec.z, box, vecType[2])
+
+			if xCombined or yCombined:
+				box.row().prop(procAnimVec, 'pivot')
+				box.row().prop(procAnimVec, 'angularSpeed')
+				if combinedOption == "Rotation":
+					pass
+		
+	def ui_procAnimFieldEnum(self, procAnimField, layout, name, overrideName):
+		box = layout
+		box.prop(procAnimField, 'animType', text = name if overrideName is None else overrideName)
+		if overrideName is None:
+			if procAnimField.animType == "Linear":
+				split0 = box.row().split(factor = 1)
+				split0.prop(procAnimField, 'speed')
+			elif procAnimField.animType == "Sine":
+				split1 = box.row().split(factor = 0.3333)
+				split1.prop(procAnimField, 'amplitude')
+				split1.prop(procAnimField, 'frequency')
+
+				#layout.row().prop(procAnimField, 'spaceFrequency')
+				#split2 = box.row().split(factor = 0.5)
+				split1.prop(procAnimField, 'offset')
+			elif procAnimField.animType == 'Noise':
+				box.row().prop(procAnimField, 'noiseAmplitude')
+
 	def ui_procAnimField(self, procAnimField, layout, name):
 		box = layout
 		box.prop(procAnimField, 'animate', text = name)
 		if procAnimField.animate:
 			if name not in 'XYZ':
-				split0 = box.row().split(factor = 0.5)
+				split0 = box.row().split(factor = 1)
 				split0.prop(procAnimField, 'speed')
-				split0.prop(procAnimField, 'scrollOffset')
 			split1 = box.row().split(factor = 0.5)
 			split1.prop(procAnimField, 'amplitude')
 			split1.prop(procAnimField, 'frequency')
@@ -493,21 +546,22 @@ class F3DPanel(bpy.types.Panel):
 			split2.prop(procAnimField, 'noiseAmplitude')
 	
 	def ui_procAnim(self, material, layout, useTex0, useTex1):
-		layout.prop(material, 'menu_procAnim', 
-			text = 'Procedural Animation', 
-			icon = 'TRIA_DOWN' if material.menu_procAnim else 'TRIA_RIGHT')
-		if material.menu_procAnim:
-			procAnimBox = layout.box()
-			if useTex0:
-				self.ui_procAnimVec(material.UVanim_tex0, procAnimBox, 
-				"UV Texture 0", 'UV')
-			if useTex1:
-				self.ui_procAnimVec(material.UVanim_tex1, procAnimBox, 
-				"UV Texture 1", 'UV')
-			self.ui_procAnimVec(material.positionAnim, procAnimBox,
-				"Position", 'XYZ')
-			self.ui_procAnimVec(material.colorAnim, procAnimBox, "Color",
-			 	'RGB')
+		self.ui_procAnimVecEnum(material.UVanim, layout, "UV Texture Scroll", 'UV')
+		#layout.prop(material, 'menu_procAnim', 
+		#	text = 'Procedural Animation', 
+		#	icon = 'TRIA_DOWN' if material.menu_procAnim else 'TRIA_RIGHT')
+		#if material.menu_procAnim:
+		#	procAnimBox = layout.box()
+		#	if useTex0:
+		#		self.ui_procAnimVec(material.UVanim_tex0, procAnimBox, 
+		#		"UV Texture 0", 'UV')
+		#	if useTex1:
+		#		self.ui_procAnimVec(material.UVanim_tex1, procAnimBox, 
+		#		"UV Texture 1", 'UV')
+		#	self.ui_procAnimVec(material.positionAnim, procAnimBox,
+		#		"Position", 'XYZ')
+		#	self.ui_procAnimVec(material.colorAnim, procAnimBox, "Color",
+		#	 	'RGB')
 
 	def ui_uvCheck(self, layout, context):
 		if hasattr(context, 'object') and context.object is not None and \
@@ -628,8 +682,8 @@ class F3DPanel(bpy.types.Panel):
 				fogGroup.enabled = material.set_fog
 				inputGroup.box().label(text = 'NOTE: Fog will break with draw layer overrides.')
 			
-			#self.ui_procAnim(material, inputCol, 
-			#	useDict['Texture 0'], useDict['Texture 1'])
+			self.ui_procAnim(material, inputCol, 
+				useDict['Texture 0'], useDict['Texture 1'])
 			
 			ui_geo_mode(material.rdp_settings, material, layout)
 			ui_upper_mode(material.rdp_settings, material, layout)
@@ -875,6 +929,26 @@ def update_tex_values_manual(self, context):
 		'Get UV', isTexGen, uvBasisScale0, self.tex_scale)
 	update_tex_values_index(self, context, self.tex1, 'Texture 1', 
 		'Get UV.001', isTexGen, uvBasisScale1, self.tex_scale)
+
+def getMaterialScrollDimensions(material):
+	useDict = all_combiner_uses(material)
+		
+	if useDict['Texture 0'] and material.tex0.tex is not None and \
+		useDict['Texture 1'] and material.tex1.tex is not None and\
+		material.tex0.tex.size[0] > 0 and material.tex0.tex.size[1] > 0 and\
+		material.tex1.tex.size[0] > 0 and material.tex1.tex.size[1] > 0:
+		if material.uv_basis == 'TEXEL0':
+			return material.tex0.tex.size
+		else:
+			return material.tex1.tex.size
+	elif useDict['Texture 1'] and material.tex1.tex is not None and\
+		material.tex1.tex.size[0] > 0 and material.tex1.tex.size[1] > 0:
+		return material.tex1.tex.size
+	elif useDict['Texture 0'] and material.tex0.tex is not None and\
+		material.tex0.tex.size[0] > 0 and material.tex0.tex.size[1] > 0:
+		return material.tex0.tex.size
+	else:
+		return [32, 32]
 
 def update_preset(self, context):
 	if hasattr(context, 'material_slot') and context.material_slot is not None:
@@ -1430,22 +1504,24 @@ class CombinerProperty(bpy.types.PropertyGroup):
 		default = 'ENVIRONMENT', update = update_node_values)
 
 class ProceduralAnimProperty(bpy.types.PropertyGroup):
-	speed : bpy.props.FloatProperty(name = 'Scroll Speed', default = 1)
-	amplitude : bpy.props.FloatProperty(name = 'Amplitude', default = 0)
-	frequency : bpy.props.FloatProperty(name = 'Time Frequency', default = 1)
+	speed : bpy.props.FloatProperty(name = 'Speed', default = 1)
+	amplitude : bpy.props.FloatProperty(name = 'Amplitude', default = 1)
+	frequency : bpy.props.FloatProperty(name = 'Frequency', default = 1)
 	#spaceFrequency : bpy.props.FloatVectorProperty(name = 'Space Frequency',
 	#	size = 3, default = (0,0,0))
 	spaceFrequency : bpy.props.FloatProperty(name = 'Space Frequency',
 		default = 0)
-	offset : bpy.props.FloatProperty(name = 'Sin Offset', default = 0)
-	scrollOffset : bpy.props.FloatProperty(name = 'Scroll Offset', default = 0)
-	noiseAmplitude : bpy.props.FloatProperty(name = 'Noise', default = 0)
+	offset : bpy.props.FloatProperty(name = 'Offset', default = 0)
+	noiseAmplitude : bpy.props.FloatProperty(name = 'Amplitude', default = 1)
 	animate : bpy.props.BoolProperty()
+	animType : bpy.props.EnumProperty(name = 'Type', items = enumTexScroll)
 
 class ProcAnimVectorProperty(bpy.types.PropertyGroup):
 	x : bpy.props.PointerProperty(type = ProceduralAnimProperty)
 	y : bpy.props.PointerProperty(type = ProceduralAnimProperty)
 	z : bpy.props.PointerProperty(type = ProceduralAnimProperty)
+	pivot : bpy.props.FloatVectorProperty(size = 2, name = 'Pivot')
+	angularSpeed : bpy.props.FloatProperty(default = 1, name = 'Angular Speed')
 	menu : bpy.props.BoolProperty()
 
 class RDPSettings(bpy.types.PropertyGroup):
@@ -1755,6 +1831,9 @@ def mat_register():
 	bpy.types.Material.UVanim_tex1 = bpy.props.PointerProperty(
 		type = ProcAnimVectorProperty)
 	bpy.types.Material.colorAnim = bpy.props.PointerProperty(
+		type = ProcAnimVectorProperty)
+
+	bpy.types.Material.UVanim = bpy.props.PointerProperty(
 		type = ProcAnimVectorProperty)
 
 	# material textures

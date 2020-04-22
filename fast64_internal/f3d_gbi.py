@@ -1407,10 +1407,14 @@ class VtxList:
 		return data
 	
 	def to_c(self):
-		data = 'const Vtx ' + self.name + '[] = {\n'
+		data = 'const Vtx ' + self.name + '[' + str(len(self.vertices)) + '] = {\n'
 		for vert in self.vertices:
 			data += '\t' + vert.to_c() + ',\n'
 		data += '};'
+		return data
+	
+	def to_c_def(self):
+		data = 'extern const Vtx ' + self.name + '[' + str(len(self.vertices)) + '];\n'
 		return data
 	
 	def to_sm64_decomp_s(self):
@@ -1420,10 +1424,11 @@ class VtxList:
 		return data
 
 class GfxList:
-	def __init__(self, name):
+	def __init__(self, name, DLFormat):
 		self.commands = []
 		self.name = name
 		self.startAddress = 0
+		self.DLFormat = DLFormat
 	
 	def set_addr(self, startAddress, f3d):
 		startAddress = get64bitAlignedAddr(startAddress)
@@ -1443,6 +1448,16 @@ class GfxList:
 		for command in self.commands:
 			size += command.size(f3d)
 		return size
+
+	# Size, including display lists called with SPDisplayList
+	def size_total(self,f3d):
+		size = 0
+		for command in self.commands:
+			if isinstance(command, SPDisplayList) and command.displayList.DLFormat != "Static":
+				size += command.displayList.size_total(f3d)
+			else:
+				size += command.size(f3d)
+		return size
 	
 	def get_ptr_addresses(self, f3d):
 		ptrs = []
@@ -1461,24 +1476,50 @@ class GfxList:
 		
 		return data
 	
-	def to_c(self, static = True):
-		if static:
+	def to_c(self, f3d):
+		if self.DLFormat == "Static":
 			data = 'const Gfx ' + self.name + '[] = {\n'
 			for command in self.commands:
 				data += '\t' + command.to_c(True) + ',\n'
 			data += '};'	
-		else:
+		elif self.DLFormat == 'SM64 Function Node':
+			return self.to_c_sm64_func_node(f3d)
+		elif self.DLFormat == 'Dynamic':
 			data = 'Gfx* ' + self.name + '(Gfx* glistp) {\n'
 			for command in self.commands:
 				data += '\t' + command.to_c(False) + ';\n'
-			data += '\treturn glistp;\n}'	
+			data += '\treturn glistp;\n}'
+		else:
+			raise PluginError("Invalid GfxList format: " + str(self.DLFormat))	
 		return data
 
-	def to_c_def(self, static):
-		if static:
+	def to_c_sm64_func_node(self, f3d):
+		data = 'Gfx* ' + self.name + '(s32 renderContext, struct GraphNode* node, struct AllocOnlyPool *a2) {\n' +\
+			'\tGfx* startCmd = NULL;\n' +\
+			'\tGfx* glistp = NULL;\n' +\
+			'\tstruct GraphNodeGenerated *generatedNode;\n' +\
+			'\tif(renderContext == GEO_CONTEXT_RENDER) {\n' +\
+			'\t\tgeneratedNode = (struct GraphNodeGenerated *) node;\n' +\
+			'\t\tgeneratedNode->fnNode.node.flags = (generatedNode->fnNode.node.flags & 0xFF) | (generatedNode->parameter << 8);\n' +\
+			'\t\tstartCmd = glistp = alloc_display_list(sizeof(Gfx) * ' + \
+			str(int(round(self.size_total(f3d) / GFX_SIZE))) + ');\n' +\
+			'\t\tif(startCmd == NULL) return NULL;\n'
+
+		for command in self.commands:
+			data += '\t\t' + command.to_c(False) + ';\n'
+		data += '\t}\n\treturn startCmd;\n}'	
+		return data
+
+
+	def to_c_def(self):
+		if self.DLFormat == "Static":
 			return 'extern const Gfx ' + self.name + '[];\n'
-		else:
+		elif self.DLFormat == 'SM64 Function Node':
+			return 'Gfx* ' + self.name + '(s32 renderContext, struct GraphNode* node, struct AllocOnlyPool *a2);\n'
+		elif self.DLFormat == "Dynamic":
 			return 'Gfx* ' + self.name + '(Gfx* glistp);\n'
+		else:
+			raise PluginError("Invalid GfxList format: " + str(self.DLFormat))	
 	
 	def to_sm64_decomp_s(self):
 		data = 'glabel ' + self.name + '\n'
@@ -1490,7 +1531,7 @@ class FTexRect:
 	def __init__(self, f3dType, isHWv1, name):
 		self.name = name # used for texture prefixing
 		self.textures = {} # only one, but use dict for compatibility
-		self.draw = GfxList(name)
+		self.draw = GfxList(name, "Dynamic")
 		# F3D library
 		self.f3d = F3D(f3dType, isHWv1)
 
@@ -1530,7 +1571,7 @@ class FTexRect:
 				data += texture.to_c_tex_separate(texDir)
 			else:
 				data += texture.to_c()
-		code += self.draw.to_c(False)
+		code += self.draw.to_c(self.f3d)
 		return data, code
 
 	def save_textures(self, dirpath):
@@ -1561,7 +1602,7 @@ class FTexRect:
 		return
 	
 	def to_c_def(self):
-		return self.draw.to_c_def(False) + '\n'
+		return self.draw.to_c_def() + '\n'
 	
 	def to_c_def_tex(self):
 		data = ''
@@ -1570,7 +1611,7 @@ class FTexRect:
 		return data
 
 class FModel:
-	def __init__(self, f3dType, isHWv1, name):
+	def __init__(self, f3dType, isHWv1, name, DLFormat):
 		self.name = name # used for texture prefixing
 		# dict of light name : Lights
 		self.lights = {}
@@ -1584,6 +1625,15 @@ class FModel:
 		self.materialRevert = None
 		# F3D library
 		self.f3d = F3D(f3dType, isHWv1)
+		self.DLFormat = DLFormat
+
+	def checkDuplicateTextureName(self, name):
+		names = []
+		for info, texture in self.textures.items():
+			names.append(texture.name)
+		while name in names:
+			name = name + '_copy'
+		return name
 	
 	def get_ptr_addresses(self, f3d):
 		addresses = []
@@ -1638,37 +1688,50 @@ class FModel:
 			meshGroup.save_binary(romfile, self.f3d, segments)
 		if self.materialRevert is not None:
 			self.materialRevert.save_binary(romfile, self.f3d, segments)
-	
-	# See dlTypeEnum at top of f3d_gbi.py
-	def to_c(self, dlType, texCSeparate, savePNG, texDir):
-		data = ''
+
+	def to_c(self, texCSeparate, savePNG, texDir, scrollName):
+		static_data = ''
+		dynamic_data = ''
 		texC = ''
+		scroll_data = ''
 		# since decomp is linux, don't use os.path.join 
 		# on windows this results in '\', which is incorrect (should be '/')
 		if texDir[-1] != '/':
 			texDir += '/'
 		for name, light in self.lights.items():
-			data += light.to_c() + '\n'
+			static_data += light.to_c() + '\n'
 		for info, texture in self.textures.items():
 			if savePNG:
 				if texCSeparate:
 					texC += texture.to_c_tex_separate(texDir) + '\n'
 				else:
-					data += texture.to_c_tex_separate(texDir) + '\n'
+					static_data += texture.to_c_tex_separate(texDir) + '\n'
 			else:
 				if texCSeparate:
 					texC += texture.to_c() + '\n'
 				else:
-					data += texture.to_c() + '\n'
+					static_data += texture.to_c() + '\n'
 		for (material, drawLayer), (fMaterial, texDimensions) in self.materials.items():
-			data += fMaterial.to_c(dlType == 'STATIC') + '\n'
+			dynamic_data += fMaterial.to_c(self.f3d) + '\n'
 		for name, meshGroup in self.meshGroups.items():
-			data += meshGroup.to_c(dlType) + '\n'
+			meshGroupStatic, meshGroupDynamic, meshGroupScroll = meshGroup.to_c(self.f3d)
+			static_data += meshGroupStatic + '\n'
+			dynamic_data += meshGroupDynamic + '\n'
+			scroll_data += meshGroupScroll
+
+		scrollDefinesSplit = self.to_c_def(None)[2].split('extern void ')
+		scroll_data += 'void scroll_' + scrollName + '() {\n'
+		for scrollFunc in scrollDefinesSplit:
+			if scrollFunc == '':
+				continue
+			scroll_data += '\t' + scrollFunc
+		scroll_data += '}'
+
 		if self.materialRevert is not None:
-			data += self.materialRevert.to_c(dlType == 'STATIC') + '\n'
+			dynamic_data += self.materialRevert.to_c(self.f3d) + '\n'
 		if not texCSeparate:
 			texC = None
-		return data, texC
+		return static_data, dynamic_data, texC, scroll_data
 
 	def save_textures(self, dirpath):
 		for (image, texInfo), texture in self.textures.items():
@@ -1701,23 +1764,39 @@ class FModel:
 			if texInfo[1] == 'PAL':
 				bpy.data.images.remove(image)
 	
-	def to_c_def(self, dlType):
-		data = ''
-		#for (material, drawLayer), (fMaterial, texDimensions) in self.materials.items():
-		#	data += fMaterial.to_c_def(static)
+	def to_c_def(self, scrollName):
+		static_data = ''
+		dynamic_data = ''
+		scroll_data = ''
+		if self.DLFormat != 'Static':
+			for name, light in self.lights.items():
+				static_data += light.to_c_def() + '\n'
+			for (material, drawLayer), (fMaterial, texDimensions) in self.materials.items():
+				dynamic_data += fMaterial.to_c_def()
+			for info, texture in self.textures.items():
+				static_data += texture.to_c_def() + '\n'
 		for name, meshGroup in self.meshGroups.items():
-			data += meshGroup.to_c_def(dlType)
+			meshStatic, meshDynamic, meshScroll = meshGroup.to_c_def()
+			static_data += meshStatic
+			dynamic_data += meshDynamic
+			scroll_data += meshScroll
+		if scrollName is not None:
+			# Not a typo, scrollName = None is used for to_c() to call all function our main one.
+			# scollName != None is used for the actual to_c_def(), which only needs that main function.
+			# This is easier than deleting all old code.
+			scroll_data = '\nextern void scroll_' + scrollName + '();\n'
 		if self.materialRevert is not None:
-			data += self.materialRevert.to_c_def(dlType == 'STATIC')
-		return data + '\n'
+			dynamic_data += self.materialRevert.to_c_def()
+		return (static_data + '\n'), (dynamic_data + '\n'), (scroll_data + '\n')
 
 class FMeshGroup:
-	def __init__(self, name, mesh, skinnedMesh):
+	def __init__(self, name, mesh, skinnedMesh, DLFormat):
 		self.name = name
 		# FMesh
 		self.mesh = mesh
 		# FMesh
 		self.skinnedMesh = skinnedMesh
+		self.DLFormat = DLFormat
 	
 	def get_ptr_addresses(self, f3d):
 		addresses = []
@@ -1744,59 +1823,74 @@ class FMeshGroup:
 		if self.skinnedMesh is not None:
 			self.skinnedMesh.save_binary(romfile, f3d, segments)
 	
-	def to_c(self, dlType):
-		data = ""
+	def to_c(self, f3d):
+		static_data = ""
+		dynamic_data = ""
+		scroll_data = ""
 		if self.mesh is not None:
-			data += self.mesh.to_c(dlType) + '\n'
+			meshStatic, meshDynamic, meshScroll = self.mesh.to_c(f3d)
+			static_data += meshStatic + '\n'
+			dynamic_data += meshDynamic + '\n'
+			scroll_data += meshScroll
 		if self.skinnedMesh is not None:
-			data += self.skinnedMesh.to_c(dlType) + '\n'
-		return data
+			skinnedMeshStatic, skinnedMeshDynamic, skinnedMeshScroll = self.skinnedMesh.to_c(f3d)
+			static_data += skinnedMeshStatic + '\n'
+			dynamic_data += skinnedMeshDynamic + '\n'
+			scroll_data += skinnedMeshScroll
+		return static_data, dynamic_data, scroll_data
 	
-	def to_c_def(self, dlType):
-		data = ""
+	def to_c_def(self):
+		static_data = ''
+		dynamic_data = ''
+		scroll_data = ''
 		if self.mesh is not None:
-			data += self.mesh.to_c_def(dlType)
+			meshStatic, meshDynamic, meshScroll = self.mesh.to_c_def()
+			static_data += meshStatic
+			dynamic_data += meshDynamic
+			scroll_data += meshScroll
 		if self.skinnedMesh is not None:
-			data += self.skinnedMesh.to_c_def(dlType)
-		return data
+			skinnedMeshStatic, skinnedMeshDynamic, skinnedMeshScroll = self.skinnedMesh.to_c_def()
+			static_data += skinnedMeshStatic
+			dynamic_data += skinnedMeshDynamic
+			scroll_data += skinnedMeshScroll
+		return static_data, dynamic_data, scroll_data
 
 class FMesh:
-	def __init__(self, name):
+	def __init__(self, name, DLFormat):
 		self.name = name
 		# GfxList
-		self.draw = GfxList(name)
-		# list of GfxList
-		self.triangleLists	= []
-		# VtxList
-		self.vertexList = VtxList(name + '_vtx')
+		self.draw = GfxList(name, DLFormat)
+		# list of FTriGroup
+		self.triangleGroups	= []
 		# VtxList
 		self.cullVertexList = None
 		# dict of (override Material, specified Material to override, 
 		# overrideType, draw layer) : GfxList
 		self.drawMatOverrides = {}
+		self.DLFormat = DLFormat
 	
 	def add_cull_vtx(self):
 		self.cullVertexList = VtxList(self.name + '_vtx_cull')
 	
 	def get_ptr_addresses(self, f3d):
 		addresses = self.draw.get_ptr_addresses(f3d)
-		for triangleList in self.triangleLists:
-			addresses.extend(triangleList.get_ptr_addresses(f3d))
+		for triGroup in self.triangleGroups:
+			addresses.extend(triGroup.get_ptr_addresses(f3d))
 		for materialTuple, drawOverride in self.drawMatOverrides.items():
 			addresses.extend(drawOverride.get_ptr_addresses(f3d))
 		return addresses
 
-	def tri_list_new(self):
-		triList = GfxList(self.name + '_tri_' + str(len(self.triangleLists)))
-		self.triangleLists.append(triList)
-		return triList
+	def tri_group_new(self, fMaterial):
+		# Always static DL
+		triGroup = FTriGroup(self.name, len(self.triangleGroups), fMaterial)
+		self.triangleGroups.append(triGroup)
+		return triGroup
 	
 	def set_addr(self, startAddress, f3d):
 		addrRange = self.draw.set_addr(startAddress, f3d)
 		startAddress = addrRange[0]
-		for triangleList in self.triangleLists:
-			addrRange = triangleList.set_addr(addrRange[1], f3d)
-		addrRange = self.vertexList.set_addr(addrRange[1])
+		for triGroup in self.triangleGroups:
+			addrRange = triGroup.set_addr(addrRange[1], f3d)
 		if self.cullVertexList is not None:
 			addrRange = self.cullVertexList.set_addr(addrRange[1])
 		for materialTuple, drawOverride in self.drawMatOverrides.items():
@@ -1805,37 +1899,226 @@ class FMesh:
 
 	def save_binary(self, romfile, f3d, segments):
 		self.draw.save_binary(romfile, f3d, segments)
-		for triangleList in self.triangleLists:
-			triangleList.save_binary(romfile, f3d, segments)
-		self.vertexList.save_binary(romfile)
+		for triGroup in self.triangleGroups:
+			triGroup.save_binary(romfile, f3d, segments)
 		if self.cullVertexList is not None:
 			self.cullVertexList.save_binary(romfile)
 		for materialTuple, drawOverride in self.drawMatOverrides.items():
 			drawOverride.save_binary(romfile, f3d, segments)
 	
-	def to_c(self, dlType):
-		data = self.vertexList.to_c() + '\n\n'
+	def to_c(self, f3d):
+		static_data = ''
+		scroll_data = ''
 		if self.cullVertexList is not None:
-			data += self.cullVertexList.to_c() + '\n\n'
-		for triangleList in self.triangleLists:
-			data += triangleList.to_c(dlType != 'PROCEDURAL') + '\n\n'
-		data += self.draw.to_c(dlType == 'STATIC') + '\n\n'
+			static_data += self.cullVertexList.to_c() + '\n\n'
+		for triGroup in self.triangleGroups:
+			triGroupStatic, triGroupScroll = triGroup.to_c(f3d)
+			static_data += triGroupStatic
+			scroll_data += triGroupScroll
+		dynamic_data = self.draw.to_c(f3d) + '\n\n'
 		for materialTuple, drawOverride in self.drawMatOverrides.items():
-			data += drawOverride.to_c(dlType == 'STATIC') + '\n\n'
-		return data
+			dynamic_data += drawOverride.to_c(f3d) + '\n\n'
+		return static_data, dynamic_data, scroll_data
 
-	def to_c_def(self, dlType):
-		data = self.draw.to_c_def(dlType == 'STATIC')
-		#for triangleList in self.triangleLists:
-		#	data += triangleList.to_c_def(static)
+	def to_c_def(self):
+		dynamic_data = self.draw.to_c_def()
+		static_data = ''
+		scroll_data = ''
+		if self.DLFormat != "Static":
+			if self.cullVertexList is not None:
+				static_data += self.cullVertexList.to_c_def()
+		for triGroup in self.triangleGroups:
+			triGroupStatic, triGroupScroll = triGroup.to_c_def()
+			static_data += triGroupStatic
+			scroll_data += triGroupScroll
 		for materialTuple, drawOverride in self.drawMatOverrides.items():
-			data += drawOverride.to_c_def(dlType == 'STATIC')
-		return data
+			dynamic_data += drawOverride.to_c_def()
+		return static_data, dynamic_data, scroll_data
+
+class FTriGroup:
+	def __init__(self, name, index, fMaterial):
+		self.fMaterial = fMaterial
+		self.vertexList = VtxList(name + '_vtx_' + str(index))
+		self.triList = GfxList(name + '_tri_' + str(index), "Static")
+	
+	def get_ptr_addresses(self, f3d):
+		return self.triList.get_ptr_addresses(f3d)
+	
+	def set_addr(self, startAddress, f3d):	
+		addrRange = self.triList.set_addr(startAddress, f3d)
+		addrRange = self.vertexList.set_addr(addrRange[1])
+		return startAddress, addrRange[1]
+
+	def save_binary(self, romfile, f3d, segments):
+		self.triList.save_binary(romfile, f3d, segments)
+		self.vertexList.save_binary(romfile)
+	
+	def to_c(self, f3d):
+		static_data = self.vertexList.to_c() + '\n\n' +\
+			self.triList.to_c(f3d)
+		if self.fMaterial.scrollData is not None:
+			scroll_data = self.fMaterial.scrollData.to_c(self.vertexList.name, len(self.vertexList.vertices))
+		else:
+			scroll_data = ''
+		return static_data, scroll_data
+
+	def to_c_def(self):
+		static_data = self.vertexList.to_c_def() +\
+			self.triList.to_c_def()
+		if self.fMaterial.scrollData is not None:
+			scroll_data = self.fMaterial.scrollData.to_c_def(self.vertexList.name)
+		else:
+			scroll_data = ''
+		return static_data, scroll_data
+
+class FScrollDataField:
+	def __init__(self):
+		self.animType = "None"
+		self.speed = 0
+
+		self.amplitude = 0
+		self.frequency = 0
+		self.offset = 0
+
+		self.noiseAmplitude = 0
+
+'''
+static void shift_u(Vtx *vert) {
+    int i = 0;
+	int count = 10;
+	int width = (int)(10 * 32);
+	int height = (int)(10 * 32);
+	int speedX = 0;
+	int speedY = 0;
+
+	float currentX;
+	float currentY;
+	
+    Vtx *vertices = segmented_to_virtual(vert);
+	currentX = verts[0].n.flag * absi(speedX);
+	currentY = verts[1].n.flag * absi(speedY);
+
+	if (currentX > width) {
+		speedX -= width * signum_positive(speed);
+		verts[0].n.flag = 0;
+	}
+	if (currentY > height) {
+		speedY -= width * signum_positive(speed);
+		verts[1].n.flag = 0;
+	}
+
+    for (i = 0; i < vertcount; i++) {
+        verts[i].n.tc[0] += speedX;
+		verts[i].n.tc[1] += speedY;
+    }
+    
+	verts[0].n.flag++;
+	verts[1].n.flag++;
+'''
+
+class FScrollData:
+	def __init__(self):
+		self.fields = (
+			FScrollDataField(),
+			FScrollDataField(),
+			FScrollDataField(),
+		)
+		self.dimensions = [0, 0]
+		self.pivot = [0,0]
+		self.angularSpeed = 0
+	
+	def to_c(self, name, count):
+		if self.fields[0].animType == 'None' and\
+			self.fields[1].animType == 'None':
+			return ''
+
+		data = 'void scroll_' + name + "() {\n" +\
+			"\tint i = 0;\n" +\
+			"\tint count = " + str(count) + ';\n' +\
+			"\tint width = " + str(self.dimensions[0]) + ' * 0x20;\n' +\
+			"\tint height = " + str(self.dimensions[1]) + ' * 0x20;'
+		
+		if self.fields[0].animType == 'Rotation' or self.fields[1].animType == 'Rotation':
+			pass
+		else:
+			variables = ""
+			currentVars = ""
+			deltaCalculate = ""
+			checkOverflow = ""
+			scrolling = ""
+			increaseCurrentDelta = ""
+			for i in range(2):
+				field = 'XYZ'[i]
+				axis = ['width', 'height'][i]
+				if self.fields[i].animType != 'None':
+					currentVars += "\tstatic int current" + field + ' = 0;\n\tint delta' + field + ';\n'
+					checkOverflow += '\tif (absi(current' + field + ') > ' + axis + ') {\n' +\
+						'\t\tdelta' + field + ' -= (int)(absi(current' + field + ') / ' +  axis + ') * ' + axis +\
+						' * signum_positive(delta' + field + ');\n\t}\n'
+					scrolling += '\t\tvertices[i].n.tc[' + str(i) + '] += delta' + field + ';\n'
+					increaseCurrentDelta += '\tcurrent' + field + ' += delta' + field + ';\n'
+
+					if self.fields[i].animType == 'Linear':
+						deltaCalculate += '\tdelta' + field + ' = (int)(' + str(self.fields[i].speed) + ' * 0x20) % ' + axis + ';\n'
+					elif self.fields[i].animType == 'Sine':
+						currentVars += '\tstatic int time' + field + ';\n' +\
+							'\tfloat amplitude' + field + ' = ' + str(self.fields[i].amplitude) + ';\n' +\
+							'\tfloat frequency' + field + ' = ' + str(self.fields[i].frequency) + ';\n' +\
+							'\tfloat offset' + field + ' = ' + str(self.fields[i].offset) + ';\n'
+
+						deltaCalculate += '\tdelta' + field + ' = (int)(amplitude' + field + ' * frequency' +\
+							field + ' * coss((frequency' + field + ' * time' + field + ' + offset' + field + \
+							') * (1024 * 16 - 1) / 6.28318530718) * 0x20);\n'
+						# Conversion from s10.5 to u16
+						#checkOverflow += '\tif (frequency' + field + ' * current' + field + ' / 2 > 6.28318530718) {\n' +\
+						#	'\t\tcurrent' + field + ' -= 6.28318530718 * 2 / frequency' + field + ';\n\t}\n'
+						increaseCurrentDelta += '\ttime' + field + ' += 1;\n'
+					elif self.fields[i].animType == 'Noise':
+						deltaCalculate += '\tdelta' + field + ' = (int)(' + str(self.fields[i].noiseAmplitude) + ' * 0x20 * ' +\
+							'random_float() * random_sign()) % ' + axis + ';\n'
+
+					
+		
+			return data + '\n' + variables + '\n' + currentVars +\
+				'\tVtx *vertices = segmented_to_virtual(' + name + ');\n\n' +\
+				deltaCalculate + '\n' + checkOverflow + '\n' +\
+				"\tfor (i = 0; i < count; i++) {\n" +\
+				scrolling + '\t}\n' + increaseCurrentDelta + '\n}\n'
+
+	def to_c_def(self, name):
+		if (self.fields[0].animType == 'None') and\
+			(self.fields[1].animType == 'None'):
+			return ''
+		
+		return 'extern void scroll_' + name + "();\n"
+
 
 class FMaterial:
-	def __init__(self, name):
-		self.material = GfxList('mat_' + name)
-		self.revert = GfxList('mat_revert_' + name)
+	def __init__(self, name, DLFormat):
+		self.material = GfxList('mat_' + name, DLFormat)
+		self.revert = GfxList('mat_revert_' + name, DLFormat)
+		self.DLFormat = DLFormat
+		self.scrollData = FScrollData()
+
+	def getScrollData(self, material, dimensions):
+		self.getScrollDataField(material, 0)
+		self.getScrollDataField(material, 1)
+		self.getScrollDataField(material, 2)
+		self.scrollData.dimensions = dimensions
+		self.scrollData.pivot = material.UVanim.pivot
+		self.scrollData.angularSpeed = material.UVanim.angularSpeed
+
+	def getScrollDataField(self, material, index):
+		field = getattr(material.UVanim, 'xyz'[index])
+		scrollField = self.scrollData.fields[index]
+
+		scrollField.animType = field.animType
+		scrollField.speed = field.speed
+		scrollField.amplitude = field.amplitude
+		scrollField.frequency = field.frequency
+		scrollField.offset = field.offset
+
+		scrollField.noiseAmplitude = field.noiseAmplitude
 
 	def sets_rendermode(self):
 		for command in self.material.commands:
@@ -1889,16 +2172,16 @@ class FMaterial:
 		if self.revert is not None:
 			self.revert.save_binary(romfile, f3d, segments)
 
-	def to_c(self, static):
-		data = self.material.to_c(static) + '\n\n'
+	def to_c(self, f3d):
+		data = self.material.to_c(f3d) + '\n\n'
 		if self.revert is not None:
-			data += self.revert.to_c(static) + '\n\n'
+			data += self.revert.to_c(f3d) + '\n\n'
 		return data
 	
-	def to_c_def(self, static):
-		data = self.material.to_c_def(static)
+	def to_c_def(self):
+		data = self.material.to_c_def()
 		if self.revert is not None:
-			data += self.revert.to_c_def(static)
+			data += self.revert.to_c_def()
 		return data
 
 # viewport
@@ -2038,6 +2321,9 @@ class Lights:
 			data += ',\n\t' + light.to_c()
 		data += ');\n' 
 		return data
+
+	def to_c_def(self):
+		return "extern const Lights" + str(len(self.l)) + " " + self.name + ";\n"
 
 	def to_sm64_decomp_s(self):
 		data = '.balign 8\n' + self.name + ':\n'
@@ -2206,7 +2492,11 @@ class SPVertex:
 	
 	def to_c(self, static = True):
 		header = 'gsSPVertex(' if static else 'gSPVertex(glistp++, '
-		return header + self.vertList.name + " + " + str(self.offset) + ", " + \
+		if not static and bpy.context.scene.decomp_compatible:
+			header += 'segmented_to_virtual(' + self.vertList.name + ' + ' + str(self.offset) + ')'
+		else:
+			header += self.vertList.name + ' + ' + str(self.offset)
+		return header + ", " + \
 			str(self.count) + ', ' + str(self.index) + ')'
 
 	def to_sm64_decomp_s(self):
@@ -2258,6 +2548,12 @@ class SPDisplayList:
 	def to_c(self, static = True):
 		if static:
 			return 'gsSPDisplayList(' + self.displayList.name + ')'
+		elif self.displayList.DLFormat == "Static":
+			header = 'gSPDisplayList(glistp++, '
+			if bpy.context.scene.decomp_compatible:
+				return header + 'segmented_to_virtual(' + self.displayList.name + '))'
+			else:
+				return header + self.displayList.name + ')'
 		else:
 			return 'glistp = ' + self.displayList.name + '(glistp)'
 
@@ -2662,7 +2958,11 @@ class SPLight:
 
 	def to_c(self, static = True):
 		header = 'gsSPLight(' if static else 'gSPLight(glistp++, '
-		return header + self.light.name + ', ' + str(self.n) + ')'
+		if not static and bpy.context.scene.decomp_compatible:
+			header += 'segmented_to_virtual(' + self.light.name + ')'
+		else:
+			header += self.light.name
+		return header + ', ' + str(self.n) + ')'
 
 	def to_sm64_decomp_s(self):
 		return 'gsSPLight ' + self.light.name + ', ' + str(self.n)
@@ -2730,7 +3030,11 @@ class SPSetLights:
 	def to_c(self, static = True):
 		header = 'gsSPSetLights' + str(len(self.lights.l)) + '(' if static \
 			else 'gSPSetLights' + str(len(self.lights.l)) + '(glistp++, '
-		return header + self.lights.name + ')'
+		if not static and bpy.context.scene.decomp_compatible:
+			header += '(*(Lights' + str(len(self.lights.l)) + '*) segmented_to_virtual(&' + self.lights.name + '))'
+		else:
+			header += self.lights.name
+		return header + ')'
 
 	def to_sm64_decomp_s(self):
 		return 'gsSPSetLights ' + self.lights.name
@@ -3517,8 +3821,13 @@ class DPSetTextureImage:
 	def to_c(self, static = True):
 		header = 'gsDPSetTextureImage(' if static else \
 			'gDPSetTextureImage(glistp++, '
-		return header + self.fmt + ', ' + self.siz + ', ' + \
-			str(self.width) + ', ' + self.image.name + ')'
+		header += self.fmt + ', ' + self.siz + ', ' + \
+			str(self.width) + ', '
+		if not static and bpy.context.scene.decomp_compatible:
+			header += 'segmented_to_virtual(' + self.image.name + '))'
+		else:
+			header += self.image.name + ')'
+		return header
 
 	def to_sm64_decomp_s(self):
 		return 'gsDPSetTextureImage ' + self.fmt + ', ' + self.siz + \

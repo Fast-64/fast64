@@ -65,7 +65,7 @@ def getCameraObj(camera):
 		' is no longer in the scene.')
 
 def appendRevertToGeolayout(geolayoutGraph, fModel):
-	fModel.materialRevert = GfxList(fModel.name + "_" + 'material_revert_render_settings')
+	fModel.materialRevert = GfxList(fModel.name + "_" + 'material_revert_render_settings', fModel.DLFormat)
 	revertMatAndEndDraw(fModel.materialRevert, 
 		[DPSetEnvColor(0xFF, 0xFF, 0xFF, 0xFF),
 		DPSetAlphaCompare("G_AC_NONE")])
@@ -83,9 +83,9 @@ def appendRevertToGeolayout(geolayoutGraph, fModel):
 
 # Convert to Geolayout
 def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix, 
-	f3dType, isHWv1, camera, name):
+	f3dType, isHWv1, camera, name, DLFormat):
 	
-	fModel = FModel(f3dType, isHWv1, name)
+	fModel = FModel(f3dType, isHWv1, name, DLFormat)
 
 	if len(armatureObj.children) == 0:
 		raise PluginError("No mesh parented to armature.")
@@ -118,14 +118,16 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix,
 		name)
 	appendRevertToGeolayout(geolayoutGraph, fModel)
 	geolayoutGraph.generateSortedList()
+	if DLFormat == 'SM64 Function Node':
+		geolayoutGraph.convertToDynamic()
 	return geolayoutGraph, fModel
 
 # Camera is unused here
 def convertObjectToGeolayout(obj, convertTransformMatrix, 
-	f3dType, isHWv1, camera, name, fModel, areaObj):
+	f3dType, isHWv1, camera, name, fModel, areaObj, DLFormat):
 	
 	if fModel is None:
-		fModel = FModel(f3dType, isHWv1, name)
+		fModel = FModel(f3dType, isHWv1, name, DLFormat)
 	
 	#convertTransformMatrix = convertTransformMatrix @ \
 	#	mathutils.Matrix.Diagonal(obj.scale).to_4x4()
@@ -160,28 +162,32 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 
 	appendRevertToGeolayout(geolayoutGraph, fModel)
 	geolayoutGraph.generateSortedList()
+	if DLFormat == "SM64 Function Node":
+		geolayoutGraph.convertToDynamic()
 	return geolayoutGraph, fModel
 
 # C Export
 def exportGeolayoutArmatureC(armatureObj, obj, convertTransformMatrix, 
-	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera, groupName, headerType, name, levelName, customExport):
+	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera, groupName, 
+	headerType, name, levelName, customExport, DLFormat):
 	geolayoutGraph, fModel = convertArmatureToGeolayout(armatureObj, obj,
-		convertTransformMatrix, f3dType, isHWv1, camera, name)
+		convertTransformMatrix, f3dType, isHWv1, camera, name, DLFormat)
 
 	return saveGeolayoutC(name, geolayoutGraph, fModel, dirPath, texDir, 
-		savePNG, texSeparate, groupName, headerType, levelName, customExport)
+		savePNG, texSeparate, groupName, headerType, levelName, customExport, DLFormat)
 
 def exportGeolayoutObjectC(obj, convertTransformMatrix, 
-	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera, groupName, headerType, name, levelName, customExport):
+	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera, groupName, 
+	headerType, name, levelName, customExport, DLFormat):
 	geolayoutGraph, fModel = convertObjectToGeolayout(obj, 
-		convertTransformMatrix, f3dType, isHWv1, camera, name, None, None)
+		convertTransformMatrix, f3dType, isHWv1, camera, name, None, None, DLFormat)
 
 	return saveGeolayoutC(name, geolayoutGraph, fModel, dirPath, texDir, 
-		savePNG, texSeparate, groupName, headerType, levelName, customExport)
+		savePNG, texSeparate, groupName, headerType, levelName, customExport, DLFormat)
 
-def saveGeolayoutC(dirName, geolayoutGraph, fModel, dirPath, texDir, savePNG,
- 	texSeparate, groupName, headerType, levelName, customExport):
-	dirPath, texDir = getExportDir(customExport, dirPath, headerType, 
+def saveGeolayoutC(dirName, geolayoutGraph, fModel, exportDir, texDir, savePNG,
+ 	texSeparate, groupName, headerType, levelName, customExport, DLFormat):
+	dirPath, texDir = getExportDir(customExport, exportDir, headerType, 
 		levelName, texDir, dirName)
 
 	dirName = toAlnum(dirName)
@@ -191,7 +197,57 @@ def saveGeolayoutC(dirName, geolayoutGraph, fModel, dirPath, texDir, savePNG,
 	if not os.path.exists(geoDirPath):
 		os.mkdir(geoDirPath)
 	
-	data, texC = fModel.to_c("STATIC", texSeparate, savePNG, texDir)
+	if headerType == 'Actor':
+		scrollName = 'actor_geo_' + dirName
+	elif headerType == 'Level':
+		scrollName = levelName + '_level_geo_' + dirName
+	static_data, dynamic_data, texC, scroll_data = fModel.to_c(texSeparate, savePNG, texDir, scrollName)
+	cDefineStatic, cDefineDynamic, cDefineScroll = fModel.to_c_def(scrollName)
+	geoData = geolayoutGraph.to_c()
+
+	if headerType == 'Actor':
+		matCInclude = '#include "actors/' + dirName + '/material.inc.c"'
+		matHInclude = '#include "actors/' + dirName + '/material.inc.h"'
+		headerInclude = '#include "actors/' + dirName + '/geo_header.h"'
+	else:
+		matCInclude = '#include "levels/' + levelName + '/' + dirName + '/material.inc.c"'
+		matHInclude = '#include "levels/' + levelName + '/' + dirName + '/material.inc.h"'
+		headerInclude = '#include "levels/' + levelName + '/' + dirName + '/geo_header.h"'
+	
+	writeTexScrollFiles(exportDir, geoDirPath, cDefineScroll, scroll_data)
+	
+	if DLFormat == "Static":
+		static_data += '\n' + dynamic_data
+		cDefineStatic = geolayoutGraph.to_c_def() + cDefineStatic + cDefineDynamic
+	else:
+		geoData = writeMaterialFiles(exportDir, geoDirPath, 
+			headerInclude, matHInclude,
+			cDefineDynamic, dynamic_data, geoData, customExport)
+
+	modelPath = os.path.join(geoDirPath, 'model.inc.c')
+	modelFile = open(modelPath, 'w', newline='\n')
+	modelFile.write(static_data)
+	modelFile.close()
+
+	if texSeparate:
+		texPath = os.path.join(geoDirPath, 'texture.inc.c')
+		texFile = open(texPath, 'w', newline='\n')
+		texFile.write(texC)
+		texFile.close()
+
+	fModel.freePalettes()
+
+	# save geolayout
+	geoPath = os.path.join(geoDirPath, 'geo.inc.c')
+	geoFile = open(geoPath, 'w', newline='\n')
+	geoFile.write(geoData)
+	geoFile.close()
+
+	# save header
+	headerPath = os.path.join(geoDirPath, 'geo_header.h')
+	cDefFile = open(headerPath, 'w', newline='\n')
+	cDefFile.write(cDefineStatic)
+	cDefFile.close()
 	
 	if not customExport:
 		if headerType == 'Actor':
@@ -207,6 +263,11 @@ def saveGeolayoutC(dirName, geolayoutGraph, fModel, dirPath, texDir, savePNG,
 			writeIfNotFound(groupPathGeoC, '\n#include "' + dirName + '/geo.inc.c"', '')
 			writeIfNotFound(groupPathH, '\n#include "' + dirName + '/geo_header.h"', '\n#endif')
 
+			texscrollIncludeC = '#include "actors/' + dirName + '/texscroll.inc.c"'
+			texscrollIncludeH = '#include "actors/' + dirName + '/texscroll.inc.h"'
+			texscrollGroup = groupName
+			texscrollGroupInclude = '#include "actors/' + groupName + '.h"'
+
 		elif headerType == 'Level':
 			groupPathC = os.path.join(dirPath, "leveldata.c")
 			groupPathGeoC = os.path.join(dirPath, "geo.c")
@@ -216,55 +277,38 @@ def saveGeolayoutC(dirName, geolayoutGraph, fModel, dirPath, texDir, savePNG,
 			writeIfNotFound(groupPathGeoC, '\n#include "levels/' + levelName + '/' + dirName + '/geo.inc.c"', '')
 			writeIfNotFound(groupPathH, '\n#include "levels/' + levelName + '/' + dirName + '/geo_header.h"', '\n#endif')
 
+			texscrollIncludeC = '#include "levels/' + levelName + '/' + dirName + '/texscroll.inc.c"'
+			texscrollIncludeH = '#include "levels/' + levelName + '/' + dirName + '/texscroll.inc.h"'
+			texscrollGroup = levelName
+			texscrollGroupInclude = '#include "levels/' + levelName + '/header.h"'
+
+		writeTexScrollHeadersGroup(exportDir, texscrollIncludeC, texscrollIncludeH, 
+			texscrollGroup, cDefineScroll, texscrollGroupInclude)
+		
+		if DLFormat != "Static": # Change this
+			writeMaterialHeaders(exportDir, matCInclude, matHInclude)
+
 	if savePNG:
 		if not customExport and headerType == 'Level':
 			fModel.save_textures(dirPath)
 		else:
 			fModel.save_textures(geoDirPath)
-			
-		
-	modelPath = os.path.join(geoDirPath, 'model.inc.c')
-	modelFile = open(modelPath, 'w', newline='\n')
-	modelFile.write(data)
-	modelFile.close()
-
-	if texSeparate:
-		texPath = os.path.join(geoDirPath, 'texture.inc.c')
-		texFile = open(texPath, 'w', newline='\n')
-		texFile.write(texC)
-		texFile.close()
-
-	fModel.freePalettes()
-
-	# save geolayout
-	geoPath = os.path.join(geoDirPath, 'geo.inc.c')
-	geoData = geolayoutGraph.to_c()
-	geoFile = open(geoPath, 'w', newline='\n')
-	geoFile.write(geoData)
-	geoFile.close()
-
-	# save header
-	cDefine = geolayoutGraph.to_c_def() + fModel.to_c_def(True)
-	headerPath = os.path.join(geoDirPath, 'geo_header.h')
-	cDefFile = open(headerPath, 'w', newline='\n')
-	cDefFile.write(cDefine)
-	cDefFile.close()
 	
-	return cDefine
+	return cDefineStatic
 
 
 # Insertable Binary
 def exportGeolayoutArmatureInsertableBinary(armatureObj, obj,
 	convertTransformMatrix, f3dType, isHWv1, filepath, camera):
 	geolayoutGraph, fModel = convertArmatureToGeolayout(armatureObj, obj,
-		convertTransformMatrix, f3dType, isHWv1, camera, armatureObj.name)
+		convertTransformMatrix, f3dType, isHWv1, camera, armatureObj.name, "Static")
 	
 	saveGeolayoutInsertableBinary(geolayoutGraph, fModel, filepath, f3dType)
 
 def exportGeolayoutObjectInsertableBinary(obj, convertTransformMatrix, 
 	f3dType, isHWv1, filepath, camera):
 	geolayoutGraph, fModel = convertObjectToGeolayout(obj, 
-		convertTransformMatrix, f3dType, isHWv1, camera, obj.name, None, None)
+		convertTransformMatrix, f3dType, isHWv1, camera, obj.name, None, None, "Static")
 	
 	saveGeolayoutInsertableBinary(geolayoutGraph, fModel, filepath, f3dType)
 
@@ -285,7 +329,7 @@ def exportGeolayoutArmatureBinaryBank0(romfile, armatureObj, obj, exportRange,
 	f3dType, isHWv1, RAMAddr, camera):
 	
 	geolayoutGraph, fModel = convertArmatureToGeolayout(armatureObj, obj,
-		convertTransformMatrix, f3dType, isHWv1, camera, armatureObj.name)
+		convertTransformMatrix, f3dType, isHWv1, camera, armatureObj.name, "Static")
 	
 	return saveGeolayoutBinaryBank0(romfile, fModel, geolayoutGraph,
 		exportRange, levelCommandPos, modelID, textDumpFilePath, RAMAddr)
@@ -295,7 +339,7 @@ def exportGeolayoutObjectBinaryBank0(romfile, obj, exportRange,
 	f3dType, isHWv1, RAMAddr, camera):
 	
 	geolayoutGraph, fModel = convertObjectToGeolayout(obj, 
-		convertTransformMatrix, f3dType, isHWv1, camera, obj.name, None, None)
+		convertTransformMatrix, f3dType, isHWv1, camera, obj.name, None, None, "Static")
 	
 	return saveGeolayoutBinaryBank0(romfile, fModel, geolayoutGraph,
 		exportRange, levelCommandPos, modelID, textDumpFilePath, RAMAddr)
@@ -346,7 +390,7 @@ def exportGeolayoutArmatureBinary(romfile, armatureObj, obj, exportRange,
 	textDumpFilePath, f3dType, isHWv1, camera):
 
 	geolayoutGraph, fModel = convertArmatureToGeolayout(armatureObj, obj,
-		convertTransformMatrix, f3dType, isHWv1, camera, armatureObj.name)
+		convertTransformMatrix, f3dType, isHWv1, camera, armatureObj.name, "Static")
 
 	return saveGeolayoutBinary(romfile, geolayoutGraph, fModel, exportRange,	
  		levelData, levelCommandPos, modelID, textDumpFilePath)
@@ -356,7 +400,7 @@ def exportGeolayoutObjectBinary(romfile, obj, exportRange,
 	textDumpFilePath, f3dType, isHWv1, camera):
 	
 	geolayoutGraph, fModel = convertObjectToGeolayout(obj, 
-		convertTransformMatrix, f3dType, isHWv1, camera, obj.name, None, None)
+		convertTransformMatrix, f3dType, isHWv1, camera, obj.name, None, None, "Static")
 	
 	return saveGeolayoutBinary(romfile, geolayoutGraph, fModel, exportRange,	
  		levelData, levelCommandPos, modelID, textDumpFilePath)
@@ -610,7 +654,7 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode,
 	if obj.data is None:
 		meshGroup = None
 	else:
-		meshGroup = saveStaticModel(fModel, obj, transformMatrix, fModel.name)
+		meshGroup = saveStaticModel(fModel, obj, transformMatrix, fModel.name, fModel.DLFormat)
 
 	if meshGroup is None:
 		node.hasDL = False
@@ -991,26 +1035,39 @@ def getGroupNameFromIndex(obj, index):
 
 def getGroupIndex(vert, armatureObj, obj):
 	actualGroups = []
+	belowLimitGroups = []
+	nonBoneGroups = []
 	for group in vert.groups:
 		groupName = getGroupNameFromIndex(obj, group.group)
-		if groupName is not None and groupName in armatureObj.data.bones:
-			actualGroups.append(group)
+		if groupName is not None:
+			if groupName in armatureObj.data.bones:
+				if group.weight > 0.4:
+					actualGroups.append(group)
+				else:
+					belowLimitGroups.append(groupName)
+			else:
+				nonBoneGroups.append(groupName)
 
 	if len(actualGroups) == 0:
 		highlightWeightErrors(obj, [vert], "VERT")
-		raise VertexWeightError("All vertices must be part of a vertex group (weight painted), and the vertex group must correspond to a bone in the armature.")
+		raise VertexWeightError("All vertices must be part of a vertex group, be non-trivially weighted (> 0.4), and the vertex group must correspond to a bone in the armature.\n" +\
+			"Groups of the bad vert that don't correspond to a bone: " + str(nonBoneGroups) + '. If a vert is supposed to belong to this group then either a bone is missing or you have the wrong group.\n' +\
+			"Groups of the bad vert below weight limit: " + str(belowLimitGroups) + \
+			". If a vert is supposed to belong to one of these groups then make sure to increase its weight.")
 	vertGroup = actualGroups[0]
-	significantWeightFound = False
+	significantWeightGroup = None
 	for group in actualGroups:
 		if group.weight > 0.5:
-			if not significantWeightFound:
-				significantWeightFound = True
+			if significantWeightGroup is None:
+				significantWeightGroup = group
 			else:
 				highlightWeightErrors(obj, [vert], "VERT")
-				raise VertexWeightError("A vertex was found that was significantly weighted to multiple groups. Make sure each vertex only belongs to one group whose weight is greater than 0.5.")
+				raise VertexWeightError("A vertex was found that was significantly weighted to multiple groups. Make sure each vertex only belongs to one group whose weight is greater than 0.5. (" + \
+					getGroupNameFromIndex(obj, group.group) + ', ' + getGroupNameFromIndex(obj, significantWeightGroup.group) + ')')
 		if group.weight > vertGroup.weight:
 			vertGroup = group
-
+	#if vertGroup not in actualGroups:
+	#raise VertexWeightError("A vertex was found that was primarily weighted to a group that does not correspond to a bone in #the armature. (" + getGroupNameFromIndex(obj, vertGroup.group) + ') Either decrease the weights of this vertex group or remove it. If you think this group should correspond to a bone, make sure to check your spelling.')
 	return vertGroup.group
 
 class SkinnedFace():
@@ -1267,7 +1324,7 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 		fMeshGroup = FMeshGroup(toAlnum(namePrefix + \
 			('_' if namePrefix != '' else '') + vertexGroup), 
 			FMesh(toAlnum(namePrefix + \
-			('_' if namePrefix != '' else '') + vertexGroup) + '_mesh'), None)
+			('_' if namePrefix != '' else '') + vertexGroup) + '_mesh', fModel.DLFormat), None, fModel.DLFormat)
 	else:
 		print("No faces in " + vertexGroup)
 		return None, True
@@ -1310,7 +1367,7 @@ def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, dr
 		overrideIndex = fMesh.drawMatOverrides[(material, specificMat, overrideType)].name[-1]
 	meshMatOverride = GfxList(
 		fMesh.name + '_mat_override_' + toAlnum(material.name) + \
-		'_' + overrideIndex)
+		'_' + overrideIndex, fModel.DLFormat)
 	#print(fMesh.drawMatOverrides)
 	#print('fdddddddddddddddd ' + str(fMesh.name) + " " + str(material) + " " + str(specificMat) + " " + str(overrideType))
 	fMesh.drawMatOverrides[(material, specificMat, overrideType)] = meshMatOverride
@@ -1429,7 +1486,7 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj,
 	
 	# Load parent group vertices
 	fSkinnedMesh = FMesh(toAlnum(namePrefix + \
-			('_' if namePrefix != '' else '') + name) + '_skinned')
+			('_' if namePrefix != '' else '') + name) + '_skinned', fModel.DLFormat)
 
 	# Load verts into buffer by material.
 	# It seems like material setup must be done BEFORE triangles are drawn.
@@ -1446,27 +1503,29 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj,
 		isPointSampled = isTexturePointSampled(material)
 		exportVertexColors = isLightingDisabled(material)
 
-		skinnedTriList = fSkinnedMesh.tri_list_new()
+		skinnedTriGroup = fSkinnedMesh.tri_group_new(fMaterial)
 		fSkinnedMesh.draw.commands.append(SPDisplayList(fMaterial.material))
-		fSkinnedMesh.draw.commands.append(SPDisplayList(skinnedTriList))
-		skinnedTriList.commands.append(
-			SPVertex(fSkinnedMesh.vertexList, 
-				len(fSkinnedMesh.vertexList.vertices), 
+		fSkinnedMesh.draw.commands.append(SPDisplayList(skinnedTriGroup.triList))
+		skinnedTriGroup.triList.commands.append(
+			SPVertex(skinnedTriGroup.vertexList, 
+				len(skinnedTriGroup.vertexList.vertices), 
 				len(vertData), curIndex))
 		curIndex += len(vertData)
 
 		for f3dVert in vertData:
-			fSkinnedMesh.vertexList.vertices.append(convertVertexData(obj.data,
+			skinnedTriGroup.vertexList.vertices.append(convertVertexData(obj.data,
 				f3dVert[0], f3dVert[1], f3dVert[2], texDimensions,
 				parentMatrix, isPointSampled, exportVertexColors))
 		
-		skinnedTriList.commands.append(SPEndDisplayList())
+		skinnedTriGroup.triList.commands.append(SPEndDisplayList())
+		if fMaterial.revert is not None:
+			fSkinnedMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
 
 	# End skinned mesh vertices.
 	fSkinnedMesh.draw.commands.append(SPEndDisplayList())
 
 	fMesh = FMesh(toAlnum(namePrefix + \
-			('_' if namePrefix != '' else '') + name) + '_mesh')
+			('_' if namePrefix != '' else '') + name) + '_mesh', fModel.DLFormat)
 
 	# Load current group vertices, then draw commands by material
 	existingVertData, matRegionDict = \
@@ -1480,22 +1539,22 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj,
 		isPointSampled = isTexturePointSampled(material)
 		exportVertexColors = isLightingDisabled(material)
 
-		triList = fMesh.tri_list_new()
+		triGroup = fMesh.tri_group_new(fMaterial)
 		fMesh.draw.commands.append(SPDisplayList(fMaterial.material))
-		fMesh.draw.commands.append(SPDisplayList(triList))
+		fMesh.draw.commands.append(SPDisplayList(triGroup.triList))
 		if fMaterial.revert is not None:
 			fMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
 
 		convertInfo = LoopConvertInfo(uv_data, obj, exportVertexColors)
 		saveTriangleStrip(
 			[skinnedFace.bFace for skinnedFace in skinnedFaceArray],
-			convertInfo, triList, fMesh.vertexList, fModel.f3d, 
+			convertInfo, triGroup.triList, triGroup.vertexList, fModel.f3d, 
 			texDimensions, currentMatrix, isPointSampled, exportVertexColors,
 			copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict),
 			infoDict, obj.data)
 	
 	return FMeshGroup(toAlnum(namePrefix + \
-			('_' if namePrefix != '' else '') + name), fMesh, fSkinnedMesh)
+			('_' if namePrefix != '' else '') + name), fMesh, fSkinnedMesh, fModel.DLFormat)
 
 def writeDynamicMeshFunction(name, displayList):
 	data = \
