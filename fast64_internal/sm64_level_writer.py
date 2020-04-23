@@ -145,6 +145,13 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 		levelDataString += '#include "levels/' + levelName + '/' + areaName + '/macro.inc.c"\n'
 		headerString += area.to_c_def_macros()
 
+		# Write splines
+		splineFile = open(os.path.join(areaDir, 'spline.inc.c'), 'w', newline = '\n')
+		splineFile.write(area.to_c_splines())
+		splineFile.close()
+		levelDataString += '#include "levels/' + levelName + '/' + areaName + '/spline.inc.c"\n'
+		headerString += area.to_c_def_splines()
+
 	cameraVolumeString += '\tNULL_TRIGGER\n};'
 
 	# Remove old areas.

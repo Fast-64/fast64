@@ -6,6 +6,7 @@ import os
 from io import BytesIO
 import math
 from .sm64_function_map import func_map
+from .sm64_spline import *
 
 class SM64_Object:
 	def __init__(self, model, position, rotation, behaviour, bparam, acts):
@@ -139,6 +140,7 @@ class SM64_Area:
 		self.terrain_type = terrain_type
 		self.warpNodes = warpNodes
 		self.mario_start = None
+		self.splines = []
 
 	def macros_name(self):
 		return self.name + '_macro_objs'
@@ -178,6 +180,28 @@ class SM64_Area:
 		data = ''
 		for camVolume in self.cameraVolumes:
 			data +=  '\t' + camVolume.to_c() + '\n'
+		return data
+
+	def hasCutsceneSpline(self):
+		for spline in self.splines:
+			if spline.splineType == 'Cutscene':
+				return True
+		return False
+	
+	def to_c_splines(self):
+		data = ''
+		for spline in self.splines:
+			data += spline.to_c() + '\n'
+		if self.hasCutsceneSpline():
+			data = '#include "src/game/camera.h"\n\n' + data
+		return data
+	
+	def to_c_def_splines(self):
+		data = ''
+		for spline in self.splines:
+			data += spline.to_c_def()
+		if self.hasCutsceneSpline():
+			data = '#include "src/game/camera.h"\n\n' + data
 		return data
 
 class CollisionWaterBox:
@@ -303,15 +327,19 @@ def handleRefreshDiffMacros(preset):
 	return preset
 
 def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
+	translation, rotation, scale = \
+			(transformMatrix @ rootMatrix.inverted() @ obj.matrix_world).decompose()
+
+	finalTransform = mathutils.Matrix.Translation(translation) @ \
+		rotation.to_matrix().to_4x4() @ \
+		mathutils.Matrix.Diagonal(scale).to_4x4()
+
+	# Hacky solution to handle Z-up to Y-up conversion
+	rotation = rotation @ mathutils.Quaternion((1, 0, 0), math.radians(90.0))
+
 	if obj.data is None:
 		if obj.sm64_obj_type == 'Area Root' and obj.areaIndex != area.index:
 			return
-		translation, rotation, scale = \
-			(transformMatrix @ rootMatrix.inverted() @ obj.matrix_world).decompose()
-
-		# Hacky solution to handle Z-up to Y-up conversion
-		rotation = rotation @ mathutils.Quaternion((1, 0, 0), math.radians(90.0))
-
 		if specialsOnly:
 			if obj.sm64_obj_type == 'Special':
 				preset = obj.sm64_special_enum if obj.sm64_special_enum != 'Custom' else obj.sm64_obj_preset
@@ -352,6 +380,9 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
 					triggerIndex = area.index
 				area.cameraVolumes.append(CameraVolume(triggerIndex, obj.cameraVolumeFunction,
 					translation, rotation.to_euler(), scale, obj.empty_display_size))
+
+	elif not specialsOnly and isCurveValid(obj):
+		area.splines.append(convertSplineObject(area.name + '_spline_' + obj.name , obj, finalTransform))
 			
 
 	for child in obj.children:

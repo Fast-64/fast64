@@ -158,7 +158,7 @@ To replace an actor model manually, replace its geo.inc.c and model.inc.c conten
 
 ### Exporting Levels to C
 Add an Empty and check its SM64 object type in the object properties sidebar. Change the type to "Level Root."
-Add another Empty and change its type to "Area Root", and parent it to the level root object. You can now add any geometry/empties as child of the area root and it will be exported with the area. They do not have to directly parent to the area root, just to something within the area root's descendants. Empties are also used for placing specials, macros, objects, water boxes, and camera volumes. You can search the available options using the relevant search operators, or set an option to "Custom" to write in your own values. Backgrounds are set in level root options, and warp nodes are set in area root options. Make sure to also use extended RAM as described in the sections above.
+Add another Empty and change its type to "Area Root", and parent it to the level root object. You can now add any geometry/empties/splines as children of the area root and it will be exported with the area. They do not have to directly parent to the area root, just to something within the area root's descendants. Empties are also used for placing specials, macros, objects, water boxes, and camera volumes. You can search the available options using the relevant search operators, or set an option to "Custom" to write in your own values. NURBS curves are used to export spline data. Backgrounds are set in level root options, and warp nodes are set in area root options. Make sure to also use extended RAM as described in the sections above.
 
 To replace a level manually, replace the contents of a level folder with your exported folder. Then,
 

@@ -13,3 +13,4 @@ from .sm64_objects import *
 from .sm64_level_writer import *
 from .f3d_render_engine import *
 from .f3d_principled_bsdf_converter import *
+from .sm64_spline import *
