@@ -162,7 +162,7 @@ def saveStaticModel(fModel, obj, transformMatrix, name, DLFormat):
 		checkForF3dMaterialInFaces(obj, material)
 		saveMeshByFaces(material, faces, 
 			fModel, fMeshGroup.mesh, obj, transformMatrix, 
-			infoDict, None)
+			infoDict, int(obj.draw_layer_static))
 	
 	revertMatAndEndDraw(fMeshGroup.mesh.draw, [])
 	return fMeshGroup

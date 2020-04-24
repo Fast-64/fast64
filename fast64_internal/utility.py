@@ -318,6 +318,7 @@ def duplicateHierarchy(obj, ignoreAttr, includeEmpties, areaIndex):
 		for selectedObj in allObjs:
 			bpy.ops.object.select_all(action = 'DESELECT')
 			selectedObj.select_set(True)
+			bpy.context.view_layer.objects.active = selectedObj
 			for modifier in selectedObj.modifiers:
 				bpy.ops.object.modifier_apply(apply_as='DATA',
 					modifier=modifier.name)

@@ -1923,7 +1923,7 @@ def mat_register():
 	bpy.types.Material.fog_color = bpy.props.FloatVectorProperty(
 		name = 'Fog Color', subtype='COLOR', size = 4, min = 0, max = 1, default = (0,0,0,1))
 	bpy.types.Material.fog_position = bpy.props.IntVectorProperty(
-		name = 'Fog Range', size = 2, min = 0, max = 1000, default = (990,1000))
+		name = 'Fog Range', size = 2, min = 0, max = 1000, default = (970,1000))
 	bpy.types.Material.set_fog = bpy.props.BoolProperty()
 
 	# geometry mode
