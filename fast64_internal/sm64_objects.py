@@ -120,7 +120,7 @@ class SM64_Mario_Start:
 		self.rotation = rotation
 	
 	def to_c(self):
-		return 'MARIO_POS(' + str(self.area) + ', ' + str(int(round(self.rotation[1]))) + ', ' +\
+		return 'MARIO_POS(' + str(self.area) + ', ' + str(int(round(math.degrees(self.rotation[1])))) + ', ' +\
 			str(int(round(self.position[0]))) + ', ' + str(int(round(self.position[1]))) + ', ' + str(int(round(self.position[2]))) + ')'
 
 class SM64_Area:
