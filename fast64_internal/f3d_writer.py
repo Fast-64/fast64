@@ -1456,10 +1456,10 @@ def saveOrGetPaletteDefinition(fModelOrTexRect, image, imageName, texFmt, palFmt
 		texFmt.lower() + '.inc.c'
 	paletteFilename = getNameFromPath(name, True) + '.' + \
 		texFmt.lower() + '.pal'
-	fImage = FImage(fModelOrTexRect.checkDuplicateTextureName(toAlnum(imageName)), texFormat, bitSize, 
+	fImage = FImage(checkDuplicateTextureName(fModelOrTexRect, toAlnum(imageName)), texFormat, bitSize, 
 		image.size[0], image.size[1], filename)
 
-	fPalette = FImage(fModelOrTexRect.checkDuplicateTextureName(paletteName), palFormat, 'G_IM_SIZ_16b', 1, 
+	fPalette = FImage(checkDuplicateTextureName(fModelOrTexRect, paletteName), palFormat, 'G_IM_SIZ_16b', 1, 
 		len(palette), paletteFilename)
 	#paletteTex = bpy.data.images.new(paletteName, 1, len(palette))
 	#paletteTex.pixels = palette
@@ -1494,6 +1494,14 @@ def compactNibbleArray(texture, width, height):
 	
 	return nibbleData
 
+def checkDuplicateTextureName(fModelOrTexRect, name):
+	names = []
+	for info, texture in fModelOrTexRect.textures.items():
+		names.append(texture.name)
+	while name in names:
+		name = name + '_copy'
+	return name
+
 def saveOrGetTextureDefinition(fModel, image, imageName, texFormat):
 	fmt = texFormatOf[texFormat]
 	bitSize = texBitSizeOf[texFormat]
@@ -1510,7 +1518,7 @@ def saveOrGetTextureDefinition(fModel, image, imageName, texFormat):
 	filename = getNameFromPath(name, True) + '.' + \
 		texFormat.lower() + '.inc.c'
 
-	fImage = FImage(fModel.checkDuplicateTextureName(toAlnum(imageName)), fmt, bitSize, 
+	fImage = FImage(checkDuplicateTextureName(fModel, toAlnum(imageName)), fmt, bitSize, 
 		image.size[0], image.size[1], filename)
 
 	# N64 is -Y, Blender is +Y

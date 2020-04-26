@@ -1626,14 +1626,6 @@ class FModel:
 		# F3D library
 		self.f3d = F3D(f3dType, isHWv1)
 		self.DLFormat = DLFormat
-
-	def checkDuplicateTextureName(self, name):
-		names = []
-		for info, texture in self.textures.items():
-			names.append(texture.name)
-		while name in names:
-			name = name + '_copy'
-		return name
 	
 	def get_ptr_addresses(self, f3d):
 		addresses = []
