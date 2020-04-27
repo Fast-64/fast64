@@ -176,12 +176,18 @@ class CollisionPanel(bpy.types.Panel):
 		if not material.collision_all_options:
 			prop_split(box, material, 'collision_type_simple', 
 				'SM64 Collision Type')
+			if material.collision_type_simple == "Custom":
+				prop_split(box, material, 'collision_custom', 
+					'Collision Value')
 			#if material.collision_type_simple in specialSurfaces:
 			#	prop_split(box, material, 'collision_param', 'Parameter')
 			#	self.paramInfo(box)
 		else:
 			prop_split(box, material, 'collision_type', 
 				'SM64 Collision Type All')
+			if material.collision_type == "Custom":
+				prop_split(box, material, 'collision_custom', 
+					'Collision Value')
 			#if material.collision_type in specialSurfaces:
 			#	prop_split(box, material, 'collision_param', 'Parameter')
 			#	self.paramInfo(box)
@@ -369,6 +375,8 @@ def addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix, 
 			material = obj.data.materials[face.material_index]
 			colType = material.collision_type if material.collision_all_options\
 				else material.collision_type_simple
+			if colType == 'Custom':
+				colType = material.collision_custom
 			specialParam = material.collision_param if material.use_collision_param else None
 			if colType not in collisionDict:
 				collisionDict[colType] = []
@@ -410,6 +418,9 @@ def col_register():
 	bpy.types.Material.collision_type_simple = bpy.props.EnumProperty(
 		name = 'Collision Type', items = enumCollisionTypeSimple, 
 		default = 'SURFACE_DEFAULT')
+	
+	bpy.types.Material.collision_custom = bpy.props.StringProperty(
+		name = 'Collision Value', default = 'SURFACE_DEFAULT')
 
 	bpy.types.Material.collision_all_options = bpy.props.BoolProperty(
 		name = 'Show All Options')
@@ -438,6 +449,7 @@ def col_unregister():
 	del bpy.types.Material.collision_type_simple
 	del bpy.types.Material.collision_all_options
 	del bpy.types.Material.collision_param
+	del bpy.types.Material.collision_custom
 	
 	#del bpy.types.Object.sm64_obj_type
 	del bpy.types.Object.sm64_water_box
@@ -785,6 +797,7 @@ enumCollisionTypeSimple = [
 	('SURFACE_VERTICAL_WIND','Vertical Wind','Vertical Wind'),
 	('SURFACE_SWITCH','Switch','Switch'),
 	('SURFACE_VANISH_CAP_WALLS','Vanish Cap Walls','Vanish Cap Walls'),
+	('Custom', 'Custom', 'Custom'),
 ]
 
 enumCollisionType = [
@@ -935,6 +948,7 @@ enumCollisionType = [
 	('SURFACE_PAINTING_WARP_FC','Painting Warp FC','Painting Warp FC'),
 	('SURFACE_WOBBLING_WARP','Wobbling Warp','Wobbling Warp'),
 	('SURFACE_TRAPDOOR','Trapdoor','Trapdoor'),
+	('Custom', 'Custom', 'Custom'),
 ]
 
 enumPaintingCollisionType = [

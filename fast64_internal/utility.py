@@ -17,6 +17,32 @@ class PluginError(Exception):
 class VertexWeightError(PluginError):
 	pass
 
+def applyBasicTweaks(baseDir):
+	#enableExtendedRAM(baseDir)
+	return
+
+def enableExtendedRAM(baseDir):
+	segmentPath = os.path.join(baseDir, 'include/segments.h')
+
+	segmentFile = open(segmentPath, 'r', newline = '\n')
+	segmentData = segmentFile.read()
+	segmentFile.close()
+
+	matchResult = re.search('#define\s*USE\_EXT\_RAM', segmentData)
+
+	if not matchResult:
+		matchResult = re.search('#ifndef\s*USE\_EXT\_RAM', segmentData)
+		if matchResult is None:
+			raise PluginError("When trying to enable extended RAM, " +\
+				"could not find '#ifndef USE_EXT_RAM' in include/segments.h.")
+		segmentData = segmentData[:matchResult.start(0)] + \
+			'#define USE_EXT_RAM\n' + \
+			segmentData[matchResult.start(0):]
+
+		segmentFile = open(segmentPath, 'w', newline = '\n')
+		segmentFile.write(segmentData)
+		segmentFile.close()
+
 def writeMaterialHeaders(exportDir, matCInclude, matHInclude):
 	writeIfNotFound(os.path.join(exportDir, 'src/game/materials.c'), 
 		'\n' + matCInclude, '')

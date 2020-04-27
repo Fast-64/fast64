@@ -414,7 +414,8 @@ class SM64_ExportGeolayoutObject(bpy.types.Operator):
 				exportPath, levelName = getPathAndLevel(context.scene.geoCustomExport, 
 					context.scene.geoExportPath, context.scene.geoLevelName, 
 					context.scene.geoLevelOption)
-
+				if not context.scene.geoCustomExport:
+					applyBasicTweaks(exportPath)
 				exportGeolayoutObjectC(obj, finalTransform,
 					context.scene.f3d_type, context.scene.isHWv1,
 					exportPath,
@@ -594,6 +595,8 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 					context.scene.geoExportPath, context.scene.geoLevelName, 
 					context.scene.geoLevelOption)
 
+				if not context.scene.geoCustomExport:
+					applyBasicTweaks(exportPath)
 				exportGeolayoutArmatureC(armatureObj, obj, finalTransform,
 					context.scene.f3d_type, context.scene.isHWv1,
 					exportPath,
@@ -915,6 +918,8 @@ class SM64_ExportDL(bpy.types.Operator):
 				exportPath, levelName = getPathAndLevel(context.scene.DLCustomExport, 
 					context.scene.DLExportPath, context.scene.DLLevelName, 
 					context.scene.DLLevelOption)
+				if not context.scene.DLCustomExport:
+					applyBasicTweaks(exportPath)
 				exportF3DtoC(exportPath, obj,
 					"Static" if context.scene.DLExportisStatic else "Dynamic", finalTransform,
 					context.scene.f3d_type, context.scene.isHWv1,
@@ -1209,6 +1214,8 @@ class SM64_ExportLevel(bpy.types.Operator):
 				else:
 					levelName = context.scene.levelOption
 					triggerName = cameraTriggerNames[context.scene.levelOption]
+			if not context.scene.levelCustomExport:
+				applyBasicTweaks(exportPath)
 			exportLevelC(obj, finalTransform,
 				context.scene.f3d_type, context.scene.isHWv1, levelName, 
 				exportPath, context.scene.levelSaveTextures, context.scene.levelCustomExport, 
@@ -1387,6 +1394,8 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 				exportPath, levelName = getPathAndLevel(context.scene.animCustomExport, 
 					context.scene.animExportPath, context.scene.animLevelName, 
 					context.scene.animLevelOption)
+				if not context.scene.animCustomExport:
+					applyBasicTweaks(exportPath)
 				exportAnimationC(armatureObj, context.scene.loopAnimation, 
 					exportPath, bpy.context.scene.animName,
 					bpy.context.scene.animGroupName,
@@ -1593,7 +1602,8 @@ class SM64_ExportCollision(bpy.types.Operator):
 				exportPath, levelName = getPathAndLevel(context.scene.colCustomExport, 
 					context.scene.colExportPath, context.scene.colLevelName, 
 					context.scene.colLevelOption)
-
+				if not context.scene.colCustomExport:
+					applyBasicTweaks(exportPath)
 				exportCollisionC(obj, finalTransform,
 					exportPath, False,
 					context.scene.colIncludeChildren, 
@@ -1742,7 +1752,8 @@ class ExportTexRectDraw(bpy.types.Operator):
 					exportPath = context.scene.TexRectExportPath
 				else:
 					exportPath = context.scene.decompPath
-
+				if not context.scene.TexRectCustomExport:
+					applyBasicTweaks(exportPath)
 				exportTexRectToC(bpy.path.abspath(exportPath), 
 					context.scene.texrect,
 					context.scene.f3d_type, context.scene.isHWv1,
@@ -1944,6 +1955,7 @@ def register():
 	level_register()
 	render_engine_register()
 	bsdf_conv_register()
+	sm64_spline_register()
 
 	for cls in classes:
 		register_class(cls)
@@ -2389,6 +2401,7 @@ def unregister():
 	del bpy.types.Scene.decompPath
 	del bpy.types.Scene.decomp_compatible
 
+	sm64_spline_unregister()
 	level_unregister()
 	sm64_obj_unregister()
 	mat_unregister()
