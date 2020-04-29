@@ -102,10 +102,10 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix,
 
 	# Start geolayout
 	if camera is not None:
-		geolayoutGraph = GeolayoutGraph(name + '_level')
+		geolayoutGraph = GeolayoutGraph(name)
 		cameraObj = getCameraObj(camera)
 		meshGeolayout = saveCameraSettingsToGeolayout(
-			geolayoutGraph, cameraObj, armatureObj, name)
+			geolayoutGraph, cameraObj, armatureObj, name + "_geo")
 	else:
 		geolayoutGraph = GeolayoutGraph(name + "_geo")
 		rootNode = TransformNode(StartNode())
@@ -134,10 +134,10 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 
 	# Start geolayout
 	if areaObj is not None:
-		geolayoutGraph = GeolayoutGraph(name + '_level')
+		geolayoutGraph = GeolayoutGraph(name)
 		#cameraObj = getCameraObj(camera)
 		meshGeolayout = saveCameraSettingsToGeolayout(
-			geolayoutGraph, areaObj, obj, name)
+			geolayoutGraph, areaObj, obj, name + '_geo')
 	else:
 		geolayoutGraph = GeolayoutGraph(name + '_geo')
 		rootNode = TransformNode(StartNode())

@@ -79,7 +79,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 	areaString = ''
 	cameraVolumeString = "struct CameraTrigger " + levelCameraVolumeName + "[] = {\n"
 
-	fModel = FModel(f3dType, isHWv1, levelName, DLFormat)
+	fModel = FModel(f3dType, isHWv1, levelName + '_dl', DLFormat)
 	childAreas = [child for child in obj.children if child.data is None and child.sm64_obj_type == 'Area Root']
 	if len(childAreas) == 0:
 		raise PluginError("The level root has no child empties with the 'Area Root' object type.")

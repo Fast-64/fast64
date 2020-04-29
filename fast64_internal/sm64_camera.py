@@ -67,7 +67,7 @@ class CameraSettingsPanel(bpy.types.Panel):
 		#prop_split(layout, camera, 'camType', 'Camera Type')
 		#prop_split(layout, camera, 'envType', 'Environment Type')
 
-def saveCameraSettingsToGeolayout(geolayoutGraph, areaObj, rootObj, name):
+def saveCameraSettingsToGeolayout(geolayoutGraph, areaObj, rootObj, meshGeolayoutName):
 	geolayout = geolayoutGraph.startGeolayout
 	screenAreaNode = TransformNode(ScreenAreaNode(
 		areaObj.useDefaultScreenRect, 0xA, areaObj.screenPos, areaObj.screenSize))
@@ -106,7 +106,7 @@ def saveCameraSettingsToGeolayout(geolayoutGraph, areaObj, rootObj, name):
 	frustumNode.children.append(cameraNode)
 
 	startDLNode = TransformNode(StartNode())
-	meshGeolayout = geolayoutGraph.addGeolayout(rootObj, name + "_" + rootObj.name)
+	meshGeolayout = geolayoutGraph.addGeolayout(rootObj, meshGeolayoutName)
 	meshGeolayout.nodes.append(startDLNode)
 	geolayoutGraph.addJumpNode(cameraNode, geolayout, meshGeolayout)
 
