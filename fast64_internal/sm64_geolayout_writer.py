@@ -16,6 +16,27 @@ from .f3d_writer import *
 from .sm64_camera import saveCameraSettingsToGeolayout
 from .sm64_geolayout_classes import *
 
+def replaceStarReferences(basePath):
+	pattern = '(?<!\w)star\_\w*'
+	unagiPath = os.path.join(basePath, 'actors/unagi/geo.inc.c')
+	replaceDLReferenceInGeo(unagiPath, pattern)
+
+	kleptoPath = os.path.join(basePath, 'actors/klepto/geo.inc.c')
+	replaceDLReferenceInGeo(kleptoPath, pattern)
+
+def replaceDLReferenceInGeo(geoPath, pattern):
+	if not os.path.exists(geoPath):
+		return
+	geoFile = open(geoPath, 'r', newline = '\n')
+	geoData = geoFile.read()
+	geoFile.close()
+
+	newData = re.sub(pattern, 'NULL', geoData)
+	if newData != geoData:
+		geoFile = open(geoPath, 'w', newline = '\n')
+		geoFile.write(newData)
+		geoFile.close()
+
 def findStartBone(armatureObj):
 	noParentBones = [poseBone for poseBone in armatureObj.pose.bones if \
 		poseBone.parent is None]
@@ -214,7 +235,8 @@ def saveGeolayoutC(dirName, geolayoutGraph, fModel, exportDir, texDir, savePNG,
 		matHInclude = '#include "levels/' + levelName + '/' + dirName + '/material.inc.h"'
 		headerInclude = '#include "levels/' + levelName + '/' + dirName + '/geo_header.h"'
 	
-	writeTexScrollFiles(exportDir, geoDirPath, cDefineScroll, scroll_data)
+	if not bpy.context.scene.disableScroll:
+		writeTexScrollFiles(exportDir, geoDirPath, cDefineScroll, scroll_data)
 	
 	if DLFormat == "Static":
 		static_data += '\n' + dynamic_data
@@ -251,6 +273,9 @@ def saveGeolayoutC(dirName, geolayoutGraph, fModel, exportDir, texDir, savePNG,
 	
 	if not customExport:
 		if headerType == 'Actor':
+			if dirName == 'star' and bpy.context.scene.replaceStarRefs:
+				replaceStarReferences(exportDir)
+
 			# Write to group files
 			if groupName == '' or groupName is None:
 				raise PluginError("Actor header type chosen but group name not provided.")
@@ -282,8 +307,9 @@ def saveGeolayoutC(dirName, geolayoutGraph, fModel, exportDir, texDir, savePNG,
 			texscrollGroup = levelName
 			texscrollGroupInclude = '#include "levels/' + levelName + '/header.h"'
 
-		writeTexScrollHeadersGroup(exportDir, texscrollIncludeC, texscrollIncludeH, 
-			texscrollGroup, cDefineScroll, texscrollGroupInclude)
+		if not bpy.context.scene.disableScroll:
+			writeTexScrollHeadersGroup(exportDir, texscrollIncludeC, texscrollIncludeH, 
+				texscrollGroup, cDefineScroll, texscrollGroupInclude)
 		
 		if DLFormat != "Static": # Change this
 			writeMaterialHeaders(exportDir, matCInclude, matHInclude)

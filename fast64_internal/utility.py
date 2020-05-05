@@ -17,8 +17,21 @@ class PluginError(Exception):
 class VertexWeightError(PluginError):
 	pass
 
+def getDataFromFile(filepath):
+	if not os.path.exists(filepath):
+		raise PluginError("Path \"" + filepath + '" does not exist.')
+	dataFile = open(filepath, 'r', newline = '\n')
+	data = dataFile.read()
+	dataFile.close()
+	return data
+
+def saveDataToFile(filepath, data):
+	dataFile = open(filepath, 'w', newline = '\n')
+	dataFile.write(data)
+	dataFile.close()
+
 def applyBasicTweaks(baseDir):
-	#enableExtendedRAM(baseDir)
+	enableExtendedRAM(baseDir)
 	return
 
 def enableExtendedRAM(baseDir):
@@ -184,92 +197,6 @@ def getExportDir(customExport, dirPath, headerType, levelName, texDir, dirName):
 			texDir = 'levels/' + levelName
 	
 	return dirPath, texDir
-
-def readLevelDefines(levelDefinesPath, levelName):
-	if not os.path.exists(levelDefinesPath):
-		raise PluginError(levelDefinesPath + " does not exist.")
-	levelDefinesFile = open(levelDefinesPath, 'r')
-	levelDefinesData = levelDefinesFile.read()
-	levelDefinesFile.close()
-	matchResult = re.search('DEFINE\_LEVEL\(\s*' + \
-		'(((?!\,).)*)\,\s*' + # internal name
-		'(((?!\,).)*)\,\s*' + # level enum
-		'(((?!\,).)*)\,\s*' + # course enum
-		levelName + '\,\s*' + # folder name
-		'(((?!\,).)*)\,\s*' + # texture bin
-		'(((?!\,).)*)\,\s*' + # acoustic reach
-		'(((?!\,).)*)\,\s*' + # echo level 1
-		'(((?!\,).)*)\,\s*' + # echo level 2
-		'(((?!\,).)*)\,\s*' + # echo level 3
-		'(((?!\,).)*)\,\s*' + # dynamic music table
-		'(((?!\)).)*)\)',  # camera table
-		levelDefinesData)
-	if matchResult:
-		#data = data[:matchResult.start(0)] + \
-		#	'gSPScisTextureRectangle(gDisplayListHead++, (x << 2) + ' + \
-		#	matchResult.group(1) + ', (y << 2) + ' + \
-		#	matchResult.group(3) + ', (x << 2) + ' + \
-		#	matchResult.group(5) + ', (y << 2) + ' + \
-		#	matchResult.group(7) + ',' + data[matchResult.end(0):]
-		return {
-			'internal name' : matchResult.group(1), 
-			'level enum' : matchResult.group(3), 
-			'course name' : matchResult.group(5),
-			'folder name' : levelName, 
-			'texture bin' : matchResult.group(7), 
-			'acoustic reach' : matchResult.group(9),
-			'echo level 1' : matchResult.group(11), 
-			'echo level 2' : matchResult.group(13), 
-			'echo level 3' : matchResult.group(15), 
-			'dynamic music table' : matchResult.group(17), 
-			'camera table' : matchResult.group(19)
-		}
-	else:
-		raise PluginError('DEFINE_LEVEL not defined for folder ' + levelName + ' in levels/level_defines.h.')
-
-def writeLevelDefines(levelDefinesPath, levelName, levelDefine):
-	if not os.path.exists(levelDefinesPath):
-		raise PluginError(levelDefinesPath + " does not exist.")
-	levelDefinesString = 'DEFINE_LEVEL(' + \
-		levelDefine['internal name'] + ', ' +\
-		levelDefine['level enum'] + ', ' +\
-		levelDefine['course name'] + ', ' +\
-		levelDefine['folder name'] + ', ' +\
-		levelDefine['texture bin'] + ', ' +\
-		levelDefine['acoustic reach'] + ', ' +\
-		levelDefine['echo level 1'] + ', ' +\
-		levelDefine['echo level 2'] + ', ' +\
-		levelDefine['echo level 3'] + ', ' +\
-		levelDefine['dynamic music table'] + ', ' +\
-		levelDefine['camera table'] + ')'
-
-	levelDefinesFile = open(levelDefinesPath, 'r')
-	levelDefinesData = levelDefinesFile.read()
-	levelDefinesFile.close()
-	if levelDefinesString in levelDefinesData:
-		return
-	matchResult = re.search('DEFINE\_LEVEL\(\s*' + \
-		'(((?!\,).)*)\,\s*' + # internal name
-		'(((?!\,).)*)\,\s*' + # level enum
-		'(((?!\,).)*)\,\s*' + # course enum
-		levelName + '\,\s*' + # folder name
-		'(((?!\,).)*)\,\s*' + # texture bin
-		'(((?!\,).)*)\,\s*' + # acoustic reach
-		'(((?!\,).)*)\,\s*' + # echo level 1
-		'(((?!\,).)*)\,\s*' + # echo level 2
-		'(((?!\,).)*)\,\s*' + # echo level 3
-		'(((?!\,).)*)\,\s*' + # dynamic music table
-		'(((?!\)).)*)\)',  # camera table
-		levelDefinesData)
-	if matchResult:
-		levelDefinesData = levelDefinesData[:matchResult.start(0)] + \
-			levelDefinesString + levelDefinesData[matchResult.end(0):]
-	else:
-		levelDefinesData += '\n' + levelDefinesString
-	
-	levelDefinesFile = open(levelDefinesPath, 'w', newline='\n')
-	levelDefinesFile.write(levelDefinesData)
-	levelDefinesFile.close()
 
 def overwriteData(headerRegex, name, value, filePath, writeNewBeforeString, isFunction):
 	if os.path.exists(filePath):

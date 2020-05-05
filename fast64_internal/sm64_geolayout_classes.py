@@ -102,7 +102,7 @@ class GeolayoutGraph:
 
 	def to_c(self):
 		self.checkListSorted()
-		data = ''
+		data = '#include "src/game/envfx_snow.h"\n\n'
 		for geolayout in self.sortedList:
 			data += geolayout.to_c()
 		return data

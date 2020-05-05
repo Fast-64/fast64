@@ -386,7 +386,8 @@ def exportF3DtoC(basePath, obj, DLFormat, transformMatrix,
 	static_data, dynamic_data, texC, scroll_data = fModel.to_c(texSeparate, savePNG, texDir, scrollName)
 	cDefineStatic, cDefineDynamic, cDefineScroll = fModel.to_c_def(scrollName)
 
-	writeTexScrollFiles(basePath, modelDirPath, cDefineScroll, scroll_data)
+	if not bpy.context.scene.disableScroll:
+		writeTexScrollFiles(basePath, modelDirPath, cDefineScroll, scroll_data)
 	
 	if DLFormat == "Static":
 		static_data += '\n' + dynamic_data
@@ -458,8 +459,9 @@ def exportF3DtoC(basePath, obj, DLFormat, transformMatrix,
 			texscrollGroup = levelName
 			texscrollGroupInclude = '#include "levels/' + levelName + '/header.h"'
 
-		writeTexScrollHeadersGroup(basePath, texscrollIncludeC, texscrollIncludeH, 
-			texscrollGroup, cDefineScroll, texscrollGroupInclude)
+		if not bpy.context.scene.disableScroll:
+			writeTexScrollHeadersGroup(basePath, texscrollIncludeC, texscrollIncludeH, 
+				texscrollGroup, cDefineScroll, texscrollGroupInclude)
 
 	if bpy.context.mode != 'OBJECT':
 		bpy.ops.object.mode_set(mode = 'OBJECT')

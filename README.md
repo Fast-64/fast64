@@ -23,9 +23,14 @@ Make sure to save often, as this plugin is prone to crashing when creating mater
 -   Display List import/export 
 -   Animation import/export
 -   Collision export
--   Object Placement export (decomp only)
+-   Level export (decomp only)
+    - Objects
+    - Trajectories
+    - Water Boxes
+    - Camera Triggers
 -   Skinned mesh support
 -   Custom normals
+-   Scrolling Textures (decomp only)
 
 ### Restrictions
 -   No YUV textures supported.
@@ -148,17 +153,17 @@ Most exports will let you choose an export type.
 - levels/my\_level/header.h
 
 ### Decomp And Extended RAM
-By default decomp uses 4MB of RAM which means space runs out quickly when exporting custom assets. To handle this, make sure to add "#define USE\_EXT\_RAM" at the top of include/segments.h after the include guards.
+By default decomp uses 4MB of RAM which means space runs out quickly when exporting custom assets. To handle this Fast64 will automatically add "#define USE\_EXT\_RAM" at the top of include/segments.h after the include guards.
 
 ### Exporting Geolayouts to C
 Set the "Name" field to the actor folder name.
 To replace an actor model, set the enum to "Actor" and set the correct group name. To find the group name, look at the group or common header files in actors/ to see where the actor is defined in.
 
-To replace an actor model manually, replace its geo.inc.c and model.inc.c contents with the geolayout file and the dl file respectively. Use the contents of the header file to replace existing extern declarations in one of the group header files (ex. mario is in group0.h). Make sure that the name of your geolayout is the same the name of the geolayout you're replacing. Note that any function addresses in geolayout nodes will be converted to decomp function names if possible. Make sure to also use extended RAM as described in the sections above.
+To replace an actor model manually, replace its geo.inc.c and model.inc.c contents with the geolayout file and the dl file respectively. Use the contents of the header file to replace existing extern declarations in one of the group header files (ex. mario is in group0.h). Make sure that the name of your geolayout is the same the name of the geolayout you're replacing. Note that any function addresses in geolayout nodes will be converted to decomp function names if possible.
 
 ### Exporting Levels to C
 Add an Empty and check its SM64 object type in the object properties sidebar. Change the type to "Level Root."
-Add another Empty and change its type to "Area Root", and parent it to the level root object. You can now add any geometry/empties/splines as children of the area root and it will be exported with the area. They do not have to directly parent to the area root, just to something within the area root's descendants. Empties are also used for placing specials, macros, objects, water boxes, and camera volumes. You can search the available options using the relevant search operators, or set an option to "Custom" to write in your own values. NURBS curves are used to export spline data. Backgrounds are set in level root options, and warp nodes are set in area root options. Make sure to also use extended RAM as described in the sections above.
+Add another Empty and change its type to "Area Root", and parent it to the level root object. You can now add any geometry/empties/splines as children of the area root and it will be exported with the area. They do not have to directly parent to the area root, just to something within the area root's descendants. Empties are also used for placing specials, macros, objects, water boxes, and camera volumes. You can search the available options using the relevant search operators, or set an option to "Custom" to write in your own values. NURBS curves are used to export spline data. Backgrounds are set in level root options, and warp nodes are set in area root options.
 
 To replace a level manually, replace the contents of a level folder with your exported folder. Then,
 
@@ -166,8 +171,11 @@ To replace a level manually, replace the contents of a level folder with your ex
 - Add '#include "levels/mylevel/leveldata.inc.c"' to leveldata.c.
 - Add '#include "levels/mylevel/header.inc.h"' to header.h.
 - Add '#include "levels/mylevel/texture\_include.inc.c"' to texture.inc.c. (If saving textures as PNGs.)
-- Comment out any AREA() commands and their contents in script.c and add '#include "levels/mylevel/script.inc.c"' in their place.
-- Change the LOAD_MIO0() command for segment 0x0A to get the correct skybox segment as defined in include/segment\_symbols.h.
+
+The level exporter will modify these files:
+- src/game/camera.c (sZoomOutAreaMasks)
+- levels/level\_defines.h
+- levels/course\_defines.h
 
 ### Exporting HUD to C
 The HUD exporter will export a texture and a function to draw it to the screen as a texture rectangle. The data will be written to segment2, and the headers modified will be:
@@ -182,6 +190,7 @@ The draw function will be in the format "void myfunc(x, y, width, height, s, t)"
 
 ### Scrolling Textures in Decomp
 Scrolling texture settings can be found in the material properties window before the "Geomtry Mode Settings" tab.
+If you want to disable scrolling texture code generation, you can do so in the SM64 File Settings.
 This is the process for how scrolling textures is implemented:
 
 - Add a sSegmentROMTable to src/game/memory.c/h in order to keep track of which ROM locations are loaded into memory. ROM locations will be stored in this table during segment loading function calls.

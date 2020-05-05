@@ -81,10 +81,15 @@ def saveCameraSettingsToGeolayout(geolayoutGraph, areaObj, rootObj, meshGeolayou
 
 
 	# Uses Level Root here
-	bgColor = colorTo16bitRGBA(gammaCorrect(rootObj.backgroundColor) + [1])
-	bgNode = TransformNode(BackgroundNode(
-		rootObj.useBackgroundColor, bgColor if rootObj.useBackgroundColor \
-		else ('BACKGROUND_' + rootObj.background)))
+	bgColor = colorTo16bitRGBA(gammaCorrect(areaObj.areaBGColor if \
+		areaObj.areaOverrideBG else rootObj.backgroundColor) + [1])
+	if areaObj.areaOverrideBG:
+		bgNode = TransformNode(BackgroundNode(
+			True, bgColor))
+	else:
+		bgNode = TransformNode(BackgroundNode(
+			rootObj.useBackgroundColor, bgColor if rootObj.useBackgroundColor \
+			else ('BACKGROUND_' + rootObj.background)))
 	orthoNode.children.append(bgNode)
 
 	zBufferEnable = TransformNode(ZBufferNode(True))
@@ -101,8 +106,9 @@ def saveCameraSettingsToGeolayout(geolayoutGraph, areaObj, rootObj, meshGeolayou
 	relativeTransform = rootObj.matrix_world.inverted() @ areaObj.matrix_world
 	relativePosition = relativeTransform.decompose()[0]
 	relativeRotation = relativeTransform.decompose()[1]
-	cameraNode = TransformNode(CameraNode(areaObj.camType, relativePosition,
-		relativePosition + relativeRotation @ mathutils.Vector((0,0,-1))))
+	cameraNode = TransformNode(CameraNode(
+		areaObj.camOption if areaObj.camOption != "Custom" else areaObj.camType, 
+		relativePosition, relativePosition + relativeRotation @ mathutils.Vector((0,0,-1))))
 	frustumNode.children.append(cameraNode)
 
 	startDLNode = TransformNode(StartNode())
@@ -116,7 +122,7 @@ def saveCameraSettingsToGeolayout(geolayoutGraph, areaObj, rootObj, meshGeolayou
 
 	# corresponds to geo_enfvx_main
 	cameraNode.children.append(TransformNode(
-		FunctionNode('802761D0', areaObj.envType)))
+		FunctionNode('802761D0', areaObj.envOption if areaObj.envOption != 'Custom' else areaObj.envType)))
 
 	return meshGeolayout
 

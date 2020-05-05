@@ -359,7 +359,7 @@ def exportCollisionCommon(obj, transformMatrix, includeSpecials, includeChildren
 					indices.append(index)
 			collision.triangles[collisionType].append(CollisionTriangle(indices, specialParam, room))
 	if includeSpecials:
-		area = SM64_Area(areaIndex, '', '', '', None, None, [], name)
+		area = SM64_Area(areaIndex, '', '', '', None, None, [], name, None)
 		process_sm64_objects(obj, area, obj.matrix_world, transformMatrix, True)
 		collision.specials = area.specials
 		collision.water_boxes = area.water_boxes

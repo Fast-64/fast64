@@ -8,6 +8,145 @@ import math
 from .sm64_function_map import func_map
 from .sm64_spline import *
 
+
+enumTerrain = [
+	('Custom', 'Custom', 'Custom'),
+	('TERRAIN_GRASS', 'Grass', 'Grass'),
+	('TERRAIN_STONE', 'Stone', 'Stone'),
+	('TERRAIN_SNOW', 'Snow', 'Snow'),
+	('TERRAIN_SAND', 'Sand', 'Sand'),
+	('TERRAIN_SPOOKY', 'Spooky', 'Spooky'),
+	('TERRAIN_WATER', 'Water', 'Water'),
+	('TERRAIN_SLIDE', 'Slide', 'Slide'),
+]
+
+enumMusicSeq = [
+	('Custom', 'Custom', 'Custom'),
+	('SEQ_LEVEL_BOSS_KOOPA', 'Boss Koopa', 'Boss Koopa'),
+    ('SEQ_LEVEL_BOSS_KOOPA_FINAL', 'Boss Koopa Final', 'Boss Koopa Final'),
+    ('SEQ_LEVEL_GRASS', 'Grass Level', 'Grass Level'),
+    ('SEQ_LEVEL_HOT', 'Hot Level', 'Hot Level'),
+    ('SEQ_LEVEL_INSIDE_CASTLE', 'Inside Castle', 'Inside Castle'),
+    ('SEQ_LEVEL_KOOPA_ROAD', 'Koopa Road', 'Koopa Road'),
+    ('SEQ_LEVEL_SLIDE', 'Slide Level', 'Slide Level'),
+    ('SEQ_LEVEL_SNOW', 'Snow Level', 'Snow Level'),
+    ('SEQ_LEVEL_SPOOKY', 'Spooky Level', 'Spooky Level'),
+    ('SEQ_LEVEL_UNDERGROUND', 'Underground Level', 'Underground Level'),
+    ('SEQ_LEVEL_WATER', 'Water Level', 'Water Level'),
+    ('SEQ_MENU_FILE_SELECT', 'File Select', 'File Select'),
+    ('SEQ_MENU_STAR_SELECT', 'Star Select Menu', 'Star Select Menu'),
+    ('SEQ_MENU_TITLE_SCREEN', 'Title Screen', 'Title Screen'),
+    ('SEQ_EVENT_BOSS', 'Boss', 'Boss'),
+    ('SEQ_EVENT_CUTSCENE_COLLECT_KEY', 'Collect Key', 'Collect Key'),
+    ('SEQ_EVENT_CUTSCENE_COLLECT_STAR', 'Collect Star', 'Collect Star'),
+    ('SEQ_EVENT_CUTSCENE_CREDITS', 'Credits', 'Credits'),
+    ('SEQ_EVENT_CUTSCENE_ENDING', 'Ending Cutscene', 'Ending Cutscene'),
+    ('SEQ_EVENT_CUTSCENE_INTRO', 'Intro Cutscene', 'Intro Cutscene'),
+    ('SEQ_EVENT_CUTSCENE_LAKITU', 'Lakitu Cutscene', 'Lakitu Cutscene'),
+    ('SEQ_EVENT_CUTSCENE_STAR_SPAWN', 'Star Spawn', 'Star Spawn'),
+    ('SEQ_EVENT_CUTSCENE_VICTORY', 'Victory Cutscene', 'Victory Cutscene'),
+    ('SEQ_EVENT_ENDLESS_STAIRS', 'Endless Stairs', 'Endless Stairs'),
+    ('SEQ_EVENT_HIGH_SCORE', 'High Score', 'High Score'),
+    ('SEQ_EVENT_KOOPA_MESSAGE', 'Koopa Message', 'Koopa Message'),
+    ('SEQ_EVENT_MERRY_GO_ROUND', 'Merry Go Round', 'Merry Go Round'),
+    ('SEQ_EVENT_METAL_CAP', 'Metal Cap', 'Metal Cap'),
+    ('SEQ_EVENT_PEACH_MESSAGE', 'Peach Message', 'Peach Message'),
+    ('SEQ_EVENT_PIRANHA_PLANT', 'Piranha Lullaby', 'Piranha Lullaby'),
+    ('SEQ_EVENT_POWERUP', 'Powerup', 'Powerup'),
+    ('SEQ_EVENT_RACE', 'Race', 'Race'),
+    ('SEQ_EVENT_SOLVE_PUZZLE', 'Solve Puzzle', 'Solve Puzzle'),
+	('SEQ_SOUND_PLAYER', 'Sound Player', 'Sound Player'),
+    ('SEQ_EVENT_TOAD_MESSAGE', 'Toad Message', 'Toad Message'),
+]
+
+enumWarpType = [
+	("Warp", "Warp", "Warp"),
+	("Painting", "Painting", "Painting"),
+	("Instant", "Instant", "Instant"),
+]
+
+enumWarpFlag = [
+	("Custom", "Custom", "Custom"),
+	("WARP_NO_CHECKPOINT", 'No Checkpoint', 'No Checkpoint'),
+	("WARP_CHECKPOINT", 'Checkpoint', 'Checkpoint'),
+]
+
+enumEnvFX = [
+	('Custom', 'Custom', 'Custom'),
+	('ENVFX_MODE_NONE', 'None', 'None'),
+	('ENVFX_SNOW_NORMAL', 'Snow', 'Used in CCM, SL'),
+	('ENVFX_SNOW_WATER', 'Water Bubbles', 'Used in Secret Aquarium, Sunken Ships'),
+	('ENVFX_SNOW_BLIZZARD', 'Blizzard', 'Unused'),
+	('ENVFX_FLOWERS', 'Flowers', 'Unused'),
+	('ENVFX_LAVA_BUBBLES', 'Lava Bubbles', 'Used in LLL, BitFS, Bowser 2'),
+	('ENVFX_WHIRLPOOL_BUBBLES', 'Whirpool Bubbles', 'Used in DDD where whirpool is'),
+	('ENVFX_JETSTREAM_BUBBLES', 'Jetstream Bubbles', 'Used in JRB, DDD where jetstream is'),
+]
+
+enumCameraMode = [
+	('Custom', 'Custom', 'Custom'),
+	('CAMERA_MODE_NONE', 'None', 'None'),
+	('CAMERA_MODE_RADIAL', 'Radial', 'Radial'),
+	('CAMERA_MODE_OUTWARD_RADIAL', 'Outward Radial', 'Outward Radial'),
+	('CAMERA_MODE_BEHIND_MARIO', 'Behind Mario', 'Behind Mario'),
+	('CAMERA_MODE_CLOSE', 'Close', 'Close'),
+	('CAMERA_MODE_C_UP', 'C Up', 'C Up'),
+	('CAMERA_MODE_WATER_SURFACE', 'Water Surface', 'Water Surface'),
+	('CAMERA_MODE_SLIDE_HOOT', 'Slide/Hoot', 'Slide/Hoot'),
+	('CAMERA_MODE_INSIDE_CANNON', 'Inside Cannon', 'Inside Cannon'),
+	('CAMERA_MODE_BOSS_FIGHT', 'Boss Fight', 'Boss Fight'),
+	('CAMERA_MODE_PARALLEL_TRACKING', 'Parallel Tracking', 'Parallel Tracking'),
+	('CAMERA_MODE_FIXED', 'Fixed', 'Fixed'),
+	('CAMERA_MODE_8_DIRECTIONS', '8 Directions', '8 Directions'),
+	('CAMERA_MODE_FREE_ROAM', 'Free Roam', 'Free Roam'),
+	('CAMERA_MODE_SPIRAL_STAIRS', 'Spiral Stairs', 'Spiral Stairs'),
+]
+
+enumBackground = [
+	('OCEAN_SKY', 'Ocean Sky', 'Ocean Sky'),
+	('FLAMING_SKY', 'Flaming Sky', 'Flaming Sky'),
+	('UNDERWATER_CITY', 'Underwater City', 'Underwater City'),
+	('BELOW_CLOUDS', 'Below Clouds', 'Below Clouds'),
+	('SNOW_MOUNTAINS', 'Snow Mountains', 'Snow Mountains'),
+	('DESERT', 'Desert', 'Desert'),
+	('HAUNTED', 'Haunted', 'Haunted'),
+	('GREEN_SKY', 'Green Sky', 'Green Sky'),
+	('ABOVE_CLOUDS', 'Above Clouds', 'Above Clouds'),
+	('PURPLE_SKY', 'Purple Sky', 'Purple Sky'),
+]
+
+backgroundSegments = {
+	'OCEAN_SKY' : 'water',
+	'FLAMING_SKY' : 'bitfs',
+	'UNDERWATER_CITY' : 'wdw',
+	'BELOW_CLOUDS' : 'cloud_floor',
+	'SNOW_MOUNTAINS' : 'ccm',
+	'DESERT' : 'ssl',
+	'HAUNTED' : 'bbh',
+	'GREEN_SKY' : 'bidw',
+	'ABOVE_CLOUDS' : 'clouds',
+	'PURPLE_SKY' : 'bits',
+}
+
+enumWaterBoxType = [
+	("Water", 'Water', "Water"),
+	('Toxic Haze', 'Toxic Haze', 'Toxic Haze')
+]
+
+enumObjectType = [
+	('None', 'None', 'None'),
+	('Level Root', 'Level Root', 'Level Root'),
+	('Area Root', 'Area Root', 'Area Root'),
+	('Object', 'Object', 'Object'),
+	('Macro', 'Macro', 'Macro'),
+	('Special', 'Special', 'Special'),
+	('Mario Start', 'Mario Start', 'Mario Start'),
+	('Whirlpool', 'Whirlpool', 'Whirlpool'),
+	('Water Box', 'Water Box', 'Water Box'),
+	('Camera Volume', 'Camera Volume', 'Camera Volume'),
+	#('Trajectory', 'Trajectory', 'Trajectory'),
+]
+
 class SM64_Object:
 	def __init__(self, model, position, rotation, behaviour, bparam, acts):
 		self.model = model
@@ -125,7 +264,7 @@ class SM64_Mario_Start:
 
 class SM64_Area:
 	def __init__(self, index, music_seq, music_preset, 
-		terrain_type, geolayout, collision, warpNodes, name):
+		terrain_type, geolayout, collision, warpNodes, name, startDialog):
 		self.cameraVolumes = []
 		self.name = toAlnum(name)
 		self.geolayout = geolayout
@@ -141,6 +280,7 @@ class SM64_Area:
 		self.warpNodes = warpNodes
 		self.mario_start = None
 		self.splines = []
+		self.startDialog = startDialog
 
 	def macros_name(self):
 		return self.name + '_macro_objs'
@@ -160,6 +300,8 @@ class SM64_Area:
 			data += '\t\tSTOP_MUSIC(0),\n'
 		else:
 			data += '\t\tSET_BACKGROUND_MUSIC(' + self.music_preset + ', ' + self.music_seq + '),\n'
+		if self.startDialog is not None:
+			data += '\t\tSHOW_DIALOG(0x00, ' + self.startDialog + '),\n'
 		data += '\t\tTERRAIN_TYPE(' + self.terrain_type + '),\n'
 		data += '\tEND_AREA(),\n\n'
 		return data
@@ -277,7 +419,7 @@ def exportAreaCommon(levelObj, areaObj, transformMatrix, geolayout, collision, n
 	area = SM64_Area(areaObj.areaIndex, musicSeq, areaObj.music_preset, 
 		terrainType, geolayout, collision, 
 		[areaObj.warpNodes[i].to_c() for i in range(len(areaObj.warpNodes))],
-		name + '_' + areaObj.name)
+		name + '_' + areaObj.name, areaObj.startDialog if areaObj.showStartDialog else None)
 
 	process_sm64_objects(levelObj, area, 
 		levelObj.matrix_world, transformMatrix, False)
@@ -514,6 +656,7 @@ class SM64ObjectPanel(bpy.types.Panel):
 			behaviourLabel.label(text = 'Actual contents in data/behaviour_data.c.')
 			prop_split(box, obj, 'sm64_obj_bparam', 'Behaviour Parameter')
 			self.draw_acts(obj, box)
+
 		elif obj.sm64_obj_type == 'Macro':
 			prop_split(box, obj, 'sm64_macro_enum', 'Preset')
 			if obj.sm64_macro_enum == 'Custom':
@@ -523,6 +666,7 @@ class SM64ObjectPanel(bpy.types.Panel):
 			box.prop(obj, 'sm64_obj_set_bparam', text = 'Set Behaviour Parameter')
 			if obj.sm64_obj_set_bparam:
 				prop_split(box, obj, 'sm64_obj_bparam', 'Behaviour Parameter')
+				
 		elif obj.sm64_obj_type == 'Special':
 			prop_split(box, obj, 'sm64_special_enum', 'Preset')
 			if obj.sm64_special_enum == 'Custom':
@@ -534,20 +678,25 @@ class SM64ObjectPanel(bpy.types.Panel):
 				box.prop(obj, 'sm64_obj_set_bparam', text = 'Set Behaviour Parameter')
 				if obj.sm64_obj_set_bparam:
 					prop_split(box, obj, 'sm64_obj_bparam', 'Behaviour Parameter')
+
 		elif obj.sm64_obj_type == 'Mario Start':
 			prop_split(box, obj, 'sm64_obj_mario_start_area', 'Area')
+
 		elif obj.sm64_obj_type == 'Trajectory':
 			pass
+
 		elif obj.sm64_obj_type == 'Whirlpool':
 			prop_split(box, obj, 'whirpool_index', 'Index')
 			prop_split(box, obj, 'whirpool_condition', 'Condition')
 			prop_split(box, obj, 'whirpool_strength', 'Strength')
 			pass
+
 		elif obj.sm64_obj_type == 'Water Box':
 			prop_split(box, obj, 'waterBoxType', 'Water Box Type')
+			box.box().label(text = "Water box area defined by top face of box shaped empty.")
 			box.box().label(text = "No rotation allowed.")
+
 		elif obj.sm64_obj_type == 'Level Root':
-			
 			if obj.useBackgroundColor:
 				prop_split(box, obj, 'backgroundColor', 'Background Color')
 				box.prop(obj, 'useBackgroundColor')
@@ -556,13 +705,61 @@ class SM64ObjectPanel(bpy.types.Panel):
 				prop_split(box, obj, 'background', 'Background')
 				box.prop(obj, 'useBackgroundColor')
 				#box.box().label(text = 'Background IDs defined in include/geo_commands.h.')
+			box.prop(obj, 'actSelectorIgnore')
+			box.prop(obj, 'setAsStartLevel')
+			prop_split(box, obj, 'acousticReach', 'Acoustic Reach')			
+			obj.starGetCutscenes.draw(box)
+
 		elif obj.sm64_obj_type == 'Area Root':
+			# Code that used to be in area inspector
+			prop_split(box, obj, 'areaIndex', 'Area Index')
+			box.prop(obj, 'noMusic', text = 'Disable Music')
+			if not obj.noMusic:
+				prop_split(box, obj, 'music_preset', 'Music Preset')
+				prop_split(box, obj, 'musicSeqEnum', 'Music Sequence')
+				if obj.musicSeqEnum == 'Custom':
+					prop_split(box, obj, 'music_seq', '')
+				
+			prop_split(box, obj, 'terrainEnum', 'Terrain')
+			if obj.terrainEnum == 'Custom':
+				prop_split(box, obj, 'terrain_type', '')
+			prop_split(box, obj, 'envOption', 'Environment Type')
+			if obj.envOption == 'Custom':
+				prop_split(box, obj, 'envType', "")
+			prop_split(box, obj, 'camOption', 'Camera Type')
+			if obj.camOption == 'Custom':
+				prop_split(box, obj, 'camType', '')
+			camBox = box.box()
+			camBox.label(text = 'Warning: Camera modes can be overriden by area specific camera code.')
+			camBox.label(text = 'Check the switch statment in camera_course_processing() in src/game/camera.c.')
+
+			if obj.areaIndex == 1 or obj.areaIndex == 2 or obj.areaIndex == 3:
+				prop_split(box, obj, 'echoLevel', 'Echo Level')
+			
+			if obj.areaIndex == 1 or obj.areaIndex == 2 or obj.areaIndex == 3 or obj.areaIndex == 4:
+				box.prop(obj, 'zoomOutOnPause')
+			box.prop(obj, 'areaOverrideBG')
+			if obj.areaOverrideBG:
+				prop_split(box, obj, 'areaBGColor', 'Background Color')
+			box.prop(obj, 'showStartDialog')
+			if obj.showStartDialog:
+				prop_split(box, obj, 'startDialog', "Start Dialog")
+				dialogBox = box.box()
+				dialogBox.label(text = 'See text/us/dialogs.h for values.')
+				dialogBox.label(text = 'See load_level_init_text() in src/game/level_update.c for conditions.')
+			
 			box.prop(obj, 'useDefaultScreenRect')
 			if not obj.useDefaultScreenRect:
 				prop_split(box, obj, 'screenPos', 'Screen Position')
 				prop_split(box, obj, 'screenSize', 'Screen Size')
 		
 			prop_split(box, obj, 'clipPlanes', 'Clip Planes')
+
+			box.label(text = "Warp Nodes")
+			box.operator(AddWarpNode.bl_idname).option = len(obj.warpNodes)
+			for i in range(len(obj.warpNodes)):
+				drawWarpNodeProperty(box, obj.warpNodes[i], i)
+
 		elif obj.sm64_obj_type == 'Camera Volume':
 			prop_split(box, obj, 'cameraVolumeFunction', 'Camera Function')
 			box.prop(obj, 'cameraVolumeGlobal')
@@ -583,16 +780,172 @@ class SM64ObjectPanel(bpy.types.Panel):
 		layout.label(text = str(value))
 		layout.prop(obj, 'sm64_obj_use_act' + str(value), text = '')
 
+enumStarGetCutscene = [
+	('Custom', 'Custom', 'Custom'),
+	('0', 'Lakitu Flies Away', 'Lakitu Flies Away'),
+	('1', 'Rotate Around Mario', 'Rotate Around Mario'),
+	('2', 'Closeup Of Mario', 'Closeup Of Mario'),
+	('3', 'Bowser Keys', 'Bowser Keys'),
+	('4', '100 Coin Star', '100 Coin Star'),
+]
+
+class WarpNodeProperty(bpy.types.PropertyGroup):
+	warpType : bpy.props.EnumProperty(name = 'Warp Type', items = enumWarpType, default = 'Warp')
+	warpID : bpy.props.StringProperty(name = 'Warp ID', default = '0x0A')
+	destLevelEnum : bpy.props.EnumProperty(name = 'Destination Level', default = 'bob', items = enumLevelNames)
+	destLevel : bpy.props.StringProperty(name = 'Destination Level Value', default = 'LEVEL_BOB')
+	destArea : bpy.props.StringProperty(name = 'Destination Area', default = '0x01')
+	destNode : bpy.props.StringProperty(name = 'Destination Node', default = '0x0A')
+	warpFlags : bpy.props.StringProperty(name = 'Warp Flags', default = 'WARP_NO_CHECKPOINT')
+	warpFlagEnum : bpy.props.EnumProperty(name = 'Warp Flags Value', default = 'WARP_NO_CHECKPOINT', items = enumWarpFlag)
+	instantOffset : bpy.props.IntVectorProperty(name = 'Offset',
+		size = 3, default = (0,0,0))
+
+	expand : bpy.props.BoolProperty()
+
+	def to_c(self):
+		if self.warpType == 'Instant':
+			return 'INSTANT_WARP(' + str(self.warpID) + ', ' + str(self.destArea) +\
+				', ' + str(self.instantOffset[0]) + ', ' + str(self.instantOffset[1]) + \
+				', ' + str(self.instantOffset[2]) + ')'
+		else:
+			if self.warpType == 'Warp':
+				cmd = 'WARP_NODE'
+			elif self.warpType == 'Painting':
+				cmd = 'PAINTING_WARP_NODE'
+
+			if self.destLevelEnum == 'custom':
+				destLevel = self.destLevel
+			else:
+				destLevel = levelIDNames[self.destLevelEnum]
+
+			if self.warpFlagEnum == 'Custom':
+				warpFlags = self.warpFlags
+			else:
+				warpFlags = self.warpFlagEnum
+			return cmd + '(' + str(self.warpID) + ', ' + str(destLevel) + ', ' +\
+				str(self.destArea) + ', ' + str(self.destNode) + ', ' + str(warpFlags) + ')'
+
+class AddWarpNode(bpy.types.Operator):
+	bl_idname = 'bone.add_warp_node'
+	bl_label = 'Add Warp Node'
+	bl_options = {'REGISTER', 'UNDO'} 
+	option : bpy.props.IntProperty()
+	def execute(self, context):
+		obj = context.object
+		obj.warpNodes.add()
+		obj.warpNodes.move(len(obj.warpNodes)-1, self.option)
+		self.report({'INFO'}, 'Success!')
+		return {'FINISHED'} 
+
+class RemoveWarpNode(bpy.types.Operator):
+	bl_idname = 'bone.remove_warp_node'
+	bl_label = 'Remove Warp Node'
+	bl_options = {'REGISTER', 'UNDO'} 
+	option : bpy.props.IntProperty()
+	def execute(self, context):
+		context.object.warpNodes.remove(self.option)
+		self.report({'INFO'}, 'Success!')
+		return {'FINISHED'} 
+
+def drawWarpNodeProperty(layout, warpNode, index):
+	box = layout.box()
+	#box.box().label(text = 'Switch Option ' + str(index + 1))
+	box.prop(warpNode, 'expand', text = 'Warp Node ' + \
+		str(warpNode.warpID), icon = 'TRIA_DOWN' if warpNode.expand else \
+		'TRIA_RIGHT')
+	if warpNode.expand:
+		prop_split(box, warpNode, 'warpType', 'Warp Type')
+		if warpNode.warpType == 'Instant':
+			prop_split(box, warpNode, 'warpID', 'Warp ID')
+			prop_split(box, warpNode, 'destArea', 'Destination Area')
+			prop_split(box, warpNode, 'instantOffset', 'Offset')
+		else:
+			prop_split(box, warpNode, 'warpID', 'Warp ID')
+			prop_split(box, warpNode, 'destLevelEnum', 'Destination Level')
+			if warpNode.destLevelEnum == 'custom':
+				prop_split(box, warpNode, 'destLevel', '')
+			prop_split(box, warpNode, 'destArea', 'Destination Area')
+			prop_split(box, warpNode, 'destNode', 'Destination Node')
+			prop_split(box, warpNode, 'warpFlagEnum', 'Warp Flags')
+			if warpNode.warpFlagEnum == 'Custom':
+				prop_split(box, warpNode, 'warpFlags', 'Warp Flags Value')
+		
+		buttons = box.row(align = True)
+		buttons.operator(RemoveWarpNode.bl_idname,
+			text = 'Remove Option').option = index
+		buttons.operator(AddWarpNode.bl_idname, 
+			text = 'Add Option').option = index + 1
+
+
+class StarGetCutscenesProperty(bpy.types.PropertyGroup):
+	star1_option : bpy.props.EnumProperty(items = enumStarGetCutscene, default = '4', name = '1')
+	star2_option : bpy.props.EnumProperty(items = enumStarGetCutscene, default = '4', name = '2')
+	star3_option : bpy.props.EnumProperty(items = enumStarGetCutscene, default = '4', name = '3')
+	star4_option : bpy.props.EnumProperty(items = enumStarGetCutscene, default = '4', name = '4')
+	star5_option : bpy.props.EnumProperty(items = enumStarGetCutscene, default = '4', name = '5')
+	star6_option : bpy.props.EnumProperty(items = enumStarGetCutscene, default = '4', name = '6')
+	star7_option : bpy.props.EnumProperty(items = enumStarGetCutscene, default = '4', name = '7')
+
+	star1_value : bpy.props.IntProperty(default = 0, min = 0, max = 15, name = 'Value')
+	star2_value : bpy.props.IntProperty(default = 0, min = 0, max = 15, name = 'Value')
+	star3_value : bpy.props.IntProperty(default = 0, min = 0, max = 15, name = 'Value')
+	star4_value : bpy.props.IntProperty(default = 0, min = 0, max = 15, name = 'Value')
+	star5_value : bpy.props.IntProperty(default = 0, min = 0, max = 15, name = 'Value')
+	star6_value : bpy.props.IntProperty(default = 0, min = 0, max = 15, name = 'Value')
+	star7_value : bpy.props.IntProperty(default = 0, min = 0, max = 15, name = 'Value')
+
+	def value(self):
+		value = '0x'
+		value += self.star1_option if self.star1_option != 'Custom' else format(self.star1_value, 'X')
+		value += self.star2_option if self.star2_option != 'Custom' else format(self.star2_value, 'X')
+		value += self.star3_option if self.star3_option != 'Custom' else format(self.star3_value, 'X')
+		value += self.star4_option if self.star4_option != 'Custom' else format(self.star4_value, 'X')
+		value += self.star5_option if self.star5_option != 'Custom' else format(self.star5_value, 'X')
+		value += self.star6_option if self.star6_option != 'Custom' else format(self.star6_value, 'X')
+		value += self.star7_option if self.star7_option != 'Custom' else format(self.star7_value, 'X')
+		value += '0'
+		return value
+
+	def draw(self, layout):
+		layout.label(text = 'Star Get Cutscenes')
+		layout.prop(self, 'star1_option')
+		if self.star1_option == 'Custom':
+			prop_split(layout, self, 'star1_value', '')
+		layout.prop(self, 'star2_option')
+		if self.star2_option == 'Custom':
+			prop_split(layout, self, 'star2_value', '')
+		layout.prop(self, 'star3_option')
+		if self.star3_option == 'Custom':
+			prop_split(layout, self, 'star3_value', '')
+		layout.prop(self, 'star4_option')
+		if self.star4_option == 'Custom':
+			prop_split(layout, self, 'star4_value', '')
+		layout.prop(self, 'star5_option')
+		if self.star5_option == 'Custom':
+			prop_split(layout, self, 'star5_value', '')
+		layout.prop(self, 'star6_option')
+		if self.star6_option == 'Custom':
+			prop_split(layout, self, 'star6_value', '')
+		layout.prop(self, 'star7_option')
+		if self.star7_option == 'Custom':
+			prop_split(layout, self, 'star7_value', '')
+
 def onUpdateObjectType(self, context):
 	if self.sm64_obj_type == 'Water Box':
 		self.empty_display_type = "CUBE"
 
 sm64_obj_classes = (
+	WarpNodeProperty,
+	AddWarpNode,
+	RemoveWarpNode,
+
 	SearchModelIDEnumOperator,
 	SearchBehaviourEnumOperator,
 	SearchSpecialEnumOperator,
 	SearchMacroEnumOperator,
 	SM64ObjectPanel,
+	StarGetCutscenesProperty,
 )
 
 def sm64_obj_register():
@@ -694,11 +1047,24 @@ def sm64_obj_register():
 		name = 'Clip Planes', size = 2, min = 0, default = (100, 30000)
 	)
 
+	bpy.types.Object.areaOverrideBG = bpy.props.BoolProperty(
+		name = 'Override Background')
+
+	bpy.types.Object.areaBGColor = bpy.props.FloatVectorProperty(
+		name = 'Background Color', subtype='COLOR', size = 4, 
+		min = 0, max = 1, default = (0,0,0,1))
+
+	bpy.types.Object.camOption = bpy.props.EnumProperty(
+		items = enumCameraMode, default = 'CAMERA_MODE_8_DIRECTIONS')
+
 	bpy.types.Object.camType = bpy.props.StringProperty(
-		name = 'Camera Type', default = '1')
+		name = 'Camera Type', default = 'CAMERA_MODE_8_DIRECTIONS')
+
+	bpy.types.Object.envOption = bpy.props.EnumProperty(
+		items = enumEnvFX, default = 'ENVFX_MODE_NONE')
 
 	bpy.types.Object.envType = bpy.props.StringProperty(
-		name = 'Environment Type', default = '0')
+		name = 'Environment Type', default = 'ENVFX_MODE_NONE')
 
 	bpy.types.Object.fov = bpy.props.FloatProperty(
 		name = 'Field Of View', min = 0, max = 180, default = 45
@@ -711,6 +1077,43 @@ def sm64_obj_register():
 		name = 'Camera Function', default = 'cam_castle_hmc_start_pool_cutscene')
 	bpy.types.Object.cameraVolumeGlobal = bpy.props.BoolProperty(
 		name = 'Is Global')
+
+	bpy.types.Object.starGetCutscenes = bpy.props.PointerProperty(
+		name = "Star Get Cutscenes", type = StarGetCutscenesProperty)
+
+	bpy.types.Object.acousticReach = bpy.props.StringProperty(
+		name = 'Acoustic Reach', default = '20000')
+	
+	bpy.types.Object.echoLevel = bpy.props.StringProperty(
+		name = 'Echo Level', default = '0x00')
+
+	bpy.types.Object.zoomOutOnPause = bpy.props.BoolProperty(
+		name = 'Zoom Out On Pause', default = False)
+
+	bpy.types.Object.areaIndex = bpy.props.IntProperty(name = 'Index',
+		min = 1, default = 1)
+
+	bpy.types.Object.music_preset = bpy.props.StringProperty(
+		name = "Music Preset", default = '0x00')
+	bpy.types.Object.music_seq = bpy.props.StringProperty(
+		name = "Music Sequence Value", default = 'SEQ_LEVEL_GRASS')
+	bpy.types.Object.noMusic = bpy.props.BoolProperty(
+		name = 'No Music', default = False)
+	bpy.types.Object.terrain_type = bpy.props.StringProperty(
+		name = "Terrain Type", default = 'TERRAIN_GRASS')
+	bpy.types.Object.terrainEnum = bpy.props.EnumProperty(
+		name = 'Terrain', items = enumTerrain, default = "TERRAIN_GRASS")
+	bpy.types.Object.musicSeqEnum = bpy.props.EnumProperty(
+		name = 'Music Sequence', items = enumMusicSeq, default = "SEQ_LEVEL_GRASS")
+
+	bpy.types.Object.areaCamera = bpy.props.PointerProperty(type = bpy.types.Camera)
+	bpy.types.Object.warpNodes = bpy.props.CollectionProperty(
+		type = WarpNodeProperty)
+
+	bpy.types.Object.showStartDialog = bpy.props.BoolProperty(name = "Show Start Dialog")
+	bpy.types.Object.startDialog = bpy.props.StringProperty(name = 'Start Dialog', default = 'DIALOG_000')
+	bpy.types.Object.actSelectorIgnore = bpy.props.BoolProperty(name = 'Skip Act Selector')
+	bpy.types.Object.setAsStartLevel = bpy.props.BoolProperty(name = 'Set As Start Level')
 
 def sm64_obj_unregister():
 	del bpy.types.Object.sm64_model_enum
@@ -754,7 +1157,11 @@ def sm64_obj_unregister():
 	del bpy.types.Object.screenSize
 	del bpy.types.Object.useDefaultScreenRect
 	del bpy.types.Object.clipPlanes
+	del bpy.types.Object.areaOverrideBG
+	del bpy.types.Object.areaBGColor
+	del bpy.types.Object.camOption
 	del bpy.types.Object.camType
+	del bpy.types.Object.envOption
 	del bpy.types.Object.envType
 	del bpy.types.Object.fov
 	del bpy.types.Object.dynamicFOV
@@ -762,53 +1169,26 @@ def sm64_obj_unregister():
 	del bpy.types.Object.cameraVolumeFunction
 	del bpy.types.Object.cameraVolumeGlobal
 
+	del bpy.types.Object.starGetCutscenes
+
+	del bpy.types.Object.acousticReach
+	del bpy.types.Object.echoLevel
+	del bpy.types.Object.zoomOutOnPause
+
+	del bpy.types.Object.areaIndex
+	del bpy.types.Object.music_preset
+	del bpy.types.Object.music_seq
+	del bpy.types.Object.terrain_type
+	del bpy.types.Object.areaCamera
+	del bpy.types.Object.noMusic
+
+	del bpy.types.Object.showStartDialog
+	del bpy.types.Object.startDialog
+	del bpy.types.Object.actSelectorIgnore
+	del bpy.types.Object.setAsStartLevel
+
 	for cls in reversed(sm64_obj_classes):
 		unregister_class(cls)
-
-enumBackground = [
-	('OCEAN_SKY', 'Ocean Sky', 'Ocean Sky'),
-	('FLAMING_SKY', 'Flaming Sky', 'Flaming Sky'),
-	('UNDERWATER_CITY', 'Underwater City', 'Underwater City'),
-	('BELOW_CLOUDS', 'Below Clouds', 'Below Clouds'),
-	('SNOW_MOUNTAINS', 'Snow Mountains', 'Snow Mountains'),
-	('DESERT', 'Desert', 'Desert'),
-	('HAUNTED', 'Haunted', 'Haunted'),
-	('GREEN_SKY', 'Green Sky', 'Green Sky'),
-	('ABOVE_CLOUDS', 'Above Clouds', 'Above Clouds'),
-	('PURPLE_SKY', 'Purple Sky', 'Purple Sky'),
-]
-
-backgroundSegments = {
-	'OCEAN_SKY' : 'water',
-	'FLAMING_SKY' : 'bitfs',
-	'UNDERWATER_CITY' : 'wdw',
-	'BELOW_CLOUDS' : 'cloud_floor',
-	'SNOW_MOUNTAINS' : 'ccm',
-	'DESERT' : 'ssl',
-	'HAUNTED' : 'bbh',
-	'GREEN_SKY' : 'bidw',
-	'ABOVE_CLOUDS' : 'clouds',
-	'PURPLE_SKY' : 'bits',
-}
-
-enumWaterBoxType = [
-	("Water", 'Water', "Water"),
-	('Toxic Haze', 'Toxic Haze', 'Toxic Haze')
-]
-
-enumObjectType = [
-	('None', 'None', 'None'),
-	('Level Root', 'Level Root', 'Level Root'),
-	('Area Root', 'Area Root', 'Area Root'),
-	('Object', 'Object', 'Object'),
-	('Macro', 'Macro', 'Macro'),
-	('Special', 'Special', 'Special'),
-	('Mario Start', 'Mario Start', 'Mario Start'),
-	('Whirlpool', 'Whirlpool', 'Whirlpool'),
-	('Water Box', 'Water Box', 'Water Box'),
-	('Camera Volume', 'Camera Volume', 'Camera Volume'),
-	#('Trajectory', 'Trajectory', 'Trajectory'),
-]
 
 '''
 object: model, bparam, behaviour, acts

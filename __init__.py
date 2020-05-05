@@ -738,6 +738,8 @@ class SM64_ExportGeolayoutPanel(bpy.types.Panel):
 				prop_split(col, context.scene, 'geoExportHeaderType', 'Export Type')
 				if context.scene.geoExportHeaderType == 'Actor':
 					prop_split(col, context.scene, 'geoGroupName', 'Group Name')
+					if context.scene.geoName == 'star':
+						col.prop(context.scene, 'replaceStarRefs')
 				elif context.scene.geoExportHeaderType == 'Level':
 					prop_split(col, context.scene, 'geoLevelOption', 'Level')
 					if context.scene.geoLevelOption == 'custom':
@@ -1177,7 +1179,7 @@ class SM64_ImportLevelPanel(bpy.types.Panel):
 class SM64_ExportLevel(bpy.types.Operator):
 	# set bl_ properties
 	bl_idname = 'object.sm64_export_level'
-	bl_label = "Replace Level"
+	bl_label = "Export Level"
 	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
 	def execute(self, context):
@@ -1240,7 +1242,7 @@ class SM64_ExportLevel(bpy.types.Operator):
 
 class SM64_ExportLevelPanel(bpy.types.Panel):
 	bl_idname = "SM64_PT_export_level"
-	bl_label = "SM64 Level Replacer"
+	bl_label = "SM64 Level Exporter"
 	bl_space_type = 'VIEW_3D'
 	bl_region_type = 'UI'
 	bl_category = 'Fast64'
@@ -1266,6 +1268,9 @@ class SM64_ExportLevelPanel(bpy.types.Panel):
 			col.prop(context.scene, 'levelOption')
 			if context.scene.levelOption == 'custom':
 				levelName = context.scene.levelName
+				box = col.box()
+				box.label(text = 'Adding levels may require modifying the save file format.')
+				box.label(text = 'Check src/game/save_file.c.')
 				prop_split(col, context.scene, 'levelName', 'Name')
 				prop_split(col, context.scene, 'levelCameraVolumeName', "Camera Trigger Name")
 			else:
@@ -1282,6 +1287,7 @@ class SM64_ExportLevelPanel(bpy.types.Panel):
 			col.separator()
 
 def extendedRAMLabel(layout):
+	return
 	infoBox = layout.box()
 	infoBox.label(text = 'Be sure to add: ')
 	infoBox.label(text = '"#define USE_EXT_RAM"')
@@ -1877,7 +1883,9 @@ class SM64_FileSettingsPanel(bpy.types.Panel):
 		col.prop(context.scene, 'extendBank4')
 		
 		col.prop(context.scene, 'decomp_compatible')
+		col.prop(context.scene, 'disableScroll')
 		col.prop(context.scene, 'decompPath')
+		
 		prop_split(col, context.scene, 'refreshVer', 'Decomp Func Map')
 
 class SM64_AddressConvertPanel(bpy.types.Panel):
@@ -2019,7 +2027,7 @@ def register():
 	bpy.types.Scene.DLTexDir = bpy.props.StringProperty(
 		name ='Include Path', default = 'level/bob')
 	bpy.types.Scene.DLSaveTextures = bpy.props.BoolProperty(
-		name = 'Save Textures As PNGs')
+		name = 'Save Textures As PNGs (Breaks CI Textures)')
 	bpy.types.Scene.DLSeparateTextureDef = bpy.props.BoolProperty(
 		name = 'Save texture.inc.c separately')
 	
@@ -2075,7 +2083,7 @@ def register():
 	bpy.types.Scene.geoTexDir = bpy.props.StringProperty(
 		name ='Include Path', default = 'actors/mario/')
 	bpy.types.Scene.geoSaveTextures = bpy.props.BoolProperty(
-		name = 'Save Textures As PNGs')
+		name = 'Save Textures As PNGs (Breaks CI Textures)')
 	bpy.types.Scene.geoSeparateTextureDef = bpy.props.BoolProperty(
 		name = 'Save texture.inc.c separately')
 	bpy.types.Scene.geoInsertableBinaryPath = bpy.props.StringProperty(
@@ -2094,6 +2102,8 @@ def register():
 		default = 'bob')
 	bpy.types.Scene.geoLevelOption = bpy.props.EnumProperty(
 		items = enumLevelNames, name = 'Level', default = 'bob')
+	bpy.types.Scene.replaceStarRefs = bpy.props.BoolProperty(
+		name = 'Remove old DL references in Unagi and Klepto', default = True)
 
 	# Level
 	bpy.types.Scene.levelLevel = bpy.props.EnumProperty(items = level_enums, 
@@ -2189,7 +2199,7 @@ def register():
 	bpy.types.Scene.texrectImageTexture = bpy.props.PointerProperty(type = bpy.types.ImageTexture)
 	bpy.types.Scene.TexRectExportPath = bpy.props.StringProperty(name = 'Export Path', subtype='FILE_PATH')
 	bpy.types.Scene.TexRectTexDir = bpy.props.StringProperty(name = 'Include Path', default = 'textures/segment2')
-	bpy.types.Scene.TexRectSaveTextures = bpy.props.BoolProperty(name = 'Save Textures as PNGs')
+	bpy.types.Scene.TexRectSaveTextures = bpy.props.BoolProperty(name = 'Save Textures as PNGs (Breaks CI Textures)')
 	bpy.types.Scene.TexRectName = bpy.props.StringProperty(name = 'Name', default = 'render_hud_image')
 	bpy.types.Scene.TexRectCustomExport = bpy.props.BoolProperty(name = 'Custom Export Path')
 	bpy.types.Scene.TexRectExportType = bpy.props.EnumProperty(name = 'Export Type', items = enumHUDExportLocation)
@@ -2201,7 +2211,7 @@ def register():
 	bpy.types.Scene.levelExportPath = bpy.props.StringProperty(
 		name = 'Directory', subtype = 'FILE_PATH')
 	bpy.types.Scene.levelSaveTextures = bpy.props.BoolProperty(
-		name = 'Save Textures As PNGs')
+		name = 'Save Textures As PNGs (Breaks CI Textures)')
 	bpy.types.Scene.levelExportRooms = bpy.props.BoolProperty(
 		name = 'Export Rooms', default = False)
 	bpy.types.Scene.levelCustomExport = bpy.props.BoolProperty(
@@ -2233,6 +2243,8 @@ def register():
 		name = 'Blender To SM64 Scale', default = 212.766)
 	bpy.types.Scene.decompPath = bpy.props.StringProperty(
 		name ='Decomp Folder', subtype = 'FILE_PATH')
+	bpy.types.Scene.disableScroll = bpy.props.BoolProperty(
+		name = 'Disable Scrolling Textures')
 
 	bpy.types.Scene.characterIgnoreSwitch = \
 		bpy.props.BoolProperty(name = 'Ignore Switch Nodes', default = True)
@@ -2274,6 +2286,7 @@ def unregister():
 	del bpy.types.Scene.geoCustomExport
 	del bpy.types.Scene.geoLevelName
 	del bpy.types.Scene.geoLevelOption
+	del bpy.types.Scene.replaceStarRefs
 
 	# Animation
 	del bpy.types.Scene.animStartImport
@@ -2400,6 +2413,7 @@ def unregister():
 	del bpy.types.Scene.fullTraceback
 	del bpy.types.Scene.decompPath
 	del bpy.types.Scene.decomp_compatible
+	del bpy.types.Scene.disableScroll
 
 	sm64_spline_unregister()
 	level_unregister()
