@@ -75,7 +75,7 @@ def writeTexScrollBase(baseDir):
 			'#ifndef TEXSCROLL_H\n' +\
 			'#define TEXSCROLL_H\n\n' + \
 			'extern void scroll_textures();\n\n' +\
-			'#endif')
+			'#endif\n')
 
 		texscrollHFile.close()
 	
@@ -139,7 +139,7 @@ def createTexScrollHeadersGroup(exportDir, groupName, dataInclude):
 	groupPathH = os.path.join(exportDir, includeH)
 	if not os.path.exists(groupPathH):
 		groupFileH = open(groupPathH, 'w', newline = '\n')
-		groupDataH = 'extern void scroll_textures_' + groupName + "();"
+		groupDataH = 'extern void scroll_textures_' + groupName + "();\n"
 		groupFileH.write(groupDataH)
 		groupFileH.close()
 	

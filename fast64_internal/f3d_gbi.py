@@ -1717,7 +1717,7 @@ class FModel:
 			if scrollFunc == '':
 				continue
 			scroll_data += '\t' + scrollFunc
-		scroll_data += '}'
+		scroll_data += '}\n'
 
 		if self.materialRevert is not None:
 			dynamic_data += self.materialRevert.to_c(self.f3d) + '\n'
