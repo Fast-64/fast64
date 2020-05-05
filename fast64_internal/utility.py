@@ -434,6 +434,10 @@ def colorTo16bitRGBA(color):
 	return (r << 11) | (g << 6) | (b << 1) | a
 
 def applyRotation(objList, angle, axis):
+	bpy.context.scene.tool_settings.use_transform_data_origin = False
+	bpy.context.scene.tool_settings.use_transform_pivot_point_align = False
+	bpy.context.scene.tool_settings.use_transform_skip_children = False
+
 	bpy.ops.object.select_all(action = "DESELECT")
 	for obj in objList:
 		obj.select_set(True)
