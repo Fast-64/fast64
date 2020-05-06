@@ -1207,12 +1207,12 @@ class SM64_ExportLevel(bpy.types.Operator):
 			if context.scene.levelCustomExport:
 				exportPath = bpy.path.abspath(context.scene.levelExportPath)
 				levelName = context.scene.levelName
-				triggerName = context.scene.levelCameraVolumeName
+				triggerName = 'sCam' + context.scene.levelName.title().replace(' ', '').replace('_', '')
 			else:
 				exportPath = bpy.path.abspath(context.scene.decompPath)
 				if context.scene.levelOption == 'custom':
 					levelName = context.scene.levelName
-					triggerName = context.scene.levelCameraVolumeName
+					triggerName = 'sCam' + context.scene.levelName.title().replace(' ', '').replace('_', '')
 				else:
 					levelName = context.scene.levelOption
 					triggerName = cameraTriggerNames[context.scene.levelOption]
@@ -1262,7 +1262,6 @@ class SM64_ExportLevelPanel(bpy.types.Panel):
 		if context.scene.levelCustomExport:
 			prop_split(col, context.scene, 'levelExportPath', 'Directory')
 			prop_split(col, context.scene, 'levelName', 'Name')
-			prop_split(col, context.scene, 'levelCameraVolumeName', "Camera Trigger Name")
 			customExportWarning(col)
 		else:
 			col.prop(context.scene, 'levelOption')
@@ -1272,7 +1271,6 @@ class SM64_ExportLevelPanel(bpy.types.Panel):
 				box.label(text = 'Adding levels may require modifying the save file format.')
 				box.label(text = 'Check src/game/save_file.c.')
 				prop_split(col, context.scene, 'levelName', 'Name')
-				prop_split(col, context.scene, 'levelCameraVolumeName', "Camera Trigger Name")
 			else:
 				levelName = context.scene.levelOption
 			decompFolderMessage(col)
@@ -2216,8 +2214,6 @@ def register():
 		name = 'Export Rooms', default = False)
 	bpy.types.Scene.levelCustomExport = bpy.props.BoolProperty(
 		name = 'Custom Export Path')
-	bpy.types.Scene.levelCameraVolumeName = bpy.props.StringProperty(
-		name = 'Camera Trigger Name', default = 'sCamBOB')
 
 	# ROM
 	bpy.types.Scene.importRom = bpy.props.StringProperty(
@@ -2372,7 +2368,6 @@ def unregister():
 	del bpy.types.Scene.levelExportRooms
 	del bpy.types.Scene.levelCustomExport
 	del bpy.types.Scene.levelOption
-	del bpy.types.Scene.levelCameraVolumeName
 
 	# Collision
 	del bpy.types.Scene.colExportPath
