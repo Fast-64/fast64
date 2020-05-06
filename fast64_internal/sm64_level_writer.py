@@ -343,7 +343,7 @@ def replaceSegmentLoad(levelscript, segmentName, command, changedSegment):
 
 def stringToMacros(data):
 	macroData = []
-	for matchResult in re.finditer('(\w*)\((((?!\)).)*)\),?(\s*\/\/.*)?', data):
+	for matchResult in re.finditer('(\w*)\((((?!\)).)*)\),?(((?!\n)\s)*\/\/((?!\n).)*)?', data):
 		macro = matchResult.group(1)
 		arguments = matchResult.group(2)
 		if matchResult.group(4) is not None:
