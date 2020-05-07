@@ -429,7 +429,7 @@ def parseLevelScript(filepath, levelName):
 	for matchResult in re.finditer('#include\s*"actors/(\w*)\.h"', scriptData):
 		levelscript.actorIncludes.append(matchResult.group(0))
 
-	matchResult = re.search('const\s*LevelScript\s*level\_[a-zA-Z0-9]*\_entry\[\]\s*=\s*\{' +\
+	matchResult = re.search('const\s*LevelScript\s*level\_\w*\_entry\[\]\s*=\s*\{' +\
 		'(((?!\}).)*)\}\s*;', scriptData, re.DOTALL)
 	
 	if matchResult is None:
