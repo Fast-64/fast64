@@ -38,16 +38,18 @@ def replaceDLReferenceInGeo(geoPath, pattern):
 		geoFile.close()
 
 def findStartBone(armatureObj):
-	noParentBones = [poseBone for poseBone in armatureObj.pose.bones if \
-		poseBone.parent is None]
-	for poseBone in noParentBones:
-		# We want to ignore any switch option bones.
-		if poseBone.bone_group is None or \
-			(poseBone.bone_group.name != "SwitchOption" and \
-			poseBone.bone_group.name != "Ignore"):
-			return poseBone.name
-	raise PluginError("No non switch option start bone could be found " +\
-		'in ' + armatureObj.name + '. Is this the root armature?')
+	noParentBones = [bone for bone in armatureObj.data.bones if \
+		bone.parent is None and (bone.geo_cmd != 'SwitchOption' and bone.geo_cmd != 'Ignore')]
+	
+	if len(noParentBones) == 1:
+		return noParentBones[0].name
+	elif len(noParentBones) == 0:
+		raise PluginError("No non switch option start bone could be found " +\
+			'in ' + armatureObj.name + '. Is this the root armature?')
+	else:
+		raise PluginError("Too many parentless bones found. Make sure your bone hierarchy starts from a single bone, " +\
+			"and that any bones not related to a hierarchy have their geolayout command set to \"Ignore\".")
+	
 
 def prepareGeolayoutExport(armatureObj, obj):
 	# Make object and armature space the same.
