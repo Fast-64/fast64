@@ -257,9 +257,16 @@ def exportAnimationCommon(armatureObj, loopAnim, name):
 	sm64_anim = SM64_Animation(toAlnum(name + "_" + anim.name))
 
 	nodeCount = len(armatureObj.data.bones)
-	frameInterval = [int(round(anim.frame_range[0])), 
-		min(bpy.context.scene.frame_end, 
-			int(round(anim.frame_range[1])) + 1)]
+		
+	frameInterval = [0,0]
+
+	# frame_start is minimum 0
+	frameInterval[0] = max(bpy.context.scene.frame_start,
+		int(round(anim.frame_range[0])))
+
+	frameInterval[1] = \
+		max(min(bpy.context.scene.frame_end, 
+			int(round(anim.frame_range[1]))), frameInterval[0]) + 1
 	translationData, armatureFrameData = convertAnimationData(anim, armatureObj, frameInterval[1])
 
 	repetitions = 0 if loopAnim else 1
