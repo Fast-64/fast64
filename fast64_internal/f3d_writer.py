@@ -100,6 +100,8 @@ def getInfoDict(obj):
 			raise PluginError("Object \'" + obj.name + "\' does not have a UV layer named \'UVMap.\'")
 	for face in mesh.loop_triangles:
 		validNeighborDict[face] = []
+		if mesh.materials[face.material_index] is None:
+			raise PluginError("There are some faces on your mesh that are assigned to an empty material slot.")
 		for vertIndex in face.vertices:
 			if vertIndex not in vertDict:
 				vertDict[vertIndex] = []
@@ -131,6 +133,56 @@ def getInfoDict(obj):
 						validNeighborDict[face].append(otherFace)
 						validNeighborDict[otherFace].append(face)
 	return infoDict
+
+def fixLargeUVs(obj, faces, size):
+	obj.data.calc_loop_triangles()
+	obj.data.calc_normals_split()
+
+	uv_data = obj.data.uv_layers['UVMap'].data
+
+	for face in faces:
+		rangeU = [0,0]
+		rangeV = [0,0]
+		for loopIndex in face.loops:
+			#loop = obj.data.loops[loopIndex]
+			uv = uv_data[loopIndex].uv
+			rangeU[0] = min(uv[0] * size[0], rangeU[0])
+			rangeU[1] = max(uv[0] * size[0], rangeU[1])
+			rangeV[0] = min(uv[1] * size[1], rangeV[0])
+			rangeV[1] = max(uv[1] * size[1], rangeV[1])
+
+		totalAmount = [0,0]
+		totalAmount[0] = handleLargeUV(rangeU, size[0]) / size[0]
+		totalAmount[1] = handleLargeUV(rangeV, size[1]) / size[1]
+		
+		if totalAmount[0] != 0 and totalAmount[1] != 0:
+			print(str(totalAmount) + " : " + str(uv_data[face.loops[0]].uv) + ", " + \
+				str(uv_data[face.loops[1]].uv) + ", " + str(uv_data[face.loops[2]].uv))
+			addUV(face, totalAmount, uv_data)
+
+def handleLargeUV(valueRange, size):
+	totalAmount = 0
+
+	if valueRange[1] > 1024:
+		amount = ceil((valueRange[1] - 1024) / size) * size + size 	
+		totalAmount -= amount
+		valueRange[0] -= amount
+		valueRange[1] -= amount
+	
+	if valueRange[0] < -1024:
+		amount = ceil(-(valueRange[0] + 1024) / size) * size + size 
+		totalAmount += amount
+		valueRange[0] += amount
+		valueRange[1] += amount
+	
+	return totalAmount
+
+def addUV(face, amount, uv_data):
+	for loopIndex in face.loops:
+		uv_data[loopIndex].uv =\
+			(uv_data[loopIndex].uv[0] + amount[0],
+			uv_data[loopIndex].uv[1] + amount[1])
+
 
 # Make sure to set original_name before calling this
 # used when duplicating an object
@@ -678,6 +730,7 @@ def saveMeshByFaces(material, faces, fModel, fMesh, obj, transformMatrix,
 		return
 	fMaterial, texDimensions = \
 		saveOrGetF3DMaterial(material, fModel, obj, drawLayer)
+	#fixLargeUVs(obj, faces, texDimensions)
 	isPointSampled = isTexturePointSampled(material)
 	exportVertexColors = isLightingDisabled(material)
 	uv_data = obj.data.uv_layers['UVMap'].data
