@@ -399,7 +399,7 @@ class CameraVolume:
 			str(convertRadiansToS16(self.rotation[1])) + '},'
 		return data
 
-def exportAreaCommon(levelObj, areaObj, transformMatrix, geolayout, collision, name):
+def exportAreaCommon(areaObj, transformMatrix, geolayout, collision, name):
 	bpy.ops.object.select_all(action = 'DESELECT')
 	areaObj.select_set(True)
 
@@ -421,8 +421,11 @@ def exportAreaCommon(levelObj, areaObj, transformMatrix, geolayout, collision, n
 		[areaObj.warpNodes[i].to_c() for i in range(len(areaObj.warpNodes))],
 		name + '_' + areaObj.name, areaObj.startDialog if areaObj.showStartDialog else None)
 
-	process_sm64_objects(levelObj, area, 
-		levelObj.matrix_world, transformMatrix, False)
+	# Hacky solution to handle Z-up to Y-up conversion
+	# Get rotation, without translation from level object
+	spaceRotation = mathutils.Quaternion((1, 0, 0), math.radians(90.0)).to_matrix().to_4x4()
+	process_sm64_objects(areaObj, area, 
+		areaObj.matrix_world @ spaceRotation, transformMatrix, False)
 
 	return area
 
@@ -469,15 +472,15 @@ def handleRefreshDiffMacros(preset):
 	return preset
 
 def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
-	translation, rotation, scale = \
+	translation, originalRotation, scale = \
 			(transformMatrix @ rootMatrix.inverted() @ obj.matrix_world).decompose()
 
 	finalTransform = mathutils.Matrix.Translation(translation) @ \
-		rotation.to_matrix().to_4x4() @ \
+		originalRotation.to_matrix().to_4x4() @ \
 		mathutils.Matrix.Diagonal(scale).to_4x4()
 
 	# Hacky solution to handle Z-up to Y-up conversion
-	rotation = rotation @ mathutils.Quaternion((1, 0, 0), math.radians(90.0))
+	rotation = originalRotation @ mathutils.Quaternion((1, 0, 0), math.radians(90.0))
 
 	if obj.data is None:
 		if obj.sm64_obj_type == 'Area Root' and obj.areaIndex != area.index:
@@ -1088,7 +1091,7 @@ def sm64_obj_register():
 		name = 'Echo Level', default = '0x00')
 
 	bpy.types.Object.zoomOutOnPause = bpy.props.BoolProperty(
-		name = 'Zoom Out On Pause', default = False)
+		name = 'Zoom Out On Pause', default = True)
 
 	bpy.types.Object.areaIndex = bpy.props.IntProperty(name = 'Index',
 		min = 1, default = 1)

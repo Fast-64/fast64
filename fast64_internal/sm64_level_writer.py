@@ -515,7 +515,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 			zoomFlags[child.areaIndex - 1] = child.zoomOutOnPause
 
 		geolayoutGraph, fModel = \
-			convertObjectToGeolayout(obj, transformMatrix, 
+			convertObjectToGeolayout(child, transformMatrix, 
 			f3dType, isHWv1, child.areaCamera, levelName + '_' + areaName, fModel, child, DLFormat)
 
 		# Write geolayout
@@ -527,7 +527,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 
 		# Write collision
 		collision = \
-			exportCollisionCommon(obj, transformMatrix, True, True, 
+			exportCollisionCommon(child, transformMatrix, True, True, 
 				levelName + '_' + areaName, child.areaIndex)
 		colFile = open(os.path.join(areaDir, 'collision.inc.c'), 'w', newline = '\n')
 		colFile.write(collision.to_c())
@@ -544,7 +544,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 			headerString += collision.to_c_rooms_def()
 
 		# Get area
-		area = exportAreaCommon(obj, child, transformMatrix, 
+		area = exportAreaCommon(child, transformMatrix, 
 			geolayoutGraph.startGeolayout, collision, levelName + '_' + areaName)
 		if area.mario_start is not None:
 			prevLevelScript.marioStart = area.mario_start

@@ -103,7 +103,8 @@ For example, for Mario you would rotate the four limb joints around the Y-axis 1
 
 Then after applying the rest pose and skinning, you would apply those operations in reverse order then apply rest pose again.
 
-### Importing/Exporting SM64 Animations (Not Mario)
+### Importing/Exporting Binary SM64 Animations (Not Mario)
+-   Note: SM64 animations only allow for rotations, and translation only on the root bone.
 
 -   Download Quad64, open the desired level, and go to Misc -> Script Dumps.
 -   Go to the objects header, find the object you want, and view the Behaviour Script tab.
@@ -127,7 +128,7 @@ For exporting:
 
 Select an armature for the animation, and press 'Import/Export animation'. Note that the armature's root 0x13 (i.e. regular) bone must be named 'root'.
 
-### Importing/Exporting Mario Animations
+### Importing/Exporting Binary Mario Animations
 Mario animations use a DMA table, which contains 8 byte entries of (offset from table start, animation size). Documentation about this table is here:
 https://dudaw.webs.com/sm64docs/sm64_marios_animation_table.txt.
 Basically, Mario's DMA table starts at 0x4EC000. There is an 8 byte header, and then the animation entries afterward. Thus the 'climb up ledge' DMA entry is at 0x4EC008. The first 4 bytes at that address indicate the offset from 0x4EC000 at which the actual animation exists. Thus the 'climb up ledge' animation address is at 0x4EC690. Using this table you can find animations you want to overwrite. Make sure the 'Is DMA Animation' option is checked and 'Is Segmented Pointer' is unchecked when importing/exporting.
