@@ -88,14 +88,37 @@ def writeTexScrollBase(baseDir):
 			'#include "memory.h"\n' +\
 			'#include "engine/math_util.h"\n' +\
 			'#include "src/engine/behavior_script.h"\n' +\
-			'#include "texscroll.h"\n'
+			'#include "texscroll.h"\n\n'
 
 		# Write global texture load function here
 		# Write material.inc.c
 		# Write update_materials
 
-		scrollData += "\n\nvoid scroll_textures() {\n}\n"
+		scrollData += "void scroll_textures() {\n}\n"
 
+		texscrollCFile.write(scrollData)
+		texscrollCFile.close()
+	
+	texscrollCFile = open(texscrollCPath, 'r', newline = '\n')
+	scrollData = texscrollCFile.read()
+	texscrollCFile.close()
+
+	scrollConditionDefine = '#ifdef TARGET_N64\n' +\
+		'#define SCROLL_CONDITION(condition) condition\n' +\
+		'#else\n' +\
+		'#define SCROLL_CONDITION(condition) 1\n' +\
+		'#endif\n'
+	if '#define SCROLL_CONDITION' not in scrollData:
+		texScrollIncludeDef = '#include "texscroll.h"'
+		macroIndex = scrollData.index(texScrollIncludeDef)
+		if macroIndex != -1:
+			macroIndex += len(texScrollIncludeDef)
+			scrollData = scrollData[:macroIndex] + '\n\n' + scrollConditionDefine +\
+				scrollData[macroIndex:]
+		else:
+			raise PluginError("Cannot find '#include \"texscroll.h\" in src/game/texscroll.c")
+
+		texscrollCFile = open(texscrollCPath, 'w', newline='\n')
 		texscrollCFile.write(scrollData)
 		texscrollCFile.close()
 	
@@ -117,16 +140,17 @@ def writeTexScrollBase(baseDir):
 		levelUpdateData = texscrollInclude + '\n' + levelUpdateData
 	
 		levelUpdateFunction = 'changeLevel = play_mode_normal();'
-		callScrollIndex = levelUpdateData.index(levelUpdateFunction) + len(levelUpdateFunction)
+		callScrollIndex = levelUpdateData.index(levelUpdateFunction)
 		if callScrollIndex != -1:
+			callScrollIndex += len(levelUpdateFunction)
 			levelUpdateData = levelUpdateData[:callScrollIndex] + ' scroll_textures();' +\
 				levelUpdateData[callScrollIndex:]
 		else:
 			raise PluginError("Cannot find play_mode_normal() call in level_update.c.")
 
-	levelUpdateFile = open(levelUpdatePath, 'w', newline='\n')
-	levelUpdateFile.write(levelUpdateData)
-	levelUpdateFile.close()
+		levelUpdateFile = open(levelUpdatePath, 'w', newline='\n')
+		levelUpdateFile.write(levelUpdateData)
+		levelUpdateFile.close()
 
 def createTexScrollHeadersGroup(exportDir, groupName, dataInclude):
 	includeH = 'src/game/texscroll/' + groupName + '_texscroll.inc.h'
@@ -177,6 +201,7 @@ def createTexScrollHeadersGroup(exportDir, groupName, dataInclude):
 	texscrollFileC = open(texscrollPathC, 'r', newline = '\n')
 	texscrollDataC = texscrollFileC.read()
 	texscrollFileC.close()
+	originalTexScrollC = texscrollDataC
 
 	if includeCText not in texscrollDataC:
 		scrollIndex = texscrollDataC.index('void scroll_textures()')
@@ -191,7 +216,11 @@ def createTexScrollHeadersGroup(exportDir, groupName, dataInclude):
 	segment = groupDict[groupName][1]
 	segmentRomStart = groupDict[groupName][0]
 
-	groupFunctionCall = "if(sSegmentROMTable[" + hex(segment) + \
+	groupFunctionCall = "if(SCROLL_CONDITION(sSegmentROMTable[" + hex(segment) + \
+		"] == (uintptr_t)" + segmentRomStart + ")) {\n" +\
+		'\t\tscroll_textures_' + groupName + "();\n\t}\n"
+	
+	callWithoutMacro = "if(sSegmentROMTable[" + hex(segment) + \
 		"] == (uintptr_t)" + segmentRomStart + ") {\n" +\
 		'\t\tscroll_textures_' + groupName + "();\n\t}\n"
 	
@@ -202,15 +231,20 @@ def createTexScrollHeadersGroup(exportDir, groupName, dataInclude):
 		
 		if groupFunctionCall not in functionCalls:
 			functionCalls += '\n\t' + groupFunctionCall
+		
+		# Handle case with old function calls
+		if callWithoutMacro in functionCalls:
+			functionCalls = functionCalls.replace(callWithoutMacro, '')
 
-			texscrollDataC = texscrollDataC[:matchResult.start(1)] + functionCalls + \
-				texscrollDataC[matchResult.end(1):]
+		texscrollDataC = texscrollDataC[:matchResult.start(1)] + functionCalls + \
+			texscrollDataC[matchResult.end(1):]
 	else:
 		raise PluginError("Texture scroll function not found.")
 
-	texscrollFileC = open(texscrollPathC, 'w', newline = '\n')
-	texscrollFileC.write(texscrollDataC)
-	texscrollFileC.close()	
+	if originalTexScrollC != texscrollDataC:
+		texscrollFileC = open(texscrollPathC, 'w', newline = '\n')
+		texscrollFileC.write(texscrollDataC)
+		texscrollFileC.close()	
 
 def writeTexScrollHeadersLevel(exportDir, includeC, includeH, groupName, scrollDefines):
 	pass
@@ -228,16 +262,16 @@ def writeTexScrollHeadersGroup(exportDir, includeC, includeH, groupName, scrollD
 	
 	if includeH not in groupDataH:
 		groupDataH = includeH + '\n' + groupDataH
-
-	groupFileH = open(groupPathH, 'w', newline = '\n')
-	groupFileH.write(groupDataH)
-	groupFileH.close()
+		groupFileH = open(groupPathH, 'w', newline = '\n')
+		groupFileH.write(groupDataH)
+		groupFileH.close()
 
 	# Write to group inc.c
 	groupPathC = os.path.join(exportDir, 'src/game/texscroll/' + groupName + '_texscroll.inc.c')
 	groupFileC = open(groupPathC, 'r', newline = '\n')
 	groupDataC = groupFileC.read()
 	groupFileC.close()
+	originalGroupDataC = groupDataC
 
 	includeIndex = groupDataC.index('void scroll_textures_' + groupName + '()')
 	if includeIndex != -1:
@@ -260,9 +294,10 @@ def writeTexScrollHeadersGroup(exportDir, includeC, includeH, groupName, scrollD
 	else:
 		raise PluginError("Texture scroll function not found.")
 
-	groupFileC = open(groupPathC, 'w', newline = '\n')
-	groupFileC.write(groupDataC)
-	groupFileC.close()
+	if originalGroupDataC != groupDataC:
+		groupFileC = open(groupPathC, 'w', newline = '\n')
+		groupFileC.write(groupDataC)
+		groupFileC.close()
 
 
 def writeTexScrollFiles(exportDir, assetDir, header, data):

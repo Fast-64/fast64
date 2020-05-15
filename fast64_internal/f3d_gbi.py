@@ -1407,14 +1407,14 @@ class VtxList:
 		return data
 	
 	def to_c(self):
-		data = 'const Vtx ' + self.name + '[' + str(len(self.vertices)) + '] = {\n'
+		data = 'Vtx ' + self.name + '[' + str(len(self.vertices)) + '] = {\n'
 		for vert in self.vertices:
 			data += '\t' + vert.to_c() + ',\n'
 		data += '};'
 		return data
 	
 	def to_c_def(self):
-		data = 'extern const Vtx ' + self.name + '[' + str(len(self.vertices)) + '];\n'
+		data = 'extern Vtx ' + self.name + '[' + str(len(self.vertices)) + '];\n'
 		return data
 	
 	def to_sm64_decomp_s(self):
@@ -1478,7 +1478,7 @@ class GfxList:
 	
 	def to_c(self, f3d):
 		if self.DLFormat == "Static":
-			data = 'const Gfx ' + self.name + '[] = {\n'
+			data = 'Gfx ' + self.name + '[] = {\n'
 			for command in self.commands:
 				data += '\t' + command.to_c(True) + ',\n'
 			data += '};'	
@@ -1513,7 +1513,7 @@ class GfxList:
 
 	def to_c_def(self):
 		if self.DLFormat == "Static":
-			return 'extern const Gfx ' + self.name + '[];\n'
+			return 'extern Gfx ' + self.name + '[];\n'
 		elif self.DLFormat == 'SM64 Function Node':
 			return 'Gfx* ' + self.name + '(s32 renderContext, struct GraphNode* node, struct AllocOnlyPool *a2);\n'
 		elif self.DLFormat == "Dynamic":
@@ -2306,7 +2306,7 @@ class Lights:
 		return data
 
 	def to_c(self):
-		data = 'const Lights' + str(len(self.l)) + " " + self.name + " = " +\
+		data = 'Lights' + str(len(self.l)) + " " + self.name + " = " +\
 			'gdSPDefLights' + str(len(self.l)) + '(\n'
 		data += '\t' + self.a.to_c()
 		for light in self.l:
@@ -2315,7 +2315,7 @@ class Lights:
 		return data
 
 	def to_c_def(self):
-		return "extern const Lights" + str(len(self.l)) + " " + self.name + ";\n"
+		return "extern Lights" + str(len(self.l)) + " " + self.name + ";\n"
 
 	def to_sm64_decomp_s(self):
 		data = '.balign 8\n' + self.name + ':\n'
@@ -2396,13 +2396,13 @@ class FImage:
 		return 'extern u8 ' + self.name + '[];'
 	
 	def to_c(self):
-		code = 'const u8 ' + self.name + '[] = {\n\t'
+		code = 'u8 ' + self.name + '[] = {\n\t'
 		code += self.to_c_data()
 		code += '\n};'
 		return code
 
 	def to_c_tex_separate(self, texPath):
-		code = 'const u8 ' + self.name + '[] = {\n\t'
+		code = 'u8 ' + self.name + '[] = {\n\t'
 		code += '#include "' + texPath + self.filename + '"'
 		code += '\n};'
 		return code
