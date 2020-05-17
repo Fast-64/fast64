@@ -516,7 +516,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 
 		geolayoutGraph, fModel = \
 			convertObjectToGeolayout(child, transformMatrix, 
-			f3dType, isHWv1, child.areaCamera, levelName + '_' + areaName, fModel, child, DLFormat)
+			f3dType, isHWv1, child.areaCamera, levelName + '_' + areaName, fModel, child, DLFormat, not savePNG)
 
 		# Write geolayout
 		geoFile = open(os.path.join(areaDir, 'geo.inc.c'), 'w', newline = '\n')
@@ -591,6 +591,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 	static_data, dynamic_data, texC, scroll_data = fModel.to_c(savePNG, savePNG, 'levels/' + levelName, levelName)
 	headerStatic, headerDynamic, headerScroll = fModel.to_c_def(levelName)
 	if savePNG:
+		levelDataString =  '#include "levels/' + levelName + '/texture_include.inc.c"\n' + levelDataString
 		fModel.save_textures(levelDir)
 
 		texPath = os.path.join(levelDir, 'texture_include.inc.c')
@@ -713,17 +714,17 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 		writeIfNotFound(levelDataPath, '#include "levels/' + levelName + '/leveldata.inc.c"\n', '')
 		writeIfNotFound(headerPath, '#include "levels/' + levelName + '/header.inc.h"\n', '#endif')
 		
-		if savePNG:
-			writeIfNotFound(levelDataPath, '#include "levels/' + levelName + '/texture_include.inc.c"\n', '')
-		else:
+		if not savePNG:
 			textureIncludePath = os.path.join(levelDir, 'texture_include.inc.c')
 			if os.path.exists(textureIncludePath):
 				os.remove(textureIncludePath)
 			# This one is for backwards compatibility purposes
 			deleteIfFound(os.path.join(levelDir, 'texture.inc.c'), 
 				'#include "levels/' + levelName + '/texture_include.inc.c"')
-			deleteIfFound(levelDataPath,
-				'#include "levels/' + levelName + '/texture_include.inc.c"')
+		
+		# This one is for backwards compatibility purposes
+		deleteIfFound(levelDataPath,
+			'#include "levels/' + levelName + '/texture_include.inc.c"')
 		
 		texscrollIncludeC = '#include "levels/' + levelName + '/texscroll.inc.c"'
 		texscrollIncludeH = '#include "levels/' + levelName + '/texscroll.inc.h"'

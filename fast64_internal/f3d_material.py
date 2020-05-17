@@ -1695,7 +1695,8 @@ node_categories = [
 
 def getOptimalFormat(tex):
 	texFormat = 'RGBA16'
-	if tex.size[0] * tex.size[1] > 8192: # Image too big
+	if bpy.context.scene.ignoreTextureRestrictions or \
+		tex.size[0] * tex.size[1] > 8192: # Image too big
 		return 'RGBA16'
 	
 	isGreyscale = True

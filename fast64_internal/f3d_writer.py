@@ -186,7 +186,7 @@ def addUV(face, amount, uv_data):
 
 # Make sure to set original_name before calling this
 # used when duplicating an object
-def saveStaticModel(fModel, obj, transformMatrix, name, DLFormat):
+def saveStaticModel(fModel, obj, transformMatrix, name, DLFormat, convertTextureData):
 	if len(obj.data.polygons) == 0:
 		return None
 	
@@ -214,7 +214,7 @@ def saveStaticModel(fModel, obj, transformMatrix, name, DLFormat):
 		checkForF3dMaterialInFaces(obj, material)
 		saveMeshByFaces(material, faces, 
 			fModel, fMeshGroup.mesh, obj, transformMatrix, 
-			infoDict, int(obj.draw_layer_static))
+			infoDict, int(obj.draw_layer_static), convertTextureData)
 	
 	revertMatAndEndDraw(fMeshGroup.mesh.draw, [])
 	return fMeshGroup
@@ -247,7 +247,7 @@ def addCullCommand(obj, fMesh, transformMatrix):
 
 def exportTexRectToC(dirPath, texProp, f3dType, isHWv1, texDir, 
 	savePNG, name, exportToProject, projectExportData):
-	fTexRect = exportTexRectCommon(texProp, f3dType, isHWv1, name)
+	fTexRect = exportTexRectCommon(texProp, f3dType, isHWv1, name, not savePNG)
 
 	if name is None or name == '':
 		raise PluginError("Name cannot be empty.")
@@ -346,7 +346,7 @@ def modifyDLForHUD(data):
 	
 	return data
 
-def exportTexRectCommon(texProp, f3dType, isHWv1, name):
+def exportTexRectCommon(texProp, f3dType, isHWv1, name, convertTextureData):
 	tex = texProp.tex
 	if tex is None:
 		raise PluginError('No texture is selected.')
@@ -376,7 +376,7 @@ def exportTexRectCommon(texProp, f3dType, isHWv1, name):
 	drawEndCommands = GfxList("temp", "Dynamic")
 
 	texDimensions, nextTmem = saveTextureIndex(texProp.tex.name, fTexRect, 
-		fTexRect.draw, drawEndCommands, texProp, 0, 0, 'texture')
+		fTexRect.draw, drawEndCommands, texProp, 0, 0, 'texture', convertTextureData)
 
 	fTexRect.draw.commands.append(
 		SPScisTextureRectangle(0, 0, 
@@ -399,12 +399,12 @@ def exportTexRectCommon(texProp, f3dType, isHWv1, name):
 	
 	return fTexRect
 
-def exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren, name, DLFormat):
+def exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren, name, DLFormat, convertTextureData):
 	fModel = FModel(f3dType, isHWv1, name, DLFormat)
 
 	tempObj, meshList = combineObjects(obj, includeChildren, None, None)
 	try:
-		fMeshGroup = saveStaticModel(fModel, tempObj, transformMatrix, name, DLFormat)
+		fMeshGroup = saveStaticModel(fModel, tempObj, transformMatrix, name, DLFormat, convertTextureData)
 		cleanupCombineObj(tempObj, meshList)
 		obj.select_set(True)
 		bpy.context.view_layer.objects.active = obj
@@ -423,7 +423,7 @@ def exportF3DtoC(basePath, obj, DLFormat, transformMatrix,
 
 	fModel, fMeshGroup = \
 		exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, 
-		includeChildren, name, DLFormat)
+		includeChildren, name, DLFormat, not savePNG)
 
 	modelDirPath = os.path.join(dirPath, toAlnum(name))
 
@@ -521,7 +521,7 @@ def exportF3DtoC(basePath, obj, DLFormat, transformMatrix,
 def exportF3DtoBinary(romfile, exportRange, transformMatrix, 
 	obj, f3dType, isHWv1, segmentData, includeChildren):
 	fModel, fMeshGroup = exportF3DCommon(obj, f3dType, isHWv1, 
-		transformMatrix, includeChildren, obj.name, "Static")
+		transformMatrix, includeChildren, obj.name, "Static", True)
 	fModel.freePalettes()
 
 	addrRange = fModel.set_addr(exportRange[0])
@@ -541,7 +541,7 @@ def exportF3DtoBinaryBank0(romfile, exportRange, transformMatrix,
 	obj, f3dType, isHWv1, RAMAddr, includeChildren):
 	fModel, fMeshGroup = \
 		exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren,
-			obj.name, "Static")
+			obj.name, "Static", True)
 	segmentData = copy.copy(bank0Segment)
 
 	data, startRAM = getBinaryBank0F3DData(fModel, RAMAddr, exportRange)
@@ -563,7 +563,7 @@ def exportF3DtoInsertableBinary(filepath, transformMatrix,
 	obj, f3dType, isHWv1, includeChildren):
 	fModel, fMeshGroup = \
 		exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren,
-			obj.name, "Static")
+			obj.name, "Static", True)
 	
 	data, startRAM = getBinaryBank0F3DData(fModel, 0, [0, 0xFFFFFF])
 	# must happen after getBinaryBank0F3DData
@@ -724,12 +724,12 @@ def checkIfFlatShaded(material):
 	return not material.rdp_settings.g_shade_smooth
 
 def saveMeshByFaces(material, faces, fModel, fMesh, obj, transformMatrix,
-	infoDict, drawLayer):
+	infoDict, drawLayer, convertTextureData):
 	if len(faces) == 0:
 		print('0 Faces Provided.')
 		return
 	fMaterial, texDimensions = \
-		saveOrGetF3DMaterial(material, fModel, obj, drawLayer)
+		saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
 	#fixLargeUVs(obj, faces, texDimensions)
 	isPointSampled = isTexturePointSampled(material)
 	exportVertexColors = isLightingDisabled(material)
@@ -1107,7 +1107,7 @@ defaultLighting = [
 	(mathutils.Vector((1,1,1)), mathutils.Vector((1, 1, 1)).normalized()),
 	(mathutils.Vector((0.5, 0.5, 0.5)), mathutils.Vector((1, 1, 1)).normalized())]
 
-def saveOrGetF3DMaterial(material, fModel, obj, drawLayer):
+def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 	if material.rdp_settings.set_rendermode:
 		if (material, drawLayer) in fModel.materials:
 			return fModel.materials[(material, drawLayer)]
@@ -1205,12 +1205,12 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer):
 		if material.tex0.tex is None:
 			raise PluginError('In material \"' + material.name + '\", a texture has not been set.')
 		texDimensions0, nextTmem = saveTextureIndex(material.name, fModel, 
-			fMaterial.material, fMaterial.revert, material.tex0, 0, nextTmem, None)	
+			fMaterial.material, fMaterial.revert, material.tex0, 0, nextTmem, None, convertTextureData)	
 	if useDict['Texture 1'] and material.tex1.tex_set:
 		if material.tex1.tex is None:
 			raise PluginError('In material \"' + material.name + '\", a texture has not been set.')
 		texDimensions1, nextTmem = saveTextureIndex(material.name, fModel, 
-			fMaterial.material, fMaterial.revert, material.tex1, 1, nextTmem, None)
+			fMaterial.material, fMaterial.revert, material.tex1, 1, nextTmem, None, convertTextureData)
 
 	# Used so we know how to convert normalized UVs when saving verts.
 	if texDimensions0 is not None and texDimensions1 is not None:
@@ -1299,7 +1299,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer):
 
 	return fMaterial, texDimensions
 
-def saveTextureIndex(propName, fModel, loadTexGfx, revertTexGfx, texProp, index, tmem, overrideName):
+def saveTextureIndex(propName, fModel, loadTexGfx, revertTexGfx, texProp, index, tmem, overrideName, convertTextureData):
 	tex = texProp.tex
 	if tex is None:
 		raise PluginError('In ' + propName + ", no texture is selected.")
@@ -1319,13 +1319,14 @@ def saveTextureIndex(propName, fModel, loadTexGfx, revertTexGfx, texProp, index,
 
 	nextTmem = tmem + ceil(bitSizeDict[texBitSizeOf[texFormat]] * \
 		tex.size[0] * tex.size[1] / 64) 
-	if nextTmem > (512 if texFormat[:2] != 'CI' else 256):
-		print(nextTmem)
-		raise PluginError("Error in \"" + propName + "\": Textures are too big. Max TMEM size is 4k " + \
-			"bytes, ex. 2 32x32 RGBA 16 bit textures.")
-	if tex.size[0] > 1024 or tex.size[1] > 1024:
-		raise PluginError("Error in \"" + propName + "\": Any side of an image cannot be greater " +\
-			"than 1024.")
+	
+	if not bpy.context.scene.ignoreTextureRestrictions:
+		if nextTmem > (512 if texFormat[:2] != 'CI' else 256):
+			raise PluginError("Error in \"" + propName + "\": Textures are too big. Max TMEM size is 4k " + \
+				"bytes, ex. 2 32x32 RGBA 16 bit textures.")
+		if tex.size[0] > 1024 or tex.size[1] > 1024:
+			raise PluginError("Error in \"" + propName + "\": Any side of an image cannot be greater " +\
+				"than 1024.")
 
 	clamp_S = texProp.S.clamp
 	mirror_S = texProp.S.mirror
@@ -1343,12 +1344,12 @@ def saveTextureIndex(propName, fModel, loadTexGfx, revertTexGfx, texProp, index,
 
 	if isCITexture:
 		fImage, fPalette = saveOrGetPaletteDefinition(
-			fModel, tex, texName, texFormat, palFormat)
+			fModel, tex, texName, texFormat, palFormat, convertTextureData)
 		savePaletteLoading(loadTexGfx, revertTexGfx, fPalette, 
 			palFormat, 0, fPalette.height, fModel.f3d)
 	else:
 		fImage = saveOrGetTextureDefinition(fModel, tex, texName, 
-			texFormat)
+			texFormat, convertTextureData)
 	saveTextureLoading(fImage, loadTexGfx, clamp_S,
 	 	mirror_S, clamp_T, mirror_T,
 		mask_S, mask_T, shift_S, 
@@ -1468,7 +1469,7 @@ def savePaletteLoading(loadTexGfx, revertTexGfx, fPalette, palFormat, pal,
             	palFmt, 'G_IM_SIZ_16b', 4*colorCount, 1,
             	pal, cms, cmt, 0, 0, 0, 0)])
 	
-def saveOrGetPaletteDefinition(fModelOrTexRect, image, imageName, texFmt, palFmt):
+def saveOrGetPaletteDefinition(fModelOrTexRect, image, imageName, texFmt, palFmt, convertTextureData):
 	texFormat = texFormatOf[texFmt]
 	palFormat = texFormatOf[palFmt]
 	bitSize = texBitSizeOf[texFmt]
@@ -1482,26 +1483,27 @@ def saveOrGetPaletteDefinition(fModelOrTexRect, image, imageName, texFmt, palFmt
 	palette = []
 	texture = []
 	maxColors = 16 if bitSize == 'G_IM_SIZ_4b' else 256
-	# N64 is -Y, Blender is +Y
-	for j in reversed(range(image.size[1])):
-		for i in range(image.size[0]):
-			color = [1,1,1,1]
-			for field in range(image.channels):
-				color[field] = image.pixels[
-					(j * image.size[0] + i) * image.channels + field]
-			if palFormat == 'G_IM_FMT_RGBA':
-				pixelColor = getRGBA16Tuple(color)
-			elif palFormat == 'G_IM_FMT_IA':
-				pixelColor = getIA16Tuple(color)
-			else:
-				raise PluginError("Invalid combo: " + palFormat + ', ' + bitSize)
-
-			if pixelColor not in palette:
-				palette.append(pixelColor)
-				if len(palette) > maxColors:
-					raise PluginError('Texture ' + imageName + ' has more than ' + \
-						str(maxColors) + ' colors.')
-			texture.append(palette.index(pixelColor))
+	if convertTextureData:
+		# N64 is -Y, Blender is +Y
+		for j in reversed(range(image.size[1])):
+			for i in range(image.size[0]):
+				color = [1,1,1,1]
+				for field in range(image.channels):
+					color[field] = image.pixels[
+						(j * image.size[0] + i) * image.channels + field]
+				if palFormat == 'G_IM_FMT_RGBA':
+					pixelColor = getRGBA16Tuple(color)
+				elif palFormat == 'G_IM_FMT_IA':
+					pixelColor = getIA16Tuple(color)
+				else:
+					raise PluginError("Invalid combo: " + palFormat + ', ' + bitSize)
+				
+				if pixelColor not in palette:
+					palette.append(pixelColor)
+					if len(palette) > maxColors:
+						raise PluginError('Texture ' + imageName + ' has more than ' + \
+							str(maxColors) + ' colors.')
+				texture.append(palette.index(pixelColor))
 	
 	if image.filepath == "":
 		name = image.name
@@ -1521,13 +1523,14 @@ def saveOrGetPaletteDefinition(fModelOrTexRect, image, imageName, texFmt, palFmt
 	#paletteTex.filepath = getNameFromPath(name, True) + '.' + \
 	#	texFmt.lower() + '.pal'
 
-	for color in palette:
-		fPalette.data.extend(color.to_bytes(2, 'big')) 
-	
-	if bitSize == 'G_IM_SIZ_4b':
-		fImage.data = compactNibbleArray(texture, image.size[0], image.size[1])
-	else:	
-		fImage.data = bytearray(texture)
+	if convertTextureData:
+		for color in palette:
+			fPalette.data.extend(color.to_bytes(2, 'big')) 
+
+		if bitSize == 'G_IM_SIZ_4b':
+			fImage.data = compactNibbleArray(texture, image.size[0], image.size[1])
+		else:	
+			fImage.data = bytearray(texture)
 	
 	fModelOrTexRect.textures[(image, (texFmt, palFmt))] = fImage
 	fModelOrTexRect.textures[(image, (palFmt, 'PAL'))] = fPalette
@@ -1557,7 +1560,7 @@ def checkDuplicateTextureName(fModelOrTexRect, name):
 		name = name + '_copy'
 	return name
 
-def saveOrGetTextureDefinition(fModel, image, imageName, texFormat):
+def saveOrGetTextureDefinition(fModel, image, imageName, texFormat, convertTextureData):
 	fmt = texFormatOf[texFormat]
 	bitSize = texBitSizeOf[texFormat]
 
@@ -1576,68 +1579,69 @@ def saveOrGetTextureDefinition(fModel, image, imageName, texFormat):
 	fImage = FImage(checkDuplicateTextureName(fModel, toAlnum(imageName)), fmt, bitSize, 
 		image.size[0], image.size[1], filename)
 
-	# N64 is -Y, Blender is +Y
-	for j in reversed(range(image.size[1])):
-		for i in range(image.size[0]):
-			color = [1,1,1,1]
-			for field in range(image.channels):
-				color[field] = image.pixels[
-					(j * image.size[0] + i) * image.channels + field]
-			if fmt == 'G_IM_FMT_RGBA':
-				if bitSize == 'G_IM_SIZ_16b':
-					words = \
-						((int(color[0] * 0x1F) & 0x1F) << 11) | \
-						((int(color[1] * 0x1F) & 0x1F) << 6) | \
-						((int(color[2] * 0x1F) & 0x1F) << 1) | \
-						(1 if color[3] > 0.5 else 0)
-					fImage.data.extend(bytearray(words.to_bytes(2, 'big')))
-				elif bitSize == 'G_IM_SIZ_32b':
-					fImage.data.extend(bytearray([
-						int(value * 0xFF) & 0xFF for value in color]))
-				else:
-					raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
+	if convertTextureData:
+		# N64 is -Y, Blender is +Y
+		for j in reversed(range(image.size[1])):
+			for i in range(image.size[0]):
+				color = [1,1,1,1]
+				for field in range(image.channels):
+					color[field] = image.pixels[
+						(j * image.size[0] + i) * image.channels + field]
+				if fmt == 'G_IM_FMT_RGBA':
+					if bitSize == 'G_IM_SIZ_16b':
+						words = \
+							((int(color[0] * 0x1F) & 0x1F) << 11) | \
+							((int(color[1] * 0x1F) & 0x1F) << 6) | \
+							((int(color[2] * 0x1F) & 0x1F) << 1) | \
+							(1 if color[3] > 0.5 else 0)
+						fImage.data.extend(bytearray(words.to_bytes(2, 'big')))
+					elif bitSize == 'G_IM_SIZ_32b':
+						fImage.data.extend(bytearray([
+							int(value * 0xFF) & 0xFF for value in color]))
+					else:
+						raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
 
-			elif fmt == 'G_IM_FMT_YUV':
-				raise PluginError("YUV not yet implemented.")
-				if bitSize == 'G_IM_SIZ_16b':
-					pass
-				else:
-					raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
+				elif fmt == 'G_IM_FMT_YUV':
+					raise PluginError("YUV not yet implemented.")
+					if bitSize == 'G_IM_SIZ_16b':
+						pass
+					else:
+						raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
 
-			elif fmt == 'G_IM_FMT_CI':
-				raise PluginError("CI not yet implemented.")
+				elif fmt == 'G_IM_FMT_CI':
+					raise PluginError("CI not yet implemented.")
 
-			elif fmt == 'G_IM_FMT_IA':
-				intensity = mathutils.Color(color[0:3]).v
-				alpha = color[3]
-				if bitSize == 'G_IM_SIZ_4b':
-					fImage.data.append(
-						((int(intensity * 0x7) & 0x7) << 1) | \
-						(1 if alpha > 0.5 else 0))
-				elif bitSize == 'G_IM_SIZ_8b':
-					fImage.data.append(
-						((int(intensity * 0xF) & 0xF) << 4) | \
-						(int(alpha * 0xF) & 0xF))
-				elif bitSize == 'G_IM_SIZ_16b':
-					fImage.data.extend(bytearray(
-						[int(intensity * 0xFF), int(alpha * 0xFF)]))
+				elif fmt == 'G_IM_FMT_IA':
+					intensity = mathutils.Color(color[0:3]).v
+					alpha = color[3]
+					if bitSize == 'G_IM_SIZ_4b':
+						fImage.data.append(
+							((int(intensity * 0x7) & 0x7) << 1) | \
+							(1 if alpha > 0.5 else 0))
+					elif bitSize == 'G_IM_SIZ_8b':
+						fImage.data.append(
+							((int(intensity * 0xF) & 0xF) << 4) | \
+							(int(alpha * 0xF) & 0xF))
+					elif bitSize == 'G_IM_SIZ_16b':
+						fImage.data.extend(bytearray(
+							[int(intensity * 0xFF), int(alpha * 0xFF)]))
+					else:
+						raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
+				elif fmt == 'G_IM_FMT_I':
+					intensity = mathutils.Color(color[0:3]).v
+					if bitSize == 'G_IM_SIZ_4b':
+						fImage.data.append(int(intensity * 0xF))
+					elif bitSize == 'G_IM_SIZ_8b':
+						fImage.data.append(int(intensity * 0xFF))
+					else:
+						raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
 				else:
-					raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
-			elif fmt == 'G_IM_FMT_I':
-				intensity = mathutils.Color(color[0:3]).v
-				if bitSize == 'G_IM_SIZ_4b':
-					fImage.data.append(int(intensity * 0xF))
-				elif bitSize == 'G_IM_SIZ_8b':
-					fImage.data.append(int(intensity * 0xFF))
-				else:
-					raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
-			else:
-				raise PluginError("Invalid image format " + fmt)
+					raise PluginError("Invalid image format " + fmt)
 			
-	# We stored 4bit values in byte arrays, now to convert
-	if bitSize == 'G_IM_SIZ_4b':
-		fImage.data = \
-			compactNibbleArray(fImage.data, image.size[0], image.size[1])
+		# We stored 4bit values in byte arrays, now to convert
+		if bitSize == 'G_IM_SIZ_4b':
+			fImage.data = \
+				compactNibbleArray(fImage.data, image.size[0], image.size[1])
 	
 	fModel.textures[(image, (texFormat, 'NONE'))] = fImage
 	return fImage

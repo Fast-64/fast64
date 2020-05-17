@@ -106,7 +106,7 @@ def appendRevertToGeolayout(geolayoutGraph, fModel):
 
 # Convert to Geolayout
 def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix, 
-	f3dType, isHWv1, camera, name, DLFormat):
+	f3dType, isHWv1, camera, name, DLFormat, convertTextureData):
 	
 	fModel = FModel(f3dType, isHWv1, name, DLFormat)
 
@@ -136,7 +136,7 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix,
 		meshGeolayout = geolayoutGraph.startGeolayout
 	processBone(fModel, startBoneName, obj, armatureObj, 
 		convertTransformMatrix, None, None, None, meshGeolayout.nodes[0], 
-		[], name, meshGeolayout, geolayoutGraph, infoDict)
+		[], name, meshGeolayout, geolayoutGraph, infoDict, convertTextureData)
 	generateSwitchOptions(meshGeolayout.nodes[0], meshGeolayout, geolayoutGraph,
 		name)
 	appendRevertToGeolayout(geolayoutGraph, fModel)
@@ -147,7 +147,7 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix,
 
 # Camera is unused here
 def convertObjectToGeolayout(obj, convertTransformMatrix, 
-	f3dType, isHWv1, camera, name, fModel, areaObj, DLFormat):
+	f3dType, isHWv1, camera, name, fModel, areaObj, DLFormat, convertTextureData):
 	
 	if fModel is None:
 		fModel = FModel(f3dType, isHWv1, name, DLFormat)
@@ -173,7 +173,7 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 	try:
 		processMesh(fModel, tempObj, convertTransformMatrix,
 			meshGeolayout.nodes[0], True, geolayoutGraph.startGeolayout,
-			geolayoutGraph)
+			geolayoutGraph, convertTextureData)
 		cleanupDuplicatedObjects(allObjs)
 		obj.select_set(True)
 		bpy.context.view_layer.objects.active = obj
@@ -194,7 +194,7 @@ def exportGeolayoutArmatureC(armatureObj, obj, convertTransformMatrix,
 	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera, groupName, 
 	headerType, name, levelName, customExport, DLFormat):
 	geolayoutGraph, fModel = convertArmatureToGeolayout(armatureObj, obj,
-		convertTransformMatrix, f3dType, isHWv1, camera, name, DLFormat)
+		convertTransformMatrix, f3dType, isHWv1, camera, name, DLFormat, not savePNG)
 
 	return saveGeolayoutC(name, geolayoutGraph, fModel, dirPath, texDir, 
 		savePNG, texSeparate, groupName, headerType, levelName, customExport, DLFormat)
@@ -203,7 +203,7 @@ def exportGeolayoutObjectC(obj, convertTransformMatrix,
 	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera, groupName, 
 	headerType, name, levelName, customExport, DLFormat):
 	geolayoutGraph, fModel = convertObjectToGeolayout(obj, 
-		convertTransformMatrix, f3dType, isHWv1, camera, name, None, None, DLFormat)
+		convertTransformMatrix, f3dType, isHWv1, camera, name, None, None, DLFormat, not savePNG)
 
 	return saveGeolayoutC(name, geolayoutGraph, fModel, dirPath, texDir, 
 		savePNG, texSeparate, groupName, headerType, levelName, customExport, DLFormat)
@@ -329,14 +329,14 @@ def saveGeolayoutC(dirName, geolayoutGraph, fModel, exportDir, texDir, savePNG,
 def exportGeolayoutArmatureInsertableBinary(armatureObj, obj,
 	convertTransformMatrix, f3dType, isHWv1, filepath, camera):
 	geolayoutGraph, fModel = convertArmatureToGeolayout(armatureObj, obj,
-		convertTransformMatrix, f3dType, isHWv1, camera, armatureObj.name, "Static")
+		convertTransformMatrix, f3dType, isHWv1, camera, armatureObj.name, "Static", True)
 	
 	saveGeolayoutInsertableBinary(geolayoutGraph, fModel, filepath, f3dType)
 
 def exportGeolayoutObjectInsertableBinary(obj, convertTransformMatrix, 
 	f3dType, isHWv1, filepath, camera):
 	geolayoutGraph, fModel = convertObjectToGeolayout(obj, 
-		convertTransformMatrix, f3dType, isHWv1, camera, obj.name, None, None, "Static")
+		convertTransformMatrix, f3dType, isHWv1, camera, obj.name, None, None, "Static", True)
 	
 	saveGeolayoutInsertableBinary(geolayoutGraph, fModel, filepath, f3dType)
 
@@ -357,7 +357,7 @@ def exportGeolayoutArmatureBinaryBank0(romfile, armatureObj, obj, exportRange,
 	f3dType, isHWv1, RAMAddr, camera):
 	
 	geolayoutGraph, fModel = convertArmatureToGeolayout(armatureObj, obj,
-		convertTransformMatrix, f3dType, isHWv1, camera, armatureObj.name, "Static")
+		convertTransformMatrix, f3dType, isHWv1, camera, armatureObj.name, "Static", True)
 	
 	return saveGeolayoutBinaryBank0(romfile, fModel, geolayoutGraph,
 		exportRange, levelCommandPos, modelID, textDumpFilePath, RAMAddr)
@@ -367,7 +367,7 @@ def exportGeolayoutObjectBinaryBank0(romfile, obj, exportRange,
 	f3dType, isHWv1, RAMAddr, camera):
 	
 	geolayoutGraph, fModel = convertObjectToGeolayout(obj, 
-		convertTransformMatrix, f3dType, isHWv1, camera, obj.name, None, None, "Static")
+		convertTransformMatrix, f3dType, isHWv1, camera, obj.name, None, None, "Static", True)
 	
 	return saveGeolayoutBinaryBank0(romfile, fModel, geolayoutGraph,
 		exportRange, levelCommandPos, modelID, textDumpFilePath, RAMAddr)
@@ -418,7 +418,7 @@ def exportGeolayoutArmatureBinary(romfile, armatureObj, obj, exportRange,
 	textDumpFilePath, f3dType, isHWv1, camera):
 
 	geolayoutGraph, fModel = convertArmatureToGeolayout(armatureObj, obj,
-		convertTransformMatrix, f3dType, isHWv1, camera, armatureObj.name, "Static")
+		convertTransformMatrix, f3dType, isHWv1, camera, armatureObj.name, "Static", True)
 
 	return saveGeolayoutBinary(romfile, geolayoutGraph, fModel, exportRange,	
  		levelData, levelCommandPos, modelID, textDumpFilePath)
@@ -428,7 +428,7 @@ def exportGeolayoutObjectBinary(romfile, obj, exportRange,
 	textDumpFilePath, f3dType, isHWv1, camera):
 	
 	geolayoutGraph, fModel = convertObjectToGeolayout(obj, 
-		convertTransformMatrix, f3dType, isHWv1, camera, obj.name, None, None, "Static")
+		convertTransformMatrix, f3dType, isHWv1, camera, obj.name, None, None, "Static", True)
 	
 	return saveGeolayoutBinary(romfile, geolayoutGraph, fModel, exportRange,	
  		levelData, levelCommandPos, modelID, textDumpFilePath)
@@ -623,7 +623,7 @@ def addPreRenderAreaNode(parentTransformNode, cullingRadius):
 # This function should be called on a copy of an object
 # The copy will have modifiers / scale applied and will be made single user
 def processMesh(fModel, obj, transformMatrix, parentTransformNode,
-	geolayout, geolayoutGraph, isRoot):
+	geolayout, geolayoutGraph, isRoot, convertTextureData):
 	#finalTransform = copy.deepcopy(transformMatrix)
 
 	useGeoEmpty = obj.data is None and \
@@ -682,7 +682,7 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode,
 	if obj.data is None:
 		meshGroup = None
 	else:
-		meshGroup = saveStaticModel(fModel, obj, transformMatrix, fModel.name, fModel.DLFormat)
+		meshGroup = saveStaticModel(fModel, obj, transformMatrix, fModel.name, fModel.DLFormat, convertTextureData)
 
 	if meshGroup is None:
 		node.hasDL = False
@@ -695,7 +695,7 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode,
 	
 	for childObj in obj.children:
 		processMesh(fModel, childObj, transformMatrix, transformNode, 
-			geolayout, geolayoutGraph, False)
+			geolayout, geolayoutGraph, False, convertTextureData)
 
 # need to remember last geometry holding parent bone.
 # to do skinning, add the 0x15 command before any non-geometry bone groups.
@@ -714,7 +714,7 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode,
 
 def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 	lastTranslateName, lastRotateName, lastDeformName, parentTransformNode,
-	materialOverrides, namePrefix, geolayout, geolayoutGraph, infoDict):
+	materialOverrides, namePrefix, geolayout, geolayoutGraph, infoDict, convertTextureData):
 	bone = armatureObj.data.bones[boneName]
 	poseBone = armatureObj.pose.bones[boneName]
 	boneGroup = poseBone.bone_group
@@ -848,7 +848,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 		meshGroup, makeLastDeformBone = saveModelGivenVertexGroup(
 			fModel, obj, bone.name, lastDeformName,
 			finalTransform, armatureObj, materialOverrides, 
-			namePrefix, infoDict, node.drawLayer)
+			namePrefix, infoDict, node.drawLayer, convertTextureData)
 
 		if meshGroup is None:
 			#print("No mesh data.")
@@ -897,7 +897,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 					finalTransform, lastTranslateName, lastRotateName, 
 					lastDeformName, transformNode, materialOverrides, 
 					namePrefix, geolayout,
-					geolayoutGraph, infoDict)
+					geolayoutGraph, infoDict, convertTextureData)
 				#transformNode.children.append(childNode)
 				#childNode.parent = transformNode
 
@@ -921,7 +921,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 					finalTransform, lastTranslateName, lastRotateName, 
 					lastDeformName, nextStartNode, materialOverrides, 
 					namePrefix, geolayout,
-					geolayoutGraph, infoDict)
+					geolayoutGraph, infoDict, convertTextureData)
 				#transformNode.children.append(childNode)
 				#childNode.parent = transformNode
 
@@ -997,7 +997,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 						finalTransform, optionBone.name, optionBone.name,
 						optionBone.name, startNode,
 						materialOverrides, namePrefix + '_' + optionBone.name, 
-						optionGeolayout, geolayoutGraph, optionInfoDict)
+						optionGeolayout, geolayoutGraph, optionInfoDict, convertTextureData)
 			else:
 				if switchOption.switchType == 'Material':
 					material = switchOption.materialOverride
@@ -1264,7 +1264,7 @@ def checkUniqueBoneNames(fModel, name, vertexGroup):
 # returns fMeshGroup, makeLastDeformBone
 def saveModelGivenVertexGroup(fModel, obj, vertexGroup, 
 	parentGroup, transformMatrix, armatureObj, materialOverrides, namePrefix,
-	infoDict, drawLayer):
+	infoDict, drawLayer, convertTextureData):
 	#checkForF3DMaterial(obj)
 
 	mesh = obj.data
@@ -1347,7 +1347,7 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 		#print("Skinned")
 		fMeshGroup = saveSkinnedMeshByMaterial(skinnedFaces, fModel,
 			vertexGroup, obj, currentMatrix, parentMatrix, namePrefix, 
-			infoDict, vertexGroup, drawLayer)
+			infoDict, vertexGroup, drawLayer, convertTextureData)
 	elif len(groupFaces) > 0:
 		fMeshGroup = FMeshGroup(toAlnum(namePrefix + \
 			('_' if namePrefix != '' else '') + vertexGroup), 
@@ -1367,7 +1367,7 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 		material = obj.data.materials[material_index]
 		checkForF3dMaterialInFaces(obj, material)
 		saveMeshByFaces(material, bFaces, 
-			fModel, fMeshGroup.mesh, obj, currentMatrix, infoDict, drawLayer)
+			fModel, fMeshGroup.mesh, obj, currentMatrix, infoDict, drawLayer, convertTextureData)
 	
 	# End mesh drawing
 	# Reset settings to prevent issues with other models
@@ -1380,16 +1380,16 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 	for (material, specificMat, overrideType) in materialOverrides:
 		if fMeshGroup.mesh is not None:
 			saveOverrideDraw(obj, fModel, material, specificMat, overrideType,
-			fMeshGroup.mesh, drawLayer)
+			fMeshGroup.mesh, drawLayer, convertTextureData)
 		if fMeshGroup.skinnedMesh is not None:
 			saveOverrideDraw(obj, fModel, material, specificMat, overrideType,
-			fMeshGroup.skinnedMesh, drawLayer)
+			fMeshGroup.skinnedMesh, drawLayer, convertTextureData)
 	
 	return fMeshGroup, True
 
-def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, drawLayer):
+def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, drawLayer, convertTextureData):
 	fOverrideMat, texDimensions = \
-		saveOrGetF3DMaterial(material, fModel, obj, drawLayer)
+		saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
 	overrideIndex = str(len(fMesh.drawMatOverrides))
 	if (material, specificMat, overrideType) in fMesh.drawMatOverrides:
 		overrideIndex = fMesh.drawMatOverrides[(material, specificMat, overrideType)].name[-1]
@@ -1449,7 +1449,7 @@ def convertVertDictToArray(vertDict):
 	return data, matRegions
 
 # This collapses similar loops together IF they are in the same material.
-def splitSkinnedFacesIntoTwoGroups(skinnedFaces, fModel, obj, uv_data, drawLayer):
+def splitSkinnedFacesIntoTwoGroups(skinnedFaces, fModel, obj, uv_data, drawLayer, convertTextureData):
 	inGroupVertArray = []
 	notInGroupVertArray = []
 
@@ -1466,7 +1466,7 @@ def splitSkinnedFacesIntoTwoGroups(skinnedFaces, fModel, obj, uv_data, drawLayer
 
 		material = obj.data.materials[material_index]
 		fMaterial, texDimensions = \
-			saveOrGetF3DMaterial(material, fModel, obj, drawLayer)
+			saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
 		
 		exportVertexColors = isLightingDisabled(material)
 		convertInfo = LoopConvertInfo(uv_data, obj, exportVertexColors)
@@ -1494,12 +1494,12 @@ def getGroupVertCount(group):
 	return count
 
 def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj, 
-	currentMatrix, parentMatrix, namePrefix, infoDict, vertexGroup, drawLayer):
+	currentMatrix, parentMatrix, namePrefix, infoDict, vertexGroup, drawLayer, convertTextureData):
 	# We choose one or more loops per vert to represent a material from which 
 	# texDimensions can be found, since it is required for UVs.
 	uv_data = obj.data.uv_layers['UVMap'].data
 	inGroupVertArray, notInGroupVertArray, loopDict, notInGroupBlenderVerts = \
-		splitSkinnedFacesIntoTwoGroups(skinnedFaces, fModel, obj, uv_data, drawLayer)
+		splitSkinnedFacesIntoTwoGroups(skinnedFaces, fModel, obj, uv_data, drawLayer, convertTextureData)
 
 	notInGroupCount = getGroupVertCount(notInGroupVertArray)
 	if notInGroupCount > fModel.f3d.vert_load_size - 2:
@@ -1563,7 +1563,7 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj,
 		# We've already saved all materials, this just returns the existing ones.
 		material = obj.data.materials[material_index]
 		fMaterial, texDimensions = \
-			saveOrGetF3DMaterial(material, fModel, obj, drawLayer)
+			saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
 		isPointSampled = isTexturePointSampled(material)
 		exportVertexColors = isLightingDisabled(material)
 

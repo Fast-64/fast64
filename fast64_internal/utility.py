@@ -685,10 +685,13 @@ def convertFloatToFixed16Bytes(value):
 	return int(round(value)).to_bytes(2, 'big', signed = True)
 
 def convertFloatToFixed16(value):
-	value *= 2**5
-	value = min(max(value, -2**15), 2**15 - 1)
-	return int.from_bytes(
-		int(round(value)).to_bytes(2, 'big', signed = True), 'big')
+	return int(round(value * (2**5)))
+
+	# We want support for large textures with 32 bit UVs
+	#value *= 2**5
+	#value = min(max(value, -2**15), 2**15 - 1)
+	#return int.from_bytes(
+	#	int(round(value)).to_bytes(2, 'big', signed = True), 'big')
 
 
 # Normal values are signed bytes (-128 to 127)

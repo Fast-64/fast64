@@ -420,7 +420,7 @@ class SM64_ExportGeolayoutObject(bpy.types.Operator):
 					context.scene.f3d_type, context.scene.isHWv1,
 					exportPath,
 					bpy.context.scene.geoTexDir,
-					bpy.context.scene.geoSaveTextures,
+					bpy.context.scene.geoSaveTextures or bpy.context.scene.ignoreTextureRestrictions,
 					bpy.context.scene.geoSeparateTextureDef,
 					None, bpy.context.scene.geoGroupName, 
 					context.scene.geoExportHeaderType,
@@ -601,7 +601,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 					context.scene.f3d_type, context.scene.isHWv1,
 					exportPath,
 					bpy.context.scene.geoTexDir,
-					bpy.context.scene.geoSaveTextures,
+					bpy.context.scene.geoSaveTextures or bpy.context.scene.ignoreTextureRestrictions,
 					bpy.context.scene.geoSeparateTextureDef,
 					None, bpy.context.scene.geoGroupName, context.scene.geoExportHeaderType,
 					context.scene.geoName, levelName, context.scene.geoCustomExport, "Static")
@@ -722,11 +722,12 @@ class SM64_ExportGeolayoutPanel(bpy.types.Panel):
 
 		col.prop(context.scene, 'geoExportType')
 		if context.scene.geoExportType == 'C':
-			col.prop(context.scene, 'geoSaveTextures')
-			if context.scene.geoSaveTextures:
-				if context.scene.geoExportHeaderType == 'None':
-					prop_split(col, context.scene, 'geoTexDir', 'Texture Include Path')	
-				col.prop(context.scene, 'geoSeparateTextureDef')
+			if not bpy.context.scene.ignoreTextureRestrictions:
+				col.prop(context.scene, 'geoSaveTextures')
+				if context.scene.geoSaveTextures:
+					if context.scene.geoExportHeaderType == 'None':
+						prop_split(col, context.scene, 'geoTexDir', 'Texture Include Path')	
+					col.prop(context.scene, 'geoSeparateTextureDef')
 			
 			col.prop(context.scene, 'geoCustomExport')
 			if context.scene.geoCustomExport:
@@ -926,7 +927,7 @@ class SM64_ExportDL(bpy.types.Operator):
 					"Static" if context.scene.DLExportisStatic else "Dynamic", finalTransform,
 					context.scene.f3d_type, context.scene.isHWv1,
 					bpy.context.scene.DLTexDir,
-					bpy.context.scene.DLSaveTextures,
+					bpy.context.scene.DLSaveTextures or bpy.context.scene.ignoreTextureRestrictions,
 					bpy.context.scene.DLSeparateTextureDef,
 					bpy.context.scene.DLincludeChildren, bpy.context.scene.DLName, levelName, context.scene.DLGroupName,
 					context.scene.DLCustomExport,
@@ -1037,11 +1038,12 @@ class SM64_ExportDLPanel(bpy.types.Panel):
 			if context.scene.DLCustomExport:
 				col.prop(context.scene, 'DLExportPath')
 				prop_split(col, context.scene, 'DLName', 'Name')
-				col.prop(context.scene, 'DLSaveTextures')
-				if context.scene.DLSaveTextures:
-					prop_split(col, context.scene, 'DLTexDir',
-						'Texture Include Path')	
-					col.prop(context.scene, 'DLSeparateTextureDef')
+				if not bpy.context.scene.ignoreTextureRestrictions:
+					col.prop(context.scene, 'DLSaveTextures')
+					if context.scene.DLSaveTextures:
+						prop_split(col, context.scene, 'DLTexDir',
+							'Texture Include Path')	
+						col.prop(context.scene, 'DLSeparateTextureDef')
 				customExportWarning(col)
 			else:
 				prop_split(col, context.scene, 'DLExportHeaderType', 'Export Type')
@@ -1052,9 +1054,10 @@ class SM64_ExportDLPanel(bpy.types.Panel):
 					prop_split(col, context.scene, 'DLLevelOption', 'Level')
 					if context.scene.DLLevelOption == 'custom':
 						prop_split(col, context.scene, 'DLLevelName', 'Level Name')
-				col.prop(context.scene, 'DLSaveTextures')
-				if context.scene.DLSaveTextures:
-					col.prop(context.scene, 'DLSeparateTextureDef')
+				if not bpy.context.scene.ignoreTextureRestrictions:
+					col.prop(context.scene, 'DLSaveTextures')
+					if context.scene.DLSaveTextures:
+						col.prop(context.scene, 'DLSeparateTextureDef')
 				
 				decompFolderMessage(col)
 				writeBox = makeWriteInfoBox(col)
@@ -1219,8 +1222,9 @@ class SM64_ExportLevel(bpy.types.Operator):
 			if not context.scene.levelCustomExport:
 				applyBasicTweaks(exportPath)
 			exportLevelC(obj, finalTransform,
-				context.scene.f3d_type, context.scene.isHWv1, levelName, 
-				exportPath, context.scene.levelSaveTextures, context.scene.levelCustomExport, 
+				context.scene.f3d_type, context.scene.isHWv1, levelName, exportPath, 
+				context.scene.levelSaveTextures or bpy.context.scene.ignoreTextureRestrictions, 
+				context.scene.levelCustomExport, 
 				context.scene.levelExportRooms, triggerName, "Static")
 			self.report({'INFO'}, 'Success!')
 
@@ -1256,7 +1260,8 @@ class SM64_ExportLevelPanel(bpy.types.Panel):
 		col = self.layout.column()
 		col.label(text = 'This is for decomp only.')
 		col.operator(SM64_ExportLevel.bl_idname)
-		col.prop(context.scene, 'levelSaveTextures')
+		if not bpy.context.scene.ignoreTextureRestrictions:
+			col.prop(context.scene, 'levelSaveTextures')
 		col.prop(context.scene, 'levelExportRooms')
 		col.prop(context.scene, 'levelCustomExport')
 		if context.scene.levelCustomExport:
@@ -1762,7 +1767,8 @@ class ExportTexRectDraw(bpy.types.Operator):
 					context.scene.texrect,
 					context.scene.f3d_type, context.scene.isHWv1,
 					'textures/segment2',
-					context.scene.TexRectSaveTextures, context.scene.TexRectName,
+					context.scene.TexRectSaveTextures or bpy.context.scene.ignoreTextureRestrictions,
+					context.scene.TexRectName,
 					not context.scene.TexRectCustomExport,
 					enumHUDPaths[context.scene.TexRectExportType])
 
@@ -1820,7 +1826,8 @@ class ExportTexRectDrawPanel(bpy.types.Panel):
 			col.prop(textureProp.T, 'mirror', text = 'Mirror T')
 			
 		prop_split(col, context.scene, 'TexRectName', 'Name')
-		col.prop(context.scene, 'TexRectSaveTextures')
+		if not bpy.context.scene.ignoreTextureRestrictions:
+			col.prop(context.scene, 'TexRectSaveTextures')
 		col.prop(context.scene, 'TexRectCustomExport')
 		if context.scene.TexRectCustomExport:
 			col.prop(context.scene, 'TexRectExportPath')
@@ -1882,6 +1889,9 @@ class SM64_FileSettingsPanel(bpy.types.Panel):
 		
 		col.prop(context.scene, 'decomp_compatible')
 		col.prop(context.scene, 'disableScroll')
+		col.prop(context.scene, 'ignoreTextureRestrictions')
+		if context.scene.ignoreTextureRestrictions:
+			col.box().label(text = "Width/height must be < 1024. Must be png format.")
 		col.prop(context.scene, 'decompPath')
 		
 		prop_split(col, context.scene, 'refreshVer', 'Decomp Func Map')
@@ -2241,6 +2251,8 @@ def register():
 		name ='Decomp Folder', subtype = 'FILE_PATH')
 	bpy.types.Scene.disableScroll = bpy.props.BoolProperty(
 		name = 'Disable Scrolling Textures')
+	bpy.types.Scene.ignoreTextureRestrictions = bpy.props.BoolProperty(
+		name = 'Ignore Texture Restrictions (Breaks CI Textures)')
 
 	bpy.types.Scene.characterIgnoreSwitch = \
 		bpy.props.BoolProperty(name = 'Ignore Switch Nodes', default = True)
@@ -2409,6 +2421,7 @@ def unregister():
 	del bpy.types.Scene.decompPath
 	del bpy.types.Scene.decomp_compatible
 	del bpy.types.Scene.disableScroll
+	del bpy.types.Scene.ignoreTextureRestrictions
 
 	sm64_spline_unregister()
 	level_unregister()

@@ -1344,8 +1344,8 @@ class Vtx:
 				'},' +\
 				'0, ' + \
 				'{' +\
-					'0x' + format(self.uv[0], 'X') + ", " +\
-					'0x' + format(self.uv[1], 'X') + \
+					str(self.uv[0]) + ", " +\
+					str(self.uv[1]) + \
 				'},' +\
 				'{' +\
 					'0x' + format(self.colorOrNormal[0], 'X') + ', ' + \
@@ -1591,7 +1591,7 @@ class FTexRect:
 							os.path.join(dirpath, imageFileName)
 						image.save()
 						if not isPacked:
-							image.unpack()
+							image.unpack() # Causes textures to save externally?
 					except Exception as e:
 						image.filepath = oldpath
 						raise Exception(str(e))
