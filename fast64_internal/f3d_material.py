@@ -1697,7 +1697,7 @@ def getOptimalFormat(tex):
 	texFormat = 'RGBA16'
 	if bpy.context.scene.ignoreTextureRestrictions or \
 		tex.size[0] * tex.size[1] > 8192: # Image too big
-		return 'RGBA16'
+		return 'RGBA32'
 	
 	isGreyscale = True
 	hasAlpha4bit = False

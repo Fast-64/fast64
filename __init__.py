@@ -1891,7 +1891,7 @@ class SM64_FileSettingsPanel(bpy.types.Panel):
 		col.prop(context.scene, 'disableScroll')
 		col.prop(context.scene, 'ignoreTextureRestrictions')
 		if context.scene.ignoreTextureRestrictions:
-			col.box().label(text = "Width/height must be < 1024. Must be png format.")
+			col.box().label(text = "Width/height must be < 1024. Must be RGBA32. Must be png format.")
 		col.prop(context.scene, 'decompPath')
 		
 		prop_split(col, context.scene, 'refreshVer', 'Decomp Func Map')
