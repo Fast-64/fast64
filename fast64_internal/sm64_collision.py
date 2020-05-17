@@ -362,8 +362,7 @@ def exportCollisionCommon(obj, transformMatrix, includeSpecials, includeChildren
 		area = SM64_Area(areaIndex, '', '', '', None, None, [], name, None)
 		# This assumes that only levels will export with included specials,
 		# And that the collision exporter never will.
-		spaceRotation = mathutils.Quaternion((1, 0, 0), math.radians(90.0)).to_matrix().to_4x4()
-		process_sm64_objects(obj, area, obj.matrix_world @ spaceRotation, transformMatrix, True)
+		start_process_sm64_objects(obj, area, transformMatrix, True)
 		collision.specials = area.specials
 		collision.water_boxes = area.water_boxes
 

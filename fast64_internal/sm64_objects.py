@@ -421,11 +421,7 @@ def exportAreaCommon(areaObj, transformMatrix, geolayout, collision, name):
 		[areaObj.warpNodes[i].to_c() for i in range(len(areaObj.warpNodes))],
 		name + '_' + areaObj.name, areaObj.startDialog if areaObj.showStartDialog else None)
 
-	# Hacky solution to handle Z-up to Y-up conversion
-	# Get rotation, without translation from level object
-	spaceRotation = mathutils.Quaternion((1, 0, 0), math.radians(90.0)).to_matrix().to_4x4()
-	process_sm64_objects(areaObj, area, 
-		areaObj.matrix_world @ spaceRotation, transformMatrix, False)
+	start_process_sm64_objects(areaObj, area, transformMatrix, False)
 
 	return area
 
@@ -470,6 +466,14 @@ def handleRefreshDiffMacros(preset):
 		bpy.context.scene.refreshVer == 'Refresh 3':
 		pass
 	return preset
+
+def start_process_sm64_objects(obj, area, transformMatrix, specialsOnly):
+	#spaceRotation = mathutils.Quaternion((1, 0, 0), math.radians(90.0)).to_matrix().to_4x4()
+
+	# We want translations to be relative to area obj, but rotation/scale to be world space
+	translation, rotation, scale = obj.matrix_world.decompose()
+	process_sm64_objects(obj, area, 
+		mathutils.Matrix.Translation(translation), transformMatrix, False)
 
 def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
 	translation, originalRotation, scale = \
