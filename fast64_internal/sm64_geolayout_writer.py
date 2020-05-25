@@ -161,26 +161,28 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 		#cameraObj = getCameraObj(camera)
 		meshGeolayout = saveCameraSettingsToGeolayout(
 			geolayoutGraph, areaObj, obj, name + '_geo')
+		rootObj = areaObj
 	else:
 		geolayoutGraph = GeolayoutGraph(name + '_geo')
 		rootNode = TransformNode(StartNode())
 		geolayoutGraph.startGeolayout.nodes.append(rootNode)
 		meshGeolayout = geolayoutGraph.startGeolayout
+		rootObj = obj
 
 	# Duplicate objects to apply scale / modifiers / linked data
 	tempObj, allObjs = \
-		duplicateHierarchy(obj, 'ignore_render', True, None if areaObj is None else areaObj.areaIndex)
+		duplicateHierarchy(rootObj, 'ignore_render', True, None if areaObj is None else areaObj.areaIndex)
 	try:
 		processMesh(fModel, tempObj, convertTransformMatrix,
 			meshGeolayout.nodes[0], True, geolayoutGraph.startGeolayout,
 			geolayoutGraph, convertTextureData)
 		cleanupDuplicatedObjects(allObjs)
-		obj.select_set(True)
-		bpy.context.view_layer.objects.active = obj
+		rootObj.select_set(True)
+		bpy.context.view_layer.objects.active = rootObj
 	except Exception as e:
 		cleanupDuplicatedObjects(allObjs)
-		obj.select_set(True)
-		bpy.context.view_layer.objects.active = obj
+		rootObj.select_set(True)
+		bpy.context.view_layer.objects.active = rootObj
 		raise Exception(str(e))
 
 	appendRevertToGeolayout(geolayoutGraph, fModel)
@@ -232,6 +234,23 @@ def saveGeolayoutC(dirName, geolayoutGraph, fModel, exportDir, texDir, savePNG,
 		matCInclude = '#include "actors/' + dirName + '/material.inc.c"'
 		matHInclude = '#include "actors/' + dirName + '/material.inc.h"'
 		headerInclude = '#include "actors/' + dirName + '/geo_header.h"'
+
+		if not customExport:
+			# Group name checking, before anything is exported to prevent invalid state on error.
+			if groupName == '' or groupName is None:
+				raise PluginError("Actor header type chosen but group name not provided.")
+
+			groupPathC = os.path.join(dirPath, groupName + ".c")
+			groupPathGeoC = os.path.join(dirPath, groupName + "_geo.c")
+			groupPathH = os.path.join(dirPath, groupName + ".h")
+
+			if not os.path.exists(groupPathC):
+				raise PluginError(groupPathC + ' not found.\n Most likely issue is that \"' + groupName + '\" is an invalid group name.')
+			elif not os.path.exists(groupPathGeoC):
+				raise PluginError(groupPathGeoC + ' not found.\n Most likely issue is that \"' + groupName + '\" is an invalid group name.')
+			elif not os.path.exists(groupPathH):
+				raise PluginError(groupPathH + ' not found.\n Most likely issue is that \"' + groupName + '\" is an invalid group name.')
+
 	else:
 		matCInclude = '#include "levels/' + levelName + '/' + dirName + '/material.inc.c"'
 		matHInclude = '#include "levels/' + levelName + '/' + dirName + '/material.inc.h"'
@@ -279,9 +298,6 @@ def saveGeolayoutC(dirName, geolayoutGraph, fModel, exportDir, texDir, savePNG,
 				replaceStarReferences(exportDir)
 
 			# Write to group files
-			if groupName == '' or groupName is None:
-				raise PluginError("Actor header type chosen but group name not provided.")
-
 			groupPathC = os.path.join(dirPath, groupName + ".c")
 			groupPathGeoC = os.path.join(dirPath, groupName + "_geo.c")
 			groupPathH = os.path.join(dirPath, groupName + ".h")

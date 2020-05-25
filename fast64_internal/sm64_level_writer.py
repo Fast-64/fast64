@@ -515,7 +515,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 			zoomFlags[child.areaIndex - 1] = child.zoomOutOnPause
 
 		geolayoutGraph, fModel = \
-			convertObjectToGeolayout(child, transformMatrix, 
+			convertObjectToGeolayout(obj, transformMatrix, 
 			f3dType, isHWv1, child.areaCamera, levelName + '_' + areaName, fModel, child, DLFormat, not savePNG)
 
 		# Write geolayout
