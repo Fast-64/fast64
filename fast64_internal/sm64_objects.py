@@ -783,6 +783,9 @@ class SM64ObjectPanel(bpy.types.Panel):
 			prop_split(box, obj, 'switchFunc', 'Function')
 			prop_split(box, obj, 'switchParam', 'Parameter')
 			box.box().label(text = 'Children will ordered alphabetically.')
+		
+		elif obj.sm64_obj_type == 'None':
+			box.box().label(text = 'This can be used as an empty transform node in a geolayout hierarchy.')
 
 	def draw_acts(self, obj, layout):
 		layout.label(text = 'Acts')
