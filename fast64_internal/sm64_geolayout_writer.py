@@ -764,7 +764,6 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode,
 		# They should be set previously, using setRooms()
 		parentTransformNode = addParentNode(parentTransformNode, SwitchNode(switchFunc, switchParam, obj.original_name))
 		alphabeticalChildren = sorted(obj.children, key = lambda childObj: childObj.original_name)
-		print([c.original_name for c in alphabeticalChildren])
 		for i in range(len(obj.children)):
 			childObj = alphabeticalChildren[i]
 			optionGeolayout = geolayoutGraph.addGeolayout(
