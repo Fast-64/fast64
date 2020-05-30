@@ -26,6 +26,7 @@ enumGeoStaticType = [
 	("Billboard", "Billboard (0x14)", "Billboard"), 
 	("DisplayListWithOffset", "Display List With Offset (0x13)", 
 		"Display List With Offset"), 
+	("TranslateRotate", "Translate Rotate (0x10)", "Translate Rotate"),
 ]
 
 enumDrawLayers = [
@@ -173,11 +174,25 @@ class GeolayoutStaticPanel(bpy.types.Panel):
 		prop_split(col, obj, 'draw_layer_static', 'Draw layer')
 		col.prop(obj, 'use_render_area')
 		if obj.use_render_area:
+			col.box().label(text = 'This is in blender units.')
 			prop_split(col, obj, 'culling_radius', 'Culling Radius')
+		col.prop(obj, 'use_render_range')
+		if obj.use_render_range:
+			col.box().label(text = 'This is in blender units.')
+			prop_split(col, obj, 'render_range', "Render Range")
+		col.prop(obj, 'add_shadow')
+		if obj.add_shadow:
+			prop_split(col, obj, 'shadow_type', 'Type')
+			prop_split(col, obj, 'shadow_solidity', 'Alpha')
+			prop_split(col, obj, 'shadow_scale', 'Scale')
+		col.prop(obj, 'add_func')
+		if obj.add_func:
+			prop_split(col, obj, 'geo_func', 'Function')
+			prop_split(col, obj, 'func_param', 'Parameter')
 		col.prop(obj, 'ignore_render')
 		col.prop(obj, 'ignore_collision')
 		col.prop(obj, 'use_f3d_culling')
-		prop_split(col, obj, 'room_num', 'Room')
+		#prop_split(col, obj, 'room_num', 'Room')
 
 class MaterialPointerProperty(bpy.types.PropertyGroup):
 	material : bpy.props.PointerProperty(type = bpy.types.Material)
@@ -422,12 +437,13 @@ def bone_register():
 	bpy.types.Bone.shadow_scale = bpy.props.IntProperty(
 		name = 'Shadow Scale', min = -2**(15), max = 2**(15) - 1, default = 100)
 
-	# StartRenderArea
-	bpy.types.Bone.culling_radius = bpy.props.IntProperty(
-		name = 'Culling Radius', min=-2**(15), max=2**(15)-1, default=2000)
-
 	#bpy.types.Bone.switch_bone = bpy.props.StringProperty(
 	#	name = 'Switch Bone')
+
+	# StartRenderArea
+	bpy.types.Bone.culling_radius = bpy.props.FloatProperty(
+		name = 'Culling Radius', default = 10)
+
 
 	bpy.types.Bone.switch_options = bpy.props.CollectionProperty(
 		type = SwitchOptionProperty)
@@ -435,13 +451,13 @@ def bone_register():
 	# Static Geolayout
 	bpy.types.Object.geo_cmd_static = bpy.props.EnumProperty(
 		name = 'Geolayout Command',
-		items = enumGeoStaticType, default = 'DisplayListWithOffset')
+		items = enumGeoStaticType, default = 'TranslateRotate')
 	bpy.types.Object.draw_layer_static = bpy.props.EnumProperty(
 		name = 'Draw Layer', items = enumDrawLayers, default = '1')
 	bpy.types.Object.use_render_area = bpy.props.BoolProperty(
 		name = 'Use Render Area')
-	bpy.types.Object.culling_radius = bpy.props.IntProperty(
-		name = 'Culling Radius', min=-2**(15), max=2**(15)-1, default=2000)
+	bpy.types.Object.culling_radius = bpy.props.FloatProperty(
+		name = 'Culling Radius', default = 10)
 	bpy.types.Object.ignore_render = bpy.props.BoolProperty(
 		name = 'Ignore Render')
 	bpy.types.Object.ignore_collision = bpy.props.BoolProperty(
@@ -449,6 +465,31 @@ def bone_register():
 
 	bpy.types.Object.use_f3d_culling = bpy.props.BoolProperty(
 		name = 'Enable Culling (Applies to F3DEX and up)', default = True)
+
+	bpy.types.Object.add_shadow = bpy.props.BoolProperty(
+		name = 'Add Shadow')
+	bpy.types.Object.shadow_type = bpy.props.EnumProperty(
+		name = 'Shadow Type', items = enumShadowType, default = '1')
+	
+	bpy.types.Object.shadow_solidity = bpy.props.FloatProperty(
+		name = 'Shadow Alpha', min = 0, max = 1, default = 1)
+	
+	bpy.types.Object.shadow_scale = bpy.props.IntProperty(
+		name = 'Shadow Scale', min = -2**(15), max = 2**(15) - 1, default = 100)
+
+	bpy.types.Object.add_func = bpy.props.BoolProperty(
+		name = 'Add Function Node')
+
+	bpy.types.Object.geo_func = bpy.props.StringProperty(
+		name = 'Function', default = '', 
+		description = 'Name of function for C, hex address for binary.')
+	
+	bpy.types.Object.func_param = bpy.props.IntProperty(
+		name = 'Function Parameter', min = -2**(15), max = 2**(15) - 1, default = 0)
+
+	bpy.types.Object.use_render_range = bpy.props.BoolProperty(name = 'Use Render Range (LOD)')
+	bpy.types.Object.render_range = bpy.props.FloatVectorProperty(name = 'Render Range', 
+		size = 2, default = (0,100))
 
 	# Used during object duplication on export
 	bpy.types.Object.original_name = bpy.props.StringProperty()
@@ -476,3 +517,14 @@ def bone_unregister():
 	del bpy.types.Object.ignore_render
 	del bpy.types.Object.ignore_collision
 	del bpy.types.Object.use_f3d_culling
+
+	del bpy.types.Object.add_shadow
+	del bpy.types.Object.shadow_type
+	del bpy.types.Object.shadow_solidity
+	del bpy.types.Object.shadow_scale
+	del bpy.types.Object.geo_func
+	del bpy.types.Object.func_param
+	del bpy.types.Object.add_func
+
+	del bpy.types.Object.use_render_range
+	del bpy.types.Object.render_range 

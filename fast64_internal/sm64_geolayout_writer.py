@@ -17,21 +17,90 @@ from .sm64_camera import saveCameraSettingsToGeolayout
 from .sm64_geolayout_classes import *
 
 def replaceStarReferences(basePath):
-	pattern = '(?<!\w)star\_\w*'
+	kleptoPattern = 'GEO\_SCALE\(0x00\, 16384\)\,\s*' +\
+		'GEO\_OPEN\_NODE\(\)\,\s*' +\
+		'GEO\_ASM\([^\)]*?\)\,\s*' +\
+		'GEO\_TRANSLATE\_ROTATE\_WITH\_DL\([^\)]*? star\_seg3.*?GEO\_CLOSE\_NODE\(\)\,'
+	
+	unagiPattern = 'GEO\_SCALE\(0x00\, 16384\)\,\s*' +\
+		'GEO\_OPEN\_NODE\(\)\,\s*' +\
+		'GEO\_TRANSLATE\_ROTATE\_WITH\_DL\([^\)]*? star\_seg3.*?GEO\_CLOSE\_NODE\(\)\,'
+
+	unagiReplacement = 'GEO_TRANSLATE_ROTATE(LAYER_OPAQUE, 500, 0, 0, 0, 0, 0),\n' +\
+        '\t' * 10 + 'GEO_OPEN_NODE(),\n' +\
+        '\t' * 10 + '\tGEO_BRANCH_AND_LINK(star_geo),\n' +\
+        '\t' * 10 + 'GEO_CLOSE_NODE(),'
+
+	kleptoReplacement = 'GEO_TRANSLATE_ROTATE(LAYER_OPAQUE, 75, 75, 0, 180, 270, 0),\n' +\
+        '\t' * 10 + 'GEO_OPEN_NODE(),\n' +\
+        '\t' * 10 + '\tGEO_BRANCH_AND_LINK(star_geo),\n' +\
+        '\t' * 10 + 'GEO_CLOSE_NODE(),'
+
 	unagiPath = os.path.join(basePath, 'actors/unagi/geo.inc.c')
-	replaceDLReferenceInGeo(unagiPath, pattern)
+	replaceDLReferenceInGeo(unagiPath, unagiPattern, unagiReplacement)
 
 	kleptoPath = os.path.join(basePath, 'actors/klepto/geo.inc.c')
-	replaceDLReferenceInGeo(kleptoPath, pattern)
+	replaceDLReferenceInGeo(kleptoPath, kleptoPattern, kleptoReplacement)
 
-def replaceDLReferenceInGeo(geoPath, pattern):
+def replaceTransparentStarReferences(basePath):
+	pattern = 'GEO\_SCALE\(0x00\, 16384\)\,\s*' +\
+		'GEO\_OPEN\_NODE\(\)\,\s*' +\
+		'GEO\_ASM\([^\)]*?\)\,\s*' +\
+		'GEO\_TRANSLATE\_ROTATE\_WITH\_DL\([^\)]*? transparent_star\_seg3.*?GEO\_CLOSE\_NODE\(\)\,'
+	
+	kleptoReplacement = 'GEO_TRANSLATE_ROTATE(LAYER_OPAQUE, 75, 75, 0, 180, 270, 0),\n' +\
+        '\t' * 10 + 'GEO_OPEN_NODE(),\n' +\
+        '\t' * 10 + '\tGEO_BRANCH_AND_LINK(transparent_star_geo),\n' +\
+        '\t' * 10 + 'GEO_CLOSE_NODE(),'
+
+	kleptoPath = os.path.join(basePath, 'actors/klepto/geo.inc.c')
+	replaceDLReferenceInGeo(kleptoPath, pattern, kleptoReplacement)
+
+def replaceCapReferences(basePath):
+	pattern = 'GEO\_TRANSLATE\_ROTATE\_WITH\_DL\([^\)]*?mario\_cap\_seg3.*?\)\,'
+	kleptoPattern = 'GEO\_SCALE\(0x00\, 16384\)\,\s*' +\
+		'GEO\_OPEN\_NODE\(\)\,\s*' +\
+		'GEO\_ASM\([^\)]*?\)\,\s*' +\
+		'GEO\_TRANSLATE\_ROTATE\_WITH\_DL\([^\)]*? mario\_cap\_seg3.*?GEO\_CLOSE\_NODE\(\)\,'
+	
+	kleptoReplacement = 'GEO_TRANSLATE_ROTATE(LAYER_OPAQUE, 75, 75, 0, 180, 270, 0),\n' +\
+        '\t' * 10 + 'GEO_OPEN_NODE(),\n' +\
+        '\t' * 10 + '\tGEO_BRANCH_AND_LINK(marios_cap_geo),\n' +\
+        '\t' * 10 + 'GEO_CLOSE_NODE(),'
+
+	ukikiReplacement = 'GEO_TRANSLATE_ROTATE(LAYER_OPAQUE, 100, 0, 0, -90, -90, 0),\n' +\
+        '\t' * 8 + 'GEO_OPEN_NODE(),\n' +\
+		'\t' * 8 + 'GEO_SCALE(0x00, 0x40000),\n' +\
+		'\t' * 8 + '\tGEO_OPEN_NODE(),\n' +\
+        '\t' * 8 + '\t\tGEO_BRANCH_AND_LINK(marios_cap_geo),\n' +\
+		'\t' * 8 + '\tGEO_CLOSE_NODE(),' +\
+        '\t' * 8 + 'GEO_CLOSE_NODE(),'
+
+	snowmanReplacement = 'GEO_TRANSLATE_ROTATE(LAYER_OPAQUE, 490, 14, 43, 305, 0, 248),\n' +\
+		'\t' * 7 + 'GEO_OPEN_NODE(),\n' +\
+		'\t' * 7 + 'GEO_SCALE(0x00, 0x40000),\n' +\
+		'\t' * 7 + '\tGEO_OPEN_NODE(),\n' +\
+        '\t' * 7 + '\t\tGEO_BRANCH_AND_LINK(marios_cap_geo),\n' +\
+		'\t' * 7 + '\tGEO_CLOSE_NODE(),' +\
+        '\t' * 7 + 'GEO_CLOSE_NODE(),'
+
+	ukikiPath = os.path.join(basePath, 'actors/ukiki/geo.inc.c')
+	replaceDLReferenceInGeo(ukikiPath, pattern, ukikiReplacement)
+
+	snowmanPath = os.path.join(basePath, 'actors/snowman/geo.inc.c')
+	replaceDLReferenceInGeo(snowmanPath, pattern, snowmanReplacement)
+
+	kleptoPath = os.path.join(basePath, 'actors/klepto/geo.inc.c')
+	replaceDLReferenceInGeo(kleptoPath, kleptoPattern, kleptoReplacement)
+
+def replaceDLReferenceInGeo(geoPath, pattern, replacement):
 	if not os.path.exists(geoPath):
 		return
 	geoFile = open(geoPath, 'r', newline = '\n')
 	geoData = geoFile.read()
 	geoFile.close()
 
-	newData = re.sub(pattern, 'NULL', geoData)
+	newData = re.sub(pattern, replacement, geoData, flags = re.DOTALL)
 	if newData != geoData:
 		geoFile = open(geoPath, 'w', newline = '\n')
 		geoFile.write(newData)
@@ -174,8 +243,8 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 		duplicateHierarchy(rootObj, 'ignore_render', True, None if areaObj is None else areaObj.areaIndex)
 	try:
 		processMesh(fModel, tempObj, convertTransformMatrix,
-			meshGeolayout.nodes[0], True, geolayoutGraph.startGeolayout,
-			geolayoutGraph, convertTextureData)
+			meshGeolayout.nodes[0], geolayoutGraph.startGeolayout,
+			geolayoutGraph, True, convertTextureData)
 		cleanupDuplicatedObjects(allObjs)
 		rootObj.select_set(True)
 		bpy.context.view_layer.objects.active = rootObj
@@ -296,6 +365,20 @@ def saveGeolayoutC(dirName, geolayoutGraph, fModel, exportDir, texDir, savePNG,
 		if headerType == 'Actor':
 			if dirName == 'star' and bpy.context.scene.replaceStarRefs:
 				replaceStarReferences(exportDir)
+			if dirName == 'transparent_star' and bpy.context.scene.replaceTransparentStarRefs:
+				replaceTransparentStarReferences(exportDir)
+			if dirName == 'marios_cap' and bpy.context.scene.replaceCapRefs:
+				replaceCapReferences(exportDir)
+
+			capPath = os.path.join(exportDir, 'actors/mario_cap/geo.inc.c')
+			if dirName == 'marios_cap' and bpy.context.scene.modifyOldGeoCap:
+				replaceDLReferenceInGeo(capPath, 'marios\_cap\_geo\[\]', 'marios_cap_geo_old[]')
+			if dirName == 'marios_metal_cap' and bpy.context.scene.modifyOldGeoCap:
+				replaceDLReferenceInGeo(capPath, 'marios\_metal\_cap\_geo\[\]', 'marios_metal_cap_geo_old[]')
+			if dirName == 'marios_wing_cap' and bpy.context.scene.modifyOldGeoCap:
+				replaceDLReferenceInGeo(capPath, 'marios\_wing\_cap\_geo\[\]', 'marios_wing_cap_geo_old[]')
+			if dirName == 'marios_winged_metal_cap' and bpy.context.scene.modifyOldGeoCap:
+				replaceDLReferenceInGeo(capPath, 'marios\_winged\_metal\_cap\_geo\[\]', 'marios_winged_metal_cap_geo_old[]')
 
 			# Write to group files
 			groupPathC = os.path.join(dirPath, groupName + ".c")
@@ -608,11 +691,11 @@ def generateOverrideHierarchy(parentCopyNode, transformNode,
 			overrideType, drawLayer, transformNode.children.index(child),
 			geolayout, geolayoutGraph, switchOptionName)
 		
-def addStartNode(transformNode):
-	optionNode = TransformNode(StartNode())
-	optionNode.parent = transformNode
-	transformNode.children.append(optionNode)
-	return optionNode
+def addParentNode(parentTransformNode, geoNode):
+	transformNode = TransformNode(geoNode)
+	transformNode.parent = parentTransformNode
+	parentTransformNode.children.append(transformNode)
+	return transformNode
 
 def duplicateNode(transformNode, parentNode, index):
 	optionNode = TransformNode(copy.copy(transformNode.node))
@@ -620,21 +703,18 @@ def duplicateNode(transformNode, parentNode, index):
 	parentNode.children.insert(index, optionNode)
 	return optionNode
 
-def addPreTranslateRotateNode(parentTransformNode, 
-	translate, rotate):
-	preNodeTransform = TransformNode(
-		TranslateRotateNode(1, 0, False, translate, rotate))
+def setRooms(obj, roomIndex = None):
+	# Child objects
+	if roomIndex is not None:
+		obj.room_num = roomIndex
+		for childObj in obj.children:
+			setRooms(childObj, roomIndex)
 
-	preNodeTransform.parent = parentTransformNode
-	parentTransformNode.children.append(preNodeTransform)
-	return preNodeTransform
-
-def addPreRenderAreaNode(parentTransformNode, cullingRadius):
-	preNodeTransform = TransformNode(StartRenderAreaNode(cullingRadius))
-
-	preNodeTransform.parent = parentTransformNode
-	parentTransformNode.children.append(preNodeTransform)
-	return preNodeTransform
+	# Area root object
+	else:
+		alphabeticalChildren = sorted(obj.children, key = lambda childObj: childObj.name)
+		for i in range(len(obj.children)):
+			setRooms(alphabeticalChildren[i], i + 1) # index starts at 1
 
 # This function should be called on a copy of an object
 # The copy will have modifiers / scale applied and will be made single user
@@ -645,10 +725,15 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode,
 	useGeoEmpty = obj.data is None and \
 		(obj.sm64_obj_type == 'None' or \
 		obj.sm64_obj_type == 'Level Root' or \
-		obj.sm64_obj_type == 'Area Root')
-	
-	useAreaEmpty = obj.data is None and \
-		obj.sm64_obj_type == 'Area Root'
+		obj.sm64_obj_type == 'Area Root' or \
+		obj.sm64_obj_type == 'Switch')
+
+	useSwitchNode = obj.data is None and \
+		obj.sm64_obj_type == 'Switch'
+
+	addRooms = isRoot and obj.data is None and \
+		obj.sm64_obj_type == 'Area Root' and \
+		obj.enableRoomSwitch
 		
 	#if useAreaEmpty and areaIndex is not None and obj.areaIndex != areaIndex:
 	#	return
@@ -662,56 +747,96 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode,
 	else:
 		translate = obj.matrix_local.decompose()[0]
 		rotate = obj.matrix_local.decompose()[1]
+	rotAxis, rotAngle = rotate.to_axis_angle()
 
 	#translation = mathutils.Matrix.Translation(translate)
 	#rotation = rotate.to_matrix().to_4x4()
 
-	geoCmd = obj.geo_cmd_static
-	if useGeoEmpty:
-		geoCmd = 'DisplayListWithOffset'
+	if useSwitchNode or addRooms:
+		if useSwitchNode:
+			switchFunc = obj.switchFunc
+			switchParam = obj.switchParam
+		elif addRooms:
+			switchFunc = 'geo_switch_area'
+			switchParam = len(obj.children)
 
-	if obj.use_render_area:
-		parentTransformNode = \
-			addPreRenderAreaNode(parentTransformNode, obj.culling_radius)
+		# Rooms are not set here (since this is just a copy of the original hierarchy)
+		# They should be set previously, using setRooms()
+		parentTransformNode = addParentNode(parentTransformNode, SwitchNode(switchFunc, switchParam, obj.name))
+		alphabeticalChildren = sorted(obj.children, key = lambda childObj: childObj.name)
+		for i in range(len(obj.children)):
+			childObj = alphabeticalChildren[i]
+			optionGeolayout = geolayoutGraph.addGeolayout(
+				childObj, fModel.name + '_' + childObj.original_name + '_geo')
+			geolayoutGraph.addJumpNode(parentTransformNode, geolayout,
+				optionGeolayout)
+			if rotAngle > 0.00001 or translate.length > 0.0001:
+				startNode = TransformNode(TranslateRotateNode(1, 0, False, translate, rotate))
+			else:
+				startNode = TransformNode(StartNode())
+			optionGeolayout.nodes.append(startNode)
+			processMesh(fModel, childObj, transformMatrix, startNode, 
+				optionGeolayout, geolayoutGraph, False, convertTextureData)
+	else:
+		geoCmd = obj.geo_cmd_static
+		if useGeoEmpty:
+			geoCmd = 'TranslateRotate'
+		if obj.data is not None:
+			if obj.use_render_range:
+				parentTransformNode = \
+					addParentNode(parentTransformNode, RenderRangeNode(obj.render_range[0], obj.render_range[1]))
 
-	rotAxis, rotAngle = rotate.to_axis_angle()
-	if rotAngle > 0.00001:
-		if geoCmd == 'Billboard':
-			node = BillboardNode(int(obj.draw_layer_static), True, 
-				mathutils.Vector((0,0,0)))
+			if obj.use_render_area:
+				parentTransformNode = \
+					addParentNode(parentTransformNode, StartRenderAreaNode(obj.culling_radius))
+
+			if obj.add_shadow:
+				parentTransformNode = \
+					addParentNode(parentTransformNode, ShadowNode(obj.shadow_type, obj.shadow_solidity, obj.shadow_scale))
+
+			if obj.add_func:
+				addParentNode(parentTransformNode, FunctionNode(obj.geo_func, obj.func_param))
+
+		if geoCmd == 'TranslateRotate':
+			node = TranslateRotateNode(int(obj.draw_layer_static), 0, True, translate, rotate)
 		else:
-			node = DisplayListWithOffsetNode(int(obj.draw_layer_static), True,
-				mathutils.Vector((0,0,0)))	
+			if rotAngle > 0.00001:
+				if geoCmd == 'Billboard':
+					node = BillboardNode(int(obj.draw_layer_static), True, 
+						mathutils.Vector((0,0,0)))
+				else:
+					node = DisplayListWithOffsetNode(int(obj.draw_layer_static), True,
+						mathutils.Vector((0,0,0)))	
 
-		parentTransformNode = addPreTranslateRotateNode(
-			parentTransformNode, translate, rotate)
+				parentTransformNode = addParentNode(parentTransformNode,
+					TranslateRotateNode(1, 0, False, translate, rotate))
 
-	else:
-		if geoCmd == 'Billboard':
-			node = BillboardNode(int(obj.draw_layer_static), True, translate)
+			else:
+				if geoCmd == 'Billboard':
+					node = BillboardNode(int(obj.draw_layer_static), True, translate)
+				else:
+					node = DisplayListWithOffsetNode(int(obj.draw_layer_static), True,
+						translate)
+
+		transformNode = TransformNode(node)
+
+		if obj.data is None:
+			meshGroup = None
 		else:
-			node = DisplayListWithOffsetNode(int(obj.draw_layer_static), True,
-				translate)
+			meshGroup = saveStaticModel(fModel, obj, transformMatrix, fModel.name, fModel.DLFormat, convertTextureData)
 
-	transformNode = TransformNode(node)
+		if meshGroup is None:
+			node.hasDL = False
+		else:
+			node.DLmicrocode = meshGroup.mesh.draw
+			node.fMesh = meshGroup.mesh
 
-	if obj.data is None:
-		meshGroup = None
-	else:
-		meshGroup = saveStaticModel(fModel, obj, transformMatrix, fModel.name, fModel.DLFormat, convertTextureData)
+		parentTransformNode.children.append(transformNode)
+		transformNode.parent = parentTransformNode
 
-	if meshGroup is None:
-		node.hasDL = False
-	else:
-		node.DLmicrocode = meshGroup.mesh.draw
-		node.fMesh = meshGroup.mesh
-
-	parentTransformNode.children.append(transformNode)
-	transformNode.parent = parentTransformNode
-	
-	for childObj in obj.children:
-		processMesh(fModel, childObj, transformMatrix, transformNode, 
-			geolayout, geolayoutGraph, False, convertTextureData)
+		for childObj in obj.children:
+			processMesh(fModel, childObj, transformMatrix, transformNode, 
+				geolayout, geolayoutGraph, False, convertTextureData)
 
 # need to remember last geometry holding parent bone.
 # to do skinning, add the 0x15 command before any non-geometry bone groups.
@@ -961,13 +1086,10 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 						transformNode, geolayout, optionGeolayout)
 					continue
 
-				#optionNode = addStartNode(switchTransformNode)
+				#optionNode = addParentNode(switchTransformNode, StartNode())
 				
 				optionBoneName = getSwitchOptionBone(optionArmature)
 				optionBone = optionArmature.data.bones[optionBoneName]
-				switchOptionRotate = (bone.matrix_local.inverted() @ \
-					optionBone.matrix_local).decompose()[1]
-				switchOptionRotate = mathutils.Quaternion()
 
 				# Armature doesn't matter here since node is not based off bone
 				optionGeolayout = \
@@ -976,12 +1098,10 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 				geolayoutGraph.addJumpNode(transformNode, geolayout, 
 					optionGeolayout)
 				
-				rotAxis, rotAngle = (rotate @ switchOptionRotate
-					).to_axis_angle()
+				rotAxis, rotAngle = rotate.to_axis_angle()
 				if rotAngle > 0.00001 or translate.length > 0.0001:
 					startNode = TransformNode(
-						TranslateRotateNode(1, 0, False, translate, 
-						rotate @ switchOptionRotate))
+						TranslateRotateNode(1, 0, False, translate, rotate))
 				else:
 					startNode = TransformNode(StartNode())
 				optionGeolayout.nodes.append(startNode)

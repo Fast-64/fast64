@@ -133,6 +133,8 @@ enumWaterBoxType = [
 	('Toxic Haze', 'Toxic Haze', 'Toxic Haze')
 ]
 
+# When adding new types related to geolayout,
+# Make sure to add exceptions in utility.py - selectMeshChildrenOnly
 enumObjectType = [
 	('None', 'None', 'None'),
 	('Level Root', 'Level Root', 'Level Root'),
@@ -144,6 +146,7 @@ enumObjectType = [
 	('Whirlpool', 'Whirlpool', 'Whirlpool'),
 	('Water Box', 'Water Box', 'Water Box'),
 	('Camera Volume', 'Camera Volume', 'Camera Volume'),
+	('Switch', 'Switch Node', 'Switch Node'),
 	#('Trajectory', 'Trajectory', 'Trajectory'),
 ]
 
@@ -473,7 +476,7 @@ def start_process_sm64_objects(obj, area, transformMatrix, specialsOnly):
 	# We want translations to be relative to area obj, but rotation/scale to be world space
 	translation, rotation, scale = obj.matrix_world.decompose()
 	process_sm64_objects(obj, area, 
-		mathutils.Matrix.Translation(translation), transformMatrix, False)
+		mathutils.Matrix.Translation(translation), transformMatrix, specialsOnly)
 
 def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
 	translation, originalRotation, scale = \
@@ -754,7 +757,11 @@ class SM64ObjectPanel(bpy.types.Panel):
 				dialogBox = box.box()
 				dialogBox.label(text = 'See text/us/dialogs.h for values.')
 				dialogBox.label(text = 'See load_level_init_text() in src/game/level_update.c for conditions.')
-			
+			box.prop(obj, 'enableRoomSwitch')
+			if obj.enableRoomSwitch:
+				infoBox = box.box()
+				infoBox.label(text = 'Every child hierarchy of the area root will be treated as its own room.')
+				infoBox.label(text = 'Children will ordered alphabetically.')
 			box.prop(obj, 'useDefaultScreenRect')
 			if not obj.useDefaultScreenRect:
 				prop_split(box, obj, 'screenPos', 'Screen Position')
@@ -771,6 +778,11 @@ class SM64ObjectPanel(bpy.types.Panel):
 			prop_split(box, obj, 'cameraVolumeFunction', 'Camera Function')
 			box.prop(obj, 'cameraVolumeGlobal')
 			box.box().label(text = "Only vertical axis rotation allowed.")
+		
+		elif obj.sm64_obj_type == 'Switch':
+			prop_split(box, obj, 'switchFunc', 'Function')
+			prop_split(box, obj, 'switchParam', 'Parameter')
+			box.box().label(text = 'Children will ordered alphabetically.')
 
 	def draw_acts(self, obj, layout):
 		layout.label(text = 'Acts')
@@ -1122,6 +1134,15 @@ def sm64_obj_register():
 	bpy.types.Object.actSelectorIgnore = bpy.props.BoolProperty(name = 'Skip Act Selector')
 	bpy.types.Object.setAsStartLevel = bpy.props.BoolProperty(name = 'Set As Start Level')
 
+	bpy.types.Object.switchFunc = bpy.props.StringProperty(
+		name = 'Function', default = '', 
+		description = 'Name of function for C, hex address for binary.')
+	
+	bpy.types.Object.switchParam = bpy.props.IntProperty(
+		name = 'Function Parameter', min = -2**(15), max = 2**(15) - 1, default = 0)
+	
+	bpy.types.Object.enableRoomSwitch = bpy.props.BoolProperty(name = 'Enable Room System')
+
 def sm64_obj_unregister():
 	del bpy.types.Object.sm64_model_enum
 	del bpy.types.Object.sm64_macro_enum
@@ -1193,6 +1214,9 @@ def sm64_obj_unregister():
 	del bpy.types.Object.startDialog
 	del bpy.types.Object.actSelectorIgnore
 	del bpy.types.Object.setAsStartLevel
+	del bpy.types.Object.switchFunc
+	del bpy.types.Object.switchParam 
+	del bpy.types.Object.enableRoomSwitch
 
 	for cls in reversed(sm64_obj_classes):
 		unregister_class(cls)

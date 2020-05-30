@@ -106,7 +106,7 @@ class F3DRenderEngine(bpy.types.RenderEngine):
 				elif isinstance(datablock, bpy.types.Mesh):
 					pass
 				elif isinstance(datablock, bpy.types.Object) and isinstance(datablock.data, bpy.types.Mesh):
-					self.draw_data.objects[datablock.name] = F3DRendererObject(datablock.data, self.draw_data)
+					self.draw_data.objects[datablock.name] = F3DRendererObject(datablock, self.draw_data)
 					print("Create Object: " + str(glGetError()))
 		else:
 			# Test which datablocks changed
@@ -184,7 +184,8 @@ class F3DRendererMaterial:
 		pass
 
 class F3DRendererObject:
-	def __init__(self, mesh, render_data):
+	def __init__(self, obj, render_data):
+		mesh = obj.data
 		self.submeshes = []
 		facesByMat = {}
 		mesh.calc_loop_triangles()
@@ -199,7 +200,7 @@ class F3DRendererObject:
 			#f3d_material = render_data.materials[material]
 			f3d_material = None
 
-			self.submeshes.append(F3DRendererSubmesh(f3d_material, mesh, faces, render_data))
+			self.submeshes.append(F3DRendererSubmesh(f3d_material, obj, faces, render_data))
 
 	def draw(self):
 		print("Draw Object: " + str(glGetError()))
@@ -207,14 +208,16 @@ class F3DRendererObject:
 			submesh.draw()
 
 class F3DRendererSubmesh:
-	def __init__(self, f3d_material, mesh, triangles, render_data):
+	def __init__(self, f3d_material, obj, triangles, render_data):
 		print("Begin submesh: " + str(glGetError()))
+		mesh = obj.data
 		loopIndices = []
 		for triangle in triangles:
 			for loopIndex in triangle.loops:
 				loopIndices.append(loopIndex)
 
 		self.material = f3d_material
+		self.obj = obj
 
 		self.vertex_array = Buffer(GL_INT, 1)
 		glGenVertexArrays(1, self.vertex_array)
@@ -288,6 +291,8 @@ class F3DRendererSubmesh:
 		glBindBuffer(GL_ARRAY_BUFFER, 0)
 		glBindVertexArray(0)
 
+		self.render_data = render_data
+
 		print("End submesh: " + str(glGetError()))
 
 
@@ -299,8 +304,9 @@ class F3DRendererSubmesh:
 		# Ignore material for now
 		#self.material.apply()
 
-		#transformLocation = glGetUniformLocation(draw_data.shaderProgram, "transform")
-		#glUniformMatrix4fv(transformLocation, 1, GL_FALSE, )
+		# Handle modifiers? armatures?
+		transformLocation = glGetUniformLocation(self.render_data.shaderProgram, "transform")
+		glUniformMatrix4fv(transformLocation, 1, GL_FALSE, self.obj.matrix_world)
 		glBindVertexArray(self.vertex_array[0])
 		glDrawArrays(GL_TRIANGLES, 0, self.size)
 		glBindVertexArray(0)

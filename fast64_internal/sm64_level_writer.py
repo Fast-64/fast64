@@ -460,7 +460,7 @@ def parseLevelScript(filepath, levelName):
 	return levelscript
 	
 def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
-	savePNG, customExport, exportRooms, levelCameraVolumeName, DLFormat):
+	savePNG, customExport, levelCameraVolumeName, DLFormat):
 	
 	if customExport:
 		levelDir = os.path.join(exportDir, levelName)
@@ -514,6 +514,9 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 		if child.areaIndex == 1 or child.areaIndex == 2 or child.areaIndex == 3 or child.areaIndex == 4:
 			zoomFlags[child.areaIndex - 1] = child.zoomOutOnPause
 
+		# Needs to be done BEFORE collision parsing
+		setRooms(child)
+
 		geolayoutGraph, fModel = \
 			convertObjectToGeolayout(obj, transformMatrix, 
 			f3dType, isHWv1, child.areaCamera, levelName + '_' + areaName, fModel, child, DLFormat, not savePNG)
@@ -536,7 +539,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 		headerString += collision.to_c_def()
 
 		# Write rooms
-		if exportRooms:
+		if child.enableRoomSwitch:
 			roomFile = open(os.path.join(areaDir, 'room.inc.c'), 'w', newline = '\n')
 			roomFile.write(collision.to_c_rooms())
 			roomFile.close()
@@ -548,7 +551,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 			geolayoutGraph.startGeolayout, collision, levelName + '_' + areaName)
 		if area.mario_start is not None:
 			prevLevelScript.marioStart = area.mario_start
-		areaString += area.to_c_script(exportRooms)
+		areaString += area.to_c_script(child.enableRoomSwitch)
 		cameraVolumeString += area.to_c_camera_volumes()
 
 		# Write macros

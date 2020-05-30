@@ -741,6 +741,25 @@ class SM64_ExportGeolayoutPanel(bpy.types.Panel):
 					prop_split(col, context.scene, 'geoGroupName', 'Group Name')
 					if context.scene.geoName == 'star':
 						col.prop(context.scene, 'replaceStarRefs')
+					if context.scene.geoName == 'transparent_star':
+						col.prop(context.scene, 'replaceTransparentStarRefs')
+					if context.scene.geoName == 'marios_cap':
+						col.prop(context.scene, 'replaceCapRefs')
+					if context.scene.geoName == 'marios_cap' or\
+						context.scene.geoName == 'marios_metal_cap' or\
+						context.scene.geoName == 'marios_wing_cap' or\
+						context.scene.geoName == 'marios_winged_metal_cap':
+						col.prop(context.scene, 'modifyOldGeoCap')
+					if context.scene.geoName == 'mario_cap':
+						warningBox = col.box()
+						warningBox.label(text = 'WARNING: DO NOT REPLACE THIS ACTOR.', icon = "QUESTION")
+						warningBox.label(text = 'This contains geolayouts for all cap types.')
+						warningBox.label(text = 'Use one of these geolayout names instead:')
+						warningBox.label(text = ' - marios_cap')
+						warningBox.label(text = ' - marios_metal_cap')
+						warningBox.label(text = ' - marios_wing_cap')
+						warningBox.label(text = ' - marios_winged_metal_cap')
+					
 				elif context.scene.geoExportHeaderType == 'Level':
 					prop_split(col, context.scene, 'geoLevelOption', 'Level')
 					if context.scene.geoLevelOption == 'custom':
@@ -1224,8 +1243,7 @@ class SM64_ExportLevel(bpy.types.Operator):
 			exportLevelC(obj, finalTransform,
 				context.scene.f3d_type, context.scene.isHWv1, levelName, exportPath, 
 				context.scene.levelSaveTextures or bpy.context.scene.ignoreTextureRestrictions, 
-				context.scene.levelCustomExport, 
-				context.scene.levelExportRooms, triggerName, "Static")
+				context.scene.levelCustomExport, triggerName, "Static")
 			self.report({'INFO'}, 'Success!')
 
 			applyRotation([obj], math.radians(-90), 'X')
@@ -1262,7 +1280,6 @@ class SM64_ExportLevelPanel(bpy.types.Panel):
 		col.operator(SM64_ExportLevel.bl_idname)
 		if not bpy.context.scene.ignoreTextureRestrictions:
 			col.prop(context.scene, 'levelSaveTextures')
-		col.prop(context.scene, 'levelExportRooms')
 		col.prop(context.scene, 'levelCustomExport')
 		if context.scene.levelCustomExport:
 			prop_split(col, context.scene, 'levelExportPath', 'Directory')
@@ -2111,7 +2128,13 @@ def register():
 	bpy.types.Scene.geoLevelOption = bpy.props.EnumProperty(
 		items = enumLevelNames, name = 'Level', default = 'bob')
 	bpy.types.Scene.replaceStarRefs = bpy.props.BoolProperty(
-		name = 'Remove old DL references in Unagi and Klepto', default = True)
+		name = 'Replace old DL references in other actors', default = True)
+	bpy.types.Scene.replaceTransparentStarRefs = bpy.props.BoolProperty(
+		name = 'Replace old DL references in other actors', default = True)
+	bpy.types.Scene.replaceCapRefs = bpy.props.BoolProperty(
+		name = 'Replace old DL references in other actors', default = True)
+	bpy.types.Scene.modifyOldGeoCap = bpy.props.BoolProperty(
+		name = 'Rename old geolayout to avoid conflicts', default = True)
 
 	# Level
 	bpy.types.Scene.levelLevel = bpy.props.EnumProperty(items = level_enums, 
@@ -2220,8 +2243,6 @@ def register():
 		name = 'Directory', subtype = 'FILE_PATH')
 	bpy.types.Scene.levelSaveTextures = bpy.props.BoolProperty(
 		name = 'Save Textures As PNGs (Breaks CI Textures)')
-	bpy.types.Scene.levelExportRooms = bpy.props.BoolProperty(
-		name = 'Export Rooms', default = False)
 	bpy.types.Scene.levelCustomExport = bpy.props.BoolProperty(
 		name = 'Custom Export Path')
 
@@ -2295,6 +2316,9 @@ def unregister():
 	del bpy.types.Scene.geoLevelName
 	del bpy.types.Scene.geoLevelOption
 	del bpy.types.Scene.replaceStarRefs
+	del bpy.types.Scene.replaceTransparentStarRefs
+	del bpy.types.Scene.replaceCapRefs
+	del bpy.types.Scene.modifyOldGeoCap
 
 	# Animation
 	del bpy.types.Scene.animStartImport
@@ -2377,7 +2401,6 @@ def unregister():
 	del bpy.types.Scene.levelExportPath 
 	del bpy.types.Scene.levelSaveTextures
 	#del bpy.types.Scene.levelCamera	
-	del bpy.types.Scene.levelExportRooms
 	del bpy.types.Scene.levelCustomExport
 	del bpy.types.Scene.levelOption
 

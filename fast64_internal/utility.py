@@ -300,7 +300,8 @@ def selectMeshChildrenOnly(obj, ignoreAttr, includeEmpties, areaIndex):
 	isEmpty = (obj.data is None) and includeEmpties and \
 		(obj.sm64_obj_type == 'Level Root' or \
 		obj.sm64_obj_type == 'Area Root' or \
-		obj.sm64_obj_type == 'None')
+		obj.sm64_obj_type == 'None' or \
+		obj.sm64_obj_type == 'Switch')
 	if (isMesh or isEmpty) and not ignoreObj:
 		obj.select_set(True)
 		obj.original_name = obj.name

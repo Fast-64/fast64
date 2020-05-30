@@ -62,6 +62,20 @@ def writeSegmentROMTable(baseDir):
 	writeIfNotFound(os.path.join(baseDir, 'src/game/memory.h'), 
 		'\nextern uintptr_t sSegmentROMTable[32];', '#endif')
 
+def writeScrollTextureCall(path, include, callString):
+	data = getDataFromFile(path)
+	if include not in data:
+		data = include + '\n' + data
+	
+		callScrollIndex = data.index(callString)
+		if callScrollIndex != -1:
+			callScrollIndex += len(callString)
+			data = data[:callScrollIndex] + ' scroll_textures();' +\
+				data[callScrollIndex:]
+		else:
+			raise PluginError("Cannot find " + callString + ' in ' + path)
+	
+		saveDataToFile(path, data)
 
 def writeTexScrollBase(baseDir):
 	writeSegmentROMTable(baseDir)
@@ -131,26 +145,19 @@ def writeTexScrollBase(baseDir):
 	# create texscroll.inc.c/h in each level folder
 		# Don't have to make level scroll function, but should call scroll of groups/common
 
-	levelUpdatePath = os.path.join(baseDir, 'src/game/level_update.c')
-	levelUpdateFile = open(levelUpdatePath, 'r', newline = '\n')
-	levelUpdateData = levelUpdateFile.read()
-	levelUpdateFile.close()
-	texscrollInclude = '#include "texscroll.h"'
-	if texscrollInclude not in levelUpdateData:
-		levelUpdateData = texscrollInclude + '\n' + levelUpdateData
+	writeScrollTextureCall(os.path.join(baseDir, 'src/game/level_update.c'),
+		'#include "texscroll.h"', 'changeLevel = play_mode_normal();')
 	
-		levelUpdateFunction = 'changeLevel = play_mode_normal();'
-		callScrollIndex = levelUpdateData.index(levelUpdateFunction)
-		if callScrollIndex != -1:
-			callScrollIndex += len(levelUpdateFunction)
-			levelUpdateData = levelUpdateData[:callScrollIndex] + ' scroll_textures();' +\
-				levelUpdateData[callScrollIndex:]
-		else:
-			raise PluginError("Cannot find play_mode_normal() call in level_update.c.")
+	writeScrollTextureCall(os.path.join(baseDir, 'src/menu/star_select.c'),
+		'#include "src/game/texscroll.h"', 'area_update_objects();')
 
-		levelUpdateFile = open(levelUpdatePath, 'w', newline='\n')
-		levelUpdateFile.write(levelUpdateData)
-		levelUpdateFile.close()
+	# Weird encoding error in this file?
+	#writeScrollTextureCall(os.path.join(baseDir, 'src/menu/file_select.c'),
+	#	'#include "src/game/texscroll.h"', 'area_update_objects();')
+	
+	#writeScrollTextureCall(os.path.join(baseDir, 'src/menu/level_select_menu.c'),
+	#	'#include "src/game/texscroll.h"', 's32 retVar;')
+
 
 def createTexScrollHeadersGroup(exportDir, groupName, dataInclude):
 	includeH = 'src/game/texscroll/' + groupName + '_texscroll.inc.h'

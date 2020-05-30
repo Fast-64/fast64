@@ -58,7 +58,7 @@ Any exported mesh must use an F3D Material, which can be added by the 'Create F3
 ### ROM File Settings
 When importing from a ROM, the plugin will import from the ROM at filepath 'Import ROM', When exporting to a ROM, the plugin will make a copy of the file at 'Export ROM', modify it, and save the file to 'Output ROM'. The ROM must be expanded.
 
-### Where Can I Export To?
+### Where Can I Export To (Binary)?
 By default, when exporting to ROM, the plugin will copy the contents of bank 4 to the range (0x11A35B8 - 0x11FFF00). This will leave you with free space to export assets to range (0x11D8930 - 0x11FFF00).
 
 ### Vertex Colors

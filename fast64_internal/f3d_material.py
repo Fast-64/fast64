@@ -14,6 +14,11 @@ from .utility import prop_split, PluginError, getRGBA16Tuple
 from bpy.utils import register_class, unregister_class
 import copy
 
+# Properties based on nodes:
+# prim color
+# chroma key center
+# env color
+
 enumTexScroll = [
 	("None", "None", "None"),
 	("Linear", "Linear", "Linear"),
@@ -1161,6 +1166,16 @@ class CreateFast3DMaterial(bpy.types.Operator):
 		return {'FINISHED'} # must return a set
 
 class F3DMaterialSettings:
+
+	def __eq__(self, other):
+		for attr in dir(self):
+			if not hasattr(other, attr) or getattr(self, attr) != getattr(other, attr):
+				return False
+		return True
+	
+	def __ne__(self, other):
+		return not self.__eq__(other)
+
 	def __init__(self):
 		self.color_combiner = tuple(S_SHADED_TEX + S_SHADED_TEX)
 		self.set_texture0 = True

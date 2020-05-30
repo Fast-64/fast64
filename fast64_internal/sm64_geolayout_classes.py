@@ -6,6 +6,12 @@ from .sm64_function_map import func_map
 import struct
 import copy
 
+def addFuncAddress(command, func):
+	try:
+		command.extend(bytes.fromhex(func))
+	except ValueError:
+		raise PluginError("In geolayout node, could not convert function \"" + str(func) + '\" to hexadecimal.')
+
 class GeolayoutGraph:
 	def __init__(self, name):
 		self.startGeolayout = Geolayout(name, True)
@@ -325,6 +331,8 @@ class JumpNode:
 			self.geolayout.name + '),'
 
 def convertAddrToFunc(addr):
+	if addr == '':
+		raise PluginError("Geolayout node cannot have an empty function name/address.")
 	refresh_func_map = func_map[bpy.context.scene.refreshVer]
 	if addr.lower() in refresh_func_map:
 		return refresh_func_map[addr.lower()]
@@ -346,7 +354,7 @@ class FunctionNode:
 	def to_binary(self, segmentData):
 		command = bytearray([GEO_CALL_ASM, 0x00])
 		command.extend(self.func_param.to_bytes(2, 'big', signed = True))
-		command.extend(bytes.fromhex(self.geo_func))
+		addFuncAddress(command, self.geo_func)
 		return command
 
 	def to_c(self):
@@ -366,7 +374,7 @@ class HeldObjectNode:
 		command = bytearray([GEO_HELD_OBJECT, 0x00])
 		command.extend(bytearray([0x00] * 6))
 		writeVectorToShorts(command, 2, self.translate)
-		command.extend(bytes.fromhex(self.geo_func))
+		addFuncAddress(command, self.geo_func)
 		return command
 	
 	def to_c(self):
@@ -421,7 +429,7 @@ class SwitchNode:
 	def to_binary(self, segmentData):
 		command = bytearray([GEO_SWITCH, 0x00])
 		command.extend(self.defaultCase.to_bytes(2, 'big', signed = True))
-		command.extend(bytes.fromhex(self.switchFunc))
+		addFuncAddress(command, self.switchFunc)
 		return command
 
 	def to_c(self):
@@ -741,11 +749,30 @@ class StartRenderAreaNode:
 
 	def to_binary(self, segmentData):
 		command = bytearray([GEO_START_W_RENDERAREA, 0x00])
-		command.extend(self.cullingRadius.to_bytes(2, 'big'))
+		command.extend(convertFloatToShort(self.cullingRadius).to_bytes(2, 'big'))
 		return command
 	
 	def to_c(self):
-		return 'GEO_CULLING_RADIUS(' + str(self.cullingRadius) + '),'
+		return 'GEO_CULLING_RADIUS(' + str(convertFloatToShort(self.cullingRadius)) + '),'
+
+class RenderRangeNode:
+	def __init__(self, minDist, maxDist):
+		self.minDist = minDist
+		self.maxDist = maxDist
+		self.hasDL = False
+	
+	def size(self):
+		return 8
+
+	def to_binary(self, segmentData):
+		command = bytearray([GEO_SET_RENDER_RANGE, 0x00, 0x00, 0x00])
+		command.extend(convertFloatToShort(self.minDist).to_bytes(2, 'big'))
+		command.extend(convertFloatToShort(self.maxDist).to_bytes(2, 'big'))
+		return command
+	
+	def to_c(self):
+		return 'GEO_RENDER_RANGE(' + str(convertFloatToShort(self.minDist)) + ', ' +\
+			str(convertFloatToShort(self.maxDist)) + '),'
 
 class DisplayListWithOffsetNode:
 	def __init__(self, drawLayer, use_deform, translate):
@@ -899,7 +926,7 @@ class CameraNode:
 		command.extend(self.lookAt[0].to_bytes(2, 'big', signed = True))
 		command.extend(self.lookAt[1].to_bytes(2, 'big', signed = True))
 		command.extend(self.lookAt[2].to_bytes(2, 'big', signed = True))
-		command.extend(bytes.fromhex(self.geo_func))
+		addFuncAddress(command, self.geo_func)
 		return command
 
 	def to_c(self):
@@ -943,7 +970,7 @@ class BackgroundNode:
 		if self.isColor:
 			command.extend(bytes.fromhex('00000000'))
 		else:
-			command.extend(bytes.fromhex(self.geo_func))
+			addFuncAddress(command, self.geo_func)
 		return command
 
 	def to_c(self):
@@ -970,7 +997,8 @@ nodeGroupClasses = [
 	OrthoNode,
 	FrustumNode,
 	ZBufferNode,
-	CameraNode
+	CameraNode,
+	RenderRangeNode,
 ]
 
 DLNodes = [
