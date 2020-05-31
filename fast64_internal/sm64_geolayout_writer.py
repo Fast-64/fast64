@@ -894,8 +894,8 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 			node = DisplayListWithOffsetNode(int(bone.draw_layer),
 				hasDL, mathutils.Vector((0,0,0)))	
 
-			parentTransformNode = addPreTranslateRotateNode(
-				parentTransformNode, translate, rotate)
+			parentTransformNode = addParentNode(parentTransformNode, 
+				TranslateRotateNode(1, 0, False, translate, rotate))
 
 			lastTranslateName = boneName
 			lastRotateName = boneName
