@@ -106,20 +106,6 @@ def replaceDLReferenceInGeo(geoPath, pattern, replacement):
 		geoFile.write(newData)
 		geoFile.close()
 
-def findStartBone(armatureObj):
-	noParentBones = [bone for bone in armatureObj.data.bones if \
-		bone.parent is None and (bone.geo_cmd != 'SwitchOption' and bone.geo_cmd != 'Ignore')]
-	
-	if len(noParentBones) == 1:
-		return noParentBones[0].name
-	elif len(noParentBones) == 0:
-		raise PluginError("No non switch option start bone could be found " +\
-			'in ' + armatureObj.name + '. Is this the root armature?')
-	else:
-		raise PluginError("Too many parentless bones found. Make sure your bone hierarchy starts from a single bone, " +\
-			"and that any bones not related to a hierarchy have their geolayout command set to \"Ignore\".")
-	
-
 def prepareGeolayoutExport(armatureObj, obj):
 	# Make object and armature space the same.
 	setOrigin(armatureObj, obj)
@@ -187,7 +173,7 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix,
 	infoDict = getInfoDict(obj)
 
 	# Find start bone, which is not root. Root is the start for animation.
-	startBoneName = findStartBone(armatureObj)
+	startBoneNames = findStartBones(armatureObj)
 	
 	convertTransformMatrix = convertTransformMatrix @ \
 		mathutils.Matrix.Diagonal(armatureObj.scale).to_4x4()
@@ -203,9 +189,14 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix,
 		rootNode = TransformNode(StartNode())
 		geolayoutGraph.startGeolayout.nodes.append(rootNode)
 		meshGeolayout = geolayoutGraph.startGeolayout
-	processBone(fModel, startBoneName, obj, armatureObj, 
-		convertTransformMatrix, None, None, None, meshGeolayout.nodes[0], 
-		[], name, meshGeolayout, geolayoutGraph, infoDict, convertTextureData)
+	
+	for i in range(len(startBoneNames)):
+		startBoneName = startBoneNames[i]
+		if i > 0:
+			meshGeolayout.nodes.append(TransformNode(StartNode()))
+		processBone(fModel, startBoneName, obj, armatureObj, 
+			convertTransformMatrix, None, None, None, meshGeolayout.nodes[i], 
+			[], name, meshGeolayout, geolayoutGraph, infoDict, convertTextureData)
 	generateSwitchOptions(meshGeolayout.nodes[0], meshGeolayout, geolayoutGraph,
 		name)
 	appendRevertToGeolayout(geolayoutGraph, fModel)

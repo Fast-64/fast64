@@ -339,12 +339,9 @@ def saveTranslationFrame(frameData, translation):
 			2**16 - 1))
 
 def convertAnimationData(anim, armatureObj, frameEnd):
-	if 'root' not in armatureObj.data.bones:
-		raise PluginError('Cannot find bone named "root". The first animatable' +\
-			' (0x13) bone in the armature must be named "root."')
-			
-	currentBone = armatureObj.data.bones["root"]
-	bonesToProcess = [currentBone.name]
+	bonesToProcess = findStartBones(armatureObj)
+	startBoneName = bonesToProcess[0]
+	currentBone = armatureObj.data.bones[bonesToProcess[0]]
 	animBones = []
 
 	# Get animation bones in order
@@ -369,7 +366,7 @@ def convertAnimationData(anim, armatureObj, frameEnd):
 		armatureFrameData.append([[],[],[]])
 	for frame in range(frameEnd):
 		bpy.context.scene.frame_set(frame)
-		translation = armatureObj.pose.bones["root"].location
+		translation = armatureObj.pose.bones[startBoneName].location
 		saveTranslationFrame(translationData, translation)
 
 		for boneIndex in range(len(animBones)):
@@ -401,7 +398,7 @@ def getNextBone(boneStack, armatureObj):
 	boneStack = sorted([child.name for child in bone.children]) + boneStack
 
 	# Only return 0x13 bone
-	while armatureObj.pose.bones[bone.name].bone_group is not None:
+	while armatureObj.data.bones[bone.name].geo_cmd != 'DisplayListWithOffset':
 		if len(boneStack) == 0:
 			raise PluginError("More bones in animation than on armature.")
 		bone = armatureObj.data.bones[boneStack[0]]
@@ -411,9 +408,8 @@ def getNextBone(boneStack, armatureObj):
 	return bone, boneStack
 
 def importAnimationToBlender(romfile, startAddress, armatureObj, segmentData, isDMA):
-	if 'root' not in armatureObj.data.bones:
-		raise PluginError('Cannot find bone named "root". The first animatable' +\
-			'(0x13) bone in the armature must be named "root."')
+	boneStack = findStartBones(armatureObj)
+	startBoneName = boneStack[0]
 
 	animationHeader, armatureFrameData = \
 		readAnimation('sm64_anim', romfile, startAddress, segmentData, isDMA)
@@ -425,8 +421,6 @@ def importAnimationToBlender(romfile, startAddress, armatureObj, segmentData, is
 	bpy.context.scene.frame_end = animationHeader.frameInterval[1]
 	anim = bpy.data.actions.new("sm64_anim")
 
-	boneStack = ['root']
-
 	isRootTranslation = True
 	# boneFrameData = [[x keyframes], [y keyframes], [z keyframes]]
 	# len(armatureFrameData) should be = number of bones
@@ -435,15 +429,14 @@ def importAnimationToBlender(romfile, startAddress, armatureObj, segmentData, is
 		if isRootTranslation:
 			for propertyIndex in range(3):
 				fcurve = anim.fcurves.new(
-					data_path = 'pose.bones["root"].location',
+					data_path = 'pose.bones["' + startBoneName + '"].location',
 					index = propertyIndex,
-					action_group = 'root')
+					action_group = startBoneName)
 				for frame in range(len(boneFrameData[propertyIndex])):
 					fcurve.keyframe_points.insert(frame, boneFrameData[propertyIndex][frame])
 			isRootTranslation = False
 		else:
 			bone, boneStack = getNextBone(boneStack, armatureObj)
-			print(bone.name)
 			for propertyIndex in range(3):
 				fcurve = anim.fcurves.new(
 					data_path = 'pose.bones["' + bone.name + '"].rotation_euler', 

@@ -17,6 +17,25 @@ class PluginError(Exception):
 class VertexWeightError(PluginError):
 	pass
 
+def findStartBones(armatureObj):
+	noParentBones = sorted([bone.name for bone in armatureObj.data.bones if \
+		bone.parent is None and (bone.geo_cmd != 'SwitchOption' and bone.geo_cmd != 'Ignore')])
+
+	if len(noParentBones) == 0:
+		raise PluginError("No non switch option start bone could be found " +\
+			'in ' + armatureObj.name + '. Is this the root armature?')
+	else:
+		return noParentBones
+	
+	if len(noParentBones) == 1:
+		return noParentBones[0]
+	elif len(noParentBones) == 0:
+		raise PluginError("No non switch option start bone could be found " +\
+			'in ' + armatureObj.name + '. Is this the root armature?')
+	else:
+		raise PluginError("Too many parentless bones found. Make sure your bone hierarchy starts from a single bone, " +\
+			"and that any bones not related to a hierarchy have their geolayout command set to \"Ignore\".")
+
 def getDataFromFile(filepath):
 	if not os.path.exists(filepath):
 		raise PluginError("Path \"" + filepath + '" does not exist.')

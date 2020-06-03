@@ -761,6 +761,7 @@ class SM64ObjectPanel(bpy.types.Panel):
 			if obj.enableRoomSwitch:
 				infoBox = box.box()
 				infoBox.label(text = 'Every child hierarchy of the area root will be treated as its own room.')
+				infoBox.label(text = 'You can use empties with the "None" type as empty geolayout nodes to group related geometry under.')
 				infoBox.label(text = 'Children will ordered alphabetically.')
 			box.prop(obj, 'useDefaultScreenRect')
 			if not obj.useDefaultScreenRect:
