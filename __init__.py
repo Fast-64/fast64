@@ -391,8 +391,9 @@ class SM64_ExportGeolayoutObject(bpy.types.Operator):
 			if len(context.selected_objects) == 0:
 				raise PluginError("Object not selected.")
 			obj = context.active_object
-			if type(obj.data) is not bpy.types.Mesh:
-				raise PluginError("Mesh not selected.")
+			if type(obj.data) is not bpy.types.Mesh and \
+				not (obj.data is None and (obj.sm64_obj_type == 'None' or obj.sm64_obj_type == 'Switch')):
+				raise PluginError("Selected object must be a mesh or an empty with the \"None\" or \"Switch\" type.")
 			#if context.scene.saveCameraSettings and \
 			#	context.scene.levelCamera is None:
 			#	raise PluginError("Cannot save camera settings with no camera provided.")
@@ -750,7 +751,7 @@ class SM64_ExportGeolayoutPanel(bpy.types.Panel):
 						context.scene.geoName == 'marios_metal_cap' or\
 						context.scene.geoName == 'marios_wing_cap' or\
 						context.scene.geoName == 'marios_winged_metal_cap':
-						col.prop(context.scene, 'modifyOldGeoCap')
+						col.prop(context.scene, 'modifyOldGeo')
 					if context.scene.geoName == 'mario_cap':
 						warningBox = col.box()
 						warningBox.label(text = 'WARNING: DO NOT REPLACE THIS ACTOR.', icon = "QUESTION")
@@ -760,6 +761,16 @@ class SM64_ExportGeolayoutPanel(bpy.types.Panel):
 						warningBox.label(text = ' - marios_metal_cap')
 						warningBox.label(text = ' - marios_wing_cap')
 						warningBox.label(text = ' - marios_winged_metal_cap')
+					if context.scene.geoName == 'koopa_with_shell' or\
+						context.scene.geoName == 'koopa_without_shell':
+						col.prop(context.scene, 'modifyOldGeo')
+					elif context.scene.geoName == 'koopa':
+						warningBox = col.box()
+						warningBox.label(text = 'WARNING: DO NOT REPLACE THIS ACTOR.', icon = "QUESTION")
+						warningBox.label(text = 'This contains geolayouts for both koopa with and without shell.')
+						warningBox.label(text = 'Use one of these geolayout names instead:')
+						warningBox.label(text = ' - koopa_with_shell')
+						warningBox.label(text = ' - koopa_without_shell')
 					
 				elif context.scene.geoExportHeaderType == 'Level':
 					prop_split(col, context.scene, 'geoLevelOption', 'Level')
@@ -2134,7 +2145,7 @@ def register():
 		name = 'Replace old DL references in other actors', default = True)
 	bpy.types.Scene.replaceCapRefs = bpy.props.BoolProperty(
 		name = 'Replace old DL references in other actors', default = True)
-	bpy.types.Scene.modifyOldGeoCap = bpy.props.BoolProperty(
+	bpy.types.Scene.modifyOldGeo = bpy.props.BoolProperty(
 		name = 'Rename old geolayout to avoid conflicts', default = True)
 
 	# Level
@@ -2319,7 +2330,7 @@ def unregister():
 	del bpy.types.Scene.replaceStarRefs
 	del bpy.types.Scene.replaceTransparentStarRefs
 	del bpy.types.Scene.replaceCapRefs
-	del bpy.types.Scene.modifyOldGeoCap
+	del bpy.types.Scene.modifyOldGeo
 
 	# Animation
 	del bpy.types.Scene.animStartImport

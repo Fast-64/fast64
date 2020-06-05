@@ -362,14 +362,20 @@ def saveGeolayoutC(dirName, geolayoutGraph, fModel, exportDir, texDir, savePNG,
 				replaceCapReferences(exportDir)
 
 			capPath = os.path.join(exportDir, 'actors/mario_cap/geo.inc.c')
-			if dirName == 'marios_cap' and bpy.context.scene.modifyOldGeoCap:
+			if dirName == 'marios_cap' and bpy.context.scene.modifyOldGeo:
 				replaceDLReferenceInGeo(capPath, 'marios\_cap\_geo\[\]', 'marios_cap_geo_old[]')
-			if dirName == 'marios_metal_cap' and bpy.context.scene.modifyOldGeoCap:
+			if dirName == 'marios_metal_cap' and bpy.context.scene.modifyOldGeo:
 				replaceDLReferenceInGeo(capPath, 'marios\_metal\_cap\_geo\[\]', 'marios_metal_cap_geo_old[]')
-			if dirName == 'marios_wing_cap' and bpy.context.scene.modifyOldGeoCap:
+			if dirName == 'marios_wing_cap' and bpy.context.scene.modifyOldGeo:
 				replaceDLReferenceInGeo(capPath, 'marios\_wing\_cap\_geo\[\]', 'marios_wing_cap_geo_old[]')
-			if dirName == 'marios_winged_metal_cap' and bpy.context.scene.modifyOldGeoCap:
+			if dirName == 'marios_winged_metal_cap' and bpy.context.scene.modifyOldGeo:
 				replaceDLReferenceInGeo(capPath, 'marios\_winged\_metal\_cap\_geo\[\]', 'marios_winged_metal_cap_geo_old[]')
+
+			koopaPath = os.path.join(exportDir, 'actors/koopa/geo.inc.c')
+			if dirName == 'koopa_with_shell' and bpy.context.scene.modifyOldGeo:
+				replaceDLReferenceInGeo(koopaPath, 'koopa\_with\_shell\_geo\[\]', 'koopa_with_shell_old[]')
+			if dirName == 'koopa_without_shell' and bpy.context.scene.modifyOldGeo:
+				replaceDLReferenceInGeo(koopaPath, 'koopa\_without\_shell\_geo\[\]', 'koopa_without_shell_old[]')
 
 			# Write to group files
 			groupPathC = os.path.join(dirPath, groupName + ".c")
