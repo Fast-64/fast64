@@ -426,7 +426,7 @@ class SM64_ExportGeolayoutObject(bpy.types.Operator):
 					bpy.context.scene.geoSeparateTextureDef,
 					None, bpy.context.scene.geoGroupName, 
 					context.scene.geoExportHeaderType,
-					context.scene.geoName, levelName, context.scene.geoCustomExport, "Static")
+					context.scene.geoName, context.scene.geoStructName, levelName, context.scene.geoCustomExport, "Static")
 				self.report({'INFO'}, 'Success!')
 			elif context.scene.geoExportType == 'Insertable Binary':
 				exportGeolayoutObjectInsertableBinary(obj,
@@ -606,7 +606,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 					bpy.context.scene.geoSaveTextures or bpy.context.scene.ignoreTextureRestrictions,
 					bpy.context.scene.geoSeparateTextureDef,
 					None, bpy.context.scene.geoGroupName, context.scene.geoExportHeaderType,
-					context.scene.geoName, levelName, context.scene.geoCustomExport, "Static")
+					context.scene.geoName, context.scene.geoStructName, levelName, context.scene.geoCustomExport, "Static")
 				self.report({'INFO'}, 'Success!')
 			elif context.scene.geoExportType == 'Insertable Binary':
 				exportGeolayoutArmatureInsertableBinary(armatureObj, obj,
@@ -734,25 +734,21 @@ class SM64_ExportGeolayoutPanel(bpy.types.Panel):
 			col.prop(context.scene, 'geoCustomExport')
 			if context.scene.geoCustomExport:
 				col.prop(context.scene, 'geoExportPath')
-				prop_split(col, context.scene, 'geoName', 'Name')
+				prop_split(col, context.scene, 'geoName', 'Folder Name')
+				prop_split(col, context.scene, 'geoStructName', 'Geolayout Name')
 				customExportWarning(col)
 			else:
-				prop_split(col, context.scene, 'geoName', 'Name')
 				prop_split(col, context.scene, 'geoExportHeaderType', 'Export Type')
 				if context.scene.geoExportHeaderType == 'Actor':
 					prop_split(col, context.scene, 'geoGroupName', 'Group Name')
-					if context.scene.geoName == 'star':
-						col.prop(context.scene, 'replaceStarRefs')
-					if context.scene.geoName == 'transparent_star':
-						col.prop(context.scene, 'replaceTransparentStarRefs')
-					if context.scene.geoName == 'marios_cap':
-						col.prop(context.scene, 'replaceCapRefs')
+
+					'''
 					if context.scene.geoName == 'marios_cap' or\
 						context.scene.geoName == 'marios_metal_cap' or\
 						context.scene.geoName == 'marios_wing_cap' or\
 						context.scene.geoName == 'marios_winged_metal_cap':
 						col.prop(context.scene, 'modifyOldGeo')
-					if context.scene.geoName == 'mario_cap':
+					elif context.scene.geoName == 'mario_cap':
 						warningBox = col.box()
 						warningBox.label(text = 'WARNING: DO NOT REPLACE THIS ACTOR.', icon = "QUESTION")
 						warningBox.label(text = 'This contains geolayouts for all cap types.')
@@ -761,6 +757,7 @@ class SM64_ExportGeolayoutPanel(bpy.types.Panel):
 						warningBox.label(text = ' - marios_metal_cap')
 						warningBox.label(text = ' - marios_wing_cap')
 						warningBox.label(text = ' - marios_winged_metal_cap')
+
 					if context.scene.geoName == 'koopa_with_shell' or\
 						context.scene.geoName == 'koopa_without_shell':
 						col.prop(context.scene, 'modifyOldGeo')
@@ -772,10 +769,44 @@ class SM64_ExportGeolayoutPanel(bpy.types.Panel):
 						warningBox.label(text = ' - koopa_with_shell')
 						warningBox.label(text = ' - koopa_without_shell')
 					
+					if context.scene.geoName == 'black_bobomb' or\
+						context.scene.geoName == 'bobomb_buddy':
+						col.prop(context.scene, 'modifyOldGeo')
+					elif context.scene.geoName == 'bobomb':
+						warningBox = col.box()
+						warningBox.label(text = 'WARNING: DO NOT REPLACE THIS ACTOR.', icon = "QUESTION")
+						warningBox.label(text = 'This contains geolayouts for both red and black bobombs.')
+						warningBox.label(text = 'Also note that this contains a display list used in bowling_ball.')
+						warningBox.label(text = 'Use one of these geolayout names instead:')
+						warningBox.label(text = ' - black_bobomb')
+						warningBox.label(text = ' - bobomb_buddy')
+
+					if context.scene.geoName == 'purple_marble':
+						col.prop(context.scene, 'modifyOldGeo')
+					elif context.scene.geoName == 'bubble':
+						warningBox = col.box()
+						warningBox.label(text = 'WARNING: SECONDARY GEOLAYOUTS.', icon = "QUESTION")
+						warningBox.label(text = 'If you replace this you must also replace purple_marble.')
+						warningBox.label(text = 'Otherwise you will get a compilation error.')
+					'''
+
 				elif context.scene.geoExportHeaderType == 'Level':
 					prop_split(col, context.scene, 'geoLevelOption', 'Level')
 					if context.scene.geoLevelOption == 'custom':
 						prop_split(col, context.scene, 'geoLevelName', 'Level Name')
+				prop_split(col, context.scene, 'geoName', 'Folder Name')
+				prop_split(col, context.scene, 'geoStructName', 'Geolayout Name')
+				if context.scene.geoExportHeaderType == 'Actor':
+					if context.scene.geoName == 'star':
+						col.prop(context.scene, 'replaceStarRefs')
+					if context.scene.geoName == 'transparent_star':
+						col.prop(context.scene, 'replaceTransparentStarRefs')
+					if context.scene.geoName == 'marios_cap':
+						col.prop(context.scene, 'replaceCapRefs')
+				infoBox = col.box()
+				infoBox.label(text = 'If a geolayout file contains multiple actors,')
+				infoBox.label(text = 'all other actors must also be replaced (with unique folder names)')
+				infoBox.label(text = 'to prevent compilation errors.')
 				decompFolderMessage(col)
 				writeBox = makeWriteInfoBox(col)
 				writeBoxExportType(writeBox, context.scene.geoExportHeaderType, 
@@ -2128,7 +2159,7 @@ def register():
 	bpy.types.Scene.geoIsSegPtr = bpy.props.BoolProperty(
 		name = 'Is Segmented Address')
 	bpy.types.Scene.geoName = bpy.props.StringProperty(
-		name = 'Name', default = 'mario')
+		name = 'Directory Name', default = 'mario')
 	bpy.types.Scene.geoGroupName = bpy.props.StringProperty(
 		name = 'Name', default = 'group0')
 	bpy.types.Scene.geoExportHeaderType = bpy.props.EnumProperty(
@@ -2147,6 +2178,8 @@ def register():
 		name = 'Replace old DL references in other actors', default = True)
 	bpy.types.Scene.modifyOldGeo = bpy.props.BoolProperty(
 		name = 'Rename old geolayout to avoid conflicts', default = True)
+	bpy.types.Scene.geoStructName = bpy.props.StringProperty(name = 'Geolayout Name',
+		default = 'mario_geo')
 
 	# Level
 	bpy.types.Scene.levelLevel = bpy.props.EnumProperty(items = level_enums, 
@@ -2331,6 +2364,7 @@ def unregister():
 	del bpy.types.Scene.replaceTransparentStarRefs
 	del bpy.types.Scene.replaceCapRefs
 	del bpy.types.Scene.modifyOldGeo
+	del bpy.types.Scene.geoStructName
 
 	# Animation
 	del bpy.types.Scene.animStartImport

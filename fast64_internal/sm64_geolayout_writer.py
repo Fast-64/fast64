@@ -16,6 +16,15 @@ from .f3d_writer import *
 from .sm64_camera import saveCameraSettingsToGeolayout
 from .sm64_geolayout_classes import *
 
+def appendSecondaryGeolayout(geoDirPath, geoName1, geoName2, additionalNode = ''):
+	geoPath = os.path.join(geoDirPath, 'geo.inc.c')
+	geoFile = open(geoPath, 'a', newline='\n')
+	geoFile.write('\n\nconst GeoLayout ' + geoName2 + '_geo[] = {\n' +\
+		(('\t' + additionalNode + ',\n') if additionalNode is not None else '') +\
+		'\tGEO_BRANCH(1, ' + geoName1 + '_geo),\n' +\
+		'\tGEO_END(),\n};\n')
+	geoFile.close()
+
 def replaceStarReferences(basePath):
 	kleptoPattern = 'GEO\_SCALE\(0x00\, 16384\)\,\s*' +\
 		'GEO\_OPEN\_NODE\(\)\,\s*' +\
@@ -254,23 +263,23 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 # C Export
 def exportGeolayoutArmatureC(armatureObj, obj, convertTransformMatrix, 
 	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera, groupName, 
-	headerType, name, levelName, customExport, DLFormat):
+	headerType, dirName, geoName, levelName, customExport, DLFormat):
 	geolayoutGraph, fModel = convertArmatureToGeolayout(armatureObj, obj,
-		convertTransformMatrix, f3dType, isHWv1, camera, name, DLFormat, not savePNG)
+		convertTransformMatrix, f3dType, isHWv1, camera, dirName, DLFormat, not savePNG)
 
-	return saveGeolayoutC(name, geolayoutGraph, fModel, dirPath, texDir, 
+	return saveGeolayoutC(geoName, dirName, geolayoutGraph, fModel, dirPath, texDir, 
 		savePNG, texSeparate, groupName, headerType, levelName, customExport, DLFormat)
 
 def exportGeolayoutObjectC(obj, convertTransformMatrix, 
 	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera, groupName, 
-	headerType, name, levelName, customExport, DLFormat):
+	headerType, dirName, geoName, levelName, customExport, DLFormat):
 	geolayoutGraph, fModel = convertObjectToGeolayout(obj, 
-		convertTransformMatrix, f3dType, isHWv1, camera, name, None, None, DLFormat, not savePNG)
+		convertTransformMatrix, f3dType, isHWv1, camera, dirName, None, None, DLFormat, not savePNG)
 
-	return saveGeolayoutC(name, geolayoutGraph, fModel, dirPath, texDir, 
+	return saveGeolayoutC(geoName, dirName, geolayoutGraph, fModel, dirPath, texDir, 
 		savePNG, texSeparate, groupName, headerType, levelName, customExport, DLFormat)
 
-def saveGeolayoutC(dirName, geolayoutGraph, fModel, exportDir, texDir, savePNG,
+def saveGeolayoutC(geoName, dirName, geolayoutGraph, fModel, exportDir, texDir, savePNG,
  	texSeparate, groupName, headerType, levelName, customExport, DLFormat):
 	dirPath, texDir = getExportDir(customExport, exportDir, headerType, 
 		levelName, texDir, dirName)
@@ -288,6 +297,21 @@ def saveGeolayoutC(dirName, geolayoutGraph, fModel, exportDir, texDir, savePNG,
 		scrollName = levelName + '_level_geo_' + dirName
 	static_data, dynamic_data, texC, scroll_data = fModel.to_c(texSeparate, savePNG, texDir, scrollName)
 	cDefineStatic, cDefineDynamic, cDefineScroll = fModel.to_c_def(scrollName)
+	geolayoutGraph.startGeolayout.name = geoName
+
+	# Handle cases where geolayout name != folder name + _geo
+	#if dirName == 'blue_fish':
+	#	geolayoutGraph.startGeolayout.name = 'fish_geo'
+	#if dirName == 'bomb':
+	#	geolayoutGraph.startGeolayout.name = 'bowser_bomb_geo'
+	#if dirName == 'book':
+	#	geolayoutGraph.startGeolayout.name = 'bookend_geo'
+	#if dirName == 'bookend':
+	#	geolayoutGraph.startGeolayout.name = 'bookend_part_geo'
+	#if dirName == 'bowser_flame':
+	#	geolayoutGraph.startGeolayout.name = 'bowser_flames_geo'
+	#if dirName == 'capswitch':
+	#	geolayoutGraph.startGeolayout.name = 'cap_switch_geo'
 	geoData = geolayoutGraph.to_c()
 
 	if headerType == 'Actor':
@@ -361,6 +385,7 @@ def saveGeolayoutC(dirName, geolayoutGraph, fModel, exportDir, texDir, savePNG,
 			if dirName == 'marios_cap' and bpy.context.scene.replaceCapRefs:
 				replaceCapReferences(exportDir)
 
+			'''
 			capPath = os.path.join(exportDir, 'actors/mario_cap/geo.inc.c')
 			if dirName == 'marios_cap' and bpy.context.scene.modifyOldGeo:
 				replaceDLReferenceInGeo(capPath, 'marios\_cap\_geo\[\]', 'marios_cap_geo_old[]')
@@ -376,6 +401,31 @@ def saveGeolayoutC(dirName, geolayoutGraph, fModel, exportDir, texDir, savePNG,
 				replaceDLReferenceInGeo(koopaPath, 'koopa\_with\_shell\_geo\[\]', 'koopa_with_shell_old[]')
 			if dirName == 'koopa_without_shell' and bpy.context.scene.modifyOldGeo:
 				replaceDLReferenceInGeo(koopaPath, 'koopa\_without\_shell\_geo\[\]', 'koopa_without_shell_old[]')
+
+			bobombPath = os.path.join(exportDir, 'actors/bobomb/geo.inc.c')
+			if dirName == 'black_bobomb' and bpy.context.scene.modifyOldGeo:
+				replaceDLReferenceInGeo(bobombPath, 'black\_bobomb\_geo\[\]', 'black\_bobomb\_geo\_old\[\]')
+			if dirName == 'bobomb_buddy' and bpy.context.scene.modifyOldGeo:
+				replaceDLReferenceInGeo(bobombPath, 'bobomb\_buddy\_geo\[\]', 'bobomb\_buddy\_geo\_old\[\]')
+
+			bubblePath = os.path.join(exportDir, 'actors/bubble/geo.inc.c')
+			if dirName == 'purple_marble' and bpy.context.scene.modifyOldGeo:
+				replaceDLReferenceInGeo(bubblePath, 'purple\_marble\_geo\[\]', 'purple\_marble\_geo\_old\[\]')
+			
+			# Instances where a geo file has multiple similar geolayouts
+			if dirName == 'bowser':
+				appendSecondaryGeolayout(geoDirPath, 'bowser', 'bowser2')
+			if dirName == 'bowling_ball':
+				appendSecondaryGeolayout(geoDirPath, 'bowling_ball', 'bowling_ball_track')
+			if dirName == 'blue_fish':
+				appendSecondaryGeolayout(geoDirPath, 'fish', 'fish_shadow', 'GEO_SHADOW(SHADOW_CIRCLE_4_VERTS, 0x9B, 50)')
+			if dirName == 'bowser_key':
+				appendSecondaryGeolayout(geoDirPath, 'bowser_key', 'bowser_key_cutscene')
+			if dirName == 'breakable_box':
+				appendSecondaryGeolayout(geoDirPath, 'breakable_box', 'breakable_box_small')
+			if dirName == 'bully':
+				appendSecondaryGeolayout(geoDirPath, 'bully', 'bully_boss', 'GEO_SCALE(0x00, 0x2000), GEO_NODE_OPEN(),')
+			'''
 
 			# Write to group files
 			groupPathC = os.path.join(dirPath, groupName + ".c")
