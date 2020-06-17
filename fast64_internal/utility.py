@@ -470,6 +470,10 @@ def applyRotation(objList, angle, axis):
 	bpy.ops.object.transform_apply(location = False, 
 		rotation = True, scale = True, properties =  False)
 
+def doRotation(angle, axis):
+	direction = 1 if bpy.app.version[1] < 83 else -1
+	bpy.ops.transform.rotate(value = direction * angle, orient_axis = axis)
+
 def getAddressFromRAMAddress(RAMAddress):
 	addr = RAMAddress - 0x80000000
 	if addr < 0:

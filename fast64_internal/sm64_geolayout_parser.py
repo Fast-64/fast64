@@ -324,11 +324,10 @@ def parseNode(romfile, geoStartAddress, currentAddress, currentCmd, jumps,
 	return currentAddress, armatureMeshGroups
 
 def generateMetarig(armatureObj):
-	if 'root' not in armatureObj.data.bones:
-		raise PluginError('Cannot find bone named "root". The first ' + \
-			'animatable (0x13) bone in the armature must be named "root."')
+	startBones = findStartBones(armatureObj)
 	createBoneGroups(armatureObj)
-	traverseArmatureForMetarig(armatureObj, 'root', None)
+	for boneName in startBones:
+		traverseArmatureForMetarig(armatureObj, boneName, None)
 	armatureObj.data.layers = createBoneLayerMask([boneLayers['visual']])
 	if bpy.context.mode != 'OBJECT':
 		bpy.ops.object.mode_set(mode = "OBJECT")
@@ -384,11 +383,6 @@ def processBoneMeta(armatureObj, boneName, parentName):
 	constraint = poseBone.constraints.new(type = "COPY_ROTATION")
 	constraint.target = armatureObj
 	constraint.subtarget = metaboneName
-
-	if boneName == 'root':
-		rootConstraint = poseBone.constraints.new(type = "COPY_LOCATION")
-		rootConstraint.target = armatureObj
-		rootConstraint.subtarget = metaboneName
 
 	metabone.layers = createBoneLayerMask([boneLayers['meta']])
 	metabone.use_deform = False
@@ -640,10 +634,7 @@ def parseDLWithOffset(romfile, currentAddress,
 		mathutils.Vector(translationVector))
 	finalTransform = currentTransform @ translation
 
-	if armatureObj is not None and 'root' not in armatureObj.data.bones:
-		boneName = 'root'
-	else:
-		boneName = format(nodeIndex, '03') + '-offset'
+	boneName = format(nodeIndex, '03') + '-offset'
 
 	# Handle parent object and transformation
 	# Note: Since we are storing the world transform for each node,
