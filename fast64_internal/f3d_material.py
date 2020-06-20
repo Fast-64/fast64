@@ -1999,6 +1999,12 @@ sm64_vert_colored_tex.color_combiner = tuple(S_VERTEX_COLORED_TEX + \
 sm64_vert_colored_tex.g_lighting = False
 sm64_vert_colored_tex.set_env = False
 
+sm64_vert_colored_tex_no_vert_alpha = F3DMaterialSettings()
+sm64_vert_colored_tex_no_vert_alpha.color_combiner = tuple(S_VERTEX_COLORED_TEX_NO_VERT_ALPHA + \
+	S_VERTEX_COLORED_TEX_NO_VERT_ALPHA)
+sm64_vert_colored_tex_no_vert_alpha.g_lighting = False
+sm64_vert_colored_tex_no_vert_alpha.set_env = False
+
 sm64_vert_colored_tex_transparent = F3DMaterialSettings()
 sm64_vert_colored_tex_transparent.color_combiner = tuple(S_VERTEX_COLORED_TEX_TRANSPARENT + \
 	S_VERTEX_COLORED_TEX_TRANSPARENT)
@@ -2054,6 +2060,7 @@ enumMaterialPresets = [
 	('Fog Shaded Texture Transparent', 'Fog Shaded Texture Transparent (Prim Alpha)', 'Fog Shaded Texture Transparent (Prim Alpha)'),
 	('Vertex Colored Texture Transparent', 'Vertex Colored Texture Transparent', 'Vertex Colored Texture Transparent'),
 	('Shaded Noise', 'Shaded Noise', 'Shaded Noise'),
+	('Vertex Colored Texture (No Vertex Alpha)', 'Vertex Colored Texture (No Vertex Alpha)', 'Vertex Colored Texture (No Vertex Alpha)'),
 ]
 
 materialPresetDict = {
@@ -2071,4 +2078,5 @@ materialPresetDict = {
 	'Fog Shaded Texture Transparent' : sm64_fog_shaded_texture_transparent,
 	'Vertex Colored Texture Transparent' : sm64_vert_colored_tex_transparent,
 	'Shaded Noise' : sm64_shaded_noise,
+	'Vertex Colored Texture (No Vertex Alpha)' : sm64_vert_colored_tex_no_vert_alpha,
 }
