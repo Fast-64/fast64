@@ -799,7 +799,7 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode,
 	#translation = mathutils.Matrix.Translation(translate)
 	#rotation = rotate.to_matrix().to_4x4()
 
-	if useSwitchNode or addRooms:
+	if useSwitchNode or addRooms: # Specific empty types
 		if useSwitchNode:
 			switchFunc = obj.switchFunc
 			switchParam = obj.switchParam
@@ -828,21 +828,6 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode,
 		geoCmd = obj.geo_cmd_static
 		if useGeoEmpty:
 			geoCmd = 'TranslateRotate'
-		if obj.data is not None:
-			if obj.use_render_range:
-				parentTransformNode = \
-					addParentNode(parentTransformNode, RenderRangeNode(obj.render_range[0], obj.render_range[1]))
-
-			if obj.use_render_area:
-				parentTransformNode = \
-					addParentNode(parentTransformNode, StartRenderAreaNode(obj.culling_radius))
-
-			if obj.add_shadow:
-				parentTransformNode = \
-					addParentNode(parentTransformNode, ShadowNode(obj.shadow_type, obj.shadow_solidity, obj.shadow_scale))
-
-			if obj.add_func:
-				addParentNode(parentTransformNode, FunctionNode(obj.geo_func, obj.func_param))
 
 		if geoCmd == 'TranslateRotate':
 			node = TranslateRotateNode(int(obj.draw_layer_static), 0, True, translate, rotate)
@@ -866,6 +851,35 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode,
 						translate)
 
 		transformNode = TransformNode(node)
+
+		additionalNodes = False
+		if obj.data is not None and \
+			(obj.use_render_range or obj.use_render_area or obj.add_shadow or obj.add_func):
+
+			parentTransformNode.children.append(transformNode)
+			transformNode.parent = parentTransformNode
+			transformNode.node.hasDL = False
+			parentTransformNode = transformNode
+
+			node = DisplayListNode(int(obj.draw_layer_static))
+			transformNode = TransformNode(node)
+
+			if obj.use_render_range:
+				parentTransformNode = \
+					addParentNode(parentTransformNode, RenderRangeNode(obj.render_range[0], obj.render_range[1]))
+
+			if obj.use_render_area:
+				parentTransformNode = \
+					addParentNode(parentTransformNode, StartRenderAreaNode(obj.culling_radius))
+
+			if obj.add_shadow:
+				parentTransformNode = \
+					addParentNode(parentTransformNode, ShadowNode(obj.shadow_type, obj.shadow_solidity, obj.shadow_scale))
+
+			if obj.add_func:
+				addParentNode(parentTransformNode, FunctionNode(obj.geo_func, obj.func_param))
+
+			# Make sure to add additional cases to if statement above
 
 		if obj.data is None:
 			meshGroup = None
