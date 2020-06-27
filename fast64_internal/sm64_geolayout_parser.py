@@ -990,7 +990,7 @@ def parseStartWithRenderArea(romfile, currentAddress, currentTransform,
 	commandSize = 4
 	romfile.seek(currentAddress)
 	command = romfile.read(commandSize)
-	cullingRadius = int.from_bytes(command[2:4], 'big')
+	cullingRadius = int.from_bytes(command[2:4], 'big') / bpy.context.scene.blenderToSM64Scale
 
 	if not ignoreNode:
 		boneName = format(nodeIndex, '03') + "-start_render_area"
