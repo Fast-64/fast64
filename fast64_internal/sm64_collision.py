@@ -349,8 +349,7 @@ def exportCollisionCommon(obj, transformMatrix, includeSpecials, includeChildren
 		collision.triangles[collisionType] = []
 		for (faceVerts, specialParam, room) in faces:
 			indices = []
-			for vert in faceVerts:
-				roundedPosition = roundPosition(vert)
+			for roundedPosition in faceVerts:
 				index = collisionVertIndex(roundedPosition, collision.vertices)
 				if index is None:
 					collision.vertices.append(CollisionVertex(roundedPosition))
@@ -380,12 +379,26 @@ def addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix, 
 			if colType == 'Custom':
 				colType = material.collision_custom
 			specialParam = material.collision_param if material.use_collision_param else None
+
+			(x1, y1, z1) = roundPosition(transformMatrix @ obj.data.vertices[face.vertices[0]].co)
+			(x2, y2, z2) = roundPosition(transformMatrix @ obj.data.vertices[face.vertices[1]].co)
+			(x3, y3, z3) = roundPosition(transformMatrix @ obj.data.vertices[face.vertices[2]].co)
+
+			nx = (y2 - y1) * (z3 - z2) - (z2 - z1) * (y3 - y2)
+			ny = (z2 - z1) * (x3 - x2) - (x2 - x1) * (z3 - z2)
+			nz = (x2 - x1) * (y3 - y2) - (y2 - y1) * (x3 - x2)
+			magSqr = nx * nx + ny * ny + nz * nz
+
+			if magSqr <= 0:
+				print("Ignore denormalized triangle.")
+				continue
+
 			if colType not in collisionDict:
 				collisionDict[colType] = []
 			collisionDict[colType].append(((
-				transformMatrix @ obj.data.vertices[face.vertices[0]].co,
-				transformMatrix @ obj.data.vertices[face.vertices[1]].co,
-				transformMatrix @ obj.data.vertices[face.vertices[2]].co), specialParam, obj.room_num))
+				(x1, y1, z1),
+				(x2, y2, z2),
+				(x3, y3, z3)), specialParam, obj.room_num))
 	
 	if includeChildren:
 		for child in obj.children:

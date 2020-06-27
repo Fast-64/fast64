@@ -753,6 +753,10 @@ class StartRenderAreaNode:
 		return command
 	
 	def to_c(self):
+		cullingRadius = convertFloatToShort(self.cullingRadius)
+		if abs(cullingRadius) > 2**15 - 1:
+			raise PluginError("A render area node has a culling radius that does not fit an s16.\n Radius is " +\
+				str(cullingRadius) + ' when converted to SM64 units.')
 		return 'GEO_CULLING_RADIUS(' + str(convertFloatToShort(self.cullingRadius)) + '),'
 
 class RenderRangeNode:
@@ -771,8 +775,13 @@ class RenderRangeNode:
 		return command
 	
 	def to_c(self):
-		return 'GEO_RENDER_RANGE(' + str(convertFloatToShort(self.minDist)) + ', ' +\
-			str(convertFloatToShort(self.maxDist)) + '),'
+		minDist = convertFloatToShort(self.minDist)
+		maxDist = convertFloatToShort(self.maxDist)
+		if (abs(minDist) > 2**15 - 1) or (abs(maxDist) > 2**15 - 1):
+			raise PluginError("A render range (LOD) node has a range that does not fit an s16.\n Range is " +\
+				str(minDist) + ', ' + str(maxDist) + ' when converted to SM64 units.')
+		return 'GEO_RENDER_RANGE(' + str(minDist) + ', ' +\
+			str(maxDist) + '),'
 
 class DisplayListWithOffsetNode:
 	def __init__(self, drawLayer, use_deform, translate):
