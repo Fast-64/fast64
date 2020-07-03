@@ -1,7 +1,7 @@
 import bpy
 from bpy.utils import register_class, unregister_class
 from .sm64_geolayout_utility import createBoneGroups, addBoneToGroup
-from .utility import prop_split
+from .utility import prop_split, PluginError
 
 enumBoneType = [
 	("Switch", "Switch (0x0E)", "Switch"), 
