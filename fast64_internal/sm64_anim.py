@@ -340,7 +340,6 @@ def saveTranslationFrame(frameData, translation):
 
 def convertAnimationData(anim, armatureObj, frameEnd):
 	bonesToProcess = findStartBones(armatureObj)
-	startBoneName = bonesToProcess[0]
 	currentBone = armatureObj.data.bones[bonesToProcess[0]]
 	animBones = []
 
@@ -352,7 +351,7 @@ def convertAnimationData(anim, armatureObj, frameEnd):
 		bonesToProcess = bonesToProcess[1:]
 
 		# Only handle 0x13 bones for animation
-		if currentPoseBone.bone_group is None:
+		if currentBone.geo_cmd == 'DisplayListWithOffset':
 			animBones.append(boneName)
 
 		# Traverse children in alphabetical order.
@@ -366,7 +365,7 @@ def convertAnimationData(anim, armatureObj, frameEnd):
 		armatureFrameData.append([[],[],[]])
 	for frame in range(frameEnd):
 		bpy.context.scene.frame_set(frame)
-		translation = armatureObj.pose.bones[startBoneName].location
+		translation = armatureObj.pose.bones[animBones[0]].location
 		saveTranslationFrame(translationData, translation)
 
 		for boneIndex in range(len(animBones)):
