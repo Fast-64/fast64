@@ -384,6 +384,10 @@ def processBoneMeta(armatureObj, boneName, parentName):
 	constraint.target = armatureObj
 	constraint.subtarget = metaboneName
 
+	translateConstraint = poseBone.constraints.new(type = "COPY_LOCATION")
+	translateConstraint.target = armatureObj
+	translateConstraint.subtarget = metaboneName
+
 	metabone.layers = createBoneLayerMask([boneLayers['meta']])
 	metabone.use_deform = False
 	metabonePose.lock_rotation = (True, True, True)

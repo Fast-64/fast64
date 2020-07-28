@@ -305,7 +305,7 @@ def socketDictToInternalSocket(node_tree, groupNode, groupInputNode, socketDict,
 
 	return newDict
 
-def createTexCoordNode(node_tree, location, uvSocket):
+def createTexCoordNode(node_tree, location, uvSocket, isV):
 	group_tree = bpy.data.node_groups.new(
 		type="ShaderNodeTree", name = 'Create Tex Coord')
 	links = group_tree.links
@@ -366,6 +366,17 @@ def createTexCoordNode(node_tree, location, uvSocket):
 	normHalfPixelSocket = normHalfPixelNode.outputs[0]
 	normHalfPixelSocket.default_value = 1 / 64
 
+	# Change origin to top left corner
+	if isV:
+		toUpperOrigin, x, y = addNodeAt(group_tree, 'ShaderNodeMath', None, -400, 200)
+		toUpperOrigin.operation = "MULTIPLY_ADD"
+		toUpperOrigin.inputs[1].default_value = -1
+		toUpperOrigin.inputs[2].default_value = 1
+		links.new(toUpperOrigin.inputs[0], uvSocket)
+		prevSocket = toUpperOrigin.outputs[0]
+	else:
+		prevSocket = uvSocket
+
 	# Apply shift
 	shiftPower, x, y = addNodeAt(group_tree, 'ShaderNodeMath', None, -400, 0)
 	shiftPower.operation = "POWER"
@@ -374,7 +385,7 @@ def createTexCoordNode(node_tree, location, uvSocket):
 
 	shiftMult, x, y = addNodeAt(group_tree, 'ShaderNodeMath', None, -400, -200)
 	shiftMult.operation = 'MULTIPLY'
-	links.new(shiftMult.inputs[0], uvSocket)
+	links.new(shiftMult.inputs[0], prevSocket)
 	links.new(shiftMult.inputs[1], shiftPower.outputs[0])
 
 	# Apply scale
@@ -382,12 +393,23 @@ def createTexCoordNode(node_tree, location, uvSocket):
 	scaleMult.operation = 'MULTIPLY'
 	links.new(scaleMult.inputs[0], shiftMult.outputs[0])
 	links.new(scaleMult.inputs[1], scaleSocket)
+
+	# Revert origin to lower left corner
+	if isV:
+		toLowerOrigin, x, y = addNodeAt(group_tree, 'ShaderNodeMath', None, -200, -400)
+		toLowerOrigin.operation = "MULTIPLY_ADD"
+		toLowerOrigin.inputs[1].default_value = -1
+		toLowerOrigin.inputs[2].default_value = 1
+		links.new(toLowerOrigin.inputs[0], scaleMult.outputs[0])
+		prevNode2 = toLowerOrigin
+	else:
+		prevNode2 = scaleMult
 	
 	# Add L
 	# offsetting by L means subtracting L from UV
 	addL, x, y = addNodeAt(group_tree, 'ShaderNodeMath', None, 0, 0)
 	addL.operation = 'SUBTRACT'
-	links.new(addL.inputs[0], scaleMult.outputs[0])
+	links.new(addL.inputs[0], prevNode2.outputs[0])
 	links.new(addL.inputs[1], normLSocket)
 
 	# Clamp using H
@@ -631,8 +653,8 @@ def createUVNode(node_tree, location, texGenNode, texGenLinearNode):
 		addNodeAt(group_tree, 'ShaderNodeSeparateXYZ', None, 1800, 500)
 	links.new(uvSplit.inputs[0], mixTexGenLinear.outputs[0])
 	
-	uv_xNode = createTexCoordNode(group_tree, [2000, 500], uvSplit.outputs[0])
-	uv_yNode = createTexCoordNode(group_tree, [2000, 300], uvSplit.outputs[1])
+	uv_xNode = createTexCoordNode(group_tree, [2000, 500], uvSplit.outputs[0], False)
+	uv_yNode = createTexCoordNode(group_tree, [2000, 300], uvSplit.outputs[1], True)
 
 	links.new(uv_xNode.inputs[0], uvSplit.outputs[0])
 	links.new(uv_yNode.inputs[0], uvSplit.outputs[1])

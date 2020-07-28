@@ -236,3 +236,4 @@ To resolve pointer addresses, for each pointer address,
 
 ### Common Issues
 Game crashes: Invalid function address for switch/function/held object bones.
+Animation root translation/rotation not exporting: Make sure you are animating the root bone, not the armature object.

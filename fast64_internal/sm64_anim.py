@@ -365,7 +365,10 @@ def convertAnimationData(anim, armatureObj, frameEnd):
 		armatureFrameData.append([[],[],[]])
 	for frame in range(frameEnd):
 		bpy.context.scene.frame_set(frame)
-		translation = armatureObj.pose.bones[animBones[0]].location
+		rootBone = armatureObj.data.bones[animBones[0]]
+		rootPoseBone = armatureObj.pose.bones[animBones[0]]
+		translation = (rootBone.matrix.to_4x4().inverted() @ \
+			rootPoseBone.matrix).decompose()[0]
 		saveTranslationFrame(translationData, translation)
 
 		for boneIndex in range(len(animBones)):
@@ -409,6 +412,10 @@ def getNextBone(boneStack, armatureObj):
 def importAnimationToBlender(romfile, startAddress, armatureObj, segmentData, isDMA):
 	boneStack = findStartBones(armatureObj)
 	startBoneName = boneStack[0]
+	if armatureObj.data.bones[startBoneName].geo_cmd != 'DisplayListWithOffset':
+		startBone, boneStack = getNextBone(boneStack, armatureObj)
+		startBoneName = startBone.name
+		boneStack = [startBoneName] + boneStack
 
 	animationHeader, armatureFrameData = \
 		readAnimation('sm64_anim', romfile, startAddress, segmentData, isDMA)

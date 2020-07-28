@@ -895,7 +895,8 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode,
 		parentTransformNode.children.append(transformNode)
 		transformNode.parent = parentTransformNode
 
-		for childObj in obj.children:
+		alphabeticalChildren = sorted(obj.children, key = lambda childObj: childObj.original_name)
+		for childObj in alphabeticalChildren:
 			processMesh(fModel, childObj, transformMatrix, transformNode, 
 				geolayout, geolayoutGraph, False, convertTextureData)
 
