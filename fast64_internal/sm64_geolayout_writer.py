@@ -1598,6 +1598,7 @@ def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, dr
 	#print('fdddddddddddddddd ' + str(fMesh.name) + " " + str(material) + " " + str(specificMat) + " " + str(overrideType))
 	fMesh.drawMatOverrides[(material, specificMat, overrideType)] = meshMatOverride
 	removeReverts = []
+	triCommands = []
 	for command in fMesh.draw.commands:
 		meshMatOverride.commands.append(copy.copy(command))
 	for command in meshMatOverride.commands:
@@ -1610,13 +1611,18 @@ def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, dr
 				if command.displayList == fMaterial.material and shouldModify:
 					#print(fOverrideMat.material.name)
 					command.displayList = fOverrideMat.material
+					triCommand = meshMatOverride.commands[meshMatOverride.commands.index(command) + 1]
+					if triCommand not in triCommands:
+						triCommands.append(triCommand)
+						
 				if command.displayList == fMaterial.revert and shouldModify:
-					if fOverrideMat.revert is not None:
-						command.displayList = fOverrideMat.revert
-					else:
-						removeReverts.append(command)
+					removeReverts.append(command)
 	for command in removeReverts:
 		meshMatOverride.commands.remove(command)
+	if fOverrideMat.revert is not None:
+		for command in triCommands:
+			meshMatOverride.commands.insert(meshMatOverride.commands.index(command) + 1, 
+			SPDisplayList(fOverrideMat.revert))
 
 	#else:
 	#	meshMatOverride.commands.append(SPDisplayList(fOverrideMat.material))
