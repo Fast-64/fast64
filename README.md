@@ -1,7 +1,7 @@
 
 # Fast64
 
-This requires Blender 2.81+.
+This requires Blender 2.82+.
 
 ![alt-text](https://bitbucket.org/kurethedead/fast64/raw/master/images/mario_running.gif)
 
