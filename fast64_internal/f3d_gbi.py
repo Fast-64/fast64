@@ -2400,7 +2400,7 @@ class FImage:
 	
 	def to_c(self):
 		# This is to force 8 byte alignment
-		code = 'static Gfx ' + self.name + '_aligner = {gsSPEndDisplayList()};\n'
+		code = 'static Gfx ' + self.name + '_aligner[] = {gsSPEndDisplayList()};\n'
 		code += 'u8 ' + self.name + '[] = {\n\t'
 		code += self.to_c_data()
 		code += '\n};\n'
@@ -2408,7 +2408,7 @@ class FImage:
 
 	def to_c_tex_separate(self, texPath):
 		# This is to force 8 byte alignment
-		code = 'static Gfx ' + self.name + '_aligner = {gsSPEndDisplayList()};\n'
+		code = 'static Gfx ' + self.name + '_aligner[] = {gsSPEndDisplayList()};\n'
 		code += 'u8 ' + self.name + '[] = {\n\t'
 		code += '#include "' + texPath + self.filename + '"'
 		code += '\n};\n'
