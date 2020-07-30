@@ -2399,15 +2399,19 @@ class FImage:
 		return 'extern u8 ' + self.name + '[];'
 	
 	def to_c(self):
-		code = 'u8 ' + self.name + '[] = {\n\t'
+		# This is to force 8 byte alignment
+		code = 'static Gfx ' + self.name + '_aligner = {gsSPEndDisplayList()};\n'
+		code += 'u8 ' + self.name + '[] = {\n\t'
 		code += self.to_c_data()
-		code += '\n};'
+		code += '\n};\n'
 		return code
 
 	def to_c_tex_separate(self, texPath):
-		code = 'u8 ' + self.name + '[] = {\n\t'
+		# This is to force 8 byte alignment
+		code = 'static Gfx ' + self.name + '_aligner = {gsSPEndDisplayList()};\n'
+		code += 'u8 ' + self.name + '[] = {\n\t'
 		code += '#include "' + texPath + self.filename + '"'
-		code += '\n};'
+		code += '\n};\n'
 		return code
 
 	def to_c_data(self):

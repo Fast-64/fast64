@@ -1388,8 +1388,11 @@ def saveTextureLoading(fImage, loadTexGfx, clamp_S, mirror_S, clamp_T,
 	# LoadTile will pad rows to 64 bit word alignment, while
 	# LoadBlock assumes this is already done.
 	if siz == 'G_IM_SIZ_4b':
+		sl2 = int(SL * (2 ** (f3d.G_TEXTURE_IMAGE_FRAC - 1)))
+		sh2 = int(SH * (2 ** (f3d.G_TEXTURE_IMAGE_FRAC - 1)))
+
 		dxt = f3d.CALC_DXT_4b(fImage.width)
-		line = ((fImage.width >> 1) + 7) >> 3
+		line = (((int(SH - SL) + 1) >> 1) + 7) >> 3
 
 		loadTexGfx.commands.extend([
 			DPTileSync(), # added in
@@ -1398,14 +1401,12 @@ def saveTextureLoading(fImage, loadTexGfx, clamp_S, mirror_S, clamp_T,
 				f3d.G_TX_LOADTILE - texIndex, 0, cmt, maskt, shiftt, 
 			 	cms, masks, shifts),
 			DPLoadSync(),
-			DPLoadTile(f3d.G_TX_LOADTILE - texIndex, 0, 0,
-				(fImage.width - 1) << (f3d.G_TEXTURE_IMAGE_FRAC - 1),
-				(fImage.height - 1) << f3d.G_TEXTURE_IMAGE_FRAC),])
+			DPLoadTile(f3d.G_TX_LOADTILE - texIndex, sl2, tl, sh2, th),])
 
 	else:
 		dxt = f3d.CALC_DXT(fImage.width, f3d.G_IM_SIZ_VARS[siz + '_BYTES'])
 		# Note that _LINE_BYTES and _TILE_BYTES variables are the same.
-		line = ((fImage.width * \
+		line = (((int(SH - SL) + 1) * \
 			f3d.G_IM_SIZ_VARS[siz + '_LINE_BYTES']) + 7) >> 3
 
 		loadTexGfx.commands.extend([
@@ -1429,9 +1430,7 @@ def saveTextureLoading(fImage, loadTexGfx, clamp_S, mirror_S, clamp_T,
 				f3d.G_TX_LOADTILE - texIndex, 0, cmt, maskt, shiftt, 
 			 	cms, masks, shifts),
 			DPLoadSync(),
-			DPLoadTile(f3d.G_TX_LOADTILE - texIndex, 0, 0,
-				(fImage.width - 1) << f3d.G_TEXTURE_IMAGE_FRAC,
-				(fImage.height - 1) << f3d.G_TEXTURE_IMAGE_FRAC),]) # added in
+			DPLoadTile(f3d.G_TX_LOADTILE - texIndex, sl, tl, sh, th),]) # added in
 	
 	loadTexGfx.commands.extend([
 		DPPipeSync(),
