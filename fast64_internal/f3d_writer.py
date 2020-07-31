@@ -186,7 +186,7 @@ def addUV(face, amount, uv_data):
 
 # Make sure to set original_name before calling this
 # used when duplicating an object
-def saveStaticModel(fModel, obj, transformMatrix, name, DLFormat, convertTextureData):
+def saveStaticModel(fModel, obj, transformMatrix, name, DLFormat, convertTextureData, revertMatAtEnd):
 	if len(obj.data.polygons) == 0:
 		return None
 	
@@ -216,7 +216,10 @@ def saveStaticModel(fModel, obj, transformMatrix, name, DLFormat, convertTexture
 			fModel, fMeshGroup.mesh, obj, transformMatrix, 
 			infoDict, int(obj.draw_layer_static), convertTextureData)
 	
-	revertMatAndEndDraw(fMeshGroup.mesh.draw, [])
+	if revertMatAtEnd:
+		revertMatAndEndDraw(fMeshGroup.mesh.draw, [])
+	elif fMeshGroup.mesh.draw.DLFormat != "Dynamic":
+		fMeshGroup.mesh.draw.commands.append(SPEndDisplayList())
 	return fMeshGroup
 
 def addCullCommand(obj, fMesh, transformMatrix):
@@ -404,7 +407,7 @@ def exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren, name
 
 	tempObj, meshList = combineObjects(obj, includeChildren, None, None)
 	try:
-		fMeshGroup = saveStaticModel(fModel, tempObj, transformMatrix, name, DLFormat, convertTextureData)
+		fMeshGroup = saveStaticModel(fModel, tempObj, transformMatrix, name, DLFormat, convertTextureData, True)
 		cleanupCombineObj(tempObj, meshList)
 		obj.select_set(True)
 		bpy.context.view_layer.objects.active = obj

@@ -132,6 +132,13 @@ class GeolayoutGraph:
 		for geolayout in self.sortedList:
 			for node in geolayout.nodes:
 				node.convertToDynamic()
+	
+	def getDrawLayers(self):
+		drawLayers = self.startGeolayout.getDrawLayers()
+		for obj, geolayout in self.secondaryGeolayouts.items():
+			drawLayers |= geolayout.getDrawLayers()
+
+		return drawLayers
 
 class Geolayout:
 	def __init__(self, name, isStartGeo):
@@ -185,6 +192,12 @@ class Geolayout:
 			data += node.toTextDump(0, segmentData)
 		data += endCmd + ' 00 00 00\n'
 		return data
+
+	def getDrawLayers(self):
+		drawLayers = set()
+		for node in self.nodes:
+			drawLayers |= node.getDrawLayers()
+		return drawLayers
 		
 class TransformNode:
 	def __init__(self, node):
@@ -295,6 +308,15 @@ class TransformNode:
 		elif type(self.node) is SwitchNode:
 			raise PluginError("A switch bone must have at least one child bone.")
 		return data
+
+	def getDrawLayers(self):
+		if self.node is not None and self.node.hasDL:
+			drawLayers = set([self.node.drawLayer])	
+		else:
+			drawLayers = set()
+		for child in self.children:
+			drawLayers |= child.getDrawLayers()
+		return drawLayers
 
 class SwitchOverrideNode:
 	def __init__(self, material, specificMat, drawLayer, overrideType):

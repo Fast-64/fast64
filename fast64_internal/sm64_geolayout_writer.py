@@ -157,8 +157,10 @@ def appendRevertToGeolayout(geolayoutGraph, fModel):
 		[DPSetEnvColor(0xFF, 0xFF, 0xFF, 0xFF),
 		DPSetAlphaCompare("G_AC_NONE")])
 
+	drawLayers = geolayoutGraph.getDrawLayers()
+
 	# Revert settings in each draw layer
-	for i in range(8):
+	for i in drawLayers:
 		dlNode = DisplayListNode(i)
 		dlNode.DLmicrocode = fModel.materialRevert
 
@@ -884,7 +886,7 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode,
 		if obj.data is None:
 			meshGroup = None
 		else:
-			meshGroup = saveStaticModel(fModel, obj, transformMatrix, fModel.name, fModel.DLFormat, convertTextureData)
+			meshGroup = saveStaticModel(fModel, obj, transformMatrix, fModel.name, fModel.DLFormat, convertTextureData, False)
 
 		if meshGroup is None:
 			node.hasDL = False
