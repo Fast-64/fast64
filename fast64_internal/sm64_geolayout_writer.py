@@ -752,6 +752,19 @@ def duplicateNode(transformNode, parentNode, index):
 	parentNode.children.insert(index, optionNode)
 	return optionNode
 
+def partOfGeolayout(obj):
+	useGeoEmpty = obj.data is None and \
+		(obj.sm64_obj_type == 'None' or \
+		obj.sm64_obj_type == 'Level Root' or \
+		obj.sm64_obj_type == 'Area Root' or \
+		obj.sm64_obj_type == 'Switch')
+	return isinstance(obj.data, bpy.types.Mesh) or useGeoEmpty
+
+def getSwitchChildren(areaRoot):
+	geoChildren = [child for child in areaRoot.children if partOfGeolayout(child)]
+	alphabeticalChildren = sorted(geoChildren, key = lambda childObj: childObj.original_name)
+	return alphabeticalChildren
+
 def setRooms(obj, roomIndex = None):
 	# Child objects
 	if roomIndex is not None:
@@ -761,8 +774,8 @@ def setRooms(obj, roomIndex = None):
 
 	# Area root object
 	else:
-		alphabeticalChildren = sorted(obj.children, key = lambda childObj: childObj.name)
-		for i in range(len(obj.children)):
+		alphabeticalChildren = getSwitchChildren(obj)
+		for i in range(len(alphabeticalChildren)):
 			setRooms(alphabeticalChildren[i], i + 1) # index starts at 1
 
 # This function should be called on a copy of an object
@@ -787,7 +800,9 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode,
 	#if useAreaEmpty and areaIndex is not None and obj.areaIndex != areaIndex:
 	#	return
 		
-	if not (isinstance(obj.data, bpy.types.Mesh) or useGeoEmpty) or obj.ignore_render:
+	# Its okay to return if ignore_render, because when we duplicated obj hierarchy we stripped all
+	# ignore_renders from geolayout.
+	if not partOfGeolayout(obj) or obj.ignore_render:
 		return
 
 	if isRoot:
@@ -812,8 +827,8 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode,
 		# Rooms are not set here (since this is just a copy of the original hierarchy)
 		# They should be set previously, using setRooms()
 		parentTransformNode = addParentNode(parentTransformNode, SwitchNode(switchFunc, switchParam, obj.original_name))
-		alphabeticalChildren = sorted(obj.children, key = lambda childObj: childObj.original_name)
-		for i in range(len(obj.children)):
+		alphabeticalChildren = getSwitchChildren(obj)
+		for i in range(len(alphabeticalChildren)):
 			childObj = alphabeticalChildren[i]
 			optionGeolayout = geolayoutGraph.addGeolayout(
 				childObj, fModel.name + '_' + childObj.original_name + '_geo')

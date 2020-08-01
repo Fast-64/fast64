@@ -151,6 +151,22 @@ S_SHADED_NOISE = ['NOISE', '0', 'SHADE', '0',
 					'NOISE', '0', 'SHADE', '0',
 					'0', '0', '0', 'ENVIRONMENT']
 
+# FOG SHADED TEXTURES
+S_FOG_SHADED_TEX = ['TEXEL0', '0', 'SHADE', '0',
+				'0', '0', '0', 'ENVIRONMENT',
+				'0', '0', '0', 'COMBINED',
+				'0', '0', '0', 'COMBINED']
+
+S_FOG_SHADED_TEX_CUTOUT = ['TEXEL0', '0', 'SHADE', '0',
+				'TEXEL0', '0', 'ENVIRONMENT', '0',
+				'0', '0', '0', 'COMBINED',
+				'0', '0', '0', 'COMBINED']
+
+S_FOG_PRIM_TRANSPARENT_SHADE = ['TEXEL0', '0', 'SHADE', '0',
+				'TEXEL0', '0', 'PRIMITIVE', '0',
+				'0', '0', '0', 'COMBINED',
+				'0', '0', '0', 'COMBINED']
+
 colorCombinationCommands = [
 	0x03, #load lighting data
 	0xB6, #clear geometry params

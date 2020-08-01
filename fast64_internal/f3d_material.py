@@ -1960,70 +1960,63 @@ def mat_unregister():
 
 # Presets
 sm64_unlit_texture = F3DMaterialSettings()
-sm64_unlit_texture.color_combiner = tuple(S_UNLIT_TEX + S_UNLIT_TEX)
+sm64_unlit_texture.color_combiner = tuple(S_UNLIT_TEX)
 sm64_unlit_texture.set_env = False
 
 sm64_unlit_texture_cutout = F3DMaterialSettings()
-sm64_unlit_texture_cutout.color_combiner = \
-	tuple(S_UNLIT_TEX_CUTOUT + S_UNLIT_TEX_CUTOUT)
+sm64_unlit_texture_cutout.color_combiner = tuple(S_UNLIT_TEX_CUTOUT)
 sm64_unlit_texture_cutout.set_env = False
 sm64_unlit_texture_cutout.g_cull_back = False
 
 sm64_shaded_texture = F3DMaterialSettings()
-sm64_shaded_texture.color_combiner = tuple(S_SHADED_TEX + S_SHADED_TEX)
+sm64_shaded_texture.color_combiner = tuple(S_SHADED_TEX)
 sm64_shaded_texture.set_env = False
 
 sm64_shaded_solid = F3DMaterialSettings()
-sm64_shaded_solid.color_combiner = tuple(S_SHADED_SOLID + S_SHADED_SOLID)
+sm64_shaded_solid.color_combiner = tuple(S_SHADED_SOLID)
 sm64_shaded_solid.set_env = False
 
 sm64_shaded_texture_cutout = F3DMaterialSettings()
-sm64_shaded_texture_cutout.color_combiner = \
-	tuple(S_SHADED_TEX_CUTOUT + S_SHADED_TEX_CUTOUT)
+sm64_shaded_texture_cutout.color_combiner = tuple(S_SHADED_TEX_CUTOUT)
 sm64_shaded_texture_cutout.set_env = False
 sm64_shaded_texture_cutout.g_cull_back = False
 
 sm64_unlit_env_map = F3DMaterialSettings()
-sm64_unlit_env_map.color_combiner = tuple(S_UNLIT_TEX + S_UNLIT_TEX)
+sm64_unlit_env_map.color_combiner = tuple(S_UNLIT_TEX)
 sm64_unlit_env_map.g_tex_gen = True
 sm64_unlit_env_map.set_env = False
 
 sm64_decal = F3DMaterialSettings()
-sm64_decal.color_combiner = tuple(S_UNLIT_DECAL_ON_SHADED_SOLID + \
-	S_UNLIT_DECAL_ON_SHADED_SOLID)
+sm64_decal.color_combiner = tuple(S_UNLIT_DECAL_ON_SHADED_SOLID)
 sm64_decal.set_env = False
 
 sm64_vert_colored_tex = F3DMaterialSettings()
-sm64_vert_colored_tex.color_combiner = tuple(S_VERTEX_COLORED_TEX + \
-	S_VERTEX_COLORED_TEX)
+sm64_vert_colored_tex.color_combiner = tuple(S_VERTEX_COLORED_TEX)
 sm64_vert_colored_tex.g_lighting = False
 sm64_vert_colored_tex.set_env = False
 
 sm64_vert_colored_tex_no_vert_alpha = F3DMaterialSettings()
-sm64_vert_colored_tex_no_vert_alpha.color_combiner = tuple(S_VERTEX_COLORED_TEX_NO_VERT_ALPHA + \
-	S_VERTEX_COLORED_TEX_NO_VERT_ALPHA)
+sm64_vert_colored_tex_no_vert_alpha.color_combiner = tuple(S_VERTEX_COLORED_TEX_NO_VERT_ALPHA)
 sm64_vert_colored_tex_no_vert_alpha.g_lighting = False
 sm64_vert_colored_tex_no_vert_alpha.set_env = False
 
 sm64_vert_colored_tex_transparent = F3DMaterialSettings()
-sm64_vert_colored_tex_transparent.color_combiner = tuple(S_VERTEX_COLORED_TEX_TRANSPARENT + \
-	S_VERTEX_COLORED_TEX_TRANSPARENT)
+sm64_vert_colored_tex_transparent.color_combiner = tuple(S_VERTEX_COLORED_TEX_TRANSPARENT)
 sm64_vert_colored_tex_transparent.g_lighting = False
 sm64_vert_colored_tex_transparent.set_env = False
 
 sm64_shaded_noise = F3DMaterialSettings()
-sm64_shaded_noise.color_combiner = tuple(S_SHADED_NOISE + S_SHADED_NOISE)
+sm64_shaded_noise.color_combiner = tuple(S_SHADED_NOISE)
 sm64_shaded_noise.set_env = False
 
 sm64_prim_transparent_shade = F3DMaterialSettings()
-sm64_prim_transparent_shade.color_combiner = tuple(S_PRIM_TRANSPARENT_SHADE + \
-	S_PRIM_TRANSPARENT_SHADE)
+sm64_prim_transparent_shade.color_combiner = tuple(S_PRIM_TRANSPARENT_SHADE)
 sm64_prim_transparent_shade.set_env = False
 sm64_prim_transparent_shade.g_cull_back = False
 
 sm64_fog_shaded_texture = F3DMaterialSettings()
 sm64_fog_shaded_texture.g_fog = True
-sm64_fog_shaded_texture.color_combiner = tuple(S_SHADED_TEX + S_SHADED_TEX)
+sm64_fog_shaded_texture.color_combiner = tuple(S_FOG_SHADED_TEX)
 sm64_fog_shaded_texture.set_env = False
 sm64_fog_shaded_texture.set_fog = True
 sm64_fog_shaded_texture.g_mdsft_cycletype = 'G_CYC_2CYCLE'
@@ -2034,13 +2027,13 @@ sm64_fog_shaded_texture.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
 
 sm64_fog_shaded_texture_cutout = copy.deepcopy(sm64_fog_shaded_texture)
 sm64_fog_shaded_texture_cutout.color_combiner = \
-	tuple(S_SHADED_TEX_CUTOUT + S_SHADED_TEX_CUTOUT)
+	tuple(S_FOG_SHADED_TEX_CUTOUT)
 sm64_fog_shaded_texture_cutout.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_TEX_EDGE2'
 sm64_fog_shaded_texture_cutout.g_cull_back = False
 
 sm64_fog_shaded_texture_transparent = copy.deepcopy(sm64_fog_shaded_texture)
 sm64_fog_shaded_texture_transparent.color_combiner = \
-	tuple(S_PRIM_TRANSPARENT_SHADE + S_PRIM_TRANSPARENT_SHADE)
+	tuple(S_FOG_PRIM_TRANSPARENT_SHADE)
 sm64_fog_shaded_texture_transparent.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_XLU_SURF2'
 sm64_fog_shaded_texture_transparent.g_cull_back = False
 
