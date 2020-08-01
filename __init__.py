@@ -15,7 +15,7 @@ import pstats
 bl_info = {
 	"name": "Fast64",
 	"category": "Object",
-	"blender": (2, 80, 0),
+	"blender": (2, 82, 0),
 	}
 
 axis_enums = [	
