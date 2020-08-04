@@ -150,7 +150,7 @@ class Collision:
 		data += bytearray([0x00, 0x42])
 		return data
 
-class CollisionPanel(bpy.types.Panel):
+class SM64CollisionPanel(bpy.types.Panel):
 	bl_label = "Collision Inspector"
 	bl_idname = "SM64_Collision_Inspector"
 	bl_space_type = 'PROPERTIES'
@@ -418,7 +418,7 @@ def collisionVertIndex(vert, vertArray):
 	return None
 
 col_classes = (
-	CollisionPanel,
+	SM64CollisionPanel,
 	#SM64ObjectPanel,
 )
 

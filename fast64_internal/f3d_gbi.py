@@ -1362,8 +1362,8 @@ class Vtx:
 				str(self.position[1]) + ', ' + \
 				str(self.position[2]) + ', ' + \
 				'0, ' + \
-				'0x' + format(self.uv[0], 'X') + ", " +\
-				'0x' + format(self.uv[1], 'X') + ", " +\
+				str(self.uv[0]) + ", " +\
+				str(self.uv[1]) + ", " +\
 				'0x' + format(self.colorOrNormal[0], 'X') + ', ' + \
 				'0x' + format(self.colorOrNormal[1], 'X') + ', ' + \
 				'0x' + format(self.colorOrNormal[2], 'X') + ', ' + \
