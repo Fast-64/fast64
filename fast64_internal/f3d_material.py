@@ -19,6 +19,39 @@ import copy
 # chroma key center
 # env color
 
+bitSizeDict = {
+	'G_IM_SIZ_4b' : 4,
+	'G_IM_SIZ_8b' : 8,
+	'G_IM_SIZ_16b' : 16,
+	'G_IM_SIZ_32b' : 32,
+}
+
+texBitSizeOf = {
+	'I4' : 'G_IM_SIZ_4b',
+	'IA4' : 'G_IM_SIZ_4b',
+	'CI4' : 'G_IM_SIZ_4b',
+	'I8' : 'G_IM_SIZ_8b',
+	'IA8' : 'G_IM_SIZ_8b',
+	'CI8' : 'G_IM_SIZ_8b',
+	'RGBA16' : 'G_IM_SIZ_16b',
+	'IA16' : 'G_IM_SIZ_16b',
+	'YUV16' : 'G_IM_SIZ_16b',
+	'RGBA32' : 'G_IM_SIZ_32b',
+}
+
+texFormatOf = {
+	'I4' : 'G_IM_FMT_I',
+	'IA4' : 'G_IM_FMT_IA',
+	'CI4' : 'G_IM_FMT_CI',
+	'I8' : 'G_IM_FMT_I',
+	'IA8' : 'G_IM_FMT_IA',
+	'CI8' : 'G_IM_FMT_CI',
+	'RGBA16' : 'G_IM_FMT_RGBA',
+	'IA16' : 'G_IM_FMT_IA',
+	'YUV16' : 'G_IM_FMT_YUV',
+	'RGBA32' : 'G_IM_FMT_RGBA',
+}
+
 enumTexScroll = [
 	("None", "None", "None"),
 	("Linear", "Linear", "Linear"),
@@ -26,6 +59,12 @@ enumTexScroll = [
 	("Noise", "Noise", "Noise"),
 	#("Rotation", "Rotation", "Rotation"),
 ]
+
+
+def getTmemWordUsage(texFormat, width, height):
+	texelsPerLine = 64 / bitSizeDict[texBitSizeOf[texFormat]]
+	return math.ceil(width / texelsPerLine) * height
+
 
 def F3DOrganizeLights(self, context):
 	# Flag to prevent infinite recursion on update callback
@@ -244,11 +283,13 @@ class F3DPanel(bpy.types.Panel):
 
 			tex = textureProp.tex
 			if tex is not None and tex.size[0] > 0 and tex.size[1] > 0:
-				tmemUsage = int(tex.size[0] * tex.size[1] * texBitSize[textureProp.tex_format] / 8 + 0.5)
+				tmemUsage = getTmemWordUsage(textureProp.tex_format, tex.size[0], tex.size[1]) * 8
 				tmemMax = 4096 if textureProp.tex_format[:2] != 'CI' else 2048
 				prop_input.label(text = 'TMEM Usage: ' + str(tmemUsage) + ' / ' + str(tmemMax) + ' bytes')
 				if tmemUsage > tmemMax:
-					prop_input.box().label(text = 'WARNING: Texture size is too large.')
+					tmemSizeWarning = prop_input.box()
+					tmemSizeWarning.label(text = 'WARNING: Texture size is too large.')
+					tmemSizeWarning.label(text = 'Note that width must be internally padded to 64 bit boundaries.')
 
 			prop_input.prop(textureProp, 'tex_format', text = 'Format')
 			if textureProp.tex_format[:2] == 'CI':

@@ -9,43 +9,10 @@ import copy
 from math import pi, ceil
 from .utility import *
 from .sm64_constants import *
-from .f3d_material import all_combiner_uses, getMaterialScrollDimensions
+from .f3d_material import all_combiner_uses, getMaterialScrollDimensions, getTmemWordUsage, bitSizeDict, texBitSizeOf, texFormatOf
 from .f3d_gbi import *
 from .f3d_gbi import _DPLoadTextureBlock
 from .sm64_texscroll import *
-
-bitSizeDict = {
-	'G_IM_SIZ_4b' : 4,
-	'G_IM_SIZ_8b' : 8,
-	'G_IM_SIZ_16b' : 16,
-	'G_IM_SIZ_32b' : 32,
-}
-
-texBitSizeOf = {
-	'I4' : 'G_IM_SIZ_4b',
-	'IA4' : 'G_IM_SIZ_4b',
-	'CI4' : 'G_IM_SIZ_4b',
-	'I8' : 'G_IM_SIZ_8b',
-	'IA8' : 'G_IM_SIZ_8b',
-	'CI8' : 'G_IM_SIZ_8b',
-	'RGBA16' : 'G_IM_SIZ_16b',
-	'IA16' : 'G_IM_SIZ_16b',
-	'YUV16' : 'G_IM_SIZ_16b',
-	'RGBA32' : 'G_IM_SIZ_32b',
-}
-
-texFormatOf = {
-	'I4' : 'G_IM_FMT_I',
-	'IA4' : 'G_IM_FMT_IA',
-	'CI4' : 'G_IM_FMT_CI',
-	'I8' : 'G_IM_FMT_I',
-	'IA8' : 'G_IM_FMT_IA',
-	'CI8' : 'G_IM_FMT_CI',
-	'RGBA16' : 'G_IM_FMT_RGBA',
-	'IA16' : 'G_IM_FMT_IA',
-	'YUV16' : 'G_IM_FMT_YUV',
-	'RGBA32' : 'G_IM_FMT_RGBA',
-}
 
 def getEdgeToFaceDict(mesh):
 	edgeDict = {}
@@ -336,7 +303,7 @@ def modifyDLForHUD(data):
 		#	matchResult.group(5) + ', (y << 2) + ' + \
 		#	matchResult.group(7) + ',' + data[matchResult.end(0):]
 		data = data[:matchResult.start(0)] + \
-			'gSPTextureRectangle(gDisplayListHead++, ' +\
+			'gSPScisTextureRectangle(gDisplayListHead++, ' +\
 			'xl << 2, yl << 2, xh << 2, yh << 2, ' +\
 			matchResult.group(11) + ', s << 5, t << 5, ' + data[matchResult.end(0):]
 
@@ -1319,9 +1286,7 @@ def saveTextureIndex(propName, fModel, loadTexGfx, revertTexGfx, texProp, index,
 	texName = fModel.name + '_' + \
 		(getNameFromPath(name, True) + '_' + texFormat.lower() if overrideName is None else overrideName)
 		
-
-	nextTmem = tmem + ceil(bitSizeDict[texBitSizeOf[texFormat]] * \
-		tex.size[0] * tex.size[1] / 64) 
+	nextTmem = tmem + getTmemWordUsage(texFormat, width, height)
 	
 	if not bpy.context.scene.ignoreTextureRestrictions:
 		if nextTmem > (512 if texFormat[:2] != 'CI' else 256):
