@@ -1869,13 +1869,9 @@ class ExportTexRectDrawPanel(bpy.types.Panel):
 		col.label(text = 'This is for decomp only.')
 		col.template_ID(textureProp, 'tex', new="image.new", open="image.open", unlink="image.texrect_unlink")
 		#col.prop(textureProp, 'tex')
-		if tex is not None and tex.size[0] > 0 and tex.size[1] > 0:
-			tmemUsage = int(tex.size[0] * tex.size[1] * texBitSize[textureProp.tex_format] / 8 + 0.5)
-			tmemMax = 4096 if textureProp.tex_format[:2] != 'CI' else 2048
-			col.label(text = 'TMEM Usage: ' + str(tmemUsage) + ' / ' + str(tmemMax) + ' bytes')
-			if tmemUsage > tmemMax:
-				col.box().label(text = 'WARNING: Texture size is too large.')
 
+		tmemUsageUI(col, textureProp)
+		if tex is not None and tex.size[0] > 0 and tex.size[1] > 0:
 			col.prop(textureProp, 'tex_format', text = 'Format')
 			if textureProp.tex_format[:2] == 'CI':
 				col.prop(textureProp, 'ci_format', text = 'CI Format')

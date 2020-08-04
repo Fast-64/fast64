@@ -249,6 +249,18 @@ def ui_other(settings, dataHolder, layout):
 			prop_input.prop(dataHolder, 'blend_color', text='')
 			prop_input.enabled = dataHolder.set_blend
 
+
+def tmemUsageUI(layout, textureProp):
+	tex = textureProp.tex
+	if tex is not None and tex.size[0] > 0 and tex.size[1] > 0:
+		tmemUsage = getTmemWordUsage(textureProp.tex_format, tex.size[0], tex.size[1]) * 8
+		tmemMax = 4096 if textureProp.tex_format[:2] != 'CI' else 2048
+		layout.label(text = 'TMEM Usage: ' + str(tmemUsage) + ' / ' + str(tmemMax) + ' bytes')
+		if tmemUsage > tmemMax:
+			tmemSizeWarning = layout.box()
+			tmemSizeWarning.label(text = 'WARNING: Texture size is too large.')
+			tmemSizeWarning.label(text = 'Note that width will be internally padded to 64 bit boundaries.')
+
 # UI Assumptions:
 # shading = 1
 # lighting = 1
@@ -282,14 +294,7 @@ class F3DPanel(bpy.types.Panel):
 			prop_input.enabled = textureProp.tex_set
 
 			tex = textureProp.tex
-			if tex is not None and tex.size[0] > 0 and tex.size[1] > 0:
-				tmemUsage = getTmemWordUsage(textureProp.tex_format, tex.size[0], tex.size[1]) * 8
-				tmemMax = 4096 if textureProp.tex_format[:2] != 'CI' else 2048
-				prop_input.label(text = 'TMEM Usage: ' + str(tmemUsage) + ' / ' + str(tmemMax) + ' bytes')
-				if tmemUsage > tmemMax:
-					tmemSizeWarning = prop_input.box()
-					tmemSizeWarning.label(text = 'WARNING: Texture size is too large.')
-					tmemSizeWarning.label(text = 'Note that width must be internally padded to 64 bit boundaries.')
+			tmemUsageUI(prop_input, textureProp)
 
 			prop_input.prop(textureProp, 'tex_format', text = 'Format')
 			if textureProp.tex_format[:2] == 'CI':
