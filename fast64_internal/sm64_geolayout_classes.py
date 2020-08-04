@@ -255,9 +255,7 @@ class TransformNode:
 		else:
 			data = bytearray(0)
 		if len(self.children) > 0:
-			if type(self.node) is DisplayListNode:
-				raise PluginError("A DisplayListNode cannot have children.")
-			elif type(self.node) is FunctionNode:
+			if type(self.node) is FunctionNode:
 				raise PluginError("An FunctionNode cannot have children.")
 
 			if data[0] in nodeGroupCmds:
@@ -272,14 +270,19 @@ class TransformNode:
 
 	def to_c(self, depth):
 		if self.node is not None:
-			data = depth * '\t' + self.node.to_c() + '\n'
+			nodeC = self.node.to_c()
+			if nodeC is not None: # Should only be the case for DisplayListNode with no DL
+				data = depth * '\t' + self.node.to_c() + '\n'
+			else:
+				data = ''
 		else:
 			data = ''
 		if len(self.children) > 0:
 			if type(self.node) in nodeGroupClasses:
 				data += depth * '\t' + 'GEO_OPEN_NODE(),\n'
 			for child in self.children:
-				data += child.to_c(depth + 1)
+				data += child.to_c(depth + (1 if \
+					type(self.node) in nodeGroupClasses else 0))
 			if type(self.node) in nodeGroupClasses:
 				data += depth * '\t' + 'GEO_CLOSE_NODE(),\n'
 		elif type(self.node) is SwitchNode:
@@ -703,6 +706,8 @@ class DisplayListNode:
 		return command
 
 	def to_c(self):
+		if not self.hasDL:
+			return None
 		return "GEO_DISPLAY_LIST(" + \
 			str(self.drawLayer) + ', ' +\
 			(self.DLmicrocode.name if self.hasDL else 'NULL') + '),'

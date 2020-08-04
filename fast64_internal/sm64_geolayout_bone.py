@@ -26,7 +26,7 @@ enumGeoStaticType = [
 	("Billboard", "Billboard (0x14)", "Billboard"), 
 	("DisplayListWithOffset", "Display List With Offset (0x13)", 
 		"Display List With Offset"), 
-	("TranslateRotate", "Translate Rotate (0x10)", "Translate Rotate"),
+	("Optimal", "Optimal", "Optimal"),
 ]
 
 enumDrawLayers = [
@@ -451,7 +451,7 @@ def bone_register():
 	# Static Geolayout
 	bpy.types.Object.geo_cmd_static = bpy.props.EnumProperty(
 		name = 'Geolayout Command',
-		items = enumGeoStaticType, default = 'TranslateRotate')
+		items = enumGeoStaticType, default = 'Optimal')
 	bpy.types.Object.draw_layer_static = bpy.props.EnumProperty(
 		name = 'Draw Layer', items = enumDrawLayers, default = '1')
 	bpy.types.Object.use_render_area = bpy.props.BoolProperty(

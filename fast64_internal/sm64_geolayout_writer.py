@@ -778,6 +778,30 @@ def setRooms(obj, roomIndex = None):
 		for i in range(len(alphabeticalChildren)):
 			setRooms(alphabeticalChildren[i], i + 1) # index starts at 1
 
+def isZeroRotation(rotate):
+	eulerRot = rotate.to_euler(geoNodeRotateOrder)
+	return convertEulerFloatToShort(eulerRot[0]) == 0 and \
+		convertEulerFloatToShort(eulerRot[1]) == 0 and \
+		convertEulerFloatToShort(eulerRot[2]) == 0
+
+def isZeroTranslation(translate):
+	return convertFloatToShort(translate[0]) == 0 and \
+		convertFloatToShort(translate[1]) == 0 and \
+		convertFloatToShort(translate[2]) == 0
+
+def getOptimalNode(translate, rotate, drawLayer, hasDL, zeroTranslation, zeroRotation):
+
+	if zeroRotation and zeroTranslation:
+		node = DisplayListNode(drawLayer)
+	elif zeroRotation:
+		node = TranslateNode(drawLayer, hasDL, translate)
+	elif zeroTranslation: 
+		# This case never happens as rotations are applied when hierarchy is duplicated
+		node = RotateNode(drawLayer, hasDL, rotate)
+	else:
+		node = TranslateRotateNode(drawLayer, 0, hasDL, translate, rotate)
+	return node
+
 # This function should be called on a copy of an object
 # The copy will have modifiers / scale applied and will be made single user
 def processMesh(fModel, obj, transformMatrix, parentTransformNode,
@@ -812,6 +836,8 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode,
 		translate = obj.matrix_local.decompose()[0]
 		rotate = obj.matrix_local.decompose()[1]
 	rotAxis, rotAngle = rotate.to_axis_angle()
+	zeroRotation = isZeroRotation(rotate)
+	zeroTranslation = isZeroTranslation(translate)
 
 	#translation = mathutils.Matrix.Translation(translate)
 	#rotation = rotate.to_matrix().to_4x4()
@@ -834,38 +860,41 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode,
 				childObj, fModel.name + '_' + childObj.original_name + '_geo')
 			geolayoutGraph.addJumpNode(parentTransformNode, geolayout,
 				optionGeolayout)
-			if rotAngle > 0.00001 or translate.length > 0.0001:
-				startNode = TransformNode(TranslateRotateNode(1, 0, False, translate, rotate))
+			if not zeroRotation or not zeroTranslation:
+				startNode = TransformNode(getOptimalNode(translate, rotate, 1, False,
+					zeroTranslation, zeroRotation))
 			else:
 				startNode = TransformNode(StartNode())
 			optionGeolayout.nodes.append(startNode)
 			processMesh(fModel, childObj, transformMatrix, startNode, 
 				optionGeolayout, geolayoutGraph, False, convertTextureData)
-	else:
-		geoCmd = obj.geo_cmd_static
-		if useGeoEmpty:
-			geoCmd = 'TranslateRotate'
 
-		if geoCmd == 'TranslateRotate':
-			node = TranslateRotateNode(int(obj.draw_layer_static), 0, True, translate, rotate)
-		else:
-			if rotAngle > 0.00001:
-				if geoCmd == 'Billboard':
-					node = BillboardNode(int(obj.draw_layer_static), True, 
-						mathutils.Vector((0,0,0)))
-				else:
-					node = DisplayListWithOffsetNode(int(obj.draw_layer_static), True,
-						mathutils.Vector((0,0,0)))	
-
+	else:			
+		if obj.geo_cmd_static == 'Optimal' or useGeoEmpty:
+			node = getOptimalNode(translate, rotate, int(obj.draw_layer_static), True,
+				zeroTranslation, zeroRotation)
+	
+		elif obj.geo_cmd_static == "DisplayListWithOffset":
+			if not zeroRotation:
+				node = DisplayListWithOffsetNode(int(obj.draw_layer_static), True,
+					mathutils.Vector((0,0,0)))	
+	
 				parentTransformNode = addParentNode(parentTransformNode,
 					TranslateRotateNode(1, 0, False, translate, rotate))
-
 			else:
-				if geoCmd == 'Billboard':
-					node = BillboardNode(int(obj.draw_layer_static), True, translate)
-				else:
-					node = DisplayListWithOffsetNode(int(obj.draw_layer_static), True,
-						translate)
+				node = DisplayListWithOffsetNode(int(obj.draw_layer_static), True,
+					translate)
+	
+		else: #Billboard
+			if not zeroRotation:
+				node = BillboardNode(int(obj.draw_layer_static), True, 
+					mathutils.Vector((0,0,0)))
+	
+				parentTransformNode = addParentNode(parentTransformNode,
+					TranslateRotateNode(1, 0, False, translate, rotate))
+			else:
+				node = BillboardNode(int(obj.draw_layer_static), True, translate)
+
 
 		transformNode = TransformNode(node)
 
