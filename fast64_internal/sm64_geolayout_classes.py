@@ -6,6 +6,23 @@ from .sm64_function_map import func_map
 import struct
 import copy
 
+drawLayerNames = {
+	0 : 'LAYER_FORCE',
+	1 : 'LAYER_OPAQUE',
+	2 : 'LAYER_OPAQUE_DECAL',
+	3 : 'LAYER_OPAQUE_INTER',
+	4 : 'LAYER_ALPHA',
+	5 : 'LAYER_TRANSPARENT',
+	6 : 'LAYER_TRANSPARENT_DECAL',
+	7 : 'LAYER_TRANSPARENT_INTER',
+}
+
+def getDrawLayerName(drawLayer):
+	if drawLayer in drawLayerNames:
+		return drawLayerNames[drawLayer]
+	else:
+		return str(drawLayer)
+
 def addFuncAddress(command, func):
 	try:
 		command.extend(bytes.fromhex(func))
@@ -534,7 +551,7 @@ class TranslateRotateNode:
 		if self.fieldLayout == 0:
 			return ("GEO_TRANSLATE_ROTATE_WITH_DL" if self.hasDL else \
 				"GEO_TRANSLATE_ROTATE") + "(" + \
-				str(self.drawLayer) + ', ' +\
+				getDrawLayerName(self.drawLayer) + ', ' +\
 				str(convertFloatToShort(self.translate[0])) + ', ' +\
 				str(convertFloatToShort(self.translate[1])) + ', ' +\
 				str(convertFloatToShort(self.translate[2])) + ', ' +\
@@ -548,7 +565,7 @@ class TranslateRotateNode:
 		elif self.fieldLayout == 1:
 			return ("GEO_TRANSLATE_WITH_DL" if self.hasDL else \
 				"GEO_TRANSLATE") + "(" + \
-				str(self.drawLayer) + ', ' +\
+				getDrawLayerName(self.drawLayer) + ', ' +\
 				str(convertFloatToShort(self.translate[0])) + ', ' +\
 				str(convertFloatToShort(self.translate[1])) + ', ' +\
 				str(convertFloatToShort(self.translate[2])) +\
@@ -556,7 +573,7 @@ class TranslateRotateNode:
 		elif self.fieldLayout == 2:
 			return ("GEO_ROTATE_WITH_DL" if self.hasDL else \
 				"GEO_ROTATE") + "(" + \
-				str(self.drawLayer) + ', ' +\
+				getDrawLayerName(self.drawLayer) + ', ' +\
 				str(convertEulerFloatToShort(self.rotate.to_euler(
 					geoNodeRotateOrder)[0])) + ', ' +\
 				str(convertEulerFloatToShort(self.rotate.to_euler(
@@ -567,7 +584,7 @@ class TranslateRotateNode:
 		elif self.fieldLayout == 3:
 			return ("GEO_ROTATE_Y_WITH_DL" if self.hasDL else \
 				"GEO_ROTATE_Y") + "(" + \
-				str(self.drawLayer) + ', ' +\
+				getDrawLayerName(self.drawLayer) + ', ' +\
 				str(convertEulerFloatToShort(self.rotate.to_euler(
 					geoNodeRotateOrder)[1])) +\
 				((', ' + self.DLmicrocode.name + '),') if self.hasDL else '),')
@@ -601,7 +618,7 @@ class TranslateNode:
 	def to_c(self):
 		return ("GEO_TRANSLATE_NODE_WITH_DL" if self.hasDL else \
 			"GEO_TRANSLATE_NODE") + "(" + \
-			str(self.drawLayer) + ', ' +\
+			getDrawLayerName(self.drawLayer) + ', ' +\
 			str(convertFloatToShort(self.translate[0])) + ', ' +\
 			str(convertFloatToShort(self.translate[1])) + ', ' +\
 			str(convertFloatToShort(self.translate[2])) +\
@@ -640,7 +657,7 @@ class RotateNode:
 	def to_c(self):
 		return ("GEO_ROTATION_NODE_WITH_DL" if self.hasDL else \
 			"GEO_ROTATION_NODE") + "(" + \
-			str(self.drawLayer) + ', ' +\
+			getDrawLayerName(self.drawLayer) + ', ' +\
 				str(convertEulerFloatToShort(self.rotate.to_euler(
 					geoNodeRotateOrder)[0])) + ', ' +\
 				str(convertEulerFloatToShort(self.rotate.to_euler(
@@ -678,7 +695,7 @@ class BillboardNode:
 	def to_c(self):
 		return ("GEO_BILLBOARD_WITH_PARAMS_AND_DL" if self.hasDL else \
 			"GEO_BILLBOARD_WITH_PARAMS") + "(" + \
-			str(self.drawLayer) + ', ' +\
+			getDrawLayerName(self.drawLayer) + ', ' +\
 			str(convertFloatToShort(self.translate[0])) + ', ' +\
 			str(convertFloatToShort(self.translate[1])) + ', ' +\
 			str(convertFloatToShort(self.translate[2])) +\
@@ -709,7 +726,7 @@ class DisplayListNode:
 		if not self.hasDL:
 			return None
 		return "GEO_DISPLAY_LIST(" + \
-			str(self.drawLayer) + ', ' +\
+			getDrawLayerName(self.drawLayer) + ', ' +\
 			(self.DLmicrocode.name if self.hasDL else 'NULL') + '),'
 
 class ShadowNode:
@@ -762,7 +779,7 @@ class ScaleNode:
 	
 	def to_c(self):
 		return ("GEO_SCALE_WITH_DL" if self.hasDL else "GEO_SCALE") + "(" + \
-			str(self.drawLayer) + ', ' +\
+			getDrawLayerName(self.drawLayer) + ', ' +\
 			str(int(round(self.scaleValue * 0x10000))) +\
 			((', ' + self.DLmicrocode.name + '),') if self.hasDL else '),')
 
@@ -836,7 +853,7 @@ class DisplayListWithOffsetNode:
 
 	def to_c(self):
 		return "GEO_ANIMATED_PART(" + \
-			str(self.drawLayer) + ', ' +\
+			getDrawLayerName(self.drawLayer) + ', ' +\
 			str(convertFloatToShort(self.translate[0])) + ', ' +\
 			str(convertFloatToShort(self.translate[1])) + ', ' +\
 			str(convertFloatToShort(self.translate[2])) + ', ' +\

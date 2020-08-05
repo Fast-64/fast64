@@ -1282,6 +1282,13 @@ class SM64_ExportLevel(bpy.types.Operator):
 					triggerName = cameraTriggerNames[context.scene.levelOption]
 			if not context.scene.levelCustomExport:
 				applyBasicTweaks(exportPath)
+			#cProfile.runctx('exportLevelC(obj, finalTransform,' +\
+			#	'context.scene.f3d_type, context.scene.isHWv1, levelName, exportPath,' +\
+			#	'context.scene.levelSaveTextures or bpy.context.scene.ignoreTextureRestrictions,' +\
+			#	'context.scene.levelCustomExport, triggerName, "Static")',
+			#	globals(), locals(), "E:/blender.prof")
+			#p = pstats.Stats("E:/blender.prof")
+			#p.sort_stats("cumulative").print_stats(2000)
 			exportLevelC(obj, finalTransform,
 				context.scene.f3d_type, context.scene.isHWv1, levelName, exportPath, 
 				context.scene.levelSaveTextures or bpy.context.scene.ignoreTextureRestrictions, 
