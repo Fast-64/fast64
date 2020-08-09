@@ -1104,42 +1104,42 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 		if material.rdp_settings.g_mdsft_cycletype == 'G_CYC_2CYCLE':
 			fMaterial.material.commands.append(
 				DPSetCombineMode(
-					nodes['Case A 1'].inA,
-					nodes['Case B 1'].inB,
-					nodes['Case C 1'].inC,
-					nodes['Case D 1'].inD,
-					nodes['Case A Alpha 1'].inA_alpha,
-					nodes['Case B Alpha 1'].inB_alpha,
-					nodes['Case C Alpha 1'].inC_alpha,
-					nodes['Case D Alpha 1'].inD_alpha,
-					nodes['Case A 2'].inA,
-					nodes['Case B 2'].inB,
-					nodes['Case C 2'].inC,
-					nodes['Case D 2'].inD,
-					nodes['Case A Alpha 2'].inA_alpha,
-					nodes['Case B Alpha 2'].inB_alpha,
-					nodes['Case C Alpha 2'].inC_alpha,
-					nodes['Case D Alpha 2'].inD_alpha
+					material.combiner1.A,
+					material.combiner1.B,
+					material.combiner1.C,
+					material.combiner1.D,
+					material.combiner1.A_alpha,
+					material.combiner1.B_alpha,
+					material.combiner1.C_alpha,
+					material.combiner1.D_alpha,
+					material.combiner2.A,
+					material.combiner2.B,
+					material.combiner2.C,
+					material.combiner2.D,
+					material.combiner2.A_alpha,
+					material.combiner2.B_alpha,
+					material.combiner2.C_alpha,
+					material.combiner2.D_alpha
 			))
 		else:
 			fMaterial.material.commands.append(
 				DPSetCombineMode(
-					nodes['Case A 1'].inA,
-					nodes['Case B 1'].inB,
-					nodes['Case C 1'].inC,
-					nodes['Case D 1'].inD,
-					nodes['Case A Alpha 1'].inA_alpha,
-					nodes['Case B Alpha 1'].inB_alpha,
-					nodes['Case C Alpha 1'].inC_alpha,
-					nodes['Case D Alpha 1'].inD_alpha,
-					nodes['Case A 1'].inA,
-					nodes['Case B 1'].inB,
-					nodes['Case C 1'].inC,
-					nodes['Case D 1'].inD,
-					nodes['Case A Alpha 1'].inA_alpha,
-					nodes['Case B Alpha 1'].inB_alpha,
-					nodes['Case C Alpha 1'].inC_alpha,
-					nodes['Case D Alpha 1'].inD_alpha
+					material.combiner1.A,
+					material.combiner1.B,
+					material.combiner1.C,
+					material.combiner1.D,
+					material.combiner1.A_alpha,
+					material.combiner1.B_alpha,
+					material.combiner1.C_alpha,
+					material.combiner1.D_alpha,
+					material.combiner1.A,
+					material.combiner1.B,
+					material.combiner1.C,
+					material.combiner1.D,
+					material.combiner1.A_alpha,
+					material.combiner1.B_alpha,
+					material.combiner1.C_alpha,
+					material.combiner1.D_alpha
 			))
 
 	if material.set_fog:

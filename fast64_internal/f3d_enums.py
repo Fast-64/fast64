@@ -111,6 +111,17 @@ caseTemplateDict = {
 	'Case D Alpha' : 'Fast3D_D_alpha',
 }
 
+caseTemplateDict2 = {
+	'Case A' : 'ShaderNodeValue',
+	'Case B' : 'ShaderNodeValue',
+	'Case C' : 'ShaderNodeValue',
+	'Case D' : 'ShaderNodeValue',
+	'Case A Alpha' : 'ShaderNodeValue',
+	'Case B Alpha' : 'ShaderNodeValue',
+	'Case C Alpha' : 'ShaderNodeValue',
+	'Case D Alpha' : 'ShaderNodeValue',
+}
+
 # hardware v2
 enumAlphaDither = [
 	('G_AD_PATTERN', 'Pattern', 'Pattern'),

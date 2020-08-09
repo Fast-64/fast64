@@ -55,6 +55,9 @@ The RDP default settings can be found in the properties editor under the world t
 ### F3D Materials
 Any exported mesh must use an F3D Material, which can be added by the 'Create F3D Material' button in the material inspector window. You CANNOT use regular blender materials. If you have a model with Principled BSDF materials, you can use the Principled BSDF to F3D conversion operator to automatically convert them. The image in the "Base Color" slot will be set as texture 0, while the image in the "Subsurface Color" slot will be set as texture 1. If you want the converter to use a specific material preset other than "Shaded Solid" or "Shaded Texture", add a custom property with the name "convert_preset" and set the preset name there.
 
+### Converting To F3D v2 Materials
+A new optimized shader graph was introduced to decrease processing times for material creation and exporting. If you have a project that still uses old materials, you may want to convert them to v2. To convert an old project, click the "Recreate F3D Materials As V2" operator near the top of the Fast64 tab in 3D view. This may take a while depending on the number of materials in the project. Then go to the outliner, change the display mode to "Orphan Data" (broken heart icon), then click "Purge" in the top right corner. Purge multiple times until all of the old node groups are gone.
+
 ### ROM File Settings
 When importing from a ROM, the plugin will import from the ROM at filepath 'Import ROM', When exporting to a ROM, the plugin will make a copy of the file at 'Export ROM', modify it, and save the file to 'Output ROM'. The ROM must be expanded.
 

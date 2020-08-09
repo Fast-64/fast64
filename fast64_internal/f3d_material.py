@@ -91,40 +91,39 @@ def F3DOrganizeLights(self, context):
 
 def combiner_uses(material, checkList, is2Cycle):
 	display = False
-	nodes = material.node_tree.nodes
 	for value in checkList:
-		display |= nodes['Case A 1'].inA == value
+		display |= material.combiner1.A == value
 		if is2Cycle:
-			display |= nodes['Case A 2'].inA == value
+			display |= material.combiner2.A == value
 
-		display |= nodes['Case B 1'].inB == value
+		display |= material.combiner1.B == value
 		if is2Cycle:
-			display |= nodes['Case B 2'].inB == value
+			display |= material.combiner2.B  == value
 
-		display |= nodes['Case C 1'].inC == value
+		display |= material.combiner1.C == value
 		if is2Cycle:
-			display |= nodes['Case C 2'].inC == value
+			display |= material.combiner2.C  == value
 
-		display |= nodes['Case D 1'].inD == value
+		display |= material.combiner1.D == value
 		if is2Cycle:
-			display |= nodes['Case D 2'].inD == value
+			display |= material.combiner2.D  == value
 	
 
-		display |= nodes['Case A Alpha 1'].inA_alpha == value
+		display |= material.combiner1.A_alpha == value
 		if is2Cycle:
-			display |= nodes['Case A Alpha 2'].inA_alpha == value
+			display |= material.combiner2.A_alpha == value
 
-		display |= nodes['Case B Alpha 1'].inB_alpha == value
+		display |= material.combiner1.B_alpha == value
 		if is2Cycle:
-			display |= nodes['Case B Alpha 2'].inB_alpha == value
+			display |= material.combiner2.B_alpha  == value
 
-		display |= nodes['Case C Alpha 1'].inC_alpha == value
+		display |= material.combiner1.C_alpha == value
 		if is2Cycle:
-			display |= nodes['Case C Alpha 2'].inC_alpha == value
+			display |= material.combiner2.C_alpha == value
 
-		display |= nodes['Case D Alpha 1'].inD_alpha == value
+		display |= material.combiner1.D_alpha == value
 		if is2Cycle:
-			display |= nodes['Case D Alpha 2'].inD_alpha == value
+			display |= material.combiner2.D_alpha  == value
 
 	return display
 
@@ -770,23 +769,41 @@ def update_node_values_directly(material, context):
 
 def update_node_values_of_material(material, context):
 	nodes = material.node_tree.nodes
-
-	nodes['Case A 1'].inA = material.combiner1.A
-	nodes['Case B 1'].inB = material.combiner1.B
-	nodes['Case C 1'].inC = material.combiner1.C
-	nodes['Case D 1'].inD = material.combiner1.D
-	nodes['Case A Alpha 1'].inA_alpha = material.combiner1.A_alpha
-	nodes['Case B Alpha 1'].inB_alpha = material.combiner1.B_alpha
-	nodes['Case C Alpha 1'].inC_alpha = material.combiner1.C_alpha
-	nodes['Case D Alpha 1'].inD_alpha = material.combiner1.D_alpha
-	nodes['Case A 2'].inA = material.combiner2.A
-	nodes['Case B 2'].inB = material.combiner2.B
-	nodes['Case C 2'].inC = material.combiner2.C
-	nodes['Case D 2'].inD = material.combiner2.D
-	nodes['Case A Alpha 2'].inA_alpha = material.combiner2.A_alpha
-	nodes['Case B Alpha 2'].inB_alpha = material.combiner2.B_alpha
-	nodes['Case C Alpha 2'].inC_alpha = material.combiner2.C_alpha
-	nodes['Case D Alpha 2'].inD_alpha = material.combiner2.D_alpha
+	f3dVer = F3D('F3D', False)
+	if material.mat_ver == 1:
+		nodes['Case A 1'].inA = material.combiner1.A
+		nodes['Case B 1'].inB = material.combiner1.B
+		nodes['Case C 1'].inC = material.combiner1.C
+		nodes['Case D 1'].inD = material.combiner1.D
+		nodes['Case A Alpha 1'].inA_alpha = material.combiner1.A_alpha
+		nodes['Case B Alpha 1'].inB_alpha = material.combiner1.B_alpha
+		nodes['Case C Alpha 1'].inC_alpha = material.combiner1.C_alpha
+		nodes['Case D Alpha 1'].inD_alpha = material.combiner1.D_alpha
+		nodes['Case A 2'].inA = material.combiner2.A
+		nodes['Case B 2'].inB = material.combiner2.B
+		nodes['Case C 2'].inC = material.combiner2.C
+		nodes['Case D 2'].inD = material.combiner2.D
+		nodes['Case A Alpha 2'].inA_alpha = material.combiner2.A_alpha
+		nodes['Case B Alpha 2'].inB_alpha = material.combiner2.B_alpha
+		nodes['Case C Alpha 2'].inC_alpha = material.combiner2.C_alpha
+		nodes['Case D Alpha 2'].inD_alpha = material.combiner2.D_alpha
+	elif material.mat_ver == 2:
+		nodes['Case A 1'].outputs[0].default_value = f3dVer.CCMUXDict[material.combiner1.A]
+		nodes['Case B 1'].outputs[0].default_value = f3dVer.CCMUXDict[material.combiner1.B]
+		nodes['Case C 1'].outputs[0].default_value = f3dVer.CCMUXDict[material.combiner1.C]
+		nodes['Case D 1'].outputs[0].default_value = f3dVer.CCMUXDict[material.combiner1.D]
+		nodes['Case A Alpha 1'].outputs[0].default_value = f3dVer.ACMUXDict[material.combiner1.A_alpha]
+		nodes['Case B Alpha 1'].outputs[0].default_value = f3dVer.ACMUXDict[material.combiner1.B_alpha]
+		nodes['Case C Alpha 1'].outputs[0].default_value = f3dVer.ACMUXDict[material.combiner1.C_alpha]
+		nodes['Case D Alpha 1'].outputs[0].default_value = f3dVer.ACMUXDict[material.combiner1.D_alpha]
+		nodes['Case A 2'].outputs[0].default_value = f3dVer.CCMUXDict[material.combiner2.A]
+		nodes['Case B 2'].outputs[0].default_value = f3dVer.CCMUXDict[material.combiner2.B]
+		nodes['Case C 2'].outputs[0].default_value = f3dVer.CCMUXDict[material.combiner2.C]
+		nodes['Case D 2'].outputs[0].default_value = f3dVer.CCMUXDict[material.combiner2.D]
+		nodes['Case A Alpha 2'].outputs[0].default_value = f3dVer.ACMUXDict[material.combiner2.A_alpha]
+		nodes['Case B Alpha 2'].outputs[0].default_value = f3dVer.ACMUXDict[material.combiner2.B_alpha]
+		nodes['Case C Alpha 2'].outputs[0].default_value = f3dVer.ACMUXDict[material.combiner2.C_alpha]
+		nodes['Case D Alpha 2'].outputs[0].default_value = f3dVer.ACMUXDict[material.combiner2.D_alpha]
 
 	nodes['Cycle Type'].outputs[0].default_value = 1 if \
 		material.rdp_settings.g_mdsft_cycletype == 'G_CYC_2CYCLE' else 0
@@ -839,13 +856,22 @@ def update_node_values_of_material(material, context):
 	update_tex_values_manual(material, context)
 
 def update_tex_values_field(self, fieldProperty, texCoordNode, pixelLength,
-	isTexGen, uvBasisScale, scale, autoprop, reverseValues):
+	isTexGen, uvBasisScale, scale, autoprop, reverseValues, texIndex, field):
 	clamp = fieldProperty.clamp
 	mirror = fieldProperty.mirror
 
-	texCoordNode['Clamp'].outputs[0].default_value = 1 if clamp else 0
-	texCoordNode['Mirror'].outputs[0].default_value = 1 if mirror else 0
-	texCoordNode['Normalized Half Pixel'].outputs[0].default_value = \
+	clampNode = texCoordNode['Clamp']
+	mirrorNode = texCoordNode['Mirror']
+	normHalfPixelNode = texCoordNode['Normalized Half Pixel']
+	normLNode = texCoordNode["Normalized L"]
+	normHNode = texCoordNode["Normalized H"]
+	normMaskNode = texCoordNode["Normalized Mask"]
+	shiftNode = texCoordNode['Shift']
+	scaleNode = texCoordNode['Scale']
+
+	clampNode.outputs[0].default_value = 1 if clamp else 0
+	mirrorNode.outputs[0].default_value = 1 if mirror else 0
+	normHalfPixelNode.outputs[0].default_value = \
 			1 / (2 * pixelLength)
 
 	if autoprop:
@@ -861,41 +887,88 @@ def update_tex_values_field(self, fieldProperty, texCoordNode, pixelLength,
 	shift = fieldProperty.shift
 
 	if reverseValues:
-		texCoordNode['Normalized L'].outputs[0].default_value = -L / pixelLength
+		normLNode.outputs[0].default_value = -L / pixelLength
 	else:
-		texCoordNode['Normalized L'].outputs[0].default_value = L / pixelLength
-	texCoordNode['Normalized H'].outputs[0].default_value = (H + 1)/pixelLength
-	texCoordNode['Normalized Mask'].outputs[0].default_value = \
+		normLNode.outputs[0].default_value = L / pixelLength
+	normHNode.outputs[0].default_value = (H + 1)/pixelLength
+	normMaskNode.outputs[0].default_value = \
 		(2 ** mask) / pixelLength if mask > 0 else 0
 	
-	texCoordNode['Shift'].outputs[0].default_value = shift
-	texCoordNode['Scale'].outputs[0].default_value = scale * uvBasisScale
+	shiftNode.outputs[0].default_value = shift
+	scaleNode.outputs[0].default_value = scale * uvBasisScale
+
+def setAutoProp(fieldProperty, pixelLength):
+	fieldProperty.low = 0
+	fieldProperty.high = pixelLength - 1
+	fieldProperty.mask =  math.ceil(math.log(pixelLength, 2) - 0.001)
+	#fieldProperty.mask = 0
+	fieldProperty.shift = 0
+
+def update_tex_values_field_v2(self, fieldProperty, pixelLength,
+	uvBasisScale, scale, autoprop, texIndex, field):
+
+	fieldIndex = 0 if field == 'S' else 1
+	pixelLengthAxis = pixelLength[fieldIndex]
+
+	nodes = self.node_tree.nodes
+	clampNode = nodes['Tex ' + str(texIndex) + ' Clamp']
+	mirrorNode = nodes['Tex ' + str(texIndex) + ' Mirror']
+	normHalfPixelNode = nodes['Tex ' + str(texIndex) + ' Normalized Half Pixel']
+	normLNode = nodes['Tex ' + str(texIndex) + " Normalized L"]
+	normHNode = nodes['Tex ' + str(texIndex) + " Normalized H"]
+	normMaskNode = nodes["Tex " + str(texIndex) + " Normalized Mask"]
+	shiftNode = nodes['Tex ' + str(texIndex) + ' Shift']
+	scaleNode = nodes['Tex ' + str(texIndex) + ' Scale']
+
+	clampNode.inputs[fieldIndex].default_value = 1 if fieldProperty.clamp else 0
+	mirrorNode.inputs[fieldIndex].default_value = 1 if fieldProperty.mirror else 0
+	normHalfPixelNode.inputs[fieldIndex].default_value = 1 / (2 * pixelLengthAxis)	
+
+	if autoprop:
+		setAutoProp(fieldProperty, pixelLengthAxis)
+	
+	normLNode.inputs[fieldIndex].default_value = fieldProperty.low / pixelLengthAxis * (-1 if field == 'T' else 1)
+	normHNode.inputs[fieldIndex].default_value = (fieldProperty.high + 1)/pixelLengthAxis
+	normMaskNode.inputs[fieldIndex].default_value = (2 ** fieldProperty.mask) / pixelLengthAxis if fieldProperty.mask > 0 else 0
+	shiftNode.inputs[fieldIndex].default_value = fieldProperty.shift
+	scaleNode.inputs[fieldIndex].default_value = scale[fieldIndex] * uvBasisScale[fieldIndex]
 
 def update_tex_values_index(self, context, texProperty, texNodeName, 
-	uvNodeName, isTexGen, uvBasisScale, scale):
+	uvNodeName, isTexGen, uvBasisScale, scale, texIndex):
 	nodes = self.node_tree.nodes
-
-	tex_x = nodes[uvNodeName].node_tree.nodes[\
-		'Create Tex Coord'].node_tree.nodes
-	tex_y = nodes[uvNodeName].node_tree.nodes[\
-		'Create Tex Coord.001'].node_tree.nodes
 
 	nodes[texNodeName].image = texProperty.tex
 	if nodes[texNodeName].image is not None:
 		tex_size = nodes[texNodeName].image.size
 		if tex_size[0] > 0 and tex_size[1] > 0:
-			
-			# 1024 == 2^16 / 2^6 (converting 0.16 to 10.5 fixed point)
-			nodes[uvNodeName].node_tree.nodes['Image Width Factor'].outputs[0\
-				].default_value = 1024 / tex_size[0]
-			nodes[uvNodeName].node_tree.nodes['Image Height Factor'].outputs[0\
-				].default_value = 1024 / tex_size[1]
-			update_tex_values_field(self, texProperty.S, tex_x, tex_size[0],
-				self.rdp_settings.g_tex_gen or self.rdp_settings.g_tex_gen_linear,
-				uvBasisScale[0], scale[0], texProperty.autoprop, False)
-			update_tex_values_field(self, texProperty.T, tex_y, tex_size[1],
-				self.rdp_settings.g_tex_gen or self.rdp_settings.g_tex_gen_linear,
-				uvBasisScale[1], scale[1], texProperty.autoprop, True)
+			if self.mat_ver == 1:
+				tex_x = nodes[uvNodeName].node_tree.nodes[\
+					'Create Tex Coord'].node_tree.nodes
+				tex_y = nodes[uvNodeName].node_tree.nodes[\
+					'Create Tex Coord.001'].node_tree.nodes
+				imageWidthNode = nodes[uvNodeName].node_tree.nodes['Image Width Factor']
+				imageHeightNode = nodes[uvNodeName].node_tree.nodes['Image Height Factor']
+				# 1024 == 2^16 / 2^6 (converting 0.16 to 10.5 fixed point)
+				imageWidthNode.outputs[0].default_value = 1024 / tex_size[0]
+				imageHeightNode.outputs[0].default_value = 1024 / tex_size[1]
+
+				update_tex_values_field(self, texProperty.S, tex_x, tex_size[0],
+					self.rdp_settings.g_tex_gen or self.rdp_settings.g_tex_gen_linear,
+					uvBasisScale[0], scale[0], texProperty.autoprop, False, texIndex, 'S')
+				update_tex_values_field(self, texProperty.T, tex_y, tex_size[1],
+					self.rdp_settings.g_tex_gen or self.rdp_settings.g_tex_gen_linear,
+					uvBasisScale[1], scale[1], texProperty.autoprop, True, texIndex, 'T')
+			elif self.mat_ver == 2:
+				tex_x = nodes
+				tex_y = nodes
+				imageFactorNode = nodes['Tex ' + str(texIndex) + ' Image Factor']
+				imageFactorNode.inputs[0].default_value = 1024 / tex_size[0] 
+				imageFactorNode.inputs[1].default_value = 1024 / tex_size[1]
+
+				update_tex_values_field_v2(self, texProperty.S, tex_size,
+					uvBasisScale, scale, texProperty.autoprop, texIndex, 'S')
+				update_tex_values_field_v2(self, texProperty.T, tex_size,
+					uvBasisScale, scale, texProperty.autoprop, texIndex, 'T')
 
 			texFormat = texProperty.tex_format
 			ciFormat = texProperty.ci_format
@@ -977,9 +1050,9 @@ def update_tex_values_manual(self, context):
 		uvBasisScale1 = (1,1)
 			
 	update_tex_values_index(self, context, self.tex0, 'Texture 0', 
-		'Get UV', isTexGen, uvBasisScale0, self.tex_scale)
+		'Get UV', isTexGen, uvBasisScale0, self.tex_scale, 0)
 	update_tex_values_index(self, context, self.tex1, 'Texture 1', 
-		'Get UV.001', isTexGen, uvBasisScale1, self.tex_scale)
+		'Get UV.001', isTexGen, uvBasisScale1, self.tex_scale, 1)
 
 def getMaterialScrollDimensions(material):
 	useDict = all_combiner_uses(material)
@@ -1006,12 +1079,12 @@ def update_preset(self, context):
 		material = context.material_slot.material
 		if material.f3d_preset != 'Custom':
 			materialSettings = materialPresetDict[material.f3d_preset]
-			materialSettings.applyToMaterial(material)
+			materialSettings.applyToMaterial(material, False)
 
 def update_preset_manual(material, context):
 	if material.f3d_preset != 'Custom':
 		materialSettings = materialPresetDict[material.f3d_preset]
-		materialSettings.applyToMaterial(material)
+		materialSettings.applyToMaterial(material, False)
 
 def createF3DMat(obj, preset = 'Shaded Solid', index = None):
 	material = bpy.data.materials.new('sm64_material')
@@ -1025,6 +1098,7 @@ def createF3DMat(obj, preset = 'Shaded Solid', index = None):
 			bpy.context.object.active_material_index = index
 
 	material.is_f3d = True
+	material.mat_ver = 2
 
 	material.use_nodes = True
 	material.blend_method = 'BLEND'
@@ -1037,16 +1111,22 @@ def createF3DMat(obj, preset = 'Shaded Solid', index = None):
 	nodes.remove(nodes.get('Principled BSDF'))
 	material_output = nodes.get('Material Output')
 
-	nodePos = [600, 0]
-	caseNodeDict1 = addNodeListAtWithZeroAddNode(node_tree, 
-		caseTemplateDict, *nodePos, 1)
-	
-	nodePos = [600, -1600]
-	caseNodeDict2 = addNodeListAtWithZeroAddNode(node_tree, 
-		caseTemplateDict, *nodePos, 2)
+	x = 0
+	y = 0
 
-	nodePos = [0, 0]
-	nodeDict = addNodeListAt(node_tree, {
+	uvDict = {}
+	texGenNode, x, y = addNodeAt(node_tree, 'ShaderNodeValue', 
+		'Texture Gen', x, y, 'Texture Gen', uvDict)
+	texGenLinearNode, x, y = addNodeAt(node_tree, 'ShaderNodeValue', 
+		'Texture Gen Linear', x, y, 'Texture Gen Linear', uvDict)
+
+	# Create UV nodes
+	uvNode0, x, y = createUVInputsAndGroup(node_tree, 0, x, y, uvDict.copy())
+	uvNode1, x, y = createUVInputsAndGroup(node_tree, 1, x, y, uvDict.copy())
+
+	x += 600
+	y = 0
+	nodeDict, x, y = addNodeListAt(node_tree, {
 		'Combined Color': 'ShaderNodeTexImage',
 		'Texture 0': 'ShaderNodeTexImage',
 		'Texture 1': 'ShaderNodeTexImage',
@@ -1065,10 +1145,13 @@ def createF3DMat(obj, preset = 'Shaded Solid', index = None):
 		'YUV Convert K5' : 'ShaderNodeValue', 
 		'1' : 'ShaderNodeValue', 
 		'0' : 'ShaderNodeValue', 
-		}, *nodePos)
+		}, x, y)
 
-	# create uv nodes
-	# Must be done before texture format mixes, which overwrite nodeDict
+	createGroupLink(node_tree, nodeDict['Texture 0'].inputs[0], 
+		uvNode0.outputs[0], 'NodeSocketVector', 'UV0Output')
+	createGroupLink(node_tree, nodeDict['Texture 1'].inputs[0], 
+		uvNode1.outputs[0], 'NodeSocketVector', 'UV1Output')
+
 
 	# Note: Because of modulo operations on UVs, aliasing occurs
 	# due to mipmapping when 'Linear' filtering is used. 
@@ -1076,109 +1159,57 @@ def createF3DMat(obj, preset = 'Shaded Solid', index = None):
 	# Thus 'Closest' is used instead.
 	nodes['Texture 0'].interpolation = 'Closest'
 	nodes['Texture 1'].interpolation = 'Closest'
-	
-	texGenNode, x, y = addNodeAt(node_tree, 'ShaderNodeValue', 
-		'Texture Gen', -500, -200)
-	texGenLinearNode, x, y = addNodeAt(node_tree, 'ShaderNodeValue', 
-		'Texture Gen Linear', -500, -300)
-	uvNode0 = createUVNode(node_tree, [-300, -200], 
-		texGenNode, texGenLinearNode)
-	uvNode1 = createUVNode(node_tree, [-300,-400], 
-		texGenNode, texGenLinearNode)
 
-	createGroupLink(node_tree, nodeDict['Texture 0'].inputs[0], 
-		uvNode0.outputs[0], 'NodeSocketVector', 'UV0Output')
-	createGroupLink(node_tree, nodeDict['Texture 1'].inputs[0], 
-		uvNode1.outputs[0], 'NodeSocketVector', 'UV1Output')
+	# Create texture format nodes
+	x += 300
+	y = 0
+	colorNode0, x, y = createTextureInputsAndGroup(node_tree, 0, x, y)
+	colorNode1, x, y = createTextureInputsAndGroup(node_tree, 1, x, y)
+	nodeDict["Texture 0"] = colorNode0
+	nodeDict["Texture 1"] = colorNode1
+
+	# Create cases A-D
+	x += 300
+	y = 0
+	caseNodeDict1, x, y = addNodeListAt(node_tree,
+		caseTemplateDict2, x, y, 1)
 	
-	# Add texture format mixes
-	y = createTexFormatNodes(node_tree, [300, 0], 0, nodeDict)
-	createTexFormatNodes(node_tree, [300, y], 1, nodeDict)
-	
+	caseNodeDict2, x, y = addNodeListAt(node_tree,
+		caseTemplateDict2, x, y, 2)
+
 	# create shade node
+	x += 300
+	y = 0
 	lightingNode, x, y = addNodeAt(node_tree, 'ShaderNodeValue', 
-		'Lighting', -900, 0)
+		'Lighting', x, y)
 	shadingNode, x, y = addNodeAt(node_tree, 'ShaderNodeValue', 
-		'Shading', -900, y)
+		'Shading', x, y)
 	ambientNode, x, y = addNodeAt(node_tree, 'ShaderNodeRGB', 
-		'Ambient Color', -900, y)
-	nodeDict['Shade Color'] = createShadeNode(node_tree, [-900, y], 
+		'Ambient Color', x, y)
+	nodeDict['Shade Color'] = createShadeNode(node_tree, [x, y], 
 		shadingNode, lightingNode, ambientNode)
-
-	# Create combiner nodes
-	groupNode = createNodeFinal(node_tree, caseNodeDict1, nodeDict, 
-		['Combined Color', 'Shade Color'], ['Environment Color', 'Primitive Color'], 1)
-	groupNode.location = [1200,0]
-
-	groupNode2 = createNodeFinal(node_tree, caseNodeDict2, nodeDict, 
-		['Combined Color', 'Shade Color'], ['Environment Color', 'Primitive Color'], 2)
-	groupNode2.location = [1200, -800]
-
-	createGroupLink(node_tree, groupNode2.inputs[8], 
-		groupNode.outputs[0], 'NodeSocketColor', 'CombinerColorOutput')
-	createGroupLink(node_tree, groupNode2.inputs[9], 
-		groupNode.outputs[1], 'NodeSocketFloat', 'CombinerAlphaOutput')
-
-	mixCycleNodeRGB, x, y = \
-		addNodeAt(node_tree, 'ShaderNodeMixRGB', 'Cycle Mix RGB', 1500, -600)
-	mixCycleNodeAlpha, x, y = \
-		addNodeAt(node_tree, 'ShaderNodeMixRGB', 'Cycle Mix Alpha', 1500, -900)
+	
+	x += 300
+	y = 0
+	otherDict = {}
 	cycleTypeNode, x, y = \
-		addNodeAt(node_tree, 'ShaderNodeValue', 'Cycle Type', 1500, -1200)
-	
-	createGroupLink(node_tree, mixCycleNodeRGB.inputs[1],
-		groupNode.outputs[0], None, 'CombinerColorOutput')
-	createGroupLink(node_tree, mixCycleNodeRGB.inputs[2],
-		groupNode2.outputs[0], 'NodeSocketColor', 'CombinerColorOutput2')
-	createGroupLink(node_tree, mixCycleNodeAlpha.inputs[1],
-		groupNode.outputs[1], 'NodeSocketFloat', 'CombinerAlphaOutput')
-	createGroupLink(node_tree, mixCycleNodeAlpha.inputs[2],
-		groupNode2.outputs[1], 'NodeSocketFloat', 'CombinerAlphaOutput2')
-	links.new(mixCycleNodeRGB.inputs[0], cycleTypeNode.outputs[0])
-	links.new(mixCycleNodeAlpha.inputs[0], cycleTypeNode.outputs[0])
-
+		addNodeAt(node_tree, 'ShaderNodeValue', 'Cycle Type', x, y, 'Cycle Type', otherDict)
 	cullFront, x, y = \
-		addNodeAt(node_tree, 'ShaderNodeValue', 'Cull Front', 1800, -600)
+		addNodeAt(node_tree, 'ShaderNodeValue', 'Cull Front', x, y, "Cull Front", otherDict)
 	cullBack, x, y = \
-		addNodeAt(node_tree, 'ShaderNodeValue', 'Cull Back', 1800, -800)
-	backFacing, x, y = \
-		addNodeAt(node_tree, 'ShaderNodeNewGeometry', 'Is Backfacing', 
-		1800, -1000)
-	
-	multCullFront,x,y = \
-		addNodeAt(node_tree, 'ShaderNodeMath','Multiply Cull Front', 2100, -600)
-	multCullFront.operation = 'MULTIPLY'
-	multCullBack,x,y = \
-		addNodeAt(node_tree, 'ShaderNodeMath','Multiply Cull Back', 2100, -800)
-	multCullBack.operation = 'MULTIPLY'
+		addNodeAt(node_tree, 'ShaderNodeValue', 'Cull Back', x, y, 'Cull Back', otherDict)
 
-	finalCullAlpha,x,y = \
-		addNodeAt(node_tree, 'ShaderNodeMixRGB','Cull Alpha', 2400, -600)
-
-	links.new(multCullFront.inputs[0], cullFront.outputs[0])
-	links.new(multCullBack.inputs[0], cullBack.outputs[0])
-	links.new(multCullFront.inputs[1], mixCycleNodeAlpha.outputs[0])
-	links.new(multCullBack.inputs[1], mixCycleNodeAlpha.outputs[0])
-	links.new(finalCullAlpha.inputs[0], backFacing.outputs[6])
-	links.new(finalCullAlpha.inputs[1], multCullFront.outputs[0])
-	links.new(finalCullAlpha.inputs[2], multCullBack.outputs[0])	
-
-	# Create mix shader to allow for alpha blending
-	# we cannot input alpha directly to material output, but we can mix between
-	# our final color and a completely transparent material based on alpha
-
-	material_output.location = [2100,0]
-	mixShaderNode = nodes.new('ShaderNodeMixShader')
-	mixShaderNode.location = [1800, 0]
-	clearNode = nodes.new('ShaderNodeEeveeSpecular')
-	clearNode.location = [1500, 0]
-	clearNode.inputs[4].default_value = 1 # transparency
-	links.new(mixShaderNode.inputs[2], mixCycleNodeRGB.outputs[0])
-	links.new(mixShaderNode.inputs[0], finalCullAlpha.outputs[0])
-	links.new(mixShaderNode.inputs[1], clearNode.outputs[0])
+	x += 300
+	y = 0
+	# Create combiner nodes
+	finalNode, x, y = createNodeF3D(node_tree, caseNodeDict1, caseNodeDict2, nodeDict, otherDict, [x, y])
 
 	# link new node output to material_output input
-	links.new(material_output.inputs[0], mixShaderNode.outputs[0])
+	links.new(material_output.inputs[0], finalNode.outputs[0])
+
+	x += 300
+	y = 0
+	material_output.location = [x, y]
 
 	#update_node_values_directly(material, bpy.context)
 	#update_tex_values(material, bpy.context)
@@ -1210,6 +1241,16 @@ class CreateFast3DMaterial(bpy.types.Operator):
 			createF3DMat(obj)
 			self.report({'INFO'}, 'Created new Fast3D material.')
 		return {'FINISHED'} # must return a set
+
+F3DOutputCopyList = {
+	'prim_color' : "Primitive Color", 
+	'env_color' : "Environment Color", 
+	'chroma_key_center' : "Chroma Key Center", 
+	'chroma_key_scale' : "Chroma Key Scale",
+	'lod_fraction' : "LOD Fraction",
+	'prim_lod_fraction' : "Primitive LOD Fraction",
+	'k4' : "YUV Convert K4",
+	'k5' : "YUV Convert K5"}
 
 class F3DMaterialSettings:
 
@@ -1297,7 +1338,19 @@ class F3DMaterialSettings:
 		self.blend_b1 = 'G_BL_1MA'
 		self.blend_b2 = 'G_BL_1MA'
 
-	def loadFromMaterial(self, material):
+		self.prim_color = [1,1,1,1]
+		self.env_color = [1,1,1,1]
+		self.chroma_key_center = [1,1,1,1]
+		self.chroma_key_scale = [1,1,1,1]
+		self.lod_fraction = 1
+		self.prim_lod_fraction = 1
+		self.k4 = 1
+		self.k5 = 1
+
+		self.tex0Prop = TexturePropertySettings()
+		self.tex1Prop = TexturePropertySettings()
+
+	def loadFromMaterial(self, material, includeValues):
 		if not material.is_f3d:
 			print(material.name + ' is not an f3d material.')
 			return
@@ -1320,8 +1373,6 @@ class F3DMaterialSettings:
 			material.combiner2.C_alpha,
 			material.combiner2.D_alpha,
 		)
-		self.set_texture0 = material.tex0.tex_set
-		self.set_texture1 = material.tex1.tex_set
 		self.set_prim = material.set_prim
 		self.set_lights = material.set_lights
 		self.set_env = material.set_env
@@ -1392,8 +1443,17 @@ class F3DMaterialSettings:
 		self.blend_a2 = material.rdp_settings.blend_a2
 		self.blend_b1 = material.rdp_settings.blend_b1
 		self.blend_b2 = material.rdp_settings.blend_b2
+
+		if includeValues:
+			nodes = material.node_tree.nodes
+			for name, item in F3DOutputCopyList.items():
+				if item in nodes:
+					setattr(self, name, nodes[item].outputs[0].default_value)
+			
+			self.tex0Prop.load(material.tex0)
+			self.tex1Prop.load(material.tex1)
 	
-	def applyToMaterial(self, material):
+	def applyToMaterial(self, material, includeValues):
 		if not material.is_f3d:
 			print(material.name + ' is not an f3d material.')
 			return
@@ -1416,8 +1476,6 @@ class F3DMaterialSettings:
 		material.combiner2.C_alpha = self.color_combiner[14]
 		material.combiner2.D_alpha = self.color_combiner[15]
 
-		material.tex0.tex_set = self.set_texture0
-		material.tex1.tex_set = self.set_texture1
 		material.set_prim = self.set_prim
 		material.set_lights = self.set_lights
 		material.set_env = self.set_env
@@ -1488,7 +1546,15 @@ class F3DMaterialSettings:
 			material.rdp_settings.blend_a1 = self.blend_a1
 			material.rdp_settings.blend_a2 = self.blend_a2
 			material.rdp_settings.blend_b1 = self.blend_b1
-			material.rdp_settings.blend_b2 = self.blend_b2
+			material.rdp_settings.blend_b2 = self.blend_b2\
+		
+		if includeValues:
+			nodes = material.node_tree.nodes
+			for name, item in F3DOutputCopyList.items():
+				nodes[item].outputs[0].default_value = getattr(self, name)
+			
+			self.tex0Prop.apply(material.tex0)
+			self.tex1Prop.apply(material.tex1)
 
 		update_node_values_of_material(material, bpy.context)
 		material.f3d_update_flag = False
@@ -1506,6 +1572,59 @@ class TextureFieldProperty(bpy.types.PropertyGroup):
 		update = update_tex_values, default = 5)
 	shift : bpy.props.IntProperty(min = -5, max = 10,
 		update = update_tex_values)
+
+class TexturePropertyFieldSettings:
+	def __init__(self):
+		self.clamp = False
+		self.mirror = False
+		self.low = 0
+		self.high = 32
+		self.mask = 5
+		self.shift = 0
+	
+	def load(self, texField):
+		self.clamp = texField.clamp
+		self.mirror = texField.mirror
+		self.low = texField.low
+		self.high = texField.high
+		self.mask = texField.mask
+		self.shift = texField.shift
+	
+	def apply(self, texField):
+		texField.clamp = self.clamp
+		texField.mirror = self.mirror
+		texField.low = self.low
+		texField.high = self.high
+		texField.mask = self.mask
+		texField.shift = self.shift
+
+class TexturePropertySettings:
+	def __init__(self):
+		self.tex = None
+		self.tex_format = 'RGBA16'
+		self.ci_format = 'RGBA16'
+		self.S = TexturePropertyFieldSettings()
+		self.T = TexturePropertyFieldSettings()
+		self.autoprop = True
+		self.tex_set = False
+
+	def load(self, texProp):
+		self.tex = texProp.tex
+		self.tex_format = texProp.tex_format
+		self.ci_format = texProp.ci_format
+		self.S.load(texProp.S)
+		self.T.load(texProp.T)
+		self.autoprop = texProp.autoprop
+		self.tex_set = texProp.tex_set
+	
+	def apply(self, texProp):
+		texProp.tex = self.tex
+		texProp.tex_format = self.tex_format
+		texProp.ci_format = self.ci_format
+		self.S.apply(texProp.S)
+		self.T.apply(texProp.T)
+		texProp.autoprop = self.autoprop
+		texProp.tex_set = self.tex_set
 
 class TextureProperty(bpy.types.PropertyGroup):
 	tex : bpy.props.PointerProperty(
@@ -1722,22 +1841,22 @@ class DefaultRDPSettingsPanel(bpy.types.Panel):
 # all categories in a list
 node_categories = [
 	# identifier, label, items list
-	NodeCategory('CUSTOM', 'Custom', items = [
+	F3DNodeCategory('CUSTOM', 'Custom', items = [
 		NodeItem("GetAlphaFromColor",label="Get Alpha From Color", settings={}),
 	]),
-	NodeCategory('FAST3D', "Fast3D", items=[
+	F3DNodeCategory('FAST3D', "Fast3D", items=[
 		# the node item can have additional settings,
 		# which are applied to new nodes
 		# NB: settings values are stored as string expressions,
 		# for this reason they should be converted to strings using repr()
-		NodeItem("Fast3D_A", label="A", settings={}),
-		NodeItem("Fast3D_B", label="B", settings={}),
-		NodeItem("Fast3D_C", label="C", settings={}),
-		NodeItem("Fast3D_D", label="D", settings={}),
-		NodeItem("Fast3D_A_alpha", label="A Alpha", settings={}),
-		NodeItem("Fast3D_B_alpha", label="B Alpha", settings={}),
-		NodeItem("Fast3D_C_alpha", label="C Alpha", settings={}),
-		NodeItem("Fast3D_D_alpha", label="D Alpha", settings={}),
+		NodeItem("Fast3D_A", label="A"),
+		NodeItem("Fast3D_B", label="B"),
+		NodeItem("Fast3D_C", label="C"),
+		NodeItem("Fast3D_D", label="D"),
+		NodeItem("Fast3D_A_alpha", label="A Alpha"),
+		NodeItem("Fast3D_B_alpha", label="B Alpha"),
+		NodeItem("Fast3D_C_alpha", label="C Alpha"),
+		NodeItem("Fast3D_D_alpha", label="D Alpha"),
 		'''
 		NodeItem("Test_NodeType", label="Full", settings={
 			"my_string_prop": repr("consectetur adipisicing elit"),
@@ -1907,6 +2026,7 @@ def mat_register():
 
 	# Should Set?
 	bpy.types.Material.is_f3d = bpy.props.BoolProperty()
+	bpy.types.Material.mat_ver = bpy.props.IntProperty(default = 1)
 	bpy.types.Material.f3d_update_flag = bpy.props.BoolProperty()
 	bpy.types.Material.set_prim = bpy.props.BoolProperty(default = True,
 		update = update_node_values)
