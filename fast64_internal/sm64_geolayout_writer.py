@@ -233,6 +233,8 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 		meshGeolayout = saveCameraSettingsToGeolayout(
 			geolayoutGraph, areaObj, obj, name + '_geo')
 		rootObj = areaObj
+		fModel.global_data.fog_color = areaObj.area_fog_color
+		fModel.global_data.fog_position = areaObj.area_fog_position
 	else:
 		geolayoutGraph = GeolayoutGraph(name + '_geo')
 		rootNode = TransformNode(StartNode())

@@ -1613,6 +1613,11 @@ class FTexRect:
 			data += texture.to_c_def() + '\n'
 		return data
 
+class FGlobalData:
+	def __init__(self):
+		self.fog_position = [970, 1000]
+		self.fog_color = [0,0,0,1]
+
 class FModel:
 	def __init__(self, f3dType, isHWv1, name, DLFormat):
 		self.name = name # used for texture prefixing
@@ -1629,6 +1634,7 @@ class FModel:
 		# F3D library
 		self.f3d = F3D(f3dType, isHWv1)
 		self.DLFormat = DLFormat
+		self.global_data = FGlobalData()
 	
 	def get_ptr_addresses(self, f3d):
 		addresses = []

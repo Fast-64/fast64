@@ -743,11 +743,20 @@ class SM64ObjectPanel(bpy.types.Panel):
 			camBox.label(text = 'Warning: Camera modes can be overriden by area specific camera code.')
 			camBox.label(text = 'Check the switch statment in camera_course_processing() in src/game/camera.c.')
 
+			fogBox = box.box()
+			fogInfoBox = fogBox.box()
+			fogInfoBox.label(text = 'Warning: Fog only applies to materials that:')
+			fogInfoBox.label(text = '- use fog')
+			fogInfoBox.label(text = '- have global fog enabled.')
+			prop_split(fogBox, obj, 'area_fog_color', 'Area Fog Color')
+			prop_split(fogBox, obj, 'area_fog_position', 'Area Fog Position')
+
 			if obj.areaIndex == 1 or obj.areaIndex == 2 or obj.areaIndex == 3:
 				prop_split(box, obj, 'echoLevel', 'Echo Level')
 			
 			if obj.areaIndex == 1 or obj.areaIndex == 2 or obj.areaIndex == 3 or obj.areaIndex == 4:
 				box.prop(obj, 'zoomOutOnPause')
+			
 			box.prop(obj, 'areaOverrideBG')
 			if obj.areaOverrideBG:
 				prop_split(box, obj, 'areaBGColor', 'Background Color')
@@ -1070,6 +1079,13 @@ def sm64_obj_register():
 		name = 'Clip Planes', size = 2, min = 0, default = (100, 30000)
 	)
 
+	bpy.types.Object.area_fog_color = bpy.props.FloatVectorProperty(
+		name = 'Area Fog Color', subtype='COLOR', size = 4, 
+		min = 0, max = 1, default = (0,0,0,1))
+
+	bpy.types.Object.area_fog_position = bpy.props.FloatVectorProperty(
+		name = 'Area Fog Position', size = 2, default = (970, 1000))
+
 	bpy.types.Object.areaOverrideBG = bpy.props.BoolProperty(
 		name = 'Override Background')
 
@@ -1189,6 +1205,8 @@ def sm64_obj_unregister():
 	del bpy.types.Object.screenSize
 	del bpy.types.Object.useDefaultScreenRect
 	del bpy.types.Object.clipPlanes
+	del bpy.types.Object.area_fog_color
+	del bpy.types.Object.area_fog_position
 	del bpy.types.Object.areaOverrideBG
 	del bpy.types.Object.areaBGColor
 	del bpy.types.Object.camOption

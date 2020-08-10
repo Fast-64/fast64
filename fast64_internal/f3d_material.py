@@ -722,14 +722,21 @@ class F3DPanel(bpy.types.Panel):
 			if material.rdp_settings.g_fog:
 				inputGroup = inputCol.column()
 				inputGroup.prop(material, 'set_fog', text = 'Set Fog')
-				fogGroup = inputGroup.column()
+				fogInputGroup = inputGroup.column()
+				globalFogBox = fogInputGroup.box()
+				globalFogBox.prop(material, 'use_global_fog', text = 'Use Global Fog')
+				globalFogInfoBox = globalFogBox.box()
+				globalFogInfoBox.label(text = 'Only applies to levels (area fog settings).')
+				globalFogInfoBox.label(text = 'Disable this for non-level geolayout/dl exporting.')
+				fogGroup = fogInputGroup.column()
 				fogColorGroup = fogGroup.row().split(factor = 0.5)
 				fogColorGroup.label(text = 'Fog Color')
 				fogColorGroup.prop(material, 'fog_color', text = '')
 				fogPositionGroup = fogGroup.row().split(factor = 0.5)
 				fogPositionGroup.label(text = 'Fog Range')
 				fogPositionGroup.prop(material, 'fog_position', text = '')
-				fogGroup.enabled = material.set_fog
+				fogInputGroup.enabled = material.set_fog
+				fogGroup.enabled = not material.use_global_fog
 				inputGroup.box().label(text = 'NOTE: Fog will break with draw layer overrides.')
 			
 			self.ui_procAnim(material, inputCol, 
@@ -1350,6 +1357,10 @@ class F3DMaterialSettings:
 		self.tex0Prop = TexturePropertySettings()
 		self.tex1Prop = TexturePropertySettings()
 
+		self.use_global_fog = True
+		self.fog_color = None #[0,0,0,1]
+		self.fog_position = None #[970,1000]
+
 	def loadFromMaterial(self, material, includeValues):
 		if not material.is_f3d:
 			print(material.name + ' is not an f3d material.')
@@ -1452,6 +1463,10 @@ class F3DMaterialSettings:
 			
 			self.tex0Prop.load(material.tex0)
 			self.tex1Prop.load(material.tex1)
+
+			self.use_global_fog = material.use_global_fog
+			self.fog_color = material.fog_color
+			self.fog_position = material.fog_position
 	
 	def applyToMaterial(self, material, includeValues):
 		if not material.is_f3d:
@@ -1555,6 +1570,10 @@ class F3DMaterialSettings:
 			
 			self.tex0Prop.apply(material.tex0)
 			self.tex1Prop.apply(material.tex1)
+
+			material.use_global_fog = self.use_global_fog
+			material.fog_color = self.fog_color
+			material.fog_position = self.fog_position
 
 		update_node_values_of_material(material, bpy.context)
 		material.f3d_update_flag = False
@@ -2107,6 +2126,7 @@ def mat_register():
 	bpy.types.Material.fog_position = bpy.props.IntVectorProperty(
 		name = 'Fog Range', size = 2, min = 0, max = 1000, default = (970,1000))
 	bpy.types.Material.set_fog = bpy.props.BoolProperty()
+	bpy.types.Material.use_global_fog = bpy.props.BoolProperty(default = True)
 
 	# geometry mode
 	bpy.types.Material.menu_geo = bpy.props.BoolProperty()

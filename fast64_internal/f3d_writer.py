@@ -1143,13 +1143,21 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 			))
 
 	if material.set_fog:
+		if material.use_global_fog and \
+			fModel.global_data.fog_position is not None and \
+			fModel.global_data.fog_color is not None:
+			fog_position = fModel.global_data.fog_position
+			fog_color = fModel.global_data.fog_color
+		else:
+			fog_position = material.fog_position
+			fog_color = material.fog_color
 		fMaterial.material.commands.extend([
 			DPSetFogColor(
-				int(round(material.fog_color[0] * 255)),
-				int(round(material.fog_color[1] * 255)),
-				int(round(material.fog_color[2] * 255)),
-				int(round(material.fog_color[3] * 255))),
-			SPFogPosition(material.fog_position[0], material.fog_position[1])
+				int(round(fog_color[0] * 255)),
+				int(round(fog_color[1] * 255)),
+				int(round(fog_color[2] * 255)),
+				int(round(fog_color[3] * 255))),
+			SPFogPosition(fog_position[0], fog_position[1])
 		])
 
 	useDict = all_combiner_uses(material)
