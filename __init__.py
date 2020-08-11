@@ -2095,7 +2095,7 @@ def register():
 	bpy.types.Scene.DLRAMAddr = bpy.props.StringProperty(name = 'RAM Address', 
 		default = '80000000')
 	bpy.types.Scene.DLTexDir = bpy.props.StringProperty(
-		name ='Include Path', default = 'level/bob')
+		name ='Include Path', default = 'levels/bob')
 	bpy.types.Scene.DLSaveTextures = bpy.props.BoolProperty(
 		name = 'Save Textures As PNGs (Breaks CI Textures)')
 	bpy.types.Scene.DLSeparateTextureDef = bpy.props.BoolProperty(

@@ -47,13 +47,18 @@ def getInfoDict(obj):
 		'edge' : {}, # all faces connected to an edge
 		'f3dVert' : {}, # f3d vertex of a given loop
 		'edgeValid' : {}, # bool given two faces
-		'validNeighbors' : {} # all neighbors of a face with a valid connecting edge
+		'validNeighbors' : {}, # all neighbors of a face with a valid connecting edge
+		'texDimensions' : {}, # texture dimensions for each material
 	}
 	vertDict = infoDict['vert']
 	edgeDict = infoDict['edge']
 	f3dVertDict = infoDict['f3dVert']
 	edgeValidDict = infoDict['edgeValid']
 	validNeighborDict = infoDict['validNeighbors']
+	#texSizeDict = infoDict['texDimensions']
+
+	#for material in obj.data.materials:
+	#	texSizeDict[material] = getTexDimensions(material)
 
 	mesh = obj.data
 	if len(obj.data.uv_layers) == 0:
@@ -67,7 +72,8 @@ def getInfoDict(obj):
 			raise PluginError("Object \'" + obj.name + "\' does not have a UV layer named \'UVMap.\'")
 	for face in mesh.loop_triangles:
 		validNeighborDict[face] = []
-		if mesh.materials[face.material_index] is None:
+		material = mesh.materials[face.material_index] 
+		if material is None:
 			raise PluginError("There are some faces on your mesh that are assigned to an empty material slot.")
 		for vertIndex in face.vertices:
 			if vertIndex not in vertDict:
@@ -79,6 +85,10 @@ def getInfoDict(obj):
 				edgeDict[edgeKey] = []
 			if face not in edgeDict[edgeKey]:
 				edgeDict[edgeKey].append(face)
+
+		# modify UVs here
+		#fixLargeUVs(texSizeDict[material], face, uv_data)
+
 		for loopIndex in face.loops:
 			convertInfo = LoopConvertInfo(uv_data, obj, 
 				isLightingDisabled(mesh.materials[face.material_index]))
@@ -101,55 +111,59 @@ def getInfoDict(obj):
 						validNeighborDict[otherFace].append(face)
 	return infoDict
 
-def fixLargeUVs(obj, faces, size):
-	obj.data.calc_loop_triangles()
-	obj.data.calc_normals_split()
+def fixLargeUVs(size, face, uv_data):
+	cellSize = [1024 / size[0], 1024 / size[1]]
+	minUV, maxUV = findUVBounds(face, uv_data)
+	uvOffset = [0,0]
 
-	uv_data = obj.data.uv_layers['UVMap'].data
+	for i in range(2):
+		cellRange = abs(minUV[i] - maxUV[i])
+		if cellRange > cellSize[i]: # face is too large to fix in any way
+			print(str(minUV[i]) + ' - ' + str(maxUV[i]))
+			for loopIndex in face.loops:
+				print( uv_data[loopIndex].uv)
+			return 
 
-	for face in faces:
-		rangeU = [0,0]
-		rangeV = [0,0]
-		for loopIndex in face.loops:
-			#loop = obj.data.loops[loopIndex]
-			uv = uv_data[loopIndex].uv
-			rangeU[0] = min(uv[0] * size[0], rangeU[0])
-			rangeU[1] = max(uv[0] * size[0], rangeU[1])
-			rangeV[0] = min(uv[1] * size[1], rangeV[0])
-			rangeV[1] = max(uv[1] * size[1], rangeV[1])
+		# Move UVs to -1024, 1024 bounds
+		offset = None
+		if minUV[i] < -cellSize[i]:
+			offset = ((minUV[i] - cellSize[i]) % (-cellSize[i] * 2)) + cellSize[i] - minUV[i]
+		if maxUV[i] > cellSize[i]:
+			offset = ((maxUV[i] + cellSize[i]) % (cellSize[i] * 2)) - cellSize[i] - maxUV[i]
+		if offset is not None:
+			applyOffset(minUV, maxUV, uvOffset, offset, i)
 
-		totalAmount = [0,0]
-		totalAmount[0] = handleLargeUV(rangeU, size[0]) / size[0]
-		totalAmount[1] = handleLargeUV(rangeV, size[1]) / size[1]
-		
-		if totalAmount[0] != 0 and totalAmount[1] != 0:
-			print(str(totalAmount) + " : " + str(uv_data[face.loops[0]].uv) + ", " + \
-				str(uv_data[face.loops[1]].uv) + ", " + str(uv_data[face.loops[2]].uv))
-			addUV(face, totalAmount, uv_data)
-
-def handleLargeUV(valueRange, size):
-	totalAmount = 0
-
-	if valueRange[1] > 1024:
-		amount = ceil((valueRange[1] - 1024) / size) * size + size 	
-		totalAmount -= amount
-		valueRange[0] -= amount
-		valueRange[1] -= amount
+		# Move any UVs close to or straddling edge
+		minDiff = -cellSize[i] - minUV[i]
+		maxDiff = maxUV[i] - cellSize[i]
+		if minDiff >= 0:
+			applyOffset(minUV, maxUV, uvOffset, ceil(minDiff), i)
+		if maxDiff >= 0:
+			applyOffset(minUV, maxUV, uvOffset, -ceil(maxDiff), i)
 	
-	if valueRange[0] < -1024:
-		amount = ceil(-(valueRange[0] + 1024) / size) * size + size 
-		totalAmount += amount
-		valueRange[0] += amount
-		valueRange[1] += amount
-	
-	return totalAmount
-
-def addUV(face, amount, uv_data):
 	for loopIndex in face.loops:
-		uv_data[loopIndex].uv =\
-			(uv_data[loopIndex].uv[0] + amount[0],
-			uv_data[loopIndex].uv[1] + amount[1])
+		uv_data[loopIndex].uv = \
+			(uv_data[loopIndex].uv[0] + uvOffset[0],
+			uv_data[loopIndex].uv[1] + uvOffset[1]) 
 
+	# fix straddling faces
+	# fix faces too close to edge when scrolling
+	# fix faces beyond range
+
+def applyOffset(minUV, maxUV, uvOffset, offset, i):
+	minUV[i] += offset
+	maxUV[i] += offset
+	uvOffset[i] += offset
+
+def findUVBounds(face, uv_data):
+	minUV = [None, None]
+	maxUV = [None, None]
+	for loopIndex in face.loops:
+		uv = uv_data[loopIndex].uv
+		for i in range(2):
+			minUV[i] = uv[i] if minUV[i] is None else min(minUV[i], uv[i])
+			maxUV[i] = uv[i] if maxUV[i] is None else max(maxUV[i], uv[i])
+	return minUV, maxUV
 
 # Make sure to set original_name before calling this
 # used when duplicating an object
@@ -700,7 +714,6 @@ def saveMeshByFaces(material, faces, fModel, fMesh, obj, transformMatrix,
 		return
 	fMaterial, texDimensions = \
 		saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
-	#fixLargeUVs(obj, faces, texDimensions)
 	isPointSampled = isTexturePointSampled(material)
 	exportVertexColors = isLightingDisabled(material)
 	uv_data = obj.data.uv_layers['UVMap'].data
@@ -1076,6 +1089,30 @@ def saveGeometry(obj, triList, vtxList, bFaces, bMesh,
 defaultLighting = [
 	(mathutils.Vector((1,1,1)), mathutils.Vector((1, 1, 1)).normalized()),
 	(mathutils.Vector((0.5, 0.5, 0.5)), mathutils.Vector((1, 1, 1)).normalized())]
+
+def getTexDimensions(material):
+	texDimensions0 = None
+	texDimensions1 = None
+	useDict = all_combiner_uses(material)
+	if useDict['Texture 0'] and material.tex0.tex_set:
+		if material.tex0.tex is None:
+			raise PluginError('In material \"' + material.name + '\", a texture has not been set.')
+		texDimensions0 = material.tex0.tex.size[0], material.tex0.tex.size[1]
+	if useDict['Texture 1'] and material.tex1.tex_set:
+		if material.tex1.tex is None:
+			raise PluginError('In material \"' + material.name + '\", a texture has not been set.')
+		texDimensions1 = material.tex1.tex.size[0], material.tex1.tex.size[1]
+
+	if texDimensions0 is not None and texDimensions1 is not None:
+		texDimensions = texDimensions0 if material.uv_basis == 'TEXEL0' \
+			else texDimensions1
+	elif texDimensions0 is not None:
+		texDimensions = texDimensions0
+	elif texDimensions1 is not None:
+		texDimensions = texDimensions1
+	else:
+		texDimensions = [32, 32]
+	return texDimensions
 
 def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 	if material.rdp_settings.set_rendermode:
