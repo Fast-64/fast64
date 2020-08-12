@@ -1199,11 +1199,17 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 
 	useDict = all_combiner_uses(material)
 
+	if drawLayer is not None:
+		c1 = getattr(bpy.context.scene.world, 'draw_layer_' + str(drawLayer) + '_cycle_1')
+		c2 = getattr(bpy.context.scene.world, 'draw_layer_' + str(drawLayer) + '_cycle_2')
+		defaultRM = [c1, c2]
+	else:
+		defaultRM = None
+
 	defaults = bpy.context.scene.world.rdp_defaults
 	saveGeoModeDefinition(fMaterial, material.rdp_settings, defaults)
 	saveOtherModeHDefinition(fMaterial, material.rdp_settings, defaults)
-	saveOtherModeLDefinition(fMaterial, material.rdp_settings, defaults,
-		drawLayerRenderMode[drawLayer] if drawLayer is not None else None)
+	saveOtherModeLDefinition(fMaterial, material.rdp_settings, defaults, defaultRM)
 	saveOtherDefinition(fMaterial, material, defaults)
 
 	# Set scale

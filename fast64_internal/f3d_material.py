@@ -1852,6 +1852,21 @@ class DefaultRDPSettingsPanel(bpy.types.Panel):
 		ui_lower_mode(world.rdp_defaults, world, layout)
 		ui_other(world.rdp_defaults, world, layout)
 
+		inputGroup = layout.column()
+		inputGroup.prop(world, 'menu_layers', 
+			text = 'Draw Layers', 
+			icon = 'TRIA_DOWN' if world.menu_layers else 'TRIA_RIGHT')
+		if world.menu_layers:
+			for i in range(8):
+				drawLayerUI(inputGroup, i, world)
+
+def drawLayerUI(layout, drawLayer, world):
+	box = layout.box()
+	box.label(text = 'Layer ' + str(drawLayer))
+	row = box.row()
+	row.prop(world, 'draw_layer_' + str(drawLayer) + '_cycle_1', text = '')
+	row.prop(world, 'draw_layer_' + str(drawLayer) + '_cycle_2', text = '')
+
 ### Node Categories ###
 # Node categories are a python system for automatically
 # extending the Add menu, toolbar panels and search operator.
@@ -2008,6 +2023,23 @@ def mat_register():
 	bpy.types.World.menu_upper = bpy.props.BoolProperty()
 	bpy.types.World.menu_lower = bpy.props.BoolProperty()
 	bpy.types.World.menu_other = bpy.props.BoolProperty()
+	bpy.types.World.menu_layers = bpy.props.BoolProperty()
+	bpy.types.World.draw_layer_0_cycle_1 = bpy.props.StringProperty(default = 'G_RM_ZB_OPA_SURF')
+	bpy.types.World.draw_layer_0_cycle_2 = bpy.props.StringProperty(default = 'G_RM_NOOP2')
+	bpy.types.World.draw_layer_1_cycle_1 = bpy.props.StringProperty(default = 'G_RM_AA_ZB_OPA_SURF')
+	bpy.types.World.draw_layer_1_cycle_2 = bpy.props.StringProperty(default = 'G_RM_NOOP2')
+	bpy.types.World.draw_layer_2_cycle_1 = bpy.props.StringProperty(default = 'G_RM_AA_ZB_OPA_DECAL')
+	bpy.types.World.draw_layer_2_cycle_2 = bpy.props.StringProperty(default = 'G_RM_NOOP2')
+	bpy.types.World.draw_layer_3_cycle_1 = bpy.props.StringProperty(default = 'G_RM_AA_ZB_OPA_INTER')
+	bpy.types.World.draw_layer_3_cycle_2 = bpy.props.StringProperty(default = 'G_RM_NOOP2')
+	bpy.types.World.draw_layer_4_cycle_1 = bpy.props.StringProperty(default = 'G_RM_AA_ZB_TEX_EDGE')
+	bpy.types.World.draw_layer_4_cycle_2 = bpy.props.StringProperty(default = 'G_RM_NOOP2')
+	bpy.types.World.draw_layer_5_cycle_1 = bpy.props.StringProperty(default = 'G_RM_AA_ZB_XLU_SURF')
+	bpy.types.World.draw_layer_5_cycle_2 = bpy.props.StringProperty(default = 'G_RM_NOOP2')
+	bpy.types.World.draw_layer_6_cycle_1 = bpy.props.StringProperty(default = 'G_RM_AA_ZB_XLU_DECAL')
+	bpy.types.World.draw_layer_6_cycle_2 = bpy.props.StringProperty(default = 'G_RM_NOOP2')
+	bpy.types.World.draw_layer_7_cycle_1 = bpy.props.StringProperty(default = 'G_RM_AA_ZB_XLU_INTER')
+	bpy.types.World.draw_layer_7_cycle_2 = bpy.props.StringProperty(default = 'G_RM_NOOP2')
 
 	bpy.types.Material.scale_autoprop = bpy.props.BoolProperty(
 		name = 'Auto Set Scale', default = True,
