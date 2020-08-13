@@ -726,7 +726,7 @@ class SM64_ExportGeolayoutPanel(bpy.types.Panel):
 			if not bpy.context.scene.ignoreTextureRestrictions:
 				col.prop(context.scene, 'geoSaveTextures')
 				if context.scene.geoSaveTextures:
-					if context.scene.geoExportHeaderType == 'None':
+					if context.scene.geoCustomExport:
 						prop_split(col, context.scene, 'geoTexDir', 'Texture Include Path')	
 					col.prop(context.scene, 'geoSeparateTextureDef')
 			
