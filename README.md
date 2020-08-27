@@ -133,7 +133,7 @@ Select an armature for the animation, and press 'Import/Export animation'.
 
 ### Importing/Exporting Binary Mario Animations
 Mario animations use a DMA table, which contains 8 byte entries of (offset from table start, animation size). Documentation about this table is here:
-https://dudaw.webs.com/sm64docs/sm64_marios_animation_table.txt.
+https://dudaw.webs.com/sm64docs/sm64_marios_animation_table.txt
 Basically, Mario's DMA table starts at 0x4EC000. There is an 8 byte header, and then the animation entries afterward. Thus the 'climb up ledge' DMA entry is at 0x4EC008. The first 4 bytes at that address indicate the offset from 0x4EC000 at which the actual animation exists. Thus the 'climb up ledge' animation entry address is at 0x4EC690. Using this table you can find animations you want to overwrite. Make sure the 'Is DMA Animation' option is checked and 'Is Segmented Pointer' is unchecked when importing/exporting. Check "Overwrite DMA Entry", set the start address to 4EC000 (for Mario), and set the entry address to the DMA entry obtained previously.
 
 ### Animating Existing Geolayouts
