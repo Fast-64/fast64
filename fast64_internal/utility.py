@@ -292,8 +292,7 @@ def duplicateHierarchy(obj, ignoreAttr, includeEmpties, areaIndex):
 			selectedObj.select_set(True)
 			bpy.context.view_layer.objects.active = selectedObj
 			for modifier in selectedObj.modifiers:
-				bpy.ops.object.modifier_apply(apply_as='DATA',
-					modifier=modifier.name)
+				bpy.ops.object.modifier_apply(modifier=modifier.name)
 		for selectedObj in allObjs:
 			if ignoreAttr is not None and getattr(selectedObj, ignoreAttr):
 				for child in selectedObj.children:
@@ -364,8 +363,7 @@ def combineObjects(obj, includeChildren, ignoreAttr, areaIndex):
 			selectedObj.select_set(True)
 			for modifier in selectedObj.modifiers:
 				try:
-					bpy.ops.object.modifier_apply(apply_as='DATA',
-						modifier=modifier.name)
+					bpy.ops.object.modifier_apply(modifier=modifier.name)
 				except RuntimeError as error:
 					print(str(error))
 					
