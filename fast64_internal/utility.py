@@ -461,15 +461,15 @@ def applyRotation(objList, angle, axis):
 		obj.select_set(True)
 	bpy.context.view_layer.objects.active = objList[0]
 
-	# Since 2.83 this operator rotates in the opposite direction (???)
-	direction = 1 if bpy.app.version[1] < 83 else -1
+	# On 2.83 this operator rotates in the opposite direction (???)
+	direction = 1 if bpy.app.version[1] != 83 else -1
 
 	bpy.ops.transform.rotate(value = direction * angle, orient_axis = axis)
 	bpy.ops.object.transform_apply(location = False, 
 		rotation = True, scale = True, properties =  False)
 
 def doRotation(angle, axis):
-	direction = 1 if bpy.app.version[1] < 83 else -1
+	direction = 1 if bpy.app.version[1] != 83 else -1
 	bpy.ops.transform.rotate(value = direction * angle, orient_axis = axis)
 
 def getAddressFromRAMAddress(RAMAddress):
