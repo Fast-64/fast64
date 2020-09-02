@@ -15,7 +15,7 @@ class SM64_Animation:
 		self.name = name
 		self.header = None
 		self.indices = SM64_ShortArray(name + '_indices', False)
-		self.values = SM64_ShortArray(name + '_values', False)
+		self.values = SM64_ShortArray(name + '_values', True)
 	
 	def get_ptr_offsets(self, isDMA):
 		return [12, 16] if not isDMA else []
@@ -45,8 +45,8 @@ class SM64_ShortArray:
 	def to_binary(self):
 		data = bytearray(0)
 		for short in self.shortData:
-			#print(self.name + str(short))
-			data += short.to_bytes(2, 'big', signed = self.signed)
+			# All euler values have been pre-converted to positive values, so don't care about signed.
+			data += short.to_bytes(2, 'big', signed = False)
 		return data
 	
 	def to_c(self):
@@ -104,7 +104,7 @@ class SM64_AnimationHeader:
 		return data
 
 	def to_c(self):
-		data = 'static const struct Animation ' + self.name + '[] = {\n' +\
+		data = 'static const struct Animation ' + self.name + ' = {\n' +\
 			'\t' + str(self.repetitions) + ',\n' + \
 			'\t' + str(self.marioYOffset) + ',\n' + \
 			'\t0,\n' + \
