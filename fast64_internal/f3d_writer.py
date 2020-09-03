@@ -210,7 +210,7 @@ def addCullCommand(obj, fMesh, transformMatrix):
 		fMesh.cullVertexList.vertices.append(
 			convertVertexData(obj.data, 
 				mathutils.Vector(vertexPos), [0,0], 
-				mathutils.Vector([0,0,0]), [32, 32],
+				mathutils.Vector([0,0,0,0]), [32, 32],
 				transformMatrix, False, False))
 
 
