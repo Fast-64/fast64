@@ -733,11 +733,21 @@ def saveMeshByFaces(material, faces, fModel, fMesh, obj, transformMatrix,
 	if fMaterial.revert is not None:
 		fMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
 
-def get8bitRoundedNormal(normal):
+def get8bitRoundedNormal(loop, mesh):
+	alpha_layer = mesh.vertex_colors['Alpha'].data if 'Alpha' in \
+		mesh.vertex_colors else None
+	
+	if alpha_layer is not None:
+		normalizedAColor = alpha_layer[loop.index].color
+		normalizedA = mathutils.Color(normalizedAColor[0:3]).v
+	else:
+		normalizedA = 1
+	
 	return mathutils.Vector(
-		(round(normal[0] * 128) / 128,
-		round(normal[1] * 128) / 128,
-		round(normal[2] * 128) / 128)
+		(round(loop.normal[0] * 128) / 128,
+		round(loop.normal[1] * 128) / 128,
+		round(loop.normal[2] * 128) / 128,
+		normalizedA)
 	)
 
 class LoopConvertInfo:
@@ -867,7 +877,7 @@ def getF3DVert(loop, face, convertInfo, mesh):
 	
 	return (position, uv, colorOrNormal)
 
-def getLoopNormal(loop, face, isFlatShaded):
+def getLoopNormal(loop, face, mesh, isFlatShaded):
 	# This is a workaround for flat shading not working well.
 	# Since we support custom blender normals we can now ignore this.
 	#if isFlatShaded:
@@ -875,7 +885,7 @@ def getLoopNormal(loop, face, isFlatShaded):
 	#else:
 	#	normal = -loop.normal #???
 	#return get8bitRoundedNormal(normal).freeze()
-	return get8bitRoundedNormal(loop.normal).freeze()
+	return get8bitRoundedNormal(loop, mesh).freeze()
 
 '''
 def getLoopNormalCreased(bLoop, obj):
@@ -1016,7 +1026,7 @@ def convertVertexData(mesh, loopPos, loopUV, loopColorOrNormal,
 			int(round(normal[0] * 127)).to_bytes(1, 'big', signed = True)[0],
 			int(round(normal[1] * 127)).to_bytes(1, 'big', signed = True)[0],
 			int(round(normal[2] * 127)).to_bytes(1, 'big', signed = True)[0],
-			0xFF
+			int(round(loopColorOrNormal[3] * 255)).to_bytes(1, 'big')[0],
 		]
 
 	return Vtx(position, uv, colorOrNormal)
@@ -1045,7 +1055,7 @@ def getLoopColorOrNormal(loop, face, mesh, obj, exportVertexColors):
 	if exportVertexColors:
 		return getLoopColor(loop, mesh)
 	else:
-		return getLoopNormal(loop, face, isFlatShaded)
+		return getLoopNormal(loop, face, mesh, isFlatShaded)
 
 def createTriangleCommands(triangles, useSP2Triangle):
 	triangles = copy.deepcopy(triangles)
