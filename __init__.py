@@ -40,6 +40,7 @@ enumRefreshVer = [
 	("Refresh 8", "Refresh 8", "Refresh 8"),
 	("Refresh 10", "Refresh 10", "Refresh 10"),
 	("Refresh 11", "Refresh 11", "Refresh 11"),
+	("Refresh 12", "Refresh 12", "Refresh 12"),
 ]
 
 enumHUDExportLocation = [
@@ -2312,7 +2313,7 @@ def register():
 	bpy.types.Scene.levelConvert = bpy.props.EnumProperty(
 		items = level_enums, name = 'Level', default = 'IC')
 	bpy.types.Scene.refreshVer = bpy.props.EnumProperty(
-		items = enumRefreshVer, name = 'Refresh', default = 'Refresh 11')
+		items = enumRefreshVer, name = 'Refresh', default = 'Refresh 12')
 	bpy.types.Scene.blenderToSM64Scale = bpy.props.FloatProperty(
 		name = 'Blender To SM64 Scale', default = 212.766)
 	bpy.types.Scene.decompPath = bpy.props.StringProperty(
