@@ -422,7 +422,7 @@ def exportAreaCommon(areaObj, transformMatrix, geolayout, collision, name):
 	area = SM64_Area(areaObj.areaIndex, musicSeq, areaObj.music_preset, 
 		terrainType, geolayout, collision, 
 		[areaObj.warpNodes[i].to_c() for i in range(len(areaObj.warpNodes))],
-		name + '_' + areaObj.name, areaObj.startDialog if areaObj.showStartDialog else None)
+		name, areaObj.startDialog if areaObj.showStartDialog else None)
 
 	start_process_sm64_objects(areaObj, area, transformMatrix, False)
 

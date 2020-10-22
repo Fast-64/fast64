@@ -10,11 +10,11 @@ enumSplineTypes = [
 ]
 
 class SM64Spline:
-	def __init__(self, name, splineType, speed):
+	def __init__(self, name, splineType):
 		self.name = toAlnum(name)
 		self.splineType = splineType
 		self.points = []
-		self.speed = speed
+		self.speeds = []
 	
 	def to_c(self):
 		data = ''
@@ -38,7 +38,7 @@ class SM64Spline:
 				else:
 					splineIndex = index
 				data += "\t{ " + str(splineIndex) \
-						+ ", " + str(self.speed) \
+						+ ", " + str(int(round(self.speeds[index]))) \
 						+ ", { " + str(int(round(point[0]))) \
 						+ ", " + str(int(round(point[1]))) \
 						+ ", " + str(int(round(point[2]))) \
@@ -52,8 +52,8 @@ class SM64Spline:
 				if index >= len(self.points) - 3:
 					speed = 0 # last 3 points of spline
 				else:
-					speed = self.speed
-				data += "\t{ " + str(speed) \
+					speed = self.speeds[index]
+				data += "\t{ " + str(int(round(speed))) \
 						+ ", " + str(int(round(point[0]))) \
 						+ ", " + str(int(round(point[1]))) \
 						+ ", " + str(int(round(point[2]))) \
@@ -74,12 +74,13 @@ class SM64Spline:
 			raise PluginError("Invalid SM64 spline type: " + self.splineType)
 
 def convertSplineObject(name, obj, transform):
-	sm64_spline = SM64Spline(name, obj.data.sm64_spline_type, obj.data.spline_speed)
+	sm64_spline = SM64Spline(name, obj.data.sm64_spline_type)
 
 	spline = obj.data.splines.active
 	for point in spline.points:
 		position = transform @ point.co
 		sm64_spline.points.append(position)
+		sm64_spline.speeds.append(int(round(point.radius)))
 	
 	return sm64_spline
 
@@ -123,7 +124,11 @@ class SM64SplinePanel(bpy.types.Panel):
 			prop_split(box, curve, 'sm64_spline_type', 'Spline Type')
 			if curve.sm64_spline_type == 'Cutscene' or\
 				curve.sm64_spline_type == 'Vector':
-				prop_split(box, curve, 'spline_speed', "Speed")
+				pointIndex = 0
+				for point in curve.splines.active.points:
+					if point.select:
+						prop_split(box.box(), point, 'radius', 'Point ' + str(pointIndex) + " Speed")
+					pointIndex += 1
 
 def isCurveValid(obj):
 	curve = obj.data
@@ -140,13 +145,9 @@ def sm64_spline_register():
 
 	bpy.types.Curve.sm64_spline_type = bpy.props.EnumProperty(
 		name = 'Type', items = enumSplineTypes, update = onSplineTypeSet)
-	
-	bpy.types.Curve.spline_speed = bpy.props.IntProperty(
-		name = "Speed", default = 50)
 
 def sm64_spline_unregister():
 	del bpy.types.Curve.sm64_spline_type
-	del bpy.types.Curve.spline_speed
 
 	for cls in reversed(sm64_spline_classes):
 		unregister_class(cls)
