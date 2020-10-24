@@ -370,8 +370,7 @@ def convertAnimationData(anim, armatureObj, frameEnd):
 
 		# Hacky solution to handle Z-up to Y-up conversion
 		translation = mathutils.Quaternion((1, 0, 0), math.radians(-90.0)) @ \
-			(rootBone.matrix.to_4x4().inverted() @ \
-			rootPoseBone.matrix).decompose()[0]
+			rootPoseBone.matrix.decompose()[0]
 		saveTranslationFrame(translationData, translation)
 
 		for boneIndex in range(len(animBones)):
