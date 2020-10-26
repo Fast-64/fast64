@@ -443,6 +443,8 @@ def parseLevelScript(filepath, levelName):
 		if not inArea:
 			if macroCmd[0] == 'LOAD_MIO0' or \
 				macroCmd[0] == 'LOAD_MIO0_TEXTURE' or \
+				macroCmd[0] == 'LOAD_YAY0' or \
+				macroCmd[0] == 'LOAD_YAY0_TEXTURE' or \
 				macroCmd[0] == 'LOAD_RAW':
 				levelscript.segmentLoads.append(macroCmd)
 			elif macroCmd[0] == 'JUMP_LINK':
@@ -571,14 +573,15 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 	cameraVolumeString += '\tNULL_TRIGGER\n};'
 
 	# Generate levelscript string
+	compressionFmt = bpy.context.scene.compressionFormat
 	replaceSegmentLoad(prevLevelScript, 
-		'_' + levelName + '_segment_7', 'LOAD_MIO0', 0x07)
+		'_' + levelName + '_segment_7', 'LOAD_' + compressionFmt.upper(), 0x07)
 	if usesEnvFX:
 		replaceSegmentLoad(prevLevelScript, 
-			'_effect_mio0', 'LOAD_MIO0', 0x0B)
+			'_effect_' + compressionFmt, 'LOAD_' + compressionFmt.upper(), 0x0B)
 	if not obj.useBackgroundColor:
 		replaceSegmentLoad(prevLevelScript, 
-			'_' + backgroundSegments[obj.background] + '_skybox_mio0', 'LOAD_MIO0', 0x0A)
+			'_' + backgroundSegments[obj.background] + '_skybox_' + compressionFmt, 'LOAD_' + compressionFmt.upper(), 0x0A)
 	levelscriptString = prevLevelScript.to_c(areaString)
 
 	# Remove old areas.

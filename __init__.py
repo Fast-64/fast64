@@ -60,6 +60,11 @@ enumExportHeaderType = [
 	('Level', 'Level Data', 'Headers are written to a specific level in levels/')
 ]
 
+enumCompressionFormat = [
+	('mio0', 'MIO0', 'MIO0'),
+	('yay0', 'YAY0', 'YAY0'),
+]
+
 panelSeparatorSize = 5
 
 def checkExpanded(filepath):
@@ -1958,6 +1963,7 @@ class SM64_FileSettingsPanel(bpy.types.Panel):
 		col.prop(context.scene, 'decompPath')
 		
 		prop_split(col, context.scene, 'refreshVer', 'Decomp Func Map')
+		prop_split(col, context.scene, 'compressionFormat', 'Compression Format')
 
 class SM64_AddressConvertPanel(bpy.types.Panel):
 	bl_idname = "SM64_PT_addr_conv"
@@ -2322,6 +2328,8 @@ def register():
 		name = 'Disable Scrolling Textures')
 	bpy.types.Scene.ignoreTextureRestrictions = bpy.props.BoolProperty(
 		name = 'Ignore Texture Restrictions (Breaks CI Textures)')
+	bpy.types.Scene.compressionFormat = bpy.props.EnumProperty(
+		items = enumCompressionFormat, name = 'Compression', default = 'mio0')
 
 	bpy.types.Scene.characterIgnoreSwitch = \
 		bpy.props.BoolProperty(name = 'Ignore Switch Nodes', default = True)

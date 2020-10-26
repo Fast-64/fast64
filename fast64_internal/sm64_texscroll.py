@@ -11,11 +11,12 @@ def readSegmentInfo(baseDir):
 	ldData = ldFile.read()
 	ldFile.close()
 
+	compressionFmt = bpy.context.scene.compressionFormat
 	segDict = {}
 	for matchResult in re.finditer('(?<!#define )STANDARD\_OBJECTS\(' +\
 		'(((?!\,).)*)\,\s*(((?!\,).)*)\,\s*(((?!\)).)*)\)', ldData):
 		segDict[matchResult.group(1).strip()] = \
-			('_' + matchResult.group(1) + "_mio0SegmentRomStart",
+			('_' + matchResult.group(1) + "_" + compressionFmt + "SegmentRomStart",
 			int(matchResult.group(3).strip()[2:4], 16), 
 			int(matchResult.group(5).strip()[2:4], 16))
 
