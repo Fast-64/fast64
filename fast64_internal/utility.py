@@ -464,7 +464,7 @@ def applyRotation(objList, angle, axis):
 	# On 2.83 this operator rotates in the opposite direction (???)
 	direction = 1 if bpy.app.version[1] != 83 else -1
 
-	bpy.ops.transform.rotate(value = direction * angle, orient_axis = axis)
+	bpy.ops.transform.rotate(value = direction * angle, orient_axis = axis, orient_type='GLOBAL')
 	bpy.ops.object.transform_apply(location = False, 
 		rotation = True, scale = True, properties =  False)
 
