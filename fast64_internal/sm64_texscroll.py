@@ -257,6 +257,14 @@ def createTexScrollHeadersGroup(exportDir, groupName, dataInclude):
 def writeTexScrollHeadersLevel(exportDir, includeC, includeH, groupName, scrollDefines):
 	pass
 
+def modifyTexScrollHeadersGroup(exportDir, includeC, includeH, groupName, scrollDefines, dataInclude, hasScrolling):
+	if not bpy.context.scene.disableScroll and hasScrolling:
+		writeTexScrollHeadersGroup(exportDir, includeC, includeH, 
+			groupName, scrollDefines, dataInclude)
+	else:
+		removeTexScrollHeadersGroup(exportDir, includeC, includeH, 
+			groupName, scrollDefines, dataInclude)
+
 def writeTexScrollHeadersGroup(exportDir, includeC, includeH, groupName, scrollDefines, dataInclude):
 
 	# Create group scroll files
@@ -307,6 +315,66 @@ def writeTexScrollHeadersGroup(exportDir, includeC, includeH, groupName, scrollD
 		groupFileC.write(groupDataC)
 		groupFileC.close()
 
+def removeTexScrollHeadersGroup(exportDir, includeC, includeH, groupName, scrollDefines, dataInclude):
+	
+	includeH += '\n'
+	includeC += '\n'
+
+
+	# Remove include from group inc.h
+	groupPathH = os.path.join(exportDir, 'src/game/texscroll/' + groupName + '_texscroll.inc.h')
+	if os.path.exists(groupPathH):
+		groupFileH = open(groupPathH, 'r', newline = '\n')
+		groupDataH = groupFileH.read()
+		groupFileH.close()
+
+		if includeH in groupDataH:
+			groupDataH = groupDataH.replace(includeH, '')
+			groupFileH = open(groupPathH, 'w', newline = '\n')
+			groupFileH.write(groupDataH)
+			groupFileH.close()
+
+	# Remove include and function call from group inc.c
+	groupPathC = os.path.join(exportDir, 'src/game/texscroll/' + groupName + '_texscroll.inc.c')
+	if os.path.exists(groupPathC):
+		groupFileC = open(groupPathC, 'r', newline = '\n')
+		groupDataC = groupFileC.read()
+		groupFileC.close()
+		originalGroupDataC = groupDataC
+
+		if includeC in groupDataC:
+			groupDataC = groupDataC.replace(includeC, '')
+		
+		scrollFunction = scrollDefines.split('extern void ')[-1]
+		matchResult = re.search('void\s*scroll\_textures\_' + re.escape(groupName) + \
+			'\s*\(\)\s*{\s*' + '(((?!\}).)*)\}', groupDataC, re.DOTALL)
+		if matchResult:
+			functionCalls = matchResult.group(1)
+			functionCalls = functionCalls.replace(scrollFunction, '')
+			groupDataC = groupDataC[:matchResult.start(1)] + functionCalls + \
+				groupDataC[matchResult.end(1):]
+			print(groupDataC)
+
+		if originalGroupDataC != groupDataC:
+			groupFileC = open(groupPathC, 'w', newline = '\n')
+			groupFileC.write(groupDataC)
+			groupFileC.close()
+
+
+def modifyTexScrollFiles(exportDir, assetDir, header, data, hasScrolling):
+	print("MODIFY " + header)
+	if not bpy.context.scene.disableScroll and hasScrolling:
+		writeTexScrollFiles(exportDir, assetDir, header, data)
+	else:
+		removeTexScrollFiles(exportDir, assetDir)
+
+def removeTexScrollFiles(exportDir, assetDir):
+	texscrollCPath = os.path.join(assetDir, 'texscroll.inc.c')
+	texscrollHPath = os.path.join(assetDir, 'texscroll.inc.h')
+	if os.path.exists(texscrollCPath):
+		os.remove(texscrollCPath)
+	if os.path.exists(texscrollHPath):
+		os.remove(texscrollHPath)
 
 def writeTexScrollFiles(exportDir, assetDir, header, data):
 	texscrollCPath = os.path.join(assetDir, 'texscroll.inc.c')

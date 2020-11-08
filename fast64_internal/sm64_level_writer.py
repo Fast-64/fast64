@@ -595,7 +595,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 				shutil.rmtree(os.path.join(levelDir, f))
 	
 	static_data, dynamic_data, texC, scroll_data = fModel.to_c(savePNG, savePNG, 'levels/' + levelName, levelName)
-	headerStatic, headerDynamic, headerScroll = fModel.to_c_def(levelName)
+	headerStatic, headerDynamic, headerScroll, hasScrolling = fModel.to_c_def(levelName)
 	if savePNG:
 		levelDataString =  '#include "levels/' + levelName + '/texture_include.inc.c"\n' + levelDataString
 		fModel.save_textures(levelDir)
@@ -605,8 +605,8 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 		texFile.write(texC)
 		texFile.close()
 
-	if not bpy.context.scene.disableScroll:
-		writeTexScrollFiles(exportDir, levelDir, headerScroll, scroll_data)
+	
+	modifyTexScrollFiles(exportDir, levelDir, headerScroll, scroll_data, hasScrolling)
 
 	# Write materials
 	if DLFormat == "Static":
@@ -737,9 +737,8 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 		texscrollGroup = levelName
 		texscrollGroupInclude = '#include "levels/' + levelName + '/header.h"'
 
-		if not bpy.context.scene.disableScroll:
-			writeTexScrollHeadersGroup(exportDir, texscrollIncludeC, texscrollIncludeH, 
-				texscrollGroup, headerScroll, texscrollGroupInclude)
+		modifyTexScrollHeadersGroup(exportDir, texscrollIncludeC, texscrollIncludeH, 
+			texscrollGroup, headerScroll, texscrollGroupInclude, hasScrolling)
 
 def addGeoC(levelName):
 	header = \

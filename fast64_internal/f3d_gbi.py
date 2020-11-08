@@ -1781,6 +1781,9 @@ class FModel:
 			static_data += meshStatic
 			dynamic_data += meshDynamic
 			scroll_data += meshScroll
+
+		hasScrolling = len(scroll_data) > 0
+
 		if scrollName is not None:
 			# Not a typo, scrollName = None is used for to_c() to call all function our main one.
 			# scollName != None is used for the actual to_c_def(), which only needs that main function.
@@ -1788,7 +1791,7 @@ class FModel:
 			scroll_data = '\nextern void scroll_' + scrollName + '();\n'
 		if self.materialRevert is not None:
 			dynamic_data += self.materialRevert.to_c_def()
-		return (static_data + '\n'), (dynamic_data + '\n'), (scroll_data + '\n')
+		return (static_data + '\n'), (dynamic_data + '\n'), (scroll_data + '\n'), hasScrolling
 
 class FMeshGroup:
 	def __init__(self, name, mesh, skinnedMesh, DLFormat):

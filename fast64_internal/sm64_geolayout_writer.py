@@ -300,7 +300,7 @@ def saveGeolayoutC(geoName, dirName, geolayoutGraph, fModel, exportDir, texDir, 
 	elif headerType == 'Level':
 		scrollName = levelName + '_level_geo_' + dirName
 	static_data, dynamic_data, texC, scroll_data = fModel.to_c(texSeparate, savePNG, texDir, scrollName)
-	cDefineStatic, cDefineDynamic, cDefineScroll = fModel.to_c_def(scrollName)
+	cDefineStatic, cDefineDynamic, cDefineScroll, hasScrolling = fModel.to_c_def(scrollName)
 	geolayoutGraph.startGeolayout.name = geoName
 
 	# Handle cases where geolayout name != folder name + _geo
@@ -344,8 +344,7 @@ def saveGeolayoutC(geoName, dirName, geolayoutGraph, fModel, exportDir, texDir, 
 		matHInclude = '#include "levels/' + levelName + '/' + dirName + '/material.inc.h"'
 		headerInclude = '#include "levels/' + levelName + '/' + dirName + '/geo_header.h"'
 	
-	if not bpy.context.scene.disableScroll:
-		writeTexScrollFiles(exportDir, geoDirPath, cDefineScroll, scroll_data)
+	modifyTexScrollFiles(exportDir, geoDirPath, cDefineScroll, scroll_data, hasScrolling)
 	
 	if DLFormat == "Static":
 		static_data += '\n' + dynamic_data
@@ -459,9 +458,8 @@ def saveGeolayoutC(geoName, dirName, geolayoutGraph, fModel, exportDir, texDir, 
 			texscrollGroup = levelName
 			texscrollGroupInclude = '#include "levels/' + levelName + '/header.h"'
 
-		if not bpy.context.scene.disableScroll:
-			writeTexScrollHeadersGroup(exportDir, texscrollIncludeC, texscrollIncludeH, 
-				texscrollGroup, cDefineScroll, texscrollGroupInclude)
+		modifyTexScrollHeadersGroup(exportDir, texscrollIncludeC, texscrollIncludeH, 
+			texscrollGroup, cDefineScroll, texscrollGroupInclude, hasScrolling)
 		
 		if DLFormat != "Static": # Change this
 			writeMaterialHeaders(exportDir, matCInclude, matHInclude)
