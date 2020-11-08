@@ -35,7 +35,7 @@ def convertF3DtoV2(obj, index, material, materialDict):
 	f3dMat = createF3DMat(obj, preset = material.f3d_preset, index = index)
 	matSettings = F3DMaterialSettings()
 	matSettings.loadFromMaterial(material, True)
-	matSettings.applyToMaterial(f3dMat, True)
+	matSettings.applyToMaterial(f3dMat, True, update_node_values_of_material, bpy.context)
 
 	colSettings = CollisionSettings()
 	colSettings.load(material)
