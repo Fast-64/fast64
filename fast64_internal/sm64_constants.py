@@ -212,7 +212,7 @@ draw_layer_enums = [
 ]
 
 level_enums = [
-	("HH" ,  "Haunted House" , "HH" ),
+	("HH" ,  "Big Boo's Haunt" , "HH" ), # Originally Haunted House
 	("CCM",  "Cool Cool Mountain" , "CCM"),
 	("IC" ,  "Inside Castle" , "IC" ),
 	("HMC",  "Hazy Maze Cave" , "HMC"),
