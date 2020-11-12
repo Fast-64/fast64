@@ -544,6 +544,9 @@ def get_act_string(obj):
 	if obj.sm64_obj_use_act1 and obj.sm64_obj_use_act2 and obj.sm64_obj_use_act3 and \
 		obj.sm64_obj_use_act4 and obj.sm64_obj_use_act5 and obj.sm64_obj_use_act6:
 		return 0x1F
+	elif not obj.sm64_obj_use_act1 and not obj.sm64_obj_use_act2 and not obj.sm64_obj_use_act3 and \
+		not obj.sm64_obj_use_act4 and not obj.sm64_obj_use_act5 and not obj.sm64_obj_use_act6:
+		return 0
 	else:
 		data = ''
 		if obj.sm64_obj_use_act1:
