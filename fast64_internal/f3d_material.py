@@ -1556,7 +1556,7 @@ def getOptimalFormat(tex):
 				pixelValues.append(pixelColor)
 	
 	if isGreyscale:
-		if tex.size[0] * tex.size[1] >= 4096:
+		if tex.size[0] * tex.size[1] > 4096:
 			if not hasAlpha1bit:
 				texFormat = 'I4'
 			else:
