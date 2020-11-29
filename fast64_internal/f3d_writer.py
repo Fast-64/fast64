@@ -1124,7 +1124,7 @@ def getTexDimensions(material):
 	return texDimensions
 
 def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
-	areaKey = fModel.global_data.getCurrentAreaKey()
+	areaKey = fModel.global_data.getCurrentAreaKey(material)
 	areaIndex = fModel.global_data.current_area_index
 	if material.rdp_settings.set_rendermode:
 		if (material, drawLayer, areaKey) in fModel.materials:
@@ -1328,7 +1328,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 		fMaterial.revert = None
 	
 	materialKey = material, (drawLayer if material.rdp_settings.set_rendermode else None), \
-		fModel.global_data.getCurrentAreaKey()
+		fModel.global_data.getCurrentAreaKey(material)
 	fModel.materials[materialKey] = (fMaterial, texDimensions)
 
 	return fMaterial, texDimensions

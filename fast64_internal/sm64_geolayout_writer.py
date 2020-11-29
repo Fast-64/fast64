@@ -1778,7 +1778,7 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj,
 			drawLayerKey = drawLayer
 		else:
 			drawLayerKey = None
-		fMaterial, texDimensions = fModel.materials[(material, drawLayerKey, fModel.global_data.getCurrentAreaKey())]
+		fMaterial, texDimensions = fModel.materials[(material, drawLayerKey, fModel.global_data.getCurrentAreaKey(material))]
 		isPointSampled = isTexturePointSampled(material)
 		exportVertexColors = isLightingDisabled(material)
 

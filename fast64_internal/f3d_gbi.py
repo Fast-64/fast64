@@ -1628,6 +1628,9 @@ class FFogData:
 	
 	def makeKey(self):
 		return (self.position, self.color)
+
+	def requiresKey(self, material):
+		return material.set_fog and material.use_global_fog
 		
 class FAreaData:
 	def __eq__(self, other):
@@ -1638,6 +1641,9 @@ class FAreaData:
 
 	def makeKey(self):
 		return self.fog_data.makeKey()
+	
+	def requiresKey(self, material):
+		return self.fog_data.requiresKey(material)
 
 class FGlobalData:
 	def __init__(self):
@@ -1657,8 +1663,12 @@ class FGlobalData:
 		else:
 			return self.area_data[self.current_area_index]
 	
-	def getCurrentAreaKey(self):
+	def getCurrentAreaKey(self, material):
 		if len(self.area_data) == 0:
+			return None
+		# No need to have area specific variants of a material if they don't use global fog.
+		# Without this, a non-global-fog material used across areas will have redefined duplicate light names.
+		elif not self.area_data[self.current_area_index].requiresKey(material):
 			return None
 		else:
 			return self.area_data[self.current_area_index].makeKey()
