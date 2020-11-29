@@ -1124,16 +1124,20 @@ def getTexDimensions(material):
 	return texDimensions
 
 def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
+	areaKey = fModel.global_data.getCurrentAreaKey()
+	areaIndex = fModel.global_data.current_area_index
 	if material.rdp_settings.set_rendermode:
-		if (material, drawLayer) in fModel.materials:
-			return fModel.materials[(material, drawLayer)]
-	elif (material, None) in fModel.materials:
-		return fModel.materials[(material, None)]
+		if (material, drawLayer, areaKey) in fModel.materials:
+			return fModel.materials[(material, drawLayer, areaKey)]
+	elif (material, None, areaKey) in fModel.materials:
+		return fModel.materials[(material, None, areaKey)]
 	
 	if len(obj.data.materials) == 0:
 		raise PluginError("Mesh must have at least one material.")
 	materialName = fModel.name + "_" + toAlnum(material.name) + (('_layer' + str(drawLayer)) \
-		if material.rdp_settings.set_rendermode and drawLayer is not None else '') 
+		if material.rdp_settings.set_rendermode and drawLayer is not None else '') +\
+		(('_area' + str(areaIndex)) if \
+			material.set_fog and material.use_global_fog and areaKey is not None else '')
 	fMaterial = FMaterial(materialName, "Static" if fModel.DLFormat == "Static" else "Dynamic")
 	fMaterial.material.commands.append(DPPipeSync())
 	fMaterial.revert.commands.append(DPPipeSync())
@@ -1189,11 +1193,10 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 			))
 
 	if material.set_fog:
-		if material.use_global_fog and \
-			fModel.global_data.fog_position is not None and \
-			fModel.global_data.fog_color is not None:
-			fog_position = fModel.global_data.fog_position
-			fog_color = fModel.global_data.fog_color
+		if material.use_global_fog and fModel.global_data.getCurrentAreaData() is not None:
+			fogData = fModel.global_data.getCurrentAreaData().fog_data
+			fog_position = fogData.position
+			fog_color = fogData.color
 		else:
 			fog_position = material.fog_position
 			fog_color = material.fog_color
@@ -1324,7 +1327,8 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 	else:
 		fMaterial.revert = None
 	
-	materialKey = material, (drawLayer if material.rdp_settings.set_rendermode else None)
+	materialKey = material, (drawLayer if material.rdp_settings.set_rendermode else None), \
+		fModel.global_data.getCurrentAreaKey()
 	fModel.materials[materialKey] = (fMaterial, texDimensions)
 
 	return fMaterial, texDimensions
@@ -1674,7 +1678,6 @@ def saveOrGetTextureDefinition(fModel, image, imageName, texFormat, convertTextu
 	return fImage
 
 def saveLightsDefinition(fModel, material, lightsName):
-	
 	lights = Lights(toAlnum(lightsName))
 
 	if material.use_default_lighting:

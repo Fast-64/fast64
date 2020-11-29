@@ -1133,7 +1133,7 @@ def sm64_obj_register():
 		name = 'Zoom Out On Pause', default = True)
 
 	bpy.types.Object.areaIndex = bpy.props.IntProperty(name = 'Index',
-		min = 1, default = 1)
+		min = 0, default = 1)
 
 	bpy.types.Object.music_preset = bpy.props.StringProperty(
 		name = "Music Preset", default = '0x00')

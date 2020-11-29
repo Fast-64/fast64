@@ -233,8 +233,9 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 		meshGeolayout = saveCameraSettingsToGeolayout(
 			geolayoutGraph, areaObj, obj, name + '_geo')
 		rootObj = areaObj
-		fModel.global_data.fog_color = areaObj.area_fog_color
-		fModel.global_data.fog_position = areaObj.area_fog_position
+		fModel.global_data.addAreaData(areaObj.areaIndex, 
+			FAreaData(FFogData(areaObj.area_fog_position, areaObj.area_fog_color)))
+
 	else:
 		geolayoutGraph = GeolayoutGraph(name + '_geo')
 		rootNode = TransformNode(StartNode())
@@ -1649,7 +1650,7 @@ def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, dr
 		meshMatOverride.commands.append(copy.copy(command))
 	for command in meshMatOverride.commands:
 		if isinstance(command, SPDisplayList):
-			for (modelMaterial, modelDrawLayer), (fMaterial, texDimensions) in \
+			for (modelMaterial, modelDrawLayer, modelAreaIndex), (fMaterial, texDimensions) in \
 				fModel.materials.items():
 				shouldModify = \
 					(overrideType == 'Specific' and modelMaterial in specificMat) or \
@@ -1777,7 +1778,7 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj,
 			drawLayerKey = drawLayer
 		else:
 			drawLayerKey = None
-		fMaterial, texDimensions = fModel.materials[(material, drawLayerKey)]
+		fMaterial, texDimensions = fModel.materials[(material, drawLayerKey, fModel.global_data.getCurrentAreaKey())]
 		isPointSampled = isTexturePointSampled(material)
 		exportVertexColors = isLightingDisabled(material)
 

@@ -1613,10 +1613,56 @@ class FTexRect:
 			data += texture.to_c_def() + '\n'
 		return data
 
+class FFogData:
+	def __init__(self, position = (970, 1000), color = (0,0,0,1)):
+		self.position = tuple(position)
+		self.color = (
+			round(color[0], 8),
+			round(color[1], 8),
+			round(color[2], 8),
+			round(color[3], 8))
+
+	def __eq__(self, other):
+		return tuple(self.position) == tuple(other.position) and \
+			tuple(self.color) == tuple(other.color)
+	
+	def makeKey(self):
+		return (self.position, self.color)
+		
+class FAreaData:
+	def __eq__(self, other):
+		return self.fog_data == other.fog_data
+
+	def __init__(self, fog_data):
+		self.fog_data = fog_data
+
+	def makeKey(self):
+		return self.fog_data.makeKey()
+
 class FGlobalData:
 	def __init__(self):
-		self.fog_position = [970, 1000]
-		self.fog_color = [0,0,0,1]
+		# dict of area index : FFogData
+		self.area_data = {}
+		self.current_area_index = 1
+	
+	def addAreaData(self, areaIndex : int, areaData : FAreaData):
+		if areaIndex in self.area_data:
+			raise ValueError("Error: Detected repeat FAreaData.")
+		self.area_data[areaIndex] = areaData
+		self.current_area_index = areaIndex
+
+	def getCurrentAreaData(self):
+		if len(self.area_data) == 0:
+			return None
+		else:
+			return self.area_data[self.current_area_index]
+	
+	def getCurrentAreaKey(self):
+		if len(self.area_data) == 0:
+			return None
+		else:
+			return self.area_data[self.current_area_index].makeKey()
+
 
 class FModel:
 	def __init__(self, f3dType, isHWv1, name, DLFormat):
@@ -1625,7 +1671,7 @@ class FModel:
 		self.lights = {}
 		# dict of (texture, (texture format, palette format)) : FImage
 		self.textures = {}
-		# dict of (material, drawLayer): (FMaterial, (width, height))
+		# dict of (material, drawLayer, FAreaData): (FMaterial, (width, height))
 		self.materials = {} 
 		# dict of body part name : FMeshGroup
 		self.meshGroups = {}
@@ -1640,7 +1686,7 @@ class FModel:
 		addresses = []
 		for name, meshGroup in self.meshGroups.items():
 			addresses.extend(meshGroup.get_ptr_addresses(f3d))
-		for (material, drawLayer), (fMaterial, texDimensions) in self.materials.items():
+		for materialKey, (fMaterial, texDimensions) in self.materials.items():
 			addresses.extend(fMaterial.get_ptr_addresses(f3d))
 		if self.materialRevert is not None:
 			addresses.extend(self.materialRevert.get_ptr_addresses(f3d))
@@ -1666,7 +1712,7 @@ class FModel:
 			if not startAddrSet:
 				startAddrSet = True
 				startAddress = addrRange[0]
-		for (material, drawLayer), (fMaterial, texDimensions) in self.materials.items():
+		for materialKey, (fMaterial, texDimensions) in self.materials.items():
 			addrRange = fMaterial.set_addr(addrRange[1], self.f3d)
 			if not startAddrSet:
 				startAddrSet = True
@@ -1683,7 +1729,7 @@ class FModel:
 			light.save_binary(romfile)
 		for info, texture in self.textures.items():
 			texture.save_binary(romfile)
-		for (material, drawLayer), (fMaterial, texDimensions) in self.materials.items():
+		for materialKey, (fMaterial, texDimensions) in self.materials.items():
 			fMaterial.save_binary(romfile, self.f3d, segments)
 		for name, meshGroup in self.meshGroups.items():
 			meshGroup.save_binary(romfile, self.f3d, segments)
@@ -1712,7 +1758,7 @@ class FModel:
 					texC += texture.to_c() + '\n'
 				else:
 					static_data += texture.to_c() + '\n'
-		for (material, drawLayer), (fMaterial, texDimensions) in self.materials.items():
+		for materialKey, (fMaterial, texDimensions) in self.materials.items():
 			dynamic_data += fMaterial.to_c(self.f3d) + '\n'
 		for name, meshGroup in self.meshGroups.items():
 			meshGroupStatic, meshGroupDynamic, meshGroupScroll = meshGroup.to_c(self.f3d)
@@ -1772,7 +1818,7 @@ class FModel:
 		if self.DLFormat != 'Static':
 			for name, light in self.lights.items():
 				static_data += light.to_c_def() + '\n'
-			for (material, drawLayer), (fMaterial, texDimensions) in self.materials.items():
+			for materialKey, (fMaterial, texDimensions) in self.materials.items():
 				dynamic_data += fMaterial.to_c_def()
 			for info, texture in self.textures.items():
 				static_data += texture.to_c_def() + '\n'
