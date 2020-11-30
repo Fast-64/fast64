@@ -451,6 +451,13 @@ def colorTo16bitRGBA(color):
 
 	return (r << 11) | (g << 6) | (b << 1) | a
 
+# On 2.83/2.91 the rotate operator rotates in the opposite direction (???)
+def getDirectionGivenAppVersion():
+	if bpy.app.version[1] == 83 or bpy.app.version[1] == 91:
+		return -1
+	else:
+		return 1
+
 def applyRotation(objList, angle, axis):
 	bpy.context.scene.tool_settings.use_transform_data_origin = False
 	bpy.context.scene.tool_settings.use_transform_pivot_point_align = False
@@ -461,16 +468,15 @@ def applyRotation(objList, angle, axis):
 		obj.select_set(True)
 	bpy.context.view_layer.objects.active = objList[0]
 
-	# On 2.83 this operator rotates in the opposite direction (???)
-	direction = 1 if bpy.app.version[1] != 83 else -1
+	direction = getDirectionGivenAppVersion()
 
 	bpy.ops.transform.rotate(value = direction * angle, orient_axis = axis, orient_type='GLOBAL')
 	bpy.ops.object.transform_apply(location = False, 
 		rotation = True, scale = True, properties =  False)
 
 def doRotation(angle, axis):
-	direction = 1 if bpy.app.version[1] != 83 else -1
-	bpy.ops.transform.rotate(value = direction * angle, orient_axis = axis)
+	direction = getDirectionGivenAppVersion()
+	bpy.ops.transform.rotate(value = direction * angle, orient_axis = axis, orient_type='GLOBAL')
 
 def getAddressFromRAMAddress(RAMAddress):
 	addr = RAMAddress - 0x80000000
