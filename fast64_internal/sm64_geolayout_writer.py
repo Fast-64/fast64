@@ -638,6 +638,9 @@ def generateSwitchOptions(transformNode, geolayout, geolayoutGraph, prefix):
 		switchName = transformNode.node.name
 		prefix += '_' + switchName
 		#prefix = switchName
+
+		materialOverrideTexDimensions = None
+
 		i = 0
 		while i < len(transformNode.children):
 			prefixName = prefix + '_opt' + str(i)
@@ -647,6 +650,17 @@ def generateSwitchOptions(transformNode, geolayout, geolayoutGraph, prefix):
 				material = childNode.node.material
 				specificMat = childNode.node.specificMat
 				overrideType = childNode.node.overrideType
+				texDimensions = childNode.node.texDimensions
+				if texDimensions is not None and materialOverrideTexDimensions is not None and\
+					materialOverrideTexDimensions != tuple(texDimensions):
+					raise PluginError('In switch bone "' + switchName + '", some material ' +\
+						'overrides \nhave textures with dimensions differing from the original material.\n' +\
+						'UV coordinates are in pixel units, so there will be UV errors in those overrides.\n '+\
+						'Make sure that all overrides have the same texture dimensions as the original material.\n' +\
+						'Note that materials with no textures default to dimensions of 32x32.')
+
+				if texDimensions is not None:
+					materialOverrideTexDimensions = tuple(texDimensions)
 
 				# This should be a 0xB node
 				#copyNode = duplicateNode(transformNode.children[0],
@@ -1261,9 +1275,10 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 					specificMat = None
 					drawLayer = int(switchOption.drawLayer)
 				
+				texDimensions = getTexDimensions(material) if material is not None else None
 				overrideNode = TransformNode(SwitchOverrideNode(
 					material, specificMat, drawLayer,
-					switchOption.materialOverrideType))
+					switchOption.materialOverrideType, texDimensions))
 				overrideNode.parent = transformNode
 				transformNode.children.append(overrideNode)
 

@@ -339,11 +339,12 @@ class TransformNode:
 		return drawLayers
 
 class SwitchOverrideNode:
-	def __init__(self, material, specificMat, drawLayer, overrideType):
+	def __init__(self, material, specificMat, drawLayer, overrideType, texDimensions):
 		self.material = material
 		self.specificMat = specificMat
 		self.drawLayer = drawLayer
 		self.overrideType = overrideType
+		self.texDimensions = texDimensions # None implies a draw layer override
 
 class JumpNode:
 	def __init__(self, storeReturn, geolayout):
