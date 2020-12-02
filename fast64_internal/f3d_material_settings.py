@@ -209,8 +209,15 @@ class F3DMaterialSettings:
 		if includeValues:
 			nodes = material.node_tree.nodes
 			for name, item in F3DOutputCopyList.items():
-				if item in nodes:
-					setattr(self, name, nodes[item].outputs[0].default_value)
+				if material.mat_ver == 3 and item == 'Primitive Color':
+					if 'Primitive Color Output' in nodes:
+						setattr(self, 'prim_color', nodes['Primitive Color Output'].inputs[0].default_value)
+				elif material.mat_ver == 3 and item == 'Environment Color':
+					if 'Environment Color Output' in nodes:
+						setattr(self, 'env_color', nodes['Environment Color Output'].inputs[0].default_value)
+				else:
+					if item in nodes:
+						setattr(self, name, nodes[item].outputs[0].default_value)
 			
 			self.tex0Prop.load(material.tex0)
 			self.tex1Prop.load(material.tex1)
@@ -218,6 +225,8 @@ class F3DMaterialSettings:
 			self.use_global_fog = material.use_global_fog
 			self.fog_color = material.fog_color
 			self.fog_position = material.fog_position
+			self.default_light_color = material.default_light_color
+			self.ambient_light_color = material.ambient_light_color
 	
 	def applyToMaterial(self, material, includeValues, updateFunc, context):
 		if not material.is_f3d:
@@ -317,7 +326,13 @@ class F3DMaterialSettings:
 		if includeValues:
 			nodes = material.node_tree.nodes
 			for name, item in F3DOutputCopyList.items():
-				nodes[item].outputs[0].default_value = getattr(self, name)
+				if material.mat_ver == 3 and item == 'Primitive Color':
+					nodes['Primitive Color Output'].inputs[0].default_value = getattr(self, 'prim_color')
+				elif material.mat_ver == 3 and item == 'Environment Color':
+					nodes['Environment Color Output'].inputs[0].default_value = getattr(self, 'env_color')
+				else:
+					nodes[item].outputs[0].default_value = getattr(self, name)
+				
 			
 			self.tex0Prop.apply(material.tex0)
 			self.tex1Prop.apply(material.tex1)
@@ -325,6 +340,8 @@ class F3DMaterialSettings:
 			material.use_global_fog = self.use_global_fog
 			material.fog_color = self.fog_color
 			material.fog_position = self.fog_position
+			material.default_light_color = self.default_light_color
+			material.ambient_light_color = self.ambient_light_color
 
 		updateFunc(material, context)
 		material.f3d_update_flag = False

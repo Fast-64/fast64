@@ -1257,7 +1257,10 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 		texDimensions = [32, 32]
 
 	if useDict['Primitive'] and material.set_prim:
-		color = nodes['Primitive Color'].outputs[0].default_value
+		if material.mat_ver == 3:
+			color = nodes['Primitive Color Output'].inputs[0].default_value
+		else:
+			color = nodes['Primitive Color'].outputs[0].default_value
 		color = gammaCorrect(color[0:3]) + [color[3]]
 		fMaterial.material.commands.append(
 			DPSetPrimColor(
@@ -1269,7 +1272,10 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 			int(color[3] * 255)))
 
 	if useDict['Environment'] and material.set_env:	
-		color = nodes['Environment Color'].outputs[0].default_value
+		if material.mat_ver == 3:
+			color = nodes['Environment Color Output'].inputs[0].default_value
+		else:
+			color = nodes['Environment Color'].outputs[0].default_value
 		color = gammaCorrect(color[0:3]) + [color[3]]
 		fMaterial.material.commands.append(
 			DPSetEnvColor(

@@ -197,7 +197,10 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix,
 			geolayoutGraph, cameraObj, armatureObj, name + "_geo")
 	else:
 		geolayoutGraph = GeolayoutGraph(name + "_geo")
-		rootNode = TransformNode(StartNode())
+		if armatureObj.use_render_area:
+			rootNode = TransformNode(StartRenderAreaNode(armatureObj.culling_radius))
+		else:
+			rootNode = TransformNode(StartNode())
 		geolayoutGraph.startGeolayout.nodes.append(rootNode)
 		meshGeolayout = geolayoutGraph.startGeolayout
 	
@@ -238,7 +241,10 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 
 	else:
 		geolayoutGraph = GeolayoutGraph(name + '_geo')
-		rootNode = TransformNode(StartNode())
+		if isinstance(obj.data, bpy.types.Mesh) and obj.use_render_area:
+			rootNode = TransformNode(StartRenderAreaNode(obj.culling_radius))
+		else:
+			rootNode = TransformNode(StartNode())
 		geolayoutGraph.startGeolayout.nodes.append(rootNode)
 		meshGeolayout = geolayoutGraph.startGeolayout
 		rootObj = obj
@@ -915,7 +921,7 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode,
 
 		additionalNodes = False
 		if obj.data is not None and \
-			(obj.use_render_range or obj.use_render_area or obj.add_shadow or obj.add_func):
+			(obj.use_render_range or obj.add_shadow or obj.add_func):
 
 			parentTransformNode.children.append(transformNode)
 			transformNode.parent = parentTransformNode
@@ -928,10 +934,6 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode,
 			if obj.use_render_range:
 				parentTransformNode = \
 					addParentNode(parentTransformNode, RenderRangeNode(obj.render_range[0], obj.render_range[1]))
-
-			if obj.use_render_area:
-				parentTransformNode = \
-					addParentNode(parentTransformNode, StartRenderAreaNode(obj.culling_radius))
 
 			if obj.add_shadow:
 				parentTransformNode = \

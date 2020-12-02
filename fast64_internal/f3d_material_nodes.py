@@ -13,6 +13,27 @@ def createGroupLink(node_tree, inputSocket, outputSocket, outputType, outputName
 		node_tree.outputs.new(outputType, outputName)
 	node_tree.links.new(inputSocket, outputSocket)
 
+def addColorWithAlphaNode(label, x, y, node_tree):
+	alphaSplitNode = node_tree.nodes.new('GetAlphaFromColor')
+	alphaSplitNode.location = (x-300, y)
+	alphaSplitNode.name = label + " Output"
+	
+	addNode = node_tree.nodes.new('ShaderNodeMath')
+	addNode.operation = 'ADD'
+	addNode.inputs[1].default_value = 0
+	node_tree.links.new(addNode.inputs[0], alphaSplitNode.outputs[1])
+	addNode.location = (x,y)
+	addNode.name = label + ' Alpha'
+
+	mixNode = node_tree.nodes.new('ShaderNodeMixRGB')
+	mixNode.inputs[0].default_value = 0
+	node_tree.links.new(mixNode.inputs[1], alphaSplitNode.outputs[0])
+	mixNode.location = (x,y - 100)
+	mixNode.name = label + ' RGB'
+
+	y -= 100
+	return x, y, alphaSplitNode
+
 def addNodeAt(node_tree, name, label, x, y, nodeKey = None, nodeDict = None):
 	node = node_tree.nodes.new(name)
 	if label is not None:
@@ -33,24 +54,6 @@ def addNodeAt(node_tree, name, label, x, y, nodeKey = None, nodeDict = None):
 		colorNode.location = (x,y)
 		node.location = (x - 300, y)
 		node = colorNode
-	elif label == 'Environment Color' or label == 'Primitive Color':
-		alphaSplitNode = node_tree.nodes.new('GetAlphaFromColor')
-		node_tree.links.new(alphaSplitNode.inputs[0], node.outputs[0])
-		alphaSplitNode.location = (x-300, y)
-		
-		addNode = node_tree.nodes.new('ShaderNodeMath')
-		addNode.operation = 'ADD'
-		addNode.inputs[1].default_value = 0
-		node_tree.links.new(addNode.inputs[0], alphaSplitNode.outputs[1])
-		addNode.location = (x,y)
-
-		mixNode = node_tree.nodes.new('ShaderNodeMixRGB')
-		mixNode.inputs[0].default_value = 0
-		node_tree.links.new(mixNode.inputs[1], alphaSplitNode.outputs[0])
-		mixNode.location = (x,y - 100)
-
-		node.location = (x-600,y)
-		node = mixNode
 	elif label == 'Noise':
 		node.inputs[1].default_value = 40 # scale
 		node.inputs[2].default_value = 0 # detail
@@ -75,10 +78,29 @@ def addNodeListAt(node_tree, nodeDict, x,y, cycleIndex = None):
 		newDict[name] = node
 	return newDict, x, y
 
+def addSocketList(groupNode, groupInputNode, socketDict, cycleIndex = None):
+	newDict = {}
+	for label, typename in socketDict.items():
+		if cycleIndex is not None:
+			name = label + " " + str(cycleIndex)
+		else:
+			name = label
+		#addNodeAt(node_tree, typename, name, x, y)
+		groupNode.inputs.new(typename, name)
+		groupInputNode.outputs.new(typename, name)
+
+		# We want to get the new output socket.
+		# new() doesn't actually return the socket, so we must index the collection.
+		# -1 is the index for the virtual socket at the end, so we want -2 instead.
+		outputSocket = groupInputNode.outputs[-2]
+		
+		newDict[name] = outputSocket
+	return newDict
+
 # In 2.8 the Node.update function does not work.
 # We can bypass this by adding an update callback to a property in the node.
 # However, forcing an output socket update does NOT work when the output
-# is a group node input. Thus we must add an add node in between to fix this.
+# is a group node input. Thus we must add an "add" bridge node in between to fix this.
 def addNodeListAtWithZeroAddNode(node_tree, nodeDict, x,y, cycleIndex):
 	newDict = {}
 	for label, typename in nodeDict.items():
@@ -100,9 +122,9 @@ def createNodeSwitch(node_tree, caseDict, caseSocket, caseName,
 	groupNode.location = location
 	location[1] = location[1] - (groupNode.height + 100)
 
-	createGroup = 'Switch ' + caseName + ' F3D v2' not in bpy.data.node_groups
+	createGroup = 'Switch ' + caseName + ' F3D v3' not in bpy.data.node_groups
 	if not createGroup:
-		group_tree = bpy.data.node_groups["Switch " + caseName + " F3D v2"]
+		group_tree = bpy.data.node_groups["Switch " + caseName + " F3D v3"]
 		groupNode.node_tree = group_tree
 
 		node_tree.links.new(groupNode.inputs[0], caseSocket)
@@ -110,7 +132,7 @@ def createNodeSwitch(node_tree, caseDict, caseSocket, caseName,
 			groupNode, None, socketDict, 1, False)
 		return groupNode
 
-	group_tree = bpy.data.node_groups.new(type="ShaderNodeTree", name = 'Switch ' + caseName + ' F3D v2')
+	group_tree = bpy.data.node_groups.new(type="ShaderNodeTree", name = 'Switch ' + caseName + ' F3D v3')
 	groupNode.node_tree = group_tree
 	input_node = group_tree.nodes.new("NodeGroupInput")
 	output_node = group_tree.nodes.new("NodeGroupOutput")
@@ -156,34 +178,34 @@ def createNodeSwitch(node_tree, caseDict, caseSocket, caseName,
 	
 	return groupNode
 
-def createNodeCombinerMix(node_tree, nodeA, nodeB, nodeC, nodeD, location, isAlpha):
+def createNodeCombinerMix(node_tree, nodeASocket, nodeBSocket, nodeCSocket, nodeDSocket, location, isAlpha):
 	groupNode = node_tree.nodes.new("ShaderNodeGroup")
 	groupNode.location = location
 	location[1] = location[1] - (groupNode.height + 100)
 
 	alphaText = 'Alpha ' if isAlpha else ''
 
-	createGroup = 'Color Combiner ' + alphaText + 'Mix F3D v2' not in bpy.data.node_groups
+	createGroup = 'Color Combiner ' + alphaText + 'Mix F3D v3' not in bpy.data.node_groups
 	if not createGroup:
-		group_tree = bpy.data.node_groups['Color Combiner ' + alphaText + 'Mix F3D v2']
+		group_tree = bpy.data.node_groups['Color Combiner ' + alphaText + 'Mix F3D v3']
 		groupNode.node_tree = group_tree
 		
 		inputA = groupNode.inputs[0]
-		node_tree.links.new(inputA, nodeA.outputs[0])
+		node_tree.links.new(inputA, nodeASocket)
 
 		inputB = groupNode.inputs[1]
-		node_tree.links.new(inputB, nodeB.outputs[0])
+		node_tree.links.new(inputB, nodeBSocket)
 
 		inputC = groupNode.inputs[2]
-		node_tree.links.new(inputC, nodeC.outputs[0])
+		node_tree.links.new(inputC, nodeCSocket)
 
 		inputD = groupNode.inputs[3]
-		node_tree.links.new(inputD, nodeD.outputs[0])
+		node_tree.links.new(inputD, nodeDSocket)
 
 		return groupNode
 
 	# (A-B)*C + D
-	group_tree = bpy.data.node_groups.new(type="ShaderNodeTree", name = 'Color Combiner ' + alphaText + 'Mix F3D v2')
+	group_tree = bpy.data.node_groups.new(type="ShaderNodeTree", name = 'Color Combiner ' + alphaText + 'Mix F3D v3')
 	groupNode.node_tree = group_tree
 	input_node = group_tree.nodes.new("NodeGroupInput")
 	input_node.location = (-300, 0)
@@ -195,22 +217,22 @@ def createNodeCombinerMix(node_tree, nodeA, nodeB, nodeC, nodeD, location, isAlp
 	groupNode.inputs.new(socketType, 'A')
 	input_node.outputs.new(socketType, 'A')
 	inputA = groupNode.inputs[0]
-	node_tree.links.new(inputA, nodeA.outputs[0])
+	node_tree.links.new(inputA, nodeASocket)
 
 	groupNode.inputs.new(socketType, 'B')
 	input_node.outputs.new(socketType, 'B')
 	inputB = groupNode.inputs[1]
-	node_tree.links.new(inputB, nodeB.outputs[0])
+	node_tree.links.new(inputB, nodeBSocket)
 
 	groupNode.inputs.new(socketType, 'C')
 	input_node.outputs.new(socketType, 'C')
 	inputC = groupNode.inputs[2]
-	node_tree.links.new(inputC, nodeC.outputs[0])
+	node_tree.links.new(inputC, nodeCSocket)
 
 	groupNode.inputs.new(socketType, 'D')
 	input_node.outputs.new(socketType, 'D')
 	inputD = groupNode.inputs[3]
-	node_tree.links.new(inputD, nodeD.outputs[0])
+	node_tree.links.new(inputD, nodeDSocket)
 
 	nodePos = [0,0]
 	if not isAlpha:
@@ -255,51 +277,57 @@ def createNodeCombinerMix(node_tree, nodeA, nodeB, nodeC, nodeD, location, isAlp
 	
 	return groupNode
 
-def createNodeCombiner(node_tree, caseSocketDict, socketDict, cycleIndex):
+# caseSocketDict is Case A-D for color and alpha
+# socketDict is all color sources
+def createNodeCombiner(node_tree, cycleIndex):
 	groupNode = node_tree.nodes.new("ShaderNodeGroup")
 
-	createGroup = 'Color Combiner F3D v2' not in bpy.data.node_groups
+	createGroup = 'Color Combiner F3D v3' not in bpy.data.node_groups
 	if not createGroup:
-		group_tree = bpy.data.node_groups['Color Combiner F3D v2']
+		group_tree = bpy.data.node_groups['Color Combiner F3D v3']
 		groupNode.node_tree = group_tree
+		groupNode.name = 'Color Combiner Cycle ' + str(cycleIndex) + ' F3D v3'
 
-		caseSocketDict, nextIndex = \
-			socketDictToInternalSocket(node_tree, groupNode, None, caseSocketDict, 0, False)
+		#caseSocketDict, nextIndex = \
+		#	socketDictToInternalSocket(node_tree, groupNode, None, caseSocketDict, 0, False)
 
-		socketDict, nextIndex = \
-			socketDictToInternalSocket(node_tree, groupNode, None, socketDict, nextIndex, False)
+		#socketDict, nextIndex = \
+		#	socketDictToInternalSocket(node_tree, groupNode, None, socketDict, nextIndex, False)
 
 		return groupNode
 
 	group_tree = bpy.data.node_groups.new(
-		type="ShaderNodeTree", name = 'Color Combiner F3D v2')
+		type="ShaderNodeTree", name = 'Color Combiner F3D v3')
 	groupNode.node_tree = group_tree
+	groupNode.name = 'Color Combiner Cycle ' + str(cycleIndex) + ' F3D v3'
 	input_node = group_tree.nodes.new("NodeGroupInput")
 	input_node.location = (-300, 0)
 	output_node = group_tree.nodes.new("NodeGroupOutput")
 	output_node.location = (900, 0)
 
-	caseSocketDict, nextIndex = \
-		socketDictToInternalSocket(node_tree, groupNode, input_node, caseSocketDict, 0, True)
+	caseSocketDict = addSocketList(groupNode, input_node, caseTemplateDict, cycleIndex)
+	#caseSocketDict, nextIndex = \
+	#	socketDictToInternalSocket(node_tree, groupNode, input_node, caseSocketDict, 0, True)
 
-	socketDict, nextIndex = \
-		socketDictToInternalSocket(node_tree, groupNode, input_node, socketDict, nextIndex, True)
+	#socketDict, nextIndex = \
+	#	socketDictToInternalSocket(node_tree, groupNode, input_node, socketDict, nextIndex, True)
 	
 	nodePos = [300, 0]
 
-	caseNodes = {}
-	for name, socket in caseSocketDict.items():
-		caseNodes[name] = createNodeSwitch(group_tree, 
-			[item[1] for item in combiner_enums[name[:-2]]],
-			socket, name[:-2] , nodePos, socketDict)
+	# Creating switch cascade
+	#caseNodes = {}
+	#for name, socket in caseSocketDict.items():
+	#	caseNodes[name] = createNodeSwitch(group_tree, 
+	#		[item[1] for item in combiner_enums[name[:-2]]],
+	#		socket, name[:-2] , nodePos, socketDict)
 
 	nodePos = [600, 0]
 	out1 = createNodeCombinerMix(
-		group_tree, caseNodes['Case A ' + str(cycleIndex)], caseNodes['Case B ' + str(cycleIndex)], 
-		caseNodes['Case C ' + str(cycleIndex)], caseNodes['Case D ' + str(cycleIndex)], nodePos, False)
-	out_alpha1 = createNodeCombinerMix(group_tree, caseNodes['Case A Alpha ' + str(cycleIndex)],
-		caseNodes['Case B Alpha ' + str(cycleIndex)], caseNodes['Case C Alpha '  + str(cycleIndex)], 
-		caseNodes['Case D Alpha ' + str(cycleIndex)], nodePos, True)
+		group_tree, caseSocketDict['Case A ' + str(cycleIndex)], caseSocketDict['Case B ' + str(cycleIndex)], 
+		caseSocketDict['Case C ' + str(cycleIndex)], caseSocketDict['Case D ' + str(cycleIndex)], nodePos, False)
+	out_alpha1 = createNodeCombinerMix(group_tree, caseSocketDict['Case A Alpha ' + str(cycleIndex)],
+		caseSocketDict['Case B Alpha ' + str(cycleIndex)], caseSocketDict['Case C Alpha '  + str(cycleIndex)], 
+		caseSocketDict['Case D Alpha ' + str(cycleIndex)], nodePos, True)
 
 	groupNode.outputs.new('NodeSocketColor', 'Color Combiner')
 	output_node.inputs.new('NodeSocketColor', 'Color Combiner')
@@ -310,36 +338,40 @@ def createNodeCombiner(node_tree, caseSocketDict, socketDict, cycleIndex):
 
 	return groupNode
 
-def createNodeF3D(node_tree, caseNodeDict1, caseNodeDict2, nodeDict, otherDict, location):
+# caseNodeDict is the A-D for color and alpha
+# nodeDict is all sources
+# otherDict is other shader inputs
+def createNodeF3D(node_tree, location):
 	groupNode = node_tree.nodes.new("ShaderNodeGroup")
 	groupNode.location = location
+	groupNode.name = 'F3D v3'
 	location[1] = location[1] - (groupNode.height + 100)
 
-	createGroup = 'F3D v2' not in bpy.data.node_groups
+	createGroup = 'F3D v3' not in bpy.data.node_groups
 	if not createGroup:
-		group_tree = bpy.data.node_groups['F3D v2']
+		group_tree = bpy.data.node_groups['F3D v3']
 		groupNode.node_tree = group_tree
 
-		caseSocketDict1, nextIndex = \
-			nodeDictToInternalSocket(node_tree, groupNode, None, 
-			caseNodeDict1, [], [], 0, False)
+		#caseSocketDict1, nextIndex = \
+		#	nodeDictToInternalSocket(node_tree, groupNode, None, 
+		#	caseNodeDict1, [], [], 0, False)
 
-		caseSocketDict2, nextIndex = \
-			nodeDictToInternalSocket(node_tree, groupNode, None, 
-			caseNodeDict2, [], [], nextIndex, False)
+		#caseSocketDict2, nextIndex = \
+		#	nodeDictToInternalSocket(node_tree, groupNode, None, 
+		#	caseNodeDict2, [], [], nextIndex, False)
 
-		socketDict, nextIndex = \
-			nodeDictToInternalSocket(node_tree, groupNode, None, 
-			nodeDict, ['Combined Color', 'Shade Color', "Texture 0", "Texture 1"], 
-			['Environment Color', 'Primitive Color'], nextIndex, False)
+		#socketDict, nextIndex = \
+		#	nodeDictToInternalSocket(node_tree, groupNode, None, 
+		#	nodeDict, ['Combined Color', 'Shade Color', "Texture 0", "Texture 1"], 
+		#	['Environment Color', 'Primitive Color'], nextIndex, False)
 
-		otherSocketDict, nextIndex = \
-			nodeDictToInternalSocket(node_tree, groupNode, None, 
-			otherDict, [], [], nextIndex, False)
+		#otherSocketDict, nextIndex = \
+		#	nodeDictToInternalSocket(node_tree, groupNode, None, 
+		#	otherDict, [], [], nextIndex, False)
 
 		return groupNode, location[0], location[1]
 
-	group_tree = bpy.data.node_groups.new(type="ShaderNodeTree", name = 'F3D v2')
+	group_tree = bpy.data.node_groups.new(type="ShaderNodeTree", name = 'F3D v3')
 	groupNode.node_tree = group_tree
 	input_node = group_tree.nodes.new("NodeGroupInput")
 	output_node = group_tree.nodes.new("NodeGroupOutput")
@@ -347,46 +379,55 @@ def createNodeF3D(node_tree, caseNodeDict1, caseNodeDict2, nodeDict, otherDict, 
 	output_node.location = (600, 0)
 	links = group_tree.links
 
-	caseSocketDict1, nextIndex = \
-		nodeDictToInternalSocket(node_tree, groupNode, input_node, 
-		caseNodeDict1, [], [], 0, True)
+	#caseSocketDict1, nextIndex = \
+	#	nodeDictToInternalSocket(node_tree, groupNode, input_node, 
+	#	caseNodeDict1, [], [], 0, True)
 
-	caseSocketDict2, nextIndex = \
-		nodeDictToInternalSocket(node_tree, groupNode, input_node, 
-		caseNodeDict2, [], [], nextIndex, True)
+	#caseSocketDict2, nextIndex = \
+	#	nodeDictToInternalSocket(node_tree, groupNode, input_node, 
+	#	caseNodeDict2, [], [], nextIndex, True)
 
-	socketDict, nextIndex = \
-		nodeDictToInternalSocket(node_tree, groupNode, input_node, 
-		nodeDict, ['Combined Color', 'Shade Color', "Texture 0", "Texture 1"], 
-		['Environment Color', 'Primitive Color'], nextIndex, True)
+	#socketDict, nextIndex = \
+	#	nodeDictToInternalSocket(node_tree, groupNode, input_node, 
+	#	nodeDict, ['Combined Color', 'Shade Color', "Texture 0", "Texture 1"], 
+	#	['Environment Color', 'Primitive Color'], nextIndex, True)
 	
-	otherSocketDict, nextIndex = \
-		nodeDictToInternalSocket(node_tree, groupNode, input_node, 
-		otherDict, [], [], nextIndex, True)
+	#otherSocketDict, nextIndex = \
+	#	nodeDictToInternalSocket(node_tree, groupNode, input_node, 
+	#	otherDict, [], [], nextIndex, True)
+
+	#caseSocketDict1 = addSocketList(groupNode, input_node, caseTemplateDict, 1)
+	#caseSocketDict2 = addSocketList(groupNode, input_node, caseTemplateDict, 2)
+
+	#x = 0
+	#y = 0
+	#combiner1 = createNodeCombiner(group_tree, caseSocketDict1, 1)
+	#combiner1.location = [x, y]
+#
+	#combiner2 = createNodeCombiner(group_tree, caseSocketDict2, 2)
+	#combiner2.location = [x, y-800]
+
+	addSocketList(groupNode, input_node, {
+		"Cycle 1 RGB" : "NodeSocketColor",
+		"Cycle 1 Alpha" : "NodeSocketFloat",
+		"Cycle 2 RGB" : "NodeSocketColor",
+		"Cycle 2 Alpha" : "NodeSocketFloat",
+	})
+	
+	otherSocketDict = addSocketList(groupNode, input_node, otherTemplateDict)
 
 	x = 0
-	y = 0
-	combiner1 = createNodeCombiner(group_tree, caseSocketDict1, socketDict, 1)
-	combiner1.location = [x, y]
-
-	combiner2 = createNodeCombiner(group_tree, caseSocketDict2, socketDict, 2)
-	combiner2.location = [x, y-800]
-
-	x += 300
 	y = 0
 	mixCycleNodeRGB, x, y = \
 		addNodeAt(group_tree, 'ShaderNodeMixRGB', 'Cycle Mix RGB', x, y)
 	mixCycleNodeAlpha, x, y = \
 		addNodeAt(group_tree, 'ShaderNodeMixRGB', 'Cycle Mix Alpha', x, y)
 	
-
-	links.new(combiner2.inputs[8], combiner1.outputs[0])
-	links.new(combiner2.inputs[9], combiner1.outputs[1])
-	links.new(mixCycleNodeRGB.inputs[1], combiner1.outputs[0])
-	links.new(mixCycleNodeRGB.inputs[1], combiner1.outputs[0])
-	links.new(mixCycleNodeRGB.inputs[2], combiner2.outputs[0])
-	links.new(mixCycleNodeAlpha.inputs[1], combiner1.outputs[1])
-	links.new(mixCycleNodeAlpha.inputs[2], combiner2.outputs[1])
+	links.new(mixCycleNodeRGB.inputs[1], input_node.outputs[0])
+	links.new(mixCycleNodeRGB.inputs[1], input_node.outputs[0])
+	links.new(mixCycleNodeRGB.inputs[2], input_node.outputs[2])
+	links.new(mixCycleNodeAlpha.inputs[1], input_node.outputs[1])
+	links.new(mixCycleNodeAlpha.inputs[2], input_node.outputs[3])
 	links.new(mixCycleNodeRGB.inputs[0], otherSocketDict['Cycle Type'])
 	links.new(mixCycleNodeAlpha.inputs[0], otherSocketDict['Cycle Type'])
 
@@ -489,7 +530,6 @@ def socketDictToInternalSocket(node_tree, groupNode, groupInputNode, socketDict,
 		newDict[name] = createSocketToGroupLink(socket, groupNode, 
 			groupInputNode, node_tree, nodeIndex, name, createSockets)
 		nodeIndex += 1
-
 	return newDict, nodeIndex
 
 def createTexCoordNode(node_tree, location, uvSocket, socketDict, isV):
@@ -500,16 +540,16 @@ def createTexCoordNode(node_tree, location, uvSocket, socketDict, isV):
 	location[1] = location[1] - (groupNode.height + 100)
 
 	verticalString = "U" if not isV else "V"
-	createGroup = 'Create Tex Coord ' + verticalString + ' F3D v2' not in bpy.data.node_groups
+	createGroup = 'Create Tex Coord ' + verticalString + ' F3D v3' not in bpy.data.node_groups
 	if not createGroup:
-		group_tree = bpy.data.node_groups['Create Tex Coord ' + verticalString + ' F3D v2']
+		group_tree = bpy.data.node_groups['Create Tex Coord ' + verticalString + ' F3D v3']
 		groupNode.node_tree = group_tree
 		socketDict, nextSocketIndex = socketDictToInternalSocket(
 			node_tree, groupNode, None, socketDict, 0, False)
 		return groupNode
 
 	group_tree = bpy.data.node_groups.new(
-		type="ShaderNodeTree", name = 'Create Tex Coord ' + verticalString + ' F3D v2')
+		type="ShaderNodeTree", name = 'Create Tex Coord ' + verticalString + ' F3D v3')
 	links = group_tree.links
 	groupNode.node_tree = group_tree
 	input_node = group_tree.nodes.new("NodeGroupInput")
@@ -691,25 +731,26 @@ def splitTextureVectorInputs(node_tree, socketDict, x, y):
 
 	return horizontalDict, verticalDict, x, y
 
-def createUVGroup(node_tree, location, texGenDict, nodeDict):
+def createUVGroup(node_tree, location, textureIndex):
 	groupNode = node_tree.nodes.new("ShaderNodeGroup")
 	groupNode.name = 'Get UV'
 	groupNode.label = 'Get UV'
 	groupNode.location = location
+	groupNode.name = 'Get UV ' + str(textureIndex) + ' F3D v3'
 	location[1] = location[1] - (groupNode.height + 100)
 
-	createGroup = 'Get UV F3D v2' not in bpy.data.node_groups
+	createGroup = 'Get UV F3D v3' not in bpy.data.node_groups
 	if not createGroup:
-		group_tree = bpy.data.node_groups['Get UV F3D v2']
+		group_tree = bpy.data.node_groups['Get UV F3D v3']
 		groupNode.node_tree = group_tree
-		texGenSocketDict, nodeIndex = nodeDictToInternalSocket(node_tree, 
-			groupNode, None, texGenDict, [], [], 0, False)
-		socketDict, nodeIndex = nodeDictToInternalSocket(node_tree, 
-			groupNode, None, nodeDict, [], [], nodeIndex, False)
+		#texGenSocketDict, nodeIndex = nodeDictToInternalSocket(node_tree, 
+		#	groupNode, None, texGenDict, [], [], 0, False)
+		#socketDict, nodeIndex = nodeDictToInternalSocket(node_tree, 
+		#	groupNode, None, nodeDict, [], [], nodeIndex, False)
 		
 		return groupNode, location[0], location[1]
 
-	group_tree = bpy.data.node_groups.new(type="ShaderNodeTree", name = 'Get UV F3D v2')
+	group_tree = bpy.data.node_groups.new(type="ShaderNodeTree", name = 'Get UV F3D v3')
 	links = group_tree.links
 	groupNode.node_tree = group_tree
 	input_node = group_tree.nodes.new("NodeGroupInput")
@@ -719,10 +760,27 @@ def createUVGroup(node_tree, location, texGenDict, nodeDict):
 
 	output_node.inputs.new('NodeSocketVector', 'UV')
 
-	texGenSocketDict, nodeIndex = nodeDictToInternalSocket(node_tree, 
-		groupNode, input_node, texGenDict, [], [], 0, True)
-	socketDict, nodeIndex = nodeDictToInternalSocket(node_tree, 
-		groupNode, input_node, nodeDict, [], [], nodeIndex, True)
+	#texGenSocketDict, nodeIndex = nodeDictToInternalSocket(node_tree, 
+	#	groupNode, input_node, texGenDict, [], [], 0, True)
+	#socketDict, nodeIndex = nodeDictToInternalSocket(node_tree, 
+	#	groupNode, input_node, nodeDict, [], [], nodeIndex, True)
+
+	texGenSocketDict = addSocketList(groupNode, input_node, {
+		"Texture Gen" : "NodeSocketFloat",
+		"Texture Gen Linear" : "NodeSocketFloat",
+	})
+
+	socketDict = addSocketList(groupNode, input_node, {
+		"Image Factor" : "NodeSocketVector",
+		'Normalized L' : "NodeSocketVector",
+		'Normalized H' : "NodeSocketVector",
+		'Clamp' : "NodeSocketVector",
+		'Normalized Mask' : "NodeSocketVector",
+		'Mirror' : "NodeSocketVector",
+		'Shift' : "NodeSocketVector",
+		'Scale' : "NodeSocketVector",
+		'Normalized Half Pixel' : "NodeSocketVector",
+	})
 	
 	x = 0
 	y = 0
@@ -853,28 +911,28 @@ def createUVGroup(node_tree, location, texGenDict, nodeDict):
 	links.new(output_node.inputs[0], uvCombine.outputs[0])
 	return groupNode, location[0], location[1]
 
-def createShadeNode(node_tree, location, shadingNode, lightingNode, ambientNode):
+def createShadeNode(node_tree, location):
 	groupNode = node_tree.nodes.new("ShaderNodeGroup")
 	groupNode.name = 'Shade Color'
 	groupNode.label = 'Shade Color'
 	groupNode.location = location
 	location[1] = location[1] - (groupNode.height + 100)
 
-	createGroup = 'Get Shade Color F3D v2' not in bpy.data.node_groups
+	createGroup = 'Get Shade Color F3D v3' not in bpy.data.node_groups
 	if not createGroup:
-		group_tree = bpy.data.node_groups['Get Shade Color F3D v2']
+		group_tree = bpy.data.node_groups['Get Shade Color F3D v3']
 		groupNode.node_tree = group_tree
-		shadingNodeInternal = createSocketToGroupLink(shadingNode.outputs[0], 
-			groupNode, None, node_tree, 0, 'Shading', False)
-		lightingNodeInternal = createSocketToGroupLink(lightingNode.outputs[0], 
-			groupNode, None, node_tree, 1, 'Lighting', False)
-		ambientInternal = createSocketToGroupLink(ambientNode.outputs[0], 
-			groupNode, None, node_tree, 2, 'Ambient Color', False)
+		#shadingNodeInternal = createSocketToGroupLink(shadingNode.outputs[0], 
+		#	groupNode, None, node_tree, 0, 'Shading', False)
+		#lightingNodeInternal = createSocketToGroupLink(lightingNode.outputs[0], 
+		#	groupNode, None, node_tree, 1, 'Lighting', False)
+		#ambientInternal = createSocketToGroupLink(ambientNode.outputs[0], 
+		#	groupNode, None, node_tree, 2, 'Ambient Color', False)
 		
 		return groupNode
 
 	group_tree = bpy.data.node_groups.new(type="ShaderNodeTree", 
-		name = 'Get Shade Color F3D v2')		
+		name = 'Get Shade Color F3D v3')		
 	links = group_tree.links
 	groupNode.node_tree = group_tree
 	input_node = group_tree.nodes.new("NodeGroupInput")
@@ -882,12 +940,18 @@ def createShadeNode(node_tree, location, shadingNode, lightingNode, ambientNode)
 	input_node.location = (-300, 0)
 	output_node.location = (600, 0)
 
-	shadingNodeInternal = createSocketToGroupLink(shadingNode.outputs[0], 
-		groupNode, input_node, node_tree, 0, 'Shading', createGroup)
-	lightingNodeInternal = createSocketToGroupLink(lightingNode.outputs[0], 
-		groupNode, input_node, node_tree, 1, 'Lighting', createGroup)
-	ambientInternal = createSocketToGroupLink(ambientNode.outputs[0], 
-		groupNode, input_node, node_tree, 2, 'Ambient Color', createGroup)
+	socketDict = addSocketList(groupNode, input_node, {
+		"Shading" : "NodeSocketFloat",
+		'Lighting' : "NodeSocketFloat",
+		'Ambient Color' : "NodeSocketColor"
+	})
+
+	#shadingNodeInternal = createSocketToGroupLink(shadingNode.outputs[0], 
+	#	groupNode, input_node, node_tree, 0, 'Shading', createGroup)
+	#lightingNodeInternal = createSocketToGroupLink(lightingNode.outputs[0], 
+	#	groupNode, input_node, node_tree, 1, 'Lighting', createGroup)
+	#ambientInternal = createSocketToGroupLink(ambientNode.outputs[0], 
+	#	groupNode, input_node, node_tree, 2, 'Ambient Color', createGroup)
 	groupNode.outputs.new('NodeSocketColor', 'Color')
 	output_node.inputs.new('NodeSocketColor', 'Color')
 	groupNode.outputs.new('NodeSocketFloat', 'Alpha')
@@ -912,13 +976,13 @@ def createShadeNode(node_tree, location, shadingNode, lightingNode, ambientNode)
 
 	#links.new(diffuseNode.inputs[0], ambientInternal)
 	links.new(toRGBNode.inputs[0], diffuseNode.outputs[0])
-	links.new(addAmbient.inputs[0], ambientInternal)
+	links.new(addAmbient.inputs[0], socketDict['Ambient Color'])
 	links.new(addAmbient.inputs[1], toRGBNode.outputs[0])
-	links.new(mixRGB.inputs[0], lightingNodeInternal)
+	links.new(mixRGB.inputs[0], socketDict['Lighting'])
 	links.new(mixRGB.inputs[1], vertColorNode.outputs[0])
 	links.new(mixRGB.inputs[2], addAmbient.outputs[0])
 
-	links.new(mixRGBShadeless.inputs[0], shadingNodeInternal)
+	links.new(mixRGBShadeless.inputs[0], socketDict['Shading'])
 	links.new(mixRGBShadeless.inputs[1], colorNode.outputs[0])
 	links.new(mixRGBShadeless.inputs[2], mixRGB.outputs[0])
 
@@ -931,15 +995,15 @@ def createShadeNode(node_tree, location, shadingNode, lightingNode, ambientNode)
 
 	return groupNode
 
-def createTexFormatNodes(node_tree, location, externalColorSocket, externalAlphaSocket, nodeDict):
+def createTexFormatNodes(node_tree, location, externalColorSocket, externalAlphaSocket):
 	groupNode = node_tree.nodes.new("ShaderNodeGroup")
 	groupNode.location = location
 	groupNode.name = 'Get Texture Color'
 	location[1] = location[1] - (groupNode.height + 100)
 
-	createGroup = 'Get Texture Color F3D v2' not in bpy.data.node_groups
+	createGroup = 'Get Texture Color F3D v3' not in bpy.data.node_groups
 	if not createGroup:
-		group_tree = bpy.data.node_groups['Get Texture Color F3D v2']
+		group_tree = bpy.data.node_groups['Get Texture Color F3D v3']
 		groupNode.node_tree = group_tree
 
 		nodeIndex = 0
@@ -950,12 +1014,12 @@ def createTexFormatNodes(node_tree, location, externalColorSocket, externalAlpha
 			node_tree, nodeIndex, "Alpha", createGroup)
 		nodeIndex += 1
 
-		socketDict, nodeIndex = nodeDictToInternalSocket(node_tree, 
-			groupNode, None, nodeDict, [], [], nodeIndex, createGroup)
+		#socketDict, nodeIndex = nodeDictToInternalSocket(node_tree, 
+		#	groupNode, None, nodeDict, [], [], nodeIndex, createGroup)
 		
 		return groupNode, location[0], location[1]
 	
-	group_tree = bpy.data.node_groups.new(type="ShaderNodeTree", name = 'Get Texture Color F3D v2')
+	group_tree = bpy.data.node_groups.new(type="ShaderNodeTree", name = 'Get Texture Color F3D v3')
 	links = group_tree.links
 	groupNode.node_tree = group_tree
 	input_node = group_tree.nodes.new("NodeGroupInput")
@@ -978,8 +1042,14 @@ def createTexFormatNodes(node_tree, location, externalColorSocket, externalAlpha
 		node_tree, nodeIndex, "Alpha", createGroup)
 	nodeIndex += 1
 
-	socketDict, nodeIndex = nodeDictToInternalSocket(node_tree, 
-		groupNode, input_node, nodeDict, [], [], nodeIndex, createGroup)
+	socketDict = addSocketList(groupNode, input_node, {
+		"Is Greyscale" : "NodeSocketFloat",
+		"Has Alpha" : "NodeSocketFloat",
+		'Is Intensity' : "NodeSocketFloat"
+	})
+
+	#socketDict, nodeIndex = nodeDictToInternalSocket(node_tree, 
+	#	groupNode, input_node, nodeDict, [], [], nodeIndex, createGroup)
 
 	# Add texture format mixes
 	x += 300
@@ -1012,81 +1082,16 @@ def createTexFormatNodes(node_tree, location, externalColorSocket, externalAlpha
 
 	return groupNode, location[0], location[1]
 
-def createUVInputAxisNodes(node_tree, texIndex, x, y, nodeDict):
-	prefix = "Tex " + str(texIndex) + ' '
-	normLNode, x, y = \
-		addNodeAt(node_tree, 'ShaderNodeCombineXYZ', prefix + 'Normalized L', x, y, 'Normalized L', nodeDict)
-	normLSocket = normLNode.outputs[0]
-	normLSocket.default_value = [0, 0, 0]
-
-	normHNode, x, y = \
-		addNodeAt(node_tree, 'ShaderNodeCombineXYZ', prefix + 'Normalized H', x, y, 'Normalized H', nodeDict)
-	normHSocket = normHNode.outputs[0]
-	normHSocket.default_value = [1,1,0]
-
-	clampNode, x, y = \
-		addNodeAt(node_tree, 'ShaderNodeCombineXYZ', prefix + 'Clamp', x, y, 'Clamp', nodeDict)
-	clampSocket = clampNode.outputs[0]
-	clampSocket.default_value = [0,0,0]
-
-	normMaskNode, x, y = \
-		addNodeAt(node_tree, 'ShaderNodeCombineXYZ', prefix + 'Normalized Mask', x, y, 'Normalized Mask', nodeDict)
-	normMaskSocket = normMaskNode.outputs[0]
-	normMaskSocket.default_value = [1,1,0]
-
-	mirrorNode, x, y = \
-		addNodeAt(node_tree, 'ShaderNodeCombineXYZ', prefix + 'Mirror', x, y, 'Mirror', nodeDict)
-	mirrorSocket = mirrorNode.outputs[0]
-	mirrorSocket.default_value = [0,0,0]
-
-	shiftNode, x, y = \
-		addNodeAt(node_tree, 'ShaderNodeCombineXYZ', prefix + 'Shift', x, y, 'Shift', nodeDict)
-	shiftSocket = shiftNode.outputs[0]
-	shiftSocket.default_value = [0,0,0]
-
-	scaleNode, x, y = \
-		addNodeAt(node_tree, 'ShaderNodeCombineXYZ', prefix + 'Scale', x, y, 'Scale', nodeDict)
-	scaleSocket = scaleNode.outputs[0]
-	scaleSocket.default_value = [1,1,0]
-
-	# Makes sure clamp works correctly
-	normHalfPixelNode, x, y = \
-		addNodeAt(node_tree, 'ShaderNodeCombineXYZ', prefix + 'Normalized Half Pixel', x , y, 'Normalized Half Pixel', nodeDict)
-	normHalfPixelSocket = normHalfPixelNode.outputs[0]
-	normHalfPixelSocket.default_value = [1 / 64, 1/64, 0]
-
-	return x,  y
-
-def createUVInputsAndGroup(node_tree, texIndex, x, y, texGenDict):
-	prefix = "Tex " + str(texIndex) + ' '
-	# Texture size
-	nodeDict = {}
-	dimensionNode, x, y = \
-		addNodeAt(node_tree, "ShaderNodeCombineXYZ", prefix + 'Image Factor', 
-		x, y, 'Image Factor', nodeDict)
-	dimensionNode.outputs[0].default_value = [1024 / 32, 1024 / 32, 0]
-
-	x,y= createUVInputAxisNodes(node_tree, texIndex, x, y, nodeDict)
-	uvNode, x, y = createUVGroup(node_tree, [x,y], texGenDict, nodeDict)
+def createUVInputsAndGroup(node_tree, texIndex, x, y):
+	uvNode, x, y = createUVGroup(node_tree, [x,y], texIndex)
 
 	return uvNode, x + 300, 0
 
 def createTextureInputsAndGroup(node_tree, texIndex, x, y):
-	nodeDict2 = {}
 	colorSocket = node_tree.nodes["Texture " + str(texIndex)].outputs[0]
 	alphaSocket = node_tree.nodes["Texture " + str(texIndex)].outputs[1]
 
-	isGreyScale, x, y = addNodeAt(node_tree, 'ShaderNodeValue', 
-		"Texture " + str(texIndex) + " Is Greyscale", x, y, "Is Greyscale", nodeDict2)
-	isGreyScale.outputs[0].default_value = 0
-	hasAlpha, x, y = addNodeAt(node_tree, 'ShaderNodeValue', 
-		'Texture ' + str(texIndex) + ' Has Alpha', x, y, 'Has Alpha', nodeDict2)
-	hasAlpha.outputs[0].default_value = 1
-	isIntensity, x, y = addNodeAt(node_tree, 'ShaderNodeValue', 
-		'Texture ' + str(texIndex) + ' Is Intensity', x, y, 'Is Intensity', nodeDict2)
-	isIntensity.outputs[0].default_value = 0
-
-	colorNode, x, y = createTexFormatNodes(node_tree, [x,y], colorSocket, alphaSocket, nodeDict2)
+	colorNode, x, y = createTexFormatNodes(node_tree, [x,y], colorSocket, alphaSocket)
 	return colorNode, x, y
 
 

@@ -4,14 +4,14 @@ from .utility import *
 from .sm64_geolayout_constants import *
 from .sm64_geolayout_classes import *
 import math
-from .f3d_material import createF3DMat, update_preset_manual, enumMaterialPresets, F3DMaterialSettings
+from .f3d_material import createF3DMat, update_preset_manual, enumMaterialPresets, F3DMaterialSettings, update_node_values_of_material
 from .sm64_collision import CollisionSettings
 
-def convertAllF3DtoV2(objs):
+def upgradeF3DVersionAll(objs, armatures, version):
 	# Remove original v2 node groups so that they can be recreated.
 	deleteGroups = []
 	for node_tree in bpy.data.node_groups:
-		if node_tree.name[-6:] == 'F3D v2':
+		if node_tree.name[-6:] == 'F3D v' + str(version):
 			deleteGroups.append(node_tree)
 	for deleteGroup in deleteGroups:
 		bpy.data.node_groups.remove(deleteGroup)
@@ -20,18 +20,35 @@ def convertAllF3DtoV2(objs):
 	# handles cases where materials are used in multiple objects
 	materialDict = {}
 	for obj in objs:
-		convertOneObjectF3DtoV2(obj, materialDict)
+		upgradeF3DVersionOneObject(obj, materialDict, version)
+	
+	for armature in armatures:
+		for bone in armature.bones:
+			if bone.geo_cmd == "Switch":
+				for switchOption in bone.switch_options:
+					if switchOption.switchType == "Material":
+						if switchOption.materialOverride in materialDict:
+							switchOption.materialOverride = materialDict[switchOption.materialOverride]
+						for i in range(len(switchOption.specificOverrideArray)):
+							material = switchOption.specificOverrideArray[i].material
+							if material in materialDict:
+								switchOption.specificOverrideArray[i].material = materialDict[material]
+						for i in range(len(switchOption.specificIgnoreArray)):
+							material = switchOption.specificIgnoreArray[i].material
+							if material in materialDict:
+								switchOption.specificIgnoreArray[i].material = materialDict[material]
 
-def convertOneObjectF3DtoV2(obj, materialDict):
+
+def upgradeF3DVersionOneObject(obj, materialDict, version):
 	for index in range(len(obj.material_slots)):
 		material = obj.material_slots[index].material
 		if material is not None and material.is_f3d:
 			if material in materialDict:
 				obj.material_slots[index].material = materialDict[material]
 			else:
-				convertF3DtoV2(obj, index, material, materialDict)
+				convertF3DtoNewVersion(obj, index, material, materialDict, version)
 
-def convertF3DtoV2(obj, index, material, materialDict):
+def convertF3DtoNewVersion(obj, index, material, materialDict, version):
 	f3dMat = createF3DMat(obj, preset = material.f3d_preset, index = index)
 	matSettings = F3DMaterialSettings()
 	matSettings.loadFromMaterial(material, True)
@@ -41,7 +58,7 @@ def convertF3DtoV2(obj, index, material, materialDict):
 	colSettings.load(material)
 	colSettings.apply(f3dMat)
 
-	updateMatWithNameV2(f3dMat, material, materialDict)
+	updateMatWithNewVersionName(f3dMat, material, materialDict, version)
 
 def convertAllBSDFtoF3D(objs, renameUV):
 	# Dict of non-f3d materials : converted f3d materials
@@ -97,8 +114,11 @@ def updateMatWithName(f3dMat, oldMat, materialDict):
 	update_preset_manual(f3dMat, bpy.context)
 	materialDict[oldMat] = f3dMat
 
-def updateMatWithNameV2(f3dMat, oldMat, materialDict):
-	f3dMat.name = oldMat.name + "_v2"
+def updateMatWithNewVersionName(f3dMat, oldMat, materialDict, version):
+	name = oldMat.name
+	if oldMat.name[-3:-1] == '_v':
+		name = oldMat.name[:-3]
+	f3dMat.name = name + "_v" + str(version)
 	update_preset_manual(f3dMat, bpy.context)
 	materialDict[oldMat] = f3dMat
 
@@ -137,8 +157,9 @@ class BSDFConvert(bpy.types.Operator):
 
 class MatUpdateConvert(bpy.types.Operator):
 	# set bl_ properties
+	version = 3
 	bl_idname = 'object.convert_f3d_update'
-	bl_label = "Recreate F3D Materials As v2"
+	bl_label = "Recreate F3D Materials As v" + str(version)
 	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
 	# Called on demand (i.e. button press, menu item)
@@ -149,7 +170,8 @@ class MatUpdateConvert(bpy.types.Operator):
 				raise PluginError("Operator can only be used in object mode.")
 			
 			if context.scene.update_conv_all:
-				convertAllF3DtoV2([obj for obj in bpy.data.objects if isinstance(obj.data, bpy.types.Mesh)])
+				upgradeF3DVersionAll([obj for obj in bpy.data.objects if isinstance(obj.data, bpy.types.Mesh)],
+					bpy.data.armatures, self.version)
 			else:
 				if len(context.selected_objects) == 0:
 					raise PluginError("Mesh not selected.")
@@ -158,7 +180,7 @@ class MatUpdateConvert(bpy.types.Operator):
 					raise PluginError("Mesh not selected.")
 				
 				obj = context.selected_objects[0]
-				convertOneObjectF3DtoV2(obj, {})
+				upgradeF3DVersionOneObject(obj, {}, self.version)
 				
 		except Exception as e:
 			raisePluginError(self, e)

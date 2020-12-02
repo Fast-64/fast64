@@ -124,6 +124,9 @@ def drawGeoInfo(panel, bone):
 		prop_split(col, bone, 'shadow_scale', 'Scale')
 	
 	if bone.geo_cmd == 'StartRenderArea':
+		infoBoxRenderArea = col.box()
+		infoBoxRenderArea.label(text = "WARNING: This command is deprecated for bones.")
+		infoBoxRenderArea.label(text = 'See the object properties window for the armature instead.')
 		prop_split(col, bone, 'culling_radius', 'Culling Radius')
 	
 	#if bone.geo_cmd == 'SwitchOption':
@@ -152,9 +155,32 @@ class GeolayoutBonePanel(bpy.types.Panel):
 	def draw(self, context):
 		drawGeoInfo(self, context.bone)
 
-class GeolayoutStaticPanel(bpy.types.Panel):
-	bl_label = "Static Geolayout Inspector"
-	bl_idname = "SM64_Static_Geolayout_Inspector"
+class GeolayoutArmaturePanel(bpy.types.Panel):
+	bl_label = "Geolayout Armature Inspector"
+	bl_idname = "SM64_Armature_Geolayout_Inspector"
+	bl_space_type = 'PROPERTIES'
+	bl_region_type = 'WINDOW'
+	bl_context = "object"
+	bl_options = {'HIDE_HEADER'} 
+
+	@classmethod
+	def poll(cls, context):
+		return context.object is not None and \
+			isinstance(context.object.data, bpy.types.Armature)
+
+	def draw(self, context):
+		obj = context.object
+		col = self.layout.column().box()
+		col.box().label(text = 'Armature Geolayout Inspector')
+
+		col.prop(obj, 'use_render_area')
+		if obj.use_render_area:
+			col.box().label(text = 'This is in blender units.')
+			prop_split(col, obj, 'culling_radius', 'Culling Radius')
+
+class GeolayoutObjectPanel(bpy.types.Panel):
+	bl_label = "Object Geolayout Inspector"
+	bl_idname = "SM64_Object_Geolayout_Inspector"
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
 	bl_context = "object"
@@ -168,13 +194,16 @@ class GeolayoutStaticPanel(bpy.types.Panel):
 	def draw(self, context):
 		obj = context.object
 		col = self.layout.column().box()
-		col.box().label(text = 'Static Geolayout Inspector')
+		col.box().label(text = 'Object Geolayout Inspector')
 
 		prop_split(col, obj, 'geo_cmd_static', 'Geolayout Command')
 		prop_split(col, obj, 'draw_layer_static', 'Draw layer')
 		col.prop(obj, 'use_render_area')
 		if obj.use_render_area:
-			col.box().label(text = 'This is in blender units.')
+			renderAreaBox = col.box()
+			renderAreaBox.label(text = 'This is in blender units.')
+			renderAreaBox.label(text = 'This only applies if this is the root object of an object geolayout.')
+			renderAreaBox.label(text = 'For armature geolayouts, see the armature\'s object properties instead.')
 			prop_split(col, obj, 'culling_radius', 'Culling Radius')
 		col.prop(obj, 'use_render_range')
 		if obj.use_render_range:
@@ -387,7 +416,8 @@ def updateBone(self, context):
 
 bone_classes = (
 	GeolayoutBonePanel,
-	GeolayoutStaticPanel,
+	GeolayoutObjectPanel,
+	GeolayoutArmaturePanel,
 	#GeolayoutBoneSidePanel
 	AddSwitchOption,
 	RemoveSwitchOption,

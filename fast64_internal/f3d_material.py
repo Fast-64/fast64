@@ -362,12 +362,26 @@ class F3DPanel(bpy.types.Panel):
 		prop_input_name = inputGroup.column()
 		prop_input = inputGroup.column()
 		prop_input_name.prop(material, setName, text = 'Primitive Color')
-		prop_input.prop(nodes['Primitive Color'].outputs[0], 'default_value',
-			text='')
+
+		if material.mat_ver == 3:
+			prop_input.prop(nodes['Primitive Color Output'].inputs[0], 'default_value', text='')
+		else:
+			prop_input.prop(nodes['Primitive Color'].outputs[0], 'default_value', text='')
 		prop_input.prop(material, 'prim_lod_frac', 
 			text='Prim LOD Fraction')
 		prop_input.prop(material, 'prim_lod_min', 
 			text='Min LOD Ratio')
+		prop_input.enabled = setProp
+		return inputGroup
+
+	def ui_env(self, material, layout, setName, setProp):
+		nodes = material.node_tree.nodes
+		inputGroup = layout.row()
+		prop_input_name = inputGroup.column()
+		prop_input = inputGroup.column()
+		prop_input_name.prop(material, setName, text = 'Environment Color')
+		prop_input.prop(nodes['Environment Color Output'].inputs[0], 'default_value',
+			text='')
 		prop_input.enabled = setProp
 		return inputGroup
 
@@ -708,8 +722,10 @@ class F3DPanel(bpy.types.Panel):
 				self.ui_prim(material, inputCol, 'set_prim', material.set_prim)
 
 			if useDict['Environment']:	
-				self.ui_prop(material, inputCol, 'Environment Color', 'set_env',
-				material.set_env)
+				if material.mat_ver == 3:
+					self.ui_env(material, inputCol, 'set_env', material.set_env)
+				else:
+					self.ui_prop(material, inputCol, 'Environment Color', 'set_env', material.set_env)
 
 			if useDict['Shade']:
 				self.ui_lights(material, inputCol, 'Shade Color')
@@ -776,6 +792,40 @@ def update_node_values_directly(material, context):
 	material.f3d_preset = 'Custom'
 	material.f3d_update_flag = False
 
+def getSocketFromCombinerToNodeDictColor(nodes, f3dVer, combinerInput):
+	nodeName, socketIndex = combinerToNodeDictColor[combinerInput]
+	return nodes[nodeName].outputs[socketIndex] if nodeName is not None else None
+
+def getSocketFromCombinerToNodeDictAlpha(nodes, f3dVer, combinerInput):
+	nodeName, socketIndex = combinerToNodeDictAlpha[combinerInput]
+	return nodes[nodeName].outputs[socketIndex] if nodeName is not None else None
+
+def update_node_combiner(material, combinerInputs, f3dVer, cycleIndex):
+	nodes = material.node_tree.nodes
+	combinerNode = nodes['Color Combiner Cycle ' + str(cycleIndex) + ' F3D v3']
+	for i in range(8):
+		for link in combinerNode.inputs[i].links:
+			material.node_tree.links.remove(link)
+		if i in range(0,4):
+			if combinerInputs[i] == 'COMBINED' or combinerInputs[i] == 'COMBINED_ALPHA':
+				if cycleIndex == 2:
+					combiner1 = nodes['Color Combiner Cycle 1 F3D v3']
+					combiner2 = nodes['Color Combiner Cycle 2 F3D v3']
+					material.node_tree.links.new(combiner2.inputs[i], 
+						combiner1.outputs[0 if combinerInputs[i] == 'COMBINED' else 1])
+			else:
+				combinerSocket = getSocketFromCombinerToNodeDictColor(nodes, f3dVer, combinerInputs[i])
+				material.node_tree.links.new(combinerNode.inputs[i], combinerSocket)
+		else:
+			if combinerInputs[i] == 'COMBINED':
+				if cycleIndex == 2:
+					combiner1 = nodes['Color Combiner Cycle 1 F3D v3']
+					combiner2 = nodes['Color Combiner Cycle 2 F3D v3']
+					material.node_tree.links.new(combiner2.inputs[i], combiner1.outputs[1])
+			else:
+				combinerSocket = getSocketFromCombinerToNodeDictAlpha(nodes, f3dVer, combinerInputs[i])
+				material.node_tree.links.new(combinerNode.inputs[i], combinerSocket)
+
 def update_node_values_of_material(material, context):
 	nodes = material.node_tree.nodes
 	f3dVer = F3D('F3D', False)
@@ -813,30 +863,99 @@ def update_node_values_of_material(material, context):
 		nodes['Case B Alpha 2'].outputs[0].default_value = f3dVer.ACMUXDict[material.combiner2.B_alpha]
 		nodes['Case C Alpha 2'].outputs[0].default_value = f3dVer.ACMUXDict[material.combiner2.C_alpha]
 		nodes['Case D Alpha 2'].outputs[0].default_value = f3dVer.ACMUXDict[material.combiner2.D_alpha]
+	elif material.mat_ver == 3:
+		combinerInputs1 = [
+			material.combiner1.A,
+			material.combiner1.B,
+			material.combiner1.C,
+			material.combiner1.D,
+			material.combiner1.A_alpha,
+			material.combiner1.B_alpha,
+			material.combiner1.C_alpha,
+			material.combiner1.D_alpha,
+		]
 
-	nodes['Cycle Type'].outputs[0].default_value = 1 if \
-		material.rdp_settings.g_mdsft_cycletype == 'G_CYC_2CYCLE' else 0
-	nodes['Texture Gen'].outputs[0].default_value = 1 if \
-		material.rdp_settings.g_tex_gen else 0
-	nodes['Texture Gen Linear'].outputs[0].default_value = 1 if \
-		material.rdp_settings.g_tex_gen_linear else 0
-	nodes['Shading'].outputs[0].default_value = 0 if \
-		not material.rdp_settings.g_shade else 1
-	nodes['Lighting'].outputs[0].default_value = 0 if \
-		not material.rdp_settings.g_lighting else 1
+		combinerInputs2 = [
+			material.combiner2.A,
+			material.combiner2.B,
+			material.combiner2.C,
+			material.combiner2.D,
+			material.combiner2.A_alpha,
+			material.combiner2.B_alpha,
+			material.combiner2.C_alpha,
+			material.combiner2.D_alpha,
+		]
 
-	if material.use_default_lighting:
-		nodes['Ambient Color'].outputs[0].default_value = \
-			(material.default_light_color[0],
-			material.default_light_color[1],
-			material.default_light_color[2],
-			material.default_light_color[3])
+		update_node_combiner(material, combinerInputs1, f3dVer, 1)
+		update_node_combiner(material, combinerInputs2, f3dVer, 2)
+
+	if material.mat_ver == 3:
+		nodes['F3D v3'].inputs[4].default_value = 1 if \
+			material.rdp_settings.g_mdsft_cycletype == 'G_CYC_2CYCLE' else 0
+		nodes['F3D v3'].inputs[5].default_value = \
+			0 if material.rdp_settings.g_cull_front else 1
+		nodes['F3D v3'].inputs[6].default_value = \
+			0 if material.rdp_settings.g_cull_back else 1
+
+		nodes['Get UV 0 F3D v3'].inputs[0].default_value = 1 if \
+			material.rdp_settings.g_tex_gen else 0
+		nodes['Get UV 0 F3D v3'].inputs[1].default_value = 1 if \
+			material.rdp_settings.g_tex_gen_linear else 0
+		nodes['Get UV 1 F3D v3'].inputs[0].default_value = 1 if \
+			material.rdp_settings.g_tex_gen else 0
+		nodes['Get UV 1 F3D v3'].inputs[1].default_value = 1 if \
+			material.rdp_settings.g_tex_gen_linear else 0
+
+		nodes['Shade Color'].inputs[0].default_value = 0 if \
+			not material.rdp_settings.g_shade else 1
+		nodes['Shade Color'].inputs[1].default_value = 0 if \
+			not material.rdp_settings.g_lighting else 1
+		
+		if material.use_default_lighting:
+			nodes['Shade Color'].inputs[2].default_value = \
+				(material.default_light_color[0],
+				material.default_light_color[1],
+				material.default_light_color[2],
+				material.default_light_color[3])
+		else:
+			nodes['Shade Color'].inputs[2].default_value = \
+				(material.ambient_light_color[0],
+				material.ambient_light_color[1],
+				material.ambient_light_color[2],
+				material.ambient_light_color[3])
+
 	else:
-		nodes['Ambient Color'].outputs[0].default_value = \
-			(material.ambient_light_color[0],
-			material.ambient_light_color[1],
-			material.ambient_light_color[2],
-			material.ambient_light_color[3])
+		nodes['Cycle Type'].outputs[0].default_value = 1 if \
+			material.rdp_settings.g_mdsft_cycletype == 'G_CYC_2CYCLE' else 0
+		nodes['Cull Front'].outputs[0].default_value = \
+			0 if material.rdp_settings.g_cull_front else 1
+		nodes['Cull Back'].outputs[0].default_value = \
+			0 if material.rdp_settings.g_cull_back else 1
+		nodes['Texture Gen'].outputs[0].default_value = 1 if \
+			material.rdp_settings.g_tex_gen else 0
+		nodes['Texture Gen Linear'].outputs[0].default_value = 1 if \
+			material.rdp_settings.g_tex_gen_linear else 0
+		nodes['Shading'].outputs[0].default_value = 0 if \
+			not material.rdp_settings.g_shade else 1
+		nodes['Lighting'].outputs[0].default_value = 0 if \
+			not material.rdp_settings.g_lighting else 1
+
+		if material.use_default_lighting:
+			nodes['Ambient Color'].outputs[0].default_value = \
+				(material.default_light_color[0],
+				material.default_light_color[1],
+				material.default_light_color[2],
+				material.default_light_color[3])
+		else:
+			nodes['Ambient Color'].outputs[0].default_value = \
+				(material.ambient_light_color[0],
+				material.ambient_light_color[1],
+				material.ambient_light_color[2],
+				material.ambient_light_color[3])
+
+	material.show_transparent_back = material.rdp_settings.g_cull_front
+
+	
 
 
 	nodes['Chroma Key Scale'].outputs[0].default_value = \
@@ -851,13 +970,6 @@ def update_node_values_of_material(material, context):
 	nodes['YUV Convert K4'].outputs[0].default_value = material.k4
 	nodes['YUV Convert K5'].outputs[0].default_value = material.k5
 
-	nodes['Cull Front'].outputs[0].default_value = \
-		0 if material.rdp_settings.g_cull_front else 1
-	material.show_transparent_back = material.rdp_settings.g_cull_front
-	nodes['Cull Back'].outputs[0].default_value = \
-		0 if material.rdp_settings.g_cull_back else 1
-
-	
 	#nodes['Texture 0'].interpolation = 'Closest' if \
 	#	material.rdp_settings.g_mdsft_text_filt == '0' else 'Cubic'
 	#nodes['Texture 1'].interpolation = 'Closest' if \
@@ -935,13 +1047,66 @@ def update_tex_values_field_v2(self, fieldProperty, pixelLength,
 
 	if autoprop:
 		setAutoProp(fieldProperty, pixelLengthAxis)
-	
+
 	normLNode.inputs[fieldIndex].default_value = fieldProperty.low / pixelLengthAxis * (-1 if field == 'T' else 1)
 	normHNode.inputs[fieldIndex].default_value = (fieldProperty.high + 1)/pixelLengthAxis
 	normMaskNode.inputs[fieldIndex].default_value = (2 ** fieldProperty.mask) / pixelLengthAxis if fieldProperty.mask > 0 else 0
 	shiftNode.inputs[fieldIndex].default_value = fieldProperty.shift
 	scaleNode.inputs[fieldIndex].default_value = scale[fieldIndex] * uvBasisScale[fieldIndex]
 
+def update_tex_values_field_v3(self, texProperty, tex_size, 
+	uvBasisScale, scale, texIndex):
+	nodes = self.node_tree.nodes
+	if texProperty.autoprop:
+		setAutoProp(texProperty.S, tex_size[0])
+		setAutoProp(texProperty.T, tex_size[1])
+
+	# For input index, Tex Gen = 0, Tex Gen Linear = 1
+
+	# Image Factor
+	nodes['Get UV ' + str(texIndex) + ' F3D v3'].inputs[2].default_value = (
+		1024 / tex_size[0], 1024 / tex_size[1], 0)
+
+	# Normalized L
+	nodes['Get UV ' + str(texIndex) + ' F3D v3'].inputs[3].default_value = (
+		texProperty.S.low / tex_size[0],
+		texProperty.T.low / tex_size[1], 0)
+	
+	# Normalized H
+	nodes['Get UV ' + str(texIndex) + ' F3D v3'].inputs[4].default_value = (
+		(texProperty.S.high + 1) / tex_size[0],
+		(texProperty.T.high + 1) / tex_size[1], 0)
+
+	# Clamp
+	nodes['Get UV ' + str(texIndex) + ' F3D v3'].inputs[5].default_value = (
+		1 if texProperty.S.clamp else 0,
+		1 if texProperty.T.clamp else 0, 0)
+		
+	# Normalized Mask
+	nodes['Get UV ' + str(texIndex) + ' F3D v3'].inputs[6].default_value = (
+		(2 ** texProperty.S.mask) / tex_size[0] if texProperty.S.mask > 0 else 0,
+		(2 ** texProperty.T.mask) / tex_size[1] if texProperty.T.mask > 0 else 0, 0)
+	
+	# Mirror
+	nodes['Get UV ' + str(texIndex) + ' F3D v3'].inputs[7].default_value = (
+		1 if texProperty.S.mirror else 0,
+		1 if texProperty.T.mirror else 0, 0)
+
+	# Shift
+	nodes['Get UV ' + str(texIndex) + ' F3D v3'].inputs[8].default_value = (
+		texProperty.S.shift,
+		texProperty.T.shift, 0)
+
+	# Scale
+	nodes['Get UV ' + str(texIndex) + ' F3D v3'].inputs[9].default_value = (
+		scale[0] * uvBasisScale[0],
+		scale[1] * uvBasisScale[1], 0)
+
+	# Normalized Half Pixel
+	nodes['Get UV ' + str(texIndex) + ' F3D v3'].inputs[10].default_value = (
+		1 / (2 * tex_size[0]),
+		1 / (2 * tex_size[1]), 0)
+	
 def update_tex_values_index(self, context, texProperty, texNodeName, 
 	uvNodeName, isTexGen, uvBasisScale, scale, texIndex):
 	nodes = self.node_tree.nodes
@@ -978,21 +1143,47 @@ def update_tex_values_index(self, context, texProperty, texNodeName,
 					uvBasisScale, scale, texProperty.autoprop, texIndex, 'S')
 				update_tex_values_field_v2(self, texProperty.T, tex_size,
 					uvBasisScale, scale, texProperty.autoprop, texIndex, 'T')
+			elif self.mat_ver == 3:
+				update_tex_values_field_v3(self, texProperty, tex_size, 
+					uvBasisScale, scale, texIndex)
+				
+				nodes[texNodeName].interpolation = "Closest"
+				#nodes[texNodeName].interpolation = "Closest" if \
+				#	self.rdp_settings.g_mdsft_text_filt == 'G_TF_POINT' else "Linear"
+			else:
+				print("Error: Unhandled material version " + str(self.mat_ver) + ' for texture properties.')
 
 			texFormat = texProperty.tex_format
 			ciFormat = texProperty.ci_format
-			nodes[texNodeName + ' Is Greyscale'].outputs[0].default_value = \
-     		    1 if (texFormat[0] == 'I' or \
-				(texFormat[:2] == 'CI' and ciFormat[0] == 'I')) else 0
-			nodes[texNodeName + ' Has Alpha'].outputs[0].default_value = \
-     		    1 if ('A' in texFormat or \
-				(texFormat[:2] == 'CI' and 'A' in ciFormat))else 0
-			
-			if texNodeName + " Is Intensity" in nodes:
-				nodes[texNodeName + " Is Intensity"].outputs[0].default_value =\
+			if self.mat_ver == 3: # No nodes, only sockets (0 = color, 1 = alpha)
+				getTextureColorName = 'Get Texture Color' if texIndex == 0 else "Get Texture Color.001"
+				# Is Greyscale
+				nodes[getTextureColorName].inputs[2].default_value =\
+					1 if (texFormat[0] == 'I' or \
+					(texFormat[:2] == 'CI' and ciFormat[0] == 'I')) else 0
+				
+				# Has Alpha
+				nodes[getTextureColorName].inputs[3].default_value = \
+     			    1 if ('A' in texFormat or \
+					(texFormat[:2] == 'CI' and 'A' in ciFormat)) else 0
+
+				# Is Intensity
+				nodes[getTextureColorName].inputs[4].default_value =\
 					1 if (texFormat == 'I4' or texFormat == 'I8') else 0
+
 			else:
-				print("Using old node graph, cannot set intensity as alpha.")
+				nodes[texNodeName + ' Is Greyscale'].outputs[0].default_value = \
+     			    1 if (texFormat[0] == 'I' or \
+					(texFormat[:2] == 'CI' and ciFormat[0] == 'I')) else 0
+				nodes[texNodeName + ' Has Alpha'].outputs[0].default_value = \
+     			    1 if ('A' in texFormat or \
+					(texFormat[:2] == 'CI' and 'A' in ciFormat))else 0
+
+				if texNodeName + " Is Intensity" in nodes:
+					nodes[texNodeName + " Is Intensity"].outputs[0].default_value =\
+						1 if (texFormat == 'I4' or texFormat == 'I8') else 0
+				else:
+					print("Using old node graph, cannot set intensity as alpha.")
 
 def update_tex_values_and_formats(self, context):
 	if hasattr(context, 'material') and context.material is not None:
@@ -1107,10 +1298,10 @@ def createF3DMat(obj, preset = 'Shaded Solid', index = None):
 			bpy.context.object.active_material_index = index
 
 	material.is_f3d = True
-	material.mat_ver = 2
+	material.mat_ver = 3
 
 	material.use_nodes = True
-	material.blend_method = 'BLEND'
+	material.blend_method = 'HASHED'
 	material.show_transparent_back = False
 
 	# Remove default shader 
@@ -1124,24 +1315,25 @@ def createF3DMat(obj, preset = 'Shaded Solid', index = None):
 	y = 0
 
 	uvDict = {}
-	texGenNode, x, y = addNodeAt(node_tree, 'ShaderNodeValue', 
-		'Texture Gen', x, y, 'Texture Gen', uvDict)
-	texGenLinearNode, x, y = addNodeAt(node_tree, 'ShaderNodeValue', 
-		'Texture Gen Linear', x, y, 'Texture Gen Linear', uvDict)
+	#texGenNode, x, y = addNodeAt(node_tree, 'ShaderNodeValue', 
+	#	'Texture Gen', x, y, 'Texture Gen', uvDict)
+	#texGenLinearNode, x, y = addNodeAt(node_tree, 'ShaderNodeValue', 
+	#	'Texture Gen Linear', x, y, 'Texture Gen Linear', uvDict)
 
 	# Create UV nodes
-	uvNode0, x, y = createUVInputsAndGroup(node_tree, 0, x, y, uvDict.copy())
-	uvNode1, x, y = createUVInputsAndGroup(node_tree, 1, x, y, uvDict.copy())
+	uvNode0, x, y = createUVInputsAndGroup(node_tree, 0, x, y)
+	uvNode1, x, y = createUVInputsAndGroup(node_tree, 1, x, y)
 
 	x += 600
 	y = 0
+	x,y, primNode = addColorWithAlphaNode("Primitive Color", x, y, node_tree)
+	x,y, envNode = addColorWithAlphaNode("Environment Color", x, y, node_tree)
 	nodeDict, x, y = addNodeListAt(node_tree, {
-		'Combined Color': 'ShaderNodeTexImage',
 		'Texture 0': 'ShaderNodeTexImage',
 		'Texture 1': 'ShaderNodeTexImage',
-		'Primitive Color': 'ShaderNodeRGB',
+		#'Primitive Color': 'ShaderNodeRGB',
 		#'Shade Color': 'ShaderNodeBsdfDiffuse',
-		'Environment Color': 'ShaderNodeRGB',
+		#'Environment Color': 'ShaderNodeRGB',
 		'Chroma Key Center': 'ShaderNodeRGB',
 		'Chroma Key Scale': 'ShaderNodeRGB',
 		#'Primitive Alpha': 'ShaderNodeValue',
@@ -1166,8 +1358,8 @@ def createF3DMat(obj, preset = 'Shaded Solid', index = None):
 	# due to mipmapping when 'Linear' filtering is used. 
 	# When using 'Cubic', clamping doesn't work correctly either.
 	# Thus 'Closest' is used instead.
-	nodes['Texture 0'].interpolation = 'Closest'
-	nodes['Texture 1'].interpolation = 'Closest'
+	nodes['Texture 0'].interpolation = 'Linear'
+	nodes['Texture 1'].interpolation = 'Linear'
 
 	# Create texture format nodes
 	x += 300
@@ -1178,40 +1370,56 @@ def createF3DMat(obj, preset = 'Shaded Solid', index = None):
 	nodeDict["Texture 1"] = colorNode1
 
 	# Create cases A-D
-	x += 300
-	y = 0
-	caseNodeDict1, x, y = addNodeListAt(node_tree,
-		caseTemplateDict2, x, y, 1)
-	
-	caseNodeDict2, x, y = addNodeListAt(node_tree,
-		caseTemplateDict2, x, y, 2)
+	#x += 300
+	#y = 0
+	#caseNodeDict1, x, y = addNodeListAt(node_tree,
+	#	caseTemplateDict2, x, y, 1)
+	#
+	#caseNodeDict2, x, y = addNodeListAt(node_tree,
+	#	caseTemplateDict2, x, y, 2)
 
 	# create shade node
 	x += 300
 	y = 0
-	lightingNode, x, y = addNodeAt(node_tree, 'ShaderNodeValue', 
-		'Lighting', x, y)
-	shadingNode, x, y = addNodeAt(node_tree, 'ShaderNodeValue', 
-		'Shading', x, y)
-	ambientNode, x, y = addNodeAt(node_tree, 'ShaderNodeRGB', 
-		'Ambient Color', x, y)
-	nodeDict['Shade Color'] = createShadeNode(node_tree, [x, y], 
-		shadingNode, lightingNode, ambientNode)
+	#lightingNode, x, y = addNodeAt(node_tree, 'ShaderNodeValue', 
+	#	'Lighting', x, y)
+	#shadingNode, x, y = addNodeAt(node_tree, 'ShaderNodeValue', 
+	#	'Shading', x, y)
+	#ambientNode, x, y = addNodeAt(node_tree, 'ShaderNodeRGB', 
+	#	'Ambient Color', x, y)
+	nodeDict['Shade Color'] = createShadeNode(node_tree, [x, y])
 	
-	x += 300
-	y = 0
-	otherDict = {}
-	cycleTypeNode, x, y = \
-		addNodeAt(node_tree, 'ShaderNodeValue', 'Cycle Type', x, y, 'Cycle Type', otherDict)
-	cullFront, x, y = \
-		addNodeAt(node_tree, 'ShaderNodeValue', 'Cull Front', x, y, "Cull Front", otherDict)
-	cullBack, x, y = \
-		addNodeAt(node_tree, 'ShaderNodeValue', 'Cull Back', x, y, 'Cull Back', otherDict)
+	#x += 300
+	#y = 0
+	#otherDict = {}
+	#cycleTypeNode, x, y = \
+	#	addNodeAt(node_tree, 'ShaderNodeValue', 'Cycle Type', x, y, 'Cycle Type', otherDict)
+	#cullFront, x, y = \
+	#	addNodeAt(node_tree, 'ShaderNodeValue', 'Cull Front', x, y, "Cull Front", otherDict)
+	#cullBack, x, y = \
+	#	addNodeAt(node_tree, 'ShaderNodeValue', 'Cull Back', x, y, 'Cull Back', otherDict)
 
 	x += 300
 	y = 0
 	# Create combiner nodes
-	finalNode, x, y = createNodeF3D(node_tree, caseNodeDict1, caseNodeDict2, nodeDict, otherDict, [x, y])
+	# caseNodeDict is the A-D for color and alpha
+	# nodeDict is all sources
+	# otherDict is other shader inputs
+
+	combiner1 = createNodeCombiner(node_tree, 1)
+	combiner1.location = [x, y]
+
+	combiner2 = createNodeCombiner(node_tree, 2)
+	combiner2.location = [x, y-400]
+
+	x += 300
+	y = 0
+	finalNode, x, y = createNodeF3D(node_tree, [x, y])
+
+	links.new(finalNode.inputs[0], combiner1.outputs[0])
+	links.new(finalNode.inputs[1], combiner1.outputs[1])
+	links.new(finalNode.inputs[2], combiner2.outputs[0])
+	links.new(finalNode.inputs[3], combiner2.outputs[1])
 
 	# link new node output to material_output input
 	links.new(material_output.inputs[0], finalNode.outputs[0])

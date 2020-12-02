@@ -101,25 +101,58 @@ combiner_enums = {
 }
 
 caseTemplateDict = {
-	'Case A' : 'Fast3D_A',
-	'Case B' : 'Fast3D_B',
-	'Case C' : 'Fast3D_C',
-	'Case D' : 'Fast3D_D',
-	'Case A Alpha' : 'Fast3D_A_alpha',
-	'Case B Alpha' : 'Fast3D_B_alpha',
-	'Case C Alpha' : 'Fast3D_C_alpha',
-	'Case D Alpha' : 'Fast3D_D_alpha',
+	'Case A' : 'NodeSocketColor',
+	'Case B' : 'NodeSocketColor',
+	'Case C' : 'NodeSocketColor',
+	'Case D' : 'NodeSocketColor',
+	'Case A Alpha' : 'NodeSocketFloat',
+	'Case B Alpha' : 'NodeSocketFloat',
+	'Case C Alpha' : 'NodeSocketFloat',
+	'Case D Alpha' : 'NodeSocketFloat',
 }
 
-caseTemplateDict2 = {
-	'Case A' : 'ShaderNodeValue',
-	'Case B' : 'ShaderNodeValue',
-	'Case C' : 'ShaderNodeValue',
-	'Case D' : 'ShaderNodeValue',
-	'Case A Alpha' : 'ShaderNodeValue',
-	'Case B Alpha' : 'ShaderNodeValue',
-	'Case C Alpha' : 'ShaderNodeValue',
-	'Case D Alpha' : 'ShaderNodeValue',
+otherTemplateDict = {
+	'Cycle Type': 'NodeSocketFloat',
+	'Cull Front': 'NodeSocketFloat',
+	'Cull Back': 'NodeSocketFloat',
+}
+
+# Given combiner value, find node and socket index
+combinerToNodeDictColor = {
+	'COMBINED'  : (None, 0),
+	'TEXEL0'  : ("Get Texture Color", 0),
+	'TEXEL1'  : ("Get Texture Color.001", 0),
+	'PRIMITIVE' : ("Primitive Color RGB", 0),
+	'SHADE'  : ("Shade Color", 0),
+	'ENVIRONMENT'  : ("Environment Color RGB", 0),
+	'CENTER': ("Chroma Key Center", 0),
+	'SCALE'  : ("Chroma Key Scale", 0),
+	'COMBINED_ALPHA' : (None, 0),
+	'TEXEL0_ALPHA'  : ("Get Texture Color", 1),
+	'TEXEL1_ALPHA'  : ("Get Texture Color.001", 1),
+	'PRIMITIVE_ALPHA': ("Primitive Color Alpha", 0),
+	'SHADE_ALPHA' : ("Shade Color", 1),
+	'ENV_ALPHA' : ("Environment Color Alpha", 0),
+	'LOD_FRACTION' : ("LOD Fraction", 0), 
+	'PRIM_LOD_FRAC' : ("Primitive LOD Fraction", 0),
+	'NOISE': ("Noise", 0),
+	'K4': ("YUV Convert K4", 0),
+	'K5' : ("YUV Convert K5", 0),
+	'1': ("1", 0),
+	'0': ("0", 0),
+}
+
+combinerToNodeDictAlpha = {
+	'COMBINED' : (None, 1),
+	'TEXEL0' : ("Get Texture Color", 1),
+	'TEXEL1' : ("Get Texture Color.001", 1),
+	'PRIMITIVE' : ("Primitive Color Alpha", 0),
+	'SHADE' : ("Shade Color", 1),
+	'ENVIRONMENT' : ("Environment Color Alpha", 0),
+	'LOD_FRACTION' : ("LOD Fraction", 0),
+	'PRIM_LOD_FRAC' : ("Primitive LOD Fraction", 0),
+	'1' : ("1", 0),
+	'0' : ("0", 0),
 }
 
 # hardware v2
