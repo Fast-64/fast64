@@ -1,12 +1,11 @@
-import bpy
-import mathutils
-import math
-import re
-from .utility import *
+import bpy, mathutils, math, re, os, copy, shutil
 from .sm64_constants import *
+from .sm64_level_parser import parseLevelAtPointer
+from .sm64_rom_tweaks import ExtendBank0x04
 from math import pi
-import os
-import copy
+from bpy.utils import register_class, unregister_class
+
+from ..utility import *
 
 sm64_anim_types = {'ROTATE', 'TRANSLATE'}
 
@@ -596,3 +595,384 @@ def writeAnimation(romfile, startAddress, segmentData):
 
 def writeAnimHeader(romfile, startAddress, segmentData):
 	pass
+
+class SM64_ExportAnimMario(bpy.types.Operator):
+	bl_idname = 'object.sm64_export_anim'
+	bl_label = "Export Animation"
+	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
+
+	# Called on demand (i.e. button press, menu item)
+	# Can also be called from operator search menu (Spacebar)
+	def execute(self, context):
+		romfileOutput = None
+		tempROM = None
+		try:
+			if context.mode != 'OBJECT':
+				raise PluginError("Operator can only be used in object mode.")
+			if len(context.selected_objects) == 0 or not \
+				isinstance(context.selected_objects[0].data, bpy.types.Armature):
+				raise PluginError("Armature not selected.")
+			if len(context.selected_objects) > 1 :
+				raise PluginError("Multiple objects selected, make sure to select only one.")
+			armatureObj = context.selected_objects[0]
+		except Exception as e:
+			raisePluginError(self, e)
+			return {"CANCELLED"}
+
+		if context.scene.animExportType == 'C':
+			try:
+				exportPath, levelName = getPathAndLevel(context.scene.animCustomExport, 
+					context.scene.animExportPath, context.scene.animLevelName, 
+					context.scene.animLevelOption)
+				if not context.scene.animCustomExport:
+					applyBasicTweaks(exportPath)
+				exportAnimationC(armatureObj, context.scene.loopAnimation, 
+					exportPath, bpy.context.scene.animName,
+					bpy.context.scene.animGroupName,
+					context.scene.animCustomExport, context.scene.animExportHeaderType, levelName)
+				self.report({'INFO'}, 'Success!')
+			except Exception as e:
+				raisePluginError(self, e)
+				return {'CANCELLED'} # must return a set
+		elif context.scene.animExportType == 'Insertable Binary':
+			try:
+				exportAnimationInsertableBinary(
+					bpy.path.abspath(context.scene.animInsertableBinaryPath),
+					armatureObj, context.scene.isDMAExport, 
+					context.scene.loopAnimation)
+				self.report({'INFO'}, 'Success! Animation at ' +\
+					context.scene.animInsertableBinaryPath)
+			except Exception as e:
+				raisePluginError(self, e)
+				return {"CANCELLED"}
+		else:
+			try:
+				checkExpanded(bpy.path.abspath(context.scene.exportRom))
+				tempROM = tempName(context.scene.outputRom)
+				romfileExport = \
+					open(bpy.path.abspath(context.scene.exportRom), 'rb')	
+				shutil.copy(bpy.path.abspath(context.scene.exportRom), 
+					bpy.path.abspath(tempROM))
+				romfileExport.close()
+				romfileOutput = open(bpy.path.abspath(tempROM), 'rb+')
+			
+				# Note actual level doesn't matter for Mario, since he is in all of 	them
+				levelParsed = parseLevelAtPointer(romfileOutput, level_pointers		[context.scene.levelAnimExport])
+				segmentData = levelParsed.segmentData
+				if context.scene.extendBank4:
+					ExtendBank0x04(romfileOutput, segmentData, 
+						defaultExtendSegment4)
+
+				DMAAddresses = None
+				if context.scene.animOverwriteDMAEntry:
+					DMAAddresses = {}
+					DMAAddresses['start'] = \
+						int(context.scene.DMAStartAddress, 16)
+					DMAAddresses['entry'] = \
+						int(context.scene.DMAEntryAddress, 16)
+
+				addrRange, nonDMAListPtr = exportAnimationBinary(
+					romfileOutput, [int(context.scene.animExportStart, 16), 
+					int(context.scene.animExportEnd, 16)],
+					bpy.context.active_object,
+					DMAAddresses, segmentData, context.scene.isDMAExport,
+					context.scene.loopAnimation)
+
+				if not context.scene.isDMAExport:
+					segmentedPtr = encodeSegmentedAddr(addrRange[0], segmentData)
+					if context.scene.setAnimListIndex:
+						romfileOutput.seek(int(context.scene.addr_0x27, 16) + 4)
+						segAnimPtr = romfileOutput.read(4)
+						virtAnimPtr = decodeSegmentedAddr(segAnimPtr, segmentData)
+						romfileOutput.seek(virtAnimPtr + 4 * context.scene.animListIndexExport)
+						romfileOutput.write(segmentedPtr)
+					if context.scene.overwrite_0x28:
+						romfileOutput.seek(int(context.scene.addr_0x28, 16) + 1)
+						romfileOutput.write(bytearray([context.scene.animListIndexExport]))
+				else:
+					segmentedPtr = None
+						
+				romfileOutput.close()
+				if os.path.exists(bpy.path.abspath(context.scene.outputRom)):
+					os.remove(bpy.path.abspath(context.scene.outputRom))
+				os.rename(bpy.path.abspath(tempROM),
+					bpy.path.abspath(context.scene.outputRom))
+	
+				if not context.scene.isDMAExport:
+					if context.scene.setAnimListIndex:
+						self.report({'INFO'}, 'Sucess! Animation table at ' + \
+							hex(virtAnimPtr) + ', animation at (' + \
+							hex(addrRange[0]) + ', ' + hex(addrRange[1]) + ') ' +\
+							'(Seg. ' + bytesToHex(segmentedPtr) + ').')
+					else:
+						self.report({'INFO'}, 'Sucess! Animation at (' + \
+							hex(addrRange[0]) + ', ' + hex(addrRange[1]) + ') ' +\
+							'(Seg. ' + bytesToHex(segmentedPtr) + ').')
+				else:
+					self.report({'INFO'}, 'Success! Animation at (' + \
+						hex(addrRange[0]) + ', ' + hex(addrRange[1]) + ').')
+			except Exception as e:
+				if romfileOutput is not None:
+					romfileOutput.close()
+				if tempROM is not None and os.path.exists(bpy.path.abspath(tempROM)):
+					os.remove(bpy.path.abspath(tempROM))
+				raisePluginError(self, e)
+				return {'CANCELLED'} # must return a set
+
+		return {'FINISHED'} # must return a set
+
+class SM64_ExportAnimPanel(bpy.types.Panel):
+	bl_idname = "SM64_PT_export_anim"
+	bl_label = "SM64 Animation Exporter"
+	bl_space_type = 'VIEW_3D'
+	bl_region_type = 'UI'
+	bl_category = 'Fast64'
+
+	@classmethod
+	def poll(cls, context):
+		return True
+
+	# called every frame
+	def draw(self, context):
+		col = self.layout.column()
+		propsAnimExport = col.operator(SM64_ExportAnimMario.bl_idname)
+		
+		col.prop(context.scene, 'animExportType')
+		col.prop(context.scene, 'loopAnimation')
+		if context.scene.animExportType == 'C':
+			col.prop(context.scene, 'animCustomExport')
+			if context.scene.animCustomExport:
+				col.prop(context.scene, 'animExportPath')
+				prop_split(col, context.scene, 'animName', 'Name')
+				customExportWarning(col)
+			else:
+				prop_split(col, context.scene, 'animExportHeaderType', 'Export Type')
+				prop_split(col, context.scene, 'animName', 'Name')
+				if context.scene.animExportHeaderType == 'Actor':
+					prop_split(col, context.scene, 'animGroupName', 'Group Name')
+				elif context.scene.animExportHeaderType == 'Level':
+					prop_split(col, context.scene, 'animLevelOption', 'Level')
+					if context.scene.animLevelOption == 'custom':
+						prop_split(col, context.scene, 'animLevelName', 'Level Name')
+				
+				decompFolderMessage(col)
+				writeBox = makeWriteInfoBox(col)
+				writeBoxExportType(writeBox, context.scene.animExportHeaderType, 
+					context.scene.animName, context.scene.animLevelName,
+					context.scene.animLevelOption)
+
+		elif context.scene.animExportType == 'Insertable Binary':
+			col.prop(context.scene, 'isDMAExport')
+			col.prop(context.scene, 'animInsertableBinaryPath')
+		else:
+			col.prop(context.scene, 'isDMAExport')
+			if context.scene.isDMAExport:
+				col.prop(context.scene, 'animOverwriteDMAEntry')
+				if context.scene.animOverwriteDMAEntry:
+					prop_split(col, context.scene, 'DMAStartAddress', 
+						'DMA Start Address')
+					prop_split(col, context.scene, 'DMAEntryAddress', 
+						'DMA Entry Address')
+			else:
+				col.prop(context.scene, 'setAnimListIndex')
+				if context.scene.setAnimListIndex:
+					prop_split(col, context.scene, 'addr_0x27', 
+						'27 Command Address')
+					prop_split(col, context.scene, 'animListIndexExport',
+						'Anim List Index')
+					col.prop(context.scene, 'overwrite_0x28')
+					if context.scene.overwrite_0x28:
+						prop_split(col, context.scene, 'addr_0x28', 
+							'28 Command Address')
+				col.prop(context.scene, 'levelAnimExport')
+			col.separator()
+			prop_split(col, context.scene, 'animExportStart', 'Start Address')
+			prop_split(col, context.scene, 'animExportEnd', 'End Address')
+			
+
+		for i in range(panelSeparatorSize):
+			col.separator()
+
+class SM64_ImportAnimMario(bpy.types.Operator):
+	bl_idname = 'object.sm64_import_anim'
+	bl_label = "Import Animation"
+	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
+
+	# Called on demand (i.e. button press, menu item)
+	# Can also be called from operator search menu (Spacebar)
+	def execute(self, context):
+		romfileSrc = None
+		try:
+			checkExpanded(bpy.path.abspath(context.scene.importRom))
+			romfileSrc = open(bpy.path.abspath(context.scene.importRom), 'rb')
+		except Exception as e:
+			raisePluginError(self, e)
+			return {'CANCELLED'}
+		try:
+			levelParsed = parseLevelAtPointer(romfileSrc, 
+				level_pointers[context.scene.levelAnimImport])
+			segmentData = levelParsed.segmentData
+
+			animStart = int(context.scene.animStartImport, 16)
+			if context.scene.animIsSegPtr:
+				animStart = decodeSegmentedAddr(
+					animStart.to_bytes(4, 'big'), segmentData)
+
+			if not context.scene.isDMAImport and context.scene.animIsAnimList:
+				romfileSrc.seek(animStart + 4 * context.scene.animListIndexImport)
+				actualPtr = romfileSrc.read(4)
+				animStart = decodeSegmentedAddr(actualPtr, segmentData)
+
+			if len(context.selected_objects) == 0:
+				raise PluginError("Armature not selected.")
+			armatureObj = context.active_object
+			if type(armatureObj.data) is not bpy.types.Armature:
+				raise PluginError("Armature not selected.")
+			
+			importAnimationToBlender(romfileSrc, 
+				animStart, armatureObj, 
+				segmentData, context.scene.isDMAImport)
+			romfileSrc.close()
+			self.report({'INFO'}, 'Success!')
+		except Exception as e:
+			if romfileSrc is not None:
+				romfileSrc.close()
+			raisePluginError(self, e)
+			return {'CANCELLED'} # must return a set
+
+		return {'FINISHED'} # must return a set
+
+class SM64_ImportAnimPanel(bpy.types.Panel):
+	bl_idname = "SM64_PT_import_anim"
+	bl_label = "SM64 Animation Importer"
+	bl_space_type = 'VIEW_3D'
+	bl_region_type = 'UI'
+	bl_category = 'Fast64'
+
+	@classmethod
+	def poll(cls, context):
+		return True
+
+	# called every frame
+	def draw(self, context):
+		col = self.layout.column()
+		propsAnimImport = col.operator(SM64_ImportAnimMario.bl_idname)
+		col.prop(context.scene, 'isDMAImport')
+		if not context.scene.isDMAImport:
+			col.prop(context.scene, 'animIsAnimList')
+			if context.scene.animIsAnimList:
+				prop_split(col, context.scene, 'animListIndexImport', 
+					'Anim List Index')
+
+		prop_split(col, context.scene, 'animStartImport', 'Start Address')
+		col.prop(context.scene, 'animIsSegPtr')
+		col.prop(context.scene, 'levelAnimImport')
+
+		for i in range(panelSeparatorSize):
+			col.separator()
+	
+sm64_anim_classes = (
+	SM64_ExportAnimMario,
+	SM64_ImportAnimMario,
+)
+
+sm64_anim_panels = (
+	SM64_ImportAnimPanel,
+	SM64_ExportAnimPanel,
+)
+
+def sm64_anim_panel_register():
+	for cls in sm64_anim_panels:
+		register_class(cls)
+
+def sm64_anim_panel_unregister():
+	for cls in sm64_anim_panels:
+		unregister_class(cls)
+
+def sm64_anim_register():
+	for cls in sm64_anim_classes:
+		register_class(cls)
+
+	bpy.types.Scene.animStartImport = bpy.props.StringProperty(
+		name ='Import Start', default = '4EC690')
+	bpy.types.Scene.animExportStart = bpy.props.StringProperty(
+		name ='Start', default = '11D8930')
+	bpy.types.Scene.animExportEnd = bpy.props.StringProperty(
+		name ='End', default = '11FFF00')
+	bpy.types.Scene.isDMAImport = bpy.props.BoolProperty(name = 'Is DMA Animation', default = True)
+	bpy.types.Scene.isDMAExport = bpy.props.BoolProperty(name = 'Is DMA Animation')
+	bpy.types.Scene.DMAEntryAddress = bpy.props.StringProperty(name = 'DMA Entry Address', default = '4EC008')
+	bpy.types.Scene.DMAStartAddress = bpy.props.StringProperty(name = 'DMA Start Address', default = '4EC000')
+	bpy.types.Scene.levelAnimImport = bpy.props.EnumProperty(items = level_enums, name = 'Level', default = 'IC')
+	bpy.types.Scene.levelAnimExport = bpy.props.EnumProperty(items = level_enums, name = 'Level', default = 'IC')
+	bpy.types.Scene.loopAnimation = bpy.props.BoolProperty(name = 'Loop Animation', default = True)
+	bpy.types.Scene.setAnimListIndex = bpy.props.BoolProperty(name = 'Set Anim List Entry', default = True)
+	bpy.types.Scene.overwrite_0x28 = bpy.props.BoolProperty(name = 'Overwrite 0x28 behaviour command', default = True)
+	bpy.types.Scene.addr_0x27 = bpy.props.StringProperty(
+		name = '0x27 Command Address', default = '21CD00')
+	bpy.types.Scene.addr_0x28 = bpy.props.StringProperty(
+		name = '0x28 Command Address', default = '21CD08')
+	bpy.types.Scene.animExportType = bpy.props.EnumProperty(
+		items = enumExportType, name = 'Export', default = 'Binary')
+	bpy.types.Scene.animExportPath = bpy.props.StringProperty(
+		name = 'Directory', subtype = 'FILE_PATH')
+	bpy.types.Scene.animOverwriteDMAEntry = bpy.props.BoolProperty(
+		name = 'Overwrite DMA Entry')
+	bpy.types.Scene.animInsertableBinaryPath = bpy.props.StringProperty(
+		name = 'Filepath', subtype = 'FILE_PATH')
+	bpy.types.Scene.animIsSegPtr = bpy.props.BoolProperty(
+		name = 'Is Segmented Address', default = False)
+	bpy.types.Scene.animIsAnimList = bpy.props.BoolProperty(
+		name = 'Is Anim List', default = True)
+	bpy.types.Scene.animListIndexImport = bpy.props.IntProperty(
+		name = 'Anim List Index', min = 0, max = 255)
+	bpy.types.Scene.animListIndexExport = bpy.props.IntProperty(
+		name = "Anim List Index", min = 0, max = 255)
+	bpy.types.Scene.animName = bpy.props.StringProperty(
+		name = 'Name', default = 'mario')
+	bpy.types.Scene.animGroupName = bpy.props.StringProperty(
+		name = 'Group Name', default = 'group0')
+	bpy.types.Scene.animWriteHeaders = bpy.props.BoolProperty(
+		name = 'Write Headers For Actor', default = True)
+	bpy.types.Scene.animCustomExport = bpy.props.BoolProperty(
+		name = 'Custom Export Path')
+	bpy.types.Scene.animExportHeaderType = bpy.props.EnumProperty(
+		items = enumExportHeaderType, name = 'Header Export', default = 'Actor')
+	bpy.types.Scene.animLevelName = bpy.props.StringProperty(name = 'Level', 
+		default = 'bob')
+	bpy.types.Scene.animLevelOption = bpy.props.EnumProperty(
+		items = enumLevelNames, name = 'Level', default = 'bob')
+
+def sm64_anim_unregister():
+	for cls in reversed(sm64_anim_classes):
+		unregister_class(cls)
+
+	del bpy.types.Scene.animStartImport
+	del bpy.types.Scene.animExportStart
+	del bpy.types.Scene.animExportEnd
+	del bpy.types.Scene.levelAnimImport
+	del bpy.types.Scene.levelAnimExport
+	del bpy.types.Scene.isDMAImport
+	del bpy.types.Scene.isDMAExport
+	del bpy.types.Scene.DMAStartAddress
+	del bpy.types.Scene.DMAEntryAddress
+	del bpy.types.Scene.loopAnimation
+	del bpy.types.Scene.setAnimListIndex
+	del bpy.types.Scene.overwrite_0x28
+	del bpy.types.Scene.addr_0x27
+	del bpy.types.Scene.addr_0x28
+	del bpy.types.Scene.animExportType
+	del bpy.types.Scene.animExportPath
+	del bpy.types.Scene.animOverwriteDMAEntry
+	del bpy.types.Scene.animInsertableBinaryPath
+	del bpy.types.Scene.animIsSegPtr
+	del bpy.types.Scene.animIsAnimList
+	del bpy.types.Scene.animListIndexImport
+	del bpy.types.Scene.animListIndexExport
+	del bpy.types.Scene.animName
+	del bpy.types.Scene.animGroupName
+	del bpy.types.Scene.animWriteHeaders
+	del bpy.types.Scene.animCustomExport
+	del bpy.types.Scene.animExportHeaderType
+	del bpy.types.Scene.animLevelName
+	del bpy.types.Scene.animLevelOption

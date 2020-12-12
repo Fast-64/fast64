@@ -1,20 +1,19 @@
-import bpy
-import mathutils
-import math
-import copy
+import bpy, mathutils, math, copy, os, shutil
+from bpy.utils import register_class, unregister_class
 
 from os.path import basename
-import os
 from io import BytesIO
 
 from .sm64_geolayout_bone import getSwitchOptionBone
 from .sm64_geolayout_constants import *
 from .sm64_geolayout_utility import *
-from .utility import *
 from .sm64_constants import *
-from .f3d_writer import *
 from .sm64_camera import saveCameraSettingsToGeolayout
 from .sm64_geolayout_classes import *
+from .sm64_f3d_writer import *
+from .sm64_texscroll import *
+
+from ..utility import *
 
 def appendSecondaryGeolayout(geoDirPath, geoName1, geoName2, additionalNode = ''):
 	geoPath = os.path.join(geoDirPath, 'geo.inc.c')
@@ -1668,7 +1667,7 @@ def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, dr
 	for command in meshMatOverride.commands:
 		if isinstance(command, SPDisplayList):
 			for (modelMaterial, modelDrawLayer, modelAreaIndex), (fMaterial, texDimensions) in \
-				fModel.materials.items():
+				fModel.getAllMaterials().items():
 				shouldModify = \
 					(overrideType == 'Specific' and modelMaterial in specificMat) or \
 					(overrideType == 'All' and modelMaterial not in specificMat)
@@ -1795,7 +1794,8 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj,
 			drawLayerKey = drawLayer
 		else:
 			drawLayerKey = None
-		fMaterial, texDimensions = fModel.materials[(material, drawLayerKey, fModel.global_data.getCurrentAreaKey(material))]
+		fMaterial, texDimensions = fModel.getMaterialAndHandleShared((
+			material, drawLayerKey, fModel.global_data.getCurrentAreaKey(material)))
 		isPointSampled = isTexturePointSampled(material)
 		exportVertexColors = isLightingDisabled(material)
 
@@ -1866,3 +1866,583 @@ def writeDynamicMeshFunction(name, displayList):
 }""".format(name, str(len(displayList.commands)), displayList.to_c(False))
 
 	return data
+
+class SM64_ExportGeolayoutObject(bpy.types.Operator):
+	# set bl_ properties
+	bl_idname = 'object.sm64_export_geolayout_object'
+	bl_label = "Export Object Geolayout"
+	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
+
+	# Called on demand (i.e. button press, menu item)
+	# Can also be called from operator search menu (Spacebar)
+	def execute(self, context):
+		romfileOutput = None
+		tempROM = None
+		try:
+			obj = None
+			if context.mode != 'OBJECT':
+				raise PluginError("Operator can only be used in object mode.")
+			if len(context.selected_objects) == 0:
+				raise PluginError("Object not selected.")
+			obj = context.active_object
+			if type(obj.data) is not bpy.types.Mesh and \
+				not (obj.data is None and (obj.sm64_obj_type == 'None' or obj.sm64_obj_type == 'Switch')):
+				raise PluginError("Selected object must be a mesh or an empty with the \"None\" or \"Switch\" type.")
+			#if context.scene.saveCameraSettings and \
+			#	context.scene.levelCamera is None:
+			#	raise PluginError("Cannot save camera settings with no camera provided.")
+			#levelCamera = context.scene.levelCamera if \
+			#	context.scene.saveCameraSettings else None
+
+			finalTransform = mathutils.Matrix.Identity(4)
+			scaleValue = bpy.context.scene.blenderToSM64Scale
+			finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((
+				scaleValue, scaleValue, scaleValue))).to_4x4()
+		except Exception as e:
+			raisePluginError(self, e)
+			return {'CANCELLED'}
+
+		try:
+			# Rotate all armatures 90 degrees
+			applyRotation([obj], math.radians(90), 'X')
+
+			if context.scene.geoExportType == 'C':
+				exportPath, levelName = getPathAndLevel(context.scene.geoCustomExport, 
+					context.scene.geoExportPath, context.scene.geoLevelName, 
+					context.scene.geoLevelOption)
+				if not context.scene.geoCustomExport:
+					applyBasicTweaks(exportPath)
+				exportGeolayoutObjectC(obj, finalTransform,
+					context.scene.f3d_type, context.scene.isHWv1,
+					exportPath,
+					bpy.context.scene.geoTexDir,
+					bpy.context.scene.geoSaveTextures or bpy.context.scene.ignoreTextureRestrictions,
+					bpy.context.scene.geoSeparateTextureDef,
+					None, bpy.context.scene.geoGroupName, 
+					context.scene.geoExportHeaderType,
+					context.scene.geoName, context.scene.geoStructName, levelName, context.scene.geoCustomExport, "Static")
+				self.report({'INFO'}, 'Success!')
+			elif context.scene.geoExportType == 'Insertable Binary':
+				exportGeolayoutObjectInsertableBinary(obj,
+					finalTransform, context.scene.f3d_type,
+					context.scene.isHWv1, 
+					bpy.path.abspath(bpy.context.scene.geoInsertableBinaryPath),
+					None)
+				self.report({'INFO'}, 'Success! Data at ' + \
+					context.scene.geoInsertableBinaryPath)
+			else:
+				tempROM = tempName(context.scene.outputRom)
+				checkExpanded(bpy.path.abspath(context.scene.exportRom))
+				romfileExport = open(
+					bpy.path.abspath(context.scene.exportRom), 'rb')	
+				shutil.copy(bpy.path.abspath(context.scene.exportRom), 
+					bpy.path.abspath(tempROM))
+				romfileExport.close()
+				romfileOutput = open(bpy.path.abspath(tempROM), 'rb+')
+
+				levelParsed = parseLevelAtPointer(romfileOutput, 
+					level_pointers[context.scene.levelGeoExport])
+				segmentData = levelParsed.segmentData
+
+				if context.scene.extendBank4:
+					ExtendBank0x04(romfileOutput, segmentData, 
+						defaultExtendSegment4)
+
+				exportRange = [int(context.scene.geoExportStart, 16), 
+					int(context.scene.geoExportEnd, 16)]
+				textDumpFilePath = \
+					bpy.path.abspath(context.scene.textDumpGeoPath) \
+					if context.scene.textDumpGeo else None
+				if context.scene.overwriteModelLoad:
+					modelLoadInfo = \
+						(int(context.scene.modelLoadLevelScriptCmd, 16),
+						int(context.scene.modelID,16))
+				else:
+					modelLoadInfo = (None, None)
+
+				if context.scene.geoUseBank0:
+					addrRange, startRAM, geoStart = \
+						exportGeolayoutObjectBinaryBank0(
+						romfileOutput, obj, exportRange, 
+ 						finalTransform, *modelLoadInfo, textDumpFilePath,
+						context.scene.f3d_type, context.scene.isHWv1, 
+						getAddressFromRAMAddress(int(
+						context.scene.geoRAMAddr, 16)),
+						None)
+				else:
+					addrRange, segPointer = exportGeolayoutObjectBinary(
+						romfileOutput, obj,
+						exportRange, finalTransform, segmentData,
+						*modelLoadInfo, textDumpFilePath, 
+						context.scene.f3d_type, context.scene.isHWv1,
+						None)
+
+				romfileOutput.close()
+				bpy.ops.object.select_all(action = 'DESELECT')
+				obj.select_set(True)
+				context.view_layer.objects.active = obj
+
+				if os.path.exists(bpy.path.abspath(context.scene.outputRom)):
+					os.remove(bpy.path.abspath(context.scene.outputRom))
+				os.rename(bpy.path.abspath(tempROM), 
+					bpy.path.abspath(context.scene.outputRom))
+
+				if context.scene.geoUseBank0:
+					self.report({'INFO'}, 'Success! Geolayout at (' + \
+						hex(addrRange[0]) + ', ' + hex(addrRange[1]) + \
+						'), to write to RAM Address ' + hex(startRAM) + \
+						', with geolayout starting at ' + hex(geoStart))
+				else:
+					self.report({'INFO'}, 'Success! Geolayout at (' + \
+						hex(addrRange[0]) + ', ' + hex(addrRange[1]) + \
+						') (Seg. ' + segPointer + ').')
+			
+			applyRotation([obj], math.radians(-90), 'X')
+			return {'FINISHED'} # must return a set
+
+		except Exception as e:
+			if context.mode != 'OBJECT':
+				bpy.ops.object.mode_set(mode = 'OBJECT')
+
+			applyRotation([obj], math.radians(-90), 'X')
+
+			if context.scene.geoExportType == 'Binary':
+				if romfileOutput is not None:
+					romfileOutput.close()
+				if tempROM is not None and os.path.exists(bpy.path.abspath(tempROM)):
+					os.remove(bpy.path.abspath(tempROM))
+			raisePluginError(self, e)
+			return {'CANCELLED'} # must return a set
+
+class SM64_ExportGeolayoutArmature(bpy.types.Operator):
+	# set bl_ properties
+	bl_idname = 'object.sm64_export_geolayout_armature'
+	bl_label = "Export Armature Geolayout"
+	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
+
+	# Called on demand (i.e. button press, menu item)
+	# Can also be called from operator search menu (Spacebar)
+	def execute(self, context):
+		romfileOutput = None
+		tempROM = None
+		try:
+			armatureObj = None
+			if context.mode != 'OBJECT':
+				raise PluginError("Operator can only be used in object mode.")
+			if len(context.selected_objects) == 0:
+				raise PluginError("Armature not selected.")
+			armatureObj = context.active_object
+			if type(armatureObj.data) is not bpy.types.Armature:
+				raise PluginError("Armature not selected.")
+
+			if len(armatureObj.children) == 0 or \
+				not isinstance(armatureObj.children[0].data, bpy.types.Mesh):
+				raise PluginError("Armature does not have any mesh children, or " +\
+					'has a non-mesh child.')
+			#if context.scene.saveCameraSettings and \
+			#	context.scene.levelCamera is None:
+			#	raise PluginError("Cannot save camera settings with no camera provided.")
+			#levelCamera = context.scene.levelCamera if \
+			#	context.scene.saveCameraSettings else None
+
+			obj = armatureObj.children[0]
+			finalTransform = mathutils.Matrix.Identity(4)
+
+			# get all switch option armatures as well
+			linkedArmatures = [armatureObj]
+			getAllArmatures(armatureObj, linkedArmatures)
+
+			linkedArmatureDict = {}
+
+			for linkedArmature in linkedArmatures:
+				# IMPORTANT: Do this BEFORE rotation
+				optionObjs = []
+				for childObj in linkedArmature.children:
+					if isinstance(childObj.data, bpy.types.Mesh):
+						optionObjs.append(childObj)
+				if len(optionObjs) > 1:
+					raise PluginError('Error: ' + linkedArmature.name +\
+						' has more than one mesh child.')
+				elif len(optionObjs) < 1:
+					raise PluginError('Error: ' + linkedArmature.name +\
+						' has no mesh children.')
+				linkedMesh = optionObjs[0]
+				prepareGeolayoutExport(linkedArmature, linkedMesh)
+				linkedArmatureDict[linkedArmature] = linkedMesh
+		except Exception as e:
+			raisePluginError(self, e)
+			return {'CANCELLED'}
+
+		try:
+			# Rotate all armatures 90 degrees
+			applyRotation([armatureObj] + linkedArmatures, 
+				math.radians(90), 'X')
+
+			# You must ALSO apply object rotation after armature rotation.
+			bpy.ops.object.select_all(action = "DESELECT")
+			for linkedArmature, linkedMesh in linkedArmatureDict.items():
+				linkedMesh.select_set(True)
+			obj.select_set(True)
+			bpy.context.view_layer.objects.active = obj
+			bpy.ops.object.transform_apply(location = False, rotation = True,
+				scale = True, properties =  False)
+			if context.scene.geoExportType == 'C':
+				exportPath, levelName = getPathAndLevel(context.scene.geoCustomExport, 
+					context.scene.geoExportPath, context.scene.geoLevelName, 
+					context.scene.geoLevelOption)
+
+				if not context.scene.geoCustomExport:
+					applyBasicTweaks(exportPath)
+				exportGeolayoutArmatureC(armatureObj, obj, finalTransform,
+					context.scene.f3d_type, context.scene.isHWv1,
+					exportPath,
+					bpy.context.scene.geoTexDir,
+					bpy.context.scene.geoSaveTextures or bpy.context.scene.ignoreTextureRestrictions,
+					bpy.context.scene.geoSeparateTextureDef,
+					None, bpy.context.scene.geoGroupName, context.scene.geoExportHeaderType,
+					context.scene.geoName, context.scene.geoStructName, levelName, context.scene.geoCustomExport, "Static")
+				self.report({'INFO'}, 'Success!')
+			elif context.scene.geoExportType == 'Insertable Binary':
+				exportGeolayoutArmatureInsertableBinary(armatureObj, obj,
+					finalTransform, context.scene.f3d_type,
+					context.scene.isHWv1, 
+					bpy.path.abspath(bpy.context.scene.geoInsertableBinaryPath),
+					None)
+				self.report({'INFO'}, 'Success! Data at ' + \
+					context.scene.geoInsertableBinaryPath)
+			else:
+				tempROM = tempName(context.scene.outputRom)
+				checkExpanded(bpy.path.abspath(context.scene.exportRom))
+				romfileExport = open(
+					bpy.path.abspath(context.scene.exportRom), 'rb')	
+				shutil.copy(bpy.path.abspath(context.scene.exportRom), 
+					bpy.path.abspath(tempROM))
+				romfileExport.close()
+				romfileOutput = open(bpy.path.abspath(tempROM), 'rb+')
+
+				levelParsed = parseLevelAtPointer(romfileOutput, 
+					level_pointers[context.scene.levelGeoExport])
+				segmentData = levelParsed.segmentData
+
+				if context.scene.extendBank4:
+					ExtendBank0x04(romfileOutput, segmentData, 
+						defaultExtendSegment4)
+
+				exportRange = [int(context.scene.geoExportStart, 16), 
+					int(context.scene.geoExportEnd, 16)]
+				textDumpFilePath = \
+					bpy.path.abspath(context.scene.textDumpGeoPath) \
+					if context.scene.textDumpGeo else None
+				if context.scene.overwriteModelLoad:
+					modelLoadInfo = \
+						(int(context.scene.modelLoadLevelScriptCmd, 16),
+						int(context.scene.modelID, 16))
+				else:
+					modelLoadInfo = (None, None)
+
+				if context.scene.geoUseBank0:
+					addrRange, startRAM, geoStart = \
+						exportGeolayoutArmatureBinaryBank0(
+						romfileOutput, armatureObj, obj, exportRange, 
+ 						finalTransform, *modelLoadInfo, textDumpFilePath,
+						context.scene.f3d_type, context.scene.isHWv1, 
+						getAddressFromRAMAddress(int(
+						context.scene.geoRAMAddr, 16)), None)
+				else:
+					addrRange, segPointer = exportGeolayoutArmatureBinary(
+						romfileOutput, armatureObj, obj,
+						exportRange, finalTransform, segmentData,
+						*modelLoadInfo, textDumpFilePath, 
+						context.scene.f3d_type, context.scene.isHWv1,
+						None)
+
+				romfileOutput.close()
+				bpy.ops.object.select_all(action = 'DESELECT')
+				armatureObj.select_set(True)
+				context.view_layer.objects.active = armatureObj
+
+				if os.path.exists(bpy.path.abspath(context.scene.outputRom)):
+					os.remove(bpy.path.abspath(context.scene.outputRom))
+				os.rename(bpy.path.abspath(tempROM), 
+					bpy.path.abspath(context.scene.outputRom))
+
+				if context.scene.geoUseBank0:
+					self.report({'INFO'}, 'Success! Geolayout at (' + \
+						hex(addrRange[0]) + ', ' + hex(addrRange[1]) + \
+						'), to write to RAM Address ' + hex(startRAM) + \
+						', with geolayout starting at ' + hex(geoStart))
+				else:
+					self.report({'INFO'}, 'Success! Geolayout at (' + \
+						hex(addrRange[0]) + ', ' + hex(addrRange[1]) + \
+						') (Seg. ' + segPointer + ').')
+
+			applyRotation([armatureObj] + linkedArmatures, 
+				math.radians(-90), 'X')
+
+			return {'FINISHED'} # must return a set
+
+		except Exception as e:
+			if context.mode != 'OBJECT':
+				bpy.ops.object.mode_set(mode = 'OBJECT')
+			
+			applyRotation([armatureObj] + linkedArmatures, 
+				math.radians(-90), 'X')
+
+			if context.scene.geoExportType == 'Binary':
+				if romfileOutput is not None:
+					romfileOutput.close()
+				if tempROM is not None and os.path.exists(bpy.path.abspath(tempROM)):
+					os.remove(bpy.path.abspath(tempROM))
+			if armatureObj is not None:
+				armatureObj.select_set(True)
+				context.view_layer.objects.active = armatureObj
+			raisePluginError(self, e)
+			return {'CANCELLED'} # must return a set
+
+class SM64_ExportGeolayoutPanel(bpy.types.Panel):
+	bl_idname = "SM64_PT_export_geolayout"
+	bl_label = "SM64 Geolayout Exporter"
+	bl_space_type = 'VIEW_3D'
+	bl_region_type = 'UI'
+	bl_category = 'Fast64'
+
+	@classmethod
+	def poll(cls, context):
+		return True
+
+	# called every frame
+	def draw(self, context):
+		col = self.layout.column()
+		propsGeoE = col.operator(SM64_ExportGeolayoutArmature.bl_idname)
+		propsGeoE = col.operator(SM64_ExportGeolayoutObject.bl_idname)
+
+		col.prop(context.scene, 'geoExportType')
+		if context.scene.geoExportType == 'C':
+			if not bpy.context.scene.ignoreTextureRestrictions:
+				col.prop(context.scene, 'geoSaveTextures')
+				if context.scene.geoSaveTextures:
+					if context.scene.geoCustomExport:
+						prop_split(col, context.scene, 'geoTexDir', 'Texture Include Path')	
+					col.prop(context.scene, 'geoSeparateTextureDef')
+			
+			col.prop(context.scene, 'geoCustomExport')
+			if context.scene.geoCustomExport:
+				col.prop(context.scene, 'geoExportPath')
+				prop_split(col, context.scene, 'geoName', 'Folder Name')
+				prop_split(col, context.scene, 'geoStructName', 'Geolayout Name')
+				customExportWarning(col)
+			else:
+				prop_split(col, context.scene, 'geoExportHeaderType', 'Export Type')
+				if context.scene.geoExportHeaderType == 'Actor':
+					prop_split(col, context.scene, 'geoGroupName', 'Group Name')
+
+					'''
+					if context.scene.geoName == 'marios_cap' or\
+						context.scene.geoName == 'marios_metal_cap' or\
+						context.scene.geoName == 'marios_wing_cap' or\
+						context.scene.geoName == 'marios_winged_metal_cap':
+						col.prop(context.scene, 'modifyOldGeo')
+					elif context.scene.geoName == 'mario_cap':
+						warningBox = col.box()
+						warningBox.label(text = 'WARNING: DO NOT REPLACE THIS ACTOR.', icon = "QUESTION")
+						warningBox.label(text = 'This contains geolayouts for all cap types.')
+						warningBox.label(text = 'Use one of these geolayout names instead:')
+						warningBox.label(text = ' - marios_cap')
+						warningBox.label(text = ' - marios_metal_cap')
+						warningBox.label(text = ' - marios_wing_cap')
+						warningBox.label(text = ' - marios_winged_metal_cap')
+
+					if context.scene.geoName == 'koopa_with_shell' or\
+						context.scene.geoName == 'koopa_without_shell':
+						col.prop(context.scene, 'modifyOldGeo')
+					elif context.scene.geoName == 'koopa':
+						warningBox = col.box()
+						warningBox.label(text = 'WARNING: DO NOT REPLACE THIS ACTOR.', icon = "QUESTION")
+						warningBox.label(text = 'This contains geolayouts for both koopa with and without shell.')
+						warningBox.label(text = 'Use one of these geolayout names instead:')
+						warningBox.label(text = ' - koopa_with_shell')
+						warningBox.label(text = ' - koopa_without_shell')
+					
+					if context.scene.geoName == 'black_bobomb' or\
+						context.scene.geoName == 'bobomb_buddy':
+						col.prop(context.scene, 'modifyOldGeo')
+					elif context.scene.geoName == 'bobomb':
+						warningBox = col.box()
+						warningBox.label(text = 'WARNING: DO NOT REPLACE THIS ACTOR.', icon = "QUESTION")
+						warningBox.label(text = 'This contains geolayouts for both red and black bobombs.')
+						warningBox.label(text = 'Also note that this contains a display list used in bowling_ball.')
+						warningBox.label(text = 'Use one of these geolayout names instead:')
+						warningBox.label(text = ' - black_bobomb')
+						warningBox.label(text = ' - bobomb_buddy')
+
+					if context.scene.geoName == 'purple_marble':
+						col.prop(context.scene, 'modifyOldGeo')
+					elif context.scene.geoName == 'bubble':
+						warningBox = col.box()
+						warningBox.label(text = 'WARNING: SECONDARY GEOLAYOUTS.', icon = "QUESTION")
+						warningBox.label(text = 'If you replace this you must also replace purple_marble.')
+						warningBox.label(text = 'Otherwise you will get a compilation error.')
+					'''
+
+				elif context.scene.geoExportHeaderType == 'Level':
+					prop_split(col, context.scene, 'geoLevelOption', 'Level')
+					if context.scene.geoLevelOption == 'custom':
+						prop_split(col, context.scene, 'geoLevelName', 'Level Name')
+				prop_split(col, context.scene, 'geoName', 'Folder Name')
+				prop_split(col, context.scene, 'geoStructName', 'Geolayout Name')
+				if context.scene.geoExportHeaderType == 'Actor':
+					if context.scene.geoName == 'star':
+						col.prop(context.scene, 'replaceStarRefs')
+					if context.scene.geoName == 'transparent_star':
+						col.prop(context.scene, 'replaceTransparentStarRefs')
+					if context.scene.geoName == 'marios_cap':
+						col.prop(context.scene, 'replaceCapRefs')
+				infoBox = col.box()
+				infoBox.label(text = 'If a geolayout file contains multiple actors,')
+				infoBox.label(text = 'all other actors must also be replaced (with unique folder names)')
+				infoBox.label(text = 'to prevent compilation errors.')
+				decompFolderMessage(col)
+				writeBox = makeWriteInfoBox(col)
+				writeBoxExportType(writeBox, context.scene.geoExportHeaderType, 
+					context.scene.geoName, context.scene.geoLevelName,
+					context.scene.geoLevelOption)
+			
+			#extendedRAMLabel(col)
+		elif context.scene.geoExportType == 'Insertable Binary':
+			col.prop(context.scene, 'geoInsertableBinaryPath')
+		else:
+			prop_split(col, context.scene, 'geoExportStart', 'Start Address')
+			prop_split(col, context.scene, 'geoExportEnd', 'End Address')
+
+			col.prop(context.scene, 'geoUseBank0')
+			if context.scene.geoUseBank0:
+				prop_split(col, context.scene, 'geoRAMAddr', 'RAM Address')
+			else:
+				col.prop(context.scene, 'levelGeoExport')
+
+			col.prop(context.scene, 'overwriteModelLoad')
+			if context.scene.overwriteModelLoad:
+				prop_split(col, context.scene, 'modelLoadLevelScriptCmd', 'Model Load Command')
+				prop_split(col, context.scene, 'modelID', 'Model ID')
+			col.prop(context.scene, 'textDumpGeo')
+			if context.scene.textDumpGeo:
+				col.prop(context.scene, 'textDumpGeoPath')
+		
+		#col.prop(context.scene, 'saveCameraSettings')
+		#if context.scene.saveCameraSettings:
+		#	prop_split(col, context.scene, 'levelCamera', 'Level Camera')
+		
+		for i in range(panelSeparatorSize):
+			col.separator()
+
+sm64_geo_writer_classes = (
+	SM64_ExportGeolayoutObject,
+	SM64_ExportGeolayoutArmature,
+)
+
+sm64_geo_writer_panel_classes = (
+	SM64_ExportGeolayoutPanel,
+)
+
+def sm64_geo_writer_panel_register():
+	for cls in sm64_geo_writer_panel_classes:
+		register_class(cls)
+
+def sm64_geo_writer_panel_unregister():
+	for cls in sm64_geo_writer_panel_classes:
+		unregister_class(cls)
+
+def sm64_geo_writer_register():
+	for cls in sm64_geo_writer_classes:
+		register_class(cls)
+
+	bpy.types.Scene.levelGeoExport = bpy.props.EnumProperty(items = level_enums,
+		name = 'Level', default = 'HMC')
+	bpy.types.Scene.geoExportStart = bpy.props.StringProperty(
+		name = 'Start', default = '11D8930')
+	bpy.types.Scene.geoExportEnd = bpy.props.StringProperty(
+		name = 'End', default = '11FFF00')
+	
+	bpy.types.Scene.overwriteModelLoad = bpy.props.BoolProperty(
+		name = 'Modify level script', default = True)
+	bpy.types.Scene.modelLoadLevelScriptCmd = bpy.props.StringProperty(
+		name = 'Level script model load command', default = '2ABCE0')
+	bpy.types.Scene.modelID = bpy.props.StringProperty(name = 'Model ID', 
+		default = '1')
+	
+	bpy.types.Scene.textDumpGeo = bpy.props.BoolProperty(
+		name = 'Dump geolayout as text', default = False)
+	bpy.types.Scene.textDumpGeoPath =  bpy.props.StringProperty(
+		name ='Text Dump Path', subtype = 'FILE_PATH')
+	bpy.types.Scene.geoExportType = bpy.props.EnumProperty(
+		items = enumExportType, name = 'Export', default = 'Binary')
+	bpy.types.Scene.geoExportPath = bpy.props.StringProperty(
+		name = 'Directory', subtype = 'FILE_PATH')
+	bpy.types.Scene.geoUseBank0 = bpy.props.BoolProperty(name = 'Use Bank 0')
+	bpy.types.Scene.geoRAMAddr = bpy.props.StringProperty(name = 'RAM Address', 
+		default = '80000000')
+	bpy.types.Scene.geoTexDir = bpy.props.StringProperty(
+		name ='Include Path', default = 'actors/mario/')
+	bpy.types.Scene.geoSaveTextures = bpy.props.BoolProperty(
+		name = 'Save Textures As PNGs (Breaks CI Textures)')
+	bpy.types.Scene.geoSeparateTextureDef = bpy.props.BoolProperty(
+		name = 'Save texture.inc.c separately')
+	bpy.types.Scene.geoInsertableBinaryPath = bpy.props.StringProperty(
+		name = 'Filepath', subtype = 'FILE_PATH')
+	bpy.types.Scene.geoIsSegPtr = bpy.props.BoolProperty(
+		name = 'Is Segmented Address')
+	bpy.types.Scene.geoName = bpy.props.StringProperty(
+		name = 'Directory Name', default = 'mario')
+	bpy.types.Scene.geoGroupName = bpy.props.StringProperty(
+		name = 'Name', default = 'group0')
+	bpy.types.Scene.geoExportHeaderType = bpy.props.EnumProperty(
+		name = 'Header Export', items = enumExportHeaderType, default = 'Actor')
+	bpy.types.Scene.geoCustomExport = bpy.props.BoolProperty(
+		name = 'Custom Export Path')
+	bpy.types.Scene.geoLevelName = bpy.props.StringProperty(name = 'Level', 
+		default = 'bob')
+	bpy.types.Scene.geoLevelOption = bpy.props.EnumProperty(
+		items = enumLevelNames, name = 'Level', default = 'bob')
+	bpy.types.Scene.replaceStarRefs = bpy.props.BoolProperty(
+		name = 'Replace old DL references in other actors', default = True)
+	bpy.types.Scene.replaceTransparentStarRefs = bpy.props.BoolProperty(
+		name = 'Replace old DL references in other actors', default = True)
+	bpy.types.Scene.replaceCapRefs = bpy.props.BoolProperty(
+		name = 'Replace old DL references in other actors', default = True)
+	bpy.types.Scene.modifyOldGeo = bpy.props.BoolProperty(
+		name = 'Rename old geolayout to avoid conflicts', default = True)
+	bpy.types.Scene.geoStructName = bpy.props.StringProperty(name = 'Geolayout Name',
+		default = 'mario_geo')
+
+def sm64_geo_writer_unregister():
+	for cls in reversed(sm64_geo_writer_classes):
+		unregister_class(cls)
+
+	del bpy.types.Scene.levelGeoExport
+	del bpy.types.Scene.geoExportStart
+	del bpy.types.Scene.geoExportEnd
+	del bpy.types.Scene.overwriteModelLoad
+	del bpy.types.Scene.modelLoadLevelScriptCmd
+	del bpy.types.Scene.modelID
+	del bpy.types.Scene.textDumpGeo
+	del bpy.types.Scene.textDumpGeoPath
+	del bpy.types.Scene.geoExportType
+	del bpy.types.Scene.geoExportPath
+	del bpy.types.Scene.geoUseBank0
+	del bpy.types.Scene.geoRAMAddr
+	del bpy.types.Scene.geoTexDir
+	del bpy.types.Scene.geoSaveTextures
+	del bpy.types.Scene.geoSeparateTextureDef
+	del bpy.types.Scene.geoInsertableBinaryPath
+	del bpy.types.Scene.geoIsSegPtr
+	del bpy.types.Scene.geoName
+	del bpy.types.Scene.geoGroupName
+	del bpy.types.Scene.geoExportHeaderType
+	del bpy.types.Scene.geoCustomExport
+	del bpy.types.Scene.geoLevelName
+	del bpy.types.Scene.geoLevelOption
+	del bpy.types.Scene.replaceStarRefs
+	del bpy.types.Scene.replaceTransparentStarRefs
+	del bpy.types.Scene.replaceCapRefs
+	del bpy.types.Scene.modifyOldGeo
+	del bpy.types.Scene.geoStructName

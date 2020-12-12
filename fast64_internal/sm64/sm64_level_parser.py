@@ -1,13 +1,11 @@
-import bpy
-import mathutils
-import copy
-
+import bpy, mathutils, copy
 from math import pi
 
 from .sm64_level_constants import *
 from .sm64_geolayout_constants import *
-from .f3d_parser import *
-from .utility import *
+from .sm64_constants import *
+
+from ..utility import *
 
 def parseLevelAtPointer(romfile, pointerAddress):
 	segmentData = parseCommonSegmentLoad(romfile)

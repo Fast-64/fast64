@@ -1,15 +1,14 @@
-from .utility import *
 from .sm64_constants import *
 from .sm64_objects import *
 from .sm64_collision import *
 from .sm64_geolayout_writer import *
+from .sm64_texscroll import *
+
+from ..utility import *
+
 from bpy.utils import register_class, unregister_class
-import bpy, bmesh
-import os
 from io import BytesIO
-import math
-import re
-import shutil
+import bpy, bmesh, os, math, re, shutil
 
 levelDefineArgs = {
 	'internal name' : 0,
@@ -781,19 +780,157 @@ def addHeaderC(levelName):
 		'#include "game/moving_texture.h"\n\n'
 	
 	return header
+	
+class SM64_ExportLevel(bpy.types.Operator):
+	# set bl_ properties
+	bl_idname = 'object.sm64_export_level'
+	bl_label = "Export Level"
+	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
-level_classes = (
+	def execute(self, context):
+		
+		try:
+			if context.mode != 'OBJECT':
+				raise PluginError("Operator can only be used in object mode.")
+			if len(context.selected_objects) == 0:
+				raise PluginError("Object not selected.")
+			obj = context.selected_objects[0]
+			if obj.data is not None or obj.sm64_obj_type != 'Level Root':
+				raise PluginError("The selected object is not an empty with the Level Root type.")
+
+			#obj = context.active_object
+
+			scaleValue = bpy.context.scene.blenderToSM64Scale
+			finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((
+				scaleValue, scaleValue, scaleValue))).to_4x4()
+		
+		except Exception as e:
+			raisePluginError(self, e)
+			return {'CANCELLED'} # must return a set
+		try:
+			applyRotation([obj], math.radians(90), 'X')
+			if context.scene.levelCustomExport:
+				exportPath = bpy.path.abspath(context.scene.levelExportPath)
+				levelName = context.scene.levelName
+				triggerName = 'sCam' + context.scene.levelName.title().replace(' ', '').replace('_', '')
+			else:
+				exportPath = bpy.path.abspath(context.scene.decompPath)
+				if context.scene.levelOption == 'custom':
+					levelName = context.scene.levelName
+					triggerName = 'sCam' + context.scene.levelName.title().replace(' ', '').replace('_', '')
+				else:
+					levelName = context.scene.levelOption
+					triggerName = cameraTriggerNames[context.scene.levelOption]
+			if not context.scene.levelCustomExport:
+				applyBasicTweaks(exportPath)
+			#cProfile.runctx('exportLevelC(obj, finalTransform,' +\
+			#	'context.scene.f3d_type, context.scene.isHWv1, levelName, exportPath,' +\
+			#	'context.scene.levelSaveTextures or bpy.context.scene.ignoreTextureRestrictions,' +\
+			#	'context.scene.levelCustomExport, triggerName, "Static")',
+			#	globals(), locals(), "E:/blender.prof")
+			#p = pstats.Stats("E:/blender.prof")
+			#p.sort_stats("cumulative").print_stats(2000)
+			exportLevelC(obj, finalTransform,
+				context.scene.f3d_type, context.scene.isHWv1, levelName, exportPath, 
+				context.scene.levelSaveTextures or bpy.context.scene.ignoreTextureRestrictions, 
+				context.scene.levelCustomExport, triggerName, "Static")
+			self.report({'INFO'}, 'Success!')
+
+			applyRotation([obj], math.radians(-90), 'X')
+			#applyRotation(obj.children, math.radians(0), 'X')
+			return {'FINISHED'} # must return a set
+
+		except Exception as e:
+			if context.mode != 'OBJECT':
+				bpy.ops.object.mode_set(mode = 'OBJECT')
+
+			applyRotation([obj], math.radians(-90), 'X')
+			#applyRotation(obj.children, math.radians(0), 'X')
+
+			obj.select_set(True)
+			context.view_layer.objects.active = obj
+			raisePluginError(self, e)
+			return {'CANCELLED'} # must return a set
+
+class SM64_ExportLevelPanel(bpy.types.Panel):
+	bl_idname = "SM64_PT_export_level"
+	bl_label = "SM64 Level Exporter"
+	bl_space_type = 'VIEW_3D'
+	bl_region_type = 'UI'
+	bl_category = 'Fast64'
+
+	@classmethod
+	def poll(cls, context):
+		return True
+
+	# called every frame
+	def draw(self, context):
+		col = self.layout.column()
+		col.label(text = 'This is for decomp only.')
+		col.operator(SM64_ExportLevel.bl_idname)
+		if not bpy.context.scene.ignoreTextureRestrictions:
+			col.prop(context.scene, 'levelSaveTextures')
+		col.prop(context.scene, 'levelCustomExport')
+		if context.scene.levelCustomExport:
+			prop_split(col, context.scene, 'levelExportPath', 'Directory')
+			prop_split(col, context.scene, 'levelName', 'Name')
+			customExportWarning(col)
+		else:
+			col.prop(context.scene, 'levelOption')
+			if context.scene.levelOption == 'custom':
+				levelName = context.scene.levelName
+				box = col.box()
+				box.label(text = 'Adding levels may require modifying the save file format.')
+				box.label(text = 'Check src/game/save_file.c.')
+				prop_split(col, context.scene, 'levelName', 'Name')
+			else:
+				levelName = context.scene.levelOption
+			decompFolderMessage(col)
+			writeBox = makeWriteInfoBox(col)
+			writeBox.label(text = 'levels/' + toAlnum(levelName) + ' (data).')
+			writeBox.label(text = 'src/game/camera.c (camera volume).')
+			writeBox.label(text = 'levels/level_defines.h (camera volume).')
+		
+		#extendedRAMLabel(col)
+		#prop_split(col, context.scene, 'levelCamera', 'Camera')
+		for i in range(panelSeparatorSize):
+			col.separator()
+
+sm64_level_classes = (
+	SM64_ExportLevel,
 )
 
-def level_register():
-	for cls in level_classes:
+sm64_level_panel_classes = (
+	SM64_ExportLevelPanel,
+)
+
+def sm64_level_panel_register():
+	for cls in sm64_level_panel_classes:
 		register_class(cls)
-		
-	
 
-def level_unregister():
-	
-	
-
-	for cls in reversed(level_classes):
+def sm64_level_panel_unregister():
+	for cls in sm64_level_panel_classes:
 		unregister_class(cls)
+
+def sm64_level_register():
+	for cls in sm64_level_classes:
+		register_class(cls)
+	
+	bpy.types.Scene.levelName = bpy.props.StringProperty(name = 'Name', default = 'bob')
+	bpy.types.Scene.levelOption = bpy.props.EnumProperty(name = "Level", items = enumLevelNames, default = 'bob')
+	bpy.types.Scene.levelExportPath = bpy.props.StringProperty(
+		name = 'Directory', subtype = 'FILE_PATH')
+	bpy.types.Scene.levelSaveTextures = bpy.props.BoolProperty(
+		name = 'Save Textures As PNGs (Breaks CI Textures)')
+	bpy.types.Scene.levelCustomExport = bpy.props.BoolProperty(
+		name = 'Custom Export Path')
+
+def sm64_level_unregister():
+	for cls in reversed(sm64_level_classes):
+		unregister_class(cls)
+
+	del bpy.types.Scene.levelName
+	del bpy.types.Scene.levelExportPath 
+	del bpy.types.Scene.levelSaveTextures
+	del bpy.types.Scene.levelCustomExport
+	del bpy.types.Scene.levelOption

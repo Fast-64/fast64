@@ -1,7 +1,7 @@
 import bpy
 from bpy.utils import register_class, unregister_class
 from .sm64_geolayout_utility import createBoneGroups, addBoneToGroup
-from .utility import prop_split, PluginError
+from ..utility import prop_split, PluginError
 
 enumBoneType = [
 	("Switch", "Switch (0x0E)", "Switch"), 
@@ -142,7 +142,7 @@ def drawGeoInfo(panel, bone):
 
 class GeolayoutBonePanel(bpy.types.Panel):
 	bl_label = "Geolayout Inspector"
-	bl_idname = "SM64_Geolayout_Inspector"
+	bl_idname = "BONE_PT_SM64_Geolayout_Inspector"
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
 	bl_context = "bone"
@@ -157,7 +157,7 @@ class GeolayoutBonePanel(bpy.types.Panel):
 
 class GeolayoutArmaturePanel(bpy.types.Panel):
 	bl_label = "Geolayout Armature Inspector"
-	bl_idname = "SM64_Armature_Geolayout_Inspector"
+	bl_idname = "OBJECT_PT_SM64_Armature_Geolayout_Inspector"
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
 	bl_context = "object"
@@ -180,7 +180,7 @@ class GeolayoutArmaturePanel(bpy.types.Panel):
 
 class GeolayoutObjectPanel(bpy.types.Panel):
 	bl_label = "Object Geolayout Inspector"
-	bl_idname = "SM64_Object_Geolayout_Inspector"
+	bl_idname = "OBJECT_PT_SM64_Object_Geolayout_Inspector"
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
 	bl_context = "object"
@@ -414,11 +414,7 @@ def updateBone(self, context):
 		addBoneToGroup(armatureObj, context.bone.name, None)
 		bpy.ops.object.mode_set(mode="POSE")
 
-bone_classes = (
-	GeolayoutBonePanel,
-	GeolayoutObjectPanel,
-	GeolayoutArmaturePanel,
-	#GeolayoutBoneSidePanel
+sm64_bone_classes = (
 	AddSwitchOption,
 	RemoveSwitchOption,
 	AddSwitchOptionMat,
@@ -428,8 +424,22 @@ bone_classes = (
 	SwitchOptionProperty,
 )
 
-def bone_register():
-	for cls in bone_classes:
+sm64_bone_panel_classes = (
+	GeolayoutBonePanel,
+	GeolayoutObjectPanel,
+	GeolayoutArmaturePanel,
+)
+
+def sm64_bone_panel_register():
+	for cls in sm64_bone_panel_classes:
+		register_class(cls)
+
+def sm64_bone_panel_unregister():
+	for cls in sm64_bone_panel_classes:
+		unregister_class(cls)
+
+def sm64_bone_register():
+	for cls in sm64_bone_classes:
 		register_class(cls)
 	
 	bpy.types.Bone.geo_cmd = bpy.props.EnumProperty(
@@ -524,8 +534,8 @@ def bone_register():
 	# Used during object duplication on export
 	bpy.types.Object.original_name = bpy.props.StringProperty()
 
-def bone_unregister():
-	for cls in reversed(bone_classes):
+def sm64_bone_unregister():
+	for cls in reversed(sm64_bone_classes):
 		unregister_class(cls)
 
 	del bpy.types.Bone.geo_cmd

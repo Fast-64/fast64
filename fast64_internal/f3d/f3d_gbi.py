@@ -1,10 +1,7 @@
 # Macros are all copied over from gbi.h
-import bpy
-from .utility import decodeSegmentedAddr, encodeSegmentedAddr, get64bitAlignedAddr
+import bpy, os, copy
 from math import ceil
-import os
-from .utility import getNameFromPath, PluginError
-import copy
+from ..utility import *
 
 dlTypeEnum = [
 	('STATIC', "Static", "Static"),
@@ -1612,6 +1609,13 @@ class FTexRect:
 		for (image, texInfo), texture in self.textures.items():
 			data += texture.to_c_def() + '\n'
 		return data
+	
+	def getTextureAndHandleShared(self, imageKey):
+		# Check if texture is in self
+		if imageKey in self.textures:
+			return self.textures[imageKey]
+		else:
+			return None
 
 class FFogData:
 	def __init__(self, position = (970, 1000), color = (0,0,0,1)):
@@ -1689,9 +1693,80 @@ class FModel:
 		self.materialRevert = None
 		# F3D library
 		self.f3d = F3D(f3dType, isHWv1)
+		# array of FModel
+		self.subModels = []
+		self.parentModel = None
+		# master display list
+		self.masterDL = GfxList(name + '_main', DLFormat)
 		self.DLFormat = DLFormat
 		self.global_data = FGlobalData()
+
+	def createMasterDL(self):
+		commands = self.masterDL.commands
+		commands.clear()
+		for meshGroup in self.meshGroups:
+			if meshGroup.mesh is not None:
+				commands.append(SPDisplayList(meshGroup.mesh.draw))
+			if meshGroup.skinnedMesh is not None:
+				commands.append(SPDisplayList(meshGroup.skinnedMesh.draw))
+		commands.append(SPEndDisplayList())
+		return self.masterDL
 	
+	def addSubModel(self, subModel):
+		self.subModels.append(subModel)
+		subModel.parentModel = self
+	
+	def getTextureAndHandleShared(self, imageKey):
+		# Check if texture is in self
+		if imageKey in self.textures:
+			return self.textures[imageKey]
+
+		if self.parentModel is not None:
+			# Check if texture is in parent
+			if imageKey in self.parentModel.textures:
+				return self.parentModel.textures[imageKey]
+			
+			# Check if texture is in siblings
+			for subModel in self.parentModel.subModels:
+				if imageKey in subModel.textures:
+					imageItem = subModel.textures.pop(imageKey)
+					self.parentModel.textures[imageKey] = imageItem
+					return imageItem
+		else:
+			return None
+	
+	def getMaterialAndHandleShared(self, materialKey):
+		# Check if material is in self
+		if materialKey in self.materials:
+			return self.materials[materialKey]
+		
+		if self.parentModel is not None:
+			# Check if material is in parent
+			if materialKey in self.parentModel.materials:
+				return self.parentModel.materials[materialKey]
+
+			# Check if material is in siblings
+			for subModel in self.parentModel.subModels:
+				if materialKey in subModel.materials:
+					materialItem = subModel.materials.pop(materialKey)
+					self.parentModel.materials[materialKey] = materialItem
+
+					# If material is in sibling, handle the material's textures as well.
+					for imageKey in materialItem[0].usedImages:
+						imageItem = self.getTextureAndHandleShared(imageKey)
+						if imageItem is None:
+							raise PluginError("Error: If a material exists, its textures should exist too.")
+					return materialItem
+		else:
+			return None
+
+	def getAllMaterials(self):
+		materials = {}
+		materials.update(self.materials)
+		for subModel in self.subModels:
+			materials.update(subModel.getAllMaterials())
+		return materials
+
 	def get_ptr_addresses(self, f3d):
 		addresses = []
 		for name, meshGroup in self.meshGroups.items():
@@ -1732,6 +1807,11 @@ class FModel:
 			if not startAddrSet:
 				startAddrSet = True
 				startAddress = addrRange[0]
+		for subModel in self.subModels:
+			addrRange = subModel.set_addr(addrRange[1])
+			if not startAddrSet:
+				startAddrSet = True
+				startAddress = addrRange[0]
 		return startAddress, addrRange[1]
 
 	def save_binary(self, romfile, segments):
@@ -1745,6 +1825,8 @@ class FModel:
 			meshGroup.save_binary(romfile, self.f3d, segments)
 		if self.materialRevert is not None:
 			self.materialRevert.save_binary(romfile, self.f3d, segments)
+		for subModel in self.subModels:
+			subModel.save_binary(romfile, segments)
 
 	def to_c(self, texCSeparate, savePNG, texDir, scrollName):
 		static_data = ''
@@ -2159,6 +2241,7 @@ class FMaterial:
 		self.revert = GfxList('mat_revert_' + name, DLFormat)
 		self.DLFormat = DLFormat
 		self.scrollData = FScrollData()
+		self.usedImages = [] # array of (image, texFormat, paletteType) = imageKey
 
 	def getScrollData(self, material, dimensions):
 		self.getScrollDataField(material, 0)

@@ -1,8 +1,5 @@
-import bpy
-import math
-import mathutils
+import bpy, math, mathutils, nodeitems_utils
 from bpy.types import Node, NodeSocket, NodeSocketInterface, ShaderNode, ShaderNodeGroup, Panel
-import nodeitems_utils
 from nodeitems_utils import NodeCategory, NodeItem
 from .f3d_gbi import F3D
 from .f3d_enums import *

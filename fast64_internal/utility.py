@@ -1,21 +1,65 @@
-import bpy
+import bpy, random, string, os, math, traceback, re, os
 from math import pi, ceil, degrees, radians
 from mathutils import *
-from .sm64_constants import *
-from .sm64_geolayout_constants import *
-import random
-import string
-import os
-import math
-import traceback
-import re
-import os
 
 class PluginError(Exception):
 	pass
 
 class VertexWeightError(PluginError):
 	pass
+
+geoNodeRotateOrder = 'ZXY'
+sm64BoneUp = Vector([1,0,0])
+panelSeparatorSize = 5
+
+axis_enums = [	
+	('X', 'X', 'X'), 
+	('Y', 'Y', 'Y'), 
+	('-X', '-X', '-X'),
+	('-Y', '-Y', '-Y'),
+]
+
+enumExportType = [
+	('C', 'C', 'C'),
+	('Binary', 'Binary', 'Binary'),
+	('Insertable Binary', 'Insertable Binary', 'Insertable Binary')
+]
+
+enumExportHeaderType = [
+	#('None', 'None', 'Headers are not written'),
+	('Actor', 'Actor Data', 'Headers are written to a group in actors/'),
+	('Level', 'Level Data', 'Headers are written to a specific level in levels/')
+]
+
+enumCompressionFormat = [
+	('mio0', 'MIO0', 'MIO0'),
+	('yay0', 'YAY0', 'YAY0'),
+]
+
+def extendedRAMLabel(layout):
+	return
+	infoBox = layout.box()
+	infoBox.label(text = 'Be sure to add: ')
+	infoBox.label(text = '"#define USE_EXT_RAM"')
+	infoBox.label(text = 'to include/segments.h.')
+	infoBox.label(text = 'Extended RAM prevents crashes.')
+
+def checkExpanded(filepath):
+	size = os.path.getsize(filepath)
+	if size < 9000000: # check if 8MB
+		raise PluginError("ROM at " + filepath + " is too small. You may be using an unexpanded ROM. You can expand a ROM by opening it in SM64 Editor or ROM Manager.")
+
+def getPathAndLevel(customExport, exportPath, levelName, levelOption):
+	if customExport:
+		exportPath = bpy.path.abspath(exportPath)
+		levelName = levelName
+	else:
+		exportPath = bpy.path.abspath(bpy.context.scene.decompPath)
+		if levelOption == 'custom':
+			levelName = levelName
+		else:
+			levelName = levelOption
+	return exportPath, levelName
 
 def findStartBones(armatureObj):
 	noParentBones = sorted([bone.name for bone in armatureObj.data.bones if \

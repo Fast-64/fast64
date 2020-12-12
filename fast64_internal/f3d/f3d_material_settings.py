@@ -1,4 +1,4 @@
-from .sm64_constants import *
+from .f3d_constants import *
 
 F3DOutputCopyList = {
 	'prim_color' : "Primitive Color", 

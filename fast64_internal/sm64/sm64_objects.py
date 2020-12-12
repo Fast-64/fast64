@@ -1,13 +1,12 @@
-from .utility import *
-from .sm64_constants import *
+import math, os, bpy, bmesh, mathutils
 from bpy.utils import register_class, unregister_class
-import bpy, bmesh
-import os
 from io import BytesIO
-import math
+
+from .sm64_constants import *
 from .sm64_function_map import func_map
 from .sm64_spline import *
 
+from ..utility import *
 
 enumTerrain = [
 	('Custom', 'Custom', 'Custom'),
@@ -569,7 +568,7 @@ class SearchModelIDEnumOperator(bpy.types.Operator):
 	bl_property = "sm64_model_enum"
 	bl_options = {'REGISTER', 'UNDO'} 
 
-	sm64_model_enum = bpy.props.EnumProperty(items = enumModelIDs)
+	sm64_model_enum : bpy.props.EnumProperty(items = enumModelIDs)
 
 	def execute(self, context):
 		context.object.sm64_model_enum = self.sm64_model_enum
@@ -587,7 +586,7 @@ class SearchBehaviourEnumOperator(bpy.types.Operator):
 	bl_property = "sm64_behaviour_enum"
 	bl_options = {'REGISTER', 'UNDO'} 
 
-	sm64_behaviour_enum = bpy.props.EnumProperty(items = enumBehaviourPresets)
+	sm64_behaviour_enum : bpy.props.EnumProperty(items = enumBehaviourPresets)
 
 	def execute(self, context):
 		context.object.sm64_behaviour_enum = self.sm64_behaviour_enum
@@ -607,7 +606,7 @@ class SearchMacroEnumOperator(bpy.types.Operator):
 	bl_property = "sm64_macro_enum"
 	bl_options = {'REGISTER', 'UNDO'} 
 
-	sm64_macro_enum = bpy.props.EnumProperty(items = enumMacrosNames)
+	sm64_macro_enum : bpy.props.EnumProperty(items = enumMacrosNames)
 
 	def execute(self, context):
 		context.object.sm64_macro_enum = self.sm64_macro_enum
@@ -625,7 +624,7 @@ class SearchSpecialEnumOperator(bpy.types.Operator):
 	bl_property = "sm64_special_enum"
 	bl_options = {'REGISTER', 'UNDO'} 
 
-	sm64_special_enum = bpy.props.EnumProperty(items = enumSpecialsNames)
+	sm64_special_enum : bpy.props.EnumProperty(items = enumSpecialsNames)
 
 	def execute(self, context):
 		context.object.sm64_special_enum = self.sm64_special_enum
@@ -639,7 +638,7 @@ class SearchSpecialEnumOperator(bpy.types.Operator):
 
 class SM64ObjectPanel(bpy.types.Panel):
 	bl_label = "Object Inspector"
-	bl_idname = "SM64_Object_Inspector"
+	bl_idname = "OBJECT_PT_SM64_Object_Inspector"
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
 	bl_context = "object"
@@ -979,9 +978,22 @@ sm64_obj_classes = (
 	SearchBehaviourEnumOperator,
 	SearchSpecialEnumOperator,
 	SearchMacroEnumOperator,
-	SM64ObjectPanel,
+	
 	StarGetCutscenesProperty,
 )
+
+
+sm64_obj_panel_classes = (
+	SM64ObjectPanel,
+)
+
+def sm64_obj_panel_register():
+	for cls in sm64_obj_panel_classes:
+		register_class(cls)
+
+def sm64_obj_panel_unregister():
+	for cls in sm64_obj_panel_classes:
+		unregister_class(cls)
 
 def sm64_obj_register():
 	for cls in sm64_obj_classes:

@@ -1,20 +1,14 @@
-import bpy
+import bpy, math, mathutils, sys, copy
 from bpy.app.handlers import persistent
-import math
-import mathutils
-import sys
 from bpy.types import Node, NodeSocket, NodeSocketInterface, ShaderNode, ShaderNodeGroup, Panel
-import nodeitems_utils
+from bpy.utils import register_class, unregister_class
 from nodeitems_utils import NodeCategory, NodeItem
 from .f3d_gbi import F3D
 from .f3d_enums import *
 from .f3d_material_nodes import *
-from .sm64_constants import *
-from .utility import prop_split, PluginError, getRGBA16Tuple
-from bpy.utils import register_class, unregister_class
-import copy
 from .f3d_material_settings import *
 from .f3d_material_presets import *
+from ..utility import prop_split, PluginError, getRGBA16Tuple
 
 # Properties based on nodes:
 # prim color
@@ -268,7 +262,7 @@ def tmemUsageUI(layout, textureProp):
 # cycle type = 1 cycle
 class F3DPanel(bpy.types.Panel):
 	bl_label = "F3D Material"
-	bl_idname = "F3D_Inspector"
+	bl_idname = "MATERIAL_PT_F3D_Inspector"
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
 	bl_context = "material"
@@ -1442,6 +1436,34 @@ def createF3DMat(obj, preset = 'Shaded Solid', index = None):
 
 	return material
 
+class N64_AddF3dMat(bpy.types.Operator):
+	# set bl_ properties
+	bl_idname = 'object.add_f3d_mat'
+	bl_label = "Add Fast3D Material"
+	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
+
+	# Called on demand (i.e. button press, menu item)
+	# Can also be called from operator search menu (Spacebar)
+	def execute(self, context):
+		try:
+			if context.mode != 'OBJECT':
+				raise PluginError("Operator can only be used in object mode.")
+			
+			if len(context.selected_objects) == 0:
+				raise PluginError("Mesh not selected.")
+			elif type(context.selected_objects[0].data) is not\
+				bpy.types.Mesh:
+				raise PluginError("Mesh not selected.")
+			
+			obj = context.selected_objects[0]
+			createF3DMat(obj)
+		except Exception as e:
+			raisePluginError(self, e)
+			return {"CANCELLED"}
+
+		self.report({'INFO'}, 'Created F3D material.')
+		return {'FINISHED'} # must return a set
+
 class CreateFast3DMaterial(bpy.types.Operator):
 	# set bl_ properties
 	bl_idname = 'object.create_f3d_mat'
@@ -1663,7 +1685,7 @@ class RDPSettings(bpy.types.PropertyGroup):
 
 class DefaultRDPSettingsPanel(bpy.types.Panel):
 	bl_label = "RDP Default Settings"
-	bl_idname = "RDP_Default_Inspector"
+	bl_idname = "WORLD_PT_RDP_Default_Inspector"
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
 	bl_context = "world"
@@ -1800,6 +1822,7 @@ mat_classes = (
 	F3DNodeD_alpha,
 	F3DPanel,
 	CreateFast3DMaterial,
+	N64_AddF3dMat,
 	GetAlphaFromColor,
 	TextureFieldProperty,
 	TextureProperty,

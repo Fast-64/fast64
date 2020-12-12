@@ -1,9 +1,8 @@
-import bpy
+import bpy, math, mathutils
 from bpy.utils import register_class, unregister_class
-from .utility import *
 from .sm64_geolayout_constants import *
 from .sm64_geolayout_classes import *
-import math
+from ..utility import *
 
 enumBackgroundType = [
 	('OCEAN_SKY', 'Ocean Sky', 'Ocean Sky'),
@@ -126,15 +125,27 @@ def saveCameraSettingsToGeolayout(geolayoutGraph, areaObj, rootObj, meshGeolayou
 
 	return meshGeolayout
 
-cam_classes = (
+sm64_cam_classes = (
 	#CameraSettingsPanel,
 )
+
+sm64_cam_panel_classes = (
+
+)
+
+def sm64_cam_panel_register():
+	for cls in sm64_cam_panel_classes:
+		register_class(cls)
+
+def sm64_cam_panel_unregister():
+	for cls in sm64_cam_panel_classes:
+		unregister_class(cls)
 
 #  802763D4 - ASM function for background
 #  8029AA3C - ASM function for camera frustum
 
-def cam_register():
-	for cls in cam_classes:
+def sm64_cam_register():
+	for cls in sm64_cam_classes:
 		register_class(cls)
 
 	# Moved to Level Root
@@ -178,7 +189,7 @@ def cam_register():
 	#	name = 'Field Of View', min = 0, max = 180, default = 45
 	#)
 
-def cam_unregister():
+def sm64_cam_unregister():
 	#del bpy.types.Camera.useBackgroundColor
 	#del bpy.types.Camera.backgroundID
 	#del bpy.types.Camera.backgroundColor
@@ -192,5 +203,5 @@ def cam_unregister():
 	#del bpy.types.Camera.clipPlanes
 	#del bpy.types.Camera.fov
 
-	for cls in cam_classes:
+	for cls in sm64_cam_classes:
 		unregister_class(cls)

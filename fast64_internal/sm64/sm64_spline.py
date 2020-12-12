@@ -1,7 +1,7 @@
-from .utility import *
 from .sm64_constants import *
 from bpy.utils import register_class, unregister_class
 import bpy, bmesh
+from ..utility import *
 
 enumSplineTypes = [
 	("Trajectory", "Trajectory", "Exports to Trajectory[]. Used for movement"),
@@ -103,7 +103,7 @@ class SM64_ExportSpline(bpy.types.Operator):
 
 class SM64SplinePanel(bpy.types.Panel):
 	bl_label = "Spline Inspector"
-	bl_idname = "SM64_Spline_Inspector"
+	bl_idname = "OBJECT_PT_SM64_Spline_Inspector"
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
 	bl_context = "object"
@@ -136,8 +136,21 @@ def isCurveValid(obj):
 
 sm64_spline_classes = (
 	SM64_ExportSpline,
+)
+
+
+sm64_spline_panel_classes = (
 	SM64SplinePanel,
 )
+
+def sm64_spline_panel_register():
+	for cls in sm64_spline_panel_classes:
+		register_class(cls)
+
+def sm64_spline_panel_unregister():
+	for cls in sm64_spline_panel_classes:
+		unregister_class(cls)
+
 
 def sm64_spline_register():
 	for cls in sm64_spline_classes:

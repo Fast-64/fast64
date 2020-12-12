@@ -1,11 +1,10 @@
-import bpy
+# This is not in the f3d package since copying materials requires copying collision settings from all games as well.
+
+import bpy, math
 from bpy.utils import register_class, unregister_class
+from .f3d.f3d_material import createF3DMat, update_preset_manual, enumMaterialPresets, F3DMaterialSettings, update_node_values_of_material
+from .sm64.sm64_collision import CollisionSettings
 from .utility import *
-from .sm64_geolayout_constants import *
-from .sm64_geolayout_classes import *
-import math
-from .f3d_material import createF3DMat, update_preset_manual, enumMaterialPresets, F3DMaterialSettings, update_node_values_of_material
-from .sm64_collision import CollisionSettings
 
 def upgradeF3DVersionAll(objs, armatures, version):
 	# Remove original v2 node groups so that they can be recreated.
@@ -191,7 +190,7 @@ class MatUpdateConvert(bpy.types.Operator):
 
 class F3DMaterialConverterPanel(bpy.types.Panel):
 	bl_label = "F3D Material Converter"
-	bl_idname = "F3D_Material_Converter"
+	bl_idname = "MATERIAL_PT_F3D_Material_Converter"
 	bl_space_type = 'VIEW_3D'
 	bl_region_type = 'UI'
 	bl_category = 'Fast64'
@@ -230,9 +229,9 @@ def bsdf_conv_register():
 		name = 'Rename UV maps', default = True)
 
 def bsdf_conv_unregister():
+	for cls in bsdf_conv_classes:
+		unregister_class(cls)
+
 	del bpy.types.Scene.bsdf_conv_all
 	del bpy.types.Scene.update_conv_all
 	del bpy.types.Scene.rename_uv_maps
-
-	for cls in bsdf_conv_classes:
-		unregister_class(cls)

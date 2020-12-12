@@ -1,10 +1,9 @@
 from .sm64_geolayout_constants import *
 from .sm64_geolayout_utility import *
-from .utility import *
 from .sm64_constants import *
 from .sm64_function_map import func_map 
-import struct
-import copy
+from ..utility import *
+import struct, copy
 
 drawLayerNames = {
 	0 : 'LAYER_FORCE',

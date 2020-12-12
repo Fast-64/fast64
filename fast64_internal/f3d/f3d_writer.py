@@ -1,18 +1,13 @@
-import bpy
-import bmesh
-import mathutils
-from math import pi
-from io import BytesIO
-import os, re
-
-import copy
+import bpy, bmesh, mathutils, os, re, copy
 from math import pi, ceil
-from .utility import *
-from .sm64_constants import *
+from io import BytesIO
+
+from .f3d_constants import *
 from .f3d_material import all_combiner_uses, getMaterialScrollDimensions, getTmemWordUsage, bitSizeDict, texBitSizeOf, texFormatOf
 from .f3d_gbi import *
 from .f3d_gbi import _DPLoadTextureBlock
-from .sm64_texscroll import *
+
+from ..utility import *
 
 def getEdgeToFaceDict(mesh):
 	edgeDict = {}
@@ -229,160 +224,6 @@ def addCullCommand(obj, fMesh, transformMatrix):
 		]
 	fMesh.draw.commands = cullCommands + fMesh.draw.commands
 
-def exportTexRectToC(dirPath, texProp, f3dType, isHWv1, texDir, 
-	savePNG, name, exportToProject, projectExportData):
-	fTexRect = exportTexRectCommon(texProp, f3dType, isHWv1, name, not savePNG)
-
-	if name is None or name == '':
-		raise PluginError("Name cannot be empty.")
-
-	data, code = fTexRect.to_c(savePNG, texDir)
-	declaration = fTexRect.to_c_def_tex()
-	code = modifyDLForHUD(code)
-
-	if exportToProject:	
-		seg2CPath = os.path.join(dirPath, "bin/segment2.c")
-		seg2HPath = os.path.join(dirPath, "src/game/segment2.h")
-		seg2TexDir = os.path.join(dirPath, "textures/segment2")
-		hudPath = os.path.join(dirPath, projectExportData[0])
-
-		checkIfPathExists(seg2CPath)
-		checkIfPathExists(seg2HPath)
-		checkIfPathExists(seg2TexDir)
-		checkIfPathExists(hudPath)
-		
-		if savePNG:
-			fTexRect.save_textures(seg2TexDir)
-
-		textures = []
-		for info, texture in fTexRect.textures.items():
-			textures.append(texture)
-
-		# Append/Overwrite texture definition to segment2.c
-		overwriteData('const\s*u8\s*', textures[0].name, data, seg2CPath, None, False)
-			
-		# Append texture declaration to segment2.h
-		writeIfNotFound(seg2HPath, declaration, '#endif')
-
-		# Write/Overwrite function to hud.c
-		overwriteData('void\s*', fTexRect.name, code, hudPath, projectExportData[1], True)
-
-	else:
-		singleFileData = ''
-		singleFileData += '// Copy this function to src/game/hud.c or src/game/ingame_menu.c.\n'
-		singleFileData += '// Call the function in render_hud() or render_menus_and_dialogs() respectively.\n'
-		singleFileData += code
-		singleFileData += '// Copy this declaration to src/game/segment2.h.\n'
-		singleFileData += declaration
-		singleFileData += '// Copy this texture data to bin/segment2.c\n'
-		singleFileData += '// If texture data is being included from an inc.c, make sure to copy the png to textures/segment2.\n'
-		singleFileData += data
-		singleFilePath = os.path.join(dirPath, fTexRect.name + '.c')
-		singleFile = open(singleFilePath, 'w', newline='\n')
-		singleFile.write(singleFileData)
-		singleFile.close()
-
-	if bpy.context.mode != 'OBJECT':
-		bpy.ops.object.mode_set(mode = 'OBJECT')
-
-def modifyDLForHUD(data):
-	# Use sm64 master dl pointer
-	data = re.sub('glistp', 'gDisplayListHead', data)
-
-	# Add positional arguments to drawing, along with negative pos handling
-	negativePosHandling = \
-		'\ts32 xl = MAX(0, x);\n' +\
-    	'\ts32 yl = MAX(0, y);\n' +\
-		'\ts32 xh = MAX(0, x + width - 1);\n' +\
-    	'\ts32 yh = MAX(0, y + height - 1);\n' +\
-    	'\ts = (x < 0) ? s - x : s;\n' +\
-    	'\tt = (y < 0) ? t - y : t;\n'
-		
-	data = re.sub('Gfx\* gDisplayListHead\) \{\n', 
-		's32 x, s32 y, s32 width, s32 height, s32 s, s32 t) {\n' + \
-		negativePosHandling, data)
-
-	# Remove display list end command and return value
-	data = re.sub('\tgSPEndDisplayList\(gDisplayListHead\+\+\)\;\n\treturn gDisplayListHead;\n', '', data)
-	data = 'void' + data[4:]
-
-	# Apply positional arguments to SPScisTextureRectangle
-	matchResult = re.search('gSPScisTextureRectangle\(gDisplayListHead\+\+\,' + \
-		' (((?!\,).)*)\, (((?!\,).)*)\, (((?!\,).)*)\, (((?!\,).)*)\, (((?!\,).)*)\, (((?!\,).)*)\, (((?!\,).)*)\,', data)
-	if matchResult:
-		#data = data[:matchResult.start(0)] + \
-		#	'gSPScisTextureRectangle(gDisplayListHead++, (x << 2) + ' + \
-		#	matchResult.group(1) + ', (y << 2) + ' + \
-		#	matchResult.group(3) + ', (x << 2) + ' + \
-		#	matchResult.group(5) + ', (y << 2) + ' + \
-		#	matchResult.group(7) + ',' + data[matchResult.end(0):]
-		data = data[:matchResult.start(0)] + \
-			'gSPScisTextureRectangle(gDisplayListHead++, ' +\
-			'xl << 2, yl << 2, xh << 2, yh << 2, ' +\
-			matchResult.group(11) + ', s << 5, t << 5, ' + data[matchResult.end(0):]
-
-	# Make sure to convert segmented texture pointer to virtual
-	#matchResult = re.search('gDPSetTextureImage\(gDisplayListHead\+\+\,' +\
-	#	'(((?!\,).)*)\, (((?!\,).)*)\, (((?!\,).)*)\, (((?!\,).)*)\)', data)
-	#if matchResult:
-	#	data = data[:matchResult.start(7)] + 'segmented_to_virtual(&' + \
-	#		matchResult.group(7) + ")" +data[matchResult.end(7):]
-	
-	return data
-
-def exportTexRectCommon(texProp, f3dType, isHWv1, name, convertTextureData):
-	tex = texProp.tex
-	if tex is None:
-		raise PluginError('No texture is selected.')
-	
-	texProp.S.low = 0
-	texProp.S.high = texProp.tex.size[0] - 1
-	texProp.S.mask =  math.ceil(math.log(texProp.tex.size[0], 2) - 0.001)
-	texProp.S.shift = 0
-
-	texProp.T.low = 0
-	texProp.T.high = texProp.tex.size[1] - 1
-	texProp.T.mask =  math.ceil(math.log(texProp.tex.size[1], 2) - 0.001)
-	texProp.T.shift = 0
-
-	fTexRect = FTexRect(f3dType, isHWv1, toAlnum(name))
-
-	# dl_hud_img_begin
-	fTexRect.draw.commands.extend([
-		DPPipeSync(),
-		DPSetCycleType('G_CYC_COPY'),
-		DPSetTexturePersp('G_TP_NONE'),
-		DPSetAlphaCompare('G_AC_THRESHOLD'),
-		DPSetBlendColor(0xFF, 0xFF, 0xFF, 0xFF),
-		DPSetRenderMode(['G_RM_AA_XLU_SURF', 'G_RM_AA_XLU_SURF2'], None)
-	])
-
-	drawEndCommands = GfxList("temp", "Dynamic")
-
-	texDimensions, nextTmem = saveTextureIndex(texProp.tex.name, fTexRect, 
-		fTexRect.draw, drawEndCommands, texProp, 0, 0, 'texture', convertTextureData)
-
-	fTexRect.draw.commands.append(
-		SPScisTextureRectangle(0, 0, 
-			(texDimensions[0] - 1) << 2, (texDimensions[1] - 1) << 2,
-			0, 0, 0)
-	)
-
-	fTexRect.draw.commands.extend(drawEndCommands.commands)
-
-	# dl_hud_img_end
-	fTexRect.draw.commands.extend([
-		DPPipeSync(),
-		DPSetCycleType('G_CYC_1CYCLE'),
-		SPTexture(0xFFFF, 0xFFFF, 0, 'G_TX_RENDERTILE', 'G_OFF'),
-		DPSetTexturePersp('G_TP_PERSP'),
-		DPSetAlphaCompare('G_AC_NONE'),
-		DPSetRenderMode(['G_RM_AA_ZB_OPA_SURF', 'G_RM_AA_ZB_OPA_SURF2'], None),
-		SPEndDisplayList()
-	])
-	
-	return fTexRect
-
 def exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren, name, DLFormat, convertTextureData):
 	fModel = FModel(f3dType, isHWv1, name, DLFormat)
 
@@ -400,177 +241,6 @@ def exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren, name
 
 	return fModel, fMeshGroup
 
-def exportF3DtoC(basePath, obj, DLFormat, transformMatrix, 
-	f3dType, isHWv1, texDir, savePNG, texSeparate, includeChildren, name, levelName, groupName, customExport, headerType):
-	dirPath, texDir = getExportDir(customExport, basePath, headerType, 
-		levelName, texDir, name)
-
-	fModel, fMeshGroup = \
-		exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, 
-		includeChildren, name, DLFormat, not savePNG)
-
-	modelDirPath = os.path.join(dirPath, toAlnum(name))
-
-	if not os.path.exists(modelDirPath):
-		os.mkdir(modelDirPath)
-
-	if headerType == 'Actor':
-		scrollName = 'actor_dl_' + name
-	elif headerType == 'Level':
-		scrollName = levelName + '_level_dl_' + name
-
-	static_data, dynamic_data, texC, scroll_data = fModel.to_c(texSeparate, savePNG, texDir, scrollName)
-	cDefineStatic, cDefineDynamic, cDefineScroll, hasScrolling = fModel.to_c_def(scrollName)
-
-	
-	modifyTexScrollFiles(basePath, modelDirPath, cDefineScroll, scroll_data, hasScrolling)
-	
-	if DLFormat == "Static":
-		static_data += '\n' + dynamic_data
-		cDefineStatic += cDefineDynamic
-	else:
-		geoString = writeMaterialFiles(basePath, modelDirPath, 
-			'#include "actors/' + toAlnum(name) + '/header.h"', 
-			'#include "actors/' + toAlnum(name) + '/material.inc.h"',
-			cDefineDynamic, dynamic_data, '', customExport)
-
-	if savePNG:
-		fModel.save_textures(modelDirPath)
-
-	fModel.freePalettes()
-
-	if texSeparate:
-		texCFile = open(os.path.join(modelDirPath, 'texture.inc.c'), 'w', newline='\n')
-		texCFile.write(texC)
-		texCFile.close()
-
-	modelPath = os.path.join(modelDirPath, 'model.inc.c')
-	outFile = open(modelPath, 'w', newline='\n')
-	outFile.write(static_data)
-	outFile.close()
-		
-	headerPath = os.path.join(modelDirPath, 'header.h')
-	cDefFile = open(headerPath, 'w', newline='\n')
-	cDefFile.write(cDefineStatic)
-	cDefFile.close()
-		
-	if not customExport:
-		if headerType == 'Actor':
-			# Write to group files
-			if groupName == '' or groupName is None:
-				raise PluginError("Actor header type chosen but group name not provided.")
-
-			groupPathC = os.path.join(dirPath, groupName + ".c")
-			groupPathH = os.path.join(dirPath, groupName + ".h")
-
-			writeIfNotFound(groupPathC, '\n#include "' + toAlnum(name) + '/model.inc.c"', '')
-			writeIfNotFound(groupPathH, '\n#include "' + toAlnum(name) + '/header.h"', '\n#endif')
-
-			if DLFormat != "Static": # Change this
-				writeMaterialHeaders(basePath, 
-					'#include "actors/' + toAlnum(name) + '/material.inc.c"',
-					'#include "actors/' + toAlnum(name) + '/material.inc.h"')
-
-			texscrollIncludeC = '#include "actors/' + name + '/texscroll.inc.c"'
-			texscrollIncludeH = '#include "actors/' + name + '/texscroll.inc.h"'
-			texscrollGroup = groupName
-			texscrollGroupInclude = '#include "actors/' + groupName + '.h"'
-		
-		elif headerType == 'Level':
-			groupPathC = os.path.join(dirPath, "leveldata.c")
-			groupPathH = os.path.join(dirPath, "header.h")
-
-			writeIfNotFound(groupPathC, '\n#include "levels/' + levelName + '/' + \
-				toAlnum(name) + '/model.inc.c"', '')
-			writeIfNotFound(groupPathH, '\n#include "levels/' + levelName + '/' + \
-				toAlnum(name) + '/header.h"', '\n#endif')
-
-			if DLFormat != "Static": # Change this
-				writeMaterialHeaders(basePath,
-					'#include "levels/' + levelName + '/' + toAlnum(name) + '/material.inc.c"',
-					'#include "levels/' + levelName + '/' + toAlnum(name) + '/material.inc.h"')
-			
-			texscrollIncludeC = '#include "levels/' + levelName + '/' + name + '/texscroll.inc.c"'
-			texscrollIncludeH = '#include "levels/' + levelName + '/' + name + '/texscroll.inc.h"'
-			texscrollGroup = levelName
-			texscrollGroupInclude = '#include "levels/' + levelName + '/header.h"'
-
-		modifyTexScrollHeadersGroup(basePath, texscrollIncludeC, texscrollIncludeH, 
-			texscrollGroup, cDefineScroll, texscrollGroupInclude, hasScrolling)
-
-	if bpy.context.mode != 'OBJECT':
-		bpy.ops.object.mode_set(mode = 'OBJECT')
-
-def exportF3DtoBinary(romfile, exportRange, transformMatrix, 
-	obj, f3dType, isHWv1, segmentData, includeChildren):
-	fModel, fMeshGroup = exportF3DCommon(obj, f3dType, isHWv1, 
-		transformMatrix, includeChildren, obj.name, "Static", True)
-	fModel.freePalettes()
-
-	addrRange = fModel.set_addr(exportRange[0])
-	if addrRange[1] > exportRange[1]:
-		raise PluginError('Size too big: Data ends at ' + hex(addrRange[1]) +\
-			', which is larger than the specified range.')
-	fModel.save_binary(romfile, segmentData)
-	if bpy.context.mode != 'OBJECT':
-		bpy.ops.object.mode_set(mode = 'OBJECT')
-
-	segPointerData = encodeSegmentedAddr(
-		fMeshGroup.mesh.draw.startAddress, segmentData)
-
-	return fMeshGroup.mesh.draw.startAddress, addrRange, segPointerData
-
-def exportF3DtoBinaryBank0(romfile, exportRange, transformMatrix, 
-	obj, f3dType, isHWv1, RAMAddr, includeChildren):
-	fModel, fMeshGroup = \
-		exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren,
-			obj.name, "Static", True)
-	segmentData = copy.copy(bank0Segment)
-
-	data, startRAM = getBinaryBank0F3DData(fModel, RAMAddr, exportRange)
-
-	startAddress = get64bitAlignedAddr(exportRange[0])
-	romfile.seek(startAddress)
-	romfile.write(data)
-
-	if bpy.context.mode != 'OBJECT':
-		bpy.ops.object.mode_set(mode = 'OBJECT')
-
-	segPointerData = encodeSegmentedAddr(
-		fMeshGroup.mesh.draw.startAddress, segmentData)
-
-	return (fMeshGroup.mesh.draw.startAddress, \
-		(startAddress, startAddress + len(data)), segPointerData)
-
-def exportF3DtoInsertableBinary(filepath, transformMatrix, 
-	obj, f3dType, isHWv1, includeChildren):
-	fModel, fMeshGroup = \
-		exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren,
-			obj.name, "Static", True)
-	
-	data, startRAM = getBinaryBank0F3DData(fModel, 0, [0, 0xFFFFFF])
-	# must happen after getBinaryBank0F3DData
-	address_ptrs = fModel.get_ptr_addresses(f3dType) 
-
-	writeInsertableFile(filepath, insertableBinaryTypes['Display List'],
-		address_ptrs, fMeshGroup.mesh.draw.startAddress, data)
-
-def getBinaryBank0F3DData(fModel, RAMAddr, exportRange):
-	fModel.freePalettes()
-	segmentData = copy.copy(bank0Segment)
-
-	addrRange = fModel.set_addr(RAMAddr)
-	if addrRange[1] - RAMAddr > exportRange[1] - exportRange[0]:
-	    raise PluginError('Size too big: Data ends at ' + hex(addrRange[1]) +\
-	        ', which is larger than the specified range.')
-
-	bytesIO = BytesIO()
-	#actualRAMAddr = get64bitAlignedAddr(RAMAddr)
-	bytesIO.seek(RAMAddr)
-	fModel.save_binary(bytesIO, segmentData)
-	data = bytesIO.getvalue()[RAMAddr:]
-	bytesIO.close()
-	return data, RAMAddr
 
 def checkForF3dMaterialInFaces(obj, material):
 	if not material.is_f3d:
@@ -1126,11 +796,15 @@ def getTexDimensions(material):
 def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 	areaKey = fModel.global_data.getCurrentAreaKey(material)
 	areaIndex = fModel.global_data.current_area_index
+
 	if material.rdp_settings.set_rendermode:
-		if (material, drawLayer, areaKey) in fModel.materials:
-			return fModel.materials[(material, drawLayer, areaKey)]
-	elif (material, None, areaKey) in fModel.materials:
-		return fModel.materials[(material, None, areaKey)]
+		materialKey = (material, drawLayer, areaKey)
+	else:
+		materialKey = (material, None, areaKey)
+	
+	materialItem = fModel.getMaterialAndHandleShared(materialKey)
+	if materialItem is not None:
+		return materialItem
 	
 	if len(obj.data.materials) == 0:
 		raise PluginError("Mesh must have at least one material.")
@@ -1238,12 +912,12 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 		if material.tex0.tex is None:
 			raise PluginError('In material \"' + material.name + '\", a texture has not been set.')
 		texDimensions0, nextTmem = saveTextureIndex(material.name, fModel, 
-			fMaterial.material, fMaterial.revert, material.tex0, 0, nextTmem, None, convertTextureData)	
+			fMaterial, fMaterial.material, fMaterial.revert, material.tex0, 0, nextTmem, None, convertTextureData)	
 	if useDict['Texture 1'] and material.tex1.tex_set:
 		if material.tex1.tex is None:
 			raise PluginError('In material \"' + material.name + '\", a texture has not been set.')
 		texDimensions1, nextTmem = saveTextureIndex(material.name, fModel, 
-			fMaterial.material, fMaterial.revert, material.tex1, 1, nextTmem, None, convertTextureData)
+			fMaterial, fMaterial.material, fMaterial.revert, material.tex1, 1, nextTmem, None, convertTextureData)
 
 	# Used so we know how to convert normalized UVs when saving verts.
 	if texDimensions0 is not None and texDimensions1 is not None:
@@ -1339,7 +1013,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 
 	return fMaterial, texDimensions
 
-def saveTextureIndex(propName, fModel, loadTexGfx, revertTexGfx, texProp, index, tmem, overrideName, convertTextureData):
+def saveTextureIndex(propName, fModel, fMaterial, loadTexGfx, revertTexGfx, texProp, index, tmem, overrideName, convertTextureData):
 	tex = texProp.tex
 	if tex is None:
 		raise PluginError('In ' + propName + ", no texture is selected.")
@@ -1397,6 +1071,9 @@ def saveTextureIndex(propName, fModel, loadTexGfx, revertTexGfx, texProp, index,
 	#fImage = saveTextureDefinition(fModel, tex, texName, 
 	#	texFormatOf[texFormat], texBitSizeOf[texFormat])
 	#fModel.textures[texName] = fImage	
+
+	if hasattr(fMaterial, 'usedImages'):
+		fMaterial.usedImages.append((tex, (texFormat, 'NONE')))
 
 	return texDimensions, nextTmem
 
@@ -1603,8 +1280,9 @@ def saveOrGetTextureDefinition(fModel, image, imageName, texFormat, convertTextu
 
 	# If image already loaded, return that data.
 	imageKey = (image, (texFormat, 'NONE'))
-	if imageKey in fModel.textures:
-		return fModel.textures[imageKey]
+	imageItem = fModel.getTextureAndHandleShared(imageKey)
+	if imageItem is not None:
+		return imageItem
 
 	if image.filepath == "":
 		name = image.name

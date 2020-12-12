@@ -1,8 +1,6 @@
-import bpy
-import math
+import bpy, math, time
 from mathutils import * 
 from bgl import * 
-import time
 from bpy.utils import register_class, unregister_class
 
 vertexShader = '''

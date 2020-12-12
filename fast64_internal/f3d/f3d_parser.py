@@ -1,11 +1,26 @@
-import bmesh
-import bpy
-import mathutils
-import pprint
+import bmesh, bpy, mathutils, pprint
 from .f3d_gbi import *
-from .utility import *
-from .sm64_constants import *
 from .f3d_material import createF3DMat, update_preset_manual
+from ..utility import *
+
+colorCombinationCommands = [
+	0x03, #load lighting data
+	0xB6, #clear geometry params
+	0xB7, #set geometry params
+	0xBB, #set texture scaling factor
+	0xF3, #set texture size
+	0xF5, #set texture properties
+	0xF7, #set fill color
+	0xF8, #set fog color
+	0xFB, #set env color
+	0xFC, #set color combination 
+	0xFD  #load texture 
+]
+
+drawCommands = [
+	0x04, #load vertex data
+	0xBF  #draw triangle
+]
 
 def getAxisVector(enumValue):
 	sign = -1 if enumValue[0] == '-' else 1

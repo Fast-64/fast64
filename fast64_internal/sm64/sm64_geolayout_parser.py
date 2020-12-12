@@ -1,18 +1,16 @@
-import bpy
-import mathutils
-import math
-import copy
-
+import bpy, mathutils, math, copy
 from math import pi
+from bpy.utils import register_class, unregister_class
 
 from .sm64_level_parser import *
 from .sm64_geolayout_bone import enumShadowType
 from .sm64_geolayout_constants import *
 from .sm64_geolayout_utility import *
-from .f3d_parser import *
-from .utility import *
 from .sm64_constants import *
-from .f3d_material import createF3DMat, update_preset_manual
+
+from ..f3d.f3d_material import createF3DMat, update_preset_manual
+from ..f3d.f3d_parser import *
+from ..utility import *
 
 blender_modes = {'OBJECT', 'BONE'}
 
@@ -1117,3 +1115,153 @@ def handleOverlapGeoMetadata(bone):
 
 		bone['sm64_geo_meta'] = parentBoneMeta
 		del parentBone['sm64_geo_meta']
+
+
+# See SM64GeoLayoutPtrsByLevels.txt by VLTone
+class SM64_ImportGeolayout(bpy.types.Operator):
+	# set bl_ properties
+	bl_idname = 'object.sm64_import_geolayout'
+	bl_label = "Import Geolayout"
+	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
+
+	# Called on demand (i.e. button press, menu item)
+	# Can also be called from operator search menu (Spacebar)
+	def execute(self, context):
+		romfileSrc = None
+		try:
+			geoImportAddr = context.scene.geoImportAddr
+			generateArmature = context.scene.generateArmature
+			levelGeoImport = context.scene.levelGeoImport
+			importRom = context.scene.importRom
+			ignoreSwitch = context.scene.ignoreSwitch
+
+			#finalTransform = mathutils.Matrix.Rotation(math.radians(-90), 4, 'X')
+			finalTransform = mathutils.Matrix.Identity(4)
+			if context.mode != 'OBJECT':
+				raise PluginError("Operator can only be used in object mode.")
+		except Exception as e:
+			raisePluginError(self, e)
+			return {'CANCELLED'}
+		try:
+			romfileSrc = open(bpy.path.abspath(importRom), 'rb')
+			checkExpanded(bpy.path.abspath(importRom))
+
+			armatureObj = None
+
+			# Get segment data
+			levelParsed = parseLevelAtPointer(romfileSrc, 
+				level_pointers[levelGeoImport])
+			segmentData = levelParsed.segmentData
+			geoStart = int(geoImportAddr, 16)
+			if context.scene.geoIsSegPtr:
+				geoStart = decodeSegmentedAddr(
+					geoStart.to_bytes(4, 'big'), segmentData)
+
+			# Armature mesh groups includes armatureObj.
+			armatureMeshGroups, armatureObj = parseGeoLayout(romfileSrc, 
+				geoStart,
+			 	context.scene, segmentData, 
+				finalTransform, generateArmature, 
+				ignoreSwitch, True, context.scene.f3d_type, 
+				context.scene.isHWv1)
+			romfileSrc.close()
+
+			bpy.ops.object.select_all(action = 'DESELECT')
+			if armatureObj is not None:
+				for armatureMeshGroup in armatureMeshGroups:
+					armatureMeshGroup[0].select_set(True)
+				doRotation(math.radians(-90), 'X')
+
+				for armatureMeshGroup in armatureMeshGroups:
+					bpy.ops.object.select_all(action = 'DESELECT')
+					armatureMeshGroup[0].select_set(True)
+					bpy.context.view_layer.objects.active = armatureMeshGroup[0]
+					bpy.ops.object.make_single_user(obdata = True)
+					bpy.ops.object.transform_apply(location = False, 
+						rotation = True, scale = False, properties =  False)
+			else:
+				doRotation(math.radians(-90), 'X')
+			bpy.ops.object.select_all(action = 'DESELECT')
+			#objs[-1].select_set(True)
+
+			self.report({'INFO'}, 'Generic import succeeded.')
+			return {'FINISHED'} # must return a set
+
+		except Exception as e:
+			if context.mode != 'OBJECT':
+				bpy.ops.object.mode_set(mode = 'OBJECT')
+			
+			if romfileSrc is not None:
+				romfileSrc.close()
+			raisePluginError(self, e)
+			return {'CANCELLED'} # must return a set
+
+class SM64_ImportGeolayoutPanel(bpy.types.Panel):
+	bl_idname = "SM64_PT_import_geolayout"
+	bl_label = "SM64 Geolayout Importer"
+	bl_space_type = 'VIEW_3D'
+	bl_region_type = 'UI'
+	bl_category = 'Fast64'
+
+	@classmethod
+	def poll(cls, context):
+		return True
+
+	# called every frame
+	def draw(self, context):
+		col = self.layout.column()
+		propsGeoI = col.operator(SM64_ImportGeolayout.bl_idname)
+
+		#col.prop(context.scene, 'rotationOrder')
+		#col.prop(context.scene, 'rotationAxis')
+		#col.prop(context.scene, 'rotationAngle')
+		prop_split(col, context.scene, 'geoImportAddr', 'Start Address')
+		col.prop(context.scene, 'geoIsSegPtr')
+		col.prop(context.scene, 'levelGeoImport')
+		col.prop(context.scene, 'generateArmature')
+		col.prop(context.scene, 'ignoreSwitch')
+		if not context.scene.ignoreSwitch:
+			boxLayout = col.box()
+			boxLayout.label(text = "WARNING: May take a long time.")
+			boxLayout.label(text = "Switch nodes won't be setup.")
+		col.box().label(text = "Only Fast3D mesh importing allowed.")
+		for i in range(panelSeparatorSize):
+			col.separator()
+
+sm64_geo_parser_classes = (
+	SM64_ImportGeolayout,
+)
+
+sm64_geo_parser_panel_classes = (
+	SM64_ImportGeolayoutPanel,
+)
+
+def sm64_geo_parser_panel_register():
+	for cls in sm64_geo_parser_panel_classes:
+		register_class(cls)
+
+def sm64_geo_parser_panel_unregister():
+	for cls in sm64_geo_parser_panel_classes:
+		unregister_class(cls)
+
+def sm64_geo_parser_register():
+	for cls in sm64_geo_parser_classes:
+		register_class(cls)
+
+	bpy.types.Scene.geoImportAddr = bpy.props.StringProperty(
+		name ='Start Address', default = '1F1D60')
+	bpy.types.Scene.generateArmature = bpy.props.BoolProperty(
+		name ='Generate Armature?', default = True)
+	bpy.types.Scene.levelGeoImport = bpy.props.EnumProperty(items = level_enums,
+		name = 'Level', default = 'HMC')
+	bpy.types.Scene.ignoreSwitch = bpy.props.BoolProperty(
+		name = 'Ignore Switch Nodes', default = True)
+
+def sm64_geo_parser_unregister():
+	for cls in reversed(sm64_geo_parser_classes):
+		unregister_class(cls)
+
+	del bpy.types.Scene.generateArmature
+	del bpy.types.Scene.geoImportAddr
+	del bpy.types.Scene.levelGeoImport
+	del bpy.types.Scene.ignoreSwitch

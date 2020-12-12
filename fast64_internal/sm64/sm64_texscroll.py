@@ -1,6 +1,5 @@
-from .utility import *
-import os
-import re
+import os, re
+from ..utility import *
 
 # This is for writing framework for scroll code.
 # Actual scroll code found in f3d_gbi.py (FScrollData)
@@ -353,7 +352,6 @@ def removeTexScrollHeadersGroup(exportDir, includeC, includeH, groupName, scroll
 			functionCalls = functionCalls.replace(scrollFunction, '')
 			groupDataC = groupDataC[:matchResult.start(1)] + functionCalls + \
 				groupDataC[matchResult.end(1):]
-			print(groupDataC)
 
 		if originalGroupDataC != groupDataC:
 			groupFileC = open(groupPathC, 'w', newline = '\n')
@@ -362,7 +360,6 @@ def removeTexScrollHeadersGroup(exportDir, includeC, includeH, groupName, scroll
 
 
 def modifyTexScrollFiles(exportDir, assetDir, header, data, hasScrolling):
-	print("MODIFY " + header)
 	if not bpy.context.scene.disableScroll and hasScrolling:
 		writeTexScrollFiles(exportDir, assetDir, header, data)
 	else:
