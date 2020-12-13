@@ -214,7 +214,7 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix,
 		name)
 	appendRevertToGeolayout(geolayoutGraph, fModel)
 	geolayoutGraph.generateSortedList()
-	if DLFormat == 'SM64 Function Node':
+	if DLFormat == DLFormat.SM64_Function:
 		geolayoutGraph.convertToDynamic()
 	return geolayoutGraph, fModel
 
@@ -266,7 +266,7 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 
 	appendRevertToGeolayout(geolayoutGraph, fModel)
 	geolayoutGraph.generateSortedList()
-	if DLFormat == "SM64 Function Node":
+	if DLFormat == DLFormat.SM64_Function:
 		geolayoutGraph.convertToDynamic()
 	return geolayoutGraph, fModel
 
@@ -352,7 +352,7 @@ def saveGeolayoutC(geoName, dirName, geolayoutGraph, fModel, exportDir, texDir, 
 	
 	modifyTexScrollFiles(exportDir, geoDirPath, cDefineScroll, scroll_data, hasScrolling)
 	
-	if DLFormat == "Static":
+	if DLFormat == DLFormat.Static:
 		static_data += '\n' + dynamic_data
 		cDefineStatic = geolayoutGraph.to_c_def() + cDefineStatic + cDefineDynamic
 	else:
@@ -467,7 +467,7 @@ def saveGeolayoutC(geoName, dirName, geolayoutGraph, fModel, exportDir, texDir, 
 		modifyTexScrollHeadersGroup(exportDir, texscrollIncludeC, texscrollIncludeH, 
 			texscrollGroup, cDefineScroll, texscrollGroupInclude, hasScrolling)
 		
-		if DLFormat != "Static": # Change this
+		if DLFormat != DLFormat.Static: # Change this
 			writeMaterialHeaders(exportDir, matCInclude, matHInclude)
 
 	if savePNG:
@@ -478,19 +478,18 @@ def saveGeolayoutC(geoName, dirName, geolayoutGraph, fModel, exportDir, texDir, 
 	
 	return cDefineStatic
 
-
 # Insertable Binary
 def exportGeolayoutArmatureInsertableBinary(armatureObj, obj,
 	convertTransformMatrix, f3dType, isHWv1, filepath, camera):
 	geolayoutGraph, fModel = convertArmatureToGeolayout(armatureObj, obj,
-		convertTransformMatrix, f3dType, isHWv1, camera, armatureObj.name, "Static", True)
+		convertTransformMatrix, f3dType, isHWv1, camera, armatureObj.name, DLFormat.Static, True)
 	
 	saveGeolayoutInsertableBinary(geolayoutGraph, fModel, filepath, f3dType)
 
 def exportGeolayoutObjectInsertableBinary(obj, convertTransformMatrix, 
 	f3dType, isHWv1, filepath, camera):
 	geolayoutGraph, fModel = convertObjectToGeolayout(obj, 
-		convertTransformMatrix, f3dType, isHWv1, camera, obj.name, None, None, "Static", True)
+		convertTransformMatrix, f3dType, isHWv1, camera, obj.name, None, None, DLFormat.Static, True)
 	
 	saveGeolayoutInsertableBinary(geolayoutGraph, fModel, filepath, f3dType)
 
@@ -504,14 +503,13 @@ def saveGeolayoutInsertableBinary(geolayoutGraph, fModel, filepath, f3d):
 	writeInsertableFile(filepath, insertableBinaryTypes['Geolayout'],
 		address_ptrs, geolayoutGraph.startGeolayout.startAddress, data)
 
-
 # Binary Bank 0 Export
 def exportGeolayoutArmatureBinaryBank0(romfile, armatureObj, obj, exportRange,	
  	convertTransformMatrix, levelCommandPos, modelID, textDumpFilePath, 
 	f3dType, isHWv1, RAMAddr, camera):
 	
 	geolayoutGraph, fModel = convertArmatureToGeolayout(armatureObj, obj,
-		convertTransformMatrix, f3dType, isHWv1, camera, armatureObj.name, "Static", True)
+		convertTransformMatrix, f3dType, isHWv1, camera, armatureObj.name, DLFormat.Static, True)
 	
 	return saveGeolayoutBinaryBank0(romfile, fModel, geolayoutGraph,
 		exportRange, levelCommandPos, modelID, textDumpFilePath, RAMAddr)
@@ -521,7 +519,7 @@ def exportGeolayoutObjectBinaryBank0(romfile, obj, exportRange,
 	f3dType, isHWv1, RAMAddr, camera):
 	
 	geolayoutGraph, fModel = convertObjectToGeolayout(obj, 
-		convertTransformMatrix, f3dType, isHWv1, camera, obj.name, None, None, "Static", True)
+		convertTransformMatrix, f3dType, isHWv1, camera, obj.name, None, None, DLFormat.Static, True)
 	
 	return saveGeolayoutBinaryBank0(romfile, fModel, geolayoutGraph,
 		exportRange, levelCommandPos, modelID, textDumpFilePath, RAMAddr)
@@ -565,14 +563,13 @@ def getBinaryBank0GeolayoutData(fModel, geolayoutGraph, RAMAddr, exportRange):
 	bytesIO.close()
 	return data, startRAM
 	
-
 # Binary Export
 def exportGeolayoutArmatureBinary(romfile, armatureObj, obj, exportRange,	
  	convertTransformMatrix, levelData, levelCommandPos, modelID,
 	textDumpFilePath, f3dType, isHWv1, camera):
 
 	geolayoutGraph, fModel = convertArmatureToGeolayout(armatureObj, obj,
-		convertTransformMatrix, f3dType, isHWv1, camera, armatureObj.name, "Static", True)
+		convertTransformMatrix, f3dType, isHWv1, camera, armatureObj.name, DLFormat.Static, True)
 
 	return saveGeolayoutBinary(romfile, geolayoutGraph, fModel, exportRange,	
  		levelData, levelCommandPos, modelID, textDumpFilePath)
@@ -582,7 +579,7 @@ def exportGeolayoutObjectBinary(romfile, obj, exportRange,
 	textDumpFilePath, f3dType, isHWv1, camera):
 	
 	geolayoutGraph, fModel = convertObjectToGeolayout(obj, 
-		convertTransformMatrix, f3dType, isHWv1, camera, obj.name, None, None, "Static", True)
+		convertTransformMatrix, f3dType, isHWv1, camera, obj.name, None, None, DLFormat.Static, True)
 	
 	return saveGeolayoutBinary(romfile, geolayoutGraph, fModel, exportRange,	
  		levelData, levelCommandPos, modelID, textDumpFilePath)
@@ -610,7 +607,6 @@ def saveGeolayoutBinary(romfile, geolayoutGraph, fModel, exportRange,
 	geoWriteTextDump(textDumpFilePath, geolayoutGraph, levelData)
 	
 	return (startAddress, addrRange[1]), bytesToHex(segPointerData)
-
 
 def geoWriteLevelCommand(romfile, segPointerData, levelCommandPos, modelID):
 	if levelCommandPos is not None and modelID is not None:
@@ -1515,7 +1511,6 @@ def getAncestorGroups(parentGroup, vertexGroup, armatureObj, obj):
     #print([bone.name for bone in ancestorBones])
     return [getGroupIndexFromname(obj, bone.name) for bone in armatureObj.data.bones if bone not in ancestorBones]
 
-
 def checkUniqueBoneNames(fModel, name, vertexGroup):
 	if name in fModel.meshGroups:
 		raise PluginError(vertexGroup + " has already been processed. Make " +\
@@ -1920,7 +1915,7 @@ class SM64_ExportGeolayoutObject(bpy.types.Operator):
 					bpy.context.scene.geoSeparateTextureDef,
 					None, bpy.context.scene.geoGroupName, 
 					context.scene.geoExportHeaderType,
-					context.scene.geoName, context.scene.geoStructName, levelName, context.scene.geoCustomExport, "Static")
+					context.scene.geoName, context.scene.geoStructName, levelName, context.scene.geoCustomExport, DLFormat.Static)
 				self.report({'INFO'}, 'Success!')
 			elif context.scene.geoExportType == 'Insertable Binary':
 				exportGeolayoutObjectInsertableBinary(obj,
@@ -2100,7 +2095,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 					bpy.context.scene.geoSaveTextures or bpy.context.scene.ignoreTextureRestrictions,
 					bpy.context.scene.geoSeparateTextureDef,
 					None, bpy.context.scene.geoGroupName, context.scene.geoExportHeaderType,
-					context.scene.geoName, context.scene.geoStructName, levelName, context.scene.geoCustomExport, "Static")
+					context.scene.geoName, context.scene.geoStructName, levelName, context.scene.geoCustomExport, DLFormat.Static)
 				self.report({'INFO'}, 'Success!')
 			elif context.scene.geoExportType == 'Insertable Binary':
 				exportGeolayoutArmatureInsertableBinary(armatureObj, obj,

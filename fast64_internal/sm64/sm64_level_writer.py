@@ -608,7 +608,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 	modifyTexScrollFiles(exportDir, levelDir, headerScroll, scroll_data, hasScrolling)
 
 	# Write materials
-	if DLFormat == "Static":
+	if DLFormat == DLFormat.Static:
 		static_data += dynamic_data
 		headerStatic += headerDynamic
 	else:
@@ -655,7 +655,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 		cameraFile.close()
 
 	if not customExport:
-		if DLFormat != 'Static':
+		if DLFormat != DLFormat.Static:
 			# Write material headers
 			writeMaterialHeaders(exportDir,  
 				'#include "levels/' + levelName + '/material.inc.c"',
@@ -826,14 +826,14 @@ class SM64_ExportLevel(bpy.types.Operator):
 			#cProfile.runctx('exportLevelC(obj, finalTransform,' +\
 			#	'context.scene.f3d_type, context.scene.isHWv1, levelName, exportPath,' +\
 			#	'context.scene.levelSaveTextures or bpy.context.scene.ignoreTextureRestrictions,' +\
-			#	'context.scene.levelCustomExport, triggerName, "Static")',
+			#	'context.scene.levelCustomExport, triggerName, DLFormat.Static)',
 			#	globals(), locals(), "E:/blender.prof")
 			#p = pstats.Stats("E:/blender.prof")
 			#p.sort_stats("cumulative").print_stats(2000)
 			exportLevelC(obj, finalTransform,
 				context.scene.f3d_type, context.scene.isHWv1, levelName, exportPath, 
 				context.scene.levelSaveTextures or bpy.context.scene.ignoreTextureRestrictions, 
-				context.scene.levelCustomExport, triggerName, "Static")
+				context.scene.levelCustomExport, triggerName, DLFormat.Static)
 			self.report({'INFO'}, 'Success!')
 
 			applyRotation([obj], math.radians(-90), 'X')

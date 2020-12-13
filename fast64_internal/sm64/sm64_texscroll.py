@@ -2,7 +2,7 @@ import os, re
 from ..utility import *
 
 # This is for writing framework for scroll code.
-# Actual scroll code found in f3d_gbi.py (FScrollData)
+# Actual scroll code found in f3d_gbi.py (FVertexScrollData)
 
 def readSegmentInfo(baseDir):
 	ldPath = os.path.join(baseDir, 'sm64.ld')

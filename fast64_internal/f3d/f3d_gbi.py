@@ -1,7 +1,22 @@
 # Macros are all copied over from gbi.h
-import bpy, os, copy
+import bpy, os, copy, enum
 from math import ceil
 from ..utility import *
+
+class ScrollMethod(enum.Enum):
+	Vertex = 1
+	Tile = 2
+
+class DLFormat(enum.Enum):
+	Static = 1
+	Dynamic = 2
+	SM64_Function = 3
+
+class AnimType(enum.Enum):
+	Nothing = 1
+	Linear = 2
+	Sine = 3
+	Noise = 4
 
 dlTypeEnum = [
 	('STATIC', "Static", "Static"),
@@ -1453,7 +1468,7 @@ class GfxList:
 	def size_total(self,f3d):
 		size = 0
 		for command in self.commands:
-			if isinstance(command, SPDisplayList) and command.displayList.DLFormat != "Static":
+			if isinstance(command, SPDisplayList) and command.displayList.DLFormat != DLFormat.Static:
 				size += command.displayList.size_total(f3d)
 			else:
 				size += command.size(f3d)
@@ -1477,14 +1492,14 @@ class GfxList:
 		return data
 	
 	def to_c(self, f3d):
-		if self.DLFormat == "Static":
+		if self.DLFormat == DLFormat.Static:
 			data = 'Gfx ' + self.name + '[] = {\n'
 			for command in self.commands:
 				data += '\t' + command.to_c(True) + ',\n'
 			data += '};'	
-		elif self.DLFormat == 'SM64 Function Node':
+		elif self.DLFormat == DLFormat.SM64_Function:
 			return self.to_c_sm64_func_node(f3d)
-		elif self.DLFormat == 'Dynamic':
+		elif self.DLFormat == DLFormat.Dynamic:
 			data = 'Gfx* ' + self.name + '(Gfx* glistp) {\n'
 			for command in self.commands:
 				data += '\t' + command.to_c(False) + ';\n'
@@ -1512,11 +1527,11 @@ class GfxList:
 
 
 	def to_c_def(self):
-		if self.DLFormat == "Static":
+		if self.DLFormat == DLFormat.Static:
 			return 'extern Gfx ' + self.name + '[];\n'
-		elif self.DLFormat == 'SM64 Function Node':
+		elif self.DLFormat == DLFormat.SM64_Function:
 			return 'Gfx* ' + self.name + '(s32 renderContext, struct GraphNode* node, struct AllocOnlyPool *a2);\n'
-		elif self.DLFormat == "Dynamic":
+		elif self.DLFormat == DLFormat.Dynamic:
 			return 'Gfx* ' + self.name + '(Gfx* glistp);\n'
 		else:
 			raise PluginError("Invalid GfxList format: " + str(self.DLFormat))	
@@ -1531,7 +1546,7 @@ class FTexRect:
 	def __init__(self, f3dType, isHWv1, name):
 		self.name = name # used for texture prefixing
 		self.textures = {} # only one, but use dict for compatibility
-		self.draw = GfxList(name, "Dynamic")
+		self.draw = GfxList(name, DLFormat.Dynamic)
 		# F3D library
 		self.f3d = F3D(f3dType, isHWv1)
 
@@ -1676,7 +1691,6 @@ class FGlobalData:
 			return None
 		else:
 			return self.area_data[self.current_area_index].makeKey()
-
 
 class FModel:
 	def __init__(self, f3dType, isHWv1, name, DLFormat):
@@ -1907,7 +1921,7 @@ class FModel:
 		static_data = ''
 		dynamic_data = ''
 		scroll_data = ''
-		if self.DLFormat != 'Static':
+		if self.DLFormat != DLFormat.Static:
 			for name, light in self.lights.items():
 				static_data += light.to_c_def() + '\n'
 			for materialKey, (fMaterial, texDimensions) in self.materials.items():
@@ -2066,7 +2080,7 @@ class FMesh:
 		dynamic_data = self.draw.to_c_def()
 		static_data = ''
 		scroll_data = ''
-		if self.DLFormat != "Static":
+		if self.DLFormat != DLFormat.Static:
 			if self.cullVertexList is not None:
 				static_data += self.cullVertexList.to_c_def()
 		for triGroup in self.triangleGroups:
@@ -2081,7 +2095,7 @@ class FTriGroup:
 	def __init__(self, name, index, fMaterial):
 		self.fMaterial = fMaterial
 		self.vertexList = VtxList(name + '_vtx_' + str(index))
-		self.triList = GfxList(name + '_tri_' + str(index), "Static")
+		self.triList = GfxList(name + '_tri_' + str(index), DLFormat.Static)
 	
 	def get_ptr_addresses(self, f3d):
 		return self.triList.get_ptr_addresses(f3d)
@@ -2115,7 +2129,7 @@ class FTriGroup:
 
 class FScrollDataField:
 	def __init__(self):
-		self.animType = "None"
+		self.animType = AnimType.Nothing
 		self.speed = 0
 
 		self.amplitude = 0
@@ -2124,41 +2138,78 @@ class FScrollDataField:
 
 		self.noiseAmplitude = 0
 
-'''
-static void shift_u(Vtx *vert) {
-    int i = 0;
-	int count = 10;
-	int width = (int)(10 * 32);
-	int height = (int)(10 * 32);
-	int speedX = 0;
-	int speedY = 0;
-
-	float currentX;
-	float currentY;
+class FVertexScrollData:
+	def __init__(self):
+		self.fields = (
+			FScrollDataField(),
+			FScrollDataField(),
+			FScrollDataField(),
+		)
+		self.dimensions = [0, 0]
 	
-    Vtx *vertices = segmented_to_virtual(vert);
-	currentX = verts[0].n.flag * absi(speedX);
-	currentY = verts[1].n.flag * absi(speedY);
+	def to_c(self, name, count):
+		if self.fields[0].animType == AnimType.Nothing and\
+			self.fields[1].animType == AnimType.Nothing:
+			return ''
 
-	if (currentX > width) {
-		speedX -= width * signum_positive(speed);
-		verts[0].n.flag = 0;
-	}
-	if (currentY > height) {
-		speedY -= width * signum_positive(speed);
-		verts[1].n.flag = 0;
-	}
+		data = 'void scroll_' + name + "() {\n" +\
+			"\tint i = 0;\n" +\
+			"\tint count = " + str(count) + ';\n' +\
+			"\tint width = " + str(self.dimensions[0]) + ' * 0x20;\n' +\
+			"\tint height = " + str(self.dimensions[1]) + ' * 0x20;'
+		
+		variables = ""
+		currentVars = ""
+		deltaCalculate = ""
+		checkOverflow = ""
+		scrolling = ""
+		increaseCurrentDelta = ""
+		for i in range(2):
+			field = 'XYZ'[i]
+			axis = ['width', 'height'][i]
+			if self.fields[i].animType != AnimType.Nothing:
+				currentVars += "\tstatic int current" + field + ' = 0;\n\tint delta' + field + ';\n'
+				checkOverflow += '\tif (absi(current' + field + ') > ' + axis + ') {\n' +\
+					'\t\tdelta' + field + ' -= (int)(absi(current' + field + ') / ' +  axis + ') * ' + axis +\
+					' * signum_positive(delta' + field + ');\n\t}\n'
+				scrolling += '\t\tvertices[i].n.tc[' + str(i) + '] += delta' + field + ';\n'
+				increaseCurrentDelta += '\tcurrent' + field + ' += delta' + field + ';\n'
 
-    for (i = 0; i < vertcount; i++) {
-        verts[i].n.tc[0] += speedX;
-		verts[i].n.tc[1] += speedY;
-    }
-    
-	verts[0].n.flag++;
-	verts[1].n.flag++;
-'''
+				if self.fields[i].animType == AnimType.Linear:
+					deltaCalculate += '\tdelta' + field + ' = (int)(' + str(self.fields[i].speed) + ' * 0x20) % ' + axis + ';\n'
+				elif self.fields[i].animType == AnimType.Sine:
+					currentVars += '\tstatic int time' + field + ';\n' +\
+						'\tfloat amplitude' + field + ' = ' + str(self.fields[i].amplitude) + ';\n' +\
+						'\tfloat frequency' + field + ' = ' + str(self.fields[i].frequency) + ';\n' +\
+						'\tfloat offset' + field + ' = ' + str(self.fields[i].offset) + ';\n'
 
-class FScrollData:
+					deltaCalculate += '\tdelta' + field + ' = (int)(amplitude' + field + ' * frequency' +\
+						field + ' * coss((frequency' + field + ' * time' + field + ' + offset' + field + \
+						') * (1024 * 16 - 1) / 6.28318530718) * 0x20);\n'
+					# Conversion from s10.5 to u16
+					#checkOverflow += '\tif (frequency' + field + ' * current' + field + ' / 2 > 6.28318530718) {\n' +\
+					#	'\t\tcurrent' + field + ' -= 6.28318530718 * 2 / frequency' + field + ';\n\t}\n'
+					increaseCurrentDelta += '\ttime' + field + ' += 1;\n'
+				elif self.fields[i].animType == AnimType.Noise:
+					deltaCalculate += '\tdelta' + field + ' = (int)(' + str(self.fields[i].noiseAmplitude) + ' * 0x20 * ' +\
+						'random_float() * random_sign()) % ' + axis + ';\n'
+
+				
+	
+		return data + '\n' + variables + '\n' + currentVars +\
+			'\tVtx *vertices = segmented_to_virtual(' + name + ');\n\n' +\
+			deltaCalculate + '\n' + checkOverflow + '\n' +\
+			"\tfor (i = 0; i < count; i++) {\n" +\
+			scrolling + '\t}\n' + increaseCurrentDelta + '\n}\n'
+
+	def to_c_def(self, name):
+		if (self.fields[0].animType == AnimType.Nothing) and\
+			(self.fields[1].animType == AnimType.Nothing):
+			return ''
+		
+		return 'extern void scroll_' + name + "();\n"
+
+class FTileScrollData:
 	def __init__(self):
 		self.fields = (
 			FScrollDataField(),
@@ -2168,79 +2219,13 @@ class FScrollData:
 		self.dimensions = [0, 0]
 		self.pivot = [0,0]
 		self.angularSpeed = 0
-	
-	def to_c(self, name, count):
-		if self.fields[0].animType == 'None' and\
-			self.fields[1].animType == 'None':
-			return ''
-
-		data = 'void scroll_' + name + "() {\n" +\
-			"\tint i = 0;\n" +\
-			"\tint count = " + str(count) + ';\n' +\
-			"\tint width = " + str(self.dimensions[0]) + ' * 0x20;\n' +\
-			"\tint height = " + str(self.dimensions[1]) + ' * 0x20;'
-		
-		if self.fields[0].animType == 'Rotation' or self.fields[1].animType == 'Rotation':
-			pass
-		else:
-			variables = ""
-			currentVars = ""
-			deltaCalculate = ""
-			checkOverflow = ""
-			scrolling = ""
-			increaseCurrentDelta = ""
-			for i in range(2):
-				field = 'XYZ'[i]
-				axis = ['width', 'height'][i]
-				if self.fields[i].animType != 'None':
-					currentVars += "\tstatic int current" + field + ' = 0;\n\tint delta' + field + ';\n'
-					checkOverflow += '\tif (absi(current' + field + ') > ' + axis + ') {\n' +\
-						'\t\tdelta' + field + ' -= (int)(absi(current' + field + ') / ' +  axis + ') * ' + axis +\
-						' * signum_positive(delta' + field + ');\n\t}\n'
-					scrolling += '\t\tvertices[i].n.tc[' + str(i) + '] += delta' + field + ';\n'
-					increaseCurrentDelta += '\tcurrent' + field + ' += delta' + field + ';\n'
-
-					if self.fields[i].animType == 'Linear':
-						deltaCalculate += '\tdelta' + field + ' = (int)(' + str(self.fields[i].speed) + ' * 0x20) % ' + axis + ';\n'
-					elif self.fields[i].animType == 'Sine':
-						currentVars += '\tstatic int time' + field + ';\n' +\
-							'\tfloat amplitude' + field + ' = ' + str(self.fields[i].amplitude) + ';\n' +\
-							'\tfloat frequency' + field + ' = ' + str(self.fields[i].frequency) + ';\n' +\
-							'\tfloat offset' + field + ' = ' + str(self.fields[i].offset) + ';\n'
-
-						deltaCalculate += '\tdelta' + field + ' = (int)(amplitude' + field + ' * frequency' +\
-							field + ' * coss((frequency' + field + ' * time' + field + ' + offset' + field + \
-							') * (1024 * 16 - 1) / 6.28318530718) * 0x20);\n'
-						# Conversion from s10.5 to u16
-						#checkOverflow += '\tif (frequency' + field + ' * current' + field + ' / 2 > 6.28318530718) {\n' +\
-						#	'\t\tcurrent' + field + ' -= 6.28318530718 * 2 / frequency' + field + ';\n\t}\n'
-						increaseCurrentDelta += '\ttime' + field + ' += 1;\n'
-					elif self.fields[i].animType == 'Noise':
-						deltaCalculate += '\tdelta' + field + ' = (int)(' + str(self.fields[i].noiseAmplitude) + ' * 0x20 * ' +\
-							'random_float() * random_sign()) % ' + axis + ';\n'
-
-					
-		
-			return data + '\n' + variables + '\n' + currentVars +\
-				'\tVtx *vertices = segmented_to_virtual(' + name + ');\n\n' +\
-				deltaCalculate + '\n' + checkOverflow + '\n' +\
-				"\tfor (i = 0; i < count; i++) {\n" +\
-				scrolling + '\t}\n' + increaseCurrentDelta + '\n}\n'
-
-	def to_c_def(self, name):
-		if (self.fields[0].animType == 'None') and\
-			(self.fields[1].animType == 'None'):
-			return ''
-		
-		return 'extern void scroll_' + name + "();\n"
-
 
 class FMaterial:
-	def __init__(self, name, DLFormat):
+	def __init__(self, name, DLFormat, scrollMethod):
 		self.material = GfxList('mat_' + name, DLFormat)
 		self.revert = GfxList('mat_revert_' + name, DLFormat)
 		self.DLFormat = DLFormat
-		self.scrollData = FScrollData()
+		self.scrollData = FVertexScrollData() if scrollMethod == ScrollMethod.Vertex else FTileScrollData()
 		self.usedImages = [] # array of (image, texFormat, paletteType) = imageKey
 
 	def getScrollData(self, material, dimensions):
@@ -2268,34 +2253,6 @@ class FMaterial:
 			if isinstance(command, DPSetRenderMode):
 				return True
 		return False
-
-	#def createOrGetDrawLayerSpecific(self, drawLayer):
-	#	if not self.sets_rendermode() or drawLayer == self.defaultDrawlayer:
-	#		return [self.material, self.revert]
-	#	elif drawLayer in self.drawLayerOverrides:
-	#		return self.drawLayerOverrides[drawLayer]
-	#	else:
-	#		overrideMat = []
-	#		for command in self.material.commands:
-	#			if isinstance(command, DPSetRenderMode):
-	#				overrideMat.append(DPSetRenderMode([
-	#					command.flagList[0] if not self.renderModeUseDrawLayer[0] \
-	#						else drawLayerRenderMode[drawLayer][0],
-	#					command.flagList[1] if not self.renderModeUseDrawLayer[1] \
-	#						else drawLayerRenderMode[drawLayer][1],
-	#				], []))
-	#				
-	#			overrideMat.append(copy.copy(command))
-	#		overrideRevert = []
-	#		for command in self.revert.commands:
-	#			if isinstance(command, DPSetRenderMode):
-	#				overrideRevert.append(DPSetRenderMode(drawLayerRenderMode[drawLayer], []))
-	#			else:
-	#				overrideRevert.append(copy.copy(command))
-	#			
-	#		
-	#		self.drawLayerOverrides[drawLayer] = [overrideMat, overrideRevert]
-	#		return self.drawLayerOverrides[drawLayer]
 
 	def get_ptr_addresses(self, f3d):
 		addresses = self.material.get_ptr_addresses(f3d)
@@ -2695,7 +2652,7 @@ class SPDisplayList:
 	def to_c(self, static = True):
 		if static:
 			return 'gsSPDisplayList(' + self.displayList.name + ')'
-		elif self.displayList.DLFormat == "Static":
+		elif self.displayList.DLFormat == DLFormat.Static:
 			header = 'gSPDisplayList(glistp++, '
 			if bpy.context.scene.decomp_compatible:
 				return header + 'segmented_to_virtual(' + self.displayList.name + '))'

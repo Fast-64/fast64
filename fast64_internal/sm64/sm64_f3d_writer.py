@@ -148,7 +148,7 @@ def exportTexRectCommon(texProp, f3dType, isHWv1, name, convertTextureData):
 		DPSetRenderMode(['G_RM_AA_XLU_SURF', 'G_RM_AA_XLU_SURF2'], None)
 	])
 
-	drawEndCommands = GfxList("temp", "Dynamic")
+	drawEndCommands = GfxList("temp", DLFormat.Dynamic)
 
 	texDimensions, nextTmem = saveTextureIndex(texProp.tex.name, fTexRect, 
 		fTexRect, fTexRect.draw, drawEndCommands, texProp, 0, 0, 'texture', convertTextureData)
@@ -199,7 +199,7 @@ def exportF3DtoC(basePath, obj, DLFormat, transformMatrix,
 	
 	modifyTexScrollFiles(basePath, modelDirPath, cDefineScroll, scroll_data, hasScrolling)
 	
-	if DLFormat == "Static":
+	if DLFormat == DLFormat.Static:
 		static_data += '\n' + dynamic_data
 		cDefineStatic += cDefineDynamic
 	else:
@@ -240,7 +240,7 @@ def exportF3DtoC(basePath, obj, DLFormat, transformMatrix,
 			writeIfNotFound(groupPathC, '\n#include "' + toAlnum(name) + '/model.inc.c"', '')
 			writeIfNotFound(groupPathH, '\n#include "' + toAlnum(name) + '/header.h"', '\n#endif')
 
-			if DLFormat != "Static": # Change this
+			if DLFormat != DLFormat.Static: # Change this
 				writeMaterialHeaders(basePath, 
 					'#include "actors/' + toAlnum(name) + '/material.inc.c"',
 					'#include "actors/' + toAlnum(name) + '/material.inc.h"')
@@ -259,7 +259,7 @@ def exportF3DtoC(basePath, obj, DLFormat, transformMatrix,
 			writeIfNotFound(groupPathH, '\n#include "levels/' + levelName + '/' + \
 				toAlnum(name) + '/header.h"', '\n#endif')
 
-			if DLFormat != "Static": # Change this
+			if DLFormat != DLFormat.Static: # Change this
 				writeMaterialHeaders(basePath,
 					'#include "levels/' + levelName + '/' + toAlnum(name) + '/material.inc.c"',
 					'#include "levels/' + levelName + '/' + toAlnum(name) + '/material.inc.h"')
@@ -278,7 +278,7 @@ def exportF3DtoC(basePath, obj, DLFormat, transformMatrix,
 def exportF3DtoBinary(romfile, exportRange, transformMatrix, 
 	obj, f3dType, isHWv1, segmentData, includeChildren):
 	fModel, fMeshGroup = exportF3DCommon(obj, f3dType, isHWv1, 
-		transformMatrix, includeChildren, obj.name, "Static", True)
+		transformMatrix, includeChildren, obj.name, DLFormat.Static, True)
 	fModel.freePalettes()
 
 	addrRange = fModel.set_addr(exportRange[0])
@@ -298,7 +298,7 @@ def exportF3DtoBinaryBank0(romfile, exportRange, transformMatrix,
 	obj, f3dType, isHWv1, RAMAddr, includeChildren):
 	fModel, fMeshGroup = \
 		exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren,
-			obj.name, "Static", True)
+			obj.name, DLFormat.Static, True)
 	segmentData = copy.copy(bank0Segment)
 
 	data, startRAM = getBinaryBank0F3DData(fModel, RAMAddr, exportRange)
@@ -320,7 +320,7 @@ def exportF3DtoInsertableBinary(filepath, transformMatrix,
 	obj, f3dType, isHWv1, includeChildren):
 	fModel, fMeshGroup = \
 		exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren,
-			obj.name, "Static", True)
+			obj.name, DLFormat.Static, True)
 	
 	data, startRAM = getBinaryBank0F3DData(fModel, 0, [0, 0xFFFFFF])
 	# must happen after getBinaryBank0F3DData
@@ -400,7 +400,7 @@ class SM64_ExportDL(bpy.types.Operator):
 				if not context.scene.DLCustomExport:
 					applyBasicTweaks(exportPath)
 				exportF3DtoC(exportPath, obj,
-					"Static" if context.scene.DLExportisStatic else "Dynamic", finalTransform,
+					DLFormat.Static if context.scene.DLExportisStatic else DLFormat.Dynamic, finalTransform,
 					context.scene.f3d_type, context.scene.isHWv1,
 					bpy.context.scene.DLTexDir,
 					bpy.context.scene.DLSaveTextures or bpy.context.scene.ignoreTextureRestrictions,

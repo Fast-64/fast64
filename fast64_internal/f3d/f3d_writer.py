@@ -194,7 +194,7 @@ def saveStaticModel(fModel, obj, transformMatrix, name, DLFormat, convertTexture
 	
 	if revertMatAtEnd:
 		revertMatAndEndDraw(fMeshGroup.mesh.draw, [])
-	elif fMeshGroup.mesh.draw.DLFormat != "Dynamic":
+	elif fMeshGroup.mesh.draw.DLFormat != DLFormat.Dynamic:
 		fMeshGroup.mesh.draw.commands.append(SPEndDisplayList())
 	return fMeshGroup
 
@@ -265,7 +265,7 @@ def revertMatAndEndDraw(gfxList, otherCommands):
 		SPTexture(0xFFFF, 0xFFFF, 0, 0, 0)] +\
 		otherCommands)
 
-	if gfxList.DLFormat != "Dynamic":
+	if gfxList.DLFormat != DLFormat.Dynamic:
 		gfxList.commands.append(SPEndDisplayList())
 
 def getCommonEdge(face1, face2, mesh):
@@ -812,7 +812,8 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 		if material.rdp_settings.set_rendermode and drawLayer is not None else '') +\
 		(('_area' + str(areaIndex)) if \
 			material.set_fog and material.use_global_fog and areaKey is not None else '')
-	fMaterial = FMaterial(materialName, "Static" if fModel.DLFormat == "Static" else "Dynamic")
+	fMaterial = FMaterial(materialName, DLFormat.Static if fModel.DLFormat == DLFormat.Static else \
+		DLFormat.Dynamic, ScrollMethod.Vertex)
 	fMaterial.material.commands.append(DPPipeSync())
 	fMaterial.revert.commands.append(DPPipeSync())
 	
@@ -997,12 +998,12 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 		
 	# End Display List
 	# For dynamic calls, materials will be called as functions and should not end the DL.
-	if fModel.DLFormat != 'SM64 Function Node':
+	if fModel.DLFormat != DLFormat.SM64_Function:
 		fMaterial.material.commands.append(SPEndDisplayList())
 
 	#revertMatAndEndDraw(fMaterial.revert)
 	if len(fMaterial.revert.commands) > 1: # 1 being the pipe sync
-		if fMaterial.DLFormat == 'Static':
+		if fMaterial.DLFormat == DLFormat.Static:
 			fMaterial.revert.commands.append(SPEndDisplayList())
 	else:
 		fMaterial.revert = None
