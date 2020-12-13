@@ -593,8 +593,12 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 			if not existingArea:
 				shutil.rmtree(os.path.join(levelDir, f))
 	
-	static_data, dynamic_data, texC, scroll_data = fModel.to_c(savePNG, savePNG, 'levels/' + levelName, levelName)
-	headerStatic, headerDynamic, headerScroll, hasScrolling = fModel.to_c_def(levelName)
+	gfxFormatter = SM64GfxFormatter()
+	static_data, dynamic_data, texC = fModel.to_c(savePNG, savePNG, 'levels/' + levelName, gfxFormatter)
+	scroll_data, hasScrolling = fModel.to_c_vertex_scroll(levelName, gfxFormatter)
+	headerStatic, headerDynamic = fModel.to_c_def(gfxFormatter)
+	headerScroll = fModel.to_c_vertex_scroll_def(levelName, gfxFormatter)
+
 	if savePNG:
 		levelDataString =  '#include "levels/' + levelName + '/texture_include.inc.c"\n' + levelDataString
 		fModel.save_textures(levelDir)

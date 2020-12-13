@@ -214,8 +214,8 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix,
 		name)
 	appendRevertToGeolayout(geolayoutGraph, fModel)
 	geolayoutGraph.generateSortedList()
-	if DLFormat == DLFormat.SM64_Function:
-		geolayoutGraph.convertToDynamic()
+	#if DLFormat == DLFormat.GameSpecific:
+	#	geolayoutGraph.convertToDynamic()
 	return geolayoutGraph, fModel
 
 # Camera is unused here
@@ -266,8 +266,8 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 
 	appendRevertToGeolayout(geolayoutGraph, fModel)
 	geolayoutGraph.generateSortedList()
-	if DLFormat == DLFormat.SM64_Function:
-		geolayoutGraph.convertToDynamic()
+	#if DLFormat == DLFormat.GameSpecific:
+	#	geolayoutGraph.convertToDynamic()
 	return geolayoutGraph, fModel
 
 # C Export
@@ -305,8 +305,12 @@ def saveGeolayoutC(geoName, dirName, geolayoutGraph, fModel, exportDir, texDir, 
 		scrollName = 'actor_geo_' + dirName
 	elif headerType == 'Level':
 		scrollName = levelName + '_level_geo_' + dirName
-	static_data, dynamic_data, texC, scroll_data = fModel.to_c(texSeparate, savePNG, texDir, scrollName)
-	cDefineStatic, cDefineDynamic, cDefineScroll, hasScrolling = fModel.to_c_def(scrollName)
+
+	gfxFormatter = SM64GfxFormatter()
+	static_data, dynamic_data, texC = fModel.to_c(texSeparate, savePNG, texDir, gfxFormatter)
+	scroll_data, hasScrolling = fModel.to_c_vertex_scroll(scrollName, gfxFormatter)
+	cDefineStatic, cDefineDynamic = fModel.to_c_def(gfxFormatter)
+	cDefineScroll = fModel.to_c_vertex_scroll_def(scrollName, gfxFormatter)
 	geolayoutGraph.startGeolayout.name = geoName
 
 	# Handle cases where geolayout name != folder name + _geo

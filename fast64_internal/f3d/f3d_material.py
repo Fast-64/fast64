@@ -3,7 +3,7 @@ from bpy.app.handlers import persistent
 from bpy.types import Node, NodeSocket, NodeSocketInterface, ShaderNode, ShaderNodeGroup, Panel
 from bpy.utils import register_class, unregister_class
 from nodeitems_utils import NodeCategory, NodeItem
-from .f3d_gbi import F3D
+from .f3d_gbi import F3D, enumTexScroll
 from .f3d_enums import *
 from .f3d_material_nodes import *
 from .f3d_material_settings import *
@@ -47,15 +47,6 @@ texFormatOf = {
 	'YUV16' : 'G_IM_FMT_YUV',
 	'RGBA32' : 'G_IM_FMT_RGBA',
 }
-
-enumTexScroll = [
-	("None", "None", "None"),
-	("Linear", "Linear", "Linear"),
-	("Sine", "Sine", "Sine"),
-	("Noise", "Noise", "Noise"),
-	#("Rotation", "Rotation", "Rotation"),
-]
-
 
 def getTmemWordUsage(texFormat, width, height):
 	texelsPerLine = 64 / bitSizeDict[texBitSizeOf[texFormat]]

@@ -20,6 +20,99 @@ enumHUDPaths = {
 	'Menu' : ('src/game/ingame_menu.c', 's16 render_menus_and_dialogs()'),
 }
 
+class SM64GfxFormatter(GameGfxFormatter):
+	def __init__(self):
+		self.functionNodeDraw = False
+		GameGfxFormatter.__init__(self)
+
+	def vertexScrollToC(self, fScrollData, name, count):
+		if fScrollData.fields[0].animType == "None" and\
+			fScrollData.fields[1].animType == "None":
+			return ''
+
+		data = 'void scroll_' + name + "() {\n" +\
+			"\tint i = 0;\n" +\
+			"\tint count = " + str(count) + ';\n' +\
+			"\tint width = " + str(fScrollData.dimensions[0]) + ' * 0x20;\n' +\
+			"\tint height = " + str(fScrollData.dimensions[1]) + ' * 0x20;'
+		
+		variables = ""
+		currentVars = ""
+		deltaCalculate = ""
+		checkOverflow = ""
+		scrolling = ""
+		increaseCurrentDelta = ""
+		for i in range(2):
+			field = 'XYZ'[i]
+			axis = ['width', 'height'][i]
+			if fScrollData.fields[i].animType != "None":
+				currentVars += "\tstatic int current" + field + ' = 0;\n\tint delta' + field + ';\n'
+				checkOverflow += '\tif (absi(current' + field + ') > ' + axis + ') {\n' +\
+					'\t\tdelta' + field + ' -= (int)(absi(current' + field + ') / ' +  axis + ') * ' + axis +\
+					' * signum_positive(delta' + field + ');\n\t}\n'
+				scrolling += '\t\tvertices[i].n.tc[' + str(i) + '] += delta' + field + ';\n'
+				increaseCurrentDelta += '\tcurrent' + field + ' += delta' + field + ';\n'
+
+				if fScrollData.fields[i].animType == "Linear":
+					deltaCalculate += '\tdelta' + field + ' = (int)(' + str(fScrollData.fields[i].speed) + ' * 0x20) % ' + axis + ';\n'
+				elif fScrollData.fields[i].animType == "Sine":
+					currentVars += '\tstatic int time' + field + ';\n' +\
+						'\tfloat amplitude' + field + ' = ' + str(fScrollData.fields[i].amplitude) + ';\n' +\
+						'\tfloat frequency' + field + ' = ' + str(fScrollData.fields[i].frequency) + ';\n' +\
+						'\tfloat offset' + field + ' = ' + str(fScrollData.fields[i].offset) + ';\n'
+
+					deltaCalculate += '\tdelta' + field + ' = (int)(amplitude' + field + ' * frequency' +\
+						field + ' * coss((frequency' + field + ' * time' + field + ' + offset' + field + \
+						') * (1024 * 16 - 1) / 6.28318530718) * 0x20);\n'
+					# Conversion from s10.5 to u16
+					#checkOverflow += '\tif (frequency' + field + ' * current' + field + ' / 2 > 6.28318530718) {\n' +\
+					#	'\t\tcurrent' + field + ' -= 6.28318530718 * 2 / frequency' + field + ';\n\t}\n'
+					increaseCurrentDelta += '\ttime' + field + ' += 1;\n'
+				elif fScrollData.fields[i].animType == "Noise":
+					deltaCalculate += '\tdelta' + field + ' = (int)(' + str(fScrollData.fields[i].noiseAmplitude) + ' * 0x20 * ' +\
+						'random_float() * random_sign()) % ' + axis + ';\n'
+				else:
+					raise PluginError("Unhandled scroll type: " + str(fScrollData.fields[i].animType))
+
+		return data + '\n' + variables + '\n' + currentVars +\
+			'\tVtx *vertices = segmented_to_virtual(' + name + ');\n\n' +\
+			deltaCalculate + '\n' + checkOverflow + '\n' +\
+			"\tfor (i = 0; i < count; i++) {\n" +\
+			scrolling + '\t}\n' + increaseCurrentDelta + '\n}\n'
+
+	def vertexScrollToCDef(self, fScrollData, name):
+		if (fScrollData.fields[0].animType == "None") and\
+			(fScrollData.fields[1].animType == "None"):
+			return ''
+		
+		return 'extern void scroll_' + name + "();\n"
+
+	def drawToC(self, f3d, gfxList):
+		if self.functionNodeDraw:
+			data = 'Gfx* ' + self.name + '(s32 renderContext, struct GraphNode* node, struct AllocOnlyPool *a2) {\n' +\
+				'\tGfx* startCmd = NULL;\n' +\
+				'\tGfx* glistp = NULL;\n' +\
+				'\tstruct GraphNodeGenerated *generatedNode;\n' +\
+				'\tif(renderContext == GEO_CONTEXT_RENDER) {\n' +\
+				'\t\tgeneratedNode = (struct GraphNodeGenerated *) node;\n' +\
+				'\t\tgeneratedNode->fnNode.node.flags = (generatedNode->fnNode.node.flags & 0xFF) | (generatedNode->parameter << 8);\n' +\
+				'\t\tstartCmd = glistp = alloc_display_list(sizeof(Gfx) * ' + \
+				str(int(round(self.size_total(f3d) / GFX_SIZE))) + ');\n' +\
+				'\t\tif(startCmd == NULL) return NULL;\n'
+
+			for command in self.commands:
+				data += '\t\t' + command.to_c(False) + ';\n'
+			data += '\t}\n\treturn startCmd;\n}'	
+			return data
+		else:
+			return gfxList.to_c(f3d)
+
+	def drawToCDef(self, gfxList):
+		if self.functionNodeDraw:
+			return 'Gfx* ' + self.name + '(s32 renderContext, struct GraphNode* node, struct AllocOnlyPool *a2);\n'
+		else:
+			return gfxList.to_c_def()
+
 def exportTexRectToC(dirPath, texProp, f3dType, isHWv1, texDir, 
 	savePNG, name, exportToProject, projectExportData):
 	fTexRect = exportTexRectCommon(texProp, f3dType, isHWv1, name, not savePNG)
@@ -193,10 +286,12 @@ def exportF3DtoC(basePath, obj, DLFormat, transformMatrix,
 	elif headerType == 'Level':
 		scrollName = levelName + '_level_dl_' + name
 
-	static_data, dynamic_data, texC, scroll_data = fModel.to_c(texSeparate, savePNG, texDir, scrollName)
-	cDefineStatic, cDefineDynamic, cDefineScroll, hasScrolling = fModel.to_c_def(scrollName)
+	gfxFormatter = SM64GfxFormatter()
+	static_data, dynamic_data, texC = fModel.to_c(texSeparate, savePNG, texDir, gfxFormatter)
+	scroll_data, hasScrolling = fModel.to_c_vertex_scroll(scrollName, gfxFormatter)
+	cDefineStatic, cDefineDynamic = fModel.to_c_def(gfxFormatter)
+	cDefineScroll = fModel.to_c_vertex_scroll_def(scrollName, gfxFormatter) 
 
-	
 	modifyTexScrollFiles(basePath, modelDirPath, cDefineScroll, scroll_data, hasScrolling)
 	
 	if DLFormat == DLFormat.Static:

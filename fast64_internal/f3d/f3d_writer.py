@@ -813,7 +813,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 		(('_area' + str(areaIndex)) if \
 			material.set_fog and material.use_global_fog and areaKey is not None else '')
 	fMaterial = FMaterial(materialName, DLFormat.Static if fModel.DLFormat == DLFormat.Static else \
-		DLFormat.Dynamic, ScrollMethod.Vertex)
+		DLFormat.Dynamic)
 	fMaterial.material.commands.append(DPPipeSync())
 	fMaterial.revert.commands.append(DPPipeSync())
 	
@@ -998,7 +998,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 		
 	# End Display List
 	# For dynamic calls, materials will be called as functions and should not end the DL.
-	if fModel.DLFormat != DLFormat.SM64_Function:
+	if fModel.DLFormat == DLFormat.Static:
 		fMaterial.material.commands.append(SPEndDisplayList())
 
 	#revertMatAndEndDraw(fMaterial.revert)
