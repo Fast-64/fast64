@@ -1825,23 +1825,6 @@ mat_classes = (
 	#F3DLightCollectionProperty,
 )
 
-global_time = 0
-def set_global_time():
-	global global_time
-	timestep = 0.033333
-	global_time = (global_time + timestep) % sys.maxsize
-	for material in bpy.data.materials:
-		if material.is_f3d:
-			nodes = material.node_tree.nodes
-			if 'Global Time' in nodes:
-				nodes['Global Time'].outputs[0].default_value =  \
-					global_time 
-	return timestep
-
-@persistent
-def loadTimer(param):
-	bpy.app.timers.register(set_global_time)
-
 def mat_register():
 	#bpy.app.handlers.load_post.append(loadTimer)
 	for cls in mat_classes:
@@ -1903,14 +1886,14 @@ def mat_register():
 
 	# Texture animation
 	bpy.types.Material.menu_procAnim = bpy.props.BoolProperty()
-	bpy.types.Material.positionAnim = bpy.props.PointerProperty(
-		type = ProcAnimVectorProperty)
-	bpy.types.Material.UVanim_tex0 = bpy.props.PointerProperty(
-		type = ProcAnimVectorProperty)
+	#bpy.types.Material.positionAnim = bpy.props.PointerProperty(
+	#	type = ProcAnimVectorProperty)
+	#bpy.types.Material.UVanim_tex0 = bpy.props.PointerProperty(
+	#	type = ProcAnimVectorProperty)
 	bpy.types.Material.UVanim_tex1 = bpy.props.PointerProperty(
 		type = ProcAnimVectorProperty)
-	bpy.types.Material.colorAnim = bpy.props.PointerProperty(
-		type = ProcAnimVectorProperty)
+	#bpy.types.Material.colorAnim = bpy.props.PointerProperty(
+	#	type = ProcAnimVectorProperty)
 
 	bpy.types.Material.UVanim = bpy.props.PointerProperty(
 		type = ProcAnimVectorProperty)

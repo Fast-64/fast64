@@ -151,7 +151,8 @@ def getCameraObj(camera):
 		' is no longer in the scene.')
 
 def appendRevertToGeolayout(geolayoutGraph, fModel):
-	fModel.materialRevert = GfxList(fModel.name + "_" + 'material_revert_render_settings', fModel.DLFormat)
+	fModel.materialRevert = GfxList(fModel.name + "_" + 'material_revert_render_settings', 
+		GfxListTag.MaterialRevert, fModel.DLFormat)
 	revertMatAndEndDraw(fModel.materialRevert, 
 		[DPSetEnvColor(0xFF, 0xFF, 0xFF, 0xFF),
 		DPSetAlphaCompare("G_AC_NONE")])
@@ -306,7 +307,7 @@ def saveGeolayoutC(geoName, dirName, geolayoutGraph, fModel, exportDir, texDir, 
 	elif headerType == 'Level':
 		scrollName = levelName + '_level_geo_' + dirName
 
-	gfxFormatter = SM64GfxFormatter()
+	gfxFormatter = SM64GfxFormatter(ScrollMethod.Vertex)
 	static_data, dynamic_data, texC = fModel.to_c(texSeparate, savePNG, texDir, gfxFormatter)
 	scroll_data, hasScrolling = fModel.to_c_vertex_scroll(scrollName, gfxFormatter)
 	cDefineStatic, cDefineDynamic = fModel.to_c_def(gfxFormatter)
@@ -1655,7 +1656,7 @@ def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, dr
 		overrideIndex = fMesh.drawMatOverrides[(material, specificMat, overrideType)].name[-1]
 	meshMatOverride = GfxList(
 		fMesh.name + '_mat_override_' + toAlnum(material.name) + \
-		'_' + overrideIndex, fModel.DLFormat)
+		'_' + overrideIndex, GfxListTag.Draw, fModel.DLFormat)
 	#print(fMesh.drawMatOverrides)
 	#print('fdddddddddddddddd ' + str(fMesh.name) + " " + str(material) + " " + str(specificMat) + " " + str(overrideType))
 	fMesh.drawMatOverrides[(material, specificMat, overrideType)] = meshMatOverride

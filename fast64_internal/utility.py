@@ -36,6 +36,9 @@ enumCompressionFormat = [
 	('yay0', 'YAY0', 'YAY0'),
 ]
 
+def getTabbedText(text, tabCount):
+	return text.replace('\n', '\n' + '\t' * tabCount)
+
 def extendedRAMLabel(layout):
 	return
 	infoBox = layout.box()

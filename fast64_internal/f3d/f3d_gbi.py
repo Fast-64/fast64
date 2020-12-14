@@ -6,10 +6,17 @@ from ..utility import *
 class ScrollMethod(enum.Enum):
 	Vertex = 1
 	Tile = 2
+	Ignore = 3
 
 class DLFormat(enum.Enum):
 	Static = 1
 	Dynamic = 2
+
+class GfxListTag(enum.Enum):
+	Geometry = 1
+	Material = 2
+	MaterialRevert = 3
+	Draw = 3
 
 enumTexScroll = [
 	("None", "None", "None"),
@@ -1332,32 +1339,87 @@ AMBIENT_SIZE = 8
 HILITE_SIZE = 16
 
 class GameGfxFormatter:
-	def __init__(self):
-		self.scrollMethod = ScrollMethod.Vertex
+	def __init__(self, scrollMethod):
+		self.scrollMethod = scrollMethod
+		
+	def vertexScrollTemplate(self, fScrollData, name, count, 
+		absFunc, signFunc, cosFunc, randomFloatFunc, randomSignFunc, segToVirtualFunc):
+		scrollDataFields = fScrollData.fields[0]
+		if scrollDataFields[0].animType == "None" and\
+			scrollDataFields[1].animType == "None":
+			return ''
 
-	def vertexScrollToC(self):
+		data = 'void scroll_' + name + "() {\n" +\
+			"\tint i = 0;\n" +\
+			"\tint count = " + str(count) + ';\n' +\
+			"\tint width = " + str(fScrollData.dimensions[0]) + ' * 0x20;\n' +\
+			"\tint height = " + str(fScrollData.dimensions[1]) + ' * 0x20;'
+		
+		variables = ""
+		currentVars = ""
+		deltaCalculate = ""
+		checkOverflow = ""
+		scrolling = ""
+		increaseCurrentDelta = ""
+		for i in range(2):
+			field = 'XYZ'[i]
+			axis = ['width', 'height'][i]
+			if scrollDataFields[i].animType != "None":
+				currentVars += "\tstatic int current" + field + ' = 0;\n\tint delta' + field + ';\n'
+				checkOverflow += '\tif (' + absFunc + '(current' + field + ') > ' + axis + ') {\n' +\
+					'\t\tdelta' + field + ' -= (int)(absi(current' + field + ') / ' +  axis + ') * ' + axis +\
+					' * ' + signFunc + '(delta' + field + ');\n\t}\n'
+				scrolling += '\t\tvertices[i].n.tc[' + str(i) + '] += delta' + field + ';\n'
+				increaseCurrentDelta += '\tcurrent' + field + ' += delta' + field + ';\n'
+
+				if scrollDataFields[i].animType == "Linear":
+					deltaCalculate += '\tdelta' + field + ' = (int)(' + str(scrollDataFields[i].speed) + ' * 0x20) % ' + axis + ';\n'
+				elif scrollDataFields[i].animType == "Sine":
+					currentVars += '\tstatic int time' + field + ';\n' +\
+						'\tfloat amplitude' + field + ' = ' + str(scrollDataFields[i].amplitude) + ';\n' +\
+						'\tfloat frequency' + field + ' = ' + str(scrollDataFields[i].frequency) + ';\n' +\
+						'\tfloat offset' + field + ' = ' + str(scrollDataFields[i].offset) + ';\n'
+
+					deltaCalculate += '\tdelta' + field + ' = (int)(amplitude' + field + ' * frequency' +\
+						field + ' * ' + cosFunc + '((frequency' + field + ' * time' + field + ' + offset' + field + \
+						') * (1024 * 16 - 1) / 6.28318530718) * 0x20);\n'
+					# Conversion from s10.5 to u16
+					#checkOverflow += '\tif (frequency' + field + ' * current' + field + ' / 2 > 6.28318530718) {\n' +\
+					#	'\t\tcurrent' + field + ' -= 6.28318530718 * 2 / frequency' + field + ';\n\t}\n'
+					increaseCurrentDelta += '\ttime' + field + ' += 1;\n'
+				elif scrollDataFields[i].animType == "Noise":
+					deltaCalculate += '\tdelta' + field + ' = (int)(' + str(scrollDataFields[i].noiseAmplitude) + ' * 0x20 * ' +\
+						randomFloatFunc + '() * ' + randomSignFunc + '()) % ' + axis + ';\n'
+				else:
+					raise PluginError("Unhandled scroll type: " + str(scrollDataFields[i].animType))
+
+		return data + '\n' + variables + '\n' + currentVars +\
+			'\tVtx *vertices = ' + segToVirtualFunc + '(' + name + ');\n\n' +\
+			deltaCalculate + '\n' + checkOverflow + '\n' +\
+			"\tfor (i = 0; i < count; i++) {\n" +\
+			scrolling + '\t}\n' + increaseCurrentDelta + '\n}\n'
+
+	# Called for handling vertex texture scrolling.
+	def vertexScrollToC(self, fScrollData, name, vertexCount):
 		raise PluginError("Use of unimplemented GameGfxFormatter function vertexScrollToC.")
 
-	def vertexScrollToCDef(self):
+	def vertexScrollToCDef(self, fScrollData, name):
 		raise PluginError("Use of unimplemented GameGfxFormatter function vertexScrollToCDef.")
 
+	# Called for building the entry point DL for drawing a model.
 	def drawToC(self, f3d, gfxList):
 		return gfxList.to_c(f3d)
 
 	def drawToCDef(self, gfxList):
 		return gfxList.to_c_def()
 
+	# Called for creating a dynamic material using tile texture scrolling.
+	# ScrollMethod and DLFormat checks are already handled.
 	def tileScrollMaterialToC(self, f3d, fMaterial):
-		if self.scrollMethod != ScrollMethod.Tile:
-			return fMaterial.to_c(f3d)
-		else:
-			raise PluginError("No tile scroll implementation specified.")
+		raise PluginError("No tile scroll implementation specified.")
 
 	def tileScrollMaterialToCDef(self, fMaterial):
-		if self.scrollMethod != ScrollMethod.Tile:
-			return fMaterial.to_c_def()
-		else:
-			raise PluginError("No tile scroll implementation specified.")
+		raise PluginError("No tile scroll implementation specified.")
 
 class Vtx:
 	def __init__(self, position, uv, colorOrNormal):
@@ -1467,10 +1529,11 @@ class VtxList:
 		return data
 
 class GfxList:
-	def __init__(self, name, DLFormat):
+	def __init__(self, name, tag, DLFormat):
 		self.commands = []
 		self.name = name
 		self.startAddress = 0
+		self.tag = tag
 		self.DLFormat = DLFormat
 	
 	def set_addr(self, startAddress, f3d):
@@ -1560,7 +1623,7 @@ class FTexRect:
 	def __init__(self, f3dType, isHWv1, name):
 		self.name = name # used for texture prefixing
 		self.textures = {} # only one, but use dict for compatibility
-		self.draw = GfxList(name, DLFormat.Dynamic)
+		self.draw = GfxList(name, GfxListTag.Draw, DLFormat.Dynamic)
 		# F3D library
 		self.f3d = F3D(f3dType, isHWv1)
 
@@ -1725,7 +1788,7 @@ class FModel:
 		self.subModels = []
 		self.parentModel = None
 		# master display list
-		self.masterDL = GfxList(name + '_main', DLFormat)
+		self.masterDL = GfxList(name + '_main', GfxListTag.Draw, DLFormat)
 		self.DLFormat = DLFormat
 		self.global_data = FGlobalData()
 
@@ -1879,7 +1942,12 @@ class FModel:
 	def to_c_materials(self, gfxFormatter):
 		data = ''
 		for materialKey, (fMaterial, texDimensions) in self.materials.items():
-			data += gfxFormatter.tileScrollMaterialToC(self.f3d, fMaterial) + '\n'
+			if gfxFormatter.scrollMethod == ScrollMethod.Tile:
+				if fMaterial.material.DLFormat == DLFormat.Static:
+					raise PluginError("Tile scrolling cannot be done with static DLs.")
+				data += gfxFormatter.tileScrollMaterialToC(self.f3d, fMaterial) + '\n'
+			else:
+				data += fMaterial.to_c(self.f3d) + '\n'
 		return data
 
 	def to_c_material_revert(self, gfxFormatter):
@@ -1940,7 +2008,12 @@ class FModel:
 			for name, light in self.lights.items():
 				static_data += light.to_c_def() + '\n'
 			for materialKey, (fMaterial, texDimensions) in self.materials.items():
-				dynamic_data += gfxFormatter.tileScrollMaterialToC(fMaterial)
+				if gfxFormatter.scrollMethod == ScrollMethod.Tile:
+					if fMaterial.material.DLFormat == DLFormat.Static:		
+						raise PluginError("Tile scrolling cannot be done with static DLs.")
+					dynamic_data += gfxFormatter.tileScrollMaterialToC(fMaterial)
+				else:
+					dynamic_data += fMaterial.to_c_def()
 			for info, texture in self.textures.items():
 				static_data += texture.to_c_def() + '\n'
 		for name, meshGroup in self.meshGroups.items():
@@ -2064,7 +2137,7 @@ class FMesh:
 	def __init__(self, name, DLFormat):
 		self.name = name
 		# GfxList
-		self.draw = GfxList(name, DLFormat)
+		self.draw = GfxList(name, GfxListTag.Draw, DLFormat)
 		# list of FTriGroup
 		self.triangleGroups	= []
 		# VtxList
@@ -2150,7 +2223,7 @@ class FTriGroup:
 	def __init__(self, name, index, fMaterial):
 		self.fMaterial = fMaterial
 		self.vertexList = VtxList(name + '_vtx_' + str(index))
-		self.triList = GfxList(name + '_tri_' + str(index), DLFormat.Static)
+		self.triList = GfxList(name + '_tri_' + str(index), GfxListTag.Geometry, DLFormat.Static)
 	
 	def get_ptr_addresses(self, f3d):
 		return self.triList.get_ptr_addresses(f3d)
@@ -2198,30 +2271,44 @@ class FScrollDataField:
 
 class FScrollData:
 	def __init__(self):
-		self.fields = (
-			FScrollDataField(),
-			FScrollDataField(),
-			FScrollDataField(),
-		)
+		self.fields = [
+			[FScrollDataField(),
+			FScrollDataField()],
+			
+			[FScrollDataField(),
+			FScrollDataField()]
+		]
 		self.dimensions = [0, 0]
 	
 class FMaterial:
 	def __init__(self, name, DLFormat):
-		self.material = GfxList('mat_' + name, DLFormat)
-		self.revert = GfxList('mat_revert_' + name, DLFormat)
+		self.material = GfxList('mat_' + name, GfxListTag.Material, DLFormat)
+		self.revert = GfxList('mat_revert_' + name, GfxListTag.MaterialRevert, DLFormat.Static)
 		self.DLFormat = DLFormat
 		self.scrollData = FScrollData()
+
+		# Used for keeping track of shared resources in FModel hierarchy
 		self.usedImages = [] # array of (image, texFormat, paletteType) = imageKey
 
+		# Used for tile scrolling
+		self.tileSizeCommands = {} # dict of {texIndex : DPSetTileSize}
+
 	def getScrollData(self, material, dimensions):
-		self.getScrollDataField(material, 0)
-		self.getScrollDataField(material, 1)
-		self.getScrollDataField(material, 2)
+		self.getScrollDataField(material, 0, 0)
+		self.getScrollDataField(material, 0, 1)
+		self.getScrollDataField(material, 1, 0)
+		self.getScrollDataField(material, 1, 1)
 		self.scrollData.dimensions = dimensions
 
-	def getScrollDataField(self, material, index):
-		field = getattr(material.UVanim, 'xyz'[index])
-		scrollField = self.scrollData.fields[index]
+	def getScrollDataField(self, material, texIndex, fieldIndex):
+		if texIndex == 0:
+			field = getattr(material.UVanim, 'xyz'[fieldIndex])
+		elif texIndex == 1:
+			field = getattr(material.UVanim_tex1, 'xyz'[fieldIndex])
+		else:
+			raise PluginError("Invalid texture index.")
+
+		scrollField = self.scrollData.fields[texIndex][fieldIndex]
 
 		scrollField.animType = field.animType
 		scrollField.speed = field.speed

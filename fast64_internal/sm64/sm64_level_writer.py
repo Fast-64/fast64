@@ -593,7 +593,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 			if not existingArea:
 				shutil.rmtree(os.path.join(levelDir, f))
 	
-	gfxFormatter = SM64GfxFormatter()
+	gfxFormatter = SM64GfxFormatter(ScrollMethod.Vertex)
 	static_data, dynamic_data, texC = fModel.to_c(savePNG, savePNG, 'levels/' + levelName, gfxFormatter)
 	scroll_data, hasScrolling = fModel.to_c_vertex_scroll(levelName, gfxFormatter)
 	headerStatic, headerDynamic = fModel.to_c_def(gfxFormatter)

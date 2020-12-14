@@ -194,8 +194,7 @@ def saveStaticModel(fModel, obj, transformMatrix, name, DLFormat, convertTexture
 	
 	if revertMatAtEnd:
 		revertMatAndEndDraw(fMeshGroup.mesh.draw, [])
-	elif fMeshGroup.mesh.draw.DLFormat != DLFormat.Dynamic:
-		fMeshGroup.mesh.draw.commands.append(SPEndDisplayList())
+	fMeshGroup.mesh.draw.commands.append(SPEndDisplayList())
 	return fMeshGroup
 
 def addCullCommand(obj, fMesh, transformMatrix):
@@ -812,8 +811,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 		if material.rdp_settings.set_rendermode and drawLayer is not None else '') +\
 		(('_area' + str(areaIndex)) if \
 			material.set_fog and material.use_global_fog and areaKey is not None else '')
-	fMaterial = FMaterial(materialName, DLFormat.Static if fModel.DLFormat == DLFormat.Static else \
-		DLFormat.Dynamic)
+	fMaterial = FMaterial(materialName, fModel.DLFormat)
 	fMaterial.material.commands.append(DPPipeSync())
 	fMaterial.revert.commands.append(DPPipeSync())
 	
@@ -1063,7 +1061,7 @@ def saveTextureIndex(propName, fModel, fMaterial, loadTexGfx, revertTexGfx, texP
 	else:
 		fImage = saveOrGetTextureDefinition(fModel, tex, texName, 
 			texFormat, convertTextureData)
-	saveTextureLoading(fImage, loadTexGfx, clamp_S,
+	saveTextureLoading(fMaterial, fImage, loadTexGfx, clamp_S,
 	 	mirror_S, clamp_T, mirror_T,
 		mask_S, mask_T, shift_S, 
 		shift_T, tex_SL, tex_TL, tex_SH, 
@@ -1073,13 +1071,14 @@ def saveTextureIndex(propName, fModel, fMaterial, loadTexGfx, revertTexGfx, texP
 	#	texFormatOf[texFormat], texBitSizeOf[texFormat])
 	#fModel.textures[texName] = fImage	
 
+	# hasattr check for FTexRect
 	if hasattr(fMaterial, 'usedImages'):
 		fMaterial.usedImages.append((tex, (texFormat, 'NONE')))
 
 	return texDimensions, nextTmem
 
 # texIndex: 0 for texture0, 1 for texture1
-def saveTextureLoading(fImage, loadTexGfx, clamp_S, mirror_S, clamp_T,
+def saveTextureLoading(fMaterial, fImage, loadTexGfx, clamp_S, mirror_S, clamp_T,
 	mirror_T, mask_S, mask_T, shift_S, shift_T,
 	SL, TL, SH, TH, tex_format, texIndex, f3d, tmem):
 	cms = [('G_TX_CLAMP' if clamp_S else 'G_TX_WRAP'),
@@ -1148,13 +1147,18 @@ def saveTextureLoading(fImage, loadTexGfx, clamp_S, mirror_S, clamp_T,
 			DPLoadSync(),
 			DPLoadTile(f3d.G_TX_LOADTILE - texIndex, sl, tl, sh, th),]) # added in
 	
+	tileSizeCommand = DPSetTileSize(f3d.G_TX_RENDERTILE + texIndex, sl, tl, sh, th)
 	loadTexGfx.commands.extend([
 		DPPipeSync(),
 		DPSetTile(fmt, siz, line, tmem,	\
 			f3d.G_TX_RENDERTILE + texIndex, pal, cmt, maskt, \
 			shiftt, cms, masks, shifts),
-		DPSetTileSize(f3d.G_TX_RENDERTILE + texIndex, sl, tl, sh, th)
+		tileSizeCommand,
 	]) # added in)
+
+	# hasattr check for FTexRect
+	if hasattr(fMaterial, 'tileSizeCommands'):
+		fMaterial.tileSizeCommands[f3d.G_TX_RENDERTILE + texIndex] = tileSizeCommand
 
 # palette stored in upper half of TMEM (words 256-511)
 # pal is palette number (0-16), for CI8 always set to 0

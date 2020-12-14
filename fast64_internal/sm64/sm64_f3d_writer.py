@@ -1,4 +1,4 @@
-import shutil
+import shutil, copy
 
 from ..f3d.f3d_writer import *
 from ..f3d.f3d_material import TextureProperty, tmemUsageUI
@@ -21,72 +21,23 @@ enumHUDPaths = {
 }
 
 class SM64GfxFormatter(GameGfxFormatter):
-	def __init__(self):
+	def __init__(self, scrollMethod):
 		self.functionNodeDraw = False
-		GameGfxFormatter.__init__(self)
+		GameGfxFormatter.__init__(self, scrollMethod)
 
 	def vertexScrollToC(self, fScrollData, name, count):
-		if fScrollData.fields[0].animType == "None" and\
-			fScrollData.fields[1].animType == "None":
-			return ''
-
-		data = 'void scroll_' + name + "() {\n" +\
-			"\tint i = 0;\n" +\
-			"\tint count = " + str(count) + ';\n' +\
-			"\tint width = " + str(fScrollData.dimensions[0]) + ' * 0x20;\n' +\
-			"\tint height = " + str(fScrollData.dimensions[1]) + ' * 0x20;'
-		
-		variables = ""
-		currentVars = ""
-		deltaCalculate = ""
-		checkOverflow = ""
-		scrolling = ""
-		increaseCurrentDelta = ""
-		for i in range(2):
-			field = 'XYZ'[i]
-			axis = ['width', 'height'][i]
-			if fScrollData.fields[i].animType != "None":
-				currentVars += "\tstatic int current" + field + ' = 0;\n\tint delta' + field + ';\n'
-				checkOverflow += '\tif (absi(current' + field + ') > ' + axis + ') {\n' +\
-					'\t\tdelta' + field + ' -= (int)(absi(current' + field + ') / ' +  axis + ') * ' + axis +\
-					' * signum_positive(delta' + field + ');\n\t}\n'
-				scrolling += '\t\tvertices[i].n.tc[' + str(i) + '] += delta' + field + ';\n'
-				increaseCurrentDelta += '\tcurrent' + field + ' += delta' + field + ';\n'
-
-				if fScrollData.fields[i].animType == "Linear":
-					deltaCalculate += '\tdelta' + field + ' = (int)(' + str(fScrollData.fields[i].speed) + ' * 0x20) % ' + axis + ';\n'
-				elif fScrollData.fields[i].animType == "Sine":
-					currentVars += '\tstatic int time' + field + ';\n' +\
-						'\tfloat amplitude' + field + ' = ' + str(fScrollData.fields[i].amplitude) + ';\n' +\
-						'\tfloat frequency' + field + ' = ' + str(fScrollData.fields[i].frequency) + ';\n' +\
-						'\tfloat offset' + field + ' = ' + str(fScrollData.fields[i].offset) + ';\n'
-
-					deltaCalculate += '\tdelta' + field + ' = (int)(amplitude' + field + ' * frequency' +\
-						field + ' * coss((frequency' + field + ' * time' + field + ' + offset' + field + \
-						') * (1024 * 16 - 1) / 6.28318530718) * 0x20);\n'
-					# Conversion from s10.5 to u16
-					#checkOverflow += '\tif (frequency' + field + ' * current' + field + ' / 2 > 6.28318530718) {\n' +\
-					#	'\t\tcurrent' + field + ' -= 6.28318530718 * 2 / frequency' + field + ';\n\t}\n'
-					increaseCurrentDelta += '\ttime' + field + ' += 1;\n'
-				elif fScrollData.fields[i].animType == "Noise":
-					deltaCalculate += '\tdelta' + field + ' = (int)(' + str(fScrollData.fields[i].noiseAmplitude) + ' * 0x20 * ' +\
-						'random_float() * random_sign()) % ' + axis + ';\n'
-				else:
-					raise PluginError("Unhandled scroll type: " + str(fScrollData.fields[i].animType))
-
-		return data + '\n' + variables + '\n' + currentVars +\
-			'\tVtx *vertices = segmented_to_virtual(' + name + ');\n\n' +\
-			deltaCalculate + '\n' + checkOverflow + '\n' +\
-			"\tfor (i = 0; i < count; i++) {\n" +\
-			scrolling + '\t}\n' + increaseCurrentDelta + '\n}\n'
+		return self.vertexScrollTemplate(fScrollData, name, count, 
+			'absi', 'signum_positive', 'coss', 'random_float', 'random_sign', 'segmented_to_virtual')
 
 	def vertexScrollToCDef(self, fScrollData, name):
-		if (fScrollData.fields[0].animType == "None") and\
-			(fScrollData.fields[1].animType == "None"):
+		scrollDataFields = fScrollData.fields[0]
+		if (scrollDataFields[0].animType == "None") and\
+			(scrollDataFields[1].animType == "None"):
 			return ''
 		
 		return 'extern void scroll_' + name + "();\n"
 
+	# This code is not functional, only used for an example
 	def drawToC(self, f3d, gfxList):
 		if self.functionNodeDraw:
 			data = 'Gfx* ' + self.name + '(s32 renderContext, struct GraphNode* node, struct AllocOnlyPool *a2) {\n' +\
@@ -101,7 +52,11 @@ class SM64GfxFormatter(GameGfxFormatter):
 				'\t\tif(startCmd == NULL) return NULL;\n'
 
 			for command in self.commands:
-				data += '\t\t' + command.to_c(False) + ';\n'
+				if isinstance(command, SPDisplayList) and command.displayList.tag == GfxListTag.Material:
+					data += '\t' + 'glistp = ' + command.displayList.name + '(glistp, gAreaUpdateCounter, gAreaUpdateCounter);\n'
+				else:
+					data += '\t' + command.to_c(False) + ';\n'
+
 			data += '\t}\n\treturn startCmd;\n}'	
 			return data
 		else:
@@ -112,6 +67,39 @@ class SM64GfxFormatter(GameGfxFormatter):
 			return 'Gfx* ' + self.name + '(s32 renderContext, struct GraphNode* node, struct AllocOnlyPool *a2);\n'
 		else:
 			return gfxList.to_c_def()
+
+	# This code is not functional, only used for an example
+	def tileScrollMaterialToC(self, f3d, fMaterial):
+		materialGfx = fMaterial.material
+		scrollDataFields = fMaterial.scrollData.fields
+
+		# Set tile scrolling
+		for texIndex in range(2): # for each texture
+			for axisIndex in range(2): # for each axis
+				scrollField = scrollDataFields[texIndex][axisIndex]
+				if scrollField.animType != "None":
+					if scrollField.animType == "Linear":
+						if axisIndex == 0:
+							fMaterial.tileSizeCommands[texIndex].uls = str(fMaterial.tileSizeCommands[0].uls) + \
+								" + s * " + str(scrollField.speed)
+						else:
+							fMaterial.tileSizeCommands[texIndex].ult = str(fMaterial.tileSizeCommands[0].ult) + \
+								" + s * " + str(scrollField.speed)
+
+		# Build commands
+		data = 'Gfx* ' + materialGfx.name + '(Gfx* glistp, int s, int t) {\n'
+		for command in materialGfx.commands:
+			data += '\t' + command.to_c(False) + ';\n'
+		data += '\treturn glistp;\n}' + '\n\n'
+
+		if fMaterial.revert is not None:
+			data += fMaterial.revert.to_c(f3d) + '\n\n'
+		return data
+
+	def tileScrollMaterialToCDef(self, fMaterial):
+		return 'Gfx* ' + fMaterial.material.name + '(Gfx* glistp, int s, int t);\n' +\
+			fMaterial.revert.to_c_def() + '\n\n'
+
 
 def exportTexRectToC(dirPath, texProp, f3dType, isHWv1, texDir, 
 	savePNG, name, exportToProject, projectExportData):
@@ -241,7 +229,7 @@ def exportTexRectCommon(texProp, f3dType, isHWv1, name, convertTextureData):
 		DPSetRenderMode(['G_RM_AA_XLU_SURF', 'G_RM_AA_XLU_SURF2'], None)
 	])
 
-	drawEndCommands = GfxList("temp", DLFormat.Dynamic)
+	drawEndCommands = GfxList("temp", GfxListTag.Draw, DLFormat.Dynamic)
 
 	texDimensions, nextTmem = saveTextureIndex(texProp.tex.name, fTexRect, 
 		fTexRect, fTexRect.draw, drawEndCommands, texProp, 0, 0, 'texture', convertTextureData)
@@ -286,7 +274,7 @@ def exportF3DtoC(basePath, obj, DLFormat, transformMatrix,
 	elif headerType == 'Level':
 		scrollName = levelName + '_level_dl_' + name
 
-	gfxFormatter = SM64GfxFormatter()
+	gfxFormatter = SM64GfxFormatter(ScrollMethod.Vertex)
 	static_data, dynamic_data, texC = fModel.to_c(texSeparate, savePNG, texDir, gfxFormatter)
 	scroll_data, hasScrolling = fModel.to_c_vertex_scroll(scrollName, gfxFormatter)
 	cDefineStatic, cDefineDynamic = fModel.to_c_def(gfxFormatter)
