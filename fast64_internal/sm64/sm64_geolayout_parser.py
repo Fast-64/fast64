@@ -1201,7 +1201,7 @@ class SM64_ImportGeolayoutPanel(bpy.types.Panel):
 	bl_label = "SM64 Geolayout Importer"
 	bl_space_type = 'VIEW_3D'
 	bl_region_type = 'UI'
-	bl_category = 'Fast64'
+	bl_category = 'SM64'
 
 	@classmethod
 	def poll(cls, context):

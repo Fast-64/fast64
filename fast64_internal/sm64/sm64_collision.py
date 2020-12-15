@@ -160,7 +160,7 @@ class SM64CollisionPanel(bpy.types.Panel):
 
 	@classmethod
 	def poll(cls, context):
-		return (context.material is not None)
+		return (context.scene.gameEditorMode == "SM64" and context.material is not None)
 	
 	def paramInfo(self, layout):
 		box = layout.box()
@@ -560,7 +560,7 @@ class SM64_ExportCollisionPanel(bpy.types.Panel):
 	bl_label = "SM64 Collision Exporter"
 	bl_space_type = 'VIEW_3D'
 	bl_region_type = 'UI'
-	bl_category = 'Fast64'
+	bl_category = 'SM64'
 
 	@classmethod
 	def poll(cls, context):

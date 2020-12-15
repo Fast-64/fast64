@@ -111,7 +111,7 @@ class SM64SplinePanel(bpy.types.Panel):
 
 	@classmethod
 	def poll(cls, context):
-		return (context.object is not None and \
+		return context.scene.gameEditorMode == "SM64" and (context.object is not None and \
 			type(context.object.data) == bpy.types.Curve)
 
 	def draw(self, context):

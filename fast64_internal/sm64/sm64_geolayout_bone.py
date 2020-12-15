@@ -148,9 +148,9 @@ class GeolayoutBonePanel(bpy.types.Panel):
 	bl_context = "bone"
 	bl_options = {'HIDE_HEADER'} 
 
-	#@classmethod
-	#def poll(cls, context):
-	#	return (context.bone is not None)
+	@classmethod
+	def poll(cls, context):
+		return context.scene.gameEditorMode == "SM64"
 
 	def draw(self, context):
 		drawGeoInfo(self, context.bone)
@@ -165,7 +165,7 @@ class GeolayoutArmaturePanel(bpy.types.Panel):
 
 	@classmethod
 	def poll(cls, context):
-		return context.object is not None and \
+		return context.scene.gameEditorMode == "SM64" and context.object is not None and \
 			isinstance(context.object.data, bpy.types.Armature)
 
 	def draw(self, context):
@@ -188,7 +188,7 @@ class GeolayoutObjectPanel(bpy.types.Panel):
 
 	@classmethod
 	def poll(cls, context):
-		return context.object is not None and \
+		return context.scene.gameEditorMode == "SM64" and context.object is not None and \
 			isinstance(context.object.data, bpy.types.Mesh)
 
 	def draw(self, context):

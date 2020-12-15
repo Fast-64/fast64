@@ -726,7 +726,7 @@ class SM64_ExportAnimPanel(bpy.types.Panel):
 	bl_label = "SM64 Animation Exporter"
 	bl_space_type = 'VIEW_3D'
 	bl_region_type = 'UI'
-	bl_category = 'Fast64'
+	bl_category = 'SM64'
 
 	@classmethod
 	def poll(cls, context):
@@ -847,7 +847,7 @@ class SM64_ImportAnimPanel(bpy.types.Panel):
 	bl_label = "SM64 Animation Importer"
 	bl_space_type = 'VIEW_3D'
 	bl_region_type = 'UI'
-	bl_category = 'Fast64'
+	bl_category = 'SM64'
 
 	@classmethod
 	def poll(cls, context):

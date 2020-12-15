@@ -70,7 +70,7 @@ class SM64_FileSettingsPanel(bpy.types.Panel):
 	bl_label = "SM64 File Settings"
 	bl_space_type = 'VIEW_3D'
 	bl_region_type = 'UI'
-	bl_category = 'Fast64'
+	bl_category = 'SM64'
 
 	@classmethod
 	def poll(cls, context):
@@ -80,7 +80,6 @@ class SM64_FileSettingsPanel(bpy.types.Panel):
 	def draw(self, context):
 		col = self.layout.column()	
 		prop_split(col, context.scene, 'blenderToSM64Scale', 'Blender To SM64 Scale')
-		col.prop(context.scene, 'fullTraceback')
 
 		col.prop(context.scene, 'importRom')
 		col.prop(context.scene, 'exportRom')
@@ -102,7 +101,7 @@ class SM64_AddressConvertPanel(bpy.types.Panel):
 	bl_label = "SM64 Address Converter"
 	bl_space_type = 'VIEW_3D'
 	bl_region_type = 'UI'
-	bl_category = 'Fast64'
+	bl_category = 'SM64'
 
 	@classmethod
 	def poll(cls, context):
@@ -122,11 +121,17 @@ class SM64_AddressConvertPanel(bpy.types.Panel):
 
 sm64_classes = (
 	SM64_AddrConv,
+)
+
+sm64_panel_classes = (
 	SM64_FileSettingsPanel,
 	SM64_AddressConvertPanel,
 )
 
 def sm64_panel_register():
+	for cls in sm64_panel_classes:
+		register_class(cls)
+
 	sm64_col_panel_register()
 	sm64_bone_panel_register()
 	sm64_cam_panel_register()
@@ -140,6 +145,9 @@ def sm64_panel_register():
 	sm64_anim_panel_register()
 
 def sm64_panel_unregister():
+	for cls in sm64_panel_classes:
+		unregister_class(cls)
+
 	sm64_col_panel_unregister()
 	sm64_bone_panel_unregister()
 	sm64_cam_panel_unregister()
@@ -191,6 +199,14 @@ def sm64_register(registerPanels):
 	bpy.types.Scene.disableScroll = bpy.props.BoolProperty(
 		name = 'Disable Scrolling Textures')
 
+	bpy.types.Scene.blenderToSM64Scale = bpy.props.FloatProperty(
+		name = 'Blender To SM64 Scale', default = 212.766)
+	bpy.types.Scene.decompPath = bpy.props.StringProperty(
+		name ='Decomp Folder', subtype = 'FILE_PATH')
+	
+	bpy.types.Scene.compressionFormat = bpy.props.EnumProperty(
+		items = enumCompressionFormat, name = 'Compression', default = 'mio0')
+
 def sm64_unregister(unregisterPanels):
 	for cls in reversed(sm64_classes):
 		unregister_class(cls)
@@ -220,3 +236,7 @@ def sm64_unregister(unregisterPanels):
 	del bpy.types.Scene.refreshVer
 
 	del bpy.types.Scene.disableScroll
+	
+	del bpy.types.Scene.blenderToSM64Scale
+	del bpy.types.Scene.decompPath
+	del bpy.types.Scene.compressionFormat

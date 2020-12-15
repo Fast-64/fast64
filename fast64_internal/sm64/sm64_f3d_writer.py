@@ -577,7 +577,7 @@ class SM64_ExportDLPanel(bpy.types.Panel):
 	bl_label = "SM64 DL Exporter"
 	bl_space_type = 'VIEW_3D'
 	bl_region_type = 'UI'
-	bl_category = 'Fast64'
+	bl_category = 'SM64'
 
 	@classmethod
 	def poll(cls, context):
@@ -695,7 +695,7 @@ class ExportTexRectDrawPanel(bpy.types.Panel):
 	bl_label = "SM64 UI Image Exporter"
 	bl_space_type = 'VIEW_3D'
 	bl_region_type = 'UI'
-	bl_category = 'Fast64'
+	bl_category = 'SM64'
 
 	@classmethod
 	def poll(cls, context):

@@ -1,4 +1,4 @@
-import bpy, random, string, os, math, traceback, re, os
+import bpy, random, string, os, math, traceback, re, os, mathutils
 from math import pi, ceil, degrees, radians
 from mathutils import *
 

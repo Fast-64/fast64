@@ -1,28 +1,14 @@
-from .sm64_constants import *
-from .sm64_objects import *
-from .sm64_collision import *
-from .sm64_geolayout_writer import *
-from .sm64_texscroll import *
+from .oot_constants import *
+from .oot_objects import *
+from .oot_collision import *
+from .oot_geolayout_writer import *
+from .oot_texscroll import *
 
 from ..utility import *
 
 from bpy.utils import register_class, unregister_class
 from io import BytesIO
 import bpy, bmesh, os, math, re, shutil
-
-levelDefineArgs = {
-	'internal name' : 0,
-	'level enum' : 1,
-	'course name' : 2,
-	'folder name' : 3,
-	'texture bin' : 4,
-	'acoustic reach' : 5,
-	'echo level 1' : 6,
-	'echo level 2' : 7,
-	'echo level 3' : 8,
-	'dynamic music' : 9,
-	'camera table' : 10,
-}
 
 def createGeoFile(levelName, filepath):
 	result = '#include <ultra64.h>\n' +\
@@ -68,60 +54,6 @@ def createHeaderFile(levelName, filepath):
 	headerFile = open(filepath, 'w', newline = '\n')
 	headerFile.write(result)
 	headerFile.close()
-
-class ZoomOutMasks:
-	def __init__(self, masks, originalData):
-		self.masks = masks
-		self.originalData = originalData
-	
-	def to_c(self):
-		result = ''
-		#result += 'u8 sZoomOutAreaMasks[] = {\n'
-		result += '\n'
-		result += macrosToString(self.masks, True)
-		#result += '};\n'
-		return result
-
-	def write(self, filepath):
-		matchResult = re.search('u8\s*sZoomOutAreaMasks\s*\[\]\s*=\s*\{' +\
-			'(((?!\}).)*)\}\s*;', self.originalData, re.DOTALL)
-	
-		if matchResult is None:
-			raise PluginError("Could not find sZoomOutAreaMasks in \"" + filepath + '".')
-		data = self.originalData[:matchResult.start(1)] + self.to_c() + self.originalData[matchResult.end(1):]
-
-		if data == self.originalData:
-			return
-			
-		maskFile = open(filepath, 'w', newline = '\n')
-		maskFile.write(data)
-		maskFile.close()
-
-	def updateMaskCount(self, levelCount):
-		if len(self.masks) - 1 < int(levelCount / 2):
-			while len(self.masks) - 1 < int(levelCount / 2):
-				self.masks.append(['ZOOMOUT_AREA_MASK', [
-					'0', '0', '0', '0', '0', '0', '0', '0',
-				], ''])
-		else:
-			self.masks = self.masks[:int(levelCount / 2) + 1]
-
-	def setMask(self, levelIndex, zoomFlags):
-		# sZoomOutAreaMasks has extra bits for one unused level at beginning
-		# Thus, we add one to index
-		index = int(levelIndex / 2)
-		if levelIndex % 2 == 1:
-			index += 1
-			isLow = True
-		else:
-			isLow = False
-		mask = self.masks[index]
-
-		base = 0 if isLow else 4
-		mask[1][0 + base] = '1' if zoomFlags[0] else '0'
-		mask[1][1 + base] = '1' if zoomFlags[1] else '0'
-		mask[1][2 + base] = '1' if zoomFlags[2] else '0'
-		mask[1][3 + base] = '1' if zoomFlags[3] else '0'
 
 class CourseDefines:
 	def __init__(self, headerInfo, courses, bonusCourses, originalData):
@@ -460,8 +392,8 @@ def parseLevelScript(filepath, levelName):
 		
 	return levelscript
 	
-def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
-	savePNG, customExport, levelCameraVolumeName, DLFormat):
+def ootExportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
+	savePNG, customExport, DLFormat):
 	
 	if customExport:
 		levelDir = os.path.join(exportDir, levelName)
@@ -785,26 +717,25 @@ def addHeaderC(levelName):
 	
 	return header
 	
-class SM64_ExportLevel(bpy.types.Operator):
+class OOT_ExportLevel(bpy.types.Operator):
 	# set bl_ properties
-	bl_idname = 'object.sm64_export_level'
+	bl_idname = 'object.oot_export_level'
 	bl_label = "Export Level"
 	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
 	def execute(self, context):
-		
 		try:
 			if context.mode != 'OBJECT':
 				raise PluginError("Operator can only be used in object mode.")
 			if len(context.selected_objects) == 0:
 				raise PluginError("Object not selected.")
 			obj = context.selected_objects[0]
-			if obj.data is not None or obj.sm64_obj_type != 'Level Root':
-				raise PluginError("The selected object is not an empty with the Level Root type.")
+			if obj.data is not None or obj.ootObjType != 'Scene Root':
+				raise PluginError("The selected object is not an empty with the Scene Root type.")
 
 			#obj = context.active_object
 
-			scaleValue = bpy.context.scene.blenderToSM64Scale
+			scaleValue = bpy.context.scene.ootBlenderScale
 			finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((
 				scaleValue, scaleValue, scaleValue))).to_4x4()
 		
@@ -813,31 +744,22 @@ class SM64_ExportLevel(bpy.types.Operator):
 			return {'CANCELLED'} # must return a set
 		try:
 			applyRotation([obj], math.radians(90), 'X')
-			if context.scene.levelCustomExport:
-				exportPath = bpy.path.abspath(context.scene.levelExportPath)
-				levelName = context.scene.levelName
-				triggerName = 'sCam' + context.scene.levelName.title().replace(' ', '').replace('_', '')
+			if context.scene.ootlLevelCustomExport:
+				exportPath = bpy.path.abspath(context.scene.ootLevelExportPath)
+				levelName = context.scene.ootLevelName
 			else:
-				exportPath = bpy.path.abspath(context.scene.decompPath)
-				if context.scene.levelOption == 'custom':
-					levelName = context.scene.levelName
-					triggerName = 'sCam' + context.scene.levelName.title().replace(' ', '').replace('_', '')
+				exportPath = bpy.path.abspath(context.scene.ootDecompPath)
+				if context.scene.ootLevelOption == 'custom':
+					levelName = context.scene.ootLevelName
 				else:
-					levelName = context.scene.levelOption
-					triggerName = cameraTriggerNames[context.scene.levelOption]
-			if not context.scene.levelCustomExport:
-				applyBasicTweaks(exportPath)
-			#cProfile.runctx('exportLevelC(obj, finalTransform,' +\
-			#	'context.scene.f3d_type, context.scene.isHWv1, levelName, exportPath,' +\
-			#	'context.scene.levelSaveTextures or bpy.context.scene.ignoreTextureRestrictions,' +\
-			#	'context.scene.levelCustomExport, triggerName, DLFormat.Static)',
-			#	globals(), locals(), "E:/blender.prof")
-			#p = pstats.Stats("E:/blender.prof")
-			#p.sort_stats("cumulative").print_stats(2000)
-			exportLevelC(obj, finalTransform,
+					levelName = context.scene.ootLevelOption
+			#if not context.scene.ootLevelCustomExport:
+			#	applyBasicTweaks(exportPath)
+			
+			ootExportLevel(obj, finalTransform,
 				context.scene.f3d_type, context.scene.isHWv1, levelName, exportPath, 
-				context.scene.levelSaveTextures or bpy.context.scene.ignoreTextureRestrictions, 
-				context.scene.levelCustomExport, triggerName, DLFormat.Static)
+				context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions, 
+				context.scene.ootLevelCustomExport, DLFormat.Dynamic)
 			self.report({'INFO'}, 'Success!')
 
 			applyRotation([obj], math.radians(-90), 'X')
@@ -849,19 +771,18 @@ class SM64_ExportLevel(bpy.types.Operator):
 				bpy.ops.object.mode_set(mode = 'OBJECT')
 
 			applyRotation([obj], math.radians(-90), 'X')
-			#applyRotation(obj.children, math.radians(0), 'X')
 
 			obj.select_set(True)
 			context.view_layer.objects.active = obj
 			raisePluginError(self, e)
 			return {'CANCELLED'} # must return a set
 
-class SM64_ExportLevelPanel(bpy.types.Panel):
-	bl_idname = "SM64_PT_export_level"
-	bl_label = "SM64 Level Exporter"
+class OOT_ExportLevelPanel(bpy.types.Panel):
+	bl_idname = "OOT_PT_export_level"
+	bl_label = "OOT Level Exporter"
 	bl_space_type = 'VIEW_3D'
 	bl_region_type = 'UI'
-	bl_category = 'SM64'
+	bl_category = 'OOT'
 
 	@classmethod
 	def poll(cls, context):
@@ -870,71 +791,60 @@ class SM64_ExportLevelPanel(bpy.types.Panel):
 	# called every frame
 	def draw(self, context):
 		col = self.layout.column()
-		col.label(text = 'This is for decomp only.')
-		col.operator(SM64_ExportLevel.bl_idname)
+		col.operator(OOT_ExportLevel.bl_idname)
 		if not bpy.context.scene.ignoreTextureRestrictions:
-			col.prop(context.scene, 'levelSaveTextures')
-		col.prop(context.scene, 'levelCustomExport')
-		if context.scene.levelCustomExport:
-			prop_split(col, context.scene, 'levelExportPath', 'Directory')
-			prop_split(col, context.scene, 'levelName', 'Name')
+			col.prop(context.scene, 'saveTextures')
+		col.prop(context.scene, 'ootLevelCustomExport')
+		if context.scene.ootLevelCustomExport:
+			prop_split(col, context.scene, 'ootLevelExportPath', 'Directory')
+			prop_split(col, context.scene, 'ootLevelName', 'Name')
 			customExportWarning(col)
 		else:
-			col.prop(context.scene, 'levelOption')
-			if context.scene.levelOption == 'custom':
-				levelName = context.scene.levelName
+			col.prop(context.scene, 'ootLevelOption')
+			if context.scene.ootLevelOption == 'custom':
+				levelName = context.scene.ootLevelName
 				box = col.box()
-				box.label(text = 'Adding levels may require modifying the save file format.')
-				box.label(text = 'Check src/game/save_file.c.')
-				prop_split(col, context.scene, 'levelName', 'Name')
+				#box.label(text = 'Adding levels may require modifying the save file format.')
+				#box.label(text = 'Check src/game/save_file.c.')
+				prop_split(col, context.scene, 'ootLevelName', 'Name')
 			else:
-				levelName = context.scene.levelOption
-			decompFolderMessage(col)
-			writeBox = makeWriteInfoBox(col)
-			writeBox.label(text = 'levels/' + toAlnum(levelName) + ' (data).')
-			writeBox.label(text = 'src/game/camera.c (camera volume).')
-			writeBox.label(text = 'levels/level_defines.h (camera volume).')
+				levelName = context.scene.ootLevelOption
 		
-		#extendedRAMLabel(col)
-		#prop_split(col, context.scene, 'levelCamera', 'Camera')
 		for i in range(panelSeparatorSize):
 			col.separator()
 
-sm64_level_classes = (
-	SM64_ExportLevel,
+oot_level_classes = (
+	OOT_ExportLevel,
 )
 
-sm64_level_panel_classes = (
-	SM64_ExportLevelPanel,
+oot_level_panel_classes = (
+	OOT_ExportLevelPanel,
 )
 
-def sm64_level_panel_register():
-	for cls in sm64_level_panel_classes:
+def oot_level_panel_register():
+	for cls in oot_level_panel_classes:
 		register_class(cls)
 
-def sm64_level_panel_unregister():
-	for cls in sm64_level_panel_classes:
+def oot_level_panel_unregister():
+	for cls in oot_level_panel_classes:
 		unregister_class(cls)
 
-def sm64_level_register():
-	for cls in sm64_level_classes:
+def oot_level_register():
+	for cls in oot_level_classes:
 		register_class(cls)
 	
-	bpy.types.Scene.levelName = bpy.props.StringProperty(name = 'Name', default = 'bob')
-	bpy.types.Scene.levelOption = bpy.props.EnumProperty(name = "Level", items = enumLevelNames, default = 'bob')
-	bpy.types.Scene.levelExportPath = bpy.props.StringProperty(
+	bpy.types.Scene.ootLevelName = bpy.props.StringProperty(name = 'Name', default = 'bob')
+	bpy.types.Scene.ootLevelOption = bpy.props.EnumProperty(name = "Level", items = ootEnumLevelNames, default = 'bob')
+	bpy.types.Scene.ootLevelExportPath = bpy.props.StringProperty(
 		name = 'Directory', subtype = 'FILE_PATH')
-	bpy.types.Scene.levelSaveTextures = bpy.props.BoolProperty(
-		name = 'Save Textures As PNGs (Breaks CI Textures)')
-	bpy.types.Scene.levelCustomExport = bpy.props.BoolProperty(
+	bpy.types.Scene.ootLevelCustomExport = bpy.props.BoolProperty(
 		name = 'Custom Export Path')
 
-def sm64_level_unregister():
-	for cls in reversed(sm64_level_classes):
+def oot_level_unregister():
+	for cls in reversed(oot_level_classes):
 		unregister_class(cls)
 
-	del bpy.types.Scene.levelName
-	del bpy.types.Scene.levelExportPath 
-	del bpy.types.Scene.levelSaveTextures
-	del bpy.types.Scene.levelCustomExport
-	del bpy.types.Scene.levelOption
+	del bpy.types.Scene.ootlevelName
+	del bpy.types.Scene.ootlevelExportPath
+	del bpy.types.Scene.ootlevelCustomExport
+	del bpy.types.Scene.ootlevelOption

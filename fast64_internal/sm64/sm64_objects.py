@@ -646,7 +646,7 @@ class SM64ObjectPanel(bpy.types.Panel):
 
 	@classmethod
 	def poll(cls, context):
-		return (context.object is not None and context.object.data is None)
+		return context.scene.gameEditorMode == "SM64" and (context.object is not None and context.object.data is None)
 
 	def draw(self, context):
 		box = self.layout.box()

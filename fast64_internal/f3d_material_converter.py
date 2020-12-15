@@ -211,10 +211,21 @@ class F3DMaterialConverterPanel(bpy.types.Panel):
 
 
 bsdf_conv_classes = (
-	F3DMaterialConverterPanel,
 	BSDFConvert,
 	MatUpdateConvert,
 )
+
+bsdf_conv_panel_classes = (
+	F3DMaterialConverterPanel,
+)
+
+def bsdf_conv_panel_regsiter():
+	for cls in bsdf_conv_panel_classes:
+		register_class(cls)
+
+def bsdf_conv_panel_unregsiter():
+	for cls in bsdf_conv_panel_classes:
+		register_class(cls)
 
 def bsdf_conv_register():
 	for cls in bsdf_conv_classes:

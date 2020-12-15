@@ -21,7 +21,10 @@ bl_info = {
 	"blender": (2, 82, 0),
 	}
 
-sm64_panels_registered = False
+gameEditorEnum = (
+	("SM64", "SM64", "Super Mario 64"),
+	("OOT", "OOT", "Ocarina Of Time"),
+)
 
 class ArmatureApplyWithMesh(bpy.types.Operator):
 	# set bl_ properties
@@ -147,7 +150,7 @@ class SM64_ArmatureToolsPanel(bpy.types.Panel):
 	bl_label = "SM64 Armature Tools"
 	bl_space_type = 'VIEW_3D'
 	bl_region_type = 'UI'
-	bl_category = 'Fast64'
+	bl_category = 'SM64'
 
 	@classmethod
 	def poll(cls, context):
@@ -180,13 +183,50 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
 		col = self.layout.column()
 		col.prop(context.scene, 'f3d_type')
 		col.prop(context.scene, 'isHWv1')
+		col.prop(context.scene, 'saveTextures')
+
+class Fast64_GlobalSettingsPanel(bpy.types.Panel):
+	bl_idname = "FAST64_PT_global_settings"
+	bl_label = "Fast64 Global Settings"
+	bl_space_type = 'VIEW_3D'
+	bl_region_type = 'UI'
+	bl_category = 'Fast64'
+
+	@classmethod
+	def poll(cls, context):
+		return True
+
+	# called every frame
+	def draw(self, context):
+		col = self.layout.column()
+		#col.prop(context.scene, 'gameEditorMode')
+		col.prop(context.scene, 'fullTraceback')
 		
+
+#def updateGameEditor(scene, context):
+#	if scene.currentGameEditorMode == 'SM64':
+#		sm64_panel_unregister()
+#	elif scene.currentGameEditorMode == 'Z64':
+#		oot_panel_unregister()
+#	else:
+#		raise PluginError("Unhandled game editor mode " + str(scene.currentGameEditorMode))
+#
+#	if scene.gameEditorMode == 'SM64':
+#		sm64_panel_register()
+#	elif scene.gameEditorMode == 'Z64':
+#		oot_panel_register()
+#	else:
+#		raise PluginError("Unhandled game editor mode " + str(scene.gameEditorMode))
+#
+#	scene.currentGameEditorMode = scene.gameEditorMode
+
 classes = (
 	ArmatureApplyWithMesh,
 	AddBoneGroups,
 	CreateMetarig,
 
 	F3D_GlobalSettingsPanel,
+	Fast64_GlobalSettingsPanel,
 	SM64_ArmatureToolsPanel,
 )
 
@@ -197,10 +237,10 @@ def register():
 	mat_register()
 	render_engine_register()
 	bsdf_conv_register()
-	sm64_register(False)
+	sm64_register(True)
+	#oot_register(True)
 
-	sm64_panel_register()
-	sm64_panels_registered = True
+	bsdf_conv_panel_regsiter()
 
 	for cls in classes:
 		register_class(cls)
@@ -209,31 +249,29 @@ def register():
 	
 	bpy.types.Scene.decomp_compatible = bpy.props.BoolProperty(
 		name = 'Decomp Compatibility', default = True)
-	bpy.types.Scene.blenderToSM64Scale = bpy.props.FloatProperty(
-		name = 'Blender To SM64 Scale', default = 212.766)
-	bpy.types.Scene.decompPath = bpy.props.StringProperty(
-		name ='Decomp Folder', subtype = 'FILE_PATH')
 	bpy.types.Scene.ignoreTextureRestrictions = bpy.props.BoolProperty(
 		name = 'Ignore Texture Restrictions (Breaks CI Textures)')
-	bpy.types.Scene.compressionFormat = bpy.props.EnumProperty(
-		items = enumCompressionFormat, name = 'Compression', default = 'mio0')
 	bpy.types.Scene.fullTraceback = \
 		bpy.props.BoolProperty(name = 'Show Full Error Traceback', default = False)
+	bpy.types.Scene.gameEditorMode = bpy.props.EnumProperty(
+		name = 'Game', default = 'SM64', items = gameEditorEnum)
+	bpy.types.Scene.saveTextures = bpy.props.BoolProperty(
+		name = 'Save Textures As PNGs (Breaks CI Textures)')
 
 # called on add-on disabling
 def unregister():
 	sm64_unregister(True)
-	sm64_panels_registered = False
+	#oot_unregister(True)
 	mat_unregister()
 	bsdf_conv_unregister()
+	bsdf_conv_panel_unregsiter()
 	render_engine_unregister()
 
-	# ROM
-	del bpy.types.Scene.blenderToSM64Scale
 	del bpy.types.Scene.fullTraceback
-	del bpy.types.Scene.decompPath
 	del bpy.types.Scene.decomp_compatible
 	del bpy.types.Scene.ignoreTextureRestrictions
+	del bpy.types.Scene.saveTextures
+	del bpy.types.Scene.gameEditorMode
 
 	for cls in classes:
 		unregister_class(cls)

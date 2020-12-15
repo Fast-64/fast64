@@ -2204,7 +2204,7 @@ class SM64_ExportGeolayoutPanel(bpy.types.Panel):
 	bl_label = "SM64 Geolayout Exporter"
 	bl_space_type = 'VIEW_3D'
 	bl_region_type = 'UI'
-	bl_category = 'Fast64'
+	bl_category = 'SM64'
 
 	@classmethod
 	def poll(cls, context):
