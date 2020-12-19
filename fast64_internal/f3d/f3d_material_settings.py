@@ -112,6 +112,8 @@ class F3DMaterialSettings:
 		self.fog_color = None #[0,0,0,1]
 		self.fog_position = None #[970,1000]
 
+		self.blend_method = "HASHED"
+
 	def loadFromMaterial(self, material, includeValues):
 		if not material.is_f3d:
 			print(material.name + ' is not an f3d material.')
@@ -205,6 +207,8 @@ class F3DMaterialSettings:
 		self.blend_a2 = material.rdp_settings.blend_a2
 		self.blend_b1 = material.rdp_settings.blend_b1
 		self.blend_b2 = material.rdp_settings.blend_b2
+
+		self.blend_method = material.blend_method
 
 		if includeValues:
 			nodes = material.node_tree.nodes
@@ -321,7 +325,9 @@ class F3DMaterialSettings:
 			material.rdp_settings.blend_a1 = self.blend_a1
 			material.rdp_settings.blend_a2 = self.blend_a2
 			material.rdp_settings.blend_b1 = self.blend_b1
-			material.rdp_settings.blend_b2 = self.blend_b2\
+			material.rdp_settings.blend_b2 = self.blend_b2
+
+		material.blend_method = self.blend_method
 		
 		if includeValues:
 			nodes = material.node_tree.nodes

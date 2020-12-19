@@ -783,7 +783,7 @@ def partOfGeolayout(obj):
 
 def getSwitchChildren(areaRoot):
 	geoChildren = [child for child in areaRoot.children if partOfGeolayout(child)]
-	alphabeticalChildren = sorted(geoChildren, key = lambda childObj: childObj.original_name)
+	alphabeticalChildren = sorted(geoChildren, key = lambda childObj: childObj.original_name.lower())
 	return alphabeticalChildren
 
 def setRooms(obj, roomIndex = None):
@@ -958,7 +958,7 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode,
 		parentTransformNode.children.append(transformNode)
 		transformNode.parent = parentTransformNode
 
-		alphabeticalChildren = sorted(obj.children, key = lambda childObj: childObj.original_name)
+		alphabeticalChildren = sorted(obj.children, key = lambda childObj: childObj.original_name.lower())
 		for childObj in alphabeticalChildren:
 			processMesh(fModel, childObj, transformMatrix, transformNode, 
 				geolayout, geolayoutGraph, False, convertTextureData)

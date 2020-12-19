@@ -983,9 +983,9 @@ def createShadeNode(node_tree, location):
 	links.new(mixRGBShadeless.inputs[1], colorNode.outputs[0])
 	links.new(mixRGBShadeless.inputs[2], mixRGB.outputs[0])
 
-	#links.new(mixAlpha.inputs[0], lightingNodeInternal)
+	links.new(mixAlpha.inputs[0], socketDict['Lighting'])
 	links.new(mixAlpha.inputs[1], vertAlphaNode.outputs[2])
-	links.new(mixAlpha.inputs[2], toRGBNode.outputs[1])
+	mixAlpha.inputs[2].default_value = (1,1,1,1)
 
 	links.new(output_node.inputs[0], mixRGBShadeless.outputs[0])
 	links.new(output_node.inputs[1], mixAlpha.outputs[0])
