@@ -181,9 +181,25 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
 	# called every frame
 	def draw(self, context):
 		col = self.layout.column()
-		col.prop(context.scene, 'f3d_type')
+		prop_split(col, context.scene, 'f3d_type', "F3D Microcode")
 		col.prop(context.scene, 'isHWv1')
 		col.prop(context.scene, 'saveTextures')
+
+class Fast64_GlobalObjectPanel(bpy.types.Panel):
+	bl_label = "Global Object Inspector"
+	bl_idname = "OBJECT_PT_OOT_Global_Object_Inspector"
+	bl_space_type = 'PROPERTIES'
+	bl_region_type = 'WINDOW'
+	bl_context = "object"
+	bl_options = {'HIDE_HEADER'} 
+
+	@classmethod
+	def poll(cls, context):
+		return (context.object is not None and context.object.data is None)
+
+	def draw(self, context):
+		box = self.layout
+		prop_split(box, context.scene, 'gameEditorMode', "Game")
 
 class Fast64_GlobalSettingsPanel(bpy.types.Panel):
 	bl_idname = "FAST64_PT_global_settings"
@@ -199,7 +215,7 @@ class Fast64_GlobalSettingsPanel(bpy.types.Panel):
 	# called every frame
 	def draw(self, context):
 		col = self.layout.column()
-		#col.prop(context.scene, 'gameEditorMode')
+		#prop_split(col, context.scene, 'gameEditorMode', "Game")
 		col.prop(context.scene, 'fullTraceback')
 		
 
@@ -225,6 +241,7 @@ classes = (
 	AddBoneGroups,
 	CreateMetarig,
 
+	#Fast64_GlobalObjectPanel,
 	F3D_GlobalSettingsPanel,
 	Fast64_GlobalSettingsPanel,
 	SM64_ArmatureToolsPanel,

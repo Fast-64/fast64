@@ -5,7 +5,7 @@ from .oot_constants import *
 #from .oot_anim import *
 #from .oot_geolayout_bone import *
 #from .oot_collision import *
-from .oot_objects import *
+from .oot_level import *
 #from .oot_level_writer import *
 #from .oot_spline import *
 #from .oot_f3d_parser import *
@@ -34,7 +34,7 @@ class OOT_FileSettingsPanel(bpy.types.Panel):
 		prop_split(col, context.scene, 'ootBlenderScale', 'Blender To OOT Scale')
 		
 		col.prop(context.scene, 'ootDisableScroll')
-		col.prop(context.scene, 'ootDecompPath')
+		prop_split(col, context.scene, 'ootDecompPath', "Decomp Path")
 		
 		prop_split(col, context.scene, 'ootRefreshVer', 'Decomp Func Map')
 
@@ -45,7 +45,6 @@ oot_classes = (
 def oot_panel_register():
 	#oot_col_panel_register()
 	#oot_bone_panel_register()
-	print("TEST")
 	oot_obj_panel_register()
 	#oot_geo_parser_panel_register()
 	#oot_geo_writer_panel_register()
@@ -71,6 +70,7 @@ def oot_register(registerPanels):
 	for cls in oot_classes:
 		register_class(cls)
 
+	oot_utility_register()
 	#oot_col_register() # register first, so panel goes above mat panel
 	#oot_bone_register()
 	oot_obj_register()
@@ -96,6 +96,7 @@ def oot_unregister(unregisterPanels):
 	for cls in reversed(oot_classes):
 		unregister_class(cls)
 
+	oot_utility_unregister()
 	#oot_col_unregister() # register first, so panel goes above mat panel
 	#oot_bone_unregister()
 	oot_obj_unregister()

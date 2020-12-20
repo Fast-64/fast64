@@ -1,5 +1,5 @@
 from .oot_constants import *
-from .oot_objects import *
+from .oot_level import *
 from .oot_collision import *
 from .oot_geolayout_writer import *
 from .oot_texscroll import *

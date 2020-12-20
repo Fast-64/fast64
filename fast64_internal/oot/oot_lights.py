@@ -12,7 +12,7 @@ class OOTLightProperty(bpy.types.PropertyGroup):
 	drawDistance : bpy.props.FloatProperty(name = "", default = 3200)
 	expandTab : bpy.props.BoolProperty(name = "Expand Tab")
 
-def drawLightProperty(layout, lightProp, index):
+def drawLightProperty(layout, lightProp, index, sceneHeaderIndex):
 	box = layout.box()
 	box.prop(lightProp, 'expandTab', text = 'Lighting ' + \
 		str(index), icon = 'TRIA_DOWN' if lightProp.expandTab else \
@@ -26,39 +26,4 @@ def drawLightProperty(layout, lightProp, index):
 		prop_split(box, lightProp, 'transitionSpeed', 'Transition Speed')
 		prop_split(box, lightProp, 'drawDistance', 'Draw Distance')
 
-		drawCollectionProperty(box, index, OOTAddLight.bl_idname,
-			OOTRemoveLight.bl_idname, OOTMoveLight.bl_idname)
-		
-class OOTAddLight(bpy.types.Operator):
-	bl_idname = 'object.oot_add_light'
-	bl_label = 'Add Light'
-	bl_options = {'REGISTER', 'UNDO'} 
-	option : bpy.props.IntProperty()
-	def execute(self, context):
-		obj = context.object
-		obj.ootSceneProperty.lightList.add()
-		obj.ootSceneProperty.lightList.move(len(obj.ootSceneProperty.lightList)-1, self.option)
-		self.report({'INFO'}, 'Success!')
-		return {'FINISHED'} 
-
-class OOTRemoveLight(bpy.types.Operator):
-	bl_idname = 'object.oot_remove_light'
-	bl_label = 'Remove Light'
-	bl_options = {'REGISTER', 'UNDO'} 
-	option : bpy.props.IntProperty()
-	def execute(self, context):
-		context.object.ootSceneProperty.lightList.remove(self.option)
-		self.report({'INFO'}, 'Success!')
-		return {'FINISHED'} 
-
-class OOTMoveLight(bpy.types.Operator):
-	bl_idname = 'object.oot_move_light'
-	bl_label = 'Move Light'
-	bl_options = {'REGISTER', 'UNDO'} 
-	option : bpy.props.IntProperty()
-	offset : bpy.props.IntProperty()
-	def execute(self, context):
-		obj = context.object
-		obj.ootSceneProperty.lightList.move(self.option, self.option + self.offset)
-		self.report({'INFO'}, 'Success!')
-		return {'FINISHED'} 
+		drawCollectionOps(box, index, "Light", sceneHeaderIndex)
