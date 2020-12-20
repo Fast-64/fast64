@@ -3,7 +3,7 @@ import shutil, copy
 from ..f3d.f3d_writer import *
 from ..f3d.f3d_material import TextureProperty, tmemUsageUI
 from bpy.utils import register_class, unregister_class
-from .oot_constants import ootLevelEnums, ootEnumLevelNames
+from .oot_constants import ootEnumSceneID
 
 class OOTGfxFormatter(GameGfxFormatter):
 	def __init__(self, scrollMethod):
@@ -302,8 +302,8 @@ def oot_dl_writer_register():
 	for cls in oot_dl_writer_classes:
 		register_class(cls)
 
-	bpy.types.Scene.ootlevelDLExport = bpy.props.EnumProperty(items = ootLevelEnums, 
-		name = 'Level', default = 'WF')
+	bpy.types.Scene.ootlevelDLExport = bpy.props.EnumProperty(items = ootEnumSceneID, 
+		name = 'Level', default = 'SCENE_YDAN')
 	bpy.types.Scene.ootDLExportPath = bpy.props.StringProperty(
 		name = 'Directory', subtype = 'FILE_PATH')
 	bpy.types.Scene.ootDLExportisStatic = bpy.props.BoolProperty(
@@ -327,7 +327,7 @@ def oot_dl_writer_register():
 	bpy.types.Scene.ootDLLevelName = bpy.props.StringProperty(name = 'Level', 
 		default = 'bob')
 	bpy.types.Scene.ootDLLevelOption = bpy.props.EnumProperty(
-		items = ootEnumLevelNames, name = 'Level', default = 'Custom')
+		items = ootEnumSceneID, name = 'Level', default = 'SCENE_YDAN')
 
 def oot_dl_writer_unregister():
 	for cls in reversed(oot_dl_writer_classes):
