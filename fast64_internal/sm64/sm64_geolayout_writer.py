@@ -1190,6 +1190,8 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 					geolayoutGraph, infoDict, convertTextureData)
 				#transformNode.children.append(childNode)
 				#childNode.parent = transformNode
+		else:
+			raise PluginError("Switch bone \"" + bone.name + "\" must have child bones with geometry attached.")
 
 		bone = armatureObj.data.bones[boneName]
 		for switchIndex in range(len( bone.switch_options)):
