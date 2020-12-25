@@ -89,6 +89,7 @@ class F3D:
 		F3DEX_GBI_2 = self.F3DEX_GBI_2
 		F3DLP_GBI = self.F3DLP_GBI
 		self._HW_VERSION_1 = _HW_VERSION_1
+		self.F3D_VER = F3D_VER
 		#self._LANGUAGE_ASSEMBLY = _LANGUAGE_ASSEMBLY
 		
 		if F3DEX_GBI_2:
@@ -1803,9 +1804,11 @@ class FModel:
 		commands.append(SPEndDisplayList())
 		return self.masterDL
 	
-	def addSubModel(self, subModel):
+	def addSubModel(self, name):
+		subModel = FModel(self.f3d.F3D_VER, self.f3d._HW_VERSION_1, name + '_dl', self.DLFormat)
 		self.subModels.append(subModel)
 		subModel.parentModel = self
+		return subModel
 	
 	def getTextureAndHandleShared(self, imageKey):
 		# Check if texture is in self

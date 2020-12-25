@@ -1409,38 +1409,40 @@ def saveLightsDefinition(fModel, material, lightsName):
 	return lights
 
 def addLightDefinition(mat, f3d_light, fLights):
+	#lightObj = None
+	#for obj in bpy.context.scene.objects:
+	#	if obj.data == f3d_light:
+	#		lightObj = obj
+	#		break
+	#if lightObj is None:
+	#	raise PluginError(
+	#		"The material \"" + mat.name + "\" is referencing a light that is no longer in the scene (i.e. has been deleted).")
+	
+	fLights.l.append(Light(
+		getLightColor(f3d_light),
+		getLightRotation(f3d_light),
+	))
+
+def getLightColor(lightData):
+	return [int(value * 0xFF) for value in gammaCorrect(lightData.color)]
+
+def getLightRotation(lightData):
 	lightObj = None
 	for obj in bpy.context.scene.objects:
-		if obj.data == f3d_light:
+		if obj.data == lightData:
 			lightObj = obj
 			break
 	if lightObj is None:
-		raise PluginError(
-			"The material \"" + mat.name + "\" is referencing a light that is no longer in the scene (i.e. has been deleted).")
-	
-	#spaceRot = blenderToSM64Rotation.to_4x4().to_quaternion()
+		raise PluginError("A material is referencing a light that is no longer in the scene (i.e. has been deleted).")
+
+	return normToSigned8Vector(lightObj)
+
+def normToSigned8Vector(obj):
 	spaceRot = mathutils.Euler((-pi / 2, 0, 0)).to_quaternion()
-	rotation = spaceRot @ getObjectQuaternion(lightObj)
-		
+	rotation = spaceRot @ getObjectQuaternion(obj)
 	normal = (rotation @ mathutils.Vector((0,0,1))).normalized()
-	color = gammaCorrect(f3d_light.color)
-	
-	fLights.l.append(Light(
-		[
-			int(color[0] * 255),
-			int(color[1] * 255),
-			int(color[2] * 255)
-		],
-		[
-			# Make sure to handle negative values
-			int.from_bytes(int(normal[0] * 127).to_bytes(1, 'big', 
-				signed = True), 'big'),
-			int.from_bytes(int(normal[1] * 127).to_bytes(1, 'big', 
-				signed = True), 'big'),
-			int.from_bytes(int(normal[2] * 127).to_bytes(1, 'big', 
-				signed = True), 'big')
-		],
-	))
+	return [int.from_bytes(int(value * 127).to_bytes(1, 'big', 
+		signed = True), 'big') for value in normal]
 
 def saveBitGeo(value, defaultValue, flagName, setGeo, clearGeo):
 	if value != defaultValue:

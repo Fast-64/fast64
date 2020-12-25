@@ -1,8 +1,14 @@
 ootEnumDrawLayers = [
-	('Custom', 'Custom', 'Custom'),
-	('Solid', 'Solid', 'Solid'),
+	('Opaque', 'Opaque', 'Opaque'),
 	('Transparent', 'Transparent', 'Transparent'),
 	('Overlay', 'Overlay', 'Overlay'),
+]
+
+ootEnumMeshType = [
+	#("Custom", "Custom", "Custom"),
+	("0", "Type 0 (Simple)", "Type 0 (Simple)"),
+	("1", "Type 1 (Prerendered)", "Type 1 (Prerendered)"),
+	("2", "Type 2 (Distance Culling)", "Type 2 (Distance Culling)"),
 ]
 
 ootEnumTransitionActorID = [
@@ -481,6 +487,7 @@ ootEnumEmptyType = [
 	('Transition Actor', 'Transition Actor', 'Transition Actor'),
 	('Entrance', 'Entrance', 'Entrance'),
 	('Water Box', 'Water Box', 'Water Box'),
+	('Cull Volume', 'Cull Volume', 'Cull Volume'),
 	#('Camera Volume', 'Camera Volume', 'Camera Volume'),
 ]
 

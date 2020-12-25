@@ -3,7 +3,8 @@ import shutil, copy
 from ..f3d.f3d_writer import *
 from ..f3d.f3d_material import TextureProperty, tmemUsageUI
 from bpy.utils import register_class, unregister_class
-from .oot_constants import ootEnumSceneID
+from .oot_constants import *
+from .oot_utility import *
 
 class OOTGfxFormatter(GameGfxFormatter):
 	def __init__(self, scrollMethod):
@@ -71,6 +72,215 @@ class OOTGfxFormatter(GameGfxFormatter):
 	def tileScrollMaterialToCDef(self, fMaterial):
 		return 'Gfx* ' + fMaterial.material.name + '(Gfx* glistp, int s, int t);\n' +\
 			fMaterial.revert.to_c_def() + '\n\n'
+
+class OOT_DisplayListPanel(bpy.types.Panel):
+	bl_label = "Display List Inspector"
+	bl_idname = "OBJECT_PT_OOT_DL_Inspector"
+	bl_space_type = 'PROPERTIES'
+	bl_region_type = 'WINDOW'
+	bl_context = "object"
+	bl_options = {'HIDE_HEADER'} 
+
+	@classmethod
+	def poll(cls, context):
+		return context.scene.gameEditorMode == "OOT" and \
+			(context.object is not None and isinstance(context.object.data, bpy.types.Mesh))
+
+	def draw(self, context):
+		box = self.layout.box()
+		box.box().label(text = 'OOT DL Inspector')
+		obj = context.object
+
+		prop_split(box, obj, "ootDrawLayer", "Draw Layer")
+
+def ootConvertObjectToLevel(obj, convertTransformMatrix, 
+	f3dType, isHWv1, name, fModel, DLFormat, convertTextureData):
+	
+	#if fModel is None:
+	#	fModel = FModel(f3dType, isHWv1, name, DLFormat)
+
+	# Start geolayout
+	if areaObj is not None:
+		geolayoutGraph = GeolayoutGraph(name)
+		#cameraObj = getCameraObj(camera)
+		meshGeolayout = saveCameraSettingsToGeolayout(
+			geolayoutGraph, areaObj, obj, name + '_geo')
+		rootObj = areaObj
+		fModel.global_data.addAreaData(areaObj.areaIndex, 
+			FAreaData(FFogData(areaObj.area_fog_position, areaObj.area_fog_color)))
+
+	else:
+		geolayoutGraph = GeolayoutGraph(name + '_geo')
+		if isinstance(obj.data, bpy.types.Mesh) and obj.use_render_area:
+			rootNode = TransformNode(StartRenderAreaNode(obj.culling_radius))
+		else:
+			rootNode = TransformNode(StartNode())
+		geolayoutGraph.startGeolayout.nodes.append(rootNode)
+		meshGeolayout = geolayoutGraph.startGeolayout
+		rootObj = obj
+
+	# Duplicate objects to apply scale / modifiers / linked data
+	tempObj, allObjs = \
+		duplicateHierarchy(rootObj, 'ignore_render', True, None if areaObj is None else areaObj.areaIndex)
+	try:
+		processMesh(fModel, tempObj, convertTransformMatrix,
+			meshGeolayout.nodes[0], geolayoutGraph.startGeolayout,
+			geolayoutGraph, True, convertTextureData)
+		cleanupDuplicatedObjects(allObjs)
+		rootObj.select_set(True)
+		bpy.context.view_layer.objects.active = rootObj
+	except Exception as e:
+		cleanupDuplicatedObjects(allObjs)
+		rootObj.select_set(True)
+		bpy.context.view_layer.objects.active = rootObj
+		raise Exception(str(e))
+
+	appendRevertToGeolayout(geolayoutGraph, fModel)
+	geolayoutGraph.generateSortedList()
+	#if DLFormat == DLFormat.GameSpecific:
+	#	geolayoutGraph.convertToDynamic()
+	return geolayoutGraph, fModel
+	
+# This function should be called on a copy of an object
+# The copy will have modifiers / scale applied and will be made single user
+def processMesh(fModel, obj, transformMatrix, parentTransformNode,
+	geolayout, geolayoutGraph, isRoot, convertTextureData):
+	#finalTransform = copy.deepcopy(transformMatrix)
+
+	useGeoEmpty = obj.data is None and \
+		(obj.sm64_obj_type == 'None' or \
+		obj.sm64_obj_type == 'Level Root' or \
+		obj.sm64_obj_type == 'Area Root' or \
+		obj.sm64_obj_type == 'Switch')
+
+	useSwitchNode = obj.data is None and \
+		obj.sm64_obj_type == 'Switch'
+
+	addRooms = isRoot and obj.data is None and \
+		obj.sm64_obj_type == 'Area Root' and \
+		obj.enableRoomSwitch
+		
+	#if useAreaEmpty and areaIndex is not None and obj.areaIndex != areaIndex:
+	#	return
+		
+	# Its okay to return if ignore_render, because when we duplicated obj hierarchy we stripped all
+	# ignore_renders from geolayout.
+	if not partOfGeolayout(obj) or obj.ignore_render:
+		return
+
+	if isRoot:
+		translate = mathutils.Vector((0,0,0))
+		rotate = mathutils.Quaternion()
+	else:
+		translate = obj.matrix_local.decompose()[0]
+		rotate = obj.matrix_local.decompose()[1]
+	rotAxis, rotAngle = rotate.to_axis_angle()
+	zeroRotation = isZeroRotation(rotate)
+	zeroTranslation = isZeroTranslation(translate)
+
+	#translation = mathutils.Matrix.Translation(translate)
+	#rotation = rotate.to_matrix().to_4x4()
+
+	if useSwitchNode or addRooms: # Specific empty types
+		if useSwitchNode:
+			switchFunc = obj.switchFunc
+			switchParam = obj.switchParam
+		elif addRooms:
+			switchFunc = 'geo_switch_area'
+			switchParam = len(obj.children)
+
+		# Rooms are not set here (since this is just a copy of the original hierarchy)
+		# They should be set previously, using setRooms()
+		parentTransformNode = addParentNode(parentTransformNode, SwitchNode(switchFunc, switchParam, obj.original_name))
+		alphabeticalChildren = getSwitchChildren(obj)
+		for i in range(len(alphabeticalChildren)):
+			childObj = alphabeticalChildren[i]
+			optionGeolayout = geolayoutGraph.addGeolayout(
+				childObj, fModel.name + '_' + childObj.original_name + '_geo')
+			geolayoutGraph.addJumpNode(parentTransformNode, geolayout,
+				optionGeolayout)
+			if not zeroRotation or not zeroTranslation:
+				startNode = TransformNode(getOptimalNode(translate, rotate, 1, False,
+					zeroTranslation, zeroRotation))
+			else:
+				startNode = TransformNode(StartNode())
+			optionGeolayout.nodes.append(startNode)
+			processMesh(fModel, childObj, transformMatrix, startNode, 
+				optionGeolayout, geolayoutGraph, False, convertTextureData)
+
+	else:			
+		if obj.geo_cmd_static == 'Optimal' or useGeoEmpty:
+			node = getOptimalNode(translate, rotate, int(obj.draw_layer_static), True,
+				zeroTranslation, zeroRotation)
+	
+		elif obj.geo_cmd_static == "DisplayListWithOffset":
+			if not zeroRotation:
+				node = DisplayListWithOffsetNode(int(obj.draw_layer_static), True,
+					mathutils.Vector((0,0,0)))	
+	
+				parentTransformNode = addParentNode(parentTransformNode,
+					TranslateRotateNode(1, 0, False, translate, rotate))
+			else:
+				node = DisplayListWithOffsetNode(int(obj.draw_layer_static), True,
+					translate)
+	
+		else: #Billboard
+			if not zeroRotation:
+				node = BillboardNode(int(obj.draw_layer_static), True, 
+					mathutils.Vector((0,0,0)))
+	
+				parentTransformNode = addParentNode(parentTransformNode,
+					TranslateRotateNode(1, 0, False, translate, rotate))
+			else:
+				node = BillboardNode(int(obj.draw_layer_static), True, translate)
+
+
+		transformNode = TransformNode(node)
+
+		additionalNodes = False
+		if obj.data is not None and \
+			(obj.use_render_range or obj.add_shadow or obj.add_func):
+
+			parentTransformNode.children.append(transformNode)
+			transformNode.parent = parentTransformNode
+			transformNode.node.hasDL = False
+			parentTransformNode = transformNode
+
+			node = DisplayListNode(int(obj.draw_layer_static))
+			transformNode = TransformNode(node)
+
+			if obj.use_render_range:
+				parentTransformNode = \
+					addParentNode(parentTransformNode, RenderRangeNode(obj.render_range[0], obj.render_range[1]))
+
+			if obj.add_shadow:
+				parentTransformNode = \
+					addParentNode(parentTransformNode, ShadowNode(obj.shadow_type, obj.shadow_solidity, obj.shadow_scale))
+
+			if obj.add_func:
+				addParentNode(parentTransformNode, FunctionNode(obj.geo_func, obj.func_param))
+
+			# Make sure to add additional cases to if statement above
+
+		if obj.data is None:
+			meshGroup = None
+		else:
+			meshGroup = saveStaticModel(fModel, obj, transformMatrix, fModel.name, fModel.DLFormat, convertTextureData, False)
+
+		if meshGroup is None:
+			node.hasDL = False
+		else:
+			node.DLmicrocode = meshGroup.mesh.draw
+			node.fMesh = meshGroup.mesh
+
+		parentTransformNode.children.append(transformNode)
+		transformNode.parent = parentTransformNode
+
+		alphabeticalChildren = sorted(obj.children, key = lambda childObj: childObj.original_name.lower())
+		for childObj in alphabeticalChildren:
+			processMesh(fModel, childObj, transformMatrix, transformNode, 
+				geolayout, geolayoutGraph, False, convertTextureData)
+
 
 def ootExportF3DtoC(basePath, obj, DLFormat, transformMatrix, 
 	f3dType, isHWv1, texDir, savePNG, texSeparate, includeChildren, name, levelName, groupName, customExport, headerType):
@@ -288,6 +498,7 @@ oot_dl_writer_classes = (
 
 oot_dl_writer_panel_classes = (
 	OOT_ExportDLPanel,
+	OOT_DisplayListPanel,
 )
 
 def oot_dl_writer_panel_register():
@@ -301,6 +512,8 @@ def oot_dl_writer_panel_unregister():
 def oot_dl_writer_register():
 	for cls in oot_dl_writer_classes:
 		register_class(cls)
+
+	bpy.types.Object.ootDrawLayer = bpy.props.EnumProperty(items = ootEnumDrawLayers, default = 'Opaque')
 
 	bpy.types.Scene.ootlevelDLExport = bpy.props.EnumProperty(items = ootEnumSceneID, 
 		name = 'Level', default = 'SCENE_YDAN')
