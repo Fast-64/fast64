@@ -1,5 +1,5 @@
 from ..utility import *
-import bpy
+import bpy, math, mathutils
 from bpy.utils import register_class, unregister_class
 
 class BoxEmpty:
@@ -31,6 +31,47 @@ def convertNormalizedVectorToShort(value):
 		convertNormalizedFloatToShort(value[2]),
 	)
 
+def getEnumName(enumItems, value):
+	for enumTuple in enumItems:
+		if enumTuple[0] == value:
+			return enumTuple[1]
+	raise PluginError("Could not find enum value " + str(value))
+
+def ootConvertTranslation(translation):
+	return [int(round(value)) for value in translation]
+
+def ootConvertRotation(rotation):
+	# see BINANG_TO_DEGF
+	return [int(round(math.degrees(value) * 65535 / 360)) for value in rotation.to_euler()]
+
+def getCollectionFromIndex(obj, prop, subIndex, isRoom):
+	if not isRoom:
+		header0 = obj.ootSceneHeader
+		header1 = obj.ootAlternateSceneHeaders.childNightHeader
+		header2 = obj.ootAlternateSceneHeaders.adultDayHeader
+		header3 = obj.ootAlternateSceneHeaders.adultNightHeader
+		cutsceneHeaders = obj.ootAlternateSceneHeaders.cutsceneHeaders
+	else:
+		header0 = obj.ootRoomHeader
+		header1 = obj.ootAlternateRoomHeaders.childNightHeader
+		header2 = obj.ootAlternateRoomHeaders.adultDayHeader
+		header3 = obj.ootAlternateRoomHeaders.adultNightHeader
+		cutsceneHeaders = obj.ootAlternateRoomHeaders.cutsceneHeaders
+
+	if subIndex < 0:
+		raise PluginError("Alternate scene header index too low: " + str(subIndex))
+	elif subIndex == 0:		
+		collection = getattr(header0, prop)
+	elif subIndex == 1:
+		collection = getattr(header1, prop)
+	elif subIndex == 2:
+		collection = getattr(header2, prop)
+	elif subIndex == 3:
+		collection = getattr(header3, prop)
+	else:
+		collection = getattr(cutsceneHeaders[subIndex - 4], prop)
+	return collection
+
 # Operators cannot store mutable references (?), so to reuse PropertyCollection modification code we do this.
 # Save a string identifier in the operator, then choose the member variable based on that.
 # subIndex is for a collection within a collection element
@@ -43,31 +84,11 @@ def getCollection(obj, collectionType, subIndex):
 	elif collectionType == "Scene":
 		collection = obj.ootAlternateSceneHeaders.cutsceneHeaders
 	elif collectionType == "Light":
-		if subIndex < 0:
-			raise PluginError("Alternate scene header index too low: " + str(subIndex))
-		elif subIndex == 0:		
-			collection = obj.ootSceneHeader.lightList
-		elif subIndex == 1:
-			collection = obj.ootAlternateSceneHeaders.childNightHeader.lightList
-		elif subIndex == 2:
-			collection = obj.ootAlternateSceneHeaders.adultDayHeader.lightList
-		elif subIndex == 3:
-			collection = obj.ootAlternateSceneHeaders.adultNightHeader.lightList
-		else:
-			collection = obj.ootAlternateSceneHeaders.cutsceneHeaders[subIndex - 4].lightList
+		collection = getCollectionFromIndex(obj, 'lightList', subIndex, False)
+	elif collectionType == "Exit":
+		collection = getCollectionFromIndex(obj, 'exitList', subIndex, False)
 	elif collectionType == "Object":
-		if subIndex < 0:
-			raise PluginError("Alternate scene header index too low: " + str(subIndex))
-		elif subIndex == 0:		
-			collection = obj.ootRoomHeader.objectList
-		elif subIndex == 1:
-			collection = obj.ootAlternateRoomHeaders.childNightHeader.objectList
-		elif subIndex == 2:
-			collection = obj.ootAlternateRoomHeaders.adultDayHeader.objectList
-		elif subIndex == 3:
-			collection = obj.ootAlternateRoomHeaders.adultNightHeader.objectList
-		else:
-			collection = obj.ootAlternateRoomHeaders.cutsceneHeaders[subIndex - 4].objectList
+		collection = getCollectionFromIndex(obj, 'objectList', subIndex, True)
 	else:
 		raise PluginError("Invalid collection type: " + collectionType)
 

@@ -1231,3 +1231,8 @@ ootEnumCamTransition = [
 	#("0x0F", "0x0F", "0x0F"),
 	#("0xFF", "0xFF", "0xFF"),
 ]
+
+ootEnumExitIndex = [
+	("Custom", "Custom", "Custom"),
+	("Default", "Default", "Default"),
+]

@@ -3,14 +3,16 @@ from ..f3d.f3d_writer import *
 
 from .oot_constants import *
 from .oot_level import *
+from .oot_level_classes import *
 from .oot_utility import *
+from .oot_f3d_writer import *
 #from .oot_collision import *
 
 from ..utility import *
 
 from bpy.utils import register_class, unregister_class
 from io import BytesIO
-import bpy, bmesh, os, math, re, shutil
+import bpy, bmesh, os, math, re, shutil, mathutils
 
 
 #class OOTBox:
@@ -18,7 +20,37 @@ import bpy, bmesh, os, math, re, shutil
 #		self.minBounds = [-2**8, -2**8]
 #		self.maxBounds = [2**8 - 1, 2**8 - 1]
 
-def ootDuplicateHierarchy(obj, ignoreAttr, includeEmpties):
+
+class OOTObjectCategorizer:
+	def __init__(self):
+		self.sceneObj = None
+		self.roomObjs = []
+		self.actors = []
+		self.transitionActors = []
+		self.meshes = []
+		self.entrances = []
+		self.waterBoxes = []
+
+	def sortObjects(self, allObjs):
+		for obj in allObjs:
+			if obj.data is None:
+				if obj.ootEmptyType == "Actor":
+					self.actors.append(obj)
+				elif obj.ootEmptyType == "Transition Actor":
+					self.transitionActors.append(obj)
+				elif obj.ootEmptyType == "Entrance":
+					self.entrances.append(obj)
+				elif obj.ootEmptyType == "Water Box":
+					self.waterBoxes.append(obj)
+				elif obj.ootEmptyType == "Room":
+					self.roomObjs.append(obj)
+				elif obj.ootEmptyType == "Scene":
+					self.sceneObj = obj
+			elif isinstance(obj.data, bpy.types.Mesh):
+				self.meshes.append(obj)
+
+# This also sets all origins relative to the scene object.
+def ootDuplicateHierarchy(obj, ignoreAttr, includeEmpties, objectCategorizer):
 	# Duplicate objects to apply scale / modifiers / linked data
 	bpy.ops.object.select_all(action = 'DESELECT')
 	ootSelectMeshChildrenOnly(obj, includeEmpties)
@@ -31,21 +63,27 @@ def ootDuplicateHierarchy(obj, ignoreAttr, includeEmpties):
 		bpy.ops.object.make_single_user(obdata = True)
 		bpy.ops.object.transform_apply(location = False, 
 			rotation = True, scale = True, properties =  False)
-		for selectedObj in allObjs:
+		
+		objectCategorizer.sortObjects(allObjs)
+		meshObjs = objectCategorizer.meshes
+		for selectedObj in meshObjs:
 			bpy.ops.object.select_all(action = 'DESELECT')
 			selectedObj.select_set(True)
 			bpy.context.view_layer.objects.active = selectedObj
 			for modifier in selectedObj.modifiers:
 				bpy.ops.object.modifier_apply(modifier=modifier.name)
-		for selectedObj in allObjs:
-			if ignoreAttr is not None and getattr(selectedObj, ignoreAttr):
-				for child in selectedObj.children:
-					bpy.ops.object.select_all(action = 'DESELECT')
-					child.select_set(True)
-					bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
-					selectedObj.parent.select_set(True)
-					bpy.ops.object.parent_set(keep_transform = True)
-				selectedObj.parent = None
+		for selectedObj in meshObjs:
+			setOrigin(obj, selectedObj)
+		if ignoreAttr is not None:
+			for selectedObj in meshObjs:
+				if getattr(selectedObj, ignoreAttr):
+					for child in selectedObj.children:
+						bpy.ops.object.select_all(action = 'DESELECT')
+						child.select_set(True)
+						bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
+						selectedObj.parent.select_set(True)
+						bpy.ops.object.parent_set(keep_transform = True)
+					selectedObj.parent = None
 		return tempObj, allObjs
 	except Exception as e:
 		cleanupDuplicatedObjects(allObjs)
@@ -71,10 +109,12 @@ def ootExportSceneToC(originalSceneObj, transformMatrix,
 	f3dType, isHWv1, sceneName, DLFormat, convertTextureData, exportPath, isCustomExport):
 	scene = ootConvertScene(originalSceneObj, transformMatrix, 
 		f3dType, isHWv1, sceneName, DLFormat, convertTextureData)
+	
+	print(list(scene.rooms.items())[0][1].mesh.model.to_c(False, False, "test", OOTGfxFormatter(ScrollMethod.Vertex)))
 
 	#return scene.toC()
 
-def readSceneData(scene, sceneHeader):
+def readSceneData(scene, sceneHeader, alternateSceneHeaders):
 	scene.globalObject = getCustomProperty(sceneHeader, "globalObject")
 	scene.naviCup = getCustomProperty(sceneHeader, "naviCup")
 	scene.skyboxID = getCustomProperty(sceneHeader, "skyboxID")
@@ -85,20 +125,64 @@ def readSceneData(scene, sceneHeader):
 	scene.musicSeq = getCustomProperty(sceneHeader, "musicSeq")
 	scene.nightSeq = getCustomProperty(sceneHeader, "nightSeq")
 
+	for lightProp in sceneHeader.lightList:
+		scene.lights.append(getLightData(lightProp))
+
+	for exitProp in sceneHeader.exitList:
+		scene.exitList.append(getExitData(exitProp))
+
+	if alternateSceneHeaders is not None:
+		if not alternateSceneHeaders.childNightHeader.usePreviousHeader:
+			scene.childNightHeader = OOTScene(scene.name + "_childNight", scene.model)
+			readSceneData(scene.childNightHeader, alternateSceneHeaders.childNightHeader, None)
+
+		if not alternateSceneHeaders.adultDayHeader.usePreviousHeader:
+			scene.adultDayHeader = OOTScene(scene.name + "_adultDay", scene.model)
+			readSceneData(scene.adultDayHeader, alternateSceneHeaders.adultDayHeader, None)
+
+		if not alternateSceneHeaders.adultNightHeader.usePreviousHeader:
+			scene.adultNightHeader = OOTScene(scene.name + "_adultNight", scene.model)
+			readSceneData(scene.adultNightHeader, alternateSceneHeaders.adultNightHeader, None)
+
+		for i in range(len(alternateSceneHeaders.cutsceneHeaders)):
+			cutsceneHeaderProp = alternateSceneHeaders.cutsceneHeaders[i]
+			cutsceneHeader = OOTScene(scene.name + "_cutscene" + str(i), scene.model)
+			readSceneData(cutsceneHeader, cutsceneHeaderProp, None)
+			scene.cutsceneHeaders.append(cutsceneHeader)
+
+def getExitData(exitProp):
+	if exitProp.exitIndex != "Custom":
+		raise PluginError("Exit index enums not implemented yet.")
+	return OOTExit(exitProp.exitIndexCustom)
+
 def getLightData(lightProp):
 	light = OOTLight()
 	light.ambient = lightProp.ambient
-	light.diffuse0 = getLightColor(lightProp.diffuse0.color)
-	light.diffuseDir0 = getLightRotation(lightProp.diffuse0)
-	light.diffuse1 = getLightColor(lightProp.diffuse1.color)
-	light.diffuseDir1 = getLightRotation(lightProp.diffuse1)
+	if lightProp.useCustomDiffuse0:
+		if lightProp.diffuse0Custom is None:
+			raise PluginError("Error: Diffuse 0 light object not set in a scene lighting property.")
+		light.diffuse0 = getLightColor(lightProp.diffuse0Custom.color)
+		light.diffuseDir0 = getLightRotation(lightProp.diffuse0Custom)
+	else:
+		light.diffuse0 = getLightColor(lightProp.diffuse0)
+		light.diffuseDir0 = [0x49, 0x49, 0x49]
+
+	if lightProp.useCustomDiffuse1:
+		if lightProp.diffuse1Custom is None:
+			raise PluginError("Error: Diffuse 1 light object not set in a scene lighting property.")
+		light.diffuse1 = getLightColor(lightProp.diffuse1Custom.color)
+		light.diffuseDir1 = getLightRotation(lightProp.diffuse1Custom)
+	else:
+		light.diffuse1 = getLightColor(lightProp.diffuse1)
+		light.diffuseDir1 = [0xB7, 0xB7, 0xB7]
+
 	light.fogColor = lightProp.fogColor
 	light.fogDistance = lightProp.fogDistance
 	light.transitionSpeed = lightProp.transitionSpeed
 	light.drawDistance = lightProp.drawDistance
 	return light
 
-def readRoomData(room, roomHeader):
+def readRoomData(room, roomHeader, alternateRoomHeaders):
 	room.roomIndex = roomHeader.roomIndex
 	room.disableSunSongEffect = roomHeader.disableSunSongEffect
 	room.disableActionJumping = roomHeader.disableActionJumping
@@ -107,8 +191,8 @@ def readRoomData(room, roomHeader):
 	room.linkIdleMode = getCustomProperty(roomHeader, "linkIdleMode")
 	room.linkIdleModeCustom = roomHeader.linkIdleModeCustom
 	room.setWind = roomHeader.setWind
-	room.windVector = normToSigned8Vector(roomHeader.windVector.normalized())
-	room.windStrength = int(0xFF * max(roomHeader.windVector.length, 1))
+	room.windVector = normToSigned8Vector(mathutils.Vector(roomHeader.windVector).normalized())
+	room.windStrength = int(0xFF * max(mathutils.Vector(roomHeader.windVector).length, 1))
 	if roomHeader.leaveTimeUnchanged:
 		room.timeValue = "0xFFFF"
 	else:
@@ -119,6 +203,25 @@ def readRoomData(room, roomHeader):
 	room.echo = roomHeader.echo
 	room.objectList.extend([item.objectID for item in roomHeader.objectList])
 
+	if alternateRoomHeaders is not None:
+		if not alternateRoomHeaders.childNightHeader.usePreviousHeader:
+			room.childNightHeader = OOTRoom(room.name + "_childNight", room.model)
+			readRoomData(room.childNightHeader, alternateRoomHeaders.childNightHeader, None)
+
+		if not alternateRoomHeaders.adultDayHeader.usePreviousHeader:
+			room.adultDayHeader = OOTRoom(room.name + "_adultDay", room.model)
+			readRoomData(room.adultDayHeader, alternateRoomHeaders.adultDayHeader, None)
+
+		if not alternateRoomHeaders.adultNightHeader.usePreviousHeader:
+			room.adultNightHeader = OOTRoom(room.name + "_adultNight", room.model)
+			readRoomData(room.adultNightHeader, alternateRoomHeaders.adultNightHeader, None)
+
+		for i in range(len(alternateRoomHeaders.cutsceneHeaders)):
+			cutsceneHeaderProp = alternateRoomHeaders.cutsceneHeaders[i]
+			cutsceneHeader = OOTRoom(room.name + "_cutscene" + str(i), room.mesh.model)
+			readRoomData(cutsceneHeader, cutsceneHeaderProp, None)
+			room.cutsceneHeaders.append(cutsceneHeader)
+
 def ootConvertScene(originalSceneObj, transformMatrix, 
 	f3dType, isHWv1, sceneName, DLFormat, convertTextureData):
 
@@ -126,27 +229,32 @@ def ootConvertScene(originalSceneObj, transformMatrix,
 		raise PluginError(originalSceneObj.name + " is not an empty with the \"Scene\" empty type.")
 
 	sceneObj, allObjs = \
-		ootDuplicateHierarchy(originalSceneObj, 'ignore_render', True)
+		ootDuplicateHierarchy(originalSceneObj, 'ignore_render', True, OOTObjectCategorizer())
 
 	roomObjs = [child for child in sceneObj.children if child.data is None and child.ootEmptyType == 'Room']
 	if len(roomObjs) == 0:
 		raise PluginError("The scene has no child empties with the 'Room' empty type.")
 
-	scene = OOTScene(sceneName, FModel(f3dType, isHWv1, sceneName + '_dl', DLFormat))
-	readSceneData(scene, sceneObj.ootSceneHeader)
-	# TODO: handle entrances, exits, actors, transition actors
-
-	for lightProp in sceneHeader.lightList:
-		scene.lights.append(getLightData(lightProp))
-
 	try:
+		scene = OOTScene(sceneName, FModel(f3dType, isHWv1, sceneName + '_dl', DLFormat))
+		readSceneData(scene, sceneObj.ootSceneHeader, sceneObj.ootAlternateSceneHeaders)
+		# TODO: handle entrances, exits
+		# TODO: handle collision
+
+		processedRooms = set()
 		for roomObj in roomObjs:
 			roomIndex = roomObj.ootRoomHeader.roomIndex
+			if roomIndex in processedRooms:
+				raise PluginError("Error: room index " + str(roomIndex) + " is used more than once.")
+			processedRooms.add(roomIndex)
 			roomName = 'room_' + str(roomIndex)
 			room = scene.addRoom(roomIndex, roomName, roomObj.ootRoomHeader.meshType)
-			readRoomData(room, roomObj.ootRoomHeader)
+			readRoomData(room, roomObj.ootRoomHeader, roomObj.ootAlternateRoomHeaders)
 
 			ootProcessMesh(room.mesh, None, sceneObj, roomObj, transformMatrix, convertTextureData)
+			ootProcessEmpties(scene, room, sceneObj, roomObj, transformMatrix)
+
+		scene.validateStartPositions()
 
 		ootCleanupScene(originalSceneObj, allObjs)
 
@@ -165,10 +273,10 @@ def ootProcessMesh(roomMesh, roomMeshGroup, sceneObj, obj, transformMatrix, conv
 	translation, rotation, scale = relativeTransform.decompose()
 
 	if obj.data is None and obj.ootEmptyType == "Cull Volume":
-		roomMeshGroup = roomMesh.addMeshGroup(BoxEmpty(translation, scale, obj.empty_display_size))
+		roomMeshGroup = roomMesh.addMeshGroup(BoxEmpty(
+			ootConvertTranslation(translation), scale, obj.empty_display_size))
 
 	elif isinstance(obj.data, bpy.types.Mesh):
-		# TODO: Transform static model data
 		meshData = saveStaticModel(roomMesh.model, obj, transformMatrix, obj.name, 
 			roomMesh.model.DLFormat, convertTextureData, False)
 		if roomMeshGroup is None:
@@ -178,6 +286,44 @@ def ootProcessMesh(roomMesh, roomMeshGroup, sceneObj, obj, transformMatrix, conv
 	alphabeticalChildren = sorted(obj.children, key = lambda childObj: childObj.original_name.lower())
 	for childObj in alphabeticalChildren:
 		ootProcessMesh(roomMesh, roomMeshGroup, sceneObj, childObj, transformMatrix, convertTextureData)
+
+def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
+	relativeTransform = transformMatrix @ sceneObj.matrix_world.inverted() @ obj.matrix_world
+	translation, rotation, scale = relativeTransform.decompose()
+
+	translation = ootConvertTranslation(translation)
+	rotation = ootConvertRotation(rotation)
+
+	if obj.data is None:
+		if obj.ootEmptyType == "Actor":
+			actorProp = obj.ootActorProperty
+			room.actors.append(OOTActor(
+				getCustomProperty(actorProp, 'actorID'), 
+				translation, rotation, 
+				actorProp.actorParam, 
+				headerSettingsToIndices(actorProp.headerSettings)))
+		elif obj.ootEmptyType == "Transition Actor":
+			transActorProp = obj.ootTransitionActorProperty
+			room.transitionActors.append(OOTTransitionActor(
+				getCustomProperty(transActorProp, "actorID"),
+				room.roomIndex, transActorProp.roomIndex,
+				getCustomProperty(transActorProp, "cameraTransitionFront"),
+				getCustomProperty(transActorProp, "cameraTransitionBack"),
+				translation, rotation[1], 
+				transActorProp.actorParam))
+		elif obj.ootEmptyType == "Entrance":
+			scene.entrances.append(OOTEntrance(room.roomIndex, obj.ootEntranceProperty.spawnIndex))
+			scene.startPositions[obj.ootEntranceProperty.spawnIndex] = \
+				OOTStartPosition(translation, rotation, "0xFFFF")
+		elif obj.ootEmptyType == "Water Box":
+			waterBoxProp = obj.ootWaterBoxProperty
+			scene.collision.waterBoxes.append(OOTWaterBox(
+				getCustomProperty(waterBoxProp, "lighting"),
+				getCustomProperty(waterBoxProp, "camera"),
+				translation, obj.scale, obj.empty_display_size))
+	
+	for childObj in obj.children:
+		ootProcessEmpties(scene, room, sceneObj, childObj, transformMatrix)
 	
 class OOT_ExportScene(bpy.types.Operator):
 	# set bl_ properties

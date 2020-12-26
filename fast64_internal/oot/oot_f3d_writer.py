@@ -12,34 +12,10 @@ class OOTGfxFormatter(GameGfxFormatter):
 
 	# This code is not functional, only used for an example
 	def drawToC(self, f3d, gfxList):
-		if self.functionNodeDraw:
-			data = 'Gfx* ' + self.name + '(s32 renderContext, struct GraphNode* node, struct AllocOnlyPool *a2) {\n' +\
-				'\tGfx* startCmd = NULL;\n' +\
-				'\tGfx* glistp = NULL;\n' +\
-				'\tstruct GraphNodeGenerated *generatedNode;\n' +\
-				'\tif(renderContext == GEO_CONTEXT_RENDER) {\n' +\
-				'\t\tgeneratedNode = (struct GraphNodeGenerated *) node;\n' +\
-				'\t\tgeneratedNode->fnNode.node.flags = (generatedNode->fnNode.node.flags & 0xFF) | (generatedNode->parameter << 8);\n' +\
-				'\t\tstartCmd = glistp = alloc_display_list(sizeof(Gfx) * ' + \
-				str(int(round(self.size_total(f3d) / GFX_SIZE))) + ');\n' +\
-				'\t\tif(startCmd == NULL) return NULL;\n'
-
-			for command in self.commands:
-				if isinstance(command, SPDisplayList) and command.displayList.tag == GfxListTag.Material:
-					data += '\t' + 'glistp = ' + command.displayList.name + '(glistp, gAreaUpdateCounter, gAreaUpdateCounter);\n'
-				else:
-					data += '\t' + command.to_c(False) + ';\n'
-
-			data += '\t}\n\treturn startCmd;\n}'	
-			return data
-		else:
-			return gfxList.to_c(f3d)
+		return gfxList.to_c(f3d)
 
 	def drawToCDef(self, gfxList):
-		if self.functionNodeDraw:
-			return 'Gfx* ' + self.name + '(s32 renderContext, struct GraphNode* node, struct AllocOnlyPool *a2);\n'
-		else:
-			return gfxList.to_c_def()
+		return gfxList.to_c_def()
 
 	# This code is not functional, only used for an example
 	def tileScrollMaterialToC(self, f3d, fMaterial):
