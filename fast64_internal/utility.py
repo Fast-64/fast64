@@ -36,6 +36,17 @@ enumCompressionFormat = [
 	('yay0', 'YAY0', 'YAY0'),
 ]
 
+class CData:
+	def __init__(self):
+		self.source = ""
+		self.header = ""
+
+def getObjectFromData(data):
+	for obj in bpy.data.objects:
+		if obj.data == data:
+			return obj
+	return None
+
 def getTabbedText(text, tabCount):
 	return text.replace('\n', '\n' + '\t' * tabCount)
 
@@ -379,7 +390,7 @@ def selectMeshChildrenOnly(obj, ignoreAttr, includeEmpties, areaIndex):
 def cleanupDuplicatedObjects(selected_objects):
 	meshData = []
 	for selectedObj in selected_objects:
-		if selectedObj.data is not None:
+		if selectedObj.data is not None and isinstance(selectedObj.data, bpy.types.Mesh):
 			meshData.append(selectedObj.data)
 	for selectedObj in selected_objects:
 		bpy.data.objects.remove(selectedObj)

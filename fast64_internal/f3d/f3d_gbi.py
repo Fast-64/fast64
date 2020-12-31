@@ -1932,7 +1932,7 @@ class FModel:
 		data = ''
 		# since decomp is linux, don't use os.path.join 
 		# on windows this results in '\', which is incorrect (should be '/')
-		if texDir[-1] != '/':
+		if len(texDir) > 0 and texDir[-1] != '/':
 			texDir += '/'
 		for info, texture in self.textures.items():
 			if savePNG:

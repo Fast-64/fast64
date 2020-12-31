@@ -10,6 +10,17 @@ class BoxEmpty:
 		self.high = (position[0] + scale[0] * emptyScale, position[2] + scale[1] * emptyScale)
 		self.height = position[1] + scale[2] * emptyScale
 
+		self.low = [int(round(value)) for value in self.low]
+		self.high = [int(round(value)) for value in self.high]
+		self.height = int(round(self.height))
+
+def getCustomProperty(data, prop):
+	value = getattr(data, prop)
+	return value if value != "Custom" else getattr(data, prop + str("Custom"))
+
+def convertIntTo2sComplement(value, length):
+	return int.from_bytes(int(round(value)).to_bytes(length, 'big', signed = True), 'big')
+
 def drawEnumWithCustom(panel, data, attribute, name, customName):
 	prop_split(panel, data, attribute, name)
 	if getattr(data, attribute) == "Custom":
@@ -22,7 +33,7 @@ def convertNormalizedFloatToShort(value):
 	value *= 2**15
 	value = clampShort(value)
 	
-	return int(value.to_bytes(2, 'big', signed = True))
+	return int.from_bytes(int(value).to_bytes(2, 'big', signed = True), 'big')
 
 def convertNormalizedVectorToShort(value):
 	return (
@@ -79,6 +90,10 @@ def getCollection(obj, collectionType, subIndex):
 
 	if collectionType == "Actor":	
 		collection = obj.ootActorProperty.headerSettings.cutsceneHeaders
+	elif collectionType == "Transition Actor":	
+		collection = obj.ootTransitionActorProperty.actor.headerSettings.cutsceneHeaders
+	elif collectionType == "Entrance":	
+		collection = obj.ootEntranceProperty.actor.headerSettings.cutsceneHeaders
 	elif collectionType == "Room":
 		collection = obj.ootAlternateRoomHeaders.cutsceneHeaders
 	elif collectionType == "Scene":

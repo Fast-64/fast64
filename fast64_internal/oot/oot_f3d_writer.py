@@ -68,6 +68,8 @@ class OOT_DisplayListPanel(bpy.types.Panel):
 		obj = context.object
 
 		prop_split(box, obj, "ootDrawLayer", "Draw Layer")
+		box.prop(obj, "ootIgnoreRender")
+		box.prop(obj, "ootIgnoreCollision")
 
 def ootConvertObjectToLevel(obj, convertTransformMatrix, 
 	f3dType, isHWv1, name, fModel, DLFormat, convertTextureData):
@@ -97,7 +99,7 @@ def ootConvertObjectToLevel(obj, convertTransformMatrix,
 
 	# Duplicate objects to apply scale / modifiers / linked data
 	tempObj, allObjs = \
-		duplicateHierarchy(rootObj, 'ignore_render', True, None if areaObj is None else areaObj.areaIndex)
+		duplicateHierarchy(rootObj, 'ootIgnoreRender', True, None if areaObj is None else areaObj.areaIndex)
 	try:
 		processMesh(fModel, tempObj, convertTransformMatrix,
 			meshGeolayout.nodes[0], geolayoutGraph.startGeolayout,
@@ -490,6 +492,8 @@ def oot_dl_writer_register():
 		register_class(cls)
 
 	bpy.types.Object.ootDrawLayer = bpy.props.EnumProperty(items = ootEnumDrawLayers, default = 'Opaque')
+	bpy.types.Object.ootIgnoreRender = bpy.props.BoolProperty(name = "Ignore Render")
+	bpy.types.Object.ootIgnoreCollision = bpy.props.BoolProperty(name = "Ignore Collision")
 
 	bpy.types.Scene.ootlevelDLExport = bpy.props.EnumProperty(items = ootEnumSceneID, 
 		name = 'Level', default = 'SCENE_YDAN')

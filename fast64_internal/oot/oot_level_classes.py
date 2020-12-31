@@ -5,32 +5,21 @@ from io import BytesIO
 from ..f3d.f3d_gbi import *
 from .oot_constants import *
 from .oot_utility import *
+from .oot_collision import *
 #from .oot_function_map import func_map
 #from .oot_spline import *
 
 from ..utility import *
 
 class OOTActor:
-	def __init__(self, actorID, position, rotation, actorParam, headerIndices):
+	def __init__(self, actorID, position, rotation, actorParam):
 		self.actorID = actorID
 		self.actorParam = actorParam
 		self.position = position
 		self.rotation = rotation
-		self.headerIndices = headerIndices
-
-	
-	def toC(self):
-		return '{' + str(self.actorID) + ', ' + \
-			str(int(round(self.position[0]))) + ', ' + \
-			str(int(round(self.position[1]))) + ', ' + \
-			str(int(round(self.position[2]))) + ', ' + \
-			str(int(round(math.degrees(self.rotation[0])))) + ', ' + \
-			str(int(round(math.degrees(self.rotation[1])))) + ', ' + \
-			str(int(round(math.degrees(self.rotation[2])))) + ', ' + \
-			str(self.actorParam) + '},'
 
 class OOTTransitionActor:
-	def __init__(self, actorID, frontRoom, backRoom, frontCam, backCam, position, rotation, actorParam):
+	def __init__(self, actorID, frontRoom, backRoom, frontCam, backCam, position, rotationY, actorParam):
 		self.actorID = actorID
 		self.actorParam = actorParam
 		self.frontRoom = frontRoom
@@ -38,20 +27,7 @@ class OOTTransitionActor:
 		self.frontCam = frontCam
 		self.backCam = backCam
 		self.position = position
-		self.rotation = rotation
-	
-	# TODO: Fix y rotation?
-	def toC(self):
-		return '{' + str(self.frontRoom) + ', ' + \
-			str(self.frontCam) + ', ' + \
-			str(self.backRoom) + ', ' + \
-			str(self.backCam) + ', ' + \
-			str(self.actorID) + ', ' + \
-			str(int(round(self.position[0]))) + ', ' + \
-			str(int(round(self.position[1]))) + ', ' + \
-			str(int(round(self.position[2]))) + ', ' + \
-			str(int(round(math.degrees(self.rotation[1])))) + ', ' + \
-			str(self.actorParam) + '},'
+		self.rotationY = rotationY
 
 class OOTExit:
 	def __init__(self, index):
@@ -62,24 +38,6 @@ class OOTEntrance:
 		self.roomIndex = roomIndex
 		self.startPositionIndex = startPositionIndex
 
-class OOTStartPosition:
-	def __init__(self, position, rotation, params):
-		self.position = position
-		self.rotation = rotation
-		self.params = params
-	
-	def toCStartPositions(self):
-		return 'ENTRANCE(' +\
-			str(int(round(self.position[0]))) + ', ' + \
-			str(int(round(self.position[1]))) + ', ' + \
-			str(int(round(self.position[2]))) + ', ' + \
-			str(int(round(math.degrees(self.rotation[0])))) + ', ' + \
-			str(int(round(math.degrees(self.rotation[1])))) + ', ' + \
-			str(int(round(math.degrees(self.rotation[2])))) + ')'
-
-	def toCEntranceList(self):
-		pass
-
 class OOTLight:
 	def __init__(self):
 		self.ambient = (0,0,0)
@@ -88,25 +46,26 @@ class OOTLight:
 		self.diffuse1 = (0,0,0)
 		self.diffuseDir1 = (0,0,0)
 		self.fogColor = (0,0,0)
-		self.fogDistance = 0
+		self.fogNear = 0
+		self.fogFar = 0
 		self.transitionSpeed = 0
-		self.drawDistance = 0
-
-class OOTCollision:
-	def __init__(self):
-		self.waterBoxes = []
+	
+	def getBlendFogShort(self):
+		return format((self.transitionSpeed << 10) | self.fogNear, "#06x")
 
 class OOTScene:
 	def __init__(self, name, model):
 		self.name = toAlnum(name)
 		self.rooms = {}
-		self.transitionActors = []
-		self.entrances = []
+		self.transitionActorList = set()
+		self.entranceList = set()
 		self.startPositions = {}
-		self.actors = []
 		self.lights = []
 		self.model = model
-		self.collision = OOTCollision()
+		self.collision = OOTCollision(self.name)
+
+		self.globalObject = None
+		self.naviCup = None
 
 		# Skybox
 		self.skyboxID = None
@@ -117,21 +76,64 @@ class OOTScene:
 		self.mapLocation = None
 		self.cameraMode = None
 
+		self.musicSeq = None
+		self.nightSeq = None
+
 		self.childNightHeader = None
 		self.adultDayHeader = None
 		self.adultNightHeader = None
 		self.cutsceneHeaders = []
 
 		self.exitList = []
+		self.pathList = []
+		self.cameraList = []
+
+		self.custcene = None
+
+	def roomListName(self):
+		return self.name + "_roomList"
+
+	def entranceListName(self):
+		return self.name + "_entranceList"
+
+	def startPositionsName(self):
+		return self.name + "_startPositionList"
+
+	def exitListName(self):
+		return self.name + "_exitList"
+
+	def lightListName(self):
+		return self.name + "_lightSettings"
+
+	def transitionActorListName(self):
+		return self.name + "_transitionActors"
+
+	def pathListName(self):
+		return self.name + "_pathway"
+
+	def cameraListName(self):
+		return self.name + "_cameraList"
+
+	def validateIndices(self):
+		self.collision.cameraData.validateCamPositions()
+		self.validateStartPositions()
+		self.validateRoomIndices()
 
 	def validateStartPositions(self):
 		count = 0
 		while count < len(self.startPositions):
 			if count not in self.startPositions:
-				raise PluginError("Error: Start positions do not have a consecutive list of indices.\n" +\
+				raise PluginError("Error: Entrances (start positions) do not have a consecutive list of indices. " +\
 					"Missing index: " + str(count))
 			count = count + 1
 		
+	def validateRoomIndices(self):
+		count = 0
+		while count < len(self.rooms):
+			if count not in self.rooms:
+				raise PluginError("Error: Room indices do not have a consecutive list of indices. " +\
+					"Missing index: " + str(count))
+			count = count + 1
 
 	def addRoom(self, roomIndex, roomName, meshType):
 		roomModel = self.model.addSubModel(roomName + '_dl')
@@ -157,18 +159,6 @@ class OOTRoomMesh:
 	
 	def entriesName(self):
 		return str(self.roomName) + "_meshDListEntry"
-
-	def headerToC(self):
-		return "MeshHeader" + str(self.meshType) + " " + self.headerName() + ' = ' +\
-			"{ {" + str(self.meshType) + "}, " + str(len(self.meshEntries)) + ", " +\
-			"(u32)&" + self.entriesName() + ", (u32)&(" + self.entriesName() + ") + " +\
-			"sizeof(" + self.entriesName() + ") };\n"
-	
-	def entriesToC(self):
-		data = "MeshEntry" + str(self.meshType) + self.entriesName() + "[" + str(len(self.meshEntries)) + "] = \n{\n"
-		for entry in self.meshEntries:
-			data += '\t' + entry.entryToC(str(self.meshType)) + '\n'
-		data += '};\n'
 	
 	def addMeshGroup(self, cullVolume):
 		meshGroup = OOTRoomMeshGroup(cullVolume, self.model.DLFormat, self.roomName, len(self.meshEntries))
@@ -208,44 +198,16 @@ class OOTRoomMeshGroup:
 		
 		if self.transparent is not None:
 			self.transparent.commands.append(SPEndDisplayList())
-	
-	def entryToC(self, meshType):
-		opaqueName = self.opaque.name if self.opaque is not None else "0"
-		transparentName = self.transparent.name if self.transparent is not None else "0"
-		data = "{ "
-		if meshType == "2":
-			if self.cullVolume is None:
-				data += "0x7FFF, 0x7FFF, 0x8000, 0x8000, "
-			else:
-				data += "(s16)" + str(self.cullVolume.high[0]) + ", (s16)" + str(self.cullVolume.high[1]) + ", "
-				data += "(s16)" + str(self.cullVolume.low[0]) + ", (s16)" + str(self.cullVolume.low[1]) + ", "
-		data += "(u32)" + opaqueName + ", (u32)" + transparentName + '},' 
-	
-	def DLtoC(self):
-		data = ''
-		if self.opaque is not None:
-			data += self.opaque.to_c() + '\n'
-		if self.transparent is not None:
-			data += self.transparent.to_c() + '\n'
-		return data
 
 class OOTRoom:
 	def __init__(self, index, name, model, meshType):
-		self.name = toAlnum(name)
-		self.collision = None
+		self.ownerName = toAlnum(name)
 		self.index = index
-		self.actors = []
-		self.transitionActors = []
-		self.water_boxes = []
-		self.mesh = OOTRoomMesh(self.name, meshType, model)
-
-		self.entrances = []
-		self.exits = []
-		self.pathways = []
+		self.actorList = set()
+		self.mesh = OOTRoomMesh(self.ownerName, meshType, model)
 
 		# Room behaviour
-		self.disableSunSongEffect = False
-		self.disableActionJumping = False
+		self.roomBehaviour = None
 		self.disableWarpSongs = False
 		self.showInvisibleActors = False
 		self.linkIdleMode = None
@@ -259,7 +221,8 @@ class OOTRoom:
 		self.windStrength = 0
 
 		# Time
-		self.timeValue = 0xFFFF
+		self.timeHours = 0x00
+		self.timeMinutes = 0x00
 		self.timeSpeed = 0xA
 
 		# Skybox
@@ -276,58 +239,50 @@ class OOTRoom:
 		self.adultNightHeader = None
 		self.cutsceneHeaders = []
 
-	def toCWindCommand(self):
+	def roomName(self):
+		return self.ownerName + "_room_" + str(self.index)
 
-		return "SET_WIND(" + '0x' + format(self.windVector[0], 'X') + ', ' +\
-			'0x' + format(self.windVector[1], 'X') + ', ' +\
-			'0x' + format(self.windVector[2], 'X') + ', ' +\
-			'0x' + format(self.windStrength, 'X') + ')'
+	def objectListName(self):
+		return self.roomName() + "_objectList"
 
-	def toCScript(self, includeRooms):
-		data = ''
-		data += '\tAREA(' + str(self.index) + ', ' + self.geolayout.name + '),\n'
-		for warpNode in self.warpNodes:
-			data += '\t\t' + warpNode + ',\n'
-		for obj in self.objects:
-			data += '\t\t' + obj.to_c() + ',\n'
-		data += '\t\tTERRAIN(' + self.collision.name + '),\n'
-		if includeRooms:
-			data += '\t\tROOMS(' + self.collision.rooms_name() + '),\n'
-		data += '\t\tMACRO_OBJECTS(' + self.macros_name() + '),\n'
-		if self.music_seq is None:
-			data += '\t\tSTOP_MUSIC(0),\n'
-		else:
-			data += '\t\tSET_BACKGROUND_MUSIC(' + self.music_preset + ', ' + self.music_seq + '),\n'
-		if self.startDialog is not None:
-			data += '\t\tSHOW_DIALOG(0x00, ' + self.startDialog + '),\n'
-		data += '\t\tTERRAIN_TYPE(' + self.terrain_type + '),\n'
-		data += '\tEND_AREA(),\n\n'
-		return data
-	
-	def toCPathways(self):
-		data = ''
-		for spline in self.pathways:
-			data += spline.to_c() + '\n'
-		return data
-	
-	def toCDefSplines(self):
-		data = ''
-		for spline in self.splines:
-			data += spline.to_c_def()
-		return data
+	def actorListName(self):
+		return self.roomName() + "_actorList"
 
-class OOTWaterBox(BoxEmpty):
-	def __init__(self, lightingSetting, cameraSetting, position, scale, emptyScale):
-		self.lightingSetting = lightingSetting
-		self.cameraSetting = cameraSetting
-		BoxEmpty.__init__(self, position, scale, emptyScale)
-	
-	def to_c(self):
-		data = 'WATER_BOX(' + \
-			str(self.waterBoxType) + ', ' + \
-			str(int(round(self.low[0]))) + ', ' + \
-			str(int(round(self.low[1]))) + ', ' + \
-			str(int(round(self.high[0]))) + ', ' + \
-			str(int(round(self.high[1]))) + ', ' + \
-			str(int(round(self.height))) + '),\n'
-		return data
+	def alternateHeadersName(self):
+		return self.roomName() + "_alternateHeaders"
+
+	def hasAlternateHeaders(self):
+		return not (self.childNightHeader == None and \
+			self.adultDayHeader == None and \
+			self.adultNightHeader == None and \
+			len(self.cutsceneHeaders) == 0)
+
+def addActor(owner, actor, actorProp, propName, actorObjName):
+	sceneSetup = actorProp.headerSettings
+	if sceneSetup.sceneSetupPreset == 'All Scene Setups' or\
+		sceneSetup.sceneSetupPreset == "All Non-Cutscene Scene Setups":
+		getattr(owner, propName).add(actor)
+		if owner.childNightHeader is not None:
+			getattr(owner.childNightHeader, propName).add(actor)
+		if owner.adultDayHeader is not None:
+			getattr(owner.adultDayHeader, propName).add(actor)
+		if owner.adultNightHeader is not None:
+			getattr(owner.adultNightHeader, propName).add(actor)
+		if sceneSetup.sceneSetupPreset == 'All Scene Setups':
+			for cutsceneHeader in owner.cutsceneHeaders:
+				getattr(cutsceneHeader, propName).add(actor)
+	elif sceneSetup.sceneSetupPreset == "Custom":
+		if sceneSetup.childDayHeader:
+			getattr(owner, propName).add(actor)
+		if sceneSetup.childNightHeader:
+			getattr(owner.childNightHeader, propName).add(actor)
+		if sceneSetup.adultDayHeader:
+			getattr(owner.adultDayHeader, propName).add(actor)
+		if sceneSetup.adultNightHeader:
+			getattr(owner.adultNightHeader, propName).add(actor)
+		for cutsceneHeader in sceneSetup.cutsceneHeaders:
+			if cutsceneHeader.headerIndex >= len(owner.cutsceneHeaders) + 4:
+				raise PluginError(actorObjName + " uses a cutscene header index that is outside the range of the current number of cutscene headers.")
+			getattr(owner.cutsceneHeaders[cutsceneHeader.headerIndex - 4]).add(actor)
+	else:
+		raise PluginError("Unhandled scene setup preset: " + str(sceneSetup.sceneSetupPreset))

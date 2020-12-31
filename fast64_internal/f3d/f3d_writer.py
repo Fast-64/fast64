@@ -1419,12 +1419,12 @@ def addLightDefinition(mat, f3d_light, fLights):
 	#		"The material \"" + mat.name + "\" is referencing a light that is no longer in the scene (i.e. has been deleted).")
 	
 	fLights.l.append(Light(
-		getLightColor(f3d_light),
+		getLightColor(f3d_light.color),
 		getLightRotation(f3d_light),
 	))
 
-def getLightColor(lightData):
-	return [int(value * 0xFF) for value in gammaCorrect(lightData.color)]
+def getLightColor(lightColor):
+	return [int(round(value * 0xFF)) for value in gammaCorrect(lightColor)]
 
 def getLightRotation(lightData):
 	lightObj = None
@@ -1435,12 +1435,15 @@ def getLightRotation(lightData):
 	if lightObj is None:
 		raise PluginError("A material is referencing a light that is no longer in the scene (i.e. has been deleted).")
 
-	return normToSigned8Vector(lightObj)
+	return getObjDirection(lightObj)
 
-def normToSigned8Vector(obj):
+def getObjDirection(obj):
 	spaceRot = mathutils.Euler((-pi / 2, 0, 0)).to_quaternion()
 	rotation = spaceRot @ getObjectQuaternion(obj)
 	normal = (rotation @ mathutils.Vector((0,0,1))).normalized()
+	return normToSigned8Vector(normal)
+
+def normToSigned8Vector(normal):
 	return [int.from_bytes(int(value * 127).to_bytes(1, 'big', 
 		signed = True), 'big') for value in normal]
 
