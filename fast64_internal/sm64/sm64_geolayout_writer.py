@@ -179,8 +179,6 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix,
 	if len(armatureObj.children) == 0:
 		raise PluginError("No mesh parented to armature.")
 
-	obj.data.calc_loop_triangles()
-	obj.data.calc_normals_split()
 	infoDict = getInfoDict(obj)
 
 	# Find start bone, which is not root. Root is the start for animation.
@@ -1252,8 +1250,6 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 						' for option ' + str(switchIndex) + \
 						', the switch option armature has no mesh children.')
 					optionObj = optionObjs[0]
-					optionObj.data.calc_loop_triangles()
-					optionObj.data.calc_normals_split()
 					optionInfoDict = getInfoDict(optionObj)
 					processBone(fModel, name, optionObj,
 						optionArmature,

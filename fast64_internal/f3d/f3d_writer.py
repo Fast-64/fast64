@@ -35,6 +35,9 @@ def getLoopFromVert(inputIndex, face):
 			return face.loops[i]
 
 def getInfoDict(obj):
+	fixLargeUVs(obj)
+	obj.data.calc_loop_triangles()
+	obj.data.calc_normals_split()
 	if len(obj.data.materials) == 0:
 		raise PluginError("Mesh does not have any Fast3D materials.")
 	infoDict = {
@@ -50,10 +53,6 @@ def getInfoDict(obj):
 	f3dVertDict = infoDict['f3dVert']
 	edgeValidDict = infoDict['edgeValid']
 	validNeighborDict = infoDict['validNeighbors']
-	#texSizeDict = infoDict['texDimensions']
-
-	#for material in obj.data.materials:
-	#	texSizeDict[material] = getTexDimensions(material)
 
 	mesh = obj.data
 	if len(obj.data.uv_layers) == 0:
@@ -81,9 +80,6 @@ def getInfoDict(obj):
 			if face not in edgeDict[edgeKey]:
 				edgeDict[edgeKey].append(face)
 
-		# modify UVs here
-		#fixLargeUVs(texSizeDict[material], face, uv_data)
-
 		for loopIndex in face.loops:
 			convertInfo = LoopConvertInfo(uv_data, obj, 
 				isLightingDisabled(mesh.materials[face.material_index]))
@@ -106,54 +102,67 @@ def getInfoDict(obj):
 						validNeighborDict[otherFace].append(face)
 	return infoDict
 
-def fixLargeUVs(size, face, uv_data):
-	cellSize = [1024 / size[0], 1024 / size[1]]
-	minUV, maxUV = findUVBounds(face, uv_data)
-	uvOffset = [0,0]
+def fixLargeUVs(obj):
+	mesh = obj.data
+	if len(obj.data.uv_layers) == 0:
+		uv_data = obj.data.uv_layers.new().data
+	else:
+		uv_data = None
+		for uv_layer in obj.data.uv_layers:
+			if uv_layer.name == 'UVMap':
+				uv_data = uv_layer.data
+		if uv_data is None:
+			raise PluginError("Object \'" + obj.name + "\' does not have a UV layer named \'UVMap.\'")
 
-	for i in range(2):
-		cellRange = abs(minUV[i] - maxUV[i])
-		if cellRange > cellSize[i]: # face is too large to fix in any way
-			print(str(minUV[i]) + ' - ' + str(maxUV[i]))
-			for loopIndex in face.loops:
-				print( uv_data[loopIndex].uv)
-			return 
+	texSizeDict = {}
+	for material in obj.data.materials:
+		texSizeDict[material] = getTexDimensions(material)
 
-		# Move UVs to -1024, 1024 bounds
-		offset = None
-		if minUV[i] < -cellSize[i]:
-			offset = ((minUV[i] - cellSize[i]) % (-cellSize[i] * 2)) + cellSize[i] - minUV[i]
-		if maxUV[i] > cellSize[i]:
-			offset = ((maxUV[i] + cellSize[i]) % (cellSize[i] * 2)) - cellSize[i] - maxUV[i]
-		if offset is not None:
-			applyOffset(minUV, maxUV, uvOffset, offset, i)
+	for polygon in mesh.polygons:
+		material = mesh.materials[polygon.material_index] 
+		if material is None:
+			raise PluginError("There are some faces on your mesh that are assigned to an empty material slot.")
 
-		# Move any UVs close to or straddling edge
-		minDiff = -cellSize[i] - minUV[i]
-		maxDiff = maxUV[i] - cellSize[i]
-		if minDiff >= 0:
-			applyOffset(minUV, maxUV, uvOffset, ceil(minDiff), i)
-		if maxDiff >= 0:
-			applyOffset(minUV, maxUV, uvOffset, -ceil(maxDiff), i)
-	
-	for loopIndex in face.loops:
-		uv_data[loopIndex].uv = \
-			(uv_data[loopIndex].uv[0] + uvOffset[0],
-			uv_data[loopIndex].uv[1] + uvOffset[1]) 
+		size = texSizeDict[material]
+		cellSize = [1024 / size[0], 1024 / size[1]]
+		if not isTexturePointSampled(material):
+			cellOffset = [-0.5/size[0], 0.5 / size[1]] # half pixel offset for bilinear filtering
+		else:
+			cellOffset = [0,0]
+		minUV, maxUV = findUVBounds(polygon, uv_data)
+		uvOffset = [0,0]
 
-	# fix straddling faces
-	# fix faces too close to edge when scrolling
-	# fix faces beyond range
+		for i in range(2):
+
+			# Move any UVs close to or straddling edge
+			minDiff = -(cellSize[i]-2) - (minUV[i] + cellOffset[i])
+			if minDiff >= 0:
+				applyOffset(minUV, maxUV, uvOffset, ceil(minDiff), i)
+			
+			maxDiff = (maxUV[i] + cellOffset[i]) - (cellSize[i] - 2)
+			if maxDiff >= 0:
+				applyOffset(minUV, maxUV, uvOffset, -ceil(maxDiff), i)
+
+		for loopIndex in polygon.loop_indices:
+			newUV = (uv_data[loopIndex].uv[0] + uvOffset[0],
+				uv_data[loopIndex].uv[1] + uvOffset[1]) 
+			uv_data[loopIndex].uv = newUV
+				
+			#if newUV[0] > cellSize[0] or \
+			#	newUV[1] > cellSize[1] or \
+			#	newUV[0] < -cellSize[0] or \
+			#	newUV[1] < -cellSize[1]:
+			#	print("TOO BIG: " + str(newUV))
 
 def applyOffset(minUV, maxUV, uvOffset, offset, i):
 	minUV[i] += offset
 	maxUV[i] += offset
 	uvOffset[i] += offset
 
-def findUVBounds(face, uv_data):
+def findUVBounds(polygon, uv_data):
 	minUV = [None, None]
 	maxUV = [None, None]
-	for loopIndex in face.loops:
+	for loopIndex in polygon.loop_indices:
 		uv = uv_data[loopIndex].uv
 		for i in range(2):
 			minUV[i] = uv[i] if minUV[i] is None else min(minUV[i], uv[i])
@@ -167,9 +176,6 @@ def saveStaticModel(fModel, obj, transformMatrix, ownerName, DLFormat, convertTe
 		return None
 	
 	#checkForF3DMaterial(obj)
-
-	obj.data.calc_loop_triangles()
-	obj.data.calc_normals_split()
 	infoDict = getInfoDict(obj)
 
 	fMeshGroup = FMeshGroup(toAlnum(ownerName + "_" + obj.original_name), 
@@ -411,10 +417,11 @@ def get8bitRoundedNormal(loop, mesh):
 	else:
 		normalizedA = 1
 	
+	# Don't round, as this may move UV toward UV bounds.
 	return mathutils.Vector(
-		(round(loop.normal[0] * 128) / 128,
-		round(loop.normal[1] * 128) / 128,
-		round(loop.normal[2] * 128) / 128,
+		(int(loop.normal[0] * 128) / 128,
+		int(loop.normal[1] * 128) / 128,
+		int(loop.normal[2] * 128) / 128,
 		normalizedA)
 	)
 
