@@ -1404,22 +1404,13 @@ class GameGfxFormatter:
 	def vertexScrollToC(self, fScrollData, name, vertexCount):
 		raise PluginError("Use of unimplemented GameGfxFormatter function vertexScrollToC.")
 
-	def vertexScrollToCDef(self, fScrollData, name):
-		raise PluginError("Use of unimplemented GameGfxFormatter function vertexScrollToCDef.")
-
 	# Called for building the entry point DL for drawing a model.
 	def drawToC(self, f3d, gfxList):
 		return gfxList.to_c(f3d)
 
-	def drawToCDef(self, gfxList):
-		return gfxList.to_c_def()
-
 	# Called for creating a dynamic material using tile texture scrolling.
 	# ScrollMethod and DLFormat checks are already handled.
 	def tileScrollMaterialToC(self, f3d, fMaterial):
-		raise PluginError("No tile scroll implementation specified.")
-
-	def tileScrollMaterialToCDef(self, fMaterial):
 		raise PluginError("No tile scroll implementation specified.")
 
 class Vtx:
@@ -1513,14 +1504,12 @@ class VtxList:
 		return data
 	
 	def to_c(self):
-		data = 'Vtx ' + self.name + '[' + str(len(self.vertices)) + '] = {\n'
+		data = CData()
+		data.header = 'extern Vtx ' + self.name + '[' + str(len(self.vertices)) + '];\n'
+		data.source = 'Vtx ' + self.name + '[' + str(len(self.vertices)) + '] = {\n'
 		for vert in self.vertices:
-			data += '\t' + vert.to_c() + ',\n'
-		data += '};'
-		return data
-	
-	def to_c_def(self):
-		data = 'extern Vtx ' + self.name + '[' + str(len(self.vertices)) + '];\n'
+			data.source += '\t' + vert.to_c() + ',\n'
+		data.source += '};\n\n'
 		return data
 	
 	def to_sm64_decomp_s(self):
@@ -1587,32 +1576,27 @@ class GfxList:
 		data = 'Gfx ' + self.name + '[] = {\n'
 		for command in self.commands:
 			data += '\t' + command.to_c(True) + ',\n'
-		data += '};'
+		data += '};\n\n'
 		return data
 
 	def to_c_dynamic(self):
 		data = 'Gfx* ' + self.name + '(Gfx* glistp) {\n'
 		for command in self.commands:
 			data += '\t' + command.to_c(False) + ';\n'
-		data += '\treturn glistp;\n}'
+		data += '\treturn glistp;\n}\n\n'
 		return data
 
 	def to_c(self, f3d):
+		data = CData()
 		if self.DLFormat == DLFormat.Static:
-			data = self.to_c_static()
+			data.header = 'extern Gfx ' + self.name + '[];\n'
+			data.source = self.to_c_static()
 		elif self.DLFormat == DLFormat.Dynamic:
-			data = self.to_c_dynamic()
+			data.header = 'Gfx* ' + self.name + '(Gfx* glistp);\n'
+			data.source = self.to_c_dynamic()
 		else:
 			raise PluginError("Invalid GfxList format: " + str(self.DLFormat))	
 		return data
-
-	def to_c_def(self):
-		if self.DLFormat == DLFormat.Static:
-			return 'extern Gfx ' + self.name + '[];\n'
-		elif self.DLFormat == DLFormat.Dynamic:
-			return 'Gfx* ' + self.name + '(Gfx* glistp);\n'
-		else:
-			raise PluginError("Invalid GfxList format: " + str(self.DLFormat))	
 	
 	def to_sm64_decomp_s(self):
 		data = 'glabel ' + self.name + '\n'
@@ -1653,19 +1637,19 @@ class FTexRect:
 		self.draw.save_binary(romfile, self.f3d, segments)
 	
 	def to_c(self, savePNG, texDir):
-		data = ''
-		code = ''
+		staticData = CData()
+		dynamicData = CData()
 		# since decomp is linux, don't use os.path.join 
 		# on windows this results in '\', which is incorrect (should be '/')
 		if texDir[-1] != '/':
 			texDir += '/'
 		for info, texture in self.textures.items():
 			if savePNG:
-				data += texture.to_c_tex_separate(texDir)
+				staticData.append(texture.to_c_tex_separate(texDir))
 			else:
-				data += texture.to_c()
-		code += self.draw.to_c(self.f3d)
-		return data, code
+				staticData.append(texture.to_c())
+		dynamicData.append(self.draw.to_c(self.f3d))
+		return staticData, dynamicData
 
 	def save_textures(self, dirpath):
 		for (image, texInfo), texture in self.textures.items():
@@ -1693,15 +1677,6 @@ class FTexRect:
 	def freePalettes(self):
 		# Palettes no longer saved
 		return
-	
-	def to_c_def(self):
-		return self.draw.to_c_def() + '\n'
-	
-	def to_c_def_tex(self):
-		data = ''
-		for (image, texInfo), texture in self.textures.items():
-			data += texture.to_c_def() + '\n'
-		return data
 	
 	def getTextureAndHandleShared(self, imageKey):
 		# Check if texture is in self
@@ -1805,7 +1780,7 @@ class FModel:
 		return self.masterDL
 	
 	def addSubModel(self, name):
-		subModel = FModel(self.f3d.F3D_VER, self.f3d._HW_VERSION_1, name + '_dl', self.DLFormat)
+		subModel = FModel(self.f3d.F3D_VER, self.f3d._HW_VERSION_1, name, self.DLFormat)
 		self.subModels.append(subModel)
 		subModel.parentModel = self
 		return subModel
@@ -1923,111 +1898,83 @@ class FModel:
 			subModel.save_binary(romfile, segments)
 
 	def to_c_lights(self):
-		data = ''
+		data = CData()
 		for name, light in self.lights.items():
-			data += light.to_c() + '\n'
+			data.append(light.to_c())
 		return data
 
 	def to_c_textures(self, texCSeparate, savePNG, texDir):
-		data = ''
 		# since decomp is linux, don't use os.path.join 
 		# on windows this results in '\', which is incorrect (should be '/')
 		if len(texDir) > 0 and texDir[-1] != '/':
 			texDir += '/'
+		data = CData()
 		for info, texture in self.textures.items():
 			if savePNG:
-				data += texture.to_c_tex_separate(texDir) + '\n'
+				data.append(texture.to_c_tex_separate(texDir))
 			else:
-				data += texture.to_c() + '\n'
-
+				data.append(texture.to_c())
 		return data
 
 	def to_c_materials(self, gfxFormatter):
-		data = ''
+		data = CData()
 		for materialKey, (fMaterial, texDimensions) in self.materials.items():
 			if gfxFormatter.scrollMethod == ScrollMethod.Tile:
 				if fMaterial.material.DLFormat == DLFormat.Static:
 					raise PluginError("Tile scrolling cannot be done with static DLs.")
-				data += gfxFormatter.tileScrollMaterialToC(self.f3d, fMaterial) + '\n'
+				data.append(gfxFormatter.tileScrollMaterialToC(self.f3d, fMaterial))
 			else:
-				data += fMaterial.to_c(self.f3d) + '\n'
+				data.append(fMaterial.to_c(self.f3d))
 		return data
 
 	def to_c_material_revert(self, gfxFormatter):
-		data = ''
+		data = CData()
 		if self.materialRevert is not None:
-			data += self.materialRevert.to_c(self.f3d) + '\n'
+			data.append(self.materialRevert.to_c(self.f3d))
 		return data
 
 	def to_c(self, texCSeparate, savePNG, texDir, gfxFormatter):
-		static_data = ''
-		dynamic_data = ''
-		texC = None
+		staticData = CData()
+		dynamicData = CData()
+		texC = CData()
 
-		static_data += self.to_c_lights()
+		# Source
+		staticData.append(self.to_c_lights())
 		
+		texData = self.to_c_textures(texCSeparate, savePNG, texDir)
+		staticData.header += texData.header
 		if texCSeparate:
-			texC = self.to_c_textures(texCSeparate, savePNG, texDir)
+			texC.source += texData.source
 		else:
-			static_data += self.to_c_textures(texCSeparate, savePNG, texDir)
+			staticData.source += texData.source
 
-		dynamic_data += self.to_c_materials(gfxFormatter)
+		dynamicData.append(self.to_c_materials(gfxFormatter))
 		for name, meshGroup in self.meshGroups.items():
 			meshGroupStatic, meshGroupDynamic = meshGroup.to_c(self.f3d, gfxFormatter)
-			static_data += meshGroupStatic + '\n'
-			dynamic_data += meshGroupDynamic + '\n'
+			staticData.append(meshGroupStatic)
+			dynamicData.append(meshGroupDynamic)
 
-		dynamic_data += self.to_c_material_revert(gfxFormatter)
+		dynamicData.append(self.to_c_material_revert(gfxFormatter))
 
-		return static_data, dynamic_data, texC
+		return staticData, dynamicData, texC
 	
 	def to_c_vertex_scroll(self, scrollName, gfxFormatter):
-		scroll_data = ''
-		scroll_calls = ''
-
+		scrollData = CData()
 		for name, meshGroup in self.meshGroups.items():
-			scroll_data += meshGroup.to_c_vertex_scroll(gfxFormatter)
-			scroll_calls += meshGroup.to_c_vertex_scroll_def(gfxFormatter)
+			scrollData.append(meshGroup.to_c_vertex_scroll(gfxFormatter))
 		
-		hasScrolling = len(scroll_calls) > 0
+		hasScrolling = len(scrollData.header) > 0
 
-		scrollDefinesSplit = scroll_calls.split('extern void ')
-		scroll_data += 'void scroll_' + scrollName + '() {\n'
+		scrollDefinesSplit = scrollData.header.split('extern void ')
+		scrollData.source += 'void scroll_' + scrollName + '() {\n'
 		for scrollFunc in scrollDefinesSplit:
 			if scrollFunc == '':
 				continue
-			scroll_data += '\t' + scrollFunc
-		scroll_data += '}\n'
-		return scroll_data, hasScrolling
+			scrollData.source += '\t' + scrollFunc
+		scrollData.source += '}\n'
 
-	def to_c_vertex_scroll_def(self, scrollName, gfxFormatter):
-		return '\nextern void scroll_' + scrollName + '();\n'
-
-	def to_c_def(self, gfxFormatter):
-		static_data = ''
-		dynamic_data = ''
-		
-		if self.DLFormat != DLFormat.Static:
-			for name, light in self.lights.items():
-				static_data += light.to_c_def() + '\n'
-			for materialKey, (fMaterial, texDimensions) in self.materials.items():
-				if gfxFormatter.scrollMethod == ScrollMethod.Tile:
-					if fMaterial.material.DLFormat == DLFormat.Static:		
-						raise PluginError("Tile scrolling cannot be done with static DLs.")
-					dynamic_data += gfxFormatter.tileScrollMaterialToC(fMaterial)
-				else:
-					dynamic_data += fMaterial.to_c_def()
-			for info, texture in self.textures.items():
-				static_data += texture.to_c_def() + '\n'
-		for name, meshGroup in self.meshGroups.items():
-			meshStatic, meshDynamic = meshGroup.to_c_def(gfxFormatter)
-			static_data += meshStatic
-			dynamic_data += meshDynamic
-		
-		if self.materialRevert is not None:
-			dynamic_data += self.materialRevert.to_c_def()
-
-		return (static_data + '\n'), (dynamic_data + '\n')
+		scrollData.header += 'extern void scroll_' + scrollName + '();\n'
+		return scrollData, hasScrolling
 
 	def save_textures(self, dirpath):
 		for (image, texInfo), texture in self.textures.items():
@@ -2095,46 +2042,25 @@ class FMeshGroup:
 			self.skinnedMesh.save_binary(romfile, f3d, segments)
 	
 	def to_c(self, f3d, gfxFormatter):
-		static_data = ""
-		dynamic_data = ""
+		staticData = CData()
+		dynamicData = CData()
 		if self.mesh is not None:
 			meshStatic, meshDynamic = self.mesh.to_c(f3d, gfxFormatter)
-			static_data += meshStatic + '\n'
-			dynamic_data += meshDynamic + '\n'
+			staticData.append(meshStatic)
+			dynamicData.append(meshDynamic)
 		if self.skinnedMesh is not None:
 			skinnedMeshStatic, skinnedMeshDynamic = self.skinnedMesh.to_c(f3d, gfxFormatter)
-			static_data += skinnedMeshStatic + '\n'
-			dynamic_data += skinnedMeshDynamic + '\n'
-		return static_data, dynamic_data
+			staticData.append(skinnedMeshStatic)
+			dynamicData.append(skinnedMeshDynamic)
+		return staticData, dynamicData
 
 	def to_c_vertex_scroll(self, gfxFormatter):
-		scroll_data = ""
+		scrollData = CData()
 		if self.mesh is not None:
-			scroll_data += self.mesh.to_c_vertex_scroll(gfxFormatter)
+			scrollData.append(self.mesh.to_c_vertex_scroll(gfxFormatter))
 		if self.skinnedMesh is not None:
-			scroll_data += self.skinnedMesh.to_c_vertex_scroll(gfxFormatter)
-		return scroll_data
-
-	def to_c_vertex_scroll_def(self, gfxFormatter):
-		scroll_data = ''
-		if self.mesh is not None:
-			scroll_data += self.mesh.to_c_vertex_scroll_def(gfxFormatter)
-		if self.skinnedMesh is not None:
-			scroll_data += self.skinnedMesh.to_c_vertex_scroll_def(gfxFormatter)
-		return scroll_data
-	
-	def to_c_def(self, gfxFormatter):
-		static_data = ''
-		dynamic_data = ''
-		if self.mesh is not None:
-			meshStatic, meshDynamic = self.mesh.to_c_def(gfxFormatter)
-			static_data += meshStatic
-			dynamic_data += meshDynamic
-		if self.skinnedMesh is not None:
-			skinnedMeshStatic, skinnedMeshDynamic = self.skinnedMesh.to_c_def(gfxFormatter)
-			static_data += skinnedMeshStatic
-			dynamic_data += skinnedMeshDynamic
-		return static_data, dynamic_data
+			scrollData.append(self.skinnedMesh.to_c_vertex_scroll(gfxFormatter))
+		return scrollData
 
 class FMesh:
 	def __init__(self, name, DLFormat):
@@ -2188,39 +2114,21 @@ class FMesh:
 			drawOverride.save_binary(romfile, f3d, segments)
 	
 	def to_c(self, f3d, gfxFormatter):
-		static_data = ''
+		staticData = CData()
 		if self.cullVertexList is not None:
-			static_data += self.cullVertexList.to_c() + '\n\n'
+			staticData.append(self.cullVertexList.to_c())
 		for triGroup in self.triangleGroups:
-			static_data += triGroup.to_c(f3d, gfxFormatter) + '\n\n'
-		dynamic_data = gfxFormatter.drawToC(f3d, self.draw)
+			staticData.append(triGroup.to_c(f3d, gfxFormatter))
+		dynamicData = gfxFormatter.drawToC(f3d, self.draw)
 		for materialTuple, drawOverride in self.drawMatOverrides.items():
-			dynamic_data += drawOverride.to_c(f3d) + '\n\n'
-		return static_data, dynamic_data
+			dynamicData.append(drawOverride.to_c(f3d))
+		return staticData, dynamicData
 
 	def to_c_vertex_scroll(self, gfxFormatter):
-		scroll_data = ''
+		scrollData = CData()
 		for triGroup in self.triangleGroups:
-			scroll_data += triGroup.to_c_vertex_scroll(gfxFormatter)
-		return scroll_data
-
-	def to_c_vertex_scroll_def(self, gfxFormatter):
-		scroll_data = ''
-		for triGroup in self.triangleGroups:
-			scroll_data += triGroup.to_c_vertex_scroll_def(gfxFormatter)
-		return scroll_data
-
-	def to_c_def(self, gfxFormatter):
-		dynamic_data = gfxFormatter.drawToCDef(self.draw)
-		static_data = ''
-		if self.DLFormat != DLFormat.Static:
-			if self.cullVertexList is not None:
-				static_data += self.cullVertexList.to_c_def()
-		for triGroup in self.triangleGroups:
-			static_data += triGroup.to_c_def(gfxFormatter)
-		for materialTuple, drawOverride in self.drawMatOverrides.items():
-			dynamic_data += drawOverride.to_c_def()
-		return static_data, dynamic_data
+			scrollData.append(triGroup.to_c_vertex_scroll(gfxFormatter))
+		return scrollData
 
 class FTriGroup:
 	def __init__(self, name, index, fMaterial):
@@ -2241,25 +2149,17 @@ class FTriGroup:
 		self.vertexList.save_binary(romfile)
 	
 	def to_c(self, f3d, gfxFormatter):
-		return self.vertexList.to_c() + '\n\n' +\
-			self.triList.to_c(f3d)
+		data = CData()
+		data.append(self.vertexList.to_c())
+		data.append(self.triList.to_c(f3d))
+		return data
 
 	def to_c_vertex_scroll(self, gfxFormatter):
 		if self.fMaterial.scrollData is not None:
 			return gfxFormatter.vertexScrollToC(
 				self.fMaterial.scrollData, self.vertexList.name, len(self.vertexList.vertices))
 		else:
-			return ''
-
-	def to_c_vertex_scroll_def(self, gfxFormatter):
-		if self.fMaterial.scrollData is not None:
-			return gfxFormatter.vertexScrollToCDef(self.fMaterial.scrollData, self.vertexList.name)
-		else:
-			return ''
-
-	def to_c_def(self, gfxFormatter):
-		return self.vertexList.to_c_def() +\
-			self.triList.to_c_def()
+			return CData()
 		
 class FScrollDataField:
 	def __init__(self):
@@ -2346,15 +2246,10 @@ class FMaterial:
 			self.revert.save_binary(romfile, f3d, segments)
 
 	def to_c(self, f3d):
-		data = self.material.to_c(f3d) + '\n\n'
+		data = CData()
+		data.append(self.material.to_c(f3d))
 		if self.revert is not None:
-			data += self.revert.to_c(f3d) + '\n\n'
-		return data
-	
-	def to_c_def(self):
-		data = self.material.to_c_def()
-		if self.revert is not None:
-			data += self.revert.to_c_def()
+			data.append(self.revert.to_c(f3d))
 		return data
 
 # viewport
@@ -2487,16 +2382,15 @@ class Lights:
 		return data
 
 	def to_c(self):
-		data = 'Lights' + str(len(self.l)) + " " + self.name + " = " +\
+		data = CData()
+		data.header = "extern Lights" + str(len(self.l)) + " " + self.name + ";\n"
+		data.source = 'Lights' + str(len(self.l)) + " " + self.name + " = " +\
 			'gdSPDefLights' + str(len(self.l)) + '(\n'
-		data += '\t' + self.a.to_c()
+		data.source += '\t' + self.a.to_c()
 		for light in self.l:
-			data += ',\n\t' + light.to_c()
-		data += ');\n' 
+			data.source += ',\n\t' + light.to_c()
+		data.source += ');\n\n' 
 		return data
-
-	def to_c_def(self):
-		return "extern Lights" + str(len(self.l)) + " " + self.name + ";\n"
 
 	def to_sm64_decomp_s(self):
 		data = '.balign 8\n' + self.name + ':\n'
@@ -2557,7 +2451,7 @@ class LookAt:
 
 # A palette is just a RGBA16 texture with width = 1.
 class FImage:
-	def __init__(self, name, fmt, bitSize, width, height, filename):
+	def __init__(self, name, fmt, bitSize, width, height, filename, converted):
 		self.name = name
 		self.fmt = fmt
 		self.bitSize = bitSize
@@ -2566,43 +2460,62 @@ class FImage:
 		self.startAddress = 0
 		self.data = bytearray(0)
 		self.filename = filename
+		self.converted = converted
 	
 	def size(self):
 		return len(self.data)
 
 	def to_binary(self):
 		return self.data
-
-	def to_c_def(self):
-		return 'extern u8 ' + self.name + '[];'
 	
 	def to_c(self):
-		# This is to force 8 byte alignment
-		code = 'Gfx ' + self.name + '_aligner[] = {gsSPEndDisplayList()};\n'
-		code += 'u8 ' + self.name + '[] = {\n\t'
-		code += self.to_c_data()
-		code += '\n};\n'
-		return code
+		return self.to_c_helper(self.to_c_data(64), 64)
 
 	def to_c_tex_separate(self, texPath):
+		return self.to_c_helper('#include "' + texPath + self.filename + '"', 8)
+
+	def to_c_helper(self, texData, bitsPerValue):
+		code = CData()
+		code.header = 'extern u' + str(bitsPerValue) + ' ' + self.name + '[];\n'
+
 		# This is to force 8 byte alignment
-		code = 'Gfx ' + self.name + '_aligner[] = {gsSPEndDisplayList()};\n'
-		code += 'u8 ' + self.name + '[] = {\n\t'
-		code += '#include "' + texPath + self.filename + '"'
-		code += '\n};\n'
+		if bitsPerValue != 64:
+			code.source = 'Gfx ' + self.name + '_aligner[] = {gsSPEndDisplayList()};\n'
+		code.source += 'u' + str(bitsPerValue) + ' ' + self.name + '[] = {\n\t'
+		code.source += texData
+		code.source += '\n};\n\n'
 		return code
 
-	def to_c_data(self):
+	def to_c_data(self, bitsPerValue):
+		if not self.converted:
+			raise PluginError("Error: Trying to write texture data to C, but haven't actually converted the image file to bytes yet.")
+
+		valuesPerLine = 8
+		
 		code = ''
 		counter = 0
-		for i in range(len(self.data)):
-			code += '0x' + format(self.data[i], 'X') + ', '
+		bytesPerValue = int(bitsPerValue / 8)
+		numValues = int(len(self.data) / bytesPerValue)
+		remainderCount = len(self.data) - numValues * bytesPerValue
+		digits = 2 + 2 * bytesPerValue
+
+		for i in range(numValues):
+			start = i * bytesPerValue
+			end = (i+1) * bytesPerValue
+			
+			code += format(int.from_bytes(self.data[start:end], 'big'), '#0' + str(digits) + 'x') + ', '
 			counter += 1
-			if counter > 8:
+			if counter == valuesPerLine:
 				code += '\n\t'
 				counter = 0
-		return code
 
+		if remainderCount > 0:
+			start = numValues * bytesPerValue
+			end = (numValues + 1) * bytesPerValue
+			code += format(int.from_bytes(self.data[start:end], 'big') << \
+				(8 * (bytesPerValue - remainderCount)), '#0' + str(digits) + 'x')
+
+		return code
 	
 	def set_addr(self, startAddress):
 		startAddress = get64bitAlignedAddr(startAddress)

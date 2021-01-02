@@ -521,31 +521,33 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 		geolayoutGraph, fModel = \
 			convertObjectToGeolayout(obj, transformMatrix, 
 			f3dType, isHWv1, child.areaCamera, levelName + '_' + areaName, fModel, child, DLFormat, not savePNG)
+		geolayoutGraphC = geolayoutGraph.to_c()
 
 		# Write geolayout
 		geoFile = open(os.path.join(areaDir, 'geo.inc.c'), 'w', newline = '\n')
-		geoFile.write(geolayoutGraph.to_c())
+		geoFile.write(geolayoutGraphC.source)
 		geoFile.close()
 		geoString += '#include "levels/' + levelName + '/' + areaName + '/geo.inc.c"\n'
-		headerString += geolayoutGraph.to_c_def()
+		headerString += geolayoutGraphC.header
 
 		# Write collision
-		collision = \
-			exportCollisionCommon(child, transformMatrix, True, True, 
+		collision = exportCollisionCommon(child, transformMatrix, True, True, 
 				levelName + '_' + areaName, child.areaIndex)
+		collisionC = collision.to_c()
 		colFile = open(os.path.join(areaDir, 'collision.inc.c'), 'w', newline = '\n')
-		colFile.write(collision.to_c())
+		colFile.write(collisionC.source)
 		colFile.close()
 		levelDataString += '#include "levels/' + levelName + '/' + areaName + '/collision.inc.c"\n'
-		headerString += collision.to_c_def()
+		headerString += collisionC.header
 
 		# Write rooms
 		if child.enableRoomSwitch:
+			roomsC = collision.to_c_rooms()
 			roomFile = open(os.path.join(areaDir, 'room.inc.c'), 'w', newline = '\n')
-			roomFile.write(collision.to_c_rooms())
+			roomFile.write(roomsC.source)
 			roomFile.close()
 			levelDataString += '#include "levels/' + levelName + '/' + areaName + '/room.inc.c"\n'
-			headerString += collision.to_c_rooms_def()
+			headerString += roomsC.header
 
 		# Get area
 		area = exportAreaCommon(child, transformMatrix, 
@@ -557,17 +559,19 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 
 		# Write macros
 		macroFile = open(os.path.join(areaDir, 'macro.inc.c'), 'w', newline = '\n')
-		macroFile.write(area.to_c_macros())
+		macrosC = area.to_c_macros()
+		macroFile.write(macrosC.source)
 		macroFile.close()
 		levelDataString += '#include "levels/' + levelName + '/' + areaName + '/macro.inc.c"\n'
-		headerString += area.to_c_def_macros()
+		headerString += macrosC.header
 
 		# Write splines
 		splineFile = open(os.path.join(areaDir, 'spline.inc.c'), 'w', newline = '\n')
-		splineFile.write(area.to_c_splines())
+		splinesC = area.to_c_splines()
+		splineFile.write(splinesC.source)
 		splineFile.close()
 		levelDataString += '#include "levels/' + levelName + '/' + areaName + '/spline.inc.c"\n'
-		headerString += area.to_c_def_splines()
+		headerString += splinesC.header
 
 	cameraVolumeString += '\tNULL_TRIGGER\n};'
 
@@ -594,10 +598,10 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 				shutil.rmtree(os.path.join(levelDir, f))
 	
 	gfxFormatter = SM64GfxFormatter(ScrollMethod.Vertex)
-	static_data, dynamic_data, texC = fModel.to_c(savePNG, savePNG, 'levels/' + levelName, gfxFormatter)
-	scroll_data, hasScrolling = fModel.to_c_vertex_scroll(levelName, gfxFormatter)
-	headerStatic, headerDynamic = fModel.to_c_def(gfxFormatter)
-	headerScroll = fModel.to_c_vertex_scroll_def(levelName, gfxFormatter)
+	staticData, dynamicData, texC = fModel.to_c(savePNG, savePNG, 'levels/' + levelName, gfxFormatter)
+	scrollData, hasScrolling = fModel.to_c_vertex_scroll(levelName, gfxFormatter)
+	scroll_data = scrollData.source
+	headerScroll = scrollData.header
 
 	if savePNG:
 		levelDataString =  '#include "levels/' + levelName + '/texture_include.inc.c"\n' + levelDataString
@@ -605,7 +609,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 
 		texPath = os.path.join(levelDir, 'texture_include.inc.c')
 		texFile = open(texPath, 'w', newline='\n')
-		texFile.write(texC)
+		texFile.write(texC.source)
 		texFile.close()
 
 	
@@ -613,23 +617,22 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 
 	# Write materials
 	if DLFormat == DLFormat.Static:
-		static_data += dynamic_data
-		headerStatic += headerDynamic
+		staticData.append(dynamicData)
 	else:
 		geoString = writeMaterialFiles(exportDir, levelDir, 
 			'#include "levels/' + levelName + '/header.h"', 
 			'#include "levels/' + levelName + '/material.inc.h"',
-			headerDynamic, dynamic_data, geoString, customExport)
+			dynamicData.header, dynamicData.source, geoString, customExport)
 
 	modelPath = os.path.join(levelDir, 'model.inc.c')
 	modelFile = open(modelPath, 'w', newline='\n')
-	modelFile.write(static_data)
+	modelFile.write(staticData.source)
 	modelFile.close()
 
 	fModel.freePalettes()
 
 	levelDataString += '#include "levels/' + levelName + '/model.inc.c"\n'
-	headerString += headerStatic
+	headerString += staticData.header
 	#headerString += '\nextern const LevelScript level_' + levelName + '_entry[];\n'
 	#headerString += '\n#endif\n'
 

@@ -26,21 +26,23 @@ class SM64GfxFormatter(GameGfxFormatter):
 		GameGfxFormatter.__init__(self, scrollMethod)
 
 	def vertexScrollToC(self, fScrollData, name, count):
-		return self.vertexScrollTemplate(fScrollData, name, count, 
+		data = CData()
+		data.source = self.vertexScrollTemplate(fScrollData, name, count, 
 			'absi', 'signum_positive', 'coss', 'random_float', 'random_sign', 'segmented_to_virtual')
-
-	def vertexScrollToCDef(self, fScrollData, name):
-		scrollDataFields = fScrollData.fields[0]
-		if (scrollDataFields[0].animType == "None") and\
-			(scrollDataFields[1].animType == "None"):
-			return ''
 		
-		return 'extern void scroll_' + name + "();\n"
+		scrollDataFields = fScrollData.fields[0]
+		if not((scrollDataFields[0].animType == "None") and\
+			(scrollDataFields[1].animType == "None")):
+			data.header = 'extern void scroll_' + name + "();\n"
+		
+		return data
 
 	# This code is not functional, only used for an example
 	def drawToC(self, f3d, gfxList):
+		data = CData()
 		if self.functionNodeDraw:
-			data = 'Gfx* ' + self.name + '(s32 renderContext, struct GraphNode* node, struct AllocOnlyPool *a2) {\n' +\
+			data.header = 'Gfx* ' + self.name + '(s32 renderContext, struct GraphNode* node, struct AllocOnlyPool *a2);\n'
+			data.source = 'Gfx* ' + self.name + '(s32 renderContext, struct GraphNode* node, struct AllocOnlyPool *a2) {\n' +\
 				'\tGfx* startCmd = NULL;\n' +\
 				'\tGfx* glistp = NULL;\n' +\
 				'\tstruct GraphNodeGenerated *generatedNode;\n' +\
@@ -53,25 +55,23 @@ class SM64GfxFormatter(GameGfxFormatter):
 
 			for command in self.commands:
 				if isinstance(command, SPDisplayList) and command.displayList.tag == GfxListTag.Material:
-					data += '\t' + 'glistp = ' + command.displayList.name + '(glistp, gAreaUpdateCounter, gAreaUpdateCounter);\n'
+					data.source += '\t' + 'glistp = ' + command.displayList.name + '(glistp, gAreaUpdateCounter, gAreaUpdateCounter);\n'
 				else:
-					data += '\t' + command.to_c(False) + ';\n'
+					data.source += '\t' + command.to_c(False) + ';\n'
 
-			data += '\t}\n\treturn startCmd;\n}'	
+			data.source += '\t}\n\treturn startCmd;\n}'	
 			return data
 		else:
 			return gfxList.to_c(f3d)
 
-	def drawToCDef(self, gfxList):
-		if self.functionNodeDraw:
-			return 'Gfx* ' + self.name + '(s32 renderContext, struct GraphNode* node, struct AllocOnlyPool *a2);\n'
-		else:
-			return gfxList.to_c_def()
-
 	# This code is not functional, only used for an example
 	def tileScrollMaterialToC(self, f3d, fMaterial):
+		data = CData()
+
 		materialGfx = fMaterial.material
 		scrollDataFields = fMaterial.scrollData.fields
+
+		data.header = 'Gfx* ' + fMaterial.material.name + '(Gfx* glistp, int s, int t);\n'
 
 		# Set tile scrolling
 		for texIndex in range(2): # for each texture
@@ -87,19 +87,14 @@ class SM64GfxFormatter(GameGfxFormatter):
 								" + s * " + str(scrollField.speed)
 
 		# Build commands
-		data = 'Gfx* ' + materialGfx.name + '(Gfx* glistp, int s, int t) {\n'
+		data.source = 'Gfx* ' + materialGfx.name + '(Gfx* glistp, int s, int t) {\n'
 		for command in materialGfx.commands:
-			data += '\t' + command.to_c(False) + ';\n'
-		data += '\treturn glistp;\n}' + '\n\n'
+			data.source += '\t' + command.to_c(False) + ';\n'
+		data.source += '\treturn glistp;\n}' + '\n\n'
 
 		if fMaterial.revert is not None:
-			data += fMaterial.revert.to_c(f3d) + '\n\n'
+			data.append(fMaterial.revert.to_c(f3d))
 		return data
-
-	def tileScrollMaterialToCDef(self, fMaterial):
-		return 'Gfx* ' + fMaterial.material.name + '(Gfx* glistp, int s, int t);\n' +\
-			fMaterial.revert.to_c_def() + '\n\n'
-
 
 def exportTexRectToC(dirPath, texProp, f3dType, isHWv1, texDir, 
 	savePNG, name, exportToProject, projectExportData):
@@ -108,9 +103,10 @@ def exportTexRectToC(dirPath, texProp, f3dType, isHWv1, texDir,
 	if name is None or name == '':
 		raise PluginError("Name cannot be empty.")
 
-	data, code = fTexRect.to_c(savePNG, texDir)
-	declaration = fTexRect.to_c_def_tex()
-	code = modifyDLForHUD(code)
+	staticData, dynamicData = fTexRect.to_c(savePNG, texDir)
+	declaration = staticData.header
+	code = modifyDLForHUD(dynamicData.source)
+	data = staticData.source
 
 	if exportToProject:	
 		seg2CPath = os.path.join(dirPath, "bin/segment2.c")
@@ -275,21 +271,21 @@ def exportF3DtoC(basePath, obj, DLFormat, transformMatrix,
 		scrollName = levelName + '_level_dl_' + name
 
 	gfxFormatter = SM64GfxFormatter(ScrollMethod.Vertex)
-	static_data, dynamic_data, texC = fModel.to_c(texSeparate, savePNG, texDir, gfxFormatter)
-	scroll_data, hasScrolling = fModel.to_c_vertex_scroll(scrollName, gfxFormatter)
-	cDefineStatic, cDefineDynamic = fModel.to_c_def(gfxFormatter)
-	cDefineScroll = fModel.to_c_vertex_scroll_def(scrollName, gfxFormatter) 
+	staticData, dynamicData, texC = fModel.to_c(texSeparate, savePNG, texDir, gfxFormatter)
+	scrollData, hasScrolling = fModel.to_c_vertex_scroll(scrollName, gfxFormatter)
+
+	scroll_data = scrollData.source
+	cDefineScroll = scrollData.header 
 
 	modifyTexScrollFiles(basePath, modelDirPath, cDefineScroll, scroll_data, hasScrolling)
 	
 	if DLFormat == DLFormat.Static:
-		static_data += '\n' + dynamic_data
-		cDefineStatic += cDefineDynamic
+		staticData.append(dynamicData)
 	else:
 		geoString = writeMaterialFiles(basePath, modelDirPath, 
 			'#include "actors/' + toAlnum(name) + '/header.h"', 
 			'#include "actors/' + toAlnum(name) + '/material.inc.h"',
-			cDefineDynamic, dynamic_data, '', customExport)
+			dynamicData.header, dynamicData.source, '', customExport)
 
 	if savePNG:
 		fModel.save_textures(modelDirPath)
@@ -298,17 +294,17 @@ def exportF3DtoC(basePath, obj, DLFormat, transformMatrix,
 
 	if texSeparate:
 		texCFile = open(os.path.join(modelDirPath, 'texture.inc.c'), 'w', newline='\n')
-		texCFile.write(texC)
+		texCFile.write(texC.source)
 		texCFile.close()
 
 	modelPath = os.path.join(modelDirPath, 'model.inc.c')
 	outFile = open(modelPath, 'w', newline='\n')
-	outFile.write(static_data)
+	outFile.write(staticData.source)
 	outFile.close()
 		
 	headerPath = os.path.join(modelDirPath, 'header.h')
 	cDefFile = open(headerPath, 'w', newline='\n')
-	cDefFile.write(cDefineStatic)
+	cDefFile.write(staticData.header)
 	cDefFile.close()
 		
 	if not customExport:

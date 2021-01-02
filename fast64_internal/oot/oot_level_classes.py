@@ -90,29 +90,41 @@ class OOTScene:
 
 		self.custcene = None
 
+	def sceneName(self):
+		return self.name + "_scene"
+
 	def roomListName(self):
-		return self.name + "_roomList"
+		return self.sceneName() + "_roomList"
 
 	def entranceListName(self):
-		return self.name + "_entranceList"
+		return self.sceneName() + "_entranceList"
 
 	def startPositionsName(self):
-		return self.name + "_startPositionList"
+		return self.sceneName() + "_startPositionList"
 
 	def exitListName(self):
-		return self.name + "_exitList"
+		return self.sceneName() + "_exitList"
 
 	def lightListName(self):
-		return self.name + "_lightSettings"
+		return self.sceneName() + "_lightSettings"
 
 	def transitionActorListName(self):
-		return self.name + "_transitionActors"
+		return self.sceneName() + "_transitionActors"
 
 	def pathListName(self):
-		return self.name + "_pathway"
+		return self.sceneName() + "_pathway"
 
 	def cameraListName(self):
-		return self.name + "_cameraList"
+		return self.sceneName() + "_cameraList"
+
+	def alternateHeadersName(self):
+		return self.sceneName() + "_alternateHeaders"
+
+	def hasAlternateHeaders(self):
+		return not (self.childNightHeader == None and \
+			self.adultDayHeader == None and \
+			self.adultNightHeader == None and \
+			len(self.cutsceneHeaders) == 0)
 
 	def validateIndices(self):
 		self.collision.cameraData.validateCamPositions()

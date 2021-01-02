@@ -80,50 +80,48 @@ class Collision:
 	def size(self):
 		return len(self.to_binary())
 
-	def to_c_def(self):
-		return 'extern const Collision ' + self.name + '[];\n'
-
 	def to_c(self):
-		data = 'const Collision ' + self.name + '[] = {\n'
-		data += '\tCOL_INIT(),\n'
-		data += '\tCOL_VERTEX_INIT(' + str(len(self.vertices)) + '),\n'
+		data = CData()
+		data.header = 'extern const Collision ' + self.name + '[];\n'
+		data.source = 'const Collision ' + self.name + '[] = {\n'
+		data.source += '\tCOL_INIT(),\n'
+		data.source += '\tCOL_VERTEX_INIT(' + str(len(self.vertices)) + '),\n'
 		for vertex in self.vertices:
-			data += '\t' + vertex.to_c()
+			data.source += '\t' + vertex.to_c()
 		for collisionType, triangles in self.triangles.items():
-			data += '\tCOL_TRI_INIT(' + collisionType + ', ' +\
+			data.source += '\tCOL_TRI_INIT(' + collisionType + ', ' +\
 				str(len(triangles)) + '),\n'
 			for triangle in triangles:
-				data += '\t' + triangle.to_c()
-		data += '\tCOL_TRI_STOP(),\n'
+				data.source += '\t' + triangle.to_c()
+		data.source += '\tCOL_TRI_STOP(),\n'
 		if len(self.specials) > 0:
-			data += '\tCOL_SPECIAL_INIT(' + str(len(self.specials)) + '),\n'
+			data.source += '\tCOL_SPECIAL_INIT(' + str(len(self.specials)) + '),\n'
 			for special in self.specials:
-				data += '\t' + special.to_c()
+				data.source += '\t' + special.to_c()
 		if len(self.water_boxes) > 0:
-			data += '\tCOL_WATER_BOX_INIT(' + str(len(self.water_boxes)) + '),\n'
+			data.source += '\tCOL_WATER_BOX_INIT(' + str(len(self.water_boxes)) + '),\n'
 			for waterBox in self.water_boxes:
-				data += '\t' + waterBox.to_c()
-		data += '\tCOL_END()\n' + '};\n'
+				data.source += '\t' + waterBox.to_c()
+		data.source += '\tCOL_END()\n' + '};\n'
 		return data
 	
 	def rooms_name(self):
 		return self.name + '_rooms'
 
 	def to_c_rooms(self):
-		data = 'const u8 ' + self.rooms_name() + '[] = {\n\t'
+		data = CData()
+		data.header = 'extern const u8 ' + self.rooms_name() + '[];\n'
+		data.source = 'const u8 ' + self.rooms_name() + '[] = {\n\t'
 		newlineCount = 0
 		for collisionType, triangles, in self.triangles.items():
 			for triangle in triangles:
-				data += str(triangle.room) + ', '
+				data.source += str(triangle.room) + ', '
 				newlineCount += 1
 				if newlineCount >= 8:
 					newlineCount = 0
-					data += '\n\t'
-		data += '\n};\n'
+					data.source += '\n\t'
+		data.source += '\n};\n'
 		return data
-
-	def to_c_rooms_def(self):
-		return 'extern const u8 ' + self.rooms_name() + '[];\n'
 
 	def to_binary(self):
 		colTypeDef = CollisionTypeDefinition()
@@ -259,15 +257,17 @@ def exportCollisionC(obj, transformMatrix, dirPath, includeSpecials,
 	fileObj = open(colPath, 'w', newline='\n')
 	collision = exportCollisionCommon(obj, transformMatrix, includeSpecials,
 		includeChildren, name, None)
-	fileObj.write(collision.to_c())
+	collisionC = collision.to_c()
+	fileObj.write(collisionC.source)
 	fileObj.close()
 
-	cDefine = collision.to_c_def()
+	cDefine = collisionC.header
 	if writeRoomsFile:
-		cDefine += collision.to_c_rooms_def()
+		roomsData = collision.to_c_rooms()
+		cDefine += roomsData.header
 		roomsPath = os.path.join(colDirPath, 'rooms.inc.c')
 		roomsFile = open(roomsPath, 'w', newline='\n')
-		roomsFile.write(collision.to_c_rooms())
+		roomsFile.write(roomsData.source)
 		roomsFile.close()
 
 	headerPath = os.path.join(colDirPath, 'collision_header.h')

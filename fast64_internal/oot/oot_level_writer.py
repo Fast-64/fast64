@@ -117,13 +117,23 @@ def sceneNameFromID(sceneID):
 	return sceneID[6:].lower()
 
 def ootExportSceneToC(originalSceneObj, transformMatrix, 
-	f3dType, isHWv1, sceneID, DLFormat, convertTextureData, exportPath, isCustomExport):
+	f3dType, isHWv1, sceneID, DLFormat, savePNG, exportPath, isCustomExport):
 	sceneName = sceneNameFromID(sceneID)
 	scene = ootConvertScene(originalSceneObj, transformMatrix, 
-		f3dType, isHWv1, sceneName, DLFormat, convertTextureData)
+		f3dType, isHWv1, sceneName, DLFormat, not savePNG)
 	
 	#print(list(scene.rooms.items())[0][1].mesh.model.to_c(False, False, "test", OOTGfxFormatter(ScrollMethod.Vertex)))
-	print(ootSceneToC(scene).scene.source)
+	levelC = ootSceneToC(scene, 0)
+	print(levelC.scene.source)
+	for room in levelC.rooms:
+		print(room.source)
+
+	scenePath = os.path.join(exportPath, "test.c")
+	sceneFile = open(scenePath, 'a')
+	sceneFile.write(levelC.scene.source)
+	for room in levelC.rooms:
+		sceneFile.write(room.source)
+	sceneFile.close()
 
 	#return scene.toC()
 
@@ -301,6 +311,7 @@ def ootConvertScene(originalSceneObj, transformMatrix,
 				readRoomData(room, roomObj.ootRoomHeader, roomObj.ootAlternateRoomHeaders)
 
 				ootProcessMesh(room.mesh, None, sceneObj, roomObj, transformMatrix, convertTextureData)
+				room.mesh.terminateDLs()
 				ootProcessEmpties(scene, room, sceneObj, roomObj, transformMatrix)
 			elif obj.data is None and obj.ootEmptyType == "Water Box":
 				ootProcessWaterBox(sceneObj, obj, transformMatrix, scene, 0x3F)
@@ -335,7 +346,7 @@ def ootProcessMesh(roomMesh, roomMeshGroup, sceneObj, obj, transformMatrix, conv
 			ootConvertTranslation(translation), scale, obj.empty_display_size))
 
 	elif isinstance(obj.data, bpy.types.Mesh):
-		meshData = saveStaticModel(roomMesh.model, obj, transformMatrix, obj.name, 
+		meshData = saveStaticModel(roomMesh.model, obj, transformMatrix, roomMesh.model.name, 
 			roomMesh.model.DLFormat, convertTextureData, False)
 		if roomMeshGroup is None:
 			roomMeshGroup = roomMesh.addMeshGroup(None)

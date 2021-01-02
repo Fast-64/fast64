@@ -320,6 +320,8 @@ def drawRoomHeaderProperty(layout, roomProp, dropdownLabel, headerIndex):
 	if headerIndex is None or headerIndex == 0:
 		prop_split(layout, roomProp, 'roomIndex', 'Room Index')
 		prop_split(layout, roomProp, 'meshType', "Mesh Type")
+		if roomProp.meshType == '1':
+			layout.box().label(text = "Mesh Type 1 not supported at this time.")
 
 	skyboxAndTime = layout.box()
 	skyboxAndTime.box().label(text = "Skybox And Time")

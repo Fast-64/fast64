@@ -25,15 +25,12 @@ class SM64_Animation:
 			self.values.to_binary()
 	
 	def to_c(self):
-		return self.values.to_c() + '\n' +\
+		data = CData()
+		data.header = "extern const struct Animation *const " + self.name + '[];\n'
+		data.source = self.values.to_c() + '\n' +\
 			self.indices.to_c() + '\n' +\
 			self.header.to_c() + '\n'
-		#return self.header.to_c() + '\n' +\
-		#	self.indices.to_c() + '\n' +\
-		#	self.values.to_c() + '\n'
-	
-	def to_c_def(self):
-		return "extern const struct Animation *const " + self.name + '[];\n'
+		return data
 
 class SM64_ShortArray:
 	def __init__(self, name, signed):
@@ -160,7 +157,7 @@ def exportAnimationC(armatureObj, loopAnim, dirPath, dirName, groupName,
 
 	data = sm64_anim.to_c()
 	outFile = open(animPath, 'w', newline='\n')
-	outFile.write(data)
+	outFile.write(data.source)
 	outFile.close()
 
 	headerPath = os.path.join(geoDirPath, 'anim_header.h')

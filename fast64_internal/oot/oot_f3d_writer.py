@@ -14,9 +14,6 @@ class OOTGfxFormatter(GameGfxFormatter):
 	def drawToC(self, f3d, gfxList):
 		return gfxList.to_c(f3d)
 
-	def drawToCDef(self, gfxList):
-		return gfxList.to_c_def()
-
 	# This code is not functional, only used for an example
 	def tileScrollMaterialToC(self, f3d, fMaterial):
 		materialGfx = fMaterial.material
@@ -36,18 +33,16 @@ class OOTGfxFormatter(GameGfxFormatter):
 								" + s * " + str(scrollField.speed)
 
 		# Build commands
-		data = 'Gfx* ' + materialGfx.name + '(Gfx* glistp, int s, int t) {\n'
+		data = CData()
+		data.header = 'Gfx* ' + fMaterial.material.name + '(Gfx* glistp, int s, int t);\n'
+		data.source = 'Gfx* ' + materialGfx.name + '(Gfx* glistp, int s, int t) {\n'
 		for command in materialGfx.commands:
-			data += '\t' + command.to_c(False) + ';\n'
-		data += '\treturn glistp;\n}' + '\n\n'
+			data.source += '\t' + command.to_c(False) + ';\n'
+		data.source += '\treturn glistp;\n}' + '\n\n'
 
 		if fMaterial.revert is not None:
-			data += fMaterial.revert.to_c(f3d) + '\n\n'
+			data.append(fMaterial.revert.to_c(f3d))
 		return data
-
-	def tileScrollMaterialToCDef(self, fMaterial):
-		return 'Gfx* ' + fMaterial.material.name + '(Gfx* glistp, int s, int t);\n' +\
-			fMaterial.revert.to_c_def() + '\n\n'
 
 class OOT_DisplayListPanel(bpy.types.Panel):
 	bl_label = "Display List Inspector"
@@ -280,21 +275,20 @@ def ootExportF3DtoC(basePath, obj, DLFormat, transformMatrix,
 		scrollName = levelName + '_level_dl_' + name
 
 	gfxFormatter = SM64GfxFormatter(ScrollMethod.Vertex)
-	static_data, dynamic_data, texC = fModel.to_c(texSeparate, savePNG, texDir, gfxFormatter)
-	scroll_data, hasScrolling = fModel.to_c_vertex_scroll(scrollName, gfxFormatter)
-	cDefineStatic, cDefineDynamic = fModel.to_c_def(gfxFormatter)
-	cDefineScroll = fModel.to_c_vertex_scroll_def(scrollName, gfxFormatter) 
+	staticData, dynamicData, texC = fModel.to_c(texSeparate, savePNG, texDir, gfxFormatter)
+	scrollData, hasScrolling = fModel.to_c_vertex_scroll(scrollName, gfxFormatter)
+	scroll_data = scrollData.source
+	cDefineScroll = scrollData.header 
 
 	modifyTexScrollFiles(basePath, modelDirPath, cDefineScroll, scroll_data, hasScrolling)
 	
 	if DLFormat == DLFormat.Static:
-		static_data += '\n' + dynamic_data
-		cDefineStatic += cDefineDynamic
+		staticData.append(dynamicData)
 	else:
 		geoString = writeMaterialFiles(basePath, modelDirPath, 
 			'#include "actors/' + toAlnum(name) + '/header.h"', 
 			'#include "actors/' + toAlnum(name) + '/material.inc.h"',
-			cDefineDynamic, dynamic_data, '', customExport)
+			dynamicData.header, dynamicData.source, '', customExport)
 
 	if savePNG:
 		fModel.save_textures(modelDirPath)
@@ -303,17 +297,17 @@ def ootExportF3DtoC(basePath, obj, DLFormat, transformMatrix,
 
 	if texSeparate:
 		texCFile = open(os.path.join(modelDirPath, 'texture.inc.c'), 'w', newline='\n')
-		texCFile.write(texC)
+		texCFile.write(texC.source)
 		texCFile.close()
 
 	modelPath = os.path.join(modelDirPath, 'model.inc.c')
 	outFile = open(modelPath, 'w', newline='\n')
-	outFile.write(static_data)
+	outFile.write(staticData.source)
 	outFile.close()
 		
 	headerPath = os.path.join(modelDirPath, 'header.h')
 	cDefFile = open(headerPath, 'w', newline='\n')
-	cDefFile.write(cDefineStatic)
+	cDefFile.write(staticData.header)
 	cDefFile.close()
 		
 	if not customExport:

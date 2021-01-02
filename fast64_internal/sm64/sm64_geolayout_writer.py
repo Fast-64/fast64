@@ -308,10 +308,10 @@ def saveGeolayoutC(geoName, dirName, geolayoutGraph, fModel, exportDir, texDir, 
 		scrollName = levelName + '_level_geo_' + dirName
 
 	gfxFormatter = SM64GfxFormatter(ScrollMethod.Vertex)
-	static_data, dynamic_data, texC = fModel.to_c(texSeparate, savePNG, texDir, gfxFormatter)
-	scroll_data, hasScrolling = fModel.to_c_vertex_scroll(scrollName, gfxFormatter)
-	cDefineStatic, cDefineDynamic = fModel.to_c_def(gfxFormatter)
-	cDefineScroll = fModel.to_c_vertex_scroll_def(scrollName, gfxFormatter)
+	staticData, dynamicData, texC = fModel.to_c(texSeparate, savePNG, texDir, gfxFormatter)
+	scrollData, hasScrolling = fModel.to_c_vertex_scroll(scrollName, gfxFormatter)
+	scroll_data = scrollData.source
+	cDefineScroll = scrollData.header
 	geolayoutGraph.startGeolayout.name = geoName
 
 	# Handle cases where geolayout name != folder name + _geo
@@ -358,22 +358,22 @@ def saveGeolayoutC(geoName, dirName, geolayoutGraph, fModel, exportDir, texDir, 
 	modifyTexScrollFiles(exportDir, geoDirPath, cDefineScroll, scroll_data, hasScrolling)
 	
 	if DLFormat == DLFormat.Static:
-		static_data += '\n' + dynamic_data
-		cDefineStatic = geolayoutGraph.to_c_def() + cDefineStatic + cDefineDynamic
+		staticData.source += '\n' + dynamicData.source
+		staticData.header = geoData.header + staticData.header + dynamicData.header
 	else:
 		geoData = writeMaterialFiles(exportDir, geoDirPath, 
 			headerInclude, matHInclude,
-			cDefineDynamic, dynamic_data, geoData, customExport)
+			dynamicData.header, dynamicData.source, geoData, customExport)
 
 	modelPath = os.path.join(geoDirPath, 'model.inc.c')
 	modelFile = open(modelPath, 'w', newline='\n')
-	modelFile.write(static_data)
+	modelFile.write(staticData.source)
 	modelFile.close()
 
 	if texSeparate:
 		texPath = os.path.join(geoDirPath, 'texture.inc.c')
 		texFile = open(texPath, 'w', newline='\n')
-		texFile.write(texC)
+		texFile.write(texC.source)
 		texFile.close()
 
 	fModel.freePalettes()
@@ -381,13 +381,13 @@ def saveGeolayoutC(geoName, dirName, geolayoutGraph, fModel, exportDir, texDir, 
 	# save geolayout
 	geoPath = os.path.join(geoDirPath, 'geo.inc.c')
 	geoFile = open(geoPath, 'w', newline='\n')
-	geoFile.write(geoData)
+	geoFile.write(geoData.source)
 	geoFile.close()
 
 	# save header
 	headerPath = os.path.join(geoDirPath, 'geo_header.h')
 	cDefFile = open(headerPath, 'w', newline='\n')
-	cDefFile.write(cDefineStatic)
+	cDefFile.write(staticData.header)
 	cDefFile.close()
 	
 	if not customExport:
@@ -481,7 +481,7 @@ def saveGeolayoutC(geoName, dirName, geolayoutGraph, fModel, exportDir, texDir, 
 		else:
 			fModel.save_textures(geoDirPath)
 	
-	return cDefineStatic
+	return staticData.header
 
 # Insertable Binary
 def exportGeolayoutArmatureInsertableBinary(armatureObj, obj,

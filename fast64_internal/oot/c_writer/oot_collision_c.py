@@ -52,11 +52,10 @@ def ootCameraPosToC(camPos):
 		str(camPos.jfifID) + ', ' +\
 		format(camPos.unknown, "#06x") + ' },\n'
 
-# TODO: cam data
 def ootCollisionToC(collision):
-	data = ''
+	data = CData()
 
-	data += ootCameraDataToC(collision.cameraData) + '\n'
+	data.source += ootCameraDataToC(collision.cameraData) + '\n'
 	
 	polygonTypeC = "u32 " + collision.polygonTypesName() + "[] = \n{\n"
 	polygonC = "RoomPoly " + collision.polygonsName() + "[] = \n{\n"
@@ -74,24 +73,25 @@ def ootCollisionToC(collision):
 	polygonTypeC += '};\n\n'
 	polygonC += '};\n\n'
 
-	data += polygonTypeC + polygonC
+	data.source += polygonTypeC + polygonC
 
-	data += "Vec3s " + collision.verticesName() + "[" + str(len(collision.vertices)) + "] = \n{\n"
+	data.source += "Vec3s " + collision.verticesName() + "[" + str(len(collision.vertices)) + "] = \n{\n"
 	for vertex in collision.vertices:
-		data += '\t' + ootCollisionVertexToC(vertex)
-	data += '};\n\n'
+		data.source += '\t' + ootCollisionVertexToC(vertex)
+	data.source += '};\n\n'
 
-	data += "WaterBoxHeader " + collision.waterBoxesName() + "[] = \n{\n"
+	data.source += "WaterBoxHeader " + collision.waterBoxesName() + "[] = \n{\n"
 	for waterBox in collision.waterBoxes:
-		data += '\t' + ootWaterBoxToC(waterBox)
-	data += '};\n\n'
+		data.source += '\t' + ootWaterBoxToC(waterBox)
+	data.source += '};\n\n'
 
-	header = "CollisionHeader " + collision.headerName() + ' = { '
+	data.header = "extern CollisionHeader " + collision.headerName() + ';\n'
+	data.source = "CollisionHeader " + collision.headerName() + ' = { '
 	for bound in range(2): # min, max bound
 		for field in range(3): # x, y, z
-			header += str(collision.bounds[bound][field]) + ', '
+			data.source += str(collision.bounds[bound][field]) + ', '
 	
-	header += \
+	data.source += \
 		str(len(collision.vertices)) + ', ' +\
 		collision.verticesName() + ', ' +\
 		str(collision.polygonCount()) + ", " +\
@@ -100,70 +100,5 @@ def ootCollisionToC(collision):
 		"&" + collision.camDataName() + ', ' +\
 		str(len(collision.waterBoxes)) + ", " +\
 		collision.waterBoxesName() + ' };\n'
-	
-	data += header
 
 	return data
-
-def exportCollisionC(obj, transformMatrix, dirPath, includeSpecials, 
-	includeChildren, name, customExport, writeRoomsFile, headerType,
-	groupName, levelName):
-
-	dirPath, texDir = getExportDir(customExport, dirPath, headerType, 
-		levelName, '', name)
-
-	name = toAlnum(name)
-	colDirPath = os.path.join(dirPath, toAlnum(name))
-
-	if not os.path.exists(colDirPath):
-		os.mkdir(colDirPath)
-
-	colPath = os.path.join(colDirPath, 'collision.inc.c')
-
-	fileObj = open(colPath, 'w', newline='\n')
-	collision = exportCollisionCommon(obj, transformMatrix, includeSpecials,
-		includeChildren, name, None)
-	fileObj.write(collision.to_c())
-	fileObj.close()
-
-	cDefine = collision.to_c_def()
-	if writeRoomsFile:
-		cDefine += collision.to_c_rooms_def()
-		roomsPath = os.path.join(colDirPath, 'rooms.inc.c')
-		roomsFile = open(roomsPath, 'w', newline='\n')
-		roomsFile.write(collision.to_c_rooms())
-		roomsFile.close()
-
-	headerPath = os.path.join(colDirPath, 'collision_header.h')
-	cDefFile = open(headerPath, 'w', newline='\n')
-	cDefFile.write(cDefine)
-	cDefFile.close()
-
-	if not customExport:
-		if headerType == 'Actor':
-			# Write to group files
-			if groupName == '' or groupName is None:
-				raise PluginError("Actor header type chosen but group name not provided.")
-
-			groupPathC = os.path.join(dirPath, groupName + ".c")
-			groupPathH = os.path.join(dirPath, groupName + ".h")
-
-			writeIfNotFound(groupPathC, '\n#include "' + name + '/collision.inc.c"', '')
-			if writeRoomsFile:
-				writeIfNotFound(groupPathC, '\n#include "' + name + '/rooms.inc.c"', '')
-			else:
-				deleteIfFound(groupPathC, '\n#include "' + name + '/rooms.inc.c"')
-			writeIfNotFound(groupPathH, '\n#include "' + name + '/collision_header.h"', '\n#endif')
-		
-		elif headerType == 'Level':
-			groupPathC = os.path.join(dirPath, "leveldata.c")
-			groupPathH = os.path.join(dirPath, "header.h")
-
-			writeIfNotFound(groupPathC, '\n#include "levels/' + levelName + '/' + name + '/collision.inc.c"', '')
-			if writeRoomsFile:
-				writeIfNotFound(groupPathC, '\n#include "levels/' + levelName + '/' + name + '/rooms.inc.c"', '')
-			else:
-				deleteIfFound(groupPathC, '\n#include "levels/' + levelName + '/' + name + '/rooms.inc.c"')
-			writeIfNotFound(groupPathH, '\n#include "levels/' + levelName + '/' + name + '/collision_header.h"', '\n#endif')
-		
-	return cDefine

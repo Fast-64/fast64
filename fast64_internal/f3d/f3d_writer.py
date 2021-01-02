@@ -162,7 +162,7 @@ def findUVBounds(face, uv_data):
 
 # Make sure to set original_name before calling this
 # used when duplicating an object
-def saveStaticModel(fModel, obj, transformMatrix, name, DLFormat, convertTextureData, revertMatAtEnd):
+def saveStaticModel(fModel, obj, transformMatrix, ownerName, DLFormat, convertTextureData, revertMatAtEnd):
 	if len(obj.data.polygons) == 0:
 		return None
 	
@@ -172,9 +172,9 @@ def saveStaticModel(fModel, obj, transformMatrix, name, DLFormat, convertTexture
 	obj.data.calc_normals_split()
 	infoDict = getInfoDict(obj)
 
-	fMeshGroup = FMeshGroup(toAlnum(name + "_" + obj.original_name), 
-		FMesh(toAlnum(name + "_" + obj.original_name) + '_mesh', DLFormat), None, DLFormat)
-	fModel.meshGroups[name + "_" + obj.original_name] = fMeshGroup
+	fMeshGroup = FMeshGroup(toAlnum(ownerName + "_" + obj.original_name), 
+		FMesh(toAlnum(ownerName + "_" + obj.original_name) + '_mesh', DLFormat), None, DLFormat)
+	fModel.meshGroups[ownerName + "_" + obj.original_name] = fMeshGroup
 
 	if obj.use_f3d_culling and (fModel.f3d.F3DEX_GBI or fModel.f3d.F3DEX_GBI_2):
 		addCullCommand(obj, fMeshGroup.mesh, transformMatrix)
@@ -1233,10 +1233,10 @@ def saveOrGetPaletteDefinition(fModelOrTexRect, image, imageName, texFmt, palFmt
 	paletteFilename = getNameFromPath(name, True) + '.' + \
 		texFmt.lower() + '.pal'
 	fImage = FImage(checkDuplicateTextureName(fModelOrTexRect, toAlnum(imageName)), texFormat, bitSize, 
-		image.size[0], image.size[1], filename)
+		image.size[0], image.size[1], filename, convertTextureData)
 
 	fPalette = FImage(checkDuplicateTextureName(fModelOrTexRect, paletteName), palFormat, 'G_IM_SIZ_16b', 1, 
-		len(palette), paletteFilename)
+		len(palette), paletteFilename, convertTextureData)
 	#paletteTex = bpy.data.images.new(paletteName, 1, len(palette))
 	#paletteTex.pixels = palette
 	#paletteTex.filepath = getNameFromPath(name, True) + '.' + \
@@ -1297,7 +1297,7 @@ def saveOrGetTextureDefinition(fModel, image, imageName, texFormat, convertTextu
 		texFormat.lower() + '.inc.c'
 
 	fImage = FImage(checkDuplicateTextureName(fModel, toAlnum(imageName)), fmt, bitSize, 
-		image.size[0], image.size[1], filename)
+		image.size[0], image.size[1], filename, convertTextureData)
 
 	if convertTextureData:
 		# N64 is -Y, Blender is +Y

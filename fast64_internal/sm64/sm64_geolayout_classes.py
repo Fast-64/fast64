@@ -123,17 +123,11 @@ class GeolayoutGraph:
 			geolayout.save_binary(romfile, segmentData)
 
 	def to_c(self):
+		data = CData()
 		self.checkListSorted()
-		data = '#include "src/game/envfx_snow.h"\n\n'
+		data.source = '#include "src/game/envfx_snow.h"\n\n'
 		for geolayout in self.sortedList:
-			data += geolayout.to_c()
-		return data
-	
-	def to_c_def(self):
-		self.checkListSorted()
-		data = ''
-		for geolayout in self.sortedList:
-			data += geolayout.to_c_def()
+			data.append(geolayout.to_c())
 		return data
 
 	def toTextDump(self, segmentData):
@@ -191,15 +185,14 @@ class Geolayout:
 
 	def to_c(self):
 		endCmd = 'GEO_END' if self.isStartGeo else 'GEO_RETURN'
-		data = 'const GeoLayout ' + self.name + '[] = {\n'
+		data = CData()
+		data.header = 'extern const GeoLayout ' + self.name + '[];\n'
+		data.source = 'const GeoLayout ' + self.name + '[] = {\n'
 		for node in self.nodes:
-			data += node.to_c(1)
-		data += '\t' + endCmd + '(),\n'
-		data += '};\n'
+			data.source += node.to_c(1)
+		data.source += '\t' + endCmd + '(),\n'
+		data.source += '};\n'
 		return data
-	
-	def to_c_def(self):
-		return 'extern const GeoLayout ' + self.name + '[];\n'
 
 	def toTextDump(self, segmentData):
 		endCmd = '01' if self.isStartGeo else '03'

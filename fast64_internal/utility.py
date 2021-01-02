@@ -41,6 +41,10 @@ class CData:
 		self.source = ""
 		self.header = ""
 
+	def append(self, other):
+		self.source += other.source
+		self.header += other.header
+
 def getObjectFromData(data):
 	for obj in bpy.data.objects:
 		if obj.data == data:
@@ -140,7 +144,8 @@ def writeMaterialHeaders(exportDir, matCInclude, matHInclude):
 		'\n' + matHInclude, '#endif')
 
 def writeMaterialFiles(exportDir, assetDir, headerInclude, matHInclude,
-	headerDynamic, dynamic_data, geoString, customExport):
+	headerDynamic, dynamic_data, geoData, customExport):
+	geoString = geoData.source
 	if not customExport:
 		writeMaterialBase(exportDir)
 	levelMatCPath = os.path.join(assetDir, 'material.inc.c')

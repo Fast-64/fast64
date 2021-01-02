@@ -309,16 +309,14 @@ class SM64_Area:
 		return data
 
 	def to_c_macros(self):
-		data = ''
-		data += 'const MacroObject ' + self.macros_name() + '[] = {\n'
+		data = CData()
+		data.header = 'extern const MacroObject ' + self.macros_name() + '[];\n'
+		data.source += 'const MacroObject ' + self.macros_name() + '[] = {\n'
 		for macro in self.macros:
-			data += '\t' + macro.to_c() + ',\n'
-		data += '\tMACRO_OBJECT_END(),\n};\n\n'
+			data.source += '\t' + macro.to_c() + ',\n'
+		data.source += '\tMACRO_OBJECT_END(),\n};\n\n'
 
 		return data
-	
-	def to_c_def_macros(self):
-		return 'extern const MacroObject ' + self.macros_name() + '[];\n'
 
 	def to_c_camera_volumes(self):
 		data = ''
@@ -333,19 +331,12 @@ class SM64_Area:
 		return False
 	
 	def to_c_splines(self):
-		data = ''
+		data = CData()
 		for spline in self.splines:
-			data += spline.to_c() + '\n'
+			data.append(spline.to_c())
 		if self.hasCutsceneSpline():
-			data = '#include "src/game/camera.h"\n\n' + data
-		return data
-	
-	def to_c_def_splines(self):
-		data = ''
-		for spline in self.splines:
-			data += spline.to_c_def()
-		if self.hasCutsceneSpline():
-			data = '#include "src/game/camera.h"\n\n' + data
+			data.source = '#include "src/game/camera.h"\n\n' + data.source
+			data.header = '#include "src/game/camera.h"\n\n' + data.header
 		return data
 
 class CollisionWaterBox:

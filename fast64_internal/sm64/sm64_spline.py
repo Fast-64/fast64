@@ -17,59 +17,52 @@ class SM64Spline:
 		self.speeds = []
 	
 	def to_c(self):
-		data = ''
+		data = CData()
 		if self.splineType == 'Trajectory':
-			data += 'const Trajectory ' + self.name + '[] = {\n'
+			data.header = 'extern const Trajectory ' + self.name + '[];\n'
+			data.source += 'const Trajectory ' + self.name + '[] = {\n'
 			for index in range(len(self.points)):
 				point = self.points[index]
-				data += "\tTRAJECTORY_POS( " + str(index) \
+				data.source += "\tTRAJECTORY_POS( " + str(index) \
 						+ ", " + str(int(round(point[0]))) \
 						+ ", " + str(int(round(point[1]))) \
 						+ ", " + str(int(round(point[2]))) \
 						+ "),\n"
-			data += "\tTRAJECTORY_END(),\n};\n"
+			data.source += "\tTRAJECTORY_END(),\n};\n"
 			return data
 		elif self.splineType == 'Cutscene':
-			data += 'struct CutsceneSplinePoint ' + self.name + '[] = {\n'
+			data.header = 'extern struct CutsceneSplinePoint ' + self.name + '[];\n'
+			data.source += 'struct CutsceneSplinePoint ' + self.name + '[] = {\n'
 			for index in range(len(self.points)):
 				point = self.points[index]
 				if index == len(self.points) - 1:
 					splineIndex = -1 # last keyframe
 				else:
 					splineIndex = index
-				data += "\t{ " + str(splineIndex) \
+				data.source += "\t{ " + str(splineIndex) \
 						+ ", " + str(int(round(self.speeds[index]))) \
 						+ ", { " + str(int(round(point[0]))) \
 						+ ", " + str(int(round(point[1]))) \
 						+ ", " + str(int(round(point[2]))) \
 						+ " }},\n"
-			data += "};\n"
+			data.source += "};\n"
 			return data
 		elif self.splineType == 'Vector':
-			data += 'const Vec4s ' + self.name + '[] = {\n'
+			data.header = 'extern const Vec4s ' + self.name + '[];\n'
+			data.source += 'const Vec4s ' + self.name + '[] = {\n'
 			for index in range(len(self.points)):
 				point = self.points[index]
 				if index >= len(self.points) - 3:
 					speed = 0 # last 3 points of spline
 				else:
 					speed = self.speeds[index]
-				data += "\t{ " + str(int(round(speed))) \
+				data.source += "\t{ " + str(int(round(speed))) \
 						+ ", " + str(int(round(point[0]))) \
 						+ ", " + str(int(round(point[1]))) \
 						+ ", " + str(int(round(point[2]))) \
 						+ " },\n"
-			data += "};\n"
+			data.source += "};\n"
 			return data
-		else:
-			raise PluginError("Invalid SM64 spline type: " + self.splineType)
-	
-	def to_c_def(self):
-		if self.splineType == 'Trajectory':
-			return 'extern const Trajectory ' + self.name + '[];\n'
-		elif self.splineType == 'Cutscene':
-			return 'extern struct CutsceneSplinePoint ' + self.name + '[];\n'
-		elif self.splineType == 'Vector':
-			return 'extern const Vec4s ' + self.name + '[];\n'
 		else:
 			raise PluginError("Invalid SM64 spline type: " + self.splineType)
 
