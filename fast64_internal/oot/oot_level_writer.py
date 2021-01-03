@@ -117,25 +117,30 @@ def sceneNameFromID(sceneID):
 	return sceneID[6:].lower()
 
 def ootExportSceneToC(originalSceneObj, transformMatrix, 
-	f3dType, isHWv1, sceneID, DLFormat, savePNG, exportPath, isCustomExport):
-	sceneName = sceneNameFromID(sceneID)
+	f3dType, isHWv1, sceneName, DLFormat, savePNG, exportPath, isCustomExport):
+
 	scene = ootConvertScene(originalSceneObj, transformMatrix, 
 		f3dType, isHWv1, sceneName, DLFormat, not savePNG)
 	
-	#print(list(scene.rooms.items())[0][1].mesh.model.to_c(False, False, "test", OOTGfxFormatter(ScrollMethod.Vertex)))
-	levelC = ootSceneToC(scene, 0)
-	print(levelC.scene.source)
-	for room in levelC.rooms:
-		print(room.source)
+	levelC = ootLevelToC(scene)
 
-	scenePath = os.path.join(exportPath, "test.c")
-	sceneFile = open(scenePath, 'a')
-	sceneFile.write(levelC.scene.source)
-	for room in levelC.rooms:
-		sceneFile.write(room.source)
-	sceneFile.close()
+	if isCustomExport:
+		levelPath = os.path.join(exportPath, sceneName)
+	else:
+		levelPath = os.path.join(exportPath, 'scenes/custom/' + sceneName)
+	if not os.path.exists(levelPath):
+		os.makedirs(levelPath)
+		
+	writeCData(levelC.scene, 
+		os.path.join(levelPath, scene.sceneName() + '.h'),
+		os.path.join(levelPath, scene.sceneName() + '.c'))
+	for roomName, room in levelC.rooms.items():
+		writeCData(room, 
+			os.path.join(levelPath, roomName + '.h'),
+			os.path.join(levelPath, roomName + '.c'))
 
-	#return scene.toC()
+	if not isCustomExport:
+		pass # Modify other level files here
 
 def readSceneData(scene, sceneHeader, alternateSceneHeaders):
 	scene.globalObject = getCustomProperty(sceneHeader, "globalObject")
@@ -159,20 +164,20 @@ def readSceneData(scene, sceneHeader, alternateSceneHeaders):
 		scene.collision.cameraData = OOTCameraData(scene.name, getCustomProperty(sceneHeader, 'camSType'))
 
 		if not alternateSceneHeaders.childNightHeader.usePreviousHeader:
-			scene.childNightHeader = OOTScene(scene.name + "_childNight", scene.model)
+			scene.childNightHeader = scene.getAlternateHeaderScene(scene.name)
 			readSceneData(scene.childNightHeader, alternateSceneHeaders.childNightHeader, None)
 
 		if not alternateSceneHeaders.adultDayHeader.usePreviousHeader:
-			scene.adultDayHeader = OOTScene(scene.name + "_adultDay", scene.model)
+			scene.adultDayHeader = scene.getAlternateHeaderScene(scene.name)
 			readSceneData(scene.adultDayHeader, alternateSceneHeaders.adultDayHeader, None)
 
 		if not alternateSceneHeaders.adultNightHeader.usePreviousHeader:
-			scene.adultNightHeader = OOTScene(scene.name + "_adultNight", scene.model)
+			scene.adultNightHeader = scene.getAlternateHeaderScene(scene.name)
 			readSceneData(scene.adultNightHeader, alternateSceneHeaders.adultNightHeader, None)
 
 		for i in range(len(alternateSceneHeaders.cutsceneHeaders)):
 			cutsceneHeaderProp = alternateSceneHeaders.cutsceneHeaders[i]
-			cutsceneHeader = OOTScene(scene.name + "_cutscene" + str(i), scene.model)
+			cutsceneHeader = scene.getAlternateHeaderScene(scene.name)
 			readSceneData(cutsceneHeader, cutsceneHeaderProp, None)
 			scene.cutsceneHeaders.append(cutsceneHeader)
 
@@ -250,21 +255,20 @@ def readRoomData(room, roomHeader, alternateRoomHeaders):
 
 	if alternateRoomHeaders is not None:
 		if not alternateRoomHeaders.childNightHeader.usePreviousHeader:
-			room.childNightHeader = OOTRoom(room.name + "_childNight", room.model)
+			room.childNightHeader = room.getAlternateHeaderRoom(room.ownerName)
 			readRoomData(room.childNightHeader, alternateRoomHeaders.childNightHeader, None)
 
 		if not alternateRoomHeaders.adultDayHeader.usePreviousHeader:
-			room.adultDayHeader = OOTRoom(room.name + "_adultDay", room.model)
+			room.adultDayHeader = room.getAlternateHeaderRoom(room.ownerName)
 			readRoomData(room.adultDayHeader, alternateRoomHeaders.adultDayHeader, None)
 
 		if not alternateRoomHeaders.adultNightHeader.usePreviousHeader:
-			room.adultNightHeader = OOTRoom(room.name + "_adultNight", room.model)
+			room.adultNightHeader = room.getAlternateHeaderRoom(room.ownerName)
 			readRoomData(room.adultNightHeader, alternateRoomHeaders.adultNightHeader, None)
 
 		for i in range(len(alternateRoomHeaders.cutsceneHeaders)):
-			room.actorList.append(set())
 			cutsceneHeaderProp = alternateRoomHeaders.cutsceneHeaders[i]
-			cutsceneHeader = OOTRoom(room.name + "_cutscene" + str(i), room.mesh.model)
+			cutsceneHeader = room.getAlternateHeaderRoom(room.ownerName)
 			readRoomData(cutsceneHeader, cutsceneHeaderProp, None)
 			room.cutsceneHeaders.append(cutsceneHeader)
 
@@ -445,10 +449,10 @@ class OOT_ExportScene(bpy.types.Operator):
 				levelName = context.scene.ootSceneName
 			else:
 				exportPath = bpy.path.abspath(context.scene.ootDecompPath)
-				if context.scene.ootSceneOption == 'custom':
+				if context.scene.ootSceneOption == 'Custom':
 					levelName = context.scene.ootSceneName
 				else:
-					levelName = context.scene.ootSceneOption
+					levelName = sceneNameFromID(context.scene.ootSceneOption)
 			#if not context.scene.ootSceneCustomExport:
 			#	applyBasicTweaks(exportPath)
 
@@ -502,14 +506,8 @@ class OOT_ExportScenePanel(bpy.types.Panel):
 			customExportWarning(col)
 		else:
 			col.prop(context.scene, 'ootSceneOption')
-			if context.scene.ootSceneOption == 'custom':
-				levelName = context.scene.ootSceneName
-				box = col.box()
-				#box.label(text = 'Adding levels may require modifying the save file format.')
-				#box.label(text = 'Check src/game/save_file.c.')
+			if context.scene.ootSceneOption == 'Custom':
 				prop_split(col, context.scene, 'ootSceneName', 'Name')
-			else:
-				levelName = context.scene.ootSceneOption
 		
 		for i in range(panelSeparatorSize):
 			col.separator()

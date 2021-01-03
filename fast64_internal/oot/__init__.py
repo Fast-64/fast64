@@ -37,7 +37,7 @@ class OOT_FileSettingsPanel(bpy.types.Panel):
 		col.prop(context.scene, 'ootDisableScroll')
 		prop_split(col, context.scene, 'ootDecompPath', "Decomp Path")
 		
-		prop_split(col, context.scene, 'ootRefreshVer', 'Decomp Func Map')
+		#prop_split(col, context.scene, 'ootRefreshVer', 'Decomp Func Map')
 
 oot_classes = (
 	OOT_FileSettingsPanel,

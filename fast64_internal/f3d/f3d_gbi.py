@@ -1784,6 +1784,12 @@ class FModel:
 		self.subModels.append(subModel)
 		subModel.parentModel = self
 		return subModel
+
+	def addTexture(self, key, value, fMaterial):
+		# hasattr check for FTexRect
+		if hasattr(fMaterial, 'usedImages'):
+			fMaterial.usedImages.append(key)
+		self.textures[key] = value
 	
 	def getTextureAndHandleShared(self, imageKey):
 		# Check if texture is in self

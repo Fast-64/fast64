@@ -36,6 +36,15 @@ enumCompressionFormat = [
 	('yay0', 'YAY0', 'YAY0'),
 ]
 
+def writeCData(data, headerPath, sourcePath):
+	sourceFile = open(sourcePath, 'w')
+	sourceFile.write(data.source)
+	sourceFile.close()
+
+	headerFile = open(headerPath, 'w')
+	headerFile.write(data.header)
+	headerFile.close()
+
 class CData:
 	def __init__(self):
 		self.source = ""

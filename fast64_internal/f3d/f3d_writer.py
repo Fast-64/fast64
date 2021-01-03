@@ -1062,11 +1062,11 @@ def saveTextureIndex(propName, fModel, fMaterial, loadTexGfx, revertTexGfx, texP
 
 	if isCITexture:
 		fImage, fPalette = saveOrGetPaletteDefinition(
-			fModel, tex, texName, texFormat, palFormat, convertTextureData)
+			fMaterial, fModel, tex, texName, texFormat, palFormat, convertTextureData)
 		savePaletteLoading(loadTexGfx, revertTexGfx, fPalette, 
 			palFormat, 0, fPalette.height, fModel.f3d)
 	else:
-		fImage = saveOrGetTextureDefinition(fModel, tex, texName, 
+		fImage = saveOrGetTextureDefinition(fMaterial, fModel, tex, texName, 
 			texFormat, convertTextureData)
 	saveTextureLoading(fMaterial, fImage, loadTexGfx, clamp_S,
 	 	mirror_S, clamp_T, mirror_T,
@@ -1077,10 +1077,6 @@ def saveTextureIndex(propName, fModel, fMaterial, loadTexGfx, revertTexGfx, texP
 	#fImage = saveTextureDefinition(fModel, tex, texName, 
 	#	texFormatOf[texFormat], texBitSizeOf[texFormat])
 	#fModel.textures[texName] = fImage	
-
-	# hasattr check for FTexRect
-	if hasattr(fMaterial, 'usedImages'):
-		fMaterial.usedImages.append((tex, (texFormat, 'NONE')))
 
 	return texDimensions, nextTmem
 
@@ -1195,7 +1191,7 @@ def savePaletteLoading(loadTexGfx, revertTexGfx, fPalette, palFormat, pal,
             	palFmt, 'G_IM_SIZ_16b', 4*colorCount, 1,
             	pal, cms, cmt, 0, 0, 0, 0)])
 	
-def saveOrGetPaletteDefinition(fModelOrTexRect, image, imageName, texFmt, palFmt, convertTextureData):
+def saveOrGetPaletteDefinition(fMaterial, fModelOrTexRect, image, imageName, texFmt, palFmt, convertTextureData):
 	texFormat = texFormatOf[texFmt]
 	palFormat = texFormatOf[palFmt]
 	bitSize = texBitSizeOf[texFmt]
@@ -1258,8 +1254,8 @@ def saveOrGetPaletteDefinition(fModelOrTexRect, image, imageName, texFmt, palFmt
 		else:	
 			fImage.data = bytearray(texture)
 	
-	fModelOrTexRect.textures[(image, (texFmt, palFmt))] = fImage
-	fModelOrTexRect.textures[(image, (palFmt, 'PAL'))] = fPalette
+	fModelOrTexRect.addTexture((image, (texFmt, palFmt)), fImage, fMaterial)
+	fModelOrTexRect.addTexture((image, (palFmt, 'PAL')), fPalette, fMaterial)
 
 	return fImage, fPalette #, paletteTex
 
@@ -1286,7 +1282,7 @@ def checkDuplicateTextureName(fModelOrTexRect, name):
 		name = name + '_copy'
 	return name
 
-def saveOrGetTextureDefinition(fModel, image, imageName, texFormat, convertTextureData):
+def saveOrGetTextureDefinition(fMaterial, fModel, image, imageName, texFormat, convertTextureData):
 	fmt = texFormatOf[texFormat]
 	bitSize = texBitSizeOf[texFormat]
 
@@ -1370,7 +1366,8 @@ def saveOrGetTextureDefinition(fModel, image, imageName, texFormat, convertTextu
 			fImage.data = \
 				compactNibbleArray(fImage.data, image.size[0], image.size[1])
 	
-	fModel.textures[(image, (texFormat, 'NONE'))] = fImage
+	fModel.addTexture((image, (texFormat, 'NONE')), fImage, fMaterial)
+
 	return fImage
 
 def saveLightsDefinition(fModel, material, lightsName):

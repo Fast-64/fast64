@@ -86,7 +86,7 @@ def ootCollisionToC(collision):
 	data.source += '};\n\n'
 
 	data.header = "extern CollisionHeader " + collision.headerName() + ';\n'
-	data.source = "CollisionHeader " + collision.headerName() + ' = { '
+	data.source += "CollisionHeader " + collision.headerName() + ' = { '
 	for bound in range(2): # min, max bound
 		for field in range(3): # x, y, z
 			data.source += str(collision.bounds[bound][field]) + ', '
@@ -99,6 +99,6 @@ def ootCollisionToC(collision):
 		collision.polygonTypesName() + ', ' +\
 		"&" + collision.camDataName() + ', ' +\
 		str(len(collision.waterBoxes)) + ", " +\
-		collision.waterBoxesName() + ' };\n'
+		collision.waterBoxesName() + ' };\n\n'
 
 	return data

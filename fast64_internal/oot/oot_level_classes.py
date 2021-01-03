@@ -90,32 +90,44 @@ class OOTScene:
 
 		self.custcene = None
 
+	def getAlternateHeaderScene(self, name):
+		scene = OOTScene(name, self.model)
+		scene.rooms = self.rooms
+		scene.collision = self.collision
+		scene.exitList = self.exitList
+		scene.pathList = self.pathList
+		scene.cameraList = self.cameraList
+		return scene
+
 	def sceneName(self):
 		return self.name + "_scene"
 
 	def roomListName(self):
 		return self.sceneName() + "_roomList"
 
-	def entranceListName(self):
-		return self.sceneName() + "_entranceList"
+	def entranceListName(self, headerIndex):
+		return self.sceneName() + "_header" + format(headerIndex, '02') + "_entranceList"
 
-	def startPositionsName(self):
-		return self.sceneName() + "_startPositionList"
+	def startPositionsName(self, headerIndex):
+		return self.sceneName() + "_header" + format(headerIndex, '02') + "_startPositionList"
 
-	def exitListName(self):
-		return self.sceneName() + "_exitList"
+	def exitListName(self, headerIndex):
+		return self.sceneName() + "_header" + format(headerIndex, '02') + "_exitList"
 
-	def lightListName(self):
-		return self.sceneName() + "_lightSettings"
+	def lightListName(self, headerIndex):
+		return self.sceneName() + "_header" + format(headerIndex, '02') + "_lightSettings"
 
-	def transitionActorListName(self):
-		return self.sceneName() + "_transitionActors"
+	def transitionActorListName(self, headerIndex):
+		return self.sceneName() + "_header" + format(headerIndex, '02') + "_transitionActors"
 
 	def pathListName(self):
 		return self.sceneName() + "_pathway"
 
 	def cameraListName(self):
 		return self.sceneName() + "_cameraList"
+
+	def cutsceneDataName(self, headerIndex):
+		return self.sceneName() + "_header" + format(headerIndex, '02') + "_cutscene"
 
 	def alternateHeadersName(self):
 		return self.sceneName() + "_alternateHeaders"
@@ -216,7 +228,7 @@ class OOTRoom:
 		self.ownerName = toAlnum(name)
 		self.index = index
 		self.actorList = set()
-		self.mesh = OOTRoomMesh(self.ownerName, meshType, model)
+		self.mesh = OOTRoomMesh(self.roomName(), meshType, model)
 
 		# Room behaviour
 		self.roomBehaviour = None
@@ -251,14 +263,20 @@ class OOTRoom:
 		self.adultNightHeader = None
 		self.cutsceneHeaders = []
 
+	def getAlternateHeaderRoom(self, name):
+		room = OOTRoom(self.index, name, self.mesh.model, self.mesh.meshType)
+		room.actorList = self.actorList
+		room.mesh = self.mesh
+		return room
+
 	def roomName(self):
 		return self.ownerName + "_room_" + str(self.index)
 
-	def objectListName(self):
-		return self.roomName() + "_objectList"
+	def objectListName(self, headerIndex):
+		return self.roomName() + "_header" + format(headerIndex, '02') + "_objectList"
 
-	def actorListName(self):
-		return self.roomName() + "_actorList"
+	def actorListName(self, headerIndex):
+		return self.roomName() + "_header" + format(headerIndex, '02') + "_actorList"
 
 	def alternateHeadersName(self):
 		return self.roomName() + "_alternateHeaders"
