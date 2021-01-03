@@ -1340,9 +1340,10 @@ AMBIENT_SIZE = 8
 HILITE_SIZE = 16
 
 class GameGfxFormatter:
-	def __init__(self, scrollMethod):
+	def __init__(self, scrollMethod, texArrayBitSize):
 		self.scrollMethod = scrollMethod
-		
+		self.texArrayBitSize = texArrayBitSize
+				
 	def vertexScrollTemplate(self, fScrollData, name, count, 
 		absFunc, signFunc, cosFunc, randomFloatFunc, randomSignFunc, segToVirtualFunc):
 		scrollDataFields = fScrollData.fields[0]
@@ -1909,7 +1910,7 @@ class FModel:
 			data.append(light.to_c())
 		return data
 
-	def to_c_textures(self, texCSeparate, savePNG, texDir):
+	def to_c_textures(self, texCSeparate, savePNG, texDir, texArrayBitSize):
 		# since decomp is linux, don't use os.path.join 
 		# on windows this results in '\', which is incorrect (should be '/')
 		if len(texDir) > 0 and texDir[-1] != '/':
@@ -1917,9 +1918,9 @@ class FModel:
 		data = CData()
 		for info, texture in self.textures.items():
 			if savePNG:
-				data.append(texture.to_c_tex_separate(texDir))
+				data.append(texture.to_c_tex_separate(texDir, texArrayBitSize))
 			else:
-				data.append(texture.to_c())
+				data.append(texture.to_c(texArrayBitSize))
 		return data
 
 	def to_c_materials(self, gfxFormatter):
@@ -1947,7 +1948,7 @@ class FModel:
 		# Source
 		staticData.append(self.to_c_lights())
 		
-		texData = self.to_c_textures(texCSeparate, savePNG, texDir)
+		texData = self.to_c_textures(texCSeparate, savePNG, texDir, gfxFormatter.texArrayBitSize)
 		staticData.header += texData.header
 		if texCSeparate:
 			texC.source += texData.source
@@ -2474,11 +2475,11 @@ class FImage:
 	def to_binary(self):
 		return self.data
 	
-	def to_c(self):
-		return self.to_c_helper(self.to_c_data(64), 64)
+	def to_c(self, texArrayBitSize):
+		return self.to_c_helper(self.to_c_data(texArrayBitSize), texArrayBitSize)
 
-	def to_c_tex_separate(self, texPath):
-		return self.to_c_helper('#include "' + texPath + self.filename + '"', 8)
+	def to_c_tex_separate(self, texPath, texArrayBitSize):
+		return self.to_c_helper('#include "' + texPath + self.filename + '"', texArrayBitSize)
 
 	def to_c_helper(self, texData, bitsPerValue):
 		code = CData()

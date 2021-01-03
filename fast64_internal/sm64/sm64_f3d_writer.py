@@ -23,7 +23,7 @@ enumHUDPaths = {
 class SM64GfxFormatter(GameGfxFormatter):
 	def __init__(self, scrollMethod):
 		self.functionNodeDraw = False
-		GameGfxFormatter.__init__(self, scrollMethod)
+		GameGfxFormatter.__init__(self, scrollMethod, 8)
 
 	def vertexScrollToC(self, fScrollData, name, count):
 		data = CData()
