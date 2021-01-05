@@ -6,6 +6,7 @@ from ..f3d.f3d_gbi import *
 from .oot_constants import *
 from .oot_utility import *
 from .oot_collision import *
+from .oot_f3d_writer import *
 #from .oot_function_map import func_map
 #from .oot_spline import *
 
@@ -160,7 +161,8 @@ class OOTScene:
 			count = count + 1
 
 	def addRoom(self, roomIndex, roomName, meshType):
-		roomModel = self.model.addSubModel(roomName + '_dl')
+		roomModel = self.model.addSubModel(
+			OOTModel(self.model.f3d.F3D_VER, self.model.f3d._HW_VERSION_1, roomName + '_dl', self.model.DLFormat))
 		room = OOTRoom(roomIndex, roomName, roomModel, meshType)
 		if roomIndex in self.rooms:
 			raise PluginError("Repeat room index " + str(roomIndex) + " for " + str(roomName))

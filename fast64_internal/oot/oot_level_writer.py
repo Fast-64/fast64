@@ -297,7 +297,7 @@ def ootConvertScene(originalSceneObj, transformMatrix,
 		raise PluginError("The scene has no child empties with the 'Room' empty type.")
 
 	try:
-		scene = OOTScene(sceneName, FModel(f3dType, isHWv1, sceneName + '_dl', DLFormat))
+		scene = OOTScene(sceneName, OOTModel(f3dType, isHWv1, sceneName + '_dl', DLFormat))
 		readSceneData(scene, sceneObj.ootSceneHeader, sceneObj.ootAlternateSceneHeaders)
 		processedRooms = set()
 

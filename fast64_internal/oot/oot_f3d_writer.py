@@ -1,4 +1,4 @@
-import shutil, copy
+import shutil, copy, bpy
 
 from ..f3d.f3d_writer import *
 from ..f3d.f3d_material import TextureProperty, tmemUsageUI
@@ -6,9 +6,22 @@ from bpy.utils import register_class, unregister_class
 from .oot_constants import *
 from .oot_utility import *
 
+class OOTModel(FModel):
+	def __init__(self, f3dType, isHWv1, name, DLFormat):
+		FModel.__init__(self, f3dType, isHWv1, name, DLFormat, GfxMatWriteMethod.WriteAll)
+
+	def getDrawLayer(self, obj):
+		return obj.ootDrawLayer
+
+	def getRenderMode(self, drawLayer):
+		defaultRenderModes = bpy.context.scene.world.ootDefaultRenderModes
+		cycle1 = getattr(defaultRenderModes, drawLayer.lower() + "Cycle1")
+		cycle2 = getattr(defaultRenderModes, drawLayer.lower() + "Cycle2")
+		return [cycle1, cycle2]
+
 class OOTGfxFormatter(GameGfxFormatter):
 	def __init__(self, scrollMethod):
-		GameGfxFormatter.__init__(self, scrollMethod)
+		GameGfxFormatter.__init__(self, scrollMethod, 64)
 
 	# This code is not functional, only used for an example
 	def drawToC(self, f3d, gfxList):
@@ -260,8 +273,8 @@ def ootExportF3DtoC(basePath, obj, DLFormat, transformMatrix,
 	dirPath, texDir = getExportDir(customExport, basePath, headerType, 
 		levelName, texDir, name)
 
-	fModel, fMeshGroup = \
-		exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, 
+	fModel = OOTModel(f3dType, isHWv1, name, DLFormat)
+	fMeshGroup = exportF3DCommon(obj, fModel, transformMatrix, 
 		includeChildren, name, DLFormat, not savePNG)
 
 	modelDirPath = os.path.join(dirPath, toAlnum(name))
@@ -464,13 +477,52 @@ class OOT_ExportDLPanel(bpy.types.Panel):
 		for i in range(panelSeparatorSize):
 			col.separator()
 
+class OOTDefaultRenderModesProperty(bpy.types.PropertyGroup):
+	expandTab : bpy.props.BoolProperty()
+	opaqueCycle1 : bpy.props.StringProperty(default = "G_RM_AA_ZB_OPA_SURF")
+	opaqueCycle2 : bpy.props.StringProperty(default = "G_RM_NOOP2")
+	transparentCycle1 : bpy.props.StringProperty(default = "G_RM_AA_ZB_XLU_SURF")
+	transparentCycle2 : bpy.props.StringProperty(default = "G_RM_NOOP2")
+	overlayCycle1 : bpy.props.StringProperty(default = "G_RM_AA_ZB_OPA_SURF")
+	overlayCycle2 : bpy.props.StringProperty(default = "G_RM_NOOP2")
+
+class OOT_DrawLayersPanel(bpy.types.Panel):
+	bl_label = "OOT Draw Layers"
+	bl_idname = "WORLD_PT_OOT_Draw_Layers_Panel"
+	bl_space_type = 'PROPERTIES'
+	bl_region_type = 'WINDOW'
+	bl_context = "world"
+	bl_options = {'HIDE_HEADER'} 
+
+	@classmethod
+	def poll(cls, context):
+		return context.scene.gameEditorMode == "OOT"
+
+	def draw(self, context):
+		ootDefaultRenderModeProp = context.scene.world.ootDefaultRenderModes
+		layout = self.layout
+
+		inputGroup = layout.column()
+		inputGroup.prop(ootDefaultRenderModeProp, 'expandTab', 
+			text = 'Default Render Modes', 
+			icon = 'TRIA_DOWN' if ootDefaultRenderModeProp.expandTab else 'TRIA_RIGHT')
+		if ootDefaultRenderModeProp.expandTab:
+			prop_split(inputGroup, ootDefaultRenderModeProp, "opaqueCycle1", "Opaque Cycle 1")
+			prop_split(inputGroup, ootDefaultRenderModeProp, "opaqueCycle2", "Opaque Cycle 2")
+			prop_split(inputGroup, ootDefaultRenderModeProp, "transparentCycle1", "Transparent Cycle 1")
+			prop_split(inputGroup, ootDefaultRenderModeProp, "transparentCycle2", "Transparent Cycle 2")
+			prop_split(inputGroup, ootDefaultRenderModeProp, "overlayCycle1", "Overlay Cycle 1")
+			prop_split(inputGroup, ootDefaultRenderModeProp, "overlayCycle2", "Overlay Cycle 2")
+
 oot_dl_writer_classes = (
-	OOT_ExportDL,
+	OOTDefaultRenderModesProperty,
+	#OOT_ExportDL,
 )
 
 oot_dl_writer_panel_classes = (
-	OOT_ExportDLPanel,
+	#OOT_ExportDLPanel,
 	OOT_DisplayListPanel,
+	OOT_DrawLayersPanel,
 )
 
 def oot_dl_writer_panel_register():
@@ -488,6 +540,7 @@ def oot_dl_writer_register():
 	bpy.types.Object.ootDrawLayer = bpy.props.EnumProperty(items = ootEnumDrawLayers, default = 'Opaque')
 	bpy.types.Object.ootIgnoreRender = bpy.props.BoolProperty(name = "Ignore Render")
 	bpy.types.Object.ootIgnoreCollision = bpy.props.BoolProperty(name = "Ignore Collision")
+	bpy.types.World.ootDefaultRenderModes = bpy.props.PointerProperty(type = OOTDefaultRenderModesProperty)
 
 	bpy.types.Scene.ootlevelDLExport = bpy.props.EnumProperty(items = ootEnumSceneID, 
 		name = 'Level', default = 'SCENE_YDAN')

@@ -1,4 +1,4 @@
-import shutil, copy
+import shutil, copy, bpy
 
 from ..f3d.f3d_writer import *
 from ..f3d.f3d_material import TextureProperty, tmemUsageUI
@@ -19,6 +19,18 @@ enumHUDPaths = {
 	"HUD" : ('src/game/hud.c', 'void render_hud(void)'),
 	'Menu' : ('src/game/ingame_menu.c', 's16 render_menus_and_dialogs()'),
 }
+
+class SM64Model(FModel):
+	def __init__(self, f3dType, isHWv1, name, DLFormat):
+		FModel.__init__(self, f3dType, isHWv1, name, DLFormat, GfxMatWriteMethod.WriteDifferingAndRevert)
+
+	def getDrawLayer(self, obj):
+		return int(obj.draw_layer_static)
+
+	def getRenderMode(self, drawLayer):
+		cycle1 = getattr(bpy.context.scene.world, 'draw_layer_' + str(drawLayer) + '_cycle_1')
+		cycle2 = getattr(bpy.context.scene.world, 'draw_layer_' + str(drawLayer) + '_cycle_2')
+		return [cycle1, cycle2]
 
 class SM64GfxFormatter(GameGfxFormatter):
 	def __init__(self, scrollMethod):
@@ -256,8 +268,8 @@ def exportF3DtoC(basePath, obj, DLFormat, transformMatrix,
 	dirPath, texDir = getExportDir(customExport, basePath, headerType, 
 		levelName, texDir, name)
 
-	fModel, fMeshGroup = \
-		exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, 
+	fModel = SM64Model(f3dType, isHWv1, name, DLFormat)
+	fMeshGroup = exportF3DCommon(obj, fModel, transformMatrix, 
 		includeChildren, name, DLFormat, not savePNG)
 
 	modelDirPath = os.path.join(dirPath, toAlnum(name))
@@ -356,7 +368,9 @@ def exportF3DtoC(basePath, obj, DLFormat, transformMatrix,
 
 def exportF3DtoBinary(romfile, exportRange, transformMatrix, 
 	obj, f3dType, isHWv1, segmentData, includeChildren):
-	fModel, fMeshGroup = exportF3DCommon(obj, f3dType, isHWv1, 
+	
+	fModel = SM64Model(f3dType, isHWv1, obj.name, DLFormat)
+	fMeshGroup = exportF3DCommon(obj, fModel,
 		transformMatrix, includeChildren, obj.name, DLFormat.Static, True)
 	fModel.freePalettes()
 
@@ -375,8 +389,9 @@ def exportF3DtoBinary(romfile, exportRange, transformMatrix,
 
 def exportF3DtoBinaryBank0(romfile, exportRange, transformMatrix, 
 	obj, f3dType, isHWv1, RAMAddr, includeChildren):
-	fModel, fMeshGroup = \
-		exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren,
+
+	fModel = SM64Model(f3dType, isHWv1, obj.name, DLFormat)
+	fMeshGroup = exportF3DCommon(obj, fModel, transformMatrix, includeChildren,
 			obj.name, DLFormat.Static, True)
 	segmentData = copy.copy(bank0Segment)
 
@@ -397,8 +412,9 @@ def exportF3DtoBinaryBank0(romfile, exportRange, transformMatrix,
 
 def exportF3DtoInsertableBinary(filepath, transformMatrix, 
 	obj, f3dType, isHWv1, includeChildren):
-	fModel, fMeshGroup = \
-		exportF3DCommon(obj, f3dType, isHWv1, transformMatrix, includeChildren,
+
+	fModel = SM64Model(f3dType, isHWv1, obj.name, DLFormat)
+	fMeshGroup = exportF3DCommon(obj, fModel, transformMatrix, includeChildren,
 			obj.name, DLFormat.Static, True)
 	
 	data, startRAM = getBinaryBank0F3DData(fModel, 0, [0, 0xFFFFFF])
@@ -741,6 +757,38 @@ class ExportTexRectDrawPanel(bpy.types.Panel):
 		for i in range(panelSeparatorSize):
 			col.separator()
 
+class SM64_DrawLayersPanel(bpy.types.Panel):
+	bl_label = "SM64 Draw Layers"
+	bl_idname = "WORLD_PT_SM64_Draw_Layers_Panel"
+	bl_space_type = 'PROPERTIES'
+	bl_region_type = 'WINDOW'
+	bl_context = "world"
+	bl_options = {'HIDE_HEADER'} 
+
+	@classmethod
+	def poll(cls, context):
+		return context.scene.gameEditorMode == "SM64"
+
+	def draw(self, context):
+		world = context.scene.world
+		layout = self.layout
+
+		inputGroup = layout.column()
+		inputGroup.prop(world, 'menu_layers', 
+			text = 'Draw Layers', 
+			icon = 'TRIA_DOWN' if world.menu_layers else 'TRIA_RIGHT')
+		if world.menu_layers:
+			for i in range(8):
+				drawLayerUI(inputGroup, i, world)
+
+def drawLayerUI(layout, drawLayer, world):
+	box = layout.box()
+	box.label(text = 'Layer ' + str(drawLayer))
+	row = box.row()
+	row.prop(world, 'draw_layer_' + str(drawLayer) + '_cycle_1', text = '')
+	row.prop(world, 'draw_layer_' + str(drawLayer) + '_cycle_2', text = '')
+
+
 sm64_dl_writer_classes = (
 	SM64_ExportDL,
 	ExportTexRectDraw,
@@ -748,6 +796,7 @@ sm64_dl_writer_classes = (
 )
 
 sm64_dl_writer_panel_classes = (
+	SM64_DrawLayersPanel,
 	SM64_ExportDLPanel,
 	ExportTexRectDrawPanel,
 )
@@ -763,6 +812,23 @@ def sm64_dl_writer_panel_unregister():
 def sm64_dl_writer_register():
 	for cls in sm64_dl_writer_classes:
 		register_class(cls)
+
+	bpy.types.World.draw_layer_0_cycle_1 = bpy.props.StringProperty(default = 'G_RM_ZB_OPA_SURF')
+	bpy.types.World.draw_layer_0_cycle_2 = bpy.props.StringProperty(default = 'G_RM_NOOP2')
+	bpy.types.World.draw_layer_1_cycle_1 = bpy.props.StringProperty(default = 'G_RM_AA_ZB_OPA_SURF')
+	bpy.types.World.draw_layer_1_cycle_2 = bpy.props.StringProperty(default = 'G_RM_NOOP2')
+	bpy.types.World.draw_layer_2_cycle_1 = bpy.props.StringProperty(default = 'G_RM_AA_ZB_OPA_DECAL')
+	bpy.types.World.draw_layer_2_cycle_2 = bpy.props.StringProperty(default = 'G_RM_NOOP2')
+	bpy.types.World.draw_layer_3_cycle_1 = bpy.props.StringProperty(default = 'G_RM_AA_ZB_OPA_INTER')
+	bpy.types.World.draw_layer_3_cycle_2 = bpy.props.StringProperty(default = 'G_RM_NOOP2')
+	bpy.types.World.draw_layer_4_cycle_1 = bpy.props.StringProperty(default = 'G_RM_AA_ZB_TEX_EDGE')
+	bpy.types.World.draw_layer_4_cycle_2 = bpy.props.StringProperty(default = 'G_RM_NOOP2')
+	bpy.types.World.draw_layer_5_cycle_1 = bpy.props.StringProperty(default = 'G_RM_AA_ZB_XLU_SURF')
+	bpy.types.World.draw_layer_5_cycle_2 = bpy.props.StringProperty(default = 'G_RM_NOOP2')
+	bpy.types.World.draw_layer_6_cycle_1 = bpy.props.StringProperty(default = 'G_RM_AA_ZB_XLU_DECAL')
+	bpy.types.World.draw_layer_6_cycle_2 = bpy.props.StringProperty(default = 'G_RM_NOOP2')
+	bpy.types.World.draw_layer_7_cycle_1 = bpy.props.StringProperty(default = 'G_RM_AA_ZB_XLU_INTER')
+	bpy.types.World.draw_layer_7_cycle_2 = bpy.props.StringProperty(default = 'G_RM_NOOP2')
 
 	bpy.types.Scene.DLExportStart = bpy.props.StringProperty(
 		name = 'Start', default = '11D8930')

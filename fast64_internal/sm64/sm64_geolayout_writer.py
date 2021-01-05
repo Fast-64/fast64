@@ -174,7 +174,7 @@ def appendRevertToGeolayout(geolayoutGraph, fModel):
 def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix, 
 	f3dType, isHWv1, camera, name, DLFormat, convertTextureData):
 	
-	fModel = FModel(f3dType, isHWv1, name, DLFormat)
+	fModel = SM64Model(f3dType, isHWv1, name, DLFormat)
 
 	if len(armatureObj.children) == 0:
 		raise PluginError("No mesh parented to armature.")
@@ -222,7 +222,7 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 	f3dType, isHWv1, camera, name, fModel, areaObj, DLFormat, convertTextureData):
 	
 	if fModel is None:
-		fModel = FModel(f3dType, isHWv1, name, DLFormat)
+		fModel = SM64Model(f3dType, isHWv1, name, DLFormat)
 	
 	#convertTransformMatrix = convertTransformMatrix @ \
 	#	mathutils.Matrix.Diagonal(obj.scale).to_4x4()

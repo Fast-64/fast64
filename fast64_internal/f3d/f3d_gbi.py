@@ -18,6 +18,10 @@ class GfxListTag(enum.Enum):
 	MaterialRevert = 3
 	Draw = 3
 
+class GfxMatWriteMethod(enum.Enum):
+	WriteAll = 1
+	WriteDifferingAndRevert = 2
+
 enumTexScroll = [
 	("None", "None", "None"),
 	("Linear", "Linear", "Linear"),
@@ -1747,7 +1751,7 @@ class FGlobalData:
 			return self.area_data[self.current_area_index].makeKey()
 
 class FModel:
-	def __init__(self, f3dType, isHWv1, name, DLFormat):
+	def __init__(self, f3dType, isHWv1, name, DLFormat, matWriteMethod):
 		self.name = name # used for texture prefixing
 		# dict of light name : Lights
 		self.lights = {}
@@ -1767,7 +1771,14 @@ class FModel:
 		# master display list
 		self.masterDL = GfxList(name + '_main', GfxListTag.Draw, DLFormat)
 		self.DLFormat = DLFormat
+		self.matWriteMethod = matWriteMethod
 		self.global_data = FGlobalData()
+
+	def getDrawLayer(self, obj):
+		return None
+
+	def getRenderMode(self, drawLayer):
+		return None
 
 	def createMasterDL(self):
 		commands = self.masterDL.commands
@@ -1780,8 +1791,7 @@ class FModel:
 		commands.append(SPEndDisplayList())
 		return self.masterDL
 	
-	def addSubModel(self, name):
-		subModel = FModel(self.f3d.F3D_VER, self.f3d._HW_VERSION_1, name, self.DLFormat)
+	def addSubModel(self, subModel):
 		self.subModels.append(subModel)
 		subModel.parentModel = self
 		return subModel
@@ -3470,6 +3480,40 @@ def gsSPSetOtherMode(cmd, sft, length, data, f3d):
 			_SHIFTL(length, 0, 8), (data)	
 	return words[0].to_bytes(4, 'big') + words[1].to_bytes(4, 'big')
 
+class SPSetOtherMode:
+	def __init__(self, cmd, sft, length, flagList):
+		self.cmd = cmd
+		self.sft = sft
+		self.length = length
+		self.flagList = []
+
+	def to_binary(self, f3d, segments):
+		data = 0
+		for flag in self.flagList:
+			data |= getattr(f3d, flag) if hasattr(f3d, str(flag)) else flag
+		cmd = getattr(f3d, self.cmd) if hasattr(f3d, str(self.cmd)) else self.cmd
+		sft = getattr(f3d, self.sft) if hasattr(f3d, str(self.sft)) else self.sft
+		return gsSPSetOtherMode(cmd, sft, self.length, data, f3d)
+
+	def to_c(self, static = True):
+		data = ''
+		for flag in self.flagList:
+			data += flag + ' | '
+		data = data[:-3]
+		header = 'gsSPSetOtherMode(' if static else \
+			'gSPSetOtherMode(glistp++, '
+		return header + str(self.cmd) + ", " + str(self.sft) + ", " + str(self.length) + ", " + data + ')'
+
+	def to_sm64_decomp_s(self):
+		data = ''
+		for flag in self.flagList:
+			data += flag + ' | '
+		data = data[:-3]
+		return 'gsSPSetOtherMode ' + str(self.cmd) + ", " + str(self.sft) + ", " + str(self.length) + ", " + data
+	
+	def size(self, f3d):
+		return GFX_SIZE
+
 class DPPipelineMode:
 	# mode is a string
 	def __init__(self, mode):
@@ -3798,14 +3842,14 @@ class DPSetRenderMode:
 		self.flagList = flagList
 		self.use_preset = blendList is None
 		if not self.use_preset:
-			self.bl00 = blendList[0][0]
-			self.bl01 = blendList[0][1]
-			self.bl02 = blendList[0][2]
-			self.bl03 = blendList[0][3]
-			self.bl10 = blendList[1][0]
-			self.bl11 = blendList[1][1]
-			self.bl12 = blendList[1][2]
-			self.bl13 = blendList[1][3]
+			self.bl00 = blendList[0]
+			self.bl01 = blendList[1]
+			self.bl02 = blendList[2]
+			self.bl03 = blendList[3]
+			self.bl10 = blendList[4]
+			self.bl11 = blendList[5]
+			self.bl12 = blendList[6]
+			self.bl13 = blendList[7]
 	
 	def getGBL_c(self, f3d):
 		bl00 = getattr(f3d, self.bl00)
@@ -4193,7 +4237,18 @@ class DPSetOtherMode:
 	def to_c(self, static = True):
 		header = 'gsDPSetOtherMode(' if static else \
 			'gDPSetOtherMode(glistp++, '
-		return header + str(self.mode0) + ', ' + str(self.mode1) + ')'
+
+		mode0String = ''
+		for item in self.mode0:
+			mode0String += item + ' | '
+		mode0String = mode0String[:-3]
+
+		mode1String = ''
+		for item in self.mode1:
+			mode1String += item + ' | '
+		mode1String = mode1String[:-3]
+
+		return header + mode0String + ', ' + mode1String + ')'
 
 	def to_sm64_decomp_s(self):
 		return 'gsDPSetOtherMode ' + str(self.mode0) + ', ' + str(self.mode1)

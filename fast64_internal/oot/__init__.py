@@ -9,6 +9,7 @@ from .oot_level import *
 from .oot_level_writer import *
 from .c_writer import *
 from .oot_spline import *
+from .oot_anim import *
 #from .oot_f3d_parser import *
 
 import bpy
@@ -53,7 +54,7 @@ def oot_panel_register():
 	oot_spline_panel_register()
 	oot_dl_writer_panel_register()
 	#oot_dl_parser_panel_register()
-	#oot_anim_panel_register()
+	oot_anim_panel_register()
 
 def oot_panel_unregister():
 	oot_col_panel_unregister()
@@ -65,7 +66,7 @@ def oot_panel_unregister():
 	oot_spline_panel_unregister()
 	oot_dl_writer_panel_unregister()
 	#oot_dl_parser_panel_unregister()
-	#oot_anim_panel_unregister()
+	oot_anim_panel_unregister()
 
 def oot_register(registerPanels):
 	for cls in oot_classes:
@@ -81,7 +82,7 @@ def oot_register(registerPanels):
 	oot_spline_register()
 	oot_dl_writer_register()
 	#oot_dl_parser_register()
-	#oot_anim_register()
+	oot_anim_register()
 
 	if registerPanels:
 		oot_panel_register()
@@ -107,7 +108,7 @@ def oot_unregister(unregisterPanels):
 	oot_spline_unregister()
 	oot_dl_writer_unregister()
 	#oot_dl_parser_unregister()
-	#oot_anim_unregister()
+	oot_anim_unregister()
 
 	if unregisterPanels:
 		oot_panel_unregister()
