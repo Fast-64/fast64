@@ -1609,87 +1609,6 @@ class GfxList:
 			data += command.to_sm64_decomp_s() + '\n'
 		return data
 
-class FTexRect:
-	def __init__(self, f3dType, isHWv1, name):
-		self.name = name # used for texture prefixing
-		self.textures = {} # only one, but use dict for compatibility
-		self.draw = GfxList(name, GfxListTag.Draw, DLFormat.Dynamic)
-		# F3D library
-		self.f3d = F3D(f3dType, isHWv1)
-
-	def get_ptr_addresses(self, f3d):
-		return []
-	
-	def set_addr(self, startAddress):
-		addrRange = (startAddress, startAddress)
-		startAddrSet = False
-		# Important to set mesh groups first, so that
-		# export address corrseponds to drawing start.
-		addrRange = self.draw.set_addr(addrRange[1], self.f3d)
-		if not startAddrSet:
-			startAddrSet = True
-			startAddress = addrRange[0]
-		for info, texture in self.textures.items():
-			addrRange = texture.set_addr(addrRange[1])
-			if not startAddrSet:
-				startAddrSet = True
-				startAddress = addrRange[0]
-		return startAddress, addrRange[1]
-
-	def save_binary(self, romfile, segments):
-		for info, texture in self.textures.items():
-			texture.save_binary(romfile)
-		self.draw.save_binary(romfile, self.f3d, segments)
-	
-	def to_c(self, savePNG, texDir):
-		staticData = CData()
-		dynamicData = CData()
-		# since decomp is linux, don't use os.path.join 
-		# on windows this results in '\', which is incorrect (should be '/')
-		if texDir[-1] != '/':
-			texDir += '/'
-		for info, texture in self.textures.items():
-			if savePNG:
-				staticData.append(texture.to_c_tex_separate(texDir))
-			else:
-				staticData.append(texture.to_c())
-		dynamicData.append(self.draw.to_c(self.f3d))
-		return staticData, dynamicData
-
-	def save_textures(self, dirpath):
-		for (image, texInfo), texture in self.textures.items():
-			if texInfo[1] != 'PAL':
-				# remove '.inc.c'
-				imageFileName = texture.filename[:-6] + '.png'
-				if False:
-					image.save_render(os.path.join(dirpath, imageFileName))
-				else:
-					isPacked = image.packed_file is not None
-					if not isPacked:
-						image.pack()
-					oldpath = image.filepath
-					try:
-						image.filepath = \
-							os.path.join(dirpath, imageFileName)
-						image.save()
-						if not isPacked:
-							image.unpack() # Causes textures to save externally?
-					except Exception as e:
-						image.filepath = oldpath
-						raise Exception(str(e))
-					image.filepath = oldpath
-	
-	def freePalettes(self):
-		# Palettes no longer saved
-		return
-	
-	def getTextureAndHandleShared(self, imageKey):
-		# Check if texture is in self
-		if imageKey in self.textures:
-			return self.textures[imageKey]
-		else:
-			return None
-
 class FFogData:
 	def __init__(self, position = (970, 1000), color = (0,0,0,1)):
 		self.position = tuple(position)
@@ -1797,9 +1716,7 @@ class FModel:
 		return subModel
 
 	def addTexture(self, key, value, fMaterial):
-		# hasattr check for FTexRect
-		if hasattr(fMaterial, 'usedImages'):
-			fMaterial.usedImages.append(key)
+		fMaterial.usedImages.append(key)
 		self.textures[key] = value
 	
 	def getTextureAndHandleShared(self, imageKey):
@@ -2023,7 +1940,27 @@ class FModel:
 			#texDict[name] = texture.to_c_data() + '\n'
 			if texInfo[1] == 'PAL':
 				bpy.data.images.remove(image)
-	
+
+class FTexRect(FModel):
+	def __init__(self, f3dType, isHWv1, name, matWriteMethod):
+		self.draw = GfxList(name, GfxListTag.Draw, DLFormat.Dynamic)
+		FModel.__init__(self, f3dType, isHWv1, name, DLFormat, matWriteMethod)
+
+	def to_c(self, savePNG, texDir, gfxFormatter):
+		staticData = CData()
+		dynamicData = CData()
+		# since decomp is linux, don't use os.path.join 
+		# on windows this results in '\', which is incorrect (should be '/')
+		if texDir[-1] != '/':
+			texDir += '/'
+		for info, texture in self.textures.items():
+			if savePNG:
+				staticData.append(texture.to_c_tex_separate(texDir, gfxFormatter.texArrayBitSize))
+			else:
+				staticData.append(texture.to_c(gfxFormatter.texArrayBitSize))
+		dynamicData.append(self.draw.to_c(self.f3d))
+		return staticData, dynamicData
+
 class FMeshGroup:
 	def __init__(self, name, mesh, skinnedMesh, DLFormat):
 		self.name = name

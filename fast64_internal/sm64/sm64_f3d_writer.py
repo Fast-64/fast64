@@ -115,7 +115,7 @@ def exportTexRectToC(dirPath, texProp, f3dType, isHWv1, texDir,
 	if name is None or name == '':
 		raise PluginError("Name cannot be empty.")
 
-	staticData, dynamicData = fTexRect.to_c(savePNG, texDir)
+	staticData, dynamicData = fTexRect.to_c(savePNG, texDir, SM64GfxFormatter(ScrollMethod.Vertex))
 	declaration = staticData.header
 	code = modifyDLForHUD(dynamicData.source)
 	data = staticData.source
@@ -225,7 +225,8 @@ def exportTexRectCommon(texProp, f3dType, isHWv1, name, convertTextureData):
 	texProp.T.mask =  math.ceil(math.log(texProp.tex.size[1], 2) - 0.001)
 	texProp.T.shift = 0
 
-	fTexRect = FTexRect(f3dType, isHWv1, toAlnum(name))
+	fTexRect = FTexRect(f3dType, isHWv1, toAlnum(name), GfxMatWriteMethod.WriteDifferingAndRevert)
+	fMaterial = FMaterial(toAlnum(name) + "_mat", DLFormat.Dynamic)
 
 	# dl_hud_img_begin
 	fTexRect.draw.commands.extend([
@@ -240,7 +241,7 @@ def exportTexRectCommon(texProp, f3dType, isHWv1, name, convertTextureData):
 	drawEndCommands = GfxList("temp", GfxListTag.Draw, DLFormat.Dynamic)
 
 	texDimensions, nextTmem = saveTextureIndex(texProp.tex.name, fTexRect, 
-		fTexRect, fTexRect.draw, drawEndCommands, texProp, 0, 0, 'texture', convertTextureData)
+		fMaterial, fTexRect.draw, drawEndCommands, texProp, 0, 0, 'texture', convertTextureData)
 
 	fTexRect.draw.commands.append(
 		SPScisTextureRectangle(0, 0, 
