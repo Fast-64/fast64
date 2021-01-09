@@ -798,10 +798,15 @@ def getTexDimensions(material):
 	return texDimensions
 
 def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
-	areaKey = fModel.global_data.getCurrentAreaKey(material)
+	if material.mat_ver == 4:
+		f3dMat = material.f3d_mat
+	else:
+		f3dMat = material
+
+	areaKey = fModel.global_data.getCurrentAreaKey(f3dMat)
 	areaIndex = fModel.global_data.current_area_index
 
-	if material.rdp_settings.set_rendermode:
+	if f3dMat.rdp_settings.set_rendermode:
 		materialKey = (material, drawLayer, areaKey)
 	else:
 		materialKey = (material, None, areaKey)
@@ -813,9 +818,9 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 	if len(obj.data.materials) == 0:
 		raise PluginError("Mesh must have at least one material.")
 	materialName = fModel.name + "_" + toAlnum(material.name) + (('_layer' + str(drawLayer)) \
-		if material.rdp_settings.set_rendermode and drawLayer is not None else '') +\
+		if f3dMat.rdp_settings.set_rendermode and drawLayer is not None else '') +\
 		(('_area' + str(areaIndex)) if \
-			material.set_fog and material.use_global_fog and areaKey is not None else '')
+			f3dMat.set_fog and f3dMat.use_global_fog and areaKey is not None else '')
 	fMaterial = FMaterial(materialName, fModel.DLFormat)
 	fMaterial.material.commands.append(DPPipeSync())
 	fMaterial.revert.commands.append(DPPipeSync())
@@ -824,60 +829,58 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 		raise PluginError("Material named " +  material.name + \
 			' is not an F3D material.')
 
-	fMaterial.getScrollData(material, getMaterialScrollDimensions(material))
-	
-	nodes = material.node_tree.nodes
+	fMaterial.getScrollData(f3dMat, getMaterialScrollDimensions(f3dMat))
 
-	if material.set_combiner:
-		if material.rdp_settings.g_mdsft_cycletype == 'G_CYC_2CYCLE':
+	if f3dMat.set_combiner:
+		if f3dMat.rdp_settings.g_mdsft_cycletype == 'G_CYC_2CYCLE':
 			fMaterial.material.commands.append(
 				DPSetCombineMode(
-					material.combiner1.A,
-					material.combiner1.B,
-					material.combiner1.C,
-					material.combiner1.D,
-					material.combiner1.A_alpha,
-					material.combiner1.B_alpha,
-					material.combiner1.C_alpha,
-					material.combiner1.D_alpha,
-					material.combiner2.A,
-					material.combiner2.B,
-					material.combiner2.C,
-					material.combiner2.D,
-					material.combiner2.A_alpha,
-					material.combiner2.B_alpha,
-					material.combiner2.C_alpha,
-					material.combiner2.D_alpha
+					f3dMat.combiner1.A,
+					f3dMat.combiner1.B,
+					f3dMat.combiner1.C,
+					f3dMat.combiner1.D,
+					f3dMat.combiner1.A_alpha,
+					f3dMat.combiner1.B_alpha,
+					f3dMat.combiner1.C_alpha,
+					f3dMat.combiner1.D_alpha,
+					f3dMat.combiner2.A,
+					f3dMat.combiner2.B,
+					f3dMat.combiner2.C,
+					f3dMat.combiner2.D,
+					f3dMat.combiner2.A_alpha,
+					f3dMat.combiner2.B_alpha,
+					f3dMat.combiner2.C_alpha,
+					f3dMat.combiner2.D_alpha
 			))
 		else:
 			fMaterial.material.commands.append(
 				DPSetCombineMode(
-					material.combiner1.A,
-					material.combiner1.B,
-					material.combiner1.C,
-					material.combiner1.D,
-					material.combiner1.A_alpha,
-					material.combiner1.B_alpha,
-					material.combiner1.C_alpha,
-					material.combiner1.D_alpha,
-					material.combiner1.A,
-					material.combiner1.B,
-					material.combiner1.C,
-					material.combiner1.D,
-					material.combiner1.A_alpha,
-					material.combiner1.B_alpha,
-					material.combiner1.C_alpha,
-					material.combiner1.D_alpha
+					f3dMat.combiner1.A,
+					f3dMat.combiner1.B,
+					f3dMat.combiner1.C,
+					f3dMat.combiner1.D,
+					f3dMat.combiner1.A_alpha,
+					f3dMat.combiner1.B_alpha,
+					f3dMat.combiner1.C_alpha,
+					f3dMat.combiner1.D_alpha,
+					f3dMat.combiner1.A,
+					f3dMat.combiner1.B,
+					f3dMat.combiner1.C,
+					f3dMat.combiner1.D,
+					f3dMat.combiner1.A_alpha,
+					f3dMat.combiner1.B_alpha,
+					f3dMat.combiner1.C_alpha,
+					f3dMat.combiner1.D_alpha
 			))
 
-	if material.set_fog:
-		if material.use_global_fog and fModel.global_data.getCurrentAreaData() is not None:
+	if f3dMat.set_fog:
+		if f3dMat.use_global_fog and fModel.global_data.getCurrentAreaData() is not None:
 			fogData = fModel.global_data.getCurrentAreaData().fog_data
 			fog_position = fogData.position
 			fog_color = fogData.color
 		else:
-			fog_position = material.fog_position
-			fog_color = material.fog_color
+			fog_position = f3dMat.fog_position
+			fog_color = f3dMat.fog_color
 		fMaterial.material.commands.extend([
 			DPSetFogColor(
 				int(round(fog_color[0] * 255)),
@@ -887,7 +890,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 			SPFogPosition(fog_position[0], fog_position[1])
 		])
 
-	useDict = all_combiner_uses(material)
+	useDict = all_combiner_uses(f3dMat)
 
 	if drawLayer is not None:
 		defaultRM = fModel.getRenderMode(drawLayer)
@@ -895,14 +898,14 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 		defaultRM = None
 
 	defaults = bpy.context.scene.world.rdp_defaults
-	saveGeoModeDefinition(fMaterial, material.rdp_settings, defaults, fModel.matWriteMethod)
-	saveOtherModeHDefinition(fMaterial, material.rdp_settings, defaults, fModel.f3d._HW_VERSION_1, fModel.matWriteMethod)
-	saveOtherModeLDefinition(fMaterial, material.rdp_settings, defaults, defaultRM, fModel.matWriteMethod)
-	saveOtherDefinition(fMaterial, material, defaults)
+	saveGeoModeDefinition(fMaterial, f3dMat.rdp_settings, defaults, fModel.matWriteMethod)
+	saveOtherModeHDefinition(fMaterial, f3dMat.rdp_settings, defaults, fModel.f3d._HW_VERSION_1, fModel.matWriteMethod)
+	saveOtherModeLDefinition(fMaterial, f3dMat.rdp_settings, defaults, defaultRM, fModel.matWriteMethod)
+	saveOtherDefinition(fMaterial, f3dMat, defaults)
 
 	# Set scale
-	s = int(material.tex_scale[0] * 0xFFFF)
-	t = int(material.tex_scale[1] * 0xFFFF)
+	s = int(f3dMat.tex_scale[0] * 0xFFFF)
+	t = int(f3dMat.tex_scale[1] * 0xFFFF)
 	fMaterial.material.commands.append(
 		SPTexture(s, t, 0, fModel.f3d.G_TX_RENDERTILE, 1))
 
@@ -910,20 +913,20 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 	texDimensions0 = None
 	texDimensions1 = None
 	nextTmem = 0
-	if useDict['Texture 0'] and material.tex0.tex_set:
-		if material.tex0.tex is None:
+	if useDict['Texture 0'] and f3dMat.tex0.tex_set:
+		if f3dMat.tex0.tex is None:
 			raise PluginError('In material \"' + material.name + '\", a texture has not been set.')
 		texDimensions0, nextTmem = saveTextureIndex(material.name, fModel, 
-			fMaterial, fMaterial.material, fMaterial.revert, material.tex0, 0, nextTmem, None, convertTextureData)	
-	if useDict['Texture 1'] and material.tex1.tex_set:
-		if material.tex1.tex is None:
+			fMaterial, fMaterial.material, fMaterial.revert, f3dMat.tex0, 0, nextTmem, None, convertTextureData)	
+	if useDict['Texture 1'] and f3dMat.tex1.tex_set:
+		if f3dMat.tex1.tex is None:
 			raise PluginError('In material \"' + material.name + '\", a texture has not been set.')
 		texDimensions1, nextTmem = saveTextureIndex(material.name, fModel, 
-			fMaterial, fMaterial.material, fMaterial.revert, material.tex1, 1, nextTmem, None, convertTextureData)
+			fMaterial, fMaterial.material, fMaterial.revert, f3dMat.tex1, 1, nextTmem, None, convertTextureData)
 
 	# Used so we know how to convert normalized UVs when saving verts.
 	if texDimensions0 is not None and texDimensions1 is not None:
-		texDimensions = texDimensions0 if material.uv_basis == 'TEXEL0' \
+		texDimensions = texDimensions0 if f3dMat.uv_basis == 'TEXEL0' \
 			else texDimensions1
 	elif texDimensions0 is not None:
 		texDimensions = texDimensions0
@@ -932,7 +935,10 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 	else:
 		texDimensions = [32, 32]
 
-	if useDict['Primitive'] and material.set_prim:
+	nodes = material.node_tree.nodes
+	if useDict['Primitive'] and f3dMat.set_prim:
+		if material.mat_ver == 4:
+			color = f3dMat.prim_color
 		if material.mat_ver == 3:
 			color = nodes['Primitive Color Output'].inputs[0].default_value
 		else:
@@ -940,14 +946,16 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 		color = gammaCorrect(color[0:3]) + [color[3]]
 		fMaterial.material.commands.append(
 			DPSetPrimColor(
-			int(material.prim_lod_min * 255),
-			int(material.prim_lod_frac * 255),
+			int(f3dMat.prim_lod_min * 255),
+			int(f3dMat.prim_lod_frac * 255),
 			int(color[0] * 255), 
 			int(color[1] * 255), 
 			int(color[2] * 255),
 			int(color[3] * 255)))
 
-	if useDict['Environment'] and material.set_env:	
+	if useDict['Environment'] and f3dMat.set_env:	
+		if material.mat_ver == 4:
+			color = f3dMat.env_color
 		if material.mat_ver == 3:
 			color = nodes['Environment Color Output'].inputs[0].default_value
 		else:
@@ -960,17 +968,20 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 			int(color[2] * 255),
 			int(color[3] * 255)))
 	
-	if useDict['Shade'] and material.set_lights:
-		fLights = saveLightsDefinition(fModel, material, 
+	if useDict['Shade'] and f3dMat.set_lights:
+		fLights = saveLightsDefinition(fModel, f3dMat, 
 			materialName + '_lights')
 		fMaterial.material.commands.extend([
 			SPSetLights(fLights) # TODO: handle synching: NO NEED?
 		])
 	
-	if useDict['Key'] and material.set_key:
-		center = nodes['Chroma Key Center'].outputs[0].default_value
-		scale = nodes['Chroma Key Scale'].outputs[0].default_value
-		width = material.key_width
+	if useDict['Key'] and f3dMat.set_key:
+		if material.mat_ver == 4:
+			center = f3dMat.key_center
+		else:
+			center = nodes['Chroma Key Center'].outputs[0].default_value
+		scale = f3dMat.key_scale
+		width = f3dMat.key_width
 		fMaterial.material.commands.extend([
 			DPSetCombineKey('G_CK_KEY'),
 			# TODO: Add UI handling width
@@ -985,16 +996,16 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 	# all k0-5 set at once
 	# make sure to handle this in node shader
 	# or don't, who cares
-	if useDict['Convert'] and material.set_k0_5:
+	if useDict['Convert'] and f3dMat.set_k0_5:
 		fMaterial.material.commands.extend([
 			DPSetTextureConvert('G_TC_FILTCONV'), # TODO: allow filter option
 			DPSetConvert(
-				int(material.k0 * 255),
-				int(material.k1 * 255),
-				int(material.k2 * 255),
-				int(material.k3 * 255),
-				int(material.k4 * 255),
-				int(material.k5 * 255))
+				int(f3dMat.k0 * 255),
+				int(f3dMat.k1 * 255),
+				int(f3dMat.k2 * 255),
+				int(f3dMat.k3 * 255),
+				int(f3dMat.k4 * 255),
+				int(f3dMat.k5 * 255))
 		])
 		
 	# End Display List
@@ -1009,8 +1020,8 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 	else:
 		fMaterial.revert = None
 	
-	materialKey = material, (drawLayer if material.rdp_settings.set_rendermode else None), \
-		fModel.global_data.getCurrentAreaKey(material)
+	materialKey = material, (drawLayer if f3dMat.rdp_settings.set_rendermode else None), \
+		fModel.global_data.getCurrentAreaKey(f3dMat)
 	fModel.materials[materialKey] = (fMaterial, texDimensions)
 
 	return fMaterial, texDimensions

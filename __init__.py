@@ -217,6 +217,7 @@ class Fast64_GlobalSettingsPanel(bpy.types.Panel):
 		col = self.layout.column()
 		#prop_split(col, context.scene, 'gameEditorMode', "Game")
 		col.prop(context.scene, 'fullTraceback')
+		col.prop(context.scene, 'experimentalMats')
 		
 
 #def updateGameEditor(scene, context):
@@ -274,6 +275,8 @@ def register():
 		name = 'Game', default = 'SM64', items = gameEditorEnum)
 	bpy.types.Scene.saveTextures = bpy.props.BoolProperty(
 		name = 'Save Textures As PNGs (Breaks CI Textures)')
+	bpy.types.Scene.experimentalMats = bpy.props.BoolProperty(
+		name = "Experimental Materials")
 
 # called on add-on disabling
 def unregister():
@@ -289,6 +292,7 @@ def unregister():
 	del bpy.types.Scene.ignoreTextureRestrictions
 	del bpy.types.Scene.saveTextures
 	del bpy.types.Scene.gameEditorMode
+	del bpy.types.Scene.experimentalMats
 
 	for cls in classes:
 		unregister_class(cls)

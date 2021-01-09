@@ -36,6 +36,30 @@ enumCompressionFormat = [
 	('yay0', 'YAY0', 'YAY0'),
 ]
 
+def copyPropertyCollection(oldProp, newProp):
+	newProp.clear()
+	for item in oldProp:
+		newItem = newProp.add()
+		if isinstance(item, bpy.types.PropertyGroup):
+			copyPropertyGroup(item, newItem)
+		elif isinstance(item, bpy.props.CollectionProperty):
+			copyPropertyCollection(item, newItem)
+		else:
+			newItem = item
+
+def copyPropertyGroup(oldProp, newProp):
+	for sub_value_attr in oldProp.bl_rna.properties.keys():
+		if sub_value_attr == "rna_type":
+			continue
+		sub_value = getattr(oldProp, sub_value_attr)
+		if isinstance(sub_value, bpy.types.PropertyGroup):
+			copyPropertyGroup(sub_value, getattr(newProp, sub_value_attr))
+		elif isinstance(sub_value, bpy.props.CollectionProperty):
+			newCollection = getattr(newProp, sub_value_attr)
+			copyPropertyCollection(sub_value, newCollection)
+		else:
+			setattr(newProp, sub_value_attr, sub_value)
+
 def writeCData(data, headerPath, sourcePath):
 	sourceFile = open(sourcePath, 'w')
 	sourceFile.write(data.source)

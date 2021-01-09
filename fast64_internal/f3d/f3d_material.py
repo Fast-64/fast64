@@ -1,6 +1,8 @@
 import bpy, math, mathutils, sys, copy
 from bpy.app.handlers import persistent
 from bpy.types import Node, NodeSocket, NodeSocketInterface, ShaderNode, ShaderNodeGroup, Panel
+from bpy.types import Operator, Menu
+from bl_operators.presets import AddPresetBase
 from bpy.utils import register_class, unregister_class
 from nodeitems_utils import NodeCategory, NodeItem
 from .f3d_gbi import F3D, enumTexScroll
@@ -348,7 +350,9 @@ class F3DPanel(bpy.types.Panel):
 		prop_input = inputGroup.column()
 		prop_input_name.prop(material, setName, text = 'Primitive Color')
 
-		if material.mat_ver == 3:
+		if material.mat_ver == 4:
+			prop_input.prop(material.f3d_mat, 'prim_color', text = '')
+		elif material.mat_ver == 3:
 			prop_input.prop(nodes['Primitive Color Output'].inputs[0], 'default_value', text='')
 		else:
 			prop_input.prop(nodes['Primitive Color'].outputs[0], 'default_value', text='')
@@ -359,14 +363,20 @@ class F3DPanel(bpy.types.Panel):
 		prop_input.enabled = setProp
 		return inputGroup
 
-	def ui_env(self, material, layout, setName, setProp):
+	def ui_env(self, material, layout):
 		nodes = material.node_tree.nodes
 		inputGroup = layout.row()
 		prop_input_name = inputGroup.column()
 		prop_input = inputGroup.column()
-		prop_input_name.prop(material, setName, text = 'Environment Color')
-		prop_input.prop(nodes['Environment Color Output'].inputs[0], 'default_value',
-			text='')
+		
+		if material.mat_ver > 3:
+			prop_input_name.prop(material.f3d_mat, 'set_env', text = 'Environment Color')
+			prop_input.prop(material.f3d_mat, 'env_color', text = '')
+			setProp = material.f3d_mat.set_env
+		else:
+			prop_input_name.prop(material, 'set_env', text = 'Environment Color')
+			prop_input.prop(nodes['Environment Color Output'].inputs[0], 'default_value', text='')
+			setProp = material.set_env
 		prop_input.enabled = setProp
 		return inputGroup
 
@@ -376,8 +386,11 @@ class F3DPanel(bpy.types.Panel):
 		prop_input_name = inputGroup.column()
 		prop_input = inputGroup.column()
 		prop_input_name.prop(material, setName, text = 'Chroma Key')
-		prop_input.prop(nodes['Chroma Key Center'].outputs[0], 
-			'default_value', text='Center')
+		if material.mat_ver == 4:
+			prop_input.prop(material.f3d_mat, 'key_center', text = 'Center')
+		else:
+			prop_input.prop(nodes['Chroma Key Center'].outputs[0],
+				'default_value', text='Center')
 		prop_input.prop(material, 'key_scale', text = 'Scale')
 		prop_input.prop(material, 'key_width', text = 'Width')
 		if material.key_width[0] > 1 or material.key_width[1] > 1 or \
@@ -388,7 +401,6 @@ class F3DPanel(bpy.types.Panel):
 		return inputGroup
 	
 	def ui_lights(self, material, layout, name):
-		nodes = material.node_tree.nodes
 		inputGroup = layout.row()
 		prop_input_name = inputGroup.column()
 		prop_input = inputGroup.column()
@@ -597,7 +609,11 @@ class F3DPanel(bpy.types.Panel):
 			split2.prop(procAnimField, 'noiseAmplitude')
 	
 	def ui_procAnim(self, material, layout, useTex0, useTex1):
-		self.ui_procAnimVecEnum(material.UVanim, layout, "UV Texture Scroll", 'UV')
+		if material.mat_ver > 3:
+			self.ui_procAnimVecEnum(material.f3d_mat.UVanim0, layout, "UV Texture Scroll", 'UV')
+			#self.ui_procAnimVecEnum(material.f3d_mat.UVanim1, layout, "UV Texture Scroll", 'UV')
+		else:
+			self.ui_procAnimVecEnum(material.UVanim, layout, "UV Texture Scroll", 'UV')
 		#layout.prop(material, 'menu_procAnim', 
 		#	text = 'Procedural Animation', 
 		#	icon = 'TRIA_DOWN' if material.menu_procAnim else 'TRIA_RIGHT')
@@ -635,14 +651,26 @@ class F3DPanel(bpy.types.Panel):
 		elif not(material.use_nodes and material.is_f3d):
 			layout.label(text="This is not a Fast3D material.")
 		else:
+			if material.mat_ver > 3:
+				f3dMat = material.f3d_mat
+			else:
+				f3dMat = material
 			layout.box().label(text = 'Note: Do not copy paste materials.')
 			layout = layout.box()
 			titleCol = layout.column()
 			titleCol.label(text = "F3D Material Inspector")
 
-			prop_split(layout, material, 'f3d_preset', 'Preset Material')
+			if material.mat_ver == 4:
+				split = layout.split(factor = 0.33)
+				split.label(text = 'Preset')
+				row = split.row(align=True)
+				row.menu(MATERIAL_MT_f3d_presets.__name__, text=f3dMat.presetName)
+				row.operator(AddPresetF3D.bl_idname, text="", icon='ZOOM_IN')
+				row.operator(AddPresetF3D.bl_idname, text="", icon='ZOOM_OUT').remove_active = True
+			else:
+				prop_split(layout, material, 'f3d_preset', 'Preset Material')
 
-			if not material.rdp_settings.g_lighting:
+			if not f3dMat.rdp_settings.g_lighting:
 				noticeBox = layout.box()
 				noticeBox.label(
 					text = 'Note: There must be two vertex color layers.')
@@ -650,38 +678,38 @@ class F3DPanel(bpy.types.Panel):
 					text = 'They should be called "Col" and "Alpha".')
 
 			combinerBox = layout.box()
-			combinerBox.prop(material, 'set_combiner', 
+			combinerBox.prop(f3dMat, 'set_combiner', 
 				text = 'Color Combiner (Color = (A - B) * C + D)')
 			combinerCol = combinerBox.row()
-			combinerCol.enabled = material.set_combiner
+			combinerCol.enabled = f3dMat.set_combiner
 			rowColor = combinerCol.column()
 			rowAlpha = combinerCol.column()
 
-			rowColor.prop(material.combiner1, 'A')
-			rowColor.prop(material.combiner1, 'B')
-			rowColor.prop(material.combiner1, 'C')
-			rowColor.prop(material.combiner1, 'D')
-			rowAlpha.prop(material.combiner1, 'A_alpha')
-			rowAlpha.prop(material.combiner1, 'B_alpha')
-			rowAlpha.prop(material.combiner1, 'C_alpha')
-			rowAlpha.prop(material.combiner1, 'D_alpha')
+			rowColor.prop(f3dMat.combiner1, 'A')
+			rowColor.prop(f3dMat.combiner1, 'B')
+			rowColor.prop(f3dMat.combiner1, 'C')
+			rowColor.prop(f3dMat.combiner1, 'D')
+			rowAlpha.prop(f3dMat.combiner1, 'A_alpha')
+			rowAlpha.prop(f3dMat.combiner1, 'B_alpha')
+			rowAlpha.prop(f3dMat.combiner1, 'C_alpha')
+			rowAlpha.prop(f3dMat.combiner1, 'D_alpha')
 
-			if material.rdp_settings.g_mdsft_cycletype == 'G_CYC_2CYCLE':
+			if f3dMat.rdp_settings.g_mdsft_cycletype == 'G_CYC_2CYCLE':
 				combinerBox2 = layout.box()
 				combinerBox2.label(text = 'Color Combiner Cycle 2')
-				combinerBox2.enabled = material.set_combiner
+				combinerBox2.enabled = f3dMat.set_combiner
 				combinerCol2 = combinerBox2.row()
 				rowColor2 = combinerCol2.column()
 				rowAlpha2 = combinerCol2.column()
 
-				rowColor2.prop(material.combiner2, 'A')
-				rowColor2.prop(material.combiner2, 'B')
-				rowColor2.prop(material.combiner2, 'C')
-				rowColor2.prop(material.combiner2, 'D')
-				rowAlpha2.prop(material.combiner2, 'A_alpha')
-				rowAlpha2.prop(material.combiner2, 'B_alpha')
-				rowAlpha2.prop(material.combiner2, 'C_alpha')
-				rowAlpha2.prop(material.combiner2, 'D_alpha')
+				rowColor2.prop(f3dMat.combiner2, 'A')
+				rowColor2.prop(f3dMat.combiner2, 'B')
+				rowColor2.prop(f3dMat.combiner2, 'C')
+				rowColor2.prop(f3dMat.combiner2, 'D')
+				rowAlpha2.prop(f3dMat.combiner2, 'A_alpha')
+				rowAlpha2.prop(f3dMat.combiner2, 'B_alpha')
+				rowAlpha2.prop(f3dMat.combiner2, 'C_alpha')
+				rowAlpha2.prop(f3dMat.combiner2, 'D_alpha')
 
 			layout.box().label(
 				text = 'Note: Alpha preview is not 100% accurate.')
@@ -689,69 +717,69 @@ class F3DPanel(bpy.types.Panel):
 			self.ui_uvCheck(layout, context)
 
 			inputCol = layout.column()
-			useDict = all_combiner_uses(material)
+			useDict = all_combiner_uses(f3dMat)
 			
 			if useDict['Texture']:
-				self.ui_scale(material, inputCol)
+				self.ui_scale(f3dMat, inputCol)
 
 			if useDict['Texture 0']:
-				self.ui_image(material, inputCol, material.tex0, 'Texture 0')
+				self.ui_image(material, inputCol, f3dMat.tex0, 'Texture 0')
 
 			if useDict['Texture 1']:
-				self.ui_image(material, inputCol, material.tex1, 'Texture 1')
+				self.ui_image(material, inputCol, f3dMat.tex1, 'Texture 1')
 
 			if useDict['Texture 0'] and useDict['Texture 1']:
-				inputCol.prop(material, 'uv_basis', text = 'UV Basis')
+				inputCol.prop(f3dMat, 'uv_basis', text = 'UV Basis')
 			
 			if useDict['Primitive']:
-				self.ui_prim(material, inputCol, 'set_prim', material.set_prim)
+				self.ui_prim(material, inputCol, 'set_prim', f3dMat.set_prim)
 
 			if useDict['Environment']:	
-				if material.mat_ver == 3:
-					self.ui_env(material, inputCol, 'set_env', material.set_env)
+				if material.mat_ver >= 3:
+					self.ui_env(material, inputCol)
 				else:
 					self.ui_prop(material, inputCol, 'Environment Color', 'set_env', material.set_env)
 
 			if useDict['Shade']:
-				self.ui_lights(material, inputCol, 'Shade Color')
+				self.ui_lights(f3dMat, inputCol, 'Shade Color')
 
 			if useDict['Key']:
 				self.ui_chroma(material, inputCol, 'Chroma Key Center',
-					'set_key', material.set_key)
+					'set_key', f3dMat.set_key)
 			
 			if useDict['Convert']:
-				self.ui_convert(material, inputCol)
+				self.ui_convert(f3dMat, inputCol)
 
-			if material.rdp_settings.g_fog:
+			if f3dMat.rdp_settings.g_fog:
 				inputGroup = inputCol.column()
-				inputGroup.prop(material, 'set_fog', text = 'Set Fog')
+				inputGroup.prop(f3dMat, 'set_fog', text = 'Set Fog')
 				fogInputGroup = inputGroup.column()
 				globalFogBox = fogInputGroup.box()
-				globalFogBox.prop(material, 'use_global_fog', text = 'Use Global Fog')
+				globalFogBox.prop(f3dMat, 'use_global_fog', text = 'Use Global Fog')
 				globalFogInfoBox = globalFogBox.box()
 				globalFogInfoBox.label(text = 'Only applies to levels (area fog settings).')
 				globalFogInfoBox.label(text = 'Disable this for non-level geolayout/dl exporting.')
 				fogGroup = fogInputGroup.column()
 				fogColorGroup = fogGroup.row().split(factor = 0.5)
 				fogColorGroup.label(text = 'Fog Color')
-				fogColorGroup.prop(material, 'fog_color', text = '')
+				fogColorGroup.prop(f3dMat, 'fog_color', text = '')
 				fogPositionGroup = fogGroup.row().split(factor = 0.5)
 				fogPositionGroup.label(text = 'Fog Range')
-				fogPositionGroup.prop(material, 'fog_position', text = '')
-				fogInputGroup.enabled = material.set_fog
-				fogGroup.enabled = not material.use_global_fog
+				fogPositionGroup.prop(f3dMat, 'fog_position', text = '')
+				fogInputGroup.enabled = f3dMat.set_fog
+				fogGroup.enabled = not f3dMat.use_global_fog
 				inputGroup.box().label(text = 'NOTE: Fog will break with draw layer overrides.')
 			
 			self.ui_procAnim(material, inputCol, 
 				useDict['Texture 0'], useDict['Texture 1'])
 			
-			ui_geo_mode(material.rdp_settings, material, layout)
-			ui_upper_mode(material.rdp_settings, material, layout)
-			ui_lower_mode(material.rdp_settings, material, layout)
+			ui_geo_mode(f3dMat.rdp_settings, f3dMat, layout)
+			ui_upper_mode(f3dMat.rdp_settings, f3dMat, layout)
+			ui_lower_mode(f3dMat.rdp_settings, f3dMat, layout)
 			#layout.box().label(text = \
 			#	'WARNING: Render mode settings not reset after drawing.')
-			self.ui_lower_render_mode(material, layout)
-			ui_other(material.rdp_settings, material, layout)
+			self.ui_lower_render_mode(f3dMat, layout)
+			ui_other(f3dMat.rdp_settings, f3dMat, layout)
 
 def update_node_values(self, context):
 	if hasattr(context.scene, 'world') and \
@@ -759,7 +787,7 @@ def update_node_values(self, context):
 		pass
 	elif hasattr(context, 'material_slot') and context.material_slot is not None:
 		material = context.material_slot.material # Handles case of texture property groups
-		if not material.is_f3d or material.f3d_update_flag:
+		if not material.is_f3d or material.mat_ver >= 4 or material.f3d_update_flag:
 			return
 		material.f3d_update_flag = True
 		update_node_values_of_material(material, context)
@@ -1135,12 +1163,16 @@ def update_tex_values_index(self, context, texProperty, texNodeName,
 				nodes[texNodeName].interpolation = "Closest"
 				#nodes[texNodeName].interpolation = "Closest" if \
 				#	self.rdp_settings.g_mdsft_text_filt == 'G_TF_POINT' else "Linear"
+			elif self.mat_ver >= 4:
+				pass
 			else:
 				print("Error: Unhandled material version " + str(self.mat_ver) + ' for texture properties.')
 
 			texFormat = texProperty.tex_format
 			ciFormat = texProperty.ci_format
-			if self.mat_ver == 3: # No nodes, only sockets (0 = color, 1 = alpha)
+			if self.mat_ver >= 4:
+				pass
+			elif self.mat_ver == 3: # No nodes, only sockets (0 = color, 1 = alpha)
 				getTextureColorName = 'Get Texture Color' if texIndex == 0 else "Get Texture Color.001"
 				# Is Greyscale
 				nodes[getTextureColorName].inputs[2].default_value =\
@@ -1149,7 +1181,7 @@ def update_tex_values_index(self, context, texProperty, texNodeName,
 				
 				# Has Alpha
 				nodes[getTextureColorName].inputs[3].default_value = \
-     			    1 if ('A' in texFormat or \
+	 				1 if ('A' in texFormat or \
 					(texFormat[:2] == 'CI' and 'A' in ciFormat)) else 0
 
 				# Is Intensity
@@ -1158,10 +1190,10 @@ def update_tex_values_index(self, context, texProperty, texNodeName,
 
 			else:
 				nodes[texNodeName + ' Is Greyscale'].outputs[0].default_value = \
-     			    1 if (texFormat[0] == 'I' or \
+	 				1 if (texFormat[0] == 'I' or \
 					(texFormat[:2] == 'CI' and ciFormat[0] == 'I')) else 0
 				nodes[texNodeName + ' Has Alpha'].outputs[0].default_value = \
-     			    1 if ('A' in texFormat or \
+	 				1 if ('A' in texFormat or \
 					(texFormat[:2] == 'CI' and 'A' in ciFormat))else 0
 
 				if texNodeName + " Is Intensity" in nodes:
@@ -1172,7 +1204,10 @@ def update_tex_values_index(self, context, texProperty, texNodeName,
 
 def update_tex_values_and_formats(self, context):
 	if hasattr(context, 'material') and context.material is not None:
-		material = context.material # Handles case of texture property groups
+		if context.material.mat_ver > 3:
+			material = context.material.f3d_mat
+		else:
+			material = context.material
 		if material.f3d_update_flag:
 			return
 		material.f3d_update_flag = True
@@ -1182,7 +1217,7 @@ def update_tex_values_and_formats(self, context):
 			material.tex1.tex_format = getOptimalFormat(material.tex1.tex)
 		material.f3d_update_flag = False
 		
-		update_tex_values(material, context)
+		update_tex_values(context.material, context)
 	else:
 		if self.tex is not None:
 			self.tex_format = getOptimalFormat(self.tex)
@@ -1197,47 +1232,51 @@ def update_tex_values(self, context):
 		material.f3d_update_flag = False
 
 def update_tex_values_manual(self, context):
-	isTexGen = self.rdp_settings.g_tex_gen or self.rdp_settings.g_tex_gen_linear
+	if context.material.mat_ver > 3:
+		material = context.material.f3d_mat
+	else:
+		material = context.material
+	isTexGen = material.rdp_settings.g_tex_gen or material.rdp_settings.g_tex_gen_linear
 
-	if self.scale_autoprop:
+	if material.scale_autoprop:
 		tex_size = None
-		if self.tex0.tex is not None and self.tex1.tex is not None:
-			tex_size = self.tex0.tex.size if self.uv_basis == 'TEXEL0' else \
-				self.tex1.tex.size
-		elif self.tex0.tex is not None:
-			tex_size = self.tex0.tex.size
-		elif self.tex1.tex is not None:
-			tex_size = self.tex1.tex.size
+		if material.tex0.tex is not None and material.tex1.tex is not None:
+			tex_size = material.tex0.tex.size if material.uv_basis == 'TEXEL0' else \
+				material.tex1.tex.size
+		elif material.tex0.tex is not None:
+			tex_size = material.tex0.tex.size
+		elif material.tex1.tex is not None:
+			tex_size = material.tex1.tex.size
 
 		if isTexGen and tex_size is not None:
-			self.tex_scale = ((tex_size[0] - 1) / 1024, 
+			material.tex_scale = ((tex_size[0] - 1) / 1024, 
 				(tex_size[1] - 1) / 1024)
 		else:
-			self.tex_scale = (1,1)
+			material.tex_scale = (1,1)
 	
 
-	useDict = all_combiner_uses(self)
+	useDict = all_combiner_uses(material)
 		
-	if useDict['Texture 0'] and self.tex0.tex is not None and \
-		useDict['Texture 1'] and self.tex1.tex is not None and\
-		self.tex0.tex.size[0] > 0 and self.tex0.tex.size[1] > 0 and\
-		self.tex1.tex.size[0] > 0 and self.tex1.tex.size[1] > 0:
-		if self.uv_basis == 'TEXEL0':
+	if useDict['Texture 0'] and material.tex0.tex is not None and \
+		useDict['Texture 1'] and material.tex1.tex is not None and\
+		material.tex0.tex.size[0] > 0 and material.tex0.tex.size[1] > 0 and\
+		material.tex1.tex.size[0] > 0 and material.tex1.tex.size[1] > 0:
+		if material.uv_basis == 'TEXEL0':
 			uvBasisScale0 = (1,1)
-			uvBasisScale1 = (self.tex0.tex.size[0] / self.tex1.tex.size[0],
-				self.tex0.tex.size[1] / self.tex1.tex.size[1])
+			uvBasisScale1 = (material.tex0.tex.size[0] / material.tex1.tex.size[0],
+				material.tex0.tex.size[1] / material.tex1.tex.size[1])
 		else:
 			uvBasisScale1 = (1,1)
-			uvBasisScale0 = (self.tex1.tex.size[0] / self.tex0.tex.size[0],
-				self.tex1.tex.size[1] / self.tex0.tex.size[1])
+			uvBasisScale0 = (material.tex1.tex.size[0] / material.tex0.tex.size[0],
+				material.tex1.tex.size[1] / material.tex0.tex.size[1])
 	else:
 		uvBasisScale0 = (1,1)
 		uvBasisScale1 = (1,1)
 			
-	update_tex_values_index(self, context, self.tex0, 'Texture 0', 
-		'Get UV', isTexGen, uvBasisScale0, self.tex_scale, 0)
-	update_tex_values_index(self, context, self.tex1, 'Texture 1', 
-		'Get UV.001', isTexGen, uvBasisScale1, self.tex_scale, 1)
+	update_tex_values_index(self, context, material.tex0, 'Texture 0', 
+		'Get UV', isTexGen, uvBasisScale0, material.tex_scale, 0)
+	update_tex_values_index(self, context, material.tex1, 'Texture 1', 
+		'Get UV.001', isTexGen, uvBasisScale1, material.tex_scale, 1)
 
 def getMaterialScrollDimensions(material):
 	useDict = all_combiner_uses(material)
@@ -1262,12 +1301,12 @@ def getMaterialScrollDimensions(material):
 def update_preset(self, context):
 	if hasattr(context, 'material_slot') and context.material_slot is not None:
 		material = context.material_slot.material
-		if material.f3d_preset != 'Custom':
+		if material.mat_ver < 4 and material.f3d_preset != 'Custom':
 			materialSettings = materialPresetDict[material.f3d_preset]
 			materialSettings.applyToMaterial(material, False, update_node_values_of_material, bpy.context)
 
 def update_preset_manual(material, context):
-	if material.f3d_preset != 'Custom':
+	if material.mat_ver < 4 and material.f3d_preset != 'Custom':
 		materialSettings = materialPresetDict[material.f3d_preset]
 		materialSettings.applyToMaterial(material, False, update_node_values_of_material, bpy.context)
 
@@ -1283,7 +1322,34 @@ def createF3DMat(obj, preset = 'Shaded Solid', index = None):
 			bpy.context.object.active_material_index = index
 
 	material.is_f3d = True
-	material.mat_ver = 3
+	material.mat_ver = 3 if not bpy.context.scene.experimentalMats else 4
+
+	if material.mat_ver > 3:
+		material.use_nodes = True
+		material.blend_method = 'BLEND'
+		material.show_transparent_back = False
+
+		# Remove default shader 
+		node_tree = material.node_tree
+		nodes = material.node_tree.nodes
+		links = material.node_tree.links
+		bsdf = nodes.get('Principled BSDF')
+		material_output = nodes.get('Material Output')
+
+		tex0Node = node_tree.nodes.new("ShaderNodeTexImage")
+		tex0Node.name = "Texture 0"
+		tex0Node.label = "Texture 0"
+		tex0Node.location = [-300, 300]
+		tex1Node = node_tree.nodes.new("ShaderNodeTexImage")
+		tex1Node.name = "Texture 1"
+		tex1Node.label = "Texture 1"
+		tex1Node.location = [-300, 50]
+
+		links.new(bsdf.inputs["Base Color"], tex0Node.outputs["Color"])
+		links.new(bsdf.inputs["Subsurface Color"], tex1Node.outputs["Color"])
+		bsdf.inputs['Specular'].default_value = 0
+
+		return material
 
 	material.use_nodes = True
 	material.blend_method = 'HASHED'
@@ -1490,24 +1556,24 @@ class TextureFieldProperty(bpy.types.PropertyGroup):
 		update = update_tex_values)
 
 class TextureProperty(bpy.types.PropertyGroup):
-	tex : bpy.props.PointerProperty(
-		type = bpy.types.Image, name = 'Texture',
-		update = update_tex_values_and_formats)
+	tex : bpy.props.PointerProperty(type = bpy.types.Image, name = 'Texture', update = update_tex_values_and_formats)
 
-	# this is done in material so that greyscale/nonalpha formats will
-	# be reflected in preview
-	tex_format : bpy.props.EnumProperty(
-		name = 'Format', items = enumTexFormat, default = 'RGBA16',
-		update = update_tex_values)
-	ci_format : bpy.props.EnumProperty(name = 'CI Format', items = enumCIFormat,
-		default = 'RGBA16', update = update_tex_values)
+	tex_format : bpy.props.EnumProperty(name = 'Format', items = enumTexFormat, default = 'RGBA16', update = update_tex_values)
+	ci_format : bpy.props.EnumProperty(name = 'CI Format', items = enumCIFormat, default = 'RGBA16', update = update_tex_values)
 	S : bpy.props.PointerProperty(type = TextureFieldProperty)
 	T : bpy.props.PointerProperty(type = TextureFieldProperty)
 
 	menu : bpy.props.BoolProperty()
 	tex_set : bpy.props.BoolProperty(default = True, update = update_node_values)
-	autoprop : bpy.props.BoolProperty(name = 'Autoprop',
-		update = update_tex_values, default = True)
+	autoprop : bpy.props.BoolProperty(name = 'Autoprop', update = update_tex_values, default = True)
+	#autoprop : bpy.props.BoolProperty(name = 'Autoprop', update = on_tex_autoprop, default = True)
+
+def on_tex_autoprop(texProperty, context):
+	if texProperty.autoprop and texProperty.tex is not None:
+		tex_size = texProperty.tex.size
+		if tex_size[0] > 0 and tex_size[1] > 0:
+			setAutoProp(texProperty.S, tex_size[0])
+			setAutoProp(texProperty.T, tex_size[1])
 
 class CombinerProperty(bpy.types.PropertyGroup):
 	A : bpy.props.EnumProperty(
@@ -1711,33 +1777,6 @@ node_categories = [
 	F3DNodeCategory('CUSTOM', 'Custom', items = [
 		NodeItem("GetAlphaFromColor",label="Get Alpha From Color", settings={}),
 	]),
-	F3DNodeCategory('FAST3D', "Fast3D", items=[
-		# the node item can have additional settings,
-		# which are applied to new nodes
-		# NB: settings values are stored as string expressions,
-		# for this reason they should be converted to strings using repr()
-		NodeItem("Fast3D_A", label="A"),
-		NodeItem("Fast3D_B", label="B"),
-		NodeItem("Fast3D_C", label="C"),
-		NodeItem("Fast3D_D", label="D"),
-		NodeItem("Fast3D_A_alpha", label="A Alpha"),
-		NodeItem("Fast3D_B_alpha", label="B Alpha"),
-		NodeItem("Fast3D_C_alpha", label="C Alpha"),
-		NodeItem("Fast3D_D_alpha", label="D Alpha"),
-		'''
-		NodeItem("Test_NodeType", label="Full", settings={
-			"my_string_prop": repr("consectetur adipisicing elit"),
-			"my_float_prop": repr(2.0),
-		}),
-		NodeItem("Fast3D_NodeType", label="Shaded Texture", settings={
-			"inA": repr('1'), "inB": repr('8'), "inC": repr('4'), 
-			"inD": repr('7'), "inA_alpha": repr('7'), "inB_alpha": repr('7'), 
-			"inC_alpha": repr('7'), "inD_alpha": repr('5'), 
-		}),
-		NodeItem("Fast3DSplitter_NodeType", label="Splitter", settings={
-		}),
-		'''	
-	]),
 ]
 
 def getOptimalFormat(tex):
@@ -1789,20 +1828,417 @@ def getOptimalFormat(tex):
 	
 	return texFormat
 	
+class MATERIAL_MT_f3d_presets(Menu):
+	bl_label = "F3D Material Presets"
+	preset_subdir = "f3d"
+	preset_operator = "script.execute_preset"
+	draw = Menu.draw_preset
+
+
+class AddPresetF3D(AddPresetBase, Operator):
+	'''Add an F3D Material Preset'''
+	bl_idname = "material.f3d_preset_add"
+	bl_label = "Add F3D Material Preset"
+	preset_menu = "MATERIAL_MT_f3d_presets"
+
+	# variable used for all preset values
+	# do NOT set "mat" in this operator, even in a for loop! it overrides this value
+	preset_defines = [
+		"f3d_mat = bpy.context.material.f3d_mat"
+	]
+
+	# properties to store in the preset
+	preset_values = [
+		"f3d_mat",
+	]
+
+	# where to store the preset
+	preset_subdir = "f3d"
+
+	defaults = [
+		"Custom",
+		"Shaded Texture",
+	]
+
+	#ignore_props = [
+	#	"tex",
+	#	"f3d_light1",
+	#	"f3d_light2",
+	#	"f3d_light3",
+	#	"f3d_light4",
+	#	"f3d_light5",
+	#	"f3d_light6",
+	#	"f3d_light7",
+	#]
+
+#	def add(self, context, filepath):
+#		
+#		is_preset_add = not (self.remove_name or self.remove_active)
+#		name = self.name.strip() if is_preset_add else self.name
+#		filename = self.as_filename(name)
+#		preset_menu_class = getattr(bpy.types, self.preset_menu)
+#		preset_menu_class.bl_label = bpy.path.display_name(filename)
+#
+#	def remove(self, context, filepath):
+#		import os
+#		preset_menu_class = getattr(bpy.types, self.preset_menu)
+#		name = preset_menu_class.bl_label if self.remove_active else self.name
+#		if name in self.defaults:
+#			self.report({'WARNING'}, "Unable to remove default presets")
+#			return {'CANCELLED'}
+#		
+#		os.remove(filepath)
+
+	def execute(self, context):
+		import os
+		from bpy.utils import is_path_builtin
+
+		if hasattr(self, "pre_cb"):
+			self.pre_cb(context)
+
+		preset_menu_class = getattr(bpy.types, self.preset_menu)
+
+		is_xml = getattr(preset_menu_class, "preset_type", None) == 'XML'
+		is_preset_add = not (self.remove_name or self.remove_active)
+
+		if is_xml:
+			ext = ".xml"
+		else:
+			ext = ".py"
+
+		name = self.name.strip() if is_preset_add else self.name
+		filename = self.as_filename(name)
+		presetName = bpy.path.display_name(filename)
+		
+		if presetName in self.defaults:
+			self.report({'WARNING'}, "Unable to delete/overwrite default presets.")
+			return {'CANCELLED'}
+
+		if is_preset_add:
+			if not name:
+				return {'FINISHED'}
+
+			# Reset preset name
+			wm = bpy.data.window_managers[0]
+			if name == wm.preset_name:
+				wm.preset_name = 'New Preset'
+
+			filename = self.as_filename(name)
+			context.material.f3d_mat.presetName = bpy.path.display_name(filename)
+
+			target_path = os.path.join("presets", self.preset_subdir)
+			target_path = bpy.utils.user_resource('SCRIPTS',
+												  target_path,
+												  create=True)
+
+			if not target_path:
+				self.report({'WARNING'}, "Failed to create presets path")
+				return {'CANCELLED'}
+
+			filepath = os.path.join(target_path, filename) + ext
+
+			if hasattr(self, "add"):
+				self.add(context, filepath)
+			else:
+				print("Writing Preset: %r" % filepath)
+
+				if is_xml:
+					import rna_xml
+					rna_xml.xml_file_write(context,
+										   filepath,
+										   preset_menu_class.preset_xml_map)
+				else:
+
+					def rna_recursive_attr_expand(value, rna_path_step, level):
+						#if rna_path_step in self.ignore_props:
+						#	print("Ignoring: " + str(rna_path_step))
+						#	return
+						if isinstance(value, bpy.types.PropertyGroup):
+							for sub_value_attr in value.bl_rna.properties.keys():
+								if sub_value_attr == "rna_type":
+									continue
+								sub_value = getattr(value, sub_value_attr)
+								rna_recursive_attr_expand(sub_value, "%s.%s" % (rna_path_step, sub_value_attr), level)
+						elif type(value).__name__ == "bpy_prop_collection_idprop":  # could use nicer method
+							file_preset.write("%s.clear()\n" % rna_path_step)
+							for sub_value in value:
+								file_preset.write("item_sub_%d = %s.add()\n" % (level, rna_path_step))
+								rna_recursive_attr_expand(sub_value, "item_sub_%d" % level, level + 1)
+						else:
+							# convert thin wrapped sequences
+							# to simple lists to repr()
+							try:
+								value = value[:]
+							except:
+								pass
+
+							file_preset.write("%s = %r\n" % (rna_path_step, value))
+
+					file_preset = open(filepath, 'w', encoding="utf-8")
+					file_preset.write("import bpy\n")
+
+					if hasattr(self, "preset_defines"):
+						for rna_path in self.preset_defines:
+							exec(rna_path)
+							file_preset.write("%s\n" % rna_path)
+						file_preset.write("\n")
+
+					for rna_path in self.preset_values:
+						value = eval(rna_path)
+						rna_recursive_attr_expand(value, rna_path, 1)
+
+					file_preset.close()
+
+			preset_menu_class.bl_label = bpy.path.display_name(filename)
+
+		else:
+			if self.remove_active:
+				name = preset_menu_class.bl_label
+				filename = self.as_filename(name)
+				presetName = bpy.path.display_name(filename)
+
+			# fairly sloppy but convenient.
+			filepath = bpy.utils.preset_find(name,
+											 self.preset_subdir,
+											 ext=ext)
+
+			if not filepath:
+				filepath = bpy.utils.preset_find(name,
+												 self.preset_subdir,
+												 display_name=True,
+												 ext=ext)
+
+			if not filepath:
+				return {'CANCELLED'}
+
+			# Do not remove bundled presets
+			if is_path_builtin(filepath):
+				self.report({'WARNING'}, "Unable to remove default presets")
+				return {'CANCELLED'}
+
+			try:
+				if hasattr(self, "remove"):
+					self.remove(context, filepath)
+				else:
+					os.remove(filepath)
+			except Exception as e:
+				self.report({'ERROR'}, "Unable to remove preset: %r" % e)
+				import traceback
+				traceback.print_exc()
+				return {'CANCELLED'}
+
+			# XXX, stupid!
+			preset_menu_class.bl_label = "Presets"
+			for material in bpy.data.materials:
+				if material.f3d_mat.presetName == presetName:
+					material.f3d_mat.presetName = "Custom"
+			#context.material.f3d_mat.presetName = "Custom"
+
+		if hasattr(self, "post_cb"):
+			self.post_cb(context)
+
+		return {'FINISHED'}
+
+def convertToNewMat(material):
+	mat_register_old()
+	material.f3d_mat.presetName = material.presetName
+
+	material.f3d_mat.scale_autoprop = material.scale_autoprop
+	material.f3d_mat.uv_basis = material.uv_basis
+
+	# Combiners
+	copyPropertyGroup(material.combiner1, material.f3d_mat.combiner1)
+	copyPropertyGroup(material.combiner2, material.f3d_mat.combiner2)
+	#material.f3d_mat.combiner1 = material.combiner1
+	#material.f3d_mat.combiner2 = material.combiner2
+
+	# Texture animation
+	material.f3d_mat.menu_procAnim = material.menu_procAnim
+	copyPropertyGroup(material.UVanim, material.f3d_mat.uv_anim_0)
+	copyPropertyGroup(material.UVanim_tex1, material.f3d_mat.uv_anim_1)
+
+	# material textures
+	material.f3d_mat.tex_scale = material.tex_scale
+	copyPropertyGroup(material.tex0, material.f3d_mat.tex0)
+	copyPropertyGroup(material.tex1, material.f3d_mat.tex1)
+
+	# Should Set?
+	material.f3d_mat.set_prim = material.set_prim
+	material.f3d_mat.set_lights = material.set_lights
+	material.f3d_mat.set_env = material.set_env
+	material.f3d_mat.set_blend = material.set_blend
+	material.f3d_mat.set_key = material.set_key
+	material.f3d_mat.set_k0_5 = material.set_k0_5
+	material.f3d_mat.set_combiner = material.set_combiner
+	material.f3d_mat.use_default_lighting = material.use_default_lighting
+
+	# Colors
+	nodes = material.node_tree.nodes
+	material.f3d_mat.blend_color = material.blend_color
+	if material.mat_ver == 3:
+		prim = nodes['Primitive Color Output'].inputs[0].default_value
+		env = nodes['Environment Color Output'].inputs[0].default_value
+	else:
+		prim = nodes['Primitive Color'].outputs[0].default_value
+		env = nodes['Environment Color'].outputs[0].default_value
+
+	material.f3d_mat.blend_color = material.blend_color
+	material.f3d_mat.prim_color = prim
+	material.f3d_mat.env_color = env
+	material.f3d_mat.key_center = nodes['Chroma Key Center'].outputs[0].default_value
+
+	# Chroma
+	material.f3d_mat.key_scale = material.key_scale
+	material.f3d_mat.key_width = material.key_width
+	
+	# Convert
+	material.f3d_mat.k0 = material.k0
+	material.f3d_mat.k1 = material.k1
+	material.f3d_mat.k2 = material.k2
+	material.f3d_mat.k3 = material.k3
+	material.f3d_mat.k4 = material.k4
+	material.f3d_mat.k5 = material.k5
+	
+	# Prim
+	material.f3d_mat.prim_lod_frac = material.prim_lod_frac
+	material.f3d_mat.prim_lod_min = material.prim_lod_min
+
+	# lights
+	material.f3d_mat.default_light_color = material.default_light_color
+	material.f3d_mat.ambient_light_color = material.ambient_light_color
+	material.f3d_mat.f3d_light1 = material.f3d_light1
+	material.f3d_mat.f3d_light2 = material.f3d_light2
+	material.f3d_mat.f3d_light3 = material.f3d_light3
+	material.f3d_mat.f3d_light4 = material.f3d_light4
+	material.f3d_mat.f3d_light5 = material.f3d_light5
+	material.f3d_mat.f3d_light6 = material.f3d_light6
+	material.f3d_mat.f3d_light7 = material.f3d_light7
+
+	# Fog Properties
+	material.f3d_mat.fog_color = material.fog_color
+	material.f3d_mat.fog_position = material.fog_position
+	material.f3d_mat.set_fog = material.set_fog
+	material.f3d_mat.use_global_fog = material.use_global_fog
+
+	# geometry mode
+	material.f3d_mat.menu_geo = material.menu_geo
+	material.f3d_mat.menu_upper = material.menu_upper
+	material.f3d_mat.menu_lower = material.menu_lower
+	material.f3d_mat.menu_other = material.menu_other
+	material.f3d_mat.menu_lower_render = material.menu_lower_render
+	copyPropertyGroup(material.rdp_settings, material.f3d_mat.rdp_settings)
+
+	mat_unregister_old()
+
+def on_set_scale(f3dProp, context):
+	isTexGen = f3dProp.rdp_settings.g_tex_gen or f3dProp.rdp_settings.g_tex_gen_linear
+
+	if f3dProp.scale_autoprop:
+		tex_size = None
+		if f3dProp.tex0.tex is not None and f3dProp.tex1.tex is not None:
+			tex_size = f3dProp.tex0.tex.size if f3dProp.uv_basis == 'TEXEL0' else f3dProp.tex1.tex.size
+		elif f3dProp.tex0.tex is not None:
+			tex_size = f3dProp.tex0.tex.size
+		elif f3dProp.tex1.tex is not None:
+			tex_size = f3dProp.tex1.tex.size
+		if isTexGen and tex_size is not None:
+			f3dProp.tex_scale = ((tex_size[0] - 1) / 1024, 
+				(tex_size[1] - 1) / 1024)
+		else:
+			f3dProp.tex_scale = (1,1)
+
+class F3DMaterialProperty(bpy.types.PropertyGroup):
+	presetName : bpy.props.StringProperty(name = "Preset Name", default = "Custom")
+	f3d_update_flag : bpy.props.BoolProperty()
+
+	scale_autoprop : bpy.props.BoolProperty(name = 'Auto Set Scale', default = True, update = on_set_scale)
+	uv_basis : bpy.props.EnumProperty(name = 'UV Basis', default = 'TEXEL0', items = enumTexUV)
+
+	# Combiners
+	combiner1 : bpy.props.PointerProperty(type = CombinerProperty)
+	combiner2 : bpy.props.PointerProperty(type = CombinerProperty)
+
+	# Texture animation
+	menu_procAnim : bpy.props.BoolProperty()
+	UVanim0 : bpy.props.PointerProperty(type = ProcAnimVectorProperty)
+	UVanim1 : bpy.props.PointerProperty(type = ProcAnimVectorProperty)
+
+	# material textures
+	tex_scale : bpy.props.FloatVectorProperty(min = 0, max = 1, size = 2, default = (1,1), step = 1)
+	tex0 : bpy.props.PointerProperty(type = TextureProperty)
+	tex1 : bpy.props.PointerProperty(type = TextureProperty)
+
+	# Should Set?
+
+	set_prim : bpy.props.BoolProperty(default = True)
+	set_lights : bpy.props.BoolProperty(default = True)
+	set_env : bpy.props.BoolProperty(default = False)
+	set_blend : bpy.props.BoolProperty(default = False)
+	set_key : bpy.props.BoolProperty(default = True)
+	set_k0_5 : bpy.props.BoolProperty(default = True)
+	set_combiner : bpy.props.BoolProperty(default = True)
+	use_default_lighting : bpy.props.BoolProperty(default = True)
+
+	# Blend Color
+	blend_color : bpy.props.FloatVectorProperty(
+		name = 'Blend Color', subtype='COLOR', size = 4, min = 0, max = 1, default = (0,0,0,1))
+	prim_color : bpy.props.FloatVectorProperty(
+		name = 'Primitive Color', subtype='COLOR', size = 4, min = 0, max = 1, default = (1,1,1,1))
+	env_color : bpy.props.FloatVectorProperty(
+		name = 'Environment Color', subtype='COLOR', size = 4, min = 0, max = 1, default = (1,1,1,1))
+	key_center : bpy.props.FloatVectorProperty(
+		name = 'Key Center', subtype='COLOR', size = 4, min = 0, max = 1, default = (1,1,1,1))
+
+	# Chroma
+	key_scale : bpy.props.FloatVectorProperty(name = 'Key Scale', min = 0, max = 1, step = 1)
+	key_width : bpy.props.FloatVectorProperty(name = 'Key Width', min = 0, max = 16)
+	
+	# Convert
+	k0 : bpy.props.FloatProperty(min = -1, max = 1, default = 175/255, step = 1)
+	k1 : bpy.props.FloatProperty(min = -1, max = 1, default = -43/255, step = 1)
+	k2 : bpy.props.FloatProperty(min = -1, max = 1, default = -89/255, step = 1)	
+	k3 : bpy.props.FloatProperty(min = -1, max = 1, default = 222/255, step = 1)
+	k4 : bpy.props.FloatProperty(min = -1, max = 1, default = 114/255, step = 1)
+	k5 : bpy.props.FloatProperty(min = -1, max = 1, default = 42/255, step = 1)
+	
+	# Prim
+	prim_lod_frac : bpy.props.FloatProperty(name = 'Prim LOD Frac', min = 0, max = 1, step = 1)
+	prim_lod_min : bpy.props.FloatProperty(name = 'Min LOD Ratio', min = 0, max = 1, step = 1)
+
+	# lights
+	default_light_color : bpy.props.FloatVectorProperty(
+		name = 'Default Light Color', subtype = 'COLOR', size = 4, min = 0, max = 1, default = (1,1,1,1),
+		update = update_node_values)
+	ambient_light_color : bpy.props.FloatVectorProperty(
+		name = 'Ambient Light Color', subtype = 'COLOR', size = 4, min = 0, max = 1, default = (0.5,0.5,0.5,1),
+		update = update_node_values)
+	f3d_light1 : bpy.props.PointerProperty(type = bpy.types.Light, update = F3DOrganizeLights)
+	f3d_light2 : bpy.props.PointerProperty(type = bpy.types.Light, update = F3DOrganizeLights)
+	f3d_light3 : bpy.props.PointerProperty(type = bpy.types.Light, update = F3DOrganizeLights)
+	f3d_light4 : bpy.props.PointerProperty(type = bpy.types.Light, update = F3DOrganizeLights)
+	f3d_light5 : bpy.props.PointerProperty(type = bpy.types.Light, update = F3DOrganizeLights)
+	f3d_light6 : bpy.props.PointerProperty(type = bpy.types.Light, update = F3DOrganizeLights)
+	f3d_light7 : bpy.props.PointerProperty(type = bpy.types.Light, update = F3DOrganizeLights)
+
+	# Fog Properties
+	fog_color : bpy.props.FloatVectorProperty(
+		name = 'Fog Color', subtype='COLOR', size = 4, min = 0, max = 1, default = (0,0,0,1))
+	fog_position : bpy.props.IntVectorProperty(
+		name = 'Fog Range', size = 2, min = 0, max = 1000, default = (970,1000))
+	set_fog : bpy.props.BoolProperty()
+	use_global_fog : bpy.props.BoolProperty(default = True)
+
+	# geometry mode
+	menu_geo : bpy.props.BoolProperty()
+	menu_upper : bpy.props.BoolProperty()
+	menu_lower : bpy.props.BoolProperty()
+	menu_other : bpy.props.BoolProperty()
+	menu_lower_render : bpy.props.BoolProperty()
+	rdp_settings : bpy.props.PointerProperty(type = RDPSettings)
 
 mat_classes = (
-	#MyCustomSocket,
-	#MyCustomNode,
-	#F3DNode,
-	#F3DOptionSplitterNode,
-	F3DNodeA,
-	F3DNodeB,
-	F3DNodeC,
-	F3DNodeD,
-	F3DNodeA_alpha,
-	F3DNodeB_alpha,
-	F3DNodeC_alpha,
-	F3DNodeD_alpha,
+	MATERIAL_MT_f3d_presets,
+	AddPresetF3D,
 	F3DPanel,
 	CreateFast3DMaterial,
 	N64_AddF3dMat,
@@ -1813,39 +2249,91 @@ mat_classes = (
 	ProceduralAnimProperty,
 	ProcAnimVectorProperty,
 	RDPSettings,
-	DefaultRDPSettingsPanel
-	#F3DLightCollectionProperty,
+	DefaultRDPSettingsPanel,
+	F3DMaterialProperty,
 )
 
-def mat_register():
-	#bpy.app.handlers.load_post.append(loadTimer)
-	for cls in mat_classes:
-		register_class(cls)
+def mat_unregister_old():
+	del bpy.types.Material.f3d_preset
+
+	del bpy.types.Material.scale_autoprop
+	del bpy.types.Material.uv_basis
+
+	# Combiners
+	del bpy.types.Material.presetName
+
+	del bpy.types.Material.combiner1
+	del bpy.types.Material.combiner2
+
+	# Texture animation
+	del bpy.types.Material.menu_procAnim
+	del bpy.types.Material.UVanim_tex1
+	del bpy.types.Material.UVanim
+
+	# material textures
+	del bpy.types.Material.tex_scale
+	del bpy.types.Material.tex0
+	del bpy.types.Material.tex1
+
+	# Should Set?
+	del bpy.types.Material.f3d_update_flag
+	del bpy.types.Material.set_prim
+	del bpy.types.Material.set_lights
+	del bpy.types.Material.set_env
+	del bpy.types.Material.set_blend
+	del bpy.types.Material.set_key
+	del bpy.types.Material.set_k0_5
+	del bpy.types.Material.set_combiner
+	del bpy.types.Material.use_default_lighting
+
+	# Blend Color
+	del bpy.types.Material.blend_color
+
+	# Chroma
+	del bpy.types.Material.key_scale
+	del bpy.types.Material.key_width
 	
-	presetDict = addMaterialPresets()
-	for presetName, presetItem in presetDict.items():
-		enumMaterialPresets.append((presetName, presetName, presetName))
-		materialPresetDict[presetName] = presetItem
+	# Convert
+	del bpy.types.Material.k0
+	del bpy.types.Material.k1
+	del bpy.types.Material.k2
+	del bpy.types.Material.k3
+	del bpy.types.Material.k4
+	del bpy.types.Material.k5
+	
+	# Prim
+	del bpy.types.Material.prim_lod_frac
+	del bpy.types.Material.prim_lod_min
 
-	nodeitems_utils.register_node_categories('CUSTOM_NODES', node_categories)
+	# lights
+	del bpy.types.Material.default_light_color
+	del bpy.types.Material.ambient_light_color
+	del bpy.types.Material.f3d_light1
+	del bpy.types.Material.f3d_light2
+	del bpy.types.Material.f3d_light3
+	del bpy.types.Material.f3d_light4
+	del bpy.types.Material.f3d_light5
+	del bpy.types.Material.f3d_light6
+	del bpy.types.Material.f3d_light7
 
+	# Fog Properties
+	del bpy.types.Material.fog_color
+	del bpy.types.Material.fog_position
+	del bpy.types.Material.set_fog
+	del bpy.types.Material.use_global_fog
+
+	# geometry mode
+	del bpy.types.Material.menu_geo
+	del bpy.types.Material.menu_upper
+	del bpy.types.Material.menu_lower
+	del bpy.types.Material.menu_other
+	del bpy.types.Material.menu_lower_render
+	del bpy.types.Material.rdp_settings
+
+def mat_register_old():
 	bpy.types.Material.f3d_preset = bpy.props.EnumProperty(name = 'F3D Preset',
 		items = enumMaterialPresets, default = 'Custom', 
 		update = update_preset)
-
-	bpy.types.Scene.update_flag = bpy.props.BoolProperty()
-	bpy.types.Scene.f3d_type = bpy.props.EnumProperty(
-		name = 'F3D Microcode', items = enumF3D, default = 'F3D')
-	bpy.types.Scene.isHWv1 = bpy.props.BoolProperty(name = 'Is Hardware v1?')
-	
-	# RDP Defaults
-	bpy.types.World.rdp_defaults = bpy.props.PointerProperty(
-		type = RDPSettings)
-	bpy.types.World.menu_geo = bpy.props.BoolProperty()
-	bpy.types.World.menu_upper = bpy.props.BoolProperty()
-	bpy.types.World.menu_lower = bpy.props.BoolProperty()
-	bpy.types.World.menu_other = bpy.props.BoolProperty()
-	bpy.types.World.menu_layers = bpy.props.BoolProperty()
 
 	bpy.types.Material.scale_autoprop = bpy.props.BoolProperty(
 		name = 'Auto Set Scale', default = True,
@@ -1855,6 +2343,8 @@ def mat_register():
 		update = update_tex_values, items = enumTexUV)
 
 	# Combiners
+	bpy.types.Material.presetName = bpy.props.StringProperty(name = "Preset Name", default = "Custom")
+
 	bpy.types.Material.combiner1 = bpy.props.PointerProperty(type = \
 		CombinerProperty)
 	bpy.types.Material.combiner2 = bpy.props.PointerProperty(type = \
@@ -1882,8 +2372,6 @@ def mat_register():
 	bpy.types.Material.tex1 = bpy.props.PointerProperty(type = TextureProperty)
 
 	# Should Set?
-	bpy.types.Material.is_f3d = bpy.props.BoolProperty()
-	bpy.types.Material.mat_ver = bpy.props.IntProperty(default = 1)
 	bpy.types.Material.f3d_update_flag = bpy.props.BoolProperty()
 	bpy.types.Material.set_prim = bpy.props.BoolProperty(default = True,
 		update = update_node_values)
@@ -1975,7 +2463,40 @@ def mat_register():
 	bpy.types.Material.rdp_settings = bpy.props.PointerProperty(
 		type = RDPSettings)
 
+def mat_register():
+	#bpy.app.handlers.load_post.append(loadTimer)
+	for cls in mat_classes:
+		register_class(cls)
+	
+	presetDict = addMaterialPresets()
+	for presetName, presetItem in presetDict.items():
+		enumMaterialPresets.append((presetName, presetName, presetName))
+		materialPresetDict[presetName] = presetItem
+
+	nodeitems_utils.register_node_categories('CUSTOM_NODES', node_categories)
+
+	bpy.types.Scene.f3d_type = bpy.props.EnumProperty(
+		name = 'F3D Microcode', items = enumF3D, default = 'F3D')
+	bpy.types.Scene.isHWv1 = bpy.props.BoolProperty(name = 'Is Hardware v1?')
+	
+	# RDP Defaults
+	bpy.types.World.rdp_defaults = bpy.props.PointerProperty(
+		type = RDPSettings)
+	bpy.types.World.menu_geo = bpy.props.BoolProperty()
+	bpy.types.World.menu_upper = bpy.props.BoolProperty()
+	bpy.types.World.menu_lower = bpy.props.BoolProperty()
+	bpy.types.World.menu_other = bpy.props.BoolProperty()
+	bpy.types.World.menu_layers = bpy.props.BoolProperty()
+
+	mat_register_old()
+	bpy.types.Material.is_f3d = bpy.props.BoolProperty()
+	bpy.types.Material.mat_ver = bpy.props.IntProperty(default = 1)
+	bpy.types.Material.f3d_mat = bpy.props.PointerProperty(type = F3DMaterialProperty)
+
 def mat_unregister():
+	del bpy.types.Material.f3d_mat
+	del bpy.types.Material.is_f3d
+	del bpy.types.Material.mat_ver
 	nodeitems_utils.unregister_node_categories('CUSTOM_NODES')
 	for cls in reversed(mat_classes):
 		unregister_class(cls)
@@ -2070,16 +2591,16 @@ sm64_fog_shaded_texture_transparent.blend_method = "BLEND"
 # WARNING: Adding new presets will break any custom presets added afterward.
 
 enumMaterialPresets = [
-    ('Custom', 'Custom', 'Custom'),
-    ('Unlit Texture', 'Unlit Texture', 'Unlit Texture'),
+	('Custom', 'Custom', 'Custom'),
+	('Unlit Texture', 'Unlit Texture', 'Unlit Texture'),
 	('Unlit Texture Cutout', 'Unlit Texture Cutout', 'Unlit Texture Cutout'),
 	('Shaded Solid', 'Shaded Solid', 'Shaded Solid'),
 	('Decal On Shaded Solid', 'Decal On Shaded Solid', 'Decal On Shaded Solid'),
-    ('Shaded Texture', 'Shaded Texture', 'Shaded Texture'),
-    ('Shaded Texture Cutout', 'Shaded Texture Cutout', 'Shaded Texture Cutout'),
+	('Shaded Texture', 'Shaded Texture', 'Shaded Texture'),
+	('Shaded Texture Cutout', 'Shaded Texture Cutout', 'Shaded Texture Cutout'),
 	('Shaded Texture Transparent', 'Shaded Texture Transparent (Prim Alpha)', 'Shaded Texture Transparent (Prim Alpha)'),
 	('Vertex Colored Texture', 'Vertex Colored Texture', 'Vertex Colored Texture'),
-    ('Environment Mapped', 'Environment Mapped', 'Environment Mapped'),
+	('Environment Mapped', 'Environment Mapped', 'Environment Mapped'),
 	('Fog Shaded Texture', 'Fog Shaded Texture', 'Fog Shaded Texture'),
 	('Fog Shaded Texture Cutout', 'Fog Shaded Texture Cutout', 'Fog Shaded Texture Cutout'),
 	('Fog Shaded Texture Transparent', 'Fog Shaded Texture Transparent (Prim Alpha)', 'Fog Shaded Texture Transparent (Prim Alpha)'),
@@ -2089,15 +2610,15 @@ enumMaterialPresets = [
 ]
 
 materialPresetDict = {
-    'Unlit Texture' : sm64_unlit_texture,
+	'Unlit Texture' : sm64_unlit_texture,
 	'Unlit Texture Cutout' : sm64_unlit_texture_cutout,
 	'Shaded Solid' : sm64_shaded_solid,
-    'Shaded Texture' : sm64_shaded_texture,
-    'Shaded Texture Cutout' : sm64_shaded_texture_cutout,
+	'Shaded Texture' : sm64_shaded_texture,
+	'Shaded Texture Cutout' : sm64_shaded_texture_cutout,
 	'Shaded Texture Transparent' : sm64_prim_transparent_shade,
-    'Environment Mapped' : sm64_unlit_env_map,
-    'Decal On Shaded Solid' : sm64_decal,
-    'Vertex Colored Texture' : sm64_vert_colored_tex,
+	'Environment Mapped' : sm64_unlit_env_map,
+	'Decal On Shaded Solid' : sm64_decal,
+	'Vertex Colored Texture' : sm64_vert_colored_tex,
 	'Fog Shaded Texture' : sm64_fog_shaded_texture,
 	'Fog Shaded Texture Cutout' : sm64_fog_shaded_texture_cutout,
 	'Fog Shaded Texture Transparent' : sm64_fog_shaded_texture_transparent,
