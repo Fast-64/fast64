@@ -2158,10 +2158,13 @@ class FMaterial:
 		self.scrollData.dimensions = dimensions
 
 	def getScrollDataField(self, material, texIndex, fieldIndex):
+		UVanim0 = material.f3d_mat.UVanim0 if material.mat_ver > 3 else material.UVanim
+		UVanim1 = material.f3d_mat.UVanim1 if material.mat_ver > 3 else material.UVanim_tex1
+
 		if texIndex == 0:
-			field = getattr(material.UVanim, 'xyz'[fieldIndex])
+			field = getattr(UVanim0, 'xyz'[fieldIndex])
 		elif texIndex == 1:
-			field = getattr(material.UVanim_tex1, 'xyz'[fieldIndex])
+			field = getattr(UVanim1, 'xyz'[fieldIndex])
 		else:
 			raise PluginError("Invalid texture index.")
 

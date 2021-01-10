@@ -2,9 +2,10 @@
 
 import bpy, math
 from bpy.utils import register_class, unregister_class
-from .f3d.f3d_material import createF3DMat, update_preset_manual, enumMaterialPresets, F3DMaterialSettings, update_node_values_of_material
+from .f3d.f3d_material import *
 from .sm64.sm64_collision import CollisionSettings
 from .utility import *
+from bl_operators.presets import AddPresetBase
 
 def upgradeF3DVersionAll(objs, armatures, version):
 	# Remove original v2 node groups so that they can be recreated.
@@ -47,11 +48,49 @@ def upgradeF3DVersionOneObject(obj, materialDict, version):
 			else:
 				convertF3DtoNewVersion(obj, index, material, materialDict, version)
 
+V4PresetName = {
+	'Unlit Texture' : "sm64_unlit_texture",
+	'Unlit Texture Cutout' : "sm64_unlit_texture_cutout",
+	'Shaded Solid' : "sm64_shaded_solid",
+	'Shaded Texture' : "sm64_shaded_texture",
+	'Shaded Texture Cutout' : "sm64_shaded_texture_cutout",
+	'Shaded Texture Transparent' : "sm64_shaded_texture_transparent",
+	'Environment Mapped' : "sm64_environment_map",
+	'Decal On Shaded Solid' : "sm64_decal",
+	'Vertex Colored Texture' : 	"sm64_vertex_colored_texture",
+	'Fog Shaded Texture' : "sm64_fog_shaded_texture",
+	'Fog Shaded Texture Cutout' : "sm64_fog_shaded_texture_cutout",
+	'Fog Shaded Texture Transparent' : "sm64_fog_shaded_texture_transparent",
+	'Vertex Colored Texture Transparent' : "sm64_vertex_colored_texture_transparent",
+	'Shaded Noise' : "sm64_shaded_noise",
+}
+
+def getV4PresetName(name):
+	newName = None
+	if name in V4PresetName:
+		newName = V4PresetName[name]
+	else:
+		newName = name
+	return newName
+
 def convertF3DtoNewVersion(obj, index, material, materialDict, version):
-	f3dMat = createF3DMat(obj, preset = material.f3d_preset, index = index)
-	matSettings = F3DMaterialSettings()
-	matSettings.loadFromMaterial(material, True)
-	matSettings.applyToMaterial(f3dMat, True, update_node_values_of_material, bpy.context)
+	
+	if material.mat_ver > 3:
+		oldPreset = AddPresetBase.as_filename(material.f3d_mat.presetName)
+	else:
+		oldPreset = material.f3d_preset
+
+	if version > 3:
+		f3dMat = createF3DMat(obj, preset = getV4PresetName(oldPreset), index = index)	
+		if material.mat_ver > 3:
+			copyPropertyGroup(material.f3d_mat, f3dMat.f3d_mat)
+		else:
+			convertToNewMat(f3dMat, material)
+	else:
+		f3dMat = createF3DMat(obj, preset = oldPreset, index = index)	
+		matSettings = F3DMaterialSettings()
+		matSettings.loadFromMaterial(material, True)
+		matSettings.applyToMaterial(f3dMat, True, update_node_values_of_material, bpy.context)
 
 	colSettings = CollisionSettings()
 	colSettings.load(material)

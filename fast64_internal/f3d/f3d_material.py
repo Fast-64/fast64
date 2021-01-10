@@ -10,7 +10,7 @@ from .f3d_enums import *
 from .f3d_material_nodes import *
 from .f3d_material_settings import *
 from .f3d_material_presets import *
-from ..utility import prop_split, PluginError, getRGBA16Tuple
+from ..utility import *
 
 # Properties based on nodes:
 # prim color
@@ -1232,10 +1232,10 @@ def update_tex_values(self, context):
 		material.f3d_update_flag = False
 
 def update_tex_values_manual(self, context):
-	if context.material.mat_ver > 3:
-		material = context.material.f3d_mat
+	if self.mat_ver > 3:
+		material = self.f3d_mat
 	else:
-		material = context.material
+		material = self
 	isTexGen = material.rdp_settings.g_tex_gen or material.rdp_settings.g_tex_gen_linear
 
 	if material.scale_autoprop:
@@ -1310,6 +1310,9 @@ def update_preset_manual(material, context):
 		materialSettings = materialPresetDict[material.f3d_preset]
 		materialSettings.applyToMaterial(material, False, update_node_values_of_material, bpy.context)
 
+	if material.mat_ver > 3:
+		update_tex_values_manual(material, context)
+
 def createF3DMat(obj, preset = 'Shaded Solid', index = None):
 	material = bpy.data.materials.new('sm64_material')
 	if index is None:
@@ -1351,9 +1354,12 @@ def createF3DMat(obj, preset = 'Shaded Solid', index = None):
 		
 		override = bpy.context.copy()
 		override['material'] = material
-		bpy.ops.script.execute_preset(override,
-			filepath=getF3DPresetPath('sm64_shaded_solid'), 
-			menu_idname='MATERIAL_MT_f3d_presets')
+		if preset == 'Shaded Solid':
+			preset = 'sm64_shaded_solid'
+		if preset.lower() != "custom":
+			bpy.ops.script.execute_preset(override,
+				filepath=getF3DPresetPath(preset), 
+				menu_idname='MATERIAL_MT_f3d_presets')
 
 		return material
 
@@ -2039,96 +2045,96 @@ class AddPresetF3D(AddPresetBase, Operator):
 
 		return {'FINISHED'}
 
-def convertToNewMat(material):
-	mat_register_old()
-	material.f3d_mat.presetName = material.presetName
+def convertToNewMat(material, oldMat):
+	#mat_register_old()
+	material.f3d_mat.presetName = oldMat.presetName
 
-	material.f3d_mat.scale_autoprop = material.scale_autoprop
-	material.f3d_mat.uv_basis = material.uv_basis
+	material.f3d_mat.scale_autoprop = oldMat.scale_autoprop
+	material.f3d_mat.uv_basis = oldMat.uv_basis
 
 	# Combiners
-	copyPropertyGroup(material.combiner1, material.f3d_mat.combiner1)
-	copyPropertyGroup(material.combiner2, material.f3d_mat.combiner2)
-	#material.f3d_mat.combiner1 = material.combiner1
-	#material.f3d_mat.combiner2 = material.combiner2
+	copyPropertyGroup(oldMat.combiner1, material.f3d_mat.combiner1)
+	copyPropertyGroup(oldMat.combiner2, material.f3d_mat.combiner2)
+	#material.f3d_mat.combiner1 = oldMat.combiner1
+	#material.f3d_mat.combiner2 = oldMat.combiner2
 
 	# Texture animation
-	material.f3d_mat.menu_procAnim = material.menu_procAnim
-	copyPropertyGroup(material.UVanim, material.f3d_mat.uv_anim_0)
-	copyPropertyGroup(material.UVanim_tex1, material.f3d_mat.uv_anim_1)
+	material.f3d_mat.menu_procAnim = oldMat.menu_procAnim
+	copyPropertyGroup(oldMat.UVanim, material.f3d_mat.UVanim0)
+	copyPropertyGroup(oldMat.UVanim_tex1, material.f3d_mat.UVanim1)
 
 	# material textures
-	material.f3d_mat.tex_scale = material.tex_scale
-	copyPropertyGroup(material.tex0, material.f3d_mat.tex0)
-	copyPropertyGroup(material.tex1, material.f3d_mat.tex1)
+	material.f3d_mat.tex_scale = oldMat.tex_scale
+	copyPropertyGroup(oldMat.tex0, material.f3d_mat.tex0)
+	copyPropertyGroup(oldMat.tex1, material.f3d_mat.tex1)
 
 	# Should Set?
-	material.f3d_mat.set_prim = material.set_prim
-	material.f3d_mat.set_lights = material.set_lights
-	material.f3d_mat.set_env = material.set_env
-	material.f3d_mat.set_blend = material.set_blend
-	material.f3d_mat.set_key = material.set_key
-	material.f3d_mat.set_k0_5 = material.set_k0_5
-	material.f3d_mat.set_combiner = material.set_combiner
-	material.f3d_mat.use_default_lighting = material.use_default_lighting
+	material.f3d_mat.set_prim = oldMat.set_prim
+	material.f3d_mat.set_lights = oldMat.set_lights
+	material.f3d_mat.set_env = oldMat.set_env
+	material.f3d_mat.set_blend = oldMat.set_blend
+	material.f3d_mat.set_key = oldMat.set_key
+	material.f3d_mat.set_k0_5 = oldMat.set_k0_5
+	material.f3d_mat.set_combiner = oldMat.set_combiner
+	material.f3d_mat.use_default_lighting = oldMat.use_default_lighting
 
 	# Colors
-	nodes = material.node_tree.nodes
-	material.f3d_mat.blend_color = material.blend_color
-	if material.mat_ver == 3:
+	nodes = oldMat.node_tree.nodes
+	material.f3d_mat.blend_color = oldMat.blend_color
+	if oldMat.mat_ver == 3:
 		prim = nodes['Primitive Color Output'].inputs[0].default_value
 		env = nodes['Environment Color Output'].inputs[0].default_value
 	else:
 		prim = nodes['Primitive Color'].outputs[0].default_value
 		env = nodes['Environment Color'].outputs[0].default_value
 
-	material.f3d_mat.blend_color = material.blend_color
+	material.f3d_mat.blend_color = oldMat.blend_color
 	material.f3d_mat.prim_color = prim
 	material.f3d_mat.env_color = env
 	material.f3d_mat.key_center = nodes['Chroma Key Center'].outputs[0].default_value
 
 	# Chroma
-	material.f3d_mat.key_scale = material.key_scale
-	material.f3d_mat.key_width = material.key_width
+	material.f3d_mat.key_scale = oldMat.key_scale
+	material.f3d_mat.key_width = oldMat.key_width
 	
 	# Convert
-	material.f3d_mat.k0 = material.k0
-	material.f3d_mat.k1 = material.k1
-	material.f3d_mat.k2 = material.k2
-	material.f3d_mat.k3 = material.k3
-	material.f3d_mat.k4 = material.k4
-	material.f3d_mat.k5 = material.k5
+	material.f3d_mat.k0 = oldMat.k0
+	material.f3d_mat.k1 = oldMat.k1
+	material.f3d_mat.k2 = oldMat.k2
+	material.f3d_mat.k3 = oldMat.k3
+	material.f3d_mat.k4 = oldMat.k4
+	material.f3d_mat.k5 = oldMat.k5
 	
 	# Prim
-	material.f3d_mat.prim_lod_frac = material.prim_lod_frac
-	material.f3d_mat.prim_lod_min = material.prim_lod_min
+	material.f3d_mat.prim_lod_frac = oldMat.prim_lod_frac
+	material.f3d_mat.prim_lod_min = oldMat.prim_lod_min
 
 	# lights
-	material.f3d_mat.default_light_color = material.default_light_color
-	material.f3d_mat.ambient_light_color = material.ambient_light_color
-	material.f3d_mat.f3d_light1 = material.f3d_light1
-	material.f3d_mat.f3d_light2 = material.f3d_light2
-	material.f3d_mat.f3d_light3 = material.f3d_light3
-	material.f3d_mat.f3d_light4 = material.f3d_light4
-	material.f3d_mat.f3d_light5 = material.f3d_light5
-	material.f3d_mat.f3d_light6 = material.f3d_light6
-	material.f3d_mat.f3d_light7 = material.f3d_light7
+	material.f3d_mat.default_light_color = oldMat.default_light_color
+	material.f3d_mat.ambient_light_color = oldMat.ambient_light_color
+	material.f3d_mat.f3d_light1 = oldMat.f3d_light1
+	material.f3d_mat.f3d_light2 = oldMat.f3d_light2
+	material.f3d_mat.f3d_light3 = oldMat.f3d_light3
+	material.f3d_mat.f3d_light4 = oldMat.f3d_light4
+	material.f3d_mat.f3d_light5 = oldMat.f3d_light5
+	material.f3d_mat.f3d_light6 = oldMat.f3d_light6
+	material.f3d_mat.f3d_light7 = oldMat.f3d_light7
 
 	# Fog Properties
-	material.f3d_mat.fog_color = material.fog_color
-	material.f3d_mat.fog_position = material.fog_position
-	material.f3d_mat.set_fog = material.set_fog
-	material.f3d_mat.use_global_fog = material.use_global_fog
+	material.f3d_mat.fog_color = oldMat.fog_color
+	material.f3d_mat.fog_position = oldMat.fog_position
+	material.f3d_mat.set_fog = oldMat.set_fog
+	material.f3d_mat.use_global_fog = oldMat.use_global_fog
 
 	# geometry mode
-	material.f3d_mat.menu_geo = material.menu_geo
-	material.f3d_mat.menu_upper = material.menu_upper
-	material.f3d_mat.menu_lower = material.menu_lower
-	material.f3d_mat.menu_other = material.menu_other
-	material.f3d_mat.menu_lower_render = material.menu_lower_render
-	copyPropertyGroup(material.rdp_settings, material.f3d_mat.rdp_settings)
+	material.f3d_mat.menu_geo = oldMat.menu_geo
+	material.f3d_mat.menu_upper = oldMat.menu_upper
+	material.f3d_mat.menu_lower = oldMat.menu_lower
+	material.f3d_mat.menu_other = oldMat.menu_other
+	material.f3d_mat.menu_lower_render = oldMat.menu_lower_render
+	copyPropertyGroup(oldMat.rdp_settings, material.f3d_mat.rdp_settings)
 
-	mat_unregister_old()
+	#mat_unregister_old()
 
 def on_set_scale(f3dProp, context):
 	isTexGen = f3dProp.rdp_settings.g_tex_gen or f3dProp.rdp_settings.g_tex_gen_linear

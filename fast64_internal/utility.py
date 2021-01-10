@@ -42,7 +42,7 @@ def copyPropertyCollection(oldProp, newProp):
 		newItem = newProp.add()
 		if isinstance(item, bpy.types.PropertyGroup):
 			copyPropertyGroup(item, newItem)
-		elif isinstance(item, bpy.props.CollectionProperty):
+		elif type(item).__name__ == "bpy_prop_collection_idprop":
 			copyPropertyCollection(item, newItem)
 		else:
 			newItem = item
@@ -54,7 +54,7 @@ def copyPropertyGroup(oldProp, newProp):
 		sub_value = getattr(oldProp, sub_value_attr)
 		if isinstance(sub_value, bpy.types.PropertyGroup):
 			copyPropertyGroup(sub_value, getattr(newProp, sub_value_attr))
-		elif isinstance(sub_value, bpy.props.CollectionProperty):
+		elif type(sub_value).__name__ == "bpy_prop_collection_idprop":
 			newCollection = getattr(newProp, sub_value_attr)
 			copyPropertyCollection(sub_value, newCollection)
 		else:

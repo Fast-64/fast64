@@ -774,20 +774,24 @@ defaultLighting = [
 	(mathutils.Vector((0.5, 0.5, 0.5)), mathutils.Vector((1, 1, 1)).normalized())]
 
 def getTexDimensions(material):
+	if material.mat_ver > 3:
+		f3dMat = material.f3d_mat
+	else:
+		f3dMat = material
 	texDimensions0 = None
 	texDimensions1 = None
-	useDict = all_combiner_uses(material)
-	if useDict['Texture 0'] and material.tex0.tex_set:
-		if material.tex0.tex is None:
+	useDict = all_combiner_uses(f3dMat)
+	if useDict['Texture 0'] and f3dMat.tex0.tex_set:
+		if f3dMat.tex0.tex is None:
 			raise PluginError('In material \"' + material.name + '\", a texture has not been set.')
-		texDimensions0 = material.tex0.tex.size[0], material.tex0.tex.size[1]
-	if useDict['Texture 1'] and material.tex1.tex_set:
-		if material.tex1.tex is None:
+		texDimensions0 = f3dMat.tex0.tex.size[0], f3dMat.tex0.tex.size[1]
+	if useDict['Texture 1'] and f3dMat.tex1.tex_set:
+		if f3dMat.tex1.tex is None:
 			raise PluginError('In material \"' + material.name + '\", a texture has not been set.')
-		texDimensions1 = material.tex1.tex.size[0], material.tex1.tex.size[1]
+		texDimensions1 = f3dMat.tex1.tex.size[0], f3dMat.tex1.tex.size[1]
 
 	if texDimensions0 is not None and texDimensions1 is not None:
-		texDimensions = texDimensions0 if material.uv_basis == 'TEXEL0' \
+		texDimensions = texDimensions0 if f3dMat.uv_basis == 'TEXEL0' \
 			else texDimensions1
 	elif texDimensions0 is not None:
 		texDimensions = texDimensions0
@@ -798,7 +802,7 @@ def getTexDimensions(material):
 	return texDimensions
 
 def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
-	if material.mat_ver == 4:
+	if material.mat_ver > 3:
 		f3dMat = material.f3d_mat
 	else:
 		f3dMat = material
@@ -829,7 +833,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 		raise PluginError("Material named " +  material.name + \
 			' is not an F3D material.')
 
-	fMaterial.getScrollData(f3dMat, getMaterialScrollDimensions(f3dMat))
+	fMaterial.getScrollData(material, getMaterialScrollDimensions(f3dMat))
 
 	if f3dMat.set_combiner:
 		if f3dMat.rdp_settings.g_mdsft_cycletype == 'G_CYC_2CYCLE':
@@ -937,9 +941,9 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 
 	nodes = material.node_tree.nodes
 	if useDict['Primitive'] and f3dMat.set_prim:
-		if material.mat_ver == 4:
+		if material.mat_ver > 3:
 			color = f3dMat.prim_color
-		if material.mat_ver == 3:
+		elif material.mat_ver == 3:
 			color = nodes['Primitive Color Output'].inputs[0].default_value
 		else:
 			color = nodes['Primitive Color'].outputs[0].default_value
