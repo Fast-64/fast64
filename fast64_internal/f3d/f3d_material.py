@@ -1,4 +1,4 @@
-import bpy, math, mathutils, sys, copy
+import bpy, math, mathutils, sys, copy, os
 from bpy.app.handlers import persistent
 from bpy.types import Node, NodeSocket, NodeSocketInterface, ShaderNode, ShaderNodeGroup, Panel
 from bpy.types import Operator, Menu
@@ -1348,6 +1348,12 @@ def createF3DMat(obj, preset = 'Shaded Solid', index = None):
 		links.new(bsdf.inputs["Base Color"], tex0Node.outputs["Color"])
 		links.new(bsdf.inputs["Subsurface Color"], tex1Node.outputs["Color"])
 		bsdf.inputs['Specular'].default_value = 0
+		
+		override = bpy.context.copy()
+		override['material'] = material
+		bpy.ops.script.execute_preset(override,
+			filepath=getF3DPresetPath('sm64_shaded_solid'), 
+			menu_idname='MATERIAL_MT_f3d_presets')
 
 		return material
 
@@ -1857,37 +1863,26 @@ class AddPresetF3D(AddPresetBase, Operator):
 
 	defaults = [
 		"Custom",
-		"Shaded Texture",
+		#"Shaded Texture",
 	]
 
-	#ignore_props = [
-	#	"tex",
-	#	"f3d_light1",
-	#	"f3d_light2",
-	#	"f3d_light3",
-	#	"f3d_light4",
-	#	"f3d_light5",
-	#	"f3d_light6",
-	#	"f3d_light7",
-	#]
-
-#	def add(self, context, filepath):
-#		
-#		is_preset_add = not (self.remove_name or self.remove_active)
-#		name = self.name.strip() if is_preset_add else self.name
-#		filename = self.as_filename(name)
-#		preset_menu_class = getattr(bpy.types, self.preset_menu)
-#		preset_menu_class.bl_label = bpy.path.display_name(filename)
-#
-#	def remove(self, context, filepath):
-#		import os
-#		preset_menu_class = getattr(bpy.types, self.preset_menu)
-#		name = preset_menu_class.bl_label if self.remove_active else self.name
-#		if name in self.defaults:
-#			self.report({'WARNING'}, "Unable to remove default presets")
-#			return {'CANCELLED'}
-#		
-#		os.remove(filepath)
+	ignore_props = [
+		"f3d_mat.tex0",
+		"f3d_mat.tex1",
+		"f3d_mat.tex_scale",
+		"f3d_mat.scale_autoprop",
+		"f3d_mat.uv_basis",
+		"f3d_mat.UVanim0",
+		"f3d_mat.UVanim1",
+		"f3d_mat.menu_procAnim",
+		"f3d_mat.menu_geo",
+		"f3d_mat.menu_upper",
+		"f3d_mat.menu_lower",
+		"f3d_mat.menu_other",
+		"f3d_mat.menu_lower_render",
+		"f3d_mat.f3d_update_flag",
+		"f3d_mat.name",
+	]
 
 	def execute(self, context):
 		import os
@@ -1907,16 +1902,15 @@ class AddPresetF3D(AddPresetBase, Operator):
 			ext = ".py"
 
 		name = self.name.strip() if is_preset_add else self.name
-		filename = self.as_filename(name)
-		presetName = bpy.path.display_name(filename)
-		
-		if presetName in self.defaults:
-			self.report({'WARNING'}, "Unable to delete/overwrite default presets.")
-			return {'CANCELLED'}
-
+			
 		if is_preset_add:
 			if not name:
 				return {'FINISHED'}
+			
+			filename = self.as_filename(name)
+			if filename in material_presets or filename == "custom":
+				self.report({'WARNING'}, "Unable to delete/overwrite default presets.")
+				return {'CANCELLED'}
 
 			# Reset preset name
 			wm = bpy.data.window_managers[0]
@@ -1950,9 +1944,11 @@ class AddPresetF3D(AddPresetBase, Operator):
 				else:
 
 					def rna_recursive_attr_expand(value, rna_path_step, level):
-						#if rna_path_step in self.ignore_props:
-						#	print("Ignoring: " + str(rna_path_step))
-						#	return
+						if rna_path_step in self.ignore_props:
+							#print("Ignoring: " + str(rna_path_step))
+							return
+						#else:
+						#	print("Processing: " + str(rna_path_step))
 						if isinstance(value, bpy.types.PropertyGroup):
 							for sub_value_attr in value.bl_rna.properties.keys():
 								if sub_value_attr == "rna_type":
@@ -1996,6 +1992,10 @@ class AddPresetF3D(AddPresetBase, Operator):
 				name = preset_menu_class.bl_label
 				filename = self.as_filename(name)
 				presetName = bpy.path.display_name(filename)
+
+				if filename in material_presets or filename == "custom":
+					self.report({'WARNING'}, "Unable to delete/overwrite default presets.")
+					return {'CANCELLED'}
 
 			# fairly sloppy but convenient.
 			filepath = bpy.utils.preset_find(name,
@@ -2463,15 +2463,29 @@ def mat_register_old():
 	bpy.types.Material.rdp_settings = bpy.props.PointerProperty(
 		type = RDPSettings)
 
+def getF3DPresetPath(filename):
+	presetPath = bpy.utils.user_resource('SCRIPTS',
+		os.path.join("presets", "f3d"), create=True)
+	return os.path.join(presetPath, filename) + ".py"
+
+def savePresets():
+	for filename, preset in material_presets.items():
+		filepath = getF3DPresetPath(filename)
+		file_preset = open(filepath, 'w', encoding="utf-8")
+		file_preset.write(preset)
+		file_preset.close()
+
 def mat_register():
 	#bpy.app.handlers.load_post.append(loadTimer)
 	for cls in mat_classes:
 		register_class(cls)
 	
-	presetDict = addMaterialPresets()
-	for presetName, presetItem in presetDict.items():
-		enumMaterialPresets.append((presetName, presetName, presetName))
-		materialPresetDict[presetName] = presetItem
+	#presetDict = addMaterialPresets()
+	#for presetName, presetItem in presetDict.items():
+	#	enumMaterialPresets.append((presetName, presetName, presetName))
+	#	materialPresetDict[presetName] = presetItem
+
+	savePresets()
 
 	nodeitems_utils.register_node_categories('CUSTOM_NODES', node_categories)
 
