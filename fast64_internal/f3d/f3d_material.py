@@ -1171,7 +1171,9 @@ def update_tex_values_index(self, context, texProperty, texNodeName,
 				#nodes[texNodeName].interpolation = "Closest" if \
 				#	self.rdp_settings.g_mdsft_text_filt == 'G_TF_POINT' else "Linear"
 			elif self.mat_ver >= 4:
-				pass
+				if texProperty.autoprop:
+					setAutoProp(texProperty.S, tex_size[0])
+					setAutoProp(texProperty.T, tex_size[1])
 			else:
 				print("Error: Unhandled material version " + str(self.mat_ver) + ' for texture properties.')
 

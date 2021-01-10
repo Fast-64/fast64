@@ -370,14 +370,26 @@ def saveTriangleStrip(faces, convertInfo, triList, vtxList, f3d,
 
 # Necessary for UV half pixel offset (see 13.7.5.3)
 def isTexturePointSampled(material):
-	return material.rdp_settings.g_mdsft_text_filt == 'G_TF_POINT'
+	if material.mat_ver > 3:
+		f3dMat = material.f3d_mat
+	else:
+		f3dMat = material
+	return f3dMat.rdp_settings.g_mdsft_text_filt == 'G_TF_POINT'
 
 def isLightingDisabled(material):
-	return not material.rdp_settings.g_lighting
+	if material.mat_ver > 3:
+		f3dMat = material.f3d_mat
+	else:
+		f3dMat = material
+	return not f3dMat.rdp_settings.g_lighting
 
 # Necessary as G_SHADE_SMOOTH actually does nothing
 def checkIfFlatShaded(material):
-	return not material.rdp_settings.g_shade_smooth
+	if material.mat_ver > 3:
+		f3dMat = material.f3d_mat
+	else:
+		f3dMat = material
+	return not f3dMat.rdp_settings.g_shade_smooth
 
 def saveMeshByFaces(material, faces, fModel, fMesh, obj, transformMatrix,
 	infoDict, drawLayer, convertTextureData):
@@ -704,29 +716,37 @@ def convertVertexData(mesh, loopPos, loopUV, loopColorOrNormal,
 
 	return Vtx(position, uv, colorOrNormal)
 
-def getLoopColor(loop, mesh):
-	color_layer = mesh.vertex_colors['Col'].data if 'Col' in \
-		mesh.vertex_colors else None
-	alpha_layer = mesh.vertex_colors['Alpha'].data if 'Alpha' in \
-		mesh.vertex_colors else None
+def getLoopColor(loop, mesh, mat_ver):
+	if mat_ver > 3:
+		color_layer = mesh.vertex_colors.active.data if mesh.vertex_colors.active is not None else None
+		if color_layer is not None:
+			normalizedRGB = color_layer[loop.index].color
+		else:
+			normalizedRGB = [1,1,1,1]
+		return (normalizedRGB[0], normalizedRGB[1], normalizedRGB[2], normalizedRGB[3])
+	else:
+		color_layer = mesh.vertex_colors['Col'].data if 'Col' in \
+			mesh.vertex_colors else None
+		alpha_layer = mesh.vertex_colors['Alpha'].data if 'Alpha' in \
+			mesh.vertex_colors else None
 
-	if color_layer is not None:
-		normalizedRGB = color_layer[loop.index].color
-	else:
-		normalizedRGB = [1,1,1]
-	if alpha_layer is not None:
-		normalizedAColor = alpha_layer[loop.index].color
-		normalizedA = mathutils.Color(normalizedAColor[0:3]).v
-	else:
-		normalizedA = 1
+		if color_layer is not None:
+			normalizedRGB = color_layer[loop.index].color
+		else:
+			normalizedRGB = [1,1,1]
+		if alpha_layer is not None:
+			normalizedAColor = alpha_layer[loop.index].color
+			normalizedA = mathutils.Color(normalizedAColor[0:3]).v
+		else:
+			normalizedA = 1
 	
-	return (normalizedRGB[0], normalizedRGB[1], normalizedRGB[2], normalizedA)
+		return (normalizedRGB[0], normalizedRGB[1], normalizedRGB[2], normalizedA)
 
 def getLoopColorOrNormal(loop, face, mesh, obj, exportVertexColors):
 	material = obj.data.materials[face.material_index]
 	isFlatShaded = checkIfFlatShaded(material)
 	if exportVertexColors:
-		return getLoopColor(loop, mesh)
+		return getLoopColor(loop, mesh, material.mat_ver)
 	else:
 		return getLoopNormal(loop, face, mesh, isFlatShaded)
 
