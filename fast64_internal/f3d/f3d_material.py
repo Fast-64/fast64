@@ -57,9 +57,9 @@ def getTmemWordUsage(texFormat, width, height):
 
 def F3DOrganizeLights(self, context):
 	# Flag to prevent infinite recursion on update callback
-	if self.f3d_update_flag:
+	if context.material.f3d_update_flag:
 		return
-	self.f3d_update_flag = True
+	context.material.f3d_update_flag = True
 	lightList = []
 	if self.f3d_light1 is not None: lightList.append(self.f3d_light1)
 	if self.f3d_light2 is not None: lightList.append(self.f3d_light2)
@@ -76,7 +76,7 @@ def F3DOrganizeLights(self, context):
 	self.f3d_light5 = lightList[4] if len(lightList) > 4 else None
 	self.f3d_light6 = lightList[5] if len(lightList) > 5 else None
 	self.f3d_light7 = lightList[6] if len(lightList) > 6 else None
-	self.f3d_update_flag = False
+	context.material.f3d_update_flag = False
 
 def combiner_uses(material, checkList, is2Cycle):
 	display = False
@@ -229,7 +229,7 @@ def ui_other(settings, dataHolder, layout):
 		clipRatioGroup = inputGroup.column()
 		prop_split(clipRatioGroup, settings, 'clip_ratio', "Clip Ratio")
 
-		if isinstance(dataHolder, bpy.types.Material):
+		if isinstance(dataHolder, bpy.types.Material) or isinstance(dataHolder, F3DMaterialProperty):
 			blend_color_group = layout.row()
 			prop_input_name = blend_color_group.column()
 			prop_input = blend_color_group.column()
@@ -344,11 +344,15 @@ class F3DPanel(bpy.types.Panel):
 		return inputGroup
 
 	def ui_prim(self, material, layout, setName, setProp):
+		if material.mat_ver > 3:
+			f3dMat = material.f3d_mat
+		else:
+			f3dMat = material
 		nodes = material.node_tree.nodes
 		inputGroup = layout.row()
 		prop_input_name = inputGroup.column()
 		prop_input = inputGroup.column()
-		prop_input_name.prop(material, setName, text = 'Primitive Color')
+		prop_input_name.prop(f3dMat, setName, text = 'Primitive Color')
 
 		if material.mat_ver == 4:
 			prop_input.prop(material.f3d_mat, 'prim_color', text = '')
@@ -356,10 +360,9 @@ class F3DPanel(bpy.types.Panel):
 			prop_input.prop(nodes['Primitive Color Output'].inputs[0], 'default_value', text='')
 		else:
 			prop_input.prop(nodes['Primitive Color'].outputs[0], 'default_value', text='')
-		prop_input.prop(material, 'prim_lod_frac', 
-			text='Prim LOD Fraction')
-		prop_input.prop(material, 'prim_lod_min', 
-			text='Min LOD Ratio')
+
+		prop_input.prop(f3dMat, 'prim_lod_frac', text='Prim LOD Fraction')
+		prop_input.prop(f3dMat, 'prim_lod_min', text='Min LOD Ratio')
 		prop_input.enabled = setProp
 		return inputGroup
 
@@ -787,11 +790,15 @@ def update_node_values(self, context):
 		pass
 	elif hasattr(context, 'material_slot') and context.material_slot is not None:
 		material = context.material_slot.material # Handles case of texture property groups
-		if not material.is_f3d or material.mat_ver >= 4 or material.f3d_update_flag:
+		if not material.is_f3d or material.f3d_update_flag:
 			return
+		
 		material.f3d_update_flag = True
-		update_node_values_of_material(material, context)
-		material.f3d_preset = 'Custom'
+		if material.mat_ver > 3:
+			material.f3d_mat.presetName = "Custom"
+		else:
+			update_node_values_of_material(material, context)
+			material.f3d_preset = 'Custom'
 		material.f3d_update_flag = False
 	else:
 		pass
@@ -1208,14 +1215,14 @@ def update_tex_values_and_formats(self, context):
 			material = context.material.f3d_mat
 		else:
 			material = context.material
-		if material.f3d_update_flag:
+		if context.material.f3d_update_flag:
 			return
-		material.f3d_update_flag = True
+		context.material.f3d_update_flag = True
 		if material.tex0 == self and material.tex0.tex is not None:
 			material.tex0.tex_format = getOptimalFormat(material.tex0.tex)
 		if material.tex1 == self and material.tex1.tex is not None:
 			material.tex1.tex_format = getOptimalFormat(material.tex1.tex)
-		material.f3d_update_flag = False
+		context.material.f3d_update_flag = False
 		
 		update_tex_values(context.material, context)
 	else:
@@ -1357,9 +1364,11 @@ def createF3DMat(obj, preset = 'Shaded Solid', index = None):
 		if preset == 'Shaded Solid':
 			preset = 'sm64_shaded_solid'
 		if preset.lower() != "custom":
+			material.f3d_update_flag = True
 			bpy.ops.script.execute_preset(override,
 				filepath=getF3DPresetPath(preset), 
 				menu_idname='MATERIAL_MT_f3d_presets')
+			material.f3d_update_flag = False
 
 		return material
 
@@ -1984,11 +1993,13 @@ class AddPresetF3D(AddPresetBase, Operator):
 							exec(rna_path)
 							file_preset.write("%s\n" % rna_path)
 						file_preset.write("\n")
+					file_preset.write("bpy.context.material.f3d_update_flag = True\n")
 
 					for rna_path in self.preset_values:
 						value = eval(rna_path)
 						rna_recursive_attr_expand(value, rna_path, 1)
 
+					file_preset.write("bpy.context.material.f3d_update_flag = False\n")
 					file_preset.close()
 
 			preset_menu_class.bl_label = bpy.path.display_name(filename)
@@ -2155,7 +2166,6 @@ def on_set_scale(f3dProp, context):
 
 class F3DMaterialProperty(bpy.types.PropertyGroup):
 	presetName : bpy.props.StringProperty(name = "Preset Name", default = "Custom")
-	f3d_update_flag : bpy.props.BoolProperty()
 
 	scale_autoprop : bpy.props.BoolProperty(name = 'Auto Set Scale', default = True, update = on_set_scale)
 	uv_basis : bpy.props.EnumProperty(name = 'UV Basis', default = 'TEXEL0', items = enumTexUV)
@@ -2176,14 +2186,14 @@ class F3DMaterialProperty(bpy.types.PropertyGroup):
 
 	# Should Set?
 
-	set_prim : bpy.props.BoolProperty(default = True)
-	set_lights : bpy.props.BoolProperty(default = True)
-	set_env : bpy.props.BoolProperty(default = False)
-	set_blend : bpy.props.BoolProperty(default = False)
-	set_key : bpy.props.BoolProperty(default = True)
-	set_k0_5 : bpy.props.BoolProperty(default = True)
-	set_combiner : bpy.props.BoolProperty(default = True)
-	use_default_lighting : bpy.props.BoolProperty(default = True)
+	set_prim : bpy.props.BoolProperty(default = True, update = update_node_values)
+	set_lights : bpy.props.BoolProperty(default = True, update = update_node_values)
+	set_env : bpy.props.BoolProperty(default = False, update = update_node_values)
+	set_blend : bpy.props.BoolProperty(default = False, update = update_node_values)
+	set_key : bpy.props.BoolProperty(default = True, update = update_node_values)
+	set_k0_5 : bpy.props.BoolProperty(default = True, update = update_node_values)
+	set_combiner : bpy.props.BoolProperty(default = True, update = update_node_values)
+	use_default_lighting : bpy.props.BoolProperty(default = True, update = update_node_values)
 
 	# Blend Color
 	blend_color : bpy.props.FloatVectorProperty(
@@ -2213,11 +2223,9 @@ class F3DMaterialProperty(bpy.types.PropertyGroup):
 
 	# lights
 	default_light_color : bpy.props.FloatVectorProperty(
-		name = 'Default Light Color', subtype = 'COLOR', size = 4, min = 0, max = 1, default = (1,1,1,1),
-		update = update_node_values)
+		name = 'Default Light Color', subtype = 'COLOR', size = 4, min = 0, max = 1, default = (1,1,1,1))
 	ambient_light_color : bpy.props.FloatVectorProperty(
-		name = 'Ambient Light Color', subtype = 'COLOR', size = 4, min = 0, max = 1, default = (0.5,0.5,0.5,1),
-		update = update_node_values)
+		name = 'Ambient Light Color', subtype = 'COLOR', size = 4, min = 0, max = 1, default = (0.5,0.5,0.5,1))
 	f3d_light1 : bpy.props.PointerProperty(type = bpy.types.Light, update = F3DOrganizeLights)
 	f3d_light2 : bpy.props.PointerProperty(type = bpy.types.Light, update = F3DOrganizeLights)
 	f3d_light3 : bpy.props.PointerProperty(type = bpy.types.Light, update = F3DOrganizeLights)
@@ -2282,7 +2290,6 @@ def mat_unregister_old():
 	del bpy.types.Material.tex1
 
 	# Should Set?
-	del bpy.types.Material.f3d_update_flag
 	del bpy.types.Material.set_prim
 	del bpy.types.Material.set_lights
 	del bpy.types.Material.set_env
@@ -2378,7 +2385,6 @@ def mat_register_old():
 	bpy.types.Material.tex1 = bpy.props.PointerProperty(type = TextureProperty)
 
 	# Should Set?
-	bpy.types.Material.f3d_update_flag = bpy.props.BoolProperty()
 	bpy.types.Material.set_prim = bpy.props.BoolProperty(default = True,
 		update = update_node_values)
 	bpy.types.Material.set_lights = bpy.props.BoolProperty(default = True,
@@ -2511,12 +2517,14 @@ def mat_register():
 	mat_register_old()
 	bpy.types.Material.is_f3d = bpy.props.BoolProperty()
 	bpy.types.Material.mat_ver = bpy.props.IntProperty(default = 1)
+	bpy.types.Material.f3d_update_flag = bpy.props.BoolProperty()
 	bpy.types.Material.f3d_mat = bpy.props.PointerProperty(type = F3DMaterialProperty)
 
 def mat_unregister():
 	del bpy.types.Material.f3d_mat
 	del bpy.types.Material.is_f3d
 	del bpy.types.Material.mat_ver
+	del bpy.types.Material.f3d_update_flag
 	nodeitems_utils.unregister_node_categories('CUSTOM_NODES')
 	for cls in reversed(mat_classes):
 		unregister_class(cls)

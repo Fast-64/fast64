@@ -3,6 +3,7 @@
 sm64_unlit_texture = '''
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
+bpy.context.material.f3d_update_flag = True
 
 f3d_mat.name = ''
 f3d_mat.presetName = 'Sm64 Unlit Texture'
@@ -107,11 +108,13 @@ f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
 f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
+bpy.context.material.f3d_update_flag = False
 '''
 
 sm64_unlit_texture_cutout = '''
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
+bpy.context.material.f3d_update_flag = True
 
 f3d_mat.name = ''
 f3d_mat.presetName = 'Sm64 Unlit Texture Cutout'
@@ -216,11 +219,13 @@ f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
 f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
+bpy.context.material.f3d_update_flag = False
 '''
 
 sm64_shaded_texture = '''
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
+bpy.context.material.f3d_update_flag = True
 
 f3d_mat.name = ''
 f3d_mat.presetName = 'Sm64 Shaded Texture'
@@ -325,11 +330,13 @@ f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
 f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
+bpy.context.material.f3d_update_flag = False
 '''
 
 sm64_shaded_solid = '''
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
+bpy.context.material.f3d_update_flag = True
 
 f3d_mat.name = ''
 f3d_mat.presetName = 'Sm64 Shaded Solid'
@@ -434,12 +441,14 @@ f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
 f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
+bpy.context.material.f3d_update_flag = False
 '''
 
 
 sm64_shaded_texture_cutout = '''
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
+bpy.context.material.f3d_update_flag = True
 
 f3d_mat.name = ''
 f3d_mat.presetName = 'Sm64 Shaded Texture Cutout'
@@ -544,11 +553,13 @@ f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
 f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
+bpy.context.material.f3d_update_flag = False
 '''
 
 sm64_unlit_env_map = '''
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
+bpy.context.material.f3d_update_flag = True
 
 f3d_mat.name = ''
 f3d_mat.presetName = 'Sm64 Environment Map'
@@ -653,11 +664,13 @@ f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
 f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
+bpy.context.material.f3d_update_flag = False
 '''
 
 sm64_decal = '''
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
+bpy.context.material.f3d_update_flag = True
 
 f3d_mat.name = ''
 f3d_mat.presetName = 'Sm64 Decal'
@@ -762,11 +775,13 @@ f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
 f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
+bpy.context.material.f3d_update_flag = False
 '''
 
 sm64_vert_colored_tex = '''
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
+bpy.context.material.f3d_update_flag = True
 
 f3d_mat.name = ''
 f3d_mat.presetName = 'Sm64 Vertex Colored Texture'
@@ -871,11 +886,13 @@ f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
 f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
+bpy.context.material.f3d_update_flag = False
 '''
 
 sm64_vert_colored_tex_transparent = '''
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
+bpy.context.material.f3d_update_flag = True
 
 f3d_mat.name = ''
 f3d_mat.presetName = 'Sm64 Vertex Colored Texture Transparent'
@@ -980,11 +997,13 @@ f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
 f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
+bpy.context.material.f3d_update_flag = False
 '''
 
 sm64_shaded_noise = '''
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
+bpy.context.material.f3d_update_flag = True
 
 f3d_mat.name = ''
 f3d_mat.presetName = 'Sm64 Shaded Noise'
@@ -1089,11 +1108,13 @@ f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
 f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
+bpy.context.material.f3d_update_flag = False
 '''
 
 sm64_shaded_texture_transparent = '''
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
+bpy.context.material.f3d_update_flag = True
 
 f3d_mat.name = ''
 f3d_mat.presetName = 'Sm64 Shaded Texture Transparent'
@@ -1198,12 +1219,14 @@ f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
 f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
+bpy.context.material.f3d_update_flag = False
 '''
 
 
 sm64_fog_shaded_texture = '''
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
+bpy.context.material.f3d_update_flag = True
 
 f3d_mat.name = ''
 f3d_mat.presetName = 'Sm64 Fog Shaded Texture'
@@ -1308,11 +1331,13 @@ f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
 f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
+bpy.context.material.f3d_update_flag = False
 '''
 
 sm64_fog_shaded_texture_cutout = '''
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
+bpy.context.material.f3d_update_flag = True
 
 f3d_mat.name = ''
 f3d_mat.presetName = 'Sm64 Fog Shaded Texture Cutout'
@@ -1417,11 +1442,13 @@ f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
 f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
+bpy.context.material.f3d_update_flag = False
 '''
 
 sm64_fog_shaded_texture_transparent = '''
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
+bpy.context.material.f3d_update_flag = True
 
 f3d_mat.name = ''
 f3d_mat.presetName = 'Sm64 Fog Shaded Texture Transparent'
@@ -1526,6 +1553,7 @@ f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
 f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
+bpy.context.material.f3d_update_flag = False
 '''
 
 material_presets = {
