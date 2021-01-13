@@ -1904,6 +1904,8 @@ class SM64_ExportGeolayoutObject(bpy.types.Operator):
 			# Rotate all armatures 90 degrees
 			applyRotation([obj], math.radians(90), 'X')
 
+			saveTextures = bpy.context.scene.geoSaveTextures or bpy.context.scene.ignoreTextureRestrictions
+
 			if context.scene.geoExportType == 'C':
 				exportPath, levelName = getPathAndLevel(context.scene.geoCustomExport, 
 					context.scene.geoExportPath, context.scene.geoLevelName, 
@@ -1914,8 +1916,8 @@ class SM64_ExportGeolayoutObject(bpy.types.Operator):
 					context.scene.f3d_type, context.scene.isHWv1,
 					exportPath,
 					bpy.context.scene.geoTexDir,
-					bpy.context.scene.geoSaveTextures or bpy.context.scene.ignoreTextureRestrictions,
-					bpy.context.scene.geoSeparateTextureDef,
+					saveTextures,
+					saveTextures and bpy.context.scene.geoSeparateTextureDef,
 					None, bpy.context.scene.geoGroupName, 
 					context.scene.geoExportHeaderType,
 					context.scene.geoName, context.scene.geoStructName, levelName, context.scene.geoCustomExport, DLFormat.Static)
@@ -2089,14 +2091,15 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 					context.scene.geoExportPath, context.scene.geoLevelName, 
 					context.scene.geoLevelOption)
 
+				saveTextures = bpy.context.scene.geoSaveTextures or bpy.context.scene.ignoreTextureRestrictions
 				if not context.scene.geoCustomExport:
 					applyBasicTweaks(exportPath)
 				exportGeolayoutArmatureC(armatureObj, obj, finalTransform,
 					context.scene.f3d_type, context.scene.isHWv1,
 					exportPath,
 					bpy.context.scene.geoTexDir,
-					bpy.context.scene.geoSaveTextures or bpy.context.scene.ignoreTextureRestrictions,
-					bpy.context.scene.geoSeparateTextureDef,
+					saveTextures,
+					saveTextures and bpy.context.scene.geoSeparateTextureDef,
 					None, bpy.context.scene.geoGroupName, context.scene.geoExportHeaderType,
 					context.scene.geoName, context.scene.geoStructName, levelName, context.scene.geoCustomExport, DLFormat.Static)
 				self.report({'INFO'}, 'Success!')

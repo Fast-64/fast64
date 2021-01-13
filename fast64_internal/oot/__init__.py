@@ -10,6 +10,7 @@ from .oot_level_writer import *
 from .c_writer import *
 from .oot_spline import *
 from .oot_anim import *
+from .oot_skeleton import *
 #from .oot_f3d_parser import *
 
 import bpy
