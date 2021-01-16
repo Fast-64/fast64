@@ -279,26 +279,26 @@ def exportAnimationCommon(armatureObj, loopAnim, name):
 	transformValuesStart = transformIndicesStart
 
 	for translationFrameProperty in translationData:
-		frameCount = len(translationFrameProperty)
+		frameCount = len(translationFrameProperty.frames)
 		sm64_anim.indices.shortData.append(frameCount)
 		sm64_anim.indices.shortData.append(transformValuesOffset)
 		if(transformValuesOffset) > 2**16 - 1:
 			raise PluginError('Animation is too large.')
 		transformValuesOffset += frameCount
 		transformValuesStart += 4
-		for value in translationFrameProperty:
+		for value in translationFrameProperty.frames:
 			sm64_anim.values.shortData.append(int.from_bytes(value.to_bytes(2,'big', signed = True), byteorder = 'big', signed = False))
 
 	for boneFrameData in armatureFrameData:
 		for boneFrameDataProperty in boneFrameData:
-			frameCount = len(boneFrameDataProperty)
+			frameCount = len(boneFrameDataProperty.frames)
 			sm64_anim.indices.shortData.append(frameCount)
 			sm64_anim.indices.shortData.append(transformValuesOffset)
 			if(transformValuesOffset) > 2**16 - 1:
 				raise PluginError('Animation is too large.')
 			transformValuesOffset += frameCount
 			transformValuesStart += 4
-			for value in boneFrameDataProperty:
+			for value in boneFrameDataProperty.frames:
 				sm64_anim.values.shortData.append(value)
 	
 	animSize = headerSize + len(sm64_anim.indices.shortData) * 2 + \
@@ -310,30 +310,6 @@ def exportAnimationCommon(armatureObj, loopAnim, name):
 	
 	return sm64_anim
 	
-def saveQuaternionFrame(frameData, rotation):
-	for i in range(3):
-		field = rotation.to_euler()[i]
-		value = (math.degrees(field) % 360 ) / 360
-		frameData[i].append(min(int(round(value * (2**16 - 1))), 2**16 - 1))
-
-def removeTrailingFrames(frameData):
-	for i in range(3):
-		if len(frameData[i]) < 2:
-			continue
-		lastUniqueFrame = len(frameData[i]) - 1
-		while lastUniqueFrame > 0:
-			if frameData[i][lastUniqueFrame] == \
-				frameData[i][lastUniqueFrame - 1]:
-				lastUniqueFrame -= 1
-			else:
-				break
-		frameData[i] = frameData[i][:lastUniqueFrame + 1]
-
-def saveTranslationFrame(frameData, translation):
-	for i in range(3):
-		frameData[i].append(min(int(round(translation[i] * bpy.context.scene.blenderToSM64Scale)),
-			2**16 - 1))
-
 def convertAnimationData(anim, armatureObj, frameEnd):
 	bonesToProcess = findStartBones(armatureObj)
 	currentBone = armatureObj.data.bones[bonesToProcess[0]]
@@ -355,10 +331,13 @@ def convertAnimationData(anim, armatureObj, frameEnd):
 		bonesToProcess = childrenNames + bonesToProcess
 	
 	# list of boneFrameData, which is [[x frames], [y frames], [z frames]]
-	translationData = [[],[],[]]
-	armatureFrameData = []
-	for i in range(len(animBones)):
-		armatureFrameData.append([[],[],[]])
+	translationData = [ValueFrameData(0, i, []) for i in range(3)]
+	armatureFrameData = [[
+		ValueFrameData(i, 0, []),
+		ValueFrameData(i, 1, []),
+		ValueFrameData(i, 2, [])] for i in range(len(animBones))]
+
+	currentFrame = bpy.context.scene.frame_current
 	for frame in range(frameEnd):
 		bpy.context.scene.frame_set(frame)
 		rootBone = armatureObj.data.bones[animBones[0]]
@@ -366,7 +345,7 @@ def convertAnimationData(anim, armatureObj, frameEnd):
 
 		# Hacky solution to handle Z-up to Y-up conversion
 		translation = mathutils.Quaternion((1, 0, 0), math.radians(-90.0)) @ \
-			rootPoseBone.matrix.decompose()[0]
+			(mathutils.Matrix.Scale(bpy.context.scene.blenderToSM64Scale, 4) @ rootPoseBone.matrix).decompose()[0]
 		saveTranslationFrame(translationData, translation)
 
 		for boneIndex in range(len(animBones)):
@@ -384,6 +363,7 @@ def convertAnimationData(anim, armatureObj, frameEnd):
 			
 			saveQuaternionFrame(armatureFrameData[boneIndex], rotationValue)
 	
+	bpy.context.scene.frame_set(currentFrame)
 	removeTrailingFrames(translationData)
 	for frameData in armatureFrameData:
 		removeTrailingFrames(frameData)
@@ -604,14 +584,14 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 		romfileOutput = None
 		tempROM = None
 		try:
-			if context.mode != 'OBJECT':
-				raise PluginError("Operator can only be used in object mode.")
 			if len(context.selected_objects) == 0 or not \
 				isinstance(context.selected_objects[0].data, bpy.types.Armature):
 				raise PluginError("Armature not selected.")
 			if len(context.selected_objects) > 1 :
 				raise PluginError("Multiple objects selected, make sure to select only one.")
 			armatureObj = context.selected_objects[0]
+			if context.mode != 'OBJECT':
+				bpy.ops.object.mode_set(mode = "OBJECT")
 		except Exception as e:
 			raisePluginError(self, e)
 			return {"CANCELLED"}

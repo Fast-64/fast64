@@ -124,13 +124,7 @@ def ootExportSceneToC(originalSceneObj, transformMatrix,
 	
 	levelC = ootLevelToC(scene)
 
-	if isCustomExport:
-		levelPath = os.path.join(exportPath, sceneName)
-	else:
-		levelPath = os.path.join(exportPath, 'scenes/custom/' + sceneName)
-	if not os.path.exists(levelPath):
-		os.makedirs(levelPath)
-		
+	levelPath = ootGetPath(exportPath, isCustomExport, 'scenes/custom/', sceneName)	
 	writeCData(levelC.scene, 
 		os.path.join(levelPath, scene.sceneName() + '.h'),
 		os.path.join(levelPath, scene.sceneName() + '.c'))

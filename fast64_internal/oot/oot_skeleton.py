@@ -74,10 +74,6 @@ class OOTSkeleton():
 
 		return limbData
 
-def addLimbToList(limb, limbList):
-	limbList.append(limb)
-	return len(limbList) - 1
-
 class OOTLimb():
 	def __init__(self, skeletonName, index, translation, DL, lodDL):
 		self.skeletonName = skeletonName
@@ -90,6 +86,7 @@ class OOTLimb():
 		self.isFlex = False
 		self.index = index
 		self.children = []
+		self.inverseRotation = None
 
 	def toC(self):
 		return "StandardLimb " + self.name() + " = { " +\
@@ -130,8 +127,9 @@ class OOTLimb():
 					return True
 			return False
 
+	# should be same order as ootProcessBone
 	def getList(self, limbList):
-		self.index = addLimbToList(self, limbList)
+		limbList.append(self)
 		for child in self.children:
 			child.getList(limbList)
 
@@ -145,17 +143,20 @@ class OOTLimb():
 		# self -> child -> sibling
 
 def setArmatureToNonRotatedPose(armatureObj):
-	rootPoseBoneNames = [poseBone.name for poseBone in armatureObj.pose.bones if poseBone.parent is None]
-	for poseBoneName in rootPoseBoneNames:
-		setBoneNonRotated(armatureObj, poseBoneName)
+	restPoseRotations = {}
+	poseBoneName = getStartBone(armatureObj)
+	setBoneNonRotated(armatureObj, poseBoneName, restPoseRotations)
+	return restPoseRotations
 
-def setBoneNonRotated(armatureObj, boneName):
+def setBoneNonRotated(armatureObj, boneName, restPoseRotations):
 	bone = armatureObj.data.bones[boneName]
 	rotation = bone.matrix_local.inverted().decompose()[1]
 	armatureObj.pose.bones[boneName].rotation_quaternion = rotation
 
+	restPoseRotations[boneName] = rotation
+
 	for child in bone.children:
-		setBoneNonRotated(armatureObj, child.name)
+		setBoneNonRotated(armatureObj, child.name, restPoseRotations)
 
 def getGroupIndices(meshInfo, armatureObj, meshObj, rootGroupIndex):
 	meshInfo.vertexGroupInfo = VertexGroupInfo()
@@ -206,7 +207,7 @@ def ootDuplicateArmature(originalArmatureObj):
 	try:
 		# convert blender to n64 space, then set all bones to be non-rotated
 		applyRotation([armatureObj], math.radians(90), 'X')
-		setArmatureToNonRotatedPose(armatureObj)
+		restPoseRotations = setArmatureToNonRotatedPose(armatureObj)
 			
 		# Apply modifiers/data to mesh objs
 		bpy.ops.object.select_all(action = 'DESELECT')
@@ -235,22 +236,32 @@ def ootDuplicateArmature(originalArmatureObj):
 		bpy.ops.pose.armature_apply()
 		bpy.ops.object.mode_set(mode = "OBJECT")
 
-		return armatureObj, meshObjs
+		return armatureObj, meshObjs, restPoseRotations
 	except Exception as e:
 		cleanupDuplicatedObjects(meshObjs + [armatureObj])
 		originalArmatureObj.select_set(True)
 		bpy.context.view_layer.objects.active = originalArmatureObj
 		raise Exception(str(e))
 
-# Convert to Geolayout
-def ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix, 
-	f3dType, isHWv1, name, DLFormat, convertTextureData):
-	if name == "":
-		raise PluginError("No name entered for the skeleton exporter.")
+def ootConvertArmatureToSkeletonWithoutMesh(originalArmatureObj, convertTransformMatrix, name):
+	skeleton, fModel, restPoseRotations = ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix, 
+		None, name, False, True)
+	return skeleton, restPoseRotations
 
-	armatureObj, meshObjs = ootDuplicateArmature(originalArmatureObj)
+def ootConvertArmatureToSkeletonWithMesh(originalArmatureObj, convertTransformMatrix, 
+	f3dType, isHWv1, name, DLFormat, convertTextureData):
+	fModel = OOTModel(f3dType, isHWv1, name, DLFormat)
+	skeleton, fModel, restPoseRotations = ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix, 
+		fModel, name, convertTextureData, False)
+	return skeleton, fModel
+
+def ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix, 
+	fModel, name, convertTextureData, skeletonOnly):
+	checkEmptyName(name)
+
+	armatureObj, meshObjs, restPoseRotations = ootDuplicateArmature(originalArmatureObj)
+	
 	try:
-		fModel = OOTModel(f3dType, isHWv1, name, DLFormat)
 		skeleton = OOTSkeleton(name)
 
 		if len(armatureObj.children) == 0:
@@ -258,9 +269,8 @@ def ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix,
 
 		#startBoneNames = sorted([bone.name for bone in armatureObj.data.bones if bone.parent is None])
 		#startBoneName = startBoneNames[0]
-		if "root" not in armatureObj.data.bones:
-			raise PluginError("Skeleton must have a bone named 'root' where the skeleton starts from.")
-		startBoneName = 'root'
+		checkForStartBone(armatureObj)
+		startBoneName = getStartBone(armatureObj)
 		meshObj = meshObjs[0]
 
 		meshInfo = getInfoDict(meshObj)
@@ -272,13 +282,13 @@ def ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix,
 		#for i in range(len(startBoneNames)):
 		#	startBoneName = startBoneNames[i]
 		ootProcessBone(fModel, startBoneName, skeleton, 0, 
-			meshObj, armatureObj, convertTransformMatrix, meshInfo, convertTextureData, name)
+			meshObj, armatureObj, convertTransformMatrix, meshInfo, convertTextureData, name, skeletonOnly)
 
 		cleanupDuplicatedObjects(meshObjs + [armatureObj])
 		originalArmatureObj.select_set(True)
 		bpy.context.view_layer.objects.active = originalArmatureObj
 
-		return skeleton, fModel
+		return skeleton, fModel, restPoseRotations
 	except Exception as e:
 		cleanupDuplicatedObjects(meshObjs + [armatureObj])
 		originalArmatureObj.select_set(True)
@@ -286,7 +296,7 @@ def ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix,
 		raise Exception(str(e))
 
 def ootProcessBone(fModel, boneName, parentLimb, nextIndex, meshObj, armatureObj, 
-	convertTransformMatrix, meshInfo, convertTextureData, namePrefix):
+	convertTransformMatrix, meshInfo, convertTextureData, namePrefix, skeletonOnly):
 	bone = armatureObj.data.bones[boneName]
 	if bone.parent is not None:
 		transform = convertTransformMatrix @ bone.parent.matrix_local.inverted() @ bone.matrix_local
@@ -296,9 +306,13 @@ def ootProcessBone(fModel, boneName, parentLimb, nextIndex, meshObj, armatureObj
 	translate, rotate, scale = transform.decompose()
 
 	meshInfo.vertexGroupInfo.vertexGroupToLimb[getGroupIndexFromname(meshObj, boneName)] = nextIndex
-	meshGroup, hasSkinnedFaces = ootProcessVertexGroup(fModel, meshObj, boneName, 
-		convertTransformMatrix, armatureObj, namePrefix,
-		meshInfo, "Opaque", convertTextureData)
+	if skeletonOnly:
+		meshGroup = None
+		hasSkinnedFaces = None
+	else:
+		meshGroup, hasSkinnedFaces = ootProcessVertexGroup(fModel, meshObj, boneName, 
+			convertTransformMatrix, armatureObj, namePrefix,
+			meshInfo, "Opaque", convertTextureData)
 
 	DL = None
 	if meshGroup is not None:
@@ -317,18 +331,18 @@ def ootProcessBone(fModel, boneName, parentLimb, nextIndex, meshObj, armatureObj
 	limb.isFlex = hasSkinnedFaces
 	nextIndex += 1
 
-	childrenNames = sorted([child.name for child in bone.children])
+	childrenNames = getSortedChildren(armatureObj, bone)
 	for childName in childrenNames:
 		nextIndex = ootProcessBone(fModel, childName, limb, nextIndex, meshObj, armatureObj, 
-			convertTransformMatrix, meshInfo, convertTextureData, namePrefix)
+			convertTransformMatrix, meshInfo, convertTextureData, namePrefix, skeletonOnly)
 	
 	return nextIndex
 
 def ootConvertArmatureToC(originalArmatureObj, convertTransformMatrix, 
 	f3dType, isHWv1, skeletonName, folderName, DLFormat, convertTextureData, exportPath, isCustomExport):
 
-	skeleton, fModel = ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix, 
-		f3dType, isHWv1, skeletonName, DLFormat, convertTextureData)
+	skeleton, fModel = ootConvertArmatureToSkeletonWithMesh(originalArmatureObj, convertTransformMatrix, 
+		f3dType, isHWv1, skeletonName, DLFormat, convertTextureData, False)
 
 	data = CData()
 	staticData, dynamicData, texC = fModel.to_c(False, not convertTextureData, "test", OOTGfxFormatter(ScrollMethod.Vertex))
@@ -339,13 +353,7 @@ def ootConvertArmatureToC(originalArmatureObj, convertTransformMatrix,
 	data.append(texC)
 	data.append(skeletonC)
 
-	if isCustomExport:
-		path = bpy.path.abspath(os.path.join(exportPath, folderName))
-	else:
-		path = bpy.path.abspath(os.path.join(exportPath, 'assets/objects/' + folderName))
-	if not os.path.exists(path):
-		os.makedirs(path)
-		
+	path = ootGetPath(exportPath, isCustomExport, 'assets/objects/', folderName)
 	writeCData(data, 
 		os.path.join(path, folderName + '.h'),
 		os.path.join(path, folderName + '.c'))

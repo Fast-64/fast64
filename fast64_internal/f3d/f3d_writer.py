@@ -211,7 +211,7 @@ def saveStaticModel(fModel, obj, transformMatrix, ownerName, DLFormat, convertTe
 	
 	if revertMatAtEnd:
 		revertMatAndEndDraw(fMeshGroup.mesh.draw, [])
-	fMeshGroup.mesh.draw.commands.append(SPEndDisplayList())
+	#fMeshGroup.mesh.draw.commands.append(SPEndDisplayList())
 	return fMeshGroup
 
 def addCullCommand(obj, fMesh, transformMatrix):

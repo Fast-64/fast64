@@ -1,6 +1,30 @@
 from ..utility import *
-import bpy, math, mathutils
+import bpy, math, mathutils, os
 from bpy.utils import register_class, unregister_class
+
+def checkEmptyName(name):
+	if name == "":
+		raise PluginError("No name entered for the exporter.")
+
+def ootGetPath(exportPath, isCustomExport, subPath, folderName):
+	if isCustomExport:
+		path = bpy.path.abspath(os.path.join(exportPath, folderName))
+	else:
+		path = bpy.path.abspath(os.path.join(bpy.context.scene.ootDecompPath, subPath + folderName))
+	if not os.path.exists(path):
+		os.makedirs(path)
+
+	return path
+
+def getSortedChildren(armatureObj, bone):
+	return sorted([child.name for child in bone.children])
+
+def getStartBone(armatureObj):
+	return 'root'
+
+def checkForStartBone(armatureObj):
+	if "root" not in armatureObj.data.bones:
+		raise PluginError("Skeleton must have a bone named 'root' where the skeleton starts from.")
 
 class BoxEmpty:
 	def __init__(self, position, scale, emptyScale):

@@ -1,6 +1,7 @@
 import bpy, random, string, os, math, traceback, re, os, mathutils
 from math import pi, ceil, degrees, radians
 from mathutils import *
+from .utility_anim import *
 
 class PluginError(Exception):
 	pass
