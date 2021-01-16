@@ -1336,6 +1336,7 @@ class F3D:
 def _SHIFTL(value, amount, mask):
 	return (int(value) & ((1 << mask) - 1)) << amount
 
+MTX_SIZE = 64
 VTX_SIZE = 16
 GFX_SIZE = 8
 VP_SIZE = 8
@@ -2502,6 +2503,36 @@ def gsDma2p(c, adrs, length, idx, ofs):
 	
 def gsSPNoOp(f3d):
 	return gsDma0p(f3d.G_SPNOOP, 0, 0)
+
+class SPMatrix:
+	def __init__(self, matrix, param):
+		self.matrix = matrix
+		self.param = param
+	
+	def get_ptr_offsets(self, f3d):
+		return [4]
+
+	def to_binary(self, f3d, segments):
+		matPtr = int(self.matrix, 16)
+		if f3d.F3DEX_GBI_2:
+			return gsDma2p(f3d.G_MTX, matPtr, MTX_SIZE, self.param ^ f3d.G_MTX_PUSH, 0)
+		else:
+			return gsDma1p(f3d.G_MTX, matPtr, MTX_SIZE, self.param)
+	
+	def to_c(self, static = True):
+		header = 'gsSPMatrix(' if static else 'gSPMatrix(glistp++, '
+		if not static and bpy.context.scene.decomp_compatible:
+			header += 'segmented_to_virtual(' + str(self.matrix) + ')'
+		else:
+			header += str(self.matrix)
+		return header + ", " + \
+			str(self.param) + ')'
+
+	def to_sm64_decomp_s(self):
+		return 'gsSPMatrix ' + str(self.matrix) + ", " + str(self.param)
+
+	def size(self, f3d):
+		return GFX_SIZE
 
 # TODO: Divide vertlist into sections
 # Divide mesh drawing by materials into separate gfx

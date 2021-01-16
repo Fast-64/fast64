@@ -36,6 +36,25 @@ enumCompressionFormat = [
 	('yay0', 'YAY0', 'YAY0'),
 ]
 
+def checkUniqueBoneNames(fModel, name, vertexGroup):
+	if name in fModel.meshGroups:
+		raise PluginError(vertexGroup + " has already been processed. Make " +\
+			"sure this bone name is unique, even across all switch option " +\
+			"armatures.")
+
+def getGroupIndexFromname(obj, name):
+	for group in obj.vertex_groups:
+		if group.name == name:
+			return group.index
+	return None
+
+def getGroupNameFromIndex(obj, index):
+	for group in obj.vertex_groups:
+		if group.index == index:
+			return group.name
+	return None
+
+
 def copyPropertyCollection(oldProp, newProp):
 	newProp.clear()
 	for item in oldProp:

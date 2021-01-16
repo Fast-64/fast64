@@ -57,6 +57,113 @@ class OOTGfxFormatter(GameGfxFormatter):
 			data.append(fMaterial.revert.to_c(f3d))
 		return data
 
+class OOTTriangleConverter(TriangleConverter):
+	def __init__(self, mesh, convertInfo, vertexGroupInfo, currentLimbIndex, triList, vtxList, f3d, 
+		texDimensions, transformMatrix, isPointSampled, exportVertexColors,
+		existingVertexData, existingVertexMaterialRegions):
+
+		TriangleConverter.__init__(self, mesh, convertInfo, vertexGroupInfo, currentLimbIndex, triList, vtxList, f3d, 
+			texDimensions, transformMatrix, isPointSampled, exportVertexColors,
+			existingVertexData, existingVertexMaterialRegions)
+
+	def getMatrixAddrFromGroup(self, groupIndex):
+		return format((0x0D << 24) + MTX_SIZE * self.vertexGroupInfo.vertexGroupToLimb[groupIndex], "#010x")
+
+def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, armatureObj, namePrefix,
+	meshInfo, drawLayer, convertTextureData):
+
+	mesh = meshObj.data
+	currentGroupIndex = getGroupIndexFromname(meshObj, vertexGroup)
+	vertIndices = [vert.index for vert in meshObj.data.vertices if\
+		meshInfo.vertexGroupInfo.vertexGroups[vert.index] == currentGroupIndex]
+
+	if len(vertIndices) == 0:
+		print("No vert indices in " + vertexGroup)
+		return None
+
+	bone = armatureObj.data.bones[vertexGroup]
+	currentMatrix = convertTransformMatrix @ bone.matrix_local.inverted()
+	
+	# dict of material_index keys to face array values
+	groupFaces = {}
+	
+	# dict of material_index keys to SkinnedFace objects
+	skinnedFaces = {}
+
+	handledFaces = []
+	for vertIndex in vertIndices:
+		if vertIndex not in meshInfo.vert:
+			continue
+		for face in meshInfo.vert[vertIndex]:
+			# Ignore repeat faces
+			if face in handledFaces:
+				continue
+			else:
+				handledFaces.append(face)
+
+			sortedLoops = {} # (group tuple) : []
+			connectedToUnhandledBone = False
+
+			# loop is interpreted as face + loop index
+			groupTuple = []
+			for i in range(3):
+				vertIndex = face.vertices[i]
+				vertGroupIndex = meshInfo.vertexGroupInfo.vertexGroups[vertIndex]
+				if vertGroupIndex not in groupTuple:
+					groupTuple.append(vertGroupIndex)
+				if vertGroupIndex not in meshInfo.vertexGroupInfo.vertexGroupToLimb:
+					# Only want to handle skinned faces connected to parent
+					connectedToUnhandledBone = True
+					break
+			if connectedToUnhandledBone:
+				continue
+			groupTuple = tuple(sorted(groupTuple))
+
+			if groupTuple == tuple([vertGroupIndex]):
+				if face.material_index not in groupFaces:
+					groupFaces[face.material_index] = []
+				groupFaces[face.material_index].append(face)
+			else:
+				if groupTuple not in skinnedFaces:
+					skinnedFaces[groupTuple] = {}
+				skinnedFacesGroup = skinnedFaces[groupTuple]
+				if face.material_index not in skinnedFacesGroup:
+					skinnedFacesGroup[face.material_index] = []
+				skinnedFacesGroup[face.material_index].append(face)
+
+	if not (len(groupFaces) > 0 or len(skinnedFaces) > 0):
+		print("No faces in " + vertexGroup)
+		return None
+	
+	fMeshGroup = FMeshGroup(toAlnum(namePrefix + \
+		('_' if namePrefix != '' else '') + vertexGroup), 
+		FMesh(toAlnum(namePrefix + \
+		('_' if namePrefix != '' else '') + vertexGroup) + '_mesh', fModel.DLFormat), None, fModel.DLFormat)
+
+	# Save mesh group
+	checkUniqueBoneNames(fModel, toAlnum(namePrefix + \
+		('_' if namePrefix != '' else '') + vertexGroup), vertexGroup)
+	fModel.meshGroups[toAlnum(namePrefix + vertexGroup)] = fMeshGroup
+
+	for material_index, faces in groupFaces.items():
+		material = meshObj.data.materials[material_index]
+		checkForF3dMaterialInFaces(meshObj, material)
+		currentGroupIndex = saveMeshByFaces(material, faces, fModel, fMeshGroup.mesh, meshObj, currentMatrix,
+			meshInfo, drawLayer, convertTextureData, currentGroupIndex, OOTTriangleConverter)
+
+	for groupTuple, materialFaces in skinnedFaces.items():
+		for material_index, faces in materialFaces.items():
+			material = meshObj.data.materials[material_index]
+			checkForF3dMaterialInFaces(meshObj, material)
+			currentGroupIndex = saveMeshByFaces(material, faces, fModel, fMeshGroup.mesh, meshObj, currentMatrix,
+				meshInfo, drawLayer, convertTextureData, currentGroupIndex, OOTTriangleConverter)
+
+	fMeshGroup.mesh.draw.commands.extend([
+		SPEndDisplayList(),
+	])
+
+	return fMeshGroup, len(skinnedFaces) > 0
+
 class OOT_DisplayListPanel(bpy.types.Panel):
 	bl_label = "Display List Inspector"
 	bl_idname = "OBJECT_PT_OOT_DL_Inspector"
@@ -78,194 +185,6 @@ class OOT_DisplayListPanel(bpy.types.Panel):
 		prop_split(box, obj, "ootDrawLayer", "Draw Layer")
 		box.prop(obj, "ootIgnoreRender")
 		box.prop(obj, "ootIgnoreCollision")
-
-def ootConvertObjectToLevel(obj, convertTransformMatrix, 
-	f3dType, isHWv1, name, fModel, DLFormat, convertTextureData):
-	
-	#if fModel is None:
-	#	fModel = FModel(f3dType, isHWv1, name, DLFormat)
-
-	# Start geolayout
-	if areaObj is not None:
-		geolayoutGraph = GeolayoutGraph(name)
-		#cameraObj = getCameraObj(camera)
-		meshGeolayout = saveCameraSettingsToGeolayout(
-			geolayoutGraph, areaObj, obj, name + '_geo')
-		rootObj = areaObj
-		fModel.global_data.addAreaData(areaObj.areaIndex, 
-			FAreaData(FFogData(areaObj.area_fog_position, areaObj.area_fog_color)))
-
-	else:
-		geolayoutGraph = GeolayoutGraph(name + '_geo')
-		if isinstance(obj.data, bpy.types.Mesh) and obj.use_render_area:
-			rootNode = TransformNode(StartRenderAreaNode(obj.culling_radius))
-		else:
-			rootNode = TransformNode(StartNode())
-		geolayoutGraph.startGeolayout.nodes.append(rootNode)
-		meshGeolayout = geolayoutGraph.startGeolayout
-		rootObj = obj
-
-	# Duplicate objects to apply scale / modifiers / linked data
-	tempObj, allObjs = \
-		duplicateHierarchy(rootObj, 'ootIgnoreRender', True, None if areaObj is None else areaObj.areaIndex)
-	try:
-		processMesh(fModel, tempObj, convertTransformMatrix,
-			meshGeolayout.nodes[0], geolayoutGraph.startGeolayout,
-			geolayoutGraph, True, convertTextureData)
-		cleanupDuplicatedObjects(allObjs)
-		rootObj.select_set(True)
-		bpy.context.view_layer.objects.active = rootObj
-	except Exception as e:
-		cleanupDuplicatedObjects(allObjs)
-		rootObj.select_set(True)
-		bpy.context.view_layer.objects.active = rootObj
-		raise Exception(str(e))
-
-	appendRevertToGeolayout(geolayoutGraph, fModel)
-	geolayoutGraph.generateSortedList()
-	#if DLFormat == DLFormat.GameSpecific:
-	#	geolayoutGraph.convertToDynamic()
-	return geolayoutGraph, fModel
-	
-# This function should be called on a copy of an object
-# The copy will have modifiers / scale applied and will be made single user
-def processMesh(fModel, obj, transformMatrix, parentTransformNode,
-	geolayout, geolayoutGraph, isRoot, convertTextureData):
-	#finalTransform = copy.deepcopy(transformMatrix)
-
-	useGeoEmpty = obj.data is None and \
-		(obj.sm64_obj_type == 'None' or \
-		obj.sm64_obj_type == 'Level Root' or \
-		obj.sm64_obj_type == 'Area Root' or \
-		obj.sm64_obj_type == 'Switch')
-
-	useSwitchNode = obj.data is None and \
-		obj.sm64_obj_type == 'Switch'
-
-	addRooms = isRoot and obj.data is None and \
-		obj.sm64_obj_type == 'Area Root' and \
-		obj.enableRoomSwitch
-		
-	#if useAreaEmpty and areaIndex is not None and obj.areaIndex != areaIndex:
-	#	return
-		
-	# Its okay to return if ignore_render, because when we duplicated obj hierarchy we stripped all
-	# ignore_renders from geolayout.
-	if not partOfGeolayout(obj) or obj.ignore_render:
-		return
-
-	if isRoot:
-		translate = mathutils.Vector((0,0,0))
-		rotate = mathutils.Quaternion()
-	else:
-		translate = obj.matrix_local.decompose()[0]
-		rotate = obj.matrix_local.decompose()[1]
-	rotAxis, rotAngle = rotate.to_axis_angle()
-	zeroRotation = isZeroRotation(rotate)
-	zeroTranslation = isZeroTranslation(translate)
-
-	#translation = mathutils.Matrix.Translation(translate)
-	#rotation = rotate.to_matrix().to_4x4()
-
-	if useSwitchNode or addRooms: # Specific empty types
-		if useSwitchNode:
-			switchFunc = obj.switchFunc
-			switchParam = obj.switchParam
-		elif addRooms:
-			switchFunc = 'geo_switch_area'
-			switchParam = len(obj.children)
-
-		# Rooms are not set here (since this is just a copy of the original hierarchy)
-		# They should be set previously, using setRooms()
-		parentTransformNode = addParentNode(parentTransformNode, SwitchNode(switchFunc, switchParam, obj.original_name))
-		alphabeticalChildren = getSwitchChildren(obj)
-		for i in range(len(alphabeticalChildren)):
-			childObj = alphabeticalChildren[i]
-			optionGeolayout = geolayoutGraph.addGeolayout(
-				childObj, fModel.name + '_' + childObj.original_name + '_geo')
-			geolayoutGraph.addJumpNode(parentTransformNode, geolayout,
-				optionGeolayout)
-			if not zeroRotation or not zeroTranslation:
-				startNode = TransformNode(getOptimalNode(translate, rotate, 1, False,
-					zeroTranslation, zeroRotation))
-			else:
-				startNode = TransformNode(StartNode())
-			optionGeolayout.nodes.append(startNode)
-			processMesh(fModel, childObj, transformMatrix, startNode, 
-				optionGeolayout, geolayoutGraph, False, convertTextureData)
-
-	else:			
-		if obj.geo_cmd_static == 'Optimal' or useGeoEmpty:
-			node = getOptimalNode(translate, rotate, int(obj.draw_layer_static), True,
-				zeroTranslation, zeroRotation)
-	
-		elif obj.geo_cmd_static == "DisplayListWithOffset":
-			if not zeroRotation:
-				node = DisplayListWithOffsetNode(int(obj.draw_layer_static), True,
-					mathutils.Vector((0,0,0)))	
-	
-				parentTransformNode = addParentNode(parentTransformNode,
-					TranslateRotateNode(1, 0, False, translate, rotate))
-			else:
-				node = DisplayListWithOffsetNode(int(obj.draw_layer_static), True,
-					translate)
-	
-		else: #Billboard
-			if not zeroRotation:
-				node = BillboardNode(int(obj.draw_layer_static), True, 
-					mathutils.Vector((0,0,0)))
-	
-				parentTransformNode = addParentNode(parentTransformNode,
-					TranslateRotateNode(1, 0, False, translate, rotate))
-			else:
-				node = BillboardNode(int(obj.draw_layer_static), True, translate)
-
-
-		transformNode = TransformNode(node)
-
-		additionalNodes = False
-		if obj.data is not None and \
-			(obj.use_render_range or obj.add_shadow or obj.add_func):
-
-			parentTransformNode.children.append(transformNode)
-			transformNode.parent = parentTransformNode
-			transformNode.node.hasDL = False
-			parentTransformNode = transformNode
-
-			node = DisplayListNode(int(obj.draw_layer_static))
-			transformNode = TransformNode(node)
-
-			if obj.use_render_range:
-				parentTransformNode = \
-					addParentNode(parentTransformNode, RenderRangeNode(obj.render_range[0], obj.render_range[1]))
-
-			if obj.add_shadow:
-				parentTransformNode = \
-					addParentNode(parentTransformNode, ShadowNode(obj.shadow_type, obj.shadow_solidity, obj.shadow_scale))
-
-			if obj.add_func:
-				addParentNode(parentTransformNode, FunctionNode(obj.geo_func, obj.func_param))
-
-			# Make sure to add additional cases to if statement above
-
-		if obj.data is None:
-			meshGroup = None
-		else:
-			meshGroup = saveStaticModel(fModel, obj, transformMatrix, fModel.name, fModel.DLFormat, convertTextureData, False)
-
-		if meshGroup is None:
-			node.hasDL = False
-		else:
-			node.DLmicrocode = meshGroup.mesh.draw
-			node.fMesh = meshGroup.mesh
-
-		parentTransformNode.children.append(transformNode)
-		transformNode.parent = parentTransformNode
-
-		alphabeticalChildren = sorted(obj.children, key = lambda childObj: childObj.original_name.lower())
-		for childObj in alphabeticalChildren:
-			processMesh(fModel, childObj, transformMatrix, transformNode, 
-				geolayout, geolayoutGraph, False, convertTextureData)
 
 
 def ootExportF3DtoC(basePath, obj, DLFormat, transformMatrix, 

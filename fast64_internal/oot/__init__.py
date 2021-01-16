@@ -37,6 +37,7 @@ class OOT_FileSettingsPanel(bpy.types.Panel):
 		prop_split(col, context.scene, 'ootBlenderScale', 'Blender To OOT Scale')
 		
 		col.prop(context.scene, 'ootDisableScroll')
+		col.prop(context.scene, 'ootSaveTextures')
 		prop_split(col, context.scene, 'ootDecompPath', "Decomp Path")
 		
 		#prop_split(col, context.scene, 'ootRefreshVer', 'Decomp Func Map')
@@ -56,6 +57,7 @@ def oot_panel_register():
 	oot_dl_writer_panel_register()
 	#oot_dl_parser_panel_register()
 	oot_anim_panel_register()
+	oot_skeleton_panel_register()
 
 def oot_panel_unregister():
 	oot_col_panel_unregister()
@@ -68,6 +70,7 @@ def oot_panel_unregister():
 	oot_dl_writer_panel_unregister()
 	#oot_dl_parser_panel_unregister()
 	oot_anim_panel_unregister()
+	oot_skeleton_panel_unregister()
 
 def oot_register(registerPanels):
 	for cls in oot_classes:
@@ -84,6 +87,7 @@ def oot_register(registerPanels):
 	oot_dl_writer_register()
 	#oot_dl_parser_register()
 	oot_anim_register()
+	oot_skeleton_register()
 
 	if registerPanels:
 		oot_panel_register()
@@ -94,6 +98,7 @@ def oot_register(registerPanels):
 	bpy.types.Scene.ootDecompPath = bpy.props.StringProperty(
 		name ='Decomp Folder', subtype = 'FILE_PATH')
 	bpy.types.Scene.ootDisableScroll = bpy.props.BoolProperty(name = "Disable Scrolling Textures")
+	bpy.types.Scene.ootSaveTextures = bpy.props.BoolProperty(name = "Save Texture Files As Images")
 
 def oot_unregister(unregisterPanels):
 	for cls in reversed(oot_classes):
@@ -110,6 +115,7 @@ def oot_unregister(unregisterPanels):
 	oot_dl_writer_unregister()
 	#oot_dl_parser_unregister()
 	oot_anim_unregister()
+	oot_skeleton_unregister()
 
 	if unregisterPanels:
 		oot_panel_unregister()
@@ -118,3 +124,4 @@ def oot_unregister(unregisterPanels):
 	del bpy.types.Scene.ootBlenderScale 
 	del bpy.types.Scene.ootDecompPath
 	del bpy.types.Scene.ootDisableScroll
+	del bpy.types.Scene.ootSaveTextures

@@ -1112,7 +1112,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 		meshGroup, makeLastDeformBone = saveModelGivenVertexGroup(
 			fModel, obj, bone.name, lastDeformName,
 			finalTransform, armatureObj, materialOverrides, 
-			namePrefix, infoDict, node.drawLayer, convertTextureData)
+			namePrefix, infoDict, node.drawLayer, convertTextureData, TriangleConverter)
 
 		if meshGroup is None:
 			#print("No mesh data.")
@@ -1309,18 +1309,6 @@ def processSwitchBoneMatOverrides(materialOverrides, switchBone):
 			materialOverrides.append((switchOption.materialOverride, specificMat,
 				switchOption.materialOverrideType))
 
-def getGroupIndexFromname(obj, name):
-	for group in obj.vertex_groups:
-		if group.name == name:
-			return group.index
-	return None
-
-def getGroupNameFromIndex(obj, index):
-	for group in obj.vertex_groups:
-		if group.index == index:
-			return group.name
-	return None
-
 def getGroupIndex(vert, armatureObj, obj):
 	actualGroups = []
 	belowLimitGroups = []
@@ -1358,7 +1346,7 @@ def getGroupIndex(vert, armatureObj, obj):
 	#raise VertexWeightError("A vertex was found that was primarily weighted to a group that does not correspond to a bone in #the armature. (" + getGroupNameFromIndex(obj, vertGroup.group) + ') Either decrease the weights of this vertex group or remove it. If you think this group should correspond to a bone, make sure to check your spelling.')
 	return vertGroup.group
 
-class SkinnedFace():
+class SimpleSkinnedFace():
 	def __init__(self, bFace, loopsInGroup, loopsNotInGroup):
 		self.bFace= bFace
 		self.loopsInGroup = loopsInGroup
@@ -1514,16 +1502,10 @@ def getAncestorGroups(parentGroup, vertexGroup, armatureObj, obj):
     #print([bone.name for bone in ancestorBones])
     return [getGroupIndexFromname(obj, bone.name) for bone in armatureObj.data.bones if bone not in ancestorBones]
 
-def checkUniqueBoneNames(fModel, name, vertexGroup):
-	if name in fModel.meshGroups:
-		raise PluginError(vertexGroup + " has already been processed. Make " +\
-			"sure this bone name is unique, even across all switch option " +\
-			"armatures.")
-
 # returns fMeshGroup, makeLastDeformBone
 def saveModelGivenVertexGroup(fModel, obj, vertexGroup, 
 	parentGroup, transformMatrix, armatureObj, materialOverrides, namePrefix,
-	infoDict, drawLayer, convertTextureData):
+	infoDict, drawLayer, convertTextureData, triConverterClass):
 	#checkForF3DMaterial(obj)
 
 	mesh = obj.data
@@ -1559,9 +1541,9 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 
 	handledFaces = []
 	for vertIndex in vertIndices:
-		if vertIndex not in infoDict['vert']:
+		if vertIndex not in infoDict.vert:
 			continue
-		for face in infoDict['vert'][vertIndex]:
+		for face in infoDict.vert[vertIndex]:
 			# Ignore repeat faces
 			if face in handledFaces:
 				continue
@@ -1599,14 +1581,14 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 				if face.material_index not in skinnedFaces:
 					skinnedFaces[face.material_index] = []
 				skinnedFaces[face.material_index].append(
-					SkinnedFace(face, loopsInGroup, loopsNotInGroup))
+					SimpleSkinnedFace(face, loopsInGroup, loopsNotInGroup))
 
 	# Save skinned mesh
 	if len(skinnedFaces) > 0:
 		#print("Skinned")
 		fMeshGroup = saveSkinnedMeshByMaterial(skinnedFaces, fModel,
 			vertexGroup, obj, currentMatrix, parentMatrix, namePrefix, 
-			infoDict, vertexGroup, drawLayer, convertTextureData)
+			infoDict, vertexGroup, drawLayer, convertTextureData, triConverterClass)
 	elif len(groupFaces) > 0:
 		fMeshGroup = FMeshGroup(toAlnum(namePrefix + \
 			('_' if namePrefix != '' else '') + vertexGroup), 
@@ -1625,8 +1607,8 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 	for material_index, bFaces in groupFaces.items():
 		material = obj.data.materials[material_index]
 		checkForF3dMaterialInFaces(obj, material)
-		saveMeshByFaces(material, bFaces, 
-			fModel, fMeshGroup.mesh, obj, currentMatrix, infoDict, drawLayer, convertTextureData)
+		saveMeshByFaces(material, bFaces, fModel, fMeshGroup.mesh, obj, currentMatrix, 
+			infoDict, drawLayer, convertTextureData, None, TriangleConverter)
 	
 	# End mesh drawing
 	# Reset settings to prevent issues with other models
@@ -1738,16 +1720,18 @@ def splitSkinnedFacesIntoTwoGroups(skinnedFaces, fModel, obj, uv_data, drawLayer
 		for skinnedFace in skinnedFaceArray:
 			for (face, loop) in skinnedFace.loopsInGroup:
 				f3dVert = getF3DVert(loop, face, convertInfo, obj.data)
-				if f3dVert not in inGroupVerts:
-					inGroupVerts.append(f3dVert)
+				bufferVert = BufferVertex(f3dVert, None, material_index)
+				if bufferVert not in inGroupVerts:
+					inGroupVerts.append(bufferVert)
 				loopDict[loop] = f3dVert
 			for (face, loop) in skinnedFace.loopsNotInGroup:
 				vert = obj.data.vertices[loop.vertex_index]
 				if vert not in notInGroupBlenderVerts:
 					notInGroupBlenderVerts.append(vert)
 				f3dVert = getF3DVert(loop, face, convertInfo, obj.data)
-				if f3dVert not in notInGroupVerts:
-					notInGroupVerts.append(f3dVert)
+				bufferVert = BufferVertex(f3dVert, None, material_index)
+				if bufferVert not in notInGroupVerts:
+					notInGroupVerts.append(bufferVert)
 				loopDict[loop] = f3dVert
 	
 	return inGroupVertArray, notInGroupVertArray, loopDict, notInGroupBlenderVerts
@@ -1759,7 +1743,7 @@ def getGroupVertCount(group):
 	return count
 
 def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj, 
-	currentMatrix, parentMatrix, namePrefix, infoDict, vertexGroup, drawLayer, convertTextureData):
+	currentMatrix, parentMatrix, namePrefix, infoDict, vertexGroup, drawLayer, convertTextureData, triConverterClass):
 	# We choose one or more loops per vert to represent a material from which 
 	# texDimensions can be found, since it is required for UVs.
 	uv_data = obj.data.uv_layers['UVMap'].data
@@ -1806,9 +1790,9 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj,
 				len(vertData), curIndex))
 		curIndex += len(vertData)
 
-		for f3dVert in vertData:
+		for bufferVert in vertData:
 			skinnedTriGroup.vertexList.vertices.append(convertVertexData(obj.data,
-				f3dVert[0], f3dVert[1], f3dVert[2], texDimensions,
+				bufferVert.f3dVert[0], bufferVert.f3dVert[1], bufferVert.f3dVert[2], texDimensions,
 				parentMatrix, isPointSampled, exportVertexColors))
 		
 		skinnedTriGroup.triList.commands.append(SPEndDisplayList())
@@ -1840,12 +1824,12 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj,
 			fMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
 
 		convertInfo = LoopConvertInfo(uv_data, obj, exportVertexColors)
-		saveTriangleStrip(
+		saveTriangleStrip(triConverterClass, 
 			[skinnedFace.bFace for skinnedFace in skinnedFaceArray],
 			convertInfo, triGroup.triList, triGroup.vertexList, fModel.f3d, 
 			texDimensions, currentMatrix, isPointSampled, exportVertexColors,
 			copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict),
-			infoDict, obj.data)
+			infoDict, obj.data, None)
 	
 	return FMeshGroup(toAlnum(namePrefix + \
 			('_' if namePrefix != '' else '') + name), fMesh, fSkinnedMesh, fModel.DLFormat)
