@@ -1772,7 +1772,8 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj,
 	for material_index, vertData in notInGroupVertArray:
 		material = obj.data.materials[material_index]
 		checkForF3dMaterialInFaces(obj, material)
-		if material.rdp_settings.set_rendermode:
+		f3dMat = material if material.mat_ver > 3 else material.f3d_mat
+		if f3dMat.rdp_settings.set_rendermode:
 			drawLayerKey = drawLayer
 		else:
 			drawLayerKey = None

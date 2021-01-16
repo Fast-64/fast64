@@ -289,6 +289,11 @@ enumRenderModesCycle1 = [
 	('G_RM_PASS', 'Pass', 'G_RM_PASS'),
 	('G_RM_ADD', 'Add', 'G_RM_ADD'),
 	('G_RM_NOOP', 'No Op', 'G_RM_NOOP'),
+	('G_RM_ZB_OPA_SURF', "Opaque (No AA)", 'G_RM_ZB_OPA_SURF'),
+	('G_RM_ZB_OPA_DECAL', "Opaque Decal (No AA)", 'G_RM_ZB_OPA_DECAL'),
+	('G_RM_ZB_XLU_SURF', "Transparent (No AA)", 'G_RM_ZB_XLU_SURF'),
+	('G_RM_ZB_XLU_DECAL', "Transparent Decal (No AA)", 'G_RM_ZB_XLU_DECAL'),
+
 ]
 
 enumRenderModesCycle2 = [
@@ -303,6 +308,10 @@ enumRenderModesCycle2 = [
     ('G_RM_AA_ZB_XLU_INTER2', 'Transparent Intersecting', 'G_RM_AA_ZB_XLU_INTER2'),
 	('G_RM_ADD2', 'Add', 'G_RM_ADD2'),
 	('G_RM_NOOP', 'No Op', 'G_RM_NOOP'),
+	('G_RM_ZB_OPA_SURF2', "Opaque (No AA)", 'G_RM_ZB_OPA_SURF2'),
+	('G_RM_ZB_OPA_DECAL2', "Opaque Decal (No AA)", 'G_RM_ZB_OPA_DECAL2'),
+	('G_RM_ZB_XLU_SURF2', "Transparent (No AA)", 'G_RM_ZB_XLU_SURF2'),
+	('G_RM_ZB_XLU_DECAL2', "Transparent Decal (No AA)", 'G_RM_ZB_XLU_DECAL2'),
 ]
 
 enumTexFormat = [

@@ -81,38 +81,45 @@ def F3DOrganizeLights(self, context):
 def combiner_uses(material, checkList, is2Cycle):
 	display = False
 	for value in checkList:
-		display |= material.combiner1.A == value
+		if value[:5] == "TEXEL":
+			value1 = value
+			value2 = value.replace("0", "1") if "0" in value else value.replace("1", "0")
+		else:
+			value1 = value
+			value2 = value
+			
+		display |= material.combiner1.A == value1
 		if is2Cycle:
-			display |= material.combiner2.A == value
+			display |= material.combiner2.A == value2
 
-		display |= material.combiner1.B == value
+		display |= material.combiner1.B == value1
 		if is2Cycle:
-			display |= material.combiner2.B  == value
+			display |= material.combiner2.B  == value2
 
-		display |= material.combiner1.C == value
+		display |= material.combiner1.C == value1
 		if is2Cycle:
-			display |= material.combiner2.C  == value
+			display |= material.combiner2.C  == value2
 
-		display |= material.combiner1.D == value
+		display |= material.combiner1.D == value1
 		if is2Cycle:
-			display |= material.combiner2.D  == value
+			display |= material.combiner2.D  == value2
 	
 
-		display |= material.combiner1.A_alpha == value
+		display |= material.combiner1.A_alpha == value1
 		if is2Cycle:
-			display |= material.combiner2.A_alpha == value
+			display |= material.combiner2.A_alpha == value2
 
-		display |= material.combiner1.B_alpha == value
+		display |= material.combiner1.B_alpha == value1
 		if is2Cycle:
-			display |= material.combiner2.B_alpha  == value
+			display |= material.combiner2.B_alpha  == value2
 
-		display |= material.combiner1.C_alpha == value
+		display |= material.combiner1.C_alpha == value1
 		if is2Cycle:
-			display |= material.combiner2.C_alpha == value
+			display |= material.combiner2.C_alpha == value2
 
-		display |= material.combiner1.D_alpha == value
+		display |= material.combiner1.D_alpha == value1
 		if is2Cycle:
-			display |= material.combiner2.D_alpha  == value
+			display |= material.combiner2.D_alpha  == value2
 
 	return display
 
@@ -714,6 +721,9 @@ class F3DPanel(bpy.types.Panel):
 				rowAlpha2.prop(f3dMat.combiner2, 'C_alpha')
 				rowAlpha2.prop(f3dMat.combiner2, 'D_alpha')
 
+				layout.box().label(
+					text = 'Note: In cycle 2, texture 0 and texture 1 are flipped.')
+
 			layout.box().label(
 				text = 'Note: Alpha preview is not 100% accurate.')
 			
@@ -834,7 +844,12 @@ def update_node_combiner(material, combinerInputs, f3dVer, cycleIndex):
 					material.node_tree.links.new(combiner2.inputs[i], 
 						combiner1.outputs[0 if combinerInputs[i] == 'COMBINED' else 1])
 			else:
-				combinerSocket = getSocketFromCombinerToNodeDictColor(nodes, f3dVer, combinerInputs[i])
+				if cycleIndex == 2 and combinerInputs[i][:5] == "TEXEL":
+					value = combinerInputs[i]
+					combinerInput = value.replace("0", "1") if "0" in value else value.replace("1", "0")
+				else:
+					combinerInput = combinerInputs[i]
+				combinerSocket = getSocketFromCombinerToNodeDictColor(nodes, f3dVer, combinerInput)
 				material.node_tree.links.new(combinerNode.inputs[i], combinerSocket)
 		else:
 			if combinerInputs[i] == 'COMBINED':
