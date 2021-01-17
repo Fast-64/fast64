@@ -2,6 +2,7 @@ import bpy
 from bpy.utils import register_class, unregister_class
 from .sm64_geolayout_utility import createBoneGroups, addBoneToGroup
 from ..utility import prop_split, PluginError
+from ..f3d.f3d_material import *
 
 enumBoneType = [
 	("Switch", "Switch (0x0E)", "Switch"), 
@@ -27,17 +28,6 @@ enumGeoStaticType = [
 	("DisplayListWithOffset", "Display List With Offset (0x13)", 
 		"Display List With Offset"), 
 	("Optimal", "Optimal", "Optimal"),
-]
-
-enumDrawLayers = [
-	('0', 'Background (0x00)', 'Background'),
-	('1', 'Opaque (0x01)', 'Opaque'),
-	('2', 'Opaque Decal (0x02)', 'Opaque Decal'),
-	('3', 'Opaque Intersecting (0x03)', 'Opaque Intersecting'),
-	('4', 'Cutout (0x04)', 'Cutout'),
-	('5', 'Transparent (0x05)', 'Transparent'),
-	('6', 'Transparent Decal (0x06)', 'Transparent Decal'),
-	('7', 'Transparent Intersecting (0x07)', 'Transparent Intersecting'),
 ]
 
 enumFieldLayout = [
@@ -240,7 +230,7 @@ class SwitchOptionProperty(bpy.types.PropertyGroup):
 	specificIgnoreArray : bpy.props.CollectionProperty(type = MaterialPointerProperty,
 		name = 'Specified Materials To Ignore')
 	overrideDrawLayer : bpy.props.BoolProperty()
-	drawLayer : bpy.props.EnumProperty(items = enumDrawLayers, name = 'Draw Layer')
+	drawLayer : bpy.props.EnumProperty(items = sm64EnumDrawLayers, name = 'Draw Layer')
 	expand : bpy.props.BoolProperty()
 
 def drawSwitchOptionProperty(layout, switchOption, index):
@@ -447,7 +437,7 @@ def sm64_bone_register():
 		default = 'DisplayListWithOffset', update = updateBone)
 
 	bpy.types.Bone.draw_layer = bpy.props.EnumProperty(
-		name = 'Draw Layer', items = enumDrawLayers, default = '1')
+		name = 'Draw Layer', items = sm64EnumDrawLayers, default = '1')
 	
 	# Scale
 	bpy.types.Bone.geo_scale = bpy.props.FloatProperty(
@@ -493,7 +483,7 @@ def sm64_bone_register():
 		name = 'Geolayout Command',
 		items = enumGeoStaticType, default = 'Optimal')
 	bpy.types.Object.draw_layer_static = bpy.props.EnumProperty(
-		name = 'Draw Layer', items = enumDrawLayers, default = '1')
+		name = 'Draw Layer', items = sm64EnumDrawLayers, default = '1')
 	bpy.types.Object.use_render_area = bpy.props.BoolProperty(
 		name = 'Use Render Area')
 	bpy.types.Object.culling_radius = bpy.props.FloatProperty(

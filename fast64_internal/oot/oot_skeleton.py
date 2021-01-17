@@ -150,6 +150,11 @@ def setArmatureToNonRotatedPose(armatureObj):
 
 def setBoneNonRotated(armatureObj, boneName, restPoseRotations):
 	bone = armatureObj.data.bones[boneName]
+	poseBone = armatureObj.pose.bones[boneName]
+
+	while len(poseBone.constraints) > 0:
+		poseBone.constraints.remove(poseBone.constraints[0])
+
 	rotation = bone.matrix_local.inverted().decompose()[1]
 	armatureObj.pose.bones[boneName].rotation_quaternion = rotation
 
@@ -224,10 +229,7 @@ def ootDuplicateArmature(originalArmatureObj):
 			bpy.context.view_layer.objects.active = selectedObj
 
 			for modifier in selectedObj.modifiers:
-				try:
-					bpy.ops.object.modifier_apply(modifier=modifier.name)
-				except Exception as e:
-					print("Skipping modifier " + str(modifier.name))
+				attemptModifierApply(modifier)
 		
 		# Apply new armature rest pose
 		bpy.ops.object.select_all(action = "DESELECT")
@@ -307,18 +309,18 @@ def ootProcessBone(fModel, boneName, parentLimb, nextIndex, meshObj, armatureObj
 
 	meshInfo.vertexGroupInfo.vertexGroupToLimb[getGroupIndexFromname(meshObj, boneName)] = nextIndex
 	if skeletonOnly:
-		meshGroup = None
+		mesh = None
 		hasSkinnedFaces = None
 	else:
-		meshGroup, hasSkinnedFaces = ootProcessVertexGroup(fModel, meshObj, boneName, 
+		mesh, hasSkinnedFaces = ootProcessVertexGroup(fModel, meshObj, boneName, 
 			convertTransformMatrix, armatureObj, namePrefix,
 			meshInfo, "Opaque", convertTextureData)
 
 	DL = None
-	if meshGroup is not None:
+	if mesh is not None:
 		if not bone.use_deform:
 			raise PluginError(bone.name + " has vertices in its vertex group but is not set to deformable. Make sure to enable deform on this bone.")
-		DL = meshGroup.mesh.draw
+		DL = mesh.draw
 		
 	if isinstance(parentLimb, OOTSkeleton):
 		skeleton = parentLimb
@@ -342,7 +344,7 @@ def ootConvertArmatureToC(originalArmatureObj, convertTransformMatrix,
 	f3dType, isHWv1, skeletonName, folderName, DLFormat, convertTextureData, exportPath, isCustomExport):
 
 	skeleton, fModel = ootConvertArmatureToSkeletonWithMesh(originalArmatureObj, convertTransformMatrix, 
-		f3dType, isHWv1, skeletonName, DLFormat, convertTextureData, False)
+		f3dType, isHWv1, skeletonName, DLFormat, convertTextureData)
 
 	data = CData()
 	staticData, dynamicData, texC = fModel.to_c(False, not convertTextureData, "test", OOTGfxFormatter(ScrollMethod.Vertex))

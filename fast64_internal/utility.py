@@ -37,11 +37,26 @@ enumCompressionFormat = [
 	('yay0', 'YAY0', 'YAY0'),
 ]
 
+def attemptModifierApply(modifier):
+	try:	
+		bpy.ops.object.modifier_apply(modifier=modifier.name)
+	except Exception as e:
+		print("Skipping modifier " + str(modifier.name))
+
+def getFMeshName(vertexGroup, namePrefix, drawLayer, isSkinned):
+	fMeshName = toAlnum(namePrefix + ('_' if namePrefix != '' else '') + vertexGroup)
+	if isSkinned:
+		fMeshName += '_skinned'
+	fMeshName += '_mesh'
+	if drawLayer is not None:
+		fMeshName += '_layer_' + str(drawLayer)
+	return fMeshName
+
 def checkUniqueBoneNames(fModel, name, vertexGroup):
-	if name in fModel.meshGroups:
+	if name in fModel.meshes:
 		raise PluginError(vertexGroup + " has already been processed. Make " +\
 			"sure this bone name is unique, even across all switch option " +\
-			"armatures.")
+			"armatures, and that any integer keys are not strings.")
 
 def getGroupIndexFromname(obj, name):
 	for group in obj.vertex_groups:
@@ -408,7 +423,7 @@ def duplicateHierarchy(obj, ignoreAttr, includeEmpties, areaIndex):
 			selectedObj.select_set(True)
 			bpy.context.view_layer.objects.active = selectedObj
 			for modifier in selectedObj.modifiers:
-				bpy.ops.object.modifier_apply(modifier=modifier.name)
+				attemptModifierApply(modifier)
 		for selectedObj in allObjs:
 			if ignoreAttr is not None and getattr(selectedObj, ignoreAttr):
 				for child in selectedObj.children:
@@ -478,10 +493,7 @@ def combineObjects(obj, includeChildren, ignoreAttr, areaIndex):
 			bpy.ops.object.select_all(action = 'DESELECT')
 			selectedObj.select_set(True)
 			for modifier in selectedObj.modifiers:
-				try:
-					bpy.ops.object.modifier_apply(modifier=modifier.name)
-				except RuntimeError as error:
-					print(str(error))
+				attemptModifierApply(modifier)
 					
 		bpy.ops.object.select_all(action = 'DESELECT')
 		

@@ -1,9 +1,3 @@
-ootEnumDrawLayers = [
-	('Opaque', 'Opaque', 'Opaque'),
-	('Transparent', 'Transparent', 'Transparent'),
-	('Overlay', 'Overlay', 'Overlay'),
-]
-
 ootEnumMeshType = [
 	#("Custom", "Custom", "Custom"),
 	("0", "Type 0 (Simple)", "Type 0 (Simple)"),

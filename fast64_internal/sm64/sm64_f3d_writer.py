@@ -270,8 +270,8 @@ def exportF3DtoC(basePath, obj, DLFormat, transformMatrix,
 		levelName, texDir, name)
 
 	fModel = SM64Model(f3dType, isHWv1, name, DLFormat)
-	fMeshGroup = exportF3DCommon(obj, fModel, transformMatrix, 
-		includeChildren, name, DLFormat, not savePNG)
+	fMesh = exportF3DCommon(obj, fModel, transformMatrix, 
+		includeChildren, name, DLFormat, not savePNG, 'sm64')
 
 	modelDirPath = os.path.join(dirPath, toAlnum(name))
 
@@ -371,8 +371,8 @@ def exportF3DtoBinary(romfile, exportRange, transformMatrix,
 	obj, f3dType, isHWv1, segmentData, includeChildren):
 	
 	fModel = SM64Model(f3dType, isHWv1, obj.name, DLFormat)
-	fMeshGroup = exportF3DCommon(obj, fModel,
-		transformMatrix, includeChildren, obj.name, DLFormat.Static, True)
+	fMesh = exportF3DCommon(obj, fModel,
+		transformMatrix, includeChildren, obj.name, DLFormat.Static, True, 'sm64')
 	fModel.freePalettes()
 
 	addrRange = fModel.set_addr(exportRange[0])
@@ -384,16 +384,16 @@ def exportF3DtoBinary(romfile, exportRange, transformMatrix,
 		bpy.ops.object.mode_set(mode = 'OBJECT')
 
 	segPointerData = encodeSegmentedAddr(
-		fMeshGroup.mesh.draw.startAddress, segmentData)
+		fMesh.draw.startAddress, segmentData)
 
-	return fMeshGroup.mesh.draw.startAddress, addrRange, segPointerData
+	return fMesh.draw.startAddress, addrRange, segPointerData
 
 def exportF3DtoBinaryBank0(romfile, exportRange, transformMatrix, 
 	obj, f3dType, isHWv1, RAMAddr, includeChildren):
 
 	fModel = SM64Model(f3dType, isHWv1, obj.name, DLFormat)
-	fMeshGroup = exportF3DCommon(obj, fModel, transformMatrix, includeChildren,
-			obj.name, DLFormat.Static, True)
+	fMesh = exportF3DCommon(obj, fModel, transformMatrix, includeChildren,
+			obj.name, DLFormat.Static, True, 'sm64')
 	segmentData = copy.copy(bank0Segment)
 
 	data, startRAM = getBinaryBank0F3DData(fModel, RAMAddr, exportRange)
@@ -406,24 +406,24 @@ def exportF3DtoBinaryBank0(romfile, exportRange, transformMatrix,
 		bpy.ops.object.mode_set(mode = 'OBJECT')
 
 	segPointerData = encodeSegmentedAddr(
-		fMeshGroup.mesh.draw.startAddress, segmentData)
+		fMesh.draw.startAddress, segmentData)
 
-	return (fMeshGroup.mesh.draw.startAddress, \
+	return (fMesh.draw.startAddress, \
 		(startAddress, startAddress + len(data)), segPointerData)
 
 def exportF3DtoInsertableBinary(filepath, transformMatrix, 
 	obj, f3dType, isHWv1, includeChildren):
 
 	fModel = SM64Model(f3dType, isHWv1, obj.name, DLFormat)
-	fMeshGroup = exportF3DCommon(obj, fModel, transformMatrix, includeChildren,
-			obj.name, DLFormat.Static, True)
+	fMesh = exportF3DCommon(obj, fModel, transformMatrix, includeChildren,
+			obj.name, DLFormat.Static, True, 'sm64')
 	
 	data, startRAM = getBinaryBank0F3DData(fModel, 0, [0, 0xFFFFFF])
 	# must happen after getBinaryBank0F3DData
 	address_ptrs = fModel.get_ptr_addresses(f3dType) 
 
 	writeInsertableFile(filepath, insertableBinaryTypes['Display List'],
-		address_ptrs, fMeshGroup.mesh.draw.startAddress, data)
+		address_ptrs, fMesh.draw.startAddress, data)
 
 def getBinaryBank0F3DData(fModel, RAMAddr, exportRange):
 	fModel.freePalettes()

@@ -25,6 +25,8 @@ f3d_mat.combiner2.A_alpha = '0'
 f3d_mat.combiner2.B_alpha = '0'
 f3d_mat.combiner2.C_alpha = '0'
 f3d_mat.combiner2.D_alpha = 'ENVIRONMENT'
+f3d_mat.tex0.tex_set = True
+f3d_mat.tex1.tex_set = True
 f3d_mat.set_prim = True
 f3d_mat.set_lights = True
 f3d_mat.set_env = False
@@ -108,6 +110,8 @@ f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
 f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
+f3d_mat.draw_layer.sm64 = '1'
+f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 '''
 
@@ -136,6 +140,8 @@ f3d_mat.combiner2.A_alpha = '0'
 f3d_mat.combiner2.B_alpha = '0'
 f3d_mat.combiner2.C_alpha = '0'
 f3d_mat.combiner2.D_alpha = 'ENVIRONMENT'
+f3d_mat.tex0.tex_set = True
+f3d_mat.tex1.tex_set = True
 f3d_mat.set_prim = True
 f3d_mat.set_lights = True
 f3d_mat.set_env = False
@@ -219,6 +225,8 @@ f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
 f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
+f3d_mat.draw_layer.sm64 = '4'
+f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 '''
 
@@ -247,6 +255,8 @@ f3d_mat.combiner2.A_alpha = '0'
 f3d_mat.combiner2.B_alpha = '0'
 f3d_mat.combiner2.C_alpha = '0'
 f3d_mat.combiner2.D_alpha = 'ENVIRONMENT'
+f3d_mat.tex0.tex_set = True
+f3d_mat.tex1.tex_set = True
 f3d_mat.set_prim = True
 f3d_mat.set_lights = True
 f3d_mat.set_env = False
@@ -330,6 +340,8 @@ f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
 f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
+f3d_mat.draw_layer.sm64 = '1'
+f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 '''
 
@@ -358,6 +370,8 @@ f3d_mat.combiner2.A_alpha = '0'
 f3d_mat.combiner2.B_alpha = '0'
 f3d_mat.combiner2.C_alpha = '0'
 f3d_mat.combiner2.D_alpha = 'ENVIRONMENT'
+f3d_mat.tex0.tex_set = True
+f3d_mat.tex1.tex_set = True
 f3d_mat.set_prim = True
 f3d_mat.set_lights = True
 f3d_mat.set_env = False
@@ -441,6 +455,8 @@ f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
 f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
+f3d_mat.draw_layer.sm64 = '1'
+f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 '''
 
@@ -470,6 +486,8 @@ f3d_mat.combiner2.A_alpha = 'TEXEL0'
 f3d_mat.combiner2.B_alpha = '0'
 f3d_mat.combiner2.C_alpha = 'ENVIRONMENT'
 f3d_mat.combiner2.D_alpha = '0'
+f3d_mat.tex0.tex_set = True
+f3d_mat.tex1.tex_set = True
 f3d_mat.set_prim = True
 f3d_mat.set_lights = True
 f3d_mat.set_env = False
@@ -553,6 +571,8 @@ f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
 f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
+f3d_mat.draw_layer.sm64 = '4'
+f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 '''
 
@@ -581,6 +601,8 @@ f3d_mat.combiner2.A_alpha = '0'
 f3d_mat.combiner2.B_alpha = '0'
 f3d_mat.combiner2.C_alpha = '0'
 f3d_mat.combiner2.D_alpha = 'ENVIRONMENT'
+f3d_mat.tex0.tex_set = True
+f3d_mat.tex1.tex_set = True
 f3d_mat.set_prim = True
 f3d_mat.set_lights = True
 f3d_mat.set_env = False
@@ -664,6 +686,8 @@ f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
 f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
+f3d_mat.draw_layer.sm64 = '1'
+f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 '''
 
@@ -692,6 +716,8 @@ f3d_mat.combiner2.A_alpha = '0'
 f3d_mat.combiner2.B_alpha = '0'
 f3d_mat.combiner2.C_alpha = '0'
 f3d_mat.combiner2.D_alpha = 'ENVIRONMENT'
+f3d_mat.tex0.tex_set = True
+f3d_mat.tex1.tex_set = True
 f3d_mat.set_prim = True
 f3d_mat.set_lights = True
 f3d_mat.set_env = False
@@ -775,6 +801,8 @@ f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
 f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
+f3d_mat.draw_layer.sm64 = '1'
+f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 '''
 
@@ -803,6 +831,8 @@ f3d_mat.combiner2.A_alpha = 'ENVIRONMENT'
 f3d_mat.combiner2.B_alpha = '0'
 f3d_mat.combiner2.C_alpha = 'SHADE'
 f3d_mat.combiner2.D_alpha = '0'
+f3d_mat.tex0.tex_set = True
+f3d_mat.tex1.tex_set = True
 f3d_mat.set_prim = True
 f3d_mat.set_lights = True
 f3d_mat.set_env = False
@@ -886,6 +916,8 @@ f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
 f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
+f3d_mat.draw_layer.sm64 = '1'
+f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 '''
 
@@ -914,6 +946,8 @@ f3d_mat.combiner2.A_alpha = 'TEXEL0'
 f3d_mat.combiner2.B_alpha = '0'
 f3d_mat.combiner2.C_alpha = 'PRIMITIVE'
 f3d_mat.combiner2.D_alpha = '0'
+f3d_mat.tex0.tex_set = True
+f3d_mat.tex1.tex_set = True
 f3d_mat.set_prim = True
 f3d_mat.set_lights = True
 f3d_mat.set_env = False
@@ -997,6 +1031,8 @@ f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
 f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
+f3d_mat.draw_layer.sm64 = '5'
+f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 '''
 
@@ -1025,6 +1061,8 @@ f3d_mat.combiner2.A_alpha = '0'
 f3d_mat.combiner2.B_alpha = '0'
 f3d_mat.combiner2.C_alpha = '0'
 f3d_mat.combiner2.D_alpha = 'ENVIRONMENT'
+f3d_mat.tex0.tex_set = True
+f3d_mat.tex1.tex_set = True
 f3d_mat.set_prim = True
 f3d_mat.set_lights = True
 f3d_mat.set_env = False
@@ -1108,6 +1146,8 @@ f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
 f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
+f3d_mat.draw_layer.sm64 = '1'
+f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 '''
 
@@ -1136,6 +1176,8 @@ f3d_mat.combiner2.A_alpha = 'TEXEL0'
 f3d_mat.combiner2.B_alpha = '0'
 f3d_mat.combiner2.C_alpha = 'PRIMITIVE'
 f3d_mat.combiner2.D_alpha = '0'
+f3d_mat.tex0.tex_set = True
+f3d_mat.tex1.tex_set = True
 f3d_mat.set_prim = True
 f3d_mat.set_lights = True
 f3d_mat.set_env = False
@@ -1219,6 +1261,8 @@ f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
 f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
+f3d_mat.draw_layer.sm64 = '5'
+f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 '''
 
@@ -1248,6 +1292,8 @@ f3d_mat.combiner2.A_alpha = '0'
 f3d_mat.combiner2.B_alpha = '0'
 f3d_mat.combiner2.C_alpha = '0'
 f3d_mat.combiner2.D_alpha = 'COMBINED'
+f3d_mat.tex0.tex_set = True
+f3d_mat.tex1.tex_set = True
 f3d_mat.set_prim = True
 f3d_mat.set_lights = True
 f3d_mat.set_env = False
@@ -1331,6 +1377,8 @@ f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
 f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
+f3d_mat.draw_layer.sm64 = '1'
+f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 '''
 
@@ -1359,6 +1407,8 @@ f3d_mat.combiner2.A_alpha = '0'
 f3d_mat.combiner2.B_alpha = '0'
 f3d_mat.combiner2.C_alpha = '0'
 f3d_mat.combiner2.D_alpha = 'COMBINED'
+f3d_mat.tex0.tex_set = True
+f3d_mat.tex1.tex_set = True
 f3d_mat.set_prim = True
 f3d_mat.set_lights = True
 f3d_mat.set_env = False
@@ -1442,6 +1492,8 @@ f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
 f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
+f3d_mat.draw_layer.sm64 = '4'
+f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 '''
 
@@ -1470,6 +1522,8 @@ f3d_mat.combiner2.A_alpha = '0'
 f3d_mat.combiner2.B_alpha = '0'
 f3d_mat.combiner2.C_alpha = '0'
 f3d_mat.combiner2.D_alpha = 'COMBINED'
+f3d_mat.tex0.tex_set = True
+f3d_mat.tex1.tex_set = True
 f3d_mat.set_prim = True
 f3d_mat.set_lights = True
 f3d_mat.set_env = False
@@ -1553,6 +1607,8 @@ f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
 f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
 f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
+f3d_mat.draw_layer.sm64 = '5'
+f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 '''
 

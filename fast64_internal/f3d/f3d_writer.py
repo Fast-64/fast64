@@ -127,12 +127,12 @@ def fixLargeUVs(obj):
 
 	texSizeDict = {}
 	for material in obj.data.materials:
+		if material is None:
+			raise PluginError("There are some faces on your mesh that are assigned to an empty material slot.")
 		texSizeDict[material] = getTexDimensions(material)
 
 	for polygon in mesh.polygons:
 		material = mesh.materials[polygon.material_index] 
-		if material is None:
-			raise PluginError("There are some faces on your mesh that are assigned to an empty material slot.")
 
 		size = texSizeDict[material]
 		cellSize = [1024 / size[0], 1024 / size[1]]
@@ -182,19 +182,12 @@ def findUVBounds(polygon, uv_data):
 
 # Make sure to set original_name before calling this
 # used when duplicating an object
-def saveStaticModel(fModel, obj, transformMatrix, ownerName, DLFormat, convertTextureData, revertMatAtEnd):
+def saveStaticModel(fModel, obj, transformMatrix, ownerName, DLFormat, convertTextureData, revertMatAtEnd, drawLayerField):
 	if len(obj.data.polygons) == 0:
 		return None
 	
 	#checkForF3DMaterial(obj)
 	infoDict = getInfoDict(obj)
-
-	fMeshGroup = FMeshGroup(toAlnum(ownerName + "_" + obj.original_name), 
-		FMesh(toAlnum(ownerName + "_" + obj.original_name) + '_mesh', DLFormat), None, DLFormat)
-	fModel.meshGroups[ownerName + "_" + obj.original_name] = fMeshGroup
-
-	if obj.use_f3d_culling and (fModel.f3d.F3DEX_GBI or fModel.f3d.F3DEX_GBI_2):
-		addCullCommand(obj, fMeshGroup.mesh, transformMatrix)
 
 	facesByMat = {}
 	for face in obj.data.loop_triangles:
@@ -202,18 +195,38 @@ def saveStaticModel(fModel, obj, transformMatrix, ownerName, DLFormat, convertTe
 			facesByMat[face.material_index] = []
 		facesByMat[face.material_index].append(face)
 
+	fMeshes = {}
 	for material_index, faces in facesByMat.items():
 		material = obj.data.materials[material_index]
+		
+		if drawLayerField is not None and material.mat_ver > 3:
+			drawLayer = getattr(material.f3d_mat.draw_layer, drawLayerField)
+			drawLayerName = drawLayer
+		else:
+			drawLayer = fModel.getDrawLayer(obj)
+			drawLayerName = None
+
+		if drawLayer not in fMeshes:
+			meshName = getFMeshName(obj.original_name, ownerName, drawLayerName, False)
+			checkUniqueBoneNames(fModel, meshName, obj.original_name)
+			fMesh = FMesh(meshName, DLFormat)
+			fModel.meshes[meshName] = fMesh
+			fMeshes[drawLayer] = fMesh
+
+			if obj.use_f3d_culling and (fModel.f3d.F3DEX_GBI or fModel.f3d.F3DEX_GBI_2):
+				addCullCommand(obj, fMesh, transformMatrix)
+
 		checkForF3dMaterialInFaces(obj, material)
 		saveMeshByFaces(material, faces, 
-			fModel, fMeshGroup.mesh, obj, transformMatrix, 
-			infoDict, fModel.getDrawLayer(obj), convertTextureData, None, TriangleConverter)
+			fModel, fMesh, obj, transformMatrix, 
+			infoDict, drawLayer, convertTextureData, None, TriangleConverter)
 	
-	if revertMatAtEnd:
-		revertMatAndEndDraw(fMeshGroup.mesh.draw, [])
-	else:
-		fMeshGroup.mesh.draw.commands.append(SPEndDisplayList())
-	return fMeshGroup
+	for drawLayer, fMesh in fMeshes.items():
+		if revertMatAtEnd:
+			revertMatAndEndDraw(fMesh.draw, [])
+		else:
+			fMesh.draw.commands.append(SPEndDisplayList())
+	return fMeshes
 
 def addCullCommand(obj, fMesh, transformMatrix):
 	fMesh.add_cull_vtx()
@@ -241,10 +254,12 @@ def addCullCommand(obj, fMesh, transformMatrix):
 		]
 	fMesh.draw.commands = cullCommands + fMesh.draw.commands
 
-def exportF3DCommon(obj, fModel, transformMatrix, includeChildren, name, DLFormat, convertTextureData):
+def exportF3DCommon(obj, fModel, transformMatrix, includeChildren, name, DLFormat, convertTextureData, drawLayerField):
 	tempObj, meshList = combineObjects(obj, includeChildren, None, None)
 	try:
-		fMeshGroup = saveStaticModel(fModel, tempObj, transformMatrix, name, DLFormat, convertTextureData, True)
+		drawLayer = fModel.getDrawLayer(obj)
+		fMesh = saveStaticModel(fModel, tempObj, transformMatrix, name, 
+			DLFormat, convertTextureData, True, drawLayerField)[drawLayer]
 		cleanupCombineObj(tempObj, meshList)
 		obj.select_set(True)
 		bpy.context.view_layer.objects.active = obj
@@ -254,7 +269,7 @@ def exportF3DCommon(obj, fModel, transformMatrix, includeChildren, name, DLForma
 		bpy.context.view_layer.objects.active = obj
 		raise Exception(str(e))
 
-	return fMeshGroup
+	return fMesh
 
 
 def checkForF3dMaterialInFaces(obj, material):
@@ -1055,9 +1070,9 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 			int(color[3] * 255)))
 
 	if useDict['Environment'] and f3dMat.set_env:	
-		if material.mat_ver == 4:
+		if material.mat_ver > 3:
 			color = f3dMat.env_color
-		if material.mat_ver == 3:
+		elif material.mat_ver == 3:
 			color = nodes['Environment Color Output'].inputs[0].default_value
 		else:
 			color = nodes['Environment Color'].outputs[0].default_value

@@ -77,7 +77,7 @@ def ootDuplicateHierarchy(obj, ignoreAttr, includeEmpties, objectCategorizer):
 			selectedObj.select_set(True)
 			bpy.context.view_layer.objects.active = selectedObj
 			for modifier in selectedObj.modifiers:
-				bpy.ops.object.modifier_apply(modifier=modifier.name)
+				attemptModifierApply(modifier)
 		for selectedObj in meshObjs:
 			setOrigin(obj, selectedObj)
 		if ignoreAttr is not None:
@@ -344,11 +344,12 @@ def ootProcessMesh(roomMesh, roomMeshGroup, sceneObj, obj, transformMatrix, conv
 			ootConvertTranslation(translation), scale, obj.empty_display_size))
 
 	elif isinstance(obj.data, bpy.types.Mesh):
-		meshData = saveStaticModel(roomMesh.model, obj, transformMatrix, roomMesh.model.name, 
-			roomMesh.model.DLFormat, convertTextureData, False)
+		fMeshes = saveStaticModel(roomMesh.model, obj, transformMatrix, roomMesh.model.name, 
+			roomMesh.model.DLFormat, convertTextureData, False, 'oot')
 		if roomMeshGroup is None:
 			roomMeshGroup = roomMesh.addMeshGroup(None)
-		roomMeshGroup.addDLCall(meshData.mesh.draw, obj.ootDrawLayer)
+		for drawLayer, fMesh in fMeshes.items():
+			roomMeshGroup.addDLCall(fMesh.draw, drawLayer)
 
 	alphabeticalChildren = sorted(obj.children, key = lambda childObj: childObj.original_name.lower())
 	for childObj in alphabeticalChildren:

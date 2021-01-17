@@ -66,7 +66,7 @@ class ArmatureApplyWithMesh(bpy.types.Operator):
 				context.view_layer.objects.active = child
 				bpy.ops.object.modifier_copy(modifier=armatureModifier.name)
 				print(len(child.modifiers))
-				bpy.ops.object.modifier_apply(modifier=armatureModifier.name)
+				attemptModifierApply(armatureModifier)
 
 			bpy.ops.object.select_all(action = "DESELECT")
 			context.view_layer.objects.active = armatureObj
@@ -184,6 +184,7 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
 		prop_split(col, context.scene, 'f3d_type', "F3D Microcode")
 		col.prop(context.scene, 'isHWv1')
 		col.prop(context.scene, 'saveTextures')
+		col.prop(context.scene, 'f3d_simple', text = "Simple Material UI")
 
 class Fast64_GlobalObjectPanel(bpy.types.Panel):
 	bl_label = "Global Object Inspector"

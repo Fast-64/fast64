@@ -888,7 +888,7 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode,
 			processMesh(fModel, childObj, transformMatrix, startNode, 
 				optionGeolayout, geolayoutGraph, False, convertTextureData)
 
-	else:			
+	else:
 		if obj.geo_cmd_static == 'Optimal' or useGeoEmpty:
 			node = getOptimalNode(translate, rotate, int(obj.draw_layer_static), True,
 				zeroTranslation, zeroRotation)
@@ -943,15 +943,29 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode,
 			# Make sure to add additional cases to if statement above
 
 		if obj.data is None:
-			meshGroup = None
+			fMeshes = {}
 		else:
-			meshGroup = saveStaticModel(fModel, obj, transformMatrix, fModel.name, fModel.DLFormat, convertTextureData, False)
+			fMeshes = saveStaticModel(fModel, obj, transformMatrix, fModel.name, 
+				fModel.DLFormat, convertTextureData, False, 'sm64')
 
-		if meshGroup is None:
+		if len(fMeshes) == 0:
 			node.hasDL = False
 		else:
-			node.DLmicrocode = meshGroup.mesh.draw
-			node.fMesh = meshGroup.mesh
+			firstNodeProcessed = False
+			for drawLayer, fMesh in fMeshes.items():
+				if not firstNodeProcessed:
+					node.DLmicrocode = fMesh.draw
+					node.fMesh = fMesh
+					node.drawLayer = drawLayer # previous drawLayer assigments useless?
+					firstNodeProcessed = True
+				else:
+					additionalNode = DisplayListNode(drawLayer) if not isinstance(node, BillboardNode) else \
+						BillboardNode(drawLayer, True, [0,0,0])
+					additionalNode.DLmicrocode = fMesh.draw
+					additionalNode.fMesh = fMesh
+					additionalTransformNode = TransformNode(additionalNode)
+					transformNode.children.append(additionalTransformNode)
+					additionalTransformNode.parent = transformNode
 
 		parentTransformNode.children.append(transformNode)
 		transformNode.parent = parentTransformNode
@@ -1107,38 +1121,61 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 			raise PluginError("Invalid geometry command: " + bone.geo_cmd)
 	
 	transformNode = TransformNode(node)
+	additionalNodes = []
 
 	if node.hasDL:
-		meshGroup, makeLastDeformBone = saveModelGivenVertexGroup(
+		fMeshes, fSkinnedMeshes, usedDrawLayers = saveModelGivenVertexGroup(
 			fModel, obj, bone.name, lastDeformName,
 			finalTransform, armatureObj, materialOverrides, 
-			namePrefix, infoDict, node.drawLayer, convertTextureData, TriangleConverter)
+			namePrefix, infoDict, convertTextureData, TriangleConverter, 'sm64', int(bone.draw_layer))
 
-		if meshGroup is None:
+		if (fMeshes is None or len(fMeshes) == 0) and (fSkinnedMeshes is None or len(fSkinnedMeshes) == 0):
 			#print("No mesh data.")
 			node.hasDL = False
-			transformNode.skinnedWithoutDL = makeLastDeformBone
+			transformNode.skinnedWithoutDL = usedDrawLayers is not None
 			#bone.use_deform = False
-			if makeLastDeformBone:
+			if usedDrawLayers is not None:
 				lastDeformName = boneName
 			parentTransformNode.children.append(transformNode)
 			transformNode.parent = parentTransformNode
 		else:
+			lastDeformName = boneName
 			if not bone.use_deform:
 				raise PluginError(bone.name + " has vertices in its vertex group but is not set to deformable. Make sure to enable deform on this bone.")
-			node.DLmicrocode = meshGroup.mesh.draw
-			node.fMesh = meshGroup.mesh # Used for material override switches
+			for drawLayer, fMesh in fMeshes.items():
+				drawLayer = int(drawLayer) # IMPORTANT, otherwise 1 and '1' will be considered separate keys
+				if node.DLmicrocode is not None:
+					print("Adding additional node from layer " + str(drawLayer))
+					additionalNode = DisplayListNode(drawLayer) if not isinstance(node, BillboardNode) else \
+						BillboardNode(drawLayer, True, [0,0,0])
+					additionalNode.DLmicrocode = fMesh.draw
+					additionalNode.fMesh = fMesh
+					additionalTransformNode = TransformNode(additionalNode)
+					additionalNodes.append(additionalTransformNode)
+				else:
+					print("Adding node from layer " + str(drawLayer))
+					# Setting drawLayer on construction is useless?
+					node.drawLayer = drawLayer
+					node.DLmicrocode = fMesh.draw
+					node.fMesh = fMesh # Used for material override switches
+				
+					parentTransformNode.children.append(transformNode)
+					transformNode.parent = parentTransformNode
+
 			if lastDeformName is not None and \
 				armatureObj.data.bones[lastDeformName].geo_cmd == 'SwitchOption' \
-				and meshGroup.skinnedMesh is not None:
+				and len(fSkinnedMeshes) > 0:
 				raise PluginError("Cannot skin geometry to a Switch Option " +\
 					"bone. Skinning cannot occur across a switch node.")
 
+			for drawLayer, fSkinnedMesh in fSkinnedMeshes.items():
+				print("Adding skinned mesh node.")
+				transformNode = addSkinnedMeshNode(armatureObj, boneName,
+					fSkinnedMesh, transformNode, parentTransformNode, int(drawLayer))
 
-			transformNode = addSkinnedMeshNode(armatureObj, boneName,
-				meshGroup.skinnedMesh, transformNode, parentTransformNode)
-
-			lastDeformName = boneName
+			for additionalTransformNode in additionalNodes:
+				transformNode.children.append(additionalTransformNode)
+				additionalTransformNode.parent = transformNode
 			#print(boneName)
 	else:
 		parentTransformNode.children.append(transformNode)
@@ -1372,21 +1409,16 @@ def checkIfFirstNonASMNode(childNode):
 # If they are both deform.
 # Additionally, ASM nodes should count as modifiers for other nodes if 
 # they precede them
-def addSkinnedMeshNode(armatureObj, boneName, skinnedMesh, transformNode, parentNode):
+def addSkinnedMeshNode(armatureObj, boneName, skinnedMesh, transformNode, parentNode, drawLayer):
 	# Add node to its immediate parent
 	#print(str(type(parentNode.node)) + str(type(transformNode.node)))
-	parentNode.children.append(transformNode)
-	transformNode.parent = parentNode
 
-	if skinnedMesh is None:
-		return transformNode
-	else:
-		transformNode.skinned = True
-		#print("Skinned mesh exists.")
+	transformNode.skinned = True
+	#print("Skinned mesh exists.")
 
 	# Get skinned node
 	bone = armatureObj.data.bones[boneName]
-	skinnedNode = DisplayListNode(int(bone.draw_layer))
+	skinnedNode = DisplayListNode(drawLayer)
 	skinnedNode.fMesh = skinnedMesh
 	skinnedNode.DLmicrocode = skinnedMesh.draw
 	skinnedTransformNode = TransformNode(skinnedNode)
@@ -1502,11 +1534,13 @@ def getAncestorGroups(parentGroup, vertexGroup, armatureObj, obj):
     #print([bone.name for bone in ancestorBones])
     return [getGroupIndexFromname(obj, bone.name) for bone in armatureObj.data.bones if bone not in ancestorBones]
 
-# returns fMeshGroup, makeLastDeformBone
+# returns fMeshes, fSkinnedMeshes, makeLastDeformBone
 def saveModelGivenVertexGroup(fModel, obj, vertexGroup, 
 	parentGroup, transformMatrix, armatureObj, materialOverrides, namePrefix,
-	infoDict, drawLayer, convertTextureData, triConverterClass):
+	infoDict, convertTextureData, triConverterClass, drawLayerField, drawLayerV3):
 	#checkForF3DMaterial(obj)
+
+	print("GROUP " + vertexGroup)
 
 	mesh = obj.data
 	currentGroupIndex = getGroupIndexFromname(obj, vertexGroup)
@@ -1515,11 +1549,9 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 	parentGroupIndex = getGroupIndexFromname(obj, parentGroup) \
 		if parentGroup is not None else -1
 
-	ancestorGroups = getAncestorGroups(parentGroup, vertexGroup, armatureObj, obj)
-
 	if len(vertIndices) == 0:
 		print("No vert indices in " + vertexGroup)
-		return None, False
+		return None, None, None
 
 	bone = armatureObj.data.bones[vertexGroup]
 	
@@ -1531,19 +1563,24 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 	else:
 		parentBone = armatureObj.data.bones[parentGroup]
 		parentMatrix = mathutils.Matrix.Scale(1 * bpy.context.scene.blenderToSM64Scale, 4) @ \
-		parentBone.matrix_local.inverted()
-	
-	# dict of material_index keys to face array values
-	groupFaces = {}
-	
-	# dict of material_index keys to SkinnedFace objects
-	skinnedFaces = {}
+			parentBone.matrix_local.inverted()
 
+	groupFaces = {} # draw layer : {material_index : [faces]}
+	skinnedFaces = {} # draw layer : {material_index : [skinned faces]}
 	handledFaces = []
+	usedDrawLayers = set()
+	ancestorGroups = {} # vertexGroup : ancestor list
+
 	for vertIndex in vertIndices:
 		if vertIndex not in infoDict.vert:
 			continue
 		for face in infoDict.vert[vertIndex]:
+			material = obj.data.materials[face.material_index]
+			if material.mat_ver > 3:
+				drawLayer = int(getattr(material.f3d_mat.draw_layer, drawLayerField))
+			else:
+				drawLayer = drawLayerV3
+
 			# Ignore repeat faces
 			if face in handledFaces:
 				continue
@@ -1556,14 +1593,15 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 
 			# loop is interpreted as face + loop index
 			for i in range(3):
-				vertGroupIndex = \
-					getGroupIndex(mesh.vertices[face.vertices[i]], 
-						armatureObj, obj)
+				vertGroupIndex = getGroupIndex(mesh.vertices[face.vertices[i]], armatureObj, obj)
+				if vertGroupIndex not in ancestorGroups:
+					ancestorGroups[vertGroupIndex] = getAncestorGroups(parentGroupIndex, vertexGroup, armatureObj, obj)
+
 				if vertGroupIndex == currentGroupIndex:
 					loopsInGroup.append((face, mesh.loops[face.loops[i]]))
 				elif vertGroupIndex == parentGroupIndex:
 					loopsNotInGroup.append((face, mesh.loops[face.loops[i]]))
-				elif vertGroupIndex not in ancestorGroups:
+				elif vertGroupIndex not in ancestorGroups[vertGroupIndex]:
 					# Only want to handle skinned faces connected to parent
 					isChildSkinnedFace = True
 					break
@@ -1571,62 +1609,81 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 					highlightWeightErrors(obj, [face], 'FACE')
 					raise VertexWeightError("Error with " + vertexGroup + ": Verts attached to one bone can not be attached to any of its ancestor or sibling bones besides its first immediate deformable parent bone. For example, a foot vertex can be connected to a leg vertex, but a foot vertex cannot be connected to a thigh vertex.")
 			if isChildSkinnedFace:
+				usedDrawLayers.add(drawLayer)
 				continue
 			
 			if len(loopsNotInGroup) == 0:
-				if face.material_index not in groupFaces:
-					groupFaces[face.material_index] = []
-				groupFaces[face.material_index].append(face)
+				if drawLayer not in groupFaces:
+					groupFaces[drawLayer] = {}
+				drawLayerFaces = groupFaces[drawLayer]
+				if face.material_index not in drawLayerFaces:
+					drawLayerFaces[face.material_index] = []
+				drawLayerFaces[face.material_index].append(face)
 			else:
-				if face.material_index not in skinnedFaces:
-					skinnedFaces[face.material_index] = []
-				skinnedFaces[face.material_index].append(
+				if drawLayer not in skinnedFaces:
+					skinnedFaces[drawLayer] = {}
+				drawLayerSkinnedFaces = skinnedFaces[drawLayer]
+				if face.material_index not in drawLayerSkinnedFaces:
+					drawLayerSkinnedFaces[face.material_index] = []
+				drawLayerSkinnedFaces[face.material_index].append(
 					SimpleSkinnedFace(face, loopsInGroup, loopsNotInGroup))
 
-	# Save skinned mesh
-	if len(skinnedFaces) > 0:
-		#print("Skinned")
-		fMeshGroup = saveSkinnedMeshByMaterial(skinnedFaces, fModel,
-			vertexGroup, obj, currentMatrix, parentMatrix, namePrefix, 
-			infoDict, vertexGroup, drawLayer, convertTextureData, triConverterClass)
-	elif len(groupFaces) > 0:
-		fMeshGroup = FMeshGroup(toAlnum(namePrefix + \
-			('_' if namePrefix != '' else '') + vertexGroup), 
-			FMesh(toAlnum(namePrefix + \
-			('_' if namePrefix != '' else '') + vertexGroup) + '_mesh', fModel.DLFormat), None, fModel.DLFormat)
-	else:
+	if len(groupFaces) == 0 and len(skinnedFaces) == 0:
 		print("No faces in " + vertexGroup)
-		return None, True
-	
-	# Save mesh group
-	checkUniqueBoneNames(fModel, toAlnum(namePrefix + \
-		('_' if namePrefix != '' else '') + vertexGroup), vertexGroup)
-	fModel.meshGroups[toAlnum(namePrefix + vertexGroup)] = fMeshGroup
+		return None, None, usedDrawLayers
+
+	# Save skinned mesh
+	fMeshes = {}
+	fSkinnedMeshes = {}
+	for drawLayer, materialFaces in skinnedFaces.items():
+		
+		meshName = getFMeshName(vertexGroup, namePrefix, drawLayer, False)
+		checkUniqueBoneNames(fModel, meshName, vertexGroup)
+		skinnedMeshName = getFMeshName(vertexGroup, namePrefix, drawLayer, True)
+		checkUniqueBoneNames(fModel, skinnedMeshName, vertexGroup)
+
+		fMesh, fSkinnedMesh = saveSkinnedMeshByMaterial(materialFaces, fModel,
+			meshName, skinnedMeshName, obj, currentMatrix, parentMatrix, namePrefix, 
+			infoDict, vertexGroup, drawLayer, convertTextureData, triConverterClass)
+
+		fSkinnedMeshes[drawLayer] = fSkinnedMesh
+		fMeshes[drawLayer] = fMesh
+
+		fModel.meshes[skinnedMeshName] = fSkinnedMeshes[drawLayer]
+		fModel.meshes[meshName] = fMeshes[drawLayer]
+
+		if drawLayer not in groupFaces:
+			fMeshes[drawLayer].draw.commands.extend([SPEndDisplayList(),])
 
 	# Save unskinned mesh
-	for material_index, bFaces in groupFaces.items():
-		material = obj.data.materials[material_index]
-		checkForF3dMaterialInFaces(obj, material)
-		saveMeshByFaces(material, bFaces, fModel, fMeshGroup.mesh, obj, currentMatrix, 
-			infoDict, drawLayer, convertTextureData, None, TriangleConverter)
-	
-	# End mesh drawing
-	# Reset settings to prevent issues with other models
-	#revertMatAndEndDraw(fMeshGroup.mesh.draw)
-	fMeshGroup.mesh.draw.commands.extend([
-		SPEndDisplayList(),
-	])
+	for drawLayer, materialFaces in groupFaces.items():
+		if drawLayer not in fMeshes:
+			meshName = getFMeshName(vertexGroup, namePrefix, drawLayer, False)
+			checkUniqueBoneNames(fModel, meshName, vertexGroup)
+
+			fMeshes[drawLayer] = FMesh(meshName, fModel.DLFormat)
+			fModel.meshes[meshName] = fMeshes[drawLayer]
+
+		for material_index, bFaces in materialFaces.items():
+			material = obj.data.materials[material_index]
+			checkForF3dMaterialInFaces(obj, material)
+			saveMeshByFaces(material, bFaces, fModel, fMeshes[drawLayer], obj, currentMatrix, 
+				infoDict, drawLayer, convertTextureData, None, TriangleConverter)
+		
+		fMeshes[drawLayer].draw.commands.extend([
+			SPEndDisplayList(),
+		])
 
 	# Must be done after all geometry saved
 	for (material, specificMat, overrideType) in materialOverrides:
-		if fMeshGroup.mesh is not None:
+		for drawLayer, fMesh in fMeshes.items():
 			saveOverrideDraw(obj, fModel, material, specificMat, overrideType,
-			fMeshGroup.mesh, drawLayer, convertTextureData)
-		if fMeshGroup.skinnedMesh is not None:
+				fMesh, drawLayer, convertTextureData)
+		for drawLayer, fMesh in fSkinnedMeshes.items():
 			saveOverrideDraw(obj, fModel, material, specificMat, overrideType,
-			fMeshGroup.skinnedMesh, drawLayer, convertTextureData)
+				fMesh, drawLayer, convertTextureData)
 	
-	return fMeshGroup, True
+	return fMeshes, fSkinnedMeshes, usedDrawLayers
 
 def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, drawLayer, convertTextureData):
 	fOverrideMat, texDimensions = \
@@ -1742,7 +1799,7 @@ def getGroupVertCount(group):
 		count += len(vertData)
 	return count
 
-def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj, 
+def saveSkinnedMeshByMaterial(skinnedFaces, fModel, meshName, skinnedMeshName, obj, 
 	currentMatrix, parentMatrix, namePrefix, infoDict, vertexGroup, drawLayer, convertTextureData, triConverterClass):
 	# We choose one or more loops per vert to represent a material from which 
 	# texDimensions can be found, since it is required for UVs.
@@ -1762,8 +1819,7 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj,
 			"split normals.")
 	
 	# Load parent group vertices
-	fSkinnedMesh = FMesh(toAlnum(namePrefix + \
-			('_' if namePrefix != '' else '') + name) + '_skinned', fModel.DLFormat)
+	fSkinnedMesh = FMesh(skinnedMeshName, fModel.DLFormat)
 
 	# Load verts into buffer by material.
 	# It seems like material setup must be done BEFORE triangles are drawn.
@@ -1772,13 +1828,14 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj,
 	for material_index, vertData in notInGroupVertArray:
 		material = obj.data.materials[material_index]
 		checkForF3dMaterialInFaces(obj, material)
-		f3dMat = material if material.mat_ver > 3 else material.f3d_mat
+		f3dMat = material.f3d_mat if material.mat_ver > 3 else material
 		if f3dMat.rdp_settings.set_rendermode:
 			drawLayerKey = drawLayer
 		else:
 			drawLayerKey = None
-		fMaterial, texDimensions = fModel.getMaterialAndHandleShared((
-			material, drawLayerKey, fModel.global_data.getCurrentAreaKey(material)))
+
+		materialKey = (material, drawLayerKey, fModel.global_data.getCurrentAreaKey(material))
+		fMaterial, texDimensions = fModel.getMaterialAndHandleShared(materialKey)
 		isPointSampled = isTexturePointSampled(material)
 		exportVertexColors = isLightingDisabled(material)
 
@@ -1803,8 +1860,7 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj,
 	# End skinned mesh vertices.
 	fSkinnedMesh.draw.commands.append(SPEndDisplayList())
 
-	fMesh = FMesh(toAlnum(namePrefix + \
-			('_' if namePrefix != '' else '') + name) + '_mesh', fModel.DLFormat)
+	fMesh = FMesh(meshName, fModel.DLFormat)
 
 	# Load current group vertices, then draw commands by material
 	existingVertData, matRegionDict = \
@@ -1832,8 +1888,7 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, name, obj,
 			copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict),
 			infoDict, obj.data, None)
 	
-	return FMeshGroup(toAlnum(namePrefix + \
-			('_' if namePrefix != '' else '') + name), fMesh, fSkinnedMesh, fModel.DLFormat)
+	return fMesh, fSkinnedMesh
 
 def writeDynamicMeshFunction(name, displayList):
 	data = \

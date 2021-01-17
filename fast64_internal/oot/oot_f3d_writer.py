@@ -1,7 +1,7 @@
 import shutil, copy, bpy
 
 from ..f3d.f3d_writer import *
-from ..f3d.f3d_material import TextureProperty, tmemUsageUI
+from ..f3d.f3d_material import *
 from bpy.utils import register_class, unregister_class
 from .oot_constants import *
 from .oot_utility import *
@@ -70,7 +70,7 @@ class OOTTriangleConverter(TriangleConverter):
 		return format((0x0D << 24) + MTX_SIZE * self.vertexGroupInfo.vertexGroupToLimb[groupIndex], "#010x")
 
 def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, armatureObj, namePrefix,
-	meshInfo, drawLayer, convertTextureData):
+	meshInfo, drawLayerOverride, convertTextureData):
 
 	mesh = meshObj.data
 	currentGroupIndex = getGroupIndexFromname(meshObj, vertexGroup)
@@ -79,7 +79,7 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 
 	if len(vertIndices) == 0:
 		print("No vert indices in " + vertexGroup)
-		return None
+		return None, False
 
 	bone = armatureObj.data.bones[vertexGroup]
 	currentMatrix = convertTransformMatrix @ bone.matrix_local.inverted()
@@ -133,36 +133,55 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 
 	if not (len(groupFaces) > 0 or len(skinnedFaces) > 0):
 		print("No faces in " + vertexGroup)
-		return None
+		return None, False
 	
-	fMeshGroup = FMeshGroup(toAlnum(namePrefix + \
-		('_' if namePrefix != '' else '') + vertexGroup), 
-		FMesh(toAlnum(namePrefix + \
-		('_' if namePrefix != '' else '') + vertexGroup) + '_mesh', fModel.DLFormat), None, fModel.DLFormat)
+	fMeshes = {}
 
-	# Save mesh group
-	checkUniqueBoneNames(fModel, toAlnum(namePrefix + \
-		('_' if namePrefix != '' else '') + vertexGroup), vertexGroup)
-	fModel.meshGroups[toAlnum(namePrefix + vertexGroup)] = fMeshGroup
-
+	# Usually we would separate DLs into different draw layers.
+	# however it seems like OOT skeletons don't have this ability.
+	# Therefore we always use the drawLayerOverride as the draw layer key.
+	# This means everything will be saved to one mesh. 
+	drawLayerKey = drawLayerOverride
 	for material_index, faces in groupFaces.items():
 		material = meshObj.data.materials[material_index]
+		if material.mat_ver > 3:
+			drawLayer = material.f3d_mat.draw_layer.oot
+		else:
+			drawLayer = drawLayerOverride
+		
+		if drawLayerKey not in fMeshes:
+			meshName = getFMeshName(vertexGroup, namePrefix, drawLayer, False)
+			checkUniqueBoneNames(fModel, meshName, vertexGroup)
+			fMesh = FMesh(meshName, fModel.DLFormat)
+			fMeshes[drawLayerKey] = fMesh
+			
 		checkForF3dMaterialInFaces(meshObj, material)
-		currentGroupIndex = saveMeshByFaces(material, faces, fModel, fMeshGroup.mesh, meshObj, currentMatrix,
+		currentGroupIndex = saveMeshByFaces(material, faces, fModel, fMeshes[drawLayer], meshObj, currentMatrix,
 			meshInfo, drawLayer, convertTextureData, currentGroupIndex, OOTTriangleConverter)
 
 	for groupTuple, materialFaces in skinnedFaces.items():
 		for material_index, faces in materialFaces.items():
 			material = meshObj.data.materials[material_index]
+			if material.mat_ver > 3:
+				drawLayer = material.f3d_mat.draw_layer.oot
+			else:
+				drawLayer = drawLayerOverride
+
+			if drawLayerKey not in fMeshes:
+				# technically skinned, but for oot we don't have separate skinned/unskinned meshes.
+				meshName = getFMeshName(vertexGroup, namePrefix, drawLayer, False)
+				checkUniqueBoneNames(fModel, meshName, vertexGroup)
+				fMesh = FMesh(meshName, fModel.DLFormat)
+				fMeshes[drawLayerKey] = fMesh
+
 			checkForF3dMaterialInFaces(meshObj, material)
-			currentGroupIndex = saveMeshByFaces(material, faces, fModel, fMeshGroup.mesh, meshObj, currentMatrix,
+			currentGroupIndex = saveMeshByFaces(material, faces, fModel, fMeshes[drawLayer], meshObj, currentMatrix,
 				meshInfo, drawLayer, convertTextureData, currentGroupIndex, OOTTriangleConverter)
 
-	fMeshGroup.mesh.draw.commands.extend([
-		SPEndDisplayList(),
-	])
+	for drawLayer, fMesh in fMeshes.items():
+		fMesh.draw.commands.append(SPEndDisplayList())
 
-	return fMeshGroup, len(skinnedFaces) > 0
+	return fMeshes[drawLayerKey], len(skinnedFaces) > 0
 
 class OOT_DisplayListPanel(bpy.types.Panel):
 	bl_label = "Display List Inspector"
@@ -193,8 +212,8 @@ def ootExportF3DtoC(basePath, obj, DLFormat, transformMatrix,
 		levelName, texDir, name)
 
 	fModel = OOTModel(f3dType, isHWv1, name, DLFormat)
-	fMeshGroup = exportF3DCommon(obj, fModel, transformMatrix, 
-		includeChildren, name, DLFormat, not savePNG)
+	fMesh = exportF3DCommon(obj, fModel, transformMatrix, 
+		includeChildren, name, DLFormat, not savePNG, 'oot')
 
 	modelDirPath = os.path.join(dirPath, toAlnum(name))
 

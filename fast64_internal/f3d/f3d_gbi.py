@@ -1679,8 +1679,8 @@ class FModel:
 		self.textures = {}
 		# dict of (material, drawLayer, FAreaData): (FMaterial, (width, height))
 		self.materials = {} 
-		# dict of body part name : FMeshGroup
-		self.meshGroups = {}
+		# dict of body part name : FMesh
+		self.meshes = {}
 		# GfxList
 		self.materialRevert = None
 		# F3D library
@@ -1703,11 +1703,8 @@ class FModel:
 	def createMasterDL(self):
 		commands = self.masterDL.commands
 		commands.clear()
-		for meshGroup in self.meshGroups:
-			if meshGroup.mesh is not None:
-				commands.append(SPDisplayList(meshGroup.mesh.draw))
-			if meshGroup.skinnedMesh is not None:
-				commands.append(SPDisplayList(meshGroup.skinnedMesh.draw))
+		for mesh in self.meshes:
+			commands.append(SPDisplayList(mesh.draw))
 		commands.append(SPEndDisplayList())
 		return self.masterDL
 	
@@ -1773,8 +1770,8 @@ class FModel:
 
 	def get_ptr_addresses(self, f3d):
 		addresses = []
-		for name, meshGroup in self.meshGroups.items():
-			addresses.extend(meshGroup.get_ptr_addresses(f3d))
+		for name, mesh in self.meshes.items():
+			addresses.extend(mesh.get_ptr_addresses(f3d))
 		for materialKey, (fMaterial, texDimensions) in self.materials.items():
 			addresses.extend(fMaterial.get_ptr_addresses(f3d))
 		if self.materialRevert is not None:
@@ -1786,8 +1783,8 @@ class FModel:
 		startAddrSet = False
 		# Important to set mesh groups first, so that
 		# export address corrseponds to drawing start.
-		for name, meshGroup in self.meshGroups.items():
-			addrRange = meshGroup.set_addr(addrRange[1], self.f3d)
+		for name, mesh in self.meshes.items():
+			addrRange = mesh.set_addr(addrRange[1], self.f3d)
 			if not startAddrSet:
 				startAddrSet = True
 				startAddress = addrRange[0]
@@ -1825,8 +1822,8 @@ class FModel:
 			texture.save_binary(romfile)
 		for materialKey, (fMaterial, texDimensions) in self.materials.items():
 			fMaterial.save_binary(romfile, self.f3d, segments)
-		for name, meshGroup in self.meshGroups.items():
-			meshGroup.save_binary(romfile, self.f3d, segments)
+		for name, mesh in self.meshes.items():
+			mesh.save_binary(romfile, self.f3d, segments)
 		if self.materialRevert is not None:
 			self.materialRevert.save_binary(romfile, self.f3d, segments)
 		for subModel in self.subModels:
@@ -1884,10 +1881,10 @@ class FModel:
 			staticData.source += texData.source
 
 		dynamicData.append(self.to_c_materials(gfxFormatter))
-		for name, meshGroup in self.meshGroups.items():
-			meshGroupStatic, meshGroupDynamic = meshGroup.to_c(self.f3d, gfxFormatter)
-			staticData.append(meshGroupStatic)
-			dynamicData.append(meshGroupDynamic)
+		for name, mesh in self.meshes.items():
+			meshStatic, meshDynamic = mesh.to_c(self.f3d, gfxFormatter)
+			staticData.append(meshStatic)
+			dynamicData.append(meshDynamic)
 
 		dynamicData.append(self.to_c_material_revert(gfxFormatter))
 
@@ -1895,8 +1892,8 @@ class FModel:
 	
 	def to_c_vertex_scroll(self, scrollName, gfxFormatter):
 		scrollData = CData()
-		for name, meshGroup in self.meshGroups.items():
-			scrollData.append(meshGroup.to_c_vertex_scroll(gfxFormatter))
+		for name, mesh in self.meshes.items():
+			scrollData.append(mesh.to_c_vertex_scroll(gfxFormatter))
 		
 		hasScrolling = len(scrollData.header) > 0
 
@@ -1961,61 +1958,6 @@ class FTexRect(FModel):
 				staticData.append(texture.to_c(gfxFormatter.texArrayBitSize))
 		dynamicData.append(self.draw.to_c(self.f3d))
 		return staticData, dynamicData
-
-class FMeshGroup:
-	def __init__(self, name, mesh, skinnedMesh, DLFormat):
-		self.name = name
-		# FMesh
-		self.mesh = mesh
-		# FMesh
-		self.skinnedMesh = skinnedMesh
-		self.DLFormat = DLFormat
-	
-	def get_ptr_addresses(self, f3d):
-		addresses = []
-		if self.mesh is not None:
-			addresses.extend(self.mesh.get_ptr_addresses(f3d))
-		if self.skinnedMesh is not None:
-			addresses.extend(self.skinnedMesh.get_ptr_addresses(f3d))
-		return addresses
-	
-	def set_addr(self, startAddress, f3d):
-		addrRange = (startAddress, startAddress)
-		if self.mesh is not None:
-			addrRange = self.mesh.set_addr(addrRange[1], f3d)
-			startAddress = addrRange[0]
-		if self.skinnedMesh is not None:
-			addrRange = self.skinnedMesh.set_addr(addrRange[1], f3d)
-			if self.mesh is None:
-				startAddress = addrRange[0]
-		return startAddress, addrRange[1]
-
-	def save_binary(self, romfile, f3d, segments):
-		if self.mesh is not None:
-			self.mesh.save_binary(romfile, f3d, segments)
-		if self.skinnedMesh is not None:
-			self.skinnedMesh.save_binary(romfile, f3d, segments)
-	
-	def to_c(self, f3d, gfxFormatter):
-		staticData = CData()
-		dynamicData = CData()
-		if self.mesh is not None:
-			meshStatic, meshDynamic = self.mesh.to_c(f3d, gfxFormatter)
-			staticData.append(meshStatic)
-			dynamicData.append(meshDynamic)
-		if self.skinnedMesh is not None:
-			skinnedMeshStatic, skinnedMeshDynamic = self.skinnedMesh.to_c(f3d, gfxFormatter)
-			staticData.append(skinnedMeshStatic)
-			dynamicData.append(skinnedMeshDynamic)
-		return staticData, dynamicData
-
-	def to_c_vertex_scroll(self, gfxFormatter):
-		scrollData = CData()
-		if self.mesh is not None:
-			scrollData.append(self.mesh.to_c_vertex_scroll(gfxFormatter))
-		if self.skinnedMesh is not None:
-			scrollData.append(self.skinnedMesh.to_c_vertex_scroll(gfxFormatter))
-		return scrollData
 
 class FMesh:
 	def __init__(self, name, DLFormat):
