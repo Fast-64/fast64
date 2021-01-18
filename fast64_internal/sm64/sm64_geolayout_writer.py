@@ -948,7 +948,7 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode,
 			fMeshes = saveStaticModel(fModel, obj, transformMatrix, fModel.name, 
 				fModel.DLFormat, convertTextureData, False, 'sm64')
 
-		if len(fMeshes) == 0:
+		if fMeshes is None or len(fMeshes) == 0:
 			node.hasDL = False
 		else:
 			firstNodeProcessed = False
