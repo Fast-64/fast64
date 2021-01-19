@@ -603,10 +603,9 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 	scroll_data = scrollData.source
 	headerScroll = scrollData.header
 
-	if savePNG:
+	texturesSaved = fModel.save_textures(levelDir, not savePNG)
+	if texturesSaved > 0:
 		levelDataString =  '#include "levels/' + levelName + '/texture_include.inc.c"\n' + levelDataString
-		fModel.save_textures(levelDir)
-
 		texPath = os.path.join(levelDir, 'texture_include.inc.c')
 		texFile = open(texPath, 'w', newline='\n')
 		texFile.write(texC.source)
@@ -726,7 +725,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 		writeIfNotFound(levelDataPath, '#include "levels/' + levelName + '/leveldata.inc.c"\n', '')
 		writeIfNotFound(headerPath, '#include "levels/' + levelName + '/header.inc.h"\n', '#endif')
 		
-		if not savePNG:
+		if texturesSaved == 0:
 			textureIncludePath = os.path.join(levelDir, 'texture_include.inc.c')
 			if os.path.exists(textureIncludePath):
 				os.remove(textureIncludePath)

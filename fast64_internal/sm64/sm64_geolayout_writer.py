@@ -473,11 +473,10 @@ def saveGeolayoutC(geoName, dirName, geolayoutGraph, fModel, exportDir, texDir, 
 		if DLFormat != DLFormat.Static: # Change this
 			writeMaterialHeaders(exportDir, matCInclude, matHInclude)
 
-	if savePNG:
-		if not customExport and headerType == 'Level':
-			fModel.save_textures(dirPath)
-		else:
-			fModel.save_textures(geoDirPath)
+	if not customExport and headerType == 'Level':
+		fModel.save_textures(dirPath, not savePNG)
+	else:
+		fModel.save_textures(geoDirPath, not savePNG)
 	
 	return staticData.header
 
@@ -1667,8 +1666,14 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 		for material_index, bFaces in materialFaces.items():
 			material = obj.data.materials[material_index]
 			checkForF3dMaterialInFaces(obj, material)
-			saveMeshByFaces(material, bFaces, fModel, fMeshes[drawLayer], obj, currentMatrix, 
-				infoDict, drawLayer, convertTextureData, None, TriangleConverter)
+			fMaterial, texDimensions = \
+				saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
+			if fMaterial.useLargeTextures:
+				currentGroupIndex = saveMeshWithLargeTexturesByFaces(material, bFaces, fModel, fMeshes[drawLayer], obj, currentMatrix,
+					infoDict, drawLayer, convertTextureData, None, TriangleConverter, None, None)
+			else:
+				saveMeshByFaces(material, bFaces, fModel, fMeshes[drawLayer], obj, currentMatrix, 
+					infoDict, drawLayer, convertTextureData, None, TriangleConverter, None, None)
 		
 		fMeshes[drawLayer].draw.commands.extend([
 			SPEndDisplayList(),
@@ -1865,6 +1870,23 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, meshName, skinnedMeshName, o
 	# Load current group vertices, then draw commands by material
 	existingVertData, matRegionDict = \
 		convertVertDictToArray(notInGroupVertArray)
+
+	for material_index, skinnedFaceArray in skinnedFaces.items():
+		material = obj.data.materials[material_index]
+		faces = [skinnedFace.bFace for skinnedFace in skinnedFaceArray]
+		fMaterial, texDimensions = \
+			saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
+		if fMaterial.useLargeTextures:
+			saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, currentMatrix,
+				infoDict, drawLayer, convertTextureData, None, triConverterClass, 
+				copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict))
+		else:
+			saveMeshByFaces(material, faces,
+				fModel, fMesh, obj, currentMatrix, infoDict, drawLayer, 
+				convertTextureData, None, triConverterClass, 
+				copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict))
+
+	return fMesh, fSkinnedMesh
 	for material_index, skinnedFaceArray in skinnedFaces.items():
 
 		# We've already saved all materials, this just returns the existing ones.
@@ -1886,7 +1908,7 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, meshName, skinnedMeshName, o
 			convertInfo, triGroup.triList, triGroup.vertexList, fModel.f3d, 
 			texDimensions, currentMatrix, isPointSampled, exportVertexColors,
 			copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict),
-			infoDict, obj.data, None)
+			infoDict, obj.data, None, True)
 	
 	return fMesh, fSkinnedMesh
 

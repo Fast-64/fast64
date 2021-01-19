@@ -156,8 +156,14 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 			fMeshes[drawLayerKey] = fMesh
 			
 		checkForF3dMaterialInFaces(meshObj, material)
-		currentGroupIndex = saveMeshByFaces(material, faces, fModel, fMeshes[drawLayer], meshObj, currentMatrix,
-			meshInfo, drawLayer, convertTextureData, currentGroupIndex, OOTTriangleConverter)
+		fMaterial, texDimensions = \
+			saveOrGetF3DMaterial(material, fModel, meshObj, drawLayer, convertTextureData)
+		if fMaterial.useLargeTextures:
+			currentGroupIndex = saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMeshes[drawLayer], meshObj, currentMatrix,
+				meshInfo, drawLayer, convertTextureData, currentGroupIndex, OOTTriangleConverter, None, None)
+		else:
+			currentGroupIndex = saveMeshByFaces(material, faces, fModel, fMeshes[drawLayer], meshObj, currentMatrix,
+				meshInfo, drawLayer, convertTextureData, currentGroupIndex, OOTTriangleConverter, None, None)
 
 	for groupTuple, materialFaces in skinnedFaces.items():
 		for material_index, faces in materialFaces.items():
@@ -175,8 +181,14 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 				fMeshes[drawLayerKey] = fMesh
 
 			checkForF3dMaterialInFaces(meshObj, material)
-			currentGroupIndex = saveMeshByFaces(material, faces, fModel, fMeshes[drawLayer], meshObj, currentMatrix,
-				meshInfo, drawLayer, convertTextureData, currentGroupIndex, OOTTriangleConverter)
+			fMaterial, texDimensions = \
+				saveOrGetF3DMaterial(material, fModel, meshObj, drawLayer, convertTextureData)
+			if fMaterial.useLargeTextures:
+				currentGroupIndex = saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMeshes[drawLayer], meshObj, currentMatrix,
+					meshInfo, drawLayer, convertTextureData, currentGroupIndex, OOTTriangleConverter, None, None)
+			else:
+				currentGroupIndex = saveMeshByFaces(material, faces, fModel, fMeshes[drawLayer], meshObj, currentMatrix,
+					meshInfo, drawLayer, convertTextureData, currentGroupIndex, OOTTriangleConverter, None, None)
 
 	for drawLayer, fMesh in fMeshes.items():
 		fMesh.draw.commands.append(SPEndDisplayList())
@@ -213,7 +225,7 @@ def ootExportF3DtoC(basePath, obj, DLFormat, transformMatrix,
 
 	fModel = OOTModel(f3dType, isHWv1, name, DLFormat)
 	fMesh = exportF3DCommon(obj, fModel, transformMatrix, 
-		includeChildren, name, DLFormat, not savePNG, 'oot')
+		includeChildren, name, DLFormat, not savePNG)
 
 	modelDirPath = os.path.join(dirPath, toAlnum(name))
 
@@ -241,8 +253,7 @@ def ootExportF3DtoC(basePath, obj, DLFormat, transformMatrix,
 			'#include "actors/' + toAlnum(name) + '/material.inc.h"',
 			dynamicData.header, dynamicData.source, '', customExport)
 
-	if savePNG:
-		fModel.save_textures(modelDirPath)
+	fModel.save_textures(modelDirPath, not savePNG)
 
 	fModel.freePalettes()
 

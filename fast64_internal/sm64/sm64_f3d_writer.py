@@ -131,8 +131,7 @@ def exportTexRectToC(dirPath, texProp, f3dType, isHWv1, texDir,
 		checkIfPathExists(seg2TexDir)
 		checkIfPathExists(hudPath)
 		
-		if savePNG:
-			fTexRect.save_textures(seg2TexDir)
+		fTexRect.save_textures(seg2TexDir, not savePNG)
 
 		textures = []
 		for info, texture in fTexRect.textures.items():
@@ -241,7 +240,8 @@ def exportTexRectCommon(texProp, f3dType, isHWv1, name, convertTextureData):
 	drawEndCommands = GfxList("temp", GfxListTag.Draw, DLFormat.Dynamic)
 
 	texDimensions, nextTmem = saveTextureIndex(texProp.tex.name, fTexRect, 
-		fMaterial, fTexRect.draw, drawEndCommands, texProp, 0, 0, 'texture', convertTextureData)
+		fMaterial, fTexRect.draw, drawEndCommands, texProp, 0, 0, 'texture', convertTextureData,
+		None, True)
 
 	fTexRect.draw.commands.append(
 		SPScisTextureRectangle(0, 0, 
@@ -271,7 +271,7 @@ def exportF3DtoC(basePath, obj, DLFormat, transformMatrix,
 
 	fModel = SM64Model(f3dType, isHWv1, name, DLFormat)
 	fMesh = exportF3DCommon(obj, fModel, transformMatrix, 
-		includeChildren, name, DLFormat, not savePNG, 'sm64')
+		includeChildren, name, DLFormat, not savePNG)
 
 	modelDirPath = os.path.join(dirPath, toAlnum(name))
 
@@ -300,8 +300,7 @@ def exportF3DtoC(basePath, obj, DLFormat, transformMatrix,
 			'#include "actors/' + toAlnum(name) + '/material.inc.h"',
 			dynamicData.header, dynamicData.source, '', customExport)
 
-	if savePNG:
-		fModel.save_textures(modelDirPath)
+	fModel.save_textures(modelDirPath, not savePNG)
 
 	fModel.freePalettes()
 
@@ -372,7 +371,7 @@ def exportF3DtoBinary(romfile, exportRange, transformMatrix,
 	
 	fModel = SM64Model(f3dType, isHWv1, obj.name, DLFormat)
 	fMesh = exportF3DCommon(obj, fModel,
-		transformMatrix, includeChildren, obj.name, DLFormat.Static, True, 'sm64')
+		transformMatrix, includeChildren, obj.name, DLFormat.Static, True)
 	fModel.freePalettes()
 
 	addrRange = fModel.set_addr(exportRange[0])
@@ -393,7 +392,7 @@ def exportF3DtoBinaryBank0(romfile, exportRange, transformMatrix,
 
 	fModel = SM64Model(f3dType, isHWv1, obj.name, DLFormat)
 	fMesh = exportF3DCommon(obj, fModel, transformMatrix, includeChildren,
-			obj.name, DLFormat.Static, True, 'sm64')
+			obj.name, DLFormat.Static, True)
 	segmentData = copy.copy(bank0Segment)
 
 	data, startRAM = getBinaryBank0F3DData(fModel, RAMAddr, exportRange)
@@ -416,7 +415,7 @@ def exportF3DtoInsertableBinary(filepath, transformMatrix,
 
 	fModel = SM64Model(f3dType, isHWv1, obj.name, DLFormat)
 	fMesh = exportF3DCommon(obj, fModel, transformMatrix, includeChildren,
-			obj.name, DLFormat.Static, True, 'sm64')
+			obj.name, DLFormat.Static, True)
 	
 	data, startRAM = getBinaryBank0F3DData(fModel, 0, [0, 0xFFFFFF])
 	# must happen after getBinaryBank0F3DData

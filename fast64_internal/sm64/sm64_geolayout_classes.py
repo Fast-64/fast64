@@ -514,7 +514,7 @@ class TranslateRotateNode:
 		
 	def to_binary(self, segmentData):
 		params = ((1 if self.hasDL else 0) << 7) & \
-			(self.fieldLayout << 4) | self.drawLayer
+			(self.fieldLayout << 4) | int(self.drawLayer)
 
 		command = bytearray([GEO_TRANSLATE_ROTATE, params])
 		if self.fieldLayout == 0:
@@ -597,7 +597,7 @@ class TranslateNode:
 		return 12 if self.hasDL else 8
 		
 	def to_binary(self, segmentData):
-		params = ((1 if self.hasDL else 0) << 7) | self.drawLayer
+		params = ((1 if self.hasDL else 0) << 7) | int(self.drawLayer)
 		command = bytearray([GEO_TRANSLATE, params])
 		command.extend(bytearray([0x00] * 6))
 		writeVectorToShorts(command, 2, self.translate)
@@ -635,7 +635,7 @@ class RotateNode:
 		return 12 if self.hasDL else 8
 		
 	def to_binary(self, segmentData):
-		params = ((1 if self.hasDL else 0) << 7) | self.drawLayer
+		params = ((1 if self.hasDL else 0) << 7) | int(self.drawLayer)
 		command = bytearray([GEO_ROTATE, params])
 		command.extend(bytearray([0x00] * 6))
 		writeEulerVectorToShorts(command, 2, 
@@ -674,7 +674,7 @@ class BillboardNode:
 		return 12 if self.hasDL else 8
 
 	def to_binary(self, segmentData):
-		params = ((1 if self.hasDL else 0) << 7) | self.drawLayer
+		params = ((1 if self.hasDL else 0) << 7) | int(self.drawLayer)
 		command = bytearray([GEO_BILLBOARD, params])
 		command.extend(bytearray([0x00] * 6))
 		writeVectorToShorts(command, 2, self.translate)
@@ -708,7 +708,7 @@ class DisplayListNode:
 		return 8
 
 	def to_binary(self, segmentData):
-		command = bytearray([GEO_LOAD_DL, self.drawLayer, 0x00, 0x00])
+		command = bytearray([GEO_LOAD_DL, int(self.drawLayer), 0x00, 0x00])
 		if self.hasDL and self.DLmicrocode is not None and segmentData is not None:
 			command.extend(encodeSegmentedAddr(self.DLmicrocode.startAddress,segmentData))
 		else:
@@ -760,7 +760,7 @@ class ScaleNode:
 		return 12 if self.hasDL else 8
 	
 	def to_binary(self, segmentData):
-		params = ((1 if self.hasDL else 0) << 7) | self.drawLayer
+		params = ((1 if self.hasDL else 0) << 7) | int(self.drawLayer)
 		command = bytearray([GEO_SCALE, params, 0x00, 0x00])
 		command.extend(int(self.scaleValue * 0x10000).to_bytes(4, 'big'))
 		if self.hasDL:
@@ -835,7 +835,7 @@ class DisplayListWithOffsetNode:
 		return [8] if self.hasDL else []
 
 	def to_binary(self, segmentData):
-		command = bytearray([GEO_LOAD_DL_W_OFFSET, self.drawLayer])
+		command = bytearray([GEO_LOAD_DL_W_OFFSET, int(self.drawLayer)])
 		command.extend(bytearray([0x00] * 6))
 		writeVectorToShorts(command, 2, self.translate)
 		if self.hasDL and self.DLmicrocode is not None and segmentData is not None:

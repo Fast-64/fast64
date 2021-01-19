@@ -113,6 +113,8 @@ def getTmemWordUsage(texFormat, width, height):
 	texelsPerLine = 64 / bitSizeDict[texBitSizeOf[texFormat]]
 	return math.ceil(width / texelsPerLine) * height
 
+def getTmemMax(texFormat):
+	return 4096 if texFormat[:2] != 'CI' else 2048
 
 def F3DOrganizeLights(self, context):
 	# Flag to prevent infinite recursion on update callback
@@ -308,7 +310,7 @@ def tmemUsageUI(layout, textureProp):
 	tex = textureProp.tex
 	if tex is not None and tex.size[0] > 0 and tex.size[1] > 0:
 		tmemUsage = getTmemWordUsage(textureProp.tex_format, tex.size[0], tex.size[1]) * 8
-		tmemMax = 4096 if textureProp.tex_format[:2] != 'CI' else 2048
+		tmemMax = getTmemMax(textureProp.tex_format)
 		layout.label(text = 'TMEM Usage: ' + str(tmemUsage) + ' / ' + str(tmemMax) + ' bytes')
 		if tmemUsage > tmemMax:
 			tmemSizeWarning = layout.box()
@@ -357,48 +359,60 @@ class F3DPanel(bpy.types.Panel):
 			prop_input.enabled = textureProp.tex_set
 
 			tex = textureProp.tex
-			tmemUsageUI(prop_input, textureProp)
+			if tex is not None:
+				prop_input.label(text = "Size: " + str(tex.size[0]) + " x " + str(tex.size[1]))
+					
+			if material.mat_ver > 3 and material.f3d_mat.use_large_textures:
+				prop_input.label(text = "Large texture mode enabled.")
+				prop_input.label(text = "Each triangle must fit in a single tile load.")
+				prop_input.label(text = "UVs must be in the [0, 1024] pixel range.")
+				prop_input.prop(textureProp, "save_large_texture")
+				if not textureProp.save_large_texture:
+					prop_input.label(text = "Most large textures will take forever to convert.", icon = 'QUESTION')
+			else:
+				tmemUsageUI(prop_input, textureProp)
 
 			prop_split(prop_input, textureProp, 'tex_format', name = 'Format')
 			if textureProp.tex_format[:2] == 'CI':
 				prop_split(prop_input, textureProp, 'ci_format', name = 'CI Format')
 
-			texFieldSettings = prop_input.column()
-			clampSettings = texFieldSettings.row()
-			clampSettings.prop(textureProp.S, "clamp", text = 'Clamp S')
-			clampSettings.prop(textureProp.T, "clamp", text = 'Clamp T')
+			if not (material.mat_ver > 3 and material.f3d_mat.use_large_textures):
+				texFieldSettings = prop_input.column()
+				clampSettings = texFieldSettings.row()
+				clampSettings.prop(textureProp.S, "clamp", text = 'Clamp S')
+				clampSettings.prop(textureProp.T, "clamp", text = 'Clamp T')
 
-			mirrorSettings = texFieldSettings.row()
-			mirrorSettings.prop(textureProp.S, "mirror", text = 'Mirror S')
-			mirrorSettings.prop(textureProp.T, "mirror", text = 'Mirror T')
+				mirrorSettings = texFieldSettings.row()
+				mirrorSettings.prop(textureProp.S, "mirror", text = 'Mirror S')
+				mirrorSettings.prop(textureProp.T, "mirror", text = 'Mirror T')
 
-			prop_input.prop(textureProp, 'autoprop', 
-				text = 'Auto Set Other Properties')
+				prop_input.prop(textureProp, 'autoprop', 
+					text = 'Auto Set Other Properties')
 
-			if not textureProp.autoprop:
-				mask = prop_input.row()
-				mask.prop(textureProp.S, "mask", text = 'Mask S')
-				mask.prop(textureProp.T, "mask", text = 'Mask T')
+				if not textureProp.autoprop:
+					mask = prop_input.row()
+					mask.prop(textureProp.S, "mask", text = 'Mask S')
+					mask.prop(textureProp.T, "mask", text = 'Mask T')
 
-				shift = prop_input.row()
-				shift.prop(textureProp.S, "shift", text = 'Shift S')
-				shift.prop(textureProp.T, "shift", text = 'Shift T')
+					shift = prop_input.row()
+					shift.prop(textureProp.S, "shift", text = 'Shift S')
+					shift.prop(textureProp.T, "shift", text = 'Shift T')
 
-				low = prop_input.row()
-				low.prop(textureProp.S, "low", text = 'S Low')
-				low.prop(textureProp.T, "low", text = 'T Low')
+					low = prop_input.row()
+					low.prop(textureProp.S, "low", text = 'S Low')
+					low.prop(textureProp.T, "low", text = 'T Low')
 
-				high = prop_input.row()
-				high.prop(textureProp.S, "high", text = 'S High')
-				high.prop(textureProp.T, "high", text = 'T High')
+					high = prop_input.row()
+					high.prop(textureProp.S, "high", text = 'S High')
+					high.prop(textureProp.T, "high", text = 'T High')
 
-			if tex is not None and tex.size[0] > 0 and tex.size[1] > 0 and \
-				(math.log(tex.size[0], 2) % 1 > 0.000001 or \
-				math.log(tex.size[1], 2) % 1 > 0.000001):
-				warnBox = layout.box()
-				warnBox.label(
-					text = 'Warning: Texture dimensions are not power of 2.')
-				warnBox.label(text = 'Wrapping only occurs on power of 2 bounds.')	
+				if tex is not None and tex.size[0] > 0 and tex.size[1] > 0 and \
+					(math.log(tex.size[0], 2) % 1 > 0.000001 or \
+					math.log(tex.size[1], 2) % 1 > 0.000001):
+					warnBox = layout.box()
+					warnBox.label(
+						text = 'Warning: Texture dimensions are not power of 2.')
+					warnBox.label(text = 'Wrapping only occurs on power of 2 bounds.')	
 	
 	def ui_prop(self, material, layout, name, setName, setProp, showCheckBox):
 		nodes = material.node_tree.nodes
@@ -792,6 +806,8 @@ class F3DPanel(bpy.types.Panel):
 			inputCol.prop(f3dMat, 'uv_basis', text = 'UV Basis')
 
 		if useDict['Texture']:
+			if material.mat_ver > 3:
+				inputCol.prop(f3dMat, 'use_large_textures')
 			self.ui_scale(f3dMat, inputCol)
 		
 		if useDict['Primitive'] and f3dMat.set_prim:
@@ -888,6 +904,8 @@ class F3DPanel(bpy.types.Panel):
 			inputCol.prop(f3dMat, 'uv_basis', text = 'UV Basis')
 
 		if useDict['Texture']:
+			if material.mat_ver > 3:
+				inputCol.prop(f3dMat, 'use_large_textures')
 			self.ui_scale(f3dMat, inputCol)
 		
 		if useDict['Primitive']:
@@ -1415,21 +1433,23 @@ def update_tex_values_and_formats(self, context):
 	if hasattr(context, 'material') and context.material is not None:
 		if context.material.mat_ver > 3:
 			material = context.material.f3d_mat
+			useLargeTextures = material.use_large_textures
 		else:
 			material = context.material
+			useLargeTextures = False
 		if context.material.f3d_update_flag:
 			return
 		context.material.f3d_update_flag = True
 		if material.tex0 == self and material.tex0.tex is not None:
-			material.tex0.tex_format = getOptimalFormat(material.tex0.tex)
+			material.tex0.tex_format = getOptimalFormat(material.tex0.tex, useLargeTextures)
 		if material.tex1 == self and material.tex1.tex is not None:
-			material.tex1.tex_format = getOptimalFormat(material.tex1.tex)
+			material.tex1.tex_format = getOptimalFormat(material.tex1.tex, useLargeTextures)
 		context.material.f3d_update_flag = False
 		
 		update_tex_values(context.material, context)
 	else:
 		if self.tex is not None:
-			self.tex_format = getOptimalFormat(self.tex)
+			self.tex_format = getOptimalFormat(self.tex, False)
 
 def update_tex_values(self, context):
 	if hasattr(context, 'material') and context.material is not None:
@@ -1789,6 +1809,7 @@ class TextureProperty(bpy.types.PropertyGroup):
 	menu : bpy.props.BoolProperty()
 	tex_set : bpy.props.BoolProperty(default = True, update = update_node_values)
 	autoprop : bpy.props.BoolProperty(name = 'Autoprop', update = update_tex_values, default = True)
+	save_large_texture : bpy.props.BoolProperty(name = "Save Large Texture As PNG", default = True)
 	#autoprop : bpy.props.BoolProperty(name = 'Autoprop', update = on_tex_autoprop, default = True)
 
 def on_tex_autoprop(texProperty, context):
@@ -2029,8 +2050,10 @@ node_categories = [
     ]),
 ]
 
-def getOptimalFormat(tex):
+def getOptimalFormat(tex, useLargeTextures):
 	texFormat = 'RGBA16'
+	if useLargeTextures:
+		return 'RGBA16'
 	if bpy.context.scene.ignoreTextureRestrictions or \
 		tex.size[0] * tex.size[1] > 8192: # Image too big
 		return 'RGBA32'
@@ -2118,6 +2141,7 @@ class AddPresetF3D(AddPresetBase, Operator):
 		"f3d_mat.tex0.T",
 		"f3d_mat.tex0.menu",
 		"f3d_mat.tex0.autoprop",
+		"f3d_mat.tex0.save_large_texture",
 		"f3d_mat.tex1.tex",
 		"f3d_mat.tex1.tex_format",
 		"f3d_mat.tex1.ci_format",
@@ -2125,6 +2149,7 @@ class AddPresetF3D(AddPresetBase, Operator):
 		"f3d_mat.tex1.T",
 		"f3d_mat.tex1.menu",
 		"f3d_mat.tex1.autoprop",
+		"f3d_mat.tex1.save_large_texture",
 		"f3d_mat.tex_scale",
 		"f3d_mat.scale_autoprop",
 		"f3d_mat.uv_basis",
@@ -2492,6 +2517,7 @@ class F3DMaterialProperty(bpy.types.PropertyGroup):
 	rdp_settings : bpy.props.PointerProperty(type = RDPSettings)
 
 	draw_layer : bpy.props.PointerProperty(type = DrawLayerProperty)
+	use_large_textures : bpy.props.BoolProperty(name = "Large Texture Mode")
 
 class UnlinkF3DImage0(bpy.types.Operator):
 	bl_idname = 'image.tex0_unlink'

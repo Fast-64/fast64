@@ -1821,6 +1821,8 @@ class FModel:
 		for info, texture in self.textures.items():
 			texture.save_binary(romfile)
 		for materialKey, (fMaterial, texDimensions) in self.materials.items():
+			if fMaterial.useLargeTextures and (fMaterial.saveLargeTextures[0] or fMaterial.saveLargeTextures[0]):
+				raise PluginError("Large texture mode textures must have their texture specific 'Save As PNG' disabled for binary export.")
 			fMaterial.save_binary(romfile, self.f3d, segments)
 		for name, mesh in self.meshes.items():
 			mesh.save_binary(romfile, self.f3d, segments)
@@ -1842,7 +1844,7 @@ class FModel:
 			texDir += '/'
 		data = CData()
 		for info, texture in self.textures.items():
-			if savePNG:
+			if savePNG or texture.isLargeTexture:
 				data.append(texture.to_c_tex_separate(texDir, texArrayBitSize))
 			else:
 				data.append(texture.to_c(texArrayBitSize))
@@ -1908,28 +1910,33 @@ class FModel:
 		scrollData.header += 'extern void scroll_' + scrollName + '();\n'
 		return scrollData, hasScrolling
 
-	def save_textures(self, dirpath):
+	def save_textures(self, dirpath, largeTexturesOnly):
+		texturesSaved = 0
 		for (image, texInfo), texture in self.textures.items():
-			if texInfo[1] != 'PAL':
-				# remove '.inc.c'
-				imageFileName = texture.filename[:-6] + '.png'
-				if False:
-					image.save_render(os.path.join(dirpath, imageFileName))
-				else:
-					isPacked = image.packed_file is not None
-					if not isPacked:
-						image.pack()
-					oldpath = image.filepath
-					try:
-						image.filepath = \
-							os.path.join(dirpath, imageFileName)
-						image.save()
-						if not isPacked:
-							image.unpack()
-					except Exception as e:
-						image.filepath = oldpath
-						raise Exception(str(e))
-					image.filepath = oldpath
+			if texInfo[1] == 'PAL' or (largeTexturesOnly and not texture.isLargeTexture):
+				continue
+			
+			# remove '.inc.c'
+			imageFileName = texture.filename[:-6] + '.png'
+
+			#	image.save_render(os.path.join(dirpath, imageFileName))
+
+			isPacked = image.packed_file is not None
+			if not isPacked:
+				image.pack()
+			oldpath = image.filepath
+			try:
+				image.filepath = \
+					os.path.join(dirpath, imageFileName)
+				image.save()
+				texturesSaved += 1
+				if not isPacked:
+					image.unpack()
+			except Exception as e:
+				image.filepath = oldpath
+				raise Exception(str(e))
+			image.filepath = oldpath
+		return texturesSaved
 	
 	def freePalettes(self):
 		# Palettes no longer saved
@@ -2092,6 +2099,11 @@ class FMaterial:
 
 		# Used for tile scrolling
 		self.tileSizeCommands = {} # dict of {texIndex : DPSetTileSize}
+
+		self.useLargeTextures = False
+		self.largeTextureIndex = None
+		self.texturesLoaded = [False, False]
+		self.saveLargeTextures = [True, True]
 
 	def getScrollData(self, material, dimensions):
 		self.getScrollDataField(material, 0, 0)
@@ -2361,6 +2373,7 @@ class FImage:
 		self.data = bytearray(0)
 		self.filename = filename
 		self.converted = converted
+		self.isLargeTexture = False
 	
 	def size(self):
 		return len(self.data)
