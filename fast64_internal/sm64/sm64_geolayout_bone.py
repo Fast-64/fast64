@@ -488,13 +488,6 @@ def sm64_bone_register():
 		name = 'Use Render Area')
 	bpy.types.Object.culling_radius = bpy.props.FloatProperty(
 		name = 'Culling Radius', default = 10)
-	bpy.types.Object.ignore_render = bpy.props.BoolProperty(
-		name = 'Ignore Render')
-	bpy.types.Object.ignore_collision = bpy.props.BoolProperty(
-		name = 'Ignore Collision')
-
-	bpy.types.Object.use_f3d_culling = bpy.props.BoolProperty(
-		name = 'Enable Culling (Applies to F3DEX and up)', default = True)
 
 	bpy.types.Object.add_shadow = bpy.props.BoolProperty(
 		name = 'Add Shadow')
@@ -544,9 +537,6 @@ def sm64_bone_unregister():
 	del bpy.types.Object.draw_layer_static
 	del bpy.types.Object.use_render_area
 	del bpy.types.Object.culling_radius
-	del bpy.types.Object.ignore_render
-	del bpy.types.Object.ignore_collision
-	del bpy.types.Object.use_f3d_culling
 
 	del bpy.types.Object.add_shadow
 	del bpy.types.Object.shadow_type

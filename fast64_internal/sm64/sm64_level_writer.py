@@ -8,7 +8,7 @@ from ..utility import *
 
 from bpy.utils import register_class, unregister_class
 from io import BytesIO
-import bpy, bmesh, os, math, re, shutil
+import bpy, bmesh, os, math, re, shutil, cProfile, pstats
 
 levelDefineArgs = {
 	'internal name' : 0,

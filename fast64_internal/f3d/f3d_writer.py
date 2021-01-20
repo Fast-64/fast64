@@ -192,6 +192,7 @@ class TileLoad:
 		self.texFormat = texFormat
 		self.twoTextures = twoTextures
 		self.texDimensions = texDimensions
+		self.tmemMax = getTmemMax(texFormat)
 
 	# offset by 1 pixel for filtering purposes
 	def getLow(self, value):
@@ -202,6 +203,29 @@ class TileLoad:
 		# -1 is because the high value is (max value - 1)
 		# ex. 32 pixel width -> high = 31
 		return int(min(math.ceil(value + 1), min(self.texDimensions[field], 1024)) - 1)
+
+	def tryAppend(self, other):
+		return self.appendTile(other.sl, other.sh, other.tl, other.th)
+
+	def appendTile(self, sl, sh, tl, th):
+		new_sl = min(sl, self.sl)
+		new_sh = max(sh, self.sh)
+		new_tl = min(tl, self.tl)
+		new_th = max(th, self.th)
+		newWidth = abs(new_sl - new_sh) + 1
+		newHeight = abs(new_tl - new_th) + 1
+		
+		tmemUsage = getTmemWordUsage(self.texFormat, newWidth, newHeight) * 8 *\
+			(2 if self.twoTextures else 1)
+
+		if tmemUsage > self.tmemMax:
+			return False
+		else:
+			self.sl = new_sl
+			self.sh = new_sh
+			self.tl = new_tl
+			self.th = new_th
+			return True
 
 	def tryAdd(self, points):
 		if len(points) == 0:
@@ -224,25 +248,7 @@ class TileLoad:
 			tl = min(self.getLow(point[1]), tl)
 			th = max(self.getHigh(point[1], 1), th)
 		
-		new_sl = min(sl, self.sl)
-		new_sh = max(sh, self.sh)
-		new_tl = min(tl, self.tl)
-		new_th = max(th, self.th)
-		newWidth = abs(new_sl - new_sh) + 1
-		newHeight = abs(new_tl - new_th) + 1
-		
-		tmemUsage = getTmemWordUsage(self.texFormat, newWidth, newHeight) * 8 *\
-			(2 if self.twoTextures else 1)
-		tmemMax = getTmemMax(self.texFormat)
-
-		if tmemUsage > tmemMax:
-			return False
-		else:
-			self.sl = new_sl
-			self.sh = new_sh
-			self.tl = new_tl
-			self.th = new_th
-			return True
+		return self.appendTile(sl, sh, tl, th)
 
 	def getDimensions(self):
 		return [abs(self.sl - self.sh) + 1,
@@ -277,20 +283,23 @@ def saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, transf
 		otherTextureIndex = 0
 
 	twoTextures = fMaterial.texturesLoaded[0] and fMaterial.texturesLoaded[1]
-	tileLoads = {TileLoad(texFormat, twoTextures, texDimensions) : []}
+	tileLoads = {}
+	faceTileLoads = {}
 	for face in faces:
 		uvs = [UVtoST(obj, loopIndex, uv_data, texDimensions, isPointSampled) for loopIndex in face.loops]
+		faceTileLoad = TileLoad(texFormat, twoTextures, texDimensions)
+		faceTileLoads[face] = faceTileLoad
+		if not faceTileLoad.tryAdd(uvs):
+			raise PluginError("Large texture material " + str(material.name) + " has a triangle that is too large to fit in a single tile load.")
+		
 		added = False
-		for tileLoad, tileFaces in tileLoads.items():
-			if tileLoad.tryAdd(uvs):
-				tileFaces.append(face)
+		for tileLoad, sortedFaces in tileLoads.items():
+			if tileLoad.tryAppend(faceTileLoad):
+				sortedFaces.append(face)
 				added = True
 				break
 		if not added:
-			newLoad = TileLoad(texFormat, twoTextures, texDimensions)
-			if not newLoad.tryAdd(uvs):
-				raise PluginError("Large texture material " + str(material.name) + " has a triangle that is too large to fit in a single tile load.")
-			tileLoads[newLoad] = [face]
+			tileLoads[faceTileLoad] = [face]
 
 	tileLoads = list(tileLoads.items())
 
@@ -309,7 +318,7 @@ def saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, transf
 			revertCommands = GfxList("temp", GfxListTag.Draw, fModel.DLFormat) # Unhandled?
 			texDimensions, nextTmem = \
 				saveTextureIndex(material.name, fModel, fMaterial, triGroup.triList, revertCommands, otherTex, 0, nextTmem, 
-					None, convertTextureData, None, True)
+					None, False, None, True)
 
 	#saveGeometry(obj, triList, fMesh.vertexList, bFaces, 
 	#	bMesh, texDimensions, transformMatrix, isPointSampled, isFlatShaded,
@@ -322,10 +331,10 @@ def saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, transf
 		if fMaterial.texturesLoaded[0] and not (otherTextureIndex == 0 and otherTexSingleLoad):
 			texDimensions0, nextTmem = \
 				saveTextureIndex(material.name, fModel, fMaterial, triGroup.triList, revertCommands, f3dMat.tex0, 0, nextTmem, 
-				None, convertTextureData, [tileLoad, None], True)
+				None, False, [tileLoad, None], True)
 		if fMaterial.texturesLoaded[1] and not (otherTextureIndex == 1 and otherTexSingleLoad):
 			texDimensions1, nextTmem = saveTextureIndex(material.name, fModel, 
-				fMaterial, triGroup.triList, revertCommands, f3dMat.tex1, 1, nextTmem, None, convertTextureData,
+				fMaterial, triGroup.triList, revertCommands, f3dMat.tex1, 1, nextTmem, None, False,
 				[None, tileLoad], True)
 
 		currentGroupIndex = saveTriangleStrip(triConverterClass, tileFaces, convertInfo, triGroup.triList, triGroup.vertexList,
@@ -436,7 +445,7 @@ def exportF3DCommon(obj, fModel, transformMatrix, includeChildren, name, DLForma
 		obj.select_set(True)
 		bpy.context.view_layer.objects.active = obj
 		raise Exception(str(e))
-
+	
 	return fMesh
 
 
@@ -1601,11 +1610,10 @@ def compactNibbleArray(texture, width, height):
 	nibbleData = bytearray(0)
 	dataSize = int(width * height / 2)
 
-	for i in range(dataSize):
-		nibbleData.append(
-			((texture[i * 2] & 0xF) << 4) |\
-			(texture[i * 2 + 1] & 0xF)
-		)
+	nibbleData = [
+		((texture[i * 2] & 0xF) << 4) |\
+		(texture[i * 2 + 1] & 0xF) for i in range(dataSize)
+	]
 
 	if (width * height) % 2 == 1:
 		nibbleData.append((texture[-1] & 0xF) << 4)
@@ -1642,6 +1650,107 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image, imageName, texFormat, c
 	if fMaterial.useLargeTextures:
 		fImage.isLargeTexture = True
 
+	if convertTextureData:
+		print("Converting texture data.")
+		if fmt == 'G_IM_FMT_RGBA':
+			if bitSize == 'G_IM_SIZ_16b':
+				#fImage.data = bytearray([byteVal for doubleByte in [
+				#	(((int(image.pixels[(j * image.size[0] + i) * image.channels + 0] * 0x1F) & 0x1F) << 11) | \
+				#	((int(image.pixels[(j * image.size[0] + i) * image.channels + 1] * 0x1F) & 0x1F) << 6) | \
+				#	((int(image.pixels[(j * image.size[0] + i) * image.channels + 2] * 0x1F) & 0x1F) << 1) | \
+				#	(1 if image.pixels[(j * image.size[0] + i) * image.channels + 3] > 0.5 else 0)
+				#	).to_bytes(2, 'big')
+				#	for j in reversed(range(image.size[1])) for i in range(image.size[0])] for byteVal in doubleByte])
+
+				fImage.data = bytearray([byteVal for doubleByte in [
+					((((int(image.pixels[(j * image.size[0] + i) * image.channels + 0] * 0x1F) & 0x1F) << 3) |
+					((int(image.pixels[(j * image.size[0] + i) * image.channels + 1] * 0x1F) & 0x1F) >> 2)),
+
+					(((int(image.pixels[(j * image.size[0] + i) * image.channels + 1] * 0x1F) & 0x02) << 6) | \
+					((int(image.pixels[(j * image.size[0] + i) * image.channels + 2] * 0x1F) & 0x1F) << 1) | \
+					(1 if image.pixels[(j * image.size[0] + i) * image.channels + 3] > 0.5 else 0)))
+
+					for j in reversed(range(image.size[1])) for i in range(image.size[0])] for byteVal in doubleByte])
+			elif bitSize == 'G_IM_SIZ_32b':
+				fImage.data = bytearray([
+					int(image.pixels[(j * image.size[0] + i) * image.channels + field] * 0xFF) & 0xFF
+					for j in reversed(range(image.size[1])) for i in range(image.size[0]) for field in range(image.channels)])
+			else:
+				raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
+		
+		elif fmt == 'G_IM_FMT_YUV':
+			raise PluginError("YUV not yet implemented.")
+			if bitSize == 'G_IM_SIZ_16b':
+				pass
+			else:
+				raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
+
+		elif fmt == 'G_IM_FMT_CI':
+			raise PluginError("CI not yet implemented.")
+
+		elif fmt == 'G_IM_FMT_IA':
+			if bitSize == 'G_IM_SIZ_4b':
+				fImage.data = bytearray([
+						((int(mathutils.Color(
+							image.pixels[
+								(j * image.size[0] + i) * image.channels :
+								(j * image.size[0] + i) * image.channels + 3
+							]).v * 0x7) & 0x7) << 1) | \
+						(1 if image.pixels[(j * image.size[0] + i) * image.channels + 3] > 0.5 else 0)
+					for j in reversed(range(image.size[1])) for i in range(image.size[0])])
+			elif bitSize == 'G_IM_SIZ_8b':
+				fImage.data = bytearray([
+						((int(mathutils.Color(
+							image.pixels[
+								(j * image.size[0] + i) * image.channels :
+								(j * image.size[0] + i) * image.channels + 3
+							]).v * 0xF) & 0xF) << 4) | \
+						(int(image.pixels[(j * image.size[0] + i) * image.channels + 3] * 0xF) & 0xF)
+					for j in reversed(range(image.size[1])) for i in range(image.size[0])])
+			elif bitSize == 'G_IM_SIZ_16b':
+				fImage.data = bytearray([byteVal for doubleByte in [
+						(int(mathutils.Color(
+							image.pixels[
+								(j * image.size[0] + i) * image.channels :
+								(j * image.size[0] + i) * image.channels + 3
+							]).v * 0xFF) & 0xFF,
+						int(image.pixels[(j * image.size[0] + i) * image.channels + 3] * 0xFF) & 0xFF) 
+					for j in reversed(range(image.size[1])) for i in range(image.size[0])] for byteVal in doubleByte])
+			else:
+				raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
+		elif fmt == 'G_IM_FMT_I':
+			if bitSize == 'G_IM_SIZ_4b':
+				fImage.data = bytearray([
+					int(mathutils.Color(
+						image.pixels[
+							(j * image.size[0] + i) * image.channels :
+							(j * image.size[0] + i) * image.channels + 3
+						]).v * 0xF) & 0xF 
+				for j in reversed(range(image.size[1])) for i in range(image.size[0])])
+			elif bitSize == 'G_IM_SIZ_8b':
+				fImage.data = bytearray([
+					int(mathutils.Color(
+						image.pixels[
+							(j * image.size[0] + i) * image.channels :
+							(j * image.size[0] + i) * image.channels + 3
+						]).v * 0xFF) & 0xFF 
+				for j in reversed(range(image.size[1])) for i in range(image.size[0])])
+			else:
+				raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
+		else:
+			raise PluginError("Invalid image format " + fmt)
+
+		# We stored 4bit values in byte arrays, now to convert
+		if bitSize == 'G_IM_SIZ_4b':
+			fImage.data = \
+				compactNibbleArray(fImage.data, image.size[0], image.size[1])
+	
+	print("Finished converting.")
+	fModel.addTexture((image, (texFormat, 'NONE')), fImage, fMaterial)
+
+	return fImage
+
+	# Ignore, old version not using list comprehension
 	if convertTextureData:
 		# N64 is -Y, Blender is +Y
 		for j in reversed(range(image.size[1])):

@@ -86,6 +86,8 @@ def convertF3DtoNewVersion(obj, index, material, materialDict, version):
 			copyPropertyGroup(material.f3d_mat, f3dMat.f3d_mat)
 		else:
 			convertToNewMat(f3dMat, material)
+		if f3dMat.f3d_mat.draw_layer.sm64 != obj.draw_layer_static:
+			f3dMat.f3d_mat.draw_layer.sm64 = obj.draw_layer_static
 	else:
 		f3dMat = createF3DMat(obj, preset = oldPreset, index = index)	
 		matSettings = F3DMaterialSettings()

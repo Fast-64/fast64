@@ -214,8 +214,8 @@ class OOT_DisplayListPanel(bpy.types.Panel):
 		obj = context.object
 
 		prop_split(box, obj, "ootDrawLayer", "Draw Layer")
-		box.prop(obj, "ootIgnoreRender")
-		box.prop(obj, "ootIgnoreCollision")
+		box.prop(obj, "ignore_render")
+		box.prop(obj, "ignore_collision")
 
 
 def ootExportF3DtoC(basePath, obj, DLFormat, transformMatrix, 
@@ -487,8 +487,6 @@ def oot_dl_writer_register():
 		register_class(cls)
 
 	bpy.types.Object.ootDrawLayer = bpy.props.EnumProperty(items = ootEnumDrawLayers, default = 'Opaque')
-	bpy.types.Object.ootIgnoreRender = bpy.props.BoolProperty(name = "Ignore Render")
-	bpy.types.Object.ootIgnoreCollision = bpy.props.BoolProperty(name = "Ignore Collision")
 	bpy.types.World.ootDefaultRenderModes = bpy.props.PointerProperty(type = OOTDefaultRenderModesProperty)
 
 	bpy.types.Scene.ootlevelDLExport = bpy.props.EnumProperty(items = ootEnumSceneID, 

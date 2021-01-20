@@ -285,7 +285,7 @@ def ootConvertScene(originalSceneObj, transformMatrix,
 		raise PluginError(originalSceneObj.name + " is not an empty with the \"Scene\" empty type.")
 
 	sceneObj, allObjs = \
-		ootDuplicateHierarchy(originalSceneObj, 'ootIgnoreRender', True, OOTObjectCategorizer())
+		ootDuplicateHierarchy(originalSceneObj, 'ignore_render', True, OOTObjectCategorizer())
 	roomObjs = [child for child in sceneObj.children if child.data is None and child.ootEmptyType == 'Room']
 	if len(roomObjs) == 0:
 		raise PluginError("The scene has no child empties with the 'Room' empty type.")

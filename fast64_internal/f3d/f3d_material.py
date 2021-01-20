@@ -2827,7 +2827,15 @@ def mat_register():
 	bpy.types.Material.mat_ver = bpy.props.IntProperty(default = 1)
 	bpy.types.Material.f3d_update_flag = bpy.props.BoolProperty()
 	bpy.types.Material.f3d_mat = bpy.props.PointerProperty(type = F3DMaterialProperty)
+
 	bpy.types.Scene.f3d_simple = bpy.props.BoolProperty(name = "Display Simple", default = True)
+
+	bpy.types.Object.use_f3d_culling = bpy.props.BoolProperty(
+		name = 'Enable Culling (Applies to F3DEX and up)', default = True)
+	bpy.types.Object.ignore_render = bpy.props.BoolProperty(
+		name = 'Ignore Render')
+	bpy.types.Object.ignore_collision = bpy.props.BoolProperty(
+		name = 'Ignore Collision')
 
 def mat_unregister():
 	del bpy.types.Material.f3d_mat
@@ -2835,6 +2843,9 @@ def mat_unregister():
 	del bpy.types.Material.mat_ver
 	del bpy.types.Material.f3d_update_flag
 	del bpy.types.Scene.f3d_simple
+	del bpy.types.Object.ignore_render
+	del bpy.types.Object.ignore_collision
+	del bpy.types.Object.use_f3d_culling
 	nodeitems_utils.unregister_node_categories('CUSTOM_NODES')
 	for cls in reversed(mat_classes):
 		unregister_class(cls)

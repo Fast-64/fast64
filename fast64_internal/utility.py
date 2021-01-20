@@ -429,8 +429,10 @@ def duplicateHierarchy(obj, ignoreAttr, includeEmpties, areaIndex):
 				for child in selectedObj.children:
 					bpy.ops.object.select_all(action = 'DESELECT')
 					child.select_set(True)
+					bpy.context.view_layer.objects.active = child
 					bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
 					selectedObj.parent.select_set(True)
+					bpy.context.view_layer.objects.active = selectedObj.parent
 					bpy.ops.object.parent_set(keep_transform = True)
 				selectedObj.parent = None
 		return tempObj, allObjs

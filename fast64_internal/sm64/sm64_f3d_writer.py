@@ -1,4 +1,4 @@
-import shutil, copy, bpy
+import shutil, copy, bpy, cProfile, pstats
 
 from ..f3d.f3d_writer import *
 from ..f3d.f3d_material import TextureProperty, tmemUsageUI
@@ -473,15 +473,6 @@ class SM64_ExportDL(bpy.types.Operator):
 			finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((
 				scaleValue, scaleValue, scaleValue))).to_4x4()
 
-			#cProfile.runctx('exportF3DtoC(bpy.path.abspath(context.scene.DLExportPath), obj,' +\
-			#	'context.scene.DLExportisStatic, finalTransform,' +\
-			#	'context.scene.f3d_type, context.scene.isHWv1,' +\
-			#	'bpy.context.scene.DLTexDir,' +\
-			#	'bpy.context.scene.DLSaveTextures,' +\
-			#	'bpy.context.scene.DLSeparateTextureDef, bpy.context.scene.DLName)',
-			#	globals(), locals(), "E:/Non-Steam Games/emulators/Project 64 1.6/SM64 Romhack Tools/_Data/blender.prof")
-			#p = pstats.Stats("E:/Non-Steam Games/emulators/Project 64 1.6/SM64 Romhack Tools/_Data/blender.prof")
-			#p.sort_stats("cumulative").print_stats(2000)
 		except Exception as e:
 			raisePluginError(self, e)
 			return {"CANCELLED"}
@@ -503,6 +494,18 @@ class SM64_ExportDL(bpy.types.Operator):
 					bpy.context.scene.DLincludeChildren, bpy.context.scene.DLName, levelName, context.scene.DLGroupName,
 					context.scene.DLCustomExport,
 					context.scene.DLExportHeaderType)
+				#cProfile.runctx('exportF3DtoC(exportPath, obj,' +\
+				#	'DLFormat.Static if context.scene.DLExportisStatic else DLFormat.Dynamic, finalTransform,' +\
+				#	'context.scene.f3d_type, context.scene.isHWv1,' +\
+				#	'bpy.context.scene.DLTexDir,' +\
+				#	'bpy.context.scene.DLSaveTextures or bpy.context.scene.ignoreTextureRestrictions,' +\
+				#	'bpy.context.scene.DLSeparateTextureDef,' +\
+				#	'bpy.context.scene.DLincludeChildren, bpy.context.scene.DLName, levelName, context.scene.DLGroupName,' +\
+				#	'context.scene.DLCustomExport,' +\
+				#	'context.scene.DLExportHeaderType)',
+				#	globals(), locals(), "E:/blender.prof")
+				#p = pstats.Stats("E:/blender.prof")
+				#p.sort_stats("cumulative").print_stats(2000)
 				self.report({'INFO'}, 'Success!')
 				
 			elif context.scene.DLExportType == 'Insertable Binary':

@@ -2403,24 +2403,17 @@ class FImage:
 		if not self.converted:
 			raise PluginError("Error: Trying to write texture data to C, but haven't actually converted the image file to bytes yet.")
 
-		valuesPerLine = 8
-		
-		code = ''
-		counter = 0
 		bytesPerValue = int(bitsPerValue / 8)
 		numValues = int(len(self.data) / bytesPerValue)
 		remainderCount = len(self.data) - numValues * bytesPerValue
 		digits = 2 + 2 * bytesPerValue
 
-		for i in range(numValues):
-			start = i * bytesPerValue
-			end = (i+1) * bytesPerValue
-			
-			code += format(int.from_bytes(self.data[start:end], 'big'), '#0' + str(digits) + 'x') + ', '
-			counter += 1
-			if counter == valuesPerLine:
-				code += '\n\t'
-				counter = 0
+		code = ''.join([
+			format(int.from_bytes(self.data[
+				i * bytesPerValue : (i+1) * bytesPerValue], 'big'), 
+				'#0' + str(digits) + 'x') + ', ' +\
+				('\n\t' if i % 8 == 0 else '')
+			for i in range(numValues)])
 
 		if remainderCount > 0:
 			start = numValues * bytesPerValue
