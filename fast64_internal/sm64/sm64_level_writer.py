@@ -598,13 +598,16 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 				shutil.rmtree(os.path.join(levelDir, f))
 	
 	gfxFormatter = SM64GfxFormatter(ScrollMethod.Vertex)
-	staticData, dynamicData, texC = fModel.to_c(savePNG, savePNG, 'levels/' + levelName, gfxFormatter)
+	exportData = fModel.to_c(TextureExportSettings(savePNG, savePNG, 'levels/' + levelName, levelDir), gfxFormatter)
+	staticData = exportData.staticData
+	dynamicData = exportData.dynamicData
+	texC = exportData.textureData
+
 	scrollData, hasScrolling = fModel.to_c_vertex_scroll(levelName, gfxFormatter)
 	scroll_data = scrollData.source
 	headerScroll = scrollData.header
 
-	texturesSaved = fModel.save_textures(levelDir, not savePNG)
-	if texturesSaved > 0:
+	if fModel.texturesSavedLastExport > 0:
 		levelDataString =  '#include "levels/' + levelName + '/texture_include.inc.c"\n' + levelDataString
 		texPath = os.path.join(levelDir, 'texture_include.inc.c')
 		texFile = open(texPath, 'w', newline='\n')
@@ -725,7 +728,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 		writeIfNotFound(levelDataPath, '#include "levels/' + levelName + '/leveldata.inc.c"\n', '')
 		writeIfNotFound(headerPath, '#include "levels/' + levelName + '/header.inc.h"\n', '#endif')
 		
-		if texturesSaved == 0:
+		if fModel.texturesSavedLastExport == 0:
 			textureIncludePath = os.path.join(levelDir, 'texture_include.inc.c')
 			if os.path.exists(textureIncludePath):
 				os.remove(textureIncludePath)

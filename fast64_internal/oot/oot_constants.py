@@ -5,6 +5,43 @@ ootEnumMeshType = [
 	("2", "Type 2 (Distance Culling)", "Type 2 (Distance Culling)"),
 ]
 
+ootEnumSceneMenu = [
+	("General", "General", "General"),
+	("Lighting", "Lighting", "Lighting"),
+	("Exits", "Exits", "Exits"),
+	("Alternate", "Alternate", "Alternate"),
+]
+
+ootEnumSceneMenuAlternate = [
+	("General", "General", "General"),
+	("Lighting", "Lighting", "Lighting")
+]
+
+ootEnumRoomMenu = [
+	("General", "General", "General"),
+	("Objects", "Objects", "Objects"),
+	("Alternate", "Alternate", "Alternate"),
+]
+
+ootEnumRoomMenuAlternate = [
+	("General", "General", "General"),
+	("Objects", "Objects", "Objects"),
+]
+
+ootEnumHeaderMenu = [
+	("Child Night", "Child Night", "Child Night"),
+	("Adult Day", "Adult Day", "Adult Day"),
+	("Adult Night", "Adult Night", "Adult Night"),
+	("Cutscene", "Cutscene", "Cutscene")
+]
+
+ootEnumLightGroupMenu = [
+	("Dawn", "Dawn", "Dawn"),
+	("Day", "Day", "Day"),
+	("Dusk", "Dusk", "Dusk"),
+	("Night", "Night", "Night")
+]
+
 ootEnumTransitionActorID = [
 	("Custom", "Custom", "Custom"),
 	("ACTOR_EN_DOOR", "EN_DOOR", "EN_DOOR"),

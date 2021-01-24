@@ -1344,6 +1344,26 @@ LIGHT_SIZE = 16 # 12, but padded to 64bit alignment
 AMBIENT_SIZE = 8
 HILITE_SIZE = 16
 
+class ExportCData:
+	def __init__(self, staticData, dynamicData, textureData):
+		self.staticData = staticData
+		self.dynamicData = dynamicData
+		self.textureData = textureData
+	
+	def all(self):
+		data = CData()
+		data.append(self.staticData)
+		data.append(self.dynamicData)
+		data.append(self.textureData)
+		return data
+
+class TextureExportSettings:
+	def __init__(self, texCSeparate, savePNG, includeDir, exportPath = ''):
+		self.texCSeparate = texCSeparate
+		self.savePNG = savePNG
+		self.includeDir = includeDir
+		self.exportPath = exportPath
+
 class GameGfxFormatter:
 	def __init__(self, scrollMethod, texArrayBitSize):
 		self.scrollMethod = scrollMethod
@@ -1693,6 +1713,10 @@ class FModel:
 		self.DLFormat = DLFormat
 		self.matWriteMethod = matWriteMethod
 		self.global_data = FGlobalData()
+		self.texturesSavedLastExport = 0 # hacky
+
+	def getTextureSuffixFromFormat(self, texFmt):
+		return texFmt.lower()
 
 	def getDrawLayer(self, obj):
 		return None
@@ -1867,7 +1891,11 @@ class FModel:
 			data.append(self.materialRevert.to_c(self.f3d))
 		return data
 
-	def to_c(self, texCSeparate, savePNG, texDir, gfxFormatter):
+	def to_c(self, textureExportSettings, gfxFormatter):
+		texCSeparate = textureExportSettings.texCSeparate
+		savePNG = textureExportSettings.savePNG
+		texDir = textureExportSettings.includeDir
+	
 		staticData = CData()
 		dynamicData = CData()
 		texC = CData()
@@ -1890,7 +1918,9 @@ class FModel:
 
 		dynamicData.append(self.to_c_material_revert(gfxFormatter))
 
-		return staticData, dynamicData, texC
+		self.texturesSavedLastExport = self.save_textures(textureExportSettings.exportPath, not savePNG)
+		self.freePalettes()
+		return ExportCData(staticData, dynamicData, texC)
 	
 	def to_c_vertex_scroll(self, scrollName, gfxFormatter):
 		scrollData = CData()
@@ -1964,7 +1994,7 @@ class FTexRect(FModel):
 			else:
 				staticData.append(texture.to_c(gfxFormatter.texArrayBitSize))
 		dynamicData.append(self.draw.to_c(self.f3d))
-		return staticData, dynamicData
+		return ExportCData(staticData, dynamicData, CData())
 
 class FMesh:
 	def __init__(self, name, DLFormat):
@@ -2374,6 +2404,7 @@ class FImage:
 		self.filename = filename
 		self.converted = converted
 		self.isLargeTexture = False
+		self.palette = None # another FImage reference
 	
 	def size(self):
 		return len(self.data)
@@ -2412,7 +2443,7 @@ class FImage:
 			format(int.from_bytes(self.data[
 				i * bytesPerValue : (i+1) * bytesPerValue], 'big'), 
 				'#0' + str(digits) + 'x') + ', ' +\
-				('\n\t' if i % 8 == 0 else '')
+				('\n\t' if i % 8 == 7 else '')
 			for i in range(numValues)])
 
 		if remainderCount > 0:

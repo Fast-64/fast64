@@ -36,8 +36,8 @@ class OOT_FileSettingsPanel(bpy.types.Panel):
 		col = self.layout.column()	
 		prop_split(col, context.scene, 'ootBlenderScale', 'Blender To OOT Scale')
 		
-		col.prop(context.scene, 'ootDisableScroll')
-		col.prop(context.scene, 'ootSaveTextures')
+		#col.prop(context.scene, 'ootDisableScroll')
+		#col.prop(context.scene, 'ootSaveTextures')
 		prop_split(col, context.scene, 'ootDecompPath', "Decomp Path")
 		
 		#prop_split(col, context.scene, 'ootRefreshVer', 'Decomp Func Map')
@@ -92,13 +92,13 @@ def oot_register(registerPanels):
 	if registerPanels:
 		oot_panel_register()
 
-	bpy.types.Scene.ootBlenderScale = bpy.props.FloatProperty(name = 'Blender To OOT Scale', default = 100)
+	bpy.types.Scene.ootBlenderScale = bpy.props.FloatProperty(name = 'Blender To OOT Scale', default = 10)
 	bpy.types.Scene.ootRefreshVer = bpy.props.EnumProperty(
 		items = ootEnumRefreshVer, name = 'Refresh', default = 'Refresh 3')
 	bpy.types.Scene.ootDecompPath = bpy.props.StringProperty(
 		name ='Decomp Folder', subtype = 'FILE_PATH')
-	bpy.types.Scene.ootDisableScroll = bpy.props.BoolProperty(name = "Disable Scrolling Textures")
-	bpy.types.Scene.ootSaveTextures = bpy.props.BoolProperty(name = "Save Texture Files As Images")
+	#bpy.types.Scene.ootDisableScroll = bpy.props.BoolProperty(name = "Disable Scrolling Textures")
+	#bpy.types.Scene.ootSaveTextures = bpy.props.BoolProperty(name = "Save Texture Files As Images")
 
 def oot_unregister(unregisterPanels):
 	for cls in reversed(oot_classes):

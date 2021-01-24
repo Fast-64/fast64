@@ -19,6 +19,12 @@ class OOTModel(FModel):
 		cycle2 = getattr(defaultRenderModes, drawLayer.lower() + "Cycle2")
 		return [cycle1, cycle2]
 
+	def getTextureSuffixFromFormat(self, texFmt):
+		if texFmt == 'RGBA16':
+			return 'rgb5a1'
+		else:
+			return texFmt.lower()
+
 class OOTGfxFormatter(GameGfxFormatter):
 	def __init__(self, scrollMethod):
 		GameGfxFormatter.__init__(self, scrollMethod, 64)
@@ -238,7 +244,12 @@ def ootExportF3DtoC(basePath, obj, DLFormat, transformMatrix,
 		scrollName = levelName + '_level_dl_' + name
 
 	gfxFormatter = SM64GfxFormatter(ScrollMethod.Vertex)
-	staticData, dynamicData, texC = fModel.to_c(texSeparate, savePNG, texDir, gfxFormatter)
+	exportData = fModel.to_c(
+		TextureExportSettings(texSeparate, savePNG, texDir), gfxFormatter)
+	staticData = exportData.staticData
+	dynamicData = exportData.dynamicData
+	texC = exportData.textureData
+
 	scrollData, hasScrolling = fModel.to_c_vertex_scroll(scrollName, gfxFormatter)
 	scroll_data = scrollData.source
 	cDefineScroll = scrollData.header 
@@ -253,9 +264,9 @@ def ootExportF3DtoC(basePath, obj, DLFormat, transformMatrix,
 			'#include "actors/' + toAlnum(name) + '/material.inc.h"',
 			dynamicData.header, dynamicData.source, '', customExport)
 
-	fModel.save_textures(modelDirPath, not savePNG)
+	#fModel.save_textures(modelDirPath, not savePNG)
 
-	fModel.freePalettes()
+	#fModel.freePalettes()
 
 	if texSeparate:
 		texCFile = open(os.path.join(modelDirPath, 'texture.inc.c'), 'w', newline='\n')
@@ -429,11 +440,11 @@ class OOT_ExportDLPanel(bpy.types.Panel):
 class OOTDefaultRenderModesProperty(bpy.types.PropertyGroup):
 	expandTab : bpy.props.BoolProperty()
 	opaqueCycle1 : bpy.props.StringProperty(default = "G_RM_AA_ZB_OPA_SURF")
-	opaqueCycle2 : bpy.props.StringProperty(default = "G_RM_NOOP2")
+	opaqueCycle2 : bpy.props.StringProperty(default = "G_RM_AA_ZB_OPA_SURF2")
 	transparentCycle1 : bpy.props.StringProperty(default = "G_RM_AA_ZB_XLU_SURF")
-	transparentCycle2 : bpy.props.StringProperty(default = "G_RM_NOOP2")
+	transparentCycle2 : bpy.props.StringProperty(default = "G_RM_AA_ZB_XLU_SURF2")
 	overlayCycle1 : bpy.props.StringProperty(default = "G_RM_AA_ZB_OPA_SURF")
-	overlayCycle2 : bpy.props.StringProperty(default = "G_RM_NOOP2")
+	overlayCycle2 : bpy.props.StringProperty(default = "G_RM_AA_ZB_OPA_SURF2")
 
 class OOT_DrawLayersPanel(bpy.types.Panel):
 	bl_label = "OOT Draw Layers"

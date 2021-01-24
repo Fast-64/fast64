@@ -100,11 +100,13 @@ class OOTObjectPanel(bpy.types.Panel):
 
 		elif obj.ootEmptyType == 'Scene':
 			drawSceneHeaderProperty(box, obj.ootSceneHeader, None, None)
-			drawAlternateSceneHeaderProperty(box, obj.ootAlternateSceneHeaders)
+			if obj.ootSceneHeader.menuTab == 'Alternate':
+				drawAlternateSceneHeaderProperty(box, obj.ootAlternateSceneHeaders)
 
 		elif obj.ootEmptyType == 'Room':
 			drawRoomHeaderProperty(box, obj.ootRoomHeader, None, None)
-			drawAlternateRoomHeaderProperty(box, obj.ootAlternateRoomHeaders)
+			if obj.ootRoomHeader.menuTab == 'Alternate':
+				drawAlternateRoomHeaderProperty(box, obj.ootAlternateRoomHeaders)
 		
 		elif obj.ootEmptyType == 'Entrance':
 			drawEntranceProperty(box, obj, altSceneProp)
@@ -113,7 +115,7 @@ class OOTObjectPanel(bpy.types.Panel):
 			drawCullVolumeProperty(box, obj)
 		
 		elif obj.ootEmptyType == 'None':
-			box.box().label(text = 'This can be used as an empty transform node in a geolayout hierarchy.')
+			box.label(text = 'Geometry can be parented to this.')
 
 def drawCullVolumeProperty(box, obj):
 	box.label(text = "No rotation allowed.")
@@ -126,7 +128,9 @@ oot_obj_classes = (
 	OOT_SearchActorIDEnumOperator,
 	OOT_SearchMusicSeqEnumOperator,
 	OOT_SearchObjectEnumOperator,
+	OOT_SearchSceneEnumOperator,
 	OOTLightProperty,
+	OOTLightGroupProperty,
 	OOTObjectProperty,
 	OOTExitProperty,
 

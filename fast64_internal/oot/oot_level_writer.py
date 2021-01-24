@@ -23,6 +23,143 @@ import bpy, bmesh, os, math, re, shutil, mathutils
 #		self.maxBounds = [2**8 - 1, 2**8 - 1]
 
 
+ootSceneDungeons = [
+	"bdan",
+	"bdan_boss",
+	"bmori1",
+	"ddan",
+	"ddan_boss",
+	"fire_bs",
+	"ganon",
+	"ganontika",
+	"ganontikasonogo",
+	"ganon_boss",
+	"ganon_demo",
+	"ganon_final",
+	"ganon_sonogo",
+	"ganon_tou",
+	"gerudoway",
+	"hakadan",
+	"hakadanch",
+	"hakadan_bs",
+	"hidan",
+	"ice_doukutu",
+	"jyasinboss",
+	"jyasinzou",
+	"men",
+	"mizusin",
+	"mizusin_bs",
+	"moribossroom",
+	"ydan",
+	"ydan_boss",
+]
+
+ootSceneIndoors = [
+	"bowling",
+	"daiyousei_izumi",
+	"hairal_niwa",
+	"hairal_niwa2",
+	"hairal_niwa_n",
+	"hakasitarelay",
+	"hut",
+	"hylia_labo",
+	"impa",
+	"kakariko",
+	"kenjyanoma",
+	"kokiri_home",
+	"kokiri_home3",
+	"kokiri_home4",
+	"kokiri_home5",
+	"labo",
+	"link_home",
+	"mahouya",
+	"malon_stable",
+	"miharigoya",
+	"nakaniwa",
+	"syatekijyou",
+	"takaraya",
+	"tent",
+	"tokinoma",
+	"yousei_izumi_tate",
+	"yousei_izumi_yoko",
+]
+
+ootSceneMisc = [
+	"enrui",
+	"entra_n",
+	"hakaana",
+	"hakaana2",
+	"hakaana_ouke",
+	"hiral_demo",
+	"kakariko3",
+	"kakusiana",
+	"kinsuta",
+	"market_alley",
+	"market_alley_n",
+	"market_day",
+	"market_night",
+	"market_ruins",
+	"shrine",
+	"shrine_n",
+	"shrine_r",
+	"turibori",
+]
+
+ootSceneOverworld = [
+	"entra",
+	"souko",
+	"spot00",
+	"spot01",
+	"spot02",
+	"spot03",
+	"spot04",
+	"spot05",
+	"spot06",
+	"spot07",
+	"spot08",
+	"spot09",
+	"spot10",
+	"spot11",
+	"spot12",
+	"spot13",
+	"spot15",
+	"spot16",
+	"spot17",
+	"spot18",
+	"spot20",
+]
+
+ootSceneShops = [
+	"alley_shop",
+	"drag",
+	"face_shop",
+	"golon",
+	"kokiri_shop",
+	"night_shop",
+	"shop1",
+	"zoora",
+]
+
+ootSceneTest_levels = [
+	"besitu",
+	"depth_test",
+	"sasatest",
+	"sutaru",
+	"syotes",
+	"syotes2",
+	"test01",
+	"testroom",
+]
+
+ootSceneDirs = {
+	'assets/scenes/dungeons/' : ootSceneDungeons,
+	'assets/scenes/indoors/' : ootSceneIndoors,
+	'assets/scenes/misc/' : ootSceneMisc,
+	'assets/scenes/overworld/' : ootSceneOverworld,
+	'assets/scenes/shops/' : ootSceneShops,
+	'assets/scenes/test_levels/' : ootSceneTest_levels,
+}
+
 class OOTObjectCategorizer:
 	def __init__(self):
 		self.sceneObj = None
@@ -122,9 +259,18 @@ def ootExportSceneToC(originalSceneObj, transformMatrix,
 	scene = ootConvertScene(originalSceneObj, transformMatrix, 
 		f3dType, isHWv1, sceneName, DLFormat, not savePNG)
 	
-	levelC = ootLevelToC(scene)
+	exportSubdir = ""
+	if not isCustomExport:
+		for sceneSubdir, sceneNames in ootSceneDirs.items():
+			if sceneName in sceneNames:
+				exportSubdir = sceneSubdir
+				break
+		if exportSubdir == "":
+			raise PluginError("Scene folder " + sceneName + " cannot be found in the ootSceneDirs list.")
 
-	levelPath = ootGetPath(exportPath, isCustomExport, 'scenes/custom/', sceneName)	
+	levelPath = ootGetPath(exportPath, isCustomExport, exportSubdir, sceneName)	
+	levelC = ootLevelToC(scene, TextureExportSettings(False, savePNG, exportSubdir + sceneName, levelPath))
+
 	writeCData(levelC.scene, 
 		os.path.join(levelPath, scene.sceneName() + '.h'),
 		os.path.join(levelPath, scene.sceneName() + '.c'))
@@ -148,14 +294,14 @@ def readSceneData(scene, sceneHeader, alternateSceneHeaders):
 	scene.nightSeq = getCustomProperty(sceneHeader, "nightSeq")
 	scene.audioSessionPreset = getCustomProperty(sceneHeader, "audioSessionPreset")
 
-	for lightProp in sceneHeader.lightList:
-		scene.lights.append(getLightData(lightProp))
+	for lightGroupProp in sceneHeader.lightList:
+		scene.lights.append(getLightGroupData(lightGroupProp, scene.skyboxLighting == '0x01'))
 
 	for exitProp in sceneHeader.exitList:
 		scene.exitList.append(getExitData(exitProp))
 
 	if alternateSceneHeaders is not None:
-		scene.collision.cameraData = OOTCameraData(scene.name, getCustomProperty(sceneHeader, 'camSType'))
+		scene.collision.cameraData = OOTCameraData(scene.name)
 
 		if not alternateSceneHeaders.childNightHeader.usePreviousHeader:
 			scene.childNightHeader = scene.getAlternateHeaderScene(scene.name)
@@ -196,12 +342,21 @@ def getExitData(exitProp):
 		raise PluginError("Exit index enums not implemented yet.")
 	return OOTExit(exitProp.exitIndexCustom)
 
+def getLightGroupData(lightGroupProp, useIndoorLighting):
+	lightGroup = OOTLightGroup()
+	lightGroup.dawn = getLightData(lightGroupProp.dawn)
+	if not useIndoorLighting:
+		lightGroup.day = getLightData(lightGroupProp.day)
+		lightGroup.dusk = getLightData(lightGroupProp.dusk)
+		lightGroup.night = getLightData(lightGroupProp.night)
+	return lightGroup
+
 def getLightData(lightProp):
 	light = OOTLight()
 	light.ambient = getLightColor(lightProp.ambient)
 	if lightProp.useCustomDiffuse0:
 		if lightProp.diffuse0Custom is None:
-			raise PluginError("Error: Diffuse 0 light object not set in a scene lighting property.")
+			raise PluginError("Error: Fill light object not set in a scene lighting property.")
 		light.diffuse0 = getLightColor(lightProp.diffuse0Custom.color)
 		light.diffuseDir0 = getLightRotation(lightProp.diffuse0Custom)
 	else:
@@ -210,7 +365,7 @@ def getLightData(lightProp):
 
 	if lightProp.useCustomDiffuse1:
 		if lightProp.diffuse1Custom is None:
-			raise PluginError("Error: Diffuse 1 light object not set in a scene lighting property.")
+			raise PluginError("Error: Key light object not set in a scene lighting property.")
 		light.diffuse1 = getLightColor(lightProp.diffuse1Custom.color)
 		light.diffuseDir1 = getLightRotation(lightProp.diffuse1Custom)
 	else:
@@ -220,7 +375,7 @@ def getLightData(lightProp):
 	light.fogColor = getLightColor(lightProp.fogColor)
 	light.fogNear = lightProp.fogNear
 	light.transitionSpeed = lightProp.transitionSpeed
-	light.fogFar = lightProp.fogFar
+	light.drawDistance = lightProp.drawDistance
 	return light
 
 def readRoomData(room, roomHeader, alternateRoomHeaders):
@@ -239,7 +394,7 @@ def readRoomData(room, roomHeader, alternateRoomHeaders):
 	else:
 		room.timeHours = roomHeader.timeHours
 		room.timeMinutes = roomHeader.timeMinutes
-	room.timeSpeed = min(-128, max(127, int(round(roomHeader.timeSpeed * 0xA))))
+	room.timeSpeed = max(-128, min(127, int(round(roomHeader.timeSpeed * 0xA))))
 	room.disableSkybox = roomHeader.disableSkybox
 	room.disableSunMoon = roomHeader.disableSunMoon
 	room.echo = roomHeader.echo
@@ -267,7 +422,6 @@ def readRoomData(room, roomHeader, alternateRoomHeaders):
 			room.cutsceneHeaders.append(cutsceneHeader)
 
 def readCamPos(camPosProp, obj, scene, sceneObj, transformMatrix):
-	
 	translation, rotation, scale, orientedRotation = \
 		getConvertedTransform(transformMatrix, sceneObj, obj, True)
 	camPosProp = obj.ootCameraPositionProperty
@@ -276,6 +430,7 @@ def readCamPos(camPosProp, obj, scene, sceneObj, transformMatrix):
 	if index in scene.collision.cameraData.camPosDict:
 		raise PluginError("Error: Repeated camera position index: " + str(index))
 	scene.collision.cameraData.camPosDict[index] = OOTCameraPosData(
+		getCustomProperty(camPosProp, 'camSType'), camPosProp.hasPositionData,
 		translation, rotation, int(round(math.degrees(obj.data.angle))), camPosProp.jfifID)
 
 def ootConvertScene(originalSceneObj, transformMatrix, 
@@ -344,7 +499,7 @@ def ootProcessMesh(roomMesh, roomMeshGroup, sceneObj, obj, transformMatrix, conv
 			ootConvertTranslation(translation), scale, obj.empty_display_size))
 
 	elif isinstance(obj.data, bpy.types.Mesh):
-		fMeshes = saveStaticModel(roomMesh.model, obj, transformMatrix, roomMesh.model.name, 
+		fMeshes = saveStaticModel(roomMesh.model, obj, relativeTransform, roomMesh.model.name, 
 			roomMesh.model.DLFormat, convertTextureData, False, 'oot')
 		if roomMeshGroup is None:
 			roomMeshGroup = roomMesh.addMeshGroup(None)
@@ -492,8 +647,8 @@ class OOT_ExportScenePanel(bpy.types.Panel):
 	def draw(self, context):
 		col = self.layout.column()
 		col.operator(OOT_ExportScene.bl_idname)
-		if not bpy.context.scene.ignoreTextureRestrictions:
-			col.prop(context.scene, 'saveTextures')
+		#if not bpy.context.scene.ignoreTextureRestrictions:
+		#	col.prop(context.scene, 'saveTextures')
 		col.prop(context.scene, 'ootSceneCustomExport')
 		if context.scene.ootSceneCustomExport:
 			prop_split(col, context.scene, 'ootSceneExportPath', 'Directory')
@@ -501,11 +656,9 @@ class OOT_ExportScenePanel(bpy.types.Panel):
 			customExportWarning(col)
 		else:
 			col.prop(context.scene, 'ootSceneOption')
+			col.operator(OOT_SearchSceneEnumOperator.bl_idname, icon = 'VIEWZOOM')
 			if context.scene.ootSceneOption == 'Custom':
 				prop_split(col, context.scene, 'ootSceneName', 'Name')
-		
-		for i in range(panelSeparatorSize):
-			col.separator()
 
 oot_level_classes = (
 	OOT_ExportScene,

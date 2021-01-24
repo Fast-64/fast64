@@ -347,12 +347,11 @@ def ootConvertArmatureToC(originalArmatureObj, convertTransformMatrix,
 		f3dType, isHWv1, skeletonName, DLFormat, convertTextureData)
 
 	data = CData()
-	staticData, dynamicData, texC = fModel.to_c(False, not convertTextureData, "test", OOTGfxFormatter(ScrollMethod.Vertex))
+	exportData = fModel.to_c(
+		TextureExportSettings(False, not convertTextureData, "test"), OOTGfxFormatter(ScrollMethod.Vertex))
 	skeletonC = skeleton.toC()
 
-	data.append(staticData)
-	data.append(dynamicData)
-	data.append(texC)
+	data.append(exportData.all())
 	data.append(skeletonC)
 
 	path = ootGetPath(exportPath, isCustomExport, 'assets/objects/', folderName)

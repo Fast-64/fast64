@@ -115,7 +115,10 @@ def exportTexRectToC(dirPath, texProp, f3dType, isHWv1, texDir,
 	if name is None or name == '':
 		raise PluginError("Name cannot be empty.")
 
-	staticData, dynamicData = fTexRect.to_c(savePNG, texDir, SM64GfxFormatter(ScrollMethod.Vertex))
+	exportData = fTexRect.to_c(savePNG, texDir, SM64GfxFormatter(ScrollMethod.Vertex))
+	staticData = exportData.staticData
+	dynamicData = exportData.dynamicData
+
 	declaration = staticData.header
 	code = modifyDLForHUD(dynamicData.source)
 	data = staticData.source
@@ -241,7 +244,7 @@ def exportTexRectCommon(texProp, f3dType, isHWv1, name, convertTextureData):
 
 	texDimensions, nextTmem = saveTextureIndex(texProp.tex.name, fTexRect, 
 		fMaterial, fTexRect.draw, drawEndCommands, texProp, 0, 0, 'texture', convertTextureData,
-		None, True)
+		None, True, True)
 
 	fTexRect.draw.commands.append(
 		SPScisTextureRectangle(0, 0, 
@@ -284,7 +287,11 @@ def exportF3DtoC(basePath, obj, DLFormat, transformMatrix,
 		scrollName = levelName + '_level_dl_' + name
 
 	gfxFormatter = SM64GfxFormatter(ScrollMethod.Vertex)
-	staticData, dynamicData, texC = fModel.to_c(texSeparate, savePNG, texDir, gfxFormatter)
+	exportData = fModel.to_c(TextureExportSettings(texSeparate, savePNG, texDir, modelDirPath), gfxFormatter)
+	staticData = exportData.staticData
+	dynamicData = exportData.dynamicData
+	texC = exportData.textureData
+
 	scrollData, hasScrolling = fModel.to_c_vertex_scroll(scrollName, gfxFormatter)
 
 	scroll_data = scrollData.source
@@ -299,10 +306,6 @@ def exportF3DtoC(basePath, obj, DLFormat, transformMatrix,
 			'#include "actors/' + toAlnum(name) + '/header.h"', 
 			'#include "actors/' + toAlnum(name) + '/material.inc.h"',
 			dynamicData.header, dynamicData.source, '', customExport)
-
-	fModel.save_textures(modelDirPath, not savePNG)
-
-	fModel.freePalettes()
 
 	if texSeparate:
 		texCFile = open(os.path.join(modelDirPath, 'texture.inc.c'), 'w', newline='\n')

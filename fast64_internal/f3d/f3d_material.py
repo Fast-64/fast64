@@ -84,6 +84,14 @@ drawLayerOOTtoSM64 = {
 	"Transparent" : '5',
 }
 
+enumF3DMenu = [
+	("Combiner", "Combiner", "Combiner"),
+	("Sources", "Sources", "Sources"),
+	("Geo", "Geo", "Geo"),
+	("Upper", "Upper", "Upper"),
+	("Lower", "Lower", "Lower"),
+]
+
 def update_draw_layer(self, context):
 	if hasattr(context, 'material_slot') and context.material_slot is not None:
 		material = context.material_slot.material # Handles case of texture property groups
@@ -222,12 +230,13 @@ def all_combiner_uses(material):
 	}
 	return useDict
 
-def ui_geo_mode(settings, dataHolder, layout):
+def ui_geo_mode(settings, dataHolder, layout, useDropdown):
 	inputGroup = layout.column()
-	inputGroup.prop(dataHolder, 'menu_geo', 
-		text = 'Geometry Mode Settings',
-		icon = 'TRIA_DOWN' if dataHolder.menu_geo else 'TRIA_RIGHT')
-	if dataHolder.menu_geo:
+	if useDropdown:
+		inputGroup.prop(dataHolder, 'menu_geo', 
+			text = 'Geometry Mode Settings',
+			icon = 'TRIA_DOWN' if dataHolder.menu_geo else 'TRIA_RIGHT')
+	if not useDropdown or dataHolder.menu_geo:
 		inputGroup.prop(settings, 'g_zbuffer', text = 'Z Buffer')
 		inputGroup.prop(settings, 'g_shade', text = 'Shading')
 		inputGroup.prop(settings, 'g_cull_front', text = 'Cull Front')
@@ -254,12 +263,13 @@ def ui_geo_mode(settings, dataHolder, layout):
 			bpy.context.scene.f3d_type == 'F3DEX_GBI':
 			inputGroup.prop(settings, 'g_clipping', text = 'Clipping')
 	
-def ui_upper_mode(settings, dataHolder, layout):
+def ui_upper_mode(settings, dataHolder, layout, useDropdown):
 	inputGroup = layout.column()
-	inputGroup.prop(dataHolder, 'menu_upper', 
-		text = 'Other Mode Upper Settings', 
-		icon = 'TRIA_DOWN' if dataHolder.menu_upper else 'TRIA_RIGHT')
-	if dataHolder.menu_upper:
+	if useDropdown:
+		inputGroup.prop(dataHolder, 'menu_upper', 
+			text = 'Other Mode Upper Settings', 
+			icon = 'TRIA_DOWN' if dataHolder.menu_upper else 'TRIA_RIGHT')
+	if not useDropdown or dataHolder.menu_upper:
 		if not bpy.context.scene.isHWv1:
 			prop_split(inputGroup, settings, 'g_mdsft_alpha_dither',
 				'Alpha Dither')
@@ -279,21 +289,23 @@ def ui_upper_mode(settings, dataHolder, layout):
 		
 		prop_split(inputGroup, settings, 'g_mdsft_pipeline', 'Pipeline Span Buffer Coherency')
 
-def ui_lower_mode(settings, dataHolder, layout):
+def ui_lower_mode(settings, dataHolder, layout, useDropdown):
 	inputGroup = layout.column()
-	inputGroup.prop(dataHolder, 'menu_lower', 
-		text = 'Other Mode Lower Settings', 
-		icon = 'TRIA_DOWN' if dataHolder.menu_lower else 'TRIA_RIGHT')
-	if dataHolder.menu_lower:
+	if useDropdown:
+		inputGroup.prop(dataHolder, 'menu_lower', 
+			text = 'Other Mode Lower Settings', 
+			icon = 'TRIA_DOWN' if dataHolder.menu_lower else 'TRIA_RIGHT')
+	if not useDropdown or dataHolder.menu_lower:
 		prop_split(inputGroup, settings, 'g_mdsft_alpha_compare', 'Alpha Compare')
 		prop_split(inputGroup, settings, 'g_mdsft_zsrcsel', 'Z Source Selection')
 
-def ui_other(settings, dataHolder, layout):
+def ui_other(settings, dataHolder, layout, useDropdown):
 	inputGroup = layout.column()
-	inputGroup.prop(dataHolder, 'menu_other', 
-		text = 'Other Settings', 
-		icon = 'TRIA_DOWN' if dataHolder.menu_other else 'TRIA_RIGHT')
-	if dataHolder.menu_other:
+	if useDropdown:
+		inputGroup.prop(dataHolder, 'menu_other', 
+			text = 'Other Settings', 
+			icon = 'TRIA_DOWN' if dataHolder.menu_other else 'TRIA_RIGHT')
+	if not useDropdown or dataHolder.menu_other:
 		clipRatioGroup = inputGroup.column()
 		prop_split(clipRatioGroup, settings, 'clip_ratio', "Clip Ratio")
 
@@ -337,12 +349,11 @@ class F3DPanel(bpy.types.Panel):
 
 	def ui_image(self, material, layout, textureProp, name, showCheckBox):
 		nodes = material.node_tree.nodes
-		inputGroup = layout.column().box()
+		inputGroup = layout.box().column()
 
-		if showCheckBox:
-			inputGroup.prop(textureProp, 'menu', text = name + ' Properties',
-				icon = 'TRIA_DOWN' if textureProp.menu else 'TRIA_RIGHT')
-		if not showCheckBox or textureProp.menu:
+		inputGroup.prop(textureProp, 'menu', text = name + ' Properties',
+			icon = 'TRIA_DOWN' if textureProp.menu else 'TRIA_RIGHT')
+		if textureProp.menu:
 			
 			prop_input_name = inputGroup.column()
 			prop_input = inputGroup.column()
@@ -368,7 +379,7 @@ class F3DPanel(bpy.types.Panel):
 				prop_input.label(text = "UVs must be in the [0, 1024] pixel range.")
 				prop_input.prop(textureProp, "save_large_texture")
 				if not textureProp.save_large_texture:
-					prop_input.label(text = "Most large textures will take forever to convert.", icon = 'QUESTION')
+					prop_input.label(text = "Most large textures will take forever to convert.", icon = 'ERROR')
 			else:
 				tmemUsageUI(prop_input, textureProp)
 
@@ -438,13 +449,12 @@ class F3DPanel(bpy.types.Panel):
 
 	def ui_scale(self, material, layout):
 		inputGroup = layout.row().split(factor = 0.5)
-		prop_input_name = inputGroup.column()
+		#prop_input_name = inputGroup.column()
 		prop_input = inputGroup.column()
-		prop_input_name.label(text = 'Texture Scale')
-		prop_input.prop(material, 'scale_autoprop', text='Auto Set')
-		if not material.scale_autoprop:
-			prop_input_group = prop_input.row()
-			prop_input_group.prop(material, 'tex_scale', text='')
+		prop_input.prop(material, 'scale_autoprop', text='Texture Auto Scale')
+		prop_input_group = inputGroup.row()
+		prop_input_group.prop(material, 'tex_scale', text='')
+		prop_input_group.enabled = not material.scale_autoprop
 		return inputGroup
 
 	def ui_prim(self, material, layout, setName, setProp, showCheckBox):
@@ -598,13 +608,14 @@ class F3DPanel(bpy.types.Panel):
 		prop_input.enabled = material.set_k0_5
 		return inputGroup
 
-	def ui_lower_render_mode(self, material, layout):
+	def ui_lower_render_mode(self, material, layout, useDropdown):
 		# cycle independent
 		inputGroup = layout.column()
-		inputGroup.prop(material, 'menu_lower_render', 
-			text = 'Render Settings', 
-			icon = 'TRIA_DOWN' if material.menu_lower_render else 'TRIA_RIGHT')
-		if material.menu_lower_render:
+		if useDropdown:
+			inputGroup.prop(material, 'menu_lower_render', 
+				text = 'Render Settings', 
+				icon = 'TRIA_DOWN' if material.menu_lower_render else 'TRIA_RIGHT')
+		if not useDropdown or material.menu_lower_render:
 			inputGroup.prop(material.rdp_settings, 'set_rendermode', 
 				text ='Set Render Mode?')
 
@@ -657,22 +668,23 @@ class F3DPanel(bpy.types.Panel):
 
 			renderGroup.enabled = material.rdp_settings.set_rendermode
 	
-	def ui_procAnimVec(self, procAnimVec, layout, name, vecType):
-		layout.prop(procAnimVec, 'menu', text = name, 
-			icon = 'TRIA_DOWN' if procAnimVec.menu else 'TRIA_RIGHT')
-		if procAnimVec.menu:
-			box = layout.box()
-			self.ui_procAnimField(procAnimVec.x, box, vecType[0])
-			self.ui_procAnimField(procAnimVec.y, box, vecType[1])
-			if len(vecType) > 2:
-				self.ui_procAnimField(procAnimVec.z, box, vecType[2])
+	#def ui_procAnimVec(self, procAnimVec, layout, name, vecType):
+	#	layout.prop(procAnimVec, 'menu', text = name, 
+	#		icon = 'TRIA_DOWN' if procAnimVec.menu else 'TRIA_RIGHT')
+	#	if procAnimVec.menu:
+	#		box = layout.box()
+	#		self.ui_procAnimField(procAnimVec.x, box, vecType[0])
+	#		self.ui_procAnimField(procAnimVec.y, box, vecType[1])
+	#		if len(vecType) > 2:
+	#			self.ui_procAnimField(procAnimVec.z, box, vecType[2])
 
 	def ui_procAnimVecEnum(self, procAnimVec, layout, name, vecType):
+		layout = layout.box()
 		layout.prop(procAnimVec, 'menu', text = name, 
 			icon = 'TRIA_DOWN' if procAnimVec.menu else 'TRIA_RIGHT')
 		if procAnimVec.menu:
-			box = layout.box()
-			box.box().label(text = 'Scrolling not visible in preview.')
+			box = layout.column()
+			#box.box().label(text = 'Scrolling not visible in preview.')
 			#box.box().label(text = 'This is decomp only.')
 
 			combinedOption = None
@@ -768,26 +780,42 @@ class F3DPanel(bpy.types.Panel):
 			elif context.scene.gameEditorMode == 'OOT':
 				prop_split(layout, material.f3d_mat.draw_layer, "oot", "Draw Layer")
 
-	def ui_fog(self, f3dMat, inputCol):
+	def ui_fog(self, f3dMat, inputCol, showCheckBox):
 		if f3dMat.rdp_settings.g_fog:
 			inputGroup = inputCol.column()
-			inputGroup.prop(f3dMat, 'set_fog', text = 'Set Fog')
-			fogInputGroup = inputGroup.column()
-			globalFogBox = fogInputGroup.box()
-			globalFogBox.prop(f3dMat, 'use_global_fog', text = 'Use Global Fog')
-			globalFogInfoBox = globalFogBox.box()
-			globalFogInfoBox.label(text = 'Only applies to levels (area fog settings).')
-			globalFogInfoBox.label(text = 'Disable this for non-level geolayout/dl exporting.')
-			fogGroup = fogInputGroup.column()
-			fogColorGroup = fogGroup.row().split(factor = 0.5)
-			fogColorGroup.label(text = 'Fog Color')
-			fogColorGroup.prop(f3dMat, 'fog_color', text = '')
-			fogPositionGroup = fogGroup.row().split(factor = 0.5)
-			fogPositionGroup.label(text = 'Fog Range')
-			fogPositionGroup.prop(f3dMat, 'fog_position', text = '')
-			fogInputGroup.enabled = f3dMat.set_fog
-			fogGroup.enabled = not f3dMat.use_global_fog
-			inputGroup.box().label(text = 'NOTE: Fog will break with draw layer overrides.')
+			if showCheckBox:
+				inputGroup.prop(f3dMat, 'set_fog', text = 'Set Fog')
+			if f3dMat.set_fog:
+				inputGroup.prop(f3dMat, 'use_global_fog', text = 'Use Global Fog (SM64)')
+				if f3dMat.use_global_fog:
+					inputGroup.label(text = 'Only applies to levels (area fog settings).', icon = "ERROR")
+				else:
+					fogColorGroup = inputGroup.row().split(factor = 0.5)
+					fogColorGroup.label(text = 'Fog Color')
+					fogColorGroup.prop(f3dMat, 'fog_color', text = '')
+					fogPositionGroup = inputGroup.row().split(factor = 0.5)
+					fogPositionGroup.label(text = 'Fog Range')
+					fogPositionGroup.prop(f3dMat, 'fog_position', text = '')
+
+
+			#inputGroup = inputCol.column()
+			#inputGroup.prop(f3dMat, 'set_fog', text = 'Set Fog')
+			#fogInputGroup = inputGroup.column()
+			#globalFogBox = fogInputGroup.box()
+			#globalFogBox.prop(f3dMat, 'use_global_fog', text = 'Use Global Fog')
+			#globalFogInfoBox = globalFogBox.box()
+			#globalFogInfoBox.label(text = 'Only applies to levels (area fog settings).')
+			#globalFogInfoBox.label(text = 'Disable this for non-level geolayout/dl exporting.')
+			#fogGroup = fogInputGroup.column()
+			#fogColorGroup = fogGroup.row().split(factor = 0.5)
+			#fogColorGroup.label(text = 'Fog Color')
+			#fogColorGroup.prop(f3dMat, 'fog_color', text = '')
+			#fogPositionGroup = fogGroup.row().split(factor = 0.5)
+			#fogPositionGroup.label(text = 'Fog Range')
+			#fogPositionGroup.prop(f3dMat, 'fog_position', text = '')
+			#fogInputGroup.enabled = f3dMat.set_fog
+			#fogGroup.enabled = not f3dMat.use_global_fog
+			#inputGroup.box().label(text = 'NOTE: Fog will break with draw layer overrides.')
 
 	
 	def draw_simple(self, f3dMat, material, layout, context):
@@ -801,6 +829,10 @@ class F3DPanel(bpy.types.Panel):
 
 		if useDict['Texture 1'] and f3dMat.tex1.tex_set:
 			self.ui_image(material, inputCol, f3dMat.tex1, 'Texture 1', False)
+		
+		if useDict['Texture']:
+			self.ui_procAnim(material, inputCol, 
+				useDict['Texture 0'], useDict['Texture 1'])
 
 		if useDict['Texture 0'] and useDict['Texture 1'] and f3dMat.tex0.tex_set and f3dMat.tex1.tex_set:
 			inputCol.prop(f3dMat, 'uv_basis', text = 'UV Basis')
@@ -832,113 +864,120 @@ class F3DPanel(bpy.types.Panel):
 		if useDict['Convert'] and f3dMat.set_k0_5:
 			self.ui_convert(f3dMat, inputCol, False)
 
-		self.ui_fog(f3dMat, inputCol)
-
-		if useDict['Texture']:
-			self.ui_procAnim(material, inputCol, 
-				useDict['Texture 0'], useDict['Texture 1'])
+		if f3dMat.set_fog:
+			self.ui_fog(f3dMat, inputCol, False)
 
 	def draw_full(self, f3dMat, material, layout, context):
-		if material.mat_ver > 3:
-			self.ui_draw_layer(material, layout, context)
 
-		if not f3dMat.rdp_settings.g_lighting:
-			noticeBox = layout.box()
-			noticeBox.label(
-				text = 'Note: There must be two vertex color layers.')
-			noticeBox.label(
-				text = 'They should be called "Col" and "Alpha".')
+		layout.row().prop(material, "menu_tab", expand = True)
+		menuTab = material.menu_tab
 
-		combinerBox = layout.box()
-		combinerBox.prop(f3dMat, 'set_combiner', 
-			text = 'Color Combiner (Color = (A - B) * C + D)')
-		combinerCol = combinerBox.row()
-		combinerCol.enabled = f3dMat.set_combiner
-		rowColor = combinerCol.column()
-		rowAlpha = combinerCol.column()
-
-		rowColor.prop(f3dMat.combiner1, 'A')
-		rowColor.prop(f3dMat.combiner1, 'B')
-		rowColor.prop(f3dMat.combiner1, 'C')
-		rowColor.prop(f3dMat.combiner1, 'D')
-		rowAlpha.prop(f3dMat.combiner1, 'A_alpha')
-		rowAlpha.prop(f3dMat.combiner1, 'B_alpha')
-		rowAlpha.prop(f3dMat.combiner1, 'C_alpha')
-		rowAlpha.prop(f3dMat.combiner1, 'D_alpha')
-
-		if f3dMat.rdp_settings.g_mdsft_cycletype == 'G_CYC_2CYCLE':
-			combinerBox2 = layout.box()
-			combinerBox2.label(text = 'Color Combiner Cycle 2')
-			combinerBox2.enabled = f3dMat.set_combiner
-			combinerCol2 = combinerBox2.row()
-			rowColor2 = combinerCol2.column()
-			rowAlpha2 = combinerCol2.column()
-
-			rowColor2.prop(f3dMat.combiner2, 'A')
-			rowColor2.prop(f3dMat.combiner2, 'B')
-			rowColor2.prop(f3dMat.combiner2, 'C')
-			rowColor2.prop(f3dMat.combiner2, 'D')
-			rowAlpha2.prop(f3dMat.combiner2, 'A_alpha')
-			rowAlpha2.prop(f3dMat.combiner2, 'B_alpha')
-			rowAlpha2.prop(f3dMat.combiner2, 'C_alpha')
-			rowAlpha2.prop(f3dMat.combiner2, 'D_alpha')
-
-			layout.box().label(
-				text = 'Note: In cycle 2, texture 0 and texture 1 are flipped.')
-
-		#layout.box().label(
-		#	text = 'Note: Alpha preview is not 100% accurate.')
-		
-		self.ui_uvCheck(layout, context)
-
-		inputCol = layout.column()
-		useDict = all_combiner_uses(f3dMat)
-	
-		if useDict['Texture 0']:
-			self.ui_image(material, inputCol, f3dMat.tex0, 'Texture 0', True)
-
-		if useDict['Texture 1']:
-			self.ui_image(material, inputCol, f3dMat.tex1, 'Texture 1', True)
-
-		if useDict['Texture 0'] and useDict['Texture 1']:
-			inputCol.prop(f3dMat, 'uv_basis', text = 'UV Basis')
-
-		if useDict['Texture']:
+		if menuTab == "Combiner":
 			if material.mat_ver > 3:
-				inputCol.prop(f3dMat, 'use_large_textures')
-			self.ui_scale(f3dMat, inputCol)
-		
-		if useDict['Primitive']:
-			self.ui_prim(material, inputCol, 'set_prim', f3dMat.set_prim, True)
+				self.ui_draw_layer(material, layout, context)
 
-		if useDict['Environment']:	
-			if material.mat_ver >= 3:
-				self.ui_env(material, inputCol, True)
-			else:
-				self.ui_prop(material, inputCol, 'Environment Color', 'set_env', material.set_env, True)
+			if not f3dMat.rdp_settings.g_lighting:
+				noticeBox = layout.box()
+				noticeBox.label(
+					text = 'Note: There must be two vertex color layers.')
+				noticeBox.label(
+					text = 'They should be called "Col" and "Alpha".')
 
-		if useDict['Shade']:
-			self.ui_lights(f3dMat, inputCol, 'Shade Color', True)
+			combinerBox = layout.box()
+			combinerBox.prop(f3dMat, 'set_combiner', 
+				text = 'Color Combiner (Color = (A - B) * C + D)')
+			combinerCol = combinerBox.row()
+			combinerCol.enabled = f3dMat.set_combiner
+			rowColor = combinerCol.column()
+			rowAlpha = combinerCol.column()
 
-		if useDict['Key']:
-			self.ui_chroma(material, inputCol, 'Chroma Key Center',
-				'set_key', f3dMat.set_key, True)
-		
-		if useDict['Convert']:
-			self.ui_convert(f3dMat, inputCol, True)
+			rowColor.prop(f3dMat.combiner1, 'A')
+			rowColor.prop(f3dMat.combiner1, 'B')
+			rowColor.prop(f3dMat.combiner1, 'C')
+			rowColor.prop(f3dMat.combiner1, 'D')
+			rowAlpha.prop(f3dMat.combiner1, 'A_alpha')
+			rowAlpha.prop(f3dMat.combiner1, 'B_alpha')
+			rowAlpha.prop(f3dMat.combiner1, 'C_alpha')
+			rowAlpha.prop(f3dMat.combiner1, 'D_alpha')
 
-		self.ui_fog(f3dMat, inputCol)
+			if f3dMat.rdp_settings.g_mdsft_cycletype == 'G_CYC_2CYCLE':
+				combinerBox2 = layout.box()
+				combinerBox2.label(text = 'Color Combiner Cycle 2')
+				combinerBox2.enabled = f3dMat.set_combiner
+				combinerCol2 = combinerBox2.row()
+				rowColor2 = combinerCol2.column()
+				rowAlpha2 = combinerCol2.column()
+
+				rowColor2.prop(f3dMat.combiner2, 'A')
+				rowColor2.prop(f3dMat.combiner2, 'B')
+				rowColor2.prop(f3dMat.combiner2, 'C')
+				rowColor2.prop(f3dMat.combiner2, 'D')
+				rowAlpha2.prop(f3dMat.combiner2, 'A_alpha')
+				rowAlpha2.prop(f3dMat.combiner2, 'B_alpha')
+				rowAlpha2.prop(f3dMat.combiner2, 'C_alpha')
+				rowAlpha2.prop(f3dMat.combiner2, 'D_alpha')
+
+				layout.box().label(
+					text = 'Note: In cycle 2, texture 0 and texture 1 are flipped.')
+
+			#layout.box().label(
+			#	text = 'Note: Alpha preview is not 100% accurate.')
+
+		if menuTab == "Sources":
+			self.ui_uvCheck(layout, context)
+
+			inputCol = layout.column()
+			useDict = all_combiner_uses(f3dMat)
+
+			if useDict['Texture 0']:
+				self.ui_image(material, inputCol, f3dMat.tex0, 'Texture 0', True)
+
+			if useDict['Texture 1']:
+				self.ui_image(material, inputCol, f3dMat.tex1, 'Texture 1', True)
+			
+			if useDict['Texture']:
+				self.ui_procAnim(material, inputCol, 
+					useDict['Texture 0'], useDict['Texture 1'])
+
+			if useDict['Texture 0'] and useDict['Texture 1']:
+				inputCol.prop(f3dMat, 'uv_basis', text = 'UV Basis')
+
+			if useDict['Texture']:
+				if material.mat_ver > 3:
+					inputCol.prop(f3dMat, 'use_large_textures')
+				self.ui_scale(f3dMat, inputCol)
+
+			if useDict['Primitive']:
+				self.ui_prim(material, inputCol, 'set_prim', f3dMat.set_prim, True)
+
+			if useDict['Environment']:	
+				if material.mat_ver >= 3:
+					self.ui_env(material, inputCol, True)
+				else:
+					self.ui_prop(material, inputCol, 'Environment Color', 'set_env', material.set_env, True)
+
+			if useDict['Shade']:
+				self.ui_lights(f3dMat, inputCol, 'Shade Color', True)
+
+			if useDict['Key']:
+				self.ui_chroma(material, inputCol, 'Chroma Key Center',
+					'set_key', f3dMat.set_key, True)
+
+			if useDict['Convert']:
+				self.ui_convert(f3dMat, inputCol, True)
+
+			self.ui_fog(f3dMat, inputCol, True)
 		
-		self.ui_procAnim(material, inputCol, 
-			useDict['Texture 0'], useDict['Texture 1'])
-		
-		ui_geo_mode(f3dMat.rdp_settings, f3dMat, layout)
-		ui_upper_mode(f3dMat.rdp_settings, f3dMat, layout)
-		ui_lower_mode(f3dMat.rdp_settings, f3dMat, layout)
-		#layout.box().label(text = \
-		#	'WARNING: Render mode settings not reset after drawing.')
-		self.ui_lower_render_mode(f3dMat, layout)
-		ui_other(f3dMat.rdp_settings, f3dMat, layout)
+		if menuTab == "Geo":
+			ui_geo_mode(f3dMat.rdp_settings, f3dMat, layout, False)
+		if menuTab == "Upper":
+			ui_upper_mode(f3dMat.rdp_settings, f3dMat, layout, False)
+		if menuTab == "Lower":
+			ui_lower_mode(f3dMat.rdp_settings, f3dMat, layout, False)
+			#layout.box().label(text = \
+			#	'WARNING: Render mode settings not reset after drawing.')
+			self.ui_lower_render_mode(f3dMat, layout, False)
+			ui_other(f3dMat.rdp_settings, f3dMat, layout, False)
 
 	# texture convert/LUT controlled by texture settings
 	# add node support for geo mode settings
@@ -1543,7 +1582,7 @@ def update_preset_manual(material, context):
 		update_tex_values_manual(material, context)
 
 def createF3DMat(obj, preset = 'Shaded Solid', index = None):
-	material = bpy.data.materials.new('sm64_material')
+	material = bpy.data.materials.new('f3d_material')
 	if index is None:
 		obj.data.materials.append(material)
 		if bpy.context.object is not None:
@@ -1739,34 +1778,6 @@ def createF3DMat(obj, preset = 'Shaded Solid', index = None):
 
 	return material
 
-class N64_AddF3dMat(bpy.types.Operator):
-	# set bl_ properties
-	bl_idname = 'object.add_f3d_mat'
-	bl_label = "Add Fast3D Material"
-	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
-
-	# Called on demand (i.e. button press, menu item)
-	# Can also be called from operator search menu (Spacebar)
-	def execute(self, context):
-		try:
-			if context.mode != 'OBJECT':
-				raise PluginError("Operator can only be used in object mode.")
-			
-			if len(context.selected_objects) == 0:
-				raise PluginError("Mesh not selected.")
-			elif type(context.selected_objects[0].data) is not\
-				bpy.types.Mesh:
-				raise PluginError("Mesh not selected.")
-			
-			obj = context.selected_objects[0]
-			createF3DMat(obj)
-		except Exception as e:
-			raisePluginError(self, e)
-			return {"CANCELLED"}
-
-		self.report({'INFO'}, 'Created F3D material.')
-		return {'FINISHED'} # must return a set
-
 class CreateFast3DMaterial(bpy.types.Operator):
 	# set bl_ properties
 	bl_idname = 'object.create_f3d_mat'
@@ -1780,7 +1791,12 @@ class CreateFast3DMaterial(bpy.types.Operator):
 		if obj is None:
 			self.report({'ERROR'}, 'No active object selected.')
 		else:
-			createF3DMat(obj)
+			if context.scene.gameEditorMode == "SM64":
+				preset = 'Shaded Solid'
+			elif context.scene.gameEditorMode == 'OOT':
+				preset = "Shaded Solid"
+			
+			createF3DMat(obj, preset)
 			self.report({'INFO'}, 'Created new Fast3D material.')
 		return {'FINISHED'} # must return a set
 
@@ -2005,10 +2021,10 @@ class DefaultRDPSettingsPanel(bpy.types.Panel):
 		layout.box().label(text = 'RDP Default Settings')
 		layout.label(text = "If a material setting is a same as a default " +\
 			"setting, then it won't be set.")
-		ui_geo_mode(world.rdp_defaults, world, layout)
-		ui_upper_mode(world.rdp_defaults, world, layout)
-		ui_lower_mode(world.rdp_defaults, world, layout)
-		ui_other(world.rdp_defaults, world, layout)
+		ui_geo_mode(world.rdp_defaults, world, layout, True)
+		ui_upper_mode(world.rdp_defaults, world, layout, True)
+		ui_lower_mode(world.rdp_defaults, world, layout, True)
+		ui_other(world.rdp_defaults, world, layout, True)
 
 ### Node Categories ###
 # Node categories are a python system for automatically
@@ -2506,7 +2522,7 @@ class F3DMaterialProperty(bpy.types.PropertyGroup):
 	fog_position : bpy.props.IntVectorProperty(
 		name = 'Fog Range', size = 2, min = 0, max = 1000, default = (970,1000))
 	set_fog : bpy.props.BoolProperty()
-	use_global_fog : bpy.props.BoolProperty(default = True)
+	use_global_fog : bpy.props.BoolProperty(default = False)
 
 	# geometry mode
 	menu_geo : bpy.props.BoolProperty()
@@ -2563,7 +2579,6 @@ mat_classes = (
 	AddPresetF3D,
 	F3DPanel,
 	CreateFast3DMaterial,
-	N64_AddF3dMat,
 	GetAlphaFromColor,
 	TextureFieldProperty,
 	TextureProperty,
@@ -2658,7 +2673,7 @@ def mat_register_old():
 
 	bpy.types.Material.scale_autoprop = bpy.props.BoolProperty(
 		name = 'Auto Set Scale', default = True,
-		update = update_node_values)
+		update = update_node_values_without_preset)
 	bpy.types.Material.uv_basis = bpy.props.EnumProperty(
 		name = 'UV Basis', default = 'TEXEL0',
 		update = update_tex_values, items = enumTexUV)
@@ -2827,6 +2842,7 @@ def mat_register():
 	bpy.types.Material.mat_ver = bpy.props.IntProperty(default = 1)
 	bpy.types.Material.f3d_update_flag = bpy.props.BoolProperty()
 	bpy.types.Material.f3d_mat = bpy.props.PointerProperty(type = F3DMaterialProperty)
+	bpy.types.Material.menu_tab = bpy.props.EnumProperty(items = enumF3DMenu)
 
 	bpy.types.Scene.f3d_simple = bpy.props.BoolProperty(name = "Display Simple", default = True)
 
@@ -2838,6 +2854,7 @@ def mat_register():
 		name = 'Ignore Collision')
 
 def mat_unregister():
+	del bpy.types.Material.menu_tab
 	del bpy.types.Material.f3d_mat
 	del bpy.types.Material.is_f3d
 	del bpy.types.Material.mat_ver

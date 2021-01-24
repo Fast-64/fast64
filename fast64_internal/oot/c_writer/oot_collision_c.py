@@ -28,64 +28,105 @@ def ootWaterBoxToC(waterBox):
 		format(waterBox.propertyData(), "#010x") + ' },\n'
 
 def ootCameraDataToC(camData):
-	data = "CamPosData " + camData.camPositionsName() + '[] =\n{\n'
-	for i in range(len(camData.camPosDict)):
-		data += '\t' + ootCameraPosToC(camData.camPosDict[i])
-	data += '};\n'
+	posC = CData()
+	camC = CData()
+	if len(camData.camPosDict) > 0:
+		posDataName = "CamPosData " + camData.camPositionsName() + '[' + str(len(camData.camPosDict)) + ']'
+		camDataName = "CamData " + camData.camDataName() + "[" + str(len(camData.camPosDict)) + "]"
+		
+		posC.source = posDataName + ' = {\n'
+		posC.header = "extern " + posDataName + ';\n'
+		camC.source = camDataName + ' = {\n'
+		camC.header = "extern " + camDataName + ';\n'
+		
+		camPosIndex = 0
+		for i in range(len(camData.camPosDict)):
+			posC.source += ootCameraPosToC(camData.camPosDict[i])
+			camC.source += '\t' + ootCameraEntryToC(camData.camPosDict[i], camData, camPosIndex)
+			if camData.camPosDict[i].hasPositionData:
+				camPosIndex += 3
+		posC.source += '};\n\n'
+		camC.source += '};\n\n'
 
-	camDataC = "CamData " + camData.camDataName() + " = { " +\
-		str(camData.camSType) + ', ' +\
-		str(len(camData.camPosDict)) + ', ' +\
-		"(u32) " + camData.camPositionsName() + ' };\n'
-
-	return data + '\n' + camDataC
+	posC.append(camC)
+	return posC
 
 def ootCameraPosToC(camPos):
-	return "{ " +\
+	return "\t{ " +\
 		str(camPos.position[0]) + ', ' +\
 		str(camPos.position[1]) + ', ' +\
-		str(camPos.position[2]) + ', ' +\
+		str(camPos.position[2]) + ' },\n\t{ ' +\
 		str(camPos.rotation[0]) + ', ' +\
 		str(camPos.rotation[1]) + ', ' +\
-		str(camPos.rotation[2]) + ', ' +\
+		str(camPos.rotation[2]) + ' },\n\t{ ' +\
 		str(camPos.fov) + ', ' +\
 		str(camPos.jfifID) + ', ' +\
-		format(camPos.unknown, "#06x") + ' },\n'
+		str(camPos.unknown) + ' },\n'
+
+def ootCameraEntryToC(camPos, camData, camPosIndex):
+	return "{ " +\
+		str(camPos.camSType) + ', ' +\
+		('3' if camPos.hasPositionData else '0') + ', ' +\
+		"&" + ((camData.camPositionsName()  + '[' + str(camPosIndex) + ']') 
+		if camPos.hasPositionData else "0") + ' },\n'
 
 def ootCollisionToC(collision):
 	data = CData()
 
-	data.source += ootCameraDataToC(collision.cameraData) + '\n'
+	data.append(ootCameraDataToC(collision.cameraData))
 	
-	polygonTypeC = "u32 " + collision.polygonTypesName() + "[] = \n{\n"
-	polygonC = "RoomPoly " + collision.polygonsName() + "[] = \n{\n"
-	polygonIndex = 0
-	for polygonType, polygons in collision.polygonGroups.items():
-		polygonTypeC += '\t' + ootPolygonTypeToC(polygonType)
-		for polygon in polygons:
-			polygonC += '\t' + ootCollisionPolygonToC(polygon, 
-				polygonType.ignoreCameraCollision,
-				polygonType.ignoreActorCollision,
-				polygonType.ignoreProjectileCollision,
-				polygonType.enableConveyor,
-				polygonIndex)
-		polygonIndex += 1
-	polygonTypeC += '};\n\n'
-	polygonC += '};\n\n'
+	if len(collision.polygonGroups) > 0:
+		data.header += "extern u32 " + collision.polygonTypesName() + "[];\n"
+		data.header += "extern CollisionPoly " + collision.polygonsName() + "[];\n"
+		polygonTypeC = "u32 " + collision.polygonTypesName() + "[] = {\n"
+		polygonC = "CollisionPoly " + collision.polygonsName() + "[] = {\n"
+		polygonIndex = 0
+		for polygonType, polygons in collision.polygonGroups.items():
+			polygonTypeC += '\t' + ootPolygonTypeToC(polygonType)
+			for polygon in polygons:
+				polygonC += '\t' + ootCollisionPolygonToC(polygon, 
+					polygonType.ignoreCameraCollision,
+					polygonType.ignoreActorCollision,
+					polygonType.ignoreProjectileCollision,
+					polygonType.enableConveyor,
+					polygonIndex)
+			polygonIndex += 1
+		polygonTypeC += '};\n\n'
+		polygonC += '};\n\n'
 
-	data.source += polygonTypeC + polygonC
+		data.source += polygonTypeC + polygonC
+		polygonTypesName = collision.polygonTypesName()
+		polygonsName = collision.polygonsName()
+	else:
+		polygonTypesName = '0'
+		polygonsName = '0'
 
-	data.source += "Vec3s " + collision.verticesName() + "[" + str(len(collision.vertices)) + "] = \n{\n"
-	for vertex in collision.vertices:
-		data.source += '\t' + ootCollisionVertexToC(vertex)
-	data.source += '};\n\n'
+	if len(collision.vertices) > 0:
+		data.header += "extern Vec3s " + collision.verticesName() + "[" + str(len(collision.vertices)) + "];\n"
+		data.source += "Vec3s " + collision.verticesName() + "[" + str(len(collision.vertices)) + "] = {\n"
+		for vertex in collision.vertices:
+			data.source += '\t' + ootCollisionVertexToC(vertex)
+		data.source += '};\n\n'
+		collisionVerticesName = collision.verticesName()
+	else:
+		collisionVerticesName = '0'
 
-	data.source += "WaterBoxHeader " + collision.waterBoxesName() + "[] = \n{\n"
-	for waterBox in collision.waterBoxes:
-		data.source += '\t' + ootWaterBoxToC(waterBox)
-	data.source += '};\n\n'
+	if len(collision.waterBoxes) > 0:
+		data.header += "extern WaterBox " + collision.waterBoxesName() + "[];\n"
+		data.source += "WaterBox " + collision.waterBoxesName() + "[] = {\n"
+		for waterBox in collision.waterBoxes:
+			data.source += '\t' + ootWaterBoxToC(waterBox)
+		data.source += '};\n\n'
+		waterBoxesName = collision.waterBoxesName()
+	else:
+		waterBoxesName = '0'
 
-	data.header = "extern CollisionHeader " + collision.headerName() + ';\n'
+	if len(collision.cameraData.camPosDict) > 0:
+		camDataName = "&" + collision.camDataName()
+	else:
+		camDataName = '0'
+
+	data.header += "extern CollisionHeader " + collision.headerName() + ';\n'
 	data.source += "CollisionHeader " + collision.headerName() + ' = { '
 	for bound in range(2): # min, max bound
 		for field in range(3): # x, y, z
@@ -93,12 +134,12 @@ def ootCollisionToC(collision):
 	
 	data.source += \
 		str(len(collision.vertices)) + ', ' +\
-		collision.verticesName() + ', ' +\
+		collisionVerticesName + ', ' +\
 		str(collision.polygonCount()) + ", " +\
-		collision.polygonsName() + ', ' +\
-		collision.polygonTypesName() + ', ' +\
-		"&" + collision.camDataName() + ', ' +\
+		polygonsName + ', ' +\
+		polygonTypesName + ', ' +\
+		camDataName + ', ' +\
 		str(len(collision.waterBoxes)) + ", " +\
-		collision.waterBoxesName() + ' };\n\n'
+		waterBoxesName + ' };\n\n'
 
 	return data

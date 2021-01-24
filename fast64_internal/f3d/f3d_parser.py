@@ -324,13 +324,10 @@ def createBlankMaterial(obj):
 	material.f3d_preset = 'Shaded Solid'
 	update_preset_manual(material, bpy.context)
 
-	#newMat = bpy.data.materials.new('sm64_material')
-	#obj.data.materials.append(newMat)
-
 def createNewTextureMaterial(romfile, textureStart, textureSize, texelCount, colorFormat, colorDepth, obj):
-	newMat = bpy.data.materials.new('sm64_material')
-	newTex = bpy.data.textures.new('sm64_texture', 'IMAGE')
-	newImg = bpy.data.images.new('sm64_image', *textureSize, True, True)
+	newMat = bpy.data.materials.new('f3d_material')
+	newTex = bpy.data.textures.new('f3d_texture', 'IMAGE')
+	newImg = bpy.data.images.new('f3d_texture', *textureSize, True, True)
 	
 	newTex.image = newImg
 	newSlot = newMat.texture_slots.add()

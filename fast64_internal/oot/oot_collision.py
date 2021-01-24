@@ -294,9 +294,8 @@ class OOTWaterBox(BoxEmpty):
 		return convertIntTo2sComplement(value, 4)
 
 class OOTCameraData:
-	def __init__(self, ownerName, camSType):
+	def __init__(self, ownerName):
 		self.ownerName = ownerName
-		self.camSType = camSType
 		self.camPosDict = {}
 
 	def camDataName(self):
@@ -314,16 +313,21 @@ class OOTCameraData:
 			count = count + 1
 
 class OOTCameraPosData:
-	def __init__(self, position, rotation, fov, jfifID):
+	def __init__(self, camSType, hasPositionData, position, rotation, fov, jfifID):
+		self.camSType = camSType
 		self.position = position
 		self.rotation = rotation
 		self.fov = fov
 		self.jfifID = jfifID
-		self.unknown = 0xFFFF
+		self.unknown = -1
+		self.hasPositionData = hasPositionData
 
 class OOTCameraPositionProperty(bpy.types.PropertyGroup):
 	index : bpy.props.IntProperty(min = 0)
 	jfifID : bpy.props.StringProperty(default = "-1")
+	camSType : bpy.props.EnumProperty(items = ootEnumCameraSType, default = 'CAM_SET_NONE')
+	camSTypeCustom : bpy.props.StringProperty(default = "CAM_SET_NONE")
+	hasPositionData : bpy.props.BoolProperty(default = True, name = "Has Position Data")
 
 class OOTCameraPositionPropertyRef(bpy.types.PropertyGroup):
 	camera : bpy.props.PointerProperty(type = bpy.types.Camera)
@@ -364,11 +368,11 @@ class OOTWaterBoxProperty(bpy.types.PropertyGroup):
 	camera: bpy.props.IntProperty(name = "Camera", min = 0)
 
 def drawWaterBoxProperty(layout, waterBoxProp):
-	box = layout.box()
-	box.box().label(text = "Properties")
+	box = layout.column()
+	#box.box().label(text = "Properties")
 	prop_split(box, waterBoxProp, 'lighting', "Lighting")
 	prop_split(box, waterBoxProp, 'camera', "Camera")
-	box.label(text = "Water box area defined by top face of box shaped empty.")
+	box.label(text = "Defined by top face of box empty.")
 	box.label(text = "No rotation allowed.")
 
 def drawCameraPosProperty(layout, cameraRefProp, index, headerIndex):
@@ -392,10 +396,13 @@ class OOT_CameraPosPanel(bpy.types.Panel):
 		box = self.layout.box()
 		obj = context.object
 
-		box.box().label(text = "Camera Position Properties")
+		box.box().label(text = "Camera Data")
+		drawEnumWithCustom(box, obj.ootCameraPositionProperty, "camSType", "Camera S Type", "")
 		prop_split(box, obj.ootCameraPositionProperty, "index", "Camera Index")
-		prop_split(box, obj.data, "angle", "Field Of View")
-		prop_split(box, obj.ootCameraPositionProperty, "jfifID", "JFIF ID")
+		if obj.ootCameraPositionProperty.hasPositionData:
+			prop_split(box, obj.data, "angle", "Field Of View")
+			prop_split(box, obj.ootCameraPositionProperty, "jfifID", "JFIF ID")
+		box.prop(obj.ootCameraPositionProperty, 'hasPositionData')
 	
 
 class OOT_CollisionPanel(bpy.types.Panel):
@@ -411,7 +418,7 @@ class OOT_CollisionPanel(bpy.types.Panel):
 		return (context.scene.gameEditorMode == "OOT" and context.material is not None)
 	
 	def draw(self, context):
-		box = self.layout.box()
+		box = self.layout.box().column()
 		collisionProp = context.material.ootCollisionProperty
 
 		box.prop(collisionProp, 'expandTab', text = "OOT Collision Properties", 
@@ -499,11 +506,12 @@ def addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix, 
 			updateBounds((x2, y2, z2), bounds)
 			updateBounds((x3, y3, z3), bounds)
 
-			normal = convertNormalizedVectorToShort(face.normal)
+			faceNormal = (transformMatrix.inverted().transposed() @ face.normal).normalized()
+			normal = convertNormalizedVectorToShort(faceNormal)
 			distance = int(round(-1 * (
-				face.normal[0] * planePoint[0] + \
-				face.normal[1] * planePoint[1] + \
-				face.normal[2] * planePoint[2])))
+				faceNormal[0] * planePoint[0] + \
+				faceNormal[1] * planePoint[1] + \
+				faceNormal[2] * planePoint[2])))
 			distance = convertIntTo2sComplement(distance, 2)
 
 			nx = (y2 - y1) * (z3 - z2) - (z2 - z1) * (y3 - y2)

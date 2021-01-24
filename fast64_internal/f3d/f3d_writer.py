@@ -314,11 +314,11 @@ def saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, transf
 		tmem = getTmemWordUsage(otherTex.tex_format, otherTex.tex.size[0], otherTex.tex.size[1]) * 8
 		if tmem <= getTmemMax(otherTex.tex_format):
 			otherTexSingleLoad = True
-			nextTmem = 0
-			revertCommands = GfxList("temp", GfxListTag.Draw, fModel.DLFormat) # Unhandled?
-			texDimensions, nextTmem = \
-				saveTextureIndex(material.name, fModel, fMaterial, triGroup.triList, revertCommands, otherTex, 0, nextTmem, 
-					None, False, None, True)
+			#nextTmem = 0
+			#revertCommands = GfxList("temp", GfxListTag.Draw, fModel.DLFormat) # Unhandled?
+			#texDimensions, nextTmem = \
+			#	saveTextureIndex(material.name, fModel, fMaterial, triGroup.triList, revertCommands, otherTex, 0, nextTmem, 
+			#		None, False, None, True, True)
 
 	#saveGeometry(obj, triList, fMesh.vertexList, bFaces, 
 	#	bMesh, texDimensions, transformMatrix, isPointSampled, isFlatShaded,
@@ -331,11 +331,11 @@ def saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, transf
 		if fMaterial.texturesLoaded[0] and not (otherTextureIndex == 0 and otherTexSingleLoad):
 			texDimensions0, nextTmem = \
 				saveTextureIndex(material.name, fModel, fMaterial, triGroup.triList, revertCommands, f3dMat.tex0, 0, nextTmem, 
-				None, False, [tileLoad, None], True)
+				None, False, [tileLoad, None], True, False)
 		if fMaterial.texturesLoaded[1] and not (otherTextureIndex == 1 and otherTexSingleLoad):
 			texDimensions1, nextTmem = saveTextureIndex(material.name, fModel, 
 				fMaterial, triGroup.triList, revertCommands, f3dMat.tex1, 1, nextTmem, None, False,
-				[None, tileLoad], True)
+				[None, tileLoad], True, False)
 
 		currentGroupIndex = saveTriangleStrip(triConverterClass, tileFaces, convertInfo, triGroup.triList, triGroup.vertexList,
 			fModel.f3d, texDimensions, transformMatrix, isPointSampled,
@@ -385,7 +385,7 @@ def saveStaticModel(fModel, obj, transformMatrix, ownerName, DLFormat, convertTe
 			fMeshes[drawLayer] = fMesh
 
 			if obj.use_f3d_culling and (fModel.f3d.F3DEX_GBI or fModel.f3d.F3DEX_GBI_2):
-				addCullCommand(obj, fMesh, transformMatrix)
+				addCullCommand(obj, fMesh, transformMatrix, fModel.matWriteMethod)
 
 		checkForF3dMaterialInFaces(obj, material)
 		fMaterial, texDimensions = \
@@ -405,7 +405,7 @@ def saveStaticModel(fModel, obj, transformMatrix, ownerName, DLFormat, convertTe
 			fMesh.draw.commands.append(SPEndDisplayList())
 	return fMeshes
 
-def addCullCommand(obj, fMesh, transformMatrix):
+def addCullCommand(obj, fMesh, transformMatrix, matWriteMethod):
 	fMesh.add_cull_vtx()
 	for vertexPos in obj.bound_box:
 		# Most other fields of convertVertexData are unnecessary for bounding box verts
@@ -415,20 +415,28 @@ def addCullCommand(obj, fMesh, transformMatrix):
 				mathutils.Vector([0,0,0,0]), [32, 32],
 				transformMatrix, False, False))
 
-
-	defaults = bpy.context.scene.world.rdp_defaults
-	if defaults.g_lighting:
+	if matWriteMethod == GfxMatWriteMethod.WriteDifferingAndRevert:
+		defaults = bpy.context.scene.world.rdp_defaults
+		if defaults.g_lighting:
+			cullCommands = [
+				SPClearGeometryMode(['G_LIGHTING']),
+				SPVertex(fMesh.cullVertexList, 0, 8, 0),
+				SPSetGeometryMode(['G_LIGHTING']),
+				SPCullDisplayList(0, 7)
+			]
+		else:
+			cullCommands = [
+				SPVertex(fMesh.cullVertexList, 0, 8, 0),
+				SPCullDisplayList(0, 7)
+			]
+	elif matWriteMethod == GfxMatWriteMethod.WriteAll:
 		cullCommands = [
-			SPClearGeometryMode(['G_LIGHTING']),
-			SPVertex(fMesh.cullVertexList, 0, 8, 0),
-			SPSetGeometryMode(['G_LIGHTING']),
-			SPCullDisplayList(0, 7)
-		]
+				SPClearGeometryMode(['G_LIGHTING']),
+				SPVertex(fMesh.cullVertexList, 0, 8, 0),
+				SPCullDisplayList(0, 7)
+			]
 	else:
-		cullCommands = [
-			SPVertex(fMesh.cullVertexList, 0, 8, 0),
-			SPCullDisplayList(0, 7)
-		]
+		raise PluginError("Unhandled material write method for f3d culling: " + str(matWriteMethod))
 	fMesh.draw.commands = cullCommands + fMesh.draw.commands
 
 def exportF3DCommon(obj, fModel, transformMatrix, includeChildren, name, DLFormat, convertTextureData):
@@ -1214,7 +1222,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 		fMaterial.saveLargeTextures[0] = f3dMat.tex0.save_large_texture
 		texDimensions0, nextTmem = saveTextureIndex(material.name, fModel, 
 			fMaterial, fMaterial.material, fMaterial.revert, f3dMat.tex0, 0, nextTmem, None, convertTextureData,
-			None, loadTextures)
+			None, loadTextures, True)
 	if useDict['Texture 1'] and f3dMat.tex1.tex_set:
 		if f3dMat.tex1.tex is None:
 			raise PluginError('In material \"' + material.name + '\", a texture has not been set.')
@@ -1224,7 +1232,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 		fMaterial.saveLargeTextures[1] = f3dMat.tex1.save_large_texture
 		texDimensions1, nextTmem = saveTextureIndex(material.name, fModel, 
 			fMaterial, fMaterial.material, fMaterial.revert, f3dMat.tex1, 1, nextTmem, None, convertTextureData,
-			None, loadTextures)
+			None, loadTextures, True)
 
 	# Used so we know how to convert normalized UVs when saving verts.
 	if texDimensions0 is not None and texDimensions1 is not None:
@@ -1336,7 +1344,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 	return fMaterial, texDimensions
 
 def saveTextureIndex(propName, fModel, fMaterial, loadTexGfx, revertTexGfx, texProp, index, tmem, 
-	overrideName, convertTextureData, tileSettingsOverride, loadTextures):
+	overrideName, convertTextureData, tileSettingsOverride, loadTextures, loadPalettes):
 	tex = texProp.tex
 	if tex is None:
 		raise PluginError('In ' + propName + ", no texture is selected.")
@@ -1357,10 +1365,12 @@ def saveTextureIndex(propName, fModel, fMaterial, loadTexGfx, revertTexGfx, texP
 	if tileSettingsOverride is not None:
 		tileSettings = tileSettingsOverride[index]
 		width, height = tileSettings.getDimensions()
+		setTLUTMode = False
 	else:
 		tileSettings = None
 		width = tex.size[0]
 		height = tex.size[1]
+		setTLUTMode = fModel.matWriteMethod == GfxMatWriteMethod.WriteAll
 
 	nextTmem = tmem + getTmemWordUsage(texFormat, width, height)
 	
@@ -1406,11 +1416,15 @@ def saveTextureIndex(propName, fModel, fMaterial, loadTexGfx, revertTexGfx, texP
 	if isCITexture:
 		fImage, fPalette = saveOrGetPaletteDefinition(
 			fMaterial, fModel, tex, texName, texFormat, palFormat, convertTextureData)
-		savePaletteLoading(loadTexGfx, revertTexGfx, fPalette, 
-			palFormat, 0, fPalette.height, fModel.f3d)
+		if loadPalettes:
+			savePaletteLoading(loadTexGfx, revertTexGfx, fPalette, 
+				palFormat, 0, fPalette.height, fModel.f3d, fModel.matWriteMethod)
 	else:
 		fImage = saveOrGetTextureDefinition(fMaterial, fModel, tex, texName, 
 			texFormat, convertTextureData)
+	
+	if setTLUTMode and not isCITexture:
+		loadTexGfx.commands.append(DPSetTextureLUT('G_TT_NONE'))
 	if loadTextures:
 		saveTextureLoading(fMaterial, fImage, loadTexGfx, clamp_S,
 		 	mirror_S, clamp_T, mirror_T,
@@ -1510,14 +1524,15 @@ def saveTextureLoading(fMaterial, fImage, loadTexGfx, clamp_S, mirror_S, clamp_T
 # palette stored in upper half of TMEM (words 256-511)
 # pal is palette number (0-16), for CI8 always set to 0
 def savePaletteLoading(loadTexGfx, revertTexGfx, fPalette, palFormat, pal, 
-	colorCount, f3d):
+	colorCount, f3d, matWriteMethod):
 	palFmt = texFormatOf[palFormat]
 	cms = ['G_TX_WRAP', 'G_TX_NOMIRROR']
 	cmt = ['G_TX_WRAP', 'G_TX_NOMIRROR']
 
 	loadTexGfx.commands.append(DPSetTextureLUT(
 		'G_TT_RGBA16' if palFmt == 'G_IM_FMT_RGBA' else 'G_TT_IA16'))
-	revertTexGfx.commands.append(DPSetTextureLUT('G_TT_NONE'))
+	if matWriteMethod == GfxMatWriteMethod.WriteDifferingAndRevert:
+		revertTexGfx.commands.append(DPSetTextureLUT('G_TT_NONE'))
 
 	if not f3d._HW_VERSION_1:
 		loadTexGfx.commands.extend([
@@ -1542,9 +1557,8 @@ def saveOrGetPaletteDefinition(fMaterial, fModelOrTexRect, image, imageName, tex
 	# If image already loaded, return that data.
 	paletteName = toAlnum(imageName) + '_pal_' + palFmt.lower()
 	imageKey = (image, (texFmt, palFmt))
-	palKey = (image, (palFmt, 'PAL'))
 	if imageKey in fModelOrTexRect.textures:
-		return fModelOrTexRect.textures[imageKey], fModelOrTexRect.textures[palKey]
+		return fModelOrTexRect.textures[imageKey], fModelOrTexRect.textures[imageKey].palette
 
 	palette = []
 	texture = []
@@ -1576,9 +1590,11 @@ def saveOrGetPaletteDefinition(fMaterial, fModelOrTexRect, image, imageName, tex
 	else:
 		name = image.filepath
 	filename = getNameFromPath(name, True) + '.' + \
-		texFmt.lower() + '.inc.c'
+		fModelOrTexRect.getTextureSuffixFromFormat(texFmt) + '.inc.c'
 	paletteFilename = getNameFromPath(name, True) + '.' + \
-		texFmt.lower() + '.pal'
+		fModelOrTexRect.getTextureSuffixFromFormat(texFmt) + '.pal'
+	#paletteFilename = getNameFromPath(name, True) + '.' + \
+	#	fModelOrTexRect.getTextureSuffixFromFormat(palFmt) + '.inc.c'
 	fImage = FImage(checkDuplicateTextureName(fModelOrTexRect, toAlnum(imageName)), texFormat, bitSize, 
 		image.size[0], image.size[1], filename, convertTextureData)
 
@@ -1587,10 +1603,11 @@ def saveOrGetPaletteDefinition(fMaterial, fModelOrTexRect, image, imageName, tex
 	if fMaterial.useLargeTextures:
 		fImage.isLargeTexture = True
 		fPalette.isLargeTexture = True
-	#paletteTex = bpy.data.images.new(paletteName, 1, len(palette))
-	#paletteTex.pixels = palette
-	#paletteTex.filepath = getNameFromPath(name, True) + '.' + \
-	#	texFmt.lower() + '.pal'
+	fImage.palette = fPalette
+	
+	#paletteImage = bpy.data.images.new(paletteName, 1, len(palette))
+	#paletteImage.pixels = palette
+	#paletteImage.filepath = paletteFilename
 
 	if convertTextureData:
 		for color in palette:
@@ -1604,7 +1621,7 @@ def saveOrGetPaletteDefinition(fMaterial, fModelOrTexRect, image, imageName, tex
 	fModelOrTexRect.addTexture((image, (texFmt, palFmt)), fImage, fMaterial)
 	fModelOrTexRect.addTexture((image, (palFmt, 'PAL')), fPalette, fMaterial)
 
-	return fImage, fPalette #, paletteTex
+	return fImage, fPalette #, paletteImage
 
 def compactNibbleArray(texture, width, height):
 	nibbleData = bytearray(0)
@@ -1643,7 +1660,7 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image, imageName, texFormat, c
 	else:
 		name = image.filepath
 	filename = getNameFromPath(name, True) + '.' + \
-		texFormat.lower() + '.inc.c'
+		fModel.getTextureSuffixFromFormat(texFormat) + '.inc.c'
 
 	fImage = FImage(checkDuplicateTextureName(fModel, toAlnum(imageName)), fmt, bitSize, 
 		image.size[0], image.size[1], filename, convertTextureData)

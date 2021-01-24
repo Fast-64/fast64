@@ -96,11 +96,11 @@ def copyPropertyGroup(oldProp, newProp):
 			setattr(newProp, sub_value_attr, sub_value)
 
 def writeCData(data, headerPath, sourcePath):
-	sourceFile = open(sourcePath, 'w')
+	sourceFile = open(sourcePath, 'w', newline = '\n')
 	sourceFile.write(data.source)
 	sourceFile.close()
 
-	headerFile = open(headerPath, 'w')
+	headerFile = open(headerPath, 'w', newline = '\n')
 	headerFile.write(data.header)
 	headerFile.close()
 

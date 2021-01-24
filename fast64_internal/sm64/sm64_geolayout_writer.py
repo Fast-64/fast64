@@ -306,7 +306,15 @@ def saveGeolayoutC(geoName, dirName, geolayoutGraph, fModel, exportDir, texDir, 
 		scrollName = levelName + '_level_geo_' + dirName
 
 	gfxFormatter = SM64GfxFormatter(ScrollMethod.Vertex)
-	staticData, dynamicData, texC = fModel.to_c(texSeparate, savePNG, texDir, gfxFormatter)
+	if not customExport and headerType == 'Level':
+		texExportPath = dirPath
+	else:
+		texExportPath = geoDirPath
+	exportData = fModel.to_c(TextureExportSettings(texSeparate, savePNG, texDir, texExportPath), gfxFormatter)
+	staticData = exportData.staticData
+	dynamicData = exportData.dynamicData
+	texC = exportData.textureData
+
 	scrollData, hasScrolling = fModel.to_c_vertex_scroll(scrollName, gfxFormatter)
 	scroll_data = scrollData.source
 	cDefineScroll = scrollData.header
@@ -472,11 +480,6 @@ def saveGeolayoutC(geoName, dirName, geolayoutGraph, fModel, exportDir, texDir, 
 		
 		if DLFormat != DLFormat.Static: # Change this
 			writeMaterialHeaders(exportDir, matCInclude, matHInclude)
-
-	if not customExport and headerType == 'Level':
-		fModel.save_textures(dirPath, not savePNG)
-	else:
-		fModel.save_textures(geoDirPath, not savePNG)
 	
 	return staticData.header
 
