@@ -1509,6 +1509,7 @@ def saveTextureLoading(fMaterial, fImage, loadTexGfx, clamp_S, mirror_S, clamp_T
 			DPLoadTile(f3d.G_TX_LOADTILE - texIndex, sl, tl, sh, th),]) # added in
 	
 	tileSizeCommand = DPSetTileSize(f3d.G_TX_RENDERTILE + texIndex, sl, tl, sh, th)
+	#tileSizeCommand = SPDisplayList(GfxList("0x08000000", GfxListTag.Material, DLFormat.Static))
 	loadTexGfx.commands.extend([
 		DPPipeSync(),
 		DPSetTile(fmt, siz, line, tmem,	\

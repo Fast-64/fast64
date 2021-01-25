@@ -539,11 +539,9 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 			spawnIndex = obj.ootEntranceProperty.spawnIndex
 			addActor(scene, OOTEntrance(room.roomIndex, spawnIndex), entranceProp.actor, "entranceList", obj.name)
 			#scene.entranceList.append(OOTEntrance(room.roomIndex, spawnIndex))
-			if spawnIndex in scene.startPositions:
-				raise PluginError("Error: Repeated start position spawn index: " + str(spawnIndex))
-			scene.startPositions[spawnIndex] = OOTActor(
+			addStartPosition(scene, spawnIndex, OOTActor(
 				"ACTOR_PLAYER" if not entranceProp.customActor else entranceProp.actor.actorIDCustom,
-				translation, rotation, entranceProp.actor.actorParam)
+				translation, rotation, entranceProp.actor.actorParam), entranceProp.actor,  obj.name)
 		elif obj.ootEmptyType == "Water Box":
 			ootProcessWaterBox(sceneObj, obj, transformMatrix, scene, room.roomIndex)
 	elif isinstance(obj.data, bpy.types.Camera):

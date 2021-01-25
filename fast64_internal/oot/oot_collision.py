@@ -10,40 +10,40 @@ import bpy, bmesh, os, math, re, shutil, mathutils
 ootEnumFloorSetting = [
 	("Custom", "Custom", "Custom"),
 	("0x00", "Default", "Default"),
-	("0x14", "Void (Small)", "Void (Small)"),
-	("0x18", "Grab Wall", "Grab Wall"),
-	("0x20", "Stop Air Momentum", "Stop Air Momentum"),
-	("0x24", "Fall Instead Of Jumping", "Fall Instead Of Jumping"),
-	("0x2C", "Dive", "Dive"),
-	("0x30", "Void (Large)", "Void (Large)"),
+	("0x05", "Void (Small)", "Void (Small)"),
+	("0x06", "Grab Wall", "Grab Wall"),
+	("0x08", "Stop Air Momentum", "Stop Air Momentum"),
+	("0x09", "Fall Instead Of Jumping", "Fall Instead Of Jumping"),
+	("0x0B", "Dive", "Dive"),
+	("0x0C", "Void (Large)", "Void (Large)"),
 ]
 
 ootEnumWallSetting = [
 	("Custom", "Custom", "Custom"),
 	("0x00", "None", "None"),
-	("0x02", "No Ledge Grab", "No Ledge Grab"),
-	("0x04", "Ladder", "Ladder"),
-	("0x06", "Ladder Top", "Ladder Top"),
-	("0x08", "Vines", "Vines"),
-	("0x0A", "Crawl Space", "Crawl Space"),
-	("0x0C", "Crawl Space 2", "Crawl Space 2"),
-	("0x0E", "Push Block", "Push Block"),
+	("0x01", "No Ledge Grab", "No Ledge Grab"),
+	("0x02", "Ladder", "Ladder"),
+	("0x03", "Ladder Top", "Ladder Top"),
+	("0x04", "Vines", "Vines"),
+	("0x05", "Crawl Space", "Crawl Space"),
+	("0x06", "Crawl Space 2", "Crawl Space 2"),
+	("0x07", "Push Block", "Push Block"),
 ]
 
 ootEnumFloorProperty = [
 	("Custom", "Custom", "Custom"),
 	("0x00", "None", "None"),
-	("0x02", "Haunted Wasteland Camera", "Haunted Wasteland Camera"),
-	("0x04", "Hurt Floor (Spikes)", "Hurt Floor (Spikes)"),
-	("0x06", "Hurt Floor (Lava)", "Hurt Floor (Lava)"),
-	("0x08", "Shallow Sand", "Shallow Sand"),
-	("0x0A", "Slippery", "Slippery"),
-	("0x0C", "No Fall Damage", "No Fall Damage"),
-	("0x0E", "Quicksand Crossing (Epona Uncrossable)", "Quicksand Crossing (Epona Uncrossable)"),
-	("0x10", "Jabu Jabu's Belly", "Jabu Jabu's Belly"),
-	("0x12", "Void", "Void"),
-	("0x16", "Link Looks Up", "Link Looks Up"),
-	("0x18", "Quicksand Crossing (Epona Crossable)", "Quicksand Crossing (Epona Crossable)")
+	("0x01", "Haunted Wasteland Camera", "Haunted Wasteland Camera"),
+	("0x02", "Hurt Floor (Spikes)", "Hurt Floor (Spikes)"),
+	("0x03", "Hurt Floor (Lava)", "Hurt Floor (Lava)"),
+	("0x04", "Shallow Sand", "Shallow Sand"),
+	("0x05", "Slippery", "Slippery"),
+	("0x06", "No Fall Damage", "No Fall Damage"),
+	("0x07", "Quicksand Crossing (Epona Uncrossable)", "Quicksand Crossing (Epona Uncrossable)"),
+	("0x08", "Jabu Jabu's Belly", "Jabu Jabu's Belly"),
+	("0x09", "Void", "Void"),
+	("0x0A", "Link Looks Up", "Link Looks Up"),
+	("0x0B", "Quicksand Crossing (Epona Crossable)", "Quicksand Crossing (Epona Crossable)")
 ]
 
 ootEnumCollisionTerrain = [

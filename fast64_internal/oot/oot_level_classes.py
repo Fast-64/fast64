@@ -311,13 +311,13 @@ def addActor(owner, actor, actorProp, propName, actorObjName):
 			for cutsceneHeader in owner.cutsceneHeaders:
 				getattr(cutsceneHeader, propName).add(actor)
 	elif sceneSetup.sceneSetupPreset == "Custom":
-		if sceneSetup.childDayHeader:
+		if sceneSetup.childDayHeader and owner is not None:
 			getattr(owner, propName).add(actor)
-		if sceneSetup.childNightHeader:
+		if sceneSetup.childNightHeader and owner.childNightHeader is not None:
 			getattr(owner.childNightHeader, propName).add(actor)
-		if sceneSetup.adultDayHeader:
+		if sceneSetup.adultDayHeader and owner.adultDayHeader is not None:
 			getattr(owner.adultDayHeader, propName).add(actor)
-		if sceneSetup.adultNightHeader:
+		if sceneSetup.adultNightHeader and owner.adultNightHeader is not None:
 			getattr(owner.adultNightHeader, propName).add(actor)
 		for cutsceneHeader in sceneSetup.cutsceneHeaders:
 			if cutsceneHeader.headerIndex >= len(owner.cutsceneHeaders) + 4:
@@ -325,3 +325,38 @@ def addActor(owner, actor, actorProp, propName, actorObjName):
 			getattr(owner.cutsceneHeaders[cutsceneHeader.headerIndex - 4]).add(actor)
 	else:
 		raise PluginError("Unhandled scene setup preset: " + str(sceneSetup.sceneSetupPreset))
+
+def addStartPosition(scene, index, actor, actorProp, actorObjName):
+	sceneSetup = actorProp.headerSettings
+	if sceneSetup.sceneSetupPreset == 'All Scene Setups' or\
+		sceneSetup.sceneSetupPreset == "All Non-Cutscene Scene Setups":
+		addStartPosAtIndex(scene.startPositions, index, actor)
+		if scene.childNightHeader is not None:
+			addStartPosAtIndex(scene.childNightHeader.startPositions, index, actor)
+		if scene.adultDayHeader is not None:
+			addStartPosAtIndex(scene.adultDayHeader.startPositions, index, actor)
+		if scene.adultNightHeader is not None:
+			addStartPosAtIndex(scene.adultNightHeader.startPositions, index, actor)
+		if sceneSetup.sceneSetupPreset == 'All Scene Setups':
+			for cutsceneHeader in scene.cutsceneHeaders:
+				addStartPosAtIndex(cutsceneHeader.startPositions, index, actor)
+	elif sceneSetup.sceneSetupPreset == "Custom":
+		if sceneSetup.childDayHeader and scene is not None:
+			addStartPosAtIndex(scene.startPositions, index, actor)
+		if sceneSetup.childNightHeader and scene.childNightHeader is not None:
+			addStartPosAtIndex(scene.childNightHeader.startPositions, index, actor)
+		if sceneSetup.adultDayHeader and scene.adultDayHeader is not None:
+			addStartPosAtIndex(scene.adultDayHeader.startPositions, index, actor)
+		if sceneSetup.adultNightHeader and scene.adultNightHeader is not None:
+			addStartPosAtIndex(scene.adultNightHeader.startPositions, index, actor)
+		for cutsceneHeader in sceneSetup.cutsceneHeaders:
+			if cutsceneHeader.headerIndex >= len(scene.cutsceneHeaders) + 4:
+				raise PluginError(actorObjName + " uses a cutscene header index that is outside the range of the current number of cutscene headers.")
+			addAtStartPosIndex(scene.cutsceneHeaders[cutsceneHeader.headerIndex - 4].startPositions, index, actor)
+	else:
+		raise PluginError("Unhandled scene setup preset: " + str(sceneSetup.sceneSetupPreset))
+
+def addStartPosAtIndex(startPosDict, index, value):
+	if index in startPosDict:
+		raise PluginError("Error: Repeated start position spawn index: " + str(index))
+	startPosDict[index] = value
