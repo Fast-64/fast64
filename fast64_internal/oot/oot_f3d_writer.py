@@ -500,7 +500,7 @@ def oot_dl_writer_register():
 	bpy.types.Object.ootDrawLayer = bpy.props.EnumProperty(items = ootEnumDrawLayers, default = 'Opaque')
 	bpy.types.World.ootDefaultRenderModes = bpy.props.PointerProperty(type = OOTDefaultRenderModesProperty)
 
-	bpy.types.Scene.ootlevelDLExport = bpy.props.EnumProperty(items = ootEnumSceneID, 
+	bpy.types.Scene.ootLevelDLExport = bpy.props.EnumProperty(items = ootEnumSceneID, 
 		name = 'Level', default = 'SCENE_YDAN')
 	bpy.types.Scene.ootDLExportPath = bpy.props.StringProperty(
 		name = 'Directory', subtype = 'FILE_PATH')

@@ -184,7 +184,6 @@ def oot_obj_unregister():
 	del bpy.types.Object.ootTransitionActorProperty 
 	del bpy.types.Object.ootRoomHeader
 	del bpy.types.Object.ootSceneHeader
-	del bpy.types.Object.ootWaterBoxType
 	del bpy.types.Object.ootAlternateSceneHeaders
 	del bpy.types.Object.ootAlternateRoomHeaders
 

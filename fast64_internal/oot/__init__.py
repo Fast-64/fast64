@@ -123,5 +123,3 @@ def oot_unregister(unregisterPanels):
 	del bpy.types.Scene.ootRefreshVer
 	del bpy.types.Scene.ootBlenderScale 
 	del bpy.types.Scene.ootDecompPath
-	del bpy.types.Scene.ootDisableScroll
-	del bpy.types.Scene.ootSaveTextures

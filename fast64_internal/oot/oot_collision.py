@@ -717,17 +717,17 @@ def oot_col_register():
 		register_class(cls)
 
 	# Collision
-	bpy.types.Scene.colExportPath = bpy.props.StringProperty(
+	bpy.types.Scene.ootColExportPath = bpy.props.StringProperty(
 		name = 'Directory', subtype = 'FILE_PATH')
-	bpy.types.Scene.colExportLevel = bpy.props.EnumProperty(items = ootEnumSceneID, 
+	bpy.types.Scene.ootColExportLevel = bpy.props.EnumProperty(items = ootEnumSceneID, 
 		name = 'Level Used By Collision', default = 'SCENE_YDAN')
-	bpy.types.Scene.colIncludeChildren = bpy.props.BoolProperty(
+	bpy.types.Scene.ootColIncludeChildren = bpy.props.BoolProperty(
 		name = 'Include child objects', default = True)
-	bpy.types.Scene.colName = bpy.props.StringProperty(
+	bpy.types.Scene.ootColName = bpy.props.StringProperty(
 		name = 'Name', default = 'link')
-	bpy.types.Scene.colLevelName = bpy.props.StringProperty(
+	bpy.types.Scene.ootColLevelName = bpy.props.StringProperty(
 		name = 'Name', default = 'SCENE_YDAN')
-	bpy.types.Scene.colCustomExport = bpy.props.BoolProperty(
+	bpy.types.Scene.ootColCustomExport = bpy.props.BoolProperty(
 		name = 'Custom Export Path')
 	
 	bpy.types.Object.ootCameraPositionProperty = bpy.props.PointerProperty(type = OOTCameraPositionProperty)
@@ -735,12 +735,12 @@ def oot_col_register():
 
 def oot_col_unregister():
 	# Collision
-	del bpy.types.Scene.colExportPath
-	del bpy.types.Scene.colExportLevel
-	del bpy.types.Scene.colName
-	del bpy.types.Scene.colLevelName
-	del bpy.types.Scene.colIncludeChildren
-	del bpy.types.Scene.colCustomExport
+	del bpy.types.Scene.ootColExportPath
+	del bpy.types.Scene.ootColExportLevel
+	del bpy.types.Scene.ootColName
+	del bpy.types.Scene.ootColLevelName
+	del bpy.types.Scene.ootColIncludeChildren
+	del bpy.types.Scene.ootColCustomExport
 
 	for cls in reversed(oot_col_classes):
 		unregister_class(cls)

@@ -266,7 +266,7 @@ def bsdf_conv_panel_regsiter():
 
 def bsdf_conv_panel_unregsiter():
 	for cls in bsdf_conv_panel_classes:
-		register_class(cls)
+		unregister_class(cls)
 
 def bsdf_conv_register():
 	for cls in bsdf_conv_classes:
