@@ -1904,7 +1904,7 @@ class CreateFast3DMaterial(bpy.types.Operator):
 		if obj is None:
 			self.report({'ERROR'}, 'No active object selected.')
 		else:
-			preset = getDefaultMaterialPreset()
+			preset = getDefaultMaterialPreset("Shaded Solid")
 			createF3DMat(obj, preset)
 			self.report({'INFO'}, 'Created new Fast3D material.')
 		return {'FINISHED'} # must return a set
