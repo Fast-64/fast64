@@ -2992,7 +2992,7 @@ def mat_register():
 	nodeitems_utils.register_node_categories('CUSTOM_NODES', node_categories)
 
 	bpy.types.Scene.f3d_type = bpy.props.EnumProperty(
-		name = 'F3D Microcode', items = enumF3D, default = 'F3DEX2.Rej/LX2.Rej')
+		name = 'F3D Microcode', items = enumF3D, default = 'F3D')
 	bpy.types.Scene.isHWv1 = bpy.props.BoolProperty(name = 'Is Hardware v1?')
 	
 	# RDP Defaults

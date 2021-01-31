@@ -2,11 +2,12 @@
 
 ### Getting Started
 1. In the 3D view properties sidebar, go to the Fast64 tab -> Fast64 Global Properties and set "Game" to OOT.
-2. Switch to the OOT tab. Set your decomp path to the path of your repository on disk.
-3. Click "Add Scene" to create a basic scene.
-4. Choose the scene to replace. Some scenes have some hardcoded things that will cause them to break, so choose something like "spot01".
-5. Click "Export Scene" to export it.
-6. Compile and run the game. This was tested for commit 20c1f4e.
+2. Set "F3D Version" to F3DEX2.
+3. Switch to the OOT tab. Set your decomp path to the path of your repository on disk.
+4. Click "Add Scene" to create a basic scene.
+5. Choose the scene to replace. Some scenes have some hardcoded things that will cause them to break, so choose something like "spot01".
+6. Click "Export Scene" to export it.
+7. Compile and run the game. This was tested for commit 20c1f4e.
 
 ### Scene Overview
 In Blender, the "empty" object type is used to define different types of OOT data. 
