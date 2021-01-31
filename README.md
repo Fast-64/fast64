@@ -20,8 +20,8 @@ Thanks to anonymous_moose, Cheezepin, Rovert, and especially InTheBeef for testi
 Thanks to InTheBeef for LowPolySkinnedMario.
 
 ### Table of Contents
-2. [ Super Mario 64 ](sm64/REAMDE.md)
-3. [ Ocarina Of Time ](oot/README.md)
+2. [ Super Mario 64 ](https://bitbucket.org/kurethedead/fast64/raw/master/sm64/REAMDE.md)
+3. [ Ocarina Of Time ](https://bitbucket.org/kurethedead/fast64/raw/master/oot/README.md)
 
 ### Installation
 Download the repository as a zip file. In Blender, go to Edit -> Preferences -> Add-Ons and click the "Install" button to install the plugin from the zip file. Find the Fast64 addon in the addon list and enable it. If it does not show up, go to Edit -> Preferences -> Save&Load and make sure 'Auto Run Python Scripts' is enabled.
