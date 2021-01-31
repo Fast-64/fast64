@@ -86,11 +86,8 @@ class SM64_FileSettingsPanel(bpy.types.Panel):
 		col.prop(context.scene, 'outputRom')
 		col.prop(context.scene, 'extendBank4')
 		
-		col.prop(context.scene, 'decomp_compatible')
 		col.prop(context.scene, 'disableScroll')
-		col.prop(context.scene, 'ignoreTextureRestrictions')
-		if context.scene.ignoreTextureRestrictions:
-			col.box().label(text = "Width/height must be < 1024. Must be RGBA32. Must be png format.")
+		
 		col.prop(context.scene, 'decompPath')
 		
 		prop_split(col, context.scene, 'refreshVer', 'Decomp Func Map')
@@ -200,7 +197,7 @@ def sm64_register(registerPanels):
 		name = 'Disable Scrolling Textures')
 
 	bpy.types.Scene.blenderToSM64Scale = bpy.props.FloatProperty(
-		name = 'Blender To SM64 Scale', default = 212.766)
+		name = 'Blender To SM64 Scale', default = 100) # 212.766
 	bpy.types.Scene.decompPath = bpy.props.StringProperty(
 		name ='Decomp Folder', subtype = 'FILE_PATH')
 	

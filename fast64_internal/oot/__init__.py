@@ -11,6 +11,7 @@ from .c_writer import *
 from .oot_spline import *
 from .oot_anim import *
 from .oot_skeleton import *
+from .oot_operators import *
 #from .oot_f3d_parser import *
 
 import bpy
@@ -47,6 +48,8 @@ oot_classes = (
 )
 
 def oot_panel_register():
+	oot_operator_panel_register()
+	oot_dl_writer_panel_register()
 	oot_col_panel_register()
 	#oot_bone_panel_register()
 	oot_obj_panel_register()
@@ -54,12 +57,12 @@ def oot_panel_register():
 	#oot_geo_writer_panel_register()
 	oot_level_panel_register()
 	oot_spline_panel_register()
-	oot_dl_writer_panel_register()
 	#oot_dl_parser_panel_register()
 	oot_anim_panel_register()
 	oot_skeleton_panel_register()
 
 def oot_panel_unregister():
+	oot_operator_panel_unregister()
 	oot_col_panel_unregister()
 	#oot_bone_panel_unregister()
 	oot_obj_panel_unregister()
@@ -76,6 +79,7 @@ def oot_register(registerPanels):
 	for cls in oot_classes:
 		register_class(cls)
 
+	oot_operator_register()
 	oot_utility_register()
 	oot_col_register() # register first, so panel goes above mat panel
 	#oot_bone_register()
@@ -104,6 +108,7 @@ def oot_unregister(unregisterPanels):
 	for cls in reversed(oot_classes):
 		unregister_class(cls)
 
+	oot_operator_unregister()
 	oot_utility_unregister()
 	oot_col_unregister() # register first, so panel goes above mat panel
 	#oot_bone_unregister()

@@ -1,4 +1,5 @@
 import re
+from ..utility import *
 
 class BlenderEnumItem:
 	def __init__(self, key, name, description):
@@ -8,17 +9,6 @@ class BlenderEnumItem:
 	
 	def toC(self):
 		return '\t("' + self.key + '", "' + self.name + '", "' + self.description + '"),\n'
-
-def readFile(filepath):
-	datafile = open(filepath, 'r')
-	data = datafile.read()
-	datafile.close()
-	return data
-
-def writeFile(filepath, data):
-	datafile = open(filepath, 'w')
-	datafile.write(data)
-	datafile.close()
 
 def createEnum(enumName, enumList):
 	enumData = enumName + ' = [\n'

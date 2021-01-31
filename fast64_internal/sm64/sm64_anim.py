@@ -766,10 +766,6 @@ class SM64_ExportAnimPanel(bpy.types.Panel):
 			prop_split(col, context.scene, 'animExportStart', 'Start Address')
 			prop_split(col, context.scene, 'animExportEnd', 'End Address')
 			
-
-		for i in range(panelSeparatorSize):
-			col.separator()
-
 class SM64_ImportAnimMario(bpy.types.Operator):
 	bl_idname = 'object.sm64_import_anim'
 	bl_label = "Import Animation"
@@ -844,9 +840,6 @@ class SM64_ImportAnimPanel(bpy.types.Panel):
 		prop_split(col, context.scene, 'animStartImport', 'Start Address')
 		col.prop(context.scene, 'animIsSegPtr')
 		col.prop(context.scene, 'levelAnimImport')
-
-		for i in range(panelSeparatorSize):
-			col.separator()
 	
 sm64_anim_classes = (
 	SM64_ExportAnimMario,
@@ -890,7 +883,7 @@ def sm64_anim_register():
 	bpy.types.Scene.addr_0x28 = bpy.props.StringProperty(
 		name = '0x28 Command Address', default = '21CD08')
 	bpy.types.Scene.animExportType = bpy.props.EnumProperty(
-		items = enumExportType, name = 'Export', default = 'Binary')
+		items = enumExportType, name = 'Export', default = 'C')
 	bpy.types.Scene.animExportPath = bpy.props.StringProperty(
 		name = 'Directory', subtype = 'FILE_PATH')
 	bpy.types.Scene.animOverwriteDMAEntry = bpy.props.BoolProperty(

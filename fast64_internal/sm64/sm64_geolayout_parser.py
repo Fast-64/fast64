@@ -1225,8 +1225,6 @@ class SM64_ImportGeolayoutPanel(bpy.types.Panel):
 			boxLayout.label(text = "WARNING: May take a long time.")
 			boxLayout.label(text = "Switch nodes won't be setup.")
 		col.box().label(text = "Only Fast3D mesh importing allowed.")
-		for i in range(panelSeparatorSize):
-			col.separator()
 
 sm64_geo_parser_classes = (
 	SM64_ImportGeolayout,

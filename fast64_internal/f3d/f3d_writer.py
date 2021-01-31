@@ -1,6 +1,7 @@
 import bpy, bmesh, mathutils, os, re, copy, math
 from math import pi, ceil
 from io import BytesIO
+from bpy.utils import register_class, unregister_class
 
 from .f3d_constants import *
 from .f3d_material import all_combiner_uses, getMaterialScrollDimensions, getTmemWordUsage, getTmemMax, bitSizeDict, texBitSizeOf, texFormatOf
@@ -126,6 +127,8 @@ def fixLargeUVs(obj):
 			raise PluginError("Object \'" + obj.name + "\' does not have a UV layer named \'UVMap.\'")
 
 	texSizeDict = {}
+	if len(obj.data.materials) == 0:
+		raise PluginError("This object needs an f3d material on it.")
 	for material in obj.data.materials:
 		if material is None:
 			raise PluginError("There are some faces on your mesh that are assigned to an empty material slot.")
@@ -374,14 +377,11 @@ def saveStaticModel(fModel, obj, transformMatrix, ownerName, DLFormat, convertTe
 			drawLayer = getattr(material.f3d_mat.draw_layer, drawLayerField)
 			drawLayerName = drawLayer
 		else:
-			drawLayer = fModel.getDrawLayer(obj)
+			drawLayer = fModel.getDrawLayerV3(obj)
 			drawLayerName = None
 
 		if drawLayer not in fMeshes:
-			meshName = getFMeshName(obj.original_name, ownerName, drawLayerName, False)
-			checkUniqueBoneNames(fModel, meshName, obj.original_name)
-			fMesh = FMesh(meshName, DLFormat)
-			fModel.meshes[meshName] = fMesh
+			fMesh = fModel.addMesh(obj.original_name, ownerName, drawLayerName, False)
 			fMeshes[drawLayer] = fMesh
 
 			if obj.use_f3d_culling and (fModel.f3d.F3DEX_GBI or fModel.f3d.F3DEX_GBI_2):
@@ -442,7 +442,7 @@ def addCullCommand(obj, fMesh, transformMatrix, matWriteMethod):
 def exportF3DCommon(obj, fModel, transformMatrix, includeChildren, name, DLFormat, convertTextureData):
 	tempObj, meshList = combineObjects(obj, includeChildren, None, None)
 	try:
-		drawLayer = fModel.getDrawLayer(obj)
+		drawLayer = fModel.getDrawLayerV3(obj)
 		fMesh = saveStaticModel(fModel, tempObj, transformMatrix, name, 
 			DLFormat, convertTextureData, True, None)[drawLayer]
 		cleanupCombineObj(tempObj, meshList)
@@ -1000,30 +1000,23 @@ def convertVertexData(mesh, loopPos, loopUV, loopColorOrNormal,
 	return Vtx(position, uv, colorOrNormal)
 
 def getLoopColor(loop, mesh, mat_ver):
-	if mat_ver > 3:
-		color_layer = mesh.vertex_colors.active.data if mesh.vertex_colors.active is not None else None
-		if color_layer is not None:
-			normalizedRGB = color_layer[loop.index].color
-		else:
-			normalizedRGB = [1,1,1,1]
-		return (normalizedRGB[0], normalizedRGB[1], normalizedRGB[2], normalizedRGB[3])
-	else:
-		color_layer = mesh.vertex_colors['Col'].data if 'Col' in \
-			mesh.vertex_colors else None
-		alpha_layer = mesh.vertex_colors['Alpha'].data if 'Alpha' in \
-			mesh.vertex_colors else None
 
-		if color_layer is not None:
-			normalizedRGB = color_layer[loop.index].color
-		else:
-			normalizedRGB = [1,1,1]
-		if alpha_layer is not None:
-			normalizedAColor = alpha_layer[loop.index].color
-			normalizedA = mathutils.Color(normalizedAColor[0:3]).v
-		else:
-			normalizedA = 1
-	
-		return (normalizedRGB[0], normalizedRGB[1], normalizedRGB[2], normalizedA)
+	color_layer = mesh.vertex_colors['Col'].data if 'Col' in \
+		mesh.vertex_colors else None
+	alpha_layer = mesh.vertex_colors['Alpha'].data if 'Alpha' in \
+		mesh.vertex_colors else None
+
+	if color_layer is not None:
+		normalizedRGB = color_layer[loop.index].color
+	else:
+		normalizedRGB = [1,1,1]
+	if alpha_layer is not None:
+		normalizedAColor = alpha_layer[loop.index].color
+		normalizedA = mathutils.Color(normalizedAColor[0:3]).v
+	else:
+		normalizedA = 1
+
+	return (normalizedRGB[0], normalizedRGB[1], normalizedRGB[2], normalizedA)
 
 def getLoopColorOrNormal(loop, face, mesh, obj, exportVertexColors):
 	material = obj.data.materials[face.material_index]
@@ -1286,7 +1279,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 			int(color[3] * 255)))
 	
 	if useDict['Shade'] and f3dMat.set_lights:
-		fLights = saveLightsDefinition(fModel, f3dMat, 
+		fLights = saveLightsDefinition(fModel, fMaterial, f3dMat, 
 			materialName + '_lights')
 		fMaterial.material.commands.extend([
 			SPSetLights(fLights) # TODO: handle synching: NO NEED?
@@ -1324,6 +1317,8 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 				int(f3dMat.k4 * 255),
 				int(f3dMat.k5 * 255))
 		])
+
+	fModel.onMaterialCommandsBuilt(fMaterial.material, fMaterial.revert, material, drawLayer)
 		
 	# End Display List
 	# For dynamic calls, materials will be called as functions and should not end the DL.
@@ -1509,7 +1504,6 @@ def saveTextureLoading(fMaterial, fImage, loadTexGfx, clamp_S, mirror_S, clamp_T
 			DPLoadTile(f3d.G_TX_LOADTILE - texIndex, sl, tl, sh, th),]) # added in
 	
 	tileSizeCommand = DPSetTileSize(f3d.G_TX_RENDERTILE + texIndex, sl, tl, sh, th)
-	#tileSizeCommand = SPDisplayList(GfxList("0x08000000", GfxListTag.Material, DLFormat.Static))
 	loadTexGfx.commands.extend([
 		DPPipeSync(),
 		DPSetTile(fmt, siz, line, tmem,	\
@@ -1558,8 +1552,10 @@ def saveOrGetPaletteDefinition(fMaterial, fModelOrTexRect, image, imageName, tex
 	# If image already loaded, return that data.
 	paletteName = toAlnum(imageName) + '_pal_' + palFmt.lower()
 	imageKey = (image, (texFmt, palFmt))
-	if imageKey in fModelOrTexRect.textures:
-		return fModelOrTexRect.textures[imageKey], fModelOrTexRect.textures[imageKey].palette
+	paletteKey = (image, (palFmt, 'PAL'))
+	fImage, fPalette = fModelOrTexRect.getTextureAndHandleShared(imageKey)
+	if fImage is not None:
+		return fImage, fPalette
 
 	palette = []
 	texture = []
@@ -1604,7 +1600,7 @@ def saveOrGetPaletteDefinition(fMaterial, fModelOrTexRect, image, imageName, tex
 	if fMaterial.useLargeTextures:
 		fImage.isLargeTexture = True
 		fPalette.isLargeTexture = True
-	fImage.palette = fPalette
+	fImage.paletteKey = paletteKey
 	
 	#paletteImage = bpy.data.images.new(paletteName, 1, len(palette))
 	#paletteImage.pixels = palette
@@ -1652,9 +1648,9 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image, imageName, texFormat, c
 
 	# If image already loaded, return that data.
 	imageKey = (image, (texFormat, 'NONE'))
-	imageItem = fModel.getTextureAndHandleShared(imageKey)
-	if imageItem is not None:
-		return imageItem
+	fImage, fPalette = fModel.getTextureAndHandleShared(imageKey)
+	if fImage is not None:
+		return fImage
 
 	if image.filepath == "":
 		name = image.name
@@ -1681,17 +1677,17 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image, imageName, texFormat, c
 				#	for j in reversed(range(image.size[1])) for i in range(image.size[0])] for byteVal in doubleByte])
 
 				fImage.data = bytearray([byteVal for doubleByte in [
-					((((int(image.pixels[(j * image.size[0] + i) * image.channels + 0] * 0x1F) & 0x1F) << 3) |
-					((int(image.pixels[(j * image.size[0] + i) * image.channels + 1] * 0x1F) & 0x1F) >> 2)),
+					((((int(round(image.pixels[(j * image.size[0] + i) * image.channels + 0] * 0x1F)) & 0x1F) << 3) |
+					((int(round(image.pixels[(j * image.size[0] + i) * image.channels + 1] * 0x1F)) & 0x1F) >> 2)),
 
-					(((int(image.pixels[(j * image.size[0] + i) * image.channels + 1] * 0x1F) & 0x02) << 6) | \
-					((int(image.pixels[(j * image.size[0] + i) * image.channels + 2] * 0x1F) & 0x1F) << 1) | \
+					(((int(round(image.pixels[(j * image.size[0] + i) * image.channels + 1] * 0x1F)) & 0x02) << 6) | \
+					((int(round(image.pixels[(j * image.size[0] + i) * image.channels + 2] * 0x1F)) & 0x1F) << 1) | \
 					(1 if image.pixels[(j * image.size[0] + i) * image.channels + 3] > 0.5 else 0)))
 
 					for j in reversed(range(image.size[1])) for i in range(image.size[0])] for byteVal in doubleByte])
 			elif bitSize == 'G_IM_SIZ_32b':
 				fImage.data = bytearray([
-					int(image.pixels[(j * image.size[0] + i) * image.channels + field] * 0xFF) & 0xFF
+					int(round(image.pixels[(j * image.size[0] + i) * image.channels + field] * 0xFF)) & 0xFF
 					for j in reversed(range(image.size[1])) for i in range(image.size[0]) for field in range(image.channels)])
 			else:
 				raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
@@ -1709,49 +1705,49 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image, imageName, texFormat, c
 		elif fmt == 'G_IM_FMT_IA':
 			if bitSize == 'G_IM_SIZ_4b':
 				fImage.data = bytearray([
-						((int(mathutils.Color(
+						((int(round(mathutils.Color(
 							image.pixels[
 								(j * image.size[0] + i) * image.channels :
 								(j * image.size[0] + i) * image.channels + 3
-							]).v * 0x7) & 0x7) << 1) | \
+							]).v * 0x7)) & 0x7) << 1) | \
 						(1 if image.pixels[(j * image.size[0] + i) * image.channels + 3] > 0.5 else 0)
 					for j in reversed(range(image.size[1])) for i in range(image.size[0])])
 			elif bitSize == 'G_IM_SIZ_8b':
 				fImage.data = bytearray([
-						((int(mathutils.Color(
+						((int(round(mathutils.Color(
 							image.pixels[
 								(j * image.size[0] + i) * image.channels :
 								(j * image.size[0] + i) * image.channels + 3
-							]).v * 0xF) & 0xF) << 4) | \
-						(int(image.pixels[(j * image.size[0] + i) * image.channels + 3] * 0xF) & 0xF)
+							]).v * 0xF)) & 0xF) << 4) | \
+						(int(round(image.pixels[(j * image.size[0] + i) * image.channels + 3] * 0xF)) & 0xF)
 					for j in reversed(range(image.size[1])) for i in range(image.size[0])])
 			elif bitSize == 'G_IM_SIZ_16b':
 				fImage.data = bytearray([byteVal for doubleByte in [
-						(int(mathutils.Color(
+						(int(round(mathutils.Color(
 							image.pixels[
 								(j * image.size[0] + i) * image.channels :
 								(j * image.size[0] + i) * image.channels + 3
-							]).v * 0xFF) & 0xFF,
-						int(image.pixels[(j * image.size[0] + i) * image.channels + 3] * 0xFF) & 0xFF) 
+							]).v * 0xFF)) & 0xFF,
+						int(round(image.pixels[(j * image.size[0] + i) * image.channels + 3] * 0xFF)) & 0xFF) 
 					for j in reversed(range(image.size[1])) for i in range(image.size[0])] for byteVal in doubleByte])
 			else:
 				raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
 		elif fmt == 'G_IM_FMT_I':
 			if bitSize == 'G_IM_SIZ_4b':
 				fImage.data = bytearray([
-					int(mathutils.Color(
+					int(round(mathutils.Color(
 						image.pixels[
 							(j * image.size[0] + i) * image.channels :
 							(j * image.size[0] + i) * image.channels + 3
-						]).v * 0xF) & 0xF 
+						]).v * 0xF)) & 0xF 
 				for j in reversed(range(image.size[1])) for i in range(image.size[0])])
 			elif bitSize == 'G_IM_SIZ_8b':
 				fImage.data = bytearray([
-					int(mathutils.Color(
+					int(round(mathutils.Color(
 						image.pixels[
 							(j * image.size[0] + i) * image.channels :
 							(j * image.size[0] + i) * image.channels + 3
-						]).v * 0xFF) & 0xFF 
+						]).v * 0xFF)) & 0xFF 
 				for j in reversed(range(image.size[1])) for i in range(image.size[0])])
 			else:
 				raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
@@ -1769,75 +1765,80 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image, imageName, texFormat, c
 	return fImage
 
 	# Ignore, old version not using list comprehension
-	if convertTextureData:
-		# N64 is -Y, Blender is +Y
-		for j in reversed(range(image.size[1])):
-			for i in range(image.size[0]):
-				color = [1,1,1,1]
-				for field in range(image.channels):
-					color[field] = image.pixels[
-						(j * image.size[0] + i) * image.channels + field]
-				if fmt == 'G_IM_FMT_RGBA':
-					if bitSize == 'G_IM_SIZ_16b':
-						words = \
-							((int(color[0] * 0x1F) & 0x1F) << 11) | \
-							((int(color[1] * 0x1F) & 0x1F) << 6) | \
-							((int(color[2] * 0x1F) & 0x1F) << 1) | \
-							(1 if color[3] > 0.5 else 0)
-						fImage.data.extend(bytearray(words.to_bytes(2, 'big')))
-					elif bitSize == 'G_IM_SIZ_32b':
-						fImage.data.extend(bytearray([
-							int(value * 0xFF) & 0xFF for value in color]))
-					else:
-						raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
+	# Warning, ints not rounded
+	#if convertTextureData:
+	#	# N64 is -Y, Blender is +Y
+	#	for j in reversed(range(image.size[1])):
+	#		for i in range(image.size[0]):
+	#			color = [1,1,1,1]
+	#			for field in range(image.channels):
+	#				color[field] = image.pixels[
+	#					(j * image.size[0] + i) * image.channels + field]
+	#			if fmt == 'G_IM_FMT_RGBA':
+	#				if bitSize == 'G_IM_SIZ_16b':
+	#					words = \
+	#						((int(color[0] * 0x1F) & 0x1F) << 11) | \
+	#						((int(color[1] * 0x1F) & 0x1F) << 6) | \
+	#						((int(color[2] * 0x1F) & 0x1F) << 1) | \
+	#						(1 if color[3] > 0.5 else 0)
+	#					fImage.data.extend(bytearray(words.to_bytes(2, 'big')))
+	#				elif bitSize == 'G_IM_SIZ_32b':
+	#					fImage.data.extend(bytearray([
+	#						int(value * 0xFF) & 0xFF for value in color]))
+	#				else:
+	#					raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
+#
+	#			elif fmt == 'G_IM_FMT_YUV':
+	#				raise PluginError("YUV not yet implemented.")
+	#				if bitSize == 'G_IM_SIZ_16b':
+	#					pass
+	#				else:
+	#					raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
+#
+	#			elif fmt == 'G_IM_FMT_CI':
+	#				raise PluginError("CI not yet implemented.")
+#
+	#			elif fmt == 'G_IM_FMT_IA':
+	#				intensity = mathutils.Color(color[0:3]).v
+	#				alpha = color[3]
+	#				if bitSize == 'G_IM_SIZ_4b':
+	#					fImage.data.append(
+	#						((int(intensity * 0x7) & 0x7) << 1) | \
+	#						(1 if alpha > 0.5 else 0))
+	#				elif bitSize == 'G_IM_SIZ_8b':
+	#					fImage.data.append(
+	#						((int(intensity * 0xF) & 0xF) << 4) | \
+	#						(int(alpha * 0xF) & 0xF))
+	#				elif bitSize == 'G_IM_SIZ_16b':
+	#					fImage.data.extend(bytearray(
+	#						[int(intensity * 0xFF), int(alpha * 0xFF)]))
+	#				else:
+	#					raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
+	#			elif fmt == 'G_IM_FMT_I':
+	#				intensity = mathutils.Color(color[0:3]).v
+	#				if bitSize == 'G_IM_SIZ_4b':
+	#					fImage.data.append(int(intensity * 0xF))
+	#				elif bitSize == 'G_IM_SIZ_8b':
+	#					fImage.data.append(int(intensity * 0xFF))
+	#				else:
+	#					raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
+	#			else:
+	#				raise PluginError("Invalid image format " + fmt)
+	#		
+	#	# We stored 4bit values in byte arrays, now to convert
+	#	if bitSize == 'G_IM_SIZ_4b':
+	#		fImage.data = \
+	#			compactNibbleArray(fImage.data, image.size[0], image.size[1])
+	#
+	#fModel.addTexture((image, (texFormat, 'NONE')), fImage, fMaterial)
+#
+	#return fImage
 
-				elif fmt == 'G_IM_FMT_YUV':
-					raise PluginError("YUV not yet implemented.")
-					if bitSize == 'G_IM_SIZ_16b':
-						pass
-					else:
-						raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
-
-				elif fmt == 'G_IM_FMT_CI':
-					raise PluginError("CI not yet implemented.")
-
-				elif fmt == 'G_IM_FMT_IA':
-					intensity = mathutils.Color(color[0:3]).v
-					alpha = color[3]
-					if bitSize == 'G_IM_SIZ_4b':
-						fImage.data.append(
-							((int(intensity * 0x7) & 0x7) << 1) | \
-							(1 if alpha > 0.5 else 0))
-					elif bitSize == 'G_IM_SIZ_8b':
-						fImage.data.append(
-							((int(intensity * 0xF) & 0xF) << 4) | \
-							(int(alpha * 0xF) & 0xF))
-					elif bitSize == 'G_IM_SIZ_16b':
-						fImage.data.extend(bytearray(
-							[int(intensity * 0xFF), int(alpha * 0xFF)]))
-					else:
-						raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
-				elif fmt == 'G_IM_FMT_I':
-					intensity = mathutils.Color(color[0:3]).v
-					if bitSize == 'G_IM_SIZ_4b':
-						fImage.data.append(int(intensity * 0xF))
-					elif bitSize == 'G_IM_SIZ_8b':
-						fImage.data.append(int(intensity * 0xFF))
-					else:
-						raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
-				else:
-					raise PluginError("Invalid image format " + fmt)
-			
-		# We stored 4bit values in byte arrays, now to convert
-		if bitSize == 'G_IM_SIZ_4b':
-			fImage.data = \
-				compactNibbleArray(fImage.data, image.size[0], image.size[1])
-	
-	fModel.addTexture((image, (texFormat, 'NONE')), fImage, fMaterial)
-
-	return fImage
-
-def saveLightsDefinition(fModel, material, lightsName):
+def saveLightsDefinition(fModel, fMaterial, material, lightsName):
+	lights = fModel.getLightAndHandleShared(lightsName)
+	if lights is not None:
+		return lights
+		
 	lights = Lights(toAlnum(lightsName))
 
 	if material.use_default_lighting:
@@ -1876,7 +1877,7 @@ def saveLightsDefinition(fModel, material, lightsName):
 
 	if lightsName in fModel.lights:
 		raise PluginError("Duplicate light name.")
-	fModel.lights[lightsName] = lights
+	fModel.addLight(lightsName, lights, fMaterial)
 	return lights
 
 def addLightDefinition(mat, f3d_light, fLights):
@@ -2041,17 +2042,24 @@ def saveOtherModeLDefinition(fMaterial, settings, defaults, defaultRenderMode, m
 		raise PluginError("Unhandled material write method: " + str(matWriteMethod))
 
 def saveOtherModeLDefinitionAll(fMaterial, settings, defaults, defaultRenderMode):
-	cmd = SPSetOtherMode("G_SETOTHERMODE_L", 0, 32, [])
-	cmd.flagList.append(settings.g_mdsft_alpha_compare)
-	cmd.flagList.append(settings.g_mdsft_zsrcsel)
-
-	if settings.set_rendermode:
-		flagList, blendList = getRenderModeFlagList(settings, fMaterial)
-		cmd.flagList.extend(flagList)
-		if blendList is not None:
-			cmd.flagList.extend(blendList)
+	if not settings.set_rendermode and defaultRenderMode is None:
+		cmd = SPSetOtherMode("G_SETOTHERMODE_L", 0, 3, [])
+		cmd.flagList.append(settings.g_mdsft_alpha_compare)
+		cmd.flagList.append(settings.g_mdsft_zsrcsel)
+	
 	else:
-		cmd.flagList.extend(defaultRenderMode)
+		cmd = SPSetOtherMode("G_SETOTHERMODE_L", 0, 32, [])
+		cmd.flagList.append(settings.g_mdsft_alpha_compare)
+		cmd.flagList.append(settings.g_mdsft_zsrcsel)
+
+		if settings.set_rendermode:
+			flagList, blendList = getRenderModeFlagList(settings, fMaterial)
+			cmd.flagList.extend(flagList)
+			if blendList is not None:
+				cmd.flagList.extend(blendList)
+		else:
+			cmd.flagList.extend(defaultRenderMode)
+
 	fMaterial.material.commands.append(cmd)
 
 def saveOtherModeLDefinitionIndividual(fMaterial, settings, defaults, defaultRenderMode):
@@ -2137,3 +2145,156 @@ def saveOtherDefinition(fMaterial, material, defaults):
 			int(material.blend_color[1] * 255), 
 			int(material.blend_color[2] * 255),
 			int(material.blend_color[3] * 255)))
+
+
+enumMatWriteMethod = [
+	("Differing", "Write Differing And Revert", "Write Differing And Revert"),
+	("All", "Write All", "Write All")
+]
+
+matWriteMethodEnumDict = {
+	"Differing" : GfxMatWriteMethod.WriteDifferingAndRevert,
+	"All" : GfxMatWriteMethod.WriteAll
+}
+
+def getWriteMethodFromEnum(enumVal):
+	if enumVal not in matWriteMethodEnumDict:
+		raise PluginError("Enum value " + str(enumVal) + " not found in material write method dict.")
+	else:
+		return matWriteMethodEnumDict[enumVal]
+
+def exportF3DtoC(dirPath, obj, DLFormat, transformMatrix, 
+	f3dType, isHWv1, texDir, savePNG, texSeparate, name, matWriteMethod):
+
+	fModel = FModel(f3dType, isHWv1, name, DLFormat, matWriteMethod)
+	fMesh = exportF3DCommon(obj, fModel, transformMatrix, 
+		True, name, DLFormat, not savePNG)
+
+	modelDirPath = os.path.join(dirPath, toAlnum(name))
+
+	if not os.path.exists(modelDirPath):
+		os.makedirs(modelDirPath)
+
+	gfxFormatter = GfxFormatter(ScrollMethod.Vertex, 64)
+	exportData = fModel.to_c(TextureExportSettings(texSeparate, savePNG, texDir, modelDirPath), gfxFormatter)
+	staticData = exportData.staticData
+	dynamicData = exportData.dynamicData
+	texC = exportData.textureData
+
+	if DLFormat == DLFormat.Static:
+		staticData.append(dynamicData)
+	else:
+		geoString = writeMaterialFiles(dirPath, modelDirPath, 
+			'#include "actors/' + toAlnum(name) + '/header.h"', 
+			'#include "actors/' + toAlnum(name) + '/material.inc.h"',
+			dynamicData.header, dynamicData.source, '', True)
+
+	if texSeparate:
+		texCFile = open(os.path.join(modelDirPath, 'texture.inc.c'), 'w', newline='\n')
+		texCFile.write(texC.source)
+		texCFile.close()
+
+	writeCData(staticData, os.path.join(modelDirPath, 'header.h'),
+		os.path.join(modelDirPath, 'model.inc.c'))
+
+class F3D_ExportDL(bpy.types.Operator):
+	# set bl_ properties
+	bl_idname = 'object.f3d_export_dl'
+	bl_label = "Export Display List"
+	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
+
+	# Called on demand (i.e. button press, menu item)
+	# Can also be called from operator search menu (Spacebar)
+	def execute(self, context):
+		if context.mode != 'OBJECT':
+			bpy.ops.object.mode_set("OBJECT")
+		try:
+			allObjs = context.selected_objects
+			if len(allObjs) == 0:
+				raise PluginError("No objects selected.")
+			obj = context.selected_objects[0]
+			if not isinstance(obj.data, bpy.types.Mesh):
+				raise PluginError("Object is not a mesh.")
+
+			scaleValue = bpy.context.scene.blenderToSM64Scale
+			finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((
+				scaleValue, scaleValue, scaleValue))).to_4x4()
+
+		except Exception as e:
+			raisePluginError(self, e)
+			return {"CANCELLED"}
+		
+		try:
+			applyRotation([obj], math.radians(90), 'X')
+
+			exportPath = bpy.path.abspath(context.scene.DLExportPath)
+			dlFormat = DLFormat.Static if context.scene.DLExportisStatic else DLFormat.Dynamic
+			f3dType = context.scene.f3d_type
+			isHWv1 = context.scene.isHWv1
+			texDir = bpy.context.scene.DLTexDir
+			savePNG = bpy.context.scene.DLSaveTextures or bpy.context.scene.ignoreTextureRestrictions
+			separateTexDef = bpy.context.scene.DLSeparateTextureDef
+			DLName = bpy.context.scene.DLName
+			matWriteMethod = getWriteMethodFromEnum(context.scene.matWriteMethod)
+
+			exportF3DtoC(exportPath, obj, dlFormat, finalTransform, 
+				f3dType, isHWv1, texDir, savePNG, separateTexDef, DLName, matWriteMethod)
+
+			self.report({'INFO'}, 'Success!')
+				
+			applyRotation([obj], math.radians(-90), 'X')
+			return {'FINISHED'} # must return a set
+
+		except Exception as e:
+			if context.mode != 'OBJECT':
+				bpy.ops.object.mode_set(mode = 'OBJECT')
+			applyRotation([obj], math.radians(-90), 'X')
+			
+			raisePluginError(self, e)
+			return {'CANCELLED'} # must return a set
+
+class F3D_ExportDLPanel(bpy.types.Panel):
+	bl_idname = "F3D_PT_export_dl"
+	bl_label = "F3D Exporter"
+	bl_space_type = 'VIEW_3D'
+	bl_region_type = 'UI'
+	bl_category = 'Fast64'
+
+	@classmethod
+	def poll(cls, context):
+		return True
+
+	# called every frame
+	def draw(self, context):
+		col = self.layout.column()
+		col.operator(F3D_ExportDL.bl_idname)
+
+		col.prop(context.scene, 'DLExportPath')
+		prop_split(col, context.scene, 'DLName', 'Name')
+		prop_split(col, context.scene, 'matWriteMethod', "Material Write Method")
+		col.prop(context.scene, 'DLExportisStatic')
+		
+		if not bpy.context.scene.ignoreTextureRestrictions:
+			col.prop(context.scene, 'DLSaveTextures')
+			if context.scene.DLSaveTextures:
+				prop_split(col, context.scene, 'DLTexDir',
+					'Texture Include Path')	
+				col.prop(context.scene, 'DLSeparateTextureDef')
+
+f3d_writer_classes = (
+	F3D_ExportDL,
+	F3D_ExportDLPanel,
+)
+
+
+def f3d_writer_register():
+	for cls in f3d_writer_classes:
+		register_class(cls)
+
+	bpy.types.Scene.matWriteMethod = bpy.props.EnumProperty(items = enumMatWriteMethod)
+
+def f3d_writer_unregister():
+	for cls in reversed(f3d_writer_classes):
+		unregister_class(cls)
+
+	del bpy.types.Scene.matWriteMethod

@@ -1,7 +1,7 @@
 import shutil, copy, bpy, cProfile, pstats
 
 from ..f3d.f3d_writer import *
-from ..f3d.f3d_material import TextureProperty, tmemUsageUI
+from ..f3d.f3d_material import *
 from .sm64_texscroll import *
 from bpy.utils import register_class, unregister_class
 from .sm64_constants import level_enums, enumLevelNames
@@ -24,7 +24,7 @@ class SM64Model(FModel):
 	def __init__(self, f3dType, isHWv1, name, DLFormat):
 		FModel.__init__(self, f3dType, isHWv1, name, DLFormat, GfxMatWriteMethod.WriteDifferingAndRevert)
 
-	def getDrawLayer(self, obj):
+	def getDrawLayerV3(self, obj):
 		return int(obj.draw_layer_static)
 
 	def getRenderMode(self, drawLayer):
@@ -32,10 +32,10 @@ class SM64Model(FModel):
 		cycle2 = getattr(bpy.context.scene.world, 'draw_layer_' + str(drawLayer) + '_cycle_2')
 		return [cycle1, cycle2]
 
-class SM64GfxFormatter(GameGfxFormatter):
+class SM64GfxFormatter(GfxFormatter):
 	def __init__(self, scrollMethod):
 		self.functionNodeDraw = False
-		GameGfxFormatter.__init__(self, scrollMethod, 8)
+		GfxFormatter.__init__(self, scrollMethod, 8)
 
 	def vertexScrollToC(self, fScrollData, name, count):
 		data = CData()
@@ -267,7 +267,7 @@ def exportTexRectCommon(texProp, f3dType, isHWv1, name, convertTextureData):
 	
 	return fTexRect
 
-def exportF3DtoC(basePath, obj, DLFormat, transformMatrix, 
+def sm64ExportF3DtoC(basePath, obj, DLFormat, transformMatrix, 
 	f3dType, isHWv1, texDir, savePNG, texSeparate, includeChildren, name, levelName, groupName, customExport, headerType):
 	dirPath, texDir = getExportDir(customExport, basePath, headerType, 
 		levelName, texDir, name)
@@ -488,7 +488,7 @@ class SM64_ExportDL(bpy.types.Operator):
 					context.scene.DLLevelOption)
 				if not context.scene.DLCustomExport:
 					applyBasicTweaks(exportPath)
-				exportF3DtoC(exportPath, obj,
+				sm64ExportF3DtoC(exportPath, obj,
 					DLFormat.Static if context.scene.DLExportisStatic else DLFormat.Dynamic, finalTransform,
 					context.scene.f3d_type, context.scene.isHWv1,
 					bpy.context.scene.DLTexDir,
@@ -497,7 +497,7 @@ class SM64_ExportDL(bpy.types.Operator):
 					bpy.context.scene.DLincludeChildren, bpy.context.scene.DLName, levelName, context.scene.DLGroupName,
 					context.scene.DLCustomExport,
 					context.scene.DLExportHeaderType)
-				#cProfile.runctx('exportF3DtoC(exportPath, obj,' +\
+				#cProfile.runctx('sm64ExportF3DtoC(exportPath, obj,' +\
 				#	'DLFormat.Static if context.scene.DLExportisStatic else DLFormat.Dynamic, finalTransform,' +\
 				#	'context.scene.f3d_type, context.scene.isHWv1,' +\
 				#	'bpy.context.scene.DLTexDir,' +\
@@ -656,9 +656,6 @@ class SM64_ExportDLPanel(bpy.types.Panel):
 				prop_split(col, context.scene, 'DLExportGeoPtr', 
 					'Geolayout Pointer')
 		col.prop(context.scene, 'DLincludeChildren')
-		
-		for i in range(panelSeparatorSize):
-			col.separator()
 
 class ExportTexRectDraw(bpy.types.Operator):
 	# set bl_ properties
@@ -673,12 +670,11 @@ class ExportTexRectDraw(bpy.types.Operator):
 			if context.scene.texrect.tex is None:
 				raise PluginError("No texture selected.")
 			else:
-				if context.scene.decompPath == "":
-					raise PluginError("Decomp path has not been set in File Settings.")
-
 				if context.scene.TexRectCustomExport:
 					exportPath = context.scene.TexRectExportPath
 				else:
+					if context.scene.decompPath == "":
+						raise PluginError("Decomp path has not been set in File Settings.")
 					exportPath = context.scene.decompPath
 				if not context.scene.TexRectCustomExport:
 					applyBasicTweaks(exportPath)
@@ -760,9 +756,6 @@ class ExportTexRectDrawPanel(bpy.types.Panel):
 			infoBox.label(text = enumHUDPaths[context.scene.TexRectExportType][0] + ': ')
 			infoBox.label(text = enumHUDPaths[context.scene.TexRectExportType][1] + '.')
 
-		for i in range(panelSeparatorSize):
-			col.separator()
-
 class SM64_DrawLayersPanel(bpy.types.Panel):
 	bl_label = "SM64 Draw Layers"
 	bl_idname = "WORLD_PT_SM64_Draw_Layers_Panel"
@@ -794,6 +787,33 @@ def drawLayerUI(layout, drawLayer, world):
 	row.prop(world, 'draw_layer_' + str(drawLayer) + '_cycle_1', text = '')
 	row.prop(world, 'draw_layer_' + str(drawLayer) + '_cycle_2', text = '')
 
+class SM64_MaterialPanel(bpy.types.Panel):
+	bl_label = "SM64 Material"
+	bl_idname = "MATERIAL_PT_SM64_Material_Inspector"
+	bl_space_type = 'PROPERTIES'
+	bl_region_type = 'WINDOW'
+	bl_context = "material"
+	bl_options = {'HIDE_HEADER'} 
+
+	@classmethod
+	def poll(cls, context):
+		return context.material is not None and context.scene.gameEditorMode == "SM64"
+
+	def draw(self, context):
+		layout = self.layout
+		material = context.material
+		col = layout.column()
+
+		if material.mat_ver > 3:
+			f3dMat = material.f3d_mat
+		else:
+			f3dMat = material
+		useDict = all_combiner_uses(f3dMat)
+
+		if useDict['Texture']:
+			ui_procAnim(material, col, useDict['Texture 0'], useDict['Texture 1'], 
+				"SM64 UV Texture Scroll", False)
+
 
 sm64_dl_writer_classes = (
 	SM64_ExportDL,
@@ -802,6 +822,7 @@ sm64_dl_writer_classes = (
 )
 
 sm64_dl_writer_panel_classes = (
+	SM64_MaterialPanel,
 	SM64_DrawLayersPanel,
 	SM64_ExportDLPanel,
 	ExportTexRectDrawPanel,
@@ -847,7 +868,7 @@ def sm64_dl_writer_register():
 	bpy.types.Scene.overwriteGeoPtr = bpy.props.BoolProperty(
 		name = "Overwrite geolayout pointer", default = False)
 	bpy.types.Scene.DLExportType = bpy.props.EnumProperty(
-		items = enumExportType, name = 'Export', default = 'Binary')
+		items = enumExportType, name = 'Export', default = 'C')
 	bpy.types.Scene.DLExportPath = bpy.props.StringProperty(
 		name = 'Directory', subtype = 'FILE_PATH')
 	bpy.types.Scene.DLExportisStatic = bpy.props.BoolProperty(

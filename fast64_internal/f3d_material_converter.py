@@ -70,7 +70,7 @@ def getV4PresetName(name):
 	if name in V4PresetName:
 		newName = V4PresetName[name]
 	else:
-		newName = name
+		newName = "Custom"
 	return newName
 
 def convertF3DtoNewVersion(obj, index, material, materialDict, version):
@@ -81,24 +81,27 @@ def convertF3DtoNewVersion(obj, index, material, materialDict, version):
 		oldPreset = material.f3d_preset
 
 	if version > 3:
-		f3dMat = createF3DMat(obj, preset = getV4PresetName(oldPreset), index = index)	
+		newMat = createF3DMat(obj, preset = getV4PresetName(oldPreset), index = index)	
 		if material.mat_ver > 3:
-			copyPropertyGroup(material.f3d_mat, f3dMat.f3d_mat)
+			copyPropertyGroup(material.f3d_mat, newMat.f3d_mat)
 		else:
-			convertToNewMat(f3dMat, material)
-		if f3dMat.f3d_mat.draw_layer.sm64 != obj.draw_layer_static:
-			f3dMat.f3d_mat.draw_layer.sm64 = obj.draw_layer_static
+			convertToNewMat(newMat, material)
+		if newMat.f3d_mat.draw_layer.sm64 != obj.draw_layer_static:
+			newMat.f3d_mat.draw_layer.sm64 = obj.draw_layer_static
 	else:
-		f3dMat = createF3DMat(obj, preset = oldPreset, index = index)	
+		newMat = createF3DMat(obj, preset = oldPreset, index = index)	
 		matSettings = F3DMaterialSettings()
 		matSettings.loadFromMaterial(material, True)
-		matSettings.applyToMaterial(f3dMat, True, update_node_values_of_material, bpy.context)
+		matSettings.applyToMaterial(newMat, True, update_node_values_of_material, bpy.context)
+
+	copyPropertyGroup(material.ootMaterial, newMat.ootMaterial)
+	copyPropertyGroup(material.ootCollisionProperty, newMat.ootCollisionProperty)
 
 	colSettings = CollisionSettings()
 	colSettings.load(material)
-	colSettings.apply(f3dMat)
+	colSettings.apply(newMat)
 
-	updateMatWithNewVersionName(f3dMat, material, materialDict, version)
+	updateMatWithNewVersionName(newMat, material, materialDict, version)
 
 def convertAllBSDFtoF3D(objs, renameUV):
 	# Dict of non-f3d materials : converted f3d materials
@@ -118,17 +121,19 @@ def convertAllBSDFtoF3D(objs, renameUV):
 
 def convertBSDFtoF3D(obj, index, material, materialDict):
 	if not material.use_nodes:
-		f3dMat = createF3DMat(obj, preset = 'Shaded Solid', index = index)
+		newMaterial = createF3DMat(obj, preset = 'Shaded Solid', index = index)
+		f3dMat = newMaterial.f3d_mat if newMaterial.mat_ver > 3 else newMaterial
 		f3dMat.default_light_color = material.diffuse_color
-		updateMatWithName(f3dMat, material, materialDict)
+		updateMatWithName(newMaterial, material, materialDict)
 
 	elif "Principled BSDF" in material.node_tree.nodes:
 		tex0Node = material.node_tree.nodes['Principled BSDF'].inputs['Base Color']
 		tex1Node = material.node_tree.nodes['Principled BSDF'].inputs['Subsurface Color']
 		if len(tex0Node.links) == 0:
-			f3dMat = createF3DMat(obj, preset = 'Shaded Solid', index = index)
+			newMaterial = createF3DMat(obj, preset = getDefaultMaterialPreset("Shaded Solid"), index = index)
+			f3dMat = newMaterial.f3d_mat if newMaterial.mat_ver > 3 else newMaterial
 			f3dMat.default_light_color = tex0Node.default_value
-			updateMatWithName(f3dMat, material, materialDict)
+			updateMatWithName(newMaterial, material, materialDict)
 		else:
 			if isinstance(tex0Node.links[0].from_node, bpy.types.ShaderNodeTexImage):
 				if 'convert_preset' in material:
@@ -137,13 +142,14 @@ def convertBSDFtoF3D(obj, index, material, materialDict):
 						raise PluginError('During BSDF to F3D conversion, for material \'' + material.name + '\',' + \
 							' enum \'' + presetName + '\' was not found in material preset enum list.')
 				else:
-					presetName = 'Shaded Texture'
-				f3dMat = createF3DMat(obj, preset = presetName, index = index)
+					presetName = getDefaultMaterialPreset('Shaded Texture')
+				newMaterial = createF3DMat(obj, preset = presetName, index = index)
+				f3dMat = newMaterial.f3d_mat if newMaterial.mat_ver > 3 else newMaterial
 				f3dMat.tex0.tex = tex0Node.links[0].from_node.image
 				if len(tex1Node.links) > 0 and \
 					isinstance(tex1Node.links[0].from_node, bpy.types.ShaderNodeTexImage):
 					f3dMat.tex1.tex = tex1Node.links[0].from_node.image
-				updateMatWithName(f3dMat, material, materialDict)		
+				updateMatWithName(newMaterial, material, materialDict)		
 			else:
 				print("Principled BSDF material does not have an Image Node attached to its Base Color.")
 	else:
@@ -197,7 +203,7 @@ class BSDFConvert(bpy.types.Operator):
 
 class MatUpdateConvert(bpy.types.Operator):
 	# set bl_ properties
-	version = 3
+	version = 4
 	bl_idname = 'object.convert_f3d_update'
 	bl_label = "Recreate F3D Materials As v" + str(version)
 	bl_options = {'REGISTER', 'UNDO', 'PRESET'}

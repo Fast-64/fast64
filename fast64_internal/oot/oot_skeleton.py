@@ -341,20 +341,21 @@ def ootProcessBone(fModel, boneName, parentLimb, nextIndex, meshObj, armatureObj
 	return nextIndex
 
 def ootConvertArmatureToC(originalArmatureObj, convertTransformMatrix, 
-	f3dType, isHWv1, skeletonName, folderName, DLFormat, convertTextureData, exportPath, isCustomExport):
+	f3dType, isHWv1, skeletonName, folderName, DLFormat, savePNG, exportPath, isCustomExport):
 
 	skeleton, fModel = ootConvertArmatureToSkeletonWithMesh(originalArmatureObj, convertTransformMatrix, 
-		f3dType, isHWv1, skeletonName, DLFormat, convertTextureData)
+		f3dType, isHWv1, skeletonName, DLFormat, not savePNG)
 
 	data = CData()
+	data.source += '#include "ultra64.h"\n#include "global.h"\n\n'
 	exportData = fModel.to_c(
-		TextureExportSettings(False, not convertTextureData, "test"), OOTGfxFormatter(ScrollMethod.Vertex))
+		TextureExportSettings(False, savePNG, "test"), OOTGfxFormatter(ScrollMethod.Vertex))
 	skeletonC = skeleton.toC()
 
 	data.append(exportData.all())
 	data.append(skeletonC)
 
-	path = ootGetPath(exportPath, isCustomExport, 'assets/objects/', folderName)
+	path = ootGetPath(exportPath, isCustomExport, 'assets/objects/', '')
 	writeCData(data, 
 		os.path.join(path, folderName + '.h'),
 		os.path.join(path, folderName + '.c'))
@@ -373,7 +374,7 @@ class OOT_ExportSkeleton(bpy.types.Operator):
 	def execute(self, context):
 		armatureObj = None
 		if context.mode != 'OBJECT':
-			raise PluginError("Operator can only be used in object mode.")
+			bpy.ops.object.mode_set(mode = "OBJECT")
 		if len(context.selected_objects) == 0:
 			raise PluginError("Armature not selected.")
 		armatureObj = context.active_object
@@ -393,7 +394,7 @@ class OOT_ExportSkeleton(bpy.types.Operator):
 			#	context.scene.geoExportPath, context.scene.geoLevelName, 
 			#	context.scene.geoLevelOption)
 
-			saveTextures = bpy.context.scene.ootSaveTextures or bpy.context.scene.ignoreTextureRestrictions
+			saveTextures = bpy.context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions
 			isHWv1 = context.scene.isHWv1
 			f3dType = context.scene.f3d_type
 			skeletonName = context.scene.ootSkeletonName
@@ -440,7 +441,7 @@ oot_skeleton_classes = (
 )
 
 oot_skeleton_panels = (
-	OOT_ExportSkeletonPanel,
+	#OOT_ExportSkeletonPanel,
 )
 
 def oot_skeleton_panel_register():

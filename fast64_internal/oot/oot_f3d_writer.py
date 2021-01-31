@@ -5,12 +5,13 @@ from ..f3d.f3d_material import *
 from bpy.utils import register_class, unregister_class
 from .oot_constants import *
 from .oot_utility import *
+from .oot_scene_room import *
 
 class OOTModel(FModel):
 	def __init__(self, f3dType, isHWv1, name, DLFormat):
 		FModel.__init__(self, f3dType, isHWv1, name, DLFormat, GfxMatWriteMethod.WriteAll)
 
-	def getDrawLayer(self, obj):
+	def getDrawLayerV3(self, obj):
 		return obj.ootDrawLayer
 
 	def getRenderMode(self, drawLayer):
@@ -25,9 +26,22 @@ class OOTModel(FModel):
 		else:
 			return texFmt.lower()
 
-class OOTGfxFormatter(GameGfxFormatter):
+	def onMaterialCommandsBuilt(self, gfxList, revertList, material, drawLayer):
+		for i in range(8, 14):
+			matDrawLayer = getattr(material.ootMaterial, drawLayer.lower())
+			if getattr(matDrawLayer, "segment" + format(i, 'X')):
+				gfxList.commands.append(SPDisplayList(
+					GfxList("0x" + format(i,'X') + '000000', GfxListTag.Material, DLFormat.Static)))
+		return
+
+class OOTDynamicMaterialDrawLayer:
+	def __init__(self, opaque, transparent):
+		self.opaque = opaque
+		self.transparent = transparent
+
+class OOTGfxFormatter(GfxFormatter):
 	def __init__(self, scrollMethod):
-		GameGfxFormatter.__init__(self, scrollMethod, 64)
+		GfxFormatter.__init__(self, scrollMethod, 64)
 
 	# This code is not functional, only used for an example
 	def drawToC(self, f3d, gfxList):
@@ -156,9 +170,7 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 			drawLayer = drawLayerOverride
 		
 		if drawLayerKey not in fMeshes:
-			meshName = getFMeshName(vertexGroup, namePrefix, drawLayer, False)
-			checkUniqueBoneNames(fModel, meshName, vertexGroup)
-			fMesh = FMesh(meshName, fModel.DLFormat)
+			fMesh = fModel.addMesh(vertexGroup, namePrefix, drawLayer, False)
 			fMeshes[drawLayerKey] = fMesh
 			
 		checkForF3dMaterialInFaces(meshObj, material)
@@ -181,9 +193,7 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 
 			if drawLayerKey not in fMeshes:
 				# technically skinned, but for oot we don't have separate skinned/unskinned meshes.
-				meshName = getFMeshName(vertexGroup, namePrefix, drawLayer, False)
-				checkUniqueBoneNames(fModel, meshName, vertexGroup)
-				fMesh = FMesh(meshName, fModel.DLFormat)
+				fMesh = fModel.addMesh(vertexGroup, namePrefix, drawLayer, False)
 				fMeshes[drawLayerKey] = fMesh
 
 			checkForF3dMaterialInFaces(meshObj, material)
@@ -200,6 +210,11 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 		fMesh.draw.commands.append(SPEndDisplayList())
 
 	return fMeshes[drawLayerKey], len(skinnedFaces) > 0
+
+ootEnumObjectMenu = [
+	("Scene", "Parent Scene Settings", "Scene"),
+	("Room", "Parent Room Settings", "Room"),
+]
 
 class OOT_DisplayListPanel(bpy.types.Panel):
 	bl_label = "Display List Inspector"
@@ -219,17 +234,18 @@ class OOT_DisplayListPanel(bpy.types.Panel):
 		box.box().label(text = 'OOT DL Inspector')
 		obj = context.object
 
-		prop_split(box, obj, "ootDrawLayer", "Draw Layer")
+		#prop_split(box, obj, "ootDrawLayer", "Draw Layer")
 		box.prop(obj, "ignore_render")
 		box.prop(obj, "ignore_collision")
 
+		#drawParentSceneRoom(box, obj)
 
 def ootExportF3DtoC(basePath, obj, DLFormat, transformMatrix, 
 	f3dType, isHWv1, texDir, savePNG, texSeparate, includeChildren, name, levelName, groupName, customExport, headerType):
 	dirPath, texDir = getExportDir(customExport, basePath, headerType, 
 		levelName, texDir, name)
 
-	fModel = OOTModel(f3dType, isHWv1, name, DLFormat)
+	fModel = OOTModel(f3dType, isHWv1, name, DLFormat, 0)
 	fMesh = exportF3DCommon(obj, fModel, transformMatrix, 
 		includeChildren, name, DLFormat, not savePNG)
 
@@ -433,9 +449,6 @@ class OOT_ExportDLPanel(bpy.types.Panel):
 			#	context.scene.ootDLName, context.scene.ootDLLevelName, context.scene.ootDLLevelOption)
 			
 		col.prop(context.scene, 'ootDLincludeChildren')
-		
-		for i in range(panelSeparatorSize):
-			col.separator()
 
 class OOTDefaultRenderModesProperty(bpy.types.PropertyGroup):
 	expandTab : bpy.props.BoolProperty()
@@ -474,8 +487,64 @@ class OOT_DrawLayersPanel(bpy.types.Panel):
 			prop_split(inputGroup, ootDefaultRenderModeProp, "overlayCycle1", "Overlay Cycle 1")
 			prop_split(inputGroup, ootDefaultRenderModeProp, "overlayCycle2", "Overlay Cycle 2")
 
+class OOT_MaterialPanel(bpy.types.Panel):
+	bl_label = "OOT Material"
+	bl_idname = "MATERIAL_PT_OOT_Material_Inspector"
+	bl_space_type = 'PROPERTIES'
+	bl_region_type = 'WINDOW'
+	bl_context = "material"
+	bl_options = {'HIDE_HEADER'} 
+
+	@classmethod
+	def poll(cls, context):
+		return context.material is not None and context.scene.gameEditorMode == "OOT"
+
+	def draw(self, context):
+		layout = self.layout
+		mat = context.material
+		col = layout.column()
+		drawOOTMaterialProperty(col.box().column(), mat.ootMaterial, mat.f3d_mat.draw_layer.oot)
+
+def drawOOTMaterialDrawLayerProperty(layout, matDrawLayerProp, suffix):
+	#layout.box().row().label(text = title)
+	row = layout.row()
+	for colIndex in range(2):
+		col = row.column()
+		for rowIndex in range(3):
+			i = 8 + colIndex * 3 + rowIndex
+			name = "Segment " + format(i, 'X') + " " + suffix
+			col.prop(matDrawLayerProp, "segment" + format(i, 'X'), text = name)
+
+drawLayerSuffix = {
+	"Opaque" : "OPA",
+	"Transparent" : 'XLU',
+	"Overlay" : "OVL"
+}
+
+def drawOOTMaterialProperty(layout, matProp, drawLayer):
+	suffix = "(" + drawLayerSuffix[drawLayer] + ")"
+	layout.box().column().label(text = "OOT Dynamic Material Properties " + suffix)
+	layout.label(text = "See gSPSegment calls in z_scene_table.c.")
+	layout.label(text = "Based off draw config index in gSceneTable.")
+	drawOOTMaterialDrawLayerProperty(layout.column(), getattr(matProp, drawLayer.lower()), suffix)
+		
+
+class OOTDynamicMaterialDrawLayerProperty(bpy.types.PropertyGroup):
+	segment8 : bpy.props.BoolProperty()
+	segment9 : bpy.props.BoolProperty()
+	segmentA : bpy.props.BoolProperty()
+	segmentB : bpy.props.BoolProperty()
+	segmentC : bpy.props.BoolProperty()
+	segmentD : bpy.props.BoolProperty()
+
+class OOTDynamicMaterialProperty(bpy.types.PropertyGroup):
+	opaque : bpy.props.PointerProperty(type = OOTDynamicMaterialDrawLayerProperty)
+	transparent : bpy.props.PointerProperty(type = OOTDynamicMaterialDrawLayerProperty)
+
 oot_dl_writer_classes = (
 	OOTDefaultRenderModesProperty,
+	OOTDynamicMaterialDrawLayerProperty,
+	OOTDynamicMaterialProperty,
 	#OOT_ExportDL,
 )
 
@@ -483,6 +552,7 @@ oot_dl_writer_panel_classes = (
 	#OOT_ExportDLPanel,
 	OOT_DisplayListPanel,
 	OOT_DrawLayersPanel,
+	OOT_MaterialPanel,
 )
 
 def oot_dl_writer_panel_register():
@@ -527,6 +597,9 @@ def oot_dl_writer_register():
 	bpy.types.Scene.ootDLLevelOption = bpy.props.EnumProperty(
 		items = ootEnumSceneID, name = 'Level', default = 'SCENE_YDAN')
 
+	bpy.types.Material.ootMaterial = bpy.props.PointerProperty(type = OOTDynamicMaterialProperty)
+	bpy.types.Object.ootObjectMenu = bpy.props.EnumProperty(items = ootEnumObjectMenu)
+
 def oot_dl_writer_unregister():
 	for cls in reversed(oot_dl_writer_classes):
 		unregister_class(cls)
@@ -544,3 +617,4 @@ def oot_dl_writer_unregister():
 	del bpy.types.Scene.ootDLGroupName
 	del bpy.types.Scene.ootDLLevelName
 	del bpy.types.Scene.ootDLLevelOption
+	del bpy.types.Material.ootMaterial

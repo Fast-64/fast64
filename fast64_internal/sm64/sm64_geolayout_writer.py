@@ -367,9 +367,9 @@ def saveGeolayoutC(geoName, dirName, geolayoutGraph, fModel, exportDir, texDir, 
 		staticData.source += '\n' + dynamicData.source
 		staticData.header = geoData.header + staticData.header + dynamicData.header
 	else:
-		geoData = writeMaterialFiles(exportDir, geoDirPath, 
+		geoData.source = writeMaterialFiles(exportDir, geoDirPath, 
 			headerInclude, matHInclude,
-			dynamicData.header, dynamicData.source, geoData, customExport)
+			dynamicData.header, dynamicData.source, geoData.source, customExport)
 
 	modelPath = os.path.join(geoDirPath, 'model.inc.c')
 	modelFile = open(modelPath, 'w', newline='\n')
@@ -797,7 +797,7 @@ def setRooms(obj, roomIndex = None):
 	else:
 		alphabeticalChildren = getSwitchChildren(obj)
 		for i in range(len(alphabeticalChildren)):
-			setRooms(alphabeticalChildren[i], i + 1) # index starts at 1
+			setRooms(alphabeticalChildren[i], i) # index starts at 1, but 0 is reserved for no room.
 
 def isZeroRotation(rotate):
 	eulerRot = rotate.to_euler(geoNodeRotateOrder)
@@ -873,22 +873,27 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode,
 
 		# Rooms are not set here (since this is just a copy of the original hierarchy)
 		# They should be set previously, using setRooms()
+		preRoomSwitchParentNode = parentTransformNode
 		parentTransformNode = addParentNode(parentTransformNode, SwitchNode(switchFunc, switchParam, obj.original_name))
 		alphabeticalChildren = getSwitchChildren(obj)
 		for i in range(len(alphabeticalChildren)):
 			childObj = alphabeticalChildren[i]
-			optionGeolayout = geolayoutGraph.addGeolayout(
-				childObj, fModel.name + '_' + childObj.original_name + '_geo')
-			geolayoutGraph.addJumpNode(parentTransformNode, geolayout,
-				optionGeolayout)
-			if not zeroRotation or not zeroTranslation:
-				startNode = TransformNode(getOptimalNode(translate, rotate, 1, False,
-					zeroTranslation, zeroRotation))
+			if i == 0: # Outside room system
+				processMesh(fModel, childObj, transformMatrix, preRoomSwitchParentNode, 
+					geolayout, geolayoutGraph, False, convertTextureData)
 			else:
-				startNode = TransformNode(StartNode())
-			optionGeolayout.nodes.append(startNode)
-			processMesh(fModel, childObj, transformMatrix, startNode, 
-				optionGeolayout, geolayoutGraph, False, convertTextureData)
+				optionGeolayout = geolayoutGraph.addGeolayout(
+					childObj, fModel.name + '_' + childObj.original_name + '_geo')
+				geolayoutGraph.addJumpNode(parentTransformNode, geolayout,
+					optionGeolayout)
+				if not zeroRotation or not zeroTranslation:
+					startNode = TransformNode(getOptimalNode(translate, rotate, 1, False,
+						zeroTranslation, zeroRotation))
+				else:
+					startNode = TransformNode(StartNode())
+				optionGeolayout.nodes.append(startNode)
+				processMesh(fModel, childObj, transformMatrix, startNode, 
+					optionGeolayout, geolayoutGraph, False, convertTextureData)
 
 	else:
 		if obj.geo_cmd_static == 'Optimal' or useGeoEmpty:
@@ -1660,11 +1665,8 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 	# Save unskinned mesh
 	for drawLayer, materialFaces in groupFaces.items():
 		if drawLayer not in fMeshes:
-			meshName = getFMeshName(vertexGroup, namePrefix, drawLayer, False)
-			checkUniqueBoneNames(fModel, meshName, vertexGroup)
-
-			fMeshes[drawLayer] = FMesh(meshName, fModel.DLFormat)
-			fModel.meshes[meshName] = fMeshes[drawLayer]
+			fMesh = fModel.addMesh(vertexGroup, namePrefix, drawLayer, False)
+			fMeshes[drawLayer] = fMesh
 
 		for material_index, bFaces in materialFaces.items():
 			material = obj.data.materials[material_index]
@@ -2393,13 +2395,7 @@ class SM64_ExportGeolayoutPanel(bpy.types.Panel):
 			col.prop(context.scene, 'textDumpGeo')
 			if context.scene.textDumpGeo:
 				col.prop(context.scene, 'textDumpGeoPath')
-		
-		#col.prop(context.scene, 'saveCameraSettings')
-		#if context.scene.saveCameraSettings:
-		#	prop_split(col, context.scene, 'levelCamera', 'Level Camera')
-		
-		for i in range(panelSeparatorSize):
-			col.separator()
+
 
 sm64_geo_writer_classes = (
 	SM64_ExportGeolayoutObject,
@@ -2441,7 +2437,7 @@ def sm64_geo_writer_register():
 	bpy.types.Scene.textDumpGeoPath =  bpy.props.StringProperty(
 		name ='Text Dump Path', subtype = 'FILE_PATH')
 	bpy.types.Scene.geoExportType = bpy.props.EnumProperty(
-		items = enumExportType, name = 'Export', default = 'Binary')
+		items = enumExportType, name = 'Export', default = 'C')
 	bpy.types.Scene.geoExportPath = bpy.props.StringProperty(
 		name = 'Directory', subtype = 'FILE_PATH')
 	bpy.types.Scene.geoUseBank0 = bpy.props.BoolProperty(name = 'Use Bank 0')

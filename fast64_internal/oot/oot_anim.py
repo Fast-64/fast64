@@ -23,6 +23,7 @@ class OOTAnimation:
 
 	def toC(self):
 		data = CData()
+		data.source += '#include "ultra64.h"\n#include "global.h"\n\n'
 
 		# values
 		data.source += "s16 " + self.valuesName() + "[" + str(len(self.values)) + "] = {\n"
@@ -168,7 +169,7 @@ def exportAnimationC(armatureObj, exportPath, isCustomExport, folderName):
 	ootAnim = ootExportAnimationCommon(armatureObj, convertTransformMatrix, folderName)
 
 	ootAnimC = ootAnim.toC()
-	path = ootGetPath(exportPath, isCustomExport, 'assets/objects/', folderName)
+	path = ootGetPath(exportPath, isCustomExport, 'assets/objects/', '')
 	writeCData(ootAnimC, 
 		os.path.join(path, folderName + '.h'),
 		os.path.join(path, folderName + '.c'))
@@ -236,7 +237,7 @@ oot_anim_classes = (
 )
 
 oot_anim_panels = (
-	OOT_ExportAnimPanel,
+	#OOT_ExportAnimPanel,
 )
 
 def oot_anim_panel_register():

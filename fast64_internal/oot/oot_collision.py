@@ -6,6 +6,7 @@ from ..utility import *
 from bpy.utils import register_class, unregister_class
 from io import BytesIO
 import bpy, bmesh, os, math, re, shutil, mathutils
+from .oot_scene_room import *
 
 ootEnumFloorSetting = [
 	("Custom", "Custom", "Custom"),
@@ -375,10 +376,10 @@ def drawWaterBoxProperty(layout, waterBoxProp):
 	box.label(text = "Defined by top face of box empty.")
 	box.label(text = "No rotation allowed.")
 
-def drawCameraPosProperty(layout, cameraRefProp, index, headerIndex):
+def drawCameraPosProperty(layout, cameraRefProp, index, headerIndex, objName):
 	camBox = layout.box()
 	prop_split(camBox, cameraRefProp, "camera", "Camera " + str(index))
-	drawCollectionOps(camBox, index, "Camera Position", headerIndex)
+	drawCollectionOps(camBox, index, "Camera Position", headerIndex, objName)
 
 class OOT_CameraPosPanel(bpy.types.Panel):
 	bl_label = "Camera Position Inspector"
@@ -403,6 +404,8 @@ class OOT_CameraPosPanel(bpy.types.Panel):
 			prop_split(box, obj.data, "angle", "Field Of View")
 			prop_split(box, obj.ootCameraPositionProperty, "jfifID", "JFIF ID")
 		box.prop(obj.ootCameraPositionProperty, 'hasPositionData')
+
+		#drawParentSceneRoom(box, context.object)
 	
 
 class OOT_CollisionPanel(bpy.types.Panel):
@@ -686,9 +689,7 @@ class OOT_ExportCollisionPanel(bpy.types.Panel):
 			prop_split(col, context.scene, 'colExportLevel', 'Level')
 			if context.scene.colExportLevel == 'Custom':
 				prop_split(col, context.scene, 'colLevelName', 'Level Name')
-	
-		for i in range(panelSeparatorSize):
-			col.separator()
+
 
 oot_col_classes = (
 	OOT_ExportCollision,

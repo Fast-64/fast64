@@ -73,7 +73,7 @@ def drawGeoInfo(panel, bone):
 
 	if bone.geo_cmd in ['TranslateRotate', 'Translate', 'Rotate', 
 		'Billboard', 'DisplayList', 'Scale', 'DisplayListWithOffset']:
-		prop_split(col, bone, 'draw_layer', 'Draw layer')
+		drawLayerWarningBox(col, bone, "draw_layer")
 
 	if bone.geo_cmd == 'Scale':
 		prop_split(col, bone, 'geo_scale', 'Scale')
@@ -168,6 +168,12 @@ class GeolayoutArmaturePanel(bpy.types.Panel):
 			col.box().label(text = 'This is in blender units.')
 			prop_split(col, obj, 'culling_radius', 'Culling Radius')
 
+def drawLayerWarningBox(layout, prop, data):
+	warningBox = layout.box().column()
+	prop_split(warningBox, prop, data, 'Draw Layer (v3)')
+	warningBox.label(text = "This applies to v3 materials and down only.", icon = "ERROR")
+	warningBox.label(text = "This is moved to material settings in v4+.")
+
 class GeolayoutObjectPanel(bpy.types.Panel):
 	bl_label = "Object Geolayout Inspector"
 	bl_idname = "OBJECT_PT_SM64_Object_Geolayout_Inspector"
@@ -187,7 +193,7 @@ class GeolayoutObjectPanel(bpy.types.Panel):
 		col.box().label(text = 'Object Geolayout Inspector')
 
 		prop_split(col, obj, 'geo_cmd_static', 'Geolayout Command')
-		prop_split(col, obj, 'draw_layer_static', 'Draw layer')
+		drawLayerWarningBox(col, obj, "draw_layer_static")
 		col.prop(obj, 'use_render_area')
 		if obj.use_render_area:
 			renderAreaBox = col.box()

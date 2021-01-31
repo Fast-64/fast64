@@ -1364,7 +1364,7 @@ class TextureExportSettings:
 		self.includeDir = includeDir
 		self.exportPath = exportPath
 
-class GameGfxFormatter:
+class GfxFormatter:
 	def __init__(self, scrollMethod, texArrayBitSize):
 		self.scrollMethod = scrollMethod
 		self.texArrayBitSize = texArrayBitSize
@@ -1428,7 +1428,7 @@ class GameGfxFormatter:
 
 	# Called for handling vertex texture scrolling.
 	def vertexScrollToC(self, fScrollData, name, vertexCount):
-		raise PluginError("Use of unimplemented GameGfxFormatter function vertexScrollToC.")
+		raise PluginError("Use of unimplemented GfxFormatter function vertexScrollToC.")
 
 	# Called for building the entry point DL for drawing a model.
 	def drawToC(self, f3d, gfxList):
@@ -1715,10 +1715,14 @@ class FModel:
 		self.global_data = FGlobalData()
 		self.texturesSavedLastExport = 0 # hacky
 
+	# Called before SPEndDisplayList
+	def onMaterialCommandsBuilt(self, gfxList, revertList, material, drawLayer):
+		return
+
 	def getTextureSuffixFromFormat(self, texFmt):
 		return texFmt.lower()
 
-	def getDrawLayer(self, obj):
+	def getDrawLayerV3(self, obj):
 		return None
 
 	def getRenderMode(self, drawLayer):
@@ -1740,25 +1744,66 @@ class FModel:
 	def addTexture(self, key, value, fMaterial):
 		fMaterial.usedImages.append(key)
 		self.textures[key] = value
+
+	def addLight(self, key, value, fMaterial):
+		fMaterial.usedLights.append(key)
+		self.lights[key] = value
+
+	def addMesh(self, name, namePrefix, drawLayer, isSkinned):
+		meshName = getFMeshName(name, namePrefix, drawLayer, isSkinned)
+		checkUniqueBoneNames(self, meshName, name)
+		self.meshes[meshName] = FMesh(meshName, self.DLFormat)
+		return self.meshes[meshName]
 	
 	def getTextureAndHandleShared(self, imageKey):
 		# Check if texture is in self
 		if imageKey in self.textures:
-			return self.textures[imageKey]
+			fImage = self.textures[imageKey]
+			fPalette = self.textures[fImage.paletteKey] if fImage.paletteKey is not None else None
+			return fImage, fPalette
 
 		if self.parentModel is not None:
 			# Check if texture is in parent
 			if imageKey in self.parentModel.textures:
-				return self.parentModel.textures[imageKey]
+				fImage = self.parentModel.textures[imageKey]
+				fPalette = self.parentModel.textures[fImage.paletteKey] if fImage.paletteKey is not None else None
+				return fImage, fPalette
 			
 			# Check if texture is in siblings
 			for subModel in self.parentModel.subModels:
 				if imageKey in subModel.textures:
-					imageItem = subModel.textures.pop(imageKey)
-					self.parentModel.textures[imageKey] = imageItem
-					return imageItem
+					fImage = subModel.textures.pop(imageKey)
+					self.parentModel.textures[imageKey] = fImage
+
+					paletteKey = fImage.paletteKey
+					fPalette = None
+					if paletteKey is not None:
+						fPalette = subModel.textures.pop(paletteKey)
+						self.parentModel.textures[paletteKey] = fPalette
+					return fImage, fPalette
+			return None, None
+		else:
+			return None, None
+
+	def getLightAndHandleShared(self, lightName):
+		# Check if light is in self
+		if lightName in self.lights:
+			return self.lights[lightName]
+
+		if self.parentModel is not None:
+			# Check if light is in parent
+			if lightName in self.parentModel.lights:
+				return self.parentModel.lights[lightName]
+			
+			# Check if light is in siblings
+			for subModel in self.parentModel.subModels:
+				if lightName in subModel.lights:
+					light = subModel.lights.pop(lightName)
+					self.parentModel.lights[lightName] = light
+					return light
 		else:
 			return None
+
 	
 	def getMaterialAndHandleShared(self, materialKey):
 		# Check if material is in self
@@ -1778,9 +1823,14 @@ class FModel:
 
 					# If material is in sibling, handle the material's textures as well.
 					for imageKey in materialItem[0].usedImages:
-						imageItem = self.getTextureAndHandleShared(imageKey)
-						if imageItem is None:
+						fImage, fPalette = self.getTextureAndHandleShared(imageKey)
+						if fImage is None:
 							raise PluginError("Error: If a material exists, its textures should exist too.")
+
+					for lightName in materialItem[0].usedLights:
+						light = self.getLightAndHandleShared(lightName)
+						if light is None:
+							raise PluginError("Error: If a material exists, its lights should exist too.")
 					return materialItem
 		else:
 			return None
@@ -2126,7 +2176,7 @@ class FMaterial:
 
 		# Used for keeping track of shared resources in FModel hierarchy
 		self.usedImages = [] # array of (image, texFormat, paletteType) = imageKey
-
+		self.usedLights = [] # array of light names
 		# Used for tile scrolling
 		self.tileSizeCommands = {} # dict of {texIndex : DPSetTileSize}
 
@@ -2404,7 +2454,7 @@ class FImage:
 		self.filename = filename
 		self.converted = converted
 		self.isLargeTexture = False
-		self.palette = None # another FImage reference
+		self.paletteKey = None # another FImage reference
 	
 	def size(self):
 		return len(self.data)

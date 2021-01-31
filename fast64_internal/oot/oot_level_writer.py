@@ -8,7 +8,7 @@ from .oot_utility import *
 from .oot_f3d_writer import *
 from .oot_collision import *
 from .oot_spline import *
-from .c_writer.oot_level_c import *
+from .c_writer import *
 
 from ..utility import *
 
@@ -22,143 +22,6 @@ import bpy, bmesh, os, math, re, shutil, mathutils
 #		self.minBounds = [-2**8, -2**8]
 #		self.maxBounds = [2**8 - 1, 2**8 - 1]
 
-
-ootSceneDungeons = [
-	"bdan",
-	"bdan_boss",
-	"bmori1",
-	"ddan",
-	"ddan_boss",
-	"fire_bs",
-	"ganon",
-	"ganontika",
-	"ganontikasonogo",
-	"ganon_boss",
-	"ganon_demo",
-	"ganon_final",
-	"ganon_sonogo",
-	"ganon_tou",
-	"gerudoway",
-	"hakadan",
-	"hakadanch",
-	"hakadan_bs",
-	"hidan",
-	"ice_doukutu",
-	"jyasinboss",
-	"jyasinzou",
-	"men",
-	"mizusin",
-	"mizusin_bs",
-	"moribossroom",
-	"ydan",
-	"ydan_boss",
-]
-
-ootSceneIndoors = [
-	"bowling",
-	"daiyousei_izumi",
-	"hairal_niwa",
-	"hairal_niwa2",
-	"hairal_niwa_n",
-	"hakasitarelay",
-	"hut",
-	"hylia_labo",
-	"impa",
-	"kakariko",
-	"kenjyanoma",
-	"kokiri_home",
-	"kokiri_home3",
-	"kokiri_home4",
-	"kokiri_home5",
-	"labo",
-	"link_home",
-	"mahouya",
-	"malon_stable",
-	"miharigoya",
-	"nakaniwa",
-	"syatekijyou",
-	"takaraya",
-	"tent",
-	"tokinoma",
-	"yousei_izumi_tate",
-	"yousei_izumi_yoko",
-]
-
-ootSceneMisc = [
-	"enrui",
-	"entra_n",
-	"hakaana",
-	"hakaana2",
-	"hakaana_ouke",
-	"hiral_demo",
-	"kakariko3",
-	"kakusiana",
-	"kinsuta",
-	"market_alley",
-	"market_alley_n",
-	"market_day",
-	"market_night",
-	"market_ruins",
-	"shrine",
-	"shrine_n",
-	"shrine_r",
-	"turibori",
-]
-
-ootSceneOverworld = [
-	"entra",
-	"souko",
-	"spot00",
-	"spot01",
-	"spot02",
-	"spot03",
-	"spot04",
-	"spot05",
-	"spot06",
-	"spot07",
-	"spot08",
-	"spot09",
-	"spot10",
-	"spot11",
-	"spot12",
-	"spot13",
-	"spot15",
-	"spot16",
-	"spot17",
-	"spot18",
-	"spot20",
-]
-
-ootSceneShops = [
-	"alley_shop",
-	"drag",
-	"face_shop",
-	"golon",
-	"kokiri_shop",
-	"night_shop",
-	"shop1",
-	"zoora",
-]
-
-ootSceneTest_levels = [
-	"besitu",
-	"depth_test",
-	"sasatest",
-	"sutaru",
-	"syotes",
-	"syotes2",
-	"test01",
-	"testroom",
-]
-
-ootSceneDirs = {
-	'assets/scenes/dungeons/' : ootSceneDungeons,
-	'assets/scenes/indoors/' : ootSceneIndoors,
-	'assets/scenes/misc/' : ootSceneMisc,
-	'assets/scenes/overworld/' : ootSceneOverworld,
-	'assets/scenes/shops/' : ootSceneShops,
-	'assets/scenes/test_levels/' : ootSceneTest_levels,
-}
 
 class OOTObjectCategorizer:
 	def __init__(self):
@@ -227,6 +90,7 @@ def ootDuplicateHierarchy(obj, ignoreAttr, includeEmpties, objectCategorizer):
 						selectedObj.parent.select_set(True)
 						bpy.ops.object.parent_set(keep_transform = True)
 					selectedObj.parent = None
+		applyRotation([tempObj], math.radians(90), 'X')
 		return tempObj, allObjs
 	except Exception as e:
 		cleanupDuplicatedObjects(allObjs)
@@ -254,13 +118,18 @@ def sceneNameFromID(sceneID):
 	return sceneID[6:].lower()
 
 def ootExportSceneToC(originalSceneObj, transformMatrix, 
-	f3dType, isHWv1, sceneName, DLFormat, savePNG, exportPath, isCustomExport):
+	f3dType, isHWv1, sceneName, DLFormat, savePNG, exportInfo):
+
+	checkObjectReference(originalSceneObj, "Scene object")
+	isCustomExport = exportInfo.isCustomExportPath
+	exportPath = exportInfo.exportPath
 
 	scene = ootConvertScene(originalSceneObj, transformMatrix, 
 		f3dType, isHWv1, sceneName, DLFormat, not savePNG)
 	
-	exportSubdir = ""
-	if not isCustomExport:
+	if exportInfo.customSubPath is not None:
+		exportSubdir = exportInfo.customSubPath
+	if not isCustomExport and exportInfo.customSubPath is None:
 		for sceneSubdir, sceneNames in ootSceneDirs.items():
 			if sceneName in sceneNames:
 				exportSubdir = sceneSubdir
@@ -278,11 +147,21 @@ def ootExportSceneToC(originalSceneObj, transformMatrix,
 		writeCData(room, 
 			os.path.join(levelPath, roomName + '.h'),
 			os.path.join(levelPath, roomName + '.c'))
-
+	
 	if not isCustomExport:
-		pass # Modify other level files here
+		writeOtherSceneProperties(scene, exportInfo)
+
+def writeOtherSceneProperties(scene, exportInfo):
+	modifySceneTable(scene, exportInfo)
+	modifySegmentSymbols(scene, exportInfo)
+	modifySceneIDs(scene, exportInfo)
+	modifyDmaMgrFileNames(scene, exportInfo)
+	modifyDmaTableEntries(scene, exportInfo)
+	modifySegmentDefinition(scene, exportInfo)
+	modifySceneFiles(scene, exportInfo)
 
 def readSceneData(scene, sceneHeader, alternateSceneHeaders):
+	scene.sceneTableEntry.drawConfig = sceneHeader.sceneTableEntry.drawConfig
 	scene.globalObject = getCustomProperty(sceneHeader, "globalObject")
 	scene.naviCup = getCustomProperty(sceneHeader, "naviCup")
 	scene.skyboxID = getCustomProperty(sceneHeader, "skyboxID")
@@ -294,8 +173,14 @@ def readSceneData(scene, sceneHeader, alternateSceneHeaders):
 	scene.nightSeq = getCustomProperty(sceneHeader, "nightSeq")
 	scene.audioSessionPreset = getCustomProperty(sceneHeader, "audioSessionPreset")
 
-	for lightGroupProp in sceneHeader.lightList:
-		scene.lights.append(getLightGroupData(lightGroupProp, scene.skyboxLighting == '0x01'))
+	if sceneHeader.skyboxLighting == '0x00': # Time of Day
+		scene.lights.append(getLightData(sceneHeader.timeOfDayLights.dawn))
+		scene.lights.append(getLightData(sceneHeader.timeOfDayLights.day))
+		scene.lights.append(getLightData(sceneHeader.timeOfDayLights.dusk))
+		scene.lights.append(getLightData(sceneHeader.timeOfDayLights.night))
+	else:
+		for lightProp in sceneHeader.lightList:
+			scene.lights.append(getLightData(lightProp))
 
 	for exitProp in sceneHeader.exitList:
 		scene.exitList.append(getExitData(exitProp))
@@ -322,41 +207,35 @@ def readSceneData(scene, sceneHeader, alternateSceneHeaders):
 			scene.cutsceneHeaders.append(cutsceneHeader)
 
 def getConvertedTransform(transformMatrix, sceneObj, obj, handleOrientation):
-	relativeTransform = transformMatrix @ sceneObj.matrix_world.inverted() @ obj.matrix_world
-	blenderTranslation, blenderRotation, scale = relativeTransform.decompose()
 	
 	# Hacky solution to handle Z-up to Y-up conversion
 	# We cannot apply rotation to empty, as that modifies scale
 	if handleOrientation:
-		orientedRotation = blenderRotation @ mathutils.Quaternion((1, 0, 0), math.radians(90.0))
+		orientation = mathutils.Quaternion((1, 0, 0), math.radians(90.0))
 	else:
-		orientedRotation = blenderRotation
+		orientation = mathutils.Matrix.Identity(4)
+	return getConvertedTransformWithOrientation(transformMatrix, sceneObj, obj, orientation)
 
-	translation = ootConvertTranslation(blenderTranslation)
-	rotation = ootConvertRotation(orientedRotation)
+def getConvertedTransformWithOrientation(transformMatrix, sceneObj, obj, orientation):
+	relativeTransform = transformMatrix @ sceneObj.matrix_world.inverted() @ obj.matrix_world
+	blenderTranslation, blenderRotation, scale = relativeTransform.decompose()
+	rotation = blenderRotation @ orientation
+	convertedTranslation = ootConvertTranslation(blenderTranslation)
+	convertedRotation = ootConvertRotation(rotation)
 	
-	return translation, rotation, scale, orientedRotation
+	return convertedTranslation, convertedRotation, scale, rotation
 	
 def getExitData(exitProp):
 	if exitProp.exitIndex != "Custom":
 		raise PluginError("Exit index enums not implemented yet.")
 	return OOTExit(exitProp.exitIndexCustom)
 
-def getLightGroupData(lightGroupProp, useIndoorLighting):
-	lightGroup = OOTLightGroup()
-	lightGroup.dawn = getLightData(lightGroupProp.dawn)
-	if not useIndoorLighting:
-		lightGroup.day = getLightData(lightGroupProp.day)
-		lightGroup.dusk = getLightData(lightGroupProp.dusk)
-		lightGroup.night = getLightData(lightGroupProp.night)
-	return lightGroup
-
 def getLightData(lightProp):
 	light = OOTLight()
 	light.ambient = getLightColor(lightProp.ambient)
 	if lightProp.useCustomDiffuse0:
 		if lightProp.diffuse0Custom is None:
-			raise PluginError("Error: Fill light object not set in a scene lighting property.")
+			raise PluginError("Error: Diffuse 0 light object not set in a scene lighting property.")
 		light.diffuse0 = getLightColor(lightProp.diffuse0Custom.color)
 		light.diffuseDir0 = getLightRotation(lightProp.diffuse0Custom)
 	else:
@@ -365,7 +244,7 @@ def getLightData(lightProp):
 
 	if lightProp.useCustomDiffuse1:
 		if lightProp.diffuse1Custom is None:
-			raise PluginError("Error: Key light object not set in a scene lighting property.")
+			raise PluginError("Error: Diffuse 1 light object not set in a scene lighting property.")
 		light.diffuse1 = getLightColor(lightProp.diffuse1Custom.color)
 		light.diffuseDir1 = getLightRotation(lightProp.diffuse1Custom)
 	else:
@@ -422,8 +301,10 @@ def readRoomData(room, roomHeader, alternateRoomHeaders):
 			room.cutsceneHeaders.append(cutsceneHeader)
 
 def readCamPos(camPosProp, obj, scene, sceneObj, transformMatrix):
+	# Camera faces opposite direction
+	orientation = mathutils.Quaternion((0, 1, 0), math.radians(180.0))
 	translation, rotation, scale, orientedRotation = \
-		getConvertedTransform(transformMatrix, sceneObj, obj, True)
+		getConvertedTransformWithOrientation(transformMatrix, sceneObj, obj, orientation)
 	camPosProp = obj.ootCameraPositionProperty
 	index = camPosProp.index
 	# TODO: FOV conversion?
@@ -439,8 +320,9 @@ def ootConvertScene(originalSceneObj, transformMatrix,
 	if originalSceneObj.data is not None or originalSceneObj.ootEmptyType != "Scene":
 		raise PluginError(originalSceneObj.name + " is not an empty with the \"Scene\" empty type.")
 
+	# Don't remove ignore_render, as we want to resuse this for collision
 	sceneObj, allObjs = \
-		ootDuplicateHierarchy(originalSceneObj, 'ignore_render', True, OOTObjectCategorizer())
+		ootDuplicateHierarchy(originalSceneObj, None, True, OOTObjectCategorizer())
 	roomObjs = [child for child in sceneObj.children if child.data is None and child.ootEmptyType == 'Room']
 	if len(roomObjs) == 0:
 		raise PluginError("The scene has no child empties with the 'Room' empty type.")
@@ -498,7 +380,7 @@ def ootProcessMesh(roomMesh, roomMeshGroup, sceneObj, obj, transformMatrix, conv
 		roomMeshGroup = roomMesh.addMeshGroup(BoxEmpty(
 			ootConvertTranslation(translation), scale, obj.empty_display_size))
 
-	elif isinstance(obj.data, bpy.types.Mesh):
+	elif isinstance(obj.data, bpy.types.Mesh) and not obj.ignore_render:
 		fMeshes = saveStaticModel(roomMesh.model, obj, relativeTransform, roomMesh.model.name, 
 			roomMesh.model.DLFormat, convertTextureData, False, 'oot')
 		if roomMeshGroup is None:
@@ -572,14 +454,17 @@ class OOT_ExportScene(bpy.types.Operator):
 	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
 	def execute(self, context):
+		activeObj = None
 		try:
 			if context.mode != 'OBJECT':
-				raise PluginError("Operator can only be used in object mode.")
-			if len(context.selected_objects) == 0:
-				raise PluginError("Object not selected.")
-			obj = context.selected_objects[0]
-			if obj.data is not None or obj.ootEmptyType != 'Scene':
-				raise PluginError("The selected object is not an empty with the Scene type.")
+				bpy.ops.object.mode_set(mode = "OBJECT")
+			activeObj = context.view_layer.objects.active
+			
+			obj = context.scene.ootSceneExportObj
+			if obj is None:
+				raise PluginError("Scene object input not set.")
+			elif obj.data is not None or obj.ootEmptyType != 'Scene':
+				raise PluginError("The input object is not an empty with the Scene type.")
 
 			#obj = context.active_object
 
@@ -591,23 +476,22 @@ class OOT_ExportScene(bpy.types.Operator):
 			raisePluginError(self, e)
 			return {'CANCELLED'} # must return a set
 		try:
-			applyRotation([obj], math.radians(90), 'X')
+			levelName = context.scene.ootSceneName
 			if context.scene.ootSceneCustomExport:
-				exportPath = bpy.path.abspath(context.scene.ootSceneExportPath)
-				levelName = context.scene.ootSceneName
+				exportInfo = ExportInfo(True, bpy.path.abspath(context.scene.ootSceneExportPath), None, levelName)
 			else:
-				exportPath = bpy.path.abspath(context.scene.ootDecompPath)
-				if context.scene.ootSceneOption == 'Custom':
-					levelName = context.scene.ootSceneName
+				if context.scene.ootSceneOption == 'Custom':	
+					subfolder = 'assets/scenes/' + context.scene.ootSceneSubFolder + '/'
 				else:
 					levelName = sceneNameFromID(context.scene.ootSceneOption)
+					subfolder = None
+				exportInfo = ExportInfo(False, bpy.path.abspath(context.scene.ootDecompPath), subfolder, levelName)
 			#if not context.scene.ootSceneCustomExport:
 			#	applyBasicTweaks(exportPath)
 
 			ootExportSceneToC(obj, finalTransform, 
 				context.scene.f3d_type, context.scene.isHWv1, levelName, DLFormat.Static, 
-					context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions,
-					exportPath, context.scene.ootSceneCustomExport)
+					context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions, exportInfo)
 			
 			#ootExportScene(obj, finalTransform,
 			#	context.scene.f3d_type, context.scene.isHWv1, levelName, exportPath, 
@@ -615,20 +499,54 @@ class OOT_ExportScene(bpy.types.Operator):
 			#	context.scene.ootSceneCustomExport, DLFormat.Dynamic)
 			self.report({'INFO'}, 'Success!')
 
-			applyRotation([obj], math.radians(-90), 'X')
+			context.view_layer.objects.active = activeObj
+			if activeObj is not None:
+				activeObj.select_set(True)
+
 			#applyRotation(obj.children, math.radians(0), 'X')
 			return {'FINISHED'} # must return a set
 
 		except Exception as e:
 			if context.mode != 'OBJECT':
 				bpy.ops.object.mode_set(mode = 'OBJECT')
-
-			applyRotation([obj], math.radians(-90), 'X')
-
-			obj.select_set(True)
-			context.view_layer.objects.active = obj
+			context.view_layer.objects.active = activeObj
+			if activeObj is not None:
+				activeObj.select_set(True)
 			raisePluginError(self, e)
 			return {'CANCELLED'} # must return a set
+
+def ootRemoveSceneC(exportInfo):
+	modifySceneTable(None, exportInfo)
+	modifySegmentSymbols(None, exportInfo)
+	modifySceneIDs(None, exportInfo)
+	modifyDmaMgrFileNames(None, exportInfo)
+	modifyDmaTableEntries(None, exportInfo)
+	modifySegmentDefinition(None, exportInfo)
+	deleteSceneFiles(exportInfo)
+
+class OOT_RemoveScene(bpy.types.Operator):
+	# set bl_ properties
+	bl_idname = 'object.oot_remove_level'
+	bl_label = "Remove Scene"
+	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
+
+	def execute(self, context):
+		levelName = context.scene.ootSceneName
+		if context.scene.ootSceneCustomExport:
+			operator.report({'ERROR'}, "You can only remove scenes from your decomp path.")
+			return {"FINISHED"}
+			
+		if context.scene.ootSceneOption == 'Custom':	
+			subfolder = 'assets/scenes/' + context.scene.ootSceneSubFolder + '/'
+		else:
+			levelName = sceneNameFromID(context.scene.ootSceneOption)
+			subfolder = None
+		exportInfo = ExportInfo(False, bpy.path.abspath(context.scene.ootDecompPath), subfolder, levelName)
+		
+		ootRemoveSceneC(exportInfo)
+
+		self.report({'INFO'}, 'Success!')
+		return {'FINISHED'} # must return a set
 
 class OOT_ExportScenePanel(bpy.types.Panel):
 	bl_idname = "OOT_PT_export_level"
@@ -647,19 +565,27 @@ class OOT_ExportScenePanel(bpy.types.Panel):
 		col.operator(OOT_ExportScene.bl_idname)
 		#if not bpy.context.scene.ignoreTextureRestrictions:
 		#	col.prop(context.scene, 'saveTextures')
+		prop_split(col, context.scene, 'ootSceneExportObj', "Scene Object")
 		col.prop(context.scene, 'ootSceneCustomExport')
 		if context.scene.ootSceneCustomExport:
 			prop_split(col, context.scene, 'ootSceneExportPath', 'Directory')
 			prop_split(col, context.scene, 'ootSceneName', 'Name')
 			customExportWarning(col)
 		else:
-			col.prop(context.scene, 'ootSceneOption')
 			col.operator(OOT_SearchSceneEnumOperator.bl_idname, icon = 'VIEWZOOM')
+			col.box().column().label(text = getEnumName(ootEnumSceneID, context.scene.ootSceneOption))
+			#col.prop(context.scene, 'ootSceneOption')
 			if context.scene.ootSceneOption == 'Custom':
+				prop_split(col, context.scene, 'ootSceneSubFolder', 'Subfolder')
 				prop_split(col, context.scene, 'ootSceneName', 'Name')
+			col.operator(OOT_RemoveScene.bl_idname)
+
+def isSceneObj(self, obj):
+	return obj.data is None and obj.ootEmptyType == "Scene"
 
 oot_level_classes = (
 	OOT_ExportScene,
+	OOT_RemoveScene,
 )
 
 oot_level_panel_classes = (
@@ -678,12 +604,14 @@ def oot_level_register():
 	for cls in oot_level_classes:
 		register_class(cls)
 	
-	bpy.types.Scene.ootSceneName = bpy.props.StringProperty(name = 'Name', default = 'bob')
+	bpy.types.Scene.ootSceneName = bpy.props.StringProperty(name = 'Name', default = 'spot03')
+	bpy.types.Scene.ootSceneSubFolder = bpy.props.StringProperty(name = "Subfolder", default = 'overworld')
 	bpy.types.Scene.ootSceneOption = bpy.props.EnumProperty(name = "Scene", items = ootEnumSceneID, default = 'SCENE_YDAN')
 	bpy.types.Scene.ootSceneExportPath = bpy.props.StringProperty(
 		name = 'Directory', subtype = 'FILE_PATH')
 	bpy.types.Scene.ootSceneCustomExport = bpy.props.BoolProperty(
 		name = 'Custom Export Path')
+	bpy.types.Scene.ootSceneExportObj = bpy.props.PointerProperty(type = bpy.types.Object, poll = isSceneObj)
 
 def oot_level_unregister():
 	for cls in reversed(oot_level_classes):
@@ -693,3 +621,4 @@ def oot_level_unregister():
 	del bpy.types.Scene.ootSceneExportPath
 	del bpy.types.Scene.ootSceneCustomExport
 	del bpy.types.Scene.ootSceneOption
+	del bpy.types.Scene.ootSceneSubFolder

@@ -71,9 +71,6 @@ class SM64_ImportDLPanel(bpy.types.Panel):
 		col.prop(context.scene, 'isSegmentedAddrDLImport')
 		col.box().label(text = "Only Fast3D mesh importing allowed.")
 
-		for i in range(panelSeparatorSize):
-			col.separator()
-
 sm64_dl_parser_classes = (
 	SM64_ImportDL,
 )

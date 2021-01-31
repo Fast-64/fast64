@@ -11,7 +11,6 @@ class VertexWeightError(PluginError):
 
 geoNodeRotateOrder = 'ZXY'
 sm64BoneUp = Vector([1,0,0])
-panelSeparatorSize = 5
 
 axis_enums = [	
 	('X', 'X', 'X'), 
@@ -36,6 +35,29 @@ enumCompressionFormat = [
 	('mio0', 'MIO0', 'MIO0'),
 	('yay0', 'YAY0', 'YAY0'),
 ]
+
+def readFile(filepath):
+	datafile = open(filepath, 'r', newline = '\n', encoding = 'utf-8')
+	data = datafile.read()
+	datafile.close()
+	return data
+
+def writeFile(filepath, data):
+	datafile = open(filepath, 'w', newline = '\n', encoding = 'utf-8')
+	datafile.write(data)
+	datafile.close()
+
+def checkObjectReference(obj, title):
+	if obj.name not in bpy.context.view_layer.objects:
+		raise PluginError(title + " not in current view layer.\n The object is either in a different view layer or is deleted.")
+
+def parentObject(parent, child):
+	bpy.ops.object.select_all(action = "DESELECT")
+
+	child.select_set(True)
+	parent.select_set(True)
+	bpy.context.view_layer.objects.active = parent
+	bpy.ops.object.parent_set(type='OBJECT', keep_transform=True)
 
 def attemptModifierApply(modifier):
 	try:	
@@ -96,11 +118,11 @@ def copyPropertyGroup(oldProp, newProp):
 			setattr(newProp, sub_value_attr, sub_value)
 
 def writeCData(data, headerPath, sourcePath):
-	sourceFile = open(sourcePath, 'w', newline = '\n')
+	sourceFile = open(sourcePath, 'w', newline = '\n', encoding = 'utf-8')
 	sourceFile.write(data.source)
 	sourceFile.close()
 
-	headerFile = open(headerPath, 'w', newline = '\n')
+	headerFile = open(headerPath, 'w', newline = '\n', encoding = 'utf-8')
 	headerFile.write(data.header)
 	headerFile.close()
 
@@ -212,8 +234,7 @@ def writeMaterialHeaders(exportDir, matCInclude, matHInclude):
 		'\n' + matHInclude, '#endif')
 
 def writeMaterialFiles(exportDir, assetDir, headerInclude, matHInclude,
-	headerDynamic, dynamic_data, geoData, customExport):
-	geoString = geoData.source
+	headerDynamic, dynamic_data, geoString, customExport):
 	if not customExport:
 		writeMaterialBase(exportDir)
 	levelMatCPath = os.path.join(assetDir, 'material.inc.c')
@@ -259,15 +280,15 @@ def writeMaterialBase(baseDir):
 		matCFile.close()
 
 def getRGBA16Tuple(color):
-	return ((int(color[0] * 0x1F) & 0x1F) << 11) | \
-		((int(color[1] * 0x1F) & 0x1F) << 6) | \
-		((int(color[2] * 0x1F) & 0x1F) << 1) | \
+	return ((int(round(color[0] * 0x1F)) & 0x1F) << 11) | \
+		((int(round(color[1] * 0x1F)) & 0x1F) << 6) | \
+		((int(round(color[2] * 0x1F)) & 0x1F) << 1) | \
 		(1 if color[3] > 0.5 else 0)
 
 def getIA16Tuple(color):
 	intensity = mathutils.Color(color[0:3]).v
 	alpha = color[3]
-	return (int(intensity * 0xFF) << 8) | int(alpha * 0xFF)
+	return (int(round(intensity * 0xFF)) << 8) | int(alpha * 0xFF)
 
 def convertRadiansToS16(value):
 	value = math.degrees(value)
@@ -627,6 +648,16 @@ def getObjectQuaternion(obj):
 def tempName(name):
    letters = string.digits
    return name + '_temp' + "".join(random.choice(letters) for i in range(10))
+
+def label_split(layout, name, text):
+	split = layout.split(factor = 0.5)
+	split.label(text = name)
+	split.label(text = text)
+
+def enum_label_split(layout, name, data, prop, enumItems):
+	split = layout.split(factor = 0.5)
+	split.label(text = name)
+	split.enum_item_name(data, prop, enumItems)
 
 def prop_split(layout, data, field, name):
 	split = layout.split(factor = 0.5)

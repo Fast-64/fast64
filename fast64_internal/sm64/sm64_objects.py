@@ -640,7 +640,8 @@ class SM64ObjectPanel(bpy.types.Panel):
 		return context.scene.gameEditorMode == "SM64" and (context.object is not None and context.object.data is None)
 
 	def draw(self, context):
-		box = self.layout.box()
+		prop_split(self.layout, context.scene, "gameEditorMode", "Game")
+		box = self.layout.box().column()
 		box.box().label(text = 'SM64 Object Inspector')
 		obj = context.object
 		prop_split(box, obj, 'sm64_obj_type', 'Object Type')
@@ -762,9 +763,9 @@ class SM64ObjectPanel(bpy.types.Panel):
 			box.prop(obj, 'enableRoomSwitch')
 			if obj.enableRoomSwitch:
 				infoBox = box.box()
-				infoBox.label(text = 'Every child hierarchy of the area root will be treated as its own room.')
+				infoBox.label(text = 'Every child hierarchy of the area root will be treated as its own room (except for the first one.)')
 				infoBox.label(text = 'You can use empties with the "None" type as empty geolayout nodes to group related geometry under.')
-				infoBox.label(text = 'Children will ordered alphabetically.')
+				infoBox.label(text = 'Children will ordered alphabetically, with the first child being always visible.')
 			box.prop(obj, 'useDefaultScreenRect')
 			if not obj.useDefaultScreenRect:
 				prop_split(box, obj, 'screenPos', 'Screen Position')
@@ -874,7 +875,7 @@ class RemoveWarpNode(bpy.types.Operator):
 		return {'FINISHED'} 
 
 def drawWarpNodeProperty(layout, warpNode, index):
-	box = layout.box()
+	box = layout.box().column()
 	#box.box().label(text = 'Switch Option ' + str(index + 1))
 	box.prop(warpNode, 'expand', text = 'Warp Node ' + \
 		str(warpNode.warpID), icon = 'TRIA_DOWN' if warpNode.expand else \
@@ -957,7 +958,12 @@ class StarGetCutscenesProperty(bpy.types.PropertyGroup):
 			prop_split(layout, self, 'star7_value', '')
 
 def onUpdateObjectType(self, context):
-	if self.sm64_obj_type == 'Water Box':
+	isNoneEmpty = self.sm64_obj_type == "None"
+	isBoxEmpty = self.sm64_obj_type == 'Water Box' or self.sm64_obj_type == 'Camera Volume'
+	self.show_name = not (isBoxEmpty or isNoneEmpty)
+	self.show_axis = not (isBoxEmpty or isNoneEmpty)
+	
+	if isBoxEmpty:
 		self.empty_display_type = "CUBE"
 
 sm64_obj_classes = (

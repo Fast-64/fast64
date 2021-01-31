@@ -899,11 +899,6 @@ class SM64_ExportLevelPanel(bpy.types.Panel):
 			writeBox.label(text = 'levels/' + toAlnum(levelName) + ' (data).')
 			writeBox.label(text = 'src/game/camera.c (camera volume).')
 			writeBox.label(text = 'levels/level_defines.h (camera volume).')
-		
-		#extendedRAMLabel(col)
-		#prop_split(col, context.scene, 'levelCamera', 'Camera')
-		for i in range(panelSeparatorSize):
-			col.separator()
 
 sm64_level_classes = (
 	SM64_ExportLevel,

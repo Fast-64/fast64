@@ -145,9 +145,19 @@ class CreateMetarig(bpy.types.Operator):
 		self.report({'INFO'}, 'Created metarig.')
 		return {'FINISHED'} # must return a set
 
+class SM64_AddWaterBox(AddWaterBox):
+	bl_idname = 'object.sm64_add_water_box'
+
+	scale : bpy.props.FloatProperty(default = 10)
+	preset : bpy.props.StringProperty(default = "Shaded Solid")
+	matName : bpy.props.StringProperty(default = "sm64_water_mat")
+	
+	def setEmptyType(self, emptyObj):
+		emptyObj.sm64_obj_type = "Water Box"
+
 class SM64_ArmatureToolsPanel(bpy.types.Panel):
 	bl_idname = "SM64_PT_armature_tools"
-	bl_label = "SM64 Armature Tools"
+	bl_label = "SM64 Tools"
 	bl_space_type = 'VIEW_3D'
 	bl_region_type = 'UI'
 	bl_category = 'SM64'
@@ -162,10 +172,7 @@ class SM64_ArmatureToolsPanel(bpy.types.Panel):
 		col.operator(ArmatureApplyWithMesh.bl_idname)
 		col.operator(AddBoneGroups.bl_idname)
 		col.operator(CreateMetarig.bl_idname)
-		#col.operator(N64_AddF3dMat.bl_idname)
-
-		for i in range(panelSeparatorSize):
-			col.separator()
+		col.operator(SM64_AddWaterBox.bl_idname)
 	
 class F3D_GlobalSettingsPanel(bpy.types.Panel):
 	bl_idname = "F3D_PT_global_settings"
@@ -185,6 +192,11 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
 		col.prop(context.scene, 'isHWv1')
 		col.prop(context.scene, 'saveTextures')
 		col.prop(context.scene, 'f3d_simple', text = "Simple Material UI")
+		col.prop(context.scene, 'generateF3DNodeGraph', text = "Generate F3D Node Graph For Materials")
+		col.prop(context.scene, 'decomp_compatible', invert_checkbox = True, text = 'Homebrew Compatibility')
+		col.prop(context.scene, 'ignoreTextureRestrictions')
+		if context.scene.ignoreTextureRestrictions:
+			col.box().label(text = "Width/height must be < 1024. Must be RGBA32. Must be png format.")
 
 class Fast64_GlobalObjectPanel(bpy.types.Panel):
 	bl_label = "Global Object Inspector"
@@ -216,9 +228,8 @@ class Fast64_GlobalSettingsPanel(bpy.types.Panel):
 	# called every frame
 	def draw(self, context):
 		col = self.layout.column()
-		#prop_split(col, context.scene, 'gameEditorMode', "Game")
+		prop_split(col, context.scene, 'gameEditorMode', "Game")
 		col.prop(context.scene, 'fullTraceback')
-		col.prop(context.scene, 'experimentalMats')
 		
 
 #def updateGameEditor(scene, context):
@@ -242,6 +253,7 @@ classes = (
 	ArmatureApplyWithMesh,
 	AddBoneGroups,
 	CreateMetarig,
+	SM64_AddWaterBox,
 
 	#Fast64_GlobalObjectPanel,
 	F3D_GlobalSettingsPanel,
@@ -257,12 +269,14 @@ def register():
 	render_engine_register()
 	bsdf_conv_register()
 	sm64_register(True)
-	#oot_register(True)
+	oot_register(True)
 
 	bsdf_conv_panel_regsiter()
 
 	for cls in classes:
 		register_class(cls)
+	
+	f3d_writer_register()
 
 	# ROM
 	
@@ -276,13 +290,13 @@ def register():
 		name = 'Game', default = 'SM64', items = gameEditorEnum)
 	bpy.types.Scene.saveTextures = bpy.props.BoolProperty(
 		name = 'Save Textures As PNGs (Breaks CI Textures)')
-	bpy.types.Scene.experimentalMats = bpy.props.BoolProperty(
-		name = "Experimental Materials")
+	bpy.types.Scene.generateF3DNodeGraph = bpy.props.BoolProperty(name = "Generate F3D Node Graph", default = True)
 
 # called on add-on disabling
 def unregister():
+	f3d_writer_unregister()
 	sm64_unregister(True)
-	#oot_unregister(True)
+	oot_unregister(True)
 	mat_unregister()
 	bsdf_conv_unregister()
 	bsdf_conv_panel_unregsiter()
@@ -293,7 +307,7 @@ def unregister():
 	del bpy.types.Scene.ignoreTextureRestrictions
 	del bpy.types.Scene.saveTextures
 	del bpy.types.Scene.gameEditorMode
-	del bpy.types.Scene.experimentalMats
+	del bpy.types.Scene.generateF3DNodeGraph
 
 	for cls in classes:
 		unregister_class(cls)

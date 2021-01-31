@@ -2,6 +2,172 @@ from ..utility import *
 import bpy, math, mathutils, os
 from bpy.utils import register_class, unregister_class
 
+ootSceneDungeons = [
+	"bdan",
+	"bdan_boss",
+	"bmori1",
+	"ddan",
+	"ddan_boss",
+	"fire_bs",
+	"ganon",
+	"ganontika",
+	"ganontikasonogo",
+	"ganon_boss",
+	"ganon_demo",
+	"ganon_final",
+	"ganon_sonogo",
+	"ganon_tou",
+	"gerudoway",
+	"hakadan",
+	"hakadanch",
+	"hakadan_bs",
+	"hidan",
+	"ice_doukutu",
+	"jyasinboss",
+	"jyasinzou",
+	"men",
+	"mizusin",
+	"mizusin_bs",
+	"moribossroom",
+	"ydan",
+	"ydan_boss",
+]
+
+ootSceneIndoors = [
+	"bowling",
+	"daiyousei_izumi",
+	"hairal_niwa",
+	"hairal_niwa2",
+	"hairal_niwa_n",
+	"hakasitarelay",
+	"hut",
+	"hylia_labo",
+	"impa",
+	"kakariko",
+	"kenjyanoma",
+	"kokiri_home",
+	"kokiri_home3",
+	"kokiri_home4",
+	"kokiri_home5",
+	"labo",
+	"link_home",
+	"mahouya",
+	"malon_stable",
+	"miharigoya",
+	"nakaniwa",
+	"syatekijyou",
+	"takaraya",
+	"tent",
+	"tokinoma",
+	"yousei_izumi_tate",
+	"yousei_izumi_yoko",
+]
+
+ootSceneMisc = [
+	"enrui",
+	"entra_n",
+	"hakaana",
+	"hakaana2",
+	"hakaana_ouke",
+	"hiral_demo",
+	"kakariko3",
+	"kakusiana",
+	"kinsuta",
+	"market_alley",
+	"market_alley_n",
+	"market_day",
+	"market_night",
+	"market_ruins",
+	"shrine",
+	"shrine_n",
+	"shrine_r",
+	"turibori",
+]
+
+ootSceneOverworld = [
+	"entra",
+	"souko",
+	"spot00",
+	"spot01",
+	"spot02",
+	"spot03",
+	"spot04",
+	"spot05",
+	"spot06",
+	"spot07",
+	"spot08",
+	"spot09",
+	"spot10",
+	"spot11",
+	"spot12",
+	"spot13",
+	"spot15",
+	"spot16",
+	"spot17",
+	"spot18",
+	"spot20",
+]
+
+ootSceneShops = [
+	"alley_shop",
+	"drag",
+	"face_shop",
+	"golon",
+	"kokiri_shop",
+	"night_shop",
+	"shop1",
+	"zoora",
+]
+
+ootSceneTest_levels = [
+	"besitu",
+	"depth_test",
+	"sasatest",
+	"sutaru",
+	"syotes",
+	"syotes2",
+	"test01",
+	"testroom",
+]
+
+ootSceneDirs = {
+	'assets/scenes/dungeons/' : ootSceneDungeons,
+	'assets/scenes/indoors/' : ootSceneIndoors,
+	'assets/scenes/misc/' : ootSceneMisc,
+	'assets/scenes/overworld/' : ootSceneOverworld,
+	'assets/scenes/shops/' : ootSceneShops,
+	'assets/scenes/test_levels/' : ootSceneTest_levels,
+}
+
+def getSceneDirFromLevelName(name):
+	for sceneDir, dirLevels in ootSceneDirs.items():
+		if name in dirLevels:
+			return sceneDir + name
+	return None
+
+class ExportInfo:
+	def __init__(self, isCustomExport, exportPath, customSubPath, name):
+		self.isCustomExportPath = isCustomExport
+		self.exportPath = exportPath
+		self.customSubPath = customSubPath
+		self.name = name
+
+def getSceneObj(obj):
+	while not (obj is None or (obj is not None and obj.data is None and obj.ootEmptyType == "Scene")):
+		obj = obj.parent
+	if obj is None:
+		return None
+	else:
+		return obj
+
+def getRoomObj(obj):
+	while not (obj is None or (obj is not None and obj.data is None and obj.ootEmptyType == "Room")):
+		obj = obj.parent
+	if obj is None:
+		return None
+	else:
+		return obj
+
 def checkEmptyName(name):
 	if name == "":
 		raise PluginError("No name entered for the exporter.")
@@ -79,7 +245,7 @@ def ootConvertTranslation(translation):
 
 def ootConvertRotation(rotation):
 	# see BINANG_TO_DEGF
-	return [int(round(math.degrees(value) * 65535 / 360)) for value in rotation.to_euler()]
+	return [int(round((math.degrees(value) % 360) / 360 * (2**16))) % (2**16) for value in rotation.to_euler()]
 
 def getCollectionFromIndex(obj, prop, subIndex, isRoom):
 	if not isRoom:
@@ -135,15 +301,16 @@ def getCollection(obj, collectionType, subIndex):
 
 	return collection
 
-def drawAddButton(layout, index, collectionType, subIndex):
+def drawAddButton(layout, index, collectionType, subIndex, objName):
 	if subIndex is None:
 		subIndex = 0
 	addOp = layout.operator(OOTCollectionAdd.bl_idname)
 	addOp.option = index
 	addOp.collectionType = collectionType
 	addOp.subIndex = subIndex
+	addOp.objName = objName
 
-def drawCollectionOps(layout, index, collectionType, subIndex):
+def drawCollectionOps(layout, index, collectionType, subIndex, objName):
 	if subIndex is None:
 		subIndex = 0
 
@@ -153,11 +320,13 @@ def drawCollectionOps(layout, index, collectionType, subIndex):
 	addOp.option = index + 1
 	addOp.collectionType = collectionType
 	addOp.subIndex = subIndex
+	addOp.objName = objName
 
 	removeOp = buttons.operator(OOTCollectionRemove.bl_idname, text = 'Delete', icon = "REMOVE")
 	removeOp.option = index
 	removeOp.collectionType = collectionType
 	removeOp.subIndex = subIndex
+	removeOp.objName = objName
 	
 	#moveButtons = layout.row(align = True)
 	moveButtons = buttons
@@ -167,12 +336,14 @@ def drawCollectionOps(layout, index, collectionType, subIndex):
 	moveUp.offset = -1
 	moveUp.collectionType = collectionType
 	moveUp.subIndex = subIndex
+	moveUp.objName = objName
 
 	moveDown = moveButtons.operator(OOTCollectionMove.bl_idname, text = 'Down', icon = "TRIA_DOWN")
 	moveDown.option = index
 	moveDown.offset = 1
 	moveDown.collectionType = collectionType
 	moveDown.subIndex = subIndex
+	moveDown.objName = objName
 
 class OOTCollectionAdd(bpy.types.Operator):
 	bl_idname = 'object.oot_collection_add'
@@ -182,10 +353,10 @@ class OOTCollectionAdd(bpy.types.Operator):
 	option : bpy.props.IntProperty()
 	collectionType : bpy.props.StringProperty(default = "Actor")
 	subIndex : bpy.props.IntProperty(default = 0)
+	objName : bpy.props.StringProperty()
 
 	def execute(self, context):
-		obj = context.object
-		collection = getCollection(obj, self.collectionType, self.subIndex)
+		collection = getCollection(bpy.data.objects[self.objName], self.collectionType, self.subIndex)
 
 		collection.add()
 		collection.move(len(collection)-1, self.option)
@@ -200,9 +371,10 @@ class OOTCollectionRemove(bpy.types.Operator):
 	option : bpy.props.IntProperty()
 	collectionType : bpy.props.StringProperty(default = "Actor")
 	subIndex : bpy.props.IntProperty(default = 0)
+	objName : bpy.props.StringProperty()
 
 	def execute(self, context):
-		collection = getCollection(context.object, self.collectionType, self.subIndex)
+		collection = getCollection(bpy.data.objects[self.objName], self.collectionType, self.subIndex)
 		collection.remove(self.option)
 		self.report({'INFO'}, 'Success!')
 		return {'FINISHED'} 
@@ -215,11 +387,11 @@ class OOTCollectionMove(bpy.types.Operator):
 	option : bpy.props.IntProperty()
 	offset : bpy.props.IntProperty()
 	subIndex : bpy.props.IntProperty(default = 0)
+	objName : bpy.props.StringProperty()
 
 	collectionType : bpy.props.StringProperty(default = "Actor")
 	def execute(self, context):
-		obj = context.object
-		collection = getCollection(obj, self.collectionType, self.subIndex)
+		collection = getCollection(bpy.data.objects[self.objName], self.collectionType, self.subIndex)
 		collection.move(self.option, self.option + self.offset)
 		self.report({'INFO'}, 'Success!')
 		return {'FINISHED'} 

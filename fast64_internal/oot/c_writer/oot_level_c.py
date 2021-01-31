@@ -205,9 +205,9 @@ def ootActorToC(actor):
 		str(int(round(actor.position[0]))) + ', ' + \
 		str(int(round(actor.position[1]))) + ', ' + \
 		str(int(round(actor.position[2]))) + ', ' + \
-		str(int(round(math.degrees(actor.rotation[0])))) + ', ' + \
-		str(int(round(math.degrees(actor.rotation[1])))) + ', ' + \
-		str(int(round(math.degrees(actor.rotation[2])))) + ', ' + \
+		str(int(round(actor.rotation[0]))) + ', ' + \
+		str(int(round(actor.rotation[1]))) + ', ' + \
+		str(int(round(actor.rotation[2]))) + ', ' + \
 		str(actor.actorParam) + ' },\n'
 
 def ootActorListToC(room, headerIndex):
@@ -258,7 +258,8 @@ def ootMeshEntryToC(meshEntry, meshType):
 	data = "{ "
 	if meshType == "1":
 		raise PluginError("MeshHeader1 not supported.")
-	if meshType == "2":
+	elif meshType == "2":
+		raise PluginError("MeshHeader2 not supported.") # TODO: Below is broken
 		if meshEntry.cullVolume is None:
 			data += "0x7FFF, 0x7FFF, 0x8000, 0x8000, "
 		else:
@@ -445,7 +446,7 @@ def ootTransitionActorToC(transActor):
 		str(int(round(transActor.position[0]))) + ', ' + \
 		str(int(round(transActor.position[1]))) + ', ' + \
 		str(int(round(transActor.position[2]))) + ', ' + \
-		str(int(round(math.degrees(transActor.rotationY)))) + ', ' + \
+		str(int(round(transActor.rotationY))) + ', ' + \
 		str(transActor.actorParam) + ' },\n'
 
 def ootTransitionActorListToC(scene, headerIndex):
@@ -494,32 +495,23 @@ def ootVectorToC(vector):
 	return str(vector[0]) + ', ' + str(vector[1]) + ', ' + str(vector[2])
 
 def ootLightToC(light):
-	return "{ " + \
+	return "\t{ " + \
 		ootVectorToC(light.ambient) + ', ' +\
-		ootVectorToC(light.diffuse0) + ', ' +\
 		ootVectorToC(light.diffuseDir0) + ', ' +\
-		ootVectorToC(light.diffuse1) + ', ' +\
+		ootVectorToC(light.diffuse0) + ', ' +\
 		ootVectorToC(light.diffuseDir1) + ', ' +\
+		ootVectorToC(light.diffuse1) + ', ' +\
 		ootVectorToC(light.fogColor) + ', ' +\
 		light.getBlendFogShort() + ', ' +\
 		str(light.drawDistance) + ' },\n'
-
-def ootLightGroupToC(lightGroup):
-	data = ""
-	data += '\t' + ootLightToC(lightGroup.dawn)
-	if lightGroup.day is not None:
-		data += '\t' + ootLightToC(lightGroup.day)
-		data += '\t' + ootLightToC(lightGroup.dusk)
-		data += '\t' + ootLightToC(lightGroup.night)
-	return data	
 
 def ootLightSettingsToC(scene, useIndoorLighting, headerIndex):
 	data = CData()
 	lightArraySize = len(scene.lights) * (1 if useIndoorLighting else 4)
 	data.header = "extern LightSettings " + scene.lightListName(headerIndex) + "[" + str(lightArraySize) + "];\n"
 	data.source = "LightSettings " + scene.lightListName(headerIndex) + "[" + str(lightArraySize) + "] = {\n"
-	for lightGroup in scene.lights:
-		data.source += ootLightGroupToC(lightGroup)
+	for light in scene.lights:
+		data.source += ootLightToC(light)
 	data.source += '};\n\n'
 	return data
 

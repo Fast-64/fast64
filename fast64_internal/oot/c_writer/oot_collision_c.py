@@ -31,22 +31,24 @@ def ootCameraDataToC(camData):
 	posC = CData()
 	camC = CData()
 	if len(camData.camPosDict) > 0:
-		posDataName = "CamPosData " + camData.camPositionsName() + '[' + str(len(camData.camPosDict)) + ']'
-		camDataName = "CamData " + camData.camDataName() + "[" + str(len(camData.camPosDict)) + "]"
 		
-		posC.source = posDataName + ' = {\n'
-		posC.header = "extern " + posDataName + ';\n'
+		camDataName = "CamData " + camData.camDataName() + "[" + str(len(camData.camPosDict)) + "]"
+
 		camC.source = camDataName + ' = {\n'
 		camC.header = "extern " + camDataName + ';\n'
 		
 		camPosIndex = 0
 		for i in range(len(camData.camPosDict)):
-			posC.source += ootCameraPosToC(camData.camPosDict[i])
 			camC.source += '\t' + ootCameraEntryToC(camData.camPosDict[i], camData, camPosIndex)
 			if camData.camPosDict[i].hasPositionData:
+				posC.source += ootCameraPosToC(camData.camPosDict[i])
 				camPosIndex += 3
 		posC.source += '};\n\n'
 		camC.source += '};\n\n'
+
+		posDataName = "Vec3s " + camData.camPositionsName() + '[' + str(camPosIndex) + ']'
+		posC.header = "extern " + posDataName + ';\n'
+		posC.source = posDataName + " = {\n" + posC.source 
 
 	posC.append(camC)
 	return posC
@@ -67,7 +69,7 @@ def ootCameraEntryToC(camPos, camData, camPosIndex):
 	return "{ " +\
 		str(camPos.camSType) + ', ' +\
 		('3' if camPos.hasPositionData else '0') + ', ' +\
-		"&" + ((camData.camPositionsName()  + '[' + str(camPosIndex) + ']') 
+		(("&" + camData.camPositionsName()  + '[' + str(camPosIndex) + ']') 
 		if camPos.hasPositionData else "0") + ' },\n'
 
 def ootCollisionToC(collision):

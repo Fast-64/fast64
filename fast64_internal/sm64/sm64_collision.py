@@ -607,8 +607,6 @@ class SM64_ExportCollisionPanel(bpy.types.Panel):
 			if context.scene.set_addr_0x2A:
 				prop_split(col, context.scene, 'addr_0x2A', 
 					'0x2A Behaviour Command Address')
-		for i in range(panelSeparatorSize):
-			col.separator()
 
 
 sm64_col_classes = (
@@ -636,7 +634,7 @@ def sm64_col_register():
 	bpy.types.Scene.colExportPath = bpy.props.StringProperty(
 		name = 'Directory', subtype = 'FILE_PATH')
 	bpy.types.Scene.colExportType = bpy.props.EnumProperty(
-		items = enumExportType, name = 'Export', default = 'Binary')
+		items = enumExportType, name = 'Export', default = 'C')
 	bpy.types.Scene.colExportLevel = bpy.props.EnumProperty(items = level_enums, 
 		name = 'Level Used By Collision', default = 'WF')
 	bpy.types.Scene.addr_0x2A = bpy.props.StringProperty(

@@ -39,13 +39,6 @@ class OOTEntrance:
 		self.roomIndex = roomIndex
 		self.startPositionIndex = startPositionIndex
 
-class OOTLightGroup:
-	def __init__(self):
-		self.dawn = None
-		self.day = None
-		self.dusk = None
-		self.night = None
-
 class OOTLight:
 	def __init__(self):
 		self.ambient = (0,0,0)
@@ -60,6 +53,10 @@ class OOTLight:
 	
 	def getBlendFogShort(self):
 		return format((self.transitionSpeed << 10) | self.fogNear, "#06x")
+
+class OOTSceneTableEntry:
+	def __init__(self):
+		self.drawConfig = 0
 
 class OOTScene:
 	def __init__(self, name, model):
@@ -97,6 +94,7 @@ class OOTScene:
 		self.cameraList = []
 
 		self.custcene = None
+		self.sceneTableEntry = OOTSceneTableEntry()
 
 	def getAlternateHeaderScene(self, name):
 		scene = OOTScene(name, self.model)

@@ -3,6 +3,7 @@ from bpy.utils import register_class, unregister_class
 
 from .oot_constants import *
 from .oot_utility import *
+from .oot_scene_room import *
 
 class OOTPath:
 	def __init__(self, ownerName, splineIndex):
@@ -46,6 +47,8 @@ class OOTSplinePanel(bpy.types.Panel):
 		curve = context.object.data
 		if curve.splines[0].type != 'NURBS':
 			box.label(text = 'Only NURBS curves are compatible.')
+		
+		#drawParentSceneRoom(box, context.object)
 
 def isCurveValid(obj):
 	curve = obj.data
