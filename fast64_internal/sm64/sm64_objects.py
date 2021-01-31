@@ -146,7 +146,36 @@ enumObjectType = [
 	('Water Box', 'Water Box', 'Water Box'),
 	('Camera Volume', 'Camera Volume', 'Camera Volume'),
 	('Switch', 'Switch Node', 'Switch Node'),
-	#('Trajectory', 'Trajectory', 'Trajectory'),
+	('Puppycam Volume', 'Puppycam Volume', 'Puppycam Volume'),
+]
+
+enumPuppycamMode = [
+	('Custom', 'Custom', 'Custom'),
+	('NC_MODE_NORMAL', 'Normal', 'Normal'),
+	('NC_MODE_SLIDE', 'Slide', 'Slide'),
+	('NC_MODE_FIXED', 'Fixed Position', 'Fixed Position'),
+	('NC_MODE_2D', 'Two Dimensional', 'Two Dimensional'),
+	('NC_MODE_8D', '8 Directions', '8 Directions'),
+	('NC_MODE_FIXED_NOMOVE', 'Fixed, No Move', 'Fixed, No Move'),
+	('NC_MODE_NOTURN', 'No Turning', 'No Turning'),
+	('NC_MODE_NOROTATE', 'No Rotation', 'No Rotation'),
+]
+
+enumPuppycamFlags = [
+	('NC_FLAG_XTURN', 'X Turn', 'the camera\'s yaw can be moved by the player.'),
+	('NC_FLAG_YTURN', 'Y Turn', 'the camera\'s pitch can be moved by the player.'),
+	('NC_FLAG_ZOOM', 'Zoom', 'the camera\'s distance can be set by the player.'),
+	('NC_FLAG_8D', '8 Directions', 'the camera will snap to an 8 directional axis'),
+	('NC_FLAG_4D', '4 Directions', 'the camera will snap to a 4 directional axis'),
+	('NC_FLAG_2D', '2D', 'the camera will stick to 2D.'),
+	('NC_FLAG_FOCUSX', 'Use X Focus', 'the camera will point towards its focus on the X axis.'),
+	('NC_FLAG_FOCUSY', 'Use Y Focus', 'the camera will point towards its focus on the Y axis.'),
+	('NC_FLAG_FOCUSZ', 'Use Z Focus', 'the camera will point towards its focus on the Z axis.'),
+	('NC_FLAG_POSX', 'Move on X axis', 'the camera will move along the X axis.'),
+	('NC_FLAG_POSY', 'Move on Y axis', 'the camera will move along the Y axis.'),
+	('NC_FLAG_POSZ', 'Move on Z axis', 'the camera will move along the Z axis.'),
+	('NC_FLAG_COLLISION', 'Collision', 'the camera will collide and correct itself with terrain.'),
+	('NC_FLAG_SLIDECORRECT', 'Slide Correction', 'the camera will attempt to centre itself behind Mario whenever he\'s sliding.'),
 ]
 
 class SM64_Object:
@@ -268,6 +297,7 @@ class SM64_Area:
 	def __init__(self, index, music_seq, music_preset, 
 		terrain_type, geolayout, collision, warpNodes, name, startDialog):
 		self.cameraVolumes = []
+		self.puppycamVolumes = []
 		self.name = toAlnum(name)
 		self.geolayout = geolayout
 		self.collision = collision
@@ -322,6 +352,12 @@ class SM64_Area:
 		data = ''
 		for camVolume in self.cameraVolumes:
 			data +=  '\t' + camVolume.to_c() + '\n'
+		return data
+
+	def to_c_puppycam_volumes(self):
+		data = ''
+		for puppycamVolume in self.puppycamVolumes:
+			data +=  '\t' + puppycamVolume.to_c() + '\n'
 		return data
 
 	def hasCutsceneSpline(self):
@@ -390,6 +426,53 @@ class CameraVolume:
 			str(int(round(self.scale[1]))) + ', ' + \
 			str(int(round(self.scale[2]))) + ', ' + \
 			str(convertRadiansToS16(self.rotation[1])) + '},'
+		return data
+
+class PuppycamVolume:
+
+	def __init__(self, area, level, permaswap, functionName, position, scale, emptyScale, camPos, camFocus, mode):
+		self.level = level
+		self.area = area
+		self.functionName = functionName
+		self.permaswap = permaswap
+		self.mode = mode
+
+		#camPos and camFocus are in blender scale, z-up
+		# xyz, beginning and end
+		self.begin = (position[0] - scale[0], position[1] - scale[2], position[2] - scale[1])
+		self.end = (position[0] + scale[0], position[1] + scale[2], position[2] + scale[1])
+		camScaleValue = bpy.context.scene.blenderToSM64Scale
+
+		# xyz for pos and focus obtained from chosen empties or from selected camera (32767 is ignore flag)
+		if camPos != (32767, 32767, 32767):
+			self.camPos = (camPos[0] * camScaleValue, camPos[2] * camScaleValue, camPos[1] * camScaleValue * -1)
+		else:
+			self.camPos = camPos
+		
+		if camFocus != (32767, 32767, 32767):
+			self.camFocus = (camFocus[0] * camScaleValue, camFocus[2] * camScaleValue, camFocus[1] * camScaleValue * -1)
+		else:
+			self.camFocus = camFocus
+		
+	def to_binary(self):
+		raise PluginError("Binary exporting not implemented for puppycam volumes.")
+	
+	def to_c(self):
+		data = '{' + \
+			str(self.level) + ', ' + str(self.area) + ', ' + ('1' if self.permaswap else '0') + ', ' + \
+			str(self.mode) + (', &' if str(self.functionName) != '0' else ', ') + str(self.functionName) + ', ' + \
+			str(int(round(self.begin[0]))) + ', ' + \
+			str(int(round(self.begin[1]))) + ', ' + \
+			str(int(round(self.begin[2]))) + ', ' + \
+			str(int(round(self.end[0]))) + ', ' + \
+			str(int(round(self.end[1]))) + ', ' + \
+			str(int(round(self.end[2]))) + ', ' + \
+			str(int(round(self.camPos[0]))) + ', ' + \
+			str(int(round(self.camPos[1]))) + ', ' + \
+			str(int(round(self.camPos[2]))) + ', ' + \
+			str(int(round(self.camFocus[0]))) + ', ' + \
+			str(int(round(self.camFocus[1]))) + ', ' + \
+			str(int(round(self.camFocus[2]))) + '},'
 		return data
 
 def exportAreaCommon(areaObj, transformMatrix, geolayout, collision, name):
@@ -523,6 +606,65 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
 				area.cameraVolumes.append(CameraVolume(triggerIndex, obj.cameraVolumeFunction,
 					translation, rotation.to_euler(), scale, obj.empty_display_size))
 
+			elif obj.sm64_obj_type == 'Puppycam Volume':
+				checkIdentityRotation(obj, rotation, False)
+				
+				triggerIndex = area.index
+				puppycamProp = obj.puppycamProp
+				if(puppycamProp.puppycamUseFlags):
+					puppycamModeString = '0'
+					if puppycamProp.NC_FLAG_XTURN:
+						puppycamModeString += " | NC_FLAG_XTURN"
+					if puppycamProp.NC_FLAG_YTURN:
+						puppycamModeString += " | NC_FLAG_YTURN"
+					if puppycamProp.NC_FLAG_ZOOM:
+						puppycamModeString += " | NC_FLAG_ZOOM"
+					if puppycamProp.NC_FLAG_8D:
+						puppycamModeString += " | NC_FLAG_8D"
+					if puppycamProp.NC_FLAG_4D:
+						puppycamModeString += " | NC_FLAG_4D"
+					if puppycamProp.NC_FLAG_2D:
+						puppycamModeString += " | NC_FLAG_2D"
+					if puppycamProp.NC_FLAG_FOCUSX:
+						puppycamModeString += " | NC_FLAG_FOCUSX"
+					if puppycamProp.NC_FLAG_FOCUSY:
+						puppycamModeString += " | NC_FLAG_FOCUSY"
+					if puppycamProp.NC_FLAG_FOCUSZ:
+						puppycamModeString += " | NC_FLAG_FOCUSZ"
+					if puppycamProp.NC_FLAG_POSX:
+						puppycamModeString += " | NC_FLAG_POSX"
+					if puppycamProp.NC_FLAG_POSY:
+						puppycamModeString += " | NC_FLAG_POSY"
+					if puppycamProp.NC_FLAG_POSZ:
+						puppycamModeString += " | NC_FLAG_POSZ"
+					if puppycamProp.NC_FLAG_COLLISION:
+						puppycamModeString += " | NC_FLAG_COLLISION"
+					if puppycamProp.NC_FLAG_SLIDECORRECT:
+						puppycamModeString += " | NC_FLAG_SLIDECORRECT"
+				else:
+					puppycamModeString = (puppycamProp.puppycamMode if puppycamProp.puppycamMode != 'Custom' else puppycamProp.puppycamType)
+	
+	
+				if (not puppycamProp.puppycamUseEmptiesForPos) and puppycamProp.puppycamCamera is not None:
+					puppycamCamPosCoords = puppycamProp.puppycamCamera.location
+				elif puppycamProp.puppycamUseEmptiesForPos and puppycamProp.puppycamCamPos != "":
+					puppycamPosObject = bpy.context.scene.objects[puppycamProp.puppycamCamPos]
+					puppycamCamPosCoords = puppycamPosObject.location
+				else:
+					puppycamCamPosCoords = (32767, 32767, 32767)
+				
+				if (not puppycamProp.puppycamUseEmptiesForPos) and puppycamProp.puppycamCamera is not None:
+					puppycamCamFocusCoords = (puppycamProp.puppycamCamera.matrix_local @ mathutils.Vector((0, 0, -1)))[:]
+				elif puppycamProp.puppycamUseEmptiesForPos and puppycamProp.puppycamCamFocus != "":
+					puppycamFocObject = bpy.context.scene.objects[puppycamProp.puppycamCamFocus]
+					puppycamCamFocusCoords = puppycamFocObject.location
+				else:
+					puppycamCamFocusCoords = (32767, 32767, 32767)
+	
+				area.puppycamVolumes.append(PuppycamVolume(triggerIndex, levelIDNames[bpy.data.scenes["Scene"].levelOption], 
+				puppycamProp.puppycamVolumePermaswap, puppycamProp.puppycamVolumeFunction, translation, scale, obj.empty_display_size, puppycamCamPosCoords, puppycamCamFocusCoords, puppycamModeString))
+
+
 	elif not specialsOnly and isCurveValid(obj):
 		area.splines.append(convertSplineObject(area.name + '_spline_' + obj.name , obj, finalTransform))
 			
@@ -642,6 +784,7 @@ class SM64ObjectPanel(bpy.types.Panel):
 	def draw(self, context):
 		prop_split(self.layout, context.scene, "gameEditorMode", "Game")
 		box = self.layout.box().column()
+		column = self.layout.box().column() # added just for puppycam trigger importing
 		box.box().label(text = 'SM64 Object Inspector')
 		obj = context.object
 		prop_split(box, obj, 'sm64_obj_type', 'Object Type')
@@ -782,6 +925,38 @@ class SM64ObjectPanel(bpy.types.Panel):
 			prop_split(box, obj, 'cameraVolumeFunction', 'Camera Function')
 			box.prop(obj, 'cameraVolumeGlobal')
 			box.box().label(text = "Only vertical axis rotation allowed.")
+
+		elif obj.sm64_obj_type == 'Puppycam Volume':
+			puppycamProp = obj.puppycamProp
+			prop_split(column, puppycamProp, 'puppycamVolumeFunction', 'Puppycam Function')
+			column.prop(puppycamProp, 'puppycamVolumePermaswap')
+			column.prop(puppycamProp, 'puppycamUseFlags')
+			
+			column.prop(puppycamProp, 'puppycamUseEmptiesForPos')
+			
+			if puppycamProp.puppycamUseEmptiesForPos:
+				column.label(text = "Fixed Camera Position (Optional)")
+				column.prop_search(puppycamProp, "puppycamCamPos", bpy.data, "objects", text = '')
+			
+				column.label(text = "Fixed Camera Focus (Optional)")
+				column.prop_search(puppycamProp, "puppycamCamFocus", bpy.data, "objects", text = '')
+			else:
+				column.label(text = "Fixed Camera Position (Optional)")
+				column.prop(puppycamProp, "puppycamCamera")
+				if puppycamProp.puppycamCamera is not None:
+					column.box().label(text = "FOV not exported, only for preview camera.")
+					prop_split(column, puppycamProp, 'puppycamFOV', 'Camera FOV')
+					column.operator("mesh.puppycam_setup_camera", text = 'Setup Camera', icon = 'VIEW_CAMERA')
+
+			if puppycamProp.puppycamUseFlags:
+				for i, flagSet in enumerate(enumPuppycamFlags):
+					column.prop(puppycamProp, flagSet[0])
+			else:
+				prop_split(column, puppycamProp, 'puppycamMode', 'Camera Mode')
+				if puppycamProp.puppycamMode == 'Custom':
+					prop_split(column, puppycamProp, 'puppycamType', '')
+
+			column.box().label(text = "No rotation allowed.")
 		
 		elif obj.sm64_obj_type == 'Switch':
 			prop_split(box, obj, 'switchFunc', 'Function')
@@ -966,6 +1141,113 @@ def onUpdateObjectType(self, context):
 	if isBoxEmpty:
 		self.empty_display_type = "CUBE"
 
+class PuppycamSetupCamera(bpy.types.Operator):
+	"""Setup Camera"""
+	bl_idname = "mesh.puppycam_setup_camera"
+	bl_label = "Set up Camera"
+	bl_options = {'REGISTER'}
+
+	def execute(self, context):
+		scene = context.scene
+		cameraObject = bpy.context.active_object.puppycamCamera.data.name
+
+		scene.camera = bpy.context.active_object.puppycamCamera
+		bpy.data.cameras[cameraObject].show_name = True
+		bpy.data.cameras[cameraObject].show_safe_areas = True
+		
+		scene.safe_areas.title[0] = 0
+		scene.safe_areas.title[1] = 8/240 # Use the safe areas to denote where default 8 pixel black bars will be
+		scene.safe_areas.action = (0, 0)
+
+		# If you could set resolution on a per-camera basis, I'd do that instead. Oh well. 
+		scene.render.resolution_x = 320
+		scene.render.resolution_y = 240
+
+		bpy.data.cameras[cameraObject].angle = math.radians(bpy.context.active_object.puppycamFOV * (4/3))
+
+		return {'FINISHED'}
+
+
+def sm64_is_camera_poll(self, object):
+    return object.type == 'CAMERA'
+
+class PuppycamProperty(bpy.types.PropertyGroup):
+	puppycamVolumeFunction : bpy.props.StringProperty(
+		name = 'Puppycam Function', default = '0')
+
+	puppycamVolumePermaswap : bpy.props.BoolProperty(
+		name = 'Permaswap')
+
+	puppycamUseEmptiesForPos : bpy.props.BoolProperty(
+		name = 'Use Empty Objects for positions')
+	
+	puppycamCamera : bpy.props.PointerProperty(
+        type=bpy.types.Object,
+        poll=sm64_is_camera_poll
+    )
+	
+	puppycamFOV : bpy.props.FloatProperty(
+		name = 'Field Of View', min = 0, max = 180, default = 45
+	)
+
+	puppycamMode : bpy.props.EnumProperty(
+		items = enumPuppycamMode, default = 'NC_MODE_NORMAL')
+	
+	puppycamType : bpy.props.StringProperty(
+		name = 'Custom Mode', default = 'NC_MODE_NORMAL')
+	
+	puppycamCamPos : bpy.props.StringProperty(
+		name = 'Fixed Camera Position')
+	
+	puppycamCamFocus : bpy.props.StringProperty(
+		name = 'Fixed Camera Focus')
+
+	puppycamUseFlags : bpy.props.BoolProperty(
+		name = 'Use Flags')
+
+	NC_FLAG_XTURN : bpy.props.BoolProperty(
+		name = 'X Turn')
+	
+	NC_FLAG_YTURN : bpy.props.BoolProperty(
+		name = 'Y Turn')
+
+	NC_FLAG_ZOOM : bpy.props.BoolProperty(
+		name = 'Y Turn')
+	
+	NC_FLAG_8D : bpy.props.BoolProperty(
+		name = '8 Directions')
+
+	NC_FLAG_4D : bpy.props.BoolProperty(
+		name = '4 Directions')
+
+	NC_FLAG_2D : bpy.props.BoolProperty(
+		name = '2D')
+
+	NC_FLAG_FOCUSX : bpy.props.BoolProperty(
+		name = 'Use X Focus')
+	
+	NC_FLAG_FOCUSY : bpy.props.BoolProperty(
+		name = 'Use Y Focus')
+
+	NC_FLAG_FOCUSZ : bpy.props.BoolProperty(
+		name = 'Use Z Focus')
+	
+	NC_FLAG_POSX : bpy.props.BoolProperty(
+		name = 'Move on X axis')
+	
+	NC_FLAG_POSY : bpy.props.BoolProperty(
+		name = 'Move on Y axis')
+	
+	NC_FLAG_POSZ : bpy.props.BoolProperty(
+		name = 'Move on Z axis')
+	
+	NC_FLAG_COLLISION : bpy.props.BoolProperty(
+		name = 'Camera Collision')
+	
+	NC_FLAG_SLIDECORRECT : bpy.props.BoolProperty(
+		name = 'Slide Correction')
+
+
 sm64_obj_classes = (
 	WarpNodeProperty,
 	AddWarpNode,
@@ -977,6 +1259,9 @@ sm64_obj_classes = (
 	SearchMacroEnumOperator,
 	
 	StarGetCutscenesProperty,
+
+	PuppycamProperty,
+	PuppycamSetupCamera,
 )
 
 
@@ -995,6 +1280,8 @@ def sm64_obj_panel_unregister():
 def sm64_obj_register():
 	for cls in sm64_obj_classes:
 		register_class(cls)
+
+	bpy.types.Object.puppycamProp = bpy.props.PointerProperty(type = PuppycamProperty)
 
 	bpy.types.Object.sm64_model_enum = bpy.props.EnumProperty(
 		name = 'Model', items = enumModelIDs)

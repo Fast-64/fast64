@@ -459,6 +459,41 @@ def parseLevelScript(filepath, levelName):
 			inArea = False
 		
 	return levelscript
+
+def overwritePuppycamData(filePath, levelToReplace, newPuppycamTriggers):
+	# Splits the file into what's before, inside, and after the array
+	arrayEntiresRegex = '(.+struct\s+newcam_hardpos\s+newcam_fixedcam\[\]\s+=\s+{)(.+)(\};)'
+	# Splits the individual entries in the array apart
+	structEntry = '(.+?\{.+?\}.+?\n)'
+
+	if os.path.exists(filePath):
+		dataFile = open(filePath, 'r')
+		data = dataFile.read()
+		dataFile.close()
+
+		matchResult = re.search(arrayEntiresRegex, data, re.DOTALL)
+
+		if matchResult:
+			data = ''
+			entriesString = matchResult.group(2)
+
+			# Iterate through each existing entry, getting rid of any that are in the level we're importing to.
+			entriesList = re.findall(structEntry, entriesString, re.DOTALL)
+			for entry in entriesList:
+				if re.search('(\{\s?' + levelToReplace + '\s?,)', re.sub('(/\*.+?\*/)|(//.+?\n)', '', entry), re.DOTALL) is None:
+					data += entry
+			
+			# Add the new entries from this export, then put the file back together again.
+			data += '\n\n' + newPuppycamTriggers
+			data = matchResult.group(1) + data + '\n' + matchResult.group(3)
+		else:
+			raise PluginError("Could not find 'struct newcam_hardpos newcam_fixedcam[]'.")
+		
+		dataFile = open(filePath, 'w', newline='\n')
+		dataFile.write(data)
+		dataFile.close()
+	else:
+		raise PluginError(filePath + " does not exist.")
 	
 def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 	savePNG, customExport, levelCameraVolumeName, DLFormat):
@@ -482,6 +517,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 	headerString = ''
 	areaString = ''
 	cameraVolumeString = "struct CameraTrigger " + levelCameraVolumeName + "[] = {\n"
+	puppycamVolumeString = ''
 
 	fModel = SM64Model(f3dType, isHWv1, levelName + '_dl', DLFormat)
 	childAreas = [child for child in obj.children if child.data is None and child.sm64_obj_type == 'Area Root']
@@ -556,6 +592,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 			prevLevelScript.marioStart = area.mario_start
 		areaString += area.to_c_script(child.enableRoomSwitch)
 		cameraVolumeString += area.to_c_camera_volumes()
+		puppycamVolumeString += area.to_c_puppycam_volumes()
 
 		# Write macros
 		macroFile = open(os.path.join(areaDir, 'macro.inc.c'), 'w', newline = '\n')
@@ -663,6 +700,15 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 		cameraFile.write(cameraVolumeString)
 		cameraFile.close()
 
+		hasPuppyCamData = puppycamVolumeString != ""
+		puppycamVolumeString = '// Put these structs into the newcam_fixedcam[] array in enhancements/puppycam_angles.inc.c. \n' +\
+			puppycamVolumeString
+
+		if hasPuppyCamData:
+			cameraFile = open(os.path.join(levelDir, 'puppycam_trigger.inc.c'), 'w', newline='\n')
+			cameraFile.write(puppycamVolumeString)
+			cameraFile.close()
+
 	if not customExport:
 		if DLFormat != DLFormat.Static:
 			# Write material headers
@@ -674,6 +720,12 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 		cameraPath = os.path.join(exportDir, 'src/game/camera.c')
 		overwriteData('struct\s*CameraTrigger\s*', levelCameraVolumeName, cameraVolumeString, cameraPath,
 			'struct CameraTrigger *sCameraTriggers', False)
+
+		# Export puppycam triggers
+		# If this isn't an ultrapuppycam repo, don't try and export ultrapuppycam triggers
+		puppycamAnglesPath = os.path.join(exportDir, 'enhancements/puppycam_angles.inc.c')
+		if os.path.exists(puppycamAnglesPath) and puppycamVolumeString != "":
+			overwritePuppycamData(puppycamAnglesPath, levelIDNames[levelName], puppycamVolumeString)
 
 		levelHeadersPath = os.path.join(exportDir, 'levels/level_headers.h.in')
 		levelDefinesPath = os.path.join(exportDir, 'levels/level_defines.h')
