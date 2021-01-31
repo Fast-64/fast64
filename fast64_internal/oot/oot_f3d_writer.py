@@ -163,7 +163,7 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 	# This means everything will be saved to one mesh. 
 	drawLayerKey = drawLayerOverride
 	for material_index, faces in groupFaces.items():
-		material = meshObj.data.materials[material_index]
+		material = meshObj.material_slots[material_index].material
 		if material.mat_ver > 3:
 			drawLayer = material.f3d_mat.draw_layer.oot
 		else:
@@ -185,7 +185,7 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 
 	for groupTuple, materialFaces in skinnedFaces.items():
 		for material_index, faces in materialFaces.items():
-			material = meshObj.data.materials[material_index]
+			material = meshObj.material_slots[material_index].material
 			if material.mat_ver > 3:
 				drawLayer = material.f3d_mat.draw_layer.oot
 			else:

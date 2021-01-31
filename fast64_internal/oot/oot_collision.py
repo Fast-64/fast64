@@ -497,7 +497,7 @@ def addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix, 
 			raise PluginError(obj.name + " must have a material associated with it.")
 		obj.data.calc_loop_triangles()
 		for face in obj.data.loop_triangles:
-			material = obj.data.materials[face.material_index]
+			material = obj.material_slots[face.material_index].material
 			#polygonType = getPolygonType(material.ootCollisionProperty)
 
 			planePoint = transformMatrix @ obj.data.vertices[face.vertices[0]].co

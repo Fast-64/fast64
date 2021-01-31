@@ -78,7 +78,7 @@ def getInfoDict(obj):
 			raise PluginError("Object \'" + obj.name + "\' does not have a UV layer named \'UVMap.\'")
 	for face in mesh.loop_triangles:
 		validNeighborDict[face] = []
-		material = mesh.materials[face.material_index] 
+		material = obj.material_slots[face.material_index].material 
 		if material is None:
 			raise PluginError("There are some faces on your mesh that are assigned to an empty material slot.")
 		for vertIndex in face.vertices:
@@ -94,7 +94,7 @@ def getInfoDict(obj):
 
 		for loopIndex in face.loops:
 			convertInfo = LoopConvertInfo(uv_data, obj, 
-				isLightingDisabled(mesh.materials[face.material_index]))
+				isLightingDisabled(obj.material_slots[face.material_index].material))
 			f3dVertDict[loopIndex] = getF3DVert(mesh.loops[loopIndex], face, convertInfo, mesh)
 	for face in mesh.loop_triangles:	
 		for edgeKey in face.edge_keys:
@@ -129,15 +129,15 @@ def fixLargeUVs(obj):
 	texSizeDict = {}
 	if len(obj.data.materials) == 0:
 		raise PluginError("This object needs an f3d material on it.")
-	for material in obj.data.materials:
-		if material is None:
-			raise PluginError("There are some faces on your mesh that are assigned to an empty material slot.")
 
 		# Don't get tex dimensions here, as it also processes unused materials.
 		#texSizeDict[material] = getTexDimensions(material)
 
 	for polygon in mesh.polygons:
-		material = mesh.materials[polygon.material_index] 
+		material = obj.material_slots[polygon.material_index].material
+		if material is None:
+			raise PluginError("There are some faces on your mesh that are assigned to an empty material slot.")
+
 		if material not in texSizeDict:
 			texSizeDict[material] = getTexDimensions(material)
 		if material.mat_ver > 3 and material.f3d_mat.use_large_textures:
@@ -371,7 +371,7 @@ def saveStaticModel(fModel, obj, transformMatrix, ownerName, DLFormat, convertTe
 
 	fMeshes = {}
 	for material_index, faces in facesByMat.items():
-		material = obj.data.materials[material_index]
+		material = obj.material_slots[material_index].material
 		
 		if drawLayerField is not None and material.mat_ver > 3:
 			drawLayer = getattr(material.f3d_mat.draw_layer, drawLayerField)
@@ -1019,7 +1019,7 @@ def getLoopColor(loop, mesh, mat_ver):
 	return (normalizedRGB[0], normalizedRGB[1], normalizedRGB[2], normalizedA)
 
 def getLoopColorOrNormal(loop, face, mesh, obj, exportVertexColors):
-	material = obj.data.materials[face.material_index]
+	material = obj.material_slots[face.material_index].material
 	isFlatShaded = checkIfFlatShaded(material)
 	if exportVertexColors:
 		return getLoopColor(loop, mesh, material.mat_ver)

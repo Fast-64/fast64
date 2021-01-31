@@ -115,8 +115,10 @@ def convertAllBSDFtoF3D(objs, renameUV):
 			material = obj.material_slots[index].material
 			if material is not None and not material.is_f3d:
 				if material in materialDict:
+					print("Existing material")
 					obj.material_slots[index].material = materialDict[material]
 				else:
+					print("New material")
 					convertBSDFtoF3D(obj, index, material, materialDict)
 
 def convertBSDFtoF3D(obj, index, material, materialDict):

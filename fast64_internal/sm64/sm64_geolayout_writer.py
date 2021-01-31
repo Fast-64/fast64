@@ -1582,7 +1582,7 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 		if vertIndex not in infoDict.vert:
 			continue
 		for face in infoDict.vert[vertIndex]:
-			material = obj.data.materials[face.material_index]
+			material = obj.material_slots[face.material_index].material
 			if material.mat_ver > 3:
 				drawLayer = int(getattr(material.f3d_mat.draw_layer, drawLayerField))
 			else:
@@ -1669,7 +1669,7 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 			fMeshes[drawLayer] = fMesh
 
 		for material_index, bFaces in materialFaces.items():
-			material = obj.data.materials[material_index]
+			material = obj.material_slots[material_index].material
 			checkForF3dMaterialInFaces(obj, material)
 			fMaterial, texDimensions = \
 				saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
@@ -1778,7 +1778,7 @@ def splitSkinnedFacesIntoTwoGroups(skinnedFaces, fModel, obj, uv_data, drawLayer
 		notInGroupVerts = []
 		notInGroupVertArray.append([material_index, notInGroupVerts])
 
-		material = obj.data.materials[material_index]
+		material = obj.material_slots[material_index].material
 		fMaterial, texDimensions = \
 			saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
 		
@@ -1836,7 +1836,7 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, meshName, skinnedMeshName, o
 	# Because of this we cannot share verts between materials (?)
 	curIndex = 0
 	for material_index, vertData in notInGroupVertArray:
-		material = obj.data.materials[material_index]
+		material = obj.material_slots[material_index].material
 		checkForF3dMaterialInFaces(obj, material)
 		f3dMat = material.f3d_mat if material.mat_ver > 3 else material
 		if f3dMat.rdp_settings.set_rendermode:
@@ -1877,7 +1877,7 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, meshName, skinnedMeshName, o
 		convertVertDictToArray(notInGroupVertArray)
 
 	for material_index, skinnedFaceArray in skinnedFaces.items():
-		material = obj.data.materials[material_index]
+		material = obj.material_slots[material_index].material
 		faces = [skinnedFace.bFace for skinnedFace in skinnedFaceArray]
 		fMaterial, texDimensions = \
 			saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
@@ -1895,7 +1895,7 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, meshName, skinnedMeshName, o
 	for material_index, skinnedFaceArray in skinnedFaces.items():
 
 		# We've already saved all materials, this just returns the existing ones.
-		material = obj.data.materials[material_index]
+		material = obj.material_slots[material_index].material
 		fMaterial, texDimensions = \
 			saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
 		isPointSampled = isTexturePointSampled(material)

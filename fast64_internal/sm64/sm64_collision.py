@@ -373,7 +373,7 @@ def addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix, 
 			raise PluginError(obj.name + " must have a material associated with it.")
 		obj.data.calc_loop_triangles()
 		for face in obj.data.loop_triangles:
-			material = obj.data.materials[face.material_index]
+			material = obj.material_slots[face.material_index].material
 			colType = material.collision_type if material.collision_all_options\
 				else material.collision_type_simple
 			if colType == 'Custom':
