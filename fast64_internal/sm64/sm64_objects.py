@@ -1149,9 +1149,9 @@ class PuppycamSetupCamera(bpy.types.Operator):
 
 	def execute(self, context):
 		scene = context.scene
-		cameraObject = bpy.context.active_object.puppycamCamera.data.name
+		cameraObject = bpy.context.active_object.puppycamProp.puppycamCamera.data.name
 
-		scene.camera = bpy.context.active_object.puppycamCamera
+		scene.camera = bpy.context.active_object.puppycamProp.puppycamCamera
 		bpy.data.cameras[cameraObject].show_name = True
 		bpy.data.cameras[cameraObject].show_safe_areas = True
 		
@@ -1163,7 +1163,7 @@ class PuppycamSetupCamera(bpy.types.Operator):
 		scene.render.resolution_x = 320
 		scene.render.resolution_y = 240
 
-		bpy.data.cameras[cameraObject].angle = math.radians(bpy.context.active_object.puppycamFOV * (4/3))
+		bpy.data.cameras[cameraObject].angle = math.radians(bpy.context.active_object.puppycamProp.puppycamFOV * (4/3))
 
 		return {'FINISHED'}
 
