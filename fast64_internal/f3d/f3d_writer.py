@@ -151,7 +151,7 @@ def fixLargeUVs(obj):
 		for i in range(2):
 
 			# Move any UVs close to or straddling edge
-			minDiff = -1 - minUV[i]
+			minDiff = (-cellSize[i]+2) - minUV[i]
 			if minDiff > 0:
 				applyOffset(minUV, maxUV, uvOffset, ceil(minDiff), i)
 			
