@@ -10,7 +10,7 @@
 7. Compile and run the game. This was tested for commit 20c1f4e.
 
 ### Scene Overview
-In Blender, the "empty" object type is used to define different types of OOT data. 
+In Blender, the "empty" object type is used to define different types of OOT data, including scenes and rooms.
 For scenes, there must be a specific parenting hierarchy:
 
 ![](https://bitbucket.org/kurethedead/fast64/raw/master/images/oot_scene_hierarchy.png)
@@ -42,3 +42,6 @@ Additionally, for functions like Gfx_TexScroll(), the x,y inputs are pre-shifted
 
 ### Collision
 Collision properties are found underneath the material properties. Water boxes and collision properties will have references the properties "Camera", "Lighting", and "Exit", which reference the indices of the scene cameras, scene light list, and scene exit list respectively. If you want separate visual/collision geometry, you can set per mesh object "Ignore Collision" or "Ignore Render" in object inspector window.
+
+### Skeletons And Animations
+To export a skeletal mesh, select an armature and then click "Export" for the armature exporter. The root bone of the armature must be named "root". To export an animation, the process is the same. The active animation on the armature will be exported.
