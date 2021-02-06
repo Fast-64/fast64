@@ -164,7 +164,7 @@ def setBoneNonRotated(armatureObj, boneName, restPoseRotations):
 		setBoneNonRotated(armatureObj, child.name, restPoseRotations)
 
 def getGroupIndices(meshInfo, armatureObj, meshObj, rootGroupIndex):
-	meshInfo.vertexGroupInfo = VertexGroupInfo()
+	meshInfo.vertexGroupInfo = OOTVertexGroupInfo()
 	for vertex in meshObj.data.vertices:
 		meshInfo.vertexGroupInfo.vertexGroups[vertex.index] = getGroupIndexOfVert(vertex, armatureObj, meshObj, rootGroupIndex)
 
@@ -210,6 +210,15 @@ def ootDuplicateArmature(originalArmatureObj):
 	meshObjs = [obj for obj in bpy.context.selected_objects if obj is not armatureObj]
 
 	try:
+		for obj in meshObjs:
+			setOrigin(armatureObj, obj)
+
+		bpy.ops.object.select_all(action = "DESELECT")
+		armatureObj.select_set(True)
+		bpy.context.view_layer.objects.active = armatureObj
+		bpy.ops.object.transform_apply(location = False, rotation = False,
+			scale = True, properties = False)
+
 		# convert blender to n64 space, then set all bones to be non-rotated
 		applyRotation([armatureObj], math.radians(90), 'X')
 		restPoseRotations = setArmatureToNonRotatedPose(armatureObj)
@@ -247,18 +256,18 @@ def ootDuplicateArmature(originalArmatureObj):
 
 def ootConvertArmatureToSkeletonWithoutMesh(originalArmatureObj, convertTransformMatrix, name):
 	skeleton, fModel, restPoseRotations = ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix, 
-		None, name, False, True)
+		None, name, False, True, "Opaque")
 	return skeleton, restPoseRotations
 
 def ootConvertArmatureToSkeletonWithMesh(originalArmatureObj, convertTransformMatrix, 
-	f3dType, isHWv1, name, DLFormat, convertTextureData):
+	f3dType, isHWv1, name, DLFormat, convertTextureData, drawLayer):
 	fModel = OOTModel(f3dType, isHWv1, name, DLFormat)
 	skeleton, fModel, restPoseRotations = ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix, 
-		fModel, name, convertTextureData, False)
+		fModel, name, convertTextureData, False, drawLayer)
 	return skeleton, fModel
 
 def ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix, 
-	fModel, name, convertTextureData, skeletonOnly):
+	fModel, name, convertTextureData, skeletonOnly, drawLayer):
 	checkEmptyName(name)
 
 	armatureObj, meshObjs, restPoseRotations = ootDuplicateArmature(originalArmatureObj)
@@ -283,8 +292,8 @@ def ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix,
 
 		#for i in range(len(startBoneNames)):
 		#	startBoneName = startBoneNames[i]
-		ootProcessBone(fModel, startBoneName, skeleton, 0, 
-			meshObj, armatureObj, convertTransformMatrix, meshInfo, convertTextureData, name, skeletonOnly)
+		ootProcessBone(fModel, startBoneName, skeleton, 0,
+			meshObj, armatureObj, convertTransformMatrix, meshInfo, convertTextureData, name, skeletonOnly, drawLayer)
 
 		cleanupDuplicatedObjects(meshObjs + [armatureObj])
 		originalArmatureObj.select_set(True)
@@ -298,7 +307,7 @@ def ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix,
 		raise Exception(str(e))
 
 def ootProcessBone(fModel, boneName, parentLimb, nextIndex, meshObj, armatureObj, 
-	convertTransformMatrix, meshInfo, convertTextureData, namePrefix, skeletonOnly):
+	convertTransformMatrix, meshInfo, convertTextureData, namePrefix, skeletonOnly, drawLayer):
 	bone = armatureObj.data.bones[boneName]
 	if bone.parent is not None:
 		transform = convertTransformMatrix @ bone.parent.matrix_local.inverted() @ bone.matrix_local
@@ -307,14 +316,17 @@ def ootProcessBone(fModel, boneName, parentLimb, nextIndex, meshObj, armatureObj
 
 	translate, rotate, scale = transform.decompose()
 
-	meshInfo.vertexGroupInfo.vertexGroupToLimb[getGroupIndexFromname(meshObj, boneName)] = nextIndex
+	groupIndex = getGroupIndexFromname(meshObj, boneName)
+
+	meshInfo.vertexGroupInfo.vertexGroupToLimb[groupIndex] = nextIndex
+
 	if skeletonOnly:
 		mesh = None
 		hasSkinnedFaces = None
 	else:
 		mesh, hasSkinnedFaces = ootProcessVertexGroup(fModel, meshObj, boneName, 
 			convertTransformMatrix, armatureObj, namePrefix,
-			meshInfo, "Opaque", convertTextureData)
+			meshInfo, drawLayer, convertTextureData)
 
 	DL = None
 	if mesh is not None:
@@ -336,15 +348,16 @@ def ootProcessBone(fModel, boneName, parentLimb, nextIndex, meshObj, armatureObj
 	childrenNames = getSortedChildren(armatureObj, bone)
 	for childName in childrenNames:
 		nextIndex = ootProcessBone(fModel, childName, limb, nextIndex, meshObj, armatureObj, 
-			convertTransformMatrix, meshInfo, convertTextureData, namePrefix, skeletonOnly)
-	
+			convertTransformMatrix, meshInfo, convertTextureData, namePrefix, skeletonOnly, drawLayer)
+
 	return nextIndex
 
 def ootConvertArmatureToC(originalArmatureObj, convertTransformMatrix, 
-	f3dType, isHWv1, skeletonName, folderName, DLFormat, savePNG, exportPath, isCustomExport):
+	f3dType, isHWv1, skeletonName, folderName, DLFormat, savePNG, exportPath, isCustomExport, drawLayer):
+	skeletonName = toAlnum(skeletonName)
 
 	skeleton, fModel = ootConvertArmatureToSkeletonWithMesh(originalArmatureObj, convertTransformMatrix, 
-		f3dType, isHWv1, skeletonName, DLFormat, not savePNG)
+		f3dType, isHWv1, skeletonName, DLFormat, not savePNG, drawLayer)
 
 	data = CData()
 	data.source += '#include "ultra64.h"\n#include "global.h"\n\n'
@@ -355,13 +368,13 @@ def ootConvertArmatureToC(originalArmatureObj, convertTransformMatrix,
 	data.append(exportData.all())
 	data.append(skeletonC)
 
-	path = ootGetPath(exportPath, isCustomExport, 'assets/objects/', '')
+	path = ootGetPath(exportPath, isCustomExport, 'assets/objects/', folderName, False, False)
 	writeCData(data, 
-		os.path.join(path, folderName + '.h'),
-		os.path.join(path, folderName + '.c'))
+		os.path.join(path, skeletonName + '.h'),
+		os.path.join(path, skeletonName + '.c'))
 
 	if not isCustomExport:
-		pass # Modify other level files here
+		addIncludeFiles(folderName, path, skeletonName)
 
 class OOT_ExportSkeleton(bpy.types.Operator):
 	# set bl_ properties
@@ -387,7 +400,7 @@ class OOT_ExportSkeleton(bpy.types.Operator):
 				'has a non-mesh child.')
 
 		obj = armatureObj.children[0]
-		finalTransform = mathutils.Matrix.Scale(context.scene.ootBlenderScale, 4)
+		finalTransform = mathutils.Matrix.Scale(context.scene.ootActorBlenderScale, 4)
 
 		try:
 			#exportPath, levelName = getPathAndLevel(context.scene.geoCustomExport, 
@@ -401,10 +414,11 @@ class OOT_ExportSkeleton(bpy.types.Operator):
 			folderName = context.scene.ootSkeletonFolderName
 			exportPath = context.scene.ootSkeletonCustomPath
 			isCustomExport = context.scene.ootSkeletonUseCustomPath
+			drawLayer = context.scene.ootSkeletonDrawLayer
 
 			ootConvertArmatureToC(armatureObj, finalTransform, 
 				f3dType, isHWv1, skeletonName, folderName, DLFormat.Static, saveTextures,
-				exportPath, isCustomExport)
+				exportPath, isCustomExport, drawLayer)
 
 			self.report({'INFO'}, 'Success!')		
 			return {'FINISHED'}
@@ -431,17 +445,20 @@ class OOT_ExportSkeletonPanel(bpy.types.Panel):
 		col = self.layout.column()
 		col.operator(OOT_ExportSkeleton.bl_idname)
 		
-		prop_split(col, context.scene, 'ootSkeletonName', "Skeleton Name")
 		col.prop(context.scene, "ootSkeletonUseCustomPath")
+		prop_split(col, context.scene, 'ootSkeletonName', "Skeleton")
 		if context.scene.ootSkeletonUseCustomPath:
-			prop_split(col, context.scene, 'ootSkeletonCustomPath', "Custom Skeleton Path")
+			prop_split(col, context.scene, 'ootSkeletonCustomPath', "Folder")
+		else:		
+			prop_split(col, context.scene, 'ootSkeletonFolderName', "Object")
+		prop_split(col, context.scene, "ootSkeletonDrawLayer", "Draw Layer")
 
 oot_skeleton_classes = (
 	OOT_ExportSkeleton,
 )
 
 oot_skeleton_panels = (
-	#OOT_ExportSkeletonPanel,
+	OOT_ExportSkeletonPanel,
 )
 
 def oot_skeleton_panel_register():
@@ -456,11 +473,12 @@ def oot_skeleton_register():
 	bpy.types.Scene.ootSkeletonName = bpy.props.StringProperty(
 		name = "Skeleton Name", default = "skeleton")
 	bpy.types.Scene.ootSkeletonFolderName = bpy.props.StringProperty(
-		name = "Skeleton Folder", default = "skeleton")
+		name = "Skeleton Folder", default = "gameplay_keep")
 	bpy.types.Scene.ootSkeletonCustomPath = bpy.props.StringProperty(
 		name ='Custom Skeleton Path', subtype = 'FILE_PATH')
 	bpy.types.Scene.ootSkeletonUseCustomPath = bpy.props.BoolProperty(
 		name = "Use Custom Path")
+	bpy.types.Scene.ootSkeletonDrawLayer = bpy.props.EnumProperty(items = ootEnumDrawLayers)
 
 	for cls in oot_skeleton_classes:
 		register_class(cls)
@@ -470,6 +488,7 @@ def oot_skeleton_unregister():
 	del bpy.types.Scene.ootSkeletonFolderName
 	del bpy.types.Scene.ootSkeletonUseCustomPath
 	del bpy.types.Scene.ootSkeletonName
+	del bpy.types.Scene.ootSkeletonDrawLayer
 
 	for cls in reversed(oot_skeleton_classes):
 		unregister_class(cls)

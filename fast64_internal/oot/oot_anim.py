@@ -123,14 +123,14 @@ def ootConvertAnimationData(anim, armatureObj, frameInterval, restPoseRotations,
 
 	return armatureFrameData
 
-def ootExportAnimationCommon(armatureObj, convertTransformMatrix, name):
+def ootExportAnimationCommon(armatureObj, convertTransformMatrix, skeletonName):
 	if armatureObj.animation_data is None or \
 		armatureObj.animation_data.action is None:
 		raise PluginError("No active animation selected.")
 	anim = armatureObj.animation_data.action
-	ootAnim = OOTAnimation(toAlnum(name + anim.name.capitalize() + "Anim"))
+	ootAnim = OOTAnimation(toAlnum(skeletonName + anim.name.capitalize() + "Anim"))
 	
-	skeleton, restPoseRotations = ootConvertArmatureToSkeletonWithoutMesh(armatureObj, convertTransformMatrix, name)
+	skeleton, restPoseRotations = ootConvertArmatureToSkeletonWithoutMesh(armatureObj, convertTransformMatrix, skeletonName)
 
 	frameInterval = getFrameInterval(anim)
 	ootAnim.frameCount = frameInterval[1] - frameInterval[0]
@@ -163,19 +163,20 @@ def ootExportAnimationCommon(armatureObj, convertTransformMatrix, name):
 	
 	return ootAnim
 
-def exportAnimationC(armatureObj, exportPath, isCustomExport, folderName):
+def exportAnimationC(armatureObj, exportPath, isCustomExport, folderName, skeletonName):
 	checkEmptyName(folderName)
-	convertTransformMatrix = mathutils.Matrix.Scale(bpy.context.scene.ootBlenderScale, 4)
-	ootAnim = ootExportAnimationCommon(armatureObj, convertTransformMatrix, folderName)
+	checkEmptyName(skeletonName)
+	convertTransformMatrix = mathutils.Matrix.Scale(bpy.context.scene.ootActorBlenderScale, 4)
+	ootAnim = ootExportAnimationCommon(armatureObj, convertTransformMatrix, skeletonName)
 
 	ootAnimC = ootAnim.toC()
-	path = ootGetPath(exportPath, isCustomExport, 'assets/objects/', '')
+	path = ootGetPath(exportPath, isCustomExport, 'assets/objects/', folderName, False, False)
 	writeCData(ootAnimC, 
-		os.path.join(path, folderName + '.h'),
-		os.path.join(path, folderName + '.c'))
+		os.path.join(path, ootAnim.name + '.h'),
+		os.path.join(path, ootAnim.name + '.c'))
 
 	if not isCustomExport:
-		pass # Modify other level files here
+		addIncludeFiles(folderName, path, ootAnim.name)
 
 class OOT_ExportAnim(bpy.types.Operator):
 	bl_idname = 'object.oot_export_anim'
@@ -202,7 +203,8 @@ class OOT_ExportAnim(bpy.types.Operator):
 			isCustomExport = context.scene.ootAnimIsCustomExport
 			exportPath = context.scene.ootAnimCustomPath
 			folderName = context.scene.ootAnimFolderName
-			exportAnimationC(armatureObj, exportPath, isCustomExport, folderName)
+			skeletonName = context.scene.ootAnimName
+			exportAnimationC(armatureObj, exportPath, isCustomExport, folderName, skeletonName)
 			self.report({'INFO'}, 'Success!')
 
 		except Exception as e:
@@ -228,16 +230,19 @@ class OOT_ExportAnimPanel(bpy.types.Panel):
 		col.operator(OOT_ExportAnim.bl_idname)
 		
 		col.prop(context.scene, 'ootAnimIsCustomExport')
+		prop_split(col, context.scene, 'ootAnimName', 'Skeleton')
 		if context.scene.ootAnimIsCustomExport:
 			col.prop(context.scene, 'ootAnimCustomPath')
-			prop_split(col, context.scene, 'ootAnimFolderName', 'Name')
+		else:
+			prop_split(col, context.scene, 'ootAnimFolderName', 'Object')
+			
 
 oot_anim_classes = (
 	OOT_ExportAnim,
 )
 
 oot_anim_panels = (
-	#OOT_ExportAnimPanel,
+	OOT_ExportAnimPanel,
 )
 
 def oot_anim_panel_register():
@@ -251,8 +256,9 @@ def oot_anim_panel_unregister():
 def oot_anim_register():
 	bpy.types.Scene.ootAnimIsCustomExport = bpy.props.BoolProperty(name = "Use Custom Path")
 	bpy.types.Scene.ootAnimCustomPath =  bpy.props.StringProperty(
-		name ='Custom Animation Path', subtype = 'FILE_PATH')
-	bpy.types.Scene.ootAnimFolderName = bpy.props.StringProperty(name = "Animation Folder", default = "anim")
+		name ='Folder', subtype = 'FILE_PATH')
+	bpy.types.Scene.ootAnimFolderName = bpy.props.StringProperty(name = "Animation Folder", default = "gameplay_keep")
+	bpy.types.Scene.ootAnimName = bpy.props.StringProperty(name = "Skeleton Name", default = "skeleton")
 	for cls in oot_anim_classes:
 		register_class(cls)
 
@@ -260,5 +266,6 @@ def oot_anim_unregister():
 	del bpy.types.Scene.ootAnimIsCustomExport
 	del bpy.types.Scene.ootAnimCustomPath
 	del bpy.types.Scene.ootAnimFolderName
+	del bpy.types.Scene.ootAnimName
 	for cls in reversed(oot_anim_classes):
 		unregister_class(cls)

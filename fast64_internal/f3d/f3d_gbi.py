@@ -2059,6 +2059,15 @@ class FMesh:
 		# overrideType, draw layer) : GfxList
 		self.drawMatOverrides = {}
 		self.DLFormat = DLFormat
+
+		# Used to avoid consecutive calls to the same material if unnecessary
+		self.currentFMaterial = None
+
+	def add_material_call(self, fMaterial):
+		sameMaterial = self.currentFMaterial is fMaterial
+		if fMaterial.revert is not None or not sameMaterial:
+			self.currentFMaterial = fMaterial
+			self.draw.commands.append(SPDisplayList(fMaterial.material))
 	
 	def add_cull_vtx(self):
 		self.cullVertexList = VtxList(self.name + '_vtx_cull')

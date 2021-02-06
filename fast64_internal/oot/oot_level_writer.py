@@ -137,7 +137,7 @@ def ootExportSceneToC(originalSceneObj, transformMatrix,
 		if exportSubdir == "":
 			raise PluginError("Scene folder " + sceneName + " cannot be found in the ootSceneDirs list.")
 
-	levelPath = ootGetPath(exportPath, isCustomExport, exportSubdir, sceneName)	
+	levelPath = ootGetPath(exportPath, isCustomExport, exportSubdir, sceneName, True, True)	
 	levelC = ootLevelToC(scene, TextureExportSettings(False, savePNG, exportSubdir + sceneName, levelPath))
 
 	writeCData(levelC.scene, 
@@ -381,8 +381,9 @@ def ootProcessMesh(roomMesh, roomMeshGroup, sceneObj, obj, transformMatrix, conv
 			ootConvertTranslation(translation), scale, obj.empty_display_size))
 
 	elif isinstance(obj.data, bpy.types.Mesh) and not obj.ignore_render:
-		fMeshes = saveStaticModel(roomMesh.model, obj, relativeTransform, roomMesh.model.name, 
-			roomMesh.model.DLFormat, convertTextureData, False, 'oot')
+		triConverterInfo = TriangleConverterInfo(obj, None, roomMesh.model.f3d, relativeTransform, getInfoDict(obj))
+		fMeshes = saveStaticModel(triConverterInfo, roomMesh.model, obj, relativeTransform, roomMesh.model.name,
+			convertTextureData, False, 'oot')
 		if roomMeshGroup is None:
 			roomMeshGroup = roomMesh.addMeshGroup(None)
 		for drawLayer, fMesh in fMeshes.items():

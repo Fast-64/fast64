@@ -952,8 +952,9 @@ def processMesh(fModel, obj, transformMatrix, parentTransformNode,
 		if obj.data is None:
 			fMeshes = {}
 		else:
-			fMeshes = saveStaticModel(fModel, obj, transformMatrix, fModel.name, 
-				fModel.DLFormat, convertTextureData, False, 'sm64')
+			triConverterInfo = TriangleConverterInfo(obj, None, fModel.f3d, transformMatrix, getInfoDict(obj))
+			fMeshes = saveStaticModel(triConverterInfo, fModel, obj, transformMatrix, fModel.name, 
+				convertTextureData, False, 'sm64')
 
 		if fMeshes is None or len(fMeshes) == 0:
 			node.hasDL = False
@@ -1131,10 +1132,11 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 	additionalNodes = []
 
 	if node.hasDL:
+		triConverterInfo = TriangleConverterInfo(obj, armatureObj.data, fModel.f3d, 
+			mathutils.Matrix.Scale(bpy.context.scene.blenderToSM64Scale, 4) @ bone.matrix_local.inverted(), infoDict)
 		fMeshes, fSkinnedMeshes, usedDrawLayers = saveModelGivenVertexGroup(
-			fModel, obj, bone.name, lastDeformName,
-			finalTransform, armatureObj, materialOverrides, 
-			namePrefix, infoDict, convertTextureData, TriangleConverter, 'sm64', int(bone.draw_layer))
+			fModel, obj, bone.name, lastDeformName, armatureObj, materialOverrides, 
+			namePrefix, infoDict, convertTextureData, triConverterInfo, 'sm64', int(bone.draw_layer))
 
 		if (fMeshes is None or len(fMeshes) == 0) and (fSkinnedMeshes is None or len(fSkinnedMeshes) == 0):
 			#print("No mesh data.")
@@ -1543,11 +1545,11 @@ def getAncestorGroups(parentGroup, vertexGroup, armatureObj, obj):
 
 # returns fMeshes, fSkinnedMeshes, makeLastDeformBone
 def saveModelGivenVertexGroup(fModel, obj, vertexGroup, 
-	parentGroup, transformMatrix, armatureObj, materialOverrides, namePrefix,
-	infoDict, convertTextureData, triConverterClass, drawLayerField, drawLayerV3):
+	parentGroup, armatureObj, materialOverrides, namePrefix,
+	infoDict, convertTextureData, triConverterInfo, drawLayerField, drawLayerV3):
 	#checkForF3DMaterial(obj)
 
-	print("GROUP " + vertexGroup)
+	#print("GROUP " + vertexGroup)
 
 	mesh = obj.data
 	currentGroupIndex = getGroupIndexFromname(obj, vertexGroup)
@@ -1559,18 +1561,13 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 	if len(vertIndices) == 0:
 		print("No vert indices in " + vertexGroup)
 		return None, None, None
-
-	bone = armatureObj.data.bones[vertexGroup]
 	
-	currentMatrix = mathutils.Matrix.Scale(1 * bpy.context.scene.blenderToSM64Scale, 4) @ \
-		bone.matrix_local.inverted()
-	
+	transformMatrix = mathutils.Matrix.Scale(bpy.context.scene.blenderToSM64Scale, 4)
 	if parentGroup is None:
-		parentMatrix = mathutils.Matrix.Scale(1 * bpy.context.scene.blenderToSM64Scale, 4)
+		parentMatrix = transformMatrix
 	else:
 		parentBone = armatureObj.data.bones[parentGroup]
-		parentMatrix = mathutils.Matrix.Scale(1 * bpy.context.scene.blenderToSM64Scale, 4) @ \
-			parentBone.matrix_local.inverted()
+		parentMatrix = transformMatrix @ parentBone.matrix_local.inverted()
 
 	groupFaces = {} # draw layer : {material_index : [faces]}
 	skinnedFaces = {} # draw layer : {material_index : [skinned faces]}
@@ -1650,8 +1647,8 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 		checkUniqueBoneNames(fModel, skinnedMeshName, vertexGroup)
 
 		fMesh, fSkinnedMesh = saveSkinnedMeshByMaterial(materialFaces, fModel,
-			meshName, skinnedMeshName, obj, currentMatrix, parentMatrix, namePrefix, 
-			infoDict, vertexGroup, drawLayer, convertTextureData, triConverterClass)
+			meshName, skinnedMeshName, obj, parentMatrix, namePrefix, 
+			vertexGroup, drawLayer, convertTextureData, triConverterInfo)
 
 		fSkinnedMeshes[drawLayer] = fSkinnedMesh
 		fMeshes[drawLayer] = fMesh
@@ -1674,11 +1671,11 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 			fMaterial, texDimensions = \
 				saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
 			if fMaterial.useLargeTextures:
-				currentGroupIndex = saveMeshWithLargeTexturesByFaces(material, bFaces, fModel, fMeshes[drawLayer], obj, currentMatrix,
-					infoDict, drawLayer, convertTextureData, None, TriangleConverter, None, None)
+				currentGroupIndex = saveMeshWithLargeTexturesByFaces(material, bFaces, fModel, 
+					fMeshes[drawLayer], obj, drawLayer, convertTextureData, None, triConverterInfo, None, None)
 			else:
-				saveMeshByFaces(material, bFaces, fModel, fMeshes[drawLayer], obj, currentMatrix, 
-					infoDict, drawLayer, convertTextureData, None, TriangleConverter, None, None)
+				saveMeshByFaces(material, bFaces, fModel, fMeshes[drawLayer], obj, 
+					drawLayer, convertTextureData, None, triConverterInfo, None, None)
 		
 		fMeshes[drawLayer].draw.commands.extend([
 			SPEndDisplayList(),
@@ -1810,7 +1807,7 @@ def getGroupVertCount(group):
 	return count
 
 def saveSkinnedMeshByMaterial(skinnedFaces, fModel, meshName, skinnedMeshName, obj, 
-	currentMatrix, parentMatrix, namePrefix, infoDict, vertexGroup, drawLayer, convertTextureData, triConverterClass):
+	parentMatrix, namePrefix, vertexGroup, drawLayer, convertTextureData, triConverterInfo):
 	# We choose one or more loops per vert to represent a material from which 
 	# texDimensions can be found, since it is required for UVs.
 	uv_data = obj.data.uv_layers['UVMap'].data
@@ -1882,38 +1879,41 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, meshName, skinnedMeshName, o
 		fMaterial, texDimensions = \
 			saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
 		if fMaterial.useLargeTextures:
-			saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, currentMatrix,
-				infoDict, drawLayer, convertTextureData, None, triConverterClass, 
+			saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, 
+				drawLayer, convertTextureData, None, triConverterInfo, 
 				copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict))
 		else:
 			saveMeshByFaces(material, faces,
-				fModel, fMesh, obj, currentMatrix, infoDict, drawLayer, 
-				convertTextureData, None, triConverterClass, 
+				fModel, fMesh, obj, drawLayer, 
+				convertTextureData, None, triConverterInfo, 
 				copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict))
 
 	return fMesh, fSkinnedMesh
-	for material_index, skinnedFaceArray in skinnedFaces.items():
-
-		# We've already saved all materials, this just returns the existing ones.
-		material = obj.material_slots[material_index].material
-		fMaterial, texDimensions = \
-			saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
-		isPointSampled = isTexturePointSampled(material)
-		exportVertexColors = isLightingDisabled(material)
-
-		triGroup = fMesh.tri_group_new(fMaterial)
-		fMesh.draw.commands.append(SPDisplayList(fMaterial.material))
-		fMesh.draw.commands.append(SPDisplayList(triGroup.triList))
-		if fMaterial.revert is not None:
-			fMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
-
-		convertInfo = LoopConvertInfo(uv_data, obj, exportVertexColors)
-		saveTriangleStrip(triConverterClass, 
-			[skinnedFace.bFace for skinnedFace in skinnedFaceArray],
-			convertInfo, triGroup.triList, triGroup.vertexList, fModel.f3d, 
-			texDimensions, currentMatrix, isPointSampled, exportVertexColors,
-			copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict),
-			infoDict, obj.data, None, True)
+	#for material_index, skinnedFaceArray in skinnedFaces.items():
+#
+	#	# We've already saved all materials, this just returns the existing ones.
+	#	material = obj.material_slots[material_index].material
+	#	fMaterial, texDimensions = \
+	#		saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
+	#	isPointSampled = isTexturePointSampled(material)
+	#	exportVertexColors = isLightingDisabled(material)
+#
+	#	triGroup = fMesh.tri_group_new(fMaterial)
+	#	fMesh.draw.commands.append(SPDisplayList(fMaterial.material))
+	#	fMesh.draw.commands.append(SPDisplayList(triGroup.triList))
+	#	if fMaterial.revert is not None:
+	#		fMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
+#
+	#	convertInfo = LoopConvertInfo(uv_data, obj, exportVertexColors)
+	#	triConverter = TriangleConverter(triConverterInfo, texDimensions, material,
+	#		None, triGroup.triList, triGroup.vertexList, copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict))
+	#	saveTriangleStrip(triConverter, [skinnedFace.bFace for skinnedFace in skinnedFaceArray], obj.data, True)
+	#	saveTriangleStrip(triConverterClass, 
+	#		[skinnedFace.bFace for skinnedFace in skinnedFaceArray],
+	#		convertInfo, triGroup.triList, triGroup.vertexList, fModel.f3d, 
+	#		texDimensions, currentMatrix, isPointSampled, exportVertexColors,
+	#		copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict),
+	#		infoDict, obj.data, None, True)
 	
 	return fMesh, fSkinnedMesh
 

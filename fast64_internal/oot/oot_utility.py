@@ -139,6 +139,24 @@ ootSceneDirs = {
 	'assets/scenes/test_levels/' : ootSceneTest_levels,
 }
 
+def addIncludeFiles(objectName, objectPath, assetName):
+	addIncludeFilesExtension(objectName, objectPath, assetName, 'h')
+	addIncludeFilesExtension(objectName, objectPath, assetName, 'c')
+
+def addIncludeFilesExtension(objectName, objectPath, assetName, extension):
+	include = "#include \"" + assetName + "." + extension + "\"\n"
+	if not os.path.exists(objectPath):
+		raise PluginError(objectPath + " does not exist.")
+	path = os.path.join(objectPath, objectName + '.' + extension)
+	data = getDataFromFile(path)
+
+	if include not in data:
+		data += '\n' + include
+	
+	# Save this regardless of modification so it will be recompiled.
+	saveDataToFile(path, data)
+	
+
 def getSceneDirFromLevelName(name):
 	for sceneDir, dirLevels in ootSceneDirs.items():
 		if name in dirLevels:
@@ -172,15 +190,19 @@ def checkEmptyName(name):
 	if name == "":
 		raise PluginError("No name entered for the exporter.")
 
-def ootGetPath(exportPath, isCustomExport, subPath, folderName):
+def ootGetPath(exportPath, isCustomExport, subPath, folderName, makeIfNotExists, useFolderForCustom):
 	if isCustomExport:
-		path = bpy.path.abspath(os.path.join(exportPath, folderName))
+		path = bpy.path.abspath(os.path.join(exportPath, (folderName if useFolderForCustom else '')))
 	else:
 		if bpy.context.scene.ootDecompPath == "":
 			raise PluginError("Decomp base path is empty.")
 		path = bpy.path.abspath(os.path.join(bpy.context.scene.ootDecompPath, subPath + folderName))
+		
 	if not os.path.exists(path):
-		os.makedirs(path)
+		if isCustomExport or makeIfNotExists:
+			os.makedirs(path)
+		else:
+			raise PluginError(path + " does not exist.")
 
 	return path
 

@@ -77,23 +77,27 @@ class OOTGfxFormatter(GfxFormatter):
 			data.append(fMaterial.revert.to_c(f3d))
 		return data
 
-class OOTTriangleConverter(TriangleConverter):
-	def __init__(self, mesh, convertInfo, vertexGroupInfo, currentLimbIndex, triList, vtxList, f3d, 
-		texDimensions, transformMatrix, isPointSampled, exportVertexColors,
-		existingVertexData, existingVertexMaterialRegions):
-
-		TriangleConverter.__init__(self, mesh, convertInfo, vertexGroupInfo, currentLimbIndex, triList, vtxList, f3d, 
-			texDimensions, transformMatrix, isPointSampled, exportVertexColors,
-			existingVertexData, existingVertexMaterialRegions)
+class OOTTriangleConverterInfo(TriangleConverterInfo):
+	def __init__(self, obj, armature, f3d, transformMatrix, infoDict):
+		TriangleConverterInfo.__init__(self, obj, armature, f3d, transformMatrix, infoDict)
 
 	def getMatrixAddrFromGroup(self, groupIndex):
-		return format((0x0D << 24) + MTX_SIZE * self.vertexGroupInfo.vertexGroupToLimb[groupIndex], "#010x")
+		return format((0x0D << 24) + MTX_SIZE * self.vertexGroupInfo.vertexGroupToMatrixIndex[groupIndex], "#010x")
 
+class OOTVertexGroupInfo(VertexGroupInfo):
+	def __init__(self):
+		self.vertexGroupToMatrixIndex = {}
+		VertexGroupInfo.__init__(self)
+
+# returns: 
+# 	mesh, 
+# 	anySkinnedFaces (to determine if skeleton should be flex)
 def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, armatureObj, namePrefix,
 	meshInfo, drawLayerOverride, convertTextureData):
 
 	mesh = meshObj.data
 	currentGroupIndex = getGroupIndexFromname(meshObj, vertexGroup)
+	nextDLIndex = len(meshInfo.vertexGroupInfo.vertexGroupToMatrixIndex)
 	vertIndices = [vert.index for vert in meshObj.data.vertices if\
 		meshInfo.vertexGroupInfo.vertexGroups[vert.index] == currentGroupIndex]
 
@@ -102,7 +106,6 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 		return None, False
 
 	bone = armatureObj.data.bones[vertexGroup]
-	currentMatrix = convertTransformMatrix @ bone.matrix_local.inverted()
 	
 	# dict of material_index keys to face array values
 	groupFaces = {}
@@ -111,6 +114,7 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 	skinnedFaces = {}
 
 	handledFaces = []
+	anyConnectedToUnhandledBone = False
 	for vertIndex in vertIndices:
 		if vertIndex not in meshInfo.vert:
 			continue
@@ -118,8 +122,6 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 			# Ignore repeat faces
 			if face in handledFaces:
 				continue
-			else:
-				handledFaces.append(face)
 
 			sortedLoops = {} # (group tuple) : []
 			connectedToUnhandledBone = False
@@ -127,19 +129,21 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 			# loop is interpreted as face + loop index
 			groupTuple = []
 			for i in range(3):
-				vertIndex = face.vertices[i]
-				vertGroupIndex = meshInfo.vertexGroupInfo.vertexGroups[vertIndex]
+				faceVertIndex = face.vertices[i]
+				vertGroupIndex = meshInfo.vertexGroupInfo.vertexGroups[faceVertIndex]
 				if vertGroupIndex not in groupTuple:
 					groupTuple.append(vertGroupIndex)
 				if vertGroupIndex not in meshInfo.vertexGroupInfo.vertexGroupToLimb:
 					# Only want to handle skinned faces connected to parent
 					connectedToUnhandledBone = True
+					anyConnectedToUnhandledBone = True
 					break
+			
 			if connectedToUnhandledBone:
 				continue
 			groupTuple = tuple(sorted(groupTuple))
 
-			if groupTuple == tuple([vertGroupIndex]):
+			if groupTuple == tuple([currentGroupIndex]):
 				if face.material_index not in groupFaces:
 					groupFaces[face.material_index] = []
 				groupFaces[face.material_index].append(face)
@@ -150,12 +154,26 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 				if face.material_index not in skinnedFacesGroup:
 					skinnedFacesGroup[face.material_index] = []
 				skinnedFacesGroup[face.material_index].append(face)
+			
+			handledFaces.append(face)
 
 	if not (len(groupFaces) > 0 or len(skinnedFaces) > 0):
 		print("No faces in " + vertexGroup)
-		return None, False
+
+		# OOT will only allocate matrix if DL exists.
+		# This doesn't handle case where vertices belong to a limb, but not triangles.
+		# Therefore we create a dummy DL
+		if anyConnectedToUnhandledBone:
+			fMesh = fModel.addMesh(vertexGroup, namePrefix, drawLayerOverride, False)
+			fMesh.draw.commands.append(SPEndDisplayList())
+			meshInfo.vertexGroupInfo.vertexGroupToMatrixIndex[currentGroupIndex] = nextDLIndex
+			return fMesh, False
+		else:
+			return None, False
 	
+	meshInfo.vertexGroupInfo.vertexGroupToMatrixIndex[currentGroupIndex] = nextDLIndex
 	fMeshes = {}
+	triConverterInfo = OOTTriangleConverterInfo(meshObj, armatureObj.data, fModel.f3d, convertTransformMatrix, meshInfo)
 
 	# Usually we would separate DLs into different draw layers.
 	# however it seems like OOT skeletons don't have this ability.
@@ -164,10 +182,11 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 	drawLayerKey = drawLayerOverride
 	for material_index, faces in groupFaces.items():
 		material = meshObj.material_slots[material_index].material
-		if material.mat_ver > 3:
-			drawLayer = material.f3d_mat.draw_layer.oot
-		else:
-			drawLayer = drawLayerOverride
+		#if material.mat_ver > 3:
+		#	drawLayer = material.f3d_mat.draw_layer.oot
+		#else:
+		#	drawLayer = drawLayerOverride
+		drawLayer = drawLayerOverride
 		
 		if drawLayerKey not in fMeshes:
 			fMesh = fModel.addMesh(vertexGroup, namePrefix, drawLayer, False)
@@ -176,20 +195,22 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 		checkForF3dMaterialInFaces(meshObj, material)
 		fMaterial, texDimensions = \
 			saveOrGetF3DMaterial(material, fModel, meshObj, drawLayer, convertTextureData)
+
 		if fMaterial.useLargeTextures:
-			currentGroupIndex = saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMeshes[drawLayer], meshObj, currentMatrix,
-				meshInfo, drawLayer, convertTextureData, currentGroupIndex, OOTTriangleConverter, None, None)
+			currentGroupIndex = saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMeshes[drawLayer],
+				meshObj, drawLayer, convertTextureData, currentGroupIndex, triConverterInfo, None, None)
 		else:
-			currentGroupIndex = saveMeshByFaces(material, faces, fModel, fMeshes[drawLayer], meshObj, currentMatrix,
-				meshInfo, drawLayer, convertTextureData, currentGroupIndex, OOTTriangleConverter, None, None)
+			currentGroupIndex = saveMeshByFaces(material, faces, fModel, fMeshes[drawLayer], 
+				meshObj, drawLayer, convertTextureData, currentGroupIndex, triConverterInfo, None, None)
 
 	for groupTuple, materialFaces in skinnedFaces.items():
 		for material_index, faces in materialFaces.items():
 			material = meshObj.material_slots[material_index].material
-			if material.mat_ver > 3:
-				drawLayer = material.f3d_mat.draw_layer.oot
-			else:
-				drawLayer = drawLayerOverride
+			#if material.mat_ver > 3:
+			#	drawLayer = material.f3d_mat.draw_layer.oot
+			#else:
+			#	drawLayer = drawLayerOverride
+			drawLayer = drawLayerOverride
 
 			if drawLayerKey not in fMeshes:
 				# technically skinned, but for oot we don't have separate skinned/unskinned meshes.
@@ -200,11 +221,11 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 			fMaterial, texDimensions = \
 				saveOrGetF3DMaterial(material, fModel, meshObj, drawLayer, convertTextureData)
 			if fMaterial.useLargeTextures:
-				currentGroupIndex = saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMeshes[drawLayer], meshObj, currentMatrix,
-					meshInfo, drawLayer, convertTextureData, currentGroupIndex, OOTTriangleConverter, None, None)
+				currentGroupIndex = saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMeshes[drawLayer], 
+					meshObj, drawLayer, convertTextureData, currentGroupIndex, triConverterInfo, None, None)
 			else:
-				currentGroupIndex = saveMeshByFaces(material, faces, fModel, fMeshes[drawLayer], meshObj, currentMatrix,
-					meshInfo, drawLayer, convertTextureData, currentGroupIndex, OOTTriangleConverter, None, None)
+				currentGroupIndex = saveMeshByFaces(material, faces, fModel, fMeshes[drawLayer], 
+					meshObj, drawLayer, convertTextureData, currentGroupIndex, triConverterInfo, None, None)
 
 	for drawLayer, fMesh in fMeshes.items():
 		fMesh.draw.commands.append(SPEndDisplayList())

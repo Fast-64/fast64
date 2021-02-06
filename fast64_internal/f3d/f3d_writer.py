@@ -37,7 +37,7 @@ def getLoopFromVert(inputIndex, face):
 
 class VertexGroupInfo:
 	def __init__(self):
-		self.vertexGroups = {}
+		self.vertexGroups = {} # vertex index : vertex group
 		self.vertexGroupToLimb = {}
 
 class MeshInfo:
@@ -257,9 +257,8 @@ class TileLoad:
 		return [abs(self.sl - self.sh) + 1,
 			abs(self.tl - self.th) + 1]
 		
-def saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, transformMatrix,
-	infoDict, drawLayer, convertTextureData, currentGroupIndex, triConverterClass,
-	existingVertData, matRegionDict):
+def saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, drawLayer, 
+	convertTextureData, currentGroupIndex, triConverterInfo, existingVertData, matRegionDict):
 	if len(faces) == 0:
 		print('0 Faces Provided.')
 		return
@@ -306,7 +305,7 @@ def saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, transf
 
 	tileLoads = list(tileLoads.items())
 
-	fMesh.draw.commands.append(SPDisplayList(fMaterial.material))
+	fMesh.add_material_call(fMaterial)
 	triGroup = fMesh.tri_group_new(fMaterial)
 	fMesh.draw.commands.append(SPDisplayList(triGroup.triList))
 
@@ -340,9 +339,11 @@ def saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, transf
 				fMaterial, triGroup.triList, revertCommands, f3dMat.tex1, 1, nextTmem, None, False,
 				[None, tileLoad], True, False)
 
-		currentGroupIndex = saveTriangleStrip(triConverterClass, tileFaces, convertInfo, triGroup.triList, triGroup.vertexList,
-			fModel.f3d, texDimensions, transformMatrix, isPointSampled,
-			copy.deepcopy(exportVertexColors), copy.deepcopy(existingVertData), matRegionDict, infoDict, obj.data, currentGroupIndex, False)
+		triConverter = TriangleConverter(triConverterInfo, texDimensions, material, currentGroupIndex, 
+			triGroup.triList, triGroup.vertexList, 
+			copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict))
+
+		currentGroupIndex = saveTriangleStrip(triConverter, tileFaces, obj.data, False)
 
 		if len(revertCommands.commands) > 0:
 			fMesh.draw.commands.extend(revertCommands.commands)
@@ -356,12 +357,11 @@ def saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, transf
 
 # Make sure to set original_name before calling this
 # used when duplicating an object
-def saveStaticModel(fModel, obj, transformMatrix, ownerName, DLFormat, convertTextureData, revertMatAtEnd, drawLayerField):
+def saveStaticModel(triConverterInfo, fModel, obj, transformMatrix, ownerName, convertTextureData, revertMatAtEnd, drawLayerField):
 	if len(obj.data.polygons) == 0:
 		return None
 	
 	#checkForF3DMaterial(obj)
-	infoDict = getInfoDict(obj)
 
 	facesByMat = {}
 	for face in obj.data.loop_triangles:
@@ -390,13 +390,13 @@ def saveStaticModel(fModel, obj, transformMatrix, ownerName, DLFormat, convertTe
 		checkForF3dMaterialInFaces(obj, material)
 		fMaterial, texDimensions = \
 			saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
+
 		if fMaterial.useLargeTextures:
-			saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, transformMatrix,
-				infoDict, drawLayer, convertTextureData, None, TriangleConverter, None, None)
+			saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, drawLayer, convertTextureData, None, 
+				triConverterInfo, None, None)
 		else:
 			saveMeshByFaces(material, faces,  
-				fModel, fMesh, obj, transformMatrix, 
-				infoDict, drawLayer, convertTextureData, None, TriangleConverter, None, None)
+				fModel, fMesh, obj, drawLayer, convertTextureData, None, triConverterInfo, None, None)
 	
 	for drawLayer, fMesh in fMeshes.items():
 		if revertMatAtEnd:
@@ -443,8 +443,10 @@ def exportF3DCommon(obj, fModel, transformMatrix, includeChildren, name, DLForma
 	tempObj, meshList = combineObjects(obj, includeChildren, None, None)
 	try:
 		drawLayer = fModel.getDrawLayerV3(obj)
-		fMesh = saveStaticModel(fModel, tempObj, transformMatrix, name, 
-			DLFormat, convertTextureData, True, None)[drawLayer]
+		infoDict = getInfoDict(obj)
+		triConverterInfo = TriangleConverterInfo(obj, None, fModel.f3d, transformMatrix, infoDict)
+		fMesh = saveStaticModel(triConverterInfo, fModel, tempObj, 
+			transformMatrix, name, convertTextureData, True, None)[drawLayer]
 		cleanupCombineObj(tempObj, meshList)
 		obj.select_set(True)
 		bpy.context.view_layer.objects.active = obj
@@ -538,19 +540,13 @@ def getNextNeighborFace(faces, face, lastEdgeKey, visitedFaces, possibleFaces,
 			(face.edge_keys.index(nextEdgeKey) + 1) % 3]
 	return nextFaceAndEdge
 
-def saveTriangleStrip(triConverterClass, faces, convertInfo, triList, vtxList, f3d, 
-	texDimensions, transformMatrix, isPointSampled, exportVertexColors,
-	existingVertexData, existingVertexMaterialRegions, infoDict, mesh, currentGroupIndex, terminateDL):
+def saveTriangleStrip(triConverter, faces, mesh, terminateDL):
 	visitedFaces = []
 	unvisitedFaces = copy.copy(faces)
 	possibleFaces = []
 	lastEdgeKey = None
+	infoDict = triConverter.triConverterInfo.infoDict
 	neighborFace = getLowestUnvisitedNeighborCountFace(unvisitedFaces, infoDict)
-
-	triConverter = triConverterClass(mesh, convertInfo, infoDict.vertexGroupInfo, currentGroupIndex,
-		triList, vtxList, f3d, 
-		texDimensions, transformMatrix, isPointSampled, exportVertexColors,
-		existingVertexData, existingVertexMaterialRegions)
 
 	while len(visitedFaces) < len(faces):
 		#print(str(len(visitedFaces)) + " " + str(len(bFaces)))
@@ -605,8 +601,8 @@ def checkIfFlatShaded(material):
 		f3dMat = material
 	return not f3dMat.rdp_settings.g_shade_smooth
 
-def saveMeshByFaces(material, faces, fModel, fMesh, obj, transformMatrix,
-	infoDict, drawLayer, convertTextureData, currentGroupIndex, triConverterClass,
+def saveMeshByFaces(material, faces, fModel, fMesh, obj, drawLayer, 
+	convertTextureData, currentGroupIndex, triConverterInfo,
 	existingVertData, matRegionDict):
 	if len(faces) == 0:
 		print('0 Faces Provided.')
@@ -618,16 +614,15 @@ def saveMeshByFaces(material, faces, fModel, fMesh, obj, transformMatrix,
 	uv_data = obj.data.uv_layers['UVMap'].data
 	convertInfo = LoopConvertInfo(uv_data, obj, exportVertexColors)
 
-	fMesh.draw.commands.append(SPDisplayList(fMaterial.material))
+	fMesh.add_material_call(fMaterial)
 	triGroup = fMesh.tri_group_new(fMaterial)
 	fMesh.draw.commands.append(SPDisplayList(triGroup.triList))
 
-	#saveGeometry(obj, triList, fMesh.vertexList, bFaces, 
-	#	bMesh, texDimensions, transformMatrix, isPointSampled, isFlatShaded,
-	#	exportVertexColors, fModel.f3d)
-	currentGroupIndex = saveTriangleStrip(triConverterClass, faces, convertInfo, triGroup.triList, triGroup.vertexList,
-		fModel.f3d, texDimensions, transformMatrix, isPointSampled,
-		exportVertexColors, existingVertData, matRegionDict, infoDict, obj.data, currentGroupIndex, True)
+	triConverter = TriangleConverter(triConverterInfo, texDimensions, material, 
+		currentGroupIndex, triGroup.triList, triGroup.vertexList, 
+		copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict))
+
+	currentGroupIndex = saveTriangleStrip(triConverter, faces, obj.data, True)
 	
 	if fMaterial.revert is not None:
 		fMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
@@ -680,17 +675,45 @@ class BufferVertex:
 			self.groupIndex == other.groupIndex and \
 			self.materialIndex == other.materialIndex
 
+
+class TriangleConverterInfo:
+	def __init__(self, obj, armature, f3d, transformMatrix, infoDict):
+		self.infoDict = infoDict
+		self.vertexGroupInfo = self.infoDict.vertexGroupInfo
+		self.armature = armature
+		self.obj = obj
+		self.mesh = obj.data
+		self.f3d = f3d
+		self.transformMatrix = transformMatrix
+
+		# Caching names
+		self.groupNames = {}
+	
+	def getMatrixAddrFromGroup(self, groupIndex):
+		raise PluginError("TriangleConverterInfo must be extended with getMatrixAddrFromGroup implemented for game specific uses.")
+
+	def getTransformMatrix(self, groupIndex):
+		if self.armature is None or groupIndex is None:
+			groupMatrix = mathutils.Matrix.Identity(4)
+		else:
+			if groupIndex not in self.groupNames:
+				self.groupNames[groupIndex] = getGroupNameFromIndex(self.obj, groupIndex)
+			name = self.groupNames[groupIndex]
+			if name not in self.armature.bones:
+				print("Vertex group " + name + " not found in bones.")	
+				groupMatrix = mathutils.Matrix.Identity(4)
+			else:
+				groupMatrix = self.armature.bones[name].matrix_local.inverted()
+		return self.transformMatrix @ groupMatrix
+		
 # existingVertexData is used for cases where we want to assume the presence of vertex data
 # loaded in from a previous matrix transform (ex. sm64 skinning)
 class TriangleConverter:
-	def __init__(self, mesh, convertInfo, vertexGroupInfo, currentGroupIndex, triList, vtxList, f3d, 
-		texDimensions, transformMatrix, isPointSampled, exportVertexColors,
-		existingVertexData, existingVertexMaterialRegions):
-		self.convertInfo = convertInfo
-		self.vertexGroupInfo = vertexGroupInfo
+	def __init__(self, triConverterInfo, texDimensions, material, currentGroupIndex, 
+		triList, vtxList, existingVertexData, existingVertexMaterialRegions):
+		self.triConverterInfo = triConverterInfo
 		self.currentGroupIndex = currentGroupIndex
 		self.originalGroupIndex = currentGroupIndex
-		self.mesh = mesh
 
 		# Existing data assumed to be already loaded in.
 		if existingVertexData is not None:
@@ -701,14 +724,19 @@ class TriangleConverter:
 		self.existingVertexMaterialRegions = existingVertexMaterialRegions
 		self.bufferStart = len(self.vertBuffer)
 		self.vertexBufferTriangles = [] # [(index0, index1, index2)]
-		self.f3d = f3d
+
 		self.triList = triList
 		self.vtxList = vtxList
 
+		isPointSampled = isTexturePointSampled(material)
+		exportVertexColors = isLightingDisabled(material)
+		uv_data = triConverterInfo.obj.data.uv_layers['UVMap'].data
+		self.convertInfo = LoopConvertInfo(uv_data, triConverterInfo.obj, exportVertexColors)
 		self.texDimensions = texDimensions
-		self.transformMatrix = transformMatrix
 		self.isPointSampled = isPointSampled
 		self.exportVertexColors = exportVertexColors
+
+		
 
 	def vertInBuffer(self, bufferVert, material_index):
 		if self.existingVertexMaterialRegions is None:
@@ -730,9 +758,6 @@ class TriangleConverter:
 
 		return limbVerts
 
-	def getMatrixAddrFromGroup(self, groupIndex):
-		raise PluginError("TriangleConverter must be extended with getMatrixAddrFromGroup implemented for game specific uses.")
-
 	def processGeometry(self):
 		# Sort verts by limb index, then load current limb verts
 		bufferStart = self.bufferStart
@@ -750,17 +775,19 @@ class TriangleConverter:
 		
 			# Save vertices
 			for bufferVert in self.vertBuffer[bufferStart : bufferEnd]:
-				self.vtxList.vertices.append(convertVertexData(self.convertInfo.obj.data, 
+				self.vtxList.vertices.append(convertVertexData(self.triConverterInfo.mesh, 
 					bufferVert.f3dVert[0], bufferVert.f3dVert[1], bufferVert.f3dVert[2], self.texDimensions,
-					self.transformMatrix, self.isPointSampled,
+					self.triConverterInfo.getTransformMatrix(bufferVert.groupIndex), self.isPointSampled,
 					self.exportVertexColors))
 			
 			bufferStart = bufferEnd
+		else:
+			self.vertBuffer = self.vertBuffer[:self.bufferStart]
 
 		# Load other limb verts
 		for groupIndex, bufferVerts in limbVerts.items():
 			if groupIndex != self.currentGroupIndex:
-				self.triList.commands.append(SPMatrix(self.getMatrixAddrFromGroup(groupIndex), "G_MTX_LOAD"))
+				self.triList.commands.append(SPMatrix(self.triConverterInfo.getMatrixAddrFromGroup(groupIndex), "G_MTX_LOAD"))
 				self.currentGroupIndex = groupIndex
 			self.triList.commands.append(
 				SPVertex(self.vtxList, len(self.vtxList.vertices), 
@@ -771,16 +798,16 @@ class TriangleConverter:
 
 			# Save vertices
 			for bufferVert in self.vertBuffer[bufferStart : bufferEnd]:
-				self.vtxList.vertices.append(convertVertexData(self.convertInfo.obj.data, 
+				self.vtxList.vertices.append(convertVertexData(self.triConverterInfo.mesh, 
 					bufferVert.f3dVert[0], bufferVert.f3dVert[1], bufferVert.f3dVert[2], self.texDimensions,
-					self.transformMatrix, self.isPointSampled,
+					self.triConverterInfo.getTransformMatrix(bufferVert.groupIndex), self.isPointSampled,
 					self.exportVertexColors))
 
 			bufferStart = bufferEnd
 
 		# Load triangles
 		self.triList.commands.extend(createTriangleCommands(
-			self.vertexBufferTriangles, self.vertBuffer, self.f3d.F3DEX_GBI))
+			self.vertexBufferTriangles, self.vertBuffer, self.triConverterInfo.f3d.F3DEX_GBI))
 
 	def addFace(self, face):
 		triIndices = []
@@ -789,9 +816,9 @@ class TriangleConverter:
 		allVerts = [] # all verts not in 'untouched' buffer region
 
 		for loopIndex in face.loops:
-			loop = self.mesh.loops[loopIndex]
-			vertexGroup = self.vertexGroupInfo.vertexGroups[loop.vertex_index] if self.vertexGroupInfo is not None else None
-			bufferVert = BufferVertex(getF3DVert(loop, face, self.convertInfo, self.mesh), 
+			loop = self.triConverterInfo.mesh.loops[loopIndex]
+			vertexGroup = self.triConverterInfo.vertexGroupInfo.vertexGroups[loop.vertex_index] if self.triConverterInfo.vertexGroupInfo is not None else None
+			bufferVert = BufferVertex(getF3DVert(loop, face, self.convertInfo, self.triConverterInfo.mesh), 
 				vertexGroup, face.material_index)
 			triIndices.append(bufferVert)
 			if not self.vertInBuffer(bufferVert, face.material_index):
@@ -805,7 +832,7 @@ class TriangleConverter:
 		
 		# We care only about load size, since loading is what takes up time.
 		# Even if vert_buffer is larger, its still another load to fill it.
-		if len(self.vertBuffer) + len(addedVerts) > self.f3d.vert_load_size:
+		if len(self.vertBuffer) + len(addedVerts) > self.triConverterInfo.f3d.vert_load_size:
 			self.processGeometry()
 			self.vertBuffer = self.vertBuffer[:self.bufferStart] + allVerts
 			self.vertexBufferTriangles = [triIndices]

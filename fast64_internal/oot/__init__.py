@@ -35,7 +35,8 @@ class OOT_FileSettingsPanel(bpy.types.Panel):
 	# called every frame
 	def draw(self, context):
 		col = self.layout.column()	
-		prop_split(col, context.scene, 'ootBlenderScale', 'Blender To OOT Scale')
+		prop_split(col, context.scene, 'ootBlenderScale', 'OOT Scene Scale')
+		prop_split(col, context.scene, 'ootActorBlenderScale', 'OOT Actor Scale')
 		
 		#col.prop(context.scene, 'ootDisableScroll')
 		#col.prop(context.scene, 'ootSaveTextures')
@@ -97,6 +98,7 @@ def oot_register(registerPanels):
 		oot_panel_register()
 
 	bpy.types.Scene.ootBlenderScale = bpy.props.FloatProperty(name = 'Blender To OOT Scale', default = 10)
+	bpy.types.Scene.ootActorBlenderScale = bpy.props.FloatProperty(name = 'Blender To OOT Actor Scale', default = 1000)
 	bpy.types.Scene.ootRefreshVer = bpy.props.EnumProperty(
 		items = ootEnumRefreshVer, name = 'Refresh', default = 'Refresh 3')
 	bpy.types.Scene.ootDecompPath = bpy.props.StringProperty(
@@ -127,4 +129,5 @@ def oot_unregister(unregisterPanels):
 
 	del bpy.types.Scene.ootRefreshVer
 	del bpy.types.Scene.ootBlenderScale 
+	del bpy.types.Scene.ootActorBlenderScale
 	del bpy.types.Scene.ootDecompPath
