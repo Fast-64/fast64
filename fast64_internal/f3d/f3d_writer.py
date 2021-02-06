@@ -143,6 +143,15 @@ def fixLargeUVs(obj):
 		if material.mat_ver > 3 and material.f3d_mat.use_large_textures:
 			continue
 
+		if material.mat_ver > 3:
+			f3dMat = material.f3d_mat
+		else:
+			f3dMat = material
+
+		UVinterval = [
+			2 if f3dMat.tex0.S.mirror or f3dMat.tex1.S.mirror else 1,
+			2 if f3dMat.tex0.T.mirror or f3dMat.tex1.T.mirror else 1]
+
 		size = texSizeDict[material]
 		cellSize = [1024 / size[0], 1024 / size[1]]
 		minUV, maxUV = findUVBounds(polygon, uv_data)
@@ -153,11 +162,11 @@ def fixLargeUVs(obj):
 			# Move any UVs close to or straddling edge
 			minDiff = (-cellSize[i]+2) - minUV[i]
 			if minDiff > 0:
-				applyOffset(minUV, maxUV, uvOffset, ceil(minDiff), i)
+				applyOffset(minUV, maxUV, uvOffset, ceil(minDiff / UVinterval[i]) * UVinterval[i], i)
 			
 			maxDiff = maxUV[i] - (cellSize[i] - 1)
 			if maxDiff > 0:
-				applyOffset(minUV, maxUV, uvOffset, -ceil(maxDiff), i)
+				applyOffset(minUV, maxUV, uvOffset, -ceil(maxDiff / UVinterval[i]) * UVinterval[i], i)
 
 		for loopIndex in polygon.loop_indices:
 			newUV = (uv_data[loopIndex].uv[0] + uvOffset[0],
