@@ -451,9 +451,9 @@ def addCullCommand(obj, fMesh, transformMatrix, matWriteMethod):
 def exportF3DCommon(obj, fModel, transformMatrix, includeChildren, name, DLFormat, convertTextureData):
 	tempObj, meshList = combineObjects(obj, includeChildren, None, None)
 	try:
-		drawLayer = fModel.getDrawLayerV3(obj)
-		infoDict = getInfoDict(obj)
-		triConverterInfo = TriangleConverterInfo(obj, None, fModel.f3d, transformMatrix, infoDict)
+		drawLayer = fModel.getDrawLayerV3(tempObj)
+		infoDict = getInfoDict(tempObj)
+		triConverterInfo = TriangleConverterInfo(tempObj, None, fModel.f3d, transformMatrix, infoDict)
 		fMesh = saveStaticModel(triConverterInfo, fModel, tempObj, 
 			transformMatrix, name, convertTextureData, True, None)[drawLayer]
 		cleanupCombineObj(tempObj, meshList)
@@ -2243,7 +2243,7 @@ class F3D_ExportDL(bpy.types.Operator):
 	# Can also be called from operator search menu (Spacebar)
 	def execute(self, context):
 		if context.mode != 'OBJECT':
-			bpy.ops.object.mode_set("OBJECT")
+			bpy.ops.object.mode_set(mode = "OBJECT")
 		try:
 			allObjs = context.selected_objects
 			if len(allObjs) == 0:
