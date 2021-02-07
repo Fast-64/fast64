@@ -2065,9 +2065,14 @@ class FMesh:
 
 	def add_material_call(self, fMaterial):
 		sameMaterial = self.currentFMaterial is fMaterial
-		if fMaterial.revert is not None or not sameMaterial:
+		if not sameMaterial:
 			self.currentFMaterial = fMaterial
 			self.draw.commands.append(SPDisplayList(fMaterial.material))
+		else:
+			lastCommand = self.draw.commands[-1]
+			if isinstance(lastCommand, SPDisplayList) and \
+				lastCommand.displayList == fMaterial.revert:
+				self.draw.commands.remove(lastCommand)
 	
 	def add_cull_vtx(self):
 		self.cullVertexList = VtxList(self.name + '_vtx_cull')

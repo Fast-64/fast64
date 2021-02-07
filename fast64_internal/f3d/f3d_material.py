@@ -171,7 +171,7 @@ def update_blend_method(material, context):
 			material.blend_method = drawLayerSM64Alpha[drawLayer.sm64]
 
 class DrawLayerProperty(bpy.types.PropertyGroup):
-	sm64 : bpy.props.EnumProperty(items = sm64EnumDrawLayers, default = 1, update = update_draw_layer)
+	sm64 : bpy.props.EnumProperty(items = sm64EnumDrawLayers, default = "1", update = update_draw_layer)
 	oot : bpy.props.EnumProperty(items = ootEnumDrawLayers, default = "Opaque", update = update_draw_layer)
 
 def getTmemWordUsage(texFormat, width, height):

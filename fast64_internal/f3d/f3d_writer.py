@@ -760,7 +760,7 @@ class TriangleConverter:
 
 	def getSortedBuffer(self):
 		limbVerts = {}
-		for bufferVert in self.vertBuffer:
+		for bufferVert in self.vertBuffer[self.bufferStart:]:
 			if bufferVert.groupIndex not in limbVerts:
 				limbVerts[bufferVert.groupIndex] = []
 			limbVerts[bufferVert.groupIndex].append(bufferVert)
