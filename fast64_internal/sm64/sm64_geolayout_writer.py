@@ -1599,7 +1599,7 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 			for i in range(3):
 				vertGroupIndex = getGroupIndex(mesh.vertices[face.vertices[i]], armatureObj, obj)
 				if vertGroupIndex not in ancestorGroups:
-					ancestorGroups[vertGroupIndex] = getAncestorGroups(parentGroupIndex, vertexGroup, armatureObj, obj)
+					ancestorGroups[vertGroupIndex] = getAncestorGroups(parentGroup, vertexGroup, armatureObj, obj)
 
 				if vertGroupIndex == currentGroupIndex:
 					loopsInGroup.append((face, mesh.loops[face.loops[i]]))
