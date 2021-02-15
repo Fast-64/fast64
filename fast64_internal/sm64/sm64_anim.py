@@ -344,8 +344,9 @@ def convertAnimationData(anim, armatureObj, frameEnd):
 		rootPoseBone = armatureObj.pose.bones[animBones[0]]
 
 		# Hacky solution to handle Z-up to Y-up conversion
-		translation = mathutils.Quaternion((1, 0, 0), math.radians(-90.0)) @ \
-			(mathutils.Matrix.Scale(bpy.context.scene.blenderToSM64Scale, 4) @ rootPoseBone.matrix).decompose()[0]
+		translation = \
+			(rootBone.matrix.to_4x4().inverted() @\
+			mathutils.Matrix.Scale(bpy.context.scene.blenderToSM64Scale, 4) @ rootPoseBone.matrix).decompose()[0]
 		saveTranslationFrame(translationData, translation)
 
 		for boneIndex in range(len(animBones)):
@@ -360,6 +361,8 @@ def convertAnimationData(anim, armatureObj, frameEnd):
 				rotationValue = (
 					currentBone.matrix.to_4x4().inverted() @ currentPoseBone.parent.matrix.inverted() @ \
 					currentPoseBone.matrix).to_quaternion()
+				
+				# rest pose local, compared to current pose local
 			
 			saveQuaternionFrame(armatureFrameData[boneIndex], rotationValue)
 	
@@ -596,8 +599,12 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 			raisePluginError(self, e)
 			return {"CANCELLED"}
 
-		if context.scene.animExportType == 'C':
-			try:
+		try:
+			# Rotate all armatures 90 degrees
+			applyRotation([armatureObj], 
+				math.radians(90), 'X')
+
+			if context.scene.animExportType == 'C':
 				exportPath, levelName = getPathAndLevel(context.scene.animCustomExport, 
 					context.scene.animExportPath, context.scene.animLevelName, 
 					context.scene.animLevelOption)
@@ -608,22 +615,14 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 					bpy.context.scene.animGroupName,
 					context.scene.animCustomExport, context.scene.animExportHeaderType, levelName)
 				self.report({'INFO'}, 'Success!')
-			except Exception as e:
-				raisePluginError(self, e)
-				return {'CANCELLED'} # must return a set
-		elif context.scene.animExportType == 'Insertable Binary':
-			try:
+			elif context.scene.animExportType == 'Insertable Binary':
 				exportAnimationInsertableBinary(
 					bpy.path.abspath(context.scene.animInsertableBinaryPath),
 					armatureObj, context.scene.isDMAExport, 
 					context.scene.loopAnimation)
 				self.report({'INFO'}, 'Success! Animation at ' +\
 					context.scene.animInsertableBinaryPath)
-			except Exception as e:
-				raisePluginError(self, e)
-				return {"CANCELLED"}
-		else:
-			try:
+			else:
 				checkExpanded(bpy.path.abspath(context.scene.exportRom))
 				tempROM = tempName(context.scene.outputRom)
 				romfileExport = \
@@ -688,13 +687,19 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 				else:
 					self.report({'INFO'}, 'Success! Animation at (' + \
 						hex(addrRange[0]) + ', ' + hex(addrRange[1]) + ').')
-			except Exception as e:
-				if romfileOutput is not None:
-					romfileOutput.close()
-				if tempROM is not None and os.path.exists(bpy.path.abspath(tempROM)):
-					os.remove(bpy.path.abspath(tempROM))
-				raisePluginError(self, e)
-				return {'CANCELLED'} # must return a set
+			
+			applyRotation([armatureObj], 
+				math.radians(-90), 'X')
+		except Exception as e:
+			applyRotation([armatureObj], 
+				math.radians(-90), 'X')
+
+			if romfileOutput is not None:
+				romfileOutput.close()
+			if tempROM is not None and os.path.exists(bpy.path.abspath(tempROM)):
+				os.remove(bpy.path.abspath(tempROM))
+			raisePluginError(self, e)
+			return {'CANCELLED'} # must return a set
 
 		return {'FINISHED'} # must return a set
 
