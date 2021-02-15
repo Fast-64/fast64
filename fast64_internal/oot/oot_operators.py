@@ -29,7 +29,7 @@ class OOT_AddDoor(bpy.types.Operator):
 			bpy.ops.object.mode_set(mode = "OBJECT")
 		bpy.ops.object.select_all(action = "DESELECT")
 
-		objScale = (3.6 * self.scale, 0.7 * self.scale, 5.5 * self.scale)
+		objScale = (3 * self.scale, 1 * self.scale, 5 * self.scale)
 
 		location = mathutils.Vector(bpy.context.scene.cursor.location) +\
 			mathutils.Vector([0,0, 0.5 * objScale[2]])

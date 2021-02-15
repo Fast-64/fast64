@@ -384,10 +384,11 @@ def ootProcessMesh(roomMesh, roomMeshGroup, sceneObj, obj, transformMatrix, conv
 		triConverterInfo = TriangleConverterInfo(obj, None, roomMesh.model.f3d, relativeTransform, getInfoDict(obj))
 		fMeshes = saveStaticModel(triConverterInfo, roomMesh.model, obj, relativeTransform, roomMesh.model.name,
 			convertTextureData, False, 'oot')
-		if roomMeshGroup is None:
-			roomMeshGroup = roomMesh.addMeshGroup(None)
-		for drawLayer, fMesh in fMeshes.items():
-			roomMeshGroup.addDLCall(fMesh.draw, drawLayer)
+		if fMeshes is not None:
+			if roomMeshGroup is None:
+				roomMeshGroup = roomMesh.addMeshGroup(None)
+			for drawLayer, fMesh in fMeshes.items():
+				roomMeshGroup.addDLCall(fMesh.draw, drawLayer)
 
 	alphabeticalChildren = sorted(obj.children, key = lambda childObj: childObj.original_name.lower())
 	for childObj in alphabeticalChildren:
