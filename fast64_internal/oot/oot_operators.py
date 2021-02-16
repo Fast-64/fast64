@@ -103,7 +103,39 @@ class OOT_AddScene(bpy.types.Operator):
 		#setOrigin(emptyObj, cubeObj)
 
 		return {"FINISHED"}
-	
+
+class OOT_AddRoom(bpy.types.Operator):
+	# set bl_ properties
+	bl_idname = 'object.oot_add_room'
+	bl_label = "Add Room"
+	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
+
+	def execute(self, context):
+		if context.mode != "OBJECT":
+			bpy.ops.object.mode_set(mode = "OBJECT")
+		bpy.ops.object.select_all(action = "DESELECT")
+
+		location = mathutils.Vector(bpy.context.scene.cursor.location)
+		bpy.ops.object.empty_add(type='SPHERE', radius = 1, align='WORLD', location=location[:])
+		roomObj = context.view_layer.objects.active
+		roomObj.ootEmptyType = "Room"
+		roomObj.name = "Room"
+		if bpy.context.scene.ootSceneExportObj is not None:
+			sceneObj = bpy.context.scene.ootSceneExportObj
+			indices = []
+			for sceneChild in sceneObj.children:
+				if sceneChild.ootEmptyType == "Room":
+					indices.append(sceneChild.ootRoomHeader.roomIndex)
+			nextIndex = 0
+			while nextIndex in indices:
+				nextIndex += 1
+			roomObj.ootRoomHeader.roomIndex = nextIndex
+			parentObject(bpy.context.scene.ootSceneExportObj, roomObj)
+		
+		bpy.ops.object.select_all(action = "DESELECT")
+		roomObj.select_set(True)
+		context.view_layer.objects.active = roomObj
+		return {"FINISHED"}
 
 class OOT_OperatorsPanel(bpy.types.Panel):
 	bl_idname = "OOT_PT_operators"
@@ -120,13 +152,15 @@ class OOT_OperatorsPanel(bpy.types.Panel):
 	def draw(self, context):
 		col = self.layout.column()
 		col.operator(OOT_AddScene.bl_idname)
+		col.operator(OOT_AddRoom.bl_idname)
 		col.operator(OOT_AddWaterBox.bl_idname)
 		col.operator(OOT_AddDoor.bl_idname)
 
 oot_operator_classes = (
 	OOT_AddWaterBox,
 	OOT_AddDoor,
-	OOT_AddScene
+	OOT_AddScene,
+	OOT_AddRoom,
 )
 
 oot_operator_panel_classes = (
