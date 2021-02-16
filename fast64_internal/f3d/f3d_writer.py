@@ -2013,7 +2013,7 @@ def saveOtherModeHDefinition(fMaterial, settings, defaults, isHWv1, matWriteMeth
 		raise PluginError("Unhandled material write method: " + str(matWriteMethod))
 
 def saveOtherModeHDefinitionAll(fMaterial, settings, defaults, isHWv1):
-	cmd = SPSetOtherMode("G_SETOTHERMODE_H", 0, 32, [])
+	cmd = SPSetOtherMode("G_SETOTHERMODE_H", 4, 20, [])
 	cmd.flagList.append(settings.g_mdsft_alpha_dither)
 	if not isHWv1:
 		cmd.flagList.append(settings.g_mdsft_rgb_dither)

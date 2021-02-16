@@ -925,6 +925,19 @@ def createShadeNode(node_tree, location):
 		#	groupNode, None, node_tree, 1, 'Lighting', False)
 		#ambientInternal = createSocketToGroupLink(ambientNode.outputs[0], 
 		#	groupNode, None, node_tree, 2, 'Ambient Color', False)
+
+		# Handle case so that shade alpha is visible even when using lighting.
+		nodes = group_tree.nodes
+		links = group_tree.links
+		if "Mix.002" in nodes:
+			outputNode = nodes["Group Output"]
+			alphaNode = nodes["Attribute.001"]
+			alphaMixNode = nodes["Mix.002"]
+			#if outputNode.inputs[1].links[0].from_node == alphaMixNode:
+			
+			# Link alpha node to alpha output.
+			links.new(alphaNode.outputs[2], outputNode.inputs[1])
+			nodes.remove(alphaMixNode)
 		
 		return groupNode
 

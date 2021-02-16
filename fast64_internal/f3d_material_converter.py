@@ -257,6 +257,7 @@ class F3DMaterialConverterPanel(bpy.types.Panel):
 		self.layout.prop(context.scene, 'rename_uv_maps')
 		self.layout.operator(MatUpdateConvert.bl_idname)
 		self.layout.prop(context.scene, 'update_conv_all')
+		self.layout.operator(ReloadDefaultF3DPresets.bl_idname)
 
 
 bsdf_conv_classes = (

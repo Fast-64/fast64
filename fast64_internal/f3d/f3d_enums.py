@@ -293,7 +293,7 @@ enumRenderModesCycle1 = [
 	('G_RM_ZB_OPA_DECAL', "Opaque Decal (No AA)", 'G_RM_ZB_OPA_DECAL'),
 	('G_RM_ZB_XLU_SURF', "Transparent (No AA)", 'G_RM_ZB_XLU_SURF'),
 	('G_RM_ZB_XLU_DECAL', "Transparent Decal (No AA)", 'G_RM_ZB_XLU_DECAL'),
-
+	('G_RM_OPA_SURF', "Opaque (No AA, No ZBuf)", 'G_RM_OPA_SURF'),
 ]
 
 enumRenderModesCycle2 = [

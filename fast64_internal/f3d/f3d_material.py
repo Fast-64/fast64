@@ -249,6 +249,34 @@ def combiner_uses(material, checkList, is2Cycle):
 
 	return display
 
+def combiner_uses_alpha(material, checkList, is2Cycle):
+	display = False
+	for value in checkList:
+		if value[:5] == "TEXEL":
+			value1 = value
+			value2 = value.replace("0", "1") if "0" in value else value.replace("1", "0")
+		else:
+			value1 = value
+			value2 = value
+
+		display |= material.combiner1.A_alpha == value1
+		if is2Cycle:
+			display |= material.combiner2.A_alpha == value2
+
+		display |= material.combiner1.B_alpha == value1
+		if is2Cycle:
+			display |= material.combiner2.B_alpha  == value2
+
+		display |= material.combiner1.C_alpha == value1
+		if is2Cycle:
+			display |= material.combiner2.C_alpha == value2
+
+		display |= material.combiner1.D_alpha == value1
+		if is2Cycle:
+			display |= material.combiner2.D_alpha  == value2
+
+	return display
+
 def all_combiner_uses(material):
 	useDict = {
 		'Texture' : combiner_uses(material, 
@@ -273,6 +301,10 @@ def all_combiner_uses(material):
 
 		'Shade' : combiner_uses(material, 
 			['SHADE', 'SHADE_ALPHA'], 
+			material.rdp_settings.g_mdsft_cycletype == 'G_CYC_2CYCLE'),
+		
+		'Shade Alpha' : combiner_uses_alpha(material,
+			['SHADE'],
 			material.rdp_settings.g_mdsft_cycletype == 'G_CYC_2CYCLE'),
 
 		'Key' : combiner_uses(material, ['CENTER', 'SCALE'], 
@@ -783,6 +815,9 @@ class F3DPanel(bpy.types.Panel):
 			text = 'There must be two vertex color layers.', icon = "ERROR")
 		noticeBox.label(
 			text = 'They should be called "Col" and "Alpha".')
+
+	def drawShadeAlphaNotice(self, layout):
+		layout.box().column().label(text = "There must be a vertex color layer called \"Alpha\".", icon = "ERROR")
 	
 	def drawCIMultitextureNotice(self, layout):
 		layout.label(text = 'CI textures will break with multitexturing.', icon = "ERROR")
@@ -795,6 +830,8 @@ class F3DPanel(bpy.types.Panel):
 
 		if not f3dMat.rdp_settings.g_lighting:
 			self.drawVertexColorNotice(layout)
+		elif useDict["Shade Alpha"]:
+			self.drawShadeAlphaNotice(layout)
 
 		useMultitexture = useDict['Texture 0'] and useDict['Texture 1'] and f3dMat.tex0.tex_set and f3dMat.tex1.tex_set
 
@@ -844,6 +881,7 @@ class F3DPanel(bpy.types.Panel):
 
 		layout.row().prop(material, "menu_tab", expand = True)
 		menuTab = material.menu_tab
+		useDict = all_combiner_uses(f3dMat)
 
 		if menuTab == "Combiner":
 			if material.mat_ver > 3:
@@ -851,6 +889,8 @@ class F3DPanel(bpy.types.Panel):
 
 			if not f3dMat.rdp_settings.g_lighting:
 				self.drawVertexColorNotice(layout)
+			elif useDict["Shade Alpha"]:
+				self.drawShadeAlphaNotice(layout)
 
 			combinerBox = layout.box()
 			combinerBox.prop(f3dMat, 'set_combiner', 
@@ -896,7 +936,6 @@ class F3DPanel(bpy.types.Panel):
 			self.ui_uvCheck(layout, context)
 
 			inputCol = layout.column()
-			useDict = all_combiner_uses(f3dMat)
 
 			useMultitexture = useDict['Texture 0'] and useDict['Texture 1']
 
@@ -1573,16 +1612,25 @@ def update_tex_values_and_formats(self, context):
 		if context.material.mat_ver > 3:
 			material = context.material.f3d_mat
 			useLargeTextures = material.use_large_textures
+			isMultiTexture = "multitexture" in material.presetName.lower()
 		else:
 			material = context.material
 			useLargeTextures = False
+			isMultiTexture = False
+			
 		if context.material.f3d_update_flag:
 			return
 		context.material.f3d_update_flag = True
 		if material.tex0 == self and material.tex0.tex is not None:
-			material.tex0.tex_format = getOptimalFormat(material.tex0.tex, useLargeTextures)
+			if isMultiTexture:
+				material.tex0.tex_format = 'RGBA16'
+			else:
+				material.tex0.tex_format = getOptimalFormat(material.tex0.tex, useLargeTextures)
 		if material.tex1 == self and material.tex1.tex is not None:
-			material.tex1.tex_format = getOptimalFormat(material.tex1.tex, useLargeTextures)
+			if isMultiTexture:
+				material.tex1.tex_format = 'RGBA16'
+			else:
+				material.tex1.tex_format = getOptimalFormat(material.tex1.tex, useLargeTextures)
 		context.material.f3d_update_flag = False
 		
 		update_tex_values(context.material, context)
@@ -1891,6 +1939,15 @@ def createF3DMat(obj, preset = 'Shaded Solid', index = None):
 
 	return material
 
+def reloadDefaultF3DPresets():
+	presetNameToFilename = {}
+	for game, gamePresets in material_presets.items():
+		for presetName, preset in gamePresets.items():
+			presetNameToFilename[bpy.path.display_name(presetName)] = presetName
+	for material in bpy.data.materials:
+		if material.mat_ver > 3 and material.f3d_mat.presetName in presetNameToFilename:
+			update_preset_manual_v4(material, presetNameToFilename[material.f3d_mat.presetName])	
+
 class CreateFast3DMaterial(bpy.types.Operator):
 	# set bl_ properties
 	bl_idname = 'object.create_f3d_mat'
@@ -1907,6 +1964,19 @@ class CreateFast3DMaterial(bpy.types.Operator):
 			preset = getDefaultMaterialPreset("Shaded Solid")
 			createF3DMat(obj, preset)
 			self.report({'INFO'}, 'Created new Fast3D material.')
+		return {'FINISHED'} # must return a set
+
+class ReloadDefaultF3DPresets(bpy.types.Operator):
+	# set bl_ properties
+	bl_idname = 'object.reload_f3d_presets'
+	bl_label = "Reload Default Fast3D Presets"
+	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
+
+	# Called on demand (i.e. button press, menu item)
+	# Can also be called from operator search menu (Spacebar)
+	def execute(self, context):
+		reloadDefaultF3DPresets()
+		self.report({'INFO'}, 'Success!')
 		return {'FINISHED'} # must return a set
 
 class TextureFieldProperty(bpy.types.PropertyGroup):
@@ -2032,43 +2102,43 @@ class RDPSettings(bpy.types.PropertyGroup):
 	# upper half mode
 	# v2 only
 	g_mdsft_alpha_dither : bpy.props.EnumProperty(
-		name = 'Alpha Dither', items = enumAlphaDither, default = 'G_AD_NOISE')
+		name = 'Alpha Dither', items = enumAlphaDither, default = 'G_AD_NOISE',	update = update_node_values)
 	# v2 only
 	g_mdsft_rgb_dither : bpy.props.EnumProperty(
-		name = 'RGB Dither', items = enumRGBDither, default = 'G_CD_MAGICSQ')
+		name = 'RGB Dither', items = enumRGBDither, default = 'G_CD_MAGICSQ', update = update_node_values)
 	g_mdsft_combkey : bpy.props.EnumProperty(
-		name = 'Chroma Key', items = enumCombKey, default = 'G_CK_NONE')
+		name = 'Chroma Key', items = enumCombKey, default = 'G_CK_NONE', update = update_node_values)
 	g_mdsft_textconv : bpy.props.EnumProperty(
-		name = 'Texture Convert', items = enumTextConv, default = 'G_TC_FILT')
+		name = 'Texture Convert', items = enumTextConv, default = 'G_TC_FILT', update = update_node_values)
 	g_mdsft_text_filt : bpy.props.EnumProperty(
 		name = 'Texture Filter', items = enumTextFilt, default = 'G_TF_BILERP',
 		update = update_node_values_without_preset)
 	g_mdsft_textlut : bpy.props.EnumProperty(
 		name = 'Texture LUT', items = enumTextLUT, default = 'G_TT_NONE')
 	g_mdsft_textlod : bpy.props.EnumProperty(
-		name = 'Texture LOD', items = enumTextLOD, default = 'G_TL_TILE')
+		name = 'Texture LOD', items = enumTextLOD, default = 'G_TL_TILE', update = update_node_values)
 	g_mdsft_textdetail : bpy.props.EnumProperty(
-		name = 'Texture Detail', items = enumTextDetail, default = 'G_TD_CLAMP')
+		name = 'Texture Detail', items = enumTextDetail, default = 'G_TD_CLAMP', update = update_node_values)
 	g_mdsft_textpersp : bpy.props.EnumProperty(
 		name = 'Texture Perspective Correction', items = enumTextPersp, 
-		default = 'G_TP_PERSP')
+		default = 'G_TP_PERSP', update = update_node_values)
 	g_mdsft_cycletype : bpy.props.EnumProperty(
 		name = 'Cycle Type', items = enumCycleType, default = 'G_CYC_1CYCLE',
 		update = update_node_values)
 	# v1 only
 	g_mdsft_color_dither : bpy.props.EnumProperty(
-		name = 'Color Dither', items = enumColorDither, default = 'G_CD_ENABLE')
+		name = 'Color Dither', items = enumColorDither, default = 'G_CD_ENABLE', update = update_node_values)
 	g_mdsft_pipeline : bpy.props.EnumProperty(
 		name = 'Pipeline Span Buffer Coherency', items = enumPipelineMode,
-		default = 'G_PM_1PRIMITIVE')
+		default = 'G_PM_1PRIMITIVE', update = update_node_values)
 	
 	# lower half mode
 	g_mdsft_alpha_compare : bpy.props.EnumProperty(
 		name = 'Alpha Compare', items = enumAlphaCompare, 
-		default = 'G_AC_NONE')
+		default = 'G_AC_NONE', update = update_node_values)
 	g_mdsft_zsrcsel : bpy.props.EnumProperty(
 		name = 'Z Source Selection', items = enumDepthSource, 
-		default = 'G_ZS_PIXEL')
+		default = 'G_ZS_PIXEL', update = update_node_values)
 
 	clip_ratio : bpy.props.IntProperty(default = 1,
 		min = 1, max = 2**15 - 1, update = update_node_values)
@@ -2339,6 +2409,7 @@ class AddPresetF3D(AddPresetBase, Operator):
 		"f3d_mat.menu_lower_render",
 		"f3d_mat.f3d_update_flag",
 		"f3d_mat.name",
+		"f3d_mat.use_large_textures",
 	]
 
 	def execute(self, context):
@@ -2743,6 +2814,7 @@ mat_classes = (
 	RDPSettings,
 	DefaultRDPSettingsPanel,
 	F3DMaterialProperty,
+	ReloadDefaultF3DPresets,
 )
 
 def mat_unregister_old():
