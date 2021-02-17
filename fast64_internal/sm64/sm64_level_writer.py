@@ -527,6 +527,10 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 	usesEnvFX = False
 	echoLevels = ['0x00', '0x00', '0x00']
 	zoomFlags = [False, False, False, False]
+
+	if bpy.context.scene.exportHiddenGeometry:
+		hiddenObjs = unhideAllAndGetHiddenList(bpy.context.scene)
+
 	for child in childAreas:
 		if len(child.children) == 0:
 			raise PluginError("Area for " + child.name + " has no children.")
@@ -623,6 +627,9 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 		replaceSegmentLoad(prevLevelScript, 
 			'_' + backgroundSegments[obj.background] + '_skybox_' + compressionFmt, 'LOAD_' + compressionFmt.upper(), 0x0A)
 	levelscriptString = prevLevelScript.to_c(areaString)
+
+	if bpy.context.scene.exportHiddenGeometry:	
+		hideObjsInList(hiddenObjs)
 
 	# Remove old areas.
 	for f in os.listdir(levelDir):

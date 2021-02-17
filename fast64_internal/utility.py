@@ -36,6 +36,22 @@ enumCompressionFormat = [
 	('yay0', 'YAY0', 'YAY0'),
 ]
 
+def unhideAllAndGetHiddenList(scene):
+	hiddenObjs = []
+	for obj in scene.objects:
+		if obj.hide_get():
+			hiddenObjs.append(obj)
+	
+	if bpy.context.mode != 'OBJECT':
+		bpy.ops.object.mode_set(mode = "OBJECT")
+	bpy.ops.object.hide_view_clear()
+	return hiddenObjs
+
+def hideObjsInList(hiddenObjs):
+	for obj in hiddenObjs:
+		obj.hide_set(True)
+
+
 def readFile(filepath):
 	datafile = open(filepath, 'r', newline = '\n', encoding = 'utf-8')
 	data = datafile.read()

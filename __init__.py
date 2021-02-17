@@ -229,6 +229,7 @@ class Fast64_GlobalSettingsPanel(bpy.types.Panel):
 	def draw(self, context):
 		col = self.layout.column()
 		prop_split(col, context.scene, 'gameEditorMode', "Game")
+		col.prop(context.scene, 'exportHiddenGeometry')
 		col.prop(context.scene, 'fullTraceback')
 		
 
@@ -291,6 +292,7 @@ def register():
 	bpy.types.Scene.saveTextures = bpy.props.BoolProperty(
 		name = 'Save Textures As PNGs (Breaks CI Textures)')
 	bpy.types.Scene.generateF3DNodeGraph = bpy.props.BoolProperty(name = "Generate F3D Node Graph", default = True)
+	bpy.types.Scene.exportHiddenGeometry = bpy.props.BoolProperty(name = "Export Hidden Geometry", default = True)
 
 # called on add-on disabling
 def unregister():
@@ -308,6 +310,7 @@ def unregister():
 	del bpy.types.Scene.saveTextures
 	del bpy.types.Scene.gameEditorMode
 	del bpy.types.Scene.generateF3DNodeGraph
+	del bpy.types.Scene.exportHiddenGeometry
 
 	for cls in classes:
 		unregister_class(cls)
