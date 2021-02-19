@@ -12,6 +12,7 @@ from .sm64_camera import saveCameraSettingsToGeolayout
 from .sm64_geolayout_classes import *
 from .sm64_f3d_writer import *
 from .sm64_texscroll import *
+from .sm64_utility import *
 
 from ..utility import *
 
@@ -396,6 +397,7 @@ def saveGeolayoutC(geoName, dirName, geolayoutGraph, fModel, exportDir, texDir, 
 	cDefFile.write(staticData.header)
 	cDefFile.close()
 	
+	fileStatus = None
 	if not customExport:
 		if headerType == 'Actor':
 			if dirName == 'star' and bpy.context.scene.replaceStarRefs:
@@ -475,13 +477,13 @@ def saveGeolayoutC(geoName, dirName, geolayoutGraph, fModel, exportDir, texDir, 
 			texscrollGroup = levelName
 			texscrollGroupInclude = '#include "levels/' + levelName + '/header.h"'
 
-		modifyTexScrollHeadersGroup(exportDir, texscrollIncludeC, texscrollIncludeH, 
+		fileStatus = modifyTexScrollHeadersGroup(exportDir, texscrollIncludeC, texscrollIncludeH, 
 			texscrollGroup, cDefineScroll, texscrollGroupInclude, hasScrolling)
 		
 		if DLFormat != DLFormat.Static: # Change this
 			writeMaterialHeaders(exportDir, matCInclude, matHInclude)
 	
-	return staticData.header
+	return staticData.header, fileStatus
 
 # Insertable Binary
 def exportGeolayoutArmatureInsertableBinary(armatureObj, obj,
@@ -2161,7 +2163,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 				saveTextures = bpy.context.scene.geoSaveTextures or bpy.context.scene.ignoreTextureRestrictions
 				if not context.scene.geoCustomExport:
 					applyBasicTweaks(exportPath)
-				exportGeolayoutArmatureC(armatureObj, obj, finalTransform,
+				header, fileStatus = exportGeolayoutArmatureC(armatureObj, obj, finalTransform,
 					context.scene.f3d_type, context.scene.isHWv1,
 					exportPath,
 					bpy.context.scene.geoTexDir,
@@ -2169,6 +2171,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 					saveTextures and bpy.context.scene.geoSeparateTextureDef,
 					None, bpy.context.scene.geoGroupName, context.scene.geoExportHeaderType,
 					context.scene.geoName, context.scene.geoStructName, levelName, context.scene.geoCustomExport, DLFormat.Static)
+				starSelectWarning(self, fileStatus)
 				self.report({'INFO'}, 'Success!')
 			elif context.scene.geoExportType == 'Insertable Binary':
 				exportGeolayoutArmatureInsertableBinary(armatureObj, obj,

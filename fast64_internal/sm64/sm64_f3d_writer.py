@@ -3,6 +3,7 @@ import shutil, copy, bpy, cProfile, pstats
 from ..f3d.f3d_writer import *
 from ..f3d.f3d_material import *
 from .sm64_texscroll import *
+from .sm64_utility import *
 from bpy.utils import register_class, unregister_class
 from .sm64_constants import level_enums, enumLevelNames
 from .sm64_level_parser import parseLevelAtPointer
@@ -322,6 +323,7 @@ def sm64ExportF3DtoC(basePath, obj, DLFormat, transformMatrix,
 	cDefFile.write(staticData.header)
 	cDefFile.close()
 		
+	fileStatus = None
 	if not customExport:
 		if headerType == 'Actor':
 			# Write to group files
@@ -363,11 +365,13 @@ def sm64ExportF3DtoC(basePath, obj, DLFormat, transformMatrix,
 			texscrollGroup = levelName
 			texscrollGroupInclude = '#include "levels/' + levelName + '/header.h"'
 
-		modifyTexScrollHeadersGroup(basePath, texscrollIncludeC, texscrollIncludeH, 
+		fileStatus = modifyTexScrollHeadersGroup(basePath, texscrollIncludeC, texscrollIncludeH, 
 			texscrollGroup, cDefineScroll, texscrollGroupInclude, hasScrolling)
 
 	if bpy.context.mode != 'OBJECT':
 		bpy.ops.object.mode_set(mode = 'OBJECT')
+
+	return fileStatus
 
 def exportF3DtoBinary(romfile, exportRange, transformMatrix, 
 	obj, f3dType, isHWv1, segmentData, includeChildren):
@@ -488,7 +492,7 @@ class SM64_ExportDL(bpy.types.Operator):
 					context.scene.DLLevelOption)
 				if not context.scene.DLCustomExport:
 					applyBasicTweaks(exportPath)
-				sm64ExportF3DtoC(exportPath, obj,
+				fileStatus = sm64ExportF3DtoC(exportPath, obj,
 					DLFormat.Static if context.scene.DLExportisStatic else DLFormat.Dynamic, finalTransform,
 					context.scene.f3d_type, context.scene.isHWv1,
 					bpy.context.scene.DLTexDir,
@@ -497,6 +501,8 @@ class SM64_ExportDL(bpy.types.Operator):
 					bpy.context.scene.DLincludeChildren, bpy.context.scene.DLName, levelName, context.scene.DLGroupName,
 					context.scene.DLCustomExport,
 					context.scene.DLExportHeaderType)
+
+				starSelectWarning(self, fileStatus)
 				#cProfile.runctx('sm64ExportF3DtoC(exportPath, obj,' +\
 				#	'DLFormat.Static if context.scene.DLExportisStatic else DLFormat.Dynamic, finalTransform,' +\
 				#	'context.scene.f3d_type, context.scene.isHWv1,' +\

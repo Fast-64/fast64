@@ -1,8 +1,12 @@
-import os, re
+import os, re, bpy
 from ..utility import *
 
 # This is for writing framework for scroll code.
 # Actual scroll code found in f3d_gbi.py (FVertexScrollData)
+
+class SM64TexScrollFileStatus:
+	def __init__(self):
+		self.starSelectC = False
 
 def readSegmentInfo(baseDir):
 	ldPath = os.path.join(baseDir, 'sm64.ld')
@@ -78,6 +82,7 @@ def writeScrollTextureCall(path, include, callString):
 		saveDataToFile(path, data)
 
 def writeTexScrollBase(baseDir):
+	fileStatus = SM64TexScrollFileStatus()
 	writeSegmentROMTable(baseDir)
 
 	# Create texscroll.inc.h
@@ -148,8 +153,11 @@ def writeTexScrollBase(baseDir):
 	writeScrollTextureCall(os.path.join(baseDir, 'src/game/level_update.c'),
 		'#include "texscroll.h"', 'changeLevel = play_mode_normal();')
 	
-	writeScrollTextureCall(os.path.join(baseDir, 'src/menu/star_select.c'),
-		'#include "src/game/texscroll.h"', 'area_update_objects();')
+	starSelectPath = os.path.join(baseDir, 'src/menu/star_select.c')
+	if os.path.exists(starSelectPath):
+		writeScrollTextureCall(starSelectPath,
+			'#include "src/game/texscroll.h"', 'area_update_objects();')
+		fileStatus.starSelectC = True
 
 	# Weird encoding error in this file?
 	#writeScrollTextureCall(os.path.join(baseDir, 'src/menu/file_select.c'),
@@ -158,13 +166,15 @@ def writeTexScrollBase(baseDir):
 	#writeScrollTextureCall(os.path.join(baseDir, 'src/menu/level_select_menu.c'),
 	#	'#include "src/game/texscroll.h"', 's32 retVar;')
 
+	return fileStatus
+
 
 def createTexScrollHeadersGroup(exportDir, groupName, dataInclude):
 	includeH = 'src/game/texscroll/' + groupName + '_texscroll.inc.h'
 	includeC = 'src/game/texscroll/' + groupName + '_texscroll.inc.c'
 
 	# Create base scroll files
-	writeTexScrollBase(exportDir)
+	fileStatus = writeTexScrollBase(exportDir)
 
 	# Create group inc.h
 	groupPathH = os.path.join(exportDir, includeH)
@@ -253,21 +263,25 @@ def createTexScrollHeadersGroup(exportDir, groupName, dataInclude):
 		texscrollFileC.write(texscrollDataC)
 		texscrollFileC.close()	
 
+	return fileStatus
+
 def writeTexScrollHeadersLevel(exportDir, includeC, includeH, groupName, scrollDefines):
 	pass
 
 def modifyTexScrollHeadersGroup(exportDir, includeC, includeH, groupName, scrollDefines, dataInclude, hasScrolling):
 	if not bpy.context.scene.disableScroll and hasScrolling:
-		writeTexScrollHeadersGroup(exportDir, includeC, includeH, 
+		fileStatus = writeTexScrollHeadersGroup(exportDir, includeC, includeH, 
 			groupName, scrollDefines, dataInclude)
+		return fileStatus
 	else:
 		removeTexScrollHeadersGroup(exportDir, includeC, includeH, 
 			groupName, scrollDefines, dataInclude)
+		return None
 
 def writeTexScrollHeadersGroup(exportDir, includeC, includeH, groupName, scrollDefines, dataInclude):
 
 	# Create group scroll files
-	createTexScrollHeadersGroup(exportDir, groupName, dataInclude)
+	fileStatus = createTexScrollHeadersGroup(exportDir, groupName, dataInclude)
 	
 	# Write to group inc.h
 	groupPathH = os.path.join(exportDir, 'src/game/texscroll/' + groupName + '_texscroll.inc.h')
@@ -313,6 +327,8 @@ def writeTexScrollHeadersGroup(exportDir, includeC, includeH, groupName, scrollD
 		groupFileC = open(groupPathC, 'w', newline = '\n')
 		groupFileC.write(groupDataC)
 		groupFileC.close()
+
+	return fileStatus
 
 def removeTexScrollHeadersGroup(exportDir, includeC, includeH, groupName, scrollDefines, dataInclude):
 	

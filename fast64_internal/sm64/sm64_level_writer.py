@@ -3,6 +3,7 @@ from .sm64_objects import *
 from .sm64_collision import *
 from .sm64_geolayout_writer import *
 from .sm64_texscroll import *
+from .sm64_utility import *
 
 from ..utility import *
 
@@ -495,8 +496,15 @@ def overwritePuppycamData(filePath, levelToReplace, newPuppycamTriggers):
 	else:
 		raise PluginError(filePath + " does not exist.")
 	
+class SM64OptionalFileStatus:
+	def __init__(self):
+		self.cameraC = False
+		self.starSelectC = False
+
 def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 	savePNG, customExport, levelCameraVolumeName, DLFormat):
+
+	fileStatus = SM64OptionalFileStatus()
 	
 	if customExport:
 		levelDir = os.path.join(exportDir, levelName)
@@ -658,8 +666,9 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 		texFile.write(texC.source)
 		texFile.close()
 
-	
-	modifyTexScrollFiles(exportDir, levelDir, headerScroll, scroll_data, hasScrolling)
+	texScrollFileStatus = modifyTexScrollFiles(exportDir, levelDir, headerScroll, scroll_data, hasScrolling)
+	if texScrollFileStatus is not None:
+		fileStatus.starSelectC = texScrollFileStatus.starSelectC
 
 	# Write materials
 	if DLFormat == DLFormat.Static:
@@ -725,8 +734,10 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 
 		# Export camera triggers
 		cameraPath = os.path.join(exportDir, 'src/game/camera.c')
-		overwriteData('struct\s*CameraTrigger\s*', levelCameraVolumeName, cameraVolumeString, cameraPath,
-			'struct CameraTrigger *sCameraTriggers', False)
+		if os.path.exists(cameraPath):
+			overwriteData('struct\s*CameraTrigger\s*', levelCameraVolumeName, cameraVolumeString, cameraPath,
+				'struct CameraTrigger *sCameraTriggers', False)
+			fileStatus.cameraC = True
 
 		# Export puppycam triggers
 		# If this isn't an ultrapuppycam repo, don't try and export ultrapuppycam triggers
@@ -756,11 +767,11 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 		courseMacro[1][1] = obj.starGetCutscenes.value()
 		courseDefines.write(courseDefinesPath)
 
-		cameraPath = os.path.join(exportDir, 'src/game/camera.c')
-		zoomMasks = parseZoomMasks(cameraPath)
-		zoomMasks.updateMaskCount(len(levelDefines.defineMacros))
-		zoomMasks.setMask(levelIndex, zoomFlags)
-		zoomMasks.write(cameraPath)
+		if os.path.exists(cameraPath):
+			zoomMasks = parseZoomMasks(cameraPath)
+			zoomMasks.updateMaskCount(len(levelDefines.defineMacros))
+			zoomMasks.setMask(levelIndex, zoomFlags)
+			zoomMasks.write(cameraPath)
 
 		if obj.actSelectorIgnore:
 			addActSelectorIgnore(exportDir, levelEnum)
@@ -806,6 +817,8 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 
 		modifyTexScrollHeadersGroup(exportDir, texscrollIncludeC, texscrollIncludeH, 
 			texscrollGroup, headerScroll, texscrollGroupInclude, hasScrolling)
+	
+	return fileStatus
 
 def addGeoC(levelName):
 	header = \
@@ -898,10 +911,14 @@ class SM64_ExportLevel(bpy.types.Operator):
 			#	globals(), locals(), "E:/blender.prof")
 			#p = pstats.Stats("E:/blender.prof")
 			#p.sort_stats("cumulative").print_stats(2000)
-			exportLevelC(obj, finalTransform,
+			fileStatus = exportLevelC(obj, finalTransform,
 				context.scene.f3d_type, context.scene.isHWv1, levelName, exportPath, 
 				context.scene.levelSaveTextures or bpy.context.scene.ignoreTextureRestrictions, 
 				context.scene.levelCustomExport, triggerName, DLFormat.Static)
+
+			cameraWarning(self, fileStatus)
+			starSelectWarning(self, fileStatus)
+
 			self.report({'INFO'}, 'Success!')
 
 			applyRotation([obj], math.radians(-90), 'X')
