@@ -666,9 +666,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 		texFile.write(texC.source)
 		texFile.close()
 
-	texScrollFileStatus = modifyTexScrollFiles(exportDir, levelDir, headerScroll, scroll_data, hasScrolling)
-	if texScrollFileStatus is not None:
-		fileStatus.starSelectC = texScrollFileStatus.starSelectC
+	modifyTexScrollFiles(exportDir, levelDir, headerScroll, scroll_data, hasScrolling)
 
 	# Write materials
 	if DLFormat == DLFormat.Static:
@@ -815,8 +813,11 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 		texscrollGroup = levelName
 		texscrollGroupInclude = '#include "levels/' + levelName + '/header.h"'
 
-		modifyTexScrollHeadersGroup(exportDir, texscrollIncludeC, texscrollIncludeH, 
+		texScrollFileStatus = modifyTexScrollHeadersGroup(exportDir, texscrollIncludeC, texscrollIncludeH, 
 			texscrollGroup, headerScroll, texscrollGroupInclude, hasScrolling)
+
+		if texScrollFileStatus is not None:
+			fileStatus.starSelectC = texScrollFileStatus.starSelectC
 	
 	return fileStatus
 
