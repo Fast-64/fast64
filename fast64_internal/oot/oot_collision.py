@@ -8,6 +8,12 @@ from io import BytesIO
 import bpy, bmesh, os, math, re, shutil, mathutils
 from .oot_scene_room import *
 
+ootEnumConveyer = [
+	("None", "None", "None"),
+	("Land", "Land", "Land"),
+	("Water", "Water", "Water"),
+]
+
 ootEnumFloorSetting = [
 	("Custom", "Custom", "Custom"),
 	("0x00", "Default", "Default"),
@@ -270,10 +276,15 @@ def getPolygonType(collisionProp):
 	polygonType.exitID = collisionProp.exitID
 	polygonType.cameraID = collisionProp.cameraID
 	polygonType.isWallDamage = collisionProp.isWallDamage
-	polygonType.enableConveyor = collisionProp.enableConveyor
-	polygonType.conveyorRotation = int(collisionProp.conveyorRotation / (2 * math.pi) * 0x3F)
-	polygonType.conveyorSpeed = int(getCustomProperty(collisionProp, 'conveyorSpeed'), 16) + \
-		(4 if collisionProp.conveyorKeepMomentum else 0)
+	polygonType.enableConveyor = collisionProp.conveyorOption == "Land"
+	if collisionProp.conveyorOption != "None":
+		polygonType.conveyorRotation = int(collisionProp.conveyorRotation / (2 * math.pi) * 0x3F)
+		polygonType.conveyorSpeed = int(getCustomProperty(collisionProp, 'conveyorSpeed'), 16) + \
+			(4 if collisionProp.conveyorKeepMomentum else 0)
+	else:
+		polygonType.conveyorRotation = 0
+		polygonType.conveyorSpeed = 0
+
 	polygonType.hookshotable = collisionProp.hookshotable
 	polygonType.echo = collisionProp.echo
 	polygonType.lightingSetting = collisionProp.lightingSetting
@@ -351,7 +362,7 @@ class OOTMaterialCollisionProperty(bpy.types.PropertyGroup):
 	exitID : bpy.props.IntProperty(default = 0, min = 0)
 	cameraID : bpy.props.IntProperty(default = 0, min = 0)
 	isWallDamage : bpy.props.BoolProperty()
-	enableConveyor : bpy.props.BoolProperty()
+	conveyorOption : bpy.props.EnumProperty(items = ootEnumConveyer)
 	conveyorRotation : bpy.props.FloatProperty(min = 0, max = 2 * math.pi, subtype = "ANGLE")
 	conveyorSpeed : bpy.props.EnumProperty(items = ootEnumConveyorSpeed, default = "0x00")
 	conveyorSpeedCustom : bpy.props.StringProperty(default = "0x00")
@@ -447,8 +458,8 @@ class OOT_CollisionPanel(bpy.types.Panel):
 			box.prop(collisionProp, "ignoreCameraCollision", text = "Ignore Camera Collision")
 			box.prop(collisionProp, "ignoreActorCollision", text = "Ignore Actor Collision")
 			box.prop(collisionProp, "ignoreProjectileCollision", text = "Ignore Projectile Collision")
-			box.prop(collisionProp, "enableConveyor", text = "Enable Conveyor")
-			if collisionProp.enableConveyor:
+			prop_split(box, collisionProp, "conveyorOption", "Conveyor Option")
+			if collisionProp.conveyorOption != "None":
 				prop_split(box, collisionProp, "conveyorRotation", "Conveyor Rotation")
 				drawEnumWithCustom(box, collisionProp, 'conveyorSpeed', "Conveyor Speed", "")
 				if collisionProp.conveyorSpeed != "Custom":
