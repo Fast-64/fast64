@@ -2789,6 +2789,31 @@ class UnlinkF3DImage1(bpy.types.Operator):
 			context.material.tex1.tex = None
 		return {'FINISHED'} # must return a set
 
+class UpdateF3DNodes(bpy.types.Operator):
+	bl_idname = 'material.update_f3d_nodes'
+	bl_label = "Update F3D Nodes"
+	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
+
+	# Called on demand (i.e. button press, menu item)
+	# Can also be called from operator search menu (Spacebar)
+	def execute(self, context):
+		if context is None or not hasattr(context, "material") or context.material is None:
+			self.report({"ERROR"}, "Material not found in context.")
+			return {"CANCELLED"}
+		if not context.material.is_f3d:
+			self.report({"ERROR"}, "Material is not F3D.")
+			return {"CANCELLED"}
+		material = context.material
+		
+		material.f3d_update_flag = True
+		update_node_values_of_material(material, context)
+		if material.mat_ver > 3:
+			material.f3d_mat.presetName = "Custom"
+		else:
+			material.f3d_preset = 'Custom'
+		material.f3d_update_flag = False
+		return {'FINISHED'} # must return a set
+
 mat_classes = (
 	F3DNodeA,
 	F3DNodeB,
@@ -2815,6 +2840,7 @@ mat_classes = (
 	DefaultRDPSettingsPanel,
 	F3DMaterialProperty,
 	ReloadDefaultF3DPresets,
+	UpdateF3DNodes,
 )
 
 def mat_unregister_old():
