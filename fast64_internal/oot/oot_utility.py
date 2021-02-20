@@ -232,8 +232,8 @@ def getCustomProperty(data, prop):
 	value = getattr(data, prop)
 	return value if value != "Custom" else getattr(data, prop + str("Custom"))
 
-def convertIntTo2sComplement(value, length):
-	return int.from_bytes(int(round(value)).to_bytes(length, 'big', signed = True), 'big')
+def convertIntTo2sComplement(value, length, signed):
+	return int.from_bytes(int(round(value)).to_bytes(length, 'big', signed = signed), 'big')
 
 def drawEnumWithCustom(panel, data, attribute, name, customName):
 	prop_split(panel, data, attribute, name)

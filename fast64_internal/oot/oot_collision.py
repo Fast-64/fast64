@@ -215,7 +215,7 @@ class OOTPolygonType:
 			(self.exitID << 8) |\
 			(self.cameraID << 0)
 
-		return convertIntTo2sComplement(value, 4)
+		return convertIntTo2sComplement(value, 4, False)
 
 	def convertLow(self):
 		value = ((1 if self.isWallDamage else 0) << 27) |\
@@ -227,7 +227,7 @@ class OOTPolygonType:
 			(int(self.terrain, 16) << 4) |\
 			(int(self.sound, 16) << 0)
 
-		return convertIntTo2sComplement(value, 4)
+		return convertIntTo2sComplement(value, 4, False)
 
 class OOTCollision:
 	def __init__(self, ownerName):
@@ -303,7 +303,7 @@ class OOTWaterBox(BoxEmpty):
 		value = (int(self.roomIndex) << 13) |\
 			(self.lightingSetting << 8) |\
 			(self.cameraSetting << 0)
-		return convertIntTo2sComplement(value, 4)
+		return convertIntTo2sComplement(value, 4, False)
 
 class OOTCameraData:
 	def __init__(self, ownerName):
@@ -526,7 +526,7 @@ def addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix, 
 				faceNormal[0] * planePoint[0] + \
 				faceNormal[1] * planePoint[1] + \
 				faceNormal[2] * planePoint[2])))
-			distance = convertIntTo2sComplement(distance, 2)
+			distance = convertIntTo2sComplement(distance, 2, True)
 
 			nx = (y2 - y1) * (z3 - z2) - (z2 - z1) * (y3 - y2)
 			ny = (z2 - z1) * (x3 - x2) - (x2 - x1) * (z3 - z2)
