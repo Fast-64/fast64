@@ -124,6 +124,8 @@ def drawCullGroupProperty(box, obj):
 	col = box.column()
 	prop_split(col, obj, 'ootCullDepth', "Cull Depth")
 	col.label(text = "Depth behind the camera at which point culling happens.")
+	col.label(text = "Use Options -> Transform -> Affect Only -> Parent ")
+	col.label(text = "to move object without affecting children.")
 
 def setLightPropertyValues(lightProp, ambient, diffuse0, diffuse1, fogColor, fogNear):
 	lightProp.ambient = gammaInverse([value / 255 for value in ambient]) + [1]
