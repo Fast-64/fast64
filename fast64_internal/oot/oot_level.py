@@ -114,16 +114,23 @@ class OOTObjectPanel(bpy.types.Panel):
 
 def drawLODProperty(box, obj):
 	col = box.column()
-	col.box().label(text = "LOD Settings")
-	for otherObj in bpy.data.objects:
-		if otherObj.parent == obj:
+	col.box().label(text = "LOD Settings (Blender Units)")
+	#if bpy.context.scene.exportHiddenGeometry:
+	#	for otherObj in bpy.data.objects:
+	#		if otherObj.parent == obj:
+	#			prop_split(col, otherObj, "f3d_lod_z", otherObj.name)
+	#else:
+	#	for otherObj in obj.children:
+	#		prop_split(col, otherObj, "f3d_lod_z", otherObj.name)
+	for otherObj in obj.children:
+		if bpy.context.scene.exportHiddenGeometry or not otherObj.hide_get():
 			prop_split(col, otherObj, "f3d_lod_z", otherObj.name)
 	col.prop(obj, "f3d_lod_always_render_farthest")
 
 def drawCullGroupProperty(box, obj):
 	col = box.column()
-	prop_split(col, obj, 'ootCullDepth', "Cull Depth")
-	col.label(text = "Depth behind the camera at which point culling happens.")
+	#prop_split(col, obj, 'ootCullDepth', "Cull Depth")
+	#col.label(text = "Depth behind the camera at which point culling happens.")
 	col.label(text = "Use Options -> Transform -> Affect Only -> Parent ")
 	col.label(text = "to move object without affecting children.")
 
@@ -137,11 +144,15 @@ def setLightPropertyValues(lightProp, ambient, diffuse0, diffuse1, fogColor, fog
 def onUpdateOOTEmptyType(self, context):
 	isNoneEmpty = self.ootEmptyType == "None"
 	isBoxEmpty = self.ootEmptyType == 'Water Box'
-	self.show_name = not (isBoxEmpty or isNoneEmpty)
-	self.show_axis = not (isBoxEmpty or isNoneEmpty)
+	isSphereEmpty = self.ootEmptyType == "Cull Group"
+	self.show_name = not (isBoxEmpty or isNoneEmpty or isSphereEmpty)
+	self.show_axis = not (isBoxEmpty or isNoneEmpty or isSphereEmpty)
 	
 	if isBoxEmpty:
 		self.empty_display_type = "CUBE"
+	
+	if isSphereEmpty:
+		self.empty_display_type = "SPHERE"
 
 	if self.ootEmptyType == "Scene":
 		if len(self.ootSceneHeader.lightList) == 0:
@@ -205,7 +216,7 @@ def oot_obj_register():
 	bpy.types.Object.ootAlternateSceneHeaders = bpy.props.PointerProperty(type = OOTAlternateSceneHeaderProperty)
 	bpy.types.Object.ootAlternateRoomHeaders = bpy.props.PointerProperty(type = OOTAlternateRoomHeaderProperty)
 	bpy.types.Object.ootEntranceProperty = bpy.props.PointerProperty(type = OOTEntranceProperty)
-	bpy.types.Object.ootCullDepth = bpy.props.IntProperty(name = "Cull Depth", min = 1, default = 400)
+	#bpy.types.Object.ootCullDepth = bpy.props.IntProperty(name = "Cull Depth", min = 1, default = 400)
 
 
 def oot_obj_unregister():
@@ -218,7 +229,7 @@ def oot_obj_unregister():
 	del bpy.types.Object.ootSceneHeader
 	del bpy.types.Object.ootAlternateSceneHeaders
 	del bpy.types.Object.ootAlternateRoomHeaders
-	del bpy.types.Object.ootCullDepth
+	#del bpy.types.Object.ootCullDepth
 
 	for cls in reversed(oot_obj_classes):
 		unregister_class(cls)

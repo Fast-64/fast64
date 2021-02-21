@@ -353,7 +353,7 @@ def ootConvertScene(originalSceneObj, transformMatrix,
 				readRoomData(room, roomObj.ootRoomHeader, roomObj.ootAlternateRoomHeaders)
 
 				DLGroup = room.mesh.addMeshGroup(CullGroup(
-					translation, obj.ootRoomHeader.defaultCullDistance)).DLGroup
+					translation, scale, obj.ootRoomHeader.defaultCullDistance)).DLGroup
 				ootProcessMesh(room.mesh, DLGroup, sceneObj, roomObj, transformMatrix, convertTextureData, None)
 				room.mesh.terminateDLs()
 				room.mesh.removeUnusedEntries()
@@ -390,8 +390,10 @@ def ootProcessMesh(roomMesh, DLGroup, sceneObj, obj, transformMatrix, convertTex
 		if LODHierarchyObject is not None:
 			raise PluginError(obj.name + " cannot be used as a cull group because it is " +\
 				"in the sub-hierarchy of the LOD group empty " + LODHierarchyObject.name)
+
+		checkUniformScale(scale, obj)
 		DLGroup = roomMesh.addMeshGroup(CullGroup(
-			ootConvertTranslation(translation), obj.ootCullDepth)).DLGroup
+			ootConvertTranslation(translation), scale, obj.empty_display_size)).DLGroup
 
 	elif isinstance(obj.data, bpy.types.Mesh) and not obj.ignore_render:
 		triConverterInfo = TriangleConverterInfo(obj, None, roomMesh.model.f3d, relativeTransform, getInfoDict(obj))
@@ -436,8 +438,8 @@ def ootProcessLOD(roomMesh, DLGroup, sceneObj, obj, transformMatrix, convertText
 		childDLGroup.terminateDLs()
 
 		# Add lod AFTER processing hierarchy, so that DLs will be built by then
-		opaqueLOD.add_lod(childDLGroup.opaque, childObj.f3d_lod_z)
-		transparentLOD.add_lod(childDLGroup.transparent, childObj.f3d_lod_z)
+		opaqueLOD.add_lod(childDLGroup.opaque, childObj.f3d_lod_z * scale[0])
+		transparentLOD.add_lod(childDLGroup.transparent, childObj.f3d_lod_z * scale[0])
 
 	opaqueLOD.create_data()
 	transparentLOD.create_data()

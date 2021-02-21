@@ -228,10 +228,16 @@ class BoxEmpty:
 		self.high = [int(round(value)) for value in self.high]
 		self.height = int(round(self.height))
 
+def checkUniformScale(scale, obj):
+	if abs(scale[0] - scale[1]) > 0.01 or\
+		abs(scale[1] - scale[2]) > 0.01 or\
+		abs(scale[0] - scale[2]) > 0.01:
+		raise PluginError("Cull group " + obj.name + " must have a uniform scale.")
+
 class CullGroup:
-	def __init__(self, position, cullDepth):
+	def __init__(self, position, scale, emptyScale):
 		self.position = [int(round(field)) for field in position]
-		self.cullDepth = abs(int(round(cullDepth)))
+		self.cullDepth = abs(int(round(scale[0] * emptyScale)))
 
 def getCustomProperty(data, prop):
 	value = getattr(data, prop)

@@ -3119,7 +3119,7 @@ def mat_register():
 	bpy.types.Object.ignore_collision = bpy.props.BoolProperty(
 		name = 'Ignore Collision')
 	bpy.types.Object.f3d_lod_z = bpy.props.IntProperty(
-		name = "F3D LOD Z", min = 1, default = 1)
+		name = "F3D LOD Z", min = 1, default = 10)
 	bpy.types.Object.f3d_lod_always_render_farthest = bpy.props.BoolProperty(name = "Always Render Farthest LOD")
 
 def mat_unregister():

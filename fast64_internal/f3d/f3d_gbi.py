@@ -2077,7 +2077,7 @@ class FLODGroup:
 
 	def add_lod(self, displayList, zValue):
 		if displayList is not None:
-			self.lodEntries.append((zValue, displayList))
+			self.lodEntries.append((abs(int(round(zValue))), displayList))
 
 	def get_dl_name(self):
 		return self.name + "_lod"

@@ -419,7 +419,7 @@ class OOTRoomHeaderProperty(bpy.types.PropertyGroup):
 	objectList : bpy.props.CollectionProperty(type = OOTObjectProperty)
 
 	meshType : bpy.props.EnumProperty(items = ootEnumMeshType, default = '0')
-	defaultCullDistance : bpy.props.IntProperty(name = "Default Cull Distance", min = 1, default = 1000)
+	defaultCullDistance : bpy.props.IntProperty(name = "Default Cull Distance", min = 1, default = 100)
 
 def drawRoomHeaderProperty(layout, roomProp, dropdownLabel, headerIndex, objName):
 
@@ -452,7 +452,7 @@ def drawRoomHeaderProperty(layout, roomProp, dropdownLabel, headerIndex, objName
 			if roomProp.meshType == '1':
 				general.box().label(text = "Mesh Type 1 not supported at this time.")
 			if roomProp.meshType == '2':
-				prop_split(general, roomProp, 'defaultCullDistance', 'Default Cull Distance')
+				prop_split(general, roomProp, 'defaultCullDistance', 'Default Cull (Blender Units)')
 
 		# Behaviour
 		behaviourBox = layout.column()
