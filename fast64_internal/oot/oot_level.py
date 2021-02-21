@@ -102,12 +102,23 @@ class OOTObjectPanel(bpy.types.Panel):
 
 		elif obj.ootEmptyType == "Cull Volume":
 			drawCullVolumeProperty(box)
+
+		elif obj.ootEmptyType == 'LOD':
+			drawLODProperty(box, obj)
 		
 		elif obj.ootEmptyType == 'None':
 			box.label(text = 'Geometry can be parented to this.')
 
 		#if obj.ootEmptyType != "Scene" and obj.ootEmptyType != "Room":
 		#	drawParentSceneRoom(box, context.object)
+
+def drawLODProperty(box, obj):
+	col = box.column()
+	col.box().label(text = "LOD Settings")
+	for otherObj in bpy.data.objects:
+		if otherObj.parent == obj:
+			prop_split(col, otherObj, "f3d_lod_z", otherObj.name)
+	col.prop(obj, "f3d_lod_always_render_farthest")
 
 def drawCullVolumeProperty(box):
 	box.label(text = "No rotation allowed.")

@@ -3118,6 +3118,9 @@ def mat_register():
 		name = 'Ignore Render')
 	bpy.types.Object.ignore_collision = bpy.props.BoolProperty(
 		name = 'Ignore Collision')
+	bpy.types.Object.f3d_lod_z = bpy.props.IntProperty(
+		name = "F3D LOD Z", min = 1, default = 1)
+	bpy.types.Object.f3d_lod_always_render_farthest = bpy.props.BoolProperty(name = "Always Render Farthest LOD")
 
 def mat_unregister():
 	del bpy.types.Material.menu_tab
@@ -3130,6 +3133,8 @@ def mat_unregister():
 	del bpy.types.Object.ignore_collision
 	del bpy.types.Object.use_f3d_culling
 	del bpy.types.Scene.f3dUserPresetsOnly
+	del bpy.types.Object.f3d_lod_z
+	del bpy.types.Object.f3d_lod_always_render_farthest
 	nodeitems_utils.unregister_node_categories('CUSTOM_NODES')
 	for cls in reversed(mat_classes):
 		unregister_class(cls)

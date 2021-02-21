@@ -352,7 +352,7 @@ def ootConvertScene(originalSceneObj, transformMatrix,
 				room = scene.addRoom(roomIndex, sceneName, roomObj.ootRoomHeader.meshType)
 				readRoomData(room, roomObj.ootRoomHeader, roomObj.ootAlternateRoomHeaders)
 
-				ootProcessMesh(room.mesh, None, sceneObj, roomObj, transformMatrix, convertTextureData)
+				ootProcessMesh(room.mesh, None, sceneObj, roomObj, transformMatrix, convertTextureData, None)
 				room.mesh.terminateDLs()
 				ootProcessEmpties(scene, room, sceneObj, roomObj, transformMatrix)
 			elif obj.data is None and obj.ootEmptyType == "Water Box":
@@ -378,28 +378,71 @@ def ootConvertScene(originalSceneObj, transformMatrix,
 # This function should be called on a copy of an object
 # The copy will have modifiers / scale applied and will be made single user
 # When we duplicated obj hierarchy we stripped all ignore_renders from hierarchy.
-def ootProcessMesh(roomMesh, roomMeshGroup, sceneObj, obj, transformMatrix, convertTextureData):
+def ootProcessMesh(roomMesh, DLGroup, sceneObj, obj, transformMatrix, convertTextureData, LODHierarchyObject):
 
 	relativeTransform = transformMatrix @ sceneObj.matrix_world.inverted() @ obj.matrix_world
 	translation, rotation, scale = relativeTransform.decompose()
 
 	if obj.data is None and obj.ootEmptyType == "Cull Volume":
-		roomMeshGroup = roomMesh.addMeshGroup(BoxEmpty(
-			ootConvertTranslation(translation), scale, obj.empty_display_size))
+		if LODHierarchyObject is not None:
+			raise PluginError(obj.name + " cannot be used as a cull volume because it is " +\
+				"in the sub-hierarchy of the LOD group empty " + LODHierarchyObject.name)
+		DLGroup = roomMesh.addMeshGroup(BoxEmpty(
+			ootConvertTranslation(translation), scale, obj.empty_display_size)).DLGroup
 
 	elif isinstance(obj.data, bpy.types.Mesh) and not obj.ignore_render:
 		triConverterInfo = TriangleConverterInfo(obj, None, roomMesh.model.f3d, relativeTransform, getInfoDict(obj))
 		fMeshes = saveStaticModel(triConverterInfo, roomMesh.model, obj, relativeTransform, roomMesh.model.name,
 			convertTextureData, False, 'oot')
 		if fMeshes is not None:
-			if roomMeshGroup is None:
-				roomMeshGroup = roomMesh.addMeshGroup(None)
+			if DLGroup is None:
+				DLGroup = roomMesh.addMeshGroup(None).DLGroup
 			for drawLayer, fMesh in fMeshes.items():
-				roomMeshGroup.addDLCall(fMesh.draw, drawLayer)
+				DLGroup.addDLCall(fMesh.draw, drawLayer)
 
 	alphabeticalChildren = sorted(obj.children, key = lambda childObj: childObj.original_name.lower())
 	for childObj in alphabeticalChildren:
-		ootProcessMesh(roomMesh, roomMeshGroup, sceneObj, childObj, transformMatrix, convertTextureData)
+		if childObj.data is None and childObj.ootEmptyType == "LOD":
+			ootProcessLOD(roomMesh, DLGroup, sceneObj, childObj, transformMatrix, convertTextureData, LODHierarchyObject)
+		else:
+			ootProcessMesh(roomMesh, DLGroup, sceneObj, childObj, transformMatrix, convertTextureData, LODHierarchyObject)
+
+def ootProcessLOD(roomMesh, DLGroup, sceneObj, obj, transformMatrix, convertTextureData, LODHierarchyObject):
+
+	relativeTransform = transformMatrix @ sceneObj.matrix_world.inverted() @ obj.matrix_world
+	translation, rotation, scale = relativeTransform.decompose()
+	ootTranslation = ootConvertTranslation(translation)
+
+	LODHierarchyObject = obj
+	name = toAlnum(roomMesh.model.name + "_" + obj.name + "_lod")
+	opaqueLOD = roomMesh.model.addLODGroup(name + "_opaque", ootTranslation, obj.f3d_lod_always_render_farthest)
+	transparentLOD = roomMesh.model.addLODGroup(name + "_transparent", ootTranslation, obj.f3d_lod_always_render_farthest)
+
+	index = 0
+	for childObj in obj.children:
+		# This group will not be converted to C directly, but its display lists will be converted through the FLODGroup.
+		childDLGroup = OOTDLGroup(name + str(index), roomMesh.model.DLFormat)
+		index += 1
+		
+		if childObj.data is None and childObj.ootEmptyType == "LOD":
+			ootProcessLOD(roomMesh, childDLGroup, sceneObj, childObj, transformMatrix, convertTextureData, LODHierarchyObject)
+		else:
+			ootProcessMesh(roomMesh, childDLGroup, sceneObj, childObj, transformMatrix, convertTextureData, LODHierarchyObject)
+
+		# We handle case with no geometry, for the cases where we have "gaps" in the LOD hierarchy.
+		# This can happen if a LOD does not use transparency while the levels above and below it does.
+		childDLGroup.createDLs()
+		childDLGroup.terminateDLs()
+
+		# Add lod AFTER processing hierarchy, so that DLs will be built by then
+		opaqueLOD.add_lod(childDLGroup.opaque, childObj.f3d_lod_z)
+		transparentLOD.add_lod(childDLGroup.transparent, childObj.f3d_lod_z)
+
+	opaqueLOD.create_data()
+	transparentLOD.create_data()
+
+	DLGroup.addDLCall(opaqueLOD.draw, "Opaque")
+	DLGroup.addDLCall(transparentLOD.draw, "Transparent")
 
 def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 	translation, rotation, scale, orientedRotation = getConvertedTransform(transformMatrix, sceneObj, obj, True)

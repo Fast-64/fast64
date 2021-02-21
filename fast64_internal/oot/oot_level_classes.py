@@ -183,7 +183,7 @@ class OOTRoomMesh:
 
 	def terminateDLs(self):
 		for entry in self.meshEntries:
-			entry.terminateDLs()
+			entry.DLGroup.terminateDLs()
 
 	def headerName(self):
 		return str(self.roomName) + "_meshHeader"
@@ -199,26 +199,21 @@ class OOTRoomMesh:
 	def currentMeshGroup(self):
 		return self.meshEntries[-1]
 
-class OOTRoomMeshGroup:
-	def __init__(self, cullVolume, DLFormat, roomName, entryIndex):
+class OOTDLGroup:
+	def __init__(self, name, DLFormat):
 		self.opaque = None
 		self.transparent = None
-		self.cullVolume = cullVolume
 		self.DLFormat = DLFormat
-		self.roomName = roomName
-		self.entryIndex = entryIndex
-
-	def entryName(self):
-		return self.roomName + "_entry_" + str(self.entryIndex)
+		self.name = toAlnum(name)
 	
 	def addDLCall(self, displayList, drawLayer):
 		if drawLayer == 'Opaque':
 			if self.opaque is None:
-				self.opaque = GfxList(self.entryName() + '_opaque', GfxListTag.Draw, self.DLFormat)
+				self.opaque = GfxList(self.name + '_opaque', GfxListTag.Draw, self.DLFormat)
 			self.opaque.commands.append(SPDisplayList(displayList))
 		elif drawLayer == "Transparent":
 			if self.transparent is None:
-				self.transparent = GfxList(self.entryName() + '_transparent', GfxListTag.Draw, self.DLFormat)
+				self.transparent = GfxList(self.name + '_transparent', GfxListTag.Draw, self.DLFormat)
 			self.transparent.commands.append(SPDisplayList(displayList))
 		else:
 			raise PluginError("Unhandled draw layer: " + str(drawLayer))
@@ -229,6 +224,23 @@ class OOTRoomMeshGroup:
 		
 		if self.transparent is not None:
 			self.transparent.commands.append(SPEndDisplayList())
+
+	def createDLs(self):
+		if self.opaque is None:
+			self.opaque = GfxList(self.name + '_opaque', GfxListTag.Draw, self.DLFormat)
+		if self.transparent is None:
+			self.transparent = GfxList(self.name + '_transparent', GfxListTag.Draw, self.DLFormat)
+
+class OOTRoomMeshGroup:
+	def __init__(self, cullVolume, DLFormat, roomName, entryIndex):
+		self.cullVolume = cullVolume
+		self.roomName = roomName
+		self.entryIndex = entryIndex
+
+		self.DLGroup = OOTDLGroup(self.entryName(), DLFormat)
+
+	def entryName(self):
+		return self.roomName + "_entry_" + str(self.entryIndex)
 
 class OOTRoom:
 	def __init__(self, index, name, model, meshType):

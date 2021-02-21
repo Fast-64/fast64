@@ -130,9 +130,13 @@ def ootCollisionToC(collision):
 
 	data.header += "extern CollisionHeader " + collision.headerName() + ';\n'
 	data.source += "CollisionHeader " + collision.headerName() + ' = { '
-	for bound in range(2): # min, max bound
-		for field in range(3): # x, y, z
-			data.source += str(collision.bounds[bound][field]) + ', '
+
+	if len(collision.bounds) == 2:
+		for bound in range(2): # min, max bound
+			for field in range(3): # x, y, z
+				data.source += str(collision.bounds[bound][field]) + ', '
+	else:
+		data.source += '0, 0, 0, 0, 0, 0, '
 	
 	data.source += \
 		str(len(collision.vertices)) + ', ' +\

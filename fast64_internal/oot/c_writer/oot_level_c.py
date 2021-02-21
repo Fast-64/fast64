@@ -253,8 +253,8 @@ def ootAlternateRoomHeadersToC(scene, room, textureExportSettings):
 	return altHeader, altData
 
 def ootMeshEntryToC(meshEntry, meshType):
-	opaqueName = meshEntry.opaque.name if meshEntry.opaque is not None else "0"
-	transparentName = meshEntry.transparent.name if meshEntry.transparent is not None else "0"
+	opaqueName = meshEntry.DLGroup.opaque.name if meshEntry.DLGroup.opaque is not None else "0"
+	transparentName = meshEntry.DLGroup.transparent.name if meshEntry.DLGroup.transparent is not None else "0"
 	data = "{ "
 	if meshType == "1":
 		raise PluginError("MeshHeader1 not supported.")
@@ -287,10 +287,10 @@ def ootRoomMeshToC(room, textureExportSettings):
 	meshData = CData()
 	for entry in mesh.meshEntries:
 		meshEntries.source  += '\t' + ootMeshEntryToC(entry, str(mesh.meshType))
-		if entry.opaque is not None:
-			meshData.append(entry.opaque.to_c(mesh.model.f3d))
-		if entry.transparent is not None:
-			meshData.append(entry.transparent.to_c(mesh.model.f3d))
+		if entry.DLGroup.opaque is not None:
+			meshData.append(entry.DLGroup.opaque.to_c(mesh.model.f3d))
+		if entry.DLGroup.transparent is not None:
+			meshData.append(entry.DLGroup.transparent.to_c(mesh.model.f3d))
 	meshEntries.source  += '};\n\n'
 	exportData = mesh.model.to_c(textureExportSettings, OOTGfxFormatter(ScrollMethod.Vertex))
 

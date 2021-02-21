@@ -1708,8 +1708,9 @@ class FModel:
 		# array of FModel
 		self.subModels = []
 		self.parentModel = None
-		# master display list
-		self.masterDL = GfxList(name + '_main', GfxListTag.Draw, DLFormat)
+		
+		# dict of name : FLODGroup
+		self.LODGroups = {}
 		self.DLFormat = DLFormat
 		self.matWriteMethod = matWriteMethod
 		self.global_data = FGlobalData()
@@ -1728,13 +1729,12 @@ class FModel:
 	def getRenderMode(self, drawLayer):
 		return None
 
-	def createMasterDL(self):
-		commands = self.masterDL.commands
-		commands.clear()
-		for mesh in self.meshes:
-			commands.append(SPDisplayList(mesh.draw))
-		commands.append(SPEndDisplayList())
-		return self.masterDL
+	def addLODGroup(self, name, position, alwaysRenderFarthest):
+		if name in self.LODGroups:
+			raise PluginError("Duplicate LOD group: " + str(name))
+		lod = FLODGroup(name, position, alwaysRenderFarthest, self.DLFormat)
+		self.LODGroups[name] = lod
+		return lod
 	
 	def addSubModel(self, subModel):
 		self.subModels.append(subModel)
@@ -1844,6 +1844,8 @@ class FModel:
 
 	def get_ptr_addresses(self, f3d):
 		addresses = []
+		for name, lod in self.LODGroups.items():
+			addresses.extend(lod.get_ptr_addresses(f3d))
 		for name, mesh in self.meshes.items():
 			addresses.extend(mesh.get_ptr_addresses(f3d))
 		for materialKey, (fMaterial, texDimensions) in self.materials.items():
@@ -1855,6 +1857,11 @@ class FModel:
 	def set_addr(self, startAddress):
 		addrRange = (startAddress, startAddress)
 		startAddrSet = False
+		for name, lod in self.LODGroups.items():
+			addrRange = lod.set_addr(addrRange[1], self.f3d)
+			if not startAddrSet:
+				startAddrSet = True
+				startAddress = addrRange[0]
 		# Important to set mesh groups first, so that
 		# export address corrseponds to drawing start.
 		for name, mesh in self.meshes.items():
@@ -1900,6 +1907,8 @@ class FModel:
 			fMaterial.save_binary(romfile, self.f3d, segments)
 		for name, mesh in self.meshes.items():
 			mesh.save_binary(romfile, self.f3d, segments)
+		for name, lod in self.LODGroups.items():
+			lod.save_binary(romfile, self.f3d, segments)
 		if self.materialRevert is not None:
 			self.materialRevert.save_binary(romfile, self.f3d, segments)
 		for subModel in self.subModels:
@@ -1961,6 +1970,12 @@ class FModel:
 			staticData.source += texData.source
 
 		dynamicData.append(self.to_c_materials(gfxFormatter))
+
+		for name, lod in self.LODGroups.items():
+			lodStatic, lodDynamic = lod.to_c(self.f3d, gfxFormatter)
+			staticData.append(lodStatic)
+			dynamicData.append(lodDynamic)
+
 		for name, mesh in self.meshes.items():
 			meshStatic, meshDynamic = mesh.to_c(self.f3d, gfxFormatter)
 			staticData.append(meshStatic)
@@ -2045,6 +2060,108 @@ class FTexRect(FModel):
 				staticData.append(texture.to_c(gfxFormatter.texArrayBitSize))
 		dynamicData.append(self.draw.to_c(self.f3d))
 		return ExportCData(staticData, dynamicData, CData())
+
+class FLODGroup:
+	def __init__(self, name, position, alwaysRenderFarthest, DLFormat):
+		self.name = name
+		self.DLFormat = DLFormat
+		self.lodEntries = [] # list of tuple(z, DL)
+		self.alwaysRenderFarthest = alwaysRenderFarthest
+
+		self.vertexList = VtxList(self.get_vtx_name())
+		self.vertexList.vertices.append(Vtx(position, [0,0], [0,0,0,0]))
+
+		self.draw = None
+		self.subdraws = []
+		self.drawCommandsBuilt = False
+
+	def add_lod(self, displayList, zValue):
+		if displayList is not None:
+			self.lodEntries.append((zValue, displayList))
+
+	def get_dl_name(self):
+		return self.name + "_lod"
+
+	def get_vtx_name(self):
+		return self.name + "_vtx"
+	
+	def get_ptr_addresses(self, f3d):
+		addresses = self.draw.get_ptr_addresses(f3d)
+		for displayList in self.subdraws:
+			if displayList is not None:
+				addresses.extend(displayList.get_ptr_addresses(f3d))
+		return addresses
+	
+	def set_addr(self, startAddress, f3d):	
+		self.create_data()
+		addrRange = self.draw.set_addr(startAddress, f3d)
+		for displayList in self.subdraws:
+			if displayList is not None:
+				addrRange = displayList.set_addr(addrRange[1], f3d)
+		addrRange = self.vertexList.set_addr(addrRange[1])
+		return startAddress, addrRange[1]
+
+	def save_binary(self, romfile, f3d, segments):
+		self.draw.save_binary(romfile, f3d, segments)
+		for displayList in self.subdraws:
+			if displayList is not None:
+				displayList.save_binary(romfile,f3d, segments)
+		self.vertexList.save_binary(romfile)
+	
+	def to_c(self, f3d, gfxFormatter):
+		self.create_data()
+
+		staticData = CData()
+		dynamicData = CData()
+		staticData.append(self.vertexList.to_c())
+		for displayList in self.subdraws:
+			if displayList is not None:
+				dynamicData.append(displayList.to_c(f3d))
+		dynamicData.append(self.draw.to_c(f3d))
+		return staticData, dynamicData
+
+	def create_data(self):
+		if self.drawCommandsBuilt:
+			return
+
+		self.drawCommandsBuilt = True	
+		self.draw = GfxList(self.get_dl_name(), GfxListTag.Draw, self.DLFormat)
+
+		index = 0
+		self.draw.commands.append(SPVertex(self.vertexList, 0, 1, index))
+
+		sortedList = sorted(self.lodEntries, key = lambda tup: tup[0])
+		hasAnyDLs = False
+		for item in sortedList:
+			
+			# If no DLs are called, we still need an empty DL to preserve LOD.
+			if len(item[1].commands) < 2:
+				DL = item[1]
+				self.subdraws.append(DL)
+			# If one DL is called, we can just call it directly.
+			elif len(item[1].commands) == 2: # branch DL, then end DL:
+				DL = item[1].commands[0].displayList
+				hasAnyDLs = True
+			# If more DLs are called, we have to use a sub DL.
+			else:
+				DL = item[1]
+				self.subdraws.append(DL)
+				hasAnyDLs = True
+
+			self.draw.commands.append(SPBranchLessZraw(DL, index, item[0]))
+
+		if len(sortedList) > 0:
+			lastCmd = self.draw.commands[-1]
+			if self.alwaysRenderFarthest:
+				self.draw.commands.remove(lastCmd)
+				self.draw.commands.append(SPBranchList(lastCmd.dl))
+
+		if not hasAnyDLs:
+			self.draw.commands.clear()
+			self.subdraws.clear()
+			
+		self.draw.commands.append(SPEndDisplayList())
+
 
 class FMesh:
 	def __init__(self, name, DLFormat):
@@ -3028,7 +3145,34 @@ class SPModifyVertex:
 
 # LOD commands?
 # SPBranchLessZ
-# SPBranchLessZraw
+
+class SPBranchLessZraw:
+	def __init__(self, dl, vtx, zval):
+		self.dl = dl
+		self.vtx = vtx
+		self.zval = zval
+
+	def to_binary(self, f3d, segments):
+		dlPtr = int.from_bytes(encodeSegmentedAddr(
+			self.dl.startAddress, segments), 'big')
+
+		words0 = _SHIFTL(f3d.G_RDPHALF_1, 24, 8), dlPtr
+		words1 = _SHIFTL(f3d.G_BRANCH_Z,24,8)|_SHIFTL((self.vtx)*5,12,12)|_SHIFTL((self.vtx)*2,0,12), zval
+		
+		return words0[0].to_bytes(4, 'big') + words0[1].to_bytes(4, 'big') +\
+			words1[0].to_bytes(4, 'big') + words1[1].to_bytes(4, 'big')
+
+	def to_c(self, static = True):
+		dlName = self.dl.name
+		header = 'gsSPBranchLessZraw(' if static else 'gSPBranchLessZraw(glistp++, '
+		return header + dlName + ", " + str(self.vtx) + ", " + str(self.zval) + ")"	
+
+	def to_sm64_decomp_s(self):
+		dlName = self.dl.name
+		return 'gsSPBranchLessZraw ' + dlName + ", " + str(self.vtx) + ", " + str(self.zval)
+	
+	def size(self, f3d):
+		return GFX_SIZE * 2
 
 # SPLoadUcode (RSP)
 

@@ -509,6 +509,7 @@ ootEnumEmptyType = [
 	('Entrance', 'Entrance', 'Entrance'),
 	('Water Box', 'Water Box', 'Water Box'),
 	('Cull Volume', 'Cull Volume', 'Cull Volume'),
+	('LOD', 'LOD Group', 'LOD Group'),
 	#('Camera Volume', 'Camera Volume', 'Camera Volume'),
 ]
 

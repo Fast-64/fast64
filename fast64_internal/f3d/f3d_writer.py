@@ -1668,7 +1668,7 @@ def compactNibbleArray(texture, width, height):
 	if (width * height) % 2 == 1:
 		nibbleData.append((texture[-1] & 0xF) << 4)
 	
-	return nibbleData
+	return bytearray(nibbleData)
 
 def checkDuplicateTextureName(fModelOrTexRect, name):
 	names = []
