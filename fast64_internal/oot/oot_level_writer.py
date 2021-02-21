@@ -352,8 +352,11 @@ def ootConvertScene(originalSceneObj, transformMatrix,
 				room = scene.addRoom(roomIndex, sceneName, roomObj.ootRoomHeader.meshType)
 				readRoomData(room, roomObj.ootRoomHeader, roomObj.ootAlternateRoomHeaders)
 
-				ootProcessMesh(room.mesh, None, sceneObj, roomObj, transformMatrix, convertTextureData, None)
+				DLGroup = room.mesh.addMeshGroup(CullGroup(
+					translation, obj.ootRoomHeader.defaultCullDistance)).DLGroup
+				ootProcessMesh(room.mesh, DLGroup, sceneObj, roomObj, transformMatrix, convertTextureData, None)
 				room.mesh.terminateDLs()
+				room.mesh.removeUnusedEntries()
 				ootProcessEmpties(scene, room, sceneObj, roomObj, transformMatrix)
 			elif obj.data is None and obj.ootEmptyType == "Water Box":
 				ootProcessWaterBox(sceneObj, obj, transformMatrix, scene, 0x3F)
@@ -395,8 +398,6 @@ def ootProcessMesh(roomMesh, DLGroup, sceneObj, obj, transformMatrix, convertTex
 		fMeshes = saveStaticModel(triConverterInfo, roomMesh.model, obj, relativeTransform, roomMesh.model.name,
 			convertTextureData, False, 'oot')
 		if fMeshes is not None:
-			if DLGroup is None:
-				DLGroup = roomMesh.addMeshGroup(None).DLGroup
 			for drawLayer, fMesh in fMeshes.items():
 				DLGroup.addDLCall(fMesh.draw, drawLayer)
 

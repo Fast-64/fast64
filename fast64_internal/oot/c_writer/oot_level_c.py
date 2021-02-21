@@ -259,11 +259,8 @@ def ootMeshEntryToC(meshEntry, meshType):
 	if meshType == "1":
 		raise PluginError("MeshHeader1 not supported.")
 	elif meshType == "2":
-		if meshEntry.cullGroup is None:
-			data += "0, 0, 0, 0x7fff, "
-		else:
-			data += str(meshEntry.cullGroup.position[0]) + ", " + str(meshEntry.cullGroup.position[1]) + ", "
-			data += str(meshEntry.cullGroup.position[2]) + ", " + str(meshEntry.cullGroup.cullDepth) + ", "
+		data += str(meshEntry.cullGroup.position[0]) + ", " + str(meshEntry.cullGroup.position[1]) + ", "
+		data += str(meshEntry.cullGroup.position[2]) + ", " + str(meshEntry.cullGroup.cullDepth) + ", "
 	data += "(u32)" + opaqueName + ", (u32)" + transparentName + ' },\n' 
 
 	return data

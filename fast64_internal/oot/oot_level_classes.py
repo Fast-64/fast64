@@ -199,6 +199,13 @@ class OOTRoomMesh:
 	def currentMeshGroup(self):
 		return self.meshEntries[-1]
 
+	def removeUnusedEntries(self):
+		newList = []
+		for meshEntry in self.meshEntries:
+			if not meshEntry.DLGroup.isEmpty():
+				newList.append(meshEntry)
+		self.meshEntries = newList
+
 class OOTDLGroup:
 	def __init__(self, name, DLFormat):
 		self.opaque = None
@@ -230,6 +237,9 @@ class OOTDLGroup:
 			self.opaque = GfxList(self.name + '_opaque', GfxListTag.Draw, self.DLFormat)
 		if self.transparent is None:
 			self.transparent = GfxList(self.name + '_transparent', GfxListTag.Draw, self.DLFormat)
+
+	def isEmpty(self):
+		return self.opaque is None and self.transparent is None
 
 class OOTRoomMeshGroup:
 	def __init__(self, cullGroup, DLFormat, roomName, entryIndex):
