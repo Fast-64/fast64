@@ -100,8 +100,8 @@ class OOTObjectPanel(bpy.types.Panel):
 		elif obj.ootEmptyType == 'Entrance':
 			drawEntranceProperty(box, obj, altSceneProp, objName)
 
-		elif obj.ootEmptyType == "Cull Volume":
-			drawCullVolumeProperty(box)
+		elif obj.ootEmptyType == "Cull Group":
+			drawCullGroupProperty(box, obj)
 
 		elif obj.ootEmptyType == 'LOD':
 			drawLODProperty(box, obj)
@@ -120,8 +120,10 @@ def drawLODProperty(box, obj):
 			prop_split(col, otherObj, "f3d_lod_z", otherObj.name)
 	col.prop(obj, "f3d_lod_always_render_farthest")
 
-def drawCullVolumeProperty(box):
-	box.label(text = "No rotation allowed.")
+def drawCullGroupProperty(box, obj):
+	col = box.column()
+	prop_split(col, obj, 'ootCullDepth', "Cull Depth")
+	col.label(text = "Depth behind the camera at which point culling happens.")
 
 def setLightPropertyValues(lightProp, ambient, diffuse0, diffuse1, fogColor, fogNear):
 	lightProp.ambient = gammaInverse([value / 255 for value in ambient]) + [1]
@@ -132,7 +134,7 @@ def setLightPropertyValues(lightProp, ambient, diffuse0, diffuse1, fogColor, fog
 	
 def onUpdateOOTEmptyType(self, context):
 	isNoneEmpty = self.ootEmptyType == "None"
-	isBoxEmpty = self.ootEmptyType == 'Water Box' or self.ootEmptyType == 'Cull Volume'
+	isBoxEmpty = self.ootEmptyType == 'Water Box'
 	self.show_name = not (isBoxEmpty or isNoneEmpty)
 	self.show_axis = not (isBoxEmpty or isNoneEmpty)
 	
@@ -201,6 +203,7 @@ def oot_obj_register():
 	bpy.types.Object.ootAlternateSceneHeaders = bpy.props.PointerProperty(type = OOTAlternateSceneHeaderProperty)
 	bpy.types.Object.ootAlternateRoomHeaders = bpy.props.PointerProperty(type = OOTAlternateRoomHeaderProperty)
 	bpy.types.Object.ootEntranceProperty = bpy.props.PointerProperty(type = OOTEntranceProperty)
+	bpy.types.Object.ootCullDepth = bpy.props.IntProperty(name = "Cull Depth", min = 1, default = 400)
 
 
 def oot_obj_unregister():
@@ -213,6 +216,7 @@ def oot_obj_unregister():
 	del bpy.types.Object.ootSceneHeader
 	del bpy.types.Object.ootAlternateSceneHeaders
 	del bpy.types.Object.ootAlternateRoomHeaders
+	del bpy.types.Object.ootCullDepth
 
 	for cls in reversed(oot_obj_classes):
 		unregister_class(cls)

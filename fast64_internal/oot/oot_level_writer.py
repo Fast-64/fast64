@@ -383,12 +383,12 @@ def ootProcessMesh(roomMesh, DLGroup, sceneObj, obj, transformMatrix, convertTex
 	relativeTransform = transformMatrix @ sceneObj.matrix_world.inverted() @ obj.matrix_world
 	translation, rotation, scale = relativeTransform.decompose()
 
-	if obj.data is None and obj.ootEmptyType == "Cull Volume":
+	if obj.data is None and obj.ootEmptyType == "Cull Group":
 		if LODHierarchyObject is not None:
-			raise PluginError(obj.name + " cannot be used as a cull volume because it is " +\
+			raise PluginError(obj.name + " cannot be used as a cull group because it is " +\
 				"in the sub-hierarchy of the LOD group empty " + LODHierarchyObject.name)
-		DLGroup = roomMesh.addMeshGroup(BoxEmpty(
-			ootConvertTranslation(translation), scale, obj.empty_display_size)).DLGroup
+		DLGroup = roomMesh.addMeshGroup(CullGroup(
+			ootConvertTranslation(translation), obj.ootCullDepth)).DLGroup
 
 	elif isinstance(obj.data, bpy.types.Mesh) and not obj.ignore_render:
 		triConverterInfo = TriangleConverterInfo(obj, None, roomMesh.model.f3d, relativeTransform, getInfoDict(obj))

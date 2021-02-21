@@ -259,12 +259,11 @@ def ootMeshEntryToC(meshEntry, meshType):
 	if meshType == "1":
 		raise PluginError("MeshHeader1 not supported.")
 	elif meshType == "2":
-		raise PluginError("MeshHeader2 not supported.") # TODO: Below is broken
-		if meshEntry.cullVolume is None:
-			data += "0x7FFF, 0x7FFF, 0x8000, 0x8000, "
+		if meshEntry.cullGroup is None:
+			data += "0, 0, 0, 0x7fff, "
 		else:
-			data += "(s16)(" + str(meshEntry.cullVolume.high[0]) + "), (s16)(" + str(meshEntry.cullVolume.high[1]) + "), "
-			data += "(s16)(" + str(meshEntry.cullVolume.low[0]) + "), (s16)(" + str(meshEntry.cullVolume.low[1]) + "), "
+			data += str(meshEntry.cullGroup.position[0]) + ", " + str(meshEntry.cullGroup.position[1]) + ", "
+			data += str(meshEntry.cullGroup.position[2]) + ", " + str(meshEntry.cullGroup.cullDepth) + ", "
 	data += "(u32)" + opaqueName + ", (u32)" + transparentName + ' },\n' 
 
 	return data

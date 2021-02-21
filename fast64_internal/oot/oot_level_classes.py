@@ -191,8 +191,8 @@ class OOTRoomMesh:
 	def entriesName(self):
 		return str(self.roomName) + "_meshDListEntry"
 	
-	def addMeshGroup(self, cullVolume):
-		meshGroup = OOTRoomMeshGroup(cullVolume, self.model.DLFormat, self.roomName, len(self.meshEntries))
+	def addMeshGroup(self, cullGroup):
+		meshGroup = OOTRoomMeshGroup(cullGroup, self.model.DLFormat, self.roomName, len(self.meshEntries))
 		self.meshEntries.append(meshGroup)
 		return meshGroup
 	
@@ -232,8 +232,8 @@ class OOTDLGroup:
 			self.transparent = GfxList(self.name + '_transparent', GfxListTag.Draw, self.DLFormat)
 
 class OOTRoomMeshGroup:
-	def __init__(self, cullVolume, DLFormat, roomName, entryIndex):
-		self.cullVolume = cullVolume
+	def __init__(self, cullGroup, DLFormat, roomName, entryIndex):
+		self.cullGroup = cullGroup
 		self.roomName = roomName
 		self.entryIndex = entryIndex
 

@@ -508,7 +508,7 @@ ootEnumEmptyType = [
 	('Transition Actor', 'Transition Actor', 'Transition Actor'),
 	('Entrance', 'Entrance', 'Entrance'),
 	('Water Box', 'Water Box', 'Water Box'),
-	('Cull Volume', 'Cull Volume', 'Cull Volume'),
+	('Cull Group', 'Cull Group', 'Cull Group'),
 	('LOD', 'LOD Group', 'LOD Group'),
 	#('Camera Volume', 'Camera Volume', 'Camera Volume'),
 ]

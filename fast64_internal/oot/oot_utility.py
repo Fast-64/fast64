@@ -228,6 +228,11 @@ class BoxEmpty:
 		self.high = [int(round(value)) for value in self.high]
 		self.height = int(round(self.height))
 
+class CullGroup:
+	def __init__(self, position, cullDepth):
+		self.position = [int(round(field)) for field in position]
+		self.cullDepth = abs(int(round(cullDepth)))
+
 def getCustomProperty(data, prop):
 	value = getattr(data, prop)
 	return value if value != "Custom" else getattr(data, prop + str("Custom"))

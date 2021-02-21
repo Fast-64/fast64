@@ -450,8 +450,6 @@ def drawRoomHeaderProperty(layout, roomProp, dropdownLabel, headerIndex, objName
 			prop_split(general, roomProp, 'meshType', "Mesh Type")
 			if roomProp.meshType == '1':
 				general.box().label(text = "Mesh Type 1 not supported at this time.")
-			elif roomProp.meshType == '2':
-				general.box().label(text = "Mesh Type 2 not supported at this time.")
 
 		# Behaviour
 		behaviourBox = layout.column()
