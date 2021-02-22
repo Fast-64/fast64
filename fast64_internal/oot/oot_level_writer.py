@@ -115,7 +115,10 @@ def ootCleanupScene(originalSceneObj, allObjs):
 	bpy.context.view_layer.objects.active = originalSceneObj
 
 def sceneNameFromID(sceneID):
-	return sceneID[6:].lower()
+	if sceneID in ootSceneIDToName:
+		return ootSceneIDToName[sceneID]
+	else:
+		raise PluginError("Cannot find scene ID " + str(sceneID))
 
 def ootExportSceneToC(originalSceneObj, transformMatrix, 
 	f3dType, isHWv1, sceneName, DLFormat, savePNG, exportInfo):
@@ -127,6 +130,7 @@ def ootExportSceneToC(originalSceneObj, transformMatrix,
 	scene = ootConvertScene(originalSceneObj, transformMatrix, 
 		f3dType, isHWv1, sceneName, DLFormat, not savePNG)
 	
+	exportSubdir = ''
 	if exportInfo.customSubPath is not None:
 		exportSubdir = exportInfo.customSubPath
 	if not isCustomExport and exportInfo.customSubPath is None:
