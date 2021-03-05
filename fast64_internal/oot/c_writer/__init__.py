@@ -1,4 +1,3 @@
-from .oot_collision_c import *
 from .oot_level_c import *
 from .oot_dma_manager_c import *
 from .oot_scene_id_c import *

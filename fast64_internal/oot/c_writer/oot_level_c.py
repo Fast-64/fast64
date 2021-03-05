@@ -1,7 +1,7 @@
 import math
 from ..oot_f3d_writer import *
 from ..oot_level_writer import *
-from .oot_collision_c import *
+from ..oot_collision import *
 
 def cmdName(name, header, index):
 	return name + "_header" + format(header, '02') + "_cmd" + format(index, '02')

@@ -1,5 +1,5 @@
 from ..utility import *
-import bpy, math, mathutils, os
+import bpy, math, mathutils, os, re
 from bpy.utils import register_class, unregister_class
 
 ootSceneDungeons = [
@@ -190,6 +190,15 @@ def checkEmptyName(name):
 	if name == "":
 		raise PluginError("No name entered for the exporter.")
 
+def ootGetObjectPath(isCustomExport, exportPath, folderName):
+	if isCustomExport:
+		filepath = exportPath
+	else:
+		filepath = os.path.join(ootGetPath(exportPath, isCustomExport, 'assets/objects/', 
+			folderName, False, False), folderName + '.c')
+	return filepath
+
+
 def ootGetPath(exportPath, isCustomExport, subPath, folderName, makeIfNotExists, useFolderForCustom):
 	if isCustomExport:
 		path = bpy.path.abspath(os.path.join(exportPath, (folderName if useFolderForCustom else '')))
@@ -207,14 +216,21 @@ def ootGetPath(exportPath, isCustomExport, subPath, folderName, makeIfNotExists,
 	return path
 
 def getSortedChildren(armatureObj, bone):
-	return sorted([child.name for child in bone.children])
+	return sorted([child.name for child in bone.children if child.ootBoneType != "Ignore"], key = lambda childName : childName.lower())
 
 def getStartBone(armatureObj):
-	return 'root'
+	startBoneNames = [bone.name for bone in armatureObj.data.bones if \
+		bone.parent is None and bone.ootBoneType != "Ignore"]
+	if len(startBoneNames) == 0:
+		raise PluginError(armatureObj.name + " does not have any root bones that are not of the \"Ignore\" type.")
+	startBoneName = startBoneNames[0]
+	return startBoneName
+	#return 'root'
 
 def checkForStartBone(armatureObj):
-	if "root" not in armatureObj.data.bones:
-		raise PluginError("Skeleton must have a bone named 'root' where the skeleton starts from.")
+	pass
+	#if "root" not in armatureObj.data.bones:
+	#	raise PluginError("Skeleton must have a bone named 'root' where the skeleton starts from.")
 
 class BoxEmpty:
 	def __init__(self, position, scale, emptyScale):

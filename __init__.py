@@ -40,9 +40,7 @@ class ArmatureApplyWithMesh(bpy.types.Operator):
 	# Can also be called from operator search menu (Spacebar)
 	def execute(self, context):
 		try:
-			if context.mode != 'OBJECT' and context.mode != 'POSE':
-				raise PluginError("Operator can only be used in object or pose mode.")
-			elif context.mode == 'POSE':
+			if context.mode != 'OBJECT':
 				bpy.ops.object.mode_set(mode = "OBJECT")
 
 			if len(context.selected_objects) == 0:
@@ -72,7 +70,11 @@ class ArmatureApplyWithMesh(bpy.types.Operator):
 			context.view_layer.objects.active = armatureObj
 			bpy.ops.object.mode_set(mode = "POSE")
 			bpy.ops.pose.armature_apply()
+			if context.mode != 'OBJECT':
+				bpy.ops.object.mode_set(mode = "OBJECT")
 		except Exception as e:
+			if context.mode != 'OBJECT':
+				bpy.ops.object.mode_set(mode = "OBJECT")
 			raisePluginError(self, e)
 			return {"CANCELLED"}
 
@@ -125,9 +127,7 @@ class CreateMetarig(bpy.types.Operator):
 	# Can also be called from operator search menu (Spacebar)
 	def execute(self, context):
 		try:
-			if context.mode != 'OBJECT' and context.mode != 'POSE':
-				raise PluginError("Operator can only be used in object or pose mode.")
-			elif context.mode == 'POSE':
+			if context.mode != 'OBJECT':
 				bpy.ops.object.mode_set(mode = "OBJECT")
 
 			if len(context.selected_objects) == 0:
@@ -231,6 +231,23 @@ class Fast64_GlobalSettingsPanel(bpy.types.Panel):
 		prop_split(col, context.scene, 'gameEditorMode', "Game")
 		col.prop(context.scene, 'exportHiddenGeometry')
 		col.prop(context.scene, 'fullTraceback')
+
+class Fast64_GlobalToolsPanel(bpy.types.Panel):
+	bl_idname = "FAST64_PT_global_tools"
+	bl_label = "Fast64 Tools"
+	bl_space_type = 'VIEW_3D'
+	bl_region_type = 'UI'
+	bl_category = 'Fast64'
+
+	@classmethod
+	def poll(cls, context):
+		return True
+
+	# called every frame
+	def draw(self, context):
+		col = self.layout.column()
+		col.operator(ArmatureApplyWithMesh.bl_idname)
+		#col.operator(CreateMetarig.bl_idname)
 		
 
 #def updateGameEditor(scene, context):
@@ -260,6 +277,7 @@ classes = (
 	F3D_GlobalSettingsPanel,
 	Fast64_GlobalSettingsPanel,
 	SM64_ArmatureToolsPanel,
+	Fast64_GlobalToolsPanel,
 )
 
 # called on add-on enabling
@@ -278,6 +296,7 @@ def register():
 		register_class(cls)
 	
 	f3d_writer_register()
+	f3d_parser_register()
 
 	# ROM
 	
@@ -293,10 +312,12 @@ def register():
 		name = 'Save Textures As PNGs (Breaks CI Textures)')
 	bpy.types.Scene.generateF3DNodeGraph = bpy.props.BoolProperty(name = "Generate F3D Node Graph", default = True)
 	bpy.types.Scene.exportHiddenGeometry = bpy.props.BoolProperty(name = "Export Hidden Geometry", default = True)
+	bpy.types.Scene.blenderF3DScale = bpy.props.FloatProperty(name = "F3D Blender Scale", default = 100)
 
 # called on add-on disabling
 def unregister():
 	f3d_writer_unregister()
+	f3d_parser_unregister()
 	sm64_unregister(True)
 	oot_unregister(True)
 	mat_unregister()
@@ -311,6 +332,7 @@ def unregister():
 	del bpy.types.Scene.gameEditorMode
 	del bpy.types.Scene.generateF3DNodeGraph
 	del bpy.types.Scene.exportHiddenGeometry
+	del bpy.types.Scene.blenderF3DScale
 
 	for cls in classes:
 		unregister_class(cls)

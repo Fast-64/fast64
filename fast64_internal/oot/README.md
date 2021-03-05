@@ -44,4 +44,26 @@ Additionally, for functions like Gfx_TexScroll(), the x,y inputs are pre-shifted
 Collision properties are found underneath the material properties. Water boxes and collision properties will have references the properties "Camera", "Lighting", and "Exit", which reference the indices of the scene cameras, scene light list, and scene exit list respectively. If you want separate visual/collision geometry, you can set per mesh object "Ignore Collision" or "Ignore Render" in object inspector window.
 
 ### Skeletons And Animations
-To export a skeletal mesh, select an armature and then click "Export" for the armature exporter. The root bone of the armature must be named "root". To export an animation, the process is the same. The active animation on the armature will be exported.
+For bones, there are 3 bone types: Default, Custom DL, and Ignore. This can be set in the bone properties window.
+Default is a regular deformation bone. Ignore will not be handled by the exporter/importer. Custom DL lets you define the name of a DL that you want a bone to draw instead of drawing geometry from the armature. There is also an option for billboarding the specific geometry associated with the bone.
+
+The armature properties window also has the option to set a LOD armature. This armature must have the same bone structure as your current armature.
+
+To export a skeletal mesh, select an armature and then click "Export" for the armature exporter. Make sure there is only one bone without a parent (the root bone), as the exporter will choose the first parentless bone as the start bone of the armature.
+
+To import a skeletal mesh, just click "Import" for the armature importer. You may encounter a couple issues:
+
+![](https://bitbucket.org/kurethedead/fast64/raw/master/images/oot_imported_gerudo_textured.png)
+![](https://bitbucket.org/kurethedead/fast64/raw/master/images/oot_imported_gerudo_solid.png)
+
+
+1. Eye/face textures are black: Texture pointers which are set dynamically will not be imported. Instead, the name of the pointer will be used instead of the actual data.
+2. Certain colors are white/different: Some graphical effects are achieved through dynamic Gfx commands, such as tinting white textures. These effects will not be imported.
+3. Strange imported normals: Due to the behaviour of rotating vertices on a skinned triangle that differs between Blender and the N64, normals may look strange. Note that these normals will look correct if re exported back into the game (assuming the rest pose is not changed). 
+
+Note that rest pose rotations are zeroed out on export, so you can modify the rest pose of imported armature while still preserving its structure. You can do this by using the "Apply As Rest Pose" operator under the Fast64 tab. Note that imported animations however still require the imported rest pose to work correctly.
+
+There may also be an issue where some meshes import completely black due to the assumption that the F3D cycle mode is set to 2-Cycle, when it should really be 1-Cycle. Try changing the cycle type to 1-Cycle in cases where a dynamic texture pointer is not expected.
+
+To import an animation, select the armature the animation belongs to then click "Import" on the animation importer.
+To export an animation, select an armature and click "Export", which will export the active animation of the armature.

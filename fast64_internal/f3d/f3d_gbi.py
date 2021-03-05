@@ -475,81 +475,103 @@ class F3D:
 		self.G_ACMUX_0 = 		        7
 
 		# typical CC cycle 1 modes
-		self.G_CC_PRIMITIVE = 		'0', '0', '0', 'PRIMITIVE', '0', '0', '0', 'PRIMITIVE'
-		self.G_CC_SHADE = 		'0', '0', '0', 'SHADE', '0', '0', '0', 'SHADE'
-		self.G_CC_MODULATEI = 		'TEXEL0', '0', 'SHADE', '0', '0', '0', '0', 'SHADE'
-		self.G_CC_MODULATEIA = 		'TEXEL0', '0', 'SHADE', '0', 'TEXEL0', '0', 'SHADE', '0'
-		self.G_CC_MODULATEIDECALA = 	'TEXEL0', '0', 'SHADE', '0', '0', '0', '0', 'TEXEL0'
-		self.G_CC_MODULATERGB = 	self.G_CC_MODULATEI
-		self.G_CC_MODULATERGBA = 	self.G_CC_MODULATEIA
-		self.G_CC_MODULATERGBDECALA = 	self.G_CC_MODULATEIDECALA
-		self.G_CC_MODULATEI_PRIM = 	'TEXEL0', '0', 'PRIMITIVE', '0', '0', '0', '0', 'PRIMITIVE'
-		self.G_CC_MODULATEIA_PRIM = 	'TEXEL0', '0', 'PRIMITIVE', '0', 'TEXEL0', '0', 'PRIMITIVE', '0'
-		self.G_CC_MODULATEIDECALA_PRIM = 	'TEXEL0', '0', 'PRIMITIVE', '0', '0', '0', '0', 'TEXEL0'
-		self.G_CC_MODULATERGB_PRIM = 	self.G_CC_MODULATEI_PRIM
-		self.G_CC_MODULATERGBA_PRIM = 	self.G_CC_MODULATEIA_PRIM
-		self.G_CC_MODULATERGBDECALA_PRIM = 	self.G_CC_MODULATEIDECALA_PRIM
-		self.G_CC_DECALRGB = 		'0', '0', '0', 'TEXEL0', '0', '0', '0', 'SHADE'
-		self.G_CC_DECALRGBA = 		'0', '0', '0', 'TEXEL0', '0', '0', '0', 'TEXEL0'
-		self.G_CC_BLENDI = 		'ENVIRONMENT', 'SHADE', 'TEXEL0', 'SHADE', '0', '0', '0', 'SHADE'
-		self.G_CC_BLENDIA = 		'ENVIRONMENT', 'SHADE', 'TEXEL0', 'SHADE', 'TEXEL0', '0', 'SHADE', '0'
-		self.G_CC_BLENDIDECALA = 	'ENVIRONMENT', 'SHADE', 'TEXEL0', 'SHADE', '0', '0', '0', 'TEXEL0'
-		self.G_CC_BLENDRGBA = 		'TEXEL0', 'SHADE', 'TEXEL0_ALPHA', 'SHADE', '0', '0', '0', 'SHADE'
-		self.G_CC_BLENDRGBDECALA = 	'TEXEL0', 'SHADE', 'TEXEL0_ALPHA', 'SHADE', '0', '0', '0', 'TEXEL0'
-		self.G_CC_ADDRGB = 		'1', '0', 'TEXEL0', 'SHADE', '0', '0', '0', 'SHADE'
-		self.G_CC_ADDRGBDECALA = 	'1', '0', 'TEXEL0', 'SHADE', '0', '0', '0', 'TEXEL0'
-		self.G_CC_REFLECTRGB = 		'ENVIRONMENT', '0', 'TEXEL0', 'SHADE', '0', '0', '0', 'SHADE'
-		self.G_CC_REFLECTRGBDECALA = 	'ENVIRONMENT', '0', 'TEXEL0', 'SHADE', '0', '0', '0', 'TEXEL0'
-		self.G_CC_HILITERGB = 		'PRIMITIVE', 'SHADE', 'TEXEL0', 'SHADE', '0', '0', '0', 'SHADE'
-		self.G_CC_HILITERGBA = 		'PRIMITIVE', 'SHADE', 'TEXEL0', 'SHADE', 'PRIMITIVE', 'SHADE', 'TEXEL0', 'SHADE'
-		self.G_CC_HILITERGBDECALA = 	'PRIMITIVE', 'SHADE', 'TEXEL0', 'SHADE', '0', '0', '0', 'TEXEL0'
-		self.G_CC_SHADEDECALA = 	'0', '0', '0', 'SHADE', '0', '0', '0', 'TEXEL0'
-		self.G_CC_BLENDPE = 		'PRIMITIVE', 'ENVIRONMENT', 'TEXEL0', 'ENVIRONMENT', 'TEXEL0', '0', 'SHADE', '0'
-		self.G_CC_BLENDPEDECALA = 	'PRIMITIVE', 'ENVIRONMENT', 'TEXEL0', 'ENVIRONMENT', '0', '0', '0', 'TEXEL0'
+		self.G_CC_PRIMITIVE = '0', '0', '0', 'PRIMITIVE', '0', '0', '0', 'PRIMITIVE'
+		self.G_CC_SHADE = '0', '0', '0', 'SHADE', '0', '0', '0', 'SHADE'
 
-		# oddball 'modes'
-		self._G_CC_BLENDPE = 		'ENVIRONMENT', 'PRIMITIVE', 'TEXEL0', 'PRIMITIVE', 'TEXEL0', '0', 'SHADE', '0'
-		self._G_CC_BLENDPEDECALA = 	'ENVIRONMENT', 'PRIMITIVE', 'TEXEL0', 'PRIMITIVE', '0', '0', '0', 'TEXEL0'
-		self._G_CC_TWOCOLORTEX = 	'PRIMITIVE', 'SHADE', 'TEXEL0', 'SHADE', '0', '0', '0', 'SHADE'
-		# used for 1-cycle sparse 'mip-maps', primitive color has color of lowest 'LOD'
-		self._G_CC_SPARSEST = 		'PRIMITIVE', 'TEXEL0', 'LOD_FRACTION', 'TEXEL0', 'PRIMITIVE', 'TEXEL0', 'LOD_FRACTION', 'TEXEL0'
-		self.G_CC_TEMPLERP =    'TEXEL1', 'TEXEL0', 'PRIM_LOD_FRAC', 'TEXEL0', 'TEXEL1', 'TEXEL0', 'PRIM_LOD_FRAC', 'TEXEL0'
+		self.G_CC_MODULATEI = 'TEXEL0', '0', 'SHADE', '0', '0', '0', '0', 'SHADE'
+		self.G_CC_MODULATEIDECALA = 'TEXEL0', '0', 'SHADE', '0', '0', '0', '0', 'TEXEL0'
+		self.G_CC_MODULATEIFADE = 'TEXEL0', '0', 'SHADE', '0', '0', '0', '0', 'ENVIRONMENT'
 
-		# typical CC cycle 1 'modes', usually followed by other cycle 2 'modes'
-		self.G_CC_TRILERP = 		'TEXEL1', 'TEXEL0', 'LOD_FRACTION', 'TEXEL0', 'TEXEL1', 'TEXEL0', 'LOD_FRACTION', 'TEXEL0'
-		self.G_CC_INTERFERENCE = 	'TEXEL0', '0', 'TEXEL1', '0', 'TEXEL0', '0', 'TEXEL1', '0'
+		self.G_CC_MODULATERGB = self.G_CC_MODULATEI
+		self.G_CC_MODULATERGBDECALA = self.G_CC_MODULATEIDECALA
+		self.G_CC_MODULATERGBFADE = self.G_CC_MODULATEIFADE
 
-		# One-cycle color convert 'operation'
-		self.G_CC_1CYUV2RGB = 		'TEXEL0', 'K4', 'K5', 'TEXEL0', '0', '0', '0', 'SHADE'
+		self.G_CC_MODULATEIA = 'TEXEL0', '0', 'SHADE', '0', 'TEXEL0', '0', 'SHADE', '0'
+		self.G_CC_MODULATEIFADEA = 'TEXEL0', '0', 'SHADE', '0', 'TEXEL0', '0', 'ENVIRONMENT', '0'
 
-		'''
-		 *  NOTE: YUV2RGB expects TF step1 color conversion to occur in 2nd clock.
-		 * 'Therefore', CC looks for step1 results in TEXEL1
-		'''
-		self.G_CC_YUV2RGB = 		'TEXEL1', 'K4', 'K5', 'TEXEL1', '0', '0', '0', 0
+		self.G_CC_MODULATEFADE = 'TEXEL0', '0', 'SHADE', '0', 'ENVIRONMENT', '0', 'TEXEL0', '0'
 
-		# typical CC cycle 2 modes
-		self.G_CC_PASS2 = 		'0', '0', '0', 'COMBINED', '0', '0', '0', 'COMBINED'
-		self.G_CC_MODULATEI2 = 		'COMBINED', '0', 'SHADE', '0', '0', '0', '0', 'SHADE'
-		self.G_CC_MODULATEIA2 = 	'COMBINED', '0', 'SHADE', '0', 'COMBINED', '0', 'SHADE', '0'
-		self.G_CC_MODULATERGB2 = 	self.G_CC_MODULATEI2
-		self.G_CC_MODULATERGBA2 = 	self.G_CC_MODULATEIA2
-		self.G_CC_MODULATEI_PRIM2 = 	'COMBINED', '0', 'PRIMITIVE', '0', '0', '0', '0', 'PRIMITIVE'
-		self.G_CC_MODULATEIA_PRIM2 = 	'COMBINED', '0', 'PRIMITIVE', '0', 'COMBINED', '0', 'PRIMITIVE', '0'
-		self.G_CC_MODULATERGB_PRIM2 = 	self.G_CC_MODULATEI_PRIM2
-		self.G_CC_MODULATERGBA_PRIM2 = 	self.G_CC_MODULATEIA_PRIM2
-		self.G_CC_DECALRGB2 = 		'0', '0', '0', 'COMBINED', '0', '0', '0', 'SHADE'
-		'''
-		 * ?
-		self.G_CC_DECALRGBA2 = 		'COMBINED', 'SHADE', 'COMBINED_ALPHA', 'SHADE', '0', '0', '0', 'SHADE'
-		'''
-		self.G_CC_BLENDI2 = 		'ENVIRONMENT', 'SHADE', 'COMBINED', 'SHADE', '0', '0', '0', 'SHADE'
-		self.G_CC_BLENDIA2 = 		'ENVIRONMENT', 'SHADE', 'COMBINED', 'SHADE', 'COMBINED', '0', 'SHADE',        '0'
-		self.G_CC_CHROMA_KEY2 = 	'TEXEL0', 'CENTER', 'SCALE', '0', '0', '0', '0', '0'
-		self.G_CC_HILITERGB2 = 		'ENVIRONMENT', 'COMBINED', 'TEXEL0', 'COMBINED', '0', '0', '0', 'SHADE'
-		self.G_CC_HILITERGBA2 = 	'ENVIRONMENT', 'COMBINED', 'TEXEL0', 'COMBINED', 'ENVIRONMENT',       'COMBINED', 'TEXEL0', 'COMBINED'
-		self.G_CC_HILITERGBDECALA2 = 	'ENVIRONMENT', 'COMBINED', 'TEXEL0', 'COMBINED', '0', '0', '0',       'TEXEL0'
-		self.G_CC_HILITERGBPASSA2 = 	'ENVIRONMENT', 'COMBINED', 'TEXEL0', 'COMBINED', '0', '0', '0', 'COMBINED'
+		self.G_CC_MODULATERGBA = self.G_CC_MODULATEIA
+		self.G_CC_MODULATERGBFADEA = self.G_CC_MODULATEIFADEA
+
+		self.G_CC_MODULATEI_PRIM = 'TEXEL0', '0', 'PRIMITIVE', '0', '0', '0', '0', 'PRIMITIVE'
+		self.G_CC_MODULATEIA_PRIM = 'TEXEL0', '0', 'PRIMITIVE', '0', 'TEXEL0', '0', 'PRIMITIVE', '0'
+		self.G_CC_MODULATEIDECALA_PRIM = 'TEXEL0', '0', 'PRIMITIVE', '0', '0', '0', '0', 'TEXEL0'
+
+		self.G_CC_MODULATERGB_PRIM = self.G_CC_MODULATEI_PRIM
+		self.G_CC_MODULATERGBA_PRIM = self.G_CC_MODULATEIA_PRIM
+		self.G_CC_MODULATERGBDECALA_PRIM = self.G_CC_MODULATEIDECALA_PRIM
+
+		self.G_CC_FADE = 'SHADE', '0', 'ENVIRONMENT', '0', 'SHADE', '0', 'ENVIRONMENT', '0'
+		self.G_CC_FADEA = 'TEXEL0', '0', 'ENVIRONMENT', '0', 'TEXEL0', '0', 'ENVIRONMENT', '0'
+
+		self.G_CC_DECALRGB = '0', '0', '0', 'TEXEL0', '0', '0', '0', 'SHADE'
+		self.G_CC_DECALRGBA = '0', '0', '0', 'TEXEL0', '0', '0', '0', 'TEXEL0'
+		self.G_CC_DECALFADE = '0', '0', '0', 'TEXEL0', '0', '0', '0', 'ENVIRONMENT'
+
+		self.G_CC_DECALFADEA = '0', '0', '0', 'TEXEL0', 'TEXEL0', '0', 'ENVIRONMENT', '0'
+
+		self.G_CC_BLENDI = 'ENVIRONMENT', 'SHADE', 'TEXEL0', 'SHADE', '0', '0', '0', 'SHADE'
+		self.G_CC_BLENDIA = 'ENVIRONMENT', 'SHADE', 'TEXEL0', 'SHADE', 'TEXEL0', '0', 'SHADE', '0'
+		self.G_CC_BLENDIDECALA = 'ENVIRONMENT', 'SHADE', 'TEXEL0', 'SHADE', '0', '0', '0', 'TEXEL0'
+
+		self.G_CC_BLENDRGBA = 'TEXEL0', 'SHADE', 'TEXEL0_ALPHA', 'SHADE', '0', '0', '0', 'SHADE'
+		self.G_CC_BLENDRGBDECALA = 'TEXEL0', 'SHADE', 'TEXEL0_ALPHA', 'SHADE', '0', '0', '0', 'TEXEL0'
+		self.G_CC_BLENDRGBFADEA = 'TEXEL0', 'SHADE', 'TEXEL0_ALPHA', 'SHADE', '0', '0', '0', 'ENVIRONMENT'
+
+		self.G_CC_ADDRGB = 'TEXEL0', '0', 'TEXEL0', 'SHADE', '0', '0', '0', 'SHADE'
+		self.G_CC_ADDRGBDECALA = 'TEXEL0', '0', 'TEXEL0', 'SHADE', '0', '0', '0', 'TEXEL0'
+		self.G_CC_ADDRGBFADE = 'TEXEL0', '0', 'TEXEL0', 'SHADE', '0', '0', '0', 'ENVIRONMENT'
+
+		self.G_CC_REFLECTRGB = 'ENVIRONMENT', '0', 'TEXEL0', 'SHADE', '0', '0', '0', 'SHADE'
+		self.G_CC_REFLECTRGBDECALA = 'ENVIRONMENT', '0', 'TEXEL0', 'SHADE', '0', '0', '0', 'TEXEL0'
+
+		self.G_CC_HILITERGB = 'PRIMITIVE', 'SHADE', 'TEXEL0', 'SHADE', '0', '0', '0', 'SHADE'
+		self.G_CC_HILITERGBA = 'PRIMITIVE', 'SHADE', 'TEXEL0', 'SHADE', 'PRIMITIVE', 'SHADE', 'TEXEL0', 'SHADE'
+		self.G_CC_HILITERGBDECALA = 'PRIMITIVE', 'SHADE', 'TEXEL0', 'SHADE', '0', '0', '0', 'TEXEL0'
+
+		self.G_CC_SHADEDECALA = '0', '0', '0', 'SHADE', '0', '0', '0', 'TEXEL0'
+		self.G_CC_SHADEFADEA = '0', '0', '0', 'SHADE', '0', '0', '0', 'ENVIRONMENT'
+
+		self.G_CC_BLENDPE = 'PRIMITIVE', 'ENVIRONMENT', 'TEXEL0', 'ENVIRONMENT', 'TEXEL0', '0', 'SHADE', '0'
+		self.G_CC_BLENDPEDECALA = 'PRIMITIVE', 'ENVIRONMENT', 'TEXEL0', 'ENVIRONMENT', '0', '0', '0', 'TEXEL0'
+
+		# oddball modes
+		self._G_CC_BLENDPE = 'ENVIRONMENT', 'PRIMITIVE', 'TEXEL0', 'PRIMITIVE', 'TEXEL0', '0', 'SHADE', '0'
+		self._G_CC_BLENDPEDECALA = 'ENVIRONMENT', 'PRIMITIVE', 'TEXEL0', 'PRIMITIVE', '0', '0', '0', 'TEXEL0'
+		self._G_CC_TWOCOLORTEX = 'PRIMITIVE', 'SHADE', 'TEXEL0', 'SHADE', '0', '0', '0', 'SHADE'
+		
+		# used for 1-cycle sparse mip-maps, primitive color has color of lowest LOD 
+		self._G_CC_SPARSEST = 'PRIMITIVE', 'TEXEL0', 'LOD_FRACTION', 'TEXEL0', 'PRIMITIVE', 'TEXEL0', 'LOD_FRACTION', 'TEXEL0'
+		self.G_CC_TEMPLERP = 'TEXEL1', 'TEXEL0', 'PRIM_LOD_FRAC', 'TEXEL0', 'TEXEL1', 'TEXEL0', 'PRIM_LOD_FRAC', 'TEXEL0'
+
+		# typical CC cycle 1 modes, usually followed by other cycle 2 modes
+		self.G_CC_TRILERP = 'TEXEL1', 'TEXEL0', 'LOD_FRACTION', 'TEXEL0', 'TEXEL1', 'TEXEL0', 'LOD_FRACTION', 'TEXEL0'
+		self.G_CC_INTERFERENCE = 'TEXEL0', '0', 'TEXEL1', '0', 'TEXEL0', '0', 'TEXEL1', '0'
+
+		self.G_CC_1CYUV2RGB = 'TEXEL0', 'K4', 'K5', 'TEXEL0', '0', '0', '0', 'SHADE'
+		self.G_CC_YUV2RGB = 'TEXEL1', 'K4', 'K5', 'TEXEL1', '0', '0', '0', '0'
+
+		#typical CC cycle 2 modes
+		self.G_CC_PASS2 = '0', '0', '0', 'COMBINED', '0', '0', '0', 'COMBINED'
+		self.G_CC_MODULATEI2 = 'COMBINED', '0', 'SHADE', '0', '0', '0', '0', 'SHADE'
+		self.G_CC_MODULATEIA2 = 'COMBINED', '0', 'SHADE', '0', 'COMBINED', '0', 'SHADE', '0'
+		self.G_CC_MODULATERGB2 = self.G_CC_MODULATEI2
+		self.G_CC_MODULATERGBA2 = self.G_CC_MODULATEIA2
+		self.G_CC_MODULATEI_PRIM2 = 'COMBINED', '0', 'PRIMITIVE', '0', '0', '0', '0', 'PRIMITIVE'
+		self.G_CC_MODULATEIA_PRIM2 = 'COMBINED', '0', 'PRIMITIVE', '0', 'COMBINED', '0', 'PRIMITIVE', '0'
+		self.G_CC_MODULATERGB_PRIM2 = self.G_CC_MODULATEI_PRIM2
+		self.G_CC_MODULATERGBA_PRIM2 = self.G_CC_MODULATEIA_PRIM2
+		self.G_CC_DECALRGB2 = '0', '0', '0', 'COMBINED', '0', '0', '0', 'SHADE'
+
+		self.G_CC_DECALRGBA2 = 'COMBINED', 'SHADE', 'COMBINED_ALPHA', 'SHADE', '0', '0', '0', 'SHADE'
+		self.G_CC_BLENDI2 = 'ENVIRONMENT', 'SHADE', 'COMBINED', 'SHADE', '0', '0', '0', 'SHADE'
+		self.G_CC_BLENDIA2 = 'ENVIRONMENT', 'SHADE', 'COMBINED', 'SHADE', 'COMBINED', '0', 'SHADE', '0'
+		self.G_CC_CHROMA_KEY2 = 'TEXEL0', 'CENTER', 'SCALE', '0', '0', '0', '0', '0'
+		self.G_CC_HILITERGB2 = 'ENVIRONMENT', 'COMBINED', 'TEXEL0', 'COMBINED', '0', '0', '0', 'SHADE'
+		self.G_CC_HILITERGBA2 = 'ENVIRONMENT', 'COMBINED', 'TEXEL0', 'COMBINED', 'ENVIRONMENT', 'COMBINED', 'TEXEL0', 'COMBINED'
+		self.G_CC_HILITERGBDECALA2 = 'ENVIRONMENT', 'COMBINED', 'TEXEL0', 'COMBINED', '0', '0', '0', 'TEXEL0'
+		self.G_CC_HILITERGBPASSA2 = 'ENVIRONMENT', 'COMBINED', 'TEXEL0', 'COMBINED', '0', '0', '0', 'COMBINED'
 
 		# G_SETOTHERMODE_L sft: shift count
 		
@@ -675,6 +697,41 @@ class F3D:
 		self.G_BL_A_SHADE = G_BL_A_SHADE = 	2
 		self.G_BL_1 = G_BL_1 = 		2
 		self.G_BL_0 = G_BL_0 = 		3
+
+		self.cvgDstDict = {
+			CVG_DST_CLAMP : "CVG_DST_CLAMP", 
+			CVG_DST_WRAP : "CVG_DST_WRAP", 
+			CVG_DST_FULL : "CVG_DST_FULL", 
+			CVG_DST_SAVE : "CVG_DST_SAVE", 
+		}
+
+		self.zmodeDict = {
+			ZMODE_OPA : "ZMODE_OPA",
+			ZMODE_INTER : "ZMODE_INTER",
+			ZMODE_XLU : "ZMODE_XLU",
+			ZMODE_DEC : "ZMODE_DEC",
+		}
+
+		self.blendColorDict = {
+			G_BL_CLR_IN : "G_BL_CLR_IN",
+			G_BL_CLR_MEM : "G_BL_CLR_MEM",
+			G_BL_CLR_BL : "G_BL_CLR_BL",
+			G_BL_CLR_FOG : "G_BL_CLR_FOG",
+		}
+
+		self.blendAlphaDict = {
+			G_BL_A_IN : 'G_BL_A_IN',
+			G_BL_A_FOG : 'G_BL_A_FOG',
+			G_BL_A_SHADE : 'G_BL_A_SHADE',
+			G_BL_0 : 'G_BL_0',
+		}
+
+		self.blendMixDict = {
+			G_BL_1MA : 'G_BL_1MA',
+			G_BL_A_MEM : 'G_BL_A_MEM',
+			G_BL_1 : 'G_BL_1',
+			G_BL_0 : 'G_BL_0',
+		}
 
 		def	GBL_c1(m1a, m1b, m2a, m2b):
 			return (m1a) << 30 | (m1b) << 26 | (m2a) << 22 | (m2b) << 18
@@ -1039,7 +1096,7 @@ class F3D:
 		self.G_RM_OPA_CI2 =         RM_OPA_CI(2)
 
 
-		self.G_RM_FOG_SHADE_A = 	GBL_c1(G_BL_CLR_FOG, G_BL_A_SHADE, G_BL_CLR_IN,         G_BL_1MA)
+		self.G_RM_FOG_SHADE_A = 	GBL_c1(G_BL_CLR_FOG, G_BL_A_SHADE, G_BL_CLR_IN, G_BL_1MA)
 		self.G_RM_FOG_PRIM_A = 		GBL_c1(G_BL_CLR_FOG, G_BL_A_FOG, G_BL_CLR_IN, G_BL_1MA)
 		self.G_RM_PASS = 		GBL_c1(G_BL_CLR_IN, G_BL_0, G_BL_CLR_IN, G_BL_1)
 
@@ -1284,6 +1341,11 @@ class F3D:
 			'NUMLIGHTS_6' : 6,
 			'NUMLIGHTS_7' : 7,
 		}
+
+	def	GBL_c1(self, m1a, m1b, m2a, m2b):
+		return (m1a) << 30 | (m1b) << 26 | (m2a) << 22 | (m2b) << 18
+	def	GBL_c2(self, m1a, m1b, m2a, m2b):
+		return (m1a) << 28 | (m1b) << 24 | (m2a) << 20 | (m2b) << 16
 
 	# macros for command parsing
 	def	GDMACMD(self, x):		return (x)
@@ -1749,11 +1811,24 @@ class FModel:
 		fMaterial.usedLights.append(key)
 		self.lights[key] = value
 
-	def addMesh(self, name, namePrefix, drawLayer, isSkinned):
+	def addMesh(self, name, namePrefix, drawLayer, isSkinned, contextObj):
 		meshName = getFMeshName(name, namePrefix, drawLayer, isSkinned)
 		checkUniqueBoneNames(self, meshName, name)
 		self.meshes[meshName] = FMesh(meshName, self.DLFormat)
+
+		self.onAddMesh(self.meshes[meshName], contextObj)
+
 		return self.meshes[meshName]
+
+	def onAddMesh(self, fMesh, contextObj):
+		return
+
+	def endDraw(self, fMesh, contextObj):
+		self.onEndDraw(fMesh, contextObj)
+		fMesh.draw.commands.append(SPEndDisplayList())
+
+	def onEndDraw(self, fMesh, contextObj):
+		return
 	
 	def getTextureAndHandleShared(self, imageKey):
 		# Check if texture is in self
@@ -2022,7 +2097,7 @@ class FModel:
 			oldpath = image.filepath
 			try:
 				image.filepath = \
-					os.path.join(dirpath, imageFileName)
+					bpy.path.abspath(os.path.join(dirpath, imageFileName))
 				image.save()
 				texturesSaved += 1
 				if not isPacked:

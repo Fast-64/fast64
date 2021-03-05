@@ -660,7 +660,7 @@ def parseDLWithOffset(romfile, currentAddress,
 			displayListStartAddress = decodeSegmentedAddr(segmentedAddr, 
 				segmentData = segmentData)
 			#print(displayListStartAddress)
-			parseF3D(romfile, displayListStartAddress, bpy.context.scene, 
+			parseF3DBinary(romfile, displayListStartAddress, bpy.context.scene, 
 			bMesh, obj, finalTransform, boneName, segmentData, vertexBuffer)
 	
 	# Handle child objects
@@ -721,7 +721,7 @@ def handleNodeCommon(romfile, armatureObj, parentBoneName, finalTransform,
 		hasMeshData = int.from_bytes(segmentedAddr, 'big') != 0
 		if hasMeshData:
 			startAddress = decodeSegmentedAddr(segmentedAddr, segmentData)
-			parseF3D(romfile, startAddress, bpy.context.scene, bMesh, obj, 
+			parseF3DBinary(romfile, startAddress, bpy.context.scene, bMesh, obj, 
 				finalTransform, boneName, segmentData, vertexBuffer)
 	elif armatureObj is not None:
 		armatureObj.data.bones[boneName].use_deform = False

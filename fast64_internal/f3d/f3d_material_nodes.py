@@ -1156,7 +1156,7 @@ class GetAlphaFromColor(ShaderNode):
 
 	# Copy function to initialize a copied node from an existing one.
 	def copy(self, node):
-		print("Copying from node ", node)
+		pass #print("Copying from node ", node)
 
 	# Free function to clean up on removal.
 	def free(self):
@@ -1214,7 +1214,7 @@ class F3DNodeA(ShaderNode):
 
     # Copy function to initialize a copied node from an existing one.
     def copy(self, node):
-        print("Copying from node ", node)
+        pass #print("Copying from node ", node)
 
     # Free function to clean up on removal.
     def free(self):
@@ -1257,7 +1257,7 @@ class F3DNodeB(ShaderNode):
 
     # Copy function to initialize a copied node from an existing one.
     def copy(self, node):
-        print("Copying from node ", node)
+        pass #print("Copying from node ", node)
 
     # Free function to clean up on removal.
     def free(self):
@@ -1300,7 +1300,7 @@ class F3DNodeC(ShaderNode):
 
     # Copy function to initialize a copied node from an existing one.
     def copy(self, node):
-        print("Copying from node ", node)
+        pass #print("Copying from node ", node)
 
     # Free function to clean up on removal.
     def free(self):
@@ -1343,7 +1343,7 @@ class F3DNodeD(ShaderNode):
 
     # Copy function to initialize a copied node from an existing one.
     def copy(self, node):
-        print("Copying from node ", node)
+        pass #print("Copying from node ", node)
 
     # Free function to clean up on removal.
     def free(self):
@@ -1387,7 +1387,7 @@ class F3DNodeA_alpha(ShaderNode):
 
     # Copy function to initialize a copied node from an existing one.
     def copy(self, node):
-        print("Copying from node ", node)
+        pass #print("Copying from node ", node)
 
     # Free function to clean up on removal.
     def free(self):
@@ -1430,7 +1430,7 @@ class F3DNodeB_alpha(ShaderNode):
 
     # Copy function to initialize a copied node from an existing one.
     def copy(self, node):
-        print("Copying from node ", node)
+        pass #print("Copying from node ", node)
 
     # Free function to clean up on removal.
     def free(self):
@@ -1473,7 +1473,7 @@ class F3DNodeC_alpha(ShaderNode):
 
     # Copy function to initialize a copied node from an existing one.
     def copy(self, node):
-        print("Copying from node ", node)
+        pass #print("Copying from node ", node)
 
     # Free function to clean up on removal.
     def free(self):
@@ -1516,7 +1516,7 @@ class F3DNodeD_alpha(ShaderNode):
 
     # Copy function to initialize a copied node from an existing one.
     def copy(self, node):
-        print("Copying from node ", node)
+        pass #print("Copying from node ", node)
 
     # Free function to clean up on removal.
     def free(self):

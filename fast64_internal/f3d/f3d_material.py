@@ -85,11 +85,11 @@ drawLayerOOTtoSM64 = {
 	"Overlay" : '1',
 }
 
-drawLayerOOTAlpha = {
-	"Opaque" : "CLIP",
-	"Transparent" : "BLEND",
-	"Overlay" : 'CLIP',
-}
+#drawLayerOOTAlpha = {
+#	"Opaque" : "OPAQUE",
+#	"Transparent" : "BLEND",
+#	"Overlay" : 'CLIP',
+#}
 
 drawLayerSM64Alpha = {
 	'0' : "CLIP",
@@ -166,7 +166,17 @@ def update_blend_method(material, context):
 	if material.mat_ver > 3:
 		drawLayer = material.f3d_mat.draw_layer
 		if context.scene.gameEditorMode == "OOT":
-			material.blend_method = drawLayerOOTAlpha[drawLayer.oot]
+			if drawLayer.oot == "Opaque" or drawLayer.oot == "Overlay":
+				f3dMat = material.f3d_mat
+				if not f3dMat.rdp_settings.rendermode_advanced_enabled and\
+					"TEX_EDGE" not in f3dMat.rdp_settings.rendermode_preset_cycle_1 and\
+					("TEX_EDGE" not in f3dMat.rdp_settings.rendermode_preset_cycle_2 or\
+					f3dMat.rdp_settings.g_mdsft_cycletype != 'G_CYC_2CYCLE'):
+					material.blend_method = "OPAQUE"
+				else:
+					material.blend_method = "CLIP"
+			else:
+				material.blend_method = "BLEND"
 		elif context.scene.gameEditorMode == "SM64":
 			material.blend_method = drawLayerSM64Alpha[drawLayer.sm64]
 
@@ -442,7 +452,7 @@ class F3DPanel(bpy.types.Panel):
 		inputGroup.prop(textureProp, 'menu', text = name + ' Properties',
 			icon = 'TRIA_DOWN' if textureProp.menu else 'TRIA_RIGHT')
 		if textureProp.menu:
-			
+			tex = textureProp.tex
 			prop_input_name = inputGroup.column()
 			prop_input = inputGroup.column()
 
@@ -453,13 +463,22 @@ class F3DPanel(bpy.types.Panel):
 			#prop_input.template_image(textureProp, 'tex', 
 			#	nodes[name].image_user)
 			texIndex = name[-1]
-			prop_input.template_ID(textureProp, 'tex', new='image.new', open='image.open', 
-				unlink='image.tex' + texIndex + "_unlink")
-			prop_input.enabled = textureProp.tex_set
 
-			tex = textureProp.tex
-			if tex is not None:
-				prop_input.label(text = "Size: " + str(tex.size[0]) + " x " + str(tex.size[1]))
+			prop_input.prop(textureProp, "use_tex_reference")
+			if textureProp.use_tex_reference:
+				prop_split(prop_input, textureProp, "tex_reference", "Texture Reference")
+				prop_split(prop_input, textureProp, "tex_reference_size", "Texture Size")
+				if textureProp.tex_format[:2] == 'CI':
+					prop_split(prop_input, textureProp, "pal_reference", "Palette Reference")
+					prop_split(prop_input, textureProp, "pal_reference_size", "Palette Size")
+			
+			else:
+				prop_input.template_ID(textureProp, 'tex', new='image.new', open='image.open', 
+					unlink='image.tex' + texIndex + "_unlink")
+				prop_input.enabled = textureProp.tex_set
+
+				if tex is not None:
+					prop_input.label(text = "Size: " + str(tex.size[0]) + " x " + str(tex.size[1]))
 					
 			if material.mat_ver > 3 and material.f3d_mat.use_large_textures:
 				prop_input.label(text = "Large texture mode enabled.")
@@ -1165,7 +1184,7 @@ def update_node_values_without_preset(self, context):
 		update_node_values_of_material(material, context)
 		material.f3d_update_flag = False
 	else:
-		print('No material in context.')
+		#print('No material in context.')
 		pass
 		
 def update_node_values_directly(material, context):
@@ -1491,9 +1510,10 @@ def update_tex_values_field_v3(self, texProperty, tex_size,
 		(texProperty.T.high + 1) / tex_size[1], 0)
 
 	# Clamp
+	isTexGen = self.f3d_mat.rdp_settings.g_tex_gen or self.f3d_mat.rdp_settings.g_tex_gen_linear 
 	nodes['Get UV ' + str(texIndex) + ' F3D v3'].inputs[5].default_value = (
-		1 if texProperty.S.clamp else 0,
-		1 if texProperty.T.clamp else 0, 0)
+		1 if texProperty.S.clamp and not isTexGen else 0,
+		1 if texProperty.T.clamp and not isTexGen else 0, 0)
 		
 	# Normalized Mask
 	nodes['Get UV ' + str(texIndex) + ' F3D v3'].inputs[6].default_value = (
@@ -1525,8 +1545,11 @@ def update_tex_values_index(self, context, texProperty, texNodeName,
 	nodes = self.node_tree.nodes
 
 	nodes[texNodeName].image = texProperty.tex
-	if nodes[texNodeName].image is not None:
-		tex_size = nodes[texNodeName].image.size
+	if nodes[texNodeName].image is not None or texProperty.use_tex_reference:
+		if nodes[texNodeName].image is not None:
+			tex_size = nodes[texNodeName].image.size
+		else:
+			tex_size = texProperty.tex_reference_size
 		if tex_size[0] > 0 and tex_size[1] > 0:
 			if self.mat_ver == 1:
 				tex_x = nodes[uvNodeName].node_tree.nodes[\
@@ -1750,14 +1773,15 @@ def hasNodeGraph(material):
 
 def createF3DMat(obj, preset = 'Shaded Solid', index = None):
 	material = bpy.data.materials.new('f3d_material')
-	if index is None:
-		obj.data.materials.append(material)
-		if bpy.context.object is not None:
-			bpy.context.object.active_material_index = len(obj.material_slots) - 1
-	else:
-		obj.material_slots[index].material = material
-		if bpy.context.object is not None:
-			bpy.context.object.active_material_index = index
+	if obj is not None:
+		if index is None:
+			obj.data.materials.append(material)
+			if bpy.context.object is not None:
+				bpy.context.object.active_material_index = len(obj.material_slots) - 1
+		else:
+			obj.material_slots[index].material = material
+			if bpy.context.object is not None:
+				bpy.context.object.active_material_index = index
 
 	material.is_f3d = True
 	material.mat_ver = 4
@@ -2000,6 +2024,12 @@ class TextureProperty(bpy.types.PropertyGroup):
 	ci_format : bpy.props.EnumProperty(name = 'CI Format', items = enumCIFormat, default = 'RGBA16', update = update_tex_values)
 	S : bpy.props.PointerProperty(type = TextureFieldProperty)
 	T : bpy.props.PointerProperty(type = TextureFieldProperty)
+
+	use_tex_reference: bpy.props.BoolProperty(name = "Use Texture Reference", default = False, update = update_tex_values)
+	tex_reference: bpy.props.StringProperty(name = "Texture Reference", default = '0x08000000')
+	tex_reference_size: bpy.props.IntVectorProperty(name = "Texture Reference Size", min = 1, size = 2, default = (32,32), update = update_tex_values)
+	pal_reference: bpy.props.StringProperty(name = "Palette Reference", default = '0x08000000')
+	pal_reference_size : bpy.props.IntProperty(name = "Texture Reference Size", min = 1, default = 16)
 
 	menu : bpy.props.BoolProperty()
 	tex_set : bpy.props.BoolProperty(default = True, update = update_node_values)
@@ -2383,6 +2413,11 @@ class AddPresetF3D(AddPresetBase, Operator):
 		"f3d_mat.tex0.tex",
 		"f3d_mat.tex0.tex_format",
 		"f3d_mat.tex0.ci_format",
+		"f3d_mat.tex0.use_tex_reference",
+		"f3d_mat.tex0.tex_reference",
+		"f3d_mat.tex0.tex_reference_size",
+		"f3d_mat.tex0.pal_reference",
+		"f3d_mat.tex0.pal_reference_size",
 		"f3d_mat.tex0.S",
 		"f3d_mat.tex0.T",
 		"f3d_mat.tex0.menu",
@@ -2391,6 +2426,11 @@ class AddPresetF3D(AddPresetBase, Operator):
 		"f3d_mat.tex1.tex",
 		"f3d_mat.tex1.tex_format",
 		"f3d_mat.tex1.ci_format",
+		"f3d_mat.tex1.use_tex_reference",
+		"f3d_mat.tex1.tex_reference",
+		"f3d_mat.tex1.tex_reference_size",
+		"f3d_mat.tex1.pal_reference",
+		"f3d_mat.tex1.pal_reference_size",
 		"f3d_mat.tex1.S",
 		"f3d_mat.tex1.T",
 		"f3d_mat.tex1.menu",

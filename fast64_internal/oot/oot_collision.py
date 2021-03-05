@@ -466,14 +466,14 @@ class OOT_CollisionPanel(bpy.types.Panel):
 					box.prop(collisionProp, "conveyorKeepMomentum", text = "Keep Momentum")
 
 # water boxes handled by level writer					
-def exportCollisionCommon(collision, sceneObj, allObjs, transformMatrix, includeChildren, name):
+def exportCollisionCommon(collision, obj, transformMatrix, includeChildren, name):
 	bpy.ops.object.select_all(action = 'DESELECT')
-	sceneObj.select_set(True)
+	obj.select_set(True)
 
 	# dict of collisionType : faces
 	collisionDict = {}
 
-	addCollisionTriangles(sceneObj, collisionDict, includeChildren, transformMatrix, collision.bounds)
+	addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix, collision.bounds)
 	for material, faces in collisionDict.items():
 		polygonType = getPolygonType(material.ootCollisionProperty)
 		collision.polygonGroups[polygonType] = []
@@ -487,6 +487,30 @@ def exportCollisionCommon(collision, sceneObj, allObjs, transformMatrix, include
 				else:
 					indices.append(index)
 			collision.polygonGroups[polygonType].append(OOTCollisionPolygon(indices, normal, distance))
+
+def exportCollisionToC(obj, transformMatrix, includeChildren, name, isCustomExport, folderName, 
+	exportPath):
+	collision = OOTCollision(name)
+	collision.cameraData = OOTCameraData(name)
+	exportCollisionCommon(collision, obj, transformMatrix, includeChildren, name)
+	collisionC = ootCollisionToC(collision)
+	
+	data = CData()
+	data.source += '#include "ultra64.h"\n#include "z64.h"\n#include "macros.h"\n'
+	if not isCustomExport:
+		data.source += '#include "' + folderName + '.h"\n\n'
+	else:
+		data.source += '\n'
+
+	data.append(collisionC)
+
+	path = ootGetPath(exportPath, isCustomExport, 'assets/objects/', folderName, False, False)
+	writeCData(data, 
+		os.path.join(path, name + '.h'),
+		os.path.join(path, name + '.c'))
+
+	if not isCustomExport:
+		addIncludeFiles(folderName, path, name)
 
 def updateBounds(position, bounds):
 	if len(bounds) == 0:
@@ -561,6 +585,160 @@ def collisionVertIndex(vert, vertArray):
 			return i
 	return None
 
+
+
+
+def ootCollisionVertexToC(vertex):
+	return "{ " + str(vertex.position[0]) + ", " +\
+		str(vertex.position[1]) + ", " +\
+		str(vertex.position[2]) + " },\n"
+
+def ootCollisionPolygonToC(polygon, ignoreCamera, ignoreActor, ignoreProjectile, enableConveyor, polygonTypeIndex):
+	return "{ " + format(polygonTypeIndex, "#06x") + ', ' +\
+		format(polygon.convertShort02(ignoreCamera, ignoreActor, ignoreProjectile), "#06x") + ', ' +\
+		format(polygon.convertShort04(enableConveyor), "#06x") + ', ' +\
+		format(polygon.convertShort06(), "#06x") + ', ' +\
+		format(polygon.normal[0], "#06x") + ', ' +\
+		format(polygon.normal[1], "#06x") + ', ' +\
+		format(polygon.normal[2], "#06x") + ', ' +\
+		format(polygon.distance, "#06x") + ' },\n'
+
+def ootPolygonTypeToC(polygonType):
+	return " " + format(polygonType.convertHigh(), "#010x") + ', ' +\
+		format(polygonType.convertLow(), "#010x") + ',\n'
+
+def ootWaterBoxToC(waterBox):
+	return "{ " + str(waterBox.low[0]) + ", " +\
+		str(waterBox.height) + ", " +\
+		str(waterBox.low[1]) + ", " +\
+		str(waterBox.high[0] - waterBox.low[0]) + ", " +\
+		str(waterBox.high[1] - waterBox.low[1]) + ", " +\
+		format(waterBox.propertyData(), "#010x") + ' },\n'
+
+def ootCameraDataToC(camData):
+	posC = CData()
+	camC = CData()
+	if len(camData.camPosDict) > 0:
+		
+		camDataName = "CamData " + camData.camDataName() + "[" + str(len(camData.camPosDict)) + "]"
+
+		camC.source = camDataName + ' = {\n'
+		camC.header = "extern " + camDataName + ';\n'
+		
+		camPosIndex = 0
+		for i in range(len(camData.camPosDict)):
+			camC.source += '\t' + ootCameraEntryToC(camData.camPosDict[i], camData, camPosIndex)
+			if camData.camPosDict[i].hasPositionData:
+				posC.source += ootCameraPosToC(camData.camPosDict[i])
+				camPosIndex += 3
+		posC.source += '};\n\n'
+		camC.source += '};\n\n'
+
+		posDataName = "Vec3s " + camData.camPositionsName() + '[' + str(camPosIndex) + ']'
+		posC.header = "extern " + posDataName + ';\n'
+		posC.source = posDataName + " = {\n" + posC.source 
+
+	posC.append(camC)
+	return posC
+
+def ootCameraPosToC(camPos):
+	return "\t{ " +\
+		str(camPos.position[0]) + ', ' +\
+		str(camPos.position[1]) + ', ' +\
+		str(camPos.position[2]) + ' },\n\t{ ' +\
+		str(camPos.rotation[0]) + ', ' +\
+		str(camPos.rotation[1]) + ', ' +\
+		str(camPos.rotation[2]) + ' },\n\t{ ' +\
+		str(camPos.fov) + ', ' +\
+		str(camPos.jfifID) + ', ' +\
+		str(camPos.unknown) + ' },\n'
+
+def ootCameraEntryToC(camPos, camData, camPosIndex):
+	return "{ " +\
+		str(camPos.camSType) + ', ' +\
+		('3' if camPos.hasPositionData else '0') + ', ' +\
+		(("&" + camData.camPositionsName()  + '[' + str(camPosIndex) + ']') 
+		if camPos.hasPositionData else "0") + ' },\n'
+
+def ootCollisionToC(collision):
+	data = CData()
+
+	data.append(ootCameraDataToC(collision.cameraData))
+	
+	if len(collision.polygonGroups) > 0:
+		data.header += "extern u32 " + collision.polygonTypesName() + "[];\n"
+		data.header += "extern CollisionPoly " + collision.polygonsName() + "[];\n"
+		polygonTypeC = "u32 " + collision.polygonTypesName() + "[] = {\n"
+		polygonC = "CollisionPoly " + collision.polygonsName() + "[] = {\n"
+		polygonIndex = 0
+		for polygonType, polygons in collision.polygonGroups.items():
+			polygonTypeC += '\t' + ootPolygonTypeToC(polygonType)
+			for polygon in polygons:
+				polygonC += '\t' + ootCollisionPolygonToC(polygon, 
+					polygonType.ignoreCameraCollision,
+					polygonType.ignoreActorCollision,
+					polygonType.ignoreProjectileCollision,
+					polygonType.enableConveyor,
+					polygonIndex)
+			polygonIndex += 1
+		polygonTypeC += '};\n\n'
+		polygonC += '};\n\n'
+
+		data.source += polygonTypeC + polygonC
+		polygonTypesName = collision.polygonTypesName()
+		polygonsName = collision.polygonsName()
+	else:
+		polygonTypesName = '0'
+		polygonsName = '0'
+
+	if len(collision.vertices) > 0:
+		data.header += "extern Vec3s " + collision.verticesName() + "[" + str(len(collision.vertices)) + "];\n"
+		data.source += "Vec3s " + collision.verticesName() + "[" + str(len(collision.vertices)) + "] = {\n"
+		for vertex in collision.vertices:
+			data.source += '\t' + ootCollisionVertexToC(vertex)
+		data.source += '};\n\n'
+		collisionVerticesName = collision.verticesName()
+	else:
+		collisionVerticesName = '0'
+
+	if len(collision.waterBoxes) > 0:
+		data.header += "extern WaterBox " + collision.waterBoxesName() + "[];\n"
+		data.source += "WaterBox " + collision.waterBoxesName() + "[] = {\n"
+		for waterBox in collision.waterBoxes:
+			data.source += '\t' + ootWaterBoxToC(waterBox)
+		data.source += '};\n\n'
+		waterBoxesName = collision.waterBoxesName()
+	else:
+		waterBoxesName = '0'
+
+	if len(collision.cameraData.camPosDict) > 0:
+		camDataName = "&" + collision.camDataName()
+	else:
+		camDataName = '0'
+
+	data.header += "extern CollisionHeader " + collision.headerName() + ';\n'
+	data.source += "CollisionHeader " + collision.headerName() + ' = { '
+
+	if len(collision.bounds) == 2:
+		for bound in range(2): # min, max bound
+			for field in range(3): # x, y, z
+				data.source += str(collision.bounds[bound][field]) + ', '
+	else:
+		data.source += '0, 0, 0, 0, 0, 0, '
+	
+	data.source += \
+		str(len(collision.vertices)) + ', ' +\
+		collisionVerticesName + ', ' +\
+		str(collision.polygonCount()) + ", " +\
+		polygonsName + ', ' +\
+		polygonTypesName + ', ' +\
+		camDataName + ', ' +\
+		str(len(collision.waterBoxes)) + ", " +\
+		waterBoxesName + ' };\n\n'
+
+	return data
+
+
 class OOT_ExportCollision(bpy.types.Operator):
 	# set bl_ properties
 	bl_idname = 'object.oot_export_collision'
@@ -568,109 +746,38 @@ class OOT_ExportCollision(bpy.types.Operator):
 	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
 	def execute(self, context):
-		romfileOutput = None
-		tempROM = None
-		try:
-			obj = None
-			if context.mode != 'OBJECT':
-				raise PluginError("Operator can only be used in object mode.")
-			if len(context.selected_objects) == 0:
-				raise PluginError("Object not selected.")
-			obj = context.active_object
-			#if type(obj.data) is not bpy.types.Mesh:
-			#	raise PluginError("Mesh not selected.")
-		
-			#T, R, S = obj.matrix_world.decompose()
-			#objTransform = R.to_matrix().to_4x4() @ \
-			#	mathutils.Matrix.Diagonal(S).to_4x4()
-			#finalTransform = (blenderToSM64Rotation * \
-			#	(bpy.context.scene.blenderToSM64Scale)).to_4x4()
-			#finalTransform = mathutils.Matrix.Identity(4)
+		obj = None
+		if context.mode != 'OBJECT':
+			bpy.ops.object.mode_set(mode = "OBJECT")
+		if len(context.selected_objects) == 0:
+			raise PluginError("No object selected.")
+		obj = context.active_object
+		if type(obj.data) is not bpy.types.Mesh:
+			raise PluginError("No mesh object selected.")
 
-			scaleValue = bpy.context.scene.blenderToSM64Scale
+		finalTransform = mathutils.Matrix.Scale(context.scene.ootActorBlenderScale, 4)
+
+		try:
+			scaleValue = bpy.context.scene.ootBlenderScale
 			finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((
 				scaleValue, scaleValue, scaleValue))).to_4x4()
-		except Exception as e:
-			raisePluginError(self, e)
-			return {"CANCELLED"}
-		
-		try:
-			applyRotation([obj], math.radians(90), 'X')
-			if context.scene.colExportType == 'C':
-				exportPath, levelName = getPathAndLevel(context.scene.colCustomExport, 
-					context.scene.colExportPath, context.scene.colLevelName, 
-					context.scene.colLevelOption)
-				if not context.scene.colCustomExport:
-					applyBasicTweaks(exportPath)
-				exportCollisionC(obj, finalTransform,
-					exportPath, False,
-					context.scene.colIncludeChildren, 
-					bpy.context.scene.colName, context.scene.colCustomExport, context.scene.colExportRooms,
-					context.scene.colExportHeaderType, context.scene.colGroupName, levelName)
-				self.report({'INFO'}, 'Success!')
-			elif context.scene.colExportType == 'Insertable Binary':
-				exportCollisionInsertableBinary(obj, finalTransform, 
-					bpy.path.abspath(context.scene.colInsertableBinaryPath), 
-					False, context.scene.colIncludeChildren)
-				self.report({'INFO'}, 'Success! Collision at ' + \
-					context.scene.colInsertableBinaryPath)
-			else:
-				tempROM = tempName(context.scene.outputRom)
-				checkExpanded(bpy.path.abspath(context.scene.exportRom))
-				romfileExport = \
-					open(bpy.path.abspath(context.scene.exportRom), 'rb')	
-				shutil.copy(bpy.path.abspath(context.scene.exportRom), 
-					bpy.path.abspath(tempROM))
-				romfileExport.close()
-				romfileOutput = open(bpy.path.abspath(tempROM), 'rb+')
 
-				levelParsed = parseLevelAtPointer(romfileOutput, 
-					level_pointers[context.scene.colExportLevel])
-				segmentData = levelParsed.segmentData
+			includeChildren = context.scene.ootColIncludeChildren
+			name = context.scene.ootColName
+			isCustomExport = context.scene.ootColCustomExport
+			folderName = context.scene.ootColFolder
+			exportPath = bpy.path.abspath(context.scene.ootColExportPath)
 
-				if context.scene.extendBank4:
-					ExtendBank0x04(romfileOutput, segmentData, 
-						defaultExtendSegment4)
+			filepath = ootGetObjectPath(isCustomExport, exportPath, folderName)
+			exportCollisionToC(obj, finalTransform, includeChildren, name, isCustomExport, folderName, 
+				filepath)
 
-				addrRange = \
-					exportCollisionBinary(obj, finalTransform, romfileOutput, 
-						int(context.scene.colStartAddr, 16), 
-						int(context.scene.colEndAddr, 16),
-						False, context.scene.colIncludeChildren)
-
-				segAddress = encodeSegmentedAddr(addrRange[0], segmentData)
-				if context.scene.set_addr_0x2A:
-					romfileOutput.seek(int(context.scene.addr_0x2A, 16) + 4)
-					romfileOutput.write(segAddress)
-				segPointer = bytesToHex(segAddress)
-
-				romfileOutput.close()
-
-				if os.path.exists(bpy.path.abspath(context.scene.outputRom)):
-					os.remove(bpy.path.abspath(context.scene.outputRom))
-				os.rename(bpy.path.abspath(tempROM), 
-					bpy.path.abspath(context.scene.outputRom))
-
-				self.report({'INFO'}, 'Success! Collision at (' + \
-					hex(addrRange[0]) + ', ' + hex(addrRange[1]) + \
-					') (Seg. ' + segPointer + ').')
-
-			applyRotation([obj], math.radians(-90), 'X')
-			return {'FINISHED'} # must return a set
+			self.report({'INFO'}, 'Success!')		
+			return {'FINISHED'}
 
 		except Exception as e:
 			if context.mode != 'OBJECT':
 				bpy.ops.object.mode_set(mode = 'OBJECT')
-
-			applyRotation([obj], math.radians(-90), 'X')
-
-			if context.scene.colExportType == 'Binary':
-				if romfileOutput is not None:
-					romfileOutput.close()
-				if tempROM is not None and os.path.exists(bpy.path.abspath(tempROM)):
-					os.remove(bpy.path.abspath(tempROM))
-			obj.select_set(True)
-			context.view_layer.objects.active = obj
 			raisePluginError(self, e)
 			return {'CANCELLED'} # must return a set
 
@@ -688,18 +795,15 @@ class OOT_ExportCollisionPanel(bpy.types.Panel):
 	# called every frame
 	def draw(self, context):
 		col = self.layout.column()
-		propsColE = col.operator(OOT_ExportCollision.bl_idname)
+		col.operator(OOT_ExportCollision.bl_idname)
 
-		col.prop(context.scene, 'colIncludeChildren')
-		col.prop(context.scene, 'colCustomExport')
-		if context.scene.colCustomExport:
-			col.prop(context.scene, 'colExportPath')
-			prop_split(col, context.scene, 'colName', 'Name')
-			customExportWarning(col)
+		prop_split(col, context.scene, 'ootColName', 'Name')
+		if context.scene.ootColCustomExport:
+			prop_split(col, context.scene, 'ootColExportPath', "Custom Folder")
 		else:
-			prop_split(col, context.scene, 'colExportLevel', 'Level')
-			if context.scene.colExportLevel == 'Custom':
-				prop_split(col, context.scene, 'colLevelName', 'Level Name')
+			prop_split(col, context.scene, 'ootColFolder', 'Object')
+		col.prop(context.scene, 'ootColCustomExport')
+		col.prop(context.scene, 'ootColIncludeChildren')
 
 
 oot_col_classes = (
@@ -713,7 +817,7 @@ oot_col_classes = (
 oot_col_panel_classes = (
 	OOT_CollisionPanel,
 	OOT_CameraPosPanel,
-	#OOT_ExportCollisionPanel,
+	OOT_ExportCollisionPanel,
 )
 
 def oot_col_panel_register():
@@ -736,11 +840,13 @@ def oot_col_register():
 	bpy.types.Scene.ootColIncludeChildren = bpy.props.BoolProperty(
 		name = 'Include child objects', default = True)
 	bpy.types.Scene.ootColName = bpy.props.StringProperty(
-		name = 'Name', default = 'link')
+		name = 'Name', default = 'collision')
 	bpy.types.Scene.ootColLevelName = bpy.props.StringProperty(
 		name = 'Name', default = 'SCENE_YDAN')
 	bpy.types.Scene.ootColCustomExport = bpy.props.BoolProperty(
 		name = 'Custom Export Path')
+	bpy.types.Scene.ootColFolder = bpy.props.StringProperty(
+		name = 'Object Name', default = "gameplay_keep")
 	
 	bpy.types.Object.ootCameraPositionProperty = bpy.props.PointerProperty(type = OOTCameraPositionProperty)
 	bpy.types.Material.ootCollisionProperty = bpy.props.PointerProperty(type = OOTMaterialCollisionProperty)
@@ -753,6 +859,7 @@ def oot_col_unregister():
 	del bpy.types.Scene.ootColLevelName
 	del bpy.types.Scene.ootColIncludeChildren
 	del bpy.types.Scene.ootColCustomExport
+	del bpy.types.Scene.ootColFolder
 
 	for cls in reversed(oot_col_classes):
 		unregister_class(cls)

@@ -1664,7 +1664,7 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 	# Save unskinned mesh
 	for drawLayer, materialFaces in groupFaces.items():
 		if drawLayer not in fMeshes:
-			fMesh = fModel.addMesh(vertexGroup, namePrefix, drawLayer, False)
+			fMesh = fModel.addMesh(vertexGroup, namePrefix, drawLayer, False, None)
 			fMeshes[drawLayer] = fMesh
 
 		for material_index, bFaces in materialFaces.items():

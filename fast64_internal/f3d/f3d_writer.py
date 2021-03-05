@@ -153,6 +153,8 @@ def fixLargeUVs(obj):
 			2 if f3dMat.tex0.T.mirror or f3dMat.tex1.T.mirror else 1]
 
 		size = texSizeDict[material]
+		if size[0] == 0 or size[1] == 0:
+			continue
 		cellSize = [1024 / size[0], 1024 / size[1]]
 		minUV, maxUV = findUVBounds(polygon, uv_data)
 		uvOffset = [0,0]
@@ -390,7 +392,7 @@ def saveStaticModel(triConverterInfo, fModel, obj, transformMatrix, ownerName, c
 			drawLayerName = None
 
 		if drawLayer not in fMeshes:
-			fMesh = fModel.addMesh(obj.original_name, ownerName, drawLayerName, False)
+			fMesh = fModel.addMesh(obj.original_name, ownerName, drawLayerName, False, obj)
 			fMeshes[drawLayer] = fMesh
 
 			if obj.use_f3d_culling and (fModel.f3d.F3DEX_GBI or fModel.f3d.F3DEX_GBI_2):
@@ -409,9 +411,10 @@ def saveStaticModel(triConverterInfo, fModel, obj, transformMatrix, ownerName, c
 	
 	for drawLayer, fMesh in fMeshes.items():
 		if revertMatAtEnd:
+			fModel.onEndDraw(fMesh, obj)
 			revertMatAndEndDraw(fMesh.draw, [])
 		else:
-			fMesh.draw.commands.append(SPEndDisplayList())
+			fModel.endDraw(fMesh, obj)
 	return fMeshes
 
 def addCullCommand(obj, fMesh, transformMatrix, matWriteMethod):
@@ -1106,13 +1109,19 @@ def getTexDimensions(material):
 	texDimensions1 = None
 	useDict = all_combiner_uses(f3dMat)
 	if useDict['Texture 0'] and f3dMat.tex0.tex_set:
-		if f3dMat.tex0.tex is None:
-			raise PluginError('In material \"' + material.name + '\", a texture has not been set.')
-		texDimensions0 = f3dMat.tex0.tex.size[0], f3dMat.tex0.tex.size[1]
+		if f3dMat.tex0.use_tex_reference:
+			texDimensions0 = f3dMat.tex0.tex_reference_size
+		else:
+			if f3dMat.tex0.tex is None:
+				raise PluginError('In material \"' + material.name + '\", a texture has not been set.')
+			texDimensions0 = f3dMat.tex0.tex.size[0], f3dMat.tex0.tex.size[1]
 	if useDict['Texture 1'] and f3dMat.tex1.tex_set:
-		if f3dMat.tex1.tex is None:
-			raise PluginError('In material \"' + material.name + '\", a texture has not been set.')
-		texDimensions1 = f3dMat.tex1.tex.size[0], f3dMat.tex1.tex.size[1]
+		if f3dMat.tex1.use_tex_reference:
+			texDimensions1 = f3dMat.tex1.tex_reference_size
+		else:
+			if f3dMat.tex1.tex is None:
+				raise PluginError('In material \"' + material.name + '\", a texture has not been set.')
+			texDimensions1 = f3dMat.tex1.tex.size[0], f3dMat.tex1.tex.size[1]
 
 	if texDimensions0 is not None and texDimensions1 is not None:
 		texDimensions = texDimensions0 if f3dMat.uv_basis == 'TEXEL0' \
@@ -1243,7 +1252,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 	nextTmem = 0
 	loadTextures = not (material.mat_ver > 3 and f3dMat.use_large_textures)
 	if useDict['Texture 0'] and f3dMat.tex0.tex_set:
-		if f3dMat.tex0.tex is None:
+		if f3dMat.tex0.tex is None and not f3dMat.tex0.use_tex_reference:
 			raise PluginError('In material \"' + material.name + '\", a texture has not been set.')
 		
 		fMaterial.useLargeTextures = not loadTextures
@@ -1253,7 +1262,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 			fMaterial, fMaterial.material, fMaterial.revert, f3dMat.tex0, 0, nextTmem, None, convertTextureData,
 			None, loadTextures, True)
 	if useDict['Texture 1'] and f3dMat.tex1.tex_set:
-		if f3dMat.tex1.tex is None:
+		if f3dMat.tex1.tex is None and not f3dMat.tex1.use_tex_reference:
 			raise PluginError('In material \"' + material.name + '\", a texture has not been set.')
 		
 		fMaterial.useLargeTextures = not loadTextures
@@ -1377,18 +1386,27 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 def saveTextureIndex(propName, fModel, fMaterial, loadTexGfx, revertTexGfx, texProp, index, tmem, 
 	overrideName, convertTextureData, tileSettingsOverride, loadTextures, loadPalettes):
 	tex = texProp.tex
-	if tex is None:
-		raise PluginError('In ' + propName + ", no texture is selected.")
-	elif len(tex.pixels) == 0:
-		raise PluginError("Could not load missing texture: " + tex.name + ". Make sure this texture has not been deleted or moved on disk.")
+
+	if tex is not None and (tex.size[0] == 0 or tex.size[1] == 0):
+		raise PluginError("Image " + tex.name + " has either a 0 width or height; image may have been removed from original location.")
+
+	if not texProp.use_tex_reference:
+		if tex is None:
+			raise PluginError('In ' + propName + ", no texture is selected.")
+		elif len(tex.pixels) == 0:
+			raise PluginError("Could not load missing texture: " + tex.name + ". Make sure this texture has not been deleted or moved on disk.")
 	
 	texFormat = texProp.tex_format
 	isCITexture = texFormat[:2] == 'CI'
 	palFormat = texProp.ci_format if isCITexture else ''
-	if tex.filepath == "":
-		name = tex.name
+
+	if not texProp.use_tex_reference:
+		if tex.filepath == "":
+			name = tex.name
+		else:
+			name = tex.filepath
 	else:
-		name = tex.filepath
+		name = texProp.tex_reference
 	texName = fModel.name + '_' + \
 		(getNameFromPath(name, True) + '_' + texFormat.lower() if overrideName is None else overrideName)
 		
@@ -1399,8 +1417,10 @@ def saveTextureIndex(propName, fModel, fMaterial, loadTexGfx, revertTexGfx, texP
 		setTLUTMode = False
 	else:
 		tileSettings = None
-		width = tex.size[0]
-		height = tex.size[1]
+		if texProp.use_tex_reference:
+			width, height = texProp.tex_reference_size
+		else:
+			width, height = tex.size
 		setTLUTMode = fModel.matWriteMethod == GfxMatWriteMethod.WriteAll
 
 	nextTmem = tmem + getTmemWordUsage(texFormat, width, height)
@@ -1409,7 +1429,7 @@ def saveTextureIndex(propName, fModel, fMaterial, loadTexGfx, revertTexGfx, texP
 		if nextTmem > (512 if texFormat[:2] != 'CI' else 256):
 			raise PluginError("Error in \"" + propName + "\": Textures are too big. Max TMEM size is 4k " + \
 				"bytes, ex. 2 32x32 RGBA 16 bit textures.\nNote that texture width will be internally padded to 64 bit boundaries.")
-		if tex.size[0] > 1024 or tex.size[1] > 1024:
+		if width > 1024 or height > 1024:
 			raise PluginError("Error in \"" + propName + "\": Any side of an image cannot be greater " +\
 				"than 1024.")
 
@@ -1445,14 +1465,22 @@ def saveTextureIndex(propName, fModel, fMaterial, loadTexGfx, revertTexGfx, texP
 
 	convertTextureData = convertTextureData and not (fMaterial.useLargeTextures and fMaterial.saveLargeTextures[index])
 	if isCITexture:
-		fImage, fPalette = saveOrGetPaletteDefinition(
-			fMaterial, fModel, tex, texName, texFormat, palFormat, convertTextureData)
+		if texProp.use_tex_reference:
+			fImage = FImage(texProp.tex_reference, None, None, width, height, None, False)
+			fPalette = FImage(texProp.pal_reference, None, None, 1, texProp.pal_reference_size, None, False)
+		else:
+			fImage, fPalette = saveOrGetPaletteDefinition(
+				fMaterial, fModel, tex, texName, texFormat, palFormat, convertTextureData)
+		
 		if loadPalettes:
 			savePaletteLoading(loadTexGfx, revertTexGfx, fPalette, 
 				palFormat, 0, fPalette.height, fModel.f3d, fModel.matWriteMethod)
 	else:
-		fImage = saveOrGetTextureDefinition(fMaterial, fModel, tex, texName, 
-			texFormat, convertTextureData)
+		if texProp.use_tex_reference:
+			fImage = FImage(texProp.tex_reference, None, None, width, height, None, False)
+		else:
+			fImage = saveOrGetTextureDefinition(fMaterial, fModel, tex, texName, 
+				texFormat, convertTextureData)
 	
 	if setTLUTMode and not isCITexture:
 		loadTexGfx.commands.append(DPSetTextureLUT('G_TT_NONE'))
@@ -1716,7 +1744,7 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image, imageName, texFormat, c
 					((((int(round(image.pixels[(j * image.size[0] + i) * image.channels + 0] * 0x1F)) & 0x1F) << 3) |
 					((int(round(image.pixels[(j * image.size[0] + i) * image.channels + 1] * 0x1F)) & 0x1F) >> 2)),
 
-					(((int(round(image.pixels[(j * image.size[0] + i) * image.channels + 1] * 0x1F)) & 0x02) << 6) | \
+					(((int(round(image.pixels[(j * image.size[0] + i) * image.channels + 1] * 0x1F)) & 0x03) << 6) | \
 					((int(round(image.pixels[(j * image.size[0] + i) * image.channels + 2] * 0x1F)) & 0x1F) << 1) | \
 					(1 if image.pixels[(j * image.size[0] + i) * image.channels + 3] > 0.5 else 0)))
 
@@ -2092,7 +2120,10 @@ def saveOtherModeLDefinitionAll(fMaterial, settings, defaults, defaultRenderMode
 			flagList, blendList = getRenderModeFlagList(settings, fMaterial)
 			cmd.flagList.extend(flagList)
 			if blendList is not None:
-				cmd.flagList.extend(blendList)
+				cmd.flagList.extend([
+					"GBL_c1(" + blendList[0] + ", " + blendList[1] + ", " + blendList[2] + ", " + blendList[3] + ")",
+					"GBL_c2(" + blendList[4] + ", " + blendList[5] + ", " + blendList[6] + ", " + blendList[7] + ")",
+				])
 		else:
 			cmd.flagList.extend(defaultRenderMode)
 
@@ -2128,9 +2159,11 @@ def getRenderModeFlagList(settings, fMaterial):
 				settings.rendermode_preset_cycle_1, 
 				settings.rendermode_preset_cycle_2]
 		else:
+			cycle2 = settings.rendermode_preset_cycle_1 + '2'
+			if cycle2 not in [value[0] for value in enumRenderModesCycle2]:
+				cycle2 = "G_RM_NOOP"
 			flagList = [
-				settings.rendermode_preset_cycle_1, 
-				settings.rendermode_preset_cycle_1 + '2']
+				settings.rendermode_preset_cycle_1, cycle2]
 	else:
 		if settings.g_mdsft_cycletype == 'G_CYC_2CYCLE':
 			blendList = \
@@ -2233,6 +2266,27 @@ def exportF3DtoC(dirPath, obj, DLFormat, transformMatrix,
 	writeCData(staticData, os.path.join(modelDirPath, 'header.h'),
 		os.path.join(modelDirPath, 'model.inc.c'))
 
+def removeDL(sourcePath, headerPath, DLName):
+	DLDataC = readFile(sourcePath)
+	originalDataC = DLDataC
+
+	DLDataH = readFile(headerPath)
+	originalDataH = DLDataH
+
+	matchResult = re.search("Gfx\s*" + re.escape(DLName) + "\s*\[\s*[0-9x]*\s*\]\s*=\s*\{([^}]*)}\s*;\s*", DLDataC, re.DOTALL)
+	if matchResult is not None:
+		DLDataC = DLDataC[:matchResult.start(0)] + DLDataC[matchResult.end(0):]
+
+	headerMatch = getDeclaration(DLDataH, DLName)
+	if headerMatch is not None:
+		DLDataH = DLDataH[:headerMatch.start(0)] + DLDataH[headerMatch.end(0):] 
+
+	if DLDataC != originalDataC:
+		writeFile(sourcePath, DLDataC)
+
+	if DLDataH != originalDataH:
+		writeFile(headerPath, DLDataH)
+
 class F3D_ExportDL(bpy.types.Operator):
 	# set bl_ properties
 	bl_idname = 'object.f3d_export_dl'
@@ -2252,7 +2306,7 @@ class F3D_ExportDL(bpy.types.Operator):
 			if not isinstance(obj.data, bpy.types.Mesh):
 				raise PluginError("Object is not a mesh.")
 
-			scaleValue = bpy.context.scene.blenderToSM64Scale
+			scaleValue = bpy.context.scene.blenderF3DScale
 			finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((
 				scaleValue, scaleValue, scaleValue))).to_4x4()
 
@@ -2305,8 +2359,9 @@ class F3D_ExportDLPanel(bpy.types.Panel):
 		col = self.layout.column()
 		col.operator(F3D_ExportDL.bl_idname)
 
-		col.prop(context.scene, 'DLExportPath')
 		prop_split(col, context.scene, 'DLName', 'Name')
+		prop_split(col, context.scene, 'DLExportPath', "Export Path")
+		prop_split(col, context.scene, "blenderF3DScale", "Scale")
 		prop_split(col, context.scene, 'matWriteMethod', "Material Write Method")
 		col.prop(context.scene, 'DLExportisStatic')
 		

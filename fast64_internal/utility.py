@@ -36,6 +36,31 @@ enumCompressionFormat = [
 	('yay0', 'YAY0', 'YAY0'),
 ]
 
+def getDeclaration(data, name):
+	matchResult = re.search("extern\s*[A-Za-z0-9\_]*\s*" + re.escape(name) + \
+		"\s*(\[[^;\]]*\])?;\s*", data, re.DOTALL)
+	return matchResult
+
+def hexOrDecInt(value):
+	if isinstance(value, int):
+		return value
+	elif "<<" in value:
+		i = value.index("<<")
+		return hexOrDecInt(value[:i]) << hexOrDecInt(value[i + 2:])
+	elif ">>" in value:
+		i = value.index(">>")
+		return hexOrDecInt(value[:i]) >> hexOrDecInt(value[i + 2:])
+	elif 'x' in value:
+		return int(value, 16)
+	else:
+		return int(value)
+
+def getOrMakeVertexGroup(obj, groupName):
+	for group in obj.vertex_groups:
+		if group.name == groupName:
+			return group
+	return obj.vertex_groups.new(name = groupName)
+
 def unhideAllAndGetHiddenList(scene):
 	hiddenObjs = []
 	for obj in scene.objects:
@@ -132,6 +157,58 @@ def copyPropertyGroup(oldProp, newProp):
 			copyPropertyCollection(sub_value, newCollection)
 		else:
 			setattr(newProp, sub_value_attr, sub_value)
+
+def propertyCollectionEquals(oldProp, newProp):
+	if len(oldProp) != len(newProp):
+		print("Unequal size: " + str(oldProp) + " " + str(len(oldProp)) + ", " + str(newProp) + str(len(newProp)))
+		return False
+
+	equivalent = True
+	for i in range(len(oldProp)):
+		item = oldProp[i]
+		newItem = newProp[i]
+		if isinstance(item, bpy.types.PropertyGroup):
+			equivalent &= propertyGroupEquals(item, newItem)
+		elif type(item).__name__ == "bpy_prop_collection_idprop":
+			equivalent &= propertyCollectionEquals(item, newItem)
+		else:
+			try:
+				iterator = iter(item)
+			except TypeError:
+				isEquivalent = newItem == item
+			else:
+				isEquivalent = tuple([i for i in newItem]) == tuple([ i for i in item])
+			if not isEquivalent:
+				pass #print("Not equivalent: " + str(item) + " " + str(newItem))
+			equivalent &= isEquivalent
+
+	return equivalent
+
+def propertyGroupEquals(oldProp, newProp):
+	equivalent = True
+	for sub_value_attr in oldProp.bl_rna.properties.keys():
+		if sub_value_attr == "rna_type":
+			continue
+		sub_value = getattr(oldProp, sub_value_attr)
+		if isinstance(sub_value, bpy.types.PropertyGroup):
+			equivalent &= propertyGroupEquals(sub_value, getattr(newProp, sub_value_attr))
+		elif type(sub_value).__name__ == "bpy_prop_collection_idprop":
+			newCollection = getattr(newProp, sub_value_attr)
+			copyPropertyCollection(sub_value, newCollection)
+		else:
+			newValue = getattr(newProp, sub_value_attr)
+			try:
+				iterator = iter(newValue)
+			except TypeError:
+				isEquivalent = newValue == sub_value
+			else:
+				isEquivalent = tuple([i for i in newValue]) == tuple([i for i in sub_value])
+
+			if not isEquivalent:
+				pass #print("Not equivalent: " + str(sub_value) + " " + str(newValue) + " " + str(sub_value_attr))
+			equivalent &= isEquivalent 
+	
+	return equivalent
 
 def writeCData(data, headerPath, sourcePath):
 	sourceFile = open(sourcePath, 'w', newline = '\n', encoding = 'utf-8')
@@ -285,9 +362,9 @@ def writeMaterialBase(baseDir):
 		matCFile = open(matCPath, 'w', newline = '\n')
 		matCFile.write(
 			'#include "types.h"\n' +\
-            '#include "rendering_graph_node.h"\n' +\
-            '#include "object_fields.h"\n' +\
-            '#include "materials.h"')
+			'#include "rendering_graph_node.h"\n' +\
+			'#include "object_fields.h"\n' +\
+			'#include "materials.h"')
 
 		# Write global texture load function here
 		# Write material.inc.c

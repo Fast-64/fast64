@@ -1,4 +1,4 @@
-import shutil, copy, bpy
+import shutil, copy, bpy, os
 
 from ..f3d.f3d_writer import *
 from ..f3d.f3d_material import *
@@ -6,18 +6,24 @@ from bpy.utils import register_class, unregister_class
 from .oot_constants import *
 from .oot_utility import *
 from .oot_scene_room import *
+from ..f3d.f3d_parser import *
 
 class OOTModel(FModel):
-	def __init__(self, f3dType, isHWv1, name, DLFormat):
+	def __init__(self, f3dType, isHWv1, name, DLFormat, drawLayerOverride):
+		self.drawLayerOverride = drawLayerOverride
 		FModel.__init__(self, f3dType, isHWv1, name, DLFormat, GfxMatWriteMethod.WriteAll)
 
 	def getDrawLayerV3(self, obj):
 		return obj.ootDrawLayer
 
 	def getRenderMode(self, drawLayer):
+		if self.drawLayerOverride:
+			drawLayerUsed = self.drawLayerOverride
+		else:
+			drawLayerUsed = drawLayer
 		defaultRenderModes = bpy.context.scene.world.ootDefaultRenderModes
-		cycle1 = getattr(defaultRenderModes, drawLayer.lower() + "Cycle1")
-		cycle2 = getattr(defaultRenderModes, drawLayer.lower() + "Cycle2")
+		cycle1 = getattr(defaultRenderModes, drawLayerUsed.lower() + "Cycle1")
+		cycle2 = getattr(defaultRenderModes, drawLayerUsed.lower() + "Cycle2")
 		return [cycle1, cycle2]
 
 	def getTextureSuffixFromFormat(self, texFmt):
@@ -33,6 +39,11 @@ class OOTModel(FModel):
 				gfxList.commands.append(SPDisplayList(
 					GfxList("0x" + format(i,'X') + '000000', GfxListTag.Material, DLFormat.Static)))
 		return
+
+	def onAddMesh(self, fMesh, contextObj):
+		if contextObj is not None and hasattr(contextObj, 'ootDynamicTransform'):
+			if contextObj.ootDynamicTransform.billboard:
+				fMesh.draw.commands.append(SPMatrix("0x01000000", "G_MTX_MODELVIEW | G_MTX_NOPUSH | G_MTX_MUL"))
 
 class OOTDynamicMaterialDrawLayer:
 	def __init__(self, opaque, transparent):
@@ -88,6 +99,176 @@ class OOTVertexGroupInfo(VertexGroupInfo):
 	def __init__(self):
 		self.vertexGroupToMatrixIndex = {}
 		VertexGroupInfo.__init__(self)
+
+#class OOTBox:
+#	def __init__(self):
+#		self.minBounds = [-2**8, -2**8]
+#		self.maxBounds = [2**8 - 1, 2**8 - 1]
+
+
+class OOTObjectCategorizer:
+	def __init__(self):
+		self.sceneObj = None
+		self.roomObjs = []
+		self.actors = []
+		self.transitionActors = []
+		self.meshes = []
+		self.entrances = []
+		self.waterBoxes = []
+
+	def sortObjects(self, allObjs):
+		for obj in allObjs:
+			if obj.data is None:
+				if obj.ootEmptyType == "Actor":
+					self.actors.append(obj)
+				elif obj.ootEmptyType == "Transition Actor":
+					self.transitionActors.append(obj)
+				elif obj.ootEmptyType == "Entrance":
+					self.entrances.append(obj)
+				elif obj.ootEmptyType == "Water Box":
+					self.waterBoxes.append(obj)
+				elif obj.ootEmptyType == "Room":
+					self.roomObjs.append(obj)
+				elif obj.ootEmptyType == "Scene":
+					self.sceneObj = obj
+			elif isinstance(obj.data, bpy.types.Mesh):
+				self.meshes.append(obj)
+
+# This also sets all origins relative to the scene object.
+def ootDuplicateHierarchy(obj, ignoreAttr, includeEmpties, objectCategorizer):
+	# Duplicate objects to apply scale / modifiers / linked data
+	bpy.ops.object.select_all(action = 'DESELECT')
+	ootSelectMeshChildrenOnly(obj, includeEmpties)
+	obj.select_set(True)
+	bpy.context.view_layer.objects.active = obj
+	bpy.ops.object.duplicate()
+	try:
+		tempObj = bpy.context.view_layer.objects.active
+		allObjs = bpy.context.selected_objects
+		bpy.ops.object.make_single_user(obdata = True)
+
+		objectCategorizer.sortObjects(allObjs)
+		meshObjs = objectCategorizer.meshes
+		bpy.ops.object.select_all(action = 'DESELECT')
+		for selectedObj in meshObjs:
+			selectedObj.select_set(True)
+		bpy.ops.object.transform_apply(location = False, 
+			rotation = True, scale = True, properties =  False)
+		
+		for selectedObj in meshObjs:
+			bpy.ops.object.select_all(action = 'DESELECT')
+			selectedObj.select_set(True)
+			bpy.context.view_layer.objects.active = selectedObj
+			for modifier in selectedObj.modifiers:
+				attemptModifierApply(modifier)
+		for selectedObj in meshObjs:
+			setOrigin(obj, selectedObj)
+		if ignoreAttr is not None:
+			for selectedObj in meshObjs:
+				if getattr(selectedObj, ignoreAttr):
+					for child in selectedObj.children:
+						bpy.ops.object.select_all(action = 'DESELECT')
+						child.select_set(True)
+						bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
+						selectedObj.parent.select_set(True)
+						bpy.ops.object.parent_set(keep_transform = True)
+					selectedObj.parent = None
+		applyRotation([tempObj], math.radians(90), 'X')
+		return tempObj, allObjs
+	except Exception as e:
+		cleanupDuplicatedObjects(allObjs)
+		obj.select_set(True)
+		bpy.context.view_layer.objects.active = obj
+		raise Exception(str(e))
+
+def ootSelectMeshChildrenOnly(obj, includeEmpties):
+	isMesh = isinstance(obj.data, bpy.types.Mesh)
+	isEmpty = (obj.data is None or \
+		isinstance(obj.data, bpy.types.Camera) or\
+		isinstance(obj.data, bpy.types.Curve)) and includeEmpties
+	if (isMesh or isEmpty):
+		obj.select_set(True)
+		obj.original_name = obj.name
+	for child in obj.children:
+		ootSelectMeshChildrenOnly(child, includeEmpties)
+
+def ootCleanupScene(originalSceneObj, allObjs):
+	cleanupDuplicatedObjects(allObjs)
+	originalSceneObj.select_set(True)
+	bpy.context.view_layer.objects.active = originalSceneObj
+
+class OOTF3DContext(F3DContext):
+	def __init__(self, f3d, limbList, basePath):
+		self.limbList = limbList
+		self.dlList = [] # in the order they are rendered
+		self.isBillboard = False
+		materialContext = createF3DMat(None, preset = 'oot_shaded_solid')
+		#materialContext.f3d_mat.rdp_settings.g_mdsft_cycletype = "G_CYC_1CYCLE"
+		F3DContext.__init__(self, f3d, basePath, materialContext)
+
+	def getLimbName(self, index):
+		return self.limbList[index]
+
+	def getBoneName(self, index):
+		return "bone" + format(index, "03") + "_" + self.getLimbName(index)
+	
+	def vertexFormatPatterns(self, data):
+		# position, uv, color/normal
+		if "VTX" in data:
+			return ["VTX\s*\(([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*)\)"]
+		else:
+			return F3DContext.vertexFormatPatterns(self, data)
+	
+	# For game specific instance, override this to be able to identify which verts belong to which bone.
+	def setCurrentTransform(self, name):
+		if name[:4].lower() == "0x0d":
+			self.currentTransformName = self.getLimbName(self.dlList[int(int(name[4:], 16) / MTX_SIZE)].limbIndex)
+		else:
+			try:
+				pointer = hexOrDecInt(name)
+			except:
+				self.currentTransformName = name
+			else:
+				if pointer >> 24 == 0x01:
+					self.isBillboard = True
+				else:
+					print("Unhandled matrix: " + name)
+	
+	def processDLName(self, name):
+		# Commands loaded to 0x0C are material related only.
+		try:
+			pointer = hexOrDecInt(name)
+		except:
+			return name
+		else:
+			segment = pointer >> 24
+			print("POINTER")
+			if segment >= 0x08 and segment <= 0x0D:
+				print("SETTING " + str(segment))
+				setattr(self.materialContext.ootMaterial.opaque, "segment" + format(segment, "1X"), True)
+				setattr(self.materialContext.ootMaterial.transparent, "segment" + format(segment, "1X"), True)
+			return None
+		return name
+
+	def processTextureName(self, textureName):
+		try:
+			pointer = hexOrDecInt(textureName)
+		except:
+			return textureName
+		else:
+			return textureName
+			#if (pointer >> 24) == 0x08:
+			#	print("Unhandled OOT pointer: " + textureName)
+
+	def clearMaterial(self):
+		self.isBillboard = False
+		clearOOTMaterialDrawLayerProperty(self.materialContext.ootMaterial.opaque)
+		clearOOTMaterialDrawLayerProperty(self.materialContext.ootMaterial.transparent)
+		F3DContext.clearMaterial(self)
+
+	def postMaterialChanged(self):
+		clearOOTMaterialDrawLayerProperty(self.materialContext.ootMaterial.opaque)
+		clearOOTMaterialDrawLayerProperty(self.materialContext.ootMaterial.transparent)
 
 # returns: 
 # 	mesh, 
@@ -164,8 +345,8 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 		# This doesn't handle case where vertices belong to a limb, but not triangles.
 		# Therefore we create a dummy DL
 		if anyConnectedToUnhandledBone:
-			fMesh = fModel.addMesh(vertexGroup, namePrefix, drawLayerOverride, False)
-			fMesh.draw.commands.append(SPEndDisplayList())
+			fMesh = fModel.addMesh(vertexGroup, namePrefix, drawLayerOverride, False, bone)
+			fModel.endDraw(fMesh, bone)
 			meshInfo.vertexGroupInfo.vertexGroupToMatrixIndex[currentGroupIndex] = nextDLIndex
 			return fMesh, False
 		else:
@@ -189,7 +370,7 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 		drawLayer = drawLayerOverride
 		
 		if drawLayerKey not in fMeshes:
-			fMesh = fModel.addMesh(vertexGroup, namePrefix, drawLayer, False)
+			fMesh = fModel.addMesh(vertexGroup, namePrefix, drawLayer, False, bone)
 			fMeshes[drawLayerKey] = fMesh
 			
 		checkForF3dMaterialInFaces(meshObj, material)
@@ -214,7 +395,7 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 
 			if drawLayerKey not in fMeshes:
 				# technically skinned, but for oot we don't have separate skinned/unskinned meshes.
-				fMesh = fModel.addMesh(vertexGroup, namePrefix, drawLayer, False)
+				fMesh = fModel.addMesh(vertexGroup, namePrefix, drawLayer, False, bone)
 				fMeshes[drawLayerKey] = fMesh
 
 			checkForF3dMaterialInFaces(meshObj, material)
@@ -228,7 +409,7 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 					meshObj, drawLayer, convertTextureData, currentGroupIndex, triConverterInfo, None, None)
 
 	for drawLayer, fMesh in fMeshes.items():
-		fMesh.draw.commands.append(SPEndDisplayList())
+		fModel.endDraw(fMesh, bone)
 
 	return fMeshes[drawLayerKey], len(skinnedFaces) > 0
 
@@ -236,6 +417,54 @@ ootEnumObjectMenu = [
 	("Scene", "Parent Scene Settings", "Scene"),
 	("Room", "Parent Room Settings", "Room"),
 ]
+
+def ootConvertMeshToC(originalObj, finalTransform, f3dType, isHWv1, name, folderName, DLFormat, saveTextures,
+	exportPath, isCustomExport, drawLayer, removeVanillaData):
+	name = toAlnum(name)
+
+	try:
+		obj, allObjs = ootDuplicateHierarchy(originalObj, None, False,  OOTObjectCategorizer())
+
+		fModel = OOTModel(f3dType, isHWv1, name, DLFormat, drawLayer)
+		triConverterInfo = TriangleConverterInfo(obj, None, fModel.f3d, finalTransform, getInfoDict(obj))
+		fMeshes = saveStaticModel(triConverterInfo, fModel, obj, finalTransform, fModel.name,
+			not saveTextures, False, 'oot')
+
+		# Since we provide a draw layer override, there should only be one fMesh.
+		for drawLayer, fMesh in fMeshes.items():
+			fMesh.draw.name = name
+
+		ootCleanupScene(originalObj, allObjs)
+
+	except Exception as e:
+		ootCleanupScene(originalObj, allObjs)
+		raise Exception(str(e))
+
+	data = CData()
+	data.source += '#include "ultra64.h"\n#include "global.h"\n'
+	if not isCustomExport:
+		data.source += '#include "' + folderName + '.h"\n\n'
+	else:
+		data.source += '\n'
+
+	exportData = fModel.to_c(
+		TextureExportSettings(False, saveTextures, "test"), OOTGfxFormatter(ScrollMethod.Vertex))
+
+	data.append(exportData.all())
+
+	path = ootGetPath(exportPath, isCustomExport, 'assets/objects/', folderName, False, False)
+	writeCData(data, 
+		os.path.join(path, name + '.h'),
+		os.path.join(path, name + '.c'))
+
+	if not isCustomExport:
+		addIncludeFiles(folderName, path, name)
+		if removeVanillaData:
+			headerPath = os.path.join(path, folderName + '.h')
+			sourcePath = os.path.join(path, folderName + '.c')
+			removeDL(sourcePath, headerPath, name)
+		
+	
 
 class OOT_DisplayListPanel(bpy.types.Panel):
 	bl_label = "Display List Inspector"
@@ -259,165 +488,97 @@ class OOT_DisplayListPanel(bpy.types.Panel):
 		box.prop(obj, "ignore_render")
 		box.prop(obj, "ignore_collision")
 
+		# Doesn't work since all static meshes are pre-transformed
+		#box.prop(obj.ootDynamicTransform, "billboard")
+
 		#drawParentSceneRoom(box, obj)
 
-def ootExportF3DtoC(basePath, obj, DLFormat, transformMatrix, 
-	f3dType, isHWv1, texDir, savePNG, texSeparate, includeChildren, name, levelName, groupName, customExport, headerType):
-	dirPath, texDir = getExportDir(customExport, basePath, headerType, 
-		levelName, texDir, name)
-
-	fModel = OOTModel(f3dType, isHWv1, name, DLFormat, 0)
-	fMesh = exportF3DCommon(obj, fModel, transformMatrix, 
-		includeChildren, name, DLFormat, not savePNG)
-
-	modelDirPath = os.path.join(dirPath, toAlnum(name))
-
-	if not os.path.exists(modelDirPath):
-		os.mkdir(modelDirPath)
-
-	if headerType == 'Actor':
-		scrollName = 'actor_dl_' + name
-	elif headerType == 'Level':
-		scrollName = levelName + '_level_dl_' + name
-
-	gfxFormatter = SM64GfxFormatter(ScrollMethod.Vertex)
-	exportData = fModel.to_c(
-		TextureExportSettings(texSeparate, savePNG, texDir), gfxFormatter)
-	staticData = exportData.staticData
-	dynamicData = exportData.dynamicData
-	texC = exportData.textureData
-
-	scrollData, hasScrolling = fModel.to_c_vertex_scroll(scrollName, gfxFormatter)
-	scroll_data = scrollData.source
-	cDefineScroll = scrollData.header 
-
-	modifyTexScrollFiles(basePath, modelDirPath, cDefineScroll, scroll_data, hasScrolling)
-	
-	if DLFormat == DLFormat.Static:
-		staticData.append(dynamicData)
-	else:
-		geoString = writeMaterialFiles(basePath, modelDirPath, 
-			'#include "actors/' + toAlnum(name) + '/header.h"', 
-			'#include "actors/' + toAlnum(name) + '/material.inc.h"',
-			dynamicData.header, dynamicData.source, '', customExport)
-
-	#fModel.save_textures(modelDirPath, not savePNG)
-
-	#fModel.freePalettes()
-
-	if texSeparate:
-		texCFile = open(os.path.join(modelDirPath, 'texture.inc.c'), 'w', newline='\n')
-		texCFile.write(texC.source)
-		texCFile.close()
-
-	modelPath = os.path.join(modelDirPath, 'model.inc.c')
-	outFile = open(modelPath, 'w', newline='\n')
-	outFile.write(staticData.source)
-	outFile.close()
-		
-	headerPath = os.path.join(modelDirPath, 'header.h')
-	cDefFile = open(headerPath, 'w', newline='\n')
-	cDefFile.write(staticData.header)
-	cDefFile.close()
-		
-	if not customExport:
-		if headerType == 'Actor':
-			# Write to group files
-			if groupName == '' or groupName is None:
-				raise PluginError("Actor header type chosen but group name not provided.")
-
-			groupPathC = os.path.join(dirPath, groupName + ".c")
-			groupPathH = os.path.join(dirPath, groupName + ".h")
-
-			writeIfNotFound(groupPathC, '\n#include "' + toAlnum(name) + '/model.inc.c"', '')
-			writeIfNotFound(groupPathH, '\n#include "' + toAlnum(name) + '/header.h"', '\n#endif')
-
-			if DLFormat != DLFormat.Static: # Change this
-				writeMaterialHeaders(basePath, 
-					'#include "actors/' + toAlnum(name) + '/material.inc.c"',
-					'#include "actors/' + toAlnum(name) + '/material.inc.h"')
-
-			texscrollIncludeC = '#include "actors/' + name + '/texscroll.inc.c"'
-			texscrollIncludeH = '#include "actors/' + name + '/texscroll.inc.h"'
-			texscrollGroup = groupName
-			texscrollGroupInclude = '#include "actors/' + groupName + '.h"'
-		
-		elif headerType == 'Level':
-			groupPathC = os.path.join(dirPath, "leveldata.c")
-			groupPathH = os.path.join(dirPath, "header.h")
-
-			writeIfNotFound(groupPathC, '\n#include "levels/' + levelName + '/' + \
-				toAlnum(name) + '/model.inc.c"', '')
-			writeIfNotFound(groupPathH, '\n#include "levels/' + levelName + '/' + \
-				toAlnum(name) + '/header.h"', '\n#endif')
-
-			if DLFormat != DLFormat.Static: # Change this
-				writeMaterialHeaders(basePath,
-					'#include "levels/' + levelName + '/' + toAlnum(name) + '/material.inc.c"',
-					'#include "levels/' + levelName + '/' + toAlnum(name) + '/material.inc.h"')
-			
-			texscrollIncludeC = '#include "levels/' + levelName + '/' + name + '/texscroll.inc.c"'
-			texscrollIncludeH = '#include "levels/' + levelName + '/' + name + '/texscroll.inc.h"'
-			texscrollGroup = levelName
-			texscrollGroupInclude = '#include "levels/' + levelName + '/header.h"'
-
-		modifyTexScrollHeadersGroup(basePath, texscrollIncludeC, texscrollIncludeH, 
-			texscrollGroup, cDefineScroll, texscrollGroupInclude, hasScrolling)
-
-	if bpy.context.mode != 'OBJECT':
-		bpy.ops.object.mode_set(mode = 'OBJECT')
-
-class OOT_ExportDL(bpy.types.Operator):
+class OOT_ImportDL(bpy.types.Operator):
 	# set bl_ properties
-	bl_idname = 'object.oot_export_dl'
-	bl_label = "Export Display List"
+	bl_idname = 'object.oot_import_dl'
+	bl_label = "Import DL"
 	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
+	# Called on demand (i.e. button press, menu item)
+	# Can also be called from operator search menu (Spacebar)
 	def execute(self, context):
+		obj = None
+		if context.mode != 'OBJECT':
+			bpy.ops.object.mode_set(mode = "OBJECT")
+
 		try:
-			if context.mode != 'OBJECT':
-				raise PluginError("Operator can only be used in object mode.")	
-			allObjs = context.selected_objects
-			if len(allObjs) == 0:
-				raise PluginError("No objects selected.")
-			obj = context.selected_objects[0]
-			if not isinstance(obj.data, bpy.types.Mesh):
-				raise PluginError("Object is not a mesh.")
+			name = context.scene.ootDLImportName
+			folderName = context.scene.ootDLImportFolderName
+			importPath = bpy.path.abspath(context.scene.ootDLImportCustomPath)
+			isCustomImport = context.scene.ootDLImportUseCustomPath
+			scale = context.scene.ootActorBlenderScale
+			basePath = bpy.path.abspath(context.scene.ootDecompPath)
+			removeDoubles = context.scene.ootDLRemoveDoubles
+			importNormals = context.scene.ootDLImportNormals
+			drawLayer = bpy.context.scene.ootDLImportDrawLayer
 
-			scaleValue = bpy.context.scene.ootBlenderScale
-			finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((
-				scaleValue, scaleValue, scaleValue))).to_4x4()
+			filepaths = [ootGetObjectPath(isCustomImport, importPath, folderName)]
+			if not isCustomImport:
+				filepaths.append(os.path.join(bpy.context.scene.ootDecompPath, "assets/objects/gameplay_keep/gameplay_keep.c"))
 
-		except Exception as e:
-			raisePluginError(self, e)
-			return {"CANCELLED"}
-		
-		try:
-			applyRotation([obj], math.radians(90), 'X')
+			importMeshC(filepaths, name, scale, removeDoubles, importNormals, drawLayer,
+				OOTF3DContext(F3D("F3DEX2/LX2", False), [name], basePath))
 
-			exportPath, levelName = getPathAndLevel(context.scene.ootDLCustomExport, 
-				context.scene.ootExportPath, context.scene.ootDLLevelName, 
-				context.scene.ootDLLevelOption)
-			#if not context.scene.ootDLCustomExport:
-			#	applyBasicTweaks(exportPath)
-			ootExportF3DtoC(exportPath, obj,
-				DLFormat.Static if context.scene.ootDLExportisStatic else DLFormat.Dynamic, finalTransform,
-				context.scene.f3d_type, context.scene.isHWv1,
-				bpy.context.scene.ootDLTexDir,
-				bpy.context.scene.ootDLSaveTextures or bpy.context.scene.ignoreTextureRestrictions,
-				bpy.context.scene.ootDLSeparateTextureDef,
-				bpy.context.scene.ootDLincludeChildren, bpy.context.scene.ootDLName, levelName, context.scene.ootDLGroupName,
-				context.scene.ootDLCustomExport,
-				context.scene.ootDLExportHeaderType)
-			self.report({'INFO'}, 'Success!')
-
-			applyRotation([obj], math.radians(-90), 'X')
-			return {'FINISHED'} # must return a set
+			self.report({'INFO'}, 'Success!')		
+			return {'FINISHED'}
 
 		except Exception as e:
 			if context.mode != 'OBJECT':
 				bpy.ops.object.mode_set(mode = 'OBJECT')
-			applyRotation([obj], math.radians(-90), 'X')
+			raisePluginError(self, e)
+			return {'CANCELLED'} # must return a set
+
+class OOT_ExportDL(bpy.types.Operator):
+	# set bl_ properties
+	bl_idname = 'object.oot_export_dl'
+	bl_label = "Export DL"
+	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
+
+	# Called on demand (i.e. button press, menu item)
+	# Can also be called from operator search menu (Spacebar)
+	def execute(self, context):
+		obj = None
+		if context.mode != 'OBJECT':
+			bpy.ops.object.mode_set(mode = "OBJECT")
+		if len(context.selected_objects) == 0:
+			raise PluginError("Mesh not selected.")
+		obj = context.active_object
+		if type(obj.data) is not bpy.types.Mesh:
+			raise PluginError("Mesh not selected.")
+
+		finalTransform = mathutils.Matrix.Scale(context.scene.ootActorBlenderScale, 4)
+
+		try:
+			#exportPath, levelName = getPathAndLevel(context.scene.geoCustomExport, 
+			#	context.scene.geoExportPath, context.scene.geoLevelName, 
+			#	context.scene.geoLevelOption)
+
+			saveTextures = bpy.context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions
+			isHWv1 = context.scene.isHWv1
+			f3dType = context.scene.f3d_type
+
+			name = context.scene.ootDLExportName
+			folderName = context.scene.ootDLExportFolderName
+			exportPath = bpy.path.abspath(context.scene.ootDLExportCustomPath)
+			isCustomExport = context.scene.ootDLExportUseCustomPath
+			drawLayer = context.scene.ootDLExportDrawLayer
+			removeVanillaData = context.scene.ootDLRemoveVanillaData
+
+			ootConvertMeshToC(obj, finalTransform, 
+				f3dType, isHWv1, name, folderName, DLFormat.Static, saveTextures,
+				exportPath, isCustomExport, drawLayer, removeVanillaData)
+
+			self.report({'INFO'}, 'Success!')		
+			return {'FINISHED'}
+
+		except Exception as e:
+			if context.mode != 'OBJECT':
+				bpy.ops.object.mode_set(mode = 'OBJECT')
 			raisePluginError(self, e)
 			return {'CANCELLED'} # must return a set
 
@@ -435,41 +596,29 @@ class OOT_ExportDLPanel(bpy.types.Panel):
 	# called every frame
 	def draw(self, context):
 		col = self.layout.column()
-		propsDLE = col.operator(OOT_ExportDL.bl_idname)
-
-		col.prop(context.scene, 'ootDLExportisStatic')
+		col.operator(OOT_ExportDL.bl_idname)
 		
-		col.prop(context.scene, 'ootDLCustomExport')
-		if context.scene.ootDLCustomExport:
-			col.prop(context.scene, 'ootDLExportPath')
-			prop_split(col, context.scene, 'ootDLName', 'Name')
-			if not bpy.context.scene.ignoreTextureRestrictions:
-				col.prop(context.scene, 'saveTextures')
-				if context.scene.saveTextures:
-					prop_split(col, context.scene, 'ootDLTexDir',
-						'Texture Include Path')	
-					col.prop(context.scene, 'ootDLSeparateTextureDef')
-			customExportWarning(col)
-		else:
-			prop_split(col, context.scene, 'ootDLExportHeaderType', 'Export Type')
-			prop_split(col, context.scene, 'ootDLName', 'Name')
-			if context.scene.ootDLExportHeaderType == 'Actor':
-				prop_split(col, context.scene, 'ootDLGroupName', 'Group Name')
-			elif context.scene.ootDLExportHeaderType == 'Level':
-				prop_split(col, context.scene, 'ootDLLevelOption', 'Level')
-				if context.scene.ootDLLevelOption == 'custom':
-					prop_split(col, context.scene, 'ootDLLevelName', 'Level Name')
-			if not bpy.context.scene.ignoreTextureRestrictions:
-				col.prop(context.scene, 'saveTextures')
-				if context.scene.saveTextures:
-					col.prop(context.scene, 'ootDLSeparateTextureDef')
-			
-			#decompFolderMessage(col)
-			#writeBox = makeWriteInfoBox(col)
-			#writeBoxExportType(writeBox, context.scene.ootDLExportHeaderType, 
-			#	context.scene.ootDLName, context.scene.ootDLLevelName, context.scene.ootDLLevelOption)
-			
-		col.prop(context.scene, 'ootDLincludeChildren')
+		prop_split(col, context.scene, 'ootDLExportName', "DL")
+		if context.scene.ootDLExportUseCustomPath:
+			prop_split(col, context.scene, 'ootDLExportCustomPath', "Folder")
+		else:		
+			prop_split(col, context.scene, 'ootDLExportFolderName', "Object")
+		prop_split(col, context.scene, "ootDLExportDrawLayer", "Export Draw Layer")
+		col.prop(context.scene, "ootDLExportUseCustomPath")
+		col.prop(context.scene, "ootDLRemoveVanillaData")
+
+		col.operator(OOT_ImportDL.bl_idname)
+
+		prop_split(col, context.scene, 'ootDLImportName', "DL")
+		if context.scene.ootDLImportUseCustomPath:
+			prop_split(col, context.scene, 'ootDLImportCustomPath', "File")
+		else:		
+			prop_split(col, context.scene, 'ootDLImportFolderName', "Object")
+		prop_split(col, context.scene, "ootDLImportDrawLayer", "Import Draw Layer")
+
+		col.prop(context.scene, "ootDLImportUseCustomPath")
+		col.prop(context.scene, "ootDLRemoveDoubles")
+		col.prop(context.scene, "ootDLImportNormals")
 
 class OOTDefaultRenderModesProperty(bpy.types.PropertyGroup):
 	expandTab : bpy.props.BoolProperty()
@@ -524,7 +673,16 @@ class OOT_MaterialPanel(bpy.types.Panel):
 		layout = self.layout
 		mat = context.material
 		col = layout.column()
-		drawOOTMaterialProperty(col.box().column(), mat.ootMaterial, mat.f3d_mat.draw_layer.oot)
+
+		if hasattr(context, "object") and context.object is not None and \
+			context.object.parent is not None and isinstance(context.object.parent.data, bpy.types.Armature):
+			drawLayer = context.object.parent.ootDrawLayer
+			if drawLayer != mat.f3d_mat.draw_layer.oot:
+				col.label(text = "Draw layer is being overriden by skeleton.", icon = "ERROR")
+		else:
+			drawLayer = mat.f3d_mat.draw_layer.oot
+
+		drawOOTMaterialProperty(col.box().column(), mat.ootMaterial, drawLayer)
 
 def drawOOTMaterialDrawLayerProperty(layout, matDrawLayerProp, suffix):
 	#layout.box().row().label(text = title)
@@ -536,6 +694,11 @@ def drawOOTMaterialDrawLayerProperty(layout, matDrawLayerProp, suffix):
 			name = "Segment " + format(i, 'X') + " " + suffix
 			col.prop(matDrawLayerProp, "segment" + format(i, 'X'), text = name)
 
+def clearOOTMaterialDrawLayerProperty(matDrawLayerProp):
+	for i in range(0x08, 0x0E):
+		setattr(matDrawLayerProp, "segment" + format(i, 'X'), False)
+
+
 drawLayerSuffix = {
 	"Opaque" : "OPA",
 	"Transparent" : 'XLU',
@@ -543,6 +706,8 @@ drawLayerSuffix = {
 }
 
 def drawOOTMaterialProperty(layout, matProp, drawLayer):
+	if drawLayer == "Overlay":
+		return
 	suffix = "(" + drawLayerSuffix[drawLayer] + ")"
 	layout.box().column().label(text = "OOT Dynamic Material Properties " + suffix)
 	layout.label(text = "See gSPSegment calls in z_scene_table.c.")
@@ -562,11 +727,16 @@ class OOTDynamicMaterialProperty(bpy.types.PropertyGroup):
 	opaque : bpy.props.PointerProperty(type = OOTDynamicMaterialDrawLayerProperty)
 	transparent : bpy.props.PointerProperty(type = OOTDynamicMaterialDrawLayerProperty)
 
+class OOTDynamicTransformProperty(bpy.types.PropertyGroup):
+	billboard : bpy.props.BoolProperty(name = "Billboard")
+
 oot_dl_writer_classes = (
 	OOTDefaultRenderModesProperty,
 	OOTDynamicMaterialDrawLayerProperty,
 	OOTDynamicMaterialProperty,
-	#OOT_ExportDL,
+	OOTDynamicTransformProperty,
+	OOT_ExportDL,
+	OOT_ImportDL,
 )
 
 oot_dl_writer_panel_classes = (
@@ -574,6 +744,7 @@ oot_dl_writer_panel_classes = (
 	OOT_DisplayListPanel,
 	OOT_DrawLayersPanel,
 	OOT_MaterialPanel,
+	OOT_ExportDLPanel,
 )
 
 def oot_dl_writer_panel_register():
@@ -589,34 +760,36 @@ def oot_dl_writer_register():
 		register_class(cls)
 
 	bpy.types.Object.ootDrawLayer = bpy.props.EnumProperty(items = ootEnumDrawLayers, default = 'Opaque')
+
+	# Doesn't work since all static meshes are pre-transformed
+	#bpy.types.Object.ootDynamicTransform = bpy.props.PointerProperty(type = OOTDynamicTransformProperty)
 	bpy.types.World.ootDefaultRenderModes = bpy.props.PointerProperty(type = OOTDefaultRenderModesProperty)
 
-	bpy.types.Scene.ootLevelDLExport = bpy.props.EnumProperty(items = ootEnumSceneID, 
-		name = 'Level', default = 'SCENE_YDAN')
-	bpy.types.Scene.ootDLExportPath = bpy.props.StringProperty(
-		name = 'Directory', subtype = 'FILE_PATH')
-	bpy.types.Scene.ootDLExportisStatic = bpy.props.BoolProperty(
-		name = 'Static DL', default = True)
-	bpy.types.Scene.ootDLDefinePath = bpy.props.StringProperty(
-		name = 'Definitions Filepath', subtype = 'FILE_PATH')
-	bpy.types.Scene.ootDLTexDir = bpy.props.StringProperty(
-		name ='Include Path', default = 'levels/bob')
-	bpy.types.Scene.ootDLSeparateTextureDef = bpy.props.BoolProperty(
-		name = 'Save texture.inc.c separately')
-	bpy.types.Scene.ootDLincludeChildren = bpy.props.BoolProperty(
-		name = 'Include Children')
-	bpy.types.Scene.ootDLName = bpy.props.StringProperty(
-		name = 'Name', default = 'mario')
-	bpy.types.Scene.ootDLCustomExport = bpy.props.BoolProperty(
-		name = 'Custom Export Path')
-	bpy.types.Scene.ootDLExportHeaderType = bpy.props.EnumProperty(
-		items = enumExportHeaderType, name = 'Header Export', default = 'Actor')
-	bpy.types.Scene.ootDLGroupName = bpy.props.StringProperty(name = 'Group Name', 
-		default = 'group0')
-	bpy.types.Scene.ootDLLevelName = bpy.props.StringProperty(name = 'Level', 
-		default = 'bob')
-	bpy.types.Scene.ootDLLevelOption = bpy.props.EnumProperty(
-		items = ootEnumSceneID, name = 'Level', default = 'SCENE_YDAN')
+	bpy.types.Scene.ootDLExportName = bpy.props.StringProperty(
+		name = "DL Name", default = "gBoulderFragmentsDL")
+	bpy.types.Scene.ootDLExportFolderName = bpy.props.StringProperty(
+		name = "DL Folder", default = "gameplay_keep")
+	bpy.types.Scene.ootDLExportCustomPath = bpy.props.StringProperty(
+		name ='Custom DL Path', subtype = 'FILE_PATH')
+	bpy.types.Scene.ootDLExportUseCustomPath = bpy.props.BoolProperty(
+		name = "Use Custom Path")
+	bpy.types.Scene.ootDLRemoveVanillaData = bpy.props.BoolProperty(
+		name = "Replace Vanilla DLs")
+
+	bpy.types.Scene.ootDLImportName = bpy.props.StringProperty(
+		name = "DL Name", default = "gBoulderFragmentsDL")
+	bpy.types.Scene.ootDLImportFolderName = bpy.props.StringProperty(
+		name = "DL Folder", default = "gameplay_keep")
+	bpy.types.Scene.ootDLImportCustomPath = bpy.props.StringProperty(
+		name ='Custom DL Path', subtype = 'FILE_PATH')
+	bpy.types.Scene.ootDLImportUseCustomPath = bpy.props.BoolProperty(
+		name = "Use Custom Path")
+
+	bpy.types.Scene.ootDLRemoveDoubles = bpy.props.BoolProperty(name = "Remove Doubles", default = True)
+	bpy.types.Scene.ootDLImportNormals = bpy.props.BoolProperty(name = "Import Normals", default = True)
+	bpy.types.Scene.ootDLImportDrawLayer = bpy.props.EnumProperty(name = "Draw Layer", items = ootEnumDrawLayers)
+
+	bpy.types.Scene.ootDLExportDrawLayer = bpy.props.EnumProperty(name = "Draw Layer", items = ootEnumDrawLayers)
 
 	bpy.types.Material.ootMaterial = bpy.props.PointerProperty(type = OOTDynamicMaterialProperty)
 	bpy.types.Object.ootObjectMenu = bpy.props.EnumProperty(items = ootEnumObjectMenu)
@@ -625,17 +798,22 @@ def oot_dl_writer_unregister():
 	for cls in reversed(oot_dl_writer_classes):
 		unregister_class(cls)
 
-	del bpy.types.Scene.ootLevelDLExport
-	del bpy.types.Scene.ootDLExportPath
-	del bpy.types.Scene.ootDLExportisStatic
-	del bpy.types.Scene.ootDLDefinePath
-	del bpy.types.Scene.ootDLTexDir
-	del bpy.types.Scene.ootDLSeparateTextureDef
-	del bpy.types.Scene.ootDLincludeChildren
-	del bpy.types.Scene.ootDLName
-	del bpy.types.Scene.ootDLCustomExport
-	del bpy.types.Scene.ootDLExportHeaderType
-	del bpy.types.Scene.ootDLGroupName
-	del bpy.types.Scene.ootDLLevelName
-	del bpy.types.Scene.ootDLLevelOption
+	del bpy.types.Scene.ootDLExportName
+	del bpy.types.Scene.ootDLExportFolderName
+	del bpy.types.Scene.ootDLExportCustomPath
+	del bpy.types.Scene.ootDLExportUseCustomPath
+	del bpy.types.Scene.ootDLRemoveVanillaData
+
+	del bpy.types.Scene.ootDLImportName
+	del bpy.types.Scene.ootDLImportFolderName
+	del bpy.types.Scene.ootDLImportCustomPath
+	del bpy.types.Scene.ootDLImportUseCustomPath
+
+	del bpy.types.Scene.ootDLRemoveDoubles
+	del bpy.types.Scene.ootDLImportNormals
+	del bpy.types.Scene.ootDLImportDrawLayer
+
+	del bpy.types.Scene.ootDLExportDrawLayer
+
 	del bpy.types.Material.ootMaterial
+	del bpy.types.Object.ootObjectMenu
