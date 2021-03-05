@@ -3,6 +3,7 @@ from math import pi, ceil
 from io import BytesIO
 from bpy.utils import register_class, unregister_class
 
+from .f3d_enums import *
 from .f3d_constants import *
 from .f3d_material import all_combiner_uses, getMaterialScrollDimensions, getTmemWordUsage, getTmemMax, bitSizeDict, texBitSizeOf, texFormatOf
 from .f3d_gbi import *
