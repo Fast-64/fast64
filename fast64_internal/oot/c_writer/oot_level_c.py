@@ -529,7 +529,8 @@ def ootPathListToC(scene):
 	data.header = "extern Path " + scene.pathListName() + "[" + str(len(scene.pathList)) + "];\n"
 	data.source = "Path " + scene.pathListName() + "[" + str(len(scene.pathList)) + "] = {\n"
 	pathData = CData()
-	for path in scene.pathList:
+	for i in range(len(scene.pathList)):
+		path = scene.pathList[i]
 		data.source += '\t' + "{ " + str(len(path.points)) + ', (u32)' + path.pathName() + " },\n"
 		pathData.append(ootPathToC(path))
 	data.source += '};\n\n'

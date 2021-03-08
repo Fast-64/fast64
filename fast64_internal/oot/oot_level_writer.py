@@ -221,6 +221,13 @@ def readCamPos(camPosProp, obj, scene, sceneObj, transformMatrix):
 		getCustomProperty(camPosProp, 'camSType'), camPosProp.hasPositionData,
 		translation, rotation, int(round(math.degrees(obj.data.angle))), camPosProp.jfifID)
 
+def readPathProp(pathProp, obj, scene, sceneObj, sceneName, transformMatrix):
+	relativeTransform = transformMatrix @ sceneObj.matrix_world.inverted() @ obj.matrix_world
+	index = obj.ootSplineProperty.index
+	if index in scene.pathList:
+		raise PluginError("Error: " + obj.name + "has a repeated spline index: " + str(index))
+	scene.pathList[index] = ootConvertPath(sceneName, index, obj, relativeTransform)
+
 def ootConvertScene(originalSceneObj, transformMatrix, 
 	f3dType, isHWv1, sceneName, DLFormat, convertTextureData):
 
@@ -271,8 +278,7 @@ def ootConvertScene(originalSceneObj, transformMatrix,
 				camPosProp = obj.ootCameraPositionProperty
 				readCamPos(camPosProp, obj, scene, sceneObj, transformMatrix)
 			elif isinstance(obj.data, bpy.types.Curve) and isCurveValid(obj):
-				relativeTransform = transformMatrix @ sceneObj.matrix_world.inverted() @ obj.matrix_world
-				scene.pathList.append(ootConvertPath(sceneName, len(scene.pathList), obj, relativeTransform))
+				readPathProp(obj.ootSplineProperty, obj, scene, sceneObj, sceneName, transformMatrix)
 		
 		scene.validateIndices()
 		exportCollisionCommon(scene.collision, sceneObj, transformMatrix, True, sceneName)
@@ -392,8 +398,7 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 		camPosProp = obj.ootCameraPositionProperty
 		readCamPos(camPosProp, obj, scene, sceneObj, transformMatrix)
 	elif isinstance(obj.data, bpy.types.Curve) and isCurveValid(obj):
-		relativeTransform = transformMatrix @ sceneObj.matrix_world.inverted() @ obj.matrix_world
-		scene.pathList.append(ootConvertPath(scene.name, len(scene.pathList), obj, relativeTransform))
+		readPathProp(obj.ootSplineProperty, obj, scene, sceneObj, scene.name, transformMatrix)
 	
 	for childObj in obj.children:
 		ootProcessEmpties(scene, room, sceneObj, childObj, transformMatrix)

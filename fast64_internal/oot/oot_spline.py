@@ -47,14 +47,20 @@ class OOTSplinePanel(bpy.types.Panel):
 		curve = context.object.data
 		if curve.splines[0].type != 'NURBS':
 			box.label(text = 'Only NURBS curves are compatible.')
+		else:
+			prop_split(box, context.object.ootSplineProperty, "index", "Index")
 		
 		#drawParentSceneRoom(box, context.object)
+
+class OOTSplineProperty(bpy.types.PropertyGroup):
+	index : bpy.props.IntProperty(default = 0, min = 0)
 
 def isCurveValid(obj):
 	curve = obj.data
 	return isinstance(curve, bpy.types.Curve) and len(curve.splines) == 1 and curve.splines[0].type == 'NURBS'
 
 oot_spline_classes = (
+	OOTSplineProperty,
 )
 
 
@@ -74,8 +80,12 @@ def oot_spline_panel_unregister():
 def oot_spline_register():
 	for cls in oot_spline_classes:
 		register_class(cls)
+	
+	bpy.types.Object.ootSplineProperty = bpy.props.PointerProperty(type = OOTSplineProperty)
 
 def oot_spline_unregister():
 
 	for cls in reversed(oot_spline_classes):
 		unregister_class(cls)
+
+	del bpy.types.Object.ootSplineProperty

@@ -90,7 +90,7 @@ class OOTScene:
 		self.cutsceneHeaders = []
 
 		self.exitList = []
-		self.pathList = []
+		self.pathList = {}
 		self.cameraList = []
 
 		self.custcene = None
@@ -148,6 +148,7 @@ class OOTScene:
 		self.collision.cameraData.validateCamPositions()
 		self.validateStartPositions()
 		self.validateRoomIndices()
+		self.validatePathIndices()
 
 	def validateStartPositions(self):
 		count = 0
@@ -162,6 +163,14 @@ class OOTScene:
 		while count < len(self.rooms):
 			if count not in self.rooms:
 				raise PluginError("Error: Room indices do not have a consecutive list of indices. " +\
+					"Missing index: " + str(count))
+			count = count + 1
+
+	def validatePathIndices(self):
+		count = 0
+		while count < len(self.pathList):
+			if count not in self.pathList:
+				raise PluginError("Error: Path list does not have a consecutive list of indices.\n" +\
 					"Missing index: " + str(count))
 			count = count + 1
 
