@@ -185,6 +185,71 @@ class OOTCollisionPolygon:
 		return self.indices[2] & 0x1FFF
 
 class OOTPolygonType:
+	def __eq__(self, other):
+		return \
+			self.eponaBlock == other.eponaBlock and\
+			self.decreaseHeight == other.decreaseHeight and\
+			self.floorSetting == other.floorSetting and\
+			self.wallSetting == other.wallSetting and\
+			self.floorProperty == other.floorProperty and\
+			self.exitID == other.exitID and\
+			self.cameraID == other.cameraID and\
+			self.isWallDamage == other.isWallDamage and\
+			self.enableConveyor == other.enableConveyor and\
+			self.conveyorRotation == other.conveyorRotation and\
+			self.conveyorSpeed == other.conveyorSpeed and\
+			self.hookshotable == other.hookshotable and\
+			self.echo == other.echo and\
+			self.lightingSetting == other.lightingSetting and\
+			self.terrain == other.terrain and\
+			self.sound == other.sound and\
+			self.ignoreCameraCollision == other.ignoreCameraCollision and\
+			self.ignoreActorCollision == other.ignoreActorCollision and\
+			self.ignoreProjectileCollision == other.ignoreProjectileCollision
+	
+	def __ne__(self, other):
+		return \
+			self.eponaBlock != other.eponaBlock or\
+			self.decreaseHeight != other.decreaseHeight or\
+			self.floorSetting != other.floorSetting or\
+			self.wallSetting != other.wallSetting or\
+			self.floorProperty != other.floorProperty or\
+			self.exitID != other.exitID or\
+			self.cameraID != other.cameraID or\
+			self.isWallDamage != other.isWallDamage or\
+			self.enableConveyor != other.enableConveyor or\
+			self.conveyorRotation != other.conveyorRotation or\
+			self.conveyorSpeed != other.conveyorSpeed or\
+			self.hookshotable != other.hookshotable or\
+			self.echo != other.echo or\
+			self.lightingSetting != other.lightingSetting or\
+			self.terrain != other.terrain or\
+			self.sound != other.sound or\
+			self.ignoreCameraCollision != other.ignoreCameraCollision or\
+			self.ignoreActorCollision != other.ignoreActorCollision or\
+			self.ignoreProjectileCollision != other.ignoreProjectileCollision
+
+	def __hash__(self):
+		return hash((self.eponaBlock, 
+			self.decreaseHeight, 
+			self.floorSetting, 
+			self.wallSetting, 
+			self.floorProperty, 
+			self.exitID, 
+			self.cameraID, 
+			self.isWallDamage, 
+			self.enableConveyor, 
+			self.conveyorRotation, 
+			self.conveyorSpeed, 
+			self.hookshotable, 
+			self.echo, 
+			self.lightingSetting, 
+			self.terrain, 
+			self.sound, 
+			self.ignoreCameraCollision, 
+			self.ignoreActorCollision, 
+			self.ignoreProjectileCollision))
+
 	def __init__(self):
 		self.eponaBlock = None #eponaBlock
 		self.decreaseHeight = None #decreaseHeight
@@ -474,8 +539,7 @@ def exportCollisionCommon(collision, obj, transformMatrix, includeChildren, name
 	collisionDict = {}
 
 	addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix, collision.bounds)
-	for material, faces in collisionDict.items():
-		polygonType = getPolygonType(material.ootCollisionProperty)
+	for polygonType, faces in collisionDict.items():
 		collision.polygonGroups[polygonType] = []
 		for (faceVerts, normal, distance) in faces:
 			indices = []
@@ -533,7 +597,7 @@ def addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix, 
 		obj.data.calc_loop_triangles()
 		for face in obj.data.loop_triangles:
 			material = obj.material_slots[face.material_index].material
-			#polygonType = getPolygonType(material.ootCollisionProperty)
+			polygonType = getPolygonType(material.ootCollisionProperty)
 
 			planePoint = transformMatrix @ obj.data.vertices[face.vertices[0]].co
 			(x1, y1, z1) = roundPosition(planePoint)
@@ -561,9 +625,9 @@ def addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix, 
 				print("Ignore denormalized triangle.")
 				continue
 
-			if material not in collisionDict:
-				collisionDict[material] = []
-			collisionDict[material].append(((
+			if polygonType not in collisionDict:
+				collisionDict[polygonType] = []
+			collisionDict[polygonType].append(((
 				(x1, y1, z1),
 				(x2, y2, z2),
 				(x3, y3, z3)), normal, distance))

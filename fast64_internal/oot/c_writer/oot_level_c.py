@@ -503,7 +503,7 @@ def ootLightToC(light):
 
 def ootLightSettingsToC(scene, useIndoorLighting, headerIndex):
 	data = CData()
-	lightArraySize = len(scene.lights) * (1 if useIndoorLighting else 4)
+	lightArraySize = len(scene.lights)
 	data.header = "extern LightSettings " + scene.lightListName(headerIndex) + "[" + str(lightArraySize) + "];\n"
 	data.source = "LightSettings " + scene.lightListName(headerIndex) + "[" + str(lightArraySize) + "] = {\n"
 	for light in scene.lights:

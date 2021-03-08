@@ -723,6 +723,8 @@ class OOTDynamicMaterialDrawLayerProperty(bpy.types.PropertyGroup):
 	segmentC : bpy.props.BoolProperty()
 	segmentD : bpy.props.BoolProperty()
 
+# The reason these are separate is for the case when the user changes the material draw layer, but not the 
+# dynamic material calls. This could cause crashes which would be hard to detect.
 class OOTDynamicMaterialProperty(bpy.types.PropertyGroup):
 	opaque : bpy.props.PointerProperty(type = OOTDynamicMaterialDrawLayerProperty)
 	transparent : bpy.props.PointerProperty(type = OOTDynamicMaterialDrawLayerProperty)
