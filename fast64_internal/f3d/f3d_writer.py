@@ -398,6 +398,8 @@ def saveStaticModel(triConverterInfo, fModel, obj, transformMatrix, ownerName, c
 
 			if obj.use_f3d_culling and (fModel.f3d.F3DEX_GBI or fModel.f3d.F3DEX_GBI_2):
 				addCullCommand(obj, fMesh, transformMatrix, fModel.matWriteMethod)
+		else:
+			fMesh = fMeshes[drawLayer]
 
 		checkForF3dMaterialInFaces(obj, material)
 		fMaterial, texDimensions = \
