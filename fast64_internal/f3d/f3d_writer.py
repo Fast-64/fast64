@@ -868,6 +868,7 @@ def getF3DVert(loop, face, convertInfo, mesh):
 	position = mesh.vertices[loop.vertex_index].co.copy().freeze()
 	# N64 is -Y, Blender is +Y
 	uv = convertInfo.uv_data[loop.index].uv.copy()
+	uv[:] = [field if not math.isnan(field) else 0 for field in uv]
 	uv[1] = 1 - uv[1]
 	uv = uv.freeze()
 	colorOrNormal = getLoopColorOrNormal(loop, face, 
