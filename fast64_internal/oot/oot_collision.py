@@ -552,11 +552,28 @@ def exportCollisionCommon(collision, obj, transformMatrix, includeChildren, name
 					indices.append(index)
 			collision.polygonGroups[polygonType].append(OOTCollisionPolygon(indices, normal, distance))
 
-def exportCollisionToC(obj, transformMatrix, includeChildren, name, isCustomExport, folderName, 
+def exportCollisionToC(originalObj, transformMatrix, includeChildren, name, isCustomExport, folderName, 
 	exportPath):
 	collision = OOTCollision(name)
 	collision.cameraData = OOTCameraData(name)
-	exportCollisionCommon(collision, obj, transformMatrix, includeChildren, name)
+
+	if bpy.context.scene.exportHiddenGeometry:
+		hiddenObjs = unhideAllAndGetHiddenList(bpy.context.scene)
+
+	# Don't remove ignore_render, as we want to resuse this for collision
+	obj, allObjs = \
+		ootDuplicateHierarchy(originalObj, None, True, OOTObjectCategorizer())
+
+	if bpy.context.scene.exportHiddenGeometry:
+		hideObjsInList(hiddenObjs)
+
+	try:
+		exportCollisionCommon(collision, obj, transformMatrix, includeChildren, name)
+		ootCleanupScene(originalObj, allObjs)
+	except Exception as e:
+		ootCleanupScene(originalObj, allObjs)
+		raise Exception(str(e))
+
 	collisionC = ootCollisionToC(collision)
 	
 	data = CData()
