@@ -1541,7 +1541,6 @@ def saveTextureLoading(fMaterial, fImage, loadTexGfx, clamp_S, mirror_S, clamp_T
 		line = (((int(SH - SL) + 1) >> 1) + 7) >> 3
 
 		if not fImage.isLargeTexture and fImage.width % texelsPerWord == 0:
-			loadTexGfx.commands.extend([Load])
 			loadTexGfx.commands.extend([
 				DPTileSync(), # added in
 				DPSetTextureImage(fmt, 'G_IM_SIZ_16b', 1, fImage),
