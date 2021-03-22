@@ -36,6 +36,10 @@ enumCompressionFormat = [
 	('yay0', 'YAY0', 'YAY0'),
 ]
 
+
+def isPowerOf2(n):
+	return (n & (n-1) == 0) and n != 0
+
 def getDeclaration(data, name):
 	matchResult = re.search("extern\s*[A-Za-z0-9\_]*\s*" + re.escape(name) + \
 		"\s*(\[[^;\]]*\])?;\s*", data, re.DOTALL)

@@ -1524,7 +1524,9 @@ def saveTextureLoading(fMaterial, fImage, loadTexGfx, clamp_S, mirror_S, clamp_T
 	siz = texBitSizeOf[tex_format]
 	pal = 0 if fmt[:2] != 'CI' else 0 # handle palettes
 
-	texelsPerWord = int(round(64 / bitSizeDict[siz]))
+	#texelsPerWord = int(round(64 / bitSizeDict[siz]))
+	useLoadBlock = not fImage.isLargeTexture and \
+		isPowerOf2(fImage.width) and isPowerOf2(fImage.height)
 
 	# LoadTile will pad rows to 64 bit word alignment, while
 	# LoadBlock assumes this is already done.
@@ -1540,7 +1542,7 @@ def saveTextureLoading(fMaterial, fImage, loadTexGfx, clamp_S, mirror_S, clamp_T
 		dxt = f3d.CALC_DXT_4b(fImage.width)
 		line = (((int(SH - SL) + 1) >> 1) + 7) >> 3
 
-		if not fImage.isLargeTexture and fImage.width % texelsPerWord == 0:
+		if useLoadBlock:
 			loadTexGfx.commands.extend([
 				DPTileSync(), # added in
 				DPSetTextureImage(fmt, 'G_IM_SIZ_16b', 1, fImage),
@@ -1564,7 +1566,7 @@ def saveTextureLoading(fMaterial, fImage, loadTexGfx, clamp_S, mirror_S, clamp_T
 		line = (((int(SH - SL) + 1) * \
 			f3d.G_IM_SIZ_VARS[siz + '_LINE_BYTES']) + 7) >> 3
 
-		if not fImage.isLargeTexture and fImage.width % texelsPerWord == 0:
+		if useLoadBlock:
 			loadTexGfx.commands.extend([
 				DPTileSync(), # added in
 
