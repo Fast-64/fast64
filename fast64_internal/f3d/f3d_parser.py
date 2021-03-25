@@ -1822,7 +1822,7 @@ def parseMacroArgs(data):
 		if (data[end] == ',' or end == len(data) -1) and parenthesesCount == 0:
 			if end == len(data)-1:
 				end += 1
-			param = data[start:end].strip()
+			param = "".join(data[start:end].split())
 			params.append(param)
 			start = end + 1
 

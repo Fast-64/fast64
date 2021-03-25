@@ -607,9 +607,9 @@ def ootAddLimbRecursively(limbIndex, skeletonData, obj, armatureObj, parentTrans
 	if limbIndex == 0:
 		translation = [0,0,0]
 	else:
-		translation = [int(matchResult.group(1)), int(matchResult.group(2)), int(matchResult.group(3))]
-	nextChildIndex = int(matchResult.group(4))
-	nextSiblingIndex = int(matchResult.group(5))
+		translation = [hexOrDecInt(matchResult.group(1)), hexOrDecInt(matchResult.group(2)), hexOrDecInt(matchResult.group(3))]
+	nextChildIndex = hexOrDecInt(matchResult.group(4))
+	nextSiblingIndex = hexOrDecInt(matchResult.group(5))
 
 	#str(limbIndex) + " " + str(translation) + " " + str(nextChildIndex) + " " + \
 	#	str(nextSiblingIndex) + " " + str(dlName))
