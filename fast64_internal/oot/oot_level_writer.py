@@ -367,7 +367,9 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 		if obj.ootEmptyType == "Actor":
 			actorProp = obj.ootActorProperty
 			addActor(room, OOTActor(getCustomProperty(actorProp, 'actorID'), 
-				translation, rotation, actorProp.actorParam), actorProp, "actorList", obj.name)
+				translation, rotation, actorProp.actorParam,
+				None if not actorProp.rotOverride else (actorProp.rotOverrideX, actorProp.rotOverrideY, actorProp.rotOverrideZ)),
+				actorProp, "actorList", obj.name)
 		elif obj.ootEmptyType == "Transition Actor":
 			transActorProp = obj.ootTransitionActorProperty
 			addActor(scene, OOTTransitionActor(
@@ -391,7 +393,7 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 			#scene.entranceList.append(OOTEntrance(room.roomIndex, spawnIndex))
 			addStartPosition(scene, spawnIndex, OOTActor(
 				"ACTOR_PLAYER" if not entranceProp.customActor else entranceProp.actor.actorIDCustom,
-				translation, rotation, entranceProp.actor.actorParam), entranceProp.actor,  obj.name)
+				translation, rotation, entranceProp.actor.actorParam, None), entranceProp.actor,  obj.name)
 		elif obj.ootEmptyType == "Water Box":
 			ootProcessWaterBox(sceneObj, obj, transformMatrix, scene, room.roomIndex)
 	elif isinstance(obj.data, bpy.types.Camera):

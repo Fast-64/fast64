@@ -205,9 +205,15 @@ def ootActorToC(actor):
 		str(int(round(actor.position[0]))) + ', ' + \
 		str(int(round(actor.position[1]))) + ', ' + \
 		str(int(round(actor.position[2]))) + ', ' + \
-		str(int(round(actor.rotation[0]))) + ', ' + \
-		str(int(round(actor.rotation[1]))) + ', ' + \
-		str(int(round(actor.rotation[2]))) + ', ' + \
+		((
+		actor.rotOverride[0] + ', ' +
+		actor.rotOverride[1] + ', ' +
+		actor.rotOverride[2] + ', '
+		) if actor.rotOverride is not None else (
+		str(int(round(actor.rotation[0]))) + ', ' +
+		str(int(round(actor.rotation[1]))) + ', ' +
+		str(int(round(actor.rotation[2]))) + ', '
+		)) + \
 		str(actor.actorParam) + ' },\n'
 
 def ootActorListToC(room, headerIndex):

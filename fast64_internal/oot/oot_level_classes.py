@@ -13,9 +13,10 @@ from .oot_f3d_writer import *
 from ..utility import *
 
 class OOTActor:
-	def __init__(self, actorID, position, rotation, actorParam):
+	def __init__(self, actorID, position, rotation, actorParam, rotOverride):
 		self.actorID = actorID
 		self.actorParam = actorParam
+		self.rotOverride = rotOverride
 		self.position = position
 		self.rotation = rotation
 
