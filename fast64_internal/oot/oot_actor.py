@@ -88,6 +88,10 @@ class OOTActorProperty(bpy.types.PropertyGroup):
 	actorID : bpy.props.EnumProperty(name = 'Actor', items = ootEnumActorID, default = 'ACTOR_PLAYER')
 	actorIDCustom : bpy.props.StringProperty(name = 'Actor ID', default = 'ACTOR_PLAYER')
 	actorParam : bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000')
+	rotOverride : bpy.props.BoolProperty(name = 'Override Rotation', default = False)
+	rotOverrideX : bpy.props.StringProperty(name = 'Rot X', default = '0')
+	rotOverrideY : bpy.props.StringProperty(name = 'Rot Y', default = '0')
+	rotOverrideZ : bpy.props.StringProperty(name = 'Rot Z', default = '0')
 	headerSettings : bpy.props.PointerProperty(type = OOTActorHeaderProperty)
 
 def drawActorProperty(layout, actorProp, altRoomProp, objName):
@@ -108,6 +112,12 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName):
 
 	#layout.box().label(text = 'Actor IDs defined in include/z64actors.h.')
 	prop_split(actorIDBox, actorProp, "actorParam", 'Actor Parameter')
+	
+	actorIDBox.prop(actorProp, 'rotOverride', text = 'Override Rotation (ignore Blender rot)')
+	if actorProp.rotOverride:
+		prop_split(actorIDBox, actorProp, 'rotOverrideX', 'Rot X')
+		prop_split(actorIDBox, actorProp, 'rotOverrideY', 'Rot Y')
+		prop_split(actorIDBox, actorProp, 'rotOverrideZ', 'Rot Z')
 
 	drawActorHeaderProperty(actorIDBox, actorProp.headerSettings, "Actor", altRoomProp, objName)
 
