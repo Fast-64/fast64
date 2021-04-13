@@ -193,8 +193,8 @@ def cmdActorList(room, header, cmdCount):
 
 def ootObjectListToC(room, headerIndex):
 	data = CData()
-	data.header = 's16 ' + room.objectListName(headerIndex) + "[" + str(len(room.objectList)) + "];\n" 
-	data.source = 's16 ' + room.objectListName(headerIndex) + "[" + str(len(room.objectList)) + "] = {\n"
+	data.header = "extern s16 " + room.objectListName(headerIndex) + "[" + str(len(room.objectList)) + "];\n" 
+	data.source = "s16 " + room.objectListName(headerIndex) + "[" + str(len(room.objectList)) + "] = {\n"
 	for objectItem in room.objectList:
 		data.source += '\t' + objectItem + ',\n'
 	data.source += '};\n\n'
