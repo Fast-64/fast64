@@ -436,6 +436,10 @@ def getCollection(obj, collectionType, subIndex):
 		collection = getCollectionFromIndex(obj, 'exitList', subIndex, False)
 	elif collectionType == "Object":
 		collection = getCollectionFromIndex(obj, 'objectList', subIndex, True)
+	elif collectionType == "CS":
+		collection = obj.ootSceneHeader.csLists
+	elif collectionType.startswith("CS."):
+		collection = getattr(obj.ootSceneHeader.csLists[subIndex], collectionType[3:])
 	else:
 		raise PluginError("Invalid collection type: " + collectionType)
 

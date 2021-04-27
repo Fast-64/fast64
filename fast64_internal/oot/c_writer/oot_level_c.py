@@ -86,8 +86,7 @@ def cmdSkyboxSettings(scene, header, cmdCount):
 		"0x11, 0x00, 0x00, 0x00, " + str(scene.skyboxID) + ', ' + str(scene.skyboxCloudiness) + ', ' + \
 		str(scene.skyboxLighting) + " };\n\n" 
 	return cmd
-		
-
+	
 def cmdExitList(scene, header, cmdCount):
 	cmd = CData()
 	cmd.header = "extern " + "SCmdExitList " + cmdName(scene.sceneName(), header, cmdCount) + ';\n'
@@ -103,7 +102,7 @@ def cmdLightSettingList(scene, header, cmdCount):
 		(('&' + scene.lightListName(header)) if len(scene.lights) > 0 else '0') + " };\n\n"
 	return cmd
 
-def cmdCustsceneData(scene, header, cmdCount):
+def cmdCutsceneData(scene, header, cmdCount):
 	cmd = CData()
 	cmd.header = "extern " + "SCmdCutsceneData " + cmdName(scene.sceneName(), header, cmdCount) + ';\n'
 	cmd.source = "SCmdCutsceneData " + cmdName(scene.sceneName(), header, cmdCount) + " = { " +\
@@ -420,8 +419,8 @@ def ootSceneCommandsToC(scene, headerIndex):
 	if len(scene.exitList) > 0:
 		commands.append(cmdExitList(scene, headerIndex, len(commands)))
 	commands.append(cmdLightSettingList(scene, headerIndex, len(commands)))
-	if scene.custcene is not None:
-		commands.append(cmdCustsceneData(scene, headerIndex, len(commands)))
+	if scene.writeCutscene:
+		commands.append(cmdCutsceneData(scene, headerIndex, len(commands)))
 	commands.append(cmdEndMarker(scene.sceneName(), headerIndex, len(commands)))
 
 	data = CData()
@@ -544,7 +543,15 @@ def ootPathListToC(scene):
 	return pathData
 
 def ootCutsceneToC(scene, headerIndex):
-	raise PluginError("Cutscenes not implemented.")
+	data = CData()
+	data.header = "extern s32 " + scene.cutsceneDataName(headerIndex) + "[];\n"
+	data.source = "s32 " + scene.cutsceneDataName(headerIndex) + "[] = {\n"
+	data.source += "\tCS_BEGIN_CUTSCENE(" + str(1 if scene.csWriteTerminator else 0) + ", " + str(scene.csEndFrame) + "),\n"
+	if scene.csWriteTerminator:
+		data.source += "\tCS_TERMINATOR(" + str(scene.csTermIdx) + ", " + str(scene.csTermStart) + ", " + str(scene.csTermEnd) + "),\n"
+	data.source += "\tCS_END(),\n"
+	data.source += "};\n"
+	return data
 
 def ootSceneMeshToC(scene, textureExportSettings):
 	exportData = scene.model.to_c(textureExportSettings, OOTGfxFormatter(ScrollMethod.Vertex))
@@ -602,7 +609,7 @@ def ootSceneToC(scene, headerIndex, textureExportSettings):
 		sceneC.append(ootLightSettingsToC(scene, scene.skyboxLighting == '0x01', headerIndex))
 	sceneC.append(pathData)
 	sceneC.append(colData)
-	if scene.custcene is not None:
+	if scene.writeCutscene is not None:
 		sceneC.append(ootCutsceneToC(scene, headerIndex))
 	sceneC.append(altData)
 	sceneC.append(meshData)

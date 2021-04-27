@@ -94,7 +94,13 @@ class OOTScene:
 		self.pathList = {}
 		self.cameraList = []
 
-		self.custcene = None
+		self.writeCutscene = False
+		self.csEndFrame = 100
+		self.csWriteTerminator = False
+		self.csTermIdx = 0
+		self.csTermStart = 99
+		self.csTermEnd = 100
+
 		self.sceneTableEntry = OOTSceneTableEntry()
 
 	def getAlternateHeaderScene(self, name):

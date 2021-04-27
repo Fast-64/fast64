@@ -175,6 +175,9 @@ oot_obj_classes = (
 	OOTObjectProperty,
 	OOTExitProperty,
 	OOTSceneTableEntryProperty,
+	
+	OOTCSMiscProperty,
+	OOTCSListProperty,
 
 	OOTActorHeaderItemProperty,
 	OOTActorHeaderProperty,

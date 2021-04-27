@@ -92,6 +92,13 @@ def readSceneData(scene, sceneHeader, alternateSceneHeaders):
 	for exitProp in sceneHeader.exitList:
 		scene.exitList.append(getExitData(exitProp))
 
+	scene.writeCutscene = getCustomProperty(sceneHeader, "writeCutscene")
+	scene.csEndFrame = getCustomProperty(sceneHeader, "csEndFrame")
+	scene.csWriteTerminator = getCustomProperty(sceneHeader, "csWriteTerminator")
+	scene.csTermIdx = getCustomProperty(sceneHeader, "csTermIdx")
+	scene.csTermStart = getCustomProperty(sceneHeader, "csTermStart")
+	scene.csTermEnd = getCustomProperty(sceneHeader, "csTermEnd")
+
 	if alternateSceneHeaders is not None:
 		scene.collision.cameraData = OOTCameraData(scene.name)
 

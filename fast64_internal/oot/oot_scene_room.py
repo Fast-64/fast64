@@ -271,6 +271,96 @@ def drawLightProperty(layout, lightProp, name, showExpandTab, index, sceneHeader
 		prop_split(box, lightProp, 'drawDistance', 'Draw Distance')
 		prop_split(box, lightProp, 'transitionSpeed', 'Transition Speed')
 
+
+class OOTCSMiscProperty(bpy.types.PropertyGroup):
+	expandTab : bpy.props.BoolProperty(default = True)
+	unk : bpy.props.StringProperty(name = '', default = '0x0001')
+	startFrame : bpy.props.IntProperty(name = '', default = 0, min = 0)
+	endFrame : bpy.props.IntProperty(name = '', default = 1, min = 0)
+	unused0 : bpy.props.StringProperty(name = '', default = '0x0000')
+	unused1 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	unused2 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	unused3 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	unused4 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	unused5 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	unused6 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	unused7 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	unused8 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	unused9 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	unused10 : bpy.props.StringProperty(name = '', default = '0x00000000')
+
+def drawCSMiscProperty(layout, miscProp, name, listIndex, cmdIndex, objName):
+	box = layout.box().column()
+	box.prop(miscProp, 'expandTab', text = name,
+		icon = 'TRIA_DOWN' if miscProp.expandTab else 'TRIA_RIGHT')
+	if not miscProp.expandTab: return
+	drawCollectionOps(box, cmdIndex, "CS.misc", listIndex, objName)
+	prop_split(box, miscProp, 'unk', 'unk')
+	prop_split(box, miscProp, 'startFrame', 'Start Frame')
+	prop_split(box, miscProp, 'endFrame', 'End Frame')
+	prop_split(box, miscProp, 'unused0', 'unused0')
+	prop_split(box, miscProp, 'unused1', 'unused1')
+	prop_split(box, miscProp, 'unused2', 'unused2')
+	prop_split(box, miscProp, 'unused3', 'unused3')
+	prop_split(box, miscProp, 'unused4', 'unused4')
+	prop_split(box, miscProp, 'unused5', 'unused5')
+	prop_split(box, miscProp, 'unused6', 'unused6')
+	prop_split(box, miscProp, 'unused7', 'unused7')
+	prop_split(box, miscProp, 'unused8', 'unused8')
+	prop_split(box, miscProp, 'unused9', 'unused9')
+	prop_split(box, miscProp, 'unused10', 'unused10')
+
+
+
+class OOTCSListProperty(bpy.types.PropertyGroup):
+	expandTab : bpy.props.BoolProperty(default = True)
+	
+	listType : bpy.props.EnumProperty(items = ootEnumCSListType)
+	misc : bpy.props.CollectionProperty(type = OOTCSMiscProperty)
+	
+	unkType : bpy.props.StringProperty(name = '', default = '0x0001')
+	fxType : bpy.props.IntProperty(name = '', default = 2, min = 0, max = 0xFFFF)
+	fxStartFrame : bpy.props.IntProperty(name = '', default = 0, min = 0)
+	fxEndFrame : bpy.props.IntProperty(name = '', default = 1, min = 0)
+
+
+def drawCSListProperty(layout, listProp, listIndex, objName):
+	box = layout.box().column()
+	box.prop(listProp, 'expandTab', text = listProp.listType,
+		icon = 'TRIA_DOWN' if listProp.expandTab else 'TRIA_RIGHT')
+	if not listProp.expandTab: return
+	
+	enable_add = True
+	if listProp.listType == "Misc":
+		attrName, func = "misc", drawCSMiscProperty
+	elif listProp.listType == "Lighting":
+		attrName, func = "lighting", drawCSLightingProperty
+	elif listProp.listType == "0x09":
+		attrName, func = "nine", drawCS0x09Property
+	elif listProp.listType == "Unk":
+		prop_split(box, listProp, 'unkType', 'Type')
+		attrName, func = "unk", drawCSUnkProperty
+	elif listProp.listType == "Text":
+		attrName, func = "text", drawCSTextProperty
+		enable_add = False
+	elif listProp.listType == "FX":
+		prop_split(box, listProp, 'fxType', 'Transition')
+		prop_split(box, listProp, 'fxStartFrame', 'Start Frame')
+		prop_split(box, listProp, 'fxEndFrame', 'End Frame')
+		return
+	elif listProp.listType in ["PlayBGM", "StopBGM", "FadeBGM"]:
+		attrName, func = "bgm", drawCSBGMProperty
+	elif listProp.listType == "Time":
+		attrName, func = "time", drawCSTimeProperty
+	else:
+		raise PluginError("Invalid listType")
+		
+	dat = getattr(listProp, attrName)
+	for i, p in enumerate(dat):
+		func(box, p, listProp.listType + " " + str(i), listIndex, i, objName)
+	if enable_add:
+		drawAddButton(box, len(dat), "CS." + attrName, listIndex, objName)
+
 class OOTSceneTableEntryProperty(bpy.types.PropertyGroup):
 	drawConfig : bpy.props.IntProperty(name = "Scene Draw Config", min = 0)
 	hasTitle : bpy.props.BoolProperty(default = True)
@@ -306,6 +396,14 @@ class OOTSceneHeaderProperty(bpy.types.PropertyGroup):
 	timeOfDayLights : bpy.props.PointerProperty(type = OOTLightGroupProperty, name = "Time Of Day Lighting")
 	lightList : bpy.props.CollectionProperty(type = OOTLightProperty, name = 'Lighting List')
 	exitList : bpy.props.CollectionProperty(type = OOTExitProperty, name = "Exit List")
+
+	writeCutscene : bpy.props.BoolProperty(name = "Write Cutscene")
+	csEndFrame : bpy.props.IntProperty(name = "End Frame", min = 0, default = 100)
+	csWriteTerminator : bpy.props.BoolProperty(name = "Write Terminator (Code Execution)")
+	csTermIdx : bpy.props.IntProperty(name = "Index", min = 0)
+	csTermStart : bpy.props.IntProperty(name = "Start Frm", min = 0, default = 99)
+	csTermEnd : bpy.props.IntProperty(name = "End Frm", min = 0, default = 100)
+	csLists : bpy.props.CollectionProperty(type = OOTCSListProperty, name = 'Cutscene Lists')
 
 	sceneTableEntry : bpy.props.PointerProperty(type = OOTSceneTableEntryProperty)
 
@@ -369,9 +467,27 @@ def drawSceneHeaderProperty(layout, sceneProp, dropdownLabel, headerIndex, objNa
 		else:
 			for i in range(len(sceneProp.lightList)):
 				drawLightProperty(lighting, sceneProp.lightList[i], "Lighting " + str(i), True, i, headerIndex, objName)
-			drawAddButton(lighting, len(sceneProp.lightList), "Light", headerIndex, objName)
+			#drawAddButton(lighting, len(sceneProp.lightList), "Light", headerIndex, objName)
+			#TODO draw many add buttons
 
-	if menuTab == 'Exits':
+	elif menuTab == 'Cutscene':
+		cutscene = layout.column()
+		cutscene.prop(sceneProp, "writeCutscene", text = "Write Cutscene")
+		if not sceneProp.writeCutscene:
+			return
+		cutscene.box().label(text = "Install zcamedit for camera, Link, NPC actions.")
+		cutscene.row().prop(sceneProp, "csEndFrame", text = "End Frame")
+		cutscene.prop(sceneProp, "csWriteTerminator", text = "Write Terminator (Code Execution)")
+		if sceneProp.csWriteTerminator:
+			r = cutscene.row()
+			r.prop(sceneProp, "csTermIdx", text = "Index")
+			r.prop(sceneProp, "csTermStart", text = "Start Frm")
+			r.prop(sceneProp, "csTermEnd", text = "End Frm")
+		for i, p in enumerate(sceneProp.csLists):
+			drawCSListProperty(cutscene, p, i, objName)
+		drawAddButton(cutscene, len(sceneProp.csLists), "CS", None, objName)
+
+	elif menuTab == 'Exits':
 		if headerIndex is None or headerIndex == 0:
 			exitBox = layout.column()
 			exitBox.box().label(text = "Exit List")

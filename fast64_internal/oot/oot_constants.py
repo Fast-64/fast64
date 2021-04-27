@@ -8,13 +8,15 @@ ootEnumMeshType = [
 ootEnumSceneMenu = [
 	("General", "General", "General"),
 	("Lighting", "Lighting", "Lighting"),
+	("Cutscene", "Cutscene", "Cutscene"),
 	("Exits", "Exits", "Exits"),
 	("Alternate", "Alternate", "Alternate"),
 ]
 
 ootEnumSceneMenuAlternate = [
 	("General", "General", "General"),
-	("Lighting", "Lighting", "Lighting")
+	("Lighting", "Lighting", "Lighting"),
+	("Cutscene", "Cutscene", "Cutscene")
 ]
 
 ootEnumRoomMenu = [
@@ -1408,4 +1410,17 @@ ootEnumSceneSetupPreset = [
 	("Custom", "Custom", "Custom"),
 	("All Scene Setups", "All Scene Setups", "All Scene Setups"),
 	("All Non-Cutscene Scene Setups", "All Non-Cutscene Scene Setups", "All Non-Cutscene Scene Setups"),
+]
+
+ootEnumCSListType = [
+	("Misc", "Misc", "Misc"),
+	("Lighting", "Lighting", "Lighting"),
+	("0x09", "Cmd 09", "Cmd 09"),
+	("Unk", "Unknown Data", "Unknown Data"),
+	("Text", "Text", "Text"),
+	("FX", "Scene Trans FX", "Scene Trans FX"),
+	("PlayBGM", "Play BGM", "Play BGM"),
+	("StopBGM", "Stop BGM", "Stop BGM"),
+	("FadeBGM", "Fade BGM", "Fade BGM"),
+	("Time", "Time", "Time")
 ]
