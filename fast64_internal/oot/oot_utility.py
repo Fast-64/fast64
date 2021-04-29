@@ -454,17 +454,18 @@ def drawAddButton(layout, index, collectionType, subIndex, objName):
 	addOp.subIndex = subIndex
 	addOp.objName = objName
 
-def drawCollectionOps(layout, index, collectionType, subIndex, objName):
+def drawCollectionOps(layout, index, collectionType, subIndex, objName, allowAdd=True):
 	if subIndex is None:
 		subIndex = 0
 
 	buttons = layout.row(align = True)
 
-	addOp = buttons.operator(OOTCollectionAdd.bl_idname, text = 'Add', icon = "ADD")
-	addOp.option = index + 1
-	addOp.collectionType = collectionType
-	addOp.subIndex = subIndex
-	addOp.objName = objName
+	if allowAdd:
+		addOp = buttons.operator(OOTCollectionAdd.bl_idname, text = 'Add', icon = "ADD")
+		addOp.option = index + 1
+		addOp.collectionType = collectionType
+		addOp.subIndex = subIndex
+		addOp.objName = objName
 
 	removeOp = buttons.operator(OOTCollectionRemove.bl_idname, text = 'Delete', icon = "REMOVE")
 	removeOp.option = index
@@ -472,17 +473,14 @@ def drawCollectionOps(layout, index, collectionType, subIndex, objName):
 	removeOp.subIndex = subIndex
 	removeOp.objName = objName
 	
-	#moveButtons = layout.row(align = True)
-	moveButtons = buttons
-
-	moveUp = moveButtons.operator(OOTCollectionMove.bl_idname, text = 'Up', icon = "TRIA_UP")
+	moveUp = buttons.operator(OOTCollectionMove.bl_idname, text = 'Up', icon = "TRIA_UP")
 	moveUp.option = index
 	moveUp.offset = -1
 	moveUp.collectionType = collectionType
 	moveUp.subIndex = subIndex
 	moveUp.objName = objName
 
-	moveDown = moveButtons.operator(OOTCollectionMove.bl_idname, text = 'Down', icon = "TRIA_DOWN")
+	moveDown = buttons.operator(OOTCollectionMove.bl_idname, text = 'Down', icon = "TRIA_DOWN")
 	moveDown.option = index
 	moveDown.offset = 1
 	moveDown.collectionType = collectionType

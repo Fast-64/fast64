@@ -1413,14 +1413,19 @@ ootEnumSceneSetupPreset = [
 ]
 
 ootEnumCSListType = [
-	("Misc", "Misc", "Misc"),
-	("Lighting", "Lighting", "Lighting"),
-	("0x09", "Cmd 09", "Cmd 09"),
-	("Unk", "Unknown Data", "Unknown Data"),
 	("Text", "Text", "Text"),
 	("FX", "Scene Trans FX", "Scene Trans FX"),
+	("Lighting", "Lighting", "Lighting"),
+	("Time", "Time", "Time"),
 	("PlayBGM", "Play BGM", "Play BGM"),
 	("StopBGM", "Stop BGM", "Stop BGM"),
 	("FadeBGM", "Fade BGM", "Fade BGM"),
-	("Time", "Time", "Time")
+	("Misc", "Misc", "Misc"),
+	("0x09", "Cmd 09", "Cmd 09"),
+	("Unk", "Unknown Data", "Unknown Data")
+]
+
+ootEnumCSListTypeIcons = [
+    'FONT_DATA', 'COLORSET_10_VEC', 'LIGHT_SUN', 'TIME', 'PLAY', 'PAUSE', 'LINCURVE',
+    'MONKEY', 'EVENT_F9', 'QUESTION'
 ]
