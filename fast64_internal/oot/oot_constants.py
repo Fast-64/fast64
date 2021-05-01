@@ -1413,7 +1413,7 @@ ootEnumSceneSetupPreset = [
 ]
 
 ootEnumCSListType = [
-	("Text", "Text", "Text"),
+	("Textbox", "Textbox", "Textbox"),
 	("FX", "Scene Trans FX", "Scene Trans FX"),
 	("Lighting", "Lighting", "Lighting"),
 	("Time", "Time", "Time"),
@@ -1426,6 +1426,16 @@ ootEnumCSListType = [
 ]
 
 ootEnumCSListTypeIcons = [
-    'FONT_DATA', 'COLORSET_10_VEC', 'LIGHT_SUN', 'TIME', 'PLAY', 'PAUSE', 'LINCURVE',
-    'MONKEY', 'EVENT_F9', 'QUESTION'
+    'ALIGN_BOTTOM', 'COLORSET_10_VEC', 'LIGHT_SUN', 'TIME', 'PLAY', 'SNAP_FACE', 'IPO_EASE_IN_OUT',
+    'OPTIONS', 'EVENT_F9', 'QUESTION'
+]
+
+ootEnumCSTextboxType = [
+	("Text", "Text", "Text"),
+    ("None", "None", "None"),
+    ("LearnSong", "Learn Song", "Learn Song")
+]
+
+ootEnumCSTextboxTypeIcons = [
+    'FILE_TEXT', 'HIDE_ON', 'FILE_SOUND'
 ]

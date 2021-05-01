@@ -272,65 +272,169 @@ def drawLightProperty(layout, lightProp, name, showExpandTab, index, sceneHeader
 		prop_split(box, lightProp, 'transitionSpeed', 'Transition Speed')
 
 
-class OOTCSBGMProperty(bpy.types.PropertyGroup):
+class OOTCSProperty():
+	propName = None
+	attrName = None
+	subprops = ["startFrame", "endFrame"]
+	expandTab : bpy.props.BoolProperty(default = True)
+	startFrame : bpy.props.IntProperty(name = '', default = 0, min = 0)
+	endFrame : bpy.props.IntProperty(name = '', default = 1, min = 0)
+		
+	def getName(self):
+		return self.propName
+		
+	def filterProp(self, name, listProp):
+		return True
+	
+	def filterName(self, name, listProp):
+		return name
+	
+	def draw(self, layout, listProp, listIndex, cmdIndex, objName):
+		layout.prop(self, 'expandTab', text = self.getName() + " " + str(cmdIndex),
+			icon = 'TRIA_DOWN' if self.expandTab else 'TRIA_RIGHT')
+		if not self.expandTab: return
+		box = layout.box().column()
+		drawCollectionOps(box, cmdIndex, "CS." + self.attrName, listIndex, objName)
+		for p in self.subprops:
+			if self.filterProp(p, listProp):
+				prop_split(box, self, p, self.filterName(p, listProp))
+
+class OOTCSTextboxProperty(OOTCSProperty, bpy.types.PropertyGroup):
+	propName = "Textbox"
+	attrName = "textbox"
+	subprops = ["messageId", "ocarinaSongAction", "startFrame", "endFrame",
+		"type", "topOptionBranch", "bottomOptionBranch", "ocarinaMessageId"]
+	textboxType : bpy.props.EnumProperty(items = ootEnumCSTextboxType)
+	messageId : bpy.props.StringProperty(name = '', default = '0x0000')
+	ocarinaSongAction : bpy.props.StringProperty(name = '', default = '0x0000')
+	type : bpy.props.StringProperty(name = '', default = '0x0000')
+	topOptionBranch : bpy.props.StringProperty(name = '', default = '0x0000')
+	bottomOptionBranch : bpy.props.StringProperty(name = '', default = '0x0000')
+	ocarinaMessageId : bpy.props.StringProperty(name = '', default = '0x0000')
+	
+	def getName(self):
+		return self.textboxType
+	
+	def filterProp(self, name, listProp):
+		if self.textboxType == "Text":
+			return name not in ["ocarinaSongAction", "ocarinaMessageId"]
+		elif self.textboxType == "None":
+			return name in ["startFrame", "endFrame"]
+		elif self.textboxType == "LearnSong":
+			return name in ["ocarinaSongAction", "startFrame", "endFrame", "ocarinaMessageId"]
+		else:
+			raise PluginError("Invalid property name for OOTCSTextboxProperty")
+
+class OOTCSTextboxAdd(bpy.types.Operator):
+	bl_idname = 'object.oot_cstextbox_add'
+	bl_label = 'Add CS Textbox'
+	bl_options = {'REGISTER', 'UNDO'} 
+
+	textboxType : bpy.props.EnumProperty(items = ootEnumCSTextboxType)
+	listIndex : bpy.props.IntProperty()
+	objName : bpy.props.StringProperty()
+
+	def execute(self, context):
+		collection = bpy.data.objects[self.objName].ootSceneHeader.csLists[self.listIndex].textbox
+		collection.add()
+		collection[len(collection)-1].textboxType = self.textboxType
+		self.report({'INFO'}, 'Success!')
+		return {'FINISHED'} 
+
+class OOTCSLightingProperty(OOTCSProperty, bpy.types.PropertyGroup):
+	propName = "Lighting"
+	attrName = "lighting"
+	subprops = ["index", "startFrame", 
+		# "endFrame", "unused0", "unused1", "unused2",
+		#"unused3", "unused4", "unused5", "unused6", "unused7"
+		]
+	index : bpy.props.IntProperty(name = '', default = 1, min = 1)
+	# unused0 : bpy.props.StringProperty(name = '', default = '0x0000')
+	# unused1 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	# unused2 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	# unused3 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	# unused4 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	# unused5 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	# unused6 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	# unused7 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	
+class OOTCSTimeProperty(OOTCSProperty, bpy.types.PropertyGroup):
+	propName = "Time"
+	attrName = "time"
+	subprops = [# "unk", 
+		"startFrame", # "endFrame", 
+		"hour", "minute", # "unused"
+		]
+	#unk : bpy.props.StringProperty(name = '', default = '0x0000')
+	hour : bpy.props.IntProperty(name = '', default = 23, min = 0, max = 23)
+	minute : bpy.props.IntProperty(name = '', default = 59, min = 0, max = 59)
+	#unused : bpy.props.StringProperty(name = '', default = '0x00000000')
+	
+class OOTCSBGMProperty(OOTCSProperty, bpy.types.PropertyGroup):
 	propName = "BGM"
 	attrName = "bgm"
-	subprops = ["value", "startFrame", "endFrame", "unused0", "unused1", "unused2",
-		"unused3", "unused4", "unused5", "unused6", "unused7"]
-	expandTab : bpy.props.BoolProperty(default = True)
+	subprops = ["value", "startFrame", "endFrame", 
+		# "unused0", "unused1", "unused2",
+		# "unused3", "unused4", "unused5", "unused6", "unused7"
+		]
 	value : bpy.props.StringProperty(name = '', default = '0x0000')
-	startFrame : bpy.props.IntProperty(name = '', default = 0, min = 0)
-	endFrame : bpy.props.IntProperty(name = '', default = 1, min = 0)
-	unused0 : bpy.props.StringProperty(name = '', default = '0x0000')
-	unused1 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	unused2 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	unused3 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	unused4 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	unused5 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	unused6 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	unused7 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	# unused0 : bpy.props.StringProperty(name = '', default = '0x0000')
+	# unused1 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	# unused2 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	# unused3 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	# unused4 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	# unused5 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	# unused6 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	# unused7 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	
+	def filterProp(self, name, listProp):
+		return name != "endFrame" or listProp.listType == "FadeBGM"
+	
+	def filterName(self, name, listProp):
+		if name == 'value':
+			return "Fade Type" if listProp.listType == "FadeBGM" else "Sequence"
+		return name
 
-class OOTCSMiscProperty(bpy.types.PropertyGroup):
+class OOTCSMiscProperty(OOTCSProperty, bpy.types.PropertyGroup):
 	propName = "Misc"
 	attrName = "misc"
-	subprops = ["unk", "startFrame", "endFrame", "unused0", "unused1", "unused2",
-		"unused3", "unused4", "unused5", "unused6", "unused7", "unused8", "unused9", "unused10"]
-	expandTab : bpy.props.BoolProperty(default = True)
-	unk : bpy.props.StringProperty(name = '', default = '0x0001')
-	startFrame : bpy.props.IntProperty(name = '', default = 0, min = 0)
-	endFrame : bpy.props.IntProperty(name = '', default = 1, min = 0)
-	unused0 : bpy.props.StringProperty(name = '', default = '0x0000')
-	unused1 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	unused2 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	unused3 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	unused4 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	unused5 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	unused6 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	unused7 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	unused8 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	unused9 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	unused10 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	subprops = ["operation", "startFrame", "endFrame", # "unused0", "unused1", "unused2", 
+		# "unused3", "unused4", "unused5", "unused6", "unused7",
+		# "unused8", "unused9", "unused10"
+		]
+	operation : bpy.props.IntProperty(name = '', default = 1, min = 1, max = 35)
+	# unused0 : bpy.props.StringProperty(name = '', default = '0x0000')
+	# unused1 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	# unused2 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	# unused3 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	# unused4 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	# unused5 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	# unused6 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	# unused7 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	# unused8 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	# unused9 : bpy.props.StringProperty(name = '', default = '0x00000000')
+	# unused10 : bpy.props.StringProperty(name = '', default = '0x00000000')
 
-class OOTCS0x09Property(bpy.types.PropertyGroup):
+class OOTCS0x09Property(OOTCSProperty, bpy.types.PropertyGroup):
 	propName = "0x09"
 	attrName = "nine"
-	subprops = ["unk", "startFrame", "endFrame", "unk2", "unk3", "unk4", "unused0", "unused1"]
-	expandTab : bpy.props.BoolProperty(default = True)
-	unk : bpy.props.StringProperty(name = '', default = '0x0000')
-	startFrame : bpy.props.IntProperty(name = '', default = 0, min = 0)
-	endFrame : bpy.props.IntProperty(name = '', default = 1, min = 0)
+	subprops = [# "unk", 
+		"startFrame", # "endFrame", 
+		"unk2", "unk3", "unk4",
+		#"unused0", "unused1"
+		]
+	# unk : bpy.props.StringProperty(name = '', default = '0x0000')
 	unk2 : bpy.props.StringProperty(name = '', default = '0x00')
 	unk3 : bpy.props.StringProperty(name = '', default = '0x00')
 	unk4 : bpy.props.StringProperty(name = '', default = '0x00')
-	unused0 : bpy.props.StringProperty(name = '', default = '0x00')
-	unused1 : bpy.props.StringProperty(name = '', default = '0x0000')
+	# unused0 : bpy.props.StringProperty(name = '', default = '0x00')
+	# unused1 : bpy.props.StringProperty(name = '', default = '0x0000')
 
-class OOTCSUnkProperty(bpy.types.PropertyGroup):
+class OOTCSUnkProperty(OOTCSProperty, bpy.types.PropertyGroup):
 	propName = "Unk"
 	attrName = "unk"
-	subprops = ["unk1", "unk2", "unk3", "unk4", "unk5", "unk6", "unk7", "unk8",
-		"unk9", "unk10", "unk11", "unk12"]
-	expandTab : bpy.props.BoolProperty(default = True)
+	subprops = ["unk1", "unk2", "unk3", "unk4", "unk5", "unk6", "unk7",
+		"unk8", "unk9", "unk10", "unk11", "unk12"]
 	unk1 : bpy.props.StringProperty(name = '', default = '0x00000000')
 	unk2 : bpy.props.StringProperty(name = '', default = '0x00000000')
 	unk3 : bpy.props.StringProperty(name = '', default = '0x00000000')
@@ -343,31 +447,22 @@ class OOTCSUnkProperty(bpy.types.PropertyGroup):
 	unk10 : bpy.props.StringProperty(name = '', default = '0x00000000')
 	unk11 : bpy.props.StringProperty(name = '', default = '0x00000000')
 	unk12 : bpy.props.StringProperty(name = '', default = '0x00000000')
+
 	
-def drawCSProperty(layout, listProp, prop, listIndex, cmdIndex, objName):
-	layout.prop(prop, 'expandTab', text = prop.propName + " " + str(cmdIndex),
-		icon = 'TRIA_DOWN' if prop.expandTab else 'TRIA_RIGHT')
-	if not prop.expandTab: return
-	box = layout.box().column()
-	drawCollectionOps(box, cmdIndex, "CS." + prop.attrName, listIndex, objName)
-	for p in prop.subprops:
-		name = p
-		if p == 'value' and prop.propName == 'BGM':
-			name = "Fade Type" if listProp.listType == "FadeBGM" else "Sequence"
-		prop_split(box, prop, p, name)
-
-
 class OOTCSListProperty(bpy.types.PropertyGroup):
 	expandTab : bpy.props.BoolProperty(default = True)
 	
 	listType : bpy.props.EnumProperty(items = ootEnumCSListType)
+	textbox : bpy.props.CollectionProperty(type = OOTCSTextboxProperty)
+	lighting: bpy.props.CollectionProperty(type = OOTCSLightingProperty)
+	time : bpy.props.CollectionProperty(type = OOTCSTimeProperty)
 	bgm : bpy.props.CollectionProperty(type = OOTCSBGMProperty)
 	misc : bpy.props.CollectionProperty(type = OOTCSMiscProperty)
 	nine : bpy.props.CollectionProperty(type = OOTCS0x09Property)
 	unk : bpy.props.CollectionProperty(type = OOTCSUnkProperty)
 	
 	unkType : bpy.props.StringProperty(name = '', default = '0x0001')
-	fxType : bpy.props.IntProperty(name = '', default = 2, min = 0, max = 0xFFFF)
+	fxType : bpy.props.IntProperty(name = '', default = 2, min = 1, max = 13)
 	fxStartFrame : bpy.props.IntProperty(name = '', default = 0, min = 0)
 	fxEndFrame : bpy.props.IntProperty(name = '', default = 1, min = 0)
 
@@ -379,8 +474,8 @@ def drawCSListProperty(layout, listProp, listIndex, objName):
 	box = layout.box().column()
 	drawCollectionOps(box, listIndex, "CS", None, objName, False)
 	
-	if listProp.listType == "Text":
-		attrName = "text"
+	if listProp.listType == "Textbox":
+		attrName = "textbox"
 	elif listProp.listType == "FX":
 		prop_split(box, listProp, 'fxType', 'Transition')
 		prop_split(box, listProp, 'fxStartFrame', 'Start Frame')
@@ -404,11 +499,16 @@ def drawCSListProperty(layout, listProp, listIndex, objName):
 		
 	dat = getattr(listProp, attrName)
 	for i, p in enumerate(dat):
-		drawCSProperty(box, listProp, p, listIndex, i, objName)
+		p.draw(box, listProp, listIndex, i, objName)
 	if len(dat) == 0:
 		box.label(text = "No items in " + listProp.listType + " List.")
-	if listProp.listType == "Text":
-		pass # TODO
+	if listProp.listType == "Textbox":
+		row = box.row(align=True)
+		for l in range(3):
+			addOp = row.operator(OOTCSTextboxAdd.bl_idname, text = 'Add ' + ootEnumCSTextboxType[l][1], icon = ootEnumCSTextboxTypeIcons[l])
+			addOp.textboxType = ootEnumCSTextboxType[l][0]
+			addOp.listIndex = listIndex
+			addOp.objName = objName
 	else:
 		addOp = box.operator(OOTCollectionAdd.bl_idname, text = 'Add item to ' + listProp.listType + ' List')
 		addOp.option = len(dat)
@@ -561,12 +661,12 @@ def drawSceneHeaderProperty(layout, sceneProp, dropdownLabel, headerIndex, objNa
 
 	elif menuTab == 'Cutscene':
 		cutscene = layout.column()
-		cutscene.prop(sceneProp, "writeCutscene", text = "Write Cutscene")
+		r = cutscene.row()
+		r.prop(sceneProp, "writeCutscene", text = "Write Cutscene")
 		if not sceneProp.writeCutscene:
 			return
-		r = cutscene.row()
 		r.prop(sceneProp, "csEndFrame", text = "End Frame")
-		r.prop(sceneProp, "csWriteTerminator", text = "Write Terminator (Code Execution)")
+		cutscene.prop(sceneProp, "csWriteTerminator", text = "Write Terminator (Code Execution)")
 		if sceneProp.csWriteTerminator:
 			r = cutscene.row()
 			r.prop(sceneProp, "csTermIdx", text = "Index")
