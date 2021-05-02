@@ -549,6 +549,45 @@ def ootCutsceneToC(scene, headerIndex):
 	data.source += "\tCS_BEGIN_CUTSCENE(" + str(1 if scene.csWriteTerminator else 0) + ", " + str(scene.csEndFrame) + "),\n"
 	if scene.csWriteTerminator:
 		data.source += "\tCS_TERMINATOR(" + str(scene.csTermIdx) + ", " + str(scene.csTermStart) + ", " + str(scene.csTermEnd) + "),\n"
+	for list in scene.csLists:
+		data.source += "\t" + ootEnumCSListTypeListC[list.listType] + "("
+		if list.listType == "Unk":
+			data.source += list.unkType + ", "
+		if list.listType == "FX":
+			data.source += str(list.fxType) + ", " + str(list.fxStartFrame) + ", " + str(list.fxEndFrame)
+		else:
+			data.source += str(len(list.entries))
+		data.source += "),\n"
+		for e in list.entries:
+			data.source += "\t\t"
+			if list.listType == "Textbox":
+				data.source += ootEnumCSTextboxTypeEntryC[e.textboxType]
+			else:
+				data.source += ootEnumCSListTypeEntryC[list.listType]
+			data.source += "("
+			if list.listType == "Textbox":
+				TODO()
+			elif list.listType == "Lighting":
+				TODO()
+			elif list.listType == "Time":
+				TODO()
+			elif list.listType in ["PlayBGM", "StopBGM", "FadeBGM"]:
+				data.source += e.value + ", " + str(e.startFrame) + ", " + str(e.endFrame) \
+					+ ", 0, 0, 0, 0, 0, 0, 0, 0"
+			elif list.listType == "Misc":
+				data.source += str(e.operation) + ", " + str(e.startFrame) + ", " \
+					+ str(e.endFrame) + ", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0"
+			elif list.listType == "0x09":
+				data.source += "0, " + str(e.startFrame) + ", " + str(e.startFrame + 1) + ", " \
+					+ e.unk2 + ", " + e.unk3 + ", " + e.unk4 + ", 0, 0"
+			elif list.listType == "Unk":
+				data.source += e.unk1 + ", " + e.unk2 + ", " + e.unk3 + ", " \
+					+ e.unk4 + ", " + e.unk5 + ", " + e.unk6 + ", " \
+					+ e.unk7 + ", " + e.unk8 + ", " + e.unk9 + ", " \
+					+ e.unk10 + ", " + e.unk11 + ", " + e.unk12
+			else:
+				raise PluginError("Invalid cutscene list type")
+			data.source += "),\n"
 	data.source += "\tCS_END(),\n"
 	data.source += "};\n"
 	return data
