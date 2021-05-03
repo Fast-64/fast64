@@ -436,6 +436,10 @@ def getCollection(obj, collectionType, subIndex):
 		collection = getCollectionFromIndex(obj, 'exitList', subIndex, False)
 	elif collectionType == "Object":
 		collection = getCollectionFromIndex(obj, 'objectList', subIndex, True)
+	elif collectionType == "CS":
+		collection = obj.ootSceneHeader.csLists
+	elif collectionType.startswith("CS."):
+		collection = getattr(obj.ootSceneHeader.csLists[subIndex], collectionType[3:])
 	else:
 		raise PluginError("Invalid collection type: " + collectionType)
 
@@ -450,17 +454,18 @@ def drawAddButton(layout, index, collectionType, subIndex, objName):
 	addOp.subIndex = subIndex
 	addOp.objName = objName
 
-def drawCollectionOps(layout, index, collectionType, subIndex, objName):
+def drawCollectionOps(layout, index, collectionType, subIndex, objName, allowAdd=True):
 	if subIndex is None:
 		subIndex = 0
 
 	buttons = layout.row(align = True)
 
-	addOp = buttons.operator(OOTCollectionAdd.bl_idname, text = 'Add', icon = "ADD")
-	addOp.option = index + 1
-	addOp.collectionType = collectionType
-	addOp.subIndex = subIndex
-	addOp.objName = objName
+	if allowAdd:
+		addOp = buttons.operator(OOTCollectionAdd.bl_idname, text = 'Add', icon = "ADD")
+		addOp.option = index + 1
+		addOp.collectionType = collectionType
+		addOp.subIndex = subIndex
+		addOp.objName = objName
 
 	removeOp = buttons.operator(OOTCollectionRemove.bl_idname, text = 'Delete', icon = "REMOVE")
 	removeOp.option = index
@@ -468,17 +473,14 @@ def drawCollectionOps(layout, index, collectionType, subIndex, objName):
 	removeOp.subIndex = subIndex
 	removeOp.objName = objName
 	
-	#moveButtons = layout.row(align = True)
-	moveButtons = buttons
-
-	moveUp = moveButtons.operator(OOTCollectionMove.bl_idname, text = 'Up', icon = "TRIA_UP")
+	moveUp = buttons.operator(OOTCollectionMove.bl_idname, text = 'Up', icon = "TRIA_UP")
 	moveUp.option = index
 	moveUp.offset = -1
 	moveUp.collectionType = collectionType
 	moveUp.subIndex = subIndex
 	moveUp.objName = objName
 
-	moveDown = moveButtons.operator(OOTCollectionMove.bl_idname, text = 'Down', icon = "TRIA_DOWN")
+	moveDown = buttons.operator(OOTCollectionMove.bl_idname, text = 'Down', icon = "TRIA_DOWN")
 	moveDown.option = index
 	moveDown.offset = 1
 	moveDown.collectionType = collectionType
@@ -500,7 +502,7 @@ class OOTCollectionAdd(bpy.types.Operator):
 
 		collection.add()
 		collection.move(len(collection)-1, self.option)
-		self.report({'INFO'}, 'Success!')
+		#self.report({'INFO'}, 'Success!')
 		return {'FINISHED'} 
 
 class OOTCollectionRemove(bpy.types.Operator):
@@ -516,7 +518,7 @@ class OOTCollectionRemove(bpy.types.Operator):
 	def execute(self, context):
 		collection = getCollection(bpy.data.objects[self.objName], self.collectionType, self.subIndex)
 		collection.remove(self.option)
-		self.report({'INFO'}, 'Success!')
+		#self.report({'INFO'}, 'Success!')
 		return {'FINISHED'} 
 
 class OOTCollectionMove(bpy.types.Operator):
@@ -533,7 +535,7 @@ class OOTCollectionMove(bpy.types.Operator):
 	def execute(self, context):
 		collection = getCollection(bpy.data.objects[self.objName], self.collectionType, self.subIndex)
 		collection.move(self.option, self.option + self.offset)
-		self.report({'INFO'}, 'Success!')
+		#self.report({'INFO'}, 'Success!')
 		return {'FINISHED'} 
 
 oot_utility_classes = (
