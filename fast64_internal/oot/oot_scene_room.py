@@ -338,7 +338,7 @@ class OOTCSTextboxAdd(bpy.types.Operator):
 		collection = bpy.data.objects[self.objName].ootSceneHeader.csLists[self.listIndex].textbox
 		collection.add()
 		collection[len(collection)-1].textboxType = self.textboxType
-		self.report({'INFO'}, 'Success!')
+		#self.report({'INFO'}, 'Success!')
 		return {'FINISHED'} 
 
 class OOTCSLightingProperty(OOTCSProperty, bpy.types.PropertyGroup):
@@ -462,7 +462,7 @@ class OOTCSListProperty(bpy.types.PropertyGroup):
 	unk : bpy.props.CollectionProperty(type = OOTCSUnkProperty)
 	
 	unkType : bpy.props.StringProperty(name = '', default = '0x0001')
-	fxType : bpy.props.IntProperty(name = '', default = 2, min = 1, max = 13)
+	fxType : bpy.props.EnumProperty(items = ootEnumCSTransitionType)
 	fxStartFrame : bpy.props.IntProperty(name = '', default = 0, min = 0)
 	fxEndFrame : bpy.props.IntProperty(name = '', default = 1, min = 0)
 
@@ -529,7 +529,7 @@ class OOTCSListAdd(bpy.types.Operator):
 		collection = bpy.data.objects[self.objName].ootSceneHeader.csLists
 		collection.add()
 		collection[len(collection)-1].listType = self.listType
-		self.report({'INFO'}, 'Success!')
+		#self.report({'INFO'}, 'Success!')
 		return {'FINISHED'} 
 
 def drawCSAddButtons(layout, objName):

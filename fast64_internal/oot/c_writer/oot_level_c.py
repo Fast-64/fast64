@@ -546,7 +546,8 @@ def ootCutsceneToC(scene, headerIndex):
 	data = CData()
 	data.header = "extern s32 " + scene.cutsceneDataName(headerIndex) + "[];\n"
 	data.source = "s32 " + scene.cutsceneDataName(headerIndex) + "[] = {\n"
-	data.source += "\tCS_BEGIN_CUTSCENE(" + str(1 if scene.csWriteTerminator else 0) + ", " + str(scene.csEndFrame) + "),\n"
+	nentries = len(scene.csLists) + (1 if scene.csWriteTerminator else 0)
+	data.source += "\tCS_BEGIN_CUTSCENE(" + str(nentries) + ", " + str(scene.csEndFrame) + "),\n"
 	if scene.csWriteTerminator:
 		data.source += "\tCS_TERMINATOR(" + str(scene.csTermIdx) + ", " + str(scene.csTermStart) + ", " + str(scene.csTermEnd) + "),\n"
 	for list in scene.csLists:
@@ -554,7 +555,7 @@ def ootCutsceneToC(scene, headerIndex):
 		if list.listType == "Unk":
 			data.source += list.unkType + ", "
 		if list.listType == "FX":
-			data.source += str(list.fxType) + ", " + str(list.fxStartFrame) + ", " + str(list.fxEndFrame)
+			data.source += list.fxType + ", " + str(list.fxStartFrame) + ", " + str(list.fxEndFrame)
 		else:
 			data.source += str(len(list.entries))
 		data.source += "),\n"
@@ -566,11 +567,21 @@ def ootCutsceneToC(scene, headerIndex):
 				data.source += ootEnumCSListTypeEntryC[list.listType]
 			data.source += "("
 			if list.listType == "Textbox":
-				TODO()
+				if e.textboxType == "Text":
+					data.source += e.messageId + ", " + str(e.startFrame) + ", " \
+						+ str(e.endFrame) + ", " + e.type + ", " + e.topOptionBranch \
+						+ ", " + e.bottomOptionBranch
+				elif e.textboxType == "None":
+					data.source += str(e.startFrame) + ", " + str(e.endFrame)
+				elif e.textboxType == "LearnSong":
+					data.source += e.ocarinaSongAction + ", " + str(e.startFrame) \
+						+ ", " + str(e.endFrame) + ", " + e.ocarinaMessageId
 			elif list.listType == "Lighting":
-				TODO()
+				data.source += str(e.index) + ", " + str(e.startFrame) + ", " \
+					+ str(e.startFrame + 1) + ", 0, 0, 0, 0, 0, 0, 0, 0"
 			elif list.listType == "Time":
-				TODO()
+				data.source += "0, " + str(e.startFrame) + ", " + str(e.startFrame + 1) \
+					+ ", " + str(e.hour) + ", " + str(e.minute) + ", 0"
 			elif list.listType in ["PlayBGM", "StopBGM", "FadeBGM"]:
 				data.source += e.value + ", " + str(e.startFrame) + ", " + str(e.endFrame) \
 					+ ", 0, 0, 0, 0, 0, 0, 0, 0"

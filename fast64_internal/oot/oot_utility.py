@@ -502,7 +502,7 @@ class OOTCollectionAdd(bpy.types.Operator):
 
 		collection.add()
 		collection.move(len(collection)-1, self.option)
-		self.report({'INFO'}, 'Success!')
+		#self.report({'INFO'}, 'Success!')
 		return {'FINISHED'} 
 
 class OOTCollectionRemove(bpy.types.Operator):
@@ -518,7 +518,7 @@ class OOTCollectionRemove(bpy.types.Operator):
 	def execute(self, context):
 		collection = getCollection(bpy.data.objects[self.objName], self.collectionType, self.subIndex)
 		collection.remove(self.option)
-		self.report({'INFO'}, 'Success!')
+		#self.report({'INFO'}, 'Success!')
 		return {'FINISHED'} 
 
 class OOTCollectionMove(bpy.types.Operator):
@@ -535,7 +535,7 @@ class OOTCollectionMove(bpy.types.Operator):
 	def execute(self, context):
 		collection = getCollection(bpy.data.objects[self.objName], self.collectionType, self.subIndex)
 		collection.move(self.option, self.option + self.offset)
-		self.report({'INFO'}, 'Success!')
+		#self.report({'INFO'}, 'Success!')
 		return {'FINISHED'} 
 
 oot_utility_classes = (

@@ -108,7 +108,7 @@ class OOTCSList:
 		self.listType = None
 		self.entries = []
 		self.unkType = '0x0001'
-		self.fxType = 2
+		self.fxType = '1'
 		self.fxStartFrame = 0
 		self.fxEndFrame = 0
 

@@ -1471,3 +1471,19 @@ ootEnumCSTextboxTypeEntryC = {
     "None": 'CS_TEXT_NONE',
     "LearnSong": 'CS_TEXT_LEARN_SONG',
 }
+
+ootEnumCSTransitionType = [
+	('1', 'To White +', 'Also plays whiteout sound for certain scenes/entrances'),
+	('2', 'To Blue', 'To Blue'),
+	('3', 'From Red', 'From Red'),
+	('4', 'From Green', 'From Green'),
+	('5', 'From White', 'From White'),
+	('6', 'From Blue', 'From Blue'),
+	('7', 'To Red', 'To Red'),
+	('8', 'To Green', 'To Green'),
+	('9', 'Set Unk', 'gSaveContext.unk_1410 = 1, works with scene xn 11/17'),
+	('10', 'From Black', 'From Black'),
+	('11', 'To Black', 'To Black'),
+	('12', 'To Dim Unk', 'Fade gSaveContext.unk_1410 255>100, works with scene xn 11/17'),
+	('13', 'From Dim', 'Alpha 100>255')
+]
