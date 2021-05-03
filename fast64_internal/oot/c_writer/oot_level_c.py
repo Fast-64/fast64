@@ -659,7 +659,7 @@ def ootSceneToC(scene, headerIndex, textureExportSettings):
 		sceneC.append(ootLightSettingsToC(scene, scene.skyboxLighting == '0x01', headerIndex))
 	sceneC.append(pathData)
 	sceneC.append(colData)
-	if scene.writeCutscene is not None:
+	if scene.writeCutscene:
 		sceneC.append(ootCutsceneToC(scene, headerIndex))
 	sceneC.append(altData)
 	sceneC.append(meshData)
