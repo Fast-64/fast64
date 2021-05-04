@@ -753,7 +753,7 @@ class F3DPanel(bpy.types.Panel):
 
 				# cycle dependent - (P * A + M - B) / (A + B) 
 				combinerBox = renderGroup.box()
-				combinerBox.label(text='Blender (Color = (P * A + M - B) / (A + B)')
+				combinerBox.label(text='Blender (Color = (P * A + M * B) / (A + B)')
 				combinerCol = combinerBox.row()
 				rowColor = combinerCol.column()
 				rowAlpha = combinerCol.column()
