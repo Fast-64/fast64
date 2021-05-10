@@ -148,7 +148,7 @@ def cmdMesh(room, header, cmdCount):
 def cmdObjectList(room, header, cmdCount):
 	cmd = CData()
 	# cmd.header = "extern " + "SCmdObjectList " + cmdName(room.roomName(), header, cmdCount) + ';\n'
-	cmd.source = "\tSCENE_CMD_OBJECT_LIST(" + str(len(room.objectList)) + ", &" + str(room.objectListName(header)) + ");\n"
+	cmd.source = "\tSCENE_CMD_OBJECT_LIST(" + str(len(room.objectList)) + ", &" + str(room.objectListName(header)) + "),\n"
 	return cmd
 
 def cmdActorList(room, header, cmdCount):
