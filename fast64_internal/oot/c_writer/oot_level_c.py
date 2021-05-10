@@ -32,8 +32,8 @@ def cmdRoomList(scene, header, cmdCount):
 def cmdTransiActorList(scene, header, cmdCount):
 	cmd = CData()
 	cmd.header = "extern " + "SCmdTransiActorList " + cmdName(scene.sceneName(), header, cmdCount) + ';\n'
-	cmd.source = "SCmdTransiActorList " + cmdName(scene.sceneName(), header, cmdCount) + " = { " + \
-		"0x0E, " + str(len(scene.transitionActorList)) + ", (u32)" + scene.transitionActorListName(header) + " };\n\n"
+	cmd.source = "    SCENE_CMD_TRANSITION_ACTOR_LIST(" + str(len(scene.transitionActorList)) + ", " + \
+		scene.transitionActorListName(header) + ");\n"
 	return cmd
 
 def cmdMiscSettings(scene, header, cmdCount):
