@@ -112,8 +112,9 @@ def cmdEchoSettings(room, header, cmdCount):
 def cmdRoomBehaviour(room, header, cmdCount):
 	cmd = CData()
 	# cmd.header = "extern " + "SCmdRoomBehavior " + cmdName(room.roomName(), header, cmdCount) + ';\n'
-	cmd.source = "\tSCENE_CMD_ROOM_BEHAVIOR(0x00, " + str(room.linkIdleMode) + ", " + ("true" if room.showInvisibleActors else "false") + ", " + \
-		("true" if room.showInvisibleActors else "false") + "),\n"
+	cmd.source = "\tSCENE_CMD_ROOM_BEHAVIOR(" + str(room.roomBehaviour) + ", " + str(room.linkIdleMode) + ", " + \
+		("true" if room.showInvisibleActors else "false") + ", " + \
+		("true" if room.disableWarpSongs else "false") + "),\n"
 	return cmd
 
 def cmdSkyboxDisables(room, header, cmdCount):
