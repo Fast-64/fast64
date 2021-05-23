@@ -362,6 +362,7 @@ def ootConvertScene(originalSceneObj, transformMatrix,
 				readPathProp(obj.ootSplineProperty, obj, scene, sceneObj, sceneName, transformMatrix)
 		
 		scene.validateIndices()
+		scene.entranceList = sorted(scene.entranceList, key=lambda x: x.startPositionIndex)
 		exportCollisionCommon(scene.collision, sceneObj, transformMatrix, True, sceneName)
 
 		ootCleanupScene(originalSceneObj, allObjs)

@@ -454,8 +454,8 @@ def ootEntranceToC(entrance):
 
 def ootEntranceListToC(scene, headerIndex):
 	data = CData()
-	data.header = "extern EntranceEntry " + scene.entranceListName(headerIndex) + "[" + str(len(scene.entranceList)) + "];\n"
-	data.source = "EntranceEntry " + scene.entranceListName(headerIndex) + "[" + str(len(scene.entranceList)) + "] = {\n"
+	data.header = "extern EntranceEntry " + scene.entranceListName(headerIndex) + "[];\n"
+	data.source = "EntranceEntry " + scene.entranceListName(headerIndex) + "[] = {\n"
 	for entrance in scene.entranceList:
 		data.source += '\t' + ootEntranceToC(entrance)
 	data.source += '};\n\n'

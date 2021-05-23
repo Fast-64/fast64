@@ -644,10 +644,13 @@ def addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix, 
 
 			if polygonType not in collisionDict:
 				collisionDict[polygonType] = []
-			collisionDict[polygonType].append(((
+			
+			positions = sorted((
 				(x1, y1, z1),
 				(x2, y2, z2),
-				(x3, y3, z3)), normal, distance))
+				(x3, y3, z3)), key=lambda x: x[1]) # sort by min y to avoid minY bug
+
+			collisionDict[polygonType].append((positions, normal, distance))
 	
 	if includeChildren:
 		for child in obj.children:
