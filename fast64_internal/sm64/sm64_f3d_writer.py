@@ -2,6 +2,7 @@ import shutil, copy, bpy, cProfile, pstats
 
 from ..f3d.f3d_writer import *
 from ..f3d.f3d_material import *
+from ..f3d.f3d_gbi import FMaterial
 from .sm64_texscroll import *
 from .sm64_utility import *
 from bpy.utils import register_class, unregister_class
@@ -34,21 +35,33 @@ class SM64Model(FModel):
 		return [cycle1, cycle2]
 
 class SM64GfxFormatter(GfxFormatter):
-	def __init__(self, scrollMethod):
+	def __init__(self, scrollMethod: ScrollMethod):
 		self.functionNodeDraw = False
 		GfxFormatter.__init__(self, scrollMethod, 8)
 
-	def vertexScrollToC(self, fScrollData, name, count):
+	def vertexScrollToC(self, fMaterial: FMaterial, name: str, count: int):
+		fScrollData = fMaterial.scrollData
 		data = CData()
-		data.source = self.vertexScrollTemplate(fScrollData, name, count, 
-			'absi', 'signum_positive', 'coss', 'random_float', 'random_sign', 'segmented_to_virtual')
-		
+		sts_data = CData()
+
+		data.source = self.vertexScrollTemplate(
+			fScrollData, name, count, 
+			'absi', 'signum_positive', 'coss', 'random_float', 'random_sign', 'segmented_to_virtual'
+		)
+		sts_data.source = self.tileScrollStaticMaterialToC(fMaterial)
+
 		scrollDataFields = fScrollData.fields[0]
 		if not((scrollDataFields[0].animType == "None") and\
 			(scrollDataFields[1].animType == "None")):
 			data.header = 'extern void scroll_' + name + "();\n"
-		
-		return data
+
+		# self.tileScrollFunc is set in GfxFormatter.tileScrollStaticMaterialToC
+		if self.tileScrollFunc is not None:
+			sts_data.header = f'{self.tileScrollFunc}\n'
+		else:
+			sts_data = None
+
+		return data, sts_data
 
 	# This code is not functional, only used for an example
 	def drawToC(self, f3d, gfxList):
@@ -78,7 +91,7 @@ class SM64GfxFormatter(GfxFormatter):
 			return gfxList.to_c(f3d)
 
 	# This code is not functional, only used for an example
-	def tileScrollMaterialToC(self, f3d, fMaterial):
+	def tileScrollMaterialToC(self, f3d, fMaterial: FMaterial):
 		data = CData()
 
 		materialGfx = fMaterial.material

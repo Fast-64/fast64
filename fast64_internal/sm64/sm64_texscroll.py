@@ -1,5 +1,6 @@
 import os, re, bpy
 from ..utility import *
+from .c_templates.tile_scroll import tile_scroll_c, tile_scroll_h
 
 # This is for writing framework for scroll code.
 # Actual scroll code found in f3d_gbi.py (FVertexScrollData)
@@ -81,6 +82,20 @@ def writeScrollTextureCall(path, include, callString):
 	
 		saveDataToFile(path, data)
 
+TILE_SCROLL_REL_PATH = 'src/game/tile_scroll'
+def writeTileScrollFiles(baseDir):
+	tile_scroll_path = os.path.join(baseDir, TILE_SCROLL_REL_PATH)
+	tile_scroll_c_path = f'{tile_scroll_path}.c'
+	tile_scroll_h_path = f'{tile_scroll_path}.h'
+
+	if not os.path.exists(tile_scroll_c_path):
+		with open(tile_scroll_c_path, 'w', newline = '\n') as tile_c_fp:
+			tile_c_fp.write(tile_scroll_c)
+
+	if not os.path.exists(tile_scroll_h_path):
+		with open(tile_scroll_h_path, 'w', newline = '\n') as tile_h_fp:
+			tile_h_fp.write(tile_scroll_h)
+
 def writeTexScrollBase(baseDir):
 	fileStatus = SM64TexScrollFileStatus()
 	writeSegmentROMTable(baseDir)
@@ -107,6 +122,7 @@ def writeTexScrollBase(baseDir):
 			'#include "memory.h"\n' +\
 			'#include "engine/math_util.h"\n' +\
 			'#include "src/engine/behavior_script.h"\n' +\
+			'#include "tile_scroll.h"\n' +\
 			'#include "texscroll.h"\n\n'
 
 		# Write global texture load function here
@@ -122,14 +138,19 @@ def writeTexScrollBase(baseDir):
 	scrollData = texscrollCFile.read()
 	texscrollCFile.close()
 
+	texScrollIncludeDef = '#include "texscroll.h"'
+	macroIndex = scrollData.index(texScrollIncludeDef)
+
+	if '#include "tile_scroll.h"' not in scrollData:
+		scrollData = scrollData[:macroIndex] + '#include "tile_scroll.h"\n' + scrollData[macroIndex:]
+		macroIndex = scrollData.index(texScrollIncludeDef)
+
 	scrollConditionDefine = '#ifdef TARGET_N64\n' +\
 		'#define SCROLL_CONDITION(condition) condition\n' +\
 		'#else\n' +\
 		'#define SCROLL_CONDITION(condition) 1\n' +\
 		'#endif\n'
 	if '#define SCROLL_CONDITION' not in scrollData:
-		texScrollIncludeDef = '#include "texscroll.h"'
-		macroIndex = scrollData.index(texScrollIncludeDef)
 		if macroIndex != -1:
 			macroIndex += len(texScrollIncludeDef)
 			scrollData = scrollData[:macroIndex] + '\n\n' + scrollConditionDefine +\
@@ -137,9 +158,8 @@ def writeTexScrollBase(baseDir):
 		else:
 			raise PluginError("Cannot find '#include \"texscroll.h\" in src/game/texscroll.c")
 
-		texscrollCFile = open(texscrollCPath, 'w', newline='\n')
+	with open(texscrollCPath, 'w', newline='\n') as texscrollCFile:
 		texscrollCFile.write(scrollData)
-		texscrollCFile.close()
 	
 	# Create texscroll folder for groups
 	texscrollDirPath = os.path.join(baseDir, 'src/game/texscroll')
@@ -165,6 +185,9 @@ def writeTexScrollBase(baseDir):
 	
 	#writeScrollTextureCall(os.path.join(baseDir, 'src/menu/level_select_menu.c'),
 	#	'#include "src/game/texscroll.h"', 's32 retVar;')
+
+	# write tile scroll files
+	writeTileScrollFiles(baseDir)
 
 	return fileStatus
 
