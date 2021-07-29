@@ -792,9 +792,9 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 			createHeaderFile(levelName, headerPath)
 
 		# Write level data		
-		writeIfNotFound(geoPath, '#include "levels/' + levelName + '/geo.inc.c"\n', '')
-		writeIfNotFound(levelDataPath, '#include "levels/' + levelName + '/leveldata.inc.c"\n', '')
-		writeIfNotFound(headerPath, '#include "levels/' + levelName + '/header.inc.h"\n', '#endif')
+		writeIfNotFound(geoPath, '\n#include "levels/' + levelName + '/geo.inc.c"\n', '')
+		writeIfNotFound(levelDataPath, '\n#include "levels/' + levelName + '/leveldata.inc.c"\n', '')
+		writeIfNotFound(headerPath, '\n#include "levels/' + levelName + '/header.inc.h"\n', '#endif')
 		
 		if fModel.texturesSavedLastExport == 0:
 			textureIncludePath = os.path.join(levelDir, 'texture_include.inc.c')

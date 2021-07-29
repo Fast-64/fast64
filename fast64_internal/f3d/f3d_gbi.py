@@ -1426,10 +1426,49 @@ class TextureExportSettings:
 		self.includeDir = includeDir
 		self.exportPath = exportPath
 
+#  SetTileSize Scroll Data
+class FSetTileSizeScrollField:
+	def __init__(self):
+		self.s = 0
+		self.t = 0
+
+def tile_func(direction: str, speed: int, cmdNum: int):
+	if speed == 0 or speed is None:
+		return None
+
+	func = f'shift_{direction}'
+
+	if speed < 0:
+		func += '_down'
+
+	return f'\t{func}(mat, {cmdNum}, PACK_TILESIZE(0, {abs(speed)}));'
+
+def mat_tile_scroll(
+	mat: str,
+	tex0: FSetTileSizeScrollField,
+	tex1: FSetTileSizeScrollField,
+	cmdNum0: int,
+	cmdNum1: int
+):
+	func = f'void scroll_sts_{mat}()'
+	lines = [
+		f'{func} {{',
+		f'\tGfx *mat = segmented_to_virtual({mat});',
+		tile_func('s', tex0.s, cmdNum0),
+		tile_func('t', tex0.t, cmdNum0),
+		tile_func('s', tex1.s, cmdNum1),
+		tile_func('t', tex1.t, cmdNum1),
+		'};\n\n'
+	]
+
+	return func, '\n'.join([line for line in lines if line])
+
+
 class GfxFormatter:
-	def __init__(self, scrollMethod, texArrayBitSize):
-		self.scrollMethod = scrollMethod
+	def __init__(self, scrollMethod: ScrollMethod, texArrayBitSize):
+		self.scrollMethod: ScrollMethod = scrollMethod
 		self.texArrayBitSize = texArrayBitSize
+		self.tileScrollFunc = None # Used to add tile scroll func to headers
 				
 	def vertexScrollTemplate(self, fScrollData, name, count, 
 		absFunc, signFunc, cosFunc, randomFloatFunc, randomSignFunc, segToVirtualFunc):
@@ -1459,7 +1498,7 @@ class GfxFormatter:
 					'\t\tdelta' + field + ' -= (int)(absi(current' + field + ') / ' +  axis + ') * ' + axis +\
 					' * ' + signFunc + '(delta' + field + ');\n\t}\n'
 				scrolling += '\t\tvertices[i].n.tc[' + str(i) + '] += delta' + field + ';\n'
-				increaseCurrentDelta += '\tcurrent' + field + ' += delta' + field + ';\n'
+				increaseCurrentDelta += '\tcurrent' + field + ' += delta' + field + ';'
 
 				if scrollDataFields[i].animType == "Linear":
 					deltaCalculate += '\tdelta' + field + ' = (int)(' + str(scrollDataFields[i].speed) + ' * 0x20) % ' + axis + ';\n'
@@ -1475,7 +1514,7 @@ class GfxFormatter:
 					# Conversion from s10.5 to u16
 					#checkOverflow += '\tif (frequency' + field + ' * current' + field + ' / 2 > 6.28318530718) {\n' +\
 					#	'\t\tcurrent' + field + ' -= 6.28318530718 * 2 / frequency' + field + ';\n\t}\n'
-					increaseCurrentDelta += '\ttime' + field + ' += 1;\n'
+					increaseCurrentDelta += '\ttime' + field + ' += 1;'
 				elif scrollDataFields[i].animType == "Noise":
 					deltaCalculate += '\tdelta' + field + ' = (int)(' + str(scrollDataFields[i].noiseAmplitude) + ' * 0x20 * ' +\
 						randomFloatFunc + '() * ' + randomSignFunc + '()) % ' + axis + ';\n'
@@ -1486,7 +1525,7 @@ class GfxFormatter:
 			'\tVtx *vertices = ' + segToVirtualFunc + '(' + name + ');\n\n' +\
 			deltaCalculate + '\n' + checkOverflow + '\n' +\
 			"\tfor (i = 0; i < count; i++) {\n" +\
-			scrolling + '\t}\n' + increaseCurrentDelta + '\n}\n'
+			scrolling + '\t}\n' + increaseCurrentDelta + '\n}\n\n'
 
 	# Called for handling vertex texture scrolling.
 	def vertexScrollToC(self, fScrollData, name, vertexCount):
@@ -1500,6 +1539,36 @@ class GfxFormatter:
 	# ScrollMethod and DLFormat checks are already handled.
 	def tileScrollMaterialToC(self, f3d, fMaterial):
 		raise PluginError("No tile scroll implementation specified.")
+
+	# Modify static material using tile texture scrolling.
+	def tileScrollStaticMaterialToC(self, fMaterial):
+		setTileSizeIndex0 = -1
+		setTileSizeIndex1 = -1
+
+		# Find index of SetTileSize commands
+		for i, c in enumerate(fMaterial.material.commands):
+			if isinstance(c, DPSetTileSize):
+				if setTileSizeIndex0 >= 0:
+					setTileSizeIndex1 = i
+					break
+				else:
+					setTileSizeIndex0 = i
+		mat_name = fMaterial.material.name
+
+		tile_scroll_tex0 = fMaterial.scrollData.tile_scroll_tex0
+		tile_scroll_tex1 = fMaterial.scrollData.tile_scroll_tex1
+		if fMaterial.scrollData.tile_scroll_exported:
+			return None
+		if tile_scroll_tex0.s or tile_scroll_tex0.t or tile_scroll_tex1.s or tile_scroll_tex1.t:
+			func, data = mat_tile_scroll(
+				mat_name, tile_scroll_tex0, tile_scroll_tex1, setTileSizeIndex0, setTileSizeIndex1
+			)
+			self.tileScrollFunc = f'extern {func};' # save for later
+			fMaterial.scrollData.tile_scroll_exported = True
+			return data
+
+		return None
+
 
 class Vtx:
 	def __init__(self, position, uv, colorOrNormal):
@@ -2244,7 +2313,7 @@ class FMesh:
 		# GfxList
 		self.draw = GfxList(name, GfxListTag.Draw, DLFormat)
 		# list of FTriGroup
-		self.triangleGroups	= []
+		self.triangleGroups: list[FTriGroup] = []
 		# VtxList
 		self.cullVertexList = None
 		# dict of (override Material, specified Material to override, 
@@ -2315,10 +2384,31 @@ class FMesh:
 		return staticData, dynamicData
 
 	def to_c_vertex_scroll(self, gfxFormatter):
-		scrollData = CData()
+		cData = CData()
+		scrollData = []
+		stsScrollData = []
 		for triGroup in self.triangleGroups:
-			scrollData.append(triGroup.to_c_vertex_scroll(gfxFormatter))
-		return scrollData
+			data, sts_data = triGroup.to_c_vertex_scroll(gfxFormatter)
+			cData.append(data)
+			if sts_data is not None:
+				stsScrollData.append(sts_data)
+		
+		filtered_sts: list[CData] = []
+		for d in stsScrollData:
+			if not d.header or not d.source:
+				continue
+			new_one = True
+			for stsd in filtered_sts:
+				if stsd.header == d.header or stsd.source == d.source:
+					new_one = False
+					break
+			if new_one:
+				filtered_sts.append(d)
+		
+		for fsts in filtered_sts:
+			cData.append(fsts)
+
+		return cData
 
 class FTriGroup:
 	def __init__(self, name, index, fMaterial):
@@ -2344,12 +2434,15 @@ class FTriGroup:
 		data.append(self.triList.to_c(f3d))
 		return data
 
-	def to_c_vertex_scroll(self, gfxFormatter):
+	def to_c_vertex_scroll(self, gfxFormatter: GfxFormatter):
 		if self.fMaterial.scrollData is not None:
 			return gfxFormatter.vertexScrollToC(
-				self.fMaterial.scrollData, self.vertexList.name, len(self.vertexList.vertices))
+				self.fMaterial,
+				self.vertexList.name,
+				len(self.vertexList.vertices)
+			)
 		else:
-			return CData()
+			return CData(), CData()
 		
 class FScrollDataField:
 	def __init__(self):
@@ -2372,6 +2465,9 @@ class FScrollData:
 			FScrollDataField()]
 		]
 		self.dimensions = [0, 0]
+		self.tile_scroll_tex0 = FSetTileSizeScrollField()
+		self.tile_scroll_tex1 = FSetTileSizeScrollField()
+		self.tile_scroll_exported = False
 	
 class FMaterial:
 	def __init__(self, name, DLFormat):
@@ -2397,6 +2493,7 @@ class FMaterial:
 		self.getScrollDataField(material, 1, 0)
 		self.getScrollDataField(material, 1, 1)
 		self.scrollData.dimensions = dimensions
+		self.getSetTileSizeScrollData(material)
 
 	def getScrollDataField(self, material, texIndex, fieldIndex):
 		UVanim0 = material.f3d_mat.UVanim0 if material.mat_ver > 3 else material.UVanim
@@ -2418,6 +2515,15 @@ class FMaterial:
 		scrollField.offset = field.offset
 
 		scrollField.noiseAmplitude = field.noiseAmplitude
+
+	def getSetTileSizeScrollData(self, material):
+		tex0 = material.f3d_mat.tex0
+		tex1 = material.f3d_mat.tex1
+
+		self.scrollData.tile_scroll_tex0.s = tex0.tile_scroll.s
+		self.scrollData.tile_scroll_tex0.t = tex0.tile_scroll.t
+		self.scrollData.tile_scroll_tex1.s = tex1.tile_scroll.s
+		self.scrollData.tile_scroll_tex1.t = tex1.tile_scroll.t
 
 	def sets_rendermode(self):
 		for command in self.material.commands:
