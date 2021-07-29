@@ -1097,13 +1097,13 @@ def ui_procAnimVecEnum(material, procAnimVec, layout, name, vecType, useDropdown
 			if combinedOption == "Rotation":
 				pass
 	
-	if (useTex0 or useTex1):
+	if useTex0 or useTex1:
 		layout.box().label(text = 'SM64 SetTileSize Texture Scroll')
 
-		if (useTex0):
+		if useTex0:
 			ui_tileScroll(material.tex0, 'Texture 0 Speed', layout)
 
-		if (useTex1):
+		if useTex1:
 			ui_tileScroll(material.tex1, 'Texture 1 Speed', layout)
 	
 def ui_procAnimFieldEnum(procAnimField, layout, name, overrideName):
