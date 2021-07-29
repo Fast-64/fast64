@@ -141,9 +141,12 @@ def writeTexScrollBase(baseDir):
 	texScrollIncludeDef = '#include "texscroll.h"'
 	macroIndex = scrollData.index(texScrollIncludeDef)
 
+	update_tex_scroll = False
+
 	if '#include "tile_scroll.h"' not in scrollData:
 		scrollData = scrollData[:macroIndex] + '#include "tile_scroll.h"\n' + scrollData[macroIndex:]
 		macroIndex = scrollData.index(texScrollIncludeDef)
+		update_tex_scroll = True
 
 	scrollConditionDefine = '#ifdef TARGET_N64\n' +\
 		'#define SCROLL_CONDITION(condition) condition\n' +\
@@ -155,11 +158,13 @@ def writeTexScrollBase(baseDir):
 			macroIndex += len(texScrollIncludeDef)
 			scrollData = scrollData[:macroIndex] + '\n\n' + scrollConditionDefine +\
 				scrollData[macroIndex:]
+			update_tex_scroll = True
 		else:
 			raise PluginError("Cannot find '#include \"texscroll.h\" in src/game/texscroll.c")
 
-	with open(texscrollCPath, 'w', newline='\n') as texscrollCFile:
-		texscrollCFile.write(scrollData)
+	if update_tex_scroll:
+		with open(texscrollCPath, 'w', newline='\n') as texscrollCFile:
+			texscrollCFile.write(scrollData)
 	
 	# Create texscroll folder for groups
 	texscrollDirPath = os.path.join(baseDir, 'src/game/texscroll')
