@@ -1060,8 +1060,14 @@ class F3DPanel(bpy.types.Panel):
 #		if len(vecType) > 2:
 #			self.ui_procAnimField(procAnimVec.z, box, vecType[2])
 
-def ui_procAnimVecEnum(procAnimVec, layout, name, vecType, useDropdown):
+def ui_tileScroll(tex, name, layout):
+	row = layout.row(heading = name)
+	row.prop(tex.tile_scroll, 's', text = 'S:')
+	row.prop(tex.tile_scroll, 't', text = 'T:')
+
+def ui_procAnimVecEnum(material, procAnimVec, layout, name, vecType, useDropdown, useTex0, useTex1):
 	layout = layout.box()
+	box = layout.column()
 	if useDropdown:
 		layout.prop(procAnimVec, 'menu', text = name, 
 			icon = 'TRIA_DOWN' if procAnimVec.menu else 'TRIA_RIGHT')
@@ -1090,6 +1096,15 @@ def ui_procAnimVecEnum(procAnimVec, layout, name, vecType, useDropdown):
 			box.row().prop(procAnimVec, 'angularSpeed')
 			if combinedOption == "Rotation":
 				pass
+	
+	if useTex0 or useTex1:
+		layout.box().label(text = 'SM64 SetTileSize Texture Scroll')
+
+		if useTex0:
+			ui_tileScroll(material.tex0, 'Texture 0 Speed', layout)
+
+		if useTex1:
+			ui_tileScroll(material.tex1, 'Texture 1 Speed', layout)
 	
 def ui_procAnimFieldEnum(procAnimField, layout, name, overrideName):
 	box = layout
@@ -1125,10 +1140,9 @@ def ui_procAnimField(procAnimField, layout, name):
 
 def ui_procAnim(material, layout, useTex0, useTex1, title, useDropdown):
 	if material.mat_ver > 3:
-		ui_procAnimVecEnum(material.f3d_mat.UVanim0, layout, title, 'UV', useDropdown)
-		#ui_procAnimVecEnum(material.f3d_mat.UVanim1, layout, title, 'UV')
+		ui_procAnimVecEnum(material.f3d_mat, material.f3d_mat.UVanim0, layout, title, 'UV', useDropdown, useTex0, useTex1)
 	else:
-		ui_procAnimVecEnum(material.UVanim, layout, title, 'UV', useDropdown)
+		ui_procAnimVecEnum(material, material.UVanim, layout, title, 'UV', useDropdown, useTex0, useTex1)
 	#layout.prop(material, 'menu_procAnim', 
 	#	text = 'Procedural Animation', 
 	#	icon = 'TRIA_DOWN' if material.menu_procAnim else 'TRIA_RIGHT')
@@ -2017,6 +2031,10 @@ class TextureFieldProperty(bpy.types.PropertyGroup):
 	shift : bpy.props.IntProperty(min = -5, max = 10,
 		update = update_tex_values)
 
+class SetTileSizeScrollProperty(bpy.types.PropertyGroup):
+	s : bpy.props.IntProperty(min = -100, max = 100, default = 0)
+	t : bpy.props.IntProperty(min = -100, max = 100, default = 0)
+
 class TextureProperty(bpy.types.PropertyGroup):
 	tex : bpy.props.PointerProperty(type = bpy.types.Image, name = 'Texture', update = update_tex_values_and_formats)
 
@@ -2035,6 +2053,7 @@ class TextureProperty(bpy.types.PropertyGroup):
 	tex_set : bpy.props.BoolProperty(default = True, update = update_node_values)
 	autoprop : bpy.props.BoolProperty(name = 'Autoprop', update = update_tex_values, default = True)
 	save_large_texture : bpy.props.BoolProperty(name = "Save Large Texture As PNG", default = True)
+	tile_scroll :  bpy.props.PointerProperty(type = SetTileSizeScrollProperty)
 	#autoprop : bpy.props.BoolProperty(name = 'Autoprop', update = on_tex_autoprop, default = True)
 
 def on_tex_autoprop(texProperty, context):
@@ -2423,6 +2442,9 @@ class AddPresetF3D(AddPresetBase, Operator):
 		"f3d_mat.tex0.menu",
 		"f3d_mat.tex0.autoprop",
 		"f3d_mat.tex0.save_large_texture",
+		"f3d_mat.tex0.tile_scroll",
+		"f3d_mat.tex0.tile_scroll.s",
+		"f3d_mat.tex0.tile_scroll.t",
 		"f3d_mat.tex1.tex",
 		"f3d_mat.tex1.tex_format",
 		"f3d_mat.tex1.ci_format",
@@ -2436,6 +2458,9 @@ class AddPresetF3D(AddPresetBase, Operator):
 		"f3d_mat.tex1.menu",
 		"f3d_mat.tex1.autoprop",
 		"f3d_mat.tex1.save_large_texture",
+		"f3d_mat.tex1.tile_scroll",
+		"f3d_mat.tex1.tile_scroll.s",
+		"f3d_mat.tex1.tile_scroll.t",
 		"f3d_mat.tex_scale",
 		"f3d_mat.scale_autoprop",
 		"f3d_mat.uv_basis",
@@ -2872,6 +2897,7 @@ mat_classes = (
 	CreateFast3DMaterial,
 	GetAlphaFromColor,
 	TextureFieldProperty,
+	SetTileSizeScrollProperty,
 	TextureProperty,
 	CombinerProperty,
 	ProceduralAnimProperty,
