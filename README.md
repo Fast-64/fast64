@@ -1,9 +1,10 @@
-
 # Fast64
 
 This requires Blender 2.82+.
 
-![alt-text](https://bitbucket.org/kurethedead/fast64/raw/master/images/mario_running.gif)
+Forked from [kurethedead/fast64 on BitBucket](https://bitbucket.org/kurethedead/fast64/src).
+
+![alt-text](/images/mario_running.gif)
 
 This is a Blender plugin that allows one to export F3D display lists. It also has the ability to export assets for Super Mario 64 and Ocarina of Time decompilation projects. It supports custom color combiners / geometry modes / etc. It is also possible to use exported C code in homebrew applications.
 
@@ -12,7 +13,7 @@ Make sure to save often, as this plugin is prone to crashing when creating mater
 <https://developer.blender.org/T70574>
 
 
-![alt-text](https://bitbucket.org/kurethedead/fast64/raw/master/images/mat_inspector.png)
+![alt-text](/images/mat_inspector.png)
 
 
 ### Credits
@@ -20,8 +21,8 @@ Thanks to anonymous_moose, Cheezepin, Rovert, and especially InTheBeef for testi
 Thanks to InTheBeef for LowPolySkinnedMario.
 
 ### Table of Contents
-2. [ Super Mario 64 ](https://bitbucket.org/kurethedead/fast64/src/master/fast64_internal/sm64/README.md)
-3. [ Ocarina Of Time ](https://bitbucket.org/kurethedead/fast64/src/master/fast64_internal/oot/README.md)
+1. [ Super Mario 64 ](/fast64_internal/sm64/README.md)
+2. [ Ocarina Of Time ](/fast64_internal/oot/README.md)
 
 ### Installation
 Download the repository as a zip file. In Blender, go to Edit -> Preferences -> Add-Ons and click the "Install" button to install the plugin from the zip file. Find the Fast64 addon in the addon list and enable it. If it does not show up, go to Edit -> Preferences -> Save&Load and make sure 'Auto Run Python Scripts' is enabled.
