@@ -48,7 +48,7 @@ SM64 geolayouts are often in strange rest poses, which makes it hard to modify t
 
 For example, for Mario you would rotate the four limb joints around the Y-axis 180 degrees, then just the arms 90/-90 degrees as such:
 
-![alt-text](https://bitbucket.org/kurethedead/fast64/raw/master/images/mario_t_pose.gif)
+![alt-text](/images/mario_t_pose.gif)
 
 Then after applying the rest pose and skinning, you would apply those operations in reverse order then apply rest pose again.
 

@@ -13,13 +13,13 @@
 In Blender, the "empty" object type is used to define different types of OOT data, including scenes and rooms.
 For scenes, there must be a specific parenting hierarchy:
 
-![](https://bitbucket.org/kurethedead/fast64/raw/master/images/oot_scene_hierarchy.png)
+![](/images/oot_scene_hierarchy.png)
 
 This means that any geometry/actors/etc. not parented to the scene hierarchy will NOT be included in the export.
 Note that geometry/actors/etc. do not have to be directly parented to the room empty, as long as its in a descendant's hierachy somewhere.
 
 Properties for empties/meshes can be found in the Blender object properties window.
-![](https://bitbucket.org/kurethedead/fast64/raw/master/images/oot_object_properties.png)
+![](/images/oot_object_properties.png)
 
 To export a scene, the "Scene Object" must be set in the "OOT Scene Exporter" section in the tool properties sidebar. When you click "Add Scene" this is set automatically.
 
@@ -35,7 +35,7 @@ All exits are basically an index into this table. Due to the way it works it mak
 The scene object has a property called "Draw Config." This is an index into sSceneDrawHandlers in src/code/z_scene_table.c.
 Each function in this table will load certain Gfx commands such as scrolling textures or setting color registers into the beginning of a RAM segment using gsSPSegment(). In Blender, in the material properties window you can choose which commands are called at the beginning of the material drawing.
 
-![](https://bitbucket.org/kurethedead/fast64/raw/master/images/oot_dynamic_material.png)
+![](/images/oot_dynamic_material.png)
 
 Note that there are different segments loaded between the OPA (opaque) and XLU (transparent) draw layers.
 Additionally, for functions like Gfx_TexScroll(), the x,y inputs are pre-shifted by <<2. For example, a % 128 means a repeat of the texture every 32 pixels.
@@ -53,8 +53,8 @@ To export a skeletal mesh, select an armature and then click "Export" for the ar
 
 To import a skeletal mesh, just click "Import" for the armature importer. You may encounter a couple issues:
 
-![](https://bitbucket.org/kurethedead/fast64/raw/master/images/oot_imported_gerudo_textured.png)
-![](https://bitbucket.org/kurethedead/fast64/raw/master/images/oot_imported_gerudo_solid.png)
+![](/images/oot_imported_gerudo_textured.png)
+![](/images/oot_imported_gerudo_solid.png)
 
 
 1. Eye/face textures are black: Texture pointers which are set dynamically will not be imported. Instead, the name of the pointer will be used instead of the actual data.
