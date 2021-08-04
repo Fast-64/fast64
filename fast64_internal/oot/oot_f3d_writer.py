@@ -39,7 +39,7 @@ class OOTModel(FModel):
 				gfxList.commands.append(SPDisplayList(
 					GfxList("0x" + format(i,'X') + '000000', GfxListTag.Material, DLFormat.Static)))
 		for i in range(0, 2):
-			p = "custom" + str(i)
+			p = "customCall" + str(i)
 			if getattr(matDrawLayer, p):
 				gfxList.commands.append(SPDisplayList(
 					GfxList(getattr(matDrawLayer, p + "_seg"), GfxListTag.Material, DLFormat.Static)))
@@ -605,8 +605,8 @@ def drawOOTMaterialDrawLayerProperty(layout, matDrawLayerProp, suffix):
 			i = 8 + colIndex * 3 + rowIndex
 			name = "Segment " + format(i, 'X') + " " + suffix
 			col.prop(matDrawLayerProp, "segment" + format(i, 'X'), text = name)
-		name = "Custom " + str(colIndex) + " " + suffix
-		p = "custom" + str(colIndex)
+		name = "Custom call (" + str(colIndex + 1) + ") " + suffix
+		p = "customCall" + str(colIndex)
 		col.prop(matDrawLayerProp, p, text = name)
 		if getattr(matDrawLayerProp, p):
 			col.prop(matDrawLayerProp, p + "_seg", text = "")
@@ -639,10 +639,10 @@ class OOTDynamicMaterialDrawLayerProperty(bpy.types.PropertyGroup):
 	segmentB : bpy.props.BoolProperty()
 	segmentC : bpy.props.BoolProperty()
 	segmentD : bpy.props.BoolProperty()
-	custom0 : bpy.props.BoolProperty()
-	custom0_seg : bpy.props.StringProperty()
-	custom1 : bpy.props.BoolProperty()
-	custom1_seg : bpy.props.StringProperty()
+	customCall0 : bpy.props.BoolProperty()
+	customCall0_seg : bpy.props.StringProperty()
+	customCall1 : bpy.props.BoolProperty()
+	customCall1_seg : bpy.props.StringProperty()
 
 # The reason these are separate is for the case when the user changes the material draw layer, but not the 
 # dynamic material calls. This could cause crashes which would be hard to detect.
