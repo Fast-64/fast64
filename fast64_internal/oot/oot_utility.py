@@ -418,8 +418,8 @@ def getCollectionFromIndex(obj, prop, subIndex, isRoom):
 # Operators cannot store mutable references (?), so to reuse PropertyCollection modification code we do this.
 # Save a string identifier in the operator, then choose the member variable based on that.
 # subIndex is for a collection within a collection element
-def getCollection(obj, collectionType, subIndex):
-
+def getCollection(objName, collectionType, subIndex):
+	obj = bpy.data.objects[objName]
 	if collectionType == "Actor":	
 		collection = obj.ootActorProperty.headerSettings.cutsceneHeaders
 	elif collectionType == "Transition Actor":	
@@ -436,10 +436,18 @@ def getCollection(obj, collectionType, subIndex):
 		collection = getCollectionFromIndex(obj, 'exitList', subIndex, False)
 	elif collectionType == "Object":
 		collection = getCollectionFromIndex(obj, 'objectList', subIndex, True)
-	elif collectionType == "CS":
-		collection = obj.ootSceneHeader.csLists
-	elif collectionType.startswith("CS."):
-		collection = getattr(obj.ootSceneHeader.csLists[subIndex], collectionType[3:])
+	elif collectionType.startswith("CSHdr."):
+		# CSHdr.HeaderNumber[.ListType]
+		# Specifying ListType means uses subIndex
+		toks = collectionType.split('.')
+		assert len(toks) in [2, 3]
+		hdrnum = int(toks[1])
+		if hdrnum < 0:
+			collection = obj.ootSceneHeader.csLists
+		else:
+			collection = obj.ootAlternateSceneHeaders.cutsceneHeaders[hdrnum].csLists
+		if len(toks) == 3:
+			collection = getattr(collection[subIndex], toks[2])
 	else:
 		raise PluginError("Invalid collection type: " + collectionType)
 
@@ -498,7 +506,7 @@ class OOTCollectionAdd(bpy.types.Operator):
 	objName : bpy.props.StringProperty()
 
 	def execute(self, context):
-		collection = getCollection(bpy.data.objects[self.objName], self.collectionType, self.subIndex)
+		collection = getCollection(self.objName, self.collectionType, self.subIndex)
 
 		collection.add()
 		collection.move(len(collection)-1, self.option)
@@ -516,7 +524,7 @@ class OOTCollectionRemove(bpy.types.Operator):
 	objName : bpy.props.StringProperty()
 
 	def execute(self, context):
-		collection = getCollection(bpy.data.objects[self.objName], self.collectionType, self.subIndex)
+		collection = getCollection(self.objName, self.collectionType, self.subIndex)
 		collection.remove(self.option)
 		#self.report({'INFO'}, 'Success!')
 		return {'FINISHED'} 
@@ -533,7 +541,7 @@ class OOTCollectionMove(bpy.types.Operator):
 
 	collectionType : bpy.props.StringProperty(default = "Actor")
 	def execute(self, context):
-		collection = getCollection(bpy.data.objects[self.objName], self.collectionType, self.subIndex)
+		collection = getCollection(self.objName, self.collectionType, self.subIndex)
 		collection.move(self.option, self.option + self.offset)
 		#self.report({'INFO'}, 'Success!')
 		return {'FINISHED'} 
