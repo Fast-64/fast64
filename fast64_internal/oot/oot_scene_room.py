@@ -677,7 +677,7 @@ def drawSceneHeaderProperty(layout, sceneProp, dropdownLabel, headerIndex, objNa
 			r.prop(sceneProp, "csTermIdx", text = "Index")
 			r.prop(sceneProp, "csTermStart", text = "Start Frm")
 			r.prop(sceneProp, "csTermEnd", text = "End Frm")
-		tempHeaderIndex = headerIndex - 4 if headerIndex is not None and headerIndex >= 4 else -1
+		tempHeaderIndex = 0 if headerIndex is None else headerIndex
 		for i, p in enumerate(sceneProp.csLists):
 			drawCSListProperty(cutscene, p, i, objName, tempHeaderIndex)
 		drawCSAddButtons(cutscene, objName, tempHeaderIndex)
