@@ -471,7 +471,7 @@ def ootExitListToC(scene, headerIndex):
 	return data
 
 def ootVectorToC(vector):
-	return str(vector[0]) + ', ' + str(vector[1]) + ', ' + str(vector[2])
+	return "0x{:02X}, 0x{:02X}, 0x{:02X}".format(vector[0], vector[1], vector[2])
 
 def ootLightToC(light):
 	return "\t{ " + \
@@ -482,7 +482,7 @@ def ootLightToC(light):
 		ootVectorToC(light.diffuse1) + ', ' +\
 		ootVectorToC(light.fogColor) + ', ' +\
 		light.getBlendFogShort() + ', ' +\
-		str(light.drawDistance) + ' },\n'
+		"0x{:04X}".format(light.drawDistance) + ' },\n'
 
 def ootLightSettingsToC(scene, useIndoorLighting, headerIndex):
 	data = CData()
