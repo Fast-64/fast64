@@ -289,12 +289,13 @@ class OOTCSProperty():
 	def filterName(self, name, listProp):
 		return name
 	
-	def draw(self, layout, listProp, listIndex, cmdIndex, objName):
+	def draw(self, layout, listProp, listIndex, cmdIndex, objName, headerIndex):
 		layout.prop(self, 'expandTab', text = self.getName() + " " + str(cmdIndex),
 			icon = 'TRIA_DOWN' if self.expandTab else 'TRIA_RIGHT')
 		if not self.expandTab: return
 		box = layout.box().column()
-		drawCollectionOps(box, cmdIndex, "CS." + self.attrName, listIndex, objName)
+		drawCollectionOps(box, cmdIndex, 
+			"CSHdr." + str(headerIndex) + "." + self.attrName, listIndex, objName)
 		for p in self.subprops:
 			if self.filterProp(p, listProp):
 				prop_split(box, self, p, self.filterName(p, listProp))
@@ -330,12 +331,13 @@ class OOTCSTextboxAdd(bpy.types.Operator):
 	bl_label = 'Add CS Textbox'
 	bl_options = {'REGISTER', 'UNDO'} 
 
+	collectionType : bpy.props.StringProperty()
 	textboxType : bpy.props.EnumProperty(items = ootEnumCSTextboxType)
 	listIndex : bpy.props.IntProperty()
 	objName : bpy.props.StringProperty()
 
 	def execute(self, context):
-		collection = bpy.data.objects[self.objName].ootSceneHeader.csLists[self.listIndex].textbox
+		collection = getCollection(self.objName, self.collectionType, self.listIndex)
 		collection.add()
 		collection[len(collection)-1].textboxType = self.textboxType
 		#self.report({'INFO'}, 'Success!')
@@ -466,13 +468,13 @@ class OOTCSListProperty(bpy.types.PropertyGroup):
 	fxStartFrame : bpy.props.IntProperty(name = '', default = 0, min = 0)
 	fxEndFrame : bpy.props.IntProperty(name = '', default = 1, min = 0)
 
-def drawCSListProperty(layout, listProp, listIndex, objName):
+def drawCSListProperty(layout, listProp, listIndex, objName, headerIndex):
 	layout.prop(listProp, 'expandTab', 
 		text = listProp.listType + ' List' if listProp.listType != 'FX' else 'Scene Trans FX',
 		icon = 'TRIA_DOWN' if listProp.expandTab else 'TRIA_RIGHT')
 	if not listProp.expandTab: return
 	box = layout.box().column()
-	drawCollectionOps(box, listIndex, "CS", None, objName, False)
+	drawCollectionOps(box, listIndex, "CSHdr." + str(headerIndex), None, objName, False)
 	
 	if listProp.listType == "Textbox":
 		attrName = "textbox"
@@ -499,20 +501,21 @@ def drawCSListProperty(layout, listProp, listIndex, objName):
 		
 	dat = getattr(listProp, attrName)
 	for i, p in enumerate(dat):
-		p.draw(box, listProp, listIndex, i, objName)
+		p.draw(box, listProp, listIndex, i, objName, headerIndex)
 	if len(dat) == 0:
 		box.label(text = "No items in " + listProp.listType + " List.")
 	if listProp.listType == "Textbox":
 		row = box.row(align=True)
 		for l in range(3):
 			addOp = row.operator(OOTCSTextboxAdd.bl_idname, text = 'Add ' + ootEnumCSTextboxType[l][1], icon = ootEnumCSTextboxTypeIcons[l])
+			addOp.collectionType = "CSHdr." + str(headerIndex) + '.textbox'
 			addOp.textboxType = ootEnumCSTextboxType[l][0]
 			addOp.listIndex = listIndex
 			addOp.objName = objName
 	else:
 		addOp = box.operator(OOTCollectionAdd.bl_idname, text = 'Add item to ' + listProp.listType + ' List')
 		addOp.option = len(dat)
-		addOp.collectionType = "CS." + attrName
+		addOp.collectionType = "CSHdr." + str(headerIndex) + '.' + attrName
 		addOp.subIndex = listIndex
 		addOp.objName = objName
 
@@ -522,20 +525,22 @@ class OOTCSListAdd(bpy.types.Operator):
 	bl_label = 'Add CS List'
 	bl_options = {'REGISTER', 'UNDO'} 
 
+	collectionType : bpy.props.StringProperty()
 	listType : bpy.props.EnumProperty(items = ootEnumCSListType)
 	objName : bpy.props.StringProperty()
 
 	def execute(self, context):
-		collection = bpy.data.objects[self.objName].ootSceneHeader.csLists
+		collection = getCollection(self.objName, self.collectionType, None)
 		collection.add()
 		collection[len(collection)-1].listType = self.listType
 		#self.report({'INFO'}, 'Success!')
 		return {'FINISHED'} 
 
-def drawCSAddButtons(layout, objName):
+def drawCSAddButtons(layout, objName, headerIndex):
 	def addButton(row):
 		nonlocal l
 		op = row.operator(OOTCSListAdd.bl_idname, text = ootEnumCSListType[l][1], icon = ootEnumCSListTypeIcons[l])
+		op.collectionType = "CSHdr." + str(headerIndex)
 		op.listType = ootEnumCSListType[l][0]
 		op.objName = objName
 		l += 1
@@ -672,9 +677,10 @@ def drawSceneHeaderProperty(layout, sceneProp, dropdownLabel, headerIndex, objNa
 			r.prop(sceneProp, "csTermIdx", text = "Index")
 			r.prop(sceneProp, "csTermStart", text = "Start Frm")
 			r.prop(sceneProp, "csTermEnd", text = "End Frm")
+		tempHeaderIndex = 0 if headerIndex is None else headerIndex
 		for i, p in enumerate(sceneProp.csLists):
-			drawCSListProperty(cutscene, p, i, objName)
-		drawCSAddButtons(cutscene, objName)
+			drawCSListProperty(cutscene, p, i, objName, tempHeaderIndex)
+		drawCSAddButtons(cutscene, objName, tempHeaderIndex)
 
 	elif menuTab == 'Exits':
 		if headerIndex is None or headerIndex == 0:
