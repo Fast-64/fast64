@@ -640,9 +640,9 @@ class OOTDynamicMaterialDrawLayerProperty(bpy.types.PropertyGroup):
 	segmentC : bpy.props.BoolProperty()
 	segmentD : bpy.props.BoolProperty()
 	customCall0 : bpy.props.BoolProperty()
-	customCall0_seg : bpy.props.StringProperty()
+	customCall0_seg : bpy.props.StringProperty(description="Segment address of a display list to call, e.g. 0x08000010")
 	customCall1 : bpy.props.BoolProperty()
-	customCall1_seg : bpy.props.StringProperty()
+	customCall1_seg : bpy.props.StringProperty(description="Segment address of a display list to call, e.g. 0x08000010")
 
 # The reason these are separate is for the case when the user changes the material draw layer, but not the 
 # dynamic material calls. This could cause crashes which would be hard to detect.
