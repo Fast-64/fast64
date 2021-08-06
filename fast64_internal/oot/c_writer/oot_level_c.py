@@ -561,7 +561,10 @@ def ootCutsceneToC(scene, headerIndex):
 				data.source += "0, " + str(e.startFrame) + ", " + str(e.startFrame + 1) \
 					+ ", " + str(e.hour) + ", " + str(e.minute) + ", 0"
 			elif list.listType in ["PlayBGM", "StopBGM", "FadeBGM"]:
-				data.source += e.value + ", " + str(e.startFrame) + ", " + str(e.endFrame) \
+				data.source += e.value
+				if list.listType != "FadeBGM":
+					data.source += " + 1" # Game subtracts 1 to get actual seq
+				data.source += ", " + str(e.startFrame) + ", " + str(e.endFrame) \
 					+ ", 0, 0, 0, 0, 0, 0, 0, 0"
 			elif list.listType == "Misc":
 				data.source += str(e.operation) + ", " + str(e.startFrame) + ", " \

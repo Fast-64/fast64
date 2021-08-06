@@ -33,12 +33,16 @@ class OOTModel(FModel):
 			return texFmt.lower()
 
 	def onMaterialCommandsBuilt(self, gfxList, revertList, material, drawLayer):
+		matDrawLayer = getattr(material.ootMaterial, drawLayer.lower())
 		for i in range(8, 14):
-			matDrawLayer = getattr(material.ootMaterial, drawLayer.lower())
 			if getattr(matDrawLayer, "segment" + format(i, 'X')):
 				gfxList.commands.append(SPDisplayList(
 					GfxList("0x" + format(i,'X') + '000000', GfxListTag.Material, DLFormat.Static)))
-		return
+		for i in range(0, 2):
+			p = "customCall" + str(i)
+			if getattr(matDrawLayer, p):
+				gfxList.commands.append(SPDisplayList(
+					GfxList(getattr(matDrawLayer, p + "_seg"), GfxListTag.Material, DLFormat.Static)))
 
 	def onAddMesh(self, fMesh, contextObj):
 		if contextObj is not None and hasattr(contextObj, 'ootDynamicTransform'):
@@ -601,6 +605,11 @@ def drawOOTMaterialDrawLayerProperty(layout, matDrawLayerProp, suffix):
 			i = 8 + colIndex * 3 + rowIndex
 			name = "Segment " + format(i, 'X') + " " + suffix
 			col.prop(matDrawLayerProp, "segment" + format(i, 'X'), text = name)
+		name = "Custom call (" + str(colIndex + 1) + ") " + suffix
+		p = "customCall" + str(colIndex)
+		col.prop(matDrawLayerProp, p, text = name)
+		if getattr(matDrawLayerProp, p):
+			col.prop(matDrawLayerProp, p + "_seg", text = "")
 
 def clearOOTMaterialDrawLayerProperty(matDrawLayerProp):
 	for i in range(0x08, 0x0E):
@@ -630,6 +639,10 @@ class OOTDynamicMaterialDrawLayerProperty(bpy.types.PropertyGroup):
 	segmentB : bpy.props.BoolProperty()
 	segmentC : bpy.props.BoolProperty()
 	segmentD : bpy.props.BoolProperty()
+	customCall0 : bpy.props.BoolProperty()
+	customCall0_seg : bpy.props.StringProperty(description="Segment address of a display list to call, e.g. 0x08000010")
+	customCall1 : bpy.props.BoolProperty()
+	customCall1_seg : bpy.props.StringProperty(description="Segment address of a display list to call, e.g. 0x08000010")
 
 # The reason these are separate is for the case when the user changes the material draw layer, but not the 
 # dynamic material calls. This could cause crashes which would be hard to detect.
