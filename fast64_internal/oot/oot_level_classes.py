@@ -53,7 +53,7 @@ class OOTLight:
 		self.transitionSpeed = 0
 	
 	def getBlendFogShort(self):
-		return format((self.transitionSpeed << 10) | self.fogNear, "#06x")
+		return "0x{:04X}".format((self.transitionSpeed << 10) | self.fogNear)
 
 class OOTCSTextbox:
 	def __init__(self):
