@@ -1431,8 +1431,9 @@ class FSetTileSizeScrollField:
 	def __init__(self):
 		self.s = 0
 		self.t = 0
+		self.interval = 1
 
-def tile_func(direction: str, speed: int, cmdNum: int):
+def tile_func(direction: str, speed: int, cmd_num: int):
 	if speed == 0 or speed is None:
 		return None
 
@@ -1441,25 +1442,60 @@ def tile_func(direction: str, speed: int, cmdNum: int):
 	if speed < 0:
 		func += '_down'
 
-	return f'\t{func}(mat, {cmdNum}, PACK_TILESIZE(0, {abs(speed)}));'
+	return f'\t{func}(mat, {cmd_num}, PACK_TILESIZE(0, {abs(speed)}));'
+
+def get_sts_interval_vars(tex_num: str):
+	return f'intervalTex{tex_num}', f'curInterval{tex_num}'
+
+def get_tex_sts_code(tex: FSetTileSizeScrollField, tex_num: int, cmd_num: int):
+	variables = []
+	# create func calls
+	lines = [
+		tile_func('s', tex.s, cmd_num),
+		tile_func('t', tex.t, cmd_num),
+	]
+	# filter lines
+	lines = [func for func in lines if func]
+	# add interval logic if needed
+	if len(lines) and tex.interval > 1:
+		# get interval and variable for tracking interval
+		interval, cur_interval = get_sts_interval_vars(tex_num)
+		# pass each var and its value to variables
+		variables.extend([(interval, tex.interval), (cur_interval, 0)])
+
+		# indent again for if statement
+		lines = [('\t' + func) for func in lines]
+
+		lines = [
+			f'\n\tif (--{cur_interval} <= 0) {{',
+			*lines,
+			f'\t\t{cur_interval} = {interval};',
+			'\t}'
+		]
+	return variables, lines
+
 
 def mat_tile_scroll(
 	mat: str,
 	tex0: FSetTileSizeScrollField,
 	tex1: FSetTileSizeScrollField,
-	cmdNum0: int,
-	cmdNum1: int
+	cmd_num0: int,
+	cmd_num1: int
 ):
 	func = f'void scroll_sts_{mat}()'
-	lines = [
-		f'{func} {{',
-		f'\tGfx *mat = segmented_to_virtual({mat});',
-		tile_func('s', tex0.s, cmdNum0),
-		tile_func('t', tex0.t, cmdNum0),
-		tile_func('s', tex1.s, cmdNum1),
-		tile_func('t', tex1.t, cmdNum1),
-		'};\n\n'
-	]
+	lines = [f'{func} {{']
+
+	tex0_variables, tex0_lines = get_tex_sts_code(tex0, 0, cmd_num0)
+	tex1_variables, tex1_lines = get_tex_sts_code(tex1, 1, cmd_num1)
+	static_variables = [*tex0_variables, *tex1_variables]
+
+	for variable, val in static_variables:
+		lines.append(f'\tstatic int {variable} = {val};')
+	
+	lines.append(f'\tGfx *mat = segmented_to_virtual({mat});')
+	lines.extend(tex0_lines)
+	lines.extend(tex1_lines)
+	lines.append('};\n\n')
 
 	return func, '\n'.join([line for line in lines if line])
 
@@ -2522,8 +2558,10 @@ class FMaterial:
 
 		self.scrollData.tile_scroll_tex0.s = tex0.tile_scroll.s
 		self.scrollData.tile_scroll_tex0.t = tex0.tile_scroll.t
+		self.scrollData.tile_scroll_tex0.interval = tex0.tile_scroll.interval
 		self.scrollData.tile_scroll_tex1.s = tex1.tile_scroll.s
 		self.scrollData.tile_scroll_tex1.t = tex1.tile_scroll.t
+		self.scrollData.tile_scroll_tex1.interval = tex1.tile_scroll.interval
 
 	def sets_rendermode(self):
 		for command in self.material.commands:
