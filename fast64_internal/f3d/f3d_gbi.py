@@ -1461,7 +1461,7 @@ def get_tex_sts_code(tex: FSetTileSizeScrollField, tex_num: int, cmd_num: int):
 		# get interval and variable for tracking interval
 		interval, cur_interval = get_sts_interval_vars(tex_num)
 		# pass each var and its value to variables
-		variables.extend([(interval, tex.interval), (cur_interval, 0)])
+		variables.extend([(interval, tex.interval), (cur_interval, tex.interval)])
 
 		# indent again for if statement
 		lines = [('\t' + func) for func in lines]
