@@ -1064,6 +1064,7 @@ def ui_tileScroll(tex, name, layout):
 	row = layout.row(heading = name)
 	row.prop(tex.tile_scroll, 's', text = 'S:')
 	row.prop(tex.tile_scroll, 't', text = 'T:')
+	row.prop(tex.tile_scroll, 'interval', text = 'Interval:')
 
 def ui_procAnimVecEnum(material, procAnimVec, layout, name, vecType, useDropdown, useTex0, useTex1):
 	layout = layout.box()
@@ -2034,6 +2035,7 @@ class TextureFieldProperty(bpy.types.PropertyGroup):
 class SetTileSizeScrollProperty(bpy.types.PropertyGroup):
 	s : bpy.props.IntProperty(min = -100, max = 100, default = 0)
 	t : bpy.props.IntProperty(min = -100, max = 100, default = 0)
+	interval : bpy.props.IntProperty(min = 1, soft_max = 1000, default = 1)
 
 class TextureProperty(bpy.types.PropertyGroup):
 	tex : bpy.props.PointerProperty(type = bpy.types.Image, name = 'Texture', update = update_tex_values_and_formats)
@@ -2445,6 +2447,7 @@ class AddPresetF3D(AddPresetBase, Operator):
 		"f3d_mat.tex0.tile_scroll",
 		"f3d_mat.tex0.tile_scroll.s",
 		"f3d_mat.tex0.tile_scroll.t",
+		"f3d_mat.tex0.tile_scroll.interval",
 		"f3d_mat.tex1.tex",
 		"f3d_mat.tex1.tex_format",
 		"f3d_mat.tex1.ci_format",
@@ -2461,6 +2464,7 @@ class AddPresetF3D(AddPresetBase, Operator):
 		"f3d_mat.tex1.tile_scroll",
 		"f3d_mat.tex1.tile_scroll.s",
 		"f3d_mat.tex1.tile_scroll.t",
+		"f3d_mat.tex1.tile_scroll.interval",
 		"f3d_mat.tex_scale",
 		"f3d_mat.scale_autoprop",
 		"f3d_mat.uv_basis",
