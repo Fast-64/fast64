@@ -358,7 +358,7 @@ def ootConvertScene(originalSceneObj, transformMatrix,
 			elif isinstance(obj.data, bpy.types.Camera):
 				camPosProp = obj.ootCameraPositionProperty
 				readCamPos(camPosProp, obj, scene, sceneObj, transformMatrix)
-			elif isinstance(obj.data, bpy.types.Curve) and isCurveValid(obj):
+			elif isinstance(obj.data, bpy.types.Curve) and assertCurveValid(obj):
 				readPathProp(obj.ootSplineProperty, obj, scene, sceneObj, sceneName, transformMatrix)
 		
 		scene.validateIndices()
@@ -481,7 +481,7 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 	elif isinstance(obj.data, bpy.types.Camera):
 		camPosProp = obj.ootCameraPositionProperty
 		readCamPos(camPosProp, obj, scene, sceneObj, transformMatrix)
-	elif isinstance(obj.data, bpy.types.Curve) and isCurveValid(obj):
+	elif isinstance(obj.data, bpy.types.Curve) and assertCurveValid(obj):
 		readPathProp(obj.ootSplineProperty, obj, scene, sceneObj, scene.name, transformMatrix)
 	
 	for childObj in obj.children:
