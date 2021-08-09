@@ -2033,8 +2033,8 @@ class TextureFieldProperty(bpy.types.PropertyGroup):
 		update = update_tex_values)
 
 class SetTileSizeScrollProperty(bpy.types.PropertyGroup):
-	s : bpy.props.IntProperty(min = -100, max = 100, default = 0)
-	t : bpy.props.IntProperty(min = -100, max = 100, default = 0)
+	s : bpy.props.IntProperty(min = -4095, max = 4095, default = 0)
+	t : bpy.props.IntProperty(min = -4095, max = 4095, default = 0)
 	interval : bpy.props.IntProperty(min = 1, soft_max = 1000, default = 1)
 
 class TextureProperty(bpy.types.PropertyGroup):
