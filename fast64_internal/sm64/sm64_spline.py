@@ -69,7 +69,7 @@ class SM64Spline:
 def convertSplineObject(name, obj, transform):
 	sm64_spline = SM64Spline(name, obj.data.sm64_spline_type)
 
-	spline = obj.data.splines.active
+	spline = obj.data.splines[0]
 	for point in spline.points:
 		position = transform @ point.co
 		sm64_spline.points.append(position)
@@ -123,9 +123,15 @@ class SM64SplinePanel(bpy.types.Panel):
 						prop_split(box.box(), point, 'radius', 'Point ' + str(pointIndex) + " Speed")
 					pointIndex += 1
 
-def isCurveValid(obj):
+def assertCurveValid(obj):
 	curve = obj.data
-	return type(obj.data) == bpy.types.Curve and len(curve.splines) == 1 and curve.splines[0].type == 'NURBS'
+	if not isinstance(curve, bpy.types.Curve) or curve.splines[0].type != 'NURBS':
+		# Curve was likely not intended to be exported
+		return False
+	if len(curve.splines) != 1:
+		# Curve was intended to be exported but has multiple disconnected segments
+		raise PluginError('Exported curves should have only one single segment, found ' + str(len(curve.splines)))
+	return True
 
 sm64_spline_classes = (
 	SM64_ExportSpline,

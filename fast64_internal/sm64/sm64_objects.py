@@ -665,7 +665,7 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
 				puppycamProp.puppycamVolumePermaswap, puppycamProp.puppycamVolumeFunction, translation, scale, obj.empty_display_size, puppycamCamPosCoords, puppycamCamFocusCoords, puppycamModeString))
 
 
-	elif not specialsOnly and isCurveValid(obj):
+	elif not specialsOnly and assertCurveValid(obj):
 		area.splines.append(convertSplineObject(area.name + '_spline_' + obj.name , obj, finalTransform))
 			
 

@@ -17,7 +17,7 @@ class OOTPath:
 def ootConvertPath(name, index, obj, transformMatrix):
 	path = OOTPath(name, index)
 
-	spline = obj.data.splines.active
+	spline = obj.data.splines[0]
 	for point in spline.points:
 		position = transformMatrix @ point.co
 		path.points.append(position)
@@ -55,9 +55,15 @@ class OOTSplinePanel(bpy.types.Panel):
 class OOTSplineProperty(bpy.types.PropertyGroup):
 	index : bpy.props.IntProperty(default = 0, min = 0)
 
-def isCurveValid(obj):
+def assertCurveValid(obj):
 	curve = obj.data
-	return isinstance(curve, bpy.types.Curve) and len(curve.splines) == 1 and curve.splines[0].type == 'NURBS'
+	if not isinstance(curve, bpy.types.Curve) or curve.splines[0].type != 'NURBS':
+		# Curve was likely not intended to be exported
+		return False
+	if len(curve.splines) != 1:
+		# Curve was intended to be exported but has multiple disconnected segments
+		raise PluginError('Exported curves should have only one single segment, found ' + str(len(curve.splines)))
+	return True
 
 oot_spline_classes = (
 	OOTSplineProperty,
