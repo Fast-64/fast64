@@ -120,8 +120,8 @@ class OOT_AddRoom(bpy.types.Operator):
 		roomObj = context.view_layer.objects.active
 		roomObj.ootEmptyType = "Room"
 		roomObj.name = "Room"
-		if bpy.context.scene.ootSceneExportObj is not None:
-			sceneObj = bpy.context.scene.ootSceneExportObj
+		sceneObj = bpy.context.scene.ootSceneExportObj
+		if sceneObj is not None:
 			indices = []
 			for sceneChild in sceneObj.children:
 				if sceneChild.ootEmptyType == "Room":
@@ -130,12 +130,34 @@ class OOT_AddRoom(bpy.types.Operator):
 			while nextIndex in indices:
 				nextIndex += 1
 			roomObj.ootRoomHeader.roomIndex = nextIndex
-			parentObject(bpy.context.scene.ootSceneExportObj, roomObj)
+			parentObject(sceneObj, roomObj)
 		
 		bpy.ops.object.select_all(action = "DESELECT")
 		roomObj.select_set(True)
 		context.view_layer.objects.active = roomObj
 		return {"FINISHED"}
+
+class OOT_AddCutscene(bpy.types.Operator):
+	# set bl_ properties
+	bl_idname = 'object.oot_add_cutscene'
+	bl_label = "Add Cutscene"
+	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
+	
+	def execute(self, context):
+		if context.mode != "OBJECT":
+			bpy.ops.object.mode_set(mode = "OBJECT")
+		bpy.ops.object.select_all(action = "DESELECT")
+
+		bpy.ops.object.empty_add(type='ARROWS', radius = 1, align='WORLD')
+		csObj = context.view_layer.objects.active
+		csObj.ootEmptyType = "Cutscene"
+		csObj.name = "Cutscene.Something"
+		
+		bpy.ops.object.select_all(action = "DESELECT")
+		csObj.select_set(True)
+		context.view_layer.objects.active = csObj
+		return {"FINISHED"}
+	
 
 class OOT_OperatorsPanel(bpy.types.Panel):
 	bl_idname = "OOT_PT_operators"
@@ -155,12 +177,14 @@ class OOT_OperatorsPanel(bpy.types.Panel):
 		col.operator(OOT_AddRoom.bl_idname)
 		col.operator(OOT_AddWaterBox.bl_idname)
 		col.operator(OOT_AddDoor.bl_idname)
+		col.operator(OOT_AddCutscene.bl_idname)
 
 oot_operator_classes = (
 	OOT_AddWaterBox,
 	OOT_AddDoor,
 	OOT_AddScene,
 	OOT_AddRoom,
+	OOT_AddCutscene,
 )
 
 oot_operator_panel_classes = (

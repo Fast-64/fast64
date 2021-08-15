@@ -2,6 +2,7 @@ import math
 from ..oot_f3d_writer import *
 from ..oot_level_writer import *
 from ..oot_collision import *
+from ..oot_cutscene import *
 
 def cmdName(name, header, index):
 	return name + "_header" + format(header, '02') + "_cmd" + format(index, '02')
@@ -86,8 +87,14 @@ def cmdLightSettingList(scene, header, cmdCount):
 
 def cmdCutsceneData(scene, header, cmdCount):
 	cmd = CData()
-	# cmd.header = "extern " + "SCmdCutsceneData " + cmdName(scene.sceneName(), header, cmdCount) + ';\n'
-	cmd.source = "\tSCENE_CMD_CUTSCENE_DATA(&" + scene.cutsceneDataName(header) + "),\n"
+	if scene.csWriteType == "Embedded":
+		csname = scene.cutsceneDataName(header)
+	elif scene.csWriteType == "Object":
+		csname = scene.csWriteObject.name
+	elif scene.csWriteType == "Custom":
+		csname = scene.csWriteCustom
+	# cmd.header = "extern " + "SCmdCutsceneData " + csname + ';\n'
+	cmd.source = "\tSCENE_CMD_CUTSCENE_DATA(&" + csname + "),\n"
 	return cmd
 
 def cmdEndMarker(name, header, cmdCount):
@@ -520,70 +527,6 @@ def ootPathListToC(scene):
 	pathData.append(data)
 	return pathData
 
-def ootCutsceneToC(scene, headerIndex):
-	data = CData()
-	data.header = "extern s32 " + scene.cutsceneDataName(headerIndex) + "[];\n"
-	data.source = "s32 " + scene.cutsceneDataName(headerIndex) + "[] = {\n"
-	nentries = len(scene.csLists) + (1 if scene.csWriteTerminator else 0)
-	data.source += "\tCS_BEGIN_CUTSCENE(" + str(nentries) + ", " + str(scene.csEndFrame) + "),\n"
-	if scene.csWriteTerminator:
-		data.source += "\tCS_TERMINATOR(" + str(scene.csTermIdx) + ", " + str(scene.csTermStart) + ", " + str(scene.csTermEnd) + "),\n"
-	for list in scene.csLists:
-		data.source += "\t" + ootEnumCSListTypeListC[list.listType] + "("
-		if list.listType == "Unk":
-			data.source += list.unkType + ", "
-		if list.listType == "FX":
-			data.source += list.fxType + ", " + str(list.fxStartFrame) + ", " + str(list.fxEndFrame)
-		else:
-			data.source += str(len(list.entries))
-		data.source += "),\n"
-		for e in list.entries:
-			data.source += "\t\t"
-			if list.listType == "Textbox":
-				data.source += ootEnumCSTextboxTypeEntryC[e.textboxType]
-			else:
-				data.source += ootEnumCSListTypeEntryC[list.listType]
-			data.source += "("
-			if list.listType == "Textbox":
-				if e.textboxType == "Text":
-					data.source += e.messageId + ", " + str(e.startFrame) + ", " \
-						+ str(e.endFrame) + ", " + e.type + ", " + e.topOptionBranch \
-						+ ", " + e.bottomOptionBranch
-				elif e.textboxType == "None":
-					data.source += str(e.startFrame) + ", " + str(e.endFrame)
-				elif e.textboxType == "LearnSong":
-					data.source += e.ocarinaSongAction + ", " + str(e.startFrame) \
-						+ ", " + str(e.endFrame) + ", " + e.ocarinaMessageId
-			elif list.listType == "Lighting":
-				data.source += str(e.index) + ", " + str(e.startFrame) + ", " \
-					+ str(e.startFrame + 1) + ", 0, 0, 0, 0, 0, 0, 0, 0"
-			elif list.listType == "Time":
-				data.source += "0, " + str(e.startFrame) + ", " + str(e.startFrame + 1) \
-					+ ", " + str(e.hour) + ", " + str(e.minute) + ", 0"
-			elif list.listType in ["PlayBGM", "StopBGM", "FadeBGM"]:
-				data.source += e.value
-				if list.listType != "FadeBGM":
-					data.source += " + 1" # Game subtracts 1 to get actual seq
-				data.source += ", " + str(e.startFrame) + ", " + str(e.endFrame) \
-					+ ", 0, 0, 0, 0, 0, 0, 0, 0"
-			elif list.listType == "Misc":
-				data.source += str(e.operation) + ", " + str(e.startFrame) + ", " \
-					+ str(e.endFrame) + ", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0"
-			elif list.listType == "0x09":
-				data.source += "0, " + str(e.startFrame) + ", " + str(e.startFrame + 1) + ", " \
-					+ e.unk2 + ", " + e.unk3 + ", " + e.unk4 + ", 0, 0"
-			elif list.listType == "Unk":
-				data.source += e.unk1 + ", " + e.unk2 + ", " + e.unk3 + ", " \
-					+ e.unk4 + ", " + e.unk5 + ", " + e.unk6 + ", " \
-					+ e.unk7 + ", " + e.unk8 + ", " + e.unk9 + ", " \
-					+ e.unk10 + ", " + e.unk11 + ", " + e.unk12
-			else:
-				raise PluginError("Invalid cutscene list type")
-			data.source += "),\n"
-	data.source += "\tCS_END(),\n"
-	data.source += "};\n"
-	return data
-
 def ootSceneMeshToC(scene, textureExportSettings):
 	exportData = scene.model.to_c(textureExportSettings, OOTGfxFormatter(ScrollMethod.Vertex))
 	return exportData.all()
@@ -641,7 +584,10 @@ def ootSceneToC(scene, headerIndex, textureExportSettings):
 	sceneC.append(pathData)
 	sceneC.append(colData)
 	if scene.writeCutscene:
-		sceneC.append(ootCutsceneToC(scene, headerIndex))
+		if scene.csWriteType == 'Embedded':
+			sceneC.append(ootCutsceneDataToC(scene, scene.cutsceneDataName(headerIndex)))
+		elif scene.csWriteType == 'Object':
+			sceneC.append(ootCutsceneDataToC(scene.csWriteObject, scene.csWriteObject.name))
 	sceneC.append(altData)
 	sceneC.append(meshData)
 
