@@ -1,22 +1,21 @@
+import bpy, bmesh, os, math, re, shutil, mathutils
+from io import BytesIO
+from bpy.utils import register_class, unregister_class
+
+from ..utility import *
+from .oot_utility import *
+from .oot_constants import *
+
 from ..f3d.f3d_gbi import *
 from ..f3d.f3d_writer import *
-
-from .oot_constants import *
-from .oot_level import *
-from .oot_level_classes import *
-from .oot_utility import *
 from .oot_f3d_writer import *
+
+from .oot_level_classes import *
+from .oot_level import *
 from .oot_collision import *
 from .oot_spline import *
 from .oot_cutscene import *
 from .c_writer import *
-
-from ..utility import *
-
-from bpy.utils import register_class, unregister_class
-from io import BytesIO
-import bpy, bmesh, os, math, re, shutil, mathutils
-
 
 def sceneNameFromID(sceneID):
 	if sceneID in ootSceneIDToName:

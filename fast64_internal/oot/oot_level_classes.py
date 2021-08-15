@@ -2,15 +2,12 @@ import math, os, bpy, bmesh, mathutils
 from bpy.utils import register_class, unregister_class
 from io import BytesIO
 
-from ..f3d.f3d_gbi import *
-from .oot_constants import *
-from .oot_utility import *
-from .oot_collision import *
-from .oot_f3d_writer import *
-#from .oot_function_map import func_map
-#from .oot_spline import *
-
 from ..utility import *
+from .oot_utility import *
+from .oot_constants import *
+from ..f3d.f3d_gbi import *
+from .oot_collision_classes import *
+from .oot_model_classes import *
 
 class OOTActor:
 	def __init__(self, actorID, position, rotation, actorParam, rotOverride):

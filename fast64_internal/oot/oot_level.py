@@ -10,7 +10,6 @@ from .oot_actor import *
 from .oot_collision import *
 from .oot_spline import *
 #from .oot_function_map import func_map
-#from .oot_spline import *
 
 from ..utility import *
 

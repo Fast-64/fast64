@@ -1,16 +1,15 @@
-
 import math, os, bpy, bmesh, mathutils
 from bpy.utils import register_class, unregister_class
 from io import BytesIO
 
-from ..f3d.f3d_gbi import *
-from .oot_constants import *
+from ..utility import *
 from .oot_utility import *
+from .oot_constants import *
+from ..f3d.f3d_gbi import *
+
 from .oot_actor import *
 #from .oot_collision import *
 from .oot_cutscene import *
-
-from ..utility import *
 
 class OOT_SearchMusicSeqEnumOperator(bpy.types.Operator):
 	bl_idname = "object.oot_search_music_seq_enum_operator"

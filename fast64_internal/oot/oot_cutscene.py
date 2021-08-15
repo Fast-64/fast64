@@ -459,7 +459,7 @@ def ootCutsceneDataToC(csParent, csName):
 				data.source += str(e.index) + ", " + str(e.startFrame) + ", " \
 					+ str(e.startFrame + 1) + ", 0, 0, 0, 0, 0, 0, 0, 0"
 			elif list.listType == "Time":
-				data.source += "0, " + str(e.startFrame) + ", " + str(e.startFrame + 1) \
+				data.source += "1, " + str(e.startFrame) + ", " + str(e.startFrame + 1) \
 					+ ", " + str(e.hour) + ", " + str(e.minute) + ", 0"
 			elif list.listType in ["PlayBGM", "StopBGM", "FadeBGM"]:
 				data.source += e.value
@@ -594,7 +594,8 @@ def oot_cutscene_register():
 	for cls in oot_cutscene_classes:
 		register_class(cls)
 		
-	bpy.types.Scene.ootCutsceneExportPath = bpy.props.StringProperty(name = 'File', subtype='FILE_PATH')
+	bpy.types.Scene.ootCutsceneExportPath = bpy.props.StringProperty(
+		name = 'File', subtype='FILE_PATH')
 		
 def oot_cutscene_unregister():
 	for cls in reversed(oot_cutscene_classes):
