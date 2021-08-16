@@ -24,7 +24,7 @@ def getSceneTableEntryBySceneName(sceneTable, sceneName):
 def readSceneTable(exportPath):
 	fileData = readFile(os.path.join(exportPath, 'src/code/z_scene_table.c'))
 
-	matchResult = re.search('Scene\s*gSceneTable\[\]\s*=\s*\{([^\}]*)\}', fileData, re.DOTALL)
+	matchResult = re.search('SceneTableEntry\s*gSceneTable\[\]\s*=\s*\{([^\}]*)\}', fileData, re.DOTALL)
 	if matchResult is None:
 		raise PluginError("z_scene_table.c does not have gSceneTable in it.")
 	sceneTable = parseSceneTableData(matchResult.group(1))
