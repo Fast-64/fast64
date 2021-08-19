@@ -45,7 +45,7 @@ def parseSceneTableData(data):
 	return table
 
 def sceneTableToString(sceneTable):
-	data = 'Scene gSceneTable[] = {\n'
+	data = 'SceneTableEntry gSceneTable[] = {\n'
 	for entry in sceneTable:
 		data += entry.toC()
 	data += '}'
