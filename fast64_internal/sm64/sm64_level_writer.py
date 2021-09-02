@@ -6,6 +6,7 @@ from .sm64_texscroll import *
 from .sm64_utility import *
 
 from ..utility import *
+from ..operators import ObjectDataExporter
 
 from bpy.utils import register_class, unregister_class
 from io import BytesIO
@@ -863,7 +864,7 @@ def addHeaderC(levelName):
 	
 	return header
 	
-class SM64_ExportLevel(bpy.types.Operator):
+class SM64_ExportLevel(ObjectDataExporter):
 	# set bl_ properties
 	bl_idname = 'object.sm64_export_level'
 	bl_label = "Export Level"
@@ -880,16 +881,17 @@ class SM64_ExportLevel(bpy.types.Operator):
 			if obj.data is not None or obj.sm64_obj_type != 'Level Root':
 				raise PluginError("The selected object is not an empty with the Level Root type.")
 
-			#obj = context.active_object
-
 			scaleValue = bpy.context.scene.blenderToSM64Scale
-			finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((
-				scaleValue, scaleValue, scaleValue))).to_4x4()
+			finalTransform = mathutils.Matrix.Diagonal(
+				mathutils.Vector((scaleValue, scaleValue, scaleValue))
+			).to_4x4()
 		
 		except Exception as e:
 			raisePluginError(self, e)
 			return {'CANCELLED'} # must return a set
 		try:
+			self.store_object_data()
+
 			applyRotation([obj], math.radians(90), 'X')
 			if context.scene.levelCustomExport:
 				exportPath = bpy.path.abspath(context.scene.levelExportPath)
@@ -920,10 +922,11 @@ class SM64_ExportLevel(bpy.types.Operator):
 			cameraWarning(self, fileStatus)
 			starSelectWarning(self, fileStatus)
 
-			self.report({'INFO'}, 'Success!')
-
 			applyRotation([obj], math.radians(-90), 'X')
-			#applyRotation(obj.children, math.radians(0), 'X')
+			self.cleanup_temp_object_data()
+
+			self.report({'INFO'}, 'Success!')
+			self.show_warnings()
 			return {'FINISHED'} # must return a set
 
 		except Exception as e:
@@ -931,10 +934,11 @@ class SM64_ExportLevel(bpy.types.Operator):
 				bpy.ops.object.mode_set(mode = 'OBJECT')
 
 			applyRotation([obj], math.radians(-90), 'X')
-			#applyRotation(obj.children, math.radians(0), 'X')
+			self.cleanup_temp_object_data()
 
 			obj.select_set(True)
 			context.view_layer.objects.active = obj
+			self.reset_warnings()
 			raisePluginError(self, e)
 			return {'CANCELLED'} # must return a set
 

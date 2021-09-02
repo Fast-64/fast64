@@ -422,7 +422,8 @@ def saveStaticModel(triConverterInfo, fModel, obj, transformMatrix, ownerName, c
 
 def addCullCommand(obj, fMesh, transformMatrix, matWriteMethod):
 	fMesh.add_cull_vtx()
-	for vertexPos in obj.bound_box:
+	# if the object has a specifically set culling bounds, use that instead
+	for vertexPos in obj.get('culling_bounds', obj.bound_box):
 		# Most other fields of convertVertexData are unnecessary for bounding box verts
 		fMesh.cullVertexList.vertices.append(
 			convertVertexData(obj.data, 

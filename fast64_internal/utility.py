@@ -2,6 +2,7 @@ import bpy, random, string, os, math, traceback, re, os, mathutils
 from math import pi, ceil, degrees, radians
 from mathutils import *
 from .utility_anim import *
+from typing import Callable, Iterable
 
 class PluginError(Exception):
 	pass
@@ -401,6 +402,7 @@ def customExportWarning(layout):
 	layout.box().label(text = 'This will not write any headers/dependencies.')
 
 def raisePluginError(operator, exception):
+	print(traceback.format_exc())
 	if bpy.context.scene.fullTraceback:
 		operator.report({'ERROR'}, traceback.format_exc())
 	else:
@@ -523,6 +525,118 @@ def deleteIfFound(filePath, stringValue):
 			fileData.write(stringData)
 		fileData.close()
 
+def yield_children(obj: bpy.types.Object):
+	yield obj
+	if obj.children:
+		for o in obj.children:
+			yield from yield_children(o)
+
+def iter_from_active():
+	active_obj = bpy.context.view_layer.objects.active # keep original obj reference
+	yield from yield_children(active_obj)
+	bpy.context.view_layer.objects.active = active_obj
+
+def store_original_mtx():
+	for obj in iter_from_active():
+		obj['original_mtx'] = obj.matrix_local
+
+def rotate_bounds(bounds, mtx: mathutils.Matrix):
+	return [
+		(mathutils.Vector(b[:]) @ mtx).to_tuple()
+		for b in bounds[:]
+	]
+
+def obj_scale_is_unified(obj):
+	'''Combine scale values into a set to ensure all values are the same'''
+	return len(set(obj.scale)) == 1
+
+def translation_rotation_from_mtx(mtx: mathutils.Matrix):
+	'''Strip scale from matrix'''
+	t, r, _ = mtx.decompose()
+	return Matrix.Translation(t).to_4x4() @ r.to_matrix().to_4x4()
+
+def scale_mtx_from_vector(scale: mathutils.Vector):
+	scax = mathutils.Matrix.Scale(scale[0], 4, (1, 0, 0))
+	scay = mathutils.Matrix.Scale(scale[1], 4, (0, 1, 0))
+	scaz = mathutils.Matrix.Scale(scale[2], 4, (0, 0, 1))
+	return scax @ scay @ scaz
+
+def copy_object_and_apply(obj: bpy.types.Object, apply_scale = False, apply_modifiers = False):
+	if apply_scale or apply_modifiers:
+		# its a unique mesh, use object name
+		obj['instanced_mesh_name'] = obj.name
+		obj.original_name = obj.name
+		if apply_scale:
+			obj['original_mtx'] = translation_rotation_from_mtx(mathutils.Matrix(obj['original_mtx']))
+
+	obj_copy = obj.copy()
+	obj_copy.parent = None
+	# reset transformations
+	obj_copy.location = mathutils.Vector([0.0, 0.0, 0.0])
+	obj_copy.scale = mathutils.Vector([1.0, 1.0, 1.0])
+	obj_copy.rotation_quaternion = mathutils.Quaternion([1, 0, 0, 0])
+	obj_copy.data = obj_copy.data.copy()
+
+	if apply_modifiers:
+		# In order to correctly apply modifiers, we have to go through blender and add the object to the collection, then apply modifiers 
+		prev_active = bpy.context.view_layer.objects.active
+		bpy.context.collection.objects.link(obj_copy)
+		obj_copy.select_set(True)
+		bpy.context.view_layer.objects.active = obj_copy
+		for modifier in obj_copy.modifiers:
+			attemptModifierApply(modifier)
+
+		bpy.context.view_layer.objects.active = prev_active
+
+	mtx = mathutils.Quaternion((1, 0, 0), math.radians(-90.0)).to_matrix().to_4x4()
+	if apply_scale:
+	 	mtx = mtx @ scale_mtx_from_vector(obj.scale)
+
+	obj_copy.data.transform(mtx)
+	# Flag used for finding these temp objects
+	obj_copy['temp_export'] = True
+
+	# Override for F3D culling bounds (used in addCullCommand)
+	bounds_mtx = scale_mtx_from_vector([1, -1, -1]) # reverse y/z
+	if apply_scale:
+		bounds_mtx *= scale_mtx_from_vector(obj.scale) # apply scale if needed
+	bounds_mtx = bounds_mtx @ mathutils.Quaternion((1, 0, 0), math.radians(-90.0)).to_matrix().to_4x4()
+	obj_copy['culling_bounds'] = rotate_bounds(obj_copy.bound_box, bounds_mtx)
+
+def store_original_meshes(add_warning: Callable[[str], None]):
+	'''
+		- Creates new objects at 0, 0, 0 with shared mesh
+		- Original mesh name is saved to each object
+	'''
+	instanced_meshes = set()
+	for obj in iter_from_active():
+		if obj.data is not None:
+			has_modifiers = len(obj.modifiers) != 0
+			has_uneven_scale = not obj_scale_is_unified(obj)
+			shares_mesh = obj.data.users > 1
+			if has_modifiers or has_uneven_scale:
+				if shares_mesh and has_modifiers:
+					add_warning(
+						f'Object "{obj.name}" cannot be instanced due to having modifiers so an extra displaylist will be created. Remove modifiers to allow instancing.')
+				if shares_mesh and has_uneven_scale:
+					add_warning(
+						f'Object "{obj.name}" cannot be instanced due to uneven object scaling and an extra displaylist will be created. Set all scale values to the same value to allow instancing.')
+				copy_object_and_apply(obj, apply_scale=has_uneven_scale, apply_modifiers=has_modifiers)
+				continue
+
+			obj['instanced_mesh_name'] = obj.data.name
+			obj.original_name = obj.name
+
+			if obj.data.name not in instanced_meshes:
+				instanced_meshes.add(obj.data.name)
+				copy_object_and_apply(obj)
+
+def get_obj_temp_mesh(obj):
+	for o in bpy.data.objects:
+		if o.get('temp_export') and \
+			o.get('instanced_mesh_name') == obj.get('instanced_mesh_name'):
+			return o
+
 def duplicateHierarchy(obj, ignoreAttr, includeEmpties, areaIndex):
 	# Duplicate objects to apply scale / modifiers / linked data
 	bpy.ops.object.select_all(action = 'DESELECT')
@@ -533,13 +647,16 @@ def duplicateHierarchy(obj, ignoreAttr, includeEmpties, areaIndex):
 	try:
 		tempObj = bpy.context.view_layer.objects.active
 		allObjs = bpy.context.selected_objects
+
 		bpy.ops.object.make_single_user(obdata = True)
 		bpy.ops.object.transform_apply(location = False, 
 			rotation = True, scale = True, properties =  False)
+
 		for selectedObj in allObjs:
 			bpy.ops.object.select_all(action = 'DESELECT')
 			selectedObj.select_set(True)
 			bpy.context.view_layer.objects.active = selectedObj
+
 			for modifier in selectedObj.modifiers:
 				attemptModifierApply(modifier)
 		for selectedObj in allObjs:
@@ -560,17 +677,48 @@ def duplicateHierarchy(obj, ignoreAttr, includeEmpties, areaIndex):
 		bpy.context.view_layer.objects.active = obj
 		raise Exception(str(e))
 
+enumSM64PreInlineGeoLayoutObjects = {
+	'Geo ASM',
+	'Geo Branch',
+	'Geo Displaylist',
+	'Custom Geo Command'
+}
+def checkIsSM64PreInlineGeoLayout(sm64_obj_type):
+	return sm64_obj_type in enumSM64PreInlineGeoLayoutObjects
+
+enumSM64InlineGeoLayoutObjects = {
+	'Geo ASM',
+	'Geo Branch',
+	'Geo Translate/Rotate',
+	'Geo Translate Node',
+	'Geo Rotation Node',
+	'Geo Billboard',
+	'Geo Scale',
+	'Geo Displaylist',
+	'Custom Geo Command'
+}
+def checkIsSM64InlineGeoLayout(sm64_obj_type):
+	return sm64_obj_type in enumSM64InlineGeoLayoutObjects
+
+enumSM64EmptyWithGeolayout = {
+	'None',
+	'Level Root',
+	'Area Root',
+	'Switch'
+}
+def checkSM64EmptyUsesGeoLayout(sm64_obj_type):
+	return sm64_obj_type in enumSM64EmptyWithGeolayout or checkIsSM64InlineGeoLayout(sm64_obj_type)
+
 def selectMeshChildrenOnly(obj, ignoreAttr, includeEmpties, areaIndex):
 	checkArea = areaIndex is not None and obj.data is None
 	if checkArea and obj.sm64_obj_type == 'Area Root' and obj.areaIndex != areaIndex:
 		return
 	ignoreObj = ignoreAttr is not None and getattr(obj, ignoreAttr)
 	isMesh = isinstance(obj.data, bpy.types.Mesh)
-	isEmpty = (obj.data is None) and includeEmpties and \
-		(obj.sm64_obj_type == 'Level Root' or \
-		obj.sm64_obj_type == 'Area Root' or \
-		obj.sm64_obj_type == 'None' or \
-		obj.sm64_obj_type == 'Switch')
+	isEmpty = \
+		(obj.data is None) and \
+		includeEmpties and \
+		checkSM64EmptyUsesGeoLayout(obj.sm64_obj_type)
 	if (isMesh or isEmpty) and not ignoreObj:
 		obj.select_set(True)
 		obj.original_name = obj.name
@@ -588,6 +736,22 @@ def cleanupDuplicatedObjects(selected_objects):
 	for selectedObj in selected_objects:
 		bpy.data.objects.remove(selectedObj)
 	for mesh in meshData:
+		bpy.data.meshes.remove(mesh)
+
+def cleanupTempMeshes():
+	'''Delete meshes that have been duplicated for instancing'''
+	temp_meshes = []
+	for obj in bpy.data.objects:
+		if obj.get('temp_export'):
+			temp_meshes.append(obj.data)
+			bpy.data.objects.remove(obj)
+		else:
+			if obj.get('instanced_mesh_name'):
+				del obj['instanced_mesh_name']
+			if obj.get('original_mtx'):
+				del obj['original_mtx']
+
+	for mesh in temp_meshes:
 		bpy.data.meshes.remove(mesh)
 
 def combineObjects(obj, includeChildren, ignoreAttr, areaIndex):
@@ -756,10 +920,10 @@ def enum_label_split(layout, name, data, prop, enumItems):
 	split.label(text = name)
 	split.enum_item_name(data, prop, enumItems)
 
-def prop_split(layout, data, field, name):
+def prop_split(layout, data, field, name, **prop_kwargs):
 	split = layout.split(factor = 0.5)
 	split.label(text = name)
-	split.prop(data, field, text = '')
+	split.prop(data, field, text = '', **prop_kwargs)
 
 def toAlnum(name):
 	if name is None or name == '':
@@ -992,3 +1156,19 @@ def read16bitRGBA(data):
 	a = bitMask(data,  0, 1) / ((2**1) - 1)
 
 	return [r,g,b,a]
+
+def join_c_args(args: 'list[str]'):
+	return ', '.join(args)
+
+def translate_xyz_to_xzy(translate: mathutils.Vector):
+	xzy_translate = translate.xzy
+	xzy_translate[2] = -xzy_translate[2]
+	return xzy_translate
+
+def rotation_xyz_quat_to_xzy_quat(rotation: mathutils.Quaternion):
+    euler_rot = rotation.to_matrix().inverted().to_euler('ZXY')
+    new_rot = mathutils.Euler([-euler_rot.x, -euler_rot.z, euler_rot.y], 'ZXY')
+    return new_rot.to_quaternion()
+
+def all_values_equal_x(vals: Iterable, test):
+	return len(set(vals) - set([test])) == 0

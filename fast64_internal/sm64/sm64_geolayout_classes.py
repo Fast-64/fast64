@@ -17,8 +17,10 @@ drawLayerNames = {
 }
 
 def getDrawLayerName(drawLayer):
-	if drawLayer in drawLayerNames:
-		return drawLayerNames[drawLayer]
+	# Cast draw layer to int so it can be mapped to a name
+	layer = int(drawLayer) if isinstance(drawLayer, str) and drawLayer.isnumeric() else drawLayer
+	if layer in drawLayerNames:
+		return drawLayerNames[layer]
 	else:
 		return str(drawLayer)
 
@@ -207,7 +209,37 @@ class Geolayout:
 		for node in self.nodes:
 			drawLayers |= node.getDrawLayers()
 		return drawLayers
-		
+
+class BaseDisplayListNode:
+	'''Base displaylist node with common helper functions dealing with displaylists'''
+	dl_ext = 'WITH_DL' # add dl_ext to geo command if command has a displaylist
+
+	def get_dl_address(self):
+		if self.hasDL and (self.dlRef or self.DLmicrocode is not None):
+			return self.dlRef or self.DLmicrocode.startAddress
+		return None
+
+	def get_dl_name(self):
+		if self.hasDL and (self.dlRef or self.DLmicrocode is not None):
+			return self.dlRef or self.DLmicrocode.name
+		return 'NULL'
+	
+	def get_c_func_macro(self, base_cmd: str):
+		return f'{base_cmd}_{self.dl_ext}' if self.hasDL else base_cmd
+
+	def c_func_macro(self, base_cmd: str, *args: str):
+		'''
+			Supply base command and all arguments for command.
+			if self.hasDL:
+				this will add self.dl_ext to the command, and
+				adds the name of the displaylist to the end of the command
+			Example return: 'GEO_YOUR_COMMAND_WITH_DL(arg, arg2),'
+		'''
+		all_args = list(args)
+		if self.hasDL:
+			all_args.append(self.get_dl_name())
+		return f'{self.get_c_func_macro(base_cmd)}({", ".join(all_args)}),'
+
 class TransformNode:
 	def __init__(self, node):
 		self.node = node
@@ -327,7 +359,8 @@ class TransformNode:
 		else:
 			drawLayers = set()
 		for child in self.children:
-			drawLayers |= child.getDrawLayers()
+			if hasattr(child, 'getDrawLayers'): # not every child will have draw layers (e.g. GEO_ASM)
+				drawLayers |= child.getDrawLayers()
 		return drawLayers
 
 class SwitchOverrideNode:
@@ -339,10 +372,11 @@ class SwitchOverrideNode:
 		self.texDimensions = texDimensions # None implies a draw layer override
 
 class JumpNode:
-	def __init__(self, storeReturn, geolayout):
+	def __init__(self, storeReturn, geolayout, geoRef: str = None):
 		self.geolayout = geolayout
 		self.storeReturn = storeReturn
 		self.hasDL = False
+		self.geoRef = geoRef
 	
 	def size(self):
 		return 8
@@ -352,8 +386,8 @@ class JumpNode:
 
 	def to_binary(self, segmentData):
 		if segmentData is not None:
-			startAddress = encodeSegmentedAddr(self.geolayout.startAddress,
-				segmentData)
+			address = self.geoRef or self.geolayout.startAddress
+			startAddress = encodeSegmentedAddr(address, segmentData)
 		else:
 			startAddress = bytearray([0x00] * 4)
 		command = bytearray([GEO_BRANCH, 
@@ -362,8 +396,9 @@ class JumpNode:
 		return command
 
 	def to_c(self):
+		geo_name = self.geoRef or self.geolayout.name
 		return "GEO_BRANCH(" + ('1, ' if self.storeReturn else '0, ') + \
-			self.geolayout.name + '),'
+			geo_name + '),'
 
 def convertAddrToFunc(addr):
 	if addr == '':
@@ -472,8 +507,8 @@ class SwitchNode:
 			str(self.defaultCase) + ', ' +\
 			convertAddrToFunc(self.switchFunc) + '),'
 
-class TranslateRotateNode:
-	def __init__(self, drawLayer, fieldLayout, hasDL, translate, rotate):
+class TranslateRotateNode(BaseDisplayListNode):
+	def __init__(self, drawLayer, fieldLayout, hasDL, translate, rotate, dlRef: str = None):
 
 		self.drawLayer = drawLayer
 		self.fieldLayout = fieldLayout
@@ -484,6 +519,7 @@ class TranslateRotateNode:
 
 		self.fMesh = None
 		self.DLmicrocode = None
+		self.dlRef = dlRef
 	
 	def get_ptr_offsets(self):
 		if self.hasDL:
@@ -515,6 +551,8 @@ class TranslateRotateNode:
 	def to_binary(self, segmentData):
 		params = ((1 if self.hasDL else 0) << 7) & \
 			(self.fieldLayout << 4) | int(self.drawLayer)
+		
+		start_address = self.get_dl_address()
 
 		command = bytearray([GEO_TRANSLATE_ROTATE, params])
 		if self.fieldLayout == 0:
@@ -533,62 +571,59 @@ class TranslateRotateNode:
 			command.extend(bytearray([0x00] * 2))
 			writeFloatToShort(command, 2, 
 			self.rotate.to_euler(geoNodeRotateOrder).y)
-		if self.hasDL:
+		if start_address:
 			if segmentData is not None:
-				command.extend(encodeSegmentedAddr(self.DLmicrocode.startAddress,segmentData))
+				command.extend(encodeSegmentedAddr(start_address, segmentData))
 			else:
 				command.extend(bytearray([0x00] * 4))
 		return command
 
 	def to_c(self):
 		if self.fieldLayout == 0:
-			return ("GEO_TRANSLATE_ROTATE_WITH_DL" if self.hasDL else \
-				"GEO_TRANSLATE_ROTATE") + "(" + \
-				getDrawLayerName(self.drawLayer) + ', ' +\
-				str(convertFloatToShort(self.translate[0])) + ', ' +\
-				str(convertFloatToShort(self.translate[1])) + ', ' +\
-				str(convertFloatToShort(self.translate[2])) + ', ' +\
+			return self.c_func_macro("GEO_TRANSLATE_ROTATE",
+				getDrawLayerName(self.drawLayer),
+				str(convertFloatToShort(self.translate[0])),
+				str(convertFloatToShort(self.translate[1])),
+				str(convertFloatToShort(self.translate[2])),
 				str(convertEulerFloatToShort(self.rotate.to_euler(
-					geoNodeRotateOrder)[0])) + ', ' +\
+					geoNodeRotateOrder)[0])),
 				str(convertEulerFloatToShort(self.rotate.to_euler(
-					geoNodeRotateOrder)[1])) + ', ' +\
+					geoNodeRotateOrder)[1])),
 				str(convertEulerFloatToShort(self.rotate.to_euler(
-					geoNodeRotateOrder)[2])) + \
-				((', ' + self.DLmicrocode.name + '),') if self.hasDL else '),')
+					geoNodeRotateOrder)[2]))
+			)
 		elif self.fieldLayout == 1:
-			return ("GEO_TRANSLATE_WITH_DL" if self.hasDL else \
-				"GEO_TRANSLATE") + "(" + \
-				getDrawLayerName(self.drawLayer) + ', ' +\
-				str(convertFloatToShort(self.translate[0])) + ', ' +\
-				str(convertFloatToShort(self.translate[1])) + ', ' +\
-				str(convertFloatToShort(self.translate[2])) +\
-				((', ' + self.DLmicrocode.name + '),') if self.hasDL else '),')
+			return self.c_func_macro("GEO_TRANSLATE",
+				getDrawLayerName(self.drawLayer),
+				str(convertFloatToShort(self.translate[0])),
+				str(convertFloatToShort(self.translate[1])),
+				str(convertFloatToShort(self.translate[2]))
+			)
 		elif self.fieldLayout == 2:
-			return ("GEO_ROTATE_WITH_DL" if self.hasDL else \
-				"GEO_ROTATE") + "(" + \
-				getDrawLayerName(self.drawLayer) + ', ' +\
+			return self.c_func_macro("GEO_ROTATE",
+				getDrawLayerName(self.drawLayer),
 				str(convertEulerFloatToShort(self.rotate.to_euler(
-					geoNodeRotateOrder)[0])) + ', ' +\
+					geoNodeRotateOrder)[0])),
 				str(convertEulerFloatToShort(self.rotate.to_euler(
-					geoNodeRotateOrder)[1])) + ', ' +\
+					geoNodeRotateOrder)[1])),
 				str(convertEulerFloatToShort(self.rotate.to_euler(
-					geoNodeRotateOrder)[2])) + \
-				((', ' + self.DLmicrocode.name + '),') if self.hasDL else '),')
+					geoNodeRotateOrder)[2]))
+			)
 		elif self.fieldLayout == 3:
-			return ("GEO_ROTATE_Y_WITH_DL" if self.hasDL else \
-				"GEO_ROTATE_Y") + "(" + \
-				getDrawLayerName(self.drawLayer) + ', ' +\
+			return self.c_func_macro("GEO_ROTATE_Y",
+				getDrawLayerName(self.drawLayer),
 				str(convertEulerFloatToShort(self.rotate.to_euler(
-					geoNodeRotateOrder)[1])) +\
-				((', ' + self.DLmicrocode.name + '),') if self.hasDL else '),')
+					geoNodeRotateOrder)[1]))
+			)
 
-class TranslateNode:
-	def __init__(self, drawLayer, useDeform, translate):
+class TranslateNode(BaseDisplayListNode):
+	def __init__(self, drawLayer, useDeform, translate, dlRef: str = None):
 		self.drawLayer = drawLayer
 		self.hasDL = useDeform
 		self.translate = translate
 		self.fMesh = None
 		self.DLmicrocode = None
+		self.dlRef = dlRef
 	
 	def get_ptr_offsets(self):
 		return [8] if self.hasDL else []
@@ -601,24 +636,25 @@ class TranslateNode:
 		command = bytearray([GEO_TRANSLATE, params])
 		command.extend(bytearray([0x00] * 6))
 		writeVectorToShorts(command, 2, self.translate)
+
 		if self.hasDL:
+			start_address = self.get_dl_address()
 			if segmentData is not None:
-				command.extend(encodeSegmentedAddr(self.DLmicrocode.startAddress,segmentData))
+				command.extend(encodeSegmentedAddr(start_address, segmentData))
 			else:
 				command.extend(bytearray([0x00] * 4))
 		return command
 	
 	def to_c(self):
-		return ("GEO_TRANSLATE_NODE_WITH_DL" if self.hasDL else \
-			"GEO_TRANSLATE_NODE") + "(" + \
-			getDrawLayerName(self.drawLayer) + ', ' +\
-			str(convertFloatToShort(self.translate[0])) + ', ' +\
-			str(convertFloatToShort(self.translate[1])) + ', ' +\
-			str(convertFloatToShort(self.translate[2])) +\
-			((', ' + self.DLmicrocode.name + '),') if self.hasDL else '),')
+		return self.c_func_macro("GEO_TRANSLATE_NODE",
+			getDrawLayerName(self.drawLayer),
+			str(convertFloatToShort(self.translate[0])),
+			str(convertFloatToShort(self.translate[1])),
+			str(convertFloatToShort(self.translate[2])),
+		)
 
-class RotateNode:
-	def __init__(self, drawLayer, hasDL, rotate):
+class RotateNode(BaseDisplayListNode):
+	def __init__(self, drawLayer, hasDL, rotate, dlRef: str = None):
 		# In the case for automatically inserting rotate nodes between
 		# 0x13 bones.
 
@@ -627,6 +663,7 @@ class RotateNode:
 		self.rotate = rotate
 		self.fMesh = None
 		self.DLmicrocode = None
+		self.dlRef = dlRef
 	
 	def get_ptr_offsets(self):
 		return [8] if self.hasDL else []
@@ -641,31 +678,34 @@ class RotateNode:
 		writeEulerVectorToShorts(command, 2, 
 			self.rotate.to_euler(geoNodeRotateOrder))
 		if self.hasDL:
+			start_address = self.get_dl_address()
 			if segmentData is not None:
-				command.extend(encodeSegmentedAddr(self.DLmicrocode.startAddress,segmentData))
+				command.extend(encodeSegmentedAddr(start_address, segmentData))
 			else:
 				command.extend(bytearray([0x00] * 4))
 		return command
 
 	def to_c(self):
-		return ("GEO_ROTATION_NODE_WITH_DL" if self.hasDL else \
-			"GEO_ROTATION_NODE") + "(" + \
-			getDrawLayerName(self.drawLayer) + ', ' +\
-				str(convertEulerFloatToShort(self.rotate.to_euler(
-					geoNodeRotateOrder)[0])) + ', ' +\
-				str(convertEulerFloatToShort(self.rotate.to_euler(
-					geoNodeRotateOrder)[1])) + ', ' +\
-				str(convertEulerFloatToShort(self.rotate.to_euler(
-					geoNodeRotateOrder)[2])) + \
-			((', ' + self.DLmicrocode.name + '),') if self.hasDL else '),')
+		return self.c_func_macro("GEO_ROTATION_NODE",
+			getDrawLayerName(self.drawLayer),
+			str(convertEulerFloatToShort(self.rotate.to_euler(
+				geoNodeRotateOrder)[0])),
+			str(convertEulerFloatToShort(self.rotate.to_euler(
+				geoNodeRotateOrder)[1])),
+			str(convertEulerFloatToShort(self.rotate.to_euler(
+				geoNodeRotateOrder)[2]))
+		)
 	
-class BillboardNode:
-	def __init__(self, drawLayer, hasDL, translate):
+class BillboardNode(BaseDisplayListNode):
+	dl_ext = 'AND_DL'
+
+	def __init__(self, drawLayer, hasDL, translate, dlRef: str = None):
 		self.drawLayer = drawLayer
 		self.hasDL = hasDL
 		self.translate = translate
 		self.fMesh = None
 		self.DLmicrocode = None
+		self.dlRef = dlRef
 	
 	def get_ptr_offsets(self):
 		return [8] if self.hasDL else []
@@ -679,27 +719,28 @@ class BillboardNode:
 		command.extend(bytearray([0x00] * 6))
 		writeVectorToShorts(command, 2, self.translate)
 		if self.hasDL:
+			start_address = self.get_dl_address()
 			if segmentData is not None:
-				command.extend(encodeSegmentedAddr(self.DLmicrocode.startAddress,segmentData))
+				command.extend(encodeSegmentedAddr(start_address, segmentData))
 			else:
 				command.extend(bytearray([0x00] * 4))
 		return command
 
 	def to_c(self):
-		return ("GEO_BILLBOARD_WITH_PARAMS_AND_DL" if self.hasDL else \
-			"GEO_BILLBOARD_WITH_PARAMS") + "(" + \
-			getDrawLayerName(self.drawLayer) + ', ' +\
-			str(convertFloatToShort(self.translate[0])) + ', ' +\
-			str(convertFloatToShort(self.translate[1])) + ', ' +\
-			str(convertFloatToShort(self.translate[2])) +\
-			((', ' + self.DLmicrocode.name + '),') if self.hasDL else '),')
+		return self.c_func_macro("GEO_BILLBOARD_WITH_PARAMS",
+			getDrawLayerName(self.drawLayer),
+			str(convertFloatToShort(self.translate[0])),
+			str(convertFloatToShort(self.translate[1])),
+			str(convertFloatToShort(self.translate[2]))
+		)
 
-class DisplayListNode:
-	def __init__(self, drawLayer):
+class DisplayListNode(BaseDisplayListNode):
+	def __init__(self, drawLayer, dlRef: str = None):
 		self.drawLayer = drawLayer
 		self.hasDL = True
 		self.fMesh = None
 		self.DLmicrocode = None
+		self.dlRef = dlRef
 	
 	def get_ptr_offsets(self):
 		return [4]
@@ -709,8 +750,9 @@ class DisplayListNode:
 
 	def to_binary(self, segmentData):
 		command = bytearray([GEO_LOAD_DL, int(self.drawLayer), 0x00, 0x00])
-		if self.hasDL and self.DLmicrocode is not None and segmentData is not None:
-			command.extend(encodeSegmentedAddr(self.DLmicrocode.startAddress,segmentData))
+		start_address = self.get_dl_address()
+		if start_address and segmentData is not None:
+			command.extend(encodeSegmentedAddr(start_address, segmentData))
 		else:
 			command.extend(bytearray([0x00] * 4))
 		return command
@@ -718,9 +760,9 @@ class DisplayListNode:
 	def to_c(self):
 		if not self.hasDL:
 			return None
-		return "GEO_DISPLAY_LIST(" + \
-			getDrawLayerName(self.drawLayer) + ', ' +\
-			(self.DLmicrocode.name if self.hasDL else 'NULL') + '),'
+		args = [getDrawLayerName(self.drawLayer), self.get_dl_name()]
+		return f"GEO_DISPLAY_LIST({join_c_args(args)}),"
+
 
 class ShadowNode:
 	def __init__(self, shadow_type, shadow_solidity, shadow_scale):
@@ -745,13 +787,14 @@ class ShadowNode:
 			str(self.shadowSolidity) + ', ' +\
 			str(self.shadowScale) + '),'
 
-class ScaleNode:
-	def __init__(self, drawLayer, geo_scale, use_deform):
+class ScaleNode(BaseDisplayListNode):
+	def __init__(self, drawLayer, geo_scale, use_deform, dlRef: str = None):
 		self.drawLayer = drawLayer
 		self.scaleValue = geo_scale
 		self.hasDL = use_deform
 		self.fMesh = None
 		self.DLmicrocode = None
+		self.dlRef = dlRef
 	
 	def get_ptr_offsets(self):
 		return [8] if self.hasDL else []
@@ -765,16 +808,16 @@ class ScaleNode:
 		command.extend(int(self.scaleValue * 0x10000).to_bytes(4, 'big'))
 		if self.hasDL:
 			if segmentData is not None:
-				command.extend(encodeSegmentedAddr(self.DLmicrocode.startAddress,segmentData))
+				command.extend(encodeSegmentedAddr(self.get_dl_address(), segmentData))
 			else:
 				command.extend(bytearray([0x00] * 4))
 		return command
 	
 	def to_c(self):
-		return ("GEO_SCALE_WITH_DL" if self.hasDL else "GEO_SCALE") + "(" + \
-			getDrawLayerName(self.drawLayer) + ', ' +\
-			str(int(round(self.scaleValue * 0x10000))) +\
-			((', ' + self.DLmicrocode.name + '),') if self.hasDL else '),')
+		return self.c_func_macro("GEO_SCALE",
+			getDrawLayerName(self.drawLayer),
+			str(int(round(self.scaleValue * 0x10000)))
+		)
 
 class StartRenderAreaNode:
 	def __init__(self, cullingRadius):
@@ -820,13 +863,14 @@ class RenderRangeNode:
 		return 'GEO_RENDER_RANGE(' + str(minDist) + ', ' +\
 			str(maxDist) + '),'
 
-class DisplayListWithOffsetNode:
-	def __init__(self, drawLayer, use_deform, translate):
+class DisplayListWithOffsetNode(BaseDisplayListNode):
+	def __init__(self, drawLayer, use_deform, translate, dlRef: str = None):
 		self.drawLayer = drawLayer
 		self.hasDL = use_deform
 		self.translate = translate
 		self.fMesh = None
 		self.DLmicrocode = None
+		self.dlRef = dlRef
 	
 	def size(self):
 		return 12
@@ -838,19 +882,22 @@ class DisplayListWithOffsetNode:
 		command = bytearray([GEO_LOAD_DL_W_OFFSET, int(self.drawLayer)])
 		command.extend(bytearray([0x00] * 6))
 		writeVectorToShorts(command, 2, self.translate)
-		if self.hasDL and self.DLmicrocode is not None and segmentData is not None:
-			command.extend(encodeSegmentedAddr(self.DLmicrocode.startAddress,segmentData))
+		start_address = self.get_dl_address()
+		if start_address is not None and segmentData is not None:
+			command.extend(encodeSegmentedAddr(start_address, segmentData))
 		else:
 			command.extend(bytearray([0x00] * 4))
 		return command
 
 	def to_c(self):
-		return "GEO_ANIMATED_PART(" + \
-			getDrawLayerName(self.drawLayer) + ', ' +\
-			str(convertFloatToShort(self.translate[0])) + ', ' +\
-			str(convertFloatToShort(self.translate[1])) + ', ' +\
-			str(convertFloatToShort(self.translate[2])) + ', ' +\
-			(self.DLmicrocode.name if self.hasDL else 'NULL') + '),'
+		args = [
+			getDrawLayerName(self.drawLayer),
+			str(convertFloatToShort(self.translate[0])),
+			str(convertFloatToShort(self.translate[1])),
+			str(convertFloatToShort(self.translate[2])),
+			self.get_dl_name() # This node requires 'NULL' if there is no DL
+		]
+		return f"GEO_ANIMATED_PART({join_c_args(args)}),"
 
 class ScreenAreaNode:
 	def __init__(self, useDefaults, entryMinus2Count, position, dimensions):
@@ -1028,6 +1075,21 @@ class BackgroundNode:
 				str(self.backgroundValue) + \
 				', ' + convertAddrToFunc(self.geo_func) + '),'
 
+class CustomNode:
+	def __init__(self, command: str, args: str):
+		self.command = command
+		self.args = args or '' # command may not have args
+		self.hasDL = False
+
+	def size(self):
+		return 8
+
+	def to_binary(self, segmentData):
+		raise PluginError('Custom Geo Nodes are not supported for binary exports.')
+	
+	def to_c(self):
+		return f"{self.command}({self.args}),"
+
 nodeGroupClasses = [
 	StartNode,
 	SwitchNode,
@@ -1045,6 +1107,7 @@ nodeGroupClasses = [
 	ZBufferNode,
 	CameraNode,
 	RenderRangeNode,
+	CustomNode
 ]
 
 DLNodes = [
