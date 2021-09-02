@@ -27,7 +27,7 @@ class AddWaterBox(bpy.types.Operator):
 	def execute(self, context):
 		if context.mode != "OBJECT":
 			bpy.ops.object.mode_set(mode = "OBJECT")
-		
+
 		bpy.ops.object.select_all(action = "DESELECT")
 
 		location = mathutils.Vector(bpy.context.scene.cursor.location)
@@ -37,7 +37,7 @@ class AddWaterBox(bpy.types.Operator):
 		planeObj.name = "Water Box Mesh"
 
 		addMaterialByName(planeObj, self.matName, self.preset)
-		
+
 		location += mathutils.Vector([0,0,-self.scale])
 		bpy.ops.object.empty_add(type='CUBE', radius = self.scale, align='WORLD', location=location[:])
 		emptyObj = context.view_layer.objects.active
@@ -57,20 +57,20 @@ class WarningOperator(bpy.types.Operator):
 
 	def add_warning(self, warning: str):
 		self.warnings.add(warning)
-	
+
 	def show_warnings(self):
 		if len(self.warnings):
 			self.report({'WARNING'}, 'Operator completed with warnings:')
 			for warning in self.warnings:
 				self.report({'WARNING'}, warning)
 			self.reset_warnings()
-	
+
 class ObjectDataExporter(WarningOperator):
 	'''Operator that uses warnings and can store original matrixes and meshes for use in exporting'''
 	def store_object_data(self):
 		store_original_mtx()
 		store_original_meshes(self.add_warning)
-	
+
 	def cleanup_temp_object_data(self):
 		cleanupTempMeshes()
 

@@ -13,9 +13,9 @@ class VertexWeightError(PluginError):
 geoNodeRotateOrder = 'ZXY'
 sm64BoneUp = Vector([1,0,0])
 
-axis_enums = [	
-	('X', 'X', 'X'), 
-	('Y', 'Y', 'Y'), 
+axis_enums = [
+	('X', 'X', 'X'),
+	('Y', 'Y', 'Y'),
 	('-X', '-X', '-X'),
 	('-Y', '-Y', '-Y'),
 ]
@@ -71,7 +71,7 @@ def unhideAllAndGetHiddenList(scene):
 	for obj in scene.objects:
 		if obj.hide_get():
 			hiddenObjs.append(obj)
-	
+
 	if bpy.context.mode != 'OBJECT':
 		bpy.ops.object.mode_set(mode = "OBJECT")
 	bpy.ops.object.hide_view_clear()
@@ -106,7 +106,7 @@ def parentObject(parent, child):
 	bpy.ops.object.parent_set(type='OBJECT', keep_transform=True)
 
 def attemptModifierApply(modifier):
-	try:	
+	try:
 		bpy.ops.object.modifier_apply(modifier=modifier.name)
 	except Exception as e:
 		print("Skipping modifier " + str(modifier.name))
@@ -211,8 +211,8 @@ def propertyGroupEquals(oldProp, newProp):
 
 			if not isEquivalent:
 				pass #print("Not equivalent: " + str(sub_value) + " " + str(newValue) + " " + str(sub_value_attr))
-			equivalent &= isEquivalent 
-	
+			equivalent &= isEquivalent
+
 	return equivalent
 
 def writeCData(data, headerPath, sourcePath):
@@ -276,7 +276,7 @@ def findStartBones(armatureObj):
 			'in ' + armatureObj.name + '. Is this the root armature?')
 	else:
 		return noParentBones
-	
+
 	if len(noParentBones) == 1:
 		return noParentBones[0]
 	elif len(noParentBones) == 0:
@@ -326,9 +326,9 @@ def enableExtendedRAM(baseDir):
 		segmentFile.close()
 
 def writeMaterialHeaders(exportDir, matCInclude, matHInclude):
-	writeIfNotFound(os.path.join(exportDir, 'src/game/materials.c'), 
+	writeIfNotFound(os.path.join(exportDir, 'src/game/materials.c'),
 		'\n' + matCInclude, '')
-	writeIfNotFound(os.path.join(exportDir, 'src/game/materials.h'), 
+	writeIfNotFound(os.path.join(exportDir, 'src/game/materials.h'),
 		'\n' + matHInclude, '#endif')
 
 def writeMaterialFiles(exportDir, assetDir, headerInclude, matHInclude,
@@ -361,7 +361,7 @@ def writeMaterialBase(baseDir):
 			'#endif')
 
 		matHFile.close()
-	
+
 	matCPath = os.path.join(baseDir, 'src/game/materials.c')
 	if not os.path.exists(matCPath):
 		matCFile = open(matCPath, 'w', newline = '\n')
@@ -465,7 +465,7 @@ def getExportDir(customExport, dirPath, headerType, levelName, texDir, dirName):
 		elif headerType == 'Level':
 			dirPath = os.path.join(dirPath, 'levels/' + levelName)
 			texDir = 'levels/' + levelName
-	
+
 	return dirPath, texDir
 
 def overwriteData(headerRegex, name, value, filePath, writeNewBeforeString, isFunction):
@@ -578,7 +578,7 @@ def copy_object_and_apply(obj: bpy.types.Object, apply_scale = False, apply_modi
 	obj_copy.data = obj_copy.data.copy()
 
 	if apply_modifiers:
-		# In order to correctly apply modifiers, we have to go through blender and add the object to the collection, then apply modifiers 
+		# In order to correctly apply modifiers, we have to go through blender and add the object to the collection, then apply modifiers
 		prev_active = bpy.context.view_layer.objects.active
 		bpy.context.collection.objects.link(obj_copy)
 		obj_copy.select_set(True)
@@ -649,7 +649,7 @@ def duplicateHierarchy(obj, ignoreAttr, includeEmpties, areaIndex):
 		allObjs = bpy.context.selected_objects
 
 		bpy.ops.object.make_single_user(obdata = True)
-		bpy.ops.object.transform_apply(location = False, 
+		bpy.ops.object.transform_apply(location = False,
 			rotation = True, scale = True, properties =  False)
 
 		for selectedObj in allObjs:
@@ -771,22 +771,22 @@ def combineObjects(obj, includeChildren, ignoreAttr, areaIndex):
 		# duplicate obj and apply modifiers / make single user
 		allObjs = bpy.context.selected_objects
 		bpy.ops.object.make_single_user(obdata = True)
-		bpy.ops.object.transform_apply(location = False, 
+		bpy.ops.object.transform_apply(location = False,
 			rotation = True, scale = True, properties =  False)
 		for selectedObj in allObjs:
 			bpy.ops.object.select_all(action = 'DESELECT')
 			selectedObj.select_set(True)
 			for modifier in selectedObj.modifiers:
 				attemptModifierApply(modifier)
-					
+
 		bpy.ops.object.select_all(action = 'DESELECT')
-		
+
 		# Joining causes orphan data, so we remove it manually.
 		meshList = []
 		for selectedObj in allObjs:
 			selectedObj.select_set(True)
 			meshList.append(selectedObj.data)
-		
+
 		joinedObj = bpy.context.selected_objects[0]
 		bpy.context.view_layer.objects.active = joinedObj
 		joinedObj.select_set(True)
@@ -800,11 +800,11 @@ def combineObjects(obj, includeChildren, ignoreAttr, areaIndex):
 
 		# Need to clear parent transform in order to correctly apply transform.
 		bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
-		bpy.ops.object.transform_apply(location = False, 
+		bpy.ops.object.transform_apply(location = False,
 			rotation = True, scale = True, properties =  False)
 		bpy.context.view_layer.objects.active = joinedObj
 		joinedObj.select_set(True)
-		bpy.ops.object.transform_apply(location = False, 
+		bpy.ops.object.transform_apply(location = False,
 			rotation = True, scale = True, properties =  False)
 
 	except Exception as e:
@@ -852,7 +852,7 @@ def writeInsertableFile(filepath, dataType, address_ptrs, startPtr, data):
 		address += 4
 
 	openfile.seek(address)
-	openfile.write(data)	
+	openfile.write(data)
 	openfile.close()
 
 def colorTo16bitRGBA(color):
@@ -883,7 +883,7 @@ def applyRotation(objList, angle, axis):
 	direction = getDirectionGivenAppVersion()
 
 	bpy.ops.transform.rotate(value = direction * angle, orient_axis = axis, orient_type='GLOBAL')
-	bpy.ops.object.transform_apply(location = False, 
+	bpy.ops.object.transform_apply(location = False,
 		rotation = True, scale = True, properties =  False)
 
 def doRotation(angle, axis):
@@ -948,11 +948,11 @@ def getNameFromPath(path, removeExtension = False):
 	if removeExtension:
 		name = os.path.splitext(name)[0]
 	return toAlnum(name)
-	
+
 def gammaCorrect(color):
 	return [
-		gammaCorrectValue(color[0]), 
-		gammaCorrectValue(color[1]), 
+		gammaCorrectValue(color[0]),
+		gammaCorrectValue(color[1]),
 		gammaCorrectValue(color[2])]
 
 def gammaCorrectValue(u):
@@ -960,13 +960,13 @@ def gammaCorrectValue(u):
 		y = u * 12.92
 	else:
 		y = 1.055 * pow(u, (1/2.4)) - 0.055
-	
+
 	return min(max(y, 0), 1)
 
 def gammaInverse(color):
 	return [
-		gammaInverseValue(color[0]), 
-		gammaInverseValue(color[1]), 
+		gammaInverseValue(color[0]),
+		gammaInverseValue(color[1]),
 		gammaInverseValue(color[2])]
 
 def gammaInverseValue(u):
@@ -974,7 +974,7 @@ def gammaInverseValue(u):
 		y = u / 12.92
 	else:
 		y = ((u + 0.055) / 1.055) ** 2.4
-	
+
 	return min(max(y, 0), 1)
 
 def printBlenderMessage(msgSet, message, blenderOp):
@@ -1030,7 +1030,7 @@ def readVectorFromShorts(command, offset):
 		in range(offset, offset + 6, 2)]
 
 def readFloatFromShort(command, offset):
-	return int.from_bytes(command[offset: offset + 2], 
+	return int.from_bytes(command[offset: offset + 2],
 		'big', signed = True) / bpy.context.scene.blenderToSM64Scale
 
 def writeVectorToShorts(command, offset, values):
@@ -1059,7 +1059,7 @@ def readEulerVectorFromShorts(command, offset):
 		in range(offset, offset + 6, 2)]
 
 def readEulerFloatFromShort(command, offset):
-	return radians(int.from_bytes(command[offset: offset + 2], 
+	return radians(int.from_bytes(command[offset: offset + 2],
 		'big', signed = True))
 
 def writeEulerVectorToShorts(command, offset, values):
@@ -1123,7 +1123,7 @@ def convertUV(normalizedUVs, textureWidth, textureHeight):
 def convertFloatToFixed16Bytes(value):
 	value *= 2**5
 	value = min(max(value, -2**15), 2**15 - 1)
-	
+
 	return int(round(value)).to_bytes(2, 'big', signed = True)
 
 def convertFloatToFixed16(value):

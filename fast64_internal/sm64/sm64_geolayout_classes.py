@@ -1,7 +1,7 @@
 from .sm64_geolayout_constants import *
 from .sm64_geolayout_utility import *
 from .sm64_constants import *
-from .sm64_function_map import func_map 
+from .sm64_function_map import func_map
 from ..utility import *
 import struct, copy
 
@@ -112,7 +112,7 @@ class GeolayoutGraph:
 			print(geolayout.name + " - " + \
 				str(geolayout.startAddress))
 		return address
-	
+
 	def to_binary(self, segmentData):
 		self.checkListSorted()
 		data = bytearray(0)
@@ -144,7 +144,7 @@ class GeolayoutGraph:
 		for geolayout in self.sortedList:
 			for node in geolayout.nodes:
 				node.convertToDynamic()
-	
+
 	def getDrawLayers(self):
 		drawLayers = self.startGeolayout.getDrawLayers()
 		for obj, geolayout in self.secondaryGeolayouts.items():
@@ -158,13 +158,13 @@ class Geolayout:
 		self.name = toAlnum(name)
 		self.startAddress = 0
 		self.isStartGeo = isStartGeo
-	
+
 	def size(self):
 		size = 4 # end command
 		for node in self.nodes:
 			size += node.size()
 		return size
-	
+
 	def get_ptr_addresses(self):
 		address = self.startAddress
 		addresses = []
@@ -223,7 +223,7 @@ class BaseDisplayListNode:
 		if self.hasDL and (self.dlRef or self.DLmicrocode is not None):
 			return self.dlRef or self.DLmicrocode.name
 		return 'NULL'
-	
+
 	def get_c_func_macro(self, base_cmd: str):
 		return f'{base_cmd}_{self.dl_ext}' if self.hasDL else base_cmd
 
@@ -258,10 +258,10 @@ class TransformNode:
 				self.node.hasDL = False
 				transformNode = TransformNode(funcNode)
 				self.children.insert(0, transformNode)
-		
+
 		for child in self.children:
 			child.convertToDynamic()
-	
+
 	def get_ptr_addresses(self, address):
 		addresses = []
 		if self.node is not None:
@@ -285,7 +285,7 @@ class TransformNode:
 			size += 8 # node open/close
 			for child in self.children:
 				size += child.size()
-			
+
 		return size
 
 	# Function commands usually effect the following command, so it is similar
@@ -329,7 +329,7 @@ class TransformNode:
 		elif type(self.node) is SwitchNode:
 			raise PluginError("A switch bone must have at least one child bone.")
 		return data
-	
+
 	def toTextDump(self, nodeLevel, segmentData):
 		data = ''
 		if self.node is not None:
@@ -355,7 +355,7 @@ class TransformNode:
 
 	def getDrawLayers(self):
 		if self.node is not None and self.node.hasDL:
-			drawLayers = set([self.node.drawLayer])	
+			drawLayers = set([self.node.drawLayer])
 		else:
 			drawLayers = set()
 		for child in self.children:
@@ -377,10 +377,10 @@ class JumpNode:
 		self.storeReturn = storeReturn
 		self.hasDL = False
 		self.geoRef = geoRef
-	
+
 	def size(self):
 		return 8
-	
+
 	def get_ptr_offsets(self):
 		return [4]
 
@@ -390,7 +390,7 @@ class JumpNode:
 			startAddress = encodeSegmentedAddr(address, segmentData)
 		else:
 			startAddress = bytearray([0x00] * 4)
-		command = bytearray([GEO_BRANCH, 
+		command = bytearray([GEO_BRANCH,
 			0x01 if self.storeReturn else 0x00, 0x00, 0x00])
 		command.extend(startAddress)
 		return command
@@ -420,7 +420,7 @@ class FunctionNode:
 
 	def size(self):
 		return 8
-		
+
 	def to_binary(self, segmentData):
 		command = bytearray([GEO_CALL_ASM, 0x00])
 		command.extend(self.func_param.to_bytes(2, 'big', signed = True))
@@ -439,14 +439,14 @@ class HeldObjectNode:
 
 	def size(self):
 		return 12
-	
+
 	def to_binary(self, segmentData):
 		command = bytearray([GEO_HELD_OBJECT, 0x00])
 		command.extend(bytearray([0x00] * 6))
 		writeVectorToShorts(command, 2, self.translate)
 		addFuncAddress(command, self.geo_func)
 		return command
-	
+
 	def to_c(self):
 		return "GEO_HELD_OBJECT(0, " + \
 			str(convertFloatToShort(self.translate[0])) + ', ' +\
@@ -457,10 +457,10 @@ class HeldObjectNode:
 class StartNode:
 	def __init__(self):
 		self.hasDL = False
-	
+
 	def size(self):
 		return 4
-	
+
 	def to_binary(self, segmentData):
 		command = bytearray([GEO_START, 0x00, 0x00, 0x00])
 		return command
@@ -474,7 +474,7 @@ class EndNode:
 
 	def size(self):
 		return 4
-	
+
 	def to_binary(self, segmentData):
 		command = bytearray([GEO_END, 0x00, 0x00, 0x00])
 		return command
@@ -495,7 +495,7 @@ class SwitchNode:
 
 	def size(self):
 		return 8
-	
+
 	def to_binary(self, segmentData):
 		command = bytearray([GEO_SWITCH, 0x00])
 		command.extend(self.defaultCase.to_bytes(2, 'big', signed = True))
@@ -520,7 +520,7 @@ class TranslateRotateNode(BaseDisplayListNode):
 		self.fMesh = None
 		self.DLmicrocode = None
 		self.dlRef = dlRef
-	
+
 	def get_ptr_offsets(self):
 		if self.hasDL:
 			if self.fieldLayout == 0:
@@ -533,7 +533,7 @@ class TranslateRotateNode(BaseDisplayListNode):
 				return [4]
 		else:
 			return []
-	
+
 	def size(self):
 		if self.fieldLayout == 0:
 			size = 16
@@ -547,29 +547,29 @@ class TranslateRotateNode(BaseDisplayListNode):
 		if self.hasDL:
 			size += 4
 		return size
-		
+
 	def to_binary(self, segmentData):
 		params = ((1 if self.hasDL else 0) << 7) & \
 			(self.fieldLayout << 4) | int(self.drawLayer)
-		
+
 		start_address = self.get_dl_address()
 
 		command = bytearray([GEO_TRANSLATE_ROTATE, params])
 		if self.fieldLayout == 0:
 			command.extend(bytearray([0x00] * 14))
 			writeVectorToShorts(command, 4, self.translate)
-			writeEulerVectorToShorts(command, 10, 
+			writeEulerVectorToShorts(command, 10,
 				self.rotate.to_euler(geoNodeRotateOrder))
 		elif self.fieldLayout == 1:
 			command.extend(bytearray([0x00] * 6))
 			writeVectorToShorts(command, 2, self.translate)
 		elif self.fieldLayout == 2:
 			command.extend(bytearray([0x00] * 6))
-			writeEulerVectorToShorts(command, 2, 
+			writeEulerVectorToShorts(command, 2,
 				self.rotate.to_euler(geoNodeRotateOrder))
 		elif self.fieldLayout == 3:
 			command.extend(bytearray([0x00] * 2))
-			writeFloatToShort(command, 2, 
+			writeFloatToShort(command, 2,
 			self.rotate.to_euler(geoNodeRotateOrder).y)
 		if start_address:
 			if segmentData is not None:
@@ -624,13 +624,13 @@ class TranslateNode(BaseDisplayListNode):
 		self.fMesh = None
 		self.DLmicrocode = None
 		self.dlRef = dlRef
-	
+
 	def get_ptr_offsets(self):
 		return [8] if self.hasDL else []
 
 	def size(self):
 		return 12 if self.hasDL else 8
-		
+
 	def to_binary(self, segmentData):
 		params = ((1 if self.hasDL else 0) << 7) | int(self.drawLayer)
 		command = bytearray([GEO_TRANSLATE, params])
@@ -644,7 +644,7 @@ class TranslateNode(BaseDisplayListNode):
 			else:
 				command.extend(bytearray([0x00] * 4))
 		return command
-	
+
 	def to_c(self):
 		return self.c_func_macro("GEO_TRANSLATE_NODE",
 			getDrawLayerName(self.drawLayer),
@@ -664,18 +664,18 @@ class RotateNode(BaseDisplayListNode):
 		self.fMesh = None
 		self.DLmicrocode = None
 		self.dlRef = dlRef
-	
+
 	def get_ptr_offsets(self):
 		return [8] if self.hasDL else []
-	
+
 	def size(self):
 		return 12 if self.hasDL else 8
-		
+
 	def to_binary(self, segmentData):
 		params = ((1 if self.hasDL else 0) << 7) | int(self.drawLayer)
 		command = bytearray([GEO_ROTATE, params])
 		command.extend(bytearray([0x00] * 6))
-		writeEulerVectorToShorts(command, 2, 
+		writeEulerVectorToShorts(command, 2,
 			self.rotate.to_euler(geoNodeRotateOrder))
 		if self.hasDL:
 			start_address = self.get_dl_address()
@@ -695,7 +695,7 @@ class RotateNode(BaseDisplayListNode):
 			str(convertEulerFloatToShort(self.rotate.to_euler(
 				geoNodeRotateOrder)[2]))
 		)
-	
+
 class BillboardNode(BaseDisplayListNode):
 	dl_ext = 'AND_DL'
 
@@ -706,10 +706,10 @@ class BillboardNode(BaseDisplayListNode):
 		self.fMesh = None
 		self.DLmicrocode = None
 		self.dlRef = dlRef
-	
+
 	def get_ptr_offsets(self):
 		return [8] if self.hasDL else []
-	
+
 	def size(self):
 		return 12 if self.hasDL else 8
 
@@ -741,10 +741,10 @@ class DisplayListNode(BaseDisplayListNode):
 		self.fMesh = None
 		self.DLmicrocode = None
 		self.dlRef = dlRef
-	
+
 	def get_ptr_offsets(self):
 		return [4]
-	
+
 	def size(self):
 		return 8
 
@@ -780,7 +780,7 @@ class ShadowNode:
 		command.extend(self.shadowSolidity.to_bytes(2, 'big'))
 		command.extend(self.shadowScale.to_bytes(2, 'big'))
 		return command
-	
+
 	def to_c(self):
 		return "GEO_SHADOW(" + \
 			str(self.shadowType) + ', ' +\
@@ -795,13 +795,13 @@ class ScaleNode(BaseDisplayListNode):
 		self.fMesh = None
 		self.DLmicrocode = None
 		self.dlRef = dlRef
-	
+
 	def get_ptr_offsets(self):
 		return [8] if self.hasDL else []
-	
+
 	def size(self):
 		return 12 if self.hasDL else 8
-	
+
 	def to_binary(self, segmentData):
 		params = ((1 if self.hasDL else 0) << 7) | int(self.drawLayer)
 		command = bytearray([GEO_SCALE, params, 0x00, 0x00])
@@ -812,7 +812,7 @@ class ScaleNode(BaseDisplayListNode):
 			else:
 				command.extend(bytearray([0x00] * 4))
 		return command
-	
+
 	def to_c(self):
 		return self.c_func_macro("GEO_SCALE",
 			getDrawLayerName(self.drawLayer),
@@ -823,7 +823,7 @@ class StartRenderAreaNode:
 	def __init__(self, cullingRadius):
 		self.cullingRadius = cullingRadius
 		self.hasDL = False
-	
+
 	def size(self):
 		return 4
 
@@ -831,7 +831,7 @@ class StartRenderAreaNode:
 		command = bytearray([GEO_START_W_RENDERAREA, 0x00])
 		command.extend(convertFloatToShort(self.cullingRadius).to_bytes(2, 'big'))
 		return command
-	
+
 	def to_c(self):
 		cullingRadius = convertFloatToShort(self.cullingRadius)
 		#if abs(cullingRadius) > 2**15 - 1:
@@ -844,7 +844,7 @@ class RenderRangeNode:
 		self.minDist = minDist
 		self.maxDist = maxDist
 		self.hasDL = False
-	
+
 	def size(self):
 		return 8
 
@@ -853,7 +853,7 @@ class RenderRangeNode:
 		command.extend(convertFloatToShort(self.minDist).to_bytes(2, 'big'))
 		command.extend(convertFloatToShort(self.maxDist).to_bytes(2, 'big'))
 		return command
-	
+
 	def to_c(self):
 		minDist = convertFloatToShort(self.minDist)
 		maxDist = convertFloatToShort(self.maxDist)
@@ -871,10 +871,10 @@ class DisplayListWithOffsetNode(BaseDisplayListNode):
 		self.fMesh = None
 		self.DLmicrocode = None
 		self.dlRef = dlRef
-	
+
 	def size(self):
 		return 12
-	
+
 	def get_ptr_offsets(self):
 		return [8] if self.hasDL else []
 
@@ -906,10 +906,10 @@ class ScreenAreaNode:
 		self.position = position
 		self.dimensions = dimensions
 		self.hasDL = False
-	
+
 	def size(self):
 		return 12
-		
+
 	def to_binary(self, segmentData):
 		position = [160, 120] if self.useDefaults else self.position
 		dimensions = [160, 120] if self.useDefaults else self.dimensions
@@ -937,10 +937,10 @@ class OrthoNode:
 	def __init__(self, scale):
 		self.scale = scale
 		self.hasDL = False
-	
+
 	def size(self):
 		return 4
-		
+
 	def to_binary(self, segmentData):
 		command = bytearray([GEO_SET_ORTHO, 0x00])
 		# FIX: This should be f32.
@@ -957,18 +957,18 @@ class FrustumNode:
 		self.far = int(round(far))
 		self.useFunc = True # Always use function?
 		self.hasDL = False
-	
+
 	def size(self):
 		return 12 if self.useFunc else 8
-		
+
 	def to_binary(self, segmentData):
-		command = bytearray([GEO_SET_CAMERA_FRUSTRUM, 
+		command = bytearray([GEO_SET_CAMERA_FRUSTRUM,
 			0x01 if self.useFunc else 0x00])
 		command.extend(bytearray(struct.pack(">f", self.fov)))
 		command.extend(self.near.to_bytes(2, 'big', signed = True)) # Conversion?
 		command.extend(self.far.to_bytes(2, 'big', signed = True)) # Conversion?
 
-		if self.useFunc: 
+		if self.useFunc:
 			command.extend(bytes.fromhex('8029AA3C'))
 		return command
 
@@ -988,7 +988,7 @@ class ZBufferNode:
 
 	def size(self):
 		return 4
-		
+
 	def to_binary(self, segmentData):
 		command = bytearray([GEO_SET_Z_BUF, 0x01 if self.enable else 0x00,
 			0x00, 0x00])
@@ -1006,7 +1006,7 @@ class CameraNode:
 			[int(round(value * bpy.context.scene.blenderToSM64Scale)) for value in lookAt]
 		self.geo_func = '80287D30'
 		self.hasDL = False
-	
+
 	def size(self):
 		return 20
 
@@ -1039,7 +1039,7 @@ class RenderObjNode:
 
 	def size(self):
 		return 4
-		
+
 	def to_binary(self, segmentData):
 		command = bytearray([GEO_SETUP_OBJ_RENDER, 0x00, 0x00, 0x00])
 		return command
@@ -1056,7 +1056,7 @@ class BackgroundNode:
 
 	def size(self):
 		return 8
-		
+
 	def to_binary(self, segmentData):
 		command = bytearray([GEO_SET_BG, 0x00])
 		command.extend(self.backgroundValue.to_bytes(2, 'big', signed = False))
@@ -1086,7 +1086,7 @@ class CustomNode:
 
 	def to_binary(self, segmentData):
 		raise PluginError('Custom Geo Nodes are not supported for binary exports.')
-	
+
 	def to_c(self):
 		return f"{self.command}({self.args}),"
 

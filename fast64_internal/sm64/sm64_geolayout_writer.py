@@ -32,7 +32,7 @@ def replaceStarReferences(basePath):
 		'GEO\_OPEN\_NODE\(\)\,\s*' +\
 		'GEO\_ASM\([^\)]*?\)\,\s*' +\
 		'GEO\_TRANSLATE\_ROTATE\_WITH\_DL\([^\)]*? star\_seg3.*?GEO\_CLOSE\_NODE\(\)\,'
-	
+
 	unagiPattern = 'GEO\_SCALE\(0x00\, 16384\)\,\s*' +\
 		'GEO\_OPEN\_NODE\(\)\,\s*' +\
 		'GEO\_TRANSLATE\_ROTATE\_WITH\_DL\([^\)]*? star\_seg3.*?GEO\_CLOSE\_NODE\(\)\,'
@@ -58,7 +58,7 @@ def replaceTransparentStarReferences(basePath):
 		'GEO\_OPEN\_NODE\(\)\,\s*' +\
 		'GEO\_ASM\([^\)]*?\)\,\s*' +\
 		'GEO\_TRANSLATE\_ROTATE\_WITH\_DL\([^\)]*? transparent_star\_seg3.*?GEO\_CLOSE\_NODE\(\)\,'
-	
+
 	kleptoReplacement = 'GEO_TRANSLATE_ROTATE(LAYER_OPAQUE, 75, 75, 0, 180, 270, 0),\n' +\
         '\t' * 10 + 'GEO_OPEN_NODE(),\n' +\
         '\t' * 10 + '\tGEO_BRANCH_AND_LINK(transparent_star_geo),\n' +\
@@ -73,7 +73,7 @@ def replaceCapReferences(basePath):
 		'GEO\_OPEN\_NODE\(\)\,\s*' +\
 		'GEO\_ASM\([^\)]*?\)\,\s*' +\
 		'GEO\_TRANSLATE\_ROTATE\_WITH\_DL\([^\)]*? mario\_cap\_seg3.*?GEO\_CLOSE\_NODE\(\)\,'
-	
+
 	kleptoReplacement = 'GEO_TRANSLATE_ROTATE(LAYER_OPAQUE, 75, 75, 0, 180, 270, 0),\n' +\
         '\t' * 10 + 'GEO_OPEN_NODE(),\n' +\
         '\t' * 10 + '\tGEO_BRANCH_AND_LINK(marios_cap_geo),\n' +\
@@ -141,7 +141,7 @@ def getAllArmatures(armatureObj, currentArmatures):
 					elif switchOption.optionArmature not in linkedArmatures and \
 						switchOption.optionArmature not in currentArmatures:
 						linkedArmatures.append(switchOption.optionArmature)
-	
+
 	currentArmatures.extend(linkedArmatures)
 	for linkedArmature in linkedArmatures:
 		getAllArmatures(linkedArmature, currentArmatures)
@@ -154,9 +154,9 @@ def getCameraObj(camera):
 		' is no longer in the scene.')
 
 def appendRevertToGeolayout(geolayoutGraph, fModel):
-	fModel.materialRevert = GfxList(fModel.name + "_" + 'material_revert_render_settings', 
+	fModel.materialRevert = GfxList(fModel.name + "_" + 'material_revert_render_settings',
 		GfxListTag.MaterialRevert, fModel.DLFormat)
-	revertMatAndEndDraw(fModel.materialRevert, 
+	revertMatAndEndDraw(fModel.materialRevert,
 		[DPSetEnvColor(0xFF, 0xFF, 0xFF, 0xFF),
 		DPSetAlphaCompare("G_AC_NONE")])
 
@@ -175,9 +175,9 @@ def appendRevertToGeolayout(geolayoutGraph, fModel):
 		geolayoutGraph.startGeolayout.nodes[0].children.append(TransformNode(dlNode))
 
 # Convert to Geolayout
-def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix, 
+def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix,
 	f3dType, isHWv1, camera, name, DLFormat, convertTextureData):
-	
+
 	fModel = SM64Model(f3dType, isHWv1, name, DLFormat)
 
 	if len(armatureObj.children) == 0:
@@ -187,7 +187,7 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix,
 
 	# Find start bone, which is not root. Root is the start for animation.
 	startBoneNames = findStartBones(armatureObj)
-	
+
 	convertTransformMatrix = convertTransformMatrix @ \
 		mathutils.Matrix.Diagonal(armatureObj.scale).to_4x4()
 
@@ -205,13 +205,13 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix,
 			rootNode = TransformNode(StartNode())
 		geolayoutGraph.startGeolayout.nodes.append(rootNode)
 		meshGeolayout = geolayoutGraph.startGeolayout
-	
+
 	for i in range(len(startBoneNames)):
 		startBoneName = startBoneNames[i]
 		if i > 0:
 			meshGeolayout.nodes.append(TransformNode(StartNode()))
-		processBone(fModel, startBoneName, obj, armatureObj, 
-			convertTransformMatrix, None, None, None, meshGeolayout.nodes[i], 
+		processBone(fModel, startBoneName, obj, armatureObj,
+			convertTransformMatrix, None, None, None, meshGeolayout.nodes[i],
 			[], name, meshGeolayout, geolayoutGraph, infoDict, convertTextureData)
 	generateSwitchOptions(meshGeolayout.nodes[0], meshGeolayout, geolayoutGraph,
 		name)
@@ -222,12 +222,12 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix,
 	return geolayoutGraph, fModel
 
 # Camera is unused here
-def convertObjectToGeolayout(obj, convertTransformMatrix, 
+def convertObjectToGeolayout(obj, convertTransformMatrix,
 	f3dType, isHWv1, camera, name, fModel: FModel, areaObj, DLFormat, convertTextureData):
-	
+
 	if fModel is None:
 		fModel = SM64Model(f3dType, isHWv1, name, DLFormat)
-	
+
 	#convertTransformMatrix = convertTransformMatrix @ \
 	#	mathutils.Matrix.Diagonal(obj.scale).to_4x4()
 
@@ -238,7 +238,7 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 		meshGeolayout = saveCameraSettingsToGeolayout(
 			geolayoutGraph, areaObj, obj, name + '_geo')
 		rootObj = areaObj
-		fModel.global_data.addAreaData(areaObj.areaIndex, 
+		fModel.global_data.addAreaData(areaObj.areaIndex,
 			FAreaData(FFogData(areaObj.area_fog_position, areaObj.area_fog_color)))
 
 	else:
@@ -274,27 +274,27 @@ def convertObjectToGeolayout(obj, convertTransformMatrix,
 	return geolayoutGraph, fModel
 
 # C Export
-def exportGeolayoutArmatureC(armatureObj, obj, convertTransformMatrix, 
-	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera, groupName, 
+def exportGeolayoutArmatureC(armatureObj, obj, convertTransformMatrix,
+	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera, groupName,
 	headerType, dirName, geoName, levelName, customExport, DLFormat):
 	geolayoutGraph, fModel = convertArmatureToGeolayout(armatureObj, obj,
 		convertTransformMatrix, f3dType, isHWv1, camera, dirName, DLFormat, not savePNG)
 
-	return saveGeolayoutC(geoName, dirName, geolayoutGraph, fModel, dirPath, texDir, 
+	return saveGeolayoutC(geoName, dirName, geolayoutGraph, fModel, dirPath, texDir,
 		savePNG, texSeparate, groupName, headerType, levelName, customExport, DLFormat)
 
-def exportGeolayoutObjectC(obj, convertTransformMatrix, 
-	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera, groupName, 
+def exportGeolayoutObjectC(obj, convertTransformMatrix,
+	f3dType, isHWv1, dirPath, texDir, savePNG, texSeparate, camera, groupName,
 	headerType, dirName, geoName, levelName, customExport, DLFormat):
-	geolayoutGraph, fModel = convertObjectToGeolayout(obj, 
+	geolayoutGraph, fModel = convertObjectToGeolayout(obj,
 		convertTransformMatrix, f3dType, isHWv1, camera, dirName, None, None, DLFormat, not savePNG)
 
-	return saveGeolayoutC(geoName, dirName, geolayoutGraph, fModel, dirPath, texDir, 
+	return saveGeolayoutC(geoName, dirName, geolayoutGraph, fModel, dirPath, texDir,
 		savePNG, texSeparate, groupName, headerType, levelName, customExport, DLFormat)
 
 def saveGeolayoutC(geoName, dirName, geolayoutGraph: GeolayoutGraph, fModel: FModel, exportDir, texDir, savePNG,
  	texSeparate, groupName, headerType, levelName, customExport, DLFormat):
-	dirPath, texDir = getExportDir(customExport, exportDir, headerType, 
+	dirPath, texDir = getExportDir(customExport, exportDir, headerType,
 		levelName, texDir, dirName)
 
 	dirName = toAlnum(dirName)
@@ -303,7 +303,7 @@ def saveGeolayoutC(geoName, dirName, geolayoutGraph: GeolayoutGraph, fModel: FMo
 
 	if not os.path.exists(geoDirPath):
 		os.mkdir(geoDirPath)
-	
+
 	if headerType == 'Actor':
 		scrollName = 'actor_geo_' + dirName
 	elif headerType == 'Level':
@@ -364,14 +364,14 @@ def saveGeolayoutC(geoName, dirName, geolayoutGraph: GeolayoutGraph, fModel: FMo
 		matCInclude = '#include "levels/' + levelName + '/' + dirName + '/material.inc.c"'
 		matHInclude = '#include "levels/' + levelName + '/' + dirName + '/material.inc.h"'
 		headerInclude = '#include "levels/' + levelName + '/' + dirName + '/geo_header.h"'
-	
+
 	modifyTexScrollFiles(exportDir, geoDirPath, cDefineScroll, scroll_data, hasScrolling)
-	
+
 	if DLFormat == DLFormat.Static:
 		staticData.source += '\n' + dynamicData.source
 		staticData.header = geoData.header + staticData.header + dynamicData.header
 	else:
-		geoData.source = writeMaterialFiles(exportDir, geoDirPath, 
+		geoData.source = writeMaterialFiles(exportDir, geoDirPath,
 			headerInclude, matHInclude,
 			dynamicData.header, dynamicData.source, geoData.source, customExport)
 
@@ -399,7 +399,7 @@ def saveGeolayoutC(geoName, dirName, geolayoutGraph: GeolayoutGraph, fModel: FMo
 	cDefFile = open(headerPath, 'w', newline='\n')
 	cDefFile.write(staticData.header)
 	cDefFile.close()
-	
+
 	fileStatus = None
 	if not customExport:
 		if headerType == 'Actor':
@@ -436,7 +436,7 @@ def saveGeolayoutC(geoName, dirName, geolayoutGraph: GeolayoutGraph, fModel: FMo
 			bubblePath = os.path.join(exportDir, 'actors/bubble/geo.inc.c')
 			if dirName == 'purple_marble' and bpy.context.scene.modifyOldGeo:
 				replaceDLReferenceInGeo(bubblePath, 'purple\_marble\_geo\[\]', 'purple\_marble\_geo\_old\[\]')
-			
+
 			# Instances where a geo file has multiple similar geolayouts
 			if dirName == 'bowser':
 				appendSecondaryGeolayout(geoDirPath, 'bowser', 'bowser2')
@@ -480,12 +480,12 @@ def saveGeolayoutC(geoName, dirName, geolayoutGraph: GeolayoutGraph, fModel: FMo
 			texscrollGroup = levelName
 			texscrollGroupInclude = '#include "levels/' + levelName + '/header.h"'
 
-		fileStatus = modifyTexScrollHeadersGroup(exportDir, texscrollIncludeC, texscrollIncludeH, 
+		fileStatus = modifyTexScrollHeadersGroup(exportDir, texscrollIncludeC, texscrollIncludeH,
 			texscrollGroup, cDefineScroll, texscrollGroupInclude, hasScrolling)
-		
+
 		if DLFormat != DLFormat.Static: # Change this
 			writeMaterialHeaders(exportDir, matCInclude, matHInclude)
-	
+
 	return staticData.header, fileStatus
 
 # Insertable Binary
@@ -493,20 +493,20 @@ def exportGeolayoutArmatureInsertableBinary(armatureObj, obj,
 	convertTransformMatrix, f3dType, isHWv1, filepath, camera):
 	geolayoutGraph, fModel = convertArmatureToGeolayout(armatureObj, obj,
 		convertTransformMatrix, f3dType, isHWv1, camera, armatureObj.name, DLFormat.Static, True)
-	
+
 	saveGeolayoutInsertableBinary(geolayoutGraph, fModel, filepath, f3dType)
 
-def exportGeolayoutObjectInsertableBinary(obj, convertTransformMatrix, 
+def exportGeolayoutObjectInsertableBinary(obj, convertTransformMatrix,
 	f3dType, isHWv1, filepath, camera):
-	geolayoutGraph, fModel = convertObjectToGeolayout(obj, 
+	geolayoutGraph, fModel = convertObjectToGeolayout(obj,
 		convertTransformMatrix, f3dType, isHWv1, camera, obj.name, None, None, DLFormat.Static, True)
-	
+
 	saveGeolayoutInsertableBinary(geolayoutGraph, fModel, filepath, f3dType)
 
 def saveGeolayoutInsertableBinary(geolayoutGraph, fModel, filepath, f3d):
 	data, startRAM = \
 		getBinaryBank0GeolayoutData(fModel, geolayoutGraph, 0, [0, 0xFFFFFF])
-	
+
 	address_ptrs = geolayoutGraph.get_ptr_addresses()
 	address_ptrs.extend(fModel.get_ptr_addresses(f3d))
 
@@ -514,27 +514,27 @@ def saveGeolayoutInsertableBinary(geolayoutGraph, fModel, filepath, f3d):
 		address_ptrs, geolayoutGraph.startGeolayout.startAddress, data)
 
 # Binary Bank 0 Export
-def exportGeolayoutArmatureBinaryBank0(romfile, armatureObj, obj, exportRange,	
- 	convertTransformMatrix, levelCommandPos, modelID, textDumpFilePath, 
+def exportGeolayoutArmatureBinaryBank0(romfile, armatureObj, obj, exportRange,
+ 	convertTransformMatrix, levelCommandPos, modelID, textDumpFilePath,
 	f3dType, isHWv1, RAMAddr, camera):
-	
+
 	geolayoutGraph, fModel = convertArmatureToGeolayout(armatureObj, obj,
 		convertTransformMatrix, f3dType, isHWv1, camera, armatureObj.name, DLFormat.Static, True)
-	
+
 	return saveGeolayoutBinaryBank0(romfile, fModel, geolayoutGraph,
 		exportRange, levelCommandPos, modelID, textDumpFilePath, RAMAddr)
 
-def exportGeolayoutObjectBinaryBank0(romfile, obj, exportRange,	
- 	convertTransformMatrix, levelCommandPos, modelID, textDumpFilePath, 
+def exportGeolayoutObjectBinaryBank0(romfile, obj, exportRange,
+ 	convertTransformMatrix, levelCommandPos, modelID, textDumpFilePath,
 	f3dType, isHWv1, RAMAddr, camera):
-	
-	geolayoutGraph, fModel = convertObjectToGeolayout(obj, 
+
+	geolayoutGraph, fModel = convertObjectToGeolayout(obj,
 		convertTransformMatrix, f3dType, isHWv1, camera, obj.name, None, None, DLFormat.Static, True)
-	
+
 	return saveGeolayoutBinaryBank0(romfile, fModel, geolayoutGraph,
 		exportRange, levelCommandPos, modelID, textDumpFilePath, RAMAddr)
 
-def saveGeolayoutBinaryBank0(romfile, fModel, geolayoutGraph, exportRange,	
+def saveGeolayoutBinaryBank0(romfile, fModel, geolayoutGraph, exportRange,
  	levelCommandPos, modelID, textDumpFilePath, RAMAddr):
 	data, startRAM = getBinaryBank0GeolayoutData(
 		fModel, geolayoutGraph, RAMAddr, exportRange)
@@ -548,10 +548,10 @@ def saveGeolayoutBinaryBank0(romfile, fModel, geolayoutGraph, exportRange,
 	segPointerData = encodeSegmentedAddr(geoStart, segmentData)
 	geoWriteLevelCommand(romfile, segPointerData, levelCommandPos, modelID)
 	geoWriteTextDump(textDumpFilePath, geolayoutGraph, segmentData)
-	
+
 	return ((startAddress, startAddress + len(data)), startRAM + 0x80000000,
 		geoStart + 0x80000000)
-	
+
 def getBinaryBank0GeolayoutData(fModel, geolayoutGraph, RAMAddr, exportRange):
 	fModel.freePalettes()
 	segmentData = copy.copy(bank0Segment)
@@ -572,33 +572,33 @@ def getBinaryBank0GeolayoutData(fModel, geolayoutGraph, RAMAddr, exportRange):
 	data = bytesIO.getvalue()[startRAM:]
 	bytesIO.close()
 	return data, startRAM
-	
+
 # Binary Export
-def exportGeolayoutArmatureBinary(romfile, armatureObj, obj, exportRange,	
+def exportGeolayoutArmatureBinary(romfile, armatureObj, obj, exportRange,
  	convertTransformMatrix, levelData, levelCommandPos, modelID,
 	textDumpFilePath, f3dType, isHWv1, camera):
 
 	geolayoutGraph, fModel = convertArmatureToGeolayout(armatureObj, obj,
 		convertTransformMatrix, f3dType, isHWv1, camera, armatureObj.name, DLFormat.Static, True)
 
-	return saveGeolayoutBinary(romfile, geolayoutGraph, fModel, exportRange,	
+	return saveGeolayoutBinary(romfile, geolayoutGraph, fModel, exportRange,
  		levelData, levelCommandPos, modelID, textDumpFilePath)
 
-def exportGeolayoutObjectBinary(romfile, obj, exportRange,	
+def exportGeolayoutObjectBinary(romfile, obj, exportRange,
  	convertTransformMatrix, levelData, levelCommandPos, modelID,
 	textDumpFilePath, f3dType, isHWv1, camera):
-	
-	geolayoutGraph, fModel = convertObjectToGeolayout(obj, 
+
+	geolayoutGraph, fModel = convertObjectToGeolayout(obj,
 		convertTransformMatrix, f3dType, isHWv1, camera, obj.name, None, None, DLFormat.Static, True)
-	
-	return saveGeolayoutBinary(romfile, geolayoutGraph, fModel, exportRange,	
+
+	return saveGeolayoutBinary(romfile, geolayoutGraph, fModel, exportRange,
  		levelData, levelCommandPos, modelID, textDumpFilePath)
-	
-def saveGeolayoutBinary(romfile, geolayoutGraph, fModel, exportRange,	
+
+def saveGeolayoutBinary(romfile, geolayoutGraph, fModel, exportRange,
  	levelData, levelCommandPos, modelID, textDumpFilePath):
 	fModel.freePalettes()
 
-	# Get length of data, then actually write it after relative addresses 
+	# Get length of data, then actually write it after relative addresses
 	# are found.
 	startAddress = get64bitAlignedAddr(exportRange[0])
 	nonGeoStartAddr = startAddress + geolayoutGraph.size()
@@ -615,7 +615,7 @@ def saveGeolayoutBinary(romfile, geolayoutGraph, fModel, exportRange,
 	segPointerData = encodeSegmentedAddr(geoStart, levelData)
 	geoWriteLevelCommand(romfile, segPointerData, levelCommandPos, modelID)
 	geoWriteTextDump(textDumpFilePath, geolayoutGraph, levelData)
-	
+
 	return (startAddress, addrRange[1]), bytesToHex(segPointerData)
 
 def geoWriteLevelCommand(romfile, segPointerData, levelCommandPos, modelID):
@@ -642,7 +642,7 @@ def geoWriteTextDump(textDumpFilePath, geolayoutGraph, levelData):
 def generateSwitchOptions(transformNode, geolayout, geolayoutGraph, prefix):
 	if isinstance(transformNode.node, JumpNode):
 		for node in transformNode.node.geolayout.nodes:
-			generateSwitchOptions(node, transformNode.node.geolayout, 
+			generateSwitchOptions(node, transformNode.node.geolayout,
 			geolayoutGraph, prefix)
 	overrideNodes = []
 	if isinstance(transformNode.node, SwitchNode):
@@ -679,7 +679,7 @@ def generateSwitchOptions(transformNode, geolayout, geolayoutGraph, prefix):
 				index = transformNode.children.index(childNode)
 				transformNode.children.remove(childNode)
 
-				# Switch option bones should have unique names across all 
+				# Switch option bones should have unique names across all
 				# armatures.
 				optionGeolayout = geolayoutGraph.addGeolayout(
 					childNode, prefixName)
@@ -695,17 +695,17 @@ def generateSwitchOptions(transformNode, geolayout, geolayoutGraph, prefix):
 				if len(option0Nodes) == 1 and \
 					isinstance(option0Nodes[0].node, StartNode):
 					for startChild in option0Nodes[0].children:
-						generateOverrideHierarchy(copyNode, startChild, 
+						generateOverrideHierarchy(copyNode, startChild,
 							material, specificMat, overrideType, drawLayer,
 							option0Nodes[0].children.index(startChild),
-							optionGeolayout, geolayoutGraph, 
+							optionGeolayout, geolayoutGraph,
 							optionGeolayout.name)
 				else:
 					for overrideChild in option0Nodes:
-						generateOverrideHierarchy(copyNode, overrideChild, 
+						generateOverrideHierarchy(copyNode, overrideChild,
 							material, specificMat, overrideType, drawLayer,
 							option0Nodes.index(overrideChild),
-							optionGeolayout, geolayoutGraph, 
+							optionGeolayout, geolayoutGraph,
 							optionGeolayout.name)
 				if material is not None:
 					overrideNodes.append(copyNode)
@@ -716,11 +716,11 @@ def generateSwitchOptions(transformNode, geolayout, geolayoutGraph, prefix):
 			prefixName = prefix + '_opt' + str(i)
 		else:
 			prefixName = prefix
-		
+
 		if childNode not in overrideNodes:
 			generateSwitchOptions(childNode, geolayout, geolayoutGraph, prefixName)
 
-def generateOverrideHierarchy(parentCopyNode, transformNode, 
+def generateOverrideHierarchy(parentCopyNode, transformNode,
 	material, specificMat, overrideType, drawLayer, index, geolayout,
 	geolayoutGraph, switchOptionName):
 	#print(transformNode.node)
@@ -744,7 +744,7 @@ def generateOverrideHierarchy(parentCopyNode, transformNode,
 			isinstance(oldGeolayout.nodes[0].node, StartNode):
 			for node in oldGeolayout.nodes[0].children:
 				generateOverrideHierarchy(startNode, node, material, specificMat,
-				overrideType, drawLayer, 
+				overrideType, drawLayer,
 				oldGeolayout.nodes[0].children.index(node),
 				jumpGeolayout, geolayoutGraph, jumpName)
 		else:
@@ -762,10 +762,10 @@ def generateOverrideHierarchy(parentCopyNode, transformNode,
 			copyNode.node.drawLayer = drawLayer
 
 	for child in transformNode.children:
-		generateOverrideHierarchy(copyNode, child, material, specificMat, 
+		generateOverrideHierarchy(copyNode, child, material, specificMat,
 			overrideType, drawLayer, transformNode.children.index(child),
 			geolayout, geolayoutGraph, switchOptionName)
-		
+
 def addParentNode(parentTransformNode: TransformNode, geoNode):
 	transformNode = TransformNode(geoNode)
 	transformNode.parent = parentTransformNode
@@ -867,7 +867,7 @@ def processInlineGeoNode(
 # The copy will have modifiers / scale applied and will be made single user
 def processMesh(
 	fModel: FModel,
-	obj: bpy.types.Object, 
+	obj: bpy.types.Object,
 	transformMatrix: mathutils.Matrix,
 	parentTransformNode: TransformNode,
 	geolayout: Geolayout,
@@ -937,7 +937,7 @@ def processMesh(
 			childObj = alphabeticalChildren[i]
 			if i == 0: # Outside room system
 				# TODO: Allow users to specify whether this should be rendered before or after rooms (currently, it is after)
-				processMesh(fModel, childObj, transformMatrix, preRoomSwitchParentNode, 
+				processMesh(fModel, childObj, transformMatrix, preRoomSwitchParentNode,
 					geolayout, geolayoutGraph, False, convertTextureData)
 			else:
 				optionGeolayout = geolayoutGraph.addGeolayout(
@@ -950,7 +950,7 @@ def processMesh(
 				else:
 					startNode = TransformNode(StartNode())
 				optionGeolayout.nodes.append(startNode)
-				processMesh(fModel, childObj, transformMatrix, startNode, 
+				processMesh(fModel, childObj, transformMatrix, startNode,
 					optionGeolayout, geolayoutGraph, False, convertTextureData)
 
 	else:
@@ -973,12 +973,12 @@ def processMesh(
 			else:
 				node = getOptimalNode(translate, rotate, int(obj.draw_layer_static), True,
 					zeroTranslation, zeroRotation)
-	
+
 		elif obj.geo_cmd_static == "DisplayListWithOffset":
 			if not zeroRotation or not zeroScaleChange:
 				# translate/rotate -> scale -> DisplayListWithOffset
 				node = DisplayListWithOffsetNode(int(obj.draw_layer_static), True,
-					mathutils.Vector((0,0,0)))	
+					mathutils.Vector((0,0,0)))
 
 				parentTransformNode = addParentNode(parentTransformNode,
 					TranslateRotateNode(1, 0, False, translate, rotate))
@@ -996,7 +996,7 @@ def processMesh(
 				node = DisplayListNode(int(obj.draw_layer_static))
 
 				# Add billboard to top layer with translation
-				parentTransformNode = addParentNode(parentTransformNode, 
+				parentTransformNode = addParentNode(parentTransformNode,
 					BillboardNode(int(obj.draw_layer_static), False, translate)
 				)
 
@@ -1063,15 +1063,15 @@ def processMesh(
 
 			else:
 				triConverterInfo = TriangleConverterInfo(temp_obj, None, fModel.f3d, transformMatrix, getInfoDict(temp_obj))
-				fMeshes = saveStaticModel(triConverterInfo, fModel, temp_obj, transformMatrix, fModel.name, 
+				fMeshes = saveStaticModel(triConverterInfo, fModel, temp_obj, transformMatrix, fModel.name,
 					convertTextureData, False, 'sm64')
 
 				temp_obj['src_meshes'] = [({ 'name': fMesh.draw.name, 'layer': drawLayer }) for drawLayer, fMesh in fMeshes.items()]
 				node.dlRef = temp_obj['src_meshes'][0]['name']
-				
+
 		else:
 			triConverterInfo = TriangleConverterInfo(obj, None, fModel.f3d, transformMatrix, getInfoDict(obj))
-			fMeshes = saveStaticModel(triConverterInfo, fModel, obj, transformMatrix, fModel.name, 
+			fMeshes = saveStaticModel(triConverterInfo, fModel, obj, transformMatrix, fModel.name,
 				convertTextureData, False, 'sm64')
 
 		if fMeshes is None or len(fMeshes) == 0:
@@ -1099,14 +1099,14 @@ def processMesh(
 
 		alphabeticalChildren = sorted(obj.children, key = lambda childObj: childObj.original_name.lower())
 		for childObj in alphabeticalChildren:
-			processMesh(fModel, childObj, transformMatrix, transformNode, 
+			processMesh(fModel, childObj, transformMatrix, transformNode,
 				geolayout, geolayoutGraph, False, convertTextureData)
 
 # need to remember last geometry holding parent bone.
 # to do skinning, add the 0x15 command before any non-geometry bone groups.
-# 
+#
 
-# transformMatrix is a constant matrix to apply to verts, 
+# transformMatrix is a constant matrix to apply to verts,
 # not related to heirarchy.
 
 # lastTransformParentName: last parent with mesh data.
@@ -1125,7 +1125,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 	boneGroup = poseBone.bone_group
 	finalTransform = copy.deepcopy(transformMatrix)
 	materialOverrides = copy.copy(materialOverrides)
-	
+
 	if bone.geo_cmd == 'Ignore':
 		return
 
@@ -1156,9 +1156,9 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 		rotAxis, rotAngle = rotate.to_axis_angle()
 		if rotAngle > 0.00001:
 			node = DisplayListWithOffsetNode(int(bone.draw_layer),
-				hasDL, mathutils.Vector((0,0,0)))	
+				hasDL, mathutils.Vector((0,0,0)))
 
-			parentTransformNode = addParentNode(parentTransformNode, 
+			parentTransformNode = addParentNode(parentTransformNode,
 				TranslateRotateNode(1, 0, False, translate, rotate))
 
 			lastTranslateName = boneName
@@ -1167,9 +1167,9 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 			node = DisplayListWithOffsetNode(int(bone.draw_layer),
 				hasDL, translate)
 			lastTranslateName = boneName
-		
-		finalTransform = transformMatrix @ translation	
-	
+
+		finalTransform = transformMatrix @ translation
+
 	elif bone.geo_cmd == 'Function':
 		if bone.geo_func == '':
 			raise PluginError('Function bone ' + boneName + ' function value is empty.')
@@ -1180,24 +1180,24 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 		node = HeldObjectNode(bone.geo_func, translate)
 	else:
 		if bone.geo_cmd == 'Switch':
-			# This is done so we can easily calculate transforms 
+			# This is done so we can easily calculate transforms
 			# of switch options.
-			
+
 			if bone.geo_func == '':
 				raise PluginError('Switch bone ' + boneName + \
 					' function value is empty.')
 			node = SwitchNode(bone.geo_func, bone.func_param, boneName)
 			processSwitchBoneMatOverrides(materialOverrides, bone)
-			
+
 		elif bone.geo_cmd == 'Start':
 			node = StartNode()
 		elif bone.geo_cmd == 'TranslateRotate':
 			drawLayer = int(bone.draw_layer)
 			fieldLayout = int(bone.field_layout)
-			
-			node = TranslateRotateNode(drawLayer, fieldLayout, hasDL, 
+
+			node = TranslateRotateNode(drawLayer, fieldLayout, hasDL,
 				translate, rotate)
-			
+
 			if node.fieldLayout == 0:
 				finalTransform = transformMatrix @ translation @ rotation
 				lastTranslateName = boneName
@@ -1213,7 +1213,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 				rotation = mathutils.Euler((0, yRot, 0)).to_matrix().to_4x4()
 				finalTransform = transformMatrix @ rotation
 				lastRotateName = boneName
-			
+
 		elif bone.geo_cmd == 'Translate':
 			node = TranslateNode(int(bone.draw_layer), hasDL,
 				translate)
@@ -1234,7 +1234,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 				raise PluginError("Display List (0x15) " + boneName + ' must be a deform bone. Make sure deform is checked in bone properties.')
 		elif bone.geo_cmd == 'Shadow':
 			shadowType = int(bone.shadow_type)
-			shadowSolidity = bone.shadow_solidity 
+			shadowSolidity = bone.shadow_solidity
 			shadowScale = bone.shadow_scale
 			node = ShadowNode(shadowType, shadowSolidity, shadowScale)
 		elif bone.geo_cmd == 'Scale':
@@ -1246,15 +1246,15 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 			node = StartRenderAreaNode(bone.culling_radius)
 		else:
 			raise PluginError("Invalid geometry command: " + bone.geo_cmd)
-	
+
 	transformNode = TransformNode(node)
 	additionalNodes = []
 
 	if node.hasDL:
-		triConverterInfo = TriangleConverterInfo(obj, armatureObj.data, fModel.f3d, 
+		triConverterInfo = TriangleConverterInfo(obj, armatureObj.data, fModel.f3d,
 			mathutils.Matrix.Scale(bpy.context.scene.blenderToSM64Scale, 4) @ bone.matrix_local.inverted(), infoDict)
 		fMeshes, fSkinnedMeshes, usedDrawLayers = saveModelGivenVertexGroup(
-			fModel, obj, bone.name, lastDeformName, armatureObj, materialOverrides, 
+			fModel, obj, bone.name, lastDeformName, armatureObj, materialOverrides,
 			namePrefix, infoDict, convertTextureData, triConverterInfo, 'sm64', int(bone.draw_layer))
 
 		if (fMeshes is None or len(fMeshes) == 0) and (fSkinnedMeshes is None or len(fSkinnedMeshes) == 0):
@@ -1286,7 +1286,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 					node.drawLayer = drawLayer
 					node.DLmicrocode = fMesh.draw
 					node.fMesh = fMesh # Used for material override switches
-				
+
 					parentTransformNode.children.append(transformNode)
 					transformNode.parent = parentTransformNode
 
@@ -1311,7 +1311,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 
 	if not isinstance(transformNode.node, SwitchNode):
 		#print(boneGroup.name if boneGroup is not None else "Offset")
-		if len(bone.children) > 0: 
+		if len(bone.children) > 0:
 			#print("\tHas Children")
 			if bone.geo_cmd == 'Function':
 				raise PluginError("Function bones cannot have children. They instead affect the next sibling bone in alphabetical order.")
@@ -1322,9 +1322,9 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 			# This is so it can be used for siblings.
 			childrenNames = sorted([bone.name for bone in bone.children])
 			for name in childrenNames:
-				processBone(fModel, name, obj, armatureObj, 
-					finalTransform, lastTranslateName, lastRotateName, 
-					lastDeformName, transformNode, materialOverrides, 
+				processBone(fModel, name, obj, armatureObj,
+					finalTransform, lastTranslateName, lastRotateName,
+					lastDeformName, transformNode, materialOverrides,
 					namePrefix, geolayout,
 					geolayoutGraph, infoDict, convertTextureData)
 				#transformNode.children.append(childNode)
@@ -1333,11 +1333,11 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 	# see generateSwitchOptions() for explanation.
 	else:
 		#print(boneGroup.name if boneGroup is not None else "Offset")
-		if len(bone.children) > 0: 
+		if len(bone.children) > 0:
 			#optionGeolayout = \
 			#	geolayoutGraph.addGeolayout(
 			#		transformNode, boneName + '_opt0')
-			#geolayoutGraph.addJumpNode(transformNode, geolayout, 
+			#geolayoutGraph.addJumpNode(transformNode, geolayout,
 			#	optionGeolayout)
 			#optionGeolayout.nodes.append(TransformNode(StartNode()))
 			nextStartNode = TransformNode(StartNode())
@@ -1346,9 +1346,9 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 
 			childrenNames = sorted([bone.name for bone in bone.children])
 			for name in childrenNames:
-				processBone(fModel, name, obj, armatureObj, 
-					finalTransform, lastTranslateName, lastRotateName, 
-					lastDeformName, nextStartNode, materialOverrides, 
+				processBone(fModel, name, obj, armatureObj,
+					finalTransform, lastTranslateName, lastRotateName,
+					lastDeformName, nextStartNode, materialOverrides,
 					namePrefix, geolayout,
 					geolayoutGraph, infoDict, convertTextureData)
 				#transformNode.children.append(childNode)
@@ -1377,7 +1377,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 					continue
 
 				#optionNode = addParentNode(switchTransformNode, StartNode())
-				
+
 				optionBoneName = getSwitchOptionBone(optionArmature)
 				optionBone = optionArmature.data.bones[optionBoneName]
 
@@ -1385,9 +1385,9 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 				optionGeolayout = \
 					geolayoutGraph.addGeolayout(
 						optionArmature, namePrefix + "_" + optionArmature.name)
-				geolayoutGraph.addJumpNode(transformNode, geolayout, 
+				geolayoutGraph.addJumpNode(transformNode, geolayout,
 					optionGeolayout)
-				
+
 				rotAxis, rotAngle = rotate.to_axis_angle()
 				if rotAngle > 0.00001 or translate.length > 0.0001:
 					startNode = TransformNode(
@@ -1395,7 +1395,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 				else:
 					startNode = TransformNode(StartNode())
 				optionGeolayout.nodes.append(startNode)
-	
+
 				childrenNames = sorted(
 					[bone.name for bone in optionBone.children])
 				for name in childrenNames:
@@ -1420,7 +1420,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 						optionArmature,
 						finalTransform, optionBone.name, optionBone.name,
 						optionBone.name, startNode,
-						materialOverrides, namePrefix + '_' + optionBone.name, 
+						materialOverrides, namePrefix + '_' + optionBone.name,
 						optionGeolayout, geolayoutGraph, optionInfoDict, convertTextureData)
 			else:
 				if switchOption.switchType == 'Material':
@@ -1439,7 +1439,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 					material = None
 					specificMat = None
 					drawLayer = int(switchOption.drawLayer)
-				
+
 				texDimensions = getTexDimensions(material) if material is not None else None
 				overrideNode = TransformNode(SwitchOverrideNode(
 					material, specificMat, drawLayer,
@@ -1461,7 +1461,7 @@ def processSwitchBoneMatOverrides(materialOverrides, switchBone):
 							switchBone.name + ', a switch option' + \
 							' has a material override field that is None.')
 				specificMat = tuple([matPtr.material for matPtr in \
-							switchOption.specificOverrideArray])		
+							switchOption.specificOverrideArray])
 			else:
 				for mat in switchOption.specificIgnoreArray:
 					if mat is None:
@@ -1535,7 +1535,7 @@ def checkIfFirstNonASMNode(childNode):
 # So the skinned mesh node must be inserted before any of those transforms.
 # Sibling mesh nodes thus cannot share the same transform nodes before it
 # If they are both deform.
-# Additionally, ASM nodes should count as modifiers for other nodes if 
+# Additionally, ASM nodes should count as modifiers for other nodes if
 # they precede them
 def addSkinnedMeshNode(armatureObj, boneName, skinnedMesh, transformNode, parentNode, drawLayer):
 	# Add node to its immediate parent
@@ -1567,7 +1567,7 @@ def addSkinnedMeshNode(armatureObj, boneName, skinnedMesh, transformNode, parent
 			DisplayListWithOffsetNode)
 
 		acrossSwitchNode |= isinstance(highestChildNode.parent.node, SwitchNode)
-			
+
 		highestChildNode = highestChildNode.parent
 		highestChildCopyParent = TransformNode(copy.copy(highestChildNode.node))
 		highestChildCopyParent.children = [highestChildCopy]
@@ -1579,7 +1579,7 @@ def addSkinnedMeshNode(armatureObj, boneName, skinnedMesh, transformNode, parent
 		raise PluginError("Issue with \"" + boneName + "\": Deform parent bone not found for skinning.")
 		#raise PluginError("There shouldn't be a skinned mesh section if there is no deform parent. This error may have ocurred if a switch option node is trying to skin to a parent but no deform parent exists.")
 
-	# Otherwise, remove the transformNode from the parent and 
+	# Otherwise, remove the transformNode from the parent and
 	# duplicate the node heirarchy up to the last deform parent.
 	# Add the skinned node first to the last deform parent,
 	# then add the duplicated node hierarchy afterward.
@@ -1588,7 +1588,7 @@ def addSkinnedMeshNode(armatureObj, boneName, skinnedMesh, transformNode, parent
 			#print("Hierarchy but not first child.")
 			if hasNonDeform0x13Command:
 				raise PluginError("Error with " + boneName + ': You cannot have more that one child skinned mesh connected to a parent skinned mesh with a non deform 0x13 bone in between. Try removing any unnecessary non-deform bones.')
-		
+
 			if acrossSwitchNode:
 				raise PluginError("Error with " + boneName + ': You can not' +\
 				' skin across a switch node with more than one child.')
@@ -1636,9 +1636,9 @@ def addSkinnedMeshNode(armatureObj, boneName, skinnedMesh, transformNode, parent
 		#print("Immediate child.")
 		nodeIndex = parentNode.children.index(transformNode)
 		parentNode.children.insert(nodeIndex, skinnedTransformNode)
-		skinnedTransformNode.parent = parentNode	
+		skinnedTransformNode.parent = parentNode
 
-	return transformNode	
+	return transformNode
 
 def getAncestorGroups(parentGroup, vertexGroup, armatureObj, obj):
     if parentGroup is None:
@@ -1648,22 +1648,22 @@ def getAncestorGroups(parentGroup, vertexGroup, armatureObj, obj):
     while len(processingBones) > 0:
         currentBone = processingBones[0]
         processingBones = processingBones[1:]
-        
+
         ancestorBones.append(currentBone)
         processingBones.extend(currentBone.children)
-    
+
     currentBone = armatureObj.data.bones[vertexGroup].parent
     while currentBone is not None and currentBone.name != parentGroup:
         ancestorBones.append(currentBone)
         currentBone = currentBone.parent
     ancestorBones.append(armatureObj.data.bones[parentGroup])
-    
+
     #print(vertexGroup + ", " + parentGroup)
     #print([bone.name for bone in ancestorBones])
     return [getGroupIndexFromname(obj, bone.name) for bone in armatureObj.data.bones if bone not in ancestorBones]
 
 # returns fMeshes, fSkinnedMeshes, makeLastDeformBone
-def saveModelGivenVertexGroup(fModel, obj, vertexGroup, 
+def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 	parentGroup, armatureObj, materialOverrides, namePrefix,
 	infoDict, convertTextureData, triConverterInfo, drawLayerField, drawLayerV3):
 	#checkForF3DMaterial(obj)
@@ -1680,7 +1680,7 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 	if len(vertIndices) == 0:
 		print("No vert indices in " + vertexGroup)
 		return None, None, None
-	
+
 	transformMatrix = mathutils.Matrix.Scale(bpy.context.scene.blenderToSM64Scale, 4)
 	if parentGroup is None:
 		parentMatrix = transformMatrix
@@ -1734,7 +1734,7 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 			if isChildSkinnedFace:
 				usedDrawLayers.add(drawLayer)
 				continue
-			
+
 			if len(loopsNotInGroup) == 0:
 				if drawLayer not in groupFaces:
 					groupFaces[drawLayer] = {}
@@ -1759,14 +1759,14 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 	fMeshes = {}
 	fSkinnedMeshes = {}
 	for drawLayer, materialFaces in skinnedFaces.items():
-		
+
 		meshName = getFMeshName(vertexGroup, namePrefix, drawLayer, False)
 		checkUniqueBoneNames(fModel, meshName, vertexGroup)
 		skinnedMeshName = getFMeshName(vertexGroup, namePrefix, drawLayer, True)
 		checkUniqueBoneNames(fModel, skinnedMeshName, vertexGroup)
 
 		fMesh, fSkinnedMesh = saveSkinnedMeshByMaterial(materialFaces, fModel,
-			meshName, skinnedMeshName, obj, parentMatrix, namePrefix, 
+			meshName, skinnedMeshName, obj, parentMatrix, namePrefix,
 			vertexGroup, drawLayer, convertTextureData, triConverterInfo)
 
 		fSkinnedMeshes[drawLayer] = fSkinnedMesh
@@ -1790,12 +1790,12 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 			fMaterial, texDimensions = \
 				saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
 			if fMaterial.useLargeTextures:
-				currentGroupIndex = saveMeshWithLargeTexturesByFaces(material, bFaces, fModel, 
+				currentGroupIndex = saveMeshWithLargeTexturesByFaces(material, bFaces, fModel,
 					fMeshes[drawLayer], obj, drawLayer, convertTextureData, None, triConverterInfo, None, None)
 			else:
-				saveMeshByFaces(material, bFaces, fModel, fMeshes[drawLayer], obj, 
+				saveMeshByFaces(material, bFaces, fModel, fMeshes[drawLayer], obj,
 					drawLayer, convertTextureData, None, triConverterInfo, None, None)
-		
+
 		fMeshes[drawLayer].draw.commands.extend([
 			SPEndDisplayList(),
 		])
@@ -1808,7 +1808,7 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 		for drawLayer, fMesh in fSkinnedMeshes.items():
 			saveOverrideDraw(obj, fModel, material, specificMat, overrideType,
 				fMesh, drawLayer, convertTextureData)
-	
+
 	return fMeshes, fSkinnedMeshes, usedDrawLayers
 
 def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, drawLayer, convertTextureData):
@@ -1840,14 +1840,14 @@ def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, dr
 					triCommand = meshMatOverride.commands[meshMatOverride.commands.index(command) + 1]
 					if triCommand not in triCommands:
 						triCommands.append(triCommand)
-						
+
 				if command.displayList == fMaterial.revert and shouldModify:
 					removeReverts.append(command)
 	for command in removeReverts:
 		meshMatOverride.commands.remove(command)
 	if fOverrideMat.revert is not None:
 		for command in triCommands:
-			meshMatOverride.commands.insert(meshMatOverride.commands.index(command) + 1, 
+			meshMatOverride.commands.insert(meshMatOverride.commands.index(command) + 1,
 			SPDisplayList(fOverrideMat.revert))
 
 	#else:
@@ -1856,7 +1856,7 @@ def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, dr
 	#		meshMatOverride.commands.append(SPDisplayList(triList))
 	#	if fOverrideMat.revert is not None:
 	#		meshMatOverride.commands.append(SPDisplayList(fOverrideMat.revert))
-	#	meshMatOverride.commands.append(SPEndDisplayList())		
+	#	meshMatOverride.commands.append(SPEndDisplayList())
 
 def findVertIndexInBuffer(loop, buffer, loopDict):
 	i = 0
@@ -1890,14 +1890,14 @@ def splitSkinnedFacesIntoTwoGroups(skinnedFaces, fModel, obj, uv_data, drawLayer
 		# These MUST be arrays (not dicts) as order is important
 		inGroupVerts = []
 		inGroupVertArray.append([material_index, inGroupVerts])
-		
+
 		notInGroupVerts = []
 		notInGroupVertArray.append([material_index, notInGroupVerts])
 
 		material = obj.material_slots[material_index].material
 		fMaterial, texDimensions = \
 			saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
-		
+
 		exportVertexColors = isLightingDisabled(material)
 		convertInfo = LoopConvertInfo(uv_data, obj, exportVertexColors)
 		for skinnedFace in skinnedFaceArray:
@@ -1916,7 +1916,7 @@ def splitSkinnedFacesIntoTwoGroups(skinnedFaces, fModel, obj, uv_data, drawLayer
 				if bufferVert not in notInGroupVerts:
 					notInGroupVerts.append(bufferVert)
 				loopDict[loop] = f3dVert
-	
+
 	return inGroupVertArray, notInGroupVertArray, loopDict, notInGroupBlenderVerts
 
 def getGroupVertCount(group):
@@ -1925,9 +1925,9 @@ def getGroupVertCount(group):
 		count += len(vertData)
 	return count
 
-def saveSkinnedMeshByMaterial(skinnedFaces, fModel, meshName, skinnedMeshName, obj, 
+def saveSkinnedMeshByMaterial(skinnedFaces, fModel, meshName, skinnedMeshName, obj,
 	parentMatrix, namePrefix, vertexGroup, drawLayer, convertTextureData, triConverterInfo):
-	# We choose one or more loops per vert to represent a material from which 
+	# We choose one or more loops per vert to represent a material from which
 	# texDimensions can be found, since it is required for UVs.
 	uv_data = obj.data.uv_layers['UVMap'].data
 	inGroupVertArray, notInGroupVertArray, loopDict, notInGroupBlenderVerts = \
@@ -1943,7 +1943,7 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, meshName, skinnedMeshName, o
 			"connected faces will count more than once. Try " +\
 			"keeping UVs contiguous, and avoid using " +\
 			"split normals.")
-	
+
 	# Load parent group vertices
 	fSkinnedMesh = FMesh(skinnedMeshName, fModel.DLFormat)
 
@@ -1969,8 +1969,8 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, meshName, skinnedMeshName, o
 		fSkinnedMesh.draw.commands.append(SPDisplayList(fMaterial.material))
 		fSkinnedMesh.draw.commands.append(SPDisplayList(skinnedTriGroup.triList))
 		skinnedTriGroup.triList.commands.append(
-			SPVertex(skinnedTriGroup.vertexList, 
-				len(skinnedTriGroup.vertexList.vertices), 
+			SPVertex(skinnedTriGroup.vertexList,
+				len(skinnedTriGroup.vertexList.vertices),
 				len(vertData), curIndex))
 		curIndex += len(vertData)
 
@@ -1978,7 +1978,7 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, meshName, skinnedMeshName, o
 			skinnedTriGroup.vertexList.vertices.append(convertVertexData(obj.data,
 				bufferVert.f3dVert[0], bufferVert.f3dVert[1], bufferVert.f3dVert[2], texDimensions,
 				parentMatrix, isPointSampled, exportVertexColors))
-		
+
 		skinnedTriGroup.triList.commands.append(SPEndDisplayList())
 		if fMaterial.revert is not None:
 			fSkinnedMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
@@ -1998,13 +1998,13 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, meshName, skinnedMeshName, o
 		fMaterial, texDimensions = \
 			saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
 		if fMaterial.useLargeTextures:
-			saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, 
-				drawLayer, convertTextureData, None, triConverterInfo, 
+			saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj,
+				drawLayer, convertTextureData, None, triConverterInfo,
 				copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict))
 		else:
 			saveMeshByFaces(material, faces,
-				fModel, fMesh, obj, drawLayer, 
-				convertTextureData, None, triConverterInfo, 
+				fModel, fMesh, obj, drawLayer,
+				convertTextureData, None, triConverterInfo,
 				copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict))
 
 	return fMesh, fSkinnedMesh
@@ -2027,13 +2027,13 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, meshName, skinnedMeshName, o
 	#	triConverter = TriangleConverter(triConverterInfo, texDimensions, material,
 	#		None, triGroup.triList, triGroup.vertexList, copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict))
 	#	saveTriangleStrip(triConverter, [skinnedFace.bFace for skinnedFace in skinnedFaceArray], obj.data, True)
-	#	saveTriangleStrip(triConverterClass, 
+	#	saveTriangleStrip(triConverterClass,
 	#		[skinnedFace.bFace for skinnedFace in skinnedFaceArray],
-	#		convertInfo, triGroup.triList, triGroup.vertexList, fModel.f3d, 
+	#		convertInfo, triGroup.triList, triGroup.vertexList, fModel.f3d,
 	#		texDimensions, currentMatrix, isPointSampled, exportVertexColors,
 	#		copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict),
 	#		infoDict, obj.data, None, True)
-	
+
 	return fMesh, fSkinnedMesh
 
 def writeDynamicMeshFunction(name, displayList):
@@ -2095,8 +2095,8 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
 			saveTextures = bpy.context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions
 
 			if context.scene.geoExportType == 'C':
-				exportPath, levelName = getPathAndLevel(context.scene.geoCustomExport, 
-					context.scene.geoExportPath, context.scene.geoLevelName, 
+				exportPath, levelName = getPathAndLevel(context.scene.geoCustomExport,
+					context.scene.geoExportPath, context.scene.geoLevelName,
 					context.scene.geoLevelOption)
 				if not context.scene.geoCustomExport:
 					applyBasicTweaks(exportPath)
@@ -2106,14 +2106,14 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
 					bpy.context.scene.geoTexDir,
 					saveTextures,
 					saveTextures and bpy.context.scene.geoSeparateTextureDef,
-					None, bpy.context.scene.geoGroupName, 
+					None, bpy.context.scene.geoGroupName,
 					context.scene.geoExportHeaderType,
 					context.scene.geoName, context.scene.geoStructName, levelName, context.scene.geoCustomExport, DLFormat.Static)
 				self.report({'INFO'}, 'Success!')
 			elif context.scene.geoExportType == 'Insertable Binary':
 				exportGeolayoutObjectInsertableBinary(obj,
 					finalTransform, context.scene.f3d_type,
-					context.scene.isHWv1, 
+					context.scene.isHWv1,
 					bpy.path.abspath(bpy.context.scene.geoInsertableBinaryPath),
 					None)
 				self.report({'INFO'}, 'Success! Data at ' + \
@@ -2122,21 +2122,21 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
 				tempROM = tempName(context.scene.outputRom)
 				checkExpanded(bpy.path.abspath(context.scene.exportRom))
 				romfileExport = open(
-					bpy.path.abspath(context.scene.exportRom), 'rb')	
-				shutil.copy(bpy.path.abspath(context.scene.exportRom), 
+					bpy.path.abspath(context.scene.exportRom), 'rb')
+				shutil.copy(bpy.path.abspath(context.scene.exportRom),
 					bpy.path.abspath(tempROM))
 				romfileExport.close()
 				romfileOutput = open(bpy.path.abspath(tempROM), 'rb+')
 
-				levelParsed = parseLevelAtPointer(romfileOutput, 
+				levelParsed = parseLevelAtPointer(romfileOutput,
 					level_pointers[context.scene.levelGeoExport])
 				segmentData = levelParsed.segmentData
 
 				if context.scene.extendBank4:
-					ExtendBank0x04(romfileOutput, segmentData, 
+					ExtendBank0x04(romfileOutput, segmentData,
 						defaultExtendSegment4)
 
-				exportRange = [int(context.scene.geoExportStart, 16), 
+				exportRange = [int(context.scene.geoExportStart, 16),
 					int(context.scene.geoExportEnd, 16)]
 				textDumpFilePath = \
 					bpy.path.abspath(context.scene.textDumpGeoPath) \
@@ -2151,9 +2151,9 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
 				if context.scene.geoUseBank0:
 					addrRange, startRAM, geoStart = \
 						exportGeolayoutObjectBinaryBank0(
-						romfileOutput, obj, exportRange, 
+						romfileOutput, obj, exportRange,
  						finalTransform, *modelLoadInfo, textDumpFilePath,
-						context.scene.f3d_type, context.scene.isHWv1, 
+						context.scene.f3d_type, context.scene.isHWv1,
 						getAddressFromRAMAddress(int(
 						context.scene.geoRAMAddr, 16)),
 						None)
@@ -2161,7 +2161,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
 					addrRange, segPointer = exportGeolayoutObjectBinary(
 						romfileOutput, obj,
 						exportRange, finalTransform, segmentData,
-						*modelLoadInfo, textDumpFilePath, 
+						*modelLoadInfo, textDumpFilePath,
 						context.scene.f3d_type, context.scene.isHWv1,
 						None)
 
@@ -2172,7 +2172,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
 
 				if os.path.exists(bpy.path.abspath(context.scene.outputRom)):
 					os.remove(bpy.path.abspath(context.scene.outputRom))
-				os.rename(bpy.path.abspath(tempROM), 
+				os.rename(bpy.path.abspath(tempROM),
 					bpy.path.abspath(context.scene.outputRom))
 
 				if context.scene.geoUseBank0:
@@ -2184,7 +2184,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
 					self.report({'INFO'}, 'Success! Geolayout at (' + \
 						hex(addrRange[0]) + ', ' + hex(addrRange[1]) + \
 						') (Seg. ' + segPointer + ').')
-			
+
 			self.cleanup_temp_object_data()
 			applyRotation([obj], math.radians(-90), 'X')
 			self.show_warnings()
@@ -2266,7 +2266,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 
 		try:
 			# Rotate all armatures 90 degrees
-			applyRotation([armatureObj] + linkedArmatures, 
+			applyRotation([armatureObj] + linkedArmatures,
 				math.radians(90), 'X')
 
 			# You must ALSO apply object rotation after armature rotation.
@@ -2278,8 +2278,8 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 			bpy.ops.object.transform_apply(location = False, rotation = True,
 				scale = True, properties =  False)
 			if context.scene.geoExportType == 'C':
-				exportPath, levelName = getPathAndLevel(context.scene.geoCustomExport, 
-					context.scene.geoExportPath, context.scene.geoLevelName, 
+				exportPath, levelName = getPathAndLevel(context.scene.geoCustomExport,
+					context.scene.geoExportPath, context.scene.geoLevelName,
 					context.scene.geoLevelOption)
 
 				saveTextures = bpy.context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions
@@ -2298,7 +2298,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 			elif context.scene.geoExportType == 'Insertable Binary':
 				exportGeolayoutArmatureInsertableBinary(armatureObj, obj,
 					finalTransform, context.scene.f3d_type,
-					context.scene.isHWv1, 
+					context.scene.isHWv1,
 					bpy.path.abspath(bpy.context.scene.geoInsertableBinaryPath),
 					None)
 				self.report({'INFO'}, 'Success! Data at ' + \
@@ -2307,21 +2307,21 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 				tempROM = tempName(context.scene.outputRom)
 				checkExpanded(bpy.path.abspath(context.scene.exportRom))
 				romfileExport = open(
-					bpy.path.abspath(context.scene.exportRom), 'rb')	
-				shutil.copy(bpy.path.abspath(context.scene.exportRom), 
+					bpy.path.abspath(context.scene.exportRom), 'rb')
+				shutil.copy(bpy.path.abspath(context.scene.exportRom),
 					bpy.path.abspath(tempROM))
 				romfileExport.close()
 				romfileOutput = open(bpy.path.abspath(tempROM), 'rb+')
 
-				levelParsed = parseLevelAtPointer(romfileOutput, 
+				levelParsed = parseLevelAtPointer(romfileOutput,
 					level_pointers[context.scene.levelGeoExport])
 				segmentData = levelParsed.segmentData
 
 				if context.scene.extendBank4:
-					ExtendBank0x04(romfileOutput, segmentData, 
+					ExtendBank0x04(romfileOutput, segmentData,
 						defaultExtendSegment4)
 
-				exportRange = [int(context.scene.geoExportStart, 16), 
+				exportRange = [int(context.scene.geoExportStart, 16),
 					int(context.scene.geoExportEnd, 16)]
 				textDumpFilePath = \
 					bpy.path.abspath(context.scene.textDumpGeoPath) \
@@ -2336,16 +2336,16 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 				if context.scene.geoUseBank0:
 					addrRange, startRAM, geoStart = \
 						exportGeolayoutArmatureBinaryBank0(
-						romfileOutput, armatureObj, obj, exportRange, 
+						romfileOutput, armatureObj, obj, exportRange,
  						finalTransform, *modelLoadInfo, textDumpFilePath,
-						context.scene.f3d_type, context.scene.isHWv1, 
+						context.scene.f3d_type, context.scene.isHWv1,
 						getAddressFromRAMAddress(int(
 						context.scene.geoRAMAddr, 16)), None)
 				else:
 					addrRange, segPointer = exportGeolayoutArmatureBinary(
 						romfileOutput, armatureObj, obj,
 						exportRange, finalTransform, segmentData,
-						*modelLoadInfo, textDumpFilePath, 
+						*modelLoadInfo, textDumpFilePath,
 						context.scene.f3d_type, context.scene.isHWv1,
 						None)
 
@@ -2356,7 +2356,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 
 				if os.path.exists(bpy.path.abspath(context.scene.outputRom)):
 					os.remove(bpy.path.abspath(context.scene.outputRom))
-				os.rename(bpy.path.abspath(tempROM), 
+				os.rename(bpy.path.abspath(tempROM),
 					bpy.path.abspath(context.scene.outputRom))
 
 				if context.scene.geoUseBank0:
@@ -2369,7 +2369,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 						hex(addrRange[0]) + ', ' + hex(addrRange[1]) + \
 						') (Seg. ' + segPointer + ').')
 
-			applyRotation([armatureObj] + linkedArmatures, 
+			applyRotation([armatureObj] + linkedArmatures,
 				math.radians(-90), 'X')
 
 			return {'FINISHED'} # must return a set
@@ -2377,8 +2377,8 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 		except Exception as e:
 			if context.mode != 'OBJECT':
 				bpy.ops.object.mode_set(mode = 'OBJECT')
-			
-			applyRotation([armatureObj] + linkedArmatures, 
+
+			applyRotation([armatureObj] + linkedArmatures,
 				math.radians(-90), 'X')
 
 			if context.scene.geoExportType == 'Binary':
@@ -2453,7 +2453,7 @@ class SM64_ExportGeolayoutPanel(bpy.types.Panel):
 						warningBox.label(text = 'Use one of these geolayout names instead:')
 						warningBox.label(text = ' - koopa_with_shell')
 						warningBox.label(text = ' - koopa_without_shell')
-					
+
 					if context.scene.geoName == 'black_bobomb' or\
 						context.scene.geoName == 'bobomb_buddy':
 						col.prop(context.scene, 'modifyOldGeo')
@@ -2494,10 +2494,10 @@ class SM64_ExportGeolayoutPanel(bpy.types.Panel):
 				infoBox.label(text = 'to prevent compilation errors.')
 				decompFolderMessage(col)
 				writeBox = makeWriteInfoBox(col)
-				writeBoxExportType(writeBox, context.scene.geoExportHeaderType, 
+				writeBoxExportType(writeBox, context.scene.geoExportHeaderType,
 					context.scene.geoName, context.scene.geoLevelName,
 					context.scene.geoLevelOption)
-			
+
 			#extendedRAMLabel(col)
 		elif context.scene.geoExportType == 'Insertable Binary':
 			col.prop(context.scene, 'geoInsertableBinaryPath')
@@ -2547,14 +2547,14 @@ def sm64_geo_writer_register():
 		name = 'Start', default = '11D8930')
 	bpy.types.Scene.geoExportEnd = bpy.props.StringProperty(
 		name = 'End', default = '11FFF00')
-	
+
 	bpy.types.Scene.overwriteModelLoad = bpy.props.BoolProperty(
 		name = 'Modify level script', default = True)
 	bpy.types.Scene.modelLoadLevelScriptCmd = bpy.props.StringProperty(
 		name = 'Level script model load command', default = '2ABCE0')
-	bpy.types.Scene.modelID = bpy.props.StringProperty(name = 'Model ID', 
+	bpy.types.Scene.modelID = bpy.props.StringProperty(name = 'Model ID',
 		default = '1')
-	
+
 	bpy.types.Scene.textDumpGeo = bpy.props.BoolProperty(
 		name = 'Dump geolayout as text', default = False)
 	bpy.types.Scene.textDumpGeoPath =  bpy.props.StringProperty(
@@ -2564,7 +2564,7 @@ def sm64_geo_writer_register():
 	bpy.types.Scene.geoExportPath = bpy.props.StringProperty(
 		name = 'Directory', subtype = 'FILE_PATH')
 	bpy.types.Scene.geoUseBank0 = bpy.props.BoolProperty(name = 'Use Bank 0')
-	bpy.types.Scene.geoRAMAddr = bpy.props.StringProperty(name = 'RAM Address', 
+	bpy.types.Scene.geoRAMAddr = bpy.props.StringProperty(name = 'RAM Address',
 		default = '80000000')
 	bpy.types.Scene.geoTexDir = bpy.props.StringProperty(
 		name ='Include Path', default = 'actors/mario/')
@@ -2582,7 +2582,7 @@ def sm64_geo_writer_register():
 		name = 'Header Export', items = enumExportHeaderType, default = 'Actor')
 	bpy.types.Scene.geoCustomExport = bpy.props.BoolProperty(
 		name = 'Custom Export Path')
-	bpy.types.Scene.geoLevelName = bpy.props.StringProperty(name = 'Level', 
+	bpy.types.Scene.geoLevelName = bpy.props.StringProperty(name = 'Level',
 		default = 'bob')
 	bpy.types.Scene.geoLevelOption = bpy.props.EnumProperty(
 		items = enumLevelNames, name = 'Level', default = 'bob')

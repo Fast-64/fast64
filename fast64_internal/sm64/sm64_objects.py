@@ -228,7 +228,7 @@ class SM64_Object:
 		self.acts = acts
 		self.position = position
 		self.rotation = rotation
-	
+
 	def to_c(self):
 		if self.acts == 0x1F:
 			return 'OBJECT(' + str(self.model) + ', ' + \
@@ -255,7 +255,7 @@ class SM64_Whirpool:
 		self.condition = condition
 		self.strength = strength
 		self.position = position
-	
+
 	def to_c(self):
 		return 'WHIRPOOL(' + str(self.index) + ', ' +  str(self.condition) + ', ' +\
 			str(int(round(self.position[0]))) + ', ' + \
@@ -269,7 +269,7 @@ class SM64_Macro_Object:
 		self.bparam = bparam
 		self.position = position
 		self.rotation = rotation
-	
+
 	def to_c(self):
 		if self.bparam is None:
 			return 'MACRO_OBJECT(' + str(self.preset) + ', ' + \
@@ -304,7 +304,7 @@ class SM64_Special_Object:
 			if self.bparam is not None:
 				data.extend(int(self.bparam).to_bytes(2, 'big'))
 		return data
-	
+
 	def to_c(self):
 		if self.rotation is None:
 			return 'SPECIAL_OBJECT(' + str(self.preset) + ', ' +\
@@ -330,13 +330,13 @@ class SM64_Mario_Start:
 		self.area = area
 		self.position = position
 		self.rotation = rotation
-	
+
 	def to_c(self):
 		return 'MARIO_POS(' + str(self.area) + ', ' + str(int(round(math.degrees(self.rotation[1])))) + ', ' +\
 			str(int(round(self.position[0]))) + ', ' + str(int(round(self.position[1]))) + ', ' + str(int(round(self.position[2]))) + ')'
 
 class SM64_Area:
-	def __init__(self, index, music_seq, music_preset, 
+	def __init__(self, index, music_seq, music_preset,
 		terrain_type, geolayout, collision, warpNodes, name, startDialog):
 		self.cameraVolumes = []
 		self.puppycamVolumes = []
@@ -407,7 +407,7 @@ class SM64_Area:
 			if spline.splineType == 'Cutscene':
 				return True
 		return False
-	
+
 	def to_c_splines(self):
 		data = CData()
 		for spline in self.splines:
@@ -434,7 +434,7 @@ class CollisionWaterBox:
 		data.extend(int(round(self.high[1])).to_bytes(2, 'big', signed=True))
 		data.extend(int(round(self.height)).to_bytes(2, 'big', signed=True))
 		return data
-	
+
 	def to_c(self):
 		data = 'COL_WATER_BOX(' + \
 			('0x00' if self.waterBoxType == 'Water' else '0x32') + ', ' + \
@@ -457,7 +457,7 @@ class CameraVolume:
 
 	def to_binary(self):
 		raise PluginError("Binary exporting not implemented for camera volumens.")
-	
+
 	def to_c(self):
 		data = '{' + \
 			str(self.area) + ', ' + str(self.functionName) + ', ' + \
@@ -490,15 +490,15 @@ class PuppycamVolume:
 			self.camPos = (camPos[0] * camScaleValue, camPos[2] * camScaleValue, camPos[1] * camScaleValue * -1)
 		else:
 			self.camPos = camPos
-		
+
 		if camFocus != (32767, 32767, 32767):
 			self.camFocus = (camFocus[0] * camScaleValue, camFocus[2] * camScaleValue, camFocus[1] * camScaleValue * -1)
 		else:
 			self.camFocus = camFocus
-		
+
 	def to_binary(self):
 		raise PluginError("Binary exporting not implemented for puppycam volumes.")
-	
+
 	def to_c(self):
 		data = '{' + \
 			str(self.level) + ', ' + str(self.area) + ', ' + ('1' if self.permaswap else '0') + ', ' + \
@@ -534,8 +534,8 @@ def exportAreaCommon(areaObj, transformMatrix, geolayout, collision, name):
 	else:
 		terrainType = areaObj.terrain_type
 
-	area = SM64_Area(areaObj.areaIndex, musicSeq, areaObj.music_preset, 
-		terrainType, geolayout, collision, 
+	area = SM64_Area(areaObj.areaIndex, musicSeq, areaObj.music_preset,
+		terrainType, geolayout, collision,
 		[areaObj.warpNodes[i].to_c() for i in range(len(areaObj.warpNodes))],
 		name, areaObj.startDialog if areaObj.showStartDialog else None)
 
@@ -590,7 +590,7 @@ def start_process_sm64_objects(obj, area, transformMatrix, specialsOnly):
 
 	# We want translations to be relative to area obj, but rotation/scale to be world space
 	translation, rotation, scale = obj.matrix_world.decompose()
-	process_sm64_objects(obj, area, 
+	process_sm64_objects(obj, area,
 		mathutils.Matrix.Translation(translation), transformMatrix, specialsOnly)
 
 def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
@@ -611,12 +611,12 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
 			if obj.sm64_obj_type == 'Special':
 				preset = obj.sm64_special_enum if obj.sm64_special_enum != 'Custom' else obj.sm64_obj_preset
 				preset = handleRefreshDiffSpecials(preset)
-				area.specials.append(SM64_Special_Object(preset, translation, 
-					rotation.to_euler() if obj.sm64_obj_set_yaw else None, 
+				area.specials.append(SM64_Special_Object(preset, translation,
+					rotation.to_euler() if obj.sm64_obj_set_yaw else None,
 					obj.sm64_obj_bparam if (obj.sm64_obj_set_yaw and obj.sm64_obj_set_bparam) else None))
 			elif obj.sm64_obj_type == 'Water Box':
 				checkIdentityRotation(obj, rotation, False)
-				area.water_boxes.append(CollisionWaterBox(obj.waterBoxType, 
+				area.water_boxes.append(CollisionWaterBox(obj.waterBoxType,
 					translation, scale, obj.empty_display_size))
 		else:
 			if obj.sm64_obj_type == 'Object':
@@ -624,11 +624,11 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
 				modelID = handleRefreshDiffModelIDs(modelID)
 				behaviour = func_map[bpy.context.scene.refreshVer][obj.sm64_behaviour_enum] if \
 					obj.sm64_behaviour_enum != 'Custom' else obj.sm64_obj_behaviour
-				area.objects.append(SM64_Object(modelID, translation, rotation.to_euler(), 
+				area.objects.append(SM64_Object(modelID, translation, rotation.to_euler(),
 					behaviour, obj.sm64_obj_bparam, get_act_string(obj)))
 			elif obj.sm64_obj_type == 'Macro':
 				macro = obj.sm64_macro_enum if obj.sm64_macro_enum != 'Custom' else obj.sm64_obj_preset
-				area.macros.append(SM64_Macro_Object(macro, translation, rotation.to_euler(), 
+				area.macros.append(SM64_Macro_Object(macro, translation, rotation.to_euler(),
 					obj.sm64_obj_bparam if obj.sm64_obj_set_bparam else None))
 			elif obj.sm64_obj_type == 'Mario Start':
 				mario_start = SM64_Mario_Start(obj.sm64_obj_mario_start_area, translation, rotation.to_euler())
@@ -637,7 +637,7 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
 			elif obj.sm64_obj_type == 'Trajectory':
 				pass
 			elif obj.sm64_obj_type == 'Whirpool':
-				area.objects.append(SM64_Whirpool(obj.whirlpool_index, 
+				area.objects.append(SM64_Whirpool(obj.whirlpool_index,
 					obj.whirpool_condition, obj.whirpool_strength, translation))
 			elif obj.sm64_obj_type == 'Camera Volume':
 				checkIdentityRotation(obj, rotation, True)
@@ -650,7 +650,7 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
 
 			elif obj.sm64_obj_type == 'Puppycam Volume':
 				checkIdentityRotation(obj, rotation, False)
-				
+
 				triggerIndex = area.index
 				puppycamProp = obj.puppycamProp
 				if(puppycamProp.puppycamUseFlags):
@@ -685,8 +685,8 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
 						puppycamModeString += " | NC_FLAG_SLIDECORRECT"
 				else:
 					puppycamModeString = (puppycamProp.puppycamMode if puppycamProp.puppycamMode != 'Custom' else puppycamProp.puppycamType)
-	
-	
+
+
 				if (not puppycamProp.puppycamUseEmptiesForPos) and puppycamProp.puppycamCamera is not None:
 					puppycamCamPosCoords = puppycamProp.puppycamCamera.location
 				elif puppycamProp.puppycamUseEmptiesForPos and puppycamProp.puppycamCamPos != "":
@@ -694,7 +694,7 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
 					puppycamCamPosCoords = puppycamPosObject.location
 				else:
 					puppycamCamPosCoords = (32767, 32767, 32767)
-				
+
 				if (not puppycamProp.puppycamUseEmptiesForPos) and puppycamProp.puppycamCamera is not None:
 					puppycamCamFocusCoords = (puppycamProp.puppycamCamera.matrix_local @ mathutils.Vector((0, 0, -1)))[:]
 				elif puppycamProp.puppycamUseEmptiesForPos and puppycamProp.puppycamCamFocus != "":
@@ -702,14 +702,14 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
 					puppycamCamFocusCoords = puppycamFocObject.location
 				else:
 					puppycamCamFocusCoords = (32767, 32767, 32767)
-	
-				area.puppycamVolumes.append(PuppycamVolume(triggerIndex, levelIDNames[bpy.data.scenes["Scene"].levelOption], 
+
+				area.puppycamVolumes.append(PuppycamVolume(triggerIndex, levelIDNames[bpy.data.scenes["Scene"].levelOption],
 				puppycamProp.puppycamVolumePermaswap, puppycamProp.puppycamVolumeFunction, translation, scale, obj.empty_display_size, puppycamCamPosCoords, puppycamCamFocusCoords, puppycamModeString))
 
 
 	elif not specialsOnly and assertCurveValid(obj):
 		area.splines.append(convertSplineObject(area.name + '_spline_' + obj.name , obj, finalTransform))
-			
+
 
 	for child in obj.children:
 		process_sm64_objects(child, area, rootMatrix, transformMatrix, specialsOnly)
@@ -741,7 +741,7 @@ class SearchModelIDEnumOperator(bpy.types.Operator):
 	bl_idname = "object.search_model_id_enum_operator"
 	bl_label = "Search Model IDs"
 	bl_property = "sm64_model_enum"
-	bl_options = {'REGISTER', 'UNDO'} 
+	bl_options = {'REGISTER', 'UNDO'}
 
 	sm64_model_enum : bpy.props.EnumProperty(items = enumModelIDs)
 
@@ -759,7 +759,7 @@ class SearchBehaviourEnumOperator(bpy.types.Operator):
 	bl_idname = "object.search_behaviour_enum_operator"
 	bl_label = "Search Behaviours"
 	bl_property = "sm64_behaviour_enum"
-	bl_options = {'REGISTER', 'UNDO'} 
+	bl_options = {'REGISTER', 'UNDO'}
 
 	sm64_behaviour_enum : bpy.props.EnumProperty(items = enumBehaviourPresets)
 
@@ -779,7 +779,7 @@ class SearchMacroEnumOperator(bpy.types.Operator):
 	bl_idname = "object.search_macro_enum_operator"
 	bl_label = "Search Macros"
 	bl_property = "sm64_macro_enum"
-	bl_options = {'REGISTER', 'UNDO'} 
+	bl_options = {'REGISTER', 'UNDO'}
 
 	sm64_macro_enum : bpy.props.EnumProperty(items = enumMacrosNames)
 
@@ -797,7 +797,7 @@ class SearchSpecialEnumOperator(bpy.types.Operator):
 	bl_idname = "object.search_special_enum_operator"
 	bl_label = "Search Specials"
 	bl_property = "sm64_special_enum"
-	bl_options = {'REGISTER', 'UNDO'} 
+	bl_options = {'REGISTER', 'UNDO'}
 
 	sm64_special_enum : bpy.props.EnumProperty(items = enumSpecialsNames)
 
@@ -817,7 +817,7 @@ class SM64ObjectPanel(bpy.types.Panel):
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
 	bl_context = "object"
-	bl_options = {'HIDE_HEADER'} 
+	bl_options = {'HIDE_HEADER'}
 
 	@classmethod
 	def poll(cls, context):
@@ -921,7 +921,7 @@ class SM64ObjectPanel(bpy.types.Panel):
 			box.prop(obj, 'sm64_obj_set_bparam', text = 'Set Behaviour Parameter')
 			if obj.sm64_obj_set_bparam:
 				prop_split(box, obj, 'sm64_obj_bparam', 'Behaviour Parameter')
-				
+
 		elif obj.sm64_obj_type == 'Special':
 			prop_split(box, obj, 'sm64_special_enum', 'Preset')
 			if obj.sm64_special_enum == 'Custom':
@@ -962,7 +962,7 @@ class SM64ObjectPanel(bpy.types.Panel):
 				#box.box().label(text = 'Background IDs defined in include/geo_commands.h.')
 			box.prop(obj, 'actSelectorIgnore')
 			box.prop(obj, 'setAsStartLevel')
-			prop_split(box, obj, 'acousticReach', 'Acoustic Reach')			
+			prop_split(box, obj, 'acousticReach', 'Acoustic Reach')
 			obj.starGetCutscenes.draw(box)
 
 		elif obj.sm64_obj_type == 'Area Root':
@@ -974,7 +974,7 @@ class SM64ObjectPanel(bpy.types.Panel):
 				prop_split(box, obj, 'musicSeqEnum', 'Music Sequence')
 				if obj.musicSeqEnum == 'Custom':
 					prop_split(box, obj, 'music_seq', '')
-				
+
 			prop_split(box, obj, 'terrainEnum', 'Terrain')
 			if obj.terrainEnum == 'Custom':
 				prop_split(box, obj, 'terrain_type', '')
@@ -998,10 +998,10 @@ class SM64ObjectPanel(bpy.types.Panel):
 
 			if obj.areaIndex == 1 or obj.areaIndex == 2 or obj.areaIndex == 3:
 				prop_split(box, obj, 'echoLevel', 'Echo Level')
-			
+
 			if obj.areaIndex == 1 or obj.areaIndex == 2 or obj.areaIndex == 3 or obj.areaIndex == 4:
 				box.prop(obj, 'zoomOutOnPause')
-			
+
 			box.prop(obj, 'areaOverrideBG')
 			if obj.areaOverrideBG:
 				prop_split(box, obj, 'areaBGColor', 'Background Color')
@@ -1021,7 +1021,7 @@ class SM64ObjectPanel(bpy.types.Panel):
 			if not obj.useDefaultScreenRect:
 				prop_split(box, obj, 'screenPos', 'Screen Position')
 				prop_split(box, obj, 'screenSize', 'Screen Size')
-		
+
 			prop_split(box, obj, 'clipPlanes', 'Clip Planes')
 
 			box.label(text = "Warp Nodes")
@@ -1039,13 +1039,13 @@ class SM64ObjectPanel(bpy.types.Panel):
 			prop_split(column, puppycamProp, 'puppycamVolumeFunction', 'Puppycam Function')
 			column.prop(puppycamProp, 'puppycamVolumePermaswap')
 			column.prop(puppycamProp, 'puppycamUseFlags')
-			
+
 			column.prop(puppycamProp, 'puppycamUseEmptiesForPos')
-			
+
 			if puppycamProp.puppycamUseEmptiesForPos:
 				column.label(text = "Fixed Camera Position (Optional)")
 				column.prop_search(puppycamProp, "puppycamCamPos", bpy.data, "objects", text = '')
-			
+
 				column.label(text = "Fixed Camera Focus (Optional)")
 				column.prop_search(puppycamProp, "puppycamCamFocus", bpy.data, "objects", text = '')
 			else:
@@ -1065,15 +1065,15 @@ class SM64ObjectPanel(bpy.types.Panel):
 					prop_split(column, puppycamProp, 'puppycamType', '')
 
 			column.box().label(text = "No rotation allowed.")
-		
+
 		elif obj.sm64_obj_type == 'Switch':
 			prop_split(box, obj, 'switchFunc', 'Function')
 			prop_split(box, obj, 'switchParam', 'Parameter')
 			box.box().label(text = 'Children will ordered alphabetically.')
-		
+
 		elif obj.sm64_obj_type in inlineGeoLayoutObjects:
 			self.draw_inline_obj(box, obj)
-		
+
 		elif obj.sm64_obj_type == 'None':
 			box.box().label(text = 'This can be used as an empty transform node in a geolayout hierarchy.')
 
@@ -1141,24 +1141,24 @@ class WarpNodeProperty(bpy.types.PropertyGroup):
 class AddWarpNode(bpy.types.Operator):
 	bl_idname = 'bone.add_warp_node'
 	bl_label = 'Add Warp Node'
-	bl_options = {'REGISTER', 'UNDO'} 
+	bl_options = {'REGISTER', 'UNDO'}
 	option : bpy.props.IntProperty()
 	def execute(self, context):
 		obj = context.object
 		obj.warpNodes.add()
 		obj.warpNodes.move(len(obj.warpNodes)-1, self.option)
 		self.report({'INFO'}, 'Success!')
-		return {'FINISHED'} 
+		return {'FINISHED'}
 
 class RemoveWarpNode(bpy.types.Operator):
 	bl_idname = 'bone.remove_warp_node'
 	bl_label = 'Remove Warp Node'
-	bl_options = {'REGISTER', 'UNDO'} 
+	bl_options = {'REGISTER', 'UNDO'}
 	option : bpy.props.IntProperty()
 	def execute(self, context):
 		context.object.warpNodes.remove(self.option)
 		self.report({'INFO'}, 'Success!')
-		return {'FINISHED'} 
+		return {'FINISHED'}
 
 def drawWarpNodeProperty(layout, warpNode, index):
 	box = layout.box().column()
@@ -1182,11 +1182,11 @@ def drawWarpNodeProperty(layout, warpNode, index):
 			prop_split(box, warpNode, 'warpFlagEnum', 'Warp Flags')
 			if warpNode.warpFlagEnum == 'Custom':
 				prop_split(box, warpNode, 'warpFlags', 'Warp Flags Value')
-		
+
 		buttons = box.row(align = True)
 		buttons.operator(RemoveWarpNode.bl_idname,
 			text = 'Remove Option').option = index
-		buttons.operator(AddWarpNode.bl_idname, 
+		buttons.operator(AddWarpNode.bl_idname,
 			text = 'Add Option').option = index + 1
 
 
@@ -1248,7 +1248,7 @@ def onUpdateObjectType(self, context):
 	isBoxEmpty = self.sm64_obj_type == 'Water Box' or self.sm64_obj_type == 'Camera Volume'
 	self.show_name = not (isBoxEmpty or isNoneEmpty)
 	self.show_axis = not (isBoxEmpty or isNoneEmpty)
-	
+
 	if isBoxEmpty:
 		self.empty_display_type = "CUBE"
 
@@ -1265,12 +1265,12 @@ class PuppycamSetupCamera(bpy.types.Operator):
 		scene.camera = bpy.context.active_object.puppycamProp.puppycamCamera
 		bpy.data.cameras[cameraObject].show_name = True
 		bpy.data.cameras[cameraObject].show_safe_areas = True
-		
+
 		scene.safe_areas.title[0] = 0
 		scene.safe_areas.title[1] = 8/240 # Use the safe areas to denote where default 8 pixel black bars will be
 		scene.safe_areas.action = (0, 0)
 
-		# If you could set resolution on a per-camera basis, I'd do that instead. Oh well. 
+		# If you could set resolution on a per-camera basis, I'd do that instead. Oh well.
 		scene.render.resolution_x = 320
 		scene.render.resolution_y = 240
 
@@ -1291,25 +1291,25 @@ class PuppycamProperty(bpy.types.PropertyGroup):
 
 	puppycamUseEmptiesForPos : bpy.props.BoolProperty(
 		name = 'Use Empty Objects for positions')
-	
+
 	puppycamCamera : bpy.props.PointerProperty(
         type=bpy.types.Object,
         poll=sm64_is_camera_poll
     )
-	
+
 	puppycamFOV : bpy.props.FloatProperty(
 		name = 'Field Of View', min = 0, max = 180, default = 45
 	)
 
 	puppycamMode : bpy.props.EnumProperty(
 		items = enumPuppycamMode, default = 'NC_MODE_NORMAL')
-	
+
 	puppycamType : bpy.props.StringProperty(
 		name = 'Custom Mode', default = 'NC_MODE_NORMAL')
-	
+
 	puppycamCamPos : bpy.props.StringProperty(
 		name = 'Fixed Camera Position')
-	
+
 	puppycamCamFocus : bpy.props.StringProperty(
 		name = 'Fixed Camera Focus')
 
@@ -1318,13 +1318,13 @@ class PuppycamProperty(bpy.types.PropertyGroup):
 
 	NC_FLAG_XTURN : bpy.props.BoolProperty(
 		name = 'X Turn')
-	
+
 	NC_FLAG_YTURN : bpy.props.BoolProperty(
 		name = 'Y Turn')
 
 	NC_FLAG_ZOOM : bpy.props.BoolProperty(
 		name = 'Y Turn')
-	
+
 	NC_FLAG_8D : bpy.props.BoolProperty(
 		name = '8 Directions')
 
@@ -1336,25 +1336,25 @@ class PuppycamProperty(bpy.types.PropertyGroup):
 
 	NC_FLAG_FOCUSX : bpy.props.BoolProperty(
 		name = 'Use X Focus')
-	
+
 	NC_FLAG_FOCUSY : bpy.props.BoolProperty(
 		name = 'Use Y Focus')
 
 	NC_FLAG_FOCUSZ : bpy.props.BoolProperty(
 		name = 'Use Z Focus')
-	
+
 	NC_FLAG_POSX : bpy.props.BoolProperty(
 		name = 'Move on X axis')
-	
+
 	NC_FLAG_POSY : bpy.props.BoolProperty(
 		name = 'Move on Y axis')
-	
+
 	NC_FLAG_POSZ : bpy.props.BoolProperty(
 		name = 'Move on Z axis')
-	
+
 	NC_FLAG_COLLISION : bpy.props.BoolProperty(
 		name = 'Camera Collision')
-	
+
 	NC_FLAG_SLIDECORRECT : bpy.props.BoolProperty(
 		name = 'Slide Correction')
 
@@ -1368,7 +1368,7 @@ sm64_obj_classes = (
 	SearchBehaviourEnumOperator,
 	SearchSpecialEnumOperator,
 	SearchMacroEnumOperator,
-	
+
 	StarGetCutscenesProperty,
 
 	PuppycamProperty,
@@ -1414,10 +1414,10 @@ def sm64_obj_register():
 	#	name = 'Special Name')
 	#bpy.types.Object.sm64_behaviour = bpy.props.StringProperty(
 	#	name = 'Behaviour Name')
-	
+
 	bpy.types.Object.sm64_obj_type = bpy.props.EnumProperty(
 		name = 'SM64 Object Type', items = enumObjectType, default = 'None', update = onUpdateObjectType)
-	
+
 	bpy.types.Object.sm64_obj_model = bpy.props.StringProperty(
 		name = 'Model', default = 'MODEL_NONE')
 
@@ -1457,10 +1457,10 @@ def sm64_obj_register():
 
 	bpy.types.Object.sm64_obj_set_bparam = bpy.props.BoolProperty(
 		name = 'Set Behaviour Parameter', default = True)
-	
+
 	bpy.types.Object.sm64_obj_set_yaw = bpy.props.BoolProperty(
 		name = 'Set Yaw', default = False)
-	
+
 	bpy.types.Object.useBackgroundColor = bpy.props.BoolProperty(
 		name = 'Use Solid Color For Background', default = False)
 
@@ -1469,17 +1469,17 @@ def sm64_obj_register():
 
 	bpy.types.Object.background = bpy.props.EnumProperty(
 		name = 'Background', items = enumBackground, default = 'OCEAN_SKY')
-	
+
 	bpy.types.Object.backgroundColor = bpy.props.FloatVectorProperty(
-		name = 'Background Color', subtype='COLOR', size = 4, 
+		name = 'Background Color', subtype='COLOR', size = 4,
 		min = 0, max = 1, default = (0,0,0,1))
 
 	bpy.types.Object.screenPos = bpy.props.IntVectorProperty(
-		name = 'Screen Position', size = 2, default = (160, 120), 
+		name = 'Screen Position', size = 2, default = (160, 120),
 		min = -2**15, max = 2**15 - 1)
 
 	bpy.types.Object.screenSize = bpy.props.IntVectorProperty(
-		name = 'Screen Size', size = 2, default = (160, 120), 
+		name = 'Screen Size', size = 2, default = (160, 120),
 		min = -2**15, max = 2**15 - 1)
 
 	bpy.types.Object.useDefaultScreenRect = bpy.props.BoolProperty(
@@ -1490,7 +1490,7 @@ def sm64_obj_register():
 	)
 
 	bpy.types.Object.area_fog_color = bpy.props.FloatVectorProperty(
-		name = 'Area Fog Color', subtype='COLOR', size = 4, 
+		name = 'Area Fog Color', subtype='COLOR', size = 4,
 		min = 0, max = 1, default = (0,0,0,1))
 
 	bpy.types.Object.area_fog_position = bpy.props.FloatVectorProperty(
@@ -1500,7 +1500,7 @@ def sm64_obj_register():
 		name = 'Override Background')
 
 	bpy.types.Object.areaBGColor = bpy.props.FloatVectorProperty(
-		name = 'Background Color', subtype='COLOR', size = 4, 
+		name = 'Background Color', subtype='COLOR', size = 4,
 		min = 0, max = 1, default = (0,0,0,1))
 
 	bpy.types.Object.camOption = bpy.props.EnumProperty(
@@ -1532,7 +1532,7 @@ def sm64_obj_register():
 
 	bpy.types.Object.acousticReach = bpy.props.StringProperty(
 		name = 'Acoustic Reach', default = '20000')
-	
+
 	bpy.types.Object.echoLevel = bpy.props.StringProperty(
 		name = 'Echo Level', default = '0x00')
 
@@ -1565,20 +1565,20 @@ def sm64_obj_register():
 	bpy.types.Object.setAsStartLevel = bpy.props.BoolProperty(name = 'Set As Start Level')
 
 	bpy.types.Object.switchFunc = bpy.props.StringProperty(
-		name = 'Function', default = '', 
+		name = 'Function', default = '',
 		description = 'Name of function for C, hex address for binary.')
-	
+
 	bpy.types.Object.switchParam = bpy.props.IntProperty(
 		name = 'Function Parameter', min = -2**(15), max = 2**(15) - 1, default = 0)
 
 	bpy.types.Object.geoASMFunc = bpy.props.StringProperty(
-		name = 'Geo ASM Function', default = '', 
+		name = 'Geo ASM Function', default = '',
 		description = 'Name of function for C, hex address for binary.')
 
 	bpy.types.Object.geoASMParam = bpy.props.IntProperty(
-		name = 'Geo ASM Parameter', min = -2**(15), max = 2**(15) - 1, default = 0, 
+		name = 'Geo ASM Parameter', min = -2**(15), max = 2**(15) - 1, default = 0,
 		description = 'Function parameter.')
-	
+
 	bpy.types.Object.useDLReference = bpy.props.BoolProperty(name = 'Use displaylist reference')
 	bpy.types.Object.dlReference = bpy.props.StringProperty(name = 'Displaylist variable name or hex address for binary.')
 
@@ -1599,7 +1599,7 @@ def sm64_obj_unregister():
 	#del bpy.types.Object.sm64_macro
 	#del bpy.types.Object.sm64_special
 	#del bpy.types.Object.sm64_behaviour
-	
+
 	del bpy.types.Object.sm64_obj_type
 	del bpy.types.Object.sm64_obj_model
 	del bpy.types.Object.sm64_obj_preset
@@ -1626,7 +1626,7 @@ def sm64_obj_unregister():
 	#del bpy.types.Object.backgroundID
 	del bpy.types.Object.background
 	del bpy.types.Object.backgroundColor
-	
+
 	del bpy.types.Object.screenPos
 	del bpy.types.Object.screenSize
 	del bpy.types.Object.useDefaultScreenRect
@@ -1663,7 +1663,7 @@ def sm64_obj_unregister():
 	del bpy.types.Object.actSelectorIgnore
 	del bpy.types.Object.setAsStartLevel
 	del bpy.types.Object.switchFunc
-	del bpy.types.Object.switchParam 
+	del bpy.types.Object.switchParam
 	del bpy.types.Object.enableRoomSwitch
 
 	for cls in reversed(sm64_obj_classes):
