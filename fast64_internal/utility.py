@@ -740,10 +740,10 @@ def cleanupDuplicatedObjects(selected_objects):
 
 def cleanupTempMeshes():
 	'''Delete meshes that have been duplicated for instancing'''
-	temp_meshes = []
+	remove_data = []
 	for obj in bpy.data.objects:
 		if obj.get('temp_export'):
-			temp_meshes.append(obj.data)
+			remove_data.append(obj.data)
 			bpy.data.objects.remove(obj)
 		else:
 			if obj.get('instanced_mesh_name'):
@@ -751,8 +751,12 @@ def cleanupTempMeshes():
 			if obj.get('original_mtx'):
 				del obj['original_mtx']
 
-	for mesh in temp_meshes:
-		bpy.data.meshes.remove(mesh)
+	for data in remove_data:
+		data_type = type(data)
+		if data_type == bpy.types.Mesh:
+			bpy.data.meshes.remove(data)
+		elif data_type == bpy.types.Curve:
+			bpy.data.curves.remove(data)
 
 def combineObjects(obj, includeChildren, ignoreAttr, areaIndex):
 	obj.original_name = obj.name
