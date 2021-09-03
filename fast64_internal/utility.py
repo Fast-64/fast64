@@ -634,8 +634,10 @@ def store_original_meshes(add_warning: Callable[[str], None]):
 
 def get_obj_temp_mesh(obj):
 	for o in bpy.data.objects:
-		if o.get('temp_export') and \
-			o.get('instanced_mesh_name') == obj.get('instanced_mesh_name'):
+		if (
+			o.get('temp_export')
+			and o.get('instanced_mesh_name') == obj.get('instanced_mesh_name')
+		):
 			return o
 
 def duplicateHierarchy(obj, ignoreAttr, includeEmpties, areaIndex):
@@ -716,10 +718,11 @@ def selectMeshChildrenOnly(obj, ignoreAttr, includeEmpties, areaIndex):
 		return
 	ignoreObj = ignoreAttr is not None and getattr(obj, ignoreAttr)
 	isMesh = isinstance(obj.data, bpy.types.Mesh)
-	isEmpty = \
-		(obj.data is None) and \
-		includeEmpties and \
-		checkSM64EmptyUsesGeoLayout(obj.sm64_obj_type)
+	isEmpty = (
+		obj.data is None
+		and includeEmpties
+		and checkSM64EmptyUsesGeoLayout(obj.sm64_obj_type)
+	)
 	if (isMesh or isEmpty) and not ignoreObj:
 		obj.select_set(True)
 		obj.original_name = obj.name
