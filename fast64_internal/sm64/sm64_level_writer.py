@@ -907,14 +907,14 @@ class SM64_ExportLevel(bpy.types.Operator):
 				applyBasicTweaks(exportPath)
 			#cProfile.runctx('exportLevelC(obj, finalTransform,' +\
 			#	'context.scene.f3d_type, context.scene.isHWv1, levelName, exportPath,' +\
-			#	'context.scene.levelSaveTextures or bpy.context.scene.ignoreTextureRestrictions,' +\
+			#	'context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions,' +\
 			#	'context.scene.levelCustomExport, triggerName, DLFormat.Static)',
 			#	globals(), locals(), "E:/blender.prof")
 			#p = pstats.Stats("E:/blender.prof")
 			#p.sort_stats("cumulative").print_stats(2000)
 			fileStatus = exportLevelC(obj, finalTransform,
 				context.scene.f3d_type, context.scene.isHWv1, levelName, exportPath, 
-				context.scene.levelSaveTextures or bpy.context.scene.ignoreTextureRestrictions, 
+				context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions, 
 				context.scene.levelCustomExport, triggerName, DLFormat.Static)
 
 			cameraWarning(self, fileStatus)
@@ -954,8 +954,6 @@ class SM64_ExportLevelPanel(bpy.types.Panel):
 		col = self.layout.column()
 		col.label(text = 'This is for decomp only.')
 		col.operator(SM64_ExportLevel.bl_idname)
-		if not bpy.context.scene.ignoreTextureRestrictions:
-			col.prop(context.scene, 'levelSaveTextures')
 		col.prop(context.scene, 'levelCustomExport')
 		if context.scene.levelCustomExport:
 			prop_split(col, context.scene, 'levelExportPath', 'Directory')
@@ -1001,8 +999,6 @@ def sm64_level_register():
 	bpy.types.Scene.levelOption = bpy.props.EnumProperty(name = "Level", items = enumLevelNames, default = 'bob')
 	bpy.types.Scene.levelExportPath = bpy.props.StringProperty(
 		name = 'Directory', subtype = 'FILE_PATH')
-	bpy.types.Scene.levelSaveTextures = bpy.props.BoolProperty(
-		name = 'Save Textures As PNGs (Breaks CI Textures)')
 	bpy.types.Scene.levelCustomExport = bpy.props.BoolProperty(
 		name = 'Custom Export Path')
 
@@ -1012,6 +1008,5 @@ def sm64_level_unregister():
 
 	del bpy.types.Scene.levelName
 	del bpy.types.Scene.levelExportPath 
-	del bpy.types.Scene.levelSaveTextures
 	del bpy.types.Scene.levelCustomExport
 	del bpy.types.Scene.levelOption

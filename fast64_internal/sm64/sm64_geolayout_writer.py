@@ -1973,7 +1973,7 @@ class SM64_ExportGeolayoutObject(bpy.types.Operator):
 			# Rotate all armatures 90 degrees
 			applyRotation([obj], math.radians(90), 'X')
 
-			saveTextures = bpy.context.scene.geoSaveTextures or bpy.context.scene.ignoreTextureRestrictions
+			saveTextures = bpy.context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions
 
 			if context.scene.geoExportType == 'C':
 				exportPath, levelName = getPathAndLevel(context.scene.geoCustomExport, 
@@ -2160,7 +2160,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 					context.scene.geoExportPath, context.scene.geoLevelName, 
 					context.scene.geoLevelOption)
 
-				saveTextures = bpy.context.scene.geoSaveTextures or bpy.context.scene.ignoreTextureRestrictions
+				saveTextures = bpy.context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions
 				if not context.scene.geoCustomExport:
 					applyBasicTweaks(exportPath)
 				header, fileStatus = exportGeolayoutArmatureC(armatureObj, obj, finalTransform,
@@ -2289,12 +2289,10 @@ class SM64_ExportGeolayoutPanel(bpy.types.Panel):
 
 		col.prop(context.scene, 'geoExportType')
 		if context.scene.geoExportType == 'C':
-			if not bpy.context.scene.ignoreTextureRestrictions:
-				col.prop(context.scene, 'geoSaveTextures')
-				if context.scene.geoSaveTextures:
-					if context.scene.geoCustomExport:
-						prop_split(col, context.scene, 'geoTexDir', 'Texture Include Path')	
-					col.prop(context.scene, 'geoSeparateTextureDef')
+			if not bpy.context.scene.ignoreTextureRestrictions and context.scene.saveTextures:
+				if context.scene.geoCustomExport:
+					prop_split(col, context.scene, 'geoTexDir', 'Texture Include Path')	
+				col.prop(context.scene, 'geoSeparateTextureDef')
 			
 			col.prop(context.scene, 'geoCustomExport')
 			if context.scene.geoCustomExport:
@@ -2448,8 +2446,6 @@ def sm64_geo_writer_register():
 		default = '80000000')
 	bpy.types.Scene.geoTexDir = bpy.props.StringProperty(
 		name ='Include Path', default = 'actors/mario/')
-	bpy.types.Scene.geoSaveTextures = bpy.props.BoolProperty(
-		name = 'Save Textures As PNGs (Breaks CI Textures)')
 	bpy.types.Scene.geoSeparateTextureDef = bpy.props.BoolProperty(
 		name = 'Save texture.inc.c separately')
 	bpy.types.Scene.geoInsertableBinaryPath = bpy.props.StringProperty(
@@ -2496,7 +2492,6 @@ def sm64_geo_writer_unregister():
 	del bpy.types.Scene.geoUseBank0
 	del bpy.types.Scene.geoRAMAddr
 	del bpy.types.Scene.geoTexDir
-	del bpy.types.Scene.geoSaveTextures
 	del bpy.types.Scene.geoSeparateTextureDef
 	del bpy.types.Scene.geoInsertableBinaryPath
 	del bpy.types.Scene.geoIsSegPtr
