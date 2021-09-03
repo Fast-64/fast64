@@ -531,13 +531,9 @@ def yield_children(obj: bpy.types.Object):
 		for o in obj.children:
 			yield from yield_children(o)
 
-def iter_from_active():
-	active_obj = bpy.context.view_layer.objects.active # keep original obj reference
-	yield from yield_children(active_obj)
-	bpy.context.view_layer.objects.active = active_obj
-
 def store_original_mtx():
-	for obj in iter_from_active():
+	active_obj = bpy.context.view_layer.objects.active
+	for obj in yield_children(active_obj):
 		obj['original_mtx'] = obj.matrix_local
 
 def rotate_bounds(bounds, mtx: mathutils.Matrix):
@@ -609,7 +605,8 @@ def store_original_meshes(add_warning: Callable[[str], None]):
 		- Original mesh name is saved to each object
 	'''
 	instanced_meshes = set()
-	for obj in iter_from_active():
+	active_obj = bpy.context.view_layer.objects.active
+	for obj in yield_children(active_obj):
 		if obj.data is not None:
 			has_modifiers = len(obj.modifiers) != 0
 			has_uneven_scale = not obj_scale_is_unified(obj)
@@ -630,6 +627,7 @@ def store_original_meshes(add_warning: Callable[[str], None]):
 			if obj.data.name not in instanced_meshes:
 				instanced_meshes.add(obj.data.name)
 				copy_object_and_apply(obj)
+	bpy.context.view_layer.objects.active = active_obj
 
 def get_obj_temp_mesh(obj):
 	for o in bpy.data.objects:
