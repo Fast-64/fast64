@@ -13,6 +13,12 @@ class VertexWeightError(PluginError):
 geoNodeRotateOrder = 'ZXY'
 sm64BoneUp = Vector([1,0,0])
 
+rotate_mtx_blender_to_n64 = lambda: Matrix((
+	(1,  0, 0, 0),
+	(0,  0, 1, 0),
+	(0, -1, 0, 0),
+	(0,  0, 0, 1)))
+
 axis_enums = [
 	('X', 'X', 'X'),
 	('Y', 'Y', 'Y'),
@@ -581,7 +587,7 @@ def copy_object_and_apply(obj: bpy.types.Object, apply_scale = False, apply_modi
 
 		bpy.context.view_layer.objects.active = prev_active
 
-	mtx = mathutils.Quaternion((1, 0, 0), math.radians(-90.0)).to_matrix().to_4x4()
+	mtx = rotate_mtx_blender_to_n64()
 	if apply_scale:
 	 	mtx = mtx @ scale_mtx_from_vector(obj.scale)
 
@@ -593,7 +599,7 @@ def copy_object_and_apply(obj: bpy.types.Object, apply_scale = False, apply_modi
 	bounds_mtx = scale_mtx_from_vector([1, -1, -1]) # reverse y/z
 	if apply_scale:
 		bounds_mtx *= scale_mtx_from_vector(obj.scale) # apply scale if needed
-	bounds_mtx = bounds_mtx @ mathutils.Quaternion((1, 0, 0), math.radians(-90.0)).to_matrix().to_4x4()
+	bounds_mtx = bounds_mtx @ rotate_mtx_blender_to_n64()
 	obj_copy['culling_bounds'] = rotate_bounds(obj_copy.bound_box, bounds_mtx)
 
 def store_original_meshes(add_warning: Callable[[str], None]):
