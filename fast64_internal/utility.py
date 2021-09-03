@@ -549,17 +549,14 @@ def obj_scale_is_unified(obj):
 def translation_rotation_from_mtx(mtx: mathutils.Matrix):
 	'''Strip scale from matrix'''
 	t, r, _ = mtx.decompose()
-	return Matrix.Translation(t).to_4x4() @ r.to_matrix().to_4x4()
+	return Matrix.Translation(t) @ r.to_matrix().to_4x4()
 
 def scale_mtx_from_vector(scale: mathutils.Vector):
-	scax = mathutils.Matrix.Scale(scale[0], 4, (1, 0, 0))
-	scay = mathutils.Matrix.Scale(scale[1], 4, (0, 1, 0))
-	scaz = mathutils.Matrix.Scale(scale[2], 4, (0, 0, 1))
-	return scax @ scay @ scaz
+	return mathutils.Matrix.Diagonal(scale[0:3]).to_4x4()
 
 def copy_object_and_apply(obj: bpy.types.Object, apply_scale = False, apply_modifiers = False):
 	if apply_scale or apply_modifiers:
-		# its a unique mesh, use object name
+		# it's a unique mesh, use object name
 		obj['instanced_mesh_name'] = obj.name
 		obj.original_name = obj.name
 		if apply_scale:
