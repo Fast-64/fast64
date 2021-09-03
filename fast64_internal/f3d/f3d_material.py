@@ -1103,10 +1103,10 @@ def ui_procAnimVecEnum(material, procAnimVec, layout, name, vecType, useDropdown
 		layout.box().label(text = 'SM64 SetTileSize Texture Scroll')
 
 		if useTex0:
-			ui_tileScroll(material.tex0, 'Texture 0 Speed', layout)
+			ui_tileScroll(material.tex0, 'Tex 0 Speed', layout)
 
 		if useTex1:
-			ui_tileScroll(material.tex1, 'Texture 1 Speed', layout)
+			ui_tileScroll(material.tex1, 'Tex 1 Speed', layout)
 
 def ui_procAnimFieldEnum(procAnimField, layout, name, overrideName):
 	box = layout
