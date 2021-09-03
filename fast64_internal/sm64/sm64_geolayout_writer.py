@@ -161,7 +161,7 @@ def appendRevertToGeolayout(geolayoutGraph, fModel):
 		DPSetAlphaCompare("G_AC_NONE")])
 
 	# Get all draw layers, turn layers into strings (some are ints), deduplicate using a set
-	drawLayers = set([str(layer) for layer in geolayoutGraph.getDrawLayers()])
+	drawLayers = set(str(layer) for layer in geolayoutGraph.getDrawLayers())
 
 	# Revert settings in each draw layer
 	for layer in sorted(drawLayers): # Must be sorted, otherwise ordering is random due to `set` behavior
