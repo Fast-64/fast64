@@ -2348,7 +2348,7 @@ class F3D_ExportDL(bpy.types.Operator):
 			f3dType = context.scene.f3d_type
 			isHWv1 = context.scene.isHWv1
 			texDir = bpy.context.scene.DLTexDir
-			savePNG = bpy.context.scene.DLSaveTextures or bpy.context.scene.ignoreTextureRestrictions
+			savePNG = bpy.context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions
 			separateTexDef = bpy.context.scene.DLSeparateTextureDef
 			DLName = bpy.context.scene.DLName
 			matWriteMethod = getWriteMethodFromEnum(context.scene.matWriteMethod)
@@ -2357,7 +2357,7 @@ class F3D_ExportDL(bpy.types.Operator):
 				f3dType, isHWv1, texDir, savePNG, separateTexDef, DLName, matWriteMethod)
 
 			self.report({'INFO'}, 'Success!')
-				
+
 			applyRotation([obj], math.radians(-90), 'X')
 			return {'FINISHED'} # must return a set
 
@@ -2365,7 +2365,7 @@ class F3D_ExportDL(bpy.types.Operator):
 			if context.mode != 'OBJECT':
 				bpy.ops.object.mode_set(mode = 'OBJECT')
 			applyRotation([obj], math.radians(-90), 'X')
-			
+
 			raisePluginError(self, e)
 			return {'CANCELLED'} # must return a set
 
@@ -2392,10 +2392,9 @@ class F3D_ExportDLPanel(bpy.types.Panel):
 		col.prop(context.scene, 'DLExportisStatic')
 		
 		if not bpy.context.scene.ignoreTextureRestrictions:
-			col.prop(context.scene, 'DLSaveTextures')
-			if context.scene.DLSaveTextures:
+			if context.scene.saveTextures:
 				prop_split(col, context.scene, 'DLTexDir',
-					'Texture Include Path')	
+					'Texture Include Path') 
 				col.prop(context.scene, 'DLSeparateTextureDef')
 
 f3d_writer_classes = (
