@@ -894,7 +894,6 @@ class SM64ObjectPanel(bpy.types.Panel):
 		column = self.layout.box().column() # added just for puppycam trigger importing
 		box.box().label(text = 'SM64 Object Inspector')
 		obj = context.object
-		# TODO: Split options into columns: (second column is "Inline Geo Commands")
 		prop_split(box, obj, 'sm64_obj_type', 'Object Type')
 		if obj.sm64_obj_type == 'Object':
 			prop_split(box, obj, 'sm64_model_enum', 'Model')
