@@ -538,8 +538,8 @@ def store_original_mtx():
 
 def rotate_bounds(bounds, mtx: mathutils.Matrix):
 	return [
-		(mathutils.Vector(b[:]) @ mtx).to_tuple()
-		for b in bounds[:]
+		(mathutils.Vector(b) @ mtx).to_tuple()
+		for b in bounds
 	]
 
 def obj_scale_is_unified(obj):
