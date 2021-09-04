@@ -1167,10 +1167,8 @@ def read16bitRGBA(data):
 def join_c_args(args: 'list[str]'):
 	return ', '.join(args)
 
-def translate_xyz_to_xzy(translate: mathutils.Vector):
-	xzy_translate = translate.xzy
-	xzy_translate[2] = -xzy_translate[2]
-	return xzy_translate
+def translate_blender_to_n64(translate: mathutils.Vector):
+	return transform_mtx_blender_to_n64() @ translate
 
 def rotate_quat_blender_to_n64(rotation: mathutils.Quaternion):
     new_rot = (transform_mtx_blender_to_n64() @ rotation.to_matrix().to_4x4() @ transform_mtx_blender_to_n64().inverted())

@@ -911,7 +911,7 @@ def processMesh(
 	elif obj.get('original_mtx'): # object is instanced or a transformation
 		orig_mtx = mathutils.Matrix(obj['original_mtx'])
 		translate, rotate, scale = orig_mtx.decompose()
-		translate = translate_xyz_to_xzy(translate)
+		translate = translate_blender_to_n64(translate)
 		rotate = rotate_quat_blender_to_n64(rotate)
 	else: # object is NOT instanced
 		translate, rotate, scale = obj.matrix_local.decompose()
