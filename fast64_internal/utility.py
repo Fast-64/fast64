@@ -544,7 +544,7 @@ def store_original_mtx():
 
 def rotate_bounds(bounds, mtx: mathutils.Matrix):
 	return [
-		(mathutils.Vector(b) @ mtx).to_tuple()
+		(mtx @ mathutils.Vector(b)).to_tuple()
 		for b in bounds
 	]
 
@@ -596,15 +596,9 @@ def copy_object_and_apply(obj: bpy.types.Object, apply_scale = False, apply_modi
 	obj_copy['temp_export'] = True
 
 	# Override for F3D culling bounds (used in addCullCommand)
-	bounds_mtx = scale_mtx_from_vector([1, -1, -1]) # reverse y/z
+	bounds_mtx = transform_mtx_blender_to_n64()
 	if apply_scale:
-		bounds_mtx *= scale_mtx_from_vector(obj.scale) # apply scale if needed
-	bounds_mtx = bounds_mtx @ transform_mtx_blender_to_n64()
-	if obj.name == 'CubeSubdivided':
-		from pprint import pprint
-		print('HOHOHOHO')
-		pprint([b[:] for b in obj_copy.bound_box[:]])
-		print('HOHOHOHO')
+		bounds_mtx = bounds_mtx @ scale_mtx_from_vector(obj.scale) # apply scale if needed
 	obj_copy['culling_bounds'] = rotate_bounds(obj_copy.bound_box, bounds_mtx)
 
 def store_original_meshes(add_warning: Callable[[str], None]):
