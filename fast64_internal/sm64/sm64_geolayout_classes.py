@@ -17,8 +17,13 @@ drawLayerNames = {
 }
 
 def getDrawLayerName(drawLayer):
-	# Cast draw layer to int so it can be mapped to a name
-	layer = int(drawLayer) if isinstance(drawLayer, str) and drawLayer.isnumeric() else drawLayer
+	layer = drawLayer
+	if drawLayer is not None:
+		try:
+			# Cast draw layer to int so it can be mapped to a name
+			layer = int(drawLayer)
+		except ValueError:
+			pass
 	if layer in drawLayerNames:
 		return drawLayerNames[layer]
 	else:
