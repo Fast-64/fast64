@@ -6,6 +6,7 @@ from .sm64_texscroll import *
 from .sm64_utility import *
 
 from ..utility import *
+from ..operators import ObjectDataExporter
 
 from bpy.utils import register_class, unregister_class
 from io import BytesIO
@@ -37,7 +38,7 @@ def createGeoFile(levelName, filepath):
 		'#include "game/paintings.h"\n\n' +\
 		'#include "make_const_nonconst.h"\n\n' +\
 		'#include "levels/' + levelName + '/header.h"\n\n'
-	
+
 	geoFile = open(filepath, 'w', newline = '\n')
 	geoFile.write(result)
 	geoFile.close()
@@ -53,7 +54,7 @@ def createLevelDataFile(levelName, filepath):
 		'#include "textures.h"\n' +\
 		'#include "dialog_ids.h"\n\n' +\
 		'#include "make_const_nonconst.h"\n\n'
-	
+
 	levelDataFile = open(filepath, 'w', newline = '\n')
 	levelDataFile.write(result)
 	levelDataFile.close()
@@ -74,7 +75,7 @@ class ZoomOutMasks:
 	def __init__(self, masks, originalData):
 		self.masks = masks
 		self.originalData = originalData
-	
+
 	def to_c(self):
 		result = ''
 		#result += 'u8 sZoomOutAreaMasks[] = {\n'
@@ -86,14 +87,14 @@ class ZoomOutMasks:
 	def write(self, filepath):
 		matchResult = re.search('u8\s*sZoomOutAreaMasks\s*\[\]\s*=\s*\{' +\
 			'(((?!\}).)*)\}\s*;', self.originalData, re.DOTALL)
-	
+
 		if matchResult is None:
 			raise PluginError("Could not find sZoomOutAreaMasks in \"" + filepath + '".')
 		data = self.originalData[:matchResult.start(1)] + self.to_c() + self.originalData[matchResult.end(1):]
 
 		if data == self.originalData:
 			return
-			
+
 		maskFile = open(filepath, 'w', newline = '\n')
 		maskFile.write(data)
 		maskFile.close()
@@ -137,7 +138,7 @@ class CourseDefines:
 		result += 'DEFINE_COURSES_END()\n'
 		result += macrosToString(self.bonusCourses, False, tabDepth = 0)
 		return result
-	
+
 	def write(self, filepath):
 		data = self.to_c()
 		if data == self.originalData:
@@ -145,7 +146,7 @@ class CourseDefines:
 		defineFile = open(filepath, 'w', newline = '\n')
 		defineFile.write(data)
 		defineFile.close()
-	
+
 	def getOrMakeMacroByCourseName(self, courseEnum, isBonus):
 		for course in self.courses:
 			if course[1][0] == courseEnum:
@@ -160,7 +161,7 @@ class CourseDefines:
 			], '']
 
 			self.courses.append(macroCmd)
-			return macroCmd	
+			return macroCmd
 
 		else:
 			macroCmd = ['DEFINE_BONUS_COURSE', [
@@ -169,7 +170,7 @@ class CourseDefines:
 			], '']
 
 			self.bonusCourses.append(macroCmd)
-			return macroCmd	
+			return macroCmd
 
 class LevelDefines:
 	def __init__(self, headerInfo, defineMacros, originalData):
@@ -182,7 +183,7 @@ class LevelDefines:
 		result = self.headerInfo
 		result += macrosToString(self.defineMacros, False, tabDepth = 0)
 		return result
-	
+
 	def write(self, filepath, headerPath):
 		data = self.to_c()
 		if data == self.originalData:
@@ -200,8 +201,8 @@ class LevelDefines:
 			if macro[0] == 'DEFINE_LEVEL' and macro[1][3] == levelName:
 				return macro
 		macroCmd = ['DEFINE_LEVEL', [
-			'"' + levelName.upper() + '"', 
-			'LEVEL_' + levelName.upper(), 
+			'"' + levelName.upper() + '"',
+			'LEVEL_' + levelName.upper(),
 			'COURSE_' + levelName.upper(),
 			levelName,
 			'generic',
@@ -225,7 +226,7 @@ class LevelScript:
 		self.modelLoads = []
 		self.actorIncludes = []
 		self.marioStart = None
-	
+
 	def to_c(self, areaString):
 		result = '#include <ultra64.h>\n' +\
 			'#include "sm64.h"\n' +\
@@ -237,10 +238,10 @@ class LevelScript:
 			'#include "level_commands.h"\n\n' +\
 			'#include "game/level_update.h"\n\n' +\
 			'#include "levels/scripts.h"\n\n'
-		
+
 		for actorInclude in self.actorIncludes:
 			result += actorInclude + '\n'
-		
+
 		result += '\n#include "make_const_nonconst.h"\n'
 		result += '#include "levels/' + self.name + '/header.h"\n\n'
 		result += 'const LevelScript level_' + self.name + '_entry[] = {\n'
@@ -268,7 +269,7 @@ class LevelScript:
 		    '\tCLEAR_LEVEL(),\n' +\
 		    '\tSLEEP_BEFORE_EXIT(1),\n' +\
 		    '\tEXIT(),\n};\n'
-		
+
 		return result
 
 def parseCourseDefines(filepath):
@@ -318,7 +319,7 @@ def parseZoomMasks(filepath):
 
 	matchResult = re.search('u8\s*sZoomOutAreaMasks\s*\[\]\s*=\s*\{' +\
 		'(((?!\}).)*)\}\s*;', cameraData, re.DOTALL)
-	
+
 	if matchResult is None:
 		raise PluginError("Could not find sZoomOutAreaMasks in \"" + filepath + '".')
 
@@ -337,7 +338,7 @@ def replaceSegmentLoad(levelscript, segmentName, command, changedSegment):
 	if changedLoad is None:
 		changedLoad = [command, [hex(changedSegment), '', ''], '']
 		levelscript.segmentLoads.append(changedLoad)
-	
+
 	changedLoad[1][1] = segmentName + 'SegmentRomStart'
 	changedLoad[1][2] = segmentName + 'SegmentRomEnd'
 
@@ -354,9 +355,9 @@ def stringToMacros(data):
 		arguments = arguments.split(',')
 		for i in range(len(arguments)):
 			arguments[i] = arguments[i].strip()
-		
+
 		macroData.append([macro, arguments, comment])
-	
+
 	return macroData
 
 def macroToString(macroCmd, useComma):
@@ -391,10 +392,10 @@ def addActSelectorIgnore(basePath, levelEnum):
 		return
 
 	# This won't actually match whole function, but only up to first closing bracket.
-	# This should be okay though... ?	
+	# This should be okay though... ?
 	matchResultFunction = re.search('s32\s*lvl\_set\_current\_level\s*\((((?!\)).)*)\)\s*\{' +\
 		'(((?!\}).)*)\}', data, re.DOTALL)
-	
+
 	if matchResultFunction is None:
 		raise PluginError("Could not find lvl_set_current_level in \"" + filepath + '".')
 
@@ -423,7 +424,7 @@ def removeActSelectorIgnore(basePath, levelEnum):
 def parseLevelScript(filepath, levelName):
 	scriptPath = os.path.join(filepath, 'script.c')
 	scriptData = getDataFromFile(scriptPath)
-	
+
 	levelscript = LevelScript(levelName)
 
 	for matchResult in re.finditer('#include\s*"actors/(\w*)\.h"', scriptData):
@@ -431,7 +432,7 @@ def parseLevelScript(filepath, levelName):
 
 	matchResult = re.search('const\s*LevelScript\s*level\_\w*\_entry\[\]\s*=\s*\{' +\
 		'(((?!\}).)*)\}\s*;', scriptData, re.DOTALL)
-	
+
 	if matchResult is None:
 		raise PluginError("Could not find entry levelscript in \"" + scriptPath + '".')
 
@@ -453,12 +454,12 @@ def parseLevelScript(filepath, levelName):
 				levelscript.modelLoads.append(macroCmd)
 			elif macroCmd[0] == 'MARIO':
 				levelscript.mario = macroToString(macroCmd, True)
-		
+
 		if macroCmd[0] == 'AREA':
 			inArea = True
 		elif macroCmd[0] == 'END_AREA':
 			inArea = False
-		
+
 	return levelscript
 
 def overwritePuppycamData(filePath, levelToReplace, newPuppycamTriggers):
@@ -483,19 +484,19 @@ def overwritePuppycamData(filePath, levelToReplace, newPuppycamTriggers):
 			for entry in entriesList:
 				if re.search('(\{\s?' + levelToReplace + '\s?,)', re.sub('(/\*.+?\*/)|(//.+?\n)', '', entry), re.DOTALL) is None:
 					data += entry
-			
+
 			# Add the new entries from this export, then put the file back together again.
 			data += '\n\n' + newPuppycamTriggers
 			data = matchResult.group(1) + data + '\n' + matchResult.group(3)
 		else:
 			raise PluginError("Could not find 'struct newcam_hardpos newcam_fixedcam[]'.")
-		
+
 		dataFile = open(filePath, 'w', newline='\n')
 		dataFile.write(data)
 		dataFile.close()
 	else:
 		raise PluginError(filePath + " does not exist.")
-	
+
 class SM64OptionalFileStatus:
 	def __init__(self):
 		self.cameraC = False
@@ -505,12 +506,12 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 	savePNG, customExport, levelCameraVolumeName, DLFormat):
 
 	fileStatus = SM64OptionalFileStatus()
-	
+
 	if customExport:
 		levelDir = os.path.join(exportDir, levelName)
 	else:
 		levelDir = os.path.join(exportDir, 'levels/' + levelName)
-		
+
 	if customExport or not os.path.exists(os.path.join(levelDir, 'script.c')):
 		prevLevelScript = LevelScript(levelName)
 	else:
@@ -548,7 +549,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 		#    raise PluginError(child.name + ' does not have an area camera set.')
 		#setOrigin(obj, child)
 		areaDict[child.areaIndex] = child
-		
+
 		areaIndex = child.areaIndex
 		areaName = 'area_' + str(areaIndex)
 		areaDir = os.path.join(levelDir, areaName)
@@ -567,7 +568,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 		setRooms(child)
 
 		geolayoutGraph, fModel = \
-			convertObjectToGeolayout(obj, transformMatrix, 
+			convertObjectToGeolayout(obj, transformMatrix,
 			f3dType, isHWv1, child.areaCamera, levelName + '_' + areaName, fModel, child, DLFormat, not savePNG)
 		geolayoutGraphC = geolayoutGraph.to_c()
 
@@ -579,7 +580,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 		headerString += geolayoutGraphC.header
 
 		# Write collision
-		collision = exportCollisionCommon(child, transformMatrix, True, True, 
+		collision = exportCollisionCommon(child, transformMatrix, True, True,
 				levelName + '_' + areaName, child.areaIndex)
 		collisionC = collision.to_c()
 		colFile = open(os.path.join(areaDir, 'collision.inc.c'), 'w', newline = '\n')
@@ -598,7 +599,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 			headerString += roomsC.header
 
 		# Get area
-		area = exportAreaCommon(child, transformMatrix, 
+		area = exportAreaCommon(child, transformMatrix,
 			geolayoutGraph.startGeolayout, collision, levelName + '_' + areaName)
 		if area.mario_start is not None:
 			prevLevelScript.marioStart = area.mario_start
@@ -626,17 +627,17 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 
 	# Generate levelscript string
 	compressionFmt = bpy.context.scene.compressionFormat
-	replaceSegmentLoad(prevLevelScript, 
+	replaceSegmentLoad(prevLevelScript,
 		'_' + levelName + '_segment_7', 'LOAD_' + compressionFmt.upper(), 0x07)
 	if usesEnvFX:
-		replaceSegmentLoad(prevLevelScript, 
+		replaceSegmentLoad(prevLevelScript,
 			'_effect_' + compressionFmt, 'LOAD_' + compressionFmt.upper(), 0x0B)
 	if not obj.useBackgroundColor:
-		replaceSegmentLoad(prevLevelScript, 
+		replaceSegmentLoad(prevLevelScript,
 			'_' + backgroundSegments[obj.background] + '_skybox_' + compressionFmt, 'LOAD_' + compressionFmt.upper(), 0x0A)
 	levelscriptString = prevLevelScript.to_c(areaString)
 
-	if bpy.context.scene.exportHiddenGeometry:	
+	if bpy.context.scene.exportHiddenGeometry:
 		hideObjsInList(hiddenObjs)
 
 	# Remove old areas.
@@ -648,7 +649,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 					existingArea = True
 			if not existingArea:
 				shutil.rmtree(os.path.join(levelDir, f))
-	
+
 	gfxFormatter = SM64GfxFormatter(ScrollMethod.Vertex)
 	exportData = fModel.to_c(TextureExportSettings(savePNG, savePNG, 'levels/' + levelName, levelDir), gfxFormatter)
 	staticData = exportData.staticData
@@ -672,8 +673,8 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 	if DLFormat == DLFormat.Static:
 		staticData.append(dynamicData)
 	else:
-		geoString = writeMaterialFiles(exportDir, levelDir, 
-			'#include "levels/' + levelName + '/header.h"', 
+		geoString = writeMaterialFiles(exportDir, levelDir,
+			'#include "levels/' + levelName + '/header.h"',
 			'#include "levels/' + levelName + '/material.inc.h"',
 			dynamicData.header, dynamicData.source, geoString, customExport)
 
@@ -726,7 +727,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 	if not customExport:
 		if DLFormat != DLFormat.Static:
 			# Write material headers
-			writeMaterialHeaders(exportDir,  
+			writeMaterialHeaders(exportDir,
 				'#include "levels/' + levelName + '/material.inc.c"',
 				'#include "levels/' + levelName + '/material.inc.h"')
 
@@ -754,7 +755,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 		levelDefineMacro[1][levelDefineArgs['acoustic reach']] = obj.acousticReach
 		levelDefineMacro[1][levelDefineArgs['echo level 1']] = echoLevels[0]
 		levelDefineMacro[1][levelDefineArgs['echo level 2']] = echoLevels[1]
-		levelDefineMacro[1][levelDefineArgs['echo level 3']] = echoLevels[2] 
+		levelDefineMacro[1][levelDefineArgs['echo level 3']] = echoLevels[2]
 
 		levelDefines.write(levelDefinesPath, levelHeadersPath)
 
@@ -782,7 +783,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 		geoPath = os.path.join(levelDir, 'geo.c')
 		levelDataPath = os.path.join(levelDir, 'leveldata.c')
 		headerPath = os.path.join(levelDir, 'header.h')
-		
+
 		# Create files if not already existing
 		if not os.path.exists(geoPath):
 			createGeoFile(levelName, geoPath)
@@ -791,34 +792,34 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 		if not os.path.exists(headerPath):
 			createHeaderFile(levelName, headerPath)
 
-		# Write level data		
+		# Write level data
 		writeIfNotFound(geoPath, '\n#include "levels/' + levelName + '/geo.inc.c"\n', '')
 		writeIfNotFound(levelDataPath, '\n#include "levels/' + levelName + '/leveldata.inc.c"\n', '')
 		writeIfNotFound(headerPath, '\n#include "levels/' + levelName + '/header.inc.h"\n', '#endif')
-		
+
 		if fModel.texturesSavedLastExport == 0:
 			textureIncludePath = os.path.join(levelDir, 'texture_include.inc.c')
 			if os.path.exists(textureIncludePath):
 				os.remove(textureIncludePath)
 			# This one is for backwards compatibility purposes
-			deleteIfFound(os.path.join(levelDir, 'texture.inc.c'), 
+			deleteIfFound(os.path.join(levelDir, 'texture.inc.c'),
 				'#include "levels/' + levelName + '/texture_include.inc.c"')
-		
+
 		# This one is for backwards compatibility purposes
 		deleteIfFound(levelDataPath,
 			'#include "levels/' + levelName + '/texture_include.inc.c"')
-		
+
 		texscrollIncludeC = '#include "levels/' + levelName + '/texscroll.inc.c"'
 		texscrollIncludeH = '#include "levels/' + levelName + '/texscroll.inc.h"'
 		texscrollGroup = levelName
 		texscrollGroupInclude = '#include "levels/' + levelName + '/header.h"'
 
-		texScrollFileStatus = modifyTexScrollHeadersGroup(exportDir, texscrollIncludeC, texscrollIncludeH, 
+		texScrollFileStatus = modifyTexScrollHeadersGroup(exportDir, texscrollIncludeC, texscrollIncludeH,
 			texscrollGroup, headerScroll, texscrollGroupInclude, hasScrolling)
 
 		if texScrollFileStatus is not None:
 			fileStatus.starSelectC = texScrollFileStatus.starSelectC
-	
+
 	return fileStatus
 
 def addGeoC(levelName):
@@ -833,7 +834,7 @@ def addGeoC(levelName):
 		'#include "game/moving_texture.h"\n' \
 		'#include "game/screen_transition.h"\n' \
 		'#include "game/paintings.h"\n\n'
-	
+
 	header += '#include "levels/' + levelName + '/header.h"\n'
 	return header
 
@@ -850,7 +851,7 @@ def addLevelDataC(levelName):
 		'#include "dialog_ids.h"\n' \
 		'\n' \
 		'#include "make_const_nonconst.h"\n'
-	
+
 	return header
 
 def addHeaderC(levelName):
@@ -860,17 +861,17 @@ def addHeaderC(levelName):
 		'\n' \
 		'#include "types.h"\n' \
 		'#include "game/moving_texture.h"\n\n'
-	
+
 	return header
-	
-class SM64_ExportLevel(bpy.types.Operator):
+
+class SM64_ExportLevel(ObjectDataExporter):
 	# set bl_ properties
 	bl_idname = 'object.sm64_export_level'
 	bl_label = "Export Level"
 	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
 	def execute(self, context):
-		
+
 		try:
 			if context.mode != 'OBJECT':
 				raise PluginError("Operator can only be used in object mode.")
@@ -880,16 +881,17 @@ class SM64_ExportLevel(bpy.types.Operator):
 			if obj.data is not None or obj.sm64_obj_type != 'Level Root':
 				raise PluginError("The selected object is not an empty with the Level Root type.")
 
-			#obj = context.active_object
-
 			scaleValue = bpy.context.scene.blenderToSM64Scale
-			finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((
-				scaleValue, scaleValue, scaleValue))).to_4x4()
-		
+			finalTransform = mathutils.Matrix.Diagonal(
+				mathutils.Vector((scaleValue, scaleValue, scaleValue))
+			).to_4x4()
+
 		except Exception as e:
 			raisePluginError(self, e)
 			return {'CANCELLED'} # must return a set
 		try:
+			self.store_object_data()
+
 			applyRotation([obj], math.radians(90), 'X')
 			if context.scene.levelCustomExport:
 				exportPath = bpy.path.abspath(context.scene.levelExportPath)
@@ -920,10 +922,11 @@ class SM64_ExportLevel(bpy.types.Operator):
 			cameraWarning(self, fileStatus)
 			starSelectWarning(self, fileStatus)
 
-			self.report({'INFO'}, 'Success!')
-
 			applyRotation([obj], math.radians(-90), 'X')
-			#applyRotation(obj.children, math.radians(0), 'X')
+			self.cleanup_temp_object_data()
+
+			self.report({'INFO'}, 'Success!')
+			self.show_warnings()
 			return {'FINISHED'} # must return a set
 
 		except Exception as e:
@@ -931,10 +934,11 @@ class SM64_ExportLevel(bpy.types.Operator):
 				bpy.ops.object.mode_set(mode = 'OBJECT')
 
 			applyRotation([obj], math.radians(-90), 'X')
-			#applyRotation(obj.children, math.radians(0), 'X')
+			self.cleanup_temp_object_data()
 
 			obj.select_set(True)
 			context.view_layer.objects.active = obj
+			self.reset_warnings()
 			raisePluginError(self, e)
 			return {'CANCELLED'} # must return a set
 
@@ -994,7 +998,7 @@ def sm64_level_panel_unregister():
 def sm64_level_register():
 	for cls in sm64_level_classes:
 		register_class(cls)
-	
+
 	bpy.types.Scene.levelName = bpy.props.StringProperty(name = 'Name', default = 'bob')
 	bpy.types.Scene.levelOption = bpy.props.EnumProperty(name = "Level", items = enumLevelNames, default = 'bob')
 	bpy.types.Scene.levelExportPath = bpy.props.StringProperty(

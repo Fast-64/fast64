@@ -79,7 +79,7 @@ def getInfoDict(obj):
 			raise PluginError("Object \'" + obj.name + "\' does not have a UV layer named \'UVMap.\'")
 	for face in mesh.loop_triangles:
 		validNeighborDict[face] = []
-		material = obj.material_slots[face.material_index].material 
+		material = obj.material_slots[face.material_index].material
 		if material is None:
 			raise PluginError("There are some faces on your mesh that are assigned to an empty material slot.")
 		for vertIndex in face.vertices:
@@ -94,10 +94,10 @@ def getInfoDict(obj):
 				edgeDict[edgeKey].append(face)
 
 		for loopIndex in face.loops:
-			convertInfo = LoopConvertInfo(uv_data, obj, 
+			convertInfo = LoopConvertInfo(uv_data, obj,
 				isLightingDisabled(obj.material_slots[face.material_index].material))
 			f3dVertDict[loopIndex] = getF3DVert(mesh.loops[loopIndex], face, convertInfo, mesh)
-	for face in mesh.loop_triangles:	
+	for face in mesh.loop_triangles:
 		for edgeKey in face.edge_keys:
 			for otherFace in edgeDict[edgeKey]:
 				if otherFace == face:
@@ -166,16 +166,16 @@ def fixLargeUVs(obj):
 			minDiff = (-cellSize[i]+2) - minUV[i]
 			if minDiff > 0:
 				applyOffset(minUV, maxUV, uvOffset, ceil(minDiff / UVinterval[i]) * UVinterval[i], i)
-			
+
 			maxDiff = maxUV[i] - (cellSize[i] - 1)
 			if maxDiff > 0:
 				applyOffset(minUV, maxUV, uvOffset, -ceil(maxDiff / UVinterval[i]) * UVinterval[i], i)
 
 		for loopIndex in polygon.loop_indices:
 			newUV = (uv_data[loopIndex].uv[0] + uvOffset[0],
-				uv_data[loopIndex].uv[1] + uvOffset[1]) 
+				uv_data[loopIndex].uv[1] + uvOffset[1])
 			uv_data[loopIndex].uv = newUV
-				
+
 			#if newUV[0] > cellSize[0] or \
 			#	newUV[1] > cellSize[1] or \
 			#	newUV[0] < -cellSize[0] or \
@@ -229,7 +229,7 @@ class TileLoad:
 		new_th = max(th, self.th)
 		newWidth = abs(new_sl - new_sh) + 1
 		newHeight = abs(new_tl - new_th) + 1
-		
+
 		tmemUsage = getTmemWordUsage(self.texFormat, newWidth, newHeight) * 8 *\
 			(2 if self.twoTextures else 1)
 
@@ -245,7 +245,7 @@ class TileLoad:
 	def tryAdd(self, points):
 		if len(points) == 0:
 			return True
-		
+
 		sl = self.getLow(points[0][0])
 		sh = self.getHigh(points[0][0], 0)
 		tl = self.getLow(points[0][1])
@@ -262,14 +262,14 @@ class TileLoad:
 			sh = max(self.getHigh(point[0], 0), sh)
 			tl = min(self.getLow(point[1]), tl)
 			th = max(self.getHigh(point[1], 1), th)
-		
+
 		return self.appendTile(sl, sh, tl, th)
 
 	def getDimensions(self):
 		return [abs(self.sl - self.sh) + 1,
 			abs(self.tl - self.th) + 1]
-		
-def saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, drawLayer, 
+
+def saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, drawLayer,
 	convertTextureData, currentGroupIndex, triConverterInfo, existingVertData, matRegionDict):
 	if len(faces) == 0:
 		print('0 Faces Provided.')
@@ -305,7 +305,7 @@ def saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, drawLa
 		faceTileLoads[face] = faceTileLoad
 		if not faceTileLoad.tryAdd(uvs):
 			raise PluginError("Large texture material " + str(material.name) + " has a triangle that is too large to fit in a single tile load.")
-		
+
 		added = False
 		for tileLoad, sortedFaces in tileLoads.items():
 			if tileLoad.tryAppend(faceTileLoad):
@@ -331,10 +331,10 @@ def saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, drawLa
 			#nextTmem = 0
 			#revertCommands = GfxList("temp", GfxListTag.Draw, fModel.DLFormat) # Unhandled?
 			#texDimensions, nextTmem = \
-			#	saveTextureIndex(material.name, fModel, fMaterial, triGroup.triList, revertCommands, otherTex, 0, nextTmem, 
+			#	saveTextureIndex(material.name, fModel, fMaterial, triGroup.triList, revertCommands, otherTex, 0, nextTmem,
 			#		None, False, None, True, True)
 
-	#saveGeometry(obj, triList, fMesh.vertexList, bFaces, 
+	#saveGeometry(obj, triList, fMesh.vertexList, bFaces,
 	#	bMesh, texDimensions, transformMatrix, isPointSampled, isFlatShaded,
 	#	exportVertexColors, fModel.f3d)
 	currentGroupIndex = None
@@ -344,22 +344,22 @@ def saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, drawLa
 		triGroup.triList.commands.append(DPPipeSync())
 		if fMaterial.texturesLoaded[0] and not (otherTextureIndex == 0 and otherTexSingleLoad):
 			texDimensions0, nextTmem = \
-				saveTextureIndex(material.name, fModel, fMaterial, triGroup.triList, revertCommands, f3dMat.tex0, 0, nextTmem, 
+				saveTextureIndex(material.name, fModel, fMaterial, triGroup.triList, revertCommands, f3dMat.tex0, 0, nextTmem,
 				None, False, [tileLoad, None], True, False)
 		if fMaterial.texturesLoaded[1] and not (otherTextureIndex == 1 and otherTexSingleLoad):
-			texDimensions1, nextTmem = saveTextureIndex(material.name, fModel, 
+			texDimensions1, nextTmem = saveTextureIndex(material.name, fModel,
 				fMaterial, triGroup.triList, revertCommands, f3dMat.tex1, 1, nextTmem, None, False,
 				[None, tileLoad], True, False)
 
-		triConverter = TriangleConverter(triConverterInfo, texDimensions, material, currentGroupIndex, 
-			triGroup.triList, triGroup.vertexList, 
+		triConverter = TriangleConverter(triConverterInfo, texDimensions, material, currentGroupIndex,
+			triGroup.triList, triGroup.vertexList,
 			copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict))
 
 		currentGroupIndex = saveTriangleStrip(triConverter, tileFaces, obj.data, False)
 
 		if len(revertCommands.commands) > 0:
 			fMesh.draw.commands.extend(revertCommands.commands)
-	
+
 	triGroup.triList.commands.append(SPEndDisplayList())
 
 	if fMaterial.revert is not None:
@@ -372,7 +372,7 @@ def saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, drawLa
 def saveStaticModel(triConverterInfo, fModel, obj, transformMatrix, ownerName, convertTextureData, revertMatAtEnd, drawLayerField):
 	if len(obj.data.polygons) == 0:
 		return None
-	
+
 	#checkForF3DMaterial(obj)
 
 	facesByMat = {}
@@ -384,7 +384,7 @@ def saveStaticModel(triConverterInfo, fModel, obj, transformMatrix, ownerName, c
 	fMeshes = {}
 	for material_index, faces in facesByMat.items():
 		material = obj.material_slots[material_index].material
-		
+
 		if drawLayerField is not None and material.mat_ver > 3:
 			drawLayer = getattr(material.f3d_mat.draw_layer, drawLayerField)
 			drawLayerName = drawLayer
@@ -406,12 +406,12 @@ def saveStaticModel(triConverterInfo, fModel, obj, transformMatrix, ownerName, c
 			saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
 
 		if fMaterial.useLargeTextures:
-			saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, drawLayer, convertTextureData, None, 
+			saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, drawLayer, convertTextureData, None,
 				triConverterInfo, None, None)
 		else:
-			saveMeshByFaces(material, faces,  
+			saveMeshByFaces(material, faces,
 				fModel, fMesh, obj, drawLayer, convertTextureData, None, triConverterInfo, None, None)
-	
+
 	for drawLayer, fMesh in fMeshes.items():
 		if revertMatAtEnd:
 			fModel.onEndDraw(fMesh, obj)
@@ -422,11 +422,12 @@ def saveStaticModel(triConverterInfo, fModel, obj, transformMatrix, ownerName, c
 
 def addCullCommand(obj, fMesh, transformMatrix, matWriteMethod):
 	fMesh.add_cull_vtx()
-	for vertexPos in obj.bound_box:
+	# if the object has a specifically set culling bounds, use that instead
+	for vertexPos in obj.get('culling_bounds', obj.bound_box):
 		# Most other fields of convertVertexData are unnecessary for bounding box verts
 		fMesh.cullVertexList.vertices.append(
-			convertVertexData(obj.data, 
-				mathutils.Vector(vertexPos), [0,0], 
+			convertVertexData(obj.data,
+				mathutils.Vector(vertexPos), [0,0],
 				mathutils.Vector([0,0,0,0]), [32, 32],
 				transformMatrix, False, False))
 
@@ -460,7 +461,7 @@ def exportF3DCommon(obj, fModel, transformMatrix, includeChildren, name, DLForma
 		drawLayer = fModel.getDrawLayerV3(tempObj)
 		infoDict = getInfoDict(tempObj)
 		triConverterInfo = TriangleConverterInfo(tempObj, None, fModel.f3d, transformMatrix, infoDict)
-		fMesh = saveStaticModel(triConverterInfo, fModel, tempObj, 
+		fMesh = saveStaticModel(triConverterInfo, fModel, tempObj,
 			transformMatrix, name, convertTextureData, True, None)[drawLayer]
 		cleanupCombineObj(tempObj, meshList)
 		obj.select_set(True)
@@ -470,7 +471,7 @@ def exportF3DCommon(obj, fModel, transformMatrix, includeChildren, name, DLForma
 		obj.select_set(True)
 		bpy.context.view_layer.objects.active = obj
 		raise Exception(str(e))
-	
+
 	return fMesh
 
 
@@ -526,7 +527,7 @@ def getLowestUnvisitedNeighborCountFace(unvisitedFaces, infoDict):
 
 def getNextNeighborFace(faces, face, lastEdgeKey, visitedFaces, possibleFaces,
 	infoDict):
-	
+
 	if lastEdgeKey is not None:
 		handledEdgeKeys = [lastEdgeKey]
 		nextEdgeKey = face.edge_keys[
@@ -576,7 +577,7 @@ def saveTriangleStrip(triConverter, faces, mesh, terminateDL):
 				neighborFace =  getLowestUnvisitedNeighborCountFace(
 					unvisitedFaces, infoDict)
 				lastEdgeKey = None
-		
+
 		triConverter.addFace(neighborFace)
 		if neighborFace in visitedFaces:
 			raise PluginError("Repeated face")
@@ -587,9 +588,9 @@ def saveTriangleStrip(triConverter, faces, mesh, terminateDL):
 		for otherFace in infoDict.validNeighbors[neighborFace]:
 			infoDict.validNeighbors[otherFace].remove(neighborFace)
 
-		neighborFace, lastEdgeKey = getNextNeighborFace(faces, 
+		neighborFace, lastEdgeKey = getNextNeighborFace(faces,
 			neighborFace, lastEdgeKey, visitedFaces, possibleFaces, infoDict)
-	
+
 	triConverter.finish(terminateDL)
 	return triConverter.currentGroupIndex
 
@@ -616,7 +617,7 @@ def checkIfFlatShaded(material):
 		f3dMat = material
 	return not f3dMat.rdp_settings.g_shade_smooth
 
-def saveMeshByFaces(material, faces, fModel, fMesh, obj, drawLayer, 
+def saveMeshByFaces(material, faces, fModel, fMesh, obj, drawLayer,
 	convertTextureData, currentGroupIndex, triConverterInfo,
 	existingVertData, matRegionDict):
 	if len(faces) == 0:
@@ -633,12 +634,12 @@ def saveMeshByFaces(material, faces, fModel, fMesh, obj, drawLayer,
 	triGroup = fMesh.tri_group_new(fMaterial)
 	fMesh.draw.commands.append(SPDisplayList(triGroup.triList))
 
-	triConverter = TriangleConverter(triConverterInfo, texDimensions, material, 
-		currentGroupIndex, triGroup.triList, triGroup.vertexList, 
+	triConverter = TriangleConverter(triConverterInfo, texDimensions, material,
+		currentGroupIndex, triGroup.triList, triGroup.vertexList,
 		copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict))
 
 	currentGroupIndex = saveTriangleStrip(triConverter, faces, obj.data, True)
-	
+
 	if fMaterial.revert is not None:
 		fMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
 
@@ -647,13 +648,13 @@ def saveMeshByFaces(material, faces, fModel, fMesh, obj, drawLayer,
 def get8bitRoundedNormal(loop, mesh):
 	alpha_layer = mesh.vertex_colors['Alpha'].data if 'Alpha' in \
 		mesh.vertex_colors else None
-	
+
 	if alpha_layer is not None:
 		normalizedAColor = alpha_layer[loop.index].color
 		normalizedA = mathutils.Color(normalizedAColor[0:3]).v
 	else:
 		normalizedA = 1
-	
+
 	# Don't round, as this may move UV toward UV bounds.
 	return mathutils.Vector(
 		(int(loop.normal[0] * 128) / 128,
@@ -703,7 +704,7 @@ class TriangleConverterInfo:
 
 		# Caching names
 		self.groupNames = {}
-	
+
 	def getMatrixAddrFromGroup(self, groupIndex):
 		raise PluginError("TriangleConverterInfo must be extended with getMatrixAddrFromGroup implemented for game specific uses.")
 
@@ -715,16 +716,16 @@ class TriangleConverterInfo:
 				self.groupNames[groupIndex] = getGroupNameFromIndex(self.obj, groupIndex)
 			name = self.groupNames[groupIndex]
 			if name not in self.armature.bones:
-				print("Vertex group " + name + " not found in bones.")	
+				print("Vertex group " + name + " not found in bones.")
 				groupMatrix = mathutils.Matrix.Identity(4)
 			else:
 				groupMatrix = self.armature.bones[name].matrix_local.inverted()
 		return self.transformMatrix @ groupMatrix
-		
+
 # existingVertexData is used for cases where we want to assume the presence of vertex data
 # loaded in from a previous matrix transform (ex. sm64 skinning)
 class TriangleConverter:
-	def __init__(self, triConverterInfo, texDimensions, material, currentGroupIndex, 
+	def __init__(self, triConverterInfo, texDimensions, material, currentGroupIndex,
 		triList, vtxList, existingVertexData, existingVertexMaterialRegions):
 		self.triConverterInfo = triConverterInfo
 		self.currentGroupIndex = currentGroupIndex
@@ -733,7 +734,7 @@ class TriangleConverter:
 		# Existing data assumed to be already loaded in.
 		if existingVertexData is not None:
 			# [(position, uv, colorOrNormal)]
-			self.vertBuffer = existingVertexData 
+			self.vertBuffer = existingVertexData
 		else:
 			self.vertBuffer = []
 		self.existingVertexMaterialRegions = existingVertexMaterialRegions
@@ -751,7 +752,7 @@ class TriangleConverter:
 		self.isPointSampled = isPointSampled
 		self.exportVertexColors = exportVertexColors
 
-		
+
 
 	def vertInBuffer(self, bufferVert, material_index):
 		if self.existingVertexMaterialRegions is None:
@@ -783,18 +784,18 @@ class TriangleConverter:
 			currentLimbVerts = limbVerts[self.currentGroupIndex]
 			self.vertBuffer = self.vertBuffer[:self.bufferStart] + currentLimbVerts
 			self.triList.commands.append(
-				SPVertex(self.vtxList, len(self.vtxList.vertices), 
+				SPVertex(self.vtxList, len(self.vtxList.vertices),
 				len(currentLimbVerts), self.bufferStart))
 			bufferEnd += len(currentLimbVerts)
 			del limbVerts[self.currentGroupIndex]
-		
+
 			# Save vertices
 			for bufferVert in self.vertBuffer[bufferStart : bufferEnd]:
-				self.vtxList.vertices.append(convertVertexData(self.triConverterInfo.mesh, 
+				self.vtxList.vertices.append(convertVertexData(self.triConverterInfo.mesh,
 					bufferVert.f3dVert[0], bufferVert.f3dVert[1], bufferVert.f3dVert[2], self.texDimensions,
 					self.triConverterInfo.getTransformMatrix(bufferVert.groupIndex), self.isPointSampled,
 					self.exportVertexColors))
-			
+
 			bufferStart = bufferEnd
 		else:
 			self.vertBuffer = self.vertBuffer[:self.bufferStart]
@@ -805,15 +806,15 @@ class TriangleConverter:
 				self.triList.commands.append(SPMatrix(self.triConverterInfo.getMatrixAddrFromGroup(groupIndex), "G_MTX_LOAD"))
 				self.currentGroupIndex = groupIndex
 			self.triList.commands.append(
-				SPVertex(self.vtxList, len(self.vtxList.vertices), 
+				SPVertex(self.vtxList, len(self.vtxList.vertices),
 				len(bufferVerts), bufferStart))
-			
+
 			self.vertBuffer += bufferVerts
 			bufferEnd += len(bufferVerts)
 
 			# Save vertices
 			for bufferVert in self.vertBuffer[bufferStart : bufferEnd]:
-				self.vtxList.vertices.append(convertVertexData(self.triConverterInfo.mesh, 
+				self.vtxList.vertices.append(convertVertexData(self.triConverterInfo.mesh,
 					bufferVert.f3dVert[0], bufferVert.f3dVert[1], bufferVert.f3dVert[2], self.texDimensions,
 					self.triConverterInfo.getTransformMatrix(bufferVert.groupIndex), self.isPointSampled,
 					self.exportVertexColors))
@@ -833,7 +834,7 @@ class TriangleConverter:
 		for loopIndex in face.loops:
 			loop = self.triConverterInfo.mesh.loops[loopIndex]
 			vertexGroup = self.triConverterInfo.vertexGroupInfo.vertexGroups[loop.vertex_index] if self.triConverterInfo.vertexGroupInfo is not None else None
-			bufferVert = BufferVertex(getF3DVert(loop, face, self.convertInfo, self.triConverterInfo.mesh), 
+			bufferVert = BufferVertex(getF3DVert(loop, face, self.convertInfo, self.triConverterInfo.mesh),
 				vertexGroup, face.material_index)
 			triIndices.append(bufferVert)
 			if not self.vertInBuffer(bufferVert, face.material_index):
@@ -844,7 +845,7 @@ class TriangleConverter:
 			else:
 				allVerts.append(bufferVert)
 				existingVerts.append(None)
-		
+
 		# We care only about load size, since loading is what takes up time.
 		# Even if vert_buffer is larger, its still another load to fill it.
 		if len(self.vertBuffer) + len(addedVerts) > self.triConverterInfo.f3d.vert_load_size:
@@ -854,16 +855,16 @@ class TriangleConverter:
 		else:
 			self.vertBuffer.extend(addedVerts)
 			self.vertexBufferTriangles.append(triIndices)
-	
+
 	def finish(self, terminateDL):
 		if len(self.vertexBufferTriangles) > 0:
 			self.processGeometry()
-		
+
 		#if self.originalGroupIndex != self.currentGroupIndex:
 		#	self.triList.commands.append(SPMatrix(getMatrixAddrFromGroup(self.originalGroupIndex), "G_MTX_LOAD"))
 		if terminateDL:
 			self.triList.commands.append(SPEndDisplayList())
-	
+
 def getF3DVert(loop, face, convertInfo, mesh):
 	position = mesh.vertices[loop.vertex_index].co.copy().freeze()
 	# N64 is -Y, Blender is +Y
@@ -871,9 +872,9 @@ def getF3DVert(loop, face, convertInfo, mesh):
 	uv[:] = [field if not math.isnan(field) else 0 for field in uv]
 	uv[1] = 1 - uv[1]
 	uv = uv.freeze()
-	colorOrNormal = getLoopColorOrNormal(loop, face, 
+	colorOrNormal = getLoopColorOrNormal(loop, face,
 		convertInfo.obj.data, convertInfo.obj, convertInfo.exportVertexColors)
-	
+
 	return (position, uv, colorOrNormal)
 
 def getLoopNormal(loop, face, mesh, isFlatShaded):
@@ -905,7 +906,7 @@ def getLoopNormalCreased(bLoop, obj):
 		nextFaceWeight = getHighestFaceWeight(availableFaces)
 		curNormal += getWeightedNormalAndMoveToNextFace(
 			nextFaceWeight, visitedFaces, availableFaces, centerVert, edges)
-	
+
 	return curNormal.normalized()
 
 def getConnectedFaces(bFace, bVert):
@@ -935,10 +936,10 @@ def getNextFace(faceWeight, bVert, visitedFaces, availableFaces):
 		else:
 			availableFaces.append(FaceWeight(face, nextPrevFace,
 				faceWeight.weight))
-	
+
 	if not newFaceFound:
 		availableFaces.remove(faceWeight)
-	
+
 	removedFaceWeights = []
 	for otherFaceWeight in availableFaces:
 		if otherFaceWeight.face in visitedFaces:
@@ -967,7 +968,7 @@ class FaceWeight:
 		self.prevFace = prevFace
 		self.weight = weight
 
-def getWeightedNormalAndMoveToNextFace(selectFaceWeight, visitedFaces, 
+def getWeightedNormalAndMoveToNextFace(selectFaceWeight, visitedFaces,
 	availableFaces, centerVert, edges):
 	selectLoop = getLoopFromFaceVert(selectFaceWeight.face, centerVert)
 	edgeIndex = getEdgeBetweenFaces(selectFaceWeight).index
@@ -1000,7 +1001,7 @@ def UVtoST(obj, loopIndex, uv_data, texDimensions, isPointSampled):
 	]
 
 
-def convertVertexData(mesh, loopPos, loopUV, loopColorOrNormal, 
+def convertVertexData(mesh, loopPos, loopUV, loopColorOrNormal,
 	texDimensions, transformMatrix, isPointSampled, exportVertexColors):
 	#uv_layer = mesh.uv_layers.active
 	#color_layer = mesh.vertex_colors['Col']
@@ -1076,27 +1077,27 @@ def createTriangleCommands(triangles, vertexBuffer, useSP2Triangle):
 		while len(triangles) > 0:
 			if len(triangles) >= 2:
 				commands.append(SP2Triangles(
-					vertexBuffer.index(triangles[0][0]), 
-					vertexBuffer.index(triangles[0][1]), 
+					vertexBuffer.index(triangles[0][0]),
+					vertexBuffer.index(triangles[0][1]),
 					vertexBuffer.index(triangles[0][2]), 0,
-					vertexBuffer.index(triangles[1][0]), 
-					vertexBuffer.index(triangles[1][1]), 
+					vertexBuffer.index(triangles[1][0]),
+					vertexBuffer.index(triangles[1][1]),
 					vertexBuffer.index(triangles[1][2]), 0))
 				triangles = triangles[2:]
 			else:
 				commands.append(SP1Triangle(
-					vertexBuffer.index(triangles[0][0]), 
-					vertexBuffer.index(triangles[0][1]), 
+					vertexBuffer.index(triangles[0][0]),
+					vertexBuffer.index(triangles[0][1]),
 					vertexBuffer.index(triangles[0][2]), 0))
 				triangles = []
 	else:
 		while len(triangles) > 0:
 			commands.append(SP1Triangle(
-				vertexBuffer.index(triangles[0][0]), 
-				vertexBuffer.index(triangles[0][1]), 
+				vertexBuffer.index(triangles[0][0]),
+				vertexBuffer.index(triangles[0][1]),
 				vertexBuffer.index(triangles[0][2]), 0))
 			triangles = triangles[1:]
-		
+
 	return commands
 
 # white diffuse, grey ambient, normal = (1,1,1)
@@ -1151,11 +1152,11 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 		materialKey = (material, drawLayer, areaKey)
 	else:
 		materialKey = (material, None, areaKey)
-	
+
 	materialItem = fModel.getMaterialAndHandleShared(materialKey)
 	if materialItem is not None:
 		return materialItem
-	
+
 	if len(obj.data.materials) == 0:
 		raise PluginError("Mesh must have at least one material.")
 	materialName = fModel.name + "_" + toAlnum(material.name) + (('_layer' + str(drawLayer)) \
@@ -1165,7 +1166,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 	fMaterial = FMaterial(materialName, fModel.DLFormat)
 	fMaterial.material.commands.append(DPPipeSync())
 	fMaterial.revert.commands.append(DPPipeSync())
-	
+
 	if not material.is_f3d:
 		raise PluginError("Material named " +  material.name + \
 			' is not an F3D material.')
@@ -1258,28 +1259,28 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 	if useDict['Texture 0'] and f3dMat.tex0.tex_set:
 		if f3dMat.tex0.tex is None and not f3dMat.tex0.use_tex_reference:
 			raise PluginError('In material \"' + material.name + '\", a texture has not been set.')
-		
+
 		fMaterial.useLargeTextures = not loadTextures
 		fMaterial.texturesLoaded[0] = True
 		fMaterial.saveLargeTextures[0] = f3dMat.tex0.save_large_texture
-		texDimensions0, nextTmem = saveTextureIndex(material.name, fModel, 
+		texDimensions0, nextTmem = saveTextureIndex(material.name, fModel,
 			fMaterial, fMaterial.material, fMaterial.revert, f3dMat.tex0, 0, nextTmem, None, convertTextureData,
 			None, loadTextures, True)
 	if useDict['Texture 1'] and f3dMat.tex1.tex_set:
 		if f3dMat.tex1.tex is None and not f3dMat.tex1.use_tex_reference:
 			raise PluginError('In material \"' + material.name + '\", a texture has not been set.')
-		
+
 		fMaterial.useLargeTextures = not loadTextures
 		fMaterial.texturesLoaded[1] = True
 		fMaterial.saveLargeTextures[1] = f3dMat.tex1.save_large_texture
-		texDimensions1, nextTmem = saveTextureIndex(material.name, fModel, 
+		texDimensions1, nextTmem = saveTextureIndex(material.name, fModel,
 			fMaterial, fMaterial.material, fMaterial.revert, f3dMat.tex1, 1, nextTmem, None, convertTextureData,
 			None, loadTextures, True)
 
 	# Used so we know how to convert normalized UVs when saving verts.
 	if texDimensions0 is not None and texDimensions1 is not None:
 		if f3dMat.uv_basis == 'TEXEL0':
-			texDimensions = texDimensions0 
+			texDimensions = texDimensions0
 			fMaterial.largeTextureIndex = 0
 		else:
 			texDimensions = texDimensions1
@@ -1307,12 +1308,12 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 			DPSetPrimColor(
 			int(f3dMat.prim_lod_min * 255),
 			int(f3dMat.prim_lod_frac * 255),
-			int(color[0] * 255), 
-			int(color[1] * 255), 
+			int(color[0] * 255),
+			int(color[1] * 255),
 			int(color[2] * 255),
 			int(color[3] * 255)))
 
-	if useDict['Environment'] and f3dMat.set_env:	
+	if useDict['Environment'] and f3dMat.set_env:
 		if material.mat_ver > 3:
 			color = f3dMat.env_color
 		elif material.mat_ver == 3:
@@ -1322,18 +1323,18 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 		color = gammaCorrect(color[0:3]) + [color[3]]
 		fMaterial.material.commands.append(
 			DPSetEnvColor(
-			int(color[0] * 255), 
-			int(color[1] * 255), 
+			int(color[0] * 255),
+			int(color[1] * 255),
 			int(color[2] * 255),
 			int(color[3] * 255)))
-	
+
 	if useDict['Shade'] and f3dMat.set_lights:
-		fLights = saveLightsDefinition(fModel, fMaterial, f3dMat, 
+		fLights = saveLightsDefinition(fModel, fMaterial, f3dMat,
 			materialName + '_lights')
 		fMaterial.material.commands.extend([
 			SPSetLights(fLights) # TODO: handle synching: NO NEED?
 		])
-	
+
 	if useDict['Key'] and f3dMat.set_key:
 		if material.mat_ver == 4:
 			center = f3dMat.key_center
@@ -1344,12 +1345,12 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 		fMaterial.material.commands.extend([
 			DPSetCombineKey('G_CK_KEY'),
 			# TODO: Add UI handling width
-			DPSetKeyR(int(center[0] * 255), int(scale[0] * 255), 
+			DPSetKeyR(int(center[0] * 255), int(scale[0] * 255),
 				int(width[0] * 2**8)),
-			DPSetKeyGB(int(center[1] * 255), int(scale[1] * 255), 
-				int(width[1] * 2**8), 
-				int(center[2] * 255), int(scale[2] * 255), 
-				int(width[2] * 2**8))	
+			DPSetKeyGB(int(center[1] * 255), int(scale[1] * 255),
+				int(width[1] * 2**8),
+				int(center[2] * 255), int(scale[2] * 255),
+				int(width[2] * 2**8))
 		])
 
 	# all k0-5 set at once
@@ -1368,7 +1369,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 		])
 
 	fModel.onMaterialCommandsBuilt(fMaterial.material, fMaterial.revert, material, drawLayer)
-		
+
 	# End Display List
 	# For dynamic calls, materials will be called as functions and should not end the DL.
 	if fModel.DLFormat == DLFormat.Static:
@@ -1380,14 +1381,14 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 			fMaterial.revert.commands.append(SPEndDisplayList())
 	else:
 		fMaterial.revert = None
-	
+
 	materialKey = material, (drawLayer if f3dMat.rdp_settings.set_rendermode else None), \
 		fModel.global_data.getCurrentAreaKey(f3dMat)
 	fModel.materials[materialKey] = (fMaterial, texDimensions)
 
 	return fMaterial, texDimensions
 
-def saveTextureIndex(propName, fModel, fMaterial, loadTexGfx, revertTexGfx, texProp, index, tmem, 
+def saveTextureIndex(propName, fModel, fMaterial, loadTexGfx, revertTexGfx, texProp, index, tmem,
 	overrideName, convertTextureData, tileSettingsOverride, loadTextures, loadPalettes):
 	tex = texProp.tex
 
@@ -1399,7 +1400,7 @@ def saveTextureIndex(propName, fModel, fMaterial, loadTexGfx, revertTexGfx, texP
 			raise PluginError('In ' + propName + ", no texture is selected.")
 		elif len(tex.pixels) == 0:
 			raise PluginError("Could not load missing texture: " + tex.name + ". Make sure this texture has not been deleted or moved on disk.")
-	
+
 	texFormat = texProp.tex_format
 	isCITexture = texFormat[:2] == 'CI'
 	palFormat = texProp.ci_format if isCITexture else ''
@@ -1413,7 +1414,7 @@ def saveTextureIndex(propName, fModel, fMaterial, loadTexGfx, revertTexGfx, texP
 		name = texProp.tex_reference
 	texName = fModel.name + '_' + \
 		(getNameFromPath(name, True) + '_' + texFormat.lower() if overrideName is None else overrideName)
-		
+
 
 	if tileSettingsOverride is not None:
 		tileSettings = tileSettingsOverride[index]
@@ -1428,7 +1429,7 @@ def saveTextureIndex(propName, fModel, fMaterial, loadTexGfx, revertTexGfx, texP
 		setTLUTMode = fModel.matWriteMethod == GfxMatWriteMethod.WriteAll
 
 	nextTmem = tmem + getTmemWordUsage(texFormat, width, height)
-	
+
 	if not bpy.context.scene.ignoreTextureRestrictions and loadTextures:
 		if nextTmem > (512 if texFormat[:2] != 'CI' else 256):
 			raise PluginError("Error in \"" + propName + "\": Textures are too big. Max TMEM size is 4k " + \
@@ -1444,7 +1445,7 @@ def saveTextureIndex(propName, fModel, fMaterial, loadTexGfx, revertTexGfx, texP
 		tex_SH = texProp.S.high
 		mask_S = texProp.S.mask
 		shift_S = texProp.S.shift
-	
+
 		clamp_T = texProp.T.clamp
 		mirror_T = texProp.T.mirror
 		tex_TL = texProp.T.low
@@ -1459,7 +1460,7 @@ def saveTextureIndex(propName, fModel, fMaterial, loadTexGfx, revertTexGfx, texP
 		tex_SH = tileSettings.sh
 		mask_S = 0
 		shift_S = 0
-	
+
 		clamp_T = True
 		mirror_T = False
 		tex_TL = tileSettings.tl
@@ -1475,29 +1476,29 @@ def saveTextureIndex(propName, fModel, fMaterial, loadTexGfx, revertTexGfx, texP
 		else:
 			fImage, fPalette = saveOrGetPaletteDefinition(
 				fMaterial, fModel, tex, texName, texFormat, palFormat, convertTextureData)
-		
+
 		if loadPalettes:
-			savePaletteLoading(loadTexGfx, revertTexGfx, fPalette, 
+			savePaletteLoading(loadTexGfx, revertTexGfx, fPalette,
 				palFormat, 0, fPalette.height, fModel.f3d, fModel.matWriteMethod)
 	else:
 		if texProp.use_tex_reference:
 			fImage = FImage(texProp.tex_reference, None, None, width, height, None, False)
 		else:
-			fImage = saveOrGetTextureDefinition(fMaterial, fModel, tex, texName, 
+			fImage = saveOrGetTextureDefinition(fMaterial, fModel, tex, texName,
 				texFormat, convertTextureData)
-	
+
 	if setTLUTMode and not isCITexture:
 		loadTexGfx.commands.append(DPSetTextureLUT('G_TT_NONE'))
 	if loadTextures:
 		saveTextureLoading(fMaterial, fImage, loadTexGfx, clamp_S,
 		 	mirror_S, clamp_T, mirror_T,
-			mask_S, mask_T, shift_S, 
-			shift_T, tex_SL, tex_TL, tex_SH, 
+			mask_S, mask_T, shift_S,
+			shift_T, tex_SL, tex_TL, tex_SH,
 			tex_TH, texFormat, index, fModel.f3d, tmem)
 	texDimensions = fImage.width, fImage.height
-	#fImage = saveTextureDefinition(fModel, tex, texName, 
+	#fImage = saveTextureDefinition(fModel, tex, texName,
 	#	texFormatOf[texFormat], texBitSizeOf[texFormat])
-	#fModel.textures[texName] = fImage	
+	#fModel.textures[texName] = fImage
 
 	return texDimensions, nextTmem
 
@@ -1519,7 +1520,7 @@ def saveTextureLoading(fMaterial, fImage, loadTexGfx, clamp_S, mirror_S, clamp_T
 	tl = int(TL * (2 ** f3d.G_TEXTURE_IMAGE_FRAC))
 	sh = int(SH * (2 ** f3d.G_TEXTURE_IMAGE_FRAC))
 	th = int(TH * (2 ** f3d.G_TEXTURE_IMAGE_FRAC))
-	
+
 	fmt = texFormatOf[tex_format]
 	siz = texBitSizeOf[tex_format]
 	pal = 0 if fmt[:2] != 'CI' else 0 # handle palettes
@@ -1531,7 +1532,7 @@ def saveTextureLoading(fMaterial, fImage, loadTexGfx, clamp_S, mirror_S, clamp_T
 	# LoadTile will pad rows to 64 bit word alignment, while
 	# LoadBlock assumes this is already done.
 
-	# These commands are basically DPLoadMultiBlock/Tile, 
+	# These commands are basically DPLoadMultiBlock/Tile,
 	# except for the load tile index which will be 6 instead of 7 for render tile = 1.
 	# This may be unnecessary, but at this point DPLoadMultiBlock/Tile is not implemented yet
 	# so it would be extra work for the same outcome.
@@ -1549,13 +1550,13 @@ def saveTextureLoading(fMaterial, fImage, loadTexGfx, clamp_S, mirror_S, clamp_T
 				DPSetTile(fmt, 'G_IM_SIZ_16b', 0, tmem, f3d.G_TX_LOADTILE - texIndex, 0,
 					cmt, maskt, shiftt, cms, masks, shifts),
 				DPLoadSync(),
-				DPLoadBlock(f3d.G_TX_LOADTILE - texIndex, 0, 0, (((fImage.width)*(fImage.height)+3)>>2)-1, dxt)])				
+				DPLoadBlock(f3d.G_TX_LOADTILE - texIndex, 0, 0, (((fImage.width)*(fImage.height)+3)>>2)-1, dxt)])
 		else:
 			loadTexGfx.commands.extend([
 				DPTileSync(), # added in
 				DPSetTextureImage(fmt, 'G_IM_SIZ_8b', fImage.width >> 1, fImage),
-				DPSetTile(fmt, 'G_IM_SIZ_8b', line, tmem, 
-					f3d.G_TX_LOADTILE - texIndex, 0, cmt, maskt, shiftt, 
+				DPSetTile(fmt, 'G_IM_SIZ_8b', line, tmem,
+					f3d.G_TX_LOADTILE - texIndex, 0, cmt, maskt, shiftt,
 				 	cms, masks, shifts),
 				DPLoadSync(),
 				DPLoadTile(f3d.G_TX_LOADTILE - texIndex, sl2, tl, sh2, th),])
@@ -1572,8 +1573,8 @@ def saveTextureLoading(fMaterial, fImage, loadTexGfx, clamp_S, mirror_S, clamp_T
 
 				# Load Block version
 				DPSetTextureImage(fmt, siz + '_LOAD_BLOCK', 1, fImage),
-				DPSetTile(fmt, siz + '_LOAD_BLOCK', 0, tmem, 
-					f3d.G_TX_LOADTILE - texIndex, 0, cmt, maskt, shiftt, 
+				DPSetTile(fmt, siz + '_LOAD_BLOCK', 0, tmem,
+					f3d.G_TX_LOADTILE - texIndex, 0, cmt, maskt, shiftt,
 				 	cms, masks, shifts),
 				DPLoadSync(),
 				DPLoadBlock(f3d.G_TX_LOADTILE - texIndex, 0, 0, \
@@ -1587,12 +1588,12 @@ def saveTextureLoading(fMaterial, fImage, loadTexGfx, clamp_S, mirror_S, clamp_T
 
 				# Load Tile version
 				DPSetTextureImage(fmt, siz, fImage.width, fImage),
-				DPSetTile(fmt, siz, line, tmem, 
-					f3d.G_TX_LOADTILE - texIndex, 0, cmt, maskt, shiftt, 
+				DPSetTile(fmt, siz, line, tmem,
+					f3d.G_TX_LOADTILE - texIndex, 0, cmt, maskt, shiftt,
 				 	cms, masks, shifts),
 				DPLoadSync(),
 				DPLoadTile(f3d.G_TX_LOADTILE - texIndex, sl, tl, sh, th),]) # added in
-	
+
 	tileSizeCommand = DPSetTileSize(f3d.G_TX_RENDERTILE + texIndex, sl, tl, sh, th)
 	loadTexGfx.commands.extend([
 		DPPipeSync(),
@@ -1608,7 +1609,7 @@ def saveTextureLoading(fMaterial, fImage, loadTexGfx, clamp_S, mirror_S, clamp_T
 
 # palette stored in upper half of TMEM (words 256-511)
 # pal is palette number (0-16), for CI8 always set to 0
-def savePaletteLoading(loadTexGfx, revertTexGfx, fPalette, palFormat, pal, 
+def savePaletteLoading(loadTexGfx, revertTexGfx, fPalette, palFormat, pal,
 	colorCount, f3d, matWriteMethod):
 	palFmt = texFormatOf[palFormat]
 	cms = ['G_TX_WRAP', 'G_TX_NOMIRROR']
@@ -1634,7 +1635,7 @@ def savePaletteLoading(loadTexGfx, revertTexGfx, fPalette, palFormat, pal,
 				(256+(((pal)&0xf)*16)), \
             	palFmt, 'G_IM_SIZ_16b', 4*colorCount, 1,
             	pal, cms, cmt, 0, 0, 0, 0)])
-	
+
 def saveOrGetPaletteDefinition(fMaterial, fModelOrTexRect, image, imageName, texFmt, palFmt, convertTextureData):
 	texFormat = texFormatOf[texFmt]
 	palFormat = texFormatOf[palFmt]
@@ -1664,14 +1665,14 @@ def saveOrGetPaletteDefinition(fMaterial, fModelOrTexRect, image, imageName, tex
 					pixelColor = getIA16Tuple(color)
 				else:
 					raise PluginError("Invalid combo: " + palFormat + ', ' + bitSize)
-				
+
 				if pixelColor not in palette:
 					palette.append(pixelColor)
 					if len(palette) > maxColors:
 						raise PluginError('Texture ' + imageName + ' has more than ' + \
 							str(maxColors) + ' colors.')
 				texture.append(palette.index(pixelColor))
-	
+
 	if image.filepath == "":
 		name = image.name
 	else:
@@ -1682,29 +1683,29 @@ def saveOrGetPaletteDefinition(fMaterial, fModelOrTexRect, image, imageName, tex
 		fModelOrTexRect.getTextureSuffixFromFormat(texFmt) + '.pal'
 	#paletteFilename = getNameFromPath(name, True) + '.' + \
 	#	fModelOrTexRect.getTextureSuffixFromFormat(palFmt) + '.inc.c'
-	fImage = FImage(checkDuplicateTextureName(fModelOrTexRect, toAlnum(imageName)), texFormat, bitSize, 
+	fImage = FImage(checkDuplicateTextureName(fModelOrTexRect, toAlnum(imageName)), texFormat, bitSize,
 		image.size[0], image.size[1], filename, convertTextureData)
 
-	fPalette = FImage(checkDuplicateTextureName(fModelOrTexRect, paletteName), palFormat, 'G_IM_SIZ_16b', 1, 
+	fPalette = FImage(checkDuplicateTextureName(fModelOrTexRect, paletteName), palFormat, 'G_IM_SIZ_16b', 1,
 		len(palette), paletteFilename, convertTextureData)
 	if fMaterial.useLargeTextures:
 		fImage.isLargeTexture = True
 		fPalette.isLargeTexture = True
 	fImage.paletteKey = paletteKey
-	
+
 	#paletteImage = bpy.data.images.new(paletteName, 1, len(palette))
 	#paletteImage.pixels = palette
 	#paletteImage.filepath = paletteFilename
 
 	if convertTextureData:
 		for color in palette:
-			fPalette.data.extend(color.to_bytes(2, 'big')) 
+			fPalette.data.extend(color.to_bytes(2, 'big'))
 
 		if bitSize == 'G_IM_SIZ_4b':
 			fImage.data = compactNibbleArray(texture, image.size[0], image.size[1])
-		else:	
+		else:
 			fImage.data = bytearray(texture)
-	
+
 	fModelOrTexRect.addTexture((image, (texFmt, palFmt)), fImage, fMaterial)
 	fModelOrTexRect.addTexture((image, (palFmt, 'PAL')), fPalette, fMaterial)
 
@@ -1721,7 +1722,7 @@ def compactNibbleArray(texture, width, height):
 
 	if (width * height) % 2 == 1:
 		nibbleData.append((texture[-1] & 0xF) << 4)
-	
+
 	return bytearray(nibbleData)
 
 def checkDuplicateTextureName(fModelOrTexRect, name):
@@ -1749,7 +1750,7 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image, imageName, texFormat, c
 	filename = getNameFromPath(name, True) + '.' + \
 		fModel.getTextureSuffixFromFormat(texFormat) + '.inc.c'
 
-	fImage = FImage(checkDuplicateTextureName(fModel, toAlnum(imageName)), fmt, bitSize, 
+	fImage = FImage(checkDuplicateTextureName(fModel, toAlnum(imageName)), fmt, bitSize,
 		image.size[0], image.size[1], filename, convertTextureData)
 	if fMaterial.useLargeTextures:
 		fImage.isLargeTexture = True
@@ -1781,7 +1782,7 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image, imageName, texFormat, c
 					for j in reversed(range(image.size[1])) for i in range(image.size[0]) for field in range(image.channels)])
 			else:
 				raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
-		
+
 		elif fmt == 'G_IM_FMT_YUV':
 			raise PluginError("YUV not yet implemented.")
 			if bitSize == 'G_IM_SIZ_16b':
@@ -1818,7 +1819,7 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image, imageName, texFormat, c
 								(j * image.size[0] + i) * image.channels :
 								(j * image.size[0] + i) * image.channels + 3
 							]).v * 0xFF)) & 0xFF,
-						int(round(image.pixels[(j * image.size[0] + i) * image.channels + 3] * 0xFF)) & 0xFF) 
+						int(round(image.pixels[(j * image.size[0] + i) * image.channels + 3] * 0xFF)) & 0xFF)
 					for j in reversed(range(image.size[1])) for i in range(image.size[0])] for byteVal in doubleByte])
 			else:
 				raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
@@ -1829,7 +1830,7 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image, imageName, texFormat, c
 						image.pixels[
 							(j * image.size[0] + i) * image.channels :
 							(j * image.size[0] + i) * image.channels + 3
-						]).v * 0xF)) & 0xF 
+						]).v * 0xF)) & 0xF
 				for j in reversed(range(image.size[1])) for i in range(image.size[0])])
 			elif bitSize == 'G_IM_SIZ_8b':
 				fImage.data = bytearray([
@@ -1837,7 +1838,7 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image, imageName, texFormat, c
 						image.pixels[
 							(j * image.size[0] + i) * image.channels :
 							(j * image.size[0] + i) * image.channels + 3
-						]).v * 0xFF)) & 0xFF 
+						]).v * 0xFF)) & 0xFF
 				for j in reversed(range(image.size[1])) for i in range(image.size[0])])
 			else:
 				raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
@@ -1848,7 +1849,7 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image, imageName, texFormat, c
 		if bitSize == 'G_IM_SIZ_4b':
 			fImage.data = \
 				compactNibbleArray(fImage.data, image.size[0], image.size[1])
-	
+
 	print("Finished converting.")
 	fModel.addTexture((image, (texFormat, 'NONE')), fImage, fMaterial)
 
@@ -1914,7 +1915,7 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image, imageName, texFormat, c
 	#					raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
 	#			else:
 	#				raise PluginError("Invalid image format " + fmt)
-	#		
+	#
 	#	# We stored 4bit values in byte arrays, now to convert
 	#	if bitSize == 'G_IM_SIZ_4b':
 	#		fImage.data = \
@@ -1928,7 +1929,7 @@ def saveLightsDefinition(fModel, fMaterial, material, lightsName):
 	lights = fModel.getLightAndHandleShared(lightsName)
 	if lights is not None:
 		return lights
-		
+
 	lights = Lights(toAlnum(lightsName))
 
 	if material.use_default_lighting:
@@ -1940,7 +1941,7 @@ def saveLightsDefinition(fModel, fMaterial, material, lightsName):
 		lights.l.append(Light(
 			[int(color[0] * 255),
 			int(color[1] * 255),
-			int(color[2] * 255)], 
+			int(color[2] * 255)],
 			[0x28, 0x28, 0x28]))
 	else:
 		ambientColor = gammaCorrect(material.ambient_light_color)
@@ -1979,7 +1980,7 @@ def addLightDefinition(mat, f3d_light, fLights):
 	#if lightObj is None:
 	#	raise PluginError(
 	#		"The material \"" + mat.name + "\" is referencing a light that is no longer in the scene (i.e. has been deleted).")
-	
+
 	fLights.l.append(Light(
 		getLightColor(f3d_light.color),
 		getLightRotation(f3d_light),
@@ -2006,7 +2007,7 @@ def getObjDirection(obj):
 	return normToSigned8Vector(normal)
 
 def normToSigned8Vector(normal):
-	return [int.from_bytes(int(value * 127).to_bytes(1, 'big', 
+	return [int.from_bytes(int(value * 127).to_bytes(1, 'big',
 		signed = True), 'big') for value in normal]
 
 def saveBitGeo(value, defaultValue, flagName, setGeo, clearGeo, matWriteMethod):
@@ -2033,7 +2034,7 @@ def saveGeoModeDefinition(fMaterial, settings, defaults, matWriteMethod):
 		setGeo, clearGeo, matWriteMethod)
 
 	# make sure normals are saved correctly.
-	saveBitGeo(settings.g_tex_gen, defaults.g_tex_gen, 'G_TEXTURE_GEN', 
+	saveBitGeo(settings.g_tex_gen, defaults.g_tex_gen, 'G_TEXTURE_GEN',
 		setGeo, clearGeo, matWriteMethod)
 	saveBitGeo(settings.g_tex_gen_linear, defaults.g_tex_gen_linear,
 		'G_TEXTURE_GEN_LINEAR', setGeo, clearGeo, matWriteMethod)
@@ -2041,7 +2042,7 @@ def saveGeoModeDefinition(fMaterial, settings, defaults, matWriteMethod):
 		'G_SHADING_SMOOTH', setGeo, clearGeo, matWriteMethod)
 	if bpy.context.scene.f3d_type == 'F3DEX_GBI_2' or \
 		bpy.context.scene.f3d_type == 'F3DEX_GBI':
-		saveBitGeo(settings.g_clipping, defaults.g_clipping, 'G_CLIPPING', 
+		saveBitGeo(settings.g_clipping, defaults.g_clipping, 'G_CLIPPING',
 			setGeo, clearGeo, matWriteMethod)
 
 	if len(setGeo.flagList) > 0:
@@ -2083,7 +2084,7 @@ def saveOtherModeHDefinitionAll(fMaterial, settings, defaults, isHWv1):
 	cmd.flagList.append(settings.g_mdsft_pipeline)
 
 	fMaterial.material.commands.append(cmd)
-		
+
 def saveOtherModeHDefinitionIndividual(fMaterial, settings, defaults, isHWv1):
 	saveModeSetting(fMaterial, settings.g_mdsft_alpha_dither,
 		defaults.g_mdsft_alpha_dither, DPSetAlphaDither)
@@ -2094,7 +2095,7 @@ def saveOtherModeHDefinitionIndividual(fMaterial, settings, defaults, isHWv1):
 
 		saveModeSetting(fMaterial, settings.g_mdsft_combkey,
 			defaults.g_mdsft_combkey, DPSetCombineKey)
-	
+
 	saveModeSetting(fMaterial, settings.g_mdsft_textconv,
 		defaults.g_mdsft_textconv, DPSetTextureConvert)
 
@@ -2112,14 +2113,14 @@ def saveOtherModeHDefinitionIndividual(fMaterial, settings, defaults, isHWv1):
 
 	saveModeSetting(fMaterial, settings.g_mdsft_textpersp,
 		defaults.g_mdsft_textpersp, DPSetTexturePersp)
-	
+
 	saveModeSetting(fMaterial, settings.g_mdsft_cycletype,
 		defaults.g_mdsft_cycletype, DPSetCycleType)
 
 	if isHWv1:
 		saveModeSetting(fMaterial, settings.g_mdsft_color_dither,
 			defaults.g_mdsft_color_dither, DPSetColorDither)
-	
+
 	saveModeSetting(fMaterial, settings.g_mdsft_pipeline,
 		defaults.g_mdsft_pipeline, DPPipelineMode)
 
@@ -2136,7 +2137,7 @@ def saveOtherModeLDefinitionAll(fMaterial, settings, defaults, defaultRenderMode
 		cmd = SPSetOtherMode("G_SETOTHERMODE_L", 0, 3, [])
 		cmd.flagList.append(settings.g_mdsft_alpha_compare)
 		cmd.flagList.append(settings.g_mdsft_zsrcsel)
-	
+
 	else:
 		cmd = SPSetOtherMode("G_SETOTHERMODE_L", 0, 32, [])
 		cmd.flagList.append(settings.g_mdsft_alpha_compare)
@@ -2174,7 +2175,7 @@ def getRenderModeFlagList(settings, fMaterial):
 	flagList = []
 	blendList = None
 	# cycle independent
-	
+
 	if not settings.rendermode_advanced_enabled:
 		fMaterial.renderModeUseDrawLayer = [
 			settings.rendermode_preset_cycle_1 == 'Use Draw Layer',
@@ -2182,7 +2183,7 @@ def getRenderModeFlagList(settings, fMaterial):
 
 		if settings.g_mdsft_cycletype == 'G_CYC_2CYCLE':
 			flagList = [
-				settings.rendermode_preset_cycle_1, 
+				settings.rendermode_preset_cycle_1,
 				settings.rendermode_preset_cycle_2]
 		else:
 			cycle2 = settings.rendermode_preset_cycle_1 + '2'
@@ -2193,15 +2194,15 @@ def getRenderModeFlagList(settings, fMaterial):
 	else:
 		if settings.g_mdsft_cycletype == 'G_CYC_2CYCLE':
 			blendList = \
-				[settings.blend_p1, settings.blend_a1, 
+				[settings.blend_p1, settings.blend_a1,
 				settings.blend_m1, settings.blend_b1,
-				settings.blend_p2, settings.blend_a2, 
+				settings.blend_p2, settings.blend_a2,
 				settings.blend_m2, settings.blend_b2]
 		else:
 			blendList = \
-				[settings.blend_p1, settings.blend_a1, 
+				[settings.blend_p1, settings.blend_a1,
 				settings.blend_m1, settings.blend_b1,
-				settings.blend_p1, settings.blend_a1, 
+				settings.blend_p1, settings.blend_a1,
 				settings.blend_m1, settings.blend_b1]
 
 		if settings.aa_en:
@@ -2232,12 +2233,12 @@ def saveOtherDefinition(fMaterial, material, defaults):
 	if settings.clip_ratio != defaults.clip_ratio:
 		fMaterial.material.commands.append(SPClipRatio(settings.clip_ratio))
 		fMaterial.revert.commands.append(SPClipRatio(defaults.clip_ratio))
-	
+
 	if material.set_blend:
 		fMaterial.material.commands.append(
 			DPSetBlendColor(
-			int(material.blend_color[0] * 255), 
-			int(material.blend_color[1] * 255), 
+			int(material.blend_color[0] * 255),
+			int(material.blend_color[1] * 255),
 			int(material.blend_color[2] * 255),
 			int(material.blend_color[3] * 255)))
 
@@ -2258,11 +2259,11 @@ def getWriteMethodFromEnum(enumVal):
 	else:
 		return matWriteMethodEnumDict[enumVal]
 
-def exportF3DtoC(dirPath, obj, DLFormat, transformMatrix, 
+def exportF3DtoC(dirPath, obj, DLFormat, transformMatrix,
 	f3dType, isHWv1, texDir, savePNG, texSeparate, name, matWriteMethod):
 
 	fModel = FModel(f3dType, isHWv1, name, DLFormat, matWriteMethod)
-	fMesh = exportF3DCommon(obj, fModel, transformMatrix, 
+	fMesh = exportF3DCommon(obj, fModel, transformMatrix,
 		True, name, DLFormat, not savePNG)
 
 	modelDirPath = os.path.join(dirPath, toAlnum(name))
@@ -2279,8 +2280,8 @@ def exportF3DtoC(dirPath, obj, DLFormat, transformMatrix,
 	if DLFormat == DLFormat.Static:
 		staticData.append(dynamicData)
 	else:
-		geoString = writeMaterialFiles(dirPath, modelDirPath, 
-			'#include "actors/' + toAlnum(name) + '/header.h"', 
+		geoString = writeMaterialFiles(dirPath, modelDirPath,
+			'#include "actors/' + toAlnum(name) + '/header.h"',
 			'#include "actors/' + toAlnum(name) + '/material.inc.h"',
 			dynamicData.header, dynamicData.source, '', True)
 
@@ -2305,7 +2306,7 @@ def removeDL(sourcePath, headerPath, DLName):
 
 	headerMatch = getDeclaration(DLDataH, DLName)
 	if headerMatch is not None:
-		DLDataH = DLDataH[:headerMatch.start(0)] + DLDataH[headerMatch.end(0):] 
+		DLDataH = DLDataH[:headerMatch.start(0)] + DLDataH[headerMatch.end(0):]
 
 	if DLDataC != originalDataC:
 		writeFile(sourcePath, DLDataC)
@@ -2339,7 +2340,7 @@ class F3D_ExportDL(bpy.types.Operator):
 		except Exception as e:
 			raisePluginError(self, e)
 			return {"CANCELLED"}
-		
+
 		try:
 			applyRotation([obj], math.radians(90), 'X')
 
@@ -2353,7 +2354,7 @@ class F3D_ExportDL(bpy.types.Operator):
 			DLName = bpy.context.scene.DLName
 			matWriteMethod = getWriteMethodFromEnum(context.scene.matWriteMethod)
 
-			exportF3DtoC(exportPath, obj, dlFormat, finalTransform, 
+			exportF3DtoC(exportPath, obj, dlFormat, finalTransform,
 				f3dType, isHWv1, texDir, savePNG, separateTexDef, DLName, matWriteMethod)
 
 			self.report({'INFO'}, 'Success!')
@@ -2390,11 +2391,11 @@ class F3D_ExportDLPanel(bpy.types.Panel):
 		prop_split(col, context.scene, "blenderF3DScale", "Scale")
 		prop_split(col, context.scene, 'matWriteMethod', "Material Write Method")
 		col.prop(context.scene, 'DLExportisStatic')
-		
+
 		if not bpy.context.scene.ignoreTextureRestrictions:
 			if context.scene.saveTextures:
 				prop_split(col, context.scene, 'DLTexDir',
-					'Texture Include Path') 
+					'Texture Include Path')
 				col.prop(context.scene, 'DLSeparateTextureDef')
 
 f3d_writer_classes = (
