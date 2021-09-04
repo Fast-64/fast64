@@ -600,6 +600,11 @@ def copy_object_and_apply(obj: bpy.types.Object, apply_scale = False, apply_modi
 	if apply_scale:
 		bounds_mtx *= scale_mtx_from_vector(obj.scale) # apply scale if needed
 	bounds_mtx = bounds_mtx @ transform_mtx_blender_to_n64()
+	if obj.name == 'CubeSubdivided':
+		from pprint import pprint
+		print('HOHOHOHO')
+		pprint([b[:] for b in obj_copy.bound_box[:]])
+		print('HOHOHOHO')
 	obj_copy['culling_bounds'] = rotate_bounds(obj_copy.bound_box, bounds_mtx)
 
 def store_original_meshes(add_warning: Callable[[str], None]):
@@ -1173,9 +1178,8 @@ def translate_xyz_to_xzy(translate: mathutils.Vector):
 	xzy_translate[2] = -xzy_translate[2]
 	return xzy_translate
 
-def rotation_xyz_quat_to_xzy_quat(rotation: mathutils.Quaternion):
-    euler_rot = rotation.to_matrix().inverted().to_euler('ZXY')
-    new_rot = mathutils.Euler([-euler_rot.x, -euler_rot.z, euler_rot.y], 'ZXY')
+def rotate_quat_blender_to_n64(rotation: mathutils.Quaternion):
+    new_rot = (transform_mtx_blender_to_n64() @ rotation.to_matrix().to_4x4() @ transform_mtx_blender_to_n64().inverted())
     return new_rot.to_quaternion()
 
 def all_values_equal_x(vals: Iterable, test):

@@ -912,7 +912,7 @@ def processMesh(
 		orig_mtx = mathutils.Matrix(obj['original_mtx'])
 		translate, rotate, scale = orig_mtx.decompose()
 		translate = translate_xyz_to_xzy(translate)
-		rotate = rotation_xyz_quat_to_xzy_quat(rotate)
+		rotate = rotate_quat_blender_to_n64(rotate)
 	else: # object is NOT instanced
 		translate, rotate, scale = obj.matrix_local.decompose()
 	rotAxis, rotAngle = rotate.to_axis_angle()
