@@ -509,7 +509,7 @@ class SM64_ExportDL(bpy.types.Operator):
 					DLFormat.Static if context.scene.DLExportisStatic else DLFormat.Dynamic, finalTransform,
 					context.scene.f3d_type, context.scene.isHWv1,
 					bpy.context.scene.DLTexDir,
-					bpy.context.scene.DLSaveTextures or bpy.context.scene.ignoreTextureRestrictions,
+					bpy.context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions,
 					bpy.context.scene.DLSeparateTextureDef,
 					bpy.context.scene.DLincludeChildren, bpy.context.scene.DLName, levelName, context.scene.DLGroupName,
 					context.scene.DLCustomExport,
@@ -520,7 +520,7 @@ class SM64_ExportDL(bpy.types.Operator):
 				#	'DLFormat.Static if context.scene.DLExportisStatic else DLFormat.Dynamic, finalTransform,' +\
 				#	'context.scene.f3d_type, context.scene.isHWv1,' +\
 				#	'bpy.context.scene.DLTexDir,' +\
-				#	'bpy.context.scene.DLSaveTextures or bpy.context.scene.ignoreTextureRestrictions,' +\
+				#	'bpy.context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions,' +\
 				#	'bpy.context.scene.DLSeparateTextureDef,' +\
 				#	'bpy.context.scene.DLincludeChildren, bpy.context.scene.DLName, levelName, context.scene.DLGroupName,' +\
 				#	'context.scene.DLCustomExport,' +\
@@ -634,12 +634,10 @@ class SM64_ExportDLPanel(bpy.types.Panel):
 			if context.scene.DLCustomExport:
 				col.prop(context.scene, 'DLExportPath')
 				prop_split(col, context.scene, 'DLName', 'Name')
-				if not bpy.context.scene.ignoreTextureRestrictions:
-					col.prop(context.scene, 'DLSaveTextures')
-					if context.scene.DLSaveTextures:
-						prop_split(col, context.scene, 'DLTexDir',
-							'Texture Include Path')	
-						col.prop(context.scene, 'DLSeparateTextureDef')
+				if not bpy.context.scene.ignoreTextureRestrictions and context.scene.saveTextures:
+					prop_split(col, context.scene, 'DLTexDir',
+						'Texture Include Path')	
+					col.prop(context.scene, 'DLSeparateTextureDef')
 				customExportWarning(col)
 			else:
 				prop_split(col, context.scene, 'DLExportHeaderType', 'Export Type')
@@ -650,10 +648,8 @@ class SM64_ExportDLPanel(bpy.types.Panel):
 					prop_split(col, context.scene, 'DLLevelOption', 'Level')
 					if context.scene.DLLevelOption == 'custom':
 						prop_split(col, context.scene, 'DLLevelName', 'Level Name')
-				if not bpy.context.scene.ignoreTextureRestrictions:
-					col.prop(context.scene, 'DLSaveTextures')
-					if context.scene.DLSaveTextures:
-						col.prop(context.scene, 'DLSeparateTextureDef')
+				if not bpy.context.scene.ignoreTextureRestrictions and context.scene.saveTextures:
+					col.prop(context.scene, 'DLSeparateTextureDef')
 				
 				decompFolderMessage(col)
 				writeBox = makeWriteInfoBox(col)
@@ -701,7 +697,7 @@ class ExportTexRectDraw(bpy.types.Operator):
 					context.scene.texrect,
 					context.scene.f3d_type, context.scene.isHWv1,
 					'textures/segment2',
-					context.scene.TexRectSaveTextures or bpy.context.scene.ignoreTextureRestrictions,
+					context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions,
 					context.scene.TexRectName,
 					not context.scene.TexRectCustomExport,
 					enumHUDPaths[context.scene.TexRectExportType])
@@ -756,8 +752,6 @@ class ExportTexRectDrawPanel(bpy.types.Panel):
 			col.prop(textureProp.T, 'mirror', text = 'Mirror T')
 			
 		prop_split(col, context.scene, 'TexRectName', 'Name')
-		if not bpy.context.scene.ignoreTextureRestrictions:
-			col.prop(context.scene, 'TexRectSaveTextures')
 		col.prop(context.scene, 'TexRectCustomExport')
 		if context.scene.TexRectCustomExport:
 			col.prop(context.scene, 'TexRectExportPath')
@@ -899,8 +893,6 @@ def sm64_dl_writer_register():
 		default = '80000000')
 	bpy.types.Scene.DLTexDir = bpy.props.StringProperty(
 		name ='Include Path', default = 'levels/bob')
-	bpy.types.Scene.DLSaveTextures = bpy.props.BoolProperty(
-		name = 'Save Textures As PNGs (Breaks CI Textures)')
 	bpy.types.Scene.DLSeparateTextureDef = bpy.props.BoolProperty(
 		name = 'Save texture.inc.c separately')
 	bpy.types.Scene.DLincludeChildren = bpy.props.BoolProperty(
@@ -924,7 +916,6 @@ def sm64_dl_writer_register():
 	bpy.types.Scene.texrectImageTexture = bpy.props.PointerProperty(type = bpy.types.ImageTexture)
 	bpy.types.Scene.TexRectExportPath = bpy.props.StringProperty(name = 'Export Path', subtype='FILE_PATH')
 	bpy.types.Scene.TexRectTexDir = bpy.props.StringProperty(name = 'Include Path', default = 'textures/segment2')
-	bpy.types.Scene.TexRectSaveTextures = bpy.props.BoolProperty(name = 'Save Textures as PNGs (Breaks CI Textures)')
 	bpy.types.Scene.TexRectName = bpy.props.StringProperty(name = 'Name', default = 'render_hud_image')
 	bpy.types.Scene.TexRectCustomExport = bpy.props.BoolProperty(name = 'Custom Export Path')
 	bpy.types.Scene.TexRectExportType = bpy.props.EnumProperty(name = 'Export Type', items = enumHUDExportLocation)
@@ -945,7 +936,6 @@ def sm64_dl_writer_unregister():
 	del bpy.types.Scene.DLUseBank0
 	del bpy.types.Scene.DLRAMAddr
 	del bpy.types.Scene.DLTexDir
-	del bpy.types.Scene.DLSaveTextures
 	del bpy.types.Scene.DLSeparateTextureDef
 	del bpy.types.Scene.DLincludeChildren
 	del bpy.types.Scene.DLInsertableBinaryPath
@@ -959,7 +949,6 @@ def sm64_dl_writer_unregister():
 	del bpy.types.Scene.texrect
 	del bpy.types.Scene.TexRectExportPath
 	del bpy.types.Scene.TexRectTexDir
-	del bpy.types.Scene.TexRectSaveTextures
 	del bpy.types.Scene.TexRectName
 	del bpy.types.Scene.texrectImageTexture
 	del bpy.types.Scene.TexRectCustomExport
