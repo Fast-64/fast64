@@ -1,3 +1,7 @@
+from collections import defaultdict
+from bpy.utils import register_class, unregister_class
+import bpy, os, math, re, shutil
+
 from .sm64_constants import *
 from .sm64_objects import *
 from .sm64_collision import *
@@ -7,10 +11,6 @@ from .sm64_utility import *
 
 from ..utility import *
 from ..operators import ObjectDataExporter
-
-from bpy.utils import register_class, unregister_class
-from io import BytesIO
-import bpy, bmesh, os, math, re, shutil, cProfile, pstats
 
 levelDefineArgs = {
 	'internal name' : 0,
@@ -217,6 +217,15 @@ class LevelDefines:
 		self.defineMacros.append(macroCmd)
 		return macroCmd
 
+FAST64KEEP = 'FAST64KEEP'
+FAST64END = 'FAST64END'
+FAST64_KEEPS = {
+	'INCLUDES': 'INCLUDES',
+	'SCRIPTS': 'SCRIPTS',
+	'LEVEL_COMMANDS': 'LEVEL_COMMANDS',
+	'AREA_COMMANDS': 'AREA_COMMANDS',
+}
+
 class LevelScript:
 	def __init__(self, name):
 		self.name = name
@@ -226,6 +235,7 @@ class LevelScript:
 		self.modelLoads = []
 		self.actorIncludes = []
 		self.marioStart = None
+		self.keeps = dict(INCLUDES=[], SCRIPTS=[], LEVEL_COMMANDS=[], AREA_COMMANDS=defaultdict(list))
 
 	def to_c(self, areaString):
 		result = '#include <ultra64.h>\n' +\
@@ -241,9 +251,14 @@ class LevelScript:
 
 		for actorInclude in self.actorIncludes:
 			result += actorInclude + '\n'
+		
+		result += f'\n{self.get_keeps(FAST64_KEEPS["INCLUDES"])}\n\n'
 
-		result += '\n#include "make_const_nonconst.h"\n'
+		result += '#include "make_const_nonconst.h"\n'
 		result += '#include "levels/' + self.name + '/header.h"\n\n'
+
+		result += f'{self.get_keeps(FAST64_KEEPS["SCRIPTS"])}\n\n'
+
 		result += 'const LevelScript level_' + self.name + '_entry[] = {\n'
 		result += '\tINIT_LEVEL(),\n'
 		for segmentLoad in self.segmentLoads:
@@ -255,6 +270,8 @@ class LevelScript:
 		for modelLoad in self.modelLoads:
 			result += '\t' + macroToString(modelLoad, True) + '\n'
 		result += '\n'
+
+		result += f'{self.get_keeps(FAST64_KEEPS["LEVEL_COMMANDS"], nTabs=1)}\n\n'
 
 		result += areaString
 
@@ -271,6 +288,16 @@ class LevelScript:
 		    '\tEXIT(),\n};\n'
 
 		return result
+	
+	def get_keeps(self, retainType: str, nTabs = 0, areaIndex: str = None):
+		tabs = '\t' * nTabs
+		keeps = [f'{tabs}/* {FAST64KEEP} {retainType} */']
+		if areaIndex:
+			keeps.extend(self.keeps[FAST64_KEEPS['AREA_COMMANDS']].get(areaIndex, []))
+		else:
+			keeps.extend(self.keeps.get(retainType, []))
+		keeps.append(f'{tabs}/* {FAST64END} {retainType} */')
+		return '\n'.join(keeps)
 
 def parseCourseDefines(filepath):
 	if not os.path.exists(filepath):
@@ -421,6 +448,40 @@ def removeActSelectorIgnore(basePath, levelEnum):
 	if data != newData:
 		saveDataToFile(filepath, newData)
 
+def parseLevelFast64Ignores(scriptData: str, levelScript: LevelScript):
+	keep: str = None
+	areaIndex: str = None
+
+	i = 0
+	for line in scriptData.splitlines():
+		print(line, i)
+		i += 1
+		if keep and FAST64END in line:
+			keep = None
+			areaIndex = None
+		
+		elif re.match('.*AREA\(([0-9]+),.+\),', line):
+			match = re.match('.*AREA\(([0-9]+),.+\),', line)
+			areaIndex = match.group(1)
+			print('found match', areaIndex, type(areaIndex))
+
+		elif keep and keep == FAST64_KEEPS['AREA_COMMANDS']:
+			if areaIndex:
+				levelScript.keeps[keep][areaIndex].append(line)
+			else:
+				raise PluginError('FAST64KEEP AREA_COMMANDS found outside of area block')
+
+		elif keep:
+			levelScript.keeps[keep].append(line)
+
+		elif FAST64KEEP in line:
+			keepMatch = re.match('.*FAST64KEEP ([A-Z_]+).*', line)
+			keep = keepMatch.group(1)
+	
+	if keep:
+		raise PluginError(f'"FAST64KEEP {keep}" never found a "FAST64END"')
+
+
 def parseLevelScript(filepath, levelName):
 	scriptPath = os.path.join(filepath, 'script.c')
 	scriptData = getDataFromFile(scriptPath)
@@ -460,6 +521,7 @@ def parseLevelScript(filepath, levelName):
 		elif macroCmd[0] == 'END_AREA':
 			inArea = False
 
+	parseLevelFast64Ignores(scriptData, levelscript)
 	return levelscript
 
 def overwritePuppycamData(filePath, levelToReplace, newPuppycamTriggers):
@@ -603,7 +665,11 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 			geolayoutGraph.startGeolayout, collision, levelName + '_' + areaName)
 		if area.mario_start is not None:
 			prevLevelScript.marioStart = area.mario_start
-		areaString += area.to_c_script(child.enableRoomSwitch)
+		keepString = prevLevelScript.get_keeps(FAST64_KEEPS['AREA_COMMANDS'], nTabs=2, areaIndex=str(area.index))
+		areaString += area.to_c_script(
+			child.enableRoomSwitch,
+			keepString=keepString
+		)
 		cameraVolumeString += area.to_c_camera_volumes()
 		puppycamVolumeString += area.to_c_puppycam_volumes()
 
