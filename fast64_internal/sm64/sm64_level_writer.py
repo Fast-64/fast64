@@ -217,14 +217,26 @@ class LevelDefines:
 		self.defineMacros.append(macroCmd)
 		return macroCmd
 
-beginPersistentBlockMagic = 'Fast64 begin persistent block'
-endPersistentBlockMagic = 'Fast64 end persistent block'
-persistentBlocksNames = {
-	'[includes]': '[includes]',
-	'[scripts]': '[scripts]',
-	'[level commands]': '[level commands]',
-	'[area commands]': '[area commands]',
-}
+class PersistentBlocks:
+	beginMagic = 'Fast64 begin persistent block'
+	endMagic = 'Fast64 end persistent block'
+
+	beginRegex = re.compile(fr'.*{beginMagic} (\[[\w ]+\]).*')
+	endRegex = re.compile(fr'.*{endMagic} (\[[\w ]+\]).*')
+
+	includes = '[includes]'
+	scripts = '[scripts]'
+	levelCommands = '[level commands]'
+	areaCommands = '[area commands]'
+
+	@classmethod
+	def new(cls):
+		return {
+			cls.includes: [],
+			cls.scripts: [],
+			cls.levelCommands: [],
+			cls.areaCommands: defaultdict(list)
+		}
 
 class LevelScript:
 	def __init__(self, name):
@@ -235,12 +247,7 @@ class LevelScript:
 		self.modelLoads = []
 		self.actorIncludes = []
 		self.marioStart = None
-		self.persistentBlocks = {
-			'[includes]': [],
-			'[scripts]': [],
-			'[level commands]': [],
-			'[area commands]': defaultdict(list)
-		}
+		self.persistentBlocks = PersistentBlocks.new()
 
 	def to_c(self, areaString):
 		result = '#include <ultra64.h>\n' +\
@@ -257,12 +264,12 @@ class LevelScript:
 		for actorInclude in self.actorIncludes:
 			result += actorInclude + '\n'
 		
-		result += f'\n{self.get_persistent_block(persistentBlocksNames["[includes]"])}\n\n'
+		result += f'\n{self.get_persistent_block(PersistentBlocks.includes)}\n\n'
 
 		result += '#include "make_const_nonconst.h"\n'
 		result += '#include "levels/' + self.name + '/header.h"\n\n'
 
-		result += f'{self.get_persistent_block(persistentBlocksNames["[scripts]"])}\n\n'
+		result += f'{self.get_persistent_block(PersistentBlocks.scripts)}\n\n'
 
 		result += 'const LevelScript level_' + self.name + '_entry[] = {\n'
 		result += '\tINIT_LEVEL(),\n'
@@ -276,7 +283,7 @@ class LevelScript:
 			result += '\t' + macroToString(modelLoad, True) + '\n'
 		result += '\n'
 
-		result += f'{self.get_persistent_block(persistentBlocksNames["[level commands]"], nTabs=1)}\n\n'
+		result += f'{self.get_persistent_block(PersistentBlocks.levelCommands, nTabs=1)}\n\n'
 
 		result += areaString
 
@@ -296,12 +303,12 @@ class LevelScript:
 	
 	def get_persistent_block(self, retainType: str, nTabs = 0, areaIndex: str = None):
 		tabs = '\t' * nTabs
-		lines = [f'{tabs}/* {beginPersistentBlockMagic} {retainType} */']
+		lines = [f'{tabs}/* {PersistentBlocks.beginMagic} {retainType} */']
 		if areaIndex:
-			lines.extend(self.persistentBlocks[persistentBlocksNames['[area commands]']].get(areaIndex, []))
+			lines.extend(self.persistentBlocks[PersistentBlocks.areaCommands].get(areaIndex, []))
 		else:
 			lines.extend(self.persistentBlocks.get(retainType, []))
-		lines.append(f'{tabs}/* {endPersistentBlockMagic} {retainType} */')
+		lines.append(f'{tabs}/* {PersistentBlocks.endMagic} {retainType} */')
 		return '\n'.join(lines)
 
 def parseCourseDefines(filepath):
@@ -454,15 +461,13 @@ def removeActSelectorIgnore(basePath, levelEnum):
 		saveDataToFile(filepath, newData)
 
 areaNumReg = re.compile(r'.*AREA\(([0-9]+),.+\),')
-persistentBlockReg = re.compile(r'.*Fast64 begin persistent block (\[[\w ]+\]).*')
-persistentBlockEndReg = re.compile(r'.*Fast64 end persistent block (\[[\w ]+\]).*')
 def parseLevelPersistentBlocks(scriptData: str, levelScript: LevelScript):
 	curBlock: str = None
 	areaIndex: str = None
 
 	for line in scriptData.splitlines():
-		if curBlock and endPersistentBlockMagic in line:
-			endMatch = persistentBlockEndReg.match(line)
+		if curBlock and PersistentBlocks.endMagic in line:
+			endMatch = PersistentBlocks.endRegex.match(line)
 			if endMatch and endMatch.group(1) != curBlock:
 				raise PluginError(f'script.c: Non-matching end block ({endMatch.group(1)}) found for {curBlock}')
 			curBlock = None
@@ -473,24 +478,24 @@ def parseLevelPersistentBlocks(scriptData: str, levelScript: LevelScript):
 		if areaIndexMatch:
 			areaIndex = areaIndexMatch.group(1)
 
-		elif curBlock and curBlock == persistentBlocksNames['[area commands]']:
+		elif curBlock and curBlock == PersistentBlocks.areaCommands:
 			if areaIndex:
 				levelScript.persistentBlocks[curBlock][areaIndex].append(line)
 			else:
-				raise PluginError('script.c: "Fast64 begin persistent block [area commands]" found outside of area block')
+				raise PluginError(f'script.c: "{PersistentBlocks.beginMagic} [area commands]" found outside of area block')
 
 		elif curBlock:
 			levelScript.persistentBlocks[curBlock].append(line)
 
-		elif beginPersistentBlockMagic in line:
-			blockNameMatch = persistentBlockReg.match(line)
+		elif PersistentBlocks.beginMagic in line:
+			blockNameMatch = PersistentBlocks.beginRegex.match(line)
 			if curBlock and blockNameMatch:
 				raise PluginError(f'script.c: Found new persistent block ({blockNameMatch.group(1)}) while looking for an end block for {curBlock}')
 			elif blockNameMatch:
 				curBlock = blockNameMatch.group(1)
 	
 	if curBlock:
-		raise PluginError(f'script.c: "Fast64 begin persistent block {curBlock}" never found a "Fast64 end persistent block"')
+		raise PluginError(f'script.c: "{PersistentBlocks.beginMagic} {curBlock}" never found a "{PersistentBlocks.endMagic}"')
 
 
 def parseLevelScript(filepath, levelName):
@@ -676,7 +681,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 			geolayoutGraph.startGeolayout, collision, levelName + '_' + areaName)
 		if area.mario_start is not None:
 			prevLevelScript.marioStart = area.mario_start
-		persistentBlockString = prevLevelScript.get_persistent_block(persistentBlocksNames['[area commands]'], nTabs=2, areaIndex=str(area.index))
+		persistentBlockString = prevLevelScript.get_persistent_block(PersistentBlocks.areaCommands, nTabs=2, areaIndex=str(area.index))
 		areaString += area.to_c_script(
 			child.enableRoomSwitch,
 			persistentBlockString=persistentBlockString
