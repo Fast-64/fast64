@@ -482,7 +482,7 @@ def parseLevelPersistentBlocks(scriptData: str, levelScript: LevelScript):
 			if areaIndex:
 				levelScript.persistentBlocks[curBlock][areaIndex].append(line)
 			else:
-				raise PluginError(f'script.c: "{PersistentBlocks.beginMagic} [area commands]" found outside of area block')
+				raise PluginError(f'script.c: "{PersistentBlocks.beginMagic} {PersistentBlocks.areaCommands}" found outside of area block')
 
 		elif curBlock:
 			levelScript.persistentBlocks[curBlock].append(line)
