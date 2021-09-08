@@ -359,7 +359,7 @@ class SM64_Area:
 	def macros_name(self):
 		return self.name + '_macro_objs'
 
-	def to_c_script(self, includeRooms, keepString: str = ''):
+	def to_c_script(self, includeRooms, persistentBlockString: str = ''):
 		data = ''
 		data += '\tAREA(' + str(self.index) + ', ' + self.geolayout.name + '),\n'
 		for warpNode in self.warpNodes:
@@ -377,7 +377,7 @@ class SM64_Area:
 		if self.startDialog is not None:
 			data += '\t\tSHOW_DIALOG(0x00, ' + self.startDialog + '),\n'
 		data += '\t\tTERRAIN_TYPE(' + self.terrain_type + '),\n'
-		data += f'{keepString}\n'
+		data += f'{persistentBlockString}\n'
 		data += '\tEND_AREA(),\n\n'
 		return data
 
