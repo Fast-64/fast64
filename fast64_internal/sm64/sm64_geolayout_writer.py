@@ -915,7 +915,7 @@ def processMesh(
 		rotate = rotate_quat_blender_to_n64(rotate)
 	else: # object is NOT instanced
 		translate, rotate, scale = obj.matrix_local.decompose()
-	rotAxis, rotAngle = rotate.to_axis_angle()
+
 	zeroRotation = isZeroRotation(rotate)
 	zeroTranslation = isZeroTranslation(translate)
 	zeroScaleChange = isZeroScaleChange(scale)
@@ -1149,12 +1149,13 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 
 	translation = mathutils.Matrix.Translation(translate)
 	rotation = rotate.to_matrix().to_4x4()
+	zeroTranslation = isZeroTranslation(translate)
+	zeroRotation = isZeroRotation(rotate)
 
 	#hasDL = bone.use_deform
 	hasDL = True
 	if bone.geo_cmd == 'DisplayListWithOffset':
-		rotAxis, rotAngle = rotate.to_axis_angle()
-		if rotAngle > 0.00001:
+		if not zeroRotation:
 			node = DisplayListWithOffsetNode(int(bone.draw_layer),
 				hasDL, mathutils.Vector((0,0,0)))
 
@@ -1388,8 +1389,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 				geolayoutGraph.addJumpNode(transformNode, geolayout,
 					optionGeolayout)
 
-				rotAxis, rotAngle = rotate.to_axis_angle()
-				if rotAngle > 0.00001 or translate.length > 0.0001:
+				if not zeroRotation or not zeroTranslation:
 					startNode = TransformNode(
 						TranslateRotateNode(1, 0, False, translate, rotate))
 				else:
