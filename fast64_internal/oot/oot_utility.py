@@ -460,6 +460,8 @@ def getCollection(objName, collectionType, subIndex):
 		collection = getattr(collection[subIndex], toks[1])
 	elif collectionType == "Cutscene":
 		collection = obj.ootCutsceneProperty.csLists
+	elif collectionType == "extraCutscenes":
+		collection = obj.ootSceneHeader.extraCutscenes
 	else:
 		raise PluginError("Invalid collection type: " + collectionType)
 

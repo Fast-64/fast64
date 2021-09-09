@@ -168,6 +168,7 @@ class OOTScene:
 		self.csTermStart = 99
 		self.csTermEnd = 100
 		self.csLists = []
+		self.extraCutscenes = []
 
 		self.sceneTableEntry = OOTSceneTableEntry()
 

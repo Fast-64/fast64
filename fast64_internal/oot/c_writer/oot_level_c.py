@@ -590,6 +590,8 @@ def ootSceneToC(scene, headerIndex, textureExportSettings):
 			sceneC.append(ootCutsceneDataToC(scene.csWriteObject, scene.csWriteObject.name))
 	sceneC.append(altData)
 	sceneC.append(meshData)
+	for ec in scene.extraCutscenes:
+		sceneC.append(ootCutsceneDataToC(ec, ec.name))
 
 	return sceneC
 

@@ -188,6 +188,7 @@ oot_obj_classes = (
 	OOTCSListProperty,
 	OOTCSListAdd,
 	OOTCutsceneProperty,
+	OOTExtraCutsceneProperty,
 
 	OOTActorHeaderItemProperty,
 	OOTActorHeaderProperty,

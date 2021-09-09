@@ -93,25 +93,28 @@ def readSceneData(scene, sceneHeader, alternateSceneHeaders):
 		scene.exitList.append(getExitData(exitProp))
 
 	scene.writeCutscene = getCustomProperty(sceneHeader, "writeCutscene")
-	scene.csWriteType = getattr(sceneHeader, "csWriteType")
-	if scene.csWriteType == "Embedded":
-		scene.csEndFrame = getCustomProperty(sceneHeader, "csEndFrame")
-		scene.csWriteTerminator = getCustomProperty(sceneHeader, "csWriteTerminator")
-		scene.csTermIdx = getCustomProperty(sceneHeader, "csTermIdx")
-		scene.csTermStart = getCustomProperty(sceneHeader, "csTermStart")
-		scene.csTermEnd = getCustomProperty(sceneHeader, "csTermEnd")
-		readCutsceneData(scene, sceneHeader)
-	elif scene.csWriteType == "Custom":
-		scene.csWriteCustom = getCustomProperty(sceneHeader, "csWriteCustom")
-	elif scene.csWriteType == "Object":
-		if sceneHeader.csWriteObject is None:
-			raise PluginError('No object selected for cutscene reference')
-		elif sceneHeader.csWriteObject.ootEmptyType != 'Cutscene':
-			raise PluginError('Object selected as cutscene is wrong type, must be empty with Cutscene type')
-		elif sceneHeader.csWriteObject.parent is not None:
-			raise PluginError('Cutscene empty object should not be parented to anything')
-		else:
-			scene.csWriteObject = convertCutsceneObject(sceneHeader.csWriteObject)
+	if scene.writeCutscene:
+		scene.csWriteType = getattr(sceneHeader, "csWriteType")
+		if scene.csWriteType == "Embedded":
+			scene.csEndFrame = getCustomProperty(sceneHeader, "csEndFrame")
+			scene.csWriteTerminator = getCustomProperty(sceneHeader, "csWriteTerminator")
+			scene.csTermIdx = getCustomProperty(sceneHeader, "csTermIdx")
+			scene.csTermStart = getCustomProperty(sceneHeader, "csTermStart")
+			scene.csTermEnd = getCustomProperty(sceneHeader, "csTermEnd")
+			readCutsceneData(scene, sceneHeader)
+		elif scene.csWriteType == "Custom":
+			scene.csWriteCustom = getCustomProperty(sceneHeader, "csWriteCustom")
+		elif scene.csWriteType == "Object":
+			if sceneHeader.csWriteObject is None:
+				raise PluginError('No object selected for cutscene reference')
+			elif sceneHeader.csWriteObject.ootEmptyType != 'Cutscene':
+				raise PluginError('Object selected as cutscene is wrong type, must be empty with Cutscene type')
+			elif sceneHeader.csWriteObject.parent is not None:
+				raise PluginError('Cutscene empty object should not be parented to anything')
+			else:
+				scene.csWriteObject = convertCutsceneObject(sceneHeader.csWriteObject)
+	for ec in sceneHeader.extraCutscenes:
+		scene.extraCutscenes.append(convertCutsceneObject(ec.csObject))
 
 	if alternateSceneHeaders is not None:
 		scene.collision.cameraData = OOTCameraData(scene.name)

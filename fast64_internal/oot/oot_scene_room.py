@@ -276,6 +276,8 @@ class OOTSceneTableEntryProperty(bpy.types.PropertyGroup):
 	drawConfig : bpy.props.IntProperty(name = "Scene Draw Config", min = 0)
 	hasTitle : bpy.props.BoolProperty(default = True)
 
+class OOTExtraCutsceneProperty(bpy.types.PropertyGroup):
+	csObject : bpy.props.PointerProperty(name = "Cutscene Object", type = bpy.types.Object)
 
 class OOTSceneHeaderProperty(bpy.types.PropertyGroup):
 	expandTab : bpy.props.BoolProperty(name = "Expand Tab")
@@ -319,6 +321,7 @@ class OOTSceneHeaderProperty(bpy.types.PropertyGroup):
 	csTermStart : bpy.props.IntProperty(name = "Start Frm", min = 0, default = 99)
 	csTermEnd : bpy.props.IntProperty(name = "End Frm", min = 0, default = 100)
 	csLists : bpy.props.CollectionProperty(type = OOTCSListProperty, name = 'Cutscene Lists')
+	extraCutscenes : bpy.props.CollectionProperty(type = OOTExtraCutsceneProperty, name = "Extra Cutscenes")
 
 	sceneTableEntry : bpy.props.PointerProperty(type = OOTSceneTableEntryProperty)
 
@@ -388,26 +391,32 @@ def drawSceneHeaderProperty(layout, sceneProp, dropdownLabel, headerIndex, objNa
 		cutscene = layout.column()
 		r = cutscene.row()
 		r.prop(sceneProp, "writeCutscene", text = "Write Cutscene")
-		if not sceneProp.writeCutscene:
-			return
-		r.prop(sceneProp, "csWriteType", text = "Data:")
-		if sceneProp.csWriteType == "Custom":
-			cutscene.prop(sceneProp, "csWriteCustom")
-		elif sceneProp.csWriteType == "Object":
-			cutscene.prop(sceneProp, "csWriteObject")
-		else:
-			cutscene.label(text = "Embedded cutscenes are deprecated. Please use \"Object\" instead.")
-			cutscene.prop(sceneProp, "csEndFrame", text = "End Frame")
-			cutscene.prop(sceneProp, "csWriteTerminator", text = "Write Terminator (Code Execution)")
-			if sceneProp.csWriteTerminator:
-				r = cutscene.row()
-				r.prop(sceneProp, "csTermIdx", text = "Index")
-				r.prop(sceneProp, "csTermStart", text = "Start Frm")
-				r.prop(sceneProp, "csTermEnd", text = "End Frm")
-			collectionType = 'CSHdr.' + str(0 if headerIndex is None else headerIndex)
-			for i, p in enumerate(sceneProp.csLists):
-				drawCSListProperty(cutscene, p, i, objName, collectionType)
-			drawCSAddButtons(cutscene, objName, collectionType)
+		if sceneProp.writeCutscene:
+			r.prop(sceneProp, "csWriteType", text = "Data:")
+			if sceneProp.csWriteType == "Custom":
+				cutscene.prop(sceneProp, "csWriteCustom")
+			elif sceneProp.csWriteType == "Object":
+				cutscene.prop(sceneProp, "csWriteObject")
+			else:
+				cutscene.label(text = "Embedded cutscenes are deprecated. Please use \"Object\" instead.")
+				cutscene.prop(sceneProp, "csEndFrame", text = "End Frame")
+				cutscene.prop(sceneProp, "csWriteTerminator", text = "Write Terminator (Code Execution)")
+				if sceneProp.csWriteTerminator:
+					r = cutscene.row()
+					r.prop(sceneProp, "csTermIdx", text = "Index")
+					r.prop(sceneProp, "csTermStart", text = "Start Frm")
+					r.prop(sceneProp, "csTermEnd", text = "End Frm")
+				collectionType = 'CSHdr.' + str(0 if headerIndex is None else headerIndex)
+				for i, p in enumerate(sceneProp.csLists):
+					drawCSListProperty(cutscene, p, i, objName, collectionType)
+				drawCSAddButtons(cutscene, objName, collectionType)
+		cutscene.label(text = "Extra cutscenes (not in any header):")
+		for i in range(len(sceneProp.extraCutscenes)):
+			box = cutscene.box().column()
+			drawCollectionOps(box, i, "extraCutscenes", None, objName, True)
+			box.prop(sceneProp.extraCutscenes[i], "csObject", text = "CS obj")
+		if len(sceneProp.extraCutscenes) == 0:
+			drawAddButton(cutscene, 0, "extraCutscenes", 0, objName)
 
 	elif menuTab == 'Exits':
 		if headerIndex is None or headerIndex == 0:
