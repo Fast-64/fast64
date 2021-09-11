@@ -1065,9 +1065,12 @@ def processMesh(
 				triConverterInfo = TriangleConverterInfo(temp_obj, None, fModel.f3d, transformMatrix, getInfoDict(temp_obj))
 				fMeshes = saveStaticModel(triConverterInfo, fModel, temp_obj, transformMatrix, fModel.name,
 					convertTextureData, False, 'sm64')
-
-				temp_obj['src_meshes'] = [({ 'name': fMesh.draw.name, 'layer': drawLayer }) for drawLayer, fMesh in fMeshes.items()]
-				node.dlRef = temp_obj['src_meshes'][0]['name']
+				if fMeshes:
+					temp_obj['src_meshes'] = [({ 'name': fMesh.draw.name, 'layer': drawLayer }) for drawLayer, fMesh in fMeshes.items()]
+					node.dlRef = temp_obj['src_meshes'][0]['name']
+				else:
+					# TODO: Display warning to the user that there is an object that doesn't have polygons
+					print('Object', obj.original_name, 'does not have any polygons.')
 
 		else:
 			triConverterInfo = TriangleConverterInfo(obj, None, fModel.f3d, transformMatrix, getInfoDict(obj))
