@@ -76,56 +76,28 @@ class OOTCSTextboxAdd(bpy.types.Operator):
 
 	def execute(self, context):
 		collection = getCollection(self.objName, self.collectionType, self.listIndex)
-		collection.add()
-		collection[len(collection)-1].textboxType = self.textboxType
-		#self.report({'INFO'}, 'Success!')
+		newTextboxElement = collection.add()
+		newTextboxElement.textboxType = self.textboxType
 		return {'FINISHED'} 
 
 class OOTCSLightingProperty(OOTCSProperty, bpy.types.PropertyGroup):
 	propName = "Lighting"
 	attrName = "lighting"
-	subprops = ["index", "startFrame", 
-		# "endFrame", "unused0", "unused1", "unused2",
-		#"unused3", "unused4", "unused5", "unused6", "unused7"
-		]
+	subprops = ["index", "startFrame"]
 	index : bpy.props.IntProperty(name = '', default = 1, min = 1)
-	# unused0 : bpy.props.StringProperty(name = '', default = '0x0000')
-	# unused1 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	# unused2 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	# unused3 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	# unused4 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	# unused5 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	# unused6 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	# unused7 : bpy.props.StringProperty(name = '', default = '0x00000000')
 	
 class OOTCSTimeProperty(OOTCSProperty, bpy.types.PropertyGroup):
 	propName = "Time"
 	attrName = "time"
-	subprops = [# "unk", 
-		"startFrame", # "endFrame", 
-		"hour", "minute", # "unused"
-		]
-	#unk : bpy.props.StringProperty(name = '', default = '0x0000')
+	subprops = ["startFrame", "hour", "minute"]
 	hour : bpy.props.IntProperty(name = '', default = 23, min = 0, max = 23)
 	minute : bpy.props.IntProperty(name = '', default = 59, min = 0, max = 59)
-	#unused : bpy.props.StringProperty(name = '', default = '0x00000000')
 	
 class OOTCSBGMProperty(OOTCSProperty, bpy.types.PropertyGroup):
 	propName = "BGM"
 	attrName = "bgm"
-	subprops = ["value", "startFrame", "endFrame", 
-		# "unused0", "unused1", "unused2",
-		# "unused3", "unused4", "unused5", "unused6", "unused7"
-		]
+	subprops = ["value", "startFrame", "endFrame"]
 	value : bpy.props.StringProperty(name = '', default = '0x0000')
-	# unused0 : bpy.props.StringProperty(name = '', default = '0x0000')
-	# unused1 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	# unused2 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	# unused3 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	# unused4 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	# unused5 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	# unused6 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	# unused7 : bpy.props.StringProperty(name = '', default = '0x00000000')
 	
 	def filterProp(self, name, listProp):
 		return name != "endFrame" or listProp.listType == "FadeBGM"
@@ -138,37 +110,16 @@ class OOTCSBGMProperty(OOTCSProperty, bpy.types.PropertyGroup):
 class OOTCSMiscProperty(OOTCSProperty, bpy.types.PropertyGroup):
 	propName = "Misc"
 	attrName = "misc"
-	subprops = ["operation", "startFrame", "endFrame", # "unused0", "unused1", "unused2", 
-		# "unused3", "unused4", "unused5", "unused6", "unused7",
-		# "unused8", "unused9", "unused10"
-		]
+	subprops = ["operation", "startFrame", "endFrame"]
 	operation : bpy.props.IntProperty(name = '', default = 1, min = 1, max = 35)
-	# unused0 : bpy.props.StringProperty(name = '', default = '0x0000')
-	# unused1 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	# unused2 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	# unused3 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	# unused4 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	# unused5 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	# unused6 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	# unused7 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	# unused8 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	# unused9 : bpy.props.StringProperty(name = '', default = '0x00000000')
-	# unused10 : bpy.props.StringProperty(name = '', default = '0x00000000')
 
 class OOTCS0x09Property(OOTCSProperty, bpy.types.PropertyGroup):
 	propName = "0x09"
 	attrName = "nine"
-	subprops = [# "unk", 
-		"startFrame", # "endFrame", 
-		"unk2", "unk3", "unk4",
-		#"unused0", "unused1"
-		]
-	# unk : bpy.props.StringProperty(name = '', default = '0x0000')
+	subprops = ["startFrame", "unk2", "unk3", "unk4"]
 	unk2 : bpy.props.StringProperty(name = '', default = '0x00')
 	unk3 : bpy.props.StringProperty(name = '', default = '0x00')
 	unk4 : bpy.props.StringProperty(name = '', default = '0x00')
-	# unused0 : bpy.props.StringProperty(name = '', default = '0x00')
-	# unused1 : bpy.props.StringProperty(name = '', default = '0x0000')
 
 class OOTCSUnkProperty(OOTCSProperty, bpy.types.PropertyGroup):
 	propName = "Unk"
@@ -235,7 +186,7 @@ def drawCSListProperty(layout, listProp, listIndex, objName, collectionType):
 		prop_split(box, listProp, 'unkType', 'Unk List Type')
 		attrName = "unk"
 	else:
-		raise PluginError("Invalid listType")
+		raise PluginError("Internal error: invalid listType " + listProp.listType)
 		
 	dat = getattr(listProp, attrName)
 	for i, p in enumerate(dat):
@@ -269,9 +220,8 @@ class OOTCSListAdd(bpy.types.Operator):
 
 	def execute(self, context):
 		collection = getCollection(self.objName, self.collectionType, None)
-		collection.add()
-		collection[len(collection)-1].listType = self.listType
-		#self.report({'INFO'}, 'Success!')
+		newList = collection.add()
+		newList.listType = self.listType
 		return {'FINISHED'} 
 
 def drawCSAddButtons(layout, objName, collectionType):
@@ -304,13 +254,13 @@ class OOTCutsceneProperty(bpy.types.PropertyGroup):
 
 def drawCutsceneProperty(box, obj):
 	prop = obj.ootCutsceneProperty
-	box.prop(prop, "csEndFrame", text = "End Frame")
-	box.prop(prop, "csWriteTerminator", text = "Write Terminator (Code Execution)")
+	box.prop(prop, "csEndFrame")
+	box.prop(prop, "csWriteTerminator")
 	if prop.csWriteTerminator:
 		r = box.row()
-		r.prop(prop, "csTermIdx", text = "Index")
-		r.prop(prop, "csTermStart", text = "Start Frm")
-		r.prop(prop, "csTermEnd", text = "End Frm")
+		r.prop(prop, "csTermIdx")
+		r.prop(prop, "csTermStart")
+		r.prop(prop, "csTermEnd")
 	for i, p in enumerate(prop.csLists):
 		drawCSListProperty(box, p, i, obj.name, 'Cutscene')
 	drawCSAddButtons(box, obj.name, 'Cutscene')
@@ -353,7 +303,7 @@ def readCutsceneData(csParentOut, csParentIn):
 				entryOut.hour = entryIn.hour
 				entryOut.minute = entryIn.minute
 				listOut.entries.append(entryOut)
-		elif listOut.listType in ['PlayBGM', 'StopBGM', 'FadeBGM']:
+		elif listOut.listType in {'PlayBGM', 'StopBGM', 'FadeBGM'}:
 			for entryIn in listIn.bgm:
 				entryOut = OOTCSBGM()
 				entryOut.value = entryIn.value
@@ -412,12 +362,14 @@ def convertCutsceneObject(obj):
 
 def ootCutsceneIncludes(headerfilename):
 	ret = CData()
-	ret.source = "#include \"ultra64.h\"\n" + \
-		"#include \"z64.h\"\n" + \
-		"#include \"macros.h\"\n" + \
-		"#include \"command_macros_base.h\"\n" + \
-		"#include \"z64cutscene_commands.h\"\n\n" + \
-		"#include \"" + headerfilename + "\"\n\n"
+	ret.source = (
+		'#include "ultra64.h"\n'
+		+ '#include "z64.h"\n'
+		+ '#include "macros.h"\n'
+		+ '#include "command_macros_base.h"\n'
+		+ '#include "z64cutscene_commands.h"\n\n'
+		+ '#include "' + headerfilename + '"\n\n'
+		)
 	return ret
 
 def ootCutsceneDataToC(csParent, csName):
@@ -479,7 +431,7 @@ def ootCutsceneDataToC(csParent, csName):
 					+ e.unk7 + ", " + e.unk8 + ", " + e.unk9 + ", " \
 					+ e.unk10 + ", " + e.unk11 + ", " + e.unk12
 			else:
-				raise PluginError("Invalid cutscene list type")
+				raise PluginError("Internal error: invalid cutscene list type " + list.listType)
 			data.source += "),\n"
 	data.source += "\tCS_END(),\n"
 	data.source += "};\n\n"
@@ -495,11 +447,10 @@ def checkGetFilePaths(context):
 	if not cpath.endswith('.c'):
 		raise PluginError('Output file must end with .c')
 	hpath = cpath[:-1] + 'h'
-	headerfilename = hpath.split('/')[-1]
+	headerfilename = os.path.basename(hpath)
 	return cpath, hpath, headerfilename
 
 class OOT_ExportCutscene(bpy.types.Operator):
-	# set bl_ properties
 	bl_idname = 'object.oot_export_cutscene'
 	bl_label = "Export Cutscene"
 	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
@@ -522,10 +473,9 @@ class OOT_ExportCutscene(bpy.types.Operator):
 			return {'FINISHED'}
 		except Exception as e:
 			raisePluginError(self, e)
-			return {'CANCELLED'} # must return a set
+			return {'CANCELLED'}
 
 class OOT_ExportAllCutscenes(bpy.types.Operator):
-	# set bl_ properties
 	bl_idname = 'object.oot_export_all_cutscenes'
 	bl_label = "Export All Cutscenes"
 	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
@@ -552,7 +502,7 @@ class OOT_ExportAllCutscenes(bpy.types.Operator):
 			return {'FINISHED'}
 		except Exception as e:
 			raisePluginError(self, e)
-			return {'CANCELLED'} # must return a set
+			return {'CANCELLED'}
 
 class OOT_ExportCutscenePanel(bpy.types.Panel):
 	bl_idname = "OOT_PT_export_cutscene"
@@ -565,7 +515,6 @@ class OOT_ExportCutscenePanel(bpy.types.Panel):
 	def poll(cls, context):
 		return True
 
-	# called every frame
 	def draw(self, context):
 		col = self.layout.column()
 		col.operator(OOT_ExportCutscene.bl_idname)
