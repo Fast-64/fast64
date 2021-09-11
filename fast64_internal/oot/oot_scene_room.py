@@ -392,7 +392,7 @@ def drawSceneHeaderProperty(layout, sceneProp, dropdownLabel, headerIndex, objNa
 		r = cutscene.row()
 		r.prop(sceneProp, "writeCutscene", text = "Write Cutscene")
 		if sceneProp.writeCutscene:
-			r.prop(sceneProp, "csWriteType", text = "Data:")
+			r.prop(sceneProp, "csWriteType", text = "Data")
 			if sceneProp.csWriteType == "Custom":
 				cutscene.prop(sceneProp, "csWriteCustom")
 			elif sceneProp.csWriteType == "Object":
