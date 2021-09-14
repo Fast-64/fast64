@@ -6,6 +6,7 @@ from .sm64_rom_tweaks import ExtendBank0x04
 import bpy, bmesh, os, math
 from io import BytesIO
 from ..utility import *
+from ..panels import SM64_Panel
 
 class CollisionVertex:
 	def __init__(self, position):
@@ -555,16 +556,9 @@ class SM64_ExportCollision(bpy.types.Operator):
 			raisePluginError(self, e)
 			return {'CANCELLED'} # must return a set
 
-class SM64_ExportCollisionPanel(bpy.types.Panel):
+class SM64_ExportCollisionPanel(SM64_Panel):
 	bl_idname = "SM64_PT_export_collision"
 	bl_label = "SM64 Collision Exporter"
-	bl_space_type = 'VIEW_3D'
-	bl_region_type = 'UI'
-	bl_category = 'SM64'
-
-	@classmethod
-	def poll(cls, context):
-		return True
 
 	# called every frame
 	def draw(self, context):

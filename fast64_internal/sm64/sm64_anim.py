@@ -6,6 +6,7 @@ from math import pi
 from bpy.utils import register_class, unregister_class
 
 from ..utility import *
+from ..panels import SM64_Panel
 
 sm64_anim_types = {'ROTATE', 'TRANSLATE'}
 
@@ -703,16 +704,9 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 
 		return {'FINISHED'} # must return a set
 
-class SM64_ExportAnimPanel(bpy.types.Panel):
+class SM64_ExportAnimPanel(SM64_Panel):
 	bl_idname = "SM64_PT_export_anim"
 	bl_label = "SM64 Animation Exporter"
-	bl_space_type = 'VIEW_3D'
-	bl_region_type = 'UI'
-	bl_category = 'SM64'
-
-	@classmethod
-	def poll(cls, context):
-		return True
 
 	# called every frame
 	def draw(self, context):
@@ -820,16 +814,9 @@ class SM64_ImportAnimMario(bpy.types.Operator):
 
 		return {'FINISHED'} # must return a set
 
-class SM64_ImportAnimPanel(bpy.types.Panel):
+class SM64_ImportAnimPanel(SM64_Panel):
 	bl_idname = "SM64_PT_import_anim"
 	bl_label = "SM64 Animation Importer"
-	bl_space_type = 'VIEW_3D'
-	bl_region_type = 'UI'
-	bl_category = 'SM64'
-
-	@classmethod
-	def poll(cls, context):
-		return True
 
 	# called every frame
 	def draw(self, context):

@@ -1,3 +1,4 @@
+from ..panels import SM64_Panel
 from .sm64_f3d_writer import *
 from .sm64_geolayout_writer import *
 from .sm64_geolayout_parser import *
@@ -65,16 +66,9 @@ class SM64_AddrConv(bpy.types.Operator):
 			raisePluginError(self, e)
 			return {'CANCELLED'} # must return a set
 
-class SM64_FileSettingsPanel(bpy.types.Panel):
+class SM64_FileSettingsPanel(SM64_Panel):
 	bl_idname = "SM64_PT_file_settings"
 	bl_label = "SM64 File Settings"
-	bl_space_type = 'VIEW_3D'
-	bl_region_type = 'UI'
-	bl_category = 'SM64'
-
-	@classmethod
-	def poll(cls, context):
-		return True
 
 	# called every frame
 	def draw(self, context):
@@ -93,16 +87,9 @@ class SM64_FileSettingsPanel(bpy.types.Panel):
 		prop_split(col, context.scene, 'refreshVer', 'Decomp Func Map')
 		prop_split(col, context.scene, 'compressionFormat', 'Compression Format')
 
-class SM64_AddressConvertPanel(bpy.types.Panel):
+class SM64_AddressConvertPanel(SM64_Panel):
 	bl_idname = "SM64_PT_addr_conv"
 	bl_label = "SM64 Address Converter"
-	bl_space_type = 'VIEW_3D'
-	bl_region_type = 'UI'
-	bl_category = 'SM64'
-
-	@classmethod
-	def poll(cls, context):
-		return True
 
 	# called every frame
 	def draw(self, context):

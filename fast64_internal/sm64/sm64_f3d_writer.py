@@ -1,5 +1,6 @@
 import shutil, copy, bpy, cProfile, pstats
 
+from ..panels import SM64_Panel
 from ..f3d.f3d_writer import *
 from ..f3d.f3d_material import *
 from ..f3d.f3d_gbi import FMaterial
@@ -609,16 +610,9 @@ class SM64_ExportDL(bpy.types.Operator):
 			raisePluginError(self, e)
 			return {'CANCELLED'} # must return a set
 
-class SM64_ExportDLPanel(bpy.types.Panel):
+class SM64_ExportDLPanel(SM64_Panel):
 	bl_idname = "SM64_PT_export_dl"
 	bl_label = "SM64 DL Exporter"
-	bl_space_type = 'VIEW_3D'
-	bl_region_type = 'UI'
-	bl_category = 'SM64'
-
-	@classmethod
-	def poll(cls, context):
-		return True
 
 	# called every frame
 	def draw(self, context):
@@ -719,16 +713,9 @@ class UnlinkTexRect(bpy.types.Operator):
 		context.scene.texrect.tex = None
 		return {'FINISHED'} # must return a set
 
-class ExportTexRectDrawPanel(bpy.types.Panel):
+class ExportTexRectDrawPanel(SM64_Panel):
 	bl_idname = "TEXTURE_PT_export_texrect"
 	bl_label = "SM64 UI Image Exporter"
-	bl_space_type = 'VIEW_3D'
-	bl_region_type = 'UI'
-	bl_category = 'SM64'
-
-	@classmethod
-	def poll(cls, context):
-		return True
 
 	# called every frame
 	def draw(self, context):

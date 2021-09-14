@@ -155,16 +155,9 @@ class SM64_AddWaterBox(AddWaterBox):
 	def setEmptyType(self, emptyObj):
 		emptyObj.sm64_obj_type = "Water Box"
 
-class SM64_ArmatureToolsPanel(bpy.types.Panel):
+class SM64_ArmatureToolsPanel(SM64_Panel):
 	bl_idname = "SM64_PT_armature_tools"
 	bl_label = "SM64 Tools"
-	bl_space_type = 'VIEW_3D'
-	bl_region_type = 'UI'
-	bl_category = 'SM64'
-
-	@classmethod
-	def poll(cls, context):
-		return True
 
 	# called every frame
 	def draw(self, context):

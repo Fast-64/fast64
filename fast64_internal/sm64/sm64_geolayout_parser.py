@@ -11,6 +11,7 @@ from .sm64_constants import *
 from ..f3d.f3d_material import createF3DMat, update_preset_manual
 from ..f3d.f3d_parser import *
 from ..utility import *
+from ..panels import SM64_Panel
 
 blender_modes = {'OBJECT', 'BONE'}
 
@@ -1196,16 +1197,9 @@ class SM64_ImportGeolayout(bpy.types.Operator):
 			raisePluginError(self, e)
 			return {'CANCELLED'} # must return a set
 
-class SM64_ImportGeolayoutPanel(bpy.types.Panel):
+class SM64_ImportGeolayoutPanel(SM64_Panel):
 	bl_idname = "SM64_PT_import_geolayout"
 	bl_label = "SM64 Geolayout Importer"
-	bl_space_type = 'VIEW_3D'
-	bl_region_type = 'UI'
-	bl_category = 'SM64'
-
-	@classmethod
-	def poll(cls, context):
-		return True
 
 	# called every frame
 	def draw(self, context):

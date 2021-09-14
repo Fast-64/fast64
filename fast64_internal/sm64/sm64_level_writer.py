@@ -10,6 +10,7 @@ from .sm64_texscroll import *
 from .sm64_utility import *
 
 from ..utility import *
+from ..panels import SM64_Panel
 from ..operators import ObjectDataExporter
 
 levelDefineArgs = {
@@ -1024,16 +1025,9 @@ class SM64_ExportLevel(ObjectDataExporter):
 			raisePluginError(self, e)
 			return {'CANCELLED'} # must return a set
 
-class SM64_ExportLevelPanel(bpy.types.Panel):
+class SM64_ExportLevelPanel(SM64_Panel):
 	bl_idname = "SM64_PT_export_level"
 	bl_label = "SM64 Level Exporter"
-	bl_space_type = 'VIEW_3D'
-	bl_region_type = 'UI'
-	bl_category = 'SM64'
-
-	@classmethod
-	def poll(cls, context):
-		return True
 
 	# called every frame
 	def draw(self, context):

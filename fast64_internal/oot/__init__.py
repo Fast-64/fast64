@@ -1,3 +1,4 @@
+from ..panels import OOT_Panel
 from .oot_f3d_writer import *
 #from .oot_geolayout_writer import *
 #from .oot_geolayout_parser import *
@@ -21,16 +22,9 @@ ootEnumRefreshVer = [
 	("Refresh 3", "Refresh 3", "Refresh 3"),
 ]
 
-class OOT_FileSettingsPanel(bpy.types.Panel):
+class OOT_FileSettingsPanel(OOT_Panel):
 	bl_idname = "OOT_PT_file_settings"
 	bl_label = "OOT File Settings"
-	bl_space_type = 'VIEW_3D'
-	bl_region_type = 'UI'
-	bl_category = 'OOT'
-
-	@classmethod
-	def poll(cls, context):
-		return True
 
 	# called every frame
 	def draw(self, context):

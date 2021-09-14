@@ -17,6 +17,7 @@ from .sm64_utility import *
 
 from ..utility import *
 from ..operators import ObjectDataExporter
+from ..panels import SM64_Panel
 
 def appendSecondaryGeolayout(geoDirPath, geoName1, geoName2, additionalNode = ''):
 	geoPath = os.path.join(geoDirPath, 'geo.inc.c')
@@ -2395,16 +2396,9 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 			raisePluginError(self, e)
 			return {'CANCELLED'} # must return a set
 
-class SM64_ExportGeolayoutPanel(bpy.types.Panel):
+class SM64_ExportGeolayoutPanel(SM64_Panel):
 	bl_idname = "SM64_PT_export_geolayout"
 	bl_label = "SM64 Geolayout Exporter"
-	bl_space_type = 'VIEW_3D'
-	bl_region_type = 'UI'
-	bl_category = 'SM64'
-
-	@classmethod
-	def poll(cls, context):
-		return True
 
 	# called every frame
 	def draw(self, context):
