@@ -217,6 +217,8 @@ class GeolayoutObjectPanel(bpy.types.Panel):
 		col.prop(obj, 'ignore_render')
 		col.prop(obj, 'ignore_collision')
 		col.prop(obj, 'use_f3d_culling')
+		if obj_scale_is_unified(obj) and len(obj.modifiers) == 0:
+			col.prop(obj, 'scaleFromGeolayout')
 		#prop_split(col, obj, 'room_num', 'Room')
 
 class MaterialPointerProperty(bpy.types.PropertyGroup):
@@ -519,6 +521,12 @@ def sm64_bone_register():
 	bpy.types.Object.use_render_range = bpy.props.BoolProperty(name = 'Use Render Range (LOD)')
 	bpy.types.Object.render_range = bpy.props.FloatVectorProperty(name = 'Render Range', 
 		size = 2, default = (0,100))
+	
+	bpy.types.Object.scaleFromGeolayout = bpy.props.BoolProperty(
+		name = 'Scale from Geolayout',
+		description = 'If scale is all a single value (e.g. 2, 2, 2), do not apply scale when exporting, and instead use GeoLayout to scale. Can be used to enhance precision by setting scaling values to a value less than 1.',
+		default = False
+	)
 
 	# Used during object duplication on export
 	bpy.types.Object.original_name = bpy.props.StringProperty()
@@ -553,4 +561,6 @@ def sm64_bone_unregister():
 	del bpy.types.Object.add_func
 
 	del bpy.types.Object.use_render_range
-	del bpy.types.Object.render_range 
+	del bpy.types.Object.render_range
+
+	del bpy.types.Object.scaleFromGeolayout
