@@ -614,28 +614,26 @@ def store_original_meshes(add_warning: Callable[[str], None]):
 			has_modifiers = len(obj.modifiers) != 0
 			has_uneven_scale = not obj_scale_is_unified(obj)
 			shares_mesh = obj.data.users > 1
-			if has_modifiers or has_uneven_scale or not shares_mesh:
+			can_instance = not has_modifiers and not has_uneven_scale
+			should_instance = can_instance and (shares_mesh or obj.scaleFromGeolayout)
+
+			if should_instance:
+				# add `_shared_mesh` to instanced name because `obj.data.name` can be the same as object names
+				obj['instanced_mesh_name'] = f'{obj.data.name}_shared_mesh'
+				obj.original_name = obj.name
+
+				if obj.data.name not in instanced_meshes:
+					instanced_meshes.add(obj.data.name)
+					copy_object_and_apply(obj)
+			else:
 				if shares_mesh and has_modifiers:
 					add_warning(
 						f'Object "{obj.name}" cannot be instanced due to having modifiers so an extra displaylist will be created. Remove modifiers to allow instancing.')
 				if shares_mesh and has_uneven_scale:
 					add_warning(
 						f'Object "{obj.name}" cannot be instanced due to uneven object scaling and an extra displaylist will be created. Set all scale values to the same value to allow instancing.')
-				
-				if obj.scaleFromGeolayout and not has_modifiers and not has_uneven_scale:
-					# Object was intended to be instanced and scaled via geolayout
-					pass
-				else:
-					copy_object_and_apply(obj, apply_scale=True, apply_modifiers=has_modifiers)
-					continue
 
-			# add `_shared_mesh` to instanced name because `obj.data.name` can be the same as object names
-			obj['instanced_mesh_name'] = f'{obj.data.name}_shared_mesh'
-			obj.original_name = obj.name
-
-			if obj.data.name not in instanced_meshes:
-				instanced_meshes.add(obj.data.name)
-				copy_object_and_apply(obj)
+				copy_object_and_apply(obj, apply_scale=True, apply_modifiers=has_modifiers)
 	bpy.context.view_layer.objects.active = active_obj
 
 def get_obj_temp_mesh(obj):
