@@ -2098,7 +2098,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
 
 			saveTextures = bpy.context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions
 
-			if context.scene.geoExportType == 'C':
+			if context.scene.fast64.sm64.exportType == 'C':
 				exportPath, levelName = getPathAndLevel(context.scene.geoCustomExport,
 					context.scene.geoExportPath, context.scene.geoLevelName,
 					context.scene.geoLevelOption)
@@ -2114,7 +2114,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
 					context.scene.geoExportHeaderType,
 					context.scene.geoName, context.scene.geoStructName, levelName, context.scene.geoCustomExport, DLFormat.Static)
 				self.report({'INFO'}, 'Success!')
-			elif context.scene.geoExportType == 'Insertable Binary':
+			elif context.scene.fast64.sm64.exportType == 'Insertable Binary':
 				exportGeolayoutObjectInsertableBinary(obj,
 					finalTransform, context.scene.f3d_type,
 					context.scene.isHWv1,
@@ -2201,7 +2201,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
 			self.cleanup_temp_object_data()
 			applyRotation([obj], math.radians(-90), 'X')
 
-			if context.scene.geoExportType == 'Binary':
+			if context.scene.fast64.sm64.exportType == 'Binary':
 				if romfileOutput is not None:
 					romfileOutput.close()
 				if tempROM is not None and os.path.exists(bpy.path.abspath(tempROM)):
@@ -2281,7 +2281,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 			bpy.context.view_layer.objects.active = obj
 			bpy.ops.object.transform_apply(location = False, rotation = True,
 				scale = True, properties =  False)
-			if context.scene.geoExportType == 'C':
+			if context.scene.fast64.sm64.exportType == 'C':
 				exportPath, levelName = getPathAndLevel(context.scene.geoCustomExport,
 					context.scene.geoExportPath, context.scene.geoLevelName,
 					context.scene.geoLevelOption)
@@ -2299,7 +2299,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 					context.scene.geoName, context.scene.geoStructName, levelName, context.scene.geoCustomExport, DLFormat.Static)
 				starSelectWarning(self, fileStatus)
 				self.report({'INFO'}, 'Success!')
-			elif context.scene.geoExportType == 'Insertable Binary':
+			elif context.scene.fast64.sm64.exportType == 'Insertable Binary':
 				exportGeolayoutArmatureInsertableBinary(armatureObj, obj,
 					finalTransform, context.scene.f3d_type,
 					context.scene.isHWv1,
@@ -2385,7 +2385,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 			applyRotation([armatureObj] + linkedArmatures,
 				math.radians(-90), 'X')
 
-			if context.scene.geoExportType == 'Binary':
+			if context.scene.fast64.sm64.exportType == 'Binary':
 				if romfileOutput is not None:
 					romfileOutput.close()
 				if tempROM is not None and os.path.exists(bpy.path.abspath(tempROM)):
@@ -2399,6 +2399,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 class SM64_ExportGeolayoutPanel(SM64_Panel):
 	bl_idname = "SM64_PT_export_geolayout"
 	bl_label = "SM64 Geolayout Exporter"
+	goal = 'Export Object/Actor/Anim'
 
 	# called every frame
 	def draw(self, context):
@@ -2406,8 +2407,7 @@ class SM64_ExportGeolayoutPanel(SM64_Panel):
 		propsGeoE = col.operator(SM64_ExportGeolayoutArmature.bl_idname)
 		propsGeoE = col.operator(SM64_ExportGeolayoutObject.bl_idname)
 
-		col.prop(context.scene, 'geoExportType')
-		if context.scene.geoExportType == 'C':
+		if context.scene.fast64.sm64.exportType == 'C':
 			if not bpy.context.scene.ignoreTextureRestrictions and context.scene.saveTextures:
 				if context.scene.geoCustomExport:
 					prop_split(col, context.scene, 'geoTexDir', 'Texture Include Path')	
@@ -2496,7 +2496,7 @@ class SM64_ExportGeolayoutPanel(SM64_Panel):
 					context.scene.geoLevelOption)
 
 			#extendedRAMLabel(col)
-		elif context.scene.geoExportType == 'Insertable Binary':
+		elif context.scene.fast64.sm64.exportType == 'Insertable Binary':
 			col.prop(context.scene, 'geoInsertableBinaryPath')
 		else:
 			prop_split(col, context.scene, 'geoExportStart', 'Start Address')
@@ -2556,8 +2556,6 @@ def sm64_geo_writer_register():
 		name = 'Dump geolayout as text', default = False)
 	bpy.types.Scene.textDumpGeoPath =  bpy.props.StringProperty(
 		name ='Text Dump Path', subtype = 'FILE_PATH')
-	bpy.types.Scene.geoExportType = bpy.props.EnumProperty(
-		items = enumExportType, name = 'Export', default = 'C')
 	bpy.types.Scene.geoExportPath = bpy.props.StringProperty(
 		name = 'Directory', subtype = 'FILE_PATH')
 	bpy.types.Scene.geoUseBank0 = bpy.props.BoolProperty(name = 'Use Bank 0')
@@ -2606,7 +2604,6 @@ def sm64_geo_writer_unregister():
 	del bpy.types.Scene.modelID
 	del bpy.types.Scene.textDumpGeo
 	del bpy.types.Scene.textDumpGeoPath
-	del bpy.types.Scene.geoExportType
 	del bpy.types.Scene.geoExportPath
 	del bpy.types.Scene.geoUseBank0
 	del bpy.types.Scene.geoRAMAddr

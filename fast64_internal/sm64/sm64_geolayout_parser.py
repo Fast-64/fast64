@@ -11,7 +11,7 @@ from .sm64_constants import *
 from ..f3d.f3d_material import createF3DMat, update_preset_manual
 from ..f3d.f3d_parser import *
 from ..utility import *
-from ..panels import SM64_Panel
+from ..panels import SM64_Panel, sm64GoalImport
 
 blender_modes = {'OBJECT', 'BONE'}
 
@@ -1200,6 +1200,7 @@ class SM64_ImportGeolayout(bpy.types.Operator):
 class SM64_ImportGeolayoutPanel(SM64_Panel):
 	bl_idname = "SM64_PT_import_geolayout"
 	bl_label = "SM64 Geolayout Importer"
+	goal = sm64GoalImport
 
 	# called every frame
 	def draw(self, context):

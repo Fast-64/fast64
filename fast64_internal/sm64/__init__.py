@@ -1,4 +1,3 @@
-from ..panels import SM64_Panel
 from .sm64_f3d_writer import *
 from .sm64_geolayout_writer import *
 from .sm64_geolayout_parser import *
@@ -13,6 +12,7 @@ from .sm64_objects import *
 from .sm64_level_writer import *
 from .sm64_spline import *
 from .sm64_f3d_parser import *
+from ..panels import SM64_Panel, sm64GoalTypeEnum, sm64GoalImport
 
 import bpy
 from bpy.utils import register_class, unregister_class
@@ -66,30 +66,52 @@ class SM64_AddrConv(bpy.types.Operator):
 			raisePluginError(self, e)
 			return {'CANCELLED'} # must return a set
 
-class SM64_FileSettingsPanel(SM64_Panel):
-	bl_idname = "SM64_PT_file_settings"
-	bl_label = "SM64 File Settings"
+class SM64_MenuVisibilityPanel(SM64_Panel):
+	bl_idname = "SM64_PT_menu_visibility_settings"
+	bl_label = "SM64 Menu Visibility Settings"
+	bl_options = set() # default to open
+	bl_order = 0 # force to front
 
 	# called every frame
 	def draw(self, context):
-		col = self.layout.column()	
+		col = self.layout.column()
+		col.scale_y = 1.1 # extra padding
+		sm64Props: SM64_Properties = context.scene.fast64.sm64
+
+		prop_split(col, sm64Props, 'goal', 'Export goal')
+		prop_split(col, sm64Props, 'showImportingMenus', 'Show Importing Options')
+
+class SM64_FileSettingsPanel(SM64_Panel):
+	bl_idname = "SM64_PT_file_settings"
+	bl_label = "SM64 File Settings"
+	bl_options = set()
+
+	# called every frame
+	def draw(self, context):
+		col = self.layout.column()
+		col.scale_y = 1.1 # extra padding
+		sm64Props: SM64_Properties = context.scene.fast64.sm64
+
+		prop_split(col, sm64Props, 'exportType', 'Export type')
 		prop_split(col, context.scene, 'blenderToSM64Scale', 'Blender To SM64 Scale')
 
-		col.prop(context.scene, 'importRom')
-		col.prop(context.scene, 'exportRom')
-		col.prop(context.scene, 'outputRom')
-		col.prop(context.scene, 'extendBank4')
-		
-		col.prop(context.scene, 'disableScroll')
-		
-		col.prop(context.scene, 'decompPath')
-		
-		prop_split(col, context.scene, 'refreshVer', 'Decomp Func Map')
-		prop_split(col, context.scene, 'compressionFormat', 'Compression Format')
+		if sm64Props.showImportingMenus:
+			col.prop(context.scene, 'importRom')
+
+		if sm64Props.exportType == 'Binary':
+			col.prop(context.scene, 'exportRom')
+			col.prop(context.scene, 'outputRom')
+			col.prop(context.scene, 'extendBank4')
+		elif sm64Props.exportType == 'C':
+			col.prop(context.scene, 'disableScroll')
+			col.prop(context.scene, 'decompPath')
+			prop_split(col, context.scene, 'refreshVer', 'Decomp Func Map')
+			prop_split(col, context.scene, 'compressionFormat', 'Compression Format')
 
 class SM64_AddressConvertPanel(SM64_Panel):
 	bl_idname = "SM64_PT_addr_conv"
 	bl_label = "SM64 Address Converter"
+	goal = sm64GoalImport
 
 	# called every frame
 	def draw(self, context):
@@ -103,11 +125,64 @@ class SM64_AddressConvertPanel(SM64_Panel):
 		prop_split(col, context.scene, 'convertibleAddr', 'Address')
 		col.prop(context.scene, 'levelConvert')
 
+def get_legacy_export_type():
+	legacy_export_types = ('C', 'Binary', 'Insertable Binary')
+	scene = bpy.context.scene
+	if scene.get('already_derived_legacy_export_type'):
+		return scene.fast64.sm64.exportType
+	scene['already_derived_legacy_export_type'] = True
+
+	exportTypes = set()
+	exportTypes.add(legacy_export_types[scene.get('animExportType', 0)])
+	exportTypes.add(legacy_export_types[scene.get('colExportType', 0)])
+	exportTypes.add(legacy_export_types[scene.get('DLExportType', 0)])
+	exportTypes.add(legacy_export_types[scene.get('geoExportType', 0)])
+	exportTypes = exportTypes - {'C'}
+
+	if len(exportTypes):
+		return exportTypes.pop()
+	return 'C'
+
+class SM64_Properties(bpy.types.PropertyGroup):
+	'''Global SM64 Scene Properties found under scene.fast64.sm64'''
+	version: bpy.props.IntProperty(name="SM64_Properties Version", default=0)
+
+	# UI Selection
+	showImportingMenus: bpy.props.BoolProperty(name='Show Importing Menus', default=False)
+	exportType: bpy.props.EnumProperty(items = enumExportType, name = 'Export Type', default = 'C')
+	goal: bpy.props.EnumProperty(items=sm64GoalTypeEnum, name = 'Export Goal', default = 'All')
+	
+	# TODO: Utilize these across all exports
+	# C exporting
+	# useCustomExportLocation = bpy.props.BoolProperty(name = 'Use Custom Export Path')
+	# customExportPath: bpy.props.StringProperty(name = 'Custom Export Path', subtype = 'FILE_PATH')
+	# exportLocation: bpy.props.EnumProperty(items = enumExportHeaderType, name = 'Export Location', default = 'Actor')
+	# useSelectedObjectName = bpy.props.BoolProperty(name = 'Use Name From Selected Object', default=False)
+	# exportName: bpy.props.StringProperty(name='Name', default='mario')
+	# exportGeolayoutName: bpy.props.StringProperty(name='Name', default='mario_geo')
+
+	# Actor exports
+	# exportGroup: bpy.props.StringProperty(name='Group', default='group0')
+
+	# Level exports
+	# exportLevelName: bpy.props.StringProperty(name = 'Level', default = 'bob')
+	# exportLevelOption: bpy.props.EnumProperty(items = enumLevelNames, name = 'Level', default = 'bob')
+
+	# Insertable Binary
+	# exportInsertableBinaryPath: bpy.props.StringProperty(name = 'Filepath', subtype = 'FILE_PATH')
+
+	@staticmethod
+	def derive_defaults():
+		bpy.context.scene.fast64.sm64.exportType = get_legacy_export_type()
+
+
 sm64_classes = (
 	SM64_AddrConv,
+	SM64_Properties,
 )
 
 sm64_panel_classes = (
+	SM64_MenuVisibilityPanel,
 	SM64_FileSettingsPanel,
 	SM64_AddressConvertPanel,
 )

@@ -3,7 +3,7 @@ from .sm64_objects import *
 from bpy.utils import register_class, unregister_class
 from .sm64_level_parser import parseLevelAtPointer
 from .sm64_rom_tweaks import ExtendBank0x04
-import bpy, bmesh, os, math
+import bpy, shutil, os, math
 from io import BytesIO
 from ..utility import *
 from ..panels import SM64_Panel
@@ -478,7 +478,7 @@ class SM64_ExportCollision(bpy.types.Operator):
 		
 		try:
 			applyRotation([obj], math.radians(90), 'X')
-			if context.scene.colExportType == 'C':
+			if context.scene.fast64.sm64.exportType == 'C':
 				exportPath, levelName = getPathAndLevel(context.scene.colCustomExport, 
 					context.scene.colExportPath, context.scene.colLevelName, 
 					context.scene.colLevelOption)
@@ -490,7 +490,7 @@ class SM64_ExportCollision(bpy.types.Operator):
 					bpy.context.scene.colName, context.scene.colCustomExport, context.scene.colExportRooms,
 					context.scene.colExportHeaderType, context.scene.colGroupName, levelName)
 				self.report({'INFO'}, 'Success!')
-			elif context.scene.colExportType == 'Insertable Binary':
+			elif context.scene.fast64.sm64.exportType == 'Insertable Binary':
 				exportCollisionInsertableBinary(obj, finalTransform, 
 					bpy.path.abspath(context.scene.colInsertableBinaryPath), 
 					False, context.scene.colIncludeChildren)
@@ -546,7 +546,7 @@ class SM64_ExportCollision(bpy.types.Operator):
 
 			applyRotation([obj], math.radians(-90), 'X')
 
-			if context.scene.colExportType == 'Binary':
+			if context.scene.fast64.sm64.exportType == 'Binary':
 				if romfileOutput is not None:
 					romfileOutput.close()
 				if tempROM is not None and os.path.exists(bpy.path.abspath(tempROM)):
@@ -559,16 +559,16 @@ class SM64_ExportCollision(bpy.types.Operator):
 class SM64_ExportCollisionPanel(SM64_Panel):
 	bl_idname = "SM64_PT_export_collision"
 	bl_label = "SM64 Collision Exporter"
+	goal = "Export Object/Actor/Anim"
 
 	# called every frame
 	def draw(self, context):
 		col = self.layout.column()
 		propsColE = col.operator(SM64_ExportCollision.bl_idname)
 
-		col.prop(context.scene, 'colExportType')
 		col.prop(context.scene, 'colIncludeChildren')
 		
-		if context.scene.colExportType == 'C':
+		if context.scene.fast64.sm64.exportType == 'C':
 			col.prop(context.scene, 'colExportRooms')
 			col.prop(context.scene, 'colCustomExport')
 			if context.scene.colCustomExport:
@@ -590,7 +590,7 @@ class SM64_ExportCollisionPanel(SM64_Panel):
 				writeBoxExportType(writeBox, context.scene.colExportHeaderType, 
 					context.scene.colName, context.scene.colLevelName, context.scene.colLevelOption)
 			
-		elif context.scene.colExportType == 'Insertable Binary':
+		elif context.scene.fast64.sm64.exportType == 'Insertable Binary':
 			col.prop(context.scene, 'colInsertableBinaryPath')
 		else:
 			prop_split(col, context.scene, 'colStartAddr', 'Start Address')
@@ -627,8 +627,6 @@ def sm64_col_register():
 	# Collision
 	bpy.types.Scene.colExportPath = bpy.props.StringProperty(
 		name = 'Directory', subtype = 'FILE_PATH')
-	bpy.types.Scene.colExportType = bpy.props.EnumProperty(
-		items = enumExportType, name = 'Export', default = 'C')
 	bpy.types.Scene.colExportLevel = bpy.props.EnumProperty(items = level_enums, 
 		name = 'Level Used By Collision', default = 'WF')
 	bpy.types.Scene.addr_0x2A = bpy.props.StringProperty(
@@ -683,7 +681,6 @@ def sm64_col_register():
 def sm64_col_unregister():
 	# Collision
 	del bpy.types.Scene.colExportPath
-	del bpy.types.Scene.colExportType
 	del bpy.types.Scene.colExportLevel
 	del bpy.types.Scene.addr_0x2A
 	del bpy.types.Scene.set_addr_0x2A

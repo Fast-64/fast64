@@ -1028,6 +1028,8 @@ class SM64_ExportLevel(ObjectDataExporter):
 class SM64_ExportLevelPanel(SM64_Panel):
 	bl_idname = "SM64_PT_export_level"
 	bl_label = "SM64 Level Exporter"
+	goal = 'Export Level'
+	decomp_only = True
 
 	# called every frame
 	def draw(self, context):

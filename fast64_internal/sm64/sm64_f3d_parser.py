@@ -1,5 +1,5 @@
 import bpy
-from ..panels import SM64_Panel
+from ..panels import SM64_Panel, sm64GoalImport
 from ..utility import *
 from ..f3d.f3d_parser import *
 from bpy.utils import register_class, unregister_class
@@ -54,6 +54,7 @@ class SM64_ImportDL(bpy.types.Operator):
 class SM64_ImportDLPanel(SM64_Panel):
 	bl_idname = "SM64_PT_import_dl"
 	bl_label = "SM64 DL Importer"
+	goal = sm64GoalImport
 
 	# called every frame
 	def draw(self, context):

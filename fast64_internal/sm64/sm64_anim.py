@@ -6,7 +6,7 @@ from math import pi
 from bpy.utils import register_class, unregister_class
 
 from ..utility import *
-from ..panels import SM64_Panel
+from ..panels import SM64_Panel, sm64GoalImport
 
 sm64_anim_types = {'ROTATE', 'TRANSLATE'}
 
@@ -605,7 +605,7 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 			applyRotation([armatureObj], 
 				math.radians(90), 'X')
 
-			if context.scene.animExportType == 'C':
+			if context.scene.fast64.sm64.exportType == 'C':
 				exportPath, levelName = getPathAndLevel(context.scene.animCustomExport, 
 					context.scene.animExportPath, context.scene.animLevelName, 
 					context.scene.animLevelOption)
@@ -616,7 +616,7 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 					bpy.context.scene.animGroupName,
 					context.scene.animCustomExport, context.scene.animExportHeaderType, levelName)
 				self.report({'INFO'}, 'Success!')
-			elif context.scene.animExportType == 'Insertable Binary':
+			elif context.scene.fast64.sm64.exportType == 'Insertable Binary':
 				exportAnimationInsertableBinary(
 					bpy.path.abspath(context.scene.animInsertableBinaryPath),
 					armatureObj, context.scene.isDMAExport, 
@@ -707,15 +707,15 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 class SM64_ExportAnimPanel(SM64_Panel):
 	bl_idname = "SM64_PT_export_anim"
 	bl_label = "SM64 Animation Exporter"
+	goal = "Export Object/Actor/Anim"
 
 	# called every frame
 	def draw(self, context):
 		col = self.layout.column()
 		propsAnimExport = col.operator(SM64_ExportAnimMario.bl_idname)
-		
-		col.prop(context.scene, 'animExportType')
+
 		col.prop(context.scene, 'loopAnimation')
-		if context.scene.animExportType == 'C':
+		if context.scene.fast64.sm64.exportType == 'C':
 			col.prop(context.scene, 'animCustomExport')
 			if context.scene.animCustomExport:
 				col.prop(context.scene, 'animExportPath')
@@ -737,7 +737,7 @@ class SM64_ExportAnimPanel(SM64_Panel):
 					context.scene.animName, context.scene.animLevelName,
 					context.scene.animLevelOption)
 
-		elif context.scene.animExportType == 'Insertable Binary':
+		elif context.scene.fast64.sm64.exportType == 'Insertable Binary':
 			col.prop(context.scene, 'isDMAExport')
 			col.prop(context.scene, 'animInsertableBinaryPath')
 		else:
@@ -817,6 +817,7 @@ class SM64_ImportAnimMario(bpy.types.Operator):
 class SM64_ImportAnimPanel(SM64_Panel):
 	bl_idname = "SM64_PT_import_anim"
 	bl_label = "SM64 Animation Importer"
+	goal = sm64GoalImport
 
 	# called every frame
 	def draw(self, context):
@@ -874,8 +875,6 @@ def sm64_anim_register():
 		name = '0x27 Command Address', default = '21CD00')
 	bpy.types.Scene.addr_0x28 = bpy.props.StringProperty(
 		name = '0x28 Command Address', default = '21CD08')
-	bpy.types.Scene.animExportType = bpy.props.EnumProperty(
-		items = enumExportType, name = 'Export', default = 'C')
 	bpy.types.Scene.animExportPath = bpy.props.StringProperty(
 		name = 'Directory', subtype = 'FILE_PATH')
 	bpy.types.Scene.animOverwriteDMAEntry = bpy.props.BoolProperty(
@@ -923,7 +922,6 @@ def sm64_anim_unregister():
 	del bpy.types.Scene.overwrite_0x28
 	del bpy.types.Scene.addr_0x27
 	del bpy.types.Scene.addr_0x28
-	del bpy.types.Scene.animExportType
 	del bpy.types.Scene.animExportPath
 	del bpy.types.Scene.animOverwriteDMAEntry
 	del bpy.types.Scene.animInsertableBinaryPath
