@@ -128,24 +128,21 @@ class SM64_AddressConvertPanel(SM64_Panel):
 def get_legacy_export_type():
 	legacy_export_types = ('C', 'Binary', 'Insertable Binary')
 	scene = bpy.context.scene
-	if scene.get('already_derived_legacy_export_type'):
-		return scene.fast64.sm64.exportType
-	scene['already_derived_legacy_export_type'] = True
 
-	exportTypes = set()
-	exportTypes.add(legacy_export_types[scene.get('animExportType', 0)])
-	exportTypes.add(legacy_export_types[scene.get('colExportType', 0)])
-	exportTypes.add(legacy_export_types[scene.get('DLExportType', 0)])
-	exportTypes.add(legacy_export_types[scene.get('geoExportType', 0)])
-	exportTypes = exportTypes - {'C'}
+	for exportKey in ['animExportType', 'colExportType', 'DLExportType', 'geoExportType']:
+		try:
+			eType = scene.pop(exportKey)
+			if eType and legacy_export_types[eType] != 'C':
+				return legacy_export_types[eType]
+		except KeyError:
+			pass
 
-	if len(exportTypes):
-		return exportTypes.pop()
 	return 'C'
 
 class SM64_Properties(bpy.types.PropertyGroup):
 	'''Global SM64 Scene Properties found under scene.fast64.sm64'''
 	version: bpy.props.IntProperty(name="SM64_Properties Version", default=0)
+	cur_version = 1 # version after property migration
 
 	# UI Selection
 	showImportingMenus: bpy.props.BoolProperty(name='Show Importing Menus', default=False)
@@ -173,7 +170,9 @@ class SM64_Properties(bpy.types.PropertyGroup):
 
 	@staticmethod
 	def derive_defaults():
-		bpy.context.scene.fast64.sm64.exportType = get_legacy_export_type()
+		if bpy.context.scene.fast64.sm64.version != SM64_Properties.cur_version:
+			bpy.context.scene.fast64.sm64.exportType = get_legacy_export_type()
+			bpy.context.scene.fast64.sm64.version = SM64_Properties.cur_version
 
 
 sm64_classes = (

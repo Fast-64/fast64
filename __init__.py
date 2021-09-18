@@ -332,6 +332,7 @@ def register():
 	bpy.types.Scene.blenderF3DScale = bpy.props.FloatProperty(name = "F3D Blender Scale", default = 100)
 
 	bpy.types.Scene.fast64 = bpy.props.PointerProperty(type=Fast64_Properties, name="Fast64 Properties")
+	bpy.app.handlers.load_post.append(after_load)
 
 # called on add-on disabling
 def unregister():
@@ -357,6 +358,3 @@ def unregister():
 
 	for cls in classes:
 		unregister_class(cls)
-
-if __name__ == '__main__':
-	bpy.app.handlers.load_post.append(after_load)
