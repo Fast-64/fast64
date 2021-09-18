@@ -16,7 +16,9 @@ class SM64_Panel(bpy.types.Panel):
     bl_region_type = 'UI'
     bl_category = 'SM64'
     bl_options = {'DEFAULT_CLOSED'}
+    # goal refers to the selected sm64GoalTypeEnum, a different selection than this goal will filter this panel out
     goal = None
+    # if this is True, the panel is hidden whenever the scene's exportType is not 'C'
     decomp_only = False
 
     @classmethod
