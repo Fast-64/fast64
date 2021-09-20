@@ -118,7 +118,7 @@ def drawGeoInfo(panel: bpy.types.Panel, bone: bpy.types.Bone):
 			prop_split(col, bone.fast64.sm64, 'custom_geo_cmd_args', 'Geo Command Args')
 		else: # It's animated
 			infobox = col.box()
-			infobox.label(text = "Command's args will be filled with layer, translate, and rotate", icon = "ERROR")
+			infobox.label(text = "Command's args will be filled with layer, translate, and rotate", icon = "INFO")
 			infobox.label(text = "e.g. `GEO_CUSTOM(layer, tX, tY, tZ, rX, rY, rZ, displayList)`")
 	
 	#if bone.geo_cmd == 'SwitchOption':
