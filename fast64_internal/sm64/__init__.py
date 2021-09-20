@@ -72,7 +72,6 @@ class SM64_MenuVisibilityPanel(SM64_Panel):
 	bl_options = set() # default to open
 	bl_order = 0 # force to front
 
-	# called every frame
 	def draw(self, context):
 		col = self.layout.column()
 		col.scale_y = 1.1 # extra padding
@@ -86,7 +85,6 @@ class SM64_FileSettingsPanel(SM64_Panel):
 	bl_label = "SM64 File Settings"
 	bl_options = set()
 
-	# called every frame
 	def draw(self, context):
 		col = self.layout.column()
 		col.scale_y = 1.1 # extra padding
@@ -113,7 +111,6 @@ class SM64_AddressConvertPanel(SM64_Panel):
 	bl_label = "SM64 Address Converter"
 	goal = sm64GoalImport
 
-	# called every frame
 	def draw(self, context):
 		col = self.layout.column()
 		segToVirtOp = col.operator(SM64_AddrConv.bl_idname, 
