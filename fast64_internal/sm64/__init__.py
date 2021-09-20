@@ -127,12 +127,9 @@ def get_legacy_export_type():
 	scene = bpy.context.scene
 
 	for exportKey in ['animExportType', 'colExportType', 'DLExportType', 'geoExportType']:
-		try:
-			eType = scene.pop(exportKey)
-			if eType and legacy_export_types[eType] != 'C':
-				return legacy_export_types[eType]
-		except KeyError:
-			pass
+		eType = scene.pop(exportKey, None)
+		if eType is not None and legacy_export_types[eType] != 'C':
+			return legacy_export_types[eType]
 
 	return 'C'
 
