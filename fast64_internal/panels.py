@@ -1,6 +1,5 @@
 
 import bpy
-from .fast64_internal import *
 
 sm64GoalImport = 'Import' # Not in enum, separate UI option
 sm64GoalTypeEnum = [
