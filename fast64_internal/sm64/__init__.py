@@ -169,7 +169,7 @@ class SM64_Properties(bpy.types.PropertyGroup):
 	# exportInsertableBinaryPath: bpy.props.StringProperty(name = 'Filepath', subtype = 'FILE_PATH')
 
 	@staticmethod
-	def derive_defaults():
+	def upgrade_changed_props():
 		if bpy.context.scene.fast64.sm64.version != SM64_Properties.cur_version:
 			bpy.context.scene.fast64.sm64.exportType = get_legacy_export_type()
 			bpy.context.scene.fast64.sm64.version = SM64_Properties.cur_version

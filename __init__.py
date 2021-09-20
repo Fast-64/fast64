@@ -290,13 +290,13 @@ classes = (
 	Fast64_GlobalToolsPanel,
 )
 
-def derive_legacy_defaults():
+def upgrade_changed_props():
 	'''Set scene properties after a scene loads, used for migrating old properties'''
-	SM64_Properties.derive_defaults()
+	SM64_Properties.upgrade_changed_props()
 
 @bpy.app.handlers.persistent
 def after_load(_a, _b):
-	derive_legacy_defaults()
+	upgrade_changed_props()
 
 # called on add-on enabling
 # register operators and panels here
