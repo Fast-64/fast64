@@ -2,6 +2,7 @@ import bpy, mathutils, math, re, os, copy, shutil
 from .sm64_constants import *
 from .sm64_level_parser import parseLevelAtPointer
 from .sm64_rom_tweaks import ExtendBank0x04
+from .sm64_geolayout_bone import animatableBones
 from math import pi
 from bpy.utils import register_class, unregister_class
 
@@ -324,7 +325,7 @@ def convertAnimationData(anim, armatureObj, frameEnd):
 		bonesToProcess = bonesToProcess[1:]
 
 		# Only handle 0x13 bones for animation
-		if currentBone.geo_cmd == 'DisplayListWithOffset':
+		if currentBone.geo_cmd in animatableBones:
 			animBones.append(boneName)
 
 		# Traverse children in alphabetical order.
@@ -382,7 +383,7 @@ def getNextBone(boneStack, armatureObj):
 	boneStack = sorted([child.name for child in bone.children]) + boneStack
 
 	# Only return 0x13 bone
-	while armatureObj.data.bones[bone.name].geo_cmd != 'DisplayListWithOffset':
+	while armatureObj.data.bones[bone.name].geo_cmd not in animatableBones:
 		if len(boneStack) == 0:
 			raise PluginError("More bones in animation than on armature.")
 		bone = armatureObj.data.bones[boneStack[0]]
@@ -394,7 +395,7 @@ def getNextBone(boneStack, armatureObj):
 def importAnimationToBlender(romfile, startAddress, armatureObj, segmentData, isDMA):
 	boneStack = findStartBones(armatureObj)
 	startBoneName = boneStack[0]
-	if armatureObj.data.bones[startBoneName].geo_cmd != 'DisplayListWithOffset':
+	if armatureObj.data.bones[startBoneName].geo_cmd not in animatableBones:
 		startBone, boneStack = getNextBone(boneStack, armatureObj)
 		startBoneName = startBone.name
 		boneStack = [startBoneName] + boneStack

@@ -5,28 +5,30 @@ from ..utility import prop_split, PluginError
 from ..f3d.f3d_material import *
 
 enumBoneType = [
-	("Switch", "Switch (0x0E)", "Switch"), 
-	("Start", "Start (0x0B)", "Start"), 
-	("TranslateRotate", "Translate Rotate (0x10)", "Translate Rotate"), 
-	("Translate", "Translate (0x11)", "Translate"), 
-	("Rotate", "Rotate (0x12)", "Rotate"), 
-	("Billboard", "Billboard (0x14)", "Billboard"), 
-	("DisplayList", "Display List (0x15)", "Display List"), 
-	("Shadow", "Shadow (0x16)", "Shadow"), 
-	("Function", "Function (0x18)", "Function"), 
-	("HeldObject", "Held Object (0x1C)", "Held Object"), 
-	("Scale", "Scale (0x1D)", "Scale"), 
-	("StartRenderArea", "Start Render Area (0x20)", "Start Render Area"), 
-	("Ignore", "Ignore", "Ignore bones when exporting."), 
-	("SwitchOption", "Switch Option", "Switch Option"), 
-	("DisplayListWithOffset", "Display List With Offset (0x13)", 
-		"Display List With Offset"), 
+	("Switch", "Switch (0x0E)", "Switch"),
+	("Start", "Start (0x0B)", "Start"),
+	("TranslateRotate", "Translate Rotate (0x10)", "Translate Rotate"),
+	("Translate", "Translate (0x11)", "Translate"),
+	("Rotate", "Rotate (0x12)", "Rotate"),
+	("Billboard", "Billboard (0x14)", "Billboard"),
+	("DisplayList", "Display List (0x15)", "Display List"),
+	("Shadow", "Shadow (0x16)", "Shadow"),
+	("Function", "Function (0x18)", "Function"),
+	("HeldObject", "Held Object (0x1C)", "Held Object"),
+	("Scale", "Scale (0x1D)", "Scale"),
+	("StartRenderArea", "Start Render Area (0x20)", "Start Render Area"),
+	("Ignore", "Ignore", "Ignore bones when exporting."),
+	("SwitchOption", "Switch Option", "Switch Option"),
+	("DisplayListWithOffset", "Animated Part (0x13)", "Animated Part (Animatable Bone)"),
+	("CustomAnimated", "Custom Animated", "Custom Bone used for animation"),
+	("CustomNonAnimated", "Custom (Non-animated)", "Custom geolayout bone, non animated"),
 ]
+
+animatableBones = {"DisplayListWithOffset", "CustomAnimated"}
 
 enumGeoStaticType = [
 	("Billboard", "Billboard (0x14)", "Billboard"), 
-	("DisplayListWithOffset", "Display List With Offset (0x13)", 
-		"Display List With Offset"), 
+	("DisplayListWithOffset", "Animated Part (0x13)", "Animated Part (Animatable Bone)"),
 	("Optimal", "Optimal", "Optimal"),
 ]
 
@@ -60,7 +62,7 @@ enumMatOverrideOptions = [
 	("Specific", 'Specific', 'Only override instances of give material.'),
 ]
 
-def drawGeoInfo(panel, bone):
+def drawGeoInfo(panel: bpy.types.Panel, bone: bpy.types.Bone):
 	
 	panel.layout.box().label(text = 'Geolayout Inspector')
 	if bone is None:
@@ -72,16 +74,16 @@ def drawGeoInfo(panel, bone):
 	prop_split(col, bone, 'geo_cmd', 'Geolayout Command')
 
 	if bone.geo_cmd in ['TranslateRotate', 'Translate', 'Rotate', 
-		'Billboard', 'DisplayList', 'Scale', 'DisplayListWithOffset']:
+		'Billboard', 'DisplayList', 'Scale', 'DisplayListWithOffset', 'CustomAnimated']:
 		drawLayerWarningBox(col, bone, "draw_layer")
 
 	if bone.geo_cmd == 'Scale':
 		prop_split(col, bone, 'geo_scale', 'Scale')
 	
-	if bone.geo_cmd == 'HeldObject':
+	elif bone.geo_cmd == 'HeldObject':
 		prop_split(col, bone, 'geo_func', 'Function')
 	
-	if bone.geo_cmd == 'Switch':
+	elif bone.geo_cmd == 'Switch':
 		prop_split(col, bone, 'geo_func', 'Function')
 		prop_split(col, bone, 'func_param', 'Parameter')
 		col.label(text = 'Switch Option 0 is always this bone\'s children.')
@@ -89,35 +91,35 @@ def drawGeoInfo(panel, bone):
 		for i in range(len(bone.switch_options)):
 			drawSwitchOptionProperty(col, bone.switch_options[i], i)
 
-	if bone.geo_cmd == 'Function':
+	elif bone.geo_cmd == 'Function':
 		prop_split(col, bone, 'geo_func', 'Function')
 		prop_split(col, bone, 'func_param', 'Parameter')
 		infoBox2 = col.box()
 		infoBox2.label(text = 'This affects the next sibling bone in ' +\
 			'alphabetical order.')
 	
-	'''
-	if bone.geo_cmd == 'Function' or \
-		bone.geo_cmd == 'Switch' or \
-		bone.geo_cmd == 'HeldObject':
-		infoBox = col.box()
-		infoBox.label(text = 'For binary, this is a memory address.')
-		infoBox.label(text = 'For C, this is a function name.')
-	'''
-	
-	if bone.geo_cmd == 'TranslateRotate':
+	elif bone.geo_cmd == 'TranslateRotate':
 		prop_split(col, bone, 'field_layout', 'Field Layout')
 
-	if bone.geo_cmd == 'Shadow':
+	elif bone.geo_cmd == 'Shadow':
 		prop_split(col, bone, 'shadow_type', 'Type')
 		prop_split(col, bone, 'shadow_solidity', 'Alpha')
 		prop_split(col, bone, 'shadow_scale', 'Scale')
 	
-	if bone.geo_cmd == 'StartRenderArea':
+	elif bone.geo_cmd == 'StartRenderArea':
 		infoBoxRenderArea = col.box()
 		infoBoxRenderArea.label(text = "WARNING: This command is deprecated for bones.")
 		infoBoxRenderArea.label(text = 'See the object properties window for the armature instead.')
 		prop_split(col, bone, 'culling_radius', 'Culling Radius')
+	
+	elif bone.geo_cmd in {'CustomAnimated', 'CustomNonAnimated'}:
+		prop_split(col, bone.fast64.sm64, 'custom_geo_cmd_macro', 'Geo Command Macro')
+		if bone.geo_cmd == 'CustomNonAnimated':
+			prop_split(col, bone.fast64.sm64, 'custom_geo_cmd_args', 'Geo Command Args')
+		else: # It's animated
+			infobox = col.box()
+			infobox.label(text = "Command's args will be filled with layer, translate, and rotate", icon = "ERROR")
+			infobox.label(text = "e.g. `GEO_CUSTOM(layer, tX, tY, tZ, rX, rY, rZ, displayList)`")
 	
 	#if bone.geo_cmd == 'SwitchOption':
 	#	prop_split(col, bone, 'switch_bone', 'Switch Bone')
@@ -405,12 +407,19 @@ def updateBone(self, context):
 	armatureObj = context.object
 
 	createBoneGroups(armatureObj)
-	if context.bone.geo_cmd != 'DisplayListWithOffset':
+	if context.bone.geo_cmd not in animatableBones:
 		addBoneToGroup(armatureObj, context.bone.name, context.bone.geo_cmd)
 		bpy.ops.object.mode_set(mode="POSE")
 	else:
 		addBoneToGroup(armatureObj, context.bone.name, None)
 		bpy.ops.object.mode_set(mode="POSE")
+
+class SM64_BoneProperties(bpy.types.PropertyGroup):
+	version: bpy.props.IntProperty(name="SM64_BoneProperties Version", default=0)
+
+	custom_geo_cmd_macro: bpy.props.StringProperty(name="Geo Command Macro", default="GEO_BONE")
+	custom_geo_cmd_args: bpy.props.StringProperty(name="Geo Command Args", default="")
+
 
 sm64_bone_classes = (
 	AddSwitchOption,
@@ -420,6 +429,7 @@ sm64_bone_classes = (
 	MoveSwitchOption,
 	MaterialPointerProperty,
 	SwitchOptionProperty,
+	SM64_BoneProperties,
 )
 
 sm64_bone_panel_classes = (

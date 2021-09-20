@@ -1095,6 +1095,37 @@ class CustomNode:
 	def to_c(self):
 		return f"{self.command}({self.args}),"
 
+class CustomAnimatedNode(BaseDisplayListNode):
+	def __init__(self, command: str, drawLayer, translate, rotate, dlRef: str = None):
+		self.command = command
+		self.drawLayer = drawLayer
+		self.hasDL = True
+		self.translate = translate
+		self.rotate = rotate
+		self.fMesh = None
+		self.DLmicrocode = None
+		self.dlRef = dlRef
+
+	def size(self):
+		return 16
+
+	def get_ptr_offsets(self):
+		return []
+
+	def to_binary(self, segmentData):
+		raise PluginError('Custom Geo Nodes are not supported for binary exports.')
+
+	def to_c(self):
+		args = [
+			getDrawLayerName(self.drawLayer),
+			str(convertFloatToShort(self.translate[0])),
+			str(convertFloatToShort(self.translate[1])),
+			str(convertFloatToShort(self.translate[2])),
+			*(str(radians_to_s16(r)) for r in self.rotate.to_euler('XYZ')),
+			self.get_dl_name() # This node requires 'NULL' if there is no DL
+		]
+		return f"{self.command}({join_c_args(args)}),"
+
 nodeGroupClasses = [
 	StartNode,
 	SwitchNode,
@@ -1112,7 +1143,8 @@ nodeGroupClasses = [
 	ZBufferNode,
 	CameraNode,
 	RenderRangeNode,
-	CustomNode
+	CustomNode,
+	CustomAnimatedNode
 ]
 
 DLNodes = [
@@ -1122,5 +1154,6 @@ DLNodes = [
 	RotateNode,
 	ScaleNode,
 	DisplayListNode,
-	DisplayListWithOffsetNode
+	DisplayListWithOffsetNode,
+	CustomAnimatedNode
 ]
