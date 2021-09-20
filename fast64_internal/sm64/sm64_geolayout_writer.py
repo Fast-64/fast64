@@ -1161,7 +1161,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 	if bone.geo_cmd in animatableBoneTypes:
 		if bone.geo_cmd == 'CustomAnimated':
 			if not bone.fast64.sm64.custom_geo_cmd_macro:
-				raise PluginError(f'Bone "{boneName}" needs a geo command macro.')
+				raise PluginError(f'Bone "{boneName}" on armature "{armatureObj.name}" needs a geo command macro.')
 			node = CustomAnimatedNode(bone.fast64.sm64.custom_geo_cmd_macro, int(bone.draw_layer), translate, rotate)
 			lastTranslateName = boneName
 			lastRotateName = boneName
@@ -1184,7 +1184,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 
 	elif bone.geo_cmd == 'CustomNonAnimated':
 		if bone.fast64.sm64.custom_geo_cmd_macro == '':
-			raise PluginError(f'Bone "{boneName}" needs a geo command macro.')
+			raise PluginError(f'Bone "{boneName}" on armature "{armatureObj.name}" needs a geo command macro.')
 		node = CustomNode(bone.fast64.sm64.custom_geo_cmd_macro, bone.fast64.sm64.custom_geo_cmd_args)
 	elif bone.geo_cmd == 'Function':
 		if bone.geo_func == '':
