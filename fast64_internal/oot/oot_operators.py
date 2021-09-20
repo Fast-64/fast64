@@ -3,6 +3,7 @@ from bpy.utils import register_class, unregister_class
 from ..utility import *
 from ..f3d.f3d_material import *
 from ..operators import *
+from ..panels import OOT_Panel
 
 class OOT_AddWaterBox(AddWaterBox):
 	bl_idname = 'object.oot_add_water_box'
@@ -137,16 +138,9 @@ class OOT_AddRoom(bpy.types.Operator):
 		context.view_layer.objects.active = roomObj
 		return {"FINISHED"}
 
-class OOT_OperatorsPanel(bpy.types.Panel):
+class OOT_OperatorsPanel(OOT_Panel):
 	bl_idname = "OOT_PT_operators"
 	bl_label = "OOT Tools"
-	bl_space_type = 'VIEW_3D'
-	bl_region_type = 'UI'
-	bl_category = 'OOT'
-
-	@classmethod
-	def poll(cls, context):
-		return True
 
 	# called every frame
 	def draw(self, context):
