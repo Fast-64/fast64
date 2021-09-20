@@ -359,8 +359,4 @@ def unregister():
 	for cls in classes:
 		unregister_class(cls)
 	
-	bpy.app.handlers.load_post = [
-		handler for handler in bpy.app.handlers.load_post
-		if handler is not after_load
-	]
-
+	bpy.app.handlers.load_post.remove(after_load)
