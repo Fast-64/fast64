@@ -259,7 +259,7 @@ class Fast64_Properties(bpy.types.PropertyGroup):
 
 class Fast64_BoneProperties(bpy.types.PropertyGroup):
 	'''
-	Properties in bone.fast64.
+	Properties in bone.fast64 (bpy.types.Bone)
 	All new bone properties should be children of this property group.
 	'''
 	sm64: bpy.props.PointerProperty(type=SM64_BoneProperties, name="SM64 Properties")
