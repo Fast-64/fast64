@@ -5,7 +5,7 @@ from os.path import basename
 from io import BytesIO
 
 from .sm64_objects import InlineGeolayoutObjConfig, inlineGeoLayoutObjects
-from .sm64_geolayout_bone import getSwitchOptionBone, animatableBones
+from .sm64_geolayout_bone import getSwitchOptionBone, animatableBoneTypes
 from .sm64_geolayout_constants import *
 from .sm64_geolayout_utility import *
 from .sm64_constants import *
@@ -1158,7 +1158,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 
 	#hasDL = bone.use_deform
 	hasDL = True
-	if bone.geo_cmd in animatableBones:
+	if bone.geo_cmd in animatableBoneTypes:
 		if bone.geo_cmd == 'CustomAnimated':
 			if not bone.fast64.sm64.custom_geo_cmd_macro:
 				raise PluginError(f'Bone "{boneName}" needs a geo command macro.')

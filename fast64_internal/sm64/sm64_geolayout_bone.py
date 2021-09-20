@@ -24,7 +24,7 @@ enumBoneType = [
 	("CustomNonAnimated", "Custom (Non-animated)", "Custom geolayout bone, non animated"),
 ]
 
-animatableBones = {"DisplayListWithOffset", "CustomAnimated"}
+animatableBoneTypes = {"DisplayListWithOffset", "CustomAnimated"}
 
 enumGeoStaticType = [
 	("Billboard", "Billboard (0x14)", "Billboard"), 
@@ -407,7 +407,7 @@ def updateBone(self, context):
 	armatureObj = context.object
 
 	createBoneGroups(armatureObj)
-	if context.bone.geo_cmd not in animatableBones:
+	if context.bone.geo_cmd not in animatableBoneTypes:
 		addBoneToGroup(armatureObj, context.bone.name, context.bone.geo_cmd)
 		bpy.ops.object.mode_set(mode="POSE")
 	else:
