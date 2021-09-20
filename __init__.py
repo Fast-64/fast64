@@ -257,6 +257,14 @@ class Fast64_Properties(bpy.types.PropertyGroup):
 	oot: bpy.props.PointerProperty(type=OOT_Properties, name="OOT Properties")
 	settings: bpy.props.PointerProperty(type=Fast64Settings_Properties, name="Fast64 Settings")
 
+class Fast64_BoneProperties(bpy.types.PropertyGroup):
+	'''
+	Properties in bone.fast64 (bpy.types.Bone)
+	All new bone properties should be children of this property group.
+	'''
+	sm64: bpy.props.PointerProperty(type=SM64_BoneProperties, name="SM64 Properties")
+
+
 #def updateGameEditor(scene, context):
 #	if scene.currentGameEditorMode == 'SM64':
 #		sm64_panel_unregister()
@@ -277,6 +285,7 @@ class Fast64_Properties(bpy.types.PropertyGroup):
 classes = (
 	Fast64Settings_Properties,
 	Fast64_Properties,
+	Fast64_BoneProperties,
 
 	ArmatureApplyWithMesh,
 	AddBoneGroups,
@@ -332,6 +341,8 @@ def register():
 	bpy.types.Scene.blenderF3DScale = bpy.props.FloatProperty(name = "F3D Blender Scale", default = 100)
 
 	bpy.types.Scene.fast64 = bpy.props.PointerProperty(type=Fast64_Properties, name="Fast64 Properties")
+	bpy.types.Bone.fast64 = bpy.props.PointerProperty(type=Fast64_BoneProperties, name="Fast64 Bone Properties")
+
 	bpy.app.handlers.load_post.append(after_load)
 
 # called on add-on disabling
@@ -355,6 +366,7 @@ def unregister():
 	del bpy.types.Scene.blenderF3DScale
 
 	del bpy.types.Scene.fast64
+	del bpy.types.Bone.fast64
 
 	for cls in classes:
 		unregister_class(cls)

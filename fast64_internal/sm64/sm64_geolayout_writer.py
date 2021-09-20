@@ -5,7 +5,7 @@ from os.path import basename
 from io import BytesIO
 
 from .sm64_objects import InlineGeolayoutObjConfig, inlineGeoLayoutObjects
-from .sm64_geolayout_bone import getSwitchOptionBone
+from .sm64_geolayout_bone import getSwitchOptionBone, animatableBoneTypes
 from .sm64_geolayout_constants import *
 from .sm64_geolayout_utility import *
 from .sm64_constants import *
@@ -1158,23 +1158,34 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 
 	#hasDL = bone.use_deform
 	hasDL = True
-	if bone.geo_cmd == 'DisplayListWithOffset':
-		if not zeroRotation:
-			node = DisplayListWithOffsetNode(int(bone.draw_layer),
-				hasDL, mathutils.Vector((0,0,0)))
-
-			parentTransformNode = addParentNode(parentTransformNode,
-				TranslateRotateNode(1, 0, False, translate, rotate))
-
+	if bone.geo_cmd in animatableBoneTypes:
+		if bone.geo_cmd == 'CustomAnimated':
+			if not bone.fast64.sm64.custom_geo_cmd_macro:
+				raise PluginError(f'Bone "{boneName}" on armature "{armatureObj.name}" needs a geo command macro.')
+			node = CustomAnimatedNode(bone.fast64.sm64.custom_geo_cmd_macro, int(bone.draw_layer), translate, rotate)
 			lastTranslateName = boneName
 			lastRotateName = boneName
-		else:
-			node = DisplayListWithOffsetNode(int(bone.draw_layer),
-				hasDL, translate)
-			lastTranslateName = boneName
+		else: # DisplayListWithOffset
+			if not zeroRotation:
+				node = DisplayListWithOffsetNode(int(bone.draw_layer),
+					hasDL, mathutils.Vector((0,0,0)))
+
+				parentTransformNode = addParentNode(parentTransformNode,
+					TranslateRotateNode(1, 0, False, translate, rotate))
+
+				lastTranslateName = boneName
+				lastRotateName = boneName
+			else:
+				node = DisplayListWithOffsetNode(int(bone.draw_layer),
+					hasDL, translate)
+				lastTranslateName = boneName
 
 		finalTransform = transformMatrix @ translation
 
+	elif bone.geo_cmd == 'CustomNonAnimated':
+		if bone.fast64.sm64.custom_geo_cmd_macro == '':
+			raise PluginError(f'Bone "{boneName}" on armature "{armatureObj.name}" needs a geo command macro.')
+		node = CustomNode(bone.fast64.sm64.custom_geo_cmd_macro, bone.fast64.sm64.custom_geo_cmd_args)
 	elif bone.geo_cmd == 'Function':
 		if bone.geo_func == '':
 			raise PluginError('Function bone ' + boneName + ' function value is empty.')
