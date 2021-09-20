@@ -401,13 +401,13 @@ def convertRadiansToS16(value):
 	value = 360 - (value % 360)
 	return hex(round(value / 360 * 0xFFFF))
 
-def correct_to_size(value: int, bits: int, signed: bool):
-    base = 1 << bits
-    value %= base
-    return value - base if signed and value.bit_length() == bits else value
+def cast_integer(value: int, bits: int, signed: bool):
+    wrap = 1 << bits
+    value %= wrap
+    return value - wrap if signed and value & (1 << (bits - 1)) else value
 
-to_s16 = lambda x: correct_to_size(round(x), 16, True)
-radians_to_s16 = lambda d: to_s16(math.degrees(d) * 0x10000 / 360)
+to_s16 = lambda x: cast_integer(round(x), 16, True)
+radians_to_s16 = lambda d: to_s16(d * 0x10000 / (2 * math.pi))
 
 def decompFolderMessage(layout):
 	layout.box().label(text = 'This will export to your decomp folder.')
