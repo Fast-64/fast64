@@ -326,25 +326,25 @@ def ootAlternateSceneHeadersToC(scene):
 	
 	if scene.childNightHeader is not None:
 		altHeader.source += "\t" + scene.sceneName() + "_header" + format(1, '02') + ",\n"
-		altData.append(ootSceneToC(scene.childNightHeader, 1))
+		altData.append(ootSceneMainToC(scene.childNightHeader, 1))
 	else:
 		altHeader.source += "\t0,\n"
 
 	if scene.adultDayHeader is not None:
 		altHeader.source += "\t" + scene.sceneName() + "_header" + format(2, '02') + ",\n"
-		altData.append(ootSceneToC(scene.adultDayHeader, 2))
+		altData.append(ootSceneMainToC(scene.adultDayHeader, 2))
 	else:
 		altHeader.source += "\t0,\n"
 
 	if scene.adultNightHeader is not None:
 		altHeader.source += "\t" + scene.sceneName() + "_header" + format(3, '02') + ",\n"
-		altData.append(ootSceneToC(scene.adultNightHeader, 3))
+		altData.append(ootSceneMainToC(scene.adultNightHeader, 3))
 	else:
 		altHeader.source += "\t0,\n"
 
 	for i in range(len(scene.cutsceneHeaders)):
 		altHeader.source += "\t" + scene.sceneName() + "_header" + format(i + 4, '02') + ",\n"
-		altData.append(ootSceneToC(scene.cutsceneHeaders[i], i + 4))
+		altData.append(ootSceneMainToC(scene.cutsceneHeaders[i], i + 4))
 
 	altHeader.source += '};\n\n'
 
@@ -664,6 +664,10 @@ def ootLevelToC(scene, textureExportSettings):
 
 class OOTLevelC:
 	def __init__(self):
+		# Header for both the scene and rooms
+		self.sceneHeader = CData()
+
+		# Each file that is contained in the scene segment
 		self.sceneMain = CData()
 		self.sceneCollision = CData()
 		self.sceneTextures = CData()
