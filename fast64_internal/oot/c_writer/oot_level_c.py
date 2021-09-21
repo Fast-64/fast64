@@ -9,109 +9,92 @@ def cmdName(name, header, index):
 # Scene Commands
 def cmdSoundSettings(scene, header, cmdCount):
 	cmd = CData()
-	# cmd.header = "extern " + "SCmdSoundSettings " + cmdName(scene.sceneName(), header, cmdCount) + ';\n'
 	cmd.source = "\tSCENE_CMD_SOUND_SETTINGS(" + str(scene.audioSessionPreset) + ", " + str(scene.nightSeq) + \
 		", " + str(scene.musicSeq) + "),\n"
 	return cmd
 
 def cmdRoomList(scene, header, cmdCount):
 	cmd = CData()
-	# cmd.header = "extern " + "SCmdRoomList " + cmdName(scene.sceneName(), header, cmdCount) + ';\n'
 	cmd.source = "\tSCENE_CMD_ROOM_LIST(" + str(len(scene.rooms)) + ", &" + scene.roomListName() + "),\n"
 	return cmd
 
 def cmdTransiActorList(scene, header, cmdCount):
 	cmd = CData()
-	# cmd.header = "extern " + "SCmdTransiActorList " + cmdName(scene.sceneName(), header, cmdCount) + ';\n'
 	cmd.source = "\tSCENE_CMD_TRANSITION_ACTOR_LIST(" + str(len(scene.transitionActorList)) + ", &" + \
 		scene.transitionActorListName(header) + "),\n"
 	return cmd
 
 def cmdMiscSettings(scene, header, cmdCount):
 	cmd = CData()
-	# cmd.header = "extern " + "SCmdMiscSettings " + cmdName(scene.sceneName(), header, cmdCount) + ';\n'
 	cmd.source = "\tSCENE_CMD_MISC_SETTINGS(" + str(scene.cameraMode) + ", " + str(scene.mapLocation) + "),\n"
 	return cmd
 
 def cmdColHeader(scene, header, cmdCount):
 	cmd = CData()
-	# cmd.header = "extern " + "SCmdColHeader " + cmdName(scene.sceneName(), header, cmdCount) + ';\n'
 	cmd.source = "\tSCENE_CMD_COL_HEADER(&" + scene.collision.headerName() + "),\n"
 	return cmd
 
 def cmdEntranceList(scene, header, cmdCount):
 	cmd = CData()
-	# cmd.header = "extern " + "SCmdEntranceList " + cmdName(scene.sceneName(), header, cmdCount) + ';\n'
 	cmd.source = "\tSCENE_CMD_ENTRANCE_LIST(" + (('&' + scene.entranceListName(header)) if len(scene.entranceList) > 0 else "NULL") + "),\n"
 	return cmd
 
 def cmdSpecialFiles(scene, header, cmdCount):
 	cmd = CData()
-	# cmd.header = "extern " + "SCmdSpecialFiles " + cmdName(scene.sceneName(), header, cmdCount) + ';\n'
 	cmd.source = "\tSCENE_CMD_SPECIAL_FILES(" + str(scene.naviCup) + ", " + str(scene.globalObject) + "),\n"
 	return cmd
 
 def cmdPathList(scene, header, cmdCount):
 	cmd = CData()
-	# cmd.header = "extern " + "SCmdPathList " + cmdName(scene.sceneName(), header, cmdCount) + ';\n'
 	cmd.source = "\tSCENE_CMD_PATH_LIST(&" + scene.pathListName() + "),\n"
 	return cmd
 
 def cmdSpawnList(scene, header, cmdCount):
 	cmd = CData()
-	# cmd.header = "extern " + "SCmdSpawnList " + cmdName(scene.sceneName(), header, cmdCount) + ';\n'
 	cmd.source = "\tSCENE_CMD_SPAWN_LIST(" + str(len(scene.startPositions)) + ", " + \
 		(('&' + scene.startPositionsName(header)) if len(scene.startPositions) > 0 else 'NULL') + "),\n"
 	return cmd
 
 def cmdSkyboxSettings(scene, header, cmdCount):
 	cmd = CData()
-	# cmd.header = "extern " + "SCmdSkyboxSettings " + cmdName(scene.sceneName(), header, cmdCount) + ';\n'
 	cmd.source = "\tSCENE_CMD_SKYBOX_SETTINGS(" + str(scene.skyboxID) + ", " + str(scene.skyboxCloudiness) \
 		+ ", " + str(scene.skyboxLighting) + "),\n"
 	return cmd
 	
 def cmdExitList(scene, header, cmdCount):
 	cmd = CData()
-	# cmd.header = "extern " + "SCmdExitList " + cmdName(scene.sceneName(), header, cmdCount) + ';\n'
 	cmd.source = "\tSCENE_CMD_EXIT_LIST(&" + scene.exitListName(header) + "),\n"
 	return cmd
 
 def cmdLightSettingList(scene, header, cmdCount):
 	cmd = CData()
-	# cmd.header = "extern " + "SCmdLightSettingList " + cmdName(scene.sceneName(), header, cmdCount) + ';\n'
 	cmd.source = "\tSCENE_CMD_ENV_LIGHT_SETTINGS(" + str(len(scene.lights)) + ", " + \
 		(('&' + scene.lightListName(header)) if len(scene.lights) > 0 else 'NULL') + "),\n"
 	return cmd
 
 def cmdCutsceneData(scene, header, cmdCount):
 	cmd = CData()
-	# cmd.header = "extern " + "SCmdCutsceneData " + cmdName(scene.sceneName(), header, cmdCount) + ';\n'
 	cmd.source = "\tSCENE_CMD_CUTSCENE_DATA(&" + scene.cutsceneDataName(header) + "),\n"
 	return cmd
 
 def cmdEndMarker(name, header, cmdCount):
 	cmd = CData()
-	# cmd.header = "extern " + "SCmdEndMarker " + cmdName(name, header, cmdCount) + ";\n"
 	cmd.source = "\tSCENE_CMD_END(),\n"
 	return cmd
 
 # Room Commands
 def cmdAltHeaders(name, altName, header, cmdCount):
 	cmd = CData()
-	# cmd.header = "extern " + "SCmdAltHeaders " + cmdName(name, header, cmdCount) + ';\n'
 	cmd.source = "\tSCENE_CMD_ALTERNATE_HEADER_LIST(&" + altName + "),\n"
 	return cmd
 
 def cmdEchoSettings(room, header, cmdCount):
 	cmd = CData()
-	# cmd.header = "extern " + "SCmdEchoSettings " + cmdName(room.roomName(), header, cmdCount) + ';\n'
 	cmd.source = "\tSCENE_CMD_ECHO_SETTINGS(" + str(room.echo) + "),\n"
 	return cmd
 
 def cmdRoomBehaviour(room, header, cmdCount):
 	cmd = CData()
-	# cmd.header = "extern " + "SCmdRoomBehavior " + cmdName(room.roomName(), header, cmdCount) + ';\n'
 	cmd.source = "\tSCENE_CMD_ROOM_BEHAVIOR(" + str(room.roomBehaviour) + ", " + str(room.linkIdleMode) + ", " + \
 		("true" if room.showInvisibleActors else "false") + ", " + \
 		("true" if room.disableWarpSongs else "false") + "),\n"
@@ -119,21 +102,18 @@ def cmdRoomBehaviour(room, header, cmdCount):
 
 def cmdSkyboxDisables(room, header, cmdCount):
 	cmd = CData()
-	# cmd.header = "extern " + "SCmdSkyboxDisables " + cmdName(room.roomName(), header, cmdCount) + ';\n'
 	cmd.source = "\tSCENE_CMD_SKYBOX_DISABLES(" + ("true" if room.disableSkybox else "false") + ", " + \
 		("true" if room.disableSunMoon else "false") + "),\n"
 	return cmd
 
 def cmdTimeSettings(room, header, cmdCount):
 	cmd = CData()
-	# cmd.header = "extern " + "SCmdTimeSettings " + cmdName(room.roomName(), header, cmdCount) + ';\n'
 	cmd.source = "\tSCENE_CMD_TIME_SETTINGS(" + str(room.timeHours) + ", " + str(room.timeMinutes) + ", " + \
 		str(room.timeSpeed) + "),\n"
 	return cmd
 
 def cmdWindSettings(room, header, cmdCount):
 	cmd = CData()
-	# cmd.header = "extern " + "SCmdWindSettings " + cmdName(room.roomName(), header, cmdCount) + ';\n'
 	cmd.source = "\tSCENE_CMD_WIND_SETTINGS(" + str(room.windVector[0]) + ", " + \
 		str(room.windVector[1]) + ", " + \
 		str(room.windVector[2]) + ", " + \
@@ -142,19 +122,16 @@ def cmdWindSettings(room, header, cmdCount):
 
 def cmdMesh(room, header, cmdCount):
 	cmd = CData()
-	# cmd.header = "extern " + "SCmdMesh " + cmdName(room.roomName(), header, cmdCount) + ';\n'
 	cmd.source = "\tSCENE_CMD_MESH(&" + room.mesh.headerName() + "),\n"
 	return cmd
 
 def cmdObjectList(room, header, cmdCount):
 	cmd = CData()
-	# cmd.header = "extern " + "SCmdObjectList " + cmdName(room.roomName(), header, cmdCount) + ';\n'
 	cmd.source = "\tSCENE_CMD_OBJECT_LIST(" + str(len(room.objectList)) + ", &" + str(room.objectListName(header)) + "),\n"
 	return cmd
 
 def cmdActorList(room, header, cmdCount):
 	cmd = CData()
-	# cmd.header = "extern " + "SCmdActorList " + cmdName(room.roomName(), header, cmdCount) + ';\n'
 	cmd.source = "\tSCENE_CMD_ACTOR_LIST(" + str(len(room.actorList)) + ", &" + str(room.actorListName(header)) + "),\n"
 	return cmd
 
@@ -340,7 +317,7 @@ def ootRoomToC(scene, room, headerIndex, textureExportSettings):
 	
 	return roomC
 
-def ootAlternateSceneHeadersToC(scene, textureExportSettings):
+def ootAlternateSceneHeadersToC(scene):
 	altHeader = CData()
 	altData = CData()
 
@@ -349,25 +326,25 @@ def ootAlternateSceneHeadersToC(scene, textureExportSettings):
 	
 	if scene.childNightHeader is not None:
 		altHeader.source += "\t" + scene.sceneName() + "_header" + format(1, '02') + ",\n"
-		altData.append(ootSceneToC(scene.childNightHeader, 1, textureExportSettings))
+		altData.append(ootSceneToC(scene.childNightHeader, 1))
 	else:
 		altHeader.source += "\t0,\n"
 
 	if scene.adultDayHeader is not None:
 		altHeader.source += "\t" + scene.sceneName() + "_header" + format(2, '02') + ",\n"
-		altData.append(ootSceneToC(scene.adultDayHeader, 2, textureExportSettings))
+		altData.append(ootSceneToC(scene.adultDayHeader, 2))
 	else:
 		altHeader.source += "\t0,\n"
 
 	if scene.adultNightHeader is not None:
 		altHeader.source += "\t" + scene.sceneName() + "_header" + format(3, '02') + ",\n"
-		altData.append(ootSceneToC(scene.adultNightHeader, 3, textureExportSettings))
+		altData.append(ootSceneToC(scene.adultNightHeader, 3))
 	else:
 		altHeader.source += "\t0,\n"
 
 	for i in range(len(scene.cutsceneHeaders)):
 		altHeader.source += "\t" + scene.sceneName() + "_header" + format(i + 4, '02') + ",\n"
-		altData.append(ootSceneToC(scene.cutsceneHeaders[i], i + 4, textureExportSettings))
+		altData.append(ootSceneToC(scene.cutsceneHeaders[i], i + 4))
 
 	altHeader.source += '};\n\n'
 
@@ -473,22 +450,25 @@ def ootExitListToC(scene, headerIndex):
 def ootVectorToC(vector):
 	return "0x{:02X}, 0x{:02X}, 0x{:02X}".format(vector[0], vector[1], vector[2])
 
+def ootRGBColorToC(color):
+	return str(color[0]) + ', ' + str(color[1]) + ', ' + str(color[2])
+
 def ootLightToC(light):
 	return "\t{ " + \
-		ootVectorToC(light.ambient) + ', ' +\
+		ootRGBColorToC(light.ambient) + ', ' +\
 		ootVectorToC(light.diffuseDir0) + ', ' +\
-		ootVectorToC(light.diffuse0) + ', ' +\
+		ootRGBColorToC(light.diffuse0) + ', ' +\
 		ootVectorToC(light.diffuseDir1) + ', ' +\
-		ootVectorToC(light.diffuse1) + ', ' +\
-		ootVectorToC(light.fogColor) + ', ' +\
+		ootRGBColorToC(light.diffuse1) + ', ' +\
+		ootRGBColorToC(light.fogColor) + ', ' +\
 		light.getBlendFogShort() + ', ' +\
-		"0x{:04X}".format(light.drawDistance) + ' },\n'
+		"0x{:04X}".format(light.fogFar) + ' },\n'
 
 def ootLightSettingsToC(scene, useIndoorLighting, headerIndex):
 	data = CData()
 	lightArraySize = len(scene.lights)
-	data.header = "extern LightSettings " + scene.lightListName(headerIndex) + "[" + str(lightArraySize) + "];\n"
-	data.source = "LightSettings " + scene.lightListName(headerIndex) + "[" + str(lightArraySize) + "] = {\n"
+	data.header = "extern EnvLightSettings " + scene.lightListName(headerIndex) + "[" + str(lightArraySize) + "];\n"
+	data.source = "EnvLightSettings " + scene.lightListName(headerIndex) + "[" + str(lightArraySize) + "] = {\n"
 	for light in scene.lights:
 		data.source += ootLightToC(light)
 	data.source += '};\n\n'
@@ -601,60 +581,92 @@ def ootSceneIncludes(scene):
 	data.source += '\n'
 	return data
 
-def ootSceneToC(scene, headerIndex, textureExportSettings):
-	sceneC = CData()
+def ootSceneMainToC(scene, headerIndex):
+	sceneMainC = CData()
 
 	if headerIndex == 0:
-		sceneC.append(ootSceneIncludes(scene))
-		meshData = ootSceneMeshToC(scene, textureExportSettings)
-		colData = ootCollisionToC(scene.collision)
+		sceneMainC.append(ootSceneIncludes(scene))
 		roomHeaderData = ootRoomListHeaderToC(scene)
+
 		if len(scene.pathList) > 0:
 			pathData = ootPathListToC(scene)
 		else:
 			pathData = CData()
 	else:
-		meshData = CData()
-		colData = CData()
 		roomHeaderData = CData()
 		pathData = CData()
 
 	if scene.hasAlternateHeaders():
-		altHeader, altData = ootAlternateSceneHeadersToC(scene, textureExportSettings)
+		altHeader, altData = ootAlternateSceneHeadersToC(scene)
 	else:
 		altHeader = CData()
 		altData = CData()
 
-	sceneC.append(ootSceneCommandsToC(scene, headerIndex))
-	sceneC.append(altHeader)
+	# Write the scene header
+	sceneMainC.append(ootSceneCommandsToC(scene, headerIndex))
+	sceneMainC.append(altHeader)
+	
 	if len(scene.startPositions) > 0:
-		sceneC.append(ootStartPositionListToC(scene, headerIndex))
+		sceneMainC.append(ootStartPositionListToC(scene, headerIndex))
+	
 	if len(scene.transitionActorList) > 0:
-		sceneC.append(ootTransitionActorListToC(scene, headerIndex))
-	sceneC.append(roomHeaderData)
+		sceneMainC.append(ootTransitionActorListToC(scene, headerIndex))
+	
+	sceneMainC.append(roomHeaderData)
+	
 	if len(scene.entranceList) > 0:
-		sceneC.append(ootEntranceListToC(scene, headerIndex))
+		sceneMainC.append(ootEntranceListToC(scene, headerIndex))
+	
 	if len(scene.exitList) > 0:
-		sceneC.append(ootExitListToC(scene, headerIndex))
+		sceneMainC.append(ootExitListToC(scene, headerIndex))
+	
 	if len(scene.lights) > 0:
-		sceneC.append(ootLightSettingsToC(scene, scene.skyboxLighting == '0x01', headerIndex))
-	sceneC.append(pathData)
-	sceneC.append(colData)
-	if scene.writeCutscene:
-		sceneC.append(ootCutsceneToC(scene, headerIndex))
-	sceneC.append(altData)
-	sceneC.append(meshData)
+		sceneMainC.append(ootLightSettingsToC(scene, scene.skyboxLighting == '0x01', headerIndex))
+	
+	sceneMainC.append(pathData)
 
-	return sceneC
+	# Write alternate headers
+	sceneMainC.append(altData)
+
+	return sceneMainC
+
+def ootSceneCollisionToC(scene):
+	sceneCollisionC = CData()
+
+	# Writes collision data
+	sceneCollisionC.append(ootSceneIncludes(scene))
+	sceneCollisionC.append(ootCollisionToC(scene.collision))
+
+	return sceneCollisionC
+
+def ootSceneTexturesToC(scene, textureExportSettings):
+	sceneTexturesC = CData()
+
+	# Writes any "meshes", though for scenes these will always be material displaylists and textures
+	sceneTexturesC.append(ootSceneIncludes(scene))
+	sceneTexturesC.append(ootSceneMeshToC(scene, textureExportSettings))
+
+	return sceneTexturesC
 
 def ootLevelToC(scene, textureExportSettings):
 	levelC = OOTLevelC()
-	levelC.scene = ootSceneToC(scene, 0, textureExportSettings)
+
+	# Write each scene file
+	levelC.sceneMain = ootSceneMainToC(scene, 0)
+	levelC.sceneCollision = ootSceneCollisionToC(scene)
+	levelC.sceneTextures = ootSceneTexturesToC(scene, textureExportSettings)
+	
+	# TODO: Split room files the same way as scene files!
 	for i in range(len(scene.rooms)):
 		levelC.rooms[scene.rooms[i].roomName()] = ootRoomToC(scene, scene.rooms[i], 0, textureExportSettings)
+	
 	return levelC
 
 class OOTLevelC:
 	def __init__(self):
-		self.scene = CData()
+		self.sceneMain = CData()
+		self.sceneCollision = CData()
+		self.sceneTextures = CData()
+		
+		# TODO: Split room files the same way as scene files!
 		self.rooms = {}

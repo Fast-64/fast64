@@ -49,7 +49,7 @@ class OOTLight:
 		self.diffuseDir1 = (0,0,0)
 		self.fogColor = (0,0,0)
 		self.fogNear = 0
-		self.drawDistance = 0
+		self.fogFar = 0
 		self.transitionSpeed = 0
 	
 	def getBlendFogShort(self):

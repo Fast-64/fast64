@@ -689,7 +689,7 @@ def ootCollisionPolygonToC(polygon, ignoreCamera, ignoreActor, ignoreProjectile,
 		format(polygon.distance, "#06x") + ' },\n'
 
 def ootPolygonTypeToC(polygonType):
-	return " " + format(polygonType.convertHigh(), "#010x") + ', ' +\
+	return format(polygonType.convertHigh(), "#010x") + ', ' +\
 		format(polygonType.convertLow(), "#010x") + ',\n'
 
 def ootWaterBoxToC(waterBox):
@@ -802,24 +802,24 @@ def ootCollisionToC(collision):
 		camDataName = '0'
 
 	data.header += "extern CollisionHeader " + collision.headerName() + ';\n'
-	data.source += "CollisionHeader " + collision.headerName() + ' = { '
+	data.source += "CollisionHeader " + collision.headerName() + ' = {\n'
 
 	if len(collision.bounds) == 2:
 		for bound in range(2): # min, max bound
 			for field in range(3): # x, y, z
-				data.source += str(collision.bounds[bound][field]) + ', '
+				data.source += '\t' + str(collision.bounds[bound][field]) + ',\n'
 	else:
-		data.source += '0, 0, 0, 0, 0, 0, '
+		data.source += '\t0,\n\t0,\n\t0,\n\t0,\n\t0,\n\t0,\n'
 	
 	data.source += \
-		str(len(collision.vertices)) + ', ' +\
-		collisionVerticesName + ', ' +\
-		str(collision.polygonCount()) + ", " +\
-		polygonsName + ', ' +\
-		polygonTypesName + ', ' +\
-		camDataName + ', ' +\
-		str(len(collision.waterBoxes)) + ", " +\
-		waterBoxesName + ' };\n\n'
+		'\t' + str(len(collision.vertices)) + ',\n' + \
+		'\t' + collisionVerticesName + ',\n' + \
+		'\t' + str(collision.polygonCount()) + ',\n' + \
+		'\t' + polygonsName + ',\n' + \
+		'\t' + polygonTypesName + ',\n' + \
+		'\t' + camDataName + ',\n' + \
+		'\t' + str(len(collision.waterBoxes)) + ',\n' + \
+		'\t' + waterBoxesName + '\n};\n'
 
 	return data
 

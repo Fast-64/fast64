@@ -1394,7 +1394,7 @@ ootEnumCamTransition = [
 ootEnumRoomBehaviour = [
 	("Custom", "Custom", "Custom"),
 	("0x00", "None", "None"),
-	("0x01", "Disable Sun Song Effect", "Disable Sun Song Effect"),
+	("0x01", "Dungeon Behavior", "Dungeon Behavior"),
 	("0x02", "Disable Action Button Jumping", "Disable Action Button Jumping"),
 	("0x03", "(?) Disable Color Dither", "(?) Disable Color Dither"),
 	("0x04", "(?) Horse Camera Related", "(?) Horse Camera Related"),

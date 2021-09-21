@@ -48,9 +48,18 @@ def ootExportSceneToC(originalSceneObj, transformMatrix,
 	levelPath = ootGetPath(exportPath, isCustomExport, exportSubdir, sceneName, True, True)	
 	levelC = ootLevelToC(scene, TextureExportSettings(False, savePNG, exportSubdir + sceneName, levelPath))
 
-	writeCData(levelC.scene, 
-		os.path.join(levelPath, scene.sceneName() + '.h'),
-		os.path.join(levelPath, scene.sceneName() + '.c'))
+	writeCData(levelC.sceneMain, 
+		os.path.join(levelPath, scene.sceneName() + '_main.h'),
+		os.path.join(levelPath, scene.sceneName() + '_main.c'))
+
+	writeCData(levelC.sceneCollision, 
+		os.path.join(levelPath, scene.sceneName() + '_col.h'),
+		os.path.join(levelPath, scene.sceneName() + '_col.c'))
+
+	writeCData(levelC.sceneTextures, 
+		os.path.join(levelPath, scene.sceneName() + '_tex.h'),
+		os.path.join(levelPath, scene.sceneName() + '_tex.c'))
+	
 	for roomName, room in levelC.rooms.items():
 		writeCData(room, 
 			os.path.join(levelPath, roomName + '.h'),
@@ -243,7 +252,7 @@ def getLightData(lightProp):
 	light.fogColor = getLightColor(lightProp.fogColor)
 	light.fogNear = lightProp.fogNear
 	light.transitionSpeed = lightProp.transitionSpeed
-	light.drawDistance = lightProp.drawDistance
+	light.fogFar = lightProp.fogFar
 	return light
 
 def readRoomData(room, roomHeader, alternateRoomHeaders):
