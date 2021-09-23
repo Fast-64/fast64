@@ -279,19 +279,25 @@ def ootRoomIncludes(scene, room):
 	data.source += '#include "ultra64.h"\n'
 	data.source += '#include "z64.h"\n'
 	data.source += '#include "macros.h"\n'
-	data.source += '#include "' + room.roomName() + '.h"\n\n'
+	data.source += '#include "' + scene.sceneName() + '.h"\n\n'
+	
 	data.source += '#include "segment_symbols.h"\n'
 	data.source += '#include "command_macros_base.h"\n'
 	data.source += '#include "z64cutscene_commands.h"\n'
 	data.source += '#include "variables.h"\n'
-	data.source += '#include "' + scene.sceneName() + '.h"\n'
+	
 	data.source += '\n'
 	return data
 
 def ootRoomToC(scene, room, headerIndex, textureExportSettings):
-	roomC = CData()
+	roomC = CData() # main file
+	roomMeshHeaderC = CData()
+	roomMeshDataC = CData()
+
 	if headerIndex == 0:
 		roomC.append(ootRoomIncludes(scene, room))
+		roomMeshHeaderC.append(ootRoomIncludes(scene, room))
+		roomMeshDataC.append(ootRoomIncludes(scene, room))
 	
 	if room.hasAlternateHeaders():
 		altHeader, altData = ootAlternateRoomHeadersToC(scene, room, textureExportSettings)
@@ -311,11 +317,12 @@ def ootRoomToC(scene, room, headerIndex, textureExportSettings):
 		roomC.append(ootObjectListToC(room, headerIndex))
 	if len(room.actorList) > 0:
 		roomC.append(ootActorListToC(room, headerIndex))
-	roomC.append(meshHeader)
-	roomC.append(altData)
-	roomC.append(meshData)
 	
-	return roomC
+	roomMeshHeaderC.append(meshHeader)
+	roomC.append(altData)
+	roomMeshDataC.append(meshData)
+	
+	return roomC, roomMeshHeaderC, roomMeshDataC
 
 def ootAlternateSceneHeadersToC(scene):
 	altHeader = CData()
@@ -654,16 +661,25 @@ def ootLevelToC(scene, textureExportSettings):
 	# Write each scene file
 	levelC.sceneMain = ootSceneMainToC(scene, 0)
 	levelC.sceneCollision = ootSceneCollisionToC(scene)
-	levelC.sceneMaterials = ootSceneTexturesToC(scene, textureExportSettings)
+	levelC.sceneTextures = ootSceneTexturesToC(scene, textureExportSettings)
 
 	# Append the header data from all of the scene files into a single header
 	levelC.sceneHeader.append(levelC.sceneMain)
 	levelC.sceneHeader.append(levelC.sceneCollision)
-	levelC.sceneHeader.append(levelC.sceneMaterials)
+	levelC.sceneHeader.append(levelC.sceneTextures)
 	
 	# TODO: Split room files the same way as scene files!
 	for i in range(len(scene.rooms)):
-		levelC.rooms[scene.rooms[i].roomName()] = ootRoomToC(scene, scene.rooms[i], 0, textureExportSettings)
+		curRoomName = scene.rooms[i].roomName()
+		
+		# Write each room file for this room
+		levelC.rooms[curRoomName], levelC.roomMeshHeaders[curRoomName], levelC.roomMeshData =\
+			ootRoomToC(scene, scene.rooms[i], 0, textureExportSettings)
+		
+		# Append the header data for this room
+		levelC.sceneHeader.append(levelC.rooms[curRoomName])
+		levelC.sceneHeader.append(levelC.roomMeshHeaders[curRoomName])
+		levelC.sceneHeader.append(levelC.roomMeshData[curRoomName])
 	
 	return levelC
 
@@ -676,7 +692,9 @@ class OOTLevelC:
 		# Each file that is contained in the scene segment
 		self.sceneMain = CData()
 		self.sceneCollision = CData()
-		self.sceneMaterials = CData()
-		
-		# TODO: Split room files the same way as scene files!
-		self.rooms = {}
+		self.sceneTextures = CData()
+
+		# Each file that is contained in the room segment
+		self.rooms = {} # main file
+		self.roomMeshHeaders = {}
+		self.roomMeshData = {}

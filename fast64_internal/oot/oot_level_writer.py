@@ -49,18 +49,18 @@ def ootExportSceneToC(originalSceneObj, transformMatrix,
 	levelC = ootLevelToC(scene, TextureExportSettings(False, savePNG, exportSubdir + sceneName, levelPath))
 
 	# Export main scene file
-	sourceFile = open(os.path.join(levelPath, scene.sceneName() + '_main.c'), 'w', newline = '\n', encoding = 'utf-8')
+	sourceFile = open(os.path.join(levelPath, scene.sceneName() + '_main_info.c'), 'w', newline = '\n', encoding = 'utf-8')
 	sourceFile.write(levelC.sceneMain.source)
 	sourceFile.close()
 
 	# Export collision scene file
-	sourceFile = open(os.path.join(levelPath, scene.sceneName() + '_col.c'), 'w', newline = '\n', encoding = 'utf-8')
+	sourceFile = open(os.path.join(levelPath, scene.sceneName() + '_collison.c'), 'w', newline = '\n', encoding = 'utf-8')
 	sourceFile.write(levelC.sceneCollision.source)
 	sourceFile.close()
 
 	# Export texture scene file
-	sourceFile = open(os.path.join(levelPath, scene.sceneName() + '_mat.c'), 'w', newline = '\n', encoding = 'utf-8')
-	sourceFile.write(levelC.sceneMaterials.source)
+	sourceFile = open(os.path.join(levelPath, scene.sceneName() + '_textures.c'), 'w', newline = '\n', encoding = 'utf-8')
+	sourceFile.write(levelC.sceneTextures.source)
 	sourceFile.close()
 
 	# Export scene header file
@@ -68,10 +68,24 @@ def ootExportSceneToC(originalSceneObj, transformMatrix,
 	sourceFile.write(levelC.sceneHeader.header)
 	sourceFile.close()
 	
+	# Export each room's main file
+	# ZEL: wtf its crashing here
 	for roomName, room in levelC.rooms.items():
-		writeCData(room, 
-			os.path.join(levelPath, roomName + '.h'),
-			os.path.join(levelPath, roomName + '.c'))
+		sourceFile = open(os.path.join(levelPath, roomName + 'main_info.c'), 'w', newline = '\n', encoding = 'utf-8')
+		sourceFile.write(room.source)
+		sourceFile.close()
+
+	# Export each room's mesh header file
+	for roomName, room in levelC.roomMeshHeaders.items():
+		sourceFile = open(os.path.join(levelPath, roomName + 'shape_info.c'), 'w', newline = '\n', encoding = 'utf-8')
+		sourceFile.write(room.source)
+		sourceFile.close()
+
+	# Export each room's mesh data file
+	for roomName, room in levelC.roomMeshData.items():
+		sourceFile = open(os.path.join(levelPath, roomName + 'shape.c'), 'w', newline = '\n', encoding = 'utf-8')
+		sourceFile.write(room.source)
+		sourceFile.close()
 	
 	if not isCustomExport:
 		writeOtherSceneProperties(scene, exportInfo)
