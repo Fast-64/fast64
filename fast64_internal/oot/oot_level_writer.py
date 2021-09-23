@@ -48,17 +48,25 @@ def ootExportSceneToC(originalSceneObj, transformMatrix,
 	levelPath = ootGetPath(exportPath, isCustomExport, exportSubdir, sceneName, True, True)	
 	levelC = ootLevelToC(scene, TextureExportSettings(False, savePNG, exportSubdir + sceneName, levelPath))
 
-	writeCData(levelC.sceneMain, 
-		os.path.join(levelPath, scene.sceneName() + '_main.h'),
-		os.path.join(levelPath, scene.sceneName() + '_main.c'))
+	# Export main scene file
+	sourceFile = open(os.path.join(levelPath, scene.sceneName() + '_main.c'), 'w', newline = '\n', encoding = 'utf-8')
+	sourceFile.write(levelC.sceneMain.source)
+	sourceFile.close()
 
-	writeCData(levelC.sceneCollision, 
-		os.path.join(levelPath, scene.sceneName() + '_col.h'),
-		os.path.join(levelPath, scene.sceneName() + '_col.c'))
+	# Export collision scene file
+	sourceFile = open(os.path.join(levelPath, scene.sceneName() + '_col.c'), 'w', newline = '\n', encoding = 'utf-8')
+	sourceFile.write(levelC.sceneCollision.source)
+	sourceFile.close()
 
-	writeCData(levelC.sceneTextures, 
-		os.path.join(levelPath, scene.sceneName() + '_tex.h'),
-		os.path.join(levelPath, scene.sceneName() + '_tex.c'))
+	# Export texture scene file
+	sourceFile = open(os.path.join(levelPath, scene.sceneName() + '_mat.c'), 'w', newline = '\n', encoding = 'utf-8')
+	sourceFile.write(levelC.sceneMaterials.source)
+	sourceFile.close()
+
+	# Export scene header file
+	sourceFile = open(os.path.join(levelPath, scene.sceneName() + '.h'), 'w', newline = '\n', encoding = 'utf-8')
+	sourceFile.write(levelC.sceneHeader.header)
+	sourceFile.close()
 	
 	for roomName, room in levelC.rooms.items():
 		writeCData(room, 

@@ -654,7 +654,12 @@ def ootLevelToC(scene, textureExportSettings):
 	# Write each scene file
 	levelC.sceneMain = ootSceneMainToC(scene, 0)
 	levelC.sceneCollision = ootSceneCollisionToC(scene)
-	levelC.sceneTextures = ootSceneTexturesToC(scene, textureExportSettings)
+	levelC.sceneMaterials = ootSceneTexturesToC(scene, textureExportSettings)
+
+	# Append the header data from all of the scene files into a single header
+	levelC.sceneHeader.append(levelC.sceneMain)
+	levelC.sceneHeader.append(levelC.sceneCollision)
+	levelC.sceneHeader.append(levelC.sceneMaterials)
 	
 	# TODO: Split room files the same way as scene files!
 	for i in range(len(scene.rooms)):
@@ -664,13 +669,14 @@ def ootLevelToC(scene, textureExportSettings):
 
 class OOTLevelC:
 	def __init__(self):
-		# Header for both the scene and rooms
+		# Header file for the entire scene
+		# TODO: Do this a better way such that all of the c files and header files that make up the scene do not need to be appended together.
 		self.sceneHeader = CData()
-
+		
 		# Each file that is contained in the scene segment
 		self.sceneMain = CData()
 		self.sceneCollision = CData()
-		self.sceneTextures = CData()
+		self.sceneMaterials = CData()
 		
 		# TODO: Split room files the same way as scene files!
 		self.rooms = {}

@@ -58,7 +58,9 @@ def modifySegmentDefinition(scene, exportInfo):
 		segmentDefinitions.insert(firstIndex,
 			'\n\tname "' + scene.name + '_scene"\n' +\
 			"\tromalign 0x1000\n" +\
-			'\tinclude "' + includeDir + '_scene.o"\n' +\
+			'\tinclude "' + includeDir + '_scene_main.o"\n' +\
+			'\tinclude "' + includeDir + '_scene_col.o"\n' +\
+			'\tinclude "' + includeDir + '_scene_mat.o"\n' +\
 			"\tnumber 2\n")
 		firstIndex += 1
 
