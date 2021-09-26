@@ -5,6 +5,7 @@ from bpy.utils import register_class, unregister_class
 from ..utility import *
 from .oot_utility import *
 from .oot_constants import *
+from ..panels import OOT_Panel
 
 from ..f3d.f3d_gbi import *
 from ..f3d.f3d_writer import *
@@ -542,16 +543,9 @@ class OOT_RemoveScene(bpy.types.Operator):
 		self.report({'INFO'}, 'Success!')
 		return {'FINISHED'} # must return a set
 
-class OOT_ExportScenePanel(bpy.types.Panel):
+class OOT_ExportScenePanel(OOT_Panel):
 	bl_idname = "OOT_PT_export_level"
 	bl_label = "OOT Scene Exporter"
-	bl_space_type = 'VIEW_3D'
-	bl_region_type = 'UI'
-	bl_category = 'OOT'
-
-	@classmethod
-	def poll(cls, context):
-		return True
 
 	# called every frame
 	def draw(self, context):

@@ -5,7 +5,7 @@ from os.path import basename
 from io import BytesIO
 
 from .sm64_objects import InlineGeolayoutObjConfig, inlineGeoLayoutObjects
-from .sm64_geolayout_bone import getSwitchOptionBone
+from .sm64_geolayout_bone import getSwitchOptionBone, animatableBoneTypes
 from .sm64_geolayout_constants import *
 from .sm64_geolayout_utility import *
 from .sm64_constants import *
@@ -17,6 +17,7 @@ from .sm64_utility import *
 
 from ..utility import *
 from ..operators import ObjectDataExporter
+from ..panels import SM64_Panel
 
 def appendSecondaryGeolayout(geoDirPath, geoName1, geoName2, additionalNode = ''):
 	geoPath = os.path.join(geoDirPath, 'geo.inc.c')
@@ -915,7 +916,7 @@ def processMesh(
 		rotate = rotate_quat_blender_to_n64(rotate)
 	else: # object is NOT instanced
 		translate, rotate, scale = obj.matrix_local.decompose()
-	rotAxis, rotAngle = rotate.to_axis_angle()
+
 	zeroRotation = isZeroRotation(rotate)
 	zeroTranslation = isZeroTranslation(translate)
 	zeroScaleChange = isZeroScaleChange(scale)
@@ -1065,9 +1066,12 @@ def processMesh(
 				triConverterInfo = TriangleConverterInfo(temp_obj, None, fModel.f3d, transformMatrix, getInfoDict(temp_obj))
 				fMeshes = saveStaticModel(triConverterInfo, fModel, temp_obj, transformMatrix, fModel.name,
 					convertTextureData, False, 'sm64')
-
-				temp_obj['src_meshes'] = [({ 'name': fMesh.draw.name, 'layer': drawLayer }) for drawLayer, fMesh in fMeshes.items()]
-				node.dlRef = temp_obj['src_meshes'][0]['name']
+				if fMeshes:
+					temp_obj['src_meshes'] = [({ 'name': fMesh.draw.name, 'layer': drawLayer }) for drawLayer, fMesh in fMeshes.items()]
+					node.dlRef = temp_obj['src_meshes'][0]['name']
+				else:
+					# TODO: Display warning to the user that there is an object that doesn't have polygons
+					print('Object', obj.original_name, 'does not have any polygons.')
 
 		else:
 			triConverterInfo = TriangleConverterInfo(obj, None, fModel.f3d, transformMatrix, getInfoDict(obj))
@@ -1149,27 +1153,39 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 
 	translation = mathutils.Matrix.Translation(translate)
 	rotation = rotate.to_matrix().to_4x4()
+	zeroTranslation = isZeroTranslation(translate)
+	zeroRotation = isZeroRotation(rotate)
 
 	#hasDL = bone.use_deform
 	hasDL = True
-	if bone.geo_cmd == 'DisplayListWithOffset':
-		rotAxis, rotAngle = rotate.to_axis_angle()
-		if rotAngle > 0.00001:
-			node = DisplayListWithOffsetNode(int(bone.draw_layer),
-				hasDL, mathutils.Vector((0,0,0)))
-
-			parentTransformNode = addParentNode(parentTransformNode,
-				TranslateRotateNode(1, 0, False, translate, rotate))
-
+	if bone.geo_cmd in animatableBoneTypes:
+		if bone.geo_cmd == 'CustomAnimated':
+			if not bone.fast64.sm64.custom_geo_cmd_macro:
+				raise PluginError(f'Bone "{boneName}" on armature "{armatureObj.name}" needs a geo command macro.')
+			node = CustomAnimatedNode(bone.fast64.sm64.custom_geo_cmd_macro, int(bone.draw_layer), translate, rotate)
 			lastTranslateName = boneName
 			lastRotateName = boneName
-		else:
-			node = DisplayListWithOffsetNode(int(bone.draw_layer),
-				hasDL, translate)
-			lastTranslateName = boneName
+		else: # DisplayListWithOffset
+			if not zeroRotation:
+				node = DisplayListWithOffsetNode(int(bone.draw_layer),
+					hasDL, mathutils.Vector((0,0,0)))
+
+				parentTransformNode = addParentNode(parentTransformNode,
+					TranslateRotateNode(1, 0, False, translate, rotate))
+
+				lastTranslateName = boneName
+				lastRotateName = boneName
+			else:
+				node = DisplayListWithOffsetNode(int(bone.draw_layer),
+					hasDL, translate)
+				lastTranslateName = boneName
 
 		finalTransform = transformMatrix @ translation
 
+	elif bone.geo_cmd == 'CustomNonAnimated':
+		if bone.fast64.sm64.custom_geo_cmd_macro == '':
+			raise PluginError(f'Bone "{boneName}" on armature "{armatureObj.name}" needs a geo command macro.')
+		node = CustomNode(bone.fast64.sm64.custom_geo_cmd_macro, bone.fast64.sm64.custom_geo_cmd_args)
 	elif bone.geo_cmd == 'Function':
 		if bone.geo_func == '':
 			raise PluginError('Function bone ' + boneName + ' function value is empty.')
@@ -1388,8 +1404,7 @@ def processBone(fModel, boneName, obj, armatureObj, transformMatrix,
 				geolayoutGraph.addJumpNode(transformNode, geolayout,
 					optionGeolayout)
 
-				rotAxis, rotAngle = rotate.to_axis_angle()
-				if rotAngle > 0.00001 or translate.length > 0.0001:
+				if not zeroRotation or not zeroTranslation:
 					startNode = TransformNode(
 						TranslateRotateNode(1, 0, False, translate, rotate))
 				else:
@@ -2094,7 +2109,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
 
 			saveTextures = bpy.context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions
 
-			if context.scene.geoExportType == 'C':
+			if context.scene.fast64.sm64.exportType == 'C':
 				exportPath, levelName = getPathAndLevel(context.scene.geoCustomExport,
 					context.scene.geoExportPath, context.scene.geoLevelName,
 					context.scene.geoLevelOption)
@@ -2110,7 +2125,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
 					context.scene.geoExportHeaderType,
 					context.scene.geoName, context.scene.geoStructName, levelName, context.scene.geoCustomExport, DLFormat.Static)
 				self.report({'INFO'}, 'Success!')
-			elif context.scene.geoExportType == 'Insertable Binary':
+			elif context.scene.fast64.sm64.exportType == 'Insertable Binary':
 				exportGeolayoutObjectInsertableBinary(obj,
 					finalTransform, context.scene.f3d_type,
 					context.scene.isHWv1,
@@ -2197,7 +2212,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
 			self.cleanup_temp_object_data()
 			applyRotation([obj], math.radians(-90), 'X')
 
-			if context.scene.geoExportType == 'Binary':
+			if context.scene.fast64.sm64.exportType == 'Binary':
 				if romfileOutput is not None:
 					romfileOutput.close()
 				if tempROM is not None and os.path.exists(bpy.path.abspath(tempROM)):
@@ -2277,7 +2292,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 			bpy.context.view_layer.objects.active = obj
 			bpy.ops.object.transform_apply(location = False, rotation = True,
 				scale = True, properties =  False)
-			if context.scene.geoExportType == 'C':
+			if context.scene.fast64.sm64.exportType == 'C':
 				exportPath, levelName = getPathAndLevel(context.scene.geoCustomExport,
 					context.scene.geoExportPath, context.scene.geoLevelName,
 					context.scene.geoLevelOption)
@@ -2295,7 +2310,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 					context.scene.geoName, context.scene.geoStructName, levelName, context.scene.geoCustomExport, DLFormat.Static)
 				starSelectWarning(self, fileStatus)
 				self.report({'INFO'}, 'Success!')
-			elif context.scene.geoExportType == 'Insertable Binary':
+			elif context.scene.fast64.sm64.exportType == 'Insertable Binary':
 				exportGeolayoutArmatureInsertableBinary(armatureObj, obj,
 					finalTransform, context.scene.f3d_type,
 					context.scene.isHWv1,
@@ -2381,7 +2396,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 			applyRotation([armatureObj] + linkedArmatures,
 				math.radians(-90), 'X')
 
-			if context.scene.geoExportType == 'Binary':
+			if context.scene.fast64.sm64.exportType == 'Binary':
 				if romfileOutput is not None:
 					romfileOutput.close()
 				if tempROM is not None and os.path.exists(bpy.path.abspath(tempROM)):
@@ -2392,16 +2407,10 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 			raisePluginError(self, e)
 			return {'CANCELLED'} # must return a set
 
-class SM64_ExportGeolayoutPanel(bpy.types.Panel):
+class SM64_ExportGeolayoutPanel(SM64_Panel):
 	bl_idname = "SM64_PT_export_geolayout"
 	bl_label = "SM64 Geolayout Exporter"
-	bl_space_type = 'VIEW_3D'
-	bl_region_type = 'UI'
-	bl_category = 'SM64'
-
-	@classmethod
-	def poll(cls, context):
-		return True
+	goal = 'Export Object/Actor/Anim'
 
 	# called every frame
 	def draw(self, context):
@@ -2409,8 +2418,7 @@ class SM64_ExportGeolayoutPanel(bpy.types.Panel):
 		propsGeoE = col.operator(SM64_ExportGeolayoutArmature.bl_idname)
 		propsGeoE = col.operator(SM64_ExportGeolayoutObject.bl_idname)
 
-		col.prop(context.scene, 'geoExportType')
-		if context.scene.geoExportType == 'C':
+		if context.scene.fast64.sm64.exportType == 'C':
 			if not bpy.context.scene.ignoreTextureRestrictions and context.scene.saveTextures:
 				if context.scene.geoCustomExport:
 					prop_split(col, context.scene, 'geoTexDir', 'Texture Include Path')	
@@ -2499,7 +2507,7 @@ class SM64_ExportGeolayoutPanel(bpy.types.Panel):
 					context.scene.geoLevelOption)
 
 			#extendedRAMLabel(col)
-		elif context.scene.geoExportType == 'Insertable Binary':
+		elif context.scene.fast64.sm64.exportType == 'Insertable Binary':
 			col.prop(context.scene, 'geoInsertableBinaryPath')
 		else:
 			prop_split(col, context.scene, 'geoExportStart', 'Start Address')
@@ -2559,8 +2567,6 @@ def sm64_geo_writer_register():
 		name = 'Dump geolayout as text', default = False)
 	bpy.types.Scene.textDumpGeoPath =  bpy.props.StringProperty(
 		name ='Text Dump Path', subtype = 'FILE_PATH')
-	bpy.types.Scene.geoExportType = bpy.props.EnumProperty(
-		items = enumExportType, name = 'Export', default = 'C')
 	bpy.types.Scene.geoExportPath = bpy.props.StringProperty(
 		name = 'Directory', subtype = 'FILE_PATH')
 	bpy.types.Scene.geoUseBank0 = bpy.props.BoolProperty(name = 'Use Bank 0')
@@ -2609,7 +2615,6 @@ def sm64_geo_writer_unregister():
 	del bpy.types.Scene.modelID
 	del bpy.types.Scene.textDumpGeo
 	del bpy.types.Scene.textDumpGeoPath
-	del bpy.types.Scene.geoExportType
 	del bpy.types.Scene.geoExportPath
 	del bpy.types.Scene.geoUseBank0
 	del bpy.types.Scene.geoRAMAddr

@@ -401,6 +401,14 @@ def convertRadiansToS16(value):
 	value = 360 - (value % 360)
 	return hex(round(value / 360 * 0xFFFF))
 
+def cast_integer(value: int, bits: int, signed: bool):
+    wrap = 1 << bits
+    value %= wrap
+    return value - wrap if signed and value & (1 << (bits - 1)) else value
+
+to_s16 = lambda x: cast_integer(round(x), 16, True)
+radians_to_s16 = lambda d: to_s16(d * 0x10000 / (2 * math.pi))
+
 def decompFolderMessage(layout):
 	layout.box().label(text = 'This will export to your decomp folder.')
 
@@ -564,6 +572,7 @@ def copy_object_and_apply(obj: bpy.types.Object, apply_scale = False, apply_modi
 	if apply_scale or apply_modifiers:
 		# it's a unique mesh, use object name
 		obj['instanced_mesh_name'] = obj.name
+
 		obj.original_name = obj.name
 		if apply_scale:
 			obj['original_mtx'] = translation_rotation_from_mtx(mathutils.Matrix(obj['original_mtx']))
@@ -613,22 +622,26 @@ def store_original_meshes(add_warning: Callable[[str], None]):
 			has_modifiers = len(obj.modifiers) != 0
 			has_uneven_scale = not obj_scale_is_unified(obj)
 			shares_mesh = obj.data.users > 1
-			if has_modifiers or has_uneven_scale:
+			can_instance = not has_modifiers and not has_uneven_scale
+			should_instance = can_instance and (shares_mesh or obj.scaleFromGeolayout)
+
+			if should_instance:
+				# add `_shared_mesh` to instanced name because `obj.data.name` can be the same as object names
+				obj['instanced_mesh_name'] = f'{obj.data.name}_shared_mesh'
+				obj.original_name = obj.name
+
+				if obj.data.name not in instanced_meshes:
+					instanced_meshes.add(obj.data.name)
+					copy_object_and_apply(obj)
+			else:
 				if shares_mesh and has_modifiers:
 					add_warning(
 						f'Object "{obj.name}" cannot be instanced due to having modifiers so an extra displaylist will be created. Remove modifiers to allow instancing.')
 				if shares_mesh and has_uneven_scale:
 					add_warning(
 						f'Object "{obj.name}" cannot be instanced due to uneven object scaling and an extra displaylist will be created. Set all scale values to the same value to allow instancing.')
-				copy_object_and_apply(obj, apply_scale=has_uneven_scale, apply_modifiers=has_modifiers)
-				continue
 
-			obj['instanced_mesh_name'] = obj.data.name
-			obj.original_name = obj.name
-
-			if obj.data.name not in instanced_meshes:
-				instanced_meshes.add(obj.data.name)
-				copy_object_and_apply(obj)
+				copy_object_and_apply(obj, apply_scale=True, apply_modifiers=has_modifiers)
 	bpy.context.view_layer.objects.active = active_obj
 
 def get_obj_temp_mesh(obj):

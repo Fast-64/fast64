@@ -5,10 +5,12 @@ from ..utility import *
 from .oot_utility import *
 from .oot_constants import *
 from .oot_model_classes import *
+from ..panels import OOT_Panel
 
 from ..f3d.f3d_parser import *
 from ..f3d.f3d_writer import *
 from ..f3d.f3d_material import TextureProperty, tmemUsageUI
+from .oot_f3d_writer import *
 
 ootEnumBoneType = [
 	("Default", "Default", "Default"),
@@ -773,16 +775,9 @@ class OOT_ExportSkeleton(bpy.types.Operator):
 			raisePluginError(self, e)
 			return {'CANCELLED'} # must return a set
 
-class OOT_ExportSkeletonPanel(bpy.types.Panel):
+class OOT_ExportSkeletonPanel(OOT_Panel):
 	bl_idname = "OOT_PT_export_skeleton"
 	bl_label = "OOT Skeleton Exporter"
-	bl_space_type = 'VIEW_3D'
-	bl_region_type = 'UI'
-	bl_category = 'OOT'
-
-	@classmethod
-	def poll(cls, context):
-		return True
 
 	# called every frame
 	def draw(self, context):

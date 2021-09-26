@@ -7,6 +7,7 @@ import traceback
 import os
 from pathlib import Path
 from .fast64_internal import *
+from .fast64_internal.panels import SM64_Panel
 
 import cProfile
 import pstats
@@ -155,16 +156,9 @@ class SM64_AddWaterBox(AddWaterBox):
 	def setEmptyType(self, emptyObj):
 		emptyObj.sm64_obj_type = "Water Box"
 
-class SM64_ArmatureToolsPanel(bpy.types.Panel):
+class SM64_ArmatureToolsPanel(SM64_Panel):
 	bl_idname = "SM64_PT_armature_tools"
 	bl_label = "SM64 Tools"
-	bl_space_type = 'VIEW_3D'
-	bl_region_type = 'UI'
-	bl_category = 'SM64'
-
-	@classmethod
-	def poll(cls, context):
-		return True
 
 	# called every frame
 	def draw(self, context):
@@ -188,6 +182,7 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
 	# called every frame
 	def draw(self, context):
 		col = self.layout.column()
+		col.scale_y = 1.1 # extra padding
 		prop_split(col, context.scene, 'f3d_type', "F3D Microcode")
 		col.prop(context.scene, 'isHWv1')
 		col.prop(context.scene, 'saveTextures')
@@ -228,6 +223,7 @@ class Fast64_GlobalSettingsPanel(bpy.types.Panel):
 	# called every frame
 	def draw(self, context):
 		col = self.layout.column()
+		col.scale_y = 1.1 # extra padding
 		prop_split(col, context.scene, 'gameEditorMode', "Game")
 		col.prop(context.scene, 'exportHiddenGeometry')
 		col.prop(context.scene, 'fullTraceback')
@@ -248,7 +244,27 @@ class Fast64_GlobalToolsPanel(bpy.types.Panel):
 		col = self.layout.column()
 		col.operator(ArmatureApplyWithMesh.bl_idname)
 		#col.operator(CreateMetarig.bl_idname)
-		
+
+class Fast64Settings_Properties(bpy.types.PropertyGroup):
+	'''Settings affecting exports for all games found in scene.fast64.settings'''
+	version: bpy.props.IntProperty(name="Fast64Settings_Properties Version", default=0)
+
+class Fast64_Properties(bpy.types.PropertyGroup):
+	'''
+	Properties in scene.fast64.
+	All new properties should be children of one of these three property groups.
+	'''
+	sm64: bpy.props.PointerProperty(type=SM64_Properties, name="SM64 Properties")
+	oot: bpy.props.PointerProperty(type=OOT_Properties, name="OOT Properties")
+	settings: bpy.props.PointerProperty(type=Fast64Settings_Properties, name="Fast64 Settings")
+
+class Fast64_BoneProperties(bpy.types.PropertyGroup):
+	'''
+	Properties in bone.fast64 (bpy.types.Bone)
+	All new bone properties should be children of this property group.
+	'''
+	sm64: bpy.props.PointerProperty(type=SM64_BoneProperties, name="SM64 Properties")
+
 
 #def updateGameEditor(scene, context):
 #	if scene.currentGameEditorMode == 'SM64':
@@ -268,6 +284,10 @@ class Fast64_GlobalToolsPanel(bpy.types.Panel):
 #	scene.currentGameEditorMode = scene.gameEditorMode
 
 classes = (
+	Fast64Settings_Properties,
+	Fast64_Properties,
+	Fast64_BoneProperties,
+
 	ArmatureApplyWithMesh,
 	AddBoneGroups,
 	CreateMetarig,
@@ -280,6 +300,14 @@ classes = (
 	Fast64_GlobalToolsPanel,
 )
 
+def upgrade_changed_props():
+	'''Set scene properties after a scene loads, used for migrating old properties'''
+	SM64_Properties.upgrade_changed_props()
+
+@bpy.app.handlers.persistent
+def after_load(_a, _b):
+	upgrade_changed_props()
+
 # called on add-on enabling
 # register operators and panels here
 # append menu layout drawing function to an existing window
@@ -290,11 +318,10 @@ def register():
 	sm64_register(True)
 	oot_register(True)
 
-	bsdf_conv_panel_regsiter()
-
 	for cls in classes:
 		register_class(cls)
-	
+
+	bsdf_conv_panel_regsiter()
 	f3d_writer_register()
 	f3d_parser_register()
 
@@ -313,6 +340,11 @@ def register():
 	bpy.types.Scene.generateF3DNodeGraph = bpy.props.BoolProperty(name = "Generate F3D Node Graph", default = True)
 	bpy.types.Scene.exportHiddenGeometry = bpy.props.BoolProperty(name = "Export Hidden Geometry", default = True)
 	bpy.types.Scene.blenderF3DScale = bpy.props.FloatProperty(name = "F3D Blender Scale", default = 100)
+
+	bpy.types.Scene.fast64 = bpy.props.PointerProperty(type=Fast64_Properties, name="Fast64 Properties")
+	bpy.types.Bone.fast64 = bpy.props.PointerProperty(type=Fast64_BoneProperties, name="Fast64 Bone Properties")
+
+	bpy.app.handlers.load_post.append(after_load)
 
 # called on add-on disabling
 def unregister():
@@ -334,5 +366,10 @@ def unregister():
 	del bpy.types.Scene.exportHiddenGeometry
 	del bpy.types.Scene.blenderF3DScale
 
+	del bpy.types.Scene.fast64
+	del bpy.types.Bone.fast64
+
 	for cls in classes:
 		unregister_class(cls)
+	
+	bpy.app.handlers.load_post.remove(after_load)

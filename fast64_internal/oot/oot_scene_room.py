@@ -315,12 +315,17 @@ class OOTSceneHeaderProperty(bpy.types.PropertyGroup):
 	csWriteType : bpy.props.EnumProperty(name = "Cutscene Data Type", items = ootEnumCSWriteType, default = "Embedded")
 	csWriteCustom : bpy.props.StringProperty(name = "CS hdr var:", default = "")
 	csWriteObject : bpy.props.PointerProperty(name = "Cutscene Object", type = bpy.types.Object)
+	
+	# These properties are for the deprecated "Embedded" cutscene type. They have
+	# not been removed as doing so would break any existing scenes made with this
+	# type of cutscene data.
 	csEndFrame : bpy.props.IntProperty(name = "End Frame", min = 0, default = 100)
 	csWriteTerminator : bpy.props.BoolProperty(name = "Write Terminator (Code Execution)")
 	csTermIdx : bpy.props.IntProperty(name = "Index", min = 0)
 	csTermStart : bpy.props.IntProperty(name = "Start Frm", min = 0, default = 99)
 	csTermEnd : bpy.props.IntProperty(name = "End Frm", min = 0, default = 100)
 	csLists : bpy.props.CollectionProperty(type = OOTCSListProperty, name = 'Cutscene Lists')
+	
 	extraCutscenes : bpy.props.CollectionProperty(type = OOTExtraCutsceneProperty, name = "Extra Cutscenes")
 
 	sceneTableEntry : bpy.props.PointerProperty(type = OOTSceneTableEntryProperty)
@@ -398,6 +403,10 @@ def drawSceneHeaderProperty(layout, sceneProp, dropdownLabel, headerIndex, objNa
 			elif sceneProp.csWriteType == "Object":
 				cutscene.prop(sceneProp, "csWriteObject")
 			else:
+				# This is the GUI setup / drawing for the properties for the
+				# deprecated "Embedded" cutscene type. They have not been removed
+				# as doing so would break any existing scenes made with this type
+				# of cutscene data.
 				cutscene.label(text = "Embedded cutscenes are deprecated. Please use \"Object\" instead.")
 				cutscene.prop(sceneProp, "csEndFrame", text = "End Frame")
 				cutscene.prop(sceneProp, "csWriteTerminator", text = "Write Terminator (Code Execution)")

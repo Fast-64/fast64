@@ -1,3 +1,4 @@
+from ..panels import OOT_Panel
 from .oot_f3d_writer import *
 #from .oot_geolayout_writer import *
 #from .oot_geolayout_parser import *
@@ -22,20 +23,15 @@ ootEnumRefreshVer = [
 	("Refresh 3", "Refresh 3", "Refresh 3"),
 ]
 
-class OOT_FileSettingsPanel(bpy.types.Panel):
+class OOT_FileSettingsPanel(OOT_Panel):
 	bl_idname = "OOT_PT_file_settings"
 	bl_label = "OOT File Settings"
-	bl_space_type = 'VIEW_3D'
-	bl_region_type = 'UI'
-	bl_category = 'OOT'
-
-	@classmethod
-	def poll(cls, context):
-		return True
+	bl_options = set() # default to being open
 
 	# called every frame
 	def draw(self, context):
 		col = self.layout.column()	
+		col.scale_y = 1.1 # extra padding, makes it easier to see these main settings
 		prop_split(col, context.scene, 'ootBlenderScale', 'OOT Scene Scale')
 		prop_split(col, context.scene, 'ootActorBlenderScale', 'OOT Actor Scale')
 		
@@ -45,8 +41,13 @@ class OOT_FileSettingsPanel(bpy.types.Panel):
 		
 		#prop_split(col, context.scene, 'ootRefreshVer', 'Decomp Func Map')
 
+class OOT_Properties(bpy.types.PropertyGroup):
+	'''Global OOT Scene Properties found under scene.fast64.oot'''
+	version: bpy.props.IntProperty(name="OOT_Properties Version", default=0)
+
 oot_classes = (
 	OOT_FileSettingsPanel,
+	OOT_Properties,
 )
 
 def oot_panel_register():

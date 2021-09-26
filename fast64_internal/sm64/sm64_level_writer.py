@@ -1,3 +1,7 @@
+from collections import defaultdict
+from bpy.utils import register_class, unregister_class
+import bpy, os, math, re, shutil
+
 from .sm64_constants import *
 from .sm64_objects import *
 from .sm64_collision import *
@@ -6,11 +10,8 @@ from .sm64_texscroll import *
 from .sm64_utility import *
 
 from ..utility import *
+from ..panels import SM64_Panel
 from ..operators import ObjectDataExporter
-
-from bpy.utils import register_class, unregister_class
-from io import BytesIO
-import bpy, bmesh, os, math, re, shutil, cProfile, pstats
 
 levelDefineArgs = {
 	'internal name' : 0,
@@ -217,6 +218,27 @@ class LevelDefines:
 		self.defineMacros.append(macroCmd)
 		return macroCmd
 
+class PersistentBlocks:
+	beginMagic = 'Fast64 begin persistent block'
+	endMagic = 'Fast64 end persistent block'
+
+	beginRegex = re.compile(fr'.*{beginMagic} (\[[\w ]+\]).*')
+	endRegex = re.compile(fr'.*{endMagic} (\[[\w ]+\]).*')
+
+	includes = '[includes]'
+	scripts = '[scripts]'
+	levelCommands = '[level commands]'
+	areaCommands = '[area commands]'
+
+	@classmethod
+	def new(cls):
+		return {
+			cls.includes: [],
+			cls.scripts: [],
+			cls.levelCommands: [],
+			cls.areaCommands: defaultdict(list)
+		}
+
 class LevelScript:
 	def __init__(self, name):
 		self.name = name
@@ -226,6 +248,7 @@ class LevelScript:
 		self.modelLoads = []
 		self.actorIncludes = []
 		self.marioStart = None
+		self.persistentBlocks = PersistentBlocks.new()
 
 	def to_c(self, areaString):
 		result = '#include <ultra64.h>\n' +\
@@ -241,9 +264,14 @@ class LevelScript:
 
 		for actorInclude in self.actorIncludes:
 			result += actorInclude + '\n'
+		
+		result += f'\n{self.get_persistent_block(PersistentBlocks.includes)}\n\n'
 
-		result += '\n#include "make_const_nonconst.h"\n'
+		result += '#include "make_const_nonconst.h"\n'
 		result += '#include "levels/' + self.name + '/header.h"\n\n'
+
+		result += f'{self.get_persistent_block(PersistentBlocks.scripts)}\n\n'
+
 		result += 'const LevelScript level_' + self.name + '_entry[] = {\n'
 		result += '\tINIT_LEVEL(),\n'
 		for segmentLoad in self.segmentLoads:
@@ -255,6 +283,8 @@ class LevelScript:
 		for modelLoad in self.modelLoads:
 			result += '\t' + macroToString(modelLoad, True) + '\n'
 		result += '\n'
+
+		result += f'{self.get_persistent_block(PersistentBlocks.levelCommands, nTabs=1)}\n\n'
 
 		result += areaString
 
@@ -271,6 +301,16 @@ class LevelScript:
 		    '\tEXIT(),\n};\n'
 
 		return result
+	
+	def get_persistent_block(self, retainType: str, nTabs = 0, areaIndex: str = None):
+		tabs = '\t' * nTabs
+		lines = [f'{tabs}/* {PersistentBlocks.beginMagic} {retainType} */']
+		if areaIndex:
+			lines.extend(self.persistentBlocks[PersistentBlocks.areaCommands].get(areaIndex, []))
+		else:
+			lines.extend(self.persistentBlocks.get(retainType, []))
+		lines.append(f'{tabs}/* {PersistentBlocks.endMagic} {retainType} */')
+		return '\n'.join(lines)
 
 def parseCourseDefines(filepath):
 	if not os.path.exists(filepath):
@@ -421,6 +461,44 @@ def removeActSelectorIgnore(basePath, levelEnum):
 	if data != newData:
 		saveDataToFile(filepath, newData)
 
+areaNumReg = re.compile(r'.*AREA\(([0-9]+),.+\),')
+def parseLevelPersistentBlocks(scriptData: str, levelScript: LevelScript):
+	curBlock: str = None
+	areaIndex: str = None
+
+	for line in scriptData.splitlines():
+		if curBlock and PersistentBlocks.endMagic in line:
+			endMatch = PersistentBlocks.endRegex.match(line)
+			if endMatch and endMatch.group(1) != curBlock:
+				raise PluginError(f'script.c: Non-matching end block ({endMatch.group(1)}) found for {curBlock}')
+			curBlock = None
+			areaIndex = None
+			continue
+		
+		areaIndexMatch = areaNumReg.match(line)
+		if areaIndexMatch:
+			areaIndex = areaIndexMatch.group(1)
+
+		elif curBlock and curBlock == PersistentBlocks.areaCommands:
+			if areaIndex:
+				levelScript.persistentBlocks[curBlock][areaIndex].append(line)
+			else:
+				raise PluginError(f'script.c: "{PersistentBlocks.beginMagic} {PersistentBlocks.areaCommands}" found outside of area block')
+
+		elif curBlock:
+			levelScript.persistentBlocks[curBlock].append(line)
+
+		elif PersistentBlocks.beginMagic in line:
+			blockNameMatch = PersistentBlocks.beginRegex.match(line)
+			if curBlock and blockNameMatch:
+				raise PluginError(f'script.c: Found new persistent block ({blockNameMatch.group(1)}) while looking for an end block for {curBlock}')
+			elif blockNameMatch:
+				curBlock = blockNameMatch.group(1)
+	
+	if curBlock:
+		raise PluginError(f'script.c: "{PersistentBlocks.beginMagic} {curBlock}" never found a "{PersistentBlocks.endMagic}"')
+
+
 def parseLevelScript(filepath, levelName):
 	scriptPath = os.path.join(filepath, 'script.c')
 	scriptData = getDataFromFile(scriptPath)
@@ -460,6 +538,7 @@ def parseLevelScript(filepath, levelName):
 		elif macroCmd[0] == 'END_AREA':
 			inArea = False
 
+	parseLevelPersistentBlocks(scriptData, levelscript)
 	return levelscript
 
 def overwritePuppycamData(filePath, levelToReplace, newPuppycamTriggers):
@@ -603,7 +682,11 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 			geolayoutGraph.startGeolayout, collision, levelName + '_' + areaName)
 		if area.mario_start is not None:
 			prevLevelScript.marioStart = area.mario_start
-		areaString += area.to_c_script(child.enableRoomSwitch)
+		persistentBlockString = prevLevelScript.get_persistent_block(PersistentBlocks.areaCommands, nTabs=2, areaIndex=str(area.index))
+		areaString += area.to_c_script(
+			child.enableRoomSwitch,
+			persistentBlockString=persistentBlockString
+		)
 		cameraVolumeString += area.to_c_camera_volumes()
 		puppycamVolumeString += area.to_c_puppycam_volumes()
 
@@ -942,16 +1025,11 @@ class SM64_ExportLevel(ObjectDataExporter):
 			raisePluginError(self, e)
 			return {'CANCELLED'} # must return a set
 
-class SM64_ExportLevelPanel(bpy.types.Panel):
+class SM64_ExportLevelPanel(SM64_Panel):
 	bl_idname = "SM64_PT_export_level"
 	bl_label = "SM64 Level Exporter"
-	bl_space_type = 'VIEW_3D'
-	bl_region_type = 'UI'
-	bl_category = 'SM64'
-
-	@classmethod
-	def poll(cls, context):
-		return True
+	goal = 'Export Level'
+	decomp_only = True
 
 	# called every frame
 	def draw(self, context):

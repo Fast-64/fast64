@@ -1,4 +1,5 @@
 import bpy
+from ..panels import SM64_Panel, sm64GoalImport
 from ..utility import *
 from ..f3d.f3d_parser import *
 from bpy.utils import register_class, unregister_class
@@ -50,16 +51,10 @@ class SM64_ImportDL(bpy.types.Operator):
 			raisePluginError(self, e)
 			return {'CANCELLED'}
 
-class SM64_ImportDLPanel(bpy.types.Panel):
+class SM64_ImportDLPanel(SM64_Panel):
 	bl_idname = "SM64_PT_import_dl"
 	bl_label = "SM64 DL Importer"
-	bl_space_type = 'VIEW_3D'
-	bl_region_type = 'UI'
-	bl_category = 'SM64'
-
-	@classmethod
-	def poll(cls, context):
-		return True
+	goal = sm64GoalImport
 
 	# called every frame
 	def draw(self, context):

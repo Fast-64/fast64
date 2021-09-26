@@ -6,6 +6,7 @@ from .oot_constants import *
 from ..f3d.f3d_writer import *
 from ..f3d.f3d_material import *
 from ..f3d.f3d_parser import *
+from ..panels import OOT_Panel
 
 from .oot_model_classes import *
 from .oot_scene_room import *
@@ -322,16 +323,9 @@ class OOT_ExportDL(bpy.types.Operator):
 			raisePluginError(self, e)
 			return {'CANCELLED'} # must return a set
 
-class OOT_ExportDLPanel(bpy.types.Panel):
+class OOT_ExportDLPanel(OOT_Panel):
 	bl_idname = "OOT_PT_export_dl"
 	bl_label = "OOT DL Exporter"
-	bl_space_type = 'VIEW_3D'
-	bl_region_type = 'UI'
-	bl_category = 'OOT'
-
-	@classmethod
-	def poll(cls, context):
-		return True
 
 	# called every frame
 	def draw(self, context):

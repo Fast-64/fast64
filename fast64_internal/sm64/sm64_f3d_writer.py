@@ -1,15 +1,16 @@
 import shutil, copy, bpy, cProfile, pstats
 
+from ..panels import SM64_Panel
 from ..f3d.f3d_writer import *
 from ..f3d.f3d_material import *
 from ..f3d.f3d_gbi import FMaterial
 from .sm64_texscroll import *
 from .sm64_utility import *
 from bpy.utils import register_class, unregister_class
-from .sm64_constants import level_enums, enumLevelNames
+from .sm64_constants import level_enums, enumLevelNames, level_pointers, defaultExtendSegment4, bank0Segment, insertableBinaryTypes
 from .sm64_level_parser import parseLevelAtPointer
 from .sm64_rom_tweaks import ExtendBank0x04
-from .sm64_constants import level_pointers, defaultExtendSegment4, bank0Segment
+
 
 enumHUDExportLocation = [
 	('HUD', 'HUD', 'Exports to src/game/hud.c'),
@@ -499,7 +500,7 @@ class SM64_ExportDL(bpy.types.Operator):
 		
 		try:
 			applyRotation([obj], math.radians(90), 'X')
-			if context.scene.DLExportType == 'C':
+			if context.scene.fast64.sm64.exportType == 'C':
 				exportPath, levelName = getPathAndLevel(context.scene.DLCustomExport, 
 					context.scene.DLExportPath, context.scene.DLLevelName, 
 					context.scene.DLLevelOption)
@@ -530,7 +531,7 @@ class SM64_ExportDL(bpy.types.Operator):
 				#p.sort_stats("cumulative").print_stats(2000)
 				self.report({'INFO'}, 'Success!')
 				
-			elif context.scene.DLExportType == 'Insertable Binary':
+			elif context.scene.fast64.sm64.exportType == 'Insertable Binary':
 				exportF3DtoInsertableBinary(
 					bpy.path.abspath(context.scene.DLInsertableBinaryPath),
 					finalTransform, obj, context.scene.f3d_type,
@@ -601,7 +602,7 @@ class SM64_ExportDL(bpy.types.Operator):
 			if context.mode != 'OBJECT':
 				bpy.ops.object.mode_set(mode = 'OBJECT')
 			applyRotation([obj], math.radians(-90), 'X')
-			if context.scene.DLExportType == 'Binary':
+			if context.scene.fast64.sm64.exportType == 'Binary':
 				if romfileOutput is not None:
 					romfileOutput.close()
 				if tempROM is not None and os.path.exists(bpy.path.abspath(tempROM)):
@@ -609,24 +610,17 @@ class SM64_ExportDL(bpy.types.Operator):
 			raisePluginError(self, e)
 			return {'CANCELLED'} # must return a set
 
-class SM64_ExportDLPanel(bpy.types.Panel):
+class SM64_ExportDLPanel(SM64_Panel):
 	bl_idname = "SM64_PT_export_dl"
 	bl_label = "SM64 DL Exporter"
-	bl_space_type = 'VIEW_3D'
-	bl_region_type = 'UI'
-	bl_category = 'SM64'
-
-	@classmethod
-	def poll(cls, context):
-		return True
+	goal = 'Export Displaylist'
 
 	# called every frame
 	def draw(self, context):
 		col = self.layout.column()
 		propsDLE = col.operator(SM64_ExportDL.bl_idname)
 
-		col.prop(context.scene, 'DLExportType')
-		if context.scene.DLExportType == 'C':
+		if context.scene.fast64.sm64.exportType == 'C':
 			col.prop(context.scene, 'DLExportisStatic')
 			
 			
@@ -656,7 +650,7 @@ class SM64_ExportDLPanel(bpy.types.Panel):
 				writeBoxExportType(writeBox, context.scene.DLExportHeaderType, 
 					context.scene.DLName, context.scene.DLLevelName, context.scene.DLLevelOption)
 			
-		elif context.scene.DLExportType == 'Insertable Binary':
+		elif context.scene.fast64.sm64.exportType == 'Insertable Binary':
 			col.prop(context.scene, 'DLInsertableBinaryPath')
 		else:
 			prop_split(col, context.scene, 'DLExportStart', 'Start Address')
@@ -719,16 +713,11 @@ class UnlinkTexRect(bpy.types.Operator):
 		context.scene.texrect.tex = None
 		return {'FINISHED'} # must return a set
 
-class ExportTexRectDrawPanel(bpy.types.Panel):
+class ExportTexRectDrawPanel(SM64_Panel):
 	bl_idname = "TEXTURE_PT_export_texrect"
 	bl_label = "SM64 UI Image Exporter"
-	bl_space_type = 'VIEW_3D'
-	bl_region_type = 'UI'
-	bl_category = 'SM64'
-
-	@classmethod
-	def poll(cls, context):
-		return True
+	goal = 'Export UI Image'
+	decomp_only = True
 
 	# called every frame
 	def draw(self, context):
@@ -880,8 +869,6 @@ def sm64_dl_writer_register():
 		name ='Geolayout Pointer', default = '132AA8')
 	bpy.types.Scene.overwriteGeoPtr = bpy.props.BoolProperty(
 		name = "Overwrite geolayout pointer", default = False)
-	bpy.types.Scene.DLExportType = bpy.props.EnumProperty(
-		items = enumExportType, name = 'Export', default = 'C')
 	bpy.types.Scene.DLExportPath = bpy.props.StringProperty(
 		name = 'Directory', subtype = 'FILE_PATH')
 	bpy.types.Scene.DLExportisStatic = bpy.props.BoolProperty(
@@ -929,7 +916,6 @@ def sm64_dl_writer_unregister():
 	del bpy.types.Scene.DLExportEnd
 	del bpy.types.Scene.DLExportGeoPtr
 	del bpy.types.Scene.overwriteGeoPtr
-	del bpy.types.Scene.DLExportType
 	del bpy.types.Scene.DLExportPath
 	del bpy.types.Scene.DLExportisStatic
 	del bpy.types.Scene.DLDefinePath

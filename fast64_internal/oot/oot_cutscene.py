@@ -2,6 +2,7 @@ import math, os, bpy, bmesh, mathutils
 from .oot_constants import *
 from .oot_utility import *
 from .oot_level_classes import *
+from ..panels import OOT_Panel
 
 ################################################################################
 # Properties
@@ -504,7 +505,7 @@ class OOT_ExportAllCutscenes(bpy.types.Operator):
 			raisePluginError(self, e)
 			return {'CANCELLED'}
 
-class OOT_ExportCutscenePanel(bpy.types.Panel):
+class OOT_ExportCutscenePanel(OOT_Panel):
 	bl_idname = "OOT_PT_export_cutscene"
 	bl_label = "OOT Cutscene Exporter"
 	bl_space_type = 'VIEW_3D'
