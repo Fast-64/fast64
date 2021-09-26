@@ -1,6 +1,7 @@
 import os, re, bpy
 from ..utility import *
 from .c_templates.tile_scroll import tile_scroll_c, tile_scroll_h
+from .sm64_utility import getMemoryCFilePath
 
 # This is for writing framework for scroll code.
 # Actual scroll code found in f3d_gbi.py (FVertexScrollData)
@@ -47,7 +48,7 @@ def readSegmentInfo(baseDir):
 
 
 def writeSegmentROMTable(baseDir):
-	memPath = os.path.join(baseDir, 'src/game/memory.c')
+	memPath = getMemoryCFilePath(baseDir)
 	memFile = open(memPath, 'r', newline = '\n')
 	memData = memFile.read()
 	memFile.close()

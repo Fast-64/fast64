@@ -5,6 +5,7 @@ from .oot_constants import *
 from .oot_utility import *
 from .oot_skeleton import *
 from ..utility import *
+from ..panels import OOT_Panel
 
 class OOTAnimation:
 	def __init__(self, name):
@@ -345,16 +346,9 @@ class OOT_ImportAnim(bpy.types.Operator):
 
 		return {'FINISHED'} # must return a set
 
-class OOT_ExportAnimPanel(bpy.types.Panel):
+class OOT_ExportAnimPanel(OOT_Panel):
 	bl_idname = "OOT_PT_export_anim"
 	bl_label = "OOT Animation Exporter"
-	bl_space_type = 'VIEW_3D'
-	bl_region_type = 'UI'
-	bl_category = 'OOT'
-
-	@classmethod
-	def poll(cls, context):
-		return True
 
 	# called every frame
 	def draw(self, context):

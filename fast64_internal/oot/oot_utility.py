@@ -443,7 +443,7 @@ def getCollection(objName, collectionType, subIndex):
 		assert len(toks) in [2, 3]
 		hdrnum = int(toks[1])
 		if hdrnum == 0:
-			hdr = obj.ootSceneHeader.csLists
+			hdr = obj.ootSceneHeader
 		elif hdrnum == 1:
 			hdr = obj.ootAlternateSceneHeaders.childNightHeader
 		elif hdrnum == 2:

@@ -434,7 +434,7 @@ def convertF3DUV(value, maxSize):
 	try:
 		valueBytes = int.to_bytes(value, 2, 'big', signed = True)
 	except OverflowError:
-		valueBytes = int.to_bytes(valule, 2, 'big', signed = False)
+		valueBytes = int.to_bytes(value, 2, 'big', signed = False)
 	
 	return ((int.from_bytes(valueBytes, 'big', signed = True) / 32) + 0.5) / (maxSize if maxSize > 0 else 1)
 
@@ -1920,6 +1920,7 @@ class F3D_ImportDLPanel(bpy.types.Panel):
 	bl_space_type = 'VIEW_3D'
 	bl_region_type = 'UI'
 	bl_category = 'Fast64'
+	bl_options = {'DEFAULT_CLOSED'}
 
 	@classmethod
 	def poll(cls, context):
