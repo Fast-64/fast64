@@ -10,12 +10,10 @@ from .oot_actor import *
 from .oot_collision import *
 from .oot_spline import *
 #from .oot_function_map import func_map
-#from .oot_spline import *
 
 from ..utility import *
 
 def headerSettingsToIndices(headerSettings):
-
 	headers = set()
 	if headerSettings.childDayHeader:
 		headers.add(0)
@@ -105,6 +103,9 @@ class OOTObjectPanel(bpy.types.Panel):
 
 		elif obj.ootEmptyType == 'LOD':
 			drawLODProperty(box, obj)
+			
+		elif obj.ootEmptyType == 'Cutscene':
+			drawCutsceneProperty(box, obj)
 		
 		elif obj.ootEmptyType == 'None':
 			box.label(text = 'Geometry can be parented to this.')
@@ -186,6 +187,8 @@ oot_obj_classes = (
 	OOTCSUnkProperty,
 	OOTCSListProperty,
 	OOTCSListAdd,
+	OOTCutsceneProperty,
+	OOTExtraCutsceneProperty,
 
 	OOTActorHeaderItemProperty,
 	OOTActorHeaderProperty,
@@ -227,6 +230,7 @@ def oot_obj_register():
 	bpy.types.Object.ootAlternateSceneHeaders = bpy.props.PointerProperty(type = OOTAlternateSceneHeaderProperty)
 	bpy.types.Object.ootAlternateRoomHeaders = bpy.props.PointerProperty(type = OOTAlternateRoomHeaderProperty)
 	bpy.types.Object.ootEntranceProperty = bpy.props.PointerProperty(type = OOTEntranceProperty)
+	bpy.types.Object.ootCutsceneProperty = bpy.props.PointerProperty(type = OOTCutsceneProperty)
 	#bpy.types.Object.ootCullDepth = bpy.props.IntProperty(name = "Cull Depth", min = 1, default = 400)
 
 
@@ -236,10 +240,13 @@ def oot_obj_unregister():
 
 	del bpy.types.Object.ootActorProperty 
 	del bpy.types.Object.ootTransitionActorProperty 
+	del bpy.types.Object.ootWaterBoxProperty
 	del bpy.types.Object.ootRoomHeader
 	del bpy.types.Object.ootSceneHeader
 	del bpy.types.Object.ootAlternateSceneHeaders
 	del bpy.types.Object.ootAlternateRoomHeaders
+	del bpy.types.Object.ootEntranceProperty
+	del bpy.types.Object.ootCutsceneProperty
 	#del bpy.types.Object.ootCullDepth
 
 	for cls in reversed(oot_obj_classes):
