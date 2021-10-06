@@ -428,7 +428,8 @@ class FunctionNode:
 
 	def to_binary(self, segmentData):
 		command = bytearray([GEO_CALL_ASM, 0x00])
-		command.extend(self.func_param.to_bytes(2, 'big', signed = True))
+		func_param = int(self.func_param)
+		command.extend(func_param.to_bytes(2, 'big', signed = True))
 		addFuncAddress(command, self.geo_func)
 		return command
 
@@ -503,7 +504,8 @@ class SwitchNode:
 
 	def to_binary(self, segmentData):
 		command = bytearray([GEO_SWITCH, 0x00])
-		command.extend(self.defaultCase.to_bytes(2, 'big', signed = True))
+		defaultCase = int(self.defaultCase)
+		command.extend(defaultCase.to_bytes(2, 'big', signed = True))
 		addFuncAddress(command, self.switchFunc)
 		return command
 

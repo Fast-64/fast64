@@ -387,8 +387,8 @@ def ui_upper_mode(settings, dataHolder, layout, useDropdown):
 
 		prop_split(inputGroup, settings, 'g_mdsft_pipeline', 'Pipeline Span Buffer Coherency')
 
-def ui_lower_mode(settings, dataHolder, layout, useDropdown):
-	inputGroup = layout.column()
+def ui_lower_mode(settings, dataHolder, layout: bpy.types.UILayout, useDropdown):
+	inputGroup: bpy.types.UILayout = layout.column()
 	if useDropdown:
 		inputGroup.prop(dataHolder, 'menu_lower',
 			text = 'Other Mode Lower Settings',
@@ -396,6 +396,12 @@ def ui_lower_mode(settings, dataHolder, layout, useDropdown):
 	if not useDropdown or dataHolder.menu_lower:
 		prop_split(inputGroup, settings, 'g_mdsft_alpha_compare', 'Alpha Compare')
 		prop_split(inputGroup, settings, 'g_mdsft_zsrcsel', 'Z Source Selection')
+	if settings.g_mdsft_zsrcsel == 'G_ZS_PRIM':
+		prim_box = inputGroup.box()
+		prop_split(prim_box, settings.prim_depth, 'z', 'Prim Depth: Z')
+		prop_split(prim_box, settings.prim_depth, 'dz', 'Prim Depth: Delta Z')
+		if settings.prim_depth.dz != 0 and settings.prim_depth.dz & (settings.prim_depth.dz - 1):
+			prim_box.label(text='Warning: DZ should ideally be a power of 2 up to 0x4000', icon='ERROR')
 
 def ui_other(settings, dataHolder, layout, useDropdown):
 	inputGroup = layout.column()
@@ -2124,6 +2130,24 @@ class ProcAnimVectorProperty(bpy.types.PropertyGroup):
 	angularSpeed : bpy.props.FloatProperty(default = 1, name = 'Angular Speed')
 	menu : bpy.props.BoolProperty()
 
+class PrimDepthSettings(bpy.types.PropertyGroup):
+	z: bpy.props.IntProperty(
+		name="Prim Depth: Z",
+		default=0,
+		soft_min=-1,
+		soft_max=0x7fff,
+		description=
+			'''The value to use for z is the screen Z position of the object you are rendering. This is a value ranging from 0x0000 to 0x7fff, where 0x0000 usually corresponds to the near clipping plane and 0x7fff usually corresponds to the far clipping plane. You can use -1 to force Z to be at the far clipping plane.'''
+	)
+	dz: bpy.props.IntProperty(
+		name="Prim Depth: Delta Z",
+		default=0,
+		soft_min=0,
+		soft_max=0x4000,
+		description=
+			'''The dz value should be set to 0. This value is used for antialiasing and objects drawn in decal render mode and must always be a power of 2 (0, 1, 2, 4, 8, ... 0x4000). If you are using decal mode and part of the decaled object is not being rendered correctly, try setting this to powers of 2. Otherwise use 0.'''
+	)
+
 class RDPSettings(bpy.types.PropertyGroup):
 	g_zbuffer : bpy.props.BoolProperty(name = 'Z Buffer', default = True,
 		update = update_node_values)
@@ -2191,6 +2215,8 @@ class RDPSettings(bpy.types.PropertyGroup):
 	g_mdsft_zsrcsel : bpy.props.EnumProperty(
 		name = 'Z Source Selection', items = enumDepthSource,
 		default = 'G_ZS_PIXEL', update = update_node_values)
+	
+	prim_depth : bpy.props.PointerProperty(type=PrimDepthSettings, name='Prim Depth Settings (gDPSetPrimDepth)', description='gDPSetPrimDepth')
 
 	clip_ratio : bpy.props.IntProperty(default = 1,
 		min = 1, max = 2**15 - 1, update = update_node_values)
@@ -2907,6 +2933,7 @@ mat_classes = (
 	CombinerProperty,
 	ProceduralAnimProperty,
 	ProcAnimVectorProperty,
+	PrimDepthSettings,
 	RDPSettings,
 	DefaultRDPSettingsPanel,
 	F3DMaterialProperty,

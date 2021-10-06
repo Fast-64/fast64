@@ -831,7 +831,7 @@ def getOptimalNode(translate, rotate, drawLayer, hasDL, zeroTranslation, zeroRot
 
 def processPreInlineGeo(inlineGeoConfig: InlineGeolayoutObjConfig, obj: bpy.types.Object, parentTransformNode: TransformNode):
 	if inlineGeoConfig.name == 'Geo ASM':
-		node = FunctionNode(obj.geoASMFunc, obj.geoASMParam)
+		node = FunctionNode(obj.fast64.sm64.geo_asm.func, obj.fast64.sm64.geo_asm.param)
 	elif inlineGeoConfig.name == 'Geo Branch':
 		node = JumpNode(True, None, obj.geoReference)
 	elif inlineGeoConfig.name == 'Geo Displaylist':
@@ -1036,7 +1036,8 @@ def processMesh(
 					addParentNode(parentTransformNode, ShadowNode(obj.shadow_type, obj.shadow_solidity, obj.shadow_scale))
 
 			if obj.add_func:
-				addParentNode(parentTransformNode, FunctionNode(obj.geo_func, obj.func_param))
+				geo_asm = obj.fast64.sm64.geo_asm
+				addParentNode(parentTransformNode, FunctionNode(geo_asm.func, geo_asm.param))
 
 			# Make sure to add additional cases to if statement above
 

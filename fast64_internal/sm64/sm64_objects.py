@@ -851,8 +851,8 @@ class SM64ObjectPanel(bpy.types.Panel):
 			warning_box.label(text = f'Relative location: {", ".join([str(l) for l in loc])}')
 
 		if obj.sm64_obj_type == 'Geo ASM':
-			prop_split(box, obj, 'geoASMFunc', 'Function')
-			prop_split(box, obj, 'geoASMParam', 'Parameter')
+			prop_split(box, obj.fast64.sm64.geo_asm, 'func', 'Function')
+			prop_split(box, obj.fast64.sm64.geo_asm, 'param', 'Parameter')
 			return
 
 		elif obj.sm64_obj_type == 'Custom Geo Command':
@@ -1358,6 +1358,34 @@ class PuppycamProperty(bpy.types.PropertyGroup):
 	NC_FLAG_SLIDECORRECT : bpy.props.BoolProperty(
 		name = 'Slide Correction')
 
+class SM64_GeoASMProperties(bpy.types.PropertyGroup):
+	name = "Geo ASM Properties"
+	func: bpy.props.StringProperty(name = "Geo ASM Func", default="", description="Name of function for C, hex address for binary.")
+	param: bpy.props.StringProperty(name = "Geo ASM Param", default="0", description="Function parameter. (Binary exporting will cast to int)")
+
+	@staticmethod
+	def upgrade_object(obj: bpy.types.Object):
+		geo_asm = obj.fast64.sm64.geo_asm
+
+		func = obj.get("geoASMFunc") or obj.get("geo_func") or ""
+		geo_asm.func = func
+
+		param = obj.get("geoASMParam") or obj.get("func_param") or 0
+		geo_asm.param = str(param)
+
+
+class SM64_ObjectProperties(bpy.types.PropertyGroup):
+	version: bpy.props.IntProperty(name="SM64_ObjectProperties Version", default=0)
+	cur_version = 1 # version after property migration
+
+	geo_asm: bpy.props.PointerProperty(type=SM64_GeoASMProperties)
+
+	@staticmethod
+	def upgrade_changed_props():
+		for obj in bpy.context.scene.objects:
+			if obj.fast64.sm64.version == 0:
+				SM64_GeoASMProperties.upgrade_object(obj)
+				obj.fast64.sm64.version = SM64_ObjectProperties.cur_version
 
 sm64_obj_classes = (
 	WarpNodeProperty,
@@ -1373,6 +1401,9 @@ sm64_obj_classes = (
 
 	PuppycamProperty,
 	PuppycamSetupCamera,
+
+	SM64_GeoASMProperties,
+	SM64_ObjectProperties,
 )
 
 
@@ -1570,14 +1601,6 @@ def sm64_obj_register():
 
 	bpy.types.Object.switchParam = bpy.props.IntProperty(
 		name = 'Function Parameter', min = -2**(15), max = 2**(15) - 1, default = 0)
-
-	bpy.types.Object.geoASMFunc = bpy.props.StringProperty(
-		name = 'Geo ASM Function', default = '',
-		description = 'Name of function for C, hex address for binary.')
-
-	bpy.types.Object.geoASMParam = bpy.props.IntProperty(
-		name = 'Geo ASM Parameter', min = -2**(15), max = 2**(15) - 1, default = 0,
-		description = 'Function parameter.')
 
 	bpy.types.Object.useDLReference = bpy.props.BoolProperty(name = 'Use displaylist reference')
 	bpy.types.Object.dlReference = bpy.props.StringProperty(name = 'Displaylist variable name or hex address for binary.')
