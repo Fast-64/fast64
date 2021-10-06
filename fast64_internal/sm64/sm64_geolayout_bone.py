@@ -214,8 +214,9 @@ class GeolayoutObjectPanel(bpy.types.Panel):
 			prop_split(col, obj, 'shadow_scale', 'Scale')
 		col.prop(obj, 'add_func')
 		if obj.add_func:
-			prop_split(col, obj, 'geo_func', 'Function')
-			prop_split(col, obj, 'func_param', 'Parameter')
+			geo_asm = obj.fast64.sm64.geo_asm
+			prop_split(col, geo_asm, 'func', 'Function')
+			prop_split(col, geo_asm, 'param', 'Parameter')
 		col.prop(obj, 'ignore_render')
 		col.prop(obj, 'ignore_collision')
 		col.prop(obj, 'use_f3d_culling')
@@ -521,13 +522,6 @@ def sm64_bone_register():
 	bpy.types.Object.add_func = bpy.props.BoolProperty(
 		name = 'Add Function Node')
 
-	bpy.types.Object.geo_func = bpy.props.StringProperty(
-		name = 'Function', default = '', 
-		description = 'Name of function for C, hex address for binary.')
-	
-	bpy.types.Object.func_param = bpy.props.IntProperty(
-		name = 'Function Parameter', min = -2**(15), max = 2**(15) - 1, default = 0)
-
 	bpy.types.Object.use_render_range = bpy.props.BoolProperty(name = 'Use Render Range (LOD)')
 	bpy.types.Object.render_range = bpy.props.FloatVectorProperty(name = 'Render Range', 
 		size = 2, default = (0,100))
@@ -566,8 +560,6 @@ def sm64_bone_unregister():
 	del bpy.types.Object.shadow_type
 	del bpy.types.Object.shadow_solidity
 	del bpy.types.Object.shadow_scale
-	del bpy.types.Object.geo_func
-	del bpy.types.Object.func_param
 	del bpy.types.Object.add_func
 
 	del bpy.types.Object.use_render_range
