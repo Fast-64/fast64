@@ -1,22 +1,22 @@
-from ..f3d.f3d_gbi import *
-from ..f3d.f3d_writer import *
-
-from .oot_constants import *
-from .oot_level import *
-from .oot_level_classes import *
-from .oot_utility import *
-from .oot_f3d_writer import *
-from .oot_collision import *
-from .oot_spline import *
-from .c_writer import *
+import bpy, bmesh, os, math, re, shutil, mathutils
+from io import BytesIO
+from bpy.utils import register_class, unregister_class
 
 from ..utility import *
+from .oot_utility import *
+from .oot_constants import *
 from ..panels import OOT_Panel
 
-from bpy.utils import register_class, unregister_class
-from io import BytesIO
-import bpy, bmesh, os, math, re, shutil, mathutils
+from ..f3d.f3d_gbi import *
+from ..f3d.f3d_writer import *
+from .oot_f3d_writer import *
 
+from .oot_level_classes import *
+from .oot_level import *
+from .oot_collision import *
+from .oot_spline import *
+from .oot_cutscene import *
+from .c_writer import *
 
 def sceneNameFromID(sceneID):
 	if sceneID in ootSceneIDToName:
@@ -67,79 +67,6 @@ def writeOtherSceneProperties(scene, exportInfo):
 	modifyDmaTableEntries(scene, exportInfo)
 	modifySegmentDefinition(scene, exportInfo)
 	modifySceneFiles(scene, exportInfo)
-	
-def readCutsceneData(scene, sceneHeader):
-	for listIn in sceneHeader.csLists:
-		listOut = OOTCSList()
-		listOut.listType = listIn.listType
-		listOut.unkType, listOut.fxType, listOut.fxStartFrame, listOut.fxEndFrame \
-		 	= listIn.unkType, listIn.fxType, listIn.fxStartFrame, listIn.fxEndFrame
-		listData = []
-		if listOut.listType == 'Textbox':
-			for entryIn in listIn.textbox:
-				entryOut = OOTCSTextbox()
-				entryOut.textboxType = entryIn.textboxType
-				entryOut.messageId = entryIn.messageId
-				entryOut.ocarinaSongAction = entryIn.ocarinaSongAction
-				entryOut.startFrame = entryIn.startFrame
-				entryOut.endFrame = entryIn.endFrame
-				entryOut.type = entryIn.type
-				entryOut.topOptionBranch = entryIn.topOptionBranch
-				entryOut.bottomOptionBranch = entryIn.bottomOptionBranch
-				entryOut.ocarinaMessageId = entryIn.ocarinaMessageId
-				listOut.entries.append(entryOut)
-		elif listOut.listType == 'Lighting':
-			for entryIn in listIn.lighting:
-				entryOut = OOTCSLighting()
-				entryOut.index = entryIn.index
-				entryOut.startFrame = entryIn.startFrame
-				listOut.entries.append(entryOut)
-		elif listOut.listType == 'Time':
-			for entryIn in listIn.time:
-				entryOut = OOTCSTime()
-				entryOut.startFrame = entryIn.startFrame
-				entryOut.hour = entryIn.hour
-				entryOut.minute = entryIn.minute
-				listOut.entries.append(entryOut)
-		elif listOut.listType in ['PlayBGM', 'StopBGM', 'FadeBGM']:
-			for entryIn in listIn.bgm:
-				entryOut = OOTCSBGM()
-				entryOut.value = entryIn.value
-				entryOut.startFrame = entryIn.startFrame
-				entryOut.endFrame = entryIn.endFrame
-				listOut.entries.append(entryOut)
-		elif listOut.listType == 'Misc':
-			for entryIn in listIn.misc:
-				entryOut = OOTCSMisc()
-				entryOut.operation = entryIn.operation
-				entryOut.startFrame = entryIn.startFrame
-				entryOut.endFrame = entryIn.endFrame
-				listOut.entries.append(entryOut)
-		elif listOut.listType == '0x09':
-			for entryIn in listIn.nine:
-				entryOut = OOTCS0x09()
-				entryOut.startFrame = entryIn.startFrame
-				entryOut.unk2 = entryIn.unk2
-				entryOut.unk3 = entryIn.unk3
-				entryOut.unk4 = entryIn.unk4
-				listOut.entries.append(entryOut)
-		elif listOut.listType == 'Unk':
-			for entryIn in listIn.unk:
-				entryOut = OOTCSUnk()
-				entryOut.unk1 = entryIn.unk1
-				entryOut.unk2 = entryIn.unk2
-				entryOut.unk3 = entryIn.unk3
-				entryOut.unk4 = entryIn.unk4
-				entryOut.unk5 = entryIn.unk5
-				entryOut.unk6 = entryIn.unk6
-				entryOut.unk7 = entryIn.unk7
-				entryOut.unk8 = entryIn.unk8
-				entryOut.unk9 = entryIn.unk9
-				entryOut.unk10 = entryIn.unk10
-				entryOut.unk11 = entryIn.unk11
-				entryOut.unk12 = entryIn.unk12
-				listOut.entries.append(entryOut)
-		scene.csLists.append(listOut)
 
 def readSceneData(scene, sceneHeader, alternateSceneHeaders):
 	scene.sceneTableEntry.drawConfig = sceneHeader.sceneTableEntry.drawConfig
@@ -167,12 +94,28 @@ def readSceneData(scene, sceneHeader, alternateSceneHeaders):
 		scene.exitList.append(getExitData(exitProp))
 
 	scene.writeCutscene = getCustomProperty(sceneHeader, "writeCutscene")
-	scene.csEndFrame = getCustomProperty(sceneHeader, "csEndFrame")
-	scene.csWriteTerminator = getCustomProperty(sceneHeader, "csWriteTerminator")
-	scene.csTermIdx = getCustomProperty(sceneHeader, "csTermIdx")
-	scene.csTermStart = getCustomProperty(sceneHeader, "csTermStart")
-	scene.csTermEnd = getCustomProperty(sceneHeader, "csTermEnd")
-	readCutsceneData(scene, sceneHeader)
+	if scene.writeCutscene:
+		scene.csWriteType = getattr(sceneHeader, "csWriteType")
+		if scene.csWriteType == "Embedded":
+			scene.csEndFrame = getCustomProperty(sceneHeader, "csEndFrame")
+			scene.csWriteTerminator = getCustomProperty(sceneHeader, "csWriteTerminator")
+			scene.csTermIdx = getCustomProperty(sceneHeader, "csTermIdx")
+			scene.csTermStart = getCustomProperty(sceneHeader, "csTermStart")
+			scene.csTermEnd = getCustomProperty(sceneHeader, "csTermEnd")
+			readCutsceneData(scene, sceneHeader)
+		elif scene.csWriteType == "Custom":
+			scene.csWriteCustom = getCustomProperty(sceneHeader, "csWriteCustom")
+		elif scene.csWriteType == "Object":
+			if sceneHeader.csWriteObject is None:
+				raise PluginError('No object selected for cutscene reference')
+			elif sceneHeader.csWriteObject.ootEmptyType != 'Cutscene':
+				raise PluginError('Object selected as cutscene is wrong type, must be empty with Cutscene type')
+			elif sceneHeader.csWriteObject.parent is not None:
+				raise PluginError('Cutscene empty object should not be parented to anything')
+			else:
+				scene.csWriteObject = convertCutsceneObject(sceneHeader.csWriteObject)
+	for ec in sceneHeader.extraCutscenes:
+		scene.extraCutscenes.append(convertCutsceneObject(ec.csObject))
 
 	if alternateSceneHeaders is not None:
 		scene.collision.cameraData = OOTCameraData(scene.name)
@@ -319,7 +262,7 @@ def ootConvertScene(originalSceneObj, transformMatrix,
 	if bpy.context.scene.exportHiddenGeometry:
 		hiddenObjs = unhideAllAndGetHiddenList(bpy.context.scene)
 
-	# Don't remove ignore_render, as we want to resuse this for collision
+	# Don't remove ignore_render, as we want to reuse this for collision
 	sceneObj, allObjs = \
 		ootDuplicateHierarchy(originalSceneObj, None, True, OOTObjectCategorizer())
 

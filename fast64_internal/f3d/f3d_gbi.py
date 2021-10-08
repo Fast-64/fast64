@@ -2504,7 +2504,10 @@ class FScrollData:
 		self.tile_scroll_tex0 = FSetTileSizeScrollField()
 		self.tile_scroll_tex1 = FSetTileSizeScrollField()
 		self.tile_scroll_exported = False
-	
+
+def get_f3d_mat_from_version(material: bpy.types.Material):
+	return material.f3d_mat if material.mat_ver > 3 else material
+
 class FMaterial:
 	def __init__(self, name, DLFormat):
 		self.material = GfxList('mat_' + name, GfxListTag.Material, DLFormat)
@@ -2553,8 +2556,8 @@ class FMaterial:
 		scrollField.noiseAmplitude = field.noiseAmplitude
 
 	def getSetTileSizeScrollData(self, material):
-		tex0 = material.f3d_mat.tex0
-		tex1 = material.f3d_mat.tex1
+		tex0 = get_f3d_mat_from_version(material).tex0
+		tex1 = get_f3d_mat_from_version(material).tex1
 
 		self.scrollData.tile_scroll_tex0.s = tex0.tile_scroll.s
 		self.scrollData.tile_scroll_tex0.t = tex0.tile_scroll.t
@@ -3376,7 +3379,7 @@ class SPBranchLessZraw:
 			self.dl.startAddress, segments), 'big')
 
 		words0 = _SHIFTL(f3d.G_RDPHALF_1, 24, 8), dlPtr
-		words1 = _SHIFTL(f3d.G_BRANCH_Z,24,8)|_SHIFTL((self.vtx)*5,12,12)|_SHIFTL((self.vtx)*2,0,12), zval
+		words1 = _SHIFTL(f3d.G_BRANCH_Z,24,8)|_SHIFTL((self.vtx)*5,12,12)|_SHIFTL((self.vtx)*2,0,12), self.zval
 		
 		return words0[0].to_bytes(4, 'big') + words0[1].to_bytes(4, 'big') +\
 			words1[0].to_bytes(4, 'big') + words1[1].to_bytes(4, 'big')
@@ -4551,7 +4554,7 @@ class DPSetFillColor:
 		return GFX_SIZE
 
 class DPSetPrimDepth:
-	def __init__(self, z, dz):
+	def __init__(self, z=0, dz=0):
 		self.z = z
 		self.dz = dz
 	

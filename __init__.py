@@ -265,6 +265,13 @@ class Fast64_BoneProperties(bpy.types.PropertyGroup):
 	'''
 	sm64: bpy.props.PointerProperty(type=SM64_BoneProperties, name="SM64 Properties")
 
+class Fast64_ObjectProperties(bpy.types.PropertyGroup):
+	'''
+	Properties in object.fast64 (bpy.types.Object)
+	All new object properties should be children of this property group.
+	'''
+	sm64: bpy.props.PointerProperty(type=SM64_ObjectProperties, name="SM64 Object Properties")
+
 
 #def updateGameEditor(scene, context):
 #	if scene.currentGameEditorMode == 'SM64':
@@ -287,6 +294,7 @@ classes = (
 	Fast64Settings_Properties,
 	Fast64_Properties,
 	Fast64_BoneProperties,
+	Fast64_ObjectProperties,
 
 	ArmatureApplyWithMesh,
 	AddBoneGroups,
@@ -303,6 +311,7 @@ classes = (
 def upgrade_changed_props():
 	'''Set scene properties after a scene loads, used for migrating old properties'''
 	SM64_Properties.upgrade_changed_props()
+	SM64_ObjectProperties.upgrade_changed_props()
 
 @bpy.app.handlers.persistent
 def after_load(_a, _b):
@@ -343,6 +352,7 @@ def register():
 
 	bpy.types.Scene.fast64 = bpy.props.PointerProperty(type=Fast64_Properties, name="Fast64 Properties")
 	bpy.types.Bone.fast64 = bpy.props.PointerProperty(type=Fast64_BoneProperties, name="Fast64 Bone Properties")
+	bpy.types.Object.fast64 = bpy.props.PointerProperty(type=Fast64_ObjectProperties, name="Fast64 Object Properties")
 
 	bpy.app.handlers.load_post.append(after_load)
 
@@ -368,6 +378,7 @@ def unregister():
 
 	del bpy.types.Scene.fast64
 	del bpy.types.Bone.fast64
+	del bpy.types.Object.fast64
 
 	for cls in classes:
 		unregister_class(cls)

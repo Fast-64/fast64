@@ -387,6 +387,13 @@ def ootConvertRotation(rotation):
 	# see BINANG_TO_DEGF
 	return [int(round((math.degrees(value) % 360) / 360 * (2**16))) % (2**16) for value in rotation.to_euler()]
 
+def getCutsceneName(obj):
+	name = obj.name
+	if name.startswith('Cutscene.'):
+		name = name[9:]
+	name = name.replace('.', '_')
+	return name
+
 def getCollectionFromIndex(obj, prop, subIndex, isRoom):
 	if not isRoom:
 		header0 = obj.ootSceneHeader
@@ -442,20 +449,19 @@ def getCollection(objName, collectionType, subIndex):
 		toks = collectionType.split('.')
 		assert len(toks) in [2, 3]
 		hdrnum = int(toks[1])
-		if hdrnum == 0:
-			hdr = obj.ootSceneHeader
-		elif hdrnum == 1:
-			hdr = obj.ootAlternateSceneHeaders.childNightHeader
-		elif hdrnum == 2:
-			hdr = obj.ootAlternateSceneHeaders.adultDayHeader
-		elif hdrnum == 3:
-			hdr = obj.ootAlternateSceneHeaders.adultNightHeader
-		else:
-			assert hdrnum >= 4
-			hdr = obj.ootAlternateSceneHeaders.cutsceneHeaders[hdrnum-4]
-		collection = hdr.csLists
+		collection = getCollectionFromIndex(obj, 'csLists', hdrnum, False)
 		if len(toks) == 3:
 			collection = getattr(collection[subIndex], toks[2])
+	elif collectionType.startswith("Cutscene."):
+		# Cutscene.ListType
+		toks = collectionType.split('.')
+		assert len(toks) == 2
+		collection = obj.ootCutsceneProperty.csLists
+		collection = getattr(collection[subIndex], toks[1])
+	elif collectionType == "Cutscene":
+		collection = obj.ootCutsceneProperty.csLists
+	elif collectionType == "extraCutscenes":
+		collection = obj.ootSceneHeader.extraCutscenes
 	else:
 		raise PluginError("Invalid collection type: " + collectionType)
 

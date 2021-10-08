@@ -2,15 +2,12 @@ import math, os, bpy, bmesh, mathutils
 from bpy.utils import register_class, unregister_class
 from io import BytesIO
 
-from ..f3d.f3d_gbi import *
-from .oot_constants import *
-from .oot_utility import *
-from .oot_collision import *
-from .oot_f3d_writer import *
-#from .oot_function_map import func_map
-#from .oot_spline import *
-
 from ..utility import *
+from .oot_utility import *
+from .oot_constants import *
+from ..f3d.f3d_gbi import *
+from .oot_collision_classes import *
+from .oot_model_classes import *
 
 class OOTActor:
 	def __init__(self, actorID, position, rotation, actorParam, rotOverride):
@@ -112,6 +109,16 @@ class OOTCSList:
 		self.fxStartFrame = 0
 		self.fxEndFrame = 0
 
+class OOTCutscene:
+	def __init__(self):
+		self.name = ""
+		self.csEndFrame = 100
+		self.csWriteTerminator = False
+		self.csTermIdx = 0
+		self.csTermStart = 99
+		self.csTermEnd = 100
+		self.csLists = []
+
 class OOTSceneTableEntry:
 	def __init__(self):
 		self.drawConfig = 0
@@ -152,12 +159,16 @@ class OOTScene:
 		self.cameraList = []
 
 		self.writeCutscene = False
+		self.csWriteType = "Embedded"
+		self.csWriteCustom = ""
+		self.csWriteObject = None
 		self.csEndFrame = 100
 		self.csWriteTerminator = False
 		self.csTermIdx = 0
 		self.csTermStart = 99
 		self.csTermEnd = 100
 		self.csLists = []
+		self.extraCutscenes = []
 
 		self.sceneTableEntry = OOTSceneTableEntry()
 

@@ -1,14 +1,16 @@
 import shutil, copy, mathutils, bpy, math, os, re
+from bpy.utils import register_class, unregister_class
+
+from ..utility import *
+from .oot_utility import *
+from .oot_constants import *
+from .oot_model_classes import *
+from ..panels import OOT_Panel
 
 from ..f3d.f3d_parser import *
 from ..f3d.f3d_writer import *
 from ..f3d.f3d_material import TextureProperty, tmemUsageUI
-from bpy.utils import register_class, unregister_class
-from .oot_constants import *
-from .oot_utility import *
 from .oot_f3d_writer import *
-from ..utility import *
-from ..panels import OOT_Panel
 
 ootEnumBoneType = [
 	("Default", "Default", "Default"),
