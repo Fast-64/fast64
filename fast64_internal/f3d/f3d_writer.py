@@ -2132,7 +2132,7 @@ def saveOtherModeLDefinition(fMaterial, settings, defaults, defaultRenderMode, m
 	else:
 		raise PluginError("Unhandled material write method: " + str(matWriteMethod))
 
-def saveOtherModeLDefinitionAll(fMaterial, settings, defaults, defaultRenderMode):
+def saveOtherModeLDefinitionAll(fMaterial: FMaterial, settings, defaults, defaultRenderMode):
 	if not settings.set_rendermode and defaultRenderMode is None:
 		cmd = SPSetOtherMode("G_SETOTHERMODE_L", 0, 3, [])
 		cmd.flagList.append(settings.g_mdsft_alpha_compare)
@@ -2156,12 +2156,20 @@ def saveOtherModeLDefinitionAll(fMaterial, settings, defaults, defaultRenderMode
 
 	fMaterial.material.commands.append(cmd)
 
+	if settings.g_mdsft_zsrcsel == 'G_ZS_PRIM':
+		fMaterial.material.commands.append(DPSetPrimDepth(z=settings.prim_depth.z, dz=settings.prim_depth.dz))
+		fMaterial.revert.commands.append(DPSetPrimDepth())
+
 def saveOtherModeLDefinitionIndividual(fMaterial, settings, defaults, defaultRenderMode):
 	saveModeSetting(fMaterial, settings.g_mdsft_alpha_compare,
 		defaults.g_mdsft_alpha_compare, DPSetAlphaCompare)
 
 	saveModeSetting(fMaterial, settings.g_mdsft_zsrcsel,
 		defaults.g_mdsft_zsrcsel, DPSetDepthSource)
+	
+	if settings.g_mdsft_zsrcsel == 'G_ZS_PRIM':
+		fMaterial.material.commands.append(DPSetPrimDepth(z=settings.prim_depth.z, dz=settings.prim_depth.dz))
+		fMaterial.revert.commands.append(DPSetPrimDepth())
 
 	if settings.set_rendermode:
 		flagList, blendList = getRenderModeFlagList(settings, fMaterial)

@@ -442,7 +442,7 @@ class OOTDLEntry:
 def ootGetSkeleton(skeletonData, skeletonName, continueOnError):
 	# TODO: Does this handle non flex skeleton?
 	matchResult = re.search("(Flex)?SkeletonHeader\s*" + re.escape(skeletonName) + \
-		"\s*=\s*\{\s*([^,\s]*)\s*,\s*([^,\s]*)\s*(,\s*([^,\s]*))?\s*\}\s*;\s*", skeletonData)
+		"\s*=\s*\{\s*\{?\s*([^,\s]*)\s*,\s*([^,\s\}]*)\s*\}?\s*(,\s*([^,\s]*))?\s*\}\s*;\s*", skeletonData)
 	if matchResult is None:
 		if continueOnError:
 			return None

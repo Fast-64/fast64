@@ -4554,7 +4554,7 @@ class DPSetFillColor:
 		return GFX_SIZE
 
 class DPSetPrimDepth:
-	def __init__(self, z, dz):
+	def __init__(self, z=0, dz=0):
 		self.z = z
 		self.dz = dz
 	
