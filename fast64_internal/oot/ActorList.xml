@@ -1,0 +1,3039 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Table KeyType="System.UInt16" ValueType="System.String">
+  <Actor Category="ACTORCAT_PLAYER" ID="ACTOR_PLAYER" Name="Link / Spawn point">
+    <Parameter Params="0000"> Invisible, Can't Control //Used for cutscenes without Link</Parameter>
+    <Parameter Params="0100"> Master Sword Pull and Drop Animation //Overwrites coordinates</Parameter>
+    <Parameter Params="0200"> Spawn: Blue Warp //used when returning from a blue warp</Parameter>
+    <Parameter Params="0300"> Spawn: Immobile</Parameter>
+    <Parameter Params="0400"> Spawn: Exit via Grotto //Y velocity = 12</Parameter>
+    <Parameter Params="0500"> Spawn: Warp Song</Parameter>
+    <Parameter Params="0600"> Spawn: Farore's Wind</Parameter>
+    <Parameter Params="0700"> Spawn: Thrown Out</Parameter>
+    <Parameter Params="0D00"> Stand</Parameter>
+    <Parameter Params="0E00"> Slow Walk Forward</Parameter>
+    <Parameter Params="0F00"> Retain Previous Velocity //Walk speed set by last exit</Parameter>
+    <Property Mask="0x00FF" Name="Camera ID (nullable)"/>
+    <Notes>Last 2 digits = Camera Initial Focus //Data defined by scene Link spawns in
++00FF No Special Positioning</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_TEST" Name="Stalfos" ObjectID="OBJECT_SK2">
+    <Parameter Params="0000"> Invisible (Lens of Truth), Mini-Boss Theme</Parameter>
+    <Parameter Params="0001"> Rises from Ground, Mini-Boss Theme</Parameter>
+    <Parameter Params="0002"> Rises from Ground //Pair with 0001</Parameter>
+    <Parameter Params="0003"> Drops From Sky on Approach</Parameter>
+    <Parameter Params="0004"> Rises from Ground, Mini-Boss Theme</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_GIRLA" Name="Shops">
+    <Notes>Intended to be spawned by the Shopkeeper actor</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_EN_PART" Name="Disintegrating Blue Flame">
+    <Parameter Params="0001"> Green Flame</Parameter>
+    <Parameter Params="0003"> Purple Flame</Parameter>
+    <Parameter Params="0004"> Red Bubbles</Parameter>
+    <Parameter Params="0005"> Invisible Hovering Object w/Shadow, bursts into purple flames</Parameter>
+    <Parameter Params="0009"> Green Flame</Parameter>
+    <Parameter Params="000A"> Green Flame</Parameter>
+    <Parameter Params="000B"> Purple Flame</Parameter>
+    <Parameter Params="000C"> Green Flame</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_EN_LIGHT" Name="Flame">
+    <Parameter Params="0000"> Large Orange Flame</Parameter>
+    <Parameter Params="0001"> Large Orange Flame</Parameter>
+    <Parameter Params="0002"> Large Blue Flame</Parameter>
+    <Parameter Params="0003"> Large Green Flame</Parameter>
+    <Parameter Params="0004"> Small Orange Flame</Parameter>
+    <Parameter Params="0005"> Large Orange Flame</Parameter>
+    <Parameter Params="0006"> Large Green Flame</Parameter>
+    <Parameter Params="0007"> Large Blue Flame</Parameter>
+    <Parameter Params="0008"> Large Magenta Flame</Parameter>
+    <Parameter Params="0009"> Large Pale Orange Flame</Parameter>
+    <Parameter Params="000A"> Large Pale Yellow Flame</Parameter>
+    <Parameter Params="000B"> Large Pale Green Flame</Parameter>
+    <Parameter Params="000C"> Large Pale Pink Flame</Parameter>
+    <Parameter Params="000D"> Large Pale Purple Flame</Parameter>
+    <Parameter Params="000E"> Large Pale Indigo Flame</Parameter>
+    <Parameter Params="000F"> Large Pale Blue Flame</Parameter>
+    <Parameter Params="83F0"> Candle Flame</Parameter>
+    <Parameter Params="FFFF"> Faint Blue Aura</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_DOOR" ID="ACTOR_EN_DOOR" Name="Wooden Door">
+    <Parameter Params="0000"> Wooden Door //Loads rooms</Parameter>
+    <Parameter Params="0040"> Double Wooden Doors //Loads rooms</Parameter>
+    <Parameter Params="0080"> Small Key Locked Door</Parameter>
+    <Parameter Params="00C0"> Locked Double Wooden Doors //Left door is locked on one side, right door is locked on the other. Loads rooms.</Parameter>
+    <Parameter Params="0100"> Double Wooden Two-Way Doors //Loads rooms</Parameter>
+    <Parameter Params="0140"> Double Wooden Two-Way Doors //Loads rooms</Parameter>
+    <Parameter Params="0180"> Double Wooden Two-Way Doors //Loads rooms</Parameter>
+    <Parameter Params="01BF"> Wooden door, loads collision behind the door faster //Loads rooms</Parameter>
+    <Parameter Params="01C0"> Double Wooden Two-Way Doors //Loads rooms</Parameter>
+    <Parameter Params="01CF"> Double Wooden Two-Way Doors, loads collision behind the door faster //Loads rooms</Parameter>
+    <Parameter Params="0200"> Ajar Wooden Door //Door slams shut on approach, then says &quot;It won't open!&quot; if you try to interact with it.</Parameter>
+    <Parameter Params="0300"> Wooden Two-Way Door with Message //Last two values' text matches that of actor 0185, but in increments of 1 instead</Parameter>
+    <Parameter Params="0400"> Wooden Two-Way Door //Doesn't load room</Parameter>
+    <Flag Mask="0x003F" Type="Switch"/>
+    <Notes>+003F = Switch Flag //Used by locked doors only 
+Depending on the scene ID, they need certain objects loaded as the first one in the object list. Scene IDs:
+04: needs object 002C
+05: needs object 0059
+07-08: needs object 0187
+	</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_CHEST" ID="ACTOR_EN_BOX" Name="Treasure Chest" ObjectID="OBJECT_BOX">
+    <Parameter Params="0000"> Large</Parameter>
+    <Parameter Params="1000"> Large, Appears, Clear Flag</Parameter>
+    <Parameter Params="2000"> Boss Key’s Chest</Parameter>
+    <Parameter Params="3000"> Large, Falling, Switch Flag</Parameter>
+    <Parameter Params="4000"> Large, Invisible</Parameter>
+    <Parameter Params="5000"> Small</Parameter>
+    <Parameter Params="6000"> Small, Invisible</Parameter>
+    <Parameter Params="7000"> Small, Appears, Clear Flag</Parameter>
+    <Parameter Params="8000"> Small, Falls, Switch Flag</Parameter>
+    <Parameter Params="9000"> Large, Appears, Zelda's Lullaby</Parameter>
+    <Parameter Params="A000"> Large, Appears, Sun's Song Triggered</Parameter>
+    <Parameter Params="B000"> Large, Appears, Switch Flag</Parameter>
+    <Flag Mask="0x003F" Target="ZRot" Type="Switch"/>
+    <Flag Mask="0x001F" Target="Params" Type="Chest"/>
+    <Item Mask="0x0FE0" Target="Params" Type="ChestContent"/>
+    <Notes>+0x0FE0 = Contents
+-0000 Invalid
+-0020 Bombs (5)
+-0040 Deku Nuts
+-0060 Bombchu (10)
+-0080 Fairy Bow
+-00A0 Fairy Slingshot //Triggers chest opening cutscene
+-00C0 Boomerang
+-00E0 Deku Stick (1)
+-0100 Hookshot
+-0120 Longshot //Triggers chest opening cutscene
+-0140 Lens of Truth
+-0160 Zelda’s Letter //Triggers chest opening cutscene
+-0180 Ocarina of Time //Triggers chest opening cutscene
+-01A0 Megaton Hammer
+-01C0 Cojiro //Triggers chest opening cutscene
+-01E0 Empty Bottle //Triggers chest opening cutscene
+-0200 Red Potion //Triggers chest opening cutscene
+-0220 Green Potion //Triggers chest opening cutscene
+-0240 Blue Potion //Triggers chest opening cutscene
+-0260 Bottled Fairy //Triggers chest opening cutscene
+-0280 Lon Lon Milk
+-02A0 Ruto's Letter
+-02C0 Magic Bean
+-02E0 Skull Mask //Triggers chest opening cutscene
+-0300 Spooky Mask //Triggers chest opening cutscene
+-0320 Chicken //Triggers chest opening cutscene. Uses Magic Bean message ID
+-0340 Keaton Mask //Triggers chest opening cutscene
+-0360 Bunny Hood //Triggers chest opening cutscene
+-0380 Mask of Truth //Triggers chest opening cutscene
+-03A0 Pocket Egg //Triggers chest opening cutscene
+-03C0 Pocket Cucco //Triggers chest opening cutscene, uses Magic Bean message ID
+-03E0 Odd Mushroom //Triggers chest opening cutscene
+-0400 Odd Potion //Triggers chest opening cutscene
+-0420 Poacher’s Saw //Triggers chest opening cutscene
+-0440 Broken Goron’s Sword //Triggers chest opening cutscene
+-0460 Prescription //Triggers chest opening cutscene
+-0480 Eyeball Frog //Triggers chest opening cutscene
+-04A0 World’s Finest Eye Drops //Triggers chest opening cutscene
+-04C0 Claim Check //Triggers chest opening cutscene
+-04E0 Kokiri’s Sword
+-0500 Giant’s Knife //Triggers chest opening cutscene
+-0520 Deku Shield or blue (5) rupee
+-0540 Hylian Shield or blue (5) rupee
+-0560 Mirror Shield
+-0580 Goron Tunic or blue (5) rupee
+-05A0 Zora Tunic or blue (5) rupee
+-05C0 Iron Boots
+-05E0 Hover Boots
+-0600 Big Quiver //Triggers chest opening cutscene
+-0620 Biggest Quiver //Triggers chest opening cutscene
+-0640 Bomb Bag
+-0660 Big Bomb Bag //Triggers chest opening cutscene
+-0680 Biggest Bomb Bag //Triggers chest opening cutscene
+-06A0 Silver Gauntlets //Triggers chest opening cutscene
+-06C0 Golden Gauntlets //Triggers chest opening cutscene
+-06E0 Silver Scale //Triggers chest opening cutscene
+-0700 Golden Scale //Triggers chest opening cutscene
+-0720 Stone of Agony //Triggers chest opening cutscene
+-0740 Gerudo Membership Card //Triggers chest opening cutscene
+-0760 Fairy Ocarina //Triggers chest opening cutscene. Uses Ocarina of Time message ID
+-0780 Blue (5) rupee
+-07A0 Heart Container //Triggers chest opening cutscene
+-07C0 Piece of Heart //Triggers chest opening cutscene
+-07E0 Boss Key //Triggers chest opening cutscene
+-0800 Compass //Triggers chest opening cutscene
+-0820 Map //Triggers chest opening cutscene
+-0840 Small Key
+-0860 Small Magic Container or Blue (5) Rupee //Untested
+-0880 Large Magic Container or Blue (5) Rupee //Untested
+-08A0 Adult Wallet //Triggers chest opening cutscene
+-08C0 Giant Wallet //Triggers chest opening cutscene
+-08E0 Weird Egg //Triggers chest opening cutscene
+-0900 Recovery Heart
+-0920 Arrows (5)
+-0940 Arrows (10)
+-0960 Arrows (30)
+-0980 Green (1) Rupee
+-09A0 Blue (5) Rupee
+-09C0 Red (20) Rupee
+-09E0 Heart Container //Triggers chest opening cutscene
+-0A00 Lon Lon Milk //Triggers chest opening cutscene
+-0A20 Goron Mask //Triggers chest opening cutscene
+-0A40 Zora Mask //Triggers chest opening cutscene
+-0A60 Gerudo Mask //Triggers chest opening cutscene
+-0A80 Goron Bracelet //Triggers chest opening cutscene
+-0AA0 Purple (50) Rupee
+-0AC0 Huge/Yellow (200) Rupee
+-0AE0 Giant's Knife or Biggoron’s Sword //Triggers chest opening cutscene, Biggoron's Sword is only given when the relevant flags are set
+-0B00 Fire Arrow
+-0B20 Ice Arrow
+-0B40 Light Arrow
+-0B60 Gold Skulltula Token
+-0B80 Din’s Fire
+-0BA0 Farore’s Wind
+-0BC0 Nayru’s Love
+-0BE0 Deku Seeds Bullet Bag (40)
+-0C00 Deku Seeds Bullet Bag (40) //Triggers chest opening cutscene
+-0C20 Deku Stick
+-0C40 Deku Stick
+-0C60 Deku Nuts
+-0C80 Deku Nuts
+-0CA0 Bombs (1)
+-0CC0 Bombs (10)
+-0CE0 Bombs (20)
+-0D00 Bombs (30)
+-0D20 Deku Seeds (30) or blue (5) rupee
+-0D40 Bombchu (5)
+-0D60 Bombchu (20)
+-0D80 Bottled Fish //Triggers chest opening cutscene
+-0DA0 Bottled Bug //Triggers chest opening cutscene
+-0DC0 Blue Fire //Triggers chest opening cutscene
+-0DE0 Bottled Poe //Triggers chest opening cutscene
+-0E00 Bottled Big Poe //Triggers chest opening cutscene
+-0E20 Door Key (Treasure Box Shop)
+-0E40 Loser Green Rupee (Treasure Box Shop)
+-0E60 Loser Blue Rupee (Treasure Box Shop)
+-0E80 Loser Red Rupee (Treasure Box Shop)
+-0EA0 Winner Purple Rupee (Treasure Box Shop)
+-0EC0 Winner Piece of Heart (Treasure Box Shop) //Triggers chest opening cutscene
+-0EE0 Deku Stick Upgrade (20)
+-0F00 Deku Stick Upgrade (30)
+-0F20 Deku Nut Upgrade (30)
+-0F40 Deku Nut Upgrade (40)
+-0F60 Deku Seeds Bullet Bag (50) //Triggers chest opening cutscene
+-0F80 Ice Trap //Freezes Link when opened
+-0FA0 Pocket Egg (Invalid) //No model appears over Link
+-0FC0 Invalid //Game crashes when opened
+-0FE0 Invalid //Game crashes when opened
++0x1F = Chest Flag //If multiple chests share the same chest flag in a room, opening one will open the others with the same flag.
+Z ROTATION 0x3F = Switch Flag to spawn chest.
+</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_DY_YOSEIZO" Name="Great Fairy" ObjectID="OBJECT_DY_OBJ">
+    <Parameter Params="FFFF">Default</Parameter>
+    <Notes>Hardcoded cutscene camera points to -19, -2 ,-1000</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_HIDAN_FIREWALL" Name="Proximity Activated Firewall" ObjectID="OBJECT_HIDAN_OBJECTS">
+    <Notes>Missing variables</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_POH" Name="Poe" ObjectID="OBJECT_POH">
+    <Parameter Params="0000"> Graveyard Poe</Parameter>
+    <Parameter Params="0001"> Graveyard Poe //Leaves a Blue Rupee at its spawn point</Parameter>
+    <Parameter Params="0002"> (006E) Sharp (Composer Brothers) //Sets Permanent Switch Flag 0B when spoken to, use object 006E</Parameter>
+    <Parameter Params="0003"> (006E) Flat (Composer Brothers) //Sets Permanent Switch Flag 0A when talked to, use object 006E</Parameter>
+    <Parameter Params="0004"> Graveyard Poe</Parameter>
+    <Notes>May need another object</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_OKUTA" Name="Octorok" ObjectID="OBJECT_OKUTA">
+    <Notes>First 2 digits: Rocks fired per volley</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_YDAN_SP" Name="Webs" ObjectID="OBJECT_YDAN_OBJECTS">
+    <Parameter Params="0000"> Web-Covered Hole</Parameter>
+    <Parameter Params="1000"> Vertical Web Wall</Parameter>
+    <Parameter Params="2000"> Web-Covered Hole //When burned, web becomes inverse-conical and extends upwards</Parameter>
+    <Flag Mask="0x003F" Type="Switch"/>
+    <Flag Mask="0x0FC0" Type="Switch"/>
+    <Notes>+0x3F00 = Switch Flag (Set when destroyed)
+      +0x0FC0 = Switch Flag (Web burns when set)</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_EXPLOSIVE" ID="ACTOR_EN_BOM" Name="Bomb">
+    <Parameter Params="0000"> Bomb</Parameter>
+    <Parameter Params="0001"> Bomb Shadow</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_WALLMAS" Name="Wallmaster" ObjectID="OBJECT_WALLMASTER">
+    <Parameter Params="0000"> Unknown //Used in Master Quest</Parameter>
+    <Parameter Params="0001"> Normal</Parameter>
+    <Parameter Params="0002"> Spawn on Switch Flag</Parameter>
+    <Notes>+ 0x3F00 = Switch Flag (Flag to spawn on. Used by type 02 only)</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_DODONGO" Name="Dodongo" ObjectID="OBJECT_DODONGO">
+    <Parameter Params="FFFF"> Default</Parameter>
+    <Parameter Params="0000"> Two-Foot Dodongo //Emits fire and smoke from mouth upon death</Parameter>
+    <Parameter Params="0001"> Two-Foot Dodongo //Doesn't emit fire and smoke from mouth upon death</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_FIREFLY" Name="Keese" ObjectID="OBJECT_FIREFLY">
+    <Parameter Params="0000"> Fire Keese</Parameter>
+    <Parameter Params="0002"> Aggressive Keese</Parameter>
+    <Parameter Params="0003"> Roosting Keese</Parameter>
+    <Parameter Params="0004"> Ice Keese</Parameter>
+    <Property Mask="0x8000" Name="Invisible"/>
+    <Notes>+8000 = Invisible</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_EN_HORSE" Name="Epona" ObjectID="OBJECT_HORSE">
+    <Parameter Params="0000"> Epona</Parameter>
+    <Parameter Params="8000"> No Epona</Parameter>
+    <Parameter Params="FFFF"> Default</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_EN_ITEM00" Name="Collectable Item">
+    <Parameter Params="0000"> Green Rupee</Parameter>
+    <Parameter Params="0001"> Blue Rupee</Parameter>
+    <Parameter Params="0002"> Red Rupee</Parameter>
+    <Parameter Params="0003"> Recovery Heart</Parameter>
+    <Parameter Params="0004"> Bomb</Parameter>
+    <Parameter Params="0005"> Arrow (1) //Used for collecting arrows stuck in walls </Parameter>
+    <Parameter Params="0006"> Heart Piece</Parameter>
+    <Parameter Params="0008"> Deku Seeds (5) or Arrows (5)</Parameter>
+    <Parameter Params="0009"> Deku Seeds (5) or Arrows (10)</Parameter>
+    <Parameter Params="000A"> Deku Seeds (5) or Arrows (30)</Parameter>
+    <Parameter Params="000B"> Bombs (5)</Parameter>
+    <Parameter Params="000C"> Deku Nut</Parameter>
+    <Parameter Params="000D"> Deku Stick</Parameter>
+    <Parameter Params="000E"> Large Magic Jar</Parameter>
+    <Parameter Params="000F"> Small Magic Jar</Parameter>
+    <Parameter Params="0010"> Deku Seeds (5) or Arrows (5)</Parameter>
+    <Parameter Params="0011"> Small Key</Parameter>
+    <Parameter Params="0012"> Flexible Drop //Used for randomized drops, see comments. Will spawn as an invisible Recovery Heart in some situations</Parameter>
+    <Parameter Params="0013"> Giant Orange Rupee</Parameter>
+    <Parameter Params="0014"> Large Purple Rupee</Parameter>
+    <Parameter Params="0015"> Deku Shield //May require Child Link's object</Parameter>
+    <Parameter Params="0016"> Hylian Shield</Parameter>
+    <Parameter Params="0017"> Zora Tunic</Parameter>
+    <Parameter Params="0018"> Goron Tunic</Parameter>
+    <Parameter Params="0019"> Bombs (5)</Parameter>
+    <Parameter Params="001A"> Invisible Item</Parameter>
+    <Flag Mask="0x3F00" Type="Collectible"/>
+    <Notes>+0x3F00 = Collectible Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_EN_ARROW" Name="Arrow">
+    <Parameter Params="0000"> Fire Arrow</Parameter>
+    <Parameter Params="0001"> Wooden Arrow</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_EN_ELF" Name="Fairy">
+    <Parameter Params="0000"> Navi</Parameter>
+    <Parameter Params="0001"> Bottled Healing Fairy</Parameter>
+    <Parameter Params="0002"> Roaming Healing Fairy</Parameter>
+    <Parameter Params="0004"> Group of Healing Fairies</Parameter>
+    <Parameter Params="0005"> Fairy Healing You</Parameter>
+    <Parameter Params="0007"> Roaming Large Healing Fairy</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_NIW" Name="Cucco" ObjectID="OBJECT_NIW">
+    <Parameter Params="0004"> Flees when approached //Cucco hidden in the box in Kakariko</Parameter>
+    <Parameter Params="0008"> Doesn't Flee</Parameter>
+    <Parameter Params="000E"> Non-Targetable //The non-super cuccos in the Ranch house</Parameter>
+    <Parameter Params="FFFF"> Default</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_TITE" Name="Tektite" ObjectID="OBJECT_TITE">
+    <Parameter Params="FFFF"> Red Tektite</Parameter>
+    <Parameter Params="FFFE"> Blue Tektite</Parameter>
+    <Parameter Params="0000"> Normal Tektite</Parameter>
+    <Parameter Params="0004"> Dies Instantly</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_REEBA" Name="Leever" ObjectID="OBJECT_REEBA">
+    <Notes>Clear flag ignores this monster</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_PEEHAT" Name="Peahat" ObjectID="OBJECT_PEEHAT">
+    <Parameter Params="0000"> Flying Peahat //Spawns Larva</Parameter>
+    <Parameter Params="0001"> Peahat Larva</Parameter>
+    <Parameter Params="FFFF"> Burrowed Peahat</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_EN_BUTTE" Name="Butterfly" ObjectID="OBJECT_GAMEPLAY_FIELD_KEEP">
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_EN_INSECT" Name="Bug">
+    <Parameter Params="0000"> Large Bug</Parameter>
+    <Parameter Params="0002"> Three Small Bugs</Parameter>
+    <Parameter Params="0003"> Small Bug</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_EN_FISH" Name="Fish">
+    <Parameter Params="0000"> Flopping</Parameter>
+    <Parameter Params="0001"> Swimming, Doesn't Flee //Used for very small pools of water</Parameter>
+    <Parameter Params="0002"> Swimming, Reacts to Link</Parameter>
+    <Parameter Params="FFFF"> Swimming, Flees</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_DOOR" ID="ACTOR_EN_HOLL" Name="Room Changing Black Plane">
+    <Parameter Params="0000">Vertical, two way, fades black when approached</Parameter>
+    <Parameter Params="0040">Up/Down, one-way, fades black when approached</Parameter>
+    <Parameter Params="0080">Up/Down, two-way, no fade</Parameter>
+    <Parameter Params="00C0">Vertical, enabled on switch flag, fades black when approached</Parameter>
+    <Parameter Params="0100">Vertical, two-way, no fade</Parameter>
+    <Parameter Params="0140">Up/Down, two-way, fades black when approached</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_SCENE_CHANGE" Name="(Unknown scene change)" ObjectID="OBJECT_JJ">
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_ZF" Name="Lizalfos" ObjectID="OBJECT_ZF">
+    <Parameter Params="0000"> Lizalfos mini-boss, drops from ceiling //Partner to 01, in order to be killed</Parameter>
+    <Parameter Params="0001"> Lizalfos mini-boss, no mini-boss music //Partner to 00, in order to be killed</Parameter>
+    <Parameter Params="0080"> Lizalfos, no mini-boss music</Parameter>
+    <Parameter Params="00FE"> Dinolfos, no mini-boss music</Parameter>
+    <Parameter Params="00FF"> Lizalfos, no mini-boss music, drops from ceiling</Parameter>
+    <Flag Mask="0xFF00" Type="Switch"/>
+    <Notes>+0xFF00 = Nullable Switch Flag Lizalfos miniboss spawns when entering room from door bound to this switch flag
+The Lizalfos miniboss (Type 00 and 01) has special behavior to it.
+Type 00 and 01 actors must be spawned together for the miniboss to be defeated.
+To differentiate the two encounters (as both are in room 3), the switch flag is used. This flag matches the switch flag of the door used to enter the room</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_HATA" Name="Wooden Post with Red Cloth" ObjectID="OBJECT_HATA">
+    <Parameter Params="FFFF">Default</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_BOSS" ID="ACTOR_BOSS_DODONGO" Name="King Dodongo" ObjectID="OBJECT_KINGDODONGO">
+    <Parameter Params="FFFF">Default</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_BOSS" ID="ACTOR_BOSS_GOMA" Name="Queen Gohma" ObjectID="OBJECT_GOMA">
+    <Parameter Params="FFFF">Default</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_ZL1" Name="Princess Zelda Child" ObjectID="OBJECT_ZL1">
+    <Parameter Params="FFFF">Default</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_EN_VIEWER" Name="Cutscene Actors">
+    <Parameter Params="0000"> Impa's Horse</Parameter>
+    <Parameter Params="0101"> Impa on Horse</Parameter>
+    <Parameter Params="0202"> Zelda</Parameter>
+    <Parameter Params="0303"> Ganondorf on Horse (Stationary)</Parameter>
+    <Parameter Params="0404"> Ganondorf's Horse (Stationary)</Parameter>
+    <Parameter Params="05FF"> Ganondorf on Horse (Riding) + Flames</Parameter>
+    <Parameter Params="06FF"> Ganondorf's Horse (Galloping)</Parameter>
+    <Parameter Params="07FF"> Ganondorf hands crossed //use object 009B</Parameter>
+    <Parameter Params="08FF"> Ganondorf Bowing to King</Parameter>
+    <Parameter Params="09FF"> Ganondorf floating (Curse You) //use object 00E1</Parameter>
+    <Notes>They need their respective objects to load</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_GOMA" Name="Gohma Larva" ObjectID="OBJECT_GOL">
+    <Parameter Params="0000"> Falls, lands on ground, hatches in moments</Parameter>
+    <Parameter Params="0003"> Crashes</Parameter>
+    <Parameter Params="0006"> Normal egg on ground</Parameter>
+    <Parameter Params="0008"> Invisible until it hatches (or with Lens of Truth)</Parameter>
+    <Parameter Params="000A"> Destroyed</Parameter>
+    <Parameter Params="0064"> Puffs of Blue Smoke (dies away when Link approaches)</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_PUSHBOX" Name="Alpha Cube Copy" ObjectID="OBJECT_GAMEPLAY_DANGEON_KEEP">
+    <Notes>Unused</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_BUBBLE" Name="Shabom" ObjectID="OBJECT_BUBBLE">
+    <Parameter Params="FFFF">Default</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_DOOR" ID="ACTOR_DOOR_SHUTTER" Name="Lifting Wooden Door">
+    <Parameter Params="0000">Lifting door</Parameter>
+    <Parameter Params="0040">Front side attached to Room Clear</Parameter>
+    <Parameter Params="0080">Front side attached to Switch</Parameter>
+    <Parameter Params="00C0">Back side permanently locked</Parameter>
+    <Parameter Params="0140">Boss door //needs object 00B0</Parameter>
+    <Parameter Params="01C0">Front side attached to Switch, Back to Room Clear</Parameter>
+    <Parameter Params="02C0">Key Locked door</Parameter>
+    <Flag Mask="0x003F" Type="Switch"/>
+    <Notes>+003F = Switch Flag //Used by switch flag iron bar and locked doors 
+Depending on the scene ID, they need certain objects loaded as the first one in the object list. Scene IDs:
+00: needs object 0036
+01: needs object 002B
+02: needs object 0096
+04: needs object 002C
+05: needs object 0059
+06: needs object 016D
+07-08: needs object 0187
+09: needs object 006B
+0A: needs object 0139
+0B: needs object 004D
+0D: needs object 0179
+	</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_DODOJR" Name="Baby Dodongo" ObjectID="OBJECT_DODOJR">
+    <Parameter Params="FFFF">Default</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_BDFIRE" Name="King Dodongo's Fire" ObjectID="OBJECT_KINGDODONGO">
+  </Actor>
+  <Actor Category="ACTORCAT_MISC" ID="ACTOR_EN_BOOM" Name="Boomerang">
+  </Actor>
+  <Actor Category="ACTORCAT_BOSS" ID="ACTOR_EN_TORCH2" Name="Dark Link" ObjectID="OBJECT_TORCH2">
+    <Parameter Params="FFFF">Default</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_BILI" Name="Biri" ObjectID="OBJECT_BL">
+    <Parameter Params="FFFF">Default</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_TP" Name="Taliparisan" ObjectID="OBJECT_TP">
+    <Parameter Params="FFFF">Default</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_ST" Name="Skulltula" ObjectID="OBJECT_ST">
+    <Parameter Params="0000"> Normal</Parameter>
+    <Parameter Params="0001"> Big</Parameter>
+    <Parameter Params="0002"> Invisible</Parameter>
+    <Parameter Params="0003">+ Normal</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_BW" Name="Torch Slug" ObjectID="OBJECT_BW">
+    <Parameter Params="FFFF">Default</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_MISC" ID="ACTOR_EN_A_OBJ" Name="Gameplay_keep Objects">
+    <Parameter Params="0000"> Small grey stone block</Parameter>
+    <Parameter Params="0001"> Large grey stone block</Parameter>
+    <Parameter Params="0002"> Huge grey stone block</Parameter>
+    <Parameter Params="0003"> Small grey stone block, rotates when you stand on it</Parameter>
+    <Parameter Params="0004"> Large grey stone block, rotates when you stand on it</Parameter>
+    <Parameter Params="0005"> Small grey stone cube</Parameter>
+    <Parameter Params="0006"> Crashes</Parameter>
+    <Parameter Params="0007"> Grass clump</Parameter>
+    <Parameter Params="0008"> Small tree stump</Parameter>
+    <Parameter Params="0009"> Oblong Signpost (unbreakable)</Parameter>
+    <Parameter Params="000A"> Arrow Signpost</Parameter>
+    <Parameter Params="000C"> Black knobby thing</Parameter>
+    <Property Mask="0xFF00" Name="Message ID"/>
+    <Notes>+0xFF00 = Message ID (+0300)</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_EIYER" Name="Stinger" ObjectID="OBJECT_EI">
+    <Parameter Params="0000"> Four spinning a circle, but once you kill one, the rest are gone as well</Parameter>
+    <Parameter Params="0001"> Three in formation, sink under floor and do not activate</Parameter>
+    <Parameter Params="0002"> Two in formation, sink under floor and do not activate</Parameter>
+    <Parameter Params="0003"> One in formation, sink under floor and do not activate</Parameter>
+    <Parameter Params="000A"> Single</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_EN_RIVER_SOUND" Name="Ambient Sound Effects">
+    <Parameter Params="0000"> River (Multi-Point)</Parameter>
+    <Parameter Params="0001"> Stream</Parameter>
+    <Parameter Params="0002"> Magma</Parameter>
+    <Parameter Params="0003"> Waterfall</Parameter>
+    <Parameter Params="0004"> Small Stream</Parameter>
+    <Parameter Params="0005"> Stream</Parameter>
+    <Parameter Params="0006"> Fire Temple’s Lower Ambient Noise</Parameter>
+    <Parameter Params="0007"> Fire Temple’s Higher Ambient Noise</Parameter>
+    <Parameter Params="0008"> Water Dripping (Well)</Parameter>
+    <Parameter Params="0009"> River</Parameter>
+    <Parameter Params="000A"> Market gibberish</Parameter>
+    <Parameter Params="000B"> Unknown //FIXME: volume decreased but no ambient sound seemed to play</Parameter>
+    <Parameter Params="000D"> Proximity Saria’s Song</Parameter>
+    <Parameter Params="000E"> Howling wind</Parameter>
+    <Parameter Params="000F"> Gurgling</Parameter>
+    <Parameter Params="0010"> Temple of Light’s dripping sounds</Parameter>
+    <Parameter Params="0011"> Low booming-likish sound</Parameter>
+    <Parameter Params="0012"> Quake/Collapse</Parameter>
+    <Parameter Params="0013"> Fairy Fountain</Parameter>
+    <Parameter Params="0014"> Torches</Parameter>
+    <Parameter Params="0015"> Cows</Parameter>
+    <Parameter Params="0016"> Outside of the ambient noise domain</Parameter>
+    <Property Mask="0xFF00" Name="Path Id (River)"/>
+    <Notes>+0xFF00 = Path Id (Used for sound sources, Type 00 only?)</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_EN_HORSE_NORMAL" Name="Normal Horse" ObjectID="OBJECT_HORSE_NORMAL">
+    <Parameter Params="0001"> Tan, Runs Around</Parameter>
+    <Parameter Params="000F"> Tan, Runs Around</Parameter>
+    <Parameter Params="0010"> Tan, Runs Away</Parameter>
+    <Parameter Params="FFFF"> Tan, Runs Around</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_OSSAN" Name="Shopkeeper">
+    <Parameter Params="0000"> Kokiri Shopkeeper //Add objects (0101, 0102) Text ID 10BA</Parameter>
+    <Parameter Params="0001"> Kakariko Potion Shopkeeper //Add objects (00B2, 0159) Text ID 504E</Parameter>
+    <Parameter Params="0002"> Bombchu Shopkeeper // Add ????? object, requires killing king dodongo to appear</Parameter>
+    <Parameter Params="0003"> Market Potion Shopkeeper //Add objects (00B2, 0159)  Text ID 504E</Parameter>
+    <Parameter Params="0004"> Bazaar Shopkeeper // Add ????? object  Text ID 009D as adult</Parameter>
+    <Parameter Params="0007"> Zora Shopkeeper // Add ????? object</Parameter>
+    <Parameter Params="0008"> Goron Shopkeeper // Add ????? object</Parameter>
+    <Parameter Params="000A"> Happy Mask Shopkeeper // Add ????? object</Parameter>
+    <Notes>Probably needs more objects</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_TREEMOUTH" Name="Deku Tree's Jaw" ObjectID="OBJECT_SPOT04_OBJECTS">
+    <Parameter Params="FFFF">Default</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_DODOAGO" Name="Dodongo Skull's Jaw" ObjectID="OBJECT_DDAN_OBJECTS">
+    <Flag Mask="0x003F" Type="Switch"/>
+    <Notes>+0x3F = Switch Flag
+      Spawns when a specific switch flag is set
+Out-of-bounds Plane (typ.)</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_HIDAN_DALM" Name="Lower Part of Megaton Statue" ObjectID="OBJECT_HIDAN_OBJECTS">
+    <Parameter Params="0000"> Lower Part (Flame decal)</Parameter>
+    <Parameter Params="0001"> Top Part (Face decal)</Parameter>
+    <Flag Mask="0xFF00" Type="Switch"/>
+    <Notes>+0xFF00 = Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_HIDAN_HROCK" Name="Huge Stone Spike Platform" ObjectID="OBJECT_HIDAN_OBJECTS">
+    <Parameter Params="0000">Huge</Parameter>
+    <Parameter Params="0100">Big</Parameter>
+    <Parameter Params="0200">Small</Parameter>
+    <Flag Mask="0x00FF" Type="Switch"/>
+    <Notes>
++0x00FF = Switch Flag
+</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_EN_HORSE_GANON" Name="Ganondorf's Horse" ObjectID="OBJECT_HORSE_GANON">
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_HIDAN_ROCK" Name="Fire Temple Stone Block" ObjectID="OBJECT_HIDAN_OBJECTS">
+    <Parameter Params="0000"> Large Face Cube //Pushable</Parameter>
+    <Parameter Params="0001"> Squat Cube //Shakes and flies into the air when you land on it</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_HIDAN_RSEKIZOU" Name="Spinning Flame Thrower Statue" ObjectID="OBJECT_HIDAN_OBJECTS">
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_HIDAN_SEKIZOU" Name="Stationary Flame Thrower Statue" ObjectID="OBJECT_HIDAN_OBJECTS">
+    <Parameter Params="0000"> 2-way diagonal</Parameter>
+    <Parameter Params="0001"> 4-way plus</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_HIDAN_SIMA" Name="Sink Stone Platform" ObjectID="OBJECT_HIDAN_OBJECTS">
+    <Parameter Params="0000"> Sinking</Parameter>
+    <Parameter Params="0001"> Sliding</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_HIDAN_SYOKU" Name="Fire Temple Stone Block" ObjectID="OBJECT_HIDAN_OBJECTS">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_XC" Name="Sheik" ObjectID="OBJECT_XC">
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_HIDAN_CURTAIN" Name="Flame Circle">
+    <Parameter Params="0000"> Large, turns off with room clear.</Parameter>
+    <Parameter Params="1000"> Large, plays cutscene, switches off for long time with ticking sound. Turns off permanently with chest flag.</Parameter>
+    <Parameter Params="2000"> Small, switches off for long time silently.</Parameter>
+    <Parameter Params="3000"> Large, plays cutscene, switches off for short time with ticking sound.</Parameter>
+    <Parameter Params="4000"> Disabled, small, switches on for short time.</Parameter>
+    <Parameter Params="5000"> Disabled, large, can be switched on and off.</Parameter>
+    <Parameter Params="6000"> Large, switches off permanently, won't spawn if room is cleared.</Parameter>
+    <Parameter Params="7000"> Nothing</Parameter>
+    <Notes>+0x0FC0 = Chest Flag</Notes>
+    <Flag Mask="0x003F" Type="Switch"/>
+    <Flag Mask="0x0FC0" Type="Chest"/>
+    <Notes>+0x003F = Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_SPOT00_HANEBASI" Name="Drawbridge" ObjectID="OBJECT_SPOT00_OBJECTS">
+    <Parameter Params="0000"> Chains</Parameter>
+    <Parameter Params="FFFF"> Drawbridge</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_MB" Name="Ground Pounding Moblin" ObjectID="OBJECT_MB">
+    <Parameter Params="0000"> Club Moblin //Pounds the ground</Parameter>
+    <Parameter Params="00FF"> Spear Moblin</Parameter>
+    <Property Mask="0xFF00" Name="Path Id"/>
+    <Notes>+0xFF00 = path Id (Spear Moblins only)</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_BOMBF" Name="Bomb Flower" ObjectID="OBJECT_BOMBF">
+    <Parameter Params="0000"> Bomb</Parameter>
+    <Parameter Params="0001"> Invisible Bomb</Parameter>
+    <Parameter Params="FFFF"> Default</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_ZL2" Name="Adult Zelda (Cutscene)" ObjectID="OBJECT_ZL2,OBJECT_ZL2_ANIME1">
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_HIDAN_FSLIFT" Name="Elevator Platform" ObjectID="OBJECT_HIDAN_OBJECTS">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_OE2" Name="Lock-on Blue Spot? (Unknown)" ObjectID="OBJECT_OE2">
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_YDAN_HASI" Name="Back and Forth Moving Platform" ObjectID="OBJECT_YDAN_OBJECTS">
+    <Parameter Params="0000"> Platform</Parameter>
+    <Parameter Params="0001"> Water plane</Parameter>
+    <Parameter Params="0002"> Raising platforms</Parameter>
+    <Flag Mask="0xFF00" Type="Switch"/>
+    <Notes>+0xFF00 = switchflag to temporary lower platform and water</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_YDAN_MARUTA" Name="Rotating Spike Cylinder" ObjectID="OBJECT_YDAN_OBJECTS">
+    <Parameter Params="0000"> Rotating Spike Cylinder</Parameter>
+    <Parameter Params="0100"> Deku tree ladder falling when hit by slingshot (switchflag?)</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_BOSS" ID="ACTOR_BOSS_GANONDROF" Name="Phantom Ganon" ObjectID="OBJECT_GND">
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_AM" Name="Armos" ObjectID="OBJECT_AM">
+    <Parameter Params="0000"> Pushable</Parameter>
+    <Parameter Params="0001"> Monster //Invincible?</Parameter>
+    <Parameter Params="FFFF"> Monster</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_DEKUBABA" Name="Deku Baba" ObjectID="OBJECT_DEKUBABA">
+    <Parameter Params="0000"> Small</Parameter>
+    <Parameter Params="0001"> Big</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_MISC" ID="ACTOR_EN_M_FIRE1" Name="Deku Nuts (from Link)">
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_EN_M_THUNDER" Name="Spin Attack">
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_DDAN_JD" Name="Rising Stone Platform" ObjectID="OBJECT_DDAN_OBJECTS">
+    <Flag Mask="0x00FF" Type="Switch"/>
+    <Notes>+0x3F = Switch Flag to make the platform rise more, hardcoded cutscene camera points to 420,-180 ,-1180</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_BREAKWALL" Name="Bombable Wall" ObjectID="OBJECT_BWALL">
+    <Parameter Params="A000"> Normal</Parameter>
+    <Parameter Params="0000"> Dodongo's Cavern cutscene</Parameter>
+    <Flag Mask="0x003F" Type="Switch"/>
+    <Notes>+0x3F = Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_EN_JJ" Name="Lord Jabu Jabu" ObjectID="OBJECT_JJ">
+    <Parameter Params="0000"> Collision Data</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_EN_HORSE_ZELDA" Name="Zelda's Horse" ObjectID="OBJECT_HORSE_ZELDA">
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_DDAN_KD" Name="Stone Stairs" ObjectID="OBJECT_DDAN_OBJECTS">
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_DOOR_WARP1" Name="Blue Warp" ObjectID="OBJECT_WARP1">
+    <Parameter Params="FFFF"> Normal (adult Link)</Parameter>
+    <Parameter Params="FFFE"> Spawning in from crystal //Combine with Link's gentle fall spawn in</Parameter>
+    <Parameter Params="0000"> Normal</Parameter>
+    <Parameter Params="0001"> Nothing</Parameter>
+    <Parameter Params="0002"> Blue warp, disappears</Parameter>
+    <Parameter Params="0003"> Giant purple crystal/magic enclosure</Parameter>
+    <Parameter Params="0004"> Yellow warp, disappears</Parameter>
+    <Parameter Params="0005"> Blue warp, doesn't warp you</Parameter>
+    <Parameter Params="0006"> Spawn in from child blue warp //Combine with Link's gentle fall</Parameter>
+    <Parameter Params="0007"> Blue warp, warping animation</Parameter>
+    <Parameter Params="0008"> Tan warp, disappears</Parameter>
+    <Parameter Params="0009"> Green warp, disappears</Parameter>
+    <Parameter Params="000A"> Red warp, disappears</Parameter>
+    <Parameter Params="000B"> Area fails to load</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_OBJ_SYOKUDAI" Name="Torch" ObjectID="OBJECT_SYOKUDAI">
+    <Parameter Params="0000"> Golden Torch</Parameter>
+    <Parameter Params="1000"> Timed Torch</Parameter>
+    <Parameter Params="2000"> Unlit Wooden Torch</Parameter>
+    <Parameter Params="2400"> Lit Wooden Torch</Parameter>
+    <Flag Mask="0x003F" Type="Switch"/>
+    <Property Mask="0x03C0" Name="# of Torches"/>
+    <Notes>+0x3C0 = Torches to light to solve puzzle (Timed Torch)
+	+0x3F = Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_MISC" ID="ACTOR_ITEM_B_HEART" Name="Heart Container" ObjectID="OBJECT_GI_HEARTS">
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_DEKUNUTS" Name="Deku Scrub" ObjectID="OBJECT_DEKUNUTS">
+    <Parameter Params="00FF"> Fire 1 shot</Parameter>
+    <Property Mask="0x00FF" Name="Nuts shot per volley"/>
+    <Notes>0xFF = Nuts shot per volley</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_MENKURI_KAITEN" Name="Large Rotating Stone Ring" ObjectID="OBJECT_MENKURI_OBJECTS">
+    <Notes>+0x3F = Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_MENKURI_EYE" Name="Statue Eyes" ObjectID="OBJECT_MENKURI_OBJECTS">
+    <Notes>+0x3F = Switch Flag
+      Requires 4 actors of this id to work</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_VALI" Name="Bari" ObjectID="OBJECT_VALI">
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_MIZU_MOVEBG" Name="Dragon Head Statue" ObjectID="OBJECT_MIZU_OBJECTS">
+    <Parameter Params="0000"> Floating Square platform, sloped bottom //Used in first room, on center column</Parameter>
+    <Parameter Params="1000"> Floating Square platform</Parameter>
+    <Parameter Params="2000"> Floating Square platform, tapered on bottom //Center Room floating block</Parameter>
+    <Parameter Params="3000"> Dragon Head Statue //Main Room</Parameter>
+    <Parameter Params="4000"> Dragon Head Statue //Skulltula Room</Parameter>
+    <Parameter Params="5000"> Dragon Head Statue //before Dark Link</Parameter>
+    <Parameter Params="6000"> Dragon Head Statue</Parameter>
+    <Parameter Params="7000"> Moving Square Platform with Hookshot Target</Parameter>
+    <Property Mask="0x0F00" Name="Path Id (var 7000)"/>
+    <Property Mask="0x00F0" Name="Speed (var 7000)"/>
+    <Property Mask="0x000F" Name="Start point on path (var 7000)"/>
+    <Notes>
++0x0F00 = Path to follow //Type 7 only
++0x00F0 = Speed //Type 7 only
++0x000F = Start Point on Path //Type 7 only
+</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_MIZU_WATER" Name="Water Temple Water" ObjectID="OBJECT_MIZU_OBJECTS">
+    <Parameter Params="0000"> Switches to lowest (Triforce seems to activate itself for some reason in the ToT)</Parameter>
+    <Parameter Params="0001"> Stays at ground level (Triforce isn't affected in ToT)</Parameter>
+    <Parameter Params="1A02"> Water Temple Map 3, Standard Quest</Parameter>
+    <Parameter Params="3103"> Water Temple Map 6, Standard Quest</Parameter>
+    <Parameter Params="1804"> Water Temple Map 14, Standard Quest</Parameter>
+    <Parameter Params="FF00"> Water Temple (most rooms), Standard Quest</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_ARMS_HOOK" Name="Hookshot" ObjectID="OBJECT_LINK_BOY">
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_EN_FHG" Name="Phantom Ganon's Horse" ObjectID="OBJECT_FHG">
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_MORI_HINERI" Name="Twisted Hallway" ObjectID="OBJECT_MORI_HINERI1A">
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_BB" Name="Bubble" ObjectID="OBJECT_BB">
+    <Parameter Params="00FB"> Large Green Bubble //requires movement path</Parameter>
+    <Parameter Params="00FC"> Green Bubble //requires movement path</Parameter>
+    <Parameter Params="00FD"> White Bubble //requires movement path</Parameter>
+    <Parameter Params="00FE"> Fire Bubble //Proximity activated, bounces on solid surfaces, hides in lava</Parameter>
+    <Parameter Params="00FF"> Blue Bubble</Parameter>
+    <Property Mask="0xFF00" Name="Path Id"/>
+    <Notes>+0xFF00 = Path Id</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_TOKI_HIKARI" Name="Temple of Time Windows" ObjectID="OBJECT_TOKI_OBJECTS">
+    <Parameter Params="0000"> Normal</Parameter>
+    <Parameter Params="0001"> Invisible</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_YUKABYUN" Name="Flying Floor Tile" ObjectID="OBJECT_YUKABYUN">
+    <Property Mask="0x00FF" Name="Time until it rises"/>
+    <Notes>
++0x00FF = Time until tile rises
+Variable is first incremented by 1, then time until tile rises is calculated as T * 0x10 + 0x14 frames. For example:
+-FFFF = 0x14 frames
+-0000 = 0x24 frames
+-0001 = 0x34 frames etc.
+</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_TOKI_SWD" Name="Master Sword" ObjectID="OBJECT_TOKI_OBJECTS">
+  </Actor>
+  <Actor Category="ACTORCAT_BOSS" ID="ACTOR_EN_FHG_FIRE" Name="Phantom Ganon's Lightning Attack" ObjectID="OBJECT_FHG">
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_MJIN" Name="Warp Pad" ObjectID="OBJECT_MJIN">
+    <Parameter Params="0000"> (0068) Ocarina //Unused</Parameter>
+    <Parameter Params="0001"> (0062) Light Medallion</Parameter>
+    <Parameter Params="0002"> (0063) Shadow Medallion</Parameter>
+    <Parameter Params="0003"> (0064) Fire Medallion</Parameter>
+    <Parameter Params="0004"> (0065) Water Medallion</Parameter>
+    <Parameter Params="0005"> (0066) Spirit Medallion</Parameter>
+    <Parameter Params="0006"> (0067) Forest Medallion</Parameter>
+    <Notes>Add the object in brackets for it to work</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_HIDAN_KOUSI" Name="Metal Gate" ObjectID="OBJECT_HIDAN_OBJECTS">
+    <Parameter Params="0000"> Yellow with corner removed</Parameter>
+    <Parameter Params="0001"> Green and rectangular</Parameter>
+    <Parameter Params="0002"> Yellow/green and rectangular, looks rusty</Parameter>
+    <Parameter Params="0003"> Crashes, but not without drawing a huge black thing that I can only assume is a gate...</Parameter>
+    <Parameter Params="0004"> Crashes before it can even light the area...</Parameter>
+    <Parameter Params="0005">+ Crashes, no sign of a gate</Parameter>
+    <Flag Mask="0x3F00" Type="Switch"/>
+    <Notes>+0x3F00 = Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_DOOR_TOKI" Name="Door of Time" ObjectID="OBJECT_TOKI_OBJECTS">
+    <Notes>Spawned by actor 008C</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_HIDAN_HAMSTEP" Name="Hammer Steps in Fire Temple" ObjectID="OBJECT_HIDAN_OBJECTS">
+    <Parameter Params="0000"> Hammer-triggered Stone Steps</Parameter>
+    <Parameter Params="0001"> Platform, one sided</Parameter>
+    <Flag Mask="0x3F00" Type="Switch"/>
+    <Notes>+0x3F00 = Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_BIRD" Name="Alpha Bird" ObjectID="OBJECT_BIRD">
+    <Notes>Unused</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_WOOD02" Name="Greenery" ObjectID="OBJECT_WOOD02">
+    <Parameter Params="0000"> Large tree</Parameter>
+    <Parameter Params="0001"> Medium tree</Parameter>
+    <Parameter Params="0002"> Small tree</Parameter>
+    <Parameter Params="0003"> Group of trees</Parameter>
+    <Parameter Params="0004"> Medium tree</Parameter>
+    <Parameter Params="0005"> Medium tree, dark brown trunk, greener leaves</Parameter>
+    <Parameter Params="0006"> Group of trees, dark brown trunk, yellow leaves</Parameter>
+    <Parameter Params="0007"> Medium tree, dark brown trunk, yellow leaves</Parameter>
+    <Parameter Params="0008"> Group of trees, dark brown trunk, greener leaves</Parameter>
+    <Parameter Params="0009"> Medium tree, dark brown trunk, greener leaves</Parameter>
+    <Parameter Params="000A"> Ugly tree from Kakariko Village</Parameter>
+    <Parameter Params="000B"> Bush</Parameter>
+    <Parameter Params="000C"> Large bush</Parameter>
+    <Parameter Params="000D"> Group of bushes</Parameter>
+    <Parameter Params="000E"> Bush</Parameter>
+    <Parameter Params="000F"> Group of large bushes</Parameter>
+    <Parameter Params="0010"> Large bush</Parameter>
+    <Parameter Params="0011"> Dark bush</Parameter>
+    <Parameter Params="0012"> Large dark bush</Parameter>
+    <Parameter Params="0013"> Group of dark bushes</Parameter>
+    <Parameter Params="0014"> Dark bush</Parameter>
+    <Parameter Params="0015"> Group of large dark bushes</Parameter>
+    <Parameter Params="0016"> Large dark bush</Parameter>
+    <Parameter Params="0019"> Dancing dark bush //Disappears after several repetitions</Parameter>
+    <Property Mask="0xFF00" Name="Gold Skulltula Low Byte" Target="Params"/>
+    <Property Mask="0x00FF" Name="Gold Skulltula High Byte" Target="ZRot"/>
+    <Notes>+0xFF00 = Controls item(s) dropped (trees only)
+-0000 Random
+-0800 Deku seeds
+-0900 Magic jars
+-0A00 Bombs
+-0B00 Three Hearts
+-0C00 Three Blue Rupees
+-0D00 Random
+-0E00 Random
+-0F00 Nothing
++0xFF00 = Gold Skulltula spawn var low byte if rz != 0
+ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
+</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_LIGHTBOX" Name="Alpha Large Noisy Stone" ObjectID="OBJECT_LIGHTBOX">
+    <Parameter Params="0000"> Normal, flashes blue when struck with sword</Parameter>
+    <Parameter Params="0001"> Frickin’ huge, doesn’t flash when struck</Parameter>
+    <Parameter Params="0002"> Even bigger?</Parameter>
+    <Parameter Params="0003"> Ridiculously huge?</Parameter>
+    <Parameter Params="0004"> Small size, flashes blue when struck</Parameter>
+    <Notes>Unused</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_EN_PU_BOX" Name="Alpha Stone Cube" ObjectID="OBJECT_PU_BOX">
+    <Parameter Params="0000"> Stone cube, side struck with sword flashes blue</Parameter>
+    <Parameter Params="0001"> Slightly larger</Parameter>
+    <Property Mask="0x000F" Name="Size"/>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_EN_TRAP" Name="Sliding Spike Trap" ObjectID="OBJECT_TRAP">
+    <Parameter Params="0000"> 4-Way Attack</Parameter>
+    <Parameter Params="0010"> Line Loop</Parameter>
+    <Parameter Params="0020"> Circle Loop</Parameter>
+    <Parameter Params="0030"> Vertical //Unintended Behavior?</Parameter>
+    <Property Mask="0xF000" Name="Radius (Type 1 and 2)"/>
+    <Property Mask="0x0001" Name="Move North (Type 0)"/>
+    <Property Mask="0x0002" Name="Move South (Type 0)"/>
+    <Property Mask="0x0004" Name="Move West (Type 0)"/>
+    <Property Mask="0x0008" Name="Move East (Type 0)"/>
+    <Property Mask="0x0F00" Name="Attack Speed"/>
+    <Notes>+0xF000 = Radius // + 1 * 20
++0xF000 = Trap Range //Distance = v * 40 units (Type 0 and 1)
++0x0001 = Move North //Type 0. Relative to Model Space before applying rotation
++0x0002 = Move South //Type 0. Relative to Model Space before applying rotation
++0x0004 = Move West //Type 0. Relative to Model Space before applying rotation
++0x0008 = Move East //Type 0. Relative to Model Space before applying rotation
++0x0F00 = Attack Speed (Units) //4-Way Attack glitches if speed != 0xF</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_AROW_TRAP" Name="Beta Arrow Trap">
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_VASE" Name="Alpha Orange Pot" ObjectID="OBJECT_VASE">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_TA" Name="Talon" ObjectID="OBJECT_TA">
+    <Notes>Text ID when he sleeps: 702A</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_TK" Name="Dampe Grave Digging Game" ObjectID="OBJECT_TK">
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_MORI_BIGST" Name="Lowering Circular Platform" ObjectID="OBJECT_MORI_OBJECTS,OBJECT_MORI_TEX">
+    <Notes>First half is used for switch flag based on my researching on Forest Temple but it doesn't seem to activate with clear, switch nor chest flag.</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_MORI_ELEVATOR" Name="Forest Temple Elevator" ObjectID="OBJECT_MORI_OBJECTS,OBJECT_MORI_TEX">
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_MORI_KAITENKABE" Name="Rotating Room" ObjectID="OBJECT_MORI_OBJECTS,OBJECT_MORI_TEX">
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_MORI_RAKKATENJO" Name="Forest Temple Ceiling" ObjectID="OBJECT_MORI_OBJECTS,OBJECT_MORI_TEX">
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_VM" Name="Beamos" ObjectID="OBJECT_VM">
+    <Parameter Params="0700"> Attacking Beamos (2 health)</Parameter>
+    <Parameter Params="0701"> Attacking Beamos (1 health)</Parameter>
+    <Property Mask="0xFF00" Name="Unknown (use 07)"/>
+    <Notes>XX00: 05 in dodongo's cavern, 08 in ganon's castle entrance</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_DEMO_EFFECT" Name="Spiritual Stones/Goddesses/Triforce">
+    <Parameter Params="0000"> Corrupted, actors and interface gone</Parameter>
+    <Parameter Params="0001"> Corrupted, actors and interface gone //in Sutaru, Navi and certain other things are invisible, but the interface and Link are not</Parameter>
+    <Parameter Params="0002"> Fading blue glow (Ruto’s teleportation?)</Parameter>
+    <Parameter Params="0003"> Corrupted (black polygons spew outwards), disappears after changing its form once</Parameter>
+    <Parameter Params="0004"> Actors and Link are gone, interface goes in and out, loud rumbling sound (goddess)</Parameter>
+    <Parameter Params="0009"> Fire Medallion //use object 00BA</Parameter>
+    <Parameter Params="000A"> Water Medallion //use object 00BA</Parameter>
+    <Parameter Params="000B"> Forest Medallion //use object 00BA</Parameter>
+    <Parameter Params="000C"> Spirit Medallion //use object 00BA</Parameter>
+    <Parameter Params="000D"> Shadow Medallion //use object 00BA</Parameter>
+    <Parameter Params="000F"> ??? (actor performs beq on this value)</Parameter>
+    <Parameter Params="0010"> Similar to 00, portal or vortex sound (possibly from the sages?), returns to normal when sound finishes</Parameter>
+    <Parameter Params="0012"> ? //Loaded in Chamber of Sages</Parameter>
+    <Parameter Params="0013"> Kokiri Emerald //use object 00AD</Parameter>
+    <Parameter Params="0014"> Goron's Ruby //use object 00AD</Parameter>
+    <Parameter Params="0015"> Zora's Sapphire //use object 00AD</Parameter>
+    <Notes>May require unknown objects to work</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_DEMO_KANKYO" Name="Temple of Time Objects" ObjectID="OBJECT_TOKI_OBJECTS">
+    <Parameter Params="0000"> Unknown //Use object 0092, Spawned in Cutscene Map 71 (0,4,6,8,11)</Parameter>
+    <Parameter Params="0001"> Unknown //Use object 0092, Spawned in Temple of Time</Parameter>
+    <Parameter Params="0002"> Unknown //Use object 0092, Creation Cutscene in Gerudo Valley</Parameter>
+    <Parameter Params="0003"> Unknown //Use object 0092, Creation Cutscene in Gerudo Valley</Parameter>
+    <Parameter Params="0004"> Unknown //Use object 0092, Creation Cutscene in Gerudo Valley</Parameter>
+    <Parameter Params="0005"> Unknown //Use object 0092, Creation Cutscene in Gerudo Valley</Parameter>
+    <Parameter Params="0006"> Unknown //Use object 0092, Creation Cutscene in Gerudo Valley</Parameter>
+    <Parameter Params="0007"> Fluffy Clouds //Used when talking to zelda at the end of the game</Parameter>
+    <Parameter Params="0008"> Unknown //Use object 00B6, object_gi_melody, musical note item</Parameter>
+    <Parameter Params="0009"> Unknown //Use object 00B6, object_gi_melody, musical note item</Parameter>
+    <Parameter Params="000A"> Unknown //Use object 00B6, object_gi_melody, musical note item</Parameter>
+    <Parameter Params="000B"> Unknown //Use object 00B6, object_gi_melody, musical note item</Parameter>
+    <Parameter Params="000C"> Unknown //Use object 00B6, object_gi_melody, musical note item</Parameter>
+    <Parameter Params="000D"> Door of Time //Use object 005E </Parameter>
+    <Parameter Params="000E"> Plane of yellow light //Use object 005E</Parameter>
+    <Parameter Params="000F"> Warp Song leaving effect</Parameter>
+    <Parameter Params="0010"> Warp song arriving effect</Parameter>
+    <Parameter Params="0011"> Sparkly effect</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_HIDAN_FWBIG" Name="Large Firewall" ObjectID="OBJECT_HIDAN_OBJECTS">
+    <Parameter Params="0000"> Stationary with switch and hardcoded camera cutscene</Parameter>
+    <Parameter Params="0100"> Follows you</Parameter>
+    <Flag Mask="0x00FF" Type="Switch"/>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_FLOORMAS" Name="Floormaster" ObjectID="OBJECT_WALLMASTER">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_HEISHI1" Name="Castle Courtyard Guards" ObjectID="OBJECT_SD">
+    <Parameter Params="0000">  ? patrolling guard?</Parameter>
+    <Parameter Params="0500"> Standing guard //Immediately unloads self if the current world time is lower or equal than B888, or if it's currently day</Parameter>
+    <Property Mask="0x00FF" Name="Path Id"/>
+    <Notes>+0x00FF = Path Id
+A special case check is done when path == 03, possibly others</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_RD" Name="Redead/Gibdo" ObjectID="OBJECT_RD">
+    <Parameter Params="0000"> Redead</Parameter>
+    <Parameter Params="0080"> Gibdo</Parameter>
+    <Flag Mask="0x7F00" Type="Switch"/>
+    <Property Mask="0x00FF" Name="Action"/>
+    <Property Mask="0x8000" Name="Unknown"/>
+    <Notes>
+  +0xFF = Action //Redead
+  -00 Standing
+  -02 Crouching
+  -03 Invisible //can’t tell position
+  +0xFF = Action //Gibdo
+  -FE Gibdo, standing
+  -FD Lying down, floats up into standing position //Meant to be spawned in coffin
+  +0x7F00 = Switch Flag //Yes, 0x7F
+  +0x8000 = Unknown
+</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_PO_SISTERS" Name="Poe Sisters" ObjectID="OBJECT_PO_SISTERS">
+    <Parameter Params="0000"> Meg //Purple</Parameter>
+    <Parameter Params="0100"> Joelle //Red</Parameter>
+    <Parameter Params="0200"> Beth //Blue</Parameter>
+    <Parameter Params="0300"> Amy //Green</Parameter>
+    <Flag Mask="0x003F" Type="Switch"/>
+    <Property Mask="0x0C00" Name="?"/>
+    <Property Mask="0x1000" Name="?"/>
+    <Notes>
+      +0x0C00 = ?
+      +0x1000 = ?
+      +0x003F = Switch Flag
+    </Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_HEAVY_BLOCK" Name="Golden Gauntlets Rock" ObjectID="OBJECT_HEAVY_OBJECT">
+    <Parameter Params="0000"> Sinks into the ground</Parameter>
+    <Parameter Params="0001"> Breaks on impact</Parameter>
+    <Flag Mask="0x3F00" Type="Switch"/>
+    <Notes>
++0x3F00 = Switch Flag
+  	</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_PO_EVENT" Name="Poe Puzzle Block" ObjectID="OBJECT_PO_SISTERS">
+    <Parameter Params="0000">  ??? Amy</Parameter>
+    <Parameter Params="0100">  ??? Amy</Parameter>
+    <Parameter Params="0200"> Joelle Painting Puzzle</Parameter>
+    <Parameter Params="0300"> Beth Painting Puzzle</Parameter>
+    <Parameter Params="0400">  ??? Amy</Parameter>
+    <Flag Mask="0x003F" Type="Switch"/>
+    <Notes>+0x3F = Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_OBJ_MURE" Name="Fish, Bugs, or Butterflies">
+    <Parameter Params="0022"> Fish</Parameter>
+    <Parameter Params="0023"> Bug</Parameter>
+    <Parameter Params="0024"> Butterfly</Parameter>
+    <Property Mask="0x0700" Name="Spawn Count"/>
+    <Notes>
++0x0700 Spawn Count (Table Look-up)
++0000 12 spawns
++0100 9 spawns
++0200 8 spawns
++1000 1 spawn
+</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_SW" Name="Skullwalltula/Golden Skulltula" ObjectID="OBJECT_ST">
+    <Parameter Params="0000"> Skullwalltula</Parameter>
+    <Parameter Params="8000"> Gold Skulltula, Always Spawns</Parameter>
+    <Parameter Params="A000"> Gold Skulltula, Spawns at night</Parameter>
+    <Property Mask="0x1F00" Name="Location"/>
+    <Property Mask="0x00FF" Name="Skulltula Flag"/>
+    <Notes>
++0x1F00 = Location
+-0000 None
+-0100 Deku Tree
+-0200 Dodongo's Cavern
+-0300 Inside Jabu-Jabu's Belly
+-0400 Forest Temple
+-0500 Fire Temple
+-0600 Water Temple
+-0700 Spirit Temple
+-0800 Shadow Temple
+-0900 Bottom of the Well
+-0A00 Ice Cavern
+-0C00 Lon Lon Ranch
+-0D00 Kokiri Forest
+-0E00 Lost Woods, Sacred Forest Meadow
+-1000 Death Mountain Trail, Goron City
+-1100 Kakariko Village
+-1200 Zora Fountain, River
+-1300 Lake Hylia
+-1400 Gerudo Valley
+-1500 Gerudo Fortress
+-1600 Desert Colossus, Haunted Wasteland
++0xFF = Skulltula Flag
+-0001 1
+-0002 2
+-0004 3
+-0008 4
+-0010 5
+-0020 6
+-0040 7
+-0080 8
++0xFFFF = behaviour
+- 2000 Golden Skulltula on ground, damaged, discovery sound, Navi can target it and thinks it’s a Skullwalltula
+- 2100 Golden Skulltula
+- 6100 Golden Skulltula jumps out and lands on ground, discovery sound
+</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BOSS" ID="ACTOR_BOSS_FD" Name="Flying Volvagia" ObjectID="OBJECT_FD">
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_OBJECT_KANKYO" Name="Environmental effects">
+    <Parameter Params="0000"> Flying Fairies, Dustmotes //Kokiri Forest/Lost Woods/Sacred Forest Meadow</Parameter>
+    <Parameter Params="0002"> ? //Used in Kakariko Graveyard, cutscene 1</Parameter>
+    <Parameter Params="0003"> Snow</Parameter>
+    <Parameter Params="0004"> Proximity Rain Effect //Kakariko Graveyard</Parameter>
+    <Parameter Params="0005"> Colored Light Beams //Use object 0179, From lower part of Ganon's Tower</Parameter>
+    <Notes>May require additional objects</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_DU" Name="Darunia" ObjectID="OBJECT_DU">
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_FD" Name="Fire Dancer" ObjectID="OBJECT_FW">
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_EN_HORSE_LINK_CHILD" Name="Child Epona" ObjectID="OBJECT_HORSE_LINK_CHILD">
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_DOOR_ANA" Name="Hole in Ground Exit" ObjectID="OBJECT_GAMEPLAY_FIELD_KEEP">
+    <Parameter Params="0000"> Grottos //Scene 62</Parameter>
+    <Parameter Params="1000"> Small Fairy Fountain //Scene 60</Parameter>
+    <Property Mask="0x0300" Name="Type" Target="Params"/>
+    <Item Mask="0x00E0" Target="Params" Type="ChestContent"/>
+    <Flag Mask="0x001F" Target="Params" Type="Chest"/>
+    <Property Mask="0x000F" Name="Destination (Type 0)" Target="ZRot"/>
+    <Notes>
+Z ROTATION +0xF = Destination //Type 0 only
+-0000 Generic
+-0001 Big Skulltula
+-0002 Heart Piece Scrub
+-0003 Two Redeads
+-0004 Three Deku Salescrubs
+-0005 Webbed
+-0006 Octorok
+-0007 Two Deku Salescrubs - Deku Nut Upgrade
+-0008 Two Wolfos
+-0009 Bombable wall
+-000A Two Deku Salescrubs - Green Pot
+-000B Tektite
+-000C Forest Stage
+-000D Cow
++0x0300 = Type
+-0000 Visible
+-0100 Appear on Song of Storms
+-0200 Appear when Bombed or hit with Megaton Hammer
++0xE0 = Contents, Used by Chest 0181 when loading the destination.
+-0000 Blue Rupee (5)
+-0020 Red Rupee (20)
+-0040 Yellow Rupee (200)
+-0060 Bombs (20)
+-0080 Bombs (1)
+-00A0 Bombs (1)
+-00C0 Bombs (1)
+-00E0 Bombs (1) //Used for no item when chest does not exist
++0x1F = Chest Flag //Used by Chest Actor 0181
+</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_SPOT02_OBJECTS" Name="Graveyard Objects" ObjectID="OBJECT_SPOT02_OBJECTS">
+    <Parameter Params="0000"> Eye of Truth-Engraved Door 240x260</Parameter>
+    <Parameter Params="0001"> Small Square Patch of Ground //(Child Link only) Used to block entrance to Dampe's Grave</Parameter>
+    <Parameter Params="0002"> Royal Tomb Grave //Only one can be spawned?</Parameter>
+    <Parameter Params="0003">  ? //Probably Royal Tomb Grave opening cutscene related</Parameter>
+    <Parameter Params="0004"> Light Aura //Appears when Royal Tomb Grave explodes</Parameter>
+    <Flag Mask="0xFF00" Type="Switch"/>
+    <Notes>+0xFF00 = Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_HAKA" Name="Gravestone" ObjectID="OBJECT_HAKA">
+    <Parameter Params="0000"> Default</Parameter>
+    <Parameter Params="0001"> Plays discovery sfx when pulled back</Parameter>
+    <Parameter Params="0002"> Typical</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_MAGIC_WIND" Name="Farore's Wind">
+    <Parameter Params="0000"> Normal (no sphere)</Parameter>
+    <Parameter Params="0001"> Dissipating (no sphere)</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_MAGIC_FIRE" Name="Din's Fire">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_RU1" Name="Young Ruto" ObjectID="OBJECT_RU1">
+    <Parameter Params="0000"> Blue Warp and Ruto</Parameter>
+    <Parameter Params="0001"> Leaning Ruto //no collision data, targetable</Parameter>
+    <Parameter Params="0002"> Ruto, First Encounter //Plays cutscene from Jabu-Jabu’s Belly when you first meet her</Parameter>
+    <Parameter Params="0003"> Ruto, after falling down the hole in Jabu-Jabu</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_BOSS" ID="ACTOR_BOSS_FD2" Name="Hole Volvagia" ObjectID="OBJECT_FD2">
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_FD_FIRE" Name="Fireball" ObjectID="OBJECT_GAMEPLAY_DANGEON_KEEP">
+    <Parameter Params="0000"> Flies, lands, dies in a bit //try not to run into it, Link’ll catch on fire</Parameter>
+    <Parameter Params="8000"> Flies, lands, creeps towards Link, dies in a bit //it’s blue, but it’s still fire</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_DH" Name="Deadhand" ObjectID="OBJECT_DH">
+    <Notes>does not appear unless his hands exist</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_DHA" Name="Deadhand's Arms" ObjectID="OBJECT_DH">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_RL" Name="Rauru" ObjectID="OBJECT_RL">
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_ENCOUNT1" Name="Enemy Spawner">
+    <Parameter Params="0000"> Leever //Use object 0017, they spawn on sand (#Quicksand)</Parameter>
+    <Parameter Params="0A00"> Red Tektite //Use object 0016</Parameter>
+    <Parameter Params="1000"> Stalchildren //Use object 0184, Must stand on dirt to appear?</Parameter>
+    <Property Mask="0x00FF" Name="Enemies to Spawn"/>
+    <Notes>
++0xFF = Enemies to Spawn
+-0088 When spawning Leevers, 88 is used in Haunted Wasteland
+-00A4 When spawning Stalchildren, loads two at a time. Used in Hyrule Field
+-00F2 When spawning Leevers, F2 is used in Desert Colossus
+</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_DEMO_DU" Name="Sage Darunia (Cutscene)" ObjectID="OBJECT_DU">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_DEMO_IM" Name="Impa" ObjectID="OBJECT_IM">
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_DEMO_TRE_LGT" Name="Treasure Chest Light" ObjectID="OBJECT_BOX">
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_FW" Name="Core Fire Dancer Creature" ObjectID="OBJECT_FW">
+    <Parameter Params="0000"> No damage</Parameter>
+    <Parameter Params="0001"> One-Hit Kill</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_VB_SIMA" Name="Volvagia Platform" ObjectID="OBJECT_FD">
+    <Notes>Spawned by volvagia</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BOSS" ID="ACTOR_EN_VB_BALL" Name="Volvagia Rocks" ObjectID="OBJECT_FD">
+    <Notes>Spawned by volvagia</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_HAKA_MEGANE" Name="Fake/Invisible Objects">
+    <Parameter Params="0003"> Rock Wall with Skull //style that sometimes has glowy eyes</Parameter>
+    <Parameter Params="0004"> Black square with large skull face</Parameter>
+    <Parameter Params="0005"> Shadow Temple Boss Room platforms</Parameter>
+    <Parameter Params="0006"> Wall of Skulls</Parameter>
+    <Parameter Params="0007"> Shadow Temple Floor //bluish? texture</Parameter>
+    <Parameter Params="0008"> Massive Platform</Parameter>
+    <Parameter Params="0009"> Wall with bluish?, fat bricks texture (one sided)</Parameter>
+    <Parameter Params="000A"> Shadow Temple Diamond Room (before big key) Fake Walls</Parameter>
+    <Parameter Params="000B"> Wall with purplish?, fat brick texture (both side)</Parameter>
+    <Parameter Params="000C"> Room 11's invisible spikes, invisible hookshot point.</Parameter>
+    <Notes>Camera reacts as if the walls are solid
+  	Likely either missing objects or display lists stored in scene/room files</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_HAKA_MEGANEBG" Name="Invisible Objects/Metal Gate" ObjectID="OBJECT_HAKA_OBJECTS">
+    <Parameter Params="0000"> Moving stone platforms</Parameter>
+    <Parameter Params="0001"> Rising and falling stone platforms</Parameter>
+    <Parameter Params="0002"> Spinning black platform</Parameter>
+    <Parameter Params="0003"> Metal grate</Parameter>
+    <Parameter Params="0004"> Same as 0001, but graphics are glitched</Parameter>
+    <Flag Mask="0xFF00" Type="Switch"/>
+  </Actor>
+  <Notes>+0xFF00 = Switch Flag //Type 03 Only</Notes>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_HAKA_SHIP" Name="Shadow Temple Ship" ObjectID="OBJECT_HAKA_OBJECTS">
+    <Flag Mask="0x3F00" Type="Switch"/>
+    <Notes>+0x3F00 = Switch Flag for Zelda's Lullaby spot
+      Camera cutscene points to X 4738 Y -1395 Z -2006</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_HAKA_SGAMI" Name="Spinning Scythe Statues">
+    <Parameter Params="0000"> Shadow Temple Scythes (Visible) //Use object 0069</Parameter>
+    <Parameter Params="0001"> Shadow Temple Scythes (Invisible) //Use object 0069</Parameter>
+    <Parameter Params="0100"> Ice Cavern Spinning Blade //Use object 0069</Parameter>
+    <Notes>May require additional object</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_HEISHI2" Name="Gate Guards" ObjectID="OBJECT_SD">
+    <Parameter Params="0002"> Hyrule Castle guard</Parameter>
+    <Parameter Params="0005"> Death Mountain gate guard</Parameter>
+    <Parameter Params="0006"> Ceremonial guard //Seen through Zelda's window</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_ENCOUNT2" Name="Falling Rock Spawner" ObjectID="OBJECT_EFC_STAR_FIELD">
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_FIRE_ROCK" Name="Flying Rubble" ObjectID="OBJECT_EFC_STAR_FIELD">
+    <Parameter Params="0000"> Large</Parameter>
+    <Parameter Params="0001"> Medium</Parameter>
+    <Parameter Params="0002"> Small</Parameter>
+    <Parameter Params="0003"> Large</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_BROB" Name="Flobbery Muscle Block" ObjectID="OBJECT_BROB">
+    <Parameter Params="0000"> Completely flat, doesn't hurt you</Parameter>
+    <Parameter Params="007F"> Half</Parameter>
+    <Parameter Params="00FF"> Default height</Parameter>
+    <Property Mask="0x1000" Name="Smaller Size"/>
+    <Notes>+0x1000 = Smaller size, height not affected by last two digits </Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_MIR_RAY" Name="Sun Block Switch" ObjectID="OBJECT_MIR_RAY">
+    <Parameter Params="0001"> Position at -1696, 843, -179S</Parameter>
+    <Parameter Params="0002"> Position at 1100, 480, -842</Parameter>
+    <Parameter Params="0003"> Position at 2040, 843, -220</Parameter>
+    <Parameter Params="0004"> Position at -553 1749, -303</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_SPOT09_OBJ" Name="Gerudo Valley Objects" ObjectID="OBJECT_SPOT09_OBJ">
+    <Parameter Params="0000"> Cliff (cutscene)</Parameter>
+    <Parameter Params="0001"> Bridge (Adult)</Parameter>
+    <Parameter Params="0002"> Bridge (Child)</Parameter>
+    <Parameter Params="0003"> Tent</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_SPOT18_OBJ" Name="Statue from Darunia's Room" ObjectID="OBJECT_SPOT18_OBJ">
+    <Parameter Params="0000"> Statue, no spear, movable with Adult Link</Parameter>
+    <Parameter Params="0001"> Spear only, climbable</Parameter>
+    <Flag Mask="0xFF00" Type="Switch"/>
+    <Notes>+0xFF00 = Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BOSS" ID="ACTOR_BOSS_VA" Name="Barinade" ObjectID="OBJECT_BV">
+    <Parameter Params="FFFF"> Barinade</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_HAKA_TUBO" Name="Open Topped Skull Statue" ObjectID="OBJECT_HAKA_OBJECTS">
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_HAKA_TRAP" Name="Shadow temple objects" ObjectID="OBJECT_HAKA_OBJECTS">
+    <Parameter Params="0000"> Guillotine Blade (Slow)</Parameter>
+    <Parameter Params="0001"> Spiked Box on Chain</Parameter>
+    <Parameter Params="0002"> Spiked Wooden Wall, moving //FIXME: moves in wrong direction?</Parameter>
+    <Parameter Params="0003"> Opposite Spiked Wooden Wall, moving //FIXME: moves in wrong direction?</Parameter>
+    <Parameter Params="0004"> Propeller, blows wind</Parameter>
+    <Parameter Params="0005"> Guillotine Blade (Fast)</Parameter>
+    <Parameter Params="0006">+ Graphical glitches, same as 2 or 3 (unsure)</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_HAKA_HUTA" Name="Coffin Lid" ObjectID="OBJECT_HAKACH_OBJECTS">
+    <Parameter Params="0100"> Spawns gibdo //(needs object 0098)</Parameter>
+    <Parameter Params="0200"> Spawns 2 keese //(needs object 000D)</Parameter>
+    <Flag Mask="0x003F" Type="Switch"/>
+    <Notes>+0x3F = Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_HAKA_ZOU" Name="Bird Statue/Bombables" ObjectID="OBJECT_HAKA_OBJECTS">
+    <Parameter Params="0000"> Giant Bird Statue //Bombing it makes it fall</Parameter>
+    <Parameter Params="0001"> Bombable Wall of Skulls</Parameter>
+    <Parameter Params="0002"> Bombable Rubble //Need specific object?</Parameter>
+    <Flag Mask="0x3F00" Type="Switch"/>
+    <Notes>+0x3F00 = Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_SWITCH" ID="ACTOR_BG_SPOT17_FUNEN" Name="Crater Smoke Cone" ObjectID="OBJECT_SPOT17_OBJ">
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_SYATEKI_ITM" Name="Shooting Gallery Game">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_SYATEKI_MAN" Name="Shooting Gallery Man" ObjectID="OBJECT_OSSAN">
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_TANA" Name="Shop Shelves" ObjectID="OBJECT_SHOP_DUNGEN">
+    <Parameter Params="0000"> Wooden (Default)</Parameter>
+    <Parameter Params="0001"> Stone (Zora)</Parameter>
+    <Parameter Params="0002"> Granite (Goron)</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_NB" Name="Nabooru" ObjectID="OBJECT_NB">
+  </Actor>
+  <Actor Category="ACTORCAT_BOSS" ID="ACTOR_BOSS_MO" Name="Morpha" ObjectID="OBJECT_MO">
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_SB" Name="Shell Blade" ObjectID="OBJECT_SB">
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_BIGOKUTA" Name="Big Octorok" ObjectID="OBJECT_BIGOKUTA">
+    <Parameter Params="0000"> Sits there, mini-boss music starts, slice it to make it move (no teleport), green target</Parameter>
+    <Parameter Params="0001"> Already running around, yellow target this time, no music</Parameter>
+    <Notes>Slicing it in the back will make it jump to the y location of its room, which is typically below most floors</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_KAREBABA" Name="Withered Deku Baba" ObjectID="OBJECT_DEKUBABA">
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_BDAN_OBJECTS" Name="Jabu-Jabu Objects" ObjectID="OBJECT_BDAN_OBJECTS">
+    <Parameter Params="0000"> Giant Octo's Platform</Parameter>
+    <Parameter Params="0001"> Elevator Platform</Parameter>
+    <Parameter Params="0002"> Water Square //Rises when Switch Flag is set</Parameter>
+    <Parameter Params="0003"> Lowering Platform //Lowers into place when stepped on, sets Switch Flag</Parameter>
+    <Flag Mask="0xFF00" Type="Switch"/>
+    <Notes>+0xFF00 = Nullable Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_DEMO_SA" Name="Sage Saria (Cutscene)" ObjectID="OBJECT_SA">
+    <Parameter Params="0000"> Chamber of Sages, gives Forest Medallion</Parameter>
+    <Parameter Params="0002"> Inside Ganon's Castle and Sealing of Ganondorf Cutscene //Use with actor 01A7</Parameter>
+    <Parameter Params="0004"> Credits, Death Mountain Trail</Parameter>
+    <Parameter Params="0005"> Fairy Ocarina Cutscene</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_DEMO_GO" Name="Gorons (Cutscene)" ObjectID="OBJECT_OF1D_MAP">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_IN" Name="Ingo" ObjectID="OBJECT_IN">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_TR" Name="Koume and Kotake" ObjectID="OBJECT_TR">
+    <Parameter Params="0000"> Koume</Parameter>
+    <Parameter Params="0001"> Kotake</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_SPOT16_BOMBSTONE" Name="Giant Boulder Blocking Dodongo's Cavern" ObjectID="OBJECT_SPOT16_OBJ">
+    <Parameter Params="00FF"> Default</Parameter>
+    <Flag Mask="0xFF00" Type="Switch"/>
+    <Notes>+0xFF00 = Nullable Switch Flag //Invisible if value is FF?</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_HIDAN_KOWARERUKABE" Name="Cracked Stone Platform" ObjectID="OBJECT_HIDAN_OBJECTS">
+    <Parameter Params="0000"> Cracked stone floor</Parameter>
+    <Parameter Params="0001"> Bombable stone wall</Parameter>
+    <Parameter Params="0002"> Large bombable stone wall</Parameter>
+    <Flag Mask="0x3F00" Type="Switch"/>
+    <Notes>+0x3F00 = Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_BOMBWALL" Name="2D Bombable Wall" ObjectID="OBJECT_GAMEPLAY_FIELD_KEEP">
+    <Parameter Params="8000"> Used in Death Mountain Trail</Parameter>
+    <Parameter Params="0000"> Used in Death Mountain Crater (cutscene setups)</Parameter>
+    <Flag Mask="0x003F" Type="Switch"/>
+    <Notes>+0x3F = Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_SPOT08_ICEBLOCK" Name="Ice Platform" ObjectID="OBJECT_SPOT08_OBJ">
+    <Parameter Params="0001">Huge</Parameter>
+    <Parameter Params="0010">Big</Parameter>
+    <Parameter Params="0012">Big, Spinning</Parameter>
+    <Parameter Params="0020">Small</Parameter>
+    <Parameter Params="0023">Two small ones, spinning around</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_RU2" Name="Adult Ruto" ObjectID="OBJECT_RU2">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_OBJ_DEKUJR" Name="Deku Tree Sprout" ObjectID="OBJECT_DEKUJR">
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_MIZU_UZU" Name="Water Noise" ObjectID="OBJECT_MIZU_OBJECTS">
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_SPOT06_OBJECTS" Name="Lake Hylia Objects" ObjectID="OBJECT_SPOT06_OBJECTS">
+    <Parameter Params="0000"> Temple Gate</Parameter>
+    <Parameter Params="0100"> Gate lock</Parameter>
+    <Parameter Params="0200"> Water plane</Parameter>
+    <Parameter Params="0300"> Nothing //FIXME: Is Spawned</Parameter>
+    <Parameter Params="0400"> Crashes</Parameter>
+    <Flag Mask="0x00FF" Type="Switch"/>
+    <Notes>+0xFF = Nullable Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_ICE_OBJECTS" Name="Moveable Ice Block" ObjectID="OBJECT_ICE_OBJECTS">
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_HAKA_WATER" Name="Bottom of the well water level changer" ObjectID="OBJECT_HAKACH_OBJECTS">
+    <Flag Mask="0x003F" Type="Switch"/>
+    <Notes>+0x3F = Switch Flag //If set, water level is lowered</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_MA2" Name="Adult Malon" ObjectID="OBJECT_MA2">
+  </Actor>
+  <Actor Category="ACTORCAT_EXPLOSIVE" ID="ACTOR_EN_BOM_CHU" Name="Bombchu">
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_EN_HORSE_GAME_CHECK" Name="Horseback Games">
+    <Parameter Params="0004"> Timer appears, gunshot noise</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_BOSS" ID="ACTOR_BOSS_TW" Name="Twinrova" ObjectID="OBJECT_TW">
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_RR" Name="Like-Like" ObjectID="OBJECT_RR">
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_BA" Name="Tentacle from Inside Lord Jabu-Jabu" ObjectID="OBJECT_BXA">
+    <Parameter Params="0000"> Reddish brown</Parameter>
+    <Parameter Params="0001"> Green</Parameter>
+    <Parameter Params="0002"> Grayish blue with some red</Parameter>
+    <Parameter Params="0003"> Already dead</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_BX" Name="Blocking Tentacle from Jabu-Jabu" ObjectID="OBJECT_BXA">
+    <Parameter Params="0000"> Reddish brown</Parameter>
+    <Parameter Params="0001"> Green</Parameter>
+    <Parameter Params="0002"> Grayish blue with some red</Parameter>
+    <Parameter Params="0003"> Corrupt textures, still visible and works</Parameter>
+    <Parameter Params="0004"> Dark brownish</Parameter>
+    <Parameter Params="0005"> Blackish gray</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_ANUBICE" Name="Anubis Body" ObjectID="OBJECT_ANUBICE">
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_ANUBICE_FIRE" Name="Anubis Fire Attack" ObjectID="OBJECT_ANUBICE">
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_MORI_HASHIGO" Name="Ladder (Part of Forest Temple Warped Room)" ObjectID="OBJECT_MORI_OBJECTS,OBJECT_MORI_TEX">
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_MORI_HASHIRA4" Name="Golden Gate" ObjectID="OBJECT_MORI_OBJECTS,OBJECT_MORI_TEX">
+    <Parameter Params="0000"> Rotating platforms</Parameter>
+    <Parameter Params="0001"> Metal Gate</Parameter>
+    <Flag Mask="0xFF00" Type="Switch"/>
+    <Notes> +0xFF00 = Nullable Switch Flag //Metal gate only </Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_MORI_IDOMIZU" Name="Forest Temple Well Water" ObjectID="OBJECT_MORI_OBJECTS">
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_SPOT16_DOUGHNUT" Name="Death Mountain Cloud Ring" ObjectID="OBJECT_EFC_DOUGHNUT">
+    <Parameter Params="0000"> Gray</Parameter>
+    <Parameter Params="0001"> Expanding, gray //Unused?</Parameter>
+    <Parameter Params="0002"> Expanding, gray //Unused?</Parameter>
+    <Parameter Params="FFFF"> Default</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_SWITCH" ID="ACTOR_BG_BDAN_SWITCH" Name="Switch from Inside Lord Jabu-Jabu" ObjectID="OBJECT_BDAN_OBJECTS">
+    <Parameter Params="0000"> Blue Switch //Resets if not held down, makes discovery sound</Parameter>
+    <Parameter Params="0001"> Yellow Switch (Heavy Weight) //Ruto to trigger?</Parameter>
+    <Parameter Params="0002"> Yellow Switch (Standard) //makes puzzle solved sound</Parameter>
+    <Parameter Params="0003"> Tall Yellow Button //can’t press it, shoot to make puzzle solved sound</Parameter>
+    <Parameter Params="0004"> Tall Yellow Button //Only pressed when hit with slingshot or explosives</Parameter>
+    <Flag Mask="0x3F00" Type="Switch"/>
+    <Notes> +0x3F00 = Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_MA1" Name="Young Malon" ObjectID="OBJECT_MA1">
+  </Actor>
+  <Actor Category="ACTORCAT_BOSS" ID="ACTOR_BOSS_GANON" Name="Boss Ganondorf" ObjectID="OBJECT_GANON,OBJECT_GANON_ANIME1,OBJECT_GANON_ANIME2">
+    <Parameter Params="FFFF"> Default</Parameter>
+    <Parameter Params="0000"> Begins battle</Parameter>
+    <Parameter Params="0001"> Ganondorf death sequence</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_BOSS" ID="ACTOR_BOSS_SST" Name="Bongo Bongo" ObjectID="OBJECT_SST">
+    <Parameter Params="FFFF"> Default</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_NY" Name="Spike Enemy" ObjectID="OBJECT_NY">
+    <Parameter Params="0000"> Normal</Parameter>
+    <Parameter Params="0001"> Does not open //possibly waiting for some trap to spring?</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_FR" Name="Frog Song Spot and Frogs" ObjectID="OBJECT_FR">
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_ITEM_SHIELD" Name="Deku Shield" ObjectID="OBJECT_LINK_CHILD">
+    <Parameter Params="0000"> Collectible Deku Shield</Parameter>
+    <Parameter Params="0001"> Burning Deku shield</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_ICE_SHELTER" Name="Large Red Ice" ObjectID="OBJECT_ICE_OBJECTS">
+    <Parameter Params="0000"> Large crystal</Parameter>
+    <Parameter Params="0100"> Smaller crystal</Parameter>
+    <Parameter Params="0200"> Crystal platform</Parameter>
+    <Parameter Params="0300"> Meltable ice sheet</Parameter>
+    <Parameter Params="0400"> Giant crystal</Parameter>
+    <Flag Mask="0x00FF" Type="Switch"/>
+    <Notes>0xFF = Nullable Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_EN_ICE_HONO" Name="Blue Flame">
+    <Parameter Params="0000"> Group of small blue flames, disappear</Parameter>
+    <Parameter Params="0001"> Blue flame, disappears</Parameter>
+    <Parameter Params="FFFF"> Blue flame, targetable</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_ITEM_OCARINA" Name="Ocarina of Time" ObjectID="OBJECT_GI_OCARINA">
+    <Parameter Params="0000"> Ocarina of Time being tossed higher in air</Parameter>
+    <Parameter Params="0001"> Ocarina of Time being tossed in air</Parameter>
+    <Parameter Params="0002"> Ocarina of Time</Parameter>
+    <Parameter Params="0003"> Collectible Ocarina of Time</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_MAGIC_DARK" Name="Nayru's Love">
+    <Parameter Params="0000"> Normal</Parameter>
+    <Parameter Params="0001"> No bright sphere, first one dies off quickly</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_DEMO_6K" Name="Sages, Balls of Light (Cutscene)">
+  </Actor>
+  <Actor Category="ACTORCAT_SWITCH" ID="ACTOR_EN_ANUBICE_TAG" Name="Anubis" ObjectID="OBJECT_ANUBICE">
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_HAKA_GATE" Name="Shadow Temple Truth Spinner" ObjectID="OBJECT_HAKA_OBJECTS">
+    <Parameter Params="0000"> Rotatable Bird Statue</Parameter>
+    <Parameter Params="0001"> Circular Trap Door Platform //Opens when wrong skull is chosen</Parameter>
+    <Parameter Params="0002"> Gate //Only blocks one-way</Parameter>
+    <Parameter Params="0003"> Skull Top</Parameter>
+    <Parameter Params="0004"> Glitchy graphics, can’t see object, behaves like the gate</Parameter>
+    <Flag Mask="0x3F00" Type="Switch"/>
+    <Notes>+0x3F00 = Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_BG_SPOT15_SAKU" Name="Hyrule Castle Gate" ObjectID="OBJECT_SPOT15_OBJ">
+    <Parameter Params="FFFF"> Default</Parameter>
+    <Notes>Not market town gate</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_JYA_GOROIWA" Name="Giant Rolling Boulder" ObjectID="OBJECT_GOROIWA">
+    <Parameter Params="0000">Normal</Parameter>
+    <Parameter Params="0C00">Follow patch faster and repeat it</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_JYA_ZURERUKABE" Name="Moving Brick Wall" ObjectID="OBJECT_JYA_OBJ">
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_JYA_COBRA" Name="Rotating Cobra Mirror" ObjectID="OBJECT_JYA_OBJ">
+    <Parameter Params="0000"> Large shadow //looks like it’s reproduced, well-done though</Parameter>
+    <Parameter Params="0001"> Small Shadow //CRASH?</Parameter>
+    <Parameter Params="0002"> No shadow //CRASH?</Parameter>
+    <Flag Mask="0x003F" Type="Switch"/>
+    <Notes>
+The sun switch has to be between 252 and 308 units from the cobra mirror to be activated
++0x3F = Switch Flag
+    </Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_JYA_KANAAMI" Name="Climbable Mesh Wall" ObjectID="OBJECT_JYA_OBJ">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_FISHING" Name="Fishing Game, Fish, and Fisherman" ObjectID="OBJECT_FISH">
+    <Parameter Params="0000"> Wearing red vest over blue shirt, no hat</Parameter>
+    <Parameter Params="0064"> Normal fish</Parameter>
+    <Parameter Params="0073"> Hylian Loach</Parameter>
+    <Parameter Params="0100"> Huge Hylian Loach</Parameter>
+    <Parameter Params="8000"> Pond stuff, still no hat</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_OBJ_OSHIHIKI" Name="Push Block" ObjectID="OBJECT_GAMEPLAY_DANGEON_KEEP">
+    <Parameter Params="0000"> Red</Parameter>
+    <Parameter Params="0040"> Green</Parameter>
+    <Parameter Params="00C0">  ?</Parameter>
+    <Flag Mask="0xFF00" Type="Switch"/>
+    <Property Mask="0x0003" Name="Size"/>
+    <Notes>+0xFF00 = Nullable Switch Flag
+	+0x0004 = Loads block based on Switch Flag state
+- 0000 Load on 0
+- 0004 Load on 1
++0x0003 = Size (per axis)
+- 0000 60 units
+- 0001 100 units
+- 0002 120 units
+- 0003 200 units
+</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_BG_GATE_SHUTTER" Name="Death Mountain Trail Gate" ObjectID="OBJECT_SPOT01_MATOYAB">
+    <Parameter Params="FFFF"> Default</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EFF_DUST" Name="Dust Motes Gathering Together">
+    <Parameter Params="0000"> Rushing white particles //Jabu-Jabu, when he opens his mouth</Parameter>
+    <Parameter Params="0001"> Rushing white particles to one point (???)</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_SPOT01_FUSYA" Name="Windmill Sails" ObjectID="OBJECT_SPOT01_OBJECTS">
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_SPOT01_IDOHASHIRA" Name="Kakariko Village Well Crossbeams" ObjectID="OBJECT_SPOT01_OBJECTS">
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_SPOT01_IDOMIZU" Name="Kakariko Well Water" ObjectID="OBJECT_SPOT01_OBJECTS">
+    <Parameter Params="FFFF"> Default</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_PO_SYOKUDAI" Name="Golden Torch Stand (Poe Sisters)" ObjectID="OBJECT_SYOKUDAI">
+    <Parameter Params="0000"> Purple (Meg)</Parameter>
+    <Parameter Params="0100"> Red (Joelle)</Parameter>
+    <Parameter Params="0200"> Blue (Beth)</Parameter>
+    <Parameter Params="0300"> Green (Amy)</Parameter>
+    <Flag Mask="0x003F" Type="Switch"/>
+    <Notes>+0x3F = Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_GANON_OTYUKA" Name="Floor of Ganondorf's Room" ObjectID="OBJECT_GANON">
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_SPOT15_RRBOX" Name="Milk Crate" ObjectID="OBJECT_SPOT15_OBJ">
+    <Flag Mask="0x00FF" Type="Switch"/>
+    <Notes>+0xFF = Switch Flag? //Hyrule Castle Puzzle. Note this can auto-solve itself</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_UMAJUMP" Name="Lon Lon Ranch Horse Jumping Fence" ObjectID="OBJECT_UMAJUMP">
+    <Parameter Params="0000"> Fence</Parameter>
+    <Parameter Params="0001"> Nothing //Possibly waypoint for the Ingo Race?</Parameter>
+    <Parameter Params="FFFF"> Fence</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_ARROW_FIRE" Name="Fire Arrow">
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_ARROW_ICE" Name="Ice Arrow">
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_ARROW_LIGHT" Name="Light Arrow">
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_ITEM_ETCETERA" Name="GI Collectables (Shields, Bottles, etc)">
+    <Parameter Params="0000"> Bottle //Use group 00C6</Parameter>
+    <Parameter Params="0001"> Bottle with Ruto's Letter //Use group 010B</Parameter>
+    <Parameter Params="0002"> Hylian shield //Use group 00DC</Parameter>
+    <Parameter Params="0003"> Quiver //Use group 00BE</Parameter>
+    <Parameter Params="0004"> Silver Scale //Use group 00DB</Parameter>
+    <Parameter Params="0005"> Golden Scale //Use group 00DB</Parameter>
+    <Parameter Params="0006"> Small Key //Use group 00AA</Parameter>
+    <Parameter Params="0007"> Fire Arrow //Use group 0158</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_OBJ_KIBAKO" Name="Small Wooden Crate" ObjectID="OBJECT_GAMEPLAY_DANGEON_KEEP">
+    <Parameter Params="FFFF"> No Item to Spawn</Parameter>
+    <Notes>Check actor 15 for collectible variables</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_OBJ_TSUBO" Name="Breakable Pot" ObjectID="OBJECT_GAMEPLAY_DANGEON_KEEP">
+    <Flag Mask="0x7E00" Type="Collectible"/>
+    <Collectible Mask="0x00FF" Type="Drop"/>
+    <Notes>+0x7E00 = Collectible Flag
++0xFF = Collectible var //See Actor 0015</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_WONDER_ITEM" Name="Invisible Collectable">
+    <Parameter Params="0000"> Collect Immediately //Not used?</Parameter>
+    <Parameter Params="1000"> Invisible, free collectible</Parameter>
+    <Parameter Params="1800"> Invisible hitbox, drops collectible when hit //See Z-Rotation for parameters</Parameter>
+    <Parameter Params="3800"> Invisible hitbox, set switch flag when touched</Parameter>
+    <Parameter Params="4000"> Slingshotable hitbox, spawns Hylian Soldier (actor 00B3) who throws a bomb</Parameter>
+    <Flag Mask="0x003F" Target="Params" Type="Switch"/>
+    <Collectible Mask="0x07C0" Target="Params" Type="Drop"/>
+    <Property Mask="0x00FF" Name="# of Collectibles / Spawn Trigger" Target="ZRot"/>
+    <Notes>+0x07C0 = Collectible Spawned
+See actor 0015 for spawn values
+- 0000 0C
+- 0040 06
+- 0080 Magic Jar (Large) //0E
+- 00C0 //0F
+- 0100 Bomb //03
+- 0140 //08
+- 0180 //09
+- 01C0 Arrows (30) //0A
+- 0200 Green Rupee
+- 0240 Blue Rupee
+- 0280 Red Rupee
+- 02C0 //12
++0x3F = Switch Flag
+Z ROTATION +0xFFFF = Number of collectibles spawned //Type 02 only
+Z ROTATION +0xFF = Spawn Item Trigger //Type 03 only
+- 0000 Sword Swing
+- 0001 Shot with Arrow only
+- 0002 Megaton Hammer
+- 0003 Explosions
+- 0004 Shot with Slingshot Seed only
+- 0006 Hookshot
+</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BOSS" ID="ACTOR_EN_IK" Name="Iron Knuckle" ObjectID="OBJECT_IK">
+    <Parameter Params="0001"> White, sitting //Stone Chair</Parameter>
+    <Parameter Params="0000"> Nabooru Knuckle //May Crash</Parameter>
+    <Parameter Params="0002"> Black, standing</Parameter>
+    <Parameter Params="0003"> White, standing</Parameter>
+    <Parameter Params="000B"> White, no armor falls off when at low health</Parameter>
+    <Flag Mask="0xFF00" Type="Switch"/>
+    <Notes>+0xFF00 = Nullable Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_DEMO_IK" Name="Iron Knuckle Armor Pieces" ObjectID="OBJECT_IK">
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_SKJ" Name="Skullkid" ObjectID="OBJECT_SKJ">
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_SKJNEEDLE" Name="Skullkid's Needle" ObjectID="OBJECT_SKJ">
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_G_SWITCH" Name="Silver Rupee/Large Rotating Pot">
+    <Parameter Params="0000"> Rupee Chain</Parameter>
+    <Parameter Params="1000"> Silver Rupee //Check SharpOcarina fill with... example for how to use this puzzle</Parameter>
+    <Parameter Params="2000"> Horseback Archery Pot</Parameter>
+    <Flag Mask="0x003F" Type="Switch"/>
+    <Property Mask="0x0FC0" Name="Count"/>
+    <Notes>+0x0FC0 = Count
++0x003F = Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_DEMO_EXT" Name="Vortex (Koume/Kotake kidnap Nabooru)" ObjectID="OBJECT_FHG">
+    <Notes>Used when Koume and Kotake kidnap Nabooru</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_DEMO_SHD" Name="Bongo Bongo Shadow">
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_EN_DNS" Name="Business Scrub" ObjectID="OBJECT_SHOPNUTS">
+    <Parameter Params="0000"> Deku Nuts</Parameter>
+    <Parameter Params="0001"> Deku Sticks</Parameter>
+    <Parameter Params="0002"> Piece of Heart (10 rupees)</Parameter>
+    <Parameter Params="0003"> Deku Seeds</Parameter>
+    <Parameter Params="0004"> Deku Shield</Parameter>
+    <Parameter Params="0005"> Bombs</Parameter>
+    <Parameter Params="0006"> Deku Seeds</Parameter>
+    <Parameter Params="0007"> Red Potion</Parameter>
+    <Parameter Params="0008"> Green Potion</Parameter>
+    <Parameter Params="0009"> Deku Stick Upgrade</Parameter>
+    <Parameter Params="000A"> Deku Nut Upgrade</Parameter>
+    <Parameter Params="000B"> Never speaks, and Link is sadly very patient...</Parameter>
+    <Parameter Params="000C"> Pocket Egg?</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_ELF_MSG" Name="Navi Information Spot">
+    <Parameter Params="0000"> Talk when in range</Parameter>
+    <Parameter Params="8000"> C-Up Prompt</Parameter>
+    <Flag Mask="0x3F00" Type="Switch"/>
+    <Property Mask="0x00FF" Name="Message ID"/>
+    <Notes>
++0x3F00 = Switch Flag
++0xFF = Message ID (+0100)
+-0000 What’s that?
+-0001 Look, look, LINK! You can see down below this web using C-Up!
+-0002 Look at this wall! The vines growing on it give it a rough surface... Maybe you can climb it, LINK!
+-0003 You can open a door by standing in front of it and pressing A. Pay attention to what the Action Icon says. That’s the blue icon at the top of the screen!
+-0004 Look! Something is hanging up there! It looks like an old ladder!
+-0005 Hey... isn’t that the same design that’s on the Door of Time?
+-0006 It looks like that torch was burning not too long ago...
+-0007 From here on, we’ll be going through some narrow passages! If you take it slow, maybe you can sneak up on some enemies.
+-0008 Stand next to this block and grab hold of it with A. While holding A, you can push or pull it. If you stand next to the block and press A while pressing the control stick towards the block, you can climb on top of it. Pay attention to what the Action Icon says!
+-0009 0109
+-000A 010a
+-000B 010b
+-000C After you get into the water, if you hold down A, you can dive! I bet there are some interesting things underwater!
+-000D 010d
+-000E 010e
+-000F 010f
+-0010 0110
+-0011 0111
+-0012 0112
+-0013 0113
+-0014 Wow! Look at all those Bomb Flowers! Is there any way you can set them all off at once?
+-0015 It looks like there are many lava pits around here, so watch your step!
+-0016 With that switch on, the moving platform goes even higher. Now you can quickly reach the second floor!
+-0017 0117
+-0018 0118
+-0019 You never know what will be around the corner in these narrow paths... Use Z Targeting to always look in the proper direction. This is a useful technique, isn’t it?
+-001A 011a
+-001B 011b
+-001C 011c
+-001D 011d
+-001E 011e
+-001F LINK, what are you looking at?
+-0020 0120
+-0021 0121
+-0022 0122
+-0023 0123
+-0024 The Desert Colossus’s face... it sure looks evil!
+-0025 0125
+-0026 I can hear the spirits whispering in this room... “Look for the eye of truth...” That’s what they’re saying!
+-0027 0127
+-0028 Here... I can hear the spirits whispering in this room... “Those who have sacred feet should let the wind guide them. Then, they will be lead to the hidden path.” That’s what they are saying!
+-0029 This wall... it says something here... “Danger above...” That’s what it says.
+-002A This wall... it says something here... “Danger below...” That’s what it says.
+-002B The water flowing out of this statue is flooding the entire floor.
+-002C 012c
+-002D 012d
+-002E 012e
+-002F Watch out, LINK! Electricity is running through this green slimy thing!
+-0030 0130
+-0031 Watch out, LINK! Electricity is running through this red slimy thing!
+-0032 Watch out, LINK! Electricity is running through this blue slimy thing!
+-0033 This switch... It doesn't look like you can press it down with your weight alone, LINK...
+-0034 0134
+-0035 0135
+-0036 0136
+-0037 The red slimy thing is gone! That must be because you cut the red tail! Will that work with the other ones too?
+-0038 0138
+-0039 There’s a switch beyond this wall!
+-003A It looks like there is something up there on top of the platform!
+-003B 013b
+-003C 013c
+-003D WHAAAT!? Look at all those flags! Can you figure out which ones are real? //Unused?
+-003E 013e
+-003F 013f
+-0040 The Great Deku Tree has summoned you! Please come with me!
+-0041 C'mon! Be brave! Let's go into the Deku Tree!
+-0042 The Great Deku Tree wanted us to go visit the princess at Hyrule Castle... Shouldn’t we get going?
+-0043 The girl from the ranch asked us to find her father... I wonder where he is?
+-0044 I wonder where we'll find the princess in this big old castle?
+-0045 What would Saria say if we told her we’re going to save Hyrule?
+-0046 Impa said that the Spiritual Stone of Fire is somewhere on Death Mountain.
+-0047 Let’s go inside the Dodongo's Cavern using a Bomb Flower!
+-0048 Darunia said that a fairy lives on top of Death Mountain, didn’t he?
+-0049 I wonder if Saria knows anything about the other Spiritual Stone?
+-004A It seems Princess Ruto somehow got inside Jabu-Jabu's belly...
+-004B You collected three Spiritual Stones! Let’s go back to Hyrule Castle!
+-004C Those people on the white horse... they were Zelda and Impa, weren't they? It looked like they threw something into the moat!
+-004D Let’s go check inside the Temple of Time.
+-004E Should we believe what Sheik said and go to Kakariko Village?
+-004F 014f
+-0050 I wonder what’s going on in the forest right now... I’m worried about Saria, too!
+-0051 That cloud over Death Mountain... there is something strange about it...
+-0052 An arctic wind is blowing from Zora's River... do you feel it?
+-0053 Those Iron Boots look like they weigh a ton! If you wear those boots, you may be able to walk at the bottom of the lake.
+-0054 Let’s look for someone who might know about the other Sages!
+-0055 That monster! It came out of the well in the village! Let’s go check out the well!
+-0056 I wonder who built the Spirit Temple, and for what purpose?
+-0057 Have you ever played the Nocturne of Shadow that Sheik taught you?
+-0058 The desert... that is where Ganondorf the Evil King was born. If we go there, we might find something...
+-0059 0159
+-005A Equip the Silver Gauntlets and try to move things you couldn't budge before!
+-005B The one who is waiting for us at the Temple of Time...it could be...
+-005C We have to save Princess Zelda from her imprisonment in Ganon's Castle!
+-005D 015D
+-005E 015E
+-005F LINK, try to keep moving!!
+-0060 I don’t mind talking to you using the Ocarina’s magic, but I’d really like to talk to you face-to-face!
+-0061 The forest is connected to many different places! If you can hear my song, you must be near somewhere that is connected to the forest!
+-0062 I was so happy to hear that Mr. Darunia loved my song so much! I was even happier to find out I helped out on your quest, LINK! Tee hee hee!
+-0063 Are you collecting Spiritual Stones? You have one more to find? You mean the Spiritual Stone of Water, don’t you? The Great Deku Tree once told me that King Zora, ruler of Zora’s Domain, has it...
+-0064 Are you collecting Spiritual Stones? You have one more to find? You mean the Spiritual Stone of Fire, don’t you? The Great Deku Tree once told me that Mr. Darunia of the Gorons has it...
+-0065 LINK... I don’t know what it is... I have this feeling of dread... The Castle... Yes, something bad is happening at the Castle!
+-0066 What? Your ocarina sounds... different somehow... Have you been practicing a lot, LINK?
+-0067 Are you looking for a temple? A mysterious bird once told me... “Eyes that can see through darkness will open in a storm.” Do you have any idea what he meant by this?
+-0068 Where are you, LINK? Are you looking for a temple? I once heard a mysterious bird say... “Go, young man. Go to the Desert Goddess with an ocarina.” Do you have any idea what he meant by this?
+-0069 Did you find all the temples yet?
+-006A Great! You’re safe! I knew I would hear from you again! I’m in the Forest Temple! The forest spirits were calling for help, so I went to check it out... But it’s full of evil monsters! Help me, LINK!
+-006B LINK... At first, I didn’t want to become the Sage of the Forest... But I’m glad now. Because I’m helping you save Hyrule, LINK! Yes, I am!
+-006C If all six Sages come together, we can imprison Ganondorf, the King of Evil, in the Sacred Realm. But in order to make a perfect seal, we need the seventh Sage. Someone you know must be that Sage, LINK... From now on, you must travel between past and future to awaken the remaining Sages! Keep up the good work, LINK!
+-006D We, the Six Sages, are channeling our power to you! The destiny of Hyrule depends upon you!
+-006E 016e
+-006F 016f
+-0070 7F = You borrowed a Pocket Egg! A Pocket Cucco will hatch from it overnight. Be sure to give it back when you are done with it.
+-0080 I can hear a voice from / somewhere... / It's saying: / &quot;Collect five silver Rupees...&quot;
+-0081 This wall...it's saying something! / It says: / If you want to see a ferry to the / other world, come here...
+-0082 0182
+-0083 If you want to ride that boat, be / careful! It looks very old... Who / knows when it might sink?
+-0084 There is a door over here... Is / there any way to get across?
+-0085 0185
+-0086 That red ice...it's so weird!
+-0087 0187
+-0088 0188
+-0089 This blue fire...it doesn't seem / natural. Maybe you can use it for / something?
+-008A 018a
+-008B 018b
+-008C The fires on the torches are gone. / Seems like the ghosts took them / away!
+-008D Look, Link! A torch / is lit! That's because / you beat a ghost, isn't it?!
+-008E 018e
+-008F There are arrows painted on the / floor!
+-0090 This corridor is all twisted!
+-0091 Watch for the shadows of / monsters that hang from the / ceiling.
+-0092 There's a treasure chest here.
+-0093 0193
+-0094 This...this is the same torch we / saw at the entrance to the temple, / isn't it?
+-0095 This torch is lit...that means...
+-0096 0196
+-0097 This switch is frozen!
+-0098 Link, watch out! / The ceiling is falling down!
+-0099 0199
+-009A 019a
+-009B 019b
+-009C 019c
+-009D 019d
+-009E 019e
+-009F 019f
+-00A0 01a0
+-00A1 01a1
+-00A2 01a2
+-00A3 Link, I hear Goron / voices down below.
+-00A4 01a4
+-00A5 You can see down from here... / Isn't that the room where we saw / Darunia?
+-00A6 01a6
+-00A7 This statue...haven't we seen it / somewhere before?
+-00A8 01a8
+-00A9 This switch looks rusted.
+-00AA 01aa
+-00AB Link! Be careful! / Don't get swallowed by the / vortexes!
+-00AC 01ac
+-00AD 01ad
+-00AE 01ae
+-00AF 01af
+-00B0 01b0
+-00B1 01B1
+</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_HONOTRAP" Name="Eye Switch and Flame that Follows Link" ObjectID="OBJECT_GAMEPLAY_DANGEON_KEEP">
+    <Parameter Params="0000"> Stone Eye</Parameter>
+    <Parameter Params="0001"> Heat-Seeking flame</Parameter>
+    <Parameter Params="0002"> Immobile flame, dies</Parameter>
+    <Parameter Params="0003"> Flame sound effect</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_TUBO_TRAP" Name="Flying Magic Pot" ObjectID="OBJECT_GAMEPLAY_DANGEON_KEEP">
+    <Parameter Params="0000"> Heart or Green Rupee</Parameter>
+    <Parameter Params="0100"> Bombs</Parameter>
+    <Parameter Params="0200"> Deku Seeds</Parameter>
+    <Parameter Params="0300"> Deku Nuts</Parameter>
+    <Parameter Params="0400"> Deku Seeds</Parameter>
+    <Parameter Params="0500"> Giant Purple Rupee</Parameter>
+    <Parameter Params="0600"> Goron Tunic</Parameter>
+    <Parameter Params="FF00"> Nothing</Parameter>
+    <Flag Mask="0x003F" Type="Switch"/>
+    <Notes>+0x3F = Collectible Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_OBJ_ICE_POLY" Name="Ice That Covers Switches">
+    <Flag Mask="0x003F" Type="Switch"/>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_SPOT03_TAKI" Name="Zora's River Waterfall" ObjectID="OBJECT_SPOT03_OBJECT">
+    <Notes>+0x3F = Collectible Flag
+Harcoded cutscene camera: -149, 943, -1020</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_SPOT07_TAKI" Name="Zora's Domain Waterfall" ObjectID="OBJECT_SPOT07_OBJECT">
+    <Parameter Params="0000"> Waterfall and Pool //Room 1</Parameter>
+    <Parameter Params="0001"> King's Chamber Water //Room 0</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_FZ" Name="Freezard" ObjectID="OBJECT_FZ">
+    <Parameter Params="0000"> Immobile</Parameter>
+    <Parameter Params="FFFF"> Mobile //Hidden When Spawned</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_PO_RELAY" Name="Dampe's Ghost" ObjectID="OBJECT_TK">
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_RELAY_OBJECTS" Name="Rotating Windmill Mechanism" ObjectID="OBJECT_RELAY_OBJECTS">
+    <Parameter Params="0000"> Rotating platform</Parameter>
+    <Parameter Params="0100">+ Thick stone door //Opened when Dampe approaches</Parameter>
+    <Flag Mask="0x00FF" Type="Switch"/>
+    <Notes>+0xFF = Nullable Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_DIVING_GAME" Name="Zora Diving Game" ObjectID="OBJECT_ZO">
+    <Notes>Hardcoded cutscene camera: -149, 943, -1020</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_KUSA" Name="Grass Clump, doesn't regrow">
+    <Parameter Params="0000"> Normal shrub. Random drops. //Use object 0002</Parameter>
+    <Parameter Params="0001"> Cut-able, regenerating grass //Use object 012B, Drops: Heart, Arrows or Deku Seeds</Parameter>
+    <Parameter Params="0002"> Cut-able grass //Use object 012B, Set drop table via Random Drop Table param</Parameter>
+    <Property Mask="0x0010" Name="Spawn Bugs"/>
+    <Property Mask="0xFF00" Name="Random Drop Table (Nullable)"/>
+    <Notes>+0x0010 = Spawns set of 3 bugs
++0xFF00 = Random Drop Table
+-FF00 No Table</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_OBJ_BEAN" Name="Bean Planting Spot" ObjectID="OBJECT_MAMENOKI">
+    <Flag Mask="0x003F" Target="Params" Type="Switch"/>
+    <Property Mask="0x1F00" Name="Path Id" Target="Params"/>
+    <Property Mask="0x0003" Name="Speed" Target="ZRot"/>
+    <Notes>
++0x1F00 = Path Id //1F00 = null
++0x003F = Switch Flag
+ZROT +0x0003 = Speed, Acceleration
+-0000 3.0, 0.3
+-0001 10.0, 0.5
+-0002 30.0, 0.5
+-0003 3.0, 0.3
+  	</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_OBJ_BOMBIWA" Name="Bombable Rock" ObjectID="OBJECT_BOMBIWA">
+    <Flag Mask="0x003F" Type="Switch"/>
+    <Property Mask="0x8000" Name="Puzzle Solved Sound"/>
+    <Notes>+0x8000 = Play Puzzle Solved When Destroyed
++0x3F = Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_SWITCH" ID="ACTOR_OBJ_SWITCH" Name="Dungeon Switches" ObjectID="OBJECT_GAMEPLAY_DANGEON_KEEP">
+    <Parameter Params="0000"> Floor</Parameter>
+    <Parameter Params="0001"> Rusted Floor</Parameter>
+    <Parameter Params="0002"> Yellow Eye</Parameter>
+    <Parameter Params="0003"> Crystal</Parameter>
+    <Parameter Params="0004"> Targetable Crystal</Parameter>
+    <Flag Mask="0x3F00" Type="Switch"/>
+    <Property Mask="0x0010" Name="Toggle"/>
+    <Property Mask="0x0020" Name="Reset"/>
+    <Property Mask="0x0040" Name="Trigger All"/>
+    <Property Mask="0x0080" Name="Frozen"/>
+    <Notes>
+  0x0010 = Can Toggle
+  0x0020 = Reset when not pressed //Floor,Rusted switches. Zeroes switch flag
+  0x0040 = Triggers all switches with same switch flag //crystal switches only?
+  0x0080 = Frozen in Ice
+  0x3F00 = Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_OBJ_ELEVATOR" Name="Huge Stone Switch/Stone Elevator" ObjectID="OBJECT_D_ELEVATOR">
+    <Parameter Params="0000"> Large</Parameter>
+    <Parameter Params="0001"> Small</Parameter>
+    <Notes>0xF000 = Rise Height //80 unit increments
+0x0F00 = Platform Travel Speed</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_OBJ_LIFT" Name="Square Collapsing Platform" ObjectID="OBJECT_D_LIFT">
+    <Property Mask="0xFF00" Name="Delay"/>
+    <Property Mask="0x00FF" Name="Size"/>
+    <Notes>
+xxyy - xx controls delay, yy controls size
+xx:
+- x# = larger # is, the longer it takes before platform reacts to Link (x is ignored)
+- xF = Doesn’t shake, falls immediately (x is ignored)
+yy:
+- 00+ = Large
+- EA+ = Small</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_OBJ_HSBLOCK" Name="Stone Hookshot Target" ObjectID="OBJECT_D_HSBLOCK">
+    <Parameter Params="0000"> Square hookshot target tower</Parameter>
+    <Parameter Params="0001"> Same, underground</Parameter>
+    <Parameter Params="0002"> Square hookshot stone</Parameter>
+    <Parameter Params="0003"> Corrupted graphics, cannot see (no mesh seems to be present)</Parameter>
+    <Parameter Params="FFC2">  ?? (Dodongo's Cavern)</Parameter>
+    <Flag Mask="0x3F00" Type="Switch"/>
+    <Notes>0001 can have switchflag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_OKARINA_TAG" Name="Play Ocarina Here Spot">
+    <Parameter Params="0400"> Zora River, Zelda's Lullaby Spot (no cutscene)</Parameter>
+    <Parameter Params="0800"> Windmill, Song of Storms spot (cutscene)</Parameter>
+    <Parameter Params="1000"> Temple of Time, Song of Time spot (cutscene)</Parameter>
+    <Parameter Params="1400"> Learn Sun's Song spot</Parameter>
+    <Parameter Params="1800"> Royal Family Tomb, Zelda's Lullaby spot</Parameter>
+    <Parameter Params="1C00"> Puzzle Spot</Parameter>
+    <Flag Mask="0x003F" Type="Switch"/>
+    <Property Mask="0x03C0" Name="Song to Play"/>
+    <Notes>+0x3C0 = Song to play //Puzzle Spot only?
+-0040 Epona's Song
+-0080 Zelda's Lullaby
+-00C0 Sun's Song
+-0100 Song of Time?
+-0140 Song of Storms
+-01C0 Create Bonooru Song spot
+-0200 Create Pierre's Song (long song) spot?
+-02C0 Playback of Bonooru's song when pulling Ocarina
+-0300 Playback of random 3 notes (Skull Kid Ocarina Minigame)
+-03C0 All 6 non-warp songs // Preset song
++0x003F = Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_YABUSAME_MARK" Name="Horseback Archery Target">
+    <Parameter Params="0000"> End Targets</Parameter>
+    <Parameter Params="0001"> Mounted Target (Small)</Parameter>
+    <Parameter Params="0002"> Mounted Target (Big) //Center one</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_GOROIWA" Name="Rolling Boulder" ObjectID="OBJECT_GOROIWA">
+    <Parameter Params="0000"> Follows path, disappears, reappears at first waypoint //simulates falling into a hole</Parameter>
+    <Parameter Params="0100"> Follows path, breaks into pieces, reappears at first waypoint //As in adult Death Mountain Trail</Parameter>
+    <Parameter Params="0200"> Follows path, treating it as a closed loop</Parameter>
+    <Parameter Params="0300"> Follows path, halts, reverses, repeat //As in Fire Temple boulder maze</Parameter>
+    <Property Mask="0x00FF" Name="Path Id" Target="Params"/>
+    <Property Mask="0x0001" Name=" Behavior after colliding" Target="ZRot"/>
+    <Notes>
+	+0xFF = Path Id
+ROTZ 0x0001 = Behavior after colliding with Link
+-0000 Reverse path
+-0001 Follow path
+</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_EX_RUPPY" Name="Sparkling Rupee">
+    <Parameter Params="0000"> Sparkling blue rupee</Parameter>
+    <Parameter Params="0001"> Huge Magenta Rupee, explodes when touched //Unused</Parameter>
+    <Parameter Params="0002"> Blue, red, and orange rupees, explode when touched //Unused</Parameter>
+    <Parameter Params="0003"> Random-colored rupees, collectible</Parameter>
+    <Parameter Params="0004"> Green rupees underground, not collectible //Unused</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_TORYO" Name="Head Carpenter" ObjectID="OBJECT_TORYO">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_DAIKU" Name="Carpenter" ObjectID="OBJECT_DAIKU">
+    <Parameter Params="0000"> Ichiro //Red/Purple Pants, &quot;normal&quot; hair</Parameter>
+    <Parameter Params="0001"> Sabooro //Light-Blue Pants</Parameter>
+    <Parameter Params="0002"> Jiro //Green Pants</Parameter>
+    <Parameter Params="0003"> Shiro //Pink/Purple Pants, two-spiked hair</Parameter>
+    <Notes>Talking softlocks if outside of intended scene numbers</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_NWC" Name="Alpha Blue Balls" ObjectID="OBJECT_NWC">
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_BLKOBJ" Name="Dark Link's Illusion Room" ObjectID="OBJECT_BLKOBJ">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_ITEM_INBOX" Name="Zelda's Magic to Open Gates">
+    <Parameter Params="0000"> Cannot see anything while object is visible. Navi is capable of targeting it, but gives no information.</Parameter>
+    <Parameter Params="0002"> Area is visible (interface corrupted), otherwise same.</Parameter>
+    <Parameter Params="0008"> Everything seems fine, but Navi's invisible and there's no mesh. Still targetable, though.</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_GE1" Name="White Clothed Gerudo" ObjectID="OBJECT_GE1">
+    <Parameter Params="0000"> Shoos you away //Calls you a kid regardless of your actual age</Parameter>
+    <Parameter Params="0001"> Gate Manager (Gerudo Fortress)</Parameter>
+    <Parameter Params="0004"> Generic Guard (Gerudo Fortress)</Parameter>
+    <Parameter Params="0005"> Stands By Cow (Gerudo Valley)</Parameter>
+    <Parameter Params="0045"> Horseback Archery</Parameter>
+    <Parameter Params="0046"> Gerudo Training Grounds Guard</Parameter>
+    <Flag Mask="0x3F00" Type="Switch"/>
+    <Notes>+0x3F00 = Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_OBJ_BLOCKSTOP" Name="Block Save Point">
+    <Flag Mask="0x003F" Type="Switch"/>
+    <Notes>+0x3F = Switch Flag //Sets flag when block is placed on top of actor</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BOSS" ID="ACTOR_EN_SDA" Name="Alpha Link Shadow Activator">
+    <Notes>Unused. Works on Link and Signs. Check in Spirit Temple under light, works for all values except 1</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BOSS" ID="ACTOR_EN_CLEAR_TAG" Name="Alpha Arwing">
+    <Parameter Params="0000"> Cutscene start</Parameter>
+    <Parameter Params="0001"> No cutscene //required if you spawn more than four or five of these</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_NIW_LADY" Name="Cucco Lady" ObjectID="OBJECT_ANE">
+    <Notes>Text ID 503E as adult, gives you an egg</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_GM" Name="Medigoron" ObjectID="OBJECT_OF1D_MAP">
+    <Flag Mask="0x003F" Type="Switch"/>
+    <Notes>+0x3F = Switch Flag //Won't say his normal dialog unless the flag Medigoron is bound to is set</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_MS" Name="Bean Seller" ObjectID="OBJECT_MS">
+    <Parameter Params="FFFF"> Default</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_HS" Name="Carpenter's Son" ObjectID="OBJECT_HS">
+    <Parameter Params="FFFF"> Default</Parameter>
+    <Notes>Text ID 10B1 when sleeping</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_INGATE" Name="Ingo's Gates" ObjectID="OBJECT_INGATE">
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_KANBAN" Name="Square Signpost" ObjectID="OBJECT_KANBAN">
+    <Parameter Params="0000"> X</Parameter>
+    <Parameter Params="0001"> Hyrule Field</Parameter>
+    <Parameter Params="0002"> Hyrule Castle Town</Parameter>
+    <Parameter Params="0003"> The Temple of Time</Parameter>
+    <Parameter Params="0004"> Dead End</Parameter>
+    <Parameter Params="0005"> Kakariko Village / Death Mountain Trail / Starting Point</Parameter>
+    <Parameter Params="0006"> Kakariko Village Graveyard</Parameter>
+    <Parameter Params="0007"> Dark! Narrow! Scary! / Well of Three Features</Parameter>
+    <Parameter Params="0008"> Death Mountain / No passage without a / Royal Decree!</Parameter>
+    <Parameter Params="0009"> Death Mountain Trail</Parameter>
+    <Parameter Params="000A"> Dodongo’s Cavern / Don’t enter without permission!</Parameter>
+    <Parameter Params="000B"> Land of the Gorons / Goron City</Parameter>
+    <Parameter Params="000C"> Zora’s River / Watch out for swift current / and strong undertow.</Parameter>
+    <Parameter Params="000D"> The Shadow will yield only to one / with the eye of truth, handed / down in Kakariko Village.</Parameter>
+    <Parameter Params="000E"> Zora’s Domain</Parameter>
+    <Parameter Params="000F"> Zora’s Fountain / Don’t disturb Lord Jabu-Jabu! / –King Zora XVI</Parameter>
+    <Parameter Params="0010"> Forest Training Center / Don’t recklessly cut signs– / read them carefully!</Parameter>
+    <Parameter Params="0011"> All those reckless enough to / venture into the desert–please drop by our shop. / Carpet Merchant</Parameter>
+    <Parameter Params="0012"> Just ahead: / Great Deku Tree’s Meadow</Parameter>
+    <Parameter Params="0013"> Forest Temple</Parameter>
+    <Parameter Params="0014"> The Lost Woods</Parameter>
+    <Parameter Params="0015"> Talon and Malon’s / Lon Lon Ranch</Parameter>
+    <Parameter Params="0016"> The Great Ingo’s / Ingo Ranch</Parameter>
+    <Parameter Params="0017"> Lake Hylia</Parameter>
+    <Parameter Params="0018"> Lakeside Laboratory / Daily trying to get to the bottom / of the mysteries of Lake Hylia! / –Lake Scientist</Parameter>
+    <Parameter Params="0019"> Gerudo Valley</Parameter>
+    <Parameter Params="001A"> Horseback Archery Range / Skilled players are welcome! / Current record: # Points</Parameter>
+    <Parameter Params="001B"> Gerudo Training Ground / Only registered members are / allowed!</Parameter>
+    <Parameter Params="001C"> Haunted Wasteland / If you chase a mirage, the / desert will swallow you. / Only one path is true!</Parameter>
+    <Parameter Params="001D"> Spirit Temple</Parameter>
+    <Parameter Params="001E"> Kokiri Shop / We have original forest goods!</Parameter>
+    <Parameter Params="001F"> LINK’s House</Parameter>
+    <Parameter Params="0020"> Forest folk shall not leave these woods.</Parameter>
+    <Parameter Params="0021"> Follow the trail along the edge of / the cliff and you will reach / Goron City, home of the Gorons.</Parameter>
+    <Parameter Params="0022"> Natural Wonder / Bomb Flower / Danger! Do not uproot!</Parameter>
+    <Parameter Params="0023"> Death Mountain Summit / Entrance to the crater ahead / Beware of intense heat!</Parameter>
+    <Parameter Params="0024"> King Zora’s Throne Room / To hear the King’s royal / proclamations, stand on the / platform and speak to him.</Parameter>
+    <Parameter Params="0025"> If you can stop my wild rolling, you might get something great. / –Hot Rodder Goron</Parameter>
+    <Parameter Params="0026"> Only one with the eye of truth / will find the stone umbrella / that protects against the / rain of blades.</Parameter>
+    <Parameter Params="0027"> Only one who has sacred feet / can cross the valley of the dead.</Parameter>
+    <Parameter Params="0028"> The record time of those / who raced against me was: / ##&quot;##&quot; / –Dampé the Gravekeeper</Parameter>
+    <Parameter Params="0029"> Shooting Gallery / etc.</Parameter>
+    <Parameter Params="002A"> Treasure Chest Shop / We don’t necessarily sell them...</Parameter>
+    <Parameter Params="002B"> High Dive Practice Spot / Are you confident / in your diving skill?</Parameter>
+    <Parameter Params="002C"> 032c</Parameter>
+    <Parameter Params="002D"> Mountain Summit / Danger Ahead - Keep Out</Parameter>
+    <Parameter Params="002E"> Happy Mask Shop! / Now hiring happiness / delivery men!</Parameter>
+    <Parameter Params="002F"> Bombchu Bowling Alley / You can experience the / latest in Bomb technology!</Parameter>
+    <Parameter Params="0030"> Bazaar / We have a little bit of everything!</Parameter>
+    <Parameter Params="0031"> Potion Shop / We have the best quality / potions!</Parameter>
+    <Parameter Params="0032"> Goron Shop / Mountaineering supplies!</Parameter>
+    <Parameter Params="0033"> Zora Shop / We have fresh fish!</Parameter>
+    <Parameter Params="0034"> Heart-Pounding Gravedigging Tour! / From 18:00 to 21:00 Hyrule Time / –Dampé the Gravekeeper</Parameter>
+    <Parameter Params="0035"> Heart-Pounding Gravedigging Tour! / Tours are cancelled until a new / gravekeeper is found. We / apologize for any inconvenience.</Parameter>
+    <Parameter Params="0036"> Thrust Attack Signs! / To thrust with your sword, press / CS toward your target while / Z Targeting, then press B.</Parameter>
+    <Parameter Params="0037"> Hole of “Z” / Let’s go through this small / hole! / Stand in front of the hole and / push CS towards it. When the / Action Icon shows “Enter,” press / A to crawl into the hole. / Pay attention to what the Action / Icon says!</Parameter>
+    <Parameter Params="0038"> Cut Grass With Your Sword / If you just swing with B, you’ll / cut horizontally. If you hold Z as / you swing, you’ll cut vertically.</Parameter>
+    <Parameter Params="0039"> Hyrule Castle / Lon Lon Ranch</Parameter>
+    <Parameter Params="003A"> You are here: Hyrule Castle / This way to Lon Lon Ranch</Parameter>
+    <Parameter Params="003B"> Just Ahead / King Zora’s Chamber / Show the proper respect!</Parameter>
+    <Parameter Params="003C"> House of the Great Mido / Boss of the Kokiri</Parameter>
+    <Parameter Params="003D"> House of the Know-It-All Brothers</Parameter>
+    <Parameter Params="003E"> House of Twins</Parameter>
+    <Parameter Params="003F"> Saria’s House</Parameter>
+    <Parameter Params="0040"> View Point with Z Targeting / When you have no object to look / at, you can just look forward / with Z. / Stop moving and then change the / direction you are facing, or hold / down Z for a little while. / This can help you get oriented in / the direction you want to face. / It’s quite convenient! / If you hold down Z, you can / walk sideways while facing / straight ahead. / Walking sideways can be a very / important technique in dungeon / corridors. Turn around and try doing this right now.</Parameter>
+    <Parameter Params="0041"> Stepping Stones in the Pond / If you boldly go in the direction / you want to jump, you will leap / automatically. / If you hop around on the stones, / you’ll become happier!</Parameter>
+    <Parameter Params="0042"> No Diving Allowed / –It won’t do you any good!</Parameter>
+    <Parameter Params="0043"> Switch Targeting / If you see a \/ icon above an / object, you can target it with Z. / ... / You can target the stones next to this sign for practice!</Parameter>
+    <Parameter Params="0044"> Forest Stage / We are waiting to see your / beautiful face! / Win fabulous prizes!</Parameter>
+    <Parameter Params="0045"> Visit the / House of the Know-It-All Brothers / to get answers to all your / item-related questions!</Parameter>
+    <Parameter Params="0046"> Pocket Egg</Parameter>
+    <Notes>Message ID //Value + 0x0300</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_HEISHI3" Name="Hyrule Castle Guard" ObjectID="OBJECT_SD">
+    <Parameter Params="0000"> Whistleblower</Parameter>
+    <Parameter Params="0001"> Stands there, does nothing</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_SYATEKI_NIW" Name="Hopping Cucco, Not Solid" ObjectID="OBJECT_NIW">
+    <Parameter Params="0000"> Non-solid cucco, hops oddly every once in awhile and only goes in one direction</Parameter>
+    <Parameter Params="0001"> Invisible, solid cucco, doesn’t move, can be attacked but will only smoke and molt</Parameter>
+    <Parameter Params="0002"> Invisible cucco, cannot be attacked it seems, no idea what it does, but you can hear it</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_ATTACK_NIW" Name="Attacking Cucco" ObjectID="OBJECT_NIW">
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_SPOT01_IDOSOKO" Name="Stone Blocking Well Entrance" ObjectID="OBJECT_SPOT01_MATOYA">
+    <Parameter Params="FFFF"> Default</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_SA" Name="Saria" ObjectID="OBJECT_SA">
+    <Parameter Params="FFFF"> Default</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_WONDER_TALK" Name="Checkable Spot">
+    <Parameter Params="0000"> Bean Seller's dialog //Doesn't work properly?</Parameter>
+    <Parameter Params="0800"> Temple of Time stone altar dialog</Parameter>
+    <Parameter Params="1000"> Gravekeeper's diary dialog //Navi hovers higher than normal</Parameter>
+    <Parameter Params="1800"> Royal Composer Sharp's grave dialog //Use Object 006E, Sets Temporary Switch Flag 09, spawns Sharp</Parameter>
+    <Parameter Params="2000"> &quot;Royal Family Tomb&quot; dialog</Parameter>
+    <Parameter Params="2800"> Royal Composer Flat's grave dialog //Use Object 006E, Sets Temporary Switch Flag 08, spawns Flat</Parameter>
+    <Flag Mask="0x003F" Type="Switch"/>
+    <Notes>+0x3F = Switch Flag //Spot deactivates when flag is set</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_GJYO_BRIDGE" Name="Rainbow Bridge" ObjectID="OBJECT_GJYO_OBJECTS">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_DS" Name="Potion Shop Lady" ObjectID="OBJECT_DS">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_MK" Name="Lake Hylia Doctor" ObjectID="OBJECT_MK">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_BOM_BOWL_MAN" Name="Bombchu Bowling Girl" ObjectID="OBJECT_BG">
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_BOM_BOWL_PIT" Name="Bombchu Bowling Pit">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_OWL" Name="Kaepora Gaebora" ObjectID="OBJECT_OWL">
+    <Parameter Params="0000"> Does nothing</Parameter>
+    <Parameter Params="0040"> Outside of Kokiri Forest exit, auto talks</Parameter>
+    <Parameter Params="0080"> Near Hyrule Castle, auto talks</Parameter>
+    <Parameter Params="00C0"> In front of Kakariko Village, auto talks</Parameter>
+    <Parameter Params="0100"> Between Lake Hylia and Gerudo Valley, auto talks</Parameter>
+    <Parameter Params="0140"> In front of Lake Hylia, auto talks</Parameter>
+    <Parameter Params="0180"> Nothing</Parameter>
+    <Parameter Params="01C0"> Lake Hylia, manual talk, talon grab shortcut</Parameter>
+    <Parameter Params="0200"> Death Mountain summit, manual talk, talon grab shortcut</Parameter>
+    <Parameter Params="0240"> Death Mountain summit, manual talk, talon grab shortcut</Parameter>
+    <Parameter Params="0280"> Desert Colossus, auto talks</Parameter>
+    <Parameter Params="02C0"> Lost Woods, before meeting Saria, auto talks</Parameter>
+    <Parameter Params="0300"> Lost Woods, after meeting Saria, auto talks</Parameter>
+    <Parameter Params="0340"> Outside of Kokiri Forest exit, auto talks, Head position alternates?</Parameter>
+    <Flag Mask="0x003F" Type="Switch"/>
+    <Notes>+0x3F = Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_ISHI" Name="Rock" ObjectID="OBJECT_GAMEPLAY_FIELD_KEEP">
+    <Parameter Params="0000"> Small rock, random drops</Parameter>
+    <Parameter Params="0001"> Large light-gray rock, can't pick up as Young Link, no drop</Parameter>
+    <Flag Mask="0xF000" Type="Switch"/>
+    <Flag Mask="0x00C0" Type="Switch"/>
+    <Property Mask="0x0010" Name="Spawn Bugs"/>
+    <Property Mask="0x0F00" Name="Drop Table"/>
+    <Notes>+0x10 = Spawns Bugs
+-0000 No
+-0010 Yes
++0x0F00 = Drop Table //0-12, anything higher becomes drop table 0
++0xF000 = Switch Flag (High Bits)
++0xC0 = Switch Flag (Low Bits)</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_OBJ_HANA" Name="Grave Flower" ObjectID="OBJECT_GAMEPLAY_FIELD_KEEP">
+    <Parameter Params="0000"> Flower for grave</Parameter>
+    <Parameter Params="0001"> Non-liftable small rock</Parameter>
+    <Parameter Params="0002"> Uncuttable small shrub</Parameter>
+    <Parameter Params="0003"> Erratic collision data</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_SWITCH" ID="ACTOR_OBJ_LIGHTSWITCH" Name="Light Activated Sun Switch/Sun Block" ObjectID="OBJECT_LIGHTSWITCH">
+    <Parameter Params="0000"> Sun emblem</Parameter>
+    <Parameter Params="0001"> Block with sun emblem</Parameter>
+    <Flag Mask="0x3F00" Type="Switch"/>
+    <Notes>+0x3F00 switch flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_OBJ_MURE2" Name="Circle of Bushes">
+    <Parameter Params="0000"> Circle of shrubs with one in the middle, random drops</Parameter>
+    <Parameter Params="0001"> Scattered shrubs, random drops</Parameter>
+    <Parameter Params="0002"> Circle of rocks, random drops</Parameter>
+    <Parameter Params="0003"> Crashes</Parameter>
+    <Property Mask="0x0010" Name="Spawn Bugs"/>
+    <Property Mask="0xFF00" Name="Random Drop Table"/>
+    <Notes>+0x10 = Spawns set of 3 bugs
++0xFF00 = Random Drop Table</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_GO" Name="Goron (Cutscene?)" ObjectID="OBJECT_OF1D_MAP">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_FU" Name="Windmill Man" ObjectID="OBJECT_FU">
+    <Notes>
+      5034 as adult, 5035 when playing ocarina in front of him as adult, crash if no cutscene ?
+    </Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_CHANGER" Name="Treasure Chests from Treasure Box Game">
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_JYA_MEGAMI" Name="Large Stone Face (Spirit Temple)" ObjectID="OBJECT_JYA_OBJ">
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_JYA_LIFT" Name="Hanging Platform (Spirit Temple)" ObjectID="OBJECT_JYA_OBJ">
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_JYA_BIGMIRROR" Name="Large Circular Mirror (Spirit Temple)" ObjectID="OBJECT_JYA_OBJ">
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_JYA_BOMBCHUIWA" Name="Light Blocking Rock (Spirit Temple)" ObjectID="OBJECT_JYA_OBJ">
+    <Flag Mask="0x003F" Type="Switch"/>
+    <Notes>
+      Bombable, targetable
+      +0x3F00 = Switch Flag
+      hardcoded cutscene position at -1160, 686, -880
+      spawn light  at -946, 477, -894
+    </Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_JYA_AMISHUTTER" Name="Circular, Lifting Metal Shutter (Spirit Temple)" ObjectID="OBJECT_JYA_OBJ">
+    <Notes>Hookable, automatically rises as you approach it</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_JYA_BOMBIWA" Name="Bombable Rock Wall (Spirit Temple)" ObjectID="OBJECT_JYA_OBJ">
+    <Notes>+0x3F = Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_SPOT18_BASKET" Name="Giant Three Sided Goron Statue" ObjectID="OBJECT_SPOT18_OBJ">
+    <Flag Mask="0x3F00" Type="Switch"/>
+    <Flag Mask="0x003F" Type="Collectible"/>
+    <Notes>+0x3F00 = Switch Flag //Lid disappears, starts spinning on floor
++0x003F = Collectible Flag //Heart Piece</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BOSS" ID="ACTOR_EN_GANON_ORGAN" Name="Ganondorf's Organ" ObjectID="OBJECT_GANON">
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_EN_SIOFUKI" Name="Water Spout" ObjectID="OBJECT_SIOFUKI">
+    <Parameter Params="1000">Lowering</Parameter>
+    <Parameter Params="0000">Rising</Parameter>
+    <Flag Mask="0x0FC0" Target="Params" Type="Switch"/>
+    <Flag Mask="0x001F" Target="Params" Type="Chest"/>
+    <Property Mask="0x00FF" Name="Size of Jet" Target="ZRot"/>
+    <Property Mask="0x00FF" Name="Height" Target="XRot"/>
+    <Property Mask="0x00FF" Name="Timer in seconds" Target="YRot"/>
+    <Notes>
+    0ZZZ = XX WW
+    XX - 6-bit switch flag
+    WW - 5-bit chest flag
+    Rising jets have no chest variable, and you should use 0x1F for them. Lowering jets disappear when the relevant chest flag is set.
+    For lowering jets, the X rotation is the height of the jet, in 40 unit intervals. The Y rotation is the timer, in seconds.
+    For rising jets, the jet always rises 400 units and has a timer of 15 seconds.
+    ZRotation = Size of the jet, 0 = small, 10+ = extremely large
+  </Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_EN_STREAM" Name="Whirlpool Effect" ObjectID="OBJECT_STREAM">
+    <Parameter Params="0000"> Tall and narrow</Parameter>
+    <Parameter Params="0001"> Short and wide</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_MM" Name="Running Man" ObjectID="OBJECT_MM">
+    <Parameter Params="0000">  ? (Hyrule Field)</Parameter>
+    <Parameter Params="FF00">  ? (Lon Lon Ranch)</Parameter>
+    <Notes>Text ID 6086 (607D after a flag ?)</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_KO" Name="Kokiri" ObjectID="OBJECT_OS_ANIME">
+    <Parameter Params="0000"> Standing boy //requires object 00FC, text ID as Adult: 1072</Parameter>
+    <Parameter Params="0001"> Standing girl //requires object 00FD, text ID as Adult: 1073</Parameter>
+    <Parameter Params="0002"> Boxing boy //requires object 00FC, text ID as Adult: 1074</Parameter>
+    <Parameter Params="0003"> Blocking boy //requires object 00FC, text ID as Adult: 1075</Parameter>
+    <Parameter Params="0004"> Backflipping boy //requires object 00FC, text ID as Adult: 1076</Parameter>
+    <Parameter Params="0005"> Sitting girl //requires object 00FD, text ID as Adult: 1057</Parameter>
+    <Parameter Params="0006"> Standing girl //requires object 00FD, text ID as Adult: 1077</Parameter>
+    <Parameter Params="000C"> Blond girl //requires object 013D, text ID as Adult: 10B9</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_KZ" Name="King Zora" ObjectID="OBJECT_KZ">
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_WEATHER_TAG" Name="Weather Effects">
+    <Property Mask="0x7000" Name="Area Size"/>
+    <Notes>//- X402* Snow, use object number 0003, needs actor number 0097 with variable 0003
+//- X403* Rain
+//- X404* Clouds
+//- X406* Fog
+//- X407* Rain with no sky change
+//X= Size of area effected, use 0-7</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_SST_FLOOR" Name="Bongo Bongo Floor" ObjectID="OBJECT_SST">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_ANI" Name="Kakariko Village Rooftop Man" ObjectID="OBJECT_ANI">
+    <Notes>Text ID 5052 as adult</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_EX_ITEM" Name="Lost Woods Slingshot Game">
+    <Notes>Displays an item that will be won by completing Bombchu Bowling/Slingshot minigames</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_JYA_IRONOBJ" Name="Brick Pillar (Spirit Temple)" ObjectID="OBJECT_JYA_IRON">
+    <Parameter Params="0000"> Brick pillar</Parameter>
+    <Parameter Params="0001"> Brick throne</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_JS" Name="Bombchu Salesman" ObjectID="OBJECT_JS">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_JSJUTAN" Name="Flying Carpet">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_CS" Name="Graveyard Boy" ObjectID="OBJECT_CS">
+    <Property Mask="0x00FF" Name="Path Id"/>
+    <Notes>+0xFF = Path Id</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_MD" Name="Mido" ObjectID="OBJECT_MD">
+    <Parameter Params="0100"> Blocking Deku Tree</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_HY" Name="Hylians" ObjectID="OBJECT_OS_ANIME">
+    <Parameter Params="0000"> Fat woman in light blue // Use object 0105, text ID 079D (looking for puppy)</Parameter>
+    <Parameter Params="0001"> Fat woman in white, blues and yellow // Use object 018C, text ID 7016 first, then 7017</Parameter>
+    <Parameter Params="0002"> Bearded man in white and green // Use object 0107, text ID 701A</Parameter>
+    <Parameter Params="0003"> Jogging man (Sakon) // Use object 0111, needs pathway, text ID 7002</Parameter>
+    <Parameter Params="0004"> Staunch man in black and green // Use object 0107, text ID 7023 first, then 7024</Parameter>
+    <Parameter Params="0005"> Begging man // Use object 0111 // Use object 0111, buy things in bottles, text ID 70ED and followings</Parameter>
+    <Parameter Params="0006"> Old woman in white // Use object 010D, text ID 7021 first, then 7022</Parameter>
+    <Parameter Params="0007"> Old man in blue // Use object 010C, text ID 7027 first, then 7028</Parameter>
+    <Parameter Params="0008"> Thin woman in lilac // Use object 0108, text ID 701D first, then 701E</Parameter>
+    <Parameter Params="0009"> Laughing man in red and white // Use object 0111, text ID 701F first, then 7020</Parameter>
+    <Parameter Params="000A"> Explaining man in blue and white // Use object 0111, text ID 7018 first, then 7019</Parameter>
+    <Parameter Params="000B"> Thin woman in blue and yellow // Use object 0108, text ID 7014</Parameter>
+    <Parameter Params="000C"> Looking man in crimson // Use object 0111, text ID 7015</Parameter>
+    <Parameter Params="000D"> Red haired man in green and lilac // Use object 0107, text ID 7055</Parameter>
+    <Parameter Params="000E"> Bearded, red haired man in green and white // Use object 0111, text ID 7089</Parameter>
+    <Parameter Params="000F"> Bald man in brown // Use object 010C, text ID 708A</Parameter>
+    <Parameter Params="0010"> Man in white // Use object 0111, text ID 700E</Parameter>
+    <Parameter Params="0011"> Staunch man two shades of green // Use object 0107, text ID 505B first, then 505C</Parameter>
+    <Parameter Params="0013"> Bald man in purple // Use object 010C</Parameter>
+    <Parameter Params="0014"> Man in two shades of green // Use object 0107</Parameter>
+    <Property Mask="0x0780" Name="Path Id"/>
+    <Notes>+0x780 = Path Id //NPCs 03 and 07 only</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BOSS" ID="ACTOR_EN_GANON_MANT" Name="Ganondorf's Mantle">
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_EN_OKARINA_EFFECT" Name="Rain and Lightning">
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_MAG" Name="Title Screen Actor" ObjectID="OBJECT_MAG">
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_DOOR_GERUDO" Name="Metal Grate Door" ObjectID="OBJECT_DOOR_GERUDO">
+    <Notes>Navi says you have the wrong kind of key, boss door?</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_ELF_MSG2" Name="Targetable Navi Spot">
+    <Notes>See actor 11B for variables</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_DEMO_GT" Name="Ganon's Tower Collapsing" ObjectID="OBJECT_GT">
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_PO_FIELD" Name="Hyrule Field Poes/Big Poes" ObjectID="OBJECT_PO_FIELD">
+    <Parameter Params="0000"> Big Poe</Parameter>
+    <Parameter Params="FFFF"> Normal poe, circles around you</Parameter>
+    <Flag Mask="0x003F" Type="Switch"/>
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_EFC_ERUPC" Name="Lava Sprites" ObjectID="OBJECT_EFC_ERUPC">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_BG_ZG" Name="Metal Bars" ObjectID="OBJECT_ZG">
+    <Flag Mask="0x3F00" Type="Switch"/>
+    <Notes>+0x3F00 = Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_HEISHI4" Name="Hyrule Guard" ObjectID="OBJECT_SD">
+    <Parameter Params="0000"> Time teller</Parameter>
+    <Notes>Text ID 5063, then 5064</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_ZL3" Name="Adult Zelda" ObjectID="OBJECT_ZL2">
+    <Notes>Tower collapse</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BOSS" ID="ACTOR_BOSS_GANON2" Name="Ganon" ObjectID="OBJECT_GANON2">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_KAKASI" Name="Scarecrow" ObjectID="OBJECT_KA">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_TAKARA_MAN" Name="Treasure Chest Shop Man" ObjectID="OBJECT_TS">
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_OBJ_MAKEOSHIHIKI" Name="Push Block (Has Savepoint)" ObjectID="OBJECT_GAMEPLAY_DANGEON_KEEP">
+    <Notes>Requires Goron Bracelet or better to move as child or adult</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_OCEFF_SPOT" Name="Sun's Song effect">
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_END_TITLE" Name="The End Message">
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_EN_TORCH" Name="Treasure Chest (Variable chosen by Hole)">
+    <Notes>Contents determined by the grotto (actor 009B) variable</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_DEMO_EC" Name="Ranch NPC's (Ending Cutscene)" ObjectID="OBJECT_EC">
+    <Parameter Params="0000"> Drunken Ingo // Use Object 00C0</Parameter>
+    <Parameter Params="0001"> Drunken Talon // Use Object 0088</Parameter>
+    <Parameter Params="0002"> Windmill man breakdancing // Use Object 0133</Parameter>
+    <Parameter Params="0003"> Encouraging Kokiri Boy // Use Object 00FC</Parameter>
+    <Parameter Params="0004"> Encouraging Kokiri Girl // Use Object 00FD</Parameter>
+    <Parameter Params="0005"> White-haired man in blue // Use Object 010C</Parameter>
+    <Parameter Params="0006"> Black-bearded man in white and green // Use Object 0107</Parameter>
+    <Parameter Params="0007"> Bushy-haired woman in red and black // Use Object 0115</Parameter>
+    <Parameter Params="0008"> Little old lady // Use Object 010D</Parameter>
+    <Parameter Params="0009"> Carpenter Boss, Singing // Use Object 0121</Parameter>
+    <Parameter Params="000A"> Carpenter, Singing // Use Object 0122</Parameter>
+    <Parameter Params="000B"> Carpenter, Singing // Use Object 0122</Parameter>
+    <Parameter Params="000C"> Carpenter, Singing // Use Object 0122</Parameter>
+    <Parameter Params="000D"> Carpenter, Singing // Use Object 0122</Parameter>
+    <Parameter Params="000E"> Kokiri Boy, Dancing // Use Object 00FC</Parameter>
+    <Parameter Params="000F"> Kokiri Girl, Dancing // Use Object 00FD</Parameter>
+    <Parameter Params="0010"> Gerudo, Line-dancing 1 // Use Object 0116</Parameter>
+    <Parameter Params="0011"> Gerudo, Line-dancing 2 // Use Object 0116</Parameter>
+    <Parameter Params="0012"> Gerudo, spikey-haired, Line-dancing // Use Object 0116</Parameter>
+    <Parameter Params="0013"> Dancing Zora // Use Object 00FE</Parameter>
+    <Parameter Params="0014"> King Zora // Use Object 00FF</Parameter>
+    <Parameter Params="0015"> Mido, sitting // Use Object 00FB</Parameter>
+    <Parameter Params="0016"> Floating cucco // Use Object 0013</Parameter>
+    <Parameter Params="0017"> Floating cucco 2 // Use Object 0013</Parameter>
+    <Parameter Params="0018"> Walking cucco // Use Object 0013</Parameter>
+    <Parameter Params="0019"> Cucco Lady // Use Object 0110</Parameter>
+    <Parameter Params="001A"> Potion Shopkeeper // Use Object 0159</Parameter>
+    <Parameter Params="001B"> Happy Mask Salesman // Use Object 013E</Parameter>
+    <Parameter Params="001C"> Fisherman // Use Object 015B</Parameter>
+    <Parameter Params="001D"> Bombchu Shopkeeper // Use Object 0165</Parameter>
+    <Parameter Params="001E"> Dancing Goron // Use Object 00C9</Parameter>
+    <Parameter Params="001F"> Belly slapping Goron // Use Object 00C9</Parameter>
+    <Parameter Params="0020"> Biggoron, dancing // Use Object 00C9</Parameter>
+    <Parameter Params="0021"> Medigoron, lying down // Use Object 00C9</Parameter>
+    <Parameter Params="0022"> Singing Malon // Use Object 00D0</Parameter>
+    <Notes>Each variable requires it's own object</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_SHOT_SUN" Name="Fire Arrow Shot/Sun's Song Fairy">
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_DY_EXTRA" Name="Great Fairy's Pink and Yellow Beams" ObjectID="OBJECT_DY_OBJ">
+    <Parameter Params="0000"> Pink spiral beam</Parameter>
+    <Parameter Params="0001"> Green spiral beam</Parameter>
+    <Parameter Params="0002"> Purple spiral beam</Parameter>
+    <Parameter Params="0003"> Blue spiral beam</Parameter>
+    <Parameter Params="0004">+ Black spiral beam</Parameter>
+    <Parameter Params="000C"> Black and green spiral beam</Parameter>
+    <Parameter Params="000D"> Gray and green spiral beam</Parameter>
+    <Parameter Params="000E"> Light blue spiral beam</Parameter>
+    <Parameter Params="000F"> Light purple spiral beam</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_EN_WONDER_TALK2" Name="Checkable Spot">
+    <Parameter Params="0000"> Checkable, Sets Switch</Parameter>
+    <Parameter Params="4000"> Instant Text</Parameter>
+    <Parameter Params="8000"> Checkable, Disappears on Switch</Parameter>
+    <Parameter Params="C000"> Z-Target, No Text</Parameter>
+    <Flag Mask="0x003F" Type="Switch"/>
+    <Property Mask="0x3FC0" Name="Message ID"/>
+    <Notes>+0x3FC0 = Message ID //0x0200 + Value
+-0000 Hi! I’m a talking door! //Unused
+-0040 Strange... this door doesn't open...
+-0080 Strong iron bars are blocking the door. You can’t open them with your hands!
+-00C0 You need a Key to open a door that is locked or chained.
+-0100 You need a special key to open this door.
+-0140 Be quiet! It’s only time! I, Dampé the Gravekeeper, am in bed now! Go away and play! Maybe you can find a ghost in the daytime?
+-0180 It’s time now. The Gravedigging Tour is over now! I, Dampé the gravekeeper, am in bed! Go away and play! Maybe you’ll find a ghost!
+-01C0 Happy Mask Shop / Please read this sign before you use this shop...
+-0200 Shadow Temple... here is gathered Hyrule's bloody history of greed and hatred...
+-0240 What is hidden in the darkness... Tricks full of ill will... You can’t see the way forward...
+-0280 One who gains the eye of truth will be able to see what is hidden in the darkness.
+-02C0 Something strange is covering the entrance. You must solve the puzzle in this room to make the entrance open.
+-0300 Giant dead Dodongo... when it sees red, a new way to go will be open.
+-0340 Treasure Chest Contest / Temporarily Closed / Open Tonight!
+-0380 Medicine Shop / Closed until morning...
+-03C0 Shooting Gallery / Open only during the day
+-0400 Happy Mask Shop / Now hiring part-time / Apply during the day
+-0440 Bazaar / Open only during the day
+-0480 Show me the light!
+-04C0 One with the eye of truth shall be guided to the Spirit Temple by an inviting ghost.
+-0500 Those who wish to open the path sleeping at the bottom of the lake must play the song passed down by the Royal Family.
+-0540 Those who wish to open the gate on the far heights, play the song passed down by the Royal Family.
+-0580 Those who find a Small Key can advance to the next room. Those who don’t can go home! //Unused
+-05C0 If you wish to speak to me, do so from the platform.
+-0600 Hi, LINK! Look this way! Look over here with Z, and talk to me with A.
+-0640 The current time is: time.
+-0680 Shine light on the living dead...
+-06C0 Those who break into the Royal Tomb will be obstructed by the lurkers in the dark.
+-0700 Hey, you! Young man, over there! Look over here, inside the cell!
+-0740 My little boy isn’t here right now... I think he went to play in the graveyard...
+-0780 Oh, my boy is asleep right now. Please come back some other time to play with him!
+-07C0 When water fills the lake, shoot for the morning light.
+-0800 If you want to travel to the future, you should return here with the power of silver from the past.
+-0840 If you want to proceed to the past, you should return here with the pure heart of a child.
+-0880 This door is currently being refurbished. //Unused
+-08C0 It looks like something used to be set in this stand...
+-0900 Make my beak face the skull of truth. The alternative is descent into the deep darkness.
+-0940 This is not the correct key... the door won’t open!
+-0980 Granny’s Potion Shop / Closed / Gone for Field Study / Please come again! –Granny
+-09C0 Who’s there? What a bad kid, trying to enter from the rear door! Such a bad kid... I have to tell you some juicy gossip! The boss carpenter has a son... He’s the guy who sits under the tree every night... Don’t tell the boss I told you that!
+-0A00 Look at this!
+-0A40 Malon’s gone to sleep! I’m goin’ to sleep now, too. Come back again when it’s light out!
+-0A80 LINK’s Records! / Spiders squished: 0 / Largest fish caught: 0 pounds / Marathon time: 00&quot;00&quot; / Horse race time: 00&quot;00&quot; / Horseback archery: 0 points
+-0AC0 The crest of the Royal Family is inscribed here.
+-0B00 R.I.P. / Here lie the souls of those who swore fealty to the Royal Family of Hyrule / The Sheikah, guardians of the Royal Family and founders of Kakariko, watch over these spirits in their eternal slumber.
+-0B40 Sleepless Waterfall / The flow of this waterfall serves the King of Hyrule. When the king slumbers, so too do these falls.
+-0B80 Some frogs are looking at you from underwater...
+-0BC0 You’re standing on a soft carpet for guests... it feels so plush under your feet!
+-0C00 If you can overcome the trials in the chambers ahead, then and only then will you be qualified to hold our secret treasure!
+-0C40 If you desire to acquire our hidden treasure, you must strive to obtain the keys hidden in each chamber!
+-0C80 Defeat all the enemies in a limited time!
+-0CC0 Collect the underwater gems!
+-0D00 Cross the sea of fire!
+-0D40 Find a secret passage in this room!
+-0D80 Blind the eyes of the statue!
+-0DC0 One with silver hands shall move a giant block!
+-0E00 Without the necessary items, one will be confounded by impossible mysteries.
+-0E40 Gather the jewels of white, while avoiding traps and danger!
+-0E80 Fishing Pond / The fish are really biting today!
+-0EC0 ...???
+-0F00 The Shadow will yield only to one with the eye of truth, handed down in Kakariko Village.
+-0F40 You borrowed a Pocket Egg! ...
++0x3F = Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_GE2" Name="Patrolling Gerudo" ObjectID="OBJECT_GLA">
+    <Parameter Params="0000"> Turns around, can’t move, whistle-blower</Parameter>
+    <Parameter Params="0001"> Won’t turn around, can’t move, whistle-blower</Parameter>
+    <Parameter Params="0002"> Purple Gerudo, acts like the one that gives you the membership card</Parameter>
+    <Property Mask="0x0F00" Name="Range of movements (type 0)"/>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_OBJ_ROOMTIMER" Name="Room Timer">
+    <Flag Mask="0xFC00" Type="Switch"/>
+    <Property Mask="0x03FF" Name="Timer in Seconds"/>
+    <Notes>+0xFC00 = Switch Flag //Set on room clear
++ 0x3FF = Timer in seconds (capped to 10 minutes)
+-03FF No Timer</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_SSH" Name="Cursed Skulltula People" ObjectID="OBJECT_SSH">
+    <Parameter Params="0000"> Main Hyliantula //(gold skulltulas lower than 100)</Parameter>
+    <Parameter Params="0001"> Hyliantula without an arm //(gold skulltulas lower than 10)</Parameter>
+    <Parameter Params="0002"> Hyliantula without an arm //(gold skulltulas lower than 20)</Parameter>
+    <Parameter Params="0003"> Hyliantula without an arm //(gold skulltulas lower than 30)</Parameter>
+    <Parameter Params="0004"> Hyliantula without an arm //(gold skulltulas lower than 40)</Parameter>
+    <Parameter Params="0005"> Hyliantula without an arm //(gold skulltulas lower than 50)</Parameter>
+    <Parameter Params="0006"> Hyliantula without an arm //(gold skulltulas lower than 60)</Parameter>
+    <Parameter Params="0007"> Hyliantula without an arm //(gold skulltulas lower than 70)</Parameter>
+    <Parameter Params="0008"> Hyliantula without an arm //(gold skulltulas lower than 80)</Parameter>
+    <Parameter Params="0009"> Hyliantula without an arm //(gold skulltulas lower than 90)</Parameter>
+    <Parameter Params="000A"> Hyliantula without an arm //(gold skulltulas lower than 100)</Parameter>
+    <Parameter Params="000B"> Hyliantula without an arm //(gold skulltulas lower than 110)</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_STH" Name="Uncursed Skulltula People">
+    <Parameter Params="0000"> Main Hyliantula //(gold skulltulas lower than 100)</Parameter>
+    <Parameter Params="0001"> Hyliantula without an arm //(gold skulltulas lower than 10)</Parameter>
+    <Parameter Params="0002"> Hyliantula without an arm //(gold skulltulas lower than 20)</Parameter>
+    <Parameter Params="0003"> Hyliantula without an arm //(gold skulltulas lower than 30)</Parameter>
+    <Parameter Params="0004"> Hyliantula without an arm //(gold skulltulas lower than 40)</Parameter>
+    <Parameter Params="0005"> Hyliantula without an arm //(gold skulltulas lower than 50)</Parameter>
+    <Parameter Params="0006"> Hyliantula without an arm //(gold skulltulas lower than 60)</Parameter>
+    <Parameter Params="0007"> Hyliantula without an arm //(gold skulltulas lower than 70)</Parameter>
+    <Parameter Params="0008"> Hyliantula without an arm //(gold skulltulas lower than 80)</Parameter>
+    <Parameter Params="0009"> Hyliantula without an arm //(gold skulltulas lower than 90)</Parameter>
+    <Parameter Params="000A"> Hyliantula without an arm //(gold skulltulas lower than 100)</Parameter>
+    <Parameter Params="000B"> Hyliantula without an arm //(gold skulltulas lower than 110)</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_OCEFF_WIPE" Name="Zelda's Lullaby Effect">
+    <Parameter Params="0000"> Purple wormhole</Parameter>
+    <Parameter Params="0001"> Blue wormhole</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_OCEFF_STORM" Name="Song of Storms Effect">
+    <Parameter Params="0000"> Regular effects, storm begins</Parameter>
+    <Parameter Params="0001"> Texture-spanning effect only, no storm, music isn't affected, effect does not dissipate</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_WEIYER" Name="Stingray" ObjectID="OBJECT_EI">
+    <Parameter Params="FFFF"> Default</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_SPOT05_SOKO" Name="Sacred Forest Meadow Water and Gate" ObjectID="OBJECT_SPOT05_OBJECTS">
+    <Parameter Params="0000"> Large flat square floor tile, makes water noises when walking on it</Parameter>
+    <Parameter Params="0001"> Large vertical gate</Parameter>
+    <Parameter Params="0002">+ Invisible, glitched gate //can still attack or run into it</Parameter>
+    <Flag Mask="0x3F00" Type="Switch"/>
+    <Notes>+0x3F00 = Switch Flag //Type 01 only</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_JYA_1FLIFT" Name="Stone Platform" ObjectID="OBJECT_JYA_OBJ">
+    <Flag Mask="0x003F" Type="Switch"/>
+    <Notes>+0x3F = Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_JYA_HAHENIRON" Name="Pillar after being hit by Iron Knuckle" ObjectID="OBJECT_JYA_IRON">
+    <Parameter Params="0000"> Black particles?</Parameter>
+    <Parameter Params="0002"> Round stone thing, explodes as soon as area loads</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_SPOT12_GATE" Name="Gerudo Fortress wooden gate" ObjectID="OBJECT_SPOT12_OBJ">
+    <Flag Mask="0x00FF" Type="Switch"/>
+    <Notes>+0xFF = Nullable Switch Flag, has cutscene with absolute position
+      Hardcoded cutscene camera: -1134, 112, -3075</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_SPOT12_SAKU" Name="Gerudo Training Area Gate" ObjectID="OBJECT_SPOT12_OBJ">
+    <Flag Mask="0x00FF" Type="Switch"/>
+    <Notes>+0xFF = Nullable Switch Flag
+      Camera cutscene points to X 38 Y 333 Z -1097</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_HINTNUTS" Name="Green Deku Scrubs" ObjectID="OBJECT_HINTNUTS">
+    <Parameter Params="1A00"> Scrub on path to Deku Slingshot</Parameter>
+    <Parameter Params="9B00"> 231/312 Hint scrub</Parameter>
+    <Parameter Params="9C00"> Final Deku Scrub</Parameter>
+    <Property Mask="0x00FF" Name="Puzzle Scrub #"/>
+    <Notes>
++0xFF = used to set up 231/312 puzzle
+-00 Normal, talks when caught
+-01 First scrub to hit //0001 for no dialog?
+-02 Second scrub to hit //0002 for no dialog?
+-03 Third scrub to hit, talks when caught</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_NUTSBALL" Name="Deku Scrub's/Octorok's Deku Nut/ Rock Attack">
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_SPOT00_BREAK" Name="Broken Drawbridge" ObjectID="OBJECT_SPOT00_BREAK">
+    <Parameter Params="0000"> Broken Drawbridge</Parameter>
+    <Parameter Params="0001"> Fences (Hyrule Field)</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_SHOPNUTS" Name="Grounded Business Scrub" ObjectID="OBJECT_SHOPNUTS">
+    <Parameter Params="0000"> Deku Nuts</Parameter>
+    <Parameter Params="0001"> Deku Sticks</Parameter>
+    <Parameter Params="0002"> Piece of Heart</Parameter>
+    <Parameter Params="0003"> Deku Seeds</Parameter>
+    <Parameter Params="0004"> Deku Shield</Parameter>
+    <Parameter Params="0005"> Bombs</Parameter>
+    <Parameter Params="0006"> Deku Seeds</Parameter>
+    <Parameter Params="0007"> Red Potion</Parameter>
+    <Parameter Params="0008"> Green Potion</Parameter>
+    <Parameter Params="0009"> Deku Stick Upgrade</Parameter>
+    <Parameter Params="000A"> Deku Nut Upgrade</Parameter>
+    <Parameter Params="000B"> Never speaks, and Link is sadly very patient...</Parameter>
+    <Parameter Params="000C"> Pocket Egg?</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_IT" Name="Dampe Game Collectables">
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_GELDB" Name="Gerudo Fighter" ObjectID="OBJECT_GELDB">
+    <Flag Mask="0xFF00" Target="Params" Type="Switch"/>
+    <Property Mask="0x00FF" Name=" Switch Flag to spawn" Target="ZRot"/>
+    <Notes>
+      +0x3F00 = switch flag when you defeat her AND collectible flag for her key
+      (if the collectible flag XX is already set she will not give you a key)
+      ZRot = switch to make her spawn
+    </Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_OCEFF_WIPE2" Name="Epona's Song Effect">
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_OCEFF_WIPE3" Name="Saria's Song Effect">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_NIW_GIRL" Name="Child Chasing Cucco in Hyrule Market" ObjectID="OBJECT_GR,OBJECT_NIW">
+    <Property Mask="0x00FF" Name="Pathway Id"/>
+    <Notes>+0x00FF = Pathway ID</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_DOG" Name="Dog" ObjectID="OBJECT_DOG">
+    <Parameter Params="0000"> Dirty blond dog</Parameter>
+    <Parameter Params="0001"> Chocolate brown dog (kinda yellowish when in a certain light)</Parameter>
+    <Parameter Params="0002"> Red dog</Parameter>
+    <Parameter Params="0003"> Multicolored, flashing dog</Parameter>
+    <Parameter Params="0004"> Red dog</Parameter>
+    <Parameter Params="0005"> Multicolored, flashing dog</Parameter>
+    <Parameter Params="0006"> Dark dog (black fur)</Parameter>
+    <Parameter Params="0007"> Green dog</Parameter>
+    <Parameter Params="0008"> Red dog</Parameter>
+    <Parameter Params="0009"> Purple dog</Parameter>
+    <Parameter Params="000A"> Red dog</Parameter>
+    <Parameter Params="000B"> Green dog</Parameter>
+    <Parameter Params="000C"> Green dog</Parameter>
+    <Parameter Params="000D"> Black dog</Parameter>
+    <Parameter Params="000E"> Black dog</Parameter>
+    <Parameter Params="000F"> Purple dog</Parameter>
+    <Property Mask="0x0FF0" Name="Direction"/>
+    <Notes>
++0x0FF0 = Direction it runs //Orientation relative to the object. Also, if you befriend a dog and return to the place with the dog and change this value, another dog will spawn
+-0000 SEE
+-0010 NNW
+-0020 N
+-0030 First NNW, then SE
+-0040 First NNW, then SE
+-0050 First NNW, then SE
+-0060 N
+-0070 First NNW, then S
+-0080 First NNW, then SE
+-0090 N
+-00A0 First NNW, then SE
+-00B0 NW
+-00C0 NW
+-00D0 NW
+-00E0 NW
+-00F0+ First NNW, then SEE
+-0F00+ No dog
+</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_EN_SI" Name="Golden Skulltula Token" ObjectID="OBJECT_ST">
+    <Property Mask="0xFF00" Name="Path id (type 3)"/>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_SPOT01_OBJECTS2" Name="Semi-Built Shooting Gallery">
+    <Parameter Params="0000"> Potion Shop Poster</Parameter>
+    <Parameter Params="0001"> Shooting Gallery Poster</Parameter>
+    <Parameter Params="0002"> Bazaar Poster</Parameter>
+    <Parameter Params="0003"> Shooting Gallery (Partially Complete) //Spawns Carpenter Sabooro (Kakariko) during the day</Parameter>
+    <Parameter Params="0004"> Shooting Gallery (Complete)</Parameter>
++0xFF00 = Carpenter Sabooro (Kakariko)'s Path //Type 3, Daytime only
+-FF00 No Path
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_OBJ_COMB" Name="Beehive" ObjectID="OBJECT_GAMEPLAY_FIELD_KEEP">
+    <Notes>graphics very glitchy in certain areas</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_SPOT11_BAKUDANKABE" Name="Nayru Fountain Bombable Wall" ObjectID="OBJECT_SPOT11_OBJ">
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_OBJ_KIBAKO2" Name="Crate" ObjectID="OBJECT_KIBAKO2">
+    <Property Mask="0xFFFF" Name="Skulltula Variable (Nullable)" Target="Params"/>
+    <Collectible Mask="0x00FF" Target="XRot" Type="Drop"/>
+    <Flag Mask="0x003F" Target="ZRot" Type="Collectible"/>
+    <Notes>0xFFFF = Spawned Skulltula Variable (see actor 0095)
+-FFFF No Skulltula
+X ROTATION +0xFF = Collectible Item Dropped (see actor 0015)
+Z ROTATION +0x3F = Collectible Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_DNT_DEMO" Name="Deku Stage Cutscene">
+    <Parameter Params="FFFF"> Default</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_DNT_JIJI" Name="Deku Stage Judge" ObjectID="OBJECT_DNS">
+    <Notes>Spawned by Deku Panel</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_DNT_NOMAL" Name="Deku Panel">
+    <Parameter Params="FFFF"> Default</Parameter>
+    <Notes>Yields deku seed upgrade</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_GUEST" Name="Man in Purple Pants and White Top" ObjectID="OBJECT_BOJ">
+    <Notes>may cause crashes in some areas</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_BOM_GUARD" Name="Bombchu Bowling Alley Game" ObjectID="OBJECT_BOWL">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_HS2" Name="Carpenter's Son (Child)" ObjectID="OBJECT_HS">
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_DEMO_KEKKAI" Name="Ganon's Tower Magic Barrier" ObjectID="OBJECT_DEMO_KEKKAI">
+    <Parameter Params="0000"> Magic Barrier</Parameter>
+    <Parameter Params="0001"> Blue Magic Core //Use with actor 00D2 (Adult Ruto), var 0002</Parameter>
+    <Parameter Params="0002"> Yellow Magic Core //Use with actor 00A6 (Rauru), var 0002</Parameter>
+    <Parameter Params="0003"> Red Magic Core //Use with actor 00A8 (Cutscene Darunia), var 0002</Parameter>
+    <Parameter Params="0004"> Purple Magic Core //Use with actor 00A9 (Impa), var 0002</Parameter>
+    <Parameter Params="0005"> Orange Magic Core //Use with actor 00C3 (Nabooru), var 0002</Parameter>
+    <Parameter Params="0006"> Green Magic Core //Use with actor 00C9 (Cutscene Saria), var 0002</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_SPOT08_BAKUDANKABE" Name="Zora's Fountain Bombable Wall" ObjectID="OBJECT_GAMEPLAY_FIELD_KEEP,OBJECT_SPOT08_OBJ">
+    <Flag Mask="0x003F" Type="Switch"/>
+    <Notes>Graphics may glitch when it's destroyed, but will fix after it disappears
++0x3F = Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_SPOT17_BAKUDANKABE" Name="Death Mountain Crater Bombable Wall" ObjectID="OBJECT_GAMEPLAY_FIELD_KEEP,OBJECT_SPOT17_OBJ">
+    <Notes>Graphics may glitch when it's destroyed, but will fix after it disappears</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_OBJ_MURE3" Name="Tower of Rupees">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_TG" Name="Honey and Darling" ObjectID="OBJECT_MU">
+    <Notes>Text ID 7025, then 7026 then 7025….</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_MU" Name="Haggling Townspeople" ObjectID="OBJECT_MU">
+    <Parameter Params="0000"> Blue/green textures</Parameter>
+    <Parameter Params="0001"> Green/brown textures</Parameter>
+    <Parameter Params="0002"> Green/red textures</Parameter>
+    <Parameter Params="0003"> Purple/red textures</Parameter>
+    <Parameter Params="0004"> Orange/red textures</Parameter>
+    <Parameter Params="0005"> Purple/black textures</Parameter>
+    <Parameter Params="0006"> Flashing purple/blue textures</Parameter>
+    <Parameter Params="0007"> Flashing purple/cyan/green textures, depends on movement of camera</Parameter>
+    <Parameter Params="0008"> Purple/red textures</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_GO2" Name="Gorons and Biggoron" ObjectID="OBJECT_OF1D_MAP">
+    <Parameter Params="0000"> Large Goron that does wild rollin’</Parameter>
+    <Parameter Params="0001"> Small Goron that is Darunia’s offspring, rolls around, can talk to while he’s rolling</Parameter>
+    <Parameter Params="0002"> Biggoron</Parameter>
+    <Parameter Params="0003"> Quivering Goron</Parameter>
+    <Parameter Params="0004"> Goron that stands by the bomb flower outside (will start “walking” if you ask him about Bomb Flowers)</Parameter>
+    <Parameter Params="0005"> Small Goron, won’t stop rolling regardless of what you do</Parameter>
+    <Parameter Params="0006"> Goron that stands outside of Dodongo’s Cavern</Parameter>
+    <Parameter Params="0007"> Goron that’s hungry</Parameter>
+    <Parameter Params="0008"> Goron that stands by the altar</Parameter>
+    <Parameter Params="0009"> Goron that talks about torches</Parameter>
+    <Parameter Params="000A"> Goron that hid a Deku Stick</Parameter>
+    <Parameter Params="000B"> Goron that wants you to bring fire back from Darunia’s room</Parameter>
+    <Parameter Params="000C"> Goron that talks about the Great Fairy</Parameter>
+    <Property Mask="0xFF00" Name="Pathway Id"/>
+    <Notes>+0xFF00? = Pathway ID</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_WF" Name="Wolfos" ObjectID="OBJECT_WF">
+    <Parameter Params="0000"> Normal</Parameter>
+    <Parameter Params="0001"> White Wolfos, mini-boss music starts</Parameter>
+    <Flag Mask="0xFF00" Type="Switch"/>
+    <Notes>+0xFF00 = Nullable Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_SKB" Name="Stalchildren" ObjectID="OBJECT_SKB">
+    <Notes>//0000 to 1098 controls the size, where 0000 is normal size and 1098 is as large as is possible for the machine to handle (may vary depending on the level).
+//From F02F to FFFF, the Stalchild will appear but will somehow invert everything. In other words, it walks upside-down underneath the ground.
+//Really weird. FFFF is smallest, F02F is supposedly largest (I haven’t been able to see it, though).</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_DEMO_GJ" Name="Ganon Battle Rubble" ObjectID="OBJECT_GJ">
+    <Parameter Params="0008"> Large block with “sun o’er horizon” emblem on it</Parameter>
+    <Parameter Params="0009"> Wall chunk with some stray stuff sticking out of the top</Parameter>
+    <Parameter Params="000A"> Another wall chunk, mostly horizontal</Parameter>
+    <Parameter Params="000B"> Wall chunk with some stray stuff sticking out of the top</Parameter>
+    <Parameter Params="000C"> Gate/bridge-like metallic object, mostly horizontal</Parameter>
+    <Parameter Params="000D"> Beam or tower remnant</Parameter>
+    <Parameter Params="000E"> Tall wall chunk with some stray stuff sticking out of the top</Parameter>
+    <Parameter Params="FF04"> Ganon's Tower rubble</Parameter>
+    <Parameter Params="FF08"> GT rubble1</Parameter>
+    <Parameter Params="FF09"> GT rubble2</Parameter>
+    <Parameter Params="FF0A"> GT rubble3</Parameter>
+    <Parameter Params="FF0B"> GT rubble4</Parameter>
+    <Parameter Params="FF0C"> GT rubble5</Parameter>
+    <Parameter Params="FF0D"> GT rubble6</Parameter>
+    <Parameter Params="FF0E"> GT rubble7</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_BOSS" ID="ACTOR_DEMO_GEFF" Name="Crumbling Stone" ObjectID="OBJECT_GEFF">
+    <Parameter Params="0000"> Large chunk</Parameter>
+    <Parameter Params="0001"> Medium chunk</Parameter>
+    <Parameter Params="0002"> Small chunk</Parameter>
+    <Notes>non-solid, possibly Ganon's Tower rubble</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_GND_FIREMEIRO" Name="Sinkable Lava Platform" ObjectID="OBJECT_DEMO_KEKKAI">
+    <Notes>Narrow, maze-like platform (sinks)</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_GND_DARKMEIRO" Name="Invisible/Transparent Platforms" ObjectID="OBJECT_DEMO_KEKKAI">
+    <Parameter Params="0000"> Nothing</Parameter>
+    <Parameter Params="0001"> Glass Block //appears when Switch Flag is set</Parameter>
+    <Parameter Params="0002"> Invisible Timer //See comments</Parameter>
+    <Flag Mask="0xFF00" Type="Switch"/>
+    <Notes>+0xFF00 = Nullable Switch Flag //If null, Enabled and ignoring switch flag input
+//The timer works as such:
+//The clear block's invisible timer actor manipulates the value of three switch flags:
+//The Switch Flag (FlagA), Flag + 1 (FlagB), Flag + 2 (FlagC)
+//FlagA is set to 0 if FlagB and FlagC are 0
+//FlagA is set to 1 and timer started if either FlagB or FlagC are 1
+//Before timer ends, FlagA is set to 0
+//Aprox. 1 second later, FlagB and FlagC are zeroed
+//Clear Block actors disappear ~2 seconds after the Switch Flag is zeroed to account for
+//FlagA being zeroed before the timer runs out</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_GND_SOULMEIRO" Name="Web Blocked Light Window" ObjectID="OBJECT_DEMO_KEKKAI">
+    <Parameter Params="0000"> Web?</Parameter>
+    <Parameter Params="0001"> Unknown</Parameter>
+    <Parameter Params="0002"> Unknown</Parameter>
+    <Flag Mask="0x3F00" Type="Switch"/>
+    <Notes>+0x3F00 = Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_GND_NISEKABE" Name="2D Stone Wall" ObjectID="OBJECT_DEMO_KEKKAI">
+    <Parameter Params="0000"> Square Stone</Parameter>
+    <Parameter Params="0001"> Stone Brick</Parameter>
+    <Parameter Params="0002"> Similar to 1, but looks like a different texture</Parameter>
+    <Parameter Params="0003">+ Graphics glitchy</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_GND_ICEBLOCK" Name="Large Square Ice Block" ObjectID="OBJECT_DEMO_KEKKAI">
+    <Notes>//Actor 00D6 is used in Ice Cavern</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_GB" Name="Poe Collector" ObjectID="OBJECT_PS">
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_GS" Name="Gossip Stone" ObjectID="OBJECT_GS">
+    <Parameter Params="0000"> This is a Gossip Stone!</Parameter>
+    <Parameter Params="0001"> They say you can swim faster by continuously pressing B.</Parameter>
+    <Parameter Params="0002"> They say there is a secret near the lone tree which is not far from the river in the northwest part of Hyrule Field.</Parameter>
+    <Parameter Params="0003"> They say that there is a secret on the road that leads to Lake Hylia.</Parameter>
+    <Parameter Params="0004"> They say that Biggoron’s Sword is super sharp and will never break.</Parameter>
+    <Parameter Params="0005"> They say that Medigoron didn’t really think about his own size, so his store is really cramped.</Parameter>
+    <Parameter Params="0006"> They say that Malon set the original record in the obstacle course of Lon Lon Ranch.</Parameter>
+    <Parameter Params="0007"> They say that Malon of Lon Lon Ranch hopes a knight in shining armor will come and sweep her off her feet someday.</Parameter>
+    <Parameter Params="0008"> They say that Ruto, the Zora princess who is known for her selfish nature, likes a certain boy...</Parameter>
+    <Parameter Params="0009"> They say that players who select the “HOLD” option for “Z TARGETING” are the real “Zelda players!”</Parameter>
+    <Parameter Params="000A"> They say that there is a secret near a tree in Kakariko Village.</Parameter>
+    <Parameter Params="000B"> They say that, contrary to her elegant image, Princess Zelda of Hyrule Castle is, in fact, a tomboy!</Parameter>
+    <Parameter Params="000C"> They say that Princess Zelda’s nanny is actually one of the Sheikah, who many thought had died out.</Parameter>
+    <Parameter Params="000D"> They say there is a man who can always be found running around in Hyrule Field.</Parameter>
+    <Parameter Params="000E"> They say that it is against the rules to use glasses at the Treasure Chest Shop in Hyrule Castle Town Market.</Parameter>
+    <Parameter Params="000F"> They say that the chicken lady goes to the Lakeside Laboratory to study how to breed pocket-sized Cuccos.</Parameter>
+    <Parameter Params="0010"> They say that Gerudos sometimes come to Hyrule Castle Town to look for boyfriends.</Parameter>
+    <Parameter Params="0011"> They say that the thief named Nabooru, who haunts this area, is a Gerudo.</Parameter>
+    <Parameter Params="0012"> They say that if you get close to a butterfly while holding a Deku Stick in your hands, something good will happen.</Parameter>
+    <Parameter Params="0013"> They say that you may find something new in dungeons that you have already finished.</Parameter>
+    <Parameter Params="0014"> They say that Gerudos worship Ganondorf almost like a god.</Parameter>
+    <Parameter Params="0015"> They say that there is a secret around the entrance to Gerudo Valley.</Parameter>
+    <Parameter Params="0016"> They say that the owl named Kaepora Gaebora is the reincarnation of an ancient Sage.</Parameter>
+    <Parameter Params="0017"> They say that strange owl, Kaepora Gaebora, may look big and heavy, but its character is rather lighthearted.</Parameter>
+    <Parameter Params="0018"> They say that the horse Ganondorf rides is a solid black Gerudo stallion.</Parameter>
+    <Parameter Params="0019"> They say that Ganondorf is not satisfied with ruling only the Gerudo and aims to conquer all of Hyrule!</Parameter>
+    <Parameter Params="001A"> They say that the treasure you can earn in the Gerudo’s Training Ground is not as great as you would expect, given its difficulty!</Parameter>
+    <Parameter Params="001B"> They say that there is a switch that you can activate only by using the Spin Attack.</Parameter>
+    <Parameter Params="001C"> They say that it’s possible to find a total of 100 Gold Skulltulas throughout Hyrule.</Parameter>
+    <Parameter Params="001D"> They say that when non-fairy folk enter the Lost Woods, they become monsters!</Parameter>
+    <Parameter Params="001E"> They say that the small holes in the ground that you can find all over Hyrule make perfect breeding ground for bugs.</Parameter>
+    <Parameter Params="001F"> They say that the Kokiri are always followed by small fairies.</Parameter>
+    <Parameter Params="0020"> They say that one Kokiri has left the forest, but he is still alive!</Parameter>
+    <Parameter Params="0021"> 0421 (in normal text box)</Parameter>
+    <Flag Mask="0xFF00" Type="Collectible"/>
+    <Notes>+0xFF00 Collectible Flag (fairy)</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_MIZU_BWALL" Name="Bombable Stone Wall" ObjectID="OBJECT_MIZU_OBJECTS">
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_MIZU_SHUTTER" Name="Metal Gate" ObjectID="OBJECT_MIZU_OBJECTS">
+    <Parameter Params="0000"> Vertical</Parameter>
+    <Parameter Params="1000"> Horizontal</Parameter>
+    <Parameter Params="2000">+ Invalid</Parameter>
+    <Flag Mask="0x003F" Type="Switch"/>
+    <Property Mask="0x0FC0" Name="Timer (Seconds)"/>
+    <Notes>0x0FC0 = Timer (Seconds)
++0x3F = Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_DAIKU_KAKARIKO" Name="Carpenters in Kakariko" ObjectID="OBJECT_DAIKU">
+    <Parameter Params="0000"> Ichiro //Red/Purple Pants, &quot;normal&quot; hair</Parameter>
+    <Parameter Params="0001"> Sabooro //Light-blue Pants</Parameter>
+    <Parameter Params="0002"> Jiro //Green Pants</Parameter>
+    <Parameter Params="0003"> Shiro //Pink/Purple Pants, Two-Spiked Hair</Parameter>
+    <Property Mask="0xFF00" Name="Path Id"/>
+    <Notes>+0xFF00 = Path
+-FF None</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_BOWL_WALL" Name="Bombchu Bowling Alley Wall" ObjectID="OBJECT_BOWL">
+    <Parameter Params="0000"> Final wall</Parameter>
+    <Parameter Params="0001"> Hole in lower-right</Parameter>
+    <Parameter Params="0002"> Hole at top</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_WALL_TUBO" Name="Bombchu Bowling Alley Wall 2">
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_EN_PO_DESERT" Name="Haunted Wasteland Guiding Poe" ObjectID="OBJECT_PO_FIELD">
+    <Property Mask="0xFF00" Name="Path Id"/>
+    <Notes>
+  		+0xFF00 path ID
+  	</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_ENNEMY" ID="ACTOR_EN_CROW" Name="Guay" ObjectID="OBJECT_CROW">
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_DOOR_KILLER" Name="Fake Stomping Door" ObjectID="OBJECT_DOOR_KILLER">
+    <Parameter Params="0000"> Fake door</Parameter>
+    <Parameter Params="0001"> Debris</Parameter>
+    <Parameter Params="0002"> Debris</Parameter>
+    <Parameter Params="0003"> Debris</Parameter>
+    <Parameter Params="0004"> Debris</Parameter>
+    <Flag Mask="0xFF00" Type="Switch"/>
+  </Actor>
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_SPOT11_OASIS" Name="Refilling Oasis" ObjectID="OBJECT_SPOT11_OBJ">
+    <Notes> ???? switch flag </Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_SPOT18_FUTA" Name="Lid to the Giant Goron Pot" ObjectID="OBJECT_SPOT18_OBJ">
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_SPOT18_SHUTTER" Name="Goron Room Door" ObjectID="OBJECT_SPOT18_OBJ">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_MA3" Name="Adult Malon (Ranch)" ObjectID="OBJECT_MA2">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_COW" Name="Cow" ObjectID="OBJECT_COW">
+    <Parameter Params="0000"> Cow</Parameter>
+    <Parameter Params="0001"> Tail only</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_ICE_TURARA" Name="Ice Stalagmite/Stalagtite" ObjectID="OBJECT_ICE_OBJECTS">
+    <Parameter Params="0000"> Stalagmite (floor)</Parameter>
+    <Parameter Params="0001"> Stalactite (ceiling) //falls when Link is underneath</Parameter>
+    <Parameter Params="0002"> Regrowing Stalactite (ceiling) //falls when Link is underneath</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_ICE_SHUTTER" Name="2D Ice Bars" ObjectID="OBJECT_ICE_OBJECTS">
+    <Parameter Params="FF00"> vertical, clear flag</Parameter>
+    <Parameter Params="0001"> vertical, switch softlock</Parameter>
+    <Parameter Params="FF02"> horizontal, clear flag</Parameter>
+    <Flag Mask="0x3F00" Type="Switch"/>
+    <Notes>+0x3F00 switchflag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_KAKASI2" Name="Scarecrow Song Spot" ObjectID="OBJECT_KA">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_KAKASI3" Name="Bonooru the Scarecrow" ObjectID="OBJECT_KA">
+    <Notes>//Green Navi spot
+???? Switch Flag</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_OCEFF_WIPE4" Name="Song of Time Effect">
+    <Parameter Params="0000"> Scarecrow song effect?</Parameter>
+    <Parameter Params="0001"> purple</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_EN_EG" Name="Zelda's Path in Ganon Castle Escape?" ObjectID="OBJECT_ZL2">
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_MENKURI_NISEKABE" Name="Circular Piece of Stone Wall" ObjectID="OBJECT_MENKURI_OBJECTS">
+    <Parameter Params="0000"> Circular piece of false stone wall //Visible, invisible with Lens of Truth</Parameter>
+    <Parameter Params="0001"> Square piece of false stone wall //Oriented horizontally</Parameter>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_ZO" Name="Zora" ObjectID="OBJECT_ZO">
+    <Parameter Params="0000"> Zora //Text ID 4007</Parameter>
+    <Parameter Params="0001"> Zora //Text ID 4008</Parameter>
+    <Parameter Params="0002"> Zora //Text ID 4009</Parameter>
+    <Parameter Params="0003"> Zora //Text ID 400A</Parameter>
+    <Parameter Params="0004"> Zora //Text ID 400B</Parameter>
+    <Parameter Params="0005"> Zora //Text ID 400C</Parameter>
+    <Parameter Params="0006"> Zora //Text ID 400D</Parameter>
+    <Parameter Params="0007"> Zora //Text ID 400E</Parameter>
+    <Parameter Params="0008"> Zora //Text ID 400F</Parameter>
+    <Property Mask="0x000F" Name="Dialog"/>
+    <Notes>0009 or higher Text ID 4006</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_OBJ_MAKEKINSUTA" Name="Skulltula Sprouting from Bean Spot">
+    <Notes>See Actor 0095 for variable</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_GE3" Name="Gerudo giving you Membership Card" ObjectID="OBJECT_GELDB">
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_OBJ_TIMEBLOCK" Name="Time Block" ObjectID="OBJECT_TIMEBLOCK,OBJECT_EFC_TW">
+    <Parameter Params="0000"> Child Visible (Age inverted) Invisible (normal) </Parameter>
+    <Parameter Params="0001"> Adult Visible (Age inverted) Visible (normal) </Parameter>
+    <Flag Mask="0x003F" Target="Params" Type="Switch"/>
+    <Property Mask="0x3800" Name="Song of Time Distance" Target="Params"/>
+    <Property Mask="0x0400" Name="set switchflag on/off" Target="Params"/>
+    <Property Mask="0x0100" Name="Size" Target="Params"/>
+    <Property Mask="0x0040" Name="Visibility" Target="Params"/>
+    <Property Mask="0x0007" Name="Color" Target="ZRot"/>
+    <Notes>
++0x3800 = Song of Time Distance
+-0000 60
+-0800 100
+-1000 140
+-1800 180
+-2000 220
+-2800 260
+-3000 300
+-3800 300
++0x0400 = Unknown //FIXME
+Never used, unusual behavior when set
++0x0100 = Size
+-0000 Large
+-0100 Small
++0x0040 = Default Visibility Behavior //If set, ignore switch flag
+-0000 Age Inverted
+-0040 Normal
++0x003F = Switch Flag
+ZROT +0x0007 = Color
+-0000 #6496C8 //Default
+-0001 #508CC8 //Water Temple
+-0002 #6496C8 //Shadow Temple
+-0003 #64C8F0 //Spirit Temple
+-0004 #506E8C //Forest Temple
+-0005 #46A0E1 //Dampe's Grave
+-0006 #506482 //Gerudo Training Ground
+-0007 #646EBE //Ganon's Castle
+		</Notes>
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_OBJ_HAMISHI" Name="Bronze Boulder" ObjectID="OBJECT_GAMEPLAY_FIELD_KEEP">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_ZL4" Name="Princess Zelda (Child - Cutscene)" ObjectID="OBJECT_ZL4">
+  </Actor>
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_MM2" Name="Running Man (Adult)" ObjectID="OBJECT_MM">
+  </Actor>
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_JYA_BLOCK" Name="Young Link Silver Block" ObjectID="OBJECT_GAMEPLAY_DANGEON_KEEP">
+  </Actor>
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_OBJ_WARP2BLOCK" Name="Time Block Spawning Spot" ObjectID="OBJECT_TIMEBLOCK">
+  </Actor>
+</Table>
