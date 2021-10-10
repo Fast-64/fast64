@@ -11,37 +11,46 @@ from .oot_utility import *
 from ..utility import *
 
 
+# Read the XML file, throws an error if the file is missing
 try: tree = ET.parse(os.path.dirname(os.path.abspath(__file__)) + '/ActorList.xml')
 except: PluginError("ERROR: File 'fast64_internal/oot/ActorList.xml' is missing.")
 root = tree.getroot()
 
+# Create an empty class for the attributes later
 class OOTActorDetailedProperties(bpy.types.PropertyGroup):
     pass
 
-def editOOTActorDetailedProperties():
-    global root
-    paramTexts = defaultdict(list)
-    datas = defaultdict(list)
+# Create editable dictionnaries
+descParams = defaultdict(list) # contains texts from the <Parameter> tag in the XML
+dataParams = defaultdict(list) # contains masks from the same
 
-    for actorNode in root:
-        for elem in actorNode:
-            if elem.tag == 'Parameter':
-                datas[actorNode.get('ID')].append(elem.get('Params'))
-                paramTexts[actorNode.get('ID')].append(elem.text)
+# Fill the vars
+for actorNode in root:
+    for elem in actorNode:
+        if elem.tag == 'Parameter':
+            dataParams[actorNode.get('ID')].append(elem.get('Params'))
+            descParams[actorNode.get('ID')].append(elem.text)
+
+keysParams = [(key, key, key) for key in dataParams.keys()]
+
+def editOOTActorDetailedProperties():
+    '''This function is used to edit the OOTActorDetailedProperties class before it's registered'''
+    global dataParams
+    global descParams
+    global keysParams
 
     propAnnotations = getattr(OOTActorDetailedProperties, '__annotations__', None)
     if propAnnotations is None:
         propAnnotations = {}
         OOTActorDetailedProperties.__annotations__ = propAnnotations
 
-    types_items = [(type, type, type) for type in datas.keys()]
-    propAnnotations['type'] = bpy.props.EnumProperty(items=types_items)
+    propAnnotations['actorID'] = bpy.props.EnumProperty(name='Actor Type', items=keysParams)
 
-    for name, values in datas.items():
-        propValsIndex = name
-        listPropVals = [(value, value, value) for value in values]
-        valsBlEnum = bpy.props.EnumProperty(items=listPropVals)
-        propAnnotations[propValsIndex] = valsBlEnum
+    for name, values in dataParams.items():
+        objName = name + '.type'
+        actorTypeList = [(value, descParams[name].pop(0), value) for value in values]
+        actorType = bpy.props.EnumProperty(name='Actor Type', items=actorTypeList)
+        propAnnotations[objName] = actorType
 
 class OOT_SearchActorIDEnumOperator(bpy.types.Operator):
     bl_idname = "object.oot_search_actor_id_enum_operator"
@@ -54,11 +63,18 @@ class OOT_SearchActorIDEnumOperator(bpy.types.Operator):
     objName : bpy.props.StringProperty()
 
     def execute(self, context):
+        global keysParams
+
         obj = bpy.data.objects[self.objName]
+        detailedProp = obj.ootActorDetailedProperties
+
         if self.actorUser == "Transition Actor":
             obj.ootTransitionActorProperty.actor.actorID = self.actorID
         elif self.actorUser == "Actor":
-            obj.ootActorProperty.actorID = obj.ootActorDetailedProperties.type = self.actorID
+            for i in range(len(keysParams)):
+                if keysParams[i][0] == self.actorID:
+                    obj.ootActorProperty.actorID = detailedProp.actorID = self.actorID
+                else: obj.ootActorProperty.actorID = self.actorID
         elif self.actorUser == "Entrance":
             obj.ootEntranceProperty.actor.actorID = self.actorID
         else:
@@ -153,6 +169,8 @@ class OOT_SearchChestContentEnumOperator(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
+    global keysParams
+
     #prop_split(layout, actorProp, 'actorID', 'Actor')
     actorIDBox = layout.column()
     #actorIDBox.box().label(text = "Settings")
@@ -167,12 +185,10 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
     if actorProp.actorID == 'Custom':
         #actorIDBox.prop(actorProp, 'actorIDCustom', text = 'Actor ID')
         prop_split(actorIDBox, actorProp, 'actorIDCustom', '')
-    # global root
-    # for actorNode in root:
-    #     if actorProp.actorID == actorNode.get('ID') == detailedProp.type:
-    #         prop_split(actorIDBox, detailedProp, detailedProp.type, 'Type')
-
-    prop_split(actorIDBox, detailedProp, detailedProp.type, 'Type')
+    
+    for i in range(len(keysParams)):
+        if keysParams[i][0] == actorProp.actorID:
+            prop_split(actorIDBox, detailedProp, detailedProp.actorID + '.type', 'Type')
 
     # for actorNode in root:
     #     for elem in actorNode:
