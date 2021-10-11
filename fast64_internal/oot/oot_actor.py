@@ -20,37 +20,59 @@ root = tree.getroot()
 class OOTActorDetailedProperties(bpy.types.PropertyGroup):
     pass
 
-# Create editable dictionnaries
-descParams = defaultdict(list) # contains texts from the <Parameter> tag in the XML
-dataParams = defaultdict(list) # contains masks from the same
+def fillDicts(dict, tag, attr):
+    '''This function is used to fill the dictionnaries from the ActorList.XML data'''
+    for actorNode in root:
+        for elem in actorNode:
+            if elem.tag == tag:
+                if attr == 'elem.text': dict[actorNode.get('ID')].append(elem.text)
+                else: 
+                    dict[actorNode.get('ID')].append(elem.get(attr))
 
-# Fill the vars
-for actorNode in root:
-    for elem in actorNode:
-        if elem.tag == 'Parameter':
-            dataParams[actorNode.get('ID')].append(elem.get('Params'))
-            descParams[actorNode.get('ID')].append(elem.text)
+def genEnum(annotations, dict1, dict2, suffix, enumName):
+    '''This function is used to generate the proper enum blender property'''
+    for name, values in dict1.items():
+        if name is None: name = 'None'
+        objName = name + suffix
+        actorTypeList = [(value, dict2[name].pop(0), value) for value in values]
+        prop = bpy.props.EnumProperty(name=enumName, items=actorTypeList)
+        annotations[objName] = prop
 
-keysParams = [(key, key, key) for key in dataParams.keys()]
+def setKeys(dict):
+    '''Generates tuples from dict keys'''
+    return [(key, key, key) for key in dict.keys()]
+
+def genBLProp(keyList, actorID, layout, data, field, suffix, name):
+    '''Determines if it needs to show the option on the panel'''
+    for i in range(len(keyList)):
+        if keyList[i][0] == actorID:
+            prop_split(layout, data, field + suffix, name)
 
 def editOOTActorDetailedProperties():
     '''This function is used to edit the OOTActorDetailedProperties class before it's registered'''
-    global dataParams
-    global descParams
-    global keysParams
-
     propAnnotations = getattr(OOTActorDetailedProperties, '__annotations__', None)
     if propAnnotations is None:
         propAnnotations = {}
         OOTActorDetailedProperties.__annotations__ = propAnnotations
 
     propAnnotations['actorID'] = bpy.props.EnumProperty(name='Actor Type', items=keysParams)
+    propAnnotations['actorProps'] = bpy.props.EnumProperty(name='Properties', items=keysProps)
 
-    for name, values in dataParams.items():
-        objName = name + '.type'
-        actorTypeList = [(value, descParams[name].pop(0), value) for value in values]
-        actorType = bpy.props.EnumProperty(name='Actor Type', items=actorTypeList)
-        propAnnotations[objName] = actorType
+    genEnum(propAnnotations, dataParams, descParams, '.type', 'Actor Type')
+    genEnum(propAnnotations, dataProps, descProps, '.props', 'Properties')
+
+# Create editable dictionnaries
+descParams = defaultdict(list) # contains texts from the <Parameter> tag in the XML
+dataParams = defaultdict(list) # contains masks from the same
+descProps = defaultdict(list)
+dataProps = defaultdict(list)
+
+fillDicts(dataParams, 'Parameter', 'Params')
+fillDicts(descParams, 'Parameter', 'elem.text')
+fillDicts(dataProps, 'Property', 'Mask')
+fillDicts(descProps, 'Property', 'Name')
+keysParams = setKeys(dataParams)
+keysProps = setKeys(dataProps)
 
 class OOT_SearchActorIDEnumOperator(bpy.types.Operator):
     bl_idname = "object.oot_search_actor_id_enum_operator"
@@ -63,18 +85,23 @@ class OOT_SearchActorIDEnumOperator(bpy.types.Operator):
     objName : bpy.props.StringProperty()
 
     def execute(self, context):
-        global keysParams
-
         obj = bpy.data.objects[self.objName]
         detailedProp = obj.ootActorDetailedProperties
 
         if self.actorUser == "Transition Actor":
             obj.ootTransitionActorProperty.actor.actorID = self.actorID
         elif self.actorUser == "Actor":
+            # TODO: improve this
             for i in range(len(keysParams)):
                 if keysParams[i][0] == self.actorID:
                     obj.ootActorProperty.actorID = detailedProp.actorID = self.actorID
                 else: obj.ootActorProperty.actorID = self.actorID
+
+            for i in range(len(keysProps)):
+                if keysProps[i][0] == self.actorID:
+                    obj.ootActorProperty.actorID = detailedProp.actorProps = self.actorID
+                else: obj.ootActorProperty.actorID = self.actorID
+
         elif self.actorUser == "Entrance":
             obj.ootEntranceProperty.actor.actorID = self.actorID
         else:
@@ -169,8 +196,6 @@ class OOT_SearchChestContentEnumOperator(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
-    global keysParams
-
     #prop_split(layout, actorProp, 'actorID', 'Actor')
     actorIDBox = layout.column()
     #actorIDBox.box().label(text = "Settings")
@@ -185,10 +210,9 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
     if actorProp.actorID == 'Custom':
         #actorIDBox.prop(actorProp, 'actorIDCustom', text = 'Actor ID')
         prop_split(actorIDBox, actorProp, 'actorIDCustom', '')
-    
-    for i in range(len(keysParams)):
-        if keysParams[i][0] == actorProp.actorID:
-            prop_split(actorIDBox, detailedProp, detailedProp.actorID + '.type', 'Type')
+
+    genBLProp(keysParams, actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorID, '.type', 'Type')
+    genBLProp(keysProps, actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorProps, '.props', 'Properties')
 
     # for actorNode in root:
     #     for elem in actorNode:
