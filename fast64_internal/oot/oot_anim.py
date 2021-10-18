@@ -265,7 +265,7 @@ def getJointIndices(filepath, animData, jointIndicesName):
 	if matchResult is None:
 		raise PluginError("Cannot find animation joint indices data named " + jointIndicesName + " in " + filepath)
 	data = matchResult.group(1)
-	jointIndicesData = [[hexOrDecInt(match.group(i)) for i in range(1,4)] for match in re.finditer("\{([^,\}]*),([^,\}]*),([^,\}]*)\}", data, re.DOTALL)]
+	jointIndicesData = [[hexOrDecInt(match.group(i)) for i in range(1,4)] for match in re.finditer("\{([^,\}]*),([^,\}]*),([^,\}]*)\s*,?\s*\}", data, re.DOTALL)]
 
 	return jointIndicesData
 
