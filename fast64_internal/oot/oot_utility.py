@@ -237,7 +237,33 @@ def ootDuplicateHierarchy(obj, ignoreAttr, includeEmpties, objectCategorizer):
 						selectedObj.parent.select_set(True)
 						bpy.ops.object.parent_set(keep_transform = True)
 					selectedObj.parent = None
-		applyRotation([tempObj], math.radians(90), 'X')
+		
+		# Assume objects with these types of constraints are parented, and are
+		# intended to be parented in-game, i.e. rendered as an extra DL alongside
+		# a skeletal mesh, e.g. for a character to be wearing or holding it.
+		# In this case we purely want the transformation of the object relative
+		# to whatever it's parented to. Getting rid of the constraint and then
+		# doing transform_apply() sets up this transformation.
+		hasConstraint = False
+		for constraint in tempObj.constraints:
+			if constraint.type in ['COPY_LOCATION', 'COPY_ROTATION', 'COPY_SCALE', \
+				'COPY_TRANSFORMS', 'TRANSFORM', 'CHILD_OF', 'CLAMP_TO', 'DAMPED_TRACK', \
+				'LOCKED_TRACK', 'TRACK_TO'] and not constraint.mute:
+				hasConstraint = True
+				tempObj.constraints.remove(constraint)
+		if not hasConstraint:
+			# For normal objects, the game's coordinate system is 90 degrees
+			# away from Blender's.
+			applyRotation([tempObj], math.radians(90), 'X')
+		else:
+			# This is a relative transform we care about so the 90 degrees
+			# doesn't matter (since they're both right-handed).
+			print('Applying transform')
+			bpy.ops.object.select_all(action = "DESELECT")
+			tempObj.select_set(True)
+			bpy.context.view_layer.objects.active = tempObj
+			bpy.ops.object.transform_apply()
+		
 		return tempObj, allObjs
 	except Exception as e:
 		cleanupDuplicatedObjects(allObjs)
