@@ -1,4 +1,3 @@
-
 import math, os, bpy, bmesh, mathutils, xml.etree.ElementTree as ET
 from collections import defaultdict
 from bpy.utils import register_class, unregister_class
@@ -24,10 +23,13 @@ def fillDicts(dict, tag, attr):
     '''This function is used to fill the dictionnaries from the ActorList.XML data'''
     for actorNode in root:
         for elem in actorNode:
-            if elem.tag == tag:
-                if attr == 'elem.text': dict[actorNode.get('ID')].append(elem.text)
+            if attr == 'Key':
+                    dict[actorNode.get(tag)] = actorNode.get(attr)
+            elif elem.tag == tag:
+                if attr == 'elem.text':
+                    dict[actorNode.get('Key')].append(elem.text)
                 else: 
-                    dict[actorNode.get('ID')].append(elem.get(attr))
+                    dict[actorNode.get('Key')].append(elem.get(attr))
 
 def genEnum(annotations, dict1, dict2, suffix, enumName):
     '''This function is used to generate the proper enum blender property'''
@@ -38,15 +40,37 @@ def genEnum(annotations, dict1, dict2, suffix, enumName):
         prop = bpy.props.EnumProperty(name=enumName, items=actorTypeList)
         annotations[objName] = prop
 
-def setKeys(dict):
+def genString(annotations, dict, suffix, stringName):
+    '''This function is used to generate the proper enum blender property'''
+    for id, key in dict.items():
+        objName = key + suffix
+        prop = bpy.props.StringProperty(name=stringName, default='0x0000')
+        annotations[objName] = prop
+
+def getKeys(dict):
     '''Generates tuples from dict keys'''
     return [(key, key, key) for key in dict.keys()]
 
-def genBLProp(keyList, actorID, layout, data, field, suffix, name):
+def genBLProp(actorID, layout, data, field, suffix, name):
     '''Determines if it needs to show the option on the panel'''
-    for i in range(len(keyList)):
-        if keyList[i][0] == actorID:
-            prop_split(layout, data, field + suffix, name)
+    if data.actorID == actorID:
+        prop_split(layout, data, field + suffix, name)
+
+# Create editable dictionnaries
+descParams = defaultdict(list) # contains texts from the <Parameter> tag in the XML
+dataParams = defaultdict(list) # contains masks from the same
+descProps = defaultdict(list)
+dataProps = defaultdict(list)
+dataActorID = defaultdict(list)
+
+fillDicts(dataParams, 'Parameter', 'Params')
+fillDicts(descParams, 'Parameter', 'elem.text')
+fillDicts(dataProps, 'Property', 'Mask')
+fillDicts(descProps, 'Property', 'Name')
+fillDicts(dataActorID, 'ID', 'Key')
+keysActorID = getKeys(dataActorID)
+keysParams = getKeys(dataParams)
+keysProps = getKeys(dataProps)
 
 def editOOTActorDetailedProperties():
     '''This function is used to edit the OOTActorDetailedProperties class before it's registered'''
@@ -55,24 +79,22 @@ def editOOTActorDetailedProperties():
         propAnnotations = {}
         OOTActorDetailedProperties.__annotations__ = propAnnotations
 
-    propAnnotations['actorID'] = bpy.props.EnumProperty(name='Actor Type', items=keysParams)
+    propAnnotations['actorID'] = bpy.props.EnumProperty(name='Actor ID', items=keysActorID)
+    propAnnotations['actorKey'] = bpy.props.StringProperty(name='Actor ID', default='0000')
+    propAnnotations['type'] = bpy.props.EnumProperty(name='Actor Type', items=keysParams)
     propAnnotations['actorProps'] = bpy.props.EnumProperty(name='Properties', items=keysProps)
+    propAnnotations['actorPropsValue'] = bpy.props.StringProperty(name='Value', default='0x0000')
+    propAnnotations['switchFlag'] = bpy.props.StringProperty(name='Switch Flag', default='0x0000')
+    propAnnotations['chestFlag'] = bpy.props.StringProperty(name='Chest Flag', default='0x0000')
+    propAnnotations['collectibleFlag'] = bpy.props.StringProperty(name='Collectible Flag', default='0x0000')
+    propAnnotations['itemChest'] = bpy.props.EnumProperty(name='Chest Content', items=ootEnBoxContent)
 
     genEnum(propAnnotations, dataParams, descParams, '.type', 'Actor Type')
     genEnum(propAnnotations, dataProps, descProps, '.props', 'Properties')
-
-# Create editable dictionnaries
-descParams = defaultdict(list) # contains texts from the <Parameter> tag in the XML
-dataParams = defaultdict(list) # contains masks from the same
-descProps = defaultdict(list)
-dataProps = defaultdict(list)
-
-fillDicts(dataParams, 'Parameter', 'Params')
-fillDicts(descParams, 'Parameter', 'elem.text')
-fillDicts(dataProps, 'Property', 'Mask')
-fillDicts(descProps, 'Property', 'Name')
-keysParams = setKeys(dataParams)
-keysProps = setKeys(dataProps)
+    genString(propAnnotations, dataActorID, '.propValue', 'Value')
+    genString(propAnnotations, dataActorID, '.switchFlag', 'Switch Flag')
+    genString(propAnnotations, dataActorID, '.chestFlag', 'Chest Flag')
+    genString(propAnnotations, dataActorID, '.collectibleFlag', 'Collectible Flag')
 
 class OOT_SearchActorIDEnumOperator(bpy.types.Operator):
     bl_idname = "object.oot_search_actor_id_enum_operator"
@@ -91,16 +113,12 @@ class OOT_SearchActorIDEnumOperator(bpy.types.Operator):
         if self.actorUser == "Transition Actor":
             obj.ootTransitionActorProperty.actor.actorID = self.actorID
         elif self.actorUser == "Actor":
-            # TODO: improve this
-            for i in range(len(keysParams)):
-                if keysParams[i][0] == self.actorID:
-                    obj.ootActorProperty.actorID = detailedProp.actorID = self.actorID
-                else: obj.ootActorProperty.actorID = self.actorID
-
-            for i in range(len(keysProps)):
-                if keysProps[i][0] == self.actorID:
-                    obj.ootActorProperty.actorID = detailedProp.actorProps = self.actorID
-                else: obj.ootActorProperty.actorID = self.actorID
+            tmp = list(dataActorID.items())
+            for i in range(len(keysActorID)):
+                if keysActorID[i][0] == self.actorID:
+                    detailedProp.actorID = self.actorID
+                    detailedProp.actorKey = tmp[i][1]
+                obj.ootActorProperty.actorID = self.actorID
 
         elif self.actorUser == "Entrance":
             obj.ootEntranceProperty.actor.actorID = self.actorID
@@ -169,10 +187,7 @@ class OOTActorProperty(bpy.types.PropertyGroup):
     rotOverrideX : bpy.props.StringProperty(name = 'Rot X', default = '0')
     rotOverrideY : bpy.props.StringProperty(name = 'Rot Y', default = '0')
     rotOverrideZ : bpy.props.StringProperty(name = 'Rot Z', default = '0')
-    headerSettings : bpy.props.PointerProperty(type = OOTActorHeaderProperty)
-
-paramList = []
-paramList.append("")        
+    headerSettings : bpy.props.PointerProperty(type = OOTActorHeaderProperty)     
 
 class OOT_SearchChestContentEnumOperator(bpy.types.Operator):
     bl_idname = "object.oot_search_chest_content_enum_operator"
@@ -211,32 +226,29 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
         #actorIDBox.prop(actorProp, 'actorIDCustom', text = 'Actor ID')
         prop_split(actorIDBox, actorProp, 'actorIDCustom', '')
 
-    genBLProp(keysParams, actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorID, '.type', 'Type')
-    genBLProp(keysProps, actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorProps, '.props', 'Properties')
+    genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey, '.type', 'Type')
+    if actorProp.actorID == 'ACTOR_EN_BOX':
+        searchOp = actorIDBox.operator(OOT_SearchChestContentEnumOperator.bl_idname, icon='VIEWZOOM')
+        split = actorIDBox.split(factor=0.5)
+        split.label(text="Chest Content")
+        split.label(text=getEnumName(ootEnBoxContent, detailedProp.itemChest))
 
-    # for actorNode in root:
-    #     for elem in actorNode:
-    #         if elem.tag == 'Parameter' and actorNode.get('ID') == actorProp.actorID and elem.text == paramList[0][1]:
-    #             prop_split(actorIDBox, detailedProp, 'actorProperties', 'Parameter')
+    propAnnot = getattr(detailedProp, detailedProp.actorKey + '.props', None) 
+    if propAnnot is not None:
+        genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey, '.props', 'Properties')
+        if propAnnot != '0x0000':
+            genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey, '.propValue', 'Value')
 
-    #         if actorNode.get('ID') == actorProp.actorID and elem.tag == 'Item':
-    #             searchOp = actorIDBox.operator(OOT_SearchChestContentEnumOperator.bl_idname, icon='VIEWZOOM')
-    #             split = actorIDBox.split(factor=0.5)
-    #             split.label(text="Chest Content")
-    #             split.label(text=getEnumName(ootEnBoxContent, detailedProp.itemChest))
-
-    #         if elem.tag == 'Flag':
-    #             if actorNode.get('ID') == actorProp.actorID and elem.get('Type') == 'Switch': 
-    #                 prop_split(actorIDBox, detailedProp, 'switchFlag', 'Switch Flag')
-
-    #             if actorNode.get('ID') == actorProp.actorID and elem.get('Type') == 'Chest': 
-    #                 prop_split(actorIDBox, detailedProp, 'chestFlag', 'Chest Flag')
-
-    #             if actorNode.get('ID') == actorProp.actorID and elem.get('Type') == 'Collectible': 
-    #                 prop_split(actorIDBox, detailedProp, 'itemDropFlag', 'Collectible Flag')
-
-    #         if actorNode.get('ID') == actorProp.actorID and elem.tag == 'Collectible':
-    #             prop_split(actorIDBox, detailedProp, 'itemDrop', 'Collectible Drop')
+    flagList = root.findall('.//Flag')
+    flagListID = [(actorNode.get('ID')) for actorNode in root for elem in actorNode if elem.tag == 'Flag']
+    for i in range(len(flagList)):
+        if flagListID[i] == actorProp.actorID:
+            if flagList[i].get('Type') == 'Switch':
+                genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey, '.switchFlag', 'Switch Flag')
+            if flagList[i].get('Type') == 'Chest':
+                genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey, '.chestFlag', 'Chest Flag')
+            if flagList[i].get('Type') == 'Collectible':
+                genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey, '.collectibleFlag', 'Collectible Flag')
 
     #layout.box().label(text = 'Actor IDs defined in include/z64actors.h.')
     prop_split(actorIDBox, actorProp, "actorParam", 'Actor Parameter')
@@ -248,33 +260,6 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
         prop_split(actorIDBox, actorProp, 'rotOverrideZ', 'Rot Z')
 
     drawActorHeaderProperty(actorIDBox, actorProp.headerSettings, "Actor", altRoomProp, objName)
-
-# print(OOTActorDetailedProperties_annotations)
-    # global root
-    # global paramList
-
-    # actorID = "ACTOR_EN_TEST"
-
-    # for actorNode in root:
-    #     for elem in actorNode:
-    #         propType = elem.get('Type')
-    #         if propType is not None:
-    #             if elem.tag == 'Flag':
-    #                 if propType == 'Switch': switchFlag: bpy.props.StringProperty(name = 'Switch Flag', default = '0x0000')
-    #                 if propType == 'Chest': chestFlag: bpy.props.StringProperty(name = 'Chest Flag', default = '0x0000')
-    #                 if propType == 'Collectible': itemDropFlag: bpy.props.StringProperty(name = 'Collectible Flag', default = '0x0000')
-
-    #             if elem.tag == 'Collectible': itemDrop: bpy.props.StringProperty(name = 'Collectible Drop', default = '0x0000')
-    #             if elem.tag == 'Item': itemChest: bpy.props.EnumProperty(name = 'Chest Content', items = ootEnBoxContent, default = '0x48')
-
-    #         if elem.tag == 'Parameter' and actorNode.get('ID') == actorID:
-    #             if paramList[0] != "" and paramList[len(paramList) - 1] != elem.get('Params') and elem.get('Params') is not None:
-    #                 paramList.append((f"{elem.get('Params')}", f"{elem.text}", ""))
-    #             else:
-    #                 paramList[0] = ((f"{elem.get('Params')}", f"{elem.text}", ""))
-
-    #         if elem.tag == 'Parameter' and elem.get('Params') is not None:
-    #             actorProperties: bpy.props.EnumProperty(name = 'Parameters', items = paramList)
 
 class OOTTransitionActorProperty(bpy.types.PropertyGroup):
     roomIndex : bpy.props.IntProperty(min = 0)
