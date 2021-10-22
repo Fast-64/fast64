@@ -246,9 +246,9 @@ def ootDuplicateHierarchy(obj, ignoreAttr, includeEmpties, objectCategorizer):
 		# doing transform_apply() sets up this transformation.
 		hasConstraint = False
 		for constraint in tempObj.constraints:
-			if constraint.type in ['COPY_LOCATION', 'COPY_ROTATION', 'COPY_SCALE', \
-				'COPY_TRANSFORMS', 'TRANSFORM', 'CHILD_OF', 'CLAMP_TO', 'DAMPED_TRACK', \
-				'LOCKED_TRACK', 'TRACK_TO'] and not constraint.mute:
+			if constraint.type in {'COPY_LOCATION', 'COPY_ROTATION', 'COPY_SCALE',
+				'COPY_TRANSFORMS', 'TRANSFORM', 'CHILD_OF', 'CLAMP_TO', 'DAMPED_TRACK',
+				'LOCKED_TRACK', 'TRACK_TO'} and not constraint.mute:
 				hasConstraint = True
 				tempObj.constraints.remove(constraint)
 		if not hasConstraint:
