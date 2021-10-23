@@ -352,8 +352,7 @@ def saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, drawLa
 				[None, tileLoad], True, False)
 
 		triConverter = TriangleConverter(triConverterInfo, texDimensions, material, currentGroupIndex,
-			triGroup.triList, triGroup.vertexList,
-			copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict))
+			triGroup, copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict), None)
 
 		currentGroupIndex = saveTriangleStrip(triConverter, tileFaces, obj.data, False)
 
@@ -635,8 +634,12 @@ def saveMeshByFaces(material, faces, fModel, fMesh, obj, drawLayer,
 	fMesh.draw.commands.append(SPDisplayList(triGroup.triList))
 
 	triConverter = TriangleConverter(triConverterInfo, texDimensions, material,
-		currentGroupIndex, triGroup.triList, triGroup.vertexList,
-		copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict))
+		currentGroupIndex, triGroup,
+		copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict), 
+		{'solid': False, 'levels': [
+			{'inverse':  True, 'lighten': False, 'fade': 200, 'threshold': 128},
+			{'inverse': False, 'lighten': False, 'fade': 255, 'threshold': 128}
+		]})
 
 	currentGroupIndex = saveTriangleStrip(triConverter, faces, obj.data, True)
 
@@ -726,7 +729,7 @@ class TriangleConverterInfo:
 # loaded in from a previous matrix transform (ex. sm64 skinning)
 class TriangleConverter:
 	def __init__(self, triConverterInfo, texDimensions, material, currentGroupIndex,
-		triList, vtxList, existingVertexData, existingVertexMaterialRegions):
+		triGroup, existingVertexData, existingVertexMaterialRegions, celShadingInfo):
 		self.triConverterInfo = triConverterInfo
 		self.currentGroupIndex = currentGroupIndex
 		self.originalGroupIndex = currentGroupIndex
@@ -741,8 +744,9 @@ class TriangleConverter:
 		self.bufferStart = len(self.vertBuffer)
 		self.vertexBufferTriangles = [] # [(index0, index1, index2)]
 
-		self.triList = triList
-		self.vtxList = vtxList
+		self.triGroup = triGroup
+		self.triList = triGroup.triList
+		self.vtxList = triGroup.vertexList
 
 		isPointSampled = isTexturePointSampled(material)
 		exportVertexColors = isLightingDisabled(material)
@@ -751,7 +755,8 @@ class TriangleConverter:
 		self.texDimensions = texDimensions
 		self.isPointSampled = isPointSampled
 		self.exportVertexColors = exportVertexColors
-
+		
+		self.celShadingInfo = celShadingInfo
 
 
 	def vertInBuffer(self, bufferVert, material_index):
@@ -822,8 +827,50 @@ class TriangleConverter:
 			bufferStart = bufferEnd
 
 		# Load triangles
-		self.triList.commands.extend(createTriangleCommands(
-			self.vertexBufferTriangles, self.vertBuffer, self.triConverterInfo.f3d.F3DEX_GBI))
+		triCmds = createTriangleCommands(
+			self.vertexBufferTriangles, self.vertBuffer, self.triConverterInfo.f3d.F3DEX_GBI)
+		if self.celShadingInfo is None:
+			self.triList.commands.extend(triCmds)
+		else:
+			if len(triCmds) <= 2:
+				self.writeCelLevels(triCmds=triCmds)
+			else:
+				celTriList = self.triGroup.add_cel_tri_list()
+				celTriList.commands.extend(triCmds)
+				celTriList.commands.append(SPEndDisplayList())
+				self.writeCelLevels(celTriList=celTriList)
+			
+	def writeCelLevels(self, celTriList = None, triCmds = None):
+		lastInverse = None
+		lastLighten = None
+		colorSrc = 'ENVIRONMENT' if self.celShadingInfo['solid'] else 'TEXEL0'
+		for level in self.celShadingInfo['levels']:
+			self.triList.commands.append(DPPipeSync())
+			if lastInverse != level['inverse'] or lastLighten != level['lighten']:
+				# Set up combiner
+				lastInverse = level['inverse']
+				lastLighten = level['lighten']
+				def Combiner(a0, b0, c0, d0, aa0, ab0, ac0, ad0):
+					return DPSetCombineMode(a0, b0, c0, d0, aa0, ab0, ac0, ad0,
+						a0, b0, c0, d0, aa0, ab0, ac0, ad0)
+				def CombinerForward(a0, b0, c0, d0):
+					return Combiner(a0, b0, c0, d0, '0', '0', '0', 'SHADE')
+				def CombinerInverse(a0, b0, c0, d0):
+					return Combiner(a0, b0, c0, d0, '1', 'SHADE', '1', '0')
+				def CombinerDarken(fwdinv):
+					return fwdinv(colorSrc, '0', 'PRIMITIVE_ALPHA', '0')
+				def CombinerLighten(fwdinv):
+					return fwdinv('1', colorSrc, 'PRIMITIVE_ALPHA', colorSrc)
+				self.triList.commands.append(
+					(CombinerLighten if level['lighten'] else CombinerDarken)
+					(CombinerInverse if level['inverse'] else CombinerForward))
+			self.triList.commands.append(DPSetPrimColor(0, 0, 255, 255, 255, level['fade']))
+			self.triList.commands.append(DPSetBlendColor(255, 255, 255, 
+				255 - level['threshold'] if level['inverse'] else level['threshold']))
+			if triCmds is not None:
+				self.triList.commands.extend(triCmds)
+			else:
+				self.triList.commands.append(SPDisplayList(celTriList))
 
 	def addFace(self, face):
 		triIndices = []
