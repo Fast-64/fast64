@@ -1580,7 +1580,7 @@ def parseF3D(dlData, dlName, obj, transformMatrix, limbName, boneName, drawLayer
 	f3dContext.processCommands(dlData, dlName, dlCommands)
 
 def parseDLData(dlData, dlName):
-	matchResult = re.search("Gfx\s*" + re.escape(dlName) + "\s*\[\s*\]\s*=\s*\{([^\}]*)\}", dlData)
+	matchResult = re.search("Gfx\s*" + re.escape(dlName) + "\s*\[\s*\w*\s*\]\s*=\s*\{([^\}]*)\}", dlData)
 	if matchResult is None:
 		raise PluginError("Cannot find display list named " + dlName)
 
