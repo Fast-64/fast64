@@ -626,6 +626,7 @@ def saveMeshByFaces(material, faces, fModel, fMesh, obj, drawLayer,
 		saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
 	isPointSampled = isTexturePointSampled(material)
 	exportVertexColors = isLightingDisabled(material)
+	celShadingInfo = getCelShadingInfo(material)
 	uv_data = obj.data.uv_layers['UVMap'].data
 	convertInfo = LoopConvertInfo(uv_data, obj, exportVertexColors)
 
@@ -636,10 +637,7 @@ def saveMeshByFaces(material, faces, fModel, fMesh, obj, drawLayer,
 	triConverter = TriangleConverter(triConverterInfo, texDimensions, material,
 		currentGroupIndex, triGroup,
 		copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict), 
-		{'solid': False, 'levels': [
-			{'inverse':  True, 'lighten': False, 'fade': 200, 'threshold': 128},
-			{'inverse': False, 'lighten': False, 'fade': 255, 'threshold': 128}
-		]})
+		celShadingInfo)
 
 	currentGroupIndex = saveTriangleStrip(triConverter, faces, obj.data, True)
 
@@ -1434,6 +1432,23 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 	fModel.materials[materialKey] = (fMaterial, texDimensions)
 
 	return fMaterial, texDimensions
+
+def getCelShadingInfo(material):
+	if material.mat_ver <= 3:
+		return None
+	f3dMat = material.f3d_mat
+	if not f3dMat.do_cel_shading:
+		return None
+	levels = []
+	if len(f3dMat.cel_shading.levels) == 0:
+		raise PluginError('Material ' + material.name + ' has cel shading enabled, but no cel levels')
+	for l in f3dMat.cel_shading.levels:
+		lvl = {'inverse': bool(l.inverse),
+			'lighten': bool(l.lighten),
+			'fade': int(l.fade),
+			'threshold': int(l.threshold)}
+		levels.append(lvl)
+	return {'solid': bool(f3dMat.cel_shading.solid), 'levels': levels}
 
 def saveTextureIndex(propName, fModel, fMaterial, loadTexGfx, revertTexGfx, texProp, index, tmem,
 	overrideName, convertTextureData, tileSettingsOverride, loadTextures, loadPalettes):

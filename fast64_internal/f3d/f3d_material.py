@@ -834,6 +834,39 @@ class F3DPanel(bpy.types.Panel):
 			#fogGroup.enabled = not f3dMat.use_global_fog
 			#inputGroup.box().label(text = 'NOTE: Fog will break with draw layer overrides.')
 
+	
+	def ui_cel_shading(self, material, layout):
+		nodes = material.node_tree.nodes
+		inputGroup = layout.box().column()
+
+		if material.mat_ver > 3:
+			inputGroup.prop(material.f3d_mat, "do_cel_shading")
+			if material.f3d_mat.do_cel_shading:
+				cel = material.f3d_mat.cel_shading
+				inputGroup.prop(cel, "solid")
+				for l in cel.levels:
+					box = inputGroup.box().column()
+					r = box.row()
+					r.prop(l, "inverse")
+					r.prop(l, "lighten")
+					r = box.row().split(factor=0.25, align=True)
+					r.label(text = 'Color' if l.lighten else 'Black')
+					r = r.split(factor=0.66, align=True)
+					r.prop(l, "fade")
+					r.label(text = 'White' if l.lighten else 'Color')
+					r = box.row().split(factor=0.3, align=True)
+					r.label(text = 'Write if ' + ('<=' if l.inverse else '>='))
+					r.prop(l, "threshold")
+				r = inputGroup.row()
+				op = r.operator(CelLevelAdd.bl_idname)
+				op.matlName = material.name
+				if len(cel.levels) > 0:
+					op = r.operator(CelLevelRemove.bl_idname)
+					op.matlName = material.name
+		else:
+			layout.label(text = 'Cel shading disabled due to low version')
+		return inputGroup
+
 	def drawVertexColorNotice(self, layout):
 		noticeBox = layout.box().column()
 		noticeBox.label(
@@ -1055,6 +1088,8 @@ class F3DPanel(bpy.types.Panel):
 			if material.mat_ver > 3:
 				presetCol.prop(context.scene, 'f3dUserPresetsOnly')
 			self.draw_full(f3dMat, material, layout, context)
+		
+		self.ui_cel_shading(material, layout)
 
 #def ui_procAnimVec(self, procAnimVec, layout, name, vecType):
 #	layout.prop(procAnimVec, 'menu', text = name,
@@ -2283,6 +2318,51 @@ class DefaultRDPSettingsPanel(bpy.types.Panel):
 		ui_lower_mode(world.rdp_defaults, world, layout, True)
 		ui_other(world.rdp_defaults, world, layout, True)
 
+class CelLevelProperty(bpy.types.PropertyGroup):
+	inverse : bpy.props.BoolProperty(name = 'Inverse')
+	lighten : bpy.props.BoolProperty(name = 'Lighten')
+	fade : bpy.props.IntProperty(name = 'Fade', min = 0, max = 255, default = 200)
+	threshold : bpy.props.IntProperty(name = 'Threshold', min = 0, max = 255, default = 128)
+
+class CelShadingProperty(bpy.types.PropertyGroup):
+	solid : bpy.props.BoolProperty(name = "Color src: ENV (off = TEXEL0)")
+	levels : bpy.props.CollectionProperty(type = CelLevelProperty, name = "Cel Levels")
+
+def celGetMatlLevels(matlName):
+	for m in bpy.data.materials:
+		if m.name == matlName:
+			matl = m
+			break
+	else:
+		raise PluginError('Could not find material ' + matlName)
+	if m.mat_ver <= 3:
+		raise PluginError('Material version is <= 3')
+	return m.f3d_mat.cel_shading.levels
+
+class CelLevelAdd(bpy.types.Operator):
+	bl_idname = 'material.f3d_cel_level_add'
+	bl_label = 'Add Cel Level'
+	bl_options = {'REGISTER', 'UNDO'}
+	
+	matlName : bpy.props.StringProperty()
+	
+	def execute(self, context):
+		levels = celGetMatlLevels(self.matlName)
+		levels.add()
+		return {'FINISHED'}
+
+class CelLevelRemove(bpy.types.Operator):
+	bl_idname = 'material.f3d_cel_level_remove'
+	bl_label = 'Remove Last Level'
+	bl_options = {'REGISTER', 'UNDO'}
+	
+	matlName : bpy.props.StringProperty()
+	
+	def execute(self, context):
+		levels = celGetMatlLevels(self.matlName)
+		levels.remove(len(levels) - 1)
+		return {'FINISHED'}
+
 ### Node Categories ###
 # Node categories are a python system for automatically
 # extending the Add menu, toolbar panels and search operator.
@@ -2856,6 +2936,10 @@ class F3DMaterialProperty(bpy.types.PropertyGroup):
 
 	draw_layer : bpy.props.PointerProperty(type = DrawLayerProperty)
 	use_large_textures : bpy.props.BoolProperty(name = "Large Texture Mode")
+	
+	# cel shading
+	do_cel_shading : bpy.props.BoolProperty(name = "Cel Shading")
+	cel_shading : bpy.props.PointerProperty(type = CelShadingProperty)
 
 class UnlinkF3DImage0(bpy.types.Operator):
 	bl_idname = 'image.tex0_unlink'
@@ -2936,6 +3020,10 @@ mat_classes = (
 	PrimDepthSettings,
 	RDPSettings,
 	DefaultRDPSettingsPanel,
+	CelLevelProperty,
+	CelShadingProperty,
+	CelLevelAdd,
+	CelLevelRemove,
 	F3DMaterialProperty,
 	ReloadDefaultF3DPresets,
 	UpdateF3DNodes,
