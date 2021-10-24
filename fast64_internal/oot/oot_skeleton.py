@@ -316,8 +316,7 @@ def ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix,
 		#for i in range(len(startBoneNames)):
 		#	startBoneName = startBoneNames[i]
 		ootProcessBone(fModel, startBoneName, skeleton, 0,
-			meshObj, armatureObj, convertTransformMatrix, meshInfo, convertTextureData,
-			name, skeletonOnly, drawLayer)
+			meshObj, armatureObj, convertTransformMatrix, meshInfo, convertTextureData,	name, skeletonOnly, drawLayer)
 
 		cleanupDuplicatedObjects(meshObjs + [armatureObj])
 		originalArmatureObj.select_set(True)
