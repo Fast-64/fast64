@@ -1002,9 +1002,14 @@ class SM64ObjectPanel(bpy.types.Panel):
 			if obj.areaIndex == 1 or obj.areaIndex == 2 or obj.areaIndex == 3 or obj.areaIndex == 4:
 				box.prop(obj, 'zoomOutOnPause')
 
-			box.prop(obj, 'areaOverrideBG')
+			box.prop(obj.fast64.sm64.area, 'disable_background')
+
+			areaLayout = box.box()
+			areaLayout.enabled = not obj.fast64.sm64.area.disable_background
+			areaLayout.prop(obj, 'areaOverrideBG')
 			if obj.areaOverrideBG:
-				prop_split(box, obj, 'areaBGColor', 'Background Color')
+				prop_split(areaLayout, obj, 'areaBGColor', 'Background Color')
+
 			box.prop(obj, 'showStartDialog')
 			if obj.showStartDialog:
 				prop_split(box, obj, 'startDialog', "Start Dialog")
@@ -1373,12 +1378,16 @@ class SM64_GeoASMProperties(bpy.types.PropertyGroup):
 		param = obj.get("geoASMParam") or obj.get("func_param") or 0
 		geo_asm.param = str(param)
 
+class SM64_AreaProperties(bpy.types.PropertyGroup):
+	name = "Area Properties"
+	disable_background: bpy.props.BoolProperty(name = "Disable Background", default=False, description="Disable rendering background. Ideal for interiors or areas that should never see a background.")
 
 class SM64_ObjectProperties(bpy.types.PropertyGroup):
 	version: bpy.props.IntProperty(name="SM64_ObjectProperties Version", default=0)
 	cur_version = 1 # version after property migration
 
 	geo_asm: bpy.props.PointerProperty(type=SM64_GeoASMProperties)
+	area: bpy.props.PointerProperty(type=SM64_AreaProperties)
 
 	@staticmethod
 	def upgrade_changed_props():
@@ -1403,6 +1412,7 @@ sm64_obj_classes = (
 	PuppycamSetupCamera,
 
 	SM64_GeoASMProperties,
+	SM64_AreaProperties,
 	SM64_ObjectProperties,
 )
 
