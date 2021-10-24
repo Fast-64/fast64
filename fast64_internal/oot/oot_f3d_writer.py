@@ -101,6 +101,20 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 	fMeshes = {}
 	triConverterInfo = OOTTriangleConverterInfo(meshObj, armatureObj.data, fModel.f3d, convertTransformMatrix, meshInfo)
 
+	if optimize:
+		# If one of the materials we need to draw is the currently loaded material,
+		# do this one first.
+		newGroupFaces = {}
+		for material_index, faces in groupFaces.items():
+			material = meshObj.material_slots[material_index].material
+			if material.name == lastMaterialName:
+				newGroupFaces[material_index] = faces
+				del groupFaces[material_index]
+				break
+		for material_index, faces in groupFaces.items():
+			newGroupFaces[material_index] = faces
+		groupFaces = newGroupFaces
+
 	# Usually we would separate DLs into different draw layers.
 	# however it seems like OOT skeletons don't have this ability.
 	# Therefore we always use the drawLayerOverride as the draw layer key.
