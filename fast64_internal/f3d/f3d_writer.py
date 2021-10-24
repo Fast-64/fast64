@@ -830,7 +830,6 @@ class TriangleConverter:
 
 	def addFace(self, face):
 		triIndices = []
-		existingVerts = []
 		addedVerts = [] # verts added to existing vertexBuffer
 		allVerts = [] # all verts not in 'untouched' buffer region
 
@@ -843,11 +842,8 @@ class TriangleConverter:
 			if not self.vertInBuffer(bufferVert, face.material_index):
 				addedVerts.append(bufferVert)
 
-			if bufferVert in self.vertBuffer[:self.bufferStart]:
-				existingVerts.append(bufferVert)
-			else:
+			if bufferVert not in self.vertBuffer[:self.bufferStart]:
 				allVerts.append(bufferVert)
-				existingVerts.append(None)
 
 		# We care only about load size, since loading is what takes up time.
 		# Even if vert_buffer is larger, its still another load to fill it.

@@ -36,8 +36,7 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 	# dict of material_index keys to face array values
 	groupFaces = {}
 	
-	# dict of material_index keys to SkinnedFace objects
-	skinnedFaces = {}
+	hasSkinnedFaces = False
 
 	handledFaces = []
 	anyConnectedToUnhandledBone = False
@@ -49,41 +48,31 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 			if face in handledFaces:
 				continue
 
-			sortedLoops = {} # (group tuple) : []
 			connectedToUnhandledBone = False
 
-			# loop is interpreted as face + loop index
-			groupTuple = []
+			# A Blender loop is interpreted as face + loop index
 			for i in range(3):
 				faceVertIndex = face.vertices[i]
 				vertGroupIndex = meshInfo.vertexGroupInfo.vertexGroups[faceVertIndex]
-				if vertGroupIndex not in groupTuple:
-					groupTuple.append(vertGroupIndex)
+				if vertGroupIndex != currentGroupIndex:
+					hasSkinnedFaces = True
 				if vertGroupIndex not in meshInfo.vertexGroupInfo.vertexGroupToLimb:
-					# Only want to handle skinned faces connected to parent
+					# Connected to a bone not processed yet
+					# These skinned faces will be handled by that limb
 					connectedToUnhandledBone = True
 					anyConnectedToUnhandledBone = True
 					break
 			
 			if connectedToUnhandledBone:
 				continue
-			groupTuple = tuple(sorted(groupTuple))
 
-			if groupTuple == tuple([currentGroupIndex]):
-				if face.material_index not in groupFaces:
-					groupFaces[face.material_index] = []
-				groupFaces[face.material_index].append(face)
-			else:
-				if groupTuple not in skinnedFaces:
-					skinnedFaces[groupTuple] = {}
-				skinnedFacesGroup = skinnedFaces[groupTuple]
-				if face.material_index not in skinnedFacesGroup:
-					skinnedFacesGroup[face.material_index] = []
-				skinnedFacesGroup[face.material_index].append(face)
+			if face.material_index not in groupFaces:
+				groupFaces[face.material_index] = []
+			groupFaces[face.material_index].append(face)
 			
 			handledFaces.append(face)
 
-	if not (len(groupFaces) > 0 or len(skinnedFaces) > 0):
+	if len(groupFaces) == 0:
 		print("No faces in " + vertexGroup)
 
 		# OOT will only allocate matrix if DL exists.
@@ -98,7 +87,6 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 			return None, False
 	
 	meshInfo.vertexGroupInfo.vertexGroupToMatrixIndex[currentGroupIndex] = nextDLIndex
-	fMeshes = {}
 	triConverterInfo = OOTTriangleConverterInfo(meshObj, armatureObj.data, fModel.f3d, convertTransformMatrix, meshInfo)
 
 	if optimize:
@@ -111,6 +99,7 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 				newGroupFaces[material_index] = faces
 				del groupFaces[material_index]
 				break
+		# add the rest of them
 		for material_index, faces in groupFaces.items():
 			newGroupFaces[material_index] = faces
 		groupFaces = newGroupFaces
@@ -119,62 +108,29 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 	# however it seems like OOT skeletons don't have this ability.
 	# Therefore we always use the drawLayerOverride as the draw layer key.
 	# This means everything will be saved to one mesh. 
-	drawLayerKey = drawLayerOverride
+	fMesh = fModel.addMesh(vertexGroup, namePrefix, drawLayerOverride, False, bone)
+	
 	for material_index, faces in groupFaces.items():
 		material = meshObj.material_slots[material_index].material
-		#if material.mat_ver > 3:
-		#	drawLayer = material.f3d_mat.draw_layer.oot
-		#else:
-		#	drawLayer = drawLayerOverride
-		drawLayer = drawLayerOverride
-		
-		if drawLayerKey not in fMeshes:
-			fMesh = fModel.addMesh(vertexGroup, namePrefix, drawLayer, False, bone)
-			fMeshes[drawLayerKey] = fMesh
-			
 		checkForF3dMaterialInFaces(meshObj, material)
 		fMaterial, texDimensions = \
-			saveOrGetF3DMaterial(material, fModel, meshObj, drawLayer, convertTextureData)
+			saveOrGetF3DMaterial(material, fModel, meshObj, drawLayerOverride, convertTextureData)
 
 		if fMaterial.useLargeTextures:
-			currentGroupIndex = saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMeshes[drawLayer],
-				meshObj, drawLayer, convertTextureData, currentGroupIndex, triConverterInfo, None, None, lastMaterialName)
+			currentGroupIndex = saveMeshWithLargeTexturesByFaces(material, faces,
+				fModel, fMesh, meshObj, drawLayerOverride, convertTextureData, 
+				currentGroupIndex, triConverterInfo, None, None, lastMaterialName)
 		else:
-			currentGroupIndex = saveMeshByFaces(material, faces, fModel, fMeshes[drawLayer], 
-				meshObj, drawLayer, convertTextureData, currentGroupIndex, triConverterInfo, None, None, lastMaterialName)
+			currentGroupIndex = saveMeshByFaces(material, faces, fModel, fMesh, 
+				meshObj, drawLayerOverride, convertTextureData, currentGroupIndex, 
+				triConverterInfo, None, None, lastMaterialName)
 		
 		lastMaterialName = material.name if optimize else None
 
-	for groupTuple, materialFaces in skinnedFaces.items():
-		for material_index, faces in materialFaces.items():
-			material = meshObj.material_slots[material_index].material
-			#if material.mat_ver > 3:
-			#	drawLayer = material.f3d_mat.draw_layer.oot
-			#else:
-			#	drawLayer = drawLayerOverride
-			drawLayer = drawLayerOverride
+	fModel.endDraw(fMesh, bone)
 
-			if drawLayerKey not in fMeshes:
-				# technically skinned, but for oot we don't have separate skinned/unskinned meshes.
-				fMesh = fModel.addMesh(vertexGroup, namePrefix, drawLayer, False, bone)
-				fMeshes[drawLayerKey] = fMesh
+	return fMesh, hasSkinnedFaces, lastMaterialName
 
-			checkForF3dMaterialInFaces(meshObj, material)
-			fMaterial, texDimensions = \
-				saveOrGetF3DMaterial(material, fModel, meshObj, drawLayer, convertTextureData)
-			if fMaterial.useLargeTextures:
-				currentGroupIndex = saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMeshes[drawLayer], 
-					meshObj, drawLayer, convertTextureData, currentGroupIndex, triConverterInfo, None, None, lastMaterialName)
-			else:
-				currentGroupIndex = saveMeshByFaces(material, faces, fModel, fMeshes[drawLayer], 
-					meshObj, drawLayer, convertTextureData, currentGroupIndex, triConverterInfo, None, None, lastMaterialName)
-			
-			lastMaterialName = material.name if optimize else None
-
-	for drawLayer, fMesh in fMeshes.items():
-		fModel.endDraw(fMesh, bone)
-
-	return fMeshes[drawLayerKey], len(skinnedFaces) > 0, lastMaterialName
 
 ootEnumObjectMenu = [
 	("Scene", "Parent Scene Settings", "Scene"),
