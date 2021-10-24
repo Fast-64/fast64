@@ -317,7 +317,7 @@ def ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix,
 		#	startBoneName = startBoneNames[i]
 		ootProcessBone(fModel, startBoneName, skeleton, 0,
 			meshObj, armatureObj, convertTransformMatrix, meshInfo, convertTextureData,
-			name, skeletonOnly, drawLayer, -1)
+			name, skeletonOnly, drawLayer)
 
 		cleanupDuplicatedObjects(meshObjs + [armatureObj])
 		originalArmatureObj.select_set(True)
@@ -331,8 +331,7 @@ def ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix,
 		raise Exception(str(e))
 
 def ootProcessBone(fModel, boneName, parentLimb, nextIndex, meshObj, armatureObj, 
-	convertTransformMatrix, meshInfo, convertTextureData, namePrefix, skeletonOnly, 
-	drawLayer, parentGroupIndex):
+	convertTransformMatrix, meshInfo, convertTextureData, namePrefix, skeletonOnly, drawLayer):
 	bone = armatureObj.data.bones[boneName]
 	if bone.parent is not None:
 		transform = convertTransformMatrix @ bone.parent.matrix_local.inverted() @ bone.matrix_local
@@ -351,7 +350,7 @@ def ootProcessBone(fModel, boneName, parentLimb, nextIndex, meshObj, armatureObj
 	else:
 		mesh, hasSkinnedFaces = ootProcessVertexGroup(fModel, meshObj, boneName, 
 			convertTransformMatrix, armatureObj, namePrefix,
-			meshInfo, drawLayer, convertTextureData, parentGroupIndex)
+			meshInfo, drawLayer, convertTextureData)
 
 	if bone.ootBoneType == "Custom DL":
 		if mesh is not None:
@@ -380,8 +379,7 @@ def ootProcessBone(fModel, boneName, parentLimb, nextIndex, meshObj, armatureObj
 	childrenNames = getSortedChildren(armatureObj, bone)
 	for childName in childrenNames:
 		nextIndex = ootProcessBone(fModel, childName, limb, nextIndex, meshObj, armatureObj, 
-			convertTransformMatrix, meshInfo, convertTextureData, namePrefix, skeletonOnly, 
-			drawLayer, groupIndex)
+			convertTransformMatrix, meshInfo, convertTextureData, namePrefix, skeletonOnly, drawLayer)
 
 	return nextIndex
 

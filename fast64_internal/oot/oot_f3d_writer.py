@@ -15,7 +15,7 @@ from .oot_scene_room import *
 # 	mesh, 
 # 	anySkinnedFaces (to determine if skeleton should be flex)
 def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, armatureObj, namePrefix,
-	meshInfo, drawLayerOverride, convertTextureData, parentGroupIndex):
+	meshInfo, drawLayerOverride, convertTextureData):
 
 	mesh = meshObj.data
 	currentGroupIndex = getGroupIndexFromname(meshObj, vertexGroup)
@@ -52,14 +52,9 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 				vertGroupIndex = meshInfo.vertexGroupInfo.vertexGroups[faceVertIndex]
 				if vertGroupIndex != currentGroupIndex:
 					hasSkinnedFaces = True
-				if vertGroupIndex in meshInfo.vertexGroupInfo.vertexGroupToLimb:
-					# Self or some parent
-					if vertGroupIndex not in {currentGroupIndex, parentGroupIndex}:
-						raise PluginError('Vertex group ' + vertexGroup 
-							+ ' has faces connected to groups besides its immediate parent!')
-				else:
-					# Connected to a bone not processed yet (hopefully, a child)
-					# These skinned faces will be handled by the child
+				if vertGroupIndex not in meshInfo.vertexGroupInfo.vertexGroupToLimb:
+					# Connected to a bone not processed yet
+					# These skinned faces will be handled by that limb
 					connectedToUnhandledBone = True
 					anyConnectedToUnhandledBone = True
 					break
