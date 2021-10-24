@@ -270,7 +270,8 @@ class TileLoad:
 			abs(self.tl - self.th) + 1]
 
 def saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, drawLayer,
-	convertTextureData, currentGroupIndex, triConverterInfo, existingVertData, matRegionDict):
+	convertTextureData, currentGroupIndex, triConverterInfo, existingVertData, matRegionDict,
+	lastMaterialName):
 	if len(faces) == 0:
 		print('0 Faces Provided.')
 		return
@@ -317,7 +318,8 @@ def saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, drawLa
 
 	tileLoads = list(tileLoads.items())
 
-	fMesh.add_material_call(fMaterial)
+	if material.name != lastMaterialName:
+		fMesh.add_material_call(fMaterial)
 	triGroup = fMesh.tri_group_new(fMaterial)
 	fMesh.draw.commands.append(SPDisplayList(triGroup.triList))
 
@@ -407,10 +409,10 @@ def saveStaticModel(triConverterInfo, fModel, obj, transformMatrix, ownerName, c
 
 		if fMaterial.useLargeTextures:
 			saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, drawLayer, convertTextureData, None,
-				triConverterInfo, None, None)
+				triConverterInfo, None, None, None)
 		else:
 			saveMeshByFaces(material, faces,
-				fModel, fMesh, obj, drawLayer, convertTextureData, None, triConverterInfo, None, None)
+				fModel, fMesh, obj, drawLayer, convertTextureData, None, triConverterInfo, None, None, None)
 
 	for drawLayer, fMesh in fMeshes.items():
 		if revertMatAtEnd:
@@ -619,7 +621,7 @@ def checkIfFlatShaded(material):
 
 def saveMeshByFaces(material, faces, fModel, fMesh, obj, drawLayer,
 	convertTextureData, currentGroupIndex, triConverterInfo,
-	existingVertData, matRegionDict):
+	existingVertData, matRegionDict, lastMaterialName):
 	if len(faces) == 0:
 		print('0 Faces Provided.')
 		return
@@ -630,7 +632,8 @@ def saveMeshByFaces(material, faces, fModel, fMesh, obj, drawLayer,
 	uv_data = obj.data.uv_layers['UVMap'].data
 	convertInfo = LoopConvertInfo(uv_data, obj, exportVertexColors)
 
-	fMesh.add_material_call(fMaterial)
+	if material.name != lastMaterialName:
+		fMesh.add_material_call(fMaterial)
 	triGroup = fMesh.tri_group_new(fMaterial)
 	fMesh.draw.commands.append(SPDisplayList(triGroup.triList))
 

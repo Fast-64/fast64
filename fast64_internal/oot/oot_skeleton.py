@@ -316,7 +316,8 @@ def ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix,
 		#for i in range(len(startBoneNames)):
 		#	startBoneName = startBoneNames[i]
 		ootProcessBone(fModel, startBoneName, skeleton, 0,
-			meshObj, armatureObj, convertTransformMatrix, meshInfo, convertTextureData, name, skeletonOnly, drawLayer)
+			meshObj, armatureObj, convertTransformMatrix, meshInfo, convertTextureData, 
+			name, skeletonOnly, drawLayer, None)
 
 		cleanupDuplicatedObjects(meshObjs + [armatureObj])
 		originalArmatureObj.select_set(True)
@@ -330,7 +331,8 @@ def ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix,
 		raise Exception(str(e))
 
 def ootProcessBone(fModel, boneName, parentLimb, nextIndex, meshObj, armatureObj, 
-	convertTransformMatrix, meshInfo, convertTextureData, namePrefix, skeletonOnly, drawLayer):
+	convertTransformMatrix, meshInfo, convertTextureData, namePrefix, skeletonOnly,
+	drawLayer, lastMaterialName):
 	bone = armatureObj.data.bones[boneName]
 	if bone.parent is not None:
 		transform = convertTransformMatrix @ bone.parent.matrix_local.inverted() @ bone.matrix_local
@@ -347,9 +349,10 @@ def ootProcessBone(fModel, boneName, parentLimb, nextIndex, meshObj, armatureObj
 		mesh = None
 		hasSkinnedFaces = None
 	else:
-		mesh, hasSkinnedFaces = ootProcessVertexGroup(fModel, meshObj, boneName, 
+		mesh, hasSkinnedFaces, lastMaterialName = ootProcessVertexGroup(
+			fModel, meshObj, boneName, 
 			convertTransformMatrix, armatureObj, namePrefix,
-			meshInfo, drawLayer, convertTextureData)
+			meshInfo, drawLayer, convertTextureData, lastMaterialName)
 
 	if bone.ootBoneType == "Custom DL":
 		if mesh is not None:
@@ -377,10 +380,11 @@ def ootProcessBone(fModel, boneName, parentLimb, nextIndex, meshObj, armatureObj
 
 	childrenNames = getSortedChildren(armatureObj, bone)
 	for childName in childrenNames:
-		nextIndex = ootProcessBone(fModel, childName, limb, nextIndex, meshObj, armatureObj, 
-			convertTransformMatrix, meshInfo, convertTextureData, namePrefix, skeletonOnly, drawLayer)
+		nextIndex, lastMaterialName = ootProcessBone(fModel, childName, limb, nextIndex, meshObj, 
+			armatureObj, convertTransformMatrix, meshInfo, convertTextureData, 
+			namePrefix, skeletonOnly, drawLayer, lastMaterialName)
 
-	return nextIndex
+	return nextIndex, lastMaterialName
 
 def ootConvertArmatureToC(originalArmatureObj, convertTransformMatrix, 
 	f3dType, isHWv1, skeletonName, folderName, DLFormat, savePNG, exportPath, isCustomExport, drawLayer, removeVanillaData):
@@ -790,6 +794,11 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
 		else:		
 			prop_split(col, context.scene, 'ootSkeletonExportFolderName', "Object")
 		col.prop(context.scene, "ootSkeletonExportUseCustomPath")
+		col.prop(context.scene, "ootSkeletonExportOptimize")
+		if context.scene.ootSkeletonExportOptimize:
+			b = col.box().column()
+			b.label(icon = 'ERROR', text = "Do not draw anything in SkelAnime")
+			b.label(text = "callbacks or cull limbs, will be corrupted.")
 
 		col.operator(OOT_ImportSkeleton.bl_idname)
 
@@ -885,6 +894,11 @@ def oot_skeleton_register():
 		name ='Custom Skeleton Path', subtype = 'FILE_PATH')
 	bpy.types.Scene.ootSkeletonExportUseCustomPath = bpy.props.BoolProperty(
 		name = "Use Custom Path")
+	bpy.types.Scene.ootSkeletonExportOptimize = bpy.props.BoolProperty(
+		name = "Optimize",
+		description = "Applies various optimizations between the limbs in a skeleton. "
+			+ "If enabled, the skeleton limbs must be drawn in their normal order, "
+			+ "with nothing in between and no culling, otherwise the mesh will be corrupted.")
 
 	bpy.types.Scene.ootSkeletonImportName = bpy.props.StringProperty(
 		name = "Skeleton Name", default = "gGerudoRedSkel")
@@ -914,6 +928,7 @@ def oot_skeleton_unregister():
 	del bpy.types.Scene.ootSkeletonExportFolderName
 	del bpy.types.Scene.ootSkeletonExportCustomPath
 	del bpy.types.Scene.ootSkeletonExportUseCustomPath
+	del bpy.types.Scene.ootSkeletonExportOptimize
 
 	del bpy.types.Scene.ootSkeletonImportName
 	del bpy.types.Scene.ootSkeletonImportFolderName

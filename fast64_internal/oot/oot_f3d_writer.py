@@ -15,7 +15,11 @@ from .oot_scene_room import *
 # 	mesh, 
 # 	anySkinnedFaces (to determine if skeleton should be flex)
 def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, armatureObj, namePrefix,
-	meshInfo, drawLayerOverride, convertTextureData):
+	meshInfo, drawLayerOverride, convertTextureData, lastMaterialName):
+
+	optimize = bpy.context.scene.ootSkeletonExportOptimize
+	if not optimize:
+		lastMaterialName = None
 
 	mesh = meshObj.data
 	currentGroupIndex = getGroupIndexFromname(meshObj, vertexGroup)
@@ -120,10 +124,12 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 
 		if fMaterial.useLargeTextures:
 			currentGroupIndex = saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMeshes[drawLayer],
-				meshObj, drawLayer, convertTextureData, currentGroupIndex, triConverterInfo, None, None)
+				meshObj, drawLayer, convertTextureData, currentGroupIndex, triConverterInfo, None, None, lastMaterialName)
 		else:
 			currentGroupIndex = saveMeshByFaces(material, faces, fModel, fMeshes[drawLayer], 
-				meshObj, drawLayer, convertTextureData, currentGroupIndex, triConverterInfo, None, None)
+				meshObj, drawLayer, convertTextureData, currentGroupIndex, triConverterInfo, None, None, lastMaterialName)
+		
+		lastMaterialName = material.name if optimize else None
 
 	for groupTuple, materialFaces in skinnedFaces.items():
 		for material_index, faces in materialFaces.items():
@@ -144,15 +150,17 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 				saveOrGetF3DMaterial(material, fModel, meshObj, drawLayer, convertTextureData)
 			if fMaterial.useLargeTextures:
 				currentGroupIndex = saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMeshes[drawLayer], 
-					meshObj, drawLayer, convertTextureData, currentGroupIndex, triConverterInfo, None, None)
+					meshObj, drawLayer, convertTextureData, currentGroupIndex, triConverterInfo, None, None, lastMaterialName)
 			else:
 				currentGroupIndex = saveMeshByFaces(material, faces, fModel, fMeshes[drawLayer], 
-					meshObj, drawLayer, convertTextureData, currentGroupIndex, triConverterInfo, None, None)
+					meshObj, drawLayer, convertTextureData, currentGroupIndex, triConverterInfo, None, None, lastMaterialName)
+			
+			lastMaterialName = material.name if optimize else None
 
 	for drawLayer, fMesh in fMeshes.items():
 		fModel.endDraw(fMesh, bone)
 
-	return fMeshes[drawLayerKey], len(skinnedFaces) > 0
+	return fMeshes[drawLayerKey], len(skinnedFaces) > 0, lastMaterialName
 
 ootEnumObjectMenu = [
 	("Scene", "Parent Scene Settings", "Scene"),
