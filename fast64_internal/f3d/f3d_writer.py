@@ -272,6 +272,10 @@ class TileLoad:
 def saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, drawLayer,
 	convertTextureData, currentGroupIndex, triConverterInfo, existingVertData, matRegionDict,
 	lastMaterialName):
+	'''
+	lastMaterialName is for optimization; set it to None to disable optimization.
+	'''
+	
 	if len(faces) == 0:
 		print('0 Faces Provided.')
 		return
@@ -622,6 +626,10 @@ def checkIfFlatShaded(material):
 def saveMeshByFaces(material, faces, fModel, fMesh, obj, drawLayer,
 	convertTextureData, currentGroupIndex, triConverterInfo,
 	existingVertData, matRegionDict, lastMaterialName):
+	'''
+	lastMaterialName is for optimization; set it to None to disable optimization.
+	'''
+	
 	if len(faces) == 0:
 		print('0 Faces Provided.')
 		return

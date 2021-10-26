@@ -797,7 +797,7 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
 		col.prop(context.scene, "ootSkeletonExportOptimize")
 		if context.scene.ootSkeletonExportOptimize:
 			b = col.box().column()
-			b.label(icon = 'ERROR', text = "Do not draw anything in SkelAnime")
+			b.label(icon = 'LIBRARY_DATA_BROKEN', text = "Do not draw anything in SkelAnime")
 			b.label(text = "callbacks or cull limbs, will be corrupted.")
 
 		col.operator(OOT_ImportSkeleton.bl_idname)
@@ -835,7 +835,7 @@ class OOT_SkeletonPanel(bpy.types.Panel):
 		prop_split(col, context.object, "ootDrawLayer", "Draw Layer")
 		prop_split(col, context.object, "ootFarLOD", "LOD Skeleton")
 		if context.object.ootFarLOD is not None:
-			col.label(text = "Make sure LOD has same bone structure.", icon = "ERROR")
+			col.label(text = "Make sure LOD has same bone structure.", icon = 'BONE_DATA')
 
 class OOT_BonePanel(bpy.types.Panel):
 	bl_idname = "OOT_PT_bone"
@@ -858,7 +858,7 @@ class OOT_BonePanel(bpy.types.Panel):
 			prop_split(col, context.bone, "ootCustomDLName", "DL Name")
 		if context.bone.ootBoneType == "Custom DL" or\
 			context.bone.ootBoneType == "Ignore":
-			col.label(text = "Make sure no geometry is skinned to this bone.", icon = "ERROR")
+			col.label(text = "Make sure no geometry is skinned to this bone.", icon = 'BONE_DATA')
 		
 		if context.bone.ootBoneType != "Ignore":
 			col.prop(context.bone.ootDynamicTransform, 'billboard')

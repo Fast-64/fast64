@@ -92,16 +92,11 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 	if optimize:
 		# If one of the materials we need to draw is the currently loaded material,
 		# do this one first.
-		newGroupFaces = {}
-		for material_index, faces in groupFaces.items():
-			material = meshObj.material_slots[material_index].material
-			if material.name == lastMaterialName:
-				newGroupFaces[material_index] = faces
-				del groupFaces[material_index]
-				break
-		# add the rest of them
-		for material_index, faces in groupFaces.items():
-			newGroupFaces[material_index] = faces
+		newGroupFaces = {
+			material_index: faces for material_index, faces in groupFaces.items()
+			if meshObj.material_slots[material_index].material.name == lastMaterialName
+		}
+		newGroupFaces.update(groupFaces)
 		groupFaces = newGroupFaces
 
 	# Usually we would separate DLs into different draw layers.
@@ -390,7 +385,7 @@ class OOT_MaterialPanel(bpy.types.Panel):
 			context.object.parent is not None and isinstance(context.object.parent.data, bpy.types.Armature):
 			drawLayer = context.object.parent.ootDrawLayer
 			if drawLayer != mat.f3d_mat.draw_layer.oot:
-				col.label(text = "Draw layer is being overriden by skeleton.", icon = "ERROR")
+				col.label(text = "Draw layer is being overriden by skeleton.", icon = 'OUTLINER_DATA_ARMATURE')
 		else:
 			drawLayer = mat.f3d_mat.draw_layer.oot
 
