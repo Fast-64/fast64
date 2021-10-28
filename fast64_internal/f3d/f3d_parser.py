@@ -1619,7 +1619,7 @@ def parseVertexData(dlData, vertexDataName, f3dContext):
 		raise PluginError("Cannot find vertex list named " + vertexDataName)
 	data = matchResult.group(1)
 
-	pathMatch = re.search("\#include\s*\"([^\"]*)\"", data, re.DOTALL)
+	pathMatch = re.search(r'\#include\s*"([^"]*)"', data)
 	if pathMatch is not None:
 		path = pathMatch.group(1)
 		data = readFile(f3dContext.getVTXPathFromInclude(path))
