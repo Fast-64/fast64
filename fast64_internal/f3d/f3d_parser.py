@@ -750,10 +750,12 @@ class F3DContext:
 		
 		imagePath = path[:-5] + 'png'
 		return os.path.join(self.basePath, imagePath)
+
 	def getVTXPathFromInclude(self, path):
 		if self.basePath is None:
 			raise PluginError("Cannot load VTX from " + path + " without any provided base path.")
 		return os.path.join(self.basePath, path)
+
 	def setGeoFlags(self, command, value):
 		mat = self.mat()
 		bitFlags = math_eval(command.params[0], self.f3d)
