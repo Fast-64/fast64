@@ -34,7 +34,7 @@ class OOTAnimation:
 				data.source += '\t'
 			data.source += format(value, '#06x') + ", "
 			counter += 1
-			if counter > 14:
+			if counter >= 16: # round number for finding/counting data
 				counter = 0
 				data.source += '\n'
 		data.source += '};\n\n'
@@ -112,9 +112,9 @@ def ootConvertAnimationData(anim, armatureObj, frameInterval, restPoseRotations,
 			saveQuaternionFrame(rotationData[boneIndex], restPoseRotations[boneName].inverted() @ rotationValue)
 	
 	bpy.context.scene.frame_set(currentFrame)
-	removeTrailingFrames(translationData)
+	squashFramesIfAllSame(translationData)
 	for frameData in rotationData:
-		removeTrailingFrames(frameData)
+		squashFramesIfAllSame(frameData)
 
 	# need to deepcopy?
 	armatureFrameData = translationData
@@ -265,7 +265,7 @@ def getJointIndices(filepath, animData, jointIndicesName):
 	if matchResult is None:
 		raise PluginError("Cannot find animation joint indices data named " + jointIndicesName + " in " + filepath)
 	data = matchResult.group(1)
-	jointIndicesData = [[hexOrDecInt(match.group(i)) for i in range(1,4)] for match in re.finditer("\{([^,\}]*),([^,\}]*),([^,\}]*)\}", data, re.DOTALL)]
+	jointIndicesData = [[hexOrDecInt(match.group(i)) for i in range(1,4)] for match in re.finditer("\{([^,\}]*),([^,\}]*),([^,\}]*)\s*,?\s*\}", data, re.DOTALL)]
 
 	return jointIndicesData
 

@@ -137,7 +137,7 @@ def drawAlternateRoomHeaderProperty(layout, headerProp, objName):
 		if index - 4 < len(headerProp.cutsceneHeaders):
 			drawRoomHeaderProperty(headerSetup, headerProp.cutsceneHeaders[index - 4], None, index, objName)
 		else:
-			headerSetup.label(text = "No cutscene header for this index.", icon = "ERROR")
+			headerSetup.label(text = "No cutscene header for this index.", icon = 'QUESTION')
 
 class OOTExitProperty(bpy.types.PropertyGroup):
 	expandTab : bpy.props.BoolProperty(name = "Expand Tab")
@@ -254,14 +254,14 @@ def drawLightProperty(layout, lightProp, name, showExpandTab, index, sceneHeader
 		
 		if lightProp.useCustomDiffuse0:
 			prop_split(box, lightProp, 'diffuse0Custom', 'Diffuse 0')
-			box.label(text = "Make sure light is not part of scene hierarchy.", icon = "ERROR")
+			box.label(text = "Make sure light is not part of scene hierarchy.", icon = 'FILE_PARENT')
 		else:
 			prop_split(box, lightProp, 'diffuse0', 'Diffuse 0')
 		box.prop(lightProp, "useCustomDiffuse0")
 		
 		if lightProp.useCustomDiffuse1:
 			prop_split(box, lightProp, 'diffuse1Custom', 'Diffuse 1')
-			box.label(text = "Make sure light is not part of scene hierarchy.", icon = "ERROR")
+			box.label(text = "Make sure light is not part of scene hierarchy.", icon = 'FILE_PARENT')
 		else:
 			prop_split(box, lightProp, 'diffuse1', 'Diffuse 1')
 		box.prop(lightProp, "useCustomDiffuse1")
@@ -580,7 +580,7 @@ def drawAlternateSceneHeaderProperty(layout, headerProp, objName):
 		if index - 4 < len(headerProp.cutsceneHeaders):
 			drawSceneHeaderProperty(headerSetup, headerProp.cutsceneHeaders[index - 4], None, index, objName)
 		else:
-			headerSetup.label(text = "No cutscene header for this index.", icon = "ERROR")
+			headerSetup.label(text = "No cutscene header for this index.", icon = 'QUESTION')
 
 class OOTAlternateRoomHeaderProperty(bpy.types.PropertyGroup):
 	childNightHeader : bpy.props.PointerProperty(name = "Child Night Header", type = OOTRoomHeaderProperty)
@@ -605,7 +605,7 @@ def drawParentSceneRoom(box, obj):
 			if sceneObj.ootSceneHeader.menuTab == 'Alternate':
 				drawAlternateSceneHeaderProperty(box, sceneObj.ootAlternateSceneHeaders, sceneObj.name)
 		else:
-			box.label(text = "This object is not part of any Scene hierarchy.", icon = "ERROR")
+			box.label(text = "This object is not part of any Scene hierarchy.", icon = 'OUTLINER')
 	
 	elif obj.ootObjectMenu == "Room":
 		if roomObj is not None:
@@ -613,4 +613,4 @@ def drawParentSceneRoom(box, obj):
 			if roomObj.ootRoomHeader.menuTab == 'Alternate':
 				drawAlternateRoomHeaderProperty(box, roomObj.ootAlternateRoomHeaders, roomObj.name)
 		else:
-			box.label(text = "This object is not part of any Room hierarchy.", icon = "ERROR")
+			box.label(text = "This object is not part of any Room hierarchy.", icon = 'OUTLINER')

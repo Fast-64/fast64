@@ -24,6 +24,19 @@ def removeTrailingFrames(frameData):
 			else:
 				break
 		frameData[i].frames = frameData[i].frames[:lastUniqueFrame + 1]
+		
+def squashFramesIfAllSame(frameData):
+	for i in range(3):
+		if len(frameData[i].frames) < 2:
+			continue
+		f0 = frameData[i].frames[0]
+		for j in range(1, len(frameData[i].frames)):
+			d = abs(frameData[i].frames[j] - f0)
+			# Allow a change of +/-1 from original frame due to rounding.
+			if d >= 2 and d != 0xFFFF:
+				break
+		else:
+			frameData[i].frames = frameData[i].frames[0:1]
 
 def saveTranslationFrame(frameData, translation):
 	for i in range(3):
