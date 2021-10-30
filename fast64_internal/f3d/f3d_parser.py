@@ -778,6 +778,8 @@ class F3DContext:
 			mat.rdp_settings.g_tex_gen_linear = value
 		if bitFlags & self.f3d.G_SHADING_SMOOTH:
 			mat.rdp_settings.g_shade_smooth = value
+		if bitFlags & self.f3d.G_CELSHADING:
+			mat.rdp_settings.g_celshading = value
 		if bitFlags & self.f3d.G_CLIPPING:
 			mat.rdp_settings.g_clipping = value
 	
@@ -793,6 +795,7 @@ class F3DContext:
 		mat.rdp_settings.g_tex_gen = bitFlags & self.f3d.G_TEXTURE_GEN != 0
 		mat.rdp_settings.g_tex_gen_linear = bitFlags & self.f3d.G_TEXTURE_GEN_LINEAR != 0
 		mat.rdp_settings.g_shade_smooth = bitFlags & self.f3d.G_SHADING_SMOOTH != 0
+		mat.rdp_settings.g_celshading = bitFlags & self.f3d.G_CELSHADING != 0
 		mat.rdp_settings.g_clipping = bitFlags & self.f3d.G_CLIPPING != 0
 
 	def setCombineLerp(self, lerp0, lerp1):

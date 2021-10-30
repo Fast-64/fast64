@@ -276,6 +276,7 @@ class F3D:
 		self.G_TEXTURE_GEN =        0x00040000
 		self.G_TEXTURE_GEN_LINEAR = 0x00080000
 		self.G_LOD =                0x00100000	# NOT IMPLEMENTED
+		self.G_CELSHADING =         0x00400000
 		if F3DEX_GBI or F3DLP_GBI:
 			self.G_CLIPPING =       0x00800000
 		else:
@@ -287,6 +288,7 @@ class F3D:
 		self.G_TEXTURE_GEN_H = (self.G_TEXTURE_GEN/0x10000)
 		self.G_TEXTURE_GEN_LINEAR_H = (self.G_TEXTURE_GEN_LINEAR/0x10000)
 		self.G_LOD_H = (self.G_LOD/0x10000)	# NOT IMPLEMENTED
+		self.G_CELSHADING_H = (self.G_CELSHADING/0x10000)
 		if F3DEX_GBI or F3DLP_GBI:
 			self.G_CLIPPING_H = (self.G_CLIPPING/0x10000)
 		#endif
@@ -3778,6 +3780,7 @@ def geoFlagListToWord(flagList, f3d):
 		elif name == 'G_TEXTURE_GEN': word += f3d.G_TEXTURE_GEN
 		elif name == 'G_TEXTURE_GEN_LINEAR': word += f3d.G_TEXTURE_GEN_LINEAR
 		elif name == 'G_LOD': word += f3d.G_LOD
+		elif name == 'G_CELSHADING': word += f3d.G_CELSHADING
 		elif name == 'G_CLIPPING': word += f3d.G_CLIPPING
 		else: raise PluginError("Invalid geometry mode flag " + name)
 	

@@ -420,6 +420,7 @@ def ootConvertArmatureToC(originalArmatureObj, convertTransformMatrix,
 		data.source += '#include "' + folderName + '.h"\n\n'
 	else:
 		data.source += '\n'
+	data.source += '#define G_CELSHADING 0x00400000\n\n'
 
 	exportData = fModel.to_c(
 		TextureExportSettings(False, savePNG, "test"), OOTGfxFormatter(ScrollMethod.Vertex))

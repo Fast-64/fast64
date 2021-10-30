@@ -2109,6 +2109,8 @@ def saveGeoModeDefinition(fMaterial, settings, defaults, matWriteMethod):
 		'G_TEXTURE_GEN_LINEAR', setGeo, clearGeo, matWriteMethod)
 	saveBitGeo(settings.g_shade_smooth, defaults.g_shade_smooth,
 		'G_SHADING_SMOOTH', setGeo, clearGeo, matWriteMethod)
+	saveBitGeo(settings.g_celshading, defaults.g_celshading,
+		'G_CELSHADING', setGeo, clearGeo, matWriteMethod)
 	if bpy.context.scene.f3d_type == 'F3DEX_GBI_2' or \
 		bpy.context.scene.f3d_type == 'F3DEX_GBI':
 		saveBitGeo(settings.g_clipping, defaults.g_clipping, 'G_CLIPPING',

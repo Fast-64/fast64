@@ -357,6 +357,7 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
 		inputGroup.prop(settings, 'g_tex_gen_linear',
 			text = 'Texture UV Generate Linear')
 		inputGroup.prop(settings, 'g_shade_smooth', text = 'Smooth Shading')
+		inputGroup.prop(settings, 'g_celshading', text = 'Cel Shading (Shade G -> A)')
 		if bpy.context.scene.f3d_type == 'F3DEX_GBI_2' or \
 			bpy.context.scene.f3d_type == 'F3DEX_GBI':
 			inputGroup.prop(settings, 'g_clipping', text = 'Clipping')
@@ -2206,6 +2207,8 @@ class RDPSettings(bpy.types.PropertyGroup):
 	#v1/2 difference
 	g_shade_smooth : bpy.props.BoolProperty(name = 'Smooth Shading',
 		default = True,	update = update_node_values)
+	g_celshading : bpy.props.BoolProperty(name = 'Cel Shading (Shade G -> A)',
+		default = False, update = update_node_values)
 	# f3dlx2 only
 	g_clipping : bpy.props.BoolProperty(name = 'Clipping',
 		update = update_node_values)
