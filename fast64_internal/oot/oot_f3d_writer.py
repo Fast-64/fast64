@@ -15,7 +15,11 @@ from .oot_scene_room import *
 # 	mesh, 
 # 	anySkinnedFaces (to determine if skeleton should be flex)
 def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, armatureObj, namePrefix,
-	meshInfo, drawLayerOverride, convertTextureData):
+	meshInfo, drawLayerOverride, convertTextureData, lastMaterialName):
+
+	optimize = bpy.context.scene.ootSkeletonExportOptimize
+	if not optimize:
+		lastMaterialName = None
 
 	mesh = meshObj.data
 	currentGroupIndex = getGroupIndexFromname(meshObj, vertexGroup)
@@ -85,6 +89,16 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 	meshInfo.vertexGroupInfo.vertexGroupToMatrixIndex[currentGroupIndex] = nextDLIndex
 	triConverterInfo = OOTTriangleConverterInfo(meshObj, armatureObj.data, fModel.f3d, convertTransformMatrix, meshInfo)
 
+	if optimize:
+		# If one of the materials we need to draw is the currently loaded material,
+		# do this one first.
+		newGroupFaces = {
+			material_index: faces for material_index, faces in groupFaces.items()
+			if meshObj.material_slots[material_index].material.name == lastMaterialName
+		}
+		newGroupFaces.update(groupFaces)
+		groupFaces = newGroupFaces
+
 	# Usually we would separate DLs into different draw layers.
 	# however it seems like OOT skeletons don't have this ability.
 	# Therefore we always use the drawLayerOverride as the draw layer key.
@@ -98,15 +112,20 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 			saveOrGetF3DMaterial(material, fModel, meshObj, drawLayerOverride, convertTextureData)
 
 		if fMaterial.useLargeTextures:
-			currentGroupIndex = saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh,
-				meshObj, drawLayerOverride, convertTextureData, currentGroupIndex, triConverterInfo, None, None)
+			currentGroupIndex = saveMeshWithLargeTexturesByFaces(material, faces,
+				fModel, fMesh, meshObj, drawLayerOverride, convertTextureData, 
+				currentGroupIndex, triConverterInfo, None, None, lastMaterialName)
 		else:
 			currentGroupIndex = saveMeshByFaces(material, faces, fModel, fMesh, 
-				meshObj, drawLayerOverride, convertTextureData, currentGroupIndex, triConverterInfo, None, None)
+				meshObj, drawLayerOverride, convertTextureData, currentGroupIndex, 
+				triConverterInfo, None, None, lastMaterialName)
+		
+		lastMaterialName = material.name if optimize else None
 
 	fModel.endDraw(fMesh, bone)
 
-	return fMesh, hasSkinnedFaces
+	return fMesh, hasSkinnedFaces, lastMaterialName
+
 
 ootEnumObjectMenu = [
 	("Scene", "Parent Scene Settings", "Scene"),
@@ -366,7 +385,7 @@ class OOT_MaterialPanel(bpy.types.Panel):
 			context.object.parent is not None and isinstance(context.object.parent.data, bpy.types.Armature):
 			drawLayer = context.object.parent.ootDrawLayer
 			if drawLayer != mat.f3d_mat.draw_layer.oot:
-				col.label(text = "Draw layer is being overriden by skeleton.", icon = "ERROR")
+				col.label(text = "Draw layer is being overriden by skeleton.", icon = 'OUTLINER_DATA_ARMATURE')
 		else:
 			drawLayer = mat.f3d_mat.draw_layer.oot
 
