@@ -82,7 +82,7 @@ def drawActorHeaderItemProperty(layout, propUser, headerItemProp, index, altProp
 		drawCollectionOps(box, index, propUser, None, objName)
 		prop_split(box, headerItemProp, 'headerIndex', 'Header Index')
 		if altProp is not None and headerItemProp.headerIndex >= len(altProp.cutsceneHeaders) + 4:
-			box.label(text = "Header does not exist.", icon = "ERROR")
+			box.label(text = "Header does not exist.", icon = 'QUESTION')
 		
 class OOTActorProperty(bpy.types.PropertyGroup):
 	actorID : bpy.props.EnumProperty(name = 'Actor', items = ootEnumActorID, default = 'ACTOR_PLAYER')
@@ -150,11 +150,11 @@ def drawTransitionActorProperty(layout, transActorProp, altSceneProp, roomObj, o
 	prop_split(actorIDBox, transActorProp.actor, "actorParam", 'Actor Parameter')
 
 	if roomObj is None:
-		actorIDBox.label(text = "This must be part of a Room empty's hierarchy.", icon = "ERROR")
+		actorIDBox.label(text = "This must be part of a Room empty's hierarchy.", icon = 'OUTLINER')
 	else:
 		label_split(actorIDBox, "Room To Transition From", str(roomObj.ootRoomHeader.roomIndex))
 	prop_split(actorIDBox, transActorProp, "roomIndex", "Room To Transition To")
-	actorIDBox.label(text = "Y+ side of door faces toward the \"from\" room.", icon = "ERROR")
+	actorIDBox.label(text = "Y+ side of door faces toward the \"from\" room.", icon = 'ORIENTATION_NORMAL')
 	drawEnumWithCustom(actorIDBox, transActorProp, "cameraTransitionFront", "Camera Transition Front", "")
 	drawEnumWithCustom(actorIDBox, transActorProp, "cameraTransitionBack", "Camera Transition Back", "")
 
@@ -175,7 +175,7 @@ def drawEntranceProperty(layout, obj, altSceneProp, objName):
 		split.label(text = "Room Index")
 		split.label(text = str(roomObj.ootRoomHeader.roomIndex))
 	else:
-		box.label(text = "This must be part of a Room empty's hierarchy.", icon = "ERROR")
+		box.label(text = "This must be part of a Room empty's hierarchy.", icon = 'OUTLINER')
 
 	entranceProp = obj.ootEntranceProperty
 	prop_split(box, entranceProp, "spawnIndex", "Spawn Index")

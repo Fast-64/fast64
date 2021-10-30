@@ -751,6 +751,11 @@ class F3DContext:
 		imagePath = path[:-5] + 'png'
 		return os.path.join(self.basePath, imagePath)
 
+	def getVTXPathFromInclude(self, path):
+		if self.basePath is None:
+			raise PluginError("Cannot load VTX from " + path + " without any provided base path.")
+		return os.path.join(self.basePath, path)
+
 	def setGeoFlags(self, command, value):
 		mat = self.mat()
 		bitFlags = math_eval(command.params[0], self.f3d)
@@ -1580,7 +1585,7 @@ def parseF3D(dlData, dlName, obj, transformMatrix, limbName, boneName, drawLayer
 	f3dContext.processCommands(dlData, dlName, dlCommands)
 
 def parseDLData(dlData, dlName):
-	matchResult = re.search("Gfx\s*" + re.escape(dlName) + "\s*\[\s*\]\s*=\s*\{([^\}]*)\}", dlData)
+	matchResult = re.search("Gfx\s*" + re.escape(dlName) + "\s*\[\s*\w*\s*\]\s*=\s*\{([^\}]*)\}", dlData)
 	if matchResult is None:
 		raise PluginError("Cannot find display list named " + dlName)
 
@@ -1615,6 +1620,11 @@ def parseVertexData(dlData, vertexDataName, f3dContext):
 	if matchResult is None:
 		raise PluginError("Cannot find vertex list named " + vertexDataName)
 	data = matchResult.group(1)
+
+	pathMatch = re.search(r'\#include\s*"([^"]*)"', data)
+	if pathMatch is not None:
+		path = pathMatch.group(1)
+		data = readFile(f3dContext.getVTXPathFromInclude(path))
 
 	f3d = f3dContext.f3d
 	patterns = f3dContext.vertexFormatPatterns(data)

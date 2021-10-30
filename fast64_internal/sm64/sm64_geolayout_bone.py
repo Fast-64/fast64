@@ -173,7 +173,7 @@ class GeolayoutArmaturePanel(bpy.types.Panel):
 def drawLayerWarningBox(layout, prop, data):
 	warningBox = layout.box().column()
 	prop_split(warningBox, prop, data, 'Draw Layer (v3)')
-	warningBox.label(text = "This applies to v3 materials and down only.", icon = "ERROR")
+	warningBox.label(text = "This applies to v3 materials and down only.", icon = 'LOOP_FORWARDS')
 	warningBox.label(text = "This is moved to material settings in v4+.")
 
 class GeolayoutObjectPanel(bpy.types.Panel):
