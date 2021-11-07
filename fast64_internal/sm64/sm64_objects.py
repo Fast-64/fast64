@@ -614,7 +614,7 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
 				preset = handleRefreshDiffSpecials(preset)
 				area.specials.append(SM64_Special_Object(preset, translation,
 					rotation.to_euler() if obj.sm64_obj_set_yaw else None,
-					obj.sm64_obj_bparam if (obj.sm64_obj_set_yaw and obj.sm64_obj_set_bparam) else None))
+					obj.fast64.sm64.game_object.bparams if (obj.sm64_obj_set_yaw and obj.sm64_obj_set_bparam) else None))
 			elif obj.sm64_obj_type == 'Water Box':
 				checkIdentityRotation(obj, rotation, False)
 				area.water_boxes.append(CollisionWaterBox(obj.waterBoxType,
@@ -626,11 +626,11 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
 				behaviour = func_map[bpy.context.scene.refreshVer][obj.sm64_behaviour_enum] if \
 					obj.sm64_behaviour_enum != 'Custom' else obj.sm64_obj_behaviour
 				area.objects.append(SM64_Object(modelID, translation, rotation.to_euler(),
-					behaviour, obj.sm64_obj_bparam, get_act_string(obj)))
+					behaviour, obj.fast64.sm64.game_object.bparams, get_act_string(obj)))
 			elif obj.sm64_obj_type == 'Macro':
 				macro = obj.sm64_macro_enum if obj.sm64_macro_enum != 'Custom' else obj.sm64_obj_preset
 				area.macros.append(SM64_Macro_Object(macro, translation, rotation.to_euler(),
-					obj.sm64_obj_bparam if obj.sm64_obj_set_bparam else None))
+					obj.fast64.sm64.game_object.bparams if obj.sm64_obj_set_bparam else None))
 			elif obj.sm64_obj_type == 'Mario Start':
 				mario_start = SM64_Mario_Start(obj.sm64_obj_mario_start_area, translation, rotation.to_euler())
 				area.objects.append(mario_start)
@@ -889,6 +889,24 @@ class SM64ObjectPanel(bpy.types.Panel):
 			else:
 				box.box().label(text = 'Children of this object will be wrapped in GEO_OPEN_NODE and GEO_CLOSE_NODE.')
 
+	def draw_behavior_params(self, obj: bpy.types.Object, parent_box: bpy.types.UILayout):
+		game_object = obj.fast64.sm64.game_object # .bparams
+		parent_box.separator()
+		box = parent_box.box()
+		box.label(text = "Behavior Parameters")
+		individuals = box.box()
+		individuals.label(text = "Individual Behavior Parameters")
+		row = individuals.row()
+		for i in range(1, 5):
+			column = row.column()
+			column.label(text = f"Param {i}")
+			column.prop(game_object, f'bparam{i}', text="")
+
+		box.separator()
+		box.label(text = "All Behavior Parameters")
+		box.prop(game_object, 'bparams', text="")
+		parent_box.separator()
+
 	def draw(self, context):
 		prop_split(self.layout, context.scene, "gameEditorMode", "Game")
 		box = self.layout.box().column()
@@ -909,7 +927,7 @@ class SM64ObjectPanel(bpy.types.Panel):
 			behaviourLabel = box.box()
 			behaviourLabel.label(text = 'Behaviours defined in include/behaviour_data.h.')
 			behaviourLabel.label(text = 'Actual contents in data/behaviour_data.c.')
-			prop_split(box, obj, 'sm64_obj_bparam', 'Behaviour Parameter')
+			self.draw_behavior_params(obj, box)
 			self.draw_acts(obj, box)
 
 		elif obj.sm64_obj_type == 'Macro':
@@ -920,7 +938,7 @@ class SM64ObjectPanel(bpy.types.Panel):
 			box.box().label(text = 'Macro presets defined in include/macro_preset_names.h.')
 			box.prop(obj, 'sm64_obj_set_bparam', text = 'Set Behaviour Parameter')
 			if obj.sm64_obj_set_bparam:
-				prop_split(box, obj, 'sm64_obj_bparam', 'Behaviour Parameter')
+				self.draw_behavior_params(obj, box)
 
 		elif obj.sm64_obj_type == 'Special':
 			prop_split(box, obj, 'sm64_special_enum', 'Preset')
@@ -932,7 +950,7 @@ class SM64ObjectPanel(bpy.types.Panel):
 			if obj.sm64_obj_set_yaw:
 				box.prop(obj, 'sm64_obj_set_bparam', text = 'Set Behaviour Parameter')
 				if obj.sm64_obj_set_bparam:
-					prop_split(box, obj, 'sm64_obj_bparam', 'Behaviour Parameter')
+					self.draw_behavior_params(obj, box)
 
 		elif obj.sm64_obj_type == 'Mario Start':
 			prop_split(box, obj, 'sm64_obj_mario_start_area', 'Area')
@@ -1372,29 +1390,59 @@ class SM64_GeoASMProperties(bpy.types.PropertyGroup):
 	def upgrade_object(obj: bpy.types.Object):
 		geo_asm = obj.fast64.sm64.geo_asm
 
-		func = obj.get("geoASMFunc") or obj.get("geo_func") or ""
+		func = obj.get("geoASMFunc") or obj.get("geo_func") or geo_asm.func
 		geo_asm.func = func
 
-		param = obj.get("geoASMParam") or obj.get("func_param") or 0
+		param = obj.get("geoASMParam") or obj.get("func_param") or geo_asm.param
 		geo_asm.param = str(param)
 
 class SM64_AreaProperties(bpy.types.PropertyGroup):
 	name = "Area Properties"
 	disable_background: bpy.props.BoolProperty(name = "Disable Background", default=False, description="Disable rendering background. Ideal for interiors or areas that should never see a background.")
 
+
+def set_bparams_from_param(self, context):
+	params = [self.bparam1, self.bparam2, self.bparam3, self.bparam4]
+	fmt_params = []
+	for i, p in enumerate(params):
+		if len(p) == 0:
+			continue
+		shift = 8 * (3 - i)
+		fmt_params.append(f"({p} << {shift})" if shift > 0 else f"({p})")
+	if len(fmt_params) == 0:
+		self.bparams = '0x00000000'
+	else:
+		self.bparams = ' | '.join(fmt_params)
+
+class SM64_GameObjectProperties(bpy.types.PropertyGroup):
+	name = "Game Object Properties"
+	bparams: bpy.props.StringProperty(name = "Behavior Parameters", description="All Behavior Parameters", default="0x00000000")
+
+	bparam1: bpy.props.StringProperty(name = "Behavior Param 1",    description="First Behavior Param",    default="", update=set_bparams_from_param)
+	bparam2: bpy.props.StringProperty(name = "Behavior Param 2",    description="Second Behavior Param",   default="", update=set_bparams_from_param)
+	bparam3: bpy.props.StringProperty(name = "Behavior Param 3",    description="Third Behavior Param",    default="", update=set_bparams_from_param)
+	bparam4: bpy.props.StringProperty(name = "Behavior Param 4",    description="Fourth Behavior Param",   default="", update=set_bparams_from_param)
+
+	@staticmethod
+	def upgrade_object(obj):
+		obj.fast64.sm64.game_object.bparams = obj.get("sm64_obj_bparam", "0x00000000")
+
 class SM64_ObjectProperties(bpy.types.PropertyGroup):
 	version: bpy.props.IntProperty(name="SM64_ObjectProperties Version", default=0)
-	cur_version = 1 # version after property migration
+	cur_version = 2 # version after property migration
 
 	geo_asm: bpy.props.PointerProperty(type=SM64_GeoASMProperties)
 	area: bpy.props.PointerProperty(type=SM64_AreaProperties)
+	game_object: bpy.props.PointerProperty(type=SM64_GameObjectProperties)
 
 	@staticmethod
 	def upgrade_changed_props():
 		for obj in bpy.context.scene.objects:
 			if obj.fast64.sm64.version == 0:
 				SM64_GeoASMProperties.upgrade_object(obj)
-				obj.fast64.sm64.version = SM64_ObjectProperties.cur_version
+			if obj.fast64.sm64.version < 2:
+				SM64_GameObjectProperties.upgrade_object(obj)
+			obj.fast64.sm64.version = SM64_ObjectProperties.cur_version
 
 sm64_obj_classes = (
 	WarpNodeProperty,
@@ -1413,6 +1461,7 @@ sm64_obj_classes = (
 
 	SM64_GeoASMProperties,
 	SM64_AreaProperties,
+	SM64_GameObjectProperties,
 	SM64_ObjectProperties,
 )
 
@@ -1464,9 +1513,6 @@ def sm64_obj_register():
 
 	bpy.types.Object.sm64_obj_preset = bpy.props.StringProperty(
 		name = 'Preset')
-
-	bpy.types.Object.sm64_obj_bparam = bpy.props.StringProperty(
-		name = 'Behaviour Parameter', default = '0x00000000')
 
 	bpy.types.Object.sm64_obj_behaviour = bpy.props.StringProperty(
 		name = 'Behaviour')
@@ -1636,7 +1682,6 @@ def sm64_obj_unregister():
 	del bpy.types.Object.sm64_obj_type
 	del bpy.types.Object.sm64_obj_model
 	del bpy.types.Object.sm64_obj_preset
-	del bpy.types.Object.sm64_obj_bparam
 	del bpy.types.Object.sm64_obj_behaviour
 
 	del bpy.types.Object.whirpool_index
