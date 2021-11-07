@@ -863,9 +863,9 @@ class TriangleConverter:
 					return DPSetCombineMode(a0, b0, c0, d0, aa0, ab0, ac0, ad0,
 						a0, b0, c0, d0, aa0, ab0, ac0, ad0)
 				def CombinerForward(a0, b0, c0, d0):
-					return Combiner(a0, b0, c0, d0, 'SHADE', '0', 'TEXEL0', '0')
+					return Combiner(a0, b0, c0, d0, 'SHADE', '0', colorSrc, '0')
 				def CombinerInverse(a0, b0, c0, d0):
-					return Combiner(a0, b0, c0, d0, '1', 'SHADE', 'TEXEL0', '0')
+					return Combiner(a0, b0, c0, d0, '1', 'SHADE', colorSrc, '0')
 				def CombinerDarken(fwdinv):
 					return fwdinv(colorSrc, '0', 'PRIMITIVE_ALPHA', '0')
 				def CombinerLighten(fwdinv):

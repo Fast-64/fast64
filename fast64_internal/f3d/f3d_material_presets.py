@@ -3803,7 +3803,7 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'OoT Cel Shaded Texture'
+f3d_mat.presetName = 'OoT Cel Shaded Solid'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'ENVIRONMENT'
 f3d_mat.combiner1.B = '0'
@@ -3811,7 +3811,7 @@ f3d_mat.combiner1.C = 'PRIMITIVE_ALPHA'
 f3d_mat.combiner1.D = '0'
 f3d_mat.combiner1.A_alpha = 'SHADE'
 f3d_mat.combiner1.B_alpha = '0'
-f3d_mat.combiner1.C_alpha = 'TEXEL0'
+f3d_mat.combiner1.C_alpha = 'ENVIRONMENT'
 f3d_mat.combiner1.D_alpha = '0'
 f3d_mat.combiner2.name = ''
 f3d_mat.combiner2.A = 'ENVIRONMENT'
@@ -3820,7 +3820,7 @@ f3d_mat.combiner2.C = 'PRIMITIVE_ALPHA'
 f3d_mat.combiner2.D = '0'
 f3d_mat.combiner2.A_alpha = 'SHADE'
 f3d_mat.combiner2.B_alpha = '0'
-f3d_mat.combiner2.C_alpha = 'TEXEL0'
+f3d_mat.combiner2.C_alpha = 'ENVIRONMENT'
 f3d_mat.combiner2.D_alpha = '0'
 f3d_mat.tex0.name = ''
 f3d_mat.tex0.tex_set = False
