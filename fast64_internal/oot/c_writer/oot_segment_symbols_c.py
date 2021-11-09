@@ -62,8 +62,4 @@ def modifySegmentSymbols(scene, exportInfo):
 		segmentSymbols.insert(firstIndex, SegmentSymbolEntry("DECLARE_ROM_SEGMENT", scene.name + "_scene"))
 		firstIndex += 1
 
-		for i in range(len(scene.rooms)):
-			segmentSymbols.insert(firstIndex, SegmentSymbolEntry("DECLARE_ROM_SEGMENT", scene.name + "_room_" + str(i)))
-			firstIndex += 1
-
 	writeSegmentSymbols(segmentSymbols, fileData, start, end, exportPath)
