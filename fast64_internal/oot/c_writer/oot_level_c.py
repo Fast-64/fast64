@@ -248,20 +248,6 @@ def ootRoomCommandsToC(room, headerIndex):
 
 	return data
 
-def ootRoomIncludes(scene, room):
-	data = CData()
-	data.source += '#include "ultra64.h"\n'
-	data.source += '#include "z64.h"\n'
-	data.source += '#include "macros.h"\n'
-	data.source += '#include "' + room.roomName() + '.h"\n\n'
-	data.source += '#include "segment_symbols.h"\n'
-	data.source += '#include "command_macros_base.h"\n'
-	data.source += '#include "z64cutscene_commands.h"\n'
-	data.source += '#include "variables.h"\n'
-	data.source += '#include "' + scene.sceneName() + '.h"\n'
-	data.source += '\n'
-	return data
-
 def ootAlternateRoomMainToC(scene, room):
 	altHeader = CData()
 	altData = CData()
