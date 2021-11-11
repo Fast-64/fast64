@@ -444,13 +444,24 @@ def ootTransitionActorListToC(scene, headerIndex):
 	data.source += '};\n\n'
 	return data
 
+def ootRoomExternToC(room):
+	return "extern u8 " + room.roomName() + "SegmentRomStart[];\n" + \
+		"extern u8 " + room.roomName() + "SegmentRomEnd[];\n"
+
 def ootRoomListEntryToC(room):
 	return "{ (u32)_" + room.roomName() + "SegmentRomStart, (u32)_" + room.roomName() + "SegmentRomEnd },\n"
 
 def ootRoomListHeaderToC(scene):
 	data = CData()
-	data.header = "extern RomFile " + scene.roomListName() + "[];\n"
-	data.source = "RomFile " + scene.roomListName() + "[] = {\n"
+
+	# Write externs for rom segments
+	for i in range(len(scene.rooms)):
+		data.source += ootRoomExternToC(scene.rooms[i])
+	data.source += "\n"
+
+	data.header += "extern RomFile " + scene.roomListName() + "[];\n"
+	data.source += "RomFile " + scene.roomListName() + "[] = {\n"
+	
 	for i in range(len(scene.rooms)):
 		data.source += '\t' + ootRoomListEntryToC(scene.rooms[i])
 	data.source += '};\n\n'
