@@ -84,7 +84,7 @@ def ootExportSceneToC(originalSceneObj, transformMatrix,
 	levelPath = ootGetPath(exportPath, isCustomExport, exportSubdir, sceneName, True, True)	
 	levelC = ootLevelToC(scene, TextureExportSettings(False, savePNG, exportSubdir + sceneName, levelPath))
 
-	if bpy.types.Scene.ootSceneSingleFile:
+	if bpy.context.scene.ootSceneSingleFile:
 		writeCDataSourceOnly(ootPreprendSceneIncludes(scene, ootCombineSceneFiles(levelC)),
 			os.path.join(levelPath, scene.sceneName() + '.c'))
 		for i in range(len(scene.rooms)):
