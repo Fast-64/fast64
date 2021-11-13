@@ -445,8 +445,8 @@ def ootTransitionActorListToC(scene, headerIndex):
 	return data
 
 def ootRoomExternToC(room):
-	return "extern u8 " + room.roomName() + "SegmentRomStart[];\n" + \
-		"extern u8 " + room.roomName() + "SegmentRomEnd[];\n"
+	return "extern u8 _" + room.roomName() + "SegmentRomStart[];\n" + \
+		"extern u8 _" + room.roomName() + "SegmentRomEnd[];\n"
 
 def ootRoomListEntryToC(room):
 	return "{ (u32)_" + room.roomName() + "SegmentRomStart, (u32)_" + room.roomName() + "SegmentRomEnd },\n"
