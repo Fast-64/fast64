@@ -1148,9 +1148,9 @@ class WarpNodeProperty(bpy.types.PropertyGroup):
 
 		# Convert from Blender space to SM64 space
 		ret = Vector()
-		ret.x = int(difference.x * bpy.context.scene.blenderF3DScale)
-		ret.y = int(difference.z * bpy.context.scene.blenderF3DScale)
-		ret.z = int(-difference.y * bpy.context.scene.blenderF3DScale)
+		ret.x = int(round(difference.x * bpy.context.scene.blenderF3DScale))
+		ret.y = int(round(difference.z * bpy.context.scene.blenderF3DScale))
+		ret.z = int(round(-difference.y * bpy.context.scene.blenderF3DScale))
 		return ret
 
 	def to_c(self):
@@ -1229,9 +1229,9 @@ def drawWarpNodeProperty(layout, warpNode, index):
 					writeBox.label(text='Current Offset: ')
 					difference = warpNode.calc_offsets_from_objects()
 					
-					writeBox.label(text='X: ' + str(int(difference.x)))
-					writeBox.label(text='Y: ' + str(int(difference.y)))
-					writeBox.label(text='Z: ' + str(int(difference.z)))
+					writeBox.label(text=f'X: {difference.x}')
+					writeBox.label(text=f'Y: {difference.y}')
+					writeBox.label(text=f'Z: {difference.z}')
 			else:
 				prop_split(box, warpNode, 'instantOffset', 'Offset')
 		else:
