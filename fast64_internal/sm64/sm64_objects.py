@@ -1135,14 +1135,45 @@ class WarpNodeProperty(bpy.types.PropertyGroup):
 	warpFlagEnum : bpy.props.EnumProperty(name = 'Warp Flags Value', default = 'WARP_NO_CHECKPOINT', items = enumWarpFlag)
 	instantOffset : bpy.props.IntVectorProperty(name = 'Offset',
 		size = 3, default = (0,0,0))
+	instantWarpObject1 : bpy.props.PointerProperty(name = 'Object 1', type = bpy.types.Object)
+	instantWarpObject2 : bpy.props.PointerProperty(name = 'Object 2', type = bpy.types.Object)
+	useOffsetObjects : bpy.props.BoolProperty(name = 'Use Offset Objects', default = False)
 
 	expand : bpy.props.BoolProperty()
 
+	def uses_area_nodes(self):
+		return self.instantWarpObject1.sm64_obj_type == 'Area Root' and self.instantWarpObject2.sm64_obj_type == 'Area Root'
+
+	def calc_offsets_from_objects(self, reverse = False):
+		if self.instantWarpObject1 is None or self.instantWarpObject2 is None:
+			raise PluginError(f'Warp Start and Warp End in Warp Node {self.warpID} must have objects selected.')
+
+		difference = self.instantWarpObject2.location - self.instantWarpObject1.location
+
+		if reverse:
+			difference *= -1
+
+		# Convert from Blender space to SM64 space
+		ret = Vector()
+		ret.x = int(round(difference.x * bpy.context.scene.blenderF3DScale))
+		ret.y = int(round(difference.z * bpy.context.scene.blenderF3DScale))
+		ret.z = int(round(-difference.y * bpy.context.scene.blenderF3DScale))
+		return ret
+
 	def to_c(self):
 		if self.warpType == 'Instant':
+			offset = Vector()
+
+			if self.useOffsetObjects:
+				offset = self.calc_offsets_from_objects(self.uses_area_nodes())
+			else:
+				offset.x = self.instantOffset[0]
+				offset.y = self.instantOffset[1]
+				offset.z = self.instantOffset[2]
+
 			return 'INSTANT_WARP(' + str(self.warpID) + ', ' + str(self.destArea) +\
-				', ' + str(self.instantOffset[0]) + ', ' + str(self.instantOffset[1]) + \
-				', ' + str(self.instantOffset[2]) + ')'
+				', ' + str(int(offset.x)) + ', ' + str(int(offset.y)) + \
+				', ' + str(int(offset.z)) + ')'
 		else:
 			if self.warpType == 'Warp':
 				cmd = 'WARP_NODE'
@@ -1194,7 +1225,26 @@ def drawWarpNodeProperty(layout, warpNode, index):
 		if warpNode.warpType == 'Instant':
 			prop_split(box, warpNode, 'warpID', 'Warp ID')
 			prop_split(box, warpNode, 'destArea', 'Destination Area')
-			prop_split(box, warpNode, 'instantOffset', 'Offset')
+			prop_split(box, warpNode, 'useOffsetObjects', 'Use Offset Objects?')
+			if warpNode.useOffsetObjects:
+				prop_split(box, warpNode, 'instantWarpObject1', 'Warp Start')
+				prop_split(box, warpNode, 'instantWarpObject2', 'Warp End')
+				writeBox = box.box()
+				if warpNode.instantWarpObject1 is None or warpNode.instantWarpObject2 is None:
+					writeBox.label(text='Both Objects must be selected for offset')
+				else:
+					usesAreaNodes = warpNode.uses_area_nodes()
+					difference = warpNode.calc_offsets_from_objects(usesAreaNodes)
+					writeBox.label(text='Current Offset: ')
+					
+					writeBox.label(text=f'X: {difference.x}')
+					writeBox.label(text=f'Y: {difference.y}')
+					writeBox.label(text=f'Z: {difference.z}')
+
+					if usesAreaNodes:
+						writeBox.label(text='(When using two area nodes, the calculation is reversed)')
+			else:
+				prop_split(box, warpNode, 'instantOffset', 'Offset')
 		else:
 			prop_split(box, warpNode, 'warpID', 'Warp ID')
 			prop_split(box, warpNode, 'destLevelEnum', 'Destination Level')
