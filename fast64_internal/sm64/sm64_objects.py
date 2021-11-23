@@ -1141,10 +1141,17 @@ class WarpNodeProperty(bpy.types.PropertyGroup):
 
 	expand : bpy.props.BoolProperty()
 
-	def calc_offsets_from_objects(self):
+	def uses_area_nodes(self):
+		return self.instantWarpObject1.sm64_obj_type == 'Area Root' and self.instantWarpObject2.sm64_obj_type == 'Area Root'
+
+	def calc_offsets_from_objects(self, reverse = False):
 		if self.instantWarpObject1 is None or self.instantWarpObject2 is None:
 			raise PluginError(f'Warp Start and Warp End in Warp Node {self.warpID} must have objects selected.')
+
 		difference = self.instantWarpObject2.location - self.instantWarpObject1.location
+
+		if reverse:
+			difference *= -1
 
 		# Convert from Blender space to SM64 space
 		ret = Vector()
@@ -1158,7 +1165,7 @@ class WarpNodeProperty(bpy.types.PropertyGroup):
 			offset = Vector()
 
 			if self.useOffsetObjects:
-				offset = self.calc_offsets_from_objects()
+				offset = self.calc_offsets_from_objects(self.uses_area_nodes())
 			else:
 				offset.x = self.instantOffset[0]
 				offset.y = self.instantOffset[1]
@@ -1226,12 +1233,16 @@ def drawWarpNodeProperty(layout, warpNode, index):
 				if warpNode.instantWarpObject1 is None or warpNode.instantWarpObject2 is None:
 					writeBox.label(text='Both Objects must be selected for offset')
 				else:
+					usesAreaNodes = warpNode.uses_area_nodes()
+					difference = warpNode.calc_offsets_from_objects(usesAreaNodes)
 					writeBox.label(text='Current Offset: ')
-					difference = warpNode.calc_offsets_from_objects()
 					
 					writeBox.label(text=f'X: {difference.x}')
 					writeBox.label(text=f'Y: {difference.y}')
 					writeBox.label(text=f'Z: {difference.z}')
+
+					if usesAreaNodes:
+						writeBox.label(text='(When using two area nodes, the calculation is reversed)')
 			else:
 				prop_split(box, warpNode, 'instantOffset', 'Offset')
 		else:
