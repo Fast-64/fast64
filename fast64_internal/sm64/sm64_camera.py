@@ -15,6 +15,7 @@ enumBackgroundType = [
 	('GREEN_SKY', 'Green Sky', 'Green Sky'),
 	('ABOVE_CLOUDS', 'Above Clouds', 'Above Clouds'),
 	('PURPLE_SKY', 'Purple Sky', 'Purple Sky'),
+	('CUSTOM', 'Custom', 'Custom')
 ]
 
 backgroundValues = {
@@ -86,9 +87,17 @@ def saveCameraSettingsToGeolayout(geolayoutGraph, areaObj, rootObj, meshGeolayou
 			bgNode = TransformNode(BackgroundNode(
 				True, bgColor))
 		else:
+			background_value = ''
+
+			if not rootObj.useBackgroundColor:
+				if rootObj.background == 'CUSTOM':
+					background_value = rootObj.backgroundName.upper()
+				else:
+					background_value = rootObj.background
+
 			bgNode = TransformNode(BackgroundNode(
 				rootObj.useBackgroundColor, bgColor if rootObj.useBackgroundColor \
-				else ('BACKGROUND_' + rootObj.background)))
+				else ('BACKGROUND_' + background_value)))
 		orthoNode.children.append(bgNode)
 
 	zBufferEnable = TransformNode(ZBufferNode(True))

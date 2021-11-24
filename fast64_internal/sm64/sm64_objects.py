@@ -114,6 +114,7 @@ enumBackground = [
 	('GREEN_SKY', 'Green Sky', 'Green Sky'),
 	('ABOVE_CLOUDS', 'Above Clouds', 'Above Clouds'),
 	('PURPLE_SKY', 'Purple Sky', 'Purple Sky'),
+	('CUSTOM', 'Custom', 'Custom'),
 ]
 
 backgroundSegments = {
@@ -976,6 +977,9 @@ class SM64ObjectPanel(bpy.types.Panel):
 			else:
 				#prop_split(box, obj, 'backgroundID', 'Background ID')
 				prop_split(box, obj, 'background', 'Background')
+				if obj.background == 'CUSTOM':
+					prop_split(box, obj, 'backgroundName', 'Background Name')
+					
 				box.prop(obj, 'useBackgroundColor')
 				#box.box().label(text = 'Background IDs defined in include/geo_commands.h.')
 			box.prop(obj, 'actSelectorIgnore')
@@ -1610,6 +1614,9 @@ def sm64_obj_register():
 	bpy.types.Object.backgroundColor = bpy.props.FloatVectorProperty(
 		name = 'Background Color', subtype='COLOR', size = 4,
 		min = 0, max = 1, default = (0,0,0,1))
+
+	bpy.types.Object.backgroundName = bpy.props.StringProperty(
+		name = 'Background Name', default = '')
 
 	bpy.types.Object.screenPos = bpy.props.IntVectorProperty(
 		name = 'Screen Position', size = 2, default = (160, 120),
