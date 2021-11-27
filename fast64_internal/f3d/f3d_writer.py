@@ -1273,6 +1273,13 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 		texDimensions0, nextTmem = saveTextureIndex(material.name, fModel,
 			fMaterial, fMaterial.material, fMaterial.revert, f3dMat.tex0, 0, nextTmem, None, convertTextureData,
 			None, loadTextures, True)
+	
+	# If the texture in both texels is the same then it can be rewritten to the same location in tmem
+	# This allows for a texture that fills tmem to still be used for both texel0 and texel1
+	if f3dMat.tex0.tex == f3dMat.tex1.tex:
+		if nextTmem >= (512 if f3dMat.tex0.tex_format[:2] != 'CI' else 256):
+			nextTmem = 0
+	
 	if useDict['Texture 1'] and f3dMat.tex1.tex_set:
 		if f3dMat.tex1.tex is None and not f3dMat.tex1.use_tex_reference:
 			raise PluginError('In material \"' + material.name + '\", a texture has not been set.')
