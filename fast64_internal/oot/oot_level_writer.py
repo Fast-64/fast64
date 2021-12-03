@@ -24,6 +24,42 @@ def sceneNameFromID(sceneID):
 	else:
 		raise PluginError("Cannot find scene ID " + str(sceneID))
 
+def ootPreprendSceneIncludes(scene, file):
+	exportFile = ootSceneIncludes(scene)
+	exportFile.append(file)	
+	return exportFile
+
+def ootCreateSceneHeader(levelC):
+	sceneHeader = CData()
+
+	sceneHeader.append(levelC.sceneMainC)
+	if levelC.sceneTexturesIsUsed():
+		sceneHeader.append(levelC.sceneTexturesC)
+	sceneHeader.append(levelC.sceneCollisionC)
+	if levelC.sceneCutscenesIsUsed():
+		for i in range(len(levelC.sceneCutscenesC)):
+			sceneHeader.append(levelC.sceneCutscenesC[i])
+	for roomName, roomMainC in levelC.roomMainC.items():
+		sceneHeader.append(roomMainC)
+	for roomName, roomMeshInfoC in levelC.roomMeshInfoC.items():
+		sceneHeader.append(roomMeshInfoC)
+	for roomName, roomMeshC in levelC.roomMeshC.items():
+		sceneHeader.append(roomMeshC)
+
+	return sceneHeader
+
+def ootCombineSceneFiles(levelC):
+	sceneC = CData()
+
+	sceneC.append(levelC.sceneMainC)
+	if levelC.sceneTexturesIsUsed():
+		sceneC.append(levelC.sceneTexturesC)
+	sceneC.append(levelC.sceneCollisionC)
+	if levelC.sceneCutscenesIsUsed():
+		for i in range(len(levelC.sceneCutscenesC)):
+			sceneC.append(levelC.sceneCutscenesC[i])
+	return sceneC
+
 def ootExportSceneToC(originalSceneObj, transformMatrix, 
 	f3dType, isHWv1, sceneName, DLFormat, savePNG, exportInfo):
 
@@ -48,13 +84,44 @@ def ootExportSceneToC(originalSceneObj, transformMatrix,
 	levelPath = ootGetPath(exportPath, isCustomExport, exportSubdir, sceneName, True, True)	
 	levelC = ootLevelToC(scene, TextureExportSettings(False, savePNG, exportSubdir + sceneName, levelPath))
 
-	writeCData(levelC.scene, 
-		os.path.join(levelPath, scene.sceneName() + '.h'),
-		os.path.join(levelPath, scene.sceneName() + '.c'))
-	for roomName, room in levelC.rooms.items():
-		writeCData(room, 
-			os.path.join(levelPath, roomName + '.h'),
-			os.path.join(levelPath, roomName + '.c'))
+	if bpy.context.scene.ootSceneSingleFile:
+		writeCDataSourceOnly(ootPreprendSceneIncludes(scene, ootCombineSceneFiles(levelC)),
+			os.path.join(levelPath, scene.sceneName() + '.c'))
+		for i in range(len(scene.rooms)):
+			roomC = CData()
+			roomC.append(levelC.roomMainC[scene.rooms[i].roomName()])
+			roomC.append(levelC.roomMeshInfoC[scene.rooms[i].roomName()])
+			roomC.append(levelC.roomMeshC[scene.rooms[i].roomName()])
+			writeCDataSourceOnly(ootPreprendSceneIncludes(scene, roomC),
+				os.path.join(levelPath, scene.rooms[i].roomName() + '.c'))
+	else:
+		# Export the scene segment .c files
+		writeCDataSourceOnly(ootPreprendSceneIncludes(scene, levelC.sceneMainC),
+			os.path.join(levelPath, scene.sceneName() + '_main.c'))
+		if levelC.sceneTexturesIsUsed():
+			writeCDataSourceOnly(ootPreprendSceneIncludes(scene, levelC.sceneTexturesC),
+				os.path.join(levelPath, scene.sceneName() + '_tex.c'))
+		writeCDataSourceOnly(ootPreprendSceneIncludes(scene, levelC.sceneCollisionC), 
+			os.path.join(levelPath, scene.sceneName() + '_col.c'))
+		if levelC.sceneCutscenesIsUsed():
+			for i in range(len(levelC.sceneCutscenesC)):
+				writeCDataSourceOnly(ootPreprendSceneIncludes(scene, levelC.sceneCutscenesC[i]),
+					os.path.join(levelPath, scene.sceneName() + '_cs_' + str(i) + '.c'))
+		
+		# Export the room segment .c files
+		for roomName, roomMainC in levelC.roomMainC.items():
+			writeCDataSourceOnly(ootPreprendSceneIncludes(scene, roomMainC),
+				os.path.join(levelPath, roomName + '_main.c'))
+		for roomName, roomMeshInfoC in levelC.roomMeshInfoC.items():
+			writeCDataSourceOnly(ootPreprendSceneIncludes(scene, roomMeshInfoC),
+				os.path.join(levelPath, roomName + '_model_info.c'))
+		for roomName, roomMeshC in levelC.roomMeshC.items():
+			writeCDataSourceOnly(ootPreprendSceneIncludes(scene, roomMeshC),
+				os.path.join(levelPath, roomName + '_model.c'))
+		
+	# Export the scene .h file
+	writeCDataHeaderOnly(ootCreateSceneHeader(levelC),
+		os.path.join(levelPath, scene.sceneName() + '.h'))
 	
 	if not isCustomExport:
 		writeOtherSceneProperties(scene, exportInfo)
@@ -554,6 +621,7 @@ class OOT_ExportScenePanel(OOT_Panel):
 		#if not bpy.context.scene.ignoreTextureRestrictions:
 		#	col.prop(context.scene, 'saveTextures')
 		prop_split(col, context.scene, 'ootSceneExportObj', "Scene Object")
+		col.prop(context.scene, 'ootSceneSingleFile')
 		col.prop(context.scene, 'ootSceneCustomExport')
 		if context.scene.ootSceneCustomExport:
 			prop_split(col, context.scene, 'ootSceneExportPath', 'Directory')
@@ -600,6 +668,11 @@ def oot_level_register():
 	bpy.types.Scene.ootSceneCustomExport = bpy.props.BoolProperty(
 		name = 'Custom Export Path')
 	bpy.types.Scene.ootSceneExportObj = bpy.props.PointerProperty(type = bpy.types.Object, poll = isSceneObj)
+	bpy.types.Scene.ootSceneSingleFile = bpy.props.BoolProperty(
+		name = "Export as Single File",
+		default = True,
+		description = "Does not split the scene and rooms into multiple files.")
+
 
 def oot_level_unregister():
 	for cls in reversed(oot_level_classes):
@@ -610,3 +683,4 @@ def oot_level_unregister():
 	del bpy.types.Scene.ootSceneCustomExport
 	del bpy.types.Scene.ootSceneOption
 	del bpy.types.Scene.ootSceneSubFolder
+	del bpy.types.Scene.ootSceneSingleFile

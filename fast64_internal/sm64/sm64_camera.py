@@ -72,24 +72,24 @@ def saveCameraSettingsToGeolayout(geolayoutGraph, areaObj, rootObj, meshGeolayou
 		areaObj.useDefaultScreenRect, 0xA, areaObj.screenPos, areaObj.screenSize))
 	geolayout.nodes.insert(0, screenAreaNode)
 	
-	zBufferDisable = TransformNode(ZBufferNode(False))
-	screenAreaNode.children.append(zBufferDisable)
+	if not areaObj.fast64.sm64.area.disable_background:
+		zBufferDisable = TransformNode(ZBufferNode(False))
+		screenAreaNode.children.append(zBufferDisable)
 
-	orthoNode = TransformNode(OrthoNode(0x64))
-	zBufferDisable.children.append(orthoNode)
+		orthoNode = TransformNode(OrthoNode(0x64))
+		zBufferDisable.children.append(orthoNode)
 
-
-	# Uses Level Root here
-	bgColor = colorTo16bitRGBA(gammaCorrect(areaObj.areaBGColor if \
-		areaObj.areaOverrideBG else rootObj.backgroundColor) + [1])
-	if areaObj.areaOverrideBG:
-		bgNode = TransformNode(BackgroundNode(
-			True, bgColor))
-	else:
-		bgNode = TransformNode(BackgroundNode(
-			rootObj.useBackgroundColor, bgColor if rootObj.useBackgroundColor \
-			else ('BACKGROUND_' + rootObj.background)))
-	orthoNode.children.append(bgNode)
+		# Uses Level Root here
+		bgColor = colorTo16bitRGBA(gammaCorrect(areaObj.areaBGColor if \
+			areaObj.areaOverrideBG else rootObj.backgroundColor) + [1])
+		if areaObj.areaOverrideBG:
+			bgNode = TransformNode(BackgroundNode(
+				True, bgColor))
+		else:
+			bgNode = TransformNode(BackgroundNode(
+				rootObj.useBackgroundColor, bgColor if rootObj.useBackgroundColor \
+				else ('BACKGROUND_' + rootObj.background)))
+		orthoNode.children.append(bgNode)
 
 	zBufferEnable = TransformNode(ZBufferNode(True))
 	screenAreaNode.children.append(zBufferEnable)

@@ -1686,6 +1686,9 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 
 	#print("GROUP " + vertexGroup)
 
+	# TODO: Implement lastMaterialName optimization
+	lastMaterialName = None
+
 	mesh = obj.data
 	currentGroupIndex = getGroupIndexFromname(obj, vertexGroup)
 	vertIndices = [vert.index for vert in obj.data.vertices if\
@@ -1810,7 +1813,7 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 					fMeshes[drawLayer], obj, drawLayer, convertTextureData, None, triConverterInfo, None, None)
 			else:
 				saveMeshByFaces(material, bFaces, fModel, fMeshes[drawLayer], obj,
-					drawLayer, convertTextureData, None, triConverterInfo, None, None)
+					drawLayer, convertTextureData, None, triConverterInfo, None, None, lastMaterialName)
 
 		fMeshes[drawLayer].draw.commands.extend([
 			SPEndDisplayList(),
@@ -1959,6 +1962,9 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, meshName, skinnedMeshName, o
 			"connected faces will count more than once. Try " +\
 			"keeping UVs contiguous, and avoid using " +\
 			"split normals.")
+	
+	# TODO: Implement lastMaterialName optimization
+	lastMaterialName = None
 
 	# Load parent group vertices
 	fSkinnedMesh = FMesh(skinnedMeshName, fModel.DLFormat)
@@ -2021,7 +2027,8 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, meshName, skinnedMeshName, o
 			saveMeshByFaces(material, faces,
 				fModel, fMesh, obj, drawLayer,
 				convertTextureData, None, triConverterInfo,
-				copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict))
+				copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict),
+				lastMaterialName)
 
 	return fMesh, fSkinnedMesh
 	#for material_index, skinnedFaceArray in skinnedFaces.items():

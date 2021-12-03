@@ -401,7 +401,7 @@ def ui_lower_mode(settings, dataHolder, layout: bpy.types.UILayout, useDropdown)
 		prop_split(prim_box, settings.prim_depth, 'z', 'Prim Depth: Z')
 		prop_split(prim_box, settings.prim_depth, 'dz', 'Prim Depth: Delta Z')
 		if settings.prim_depth.dz != 0 and settings.prim_depth.dz & (settings.prim_depth.dz - 1):
-			prim_box.label(text='Warning: DZ should ideally be a power of 2 up to 0x4000', icon='ERROR')
+			prim_box.label(text='Warning: DZ should ideally be a power of 2 up to 0x4000', icon='TEXTURE_DATA')
 
 def ui_other(settings, dataHolder, layout, useDropdown):
 	inputGroup = layout.column()
@@ -492,7 +492,7 @@ class F3DPanel(bpy.types.Panel):
 				prop_input.label(text = "UVs must be in the [0, 1024] pixel range.")
 				prop_input.prop(textureProp, "save_large_texture")
 				if not textureProp.save_large_texture:
-					prop_input.label(text = "Most large textures will take forever to convert.", icon = 'ERROR')
+					prop_input.label(text = "Most large textures will take forever to convert.", icon = 'PREVIEW_RANGE')
 			else:
 				tmemUsageUI(prop_input, textureProp)
 
@@ -805,7 +805,7 @@ class F3DPanel(bpy.types.Panel):
 			if f3dMat.set_fog:
 				inputGroup.prop(f3dMat, 'use_global_fog', text = 'Use Global Fog (SM64)')
 				if f3dMat.use_global_fog:
-					inputGroup.label(text = 'Only applies to levels (area fog settings).', icon = "ERROR")
+					inputGroup.label(text = 'Only applies to levels (area fog settings).', icon = 'INFO')
 				else:
 					fogColorGroup = inputGroup.row().split(factor = 0.5)
 					fogColorGroup.label(text = 'Fog Color')
@@ -837,15 +837,15 @@ class F3DPanel(bpy.types.Panel):
 	def drawVertexColorNotice(self, layout):
 		noticeBox = layout.box().column()
 		noticeBox.label(
-			text = 'There must be two vertex color layers.', icon = "ERROR")
+			text = 'There must be two vertex color layers.', icon = 'LINENUMBERS_ON')
 		noticeBox.label(
 			text = 'They should be called "Col" and "Alpha".')
 
 	def drawShadeAlphaNotice(self, layout):
-		layout.box().column().label(text = "There must be a vertex color layer called \"Alpha\".", icon = "ERROR")
+		layout.box().column().label(text = "There must be a vertex color layer called \"Alpha\".", icon = 'IMAGE_ALPHA')
 
 	def drawCIMultitextureNotice(self, layout):
-		layout.label(text = 'CI textures will break with multitexturing.', icon = "ERROR")
+		layout.label(text = 'CI textures will break with multitexturing.', icon = 'LIBRARY_DATA_BROKEN')
 
 	def draw_simple(self, f3dMat, material, layout, context):
 		self.ui_uvCheck(layout, context)

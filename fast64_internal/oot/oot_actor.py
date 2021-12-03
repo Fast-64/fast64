@@ -192,17 +192,17 @@ def drawActorHeaderProperty(layout, headerProp, propUser, altProp, objName):
         drawAddButton(headerSetup, len(headerProp.cutsceneHeaders), propUser, None, objName)
 
 def drawActorHeaderItemProperty(layout, propUser, headerItemProp, index, altProp, objName):
-    box = layout.box()
-    box.prop(headerItemProp, 'expandTab', text = 'Header ' + \
-        str(headerItemProp.headerIndex), icon = 'TRIA_DOWN' if headerItemProp.expandTab else \
-        'TRIA_RIGHT')
-    
-    if headerItemProp.expandTab:
-        drawCollectionOps(box, index, propUser, None, objName)
-        prop_split(box, headerItemProp, 'headerIndex', 'Header Index')
-        if altProp is not None and headerItemProp.headerIndex >= len(altProp.cutsceneHeaders) + 4:
-            box.label(text = "Header does not exist.", icon = "ERROR")
-        
+	box = layout.box()
+	box.prop(headerItemProp, 'expandTab', text = 'Header ' + \
+		str(headerItemProp.headerIndex), icon = 'TRIA_DOWN' if headerItemProp.expandTab else \
+		'TRIA_RIGHT')
+	
+	if headerItemProp.expandTab:
+		drawCollectionOps(box, index, propUser, None, objName)
+		prop_split(box, headerItemProp, 'headerIndex', 'Header Index')
+		if altProp is not None and headerItemProp.headerIndex >= len(altProp.cutsceneHeaders) + 4:
+			box.label(text = "Header does not exist.", icon = 'QUESTION')
+		
 class OOTActorProperty(bpy.types.PropertyGroup):
     actorID : bpy.props.EnumProperty(name = 'Actor', items = ootEnumActorID, default = 'ACTOR_PLAYER')
     actorIDCustom : bpy.props.StringProperty(name = 'Actor ID', default = 'ACTOR_PLAYER')
@@ -330,21 +330,21 @@ class OOTEntranceProperty(bpy.types.PropertyGroup):
     actor : bpy.props.PointerProperty(type = OOTActorProperty)
 
 def drawEntranceProperty(layout, obj, altSceneProp, objName):
-    box = layout.column()
-    #box.box().label(text = "Properties")
-    roomObj = getRoomObj(obj)
-    if roomObj is not None:
-        split = box.split(factor = 0.5)
-        split.label(text = "Room Index")
-        split.label(text = str(roomObj.ootRoomHeader.roomIndex))
-    else:
-        box.label(text = "This must be part of a Room empty's hierarchy.", icon = "ERROR")
+	box = layout.column()
+	#box.box().label(text = "Properties")
+	roomObj = getRoomObj(obj)
+	if roomObj is not None:
+		split = box.split(factor = 0.5)
+		split.label(text = "Room Index")
+		split.label(text = str(roomObj.ootRoomHeader.roomIndex))
+	else:
+		box.label(text = "This must be part of a Room empty's hierarchy.", icon = 'OUTLINER')
 
-    entranceProp = obj.ootEntranceProperty
-    prop_split(box, entranceProp, "spawnIndex", "Spawn Index")
-    prop_split(box, entranceProp.actor, "actorParam", "Actor Param")
-    box.prop(entranceProp, "customActor")
-    if entranceProp.customActor:
-        prop_split(box, entranceProp.actor, "actorIDCustom", "Actor ID Custom")
-    
-    drawActorHeaderProperty(box, entranceProp.actor.headerSettings, "Entrance", altSceneProp, objName)
+	entranceProp = obj.ootEntranceProperty
+	prop_split(box, entranceProp, "spawnIndex", "Spawn Index")
+	prop_split(box, entranceProp.actor, "actorParam", "Actor Param")
+	box.prop(entranceProp, "customActor")
+	if entranceProp.customActor:
+		prop_split(box, entranceProp.actor, "actorIDCustom", "Actor ID Custom")
+	
+	drawActorHeaderProperty(box, entranceProp.actor.headerSettings, "Entrance", altSceneProp, objName)
