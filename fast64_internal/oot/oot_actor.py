@@ -42,7 +42,7 @@ def genEnum(annotations, dict1, dict2, suffix, enumName):
         annotations[objName] = prop
 
 def genString(annotations, dict, suffix, stringName):
-    '''This function is used to generate the proper enum blender property'''
+    '''This function is used to generate the proper string blender property'''
     for id, key in dict.items():
         if suffix.startswith('.props'):
             objName = id + suffix
@@ -50,6 +50,12 @@ def genString(annotations, dict, suffix, stringName):
             objName = key + suffix
         prop = bpy.props.StringProperty(name=stringName, default='0x0000')
         annotations[objName] = prop
+
+def genProperty(annotations, key, suffix, stringName):
+    '''This function is used to generate the field to set the properties'''
+    objName = key + suffix
+    prop = bpy.props.StringProperty(name=stringName, default='0x0000')
+    annotations[objName] = prop
 
 def getKeys(dict):
     '''Generates tuples from dict keys'''
@@ -74,9 +80,7 @@ fillDicts(descProps, 'Property', 'Name')
 fillDicts(dataActorID, 'ID', 'Key')
 keysActorID = getKeys(dataActorID)
 keysParams = getKeys(dataParams)
-# keysProps = getKeys(dataProps)
 propKeyList = [(actorNode.get('Key')) for actorNode in root for elem in actorNode if elem.tag == 'Property' and elem.get('Name') != 'None']
-
 
 def editOOTActorDetailedProperties():
     '''This function is used to edit the OOTActorDetailedProperties class before it's registered'''
@@ -88,7 +92,6 @@ def editOOTActorDetailedProperties():
     propAnnotations['actorID'] = bpy.props.EnumProperty(name='Actor ID', items=keysActorID)
     propAnnotations['actorKey'] = bpy.props.StringProperty(name='Actor ID', default='0000')
     propAnnotations['type'] = bpy.props.EnumProperty(name='Actor Type', items=keysParams)
-    # propAnnotations['actorProps'] = bpy.props.EnumProperty(name='Properties', items=keysProps)
     propAnnotations['actorPropsValue'] = bpy.props.StringProperty(name='Value', default='0x0000')
     propAnnotations['switchFlag'] = bpy.props.StringProperty(name='Switch Flag', default='0x0000')
     propAnnotations['chestFlag'] = bpy.props.StringProperty(name='Chest Flag', default='0x0000')
@@ -103,22 +106,30 @@ def editOOTActorDetailedProperties():
         i += 1
 
     genEnum(propAnnotations, dataParams, descParams, '.type', 'Actor Type')
-    # genEnum(propAnnotations, dataProps, descProps, '.props', 'Properties')
     genString(propAnnotations, dataActorID, '.propValue', 'Value')
     genString(propAnnotations, dataActorID, '.switchFlag', 'Switch Flag')
     genString(propAnnotations, dataActorID, '.chestFlag', 'Chest Flag')
     genString(propAnnotations, dataActorID, '.collectibleFlag', 'Collectible Flag')
 
-    propList = root.findall('.//Property')
-    i = 0
-    for id, key in dataActorID.items():
-        tmp = [(actorNode.get('Key')) for actorNode in root for elem in actorNode if elem.tag == 'Property']
-        if descProps.get(key) is not None and i < len(descProps.get(key)):
-            while tmp.pop(0) != key:
-                pass
-            print(i, tmp[0], key)
-            genString(propAnnotations, dataProps, '.props' + f'{i}', descProps.get(key)[i])
-            i += 1
+    # Manage <Property> field in the XML
+    actorPropNbList = []
+    for actorNode in root:
+        actorPropNb = 0
+        for elem in actorNode:
+            if elem.tag != 'Property':
+              actorPropNb += 1
+        actorPropNbList.append((actorNode.get('Key'), (len(actorNode) - actorPropNb - 1)))
+
+    i = j = 0
+    for actorNode in root:
+        if actorPropNbList[j][0] == actorNode.get('Key'):
+            for elem in actorNode:
+                if elem.tag == 'Property' and elem.get('Name') != 'None':
+                    if i < actorPropNbList[j][1]:
+                        genProperty(propAnnotations, actorNode.get('Key'), '.props' + f'{i}', actorNode.get('Key'))
+                        i += 1
+                    else: i = 0
+        j += 1
 
 class OOT_SearchActorIDEnumOperator(bpy.types.Operator):
     bl_idname = "object.oot_search_actor_id_enum_operator"
