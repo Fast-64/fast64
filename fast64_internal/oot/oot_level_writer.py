@@ -130,8 +130,8 @@ def writeOtherSceneProperties(scene, exportInfo):
 	modifySceneTable(scene, exportInfo)
 	modifySegmentSymbols(scene, exportInfo)
 	modifySceneIDs(scene, exportInfo)
-	# modifyDmaMgrFileNames(scene, exportInfo)
-	# modifyDmaTableEntries(scene, exportInfo)
+	modifyDmaMgrFileNames(scene, exportInfo)
+	modifyDmaTableEntries(scene, exportInfo)
 	modifySegmentDefinition(scene, exportInfo)
 	modifySceneFiles(scene, exportInfo)
 
@@ -581,8 +581,8 @@ def ootRemoveSceneC(exportInfo):
 	modifySceneTable(None, exportInfo)
 	modifySegmentSymbols(None, exportInfo)
 	modifySceneIDs(None, exportInfo)
-	# modifyDmaMgrFileNames(None, exportInfo)
-	# modifyDmaTableEntries(None, exportInfo)
+	modifyDmaMgrFileNames(None, exportInfo)
+	modifyDmaTableEntries(None, exportInfo)
 	modifySegmentDefinition(None, exportInfo)
 	deleteSceneFiles(exportInfo)
 
