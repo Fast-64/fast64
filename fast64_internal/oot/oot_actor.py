@@ -120,15 +120,13 @@ def editOOTActorDetailedProperties():
               actorPropNb += 1
         actorPropNbList.append((actorNode.get('Key'), (len(actorNode) - actorPropNb - 1)))
 
-    i = j = 0
+    j = 0
     for actorNode in root:
-        if actorPropNbList[j][0] == actorNode.get('Key'):
-            for elem in actorNode:
-                if elem.tag == 'Property' and elem.get('Name') != 'None':
-                    if i < actorPropNbList[j][1]:
-                        genProperty(propAnnotations, actorNode.get('Key'), '.props' + f'{i}', actorNode.get('Key'))
-                        i += 1
-                    else: i = 0
+        i = 0
+        for elem in actorNode:
+            if elem.tag == 'Property' and elem.get('Name') != 'None':
+                genProperty(propAnnotations, actorNode.get('Key'), '.props' + f'{i}', actorNode.get('Key'))
+                i += 1
         j += 1
 
 class OOT_SearchActorIDEnumOperator(bpy.types.Operator):
