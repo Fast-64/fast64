@@ -29,7 +29,7 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 
 	if len(vertIndices) == 0:
 		print("No vert indices in " + vertexGroup)
-		return None, False
+		return None, False, lastMaterialName
 
 	bone = armatureObj.data.bones[vertexGroup]
 	
@@ -84,7 +84,7 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 			meshInfo.vertexGroupInfo.vertexGroupToMatrixIndex[currentGroupIndex] = nextDLIndex
 			return fMesh, False
 		else:
-			return None, False
+			return None, False, lastMaterialName
 	
 	meshInfo.vertexGroupInfo.vertexGroupToMatrixIndex[currentGroupIndex] = nextDLIndex
 	triConverterInfo = OOTTriangleConverterInfo(meshObj, armatureObj.data, fModel.f3d, convertTransformMatrix, meshInfo)
