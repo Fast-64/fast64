@@ -41,18 +41,8 @@ def genEnum(annotations, dict1, dict2, suffix, enumName):
         prop = bpy.props.EnumProperty(name=enumName, items=actorTypeList)
         annotations[objName] = prop
 
-def genString(annotations, dict, suffix, stringName):
+def genString(annotations, key, suffix, stringName):
     '''This function is used to generate the proper string blender property'''
-    for id, key in dict.items():
-        if suffix.startswith('.props'):
-            objName = id + suffix
-        elif isinstance(key, list) is False and key is not None:
-            objName = key + suffix
-        prop = bpy.props.StringProperty(name=stringName, default='0x0000')
-        annotations[objName] = prop
-
-def genProperty(annotations, key, suffix, stringName):
-    '''This function is used to generate the field to set the properties'''
     objName = key + suffix
     prop = bpy.props.StringProperty(name=stringName, default='0x0000')
     annotations[objName] = prop
@@ -81,6 +71,7 @@ fillDicts(dataActorID, 'ID', 'Key')
 keysActorID = getKeys(dataActorID)
 keysParams = getKeys(dataParams)
 propKeyList = [(actorNode.get('Key')) for actorNode in root for elem in actorNode if elem.tag == 'Property' and elem.get('Name') != 'None']
+swFlagList = [(actorNode.get('Key')) for actorNode in root for elem in actorNode if elem.tag == 'Flag' and elem.get('Type') == 'Switch']
 
 def editOOTActorDetailedProperties():
     '''This function is used to edit the OOTActorDetailedProperties class before it's registered'''
@@ -106,28 +97,22 @@ def editOOTActorDetailedProperties():
         i += 1
 
     genEnum(propAnnotations, dataParams, descParams, '.type', 'Actor Type')
-    genString(propAnnotations, dataActorID, '.propValue', 'Value')
-    genString(propAnnotations, dataActorID, '.switchFlag', 'Switch Flag')
-    genString(propAnnotations, dataActorID, '.chestFlag', 'Chest Flag')
-    genString(propAnnotations, dataActorID, '.collectibleFlag', 'Collectible Flag')
 
-    # Manage <Property> field in the XML
-    actorPropNbList = []
-    for actorNode in root:
-        actorPropNb = 0
-        for elem in actorNode:
-            if elem.tag != 'Property':
-              actorPropNb += 1
-        actorPropNbList.append((actorNode.get('Key'), (len(actorNode) - actorPropNb - 1)))
-
-    j = 0
+    # Generate String fields when needed
     for actorNode in root:
         i = 0
         for elem in actorNode:
             if elem.tag == 'Property' and elem.get('Name') != 'None':
-                genProperty(propAnnotations, actorNode.get('Key'), '.props' + f'{i}', actorNode.get('Key'))
+                genString(propAnnotations, actorNode.get('Key'), '.props' + f'{i}', actorNode.get('Key'))
                 i += 1
-        j += 1
+            elif elem.tag == 'Flag':
+                if elem.get('Type') == 'Chest':
+                    genString(propAnnotations, actorNode.get('Key'), '.chestFlag', 'Chest Flag')
+                elif elem.get('Type') == 'Collectible':
+                    genString(propAnnotations, actorNode.get('Key'), '.collectibleFlag', 'Collectible Flag')
+                elif elem.get('Type') == 'Switch':
+                    genString(propAnnotations, actorNode.get('Key'), '.switchFlag' + f'{i}', 'Switch Flag')
+                    i += 1
 
 class OOT_SearchActorIDEnumOperator(bpy.types.Operator):
     bl_idname = "object.oot_search_actor_id_enum_operator"
@@ -269,14 +254,17 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
     for i in range(len(propKeyList)):
         propAnnot = getattr(detailedProp, detailedProp.actorKey + ('.props' + f'{i}'), None)
         if propAnnot is not None:
-            genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey, '.props' + f'{i}', 'Property #' + f'{i}')
+            genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey, '.props' + f'{i}', 'Property #' + f'{i + 1}')
+
+    for i in range(len(swFlagList)):
+        propAnnot = getattr(detailedProp, detailedProp.actorKey + ('.switchFlag' + f'{i}'), None)
+        if propAnnot is not None:
+            genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey, '.switchFlag' + f'{i}', 'Switch Flag #' + f'{i + 1}')
 
     flagList = root.findall('.//Flag')
     flagListID = [(actorNode.get('ID')) for actorNode in root for elem in actorNode if elem.tag == 'Flag']
     for i in range(len(flagList)):
         if flagListID[i] == actorProp.actorID:
-            if flagList[i].get('Type') == 'Switch':
-                genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey, '.switchFlag', 'Switch Flag')
             if flagList[i].get('Type') == 'Chest':
                 genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey, '.chestFlag', 'Chest Flag')
             if flagList[i].get('Type') == 'Collectible':
