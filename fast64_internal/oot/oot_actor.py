@@ -1,3 +1,7 @@
+# TODO: find a way to set actorProp.actorParam (look at actor/chest search classes, may help)
+# add an option to copy the actor param in the clipboard, fix XML file (<parameter>)
+# handle zrot params
+
 import math, os, bpy, bmesh, mathutils, xml.etree.ElementTree as ET
 from collections import defaultdict
 from bpy.utils import register_class, unregister_class
@@ -44,10 +48,10 @@ def genString(annotations, key, suffix, stringName):
     prop = bpy.props.StringProperty(name=stringName, default='0x0000')
     annotations[objName] = prop
 
-def genBLProp(actorID, layout, data, field, suffix, name):
+def genBLProp(actorID, layout, data, field, name):
     '''Determines if it needs to show the option on the panel'''
     if data.actorID == actorID:
-        prop_split(layout, data, field + suffix, name)
+        prop_split(layout, data, field, name)
 
 def getActorParameter(object, field, shift):
     return int(getattr(object, field, '0x0'), base=16) << shift
@@ -56,14 +60,10 @@ def getShift(elem):
     mask = int(elem.get('Mask'), base=16)
     return len(f'{mask:016b}') - len(f'{mask:016b}'.rstrip('0'))
 
-# Create editable dictionnaries
+# defaultdict(list) is like an editable dictionnary
 dataActorID = defaultdict(list)
 fillDicts(dataActorID, 'ID', 'Key')
 keysActorID = [(f"{key}", f"{key}", f"{key}") for key in dataActorID.keys()]
-
-propKeyList = [(actorNode.get('Key')) for actorNode in root for elem in actorNode if elem.tag == 'Property' and elem.get('Name') != 'None']
-swFlagList = [(actorNode.get('Key')) for actorNode in root for elem in actorNode \
-                if elem.tag == 'Flag' and elem.get('Type') == 'Switch' and (elem.get('Target') is None or elem.get('Target') == 'Params')]
 
 def editOOTActorDetailedProperties():
     '''This function is used to edit the OOTActorDetailedProperties class before it's registered'''
@@ -78,11 +78,11 @@ def editOOTActorDetailedProperties():
 
     # Generate the fields
     for actorNode in root:
-        i = 0
+        i = j = 1
         actorKey = actorNode.get('Key')
         for elem in actorNode:
             if elem.tag == 'Property' and elem.get('Name') != 'None':
-                genString(propAnnotations, actorKey, '.props' + f'{i}', actorKey)
+                genString(propAnnotations, actorKey, ('.props' + f'{i}'), actorKey)
                 i += 1
             elif elem.tag == 'Flag':
                 if elem.get('Type') == 'Chest':
@@ -90,10 +90,11 @@ def editOOTActorDetailedProperties():
                 elif elem.get('Type') == 'Collectible':
                     genString(propAnnotations, actorKey, '.collectibleFlag', 'Collectible Flag')
                 elif elem.get('Type') == 'Switch':
-                    genString(propAnnotations, actorKey, '.switchFlag' + f'{i + 1}', 'Switch Flag')
-                    i += 1
+                    genString(propAnnotations, actorKey, ('.switchFlag' + f'{j}'), 'Switch Flag')
+                    j += 1
             elif elem.tag == 'Collectible':
                 if actorKey == '0112':
+                    # ACTOR_EN_WONDER_ITEM uses a different drop table according to decomp
                     genEnum(propAnnotations, actorKey, '.collectibleDrop', ootEnWonderItemDrop, 'Collectible Drop')
                 else:
                     genEnum(propAnnotations, actorKey, '.collectibleDrop', ootEnItem00Drop, 'Collectible Drop')
@@ -233,7 +234,7 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
                     
     propAnnot = getattr(detailedProp, detailedProp.actorKey + ('.type'), None)
     if propAnnot is not None:
-        genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey, '.type', 'Type')
+        genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey + '.type', 'Type')
 
     if actorProp.actorID == 'ACTOR_EN_BOX':
         searchOp = actorIDBox.operator(OOT_SearchChestContentEnumOperator.bl_idname, icon='VIEWZOOM')
@@ -244,32 +245,43 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
                     
     propAnnot = getattr(detailedProp, detailedProp.actorKey + ('.collectibleDrop'), None)
     if propAnnot is not None:
-        genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey, '.collectibleDrop', 'Collectible Drop')
+        genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey + '.collectibleDrop', 'Collectible Drop')
 
-    for i in range(len(propKeyList)):
-        propAnnot = getattr(detailedProp, detailedProp.actorKey + ('.props' + f'{i}'), None)
-        if propAnnot is not None:
-            genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey, '.props' + f'{i}', 'Property #' + f'{i + 1}')
-
-    for i in range(len(swFlagList)):
-        propAnnot = getattr(detailedProp, detailedProp.actorKey + ('.switchFlag' + f'{i + 1}'), None)
-        if propAnnot is not None:
-            genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey, '.switchFlag' + f'{i + 1}', 'Switch Flag #' + f'{i + 1}')
+    for actorNode in root:
+        i = j = 1
+        if detailedProp.actorKey == actorNode.get('Key'):
+            for elem in actorNode:
+                if elem.get('Name') != 'None':
+                    if elem.tag == 'Property':
+                        propAnnot = getattr(detailedProp, detailedProp.actorKey + ('.props' + f'{i}'), None)
+                        if propAnnot is not None:
+                            genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey + '.props' + f'{i}', elem.get('Name'))
+                        i += 1
+                    elif elem.get('Type') == 'Switch':
+                        propAnnot = getattr(detailedProp, detailedProp.actorKey + '.switchFlag' + f'{i}', None)
+                        if propAnnot is not None:
+                            genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey + '.switchFlag' + f'{j}', 'Switch Flag #' + f'{j}')
+                        j += 1
 
     flagList = root.findall('.//Flag')
     flagListID = [(actorNode.get('ID')) for actorNode in root for elem in actorNode if elem.tag == 'Flag']
     for i in range(len(flagList)):
         if flagListID[i] == actorProp.actorID:
             if flagList[i].get('Type') == 'Chest':
-                genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey, '.chestFlag', 'Chest Flag')
+                genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey + '.chestFlag', 'Chest Flag')
             if flagList[i].get('Type') == 'Collectible':
-                genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey, '.collectibleFlag', 'Collectible Flag')
+                genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey + '.collectibleFlag', 'Collectible Flag')
 
-    # Get the masks and compute the shifting for the final maths
-    # TODO: find a way to set actorProp.actorParam (look at actor/chest search classes, may help)
-    # find a better way to compute the shift, if there's one
-    actorParams = i = 0
+    # This next if handles the necessary maths to get the actor parameters from the detailed panel
+    # Reads ActorList.xml and figures out the necessary bit shift and applies it to whatever is in the blender string field
+    # Actor key refers to the hex ID of an actor
+    # It was made like that to make it future proof as the OoT decomp isn't fully done yet so names can still change
+    # For Switch Flags & <Property> we need to make sure the value corresponds to the mask, hence the index in the XML
+    # For Chest Content (<Item>) we don't need the actor key because it's handled differently: it's a search box
+    actorParams = 0
+    i = j = 1
     if actorProp.actorID != 'Custom':
+        # if the user chose to use a custom actor this computation is pointless
         for actorNode in root:
             if actorNode.get('Key') == detailedProp.actorKey:
                 for elem in actorNode:
@@ -282,16 +294,19 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
                             if elemType == 'Collectible':
                                 actorParams += getActorParameter(detailedProp, detailedProp.actorKey + '.collectibleFlag', shift)
                             if elemType == 'Switch':
-                                actorParams += getActorParameter(detailedProp, detailedProp.actorKey + '.switchFlag' + f'{i + 1}', shift)
+                                if i == int(elem.get('Index'), base=10):
+                                    actorParams += getActorParameter(detailedProp, detailedProp.actorKey + '.switchFlag' + f'{i}', shift)
                                 i += 1
                         if elem.tag == 'Property' and elem.get('Name') != 'None':
-                            actorParams += getActorParameter(detailedProp, detailedProp.actorKey + '.props' + f'{i + 1}', getShift(elem))
-                            i += 1
+                            if j == int(elem.get('Index'), base=10):
+                                actorParams += getActorParameter(detailedProp, (detailedProp.actorKey + '.props' + f'{j}'), getShift(elem))
+                            j += 1
                         if elem.tag == 'Item':
                             actorParams += getActorParameter(detailedProp, '.itemChest', getShift(elem))
                         if elem.tag == 'Collectible':
                             actorParams += getActorParameter(detailedProp, detailedProp.actorKey + '.collectibleDrop', getShift(elem))
 
+    # Finally, add the actor type value, which is already shifted in the XML
     actorParams += getActorParameter(detailedProp, detailedProp.actorKey + '.type', 0)
 
     #layout.box().label(text = 'Actor IDs defined in include/z64actors.h.')
