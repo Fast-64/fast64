@@ -56,6 +56,9 @@ def genBLProp(actorID, layout, data, field, suffix, name):
     if data.actorID == actorID:
         prop_split(layout, data, field + suffix, name)
 
+def countZeros(str):
+    return len(str) - len(str.rstrip('0'))
+
 # Create editable dictionnaries
 descParams = defaultdict(list) # contains texts from the <Parameter> tag in the XML
 dataParams = defaultdict(list) # contains masks from the same
@@ -71,7 +74,8 @@ fillDicts(dataActorID, 'ID', 'Key')
 keysActorID = getKeys(dataActorID)
 keysParams = getKeys(dataParams)
 propKeyList = [(actorNode.get('Key')) for actorNode in root for elem in actorNode if elem.tag == 'Property' and elem.get('Name') != 'None']
-swFlagList = [(actorNode.get('Key')) for actorNode in root for elem in actorNode if elem.tag == 'Flag' and elem.get('Type') == 'Switch']
+swFlagList = [(actorNode.get('Key')) for actorNode in root for elem in actorNode \
+                if elem.tag == 'Flag' and elem.get('Type') == 'Switch' and (elem.get('Target') is None or elem.get('Target') == 'Params')]
 
 def editOOTActorDetailedProperties():
     '''This function is used to edit the OOTActorDetailedProperties class before it's registered'''
@@ -217,9 +221,7 @@ class OOT_SearchChestContentEnumOperator(bpy.types.Operator):
     objName : bpy.props.StringProperty()
 
     def execute(self, context):
-        if self.objName in bpy.data.objects:
-            bpy.data.objects[self.objName].ootActorDetailedProperties.itemChest = self.itemChest
-
+        bpy.data.objects[self.objName].ootActorDetailedProperties.itemChest = self.itemChest
         bpy.context.region.tag_redraw()
         self.report({'INFO'}, "Selected: " + self.itemChest)
         return {'FINISHED'}
@@ -247,6 +249,7 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
     genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey, '.type', 'Type')
     if actorProp.actorID == 'ACTOR_EN_BOX':
         searchOp = actorIDBox.operator(OOT_SearchChestContentEnumOperator.bl_idname, icon='VIEWZOOM')
+        searchOp.objName = objName
         split = actorIDBox.split(factor=0.5)
         split.label(text="Chest Content")
         split.label(text=getEnumName(ootEnBoxContent, detailedProp.itemChest))
@@ -269,6 +272,49 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
                 genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey, '.chestFlag', 'Chest Flag')
             if flagList[i].get('Type') == 'Collectible':
                 genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey, '.collectibleFlag', 'Collectible Flag')
+
+    # Get the masks and compute the shifting for the final maths
+    # TODO: handle <Collectible>, compute values in the big for loop right after this comment,
+    # find a way to set actorProp.actorParam (look at actor/chest search classes, may help)
+    shiftChest = shiftCollectible = valProperty = valSwitch = shiftItem = mask = 0
+    for actorNode in root:
+        if actorNode.get('Key') == detailedProp.actorKey:
+            for elem in actorNode:
+                if elem.get('Target') == 'Params' or elem.get('Target') is None:
+                    if elem.tag == 'Flag':
+                        if elem.get('Type') == 'Chest':
+                            shiftChest = int(elem.get('Mask'), base=16)
+                        if elem.get('Type') == 'Collectible':
+                            shiftCollectible = int(elem.get('Mask'), base=16)
+                        if elem.get('Type') == 'Switch':
+                            for i in range(swFlagList.count(detailedProp.actorKey)):
+                                mask = int(elem.get('Mask'), base=16)
+                                valSwitch += \
+                                    int(getattr(detailedProp, detailedProp.actorKey + '.prop' + f'{i}', '0x0'), base=16) \
+                                        << countZeros(f'{mask:016b}')
+                    if elem.tag == 'Property':
+                        for i in range(propKeyList.count(detailedProp.actorKey)):
+                            mask = int(elem.get('Mask'), base=16)
+                            valProperty += \
+                                int(getattr(detailedProp, detailedProp.actorKey + '.prop' + f'{i}', '0x0'), base=16) \
+                                    << countZeros(f'{mask:016b}')
+                    if elem.tag == 'Item':
+                        mask = int(elem.get('Mask'), base=16)
+                        chestItemValue = int(detailedProp.itemChest, base=16) << countZeros(f'{mask:016b}')
+
+    # Reset the chest content value if the current actor isn't the chest or grotto actors
+    if detailedProp.actorKey != '000A' and detailedProp.actorKey != '009B':
+        chestItemValue = 0
+
+    # TODO: find a better way to compute the shift, if there's one
+    shiftChest = countZeros(f'{shiftChest:016b}')
+    shiftCollectible = countZeros(f'{shiftCollectible:016b}')
+
+    chestFlagValue = int(getattr(detailedProp, detailedProp.actorKey + '.chestFlag', '0x0'), base=16) << shiftChest
+    collecFlagValue = int(getattr(detailedProp, detailedProp.actorKey + '.collectibleFlag', '0x0'), base=16) << shiftCollectible
+    typeValue = int(getattr(detailedProp, detailedProp.actorKey + ('.type'), '0x0'), base=16)
+    finalActorParams = typeValue + valProperty + valSwitch + chestFlagValue + collecFlagValue + chestItemValue
+    print(f'Actor Parameter: 0x{finalActorParams:X}')
 
     #layout.box().label(text = 'Actor IDs defined in include/z64actors.h.')
     prop_split(actorIDBox, actorProp, "actorParam", 'Actor Parameter')
