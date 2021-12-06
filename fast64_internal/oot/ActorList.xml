@@ -3042,7 +3042,7 @@ Z ROTATION +0x3F = Collectible Flag</Notes>
   </Actor>
   <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_OBJ_TIMEBLOCK" Key="01D1" Name="Time Block" ObjectID="OBJECT_TIMEBLOCK,OBJECT_EFC_TW">
     <Parameter Params="0000"> Child Visible (Age inverted) Invisible (normal) </Parameter>
-    <Parameter Params="0001"> Adult Visible (Age inverted) Visible (normal) </Parameter>
+    <Parameter Params="8000"> Adult Visible (Age inverted) Visible (normal) </Parameter>
     <Flag Mask="0x003F" Target="Params" Type="Switch"/>
     <Property Mask="0x0000" Name="None"/>
     <Property Mask="0x3800" Name="Song of Time Distance" Target="Params"/>

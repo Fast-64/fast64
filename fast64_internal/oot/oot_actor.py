@@ -90,7 +90,7 @@ def editOOTActorDetailedProperties():
                 elif elem.get('Type') == 'Collectible':
                     genString(propAnnotations, actorKey, '.collectibleFlag', 'Collectible Flag')
                 elif elem.get('Type') == 'Switch':
-                    genString(propAnnotations, actorKey, '.switchFlag' + f'{i}', 'Switch Flag')
+                    genString(propAnnotations, actorKey, '.switchFlag' + f'{i + 1}', 'Switch Flag')
                     i += 1
             elif elem.tag == 'Collectible':
                 if actorKey == '0112':
@@ -252,9 +252,9 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
             genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey, '.props' + f'{i}', 'Property #' + f'{i + 1}')
 
     for i in range(len(swFlagList)):
-        propAnnot = getattr(detailedProp, detailedProp.actorKey + ('.switchFlag' + f'{i}'), None)
+        propAnnot = getattr(detailedProp, detailedProp.actorKey + ('.switchFlag' + f'{i + 1}'), None)
         if propAnnot is not None:
-            genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey, '.switchFlag' + f'{i}', 'Switch Flag #' + f'{i + 1}')
+            genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey, '.switchFlag' + f'{i + 1}', 'Switch Flag #' + f'{i + 1}')
 
     flagList = root.findall('.//Flag')
     flagListID = [(actorNode.get('ID')) for actorNode in root for elem in actorNode if elem.tag == 'Flag']
@@ -282,10 +282,10 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
                             if elemType == 'Collectible':
                                 actorParams += getActorParameter(detailedProp, detailedProp.actorKey + '.collectibleFlag', shift)
                             if elemType == 'Switch':
-                                actorParams += getActorParameter(detailedProp, detailedProp.actorKey + '.switchFlag' + f'{i}', shift)
+                                actorParams += getActorParameter(detailedProp, detailedProp.actorKey + '.switchFlag' + f'{i + 1}', shift)
                                 i += 1
-                        if elem.tag == 'Property':
-                            actorParams += getActorParameter(detailedProp, detailedProp.actorKey + '.prop' + f'{i}', getShift(elem))
+                        if elem.tag == 'Property' and elem.get('Name') != 'None':
+                            actorParams += getActorParameter(detailedProp, detailedProp.actorKey + '.props' + f'{i + 1}', getShift(elem))
                             i += 1
                         if elem.tag == 'Item':
                             actorParams += getActorParameter(detailedProp, '.itemChest', getShift(elem))
