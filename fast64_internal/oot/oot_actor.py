@@ -44,10 +44,6 @@ def genString(annotations, key, suffix, stringName):
     prop = bpy.props.StringProperty(name=stringName, default='0x0000')
     annotations[objName] = prop
 
-def getKeys(dict):
-    '''Generates tuples from dict keys'''
-    return [(f"{key}", f"{key}", f"{key}") for key in dict.keys()]
-
 def genBLProp(actorID, layout, data, field, suffix, name):
     '''Determines if it needs to show the option on the panel'''
     if data.actorID == actorID:
@@ -61,19 +57,10 @@ def getShift(elem):
     return len(f'{mask:016b}') - len(f'{mask:016b}'.rstrip('0'))
 
 # Create editable dictionnaries
-descParams = defaultdict(list) # contains texts from the <Parameter> tag in the XML
-dataParams = defaultdict(list) # contains masks from the same
-descProps = defaultdict(list)
-dataProps = defaultdict(list)
 dataActorID = defaultdict(list)
-
-fillDicts(dataParams, 'Parameter', 'Params')
-fillDicts(descParams, 'Parameter', 'elem.text')
-fillDicts(dataProps, 'Property', 'Mask')
-fillDicts(descProps, 'Property', 'Name')
 fillDicts(dataActorID, 'ID', 'Key')
-keysActorID = getKeys(dataActorID)
-keysParams = getKeys(dataParams)
+keysActorID = [(f"{key}", f"{key}", f"{key}") for key in dataActorID.keys()]
+
 propKeyList = [(actorNode.get('Key')) for actorNode in root for elem in actorNode if elem.tag == 'Property' and elem.get('Name') != 'None']
 swFlagList = [(actorNode.get('Key')) for actorNode in root for elem in actorNode \
                 if elem.tag == 'Flag' and elem.get('Type') == 'Switch' and (elem.get('Target') is None or elem.get('Target') == 'Params')]
@@ -87,21 +74,7 @@ def editOOTActorDetailedProperties():
 
     propAnnotations['actorID'] = bpy.props.EnumProperty(name='Actor ID', items=keysActorID)
     propAnnotations['actorKey'] = bpy.props.StringProperty(name='Actor ID', default='0000')
-    propAnnotations['type'] = bpy.props.EnumProperty(name='Actor Type', items=keysParams)
-    propAnnotations['actorPropsValue'] = bpy.props.StringProperty(name='Value', default='0x0000')
-    propAnnotations['switchFlag'] = bpy.props.StringProperty(name='Switch Flag', default='0x0000')
-    propAnnotations['chestFlag'] = bpy.props.StringProperty(name='Chest Flag', default='0x0000')
-    propAnnotations['collectibleFlag'] = bpy.props.StringProperty(name='Collectible Flag', default='0x0000')
     propAnnotations['itemChest'] = bpy.props.EnumProperty(name='Chest Content', items=ootEnBoxContent)
-    propAnnotations['wonderItemDrop'] = bpy.props.EnumProperty(name='Collectible Drop', items=ootEnWonderItemDrop)
-    propAnnotations['item00Drop'] = bpy.props.EnumProperty(name='Collectible Drop', items=ootEnItem00Drop)
-
-    i = 0
-    for id, values in descProps.items():
-        for value in values:
-            if value != 'None':
-                propAnnotations['actorProp' + f'{(i + 1)}'] = bpy.props.StringProperty(name=value, default='0x0000')
-        i += 1
 
     # Generate the fields
     for actorNode in root:
