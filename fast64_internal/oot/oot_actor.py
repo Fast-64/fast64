@@ -1,4 +1,4 @@
-# TODO: add an option to copy the actor param in the clipboard, fix XML file (<parameter>)
+# TODO: fix XML file (<parameter>)
 # handle zrot params
 
 import math, os, bpy, bmesh, mathutils, xml.etree.ElementTree as ET
@@ -59,12 +59,13 @@ def getShift(elem):
     mask = int(elem.get('Mask'), base=16)
     return len(f'{mask:016b}') - len(f'{mask:016b}'.rstrip('0'))
 
-actorParamToSet = 0
 def setActorParams(self):
-    global actorParamToSet
-    val = f'0x{actorParamToSet:X}'
-    self.actorParam = val
-    return val
+    if self.actorID == 'Custom':
+        setattr(OOTSetParamOp, 'param', self.actorParamCustom)
+    return getattr(OOTSetParamOp, 'param')
+
+class OOTSetParamOp():
+    param: '0x0'
 
 # defaultdict(list) is like an editable dictionnary
 dataActorID = defaultdict(list)
@@ -196,8 +197,8 @@ def drawActorHeaderItemProperty(layout, propUser, headerItemProp, index, altProp
 class OOTActorProperty(bpy.types.PropertyGroup):
     actorID : bpy.props.EnumProperty(name = 'Actor', items = ootEnumActorID, default = 'ACTOR_PLAYER')
     actorIDCustom : bpy.props.StringProperty(name = 'Actor ID', default = 'ACTOR_PLAYER')
-    actorParam : bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000')
-    setParams : bpy.props.StringProperty(default = '0x0000', get=lambda self: setActorParams(self))
+    actorParam : bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000', get=lambda self: setActorParams(self))
+    actorParamCustom : bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000')
     rotOverride : bpy.props.BoolProperty(name = 'Override Rotation', default = False)
     rotOverrideX : bpy.props.StringProperty(name = 'Rot X', default = '0')
     rotOverrideY : bpy.props.StringProperty(name = 'Rot Y', default = '0')
@@ -315,13 +316,12 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
 
         # Finally, add the actor type value, which is already shifted in the XML
         actorParams += getActorParameter(detailedProp, detailedProp.actorKey + '.type', 0)
+        setattr(OOTSetParamOp, 'param', f'0x{actorParams:X}')
 
-        global actorParamToSet
-        actorParamToSet = actorParams
-        setParams = actorProp.setParams
-
-    #layout.box().label(text = 'Actor IDs defined in include/z64actors.h.')
-    prop_split(actorIDBox, actorProp, "actorParam", 'Actor Parameter')
+        #layout.box().label(text = 'Actor IDs defined in include/z64actors.h.')
+        prop_split(actorIDBox, actorProp, "actorParam", 'Actor Parameter')
+    else:
+        prop_split(actorIDBox, actorProp, "actorParamCustom", 'Actor Parameter')
     
     actorIDBox.prop(actorProp, 'rotOverride', text = 'Override Rotation (ignore Blender rot)')
     if actorProp.rotOverride:
