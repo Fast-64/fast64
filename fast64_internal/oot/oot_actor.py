@@ -1,5 +1,4 @@
-# TODO: find a way to set actorProp.actorParam (look at actor/chest search classes, may help)
-# add an option to copy the actor param in the clipboard, fix XML file (<parameter>)
+# TODO: add an option to copy the actor param in the clipboard, fix XML file (<parameter>)
 # handle zrot params
 
 import math, os, bpy, bmesh, mathutils, xml.etree.ElementTree as ET
@@ -45,7 +44,7 @@ def genEnum(annotations, key, suffix, enumList, enumName):
 def genString(annotations, key, suffix, stringName):
     '''This function is used to generate the proper string blender property'''
     objName = key + suffix
-    prop = bpy.props.StringProperty(name=stringName, default='0x0000')
+    prop = bpy.props.StringProperty(name=stringName, default='0x0')
     annotations[objName] = prop
 
 def genBLProp(actorID, layout, data, field, name):
@@ -59,6 +58,13 @@ def getActorParameter(object, field, shift):
 def getShift(elem):
     mask = int(elem.get('Mask'), base=16)
     return len(f'{mask:016b}') - len(f'{mask:016b}'.rstrip('0'))
+
+actorParamToSet = 0
+def setActorParams(self):
+    global actorParamToSet
+    val = f'0x{actorParamToSet:X}'
+    self.actorParam = val
+    return val
 
 # defaultdict(list) is like an editable dictionnary
 dataActorID = defaultdict(list)
@@ -186,16 +192,17 @@ def drawActorHeaderItemProperty(layout, propUser, headerItemProp, index, altProp
         prop_split(box, headerItemProp, 'headerIndex', 'Header Index')
         if altProp is not None and headerItemProp.headerIndex >= len(altProp.cutsceneHeaders) + 4:
             box.label(text = "Header does not exist.", icon = 'QUESTION')
-        
+
 class OOTActorProperty(bpy.types.PropertyGroup):
     actorID : bpy.props.EnumProperty(name = 'Actor', items = ootEnumActorID, default = 'ACTOR_PLAYER')
     actorIDCustom : bpy.props.StringProperty(name = 'Actor ID', default = 'ACTOR_PLAYER')
     actorParam : bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000')
+    setParams : bpy.props.StringProperty(default = '0x0000', get=lambda self: setActorParams(self))
     rotOverride : bpy.props.BoolProperty(name = 'Override Rotation', default = False)
     rotOverrideX : bpy.props.StringProperty(name = 'Rot X', default = '0')
     rotOverrideY : bpy.props.StringProperty(name = 'Rot Y', default = '0')
     rotOverrideZ : bpy.props.StringProperty(name = 'Rot Z', default = '0')
-    headerSettings : bpy.props.PointerProperty(type = OOTActorHeaderProperty)     
+    headerSettings : bpy.props.PointerProperty(type = OOTActorHeaderProperty)
 
 class OOT_SearchChestContentEnumOperator(bpy.types.Operator):
     bl_idname = "object.oot_search_chest_content_enum_operator"
@@ -281,7 +288,7 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
     actorParams = 0
     i = j = 1
     if actorProp.actorID != 'Custom':
-        # if the user chose to use a custom actor this computation is pointless
+        # if the user wants to use a custom actor this computation is pointless
         for actorNode in root:
             if actorNode.get('Key') == detailedProp.actorKey:
                 for elem in actorNode:
@@ -302,12 +309,16 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
                                 actorParams += getActorParameter(detailedProp, (detailedProp.actorKey + '.props' + f'{j}'), getShift(elem))
                             j += 1
                         if elem.tag == 'Item':
-                            actorParams += getActorParameter(detailedProp, '.itemChest', getShift(elem))
+                            actorParams += int(detailedProp.itemChest, base=16) << getShift(elem)
                         if elem.tag == 'Collectible':
                             actorParams += getActorParameter(detailedProp, detailedProp.actorKey + '.collectibleDrop', getShift(elem))
 
-    # Finally, add the actor type value, which is already shifted in the XML
-    actorParams += getActorParameter(detailedProp, detailedProp.actorKey + '.type', 0)
+        # Finally, add the actor type value, which is already shifted in the XML
+        actorParams += getActorParameter(detailedProp, detailedProp.actorKey + '.type', 0)
+
+        global actorParamToSet
+        actorParamToSet = actorParams
+        setParams = actorProp.setParams
 
     #layout.box().label(text = 'Actor IDs defined in include/z64actors.h.')
     prop_split(actorIDBox, actorProp, "actorParam", 'Actor Parameter')
