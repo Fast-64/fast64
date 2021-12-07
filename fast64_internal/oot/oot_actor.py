@@ -1,5 +1,4 @@
-# TODO: fix XML file (<parameter>)
-# handle zrot params
+# TODO: document XML file (<parameter>), QoL buttons and stuff
 
 import math, os, bpy, bmesh, mathutils, xml.etree.ElementTree as ET
 from collections import defaultdict
@@ -59,13 +58,50 @@ def getShift(elem):
     mask = int(elem.get('Mask'), base=16)
     return len(f'{mask:016b}') - len(f'{mask:016b}'.rstrip('0'))
 
-def setActorParams(self):
+def setActorValues(self, field, customField):
     if self.actorID == 'Custom':
-        setattr(OOTSetParamOp, 'param', self.actorParamCustom)
-    return getattr(OOTSetParamOp, 'param')
+        setattr(OOTSetParamOp, field, customField)
+    return getattr(OOTSetParamOp, field)
+
+def computeParams(elem, detailedProp, lenProp, lenSwitch):
+    params = 0
+    if elem.tag == 'Flag':
+        shift = getShift(elem)
+        elemType = elem.get('Type')
+        if elemType == 'Chest':
+            params += getActorParameter(detailedProp, detailedProp.actorKey + '.chestFlag', shift)
+        if elemType == 'Collectible':
+            params += getActorParameter(detailedProp, detailedProp.actorKey + '.collectibleFlag', shift)
+        if elemType == 'Switch':
+            for i in range(1, (int(lenSwitch, base=10) + 1)):
+                if i == int(elem.get('Index'), base=10):
+                    params += getActorParameter(detailedProp, detailedProp.actorKey + '.switchFlag' + f'{i}', shift)
+    if elem.tag == 'Property' and elem.get('Name') != 'None':
+        for j in range(1, (int(lenProp, base=10) + 1)):
+            if j == int(elem.get('Index'), base=10):
+                params += getActorParameter(detailedProp, (detailedProp.actorKey + '.props' + f'{j}'), getShift(elem))
+    if elem.tag == 'Item':
+        params += int(detailedProp.itemChest, base=16) << getShift(elem)
+    if elem.tag == 'Collectible':
+        params += getActorParameter(detailedProp, detailedProp.actorKey + '.collectibleDrop', getShift(elem))
+    return params
+
+def showBLProps(actorIDBox, actorProp, paramField, rotBoolField, rotXField, rotYField, rotZField):
+    #layout.box().label(text = 'Actor IDs defined in include/z64actors.h.')
+    prop_split(actorIDBox, actorProp, paramField, 'Actor Parameter')
+
+    actorIDBox.prop(actorProp, rotBoolField, text = 'Override Rotation (ignore Blender rot)')
+    if actorProp.rotOverride:
+        prop_split(actorIDBox, actorProp, rotXField, 'Rot X')
+        prop_split(actorIDBox, actorProp, rotYField, 'Rot Y')
+        prop_split(actorIDBox, actorProp, rotZField, 'Rot Z')
 
 class OOTSetParamOp():
     param: '0x0'
+    XRot: '0x0'
+    YRot: '0x0'
+    ZRot: '0x0'
+    rotBool: bool=False
 
 # defaultdict(list) is like an editable dictionnary
 dataActorID = defaultdict(list)
@@ -196,14 +232,19 @@ def drawActorHeaderItemProperty(layout, propUser, headerItemProp, index, altProp
 
 class OOTActorProperty(bpy.types.PropertyGroup):
     actorID : bpy.props.EnumProperty(name = 'Actor', items = ootEnumActorID, default = 'ACTOR_PLAYER')
-    actorIDCustom : bpy.props.StringProperty(name = 'Actor ID', default = 'ACTOR_PLAYER')
-    actorParam : bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000', get=lambda self: setActorParams(self))
-    actorParamCustom : bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000')
-    rotOverride : bpy.props.BoolProperty(name = 'Override Rotation', default = False)
-    rotOverrideX : bpy.props.StringProperty(name = 'Rot X', default = '0')
-    rotOverrideY : bpy.props.StringProperty(name = 'Rot Y', default = '0')
-    rotOverrideZ : bpy.props.StringProperty(name = 'Rot Z', default = '0')
+    actorParam : bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000', get=lambda self: setActorValues(self, 'param', self.actorIDCustom))
+    rotOverride : bpy.props.BoolProperty(name = 'Override Rotation', default = False, get=lambda self: setActorValues(self, 'rotBool', self.rotOverrideCustom))
+    rotOverrideX : bpy.props.StringProperty(name = 'Rot X', default = '0x0', get=lambda self: setActorValues(self, 'XRot', self.rotOverrideXCustom))
+    rotOverrideY : bpy.props.StringProperty(name = 'Rot Y', default = '0x0', get=lambda self: setActorValues(self, 'YRot', self.rotOverrideYCustom))
+    rotOverrideZ : bpy.props.StringProperty(name = 'Rot Z', default = '0x0', get=lambda self: setActorValues(self, 'ZRot', self.rotOverrideZCustom))
     headerSettings : bpy.props.PointerProperty(type = OOTActorHeaderProperty)
+
+    actorIDCustom : bpy.props.StringProperty(name = 'Actor ID', default = 'ACTOR_PLAYER')
+    actorParamCustom : bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000')
+    rotOverrideCustom : bpy.props.BoolProperty(name = 'Override Rotation', default = False)
+    rotOverrideXCustom : bpy.props.StringProperty(name = 'Rot X', default = '0x0')
+    rotOverrideYCustom : bpy.props.StringProperty(name = 'Rot Y', default = '0x0')
+    rotOverrideZCustom : bpy.props.StringProperty(name = 'Rot Z', default = '0x0')
 
 class OOT_SearchChestContentEnumOperator(bpy.types.Operator):
     bl_idname = "object.oot_search_chest_content_enum_operator"
@@ -286,48 +327,48 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
     # It was made like that to make it future proof as the OoT decomp isn't fully done yet so names can still change
     # For Switch Flags & <Property> we need to make sure the value corresponds to the mask, hence the index in the XML
     # For Chest Content (<Item>) we don't need the actor key because it's handled differently: it's a search box
-    actorParams = 0
+    actorParams = XRotParams = YRotParams = ZRotParams = lenProp = lenSwitch = 0
     i = j = 1
     if actorProp.actorID != 'Custom':
         # if the user wants to use a custom actor this computation is pointless
+
+        # Looking for the highest Property/Switch index for the current actor
         for actorNode in root:
             if actorNode.get('Key') == detailedProp.actorKey:
                 for elem in actorNode:
-                    if elem.get('Target') == 'Params' or elem.get('Target') is None:
-                        if elem.tag == 'Flag':
-                            shift = getShift(elem)
-                            elemType = elem.get('Type')
-                            if elemType == 'Chest':
-                                actorParams += getActorParameter(detailedProp, detailedProp.actorKey + '.chestFlag', shift)
-                            if elemType == 'Collectible':
-                                actorParams += getActorParameter(detailedProp, detailedProp.actorKey + '.collectibleFlag', shift)
-                            if elemType == 'Switch':
-                                if i == int(elem.get('Index'), base=10):
-                                    actorParams += getActorParameter(detailedProp, detailedProp.actorKey + '.switchFlag' + f'{i}', shift)
-                                i += 1
-                        if elem.tag == 'Property' and elem.get('Name') != 'None':
-                            if j == int(elem.get('Index'), base=10):
-                                actorParams += getActorParameter(detailedProp, (detailedProp.actorKey + '.props' + f'{j}'), getShift(elem))
-                            j += 1
-                        if elem.tag == 'Item':
-                            actorParams += int(detailedProp.itemChest, base=16) << getShift(elem)
-                        if elem.tag == 'Collectible':
-                            actorParams += getActorParameter(detailedProp, detailedProp.actorKey + '.collectibleDrop', getShift(elem))
+                    if elem.tag == 'Property':
+                        lenProp = elem.get('Index')
+                    if elem.tag == 'Flag' and elem.get('Type') == 'Switch':
+                        lenSwitch = elem.get('Index')
+
+        for actorNode in root:
+            if actorNode.get('Key') == detailedProp.actorKey:
+                for elem in actorNode:
+                    paramTarget = elem.get('Target')
+                    if paramTarget == 'Params' or paramTarget is None:
+                        actorParams += computeParams(elem, detailedProp, lenProp, lenSwitch)
+                    elif paramTarget == 'XRot':
+                        XRotParams += computeParams(elem, detailedProp, lenProp, lenSwitch)
+                    elif paramTarget == 'YRot':
+                        YRotParams += computeParams(elem, detailedProp, lenProp, lenSwitch)
+                    elif paramTarget == 'ZRot':
+                        ZRotParams += computeParams(elem, detailedProp, lenProp, lenSwitch)
 
         # Finally, add the actor type value, which is already shifted in the XML
         actorParams += getActorParameter(detailedProp, detailedProp.actorKey + '.type', 0)
-        setattr(OOTSetParamOp, 'param', f'0x{actorParams:X}')
+        OOTSetParamOp.param = f'0x{actorParams:X}'
 
-        #layout.box().label(text = 'Actor IDs defined in include/z64actors.h.')
-        prop_split(actorIDBox, actorProp, "actorParam", 'Actor Parameter')
+        if XRotParams != 0 or YRotParams != 0 or ZRotParams != 0:
+            OOTSetParamOp.rotBool = True
+            OOTSetParamOp.XRot = f'0x{XRotParams:X}'
+            OOTSetParamOp.YRot = f'0x{YRotParams:X}'
+            OOTSetParamOp.ZRot = f'0x{ZRotParams:X}'
+        else:
+            OOTSetParamOp.rotBool = False
+            OOTSetParamOp.XRot = OOTSetParamOp.YRot = OOTSetParamOp.ZRot = '0x0'
+        showBLProps(actorIDBox, actorProp, 'actorParam', 'rotOverride', 'rotOverrideX', 'rotOverrideY', 'rotOverrideZ')
     else:
-        prop_split(actorIDBox, actorProp, "actorParamCustom", 'Actor Parameter')
-    
-    actorIDBox.prop(actorProp, 'rotOverride', text = 'Override Rotation (ignore Blender rot)')
-    if actorProp.rotOverride:
-        prop_split(actorIDBox, actorProp, 'rotOverrideX', 'Rot X')
-        prop_split(actorIDBox, actorProp, 'rotOverrideY', 'Rot Y')
-        prop_split(actorIDBox, actorProp, 'rotOverrideZ', 'Rot Z')
+        showBLProps(actorIDBox, actorProp, 'actorParamCustom', 'rotOverrideCustom', 'rotOverrideXCustom', 'rotOverrideYCustom', 'rotOverrideZCustom')
 
     drawActorHeaderProperty(actorIDBox, actorProp.headerSettings, "Actor", altRoomProp, objName)
 

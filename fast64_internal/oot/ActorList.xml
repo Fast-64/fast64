@@ -762,7 +762,10 @@ Variable is first incremented by 1, then time until tile rises is calculated as 
 -0001 = 0x34 frames etc.
 </Notes>
   </Actor>
-  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_TOKI_SWD" Key="006C" Name="Master Sword" ObjectID="OBJECT_TOKI_OBJECTS">
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_TOKI_SWD" Key="006C" Name="Master Sword" ObjectID="OBJECT_TOKI_OBJECTS,OBJECT_EFC_STAR_FIELD,OBJECT_EFC_TW">
+    <Notes>
+Use with actors 008C and 008B for the cutscene to work
+</Notes>
   </Actor>
   <Actor Category="ACTORCAT_BOSS" ID="ACTOR_EN_FHG_FIRE" Key="006D" Name="Phantom Ganon's Lightning Attack" ObjectID="OBJECT_FHG">
   </Actor>
@@ -3042,7 +3045,7 @@ Z ROTATION +0x3F = Collectible Flag</Notes>
   </Actor>
   <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_OBJ_TIMEBLOCK" Key="01D1" Name="Time Block" ObjectID="OBJECT_TIMEBLOCK,OBJECT_EFC_TW">
     <Parameter Params="0000"> Child Visible (Age inverted) Invisible (normal) </Parameter>
-    <Parameter Params="8000"> Adult Visible (Age inverted) Visible (normal) </Parameter>
+    <Parameter Params="0001"> Adult Visible (Age inverted) Visible (normal) </Parameter>
     <Flag Index="1" Mask="0x003F" Target="Params" Type="Switch"/>
     <Property Mask="0x0000" Name="None"/>
     <Property Index="1" Mask="0x3800" Name="Song of Time Distance" Target="Params"/>
