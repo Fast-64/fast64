@@ -1,16 +1,11 @@
 # TODO: document XML file (<parameter>), QoL buttons and stuff
 
-import math, os, bpy, bmesh, mathutils, xml.etree.ElementTree as ET
-
-from bpy.utils import register_class, unregister_class
-from io import BytesIO
+import os, bpy, xml.etree.ElementTree as ET
 
 from ..f3d.f3d_gbi import *
 from .oot_constants import *
 from .oot_utility import *
-
 from ..utility import *
-
 
 # Read the XML file, throws an error if the file is missing
 try: tree = ET.parse(os.path.dirname(os.path.abspath(__file__)) + '/ActorList.xml')

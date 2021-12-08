@@ -1,7 +1,6 @@
 import os, xml.etree.ElementTree as ET
 from ..utility import PluginError
 
-
 # Read the XML file, throws an error if the file is missing
 try: tree = ET.parse(os.path.dirname(os.path.abspath(__file__)) + '/ActorList.xml')
 except: PluginError("ERROR: File 'fast64_internal/oot/ActorList.xml' is missing.")
