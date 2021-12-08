@@ -46,13 +46,25 @@ def genString(annotations, key, suffix, stringName):
     prop = bpy.props.StringProperty(name=stringName, default='0x0')
     annotations[objName] = prop
 
+def genCheckBox(annotations, key, suffix, boolName):
+    '''This function is used to generate the proper bool blender property'''
+    objName = key + suffix
+    prop = bpy.props.BoolProperty(name=boolName, default=False)
+    annotations[objName] = prop
+
 def genBLProp(actorID, layout, data, field, name):
     '''Determines if it needs to show the option on the panel'''
     if data.actorID == actorID:
         prop_split(layout, data, field, name)
 
 def getActorParameter(object, field, shift):
-    return int(getattr(object, field, '0x0'), base=16) << shift
+    attr = getattr(object, field, '0x0')
+    if isinstance(attr, str):
+        return int(attr, base=16) << shift
+    elif isinstance(attr, bool) and attr:
+        return 1 << shift
+    else:
+        return 0
 
 def getShift(elem):
     mask = int(elem.get('Mask'), base=16)
@@ -63,7 +75,7 @@ def setActorValues(self, field, customField):
         setattr(OOTSetParamOp, field, customField)
     return getattr(OOTSetParamOp, field)
 
-def computeParams(elem, detailedProp, lenProp, lenSwitch):
+def computeParams(elem, detailedProp, lenProp, lenSwitch, lenBool):
     params = 0
     if elem.tag == 'Flag':
         shift = getShift(elem)
@@ -75,15 +87,19 @@ def computeParams(elem, detailedProp, lenProp, lenSwitch):
         if elemType == 'Switch':
             for i in range(1, (int(lenSwitch, base=10) + 1)):
                 if i == int(elem.get('Index'), base=10):
-                    params += getActorParameter(detailedProp, detailedProp.actorKey + '.switchFlag' + f'{i}', shift)
+                    params += getActorParameter(detailedProp, detailedProp.actorKey + f'.switchFlag{i}', shift)
     if elem.tag == 'Property' and elem.get('Name') != 'None':
-        for j in range(1, (int(lenProp, base=10) + 1)):
-            if j == int(elem.get('Index'), base=10):
-                params += getActorParameter(detailedProp, (detailedProp.actorKey + '.props' + f'{j}'), getShift(elem))
+        for i in range(1, (int(lenProp, base=10) + 1)):
+            if i == int(elem.get('Index'), base=10):
+                params += getActorParameter(detailedProp, (detailedProp.actorKey + f'.props{i}'), getShift(elem))
     if elem.tag == 'Item':
         params += int(detailedProp.itemChest, base=16) << getShift(elem)
     if elem.tag == 'Collectible':
         params += getActorParameter(detailedProp, detailedProp.actorKey + '.collectibleDrop', getShift(elem))
+    if elem.tag == 'Bool':
+        for i in range(1, (int(lenBool, base=10) + 1)):
+            if i == int(elem.get('Index'), base=10):
+                params += getActorParameter(detailedProp, (detailedProp.actorKey + f'.bool{i}'), getShift(elem))
     return params
 
 def showBLProps(actorIDBox, actorProp, paramField, rotBoolField, rotXField, rotYField, rotZField):
@@ -95,6 +111,17 @@ def showBLProps(actorIDBox, actorProp, paramField, rotBoolField, rotXField, rotY
         prop_split(actorIDBox, actorProp, rotXField, 'Rot X')
         prop_split(actorIDBox, actorProp, rotYField, 'Rot Y')
         prop_split(actorIDBox, actorProp, rotZField, 'Rot Z')
+
+def getMaxIndex(detailedProp, elemTag, flagType):
+    # Looking for the highest Property/Switch index for the current actor
+    length = 0
+    for actorNode in root:
+        if actorNode.get('Key') == detailedProp.actorKey:
+            for elem in actorNode:
+                if elem.tag == elemTag:
+                    if flagType is None or (flagType == 'Switch' and elem.get('Type') == flagType):
+                        length = elem.get('Index')
+    return length
 
 class OOTSetParamOp():
     param: '0x0'
@@ -121,11 +148,11 @@ def editOOTActorDetailedProperties():
 
     # Generate the fields
     for actorNode in root:
-        i = j = 1
+        i = j = k = 1
         actorKey = actorNode.get('Key')
         for elem in actorNode:
             if elem.tag == 'Property' and elem.get('Name') != 'None':
-                genString(propAnnotations, actorKey, ('.props' + f'{i}'), actorKey)
+                genString(propAnnotations, actorKey, (f'.props{i}'), actorKey)
                 i += 1
             elif elem.tag == 'Flag':
                 if elem.get('Type') == 'Chest':
@@ -133,7 +160,7 @@ def editOOTActorDetailedProperties():
                 elif elem.get('Type') == 'Collectible':
                     genString(propAnnotations, actorKey, '.collectibleFlag', 'Collectible Flag')
                 elif elem.get('Type') == 'Switch':
-                    genString(propAnnotations, actorKey, ('.switchFlag' + f'{j}'), 'Switch Flag')
+                    genString(propAnnotations, actorKey, (f'.switchFlag{j}'), 'Switch Flag')
                     j += 1
             elif elem.tag == 'Collectible':
                 if actorKey == '0112':
@@ -146,6 +173,9 @@ def editOOTActorDetailedProperties():
                                 for actorNode2 in root for elem2 in actorNode2 \
                                 if actorNode2.get('Key') == actorKey and elem2.tag == 'Parameter']
                 genEnum(propAnnotations, actorKey, '.type', actorTypeList, 'Actor Type')
+            elif elem.tag == 'Bool':
+                genCheckBox(propAnnotations, actorKey, f'.bool{k}', actorKey)
+                k += 1
 
 class OOT_SearchActorIDEnumOperator(bpy.types.Operator):
     bl_idname = "object.oot_search_actor_id_enum_operator"
@@ -274,14 +304,14 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
     searchOp.objName = objName
 
     split = actorIDBox.split(factor = 0.5)
-    split.label(text = "Actor ID")
+    split.label(text = "Actor Name")
     split.label(text = getEnumName(ootEnumActorID, actorProp.actorID))
 
     if actorProp.actorID == 'Custom':
         #actorIDBox.prop(actorProp, 'actorIDCustom', text = 'Actor ID')
         prop_split(actorIDBox, actorProp, 'actorIDCustom', '')
                     
-    propAnnot = getattr(detailedProp, detailedProp.actorKey + ('.type'), None)
+    propAnnot = getattr(detailedProp, detailedProp.actorKey + '.type', None)
     if propAnnot is not None:
         genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey + '.type', 'Type')
 
@@ -296,20 +326,27 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
     if propAnnot is not None:
         genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey + '.collectibleDrop', 'Collectible Drop')
 
+    lenProp = getMaxIndex(detailedProp, 'Property', None)
+    lenSwitch = getMaxIndex(detailedProp, 'Flag', 'Switch')
+    lenBool = getMaxIndex(detailedProp, 'Bool', None)
+
     for actorNode in root:
         i = j = 1
         if detailedProp.actorKey == actorNode.get('Key'):
             for elem in actorNode:
                 if elem.get('Name') != 'None':
                     if elem.tag == 'Property':
-                        propAnnot = getattr(detailedProp, detailedProp.actorKey + ('.props' + f'{i}'), None)
+                        propAnnot = getattr(detailedProp, detailedProp.actorKey + f'.props{i}', None)
                         if propAnnot is not None:
-                            genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey + '.props' + f'{i}', elem.get('Name'))
+                            genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey + f'.props{i}', elem.get('Name'))
                         i += 1
                     elif elem.get('Type') == 'Switch':
-                        propAnnot = getattr(detailedProp, detailedProp.actorKey + '.switchFlag' + f'{i}', None)
+                        propAnnot = getattr(detailedProp, detailedProp.actorKey + f'.switchFlag{i}', None)
                         if propAnnot is not None:
-                            genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey + '.switchFlag' + f'{j}', 'Switch Flag #' + f'{j}')
+                            strPropName = 'Switch Flag'
+                            if int(lenSwitch) > 1:
+                                strPropName += f' #{j}'
+                            genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey + f'.switchFlag{j}', strPropName)
                         j += 1
 
     flagList = root.findall('.//Flag')
@@ -321,38 +358,40 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
             if flagList[i].get('Type') == 'Collectible':
                 genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey + '.collectibleFlag', 'Collectible Flag')
 
+    for actorNode in root:
+        i = 1
+        if detailedProp.actorKey == actorNode.get('Key'):
+            for elem in actorNode:
+                if elem.get('Name') != 'None':
+                    if elem.tag == 'Bool':
+                        boolAnnot = getattr(detailedProp, detailedProp.actorKey + f'.bool{i}', None)
+                        if boolAnnot is not None:
+                            genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey + f'.bool{i}', elem.get('Name'))
+                        i += 1
+
     # This next if handles the necessary maths to get the actor parameters from the detailed panel
     # Reads ActorList.xml and figures out the necessary bit shift and applies it to whatever is in the blender string field
     # Actor key refers to the hex ID of an actor
     # It was made like that to make it future proof as the OoT decomp isn't fully done yet so names can still change
     # For Switch Flags & <Property> we need to make sure the value corresponds to the mask, hence the index in the XML
     # For Chest Content (<Item>) we don't need the actor key because it's handled differently: it's a search box
-    actorParams = XRotParams = YRotParams = ZRotParams = lenProp = lenSwitch = 0
+    actorParams = XRotParams = YRotParams = ZRotParams = 0
     i = j = 1
     if actorProp.actorID != 'Custom':
         # if the user wants to use a custom actor this computation is pointless
-
-        # Looking for the highest Property/Switch index for the current actor
-        for actorNode in root:
-            if actorNode.get('Key') == detailedProp.actorKey:
-                for elem in actorNode:
-                    if elem.tag == 'Property':
-                        lenProp = elem.get('Index')
-                    if elem.tag == 'Flag' and elem.get('Type') == 'Switch':
-                        lenSwitch = elem.get('Index')
 
         for actorNode in root:
             if actorNode.get('Key') == detailedProp.actorKey:
                 for elem in actorNode:
                     paramTarget = elem.get('Target')
                     if paramTarget == 'Params' or paramTarget is None:
-                        actorParams += computeParams(elem, detailedProp, lenProp, lenSwitch)
+                        actorParams += computeParams(elem, detailedProp, lenProp, lenSwitch, lenBool)
                     elif paramTarget == 'XRot':
-                        XRotParams += computeParams(elem, detailedProp, lenProp, lenSwitch)
+                        XRotParams += computeParams(elem, detailedProp, lenProp, lenSwitch, lenBool)
                     elif paramTarget == 'YRot':
-                        YRotParams += computeParams(elem, detailedProp, lenProp, lenSwitch)
+                        YRotParams += computeParams(elem, detailedProp, lenProp, lenSwitch, lenBool)
                     elif paramTarget == 'ZRot':
-                        ZRotParams += computeParams(elem, detailedProp, lenProp, lenSwitch)
+                        ZRotParams += computeParams(elem, detailedProp, lenProp, lenSwitch, lenBool)
 
         # Finally, add the actor type value, which is already shifted in the XML
         actorParams += getActorParameter(detailedProp, detailedProp.actorKey + '.type', 0)

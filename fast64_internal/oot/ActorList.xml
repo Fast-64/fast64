@@ -1938,10 +1938,10 @@ ZROT +0x0003 = Speed, Acceleration
     <Parameter Params="0004"> Targetable Crystal</Parameter>
     <Flag Index="1" Mask="0x3F00" Type="Switch"/>
     <Property Mask="0x0000" Name="None"/>
-    <Property Index="1" Mask="0x0010" Name="Toggle"/>
-    <Property Index="2" Mask="0x0020" Name="Reset"/>
-    <Property Index="3" Mask="0x0040" Name="Trigger All"/>
-    <Property Index="4" Mask="0x0080" Name="Frozen"/>
+    <Bool Index="1" Mask="0x0010" Name="Toggle"/>
+    <Bool Index="2" Mask="0x0020" Name="Reset"/>
+    <Bool Index="3" Mask="0x0040" Name="Trigger All"/>
+    <Bool Index="4" Mask="0x0080" Name="Frozen"/>
     <Notes>
   0x0010 = Can Toggle
   0x0020 = Reset when not pressed //Floor,Rusted switches. Zeroes switch flag
@@ -3025,15 +3025,15 @@ Z ROTATION +0x3F = Collectible Flag</Notes>
     <Parameter Params="0001"> Square piece of false stone wall //Oriented horizontally</Parameter>
   </Actor>
   <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_ZO" Key="01CE" Name="Zora" ObjectID="OBJECT_ZO">
-    <Parameter Params="0000"> Zora //Text ID 4007</Parameter>
-    <Parameter Params="0001"> Zora //Text ID 4008</Parameter>
-    <Parameter Params="0002"> Zora //Text ID 4009</Parameter>
-    <Parameter Params="0003"> Zora //Text ID 400A</Parameter>
-    <Parameter Params="0004"> Zora //Text ID 400B</Parameter>
-    <Parameter Params="0005"> Zora //Text ID 400C</Parameter>
-    <Parameter Params="0006"> Zora //Text ID 400D</Parameter>
-    <Parameter Params="0007"> Zora //Text ID 400E</Parameter>
-    <Parameter Params="0008"> Zora //Text ID 400F</Parameter>
+    <Parameter Params="0000"> Text ID 0x4007</Parameter>
+    <Parameter Params="0001"> Text ID 0x4008</Parameter>
+    <Parameter Params="0002"> Text ID 0x4009</Parameter>
+    <Parameter Params="0003"> Text ID 0x400A</Parameter>
+    <Parameter Params="0004"> Text ID 0x400B</Parameter>
+    <Parameter Params="0005"> Text ID 0x400C</Parameter>
+    <Parameter Params="0006"> Text ID 0x400D</Parameter>
+    <Parameter Params="0007"> Text ID 0x400E</Parameter>
+    <Parameter Params="0008"> Text ID 0x400F</Parameter>
     <Property Mask="0x0000" Name="None"/>
     <Property Index="1" Mask="0x000F" Name="Dialog"/>
     <Notes>0009 or higher Text ID 4006</Notes>
@@ -3049,7 +3049,7 @@ Z ROTATION +0x3F = Collectible Flag</Notes>
     <Flag Index="1" Mask="0x003F" Target="Params" Type="Switch"/>
     <Property Mask="0x0000" Name="None"/>
     <Property Index="1" Mask="0x3800" Name="Song of Time Distance" Target="Params"/>
-    <Property Index="2" Mask="0x0400" Name="set switchflag on/off" Target="Params"/>
+    <Property Index="2" Mask="0x0400" Name="Set Switch Flag On/Off" Target="Params"/>
     <Property Index="3" Mask="0x0100" Name="Size" Target="Params"/>
     <Property Index="4" Mask="0x0040" Name="Visibility" Target="Params"/>
     <Property Index="5" Mask="0x0007" Name="Color" Target="ZRot"/>
