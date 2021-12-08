@@ -80,7 +80,7 @@ class OOTObjectPanel(bpy.types.Panel):
             drawActorProperty(box, obj.ootActorProperty, altRoomProp, objName, obj.ootActorDetailedProperties)
         
         elif obj.ootEmptyType == 'Transition Actor':
-            drawTransitionActorProperty(box, obj.ootTransitionActorProperty, altSceneProp, roomObj, objName)
+            drawTransitionActorProperty(box, obj.ootTransitionActorProperty, altSceneProp, roomObj, objName, obj.ootActorDetailedProperties)
 
         elif obj.ootEmptyType == 'Water Box':
             drawWaterBoxProperty(box, obj.ootWaterBoxProperty)
@@ -168,6 +168,7 @@ def onUpdateOOTEmptyType(self, context):
 
 oot_obj_classes = (
     OOT_SearchActorIDEnumOperator,
+    OOT_SearchTransActorIDEnumOperator,
     OOT_SearchMusicSeqEnumOperator,
     OOT_SearchObjectEnumOperator,
     OOT_SearchSceneEnumOperator,

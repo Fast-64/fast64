@@ -53,19 +53,16 @@ ootEnumLightGroupMenu = [
 	("Night", "Night", "Night")
 ]
 
-ootEnumTransitionActorID = [
-	("Custom", "Custom", "Custom"),
-	("ACTOR_EN_DOOR", "EN_DOOR", "EN_DOOR"),
-	("ACTOR_DOOR_SHUTTER", "DOOR_SHUTTER", "DOOR_SHUTTER"),
-	("ACTOR_DOOR_WARP1", "DOOR_WARP1", "DOOR_WARP1"),
-	("ACTOR_DOOR_TOKI", "DOOR_TOKI", "DOOR_TOKI"),
-	("ACTOR_DOOR_ANA", "DOOR_ANA", "DOOR_ANA"),
-	("ACTOR_DOOR_GERUDO", "DOOR_GERUDO", "DOOR_GERUDO"),
-	("ACTOR_DOOR_KILLER", "DOOR_KILLER", "DOOR_KILLER"),
-]
+# Add every actor that IS a transition actor (defined by the category 'ACTORCAT_DOOR')
+ootEnumTransitionActorID = [(actorNode.get('ID'), actorNode.get('Name'), \
+					actorNode.get('ID').replace('ACTOR_','')) for actorNode in root if actorNode.get('ID') is not None \
+						and actorNode.get('Category') == 'ACTORCAT_DOOR']
+ootEnumTransitionActorID.insert(0, ("Custom", "Custom", "Custom"))
 
+# Add every actor that IS NOT a transition actor
 ootEnumActorID = [(actorNode.get('ID'), actorNode.get('Name'), \
-					actorNode.get('ID').replace('ACTOR_','')) for actorNode in root if actorNode.get('ID') is not None]
+					actorNode.get('ID').replace('ACTOR_','')) for actorNode in root if actorNode.get('ID') is not None \
+						and actorNode.get('Category') != 'ACTORCAT_DOOR']
 ootEnumActorID.insert(0, ("Custom", "Custom", "Custom"))
 
 ootEnumLinkIdle = [
