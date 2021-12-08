@@ -70,6 +70,14 @@ def getShift(elem):
     mask = int(elem.get('Mask'), base=16)
     return len(f'{mask:016b}') - len(f'{mask:016b}'.rstrip('0'))
 
+def isOverMaximum(box, obj, field, elem):
+    shift = getShift(elem)
+    maximum = int(elem.get('Mask'), base=16) >> shift
+    params = getActorParameter(obj, field, shift) >> shift
+    if params > maximum:
+        box.box().label(text= \
+            f"Warning: Maximum is 0x{int(elem.get('Mask'), base=16) >> getShift(elem):X}!")
+
 def setActorValues(self, field, customField):
     if self.actorID == 'Custom':
         setattr(OOTSetParamOp, field, customField)
@@ -102,7 +110,7 @@ def computeParams(elem, detailedProp, lenProp, lenSwitch, lenBool):
                 params += getActorParameter(detailedProp, (detailedProp.actorKey + f'.bool{i}'), getShift(elem))
     return params
 
-def showBLProps(actorIDBox, actorProp, paramField, rotBoolField, rotXField, rotYField, rotZField):
+def drawRotBLProps(actorIDBox, actorProp, paramField, rotBoolField, rotXField, rotYField, rotZField):
     #layout.box().label(text = 'Actor IDs defined in include/z64actors.h.')
     prop_split(actorIDBox, actorProp, paramField, 'Actor Parameter')
 
@@ -114,7 +122,7 @@ def showBLProps(actorIDBox, actorProp, paramField, rotBoolField, rotXField, rotY
 
 def getMaxIndex(detailedProp, elemTag, flagType):
     # Looking for the highest Property/Switch index for the current actor
-    length = 0
+    length = '0'
     for actorNode in root:
         if actorNode.get('Key') == detailedProp.actorKey:
             for elem in actorNode:
@@ -122,6 +130,45 @@ def getMaxIndex(detailedProp, elemTag, flagType):
                     if flagType is None or (flagType == 'Switch' and elem.get('Type') == flagType):
                         length = elem.get('Index')
     return length
+
+def overrideBLRot(rotParam, rot, rotField):
+    if rotParam is not None:
+        if rotParam != 0:
+            setattr(OOTSetParamOp, rot, f'0x{rotParam:X}')
+            return rotField
+        else:
+            setattr(OOTSetParamOp, rot, '0x0')
+            return f'{rotField}Custom'
+    else:
+        return rotField
+
+def drawParams(box, actorProp, detailedProp, elemField, elemName, elTag, elType, lenSwitch):
+    for actorNode in root:
+        i = 1
+        name = 'None'
+        if detailedProp.actorKey == actorNode.get('Key'):
+            for elem in actorNode:
+                # Checks if there's at least 2 Switch Flags, in this case the
+                # Name will be 'Switch Flag #[number]
+                # If it's not a Switch Flag, change nothing to the name
+                if lenSwitch is not None:
+                    if int(lenSwitch) > 1: name = f'{elemName} #{i}'
+                else: name = elemName
+
+                # Set the name to none to use the element's name instead
+                if elemName is None: name = elem.get('Name')
+
+                # Add the index to get the proper attribute
+                if elTag == 'Property' or (elTag == 'Flag' and elType == 'Switch') or elTag == 'Bool':
+                    field = elemField + f'{i}'
+                else:
+                    field = elemField
+
+                attr = getattr(detailedProp, field, None)
+                if name != 'None' and elem.tag == elTag and elType == elem.get('Type') and attr is not None:
+                    genBLProp(actorProp.actorID, box, detailedProp, field, name)
+                    isOverMaximum(box, detailedProp, field, elem)
+                    i += 1
 
 class OOTSetParamOp():
     param: '0x0'
@@ -152,7 +199,7 @@ def editOOTActorDetailedProperties():
         actorKey = actorNode.get('Key')
         for elem in actorNode:
             if elem.tag == 'Property' and elem.get('Name') != 'None':
-                genString(propAnnotations, actorKey, (f'.props{i}'), actorKey)
+                genString(propAnnotations, actorKey, f'.props{i}', actorKey)
                 i += 1
             elif elem.tag == 'Flag':
                 if elem.get('Type') == 'Chest':
@@ -160,7 +207,7 @@ def editOOTActorDetailedProperties():
                 elif elem.get('Type') == 'Collectible':
                     genString(propAnnotations, actorKey, '.collectibleFlag', 'Collectible Flag')
                 elif elem.get('Type') == 'Switch':
-                    genString(propAnnotations, actorKey, (f'.switchFlag{j}'), 'Switch Flag')
+                    genString(propAnnotations, actorKey, f'.switchFlag{j}', 'Switch Flag')
                     j += 1
             elif elem.tag == 'Collectible':
                 if actorKey == '0112':
@@ -179,7 +226,7 @@ def editOOTActorDetailedProperties():
 
 class OOT_SearchActorIDEnumOperator(bpy.types.Operator):
     bl_idname = "object.oot_search_actor_id_enum_operator"
-    bl_label = "Select Actor ID"
+    bl_label = "Select Actor"
     bl_property = "actorID"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -208,6 +255,25 @@ class OOT_SearchActorIDEnumOperator(bpy.types.Operator):
 
         bpy.context.region.tag_redraw()
         self.report({'INFO'}, "Selected: " + self.actorID)
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        context.window_manager.invoke_search_popup(self)
+        return {'RUNNING_MODAL'}
+
+class OOT_SearchChestContentEnumOperator(bpy.types.Operator):
+    bl_idname = "object.oot_search_chest_content_enum_operator"
+    bl_label = "Select Chest Content"
+    bl_property = "itemChest"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    itemChest : bpy.props.EnumProperty(items = ootEnBoxContent, default = '0x48')
+    objName : bpy.props.StringProperty()
+
+    def execute(self, context):
+        bpy.data.objects[self.objName].ootActorDetailedProperties.itemChest = self.itemChest
+        bpy.context.region.tag_redraw()
+        self.report({'INFO'}, "Selected: " + self.itemChest)
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -276,25 +342,6 @@ class OOTActorProperty(bpy.types.PropertyGroup):
     rotOverrideYCustom : bpy.props.StringProperty(name = 'Rot Y', default = '0x0')
     rotOverrideZCustom : bpy.props.StringProperty(name = 'Rot Z', default = '0x0')
 
-class OOT_SearchChestContentEnumOperator(bpy.types.Operator):
-    bl_idname = "object.oot_search_chest_content_enum_operator"
-    bl_label = "Select Chest Content"
-    bl_property = "itemChest"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    itemChest : bpy.props.EnumProperty(items = ootEnBoxContent, default = '0x48')
-    objName : bpy.props.StringProperty()
-
-    def execute(self, context):
-        bpy.data.objects[self.objName].ootActorDetailedProperties.itemChest = self.itemChest
-        bpy.context.region.tag_redraw()
-        self.report({'INFO'}, "Selected: " + self.itemChest)
-        return {'FINISHED'}
-
-    def invoke(self, context, event):
-        context.window_manager.invoke_search_popup(self)
-        return {'RUNNING_MODAL'}
-
 def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
     #prop_split(layout, actorProp, 'actorID', 'Actor')
     actorIDBox = layout.column()
@@ -303,9 +350,7 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
     searchOp.actorUser = "Actor"
     searchOp.objName = objName
 
-    split = actorIDBox.split(factor = 0.5)
-    split.label(text = "Actor Name")
-    split.label(text = getEnumName(ootEnumActorID, actorProp.actorID))
+    actorIDBox.label(text = "Actor: " + getEnumName(ootEnumActorID, actorProp.actorID))
 
     if actorProp.actorID == 'Custom':
         #actorIDBox.prop(actorProp, 'actorIDCustom', text = 'Actor ID')
@@ -329,45 +374,13 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
     lenProp = getMaxIndex(detailedProp, 'Property', None)
     lenSwitch = getMaxIndex(detailedProp, 'Flag', 'Switch')
     lenBool = getMaxIndex(detailedProp, 'Bool', None)
+    key = detailedProp.actorKey
 
-    for actorNode in root:
-        i = j = 1
-        if detailedProp.actorKey == actorNode.get('Key'):
-            for elem in actorNode:
-                if elem.get('Name') != 'None':
-                    if elem.tag == 'Property':
-                        propAnnot = getattr(detailedProp, detailedProp.actorKey + f'.props{i}', None)
-                        if propAnnot is not None:
-                            genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey + f'.props{i}', elem.get('Name'))
-                        i += 1
-                    elif elem.get('Type') == 'Switch':
-                        propAnnot = getattr(detailedProp, detailedProp.actorKey + f'.switchFlag{i}', None)
-                        if propAnnot is not None:
-                            strPropName = 'Switch Flag'
-                            if int(lenSwitch) > 1:
-                                strPropName += f' #{j}'
-                            genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey + f'.switchFlag{j}', strPropName)
-                        j += 1
-
-    flagList = root.findall('.//Flag')
-    flagListID = [(actorNode.get('ID')) for actorNode in root for elem in actorNode if elem.tag == 'Flag']
-    for i in range(len(flagList)):
-        if flagListID[i] == actorProp.actorID:
-            if flagList[i].get('Type') == 'Chest':
-                genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey + '.chestFlag', 'Chest Flag')
-            if flagList[i].get('Type') == 'Collectible':
-                genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey + '.collectibleFlag', 'Collectible Flag')
-
-    for actorNode in root:
-        i = 1
-        if detailedProp.actorKey == actorNode.get('Key'):
-            for elem in actorNode:
-                if elem.get('Name') != 'None':
-                    if elem.tag == 'Bool':
-                        boolAnnot = getattr(detailedProp, detailedProp.actorKey + f'.bool{i}', None)
-                        if boolAnnot is not None:
-                            genBLProp(actorProp.actorID, actorIDBox, detailedProp, detailedProp.actorKey + f'.bool{i}', elem.get('Name'))
-                        i += 1
+    drawParams(actorIDBox, actorProp, detailedProp, key + '.chestFlag', 'Chest Flag', 'Flag', 'Chest', None)
+    drawParams(actorIDBox, actorProp, detailedProp, key + '.collectibleFlag', 'Collectible Flag', 'Flag', 'Collectible', None)
+    drawParams(actorIDBox, actorProp, detailedProp, f'{key}.switchFlag', 'Switch Flag', 'Flag', 'Switch', lenSwitch)
+    drawParams(actorIDBox, actorProp, detailedProp, f'{key}.props', None, 'Property', None, None)
+    drawParams(actorIDBox, actorProp, detailedProp, f'{key}.bool', None, 'Bool', None, None)
 
     # This next if handles the necessary maths to get the actor parameters from the detailed panel
     # Reads ActorList.xml and figures out the necessary bit shift and applies it to whatever is in the blender string field
@@ -379,7 +392,6 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
     i = j = 1
     if actorProp.actorID != 'Custom':
         # if the user wants to use a custom actor this computation is pointless
-
         for actorNode in root:
             if actorNode.get('Key') == detailedProp.actorKey:
                 for elem in actorNode:
@@ -397,17 +409,28 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
         actorParams += getActorParameter(detailedProp, detailedProp.actorKey + '.type', 0)
         OOTSetParamOp.param = f'0x{actorParams:X}'
 
+        if XRotParams != 0: rotXField = overrideBLRot(XRotParams, 'XRot', 'rotOverrideX')
+        else: rotXField = 'rotOverrideXCustom'
+
+        if YRotParams != 0: rotYField = overrideBLRot(YRotParams, 'YRot', 'rotOverrideY')
+        else: rotYField = 'rotOverrideYCustom'
+
+        if ZRotParams != 0: rotZField = overrideBLRot(ZRotParams, 'ZRot','rotOverrideZ')
+        else: rotZField = 'rotOverrideZCustom'
+
         if XRotParams != 0 or YRotParams != 0 or ZRotParams != 0:
             OOTSetParamOp.rotBool = True
-            OOTSetParamOp.XRot = f'0x{XRotParams:X}'
-            OOTSetParamOp.YRot = f'0x{YRotParams:X}'
-            OOTSetParamOp.ZRot = f'0x{ZRotParams:X}'
         else:
             OOTSetParamOp.rotBool = False
             OOTSetParamOp.XRot = OOTSetParamOp.YRot = OOTSetParamOp.ZRot = '0x0'
-        showBLProps(actorIDBox, actorProp, 'actorParam', 'rotOverride', 'rotOverrideX', 'rotOverrideY', 'rotOverrideZ')
+            rotXField = overrideBLRot(None, 'XRot', 'rotOverrideX')
+            rotYField = overrideBLRot(None, 'YRot', 'rotOverrideY')
+            rotZField = overrideBLRot(None, 'ZRot', 'rotOverrideZ')
+
+        drawRotBLProps(actorIDBox, actorProp, 'actorParam', 'rotOverride', rotXField, rotYField, rotZField)
     else:
-        showBLProps(actorIDBox, actorProp, 'actorParamCustom', 'rotOverrideCustom', 'rotOverrideXCustom', 'rotOverrideYCustom', 'rotOverrideZCustom')
+        drawRotBLProps(actorIDBox, actorProp, 'actorParamCustom', 'rotOverrideCustom', \
+            'rotOverrideXCustom', 'rotOverrideYCustom', 'rotOverrideZCustom')
 
     drawActorHeaderProperty(actorIDBox, actorProp.headerSettings, "Actor", altRoomProp, objName)
 
