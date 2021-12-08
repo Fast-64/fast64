@@ -60,12 +60,6 @@ def genString(annotations, key, suffix, stringName):
     prop = bpy.props.StringProperty(name=stringName, default='0x0')
     annotations[objName] = prop
 
-def genCheckBox(annotations, key, suffix, boolName):
-    '''This function is used to generate the proper bool blender property'''
-    objName = key + suffix
-    prop = bpy.props.BoolProperty(name=boolName, default=False)
-    annotations[objName] = prop
-
 def getActorParameter(object, field, shift):
     attr = getattr(object, field, '0x0')
     if isinstance(attr, str):
@@ -75,27 +69,18 @@ def getActorParameter(object, field, shift):
     else:
         return 0
 
-def getShift(elem):
-    mask = int(elem.get('Mask'), base=16)
-    return len(f'{mask:016b}') - len(f'{mask:016b}'.rstrip('0'))
-
-def isOverMaximum(box, obj, field, elem):
-    shift = getShift(elem)
-    maximum = int(elem.get('Mask'), base=16) >> shift
-    params = getActorParameter(obj, field, shift) >> shift
-    if params > maximum:
-        box.box().label(text= \
-            f"Warning: Maximum is 0x{int(elem.get('Mask'), base=16) >> getShift(elem):X}!")
-
 def setActorValues(self, actorID, field, customField):
     if actorID == 'Custom':
         setattr(OOTSetParamOp, field, customField)
     return getattr(OOTSetParamOp, field)
 
 def computeParams(elem, detailedProp, field, lenProp, lenSwitch, lenBool):
-    params = 0
+    params = shift = 0
+    strMask = elem.get('Mask')
+    if elem.tag != 'Parameter' and strMask is not None:
+        mask = int(strMask, base=16)
+        shift = len(f'{mask:016b}') - len(f'{mask:016b}'.rstrip('0'))
     if elem.tag == 'Flag':
-        shift = getShift(elem)
         elemType = elem.get('Type')
         if elemType == 'Chest':
             params += getActorParameter(detailedProp, field + '.chestFlag', shift)
@@ -108,19 +93,18 @@ def computeParams(elem, detailedProp, field, lenProp, lenSwitch, lenBool):
     if elem.tag == 'Property' and elem.get('Name') != 'None':
         for i in range(1, (int(lenProp, base=10) + 1)):
             if i == int(elem.get('Index'), base=10):
-                params += getActorParameter(detailedProp, (field + f'.props{i}'), getShift(elem))
+                params += getActorParameter(detailedProp, (field + f'.props{i}'), shift)
     if elem.tag == 'Item':
-        params += int(detailedProp.itemChest, base=16) << getShift(elem)
+        params += int(detailedProp.itemChest, base=16) << shift
     if elem.tag == 'Collectible':
-        params += getActorParameter(detailedProp, field + '.collectibleDrop', getShift(elem))
+        params += getActorParameter(detailedProp, field + '.collectibleDrop', shift)
     if elem.tag == 'Bool':
         for i in range(1, (int(lenBool, base=10) + 1)):
             if i == int(elem.get('Index'), base=10):
-                params += getActorParameter(detailedProp, (field + f'.bool{i}'), getShift(elem))
+                params += getActorParameter(detailedProp, (field + f'.bool{i}'), shift)
     return params
 
 def drawRotBLProps(actorIDBox, actorProp, paramField, rotBoolField, rotXField, rotYField, rotZField):
-    #layout.box().label(text = 'Actor IDs defined in include/z64actors.h.')
     prop_split(actorIDBox, actorProp, paramField, 'Actor Parameter')
 
     actorIDBox.prop(actorProp, rotBoolField, text = 'Override Rotation (ignore Blender rot)')
@@ -176,7 +160,15 @@ def drawParams(box, detailedProp, key, elemField, elemName, elTag, elType, lenSw
                 attr = getattr(detailedProp, field, None)
                 if name != 'None' and elem.tag == elTag and elType == elem.get('Type') and attr is not None:
                     prop_split(box, detailedProp, field, name)
-                    isOverMaximum(box, detailedProp, field, elem)
+
+                    # Maximum warning
+                    mask = int(elem.get('Mask'), base=16)
+                    shift = len(f'{mask:016b}') - len(f'{mask:016b}'.rstrip('0'))
+                    maximum = int(elem.get('Mask'), base=16) >> shift
+                    params = getActorParameter(detailedProp, field, shift) >> shift
+                    if params > maximum:
+                        box.box().label(text= \
+                            f"Warning: Maximum is 0x{int(elem.get('Mask'), base=16) >> shift:X}!")
                     i += 1
 
 def editOOTActorDetailedProperties():
@@ -220,7 +212,9 @@ def editOOTActorDetailedProperties():
                                 if actorNode2.get('Key') == actorKey and elem2.tag == 'Parameter']
                 genEnum(propAnnotations, actorKey, '.type', actorTypeList, 'Actor Type')
             elif elem.tag == 'Bool':
-                genCheckBox(propAnnotations, actorKey, f'.bool{k}', actorKey)
+                objName = actorKey + f'.bool{k}'
+                prop = bpy.props.BoolProperty(default=False)
+                propAnnotations[objName] = prop
                 k += 1
 
 # Actor Header Item Property
