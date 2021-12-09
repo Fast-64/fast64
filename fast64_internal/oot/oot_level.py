@@ -96,7 +96,7 @@ class OOTObjectPanel(bpy.types.Panel):
                 drawAlternateRoomHeaderProperty(box, obj.ootAlternateRoomHeaders, objName)
         
         elif obj.ootEmptyType == 'Entrance':
-            drawEntranceProperty(box, obj, altSceneProp, objName)
+            drawEntranceProperty(box, obj, altSceneProp, objName, obj.ootActorDetailedProperties)
 
         elif obj.ootEmptyType == "Cull Group":
             drawCullGroupProperty(box, obj)
