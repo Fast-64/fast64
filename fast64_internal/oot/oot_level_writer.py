@@ -464,9 +464,9 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 			rotZ = getActorProperty(actorProp, actorID, 'rotOverrideZ', 'ZRotToSave')
 
 			if actorID != 'ACTOR_CUSTOM':
-				if actorProp.rotXBool == False: rotX = f'{rotation[0]}'
-				if actorProp.rotYBool == False: rotY = f'{rotation[1]}'
-				if actorProp.rotZBool == False: rotZ = f'{rotation[2]}'
+				if rotX == '0x0': rotX = f'{rotation[0]}'
+				if rotY == '0x0': rotY = f'{rotation[1]}'
+				if rotZ == '0x0': rotZ = f'{rotation[2]}'
 			elif actorProp.rotOverrideCustom == False:
 				rotX = f'{rotation[0]}'
 				rotY = f'{rotation[1]}'

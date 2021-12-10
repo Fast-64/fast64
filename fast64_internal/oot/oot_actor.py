@@ -33,7 +33,7 @@ class OOT_SearchChestContentEnumOperator(bpy.types.Operator):
 class OOTActorDetailedProperties(bpy.types.PropertyGroup):
     pass
 
-class OOTActorParams(bpy.types.PropertyGroup):
+class OOTActorParams():
     param: str='0x0'
     transParam: str='0x0'
     XRot: str='0x0'
@@ -300,38 +300,20 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
         if user == userActor:
             # Note: rotBool & rot are necessary to call the get function (to set the value)
             # Use Blender's rotation if the current actor don't have X, Y or Z rotation as target for the params
-            for actorNode in root:
-                if actorNode.get('ID') == userActorID:
-                    for elem in actorNode:
-                        if elem.get('Target') == 'XRot':
-                            if XRotParams != 0:
-                                OOTActorParams.rotXBool = True
-                                OOTActorParams.XRot = f'0x{XRotParams:X}'
-                                userLayout.label(text= "Blender's 'Rotation X' will be ignored.")
-                                rot = userProp.rotOverrideX
-                            else:
-                                OOTActorParams.rotXBool = False
-                            rotBool = userProp.rotXBool
+            OOTActorParams.XRot = f'0x{XRotParams:X}'
+            rot = userProp.rotOverrideX
+            if XRotParams != 0:
+                userLayout.label(text= "Blender's 'Rotation X' will be ignored.")
 
-                        if elem.get('Target') == 'YRot':
-                            if YRotParams != 0:
-                                OOTActorParams.rotYBool = True
-                                OOTActorParams.YRot =f'0x{YRotParams:X}'
-                                userLayout.label(text= "Blender's 'Rotation Z' will be ignored.")
-                                rot = userProp.rotOverrideY
-                            else:
-                                OOTActorParams.rotYBool = False
-                            rotBool = userProp.rotYBool
+            OOTActorParams.YRot =f'0x{YRotParams:X}'
+            rot = userProp.rotOverrideY
+            if YRotParams != 0:
+                userLayout.label(text= "Blender's 'Rotation Z' will be ignored.")
 
-                        if elem.get('Target') == 'ZRot':
-                            if ZRotParams != 0:
-                                OOTActorParams.rotZBool = True
-                                OOTActorParams.ZRot = f'0x{ZRotParams:X}'
-                                userLayout.label(text= "Blender's 'Rotation Y' will be ignored.")
-                                rot = userProp.rotOverrideZ
-                            else:
-                                OOTActorParams.rotZBool = False
-                            rotBool = userProp.rotZBool
+            OOTActorParams.ZRot = f'0x{ZRotParams:X}'
+            rot = userProp.rotOverrideZ
+            if ZRotParams != 0:
+                userLayout.label(text= "Blender's 'Rotation Y' will be ignored.")
     else:
         if user != userEntrance:
             prop_split(userLayout, userProp, userIDField + 'Custom', currentActor)
@@ -431,13 +413,13 @@ class OOTActorProperty(bpy.types.PropertyGroup):
         get=lambda self: getValues(self, self.actorID, 'param', self.actorParamCustom))
 
     rotOverrideX : bpy.props.StringProperty(name = 'Rot X', default = '0x0', \
-        get=lambda self: getValues(self, self.actorID, 'XRot', self.rotOverrideXCustom))
+        get=lambda self: getValues(self, self.actorID, 'XRot', None))
 
     rotOverrideY : bpy.props.StringProperty(name = 'Rot Y', default = '0x0', \
-        get=lambda self: getValues(self, self.actorID, 'YRot', self.rotOverrideYCustom))
+        get=lambda self: getValues(self, self.actorID, 'YRot', None))
 
     rotOverrideZ : bpy.props.StringProperty(name = 'Rot Z', default = '0x0', \
-        get=lambda self: getValues(self, self.actorID, 'ZRot', self.rotOverrideZCustom))
+        get=lambda self: getValues(self, self.actorID, 'ZRot', None))
     headerSettings : bpy.props.PointerProperty(type = OOTActorHeaderProperty)
 
     actorIDCustom : bpy.props.StringProperty(name = 'Actor ID', default = 'ACTOR_PLAYER')
@@ -464,9 +446,9 @@ class OOTActorProperty(bpy.types.PropertyGroup):
     # When the get function is called we have to save the data that'll be returned
     paramToSave: bpy.props.StringProperty()
     transParamToSave: bpy.props.StringProperty()
-    XRotToSave: bpy.props.StringProperty()
-    YRotToSave: bpy.props.StringProperty()
-    ZRotToSave: bpy.props.StringProperty()
+    XRotToSave: bpy.props.StringProperty(default='0x0')
+    YRotToSave: bpy.props.StringProperty(default='0x0')
+    ZRotToSave: bpy.props.StringProperty(default='0x0')
 
 def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
     actorIDBox = layout.column()
