@@ -40,13 +40,17 @@ class OOTActorParams(bpy.types.PropertyGroup):
     YRot: str='0x0'
     ZRot: str='0x0'
     rotBool: bool=False
+    rotXBool: bool=False
+    rotYBool: bool=False
+    rotZBool: bool=False
 
 def getValues(self, actorID, field, customField):
-    if actorID == 'Custom':
+    if actorID == 'Custom' and customField is not None:
         setattr(OOTActorParams, field, customField)
 
     value = getattr(OOTActorParams, field)
-    setattr(self, field + 'ToSave', value)
+    if field != 'rotXBool' and field != 'rotYBool' and field != 'rotZBool':
+        setattr(self, field + 'ToSave', value)
 
     return value
 
@@ -101,17 +105,6 @@ def computeParams(elem, detailedProp, field, lenProp, lenSwitch, lenBool):
                 params += getActorParameter(detailedProp, (field + f'.bool{i}'), shift)
     return params
 
-def drawCustomProps(actorIDBox, actorProp, paramField, rotBoolField, rotXField, rotYField, rotZField):
-    if paramField is not None:
-        prop_split(actorIDBox, actorProp, paramField, 'Actor Parameter')
-
-    if rotBoolField is not None:
-        actorIDBox.prop(actorProp, rotBoolField, text = 'Override Rotation (ignore Blender rot)')
-        if actorProp.rotOverride:
-            prop_split(actorIDBox, actorProp, rotXField, 'Rot X')
-            prop_split(actorIDBox, actorProp, rotYField, 'Rot Y')
-            prop_split(actorIDBox, actorProp, rotZField, 'Rot Z')
-
 def getMaxIndex(actorKey, elemTag, flagType):
     # Looking for the highest Property/Switch index for the current actor
     length = '0'
@@ -122,17 +115,6 @@ def getMaxIndex(actorKey, elemTag, flagType):
                     if flagType is None or (flagType == 'Switch' and elem.get('Type') == flagType):
                         length = elem.get('Index')
     return length
-
-def overrideBLRot(rotParam, rot, rotField):
-    if rotParam is not None:
-        if rotParam != 0:
-            setattr(OOTActorParams, rot, f'0x{rotParam:X}')
-            return rotField
-        else:
-            setattr(OOTActorParams, rot, '0x0')
-            return f'{rotField}Custom'
-    else:
-        return rotField
 
 def drawParams(box, detailedProp, key, elemField, elemName, elTag, elType, lenSwitch):
     for actorNode in root:
@@ -316,34 +298,54 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
         prop_split(userLayout, userProp, userParamField, 'Actor Parameter')
 
         if user == userActor:
-            if XRotParams != 0: rotXField = overrideBLRot(XRotParams, 'XRot', 'rotOverrideX')
-            else: rotXField = 'rotOverrideXCustom'
+            # Note: rotBool & rot are necessary to call the get function (to set the value)
+            # Use Blender's rotation if the current actor don't have X, Y or Z rotation as target for the params
+            for actorNode in root:
+                if actorNode.get('ID') == userActorID:
+                    for elem in actorNode:
+                        if elem.get('Target') == 'XRot':
+                            if XRotParams != 0:
+                                OOTActorParams.rotXBool = True
+                                OOTActorParams.XRot = f'0x{XRotParams:X}'
+                                userLayout.label(text= "Blender's 'Rotation X' will be ignored.")
+                                rot = userProp.rotOverrideX
+                            else:
+                                OOTActorParams.rotXBool = False
+                            rotBool = userProp.rotXBool
 
-            if YRotParams != 0: rotYField = overrideBLRot(YRotParams, 'YRot', 'rotOverrideY')
-            else: rotYField = 'rotOverrideYCustom'
+                        if elem.get('Target') == 'YRot':
+                            if YRotParams != 0:
+                                OOTActorParams.rotYBool = True
+                                OOTActorParams.YRot =f'0x{YRotParams:X}'
+                                userLayout.label(text= "Blender's 'Rotation Z' will be ignored.")
+                                rot = userProp.rotOverrideY
+                            else:
+                                OOTActorParams.rotYBool = False
+                            rotBool = userProp.rotYBool
 
-            if ZRotParams != 0: rotZField = overrideBLRot(ZRotParams, 'ZRot','rotOverrideZ')
-            else: rotZField = 'rotOverrideZCustom'
-
-            if XRotParams != 0 or YRotParams != 0 or ZRotParams != 0:
-                OOTActorParams.rotBool = True
-            else:
-                OOTActorParams.rotBool = False
-                OOTActorParams.XRot = OOTActorParams.YRot = OOTActorParams.ZRot = '0x0'
-                rotXField = overrideBLRot(None, 'XRot', 'rotOverrideX')
-                rotYField = overrideBLRot(None, 'YRot', 'rotOverrideY')
-                rotZField = overrideBLRot(None, 'ZRot', 'rotOverrideZ')
-            drawCustomProps(userLayout, userProp, None, 'rotOverride', rotXField, rotYField, rotZField)
+                        if elem.get('Target') == 'ZRot':
+                            if ZRotParams != 0:
+                                OOTActorParams.rotZBool = True
+                                OOTActorParams.ZRot = f'0x{ZRotParams:X}'
+                                userLayout.label(text= "Blender's 'Rotation Y' will be ignored.")
+                                rot = userProp.rotOverrideZ
+                            else:
+                                OOTActorParams.rotZBool = False
+                            rotBool = userProp.rotZBool
     else:
         if user != userEntrance:
             prop_split(userLayout, userProp, userIDField + 'Custom', currentActor)
             if user == userActor:
-                drawCustomProps(userLayout, userProp, 'actorParamCustom', 'rotOverrideCustom', \
-                    'rotOverrideXCustom', 'rotOverrideYCustom', 'rotOverrideZCustom')
+                prop_split(userLayout, userProp, 'actorParamCustom', 'Actor Parameter')
+                userLayout.prop(userProp, 'rotOverrideCustom', text = 'Override Rotation (ignore Blender rot)')
+                if userProp.rotOverrideCustom:
+                    prop_split(userLayout, userProp, 'rotOverrideXCustom', 'Rot X')
+                    prop_split(userLayout, userProp, 'rotOverrideYCustom', 'Rot Y')
+                    prop_split(userLayout, userProp, 'rotOverrideZCustom', 'Rot Z')
             else:
-                drawCustomProps(userLayout, userProp, userParamField + 'Custom', None, None, None, None)
+                prop_split(userLayout, userProp, userParamField + 'Custom', 'Actor Parameter')
         else:
-            drawCustomProps(userLayout, userProp.actor, userParamField + 'Custom', None, None, None, None)
+            prop_split(userLayout, userProp, userParamField + 'Custom', 'Actor Parameter')
 
 # Actor Header Item Property
 class OOTActorHeaderItemProperty(bpy.types.PropertyGroup):
@@ -428,9 +430,6 @@ class OOTActorProperty(bpy.types.PropertyGroup):
     actorParam : bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000', \
         get=lambda self: getValues(self, self.actorID, 'param', self.actorParamCustom))
 
-    rotOverride : bpy.props.BoolProperty(name = 'Override Rotation', default = False, \
-        get=lambda self: getValues(self, self.actorID, 'rotBool', self.rotOverrideCustom))
-
     rotOverrideX : bpy.props.StringProperty(name = 'Rot X', default = '0x0', \
         get=lambda self: getValues(self, self.actorID, 'XRot', self.rotOverrideXCustom))
 
@@ -448,6 +447,10 @@ class OOTActorProperty(bpy.types.PropertyGroup):
     rotOverrideYCustom : bpy.props.StringProperty(name = 'Rot Y', default = '0x0')
     rotOverrideZCustom : bpy.props.StringProperty(name = 'Rot Z', default = '0x0')
 
+    rotXBool : bpy.props.BoolProperty(name = 'Rot X Bool', default = False, get=lambda self: getValues(self, self.actorID, 'rotXBool', None))
+    rotYBool : bpy.props.BoolProperty(name = 'Rot Y Bool', default = False, get=lambda self: getValues(self, self.actorID, 'rotYBool', None))
+    rotZBool : bpy.props.BoolProperty(name = 'Rot Z Bool', default = False, get=lambda self: getValues(self, self.actorID, 'rotZBool', None))
+
     # Transition Actors (ACTORCAT_DOOR)
     transActorID : bpy.props.EnumProperty(name = 'Actor', items = ootEnumTransitionActorID, default = 'ACTOR_EN_DOOR')
 
@@ -464,7 +467,6 @@ class OOTActorProperty(bpy.types.PropertyGroup):
     XRotToSave: bpy.props.StringProperty()
     YRotToSave: bpy.props.StringProperty()
     ZRotToSave: bpy.props.StringProperty()
-    rotBoolToSave: bpy.props.BoolProperty()
 
 def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
     actorIDBox = layout.column()

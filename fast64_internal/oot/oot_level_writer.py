@@ -458,12 +458,22 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 		if obj.ootEmptyType == "Actor":
 			actorProp = obj.ootActorProperty
 			actorID = actorProp.actorID
+
+			rotX = getActorProperty(actorProp, actorID, 'rotOverrideX', 'XRotToSave')
+			rotY = getActorProperty(actorProp, actorID, 'rotOverrideY', 'YRotToSave')
+			rotZ = getActorProperty(actorProp, actorID, 'rotOverrideZ', 'ZRotToSave')
+
+			if actorID != 'ACTOR_CUSTOM':
+				if actorProp.rotXBool == False: rotX = f'{rotation[0]}'
+				if actorProp.rotYBool == False: rotY = f'{rotation[1]}'
+				if actorProp.rotZBool == False: rotZ = f'{rotation[2]}'
+			elif actorProp.rotOverrideCustom == False:
+				rotX = f'{rotation[0]}'
+				rotY = f'{rotation[1]}'
+				rotZ = f'{rotation[2]}'
+
 			addActor(room, OOTActor(getActorProperty(actorProp, actorID, 'actorID', 'actorID'),
-				translation, rotation, getActorProperty(actorProp, actorID, 'actorParam', 'paramToSave'),
-				None if not getActorProperty(actorProp, actorID, 'rotOverride', 'rotBoolToSave') else \
-					(getActorProperty(actorProp, actorID, 'rotOverrideX', 'XRotToSave'), \
-					getActorProperty(actorProp, actorID, 'rotOverrideY', 'YRotToSave'), \
-					getActorProperty(actorProp, actorID, 'rotOverrideZ', 'ZRotToSave'))),
+				translation, rotation, getActorProperty(actorProp, actorID, 'actorParam', 'paramToSave'), (rotX, rotY, rotZ)),
 				actorProp, "actorList", obj.name)
 		elif obj.ootEmptyType == "Transition Actor":
 			transActorProp = obj.ootTransitionActorProperty
