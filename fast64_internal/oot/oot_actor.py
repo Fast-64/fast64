@@ -327,7 +327,7 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
             else:
                 prop_split(userLayout, userProp, userParamField + 'Custom', 'Actor Parameter')
         else:
-            prop_split(userLayout, userProp, userParamField + 'Custom', 'Actor Parameter')
+            prop_split(userLayout, userProp.actor, userParamField + 'Custom', 'Actor Parameter')
 
 # Actor Header Item Property
 class OOTActorHeaderItemProperty(bpy.types.PropertyGroup):
