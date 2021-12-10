@@ -56,13 +56,13 @@ ootEnumLightGroupMenu = [
 ootEnumTransitionActorID = [(actorNode.get('ID'), actorNode.get('Name'), \
 					actorNode.get('ID').replace('ACTOR_','')) for actorNode in root if actorNode.get('ID') is not None \
 						and actorNode.get('Category') == 'ACTORCAT_DOOR']
-ootEnumTransitionActorID.insert(0, ("Custom", "Custom", "Custom"))
+ootEnumTransitionActorID.insert(0, ("ACTOR_CUSTOM", "Custom - ACTOR_CUSTOM", "Custom"))
 
 # Add every actor that IS NOT a transition actor
 ootEnumActorID = [(actorNode.get('ID'), actorNode.get('Name'), \
 					actorNode.get('ID').replace('ACTOR_','')) for actorNode in root if actorNode.get('ID') is not None \
 						and actorNode.get('Category') != 'ACTORCAT_DOOR']
-ootEnumActorID.insert(0, ("Custom", "Custom", "Custom"))
+ootEnumActorID.insert(0, ("ACTOR_CUSTOM", "Custom", "Custom"))
 
 ootEnumLinkIdle = [
 	("Custom", "Custom", "Custom"),

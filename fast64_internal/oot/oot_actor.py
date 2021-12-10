@@ -33,18 +33,22 @@ class OOT_SearchChestContentEnumOperator(bpy.types.Operator):
 class OOTActorDetailedProperties(bpy.types.PropertyGroup):
     pass
 
-class OOTSetParamOp():
-    param: '0x0'
-    transParam: '0x0'
-    XRot: '0x0'
-    YRot: '0x0'
-    ZRot: '0x0'
+class OOTActorParams(bpy.types.PropertyGroup):
+    param: str='0x0'
+    transParam: str='0x0'
+    XRot: str='0x0'
+    YRot: str='0x0'
+    ZRot: str='0x0'
     rotBool: bool=False
 
-def setActorValues(self, actorID, field, customField):
+def getValues(self, actorID, field, customField):
     if actorID == 'Custom':
-        setattr(OOTSetParamOp, field, customField)
-    return getattr(OOTSetParamOp, field)
+        setattr(OOTActorParams, field, customField)
+
+    value = getattr(OOTActorParams, field)
+    setattr(self, field + 'ToSave', value)
+
+    return value
 
 def genEnum(annotations, key, suffix, enumList, enumName):
     '''This function is used to generate the proper enum blender property'''
@@ -122,10 +126,10 @@ def getMaxIndex(actorKey, elemTag, flagType):
 def overrideBLRot(rotParam, rot, rotField):
     if rotParam is not None:
         if rotParam != 0:
-            setattr(OOTSetParamOp, rot, f'0x{rotParam:X}')
+            setattr(OOTActorParams, rot, f'0x{rotParam:X}')
             return rotField
         else:
-            setattr(OOTSetParamOp, rot, '0x0')
+            setattr(OOTActorParams, rot, '0x0')
             return f'{rotField}Custom'
     else:
         return rotField
@@ -141,6 +145,7 @@ def drawParams(box, detailedProp, key, elemField, elemName, elTag, elType, lenSw
                 # If it's not a Switch Flag, change nothing to the name
                 if lenSwitch is not None:
                     if int(lenSwitch) > 1: name = f'{elemName} #{i}'
+                    else: name = elemName
                 else: name = elemName
 
                 # Set the name to none to use the element's name instead
@@ -166,7 +171,7 @@ def drawParams(box, detailedProp, key, elemField, elemName, elTag, elType, lenSw
                             f"Warning: Maximum is 0x{int(elem.get('Mask'), base=16) >> shift:X}!")
                     i += 1
 
-def editOOTActorDetailedProperties():
+def editDetailedProperties():
     '''This function is used to edit the OOTActorDetailedProperties class before it's registered'''
     propAnnotations = getattr(OOTActorDetailedProperties, '__annotations__', None)
     if propAnnotations is None:
@@ -175,8 +180,8 @@ def editOOTActorDetailedProperties():
 
     propAnnotations['actorID'] = bpy.props.EnumProperty(name='Actor ID', items=ootEnumActorID)
     propAnnotations['transActorID'] = bpy.props.EnumProperty(name='Transition Actor ID', items=ootEnumTransitionActorID)
-    propAnnotations['actorKey'] = bpy.props.StringProperty(name='Actor ID', default='0000')
-    propAnnotations['transActorKey'] = bpy.props.StringProperty(name='Transition Actor ID', default='0000')
+    propAnnotations['actorKey'] = bpy.props.StringProperty(name='Actor Key', default='0000')
+    propAnnotations['transActorKey'] = bpy.props.StringProperty(name='Transition Actor ID', default='0009')
     propAnnotations['itemChest'] = bpy.props.EnumProperty(name='Chest Content', items=ootEnBoxContent)
 
     # Generate the fields
@@ -212,7 +217,7 @@ def editOOTActorDetailedProperties():
                 propAnnotations[objName] = prop
                 k += 1
 
-def drawOOTActorDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, userIDField, userParamField, detailedProp, dpKey):
+def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, userIDField, userParamField, detailedProp, dpKey):
     userActor = 'Actor Property'
     userTransition = 'Transition Property'
     userEntrance = 'Entrance Property'
@@ -243,7 +248,7 @@ def drawOOTActorDetailedProperties(user, userProp, userLayout, userObj, userSear
         prop_split(userLayout, userProp, "spawnIndex", "Spawn Index")
         entranceBool = userProp.customActor
 
-    if (user != userEntrance and userActorID != 'Custom') or (user == userEntrance and entranceBool is False):
+    if (user != userEntrance and userActorID != 'ACTOR_CUSTOM') or (user == userEntrance and entranceBool is False):
         if user != userEntrance:
             userLayout.label(text = currentActor)
             typeText = 'Type'
@@ -304,8 +309,8 @@ def drawOOTActorDetailedProperties(user, userProp, userLayout, userObj, userSear
         # Finally, add the actor type value, which is already shifted in the XML
         actorParams += getActorParameter(detailedProp, dpKey + '.type', 0)
         if user != userTransition:
-            OOTSetParamOp.param = f'0x{actorParams:X}'
-        else: OOTSetParamOp.transParam = f'0x{actorParams:X}'
+            OOTActorParams.param = f'0x{actorParams:X}'
+        else: OOTActorParams.transParam = f'0x{actorParams:X}'
 
         if user == userEntrance: userProp = userProp.actor
         prop_split(userLayout, userProp, userParamField, 'Actor Parameter')
@@ -321,10 +326,10 @@ def drawOOTActorDetailedProperties(user, userProp, userLayout, userObj, userSear
             else: rotZField = 'rotOverrideZCustom'
 
             if XRotParams != 0 or YRotParams != 0 or ZRotParams != 0:
-                OOTSetParamOp.rotBool = True
+                OOTActorParams.rotBool = True
             else:
-                OOTSetParamOp.rotBool = False
-                OOTSetParamOp.XRot = OOTSetParamOp.YRot = OOTSetParamOp.ZRot = '0x0'
+                OOTActorParams.rotBool = False
+                OOTActorParams.XRot = OOTActorParams.YRot = OOTActorParams.ZRot = '0x0'
                 rotXField = overrideBLRot(None, 'XRot', 'rotOverrideX')
                 rotYField = overrideBLRot(None, 'YRot', 'rotOverrideY')
                 rotZField = overrideBLRot(None, 'ZRot', 'rotOverrideZ')
@@ -419,11 +424,21 @@ class OOT_SearchActorIDEnumOperator(bpy.types.Operator):
 class OOTActorProperty(bpy.types.PropertyGroup):
     # Normal Actors
     actorID : bpy.props.EnumProperty(name = 'Actor', items = ootEnumActorID, default = 'ACTOR_PLAYER')
-    actorParam : bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000', get=lambda self: setActorValues(self, self.actorID, 'param', self.actorParamCustom))
-    rotOverride : bpy.props.BoolProperty(name = 'Override Rotation', default = False, get=lambda self: setActorValues(self, self.actorID, 'rotBool', self.rotOverrideCustom))
-    rotOverrideX : bpy.props.StringProperty(name = 'Rot X', default = '0x0', get=lambda self: setActorValues(self, self.actorID, 'XRot', self.rotOverrideXCustom))
-    rotOverrideY : bpy.props.StringProperty(name = 'Rot Y', default = '0x0', get=lambda self: setActorValues(self, self.actorID, 'YRot', self.rotOverrideYCustom))
-    rotOverrideZ : bpy.props.StringProperty(name = 'Rot Z', default = '0x0', get=lambda self: setActorValues(self, self.actorID, 'ZRot', self.rotOverrideZCustom))
+
+    actorParam : bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000', \
+        get=lambda self: getValues(self, self.actorID, 'param', self.actorParamCustom))
+
+    rotOverride : bpy.props.BoolProperty(name = 'Override Rotation', default = False, \
+        get=lambda self: getValues(self, self.actorID, 'rotBool', self.rotOverrideCustom))
+
+    rotOverrideX : bpy.props.StringProperty(name = 'Rot X', default = '0x0', \
+        get=lambda self: getValues(self, self.actorID, 'XRot', self.rotOverrideXCustom))
+
+    rotOverrideY : bpy.props.StringProperty(name = 'Rot Y', default = '0x0', \
+        get=lambda self: getValues(self, self.actorID, 'YRot', self.rotOverrideYCustom))
+
+    rotOverrideZ : bpy.props.StringProperty(name = 'Rot Z', default = '0x0', \
+        get=lambda self: getValues(self, self.actorID, 'ZRot', self.rotOverrideZCustom))
     headerSettings : bpy.props.PointerProperty(type = OOTActorHeaderProperty)
 
     actorIDCustom : bpy.props.StringProperty(name = 'Actor ID', default = 'ACTOR_PLAYER')
@@ -435,14 +450,26 @@ class OOTActorProperty(bpy.types.PropertyGroup):
 
     # Transition Actors (ACTORCAT_DOOR)
     transActorID : bpy.props.EnumProperty(name = 'Actor', items = ootEnumTransitionActorID, default = 'ACTOR_EN_DOOR')
-    transActorParam : bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000', get=lambda self: setActorValues(self, self.transActorID, 'transParam', self.transActorParamCustom))
+
+    transActorParam : bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000', \
+        get=lambda self: getValues(self, self.transActorID, 'transParam', self.transActorParamCustom))
+
     transActorIDCustom : bpy.props.StringProperty(name = 'Actor ID', default = 'ACTOR_EN_DOOR')
     transActorParamCustom : bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000')
+
+    # The 'get=' option from Blender props don't actually save the data in the .blend
+    # When the get function is called we have to save the data that'll be returned
+    paramToSave: bpy.props.StringProperty()
+    transParamToSave: bpy.props.StringProperty()
+    XRotToSave: bpy.props.StringProperty()
+    YRotToSave: bpy.props.StringProperty()
+    ZRotToSave: bpy.props.StringProperty()
+    rotBoolToSave: bpy.props.BoolProperty()
 
 def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
     actorIDBox = layout.column()
 
-    drawOOTActorDetailedProperties('Actor Property', actorProp, actorIDBox, objName, \
+    drawDetailedProperties('Actor Property', actorProp, actorIDBox, objName, \
         OOT_SearchActorIDEnumOperator, 'actorID', 'actorParam', detailedProp, detailedProp.actorKey)
 
     drawActorHeaderProperty(actorIDBox, actorProp.headerSettings, "Actor", altRoomProp, objName)
@@ -487,7 +514,7 @@ class OOTTransitionActorProperty(bpy.types.PropertyGroup):
 def drawTransitionActorProperty(layout, transActorProp, altSceneProp, roomObj, objName, detailedProp):
     actorIDBox = layout.column()
 
-    drawOOTActorDetailedProperties('Transition Property', transActorProp.actor, actorIDBox, objName, \
+    drawDetailedProperties('Transition Property', transActorProp.actor, actorIDBox, objName, \
         OOT_SearchTransActorIDEnumOperator, 'transActorID', 'transActorParam', detailedProp, detailedProp.transActorKey)
 
     if roomObj is None:
@@ -512,7 +539,7 @@ def drawEntranceProperty(layout, obj, altSceneProp, objName, detailedProp):
     box = layout.column()
     entranceProp = obj.ootEntranceProperty
 
-    drawOOTActorDetailedProperties('Entrance Property', entranceProp, box, None, \
+    drawDetailedProperties('Entrance Property', entranceProp, box, None, \
         None, 'actorID', 'actorParam', detailedProp, '0000')
 
     drawActorHeaderProperty(box, entranceProp.actor.headerSettings, "Entrance", altSceneProp, objName)

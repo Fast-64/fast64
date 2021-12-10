@@ -321,7 +321,7 @@ def after_load(_a, _b):
 # register operators and panels here
 # append menu layout drawing function to an existing window
 def register():
-	editOOTActorDetailedProperties()
+	editDetailedProperties()
 	mat_register()
 	render_engine_register()
 	bsdf_conv_register()

@@ -48,8 +48,7 @@ class OOT_AddDoor(bpy.types.Operator):
 		emptyObj = context.view_layer.objects.active
 		emptyObj.ootEmptyType = "Transition Actor"
 		emptyObj.name = "Door Actor"
-		emptyObj.ootTransitionActorProperty.actor.actorID = "ACTOR_DOOR_SHUTTER"
-		emptyObj.ootTransitionActorProperty.actor.actorParam = "0x0000"
+		emptyObj.ootTransitionActorProperty.actor.transActorID = "ACTOR_EN_DOOR"
 		
 		parentObject(cubeObj, emptyObj)
 
@@ -82,7 +81,8 @@ class OOT_AddScene(bpy.types.Operator):
 		entranceObj = context.view_layer.objects.active
 		entranceObj.ootEmptyType = "Entrance"
 		entranceObj.name = "Entrance"
-		entranceObj.ootEntranceProperty.actor.actorParam = "0x0FFF"
+		setattr(entranceObj.ootActorDetailedProperties, '0000.type', '0F00')
+		setattr(entranceObj.ootActorDetailedProperties, '0000.props1', '0xFF')
 		parentObject(planeObj, entranceObj)
 		
 		location += mathutils.Vector([0,0, 10])

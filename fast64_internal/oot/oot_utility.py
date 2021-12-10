@@ -374,7 +374,10 @@ class CullGroup:
 
 def getCustomProperty(data, prop):
 	value = getattr(data, prop)
-	return value if value != "Custom" else getattr(data, prop + str("Custom"))
+	return value if value != "Custom" or value != 'ACTOR_CUSTOM' else getattr(data, prop + str("Custom"))
+
+def getActorProperty(data, idField, field, toSaveField):
+	return getattr(data, field + str("Custom")) if idField == 'ACTOR_CUSTOM' else getattr(data, toSaveField)
 
 def convertIntTo2sComplement(value, length, signed):
 	return int.from_bytes(int(round(value)).to_bytes(length, 'big', signed = signed), 'big')

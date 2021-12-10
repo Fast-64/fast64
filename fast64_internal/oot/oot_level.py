@@ -198,6 +198,7 @@ oot_obj_classes = (
     OOTActorDetailedProperties,
     OOTTransitionActorProperty,
     OOTEntranceProperty,
+    OOTActorParams,
 
     OOTSceneHeaderProperty,
     OOTAlternateSceneHeaderProperty,
@@ -227,6 +228,7 @@ def oot_obj_register():
 
     bpy.types.Object.ootActorProperty = bpy.props.PointerProperty(type = OOTActorProperty)
     bpy.types.Object.ootActorDetailedProperties = bpy.props.PointerProperty(type = OOTActorDetailedProperties)
+    bpy.types.Object.ootActorParams = bpy.props.PointerProperty(type = OOTActorParams)
     bpy.types.Object.ootTransitionActorProperty = bpy.props.PointerProperty(type = OOTTransitionActorProperty)
     bpy.types.Object.ootWaterBoxProperty = bpy.props.PointerProperty(type = OOTWaterBoxProperty)
     bpy.types.Object.ootRoomHeader = bpy.props.PointerProperty(type = OOTRoomHeaderProperty)
@@ -243,7 +245,8 @@ def oot_obj_unregister():
     del bpy.types.Object.ootEmptyType
 
     del bpy.types.Object.ootActorProperty 
-    del bpy.types.Object.ootActorDetailedProperties 
+    del bpy.types.Object.ootActorDetailedProperties
+    del bpy.types.Object.ootActorParams
     del bpy.types.Object.ootTransitionActorProperty 
     del bpy.types.Object.ootWaterBoxProperty
     del bpy.types.Object.ootRoomHeader
