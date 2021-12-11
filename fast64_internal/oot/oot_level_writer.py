@@ -251,7 +251,7 @@ def getLightData(lightProp):
 	light.fogColor = getLightColor(lightProp.fogColor)
 	light.fogNear = lightProp.fogNear
 	light.transitionSpeed = lightProp.transitionSpeed
-	light.drawDistance = lightProp.drawDistance
+	light.fogFar = lightProp.fogFar
 	return light
 
 def readRoomData(room, roomHeader, alternateRoomHeaders):
