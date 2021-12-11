@@ -17,7 +17,7 @@ class OOT_SearchChestContentEnumOperator(bpy.types.Operator):
 	bl_property = "itemChest"
 	bl_options = {'REGISTER', 'UNDO'}
 
-	itemChest : bpy.props.EnumProperty(items = ootEnBoxContent, default = '0x48')
+	itemChest : bpy.props.EnumProperty(items = ootChestContent, default = '0x48')
 	objName : bpy.props.StringProperty()
 
 	def execute(self, context):
@@ -164,7 +164,15 @@ def editDetailedProperties():
 	propAnnotations['transActorID'] = bpy.props.EnumProperty(name='Transition Actor ID', items=ootEnumTransitionActorID)
 	propAnnotations['actorKey'] = bpy.props.StringProperty(name='Actor Key', default='0000')
 	propAnnotations['transActorKey'] = bpy.props.StringProperty(name='Transition Actor ID', default='0009')
-	propAnnotations['itemChest'] = bpy.props.EnumProperty(name='Chest Content', items=ootEnBoxContent)
+	propAnnotations['itemChest'] = bpy.props.EnumProperty(name='Chest Content', items=ootChestContent)
+
+	itemDrops = [(elem.get('Value'), elem.get('Name'), \
+					elem.get('Name')) for listNode in root for elem in listNode if listNode.tag == 'List' \
+					and listNode.get('Name') == 'Collectibles']
+
+	wonderItemDrops = [(elem.get('Value'), elem.get('Name'), \
+					elem.get('Name')) for listNode in root for elem in listNode if listNode.tag == 'List' \
+					and listNode.get('Name') == 'En_Wonder_Item Drops']
 
 	# Generate the fields
 	for actorNode in root:
@@ -185,9 +193,9 @@ def editDetailedProperties():
 			elif elem.tag == 'Collectible':
 				if actorKey == '0112':
 					# ACTOR_EN_WONDER_ITEM uses a different drop table according to decomp
-					genEnum(propAnnotations, actorKey, '.collectibleDrop', ootEnWonderItemDrop, 'Collectible Drop')
+					genEnum(propAnnotations, actorKey, '.collectibleDrop', wonderItemDrops, 'Collectible Drop')
 				else:
-					genEnum(propAnnotations, actorKey, '.collectibleDrop', ootEnItem00Drop, 'Collectible Drop')
+					genEnum(propAnnotations, actorKey, '.collectibleDrop', itemDrops, 'Collectible Drop')
 			elif elem.tag == 'Parameter':
 				actorTypeList = [(elem2.get('Params'), elem2.text, elem2.get('Params')) \
 								for actorNode2 in root for elem2 in actorNode2 \
@@ -247,7 +255,7 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 				searchOp.objName = userObj
 				split = userLayout.split(factor=0.5)
 				split.label(text="Chest Content")
-				split.label(text=getEnumName(ootEnBoxContent, detailedProp.itemChest))
+				split.label(text=getEnumName(ootChestContent, detailedProp.itemChest))
 						
 			propAnnot = getattr(detailedProp, dpKey + ('.collectibleDrop'), None)
 			if propAnnot is not None:

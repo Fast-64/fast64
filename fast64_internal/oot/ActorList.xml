@@ -3096,4 +3096,171 @@ ZROT +0x0007 = Color
   </Actor>
   <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_OBJ_WARP2BLOCK" Key="01D6" Name="Time Block Spawning Spot - OBJ_WARP2BLOCK" ObjectID="OBJECT_TIMEBLOCK">
   </Actor>
+  <List Name="En_Wonder_Item Drops">
+    <Item Name="Deku Nuts" Value="0x00"/>
+    <Item Name="Heart Piece" Value="0x01"/>
+    <Item Name="Large Magic Jar" Value="0x02"/>
+    <Item Name="Small Magic Jar" Value="0x03"/>
+    <Item Name="Recovery Heart" Value="0x04"/>
+    <Item Name="Arrows (5)" Value="0x05"/>
+    <Item Name="Arrows (10)" Value="0x06"/>
+    <Item Name="Arrows (30)" Value="0x07"/>
+    <Item Name="Green Rupee" Value="0x08"/>
+    <Item Name="Blue Rupee" Value="0x09"/>
+    <Item Name="Red Rupee" Value="0x0A"/>
+    <Item Name="Flex Drop" Value="0x0B"/>
+    <Item Name="Random Drop" Value="0x0C"/>
+  </List>
+  <List Name="Collectibles">
+    <Item Name="Green Rupee" Value="0x00"/>
+    <Item Name="Blue Rupee" Value="0x01"/>
+    <Item Name="Red Rupee" Value="0x02"/>
+    <Item Name="Recovery Heart" Value="0x03"/>
+    <Item Name="Bombs (5)" Value="0x04"/>
+    <Item Name="Arrows (1)" Value="0x05"/>
+    <Item Name="Heart Piece" Value="0x06"/>
+    <Item Name="Heart Container" Value="0x07"/>
+    <Item Name="Arrows (5)" Value="0x08"/>
+    <Item Name="Arrows (10)" Value="0x09"/>
+    <Item Name="Arrows (30)" Value="0x0A"/>
+    <Item Name="Deku Nuts" Value="0x0C"/>
+    <Item Name="Deku Sticks" Value="0x0D"/>
+    <Item Name="Large Magic Jar" Value="0x0E"/>
+    <Item Name="Small Magic Jar" Value="0x0F"/>
+    <Item Name="Deku Seeds" Value="0x10"/>
+    <Item Name="Small Key" Value="0x11"/>
+    <Item Name="Flexible Drop" Value="0x12"/>
+    <Item Name="Orange Rupee (200)" Value="0x13"/>
+    <Item Name="Purple Rupee (50)" Value="0x14"/>
+    <Item Name="Deku Shield" Value="0x15"/>
+    <Item Name="Hylian Shield" Value="0x16"/>
+    <Item Name="Zora Tunic" Value="0x17"/>
+    <Item Name="Goron Tunic" Value="0x18"/>
+  </List>
+  <List Name="Chest Content">
+    <Item Name="Recovery Heart" Value="0x48"/>
+    <Item Name="Green Rupee" Value="0x4C"/>
+    <Item Name="Blue Rupee" Value="0x4D"/>
+    <Item Name="Blue rupee" Value="0x3C"/>
+    <Item Name="Red Rupee" Value="0x4E"/>
+    <Item Name="Purple Rupee (50)" Value="0x55"/>
+    <Item Name="Huge/Yellow Rupee (200)" Value="0x56"/>
+    <Item Name="Bombs (1)" Value="0x65"/>
+    <Item Name="Bombs (5)" Value="0x01"/>
+    <Item Name="Bombs (10)" Value="0x66"/>
+    <Item Name="Bombs (20)" Value="0x67"/>
+    <Item Name="Bombs (30)" Value="0x68"/>
+    <Item Name="Arrows (5)" Value="0x49"/>
+    <Item Name="Arrows (10)" Value="0x4A"/>
+    <Item Name="Arrows (30)" Value="0x4B"/>
+    <Item Name="Deku Stick (1)" Value="0x07"/>
+    <Item Name="Deku Stick" Value="0x61"/>
+    <Item Name="Deku Stick" Value="0x62"/>
+    <Item Name="Deku Nuts" Value="0x02"/>
+    <Item Name="Deku Nuts" Value="0x63"/>
+    <Item Name="Deku Nuts" Value="0x64"/>
+    <Item Name="Bombchus (5)" Value="0x6A"/>
+    <Item Name="Bombchus (10)" Value="0x03"/>
+    <Item Name="Bombchus (20)" Value="0x6B"/>
+    <Item Name="Deku Seeds (30)" Value="0x69"/>
+    <Item Name="Small Magic Jar (?)" Value="0x43"/>
+    <Item Name="Large Magic Jar (?)" Value="0x44"/>
+    <Item Name="Piece of Heart" Value="0x3E"/>
+    <Item Name="Deku Shield" Value="0x29"/>
+    <Item Name="Hylian Shield" Value="0x2A"/>
+    <Item Name="Mirror Shield" Value="0x2B"/>
+    <Item Name="Goron Tunic" Value="0x2C"/>
+    <Item Name="Zora Tunic" Value="0x2D"/>
+    <Item Name="Iron Boots" Value="0x2E"/>
+    <Item Name="Hover Boots" Value="0x2F"/>
+    <Item Name="Kokiri’s Sword" Value="0x27"/>
+    <Item Name="Giant’s Knife" Value="0x28"/>
+    <Item Name="Biggoron’s Sword" Value="0x57"/>
+    <Item Name="Goron Bracelet" Value="0x54"/>
+    <Item Name="Silver Gauntlets" Value="0x35"/>
+    <Item Name="Golden Gauntlets" Value="0x36"/>
+    <Item Name="Silver Scale" Value="0x37"/>
+    <Item Name="Golden Scale" Value="0x38"/>
+    <Item Name="Fairy Bow" Value="0x04"/>
+    <Item Name="Fairy Slingshot" Value="0x05"/>
+    <Item Name="Boomerang" Value="0x06"/>
+    <Item Name="Hookshot" Value="0x08"/>
+    <Item Name="Longshot" Value="0x09"/>
+    <Item Name="Lens of Truth" Value="0x0A"/>
+    <Item Name="Fairy Ocarina" Value="0x3B"/>
+    <Item Name="Ocarina of Time" Value="0x0C"/>
+    <Item Name="Megaton Hammer" Value="0x0D"/>
+    <Item Name="Magic Bean" Value="0x16"/>
+    <Item Name="Fire Arrow" Value="0x58"/>
+    <Item Name="Ice Arrow" Value="0x59"/>
+    <Item Name="Light Arrow" Value="0x5A"/>
+    <Item Name="Din’s Fire" Value="0x5C"/>
+    <Item Name="Farore’s Wind" Value="0x5D"/>
+    <Item Name="Nayru’s Love" Value="0x5E"/>
+    <Item Name="Stone of Agony" Value="0x39"/>
+    <Item Name="Gerudo Membership Card" Value="0x3A"/>
+    <Item Name="Gold Skulltula Token" Value="0x5B"/>
+    <Item Name="Empty Bottle" Value="0x0F"/>
+    <Item Name="Red Potion" Value="0x10"/>
+    <Item Name="Green Potion" Value="0x11"/>
+    <Item Name="Blue Potion" Value="0x12"/>
+    <Item Name="Bottled Fairy" Value="0x13"/>
+    <Item Name="Lon Lon Milk" Value="0x14"/>
+    <Item Name="Ruto's Letter" Value="0x15"/>
+    <Item Name="Bottled Fish" Value="0x6C"/>
+    <Item Name="Bottled Bug" Value="0x6D"/>
+    <Item Name="Blue Fire" Value="0x6E"/>
+    <Item Name="Bottled Poe" Value="0x6F"/>
+    <Item Name="Bottled Big Poe" Value="0x70"/>
+    <Item Name="Lon Lon Milk" Value="0x50"/>
+    <Item Name="Weird Egg" Value="0x47"/>
+    <Item Name="Chicken" Value="0x19"/>
+    <Item Name="Zelda’s Letter" Value="0x0B"/>
+    <Item Name="Keaton Mask" Value="0x1A"/>
+    <Item Name="Skull Mask" Value="0x17"/>
+    <Item Name="Spooky Mask" Value="0x18"/>
+    <Item Name="Bunny Hood" Value="0x1B"/>
+    <Item Name="Mask of Truth" Value="0x1C"/>
+    <Item Name="Goron Mask" Value="0x51"/>
+    <Item Name="Zora Mask" Value="0x52"/>
+    <Item Name="Gerudo Mask" Value="0x53"/>
+    <Item Name="Pocket Egg" Value="0x1D"/>
+    <Item Name="Pocket Cucco" Value="0x1E"/>
+    <Item Name="Cojiro" Value="0x0E"/>
+    <Item Name="Odd Mushroom" Value="0x1F"/>
+    <Item Name="Odd Potion" Value="0x20"/>
+    <Item Name="Poacher’s Saw" Value="0x21"/>
+    <Item Name="Broken Goron’s Sword" Value="0x22"/>
+    <Item Name="Prescription" Value="0x23"/>
+    <Item Name="Eyeball Frog" Value="0x24"/>
+    <Item Name="World’s Finest Eye Drops" Value="0x25"/>
+    <Item Name="Claim Check" Value="0x26"/>
+    <Item Name="Big Quiver" Value="0x30"/>
+    <Item Name="Biggest Quiver" Value="0x31"/>
+    <Item Name="Bomb Bag (20)" Value="0x32"/>
+    <Item Name="Big Bomb Bag (30)" Value="0x33"/>
+    <Item Name="Biggest Bomb Bag (40)" Value="0x34"/>
+    <Item Name="Adult Wallet" Value="0x45"/>
+    <Item Name="Giant Wallet" Value="0x46"/>
+    <Item Name="Deku Stick Upgrade (20)" Value="0x77"/>
+    <Item Name="Deku Stick Upgrade (30)" Value="0x78"/>
+    <Item Name="Deku Nut Upgrade (30)" Value="0x79"/>
+    <Item Name="Deku Nut Upgrade (40)" Value="0x7A"/>
+    <Item Name="Deku Seeds Bag (40)" Value="0x5F"/>
+    <Item Name="Deku Seeds Bag (40)" Value="0x60"/>
+    <Item Name="Deku Seeds Bag (50)" Value="0x7B"/>
+    <Item Name="Compass" Value="0x40"/>
+    <Item Name="Map" Value="0x41"/>
+    <Item Name="Small Key" Value="0x42"/>
+    <Item Name="Boss Key" Value="0x3F"/>
+    <Item Name="Heart Container" Value="0x4F"/>
+    <Item Name="Heart Container" Value="0x3D"/>
+    <Item Name="Door Key (Treasure Box Shop)" Value="0x71"/>
+    <Item Name="Loser Green Rupee (Treasure Box Shop)" Value="0x72"/>
+    <Item Name="Loser Blue Rupee (Treasure Box Shop)" Value="0x73"/>
+    <Item Name="Loser Red Rupee (Treasure Box Shop)" Value="0x74"/>
+    <Item Name="Winner Purple Rupee (Treasure Box Shop)" Value="0x75"/>
+    <Item Name="Winner Piece of Heart (Treasure Box Shop)" Value="0x76"/>
+    <Item Name="Ice Trap" Value="0x7C"/>
+  </List>
 </Table>
