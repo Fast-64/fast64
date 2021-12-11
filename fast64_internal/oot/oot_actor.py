@@ -5,11 +5,6 @@ from .oot_constants import *
 from .oot_utility import *
 from ..utility import *
 
-# Read the XML file, throws an error if the file is missing
-try: tree = ET.parse(os.path.dirname(os.path.abspath(__file__)) + '/ActorList.xml')
-except: PluginError("ERROR: File 'fast64_internal/oot/ActorList.xml' is missing.")
-root = tree.getroot()
-
 # General classes and functions
 class OOT_SearchChestContentEnumOperator(bpy.types.Operator):
 	bl_idname = "object.oot_search_chest_content_enum_operator"

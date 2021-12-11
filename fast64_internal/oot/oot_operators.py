@@ -1,4 +1,6 @@
 import bpy, mathutils, math
+from .oot_utility import getSceneObj
+from .oot_constants import root
 from bpy.utils import register_class, unregister_class
 from ..utility import *
 from ..f3d.f3d_material import *
@@ -158,7 +160,36 @@ class OOT_AddCutscene(bpy.types.Operator):
 		csObj.select_set(True)
 		context.view_layer.objects.active = csObj
 		return {"FINISHED"}
-	
+
+def processObj(obj, root):
+	objType = obj.ootEmptyType
+	if obj.data is None and objType == "Actor":
+		print(f"Processing '{obj.name}'...")
+		actorID = obj.ootActorProperty.actorID
+		detailedProp = obj.ootActorDetailedProperties
+		detailedProp.actorID = actorID
+		for actorNode in root:
+			if actorNode.get('ID') == actorID:
+				detailedProp.actorKey = actorNode.get('Key')
+
+	for childObj in obj.children:
+		processObj(childObj, root)
+
+class OOT_SyncActorIDs(bpy.types.Operator):
+	# To synchronize the panel we need to update each actor obj.ootActorDetailedProperties
+	bl_idname = 'object.oot_sync_actor_ids'
+	bl_label = "Sync Actor IDs"
+	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
+
+	def execute(self, context):
+		sceneObj = getSceneObj(context.object)
+		for roomObj in sceneObj.children:
+			if roomObj.data is None and roomObj.ootEmptyType == 'Room':
+				for obj in roomObj.children:
+					processObj(obj, root)
+
+		self.report({'INFO'}, "Sync Completed!")
+		return {"FINISHED"}
 
 class OOT_OperatorsPanel(OOT_Panel):
 	bl_idname = "OOT_PT_operators"
@@ -172,6 +203,7 @@ class OOT_OperatorsPanel(OOT_Panel):
 		col.operator(OOT_AddWaterBox.bl_idname)
 		col.operator(OOT_AddDoor.bl_idname)
 		col.operator(OOT_AddCutscene.bl_idname)
+		col.operator(OOT_SyncActorIDs.bl_idname)
 
 oot_operator_classes = (
 	OOT_AddWaterBox,
@@ -179,6 +211,7 @@ oot_operator_classes = (
 	OOT_AddScene,
 	OOT_AddRoom,
 	OOT_AddCutscene,
+	OOT_SyncActorIDs,
 )
 
 oot_operator_panel_classes = (
