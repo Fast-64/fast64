@@ -457,13 +457,14 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 	if obj.data is None:
 		if obj.ootEmptyType == "Actor":
 			actorProp = obj.ootActorProperty
+			detailedProp = obj.ootActorDetailedProperties
 			actorID = actorProp.actorID
 
-			rotX = getActorProperty(actorProp, actorID, 'rotOverrideX', 'XRotToSave')
-			rotY = getActorProperty(actorProp, actorID, 'rotOverrideY', 'YRotToSave')
-			rotZ = getActorProperty(actorProp, actorID, 'rotOverrideZ', 'ZRotToSave')
+			rotX = '0x0' # getActorProperty(actorProp, detailedProp, actorID, 'rotOverrideX', 'XRotToSave')
+			rotY = '0x0' # getActorProperty(actorProp, detailedProp, actorID, 'rotOverrideY', 'YRotToSave')
+			rotZ = '0x0' # getActorProperty(actorProp, detailedProp, actorID, 'rotOverrideZ', 'ZRotToSave')
 
-			if actorID != 'ACTOR_CUSTOM':
+			if actorID != 'Custom':
 				if rotX == '0x0': rotX = f'{rotation[0]}'
 				if rotY == '0x0': rotY = f'{rotation[1]}'
 				if rotZ == '0x0': rotZ = f'{rotation[2]}'
@@ -472,19 +473,20 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 				rotY = f'{rotation[1]}'
 				rotZ = f'{rotation[2]}'
 
-			addActor(room, OOTActor(getActorProperty(actorProp, actorID, 'actorID', 'actorID'),
-				translation, rotation, getActorProperty(actorProp, actorID, 'actorParam', 'paramToSave'), (rotX, rotY, rotZ)),
+			addActor(room, OOTActor(getActorProperty(actorProp, detailedProp, actorID, 'actorID', 'actorID'),
+				translation, rotation, getActorProperty(actorProp, detailedProp, actorID, 'actorParam', 'paramToSave'), (rotX, rotY, rotZ)),
 				actorProp, "actorList", obj.name)
 		elif obj.ootEmptyType == "Transition Actor":
 			transActorProp = obj.ootTransitionActorProperty
+			detailedProp = obj.ootActorDetailedProperties
 			actorID = transActorProp.actor.transActorID
 			addActor(scene, OOTTransitionActor(
-				getActorProperty(transActorProp.actor, actorID, 'transActorID', 'transActorID'),
+				getActorProperty(transActorProp.actor, detailedProp, actorID, 'transActorID', 'transActorID'),
 				room.roomIndex, transActorProp.roomIndex,
 				getCustomProperty(transActorProp, "cameraTransitionFront"),
 				getCustomProperty(transActorProp, "cameraTransitionBack"),
 				translation, rotation[1], # TODO: Correct axis?
-				getActorProperty(transActorProp.actor, actorID, 'transActorParam', 'transParamToSave')),
+				getActorProperty(transActorProp.actor, detailedProp, actorID, 'transActorParam', 'transParamToSave')),
 				transActorProp.actor, "transitionActorList", obj.name)
 			#scene.transitionActorList.append(OOTTransitionActor(
 			#	getCustomProperty(transActorProp.actor, "actorID"),
@@ -495,14 +497,15 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 			#	transActorProp.actor.actorParam))
 		elif obj.ootEmptyType == "Entrance":
 			entranceProp = obj.ootEntranceProperty
+			detailedProp = obj.ootActorDetailedProperties
 			if not entranceProp.customActor: actorID = 'ACTOR_PLAYER'
-			else: actorID = 'ACTOR_CUSTOM'
+			else: actorID = 'Custom'
 			spawnIndex = obj.ootEntranceProperty.spawnIndex
 			addActor(scene, OOTEntrance(room.roomIndex, spawnIndex), entranceProp.actor, "entranceList", obj.name)
 			#scene.entranceList.append(OOTEntrance(room.roomIndex, spawnIndex))
 			addStartPosition(scene, spawnIndex, OOTActor(
 				"ACTOR_PLAYER" if not entranceProp.customActor else entranceProp.actor.actorIDCustom,
-				translation, rotation, getActorProperty(entranceProp.actor, actorID, 'actorParam', 'paramToSave'), None), entranceProp.actor, obj.name)
+				translation, rotation, getActorProperty(entranceProp.actor, detailedProp, actorID, 'actorParam', 'paramToSave'), None), entranceProp.actor, obj.name)
 		elif obj.ootEmptyType == "Water Box":
 			ootProcessWaterBox(sceneObj, obj, transformMatrix, scene, room.roomIndex)
 	elif isinstance(obj.data, bpy.types.Camera):

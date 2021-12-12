@@ -43,18 +43,19 @@ class OOTActorParams():
 
 def getValues(self, actorID, actorField, paramField, customField):
 	# Get function that some ID Props call
+	actorProp = bpy.context.object.ootActorProperty
 	if self.isActorSynced:
 		if actorID == 'Custom' and customField is not None:
 			setattr(OOTActorParams, paramField, customField)
 
 		value = getattr(OOTActorParams, paramField)
 		if paramField != 'rotXBool' and paramField != 'rotYBool' and paramField != 'rotZBool':
-			setattr(self, paramField + 'ToSave', value)
+			setattr(actorProp, paramField + 'ToSave', value)
 
 		return value
 	else:
 		if actorField is not None:
-			return getattr(bpy.context.object.ootActorProperty, actorField)
+			return getattr(actorProp, actorField)
 		else:
 			raise PluginError("Can't return the proper value")
 
@@ -128,6 +129,8 @@ def editDetailedProperties():
 	propAnnotations['transActorParam'] = bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000', \
 		get=lambda self: getValues(self, self.transActorID, 'transActorParam', 'transParam', self.transActorParamCustom))
 
+	propAnnotations['actorIDCustom'] = bpy.props.StringProperty(name='Actor Key', default='0000')
+	propAnnotations['transActorIDCustom'] = bpy.props.StringProperty(name='Actor Key', default='0000')
 	itemDrops = [(elem.get('Value'), elem.get('Name'), \
 					elem.get('Name')) for listNode in root for elem in listNode if listNode.tag == 'List' \
 					and listNode.get('Name') == 'Collectibles']
@@ -287,7 +290,7 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 				userLayout.label(text= "Blender's 'Rotation Y' will be ignored.")
 	else:
 		if user != userEntrance:
-			prop_split(userLayout, userProp, userIDField + 'Custom', currentActor)
+			prop_split(userLayout, detailedProp, userIDField + 'Custom', currentActor)
 			if user == userActor:
 				prop_split(userLayout, detailedProp, 'actorParamCustom', 'Actor Parameter')
 				userLayout.prop(userProp, 'rotOverrideCustom', text = 'Override Rotation (ignore Blender rot)')
@@ -378,26 +381,22 @@ class OOT_SearchActorIDEnumOperator(bpy.types.Operator):
 
 class OOTActorProperty(bpy.types.PropertyGroup):
 	# Normal Actors
+	# We can't delete this (for now) as it'd ignore data in older blend files
 	actorID : bpy.props.EnumProperty(name = 'Actor', items = ootEnumActorID, default = 'ACTOR_PLAYER')
-
 	actorParam : bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000')
-
 	rotOverrideX : bpy.props.StringProperty(name = 'Rot X', default = '0x0', \
 		get=lambda self: getValues(self, self.actorID, None, 'XRot', None))
-
 	rotOverrideY : bpy.props.StringProperty(name = 'Rot Y', default = '0x0', \
 		get=lambda self: getValues(self, self.actorID, None, 'YRot', None))
-
 	rotOverrideZ : bpy.props.StringProperty(name = 'Rot Z', default = '0x0', \
 		get=lambda self: getValues(self, self.actorID, None, 'ZRot', None))
-	headerSettings : bpy.props.PointerProperty(type = OOTActorHeaderProperty)
-
 	actorIDCustom : bpy.props.StringProperty(name = 'Actor ID', default = 'ACTOR_PLAYER')
 	rotOverrideCustom : bpy.props.BoolProperty(name = 'Override Rotation', default = False)
 	rotOverrideXCustom : bpy.props.StringProperty(name = 'Rot X', default = '0x0')
 	rotOverrideYCustom : bpy.props.StringProperty(name = 'Rot Y', default = '0x0')
 	rotOverrideZCustom : bpy.props.StringProperty(name = 'Rot Z', default = '0x0')
 
+	headerSettings : bpy.props.PointerProperty(type = OOTActorHeaderProperty)
 	rotXBool : bpy.props.BoolProperty(name = 'Rot X Bool', default = False, get=lambda self: getValues(self, self.actorID, None, 'rotXBool', None))
 	rotYBool : bpy.props.BoolProperty(name = 'Rot Y Bool', default = False, get=lambda self: getValues(self, self.actorID, None, 'rotYBool', None))
 	rotZBool : bpy.props.BoolProperty(name = 'Rot Z Bool', default = False, get=lambda self: getValues(self, self.actorID, None, 'rotZBool', None))
@@ -419,11 +418,11 @@ class OOTActorProperty(bpy.types.PropertyGroup):
 def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
 	actorIDBox = layout.column()
 
-	if detailedProp.isActorSynced or actorProp.actorID == 'Custom':
+	if detailedProp.isActorSynced:
 		drawDetailedProperties('Actor Property', actorProp, actorIDBox, objName, \
 			OOT_SearchActorIDEnumOperator, 'actorID', 'actorParam', detailedProp, detailedProp.actorKey)
 	else:
-		actorIDBox.box().label(text="This Scene's Actors are not synchronised!")
+		actorIDBox.box().label(text=f"'Scene: {getSceneObj(bpy.context.object).name}' Actors are not synchronised!")
 		actorIDBox.operator(OOT_SyncActors.bl_idname)
 
 	drawActorHeaderProperty(actorIDBox, actorProp.headerSettings, "Actor", altRoomProp, objName)
@@ -468,11 +467,11 @@ class OOTTransitionActorProperty(bpy.types.PropertyGroup):
 def drawTransitionActorProperty(layout, transActorProp, altSceneProp, roomObj, objName, detailedProp):
 	actorIDBox = layout.column()
 
-	if detailedProp.isActorSynced or transActorProp.actor.actorID == 'Custom':
+	if detailedProp.isActorSynced:
 		drawDetailedProperties('Transition Property', transActorProp.actor, actorIDBox, objName, \
 			OOT_SearchTransActorIDEnumOperator, 'transActorID', 'transActorParam', detailedProp, detailedProp.transActorKey)
 	else:
-		actorIDBox.box().label(text="This Scene's Actors are not synchronised!")
+		actorIDBox.box().label(text=f"'Scene: {getSceneObj(bpy.context.object).name}' Actors are not synchronised!")
 		actorIDBox.operator(OOT_SyncActors.bl_idname)
 
 	if roomObj is None:
@@ -497,11 +496,11 @@ def drawEntranceProperty(layout, obj, altSceneProp, objName, detailedProp):
 	box = layout.column()
 	entranceProp = obj.ootEntranceProperty
 
-	if detailedProp.isActorSynced or entranceProp.actor.actorID == 'Custom':
+	if detailedProp.isActorSynced:
 		drawDetailedProperties('Entrance Property', entranceProp, box, None, \
 			None, 'actorID', 'actorParam', detailedProp, '0000')
 	else:
-		box.box().label(text="This Scene's Actors are not synchronised!")
+		box.box().label(text=f"'Scene: {getSceneObj(bpy.context.object).name}' Actors are not synchronised!")
 		box.operator(OOT_SyncActors.bl_idname)
 
 	drawActorHeaderProperty(box, entranceProp.actor.headerSettings, "Entrance", altSceneProp, objName)

@@ -166,7 +166,7 @@ class OOT_AddCutscene(bpy.types.Operator):
 class OOT_SyncActors(bpy.types.Operator):
 	# To synchronize the panel we need to update each actor obj.ootActorDetailedProperties
 	bl_idname = 'object.oot_sync_actor_ids'
-	bl_label = "Sync Actor IDs"
+	bl_label = "Sync Actors"
 	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
 	def execute(self, context):
@@ -176,22 +176,31 @@ class OOT_SyncActors(bpy.types.Operator):
 				for obj in roomObj.children:
 					processObj(obj)
 
-		self.report({'INFO'}, "Sync Completed!")
+		self.report({'INFO'}, f"Scene '{sceneObj.name}' synchronized!")
 		return {"FINISHED"}
 
 def processObj(obj):
 	objType = obj.ootEmptyType
 	if obj.data is None and objType == "Actor":
-		print(f"Processing '{obj.name}'...")
+		print(f"Processing Actor '{obj.name}'...")
 		actorID = obj.ootActorProperty.actorID
 		actorProp = obj.ootActorProperty
 		detailedProp = obj.ootActorDetailedProperties
-		if actorID != 'Custom' or actorID != 'Custom':
-			detailedProp.actorID = actorID
+		if actorID != 'Custom':
 			for actorNode in root:
 				if actorNode.get('ID') == actorID:
-					detailedProp.actorKey = actorNode.get('Key')
-			uncomputeParams(actorProp, detailedProp)
+					dPKey = actorNode.get('Key')
+					detailedProp.actorID = actorID
+					detailedProp.actorKey = dPKey
+					lenProp = getMaxElemIndex(dPKey, 'Property', None)
+					lenSwitch = getMaxElemIndex(dPKey, 'Flag', 'Switch')
+					lenBool = getMaxElemIndex(dPKey, 'Bool', None)
+					for elem in actorNode:
+						uncomputeParams(elem, actorProp, detailedProp, dPKey, lenProp, lenSwitch, lenBool)
+						actorProp.paramToSave = actorProp.actorParam
+		else:
+			detailedProp.actorIDCustom = actorProp.actorIDCustom
+			detailedProp.actorParamCustom = actorProp.actorParam
 		detailedProp.isActorSynced = actorProp.isActorSynced = True
 
 	for childObj in obj.children:

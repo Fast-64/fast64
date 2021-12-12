@@ -377,8 +377,8 @@ def getCustomProperty(data, prop):
 	value = getattr(data, prop)
 	return value if value != "Custom" else getattr(data, prop + str("Custom"))
 
-def getActorProperty(data, idField, field, toSaveField):
-	return getattr(data, field + str("Custom")) if idField == 'Custom' else getattr(data, toSaveField)
+def getActorProperty(data, detailedProp, idField, field, toSaveField):
+	return getattr(detailedProp, field + str("Custom")) if idField == 'Custom' else getattr(data, toSaveField)
 
 def convertIntTo2sComplement(value, length, signed):
 	return int.from_bytes(int(round(value)).to_bytes(length, 'big', signed = signed), 'big')
@@ -613,15 +613,16 @@ def getActorParameter(object, field, shift):
 	else:
 		return 0
 
-def setActorParameter(object, field, param, shift):
+def setActorParameter(object, field, param, mask):
+	shift = len(f'{mask:016b}') - len(f'{mask:016b}'.rstrip('0'))
 	if field.endswith('.type'):
-		setattr(object, field, f'{param:04X}')
+		setattr(object, field, f'{param & mask:04X}')
 	else:
 		attr = getattr(object, field, '0x0')
 		if isinstance(attr, str):
-			setattr(object, field, f'0x0{((param >> shift) & 0xF):X}')
-		elif isinstance(attr, bool) and attr:
-			setattr(object, field, bool(((param >> shift) & 0xF)))
+			setattr(object, field, f'0x{(param & mask) >> shift:02X}')
+		elif isinstance(attr, bool):
+			setattr(object, field, bool((param & mask) >> shift))
 		else:
 			setattr(object, field, '0x0')
 
@@ -635,6 +636,13 @@ def getMaxElemIndex(actorKey, elemTag, flagType):
 					if flagType is None or (flagType == 'Switch' and elem.get('Type') == flagType):
 						length = elem.get('Index')
 	return length
+
+def stringToInt(str):
+	# Checking if the string is an hex number
+	if str.startswith('0x') or all(c in string.hexdigits for c in str):
+		return int(str, base=16)
+	else:
+		return int(str, base=10)
 
 def computeParams(elem, detailedProp, field, lenProp, lenSwitch, lenBool):
 	params = shift = 0
@@ -666,48 +674,35 @@ def computeParams(elem, detailedProp, field, lenProp, lenSwitch, lenBool):
 				params += getActorParameter(detailedProp, (field + f'.bool{i}'), shift)
 	return params
 
-def uncomputeParams(actorProp, detailedProp):
-	actorKey = detailedProp.actorKey
-	lenProp = getMaxElemIndex(actorKey, 'Property', None)
-	lenSwitch = getMaxElemIndex(actorKey, 'Flag', 'Switch')
-	lenBool = getMaxElemIndex(actorKey, 'Bool', None)
-	tmp = actorProp.actorParam
-	if tmp.startswith('0x') or all(c in string.hexdigits for c in tmp):
-		actorParam = int(tmp, base=16)
-	else:
-		actorParam = int(tmp, base=10)
+def uncomputeParams(elem, actorProp, detailedProp, field, lenProp, lenSwitch, lenBool):
+	params = stringToInt(actorProp.actorParam)
+	strMask = elem.get('Mask')
 
-	for actorNode in root:
-		if actorNode.get('ID') == actorProp.actorID:
-			for elem in actorNode:
-				strMask = elem.get('Mask')
-				if strMask is not None:
-					target = elem.get('Target')
-					mask = int(strMask, base=16)
-					shift = len(f'{mask:016b}') - len(f'{mask:016b}'.rstrip('0'))
-					if elem.tag != 'Parameter' and (target == 'Params' or target is None):
-						if elem.tag == 'Flag':
-							elemType = elem.get('Type')
-							if elemType == 'Chest':
-								setActorParameter(detailedProp, actorKey + '.chestFlag', actorParam, shift)
-							if elemType == 'Collectible':
-								setActorParameter(detailedProp, actorKey + '.collectibleFlag', actorParam, shift)
-							if elemType == 'Switch':
-								for i in range(1, (int(lenSwitch, base=10) + 1)):
-									if i == int(elem.get('Index'), base=10):
-										setActorParameter(detailedProp, actorKey + f'.switchFlag{i}', actorParam, shift)
-						if elem.tag == 'Property' and elem.get('Name') != 'None':
-							for i in range(1, (int(lenProp, base=10) + 1)):
-								if i == int(elem.get('Index'), base=10):
-									setActorParameter(detailedProp, actorKey + f'.props{i}', actorParam, shift)
-						if elem.tag == 'Item':
-							setActorParameter(detailedProp, actorKey.itemChest, actorParam, shift)
-						if elem.tag == 'Collectible':
-							setActorParameter(detailedProp, actorKey + '.collectibleDrop', actorParam, shift)
-						if elem.tag == 'Bool':
-							for i in range(1, (int(lenBool, base=10) + 1)):
-								if i == int(elem.get('Index'), base=10):
-									setActorParameter(detailedProp, actorKey + f'.bool{i}', actorParam, shift)
-					elif elem.tag == 'Parameter':
-						typeParam = ((actorParam >> shift) & 0xF) << shift
-						setActorParameter(detailedProp, actorKey + '.type', typeParam, 0)
+	if strMask is not None:
+		target = elem.get('Target')
+		mask = int(strMask, base=16)
+		if elem.tag != 'Parameter' and (target == 'Params' or target is None):
+			if elem.tag == 'Flag':
+				elemType = elem.get('Type')
+				if elemType == 'Chest':
+					setActorParameter(detailedProp, field + '.chestFlag', params, mask)
+				if elemType == 'Collectible':
+					setActorParameter(detailedProp, field + '.collectibleFlag', params, mask)
+				if elemType == 'Switch':
+					for i in range(1, (int(lenSwitch, base=10) + 1)):
+						if i == int(elem.get('Index'), base=10):
+							setActorParameter(detailedProp, field + f'.switchFlag{i}', params, mask)
+			if elem.tag == 'Property' and elem.get('Name') != 'None':
+				for i in range(1, (int(lenProp, base=10) + 1)):
+					if i == int(elem.get('Index'), base=10):
+						setActorParameter(detailedProp, field + f'.props{i}', params, mask)
+			if elem.tag == 'Item':
+				setActorParameter(detailedProp, 'itemChest', params, mask)
+			if elem.tag == 'Collectible':
+				setActorParameter(detailedProp, field + '.collectibleDrop', params, mask)
+			if elem.tag == 'Bool':
+				for i in range(1, (int(lenBool, base=10) + 1)):
+					if i == int(elem.get('Index'), base=10):
+						setActorParameter(detailedProp, field + f'.bool{i}', params, mask)
+		elif elem.tag == 'Parameter':
+			setActorParameter(detailedProp, field + '.type', params, mask)
