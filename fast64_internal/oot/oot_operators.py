@@ -1,5 +1,6 @@
-import bpy, mathutils, math
-from .oot_utility import getSceneObj
+import bpy, mathutils, math, string
+
+from .oot_utility import *
 from .oot_constants import root
 from bpy.utils import register_class, unregister_class
 from ..utility import *
@@ -161,21 +162,8 @@ class OOT_AddCutscene(bpy.types.Operator):
 		context.view_layer.objects.active = csObj
 		return {"FINISHED"}
 
-def processObj(obj, root):
-	objType = obj.ootEmptyType
-	if obj.data is None and objType == "Actor":
-		print(f"Processing '{obj.name}'...")
-		actorID = obj.ootActorProperty.actorID
-		detailedProp = obj.ootActorDetailedProperties
-		detailedProp.actorID = actorID
-		for actorNode in root:
-			if actorNode.get('ID') == actorID:
-				detailedProp.actorKey = actorNode.get('Key')
 
-	for childObj in obj.children:
-		processObj(childObj, root)
-
-class OOT_SyncActorIDs(bpy.types.Operator):
+class OOT_SyncActors(bpy.types.Operator):
 	# To synchronize the panel we need to update each actor obj.ootActorDetailedProperties
 	bl_idname = 'object.oot_sync_actor_ids'
 	bl_label = "Sync Actor IDs"
@@ -186,10 +174,28 @@ class OOT_SyncActorIDs(bpy.types.Operator):
 		for roomObj in sceneObj.children:
 			if roomObj.data is None and roomObj.ootEmptyType == 'Room':
 				for obj in roomObj.children:
-					processObj(obj, root)
+					processObj(obj)
 
 		self.report({'INFO'}, "Sync Completed!")
 		return {"FINISHED"}
+
+def processObj(obj):
+	objType = obj.ootEmptyType
+	if obj.data is None and objType == "Actor":
+		print(f"Processing '{obj.name}'...")
+		actorID = obj.ootActorProperty.actorID
+		actorProp = obj.ootActorProperty
+		detailedProp = obj.ootActorDetailedProperties
+		if actorID != 'Custom' or actorID != 'Custom':
+			detailedProp.actorID = actorID
+			for actorNode in root:
+				if actorNode.get('ID') == actorID:
+					detailedProp.actorKey = actorNode.get('Key')
+			uncomputeParams(actorProp, detailedProp)
+		detailedProp.isActorSynced = actorProp.isActorSynced = True
+
+	for childObj in obj.children:
+		processObj(childObj)
 
 class OOT_OperatorsPanel(OOT_Panel):
 	bl_idname = "OOT_PT_operators"
@@ -203,7 +209,6 @@ class OOT_OperatorsPanel(OOT_Panel):
 		col.operator(OOT_AddWaterBox.bl_idname)
 		col.operator(OOT_AddDoor.bl_idname)
 		col.operator(OOT_AddCutscene.bl_idname)
-		col.operator(OOT_SyncActorIDs.bl_idname)
 
 oot_operator_classes = (
 	OOT_AddWaterBox,
@@ -211,7 +216,7 @@ oot_operator_classes = (
 	OOT_AddScene,
 	OOT_AddRoom,
 	OOT_AddCutscene,
-	OOT_SyncActorIDs,
+	OOT_SyncActors,
 )
 
 oot_operator_panel_classes = (

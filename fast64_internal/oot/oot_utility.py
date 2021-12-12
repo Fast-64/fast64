@@ -1,6 +1,7 @@
 from ..utility import *
 import bpy, math, mathutils, os, re
 from bpy.utils import register_class, unregister_class
+from .oot_constants import root
 
 ootSceneDungeons = [
 	"bdan",
@@ -374,10 +375,10 @@ class CullGroup:
 
 def getCustomProperty(data, prop):
 	value = getattr(data, prop)
-	return value if value != "Custom" or value != 'ACTOR_CUSTOM' else getattr(data, prop + str("Custom"))
+	return value if value != "Custom" else getattr(data, prop + str("Custom"))
 
 def getActorProperty(data, idField, field, toSaveField):
-	return getattr(data, field + str("Custom")) if idField == 'ACTOR_CUSTOM' else getattr(data, toSaveField)
+	return getattr(data, field + str("Custom")) if idField == 'Custom' else getattr(data, toSaveField)
 
 def convertIntTo2sComplement(value, length, signed):
 	return int.from_bytes(int(round(value)).to_bytes(length, 'big', signed = signed), 'big')
@@ -602,3 +603,111 @@ def oot_utility_register():
 def oot_utility_unregister():
 	for cls in reversed(oot_utility_classes):
 		unregister_class(cls)
+
+def getActorParameter(object, field, shift):
+	attr = getattr(object, field, '0x0')
+	if isinstance(attr, str):
+		return int(attr, base=16) << shift
+	elif isinstance(attr, bool) and attr:
+		return 1 << shift
+	else:
+		return 0
+
+def setActorParameter(object, field, param, shift):
+	if field.endswith('.type'):
+		setattr(object, field, f'{param:04X}')
+	else:
+		attr = getattr(object, field, '0x0')
+		if isinstance(attr, str):
+			setattr(object, field, f'0x0{((param >> shift) & 0xF):X}')
+		elif isinstance(attr, bool) and attr:
+			setattr(object, field, bool(((param >> shift) & 0xF)))
+		else:
+			setattr(object, field, '0x0')
+
+def getMaxElemIndex(actorKey, elemTag, flagType):
+	# Looking for the highest Property/Switch index for the current actor
+	length = '0'
+	for actorNode in root:
+		if actorNode.get('Key') == actorKey:
+			for elem in actorNode:
+				if elem.tag == elemTag:
+					if flagType is None or (flagType == 'Switch' and elem.get('Type') == flagType):
+						length = elem.get('Index')
+	return length
+
+def computeParams(elem, detailedProp, field, lenProp, lenSwitch, lenBool):
+	params = shift = 0
+	strMask = elem.get('Mask')
+	if elem.tag != 'Parameter' and strMask is not None:
+		mask = int(strMask, base=16)
+		shift = len(f'{mask:016b}') - len(f'{mask:016b}'.rstrip('0'))
+	if elem.tag == 'Flag':
+		elemType = elem.get('Type')
+		if elemType == 'Chest':
+			params += getActorParameter(detailedProp, field + '.chestFlag', shift)
+		if elemType == 'Collectible':
+			params += getActorParameter(detailedProp, field + '.collectibleFlag', shift)
+		if elemType == 'Switch':
+			for i in range(1, (int(lenSwitch, base=10) + 1)):
+				if i == int(elem.get('Index'), base=10):
+					params += getActorParameter(detailedProp, field + f'.switchFlag{i}', shift)
+	if elem.tag == 'Property' and elem.get('Name') != 'None':
+		for i in range(1, (int(lenProp, base=10) + 1)):
+			if i == int(elem.get('Index'), base=10):
+				params += getActorParameter(detailedProp, (field + f'.props{i}'), shift)
+	if elem.tag == 'Item':
+		params += int(detailedProp.itemChest, base=16) << shift
+	if elem.tag == 'Collectible':
+		params += getActorParameter(detailedProp, field + '.collectibleDrop', shift)
+	if elem.tag == 'Bool':
+		for i in range(1, (int(lenBool, base=10) + 1)):
+			if i == int(elem.get('Index'), base=10):
+				params += getActorParameter(detailedProp, (field + f'.bool{i}'), shift)
+	return params
+
+def uncomputeParams(actorProp, detailedProp):
+	actorKey = detailedProp.actorKey
+	lenProp = getMaxElemIndex(actorKey, 'Property', None)
+	lenSwitch = getMaxElemIndex(actorKey, 'Flag', 'Switch')
+	lenBool = getMaxElemIndex(actorKey, 'Bool', None)
+	tmp = actorProp.actorParam
+	if tmp.startswith('0x') or all(c in string.hexdigits for c in tmp):
+		actorParam = int(tmp, base=16)
+	else:
+		actorParam = int(tmp, base=10)
+
+	for actorNode in root:
+		if actorNode.get('ID') == actorProp.actorID:
+			for elem in actorNode:
+				strMask = elem.get('Mask')
+				if strMask is not None:
+					target = elem.get('Target')
+					mask = int(strMask, base=16)
+					shift = len(f'{mask:016b}') - len(f'{mask:016b}'.rstrip('0'))
+					if elem.tag != 'Parameter' and (target == 'Params' or target is None):
+						if elem.tag == 'Flag':
+							elemType = elem.get('Type')
+							if elemType == 'Chest':
+								setActorParameter(detailedProp, actorKey + '.chestFlag', actorParam, shift)
+							if elemType == 'Collectible':
+								setActorParameter(detailedProp, actorKey + '.collectibleFlag', actorParam, shift)
+							if elemType == 'Switch':
+								for i in range(1, (int(lenSwitch, base=10) + 1)):
+									if i == int(elem.get('Index'), base=10):
+										setActorParameter(detailedProp, actorKey + f'.switchFlag{i}', actorParam, shift)
+						if elem.tag == 'Property' and elem.get('Name') != 'None':
+							for i in range(1, (int(lenProp, base=10) + 1)):
+								if i == int(elem.get('Index'), base=10):
+									setActorParameter(detailedProp, actorKey + f'.props{i}', actorParam, shift)
+						if elem.tag == 'Item':
+							setActorParameter(detailedProp, actorKey.itemChest, actorParam, shift)
+						if elem.tag == 'Collectible':
+							setActorParameter(detailedProp, actorKey + '.collectibleDrop', actorParam, shift)
+						if elem.tag == 'Bool':
+							for i in range(1, (int(lenBool, base=10) + 1)):
+								if i == int(elem.get('Index'), base=10):
+									setActorParameter(detailedProp, actorKey + f'.bool{i}', actorParam, shift)
+					elif elem.tag == 'Parameter':
+						typeParam = ((actorParam >> shift) & 0xF) << shift
+						setActorParameter(detailedProp, actorKey + '.type', typeParam, 0)

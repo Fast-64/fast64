@@ -1,9 +1,10 @@
-import os, bpy, xml.etree.ElementTree as ET
+import os, bpy
 
 from ..f3d.f3d_gbi import *
 from .oot_constants import *
 from .oot_utility import *
 from ..utility import *
+from .oot_operators import *
 
 # General classes and functions
 class OOT_SearchChestContentEnumOperator(bpy.types.Operator):
@@ -29,6 +30,7 @@ class OOTActorDetailedProperties(bpy.types.PropertyGroup):
 	pass
 
 class OOTActorParams():
+	# Used as a buffer to update the values, this isn't saved in the .blend
 	param: str='0x0'
 	transParam: str='0x0'
 	XRot: str='0x0'
@@ -39,15 +41,22 @@ class OOTActorParams():
 	rotYBool: bool=False
 	rotZBool: bool=False
 
-def getValues(self, actorID, field, customField):
-	if actorID == 'Custom' and customField is not None:
-		setattr(OOTActorParams, field, customField)
+def getValues(self, actorID, actorField, paramField, customField):
+	# Get function that some ID Props call
+	if self.isActorSynced:
+		if actorID == 'Custom' and customField is not None:
+			setattr(OOTActorParams, paramField, customField)
 
-	value = getattr(OOTActorParams, field)
-	if field != 'rotXBool' and field != 'rotYBool' and field != 'rotZBool':
-		setattr(self, field + 'ToSave', value)
+		value = getattr(OOTActorParams, paramField)
+		if paramField != 'rotXBool' and paramField != 'rotYBool' and paramField != 'rotZBool':
+			setattr(self, paramField + 'ToSave', value)
 
-	return value
+		return value
+	else:
+		if actorField is not None:
+			return getattr(bpy.context.object.ootActorProperty, actorField)
+		else:
+			raise PluginError("Can't return the proper value")
 
 def genEnum(annotations, key, suffix, enumList, enumName):
 	'''This function is used to generate the proper enum blender property'''
@@ -61,57 +70,8 @@ def genString(annotations, key, suffix, stringName):
 	prop = bpy.props.StringProperty(name=stringName, default='0x0')
 	annotations[objName] = prop
 
-def getActorParameter(object, field, shift):
-	attr = getattr(object, field, '0x0')
-	if isinstance(attr, str):
-		return int(attr, base=16) << shift
-	elif isinstance(attr, bool) and attr:
-		return 1 << shift
-	else:
-		return 0
-
-def computeParams(elem, detailedProp, field, lenProp, lenSwitch, lenBool):
-	params = shift = 0
-	strMask = elem.get('Mask')
-	if elem.tag != 'Parameter' and strMask is not None:
-		mask = int(strMask, base=16)
-		shift = len(f'{mask:016b}') - len(f'{mask:016b}'.rstrip('0'))
-	if elem.tag == 'Flag':
-		elemType = elem.get('Type')
-		if elemType == 'Chest':
-			params += getActorParameter(detailedProp, field + '.chestFlag', shift)
-		if elemType == 'Collectible':
-			params += getActorParameter(detailedProp, field + '.collectibleFlag', shift)
-		if elemType == 'Switch':
-			for i in range(1, (int(lenSwitch, base=10) + 1)):
-				if i == int(elem.get('Index'), base=10):
-					params += getActorParameter(detailedProp, field + f'.switchFlag{i}', shift)
-	if elem.tag == 'Property' and elem.get('Name') != 'None':
-		for i in range(1, (int(lenProp, base=10) + 1)):
-			if i == int(elem.get('Index'), base=10):
-				params += getActorParameter(detailedProp, (field + f'.props{i}'), shift)
-	if elem.tag == 'Item':
-		params += int(detailedProp.itemChest, base=16) << shift
-	if elem.tag == 'Collectible':
-		params += getActorParameter(detailedProp, field + '.collectibleDrop', shift)
-	if elem.tag == 'Bool':
-		for i in range(1, (int(lenBool, base=10) + 1)):
-			if i == int(elem.get('Index'), base=10):
-				params += getActorParameter(detailedProp, (field + f'.bool{i}'), shift)
-	return params
-
-def getMaxIndex(actorKey, elemTag, flagType):
-	# Looking for the highest Property/Switch index for the current actor
-	length = '0'
-	for actorNode in root:
-		if actorNode.get('Key') == actorKey:
-			for elem in actorNode:
-				if elem.tag == elemTag:
-					if flagType is None or (flagType == 'Switch' and elem.get('Type') == flagType):
-						length = elem.get('Index')
-	return length
-
 def drawParams(box, detailedProp, key, elemField, elemName, elTag, elType, lenSwitch):
+	# This function displays individual property
 	for actorNode in root:
 		i = 1
 		name = 'None'
@@ -155,11 +115,18 @@ def editDetailedProperties():
 		propAnnotations = {}
 		OOTActorDetailedProperties.__annotations__ = propAnnotations
 
+	propAnnotations['isActorSynced'] = bpy.props.BoolProperty(default=False)
 	propAnnotations['actorID'] = bpy.props.EnumProperty(name='Actor ID', items=ootEnumActorID)
 	propAnnotations['transActorID'] = bpy.props.EnumProperty(name='Transition Actor ID', items=ootEnumTransitionActorID)
 	propAnnotations['actorKey'] = bpy.props.StringProperty(name='Actor Key', default='0000')
 	propAnnotations['transActorKey'] = bpy.props.StringProperty(name='Transition Actor ID', default='0009')
 	propAnnotations['itemChest'] = bpy.props.EnumProperty(name='Chest Content', items=ootChestContent)
+	propAnnotations['actorParamCustom'] = bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000')
+	propAnnotations['transActorParamCustom'] = bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000')
+	propAnnotations['actorParam'] = bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000', \
+		get=lambda self: getValues(self, self.actorID, 'actorParam', 'param', self.actorParamCustom))
+	propAnnotations['transActorParam'] = bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000', \
+		get=lambda self: getValues(self, self.transActorID, 'transActorParam', 'transParam', self.transActorParamCustom))
 
 	itemDrops = [(elem.get('Value'), elem.get('Name'), \
 					elem.get('Name')) for listNode in root for elem in listNode if listNode.tag == 'List' \
@@ -203,6 +170,7 @@ def editDetailedProperties():
 				k += 1
 
 def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, userIDField, userParamField, detailedProp, dpKey):
+	'''This function handles the drawing of the detailed actor panel'''
 	userActor = 'Actor Property'
 	userTransition = 'Transition Property'
 	userEntrance = 'Entrance Property'
@@ -233,7 +201,7 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 		prop_split(userLayout, userProp, "spawnIndex", "Spawn Index")
 		entranceBool = userProp.customActor
 
-	if (user != userEntrance and userActorID != 'ACTOR_CUSTOM') or (user == userEntrance and entranceBool is False):
+	if (user != userEntrance and userActorID != 'Custom') or (user == userEntrance and entranceBool is False):
 		if user != userEntrance:
 			userLayout.label(text = currentActor)
 			typeText = 'Type'
@@ -256,9 +224,9 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 			if propAnnot is not None:
 				prop_split(userLayout, detailedProp, dpKey + '.collectibleDrop', 'Collectible Drop')
 
-		lenProp = getMaxIndex(dpKey, 'Property', None)
-		lenSwitch = getMaxIndex(dpKey, 'Flag', 'Switch')
-		lenBool = getMaxIndex(dpKey, 'Bool', None)
+		lenProp = getMaxElemIndex(dpKey, 'Property', None)
+		lenSwitch = getMaxElemIndex(dpKey, 'Flag', 'Switch')
+		lenBool = getMaxElemIndex(dpKey, 'Bool', None)
 
 		if user == userActor:
 			drawParams(userLayout, detailedProp, dpKey, dpKey + '.chestFlag', 'Chest Flag', 'Flag', 'Chest', None)
@@ -298,7 +266,7 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 		else: OOTActorParams.transParam = f'0x{actorParams:X}'
 
 		if user == userEntrance: userProp = userProp.actor
-		prop_split(userLayout, userProp, userParamField, 'Actor Parameter')
+		prop_split(userLayout, detailedProp, userParamField, 'Actor Parameter')
 
 		if user == userActor:
 			# Note: rotBool & rot are necessary to call the get function (to set the value)
@@ -321,16 +289,16 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 		if user != userEntrance:
 			prop_split(userLayout, userProp, userIDField + 'Custom', currentActor)
 			if user == userActor:
-				prop_split(userLayout, userProp, 'actorParamCustom', 'Actor Parameter')
+				prop_split(userLayout, detailedProp, 'actorParamCustom', 'Actor Parameter')
 				userLayout.prop(userProp, 'rotOverrideCustom', text = 'Override Rotation (ignore Blender rot)')
 				if userProp.rotOverrideCustom:
 					prop_split(userLayout, userProp, 'rotOverrideXCustom', 'Rot X')
 					prop_split(userLayout, userProp, 'rotOverrideYCustom', 'Rot Y')
 					prop_split(userLayout, userProp, 'rotOverrideZCustom', 'Rot Z')
 			else:
-				prop_split(userLayout, userProp, userParamField + 'Custom', 'Actor Parameter')
+				prop_split(userLayout, detailedProp, userParamField + 'Custom', 'Actor Parameter')
 		else:
-			prop_split(userLayout, userProp.actor, userParamField + 'Custom', 'Actor Parameter')
+			prop_split(userLayout, detailedProp.actor, userParamField + 'Custom', 'Actor Parameter')
 
 # Actor Header Item Property
 class OOTActorHeaderItemProperty(bpy.types.PropertyGroup):
@@ -412,38 +380,32 @@ class OOTActorProperty(bpy.types.PropertyGroup):
 	# Normal Actors
 	actorID : bpy.props.EnumProperty(name = 'Actor', items = ootEnumActorID, default = 'ACTOR_PLAYER')
 
-	actorParam : bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000', \
-		get=lambda self: getValues(self, self.actorID, 'param', self.actorParamCustom))
+	actorParam : bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000')
 
 	rotOverrideX : bpy.props.StringProperty(name = 'Rot X', default = '0x0', \
-		get=lambda self: getValues(self, self.actorID, 'XRot', None))
+		get=lambda self: getValues(self, self.actorID, None, 'XRot', None))
 
 	rotOverrideY : bpy.props.StringProperty(name = 'Rot Y', default = '0x0', \
-		get=lambda self: getValues(self, self.actorID, 'YRot', None))
+		get=lambda self: getValues(self, self.actorID, None, 'YRot', None))
 
 	rotOverrideZ : bpy.props.StringProperty(name = 'Rot Z', default = '0x0', \
-		get=lambda self: getValues(self, self.actorID, 'ZRot', None))
+		get=lambda self: getValues(self, self.actorID, None, 'ZRot', None))
 	headerSettings : bpy.props.PointerProperty(type = OOTActorHeaderProperty)
 
 	actorIDCustom : bpy.props.StringProperty(name = 'Actor ID', default = 'ACTOR_PLAYER')
-	actorParamCustom : bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000')
 	rotOverrideCustom : bpy.props.BoolProperty(name = 'Override Rotation', default = False)
 	rotOverrideXCustom : bpy.props.StringProperty(name = 'Rot X', default = '0x0')
 	rotOverrideYCustom : bpy.props.StringProperty(name = 'Rot Y', default = '0x0')
 	rotOverrideZCustom : bpy.props.StringProperty(name = 'Rot Z', default = '0x0')
 
-	rotXBool : bpy.props.BoolProperty(name = 'Rot X Bool', default = False, get=lambda self: getValues(self, self.actorID, 'rotXBool', None))
-	rotYBool : bpy.props.BoolProperty(name = 'Rot Y Bool', default = False, get=lambda self: getValues(self, self.actorID, 'rotYBool', None))
-	rotZBool : bpy.props.BoolProperty(name = 'Rot Z Bool', default = False, get=lambda self: getValues(self, self.actorID, 'rotZBool', None))
+	rotXBool : bpy.props.BoolProperty(name = 'Rot X Bool', default = False, get=lambda self: getValues(self, self.actorID, None, 'rotXBool', None))
+	rotYBool : bpy.props.BoolProperty(name = 'Rot Y Bool', default = False, get=lambda self: getValues(self, self.actorID, None, 'rotYBool', None))
+	rotZBool : bpy.props.BoolProperty(name = 'Rot Z Bool', default = False, get=lambda self: getValues(self, self.actorID, None, 'rotZBool', None))
 
 	# Transition Actors (ACTORCAT_DOOR)
 	transActorID : bpy.props.EnumProperty(name = 'Actor', items = ootEnumTransitionActorID, default = 'ACTOR_EN_DOOR')
-
-	transActorParam : bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000', \
-		get=lambda self: getValues(self, self.transActorID, 'transParam', self.transActorParamCustom))
-
+	transActorParam : bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000')
 	transActorIDCustom : bpy.props.StringProperty(name = 'Actor ID', default = 'ACTOR_EN_DOOR')
-	transActorParamCustom : bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000')
 
 	# The 'get=' option from Blender props don't actually save the data in the .blend
 	# When the get function is called we have to save the data that'll be returned
@@ -452,12 +414,17 @@ class OOTActorProperty(bpy.types.PropertyGroup):
 	XRotToSave: bpy.props.StringProperty(default='0x0')
 	YRotToSave: bpy.props.StringProperty(default='0x0')
 	ZRotToSave: bpy.props.StringProperty(default='0x0')
+	isActorSynced: bpy.props.BoolProperty(default=False)
 
 def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
 	actorIDBox = layout.column()
 
-	drawDetailedProperties('Actor Property', actorProp, actorIDBox, objName, \
-		OOT_SearchActorIDEnumOperator, 'actorID', 'actorParam', detailedProp, detailedProp.actorKey)
+	if detailedProp.isActorSynced or actorProp.actorID == 'Custom':
+		drawDetailedProperties('Actor Property', actorProp, actorIDBox, objName, \
+			OOT_SearchActorIDEnumOperator, 'actorID', 'actorParam', detailedProp, detailedProp.actorKey)
+	else:
+		actorIDBox.box().label(text="This Scene's Actors are not synchronised!")
+		actorIDBox.operator(OOT_SyncActors.bl_idname)
 
 	drawActorHeaderProperty(actorIDBox, actorProp.headerSettings, "Actor", altRoomProp, objName)
 
@@ -501,8 +468,12 @@ class OOTTransitionActorProperty(bpy.types.PropertyGroup):
 def drawTransitionActorProperty(layout, transActorProp, altSceneProp, roomObj, objName, detailedProp):
 	actorIDBox = layout.column()
 
-	drawDetailedProperties('Transition Property', transActorProp.actor, actorIDBox, objName, \
-		OOT_SearchTransActorIDEnumOperator, 'transActorID', 'transActorParam', detailedProp, detailedProp.transActorKey)
+	if detailedProp.isActorSynced or transActorProp.actor.actorID == 'Custom':
+		drawDetailedProperties('Transition Property', transActorProp.actor, actorIDBox, objName, \
+			OOT_SearchTransActorIDEnumOperator, 'transActorID', 'transActorParam', detailedProp, detailedProp.transActorKey)
+	else:
+		actorIDBox.box().label(text="This Scene's Actors are not synchronised!")
+		actorIDBox.operator(OOT_SyncActors.bl_idname)
 
 	if roomObj is None:
 		actorIDBox.label(text = "This must be part of a Room empty's hierarchy.", icon = "ERROR")
@@ -526,7 +497,11 @@ def drawEntranceProperty(layout, obj, altSceneProp, objName, detailedProp):
 	box = layout.column()
 	entranceProp = obj.ootEntranceProperty
 
-	drawDetailedProperties('Entrance Property', entranceProp, box, None, \
-		None, 'actorID', 'actorParam', detailedProp, '0000')
+	if detailedProp.isActorSynced or entranceProp.actor.actorID == 'Custom':
+		drawDetailedProperties('Entrance Property', entranceProp, box, None, \
+			None, 'actorID', 'actorParam', detailedProp, '0000')
+	else:
+		box.box().label(text="This Scene's Actors are not synchronised!")
+		box.operator(OOT_SyncActors.bl_idname)
 
 	drawActorHeaderProperty(box, entranceProp.actor.headerSettings, "Entrance", altSceneProp, objName)

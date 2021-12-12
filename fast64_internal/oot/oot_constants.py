@@ -56,12 +56,12 @@ ootEnumLightGroupMenu = [
 ootEnumTransitionActorID = [(actorNode.get('ID'), actorNode.get('Name'), \
 					actorNode.get('ID').replace('ACTOR_','')) for actorNode in root if actorNode.get('ID') is not None \
 						and actorNode.get('Category') == 'ACTORCAT_DOOR']
-ootEnumTransitionActorID.insert(0, ("ACTOR_CUSTOM", "Custom - ACTOR_CUSTOM", "Custom"))
+ootEnumTransitionActorID.insert(0, ("Custom", "Custom Actor", "Custom"))
 
 # Add every actor
 ootEnumActorID = [(actorNode.get('ID'), actorNode.get('Name'), \
 					actorNode.get('ID').replace('ACTOR_','')) for actorNode in root if actorNode.get('ID') is not None]
-ootEnumActorID.insert(0, ("ACTOR_CUSTOM", "Custom", "Custom"))
+ootEnumActorID.insert(0, ("Custom", "Custom Actor", "Custom"))
 
 ootChestContent = [(elem.get('Value'), elem.get('Name'), \
 					elem.get('Name')) for listNode in root for elem in listNode if listNode.tag == 'List' \
