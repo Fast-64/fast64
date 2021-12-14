@@ -716,8 +716,14 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 		replaceSegmentLoad(prevLevelScript,
 			'_effect_' + compressionFmt, 'LOAD_' + compressionFmt.upper(), 0x0B)
 	if not obj.useBackgroundColor:
+		segment = ''
+		if obj.background == 'CUSTOM':
+			segment = obj.backgroundSegment
+		else:
+			segment = backgroundSegments[obj.background] + '_skybox'
+
 		replaceSegmentLoad(prevLevelScript,
-			'_' + backgroundSegments[obj.background] + '_skybox_' + compressionFmt, 'LOAD_' + compressionFmt.upper(), 0x0A)
+			'_' + segment + '_' + compressionFmt, 'LOAD_' + compressionFmt.upper(), 0x0A)
 	levelscriptString = prevLevelScript.to_c(areaString)
 
 	if bpy.context.scene.exportHiddenGeometry:

@@ -114,6 +114,7 @@ enumBackground = [
 	('GREEN_SKY', 'Green Sky', 'Green Sky'),
 	('ABOVE_CLOUDS', 'Above Clouds', 'Above Clouds'),
 	('PURPLE_SKY', 'Purple Sky', 'Purple Sky'),
+	('CUSTOM', 'Custom', 'Custom'),
 ]
 
 backgroundSegments = {
@@ -976,6 +977,11 @@ class SM64ObjectPanel(bpy.types.Panel):
 			else:
 				#prop_split(box, obj, 'backgroundID', 'Background ID')
 				prop_split(box, obj, 'background', 'Background')
+				if obj.background == 'CUSTOM':
+					prop_split(box, obj, 'backgroundID', 'Custom ID')
+					prop_split(box, obj, 'backgroundSegment', 'Custom Background Segment')
+					segmentExportBox = box.box()
+					segmentExportBox.label(text = f'Exported Segment: _{obj.backgroundSegment}_{context.scene.compressionFormat}SegmentRomStart')
 				box.prop(obj, 'useBackgroundColor')
 				#box.box().label(text = 'Background IDs defined in include/geo_commands.h.')
 			box.prop(obj, 'actSelectorIgnore')
@@ -1600,6 +1606,19 @@ def sm64_obj_register():
 
 	bpy.types.Object.useBackgroundColor = bpy.props.BoolProperty(
 		name = 'Use Solid Color For Background', default = False)
+
+	bpy.types.Object.backgroundID = bpy.props.StringProperty(
+		name = 'Background Define', default = 'BACKGROUND_CUSTOM', 
+		description = 
+		'The background define that is passed into GEO_BACKGROUND\n'
+		'(ex. BACKGROUND_OCEAN_SKY, BACKGROUND_GREEN_SKY)')
+
+	bpy.types.Object.backgroundSegment = bpy.props.StringProperty(
+		name = 'Background Segment', default = "water_skybox",
+		description = 
+		'Segment that will be loaded.\n'
+		'This will be suffixed with _yay0SegmentRomStart or _mio0SegmentRomStart\n'
+		'(ex. water_skybox, bidw_skybox)')
 
 	#bpy.types.Object.backgroundID = bpy.props.StringProperty(
 	#	name = 'Background ID', default = 'BACKGROUND_OCEAN_SKY')
