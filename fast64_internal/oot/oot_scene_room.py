@@ -210,7 +210,7 @@ class OOTLightProperty(bpy.types.PropertyGroup):
 	fogColor : bpy.props.FloatVectorProperty(name = "", size = 4, min = 0, max = 1, default = (140/255, 120/255, 110/255 ,1), subtype = 'COLOR')
 	fogNear : bpy.props.IntProperty(name = "", default = 993, min = 0, max = 2**10 - 1)
 	transitionSpeed : bpy.props.IntProperty(name = "", default = 1, min = 0, max = 63)
-	drawDistance : bpy.props.IntProperty(name = "", default = 0x3200, min = 0, max = 2**16 - 1)
+	fogFar : bpy.props.IntProperty(name = "", default = 0x3200, min = 0, max = 2**16 - 1)
 	expandTab : bpy.props.BoolProperty(name = "Expand Tab")
 
 class OOTLightGroupProperty(bpy.types.PropertyGroup):
@@ -268,7 +268,7 @@ def drawLightProperty(layout, lightProp, name, showExpandTab, index, sceneHeader
 		
 		prop_split(box, lightProp, 'fogColor', 'Fog Color')
 		prop_split(box, lightProp, 'fogNear', 'Fog Near')
-		prop_split(box, lightProp, 'drawDistance', 'Draw Distance')
+		prop_split(box, lightProp, 'fogFar', 'Fog Far')
 		prop_split(box, lightProp, 'transitionSpeed', 'Transition Speed')
 
 

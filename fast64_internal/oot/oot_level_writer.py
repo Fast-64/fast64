@@ -124,13 +124,13 @@ def ootExportSceneToC(originalSceneObj, transformMatrix,
 		os.path.join(levelPath, scene.sceneName() + '.h'))
 	
 	if not isCustomExport:
-		writeOtherSceneProperties(scene, exportInfo)
+		writeOtherSceneProperties(scene, exportInfo, levelC)
 
-def writeOtherSceneProperties(scene, exportInfo):
+def writeOtherSceneProperties(scene, exportInfo, levelC):
 	modifySceneTable(scene, exportInfo)
 	modifySegmentSymbols(scene, exportInfo)
 	modifySceneIDs(scene, exportInfo)
-	modifySegmentDefinition(scene, exportInfo)
+	modifySegmentDefinition(scene, exportInfo, levelC)
 	modifySceneFiles(scene, exportInfo)
 
 def readSceneData(scene, sceneHeader, alternateSceneHeaders):
@@ -251,7 +251,7 @@ def getLightData(lightProp):
 	light.fogColor = getLightColor(lightProp.fogColor)
 	light.fogNear = lightProp.fogNear
 	light.transitionSpeed = lightProp.transitionSpeed
-	light.drawDistance = lightProp.drawDistance
+	light.fogFar = lightProp.fogFar
 	return light
 
 def readRoomData(room, roomHeader, alternateRoomHeaders):
@@ -666,7 +666,7 @@ def oot_level_register():
 	bpy.types.Scene.ootSceneExportObj = bpy.props.PointerProperty(type = bpy.types.Object, poll = isSceneObj)
 	bpy.types.Scene.ootSceneSingleFile = bpy.props.BoolProperty(
 		name = "Export as Single File",
-		default = True,
+		default = False,
 		description = "Does not split the scene and rooms into multiple files.")
 
 
