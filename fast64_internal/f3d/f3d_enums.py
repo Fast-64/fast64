@@ -262,7 +262,7 @@ enumBlendColor = [
 
 enumBlendAlpha = [
 	('G_BL_A_IN', 'Color Combiner Alpha', 'Color Combiner Alpha'),
-	('G_BL_A_FOG', 'Fog Alpha', 'Fog Register Alpha'),
+	('G_BL_A_FOG', 'Fog Alpha', 'Fog Color Register Alpha'),
 	('G_BL_A_SHADE', 'Shade Alpha', 'Stepped Shade Alpha'),
 	('G_BL_0', '0', '0')
 ]
