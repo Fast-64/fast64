@@ -256,8 +256,8 @@ enumZMode = [
 enumBlendColor = [
 	('G_BL_CLR_IN', 'Input (CC/Blender)', 'First cycle: Color Combiner RGB, Second cycle: Blender numerator from first cycle'),
 	('G_BL_CLR_MEM', 'Framebuffer', 'Framebuffer (Memory)'),
-	('G_BL_CLR_BL', 'Blend', 'Blend Register'),
-	('G_BL_CLR_FOG', 'Fog', 'Fog Register')
+	('G_BL_CLR_BL', 'Blend Color', 'Blend Color Register'),
+	('G_BL_CLR_FOG', 'Fog Color', 'Fog Color Register')
 ]
 
 enumBlendAlpha = [
