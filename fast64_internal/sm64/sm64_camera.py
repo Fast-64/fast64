@@ -91,7 +91,7 @@ def saveCameraSettingsToGeolayout(geolayoutGraph, areaObj, rootObj, meshGeolayou
 				background = bgColor
 			else:
 				if rootObj.background == 'CUSTOM':
-					background = rootObj.backgroundID
+					background = rootObj.fast64.sm64.level.backgroundID
 				else:
 					background = 'BACKGROUND_' + rootObj.background
 

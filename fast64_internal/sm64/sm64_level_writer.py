@@ -718,7 +718,7 @@ def exportLevelC(obj, transformMatrix, f3dType, isHWv1, levelName, exportDir,
 	if not obj.useBackgroundColor:
 		segment = ''
 		if obj.background == 'CUSTOM':
-			segment = obj.backgroundSegment
+			segment = obj.fast64.sm64.level.backgroundSegment
 		else:
 			segment = backgroundSegments[obj.background] + '_skybox'
 

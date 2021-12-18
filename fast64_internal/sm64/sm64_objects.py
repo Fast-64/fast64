@@ -971,6 +971,7 @@ class SM64ObjectPanel(bpy.types.Panel):
 			box.box().label(text = "No rotation allowed.")
 
 		elif obj.sm64_obj_type == 'Level Root':
+			levelObj = obj.fast64.sm64.level
 			if obj.useBackgroundColor:
 				prop_split(box, obj, 'backgroundColor', 'Background Color')
 				box.prop(obj, 'useBackgroundColor')
@@ -978,10 +979,10 @@ class SM64ObjectPanel(bpy.types.Panel):
 				#prop_split(box, obj, 'backgroundID', 'Background ID')
 				prop_split(box, obj, 'background', 'Background')
 				if obj.background == 'CUSTOM':
-					prop_split(box, obj, 'backgroundID', 'Custom ID')
-					prop_split(box, obj, 'backgroundSegment', 'Custom Background Segment')
+					prop_split(box, levelObj, 'backgroundID', 'Custom ID')
+					prop_split(box, levelObj, 'backgroundSegment', 'Custom Background Segment')
 					segmentExportBox = box.box()
-					segmentExportBox.label(text = f'Exported Segment: _{obj.backgroundSegment}_{context.scene.compressionFormat}SegmentRomStart')
+					segmentExportBox.label(text = f'Exported Segment: _{levelObj.backgroundSegment}_{context.scene.compressionFormat}SegmentRomStart')
 				box.prop(obj, 'useBackgroundColor')
 				#box.box().label(text = 'Background IDs defined in include/geo_commands.h.')
 			box.prop(obj, 'actSelectorIgnore')
@@ -1470,6 +1471,21 @@ def set_bparams_from_param(self, context):
 	else:
 		self.bparams = ' | '.join(fmt_params)
 
+class SM64_LevelProperties(bpy.types.PropertyGroup):
+	name = "SM64 Level Properties"
+	backgroundID: bpy.props.StringProperty(
+		name = 'Background Define', default = 'BACKGROUND_CUSTOM', 
+		description = 
+		'The background define that is passed into GEO_BACKGROUND\n'
+		'(ex. BACKGROUND_OCEAN_SKY, BACKGROUND_GREEN_SKY)')
+
+	backgroundSegment: bpy.props.StringProperty(
+		name = 'Background Segment', default = "water_skybox",
+		description = 
+		'Segment that will be loaded.\n'
+		'This will be suffixed with _yay0SegmentRomStart or _mio0SegmentRomStart\n'
+		'(ex. water_skybox, bidw_skybox)')
+
 class SM64_GameObjectProperties(bpy.types.PropertyGroup):
 	name = "Game Object Properties"
 	bparams: bpy.props.StringProperty(name = "Behavior Parameters", description="All Behavior Parameters", default="0x00000000")
@@ -1488,6 +1504,7 @@ class SM64_ObjectProperties(bpy.types.PropertyGroup):
 	cur_version = 2 # version after property migration
 
 	geo_asm: bpy.props.PointerProperty(type=SM64_GeoASMProperties)
+	level: bpy.props.PointerProperty(type=SM64_LevelProperties)
 	area: bpy.props.PointerProperty(type=SM64_AreaProperties)
 	game_object: bpy.props.PointerProperty(type=SM64_GameObjectProperties)
 
@@ -1516,6 +1533,7 @@ sm64_obj_classes = (
 	PuppycamSetupCamera,
 
 	SM64_GeoASMProperties,
+	SM64_LevelProperties,
 	SM64_AreaProperties,
 	SM64_GameObjectProperties,
 	SM64_ObjectProperties,
@@ -1606,19 +1624,6 @@ def sm64_obj_register():
 
 	bpy.types.Object.useBackgroundColor = bpy.props.BoolProperty(
 		name = 'Use Solid Color For Background', default = False)
-
-	bpy.types.Object.backgroundID = bpy.props.StringProperty(
-		name = 'Background Define', default = 'BACKGROUND_CUSTOM', 
-		description = 
-		'The background define that is passed into GEO_BACKGROUND\n'
-		'(ex. BACKGROUND_OCEAN_SKY, BACKGROUND_GREEN_SKY)')
-
-	bpy.types.Object.backgroundSegment = bpy.props.StringProperty(
-		name = 'Background Segment', default = "water_skybox",
-		description = 
-		'Segment that will be loaded.\n'
-		'This will be suffixed with _yay0SegmentRomStart or _mio0SegmentRomStart\n'
-		'(ex. water_skybox, bidw_skybox)')
 
 	#bpy.types.Object.backgroundID = bpy.props.StringProperty(
 	#	name = 'Background ID', default = 'BACKGROUND_OCEAN_SKY')
