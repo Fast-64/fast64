@@ -644,65 +644,78 @@ def stringToInt(str):
 	else:
 		return int(str, base=10)
 
+def isTiedParam(tiedParam, actorType):
+	if tiedParam is None:
+		return True
+	else:
+		if tiedParam.find(',') != -1: tiedList = tiedParam.split(',')
+		else: tiedList = [tiedParam]
+
+		if actorType is not None:
+			if len(tiedList) == 1 and tiedList[0] == actorType:
+				return True
+			else:
+				for j in range(len(tiedList)):
+					if tiedList[j] == actorType:
+						return True
+
 def computeParams(elem, detailedProp, field, lenProp, lenSwitch, lenBool):
 	params = shift = 0
 	strMask = elem.get('Mask')
 	if elem.tag != 'Parameter' and strMask is not None:
 		mask = int(strMask, base=16)
 		shift = len(f'{mask:016b}') - len(f'{mask:016b}'.rstrip('0'))
-	if elem.tag == 'Flag':
-		elemType = elem.get('Type')
-		if elemType == 'Chest':
-			params += getActorParameter(detailedProp, field + '.chestFlag', shift)
-		if elemType == 'Collectible':
-			params += getActorParameter(detailedProp, field + '.collectibleFlag', shift)
-		if elemType == 'Switch':
-			for i in range(1, (int(lenSwitch, base=10) + 1)):
+		if elem.tag == 'Flag':
+			elemType = elem.get('Type')
+			if elemType == 'Chest':
+				params += getActorParameter(detailedProp, field + '.chestFlag', shift)
+			elif elemType == 'Collectible':
+				params += getActorParameter(detailedProp, field + '.collectibleFlag', shift)
+			elif elemType == 'Switch':
+				for i in range(1, (int(lenSwitch, base=10) + 1)):
+					if i == int(elem.get('Index'), base=10):
+						params += getActorParameter(detailedProp, field + f'.switchFlag{i}', shift)
+		elif elem.tag == 'Property' and elem.get('Name') != 'None':
+			for i in range(1, (int(lenProp, base=10) + 1)):
 				if i == int(elem.get('Index'), base=10):
-					params += getActorParameter(detailedProp, field + f'.switchFlag{i}', shift)
-	if elem.tag == 'Property' and elem.get('Name') != 'None':
-		for i in range(1, (int(lenProp, base=10) + 1)):
-			if i == int(elem.get('Index'), base=10):
-				params += getActorParameter(detailedProp, (field + f'.props{i}'), shift)
-	if elem.tag == 'Item':
-		params += int(detailedProp.itemChest, base=16) << shift
-	if elem.tag == 'Collectible':
-		params += getActorParameter(detailedProp, field + '.collectibleDrop', shift)
-	if elem.tag == 'Bool':
-		for i in range(1, (int(lenBool, base=10) + 1)):
-			if i == int(elem.get('Index'), base=10):
-				params += getActorParameter(detailedProp, (field + f'.bool{i}'), shift)
+					params += getActorParameter(detailedProp, (field + f'.props{i}'), shift)
+		elif elem.tag == 'Item':
+			params += int(detailedProp.itemChest, base=16) << shift
+		elif elem.tag == 'Collectible':
+			params += getActorParameter(detailedProp, field + '.collectibleDrop', shift)
+		elif elem.tag == 'Bool':
+			for i in range(1, (int(lenBool, base=10) + 1)):
+				if i == int(elem.get('Index'), base=10):
+					params += getActorParameter(detailedProp, (field + f'.bool{i}'), shift)
 	return params
 
-def uncomputeParams(elem, actorProp, detailedProp, field, lenProp, lenSwitch, lenBool):
-	params = stringToInt(actorProp.actorParam)
+def uncomputeParams(elem, params, detailedProp, field, lenProp, lenSwitch, lenBool):
 	strMask = elem.get('Mask')
-
 	if strMask is not None:
 		target = elem.get('Target')
 		mask = int(strMask, base=16)
-		if elem.tag != 'Parameter' and (target == 'Params' or target is None):
+		if elem.tag == 'Parameter':
+			setActorParameter(detailedProp, field + '.type', params, mask)
+		elif target == 'Params' or target is None:
 			if elem.tag == 'Flag':
 				elemType = elem.get('Type')
 				if elemType == 'Chest':
 					setActorParameter(detailedProp, field + '.chestFlag', params, mask)
-				if elemType == 'Collectible':
+				elif elemType == 'Collectible':
 					setActorParameter(detailedProp, field + '.collectibleFlag', params, mask)
-				if elemType == 'Switch':
+				elif elemType == 'Switch':
 					for i in range(1, (int(lenSwitch, base=10) + 1)):
 						if i == int(elem.get('Index'), base=10):
 							setActorParameter(detailedProp, field + f'.switchFlag{i}', params, mask)
-			if elem.tag == 'Property' and elem.get('Name') != 'None':
+			elif elem.tag == 'Property' and elem.get('Name') != 'None':
 				for i in range(1, (int(lenProp, base=10) + 1)):
 					if i == int(elem.get('Index'), base=10):
 						setActorParameter(detailedProp, field + f'.props{i}', params, mask)
-			if elem.tag == 'Item':
+			elif elem.tag == 'Item':
 				setActorParameter(detailedProp, 'itemChest', params, mask)
-			if elem.tag == 'Collectible':
+			elif elem.tag == 'Collectible':
 				setActorParameter(detailedProp, field + '.collectibleDrop', params, mask)
-			if elem.tag == 'Bool':
+			elif elem.tag == 'Bool':
 				for i in range(1, (int(lenBool, base=10) + 1)):
 					if i == int(elem.get('Index'), base=10):
 						setActorParameter(detailedProp, field + f'.bool{i}', params, mask)
-		elif elem.tag == 'Parameter':
-			setActorParameter(detailedProp, field + '.type', params, mask)

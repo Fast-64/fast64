@@ -479,14 +479,15 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 		elif obj.ootEmptyType == "Transition Actor":
 			transActorProp = obj.ootTransitionActorProperty
 			detailedProp = obj.ootActorDetailedProperties
-			actorID = transActorProp.actor.transActorID
+			actorID = transActorProp.detailedActor.transActorID
 			addActor(scene, OOTTransitionActor(
-				getActorProperty(transActorProp.actor, detailedProp, actorID, 'transActorID', 'transActorID'),
+				getActorProperty(transActorProp.detailedActor, detailedProp, actorID, 'transActorID', 'transActorID'),
+				print(getActorProperty(transActorProp.detailedActor, detailedProp, actorID, 'transActorID', 'transActorID')),
 				room.roomIndex, transActorProp.roomIndex,
 				getCustomProperty(transActorProp, "cameraTransitionFront"),
 				getCustomProperty(transActorProp, "cameraTransitionBack"),
 				translation, rotation[1], # TODO: Correct axis?
-				getActorProperty(transActorProp.actor, detailedProp, actorID, 'transActorParam', 'transParamToSave')),
+				getActorProperty(transActorProp.detailedActor, detailedProp, actorID, 'actorParam', 'transParamToSave')),
 				transActorProp.actor, "transitionActorList", obj.name)
 			#scene.transitionActorList.append(OOTTransitionActor(
 			#	getCustomProperty(transActorProp.actor, "actorID"),
