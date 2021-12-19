@@ -2,8 +2,8 @@
 combiner_enums = {
 	'Case A' : (
 	('COMBINED', 'Combined Color', 'Combined Color'),
-	('TEXEL0', 'Texture 0', 'Texture 0'),
-	('TEXEL1', 'Texture 1', 'Texture 1'),
+	('TEXEL0', 'Texture 0 Color', 'Texture 0 Color'),
+	('TEXEL1', 'Texture 1 Color', 'Texture 1 Color'),
 	('PRIMITIVE', 'Primitive Color', 'Primitive Color'),
 	('SHADE', 'Shade Color', 'Shade Color'),
 	('ENVIRONMENT', 'Environment Color', 'Environment Color'),
@@ -14,8 +14,8 @@ combiner_enums = {
 	
 	'Case B' : (
 	('COMBINED', 'Combined Color', 'Combined Color'),
-	('TEXEL0', 'Texture 0', 'Texture 0'),
-	('TEXEL1', 'Texture 1', 'Texture 1'),
+	('TEXEL0', 'Texture 0 Color', 'Texture 0 Color'),
+	('TEXEL1', 'Texture 1 Color', 'Texture 1 Color'),
 	('PRIMITIVE', 'Primitive Color', 'Primitive Color'),
 	('SHADE', 'Shade Color', 'Shade Color'),
 	('ENVIRONMENT', 'Environment Color', 'Environment Color'),
@@ -26,8 +26,8 @@ combiner_enums = {
 	
 	'Case C' : (
 	('COMBINED'  , 'Combined Color', 'Combined Color'),
-	('TEXEL0'  , 'Texture 0', 'Texture 0'),
-	('TEXEL1'  , 'Texture 1', 'Texture 1'),
+	('TEXEL0'  , 'Texture 0 Color', 'Texture 0 Color'),
+	('TEXEL1'  , 'Texture 1 Color', 'Texture 1 Color'),
 	('PRIMITIVE'  , 'Primitive Color', 'Primitive Color'),
 	('SHADE'  , 'Shade Color', 'Shade Color'),
 	('ENVIRONMENT'  , 'Environment Color', 'Environment Color'),
@@ -46,8 +46,8 @@ combiner_enums = {
 	
 	'Case D' : (
 	('COMBINED', 'Combined Color', 'Combined Color'),
-	('TEXEL0', 'Texture 0', 'Texture 0'),
-	('TEXEL1', 'Texture 1', 'Texture 1'),
+	('TEXEL0', 'Texture 0 Color', 'Texture 0 Color'),
+	('TEXEL1', 'Texture 1 Color', 'Texture 1 Color'),
 	('PRIMITIVE', 'Primitive Color', 'Primitive Color'),
 	('SHADE', 'Shade Color', 'Shade Color'),
 	('ENVIRONMENT', 'Environment Color', 'Environment Color'),
