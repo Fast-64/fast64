@@ -86,9 +86,17 @@ def saveCameraSettingsToGeolayout(geolayoutGraph, areaObj, rootObj, meshGeolayou
 			bgNode = TransformNode(BackgroundNode(
 				True, bgColor))
 		else:
+			background = ''
+			if rootObj.useBackgroundColor:
+				background = bgColor
+			else:
+				if rootObj.background == 'CUSTOM':
+					background = rootObj.fast64.sm64.level.backgroundID
+				else:
+					background = 'BACKGROUND_' + rootObj.background
+
 			bgNode = TransformNode(BackgroundNode(
-				rootObj.useBackgroundColor, bgColor if rootObj.useBackgroundColor \
-				else ('BACKGROUND_' + rootObj.background)))
+				rootObj.useBackgroundColor, background))
 		orthoNode.children.append(bgNode)
 
 	zBufferEnable = TransformNode(ZBufferNode(True))
