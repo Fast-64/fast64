@@ -82,7 +82,7 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 			fMesh = fModel.addMesh(vertexGroup, namePrefix, drawLayerOverride, False, bone)
 			fModel.endDraw(fMesh, bone)
 			meshInfo.vertexGroupInfo.vertexGroupToMatrixIndex[currentGroupIndex] = nextDLIndex
-			return fMesh, False
+			return fMesh, False, lastMaterialName
 		else:
 			return None, False, lastMaterialName
 	
