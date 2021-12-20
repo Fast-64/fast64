@@ -230,6 +230,16 @@ def writeCData(data, headerPath, sourcePath):
 	headerFile.write(data.header)
 	headerFile.close()
 
+def writeCDataSourceOnly(data, sourcePath):
+	sourceFile = open(sourcePath, 'w', newline = '\n', encoding = 'utf-8')
+	sourceFile.write(data.source)
+	sourceFile.close()
+
+def writeCDataHeaderOnly(data, headerPath):
+	headerFile = open(headerPath, 'w', newline = '\n', encoding = 'utf-8')
+	headerFile.write(data.header)
+	headerFile.close()
+
 class CData:
 	def __init__(self):
 		self.source = ""
