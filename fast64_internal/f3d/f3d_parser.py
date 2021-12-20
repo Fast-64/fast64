@@ -784,6 +784,8 @@ class F3DContext:
 			mat.rdp_settings.g_clipping = value
 	
 	def loadGeoFlags(self, command):
+		mat = self.mat()
+		
 		bitFlags = math_eval(command.params[0], self.f3d)
 
 		mat.rdp_settings.g_zbuffer = bitFlags & self.f3d.G_ZBUFFER != 0

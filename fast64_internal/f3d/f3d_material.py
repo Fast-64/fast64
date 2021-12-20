@@ -2628,9 +2628,14 @@ class AddPresetF3D(AddPresetBase, Operator):
 			context.material.f3d_mat.presetName = bpy.path.display_name(filename)
 
 			target_path = os.path.join("presets", self.preset_subdir)
-			target_path = bpy.utils.user_resource('SCRIPTS',
-												  target_path,
-												  create=True)
+			try:
+				target_path = bpy.utils.user_resource('SCRIPTS',
+													target_path,
+													create=True)
+			except: # 3.0
+				target_path = bpy.utils.user_resource('SCRIPTS',
+													path=target_path,
+													create=True)
 
 			if not target_path:
 				self.report({'WARNING'}, "Failed to create presets path")
@@ -3241,8 +3246,12 @@ def mat_register_old():
 		type = RDPSettings)
 
 def findF3DPresetPath(filename):
-	presetPath = bpy.utils.user_resource('SCRIPTS',
-		os.path.join("presets", "f3d"), create=True)
+	try:
+		presetPath = bpy.utils.user_resource('SCRIPTS',
+			os.path.join("presets", "f3d"), create=True)
+	except: # 3.0
+		presetPath = bpy.utils.user_resource('SCRIPTS',
+			path=os.path.join("presets", "f3d"), create=True)
 	for subdir in os.listdir(presetPath):
 		subPath = os.path.join(presetPath, subdir)
 		if os.path.isdir(subPath):
@@ -3252,8 +3261,12 @@ def findF3DPresetPath(filename):
 	raise PluginError("Preset " + str(filename) + " not found.")
 
 def getF3DPresetPath(filename, subdir):
-	presetPath = bpy.utils.user_resource('SCRIPTS',
-		os.path.join("presets", subdir), create=True)
+	try:
+		presetPath = bpy.utils.user_resource('SCRIPTS',
+			os.path.join("presets", subdir), create=True)
+	except: # 3.0
+		presetPath = bpy.utils.user_resource('SCRIPTS',
+			path=os.path.join("presets", subdir), create=True)
 	return os.path.join(presetPath, filename) + ".py"
 
 def savePresets():
@@ -3267,7 +3280,10 @@ def savePresets():
 def mat_register():
 	#bpy.app.handlers.load_post.append(loadTimer)
 	for cls in mat_classes:
-		register_class(cls)
+		try:
+			register_class(cls)
+		except:
+			print('failed to register:', cls)
 
 	#presetDict = addMaterialPresets()
 	#for presetName, presetItem in presetDict.items():
