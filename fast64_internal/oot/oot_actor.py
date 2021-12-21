@@ -26,6 +26,26 @@ class OOT_SearchChestContentEnumOperator(bpy.types.Operator):
 		context.window_manager.invoke_search_popup(self)
 		return {'RUNNING_MODAL'}
 
+class OOT_SearchNaviMsgIDEnumOperator(bpy.types.Operator):
+	bl_idname = "object.oot_search_navi_msg_id_enum_operator"
+	bl_label = "Select Message ID"
+	bl_property = "naviMsgID"
+	bl_options = {'REGISTER', 'UNDO'}
+
+	
+	naviMsgID : bpy.props.EnumProperty(items = ootNaviMsgID, default = "0x00")
+	objName : bpy.props.StringProperty()
+
+	def execute(self, context):
+		bpy.data.objects[self.objName].ootActorDetailedProperties.naviMsgID = self.naviMsgID
+		bpy.context.region.tag_redraw()
+		self.report({'INFO'}, "Selected: " + self.naviMsgID)
+		return {'FINISHED'}
+
+	def invoke(self, context, event):
+		context.window_manager.invoke_search_popup(self)
+		return {'RUNNING_MODAL'}
+
 class OOTActorDetailedProperties(bpy.types.PropertyGroup):
 	pass
 
@@ -43,10 +63,11 @@ class OOTActorParams():
 
 def getValues(self, user, actorID, actorField, paramField, customField):
 	# Get function that some ID Props call
-	actorProp = bpy.context.object.ootActorProperty
 	if user == 'Transition Actor':
-		transActorProp = bpy.context.object.ootTransitionActorProperty.detailedActor
-	if self.isActorSynced or (user == 'Transition Actor' and transActorProp.isActorSynced):
+		actorProp = bpy.context.object.ootTransitionActorProperty.actor
+	else:
+		actorProp = bpy.context.object.ootActorProperty
+	if self.isActorSynced:
 		if actorID == 'Custom' and customField is not None:
 			setattr(OOTActorParams, paramField, customField)
 
@@ -57,28 +78,24 @@ def getValues(self, user, actorID, actorField, paramField, customField):
 		return value
 	else:
 		if actorField is not None:
-			if user == 'Actor':
-				return getattr(actorProp, actorField)
-			elif user == 'Transition Actor':
-				return getattr(transActorProp, actorField)
+			return getattr(actorProp, actorField)
 		else:
 			raise PluginError("Can't return the proper value")
 
 def setValues(self, value, user, field):
-	if user == 'Transition Actor':
-		detailedProp = bpy.context.object.ootTransitionActorProperty.detailedActor
-	else: detailedProp = self
+	detailedProp = self
 	for actorNode in root:
 		if actorNode.get('ID') == getattr(detailedProp, field, '0x0'):
 			dPKey = actorNode.get('Key')
 			lenProp = getMaxElemIndex(dPKey, 'Property', None)
 			lenSwitch = getMaxElemIndex(dPKey, 'Flag', 'Switch')
 			lenBool = getMaxElemIndex(dPKey, 'Bool', None)
+			lenEnum = getMaxElemIndex(dPKey, 'Enum', None)
 			for elem in actorNode:
 				tiedParam = elem.get('TiedParam')
 				actorType = getattr(detailedProp, dPKey + '.type', None)
 				if isTiedParam(tiedParam, actorType) is True:
-					uncomputeParams(elem, stringToInt(value), detailedProp, dPKey, lenProp, lenSwitch, lenBool)
+					uncomputeParams(elem, stringToInt(value), detailedProp, dPKey, lenProp, lenSwitch, lenBool, lenEnum)
 
 def genEnum(annotations, key, suffix, enumList, enumName):
 	'''This function is used to generate the proper enum blender property'''
@@ -108,10 +125,12 @@ def drawParams(box, detailedProp, key, elemField, elemName, elTag, elType, lenSw
 				else: name = elemName
 
 				# Set the name to none to use the element's name instead
-				if elemName is None: name = elem.get('Name')
+				# Set the name to the element's name if it's a flag and its name is set
+				curName = elem.get('Name')
+				if elemName == None or (elTag == 'Flag' and curName is not None): name = curName
 
 				# Add the index to get the proper attribute
-				if elTag == 'Property' or (elTag == 'Flag' and elType == 'Switch') or elTag == 'Bool':
+				if elTag == 'Property' or (elTag == 'Flag' and elType == 'Switch') or elTag == 'Bool' or elTag == 'Enum':
 					field = elemField + f'{i}'
 				else:
 					field = elemField
@@ -124,14 +143,22 @@ def drawParams(box, detailedProp, key, elemField, elemName, elTag, elType, lenSw
 						prop_split(box, detailedProp, field, name)
 
 					# Maximum warning
-					mask = int(elem.get('Mask'), base=16)
-					shift = len(f'{mask:016b}') - len(f'{mask:016b}'.rstrip('0'))
-					maximum = int(elem.get('Mask'), base=16) >> shift
-					params = getActorParameter(detailedProp, field, shift) >> shift
-					if params > maximum:
-						box.box().label(text= \
-							f"Warning: Maximum is 0x{int(elem.get('Mask'), base=16) >> shift:X}!")
+					elemMask = elem.get('Mask')
+					if elemMask is not None:
+						mask = int(elemMask, base=16)
+						shift = len(f'{mask:016b}') - len(f'{mask:016b}'.rstrip('0'))
+						maximum = int(elemMask, base=16) >> shift
+						params = getActorParameter(detailedProp, field, shift) >> shift
+						if params > maximum:
+							box.box().label(text= \
+								f"Warning: Maximum is 0x{int(elemMask, base=16) >> shift:X}!")
 					i += 1
+
+def drawSearchBox(layout, obj, detailedProp, field, labelText, searchOp, enum):
+	searchOp.objName = obj
+	split = layout.split(factor=0.5)
+	split.label(text=labelText)
+	split.label(text=getEnumName(enum, getattr(detailedProp, field)))
 
 def editDetailedProperties():
 	'''This function is used to edit the OOTActorDetailedProperties class before it's registered'''
@@ -159,26 +186,23 @@ def editDetailedProperties():
 	propAnnotations['transActorIDCustom'] = bpy.props.StringProperty(name='Actor Key', default='0000')
 	propAnnotations['transActorKey'] = bpy.props.StringProperty(name='Transition Actor ID', default='0009')
 	propAnnotations['transActorParam'] = bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000', \
-		get=lambda self: getValues(self, 'Transition Actor', self.transActorID, 'transActorParam', 'transParam', self.transActorParamCustom),
+		get=lambda self: getValues(self, 'Transition Actor', self.transActorID, 'actorParam', 'transParam', self.transActorParamCustom),
 		set=lambda self, value: setValues(self, value, 'Transition Actor', 'transActorID'))
 	propAnnotations['transActorParamCustom'] = bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000')
 
 	# Other
 	propAnnotations['isActorSynced'] = bpy.props.BoolProperty(default=False)
 	propAnnotations['itemChest'] = bpy.props.EnumProperty(name='Chest Content', items=ootChestContent)
+	propAnnotations['naviMsgID'] = bpy.props.EnumProperty(name='Chest Content', items=ootNaviMsgID)
 
 	# Collectible Drops Lists
 	itemDrops = [(elem.get('Value'), elem.get('Name'), \
 					elem.get('Name')) for listNode in root for elem in listNode if listNode.tag == 'List' \
 					and listNode.get('Name') == 'Collectibles']
 
-	wonderItemDrops = [(elem.get('Value'), elem.get('Name'), \
-					elem.get('Name')) for listNode in root for elem in listNode if listNode.tag == 'List' \
-					and listNode.get('Name') == 'En_Wonder_Item Drops']
-
 	# Generate the fields
 	for actorNode in root:
-		i = j = k = 1
+		i = j = k = l = 1
 		actorKey = actorNode.get('Key')
 		for elem in actorNode:
 			if elem.tag == 'Property':
@@ -193,11 +217,7 @@ def editDetailedProperties():
 					genString(propAnnotations, actorKey, f'.switchFlag{j}', 'Switch Flag')
 					j += 1
 			elif elem.tag == 'Collectible':
-				if actorKey == '0112':
-					# ACTOR_EN_WONDER_ITEM uses a different drop table according to decomp
-					genEnum(propAnnotations, actorKey, '.collectibleDrop', wonderItemDrops, 'Collectible Drop')
-				else:
-					genEnum(propAnnotations, actorKey, '.collectibleDrop', itemDrops, 'Collectible Drop')
+				genEnum(propAnnotations, actorKey, '.collectibleDrop', itemDrops, 'Collectible Drop')
 			elif elem.tag == 'Parameter':
 				actorTypeList = [(elem2.get('Params'), elem2.text, elem2.get('Params')) \
 								for actorNode2 in root for elem2 in actorNode2 \
@@ -208,6 +228,12 @@ def editDetailedProperties():
 				prop = bpy.props.BoolProperty(default=False)
 				propAnnotations[objName] = prop
 				k += 1
+			elif elem.tag == 'Enum':
+				actorEnumList = [(item.get('Value'), item.get('Name'), item.get('Value')) \
+								for actorNode2 in root if actorNode2.get('Key') == actorKey \
+								for elem2 in actorNode2 if elem2.tag == 'Enum' and elem2.get('Index') == f'{l}' for item in elem2]
+				genEnum(propAnnotations, actorKey, f'.enum{l}', actorEnumList, elem.get('Name'))
+				l += 1
 
 def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, userIDField, userParamField, detailedProp, dpKey):
 	'''This function handles the drawing of the detailed actor panel'''
@@ -252,13 +278,14 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 			prop_split(userLayout, detailedProp, dpKey + '.type', typeText)
 
 		if user == userActor:
-			if userActorID == detailedProp.actorID and dpKey == '000A':
-				searchOp = userLayout.operator(OOT_SearchChestContentEnumOperator.bl_idname, icon='VIEWZOOM')
-				searchOp.objName = userObj
-				split = userLayout.split(factor=0.5)
-				split.label(text="Chest Content")
-				split.label(text=getEnumName(ootChestContent, detailedProp.itemChest))
-						
+			if userActorID == detailedProp.actorID:
+				if dpKey == '000A':
+					searchOp = userLayout.operator(OOT_SearchChestContentEnumOperator.bl_idname, icon='VIEWZOOM')
+					drawSearchBox(userLayout, userObj, detailedProp, 'itemChest', 'Chest Content', searchOp, ootChestContent)
+				if dpKey == '011B':
+					searchOp = userLayout.operator(OOT_SearchNaviMsgIDEnumOperator.bl_idname, icon='VIEWZOOM')
+					drawSearchBox(userLayout, userObj, detailedProp, 'naviMsgID', 'Message ID', searchOp, ootNaviMsgID)
+
 			propAnnot = getattr(detailedProp, dpKey + ('.collectibleDrop'), None)
 			if propAnnot is not None:
 				prop_split(userLayout, detailedProp, dpKey + '.collectibleDrop', 'Collectible Drop')
@@ -266,12 +293,14 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 		lenProp = getMaxElemIndex(dpKey, 'Property', None)
 		lenSwitch = getMaxElemIndex(dpKey, 'Flag', 'Switch')
 		lenBool = getMaxElemIndex(dpKey, 'Bool', None)
+		lenEnum = getMaxElemIndex(dpKey, 'Enum', None)
 
 		if user == userActor:
 			drawParams(userLayout, detailedProp, dpKey, dpKey + '.chestFlag', 'Chest Flag', 'Flag', 'Chest', None)
 			drawParams(userLayout, detailedProp, dpKey, dpKey + '.collectibleFlag', 'Collectible Flag', 'Flag', 'Collectible', None)
 
 		drawParams(userLayout, detailedProp, dpKey, f'{dpKey}.switchFlag', 'Switch Flag', 'Flag', 'Switch', lenSwitch)
+		drawParams(userLayout, detailedProp, dpKey, f'{dpKey}.enum', None, 'Enum', None, None)
 		drawParams(userLayout, detailedProp, dpKey, f'{dpKey}.props', None, 'Property', None, None)
 		drawParams(userLayout, detailedProp, dpKey, f'{dpKey}.bool', None, 'Bool', None, None)
 
@@ -286,26 +315,21 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 
 		# Tied params are those properties that need something else to work properly
 		# i.e: floor switches have 2 unique subtypes (reset when not stood on)
+
+		actorParams = processComputation(detailedProp, dpKey)
 		for actorNode in root:
 			if actorNode.get('Key') == dpKey:
 				for elem in actorNode:
-					paramTarget = elem.get('Target')
-					tiedParam = elem.get('TiedParam')
+					paramTarget = elem.get('Target') 
 					actorType = getattr(detailedProp, dpKey + '.type', None)
-					boolTied = isTiedParam(tiedParam, actorType)
-					if (paramTarget == 'Params' or paramTarget is None) and boolTied is True:
-							actorParams += computeParams(elem, detailedProp, dpKey, lenProp, lenSwitch, lenBool)
-
-					if user == userActor and boolTied is True:
+					if user == userActor and isTiedParam(elem.get('TiedParam'), actorType) is True:
 						if paramTarget == 'XRot':
-							XRotParams += computeParams(elem, detailedProp, dpKey, lenProp, lenSwitch, lenBool)
+							XRotParams += computeParams(elem, detailedProp, dpKey, lenProp, lenSwitch, lenBool, lenEnum)
 						elif paramTarget == 'YRot':
-							YRotParams += computeParams(elem, detailedProp, dpKey, lenProp, lenSwitch, lenBool)
+							YRotParams += computeParams(elem, detailedProp, dpKey, lenProp, lenSwitch, lenBool, lenEnum)
 						elif paramTarget == 'ZRot':
-							ZRotParams += computeParams(elem, detailedProp, dpKey, lenProp, lenSwitch, lenBool)
+							ZRotParams += computeParams(elem, detailedProp, dpKey, lenProp, lenSwitch, lenBool, lenEnum)
 
-		# Finally, add the actor type value, which is already shifted in the XML
-		actorParams += getActorParameter(detailedProp, dpKey + '.type', 0)
 		if user != userTransition:
 			OOTActorParams.param = f'0x{actorParams:X}'
 		else: OOTActorParams.transParam = f'0x{actorParams:X}'
@@ -504,13 +528,12 @@ class OOTTransitionActorProperty(bpy.types.PropertyGroup):
 	cameraTransitionBackCustom : bpy.props.StringProperty(default = '0x00')
 
 	actor : bpy.props.PointerProperty(type = OOTActorProperty)
-	detailedActor : bpy.props.PointerProperty(type = OOTActorDetailedProperties)
 
 def drawTransitionActorProperty(layout, transActorProp, altSceneProp, roomObj, objName, detailedProp):
 	actorIDBox = layout.column()
 
-	if transActorProp.detailedActor.isActorSynced:
-		drawDetailedProperties('Transition Property', transActorProp.detailedActor, actorIDBox, objName, \
+	if detailedProp.isActorSynced:
+		drawDetailedProperties('Transition Property', detailedProp, actorIDBox, objName, \
 			OOT_SearchTransActorIDEnumOperator, 'transActorID', 'transActorParam', detailedProp, detailedProp.transActorKey)
 		if roomObj is None:
 			actorIDBox.label(text = "This must be part of a Room empty's hierarchy.", icon = "ERROR")

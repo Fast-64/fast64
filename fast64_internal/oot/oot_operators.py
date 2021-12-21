@@ -219,22 +219,29 @@ def processObj(obj):
 			print(f"Processing Actor '{obj.name}'...")
 			actorProp = obj.ootActorProperty
 			processParameters(objType, obj.ootActorProperty.actorID, actorProp, obj.ootActorDetailedProperties, \
-				stringToInt(actorProp.actorParam), 'param', 'actorID', 'actorParam')
+				stringToInt(actorProp.actorParam), 'param', 'actorID', 'actorParam', 'actorParam')
 
 		elif objType == "Transition Actor":
 			print(f"Processing Transition Actor '{obj.name}'...")
-			transActorProp = obj.ootTransitionActorProperty
-			processParameters(objType, transActorProp.actor.actorID, transActorProp.actor, transActorProp.detailedActor, \
-				stringToInt(transActorProp.actor.actorParam), 'transParam', 'actorID', 'actorParam')
+			transActorProp = obj.ootTransitionActorProperty.actor
+			processParameters(objType, transActorProp.actorID, transActorProp, obj.ootActorDetailedProperties, \
+				stringToInt(transActorProp.actorParam), 'transParam', 'actorID', 'actorParam', 'transActorParam')
+
+		elif objType == "Entrance":
+			print(f"Processing Entrance Actor '{obj.name}'...")
+			entranceProp = obj.ootEntranceProperty.actor
+			processParameters(objType, entranceProp.actorID, entranceProp, obj.ootActorDetailedProperties, \
+				stringToInt(entranceProp.actorParam), 'param', 'actorID', 'actorParam', 'actorParam')
 
 	for childObj in obj.children:
 		processObj(childObj)
 
-def processParameters(user, actorID, actorProp, detailedProp, params, toSaveField, idField, paramField):
+def processParameters(user, actorID, actorProp, detailedProp, params, toSaveField, idField, paramField, detailedField):
 	userActor = 'Actor'
 	userTransition = 'Transition Actor'
 	userEntrance = 'Entrance Property'
 	if actorID != 'Custom':
+		actorParams = 0
 		for actorNode in root:
 			if actorNode.get('ID') == actorID:
 				dPKey = actorNode.get('Key')
@@ -247,12 +254,14 @@ def processParameters(user, actorID, actorProp, detailedProp, params, toSaveFiel
 				lenProp = getMaxElemIndex(dPKey, 'Property', None)
 				lenSwitch = getMaxElemIndex(dPKey, 'Flag', 'Switch')
 				lenBool = getMaxElemIndex(dPKey, 'Bool', None)
+				lenEnum = getMaxElemIndex(dPKey, 'Enum', None)
 				for elem in actorNode:
 					tiedParam = elem.get('TiedParam')
 					actorType = getattr(detailedProp, dPKey + '.type', None)
 					if isTiedParam(tiedParam, actorType) is True:
-						uncomputeParams(elem, params, detailedProp, dPKey, lenProp, lenSwitch, lenBool)
-						setattr(actorProp, toSaveField + 'ToSave', getattr(actorProp, paramField))
+						uncomputeParams(elem, params, detailedProp, dPKey, lenProp, lenSwitch, lenBool, lenEnum)
+		actorParams = processComputation(detailedProp, dPKey)
+		setattr(actorProp, toSaveField + 'ToSave', f'0x{actorParams:X}')
 	else:
 		setattr(detailedProp, idField + 'Custom', getattr(actorProp, idField + 'Custom'))
 		setattr(detailedProp, paramField + 'Custom', getattr(actorProp, paramField))

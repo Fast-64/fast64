@@ -473,21 +473,20 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 				rotY = f'{rotation[1]}'
 				rotZ = f'{rotation[2]}'
 
-			addActor(room, OOTActor(getActorProperty(actorProp, detailedProp, actorID, 'actorID', 'actorID'),
+			addActor(room, OOTActor(getActorProperty(actorProp, detailedProp, actorID, 'actorID', None),
 				translation, rotation, getActorProperty(actorProp, detailedProp, actorID, 'actorParam', 'paramToSave'), (rotX, rotY, rotZ)),
 				actorProp, "actorList", obj.name)
 		elif obj.ootEmptyType == "Transition Actor":
 			transActorProp = obj.ootTransitionActorProperty
 			detailedProp = obj.ootActorDetailedProperties
-			actorID = transActorProp.detailedActor.transActorID
+			actorID = detailedProp.transActorID
 			addActor(scene, OOTTransitionActor(
-				getActorProperty(transActorProp.detailedActor, detailedProp, actorID, 'transActorID', 'transActorID'),
-				print(getActorProperty(transActorProp.detailedActor, detailedProp, actorID, 'transActorID', 'transActorID')),
+				getActorProperty(transActorProp.actor, detailedProp, actorID, 'transActorID', None),
 				room.roomIndex, transActorProp.roomIndex,
 				getCustomProperty(transActorProp, "cameraTransitionFront"),
 				getCustomProperty(transActorProp, "cameraTransitionBack"),
 				translation, rotation[1], # TODO: Correct axis?
-				getActorProperty(transActorProp.detailedActor, detailedProp, actorID, 'actorParam', 'transParamToSave')),
+				getActorProperty(transActorProp.actor, detailedProp, actorID, 'transActorParam', 'transParamToSave')),
 				transActorProp.actor, "transitionActorList", obj.name)
 			#scene.transitionActorList.append(OOTTransitionActor(
 			#	getCustomProperty(transActorProp.actor, "actorID"),

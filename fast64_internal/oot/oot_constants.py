@@ -67,6 +67,10 @@ ootChestContent = [(elem.get('Value'), elem.get('Name'), \
 					elem.get('Name')) for listNode in root for elem in listNode if listNode.tag == 'List' \
 					and listNode.get('Name') == 'Chest Content']
 
+ootNaviMsgID = [(elem.get('Value'), elem.get('Name'), \
+				elem.get('Name')) for listNode in root for elem in listNode if listNode.tag == 'List' \
+				and listNode.get('Name') == 'Elf_Msg Message ID']
+
 ootEnumLinkIdle = [
 	("Custom", "Custom", "Custom"),
 	("0x00", "Default", "Default"),

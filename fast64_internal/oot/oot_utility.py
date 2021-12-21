@@ -378,6 +378,8 @@ def getCustomProperty(data, prop):
 	return value if value != "Custom" else getattr(data, prop + str("Custom"))
 
 def getActorProperty(data, detailedProp, idField, field, toSaveField):
+	if toSaveField is None and idField != 'Custom':
+		return getattr(detailedProp, field)
 	return getattr(detailedProp, field + str("Custom")) if idField == 'Custom' else getattr(data, toSaveField)
 
 def convertIntTo2sComplement(value, length, signed):
@@ -616,7 +618,19 @@ def getActorParameter(object, field, shift):
 def setActorParameter(object, field, param, mask):
 	shift = len(f'{mask:016b}') - len(f'{mask:016b}'.rstrip('0'))
 	if field.endswith('.type'):
-		setattr(object, field, f'{param & mask:04X}')
+		if mask == 0xFFFF:
+			for actorNode in root:
+				if actorNode.get('ID') == object.actorID:
+					for elem in actorNode:
+						if elem.tag == 'Parameter':
+							params = elem.get('Params').lstrip('0x')
+							for i in range(len(params)):
+								if params == "FFFF" or params[i] == f'{param}'[i]:
+									param &= int(params, base=16)
+									setattr(object, field, f'{param:04X}')
+									return
+		else:
+			setattr(object, field, f'{param & mask:04X}')
 	else:
 		attr = getattr(object, field, '0x0')
 		if isinstance(attr, str):
@@ -659,7 +673,7 @@ def isTiedParam(tiedParam, actorType):
 					if tiedList[j] == actorType:
 						return True
 
-def computeParams(elem, detailedProp, field, lenProp, lenSwitch, lenBool):
+def computeParams(elem, detailedProp, field, lenProp, lenSwitch, lenBool, lenEnum):
 	params = shift = 0
 	strMask = elem.get('Mask')
 	if elem.tag != 'Parameter' and strMask is not None:
@@ -681,41 +695,86 @@ def computeParams(elem, detailedProp, field, lenProp, lenSwitch, lenBool):
 					params += getActorParameter(detailedProp, (field + f'.props{i}'), shift)
 		elif elem.tag == 'Item':
 			params += int(detailedProp.itemChest, base=16) << shift
+		elif elem.tag == 'Message':
+			params += int(detailedProp.naviMsgID, base=16) << shift
 		elif elem.tag == 'Collectible':
 			params += getActorParameter(detailedProp, field + '.collectibleDrop', shift)
 		elif elem.tag == 'Bool':
 			for i in range(1, (int(lenBool, base=10) + 1)):
 				if i == int(elem.get('Index'), base=10):
 					params += getActorParameter(detailedProp, (field + f'.bool{i}'), shift)
+		elif elem.tag == 'Enum':
+			for i in range(1, (int(lenEnum, base=10) + 1)):
+				if i == int(elem.get('Index'), base=10):
+					params += getActorParameter(detailedProp, (field + f'.enum{i}'), shift)
 	return params
 
-def uncomputeParams(elem, params, detailedProp, field, lenProp, lenSwitch, lenBool):
+def processComputation(detailedProp, dpKey):
+	# This next if handles the necessary maths to get the actor parameters from the detailed panel
+	# Reads ActorList.xml and figures out the necessary bit shift and applies it to whatever is in the blender string field
+	# Actor key refers to the hex ID of an actor
+	# It was made like that to make it future proof as the OoT decomp isn't fully done yet so names can still change
+	# For Switch Flags & <Property> we need to make sure the value corresponds to the mask, hence the index in the XML
+	# For Chest Content (<Item>) we don't need the actor key because it's handled differently: it's a search box
+	# if the user wants to use a custom actor this computation is pointless
+
+	# Tied params are those properties that need something else to work properly
+	# i.e: floor switches have 2 unique subtypes (reset when not stood on)
+
+	lenProp = getMaxElemIndex(dpKey, 'Property', None)
+	lenSwitch = getMaxElemIndex(dpKey, 'Flag', 'Switch')
+	lenBool = getMaxElemIndex(dpKey, 'Bool', None)
+	lenEnum = getMaxElemIndex(dpKey, 'Enum', None)
+	actorParams = 0
+
+	for actorNode in root:
+		if actorNode.get('Key') == dpKey:
+			for elem in actorNode:
+				paramTarget = elem.get('Target')
+				tiedParam = elem.get('TiedParam')
+				actorType = getattr(detailedProp, dpKey + '.type', None)
+				boolTied = isTiedParam(tiedParam, actorType)
+				if (paramTarget == 'Params' or paramTarget is None) and boolTied is True:
+						actorParams += computeParams(elem, detailedProp, dpKey, lenProp, lenSwitch, lenBool, lenEnum)
+	# Finally, add the actor type value, which is already shifted in the XML
+	actorParams += getActorParameter(detailedProp, dpKey + '.type', 0)
+	return actorParams
+
+def uncomputeParams(elem, params, detailedProp, field, lenProp, lenSwitch, lenBool, lenEnum):
 	strMask = elem.get('Mask')
+	target = elem.get('Target')
 	if strMask is not None:
-		target = elem.get('Target')
 		mask = int(strMask, base=16)
-		if elem.tag == 'Parameter':
-			setActorParameter(detailedProp, field + '.type', params, mask)
-		elif target == 'Params' or target is None:
-			if elem.tag == 'Flag':
-				elemType = elem.get('Type')
-				if elemType == 'Chest':
-					setActorParameter(detailedProp, field + '.chestFlag', params, mask)
-				elif elemType == 'Collectible':
-					setActorParameter(detailedProp, field + '.collectibleFlag', params, mask)
-				elif elemType == 'Switch':
-					for i in range(1, (int(lenSwitch, base=10) + 1)):
-						if i == int(elem.get('Index'), base=10):
-							setActorParameter(detailedProp, field + f'.switchFlag{i}', params, mask)
-			elif elem.tag == 'Property' and elem.get('Name') != 'None':
-				for i in range(1, (int(lenProp, base=10) + 1)):
+	else:
+		mask = 0xFFFF
+	if elem.tag == 'Parameter':
+		setActorParameter(detailedProp, field + '.type', params, mask)
+	elif target == 'Params' or target is None:
+		if elem.tag == 'Flag':
+			elemType = elem.get('Type')
+			if elemType == 'Chest':
+				setActorParameter(detailedProp, field + '.chestFlag', params, mask)
+			elif elemType == 'Collectible':
+				setActorParameter(detailedProp, field + '.collectibleFlag', params, mask)
+			elif elemType == 'Switch':
+				for i in range(1, (int(lenSwitch, base=10) + 1)):
 					if i == int(elem.get('Index'), base=10):
-						setActorParameter(detailedProp, field + f'.props{i}', params, mask)
-			elif elem.tag == 'Item':
-				setActorParameter(detailedProp, 'itemChest', params, mask)
-			elif elem.tag == 'Collectible':
-				setActorParameter(detailedProp, field + '.collectibleDrop', params, mask)
-			elif elem.tag == 'Bool':
-				for i in range(1, (int(lenBool, base=10) + 1)):
-					if i == int(elem.get('Index'), base=10):
-						setActorParameter(detailedProp, field + f'.bool{i}', params, mask)
+						setActorParameter(detailedProp, field + f'.switchFlag{i}', params, mask)
+		elif elem.tag == 'Property' and elem.get('Name') != 'None':
+			for i in range(1, (int(lenProp, base=10) + 1)):
+				if i == int(elem.get('Index'), base=10):
+					setActorParameter(detailedProp, field + f'.props{i}', params, mask)
+		elif elem.tag == 'Item':
+			setActorParameter(detailedProp, 'itemChest', params, mask)
+		elif elem.tag == 'Message':
+			setActorParameter(detailedProp, 'naviMsgID', params, mask)
+		elif elem.tag == 'Collectible':
+			setActorParameter(detailedProp, field + '.collectibleDrop', params, mask)
+		elif elem.tag == 'Bool':
+			for i in range(1, (int(lenBool, base=10) + 1)):
+				if i == int(elem.get('Index'), base=10):
+					setActorParameter(detailedProp, field + f'.bool{i}', params, mask)
+		elif elem.tag == 'Enum':
+			for i in range(1, (int(lenEnum, base=10) + 1)):
+				if i == int(elem.get('Index'), base=10):
+					setActorParameter(detailedProp, field + f'.enum{i}', params, mask)
