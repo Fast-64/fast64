@@ -99,7 +99,7 @@ def setValues(self, value, paramTarget, field):
 						else: param = '0x0'
 					else:
 						param = value
-					uncomputeParams(elem, stringToInt(param), detailedProp, dPKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
+					uncomputeParams(elem, eval(param), detailedProp, dPKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
 
 def genEnum(annotations, key, suffix, enumList, enumName):
 	'''This function is used to generate the proper enum blender property'''
@@ -180,9 +180,6 @@ def editDetailedProperties():
 	propAnnotations['rotOverrideZ'] =  bpy.props.StringProperty(name = 'Rot Z', default = '0x0',
 		get=lambda self: getValues(self, 'ZRot', self.actorID, None, 'ZRot', None),
 		set=lambda self, value: setValues(self, value, 'ZRot', 'actorID'))
-	propAnnotations['XRotCustom'] = bpy.props.StringProperty(name = 'Rot X', default = '0x0')
-	propAnnotations['YRotCustom'] = bpy.props.StringProperty(name = 'Rot Y', default = '0x0')
-	propAnnotations['ZRotCustom'] = bpy.props.StringProperty(name = 'Rot Z', default = '0x0')
 	propAnnotations['XRotBool'] = bpy.props.BoolProperty(default=False,
 		get=lambda self: getValues(self, 'XRotBool', self.actorID, None, 'rotXBool', None))
 	propAnnotations['YRotBool'] = bpy.props.BoolProperty(default=False,
@@ -311,11 +308,12 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 		drawParams(userLayout, detailedProp, dpKey, f'{dpKey}.bool', None, 'Bool', None, None)
 
 		if user != userTransition:
-			OOTActorParams.param = f"0x{eval(getActorString(detailedProp, dpKey, 'Params')):X}"
+			OOTActorParams.param = getActorString(detailedProp, dpKey, 'Params')
 		else:
-			OOTActorParams.transParam = f"0x{eval(getActorString(detailedProp, dpKey, 'Params')):X}"
-		userLayout.label()
-		prop_split(userLayout, detailedProp, userParamField, 'Actor Parameter')
+			OOTActorParams.transParam = getActorString(detailedProp, dpKey, 'Params')
+		paramBox = userLayout.box()
+		paramBox.label(text="Actor Parameter")
+		paramBox.prop(detailedProp, userParamField, text="")
 
 		if user == userActor:
 			for actorNode in root:
@@ -325,18 +323,21 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 						actorType = getattr(detailedProp, dpKey + '.type')
 						if isTiedParam(elem.get('TiedParam'), actorType):
 							if target == 'XRot':
-								OOTActorParams.XRot = f"0x{eval(getActorString(detailedProp, dpKey, 'XRot')):X}"
+								OOTActorParams.XRot = getActorString(detailedProp, dpKey, 'XRot')
 								OOTActorParams.rotXBool = True
 							elif target == 'YRot':
-								OOTActorParams.YRot = f"0x{eval(getActorString(detailedProp, dpKey, 'YRot')):X}"
+								OOTActorParams.YRot = getActorString(detailedProp, dpKey, 'YRot')
 								OOTActorParams.rotYBool = True
 							elif target == 'ZRot':
-								OOTActorParams.ZRot = f"0x{eval(getActorString(detailedProp, dpKey, 'ZRot')):X}"
+								OOTActorParams.ZRot = getActorString(detailedProp, dpKey, 'ZRot')
 								OOTActorParams.rotZBool = True
 
-			if OOTActorParams.rotXBool: prop_split(userLayout, detailedProp, 'rotOverrideX', 'Rot X')
-			if OOTActorParams.rotYBool: prop_split(userLayout, detailedProp, 'rotOverrideY', 'Rot Y')
-			if OOTActorParams.rotZBool: prop_split(userLayout, detailedProp, 'rotOverrideZ', 'Rot Z')
+			if OOTActorParams.rotXBool: 
+				prop_split(paramBox, detailedProp, 'rotOverrideX', 'Rot X')
+			if OOTActorParams.rotYBool: 
+				prop_split(paramBox, detailedProp, 'rotOverrideY', 'Rot Y')
+			if OOTActorParams.rotZBool: 
+				prop_split(paramBox, detailedProp, 'rotOverrideZ', 'Rot Z')
 	else:
 		if user != userEntrance:
 			prop_split(userLayout, detailedProp, userIDField + 'Custom', currentActor)
@@ -433,6 +434,7 @@ class OOTActorProperty(bpy.types.PropertyGroup):
 	# We can't delete this (for now) as it'd ignore data in older blend files
 	actorID : bpy.props.EnumProperty(name = 'Actor', items = ootEnumActorID, default = 'ACTOR_PLAYER')
 	actorParam : bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000')
+	rotOverride : bpy.props.BoolProperty(name = 'Override Rotation', default = False)
 	rotOverrideX : bpy.props.StringProperty(name = 'Rot X', default = '0x0')
 	rotOverrideY : bpy.props.StringProperty(name = 'Rot Y', default = '0x0')
 	rotOverrideZ : bpy.props.StringProperty(name = 'Rot Z', default = '0x0')

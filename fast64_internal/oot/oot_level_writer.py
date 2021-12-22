@@ -491,6 +491,8 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 			transActorProp = obj.ootTransitionActorProperty
 			detailedProp = obj.ootActorDetailedProperties
 			actorID = detailedProp.transActorID
+			if rotation[0] != 0 or rotation[2] != 0:
+				raise PluginError("Transition Actors can't have X and Y Rotations!")
 			addActor(scene, OOTTransitionActor(
 				getActorProperty(transActorProp.actor, detailedProp, actorID, 'transActorID'),
 				room.roomIndex, transActorProp.roomIndex,
