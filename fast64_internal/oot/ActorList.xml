@@ -1181,7 +1181,6 @@ ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
   <Actor Category="ACTORCAT_BG" HasEnum="True" ID="ACTOR_BG_SPOT08_ICEBLOCK" Key="00D1" Name="Ice Platform - BG_SPOT08_ICEBLOCK" ObjectID="OBJECT_SPOT08_OBJ">
     <Parameter Mask="0x0200" Params="0000">Iceberg</Parameter>
     <Parameter Mask="0x0200" Params="0200">Ice Ramp</Parameter>
-    <Property Index="1" Mask="0x00F0" Name="Size"/>
     <Enum Index="1" Mask="0x000F" Name="Action" Target="Params" TiedParam="0000">
       <Item Name="Floating" Value="0x00"/>
       <Item Name="Floating (?)" Value="0x01"/>
@@ -1474,8 +1473,9 @@ The sun switch has to be between 252 and 308 units from the cobra mirror to be a
     <Parameter Mask="0xF800" Params="4000"> Bomberman Soldier</Parameter>
     <Parameter Mask="0xF800" Params="4800"> Collectible gave if player rolls</Parameter>
     <Flag Index="1" Mask="0x003F" Target="Params" Type="Switch"/>
-    <Property Index="1" Mask="0x00FF" Name="# of Collectibles" Target="ZRot" TiedParam="0000,1000,1800,2800,4800"/>
-    <Property Index="2" Mask="0x00FF" Name="Tag Point #" Target="ZRot" TiedParam="1800"/>
+    <Property Index="1" Mask="0x00FF" Name="# of Collectibles" Target="ZRot" TiedParam="1000,4800"/>
+    <Property Index="2" Mask="0x00FF" Name="Tag Point #" Target="ZRot" TiedParam="0800,3000"/>
+    <Property Index="3" Mask="0x00FF" Name="Total of Tag Points" Target="ZRot" TiedParam="0000,2800"/>
     <Enum Index="1" Mask="0x07C0" Name="Collectible Type" Target="Params" TiedParam="0000,1000,1800,2800,4800">
       <Item Name="Deku Nuts" Value="0x00"/>
       <Item Name="Heart Piece" Value="0x01"/>
@@ -1664,7 +1664,7 @@ ZROT +0x0003 = Speed, Acceleration
     <Parameter Mask="0xFC00" Params="1800"> Royal Family Tomb, Zelda's Lullaby spot</Parameter>
     <Parameter Mask="0xFC00" Params="1C00"> Puzzle Spot</Parameter>
     <Flag Index="1" Mask="0x003F" Target="Params" Type="Switch"/>
-    <Property Index="1" Mask="0xFFFF" Name="Range" Target="ZRot"/>
+    <Property Index="1" Mask="0xFFFF" Name="Range" Target="ZRot" TiedParam="1C00"/>
     <Enum Index="1" Mask="0x03C0" Name="Song to Play" Target="Params" TiedParam="1C00">
       <Item Name="Saria's Song" Value="0x00"/>
       <Item Name="Epona's Song" Value="0x01"/>

@@ -259,9 +259,12 @@ def processParameters(user, actorID, actorProp, detailedProp, params, toSaveFiel
 					tiedParam = elem.get('TiedParam')
 					actorType = getattr(detailedProp, dPKey + '.type', None)
 					if isTiedParam(tiedParam, actorType) is True:
-						uncomputeParams(elem, params, detailedProp, dPKey, lenProp, lenSwitch, lenBool, lenEnum)
-		actorParams = processComputation(detailedProp, dPKey)
-		setattr(actorProp, toSaveField + 'ToSave', f'0x{actorParams:X}')
+						uncomputeParams(elem, params, detailedProp, dPKey, lenProp, lenSwitch, lenBool, lenEnum, 'Params')
+		if user != userTransition:
+			actorParams = f"0x{eval(getActorString(detailedProp, detailedProp.actorKey, 'Params')):X}"
+		else:
+			actorParams = f"0x{eval(getActorString(detailedProp, detailedProp.transActorKey, 'Params')):X}"
+		setattr(actorProp, toSaveField + 'ToSave', actorParams)
 	else:
 		setattr(detailedProp, idField + 'Custom', getattr(actorProp, idField + 'Custom'))
 		setattr(detailedProp, paramField + 'Custom', getattr(actorProp, paramField))

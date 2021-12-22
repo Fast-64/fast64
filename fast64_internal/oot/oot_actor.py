@@ -72,8 +72,7 @@ def getValues(self, user, actorID, actorField, paramField, customField):
 			setattr(OOTActorParams, paramField, customField)
 
 		value = getattr(OOTActorParams, paramField)
-		if paramField != 'rotXBool' and paramField != 'rotYBool' and paramField != 'rotZBool':
-			setattr(actorProp, paramField + 'ToSave', value)
+		setattr(actorProp, paramField + 'ToSave', value)
 
 		return value
 	else:
@@ -82,7 +81,7 @@ def getValues(self, user, actorID, actorField, paramField, customField):
 		else:
 			raise PluginError("Can't return the proper value")
 
-def setValues(self, value, user, field):
+def setValues(self, value, paramTarget, field):
 	detailedProp = self
 	for actorNode in root:
 		if actorNode.get('ID') == getattr(detailedProp, field, '0x0'):
@@ -95,7 +94,12 @@ def setValues(self, value, user, field):
 				tiedParam = elem.get('TiedParam')
 				actorType = getattr(detailedProp, dPKey + '.type', None)
 				if isTiedParam(tiedParam, actorType) is True:
-					uncomputeParams(elem, stringToInt(value), detailedProp, dPKey, lenProp, lenSwitch, lenBool, lenEnum)
+					if isinstance(value, bool):
+						if value: param = '0x1'
+						else: param = '0x0'
+					else:
+						param = value
+					uncomputeParams(elem, stringToInt(param), detailedProp, dPKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
 
 def genEnum(annotations, key, suffix, enumList, enumName):
 	'''This function is used to generate the proper enum blender property'''
@@ -141,17 +145,6 @@ def drawParams(box, detailedProp, key, elemField, elemName, elTag, elType, lenSw
 				if name != 'None' and elem.tag == elTag and elType == elem.get('Type') and attr is not None:
 					if isTiedParam(tiedParam, actorType) is True:
 						prop_split(box, detailedProp, field, name)
-
-					# Maximum warning
-					elemMask = elem.get('Mask')
-					if elemMask is not None:
-						mask = int(elemMask, base=16)
-						shift = len(f'{mask:016b}') - len(f'{mask:016b}'.rstrip('0'))
-						maximum = int(elemMask, base=16) >> shift
-						params = getActorParameter(detailedProp, field, shift) >> shift
-						if params > maximum:
-							box.box().label(text= \
-								f"Warning: Maximum is 0x{int(elemMask, base=16) >> shift:X}!")
 					i += 1
 
 def drawSearchBox(layout, obj, detailedProp, field, labelText, searchOp, enum):
@@ -173,13 +166,29 @@ def editDetailedProperties():
 	propAnnotations['actorKey'] = bpy.props.StringProperty(name='Actor Key', default='0000')
 	propAnnotations['actorParam'] = bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000', \
 		get=lambda self: getValues(self, 'Actor', self.actorID, 'actorParam', 'param', self.actorParamCustom),
-		set=lambda self, value: setValues(self, value, 'Actor', 'actorID'))
+		set=lambda self, value: setValues(self, value, 'Params', 'actorID'))
 	propAnnotations['actorParamCustom'] = bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000')
 
 	# Rotations
-	propAnnotations['rotOverrideX'] =  bpy.props.StringProperty(name = 'Rot X', default = '0x0', get=lambda self: getValues(self, 'XRot', self.actorID, None, 'XRot', None))
-	propAnnotations['rotOverrideY'] =  bpy.props.StringProperty(name = 'Rot Y', default = '0x0', get=lambda self: getValues(self, 'YRot', self.actorID, None, 'YRot', None))
-	propAnnotations['rotOverrideZ'] =  bpy.props.StringProperty(name = 'Rot Z', default = '0x0', get=lambda self: getValues(self, 'ZRot', self.actorID, None, 'ZRot', None))
+	propAnnotations['rotOverride'] =  bpy.props.BoolProperty(name = 'Rot Override', default = False)
+	propAnnotations['rotOverrideX'] =  bpy.props.StringProperty(name = 'Rot X', default = '0x0',
+		get=lambda self: getValues(self, 'XRot', self.actorID, None, 'XRot', None),
+		set=lambda self, value: setValues(self, value, 'XRot', 'actorID'))
+	propAnnotations['rotOverrideY'] =  bpy.props.StringProperty(name = 'Rot Y', default = '0x0',
+		get=lambda self: getValues(self, 'YRot', self.actorID, None, 'YRot', None),
+		set=lambda self, value: setValues(self, value, 'YRot', 'actorID'))
+	propAnnotations['rotOverrideZ'] =  bpy.props.StringProperty(name = 'Rot Z', default = '0x0',
+		get=lambda self: getValues(self, 'ZRot', self.actorID, None, 'ZRot', None),
+		set=lambda self, value: setValues(self, value, 'ZRot', 'actorID'))
+	propAnnotations['XRotCustom'] = bpy.props.StringProperty(name = 'Rot X', default = '0x0')
+	propAnnotations['YRotCustom'] = bpy.props.StringProperty(name = 'Rot Y', default = '0x0')
+	propAnnotations['ZRotCustom'] = bpy.props.StringProperty(name = 'Rot Z', default = '0x0')
+	propAnnotations['XRotBool'] = bpy.props.BoolProperty(default=False,
+		get=lambda self: getValues(self, 'XRotBool', self.actorID, None, 'rotXBool', None))
+	propAnnotations['YRotBool'] = bpy.props.BoolProperty(default=False,
+		get=lambda self: getValues(self, 'YRotBool', self.actorID, None, 'rotYBool', None))
+	propAnnotations['ZRotBool'] = bpy.props.BoolProperty(default=False,
+		get=lambda self: getValues(self, 'ZRotBool', self.actorID, None, 'rotZBool', None))
 
 	# Transition Actors
 	propAnnotations['transActorID'] = bpy.props.EnumProperty(name='Transition Actor ID', items=ootEnumTransitionActorID)
@@ -187,7 +196,7 @@ def editDetailedProperties():
 	propAnnotations['transActorKey'] = bpy.props.StringProperty(name='Transition Actor ID', default='0009')
 	propAnnotations['transActorParam'] = bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000', \
 		get=lambda self: getValues(self, 'Transition Actor', self.transActorID, 'actorParam', 'transParam', self.transActorParamCustom),
-		set=lambda self, value: setValues(self, value, 'Transition Actor', 'transActorID'))
+		set=lambda self, value: setValues(self, value, 'Params', 'transActorID'))
 	propAnnotations['transActorParamCustom'] = bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000')
 
 	# Other
@@ -265,6 +274,7 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 
 		prop_split(userLayout, userProp, "spawnIndex", "Spawn Index")
 		entranceBool = userProp.customActor
+		userProp = detailedProp
 
 	if (user != userEntrance and userActorID != 'Custom') or (user == userEntrance and entranceBool is False):
 		if user != userEntrance:
@@ -278,6 +288,7 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 			prop_split(userLayout, detailedProp, dpKey + '.type', typeText)
 
 		if user == userActor:
+			OOTActorParams.rotXBool = OOTActorParams.rotYBool = OOTActorParams.rotZBool = False
 			if userActorID == detailedProp.actorID:
 				if dpKey == '000A':
 					searchOp = userLayout.operator(OOT_SearchChestContentEnumOperator.bl_idname, icon='VIEWZOOM')
@@ -290,71 +301,42 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 			if propAnnot is not None:
 				prop_split(userLayout, detailedProp, dpKey + '.collectibleDrop', 'Collectible Drop')
 
-		lenProp = getMaxElemIndex(dpKey, 'Property', None)
-		lenSwitch = getMaxElemIndex(dpKey, 'Flag', 'Switch')
-		lenBool = getMaxElemIndex(dpKey, 'Bool', None)
-		lenEnum = getMaxElemIndex(dpKey, 'Enum', None)
-
 		if user == userActor:
 			drawParams(userLayout, detailedProp, dpKey, dpKey + '.chestFlag', 'Chest Flag', 'Flag', 'Chest', None)
 			drawParams(userLayout, detailedProp, dpKey, dpKey + '.collectibleFlag', 'Collectible Flag', 'Flag', 'Collectible', None)
 
-		drawParams(userLayout, detailedProp, dpKey, f'{dpKey}.switchFlag', 'Switch Flag', 'Flag', 'Switch', lenSwitch)
+		drawParams(userLayout, detailedProp, dpKey, f'{dpKey}.switchFlag', 'Switch Flag', 'Flag', 'Switch', getMaxElemIndex(dpKey, 'Flag', 'Switch'))
 		drawParams(userLayout, detailedProp, dpKey, f'{dpKey}.enum', None, 'Enum', None, None)
 		drawParams(userLayout, detailedProp, dpKey, f'{dpKey}.props', None, 'Property', None, None)
 		drawParams(userLayout, detailedProp, dpKey, f'{dpKey}.bool', None, 'Bool', None, None)
 
-		# This next if handles the necessary maths to get the actor parameters from the detailed panel
-		# Reads ActorList.xml and figures out the necessary bit shift and applies it to whatever is in the blender string field
-		# Actor key refers to the hex ID of an actor
-		# It was made like that to make it future proof as the OoT decomp isn't fully done yet so names can still change
-		# For Switch Flags & <Property> we need to make sure the value corresponds to the mask, hence the index in the XML
-		# For Chest Content (<Item>) we don't need the actor key because it's handled differently: it's a search box
-		actorParams = XRotParams = YRotParams = ZRotParams = 0
-		# if the user wants to use a custom actor this computation is pointless
-
-		# Tied params are those properties that need something else to work properly
-		# i.e: floor switches have 2 unique subtypes (reset when not stood on)
-
-		actorParams = processComputation(detailedProp, dpKey)
-		for actorNode in root:
-			if actorNode.get('Key') == dpKey:
-				for elem in actorNode:
-					paramTarget = elem.get('Target') 
-					actorType = getattr(detailedProp, dpKey + '.type', None)
-					if user == userActor and isTiedParam(elem.get('TiedParam'), actorType) is True:
-						if paramTarget == 'XRot':
-							XRotParams += computeParams(elem, detailedProp, dpKey, lenProp, lenSwitch, lenBool, lenEnum)
-						elif paramTarget == 'YRot':
-							YRotParams += computeParams(elem, detailedProp, dpKey, lenProp, lenSwitch, lenBool, lenEnum)
-						elif paramTarget == 'ZRot':
-							ZRotParams += computeParams(elem, detailedProp, dpKey, lenProp, lenSwitch, lenBool, lenEnum)
-
 		if user != userTransition:
-			OOTActorParams.param = f'0x{actorParams:X}'
-		else: OOTActorParams.transParam = f'0x{actorParams:X}'
-
-		if user == userActor: userProp = detailedProp
-		elif user == userEntrance: userProp = userProp.actor
-		prop_split(userLayout, userProp, userParamField, 'Actor Parameter')
+			OOTActorParams.param = f"0x{eval(getActorString(detailedProp, dpKey, 'Params')):X}"
+		else:
+			OOTActorParams.transParam = f"0x{eval(getActorString(detailedProp, dpKey, 'Params')):X}"
+		userLayout.label()
+		prop_split(userLayout, detailedProp, userParamField, 'Actor Parameter')
 
 		if user == userActor:
-			# Note: rotBool & rot are necessary to call the get function (to set the value)
-			# Use Blender's rotation if the current actor don't have X, Y or Z rotation as target for the params
-			OOTActorParams.XRot = f'0x{XRotParams:X}'
-			rot = userProp.rotOverrideX
-			if XRotParams != 0:
-				userLayout.label(text= "Blender's 'Rotation X' will be ignored.")
+			for actorNode in root:
+				if dpKey == actorNode.get('Key'):
+					for elem in actorNode:
+						target = elem.get('Target')
+						actorType = getattr(detailedProp, dpKey + '.type')
+						if isTiedParam(elem.get('TiedParam'), actorType):
+							if target == 'XRot':
+								OOTActorParams.XRot = f"0x{eval(getActorString(detailedProp, dpKey, 'XRot')):X}"
+								OOTActorParams.rotXBool = True
+							elif target == 'YRot':
+								OOTActorParams.YRot = f"0x{eval(getActorString(detailedProp, dpKey, 'YRot')):X}"
+								OOTActorParams.rotYBool = True
+							elif target == 'ZRot':
+								OOTActorParams.ZRot = f"0x{eval(getActorString(detailedProp, dpKey, 'ZRot')):X}"
+								OOTActorParams.rotZBool = True
 
-			OOTActorParams.YRot =f'0x{YRotParams:X}'
-			rot = userProp.rotOverrideY
-			if YRotParams != 0:
-				userLayout.label(text= "Blender's 'Rotation Z' will be ignored.")
-
-			OOTActorParams.ZRot = f'0x{ZRotParams:X}'
-			rot = userProp.rotOverrideZ
-			if ZRotParams != 0:
-				userLayout.label(text= "Blender's 'Rotation Y' will be ignored.")
+			if OOTActorParams.rotXBool: prop_split(userLayout, detailedProp, 'rotOverrideX', 'Rot X')
+			if OOTActorParams.rotYBool: prop_split(userLayout, detailedProp, 'rotOverrideY', 'Rot Y')
+			if OOTActorParams.rotZBool: prop_split(userLayout, detailedProp, 'rotOverrideZ', 'Rot Z')
 	else:
 		if user != userEntrance:
 			prop_split(userLayout, detailedProp, userIDField + 'Custom', currentActor)
@@ -451,25 +433,14 @@ class OOTActorProperty(bpy.types.PropertyGroup):
 	# We can't delete this (for now) as it'd ignore data in older blend files
 	actorID : bpy.props.EnumProperty(name = 'Actor', items = ootEnumActorID, default = 'ACTOR_PLAYER')
 	actorParam : bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000')
-	# rotOverrideX : bpy.props.StringProperty(name = 'Rot X', default = '0x0', get=lambda self: getValues(self, self.actorID, None, 'XRot', None))
-	# rotOverrideY : bpy.props.StringProperty(name = 'Rot Y', default = '0x0', get=lambda self: getValues(self, self.actorID, None, 'YRot', None))
-	# rotOverrideZ : bpy.props.StringProperty(name = 'Rot Z', default = '0x0', get=lambda self: getValues(self, self.actorID, None, 'ZRot', None))
 	rotOverrideX : bpy.props.StringProperty(name = 'Rot X', default = '0x0')
 	rotOverrideY : bpy.props.StringProperty(name = 'Rot Y', default = '0x0')
 	rotOverrideZ : bpy.props.StringProperty(name = 'Rot Z', default = '0x0')
+
 	actorIDCustom : bpy.props.StringProperty(name = 'Actor ID', default = 'ACTOR_PLAYER')
 	rotOverrideCustom : bpy.props.BoolProperty(name = 'Override Rotation', default = False)
-	rotOverrideXCustom : bpy.props.StringProperty(name = 'Rot X', default = '0x0')
-	rotOverrideYCustom : bpy.props.StringProperty(name = 'Rot Y', default = '0x0')
-	rotOverrideZCustom : bpy.props.StringProperty(name = 'Rot Z', default = '0x0')
 
 	headerSettings : bpy.props.PointerProperty(type = OOTActorHeaderProperty)
-	# rotXBool : bpy.props.BoolProperty(name = 'Rot X Bool', default = False, get=lambda self: getValues(self, self.actorID, None, 'rotXBool', None))
-	# rotYBool : bpy.props.BoolProperty(name = 'Rot Y Bool', default = False, get=lambda self: getValues(self, self.actorID, None, 'rotYBool', None))
-	# rotZBool : bpy.props.BoolProperty(name = 'Rot Z Bool', default = False, get=lambda self: getValues(self, self.actorID, None, 'rotZBool', None))
-	rotXBool : bpy.props.BoolProperty(name = 'Rot X Bool', default = False)
-	rotYBool : bpy.props.BoolProperty(name = 'Rot Y Bool', default = False)
-	rotZBool : bpy.props.BoolProperty(name = 'Rot Z Bool', default = False)
 
 	# If you use the 'get=' option from Blender props don't actually save the data in the .blend
 	# When the get function is called we have to save the data that'll be returned

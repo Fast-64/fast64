@@ -377,10 +377,32 @@ def getCustomProperty(data, prop):
 	value = getattr(data, prop)
 	return value if value != "Custom" else getattr(data, prop + str("Custom"))
 
-def getActorProperty(data, detailedProp, idField, field, toSaveField):
-	if toSaveField is None and idField != 'Custom':
-		return getattr(detailedProp, field)
-	return getattr(detailedProp, field + str("Custom")) if idField == 'Custom' else getattr(data, toSaveField)
+def getActorProperty(data, detailedProp, idField, field):
+	if idField != 'Custom':
+		if field != 'actorID' and field != 'transActorID':
+			if field == 'actorParam':
+				return getActorString(detailedProp, detailedProp.actorKey, 'Params')
+			elif field == 'transActorParam':
+				return getActorString(detailedProp, detailedProp.transActorKey, 'Params')
+			else:
+				for actorNode in root:
+					dpKey = detailedProp.actorKey
+					if dpKey == actorNode.get('Key'):
+						for elem in actorNode:
+							target = elem.get('Target')
+							actorType = getattr(detailedProp, dpKey + '.type')
+							if isTiedParam(elem.get('TiedParam'), actorType):
+								if target == field == 'XRot':
+									return getActorString(detailedProp, dpKey, 'XRot')
+								elif target == field == 'YRot':
+									return getActorString(detailedProp, dpKey, 'YRot')
+								elif target == field == 'ZRot':
+									return getActorString(detailedProp, dpKey, 'ZRot')
+				return None
+		elif field == 'actorID' or field == 'transActorID':
+			return getattr(detailedProp, field)
+	else:
+		return getattr(detailedProp, field + str("Custom"))
 
 def convertIntTo2sComplement(value, length, signed):
 	return int.from_bytes(int(round(value)).to_bytes(length, 'big', signed = signed), 'big')
@@ -606,14 +628,48 @@ def oot_utility_unregister():
 	for cls in reversed(oot_utility_classes):
 		unregister_class(cls)
 
-def getActorParameter(object, field, shift):
-	attr = getattr(object, field, '0x0')
-	if isinstance(attr, str):
-		return int(attr, base=16) << shift
-	elif isinstance(attr, bool) and attr:
-		return 1 << shift
+def getActorParameter(object, field, shift, mask):
+	attr = getattr(object, field, '0x00')
+	if attr != '0x00' and attr is not None:					
+		if isinstance(attr, str):
+			if shift != '0':
+				return f"(({attr} << {shift}) & {mask}) | "
+			else:
+				return f"({attr} & {mask}) | " 
+		elif isinstance(attr, bool) and attr:
+			return f"(1 << {shift}) | "
+		else:
+			return ""
 	else:
-		return 0
+		return ""
+
+def getActorString(detailedProp, actorKey, paramTarget):
+	params = ""
+	for actorNode in root:
+		if actorKey == actorNode.get('Key'):
+			lenProp = getMaxElemIndex(actorKey, 'Property', None)
+			lenSwitch = getMaxElemIndex(actorKey, 'Flag', 'Switch')
+			lenBool = getMaxElemIndex(actorKey, 'Bool', None)
+			lenEnum = getMaxElemIndex(actorKey, 'Enum', None)
+			for elem in actorNode:
+				target = elem.get('Target')
+				if target == 'XRot' or target == 'YRot' or target == 'ZRot':
+					actorType = getattr(detailedProp, actorKey + '.type')
+					if isTiedParam(elem.get('TiedParam'), actorType):
+						params += computeParams(elem, detailedProp, actorKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
+				else:
+					params += computeParams(elem, detailedProp, actorKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
+	params = params.rstrip(' | ')
+	if paramTarget == 'Params':
+		actorType = getattr(detailedProp, actorKey + '.type', '0x0')
+		if params == '':
+			return f'0x{actorType}'
+		else:
+			return f'(0x{actorType} | ({params}))'
+	elif params != '':
+		return params
+	else:
+		return '0x0'
 
 def setActorParameter(object, field, param, mask):
 	shift = len(f'{mask:016b}') - len(f'{mask:016b}'.rstrip('0'))
@@ -673,83 +729,56 @@ def isTiedParam(tiedParam, actorType):
 					if tiedList[j] == actorType:
 						return True
 
-def computeParams(elem, detailedProp, field, lenProp, lenSwitch, lenBool, lenEnum):
-	params = shift = 0
-	strMask = elem.get('Mask')
-	if elem.tag != 'Parameter' and strMask is not None:
-		mask = int(strMask, base=16)
-		shift = len(f'{mask:016b}') - len(f'{mask:016b}'.rstrip('0'))
-		if elem.tag == 'Flag':
-			elemType = elem.get('Type')
-			if elemType == 'Chest':
-				params += getActorParameter(detailedProp, field + '.chestFlag', shift)
-			elif elemType == 'Collectible':
-				params += getActorParameter(detailedProp, field + '.collectibleFlag', shift)
-			elif elemType == 'Switch':
-				for i in range(1, (int(lenSwitch, base=10) + 1)):
-					if i == int(elem.get('Index'), base=10):
-						params += getActorParameter(detailedProp, field + f'.switchFlag{i}', shift)
-		elif elem.tag == 'Property' and elem.get('Name') != 'None':
-			for i in range(1, (int(lenProp, base=10) + 1)):
-				if i == int(elem.get('Index'), base=10):
-					params += getActorParameter(detailedProp, (field + f'.props{i}'), shift)
-		elif elem.tag == 'Item':
-			params += int(detailedProp.itemChest, base=16) << shift
-		elif elem.tag == 'Message':
-			params += int(detailedProp.naviMsgID, base=16) << shift
-		elif elem.tag == 'Collectible':
-			params += getActorParameter(detailedProp, field + '.collectibleDrop', shift)
-		elif elem.tag == 'Bool':
-			for i in range(1, (int(lenBool, base=10) + 1)):
-				if i == int(elem.get('Index'), base=10):
-					params += getActorParameter(detailedProp, (field + f'.bool{i}'), shift)
-		elif elem.tag == 'Enum':
-			for i in range(1, (int(lenEnum, base=10) + 1)):
-				if i == int(elem.get('Index'), base=10):
-					params += getActorParameter(detailedProp, (field + f'.enum{i}'), shift)
-	return params
-
-def processComputation(detailedProp, dpKey):
-	# This next if handles the necessary maths to get the actor parameters from the detailed panel
-	# Reads ActorList.xml and figures out the necessary bit shift and applies it to whatever is in the blender string field
-	# Actor key refers to the hex ID of an actor
-	# It was made like that to make it future proof as the OoT decomp isn't fully done yet so names can still change
-	# For Switch Flags & <Property> we need to make sure the value corresponds to the mask, hence the index in the XML
-	# For Chest Content (<Item>) we don't need the actor key because it's handled differently: it's a search box
-	# if the user wants to use a custom actor this computation is pointless
-
-	# Tied params are those properties that need something else to work properly
-	# i.e: floor switches have 2 unique subtypes (reset when not stood on)
-
-	lenProp = getMaxElemIndex(dpKey, 'Property', None)
-	lenSwitch = getMaxElemIndex(dpKey, 'Flag', 'Switch')
-	lenBool = getMaxElemIndex(dpKey, 'Bool', None)
-	lenEnum = getMaxElemIndex(dpKey, 'Enum', None)
-	actorParams = 0
-
-	for actorNode in root:
-		if actorNode.get('Key') == dpKey:
-			for elem in actorNode:
-				paramTarget = elem.get('Target')
-				tiedParam = elem.get('TiedParam')
-				actorType = getattr(detailedProp, dpKey + '.type', None)
-				boolTied = isTiedParam(tiedParam, actorType)
-				if (paramTarget == 'Params' or paramTarget is None) and boolTied is True:
-						actorParams += computeParams(elem, detailedProp, dpKey, lenProp, lenSwitch, lenBool, lenEnum)
-	# Finally, add the actor type value, which is already shifted in the XML
-	actorParams += getActorParameter(detailedProp, dpKey + '.type', 0)
-	return actorParams
-
-def uncomputeParams(elem, params, detailedProp, field, lenProp, lenSwitch, lenBool, lenEnum):
+def computeParams(elem, detailedProp, field, lenProp, lenSwitch, lenBool, lenEnum, paramTarget):
+	shiftTmp = 0
+	params = ""
 	strMask = elem.get('Mask')
 	target = elem.get('Target')
-	if strMask is not None:
+	if target is None: target = "Params"
+	if elem.tag != 'Parameter' and strMask is not None:
 		mask = int(strMask, base=16)
-	else:
-		mask = 0xFFFF
-	if elem.tag == 'Parameter':
-		setActorParameter(detailedProp, field + '.type', params, mask)
-	elif target == 'Params' or target is None:
+		shiftTmp = len(f'{mask:016b}') - len(f'{mask:016b}'.rstrip('0'))
+		shift = f'{shiftTmp}'
+		if elem.tag == 'Flag':
+			elemType = elem.get('Type')
+			if elemType == 'Chest' and target == paramTarget:
+				params += getActorParameter(detailedProp, field + '.chestFlag', shift, strMask)
+			elif elemType == 'Collectible' and target == paramTarget:
+				params += getActorParameter(detailedProp, field + '.collectibleFlag', shift, strMask)
+			elif elemType == 'Switch' and target == paramTarget:
+				for i in range(1, (int(lenSwitch, base=10) + 1)):
+					if i == int(elem.get('Index'), base=10) and target == paramTarget:
+						params += getActorParameter(detailedProp, field + f'.switchFlag{i}', shift, strMask)
+		elif elem.tag == 'Property' and elem.get('Name') != 'None':
+			for i in range(1, (int(lenProp, base=10) + 1)):
+				if i == int(elem.get('Index'), base=10) and target == paramTarget:
+					params += getActorParameter(detailedProp, (field + f'.props{i}'), shift, strMask)
+		elif elem.tag == 'Item' and target == paramTarget:
+			params += f'(({detailedProp.itemChest} << {shift}) & {strMask}) | '
+		elif elem.tag == 'Message' and target == paramTarget:
+			params += f'(({detailedProp.naviMsgID} << {shift}) & {strMask}) | '
+		elif elem.tag == 'Collectible' and target == paramTarget:
+			params += getActorParameter(detailedProp, field + '.collectibleDrop', shift, strMask)
+		elif elem.tag == 'Bool':
+			for i in range(1, (int(lenBool, base=10) + 1)):
+				if i == int(elem.get('Index'), base=10) and target == paramTarget:
+					params += getActorParameter(detailedProp, (field + f'.bool{i}'), shift, strMask)
+		elif elem.tag == 'Enum':
+			for i in range(1, (int(lenEnum, base=10) + 1)):
+				if i == int(elem.get('Index'), base=10) and target == paramTarget:
+					params += getActorParameter(detailedProp, (field + f'.enum{i}'), shift, strMask)
+	return params
+
+def uncomputeParams(elem, params, detailedProp, field, lenProp, lenSwitch, lenBool, lenEnum, paramTarget):
+	strMask = elem.get('Mask')
+	target = elem.get('Target')
+	if target is None: target = 'Params'
+	if strMask is not None: mask = int(strMask, base=16)
+	else: mask = 0xFFFF
+
+	if target == paramTarget:
+		if elem.tag == 'Parameter':
+			setActorParameter(detailedProp, field + '.type', params, mask)
 		if elem.tag == 'Flag':
 			elemType = elem.get('Type')
 			if elemType == 'Chest':
