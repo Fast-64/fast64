@@ -1,4 +1,4 @@
-import os, bpy
+import bpy
 
 from ..f3d.f3d_gbi import *
 from .oot_constants import *
@@ -32,7 +32,6 @@ class OOT_SearchNaviMsgIDEnumOperator(bpy.types.Operator):
 	bl_property = "naviMsgID"
 	bl_options = {'REGISTER', 'UNDO'}
 
-	
 	naviMsgID : bpy.props.EnumProperty(items = ootNaviMsgID, default = "0x00")
 	objName : bpy.props.StringProperty()
 
@@ -62,7 +61,7 @@ class OOTActorParams():
 	rotZBool: bool=False
 
 def getValues(self, user, actorID, actorField, paramField, customField):
-	# Get function that some ID Props call
+	'''Updates the actor parameter field when the user change the options'''
 	if user == 'Transition Actor':
 		actorProp = bpy.context.object.ootTransitionActorProperty.actor
 	else:
@@ -82,6 +81,7 @@ def getValues(self, user, actorID, actorField, paramField, customField):
 			raise PluginError("Can't return the proper value")
 
 def setValues(self, value, paramTarget, field):
+	'''Reverse the process to set the options of the current actor'''
 	detailedProp = self
 	for actorNode in root:
 		if actorNode.get('ID') == getattr(detailedProp, field, '0x0'):
@@ -93,13 +93,13 @@ def setValues(self, value, paramTarget, field):
 			for elem in actorNode:
 				tiedParam = elem.get('TiedParam')
 				actorType = getattr(detailedProp, dPKey + '.type', None)
-				if isTiedParam(tiedParam, actorType) is True:
+				if hasTiedParams(tiedParam, actorType) is True:
 					if isinstance(value, bool):
 						if value: param = '0x1'
 						else: param = '0x0'
 					else:
 						param = value
-					uncomputeParams(elem, eval(param), detailedProp, dPKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
+					setActorString(elem, eval(param), detailedProp, dPKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
 
 def genEnum(annotations, key, suffix, enumList, enumName):
 	'''This function is used to generate the proper enum blender property'''
@@ -114,7 +114,7 @@ def genString(annotations, key, suffix, stringName):
 	annotations[objName] = prop
 
 def drawParams(box, detailedProp, key, elemField, elemName, elTag, elType, lenSwitch):
-	# This function displays individual property
+	'''Actual draw on the UI'''
 	for actorNode in root:
 		i = 1
 		name = 'None'
@@ -143,11 +143,11 @@ def drawParams(box, detailedProp, key, elemField, elemName, elTag, elType, lenSw
 				tiedParam = elem.get('TiedParam')
 				actorType = getattr(detailedProp, key + '.type', None)
 				if name != 'None' and elem.tag == elTag and elType == elem.get('Type') and attr is not None:
-					if isTiedParam(tiedParam, actorType) is True:
+					if hasTiedParams(tiedParam, actorType) is True:
 						prop_split(box, detailedProp, field, name)
 					i += 1
 
-def drawSearchBox(layout, obj, detailedProp, field, labelText, searchOp, enum):
+def drawOperatorBox(layout, obj, detailedProp, field, labelText, searchOp, enum):
 	searchOp.objName = obj
 	split = layout.split(factor=0.5)
 	split.label(text=labelText)
@@ -160,6 +160,7 @@ def editDetailedProperties():
 		propAnnotations = {}
 		OOTActorDetailedProperties.__annotations__ = propAnnotations
 
+	# Each prop has its 'custom' variant because of the get and set functions
 	# Actors/Entrance Actor
 	propAnnotations['actorID'] = bpy.props.EnumProperty(name='Actor ID', items=ootEnumActorID)
 	propAnnotations['actorIDCustom'] = bpy.props.StringProperty(name='Actor Key', default='0000')
@@ -180,6 +181,8 @@ def editDetailedProperties():
 	propAnnotations['rotOverrideZ'] =  bpy.props.StringProperty(name = 'Rot Z', default = '0x0',
 		get=lambda self: getValues(self, 'ZRot', self.actorID, None, 'ZRot', None),
 		set=lambda self, value: setValues(self, value, 'ZRot', 'actorID'))
+
+	# We have to use a bool to know what's needed to be exported
 	propAnnotations['XRotBool'] = bpy.props.BoolProperty(default=False,
 		get=lambda self: getValues(self, 'XRotBool', self.actorID, None, 'rotXBool', None))
 	propAnnotations['YRotBool'] = bpy.props.BoolProperty(default=False,
@@ -197,11 +200,12 @@ def editDetailedProperties():
 	propAnnotations['transActorParamCustom'] = bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000')
 
 	# Other
+	# isActorSynced is used to check if the blend's data is from an older version of Fast64
 	propAnnotations['isActorSynced'] = bpy.props.BoolProperty(default=False)
 	propAnnotations['itemChest'] = bpy.props.EnumProperty(name='Chest Content', items=ootChestContent)
 	propAnnotations['naviMsgID'] = bpy.props.EnumProperty(name='Chest Content', items=ootNaviMsgID)
 
-	# Collectible Drops Lists
+	# Collectible Drops List
 	itemDrops = [(elem.get('Value'), elem.get('Name'), \
 					elem.get('Name')) for listNode in root for elem in listNode if listNode.tag == 'List' \
 					and listNode.get('Name') == 'Collectibles']
@@ -247,7 +251,8 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 	userTransition = 'Transition Property'
 	userEntrance = 'Entrance Property'
 	entranceBool = None
-	if user != userEntrance: 
+	if user != userEntrance:
+		# Entrance prop has specific fields to display
 		userActorID = getattr(userProp, userIDField)
 		searchOp = userLayout.operator(userSearchOp.bl_idname, icon = 'VIEWZOOM')
 		searchOp.objName = userObj
@@ -274,6 +279,7 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 		userProp = detailedProp
 
 	if (user != userEntrance and userActorID != 'Custom') or (user == userEntrance and entranceBool is False):
+		# If the current actor isn't custom
 		if user != userEntrance:
 			userLayout.label(text = currentActor)
 			typeText = 'Type'
@@ -287,12 +293,14 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 		if user == userActor:
 			OOTActorParams.rotXBool = OOTActorParams.rotYBool = OOTActorParams.rotZBool = False
 			if userActorID == detailedProp.actorID:
-				if dpKey == '000A':
+				if dpKey == '000A' or dpKey == '009B':
+					# If the current actor need a chest content, (en_chest, door_ana), draw the content search box
 					searchOp = userLayout.operator(OOT_SearchChestContentEnumOperator.bl_idname, icon='VIEWZOOM')
-					drawSearchBox(userLayout, userObj, detailedProp, 'itemChest', 'Chest Content', searchOp, ootChestContent)
+					drawOperatorBox(userLayout, userObj, detailedProp, 'itemChest', 'Chest Content', searchOp, ootChestContent)
 				if dpKey == '011B':
+					# If the current actor is Elf_Msg, draw the Navi Message ID search box
 					searchOp = userLayout.operator(OOT_SearchNaviMsgIDEnumOperator.bl_idname, icon='VIEWZOOM')
-					drawSearchBox(userLayout, userObj, detailedProp, 'naviMsgID', 'Message ID', searchOp, ootNaviMsgID)
+					drawOperatorBox(userLayout, userObj, detailedProp, 'naviMsgID', 'Message ID', searchOp, ootNaviMsgID)
 
 			propAnnot = getattr(detailedProp, dpKey + ('.collectibleDrop'), None)
 			if propAnnot is not None:
@@ -308,9 +316,9 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 		drawParams(userLayout, detailedProp, dpKey, f'{dpKey}.bool', None, 'Bool', None, None)
 
 		if user != userTransition:
-			OOTActorParams.param = getActorString(detailedProp, dpKey, 'Params')
+			OOTActorParams.param = getActorFinalParameters(detailedProp, dpKey, 'Params')
 		else:
-			OOTActorParams.transParam = getActorString(detailedProp, dpKey, 'Params')
+			OOTActorParams.transParam = getActorFinalParameters(detailedProp, dpKey, 'Params')
 		paramBox = userLayout.box()
 		paramBox.label(text="Actor Parameter")
 		paramBox.prop(detailedProp, userParamField, text="")
@@ -321,15 +329,15 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 					for elem in actorNode:
 						target = elem.get('Target')
 						actorType = getattr(detailedProp, dpKey + '.type')
-						if isTiedParam(elem.get('TiedParam'), actorType):
+						if hasTiedParams(elem.get('TiedParam'), actorType):
 							if target == 'XRot':
-								OOTActorParams.XRot = getActorString(detailedProp, dpKey, 'XRot')
+								OOTActorParams.XRot = getActorFinalParameters(detailedProp, dpKey, 'XRot')
 								OOTActorParams.rotXBool = True
 							elif target == 'YRot':
-								OOTActorParams.YRot = getActorString(detailedProp, dpKey, 'YRot')
+								OOTActorParams.YRot = getActorFinalParameters(detailedProp, dpKey, 'YRot')
 								OOTActorParams.rotYBool = True
 							elif target == 'ZRot':
-								OOTActorParams.ZRot = getActorString(detailedProp, dpKey, 'ZRot')
+								OOTActorParams.ZRot = getActorFinalParameters(detailedProp, dpKey, 'ZRot')
 								OOTActorParams.rotZBool = True
 
 			if OOTActorParams.rotXBool: 
@@ -339,6 +347,7 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 			if OOTActorParams.rotZBool: 
 				prop_split(paramBox, detailedProp, 'rotOverrideZ', 'Rot Z')
 	else:
+		# If the current actor is custom
 		if user != userEntrance:
 			prop_split(userLayout, detailedProp, userIDField + 'Custom', currentActor)
 			if user == userActor:
@@ -499,7 +508,6 @@ class OOTTransitionActorProperty(bpy.types.PropertyGroup):
 	cameraTransitionFrontCustom : bpy.props.StringProperty(default = '0x00')
 	cameraTransitionBack : bpy.props.EnumProperty(items = ootEnumCamTransition, default = '0x00')
 	cameraTransitionBackCustom : bpy.props.StringProperty(default = '0x00')
-
 	actor : bpy.props.PointerProperty(type = OOTActorProperty)
 
 def drawTransitionActorProperty(layout, transActorProp, altSceneProp, roomObj, objName, detailedProp):
@@ -531,7 +539,6 @@ class OOTEntranceProperty(bpy.types.PropertyGroup):
 	spawnIndex : bpy.props.IntProperty(min = 0)
 	customActor : bpy.props.BoolProperty(name = "Use Custom Actor")
 	actor : bpy.props.PointerProperty(type = OOTActorProperty)
-	detailedActor : bpy.props.PointerProperty(type = OOTActorDetailedProperties)
 
 def drawEntranceProperty(layout, obj, altSceneProp, objName, detailedProp):
 	box = layout.column()

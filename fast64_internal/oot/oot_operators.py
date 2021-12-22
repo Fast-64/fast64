@@ -186,7 +186,7 @@ class OOT_AddActor(bpy.types.Operator):
 		return {"FINISHED"}
 
 class OOT_SyncActors(bpy.types.Operator):
-	# To synchronize the panel we need to update each actor obj.ootActorDetailedProperties
+	'''Synchronize the panel when the current blend contains old data'''
 	bl_idname = 'object.oot_sync_actors'
 	bl_label = "Sync Actors"
 	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
@@ -219,28 +219,28 @@ def processObj(obj):
 			print(f"Processing Actor '{obj.name}'...")
 			actorProp = obj.ootActorProperty
 			processParameters(objType, obj.ootActorProperty.actorID, actorProp, obj.ootActorDetailedProperties, \
-				stringToInt(actorProp.actorParam), 'param', 'actorID', 'actorParam', 'Params')
+				int(actorProp.actorParam, base=16), 'param', 'actorID', 'actorParam', 'Params')
 			if actorProp.rotOverride:
 				if actorProp.rotOverrideX != '0' or actorProp.rotOverrideX != '0x0':
 					processParameters(objType, obj.ootActorProperty.actorID, actorProp, obj.ootActorDetailedProperties, \
-						stringToInt(actorProp.rotOverrideX), 'XRot', 'actorID', 'rotOverrideX', 'XRot')
+						int(actorProp.rotOverrideX, base=16), 'XRot', 'actorID', 'rotOverrideX', 'XRot')
 				if actorProp.rotOverrideY != '0' or actorProp.rotOverrideY != '0x0':
 					processParameters(objType, obj.ootActorProperty.actorID, actorProp, obj.ootActorDetailedProperties, \
-						stringToInt(actorProp.rotOverrideY), 'YRot', 'actorID', 'rotOverrideY', 'YRot')
+						int(actorProp.rotOverrideY, base=16), 'YRot', 'actorID', 'rotOverrideY', 'YRot')
 				if actorProp.rotOverrideZ != '0' or actorProp.rotOverrideZ != '0x0':
 					processParameters(objType, obj.ootActorProperty.actorID, actorProp, obj.ootActorDetailedProperties, \
-						stringToInt(actorProp.rotOverrideZ), 'ZRot', 'actorID', 'rotOverrideZ', 'ZRot')
+						int(actorProp.rotOverrideZ, base=16), 'ZRot', 'actorID', 'rotOverrideZ', 'ZRot')
 		elif objType == "Transition Actor":
 			print(f"Processing Transition Actor '{obj.name}'...")
 			transActorProp = obj.ootTransitionActorProperty.actor
 			processParameters(objType, transActorProp.actorID, transActorProp, obj.ootActorDetailedProperties, \
-				stringToInt(transActorProp.actorParam), 'transParam', 'actorID', 'actorParam', 'Params')
+				int(transActorProp.actorParam, base=16), 'transParam', 'actorID', 'actorParam', 'Params')
 
 		elif objType == "Entrance":
 			print(f"Processing Entrance Actor '{obj.name}'...")
 			entranceProp = obj.ootEntranceProperty.actor
 			processParameters(objType, entranceProp.actorID, entranceProp, obj.ootActorDetailedProperties, \
-				stringToInt(entranceProp.actorParam), 'param', 'actorID', 'actorParam', 'Params')
+				int(entranceProp.actorParam, base=16), 'param', 'actorID', 'actorParam', 'Params')
 
 	for childObj in obj.children:
 		processObj(childObj)
@@ -264,12 +264,12 @@ def processParameters(user, actorID, actorProp, detailedProp, params, toSaveFiel
 				for elem in actorNode:
 					tiedParam = elem.get('TiedParam')
 					actorType = getattr(detailedProp, dPKey + '.type', None)
-					if isTiedParam(tiedParam, actorType) is True:
-						uncomputeParams(elem, params, detailedProp, dPKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
+					if hasTiedParams(tiedParam, actorType) is True:
+						setActorString(elem, params, detailedProp, dPKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
 		if user != 'Transition Actor':
-			actorParams = f"0x{eval(getActorString(detailedProp, detailedProp.actorKey, paramTarget)):X}"
+			actorParams = f"0x{eval(getActorFinalParameters(detailedProp, detailedProp.actorKey, paramTarget)):X}"
 		else:
-			actorParams = f"0x{eval(getActorString(detailedProp, detailedProp.transActorKey, paramTarget)):X}"
+			actorParams = f"0x{eval(getActorFinalParameters(detailedProp, detailedProp.transActorKey, paramTarget)):X}"
 		setattr(actorProp, toSaveField + 'ToSave', actorParams)
 	else:
 		setattr(detailedProp, idField + 'Custom', getattr(actorProp, idField + 'Custom'))

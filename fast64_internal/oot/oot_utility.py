@@ -381,9 +381,9 @@ def getActorProperty(data, detailedProp, idField, field):
 	if idField != 'Custom':
 		if field != 'actorID' and field != 'transActorID':
 			if field == 'actorParam':
-				return getActorString(detailedProp, detailedProp.actorKey, 'Params')
+				return getActorFinalParameters(detailedProp, detailedProp.actorKey, 'Params')
 			elif field == 'transActorParam':
-				return getActorString(detailedProp, detailedProp.transActorKey, 'Params')
+				return getActorFinalParameters(detailedProp, detailedProp.transActorKey, 'Params')
 			else:
 				for actorNode in root:
 					dpKey = detailedProp.actorKey
@@ -391,13 +391,13 @@ def getActorProperty(data, detailedProp, idField, field):
 						for elem in actorNode:
 							target = elem.get('Target')
 							actorType = getattr(detailedProp, dpKey + '.type')
-							if isTiedParam(elem.get('TiedParam'), actorType):
+							if hasTiedParams(elem.get('TiedParam'), actorType):
 								if target == field == 'XRot':
-									return getActorString(detailedProp, dpKey, 'XRot')
+									return getActorFinalParameters(detailedProp, dpKey, 'XRot')
 								elif target == field == 'YRot':
-									return getActorString(detailedProp, dpKey, 'YRot')
+									return getActorFinalParameters(detailedProp, dpKey, 'YRot')
 								elif target == field == 'ZRot':
-									return getActorString(detailedProp, dpKey, 'ZRot')
+									return getActorFinalParameters(detailedProp, dpKey, 'ZRot')
 				return None
 		elif field == 'actorID' or field == 'transActorID':
 			return getattr(detailedProp, field)
@@ -629,6 +629,7 @@ def oot_utility_unregister():
 		unregister_class(cls)
 
 def getActorParameter(object, field, shift, mask):
+	'''Returns the actor parameter with the shifts'''
 	attr = getattr(object, field, '0x00')
 	if attr != '0x00' and attr is not None:					
 		if isinstance(attr, str):
@@ -643,7 +644,8 @@ def getActorParameter(object, field, shift, mask):
 	else:
 		return ""
 
-def getActorString(detailedProp, actorKey, paramTarget):
+def getActorFinalParameters(detailedProp, actorKey, paramTarget):
+	'''Returns the full parameter string'''
 	params = ""
 	for actorNode in root:
 		if actorKey == actorNode.get('Key'):
@@ -655,10 +657,10 @@ def getActorString(detailedProp, actorKey, paramTarget):
 				target = elem.get('Target')
 				if target == 'XRot' or target == 'YRot' or target == 'ZRot':
 					actorType = getattr(detailedProp, actorKey + '.type')
-					if isTiedParam(elem.get('TiedParam'), actorType):
-						params += computeParams(elem, detailedProp, actorKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
+					if hasTiedParams(elem.get('TiedParam'), actorType):
+						params += getActorString(elem, detailedProp, actorKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
 				else:
-					params += computeParams(elem, detailedProp, actorKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
+					params += getActorString(elem, detailedProp, actorKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
 	params = params.rstrip(' | ')
 	if paramTarget == 'Params':
 		actorType = getattr(detailedProp, actorKey + '.type', '0x0')
@@ -672,6 +674,7 @@ def getActorString(detailedProp, actorKey, paramTarget):
 		return '0x0'
 
 def setActorParameter(object, field, param, mask):
+	'''Sets the attributes to have the correct display on the UI'''
 	shift = len(f'{mask:016b}') - len(f'{mask:016b}'.rstrip('0'))
 	if field.endswith('.type'):
 		if mask == 0xFFFF:
@@ -697,7 +700,7 @@ def setActorParameter(object, field, param, mask):
 			setattr(object, field, '0x0')
 
 def getMaxElemIndex(actorKey, elemTag, flagType):
-	# Looking for the highest Property/Switch index for the current actor
+	'''Looking for the highest index for the current actor'''
 	length = '0'
 	for actorNode in root:
 		if actorNode.get('Key') == actorKey:
@@ -707,14 +710,8 @@ def getMaxElemIndex(actorKey, elemTag, flagType):
 						length = elem.get('Index')
 	return length
 
-def stringToInt(str):
-	# Checking if the string is an hex number
-	if str.startswith('0x') or all(c in string.hexdigits for c in str):
-		return int(str, base=16)
-	else:
-		return int(str, base=10)
-
-def isTiedParam(tiedParam, actorType):
+def hasTiedParams(tiedParam, actorType):
+	'''Looking for parameters that depends on other parameters'''
 	if tiedParam is None:
 		return True
 	else:
@@ -729,7 +726,8 @@ def isTiedParam(tiedParam, actorType):
 					if tiedList[j] == actorType:
 						return True
 
-def computeParams(elem, detailedProp, field, lenProp, lenSwitch, lenBool, lenEnum, paramTarget):
+def getActorString(elem, detailedProp, field, lenProp, lenSwitch, lenBool, lenEnum, paramTarget):
+	'''Returns the current actor's parameter string'''
 	shiftTmp = 0
 	params = ""
 	strMask = elem.get('Mask')
@@ -769,7 +767,8 @@ def computeParams(elem, detailedProp, field, lenProp, lenSwitch, lenBool, lenEnu
 					params += getActorParameter(detailedProp, (field + f'.enum{i}'), shift, strMask)
 	return params
 
-def uncomputeParams(elem, params, detailedProp, field, lenProp, lenSwitch, lenBool, lenEnum, paramTarget):
+def setActorString(elem, params, detailedProp, field, lenProp, lenSwitch, lenBool, lenEnum, paramTarget):
+	'''Reversed ``getActorString()``'''
 	strMask = elem.get('Mask')
 	target = elem.get('Target')
 	if target is None: target = 'Params'

@@ -461,6 +461,7 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 			actorID = actorProp.actorID
 			rotX = rotY = rotZ = ''
 
+			# Figure out which rotation to export, Blender's or the override
 			if actorID != 'Custom':
 				for actorNode in root:
 					if actorNode.get('ID') == actorID:
@@ -501,13 +502,6 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 				translation, rotation[1], # TODO: Correct axis?
 				getActorProperty(transActorProp.actor, detailedProp, actorID, 'transActorParam')),
 				transActorProp.actor, "transitionActorList", obj.name)
-			#scene.transitionActorList.append(OOTTransitionActor(
-			#	getCustomProperty(transActorProp.actor, "actorID"),
-			#	room.roomIndex, transActorProp.roomIndex,
-			#	getCustomProperty(transActorProp, "cameraTransitionFront"),
-			#	getCustomProperty(transActorProp, "cameraTransitionBack"),
-			#	translation, rotation[1], # TODO: Correct axis?
-			#	transActorProp.actor.actorParam))
 		elif obj.ootEmptyType == "Entrance":
 			entranceProp = obj.ootEntranceProperty
 			detailedProp = obj.ootActorDetailedProperties
@@ -515,7 +509,6 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 			else: actorID = 'Custom'
 			spawnIndex = obj.ootEntranceProperty.spawnIndex
 			addActor(scene, OOTEntrance(room.roomIndex, spawnIndex), entranceProp.actor, "entranceList", obj.name)
-			#scene.entranceList.append(OOTEntrance(room.roomIndex, spawnIndex))
 			addStartPosition(scene, spawnIndex, OOTActor(
 				"ACTOR_PLAYER" if not entranceProp.customActor else entranceProp.actor.actorIDCustom,
 				translation, rotation, getActorProperty(entranceProp.actor, detailedProp, actorID, 'actorParam'), None), entranceProp.actor, obj.name)
