@@ -249,23 +249,25 @@ def processParameters(user, actorID, detailedProp, params, toSaveField, idField,
 	if actorID != 'Custom':
 		actorParams = 0
 		for actorNode in root:
-			if actorNode.get('ID') == actorID:
-				dPKey = actorNode.get('Key')
-				if user != 'Transition Actor':
-					detailedProp.actorID = actorID
-					detailedProp.actorKey = dPKey
-				else:
-					detailedProp.transActorID = actorID
-					detailedProp.transActorKey = dPKey
-				lenProp = getMaxElemIndex(dPKey, 'Property', None)
-				lenSwitch = getMaxElemIndex(dPKey, 'Flag', 'Switch')
-				lenBool = getMaxElemIndex(dPKey, 'Bool', None)
-				lenEnum = getMaxElemIndex(dPKey, 'Enum', None)
-				for elem in actorNode:
-					tiedParam = elem.get('TiedParam')
-					actorType = getattr(detailedProp, dPKey + '.type', None)
-					if hasTiedParams(tiedParam, actorType) is True:
-						setActorString(elem, params, detailedProp, dPKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
+			if len(actorNode) != 0:
+				if actorNode.get('ID') == actorID:		
+					dPKey = actorNode.get('Key')
+					if user != 'Transition Actor':
+						detailedProp.actorID = actorID
+						detailedProp.actorKey = dPKey
+					else:
+						detailedProp.transActorID = actorID
+						detailedProp.transActorKey = dPKey
+					lenProp = getMaxElemIndex(dPKey, 'Property', None)
+					lenSwitch = getMaxElemIndex(dPKey, 'Flag', 'Switch')
+					lenBool = getMaxElemIndex(dPKey, 'Bool', None)
+					lenEnum = getMaxElemIndex(dPKey, 'Enum', None)
+					for elem in actorNode:
+						tiedParam = elem.get('TiedParam')
+						actorType = getattr(detailedProp, dPKey + '.type', None)
+						if hasTiedParams(tiedParam, actorType) is True:
+							setActorString(elem, params, detailedProp, dPKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
+			else: print("Current Actor doesn't have parameters!")
 		if user != 'Transition Actor':
 			actorParams = getActorFinalParameters(detailedProp, detailedProp.actorKey, paramTarget)
 		else:

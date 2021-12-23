@@ -390,7 +390,7 @@ def getActorProperty(detailedProp, idField, field):
 					if dpKey == actorNode.get('Key'):
 						for elem in actorNode:
 							target = elem.get('Target')
-							actorType = getattr(detailedProp, dpKey + '.type')
+							actorType = getattr(detailedProp, dpKey + '.type', None)
 							if hasTiedParams(elem.get('TiedParam'), actorType):
 								if target == field == 'XRot':
 									return getActorFinalParameters(detailedProp, dpKey, 'XRot')
@@ -659,14 +659,14 @@ def getActorFinalParameters(detailedProp, actorKey, paramTarget):
 			for elem in actorNode:
 				target = elem.get('Target')
 				if target == 'XRot' or target == 'YRot' or target == 'ZRot':
-					actorType = getattr(detailedProp, actorKey + '.type')
+					actorType = getattr(detailedProp, actorKey + '.type', None)
 					if hasTiedParams(elem.get('TiedParam'), actorType):
 						params += getActorString(elem, detailedProp, actorKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
 				else:
 					params += getActorString(elem, detailedProp, actorKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
 	params = params.rstrip(' | ')
 	if paramTarget == 'Params':
-		actorType = getattr(detailedProp, actorKey + '.type', '0x0')
+		actorType = getattr(detailedProp, actorKey + '.type', '0')
 		if params == '':
 			return f'0x{actorType}'
 		else:
@@ -680,19 +680,7 @@ def setActorParameter(object, field, param, mask):
 	'''Sets the attributes to have the correct display on the UI'''
 	shift = len(f'{mask:016b}') - len(f'{mask:016b}'.rstrip('0'))
 	if field.endswith('.type'):
-		if mask == 0xFFFF:
-			for actorNode in root:
-				if actorNode.get('ID') == object.actorID:
-					for elem in actorNode:
-						if elem.tag == 'Parameter':
-							params = elem.get('Params').lstrip('0x')
-							for i in range(len(params)):
-								if params == "FFFF" or params[i] == f'{param}'[i]:
-									param &= int(params, base=16)
-									setattr(object, field, f'{param:04X}')
-									return
-		else:
-			setattr(object, field, f'{param & mask:04X}')
+		setattr(object, field, f'{param & mask:04X}')
 	else:
 		attr = getattr(object, field, '0x0')
 		if isinstance(attr, str):
@@ -700,7 +688,7 @@ def setActorParameter(object, field, param, mask):
 		elif isinstance(attr, bool):
 			setattr(object, field, bool((param & mask) >> shift))
 		else:
-			setattr(object, field, '0x0')
+			setattr(object, field, '0x09')
 
 def getMaxElemIndex(actorKey, elemTag, flagType):
 	'''Looking for the highest index for the current actor'''

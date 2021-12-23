@@ -1456,11 +1456,13 @@ The sun switch has to be between 252 and 308 units from the cobra mirror to be a
     <Property Index="1" Mask="0x001F" Name="Collectible Type"/>
     <Notes>Set to 0xFFFF to spawn nothing</Notes>
   </Actor>
-  <Actor Category="ACTORCAT_PROP" ID="ACTOR_OBJ_TSUBO" Key="0111" Name="Breakable Pot - OBJ_TSUBO" ObjectID="OBJECT_GAMEPLAY_DANGEON_KEEP">
+  <Actor Category="ACTORCAT_PROP" HasEnum="True" ID="ACTOR_OBJ_TSUBO" Key="0111" Name="Breakable Pot - OBJ_TSUBO" ObjectID="OBJECT_GAMEPLAY_DANGEON_KEEP">
     <Flag Index="1" Mask="0x7E00" Type="Collectible"/>
-    <Collectible Mask="0x00FF" Type="Drop"/>
-    <Notes>+0x7E00 = Collectible Flag
-+0xFF = Collectible var //See Actor 0015</Notes>
+    <Collectible Mask="0x001F" Type="Drop"/>
+    <Enum Index="1" Mask="0x0100" Name="Object Bank" Target="Params">
+      <Item Name="Dungeon Keep" Value="0x00"/>
+      <Item Name="Object Tsubo" Value="0x01"/>
+    </Enum>
   </Actor>
   <Actor Category="ACTORCAT_PROP" HasEnum="True" ID="ACTOR_EN_WONDER_ITEM" Key="0112" Name="Invisible Collectibles - EN_WONDER_ITEM">
     <Parameter Mask="0xF800" Params="0000"> Collectible gave if each tag points are reached (no order)</Parameter>
@@ -2098,10 +2100,10 @@ ROTZ 0x0001 = Behavior after colliding with Link
     <Notes>+0x3F00 = Switch Flag</Notes>
   </Actor>
   <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_HEISHI4" Key="0178" Name="Hyrule Guard - EN_HEISHI4" ObjectID="OBJECT_SD">
-    <Parameter Params="0000"> Time teller</Parameter>
-    <Parameter Params="0004"> Stands by Impa's House, tells time</Parameter>
-    <Parameter Params="0007"> Dying guard in Market Town</Parameter>
-    <Parameter Params="0008"> Stands in Market Town at night</Parameter>
+    <Parameter Params="FF00"> Time teller</Parameter>
+    <Parameter Params="FF04"> Stands by Impa's House, tells time</Parameter>
+    <Parameter Params="FF07"> Dying guard in Market Town</Parameter>
+    <Parameter Params="FF08"> Stands in Market Town at night</Parameter>
     <Notes>Text ID 5063, then 5064</Notes>
   </Actor>
   <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_ZL3" Key="0179" Name="Adult Zelda - EN_ZL3" ObjectID="OBJECT_ZL2">
