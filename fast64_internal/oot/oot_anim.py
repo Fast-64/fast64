@@ -55,7 +55,68 @@ class OOTAnimation:
 
 		return data
 
-def ootConvertAnimationData(anim, armatureObj, frameInterval, restPoseRotations, convertTransformMatrix):
+def ootGetAnimBoneRot(bone, poseBone, convertTransformMatrix, isRoot, frame, boneIndex):
+	# frame and boneIndex are just for debugging
+	# 
+	# OoT draws limbs like this:
+	# limbMatrix = parentLimbMatrix @ limbFixedTranslationMatrix @ animRotMatrix
+	# There is no separate rest position rotation; an animation rotation of 0
+	# in all three axes simply means draw the dlist as it is (assuming no
+	# parent or translation).
+	# We could encode a rest position into the dlists at export time, but the
+	# vanilla skeletons don't do this, instead they seem to usually have each
+	# dlist along its bone. For example, a forearm limb would normally be
+	# modeled along a forearm bone, so when the bone is set to 0 rotation
+	# (sticking up), the forearm mesh also sticks up.
+	# 
+	# poseBone.matrix is the final bone matrix in object space after constraints
+	# and drivers, which is ultimately the transformation we want to encode.
+	# bone.matrix_local is the edit-mode bone matrix in object space,
+	# effectively the rest position.
+	# Limbs are exported with a transformation of bone.matrix_local.inverted()
+	# (in TriangleConverterInfo.getTransformMatrix).
+	# To directly put the limb back to its rest position, apply bone.matrix_local.
+	# Similarly, to directly put the limb into its pose position, apply
+	# poseBone.matrix. If SkelAnime saved 4x4 matrices for each bone each frame,
+	# we'd simply write this matrix and that's it:
+	# limbMatrix = poseBone.matrix
+	# Of course it does not, so we have to "undo" the game transforms like:
+	# limbMatrix = parentLimbMatrix 
+	#             @ limbFixedTranslationMatrix 
+	#             @ limbFixedTranslationMatrix.inverted() 
+	#             @ parentLimbMatrix.inverted()
+	#             @ poseBone.matrix
+	# The product of the final three is what we want to return here.
+	# The translation is computed in ootProcessBone as
+	# (scaleMtx @ bone.parent.matrix_local.inverted() @ bone.matrix_local).decompose()
+	# (convertTransformMatrix is just the global scale and armature scale).
+	# However, the translation components of parentLimbMatrix and poseBone.matrix
+	# are not in the scaled (100x / 1000x / whatever), but in the normal Blender
+	# space. So we don't apply this scale here.
+	origTranslationMatrix = (#convertTransformMatrix @
+		(bone.parent.matrix_local.inverted() if bone.parent is not None else mathutils.Matrix.Identity(4))
+		@ bone.matrix_local)
+	origTranslation = origTranslationMatrix.decompose()[0]
+	inverseTranslationMatrix = mathutils.Matrix.Translation(origTranslation).inverted()
+	animMatrix = (inverseTranslationMatrix
+		@ (poseBone.parent.matrix.inverted() if poseBone.parent is not None else mathutils.Matrix.Identity(4))
+		@ poseBone.matrix)
+	finalTranslation, finalRotation, finalScale = animMatrix.decompose()
+	if isRoot:
+		# 90 degree offset because of coordinate system difference.
+		zUpToYUp = mathutils.Quaternion((1, 0, 0), math.radians(-90.0))
+		finalRotation.rotate(zUpToYUp)
+	# This should be very close to only a rotation, or if root, only a rotation
+	# and translation.
+	finalScale = [finalScale.x, finalScale.y, finalScale.z]
+	if max(finalScale) >= 1.01 or min(finalScale) <= 0.99:
+		raise RuntimeError('Animation contains bones with animated scale. OoT SkelAnime does not support this.')
+	finalTranslation = [finalTranslation.x, finalTranslation.y, finalTranslation.z]
+	if not isRoot and (max(finalTranslation) >= 1.0 or min(finalTranslation) <= -1.0):
+		raise RuntimeError('Animation contains non-root bones with animated translation. OoT SkelAnime only supports animated translation on the root bone.')
+	return finalRotation
+
+def ootConvertAnimationData(anim, armatureObj, frameInterval, convertTransformMatrix):
 	checkForStartBone(armatureObj)
 	bonesToProcess = [getStartBone(armatureObj)]
 	currentBone = armatureObj.data.bones[bonesToProcess[0]]
@@ -101,6 +162,7 @@ def ootConvertAnimationData(anim, armatureObj, frameInterval, restPoseRotations,
 			currentBone = armatureObj.data.bones[boneName]
 			currentPoseBone = armatureObj.pose.bones[boneName]
 			
+			'''
 			rotationValue = \
 				(currentBone.matrix.to_4x4().inverted() @ \
 				currentPoseBone.matrix).to_quaternion()
@@ -110,6 +172,10 @@ def ootConvertAnimationData(anim, armatureObj, frameInterval, restPoseRotations,
 					currentPoseBone.matrix).to_quaternion()
 			
 			saveQuaternionFrame(rotationData[boneIndex], restPoseRotations[boneName].inverted() @ rotationValue)
+			'''
+			saveQuaternionFrame(rotationData[boneIndex], ootGetAnimBoneRot(
+				currentBone, currentPoseBone, convertTransformMatrix, boneIndex == 0,
+				frame, boneIndex))
 	
 	bpy.context.scene.frame_set(currentFrame)
 	squashFramesIfAllSame(translationData)
@@ -131,11 +197,11 @@ def ootExportAnimationCommon(armatureObj, convertTransformMatrix, skeletonName):
 	anim = armatureObj.animation_data.action
 	ootAnim = OOTAnimation(toAlnum(skeletonName + anim.name.capitalize() + "Anim"))
 	
-	skeleton, restPoseRotations = ootConvertArmatureToSkeletonWithoutMesh(armatureObj, convertTransformMatrix, skeletonName)
+	skeleton = ootConvertArmatureToSkeletonWithoutMesh(armatureObj, convertTransformMatrix, skeletonName)
 
 	frameInterval = getFrameInterval(anim)
 	ootAnim.frameCount = frameInterval[1] - frameInterval[0]
-	armatureFrameData = ootConvertAnimationData(anim, armatureObj, frameInterval, restPoseRotations, convertTransformMatrix)
+	armatureFrameData = ootConvertAnimationData(anim, armatureObj, frameInterval, convertTransformMatrix)
 
 	singleFrameData = []
 	multiFrameData = []
@@ -167,7 +233,8 @@ def ootExportAnimationCommon(armatureObj, convertTransformMatrix, skeletonName):
 def exportAnimationC(armatureObj, exportPath, isCustomExport, folderName, skeletonName):
 	checkEmptyName(folderName)
 	checkEmptyName(skeletonName)
-	convertTransformMatrix = mathutils.Matrix.Scale(bpy.context.scene.ootActorBlenderScale, 4)
+	convertTransformMatrix = mathutils.Matrix.Scale(bpy.context.scene.ootActorBlenderScale, 4) \
+		@ mathutils.Matrix.Diagonal(armatureObj.scale).to_4x4()
 	ootAnim = ootExportAnimationCommon(armatureObj, convertTransformMatrix, skeletonName)
 
 	ootAnimC = ootAnim.toC()
