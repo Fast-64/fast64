@@ -748,7 +748,7 @@ class F3DPanel(bpy.types.Panel):
 				prop_split(renderGroup, material.rdp_settings, 'z_upd', 'Z Writing')
 				prop_split(renderGroup, material.rdp_settings, 'im_rd', 'IM_RD (?)')
 				prop_split(renderGroup, material.rdp_settings, 'clr_on_cvg',
-					'Clear On Coverage')
+					'Color On Coverage')
 				prop_split(renderGroup, material.rdp_settings, 'cvg_dst',
 					'Coverage Destination')
 				prop_split(renderGroup, material.rdp_settings, 'zmode', 'Z Mode')
