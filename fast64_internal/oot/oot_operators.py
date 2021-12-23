@@ -218,35 +218,35 @@ def processObj(obj):
 		if objType == "Actor":
 			print(f"Processing Actor '{obj.name}'...")
 			actorProp = obj.ootActorProperty
-			processParameters(objType, obj.ootActorProperty.actorID, obj.ootActorDetailedProperties, \
+			processParameters(objType, obj, obj.ootActorProperty.actorID, obj.ootActorDetailedProperties, \
 				int(actorProp.actorParam, base=16), 'param', 'actorID', 'actorParam', 'Params')
 			if actorProp.rotOverride:
 				if actorProp.rotOverrideX != '0' or actorProp.rotOverrideX != '0x0':
-					processParameters(objType, obj.ootActorProperty.actorID, obj.ootActorDetailedProperties, \
+					processParameters('XRot', obj, obj.ootActorProperty.actorID, obj.ootActorDetailedProperties, \
 						int(actorProp.rotOverrideX, base=16), 'XRot', 'actorID', 'rotOverrideX', 'XRot')
 				if actorProp.rotOverrideY != '0' or actorProp.rotOverrideY != '0x0':
-					processParameters(objType, obj.ootActorProperty.actorID, obj.ootActorDetailedProperties, \
+					processParameters('YRot', obj, obj.ootActorProperty.actorID, obj.ootActorDetailedProperties, \
 						int(actorProp.rotOverrideY, base=16), 'YRot', 'actorID', 'rotOverrideY', 'YRot')
 				if actorProp.rotOverrideZ != '0' or actorProp.rotOverrideZ != '0x0':
-					processParameters(objType, obj.ootActorProperty.actorID, obj.ootActorDetailedProperties, \
+					processParameters('ZRot', obj, obj.ootActorProperty.actorID, obj.ootActorDetailedProperties, \
 						int(actorProp.rotOverrideZ, base=16), 'ZRot', 'actorID', 'rotOverrideZ', 'ZRot')
 		elif objType == "Transition Actor":
 			print(f"Processing Transition Actor '{obj.name}'...")
 			transActorProp = obj.ootTransitionActorProperty
-			processParameters(objType, transActorProp.actor.actorID, transActorProp.detailedActor, \
+			processParameters(objType, obj, transActorProp.actor.actorID, transActorProp.detailedActor, \
 				int(transActorProp.actor.actorParam, base=16), 'transParam', 'actorID', 'actorParam', 'Params')
 
 		elif objType == "Entrance":
 			print(f"Processing Entrance Actor '{obj.name}'...")
 			entranceProp = obj.ootEntranceProperty.actor
-			processParameters(objType, entranceProp.actorID, obj.ootActorDetailedProperties, \
+			processParameters(objType, obj, entranceProp.actorID, obj.ootActorDetailedProperties, \
 				int(entranceProp.actorParam, base=16), 'param', 'actorID', 'actorParam', 'Params')
 
 	for childObj in obj.children:
 		processObj(childObj)
 
-def processParameters(user, actorID, detailedProp, params, toSaveField, idField, paramField, paramTarget):
-	if actorID != 'Custom':
+def processParameters(user, obj, actorID, detailedProp, params, toSaveField, idField, paramField, paramTarget):
+	if obj.ootEntranceProperty.customActor == False and actorID != 'Custom':
 		actorParams = 0
 		for actorNode in root:
 			if len(actorNode) != 0:
@@ -273,15 +273,22 @@ def processParameters(user, actorID, detailedProp, params, toSaveField, idField,
 			actorParams = getActorFinalParameters(detailedProp, detailedProp.transActorKey, paramTarget)
 		setattr(detailedProp, toSaveField + 'ToSave', actorParams)
 	else:
-		setattr(detailedProp, idField + 'Custom', getattr(detailedProp, idField + 'Custom'))
-		if paramField == 'actorParam':
-			setattr(detailedProp, paramField + 'Custom', getattr(detailedProp, paramField))
+		if user != 'Transition Actor':
+			setattr(detailedProp, idField + 'Custom', getattr(obj.ootActorProperty, idField + 'Custom'))
+			if user == 'Actor':
+				setattr(detailedProp, paramField + 'Custom', getattr(obj.ootActorProperty, paramField))
+			elif user == 'Entrance':
+				setattr(detailedProp, paramField + 'Custom', getattr(obj.ootEntranceProperty.actor, paramField))
+			else:
+				if obj.ootActorProperty.rotOverride:
+					if (obj.ootActorProperty.rotOverrideX != '0' or obj.ootActorProperty.rotOverrideX != '0x0') or \
+					(obj.ootActorProperty.rotOverrideY != '0' or obj.ootActorProperty.rotOverrideY != '0x0') or \
+					(obj.ootActorProperty.rotOverrideZ != '0' or obj.ootActorProperty.rotOverrideZ != '0x0'):
+						detailedProp.rotOverrideCustom = True
+						setattr(detailedProp, paramField + 'Custom', getattr(obj.ootActorProperty, paramField))
 		else:
-			if detailedProp.rotOverride:
-				if (detailedProp.rotOverrideX != '0' or detailedProp.rotOverrideX != '0x0') or \
-				(detailedProp.rotOverrideY != '0' or detailedProp.rotOverrideY != '0x0') or \
-				(detailedProp.rotOverrideZ != '0' or detailedProp.rotOverrideZ != '0x0'):
-					setattr(detailedProp, paramField, getattr(detailedProp, paramField))
+			setattr(detailedProp, 'transActorIDCustom', getattr(obj.ootTransitionActorProperty.actor, idField + 'Custom'))
+			setattr(detailedProp, 'transActorParamCustom', getattr(obj.ootTransitionActorProperty.actor, paramField))
 	detailedProp.isActorSynced = True
 
 class OOT_OperatorsPanel(OOT_Panel):
