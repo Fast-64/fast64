@@ -420,7 +420,7 @@ def ootLightToC(light):
 		ootVectorToC(light.diffuse1) + ', ' +\
 		ootVectorToC(light.fogColor) + ', ' +\
 		light.getBlendFogShort() + ', ' +\
-		"0x{:04X}".format(light.drawDistance) + ' },\n'
+		"0x{:04X}".format(light.fogFar) + ' },\n'
 
 def ootLightSettingsToC(scene, useIndoorLighting, headerIndex):
 	data = CData()

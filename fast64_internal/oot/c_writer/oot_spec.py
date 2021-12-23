@@ -36,7 +36,7 @@ def writeSegmentDefinition(segmentDefinition, fileData, exportPath):
 	if newFileData != fileData:
 		writeFile(os.path.join(exportPath, 'spec'), newFileData)
 
-def modifySegmentDefinition(scene, exportInfo):
+def modifySegmentDefinition(scene, exportInfo, levelC):
 	exportPath = exportInfo.exportPath
 	segmentDefinitions, fileData = readSegmentDefinition(exportPath)
 	sceneName = scene.name if scene is not None else exportInfo.name
@@ -55,20 +55,50 @@ def modifySegmentDefinition(scene, exportInfo):
 		firstIndex = len(segmentDefinitions)
 
 	if scene is not None:
-		segmentDefinitions.insert(firstIndex,
-			'\n\tname "' + scene.name + '_scene"\n' +\
-			"\tromalign 0x1000\n" +\
-			'\tinclude "' + includeDir + '_scene.o"\n' +\
-			"\tnumber 2\n")
-		firstIndex += 1
-
-		for i in range(len(scene.rooms)):
-			roomSuffix = "_room_" + str(i)
-			segmentDefinitions.insert(firstIndex, 
-				'\n\tname "' + scene.name + roomSuffix + '"\n' +\
+		if bpy.context.scene.ootSceneSingleFile:
+			segmentDefinitions.insert(firstIndex,
+				'\n\tname "' + scene.name + '_scene"\n' +\
 				"\tromalign 0x1000\n" +\
-				'\tinclude "' + includeDir + roomSuffix + '.o"\n' +\
-				"\tnumber 3\n")
+				'\tinclude "' + includeDir + '_scene.o"\n' +\
+				"\tnumber 2\n")
 			firstIndex += 1
+
+			for i in range(len(scene.rooms)):
+				roomSuffix = "_room_" + str(i)
+				segmentDefinitions.insert(firstIndex, 
+					'\n\tname "' + scene.name + roomSuffix + '"\n' +\
+					"\tromalign 0x1000\n" +\
+					'\tinclude "' + includeDir + roomSuffix + '.o"\n' +\
+					"\tnumber 3\n")
+				firstIndex += 1
+		else:
+			sceneSegInclude = '\n\tname "' + scene.name + '_scene"\n' +\
+				"\tromalign 0x1000\n" +\
+				'\tinclude "' + includeDir + '_scene_main.o"\n' +\
+				'\tinclude "' + includeDir + '_scene_col.o"\n'
+			
+			if (levelC.sceneTexturesIsUsed()):
+				sceneSegInclude += '\tinclude "' + includeDir + '_scene_tex.o"\n'
+			
+			if (levelC.sceneCutscenesIsUsed()):
+				for i in range(len(levelC.sceneCutscenesC)):
+					sceneSegInclude += includeDir + '_cs_' + str(i) + '.o'
+				
+			sceneSegInclude += "\tnumber 2\n"
+
+			segmentDefinitions.insert(firstIndex, sceneSegInclude)
+
+			firstIndex += 1
+
+			for i in range(len(scene.rooms)):
+				roomSuffix = "_room_" + str(i)
+				segmentDefinitions.insert(firstIndex, 
+					'\n\tname "' + scene.name + roomSuffix + '"\n' +\
+					"\tromalign 0x1000\n" +\
+					'\tinclude "' + includeDir + roomSuffix + '_main.o"\n' +\
+					'\tinclude "' + includeDir + roomSuffix + '_model_info.o"\n' +\
+					'\tinclude "' + includeDir + roomSuffix + '_model.o"\n' +\
+					"\tnumber 3\n")
+				firstIndex += 1
 
 	writeSegmentDefinition(segmentDefinitions, fileData, exportPath)
