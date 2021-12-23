@@ -60,13 +60,11 @@ class OOTActorParams():
 	rotYBool: bool=False
 	rotZBool: bool=False
 
-def getValues(self, user, actorID, actorField, paramField, customField):
+def getValues(self, actorID, actorField, paramField, customField):
 	'''Updates the actor parameter field when the user change the options'''
-	if user == 'Transition Actor':
-		actorProp = bpy.context.object.ootTransitionActorProperty.detailedActor
-	else:
-		actorProp = bpy.context.object.ootActorDetailedProperties
 	if self.isActorSynced:
+		if paramField == 'transParam': actorProp = bpy.context.object.ootTransitionActorProperty.detailedActor
+		else: actorProp = bpy.context.object.ootActorDetailedProperties
 		if actorID == 'Custom' and customField is not None:
 			setattr(OOTActorParams, paramField, customField)
 
@@ -75,6 +73,8 @@ def getValues(self, user, actorID, actorField, paramField, customField):
 
 		return value
 	else:
+		if paramField == 'transParam': actorProp = bpy.context.object.ootTransitionActorProperty.actor
+		else: actorProp = bpy.context.object.ootActorProperty
 		if actorField is not None:
 			return getattr(actorProp, actorField)
 		else:
@@ -166,20 +166,20 @@ def editDetailedProperties():
 	propAnnotations['actorIDCustom'] = bpy.props.StringProperty(name='Actor Key', default='ACTOR_CUSTOM')
 	propAnnotations['actorKey'] = bpy.props.StringProperty(name='Actor Key', default='0000')
 	propAnnotations['actorParam'] = bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000', \
-		get=lambda self: getValues(self, 'Actor', self.actorID, 'actorParam', 'param', self.actorParamCustom),
+		get=lambda self: getValues(self, self.actorID, 'actorParam', 'param', self.actorParamCustom),
 		set=lambda self, value: setValues(self, value, 'Params', 'actorID'))
 	propAnnotations['actorParamCustom'] = bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000')
 
 	# Rotations
 	propAnnotations['rotOverride'] =  bpy.props.BoolProperty(name = 'Rot Override', default = False)
 	propAnnotations['rotOverrideX'] =  bpy.props.StringProperty(name = 'Rot X', default = '0x0',
-		get=lambda self: getValues(self, 'XRot', self.actorID, None, 'XRot', None),
+		get=lambda self: getValues(self, self.actorID, None, 'XRot', None),
 		set=lambda self, value: setValues(self, value, 'XRot', 'actorID'))
 	propAnnotations['rotOverrideY'] =  bpy.props.StringProperty(name = 'Rot Y', default = '0x0',
-		get=lambda self: getValues(self, 'YRot', self.actorID, None, 'YRot', None),
+		get=lambda self: getValues(self, self.actorID, None, 'YRot', None),
 		set=lambda self, value: setValues(self, value, 'YRot', 'actorID'))
 	propAnnotations['rotOverrideZ'] =  bpy.props.StringProperty(name = 'Rot Z', default = '0x0',
-		get=lambda self: getValues(self, 'ZRot', self.actorID, None, 'ZRot', None),
+		get=lambda self: getValues(self, self.actorID, None, 'ZRot', None),
 		set=lambda self, value: setValues(self, value, 'ZRot', 'actorID'))
 	propAnnotations['rotOverrideCustom'] = bpy.props.BoolProperty(name = 'Override Rotation', default = False)
 	propAnnotations['rotOverrideXCustom'] = bpy.props.StringProperty(name = 'Rot X', default = '0x0')
@@ -188,18 +188,18 @@ def editDetailedProperties():
 
 	# We have to use a bool to know what's needed to be exported
 	propAnnotations['XRotBool'] = bpy.props.BoolProperty(default=False,
-		get=lambda self: getValues(self, 'XRotBool', self.actorID, None, 'rotXBool', None))
+		get=lambda self: getValues(self, self.actorID, None, 'rotXBool', None))
 	propAnnotations['YRotBool'] = bpy.props.BoolProperty(default=False,
-		get=lambda self: getValues(self, 'YRotBool', self.actorID, None, 'rotYBool', None))
+		get=lambda self: getValues(self, self.actorID, None, 'rotYBool', None))
 	propAnnotations['ZRotBool'] = bpy.props.BoolProperty(default=False,
-		get=lambda self: getValues(self, 'ZRotBool', self.actorID, None, 'rotZBool', None))
+		get=lambda self: getValues(self, self.actorID, None, 'rotZBool', None))
 
 	# Transition Actors
 	propAnnotations['transActorID'] = bpy.props.EnumProperty(name='Transition Actor ID', items=ootEnumTransitionActorID)
 	propAnnotations['transActorIDCustom'] = bpy.props.StringProperty(name='Actor Key', default='ACTOR_CUSTOM')
 	propAnnotations['transActorKey'] = bpy.props.StringProperty(name='Transition Actor ID', default='0009')
 	propAnnotations['transActorParam'] = bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000', \
-		get=lambda self: getValues(self, 'Transition Actor', self.transActorID, 'actorParam', 'transParam', self.transActorParamCustom),
+		get=lambda self: getValues(self, self.transActorID, 'actorParam', 'transParam', self.transActorParamCustom),
 		set=lambda self, value: setValues(self, value, 'Params', 'transActorID'))
 	propAnnotations['transActorParamCustom'] = bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000')
 

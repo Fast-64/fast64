@@ -267,7 +267,6 @@ def processParameters(user, actorID, detailedProp, params, toSaveField, idField,
 						actorType = getattr(detailedProp, dPKey + '.type', None)
 						if hasTiedParams(tiedParam, actorType) is True:
 							setActorString(elem, params, detailedProp, dPKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
-			else: print("Current Actor doesn't have parameters!")
 		if user != 'Transition Actor':
 			actorParams = getActorFinalParameters(detailedProp, detailedProp.actorKey, paramTarget)
 		else:
