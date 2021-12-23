@@ -657,12 +657,8 @@ def getActorFinalParameters(detailedProp, actorKey, paramTarget):
 			lenBool = getMaxElemIndex(actorKey, 'Bool', None)
 			lenEnum = getMaxElemIndex(actorKey, 'Enum', None)
 			for elem in actorNode:
-				target = elem.get('Target')
-				if target == 'XRot' or target == 'YRot' or target == 'ZRot':
-					actorType = getattr(detailedProp, actorKey + '.type', None)
-					if hasTiedParams(elem.get('TiedParam'), actorType):
-						params += getActorString(elem, detailedProp, actorKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
-				else:
+				actorType = getattr(detailedProp, actorKey + '.type', None)
+				if hasTiedParams(elem.get('TiedParam'), actorType):
 					params += getActorString(elem, detailedProp, actorKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
 	params = params.rstrip(' | ')
 	if paramTarget == 'Params':
