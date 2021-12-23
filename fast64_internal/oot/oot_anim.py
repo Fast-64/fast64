@@ -55,9 +55,7 @@ class OOTAnimation:
 
 		return data
 
-def ootGetAnimBoneRot(bone, poseBone, convertTransformMatrix, isRoot, frame, boneIndex):
-	# frame and boneIndex are just for debugging
-	# 
+def ootGetAnimBoneRot(bone, poseBone, convertTransformMatrix, isRoot):
 	# OoT draws limbs like this:
 	# limbMatrix = parentLimbMatrix @ limbFixedTranslationMatrix @ animRotMatrix
 	# There is no separate rest position rotation; an animation rotation of 0
@@ -152,7 +150,7 @@ def ootConvertAnimationData(anim, armatureObj, frameInterval, convertTransformMa
 		rootBone = armatureObj.data.bones[animBones[0]]
 		rootPoseBone = armatureObj.pose.bones[animBones[0]]
 
-		# Hacky solution to handle Z-up to Y-up conversion
+		# Convert Z-up to Y-up for root translation animation
 		translation = mathutils.Quaternion((1, 0, 0), math.radians(-90.0)) @ \
 			(convertTransformMatrix @ rootPoseBone.matrix).decompose()[0]
 		saveTranslationFrame(translationData, translation)
@@ -162,20 +160,8 @@ def ootConvertAnimationData(anim, armatureObj, frameInterval, convertTransformMa
 			currentBone = armatureObj.data.bones[boneName]
 			currentPoseBone = armatureObj.pose.bones[boneName]
 			
-			'''
-			rotationValue = \
-				(currentBone.matrix.to_4x4().inverted() @ \
-				currentPoseBone.matrix).to_quaternion()
-			if currentBone.parent is not None:
-				rotationValue = (
-					currentBone.matrix.to_4x4().inverted() @ currentPoseBone.parent.matrix.inverted() @ \
-					currentPoseBone.matrix).to_quaternion()
-			
-			saveQuaternionFrame(rotationData[boneIndex], restPoseRotations[boneName].inverted() @ rotationValue)
-			'''
 			saveQuaternionFrame(rotationData[boneIndex], ootGetAnimBoneRot(
-				currentBone, currentPoseBone, convertTransformMatrix, boneIndex == 0,
-				frame, boneIndex))
+				currentBone, currentPoseBone, convertTransformMatrix, boneIndex == 0))
 	
 	bpy.context.scene.frame_set(currentFrame)
 	squashFramesIfAllSame(translationData)
