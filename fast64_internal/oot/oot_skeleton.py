@@ -81,13 +81,17 @@ class OOTSkeleton():
 				str(self.getNumLimbs()) + " };\n\n" 
 			data.header = "extern SkeletonHeader " + self.name + ";\n"
 
+		index = 0
 		for limb in limbList:
 			name = (self.name + "_" + limb.boneName).upper()
+			assert limb.index == index
 			if limb.index == 0:
 				data.header += "#define " + name + "_POS_LIMB 0\n"
 				data.header += "#define " + name + "_ROT_LIMB 1\n"
 			else:
 				data.header += "#define " + name + "_LIMB " + str(limb.index+1) + "\n"
+			index += 1
+		data.header += "#define " + self.name.upper() + "_NUM_LIMBS " + str(index+1) + "\n"
 
 		limbData.append(data)
 
