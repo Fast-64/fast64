@@ -81,13 +81,22 @@ class OOTSkeleton():
 				str(self.getNumLimbs()) + " };\n\n" 
 			data.header = "extern SkeletonHeader " + self.name + ";\n"
 
+		for limb in limbList:
+			name = (self.name + "_" + limb.boneName).upper()
+			if limb.index == 0:
+				data.header += "#define " + name + "_POS_LIMB 0\n"
+				data.header += "#define " + name + "_ROT_LIMB 1\n"
+			else:
+				data.header += "#define " + name + "_LIMB " + str(limb.index+1) + "\n"
+
 		limbData.append(data)
 
 		return limbData
 
 class OOTLimb():
-	def __init__(self, skeletonName, index, translation, DL, lodDL):
+	def __init__(self, skeletonName, boneName, index, translation, DL, lodDL):
 		self.skeletonName = skeletonName
+		self.boneName = boneName
 		self.translation = translation
 		self.firstChildIndex = 0xFF
 		self.nextSiblingIndex = 0xFF
@@ -341,10 +350,10 @@ def ootProcessBone(fModel, boneName, parentLimb, nextIndex, meshObj, armatureObj
 		
 	if isinstance(parentLimb, OOTSkeleton):
 		skeleton = parentLimb
-		limb = OOTLimb(skeleton.name, nextIndex, translate, DL, None)
+		limb = OOTLimb(skeleton.name, boneName, nextIndex, translate, DL, None)
 		skeleton.limbRoot = limb
 	else:
-		limb = OOTLimb(parentLimb.skeletonName, nextIndex, translate, DL, None)
+		limb = OOTLimb(parentLimb.skeletonName, boneName, nextIndex, translate, DL, None)
 		parentLimb.children.append(limb)
 
 	limb.isFlex = hasSkinnedFaces
