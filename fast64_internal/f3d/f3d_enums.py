@@ -2,8 +2,8 @@
 combiner_enums = {
 	'Case A' : (
 	('COMBINED', 'Combined Color', 'Combined Color'),
-	('TEXEL0', 'Texture 0', 'Texture 0'),
-	('TEXEL1', 'Texture 1', 'Texture 1'),
+	('TEXEL0', 'Texture 0 Color', 'Texture 0 Color'),
+	('TEXEL1', 'Texture 1 Color', 'Texture 1 Color'),
 	('PRIMITIVE', 'Primitive Color', 'Primitive Color'),
 	('SHADE', 'Shade Color', 'Shade Color'),
 	('ENVIRONMENT', 'Environment Color', 'Environment Color'),
@@ -14,8 +14,8 @@ combiner_enums = {
 	
 	'Case B' : (
 	('COMBINED', 'Combined Color', 'Combined Color'),
-	('TEXEL0', 'Texture 0', 'Texture 0'),
-	('TEXEL1', 'Texture 1', 'Texture 1'),
+	('TEXEL0', 'Texture 0 Color', 'Texture 0 Color'),
+	('TEXEL1', 'Texture 1 Color', 'Texture 1 Color'),
 	('PRIMITIVE', 'Primitive Color', 'Primitive Color'),
 	('SHADE', 'Shade Color', 'Shade Color'),
 	('ENVIRONMENT', 'Environment Color', 'Environment Color'),
@@ -26,8 +26,8 @@ combiner_enums = {
 	
 	'Case C' : (
 	('COMBINED'  , 'Combined Color', 'Combined Color'),
-	('TEXEL0'  , 'Texture 0', 'Texture 0'),
-	('TEXEL1'  , 'Texture 1', 'Texture 1'),
+	('TEXEL0'  , 'Texture 0 Color', 'Texture 0 Color'),
+	('TEXEL1'  , 'Texture 1 Color', 'Texture 1 Color'),
 	('PRIMITIVE'  , 'Primitive Color', 'Primitive Color'),
 	('SHADE'  , 'Shade Color', 'Shade Color'),
 	('ENVIRONMENT'  , 'Environment Color', 'Environment Color'),
@@ -46,8 +46,8 @@ combiner_enums = {
 	
 	'Case D' : (
 	('COMBINED', 'Combined Color', 'Combined Color'),
-	('TEXEL0', 'Texture 0', 'Texture 0'),
-	('TEXEL1', 'Texture 1', 'Texture 1'),
+	('TEXEL0', 'Texture 0 Color', 'Texture 0 Color'),
+	('TEXEL1', 'Texture 1 Color', 'Texture 1 Color'),
 	('PRIMITIVE', 'Primitive Color', 'Primitive Color'),
 	('SHADE', 'Shade Color', 'Shade Color'),
 	('ENVIRONMENT', 'Environment Color', 'Environment Color'),
@@ -254,22 +254,22 @@ enumZMode = [
 ]
 
 enumBlendColor = [
-	('G_BL_CLR_IN', 'Input', 'Input'),
-	('G_BL_CLR_MEM', 'Memory', 'Memory'),
-	('G_BL_CLR_BL', 'Blend', 'Blend'),
-	('G_BL_CLR_FOG', 'Fog', 'Fog')
+	('G_BL_CLR_IN', 'Input (CC/Blender)', 'First cycle: Color Combiner RGB, Second cycle: Blender numerator from first cycle'),
+	('G_BL_CLR_MEM', 'Framebuffer Color', 'Framebuffer Color (Memory)'),
+	('G_BL_CLR_BL', 'Blend Color', 'Blend Color Register'),
+	('G_BL_CLR_FOG', 'Fog Color', 'Fog Color Register')
 ]
 
 enumBlendAlpha = [
-	('G_BL_A_IN', 'Input', 'Input'),
-	('G_BL_A_FOG', 'Fog', 'Fog'),
-	('G_BL_A_SHADE', 'Shade', 'Shade'),
+	('G_BL_A_IN', 'Color Combiner Alpha', 'Color Combiner Alpha'),
+	('G_BL_A_FOG', 'Fog Alpha', 'Fog Color Register Alpha'),
+	('G_BL_A_SHADE', 'Shade Alpha', 'Stepped Shade Alpha'),
 	('G_BL_0', '0', '0')
 ]
 
 enumBlendMix = [
-	('G_BL_1MA', '1 - Source Alpha', '1 - Source Alpha'),
-	('G_BL_A_MEM', 'Memory Alpha', 'Memory Alpha'),
+	('G_BL_1MA', '1 - A', '1 - A, where A is selected above'),
+	('G_BL_A_MEM', 'Framebuffer Alpha', 'Framebuffer (Memory) Alpha'),
 	('G_BL_1', '1', '1'),
 	('G_BL_0', '0', '0')
 ]
