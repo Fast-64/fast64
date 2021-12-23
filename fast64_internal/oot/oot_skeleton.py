@@ -165,28 +165,6 @@ class OOTLimb():
 			self.children[i].setLinks()
 		# self -> child -> sibling
 
-def setArmatureToNonRotatedPose(armatureObj):
-	restPoseRotations = {}
-	poseBoneName = getStartBone(armatureObj)
-	setBoneNonRotated(armatureObj, poseBoneName, restPoseRotations)
-	return restPoseRotations
-
-def setBoneNonRotated(armatureObj, boneName, restPoseRotations):
-	bone = armatureObj.data.bones[boneName]
-	poseBone = armatureObj.pose.bones[boneName]
-
-	while len(poseBone.constraints) > 0:
-		poseBone.constraints.remove(poseBone.constraints[0])
-
-	rotation = bone.matrix_local.inverted().decompose()[1]
-	armatureObj.pose.bones[boneName].rotation_mode = "QUATERNION"
-	armatureObj.pose.bones[boneName].rotation_quaternion = rotation
-
-	restPoseRotations[boneName] = rotation
-
-	for child in bone.children:
-		setBoneNonRotated(armatureObj, child.name, restPoseRotations)
-
 def getGroupIndices(meshInfo, armatureObj, meshObj, rootGroupIndex):
 	meshInfo.vertexGroupInfo = OOTVertexGroupInfo()
 	for vertex in meshObj.data.vertices:
@@ -243,10 +221,6 @@ def ootDuplicateArmature(originalArmatureObj):
 		bpy.ops.object.transform_apply(location = False, rotation = False,
 			scale = True, properties = False)
 
-		# convert blender to n64 space, then set all bones to be non-rotated
-		applyRotation([armatureObj], math.radians(90), 'X')
-		restPoseRotations = setArmatureToNonRotatedPose(armatureObj)
-			
 		# Apply modifiers/data to mesh objs
 		bpy.ops.object.select_all(action = 'DESELECT')
 		for obj in meshObjs:
@@ -271,7 +245,7 @@ def ootDuplicateArmature(originalArmatureObj):
 		bpy.ops.pose.armature_apply()
 		bpy.ops.object.mode_set(mode = "OBJECT")
 
-		return armatureObj, meshObjs, restPoseRotations
+		return armatureObj, meshObjs
 	except Exception as e:
 		cleanupDuplicatedObjects(meshObjs + [armatureObj])
 		originalArmatureObj.select_set(True)
@@ -279,21 +253,19 @@ def ootDuplicateArmature(originalArmatureObj):
 		raise Exception(str(e))
 
 def ootConvertArmatureToSkeletonWithoutMesh(originalArmatureObj, convertTransformMatrix, name):
-	skeleton, fModel, restPoseRotations = ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix, 
+	skeleton, fModel = ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix, 
 		None, name, False, True, "Opaque")
-	return skeleton, restPoseRotations
+	return skeleton
 
 def ootConvertArmatureToSkeletonWithMesh(originalArmatureObj, convertTransformMatrix, fModel, name, convertTextureData, drawLayer):
-	
-	skeleton, fModel, restPoseRotations = ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix, 
+	return ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix, 
 		fModel, name, convertTextureData, False, drawLayer)
-	return skeleton, fModel
 
 def ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix, 
 	fModel, name, convertTextureData, skeletonOnly, drawLayer):
 	checkEmptyName(name)
 
-	armatureObj, meshObjs, restPoseRotations = ootDuplicateArmature(originalArmatureObj)
+	armatureObj, meshObjs = ootDuplicateArmature(originalArmatureObj)
 	
 	try:
 		skeleton = OOTSkeleton(name)
@@ -323,7 +295,7 @@ def ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix,
 		originalArmatureObj.select_set(True)
 		bpy.context.view_layer.objects.active = originalArmatureObj
 
-		return skeleton, fModel, restPoseRotations
+		return skeleton, fModel
 	except Exception as e:
 		cleanupDuplicatedObjects(meshObjs + [armatureObj])
 		originalArmatureObj.select_set(True)
