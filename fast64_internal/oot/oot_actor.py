@@ -63,9 +63,9 @@ class OOTActorParams():
 def getValues(self, user, actorID, actorField, paramField, customField):
 	'''Updates the actor parameter field when the user change the options'''
 	if user == 'Transition Actor':
-		actorProp = bpy.context.object.ootTransitionActorProperty.actor
+		actorProp = bpy.context.object.ootTransitionActorProperty.detailedActor
 	else:
-		actorProp = bpy.context.object.ootActorProperty
+		actorProp = bpy.context.object.ootActorDetailedProperties
 	if self.isActorSynced:
 		if actorID == 'Custom' and customField is not None:
 			setattr(OOTActorParams, paramField, customField)
@@ -163,7 +163,7 @@ def editDetailedProperties():
 	# Each prop has its 'custom' variant because of the get and set functions
 	# Actors/Entrance Actor
 	propAnnotations['actorID'] = bpy.props.EnumProperty(name='Actor ID', items=ootEnumActorID)
-	propAnnotations['actorIDCustom'] = bpy.props.StringProperty(name='Actor Key', default='0000')
+	propAnnotations['actorIDCustom'] = bpy.props.StringProperty(name='Actor Key', default='ACTOR_CUSTOM')
 	propAnnotations['actorKey'] = bpy.props.StringProperty(name='Actor Key', default='0000')
 	propAnnotations['actorParam'] = bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000', \
 		get=lambda self: getValues(self, 'Actor', self.actorID, 'actorParam', 'param', self.actorParamCustom),
@@ -181,6 +181,10 @@ def editDetailedProperties():
 	propAnnotations['rotOverrideZ'] =  bpy.props.StringProperty(name = 'Rot Z', default = '0x0',
 		get=lambda self: getValues(self, 'ZRot', self.actorID, None, 'ZRot', None),
 		set=lambda self, value: setValues(self, value, 'ZRot', 'actorID'))
+	propAnnotations['rotOverrideCustom'] = bpy.props.BoolProperty(name = 'Override Rotation', default = False)
+	propAnnotations['rotOverrideXCustom'] = bpy.props.StringProperty(name = 'Rot X', default = '0x0')
+	propAnnotations['rotOverrideYCustom'] = bpy.props.StringProperty(name = 'Rot Y', default = '0x0')
+	propAnnotations['rotOverrideZCustom'] = bpy.props.StringProperty(name = 'Rot Z', default = '0x0')
 
 	# We have to use a bool to know what's needed to be exported
 	propAnnotations['XRotBool'] = bpy.props.BoolProperty(default=False,
@@ -192,7 +196,7 @@ def editDetailedProperties():
 
 	# Transition Actors
 	propAnnotations['transActorID'] = bpy.props.EnumProperty(name='Transition Actor ID', items=ootEnumTransitionActorID)
-	propAnnotations['transActorIDCustom'] = bpy.props.StringProperty(name='Actor Key', default='0000')
+	propAnnotations['transActorIDCustom'] = bpy.props.StringProperty(name='Actor Key', default='ACTOR_CUSTOM')
 	propAnnotations['transActorKey'] = bpy.props.StringProperty(name='Transition Actor ID', default='0009')
 	propAnnotations['transActorParam'] = bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000', \
 		get=lambda self: getValues(self, 'Transition Actor', self.transActorID, 'actorParam', 'transParam', self.transActorParamCustom),
@@ -204,6 +208,14 @@ def editDetailedProperties():
 	propAnnotations['isActorSynced'] = bpy.props.BoolProperty(default=False)
 	propAnnotations['itemChest'] = bpy.props.EnumProperty(name='Chest Content', items=ootChestContent)
 	propAnnotations['naviMsgID'] = bpy.props.EnumProperty(name='Chest Content', items=ootNaviMsgID)
+
+	# If you use the 'get=' option from Blender props don't actually save the data in the .blend
+	# When the get function is called we have to save the data that'll be returned
+	propAnnotations['paramToSave'] = bpy.props.StringProperty()
+	propAnnotations['transParamToSave'] = bpy.props.StringProperty()
+	propAnnotations['XRotToSave'] = bpy.props.StringProperty(default='0x0')
+	propAnnotations['YRotToSave'] = bpy.props.StringProperty(default='0x0')
+	propAnnotations['ZRotToSave'] = bpy.props.StringProperty(default='0x0')
 
 	# Collectible Drops List
 	itemDrops = [(elem.get('Value'), elem.get('Name'), \
@@ -328,7 +340,7 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 				if dpKey == actorNode.get('Key'):
 					for elem in actorNode:
 						target = elem.get('Target')
-						actorType = getattr(detailedProp, dpKey + '.type')
+						actorType = getattr(detailedProp, dpKey + '.type', None)
 						if hasTiedParams(elem.get('TiedParam'), actorType):
 							if target == 'XRot':
 								OOTActorParams.XRot = getActorFinalParameters(detailedProp, dpKey, 'XRot')
@@ -350,17 +362,14 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 		# If the current actor is custom
 		if user != userEntrance:
 			prop_split(userLayout, detailedProp, userIDField + 'Custom', currentActor)
-			if user == userActor:
-				prop_split(userLayout, detailedProp, 'actorParamCustom', 'Actor Parameter')
-			else:
-				userLayout.prop(userProp, 'rotOverrideCustom', text = 'Override Rotation (ignore Blender rot)')
-				if userProp.rotOverrideCustom:
-					prop_split(userLayout, userProp, 'rotOverrideXCustom', 'Rot X')
-					prop_split(userLayout, userProp, 'rotOverrideYCustom', 'Rot Y')
-					prop_split(userLayout, userProp, 'rotOverrideZCustom', 'Rot Z')
-				prop_split(userLayout, detailedProp, userParamField + 'Custom', 'Actor Parameter')
+			prop_split(userLayout, detailedProp, userParamField + 'Custom', 'Actor Parameter')
+			userLayout.prop(detailedProp, 'rotOverrideCustom', text = 'Override Rotation (ignore Blender rot)')
+			if detailedProp.rotOverrideCustom:
+				if user == userActor: prop_split(userLayout, detailedProp, 'rotOverrideXCustom', 'Rot X')
+				prop_split(userLayout, detailedProp, 'rotOverrideYCustom', 'Rot Y')
+				if user == userActor: prop_split(userLayout, detailedProp, 'rotOverrideZCustom', 'Rot Z')
 		else:
-			prop_split(userLayout, detailedProp.actor, userParamField + 'Custom', 'Actor Parameter')
+			prop_split(userLayout, detailedProp, userParamField + 'Custom', 'Actor Parameter')
 
 # Actor Header Item Property
 class OOTActorHeaderItemProperty(bpy.types.PropertyGroup):
@@ -442,24 +451,13 @@ class OOTActorProperty(bpy.types.PropertyGroup):
 	# Normal Actors
 	# We can't delete this (for now) as it'd ignore data in older blend files
 	actorID : bpy.props.EnumProperty(name = 'Actor', items = ootEnumActorID, default = 'ACTOR_PLAYER')
+	actorIDCustom : bpy.props.StringProperty(name = 'Actor ID', default = 'ACTOR_PLAYER')
 	actorParam : bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000')
 	rotOverride : bpy.props.BoolProperty(name = 'Override Rotation', default = False)
 	rotOverrideX : bpy.props.StringProperty(name = 'Rot X', default = '0x0')
 	rotOverrideY : bpy.props.StringProperty(name = 'Rot Y', default = '0x0')
 	rotOverrideZ : bpy.props.StringProperty(name = 'Rot Z', default = '0x0')
-
-	actorIDCustom : bpy.props.StringProperty(name = 'Actor ID', default = 'ACTOR_PLAYER')
-	rotOverrideCustom : bpy.props.BoolProperty(name = 'Override Rotation', default = False)
-
 	headerSettings : bpy.props.PointerProperty(type = OOTActorHeaderProperty)
-
-	# If you use the 'get=' option from Blender props don't actually save the data in the .blend
-	# When the get function is called we have to save the data that'll be returned
-	paramToSave: bpy.props.StringProperty()
-	transParamToSave: bpy.props.StringProperty()
-	XRotToSave: bpy.props.StringProperty(default='0x0')
-	YRotToSave: bpy.props.StringProperty(default='0x0')
-	ZRotToSave: bpy.props.StringProperty(default='0x0')
 
 def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
 	actorIDBox = layout.column()
@@ -509,10 +507,12 @@ class OOTTransitionActorProperty(bpy.types.PropertyGroup):
 	cameraTransitionBack : bpy.props.EnumProperty(items = ootEnumCamTransition, default = '0x00')
 	cameraTransitionBackCustom : bpy.props.StringProperty(default = '0x00')
 	actor : bpy.props.PointerProperty(type = OOTActorProperty)
+	detailedActor : bpy.props.PointerProperty(type = OOTActorDetailedProperties)
 
 def drawTransitionActorProperty(layout, transActorProp, altSceneProp, roomObj, objName, detailedProp):
 	actorIDBox = layout.column()
 
+	detailedProp = transActorProp.detailedActor
 	if detailedProp.isActorSynced:
 		drawDetailedProperties('Transition Property', detailedProp, actorIDBox, objName, \
 			OOT_SearchTransActorIDEnumOperator, 'transActorID', 'transActorParam', detailedProp, detailedProp.transActorKey)

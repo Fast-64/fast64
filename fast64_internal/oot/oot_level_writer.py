@@ -462,45 +462,48 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 			rotX = rotY = rotZ = ''
 
 			# Figure out which rotation to export, Blender's or the override
-			if actorID != 'Custom':
-				for actorNode in root:
-					if actorNode.get('ID') == actorID:
-						if detailedProp.XRotBool:
-							rotX = getActorProperty(actorProp, detailedProp, actorID, 'XRot')
-							if rotX is None: rotX = f'{rotation[0]}'
-						else: rotX = f'{rotation[0]}'
+			if detailedProp.XRotBool or (actorID == 'Custom'):
+				rotX = getActorProperty(detailedProp, actorID, 'XRot')
+				if rotX is None: rotX = f'{rotation[0]}'
+			else: rotX = f'{rotation[0]}'
 
-						if detailedProp.YRotBool:
-							rotY = getActorProperty(actorProp, detailedProp, actorID, 'YRot')
-							if rotY is None: rotY = f'{rotation[1]}'
-							print(rotY)
-						else: rotY = f'{rotation[1]}'
+			if detailedProp.YRotBool or (actorID == 'Custom'):
+				rotY = getActorProperty(detailedProp, actorID, 'YRot')
+				if rotY is None: rotY = f'{rotation[1]}'
+			else: rotY = f'{rotation[1]}'
 
-						if detailedProp.ZRotBool:
-							rotZ = getActorProperty(actorProp, detailedProp, actorID, 'ZRot')
-							if rotZ is None: rotZ = f'{rotation[2]}'
-						else: rotZ = f'{rotation[2]}'
-			elif actorProp.rotOverrideCustom == False:
+			if detailedProp.ZRotBool or (actorID == 'Custom'):
+				rotZ = getActorProperty(detailedProp, actorID, 'ZRot')
+				if rotZ is None: rotZ = f'{rotation[2]}'
+			else: rotZ = f'{rotation[2]}'
+
+			if actorID == 'Custom' and detailedProp.rotOverrideCustom == False:
 				rotX = f'{rotation[0]}'
 				rotY = f'{rotation[1]}'
 				rotZ = f'{rotation[2]}'
 
-			addActor(room, OOTActor(getActorProperty(actorProp, detailedProp, actorID, 'actorID'),
-				translation, rotation, getActorProperty(actorProp, detailedProp, actorID, 'actorParam'), (rotX, rotY, rotZ)),
+			addActor(room, OOTActor(getActorProperty(detailedProp, actorID, 'actorID'),
+				translation, rotation, getActorProperty(detailedProp, actorID, 'actorParam'), (rotX, rotY, rotZ)),
 				actorProp, "actorList", obj.name)
 		elif obj.ootEmptyType == "Transition Actor":
-			transActorProp = obj.ootTransitionActorProperty
-			detailedProp = obj.ootActorDetailedProperties
-			actorID = detailedProp.transActorID
 			if rotation[0] != 0 or rotation[2] != 0:
 				raise PluginError("Transition Actors can't have X and Y Rotations!")
+
+			transActorProp = obj.ootTransitionActorProperty
+			detailedProp = transActorProp.detailedActor
+			actorID = detailedProp.transActorID
+			if detailedProp.YRotBool or (actorID == 'Custom'):
+				rotY = getActorProperty(detailedProp, actorID, 'YRot')
+				if rotY is None: rotY = f'{rotation[1]}'
+			else: rotY = f'{int(round(rotation[1]))}'
+
 			addActor(scene, OOTTransitionActor(
-				getActorProperty(transActorProp.actor, detailedProp, actorID, 'transActorID'),
+				getActorProperty(detailedProp, actorID, 'transActorID'),
 				room.roomIndex, transActorProp.roomIndex,
 				getCustomProperty(transActorProp, "cameraTransitionFront"),
 				getCustomProperty(transActorProp, "cameraTransitionBack"),
-				translation, rotation[1], # TODO: Correct axis?
-				getActorProperty(transActorProp.actor, detailedProp, actorID, 'transActorParam')),
+				translation, rotY, # TODO: Correct axis?
+				getActorProperty(detailedProp, actorID, 'transActorParam')),
 				transActorProp.actor, "transitionActorList", obj.name)
 		elif obj.ootEmptyType == "Entrance":
 			entranceProp = obj.ootEntranceProperty
@@ -511,7 +514,7 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 			addActor(scene, OOTEntrance(room.roomIndex, spawnIndex), entranceProp.actor, "entranceList", obj.name)
 			addStartPosition(scene, spawnIndex, OOTActor(
 				"ACTOR_PLAYER" if not entranceProp.customActor else entranceProp.actor.actorIDCustom,
-				translation, rotation, getActorProperty(entranceProp.actor, detailedProp, actorID, 'actorParam'), None), entranceProp.actor, obj.name)
+				translation, rotation, getActorProperty(detailedProp, actorID, 'actorParam'), None), entranceProp.actor, obj.name)
 		elif obj.ootEmptyType == "Water Box":
 			ootProcessWaterBox(sceneObj, obj, transformMatrix, scene, room.roomIndex)
 	elif isinstance(obj.data, bpy.types.Camera):

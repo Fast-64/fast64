@@ -51,8 +51,8 @@ class OOT_AddDoor(bpy.types.Operator):
 		emptyObj = context.view_layer.objects.active
 		emptyObj.ootEmptyType = "Transition Actor"
 		emptyObj.name = "Door Actor"
-		emptyObj.ootActorDetailedProperties.transActorID = "ACTOR_EN_DOOR"
-		emptyObj.ootActorDetailedProperties.isActorSynced = True
+		emptyObj.ootTransitionActorProperty.detailedActor.transActorID = "ACTOR_EN_DOOR"
+		emptyObj.ootTransitionActorProperty.detailedActor.isActorSynced = True
 		
 		parentObject(cubeObj, emptyObj)
 
@@ -176,7 +176,7 @@ class OOT_AddActor(bpy.types.Operator):
 		bpy.ops.object.select_all(action = "DESELECT")
 
 		location = mathutils.Vector(bpy.context.scene.cursor.location)
-		bpy.ops.object.empty_add(type='CUBE', radius = 15, align='WORLD', location=location[:])
+		bpy.ops.object.empty_add(type='CUBE', radius = 1, align='WORLD', location=location[:])
 		emptyObj = context.view_layer.objects.active
 		emptyObj.ootEmptyType = "Actor"
 		emptyObj.name = "New Actor"
@@ -218,34 +218,34 @@ def processObj(obj):
 		if objType == "Actor":
 			print(f"Processing Actor '{obj.name}'...")
 			actorProp = obj.ootActorProperty
-			processParameters(objType, obj.ootActorProperty.actorID, actorProp, obj.ootActorDetailedProperties, \
+			processParameters(objType, obj.ootActorProperty.actorID, obj.ootActorDetailedProperties, \
 				int(actorProp.actorParam, base=16), 'param', 'actorID', 'actorParam', 'Params')
 			if actorProp.rotOverride:
 				if actorProp.rotOverrideX != '0' or actorProp.rotOverrideX != '0x0':
-					processParameters(objType, obj.ootActorProperty.actorID, actorProp, obj.ootActorDetailedProperties, \
+					processParameters(objType, obj.ootActorProperty.actorID, obj.ootActorDetailedProperties, \
 						int(actorProp.rotOverrideX, base=16), 'XRot', 'actorID', 'rotOverrideX', 'XRot')
 				if actorProp.rotOverrideY != '0' or actorProp.rotOverrideY != '0x0':
-					processParameters(objType, obj.ootActorProperty.actorID, actorProp, obj.ootActorDetailedProperties, \
+					processParameters(objType, obj.ootActorProperty.actorID, obj.ootActorDetailedProperties, \
 						int(actorProp.rotOverrideY, base=16), 'YRot', 'actorID', 'rotOverrideY', 'YRot')
 				if actorProp.rotOverrideZ != '0' or actorProp.rotOverrideZ != '0x0':
-					processParameters(objType, obj.ootActorProperty.actorID, actorProp, obj.ootActorDetailedProperties, \
+					processParameters(objType, obj.ootActorProperty.actorID, obj.ootActorDetailedProperties, \
 						int(actorProp.rotOverrideZ, base=16), 'ZRot', 'actorID', 'rotOverrideZ', 'ZRot')
 		elif objType == "Transition Actor":
 			print(f"Processing Transition Actor '{obj.name}'...")
-			transActorProp = obj.ootTransitionActorProperty.actor
-			processParameters(objType, transActorProp.actorID, transActorProp, obj.ootActorDetailedProperties, \
-				int(transActorProp.actorParam, base=16), 'transParam', 'actorID', 'actorParam', 'Params')
+			transActorProp = obj.ootTransitionActorProperty
+			processParameters(objType, transActorProp.actor.actorID, transActorProp.detailedActor, \
+				int(transActorProp.actor.actorParam, base=16), 'transParam', 'actorID', 'actorParam', 'Params')
 
 		elif objType == "Entrance":
 			print(f"Processing Entrance Actor '{obj.name}'...")
 			entranceProp = obj.ootEntranceProperty.actor
-			processParameters(objType, entranceProp.actorID, entranceProp, obj.ootActorDetailedProperties, \
+			processParameters(objType, entranceProp.actorID, obj.ootActorDetailedProperties, \
 				int(entranceProp.actorParam, base=16), 'param', 'actorID', 'actorParam', 'Params')
 
 	for childObj in obj.children:
 		processObj(childObj)
 
-def processParameters(user, actorID, actorProp, detailedProp, params, toSaveField, idField, paramField, paramTarget):
+def processParameters(user, actorID, detailedProp, params, toSaveField, idField, paramField, paramTarget):
 	if actorID != 'Custom':
 		actorParams = 0
 		for actorNode in root:
@@ -267,20 +267,20 @@ def processParameters(user, actorID, actorProp, detailedProp, params, toSaveFiel
 					if hasTiedParams(tiedParam, actorType) is True:
 						setActorString(elem, params, detailedProp, dPKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
 		if user != 'Transition Actor':
-			actorParams = f"0x{eval(getActorFinalParameters(detailedProp, detailedProp.actorKey, paramTarget)):X}"
+			actorParams = getActorFinalParameters(detailedProp, detailedProp.actorKey, paramTarget)
 		else:
-			actorParams = f"0x{eval(getActorFinalParameters(detailedProp, detailedProp.transActorKey, paramTarget)):X}"
-		setattr(actorProp, toSaveField + 'ToSave', actorParams)
+			actorParams = getActorFinalParameters(detailedProp, detailedProp.transActorKey, paramTarget)
+		setattr(detailedProp, toSaveField + 'ToSave', actorParams)
 	else:
-		setattr(detailedProp, idField + 'Custom', getattr(actorProp, idField + 'Custom'))
+		setattr(detailedProp, idField + 'Custom', getattr(detailedProp, idField + 'Custom'))
 		if paramField == 'actorParam':
-			setattr(detailedProp, paramField + 'Custom', getattr(actorProp, paramField))
+			setattr(detailedProp, paramField + 'Custom', getattr(detailedProp, paramField))
 		else:
-			if actorProp.rotOverride:
-				if (actorProp.rotOverrideX != '0' or actorProp.rotOverrideX != '0x0') or \
-				(actorProp.rotOverrideY != '0' or actorProp.rotOverrideY != '0x0') or \
-				(actorProp.rotOverrideZ != '0' or actorProp.rotOverrideZ != '0x0'):
-					setattr(detailedProp, paramField, getattr(actorProp, paramField))
+			if detailedProp.rotOverride:
+				if (detailedProp.rotOverrideX != '0' or detailedProp.rotOverrideX != '0x0') or \
+				(detailedProp.rotOverrideY != '0' or detailedProp.rotOverrideY != '0x0') or \
+				(detailedProp.rotOverrideZ != '0' or detailedProp.rotOverrideZ != '0x0'):
+					setattr(detailedProp, paramField, getattr(detailedProp, paramField))
 	detailedProp.isActorSynced = True
 
 class OOT_OperatorsPanel(OOT_Panel):

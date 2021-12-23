@@ -377,7 +377,7 @@ def getCustomProperty(data, prop):
 	value = getattr(data, prop)
 	return value if value != "Custom" else getattr(data, prop + str("Custom"))
 
-def getActorProperty(data, detailedProp, idField, field):
+def getActorProperty(detailedProp, idField, field):
 	if idField != 'Custom':
 		if field != 'actorID' and field != 'transActorID':
 			if field == 'actorParam':
@@ -402,6 +402,9 @@ def getActorProperty(data, detailedProp, idField, field):
 		elif field == 'actorID' or field == 'transActorID':
 			return getattr(detailedProp, field)
 	else:
+		if field == 'XRot': field = 'rotOverrideX'
+		elif field == 'YRot': field = 'rotOverrideY'
+		elif field == 'ZRot': field = 'rotOverrideZ'
 		return getattr(detailedProp, field + str("Custom"))
 
 def convertIntTo2sComplement(value, length, signed):
@@ -712,7 +715,7 @@ def getMaxElemIndex(actorKey, elemTag, flagType):
 
 def hasTiedParams(tiedParam, actorType):
 	'''Looking for parameters that depends on other parameters'''
-	if tiedParam is None:
+	if tiedParam is None or actorType is None:
 		return True
 	else:
 		if tiedParam.find(',') != -1: tiedList = tiedParam.split(',')
