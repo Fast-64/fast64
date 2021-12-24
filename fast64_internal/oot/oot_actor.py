@@ -50,18 +50,21 @@ class OOTActorProperties(bpy.types.PropertyGroup):
 
 	@staticmethod
 	def upgrade_object(obj):
-		if obj.data is None and obj.ootEmptyType == 'Scene':
-			print(f"Processing Scene '{obj.name}'...")
-			for roomObj in obj.children:
-				if roomObj.data is None:
-					if roomObj.ootEmptyType == 'Room':
-						# Actor is parented to a room
-						for obj in roomObj.children:
-							upgradeActorInit(obj)
-					elif (roomObj.ootEmptyType == 'Actor' or \
-						roomObj.ootEmptyType == 'Transition Actor' or roomObj.ootEmptyType == 'Entrance'):
-						# Actor is parented to a scene
-						upgradeActorInit(roomObj)
+		if obj.data is None:
+			if obj.ootEmptyType == 'Scene':
+				print(f"Processing Scene '{obj.name}'...")
+				for roomObj in obj.children:
+					if roomObj.data is None:
+						if roomObj.ootEmptyType == 'Room':
+							# Actor is parented to a room
+							for obj in roomObj.children:
+								upgradeActorInit(obj)
+						elif (roomObj.ootEmptyType == 'Actor' or \
+							roomObj.ootEmptyType == 'Transition Actor' or roomObj.ootEmptyType == 'Entrance'):
+							# Actor is parented to a scene
+							upgradeActorInit(roomObj)
+			elif (obj.ootEmptyType == 'Actor' or obj.ootEmptyType == 'Transition Actor' or obj.ootEmptyType == 'Entrance'):
+				upgradeActorInit(obj)
 
 class OOTActorParams():
 	# Used as a buffer to update the values, this isn't saved in the .blend
