@@ -83,7 +83,7 @@ class OOTSkeleton():
 
 		index = 0
 		for limb in limbList:
-			name = (self.name + "_" + limb.boneName).upper()
+			name = (self.name + "_" + toAlnum(limb.boneName)).upper()
 			assert limb.index == index
 			if limb.index == 0:
 				data.header += "#define " + name + "_POS_LIMB 0\n"
