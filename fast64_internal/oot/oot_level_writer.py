@@ -457,7 +457,7 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 	if obj.data is None:
 		if obj.ootEmptyType == "Actor":
 			actorProp = obj.ootActorProperty
-			detailedProp = obj.ootActorDetailedProperties
+			detailedProp = obj.fast64.oot.actor
 			actorID = actorProp.actorID
 			rotX = rotY = rotZ = ''
 
@@ -490,7 +490,7 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 				raise PluginError("Transition Actors can't have X and Y Rotations!")
 
 			transActorProp = obj.ootTransitionActorProperty
-			detailedProp = transActorProp.detailedActor
+			detailedProp = obj.fast64.oot.actor
 			actorID = detailedProp.transActorID
 			if detailedProp.YRotBool or (actorID == 'Custom'):
 				rotY = getActorProperty(detailedProp, actorID, 'YRot')
@@ -507,7 +507,7 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 				transActorProp.actor, "transitionActorList", obj.name)
 		elif obj.ootEmptyType == "Entrance":
 			entranceProp = obj.ootEntranceProperty
-			detailedProp = obj.ootActorDetailedProperties
+			detailedProp = obj.fast64.oot.actor
 			if not entranceProp.customActor: actorID = 'ACTOR_PLAYER'
 			else: actorID = 'Custom'
 			spawnIndex = obj.ootEntranceProperty.spawnIndex

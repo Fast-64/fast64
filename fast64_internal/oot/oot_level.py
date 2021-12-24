@@ -77,7 +77,7 @@ class OOTObjectPanel(bpy.types.Panel):
 		altRoomProp = roomObj.ootAlternateRoomHeaders if roomObj is not None else None
 
 		if obj.ootEmptyType == 'Actor':
-			drawActorProperty(box, obj.ootActorPropertiesLegacy, altRoomProp, objName, obj.fast64.oot.actor)
+			drawActorProperty(box, obj.ootActorProperty, altRoomProp, objName, obj.fast64.oot.actor)
 		
 		elif obj.ootEmptyType == 'Transition Actor':
 			drawTransitionActorProperty(box, obj.ootTransitionActorProperty, altSceneProp, roomObj, objName, obj.fast64.oot.actor)
@@ -167,7 +167,17 @@ def onUpdateOOTEmptyType(self, context):
 			setLightPropertyValues(timeOfDayLights.night, [40, 70, 100], [20, 20, 35], [50, 50, 100], [0, 0, 30], 0x3E0)
 
 class OOT_ObjectProperties(bpy.types.PropertyGroup):
-	actor: bpy.props.PointerProperty(OOTActorProperties)
+	version: bpy.props.IntProperty(name="OOT_ObjectProperties Version", default=0)
+	cur_version = 1 # version after property migration
+
+	actor: bpy.props.PointerProperty(type=OOTActorProperties)
+
+	@staticmethod
+	def upgrade_changed_props():
+		for obj in bpy.context.scene.objects:
+			if obj.fast64.oot.version < OOT_ObjectProperties.cur_version:
+				OOTActorProperties.upgrade_object(obj)
+			obj.fast64.oot.version = OOT_ObjectProperties.cur_version
 
 oot_obj_classes = (
 	OOTActorProperties,
@@ -232,7 +242,7 @@ def oot_obj_register():
 	bpy.types.Object.ootEmptyType = bpy.props.EnumProperty(
 		name = 'OOT Object Type', items = ootEnumEmptyType, default = 'None', update = onUpdateOOTEmptyType)
 
-	bpy.types.Object.ootActorPropertiesLegacy = bpy.props.PointerProperty(type = OOTActorPropertiesLegacy)
+	bpy.types.Object.ootActorProperty = bpy.props.PointerProperty(type = OOTActorPropertiesLegacy)
 	bpy.types.Object.ootTransitionActorProperty = bpy.props.PointerProperty(type = OOTTransitionActorProperty)
 	bpy.types.Object.ootWaterBoxProperty = bpy.props.PointerProperty(type = OOTWaterBoxProperty)
 	bpy.types.Object.ootRoomHeader = bpy.props.PointerProperty(type = OOTRoomHeaderProperty)
@@ -247,7 +257,7 @@ def oot_obj_unregister():
 	
 	del bpy.types.Object.ootEmptyType
 
-	del bpy.types.Object.ootActorPropertiesLegacy 
+	del bpy.types.Object.ootActorProperty 
 	del bpy.types.Object.ootTransitionActorProperty 
 	del bpy.types.Object.ootWaterBoxProperty
 	del bpy.types.Object.ootRoomHeader

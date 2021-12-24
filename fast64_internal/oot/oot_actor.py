@@ -48,6 +48,21 @@ class OOT_SearchNaviMsgIDEnumOperator(bpy.types.Operator):
 class OOTActorProperties(bpy.types.PropertyGroup):
 	pass
 
+	@staticmethod
+	def upgrade_object(obj):
+		if obj.data is None and obj.ootEmptyType == 'Scene':
+			print(f"Processing Scene '{obj.name}'...")
+			for roomObj in obj.children:
+				if roomObj.data is None:
+					if roomObj.ootEmptyType == 'Room':
+						# Actor is parented to a room
+						for obj in roomObj.children:
+							upgradeActorInit(obj)
+					elif (roomObj.ootEmptyType == 'Actor' or \
+						roomObj.ootEmptyType == 'Transition Actor' or roomObj.ootEmptyType == 'Entrance'):
+						# Actor is parented to a scene
+						upgradeActorInit(roomObj)
+
 class OOTActorParams():
 	# Used as a buffer to update the values, this isn't saved in the .blend
 	param: str='0x0'
@@ -63,8 +78,7 @@ class OOTActorParams():
 def getValues(self, actorID, actorField, paramField, customField):
 	'''Updates the actor parameter field when the user change the options'''
 	if self.isActorSynced:
-		if paramField == 'transParam': actorProp = bpy.context.object.ootTransitionActorProperty.detailedActor
-		else: actorProp = bpy.context.object.fast64.oot.actor
+		actorProp = bpy.context.object.fast64.oot.actor
 		if actorID == 'Custom' and customField is not None:
 			setattr(OOTActorParams, paramField, customField)
 
@@ -74,7 +88,7 @@ def getValues(self, actorID, actorField, paramField, customField):
 		return value
 	else:
 		if paramField == 'transParam': actorProp = bpy.context.object.ootTransitionActorProperty.actor
-		else: actorProp = bpy.context.object.ootActorPropertiesLegacy
+		else: actorProp = bpy.context.object.ootActorProperty
 		if actorField is not None:
 			return getattr(actorProp, actorField)
 		else:
@@ -153,7 +167,7 @@ def drawOperatorBox(layout, obj, detailedProp, field, labelText, searchOp, enum)
 	split.label(text=labelText)
 	split.label(text=getEnumName(enum, getattr(detailedProp, field)))
 
-def editDetailedProperties():
+def editOOTActorProperties():
 	'''This function is used to edit the OOTActorProperties class before it's registered'''
 	propAnnotations = getattr(OOTActorProperties, '__annotations__', None)
 	if propAnnotations is None:
@@ -288,7 +302,6 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 
 		prop_split(userLayout, userProp, "spawnIndex", "Spawn Index")
 		entranceBool = userProp.customActor
-		userProp = detailedProp
 
 	if (user != userEntrance and userActorID != 'Custom') or (user == userEntrance and entranceBool is False):
 		# If the current actor isn't custom
@@ -433,7 +446,7 @@ class OOT_SearchActorIDEnumOperator(bpy.types.Operator):
 		obj = bpy.data.objects[self.objName]
 		detailedProp = obj.fast64.oot.actor
 
-		obj.ootActorPropertiesLegacy.actorID = self.actorID
+		obj.ootActorProperty.actorID = self.actorID
 		detailedProp.actorID = self.actorID
 		for actorNode in root:
 			if actorNode.get('ID') == self.actorID:
@@ -471,7 +484,6 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
 		if sceneObj is None: sceneName = 'Unknown'
 		else: sceneName = sceneObj.name
 		actorIDBox.box().label(text=f"Scene: '{sceneName}' Actors are not synchronised!")
-		actorIDBox.operator(OOT_SyncActors.bl_idname)
 
 # Transition Actor Property
 class OOT_SearchTransActorIDEnumOperator(bpy.types.Operator):
@@ -485,7 +497,7 @@ class OOT_SearchTransActorIDEnumOperator(bpy.types.Operator):
 
 	def execute(self, context):
 		obj = bpy.data.objects[self.objName]
-		detailedProp = obj.ootTransitionActorProperty.detailedActor
+		detailedProp = obj.fast64.oot.actor
 
 		detailedProp.transActorID = self.transActorID
 		for actorNode in root:
@@ -511,7 +523,6 @@ class OOTTransitionActorProperty(bpy.types.PropertyGroup):
 def drawTransitionActorProperty(layout, transActorProp, altSceneProp, roomObj, objName, detailedProp):
 	actorIDBox = layout.column()
 
-	detailedProp = transActorProp.detailedActor
 	if detailedProp.isActorSynced:
 		drawDetailedProperties('Transition Property', detailedProp, actorIDBox, objName, \
 			OOT_SearchTransActorIDEnumOperator, 'transActorID', 'transActorParam', detailedProp, detailedProp.transActorKey)
@@ -530,7 +541,6 @@ def drawTransitionActorProperty(layout, transActorProp, altSceneProp, roomObj, o
 		if sceneObj is None: sceneName = 'Unknown'
 		else: sceneName = sceneObj.name
 		actorIDBox.box().label(text=f"Scene: '{sceneName}' Actors are not synchronised!")
-		actorIDBox.operator(OOT_SyncActors.bl_idname)
 
 # Entrance Property
 class OOTEntranceProperty(bpy.types.PropertyGroup):
@@ -552,4 +562,3 @@ def drawEntranceProperty(layout, obj, altSceneProp, objName, detailedProp):
 		if sceneObj is None: sceneName = 'Unknown'
 		else: sceneName = sceneObj.name
 		box.box().label(text=f"Scene: '{sceneName}' Actors are not synchronised!")
-		box.operator(OOT_SyncActors.bl_idname)

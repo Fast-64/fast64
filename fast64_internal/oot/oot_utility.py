@@ -485,7 +485,7 @@ def getCollectionFromIndex(obj, prop, subIndex, isRoom):
 def getCollection(objName, collectionType, subIndex):
 	obj = bpy.data.objects[objName]
 	if collectionType == "Actor":	
-		collection = obj.ootActorPropertiesLegacy.headerSettings.cutsceneHeaders
+		collection = obj.ootActorProperty.headerSettings.cutsceneHeaders
 	elif collectionType == "Transition Actor":	
 		collection = obj.ootTransitionActorProperty.actor.headerSettings.cutsceneHeaders
 	elif collectionType == "Entrance":	
@@ -793,3 +793,79 @@ def setActorString(elem, params, detailedProp, field, lenProp, lenSwitch, lenBoo
 			for i in range(1, (int(lenEnum, base=10) + 1)):
 				if i == int(elem.get('Index'), base=10):
 					setActorParameter(detailedProp, field + f'.enum{i}', params, mask)
+
+def upgradeActorInit(obj):
+	objType = obj.ootEmptyType
+	if obj.data is None:
+		if objType == "Actor":
+			actorProp = obj.ootActorProperty
+			upgradeActorProcess(objType, obj, obj.ootActorProperty.actorID, obj.fast64.oot.actor, \
+				int(actorProp.actorParam, base=16), 'param', 'actorID', 'actorParam', 'Params')
+			if actorProp.rotOverride:
+				if actorProp.rotOverrideX != '0' or actorProp.rotOverrideX != '0x0':
+					upgradeActorProcess('XRot', obj, obj.ootActorProperty.actorID, obj.fast64.oot.actor, \
+						int(actorProp.rotOverrideX, base=16), 'XRot', 'actorID', 'rotOverrideX', 'XRot')
+				if actorProp.rotOverrideY != '0' or actorProp.rotOverrideY != '0x0':
+					upgradeActorProcess('YRot', obj, obj.ootActorProperty.actorID, obj.fast64.oot.actor, \
+						int(actorProp.rotOverrideY, base=16), 'YRot', 'actorID', 'rotOverrideY', 'YRot')
+				if actorProp.rotOverrideZ != '0' or actorProp.rotOverrideZ != '0x0':
+					upgradeActorProcess('ZRot', obj, obj.ootActorProperty.actorID, obj.fast64.oot.actor, \
+						int(actorProp.rotOverrideZ, base=16), 'ZRot', 'actorID', 'rotOverrideZ', 'ZRot')
+		elif objType == "Transition Actor":
+			transActorProp = obj.ootTransitionActorProperty
+			upgradeActorProcess(objType, obj, transActorProp.actor.actorID, obj.fast64.oot.actor, \
+				int(transActorProp.actor.actorParam, base=16), 'transParam', 'actorID', 'actorParam', 'Params')
+
+		elif objType == "Entrance":
+			entranceProp = obj.ootEntranceProperty.actor
+			upgradeActorProcess(objType, obj, entranceProp.actorID, obj.fast64.oot.actor, \
+				int(entranceProp.actorParam, base=16), 'param', 'actorID', 'actorParam', 'Params')
+
+	for childObj in obj.children:
+		upgradeActorInit(childObj)
+
+def upgradeActorProcess(user, obj, actorID, detailedProp, params, toSaveField, idField, paramField, paramTarget):
+	if obj.ootEntranceProperty.customActor == False and actorID != 'Custom':
+		actorParams = 0
+		for actorNode in root:
+			if len(actorNode) != 0:
+				if actorNode.get('ID') == actorID:		
+					dPKey = actorNode.get('Key')
+					if user != 'Transition Actor':
+						detailedProp.actorID = actorID
+						detailedProp.actorKey = dPKey
+					else:
+						detailedProp.transActorID = actorID
+						detailedProp.transActorKey = dPKey
+					lenProp = getMaxElemIndex(dPKey, 'Property', None)
+					lenSwitch = getMaxElemIndex(dPKey, 'Flag', 'Switch')
+					lenBool = getMaxElemIndex(dPKey, 'Bool', None)
+					lenEnum = getMaxElemIndex(dPKey, 'Enum', None)
+					for elem in actorNode:
+						tiedParam = elem.get('TiedParam')
+						actorType = getattr(detailedProp, dPKey + '.type', None)
+						if hasTiedParams(tiedParam, actorType) is True:
+							setActorString(elem, params, detailedProp, dPKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
+		if user != 'Transition Actor':
+			actorParams = getActorFinalParameters(detailedProp, detailedProp.actorKey, paramTarget)
+		else:
+			actorParams = getActorFinalParameters(detailedProp, detailedProp.transActorKey, paramTarget)
+		setattr(detailedProp, toSaveField + 'ToSave', actorParams)
+	else:
+		if user != 'Transition Actor':
+			setattr(detailedProp, idField + 'Custom', getattr(obj.ootActorProperty, idField + 'Custom'))
+			if user == 'Actor':
+				setattr(detailedProp, paramField + 'Custom', getattr(obj.ootActorProperty, paramField))
+			elif user == 'Entrance':
+				setattr(detailedProp, paramField + 'Custom', getattr(obj.ootEntranceProperty.actor, paramField))
+			else:
+				if obj.ootActorProperty.rotOverride:
+					if (obj.ootActorProperty.rotOverrideX != '0' or obj.ootActorProperty.rotOverrideX != '0x0') or \
+					(obj.ootActorProperty.rotOverrideY != '0' or obj.ootActorProperty.rotOverrideY != '0x0') or \
+					(obj.ootActorProperty.rotOverrideZ != '0' or obj.ootActorProperty.rotOverrideZ != '0x0'):
+						detailedProp.rotOverrideCustom = True
+						setattr(detailedProp, paramField + 'Custom', getattr(obj.ootActorProperty, paramField))
+		else:
+			setattr(detailedProp, 'transActorIDCustom', getattr(obj.ootTransitionActorProperty.actor, idField + 'Custom'))
+			setattr(detailedProp, 'transActorParamCustom', getattr(obj.ootTransitionActorProperty.actor, paramField))
+	detailedProp.isActorSynced = True

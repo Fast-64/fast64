@@ -51,8 +51,8 @@ class OOT_AddDoor(bpy.types.Operator):
 		emptyObj = context.view_layer.objects.active
 		emptyObj.ootEmptyType = "Transition Actor"
 		emptyObj.name = "Door Actor"
-		emptyObj.ootTransitionActorProperty.detailedActor.transActorID = "ACTOR_EN_DOOR"
-		emptyObj.ootTransitionActorProperty.detailedActor.isActorSynced = True
+		emptyObj.fast64.oot.actor.transActorID = "ACTOR_EN_DOOR"
+		emptyObj.fast64.oot.actor.isActorSynced = True
 		
 		parentObject(cubeObj, emptyObj)
 
@@ -85,8 +85,9 @@ class OOT_AddScene(bpy.types.Operator):
 		entranceObj = context.view_layer.objects.active
 		entranceObj.ootEmptyType = "Entrance"
 		entranceObj.name = "Entrance"
-		setattr(entranceObj.ootActorDetailedProperties, '0000.type', '0F00')
-		setattr(entranceObj.ootActorDetailedProperties, '0000.props1', '0xFF')
+		setattr(entranceObj.fast64.oot.actor, '0000.type', '0F00')
+		setattr(entranceObj.fast64.oot.actor, '0000.props1', '0xFF')
+		entranceObj.fast64.oot.actor.isActorSynced = True
 		parentObject(planeObj, entranceObj)
 		
 		location += mathutils.Vector([0,0, 10])
@@ -180,116 +181,10 @@ class OOT_AddActor(bpy.types.Operator):
 		emptyObj = context.view_layer.objects.active
 		emptyObj.ootEmptyType = "Actor"
 		emptyObj.name = "New Actor"
-		emptyObj.ootActorDetailedProperties.actorID = "ACTOR_PLAYER"
-		emptyObj.ootActorDetailedProperties.isActorSynced = True
+		emptyObj.fast64.oot.actor.actorID = "ACTOR_PLAYER"
+		emptyObj.fast64.oot.actor.isActorSynced = True
 
 		return {"FINISHED"}
-
-class OOT_SyncActors(bpy.types.Operator):
-	'''Synchronize the panel when the current blend contains old data'''
-	bl_idname = 'object.oot_sync_actors'
-	bl_label = "Sync Actors"
-	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
-
-	def execute(self, context):
-		sceneObj = getSceneObj(context.object)
-		if sceneObj is None and (sceneObj.ootEmptyType == 'Actor' or \
-			sceneObj.ootEmptyType == 'Transition Actor' or sceneObj.ootEmptyType == 'Entrance'):
-			# Actor has no parent
-			processObj(sceneObj)
-		else:
-			for roomObj in sceneObj.children:
-				if roomObj.data is None:
-					if roomObj.ootEmptyType == 'Room':
-						# Actor is parented to a room
-						for obj in roomObj.children:
-							processObj(obj)
-					elif (roomObj.ootEmptyType == 'Actor' or \
-						roomObj.ootEmptyType == 'Transition Actor' or roomObj.ootEmptyType == 'Entrance'):
-						# Actor is parented to a scene
-						processObj(roomObj)
-
-		self.report({'INFO'}, f"Scene '{sceneObj.name}' synchronized!")
-		return {"FINISHED"}
-
-def processObj(obj):
-	objType = obj.ootEmptyType
-	if obj.data is None:
-		if objType == "Actor":
-			print(f"Processing Actor '{obj.name}'...")
-			actorProp = obj.ootActorPropertiesLegacy
-			processParameters(objType, obj, obj.ootActorPropertiesLegacy.actorID, obj.ootActorDetailedProperties, \
-				int(actorProp.actorParam, base=16), 'param', 'actorID', 'actorParam', 'Params')
-			if actorProp.rotOverride:
-				if actorProp.rotOverrideX != '0' or actorProp.rotOverrideX != '0x0':
-					processParameters('XRot', obj, obj.ootActorPropertiesLegacy.actorID, obj.ootActorDetailedProperties, \
-						int(actorProp.rotOverrideX, base=16), 'XRot', 'actorID', 'rotOverrideX', 'XRot')
-				if actorProp.rotOverrideY != '0' or actorProp.rotOverrideY != '0x0':
-					processParameters('YRot', obj, obj.ootActorPropertiesLegacy.actorID, obj.ootActorDetailedProperties, \
-						int(actorProp.rotOverrideY, base=16), 'YRot', 'actorID', 'rotOverrideY', 'YRot')
-				if actorProp.rotOverrideZ != '0' or actorProp.rotOverrideZ != '0x0':
-					processParameters('ZRot', obj, obj.ootActorPropertiesLegacy.actorID, obj.ootActorDetailedProperties, \
-						int(actorProp.rotOverrideZ, base=16), 'ZRot', 'actorID', 'rotOverrideZ', 'ZRot')
-		elif objType == "Transition Actor":
-			print(f"Processing Transition Actor '{obj.name}'...")
-			transActorProp = obj.ootTransitionActorProperty
-			processParameters(objType, obj, transActorProp.actor.actorID, transActorProp.detailedActor, \
-				int(transActorProp.actor.actorParam, base=16), 'transParam', 'actorID', 'actorParam', 'Params')
-
-		elif objType == "Entrance":
-			print(f"Processing Entrance Actor '{obj.name}'...")
-			entranceProp = obj.ootEntranceProperty.actor
-			processParameters(objType, obj, entranceProp.actorID, obj.ootActorDetailedProperties, \
-				int(entranceProp.actorParam, base=16), 'param', 'actorID', 'actorParam', 'Params')
-
-	for childObj in obj.children:
-		processObj(childObj)
-
-def processParameters(user, obj, actorID, detailedProp, params, toSaveField, idField, paramField, paramTarget):
-	if obj.ootEntranceProperty.customActor == False and actorID != 'Custom':
-		actorParams = 0
-		for actorNode in root:
-			if len(actorNode) != 0:
-				if actorNode.get('ID') == actorID:		
-					dPKey = actorNode.get('Key')
-					if user != 'Transition Actor':
-						detailedProp.actorID = actorID
-						detailedProp.actorKey = dPKey
-					else:
-						detailedProp.transActorID = actorID
-						detailedProp.transActorKey = dPKey
-					lenProp = getMaxElemIndex(dPKey, 'Property', None)
-					lenSwitch = getMaxElemIndex(dPKey, 'Flag', 'Switch')
-					lenBool = getMaxElemIndex(dPKey, 'Bool', None)
-					lenEnum = getMaxElemIndex(dPKey, 'Enum', None)
-					for elem in actorNode:
-						tiedParam = elem.get('TiedParam')
-						actorType = getattr(detailedProp, dPKey + '.type', None)
-						if hasTiedParams(tiedParam, actorType) is True:
-							setActorString(elem, params, detailedProp, dPKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
-		if user != 'Transition Actor':
-			actorParams = getActorFinalParameters(detailedProp, detailedProp.actorKey, paramTarget)
-		else:
-			actorParams = getActorFinalParameters(detailedProp, detailedProp.transActorKey, paramTarget)
-		setattr(detailedProp, toSaveField + 'ToSave', actorParams)
-	else:
-		if user != 'Transition Actor':
-			setattr(detailedProp, idField + 'Custom', getattr(obj.ootActorPropertiesLegacy, idField + 'Custom'))
-			if user == 'Actor':
-				setattr(detailedProp, paramField + 'Custom', getattr(obj.ootActorPropertiesLegacy, paramField))
-			elif user == 'Entrance':
-				setattr(detailedProp, paramField + 'Custom', getattr(obj.ootEntranceProperty.actor, paramField))
-			else:
-				if obj.ootActorPropertiesLegacy.rotOverride:
-					if (obj.ootActorPropertiesLegacy.rotOverrideX != '0' or obj.ootActorPropertiesLegacy.rotOverrideX != '0x0') or \
-					(obj.ootActorPropertiesLegacy.rotOverrideY != '0' or obj.ootActorPropertiesLegacy.rotOverrideY != '0x0') or \
-					(obj.ootActorPropertiesLegacy.rotOverrideZ != '0' or obj.ootActorPropertiesLegacy.rotOverrideZ != '0x0'):
-						detailedProp.rotOverrideCustom = True
-						setattr(detailedProp, paramField + 'Custom', getattr(obj.ootActorPropertiesLegacy, paramField))
-		else:
-			setattr(detailedProp, 'transActorIDCustom', getattr(obj.ootTransitionActorProperty.actor, idField + 'Custom'))
-			setattr(detailedProp, 'transActorParamCustom', getattr(obj.ootTransitionActorProperty.actor, paramField))
-	detailedProp.isActorSynced = True
 
 class OOT_OperatorsPanel(OOT_Panel):
 	bl_idname = "OOT_PT_operators"
@@ -311,7 +206,6 @@ oot_operator_classes = (
 	OOT_AddScene,
 	OOT_AddRoom,
 	OOT_AddCutscene,
-	OOT_SyncActors,
 	OOT_AddActor,
 )
 
