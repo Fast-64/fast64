@@ -17,7 +17,7 @@ class OOT_SearchChestContentEnumOperator(bpy.types.Operator):
 	objName : bpy.props.StringProperty()
 
 	def execute(self, context):
-		bpy.data.objects[self.objName].ootActorDetailedProperties.itemChest = self.itemChest
+		bpy.data.objects[self.objName].fast64.oot.actor.itemChest = self.itemChest
 		bpy.context.region.tag_redraw()
 		self.report({'INFO'}, "Selected: " + self.itemChest)
 		return {'FINISHED'}
@@ -36,7 +36,7 @@ class OOT_SearchNaviMsgIDEnumOperator(bpy.types.Operator):
 	objName : bpy.props.StringProperty()
 
 	def execute(self, context):
-		bpy.data.objects[self.objName].ootActorDetailedProperties.naviMsgID = self.naviMsgID
+		bpy.data.objects[self.objName].fast64.oot.actor.naviMsgID = self.naviMsgID
 		bpy.context.region.tag_redraw()
 		self.report({'INFO'}, "Selected: " + self.naviMsgID)
 		return {'FINISHED'}
@@ -45,7 +45,7 @@ class OOT_SearchNaviMsgIDEnumOperator(bpy.types.Operator):
 		context.window_manager.invoke_search_popup(self)
 		return {'RUNNING_MODAL'}
 
-class OOTActorDetailedProperties(bpy.types.PropertyGroup):
+class OOTActorProperties(bpy.types.PropertyGroup):
 	pass
 
 class OOTActorParams():
@@ -64,7 +64,7 @@ def getValues(self, actorID, actorField, paramField, customField):
 	'''Updates the actor parameter field when the user change the options'''
 	if self.isActorSynced:
 		if paramField == 'transParam': actorProp = bpy.context.object.ootTransitionActorProperty.detailedActor
-		else: actorProp = bpy.context.object.ootActorDetailedProperties
+		else: actorProp = bpy.context.object.fast64.oot.actor
 		if actorID == 'Custom' and customField is not None:
 			setattr(OOTActorParams, paramField, customField)
 
@@ -74,7 +74,7 @@ def getValues(self, actorID, actorField, paramField, customField):
 		return value
 	else:
 		if paramField == 'transParam': actorProp = bpy.context.object.ootTransitionActorProperty.actor
-		else: actorProp = bpy.context.object.ootActorProperty
+		else: actorProp = bpy.context.object.ootActorPropertiesLegacy
 		if actorField is not None:
 			return getattr(actorProp, actorField)
 		else:
@@ -154,11 +154,11 @@ def drawOperatorBox(layout, obj, detailedProp, field, labelText, searchOp, enum)
 	split.label(text=getEnumName(enum, getattr(detailedProp, field)))
 
 def editDetailedProperties():
-	'''This function is used to edit the OOTActorDetailedProperties class before it's registered'''
-	propAnnotations = getattr(OOTActorDetailedProperties, '__annotations__', None)
+	'''This function is used to edit the OOTActorProperties class before it's registered'''
+	propAnnotations = getattr(OOTActorProperties, '__annotations__', None)
 	if propAnnotations is None:
 		propAnnotations = {}
-		OOTActorDetailedProperties.__annotations__ = propAnnotations
+		OOTActorProperties.__annotations__ = propAnnotations
 
 	# Each prop has its 'custom' variant because of the get and set functions
 	# Actors/Entrance Actor
@@ -431,9 +431,9 @@ class OOT_SearchActorIDEnumOperator(bpy.types.Operator):
 
 	def execute(self, context):
 		obj = bpy.data.objects[self.objName]
-		detailedProp = obj.ootActorDetailedProperties
+		detailedProp = obj.fast64.oot.actor
 
-		obj.ootActorProperty.actorID = self.actorID
+		obj.ootActorPropertiesLegacy.actorID = self.actorID
 		detailedProp.actorID = self.actorID
 		for actorNode in root:
 			if actorNode.get('ID') == self.actorID:
@@ -447,7 +447,7 @@ class OOT_SearchActorIDEnumOperator(bpy.types.Operator):
 		context.window_manager.invoke_search_popup(self)
 		return {'RUNNING_MODAL'}
 
-class OOTActorProperty(bpy.types.PropertyGroup):
+class OOTActorPropertiesLegacy(bpy.types.PropertyGroup):
 	# Normal Actors
 	# We can't delete this (for now) as it'd ignore data in older blend files
 	actorID : bpy.props.EnumProperty(name = 'Actor', items = ootEnumActorID, default = 'ACTOR_PLAYER')
@@ -506,8 +506,7 @@ class OOTTransitionActorProperty(bpy.types.PropertyGroup):
 	cameraTransitionFrontCustom : bpy.props.StringProperty(default = '0x00')
 	cameraTransitionBack : bpy.props.EnumProperty(items = ootEnumCamTransition, default = '0x00')
 	cameraTransitionBackCustom : bpy.props.StringProperty(default = '0x00')
-	actor : bpy.props.PointerProperty(type = OOTActorProperty)
-	detailedActor : bpy.props.PointerProperty(type = OOTActorDetailedProperties)
+	actor : bpy.props.PointerProperty(type = OOTActorPropertiesLegacy)
 
 def drawTransitionActorProperty(layout, transActorProp, altSceneProp, roomObj, objName, detailedProp):
 	actorIDBox = layout.column()
@@ -538,7 +537,7 @@ class OOTEntranceProperty(bpy.types.PropertyGroup):
 	# This is also used in entrance list, and roomIndex is obtained from the room this empty is parented to.
 	spawnIndex : bpy.props.IntProperty(min = 0)
 	customActor : bpy.props.BoolProperty(name = "Use Custom Actor")
-	actor : bpy.props.PointerProperty(type = OOTActorProperty)
+	actor : bpy.props.PointerProperty(type = OOTActorPropertiesLegacy)
 
 def drawEntranceProperty(layout, obj, altSceneProp, objName, detailedProp):
 	box = layout.column()

@@ -217,18 +217,18 @@ def processObj(obj):
 	if obj.data is None:
 		if objType == "Actor":
 			print(f"Processing Actor '{obj.name}'...")
-			actorProp = obj.ootActorProperty
-			processParameters(objType, obj, obj.ootActorProperty.actorID, obj.ootActorDetailedProperties, \
+			actorProp = obj.ootActorPropertiesLegacy
+			processParameters(objType, obj, obj.ootActorPropertiesLegacy.actorID, obj.ootActorDetailedProperties, \
 				int(actorProp.actorParam, base=16), 'param', 'actorID', 'actorParam', 'Params')
 			if actorProp.rotOverride:
 				if actorProp.rotOverrideX != '0' or actorProp.rotOverrideX != '0x0':
-					processParameters('XRot', obj, obj.ootActorProperty.actorID, obj.ootActorDetailedProperties, \
+					processParameters('XRot', obj, obj.ootActorPropertiesLegacy.actorID, obj.ootActorDetailedProperties, \
 						int(actorProp.rotOverrideX, base=16), 'XRot', 'actorID', 'rotOverrideX', 'XRot')
 				if actorProp.rotOverrideY != '0' or actorProp.rotOverrideY != '0x0':
-					processParameters('YRot', obj, obj.ootActorProperty.actorID, obj.ootActorDetailedProperties, \
+					processParameters('YRot', obj, obj.ootActorPropertiesLegacy.actorID, obj.ootActorDetailedProperties, \
 						int(actorProp.rotOverrideY, base=16), 'YRot', 'actorID', 'rotOverrideY', 'YRot')
 				if actorProp.rotOverrideZ != '0' or actorProp.rotOverrideZ != '0x0':
-					processParameters('ZRot', obj, obj.ootActorProperty.actorID, obj.ootActorDetailedProperties, \
+					processParameters('ZRot', obj, obj.ootActorPropertiesLegacy.actorID, obj.ootActorDetailedProperties, \
 						int(actorProp.rotOverrideZ, base=16), 'ZRot', 'actorID', 'rotOverrideZ', 'ZRot')
 		elif objType == "Transition Actor":
 			print(f"Processing Transition Actor '{obj.name}'...")
@@ -274,18 +274,18 @@ def processParameters(user, obj, actorID, detailedProp, params, toSaveField, idF
 		setattr(detailedProp, toSaveField + 'ToSave', actorParams)
 	else:
 		if user != 'Transition Actor':
-			setattr(detailedProp, idField + 'Custom', getattr(obj.ootActorProperty, idField + 'Custom'))
+			setattr(detailedProp, idField + 'Custom', getattr(obj.ootActorPropertiesLegacy, idField + 'Custom'))
 			if user == 'Actor':
-				setattr(detailedProp, paramField + 'Custom', getattr(obj.ootActorProperty, paramField))
+				setattr(detailedProp, paramField + 'Custom', getattr(obj.ootActorPropertiesLegacy, paramField))
 			elif user == 'Entrance':
 				setattr(detailedProp, paramField + 'Custom', getattr(obj.ootEntranceProperty.actor, paramField))
 			else:
-				if obj.ootActorProperty.rotOverride:
-					if (obj.ootActorProperty.rotOverrideX != '0' or obj.ootActorProperty.rotOverrideX != '0x0') or \
-					(obj.ootActorProperty.rotOverrideY != '0' or obj.ootActorProperty.rotOverrideY != '0x0') or \
-					(obj.ootActorProperty.rotOverrideZ != '0' or obj.ootActorProperty.rotOverrideZ != '0x0'):
+				if obj.ootActorPropertiesLegacy.rotOverride:
+					if (obj.ootActorPropertiesLegacy.rotOverrideX != '0' or obj.ootActorPropertiesLegacy.rotOverrideX != '0x0') or \
+					(obj.ootActorPropertiesLegacy.rotOverrideY != '0' or obj.ootActorPropertiesLegacy.rotOverrideY != '0x0') or \
+					(obj.ootActorPropertiesLegacy.rotOverrideZ != '0' or obj.ootActorPropertiesLegacy.rotOverrideZ != '0x0'):
 						detailedProp.rotOverrideCustom = True
-						setattr(detailedProp, paramField + 'Custom', getattr(obj.ootActorProperty, paramField))
+						setattr(detailedProp, paramField + 'Custom', getattr(obj.ootActorPropertiesLegacy, paramField))
 		else:
 			setattr(detailedProp, 'transActorIDCustom', getattr(obj.ootTransitionActorProperty.actor, idField + 'Custom'))
 			setattr(detailedProp, 'transActorParamCustom', getattr(obj.ootTransitionActorProperty.actor, paramField))

@@ -485,7 +485,7 @@ def getCollectionFromIndex(obj, prop, subIndex, isRoom):
 def getCollection(objName, collectionType, subIndex):
 	obj = bpy.data.objects[objName]
 	if collectionType == "Actor":	
-		collection = obj.ootActorProperty.headerSettings.cutsceneHeaders
+		collection = obj.ootActorPropertiesLegacy.headerSettings.cutsceneHeaders
 	elif collectionType == "Transition Actor":	
 		collection = obj.ootTransitionActorProperty.actor.headerSettings.cutsceneHeaders
 	elif collectionType == "Entrance":	

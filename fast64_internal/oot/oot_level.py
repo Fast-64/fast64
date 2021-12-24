@@ -77,10 +77,10 @@ class OOTObjectPanel(bpy.types.Panel):
 		altRoomProp = roomObj.ootAlternateRoomHeaders if roomObj is not None else None
 
 		if obj.ootEmptyType == 'Actor':
-			drawActorProperty(box, obj.ootActorProperty, altRoomProp, objName, obj.ootActorDetailedProperties)
+			drawActorProperty(box, obj.ootActorPropertiesLegacy, altRoomProp, objName, obj.fast64.oot.actor)
 		
 		elif obj.ootEmptyType == 'Transition Actor':
-			drawTransitionActorProperty(box, obj.ootTransitionActorProperty, altSceneProp, roomObj, objName, obj.ootActorDetailedProperties)
+			drawTransitionActorProperty(box, obj.ootTransitionActorProperty, altSceneProp, roomObj, objName, obj.fast64.oot.actor)
 
 		elif obj.ootEmptyType == 'Water Box':
 			drawWaterBoxProperty(box, obj.ootWaterBoxProperty)
@@ -96,7 +96,7 @@ class OOTObjectPanel(bpy.types.Panel):
 				drawAlternateRoomHeaderProperty(box, obj.ootAlternateRoomHeaders, objName)
 		
 		elif obj.ootEmptyType == 'Entrance':
-			drawEntranceProperty(box, obj, altSceneProp, objName, obj.ootActorDetailedProperties)
+			drawEntranceProperty(box, obj, altSceneProp, objName, obj.fast64.oot.actor)
 
 		elif obj.ootEmptyType == "Cull Group":
 			drawCullGroupProperty(box, obj)
@@ -166,7 +166,13 @@ def onUpdateOOTEmptyType(self, context):
 			setLightPropertyValues(timeOfDayLights.dusk, [120, 90, 0], [250, 135, 50], [30, 30, 60], [120, 70, 50], 0x3E3)
 			setLightPropertyValues(timeOfDayLights.night, [40, 70, 100], [20, 20, 35], [50, 50, 100], [0, 0, 30], 0x3E0)
 
+class OOT_ObjectProperties(bpy.types.PropertyGroup):
+	actor: bpy.props.PointerProperty(OOTActorProperties)
+
 oot_obj_classes = (
+	OOTActorProperties,
+	OOT_ObjectProperties,
+
 	OOT_SearchActorIDEnumOperator,
 	OOT_SearchTransActorIDEnumOperator,
 	OOT_SearchMusicSeqEnumOperator,
@@ -195,8 +201,7 @@ oot_obj_classes = (
 
 	OOTActorHeaderItemProperty,
 	OOTActorHeaderProperty,
-	OOTActorProperty,
-	OOTActorDetailedProperties,
+	OOTActorPropertiesLegacy,
 	OOTTransitionActorProperty,
 	OOTEntranceProperty,
 
@@ -219,6 +224,7 @@ def oot_obj_panel_unregister():
 	for cls in oot_obj_panel_classes:
 		unregister_class(cls)
 
+
 def oot_obj_register():
 	for cls in oot_obj_classes:
 		register_class(cls)
@@ -226,8 +232,7 @@ def oot_obj_register():
 	bpy.types.Object.ootEmptyType = bpy.props.EnumProperty(
 		name = 'OOT Object Type', items = ootEnumEmptyType, default = 'None', update = onUpdateOOTEmptyType)
 
-	bpy.types.Object.ootActorProperty = bpy.props.PointerProperty(type = OOTActorProperty)
-	bpy.types.Object.ootActorDetailedProperties = bpy.props.PointerProperty(type = OOTActorDetailedProperties)
+	bpy.types.Object.ootActorPropertiesLegacy = bpy.props.PointerProperty(type = OOTActorPropertiesLegacy)
 	bpy.types.Object.ootTransitionActorProperty = bpy.props.PointerProperty(type = OOTTransitionActorProperty)
 	bpy.types.Object.ootWaterBoxProperty = bpy.props.PointerProperty(type = OOTWaterBoxProperty)
 	bpy.types.Object.ootRoomHeader = bpy.props.PointerProperty(type = OOTRoomHeaderProperty)
@@ -242,8 +247,7 @@ def oot_obj_unregister():
 	
 	del bpy.types.Object.ootEmptyType
 
-	del bpy.types.Object.ootActorProperty 
-	del bpy.types.Object.ootActorDetailedProperties
+	del bpy.types.Object.ootActorPropertiesLegacy 
 	del bpy.types.Object.ootTransitionActorProperty 
 	del bpy.types.Object.ootWaterBoxProperty
 	del bpy.types.Object.ootRoomHeader
