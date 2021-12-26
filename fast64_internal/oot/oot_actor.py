@@ -321,14 +321,17 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 		if user == userActor:
 			OOTActorParams.rotXBool = OOTActorParams.rotYBool = OOTActorParams.rotZBool = False
 			if userActorID == detailedProp.actorID:
-				if dpKey == '000A' or dpKey == '009B':
-					# If the current actor need a chest content, (en_chest, door_ana), draw the content search box
-					searchOp = userLayout.operator(OOT_SearchChestContentEnumOperator.bl_idname, icon='VIEWZOOM')
-					drawOperatorBox(userLayout, userObj, detailedProp, 'itemChest', 'Chest Content', searchOp, ootChestContent)
-				if dpKey == '011B' or dpKey == '0173':
-					# If the current actor is Elf_Msg or Elf_Msg2, draw the Navi Message ID search box
-					searchOp = userLayout.operator(OOT_SearchNaviMsgIDEnumOperator.bl_idname, icon='VIEWZOOM')
-					drawOperatorBox(userLayout, userObj, detailedProp, 'naviMsgID', 'Message ID', searchOp, ootNaviMsgID)
+				for actorNode in root:
+					if actorNode.get('ID') == userActorID:
+						for elem in actorNode:
+							if elem.tag == 'Item' and elem.get('Type') == 'ChestContent':
+								# Draw chest content searchbox
+								searchOp = userLayout.operator(OOT_SearchChestContentEnumOperator.bl_idname, icon='VIEWZOOM')
+								drawOperatorBox(userLayout, userObj, detailedProp, 'itemChest', 'Chest Content', searchOp, ootChestContent)
+							if elem.tag == 'Message':
+								# Draw Navi message ID searchbox
+								searchOp = userLayout.operator(OOT_SearchNaviMsgIDEnumOperator.bl_idname, icon='VIEWZOOM')
+								drawOperatorBox(userLayout, userObj, detailedProp, 'naviMsgID', 'Message ID', searchOp, ootNaviMsgID)
 
 			propAnnot = getattr(detailedProp, dpKey + ('.collectibleDrop'), None)
 			if propAnnot is not None:
