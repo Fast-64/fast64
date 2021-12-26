@@ -224,7 +224,7 @@ def editOOTActorProperties():
 	# isActorSynced is used to check if the blend's data is from an older version of Fast64
 	propAnnotations['isActorSynced'] = bpy.props.BoolProperty(default=False)
 	propAnnotations['itemChest'] = bpy.props.EnumProperty(name='Chest Content', items=ootChestContent)
-	propAnnotations['naviMsgID'] = bpy.props.EnumProperty(name='Chest Content', items=ootNaviMsgID)
+	propAnnotations['naviMsgID'] = bpy.props.EnumProperty(name='Navi Message ID', items=ootNaviMsgID)
 
 	# If you use the 'get=' option from Blender props don't actually save the data in the .blend
 	# When the get function is called we have to save the data that'll be returned
@@ -325,8 +325,8 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 					# If the current actor need a chest content, (en_chest, door_ana), draw the content search box
 					searchOp = userLayout.operator(OOT_SearchChestContentEnumOperator.bl_idname, icon='VIEWZOOM')
 					drawOperatorBox(userLayout, userObj, detailedProp, 'itemChest', 'Chest Content', searchOp, ootChestContent)
-				if dpKey == '011B':
-					# If the current actor is Elf_Msg, draw the Navi Message ID search box
+				if dpKey == '011B' or dpKey == '0173':
+					# If the current actor is Elf_Msg or Elf_Msg2, draw the Navi Message ID search box
 					searchOp = userLayout.operator(OOT_SearchNaviMsgIDEnumOperator.bl_idname, icon='VIEWZOOM')
 					drawOperatorBox(userLayout, userObj, detailedProp, 'naviMsgID', 'Message ID', searchOp, ootNaviMsgID)
 
