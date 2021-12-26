@@ -85,6 +85,8 @@ class OOT_AddScene(bpy.types.Operator):
 		entranceObj = context.view_layer.objects.active
 		entranceObj.ootEmptyType = "Entrance"
 		entranceObj.name = "Entrance"
+		entranceObj.fast64.oot.actor.actorID = 'ACTOR_PLAYER'
+		entranceObj.fast64.oot.actor.actorKey = '0000'
 		setattr(entranceObj.fast64.oot.actor, '0000.type', '0F00')
 		setattr(entranceObj.fast64.oot.actor, '0000.props1', '0xFF')
 		entranceObj.fast64.oot.actor.isActorSynced = True
