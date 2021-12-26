@@ -2810,7 +2810,7 @@ Z ROTATION +0x3F = Collectible Flag</Notes>
   </Actor>
   <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_SPOT18_SHUTTER" Key="01C4" Name="Goron Room Door - BG_SPOT18_SHUTTER" ObjectID="OBJECT_SPOT18_OBJ">
     <Flag Index="1" Mask="0x003F" Type="Switch"/>
-    <Bool Index="1" Mask="0x0100" Name="Goron Shop Door"/>
+    <Bool Index="1" Mask="0x0100" Name="Horizontal Slide"/>
   </Actor>
   <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_MA3" Key="01C5" Name="Adult Malon (Ranch) - EN_MA3" ObjectID="OBJECT_MA2">
   </Actor>
