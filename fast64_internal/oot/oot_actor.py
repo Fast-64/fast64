@@ -324,7 +324,7 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 				for actorNode in root:
 					if actorNode.get('ID') == userActorID:
 						for elem in actorNode:
-							if elem.tag == 'Item' and elem.get('Type') == 'ChestContent':
+							if elem.tag == 'ChestContent':
 								# Draw chest content searchbox
 								searchOp = userLayout.operator(OOT_SearchChestContentEnumOperator.bl_idname, icon='VIEWZOOM')
 								drawOperatorBox(userLayout, userObj, detailedProp, 'itemChest', 'Chest Content', searchOp, ootChestContent)

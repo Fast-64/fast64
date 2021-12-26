@@ -86,7 +86,7 @@
     <Parameter Mask="0xF000" Params="B000"> Large, Appears, Switch Flag</Parameter>
     <Flag Index="1" Mask="0x003F" Target="ZRot" Type="Switch"/>
     <Flag Index="2" Mask="0x001F" Target="Params" Type="Chest"/>
-    <Item Mask="0x0FE0" Target="Params" Type="ChestContent"/>
+    <ChestContent Mask="0x0FE0" Target="Params"/>
   </Actor>
   <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_DY_YOSEIZO" Key="000B" Name="Great Fairy - BG_DY_YOSEIZO" ObjectID="OBJECT_DY_OBJ">
     <Parameter Params="FFFF">Default</Parameter>
@@ -953,7 +953,7 @@ ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
     <Parameter Mask="0x0300" Params="0100"> Appears on Song of Storms</Parameter>
     <Parameter Mask="0x0300" Params="0200"> Appears on explosion or Megaton Hammer</Parameter>
     <Bool Index="1" Mask="0xF000" Name="Is Small Fairy Fountain" Target="Params"/>
-    <Item Mask="0x00E0" Target="Params" Type="ChestContent"/>
+    <ChestContent Mask="0x00E0" Target="Params"/>
     <Flag Index="1" Mask="0x001F" Target="Params" Type="Chest"/>
     <Enum Index="1" Mask="0x000F" Name="Destination" Target="ZRot" TiedParam="0000,0100,0200">
       <Item Name="Generic Grotto" Value="0x00"/>

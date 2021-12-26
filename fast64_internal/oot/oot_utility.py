@@ -738,10 +738,16 @@ def getActorString(elem, detailedProp, field, lenProp, lenSwitch, lenBool, lenEn
 			for i in range(1, (int(lenProp, base=10) + 1)):
 				if i == int(elem.get('Index'), base=10) and target == paramTarget:
 					params += getActorParameter(detailedProp, (field + f'.props{i}'), shift, strMask)
-		elif elem.tag == 'Item' and target == paramTarget:
-			params += f'(({detailedProp.itemChest} << {shift}) & {strMask}) | '
+		elif elem.tag == 'ChestContent' and target == paramTarget:
+			if shift != '0':
+				params += f"(({detailedProp.itemChest} << {shift}) & 0x{mask:X}) | "
+			else:
+				params += f"({detailedProp.itemChest} & 0x{mask:X}) | "
 		elif elem.tag == 'Message' and target == paramTarget:
-			params += f'(({detailedProp.naviMsgID} << {shift}) & {strMask}) | '
+			if shift != '0':
+				params += f"(({detailedProp.naviMsgID} << {shift}) & 0x{mask:X}) | "
+			else:
+				params += f"({detailedProp.naviMsgID} & 0x{mask:X}) | "
 		elif elem.tag == 'Collectible' and target == paramTarget:
 			params += getActorParameter(detailedProp, field + '.collectibleDrop', shift, strMask)
 		elif elem.tag == 'Bool':
@@ -779,7 +785,7 @@ def setActorString(elem, params, detailedProp, field, lenProp, lenSwitch, lenBoo
 			for i in range(1, (int(lenProp, base=10) + 1)):
 				if i == int(elem.get('Index'), base=10):
 					setActorParameter(detailedProp, field + f'.props{i}', params, mask)
-		elif elem.tag == 'Item':
+		elif elem.tag == 'ChestContent':
 			setActorParameter(detailedProp, 'itemChest', params, mask)
 		elif elem.tag == 'Message':
 			setActorParameter(detailedProp, 'naviMsgID', params, mask)
