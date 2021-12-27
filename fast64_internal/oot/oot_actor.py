@@ -46,8 +46,6 @@ class OOT_SearchNaviMsgIDEnumOperator(bpy.types.Operator):
 		return {'RUNNING_MODAL'}
 
 class OOTActorProperties(bpy.types.PropertyGroup):
-	pass
-
 	@staticmethod
 	def upgrade_object(obj):
 		if obj.data is None:
@@ -66,8 +64,9 @@ class OOTActorProperties(bpy.types.PropertyGroup):
 			elif (obj.ootEmptyType == 'Actor' or obj.ootEmptyType == 'Transition Actor' or obj.ootEmptyType == 'Entrance'):
 				upgradeActorInit(obj)
 
-class OOTActorParams():
-	# Used as a buffer to update the values, this isn't saved in the .blend
+class OOTActorParams(bpy.types.PropertyGroup):
+	# Used as a buffer to update the values
+	# This needs to be saved in the blend
 	param: str='0x0'
 	transParam: str='0x0'
 	XRot: str='0x0'
