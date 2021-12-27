@@ -182,7 +182,6 @@ class OOT_ObjectProperties(bpy.types.PropertyGroup):
 oot_obj_classes = (
 	OOTActorProperties,
 	OOT_ObjectProperties,
-	OOTActorParams,
 
 	OOT_SearchActorIDEnumOperator,
 	OOT_SearchTransActorIDEnumOperator,

@@ -807,25 +807,31 @@ def upgradeActorInit(obj):
 			actorProp = obj.ootActorProperty
 			upgradeActorProcess(objType, obj, obj.ootActorProperty.actorID, obj.fast64.oot.actor, \
 				int(actorProp.actorParam, base=16), 'param', 'actorID', 'actorParam', 'Params')
+			obj.fast64.oot.actor.actorParam
 			if actorProp.rotOverride:
 				if actorProp.rotOverrideX != '0' or actorProp.rotOverrideX != '0x0':
 					upgradeActorProcess('XRot', obj, obj.ootActorProperty.actorID, obj.fast64.oot.actor, \
 						int(actorProp.rotOverrideX, base=16), 'XRot', 'actorID', 'rotOverrideX', 'XRot')
+					obj.fast64.oot.actor.rotOverrideX
 				if actorProp.rotOverrideY != '0' or actorProp.rotOverrideY != '0x0':
 					upgradeActorProcess('YRot', obj, obj.ootActorProperty.actorID, obj.fast64.oot.actor, \
 						int(actorProp.rotOverrideY, base=16), 'YRot', 'actorID', 'rotOverrideY', 'YRot')
+					obj.fast64.oot.actor.rotOverrideY
 				if actorProp.rotOverrideZ != '0' or actorProp.rotOverrideZ != '0x0':
 					upgradeActorProcess('ZRot', obj, obj.ootActorProperty.actorID, obj.fast64.oot.actor, \
 						int(actorProp.rotOverrideZ, base=16), 'ZRot', 'actorID', 'rotOverrideZ', 'ZRot')
+					obj.fast64.oot.actor.rotOverrideZ
 		elif objType == "Transition Actor":
 			transActorProp = obj.ootTransitionActorProperty
 			upgradeActorProcess(objType, obj, transActorProp.actor.actorID, obj.fast64.oot.actor, \
 				int(transActorProp.actor.actorParam, base=16), 'transParam', 'actorID', 'actorParam', 'Params')
+			obj.fast64.oot.actor.transActorParam
 
 		elif objType == "Entrance":
 			entranceProp = obj.ootEntranceProperty.actor
 			upgradeActorProcess(objType, obj, entranceProp.actorID, obj.fast64.oot.actor, \
 				int(entranceProp.actorParam, base=16), 'param', 'actorID', 'actorParam', 'Params')
+			obj.fast64.oot.actor.actorParam
 
 	for childObj in obj.children:
 		upgradeActorInit(childObj)
