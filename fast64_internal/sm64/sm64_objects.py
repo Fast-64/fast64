@@ -615,7 +615,7 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
 				preset = handleRefreshDiffSpecials(preset)
 				area.specials.append(SM64_Special_Object(preset, translation,
 					rotation.to_euler() if obj.sm64_obj_set_yaw else None,
-					obj.fast64.sm64.game_object.bparams if (obj.sm64_obj_set_yaw and obj.sm64_obj_set_bparam) else None))
+					obj.fast64.sm64.game_object.get_behavior_params() if (obj.sm64_obj_set_yaw and obj.sm64_obj_set_bparam) else None))
 			elif obj.sm64_obj_type == 'Water Box':
 				checkIdentityRotation(obj, rotation, False)
 				area.water_boxes.append(CollisionWaterBox(obj.waterBoxType,
@@ -627,11 +627,11 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
 				behaviour = func_map[bpy.context.scene.refreshVer][obj.sm64_behaviour_enum] if \
 					obj.sm64_behaviour_enum != 'Custom' else obj.sm64_obj_behaviour
 				area.objects.append(SM64_Object(modelID, translation, rotation.to_euler(),
-					behaviour, obj.fast64.sm64.game_object.bparams, get_act_string(obj)))
+					behaviour, obj.fast64.sm64.game_object.get_behavior_params(), get_act_string(obj)))
 			elif obj.sm64_obj_type == 'Macro':
 				macro = obj.sm64_macro_enum if obj.sm64_macro_enum != 'Custom' else obj.sm64_obj_preset
 				area.macros.append(SM64_Macro_Object(macro, translation, rotation.to_euler(),
-					obj.fast64.sm64.game_object.bparams if obj.sm64_obj_set_bparam else None))
+					obj.fast64.sm64.game_object.get_behavior_params() if obj.sm64_obj_set_bparam else None))
 			elif obj.sm64_obj_type == 'Mario Start':
 				mario_start = SM64_Mario_Start(obj.sm64_obj_mario_start_area, translation, rotation.to_euler())
 				area.objects.append(mario_start)
@@ -895,18 +895,24 @@ class SM64ObjectPanel(bpy.types.Panel):
 		parent_box.separator()
 		box = parent_box.box()
 		box.label(text = "Behavior Parameters")
-		individuals = box.box()
-		individuals.label(text = "Individual Behavior Parameters")
-		row = individuals.row()
-		for i in range(1, 5):
-			column = row.column()
-			column.label(text = f"Param {i}")
-			column.prop(game_object, f'bparam{i}', text="")
 
-		box.separator()
-		box.label(text = "All Behavior Parameters")
-		box.prop(game_object, 'bparams', text="")
-		parent_box.separator()
+		box.prop(game_object, 'use_individual_params', text = "Use Individual Behavior Params")
+
+		if game_object.use_individual_params:
+			individuals = box.box()
+			individuals.label(text = "Individual Behavior Parameters")
+			row = individuals.row()
+			for i in range(1, 5):
+				column = row.column()
+				column.label(text = f"Param {i}")
+				column.prop(game_object, f'bparam{i}', text="")
+			individuals.separator()
+			individuals.label(text = f"Result: {game_object.combined_bparams}")
+		else:
+			box.separator()
+			box.label(text = "All Behavior Parameters")
+			box.prop(game_object, 'bparams', text="")
+			parent_box.separator()
 
 	def draw(self, context):
 		prop_split(self.layout, context.scene, "gameEditorMode", "Game")
@@ -1458,18 +1464,28 @@ class SM64_AreaProperties(bpy.types.PropertyGroup):
 	disable_background: bpy.props.BoolProperty(name = "Disable Background", default=False, description="Disable rendering background. Ideal for interiors or areas that should never see a background.")
 
 
-def set_bparams_from_param(self, context):
-	params = [self.bparam1, self.bparam2, self.bparam3, self.bparam4]
+DEFAULT_BEHAVIOR_PARAMS = "0x00000000"
+
+def get_combined_bparams_from_param(params):
 	fmt_params = []
 	for i, p in enumerate(params):
 		if len(p) == 0:
 			continue
 		shift = 8 * (3 - i)
 		fmt_params.append(f"({p} << {shift})" if shift > 0 else f"({p})")
+
 	if len(fmt_params) == 0:
-		self.bparams = '0x00000000'
+		return DEFAULT_BEHAVIOR_PARAMS
 	else:
-		self.bparams = ' | '.join(fmt_params)
+		return ' | '.join(fmt_params)
+
+def set_combined_bparams_from_param(self, context):
+	self.combined_bparams = get_combined_bparams_from_param([
+		self.bparam1,
+		self.bparam2,
+		self.bparam3,
+		self.bparam4
+	])
 
 class SM64_LevelProperties(bpy.types.PropertyGroup):
 	name = "SM64 Level Properties"
@@ -1488,20 +1504,45 @@ class SM64_LevelProperties(bpy.types.PropertyGroup):
 
 class SM64_GameObjectProperties(bpy.types.PropertyGroup):
 	name = "Game Object Properties"
-	bparams: bpy.props.StringProperty(name = "Behavior Parameters", description="All Behavior Parameters", default="0x00000000")
+	bparams: bpy.props.StringProperty(name = "Behavior Parameters", description="All Behavior Parameters", default=DEFAULT_BEHAVIOR_PARAMS)
 
-	bparam1: bpy.props.StringProperty(name = "Behavior Param 1",    description="First Behavior Param",    default="", update=set_bparams_from_param)
-	bparam2: bpy.props.StringProperty(name = "Behavior Param 2",    description="Second Behavior Param",   default="", update=set_bparams_from_param)
-	bparam3: bpy.props.StringProperty(name = "Behavior Param 3",    description="Third Behavior Param",    default="", update=set_bparams_from_param)
-	bparam4: bpy.props.StringProperty(name = "Behavior Param 4",    description="Fourth Behavior Param",   default="", update=set_bparams_from_param)
+	combined_bparams: bpy.props.StringProperty(name = "Behavior Parameters (From Individual Params)", description="Behavior Parameters (From Individual Params)", default=DEFAULT_BEHAVIOR_PARAMS)
+	use_individual_params: bpy.props.BoolProperty(name="Use Individual Behavior Params", description="Use Individual Behavior Params", default=True)
+	bparam1: bpy.props.StringProperty(name = "Behavior Param 1",    description="First Behavior Param",    default="", update=set_combined_bparams_from_param)
+	bparam2: bpy.props.StringProperty(name = "Behavior Param 2",    description="Second Behavior Param",   default="", update=set_combined_bparams_from_param)
+	bparam3: bpy.props.StringProperty(name = "Behavior Param 3",    description="Third Behavior Param",    default="", update=set_combined_bparams_from_param)
+	bparam4: bpy.props.StringProperty(name = "Behavior Param 4",    description="Fourth Behavior Param",   default="", update=set_combined_bparams_from_param)
 
 	@staticmethod
 	def upgrade_object(obj):
-		obj.fast64.sm64.game_object.bparams = obj.get("sm64_obj_bparam", "0x00000000")
+		# if obj doesnt have sm64_obj_bparam then its new enough to not need an upgrade
+		if not obj.get("sm64_obj_bparam"):
+			return
+
+		game_object = obj.fast64.sm64.game_object
+
+		game_object.bparams = obj.get("sm64_obj_bparam", DEFAULT_BEHAVIOR_PARAMS)
+		# delete legacy property
+		del obj["sm64_obj_bparam"]
+
+		# get combined bparams, if they arent the default value then return because they have been set
+		game_object.combined_bparams = get_combined_bparams_from_param([game_object.bparam1, game_object.bparam2, game_object.bparam3, game_object.bparam4])
+		if game_object.combined_bparams != DEFAULT_BEHAVIOR_PARAMS:
+			return
+
+		# If bparams arent the default bparams, disable `use_individual_params`
+		if (game_object.bparams != DEFAULT_BEHAVIOR_PARAMS):
+			game_object.use_individual_params = False
+
+
+	def get_behavior_params(self):
+		if self.use_individual_params:
+			return self.combined_bparams
+		return self.bparams
 
 class SM64_ObjectProperties(bpy.types.PropertyGroup):
 	version: bpy.props.IntProperty(name="SM64_ObjectProperties Version", default=0)
-	cur_version = 2 # version after property migration
+	cur_version = 3 # version after property migration
 
 	geo_asm: bpy.props.PointerProperty(type=SM64_GeoASMProperties)
 	level: bpy.props.PointerProperty(type=SM64_LevelProperties)
@@ -1513,7 +1554,7 @@ class SM64_ObjectProperties(bpy.types.PropertyGroup):
 		for obj in bpy.context.scene.objects:
 			if obj.fast64.sm64.version == 0:
 				SM64_GeoASMProperties.upgrade_object(obj)
-			if obj.fast64.sm64.version < 2:
+			if obj.fast64.sm64.version < 3:
 				SM64_GameObjectProperties.upgrade_object(obj)
 			obj.fast64.sm64.version = SM64_ObjectProperties.cur_version
 
