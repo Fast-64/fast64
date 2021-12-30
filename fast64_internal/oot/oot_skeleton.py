@@ -84,7 +84,6 @@ class OOTSkeleton():
 		index = 0
 		for limb in limbList:
 			name = (self.name + "_" + toAlnum(limb.boneName)).upper()
-			assert limb.index == index
 			if limb.index == 0:
 				data.header += "#define " + name + "_POS_LIMB 0\n"
 				data.header += "#define " + name + "_ROT_LIMB 1\n"
@@ -163,8 +162,11 @@ class OOTLimb():
 					return True
 			return False
 
-	# should be same order as ootProcessBone
 	def getList(self, limbList):
+		# Like ootProcessBone, this must be in depth-first order to match the
+		# OoT SkelAnime draw code, so the bones are listed in the file in the
+		# same order as they are drawn. This is needed to enable the programmer
+		# to get the limb indices and to enable optimization between limbs.
 		limbList.append(self)
 		for child in self.children:
 			child.getList(limbList)
@@ -363,6 +365,10 @@ def ootProcessBone(fModel, boneName, parentLimb, nextIndex, meshObj, armatureObj
 	limb.isFlex = hasSkinnedFaces
 	nextIndex += 1
 
+	# This must be in depth-first order to match the OoT SkelAnime draw code, so
+	# the bones are listed in the file in the same order as they are drawn. This
+	# is needed to enable the programmer to get the limb indices and to enable
+	# optimization between limbs.
 	childrenNames = getSortedChildren(armatureObj, bone)
 	for childName in childrenNames:
 		nextIndex, lastMaterialName = ootProcessBone(fModel, childName, limb, nextIndex, meshObj, 
