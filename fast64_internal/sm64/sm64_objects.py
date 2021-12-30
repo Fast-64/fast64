@@ -1515,15 +1515,13 @@ class SM64_GameObjectProperties(bpy.types.PropertyGroup):
 
 	@staticmethod
 	def upgrade_object(obj):
-		# if obj doesnt have sm64_obj_bparam then its new enough to not need an upgrade
-		if not obj.get("sm64_obj_bparam"):
-			return
-
 		game_object = obj.fast64.sm64.game_object
 
-		game_object.bparams = obj.get("sm64_obj_bparam", DEFAULT_BEHAVIOR_PARAMS)
+		game_object.bparams = obj.get("sm64_obj_bparam", game_object.bparams)
+
 		# delete legacy property
-		del obj["sm64_obj_bparam"]
+		if "sm64_obj_bparam" in obj:
+			del obj["sm64_obj_bparam"]
 
 		# get combined bparams, if they arent the default value then return because they have been set
 		game_object.combined_bparams = get_combined_bparams_from_param([game_object.bparam1, game_object.bparam2, game_object.bparam3, game_object.bparam4])
