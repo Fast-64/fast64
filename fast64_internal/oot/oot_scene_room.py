@@ -419,13 +419,14 @@ def drawSceneHeaderProperty(layout, sceneProp, dropdownLabel, headerIndex, objNa
 				for i, p in enumerate(sceneProp.csLists):
 					drawCSListProperty(cutscene, p, i, objName, collectionType)
 				drawCSAddButtons(cutscene, objName, collectionType)
-		cutscene.label(text = "Extra cutscenes (not in any header):")
-		for i in range(len(sceneProp.extraCutscenes)):
-			box = cutscene.box().column()
-			drawCollectionOps(box, i, "extraCutscenes", None, objName, True)
-			box.prop(sceneProp.extraCutscenes[i], "csObject", text = "CS obj")
-		if len(sceneProp.extraCutscenes) == 0:
-			drawAddButton(cutscene, 0, "extraCutscenes", 0, objName)
+		if headerIndex is None or headerIndex == 0:
+			cutscene.label(text = "Extra cutscenes (not in any header):")
+			for i in range(len(sceneProp.extraCutscenes)):
+				box = cutscene.box().column()
+				drawCollectionOps(box, i, "extraCutscenes", None, objName, True)
+				box.prop(sceneProp.extraCutscenes[i], "csObject", text = "CS obj")
+			if len(sceneProp.extraCutscenes) == 0:
+				drawAddButton(cutscene, 0, "extraCutscenes", 0, objName)
 
 	elif menuTab == 'Exits':
 		if headerIndex is None or headerIndex == 0:

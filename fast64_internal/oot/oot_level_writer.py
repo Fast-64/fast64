@@ -179,10 +179,11 @@ def readSceneData(scene, sceneHeader, alternateSceneHeaders):
 				raise PluginError('Cutscene empty object should not be parented to anything')
 			else:
 				scene.csWriteObject = convertCutsceneObject(sceneHeader.csWriteObject)
-	for ec in sceneHeader.extraCutscenes:
-		scene.extraCutscenes.append(convertCutsceneObject(ec.csObject))
-
+	
 	if alternateSceneHeaders is not None:
+		for ec in sceneHeader.extraCutscenes:
+			scene.extraCutscenes.append(convertCutsceneObject(ec.csObject))
+		
 		scene.collision.cameraData = OOTCameraData(scene.name)
 
 		if not alternateSceneHeaders.childNightHeader.usePreviousHeader:
@@ -202,6 +203,9 @@ def readSceneData(scene, sceneHeader, alternateSceneHeaders):
 			cutsceneHeader = scene.getAlternateHeaderScene(scene.name)
 			readSceneData(cutsceneHeader, cutsceneHeaderProp, None)
 			scene.cutsceneHeaders.append(cutsceneHeader)
+	else:
+		if len(sceneHeader.extraCutscenes) > 0:
+			raise PluginError("Extra cutscenes (not in any header) only belong in the main scene, not alternate headers")
 
 def getConvertedTransform(transformMatrix, sceneObj, obj, handleOrientation):
 	
