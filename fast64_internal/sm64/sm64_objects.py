@@ -1463,30 +1463,6 @@ class SM64_AreaProperties(bpy.types.PropertyGroup):
 	name = "Area Properties"
 	disable_background: bpy.props.BoolProperty(name = "Disable Background", default=False, description="Disable rendering background. Ideal for interiors or areas that should never see a background.")
 
-
-DEFAULT_BEHAVIOR_PARAMS = "0x00000000"
-
-def get_combined_bparams_from_param(params):
-	fmt_params = []
-	for i, p in enumerate(params):
-		if len(p) == 0:
-			continue
-		shift = 8 * (3 - i)
-		fmt_params.append(f"({p} << {shift})" if shift > 0 else f"({p})")
-
-	if len(fmt_params) == 0:
-		return DEFAULT_BEHAVIOR_PARAMS
-	else:
-		return ' | '.join(fmt_params)
-
-def set_combined_bparams_from_param(self, context):
-	self.combined_bparams = get_combined_bparams_from_param([
-		self.bparam1,
-		self.bparam2,
-		self.bparam3,
-		self.bparam4
-	])
-
 class SM64_LevelProperties(bpy.types.PropertyGroup):
 	name = "SM64 Level Properties"
 	backgroundID: bpy.props.StringProperty(
@@ -1502,20 +1478,27 @@ class SM64_LevelProperties(bpy.types.PropertyGroup):
 		'This will be suffixed with _yay0SegmentRomStart or _mio0SegmentRomStart\n'
 		'(ex. water_skybox, bidw_skybox)')
 
+
+# self == SM64_GameObjectProperties (Setter needs to be outside of property group)
+def set_combined_bparams(self, context):
+	self.combined_bparams = self.get_combined_bparams()
+ 
+DEFAULT_BEHAVIOR_PARAMS = "0x00000000"
+
 class SM64_GameObjectProperties(bpy.types.PropertyGroup):
 	name = "Game Object Properties"
 	bparams: bpy.props.StringProperty(name = "Behavior Parameters", description="All Behavior Parameters", default=DEFAULT_BEHAVIOR_PARAMS)
 
 	combined_bparams: bpy.props.StringProperty(name = "Behavior Parameters (From Individual Params)", description="Behavior Parameters (From Individual Params)", default=DEFAULT_BEHAVIOR_PARAMS)
 	use_individual_params: bpy.props.BoolProperty(name="Use Individual Behavior Params", description="Use Individual Behavior Params", default=True)
-	bparam1: bpy.props.StringProperty(name = "Behavior Param 1",    description="First Behavior Param",    default="", update=set_combined_bparams_from_param)
-	bparam2: bpy.props.StringProperty(name = "Behavior Param 2",    description="Second Behavior Param",   default="", update=set_combined_bparams_from_param)
-	bparam3: bpy.props.StringProperty(name = "Behavior Param 3",    description="Third Behavior Param",    default="", update=set_combined_bparams_from_param)
-	bparam4: bpy.props.StringProperty(name = "Behavior Param 4",    description="Fourth Behavior Param",   default="", update=set_combined_bparams_from_param)
+	bparam1: bpy.props.StringProperty(name = "Behavior Param 1", description="First Behavior Param",  default="", update=set_combined_bparams)
+	bparam2: bpy.props.StringProperty(name = "Behavior Param 2", description="Second Behavior Param", default="", update=set_combined_bparams)
+	bparam3: bpy.props.StringProperty(name = "Behavior Param 3", description="Third Behavior Param",  default="", update=set_combined_bparams)
+	bparam4: bpy.props.StringProperty(name = "Behavior Param 4", description="Fourth Behavior Param", default="", update=set_combined_bparams)
 
 	@staticmethod
 	def upgrade_object(obj):
-		game_object = obj.fast64.sm64.game_object
+		game_object: SM64_GameObjectProperties = obj.fast64.sm64.game_object
 
 		game_object.bparams = obj.get("sm64_obj_bparam", game_object.bparams)
 
@@ -1524,7 +1507,7 @@ class SM64_GameObjectProperties(bpy.types.PropertyGroup):
 			del obj["sm64_obj_bparam"]
 
 		# get combined bparams, if they arent the default value then return because they have been set
-		game_object.combined_bparams = get_combined_bparams_from_param([game_object.bparam1, game_object.bparam2, game_object.bparam3, game_object.bparam4])
+		game_object.combined_bparams = game_object.get_combined_bparams()
 		if game_object.combined_bparams != DEFAULT_BEHAVIOR_PARAMS:
 			return
 
@@ -1532,6 +1515,19 @@ class SM64_GameObjectProperties(bpy.types.PropertyGroup):
 		if (game_object.bparams != DEFAULT_BEHAVIOR_PARAMS):
 			game_object.use_individual_params = False
 
+	def get_combined_bparams(self):
+		params = [self.bparam1, self.bparam2, self.bparam3, self.bparam4]
+		fmt_params = []
+		for i, p in enumerate(params):
+			if len(p) == 0:
+				continue
+			shift = 8 * (3 - i)
+			fmt_params.append(f"({p} << {shift})" if shift > 0 else f"({p})")
+
+		if len(fmt_params) == 0:
+			return DEFAULT_BEHAVIOR_PARAMS
+		else:
+			return ' | '.join(fmt_params)
 
 	def get_behavior_params(self):
 		if self.use_individual_params:
