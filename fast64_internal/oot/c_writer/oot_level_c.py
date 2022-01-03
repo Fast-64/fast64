@@ -580,34 +580,27 @@ def ootSceneCollisionToC(scene):
 	sceneCollisionC.append(ootCollisionToC(scene.collision))
 	return sceneCollisionC
 
+# scene is either None or an OOTScene. This can either be the main scene itself,
+# or one of the alternate / cutscene headers.
 def ootGetCutsceneC(scene, headerIndex):
-	sceneCutscenesC = []
-
-	if scene.writeCutscene:
+	if scene is not None and scene.writeCutscene:
 		if scene.csWriteType == 'Embedded':
-			sceneCutscenesC.append(ootCutsceneDataToC(scene, scene.cutsceneDataName(headerIndex)))
+			return [ootCutsceneDataToC(scene, scene.cutsceneDataName(headerIndex))]
 		elif scene.csWriteType == 'Object':
-			sceneCutscenesC.append(ootCutsceneDataToC(scene.csWriteObject, scene.csWriteObject.name))
-
-	for ec in scene.extraCutscenes:
-		sceneCutscenesC.append(ootCutsceneDataToC(ec, ec.name))
-	
-	return sceneCutscenesC
+			return [ootCutsceneDataToC(scene.csWriteObject, scene.csWriteObject.name)]
+	return []
 
 def ootSceneCutscenesToC(scene):
-	sceneCutscenes = []
-	if scene.childNightHeader is not None:
-		sceneCutscenes.extend(ootGetCutsceneC(scene, 1))
-
-	if scene.adultDayHeader is not None:
-		sceneCutscenes.extend(ootGetCutsceneC(scene, 2))
-
-	if scene.adultNightHeader is not None:
-		sceneCutscenes.extend(ootGetCutsceneC(scene, 3))
-
+	sceneCutscenes = ootGetCutsceneC(scene, 0)
+	sceneCutscenes.extend(ootGetCutsceneC(scene.childNightHeader, 1))
+	sceneCutscenes.extend(ootGetCutsceneC(scene.adultDayHeader, 2))
+	sceneCutscenes.extend(ootGetCutsceneC(scene.adultNightHeader, 3))
+	
 	for i in range(len(scene.cutsceneHeaders)):
-		sceneCutscenes.extend(ootGetCutsceneC(scene, i + 4))
-
+		sceneCutscenes.extend(ootGetCutsceneC(scene.cutsceneHeaders[i], i + 4))
+	for ec in scene.extraCutscenes:
+		sceneCutscenes.append(ootCutsceneDataToC(ec, ec.name))
+	
 	return sceneCutscenes
 
 def ootLevelToC(scene, textureExportSettings):
