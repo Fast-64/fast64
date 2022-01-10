@@ -1247,7 +1247,10 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 		defaultRM = None
 
 	defaults = bpy.context.scene.world.rdp_defaults
-	saveGeoModeDefinition(fMaterial, f3dMat.rdp_settings, defaults, fModel.matWriteMethod)
+	if (fModel.matWriteMethod == GfxMatWriteMethod.WriteAll):
+		saveGeoModeDefinition(fMaterial, f3dMat.rdp_settings, defaults, fModel.matWriteMethod)
+	else:
+		saveGeoModeDefinition(fMaterial, f3dMat.rdp_settings, defaults, fModel.matWriteMethod)
 	saveOtherModeHDefinition(fMaterial, f3dMat.rdp_settings, defaults, fModel.f3d._HW_VERSION_1, fModel.matWriteMethod)
 	saveOtherModeLDefinition(fMaterial, f3dMat.rdp_settings, defaults, defaultRM, fModel.matWriteMethod)
 	saveOtherDefinition(fMaterial, f3dMat, defaults)
@@ -2028,11 +2031,14 @@ def saveBitGeo(value, defaultValue, flagName, setGeo, clearGeo, matWriteMethod):
 	if value != defaultValue or matWriteMethod == GfxMatWriteMethod.WriteAll:
 		if value:
 			setGeo.flagList.append(flagName)
-		else:
+		elif matWriteMethod != GfxMatWriteMethod.WriteAll:
 			clearGeo.flagList.append(flagName)
 
 def saveGeoModeDefinition(fMaterial, settings, defaults, matWriteMethod):
-	setGeo = SPSetGeometryMode([])
+	if matWriteMethod == GfxMatWriteMethod.WriteAll:
+		setGeo = SPLoadGeometryMode([])
+	else:
+		setGeo = SPSetGeometryMode([])
 	clearGeo = SPClearGeometryMode([])
 
 	saveBitGeo(settings.g_zbuffer, defaults.g_zbuffer, 'G_ZBUFFER',
