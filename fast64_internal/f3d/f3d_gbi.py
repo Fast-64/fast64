@@ -3769,16 +3769,18 @@ def geoFlagListToWord(flagList, f3d):
 	return word
 
 class SPGeometryMode:
-	# Note: SPGeometryMode can only be used with GBI 2
 	def __init__(self, clearFlagList, setFlagList):
 		self.clearFlagList = clearFlagList
 		self.setFlagList = setFlagList
     
 	def to_binary(self, f3d, segments):
-		wordClear = geoFlagListToWord(self.clearFlagList, f3d)
-		wordSet = geoFlagListToWord(self.setFlagList, f3d)
+		if f3d.F3DEX_GBI_2:
+			wordClear = geoFlagListToWord(self.clearFlagList, f3d)
+			wordSet = geoFlagListToWord(self.setFlagList, f3d)
 
-		return gsSPGeometryMode_F3DEX_GBI_2(wordClear, wordSet, f3d)
+			return gsSPGeometryMode_F3DEX_GBI_2(wordClear, wordSet, f3d)
+		else:
+			raise PluginError("LoadGeometryMode only available in F3DEX_GBI_2.")
 
 	def to_c(self, static = True):
 		data = 'gsSPGeometryMode(' if static else \
