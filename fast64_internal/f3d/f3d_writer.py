@@ -2031,7 +2031,7 @@ def saveBitGeoGBI2(value, defaultValue, flagName, geo, matWriteMethod):
 	if value != defaultValue or matWriteMethod == GfxMatWriteMethod.WriteAll:
 		if value:
 			geo.setFlagList.append(flagName)
-		elif matWriteMethod != GfxMatWriteMethod.WriteAll:
+		else:
 			geo.clearFlagList.append(flagName)
 
 def saveGeoModeDefinitionGBI2(fMaterial, settings, defaults, matWriteMethod):
@@ -2062,8 +2062,12 @@ def saveGeoModeDefinitionGBI2(fMaterial, settings, defaults, matWriteMethod):
 			geo, matWriteMethod)
 
 	if len(geo.clearFlagList) == 0 and len(geo.setFlagList) > 0:
-		fMaterial.material.commands.append(SPLoadGeometryMode(geo.setFlagList))
-	elif len(geo.setFlagList) == 0:
+		if matWriteMethod == GfxMatWriteMethod.WriteAll:
+			fMaterial.material.commands.append(SPLoadGeometryMode(geo.setFlagList))
+		else:
+			geo.clearFlagList.append('0')
+			fMaterial.material.commands.append(geo)
+	elif len(geo.setFlagList) == 0 and len(geo.clearFlagList) > 0:
 		geo.setFlagList.append('0')
 		fMaterial.material.commands.append(geo)
 
