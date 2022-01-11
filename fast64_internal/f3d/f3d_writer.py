@@ -2061,15 +2061,13 @@ def saveGeoModeDefinitionGBI2(fMaterial, settings, defaults, matWriteMethod):
 		saveBitGeoGBI2(settings.g_clipping, defaults.g_clipping, 'G_CLIPPING',
 			geo, matWriteMethod)
 
-	if len(geo.clearFlagList) == 0 and len(geo.setFlagList) > 0:
-		if matWriteMethod == GfxMatWriteMethod.WriteAll:
-			fMaterial.material.commands.append(SPLoadGeometryMode(geo.setFlagList))
-		else:
-			geo.clearFlagList.append('0')
-			fMaterial.material.commands.append(geo)
-	elif len(geo.setFlagList) == 0 and len(geo.clearFlagList) > 0:
+	if len(geo.clearFlagList) == 0:
+		geo.clearFlagList.append('0')
+	elif len(geo.setFlagList) == 0:
 		geo.setFlagList.append('0')
-		fMaterial.material.commands.append(geo)
+
+	if matWriteMethod == GfxMatWriteMethod.WriteAll:
+		fMaterial.material.commands.append(SPLoadGeometryMode(geo.setFlagList))
 	else:
 		fMaterial.material.commands.append(geo)
 
