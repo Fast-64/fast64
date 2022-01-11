@@ -2070,6 +2070,8 @@ def saveGeoModeDefinitionGBI2(fMaterial, settings, defaults, matWriteMethod):
 	elif len(geo.setFlagList) == 0 and len(geo.clearFlagList) > 0:
 		geo.setFlagList.append('0')
 		fMaterial.material.commands.append(geo)
+	else:
+		fMaterial.material.commands.append(geo)
 
 	if matWriteMethod == GfxMatWriteMethod.WriteDifferingAndRevert:
 		fMaterial.revert.commands.append(SPGeometryMode(geo.clearFlagList, geo.setFlagList))
