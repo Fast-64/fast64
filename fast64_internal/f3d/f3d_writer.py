@@ -2072,7 +2072,7 @@ def saveGeoModeDefinitionGBI2(fMaterial, settings, defaults, matWriteMethod):
 		fMaterial.material.commands.append(geo)
 
 	if matWriteMethod == GfxMatWriteMethod.WriteDifferingAndRevert:
-		fMaterial.revert.commands.append(SPGeometryMode(geo.clearFlagList, geo.setFlagList))
+		fMaterial.revert.commands.append(SPGeometryMode(geo.setFlagList, geo.clearFlagList))
 
 def saveBitGeo(value, defaultValue, flagName, setGeo, clearGeo, matWriteMethod):
 	if value != defaultValue or matWriteMethod == GfxMatWriteMethod.WriteAll:
