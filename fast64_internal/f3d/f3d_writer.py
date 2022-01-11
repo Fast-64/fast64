@@ -2074,14 +2074,11 @@ def saveBitGeo(value, defaultValue, flagName, setGeo, clearGeo, matWriteMethod):
 	if value != defaultValue or matWriteMethod == GfxMatWriteMethod.WriteAll:
 		if value:
 			setGeo.flagList.append(flagName)
-		elif matWriteMethod != GfxMatWriteMethod.WriteAll:
+		else:
 			clearGeo.flagList.append(flagName)
 
 def saveGeoModeDefinition(fMaterial, settings, defaults, matWriteMethod):
-	if matWriteMethod == GfxMatWriteMethod.WriteAll:
-		setGeo = SPLoadGeometryMode([])
-	else:
-		setGeo = SPSetGeometryMode([])
+	setGeo = SPSetGeometryMode([])
 	clearGeo = SPClearGeometryMode([])
 
 	saveBitGeo(settings.g_zbuffer, defaults.g_zbuffer, 'G_ZBUFFER',
