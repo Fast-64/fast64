@@ -3780,7 +3780,7 @@ class SPGeometryMode:
 
 			return gsSPGeometryMode_F3DEX_GBI_2(wordClear, wordSet, f3d)
 		else:
-			raise PluginError("LoadGeometryMode only available in F3DEX_GBI_2.")
+			raise PluginError("GeometryMode only available in F3DEX_GBI_2.")
 
 	def to_c(self, static = True):
 		data = 'gsSPGeometryMode(' if static else \
