@@ -907,7 +907,7 @@ class SM64ObjectPanel(bpy.types.Panel):
 				column.label(text = f"Param {i}")
 				column.prop(game_object, f'bparam{i}', text="")
 			individuals.separator()
-			individuals.label(text = f"Result: {game_object.combined_bparams}")
+			individuals.label(text = f"Result: {game_object.get_combined_bparams()}")
 		else:
 			box.separator()
 			box.label(text = "All Behavior Parameters")
@@ -1478,23 +1478,17 @@ class SM64_LevelProperties(bpy.types.PropertyGroup):
 		'This will be suffixed with _yay0SegmentRomStart or _mio0SegmentRomStart\n'
 		'(ex. water_skybox, bidw_skybox)')
 
-
-# self == SM64_GameObjectProperties (Setter needs to be outside of property group)
-def set_combined_bparams(self, context):
-	self.combined_bparams = self.get_combined_bparams()
- 
 DEFAULT_BEHAVIOR_PARAMS = "0x00000000"
 
 class SM64_GameObjectProperties(bpy.types.PropertyGroup):
 	name = "Game Object Properties"
 	bparams: bpy.props.StringProperty(name = "Behavior Parameters", description="All Behavior Parameters", default=DEFAULT_BEHAVIOR_PARAMS)
 
-	combined_bparams: bpy.props.StringProperty(name = "Behavior Parameters (From Individual Params)", description="Behavior Parameters (From Individual Params)", default=DEFAULT_BEHAVIOR_PARAMS)
 	use_individual_params: bpy.props.BoolProperty(name="Use Individual Behavior Params", description="Use Individual Behavior Params", default=True)
-	bparam1: bpy.props.StringProperty(name = "Behavior Param 1", description="First Behavior Param",  default="", update=set_combined_bparams)
-	bparam2: bpy.props.StringProperty(name = "Behavior Param 2", description="Second Behavior Param", default="", update=set_combined_bparams)
-	bparam3: bpy.props.StringProperty(name = "Behavior Param 3", description="Third Behavior Param",  default="", update=set_combined_bparams)
-	bparam4: bpy.props.StringProperty(name = "Behavior Param 4", description="Fourth Behavior Param", default="", update=set_combined_bparams)
+	bparam1: bpy.props.StringProperty(name = "Behavior Param 1", description="First Behavior Param",  default="")
+	bparam2: bpy.props.StringProperty(name = "Behavior Param 2", description="Second Behavior Param", default="")
+	bparam3: bpy.props.StringProperty(name = "Behavior Param 3", description="Third Behavior Param",  default="")
+	bparam4: bpy.props.StringProperty(name = "Behavior Param 4", description="Fourth Behavior Param", default="")
 
 	@staticmethod
 	def upgrade_object(obj):
@@ -1507,13 +1501,21 @@ class SM64_GameObjectProperties(bpy.types.PropertyGroup):
 			del obj["sm64_obj_bparam"]
 
 		# get combined bparams, if they arent the default value then return because they have been set
-		game_object.combined_bparams = game_object.get_combined_bparams()
-		if game_object.combined_bparams != DEFAULT_BEHAVIOR_PARAMS:
+		combined_bparams = game_object.get_combined_bparams()
+		if combined_bparams != DEFAULT_BEHAVIOR_PARAMS:
 			return
 
 		# If bparams arent the default bparams, disable `use_individual_params`
 		if (game_object.bparams != DEFAULT_BEHAVIOR_PARAMS):
 			game_object.use_individual_params = False
+
+	@staticmethod
+	def remove_unused_props(obj: bpy.types.Object):
+		game_object: SM64_GameObjectProperties = obj.fast64.sm64.game_object
+
+  		# replaced "combined_bparams" with method `get_combined_bparams`
+		if "combined_bparams" in game_object:
+			del game_object["combined_bparams"]
 
 	def get_combined_bparams(self):
 		params = [self.bparam1, self.bparam2, self.bparam3, self.bparam4]
@@ -1531,12 +1533,12 @@ class SM64_GameObjectProperties(bpy.types.PropertyGroup):
 
 	def get_behavior_params(self):
 		if self.use_individual_params:
-			return self.combined_bparams
+			return self.get_combined_bparams()
 		return self.bparams
 
 class SM64_ObjectProperties(bpy.types.PropertyGroup):
 	version: bpy.props.IntProperty(name="SM64_ObjectProperties Version", default=0)
-	cur_version = 3 # version after property migration
+	cur_version = 4 # version after property migration
 
 	geo_asm: bpy.props.PointerProperty(type=SM64_GeoASMProperties)
 	level: bpy.props.PointerProperty(type=SM64_LevelProperties)
@@ -1545,11 +1547,13 @@ class SM64_ObjectProperties(bpy.types.PropertyGroup):
 
 	@staticmethod
 	def upgrade_changed_props():
-		for obj in bpy.context.scene.objects:
+		for obj in bpy.data.objects:
 			if obj.fast64.sm64.version == 0:
 				SM64_GeoASMProperties.upgrade_object(obj)
 			if obj.fast64.sm64.version < 3:
 				SM64_GameObjectProperties.upgrade_object(obj)
+			if obj.fast64.sm64.version < 4:
+				SM64_GameObjectProperties.remove_unused_props(obj)
 			obj.fast64.sm64.version = SM64_ObjectProperties.cur_version
 
 sm64_obj_classes = (
