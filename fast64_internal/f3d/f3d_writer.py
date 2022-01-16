@@ -1247,7 +1247,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 		defaultRM = None
 
 	defaults = bpy.context.scene.world.rdp_defaults
-	if bpy.context.scene.f3d_type == 'F3DEX_GBI_2':
+	if fModel.f3d.F3DEX_GBI_2:
 		saveGeoModeDefinitionF3DEX2(fMaterial, f3dMat.rdp_settings, defaults, fModel.matWriteMethod)
 	else:
 		saveGeoModeDefinition(fMaterial, f3dMat.rdp_settings, defaults, fModel.matWriteMethod)
