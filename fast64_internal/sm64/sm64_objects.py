@@ -1509,14 +1509,6 @@ class SM64_GameObjectProperties(bpy.types.PropertyGroup):
 		if (game_object.bparams != DEFAULT_BEHAVIOR_PARAMS):
 			game_object.use_individual_params = False
 
-	@staticmethod
-	def remove_unused_props(obj: bpy.types.Object):
-		game_object: SM64_GameObjectProperties = obj.fast64.sm64.game_object
-
-  		# replaced "combined_bparams" with method `get_combined_bparams`
-		if "combined_bparams" in game_object:
-			del game_object["combined_bparams"]
-
 	def get_combined_bparams(self):
 		params = [self.bparam1, self.bparam2, self.bparam3, self.bparam4]
 		fmt_params = []
@@ -1538,7 +1530,7 @@ class SM64_GameObjectProperties(bpy.types.PropertyGroup):
 
 class SM64_ObjectProperties(bpy.types.PropertyGroup):
 	version: bpy.props.IntProperty(name="SM64_ObjectProperties Version", default=0)
-	cur_version = 4 # version after property migration
+	cur_version = 3 # version after property migration
 
 	geo_asm: bpy.props.PointerProperty(type=SM64_GeoASMProperties)
 	level: bpy.props.PointerProperty(type=SM64_LevelProperties)
@@ -1552,8 +1544,6 @@ class SM64_ObjectProperties(bpy.types.PropertyGroup):
 				SM64_GeoASMProperties.upgrade_object(obj)
 			if obj.fast64.sm64.version < 3:
 				SM64_GameObjectProperties.upgrade_object(obj)
-			if obj.fast64.sm64.version < 4:
-				SM64_GameObjectProperties.remove_unused_props(obj)
 			obj.fast64.sm64.version = SM64_ObjectProperties.cur_version
 
 sm64_obj_classes = (
