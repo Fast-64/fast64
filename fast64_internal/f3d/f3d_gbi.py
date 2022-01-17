@@ -3785,7 +3785,7 @@ class SPGeometryMode:
 	def to_c(self, static = True):
 		data = 'gsSPGeometryMode(' if static else \
 			'gSPGeometryMode(glistp++, '
-		data += ((' | '.join(self.clearFlaglist)) if len(self.clearFlagList) > 0 else '0') + ', '
+		data += ((' | '.join(self.clearFlagList)) if len(self.clearFlagList) > 0 else '0') + ', '
 		data += ((' | '.join(self.setFlagList)) if len(self.setFlagList) > 0 else '0') + ')'
 		return data
 
