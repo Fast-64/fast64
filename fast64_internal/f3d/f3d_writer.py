@@ -2059,16 +2059,17 @@ def saveGeoModeDefinitionF3DEX2(fMaterial, settings, defaults, matWriteMethod):
 	saveBitGeoF3DEX2(settings.g_clipping, defaults.g_clipping, 'G_CLIPPING',
 		geo, matWriteMethod)
 
-	if len(geo.clearFlagList) == 0:
-		geo.clearFlagList.append('0')
-	elif len(geo.setFlagList) == 0:
-		geo.setFlagList.append('0')
+	if len(geo.clearFlagList) != 0 or len(geo.setFlagList) != 0:
+		if len(geo.clearFlagList) == 0:
+			geo.clearFlagList.append('0')
+		elif len(geo.setFlagList) == 0:
+			geo.setFlagList.append('0')
 
-	if matWriteMethod == GfxMatWriteMethod.WriteAll:
-		fMaterial.material.commands.append(SPLoadGeometryMode(geo.setFlagList))
-	else:
-		fMaterial.material.commands.append(geo)
-		fMaterial.revert.commands.append(SPGeometryMode(geo.setFlagList, geo.clearFlagList))
+		if matWriteMethod == GfxMatWriteMethod.WriteAll:
+			fMaterial.material.commands.append(SPLoadGeometryMode(geo.setFlagList))
+		else:
+			fMaterial.material.commands.append(geo)
+			fMaterial.revert.commands.append(SPGeometryMode(geo.setFlagList, geo.clearFlagList))
 
 def saveBitGeo(value, defaultValue, flagName, setGeo, clearGeo, matWriteMethod):
 	if value != defaultValue or matWriteMethod == GfxMatWriteMethod.WriteAll:
