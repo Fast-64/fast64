@@ -379,7 +379,6 @@ class OOTRoom:
 
 	def getAlternateHeaderRoom(self, name):
 		room = OOTRoom(self.index, name, self.mesh.model, self.mesh.meshType)
-		room.actorList = self.actorList
 		room.mesh = self.mesh
 		return room
 
@@ -427,7 +426,7 @@ def addActor(owner, actor, actorProp, propName, actorObjName):
 		for cutsceneHeader in sceneSetup.cutsceneHeaders:
 			if cutsceneHeader.headerIndex >= len(owner.cutsceneHeaders) + 4:
 				raise PluginError(actorObjName + " uses a cutscene header index that is outside the range of the current number of cutscene headers.")
-			getattr(owner.cutsceneHeaders[cutsceneHeader.headerIndex - 4]).add(actor)
+			getattr(owner.cutsceneHeaders[cutsceneHeader.headerIndex - 4], propName).add(actor)
 	else:
 		raise PluginError("Unhandled scene setup preset: " + str(sceneSetup.sceneSetupPreset))
 

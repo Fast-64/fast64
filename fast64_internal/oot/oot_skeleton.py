@@ -81,13 +81,23 @@ class OOTSkeleton():
 				str(self.getNumLimbs()) + " };\n\n" 
 			data.header = "extern SkeletonHeader " + self.name + ";\n"
 
+		for limb in limbList:
+			name = (self.name + "_" + toAlnum(limb.boneName)).upper()
+			if limb.index == 0:
+				data.header += "#define " + name + "_POS_LIMB 0\n"
+				data.header += "#define " + name + "_ROT_LIMB 1\n"
+			else:
+				data.header += "#define " + name + "_LIMB " + str(limb.index+1) + "\n"
+		data.header += "#define " + self.name.upper() + "_NUM_LIMBS " + str(len(limbList)+1) + "\n"
+
 		limbData.append(data)
 
 		return limbData
 
 class OOTLimb():
-	def __init__(self, skeletonName, index, translation, DL, lodDL):
+	def __init__(self, skeletonName, boneName, index, translation, DL, lodDL):
 		self.skeletonName = skeletonName
+		self.boneName = boneName
 		self.translation = translation
 		self.firstChildIndex = 0xFF
 		self.nextSiblingIndex = 0xFF
@@ -150,8 +160,11 @@ class OOTLimb():
 					return True
 			return False
 
-	# should be same order as ootProcessBone
 	def getList(self, limbList):
+		# Like ootProcessBone, this must be in depth-first order to match the
+		# OoT SkelAnime draw code, so the bones are listed in the file in the
+		# same order as they are drawn. This is needed to enable the programmer
+		# to get the limb indices and to enable optimization between limbs.
 		limbList.append(self)
 		for child in self.children:
 			child.getList(limbList)
@@ -164,28 +177,6 @@ class OOTLimb():
 				self.children[i].nextSiblingIndex = self.children[i + 1].index
 			self.children[i].setLinks()
 		# self -> child -> sibling
-
-def setArmatureToNonRotatedPose(armatureObj):
-	restPoseRotations = {}
-	poseBoneName = getStartBone(armatureObj)
-	setBoneNonRotated(armatureObj, poseBoneName, restPoseRotations)
-	return restPoseRotations
-
-def setBoneNonRotated(armatureObj, boneName, restPoseRotations):
-	bone = armatureObj.data.bones[boneName]
-	poseBone = armatureObj.pose.bones[boneName]
-
-	while len(poseBone.constraints) > 0:
-		poseBone.constraints.remove(poseBone.constraints[0])
-
-	rotation = bone.matrix_local.inverted().decompose()[1]
-	armatureObj.pose.bones[boneName].rotation_mode = "QUATERNION"
-	armatureObj.pose.bones[boneName].rotation_quaternion = rotation
-
-	restPoseRotations[boneName] = rotation
-
-	for child in bone.children:
-		setBoneNonRotated(armatureObj, child.name, restPoseRotations)
 
 def getGroupIndices(meshInfo, armatureObj, meshObj, rootGroupIndex):
 	meshInfo.vertexGroupInfo = OOTVertexGroupInfo()
@@ -243,10 +234,6 @@ def ootDuplicateArmature(originalArmatureObj):
 		bpy.ops.object.transform_apply(location = False, rotation = False,
 			scale = True, properties = False)
 
-		# convert blender to n64 space, then set all bones to be non-rotated
-		applyRotation([armatureObj], math.radians(90), 'X')
-		restPoseRotations = setArmatureToNonRotatedPose(armatureObj)
-			
 		# Apply modifiers/data to mesh objs
 		bpy.ops.object.select_all(action = 'DESELECT')
 		for obj in meshObjs:
@@ -271,7 +258,7 @@ def ootDuplicateArmature(originalArmatureObj):
 		bpy.ops.pose.armature_apply()
 		bpy.ops.object.mode_set(mode = "OBJECT")
 
-		return armatureObj, meshObjs, restPoseRotations
+		return armatureObj, meshObjs
 	except Exception as e:
 		cleanupDuplicatedObjects(meshObjs + [armatureObj])
 		originalArmatureObj.select_set(True)
@@ -279,21 +266,19 @@ def ootDuplicateArmature(originalArmatureObj):
 		raise Exception(str(e))
 
 def ootConvertArmatureToSkeletonWithoutMesh(originalArmatureObj, convertTransformMatrix, name):
-	skeleton, fModel, restPoseRotations = ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix, 
+	skeleton, fModel = ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix, 
 		None, name, False, True, "Opaque")
-	return skeleton, restPoseRotations
+	return skeleton
 
 def ootConvertArmatureToSkeletonWithMesh(originalArmatureObj, convertTransformMatrix, fModel, name, convertTextureData, drawLayer):
-	
-	skeleton, fModel, restPoseRotations = ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix, 
+	return ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix, 
 		fModel, name, convertTextureData, False, drawLayer)
-	return skeleton, fModel
 
 def ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix, 
 	fModel, name, convertTextureData, skeletonOnly, drawLayer):
 	checkEmptyName(name)
 
-	armatureObj, meshObjs, restPoseRotations = ootDuplicateArmature(originalArmatureObj)
+	armatureObj, meshObjs = ootDuplicateArmature(originalArmatureObj)
 	
 	try:
 		skeleton = OOTSkeleton(name)
@@ -323,7 +308,7 @@ def ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix,
 		originalArmatureObj.select_set(True)
 		bpy.context.view_layer.objects.active = originalArmatureObj
 
-		return skeleton, fModel, restPoseRotations
+		return skeleton, fModel
 	except Exception as e:
 		cleanupDuplicatedObjects(meshObjs + [armatureObj])
 		originalArmatureObj.select_set(True)
@@ -369,15 +354,19 @@ def ootProcessBone(fModel, boneName, parentLimb, nextIndex, meshObj, armatureObj
 		
 	if isinstance(parentLimb, OOTSkeleton):
 		skeleton = parentLimb
-		limb = OOTLimb(skeleton.name, nextIndex, translate, DL, None)
+		limb = OOTLimb(skeleton.name, boneName, nextIndex, translate, DL, None)
 		skeleton.limbRoot = limb
 	else:
-		limb = OOTLimb(parentLimb.skeletonName, nextIndex, translate, DL, None)
+		limb = OOTLimb(parentLimb.skeletonName, boneName, nextIndex, translate, DL, None)
 		parentLimb.children.append(limb)
 
 	limb.isFlex = hasSkinnedFaces
 	nextIndex += 1
 
+	# This must be in depth-first order to match the OoT SkelAnime draw code, so
+	# the bones are listed in the file in the same order as they are drawn. This
+	# is needed to enable the programmer to get the limb indices and to enable
+	# optimization between limbs.
 	childrenNames = getSortedChildren(armatureObj, bone)
 	for childName in childrenNames:
 		nextIndex, lastMaterialName = ootProcessBone(fModel, childName, limb, nextIndex, meshObj, 
