@@ -2118,6 +2118,8 @@ def saveGeoModeDefinitionF3DEX2(fMaterial, settings, defaults, matWriteMethod):
 		'G_TEXTURE_GEN_LINEAR', geo, matWriteMethod)
 	saveBitGeoF3DEX2(settings.g_shade_smooth, defaults.g_shade_smooth,
 		'G_SHADING_SMOOTH', geo, matWriteMethod)
+	saveBitGeoF3DEX2(settings.g_celshading, defaults.g_celshading,
+		'G_CELSHADING', geo, matWriteMethod)
 	saveBitGeoF3DEX2(settings.g_clipping, defaults.g_clipping, 'G_CLIPPING',
 		geo, matWriteMethod)
 
