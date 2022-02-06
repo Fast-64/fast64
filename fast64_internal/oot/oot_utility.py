@@ -381,9 +381,9 @@ def getActorProperty(detailedProp, idField, field):
 	if idField != 'Custom':
 		if field != 'actorID' and field != 'transActorID':
 			if field == 'actorParam':
-				return getActorFinalParameters(detailedProp, detailedProp.actorKey, 'Params')
+				return getActorFinalParameters(detailedProp, detailedProp.actorKey, 'Params', field)
 			elif field == 'transActorParam':
-				return getActorFinalParameters(detailedProp, detailedProp.transActorKey, 'Params')
+				return getActorFinalParameters(detailedProp, detailedProp.transActorKey, 'Params', field)
 			else:
 				for actorNode in root:
 					dpKey = detailedProp.actorKey
@@ -393,11 +393,11 @@ def getActorProperty(detailedProp, idField, field):
 							actorType = getattr(detailedProp, dpKey + '.type', None)
 							if hasTiedParams(elem.get('TiedParam'), actorType):
 								if target == field == 'XRot':
-									return getActorFinalParameters(detailedProp, dpKey, 'XRot')
+									return getActorFinalParameters(detailedProp, dpKey, 'XRot', None)
 								elif target == field == 'YRot':
-									return getActorFinalParameters(detailedProp, dpKey, 'YRot')
+									return getActorFinalParameters(detailedProp, dpKey, 'YRot', None)
 								elif target == field == 'ZRot':
-									return getActorFinalParameters(detailedProp, dpKey, 'ZRot')
+									return getActorFinalParameters(detailedProp, dpKey, 'ZRot', None)
 				return None
 		elif field == 'actorID' or field == 'transActorID':
 			return getattr(detailedProp, field)
@@ -647,9 +647,12 @@ def getActorParameter(object, field, shift, mask):
 	else:
 		return ""
 
-def getActorFinalParameters(detailedProp, actorKey, paramTarget):
+def getActorFinalParameters(detailedProp, actorKey, paramTarget, field):
 	'''Returns the full parameter string'''
 	params = ""
+	if field != None:
+		panelParams = getattr(detailedProp, field, "")
+		if panelParams == "": return "0x0"
 	for actorNode in root:
 		if actorKey == actorNode.get('Key'):
 			lenProp = getMaxElemIndex(actorKey, 'Property', None)
@@ -805,8 +808,11 @@ def upgradeActorInit(obj):
 	if obj.data is None:
 		if objType == "Actor":
 			actorProp = obj.ootActorProperty
+			# if the actor param to upgrade is 0 then it's most likely a new file so change the actorProp type
+			params = int(actorProp.actorParam, base=16)
+			if params == 0: actorProp = obj.fast64.oot.actor
 			upgradeActorProcess(objType, obj, obj.ootActorProperty.actorID, obj.fast64.oot.actor, \
-				int(actorProp.actorParam, base=16), 'param', 'actorID', 'actorParam', 'Params')
+				params, 'param', 'actorID', 'actorParam', 'Params')
 			obj.fast64.oot.actor.actorParam
 			if actorProp.rotOverride:
 				if actorProp.rotOverrideX != '0' or actorProp.rotOverrideX != '0x0':
@@ -840,15 +846,15 @@ def upgradeActorProcess(user, obj, actorID, detailedProp, params, toSaveField, i
 	if obj.ootEntranceProperty.customActor == False and actorID != 'Custom':
 		actorParams = 0
 		for actorNode in root:
-			if len(actorNode) != 0:
-				if actorNode.get('ID') == actorID:		
-					dPKey = actorNode.get('Key')
-					if user != 'Transition Actor':
-						detailedProp.actorID = actorID
-						detailedProp.actorKey = dPKey
-					else:
-						detailedProp.transActorID = actorID
-						detailedProp.transActorKey = dPKey
+			if actorNode.get('ID') == actorID:
+				dPKey = actorNode.get('Key')
+				if user != 'Transition Actor':
+					detailedProp.actorID = actorID
+					detailedProp.actorKey = dPKey
+				else:
+					detailedProp.transActorID = actorID
+					detailedProp.transActorKey = dPKey
+				if len(actorNode) != 0:
 					lenProp = getMaxElemIndex(dPKey, 'Property', None)
 					lenSwitch = getMaxElemIndex(dPKey, 'Flag', 'Switch')
 					lenBool = getMaxElemIndex(dPKey, 'Bool', None)
@@ -859,9 +865,9 @@ def upgradeActorProcess(user, obj, actorID, detailedProp, params, toSaveField, i
 						if hasTiedParams(tiedParam, actorType) is True:
 							setActorString(elem, params, detailedProp, dPKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
 		if user != 'Transition Actor':
-			actorParams = getActorFinalParameters(detailedProp, detailedProp.actorKey, paramTarget)
+			actorParams = getActorFinalParameters(detailedProp, detailedProp.actorKey, paramTarget, None)
 		else:
-			actorParams = getActorFinalParameters(detailedProp, detailedProp.transActorKey, paramTarget)
+			actorParams = getActorFinalParameters(detailedProp, detailedProp.transActorKey, paramTarget, None)
 		setattr(detailedProp, toSaveField + 'ToSave', actorParams)
 	else:
 		if user != 'Transition Actor':

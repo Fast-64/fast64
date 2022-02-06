@@ -68,8 +68,8 @@ def getValues(self, actorID, actorField, target, paramField):
 	'''Updates the actor parameter field when the user change the options'''
 	if self.isActorSynced:
 		actorProp = bpy.context.object.fast64.oot.actor
+		value = ""
 		if actorID != 'Custom':
-			value = ""
 			for actorNode in root:
 				if actorNode.get('ID') == actorID:
 					dPKey = actorNode.get('Key')
@@ -80,7 +80,7 @@ def getValues(self, actorID, actorField, target, paramField):
 							tiedParam = elem.get('TiedParam')
 							actorType = getattr(self, dPKey + '.type', None)
 							if hasTiedParams(tiedParam, actorType) is True:
-								value = getActorFinalParameters(actorProp, dPKey, paramTarget)
+								value = getActorFinalParameters(actorProp, dPKey, paramTarget, None)
 			if target == 'XRot': self.XRotBool = True
 			if target == 'YRot': self.YRotBool = True
 			if target == 'ZRot': self.ZRotBool = True
@@ -340,7 +340,9 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 
 		paramBox = userLayout.box()
 		paramBox.label(text="Actor Parameter")
-		paramBox.prop(detailedProp, userParamField, text="")
+		params = getattr(detailedProp, userParamField, "")
+		if params != "": paramBox.prop(detailedProp, userParamField, text="")
+		else: paramBox.label(text="That Actor doesn't have parameters.")
 
 		if user == userActor:
 			for actorNode in root:

@@ -2206,10 +2206,10 @@ ROTZ 0x0001 = Behavior after colliding with Link
     <Notes>+0x3F00 = Switch Flag</Notes>
   </Actor>
   <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_HEISHI4" Key="0178" Name="Hyrule Guard - EN_HEISHI4" ObjectID="OBJECT_SD">
-    <Parameter Mask="0x00FF" Params="FF00"> Time teller</Parameter>
-    <Parameter Mask="0x00FF" Params="FF04"> Stands by Impa's House, tells time</Parameter>
-    <Parameter Mask="0x00FF" Params="FF07"> Dying guard in Market Town</Parameter>
-    <Parameter Mask="0x00FF" Params="FF08"> Stands in Market Town at night</Parameter>
+    <Parameter Mask="0xFFFF" Params="FF00"> Time teller</Parameter>
+    <Parameter Mask="0xFFFF" Params="FF04"> Stands by Impa's House, tells time</Parameter>
+    <Parameter Mask="0xFFFF" Params="FF07"> Dying guard in Market Town</Parameter>
+    <Parameter Mask="0xFFFF" Params="FF08"> Stands in Market Town at night</Parameter>
     <Notes>Text ID 5063, then 5064</Notes>
   </Actor>
   <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_ZL3" Key="0179" Name="Adult Zelda - EN_ZL3" ObjectID="OBJECT_ZL2">
