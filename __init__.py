@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 from .fast64_internal import *
 from .fast64_internal.panels import SM64_Panel
+from .fast64_internal.oot.oot_level import OOT_ObjectProperties
 
 import cProfile
 import pstats
@@ -271,6 +272,7 @@ class Fast64_ObjectProperties(bpy.types.PropertyGroup):
 	All new object properties should be children of this property group.
 	'''
 	sm64: bpy.props.PointerProperty(type=SM64_ObjectProperties, name="SM64 Object Properties")
+	oot: bpy.props.PointerProperty(type=OOT_ObjectProperties, name="OOT Object Properties")
 
 
 #def updateGameEditor(scene, context):

@@ -126,6 +126,7 @@ class OOTSceneTableEntry:
 class OOTScene:
 	def __init__(self, name, model):
 		self.name = toAlnum(name)
+		self.write_dummy_room_list = False
 		self.rooms = {}
 		self.transitionActorList = set()
 		self.entranceList = set()
@@ -174,6 +175,7 @@ class OOTScene:
 
 	def getAlternateHeaderScene(self, name):
 		scene = OOTScene(name, self.model)
+		scene.write_dummy_room_list = self.write_dummy_room_list
 		scene.rooms = self.rooms
 		scene.collision = self.collision
 		scene.exitList = self.exitList
