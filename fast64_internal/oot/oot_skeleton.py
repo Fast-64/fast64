@@ -81,13 +81,23 @@ class OOTSkeleton():
 				str(self.getNumLimbs()) + " };\n\n" 
 			data.header = "extern SkeletonHeader " + self.name + ";\n"
 
+		for limb in limbList:
+			name = (self.name + "_" + toAlnum(limb.boneName)).upper()
+			if limb.index == 0:
+				data.header += "#define " + name + "_POS_LIMB 0\n"
+				data.header += "#define " + name + "_ROT_LIMB 1\n"
+			else:
+				data.header += "#define " + name + "_LIMB " + str(limb.index+1) + "\n"
+		data.header += "#define " + self.name.upper() + "_NUM_LIMBS " + str(len(limbList)+1) + "\n"
+
 		limbData.append(data)
 
 		return limbData
 
 class OOTLimb():
-	def __init__(self, skeletonName, index, translation, DL, lodDL):
+	def __init__(self, skeletonName, boneName, index, translation, DL, lodDL):
 		self.skeletonName = skeletonName
+		self.boneName = boneName
 		self.translation = translation
 		self.firstChildIndex = 0xFF
 		self.nextSiblingIndex = 0xFF
@@ -150,8 +160,11 @@ class OOTLimb():
 					return True
 			return False
 
-	# should be same order as ootProcessBone
 	def getList(self, limbList):
+		# Like ootProcessBone, this must be in depth-first order to match the
+		# OoT SkelAnime draw code, so the bones are listed in the file in the
+		# same order as they are drawn. This is needed to enable the programmer
+		# to get the limb indices and to enable optimization between limbs.
 		limbList.append(self)
 		for child in self.children:
 			child.getList(limbList)
@@ -341,15 +354,19 @@ def ootProcessBone(fModel, boneName, parentLimb, nextIndex, meshObj, armatureObj
 		
 	if isinstance(parentLimb, OOTSkeleton):
 		skeleton = parentLimb
-		limb = OOTLimb(skeleton.name, nextIndex, translate, DL, None)
+		limb = OOTLimb(skeleton.name, boneName, nextIndex, translate, DL, None)
 		skeleton.limbRoot = limb
 	else:
-		limb = OOTLimb(parentLimb.skeletonName, nextIndex, translate, DL, None)
+		limb = OOTLimb(parentLimb.skeletonName, boneName, nextIndex, translate, DL, None)
 		parentLimb.children.append(limb)
 
 	limb.isFlex = hasSkinnedFaces
 	nextIndex += 1
 
+	# This must be in depth-first order to match the OoT SkelAnime draw code, so
+	# the bones are listed in the file in the same order as they are drawn. This
+	# is needed to enable the programmer to get the limb indices and to enable
+	# optimization between limbs.
 	childrenNames = getSortedChildren(armatureObj, bone)
 	for childName in childrenNames:
 		nextIndex, lastMaterialName = ootProcessBone(fModel, childName, limb, nextIndex, meshObj, 

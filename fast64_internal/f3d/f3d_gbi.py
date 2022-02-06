@@ -3768,6 +3768,39 @@ def geoFlagListToWord(flagList, f3d):
 	
 	return word
 
+class SPGeometryMode:
+	def __init__(self, clearFlagList, setFlagList):
+		self.clearFlagList = clearFlagList
+		self.setFlagList = setFlagList
+    
+	def to_binary(self, f3d, segments):
+		if f3d.F3DEX_GBI_2:
+			wordClear = geoFlagListToWord(self.clearFlagList, f3d)
+			wordSet = geoFlagListToWord(self.setFlagList, f3d)
+
+			return gsSPGeometryMode_F3DEX_GBI_2(wordClear, wordSet, f3d)
+		else:
+			raise PluginError("GeometryMode only available in F3DEX_GBI_2.")
+
+	def to_c(self, static = True):
+		data = 'gsSPGeometryMode(' if static else \
+			'gSPGeometryMode(glistp++, '
+		data += ((' | '.join(self.clearFlagList)) if len(self.clearFlagList) > 0 else '0') + ', '
+		data += ((' | '.join(self.setFlagList)) if len(self.setFlagList) > 0 else '0') + ')'
+		return data
+
+	def to_sm64_decomp_s(self):
+		data = 'gsSPGeometryMode '
+		for flag in self.clearFlagList:
+			data += flag + ' | '
+		data = data[:-3] + ', '
+		for flag in self.setFlagList:
+			data += flag + ' | '
+		return data[:-3]
+	
+	def size(self, f3d):
+		return GFX_SIZE
+
 class SPSetGeometryMode:
 	def __init__(self, flagList):
 		self.flagList = flagList

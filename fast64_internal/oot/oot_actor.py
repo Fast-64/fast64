@@ -402,17 +402,31 @@ def drawActorHeaderProperty(layout, headerProp, propUser, altProp, objName):
 	if headerProp.sceneSetupPreset == "Custom":
 		headerSetupBox = headerSetup.column()
 		headerSetupBox.prop(headerProp, 'childDayHeader', text = "Child Day")
+		prevHeaderName = 'childDayHeader'
 		childNightRow = headerSetupBox.row()
-		childNightRow.prop(headerProp, 'childNightHeader', text = "Child Night")
+		if altProp is None or altProp.childNightHeader.usePreviousHeader:
+			# Draw previous header checkbox (so get previous state), but labeled
+			# as current one and grayed out
+			childNightRow.prop(headerProp, prevHeaderName, text = "Child Night") 
+			childNightRow.enabled = False
+		else:
+			childNightRow.prop(headerProp, 'childNightHeader', text = "Child Night")
+			prevHeaderName = 'childNightHeader'
 		adultDayRow = headerSetupBox.row()
-		adultDayRow.prop(headerProp, 'adultDayHeader', text = "Adult Day")
+		if altProp is None or altProp.adultDayHeader.usePreviousHeader:
+			adultDayRow.prop(headerProp, prevHeaderName, text = "Adult Day")
+			adultDayRow.enabled = False
+		else:
+			adultDayRow.prop(headerProp, 'adultDayHeader', text = "Adult Day")
+			prevHeaderName = 'adultDayHeader'
 		adultNightRow = headerSetupBox.row()
-		adultNightRow.prop(headerProp, 'adultNightHeader', text = "Adult Night")
+		if altProp is None or altProp.adultNightHeader.usePreviousHeader:
+			adultNightRow.prop(headerProp, prevHeaderName, text = "Adult Night")
+			adultNightRow.enabled = False
+		else:
+			adultNightRow.prop(headerProp, 'adultNightHeader', text = "Adult Night")
 
-		childNightRow.enabled = not altProp.childNightHeader.usePreviousHeader if altProp is not None else True
-		adultDayRow.enabled = not altProp.adultDayHeader.usePreviousHeader if altProp is not None else True
-		adultNightRow.enabled = not altProp.adultNightHeader.usePreviousHeader if altProp is not None else True
-
+		headerSetupBox.row().label(text = 'Cutscene headers to include this actor in:')
 		for i in range(len(headerProp.cutsceneHeaders)):
 			drawActorHeaderItemProperty(headerSetup, propUser, headerProp.cutsceneHeaders[i], i, altProp, objName)
 		drawAddButton(headerSetup, len(headerProp.cutsceneHeaders), propUser, None, objName)
