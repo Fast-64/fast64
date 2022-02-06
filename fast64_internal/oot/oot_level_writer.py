@@ -133,7 +133,8 @@ def writeOtherSceneProperties(scene, exportInfo, levelC):
 	modifySegmentDefinition(scene, exportInfo, levelC)
 	modifySceneFiles(scene, exportInfo)
 
-def readSceneData(scene, sceneHeader, alternateSceneHeaders):
+def readSceneData(scene, scene_properties, sceneHeader, alternateSceneHeaders):
+	scene.write_dummy_room_list = scene_properties.write_dummy_room_list
 	scene.sceneTableEntry.drawConfig = sceneHeader.sceneTableEntry.drawConfig
 	scene.globalObject = getCustomProperty(sceneHeader, "globalObject")
 	scene.naviCup = getCustomProperty(sceneHeader, "naviCup")
@@ -188,20 +189,20 @@ def readSceneData(scene, sceneHeader, alternateSceneHeaders):
 
 		if not alternateSceneHeaders.childNightHeader.usePreviousHeader:
 			scene.childNightHeader = scene.getAlternateHeaderScene(scene.name)
-			readSceneData(scene.childNightHeader, alternateSceneHeaders.childNightHeader, None)
+			readSceneData(scene.childNightHeader, scene_properties, alternateSceneHeaders.childNightHeader, None)
 
 		if not alternateSceneHeaders.adultDayHeader.usePreviousHeader:
 			scene.adultDayHeader = scene.getAlternateHeaderScene(scene.name)
-			readSceneData(scene.adultDayHeader, alternateSceneHeaders.adultDayHeader, None)
+			readSceneData(scene.adultDayHeader, scene_properties, alternateSceneHeaders.adultDayHeader, None)
 
 		if not alternateSceneHeaders.adultNightHeader.usePreviousHeader:
 			scene.adultNightHeader = scene.getAlternateHeaderScene(scene.name)
-			readSceneData(scene.adultNightHeader, alternateSceneHeaders.adultNightHeader, None)
+			readSceneData(scene.adultNightHeader, scene_properties, alternateSceneHeaders.adultNightHeader, None)
 
 		for i in range(len(alternateSceneHeaders.cutsceneHeaders)):
 			cutsceneHeaderProp = alternateSceneHeaders.cutsceneHeaders[i]
 			cutsceneHeader = scene.getAlternateHeaderScene(scene.name)
-			readSceneData(cutsceneHeader, cutsceneHeaderProp, None)
+			readSceneData(cutsceneHeader, scene_properties, cutsceneHeaderProp, None)
 			scene.cutsceneHeaders.append(cutsceneHeader)
 	else:
 		if len(sceneHeader.extraCutscenes) > 0:
@@ -344,7 +345,7 @@ def ootConvertScene(originalSceneObj, transformMatrix,
 
 	try:
 		scene = OOTScene(sceneName, OOTModel(f3dType, isHWv1, sceneName + '_dl', DLFormat, None))
-		readSceneData(scene, sceneObj.ootSceneHeader, sceneObj.ootAlternateSceneHeaders)
+		readSceneData(scene, sceneObj.fast64.oot.scene, sceneObj.ootSceneHeader, sceneObj.ootAlternateSceneHeaders)
 		processedRooms = set()
 
 		for obj in sceneObj.children:

@@ -374,17 +374,25 @@ def ootRoomListEntryToC(room):
 def ootRoomListHeaderToC(scene):
 	data = CData()
 
-	# Write externs for rom segments
-	for i in range(len(scene.rooms)):
-		data.source += ootRoomExternToC(scene.rooms[i])
-	data.source += "\n"
-
 	data.header += "extern RomFile " + scene.roomListName() + "[];\n"
-	data.source += "RomFile " + scene.roomListName() + "[] = {\n"
-	
-	for i in range(len(scene.rooms)):
-		data.source += '\t' + ootRoomListEntryToC(scene.rooms[i])
-	data.source += '};\n\n'
+
+	if scene.write_dummy_room_list:
+		data.source += "// Dummy room list\n"
+		data.source += "RomFile " + scene.roomListName() + "[] = {\n"
+		data.source += "\t{0, 0},\n" * len(scene.rooms)
+		data.source += "};\n\n"
+	else:
+		# Write externs for rom segments
+		for i in range(len(scene.rooms)):
+			data.source += ootRoomExternToC(scene.rooms[i])
+		data.source += "\n"
+
+		data.source += "RomFile " + scene.roomListName() + "[] = {\n"
+		
+		for i in range(len(scene.rooms)):
+			data.source += '\t' + ootRoomListEntryToC(scene.rooms[i])
+		data.source += '};\n\n'
+
 	return data
 
 def ootEntranceToC(entrance):

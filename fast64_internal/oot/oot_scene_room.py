@@ -11,6 +11,16 @@ from .oot_actor import *
 #from .oot_collision import *
 from .oot_cutscene import *
 
+class OOTSceneProperties(bpy.types.PropertyGroup):
+	write_dummy_room_list: bpy.props.BoolProperty(
+		name = "Dummy Room List",
+		default = False,
+		description = (
+			"When exporting the scene to C, use NULL for the pointers to room "
+			"start/end offsets, instead of the appropriate symbols"
+		),
+	)
+
 class OOT_SearchMusicSeqEnumOperator(bpy.types.Operator):
 	bl_idname = "object.oot_search_music_seq_enum_operator"
 	bl_label = "Search Music Sequence"

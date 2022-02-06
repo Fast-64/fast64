@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 from .fast64_internal import *
 from .fast64_internal.panels import SM64_Panel
+from .fast64_internal.oot.oot_level import OOT_ObjectProperties
 
 import cProfile
 import pstats

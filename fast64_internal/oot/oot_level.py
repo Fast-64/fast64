@@ -89,6 +89,7 @@ class OOTObjectPanel(bpy.types.Panel):
 			drawSceneHeaderProperty(box, obj.ootSceneHeader, None, None, objName)
 			if obj.ootSceneHeader.menuTab == 'Alternate':
 				drawAlternateSceneHeaderProperty(box, obj.ootAlternateSceneHeaders, objName)
+			box.prop(obj.fast64.oot.scene, "write_dummy_room_list")
 
 		elif obj.ootEmptyType == 'Room':
 			drawRoomHeaderProperty(box, obj.ootRoomHeader, None, None, objName)
@@ -170,6 +171,7 @@ class OOT_ObjectProperties(bpy.types.PropertyGroup):
 	version: bpy.props.IntProperty(name="OOT_ObjectProperties Version", default=0)
 	cur_version = 1 # version after property migration
 
+	scene: bpy.props.PointerProperty(type=OOTSceneProperties)
 	actor: bpy.props.PointerProperty(type=OOTActorProperties)
 
 	@staticmethod
@@ -181,6 +183,7 @@ class OOT_ObjectProperties(bpy.types.PropertyGroup):
 
 oot_obj_classes = (
 	OOTActorProperties,
+	OOTSceneProperties,
 	OOT_ObjectProperties,
 
 	OOT_SearchActorIDEnumOperator,
