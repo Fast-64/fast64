@@ -1,1570 +1,2023 @@
 import bmesh, bpy, mathutils, pprint, re, math, traceback
 from bpy.utils import register_class, unregister_class
 from .f3d_gbi import *
-from .f3d_material import createF3DMat, update_preset_manual, update_node_values_directly, all_combiner_uses, ootEnumDrawLayers
+from .f3d_material import (
+    createF3DMat,
+    update_preset_manual,
+    update_node_values_directly,
+    all_combiner_uses,
+    ootEnumDrawLayers,
+)
 from .f3d_writer import BufferVertex
 from ..utility import *
 import ast, operator
 
 colorCombinationCommands = [
-	0x03, #load lighting data
-	0xB6, #clear geometry params
-	0xB7, #set geometry params
-	0xBB, #set texture scaling factor
-	0xF3, #set texture size
-	0xF5, #set texture properties
-	0xF7, #set fill color
-	0xF8, #set fog color
-	0xFB, #set env color
-	0xFC, #set color combination 
-	0xFD  #load texture 
+    0x03,  # load lighting data
+    0xB6,  # clear geometry params
+    0xB7,  # set geometry params
+    0xBB,  # set texture scaling factor
+    0xF3,  # set texture size
+    0xF5,  # set texture properties
+    0xF7,  # set fill color
+    0xF8,  # set fog color
+    0xFB,  # set env color
+    0xFC,  # set color combination
+    0xFD,  # load texture
 ]
 
-drawCommands = [
-	0x04, #load vertex data
-	0xBF  #draw triangle
-]
+drawCommands = [0x04, 0xBF]  # load vertex data  # draw triangle
+
 
 def getAxisVector(enumValue):
-	sign = -1 if enumValue[0] == '-' else 1
-	axis = enumValue[0] if sign == 1 else enumValue[1]
-	return (
-		sign if axis == 'X' else 0,
-		sign if axis == 'Y' else 0,
-		sign if axis == 'Z' else 0
-	)
+    sign = -1 if enumValue[0] == "-" else 1
+    axis = enumValue[0] if sign == 1 else enumValue[1]
+    return (
+        sign if axis == "X" else 0,
+        sign if axis == "Y" else 0,
+        sign if axis == "Z" else 0,
+    )
+
 
 def getExportRotation(forwardAxisEnum, convertTransformMatrix):
-	if 'Z' in forwardAxisEnum:
-		print("Z axis reserved for verticals.")
-		return None
-	elif forwardAxisEnum == 'X':
-		rightAxisEnum = '-Y'
-	elif forwardAxisEnum == '-Y':
-		rightAxisEnum = '-X'
-	elif forwardAxisEnum == '-X':
-		rightAxisEnum = 'Y'
-	else:
-		rightAxisEnum = 'X'
+    if "Z" in forwardAxisEnum:
+        print("Z axis reserved for verticals.")
+        return None
+    elif forwardAxisEnum == "X":
+        rightAxisEnum = "-Y"
+    elif forwardAxisEnum == "-Y":
+        rightAxisEnum = "-X"
+    elif forwardAxisEnum == "-X":
+        rightAxisEnum = "Y"
+    else:
+        rightAxisEnum = "X"
 
-	forwardAxis = getAxisVector(forwardAxisEnum)
-	rightAxis = getAxisVector(rightAxisEnum)
+    forwardAxis = getAxisVector(forwardAxisEnum)
+    rightAxis = getAxisVector(rightAxisEnum)
 
-	upAxis = (0, 0, 1)
+    upAxis = (0, 0, 1)
 
-	# Z assumed to be up
-	columns = [rightAxis, forwardAxis, upAxis]
-	localToBlenderRotation = mathutils.Matrix([
-		[col[0] for col in columns],
-		[col[1] for col in columns],
-		[col[2] for col in columns]
-	]).to_quaternion()
+    # Z assumed to be up
+    columns = [rightAxis, forwardAxis, upAxis]
+    localToBlenderRotation = mathutils.Matrix(
+        [
+            [col[0] for col in columns],
+            [col[1] for col in columns],
+            [col[2] for col in columns],
+        ]
+    ).to_quaternion()
 
-	return convertTransformMatrix.to_quaternion() @ localToBlenderRotation
+    return convertTransformMatrix.to_quaternion() @ localToBlenderRotation
 
-def F3DtoBlenderObject(romfile, startAddress, scene,
-	newname, transformMatrix, 
-	segmentData, shadeSmooth):
-	
-	mesh = bpy.data.meshes.new(newname + '-mesh')
-	obj = bpy.data.objects.new(newname, mesh)
-	scene.collection.objects.link(obj)
-	createBlankMaterial(obj)
 
-	bMesh = bmesh.new()
-	bMesh.from_mesh(mesh)
-	
-	parseF3DBinary(romfile, startAddress, scene, bMesh, obj, \
-		transformMatrix, newname, segmentData, \
-		[None] * 16 * 16)
+def F3DtoBlenderObject(
+    romfile, startAddress, scene, newname, transformMatrix, segmentData, shadeSmooth
+):
 
-	#bmesh.ops.rotate(bMesh, cent = [0,0,0], 
-	#	matrix = blenderToSM64Rotation,
-	#	verts = bMesh.verts)
-	bMesh.to_mesh(mesh)
-	bMesh.free()
-	mesh.update()
+    mesh = bpy.data.meshes.new(newname + "-mesh")
+    obj = bpy.data.objects.new(newname, mesh)
+    scene.collection.objects.link(obj)
+    createBlankMaterial(obj)
 
-	if shadeSmooth:
-		bpy.ops.object.select_all(action = 'DESELECT')
-		obj.select_set(True)
-		bpy.ops.object.shade_smooth()
+    bMesh = bmesh.new()
+    bMesh.from_mesh(mesh)
 
-	return obj
+    parseF3DBinary(
+        romfile,
+        startAddress,
+        scene,
+        bMesh,
+        obj,
+        transformMatrix,
+        newname,
+        segmentData,
+        [None] * 16 * 16,
+    )
+
+    # bmesh.ops.rotate(bMesh, cent = [0,0,0],
+    # 	matrix = blenderToSM64Rotation,
+    # 	verts = bMesh.verts)
+    bMesh.to_mesh(mesh)
+    bMesh.free()
+    mesh.update()
+
+    if shadeSmooth:
+        bpy.ops.object.select_all(action="DESELECT")
+        obj.select_set(True)
+        bpy.ops.object.shade_smooth()
+
+    return obj
 
 
 def cmdToPositiveInt(cmd):
-	return cmd if cmd >= 0 else 256 + cmd
+    return cmd if cmd >= 0 else 256 + cmd
 
-def parseF3DBinary(romfile, startAddress, scene,
-	bMesh, obj, transformMatrix, groupName,  segmentData, vertexBuffer):
-	f3d = F3D('F3D', False)
-	currentAddress = startAddress
-	romfile.seek(currentAddress)
-	command = romfile.read(8)
-	
-	faceSeq = bMesh.faces
-	vertSeq = bMesh.verts
-	uv_layer = bMesh.loops.layers.uv.verify()
-	deform_layer = bMesh.verts.layers.deform.verify()
-	vertexGroup = getOrMakeVertexGroup(obj, groupName)
-	groupIndex = vertexGroup.index
 
-	textureSize = [32, 32]
+def parseF3DBinary(
+    romfile,
+    startAddress,
+    scene,
+    bMesh,
+    obj,
+    transformMatrix,
+    groupName,
+    segmentData,
+    vertexBuffer,
+):
+    f3d = F3D("F3D", False)
+    currentAddress = startAddress
+    romfile.seek(currentAddress)
+    command = romfile.read(8)
 
-	currentTextureAddr = -1
-	jumps = [startAddress]
+    faceSeq = bMesh.faces
+    vertSeq = bMesh.verts
+    uv_layer = bMesh.loops.layers.uv.verify()
+    deform_layer = bMesh.verts.layers.deform.verify()
+    vertexGroup = getOrMakeVertexGroup(obj, groupName)
+    groupIndex = vertexGroup.index
 
-	# Used for remove_double op at end
-	vertList = []
+    textureSize = [32, 32]
 
-	while len(jumps) > 0:
-		# FD, FC, B7 (tex, shader, geomode)
-		#print(format(command[0], '#04x') + ' at ' + hex(currentAddress))
-		if command[0] == cmdToPositiveInt(f3d.G_TRI1):
-			try:
-				newVerts = interpretDrawTriangle(command, vertexBuffer,
-					faceSeq, vertSeq, uv_layer, deform_layer, groupIndex)
-				vertList.extend(newVerts)
-			except TypeError:
-				print("Ignoring triangle from unloaded vertices.")
+    currentTextureAddr = -1
+    jumps = [startAddress]
 
-		elif command[0] == cmdToPositiveInt(f3d.G_VTX):
-			interpretLoadVertices(romfile, vertexBuffer, transformMatrix, 
-				command, segmentData)
+    # Used for remove_double op at end
+    vertList = []
 
-		# Note: size can usually be indicated in LoadTile / LoadBlock.
-		elif command[0] == cmdToPositiveInt(f3d.G_SETTILESIZE):
-			textureSize = interpretSetTileSize(
-				int.from_bytes(command[4:8], 'big'))
+    while len(jumps) > 0:
+        # FD, FC, B7 (tex, shader, geomode)
+        # print(format(command[0], '#04x') + ' at ' + hex(currentAddress))
+        if command[0] == cmdToPositiveInt(f3d.G_TRI1):
+            try:
+                newVerts = interpretDrawTriangle(
+                    command,
+                    vertexBuffer,
+                    faceSeq,
+                    vertSeq,
+                    uv_layer,
+                    deform_layer,
+                    groupIndex,
+                )
+                vertList.extend(newVerts)
+            except TypeError:
+                print("Ignoring triangle from unloaded vertices.")
 
-		elif command[0] == cmdToPositiveInt(f3d.G_DL):
-			if command[1] == 0:
-				jumps.append(currentAddress)
-			currentAddress = decodeSegmentedAddr(command[4:8], 
-				segmentData = segmentData)
-			romfile.seek(currentAddress)
-			command = romfile.read(8)
-			continue
+        elif command[0] == cmdToPositiveInt(f3d.G_VTX):
+            interpretLoadVertices(
+                romfile, vertexBuffer, transformMatrix, command, segmentData
+            )
 
-		elif command[0] == cmdToPositiveInt(f3d.G_ENDDL):
-			currentAddress = jumps.pop()
+        # Note: size can usually be indicated in LoadTile / LoadBlock.
+        elif command[0] == cmdToPositiveInt(f3d.G_SETTILESIZE):
+            textureSize = interpretSetTileSize(int.from_bytes(command[4:8], "big"))
 
-		elif command[0] == cmdToPositiveInt(f3d.G_SETGEOMETRYMODE):
-			pass
-		elif command[0] == cmdToPositiveInt(f3d.G_SETCOMBINE):
-			pass
+        elif command[0] == cmdToPositiveInt(f3d.G_DL):
+            if command[1] == 0:
+                jumps.append(currentAddress)
+            currentAddress = decodeSegmentedAddr(command[4:8], segmentData=segmentData)
+            romfile.seek(currentAddress)
+            command = romfile.read(8)
+            continue
 
-		elif command[0] == cmdToPositiveInt(f3d.G_SETTIMG):
-			currentTextureAddr =\
-				interpretSetTImage(command, segmentData)
+        elif command[0] == cmdToPositiveInt(f3d.G_ENDDL):
+            currentAddress = jumps.pop()
 
-		elif command[0] == cmdToPositiveInt(f3d.G_LOADBLOCK):
-			# for now only 16bit RGBA is supported.
-			interpretLoadBlock(command, romfile, currentTextureAddr, textureSize,
-				'RGBA', 16)
+        elif command[0] == cmdToPositiveInt(f3d.G_SETGEOMETRYMODE):
+            pass
+        elif command[0] == cmdToPositiveInt(f3d.G_SETCOMBINE):
+            pass
 
-		elif command[0] == cmdToPositiveInt(f3d.G_SETTILE):
-			interpretSetTile(int.from_bytes(command[4:8], 'big'), None)
+        elif command[0] == cmdToPositiveInt(f3d.G_SETTIMG):
+            currentTextureAddr = interpretSetTImage(command, segmentData)
 
-		else:
-			pass
-			#print(format(command[0], '#04x') + ' at ' + hex(currentAddress))
+        elif command[0] == cmdToPositiveInt(f3d.G_LOADBLOCK):
+            # for now only 16bit RGBA is supported.
+            interpretLoadBlock(
+                command, romfile, currentTextureAddr, textureSize, "RGBA", 16
+            )
 
-		currentAddress += 8
-		romfile.seek(currentAddress)
-		command = romfile.read(8)
-	
-	bmesh.ops.remove_doubles(bMesh, verts = vertList, dist = 0.0001)
-	return vertexBuffer
+        elif command[0] == cmdToPositiveInt(f3d.G_SETTILE):
+            interpretSetTile(int.from_bytes(command[4:8], "big"), None)
+
+        else:
+            pass
+            # print(format(command[0], '#04x') + ' at ' + hex(currentAddress))
+
+        currentAddress += 8
+        romfile.seek(currentAddress)
+        command = romfile.read(8)
+
+    bmesh.ops.remove_doubles(bMesh, verts=vertList, dist=0.0001)
+    return vertexBuffer
+
 
 def getPosition(vertexBuffer, index):
-	xStart = index * 16 + 0
-	yStart = index * 16 + 2
-	zStart = index * 16 + 4
+    xStart = index * 16 + 0
+    yStart = index * 16 + 2
+    zStart = index * 16 + 4
 
-	xBytes = vertexBuffer[xStart : xStart + 2]
-	yBytes = vertexBuffer[yStart : yStart + 2]
-	zBytes = vertexBuffer[zStart : zStart + 2]
+    xBytes = vertexBuffer[xStart : xStart + 2]
+    yBytes = vertexBuffer[yStart : yStart + 2]
+    zBytes = vertexBuffer[zStart : zStart + 2]
 
-	x = int.from_bytes(xBytes, 'big', signed=True) / bpy.context.scene.blenderToSM64Scale
-	y = int.from_bytes(yBytes, 'big', signed=True) / bpy.context.scene.blenderToSM64Scale
-	z = int.from_bytes(zBytes, 'big', signed=True) / bpy.context.scene.blenderToSM64Scale
+    x = (
+        int.from_bytes(xBytes, "big", signed=True)
+        / bpy.context.scene.blenderToSM64Scale
+    )
+    y = (
+        int.from_bytes(yBytes, "big", signed=True)
+        / bpy.context.scene.blenderToSM64Scale
+    )
+    z = (
+        int.from_bytes(zBytes, "big", signed=True)
+        / bpy.context.scene.blenderToSM64Scale
+    )
 
-	return (x, y, z)
+    return (x, y, z)
 
-def getNormalorColor(vertexBuffer, index, isNormal = True):
-	xByte = bytes([vertexBuffer[index * 16 + 12]])
-	yByte = bytes([vertexBuffer[index * 16 + 13]])
-	zByte = bytes([vertexBuffer[index * 16 + 14]])
-	wByte = bytes([vertexBuffer[index * 16 + 15]])
 
-	if isNormal:
-		x = int.from_bytes(xByte, 'big', signed=True)
-		y = int.from_bytes(yByte, 'big', signed=True)
-		z = int.from_bytes(zByte, 'big', signed=True)
-		return (x,y,z)
+def getNormalorColor(vertexBuffer, index, isNormal=True):
+    xByte = bytes([vertexBuffer[index * 16 + 12]])
+    yByte = bytes([vertexBuffer[index * 16 + 13]])
+    zByte = bytes([vertexBuffer[index * 16 + 14]])
+    wByte = bytes([vertexBuffer[index * 16 + 15]])
 
-	else: # vertex color
-		r = int.from_bytes(xByte, 'big') / 255
-		g = int.from_bytes(yByte, 'big') / 255
-		b = int.from_bytes(zByte, 'big') / 255
-		a = int.from_bytes(wByte, 'big') / 255
-		return (r,g,b,a)
+    if isNormal:
+        x = int.from_bytes(xByte, "big", signed=True)
+        y = int.from_bytes(yByte, "big", signed=True)
+        z = int.from_bytes(zByte, "big", signed=True)
+        return (x, y, z)
 
-def getUV(vertexBuffer, index, textureDimensions = [32,32]):
-	uStart = index * 16 + 8
-	vStart = index * 16 + 10
+    else:  # vertex color
+        r = int.from_bytes(xByte, "big") / 255
+        g = int.from_bytes(yByte, "big") / 255
+        b = int.from_bytes(zByte, "big") / 255
+        a = int.from_bytes(wByte, "big") / 255
+        return (r, g, b, a)
 
-	uBytes = vertexBuffer[uStart : uStart + 2]
-	vBytes = vertexBuffer[vStart : vStart + 2]
 
-	u = int.from_bytes(uBytes, 'big', signed = True) / 32
-	v = int.from_bytes(vBytes, 'big', signed = True) / 32
+def getUV(vertexBuffer, index, textureDimensions=[32, 32]):
+    uStart = index * 16 + 8
+    vStart = index * 16 + 10
 
-	# We don't know texture size, so assume 32x32.
-	u /= textureDimensions[0]
-	v /= textureDimensions[1]
-	v = 1 - v
+    uBytes = vertexBuffer[uStart : uStart + 2]
+    vBytes = vertexBuffer[vStart : vStart + 2]
 
-	return (u,v)
+    u = int.from_bytes(uBytes, "big", signed=True) / 32
+    v = int.from_bytes(vBytes, "big", signed=True) / 32
+
+    # We don't know texture size, so assume 32x32.
+    u /= textureDimensions[0]
+    v /= textureDimensions[1]
+    v = 1 - v
+
+    return (u, v)
+
 
 def interpretSetTile(data, texture):
-	clampMirrorFlags = bitMask(data, 18, 2)
+    clampMirrorFlags = bitMask(data, 18, 2)
+
 
 def interpretSetTileSize(data):
-	hVal = bitMask(data, 0, 12)
-	wVal = bitMask(data, 12, 12)
+    hVal = bitMask(data, 0, 12)
+    wVal = bitMask(data, 12, 12)
 
-	height = hVal >> 2 + 1
-	width = wVal >> 2 + 1
+    height = hVal >> 2 + 1
+    width = wVal >> 2 + 1
 
-	return (width, height)
+    return (width, height)
 
-def interpretLoadVertices(romfile, vertexBuffer, transformMatrix, command,
-	segmentData = None):
-	command = int.from_bytes(command, 'big', signed=True)
 
-	numVerts = bitMask(command, 52, 4) + 1
-	startIndex = bitMask(command, 48, 4)
-	dataLength = bitMask(command, 32, 16)
-	segmentedAddr = bitMask(command, 0, 32)
+def interpretLoadVertices(
+    romfile, vertexBuffer, transformMatrix, command, segmentData=None
+):
+    command = int.from_bytes(command, "big", signed=True)
 
-	dataStartAddr = decodeSegmentedAddr(segmentedAddr.to_bytes(4, 'big'), 
-		segmentData = segmentData)
+    numVerts = bitMask(command, 52, 4) + 1
+    startIndex = bitMask(command, 48, 4)
+    dataLength = bitMask(command, 32, 16)
+    segmentedAddr = bitMask(command, 0, 32)
 
-	romfile.seek(dataStartAddr)
-	data = romfile.read(dataLength)
+    dataStartAddr = decodeSegmentedAddr(
+        segmentedAddr.to_bytes(4, "big"), segmentData=segmentData
+    )
 
-	for i in range(numVerts):
-		vert = mathutils.Vector(readVectorFromShorts(data, i * 16))
-		vert = transformMatrix @ vert
-		transformedVert = bytearray(6)
-		writeVectorToShorts(transformedVert, 0, vert)
-		
-		start = (startIndex + i) * 16
-		vertexBuffer[start: start + 6] = transformedVert
-		vertexBuffer[start + 6: start + 16] = data[i * 16 + 6: i * 16 + 16]
+    romfile.seek(dataStartAddr)
+    data = romfile.read(dataLength)
+
+    for i in range(numVerts):
+        vert = mathutils.Vector(readVectorFromShorts(data, i * 16))
+        vert = transformMatrix @ vert
+        transformedVert = bytearray(6)
+        writeVectorToShorts(transformedVert, 0, vert)
+
+        start = (startIndex + i) * 16
+        vertexBuffer[start : start + 6] = transformedVert
+        vertexBuffer[start + 6 : start + 16] = data[i * 16 + 6 : i * 16 + 16]
 
 
 # Note the divided by 0x0A, which is due to the way BF command stores indices.
 # Without this the triangles are drawn incorrectly.
-def interpretDrawTriangle(command, vertexBuffer,
-	faceSeq, vertSeq, uv_layer, deform_layer, groupIndex):
+def interpretDrawTriangle(
+    command, vertexBuffer, faceSeq, vertSeq, uv_layer, deform_layer, groupIndex
+):
 
-	verts = [None, None, None]
+    verts = [None, None, None]
 
-	index0 = int(command[5] / 0x0A)
-	index1 = int(command[6] / 0x0A)
-	index2 = int(command[7] / 0x0A)
+    index0 = int(command[5] / 0x0A)
+    index1 = int(command[6] / 0x0A)
+    index2 = int(command[7] / 0x0A)
 
-	vert0 = mathutils.Vector(getPosition(vertexBuffer, index0))
-	vert1 = mathutils.Vector(getPosition(vertexBuffer, index1))
-	vert2 = mathutils.Vector(getPosition(vertexBuffer, index2))
+    vert0 = mathutils.Vector(getPosition(vertexBuffer, index0))
+    vert1 = mathutils.Vector(getPosition(vertexBuffer, index1))
+    vert2 = mathutils.Vector(getPosition(vertexBuffer, index2))
 
-	verts[0] = vertSeq.new(vert0)
-	verts[1] = vertSeq.new(vert1)
-	verts[2] = vertSeq.new(vert2)
+    verts[0] = vertSeq.new(vert0)
+    verts[1] = vertSeq.new(vert1)
+    verts[2] = vertSeq.new(vert2)
 
-	tri = faceSeq.new(verts)
+    tri = faceSeq.new(verts)
 
-	# Assign vertex group
-	for vert in tri.verts:
-		vert[deform_layer][groupIndex] = 1
+    # Assign vertex group
+    for vert in tri.verts:
+        vert[deform_layer][groupIndex] = 1
 
-	loopIndex = 0
-	for loop in tri.loops:
-		loop[uv_layer].uv = mathutils.Vector(
-			getUV(vertexBuffer, int(command[5 + loopIndex] / 0x0A)))
-		loopIndex += 1
-	
-	return verts
+    loopIndex = 0
+    for loop in tri.loops:
+        loop[uv_layer].uv = mathutils.Vector(
+            getUV(vertexBuffer, int(command[5 + loopIndex] / 0x0A))
+        )
+        loopIndex += 1
+
+    return verts
+
 
 def interpretSetTImage(command, levelData):
-	segmentedAddr = command[4:8]
-	return decodeSegmentedAddr(segmentedAddr, levelData)
+    segmentedAddr = command[4:8]
+    return decodeSegmentedAddr(segmentedAddr, levelData)
 
-def interpretLoadBlock(command, romfile, textureStart, textureSize, colorFormat, colorDepth):
-	numTexels = ((int.from_bytes(command[6:8], 'big')) >> 12) + 1
 
-	# This is currently broken.
-	#createNewTextureMaterial(romfile, textureStart, textureSize, numTexels, colorFormat, colorDepth, obj)
+def interpretLoadBlock(
+    command, romfile, textureStart, textureSize, colorFormat, colorDepth
+):
+    numTexels = ((int.from_bytes(command[6:8], "big")) >> 12) + 1
+
+    # This is currently broken.
+    # createNewTextureMaterial(romfile, textureStart, textureSize, numTexels, colorFormat, colorDepth, obj)
+
 
 def printvbuf(vertexBuffer):
-	for i in range(0, int(len(vertexBuffer) / 16)):
-		print(getPosition(vertexBuffer, i))
-		print(getNormalorColor(vertexBuffer, i))
-		print(getUV(vertexBuffer, i))
+    for i in range(0, int(len(vertexBuffer) / 16)):
+        print(getPosition(vertexBuffer, i))
+        print(getNormalorColor(vertexBuffer, i))
+        print(getUV(vertexBuffer, i))
 
 
 def createBlankMaterial(obj):
-	material = createF3DMat(obj)
-	material.f3d_preset = 'Shaded Solid'
-	update_preset_manual(material, bpy.context)
+    material = createF3DMat(obj)
+    material.f3d_preset = "Shaded Solid"
+    update_preset_manual(material, bpy.context)
 
-def createNewTextureMaterial(romfile, textureStart, textureSize, texelCount, colorFormat, colorDepth, obj):
-	newMat = bpy.data.materials.new('f3d_material')
-	newTex = bpy.data.textures.new('f3d_texture', 'IMAGE')
-	newImg = bpy.data.images.new('f3d_texture', *textureSize, True, True)
-	
-	newTex.image = newImg
-	newSlot = newMat.texture_slots.add()
-	newSlot.texture = newTex
-	
-	obj.data.materials.append(newMat)
-	
-	romfile.seek(textureStart)
-	texelSize = int(colorDepth / 8)
-	dataLength = texelCount * texelSize
-	textureData = romfile.read(dataLength)
 
-	if colorDepth != 16:
-		print("Warning: Only 16bit RGBA supported, input was " + \
-			str(colorDepth) + 'bit ' + colorFormat)
-	else:
-		print(str(texelSize) + " " + str(colorDepth))
-		for n in range(0, dataLength, texelSize):
-			oldPixel = textureData[n : n + texelSize]
-			newImg.pixels[n : n+4] = read16bitRGBA(
-				int.from_bytes(oldPixel, 'big'))
+def createNewTextureMaterial(
+    romfile, textureStart, textureSize, texelCount, colorFormat, colorDepth, obj
+):
+    newMat = bpy.data.materials.new("f3d_material")
+    newTex = bpy.data.textures.new("f3d_texture", "IMAGE")
+    newImg = bpy.data.images.new("f3d_texture", *textureSize, True, True)
+
+    newTex.image = newImg
+    newSlot = newMat.texture_slots.add()
+    newSlot.texture = newTex
+
+    obj.data.materials.append(newMat)
+
+    romfile.seek(textureStart)
+    texelSize = int(colorDepth / 8)
+    dataLength = texelCount * texelSize
+    textureData = romfile.read(dataLength)
+
+    if colorDepth != 16:
+        print(
+            "Warning: Only 16bit RGBA supported, input was "
+            + str(colorDepth)
+            + "bit "
+            + colorFormat
+        )
+    else:
+        print(str(texelSize) + " " + str(colorDepth))
+        for n in range(0, dataLength, texelSize):
+            oldPixel = textureData[n : n + texelSize]
+            newImg.pixels[n : n + 4] = read16bitRGBA(int.from_bytes(oldPixel, "big"))
+
 
 binOps = {
-	ast.Add: operator.add,
-	ast.Sub: operator.sub,
-	ast.Mult: operator.mul,
-	ast.Div: operator.truediv,
-	ast.Mod: operator.mod,
-	ast.LShift: operator.lshift,
-	ast.RShift: operator.rshift,
-	ast.RShift: operator.rshift,
-	ast.BitOr: operator.or_,
-	ast.BitAnd: operator.and_,
-	ast.BitXor: operator.xor,
+    ast.Add: operator.add,
+    ast.Sub: operator.sub,
+    ast.Mult: operator.mul,
+    ast.Div: operator.truediv,
+    ast.Mod: operator.mod,
+    ast.LShift: operator.lshift,
+    ast.RShift: operator.rshift,
+    ast.RShift: operator.rshift,
+    ast.BitOr: operator.or_,
+    ast.BitAnd: operator.and_,
+    ast.BitXor: operator.xor,
 }
 
-def math_eval (s, f3d):
-	if isinstance(s, int):
-		return s
 
-	s = s.strip()
-	node = ast.parse(s, mode='eval')
+def math_eval(s, f3d):
+    if isinstance(s, int):
+        return s
 
-	def _eval(node):
-		if isinstance(node, ast.Expression):
-			return _eval(node.body)
-		elif isinstance(node, ast.Str):
-			return node.s
-		elif isinstance(node, ast.Name):
-			if hasattr(f3d, node.id):
-				return getattr(f3d, node.id)
-			else:
-				return node.id
-		elif isinstance(node, ast.Num):
-			return node.n
-		elif isinstance(node, ast.UnaryOp):
-			if isinstance(node.op, ast.USub):
-				return -1 * _eval(node.operand)
-			elif isinstance(node.op, ast.Invert):
-				return ~ _eval(node.operand)
-			else:
-				raise Exception('Unsupported type {}'.format(node.op))
-		elif isinstance(node, ast.BinOp):
-			return binOps[type(node.op)](_eval(node.left), _eval(node.right))
-		elif isinstance(node, ast.Call):
-			args = list(map(_eval, node.args))
-			funcName = _eval(node.func)
-			return funcName(*args)
-		else:
-			raise Exception('Unsupported type {}'.format(node))
+    s = s.strip()
+    node = ast.parse(s, mode="eval")
 
-	return _eval(node.body)
+    def _eval(node):
+        if isinstance(node, ast.Expression):
+            return _eval(node.body)
+        elif isinstance(node, ast.Str):
+            return node.s
+        elif isinstance(node, ast.Name):
+            if hasattr(f3d, node.id):
+                return getattr(f3d, node.id)
+            else:
+                return node.id
+        elif isinstance(node, ast.Num):
+            return node.n
+        elif isinstance(node, ast.UnaryOp):
+            if isinstance(node.op, ast.USub):
+                return -1 * _eval(node.operand)
+            elif isinstance(node.op, ast.Invert):
+                return ~_eval(node.operand)
+            else:
+                raise Exception("Unsupported type {}".format(node.op))
+        elif isinstance(node, ast.BinOp):
+            return binOps[type(node.op)](_eval(node.left), _eval(node.right))
+        elif isinstance(node, ast.Call):
+            args = list(map(_eval, node.args))
+            funcName = _eval(node.func)
+            return funcName(*args)
+        else:
+            raise Exception("Unsupported type {}".format(node))
+
+    return _eval(node.body)
+
 
 def bytesToNormal(normal):
-	return [int.from_bytes([value], 'big', signed = True) / 128 if value > 0 else
-		value / 128 for value in normal]
+    return [
+        int.from_bytes([value], "big", signed=True) / 128 if value > 0 else value / 128
+        for value in normal
+    ]
+
 
 def getTileFormat(value, f3d):
-	data = math_eval(value, f3d)
-	return ["G_IM_FMT_RGBA", "G_IM_FMT_YUV", "G_IM_FMT_CI", "G_IM_FMT_IA", "G_IM_FMT_I"][data]
+    data = math_eval(value, f3d)
+    return [
+        "G_IM_FMT_RGBA",
+        "G_IM_FMT_YUV",
+        "G_IM_FMT_CI",
+        "G_IM_FMT_IA",
+        "G_IM_FMT_I",
+    ][data]
+
 
 def getTileSize(value, f3d):
-	data = math_eval(value, f3d)
-	return ["G_IM_SIZ_4b", "G_IM_SIZ_8b", "G_IM_SIZ_16b", "G_IM_SIZ_32b", "G_IM_SIZ_32b", "G_IM_SIZ_DD"][data]
+    data = math_eval(value, f3d)
+    return [
+        "G_IM_SIZ_4b",
+        "G_IM_SIZ_8b",
+        "G_IM_SIZ_16b",
+        "G_IM_SIZ_32b",
+        "G_IM_SIZ_32b",
+        "G_IM_SIZ_DD",
+    ][data]
+
 
 def getTileClampMirror(value, f3d):
-	data = math_eval(value, f3d)
-	return [(data & f3d.G_TX_CLAMP) != 0, (data & f3d.G_TX_MIRROR) != 0]
+    data = math_eval(value, f3d)
+    return [(data & f3d.G_TX_CLAMP) != 0, (data & f3d.G_TX_MIRROR) != 0]
+
 
 def getTileMask(value, f3d):
-	data = math_eval(value, f3d)
-	return data
+    data = math_eval(value, f3d)
+    return data
+
 
 def getTileShift(value, f3d):
-	data = math_eval(value, f3d)
-	return data
+    data = math_eval(value, f3d)
+    return data
+
 
 def renderModeMask(rendermode, cycle, blendOnly):
-	nonBlend = (((1 << 13) - 1) << 3) if not blendOnly else 0
-	if cycle == 1:
-		return rendermode & (3 << 30 | 3 << 26 | 3 << 22 | 3 << 18 | nonBlend)
-	else:
-		return rendermode & (3 << 28 | 3 << 24 | 3 << 20 | 3 << 16 | nonBlend)
+    nonBlend = (((1 << 13) - 1) << 3) if not blendOnly else 0
+    if cycle == 1:
+        return rendermode & (3 << 30 | 3 << 26 | 3 << 22 | 3 << 18 | nonBlend)
+    else:
+        return rendermode & (3 << 28 | 3 << 24 | 3 << 20 | 3 << 16 | nonBlend)
+
 
 def convertF3DUV(value, maxSize):
-	try:
-		valueBytes = int.to_bytes(value, 2, 'big', signed = True)
-	except OverflowError:
-		valueBytes = int.to_bytes(value, 2, 'big', signed = False)
-	
-	return ((int.from_bytes(valueBytes, 'big', signed = True) / 32) + 0.5) / (maxSize if maxSize > 0 else 1)
+    try:
+        valueBytes = int.to_bytes(value, 2, "big", signed=True)
+    except OverflowError:
+        valueBytes = int.to_bytes(value, 2, "big", signed=False)
+
+    return ((int.from_bytes(valueBytes, "big", signed=True) / 32) + 0.5) / (
+        maxSize if maxSize > 0 else 1
+    )
+
 
 class F3DParsedCommands:
-	def __init__(self, name, commands, index):
-		self.name = name
-		self.commands = commands
-		self.index = index
+    def __init__(self, name, commands, index):
+        self.name = name
+        self.commands = commands
+        self.index = index
 
-	def currentCommand(self):
-		return self.commands[self.index]
+    def currentCommand(self):
+        return self.commands[self.index]
+
 
 class F3DContext:
-	def __init__(self, f3d, basePath, materialContext):
-		self.f3d = f3d
-		self.vertexBuffer = [None] * f3d.vert_load_size
-		self.basePath = basePath
-		self.materialContext = materialContext
-
-		self.clearMaterial()
-		mat = self.mat()
-		mat.set_combiner = False
-		
-		self.materials = [] # saved materials
-		self.triMatIndices = [] # material indices per triangle
-		self.materialChanged = True
-		self.lastMaterialIndex = None
-
-		self.vertexData = {} # c name : parsed data
-		self.textureData = {} # c name : blender texture
-
-		self.tlutAppliedTextures = [] # c name
-		self.currentTextureName = None
-
-		# This macro has all the tile setting properties, so we reuse it
-		self.tileSettings = [DPSetTile(
-			"G_IM_FMT_RGBA", "G_IM_SIZ_16b", 5, 0, i, 0,
-			[False, False], 0, 0,
-			[False, False], 0, 0) for i in range(8)]
-		self.tileSizes = [DPSetTileSize(i, 0, 0, 32, 32) for i in range(8)]
-
-		# When a tile is loaded, store dict of tmem : texture
-		self.tmemDict = {}
-
-		# This should be modified before parsing f3d
-		self.matrixData = {} # bone name : matrix
-		self.currentTransformName = None
-		self.limbToBoneName = {} # limb name (c variable) : bone name (blender vertex group)
-
-		# data for Mesh.from_pydata, list of BufferVertex tuples
-		# use BufferVertex to also form uvs / normals / colors
-		self.verts = [] 
-		self.limbGroups = {} # dict of groupName : vertex indices
-
-		self.lights = Lights("lights_context")
-		self.lights.l = [
-			Light([0,0,0],[0x28, 0x28, 0x28]),
-			Light([0,0,0],[0x28, 0x28, 0x28]),
-			Light([0,0,0],[0x28, 0x28, 0x28]),
-			Light([0,0,0],[0x28, 0x28, 0x28]),
-			Light([0,0,0],[0x28, 0x28, 0x28]),
-			Light([0,0,0],[0x28, 0x28, 0x28]),
-			Light([0,0,0],[0x28, 0x28, 0x28]),]
-		self.lights.a = Ambient([0,0,0])
-		self.numLights = 0
-		self.lightData = {} # (color, normal) : list of blender light objects
-
-	# MAKE SURE TO CALL THIS BETWEEN parseF3D() CALLS
-	def clearMaterial(self):
-		mat = self.mat()
-
-		mat.rdp_settings.sets_rendermode = False
-		mat.set_prim = False
-		mat.set_lights = False
-		mat.set_env = False
-		mat.set_blend = False
-		mat.set_key = False
-		mat.set_k0_5 = False
-
-		mat.prim_color = [1,1,1,1]
-		mat.env_color = [1,1,1,1]
-		mat.blend_color = [1,1,1,1]
-		for i in range(1, 8):
-			setattr(mat, "f3d_light" + str(i), None)
-		mat.tex0.tex = None
-		mat.tex1.tex = None
-		mat.tex0.tex_set = False
-		mat.tex1.tex_set = False
-
-		mat.tex0.tex_format = "RGBA16"
-		mat.tex1.tex_format = "RGBA16"
-
-		self.tmemDict = {}
-
-		self.tileSettings = [DPSetTile(
-			"G_IM_FMT_RGBA", "G_IM_SIZ_16b", 5, 0, i, 0,
-			[False, False], 0, 0,
-			[False, False], 0, 0) for i in range(8)]
-
-		self.tileSizes = [DPSetTileSize(i, 0, 0, 32, 32) for i in range(8)]
-
-		self.lights = Lights("lights_context")
-		self.lights.l = [
-			Light([0,0,0],[0x28, 0x28, 0x28]),
-			Light([0,0,0],[0x28, 0x28, 0x28]),
-			Light([0,0,0],[0x28, 0x28, 0x28]),
-			Light([0,0,0],[0x28, 0x28, 0x28]),
-			Light([0,0,0],[0x28, 0x28, 0x28]),
-			Light([0,0,0],[0x28, 0x28, 0x28]),
-			Light([0,0,0],[0x28, 0x28, 0x28]),]
-		self.lights.a = Ambient([0,0,0])
-		self.numLights = 0
-
-		mat.presetName = "Custom"
-
-	def mat(self):
-		return self.materialContext.f3d_mat
-	
-	def vertexFormatPatterns(self, data):
-		# position, uv, color/normal
-		return [
-			# decomp format
-			"\{\s*\{\s*" +\
-			"\{([^,\}]*),([^,\}]*),([^,\}]*)\}\s*," + "[^,\}]*,\s*" +\
-			"\{([^,\}]*),([^,\}]*)\}\s*,\s*" +\
-			"\{([^,\}]*),([^,\}]*),([^,\}]*),([^,\}]*)\}\s*" +\
-			"\}\s*\}",
-			
-			# nusys format
-			"\{\s*" +\
-			"([^,\}]*),([^,\}]*),([^,\}]*)," + "[^,\}]*," +\
-			"([^,\}]*),([^,\}]*)," +\
-			"([^,\}]*),([^,\}]*),([^,\}]*),([^,\}]*)\s*" +\
-			"\}",
-		]
-
-	# For game specific instance, override this to be able to identify which verts belong to which bone.
-	def setCurrentTransform(self, name):
-		self.currentTransformName = name
-
-	def getTransformedVertex(self, index):
-		bufferVert = self.vertexBuffer[index]
-
-		# NOTE: The groupIndex here does NOT correspond to a vertex group, but to the name of the limb (c variable)
-		matrixName = bufferVert.groupIndex
-		if matrixName in self.matrixData:
-			transform = self.matrixData[matrixName]
-		else:
-			print(self.matrixData)
-			raise PluginError("Transform matrix not specified for " + matrixName)
-		
-		mat = self.mat()
-		f3dVert = bufferVert.f3dVert
-		position = transform @ mathutils.Vector(f3dVert[0])
-		if mat.tex0.tex is not None:
-			uv = [convertF3DUV(f3dVert[1][i], mat.tex0.tex.size[i]) for i in range(2)]
-			#uv = [1 - (f3dVert[1][i] / (self.materialContext.f3d_mat.tex0.tex.size[i] * 32)) for i in range(2)]
-			#uv = [((f3dVert[1][i] / 32) + 0.5) / mat.tex0.tex.size[i] for i in range(2)]
-		else:
-			uv = [convertF3DUV(f3dVert[1][i], 32) for i in range(2)]
-			#uv = [1 - (f3dVert[1][i] / (32 * 32)) for i in range(2)]
-			#uv = [((f3dVert[1][i] / 32) + 0.5) / 32 for i in range(2)]
-		uv[1] = 1 - uv[1]
-		
-		color = [value / 256 if value > 0 else
-			int.from_bytes(value.to_bytes(1, 'big', signed = True), 'big', signed = False) / 256
-			for value in f3dVert[2]]
-		
-		normal = bytesToNormal(f3dVert[2][:3]) + [0]
-		normal = (transform.inverted().transposed() @ mathutils.Vector(normal)).normalized()[:3]
-
-		# This is not usual format of f3dVert, but we need separate color/normal data.
-		# NOTE: The groupIndex here does NOT correspond to a vertex group, but to the name of the limb (c variable)
-		return BufferVertex([position, uv, color, normal], bufferVert.groupIndex, bufferVert.materialIndex)
-
-	def addVertices(self, num, start, vertexDataName, vertexDataOffset):
-		vertexData = self.vertexData[vertexDataName]
-
-		# TODO: material index not important?
-		count = math_eval(num, self.f3d)
-		start = math_eval(start, self.f3d)
-
-		if start + count > len (self.vertexBuffer):
-			raise PluginError("Vertex buffer of size " + len(self.vertexBuffer) + " too small, attempting load into " +\
-				str(start) + ", " + str(start + count))
-		for i in range(count):
-			self.vertexBuffer[start + i] = \
-				BufferVertex(vertexData[vertexDataOffset + i], self.currentTransformName, 0)
-	
-	def addTriangle(self, indices, dlData):
-		if self.materialChanged:
-			mat = self.mat()
-			region = None
-
-			tileSettings = self.tileSettings[0]
-			tileSizeSettings = self.tileSizes[0]
-			if tileSettings.tmem in self.tmemDict:
-				textureName = self.tmemDict[tileSettings.tmem]
-				self.loadTexture(dlData, textureName, region, tileSettings, False)
-				self.applyTileToMaterial(0, tileSettings, tileSizeSettings)
-
-			tileSettings = self.tileSettings[1]
-			tileSizeSettings = self.tileSizes[1]
-			if tileSettings.tmem in self.tmemDict:
-				textureName = self.tmemDict[tileSettings.tmem]
-				self.loadTexture(dlData, textureName, region, tileSettings, False)
-				self.applyTileToMaterial(1, tileSettings, tileSizeSettings)
-
-			self.applyLights()
-
-			self.lastMaterialIndex = self.getMaterialIndex()
-			self.materialChanged = False
-
-		verts = [self.getTransformedVertex(math_eval(index, self.f3d)) for index in indices]
-		#if verts[0].groupIndex != verts[1].groupIndex or\
-		#	verts[0].groupIndex != verts[2].groupIndex or\
-		#	verts[2].groupIndex != verts[1].groupIndex:
-		#	return
-		for i in range(len(verts)):
-			vert = verts[i]
-
-			# NOTE: The groupIndex here does NOT correspond to a vertex group, but to the name of the limb (c variable)
-			if vert.groupIndex not in self.limbGroups:
-				self.limbGroups[vert.groupIndex] = []
-			self.limbGroups[vert.groupIndex].append(len(self.verts) + i)
-		self.verts.extend([vert.f3dVert for vert in verts])
-
-		for i in range(int(len(indices) / 3)):
-			self.triMatIndices.append(self.lastMaterialIndex)
-
-	def getMaterialIndex(self):
-		# We do this for now to update tile settings for S and T.
-		# Right now we don't handle those, so we need the auto-calculator to set it correctly.
-		overrideContext = bpy.context.copy()
-		overrideContext["material"] = self.materialContext
-		bpy.ops.material.update_f3d_nodes(overrideContext)
-
-		for material in self.materials:
-			if propertyGroupEquals(self.materialContext.f3d_mat, material.f3d_mat):
-				return self.materials.index(material)
-		
-		self.addMaterial()
-		return len(self.materials) - 1
-
-	def getImageName(self, image):
-		for name, otherImage in self.textureData.items():
-			if image == otherImage:
-				return name
-		return None
-
-	def applyTLUTToIndex(self, index):
-		mat = self.mat()
-		texProp = getattr(mat, "tex" + str(index))
-		combinerUses = all_combiner_uses(mat)
-		if combinerUses["Texture " + str(index)] and \
-			(texProp.tex is not None or texProp.use_tex_reference) and \
-			texProp.tex_set and texProp.tex_format[:2] == "CI" and\
-			(texProp.tex not in self.tlutAppliedTextures or texProp.use_tex_reference):
-
-			# Only handles TLUT at 256
-			tlutName = self.tmemDict[256]
-			if 256 in self.tmemDict and tlutName is not None:
-				tlut = self.textureData[tlutName]
-				if isinstance(tlut, F3DTextureReference) or texProp.use_tex_reference:
-					if not texProp.use_tex_reference:
-						texProp.use_tex_reference = True
-						imageName = self.getImageName(texProp.tex)
-						if imageName is not None:
-							texProp.tex_reference = imageName
-						else:
-							print("Cannot find name of texture " + str(texProp.tex))
-
-					if isinstance(tlut, F3DTextureReference):
-						texProp.pal_reference = tlut.name
-						texProp.pal_reference_size = tlut.width
-					else:
-						texProp.pal_reference = tlutName
-						texProp.pal_reference_size = min(tlut.size[0] * tlut.size[1], 256)
-
-				else:
-					self.applyTLUT(texProp.tex, tlut)
-					self.tlutAppliedTextures.append(texProp.tex)
-			else:
-				print("Ignoring TLUT.")
-
-	def postMaterialChanged(self):
-		return
-
-	def addMaterial(self):
-		mat = self.mat()
-		combinerUses = all_combiner_uses(self.mat())
-		self.applyTLUTToIndex(0)
-		self.applyTLUTToIndex(1)
-
-		material = self.materialContext.copy()
-		overrideContext = bpy.context.copy()
-		overrideContext["material"] = material
-		bpy.ops.material.update_f3d_nodes(overrideContext)
-		self.materials.append(material)	
-		self.materialChanged = False
-
-		self.postMaterialChanged()
-
-	def getSizeMacro(self, size, suffix):
-		if hasattr(self.f3d, size):
-			return getattr(self.f3d, size + suffix)
-		else:
-			return getattr(self.f3d, self.f3d.IM_SIZ[size] + suffix)
-
-	def getImagePathFromInclude(self, path):
-		if self.basePath is None:
-			raise PluginError("Cannot load texture from " + path + " without any provided base path.")
-		
-		imagePath = path[:-5] + 'png'
-		return os.path.join(self.basePath, imagePath)
-
-	def getVTXPathFromInclude(self, path):
-		if self.basePath is None:
-			raise PluginError("Cannot load VTX from " + path + " without any provided base path.")
-		return os.path.join(self.basePath, path)
-
-	def setGeoFlags(self, command, value):
-		mat = self.mat()
-		bitFlags = math_eval(command.params[0], self.f3d)
-
-		if bitFlags & self.f3d.G_ZBUFFER:
-			mat.rdp_settings.g_zbuffer = value
-		if bitFlags & self.f3d.G_SHADE:
-			mat.rdp_settings.g_shade = value
-		if bitFlags & self.f3d.G_CULL_FRONT:
-			mat.rdp_settings.g_cull_front = value
-		if bitFlags & self.f3d.G_CULL_BACK:
-			mat.rdp_settings.g_cull_back = value
-		if bitFlags & self.f3d.G_FOG:
-			mat.rdp_settings.g_fog = value
-		if bitFlags & self.f3d.G_LIGHTING:
-			mat.rdp_settings.g_lighting = value
-		if bitFlags & self.f3d.G_TEXTURE_GEN:
-			mat.rdp_settings.g_tex_gen = value
-		if bitFlags & self.f3d.G_TEXTURE_GEN_LINEAR:
-			mat.rdp_settings.g_tex_gen_linear = value
-		if bitFlags & self.f3d.G_SHADING_SMOOTH:
-			mat.rdp_settings.g_shade_smooth = value
-		if bitFlags & self.f3d.G_CLIPPING:
-			mat.rdp_settings.g_clipping = value
-	
-	def loadGeoFlags(self, command):
-		mat = self.mat()
-		
-		bitFlags = math_eval(command.params[0], self.f3d)
-
-		mat.rdp_settings.g_zbuffer = bitFlags & self.f3d.G_ZBUFFER != 0
-		mat.rdp_settings.g_shade = bitFlags & self.f3d.G_SHADE != 0
-		mat.rdp_settings.g_cull_front = bitFlags & self.f3d.G_CULL_FRONT != 0
-		mat.rdp_settings.g_cull_back = bitFlags & self.f3d.G_CULL_BACK != 0
-		mat.rdp_settings.g_fog = bitFlags & self.f3d.G_FOG != 0
-		mat.rdp_settings.g_lighting = bitFlags & self.f3d.G_LIGHTING != 0
-		mat.rdp_settings.g_tex_gen = bitFlags & self.f3d.G_TEXTURE_GEN != 0
-		mat.rdp_settings.g_tex_gen_linear = bitFlags & self.f3d.G_TEXTURE_GEN_LINEAR != 0
-		mat.rdp_settings.g_shade_smooth = bitFlags & self.f3d.G_SHADING_SMOOTH != 0
-		mat.rdp_settings.g_clipping = bitFlags & self.f3d.G_CLIPPING != 0
-
-	def setCombineLerp(self, lerp0, lerp1):
-		mat = self.mat()
-
-		if len(lerp0) < 8 or len(lerp1) < 8:
-			print("Incorrect combiner param count: " + str(lerp0) + " " + str(lerp1))
-			return
-		
-		lerp0 = [value.strip() for value in lerp0]
-		lerp1 = [value.strip() for value in lerp1]
-
-		# Padding since index can go up to 31
-		combinerAList = ['COMBINED', 'TEXEL0', 'TEXEL1', 'PRIMITIVE', 'SHADE', 'ENVIRONMENT', '1', 'NOISE'] + ['0'] * 24
-		combinerBList = ['COMBINED', 'TEXEL0', 'TEXEL1', 'PRIMITIVE', 'SHADE', 'ENVIRONMENT', 'CENTER', 'K4'] + ['0'] * 24
-		combinerCList = ['COMBINED', 'TEXEL0', 'TEXEL1', 'PRIMITIVE', 'SHADE', 'ENVIRONMENT', 'SCALE', 
-			'COMBINED_ALPHA', 'TEXEL0_ALPHA', 'TEXEL1_ALPHA', 'PRIMITIVE_ALPHA', 'SHADE_ALPHA', 'ENV_ALPHA', 
-			'LOD_FRACTION', 'PRIM_LOD_FRAC', 'K5'] + ['0'] * 16
-		combinerDList = ['COMBINED', 'TEXEL0', 'TEXEL1', 'PRIMITIVE', 'SHADE', 'ENVIRONMENT', '1', '0'] + ['0'] * 24
-
-		combinerAAlphaList = ['COMBINED', 'TEXEL0', 'TEXEL1', 'PRIMITIVE', 'SHADE', 'ENVIRONMENT', '1', '0']
-		combinerBAlphaList = ['COMBINED', 'TEXEL0', 'TEXEL1', 'PRIMITIVE', 'SHADE', 'ENVIRONMENT', '1', '0']
-		combinerCAlphaList = ['LOD_FRACTION', 'TEXEL0', 'TEXEL1', 'PRIMITIVE', 'SHADE', 'ENVIRONMENT', 'PRIM_LOD_FRAC', '0']
-		combinerDAlphaList = ['COMBINED', 'TEXEL0', 'TEXEL1', 'PRIMITIVE', 'SHADE', 'ENVIRONMENT', '1', '0']
-
-		for i in range(0,4):
-			lerp0[i] = math_eval("G_CCMUX_" + lerp0[i], self.f3d)
-			lerp1[i] = math_eval("G_CCMUX_" + lerp1[i], self.f3d)
-		
-		for i in range(4,8):
-			lerp0[i] = math_eval("G_ACMUX_" + lerp0[i], self.f3d)
-			lerp1[i] = math_eval("G_ACMUX_" + lerp1[i], self.f3d)
-
-		
-		mat.set_combiner = True
-		mat.combiner1.A = combinerAList[lerp0[0]]
-		mat.combiner1.B = combinerBList[lerp0[1]]
-		mat.combiner1.C = combinerCList[lerp0[2]]
-		mat.combiner1.D = combinerDList[lerp0[3]]
-		mat.combiner1.A_alpha = combinerAAlphaList[lerp0[4]]
-		mat.combiner1.B_alpha = combinerBAlphaList[lerp0[5]]
-		mat.combiner1.C_alpha = combinerCAlphaList[lerp0[6]]
-		mat.combiner1.D_alpha = combinerDAlphaList[lerp0[7]]
-
-		mat.combiner2.A = combinerAList[lerp1[0]]
-		mat.combiner2.B = combinerBList[lerp1[1]]
-		mat.combiner2.C = combinerCList[lerp1[2]]
-		mat.combiner2.D = combinerDList[lerp1[3]]
-		mat.combiner2.A_alpha = combinerAAlphaList[lerp1[4]]
-		mat.combiner2.B_alpha = combinerBAlphaList[lerp1[5]]
-		mat.combiner2.C_alpha = combinerCAlphaList[lerp1[6]]
-		mat.combiner2.D_alpha = combinerDAlphaList[lerp1[7]]
-
-	def setCombineMode(self, command):
-		if not hasattr(self.f3d, command.params[0]) or\
-			not hasattr(self.f3d, command.params[1]):
-			print("Unhandled combiner mode: " + command.params[0] + ", " + command.params[1])
-			return
-		lerp0 = getattr(self.f3d, command.params[0])
-		lerp1 = getattr(self.f3d, command.params[1])
-
-		self.setCombineLerp(lerp0, lerp1)
-
-	def setTLUTMode(self, index, value):
-		mat = self.mat()
-		texProp = getattr(mat, "tex" + str(index))
-		bitData = math_eval(value, self.f3d)
-		if value == self.f3d.G_TT_NONE:
-			if texProp.tex_format[:2] == 'CI':
-				texProp.tex_format = 'RGBA16'
-		elif value == self.f3d.G_TT_IA16:
-			texProp.ci_format = "IA16"
-		else:
-			texProp.ci_format = "RGBA16"
-
-	def setOtherModeFlags(self, command):
-		mat = self.mat()
-		mode = math_eval(command.params[0], self.f3d)
-		if mode == self.f3d.G_SETOTHERMODE_H:
-			self.setOtherModeFlagsH(command)
-		else:
-			self.setOtherModeFlagsL(command)
-
-	def setOtherModeFlagsH(self, command):
-
-		otherModeH = {
-			"G_MDSFT_ALPHADITHER" : ["G_AD_PATTERN", "G_AD_NOTPATTERN", "G_AD_NOISE", "G_AD_DISABLE"],
-			"G_MDSFT_RGBDITHER" : ["G_CD_MAGICSQ", "G_CD_BAYER", "NOISE"],
-			"G_MDSFT_COMBKEY" : ["G_CK_NONE", "G_CK_KEY"],
-			"G_MDSFT_TEXTCONV" : ["G_TC_CONV", "G_TC_CONV", "G_TC_CONV", "G_TC_CONV", "G_TC_CONV", "G_TC_FILTCONV", "G_TC_FILT"],
-			"G_MDSFT_TEXTFILT" : ["G_TF_POINT", "G_TF_POINT", "G_TF_BILERP", "G_TF_AVERAGE"],
-			"G_MDSFT_TEXTLOD" : ["G_TL_TILE", "G_TL_LOD"],
-			"G_MDSFT_TEXTDETAIL" : ["G_TD_CLAMP", "G_TD_SHARPEN", "G_TD_DETAIL"],
-			"G_MDSFT_TEXTPERSP" : ["G_TP_NONE", "G_TP_PERSP"],
-			"G_MDSFT_CYCLETYPE" : ["G_CYC_1CYCLE", "G_CYC_2CYCLE", "G_CYC_COPY", "G_CYC_FILL"],
-			"G_MDSFT_COLORDITHER" : ["G_CD_MAGICSQ", "G_CD_BAYER", "G_CD_NOISE"],
-			"G_MDSFT_PIPELINE" : ["G_PM_NPRIMITIVE", "G_PM_1PRIMITIVE"],
-		}
-		mat = self.mat()
-		flags = math_eval(command.params[3], self.f3d)
-		shift = math_eval(command.params[1], self.f3d)
-		mask = math_eval(command.params[2], self.f3d)	 
-
-		for field, fieldData in otherModeH.items(): 
-			fieldShift = getattr(self.f3d, field)
-			if fieldShift >= shift and fieldShift < shift + mask:
-				setattr(mat.rdp_settings, field.lower(), fieldData[(flags >> fieldShift) & \
-					((1 << int(ceil(math.log(len(fieldData), 2)))) - 1)])
-
-
-	# This only handles commonly used render mode presets (with macros), 
-	# and no render modes at all with raw bit data.
-	def setOtherModeFlagsL(self, command):
-		otherModeL = {
-			"G_MDSFT_ALPHACOMPARE" : ["G_AC_NONE", "G_AC_THRESHOLD", "G_AC_THRESHOLD", "G_AC_DITHER"],
-			"G_MDSFT_ZSRCSEL" : ["G_ZS_PIXEL", "G_ZS_PRIM"],
-		}
-
-		mat = self.mat()
-		flags = math_eval(command.params[3], self.f3d)
-		shift = math_eval(command.params[1], self.f3d)
-		mask = math_eval(command.params[2], self.f3d)	 
-
-		for field, fieldData in otherModeL.items(): 
-			fieldShift = getattr(self.f3d, field)
-			if fieldShift >= shift and fieldShift < shift + mask:
-				setattr(mat.rdp_settings, field.lower(), fieldData[(flags >> fieldShift) & \
-					((1 << int(ceil(math.log(len(fieldData), 2)))) - 1)])
-		
-		if self.f3d.G_MDSFT_RENDERMODE >= shift and self.f3d.G_MDSFT_RENDERMODE < shift + mask:
-			self.setRenderMode(flags)
-
-	def setRenderMode(self, flags):
-		mat = self.mat()
-		rendermode1 = renderModeMask(flags, 1, False)
-		rendermode2 = renderModeMask(flags, 2, False)
-
-		blend1 = renderModeMask(flags, 1, True)
-
-		rendermodeName1 = None
-		rendermodeName2 = None
-
-		#print("Render mode: " + hex(rendermode1) + ", " + hex(rendermode2))
-		for name, value in vars(self.f3d).items():
-			if name[:5] == "G_RM_":
-				#print(name + " " + hex(value))
-
-				if name in ["G_RM_FOG_SHADE_A", "G_RM_FOG_PRIM_A", "G_RM_PASS"]:
-					if blend1 == value:
-						rendermodeName1 = name
-				else:
-					if rendermode1 == value:
-						rendermodeName1 = name
-					if rendermode2 == value:
-						rendermodeName2 = name
-			if rendermodeName1 is not None and rendermodeName2 is not None:
-				break
-
-		mat.rdp_settings.sets_rendermode = True
-		if rendermodeName1 is not None and rendermodeName2 is not None:
-			mat.rdp_settings.rendermode_advanced_enabled = False
-			mat.rdp_settings.rendermode_preset_cycle_1 = rendermodeName1
-			mat.rdp_settings.rendermode_preset_cycle_2 = rendermodeName2
-		else:
-			mat.rdp_settings.rendermode_advanced_enabled = True
-
-		mat.rdp_settings.aa_en = rendermode1 & self.f3d.AA_EN != 0
-		mat.rdp_settings.z_cmp = rendermode1 & self.f3d.Z_CMP != 0
-		mat.rdp_settings.z_upd = rendermode1 & self.f3d.Z_UPD != 0
-		mat.rdp_settings.im_rd = rendermode1 & self.f3d.IM_RD != 0
-		mat.rdp_settings.clr_on_cvg = rendermode1 & self.f3d.CLR_ON_CVG != 0
-		mat.rdp_settings.cvg_dst = self.f3d.cvgDstDict[rendermode1 & self.f3d.CVG_DST_SAVE]
-		mat.rdp_settings.zmode = self.f3d.zmodeDict[rendermode1 & self.f3d.ZMODE_DEC]
-		mat.rdp_settings.cvg_x_alpha = rendermode1 & self.f3d.CVG_X_ALPHA != 0
-		mat.rdp_settings.alpha_cvg_sel = rendermode1 & self.f3d.ALPHA_CVG_SEL != 0
-		mat.rdp_settings.force_bl = rendermode1 & self.f3d.FORCE_BL != 0
-
-		mat.rdp_settings.blend_p1 = self.f3d.blendColorDict[rendermode1 >> 30 & 3]
-		mat.rdp_settings.blend_a1 = self.f3d.blendAlphaDict[rendermode1 >> 26 & 3]
-		mat.rdp_settings.blend_m1 = self.f3d.blendColorDict[rendermode1 >> 22 & 3]
-		mat.rdp_settings.blend_b1 = self.f3d.blendMixDict[rendermode1 >> 18 & 3]
-
-		mat.rdp_settings.blend_p2 = self.f3d.blendColorDict[rendermode2 >> 28 & 3]
-		mat.rdp_settings.blend_a2 = self.f3d.blendAlphaDict[rendermode2 >> 24 & 3]
-		mat.rdp_settings.blend_m2 = self.f3d.blendColorDict[rendermode2 >> 20 & 3]
-		mat.rdp_settings.blend_b2 = self.f3d.blendMixDict[rendermode2 >> 16 & 3]
-
-	def gammaInverseParam(self, color):
-		return [gammaInverseValue(math_eval(value, self.f3d) / 255) for value in color[:3]] + [math_eval(color[3], self.f3d) / 255]
-
-	def getLightIndex(self, lightIndexString):
-		return math_eval(lightIndexString, self.f3d) if "LIGHT_" not in lightIndexString else int(lightIndexString[-1:])
-
-	def getLightCount(self, lightCountString):
-		return math_eval(lightCountString, self.f3d) if "NUMLIGHTS_" not in lightCountString else int(lightCountString[-1:])
-
-	def getLightObj(self, light):
-		lightKey = (tuple(light.color), tuple(light.normal))
-		if lightKey not in self.lightData:
-			lightName = "Light"
-			bLight = bpy.data.lights.new(lightName, "SUN")
-			lightObj = bpy.data.objects.new(lightName, bLight)
-
-			lightObj.rotation_euler = (mathutils.Euler((0, 0, math.pi)).to_quaternion() @ \
-				(mathutils.Euler((math.pi / 2, 0, 0)).to_quaternion() @ \
-				mathutils.Vector(light.normal)).rotation_difference(mathutils.Vector((0,0,1)))).to_euler()
-			#lightObj.rotation_euler[0] *= 1
-			bLight.color = light.color
-
-			bpy.context.scene.collection.objects.link(lightObj)
-			self.lightData[lightKey] = lightObj
-		return self.lightData[lightKey]
-
-	def applyLights(self):
-		mat = self.mat()
-		allCombinerUses = all_combiner_uses(mat)
-		if allCombinerUses["Shade"] and mat.rdp_settings.g_lighting and mat.set_lights:
-			mat.use_default_lighting = False
-			mat.ambient_light_color = self.lights.a.color + ([1] if len(self.lights.a.color) == 3 else [])
-
-			for i in range(self.numLights):
-				lightObj = self.getLightObj(self.lights.l[i])
-				setattr(mat, "f3d_light" + str(i + 1), lightObj.data)
-
-	def setLightColor(self, data, command):
-		self.mat().set_lights = True
-		lightIndex = self.getLightIndex(command.params[0])
-		colorData = math_eval(command.params[1], self.f3d)
-		color = [((colorData >> 24) & 0xFF) / 0xFF, ((colorData >> 16) & 0xFF) / 0xFF, ((colorData >> 8) & 0xFF) / 0xFF]
-
-		if lightIndex != self.numLights + 1:
-			self.lights.l[lightIndex - 1].color = color
-		else:
-			self.lights.a.color = color
-
-		# This is an assumption.
-		if self.numLights < lightIndex - 1:
-			self.numLights = lightIndex - 1
-		
-	# Assumes that any SPLight references a Lights0-9n struct instead of specific Light structs.
-	def setLight(self, data, command):
-		mat = self.mat()
-		mat.set_lights = True
-
-		lightReference = command.params[0]
-		lightIndex = self.getLightIndex(command.params[1])
-
-		match = re.search("([A-Za-z0-9\_]*)\.(l(\[([0-9])\])?)?(a)?", lightReference)
-		if match is None:
-			print("Could not handle parsing of light reference: " + lightReference + ". Currently only handling Lights0-9n structs (not Light)")
-			return
-
-		lightsName = match.group(1)
-		lights = self.createLights(data, lightsName)
-
-		if match.group(2) is not None:
-			if match.group(3) is not None:
-				lightIndex = math_eval(match.group(4), self.f3d)
-			else:
-				lightIndex = 0
-
-			# This is done as an assumption, to handle models that have numLights set beforehand
-			if self.numLights < lightIndex + 1:
-				self.numLights = lightIndex + 1
-			self.lights.l[lightIndex] = lights.l[lightIndex]
-		else:
-			self.lights.a = lights.a
-
-	def setLights(self, data, command):
-		mat = self.mat()
-		self.mat().set_lights = True
-	
-		numLights = self.getLightCount(command.name[13])
-		self.numLights = numLights
-
-		lightsName = command.params[0]
-		self.lights = self.createLights(data, lightsName)
-
-	def createLights(self, data, lightsName):
-		numLights, lightValues = parseLightsData(data, lightsName, self)
-		ambientColor = gammaInverse([value / 255 for value in lightValues[0:3]])
-
-		lightList = []
-
-		for i in range(numLights):
-			color = gammaInverse([value / 255 for value in lightValues[3 + 6*i : 3 + 6*i + 3]])
-			direction = bytesToNormal(lightValues[3 + 6*i + 3 : 3 + 6*i + 6])
-			lightList.append(Light(color, direction))
-		
-		while len(lightList) < 7:
-			lightList.append(Light([0,0,0],[0x28, 0x28, 0x28]))
-
-		# normally a and l are Ambient and Light objects,
-		# but here they will be a color and blender light object array.
-		lights = Lights(lightsName)
-		lights.a = Ambient(ambientColor)
-		lights.l = lightList
-
-		return lights
-
-	def getTileIndex(self, value):
-		if value == "G_TX_RENDERTILE":
-			return self.f3d.G_TX_RENDERTILE
-		elif value == "G_TX_LOADTILE":
-			return self.f3d.G_TX_LOADTILE
-		else:
-			return math_eval(value, self.f3d)
-
-	def getTileSettings(self, value):
-		return self.tileSettings[self.getTileIndex(value)]
-
-	def getTileSizeSettings(self, value):
-		return self.tileSizes[self.getTileIndex(value)]
-
-	def setTileSize(self, params):
-		mat = self.mat()
-		tileSizeSettings = self.getTileSizeSettings(params[0])
-		tileSettings = self.getTileSettings(params[0])
-
-		dimensions = [0,0,0,0]
-		for i in range(1,5):
-			#match = None
-			#if not isinstance(params[i], int):
-			#	match = re.search("\(([0-9]+)\s*\-\s*1\s*\)\s*<<\s*G\_TEXTURE\_IMAGE\_FRAC", params[i])
-			#if match is not None:
-			#	dimensions[i - 1] = (math_eval(match.group(1), self.f3d) - 1) << self.f3d.G_TEXTURE_IMAGE_FRAC
-			#else:
-			#	dimensions[i - 1] = math_eval(params[i], self.f3d)
-			dimensions[i - 1] = math_eval(params[i], self.f3d)
-
-		tileSizeSettings.uls = dimensions[0]
-		tileSizeSettings.ult = dimensions[1]
-		tileSizeSettings.lrs = dimensions[2]
-		tileSizeSettings.lrt = dimensions[3]
-
-	def setTile(self, params, dlData):
-		tileIndex = self.getTileIndex(params[4])
-		tileSettings = self.getTileSettings(params[4])
-		tileSettings.fmt = getTileFormat(params[0], self.f3d)
-		tileSettings.siz = getTileSize(params[1], self.f3d)
-		tileSettings.line = math_eval(params[2], self.f3d)
-		tileSettings.tmem = math_eval(params[3], self.f3d)
-		tileSettings.palette = math_eval(params[5], self.f3d)
-		tileSettings.cmt = getTileClampMirror(params[6], self.f3d)
-		tileSettings.maskt = getTileMask(params[7], self.f3d)
-		tileSettings.shifts = getTileShift(params[8], self.f3d)
-		tileSettings.cms = getTileClampMirror(params[9], self.f3d)
-		tileSettings.masks = getTileMask(params[10], self.f3d)
-		tileSettings.shifts = getTileShift(params[11], self.f3d)
-
-		tileSizeSettings = self.getTileSizeSettings(params[4])
-
-	def loadTile(self, params):
-		tileSettings = self.getTileSettings(params[0])
-		# TODO: Region parsing too hard?
-		#region = [
-		#	math_eval(params[1], self.f3d) / 4,
-		#	math_eval(params[2], self.f3d) / 4,
-		#	math_eval(params[3], self.f3d) / 4,
-		#	math_eval(params[4], self.f3d) / 4
-		#]
-		region = None
-
-		# Defer texture parsing until next set tile.
-		self.tmemDict[tileSettings.tmem] = self.currentTextureName
-		self.materialChanged = True
-
-	def loadMultiBlock(self, params, dlData, is4bit):
-		width = math_eval(params[5], self.f3d)
-		height = math_eval(params[6], self.f3d)
-		siz = params[4]
-		line = ((width * self.getSizeMacro(siz, "_LINE_BYTES")) + 7) >> 3 if not is4bit else\
-			((width >> 1) + 7) >> 3
-		tmem = params[1]
-		tile = params[2]
-		loadBlockSiz = self.getSizeMacro(siz, "_LOAD_BLOCK") if not is4bit else self.f3d.G_IM_SIZ_16b
-		self.currentTextureName = params[0]
-		self.setTile([params[3], loadBlockSiz, 0, tmem, "G_TX_LOADTILE", 0,
-			params[9], params[11], params[13], params[8], params[10], params[12],
-		], dlData)
-		# TODO: Region is ignored for now
-		self.loadTile(["G_TX_LOADTILE", 0, 0, 0, 0])
-		self.setTile([params[3], params[4], line, tmem, tile, 0,
-			params[9], params[11], params[13], params[8], params[10], params[12],
-		], dlData)
-		self.setTileSize([tile, 0, 0,
-			(width - 1) << self.f3d.G_TEXTURE_IMAGE_FRAC,
-			(height - 1) << self.f3d.G_TEXTURE_IMAGE_FRAC])
-
-	def loadTLUTPal(self, name, dlData, count):
-		# TODO: Doesn't handle loading palettes into not tmem 256
-		self.currentTextureName = name
-		self.setTile([0,0,0, 256, "G_TX_LOADTILE", 0,0,0,0,0,0,0], dlData)
-		self.loadTLUT(["G_TX_LOADTILE", count], dlData)
-		
-	def applyTileToMaterial(self, index, tileSettings, tileSizeSettings):
-		mat = self.mat()
-		
-		texProp = getattr(mat, "tex" + str(index))
-		
-		name = self.tmemDict[tileSettings.tmem]
-		image = self.textureData[name]
-		if isinstance(image, F3DTextureReference):
-			texProp.tex = None
-			texProp.use_tex_reference = True
-			texProp.tex_reference = name
-			size = texProp.tex_reference_size
-		else:
-			texProp.tex = image
-			texProp.use_tex_reference = False
-			size = texProp.tex.size
-		texProp.tex_set = True
-
-		# TODO: Handle low/high for image files?
-		if texProp.use_tex_reference:
-			#texProp.autoprop = False
-			#texProp.S.low = round(tileSizeSettings.uls / (2 ** self.f3d.G_TEXTURE_IMAGE_FRAC), 3)
-			#texProp.T.low = round(tileSizeSettings.ult / (2 ** self.f3d.G_TEXTURE_IMAGE_FRAC), 3)
-			#texProp.S.high = round(tileSizeSettings.lrs / (2 ** self.f3d.G_TEXTURE_IMAGE_FRAC), 3)
-			#texProp.T.high = round(tileSizeSettings.lrt / (2 ** self.f3d.G_TEXTURE_IMAGE_FRAC), 3)
-
-			# WARNING: Inferring texture size from tile size.
-			texProp.tex_reference_size = [
-				int(round(tileSizeSettings.lrs / (2 ** self.f3d.G_TEXTURE_IMAGE_FRAC) + 1)), 
-				int(round(tileSizeSettings.lrt / (2 ** self.f3d.G_TEXTURE_IMAGE_FRAC) + 1))]
-
-		#if texProp.S.low == 0 and texProp.T.low == 0 and \
-		#	texProp.S.high == size[0] - 1 and \
-		#	(texProp.use_tex_reference or texProp.T.high == size[1] - 1):
-		#	texProp.autoProp = True
-		#else:
-		#	print(str(texProp.S.low) + " " + str(texProp.T.low) + " " + str(texProp.S.high) + " " + str(texProp.T.high))
-		#	print(str(size[0]-1) + " " + str(size[1]-1))
-
-		texProp.tex_format = tileSettings.fmt[8:].replace("_", "") + tileSettings.siz[8:-1].replace("_", "")
-		
-		texProp.S.clamp = tileSettings.cms[0]
-		texProp.S.mirror = tileSettings.cms[1]
-
-		texProp.T.clamp = tileSettings.cmt[0]
-		texProp.T.mirror = tileSettings.cmt[1]
-
-		# TODO: Handle S and T properties
-
-	# Override this to handle game specific references.
-	def handleTextureName(self, textureName):
-		return textureName
-
-	def loadTexture(self, data, name, region, tileSettings, isLUT):
-		textureName = self.handleTextureName(name)
-
-		if textureName in self.textureData:
-			return self.textureData[textureName]
-
-		# region ignored?
-		if isLUT:
-			siz = "G_IM_SIZ_16b"
-			width = 16
-		else:
-			siz = tileSettings.siz
-			if siz == "G_IM_SIZ_4b":
-				width = (tileSettings.line * 8) * 2
-			else:
-				width = int(ceil((tileSettings.line * 8) / self.f3d.G_IM_SIZ_VARS[siz + '_LINE_BYTES']))
-
-		# TODO: Textures are sometimes loaded in with different dimensions than for rendering.
-		# This means width is incorrect?
-		image = parseTextureData(data, textureName, self, tileSettings.fmt, siz, width, self.basePath, isLUT, self.f3d)
-
-		self.textureData[textureName] = image
-		return self.textureData[textureName]
-
-	def loadTLUT(self, params, dlData):
-		tileSettings = self.getTileSettings(params[0])
-		name = self.currentTextureName
-		textureName = self.handleTextureName(name)
-		self.tmemDict[tileSettings.tmem] = textureName
-
-		tlut = self.loadTexture(dlData, textureName, [0,0, 16, 16], tileSettings, True)
-		self.materialChanged = True
-
-	def applyTLUT(self, image, tlut):
-		for i in range(int(len(image.pixels) / 4)):
-			lutIndex = int(round(image.pixels[4*i] * 255))
-			newValues = tlut.pixels[4 * lutIndex : 4 * (lutIndex + 1)]
-			if len(newValues) < 4:
-				print("Invalid lutIndex " + str(lutIndex))
-			else:
-				image.pixels[4*i : 4*(i+1)] = newValues
-
-	def processCommands(self, dlData, dlName, dlCommands):
-		callStack = [F3DParsedCommands(dlName, dlCommands, 0)]
-		while len(callStack) > 0:
-			currentCommandList = callStack[-1]
-			command = currentCommandList.currentCommand()
-
-			if currentCommandList.index >= len(currentCommandList.commands):
-				raise PluginError("Cannot handle unterminated static display lists: " + currentCommandList.name)
-			elif len(callStack) > 2**16:
-				raise PluginError("DL call stack larger than 2**16, assuming infinite loop: " + currentCommandList.name)
-
-			#print(command.name + " " + str(command.params))
-			if command.name == 'gsSPVertex':
-				vertexDataName, vertexDataOffset = getVertexDataStart(command.params[0], self.f3d)
-				parseVertexData(dlData, vertexDataName, self)
-				self.addVertices(command.params[1], command.params[2], vertexDataName, vertexDataOffset)	
-			elif command.name == 'gsSPMatrix':
-				self.setCurrentTransform(command.params[0])
-			elif command.name == 'gsSPPopMatrix':
-				print("gsSPPopMatrix not handled.")
-			elif command.name == 'gsSP1Triangle':
-				self.addTriangle(command.params[0:3], dlData)
-			elif command.name == 'gsSP2Triangles':
-				self.addTriangle(command.params[0:3] + command.params[4:7], dlData)
-			elif command.name == 'gsSPDisplayList' or command.name[:10] == 'gsSPBranch':
-				newDLName = self.processDLName(command.params[0])
-				if newDLName is not None:
-					newDLCommands = parseDLData(dlData, newDLName)
-					# Use -1 index so that it will be incremented to 0 at end of loop
-					parsedCommands = F3DParsedCommands(newDLName, newDLCommands, -1)
-					if command.name == 'gsSPDisplayList':
-						callStack.append(parsedCommands)
-					elif command.name[:10] == 'gsSPBranch': # TODO: Handle BranchZ?
-						callStack = callStack[:-1]
-						callStack.append(parsedCommands)
-			elif command.name == 'gsSPEndDisplayList':
-				callStack = callStack[:-1]
-
-			# Material Specific Commands
-			prevMaterialChangedStatus = self.materialChanged
-			self.materialChanged = True
-
-			# Should we parse commands into f3d_gbi classes?
-			# No, because some parsing involves reading C files, which is separate.
-
-			# Assumes macros use variable names instead of values
-			mat = self.mat()
-			try:
-				if command.name == 'gsSPClipRatio':
-					mat.clip_ratio = math_eval(command.params[0], self.f3d)
-				elif command.name == 'gsSPNumLights':
-					self.numLights = self.getLightCount(command.name[1])
-				elif command.name == 'gsSPLight':
-					self.setLight(dlData, command)
-				elif command.name == 'gsSPLightColor':
-					self.setLightColor(dlData, command)
-				elif command.name[:13] == 'gsSPSetLights':
-					self.setLights(dlData, command)
-				elif command.name == 'gsSPFogFactor':
-					pass
-				elif command.name == 'gsSPFogPosition':
-					mat.fog_position = [math_eval(command.params[0], self.f3d), math_eval(command.params[1], self.f3d)]
-					mat.set_fog = True
-				elif command.name == 'gsSPTexture' or command.name == 'gsSPTextureL': 
-					mat.tex_scale = [math_eval(command.params[0], self.f3d) / (2**16), math_eval(command.params[1], self.f3d) / (2**16)]
-				elif command.name == 'gsSPSetGeometryMode':
-					self.setGeoFlags(command, True)
-				elif command.name == 'gsSPClearGeometryMode':
-					self.setGeoFlags(command, False)
-				elif command.name == 'gsSPLoadGeometryMode':
-					self.loadGeoFlags(command)
-				elif command.name == 'gsSPSetOtherMode':
-					self.setOtherModeFlags(command)
-				elif command.name == 'gsDPPipelineMode':
-					mat.rdp_settings.g_mdsft_pipeline = command.params[0]
-				elif command.name == 'gsDPSetCycleType':
-					mat.rdp_settings.g_mdsft_cycletype = command.params[0]
-				elif command.name == 'gsDPSetTexturePersp': 
-					mat.rdp_settings.g_mdsft_textpersp = command.params[0]
-				elif command.name == 'gsDPSetTextureDetail': 
-					mat.rdp_settings.g_mdsft_textdetail = command.params[0]
-				elif command.name == 'gsDPSetTextureLOD': 
-					mat.rdp_settings.g_mdsft_textlod = command.params[0]
-				elif command.name == 'gsDPSetTextureLUT':
-					self.setTLUTMode(0, command.params[0])
-					self.setTLUTMode(1, command.params[0])
-				elif command.name == 'gsDPSetTextureFilter': 
-					mat.rdp_settings.g_mdsft_text_filt = command.params[0]
-				elif command.name == 'gsDPSetTextureConvert': 
-					mat.rdp_settings.g_mdsft_textconv = command.params[0]
-				elif command.name == 'gsDPSetCombineKey': 
-					mat.rdp_settings.g_mdsft_combkey = command.params[0]
-				elif command.name == 'gsDPSetColorDither': 
-					mat.rdp_settings.g_mdsft_color_dither = command.params[0]
-				elif command.name == 'gsDPSetAlphaDither': 
-					mat.rdp_settings.g_mdsft_alpha_dither = command.params[0]
-				elif command.name == 'gsDPSetAlphaCompare': 
-					mat.rdp_settings.g_mdsft_alpha_compare = command.params[0]
-				elif command.name == 'gsDPSetDepthSource': 
-					mat.rdp_settings.g_mdsft_zsrcsel = command.params[0]
-				elif command.name == 'gsDPSetRenderMode': 
-					flags = math_eval(command.params[0] + " | " + command.params[1], self.f3d)
-					self.setRenderMode(flags)
-				elif command.name == 'gsDPSetTextureImage':
-					# Are other params necessary?
-					# The params are set in SetTile commands.
-					self.currentTextureName = command.params[3]
-				elif command.name == 'gsDPSetCombineMode':
-					self.setCombineMode(command)
-				elif command.name == 'gsDPSetCombineLERP':
-					self.setCombineLerp(command.params[0:8], command.params[8:16])
-				elif command.name == 'gsDPSetEnvColor':
-					mat.env_color = self.gammaInverseParam(command.params)
-					mat.set_env = True
-				elif command.name == 'gsDPSetBlendColor':
-					mat.blend_color = self.gammaInverseParam(command.params)
-					mat.set_blend = True
-				elif command.name == 'gsDPSetFogColor':
-					mat.fog_color = self.gammaInverseParam(command.params)
-					mat.set_fog = True
-				elif command.name == 'gsDPSetFillColor':
-					pass
-				elif command.name == 'gsDPSetPrimDepth':
-					pass
-				elif command.name == 'gsDPSetPrimColor':
-					mat.prim_lod_min = math_eval(command.params[0], self.f3d) / 255
-					mat.prim_lod_frac = math_eval(command.params[1], self.f3d) / 255
-					mat.prim_color = self.gammaInverseParam(command.params[2:6])
-					mat.set_prim = True
-				elif command.name == 'gsDPSetOtherMode':
-					print("gsDPSetOtherMode not handled.")
-				elif command.name == 'DPSetConvert':
-					mat.set_k0_5 = True
-					for i in range(6):
-						setattr(mat, 'k' + str(i), gammaInverseValue(math_eval(command.params[i], self.f3d) / 255))
-				elif command.name == 'DPSetKeyR':
-					mat.set_key = True
-				elif command.name == 'DPSetKeyGB':
-					mat.set_key = True
-				else:
-					self.materialChanged = prevMaterialChangedStatus
-				
-				# Texture Commands
-				# Assume file texture load
-				# SetTextureImage -> Load command -> Set Tile (0 or 1)
-
-				if command.name == 'gsDPSetTileSize':
-					self.setTileSize(command.params)
-				elif command.name == 'gsDPLoadTile':
-					self.loadTile(command.params)
-				elif command.name == 'gsDPSetTile':
-					self.setTile(command.params, dlData)
-				elif command.name == 'gsDPLoadBlock':
-					self.loadTile(command.params)
-				elif command.name == 'gsDPLoadTLUTCmd':
-					self.loadTLUT(command.params, dlData)
-
-				# This all ignores S/T high/low values
-				# This is pretty bad/confusing
-				elif command.name[:len("gsDPLoadTextureBlock")] == 'gsDPLoadTextureBlock':
-					is4bit = '4b' in command.name
-					if is4bit:
-						self.loadMultiBlock([command.params[0]] + [0, "G_TX_RENDERTILE"] + \
-							[command.params[1], "G_IM_SIZ_4b"] + command.params[2:], dlData, True)
-					else:
-						self.loadMultiBlock([command.params[0]] + [0, "G_TX_RENDERTILE"] + \
-							command.params[1:], dlData, False)
-				elif command.name[:len("gsDPLoadMultiBlock")] == 'gsDPLoadMultiBlock':
-					is4bit = '4b' in command.name
-					if is4bit:
-						self.loadMultiBlock(command.params[:4] + ["G_IM_SIZ_4b"] + command.params[4:], dlData, True)
-					else:
-						self.loadMultiBlock(command.params, dlData, False)
-				elif command.name[:len("gsDPLoadTextureTile")] == 'gsDPLoadTextureTile':
-					is4bit = '4b' in command.name
-					if is4bit:
-						self.loadMultiBlock([command.params[0]] + [0, "G_TX_RENDERTILE"] +\
-							[command.params[1], "G_IM_SIZ_4b"] + command.params[2:4] + \
-							command.params[9:], '4b', dlData, True)
-					else:
-						self.loadMultiBlock([command.params[0]] + [0, "G_TX_RENDERTILE"] +\
-							command.params[1:5] + command.params[9:], '4b', dlData, False)
-				elif command.name[:len("gsDPLoadMultiTile")] == 'gsDPLoadMultiTile':
-					is4bit = '4b' in command.name
-					if is4bit:
-						self.loadMultiBlock(command.params[:4] + ["G_IM_SIZ_4b"] + command.params[4:6] +\
-							command.params[10:], dlData, True)
-					else:
-						self.loadMultiBlock(command.params[:7] + command.params[11:], dlData, False)
-
-				# TODO: Only handles palettes at tmem = 256
-				elif command.name == "gsDPLoadTLUT_pal16":
-					self.loadTLUTPal(command.params[1], dlData, 15)
-				elif command.name == "gsDPLoadTLUT_pal256":
-					self.loadTLUTPal(command.params[0], dlData, 255)
-				else:
-					pass
-
-			except TypeError as e:
-				print(traceback.format_exc())
-				#raise Exception(e)
-				#print(e)
-
-			# Don't use currentCommandList because some commands may change that
-			if len(callStack) > 0:
-				callStack[-1].index += 1
-
-	# override this to handle game specific DL calls.
-	# return None to indicate DL call should be skipped.
-	def processDLName(self, name):
-		return name
-
-	def createMesh(self, obj, removeDoubles, importNormals):
-		mesh = obj.data
-		if len(self.verts) % 3 != 0:
-			print(len(self.verts))
-			raise PluginError("Number of verts in mesh not divisible by 3, currently " + str(len(self.verts)))
-		
-		triangleCount = int(len(self.verts) / 3)
-		verts = [f3dVert[0] for f3dVert in self.verts]
-		faces = [[3 * i + j for j in range(3)] for i in range(triangleCount)]
-		print("Vertices: " + str(len(self.verts)) + ", Triangles: " + str(triangleCount))
-
-		mesh.from_pydata(vertices = verts, edges = [], faces = faces)
-		uv_layer = mesh.uv_layers.new().data
-		#if self.materialContext.f3d_mat.rdp_settings.g_lighting:
-		color_layer = mesh.vertex_colors.new(name = "Col").data
-		alpha_layer = mesh.vertex_colors.new(name = "Alpha").data
-		#else:
-
-		if importNormals:
-			mesh.use_auto_smooth = True
-			mesh.normals_split_custom_set([f3dVert[3] for f3dVert in self.verts])
-
-		for groupName, indices in self.limbGroups.items():
-			group = obj.vertex_groups.new(name = self.limbToBoneName[groupName])
-			group.add(indices, 1, "REPLACE")
-
-		for i in range(len(mesh.polygons)):
-			mesh.polygons[i].material_index = self.triMatIndices[i]
-
-		for i in range(len(mesh.loops)):
-			# This should be okay, since we aren't trying to optimize vertices
-			# There will be one loop for every vertex
-			uv_layer[i].uv = self.verts[i][1]
-
-			#if self.materialContext.f3d_mat.rdp_settings.g_lighting:
-			color_layer[i].color = self.verts[i][2]
-			alpha_layer[i].color = [self.verts[i][2][3]] * 3 + [1]
-
-		if bpy.context.mode != "OBJECT":
-			bpy.ops.object.mode_set(mode = "OBJECT")
-		bpy.ops.object.select_all(action = "DESELECT")
-		obj.select_set(True)
-		bpy.context.view_layer.objects.active = obj
-
-		for material in self.materials:
-			obj.data.materials.append(material)
-		if not importNormals:
-			bpy.ops.object.shade_smooth()
-		if removeDoubles:
-			bpy.ops.object.mode_set(mode = "EDIT")
-			bpy.ops.mesh.select_all(action = "SELECT")
-			bpy.ops.mesh.remove_doubles()
-			bpy.ops.object.mode_set(mode = "OBJECT")
-
-		bpy.data.materials.remove(self.materialContext)
-
-		obj.location = bpy.context.scene.cursor.location
-
-		i = 0
-		for key, lightObj in self.lightData.items():
-			lightObj.location = bpy.context.scene.cursor.location + mathutils.Vector((i,0,0))
-			i += 1
+    def __init__(self, f3d, basePath, materialContext):
+        self.f3d = f3d
+        self.vertexBuffer = [None] * f3d.vert_load_size
+        self.basePath = basePath
+        self.materialContext = materialContext
+
+        self.clearMaterial()
+        mat = self.mat()
+        mat.set_combiner = False
+
+        self.materials = []  # saved materials
+        self.triMatIndices = []  # material indices per triangle
+        self.materialChanged = True
+        self.lastMaterialIndex = None
+
+        self.vertexData = {}  # c name : parsed data
+        self.textureData = {}  # c name : blender texture
+
+        self.tlutAppliedTextures = []  # c name
+        self.currentTextureName = None
+
+        # This macro has all the tile setting properties, so we reuse it
+        self.tileSettings = [
+            DPSetTile(
+                "G_IM_FMT_RGBA",
+                "G_IM_SIZ_16b",
+                5,
+                0,
+                i,
+                0,
+                [False, False],
+                0,
+                0,
+                [False, False],
+                0,
+                0,
+            )
+            for i in range(8)
+        ]
+        self.tileSizes = [DPSetTileSize(i, 0, 0, 32, 32) for i in range(8)]
+
+        # When a tile is loaded, store dict of tmem : texture
+        self.tmemDict = {}
+
+        # This should be modified before parsing f3d
+        self.matrixData = {}  # bone name : matrix
+        self.currentTransformName = None
+        self.limbToBoneName = (
+            {}
+        )  # limb name (c variable) : bone name (blender vertex group)
+
+        # data for Mesh.from_pydata, list of BufferVertex tuples
+        # use BufferVertex to also form uvs / normals / colors
+        self.verts = []
+        self.limbGroups = {}  # dict of groupName : vertex indices
+
+        self.lights = Lights("lights_context")
+        self.lights.l = [
+            Light([0, 0, 0], [0x28, 0x28, 0x28]),
+            Light([0, 0, 0], [0x28, 0x28, 0x28]),
+            Light([0, 0, 0], [0x28, 0x28, 0x28]),
+            Light([0, 0, 0], [0x28, 0x28, 0x28]),
+            Light([0, 0, 0], [0x28, 0x28, 0x28]),
+            Light([0, 0, 0], [0x28, 0x28, 0x28]),
+            Light([0, 0, 0], [0x28, 0x28, 0x28]),
+        ]
+        self.lights.a = Ambient([0, 0, 0])
+        self.numLights = 0
+        self.lightData = {}  # (color, normal) : list of blender light objects
+
+    # MAKE SURE TO CALL THIS BETWEEN parseF3D() CALLS
+    def clearMaterial(self):
+        mat = self.mat()
+
+        mat.rdp_settings.sets_rendermode = False
+        mat.set_prim = False
+        mat.set_lights = False
+        mat.set_env = False
+        mat.set_blend = False
+        mat.set_key = False
+        mat.set_k0_5 = False
+
+        mat.prim_color = [1, 1, 1, 1]
+        mat.env_color = [1, 1, 1, 1]
+        mat.blend_color = [1, 1, 1, 1]
+        for i in range(1, 8):
+            setattr(mat, "f3d_light" + str(i), None)
+        mat.tex0.tex = None
+        mat.tex1.tex = None
+        mat.tex0.tex_set = False
+        mat.tex1.tex_set = False
+
+        mat.tex0.tex_format = "RGBA16"
+        mat.tex1.tex_format = "RGBA16"
+
+        self.tmemDict = {}
+
+        self.tileSettings = [
+            DPSetTile(
+                "G_IM_FMT_RGBA",
+                "G_IM_SIZ_16b",
+                5,
+                0,
+                i,
+                0,
+                [False, False],
+                0,
+                0,
+                [False, False],
+                0,
+                0,
+            )
+            for i in range(8)
+        ]
+
+        self.tileSizes = [DPSetTileSize(i, 0, 0, 32, 32) for i in range(8)]
+
+        self.lights = Lights("lights_context")
+        self.lights.l = [
+            Light([0, 0, 0], [0x28, 0x28, 0x28]),
+            Light([0, 0, 0], [0x28, 0x28, 0x28]),
+            Light([0, 0, 0], [0x28, 0x28, 0x28]),
+            Light([0, 0, 0], [0x28, 0x28, 0x28]),
+            Light([0, 0, 0], [0x28, 0x28, 0x28]),
+            Light([0, 0, 0], [0x28, 0x28, 0x28]),
+            Light([0, 0, 0], [0x28, 0x28, 0x28]),
+        ]
+        self.lights.a = Ambient([0, 0, 0])
+        self.numLights = 0
+
+        mat.presetName = "Custom"
+
+    def mat(self):
+        return self.materialContext.f3d_mat
+
+    def vertexFormatPatterns(self, data):
+        # position, uv, color/normal
+        return [
+            # decomp format
+            "\{\s*\{\s*"
+            + "\{([^,\}]*),([^,\}]*),([^,\}]*)\}\s*,"
+            + "[^,\}]*,\s*"
+            + "\{([^,\}]*),([^,\}]*)\}\s*,\s*"
+            + "\{([^,\}]*),([^,\}]*),([^,\}]*),([^,\}]*)\}\s*"
+            + "\}\s*\}",
+            # nusys format
+            "\{\s*"
+            + "([^,\}]*),([^,\}]*),([^,\}]*),"
+            + "[^,\}]*,"
+            + "([^,\}]*),([^,\}]*),"
+            + "([^,\}]*),([^,\}]*),([^,\}]*),([^,\}]*)\s*"
+            + "\}",
+        ]
+
+    # For game specific instance, override this to be able to identify which verts belong to which bone.
+    def setCurrentTransform(self, name):
+        self.currentTransformName = name
+
+    def getTransformedVertex(self, index):
+        bufferVert = self.vertexBuffer[index]
+
+        # NOTE: The groupIndex here does NOT correspond to a vertex group, but to the name of the limb (c variable)
+        matrixName = bufferVert.groupIndex
+        if matrixName in self.matrixData:
+            transform = self.matrixData[matrixName]
+        else:
+            print(self.matrixData)
+            raise PluginError("Transform matrix not specified for " + matrixName)
+
+        mat = self.mat()
+        f3dVert = bufferVert.f3dVert
+        position = transform @ mathutils.Vector(f3dVert[0])
+        if mat.tex0.tex is not None:
+            uv = [convertF3DUV(f3dVert[1][i], mat.tex0.tex.size[i]) for i in range(2)]
+            # uv = [1 - (f3dVert[1][i] / (self.materialContext.f3d_mat.tex0.tex.size[i] * 32)) for i in range(2)]
+            # uv = [((f3dVert[1][i] / 32) + 0.5) / mat.tex0.tex.size[i] for i in range(2)]
+        else:
+            uv = [convertF3DUV(f3dVert[1][i], 32) for i in range(2)]
+            # uv = [1 - (f3dVert[1][i] / (32 * 32)) for i in range(2)]
+            # uv = [((f3dVert[1][i] / 32) + 0.5) / 32 for i in range(2)]
+        uv[1] = 1 - uv[1]
+
+        color = [
+            value / 256
+            if value > 0
+            else int.from_bytes(
+                value.to_bytes(1, "big", signed=True), "big", signed=False
+            )
+            / 256
+            for value in f3dVert[2]
+        ]
+
+        normal = bytesToNormal(f3dVert[2][:3]) + [0]
+        normal = (
+            transform.inverted().transposed() @ mathutils.Vector(normal)
+        ).normalized()[:3]
+
+        # This is not usual format of f3dVert, but we need separate color/normal data.
+        # NOTE: The groupIndex here does NOT correspond to a vertex group, but to the name of the limb (c variable)
+        return BufferVertex(
+            [position, uv, color, normal],
+            bufferVert.groupIndex,
+            bufferVert.materialIndex,
+        )
+
+    def addVertices(self, num, start, vertexDataName, vertexDataOffset):
+        vertexData = self.vertexData[vertexDataName]
+
+        # TODO: material index not important?
+        count = math_eval(num, self.f3d)
+        start = math_eval(start, self.f3d)
+
+        if start + count > len(self.vertexBuffer):
+            raise PluginError(
+                "Vertex buffer of size "
+                + len(self.vertexBuffer)
+                + " too small, attempting load into "
+                + str(start)
+                + ", "
+                + str(start + count)
+            )
+        for i in range(count):
+            self.vertexBuffer[start + i] = BufferVertex(
+                vertexData[vertexDataOffset + i], self.currentTransformName, 0
+            )
+
+    def addTriangle(self, indices, dlData):
+        if self.materialChanged:
+            mat = self.mat()
+            region = None
+
+            tileSettings = self.tileSettings[0]
+            tileSizeSettings = self.tileSizes[0]
+            if tileSettings.tmem in self.tmemDict:
+                textureName = self.tmemDict[tileSettings.tmem]
+                self.loadTexture(dlData, textureName, region, tileSettings, False)
+                self.applyTileToMaterial(0, tileSettings, tileSizeSettings)
+
+            tileSettings = self.tileSettings[1]
+            tileSizeSettings = self.tileSizes[1]
+            if tileSettings.tmem in self.tmemDict:
+                textureName = self.tmemDict[tileSettings.tmem]
+                self.loadTexture(dlData, textureName, region, tileSettings, False)
+                self.applyTileToMaterial(1, tileSettings, tileSizeSettings)
+
+            self.applyLights()
+
+            self.lastMaterialIndex = self.getMaterialIndex()
+            self.materialChanged = False
+
+        verts = [
+            self.getTransformedVertex(math_eval(index, self.f3d)) for index in indices
+        ]
+        # if verts[0].groupIndex != verts[1].groupIndex or\
+        # 	verts[0].groupIndex != verts[2].groupIndex or\
+        # 	verts[2].groupIndex != verts[1].groupIndex:
+        # 	return
+        for i in range(len(verts)):
+            vert = verts[i]
+
+            # NOTE: The groupIndex here does NOT correspond to a vertex group, but to the name of the limb (c variable)
+            if vert.groupIndex not in self.limbGroups:
+                self.limbGroups[vert.groupIndex] = []
+            self.limbGroups[vert.groupIndex].append(len(self.verts) + i)
+        self.verts.extend([vert.f3dVert for vert in verts])
+
+        for i in range(int(len(indices) / 3)):
+            self.triMatIndices.append(self.lastMaterialIndex)
+
+    def getMaterialIndex(self):
+        # We do this for now to update tile settings for S and T.
+        # Right now we don't handle those, so we need the auto-calculator to set it correctly.
+        overrideContext = bpy.context.copy()
+        overrideContext["material"] = self.materialContext
+        bpy.ops.material.update_f3d_nodes(overrideContext)
+
+        for material in self.materials:
+            if propertyGroupEquals(self.materialContext.f3d_mat, material.f3d_mat):
+                return self.materials.index(material)
+
+        self.addMaterial()
+        return len(self.materials) - 1
+
+    def getImageName(self, image):
+        for name, otherImage in self.textureData.items():
+            if image == otherImage:
+                return name
+        return None
+
+    def applyTLUTToIndex(self, index):
+        mat = self.mat()
+        texProp = getattr(mat, "tex" + str(index))
+        combinerUses = all_combiner_uses(mat)
+        if (
+            combinerUses["Texture " + str(index)]
+            and (texProp.tex is not None or texProp.use_tex_reference)
+            and texProp.tex_set
+            and texProp.tex_format[:2] == "CI"
+            and (
+                texProp.tex not in self.tlutAppliedTextures or texProp.use_tex_reference
+            )
+        ):
+
+            # Only handles TLUT at 256
+            tlutName = self.tmemDict[256]
+            if 256 in self.tmemDict and tlutName is not None:
+                tlut = self.textureData[tlutName]
+                if isinstance(tlut, F3DTextureReference) or texProp.use_tex_reference:
+                    if not texProp.use_tex_reference:
+                        texProp.use_tex_reference = True
+                        imageName = self.getImageName(texProp.tex)
+                        if imageName is not None:
+                            texProp.tex_reference = imageName
+                        else:
+                            print("Cannot find name of texture " + str(texProp.tex))
+
+                    if isinstance(tlut, F3DTextureReference):
+                        texProp.pal_reference = tlut.name
+                        texProp.pal_reference_size = tlut.width
+                    else:
+                        texProp.pal_reference = tlutName
+                        texProp.pal_reference_size = min(
+                            tlut.size[0] * tlut.size[1], 256
+                        )
+
+                else:
+                    self.applyTLUT(texProp.tex, tlut)
+                    self.tlutAppliedTextures.append(texProp.tex)
+            else:
+                print("Ignoring TLUT.")
+
+    def postMaterialChanged(self):
+        return
+
+    def addMaterial(self):
+        mat = self.mat()
+        combinerUses = all_combiner_uses(self.mat())
+        self.applyTLUTToIndex(0)
+        self.applyTLUTToIndex(1)
+
+        material = self.materialContext.copy()
+        overrideContext = bpy.context.copy()
+        overrideContext["material"] = material
+        bpy.ops.material.update_f3d_nodes(overrideContext)
+        self.materials.append(material)
+        self.materialChanged = False
+
+        self.postMaterialChanged()
+
+    def getSizeMacro(self, size, suffix):
+        if hasattr(self.f3d, size):
+            return getattr(self.f3d, size + suffix)
+        else:
+            return getattr(self.f3d, self.f3d.IM_SIZ[size] + suffix)
+
+    def getImagePathFromInclude(self, path):
+        if self.basePath is None:
+            raise PluginError(
+                "Cannot load texture from " + path + " without any provided base path."
+            )
+
+        imagePath = path[:-5] + "png"
+        return os.path.join(self.basePath, imagePath)
+
+    def getVTXPathFromInclude(self, path):
+        if self.basePath is None:
+            raise PluginError(
+                "Cannot load VTX from " + path + " without any provided base path."
+            )
+        return os.path.join(self.basePath, path)
+
+    def setGeoFlags(self, command, value):
+        mat = self.mat()
+        bitFlags = math_eval(command.params[0], self.f3d)
+
+        if bitFlags & self.f3d.G_ZBUFFER:
+            mat.rdp_settings.g_zbuffer = value
+        if bitFlags & self.f3d.G_SHADE:
+            mat.rdp_settings.g_shade = value
+        if bitFlags & self.f3d.G_CULL_FRONT:
+            mat.rdp_settings.g_cull_front = value
+        if bitFlags & self.f3d.G_CULL_BACK:
+            mat.rdp_settings.g_cull_back = value
+        if bitFlags & self.f3d.G_FOG:
+            mat.rdp_settings.g_fog = value
+        if bitFlags & self.f3d.G_LIGHTING:
+            mat.rdp_settings.g_lighting = value
+        if bitFlags & self.f3d.G_TEXTURE_GEN:
+            mat.rdp_settings.g_tex_gen = value
+        if bitFlags & self.f3d.G_TEXTURE_GEN_LINEAR:
+            mat.rdp_settings.g_tex_gen_linear = value
+        if bitFlags & self.f3d.G_SHADING_SMOOTH:
+            mat.rdp_settings.g_shade_smooth = value
+        if bitFlags & self.f3d.G_CLIPPING:
+            mat.rdp_settings.g_clipping = value
+
+    def loadGeoFlags(self, command):
+        mat = self.mat()
+
+        bitFlags = math_eval(command.params[0], self.f3d)
+
+        mat.rdp_settings.g_zbuffer = bitFlags & self.f3d.G_ZBUFFER != 0
+        mat.rdp_settings.g_shade = bitFlags & self.f3d.G_SHADE != 0
+        mat.rdp_settings.g_cull_front = bitFlags & self.f3d.G_CULL_FRONT != 0
+        mat.rdp_settings.g_cull_back = bitFlags & self.f3d.G_CULL_BACK != 0
+        mat.rdp_settings.g_fog = bitFlags & self.f3d.G_FOG != 0
+        mat.rdp_settings.g_lighting = bitFlags & self.f3d.G_LIGHTING != 0
+        mat.rdp_settings.g_tex_gen = bitFlags & self.f3d.G_TEXTURE_GEN != 0
+        mat.rdp_settings.g_tex_gen_linear = (
+            bitFlags & self.f3d.G_TEXTURE_GEN_LINEAR != 0
+        )
+        mat.rdp_settings.g_shade_smooth = bitFlags & self.f3d.G_SHADING_SMOOTH != 0
+        mat.rdp_settings.g_clipping = bitFlags & self.f3d.G_CLIPPING != 0
+
+    def setCombineLerp(self, lerp0, lerp1):
+        mat = self.mat()
+
+        if len(lerp0) < 8 or len(lerp1) < 8:
+            print("Incorrect combiner param count: " + str(lerp0) + " " + str(lerp1))
+            return
+
+        lerp0 = [value.strip() for value in lerp0]
+        lerp1 = [value.strip() for value in lerp1]
+
+        # Padding since index can go up to 31
+        combinerAList = [
+            "COMBINED",
+            "TEXEL0",
+            "TEXEL1",
+            "PRIMITIVE",
+            "SHADE",
+            "ENVIRONMENT",
+            "1",
+            "NOISE",
+        ] + ["0"] * 24
+        combinerBList = [
+            "COMBINED",
+            "TEXEL0",
+            "TEXEL1",
+            "PRIMITIVE",
+            "SHADE",
+            "ENVIRONMENT",
+            "CENTER",
+            "K4",
+        ] + ["0"] * 24
+        combinerCList = [
+            "COMBINED",
+            "TEXEL0",
+            "TEXEL1",
+            "PRIMITIVE",
+            "SHADE",
+            "ENVIRONMENT",
+            "SCALE",
+            "COMBINED_ALPHA",
+            "TEXEL0_ALPHA",
+            "TEXEL1_ALPHA",
+            "PRIMITIVE_ALPHA",
+            "SHADE_ALPHA",
+            "ENV_ALPHA",
+            "LOD_FRACTION",
+            "PRIM_LOD_FRAC",
+            "K5",
+        ] + ["0"] * 16
+        combinerDList = [
+            "COMBINED",
+            "TEXEL0",
+            "TEXEL1",
+            "PRIMITIVE",
+            "SHADE",
+            "ENVIRONMENT",
+            "1",
+            "0",
+        ] + ["0"] * 24
+
+        combinerAAlphaList = [
+            "COMBINED",
+            "TEXEL0",
+            "TEXEL1",
+            "PRIMITIVE",
+            "SHADE",
+            "ENVIRONMENT",
+            "1",
+            "0",
+        ]
+        combinerBAlphaList = [
+            "COMBINED",
+            "TEXEL0",
+            "TEXEL1",
+            "PRIMITIVE",
+            "SHADE",
+            "ENVIRONMENT",
+            "1",
+            "0",
+        ]
+        combinerCAlphaList = [
+            "LOD_FRACTION",
+            "TEXEL0",
+            "TEXEL1",
+            "PRIMITIVE",
+            "SHADE",
+            "ENVIRONMENT",
+            "PRIM_LOD_FRAC",
+            "0",
+        ]
+        combinerDAlphaList = [
+            "COMBINED",
+            "TEXEL0",
+            "TEXEL1",
+            "PRIMITIVE",
+            "SHADE",
+            "ENVIRONMENT",
+            "1",
+            "0",
+        ]
+
+        for i in range(0, 4):
+            lerp0[i] = math_eval("G_CCMUX_" + lerp0[i], self.f3d)
+            lerp1[i] = math_eval("G_CCMUX_" + lerp1[i], self.f3d)
+
+        for i in range(4, 8):
+            lerp0[i] = math_eval("G_ACMUX_" + lerp0[i], self.f3d)
+            lerp1[i] = math_eval("G_ACMUX_" + lerp1[i], self.f3d)
+
+        mat.set_combiner = True
+        mat.combiner1.A = combinerAList[lerp0[0]]
+        mat.combiner1.B = combinerBList[lerp0[1]]
+        mat.combiner1.C = combinerCList[lerp0[2]]
+        mat.combiner1.D = combinerDList[lerp0[3]]
+        mat.combiner1.A_alpha = combinerAAlphaList[lerp0[4]]
+        mat.combiner1.B_alpha = combinerBAlphaList[lerp0[5]]
+        mat.combiner1.C_alpha = combinerCAlphaList[lerp0[6]]
+        mat.combiner1.D_alpha = combinerDAlphaList[lerp0[7]]
+
+        mat.combiner2.A = combinerAList[lerp1[0]]
+        mat.combiner2.B = combinerBList[lerp1[1]]
+        mat.combiner2.C = combinerCList[lerp1[2]]
+        mat.combiner2.D = combinerDList[lerp1[3]]
+        mat.combiner2.A_alpha = combinerAAlphaList[lerp1[4]]
+        mat.combiner2.B_alpha = combinerBAlphaList[lerp1[5]]
+        mat.combiner2.C_alpha = combinerCAlphaList[lerp1[6]]
+        mat.combiner2.D_alpha = combinerDAlphaList[lerp1[7]]
+
+    def setCombineMode(self, command):
+        if not hasattr(self.f3d, command.params[0]) or not hasattr(
+            self.f3d, command.params[1]
+        ):
+            print(
+                "Unhandled combiner mode: "
+                + command.params[0]
+                + ", "
+                + command.params[1]
+            )
+            return
+        lerp0 = getattr(self.f3d, command.params[0])
+        lerp1 = getattr(self.f3d, command.params[1])
+
+        self.setCombineLerp(lerp0, lerp1)
+
+    def setTLUTMode(self, index, value):
+        mat = self.mat()
+        texProp = getattr(mat, "tex" + str(index))
+        bitData = math_eval(value, self.f3d)
+        if value == self.f3d.G_TT_NONE:
+            if texProp.tex_format[:2] == "CI":
+                texProp.tex_format = "RGBA16"
+        elif value == self.f3d.G_TT_IA16:
+            texProp.ci_format = "IA16"
+        else:
+            texProp.ci_format = "RGBA16"
+
+    def setOtherModeFlags(self, command):
+        mat = self.mat()
+        mode = math_eval(command.params[0], self.f3d)
+        if mode == self.f3d.G_SETOTHERMODE_H:
+            self.setOtherModeFlagsH(command)
+        else:
+            self.setOtherModeFlagsL(command)
+
+    def setOtherModeFlagsH(self, command):
+
+        otherModeH = {
+            "G_MDSFT_ALPHADITHER": [
+                "G_AD_PATTERN",
+                "G_AD_NOTPATTERN",
+                "G_AD_NOISE",
+                "G_AD_DISABLE",
+            ],
+            "G_MDSFT_RGBDITHER": ["G_CD_MAGICSQ", "G_CD_BAYER", "NOISE"],
+            "G_MDSFT_COMBKEY": ["G_CK_NONE", "G_CK_KEY"],
+            "G_MDSFT_TEXTCONV": [
+                "G_TC_CONV",
+                "G_TC_CONV",
+                "G_TC_CONV",
+                "G_TC_CONV",
+                "G_TC_CONV",
+                "G_TC_FILTCONV",
+                "G_TC_FILT",
+            ],
+            "G_MDSFT_TEXTFILT": [
+                "G_TF_POINT",
+                "G_TF_POINT",
+                "G_TF_BILERP",
+                "G_TF_AVERAGE",
+            ],
+            "G_MDSFT_TEXTLOD": ["G_TL_TILE", "G_TL_LOD"],
+            "G_MDSFT_TEXTDETAIL": ["G_TD_CLAMP", "G_TD_SHARPEN", "G_TD_DETAIL"],
+            "G_MDSFT_TEXTPERSP": ["G_TP_NONE", "G_TP_PERSP"],
+            "G_MDSFT_CYCLETYPE": [
+                "G_CYC_1CYCLE",
+                "G_CYC_2CYCLE",
+                "G_CYC_COPY",
+                "G_CYC_FILL",
+            ],
+            "G_MDSFT_COLORDITHER": ["G_CD_MAGICSQ", "G_CD_BAYER", "G_CD_NOISE"],
+            "G_MDSFT_PIPELINE": ["G_PM_NPRIMITIVE", "G_PM_1PRIMITIVE"],
+        }
+        mat = self.mat()
+        flags = math_eval(command.params[3], self.f3d)
+        shift = math_eval(command.params[1], self.f3d)
+        mask = math_eval(command.params[2], self.f3d)
+
+        for field, fieldData in otherModeH.items():
+            fieldShift = getattr(self.f3d, field)
+            if fieldShift >= shift and fieldShift < shift + mask:
+                setattr(
+                    mat.rdp_settings,
+                    field.lower(),
+                    fieldData[
+                        (flags >> fieldShift)
+                        & ((1 << int(ceil(math.log(len(fieldData), 2)))) - 1)
+                    ],
+                )
+
+    # This only handles commonly used render mode presets (with macros),
+    # and no render modes at all with raw bit data.
+    def setOtherModeFlagsL(self, command):
+        otherModeL = {
+            "G_MDSFT_ALPHACOMPARE": [
+                "G_AC_NONE",
+                "G_AC_THRESHOLD",
+                "G_AC_THRESHOLD",
+                "G_AC_DITHER",
+            ],
+            "G_MDSFT_ZSRCSEL": ["G_ZS_PIXEL", "G_ZS_PRIM"],
+        }
+
+        mat = self.mat()
+        flags = math_eval(command.params[3], self.f3d)
+        shift = math_eval(command.params[1], self.f3d)
+        mask = math_eval(command.params[2], self.f3d)
+
+        for field, fieldData in otherModeL.items():
+            fieldShift = getattr(self.f3d, field)
+            if fieldShift >= shift and fieldShift < shift + mask:
+                setattr(
+                    mat.rdp_settings,
+                    field.lower(),
+                    fieldData[
+                        (flags >> fieldShift)
+                        & ((1 << int(ceil(math.log(len(fieldData), 2)))) - 1)
+                    ],
+                )
+
+        if (
+            self.f3d.G_MDSFT_RENDERMODE >= shift
+            and self.f3d.G_MDSFT_RENDERMODE < shift + mask
+        ):
+            self.setRenderMode(flags)
+
+    def setRenderMode(self, flags):
+        mat = self.mat()
+        rendermode1 = renderModeMask(flags, 1, False)
+        rendermode2 = renderModeMask(flags, 2, False)
+
+        blend1 = renderModeMask(flags, 1, True)
+
+        rendermodeName1 = None
+        rendermodeName2 = None
+
+        # print("Render mode: " + hex(rendermode1) + ", " + hex(rendermode2))
+        for name, value in vars(self.f3d).items():
+            if name[:5] == "G_RM_":
+                # print(name + " " + hex(value))
+
+                if name in ["G_RM_FOG_SHADE_A", "G_RM_FOG_PRIM_A", "G_RM_PASS"]:
+                    if blend1 == value:
+                        rendermodeName1 = name
+                else:
+                    if rendermode1 == value:
+                        rendermodeName1 = name
+                    if rendermode2 == value:
+                        rendermodeName2 = name
+            if rendermodeName1 is not None and rendermodeName2 is not None:
+                break
+
+        mat.rdp_settings.sets_rendermode = True
+        if rendermodeName1 is not None and rendermodeName2 is not None:
+            mat.rdp_settings.rendermode_advanced_enabled = False
+            mat.rdp_settings.rendermode_preset_cycle_1 = rendermodeName1
+            mat.rdp_settings.rendermode_preset_cycle_2 = rendermodeName2
+        else:
+            mat.rdp_settings.rendermode_advanced_enabled = True
+
+        mat.rdp_settings.aa_en = rendermode1 & self.f3d.AA_EN != 0
+        mat.rdp_settings.z_cmp = rendermode1 & self.f3d.Z_CMP != 0
+        mat.rdp_settings.z_upd = rendermode1 & self.f3d.Z_UPD != 0
+        mat.rdp_settings.im_rd = rendermode1 & self.f3d.IM_RD != 0
+        mat.rdp_settings.clr_on_cvg = rendermode1 & self.f3d.CLR_ON_CVG != 0
+        mat.rdp_settings.cvg_dst = self.f3d.cvgDstDict[
+            rendermode1 & self.f3d.CVG_DST_SAVE
+        ]
+        mat.rdp_settings.zmode = self.f3d.zmodeDict[rendermode1 & self.f3d.ZMODE_DEC]
+        mat.rdp_settings.cvg_x_alpha = rendermode1 & self.f3d.CVG_X_ALPHA != 0
+        mat.rdp_settings.alpha_cvg_sel = rendermode1 & self.f3d.ALPHA_CVG_SEL != 0
+        mat.rdp_settings.force_bl = rendermode1 & self.f3d.FORCE_BL != 0
+
+        mat.rdp_settings.blend_p1 = self.f3d.blendColorDict[rendermode1 >> 30 & 3]
+        mat.rdp_settings.blend_a1 = self.f3d.blendAlphaDict[rendermode1 >> 26 & 3]
+        mat.rdp_settings.blend_m1 = self.f3d.blendColorDict[rendermode1 >> 22 & 3]
+        mat.rdp_settings.blend_b1 = self.f3d.blendMixDict[rendermode1 >> 18 & 3]
+
+        mat.rdp_settings.blend_p2 = self.f3d.blendColorDict[rendermode2 >> 28 & 3]
+        mat.rdp_settings.blend_a2 = self.f3d.blendAlphaDict[rendermode2 >> 24 & 3]
+        mat.rdp_settings.blend_m2 = self.f3d.blendColorDict[rendermode2 >> 20 & 3]
+        mat.rdp_settings.blend_b2 = self.f3d.blendMixDict[rendermode2 >> 16 & 3]
+
+    def gammaInverseParam(self, color):
+        return [
+            gammaInverseValue(math_eval(value, self.f3d) / 255) for value in color[:3]
+        ] + [math_eval(color[3], self.f3d) / 255]
+
+    def getLightIndex(self, lightIndexString):
+        return (
+            math_eval(lightIndexString, self.f3d)
+            if "LIGHT_" not in lightIndexString
+            else int(lightIndexString[-1:])
+        )
+
+    def getLightCount(self, lightCountString):
+        return (
+            math_eval(lightCountString, self.f3d)
+            if "NUMLIGHTS_" not in lightCountString
+            else int(lightCountString[-1:])
+        )
+
+    def getLightObj(self, light):
+        lightKey = (tuple(light.color), tuple(light.normal))
+        if lightKey not in self.lightData:
+            lightName = "Light"
+            bLight = bpy.data.lights.new(lightName, "SUN")
+            lightObj = bpy.data.objects.new(lightName, bLight)
+
+            lightObj.rotation_euler = (
+                mathutils.Euler((0, 0, math.pi)).to_quaternion()
+                @ (
+                    mathutils.Euler((math.pi / 2, 0, 0)).to_quaternion()
+                    @ mathutils.Vector(light.normal)
+                ).rotation_difference(mathutils.Vector((0, 0, 1)))
+            ).to_euler()
+            # lightObj.rotation_euler[0] *= 1
+            bLight.color = light.color
+
+            bpy.context.scene.collection.objects.link(lightObj)
+            self.lightData[lightKey] = lightObj
+        return self.lightData[lightKey]
+
+    def applyLights(self):
+        mat = self.mat()
+        allCombinerUses = all_combiner_uses(mat)
+        if allCombinerUses["Shade"] and mat.rdp_settings.g_lighting and mat.set_lights:
+            mat.use_default_lighting = False
+            mat.ambient_light_color = self.lights.a.color + (
+                [1] if len(self.lights.a.color) == 3 else []
+            )
+
+            for i in range(self.numLights):
+                lightObj = self.getLightObj(self.lights.l[i])
+                setattr(mat, "f3d_light" + str(i + 1), lightObj.data)
+
+    def setLightColor(self, data, command):
+        self.mat().set_lights = True
+        lightIndex = self.getLightIndex(command.params[0])
+        colorData = math_eval(command.params[1], self.f3d)
+        color = [
+            ((colorData >> 24) & 0xFF) / 0xFF,
+            ((colorData >> 16) & 0xFF) / 0xFF,
+            ((colorData >> 8) & 0xFF) / 0xFF,
+        ]
+
+        if lightIndex != self.numLights + 1:
+            self.lights.l[lightIndex - 1].color = color
+        else:
+            self.lights.a.color = color
+
+        # This is an assumption.
+        if self.numLights < lightIndex - 1:
+            self.numLights = lightIndex - 1
+
+    # Assumes that any SPLight references a Lights0-9n struct instead of specific Light structs.
+    def setLight(self, data, command):
+        mat = self.mat()
+        mat.set_lights = True
+
+        lightReference = command.params[0]
+        lightIndex = self.getLightIndex(command.params[1])
+
+        match = re.search("([A-Za-z0-9\_]*)\.(l(\[([0-9])\])?)?(a)?", lightReference)
+        if match is None:
+            print(
+                "Could not handle parsing of light reference: "
+                + lightReference
+                + ". Currently only handling Lights0-9n structs (not Light)"
+            )
+            return
+
+        lightsName = match.group(1)
+        lights = self.createLights(data, lightsName)
+
+        if match.group(2) is not None:
+            if match.group(3) is not None:
+                lightIndex = math_eval(match.group(4), self.f3d)
+            else:
+                lightIndex = 0
+
+            # This is done as an assumption, to handle models that have numLights set beforehand
+            if self.numLights < lightIndex + 1:
+                self.numLights = lightIndex + 1
+            self.lights.l[lightIndex] = lights.l[lightIndex]
+        else:
+            self.lights.a = lights.a
+
+    def setLights(self, data, command):
+        mat = self.mat()
+        self.mat().set_lights = True
+
+        numLights = self.getLightCount(command.name[13])
+        self.numLights = numLights
+
+        lightsName = command.params[0]
+        self.lights = self.createLights(data, lightsName)
+
+    def createLights(self, data, lightsName):
+        numLights, lightValues = parseLightsData(data, lightsName, self)
+        ambientColor = gammaInverse([value / 255 for value in lightValues[0:3]])
+
+        lightList = []
+
+        for i in range(numLights):
+            color = gammaInverse(
+                [value / 255 for value in lightValues[3 + 6 * i : 3 + 6 * i + 3]]
+            )
+            direction = bytesToNormal(lightValues[3 + 6 * i + 3 : 3 + 6 * i + 6])
+            lightList.append(Light(color, direction))
+
+        while len(lightList) < 7:
+            lightList.append(Light([0, 0, 0], [0x28, 0x28, 0x28]))
+
+        # normally a and l are Ambient and Light objects,
+        # but here they will be a color and blender light object array.
+        lights = Lights(lightsName)
+        lights.a = Ambient(ambientColor)
+        lights.l = lightList
+
+        return lights
+
+    def getTileIndex(self, value):
+        if value == "G_TX_RENDERTILE":
+            return self.f3d.G_TX_RENDERTILE
+        elif value == "G_TX_LOADTILE":
+            return self.f3d.G_TX_LOADTILE
+        else:
+            return math_eval(value, self.f3d)
+
+    def getTileSettings(self, value):
+        return self.tileSettings[self.getTileIndex(value)]
+
+    def getTileSizeSettings(self, value):
+        return self.tileSizes[self.getTileIndex(value)]
+
+    def setTileSize(self, params):
+        mat = self.mat()
+        tileSizeSettings = self.getTileSizeSettings(params[0])
+        tileSettings = self.getTileSettings(params[0])
+
+        dimensions = [0, 0, 0, 0]
+        for i in range(1, 5):
+            # match = None
+            # if not isinstance(params[i], int):
+            # 	match = re.search("\(([0-9]+)\s*\-\s*1\s*\)\s*<<\s*G\_TEXTURE\_IMAGE\_FRAC", params[i])
+            # if match is not None:
+            # 	dimensions[i - 1] = (math_eval(match.group(1), self.f3d) - 1) << self.f3d.G_TEXTURE_IMAGE_FRAC
+            # else:
+            # 	dimensions[i - 1] = math_eval(params[i], self.f3d)
+            dimensions[i - 1] = math_eval(params[i], self.f3d)
+
+        tileSizeSettings.uls = dimensions[0]
+        tileSizeSettings.ult = dimensions[1]
+        tileSizeSettings.lrs = dimensions[2]
+        tileSizeSettings.lrt = dimensions[3]
+
+    def setTile(self, params, dlData):
+        tileIndex = self.getTileIndex(params[4])
+        tileSettings = self.getTileSettings(params[4])
+        tileSettings.fmt = getTileFormat(params[0], self.f3d)
+        tileSettings.siz = getTileSize(params[1], self.f3d)
+        tileSettings.line = math_eval(params[2], self.f3d)
+        tileSettings.tmem = math_eval(params[3], self.f3d)
+        tileSettings.palette = math_eval(params[5], self.f3d)
+        tileSettings.cmt = getTileClampMirror(params[6], self.f3d)
+        tileSettings.maskt = getTileMask(params[7], self.f3d)
+        tileSettings.shifts = getTileShift(params[8], self.f3d)
+        tileSettings.cms = getTileClampMirror(params[9], self.f3d)
+        tileSettings.masks = getTileMask(params[10], self.f3d)
+        tileSettings.shifts = getTileShift(params[11], self.f3d)
+
+        tileSizeSettings = self.getTileSizeSettings(params[4])
+
+    def loadTile(self, params):
+        tileSettings = self.getTileSettings(params[0])
+        # TODO: Region parsing too hard?
+        # region = [
+        # 	math_eval(params[1], self.f3d) / 4,
+        # 	math_eval(params[2], self.f3d) / 4,
+        # 	math_eval(params[3], self.f3d) / 4,
+        # 	math_eval(params[4], self.f3d) / 4
+        # ]
+        region = None
+
+        # Defer texture parsing until next set tile.
+        self.tmemDict[tileSettings.tmem] = self.currentTextureName
+        self.materialChanged = True
+
+    def loadMultiBlock(self, params, dlData, is4bit):
+        width = math_eval(params[5], self.f3d)
+        height = math_eval(params[6], self.f3d)
+        siz = params[4]
+        line = (
+            ((width * self.getSizeMacro(siz, "_LINE_BYTES")) + 7) >> 3
+            if not is4bit
+            else ((width >> 1) + 7) >> 3
+        )
+        tmem = params[1]
+        tile = params[2]
+        loadBlockSiz = (
+            self.getSizeMacro(siz, "_LOAD_BLOCK")
+            if not is4bit
+            else self.f3d.G_IM_SIZ_16b
+        )
+        self.currentTextureName = params[0]
+        self.setTile(
+            [
+                params[3],
+                loadBlockSiz,
+                0,
+                tmem,
+                "G_TX_LOADTILE",
+                0,
+                params[9],
+                params[11],
+                params[13],
+                params[8],
+                params[10],
+                params[12],
+            ],
+            dlData,
+        )
+        # TODO: Region is ignored for now
+        self.loadTile(["G_TX_LOADTILE", 0, 0, 0, 0])
+        self.setTile(
+            [
+                params[3],
+                params[4],
+                line,
+                tmem,
+                tile,
+                0,
+                params[9],
+                params[11],
+                params[13],
+                params[8],
+                params[10],
+                params[12],
+            ],
+            dlData,
+        )
+        self.setTileSize(
+            [
+                tile,
+                0,
+                0,
+                (width - 1) << self.f3d.G_TEXTURE_IMAGE_FRAC,
+                (height - 1) << self.f3d.G_TEXTURE_IMAGE_FRAC,
+            ]
+        )
+
+    def loadTLUTPal(self, name, dlData, count):
+        # TODO: Doesn't handle loading palettes into not tmem 256
+        self.currentTextureName = name
+        self.setTile([0, 0, 0, 256, "G_TX_LOADTILE", 0, 0, 0, 0, 0, 0, 0], dlData)
+        self.loadTLUT(["G_TX_LOADTILE", count], dlData)
+
+    def applyTileToMaterial(self, index, tileSettings, tileSizeSettings):
+        mat = self.mat()
+
+        texProp = getattr(mat, "tex" + str(index))
+
+        name = self.tmemDict[tileSettings.tmem]
+        image = self.textureData[name]
+        if isinstance(image, F3DTextureReference):
+            texProp.tex = None
+            texProp.use_tex_reference = True
+            texProp.tex_reference = name
+            size = texProp.tex_reference_size
+        else:
+            texProp.tex = image
+            texProp.use_tex_reference = False
+            size = texProp.tex.size
+        texProp.tex_set = True
+
+        # TODO: Handle low/high for image files?
+        if texProp.use_tex_reference:
+            # texProp.autoprop = False
+            # texProp.S.low = round(tileSizeSettings.uls / (2 ** self.f3d.G_TEXTURE_IMAGE_FRAC), 3)
+            # texProp.T.low = round(tileSizeSettings.ult / (2 ** self.f3d.G_TEXTURE_IMAGE_FRAC), 3)
+            # texProp.S.high = round(tileSizeSettings.lrs / (2 ** self.f3d.G_TEXTURE_IMAGE_FRAC), 3)
+            # texProp.T.high = round(tileSizeSettings.lrt / (2 ** self.f3d.G_TEXTURE_IMAGE_FRAC), 3)
+
+            # WARNING: Inferring texture size from tile size.
+            texProp.tex_reference_size = [
+                int(
+                    round(
+                        tileSizeSettings.lrs / (2 ** self.f3d.G_TEXTURE_IMAGE_FRAC) + 1
+                    )
+                ),
+                int(
+                    round(
+                        tileSizeSettings.lrt / (2 ** self.f3d.G_TEXTURE_IMAGE_FRAC) + 1
+                    )
+                ),
+            ]
+
+        # if texProp.S.low == 0 and texProp.T.low == 0 and \
+        # 	texProp.S.high == size[0] - 1 and \
+        # 	(texProp.use_tex_reference or texProp.T.high == size[1] - 1):
+        # 	texProp.autoProp = True
+        # else:
+        # 	print(str(texProp.S.low) + " " + str(texProp.T.low) + " " + str(texProp.S.high) + " " + str(texProp.T.high))
+        # 	print(str(size[0]-1) + " " + str(size[1]-1))
+
+        texProp.tex_format = tileSettings.fmt[8:].replace("_", "") + tileSettings.siz[
+            8:-1
+        ].replace("_", "")
+
+        texProp.S.clamp = tileSettings.cms[0]
+        texProp.S.mirror = tileSettings.cms[1]
+
+        texProp.T.clamp = tileSettings.cmt[0]
+        texProp.T.mirror = tileSettings.cmt[1]
+
+        # TODO: Handle S and T properties
+
+    # Override this to handle game specific references.
+    def handleTextureName(self, textureName):
+        return textureName
+
+    def loadTexture(self, data, name, region, tileSettings, isLUT):
+        textureName = self.handleTextureName(name)
+
+        if textureName in self.textureData:
+            return self.textureData[textureName]
+
+        # region ignored?
+        if isLUT:
+            siz = "G_IM_SIZ_16b"
+            width = 16
+        else:
+            siz = tileSettings.siz
+            if siz == "G_IM_SIZ_4b":
+                width = (tileSettings.line * 8) * 2
+            else:
+                width = int(
+                    ceil(
+                        (tileSettings.line * 8)
+                        / self.f3d.G_IM_SIZ_VARS[siz + "_LINE_BYTES"]
+                    )
+                )
+
+        # TODO: Textures are sometimes loaded in with different dimensions than for rendering.
+        # This means width is incorrect?
+        image = parseTextureData(
+            data,
+            textureName,
+            self,
+            tileSettings.fmt,
+            siz,
+            width,
+            self.basePath,
+            isLUT,
+            self.f3d,
+        )
+
+        self.textureData[textureName] = image
+        return self.textureData[textureName]
+
+    def loadTLUT(self, params, dlData):
+        tileSettings = self.getTileSettings(params[0])
+        name = self.currentTextureName
+        textureName = self.handleTextureName(name)
+        self.tmemDict[tileSettings.tmem] = textureName
+
+        tlut = self.loadTexture(dlData, textureName, [0, 0, 16, 16], tileSettings, True)
+        self.materialChanged = True
+
+    def applyTLUT(self, image, tlut):
+        for i in range(int(len(image.pixels) / 4)):
+            lutIndex = int(round(image.pixels[4 * i] * 255))
+            newValues = tlut.pixels[4 * lutIndex : 4 * (lutIndex + 1)]
+            if len(newValues) < 4:
+                print("Invalid lutIndex " + str(lutIndex))
+            else:
+                image.pixels[4 * i : 4 * (i + 1)] = newValues
+
+    def processCommands(self, dlData, dlName, dlCommands):
+        callStack = [F3DParsedCommands(dlName, dlCommands, 0)]
+        while len(callStack) > 0:
+            currentCommandList = callStack[-1]
+            command = currentCommandList.currentCommand()
+
+            if currentCommandList.index >= len(currentCommandList.commands):
+                raise PluginError(
+                    "Cannot handle unterminated static display lists: "
+                    + currentCommandList.name
+                )
+            elif len(callStack) > 2 ** 16:
+                raise PluginError(
+                    "DL call stack larger than 2**16, assuming infinite loop: "
+                    + currentCommandList.name
+                )
+
+            # print(command.name + " " + str(command.params))
+            if command.name == "gsSPVertex":
+                vertexDataName, vertexDataOffset = getVertexDataStart(
+                    command.params[0], self.f3d
+                )
+                parseVertexData(dlData, vertexDataName, self)
+                self.addVertices(
+                    command.params[1],
+                    command.params[2],
+                    vertexDataName,
+                    vertexDataOffset,
+                )
+            elif command.name == "gsSPMatrix":
+                self.setCurrentTransform(command.params[0])
+            elif command.name == "gsSPPopMatrix":
+                print("gsSPPopMatrix not handled.")
+            elif command.name == "gsSP1Triangle":
+                self.addTriangle(command.params[0:3], dlData)
+            elif command.name == "gsSP2Triangles":
+                self.addTriangle(command.params[0:3] + command.params[4:7], dlData)
+            elif command.name == "gsSPDisplayList" or command.name[:10] == "gsSPBranch":
+                newDLName = self.processDLName(command.params[0])
+                if newDLName is not None:
+                    newDLCommands = parseDLData(dlData, newDLName)
+                    # Use -1 index so that it will be incremented to 0 at end of loop
+                    parsedCommands = F3DParsedCommands(newDLName, newDLCommands, -1)
+                    if command.name == "gsSPDisplayList":
+                        callStack.append(parsedCommands)
+                    elif command.name[:10] == "gsSPBranch":  # TODO: Handle BranchZ?
+                        callStack = callStack[:-1]
+                        callStack.append(parsedCommands)
+            elif command.name == "gsSPEndDisplayList":
+                callStack = callStack[:-1]
+
+            # Material Specific Commands
+            prevMaterialChangedStatus = self.materialChanged
+            self.materialChanged = True
+
+            # Should we parse commands into f3d_gbi classes?
+            # No, because some parsing involves reading C files, which is separate.
+
+            # Assumes macros use variable names instead of values
+            mat = self.mat()
+            try:
+                if command.name == "gsSPClipRatio":
+                    mat.clip_ratio = math_eval(command.params[0], self.f3d)
+                elif command.name == "gsSPNumLights":
+                    self.numLights = self.getLightCount(command.name[1])
+                elif command.name == "gsSPLight":
+                    self.setLight(dlData, command)
+                elif command.name == "gsSPLightColor":
+                    self.setLightColor(dlData, command)
+                elif command.name[:13] == "gsSPSetLights":
+                    self.setLights(dlData, command)
+                elif command.name == "gsSPFogFactor":
+                    pass
+                elif command.name == "gsSPFogPosition":
+                    mat.fog_position = [
+                        math_eval(command.params[0], self.f3d),
+                        math_eval(command.params[1], self.f3d),
+                    ]
+                    mat.set_fog = True
+                elif command.name == "gsSPTexture" or command.name == "gsSPTextureL":
+                    mat.tex_scale = [
+                        math_eval(command.params[0], self.f3d) / (2 ** 16),
+                        math_eval(command.params[1], self.f3d) / (2 ** 16),
+                    ]
+                elif command.name == "gsSPSetGeometryMode":
+                    self.setGeoFlags(command, True)
+                elif command.name == "gsSPClearGeometryMode":
+                    self.setGeoFlags(command, False)
+                elif command.name == "gsSPLoadGeometryMode":
+                    self.loadGeoFlags(command)
+                elif command.name == "gsSPSetOtherMode":
+                    self.setOtherModeFlags(command)
+                elif command.name == "gsDPPipelineMode":
+                    mat.rdp_settings.g_mdsft_pipeline = command.params[0]
+                elif command.name == "gsDPSetCycleType":
+                    mat.rdp_settings.g_mdsft_cycletype = command.params[0]
+                elif command.name == "gsDPSetTexturePersp":
+                    mat.rdp_settings.g_mdsft_textpersp = command.params[0]
+                elif command.name == "gsDPSetTextureDetail":
+                    mat.rdp_settings.g_mdsft_textdetail = command.params[0]
+                elif command.name == "gsDPSetTextureLOD":
+                    mat.rdp_settings.g_mdsft_textlod = command.params[0]
+                elif command.name == "gsDPSetTextureLUT":
+                    self.setTLUTMode(0, command.params[0])
+                    self.setTLUTMode(1, command.params[0])
+                elif command.name == "gsDPSetTextureFilter":
+                    mat.rdp_settings.g_mdsft_text_filt = command.params[0]
+                elif command.name == "gsDPSetTextureConvert":
+                    mat.rdp_settings.g_mdsft_textconv = command.params[0]
+                elif command.name == "gsDPSetCombineKey":
+                    mat.rdp_settings.g_mdsft_combkey = command.params[0]
+                elif command.name == "gsDPSetColorDither":
+                    mat.rdp_settings.g_mdsft_color_dither = command.params[0]
+                elif command.name == "gsDPSetAlphaDither":
+                    mat.rdp_settings.g_mdsft_alpha_dither = command.params[0]
+                elif command.name == "gsDPSetAlphaCompare":
+                    mat.rdp_settings.g_mdsft_alpha_compare = command.params[0]
+                elif command.name == "gsDPSetDepthSource":
+                    mat.rdp_settings.g_mdsft_zsrcsel = command.params[0]
+                elif command.name == "gsDPSetRenderMode":
+                    flags = math_eval(
+                        command.params[0] + " | " + command.params[1], self.f3d
+                    )
+                    self.setRenderMode(flags)
+                elif command.name == "gsDPSetTextureImage":
+                    # Are other params necessary?
+                    # The params are set in SetTile commands.
+                    self.currentTextureName = command.params[3]
+                elif command.name == "gsDPSetCombineMode":
+                    self.setCombineMode(command)
+                elif command.name == "gsDPSetCombineLERP":
+                    self.setCombineLerp(command.params[0:8], command.params[8:16])
+                elif command.name == "gsDPSetEnvColor":
+                    mat.env_color = self.gammaInverseParam(command.params)
+                    mat.set_env = True
+                elif command.name == "gsDPSetBlendColor":
+                    mat.blend_color = self.gammaInverseParam(command.params)
+                    mat.set_blend = True
+                elif command.name == "gsDPSetFogColor":
+                    mat.fog_color = self.gammaInverseParam(command.params)
+                    mat.set_fog = True
+                elif command.name == "gsDPSetFillColor":
+                    pass
+                elif command.name == "gsDPSetPrimDepth":
+                    pass
+                elif command.name == "gsDPSetPrimColor":
+                    mat.prim_lod_min = math_eval(command.params[0], self.f3d) / 255
+                    mat.prim_lod_frac = math_eval(command.params[1], self.f3d) / 255
+                    mat.prim_color = self.gammaInverseParam(command.params[2:6])
+                    mat.set_prim = True
+                elif command.name == "gsDPSetOtherMode":
+                    print("gsDPSetOtherMode not handled.")
+                elif command.name == "DPSetConvert":
+                    mat.set_k0_5 = True
+                    for i in range(6):
+                        setattr(
+                            mat,
+                            "k" + str(i),
+                            gammaInverseValue(
+                                math_eval(command.params[i], self.f3d) / 255
+                            ),
+                        )
+                elif command.name == "DPSetKeyR":
+                    mat.set_key = True
+                elif command.name == "DPSetKeyGB":
+                    mat.set_key = True
+                else:
+                    self.materialChanged = prevMaterialChangedStatus
+
+                # Texture Commands
+                # Assume file texture load
+                # SetTextureImage -> Load command -> Set Tile (0 or 1)
+
+                if command.name == "gsDPSetTileSize":
+                    self.setTileSize(command.params)
+                elif command.name == "gsDPLoadTile":
+                    self.loadTile(command.params)
+                elif command.name == "gsDPSetTile":
+                    self.setTile(command.params, dlData)
+                elif command.name == "gsDPLoadBlock":
+                    self.loadTile(command.params)
+                elif command.name == "gsDPLoadTLUTCmd":
+                    self.loadTLUT(command.params, dlData)
+
+                # This all ignores S/T high/low values
+                # This is pretty bad/confusing
+                elif (
+                    command.name[: len("gsDPLoadTextureBlock")]
+                    == "gsDPLoadTextureBlock"
+                ):
+                    is4bit = "4b" in command.name
+                    if is4bit:
+                        self.loadMultiBlock(
+                            [command.params[0]]
+                            + [0, "G_TX_RENDERTILE"]
+                            + [command.params[1], "G_IM_SIZ_4b"]
+                            + command.params[2:],
+                            dlData,
+                            True,
+                        )
+                    else:
+                        self.loadMultiBlock(
+                            [command.params[0]]
+                            + [0, "G_TX_RENDERTILE"]
+                            + command.params[1:],
+                            dlData,
+                            False,
+                        )
+                elif command.name[: len("gsDPLoadMultiBlock")] == "gsDPLoadMultiBlock":
+                    is4bit = "4b" in command.name
+                    if is4bit:
+                        self.loadMultiBlock(
+                            command.params[:4] + ["G_IM_SIZ_4b"] + command.params[4:],
+                            dlData,
+                            True,
+                        )
+                    else:
+                        self.loadMultiBlock(command.params, dlData, False)
+                elif (
+                    command.name[: len("gsDPLoadTextureTile")] == "gsDPLoadTextureTile"
+                ):
+                    is4bit = "4b" in command.name
+                    if is4bit:
+                        self.loadMultiBlock(
+                            [command.params[0]]
+                            + [0, "G_TX_RENDERTILE"]
+                            + [command.params[1], "G_IM_SIZ_4b"]
+                            + command.params[2:4]
+                            + command.params[9:],
+                            "4b",
+                            dlData,
+                            True,
+                        )
+                    else:
+                        self.loadMultiBlock(
+                            [command.params[0]]
+                            + [0, "G_TX_RENDERTILE"]
+                            + command.params[1:5]
+                            + command.params[9:],
+                            "4b",
+                            dlData,
+                            False,
+                        )
+                elif command.name[: len("gsDPLoadMultiTile")] == "gsDPLoadMultiTile":
+                    is4bit = "4b" in command.name
+                    if is4bit:
+                        self.loadMultiBlock(
+                            command.params[:4]
+                            + ["G_IM_SIZ_4b"]
+                            + command.params[4:6]
+                            + command.params[10:],
+                            dlData,
+                            True,
+                        )
+                    else:
+                        self.loadMultiBlock(
+                            command.params[:7] + command.params[11:], dlData, False
+                        )
+
+                # TODO: Only handles palettes at tmem = 256
+                elif command.name == "gsDPLoadTLUT_pal16":
+                    self.loadTLUTPal(command.params[1], dlData, 15)
+                elif command.name == "gsDPLoadTLUT_pal256":
+                    self.loadTLUTPal(command.params[0], dlData, 255)
+                else:
+                    pass
+
+            except TypeError as e:
+                print(traceback.format_exc())
+                # raise Exception(e)
+                # print(e)
+
+            # Don't use currentCommandList because some commands may change that
+            if len(callStack) > 0:
+                callStack[-1].index += 1
+
+    # override this to handle game specific DL calls.
+    # return None to indicate DL call should be skipped.
+    def processDLName(self, name):
+        return name
+
+    def createMesh(self, obj, removeDoubles, importNormals):
+        mesh = obj.data
+        if len(self.verts) % 3 != 0:
+            print(len(self.verts))
+            raise PluginError(
+                "Number of verts in mesh not divisible by 3, currently "
+                + str(len(self.verts))
+            )
+
+        triangleCount = int(len(self.verts) / 3)
+        verts = [f3dVert[0] for f3dVert in self.verts]
+        faces = [[3 * i + j for j in range(3)] for i in range(triangleCount)]
+        print(
+            "Vertices: " + str(len(self.verts)) + ", Triangles: " + str(triangleCount)
+        )
+
+        mesh.from_pydata(vertices=verts, edges=[], faces=faces)
+        uv_layer = mesh.uv_layers.new().data
+        # if self.materialContext.f3d_mat.rdp_settings.g_lighting:
+        color_layer = mesh.vertex_colors.new(name="Col").data
+        alpha_layer = mesh.vertex_colors.new(name="Alpha").data
+        # else:
+
+        if importNormals:
+            mesh.use_auto_smooth = True
+            mesh.normals_split_custom_set([f3dVert[3] for f3dVert in self.verts])
+
+        for groupName, indices in self.limbGroups.items():
+            group = obj.vertex_groups.new(name=self.limbToBoneName[groupName])
+            group.add(indices, 1, "REPLACE")
+
+        for i in range(len(mesh.polygons)):
+            mesh.polygons[i].material_index = self.triMatIndices[i]
+
+        for i in range(len(mesh.loops)):
+            # This should be okay, since we aren't trying to optimize vertices
+            # There will be one loop for every vertex
+            uv_layer[i].uv = self.verts[i][1]
+
+            # if self.materialContext.f3d_mat.rdp_settings.g_lighting:
+            color_layer[i].color = self.verts[i][2]
+            alpha_layer[i].color = [self.verts[i][2][3]] * 3 + [1]
+
+        if bpy.context.mode != "OBJECT":
+            bpy.ops.object.mode_set(mode="OBJECT")
+        bpy.ops.object.select_all(action="DESELECT")
+        obj.select_set(True)
+        bpy.context.view_layer.objects.active = obj
+
+        for material in self.materials:
+            obj.data.materials.append(material)
+        if not importNormals:
+            bpy.ops.object.shade_smooth()
+        if removeDoubles:
+            bpy.ops.object.mode_set(mode="EDIT")
+            bpy.ops.mesh.select_all(action="SELECT")
+            bpy.ops.mesh.remove_doubles()
+            bpy.ops.object.mode_set(mode="OBJECT")
+
+        bpy.data.materials.remove(self.materialContext)
+
+        obj.location = bpy.context.scene.cursor.location
+
+        i = 0
+        for key, lightObj in self.lightData.items():
+            lightObj.location = bpy.context.scene.cursor.location + mathutils.Vector(
+                (i, 0, 0)
+            )
+            i += 1
 
 
 class ParsedMacro:
-	def __init__(self, name, params):
-		self.name = name
-		self.params = params
+    def __init__(self, name, params):
+        self.name = name
+        self.params = params
+
 
 # Static DLs only
 
@@ -1573,423 +2026,547 @@ class ParsedMacro:
 # we distinguish these because there is no guarantee of bone order in blender,
 # so we usually rely on alphabetical naming.
 # This means changing the c variable names.
-def parseF3D(dlData, dlName, obj, transformMatrix, limbName, boneName, drawLayerPropName, drawLayer, f3dContext):
+def parseF3D(
+    dlData,
+    dlName,
+    obj,
+    transformMatrix,
+    limbName,
+    boneName,
+    drawLayerPropName,
+    drawLayer,
+    f3dContext,
+):
 
-	f3dContext.matrixData[limbName] = transformMatrix
-	f3dContext.setCurrentTransform(limbName)
-	f3dContext.limbToBoneName[limbName] = boneName
-	setattr(f3dContext.mat().draw_layer, drawLayerPropName, drawLayer)
-	
-	#vertexGroup = getOrMakeVertexGroup(obj, boneName)
-	#groupIndex = vertexGroup.index
+    f3dContext.matrixData[limbName] = transformMatrix
+    f3dContext.setCurrentTransform(limbName)
+    f3dContext.limbToBoneName[limbName] = boneName
+    setattr(f3dContext.mat().draw_layer, drawLayerPropName, drawLayer)
 
-	dlCommands = parseDLData(dlData, dlName)
-	f3dContext.processCommands(dlData, dlName, dlCommands)
+    # vertexGroup = getOrMakeVertexGroup(obj, boneName)
+    # groupIndex = vertexGroup.index
+
+    dlCommands = parseDLData(dlData, dlName)
+    f3dContext.processCommands(dlData, dlName, dlCommands)
+
 
 def parseDLData(dlData, dlName):
-	matchResult = re.search("Gfx\s*" + re.escape(dlName) + "\s*\[\s*\w*\s*\]\s*=\s*\{([^\}]*)\}", dlData)
-	if matchResult is None:
-		raise PluginError("Cannot find display list named " + dlName)
+    matchResult = re.search(
+        "Gfx\s*" + re.escape(dlName) + "\s*\[\s*\w*\s*\]\s*=\s*\{([^\}]*)\}", dlData
+    )
+    if matchResult is None:
+        raise PluginError("Cannot find display list named " + dlName)
 
-	dlCommandData = matchResult.group(1)
+    dlCommandData = matchResult.group(1)
 
-	# recursive regex not available in re
-	#dlCommands = [(match.group(1), [param.strip() for param in match.group(2).split(",")]) for match in \
-	#	re.findall('(gs[A-Za-z0-9\_]*)\(((?>[^()]|(?R))*)\)', dlCommandData, re.DOTALL)]
+    # recursive regex not available in re
+    # dlCommands = [(match.group(1), [param.strip() for param in match.group(2).split(",")]) for match in \
+    # 	re.findall('(gs[A-Za-z0-9\_]*)\(((?>[^()]|(?R))*)\)', dlCommandData, re.DOTALL)]
 
-	dlCommands = parseMacroList(dlCommandData)
-	return dlCommands
-	
+    dlCommands = parseMacroList(dlCommandData)
+    return dlCommands
+
 
 def getVertexDataStart(vertexDataParam, f3d):
-	matchResult = re.search("\&?([A-Za-z0-9\_]*)\s*(\[([^\]]*)\])?\s*(\+(.*))?", vertexDataParam)
-	if matchResult is None:
-		raise PluginError("SPVertex param " + vertexDataParam + " is malformed.")
+    matchResult = re.search(
+        "\&?([A-Za-z0-9\_]*)\s*(\[([^\]]*)\])?\s*(\+(.*))?", vertexDataParam
+    )
+    if matchResult is None:
+        raise PluginError("SPVertex param " + vertexDataParam + " is malformed.")
 
-	offset = 0
-	if matchResult.group(3):
-		offset += math_eval(matchResult.group(3), f3d)
-	if matchResult.group(5):
-		offset += math_eval(matchResult.group(5), f3d)
+    offset = 0
+    if matchResult.group(3):
+        offset += math_eval(matchResult.group(3), f3d)
+    if matchResult.group(5):
+        offset += math_eval(matchResult.group(5), f3d)
 
-	return matchResult.group(1), offset
+    return matchResult.group(1), offset
+
 
 def parseVertexData(dlData, vertexDataName, f3dContext):
-	if vertexDataName in f3dContext.vertexData:
-		return f3dContext.vertexData[vertexDataName]
+    if vertexDataName in f3dContext.vertexData:
+        return f3dContext.vertexData[vertexDataName]
 
-	matchResult = re.search("Vtx\s*" + re.escape(vertexDataName) + "\s*\[\s*[0-9x]*\s*\]\s*=\s*\{([^;]*);", dlData, re.DOTALL)
-	if matchResult is None:
-		raise PluginError("Cannot find vertex list named " + vertexDataName)
-	data = matchResult.group(1)
+    matchResult = re.search(
+        "Vtx\s*" + re.escape(vertexDataName) + "\s*\[\s*[0-9x]*\s*\]\s*=\s*\{([^;]*);",
+        dlData,
+        re.DOTALL,
+    )
+    if matchResult is None:
+        raise PluginError("Cannot find vertex list named " + vertexDataName)
+    data = matchResult.group(1)
 
-	pathMatch = re.search(r'\#include\s*"([^"]*)"', data)
-	if pathMatch is not None:
-		path = pathMatch.group(1)
-		data = readFile(f3dContext.getVTXPathFromInclude(path))
+    pathMatch = re.search(r'\#include\s*"([^"]*)"', data)
+    if pathMatch is not None:
+        path = pathMatch.group(1)
+        data = readFile(f3dContext.getVTXPathFromInclude(path))
 
-	f3d = f3dContext.f3d
-	patterns = f3dContext.vertexFormatPatterns(data)
-	vertexData = []
-	for pattern in patterns:
-		vertexData = [(
-			[math_eval(match.group(1), f3d), math_eval(match.group(2), f3d), math_eval(match.group(3), f3d)],
-			[math_eval(match.group(4), f3d), math_eval(match.group(5), f3d)],
-			[math_eval(match.group(6), f3d), math_eval(match.group(7), f3d), math_eval(match.group(8), f3d), math_eval(match.group(9), f3d)])
-			for match in re.finditer(pattern, data, re.DOTALL)]
-		if len(vertexData) > 0:
-			break
-	f3dContext.vertexData[vertexDataName] = vertexData
+    f3d = f3dContext.f3d
+    patterns = f3dContext.vertexFormatPatterns(data)
+    vertexData = []
+    for pattern in patterns:
+        vertexData = [
+            (
+                [
+                    math_eval(match.group(1), f3d),
+                    math_eval(match.group(2), f3d),
+                    math_eval(match.group(3), f3d),
+                ],
+                [math_eval(match.group(4), f3d), math_eval(match.group(5), f3d)],
+                [
+                    math_eval(match.group(6), f3d),
+                    math_eval(match.group(7), f3d),
+                    math_eval(match.group(8), f3d),
+                    math_eval(match.group(9), f3d),
+                ],
+            )
+            for match in re.finditer(pattern, data, re.DOTALL)
+        ]
+        if len(vertexData) > 0:
+            break
+    f3dContext.vertexData[vertexDataName] = vertexData
 
-	return f3dContext.vertexData[vertexDataName]
+    return f3dContext.vertexData[vertexDataName]
+
 
 def parseLightsData(lightsData, lightsName, f3dContext):
-	#if lightsName in f3dContext.lightData:
-	#	return f3dContext.lightData[lightsName]
+    # if lightsName in f3dContext.lightData:
+    # 	return f3dContext.lightData[lightsName]
 
-	matchResult = re.search("Lights([0-9n])\s*" + re.escape(lightsName) + "\s*=\s*gdSPDefLights[0-9]\s*\(([^\)]*)\)\s*;\s*", lightsData, re.DOTALL)
-	if matchResult is None:
-		raise PluginError("Cannot find lights data named " + lightsName)
-	data = matchResult.group(2)
+    matchResult = re.search(
+        "Lights([0-9n])\s*"
+        + re.escape(lightsName)
+        + "\s*=\s*gdSPDefLights[0-9]\s*\(([^\)]*)\)\s*;\s*",
+        lightsData,
+        re.DOTALL,
+    )
+    if matchResult is None:
+        raise PluginError("Cannot find lights data named " + lightsName)
+    data = matchResult.group(2)
 
-	values = [math_eval(value.strip(), f3dContext.f3d) for value in data.split(',')]
-	if values[-1] == "":
-		values = values[:-1]
+    values = [math_eval(value.strip(), f3dContext.f3d) for value in data.split(",")]
+    if values[-1] == "":
+        values = values[:-1]
 
-	lightCount = matchResult.group(1)
-	if lightCount == "n":
-		lightCount = "7"
-	return int(lightCount), values
+    lightCount = matchResult.group(1)
+    if lightCount == "n":
+        lightCount = "7"
+    return int(lightCount), values
 
-	#return f3dContext.lightData[lightsName]
+    # return f3dContext.lightData[lightsName]
+
 
 def RGBA16toRGBA32(value):
-	return [((value >> 11) & 31) / 31, ((value >> 6) & 31) / 31, ((value >> 1) & 31) / 31, value & 1]
+    return [
+        ((value >> 11) & 31) / 31,
+        ((value >> 6) & 31) / 31,
+        ((value >> 1) & 31) / 31,
+        value & 1,
+    ]
+
 
 def IA16toRGBA32(value):
-	return [((value >> 8) & 255) / 255, ((value >> 8) & 255) / 255, ((value >> 8) & 255) / 255, (value & 255) / 255]
+    return [
+        ((value >> 8) & 255) / 255,
+        ((value >> 8) & 255) / 255,
+        ((value >> 8) & 255) / 255,
+        (value & 255) / 255,
+    ]
+
 
 def IA8toRGBA32(value):
-	return [((value >> 4) & 15) / 15, ((value >> 4) & 15) / 15, ((value >> 4) & 15) / 15, (value & 15) / 15]
+    return [
+        ((value >> 4) & 15) / 15,
+        ((value >> 4) & 15) / 15,
+        ((value >> 4) & 15) / 15,
+        (value & 15) / 15,
+    ]
+
 
 def IA4toRGBA32(value):
-	return [((value >> 1) & 7) / 7, ((value >> 1) & 7) / 7, ((value >> 1) & 7) / 7, value & 1]
+    return [
+        ((value >> 1) & 7) / 7,
+        ((value >> 1) & 7) / 7,
+        ((value >> 1) & 7) / 7,
+        value & 1,
+    ]
+
 
 def I8toRGBA32(value):
-	return [value / 255, value / 255, value / 255, 1]
+    return [value / 255, value / 255, value / 255, 1]
+
 
 def I4toRGBA32(value):
-	return [value / 15, value / 15, value / 15, 1]
+    return [value / 15, value / 15, value / 15, 1]
+
 
 def CI8toRGBA32(value):
-	return [value / 255, value / 255, value / 255, 1]
+    return [value / 255, value / 255, value / 255, 1]
+
 
 def CI4toRGBA32(value):
-	return [value / 255, value / 255, value / 255, 1]
+    return [value / 255, value / 255, value / 255, 1]
+
 
 class F3DTextureReference:
-	def __init__(self, name, width):
-		self.name = name
-		self.width = width
+    def __init__(self, name, width):
+        self.name = name
+        self.width = width
 
-def parseTextureData(dlData, textureName, f3dContext, imageFormat, imageSize, width, basePath, isLUT, f3d):
 
-	matchResult = re.search("([A-Za-z0-9\_]+)\s*" + re.escape(textureName) + "\s*\[\s*[0-9x]*\s*\]\s*=\s*\{([^\}]*)\s\}\s*;\s*", dlData, re.DOTALL)
-	if matchResult is None:
-		print("Cannot find texture named " + textureName)
-		return F3DTextureReference(textureName, width)
-	data = matchResult.group(2)
-	valueSize = matchResult.group(1)
+def parseTextureData(
+    dlData, textureName, f3dContext, imageFormat, imageSize, width, basePath, isLUT, f3d
+):
 
-	pathMatch = re.search("\#include\s*\"([^\"]*)\"", data, re.DOTALL)
-	if pathMatch is not None:
-		path = pathMatch.group(1)
-		originalImage = bpy.data.images.load(f3dContext.getImagePathFromInclude(path))
-		image = originalImage.copy()
-		image.pack()
-		image.filepath = ""
-		bpy.data.images.remove(originalImage)
+    matchResult = re.search(
+        "([A-Za-z0-9\_]+)\s*"
+        + re.escape(textureName)
+        + "\s*\[\s*[0-9x]*\s*\]\s*=\s*\{([^\}]*)\s\}\s*;\s*",
+        dlData,
+        re.DOTALL,
+    )
+    if matchResult is None:
+        print("Cannot find texture named " + textureName)
+        return F3DTextureReference(textureName, width)
+    data = matchResult.group(2)
+    valueSize = matchResult.group(1)
 
-		# Blender UV origin is bottom right, while N64 is top right, so we must flip LUT since we read it as data
-		if isLUT:
-			flippedValues = image.pixels[:]
-			width, height = image.size
-			for j in range(height):
-				image.pixels[width * j * 4 : width * (j+1) * 4] = flippedValues[width * (height - (j+1)) * 4 : width * (height - j) * 4]
-	else:
-		values = [value.strip() for value in data.split(',') if value.strip() != ""]
-		newValues = []
-		for value in values:
-			intValue = math_eval(value, f3d)
-			if valueSize == 'u8' or valueSize == 's8' or valueSize == 'char' or valueSize == "Texture":
-				size = 1
-			elif valueSize == 'u16' or valueSize == "s16" or valueSize == "short":
-				size = 2
-			elif valueSize == 'u32' or valueSize == 's32' or valueSize == 'int':
-				size = 4
-			else:
-				size = 8
-			newValues.extend(int.to_bytes(intValue, size, 'big')[:])
-		values = newValues
+    pathMatch = re.search('\#include\s*"([^"]*)"', data, re.DOTALL)
+    if pathMatch is not None:
+        path = pathMatch.group(1)
+        originalImage = bpy.data.images.load(f3dContext.getImagePathFromInclude(path))
+        image = originalImage.copy()
+        image.pack()
+        image.filepath = ""
+        bpy.data.images.remove(originalImage)
 
-		if width == 0:
-			width = 16
-		height = int(ceil(len(values) / (width * int(imageSize[9:-1]) / 8)))
-		#print("Texture: " + str(len(values)) + ", width = " + str(width) + ", height = " + str(height))
-		image = bpy.data.images.new(textureName, width, height, alpha = True)
-		if imageFormat == "G_IM_FMT_RGBA":
-			if imageSize == 'G_IM_SIZ_16b':
-				for i in range(int(len(values) / 2)):
-					image.pixels[4*i:4 * (i+1)] = RGBA16toRGBA32(int.from_bytes(values[2*i:2*(i+1)], 'big'))
-			elif imageSize == 'G_IM_SIZ_32b':
-				image.pixels[:] = values
-			else:
-				print("Unhandled size for RGBA: " + str(imageSize))
-		elif imageFormat == "G_IM_FMT_IA":
-			if imageSize == 'G_IM_SIZ_4b':
-				for i in range(len(values)):
-					image.pixels[8*i : 8*i+4] = IA4toRGBA32((values[i] >> 4) & 15)
-					image.pixels[8*i+4 : 8*i+8] = IA4toRGBA32(values[i] & 15)
-			elif imageSize == "G_IM_SIZ_8b":
-				for i in range(len(values)):
-					image.pixels[4*i:4 * (i+1)] = IA8toRGBA32(values[i])
-			elif imageSize == "G_IM_SIZ_16b":
-				for i in range(int(len(values) / 2)):
-					image.pixels[4*i:4 * (i+1)] = IA16toRGBA32(int.from_bytes(values[2*i:2*(i+1)], 'big'))
-			else:
-				print("Unhandled size for IA: " + str(imageSize))	
-		elif imageFormat == "G_IM_FMT_I":
-			if imageSize == 'G_IM_SIZ_4b':
-				for i in range(len(values)):
-					image.pixels[8*i : 8*i+4] = I4toRGBA32((values[i] >> 4) & 15)
-					image.pixels[8*i+4 : 8*i+8] = I4toRGBA32(values[i] & 15)
-			elif imageSize == "G_IM_SIZ_8b":
-				for i in range(len(values)):
-					image.pixels[4*i:4 * (i+1)] = I8toRGBA32(values[i])
-			else:
-				print("Unhandled size for I: " + str(imageSize))
-		elif imageFormat == "G_IM_FMT_CI":
-			if imageSize == 'G_IM_SIZ_4b':
-				for i in range(len(values)):
-					image.pixels[8*i : 8*i+4] = CI4toRGBA32((values[i] >> 4) & 15)
-					image.pixels[8*i+4 : 8*i+8] = CI4toRGBA32(values[i] & 15)
-			elif imageSize == "G_IM_SIZ_8b":
-				for i in range(len(values)):
-					image.pixels[4*i:4 * (i+1)] = CI8toRGBA32(values[i])
-			else:
-				print("Unhandled size for CI: " + str(imageSize))
+        # Blender UV origin is bottom right, while N64 is top right, so we must flip LUT since we read it as data
+        if isLUT:
+            flippedValues = image.pixels[:]
+            width, height = image.size
+            for j in range(height):
+                image.pixels[width * j * 4 : width * (j + 1) * 4] = flippedValues[
+                    width * (height - (j + 1)) * 4 : width * (height - j) * 4
+                ]
+    else:
+        values = [value.strip() for value in data.split(",") if value.strip() != ""]
+        newValues = []
+        for value in values:
+            intValue = math_eval(value, f3d)
+            if (
+                valueSize == "u8"
+                or valueSize == "s8"
+                or valueSize == "char"
+                or valueSize == "Texture"
+            ):
+                size = 1
+            elif valueSize == "u16" or valueSize == "s16" or valueSize == "short":
+                size = 2
+            elif valueSize == "u32" or valueSize == "s32" or valueSize == "int":
+                size = 4
+            else:
+                size = 8
+            newValues.extend(int.to_bytes(intValue, size, "big")[:])
+        values = newValues
 
-		# Blender UV origin is bottom right, while N64 is top right, so we must flip non LUT
-		if not isLUT:
-			flippedValues = image.pixels[:]
-			for j in range(height):
-				image.pixels[width * j * 4 : width * (j+1) * 4] = flippedValues[width * (height - (j+1)) * 4 : width * (height - j) * 4]
+        if width == 0:
+            width = 16
+        height = int(ceil(len(values) / (width * int(imageSize[9:-1]) / 8)))
+        # print("Texture: " + str(len(values)) + ", width = " + str(width) + ", height = " + str(height))
+        image = bpy.data.images.new(textureName, width, height, alpha=True)
+        if imageFormat == "G_IM_FMT_RGBA":
+            if imageSize == "G_IM_SIZ_16b":
+                for i in range(int(len(values) / 2)):
+                    image.pixels[4 * i : 4 * (i + 1)] = RGBA16toRGBA32(
+                        int.from_bytes(values[2 * i : 2 * (i + 1)], "big")
+                    )
+            elif imageSize == "G_IM_SIZ_32b":
+                image.pixels[:] = values
+            else:
+                print("Unhandled size for RGBA: " + str(imageSize))
+        elif imageFormat == "G_IM_FMT_IA":
+            if imageSize == "G_IM_SIZ_4b":
+                for i in range(len(values)):
+                    image.pixels[8 * i : 8 * i + 4] = IA4toRGBA32((values[i] >> 4) & 15)
+                    image.pixels[8 * i + 4 : 8 * i + 8] = IA4toRGBA32(values[i] & 15)
+            elif imageSize == "G_IM_SIZ_8b":
+                for i in range(len(values)):
+                    image.pixels[4 * i : 4 * (i + 1)] = IA8toRGBA32(values[i])
+            elif imageSize == "G_IM_SIZ_16b":
+                for i in range(int(len(values) / 2)):
+                    image.pixels[4 * i : 4 * (i + 1)] = IA16toRGBA32(
+                        int.from_bytes(values[2 * i : 2 * (i + 1)], "big")
+                    )
+            else:
+                print("Unhandled size for IA: " + str(imageSize))
+        elif imageFormat == "G_IM_FMT_I":
+            if imageSize == "G_IM_SIZ_4b":
+                for i in range(len(values)):
+                    image.pixels[8 * i : 8 * i + 4] = I4toRGBA32((values[i] >> 4) & 15)
+                    image.pixels[8 * i + 4 : 8 * i + 8] = I4toRGBA32(values[i] & 15)
+            elif imageSize == "G_IM_SIZ_8b":
+                for i in range(len(values)):
+                    image.pixels[4 * i : 4 * (i + 1)] = I8toRGBA32(values[i])
+            else:
+                print("Unhandled size for I: " + str(imageSize))
+        elif imageFormat == "G_IM_FMT_CI":
+            if imageSize == "G_IM_SIZ_4b":
+                for i in range(len(values)):
+                    image.pixels[8 * i : 8 * i + 4] = CI4toRGBA32((values[i] >> 4) & 15)
+                    image.pixels[8 * i + 4 : 8 * i + 8] = CI4toRGBA32(values[i] & 15)
+            elif imageSize == "G_IM_SIZ_8b":
+                for i in range(len(values)):
+                    image.pixels[4 * i : 4 * (i + 1)] = CI8toRGBA32(values[i])
+            else:
+                print("Unhandled size for CI: " + str(imageSize))
 
-	return image
+        # Blender UV origin is bottom right, while N64 is top right, so we must flip non LUT
+        if not isLUT:
+            flippedValues = image.pixels[:]
+            for j in range(height):
+                image.pixels[width * j * 4 : width * (j + 1) * 4] = flippedValues[
+                    width * (height - (j + 1)) * 4 : width * (height - j) * 4
+                ]
+
+    return image
+
 
 def parseMacroList(data):
-	end = 0
-	start = 0
-	isCommand = True
-	commands = []
-	parenthesesCount = 0
+    end = 0
+    start = 0
+    isCommand = True
+    commands = []
+    parenthesesCount = 0
 
-	command = None
-	params = None
-	while end < len(data) - 1:
-		end += 1
-		if data[end] == '(':
-			parenthesesCount += 1
-		elif data[end] == ')':
-			parenthesesCount -= 1
+    command = None
+    params = None
+    while end < len(data) - 1:
+        end += 1
+        if data[end] == "(":
+            parenthesesCount += 1
+        elif data[end] == ")":
+            parenthesesCount -= 1
 
-		if isCommand and parenthesesCount > 0:
-			command = data[start:end].strip()
-			if command[0] == ',':
-				command = command[1:].strip()
-			isCommand = False
-			start = end + 1
-			
-		elif not isCommand and parenthesesCount == 0:
-			params = parseMacroArgs(data[start:end])
-			commands.append(ParsedMacro(command, params))
-			isCommand = True
-			start = end + 1
+        if isCommand and parenthesesCount > 0:
+            command = data[start:end].strip()
+            if command[0] == ",":
+                command = command[1:].strip()
+            isCommand = False
+            start = end + 1
 
-	return commands
+        elif not isCommand and parenthesesCount == 0:
+            params = parseMacroArgs(data[start:end])
+            commands.append(ParsedMacro(command, params))
+            isCommand = True
+            start = end + 1
+
+    return commands
+
 
 def parseMacroArgs(data):
-	end = 0
-	start = 0
-	params = []
-	parenthesesCount = 0
+    end = 0
+    start = 0
+    params = []
+    parenthesesCount = 0
 
-	while end < len(data) - 1:
-		end += 1
-		if data[end] == '(':
-			parenthesesCount += 1
-		elif data[end] == ')':
-			parenthesesCount -= 1
+    while end < len(data) - 1:
+        end += 1
+        if data[end] == "(":
+            parenthesesCount += 1
+        elif data[end] == ")":
+            parenthesesCount -= 1
 
-		if (data[end] == ',' or end == len(data) -1) and parenthesesCount == 0:
-			if end == len(data)-1:
-				end += 1
-			param = "".join(data[start:end].split())
-			params.append(param)
-			start = end + 1
+        if (data[end] == "," or end == len(data) - 1) and parenthesesCount == 0:
+            if end == len(data) - 1:
+                end += 1
+            param = "".join(data[start:end].split())
+            params.append(param)
+            start = end + 1
 
-	return params
+    return params
+
 
 def getImportData(filepaths):
-	data = ''
-	for path in filepaths:
-		if os.path.exists(path):
-			data += readFile(path)
+    data = ""
+    for path in filepaths:
+        if os.path.exists(path):
+            data += readFile(path)
 
-	return data
+    return data
 
-def importMeshC(filepaths, name, scale, removeDoubles, importNormals, drawLayer, f3dContext):
-	data = getImportData(filepaths)
 
-	# Create new skinned mesh
-	mesh = bpy.data.meshes.new(name + '_mesh')
-	obj = bpy.data.objects.new(name + '_mesh', mesh)
-	bpy.context.scene.collection.objects.link(obj)
+def importMeshC(
+    filepaths, name, scale, removeDoubles, importNormals, drawLayer, f3dContext
+):
+    data = getImportData(filepaths)
 
-	f3dContext.mat().draw_layer.oot = drawLayer
-	transformMatrix = mathutils.Matrix.Scale(1 / scale, 4)
+    # Create new skinned mesh
+    mesh = bpy.data.meshes.new(name + "_mesh")
+    obj = bpy.data.objects.new(name + "_mesh", mesh)
+    bpy.context.scene.collection.objects.link(obj)
 
-	parseF3D(data, name, obj, transformMatrix, 
-		name, name, "oot", drawLayer, f3dContext)
-	
-	f3dContext.clearMaterial()
-	f3dContext.createMesh(obj, removeDoubles, importNormals)
+    f3dContext.mat().draw_layer.oot = drawLayer
+    transformMatrix = mathutils.Matrix.Scale(1 / scale, 4)
 
-	applyRotation([obj], math.radians(-90), 'X')
+    parseF3D(data, name, obj, transformMatrix, name, name, "oot", drawLayer, f3dContext)
+
+    f3dContext.clearMaterial()
+    f3dContext.createMesh(obj, removeDoubles, importNormals)
+
+    applyRotation([obj], math.radians(-90), "X")
+
 
 class F3D_ImportDL(bpy.types.Operator):
-	# set bl_ properties
-	bl_idname = 'object.f3d_import_dl'
-	bl_label = "Import DL"
-	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
+    # set bl_ properties
+    bl_idname = "object.f3d_import_dl"
+    bl_label = "Import DL"
+    bl_options = {"REGISTER", "UNDO", "PRESET"}
 
-	# Called on demand (i.e. button press, menu item)
-	# Can also be called from operator search menu (Spacebar)
-	def execute(self, context):
-		obj = None
-		if context.mode != 'OBJECT':
-			bpy.ops.object.mode_set(mode = "OBJECT")
+    # Called on demand (i.e. button press, menu item)
+    # Can also be called from operator search menu (Spacebar)
+    def execute(self, context):
+        obj = None
+        if context.mode != "OBJECT":
+            bpy.ops.object.mode_set(mode="OBJECT")
 
-		try:
-			name = context.scene.DLImportName
-			importPath = bpy.path.abspath(context.scene.DLImportPath)
-			basePath = bpy.path.abspath(context.scene.DLImportBasePath)
-			scaleValue = bpy.context.scene.blenderF3DScale
-			
-			removeDoubles = context.scene.DLRemoveDoubles
-			importNormals = context.scene.DLImportNormals
-			drawLayer = context.scene.DLImportDrawLayer
-			f3dType = context.scene.f3d_type
-			isHWv1 = context.scene.isHWv1
+        try:
+            name = context.scene.DLImportName
+            importPath = bpy.path.abspath(context.scene.DLImportPath)
+            basePath = bpy.path.abspath(context.scene.DLImportBasePath)
+            scaleValue = bpy.context.scene.blenderF3DScale
 
-			importPaths = [importPath]
+            removeDoubles = context.scene.DLRemoveDoubles
+            importNormals = context.scene.DLImportNormals
+            drawLayer = context.scene.DLImportDrawLayer
+            f3dType = context.scene.f3d_type
+            isHWv1 = context.scene.isHWv1
 
-			importMeshC(importPaths, name, scaleValue, removeDoubles, importNormals, drawLayer,
-				F3DContext(F3D(f3dType, isHWv1), basePath, createF3DMat(None)))
+            importPaths = [importPath]
 
-			self.report({'INFO'}, 'Success!')		
-			return {'FINISHED'}
+            importMeshC(
+                importPaths,
+                name,
+                scaleValue,
+                removeDoubles,
+                importNormals,
+                drawLayer,
+                F3DContext(F3D(f3dType, isHWv1), basePath, createF3DMat(None)),
+            )
 
-		except Exception as e:
-			if context.mode != 'OBJECT':
-				bpy.ops.object.mode_set(mode = 'OBJECT')
-			raisePluginError(self, e)
-			return {'CANCELLED'} # must return a set
+            self.report({"INFO"}, "Success!")
+            return {"FINISHED"}
+
+        except Exception as e:
+            if context.mode != "OBJECT":
+                bpy.ops.object.mode_set(mode="OBJECT")
+            raisePluginError(self, e)
+            return {"CANCELLED"}  # must return a set
 
 
 class F3D_UL_ImportDLPathList(bpy.types.UIList):
-	def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
-		scene = data
-		fileProperty = item
-		# draw_item must handle the three layout types... Usually 'DEFAULT' and 'COMPACT' can share the same code.
-		if self.layout_type in {'DEFAULT', 'COMPACT'}:
-			# You should always start your row layout by a label (icon + text), or a non-embossed text field,
-			# this will also make the row easily selectable in the list! The later also enables ctrl-click rename.
-			# We use icon_value of label, as our given icon is an integer value, not an enum ID.
-			# Note "data" names should never be translated!
-			if ma:
-				layout.prop(fileProperty, "Path", text="", emboss=False, icon_value=icon)
-			else:
-				layout.label(text="", translate=False, icon_value=icon)
-		# 'GRID' layout type should be as compact as possible (typically a single icon!).
-		elif self.layout_type in {'GRID'}:
-			layout.alignment = 'CENTER'
-			layout.label(text="", icon_value=icon)
+    def draw_item(
+        self, context, layout, data, item, icon, active_data, active_propname
+    ):
+        scene = data
+        fileProperty = item
+        # draw_item must handle the three layout types... Usually 'DEFAULT' and 'COMPACT' can share the same code.
+        if self.layout_type in {"DEFAULT", "COMPACT"}:
+            # You should always start your row layout by a label (icon + text), or a non-embossed text field,
+            # this will also make the row easily selectable in the list! The later also enables ctrl-click rename.
+            # We use icon_value of label, as our given icon is an integer value, not an enum ID.
+            # Note "data" names should never be translated!
+            if ma:
+                layout.prop(
+                    fileProperty, "Path", text="", emboss=False, icon_value=icon
+                )
+            else:
+                layout.label(text="", translate=False, icon_value=icon)
+        # 'GRID' layout type should be as compact as possible (typically a single icon!).
+        elif self.layout_type in {"GRID"}:
+            layout.alignment = "CENTER"
+            layout.label(text="", icon_value=icon)
+
 
 class F3D_ImportDLPanel(bpy.types.Panel):
-	bl_idname = "F3D_PT_import_dl"
-	bl_label = "F3D Importer"
-	bl_space_type = 'VIEW_3D'
-	bl_region_type = 'UI'
-	bl_category = 'Fast64'
-	bl_options = {'DEFAULT_CLOSED'}
+    bl_idname = "F3D_PT_import_dl"
+    bl_label = "F3D Importer"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "Fast64"
+    bl_options = {"DEFAULT_CLOSED"}
 
-	@classmethod
-	def poll(cls, context):
-		return True
+    @classmethod
+    def poll(cls, context):
+        return True
 
-	# called every frame
-	def draw(self, context):
-		col = self.layout.column()
-		
-		col.operator(F3D_ImportDL.bl_idname)
-		prop_split(col, context.scene, "DLImportName", "Name")
-		prop_split(col, context.scene, "DLImportPath", "File")
-		prop_split(col, context.scene, "DLImportBasePath", "Base Path")
-		prop_split(col, context.scene, "blenderF3DScale", "Scale")
-		prop_split(col, context.scene, "DLImportDrawLayer", "Draw Layer")
-		col.prop(context.scene, "DLRemoveDoubles")
-		col.prop(context.scene, "DLImportNormals")
+    # called every frame
+    def draw(self, context):
+        col = self.layout.column()
 
-		box = col.box().column()
-		box.label(text = "All data must be contained within file.")
-		box.label(text = "The only exception are pngs converted to inc.c.")
+        col.operator(F3D_ImportDL.bl_idname)
+        prop_split(col, context.scene, "DLImportName", "Name")
+        prop_split(col, context.scene, "DLImportPath", "File")
+        prop_split(col, context.scene, "DLImportBasePath", "Base Path")
+        prop_split(col, context.scene, "blenderF3DScale", "Scale")
+        prop_split(col, context.scene, "DLImportDrawLayer", "Draw Layer")
+        col.prop(context.scene, "DLRemoveDoubles")
+        col.prop(context.scene, "DLImportNormals")
 
-		#col.template_list('F3D_UL_ImportDLPathList', '', context.scene,
-		#	'DLImportOtherFiles', context.scene, 'DLImportOtherFilesIndex')
+        box = col.box().column()
+        box.label(text="All data must be contained within file.")
+        box.label(text="The only exception are pngs converted to inc.c.")
 
-class ImportFileProperty (bpy.types.PropertyGroup):
-	path : bpy.props.StringProperty(name = "Path", subtype = "FILE_PATH")
+        # col.template_list('F3D_UL_ImportDLPathList', '', context.scene,
+        # 	'DLImportOtherFiles', context.scene, 'DLImportOtherFilesIndex')
+
+
+class ImportFileProperty(bpy.types.PropertyGroup):
+    path: bpy.props.StringProperty(name="Path", subtype="FILE_PATH")
+
 
 f3d_parser_classes = (
-	F3D_ImportDL,
-	F3D_ImportDLPanel,
-	ImportFileProperty,
-	F3D_UL_ImportDLPathList,
+    F3D_ImportDL,
+    F3D_ImportDLPanel,
+    ImportFileProperty,
+    F3D_UL_ImportDLPathList,
 )
 
-def f3d_parser_register():
-	for cls in f3d_parser_classes:
-		register_class(cls)
 
-	bpy.types.Scene.DLImportName = bpy.props.StringProperty(name = "Name")
-	bpy.types.Scene.DLImportPath = bpy.props.StringProperty(name = 'Directory', subtype = 'FILE_PATH')
-	bpy.types.Scene.DLImportBasePath = bpy.props.StringProperty(name = 'Directory', subtype = 'FILE_PATH')
-	bpy.types.Scene.DLRemoveDoubles = bpy.props.BoolProperty(name = "Remove Doubles", default = True)
-	bpy.types.Scene.DLImportNormals = bpy.props.BoolProperty(name = "Import Normals", default = True)
-	bpy.types.Scene.DLImportDrawLayer = bpy.props.EnumProperty(name = "Draw Layer", items = ootEnumDrawLayers)
-	bpy.types.Scene.DLImportOtherFiles = bpy.props.CollectionProperty(type = ImportFileProperty)
-	bpy.types.Scene.DLImportOtherFilesIndex = bpy.props.IntProperty()
+def f3d_parser_register():
+    for cls in f3d_parser_classes:
+        register_class(cls)
+
+    bpy.types.Scene.DLImportName = bpy.props.StringProperty(name="Name")
+    bpy.types.Scene.DLImportPath = bpy.props.StringProperty(
+        name="Directory", subtype="FILE_PATH"
+    )
+    bpy.types.Scene.DLImportBasePath = bpy.props.StringProperty(
+        name="Directory", subtype="FILE_PATH"
+    )
+    bpy.types.Scene.DLRemoveDoubles = bpy.props.BoolProperty(
+        name="Remove Doubles", default=True
+    )
+    bpy.types.Scene.DLImportNormals = bpy.props.BoolProperty(
+        name="Import Normals", default=True
+    )
+    bpy.types.Scene.DLImportDrawLayer = bpy.props.EnumProperty(
+        name="Draw Layer", items=ootEnumDrawLayers
+    )
+    bpy.types.Scene.DLImportOtherFiles = bpy.props.CollectionProperty(
+        type=ImportFileProperty
+    )
+    bpy.types.Scene.DLImportOtherFilesIndex = bpy.props.IntProperty()
+
 
 def f3d_parser_unregister():
-	for cls in reversed(f3d_parser_classes):
-		unregister_class(cls)
+    for cls in reversed(f3d_parser_classes):
+        unregister_class(cls)
 
-	del bpy.types.Scene.DLImportName
-	del bpy.types.Scene.DLImportPath
-	del bpy.types.Scene.DLRemoveDoubles
-	del bpy.types.Scene.DLImportNormals
-	del bpy.types.Scene.DLImportDrawLayer
-	del bpy.types.Scene.DLImportBasePath
-	del bpy.types.Scene.DLImportOtherFiles
-	del bpy.types.Scene.DLImportOtherFilesIndex
+    del bpy.types.Scene.DLImportName
+    del bpy.types.Scene.DLImportPath
+    del bpy.types.Scene.DLRemoveDoubles
+    del bpy.types.Scene.DLImportNormals
+    del bpy.types.Scene.DLImportDrawLayer
+    del bpy.types.Scene.DLImportBasePath
+    del bpy.types.Scene.DLImportOtherFiles
+    del bpy.types.Scene.DLImportOtherFilesIndex
