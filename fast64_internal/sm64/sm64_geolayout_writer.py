@@ -1839,8 +1839,6 @@ def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, dr
 	meshMatOverride = GfxList(
 		fMesh.name + '_mat_override_' + toAlnum(material.name) + \
 		'_' + overrideIndex, GfxListTag.Draw, fModel.DLFormat)
-	#print(fMesh.drawMatOverrides)
-	# print('fdddddddddddddddd ' + str(fMesh.name) + " " + str(material) + " " + str(specificMat) + " " + str(overrideType))
 	fMesh.drawMatOverrides[(material, specificMat, overrideType)] = meshMatOverride
 	# Copy the DL from the original mesh into the material override mesh
 	for command in fMesh.draw.commands:
