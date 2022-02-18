@@ -56,7 +56,7 @@ class OOTObjectPanel(bpy.types.Panel):
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
 	bl_context = "object"
-	bl_options = {'HIDE_HEADER'} 
+	bl_options = {'HIDE_HEADER'}
 
 	@classmethod
 	def poll(cls, context):
@@ -72,13 +72,13 @@ class OOTObjectPanel(bpy.types.Panel):
 
 		sceneObj = getSceneObj(obj)
 		roomObj = getRoomObj(obj)
-		
+
 		altSceneProp = sceneObj.ootAlternateSceneHeaders if sceneObj is not None else None
 		altRoomProp = roomObj.ootAlternateRoomHeaders if roomObj is not None else None
 
 		if obj.ootEmptyType == 'Actor':
 			drawActorProperty(box, obj.ootActorProperty, altRoomProp, objName)
-		
+
 		elif obj.ootEmptyType == 'Transition Actor':
 			drawTransitionActorProperty(box, obj.ootTransitionActorProperty, altSceneProp, roomObj, objName)
 
@@ -95,7 +95,7 @@ class OOTObjectPanel(bpy.types.Panel):
 			drawRoomHeaderProperty(box, obj.ootRoomHeader, None, None, objName)
 			if obj.ootRoomHeader.menuTab == 'Alternate':
 				drawAlternateRoomHeaderProperty(box, obj.ootAlternateRoomHeaders, objName)
-		
+
 		elif obj.ootEmptyType == 'Entrance':
 			drawEntranceProperty(box, obj, altSceneProp, objName)
 
@@ -104,10 +104,10 @@ class OOTObjectPanel(bpy.types.Panel):
 
 		elif obj.ootEmptyType == 'LOD':
 			drawLODProperty(box, obj)
-			
+
 		elif obj.ootEmptyType == 'Cutscene':
 			drawCutsceneProperty(box, obj)
-		
+
 		elif obj.ootEmptyType == 'None':
 			box.label(text = 'Geometry can be parented to this.')
 
@@ -142,17 +142,17 @@ def setLightPropertyValues(lightProp, ambient, diffuse0, diffuse1, fogColor, fog
 	lightProp.diffuse1 = gammaInverse([value / 255 for value in diffuse1]) + [1]
 	lightProp.fogColor = gammaInverse([value / 255 for value in fogColor]) + [1]
 	lightProp.fogNear = fogNear
-	
+
 def onUpdateOOTEmptyType(self, context):
 	isNoneEmpty = self.ootEmptyType == "None"
 	isBoxEmpty = self.ootEmptyType == 'Water Box'
 	isSphereEmpty = self.ootEmptyType == "Cull Group"
 	self.show_name = not (isBoxEmpty or isNoneEmpty or isSphereEmpty)
 	self.show_axis = not (isBoxEmpty or isNoneEmpty or isSphereEmpty)
-	
+
 	if isBoxEmpty:
 		self.empty_display_type = "CUBE"
-	
+
 	if isSphereEmpty:
 		self.empty_display_type = "SPHERE"
 
@@ -185,8 +185,7 @@ oot_obj_classes = (
 	OOTLightGroupProperty,
 	OOTObjectProperty,
 	OOTExitProperty,
-	OOTSceneTableEntryProperty,
-	
+
 	OOTCSTextboxProperty,
 	OOTCSTextboxAdd,
 	OOTCSLightingProperty,
@@ -231,7 +230,7 @@ def oot_obj_register():
 
 	bpy.types.Object.ootEmptyType = bpy.props.EnumProperty(
 		name = 'OOT Object Type', items = ootEnumEmptyType, default = 'None', update = onUpdateOOTEmptyType)
-	
+
 	bpy.types.Object.ootActorProperty = bpy.props.PointerProperty(type = OOTActorProperty)
 	bpy.types.Object.ootTransitionActorProperty = bpy.props.PointerProperty(type = OOTTransitionActorProperty)
 	bpy.types.Object.ootWaterBoxProperty = bpy.props.PointerProperty(type = OOTWaterBoxProperty)
@@ -245,11 +244,11 @@ def oot_obj_register():
 
 
 def oot_obj_unregister():
-	
+
 	del bpy.types.Object.ootEmptyType
 
-	del bpy.types.Object.ootActorProperty 
-	del bpy.types.Object.ootTransitionActorProperty 
+	del bpy.types.Object.ootActorProperty
+	del bpy.types.Object.ootTransitionActorProperty
 	del bpy.types.Object.ootWaterBoxProperty
 	del bpy.types.Object.ootRoomHeader
 	del bpy.types.Object.ootSceneHeader

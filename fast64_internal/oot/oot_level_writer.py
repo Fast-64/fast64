@@ -26,7 +26,7 @@ def sceneNameFromID(sceneID):
 
 def ootPreprendSceneIncludes(scene, file):
 	exportFile = ootSceneIncludes(scene)
-	exportFile.append(file)	
+	exportFile.append(file)
 	return exportFile
 
 def ootCreateSceneHeader(levelC):
@@ -60,16 +60,16 @@ def ootCombineSceneFiles(levelC):
 			sceneC.append(levelC.sceneCutscenesC[i])
 	return sceneC
 
-def ootExportSceneToC(originalSceneObj, transformMatrix, 
+def ootExportSceneToC(originalSceneObj, transformMatrix,
 	f3dType, isHWv1, sceneName, DLFormat, savePNG, exportInfo):
 
 	checkObjectReference(originalSceneObj, "Scene object")
 	isCustomExport = exportInfo.isCustomExportPath
 	exportPath = exportInfo.exportPath
 
-	scene = ootConvertScene(originalSceneObj, transformMatrix, 
+	scene = ootConvertScene(originalSceneObj, transformMatrix,
 		f3dType, isHWv1, sceneName, DLFormat, not savePNG)
-	
+
 	exportSubdir = ''
 	if exportInfo.customSubPath is not None:
 		exportSubdir = exportInfo.customSubPath
@@ -81,7 +81,7 @@ def ootExportSceneToC(originalSceneObj, transformMatrix,
 		if exportSubdir == "":
 			raise PluginError("Scene folder " + sceneName + " cannot be found in the ootSceneDirs list.")
 
-	levelPath = ootGetPath(exportPath, isCustomExport, exportSubdir, sceneName, True, True)	
+	levelPath = ootGetPath(exportPath, isCustomExport, exportSubdir, sceneName, True, True)
 	levelC = ootLevelToC(scene, TextureExportSettings(False, savePNG, exportSubdir + sceneName, levelPath))
 
 	if bpy.context.scene.ootSceneSingleFile:
@@ -101,13 +101,13 @@ def ootExportSceneToC(originalSceneObj, transformMatrix,
 		if levelC.sceneTexturesIsUsed():
 			writeCDataSourceOnly(ootPreprendSceneIncludes(scene, levelC.sceneTexturesC),
 				os.path.join(levelPath, scene.sceneName() + '_tex.c'))
-		writeCDataSourceOnly(ootPreprendSceneIncludes(scene, levelC.sceneCollisionC), 
+		writeCDataSourceOnly(ootPreprendSceneIncludes(scene, levelC.sceneCollisionC),
 			os.path.join(levelPath, scene.sceneName() + '_col.c'))
 		if levelC.sceneCutscenesIsUsed():
 			for i in range(len(levelC.sceneCutscenesC)):
 				writeCDataSourceOnly(ootPreprendSceneIncludes(scene, levelC.sceneCutscenesC[i]),
 					os.path.join(levelPath, scene.sceneName() + '_cs_' + str(i) + '.c'))
-		
+
 		# Export the room segment .c files
 		for roomName, roomMainC in levelC.roomMainC.items():
 			writeCDataSourceOnly(ootPreprendSceneIncludes(scene, roomMainC),
@@ -118,16 +118,15 @@ def ootExportSceneToC(originalSceneObj, transformMatrix,
 		for roomName, roomMeshC in levelC.roomMeshC.items():
 			writeCDataSourceOnly(ootPreprendSceneIncludes(scene, roomMeshC),
 				os.path.join(levelPath, roomName + '_model.c'))
-		
+
 	# Export the scene .h file
 	writeCDataHeaderOnly(ootCreateSceneHeader(levelC),
 		os.path.join(levelPath, scene.sceneName() + '.h'))
-	
+
 	if not isCustomExport:
 		writeOtherSceneProperties(scene, exportInfo, levelC)
 
 def writeOtherSceneProperties(scene, exportInfo, levelC):
-	modifySceneTable(scene, exportInfo)
 	modifySegmentSymbols(scene, exportInfo)
 	modifySceneIDs(scene, exportInfo)
 	modifySegmentDefinition(scene, exportInfo, levelC)
@@ -135,7 +134,6 @@ def writeOtherSceneProperties(scene, exportInfo, levelC):
 
 def readSceneData(scene, scene_properties, sceneHeader, alternateSceneHeaders):
 	scene.write_dummy_room_list = scene_properties.write_dummy_room_list
-	scene.sceneTableEntry.drawConfig = sceneHeader.sceneTableEntry.drawConfig
 	scene.globalObject = getCustomProperty(sceneHeader, "globalObject")
 	scene.naviCup = getCustomProperty(sceneHeader, "naviCup")
 	scene.skyboxID = getCustomProperty(sceneHeader, "skyboxID")
@@ -180,11 +178,11 @@ def readSceneData(scene, scene_properties, sceneHeader, alternateSceneHeaders):
 				raise PluginError('Cutscene empty object should not be parented to anything')
 			else:
 				scene.csWriteObject = convertCutsceneObject(sceneHeader.csWriteObject)
-	
+
 	if alternateSceneHeaders is not None:
 		for ec in sceneHeader.extraCutscenes:
 			scene.extraCutscenes.append(convertCutsceneObject(ec.csObject))
-		
+
 		scene.collision.cameraData = OOTCameraData(scene.name)
 
 		if not alternateSceneHeaders.childNightHeader.usePreviousHeader:
@@ -209,7 +207,7 @@ def readSceneData(scene, scene_properties, sceneHeader, alternateSceneHeaders):
 			raise PluginError("Extra cutscenes (not in any header) only belong in the main scene, not alternate headers")
 
 def getConvertedTransform(transformMatrix, sceneObj, obj, handleOrientation):
-	
+
 	# Hacky solution to handle Z-up to Y-up conversion
 	# We cannot apply rotation to empty, as that modifies scale
 	if handleOrientation:
@@ -224,9 +222,9 @@ def getConvertedTransformWithOrientation(transformMatrix, sceneObj, obj, orienta
 	rotation = blenderRotation @ orientation
 	convertedTranslation = ootConvertTranslation(blenderTranslation)
 	convertedRotation = ootConvertRotation(rotation)
-	
+
 	return convertedTranslation, convertedRotation, scale, rotation
-	
+
 def getExitData(exitProp):
 	if exitProp.exitIndex != "Custom":
 		raise PluginError("Exit index enums not implemented yet.")
@@ -323,12 +321,12 @@ def readPathProp(pathProp, obj, scene, sceneObj, sceneName, transformMatrix):
 		raise PluginError("Error: " + obj.name + "has a repeated spline index: " + str(index))
 	scene.pathList[index] = ootConvertPath(sceneName, index, obj, relativeTransform)
 
-def ootConvertScene(originalSceneObj, transformMatrix, 
+def ootConvertScene(originalSceneObj, transformMatrix,
 	f3dType, isHWv1, sceneName, DLFormat, convertTextureData):
 
 	if originalSceneObj.data is not None or originalSceneObj.ootEmptyType != "Scene":
 		raise PluginError(originalSceneObj.name + " is not an empty with the \"Scene\" empty type.")
-	
+
 	if bpy.context.scene.exportHiddenGeometry:
 		hiddenObjs = unhideAllAndGetHiddenList(bpy.context.scene)
 
@@ -338,7 +336,7 @@ def ootConvertScene(originalSceneObj, transformMatrix,
 
 	if bpy.context.scene.exportHiddenGeometry:
 		hideObjsInList(hiddenObjs)
-	
+
 	roomObjs = [child for child in sceneObj.children if child.data is None and child.ootEmptyType == 'Room']
 	if len(roomObjs) == 0:
 		raise PluginError("The scene has no child empties with the 'Room' empty type.")
@@ -374,7 +372,7 @@ def ootConvertScene(originalSceneObj, transformMatrix,
 				readCamPos(camPosProp, obj, scene, sceneObj, transformMatrix)
 			elif isinstance(obj.data, bpy.types.Curve) and assertCurveValid(obj):
 				readPathProp(obj.ootSplineProperty, obj, scene, sceneObj, sceneName, transformMatrix)
-		
+
 		scene.validateIndices()
 		scene.entranceList = sorted(scene.entranceList, key=lambda x: x.startPositionIndex)
 		exportCollisionCommon(scene.collision, sceneObj, transformMatrix, True, sceneName)
@@ -435,7 +433,7 @@ def ootProcessLOD(roomMesh, DLGroup, sceneObj, obj, transformMatrix, convertText
 		# This group will not be converted to C directly, but its display lists will be converted through the FLODGroup.
 		childDLGroup = OOTDLGroup(name + str(index), roomMesh.model.DLFormat)
 		index += 1
-		
+
 		if childObj.data is None and childObj.ootEmptyType == "LOD":
 			ootProcessLOD(roomMesh, childDLGroup, sceneObj, childObj, transformMatrix, convertTextureData, LODHierarchyObject)
 		else:
@@ -462,7 +460,7 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 	if obj.data is None:
 		if obj.ootEmptyType == "Actor":
 			actorProp = obj.ootActorProperty
-			addActor(room, OOTActor(getCustomProperty(actorProp, 'actorID'), 
+			addActor(room, OOTActor(getCustomProperty(actorProp, 'actorID'),
 				translation, rotation, actorProp.actorParam,
 				None if not actorProp.rotOverride else (actorProp.rotOverrideX, actorProp.rotOverrideY, actorProp.rotOverrideZ)),
 				actorProp, "actorList", obj.name)
@@ -497,10 +495,10 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 		readCamPos(camPosProp, obj, scene, sceneObj, transformMatrix)
 	elif isinstance(obj.data, bpy.types.Curve) and assertCurveValid(obj):
 		readPathProp(obj.ootSplineProperty, obj, scene, sceneObj, scene.name, transformMatrix)
-	
+
 	for childObj in obj.children:
 		ootProcessEmpties(scene, room, sceneObj, childObj, transformMatrix)
-	
+
 def ootProcessWaterBox(sceneObj, obj, transformMatrix, scene, roomIndex):
 	translation, rotation, scale, orientedRotation = getConvertedTransform(transformMatrix, sceneObj, obj, True)
 
@@ -524,7 +522,7 @@ class OOT_ExportScene(bpy.types.Operator):
 			if context.mode != 'OBJECT':
 				bpy.ops.object.mode_set(mode = "OBJECT")
 			activeObj = context.view_layer.objects.active
-			
+
 			obj = context.scene.ootSceneExportObj
 			if obj is None:
 				raise PluginError("Scene object input not set.")
@@ -536,7 +534,7 @@ class OOT_ExportScene(bpy.types.Operator):
 			scaleValue = bpy.context.scene.ootBlenderScale
 			finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((
 				scaleValue, scaleValue, scaleValue))).to_4x4()
-		
+
 		except Exception as e:
 			raisePluginError(self, e)
 			return {'CANCELLED'} # must return a set
@@ -545,7 +543,7 @@ class OOT_ExportScene(bpy.types.Operator):
 			if context.scene.ootSceneCustomExport:
 				exportInfo = ExportInfo(True, bpy.path.abspath(context.scene.ootSceneExportPath), None, levelName)
 			else:
-				if context.scene.ootSceneOption == 'Custom':	
+				if context.scene.ootSceneOption == 'Custom':
 					subfolder = 'assets/scenes/' + context.scene.ootSceneSubFolder + '/'
 				else:
 					levelName = sceneNameFromID(context.scene.ootSceneOption)
@@ -554,13 +552,13 @@ class OOT_ExportScene(bpy.types.Operator):
 			#if not context.scene.ootSceneCustomExport:
 			#	applyBasicTweaks(exportPath)
 
-			ootExportSceneToC(obj, finalTransform, 
-				context.scene.f3d_type, context.scene.isHWv1, levelName, DLFormat.Static, 
+			ootExportSceneToC(obj, finalTransform,
+				context.scene.f3d_type, context.scene.isHWv1, levelName, DLFormat.Static,
 					context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions, exportInfo)
-			
+
 			#ootExportScene(obj, finalTransform,
-			#	context.scene.f3d_type, context.scene.isHWv1, levelName, exportPath, 
-			#	context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions, 
+			#	context.scene.f3d_type, context.scene.isHWv1, levelName, exportPath,
+			#	context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions,
 			#	context.scene.ootSceneCustomExport, DLFormat.Dynamic)
 			self.report({'INFO'}, 'Success!')
 
@@ -581,7 +579,6 @@ class OOT_ExportScene(bpy.types.Operator):
 			return {'CANCELLED'} # must return a set
 
 def ootRemoveSceneC(exportInfo):
-	modifySceneTable(None, exportInfo)
 	modifySegmentSymbols(None, exportInfo)
 	modifySceneIDs(None, exportInfo)
 	modifySegmentDefinition(None, exportInfo)
@@ -598,14 +595,14 @@ class OOT_RemoveScene(bpy.types.Operator):
 		if context.scene.ootSceneCustomExport:
 			operator.report({'ERROR'}, "You can only remove scenes from your decomp path.")
 			return {"FINISHED"}
-			
-		if context.scene.ootSceneOption == 'Custom':	
+
+		if context.scene.ootSceneOption == 'Custom':
 			subfolder = 'assets/scenes/' + context.scene.ootSceneSubFolder + '/'
 		else:
 			levelName = sceneNameFromID(context.scene.ootSceneOption)
 			subfolder = None
 		exportInfo = ExportInfo(False, bpy.path.abspath(context.scene.ootDecompPath), subfolder, levelName)
-		
+
 		ootRemoveSceneC(exportInfo)
 
 		self.report({'INFO'}, 'Success!')
@@ -660,7 +657,7 @@ def oot_level_panel_unregister():
 def oot_level_register():
 	for cls in oot_level_classes:
 		register_class(cls)
-	
+
 	bpy.types.Scene.ootSceneName = bpy.props.StringProperty(name = 'Name', default = 'spot03')
 	bpy.types.Scene.ootSceneSubFolder = bpy.props.StringProperty(name = "Subfolder", default = 'overworld')
 	bpy.types.Scene.ootSceneOption = bpy.props.EnumProperty(name = "Scene", items = ootEnumSceneID, default = 'SCENE_YDAN')

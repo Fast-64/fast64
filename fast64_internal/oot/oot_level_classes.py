@@ -48,7 +48,7 @@ class OOTLight:
 		self.fogNear = 0
 		self.fogFar = 0
 		self.transitionSpeed = 0
-	
+
 	def getBlendFogShort(self):
 		return "0x{:04X}".format((self.transitionSpeed << 10) | self.fogNear)
 
@@ -63,12 +63,12 @@ class OOTCSTextbox:
 		self.topOptionBranch = '0x0000'
 		self.bottomOptionBranch = '0x0000'
 		self.ocarinaMessageId = '0x0000'
-		
+
 class OOTCSLighting:
 	def __init__(self):
 		self.index = 1
 		self.startFrame = 0
-		
+
 class OOTCSTime:
 	def __init__(self):
 		self.startFrame = 0
@@ -80,7 +80,7 @@ class OOTCSBGM:
 		self.value = '0x0000'
 		self.startFrame = 0
 		self.endFrame = 1
-		
+
 class OOTCSMisc:
 	def __init__(self):
 		self.operation = 1
@@ -93,13 +93,13 @@ class OOTCS0x09:
 		self.unk2 = '0x00'
 		self.unk3 = '0x00'
 		self.unk4 = '0x00'
-		
+
 class OOTCSUnk:
 	def __unk__(self):
 		self.unk1 = self.unk2 = self.unk3 = self.unk4 = self.unk5 = self.unk6 = \
 			self.unk7 = self.unk8 = self.unk9 = self.unk10 = self.unk11 = \
 			self.unk12 = '0x00000000'
-		
+
 class OOTCSList:
 	def __init__(self):
 		self.listType = None
@@ -118,10 +118,6 @@ class OOTCutscene:
 		self.csTermStart = 99
 		self.csTermEnd = 100
 		self.csLists = []
-
-class OOTSceneTableEntry:
-	def __init__(self):
-		self.drawConfig = 0
 
 class OOTScene:
 	def __init__(self, name, model):
@@ -170,8 +166,6 @@ class OOTScene:
 		self.csTermEnd = 100
 		self.csLists = []
 		self.extraCutscenes = []
-
-		self.sceneTableEntry = OOTSceneTableEntry()
 
 	def getAlternateHeaderScene(self, name):
 		scene = OOTScene(name, self.model)
@@ -235,7 +229,7 @@ class OOTScene:
 				raise PluginError("Error: Entrances (start positions) do not have a consecutive list of indices. " +\
 					"Missing index: " + str(count))
 			count = count + 1
-		
+
 	def validateRoomIndices(self):
 		count = 0
 		while count < len(self.rooms):
@@ -274,15 +268,15 @@ class OOTRoomMesh:
 
 	def headerName(self):
 		return str(self.roomName) + "_meshHeader"
-	
+
 	def entriesName(self):
 		return str(self.roomName) + "_meshDListEntry"
-	
+
 	def addMeshGroup(self, cullGroup):
 		meshGroup = OOTRoomMeshGroup(cullGroup, self.model.DLFormat, self.roomName, len(self.meshEntries))
 		self.meshEntries.append(meshGroup)
 		return meshGroup
-	
+
 	def currentMeshGroup(self):
 		return self.meshEntries[-1]
 
@@ -299,7 +293,7 @@ class OOTDLGroup:
 		self.transparent = None
 		self.DLFormat = DLFormat
 		self.name = toAlnum(name)
-	
+
 	def addDLCall(self, displayList, drawLayer):
 		if drawLayer == 'Opaque':
 			if self.opaque is None:
@@ -315,7 +309,7 @@ class OOTDLGroup:
 	def terminateDLs(self):
 		if self.opaque is not None:
 			self.opaque.commands.append(SPEndDisplayList())
-		
+
 		if self.transparent is not None:
 			self.transparent.commands.append(SPEndDisplayList())
 
@@ -355,7 +349,7 @@ class OOTRoom:
 		self.customBehaviourX = None
 		self.customBehaviourY = None
 
-		# Wind 
+		# Wind
 		self.setWind = False
 		self.windVector = [0,0,0]
 		self.windStrength = 0
