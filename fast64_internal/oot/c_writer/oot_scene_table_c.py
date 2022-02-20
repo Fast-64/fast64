@@ -16,15 +16,18 @@ def getSceneTable(exportPath):
 				if not line.startswith("// "):
 					if not (line.startswith("/**") or line.startswith(" *")):
 						dataList.append(line[(line.find("(") + 1):].rstrip(")\n").replace(" ", "").split(','))
-					else: fileHeader += line
-				elif not line.startswith("// Added scenes"): debugLine = line
-	except: raise PluginError("ERROR: Can't find scene_table.h!")
+					else:
+						fileHeader += line
+				elif not line.startswith("// Added scenes"):
+					debugLine = line
+	except:
+		raise PluginError("ERROR: Can't find scene_table.h!")
 
 	# return the parsed data, the header comment and the comment mentionning debug scenes
 	return dataList, fileHeader, debugLine
 
 def getSceneIndex():
-	'''Returns the index (int) of the chosen scene, returns None if ``Custom`` is chose'''
+	'''Returns the index (int) of the chosen scene, returns None if ``Custom`` is chosen'''
 	i = 0
 	sceneID = bpy.context.scene.ootSceneOption
 
@@ -41,7 +44,7 @@ def getSceneParams(scene, exportInfo):
 	sceneName = sceneTitle = sceneID = sceneUnk10 = sceneUnk12 = None
 
 	# if the index is None then this is a custom scene
-	if sceneIndex == None and scene != None:
+	if sceneIndex == None and scene is not None:
 		sceneName = scene.name.lower() + "_scene"
 		sceneTitle = "none"
 		sceneID = "SCENE_" + (scene.name.upper() if scene is not None else exportInfo.name.upper())
@@ -71,11 +74,9 @@ def sceneTableToC(data, header, debugLine):
 			isEndOfNonDebugScenes = False
 
 		fileData += f"/* 0x{i:02X} */ DEFINE_SCENE("
-		for j in range(len(data[i])):
-			fileData += f"{data[i][j]}"
-			if j < 5: fileData += ", "
-			if data[i][0] == "testroom_scene": isEndOfExistingScenes = True
-			if data[i][0] == "ganon_tou_scene": isEndOfNonDebugScenes = True
+		fileData += ", ".join(str(d) for d in data[i])
+		if data[i][0] == "testroom_scene": isEndOfExistingScenes = True
+		if data[i][0] == "ganon_tou_scene": isEndOfNonDebugScenes = True
 
 		fileData += ")\n"
 
@@ -96,7 +97,7 @@ def modifySceneTable(scene, exportInfo):
 	else: isCustom = False
 
 	# if so, check if the custom scene already exists in the data
-	# if it already exist set isCustom to false to consider it like a normal scene
+	# if it already exists set isCustom to False to consider it like a normal scene
 	if isCustom:
 		for i in range(len(fileData)):
 			if fileData[i][0] == scene.name.lower() + "_scene":
@@ -106,7 +107,7 @@ def modifySceneTable(scene, exportInfo):
 
 	# edit the current data or append new one if we are in a ``Custom`` context
 	for i in range(6):
-		if isCustom == False and sceneParams[i] != None and fileData[sceneIndex][i] != sceneParams[i]:
+		if isCustom == False and sceneParams[i] is not None and fileData[sceneIndex][i] != sceneParams[i]:
 			fileData[sceneIndex][i] = sceneParams[i]
 		elif isCustom:
 			fileData.append(sceneParams)

@@ -25,7 +25,7 @@ def parseSegmentDefinitionData(data):
 
 		# avoid deleting compress flag if the user is using it
 		# (defined by whether it is present at least once in spec or not)
-		if segData.find("compress") != -1:
+		if "compress" in segData:
 			compressFlag = indent + "compress\n"
 
 	return table, compressFlag
@@ -88,7 +88,7 @@ def modifySegmentDefinition(scene, exportInfo, levelC):
 				indent + 'include "' + includeDir + '_scene_main.o"\n' +\
 				indent + 'include "' + includeDir + '_scene_col.o"\n'
 			
-			if levelC != None:
+			if levelC is not None:
 				if (levelC.sceneTexturesIsUsed()):
 					sceneSegInclude += indent + 'include "' + includeDir + '_scene_tex.o"\n'
 				
