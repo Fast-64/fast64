@@ -53,19 +53,31 @@ def sceneTableToC(data, header, debugLine):
 	'''Converts the Scene Table to C code'''
 	# start the data with the header comment explaining the format of the file
 	fileData = header
+	# used to add the "// Added scenes" comment after existing scenes
+	isEndOfExistingScenes = False
+	# used to add the "// Debug-only scenes" comment after non-debug scenes
+	isEndOfNonDebugScenes = False
 
 	# add the actual lines with the same formatting
 	for i in range(len(data)):
-		fileData += f"/* 0x{i:02X} */ DEFINE_SCENE("
+		# add a comment to show when it's new scenes
+		if isEndOfExistingScenes:
+			fileData += "// Added scenes\n"
+			isEndOfExistingScenes = False
+		
+		# adds the "// Debug-only scenes" comment after SCENE_GANON_TOU
+		if isEndOfNonDebugScenes:
+			fileData += debugLine
+			isEndOfNonDebugScenes = False
 
+		fileData += f"/* 0x{i:02X} */ DEFINE_SCENE("
 		for j in range(len(data[i])):
 			fileData += f"{data[i][j]}"
 			if j < 5: fileData += ", "
+			if data[i][0] == "testroom_scene": isEndOfExistingScenes = True
+			if data[i][0] == "ganon_tou_scene": isEndOfNonDebugScenes = True
 
 		fileData += ")\n"
-		# adds the "// Debug-only scenes" comment after SCENE_GANON_TOU
-		if i == 0x64: fileData += debugLine
-		if i == 0x6D and len(data) > 0x6E: fileData += "// Added scenes\n"
 
 	# return the string containing the file data to write
 	return fileData
