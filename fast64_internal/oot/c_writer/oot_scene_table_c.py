@@ -17,7 +17,7 @@ def getSceneTable(exportPath):
 					if not (line.startswith("/**") or line.startswith(" *")):
 						dataList.append(line[(line.find("(") + 1):].rstrip(")\n").replace(" ", "").split(','))
 					else: fileHeader += line
-				else: debugLine = line
+				elif not line.startswith("// Added scenes"): debugLine = line
 	except: raise PluginError("ERROR: Can't find scene_table.h!")
 
 	# return the parsed data, the header comment and the comment mentionning debug scenes
@@ -35,7 +35,7 @@ def getSceneIndex():
 
 	raise PluginError("ERROR: Scene Index not found!")
 
-def getSceneParams(scene, exportInfo, idxMax):
+def getSceneParams(scene, exportInfo):
 	'''Returns the parameters that needs to be set in ``DEFINE_SCENE()``'''
 	sceneIndex = getSceneIndex()
 	sceneName = sceneTitle = sceneID = sceneUnk10 = sceneUnk12 = None
@@ -46,15 +46,8 @@ def getSceneParams(scene, exportInfo, idxMax):
 		sceneTitle = "none"
 		sceneID = "SCENE_" + (scene.name.upper() if scene is not None else exportInfo.name.upper())
 		sceneUnk10 = sceneUnk12 = 0
-		sceneIndex = idxMax
 
 	return sceneName, sceneTitle, sceneID, sceneUnk10, sceneUnk12, sceneIndex
-
-def isEntry(data, sceneName):
-	for entry in data:
-		if entry[0] == sceneName:
-			return True
-	return False
 
 def sceneTableToC(data, header, debugLine):
 	'''Converts the Scene Table to C code'''
@@ -71,27 +64,39 @@ def sceneTableToC(data, header, debugLine):
 
 		fileData += ")\n"
 		# adds the "// Debug-only scenes" comment after SCENE_GANON_TOU
-		if i == 100: fileData += debugLine
+		if i == 0x64: fileData += debugLine
+		if i == 0x6D and len(data) > 0x6E: fileData += "// Added scenes\n"
 
 	# return the string containing the file data to write
 	return fileData
 
 def modifySceneTable(scene, exportInfo):
 	'''Edit the scene table with the new data'''
-	i = 0
 	exportPath = exportInfo.exportPath
 	fileData, header, debugLine = getSceneTable(exportPath)
-	sceneName, sceneTitle, sceneID, sceneUnk10, sceneUnk12, sceneIndex = getSceneParams(scene, exportInfo, len(fileData) + 1)
+	sceneName, sceneTitle, sceneID, sceneUnk10, sceneUnk12, sceneIndex = getSceneParams(scene, exportInfo)
 	sceneParams = [sceneName, sceneTitle, sceneID, scene.sceneTableEntry.drawConfig, sceneUnk10, sceneUnk12]
+	
+	# check if it's a custom scene name
+	if sceneIndex == None: isCustom = True
+	else: isCustom = False
 
-	if bpy.context.scene.ootSceneOption == "Custom":
-		# unfinished
-		fileData.append(sceneParams)
+	# if so, check if the custom scene already exists in the data
+	# if it already exist set isCustom to false to consider it like a normal scene
+	if isCustom:
+		for i in range(len(fileData)):
+			if fileData[i][0] == scene.name.lower() + "_scene":
+				sceneIndex = i
+				isCustom = False
+				break
 
 	# edit the current data or append new one if we are in a ``Custom`` context
 	for i in range(6):
-		if sceneIndex < len(fileData) and sceneParams[i] != None and fileData[sceneIndex][i] != sceneParams[i]:
+		if isCustom == False and sceneParams[i] != None and fileData[sceneIndex][i] != sceneParams[i]:
 			fileData[sceneIndex][i] = sceneParams[i]
+		elif isCustom:
+			fileData.append(sceneParams)
+			break
 
 	# remove the scene data if scene is None (`Remove Scene` button)
 	if scene == None: fileData.remove(sceneIndex)
