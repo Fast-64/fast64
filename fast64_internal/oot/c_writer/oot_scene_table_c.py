@@ -47,7 +47,7 @@ def getSceneParams(scene, exportInfo):
 	sceneName = sceneTitle = sceneID = sceneUnk10 = sceneUnk12 = None
 
 	# if the index is None then this is a custom scene
-	if sceneIndex == None and scene is not None:
+	if sceneIndex is None and scene is not None:
 		sceneName = scene.name.lower() + "_scene"
 		sceneTitle = "none"
 		sceneID = "SCENE_" + (scene.name.upper() if scene is not None else exportInfo.name.upper())
@@ -95,7 +95,7 @@ def modifySceneTable(scene, exportInfo):
 	fileData, header, debugLine = getSceneTable(exportPath)
 	sceneName, sceneTitle, sceneID, sceneUnk10, sceneUnk12, sceneIndex = getSceneParams(scene, exportInfo)
 
-	if scene == None:
+	if scene is None:
 		sceneDrawConfig = None
 	else:
 		sceneDrawConfig = scene.sceneTableEntry.drawConfig
@@ -103,7 +103,7 @@ def modifySceneTable(scene, exportInfo):
 	sceneParams = [sceneName, sceneTitle, sceneID, sceneDrawConfig, sceneUnk10, sceneUnk12]
 
 	# check if it's a custom scene name
-	if sceneIndex == None: 
+	if sceneIndex is None: 
 		isCustom = True
 	else:
 		isCustom = False
@@ -128,7 +128,7 @@ def modifySceneTable(scene, exportInfo):
 
 	# remove the scene data if scene is None (`Remove Scene` button)
 	try:
-		if scene == None:
+		if scene is None:
 			fileData.remove(fileData[sceneIndex])
 	except:
 		raise PluginError("ERROR: Scene not found in ``scene_table.h``!")
