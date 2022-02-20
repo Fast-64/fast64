@@ -25,7 +25,7 @@ def getSceneTable(exportPath):
 						fileHeader += line
 				elif not line.startswith("// Added scenes"):
 					debugLine = line
-	except:
+	except FileNotFoundError:
 		raise PluginError("ERROR: Can't find scene_table.h!")
 
 	# return the parsed data, the header comment and the comment mentionning debug scenes
@@ -134,11 +134,12 @@ def modifySceneTable(scene, exportInfo):
 			break
 
 	# remove the scene data if scene is None (`Remove Scene` button)
-	try:
-		if scene is None and (exportInfo.name + "_scene") == fileData[sceneIndex][0]:
-			fileData.remove(fileData[sceneIndex])
-	except:
-		raise PluginError("ERROR: Scene not found in ``scene_table.h``!")
+	if scene is None:
+		if sceneIndex < len(fileData):
+			if (exportInfo.name + "_scene") == fileData[sceneIndex][0]:
+				fileData.pop(sceneIndex)
+		else:
+			raise PluginError("ERROR: Scene not found in ``scene_table.h``!")
 
 	# write the file with the final data
 	writeFile(os.path.join(exportPath, 'include/tables/scene_table.h'), sceneTableToC(fileData, header, debugLine))
