@@ -31,9 +31,12 @@ def getSceneIndex():
 	i = 0
 	sceneID = bpy.context.scene.ootSceneOption
 
-	if sceneID == "Custom": return None
+	if sceneID == "Custom":
+		return None
+
 	for elem in ootEnumSceneID:
-		if elem[0] == sceneID: return i - 1
+		if elem[0] == sceneID:
+			return i - 1
 		i += 1
 
 	raise PluginError("ERROR: Scene Index not found!")
@@ -75,8 +78,11 @@ def sceneTableToC(data, header, debugLine):
 
 		fileData += f"/* 0x{i:02X} */ DEFINE_SCENE("
 		fileData += ", ".join(str(d) for d in data[i])
-		if data[i][0] == "testroom_scene": isEndOfExistingScenes = True
-		if data[i][0] == "ganon_tou_scene": isEndOfNonDebugScenes = True
+
+		if data[i][0] == "testroom_scene":
+			isEndOfExistingScenes = True
+		if data[i][0] == "ganon_tou_scene":
+			isEndOfNonDebugScenes = True
 
 		fileData += ")\n"
 
@@ -88,13 +94,19 @@ def modifySceneTable(scene, exportInfo):
 	exportPath = exportInfo.exportPath
 	fileData, header, debugLine = getSceneTable(exportPath)
 	sceneName, sceneTitle, sceneID, sceneUnk10, sceneUnk12, sceneIndex = getSceneParams(scene, exportInfo)
-	if scene == None: sceneDrawConfig = None
-	else: sceneDrawConfig = scene.sceneTableEntry.drawConfig
+
+	if scene == None:
+		sceneDrawConfig = None
+	else:
+		sceneDrawConfig = scene.sceneTableEntry.drawConfig
+
 	sceneParams = [sceneName, sceneTitle, sceneID, sceneDrawConfig, sceneUnk10, sceneUnk12]
 
 	# check if it's a custom scene name
-	if sceneIndex == None: isCustom = True
-	else: isCustom = False
+	if sceneIndex == None: 
+		isCustom = True
+	else:
+		isCustom = False
 
 	# if so, check if the custom scene already exists in the data
 	# if it already exists set isCustom to False to consider it like a normal scene
@@ -116,7 +128,8 @@ def modifySceneTable(scene, exportInfo):
 
 	# remove the scene data if scene is None (`Remove Scene` button)
 	try:
-		if scene == None: fileData.remove(fileData[sceneIndex])
+		if scene == None:
+			fileData.remove(fileData[sceneIndex])
 	except:
 		raise PluginError("ERROR: Scene not found in ``scene_table.h``!")
 
