@@ -43,6 +43,8 @@ def getSceneIndex():
 
 def getSceneParams(scene, exportInfo):
 	'''Returns the parameters that needs to be set in ``DEFINE_SCENE()``'''
+	# in order to replace the values of ``unk10``, ``unk12`` and basically every parameters from ``DEFINE_SCENE``,
+	# you just have to make it return something other than None, not necessarily a string
 	sceneIndex = getSceneIndex()
 	sceneName = sceneTitle = sceneID = sceneUnk10 = sceneUnk12 = None
 

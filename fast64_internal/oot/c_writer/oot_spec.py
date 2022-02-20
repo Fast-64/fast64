@@ -94,7 +94,7 @@ def modifySegmentDefinition(scene, exportInfo, levelC):
 				
 				if (levelC.sceneCutscenesIsUsed()):
 					for i in range(len(levelC.sceneCutscenesC)):
-						sceneSegInclude += includeDir + '_cs_' + str(i) + '.o'
+						sceneSegInclude += indent + 'include "' + includeDir + '_cs_' + str(i) + '.o"\n'
 				
 			sceneSegInclude += indent + "number 2\n"
 

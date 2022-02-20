@@ -3,7 +3,7 @@ import bpy, math, mathutils, os, re
 from bpy.utils import register_class, unregister_class
 
 # default indentation to use when writing to decomp files
-indent = "    "
+indent = " " * 4
 
 ootSceneDungeons = [
 	"bdan",
