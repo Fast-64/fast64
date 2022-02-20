@@ -15,7 +15,12 @@ def getSceneTable(exportPath):
 			for i, line in enumerate(fileData):
 				if not line.startswith("// "):
 					if not (line.startswith("/**") or line.startswith(" *")):
-						dataList.append(line[(line.find("(") + 1):].rstrip(")\n").replace(" ", "").split(','))
+						dataList.append(
+                            line[(line.find("(") + 1) :]
+                            .rstrip(")\n")
+                            .replace(" ", "")
+                            .split(",")
+                        )
 					else:
 						fileHeader += line
 				elif not line.startswith("// Added scenes"):
