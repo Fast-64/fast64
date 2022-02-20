@@ -135,7 +135,7 @@ def modifySceneTable(scene, exportInfo):
 
 	# remove the scene data if scene is None (`Remove Scene` button)
 	try:
-		if scene is None:
+		if scene is None and (exportInfo.name + "_scene") == fileData[sceneIndex][0]:
 			fileData.remove(fileData[sceneIndex])
 	except:
 		raise PluginError("ERROR: Scene not found in ``scene_table.h``!")
