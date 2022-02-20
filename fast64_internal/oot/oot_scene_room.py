@@ -93,33 +93,9 @@ class OOT_SearchSceneEnumOperator(bpy.types.Operator):
 	bl_options = {'REGISTER', 'UNDO'} 
 
 	ootSceneID : bpy.props.EnumProperty(items = ootEnumSceneID, default = "SCENE_YDAN")
-	headerIndex : bpy.props.IntProperty(default = -1, min = -1)
-	index : bpy.props.IntProperty(default = 0, min = 0)
-	objName : bpy.props.StringProperty()
 
 	def execute(self, context):
-		if self.objName != "":
-			obj = bpy.data.objects[self.objName]
-		else:
-			obj = None
-
-		if self.headerIndex == -1:
-			pass
-		elif self.headerIndex == 0:
-			sceneHeader = obj.ootSceneHeader
-		elif self.headerIndex == 1:
-			sceneHeader = obj.ootAlternateSceneHeaders.childNightHeader
-		elif self.headerIndex == 2:
-			sceneHeader = obj.ootAlternateSceneHeaders.adultDayHeader
-		elif self.headerIndex == 3:
-			sceneHeader = obj.ootAlternateSceneHeaders.adultNightHeader
-		else:
-			sceneHeader = obj.ootAlternateSceneHeaders.cutsceneHeaders[self.headerIndex - 4]
-
-		if self.headerIndex == -1:
-			context.scene.ootSceneOption = self.ootSceneID
-		else:
-			sceneHeader.exitList[self.index].sceneID = self.sceneID
+		context.scene.ootSceneOption = self.ootSceneID
 		bpy.context.region.tag_redraw()
 		self.report({'INFO'}, "Selected: " + self.ootSceneID)
 		return {'FINISHED'}
