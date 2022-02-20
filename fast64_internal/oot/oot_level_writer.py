@@ -128,8 +128,6 @@ def ootExportSceneToC(originalSceneObj, transformMatrix,
 
 def writeOtherSceneProperties(scene, exportInfo, levelC):
 	modifySceneTable(scene, exportInfo)
-	modifySegmentSymbols(scene, exportInfo)
-	modifySceneIDs(scene, exportInfo)
 	modifySegmentDefinition(scene, exportInfo, levelC)
 	modifySceneFiles(scene, exportInfo)
 
@@ -582,8 +580,6 @@ class OOT_ExportScene(bpy.types.Operator):
 
 def ootRemoveSceneC(exportInfo):
 	modifySceneTable(None, exportInfo)
-	modifySegmentSymbols(None, exportInfo)
-	modifySceneIDs(None, exportInfo)
 	modifySegmentDefinition(None, exportInfo)
 	deleteSceneFiles(exportInfo)
 

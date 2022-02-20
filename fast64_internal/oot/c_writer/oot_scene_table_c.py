@@ -1,75 +1,100 @@
-import os, re
+import os
 from ...utility import *
+from ..oot_constants import ootEnumSceneID
 
-class SceneTableEntry:
-	def __init__(self, sceneType, name, title, unk10, config, unk12):
-		self.sceneType = sceneType
-		self.name = name
-		self.title = title
-		self.unk10 = unk10
-		self.config = config
-		self.unk12 = unk12
+def getSceneTable(exportPath):
+	'''Read and remove unwanted stuff from ``scene_table.h``'''
+	dataList = []
+	fileHeader = ""
+	debugLine = ""
 
-	def toC(self):
-		return "\t" + self.sceneType + "(" + self.name + ", " + \
-			((self.title + ", ") if self.title is not None else "")  +\
-			self.unk10 + ", " + self.config + ", " + self.unk12 + "),\n"
+	# read the scene table
+	try:
+		with open(os.path.join(exportPath, 'include/tables/scene_table.h')) as fileData:
+			# keep the relevant data and do some formatting
+			for i, line in enumerate(fileData):
+				if not line.startswith("// "):
+					if not (line.startswith("/**") or line.startswith(" *")):
+						dataList.append(line[(line.find("(") + 1):].rstrip(")\n").replace(" ", "").split(','))
+					else: fileHeader += line
+				else: debugLine = line
+	except: raise PluginError("ERROR: Can't find scene_table.h!")
 
-def getSceneTableEntryBySceneName(sceneTable, sceneName):
-	for entry in sceneTable:
-		if entry.name[:-6] == sceneName:
-			return entry
-	return None
+	# return the parsed data, the header comment and the comment mentionning debug scenes
+	return dataList, fileHeader, debugLine
 
-def readSceneTable(exportPath):
-	fileData = readFile(os.path.join(exportPath, 'src/code/z_scene_table.c'))
+def getSceneIndex():
+	'''Returns the index (int) of the chosen scene, returns None if ``Custom`` is chose'''
+	i = 0
+	sceneID = bpy.context.scene.ootSceneOption
 
-	matchResult = re.search('SceneTableEntry\s*gSceneTable\[\]\s*=\s*\{([^\}]*)\}', fileData, re.DOTALL)
-	if matchResult is None:
-		raise PluginError("z_scene_table.c does not have gSceneTable in it.")
-	sceneTable = parseSceneTableData(matchResult.group(1))
+	if sceneID == "Custom": return None
+	for elem in ootEnumSceneID:
+		if elem[0] == sceneID: return i - 1
+		i += 1
 
-	return sceneTable, fileData, matchResult.start(0), matchResult.end(0)
+	raise PluginError("ERROR: Scene Index not found!")
 
-def parseSceneTableData(data):
-	table = []
-	for match in re.finditer('([^,]*)\s*\(([^,]*),\s*([^,]*),\s*([^,]*),\s*([^,]*)(,\s*([^,]*))?\)\s*,', data):
-		name = match.group(2)
-		sceneType = match.group(1).strip()
-		if sceneType == "UNTITLED_SCENE":
-			table.append(SceneTableEntry(sceneType, name, None, match.group(3), match.group(4), match.group(5)))
-		elif sceneType == "TITLED_SCENE":
-			table.append(SceneTableEntry(sceneType, name, match.group(3), match.group(4), match.group(5), match.group(7)))
-		else:
-			raise PluginError("Unhandled scene entry type: " + str(sceneType))
-	return table
+def getSceneParams(scene, exportInfo, idxMax):
+	'''Returns the parameters that needs to be set in ``DEFINE_SCENE()``'''
+	sceneIndex = getSceneIndex()
+	sceneName = sceneTitle = sceneID = sceneUnk10 = sceneUnk12 = None
 
-def sceneTableToString(sceneTable):
-	data = 'SceneTableEntry gSceneTable[] = {\n'
-	for entry in sceneTable:
-		data += entry.toC()
-	data += '}'
-	return data
+	# if the index is None then this is a custom scene
+	if sceneIndex == None:
+		sceneName = scene.name.lower() + "_scene"
+		sceneTitle = "none"
+		sceneID = "SCENE_" + (scene.name.upper() if scene is not None else exportInfo.name.upper())
+		sceneUnk10 = sceneUnk12 = 0
+		sceneIndex = idxMax
 
-def writeSceneTable(sceneTable, fileData, start, end, exportPath):
-	sceneTableData = sceneTableToString(sceneTable)
-	newFileData = fileData[:start] + sceneTableData + fileData[end:]
+	return sceneName, sceneTitle, sceneID, sceneUnk10, sceneUnk12, sceneIndex
 
-	if newFileData != fileData:
-		writeFile(os.path.join(exportPath, 'src/code/z_scene_table.c'), newFileData)
+def isEntry(data, sceneName):
+	for entry in data:
+		if entry[0] == sceneName:
+			return True
+	return False
+
+def sceneTableToC(data, header, debugLine):
+	'''Converts the Scene Table to C code'''
+	# start the data with the header comment explaining the format of the file
+	fileData = header
+
+	# add the actual lines with the same formatting
+	for i in range(len(data)):
+		fileData += f"/* 0x{i:02X} */ DEFINE_SCENE("
+
+		for j in range(len(data[i])):
+			fileData += f"{data[i][j]}"
+			if j < 5: fileData += ", "
+
+		fileData += ")\n"
+		# adds the "// Debug-only scenes" comment after SCENE_GANON_TOU
+		if i == 100: fileData += debugLine
+
+	# return the string containing the file data to write
+	return fileData
 
 def modifySceneTable(scene, exportInfo):
+	'''Edit the scene table with the new data'''
+	i = 0
 	exportPath = exportInfo.exportPath
-	sceneTable, sceneFileData, start, end = readSceneTable(exportPath)
-	entry = getSceneTableEntryBySceneName(sceneTable, scene.name if scene is not None else exportInfo.name)
+	fileData, header, debugLine = getSceneTable(exportPath)
+	sceneName, sceneTitle, sceneID, sceneUnk10, sceneUnk12, sceneIndex = getSceneParams(scene, exportInfo, len(fileData) + 1)
+	sceneParams = [sceneName, sceneTitle, sceneID, scene.sceneTableEntry.drawConfig, sceneUnk10, sceneUnk12]
 
-	if scene is not None:
-		if entry is None:
-			sceneTable.append(SceneTableEntry("UNTITLED_SCENE", scene.name + "_scene", None, '0', str(scene.sceneTableEntry.drawConfig), '0'))
-		else:
-			entry.sceneType = entry.sceneType
-			entry.config = str(scene.sceneTableEntry.drawConfig)
-	else:
-		if entry is not None:
-			sceneTable.remove(entry)
-	writeSceneTable(sceneTable, sceneFileData, start, end, exportPath)
+	if bpy.context.scene.ootSceneOption == "Custom":
+		# unfinished
+		fileData.append(sceneParams)
+
+	# edit the current data or append new one if we are in a ``Custom`` context
+	for i in range(6):
+		if sceneIndex < len(fileData) and sceneParams[i] != None and fileData[sceneIndex][i] != sceneParams[i]:
+			fileData[sceneIndex][i] = sceneParams[i]
+
+	# remove the scene data if scene is None (`Remove Scene` button)
+	if scene == None: fileData.remove(sceneIndex)
+
+	# write the file with the final data
+	writeFile(os.path.join(exportPath, 'include/tables/scene_table.h'), sceneTableToC(fileData, header, debugLine))
