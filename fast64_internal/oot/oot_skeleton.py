@@ -526,7 +526,7 @@ def ootBuildSkeleton(skeletonName, skeletonData, limbList, actorScale, removeDou
 		limbName = f3dContext.getLimbName(dlEntry.limbIndex)
 		boneName = f3dContext.getBoneName(dlEntry.limbIndex)
 		parseF3D(skeletonData, dlEntry.dlName, obj, f3dContext.matrixData[limbName], 
-			limbName, boneName, "oot", drawLayer, f3dContext)
+			limbName, boneName, "oot", drawLayer, f3dContext, False)
 		if f3dContext.isBillboard:
 			armatureObj.data.bones[boneName].ootDynamicTransform.billboard = True
 		f3dContext.clearMaterial() # THIS IS IMPORTANT
@@ -770,7 +770,7 @@ class OOT_ExportSkeleton(bpy.types.Operator):
 
 class OOT_ExportSkeletonPanel(OOT_Panel):
 	bl_idname = "OOT_PT_export_skeleton"
-	bl_label = "OOT Skeleton Exporter"
+	bl_label = "OOT Skeleton Import/Export"
 
 	# called every frame
 	def draw(self, context):

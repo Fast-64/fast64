@@ -1285,7 +1285,7 @@ class F3DContext:
 			else:
 				image.pixels[4*i : 4*(i+1)] = newValues
 
-	def processCommands(self, dlData, dlName, dlCommands):
+	def processCommands(self, dlData, dlName, dlCommands, ignoreCalls):
 		callStack = [F3DParsedCommands(dlName, dlCommands, 0)]
 		while len(callStack) > 0:
 			currentCommandList = callStack[-1]
@@ -1309,7 +1309,7 @@ class F3DContext:
 				self.addTriangle(command.params[0:3], dlData)
 			elif command.name == 'gsSP2Triangles':
 				self.addTriangle(command.params[0:3] + command.params[4:7], dlData)
-			elif command.name == 'gsSPDisplayList' or command.name[:10] == 'gsSPBranch':
+			elif (command.name == 'gsSPDisplayList' or command.name[:10] == 'gsSPBranch') and not ignoreCalls:
 				newDLName = self.processDLName(command.params[0])
 				if newDLName is not None:
 					newDLCommands = parseDLData(dlData, newDLName)
@@ -1573,7 +1573,7 @@ class ParsedMacro:
 # we distinguish these because there is no guarantee of bone order in blender,
 # so we usually rely on alphabetical naming.
 # This means changing the c variable names.
-def parseF3D(dlData, dlName, obj, transformMatrix, limbName, boneName, drawLayerPropName, drawLayer, f3dContext):
+def parseF3D(dlData, dlName, obj, transformMatrix, limbName, boneName, drawLayerPropName, drawLayer, f3dContext, ignoreCalls):
 
 	f3dContext.matrixData[limbName] = transformMatrix
 	f3dContext.setCurrentTransform(limbName)
@@ -1584,10 +1584,10 @@ def parseF3D(dlData, dlName, obj, transformMatrix, limbName, boneName, drawLayer
 	#groupIndex = vertexGroup.index
 
 	dlCommands = parseDLData(dlData, dlName)
-	f3dContext.processCommands(dlData, dlName, dlCommands)
+	f3dContext.processCommands(dlData, dlName, dlCommands, ignoreCalls)
 
 def parseDLData(dlData, dlName):
-	matchResult = re.search("Gfx\s*" + re.escape(dlName) + "\s*\[\s*\w*\s*\]\s*=\s*\{([^\}]*)\}", dlData)
+	matchResult = re.search("Gfx\s+" + re.escape(dlName) + "\s*\[\s*\w*\s*\]\s*=\s*\{([^\}]*)\}", dlData)
 	if matchResult is None:
 		raise PluginError("Cannot find display list named " + dlName)
 
@@ -1848,9 +1848,7 @@ def getImportData(filepaths):
 
 	return data
 
-def importMeshC(filepaths, name, scale, removeDoubles, importNormals, drawLayer, f3dContext):
-	data = getImportData(filepaths)
-
+def importMeshC(data, name, scale, removeDoubles, importNormals, drawLayer, f3dContext, ignoreCalls):
 	# Create new skinned mesh
 	mesh = bpy.data.meshes.new(name + '_mesh')
 	obj = bpy.data.objects.new(name + '_mesh', mesh)
@@ -1860,12 +1858,15 @@ def importMeshC(filepaths, name, scale, removeDoubles, importNormals, drawLayer,
 	transformMatrix = mathutils.Matrix.Scale(1 / scale, 4)
 
 	parseF3D(data, name, obj, transformMatrix, 
-		name, name, "oot", drawLayer, f3dContext)
+		name, name, "oot", drawLayer, f3dContext, ignoreCalls)
 	
 	f3dContext.clearMaterial()
 	f3dContext.createMesh(obj, removeDoubles, importNormals)
 
 	applyRotation([obj], math.radians(-90), 'X')
+
+def findAllDLs(data):
+	return re.findall("Gfx\s+(\w+)\s*\[\s*\w*\s*\]\s*=\s*\{[^\}]*\}", data)
 
 class F3D_ImportDL(bpy.types.Operator):
 	# set bl_ properties
@@ -1894,8 +1895,8 @@ class F3D_ImportDL(bpy.types.Operator):
 
 			importPaths = [importPath]
 
-			importMeshC(importPaths, name, scaleValue, removeDoubles, importNormals, drawLayer,
-				F3DContext(F3D(f3dType, isHWv1), basePath, createF3DMat(None)))
+			importMeshC(getImportData(importPaths), name, scaleValue, removeDoubles, importNormals, drawLayer,
+				F3DContext(F3D(f3dType, isHWv1), basePath, createF3DMat(None)), False)
 
 			self.report({'INFO'}, 'Success!')		
 			return {'FINISHED'}

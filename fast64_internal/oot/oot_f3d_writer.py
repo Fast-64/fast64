@@ -227,16 +227,23 @@ class OOT_ImportDL(bpy.types.Operator):
 			isCustomImport = context.scene.ootDLImportUseCustomPath
 			scale = context.scene.ootActorBlenderScale
 			basePath = bpy.path.abspath(context.scene.ootDecompPath)
+			importAll = context.scene.ootDLImportAll
 			removeDoubles = context.scene.ootDLRemoveDoubles
 			importNormals = context.scene.ootDLImportNormals
 			drawLayer = bpy.context.scene.ootDLImportDrawLayer
 
 			filepaths = [ootGetObjectPath(isCustomImport, importPath, folderName)]
 			if not isCustomImport:
+				if importAll:
+					raise PluginError("Import All DLs requires custom import path!")
 				filepaths.append(os.path.join(bpy.context.scene.ootDecompPath, "assets/objects/gameplay_keep/gameplay_keep.c"))
 
-			importMeshC(filepaths, name, scale, removeDoubles, importNormals, drawLayer,
-				OOTF3DContext(F3D("F3DEX2/LX2", False), [name], basePath))
+			data = getImportData(filepaths)
+			dlNames = findAllDLs(data) if importAll else [name]
+			for n in dlNames:
+				print('Importing DL ' + n)
+				importMeshC(data, n, scale, removeDoubles, importNormals, drawLayer,
+					OOTF3DContext(F3D("F3DEX2/LX2", False), [n], basePath), importAll)
 
 			self.report({'INFO'}, 'Success!')		
 			return {'FINISHED'}
@@ -298,7 +305,7 @@ class OOT_ExportDL(bpy.types.Operator):
 
 class OOT_ExportDLPanel(OOT_Panel):
 	bl_idname = "OOT_PT_export_dl"
-	bl_label = "OOT DL Exporter"
+	bl_label = "OOT DL Import/Export"
 
 	# called every frame
 	def draw(self, context):
@@ -316,14 +323,18 @@ class OOT_ExportDLPanel(OOT_Panel):
 
 		col.operator(OOT_ImportDL.bl_idname)
 
-		prop_split(col, context.scene, 'ootDLImportName', "DL")
+		if not context.scene.ootDLImportAll:
+			prop_split(col, context.scene, 'ootDLImportName', "DL")
 		if context.scene.ootDLImportUseCustomPath:
 			prop_split(col, context.scene, 'ootDLImportCustomPath', "File")
 		else:		
 			prop_split(col, context.scene, 'ootDLImportFolderName', "Object")
 		prop_split(col, context.scene, "ootDLImportDrawLayer", "Import Draw Layer")
+		if context.scene.ootDLImportAll:
+			col.label(icon = 'INFO', text = 'May have to manually fix layers after.')
 
 		col.prop(context.scene, "ootDLImportUseCustomPath")
+		col.prop(context.scene, "ootDLImportAll")
 		col.prop(context.scene, "ootDLRemoveDoubles")
 		col.prop(context.scene, "ootDLImportNormals")
 
@@ -495,6 +506,7 @@ def oot_dl_writer_register():
 	bpy.types.Scene.ootDLImportUseCustomPath = bpy.props.BoolProperty(
 		name = "Use Custom Path")
 
+	bpy.types.Scene.ootDLImportAll = bpy.props.BoolProperty(name = "Import All DLs", default = False)
 	bpy.types.Scene.ootDLRemoveDoubles = bpy.props.BoolProperty(name = "Remove Doubles", default = True)
 	bpy.types.Scene.ootDLImportNormals = bpy.props.BoolProperty(name = "Import Normals", default = True)
 	bpy.types.Scene.ootDLImportDrawLayer = bpy.props.EnumProperty(name = "Draw Layer", items = ootEnumDrawLayers)
@@ -519,6 +531,7 @@ def oot_dl_writer_unregister():
 	del bpy.types.Scene.ootDLImportCustomPath
 	del bpy.types.Scene.ootDLImportUseCustomPath
 
+	del bpy.types.Scene.ootDLImportAll
 	del bpy.types.Scene.ootDLRemoveDoubles
 	del bpy.types.Scene.ootDLImportNormals
 	del bpy.types.Scene.ootDLImportDrawLayer

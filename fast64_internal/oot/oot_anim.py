@@ -401,7 +401,7 @@ class OOT_ImportAnim(bpy.types.Operator):
 
 class OOT_ExportAnimPanel(OOT_Panel):
 	bl_idname = "OOT_PT_export_anim"
-	bl_label = "OOT Animation Exporter"
+	bl_label = "OOT Animation Import/Export"
 
 	# called every frame
 	def draw(self, context):
