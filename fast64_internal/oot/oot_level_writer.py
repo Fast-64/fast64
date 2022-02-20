@@ -580,7 +580,7 @@ class OOT_ExportScene(bpy.types.Operator):
 
 def ootRemoveSceneC(exportInfo):
 	modifySceneTable(None, exportInfo)
-	modifySegmentDefinition(None, exportInfo)
+	modifySegmentDefinition(None, exportInfo, None)
 	deleteSceneFiles(exportInfo)
 
 class OOT_RemoveScene(bpy.types.Operator):

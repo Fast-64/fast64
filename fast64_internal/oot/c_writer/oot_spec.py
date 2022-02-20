@@ -12,23 +12,31 @@ def getSegmentDefinitionEntryBySceneName(segmentDefinition, sceneName):
 
 def readSegmentDefinition(exportPath):
 	fileData = readFile(os.path.join(exportPath, 'spec'))
-	segmentDefinition = parseSegmentDefinitionData(fileData)
+	segmentDefinition, compressFlag = parseSegmentDefinitionData(fileData)
 
-	return segmentDefinition, fileData
+	return segmentDefinition, fileData, compressFlag
 
 def parseSegmentDefinitionData(data):
 	table = []
+	compressFlag = ""
 	for match in re.finditer('beginseg(((?!endseg).)*)endseg', data, re.DOTALL):
 		segData = match.group(1)
 		table.append(segData)
 
-	return table
+		# avoid deleting compress flag if the user is using it
+		# (defined by whether it is present at least once in spec or not)
+		if segData.find("compress") != -1:
+			compressFlag = indent + "compress\n"
+
+	return table, compressFlag
 
 def segmentDefinitionToString(segmentDefinitions):
 	data = '/*\n * ROM spec file\n */\n\n'
 	for entry in segmentDefinitions:
 		data += "beginseg" + entry + "endseg\n\n"
-	return data
+
+	# return the data and remove the extra ``\n`` at the end of the file
+	return data[:-1]
 
 def writeSegmentDefinition(segmentDefinition, fileData, exportPath):
 	newFileData = segmentDefinitionToString(segmentDefinition)
@@ -38,7 +46,7 @@ def writeSegmentDefinition(segmentDefinition, fileData, exportPath):
 
 def modifySegmentDefinition(scene, exportInfo, levelC):
 	exportPath = exportInfo.exportPath
-	segmentDefinitions, fileData = readSegmentDefinition(exportPath)
+	segmentDefinitions, fileData, compressFlag = readSegmentDefinition(exportPath)
 	sceneName = scene.name if scene is not None else exportInfo.name
 	entries = getSegmentDefinitionEntryBySceneName(segmentDefinitions, sceneName)
 
@@ -57,34 +65,38 @@ def modifySegmentDefinition(scene, exportInfo, levelC):
 	if scene is not None:
 		if bpy.context.scene.ootSceneSingleFile:
 			segmentDefinitions.insert(firstIndex,
-				'\n\tname "' + scene.name + '_scene"\n' +\
-				"\tromalign 0x1000\n" +\
-				'\tinclude "' + includeDir + '_scene.o"\n' +\
-				"\tnumber 2\n")
+				'\n' + indent + 'name "' + scene.name + '_scene"\n' +\
+				compressFlag +\
+				indent + "romalign 0x1000\n" +\
+				indent + 'include "' + includeDir + '_scene.o"\n' +\
+				indent + "number 2\n")
 			firstIndex += 1
 
 			for i in range(len(scene.rooms)):
 				roomSuffix = "_room_" + str(i)
 				segmentDefinitions.insert(firstIndex, 
-					'\n\tname "' + scene.name + roomSuffix + '"\n' +\
-					"\tromalign 0x1000\n" +\
-					'\tinclude "' + includeDir + roomSuffix + '.o"\n' +\
-					"\tnumber 3\n")
+					'\n' + indent + 'name "' + scene.name + roomSuffix + '"\n' +\
+					compressFlag +\
+					indent + "romalign 0x1000\n" +\
+					indent + 'include "' + includeDir + roomSuffix + '.o"\n' +\
+					indent + "number 3\n")
 				firstIndex += 1
 		else:
-			sceneSegInclude = '\n\tname "' + scene.name + '_scene"\n' +\
-				"\tromalign 0x1000\n" +\
-				'\tinclude "' + includeDir + '_scene_main.o"\n' +\
-				'\tinclude "' + includeDir + '_scene_col.o"\n'
+			sceneSegInclude = '\n' + indent + 'name "' + scene.name + '_scene"\n' +\
+				compressFlag +\
+				indent + "romalign 0x1000\n" +\
+				indent + 'include "' + includeDir + '_scene_main.o"\n' +\
+				indent + 'include "' + includeDir + '_scene_col.o"\n'
 			
-			if (levelC.sceneTexturesIsUsed()):
-				sceneSegInclude += '\tinclude "' + includeDir + '_scene_tex.o"\n'
-			
-			if (levelC.sceneCutscenesIsUsed()):
-				for i in range(len(levelC.sceneCutscenesC)):
-					sceneSegInclude += includeDir + '_cs_' + str(i) + '.o'
+			if levelC != None:
+				if (levelC.sceneTexturesIsUsed()):
+					sceneSegInclude += indent + 'include "' + includeDir + '_scene_tex.o"\n'
 				
-			sceneSegInclude += "\tnumber 2\n"
+				if (levelC.sceneCutscenesIsUsed()):
+					for i in range(len(levelC.sceneCutscenesC)):
+						sceneSegInclude += includeDir + '_cs_' + str(i) + '.o'
+				
+			sceneSegInclude += indent + "number 2\n"
 
 			segmentDefinitions.insert(firstIndex, sceneSegInclude)
 
@@ -93,12 +105,13 @@ def modifySegmentDefinition(scene, exportInfo, levelC):
 			for i in range(len(scene.rooms)):
 				roomSuffix = "_room_" + str(i)
 				segmentDefinitions.insert(firstIndex, 
-					'\n\tname "' + scene.name + roomSuffix + '"\n' +\
-					"\tromalign 0x1000\n" +\
-					'\tinclude "' + includeDir + roomSuffix + '_main.o"\n' +\
-					'\tinclude "' + includeDir + roomSuffix + '_model_info.o"\n' +\
-					'\tinclude "' + includeDir + roomSuffix + '_model.o"\n' +\
-					"\tnumber 3\n")
+					'\n' + indent + 'name "' + scene.name + roomSuffix + '"\n' +\
+					compressFlag +\
+					indent + "romalign 0x1000\n" +\
+					indent + 'include "' + includeDir + roomSuffix + '_main.o"\n' +\
+					indent + 'include "' + includeDir + roomSuffix + '_model_info.o"\n' +\
+					indent + 'include "' + includeDir + roomSuffix + '_model.o"\n' +\
+					indent + "number 3\n")
 				firstIndex += 1
 
 	writeSegmentDefinition(segmentDefinitions, fileData, exportPath)
