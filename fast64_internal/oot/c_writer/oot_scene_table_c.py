@@ -135,7 +135,7 @@ def modifySceneTable(scene, exportInfo):
 
 	# remove the scene data if scene is None (`Remove Scene` button)
 	if scene is None:
-		if sceneIndex < len(fileData):
+		if sceneIndex is not None and sceneIndex < len(fileData):
 			if (exportInfo.name + "_scene") == fileData[sceneIndex][0]:
 				fileData.pop(sceneIndex)
 		else:

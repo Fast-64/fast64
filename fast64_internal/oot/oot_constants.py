@@ -1377,7 +1377,7 @@ ootSceneIDToName = {
 	"SCENE_BESITU" : "besitu",
 	"SCENE_DEPTH_TEST" : "depth_test",
 	"SCENE_SYOTES" : "syotes",
-	"SCENE_SYOTES2" : "syotes2_scen",
+	"SCENE_SYOTES2" : "syotes2",
 	"SCENE_SUTARU" : "sutaru",
 	"SCENE_HAIRAL_NIWA2" : "hairal_niwa2",
 	"SCENE_SASATEST" : "sasatest",
