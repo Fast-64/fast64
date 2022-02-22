@@ -1157,6 +1157,7 @@ ootEnumTransitionAnims = [
 	("0x2C", "Shortcut Transition", "Shortcut Transition"),
 ]
 
+# The order of this list matters (normal OoT scene order as defined by ``scene_table.h``)
 ootEnumSceneID = [
 	("Custom", "Custom", "Custom"),
 	("SCENE_YDAN", "Inside the Deku Tree (Ydan)", "Ydan"),
