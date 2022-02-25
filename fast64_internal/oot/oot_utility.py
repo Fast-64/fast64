@@ -640,19 +640,23 @@ def getActorParameter(object, field, shift, mask):
 				return f"(({attr} << {shift}) & {mask}) | "
 			else:
 				return f"({attr} & {mask}) | " 
-		elif isinstance(attr, bool) and attr:
-			return f"(1 << {shift}) | "
+		elif isinstance(attr, bool):
+			if attr:
+				return f"(1 << {shift}) | "
+			else:
+				return ""
 		else:
-			return ""
+			raise NotImplementedError
 	else:
 		return ""
 
 def getActorFinalParameters(detailedProp, actorKey, paramTarget, field):
 	'''Returns the full parameter string'''
 	params = ""
-	if field != None:
+	if field is not None:
 		panelParams = getattr(detailedProp, field, "")
-		if panelParams == "": return "0x0"
+		if panelParams == "":
+			return "0x0"
 	for actorNode in root:
 		if actorKey == actorNode.get('Key'):
 			lenProp = getMaxElemIndex(actorKey, 'Property', None)
@@ -663,7 +667,7 @@ def getActorFinalParameters(detailedProp, actorKey, paramTarget, field):
 				actorType = getattr(detailedProp, actorKey + '.type', None)
 				if hasTiedParams(elem.get('TiedParam'), actorType):
 					params += getActorString(elem, detailedProp, actorKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
-	params = params.rstrip(' | ')
+	params = params.rstrip().rstrip('|').rstrip()
 	if paramTarget == 'Params':
 		actorType = getattr(detailedProp, actorKey + '.type', '0')
 		if params == '':
@@ -687,7 +691,7 @@ def setActorParameter(object, field, param, mask):
 		elif isinstance(attr, bool):
 			setattr(object, field, bool((param & mask) >> shift))
 		else:
-			setattr(object, field, '0x09')
+			raise NotImplementedError
 
 def getMaxElemIndex(actorKey, elemTag, flagType):
 	'''Looking for the highest index for the current actor'''
@@ -701,12 +705,14 @@ def getMaxElemIndex(actorKey, elemTag, flagType):
 	return length
 
 def hasTiedParams(tiedParam, actorType):
-	'''Looking for parameters that depends on other parameters'''
+	'''Looking for parameters that depend on other parameters'''
 	if tiedParam is None or actorType is None:
 		return True
 	else:
-		if tiedParam.find(',') != -1: tiedList = tiedParam.split(',')
-		else: tiedList = [tiedParam]
+		if tiedParam.find(',') != -1:
+			tiedList = tiedParam.split(',')
+		else:
+			tiedList = [tiedParam]
 
 		if actorType is not None:
 			if len(tiedList) == 1 and tiedList[0] == actorType:

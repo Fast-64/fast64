@@ -143,7 +143,7 @@ def drawParams(box, detailedProp, key, elemField, elemName, elTag, elType, lenSw
 				# Set the name to none to use the element's name instead
 				# Set the name to the element's name if it's a flag and its name is set
 				curName = elem.get('Name')
-				if elemName == None or (elTag == 'Flag' and curName is not None): name = curName
+				if elemName is None or (elTag == 'Flag' and curName is not None): name = curName
 
 				# Add the index to get the proper attribute
 				if elTag == 'Property' or (elTag == 'Flag' and elType == 'Switch') or elTag == 'Bool' or elTag == 'Enum':
