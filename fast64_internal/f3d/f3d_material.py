@@ -395,6 +395,8 @@ def ui_lower_mode(settings, dataHolder, layout: bpy.types.UILayout, useDropdown)
 			icon = 'TRIA_DOWN' if dataHolder.menu_lower else 'TRIA_RIGHT')
 	if not useDropdown or dataHolder.menu_lower:
 		prop_split(inputGroup, settings, 'g_mdsft_alpha_compare', 'Alpha Compare')
+		if settings.g_mdsft_alpha_compare == 'G_AC_THRESHOLD' and settings.g_mdsft_cycletype == 'G_CYC_2CYCLE':
+			inputGroup.label(text = 'Compares blend alpha to *first cycle* combined (CC) alpha.')
 		prop_split(inputGroup, settings, 'g_mdsft_zsrcsel', 'Z Source Selection')
 	if settings.g_mdsft_zsrcsel == 'G_ZS_PRIM':
 		prim_box = inputGroup.box()
@@ -933,6 +935,9 @@ class F3DPanel(bpy.types.Panel):
 			rowAlpha.prop(f3dMat.combiner1, 'B_alpha')
 			rowAlpha.prop(f3dMat.combiner1, 'C_alpha')
 			rowAlpha.prop(f3dMat.combiner1, 'D_alpha')
+			if (f3dMat.rdp_settings.g_mdsft_alpha_compare == 'G_AC_THRESHOLD' 
+				and f3dMat.rdp_settings.g_mdsft_cycletype == 'G_CYC_2CYCLE'):
+				combinerBox.label(text = 'First cycle alpha out used for compare threshold.')
 
 			if f3dMat.rdp_settings.g_mdsft_cycletype == 'G_CYC_2CYCLE':
 				combinerBox2 = layout.box()
@@ -951,8 +956,8 @@ class F3DPanel(bpy.types.Panel):
 				rowAlpha2.prop(f3dMat.combiner2, 'C_alpha')
 				rowAlpha2.prop(f3dMat.combiner2, 'D_alpha')
 
-				layout.box().label(
-					text = 'Note: In cycle 2, texture 0 and texture 1 are flipped.')
+				combinerBox2.label(
+					text = 'Note: In second cycle, texture 0 and texture 1 are flipped.')
 
 			#layout.box().label(
 			#	text = 'Note: Alpha preview is not 100% accurate.')
