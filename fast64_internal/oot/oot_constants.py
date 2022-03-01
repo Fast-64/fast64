@@ -1262,7 +1262,7 @@ ootEnumSceneID = [
 	("SCENE_SPOT20", "Lon Lon Ranch (Spot20)", "Spot20"),
 	("SCENE_GANON_TOU", "Ganon's Castle Exterior (Ganon Tou)", "Ganon Tou"),
 	("SCENE_TEST01", "Jungle Gym (Test01)", "Test01"),
-	("SCENE_BESITU", "Ganandorf Test Room (Besitu)", "Besitu"),
+	("SCENE_BESITU", "Ganondorf Test Room (Besitu)", "Besitu"),
 	("SCENE_DEPTH_TEST", "Depth Test (Depth Test)", "Depth Test"),
 	("SCENE_SYOTES", "Stalfos Mini-Boss Room (Syotes)", "Syotes"),
 	("SCENE_SYOTES2", "Stalfos Boss ROom (Syotes2)", "Syotes2"),
