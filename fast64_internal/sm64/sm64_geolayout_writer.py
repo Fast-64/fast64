@@ -1810,7 +1810,7 @@ def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
 				saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
 			if fMaterial.useLargeTextures:
 				currentGroupIndex = saveMeshWithLargeTexturesByFaces(material, bFaces, fModel,
-					fMeshes[drawLayer], obj, drawLayer, convertTextureData, None, triConverterInfo, None, None)
+					fMeshes[drawLayer], obj, drawLayer, convertTextureData, None, triConverterInfo, None, None, lastMaterialName)
 			else:
 				saveMeshByFaces(material, bFaces, fModel, fMeshes[drawLayer], obj,
 					drawLayer, convertTextureData, None, triConverterInfo, None, None, lastMaterialName)
@@ -2076,7 +2076,8 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, meshName, skinnedMeshName, o
 		if fMaterial.useLargeTextures:
 			saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj,
 				drawLayer, convertTextureData, None, triConverterInfo,
-				copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict))
+				copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict),
+    			lastMaterialName)
 		else:
 			saveMeshByFaces(material, faces,
 				fModel, fMesh, obj, drawLayer,
