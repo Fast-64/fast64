@@ -528,7 +528,7 @@ def parseLevelScript(filepath, levelName):
 				levelscript.segmentLoads.append(macroCmd)
 			elif macroCmd[0] == 'JUMP_LINK':
 				levelscript.levelFunctions.append(macroCmd)
-			elif macroCmd[0] == 'LOAD_MODEL_FROM_GEO':
+			elif macroCmd[0] in ['LOAD_MODEL_FROM_GEO', 'LOAD_MODEL_FROM_DL']:
 				levelscript.modelLoads.append(macroCmd)
 			elif macroCmd[0] == 'MARIO':
 				levelscript.mario = macroToString(macroCmd, True)
