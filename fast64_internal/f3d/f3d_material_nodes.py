@@ -560,8 +560,8 @@ def createTexCoordNode(node_tree, location, uvSocket, socketDict, isV):
 	socketDict, nextSocketIndex = socketDictToInternalSocket(
 		node_tree, groupNode, input_node, socketDict, 1, True)
 
-	output_node.inputs.new('NodeSocketVector', 'UV')
-	
+	output_node_input_socket = output_node.inputs.new('NodeSocketVector', 'UV')
+
 	x = 0
 	y = 0
 
@@ -714,7 +714,23 @@ def createTexCoordNode(node_tree, location, uvSocket, socketDict, isV):
 	links.new(mix0Mask.inputs[2], mirrorMix.outputs[0])
 
 	# Output
-	links.new(output_node.inputs[0], mix0Mask.outputs[0])
+
+	# In Blender 3.1, for some reason output_node.inputs[0] is some junk socket,
+	# and the socket we want to use is actually output_node.inputs[1].
+	# So just use the socket as returned on creation above, output_node_input_socket.
+	#
+	# But in earlier Blender versions, like Blender 2.93, output_node_input_socket as
+	# returned above is some junk socket that is not the actual input socket. (bug?)
+	#
+	# So we check the Blender version here, lack of a better option.
+	#
+	# Also note inputs[0] needs to be accessed here for some reason, it can't be accessed
+	# above right after new(), at least in Blender 2.93 it doesn't work. (bug?)
+	if bpy.app.version < (3, 1, 0):
+		links.new(mix0Mask.outputs[0], output_node.inputs[0])
+	else:
+		links.new(mix0Mask.outputs[0], output_node_input_socket)
+
 	return groupNode
 
 def splitTextureVectorInputs(node_tree, socketDict, x, y):
