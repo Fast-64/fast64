@@ -852,9 +852,38 @@ class TriangleConverter:
 	def writeCelLevels(self, celTriList = None, triCmds = None):
 		lastInverse = None
 		lastLighten = None
+		usedForward = usedInverse = useDecal = False
+		for level in self.celShadingInfo['levels']:
+			if level['inverse']:
+				if usedInverse:
+					useDecal = True
+				elif useDecal:
+					raise PluginError('Must use forward and inverse cel levels before using more duplicates')
+				usedInverse = True
+			else:
+				if usedForward:
+					useDecal = True
+				elif useDecal:
+					raise PluginError('Must use forward and inverse cel levels before using more duplicates')
+				usedForward = True
 		colorSrc = 'ENVIRONMENT' if self.celShadingInfo['solid'] else 'TEXEL0'
+		usedForward = usedInverse = wroteOpaque = wroteDecal = False
 		for level in self.celShadingInfo['levels']:
 			self.triList.commands.append(DPPipeSync())
+			if useDecal:
+				if not wroteOpaque:
+					wroteOpaque = True
+					self.triList.commands.append(SPSetOtherMode("G_SETOTHERMODE_L",
+						10, 2, ["ZMODE_OPA"]))
+				elif not wroteDecal and (level['inverse'] and usedInverse or 
+					not level['inverse'] and usedForward):
+					wroteDecal = True
+					self.triList.commands.append(SPSetOtherMode("G_SETOTHERMODE_L",
+						10, 2, ["ZMODE_DEC"]))
+			if level['inverse']:
+				usedInverse = True
+			else:
+				usedForward = True
 			if lastInverse != level['inverse'] or lastLighten != level['lighten']:
 				# Set up combiner
 				lastInverse = level['inverse']

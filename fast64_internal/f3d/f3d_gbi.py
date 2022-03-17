@@ -3916,7 +3916,7 @@ class SPSetOtherMode:
 		self.cmd = cmd
 		self.sft = sft
 		self.length = length
-		self.flagList = []
+		self.flagList = flagList
 
 	def to_binary(self, f3d, segments):
 		data = 0
