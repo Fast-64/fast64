@@ -49,3 +49,13 @@ A new optimized shader graph was introduced to decrease processing times for mat
 ### Fast64 Development
 If you'd like to develop in VSCode, follow this tutorial to get proper autocomplete. Skip the linter for now, we'll need to make sure the entire project gets linted before enabling autosave linting because the changes will be massive.
 https://b3d.interplanety.org/en/using-microsoft-visual-studio-code-as-external-ide-for-writing-blender-scripts-add-ons/
+
+#### Formatting
+
+We use [Black](https://black.readthedocs.io/en/stable/index.html).
+
+To make VS Code use it, change the `python.formatting.provider` setting to "black". VS Code will ask you to install Black if not already installed.
+
+To format the whole repo, run `black .` (or `python3 -m black .` depending on how it is installed) from the root of the repo.
+
+The (minimal) configuration for Black is in `/pyproject.toml`.
