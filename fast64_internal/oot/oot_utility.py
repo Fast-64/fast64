@@ -3,6 +3,9 @@ import bpy, math, mathutils, os, re
 from bpy.utils import register_class, unregister_class
 from .oot_constants import root
 
+# default indentation to use when writing to decomp files
+indent = " " * 4
+
 ootSceneDungeons = [
 	"bdan",
 	"bdan_boss",

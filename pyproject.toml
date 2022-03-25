@@ -1,0 +1,19 @@
+[tool.black]
+# Black configuration (code formatter)
+# See https://black.readthedocs.io/en/stable/usage_and_configuration/the_basics.html
+# or `black --help` for what can go here
+
+line-length = 120
+
+target-version = [
+    'py37', # used by Blender 2.80
+    'py39', # used by Blender 3.0.1
+]
+
+# What files to exclude when running Black on directories (for example `black .`)
+# Use forward slashes for directory delimiters, even on Windows
+# This is a regular expression, escape dots with a backslash like '\.'
+# Note: All whitespace seems to be trimmed (thankfully), probably by Black?
+extend-exclude = '''
+^/fast64_internal/f3d/f3d_constants\.py
+'''
