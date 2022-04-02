@@ -170,7 +170,7 @@ def exportCollisionCommon(collision, obj, transformMatrix, includeChildren, name
 			# This prevents a bug due to an optimization in OoT's CollisionPoly_GetMinY.
 			# https://github.com/zeldaret/oot/blob/791d9018c09925138b9f830f7ae8142119905c05/src/code/z_bgcheck.c#L161
 			#
-			# 2) The vertices should wrap around the polygon normal **clockwise**.
+			# 2) The vertices should wrap around the polygon normal **counter-clockwise**.
 			# This is needed for OoT's dynapoly, which is collision that can move.
 			# When it moves, the vertex coordinates and normals are recomputed.
 			# The normal is computed based on the vertex coordinates, which makes the order of vertices matter.
