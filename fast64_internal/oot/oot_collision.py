@@ -153,6 +153,7 @@ def exportCollisionCommon(collision, obj, transformMatrix, includeChildren, name
 	for polygonType, faces in collisionDict.items():
 		collision.polygonGroups[polygonType] = []
 		for (faceVerts, normal, distance) in faces:
+			assert len(faceVerts) == 3
 			indices = []
 			for roundedPosition in faceVerts:
 				index = collisionVertIndex(roundedPosition, collision.vertices)
@@ -161,6 +162,32 @@ def exportCollisionCommon(collision, obj, transformMatrix, includeChildren, name
 					indices.append(len(collision.vertices) - 1)
 				else:
 					indices.append(index)
+			assert len(indices) == 3
+
+			# We need to ensure two things about the order in which the vertex indices are:
+			#
+			# 1) The vertex with the minimum y coordinate should be first.
+			# This prevents a bug due to an optimization in OoT's CollisionPoly_GetMinY.
+			# https://github.com/zeldaret/oot/blob/791d9018c09925138b9f830f7ae8142119905c05/src/code/z_bgcheck.c#L161
+			#
+			# 2) The vertices should wrap around the polygon normal **clockwise**.
+			# This is needed for OoT's dynapoly, which is collision that can move.
+			# When it moves, the vertex coordinates and normals are recomputed.
+			# The normal is computed based on the vertex coordinates, which makes the order of vertices matter.
+			# https://github.com/zeldaret/oot/blob/791d9018c09925138b9f830f7ae8142119905c05/src/code/z_bgcheck.c#L2888
+
+			# Address 1): sort by ascending y coordinate
+			indices.sort(key = lambda index: collision.vertices[index].position[1])
+
+			# Address 2):
+			# swap indices[1] and indices[2],
+			# if the normal computed from the vertices in the current order is the wrong way.
+			v0 = mathutils.Vector(collision.vertices[indices[0]].position)
+			v1 = mathutils.Vector(collision.vertices[indices[1]].position)
+			v2 = mathutils.Vector(collision.vertices[indices[2]].position)
+			if (v1 - v0).cross(v2 - v0).dot(mathutils.Vector(normal)) < 0:
+				indices[1], indices[2] = indices[2], indices[1]
+
 			collision.polygonGroups[polygonType].append(OOTCollisionPolygon(indices, normal, distance))
 
 def exportCollisionToC(originalObj, transformMatrix, includeChildren, name, isCustomExport, folderName, 
@@ -256,10 +283,10 @@ def addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix, 
 			if polygonType not in collisionDict:
 				collisionDict[polygonType] = []
 			
-			positions = sorted((
+			positions = (
 				(x1, y1, z1),
 				(x2, y2, z2),
-				(x3, y3, z3)), key=lambda x: x[1]) # sort by min y to avoid minY bug
+				(x3, y3, z3))
 
 			collisionDict[polygonType].append((positions, normal, distance))
 	
