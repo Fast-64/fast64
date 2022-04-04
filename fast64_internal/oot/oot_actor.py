@@ -7,6 +7,22 @@ from ..utility import *
 from .oot_operators import *
 
 # General classes and functions
+
+class OOT_UpgradeActors(bpy.types.Operator):
+	bl_idname = 'object.oot_upgrade_actors'
+	bl_label = "Upgrade Data Now!"
+	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
+
+	version: bpy.props.IntProperty(name="OOT_ObjectProperties Version", default=0)
+	cur_version = 1 # version after property migration
+
+	def execute(self, context):
+		for obj in bpy.context.scene.objects:
+			if obj.fast64.oot.version != self.cur_version:
+				OOTActorProperties.upgrade_object(obj)
+			obj.fast64.oot.version = self.cur_version
+		return {'FINISHED'}
+
 class OOT_SearchChestContentEnumOperator(bpy.types.Operator):
 	bl_idname = "object.oot_search_chest_content_enum_operator"
 	bl_label = "Select Chest Content"
@@ -485,6 +501,7 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
 		if sceneObj is None: sceneName = 'Unknown'
 		else: sceneName = sceneObj.name
 		actorIDBox.box().label(text=f"Scene: '{sceneName}' Actors are not synchronised!")
+		actorIDBox.operator(OOT_UpgradeActors.bl_idname)
 
 # Transition Actor Property
 class OOT_SearchTransActorIDEnumOperator(bpy.types.Operator):

@@ -193,6 +193,7 @@ oot_obj_classes = (
 	OOT_SearchSceneEnumOperator,
 	OOT_SearchChestContentEnumOperator,
 	OOT_SearchNaviMsgIDEnumOperator,
+	OOT_UpgradeActors,
 	OOTLightProperty,
 	OOTLightGroupProperty,
 	OOTObjectProperty,
