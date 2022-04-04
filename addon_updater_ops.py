@@ -1414,7 +1414,7 @@ def register(bl_info):
     # update. If a pattern file is not found in new update, no action is taken
     # NOTE: This does NOT delete anything proactively, rather only defines what
     # is allowed to be overwritten during an update execution.
-    updater.overwrite_patterns = ["*.png", "*.jpg", "*.blend", "*.xml", "README.md", "LICENSE.txt", "pyproject.toml"]
+    updater.overwrite_patterns = ["*.png", "*.jpg", "*.gif", "*.blend", "*.xml", "README.md", "LICENSE.txt", "pyproject.toml"]
 
     # Patterns for files to actively remove prior to running update.
     # Useful if wanting to remove old code due to changes in filenames
