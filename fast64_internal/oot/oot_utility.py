@@ -387,16 +387,6 @@ def drawEnumWithCustom(panel, data, attribute, name, customName):
 	if getattr(data, attribute) == "Custom":
 		prop_split(panel, data, attribute + "Custom", customName)
 
-def convertNormalizedFloatToShort(value):
-	return min(max(round(value * 2**15), -2**15), 2**15 - 1)
-
-def convertNormalizedVectorToShort(value):
-	return (
-		convertNormalizedFloatToShort(value[0]),
-		convertNormalizedFloatToShort(value[1]),
-		convertNormalizedFloatToShort(value[2]),
-	)
-
 def getEnumName(enumItems, value):
 	for enumTuple in enumItems:
 		if enumTuple[0] == value:
