@@ -1385,7 +1385,7 @@ def register(bl_info):
     updater.website = "https://github.com/Fast-64/fast64"
 
     # Used to check/compare versions.
-    updater.current_version = None
+    updater.current_version = bl_info["version"]
 
     # Optional, consider turning off for production or allow as an option
     # This will print out additional debugging info to the console
