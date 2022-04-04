@@ -264,7 +264,6 @@ def addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix, 
 			updateBounds((x3, y3, z3), bounds)
 
 			faceNormal = (transformMatrix.inverted().transposed() @ face.normal).normalized()
-			normal = convertNormalizedVectorToShort(faceNormal)
 			distance = int(round(-1 * (
 				faceNormal[0] * planePoint[0] + \
 				faceNormal[1] * planePoint[1] + \
@@ -288,7 +287,7 @@ def addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix, 
 				(x2, y2, z2),
 				(x3, y3, z3))
 
-			collisionDict[polygonType].append((positions, normal, distance))
+			collisionDict[polygonType].append((positions, faceNormal, distance))
 	
 	if includeChildren:
 		for child in obj.children:
@@ -316,14 +315,22 @@ def ootCollisionVertexToC(vertex):
 		str(vertex.position[2]) + " },\n"
 
 def ootCollisionPolygonToC(polygon, ignoreCamera, ignoreActor, ignoreProjectile, enableConveyor, polygonTypeIndex):
-	return "{ " + format(polygonTypeIndex, "#06x") + ', ' +\
-		format(polygon.convertShort02(ignoreCamera, ignoreActor, ignoreProjectile), "#06x") + ', ' +\
-		format(polygon.convertShort04(enableConveyor), "#06x") + ', ' +\
-		format(polygon.convertShort06(), "#06x") + ', ' +\
-		format(polygon.normal[0], "#06x") + ', ' +\
-		format(polygon.normal[1], "#06x") + ', ' +\
-		format(polygon.normal[2], "#06x") + ', ' +\
-		format(polygon.distance, "#06x") + ' },\n'
+	return (
+		"{ "
+		+ ", ".join(
+			(
+				format(polygonTypeIndex, "#06x"),
+				format(polygon.convertShort02(ignoreCamera, ignoreActor, ignoreProjectile), "#06x"),
+				format(polygon.convertShort04(enableConveyor), "#06x"),
+				format(polygon.convertShort06(), "#06x"),
+				"COLPOLY_SNORMAL({})".format(polygon.normal[0]),
+				"COLPOLY_SNORMAL({})".format(polygon.normal[1]),
+				"COLPOLY_SNORMAL({})".format(polygon.normal[2]),
+				format(polygon.distance, "#06x"),
+			)
+		)
+		+ " },\n"
+	)
 
 def ootPolygonTypeToC(polygonType):
 	return "{ " + format(polygonType.convertHigh(), "#010x") + ', ' +\
