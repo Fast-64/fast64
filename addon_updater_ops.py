@@ -72,7 +72,7 @@ except Exception as e:
 # not match and have errors. Must be all lowercase and no spaces! Should also
 # be unique among any other addons that could exist (using this updater code),
 # to avoid clashes in operator registration.
-updater.addon = "addon_updater_demo"
+updater.addon = "fast64"
 
 
 # -----------------------------------------------------------------------------
@@ -1315,6 +1315,40 @@ def select_link_function(self, tag):
 
     return link
 
+class AddonUpdaterPreferences:
+    bl_idname = __package__
+
+    auto_check_update: bpy.props.BoolProperty(
+        name="Auto-check for Update",
+        description="If enabled, auto-check for updates using an interval",
+        default=False)
+
+    updater_interval_months: bpy.props.IntProperty(
+        name='Months',
+        description="Number of months between checking for updates",
+        default=0,
+        min=0)
+
+    updater_interval_days: bpy.props.IntProperty(
+        name='Days',
+        description="Number of days between checking for updates",
+        default=7,
+        min=0,
+        max=31)
+
+    updater_interval_hours: bpy.props.IntProperty(
+        name='Hours',
+        description="Number of hours between checking for updates",
+        default=0,
+        min=0,
+        max=23)
+
+    updater_interval_minutes: bpy.props.IntProperty(
+        name='Minutes',
+        description="Number of minutes between checking for updates",
+        default=0,
+        min=0,
+        max=59)
 
 # -----------------------------------------------------------------------------
 # Register, should be run in the register module itself
@@ -1340,41 +1374,18 @@ def register(bl_info):
         return
     updater.clear_state()  # Clear internal vars, avoids reloading oddities.
 
-    # Confirm your updater "engine" (Github is default if not specified).
+    # https://github.com/Fast-64/fast64
     updater.engine = "Github"
-    # updater.engine = "GitLab"
-    # updater.engine = "Bitbucket"
-
-    # If using private repository, indicate the token here.
-    # Must be set after assigning the engine.
-    # **WARNING** Depending on the engine, this token can act like a password!!
-    # Only provide a token if the project is *non-public*, see readme for
-    # other considerations and suggestions from a security standpoint.
-    updater.private_token = None  # "tokenstring"
-
-    # Choose your own username, must match website (not needed for GitLab).
-    updater.user = "cgcookie"
-
-    # Choose your own repository, must match git name for GitHUb and Bitbucket,
-    # for GitLab use project ID (numbers only).
-    updater.repo = "blender-addon-updater"
+    updater.user = "Fast-64"
+    updater.repo = "fast64"
 
     # updater.addon = # define at top of module, MUST be done first
 
     # Website for manual addon download, optional but recommended to set.
-    updater.website = "https://github.com/CGCookie/blender-addon-updater/"
-
-    # Addon subfolder path.
-    # "sample/path/to/addon"
-    # default is "" or None, meaning root
-    updater.subfolder_path = ""
+    updater.website = "https://github.com/Fast-64/fast64"
 
     # Used to check/compare versions.
-    updater.current_version = bl_info["version"]
-
-    # Optional, to hard-set update frequency, use this here - however, this
-    # demo has this set via UI properties.
-    # updater.set_check_interval(enabled=False, months=0, days=0, hours=0, minutes=2)
+    updater.current_version = None
 
     # Optional, consider turning off for production or allow as an option
     # This will print out additional debugging info to the console
@@ -1388,12 +1399,10 @@ def register(bl_info):
     # 			/addons/{__package__}/{__package__}_updater
 
     # Auto create a backup of the addon when installing other versions.
-    updater.backup_current = True  # True by default
+    updater.backup_current = True
 
-    # Sample ignore patterns for when creating backup of current during update.
-    updater.backup_ignore_patterns = ["__pycache__"]
-    # Alternate example patterns:
-    # updater.backup_ignore_patterns = [".git", "__pycache__", "*.bat", ".gitignore", "*.exe"]
+    # Ignore patterns for when creating backup of current during update.
+    updater.backup_ignore_patterns = [".git", ".gitignore", "__pycache__", "*.blend", "README.md", "images"]
 
     # Patterns for files to actively overwrite if found in new update file and
     # are also found in the currently installed addon. Note that by default
@@ -1405,21 +1414,7 @@ def register(bl_info):
     # update. If a pattern file is not found in new update, no action is taken
     # NOTE: This does NOT delete anything proactively, rather only defines what
     # is allowed to be overwritten during an update execution.
-    updater.overwrite_patterns = ["*.png", "*.jpg", "README.md", "LICENSE.txt"]
-    # updater.overwrite_patterns = []
-    # other examples:
-    # ["*"] means ALL files/folders will be overwritten by update, was the
-    #    behavior pre updater v1.0.4.
-    # [] or ["*.py","*.pyc"] matches default blender behavior, ie same effect
-    #    if user installs update manually without deleting the existing addon
-    #    first e.g. if existing install and update both have a resource.blend
-    #    file, the existing installed one will remain.
-    # ["some.py"] means if some.py is found in addon update, it will overwrite
-    #    any existing some.py in current addon install, if any.
-    # ["*.json"] means all json files found in addon update will overwrite
-    #    those of same name in current install.
-    # ["*.png","README.md","LICENSE.txt"] means the readme, license, and all
-    #    pngs will be overwritten by update.
+    updater.overwrite_patterns = ["*.png", "*.jpg", "*.blend", "*.xml", "README.md", "LICENSE.txt", "pyproject.toml"]
 
     # Patterns for files to actively remove prior to running update.
     # Useful if wanting to remove old code due to changes in filenames
@@ -1460,7 +1455,7 @@ def register(bl_info):
     # Note: updater.include_branch_list defaults to ['master'] branch if set to
     # none. Example targeting another multiple branches allowed to pull from:
     # updater.include_branch_list = ['master', 'dev']
-    updater.include_branch_list = None  # None is the equivalent = ['master']
+    updater.include_branch_list = ["main"]
 
     # Only allow manual install, thus prompting the user to open
     # the addon's web page to download, specifically: updater.website
@@ -1485,8 +1480,7 @@ def register(bl_info):
     # Set the min and max versions allowed to install.
     # Optional, default None
     # min install (>=) will install this and higher
-    updater.version_min_update = (0, 0, 0)
-    # updater.version_min_update = None  # None or default for no minimum.
+    updater.version_min_update = None
 
     # Max install (<) will install strictly anything lower than this version
     # number, useful to limit the max version a given user can install (e.g.
