@@ -189,8 +189,8 @@ def onUpdateOOTEmptyType(self, context):
 			setLightPropertyValues(timeOfDayLights.night, [40, 70, 100], [20, 20, 35], [50, 50, 100], [0, 0, 30], 0x3E0)
 
 class OOT_ObjectProperties(bpy.types.PropertyGroup):
-	version: bpy.props.IntProperty(name="OOT_ObjectProperties Version", default=0)
 	cur_version = 1 # version after property migration
+	version: bpy.props.IntProperty(name="OOT_ObjectProperties Version", default=cur_version)
 
 	scene: bpy.props.PointerProperty(type=OOTSceneProperties)
 	actor: bpy.props.PointerProperty(type=OOTActorProperties)
@@ -198,9 +198,7 @@ class OOT_ObjectProperties(bpy.types.PropertyGroup):
 	@staticmethod
 	def upgrade_changed_props():
 		for obj in bpy.context.scene.objects:
-			if obj.fast64.oot.version != OOT_ObjectProperties.cur_version:
-				OOTActorProperties.upgrade_object(obj)
-			obj.fast64.oot.version = OOT_ObjectProperties.cur_version
+			OOTActorProperties.upgrade_object(obj)
 
 oot_obj_classes = (
 	OOTActorProperties,

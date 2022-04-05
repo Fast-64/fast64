@@ -54,7 +54,8 @@ class OOTActorProperties(bpy.types.PropertyGroup):
 				print(f"Processing '{obj.name}'...")
 				for child in obj.children:
 					OOTActorProperties.upgrade_object(child)
-			elif (obj.ootEmptyType == 'Actor' or obj.ootEmptyType == 'Transition Actor' or obj.ootEmptyType == 'Entrance'):
+			elif not obj.fast64.oot.actor.isActorSynced and (obj.ootEmptyType == 'Actor' or
+				obj.ootEmptyType == 'Transition Actor' or obj.ootEmptyType == 'Entrance'):
 				upgradeActorInit(obj)
 
 def getValues(self, actorID, actorField, target, paramField):

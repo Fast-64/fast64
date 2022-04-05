@@ -52,7 +52,6 @@ class OOT_AddDoor(bpy.types.Operator):
 		emptyObj.ootEmptyType = "Transition Actor"
 		emptyObj.name = "Door Actor"
 		emptyObj.fast64.oot.actor.transActorID = "ACTOR_EN_DOOR"
-		emptyObj.fast64.oot.version = emptyObj.fast64.oot.cur_version
 		emptyObj.fast64.oot.actor.isActorSynced = True
 		
 		parentObject(cubeObj, emptyObj)
@@ -90,7 +89,6 @@ class OOT_AddScene(bpy.types.Operator):
 		entranceObj.fast64.oot.actor.actorKey = '0x0000'
 		setattr(entranceObj.fast64.oot.actor, '0x0000.type', '0F00')
 		setattr(entranceObj.fast64.oot.actor, '0x0000.props1', '0xFF')
-		entranceObj.fast64.oot.version = entranceObj.fast64.oot.cur_version
 		entranceObj.fast64.oot.actor.isActorSynced = True
 		parentObject(planeObj, entranceObj)
 		
@@ -99,7 +97,6 @@ class OOT_AddScene(bpy.types.Operator):
 		roomObj = context.view_layer.objects.active
 		roomObj.ootEmptyType = "Room"
 		roomObj.name = "Room"
-		roomObj.fast64.oot.version = roomObj.fast64.oot.cur_version
 		parentObject(roomObj, planeObj)
 
 		location += mathutils.Vector([0,0, 2])
@@ -107,7 +104,6 @@ class OOT_AddScene(bpy.types.Operator):
 		sceneObj = context.view_layer.objects.active
 		sceneObj.ootEmptyType = "Scene"
 		sceneObj.name = "Scene"
-		sceneObj.fast64.oot.version = sceneObj.fast64.oot.cur_version
 		parentObject(sceneObj, roomObj)
 
 		bpy.context.scene.ootSceneExportObj = sceneObj
@@ -142,7 +138,6 @@ class OOT_AddRoom(bpy.types.Operator):
 			while nextIndex in indices:
 				nextIndex += 1
 			roomObj.ootRoomHeader.roomIndex = nextIndex
-			roomObj.fast64.oot.version = roomObj.fast64.oot.cur_version
 			parentObject(sceneObj, roomObj)
 		
 		bpy.ops.object.select_all(action = "DESELECT")
@@ -187,7 +182,6 @@ class OOT_AddActor(bpy.types.Operator):
 		emptyObj.ootEmptyType = "Actor"
 		emptyObj.name = "New Actor"
 		emptyObj.fast64.oot.actor.actorID = "ACTOR_PLAYER"
-		emptyObj.fast64.oot.version = emptyObj.fast64.oot.cur_version
 		emptyObj.fast64.oot.actor.isActorSynced = True
 
 		return {"FINISHED"}
