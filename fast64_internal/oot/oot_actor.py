@@ -47,6 +47,14 @@ class OOT_SearchNaviMsgIDEnumOperator(bpy.types.Operator):
 		return {'RUNNING_MODAL'}
 
 class OOTActorProperties(bpy.types.PropertyGroup):
+	# If you use the 'get=' option from Blender props don't actually save the data in the .blend
+	# When the get function is called we have to save the data that'll be returned
+	paramToSave = bpy.props.StringProperty()
+	transParamToSave = bpy.props.StringProperty()
+	XRotToSave = bpy.props.StringProperty(default='0x0')
+	YRotToSave = bpy.props.StringProperty(default='0x0')
+	ZRotToSave = bpy.props.StringProperty(default='0x0')
+
 	@staticmethod
 	def upgrade_object(obj):
 		if obj.data is None:
@@ -216,14 +224,6 @@ def editOOTActorProperties():
 	propAnnotations['isActorSynced'] = bpy.props.BoolProperty(default=False)
 	propAnnotations['itemChest'] = bpy.props.EnumProperty(name='Chest Content', items=ootChestContent)
 	propAnnotations['naviMsgID'] = bpy.props.EnumProperty(name='Navi Message ID', items=ootNaviMsgID)
-
-	# If you use the 'get=' option from Blender props don't actually save the data in the .blend
-	# When the get function is called we have to save the data that'll be returned
-	propAnnotations['paramToSave'] = bpy.props.StringProperty()
-	propAnnotations['transParamToSave'] = bpy.props.StringProperty()
-	propAnnotations['XRotToSave'] = bpy.props.StringProperty(default='0x0')
-	propAnnotations['YRotToSave'] = bpy.props.StringProperty(default='0x0')
-	propAnnotations['ZRotToSave'] = bpy.props.StringProperty(default='0x0')
 
 	# Collectible Drops List
 	itemDrops = [(elem.get('Value'), elem.get('Name'),
