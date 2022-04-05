@@ -87,9 +87,9 @@ class OOT_AddScene(bpy.types.Operator):
 		entranceObj.ootEmptyType = "Entrance"
 		entranceObj.name = "Entrance"
 		entranceObj.fast64.oot.actor.actorID = 'ACTOR_PLAYER'
-		entranceObj.fast64.oot.actor.actorKey = '0000'
-		setattr(entranceObj.fast64.oot.actor, '0000.type', '0F00')
-		setattr(entranceObj.fast64.oot.actor, '0000.props1', '0xFF')
+		entranceObj.fast64.oot.actor.actorKey = '0x0000'
+		setattr(entranceObj.fast64.oot.actor, '0x0000.type', '0F00')
+		setattr(entranceObj.fast64.oot.actor, '0x0000.props1', '0xFF')
 		entranceObj.fast64.oot.version = entranceObj.fast64.oot.cur_version
 		entranceObj.fast64.oot.actor.isActorSynced = True
 		parentObject(planeObj, entranceObj)
@@ -175,8 +175,6 @@ class OOT_AddActor(bpy.types.Operator):
 	bl_idname = 'object.oot_add_actor'
 	bl_label = "Add Actor"
 	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
-
-	scale : bpy.props.FloatProperty(default = 2)
 
 	def execute(self, context):
 		if context.mode != "OBJECT":

@@ -640,12 +640,12 @@ def getActorParameter(object, field, shift, mask):
 	if attr != '0x00' and attr is not None:					
 		if isinstance(attr, str):
 			if shift != '0':
-				return f"(({attr} << {shift}) & {mask}) | "
+				return f"(({attr} << {shift}) & {mask})"
 			else:
-				return f"({attr} & {mask}) | " 
+				return f"({attr} & {mask})" 
 		elif isinstance(attr, bool):
 			if attr:
-				return f"(1 << {shift}) | "
+				return f"(1 << {shift})"
 			else:
 				return ""
 		else:
@@ -724,11 +724,13 @@ def hasTiedParams(tiedParam, actorType):
 				for j in range(len(tiedList)):
 					if tiedList[j] == actorType:
 						return True
+	return False
 
 def getActorString(elem, detailedProp, field, lenProp, lenSwitch, lenBool, lenEnum, paramTarget):
 	'''Returns the current actor's parameter string'''
 	shiftTmp = 0
-	params = ""
+	params = tmpParams = ""
+	charOR = " | "
 	strMask = elem.get('Mask')
 	target = elem.get('Target')
 	if target is None: target = "Params"
@@ -739,17 +741,25 @@ def getActorString(elem, detailedProp, field, lenProp, lenSwitch, lenBool, lenEn
 		if elem.tag == 'Flag':
 			elemType = elem.get('Type')
 			if elemType == 'Chest' and target == paramTarget:
-				params += getActorParameter(detailedProp, field + '.chestFlag', shift, strMask)
+				tmpParams = getActorParameter(detailedProp, field + '.chestFlag', shift, strMask)
+				if tmpParams != "":
+					params += tmpParams + charOR
 			elif elemType == 'Collectible' and target == paramTarget:
-				params += getActorParameter(detailedProp, field + '.collectibleFlag', shift, strMask)
+				tmpParams = getActorParameter(detailedProp, field + '.collectibleFlag', shift, strMask)
+				if tmpParams != "":
+					params += tmpParams + charOR
 			elif elemType == 'Switch' and target == paramTarget:
 				for i in range(1, (int(lenSwitch, base=10) + 1)):
 					if i == int(elem.get('Index'), base=10) and target == paramTarget:
-						params += getActorParameter(detailedProp, field + f'.switchFlag{i}', shift, strMask)
+						tmpParams = getActorParameter(detailedProp, field + f'.switchFlag{i}', shift, strMask)
+						if tmpParams != "":
+							params += tmpParams + charOR
 		elif elem.tag == 'Property' and elem.get('Name') != 'None':
 			for i in range(1, (int(lenProp, base=10) + 1)):
 				if i == int(elem.get('Index'), base=10) and target == paramTarget:
-					params += getActorParameter(detailedProp, (field + f'.props{i}'), shift, strMask)
+					tmpParams = getActorParameter(detailedProp, (field + f'.props{i}'), shift, strMask)
+					if tmpParams != "":
+						params += tmpParams + charOR
 		elif elem.tag == 'ChestContent' and target == paramTarget:
 			if shift != '0':
 				params += f"(({detailedProp.itemChest} << {shift}) & 0x{mask:X}) | "
@@ -761,15 +771,21 @@ def getActorString(elem, detailedProp, field, lenProp, lenSwitch, lenBool, lenEn
 			else:
 				params += f"({detailedProp.naviMsgID} & 0x{mask:X}) | "
 		elif elem.tag == 'Collectible' and target == paramTarget:
-			params += getActorParameter(detailedProp, field + '.collectibleDrop', shift, strMask)
+			tmpParams = getActorParameter(detailedProp, field + '.collectibleDrop', shift, strMask)
+			if tmpParams != "":
+				params += tmpParams + charOR
 		elif elem.tag == 'Bool':
 			for i in range(1, (int(lenBool, base=10) + 1)):
 				if i == int(elem.get('Index'), base=10) and target == paramTarget:
-					params += getActorParameter(detailedProp, (field + f'.bool{i}'), shift, strMask)
+					tmpParams = getActorParameter(detailedProp, (field + f'.bool{i}'), shift, strMask)
+					if tmpParams != "":
+						params += tmpParams + charOR
 		elif elem.tag == 'Enum':
 			for i in range(1, (int(lenEnum, base=10) + 1)):
 				if i == int(elem.get('Index'), base=10) and target == paramTarget:
-					params += getActorParameter(detailedProp, (field + f'.enum{i}'), shift, strMask)
+					tmpParams = getActorParameter(detailedProp, (field + f'.enum{i}'), shift, strMask)
+					if tmpParams != "":
+						params += tmpParams + charOR
 	return params
 
 def setActorString(elem, params, detailedProp, field, lenProp, lenSwitch, lenBool, lenEnum, paramTarget):

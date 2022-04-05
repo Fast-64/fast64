@@ -50,6 +50,15 @@ def handleRefreshDiffModelIDs(modelID):
 
 	return modelID
 
+class OOT_UpgradeActors(bpy.types.Operator):
+	bl_idname = 'object.oot_upgrade_actors'
+	bl_label = "Upgrade Fast64 OoT actors data"
+	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
+
+	def execute(self, context):
+		OOT_ObjectProperties.upgrade_changed_props()
+		return {'FINISHED'}
+
 class OOTObjectPanel(bpy.types.Panel):
 	bl_label = "Object Inspector"
 	bl_idname = "OBJECT_PT_OOT_Object_Inspector"
@@ -76,11 +85,20 @@ class OOTObjectPanel(bpy.types.Panel):
 		altSceneProp = sceneObj.ootAlternateSceneHeaders if sceneObj is not None else None
 		altRoomProp = roomObj.ootAlternateRoomHeaders if roomObj is not None else None
 
+		legacyText = "Legacy data has not been upgraded!"
+		upgradeText = "Upgrade Data Now!"
+
 		if obj.ootEmptyType == 'Actor':
 			drawActorProperty(box, obj.ootActorProperty, altRoomProp, objName, obj.fast64.oot.actor)
+			if not obj.fast64.oot.actor.isActorSynced:
+				box.column().box().label(text=legacyText)
+				box.column().operator(OOT_UpgradeActors.bl_idname, text=upgradeText)
 		
 		elif obj.ootEmptyType == 'Transition Actor':
 			drawTransitionActorProperty(box, obj.ootTransitionActorProperty, altSceneProp, roomObj, objName, obj.fast64.oot.actor)
+			if not obj.fast64.oot.actor.isActorSynced:
+				box.column().box().label(text=legacyText)
+				box.column().operator(OOT_UpgradeActors.bl_idname, text=upgradeText)
 
 		elif obj.ootEmptyType == 'Water Box':
 			drawWaterBoxProperty(box, obj.ootWaterBoxProperty)
@@ -98,6 +116,9 @@ class OOTObjectPanel(bpy.types.Panel):
 		
 		elif obj.ootEmptyType == 'Entrance':
 			drawEntranceProperty(box, obj, altSceneProp, objName, obj.fast64.oot.actor)
+			if not obj.fast64.oot.actor.isActorSynced:
+				box.column().box().label(text=legacyText)
+				box.column().operator(OOT_UpgradeActors.bl_idname, text=upgradeText)
 
 		elif obj.ootEmptyType == "Cull Group":
 			drawCullGroupProperty(box, obj)

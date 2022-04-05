@@ -8,16 +8,6 @@ from .oot_operators import *
 
 # General classes and functions
 
-class OOT_UpgradeActors(bpy.types.Operator):
-	bl_idname = 'object.oot_upgrade_actors'
-	bl_label = "Upgrade Data Now!"
-	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
-
-	def execute(self, context):
-		for obj in bpy.context.scene.objects:
-			OOTActorProperties.upgrade_object(obj)
-		return {'FINISHED'}
-
 class OOT_SearchChestContentEnumOperator(bpy.types.Operator):
 	bl_idname = "object.oot_search_chest_content_enum_operator"
 	bl_label = "Select Chest Content"
@@ -60,24 +50,16 @@ class OOTActorProperties(bpy.types.PropertyGroup):
 	@staticmethod
 	def upgrade_object(obj):
 		if obj.data is None:
-			if obj.ootEmptyType == 'Scene':
-				print(f"Processing Scene '{obj.name}'...")
-				for roomObj in obj.children:
-					if roomObj.data is None:
-						if roomObj.ootEmptyType == 'Room':
-							# Actor is parented to a room
-							for obj in roomObj.children:
-								upgradeActorInit(obj)
-						elif (roomObj.ootEmptyType == 'Actor' or
-							roomObj.ootEmptyType == 'Transition Actor' or roomObj.ootEmptyType == 'Entrance'):
-							# Actor is parented to a scene
-							upgradeActorInit(roomObj)
+			if (obj.ootEmptyType == 'Scene') or (obj.ootEmptyType == 'Room'):
+				print(f"Processing '{obj.name}'...")
+				for child in obj.children:
+					OOTActorProperties.upgrade_object(child)
 			elif (obj.ootEmptyType == 'Actor' or obj.ootEmptyType == 'Transition Actor' or obj.ootEmptyType == 'Entrance'):
 				upgradeActorInit(obj)
 
 def getValues(self, actorID, actorField, target, paramField):
 	'''Updates the actor parameter field when the user changes the options'''
-	if self.isActorSynced:
+	if bpy.context.object.fast64.oot.version == bpy.context.object.fast64.oot.cur_version:
 		actorProp = bpy.context.object.fast64.oot.actor
 		value = ""
 		if actorID != 'Custom':
@@ -223,7 +205,7 @@ def editOOTActorProperties():
 	propAnnotations['transActorID'] = bpy.props.EnumProperty(name='Transition Actor ID', items=ootEnumTransitionActorID)
 	propAnnotations['transActorIDCustom'] = bpy.props.StringProperty(name='Actor Key', default='ACTOR_CUSTOM')
 	propAnnotations['transActorKey'] = bpy.props.StringProperty(name='Transition Actor ID', default='0009')
-	propAnnotations['transActorParam'] = bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000', \
+	propAnnotations['transActorParam'] = bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000',
 		get=lambda self: getValues(self, self.transActorID, 'actorParam', 'Params', 'transActorParam'),
 		set=lambda self, value: setValues(self, value, 'Params', 'transActorID'))
 	propAnnotations['transActorParamCustom'] = bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000')
@@ -243,44 +225,44 @@ def editOOTActorProperties():
 	propAnnotations['ZRotToSave'] = bpy.props.StringProperty(default='0x0')
 
 	# Collectible Drops List
-	itemDrops = [(elem.get('Value'), elem.get('Name'), \
-					elem.get('Name')) for listNode in root for elem in listNode if listNode.tag == 'List' \
+	itemDrops = [(elem.get('Value'), elem.get('Name'),
+					elem.get('Name')) for listNode in root for elem in listNode if listNode.tag == 'List'
 					and listNode.get('Name') == 'Collectibles']
 
 	# Generate the fields
 	for actorNode in root:
-		i = j = k = l = 1
+		i_property = i_flag = i_bool = i_enum = 1
 		actorKey = actorNode.get('Key')
 		for elem in actorNode:
 			if elem.tag == 'Property':
-				genString(propAnnotations, actorKey, f'.props{i}', actorKey)
-				i += 1
+				genString(propAnnotations, actorKey, f'.props{i_property}', actorKey)
+				i_property += 1
 			elif elem.tag == 'Flag':
 				if elem.get('Type') == 'Chest':
 					genString(propAnnotations, actorKey, '.chestFlag', 'Chest Flag')
 				elif elem.get('Type') == 'Collectible':
 					genString(propAnnotations, actorKey, '.collectibleFlag', 'Collectible Flag')
 				elif elem.get('Type') == 'Switch':
-					genString(propAnnotations, actorKey, f'.switchFlag{j}', 'Switch Flag')
-					j += 1
+					genString(propAnnotations, actorKey, f'.switchFlag{i_flag}', 'Switch Flag')
+					i_flag += 1
 			elif elem.tag == 'Collectible':
 				genEnum(propAnnotations, actorKey, '.collectibleDrop', itemDrops, 'Collectible Drop')
 			elif elem.tag == 'Parameter':
-				actorTypeList = [(elem2.get('Params'), elem2.text, elem2.get('Params')) \
-								for actorNode2 in root for elem2 in actorNode2 \
+				actorTypeList = [(elem2.get('Params'), elem2.text, elem2.get('Params'))
+								for actorNode2 in root for elem2 in actorNode2
 								if actorNode2.get('Key') == actorKey and elem2.tag == 'Parameter']
 				genEnum(propAnnotations, actorKey, '.type', actorTypeList, 'Actor Type')
 			elif elem.tag == 'Bool':
-				objName = actorKey + f'.bool{k}'
+				objName = actorKey + f'.bool{i_bool}'
 				prop = bpy.props.BoolProperty(default=False)
 				propAnnotations[objName] = prop
-				k += 1
+				i_bool += 1
 			elif elem.tag == 'Enum':
-				actorEnumList = [(item.get('Value'), item.get('Name'), item.get('Value')) \
-								for actorNode2 in root if actorNode2.get('Key') == actorKey \
-								for elem2 in actorNode2 if elem2.tag == 'Enum' and elem2.get('Index') == f'{l}' for item in elem2]
-				genEnum(propAnnotations, actorKey, f'.enum{l}', actorEnumList, elem.get('Name'))
-				l += 1
+				actorEnumList = [(item.get('Value'), item.get('Name'), item.get('Value'))
+								for actorNode2 in root if actorNode2.get('Key') == actorKey
+								for elem2 in actorNode2 if elem2.tag == 'Enum' and elem2.get('Index') == f'{i_enum}' for item in elem2]
+				genEnum(propAnnotations, actorKey, f'.enum{i_enum}', actorEnumList, elem.get('Name'))
+				i_enum += 1
 
 def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, userIDField, userParamField, detailedProp, dpKey):
 	'''This function handles the drawing of the detailed actor panel'''
@@ -357,8 +339,10 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 		paramBox = userLayout.box()
 		paramBox.label(text="Actor Parameter")
 		params = getattr(detailedProp, userParamField, "")
-		if params != "": paramBox.prop(detailedProp, userParamField, text="")
-		else: paramBox.label(text="That Actor doesn't have parameters.")
+		if params != "":
+			paramBox.prop(detailedProp, userParamField, text="")
+		else:
+			paramBox.label(text="This Actor doesn't have parameters.")
 
 		if user == userActor:
 			for actorNode in root:
@@ -367,13 +351,19 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 						target = elem.get('Target')
 						actorType = getattr(detailedProp, dpKey + '.type', None)
 						if hasTiedParams(elem.get('TiedParam'), actorType):
-							if target == 'XRot': rotXBool = True
-							elif target == 'YRot': rotYBool = True
-							elif target == 'ZRot': rotZBool = True
+							if target == 'XRot':
+								rotXBool = True
+							elif target == 'YRot':
+								rotYBool = True
+							elif target == 'ZRot':
+								rotZBool = True
 
-			if rotXBool: prop_split(paramBox, detailedProp, 'rotOverrideX', 'Rot X')
-			if rotYBool: prop_split(paramBox, detailedProp, 'rotOverrideY', 'Rot Y')
-			if rotZBool: prop_split(paramBox, detailedProp, 'rotOverrideZ', 'Rot Z')
+			if rotXBool:
+				prop_split(paramBox, detailedProp, 'rotOverrideX', 'Rot X')
+			if rotYBool:
+				prop_split(paramBox, detailedProp, 'rotOverrideY', 'Rot Y')
+			if rotZBool:
+				prop_split(paramBox, detailedProp, 'rotOverrideZ', 'Rot Z')
 	else:
 		# If the current actor is custom
 		if user != userEntrance:
@@ -493,15 +483,9 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
 	actorIDBox = layout.column()
 
 	if detailedProp.isActorSynced:
-		drawDetailedProperties('Actor Property', actorProp, actorIDBox, objName, \
+		drawDetailedProperties('Actor Property', actorProp, actorIDBox, objName,
 			OOT_SearchActorIDEnumOperator, 'actorID', 'actorParam', detailedProp, detailedProp.actorKey)
 		drawActorHeaderProperty(actorIDBox, actorProp.headerSettings, "Actor", altRoomProp, objName)
-	else:
-		sceneObj = getSceneObj(bpy.context.object)
-		if sceneObj is None: sceneName = 'Unknown'
-		else: sceneName = sceneObj.name
-		actorIDBox.box().label(text=f"Legacy data from scene: '{sceneName}' has not been upgraded!")
-		actorIDBox.operator(OOT_UpgradeActors.bl_idname)
 
 # Transition Actor Property
 class OOT_SearchTransActorIDEnumOperator(bpy.types.Operator):
@@ -542,24 +526,18 @@ def drawTransitionActorProperty(layout, transActorProp, altSceneProp, roomObj, o
 	actorIDBox = layout.column()
 
 	if detailedProp.isActorSynced:
-		drawDetailedProperties('Transition Property', detailedProp, actorIDBox, objName, \
+		drawDetailedProperties('Transition Property', detailedProp, actorIDBox, objName,
 			OOT_SearchTransActorIDEnumOperator, 'transActorID', 'transActorParam', detailedProp, detailedProp.transActorKey)
 		if roomObj is None:
 			actorIDBox.label(text = "This must be part of a Room empty's hierarchy.", icon = "ERROR")
 		else:
 			label_split(actorIDBox, "Room To Transition From", str(roomObj.ootRoomHeader.roomIndex))
 		prop_split(actorIDBox, transActorProp, "roomIndex", "Room To Transition To")
-		actorIDBox.label(text = "Y+ side of door faces toward the \"from\" room.", icon = "ERROR")
+		actorIDBox.label(text = 'Y+ side of door faces toward the "from" room.', icon = "ERROR")
 		drawEnumWithCustom(actorIDBox, transActorProp, "cameraTransitionFront", "Camera Transition Front", "")
 		drawEnumWithCustom(actorIDBox, transActorProp, "cameraTransitionBack", "Camera Transition Back", "")
 
 		drawActorHeaderProperty(actorIDBox, transActorProp.actor.headerSettings, "Transition Actor", altSceneProp, objName)
-	else:
-		sceneObj = getSceneObj(bpy.context.object)
-		if sceneObj is None: sceneName = 'Unknown'
-		else: sceneName = sceneObj.name
-		actorIDBox.box().label(text=f"Legacy data from scene: '{sceneName}' has not been upgraded!")
-		actorIDBox.operator(OOT_UpgradeActors.bl_idname)
 
 # Entrance Property
 class OOTEntranceProperty(bpy.types.PropertyGroup):
@@ -573,12 +551,6 @@ def drawEntranceProperty(layout, obj, altSceneProp, objName, detailedProp):
 	entranceProp = obj.ootEntranceProperty
 
 	if detailedProp.isActorSynced:
-		drawDetailedProperties('Entrance Property', entranceProp, box, None, \
+		drawDetailedProperties('Entrance Property', entranceProp, box, None,
 			None, 'actorID', 'actorParam', detailedProp, '0000')
 		drawActorHeaderProperty(box, entranceProp.actor.headerSettings, "Entrance", altSceneProp, objName)
-	else:
-		sceneObj = getSceneObj(bpy.context.object)
-		if sceneObj is None: sceneName = 'Unknown'
-		else: sceneName = sceneObj.name
-		box.box().label(text=f"Legacy data from scene: '{sceneName}' has not been upgraded!")
-		box.operator(OOT_UpgradeActors.bl_idname)
