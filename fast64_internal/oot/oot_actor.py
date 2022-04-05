@@ -13,14 +13,9 @@ class OOT_UpgradeActors(bpy.types.Operator):
 	bl_label = "Upgrade Data Now!"
 	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
-	version: bpy.props.IntProperty(name="OOT_ObjectProperties Version", default=0)
-	cur_version = 1 # version after property migration
-
 	def execute(self, context):
 		for obj in bpy.context.scene.objects:
-			if obj.fast64.oot.version != self.cur_version:
-				OOTActorProperties.upgrade_object(obj)
-			obj.fast64.oot.version = self.cur_version
+			OOTActorProperties.upgrade_object(obj)
 		return {'FINISHED'}
 
 class OOT_SearchChestContentEnumOperator(bpy.types.Operator):
@@ -73,7 +68,7 @@ class OOTActorProperties(bpy.types.PropertyGroup):
 							# Actor is parented to a room
 							for obj in roomObj.children:
 								upgradeActorInit(obj)
-						elif (roomObj.ootEmptyType == 'Actor' or \
+						elif (roomObj.ootEmptyType == 'Actor' or
 							roomObj.ootEmptyType == 'Transition Actor' or roomObj.ootEmptyType == 'Entrance'):
 							# Actor is parented to a scene
 							upgradeActorInit(roomObj)
@@ -81,7 +76,7 @@ class OOTActorProperties(bpy.types.PropertyGroup):
 				upgradeActorInit(obj)
 
 def getValues(self, actorID, actorField, target, paramField):
-	'''Updates the actor parameter field when the user change the options'''
+	'''Updates the actor parameter field when the user changes the options'''
 	if self.isActorSynced:
 		actorProp = bpy.context.object.fast64.oot.actor
 		value = ""
@@ -95,15 +90,20 @@ def getValues(self, actorID, actorField, target, paramField):
 						if paramTarget == target:
 							tiedParam = elem.get('TiedParam')
 							actorType = getattr(self, dPKey + '.type', None)
-							if hasTiedParams(tiedParam, actorType) is True:
+							if hasTiedParams(tiedParam, actorType):
 								value = getActorFinalParameters(actorProp, dPKey, paramTarget, None)
-			if target == 'XRot': self.XRotBool = True
-			if target == 'YRot': self.YRotBool = True
-			if target == 'ZRot': self.ZRotBool = True
+			if target == 'XRot':
+				self.XRotBool = True
+			if target == 'YRot':
+				self.YRotBool = True
+			if target == 'ZRot':
+				self.ZRotBool = True
 		return value
 	else:
-		if paramField == 'transActorParam': actorProp = bpy.context.object.ootTransitionActorProperty.actor
-		else: actorProp = bpy.context.object.ootActorProperty
+		if paramField == 'transActorParam':
+			actorProp = bpy.context.object.ootTransitionActorProperty.actor
+		else:
+			actorProp = bpy.context.object.ootActorProperty
 		if actorField is not None:
 			return getattr(actorProp, actorField)
 		else:
@@ -193,7 +193,7 @@ def editOOTActorProperties():
 	propAnnotations['actorID'] = bpy.props.EnumProperty(name='Actor ID', items=ootEnumActorID)
 	propAnnotations['actorIDCustom'] = bpy.props.StringProperty(name='Actor Key', default='ACTOR_CUSTOM')
 	propAnnotations['actorKey'] = bpy.props.StringProperty(name='Actor Key', default='0000')
-	propAnnotations['actorParam'] = bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000', \
+	propAnnotations['actorParam'] = bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000',
 		get=lambda self: getValues(self, self.actorID, 'actorParam', 'Params', None),
 		set=lambda self, value: setValues(self, value, 'Params', 'actorID'))
 	propAnnotations['actorParamCustom'] = bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000')
@@ -500,7 +500,7 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName, detailedProp):
 		sceneObj = getSceneObj(bpy.context.object)
 		if sceneObj is None: sceneName = 'Unknown'
 		else: sceneName = sceneObj.name
-		actorIDBox.box().label(text=f"Scene: '{sceneName}' Actors are not synchronised!")
+		actorIDBox.box().label(text=f"Legacy data from scene: '{sceneName}' has not been upgraded!")
 		actorIDBox.operator(OOT_UpgradeActors.bl_idname)
 
 # Transition Actor Property
@@ -558,7 +558,8 @@ def drawTransitionActorProperty(layout, transActorProp, altSceneProp, roomObj, o
 		sceneObj = getSceneObj(bpy.context.object)
 		if sceneObj is None: sceneName = 'Unknown'
 		else: sceneName = sceneObj.name
-		actorIDBox.box().label(text=f"Scene: '{sceneName}' Actors are not synchronised!")
+		actorIDBox.box().label(text=f"Legacy data from scene: '{sceneName}' has not been upgraded!")
+		actorIDBox.operator(OOT_UpgradeActors.bl_idname)
 
 # Entrance Property
 class OOTEntranceProperty(bpy.types.PropertyGroup):
@@ -579,4 +580,5 @@ def drawEntranceProperty(layout, obj, altSceneProp, objName, detailedProp):
 		sceneObj = getSceneObj(bpy.context.object)
 		if sceneObj is None: sceneName = 'Unknown'
 		else: sceneName = sceneObj.name
-		box.box().label(text=f"Scene: '{sceneName}' Actors are not synchronised!")
+		box.box().label(text=f"Legacy data from scene: '{sceneName}' has not been upgraded!")
+		box.operator(OOT_UpgradeActors.bl_idname)
