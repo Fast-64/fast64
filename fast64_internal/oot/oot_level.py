@@ -89,14 +89,14 @@ class OOTObjectPanel(bpy.types.Panel):
 		upgradeText = "Upgrade Data Now!"
 
 		if obj.ootEmptyType == 'Actor':
-			drawActorProperty(box, obj.ootActorProperty, altRoomProp, objName, obj.fast64.oot.actor)
-			if not obj.fast64.oot.actor.isActorSynced:
+			drawActorProperty(box, obj.ootActorProperty, altRoomProp, objName, obj.fast64.oot)
+			if not (obj.fast64.oot.version == obj.fast64.oot.cur_version):
 				box.column().box().label(text=legacyText)
 				box.column().operator(OOT_UpgradeActors.bl_idname, text=upgradeText)
 		
 		elif obj.ootEmptyType == 'Transition Actor':
-			drawTransitionActorProperty(box, obj.ootTransitionActorProperty, altSceneProp, roomObj, objName, obj.fast64.oot.actor)
-			if not obj.fast64.oot.actor.isActorSynced:
+			drawTransitionActorProperty(box, obj.ootTransitionActorProperty, altSceneProp, roomObj, objName, obj.fast64.oot)
+			if not (obj.fast64.oot.version == obj.fast64.oot.cur_version):
 				box.column().box().label(text=legacyText)
 				box.column().operator(OOT_UpgradeActors.bl_idname, text=upgradeText)
 
@@ -115,8 +115,8 @@ class OOTObjectPanel(bpy.types.Panel):
 				drawAlternateRoomHeaderProperty(box, obj.ootAlternateRoomHeaders, objName)
 		
 		elif obj.ootEmptyType == 'Entrance':
-			drawEntranceProperty(box, obj, altSceneProp, objName, obj.fast64.oot.actor)
-			if not obj.fast64.oot.actor.isActorSynced:
+			drawEntranceProperty(box, obj, altSceneProp, objName, obj.fast64.oot)
+			if not (obj.fast64.oot.version == obj.fast64.oot.cur_version):
 				box.column().box().label(text=legacyText)
 				box.column().operator(OOT_UpgradeActors.bl_idname, text=upgradeText)
 
@@ -190,7 +190,7 @@ def onUpdateOOTEmptyType(self, context):
 
 class OOT_ObjectProperties(bpy.types.PropertyGroup):
 	cur_version = 1 # version after property migration
-	version: bpy.props.IntProperty(name="OOT_ObjectProperties Version", default=cur_version)
+	version: bpy.props.IntProperty(name="OOT_ObjectProperties Version", default=0)
 
 	scene: bpy.props.PointerProperty(type=OOTSceneProperties)
 	actor: bpy.props.PointerProperty(type=OOTActorProperties)

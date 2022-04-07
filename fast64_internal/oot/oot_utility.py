@@ -634,7 +634,7 @@ def oot_utility_unregister():
 	for cls in reversed(oot_utility_classes):
 		unregister_class(cls)
 
-def getActorParameter(object, field, shift, mask):
+def getAndFormatActorParameterPart(object, field, shift, mask):
 	'''Returns the actor parameter with the shifts'''
 	attr = getattr(object, field, '0x00')
 	if attr != '0x00' and attr is not None:					
@@ -647,38 +647,41 @@ def getActorParameter(object, field, shift, mask):
 			if attr:
 				return f"(1 << {shift})"
 			else:
-				return ""
+				return None
 		else:
 			raise NotImplementedError
 	else:
-		return ""
+		return None
 
 def getActorFinalParameters(detailedProp, actorKey, paramTarget, field):
 	'''Returns the full parameter string'''
-	params = ""
+	params = []
+	paramPart = []
 	if field is not None:
 		panelParams = getattr(detailedProp, field, "")
 		if panelParams == "":
 			return "0x0"
 	for actorNode in root:
 		if actorKey == actorNode.get('Key'):
-			lenProp = getMaxElemIndex(actorKey, 'Property', None)
-			lenSwitch = getMaxElemIndex(actorKey, 'Flag', 'Switch')
-			lenBool = getMaxElemIndex(actorKey, 'Bool', None)
-			lenEnum = getMaxElemIndex(actorKey, 'Enum', None)
+			lenProp = getLastElemIndex(actorKey, 'Property', None)
+			lenSwitch = getLastElemIndex(actorKey, 'Flag', 'Switch')
+			lenBool = getLastElemIndex(actorKey, 'Bool', None)
+			lenEnum = getLastElemIndex(actorKey, 'Enum', None)
 			for elem in actorNode:
 				actorType = getattr(detailedProp, actorKey + '.type', None)
 				if hasTiedParams(elem.get('TiedParam'), actorType):
-					params += getActorString(elem, detailedProp, actorKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
-	params = params.rstrip().rstrip('|').rstrip()
+					paramPart = getActorString(elem, detailedProp, actorKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
+					if paramPart is not None:
+						params += paramPart
+	actorProps = " | ".join(params)
 	if paramTarget == 'Params':
 		actorType = getattr(detailedProp, actorKey + '.type', '0')
-		if params == '':
+		if len(params) == 0:
 			return f'0x{actorType}'
 		else:
-			return f'(0x{actorType} | ({params}))'
-	elif params != '':
-		return params
+			return f'(0x{actorType} | ({actorProps}))'
+	elif len(params) > 0:
+		return actorProps
 	else:
 		return '0x0'
 
@@ -696,41 +699,33 @@ def setActorParameter(object, field, param, mask):
 		else:
 			raise NotImplementedError
 
-def getMaxElemIndex(actorKey, elemTag, flagType):
-	'''Looking for the highest index for the current actor'''
-	length = '0'
+def getLastElemIndex(actorKey, elemTag, flagType):
+	'''Looking for the last index of an actor's property (from XML data)'''
+	indexes = []
 	for actorNode in root:
 		if actorNode.get('Key') == actorKey:
 			for elem in actorNode:
 				if elem.tag == elemTag:
 					if flagType is None or (flagType == 'Switch' and elem.get('Type') == flagType):
-						length = elem.get('Index')
-	return length
+						indexes.append(elem.get('Index'))
+	indexes.sort()
+	return f"{indexes[len(indexes) - 1]}" if len(indexes) != 0 else "0"
 
 def hasTiedParams(tiedParam, actorType):
 	'''Looking for parameters that depend on other parameters'''
 	if tiedParam is None or actorType is None:
 		return True
 	else:
-		if tiedParam.find(',') != -1:
-			tiedList = tiedParam.split(',')
-		else:
-			tiedList = [tiedParam]
-
+		tiedList = tiedParam.split(',')
 		if actorType is not None:
-			if len(tiedList) == 1 and tiedList[0] == actorType:
-				return True
-			else:
-				for j in range(len(tiedList)):
-					if tiedList[j] == actorType:
-						return True
+			return actorType in tiedList
 	return False
 
 def getActorString(elem, detailedProp, field, lenProp, lenSwitch, lenBool, lenEnum, paramTarget):
 	'''Returns the current actor's parameter string'''
 	shiftTmp = 0
-	params = tmpParams = ""
-	charOR = " | "
+	params = []
+	paramPart = ""
 	strMask = elem.get('Mask')
 	target = elem.get('Target')
 	if target is None: target = "Params"
@@ -741,52 +736,52 @@ def getActorString(elem, detailedProp, field, lenProp, lenSwitch, lenBool, lenEn
 		if elem.tag == 'Flag':
 			elemType = elem.get('Type')
 			if elemType == 'Chest' and target == paramTarget:
-				tmpParams = getActorParameter(detailedProp, field + '.chestFlag', shift, strMask)
-				if tmpParams != "":
-					params += tmpParams + charOR
+				paramPart = getAndFormatActorParameterPart(detailedProp, field + '.chestFlag', shift, strMask)
+				if paramPart is not None:
+					params.append(paramPart)
 			elif elemType == 'Collectible' and target == paramTarget:
-				tmpParams = getActorParameter(detailedProp, field + '.collectibleFlag', shift, strMask)
-				if tmpParams != "":
-					params += tmpParams + charOR
+				paramPart = getAndFormatActorParameterPart(detailedProp, field + '.collectibleFlag', shift, strMask)
+				if paramPart is not None:
+					params.append(paramPart)
 			elif elemType == 'Switch' and target == paramTarget:
-				for i in range(1, (int(lenSwitch, base=10) + 1)):
-					if i == int(elem.get('Index'), base=10) and target == paramTarget:
-						tmpParams = getActorParameter(detailedProp, field + f'.switchFlag{i}', shift, strMask)
-						if tmpParams != "":
-							params += tmpParams + charOR
+				i = int(elem.get('Index'), base=10)
+				if (i >= 1 and i <= int(lenSwitch, base=10)) and (target == paramTarget):
+					paramPart = getAndFormatActorParameterPart(detailedProp, field + f'.switchFlag{i}', shift, strMask)
+					if paramPart is not None:
+						params.append(paramPart)
 		elif elem.tag == 'Property' and elem.get('Name') != 'None':
-			for i in range(1, (int(lenProp, base=10) + 1)):
-				if i == int(elem.get('Index'), base=10) and target == paramTarget:
-					tmpParams = getActorParameter(detailedProp, (field + f'.props{i}'), shift, strMask)
-					if tmpParams != "":
-						params += tmpParams + charOR
+			i = int(elem.get('Index'), base=10)
+			if (i >= 1 and i <= int(lenProp, base=10)) and (target == paramTarget):
+					paramPart = getAndFormatActorParameterPart(detailedProp, (field + f'.props{i}'), shift, strMask)
+					if paramPart is not None:
+						params.append(paramPart)
 		elif elem.tag == 'ChestContent' and target == paramTarget:
 			if shift != '0':
-				params += f"(({detailedProp.itemChest} << {shift}) & 0x{mask:X}) | "
+				params.append(f"(({detailedProp.itemChest} << {shift}) & 0x{mask:X})")
 			else:
-				params += f"({detailedProp.itemChest} & 0x{mask:X}) | "
+				params.append(f"({detailedProp.itemChest} & 0x{mask:X})")
 		elif elem.tag == 'Message' and target == paramTarget:
 			if shift != '0':
-				params += f"(({detailedProp.naviMsgID} << {shift}) & 0x{mask:X}) | "
+				params.append(f"(({detailedProp.naviMsgID} << {shift}) & 0x{mask:X})")
 			else:
-				params += f"({detailedProp.naviMsgID} & 0x{mask:X}) | "
+				params.append(f"({detailedProp.naviMsgID} & 0x{mask:X})")
 		elif elem.tag == 'Collectible' and target == paramTarget:
-			tmpParams = getActorParameter(detailedProp, field + '.collectibleDrop', shift, strMask)
-			if tmpParams != "":
-				params += tmpParams + charOR
+			paramPart = getAndFormatActorParameterPart(detailedProp, field + '.collectibleDrop', shift, strMask)
+			if paramPart is not None:
+				params.append(paramPart)
 		elif elem.tag == 'Bool':
-			for i in range(1, (int(lenBool, base=10) + 1)):
-				if i == int(elem.get('Index'), base=10) and target == paramTarget:
-					tmpParams = getActorParameter(detailedProp, (field + f'.bool{i}'), shift, strMask)
-					if tmpParams != "":
-						params += tmpParams + charOR
+			i = int(elem.get('Index'), base=10)
+			if (i >= 1 and i <= int(lenBool, base=10)) and (target == paramTarget):
+					paramPart = getAndFormatActorParameterPart(detailedProp, (field + f'.bool{i}'), shift, strMask)
+					if paramPart is not None:
+						params.append(paramPart)
 		elif elem.tag == 'Enum':
-			for i in range(1, (int(lenEnum, base=10) + 1)):
-				if i == int(elem.get('Index'), base=10) and target == paramTarget:
-					tmpParams = getActorParameter(detailedProp, (field + f'.enum{i}'), shift, strMask)
-					if tmpParams != "":
-						params += tmpParams + charOR
-	return params
+			i = int(elem.get('Index'), base=10)
+			if (i >= 1 and i <= int(lenEnum, base=10)) and (target == paramTarget):
+					paramPart = getAndFormatActorParameterPart(detailedProp, (field + f'.enum{i}'), shift, strMask)
+					if paramPart is not None:
+						params.append(paramPart)
+	return params if len(params) > 0 else None
 
 def setActorString(elem, params, detailedProp, field, lenProp, lenSwitch, lenBool, lenEnum, paramTarget):
 	'''Reversed ``getActorString()``'''
@@ -835,32 +830,33 @@ def upgradeActorInit(obj):
 			actorProp = obj.ootActorProperty
 			# if the actor param to upgrade is 0 then it's most likely a new file so change the actorProp type
 			params = int(actorProp.actorParam, base=16)
-			if params == 0: actorProp = obj.fast64.oot.actor
-			upgradeActorProcess(objType, obj, obj.ootActorProperty.actorID, obj.fast64.oot.actor, \
+			if params == 0:
+				actorProp = obj.fast64.oot.actor
+			upgradeActorProcess(objType, obj, obj.ootActorProperty.actorID, obj.fast64.oot.actor,
 				params, 'param', 'actorID', 'actorParam', 'Params')
 			obj.fast64.oot.actor.actorParam
 			if actorProp.rotOverride:
 				if actorProp.rotOverrideX != '0' or actorProp.rotOverrideX != '0x0':
-					upgradeActorProcess('XRot', obj, obj.ootActorProperty.actorID, obj.fast64.oot.actor, \
+					upgradeActorProcess('XRot', obj, obj.ootActorProperty.actorID, obj.fast64.oot.actor,
 						int(actorProp.rotOverrideX, base=16), 'XRot', 'actorID', 'rotOverrideX', 'XRot')
 					obj.fast64.oot.actor.rotOverrideX
 				if actorProp.rotOverrideY != '0' or actorProp.rotOverrideY != '0x0':
-					upgradeActorProcess('YRot', obj, obj.ootActorProperty.actorID, obj.fast64.oot.actor, \
+					upgradeActorProcess('YRot', obj, obj.ootActorProperty.actorID, obj.fast64.oot.actor,
 						int(actorProp.rotOverrideY, base=16), 'YRot', 'actorID', 'rotOverrideY', 'YRot')
 					obj.fast64.oot.actor.rotOverrideY
 				if actorProp.rotOverrideZ != '0' or actorProp.rotOverrideZ != '0x0':
-					upgradeActorProcess('ZRot', obj, obj.ootActorProperty.actorID, obj.fast64.oot.actor, \
+					upgradeActorProcess('ZRot', obj, obj.ootActorProperty.actorID, obj.fast64.oot.actor,
 						int(actorProp.rotOverrideZ, base=16), 'ZRot', 'actorID', 'rotOverrideZ', 'ZRot')
 					obj.fast64.oot.actor.rotOverrideZ
 		elif objType == "Transition Actor":
 			transActorProp = obj.ootTransitionActorProperty
-			upgradeActorProcess(objType, obj, transActorProp.actor.actorID, obj.fast64.oot.actor, \
+			upgradeActorProcess(objType, obj, transActorProp.actor.actorID, obj.fast64.oot.actor,
 				int(transActorProp.actor.actorParam, base=16), 'transParam', 'actorID', 'actorParam', 'Params')
 			obj.fast64.oot.actor.transActorParam
 
 		elif objType == "Entrance":
 			entranceProp = obj.ootEntranceProperty.actor
-			upgradeActorProcess(objType, obj, entranceProp.actorID, obj.fast64.oot.actor, \
+			upgradeActorProcess(objType, obj, entranceProp.actorID, obj.fast64.oot.actor,
 				int(entranceProp.actorParam, base=16), 'param', 'actorID', 'actorParam', 'Params')
 			obj.fast64.oot.actor.actorParam
 
@@ -880,10 +876,10 @@ def upgradeActorProcess(user, obj, actorID, detailedProp, params, toSaveField, i
 					detailedProp.transActorID = actorID
 					detailedProp.transActorKey = dPKey
 				if len(actorNode) != 0:
-					lenProp = getMaxElemIndex(dPKey, 'Property', None)
-					lenSwitch = getMaxElemIndex(dPKey, 'Flag', 'Switch')
-					lenBool = getMaxElemIndex(dPKey, 'Bool', None)
-					lenEnum = getMaxElemIndex(dPKey, 'Enum', None)
+					lenProp = getLastElemIndex(dPKey, 'Property', None)
+					lenSwitch = getLastElemIndex(dPKey, 'Flag', 'Switch')
+					lenBool = getLastElemIndex(dPKey, 'Bool', None)
+					lenEnum = getLastElemIndex(dPKey, 'Enum', None)
 					for elem in actorNode:
 						tiedParam = elem.get('TiedParam')
 						actorType = getattr(detailedProp, dPKey + '.type', None)
@@ -911,4 +907,5 @@ def upgradeActorProcess(user, obj, actorID, detailedProp, params, toSaveField, i
 		else:
 			setattr(detailedProp, 'transActorIDCustom', getattr(obj.ootTransitionActorProperty.actor, idField + 'Custom'))
 			setattr(detailedProp, 'transActorParamCustom', getattr(obj.ootTransitionActorProperty.actor, paramField))
-	detailedProp.isActorSynced = True
+
+	obj.fast64.oot.version = obj.fast64.oot.cur_version
