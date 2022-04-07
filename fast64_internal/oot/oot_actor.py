@@ -118,7 +118,7 @@ def getValues(self, actorID, actorField, target, paramField):
 							tiedParam = elem.get('TiedParam')
 							actorType = getattr(self, dPKey + '.type', None)
 							if hasTiedParams(tiedParam, actorType):
-								value = getActorFinalParameters(actorProp, dPKey, paramTarget, None)
+								value = getActorParameter(actorProp, dPKey, paramTarget, None)
 			if target == 'XRot':
 				self.XRotBool = True
 			if target == 'YRot':
@@ -150,11 +150,13 @@ def setValues(self, value, paramTarget, field):
 				actorType = getattr(self, dPKey + '.type', None)
 				if hasTiedParams(tiedParam, actorType) is True:
 					if isinstance(value, bool):
-						if value: param = '0x1'
-						else: param = '0x0'
+						if value:
+							param = '0x1'
+						else:
+							param = '0x0'
 					else:
 						param = value
-					setActorString(elem, eval(param), self, dPKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
+					setActorParameter(elem, eval(param), self, dPKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
 
 def genEnum(annotations, key, suffix, enumList, enumName):
 	'''This function is used to generate the proper enum blender property'''
