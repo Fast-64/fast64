@@ -59,6 +59,15 @@ class OOT_UpgradeActors(bpy.types.Operator):
 		OOT_ObjectProperties.upgrade_changed_props()
 		return {'FINISHED'}
 
+def drawUpgrade(obj, layout):
+	if (obj.fast64.oot.version > obj.fast64.oot.cur_version):
+		box = layout.column().box()
+		box.label(text="This blend was made with newer Fast64.")
+		box.label(text="Upgrade now.")
+	elif not (obj.fast64.oot.version == obj.fast64.oot.cur_version):
+		layout.column().box().label(text="Legacy data has not been upgraded!")
+		layout.column().operator(OOT_UpgradeActors.bl_idname, text="Upgrade Data Now!")
+
 class OOTObjectPanel(bpy.types.Panel):
 	bl_label = "Object Inspector"
 	bl_idname = "OBJECT_PT_OOT_Object_Inspector"
@@ -85,20 +94,13 @@ class OOTObjectPanel(bpy.types.Panel):
 		altSceneProp = sceneObj.ootAlternateSceneHeaders if sceneObj is not None else None
 		altRoomProp = roomObj.ootAlternateRoomHeaders if roomObj is not None else None
 
-		legacyText = "Legacy data has not been upgraded!"
-		upgradeText = "Upgrade Data Now!"
-
 		if obj.ootEmptyType == 'Actor':
 			drawActorProperty(box, obj.ootActorProperty, altRoomProp, objName, obj.fast64.oot)
-			if not (obj.fast64.oot.version == obj.fast64.oot.cur_version):
-				box.column().box().label(text=legacyText)
-				box.column().operator(OOT_UpgradeActors.bl_idname, text=upgradeText)
+			drawUpgrade(obj, box)
 		
 		elif obj.ootEmptyType == 'Transition Actor':
 			drawTransitionActorProperty(box, obj.ootTransitionActorProperty, altSceneProp, roomObj, objName, obj.fast64.oot)
-			if not (obj.fast64.oot.version == obj.fast64.oot.cur_version):
-				box.column().box().label(text=legacyText)
-				box.column().operator(OOT_UpgradeActors.bl_idname, text=upgradeText)
+			drawUpgrade(obj, box)
 
 		elif obj.ootEmptyType == 'Water Box':
 			drawWaterBoxProperty(box, obj.ootWaterBoxProperty)
@@ -116,9 +118,7 @@ class OOTObjectPanel(bpy.types.Panel):
 		
 		elif obj.ootEmptyType == 'Entrance':
 			drawEntranceProperty(box, obj, altSceneProp, objName, obj.fast64.oot)
-			if not (obj.fast64.oot.version == obj.fast64.oot.cur_version):
-				box.column().box().label(text=legacyText)
-				box.column().operator(OOT_UpgradeActors.bl_idname, text=upgradeText)
+			drawUpgrade(obj, box)
 
 		elif obj.ootEmptyType == "Cull Group":
 			drawCullGroupProperty(box, obj)
