@@ -68,15 +68,9 @@ class OOTActorProperties(bpy.types.PropertyGroup):
 	rotOverrideZ : bpy.props.StringProperty(name = 'Rot Z', default = '0x0',
 		get=lambda self: getValues(self, self.actorID, None, 'ZRot', None),
 		set=lambda self, value: setValues(self, value, 'ZRot', 'actorID'))
-	rotOverrideCustom : bpy.props.BoolProperty(name = 'Override Rotation', default = False)
 	rotOverrideXCustom : bpy.props.StringProperty(name = 'Rot X', default = '0x0')
 	rotOverrideYCustom : bpy.props.StringProperty(name = 'Rot Y', default = '0x0')
 	rotOverrideZCustom : bpy.props.StringProperty(name = 'Rot Z', default = '0x0')
-
-	# We have to use a bool to know what's needed to be exported
-	XRotBool : bpy.props.BoolProperty(default=False)
-	YRotBool : bpy.props.BoolProperty(default=False)
-	ZRotBool : bpy.props.BoolProperty(default=False)
 
 	# Transition Actors
 	transActorID : bpy.props.EnumProperty(name='Transition Actor ID', items=ootEnumTransitionActorID)
@@ -119,12 +113,15 @@ def getValues(self, actorID, actorField, target, paramField):
 							actorType = getattr(self, dPKey + '.type', None)
 							if hasTiedParams(tiedParam, actorType):
 								value = getActorParameter(actorProp, dPKey, paramTarget, None)
+		else:
+			if target == 'Params':
+				return self.actorParamCustom
 			if target == 'XRot':
-				self.XRotBool = True
+				return self.rotOverrideXCustom
 			if target == 'YRot':
-				self.YRotBool = True
+				return self.rotOverrideYCustom
 			if target == 'ZRot':
-				self.ZRotBool = True
+				return self.rotOverrideZCustom
 		return value
 	else:
 		if paramField == 'transActorParam':
@@ -138,25 +135,36 @@ def getValues(self, actorID, actorField, target, paramField):
 
 def setValues(self, value, paramTarget, field):
 	'''Reverse the process to set the options of the current actor'''
-	for actorNode in root:
-		if actorNode.get('ID') == getattr(self, field, '0x0'):
-			dPKey = actorNode.get('Key')
-			lenProp = getLastElemIndex(dPKey, 'Property', None)
-			lenSwitch = getLastElemIndex(dPKey, 'Flag', 'Switch')
-			lenBool = getLastElemIndex(dPKey, 'Bool', None)
-			lenEnum = getLastElemIndex(dPKey, 'Enum', None)
-			for elem in actorNode:
-				tiedParam = elem.get('TiedParam')
-				actorType = getattr(self, dPKey + '.type', None)
-				if hasTiedParams(tiedParam, actorType) is True:
-					if isinstance(value, bool):
-						if value:
-							param = '0x1'
+	if self.actorID == "Custom":
+		if paramTarget == 'Params':
+			self.actorParamCustom = value
+		if self.rotOverride:
+			if paramTarget == 'XRot':
+				self.rotOverrideXCustom = value
+			if paramTarget == 'YRot':
+				self.rotOverrideYCustom = value
+			if paramTarget == 'ZRot':
+				self.rotOverrideZCustom = value
+	else:
+		for actorNode in root:
+			if actorNode.get('ID') == getattr(self, field, '0x0'):
+				dPKey = actorNode.get('Key')
+				lenProp = getLastElemIndex(dPKey, 'Property', None)
+				lenSwitch = getLastElemIndex(dPKey, 'Flag', 'Switch')
+				lenBool = getLastElemIndex(dPKey, 'Bool', None)
+				lenEnum = getLastElemIndex(dPKey, 'Enum', None)
+				for elem in actorNode:
+					tiedParam = elem.get('TiedParam')
+					actorType = getattr(self, dPKey + '.type', None)
+					if hasTiedParams(tiedParam, actorType) is True:
+						if isinstance(value, bool):
+							if value:
+								param = '0x1'
+							else:
+								param = '0x0'
 						else:
-							param = '0x0'
-					else:
-						param = value
-					setActorParameter(elem, eval(param), self, dPKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
+							param = value
+						setActorParameter(elem, eval(param), self, dPKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
 
 def genEnum(annotations, key, suffix, enumList, enumName):
 	'''This function is used to generate the proper enum blender property'''
@@ -360,15 +368,17 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 	else:
 		# If the current actor is custom
 		if user != userEntrance:
-			prop_split(userLayout, detailedProp, userIDField + 'Custom', currentActor)
-			prop_split(userLayout, detailedProp, userParamField + 'Custom', 'Actor Parameter')
-			userLayout.prop(detailedProp, 'rotOverrideCustom', text = 'Override Rotation (ignore Blender rot)')
-			if detailedProp.rotOverrideCustom:
-				if user == userActor: prop_split(userLayout, detailedProp, 'rotOverrideXCustom', 'Rot X')
-				prop_split(userLayout, detailedProp, 'rotOverrideYCustom', 'Rot Y')
-				if user == userActor: prop_split(userLayout, detailedProp, 'rotOverrideZCustom', 'Rot Z')
+			prop_split(userLayout, detailedProp, getCustomPropName(userIDField), currentActor)
+			prop_split(userLayout, detailedProp, userParamField, 'Actor Parameter')
+			userLayout.prop(detailedProp, 'rotOverride', text = 'Override Rotation (ignore Blender rot)')
+			if detailedProp.rotOverride:
+				if user == userActor:
+					prop_split(userLayout, detailedProp, 'rotOverrideX', 'Rot X')
+				prop_split(userLayout, detailedProp, 'rotOverrideY', 'Rot Y')
+				if user == userActor:
+					prop_split(userLayout, detailedProp, 'rotOverrideZ', 'Rot Z')
 		else:
-			prop_split(userLayout, detailedProp, userParamField + 'Custom', 'Actor Parameter')
+			prop_split(userLayout, detailedProp, userParamField, 'Actor Parameter')
 
 # Actor Header Item Property
 class OOTActorHeaderItemProperty(bpy.types.PropertyGroup):

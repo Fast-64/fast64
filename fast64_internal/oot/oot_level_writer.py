@@ -461,28 +461,23 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 		if obj.ootEmptyType == "Actor":
 			actorProp = obj.ootActorProperty
 			detailedProp = obj.fast64.oot.actor
-			actorID = actorProp.actorID
-			rotX = rotY = rotZ = ''
-			panelParams = getattr(detailedProp, "actorParam", "")
+			actorID = detailedProp.actorID
+			rotX = rotY = rotZ = None
 
-			if panelParams != "":
-				# Figure out which rotation to export, Blender's or the override
-				if detailedProp.XRotBool or (actorID == 'Custom'):
-					rotX = getActorExportValue(detailedProp, actorID, 'XRot')
-					if rotX is None: rotX = f'{rotation[0]}'
-				else: rotX = f'{rotation[0]}'
+			# Figure out which rotation to export, Blender's or the override
+			rotX = getActorExportValue(detailedProp, actorID, 'XRot')
+			if rotX is None:
+				rotX = f'{rotation[0]}'
 
-				if detailedProp.YRotBool or (actorID == 'Custom'):
-					rotY = getActorExportValue(detailedProp, actorID, 'YRot')
-					if rotY is None: rotY = f'{rotation[1]}'
-				else: rotY = f'{rotation[1]}'
+			rotY = getActorExportValue(detailedProp, actorID, 'YRot')
+			if rotY is None:
+				rotY = f'{rotation[1]}'
 
-				if detailedProp.ZRotBool or (actorID == 'Custom'):
-					rotZ = getActorExportValue(detailedProp, actorID, 'ZRot')
-					if rotZ is None: rotZ = f'{rotation[2]}'
-				else: rotZ = f'{rotation[2]}'
+			rotZ = getActorExportValue(detailedProp, actorID, 'ZRot')
+			if rotZ is None:
+				rotZ = f'{rotation[2]}'
 
-			if panelParams == "" or (actorID == 'Custom' and detailedProp.rotOverrideCustom == False):
+			if (actorID == 'Custom' and detailedProp.rotOverride is False):
 				rotX = f'{rotation[0]}'
 				rotY = f'{rotation[1]}'
 				rotZ = f'{rotation[2]}'
