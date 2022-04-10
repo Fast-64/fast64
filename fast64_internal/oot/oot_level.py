@@ -59,7 +59,7 @@ class OOT_UpgradeActors(bpy.types.Operator):
 		OOT_ObjectProperties.upgrade_changed_props()
 		return {'FINISHED'}
 
-def drawUpgrade(obj, layout):
+def drawUpgradeActorData(obj, layout):
 	if (obj.fast64.oot.version > obj.fast64.oot.cur_version):
 		box = layout.column().box()
 		box.label(text="This blend was made with newer Fast64.")
@@ -96,11 +96,11 @@ class OOTObjectPanel(bpy.types.Panel):
 
 		if obj.ootEmptyType == 'Actor':
 			drawActorProperty(box, obj.ootActorProperty, altRoomProp, objName, obj.fast64.oot)
-			drawUpgrade(obj, box)
+			drawUpgradeActorData(obj, box)
 		
 		elif obj.ootEmptyType == 'Transition Actor':
 			drawTransitionActorProperty(box, obj.ootTransitionActorProperty, altSceneProp, roomObj, objName, obj.fast64.oot)
-			drawUpgrade(obj, box)
+			drawUpgradeActorData(obj, box)
 
 		elif obj.ootEmptyType == 'Water Box':
 			drawWaterBoxProperty(box, obj.ootWaterBoxProperty)
@@ -118,7 +118,7 @@ class OOTObjectPanel(bpy.types.Panel):
 		
 		elif obj.ootEmptyType == 'Entrance':
 			drawEntranceProperty(box, obj, altSceneProp, objName, obj.fast64.oot)
-			drawUpgrade(obj, box)
+			drawUpgradeActorData(obj, box)
 
 		elif obj.ootEmptyType == "Cull Group":
 			drawCullGroupProperty(box, obj)

@@ -52,7 +52,7 @@ class OOT_AddDoor(bpy.types.Operator):
 		emptyObj.ootEmptyType = "Transition Actor"
 		emptyObj.name = "Door Actor"
 		emptyObj.fast64.oot.actor.transActorID = "ACTOR_EN_DOOR"
-		emptyObj.fast64.oot.actor.transActorKey = "0x0009"
+		emptyObj.fast64.oot.actor.transActorKey = "en_door"
 		emptyObj.fast64.oot.version = emptyObj.fast64.oot.cur_version
 		
 		parentObject(cubeObj, emptyObj)
@@ -87,10 +87,10 @@ class OOT_AddScene(bpy.types.Operator):
 		entranceObj.ootEmptyType = "Entrance"
 		entranceObj.name = "Entrance"
 		entranceObj.fast64.oot.actor.actorID = 'ACTOR_PLAYER'
-		entranceObj.fast64.oot.actor.actorKey = '0x0000'
+		entranceObj.fast64.oot.actor.actorKey = 'player'
 		entranceObj.fast64.oot.version = entranceObj.fast64.oot.cur_version
-		setattr(entranceObj.fast64.oot.actor, '0x0000.type', '0F00')
-		setattr(entranceObj.fast64.oot.actor, '0x0000.props1', '0xFF')
+		setattr(entranceObj.fast64.oot.actor, 'player.type', '0F00')
+		setattr(entranceObj.fast64.oot.actor, 'player.props1', '0xFF')
 		parentObject(planeObj, entranceObj)
 		
 		location += mathutils.Vector([0,0, 10])
@@ -183,7 +183,7 @@ class OOT_AddActor(bpy.types.Operator):
 		emptyObj.ootEmptyType = "Actor"
 		emptyObj.name = "New Actor"
 		emptyObj.fast64.oot.actor.actorID = "ACTOR_PLAYER"
-		emptyObj.fast64.oot.actor.actorKey = "0x0000"
+		emptyObj.fast64.oot.actor.actorKey = "player"
 		emptyObj.fast64.oot.version = emptyObj.fast64.oot.cur_version
 
 		return {"FINISHED"}

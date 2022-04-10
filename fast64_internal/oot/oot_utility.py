@@ -380,8 +380,11 @@ def getCustomProperty(data, prop):
 	value = getattr(data, prop)
 	return value if value != "Custom" else getattr(data, prop + str("Custom"))
 
-def getActorExportValue(detailedProp, idField, field):
-	if idField != 'Custom':
+def getActorExportValue(detailedProp, idField, field, entranceProp):
+	if idField == 'Custom' or (entranceProp is not None and entranceProp.customActor):
+		field = getCustomPropName(field)
+		return getattr(detailedProp, field, None)
+	else:
 		if field != 'actorID' and field != 'transActorID':
 			if field == 'actorParam':
 				return getActorParameter(detailedProp, detailedProp.actorKey, 'Params', field)
@@ -394,7 +397,7 @@ def getActorExportValue(detailedProp, idField, field):
 					if dpKey == actorNode.get('Key'):
 						for elem in actorNode:
 							target = elem.get('Target')
-							if hasTiedParams(elem.get('TiedParam'), actorType):
+							if hasActorTiedParams(elem.get('TiedParam'), actorType):
 								if target == field == 'XRot':
 									return getActorParameter(detailedProp, dpKey, 'XRot', None)
 								elif target == field == 'YRot':
@@ -404,19 +407,6 @@ def getActorExportValue(detailedProp, idField, field):
 				return None
 		elif field == 'actorID' or field == 'transActorID':
 			return getattr(detailedProp, field)
-	else:
-		if field == 'actorID':
-			field = 'actorIDCustom'
-		if field == 'actorParam':
-			field = 'actorParamCustom'
-		if detailedProp.rotOverride:
-			if field == 'XRot':
-				field = 'rotOverrideXCustom'
-			elif field == 'YRot':
-				field = 'rotOverrideYCustom'
-			elif field == 'ZRot':
-				field = 'rotOverrideZCustom'
-		return getattr(detailedProp, field)
 	return None
 
 def convertIntTo2sComplement(value, length, signed):
@@ -671,13 +661,13 @@ def getActorParameter(detailedProp, actorKey, paramTarget, field):
 			return "0x0"
 	for actorNode in root:
 		if actorKey == actorNode.get('Key'):
-			lenProp = getLastElemIndex(actorKey, 'Property', None)
-			lenSwitch = getLastElemIndex(actorKey, 'Flag', 'Switch')
-			lenBool = getLastElemIndex(actorKey, 'Bool', None)
-			lenEnum = getLastElemIndex(actorKey, 'Enum', None)
+			lenProp = getActorLastElemIndex(actorKey, 'Property', None)
+			lenSwitch = getActorLastElemIndex(actorKey, 'Flag', 'Switch')
+			lenBool = getActorLastElemIndex(actorKey, 'Bool', None)
+			lenEnum = getActorLastElemIndex(actorKey, 'Enum', None)
 			for elem in actorNode:
 				actorType = getattr(detailedProp, actorKey + '.type', None)
-				if hasTiedParams(elem.get('TiedParam'), actorType):
+				if hasActorTiedParams(elem.get('TiedParam'), actorType):
 					paramPart = getActorParameterPart(elem, detailedProp, actorKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
 					if paramPart is not None:
 						params.append(paramPart)
@@ -707,7 +697,7 @@ def setActorParameterPart(object, field, param, mask):
 		else:
 			raise NotImplementedError
 
-def getLastElemIndex(actorKey, elemTag, flagType):
+def getActorLastElemIndex(actorKey, elemTag, flagType):
 	'''Looking for the last index of an actor's property (from XML data)'''
 	indices = []
 	for actorNode in root:
@@ -718,7 +708,7 @@ def getLastElemIndex(actorKey, elemTag, flagType):
 						indices.append(int(elem.get('Index'), base=10))
 	return max(indices) if indices else None
 
-def hasTiedParams(tiedParam, actorType):
+def hasActorTiedParams(tiedParam, actorType):
 	'''Looking for parameters that depend on other parameters'''
 	if tiedParam is None or actorType is None:
 		return True
@@ -869,14 +859,14 @@ def upgradeActorProcess(user, obj, actorID, detailedProp, params, idField, param
 					detailedProp.transActorID = actorID
 					detailedProp.transActorKey = dPKey
 				if len(actorNode) != 0:
-					lenProp = getLastElemIndex(dPKey, 'Property', None)
-					lenSwitch = getLastElemIndex(dPKey, 'Flag', 'Switch')
-					lenBool = getLastElemIndex(dPKey, 'Bool', None)
-					lenEnum = getLastElemIndex(dPKey, 'Enum', None)
+					lenProp = getActorLastElemIndex(dPKey, 'Property', None)
+					lenSwitch = getActorLastElemIndex(dPKey, 'Flag', 'Switch')
+					lenBool = getActorLastElemIndex(dPKey, 'Bool', None)
+					lenEnum = getActorLastElemIndex(dPKey, 'Enum', None)
 					for elem in actorNode:
 						tiedParam = elem.get('TiedParam')
 						actorType = getattr(detailedProp, dPKey + '.type', None)
-						if hasTiedParams(tiedParam, actorType) is True:
+						if hasActorTiedParams(tiedParam, actorType) is True:
 							setActorParameter(elem, params, detailedProp, dPKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
 		if user != 'Transition Actor':
 			actorParams = getActorParameter(detailedProp, detailedProp.actorKey, paramTarget, None)
@@ -884,7 +874,7 @@ def upgradeActorProcess(user, obj, actorID, detailedProp, params, idField, param
 			actorParams = getActorParameter(detailedProp, detailedProp.transActorKey, paramTarget, None)
 	else:
 		if user != 'Transition Actor':
-			setattr(detailedProp, getCustomPropName(idField), getattr(obj.ootActorProperty, getCustomPropName(idField)))
+			setattr(detailedProp, idField, getattr(obj.ootActorProperty, idField))
 			if user == 'Actor':
 				setattr(detailedProp, getCustomPropName(paramField), getattr(obj.ootActorProperty, paramField))
 			elif user == 'Entrance':
@@ -897,19 +887,27 @@ def upgradeActorProcess(user, obj, actorID, detailedProp, params, idField, param
 						detailedProp.rotOverride = True
 						setattr(detailedProp, getCustomPropName(paramField), getattr(obj.ootActorProperty, paramField))
 		else:
-			setattr(detailedProp, 'transActorIDCustom', getattr(obj.ootTransitionActorProperty.actor, getCustomPropName(idField)))
+			setattr(detailedProp, 'transActorID', getattr(obj.ootTransitionActorProperty.actor, idField))
 			setattr(detailedProp, 'transActorParamCustom', getattr(obj.ootTransitionActorProperty.actor, paramField))
 
 	obj.fast64.oot.version = obj.fast64.oot.cur_version
 
 def getCustomPropName(propName):
     customPropNameByPropName = {
-		"actorID": "actorIDCustom",
 		"actorParam": "actorParamCustom",
-		"transActorID": "transActorIDCustom",
 		"transActorParam": "transActorParamCustom",
         "rotOverrideX": "rotOverrideXCustom",
         "rotOverrideY": "rotOverrideYCustom",
         "rotOverrideZ": "rotOverrideZCustom",
     }
-    return customPropNameByPropName[propName]
+    return customPropNameByPropName[propName] if propName in customPropNameByPropName else propName
+
+def getIDFromKey(actorKey):
+	if not (actorKey == 'Custom'):
+		for actorNode in root:
+			key = actorNode.get('Key')
+			if key is not None and key == actorKey:
+				return actorNode.get('ID')
+	else:
+		return actorKey
+	return None
