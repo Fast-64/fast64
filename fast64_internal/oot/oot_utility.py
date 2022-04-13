@@ -850,8 +850,8 @@ def upgradeActorProcess(user, obj, actorID, detailedProp, params, idField, param
 	if not obj.ootEntranceProperty.customActor and actorID != 'Custom':
 		actorParams = 0
 		for actorNode in root:
-			if actorNode.get('ID') == actorID:
-				dPKey = actorNode.get('Key')
+			dPKey = actorNode.get('Key')
+			if ("ACTOR_" + dPKey.upper()) == actorID:
 				if user != 'Transition Actor':
 					detailedProp.actorID = actorID
 					detailedProp.actorKey = dPKey
