@@ -14,11 +14,15 @@ class OOT_SearchChestContentEnumOperator(bpy.types.Operator):
 	bl_property = "itemChest"
 	bl_options = {'REGISTER', 'UNDO'}
 
-	itemChest : bpy.props.EnumProperty(items = ootChestContent, default = '0x48')
+	itemChest : bpy.props.EnumProperty(items = ootChestContent, default = 'item_heart')
 	objName : bpy.props.StringProperty()
 
 	def execute(self, context):
-		bpy.data.objects[self.objName].fast64.oot.actor.itemChest = self.itemChest
+		for listNode in root:
+			if listNode.tag == 'List' and listNode.get('Name') == 'Chest Content':
+				for elem in listNode:
+					if elem.get('Key') == self.itemChest:
+						bpy.data.objects[self.objName].fast64.oot.actor.itemChest = elem.get('Value')
 		bpy.context.region.tag_redraw()
 		self.report({'INFO'}, "Selected: " + self.itemChest)
 		return {'FINISHED'}
@@ -33,11 +37,15 @@ class OOT_SearchNaviMsgIDEnumOperator(bpy.types.Operator):
 	bl_property = "naviMsgID"
 	bl_options = {'REGISTER', 'UNDO'}
 
-	naviMsgID : bpy.props.EnumProperty(items = ootNaviMsgID, default = "0x00")
+	naviMsgID : bpy.props.EnumProperty(items = ootNaviMsgID, default = "msg_00")
 	objName : bpy.props.StringProperty()
 
 	def execute(self, context):
-		bpy.data.objects[self.objName].fast64.oot.actor.naviMsgID = self.naviMsgID
+		for listNode in root:
+			if listNode.tag == 'List' and listNode.get('Name') == 'Elf_Msg Message ID':
+				for elem in listNode:
+					if elem.get('Key') == self.naviMsgID:
+						bpy.data.objects[self.objName].fast64.oot.actor.naviMsgID = elem.get('Value')
 		bpy.context.region.tag_redraw()
 		self.report({'INFO'}, "Selected: " + self.naviMsgID)
 		return {'FINISHED'}
@@ -80,8 +88,8 @@ class OOTActorProperties(bpy.types.PropertyGroup):
 	transActorParamCustom : bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000')
 
 	# Other
-	itemChest : bpy.props.EnumProperty(name='Chest Content', items=ootChestContent)
-	naviMsgID : bpy.props.EnumProperty(name='Navi Message ID', items=ootNaviMsgID)
+	itemChest : bpy.props.StringProperty(name='Chest Content', default = '0x48')
+	naviMsgID : bpy.props.StringProperty(name='Navi Message ID', default = '0x00')
 
 	@staticmethod
 	def upgrade_object(obj):
@@ -114,7 +122,8 @@ def getValues(self, actorKey, actorField, target, paramField):
 				if actorNode.get('Key') == actorKey:
 					for elem in actorNode:
 						paramTarget = elem.get('Target')
-						if paramTarget is None: paramTarget = 'Params'
+						if paramTarget is None:
+							paramTarget = 'Params'
 						if paramTarget == target:
 							tiedParam = elem.get('TiedParam')
 							actorType = getattr(self, actorKey + '.type', None)
@@ -187,35 +196,38 @@ def drawParams(box, detailedProp, key, elemField, elemName, elTag, elType, lenSw
 				# Checks if there's at least 2 Switch Flags, in this case the
 				# Name will be 'Switch Flag #[number]
 				# If it's not a Switch Flag, change nothing to the name
-				if lenSwitch is not None:
-					if int(lenSwitch) > 1: name = f'{elemName} #{i}'
-					else: name = elemName
-				else: name = elemName
+				name = elemName
+				if lenSwitch is not None and int(lenSwitch) > 1:
+					name = f'{elemName} #{i}'
 
 				# Set the name to none to use the element's name instead
 				# Set the name to the element's name if it's a flag and its name is set
 				curName = elem.get('Name')
-				if elemName is None or (elTag == 'Flag' and curName is not None): name = curName
+				if elemName is None or (elTag == 'Flag' and curName is not None):
+					name = curName
 
 				# Add the index to get the proper attribute
-				if elTag == 'Property' or (elTag == 'Flag' and elType == 'Switch') or elTag == 'Bool' or elTag == 'Enum':
-					field = elemField + f'{i}'
-				else:
+				field = elemField + f'{i}'
+				if elTag == 'Parameter':
 					field = elemField
 
 				attr = getattr(detailedProp, field, None)
 				tiedParam = elem.get('TiedParam')
 				actorType = getattr(detailedProp, key + '.type', None)
+
+				if elType == 'Chest':
+					print(field)
+
 				if name != 'None' and elem.tag == elTag and elType == elem.get('Type') and attr is not None:
 					if hasActorTiedParams(tiedParam, actorType) is True:
 						prop_split(box, detailedProp, field, name)
 					i += 1
 
-def drawOperatorBox(layout, obj, detailedProp, field, labelText, searchOp, enum):
+def drawOperatorBox(layout, obj, name, labelText, searchOp):
 	searchOp.objName = obj
 	split = layout.split(factor=0.5)
 	split.label(text=labelText)
-	split.label(text=getEnumName(enum, getattr(detailedProp, field)))
+	split.label(text=name)
 
 def editOOTActorProperties():
 	'''This function is used to edit the OOTActorProperties class before it's registered'''
@@ -225,13 +237,13 @@ def editOOTActorProperties():
 		OOTActorProperties.__annotations__ = propAnnotations
 
 	# Collectible Drops List
-	itemDrops = [(elem.get('Value'), elem.get('Name'),
+	itemDrops = [(elem.get('Key'), elem.get('Name'),
 					elem.get('Name')) for listNode in root for elem in listNode if listNode.tag == 'List'
 					and listNode.get('Name') == 'Collectibles']
 
 	# Generate the fields
 	for actorNode in root:
-		i_property = i_flag = i_bool = i_enum = 1
+		i_drop = i_property = i_chest = i_collectible = i_switch = i_bool = i_enum = 1
 		actorKey = actorNode.get('Key')
 		for elem in actorNode:
 			if elem.tag == 'Property':
@@ -239,14 +251,16 @@ def editOOTActorProperties():
 				i_property += 1
 			elif elem.tag == 'Flag':
 				if elem.get('Type') == 'Chest':
-					genString(propAnnotations, actorKey, '.chestFlag', 'Chest Flag')
+					genString(propAnnotations, actorKey, f'.chestFlag{i_chest}', 'Chest Flag')
+					i_chest += 1
 				elif elem.get('Type') == 'Collectible':
-					genString(propAnnotations, actorKey, '.collectibleFlag', 'Collectible Flag')
+					genString(propAnnotations, actorKey, f'.collectibleFlag{i_collectible}', 'Collectible Flag')
+					i_collectible += 1
 				elif elem.get('Type') == 'Switch':
-					genString(propAnnotations, actorKey, f'.switchFlag{i_flag}', 'Switch Flag')
-					i_flag += 1
+					genString(propAnnotations, actorKey, f'.switchFlag{i_switch}', 'Switch Flag')
+					i_switch += 1
 			elif elem.tag == 'Collectible':
-				genEnum(propAnnotations, actorKey, '.collectibleDrop', itemDrops, 'Collectible Drop')
+				genEnum(propAnnotations, actorKey, f'.collectibleDrop{i_drop}', itemDrops, 'Collectible Drop')
 			elif elem.tag == 'Parameter':
 				actorTypeList = [(elem2.get('Params'), elem2.text, elem2.get('Params'))
 								for actorNode2 in root for elem2 in actorNode2
@@ -310,23 +324,34 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 		if user == userActor:
 			rotXBool = rotYBool = rotZBool = False
 			if userActorID is not None and userActorID == detailedProp.actorID:
+				if dpKey == 'en_box':
+					enumValue = detailedProp.itemChest
+				elif dpKey == 'elf_msg':
+					enumValue = detailedProp.naviMsgID
+				else:
+					enumValue = None
+
+				if enumValue is not None:
+					for listNode in root:
+						listName = listNode.get('Name')
+						if listNode.tag == 'List' and (listName == 'Elf_Msg Message ID' or listName == 'Chest Content'):
+							for elem in listNode:
+								if elem.get('Value') == enumValue:
+									enumName = elem.get('Name')
+
 				for actorNode in root:
 					if actorNode.get('ID') == userActorID:
 						for elem in actorNode:
 							if elem.tag == 'ChestContent':
 								# Draw chest content searchbox
 								searchOp = userLayout.operator(OOT_SearchChestContentEnumOperator.bl_idname, icon='VIEWZOOM')
-								drawOperatorBox(userLayout, userObj, detailedProp, 'itemChest', 'Chest Content', searchOp, ootChestContent)
+								drawOperatorBox(userLayout, userObj, enumName, 'Chest Content', searchOp)
 							if elem.tag == 'Message':
 								# Draw Navi message ID searchbox
 								searchOp = userLayout.operator(OOT_SearchNaviMsgIDEnumOperator.bl_idname, icon='VIEWZOOM')
-								drawOperatorBox(userLayout, userObj, detailedProp, 'naviMsgID', 'Message ID', searchOp, ootNaviMsgID)
+								drawOperatorBox(userLayout, userObj, detailedProp.naviMsgID, 'Message ID', searchOp)
 
-			propAnnot = getattr(detailedProp, dpKey + ('.collectibleDrop'), None)
-			if propAnnot is not None:
-				prop_split(userLayout, detailedProp, dpKey + '.collectibleDrop', 'Collectible Drop')
-
-		if user == userActor:
+			drawParams(userLayout, detailedProp, dpKey, dpKey + '.collectibleDrop', 'Collectible Drop', 'Collectible', 'Drop', None)
 			drawParams(userLayout, detailedProp, dpKey, dpKey + '.chestFlag', 'Chest Flag', 'Flag', 'Chest', None)
 			drawParams(userLayout, detailedProp, dpKey, dpKey + '.collectibleFlag', 'Collectible Flag', 'Flag', 'Collectible', None)
 

@@ -71,11 +71,11 @@ ootEnumActorIDLegacy = [("ACTOR_" + (actorNode.get('Key').upper()), actorNode.ge
 					actorNode.get('ID').replace('ACTOR_','')) for actorNode in root if actorNode.get('ID') is not None]
 ootEnumActorIDLegacy.insert(0, ("Custom", "Custom Actor", "Custom"))
 
-ootChestContent = [(elem.get('Value'), elem.get('Name'),
+ootChestContent = [(elem.get('Key'), elem.get('Name'),
 					elem.get('Name')) for listNode in root for elem in listNode if listNode.tag == 'List'
 					and listNode.get('Name') == 'Chest Content']
 
-ootNaviMsgID = [(elem.get('Value'), elem.get('Name'),
+ootNaviMsgID = [(elem.get('Key'), elem.get('Name'),
 				elem.get('Name')) for listNode in root for elem in listNode if listNode.tag == 'List'
 				and listNode.get('Name') == 'Elf_Msg Message ID']
 

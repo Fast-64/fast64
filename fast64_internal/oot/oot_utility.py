@@ -636,6 +636,14 @@ def oot_utility_unregister():
 def getAndFormatActorProperty(object, field, shift, mask):
 	'''Returns an actor's property with the correct formatting'''
 	attr = getattr(object, field, '0x00')
+
+	if field.find('.collectibleDrop') != -1:
+		for listNode in root:
+			if listNode.tag == 'List' and listNode.get('Name') == 'Collectibles':
+				for elem in listNode:
+					if elem.get('Key') == attr:
+						attr = elem.get('Value')
+
 	if attr != '0x00' and attr is not None:
 		if isinstance(attr, str):
 			if shift != '0':
@@ -686,10 +694,19 @@ def getActorParameter(detailedProp, actorKey, paramTarget, field):
 def setActorParameterPart(object, field, param, mask):
 	'''Sets the attributes to have the correct display on the UI'''
 	shift = len(f'{mask:016b}') - len(f'{mask:016b}'.rstrip('0'))
+	attr = getattr(object, field, '0x0')
+
 	if field.endswith('.type'):
 		setattr(object, field, f'{param & mask:04X}')
+	elif field.find('.collectibleDrop') != -1:
+		for listNode in root:
+			if listNode.tag == 'List' and listNode.get('Name') == 'Collectibles':
+				for elem in listNode:
+					value = f'0x{(param & mask) >> shift:02X}'
+					if elem.get('Value') == value:
+						setattr(object, field, elem.get('Key'))
+						break
 	else:
-		attr = getattr(object, field, '0x0')
 		if isinstance(attr, str):
 			setattr(object, field, f'0x{(param & mask) >> shift:02X}')
 		elif isinstance(attr, bool):
@@ -730,38 +747,40 @@ def getActorParameterPart(elem, detailedProp, field, lenProp, lenSwitch, lenBool
 		mask = int(strMask, base=16)
 		shiftTmp = len(f'{mask:016b}') - len(f'{mask:016b}'.rstrip('0'))
 		shift = f'{shiftTmp}'
+		index = elem.get('Index')
+		if index is None:
+			i = 1
+		else:
+			i = int(index, base=10)
+
 		if elem.tag == 'Flag':
 			elemType = elem.get('Type')
-			if elemType == 'Chest' and target == paramTarget:
-				paramPart = getAndFormatActorProperty(detailedProp, field + '.chestFlag', shift, strMask)
-			elif elemType == 'Collectible' and target == paramTarget:
-				paramPart = getAndFormatActorProperty(detailedProp, field + '.collectibleFlag', shift, strMask)
-			elif elemType == 'Switch' and target == paramTarget:
-				i = int(elem.get('Index'), base=10)
+			if elemType == 'Chest' and (target == paramTarget):
+				paramPart = getAndFormatActorProperty(detailedProp, field + f'.chestFlag{i}', shift, strMask)
+			elif elemType == 'Collectible' and (target == paramTarget):
+				paramPart = getAndFormatActorProperty(detailedProp, field + f'.collectibleFlag{i}', shift, strMask)
+			elif elemType == 'Switch' and (target == paramTarget):
 				if lenSwitch is not None and (target == paramTarget):
 					paramPart = getAndFormatActorProperty(detailedProp, field + f'.switchFlag{i}', shift, strMask)
 		elif elem.tag == 'Property' and elem.get('Name') != 'None':
-			i = int(elem.get('Index'), base=10)
 			if lenProp is not None and (target == paramTarget):
 				paramPart = getAndFormatActorProperty(detailedProp, (field + f'.props{i}'), shift, strMask)
-		elif elem.tag == 'ChestContent' and target == paramTarget:
+		elif elem.tag == 'ChestContent' and (target == paramTarget):
 			if shift != '0':
 				paramPart = f"(({detailedProp.itemChest} << {shift}) & 0x{mask:X})"
 			else:
 				paramPart = f"({detailedProp.itemChest} & 0x{mask:X})"
-		elif elem.tag == 'Message' and target == paramTarget:
+		elif elem.tag == 'Message' and (target == paramTarget):
 			if shift != '0':
 				paramPart = f"(({detailedProp.naviMsgID} << {shift}) & 0x{mask:X})"
 			else:
 				paramPart = f"({detailedProp.naviMsgID} & 0x{mask:X})"
-		elif elem.tag == 'Collectible' and target == paramTarget:
-			paramPart = getAndFormatActorProperty(detailedProp, field + '.collectibleDrop', shift, strMask)
+		elif elem.tag == 'Collectible' and (target == paramTarget):
+			paramPart = getAndFormatActorProperty(detailedProp, field + f'.collectibleDrop{i}', shift, strMask)
 		elif elem.tag == 'Bool':
-			i = int(elem.get('Index'), base=10)
 			if lenBool is not None and (target == paramTarget):
 				paramPart = getAndFormatActorProperty(detailedProp, (field + f'.bool{i}'), shift, strMask)
 		elif elem.tag == 'Enum':
-			i = int(elem.get('Index'), base=10)
 			if lenEnum is not None and (target == paramTarget):
 				paramPart = getAndFormatActorProperty(detailedProp, (field + f'.enum{i}'), shift, strMask)
 	return paramPart
@@ -770,25 +789,32 @@ def setActorParameter(elem, params, detailedProp, field, lenProp, lenSwitch, len
 	'''Reversed ``getActorParameter()``'''
 	strMask = elem.get('Mask')
 	target = elem.get('Target')
-	if target is None: target = 'Params'
-	if strMask is not None: mask = int(strMask, base=16)
-	else: mask = 0xFFFF
+	if target is None:
+		target = 'Params'
+	if strMask is not None:
+		mask = int(strMask, base=16)
+	else:
+		mask = 0xFFFF
 
 	if target == paramTarget:
+		index = elem.get('Index')
+		if index is None:
+			i = 1
+		else:
+			i = int(index, base=10)
+
 		if elem.tag == 'Parameter':
 			setActorParameterPart(detailedProp, field + '.type', params, mask)
 		if elem.tag == 'Flag':
 			elemType = elem.get('Type')
 			if elemType == 'Chest':
-				setActorParameterPart(detailedProp, field + '.chestFlag', params, mask)
+				setActorParameterPart(detailedProp, field + f'.chestFlag{i}', params, mask)
 			elif elemType == 'Collectible':
-				setActorParameterPart(detailedProp, field + '.collectibleFlag', params, mask)
+				setActorParameterPart(detailedProp, field + f'.collectibleFlag{i}', params, mask)
 			elif elemType == 'Switch':
-				i = int(elem.get('Index'), base=10)
 				if lenSwitch is not None and target == paramTarget:
 					setActorParameterPart(detailedProp, field + f'.switchFlag{i}', params, mask)
 		elif elem.tag == 'Property' and elem.get('Name') != 'None':
-			i = int(elem.get('Index'), base=10)
 			if lenProp is not None and target == paramTarget:
 					setActorParameterPart(detailedProp, field + f'.props{i}', params, mask)
 		elif elem.tag == 'ChestContent':
@@ -796,13 +822,11 @@ def setActorParameter(elem, params, detailedProp, field, lenProp, lenSwitch, len
 		elif elem.tag == 'Message':
 			setActorParameterPart(detailedProp, 'naviMsgID', params, mask)
 		elif elem.tag == 'Collectible':
-			setActorParameterPart(detailedProp, field + '.collectibleDrop', params, mask)
+			setActorParameterPart(detailedProp, field + f'.collectibleDrop{i}', params, mask)
 		elif elem.tag == 'Bool':
-			i = int(elem.get('Index'), base=10)
 			if lenBool is not None and target == paramTarget:
 				setActorParameterPart(detailedProp, field + f'.bool{i}', params, mask)
 		elif elem.tag == 'Enum':
-			i = int(elem.get('Index'), base=10)
 			if lenEnum is not None and target == paramTarget:
 				setActorParameterPart(detailedProp, field + f'.enum{i}', params, mask)
 

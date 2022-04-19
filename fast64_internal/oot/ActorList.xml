@@ -2900,249 +2900,246 @@ Z ROTATION +0x3F = Collectible Flag</Notes>
     <Flag Index="1" Mask="0x003F" Type="Switch"/>
   </Actor>
   <List Name="Elf_Msg Message ID">
-    <Item Name="What’s that?" Value="0x00"/>
-    <Item Name="Look, look, LINK! You can see down below this web using C-Up!" Value="0x01"/>
-    <Item Name="Look at this wall! The vines growing on it give it a rough surface... Maybe you can climb it, LINK!" Value="0x02"/>
-    <Item Name="You can open a door by standing in front of it and pressing A. Pay attention to what the Action Icon says. That’s the blue icon at the top of the screen!" Value="0x03"/>
-    <Item Name="Look! Something is hanging up there! It looks like an old ladder!" Value="0x04"/>
-    <Item Name="Hey... isn’t that the same design that’s on the Door of Time?" Value="0x05"/>
-    <Item Name="It looks like that torch was burning not too long ago..." Value="0x06"/>
-    <Item Name="From here on, we’ll be going through some narrow passages! If you take it slow, maybe you can sneak up on some enemies." Value="0x07"/>
-    <Item Name="Stand next to this block and grab hold of it with A. While holding A, you can push or pull it. If you stand next to the block and press A while pressing the control stick towards the block, you can climb on top of it. Pay attention to what the Action Icon says!" Value="0x08"/>
-    <Item Name="After you get into the water, if you hold down A, you can dive! I bet there are some interesting things underwater!" Value="0x0C"/>
-    <Item Name="Wow! Look at all those Bomb Flowers! Is there any way you can set them all off at once?" Value="0x14"/>
-    <Item Name="It looks like there are many lava pits around here, so watch your step!" Value="0x15"/>
-    <Item Name="With that switch on, the moving platform goes even higher. Now you can quickly reach the second floor!" Value="0x16"/>
-    <Item Name="You never know what will be around the corner in these narrow paths... Use Z Targeting to always look in the proper direction. This is a useful technique, isn’t it?" Value="0x19"/>
-    <Item Name="LINK, what are you looking at?" Value="0x1F"/>
-    <Item Name="The Desert Colossus’s face... it sure looks evil!" Value="0x24"/>
-    <Item Name="I can hear the spirits whispering in this room... “Look for the eye of truth...” That’s what they’re saying!" Value="0x26"/>
-    <Item Name="Here... I can hear the spirits whispering in this room... “Those who have sacred feet should let the wind guide them. Then, they will be lead to the hidden path.” That’s what they are saying!" Value="0x28"/>
-    <Item Name="This wall... it says something here... “Danger above...” That’s what it says." Value="0x29"/>
-    <Item Name="This wall... it says something here... “Danger below...” That’s what it says." Value="0x2A"/>
-    <Item Name="The water flowing out of this statue is flooding the entire floor." Value="0x2B"/>
-    <Item Name="Watch out, LINK! Electricity is running through this green slimy thing!" Value="0x2F"/>
-    <Item Name="Watch out, LINK! Electricity is running through this red slimy thing!" Value="0x31"/>
-    <Item Name="Watch out, LINK! Electricity is running through this blue slimy thing!" Value="0x32"/>
-    <Item Name="This switch... It doesn't look like you can press it down with your weight alone, LINK..." Value="0x33"/>
-    <Item Name="The red slimy thing is gone! That must be because you cut the red tail! Will that work with the other ones too?" Value="0x37"/>
-    <Item Name="There’s a switch beyond this wall!" Value="0x39"/>
-    <Item Name="It looks like there is something up there on top of the platform!" Value="0x3A"/>
-    <Item Name="WHAAAT!? Look at all those flags! Can you figure out which ones are real? //Unused?" Value="0x3D"/>
-    <Item Name="The Great Deku Tree has summoned you! Please come with me!" Value="0x40"/>
-    <Item Name="C'mon! Be brave! Let's go into the Deku Tree!" Value="0x41"/>
-    <Item Name="The Great Deku Tree wanted us to go visit the princess at Hyrule Castle... Shouldn’t we get going?" Value="0x42"/>
-    <Item Name="The girl from the ranch asked us to find her father... I wonder where he is?" Value="0x43"/>
-    <Item Name="I wonder where we'll find the princess in this big old castle?" Value="0x44"/>
-    <Item Name="What would Saria say if we told her we’re going to save Hyrule?" Value="0x45"/>
-    <Item Name="Impa said that the Spiritual Stone of Fire is somewhere on Death Mountain." Value="0x46"/>
-    <Item Name="Let’s go inside the Dodongo's Cavern using a Bomb Flower!" Value="0x47"/>
-    <Item Name="Darunia said that a fairy lives on top of Death Mountain, didn’t he?" Value="0x48"/>
-    <Item Name="I wonder if Saria knows anything about the other Spiritual Stone?" Value="0x49"/>
-    <Item Name="It seems Princess Ruto somehow got inside Jabu-Jabu's belly..." Value="0x4A"/>
-    <Item Name="You collected three Spiritual Stones! Let’s go back to Hyrule Castle!" Value="0x4B"/>
-    <Item Name="Those people on the white horse... they were Zelda and Impa, weren't they? It looked like they threw something into the moat!" Value="0x4C"/>
-    <Item Name="Let’s go check inside the Temple of Time." Value="0x4D"/>
-    <Item Name="Should we believe what Sheik said and go to Kakariko Village?" Value="0x4E"/>
-    <Item Name="I wonder what’s going on in the forest right now... I’m worried about Saria, too!" Value="0x50"/>
-    <Item Name="That cloud over Death Mountain... there is something strange about it..." Value="0x51"/>
-    <Item Name="An arctic wind is blowing from Zora's River... do you feel it?" Value="0x52"/>
-    <Item Name="Those Iron Boots look like they weigh a ton! If you wear those boots, you may be able to walk at the bottom of the lake." Value="0x53"/>
-    <Item Name="Let’s look for someone who might know about the other Sages!" Value="0x54"/>
-    <Item Name="That monster! It came out of the well in the village! Let’s go check out the well!" Value="0x55"/>
-    <Item Name="I wonder who built the Spirit Temple, and for what purpose?" Value="0x56"/>
-    <Item Name="Have you ever played the Nocturne of Shadow that Sheik taught you?" Value="0x57"/>
-    <Item Name="The desert... that is where Ganondorf the Evil King was born. If we go there, we might find something..." Value="0x58"/>
-    <Item Name="Equip the Silver Gauntlets and try to move things you couldn't budge before!" Value="0x5A"/>
-    <Item Name="The one who is waiting for us at the Temple of Time...it could be..." Value="0x5B"/>
-    <Item Name="We have to save Princess Zelda from her imprisonment in Ganon's Castle!" Value="0x5C"/>
-    <Item Name="LINK, try to keep moving!!" Value="0x5F"/>
-    <Item Name="I don’t mind talking to you using the Ocarina’s magic, but I’d really like to talk to you face-to-face!" Value="0x60"/>
-    <Item Name="The forest is connected to many different places! If you can hear my song, you must be near somewhere that is connected to the forest!" Value="0x61"/>
-    <Item Name="I was so happy to hear that Mr. Darunia loved my song so much! I was even happier to find out I helped out on your quest, LINK! Tee hee hee!" Value="0x62"/>
-    <Item Name="Are you collecting Spiritual Stones? You have one more to find? You mean the Spiritual Stone of Water, don’t you? The Great Deku Tree once told me that King Zora, ruler of Zora’s Domain, has it..." Value="0x63"/>
-    <Item Name="Are you collecting Spiritual Stones? You have one more to find? You mean the Spiritual Stone of Fire, don’t you? The Great Deku Tree once told me that Mr. Darunia of the Gorons has it..." Value="0x64"/>
-    <Item Name="LINK... I don’t know what it is... I have this feeling of dread... The Castle... Yes, something bad is happening at the Castle!" Value="0x65"/>
-    <Item Name="What? Your ocarina sounds... different somehow... Have you been practicing a lot, LINK?" Value="0x66"/>
-    <Item Name="Are you looking for a temple? A mysterious bird once told me... “Eyes that can see through darkness will open in a storm.” Do you have any idea what he meant by this?" Value="0x67"/>
-    <Item Name="Where are you, LINK? Are you looking for a temple? I once heard a mysterious bird say... “Go, young man. Go to the Desert Goddess with an ocarina.” Do you have any idea what he meant by this?" Value="0x68"/>
-    <Item Name="Did you find all the temples yet?" Value="0x69"/>
-    <Item Name="Great! You’re safe! I knew I would hear from you again! I’m in the Forest Temple! The forest spirits were calling for help, so I went to check it out... But it’s full of evil monsters! Help me, LINK!" Value="0x6A"/>
-    <Item Name="LINK... At first, I didn’t want to become the Sage of the Forest... But I’m glad now. Because I’m helping you save Hyrule, LINK! Yes, I am!" Value="0x6B"/>
-    <Item Name="If all six Sages come together, we can imprison Ganondorf, the King of Evil, in the Sacred Realm. But in order to make a perfect seal, we need the seventh Sage. Someone you know must be that Sage, LINK... From now on, you must travel between past and future to awaken the remaining Sages! Keep up the good work, LINK!" Value="0x6C"/>
-    <Item Name="We, the Six Sages, are channeling our power to you! The destiny of Hyrule depends upon you!" Value="0x6D"/>
-    <Item Name="I can hear a voice from / somewhere... / It's saying: / &amp;quot;Collect five silver Rupees...&amp;quot;" Value="0x80"/>
-    <Item Name="This wall...it's saying something! / It says: / If you want to see a ferry to the / other world, come here..." Value="0x81"/>
-    <Item Name="If you want to ride that boat, be / careful! It looks very old... Who / knows when it might sink?" Value="0x83"/>
-    <Item Name="There is a door over here... Is / there any way to get across?" Value="0x84"/>
-    <Item Name="That red ice...it's so weird!" Value="0x86"/>
-    <Item Name="This blue fire...it doesn't seem / natural. Maybe you can use it for / something?" Value="0x89"/>
-    <Item Name="The fires on the torches are gone. / Seems like the ghosts took them / away!" Value="0x8C"/>
-    <Item Name="Look, Link! A torch / is lit! That's because / you beat a ghost, isn't it?!" Value="0x8D"/>
-    <Item Name="There are arrows painted on the / floor!" Value="0x8F"/>
-    <Item Name="This corridor is all twisted!" Value="0x90"/>
-    <Item Name="Watch for the shadows of / monsters that hang from the / ceiling." Value="0x91"/>
-    <Item Name="There's a treasure chest here." Value="0x92"/>
-    <Item Name="This...this is the same torch we / saw at the entrance to the temple, / isn't it?" Value="0x94"/>
-    <Item Name="This torch is lit...that means..." Value="0x95"/>
-    <Item Name="This switch is frozen!" Value="0x97"/>
-    <Item Name="Link, watch out! / The ceiling is falling down!" Value="0x98"/>
-    <Item Name="Link, I hear Goron / voices down below." Value="0xA3"/>
-    <Item Name="You can see down from here... / Isn't that the room where we saw / Darunia?" Value="0xA5"/>
-    <Item Name="This statue...haven't we seen it / somewhere before?" Value="0xA7"/>
-    <Item Name="This switch looks rusted." Value="0xA9"/>
-    <Item Name="Link! Be careful! / Don't get swallowed by the / vortexes!" Value="0xAB"/>
+    <Item Name="What’s that?" Value="0x00" Key="msg_00"/>
+    <Item Name="Look, look, LINK! You can see down below this web using C-Up!" Value="0x01" Key="msg_01"/>
+    <Item Name="Look at this wall! The vines growing on it give it a rough surface... Maybe you can climb it, LINK!" Value="0x02" Key="msg_02"/>
+    <Item Name="You can open a door by standing in front of it and pressing A. Pay attention to what the Action Icon says. That’s the blue icon at the top of the screen!" Value="0x03" Key="msg_03"/>
+    <Item Name="Look! Something is hanging up there! It looks like an old ladder!" Value="0x04" Key="msg_04"/>
+    <Item Name="Hey... isn’t that the same design that’s on the Door of Time?" Value="0x05" Key="msg_05"/>
+    <Item Name="It looks like that torch was burning not too long ago..." Value="0x06" Key="msg_06"/>
+    <Item Name="From here on, we’ll be going through some narrow passages! If you take it slow, maybe you can sneak up on some enemies." Value="0x07" Key="msg_07"/>
+    <Item Name="Stand next to this block and grab hold of it with A. While holding A, you can push or pull it. If you stand next to the block and press A while pressing the control stick towards the block, you can climb on top of it. Pay attention to what the Action Icon says!" Value="0x08" Key="msg_08"/>
+    <Item Name="After you get into the water, if you hold down A, you can dive! I bet there are some interesting things underwater!" Value="0x0C" Key="msg_0C"/>
+    <Item Name="Wow! Look at all those Bomb Flowers! Is there any way you can set them all off at once?" Value="0x14" Key="msg_14"/>
+    <Item Name="It looks like there are many lava pits around here, so watch your step!" Value="0x15" Key="msg_15"/>
+    <Item Name="With that switch on, the moving platform goes even higher. Now you can quickly reach the second floor!" Value="0x16" Key="msg_16"/>
+    <Item Name="You never know what will be around the corner in these narrow paths... Use Z Targeting to always look in the proper direction. This is a useful technique, isn’t it?" Value="0x19" Key="msg_19"/>
+    <Item Name="LINK, what are you looking at?" Value="0x1F" Key="msg_1F"/>
+    <Item Name="The Desert Colossus’s face... it sure looks evil!" Value="0x24" Key="msg_24"/>
+    <Item Name="I can hear the spirits whispering in this room... “Look for the eye of truth...” That’s what they’re saying!" Value="0x26" Key="msg_26"/>
+    <Item Name="Here... I can hear the spirits whispering in this room... “Those who have sacred feet should let the wind guide them. Then, they will be lead to the hidden path.” That’s what they are saying!" Value="0x28" Key="msg_28"/>
+    <Item Name="This wall... it says something here... “Danger above...” That’s what it says." Value="0x29" Key="msg_29"/>
+    <Item Name="This wall... it says something here... “Danger below...” That’s what it says." Value="0x2A" Key="msg_2A"/>
+    <Item Name="The water flowing out of this statue is flooding the entire floor." Value="0x2B" Key="msg_2B"/>
+    <Item Name="Watch out, LINK! Electricity is running through this green slimy thing!" Value="0x2F" Key="msg_2F"/>
+    <Item Name="Watch out, LINK! Electricity is running through this red slimy thing!" Value="0x31" Key="msg_31"/>
+    <Item Name="Watch out, LINK! Electricity is running through this blue slimy thing!" Value="0x32" Key="msg_32"/>
+    <Item Name="This switch... It doesn't look like you can press it down with your weight alone, LINK..." Value="0x33" Key="msg_33"/>
+    <Item Name="The red slimy thing is gone! That must be because you cut the red tail! Will that work with the other ones too?" Value="0x37" Key="msg_37"/>
+    <Item Name="There’s a switch beyond this wall!" Value="0x39" Key="msg_39"/>
+    <Item Name="It looks like there is something up there on top of the platform!" Value="0x3A" Key="msg_3A"/>
+    <Item Name="WHAAAT!? Look at all those flags! Can you figure out which ones are real? //Unused?" Value="0x3D" Key="msg_3D"/>
+    <Item Name="The Great Deku Tree has summoned you! Please come with me!" Value="0x40" Key="msg_40"/>
+    <Item Name="C'mon! Be brave! Let's go into the Deku Tree!" Value="0x41" Key="msg_41"/>
+    <Item Name="The Great Deku Tree wanted us to go visit the princess at Hyrule Castle... Shouldn’t we get going?" Value="0x42" Key="msg_42"/>
+    <Item Name="The girl from the ranch asked us to find her father... I wonder where he is?" Value="0x43" Key="msg_43"/>
+    <Item Name="I wonder where we'll find the princess in this big old castle?" Value="0x44" Key="msg_44"/>
+    <Item Name="What would Saria say if we told her we’re going to save Hyrule?" Value="0x45" Key="msg_45"/>
+    <Item Name="Impa said that the Spiritual Stone of Fire is somewhere on Death Mountain." Value="0x46" Key="msg_46"/>
+    <Item Name="Let’s go inside the Dodongo's Cavern using a Bomb Flower!" Value="0x47" Key="msg_47"/>
+    <Item Name="Darunia said that a fairy lives on top of Death Mountain, didn’t he?" Value="0x48" Key="msg_48"/>
+    <Item Name="I wonder if Saria knows anything about the other Spiritual Stone?" Value="0x49" Key="msg_49"/>
+    <Item Name="It seems Princess Ruto somehow got inside Jabu-Jabu's belly..." Value="0x4A" Key="msg_4A"/>
+    <Item Name="You collected three Spiritual Stones! Let’s go back to Hyrule Castle!" Value="0x4B" Key="msg_4B"/>
+    <Item Name="Those people on the white horse... they were Zelda and Impa, weren't they? It looked like they threw something into the moat!" Value="0x4C" Key="msg_4C"/>
+    <Item Name="Let’s go check inside the Temple of Time." Value="0x4D" Key="msg_4D"/>
+    <Item Name="Should we believe what Sheik said and go to Kakariko Village?" Value="0x4E" Key="msg_4E"/>
+    <Item Name="I wonder what’s going on in the forest right now... I’m worried about Saria, too!" Value="0x50" Key="msg_50"/>
+    <Item Name="That cloud over Death Mountain... there is something strange about it..." Value="0x51" Key="msg_51"/>
+    <Item Name="An arctic wind is blowing from Zora's River... do you feel it?" Value="0x52" Key="msg_52"/>
+    <Item Name="Those Iron Boots look like they weigh a ton! If you wear those boots, you may be able to walk at the bottom of the lake." Value="0x53" Key="msg_53"/>
+    <Item Name="Let’s look for someone who might know about the other Sages!" Value="0x54" Key="msg_54"/>
+    <Item Name="That monster! It came out of the well in the village! Let’s go check out the well!" Value="0x55" Key="msg_55"/>
+    <Item Name="I wonder who built the Spirit Temple, and for what purpose?" Value="0x56" Key="msg_56"/>
+    <Item Name="Have you ever played the Nocturne of Shadow that Sheik taught you?" Value="0x57" Key="msg_57"/>
+    <Item Name="The desert... that is where Ganondorf the Evil King was born. If we go there, we might find something..." Value="0x58" Key="msg_58"/>
+    <Item Name="Equip the Silver Gauntlets and try to move things you couldn't budge before!" Value="0x5A" Key="msg_5A"/>
+    <Item Name="The one who is waiting for us at the Temple of Time...it could be..." Value="0x5B" Key="msg_5B"/>
+    <Item Name="We have to save Princess Zelda from her imprisonment in Ganon's Castle!" Value="0x5C" Key="msg_5C"/>
+    <Item Name="LINK, try to keep moving!!" Value="0x5F" Key="msg_5F"/>
+    <Item Name="I don’t mind talking to you using the Ocarina’s magic, but I’d really like to talk to you face-to-face!" Value="0x60" Key="msg_60"/>
+    <Item Name="The forest is connected to many different places! If you can hear my song, you must be near somewhere that is connected to the forest!" Value="0x61" Key="msg_61"/>
+    <Item Name="I was so happy to hear that Mr. Darunia loved my song so much! I was even happier to find out I helped out on your quest, LINK! Tee hee hee!" Value="0x62" Key="msg_62"/>
+    <Item Name="Are you collecting Spiritual Stones? You have one more to find? You mean the Spiritual Stone of Water, don’t you? The Great Deku Tree once told me that King Zora, ruler of Zora’s Domain, has it..." Value="0x63" Key="msg_63"/>
+    <Item Name="Are you collecting Spiritual Stones? You have one more to find? You mean the Spiritual Stone of Fire, don’t you? The Great Deku Tree once told me that Mr. Darunia of the Gorons has it..." Value="0x64" Key="msg_64"/>
+    <Item Name="LINK... I don’t know what it is... I have this feeling of dread... The Castle... Yes, something bad is happening at the Castle!" Value="0x65" Key="msg_65"/>
+    <Item Name="What? Your ocarina sounds... different somehow... Have you been practicing a lot, LINK?" Value="0x66" Key="msg_66"/>
+    <Item Name="Are you looking for a temple? A mysterious bird once told me... “Eyes that can see through darkness will open in a storm.” Do you have any idea what he meant by this?" Value="0x67" Key="msg_67"/>
+    <Item Name="Where are you, LINK? Are you looking for a temple? I once heard a mysterious bird say... “Go, young man. Go to the Desert Goddess with an ocarina.” Do you have any idea what he meant by this?" Value="0x68" Key="msg_68"/>
+    <Item Name="Did you find all the temples yet?" Value="0x69" Key="msg_69"/>
+    <Item Name="Great! You’re safe! I knew I would hear from you again! I’m in the Forest Temple! The forest spirits were calling for help, so I went to check it out... But it’s full of evil monsters! Help me, LINK!" Value="0x6A" Key="msg_6A"/>
+    <Item Name="LINK... At first, I didn’t want to become the Sage of the Forest... But I’m glad now. Because I’m helping you save Hyrule, LINK! Yes, I am!" Value="0x6B" Key="msg_6B"/>
+    <Item Name="If all six Sages come together, we can imprison Ganondorf, the King of Evil, in the Sacred Realm. But in order to make a perfect seal, we need the seventh Sage. Someone you know must be that Sage, LINK... From now on, you must travel between past and future to awaken the remaining Sages! Keep up the good work, LINK!" Value="0x6C" Key="msg_6C"/>
+    <Item Name="We, the Six Sages, are channeling our power to you! The destiny of Hyrule depends upon you!" Value="0x6D" Key="msg_6D"/>
+    <Item Name="I can hear a voice from / somewhere... / It's saying: / &amp;quot;Collect five silver Rupees...&amp;quot;" Value="0x80" Key="msg_80"/>
+    <Item Name="This wall...it's saying something! / It says: / If you want to see a ferry to the / other world, come here..." Value="0x81" Key="msg_81"/>
+    <Item Name="If you want to ride that boat, be / careful! It looks very old... Who / knows when it might sink?" Value="0x83" Key="msg_83"/>
+    <Item Name="There is a door over here... Is / there any way to get across?" Value="0x84" Key="msg_84"/>
+    <Item Name="That red ice...it's so weird!" Value="0x86" Key="msg_86"/>
+    <Item Name="This blue fire...it doesn't seem / natural. Maybe you can use it for / something?" Value="0x89" Key="msg_89"/>
+    <Item Name="The fires on the torches are gone. / Seems like the ghosts took them / away!" Value="0x8C" Key="msg_8C"/>
+    <Item Name="Look, Link! A torch / is lit! That's because / you beat a ghost, isn't it?!" Value="0x8D" Key="msg_8D"/>
+    <Item Name="There are arrows painted on the / floor!" Value="0x8F" Key="msg_8F"/>
+    <Item Name="This corridor is all twisted!" Value="0x90" Key="msg_90"/>
+    <Item Name="Watch for the shadows of / monsters that hang from the / ceiling." Value="0x91" Key="msg_91"/>
+    <Item Name="There's a treasure chest here." Value="0x92" Key="msg_92"/>
+    <Item Name="This...this is the same torch we / saw at the entrance to the temple, / isn't it?" Value="0x94" Key="msg_94"/>
+    <Item Name="This torch is lit...that means..." Value="0x95" Key="msg_95"/>
+    <Item Name="This switch is frozen!" Value="0x97" Key="msg_97"/>
+    <Item Name="Link, watch out! / The ceiling is falling down!" Value="0x98" Key="msg_98"/>
+    <Item Name="Link, I hear Goron / voices down below." Value="0xA3" Key="msg_A3"/>
+    <Item Name="You can see down from here... / Isn't that the room where we saw / Darunia?" Value="0xA5" Key="msg_A5"/>
+    <Item Name="This statue...haven't we seen it / somewhere before?" Value="0xA7" Key="msg_A7"/>
+    <Item Name="This switch looks rusted." Value="0xA9" Key="msg_A9"/>
+    <Item Name="Link! Be careful! / Don't get swallowed by the / vortexes!" Value="0xAB" Key="msg_AB"/>
   </List>
   <List Name="Collectibles">
-    <Item Name="Green Rupee" Value="0x00"/>
-    <Item Name="Blue Rupee" Value="0x01"/>
-    <Item Name="Red Rupee" Value="0x02"/>
-    <Item Name="Recovery Heart" Value="0x03"/>
-    <Item Name="Bombs (5)" Value="0x04"/>
-    <Item Name="Arrows (1)" Value="0x05"/>
-    <Item Name="Heart Piece" Value="0x06"/>
-    <Item Name="Heart Container" Value="0x07"/>
-    <Item Name="Arrows (5)" Value="0x08"/>
-    <Item Name="Arrows (10)" Value="0x09"/>
-    <Item Name="Arrows (30)" Value="0x0A"/>
-    <Item Name="Deku Nuts" Value="0x0C"/>
-    <Item Name="Deku Sticks" Value="0x0D"/>
-    <Item Name="Large Magic Jar" Value="0x0E"/>
-    <Item Name="Small Magic Jar" Value="0x0F"/>
-    <Item Name="Deku Seeds" Value="0x10"/>
-    <Item Name="Small Key" Value="0x11"/>
-    <Item Name="Flexible Drop" Value="0x12"/>
-    <Item Name="Orange Rupee (200)" Value="0x13"/>
-    <Item Name="Purple Rupee (50)" Value="0x14"/>
-    <Item Name="Deku Shield" Value="0x15"/>
-    <Item Name="Hylian Shield" Value="0x16"/>
-    <Item Name="Zora Tunic" Value="0x17"/>
-    <Item Name="Goron Tunic" Value="0x18"/>
+    <Item Name="Green Rupee" Value="0x00" Key="item_green_rupee"/>
+    <Item Name="Blue Rupee" Value="0x01" Key="item_blue_rupee"/>
+    <Item Name="Red Rupee" Value="0x02" Key="item_red_rupee"/>
+    <Item Name="Recovery Heart" Value="0x03" Key="item_heart"/>
+    <Item Name="Bombs (5)" Value="0x04" Key="item_bombs_5"/>
+    <Item Name="Arrows (1)" Value="0x05" Key="item_arrow_1"/>
+    <Item Name="Heart Piece" Value="0x06" Key="item_heart_piece"/>
+    <Item Name="Heart Container" Value="0x07" Key="item_heart_container"/>
+    <Item Name="Arrows (5)" Value="0x08" Key="item_arrow_5"/>
+    <Item Name="Arrows (10)" Value="0x09" Key="item_arrows_10"/>
+    <Item Name="Arrows (30)" Value="0x0A" Key="item_arrows_30"/>
+    <Item Name="Deku Nuts" Value="0x0C" Key="item_deku_nuts"/>
+    <Item Name="Deku Sticks" Value="0x0D" Key="item_deku_sticks"/>
+    <Item Name="Large Magic Jar" Value="0x0E" Key="item_magic_large"/>
+    <Item Name="Small Magic Jar" Value="0x0F" Key="item_magic_small"/>
+    <Item Name="Deku Seeds" Value="0x10" Key="item_deku_seeds"/>
+    <Item Name="Small Key" Value="0x11" Key="item_small_key"/>
+    <Item Name="Flexible Drop" Value="0x12" Key="item_flex_drop"/>
+    <Item Name="Orange Rupee (200)" Value="0x13" Key="item_orange_rupee"/>
+    <Item Name="Purple Rupee (50)" Value="0x14" Key="item_purple_rupee"/>
+    <Item Name="Deku Shield" Value="0x15" Key="item_deku_shield"/>
+    <Item Name="Hylian Shield" Value="0x16" Key="item_hylian_shield"/>
+    <Item Name="Zora Tunic" Value="0x17" Key="item_zora_tunic"/>
+    <Item Name="Goron Tunic" Value="0x18" Key="item_goron_tunic"/>
   </List>
   <List Name="Chest Content">
-    <Item Name="Recovery Heart" Value="0x48"/>
-    <Item Name="Green Rupee" Value="0x4C"/>
-    <Item Name="Blue Rupee" Value="0x4D"/>
-    <Item Name="Blue rupee" Value="0x3C"/>
-    <Item Name="Red Rupee" Value="0x4E"/>
-    <Item Name="Purple Rupee (50)" Value="0x55"/>
-    <Item Name="Huge/Yellow Rupee (200)" Value="0x56"/>
-    <Item Name="Bombs (1)" Value="0x65"/>
-    <Item Name="Bombs (5)" Value="0x01"/>
-    <Item Name="Bombs (10)" Value="0x66"/>
-    <Item Name="Bombs (20)" Value="0x67"/>
-    <Item Name="Bombs (30)" Value="0x68"/>
-    <Item Name="Arrows (5)" Value="0x49"/>
-    <Item Name="Arrows (10)" Value="0x4A"/>
-    <Item Name="Arrows (30)" Value="0x4B"/>
-    <Item Name="Deku Stick (1)" Value="0x07"/>
-    <Item Name="Deku Stick" Value="0x61"/>
-    <Item Name="Deku Stick" Value="0x62"/>
-    <Item Name="Deku Nuts" Value="0x02"/>
-    <Item Name="Deku Nuts" Value="0x63"/>
-    <Item Name="Deku Nuts" Value="0x64"/>
-    <Item Name="Bombchus (5)" Value="0x6A"/>
-    <Item Name="Bombchus (10)" Value="0x03"/>
-    <Item Name="Bombchus (20)" Value="0x6B"/>
-    <Item Name="Deku Seeds (30)" Value="0x69"/>
-    <Item Name="Small Magic Jar (?)" Value="0x43"/>
-    <Item Name="Large Magic Jar (?)" Value="0x44"/>
-    <Item Name="Piece of Heart" Value="0x3E"/>
-    <Item Name="Deku Shield" Value="0x29"/>
-    <Item Name="Hylian Shield" Value="0x2A"/>
-    <Item Name="Mirror Shield" Value="0x2B"/>
-    <Item Name="Goron Tunic" Value="0x2C"/>
-    <Item Name="Zora Tunic" Value="0x2D"/>
-    <Item Name="Iron Boots" Value="0x2E"/>
-    <Item Name="Hover Boots" Value="0x2F"/>
-    <Item Name="Kokiri’s Sword" Value="0x27"/>
-    <Item Name="Giant’s Knife" Value="0x28"/>
-    <Item Name="Biggoron’s Sword" Value="0x57"/>
-    <Item Name="Goron Bracelet" Value="0x54"/>
-    <Item Name="Silver Gauntlets" Value="0x35"/>
-    <Item Name="Golden Gauntlets" Value="0x36"/>
-    <Item Name="Silver Scale" Value="0x37"/>
-    <Item Name="Golden Scale" Value="0x38"/>
-    <Item Name="Fairy Bow" Value="0x04"/>
-    <Item Name="Fairy Slingshot" Value="0x05"/>
-    <Item Name="Boomerang" Value="0x06"/>
-    <Item Name="Hookshot" Value="0x08"/>
-    <Item Name="Longshot" Value="0x09"/>
-    <Item Name="Lens of Truth" Value="0x0A"/>
-    <Item Name="Fairy Ocarina" Value="0x3B"/>
-    <Item Name="Ocarina of Time" Value="0x0C"/>
-    <Item Name="Megaton Hammer" Value="0x0D"/>
-    <Item Name="Magic Bean" Value="0x16"/>
-    <Item Name="Fire Arrow" Value="0x58"/>
-    <Item Name="Ice Arrow" Value="0x59"/>
-    <Item Name="Light Arrow" Value="0x5A"/>
-    <Item Name="Din’s Fire" Value="0x5C"/>
-    <Item Name="Farore’s Wind" Value="0x5D"/>
-    <Item Name="Nayru’s Love" Value="0x5E"/>
-    <Item Name="Stone of Agony" Value="0x39"/>
-    <Item Name="Gerudo Membership Card" Value="0x3A"/>
-    <Item Name="Gold Skulltula Token" Value="0x5B"/>
-    <Item Name="Empty Bottle" Value="0x0F"/>
-    <Item Name="Red Potion" Value="0x10"/>
-    <Item Name="Green Potion" Value="0x11"/>
-    <Item Name="Blue Potion" Value="0x12"/>
-    <Item Name="Bottled Fairy" Value="0x13"/>
-    <Item Name="Lon Lon Milk" Value="0x14"/>
-    <Item Name="Ruto's Letter" Value="0x15"/>
-    <Item Name="Bottled Fish" Value="0x6C"/>
-    <Item Name="Bottled Bug" Value="0x6D"/>
-    <Item Name="Blue Fire" Value="0x6E"/>
-    <Item Name="Bottled Poe" Value="0x6F"/>
-    <Item Name="Bottled Big Poe" Value="0x70"/>
-    <Item Name="Lon Lon Milk" Value="0x50"/>
-    <Item Name="Weird Egg" Value="0x47"/>
-    <Item Name="Chicken" Value="0x19"/>
-    <Item Name="Zelda’s Letter" Value="0x0B"/>
-    <Item Name="Keaton Mask" Value="0x1A"/>
-    <Item Name="Skull Mask" Value="0x17"/>
-    <Item Name="Spooky Mask" Value="0x18"/>
-    <Item Name="Bunny Hood" Value="0x1B"/>
-    <Item Name="Mask of Truth" Value="0x1C"/>
-    <Item Name="Goron Mask" Value="0x51"/>
-    <Item Name="Zora Mask" Value="0x52"/>
-    <Item Name="Gerudo Mask" Value="0x53"/>
-    <Item Name="Pocket Egg" Value="0x1D"/>
-    <Item Name="Pocket Cucco" Value="0x1E"/>
-    <Item Name="Cojiro" Value="0x0E"/>
-    <Item Name="Odd Mushroom" Value="0x1F"/>
-    <Item Name="Odd Potion" Value="0x20"/>
-    <Item Name="Poacher’s Saw" Value="0x21"/>
-    <Item Name="Broken Goron’s Sword" Value="0x22"/>
-    <Item Name="Prescription" Value="0x23"/>
-    <Item Name="Eyeball Frog" Value="0x24"/>
-    <Item Name="World’s Finest Eye Drops" Value="0x25"/>
-    <Item Name="Claim Check" Value="0x26"/>
-    <Item Name="Big Quiver" Value="0x30"/>
-    <Item Name="Biggest Quiver" Value="0x31"/>
-    <Item Name="Bomb Bag (20)" Value="0x32"/>
-    <Item Name="Big Bomb Bag (30)" Value="0x33"/>
-    <Item Name="Biggest Bomb Bag (40)" Value="0x34"/>
-    <Item Name="Adult Wallet" Value="0x45"/>
-    <Item Name="Giant Wallet" Value="0x46"/>
-    <Item Name="Deku Stick Upgrade (20)" Value="0x77"/>
-    <Item Name="Deku Stick Upgrade (30)" Value="0x78"/>
-    <Item Name="Deku Nut Upgrade (30)" Value="0x79"/>
-    <Item Name="Deku Nut Upgrade (40)" Value="0x7A"/>
-    <Item Name="Deku Seeds Bag (40)" Value="0x5F"/>
-    <Item Name="Deku Seeds Bag (40)" Value="0x60"/>
-    <Item Name="Deku Seeds Bag (50)" Value="0x7B"/>
-    <Item Name="Compass" Value="0x40"/>
-    <Item Name="Map" Value="0x41"/>
-    <Item Name="Small Key" Value="0x42"/>
-    <Item Name="Boss Key" Value="0x3F"/>
-    <Item Name="Heart Container" Value="0x4F"/>
-    <Item Name="Heart Container" Value="0x3D"/>
-    <Item Name="Door Key (Treasure Box Shop)" Value="0x71"/>
-    <Item Name="Loser Green Rupee (Treasure Box Shop)" Value="0x72"/>
-    <Item Name="Loser Blue Rupee (Treasure Box Shop)" Value="0x73"/>
-    <Item Name="Loser Red Rupee (Treasure Box Shop)" Value="0x74"/>
-    <Item Name="Winner Purple Rupee (Treasure Box Shop)" Value="0x75"/>
-    <Item Name="Winner Piece of Heart (Treasure Box Shop)" Value="0x76"/>
-    <Item Name="Ice Trap" Value="0x7C"/>
+    <Item Name="Recovery Heart" Value="0x48" Key="item_heart"/>
+    <Item Name="Green Rupee" Value="0x4C" Key="item_green_rupee"/>
+    <Item Name="Blue Rupee" Value="0x4D" Key="item_blue_rupee"/>
+    <Item Name="Red Rupee" Value="0x4E" Key="item_red_rupee"/>
+    <Item Name="Purple Rupee (50)" Value="0x55" Key="item_purple_rupee"/>
+    <Item Name="Huge/Yellow Rupee (200)" Value="0x56" Key="item_yellow_rupee"/>
+    <Item Name="Bombs (1)" Value="0x65" Key="item_bombs_1"/>
+    <Item Name="Bombs (5)" Value="0x01" Key="item_bombs_5"/>
+    <Item Name="Bombs (10)" Value="0x66" Key="item_bombs_10"/>
+    <Item Name="Bombs (20)" Value="0x67" Key="item_bombs_20"/>
+    <Item Name="Bombs (30)" Value="0x68" Key="item_bombs_30"/>
+    <Item Name="Arrows (5)" Value="0x49" Key="item_arrows_5"/>
+    <Item Name="Arrows (10)" Value="0x4A" Key="item_arrows_10"/>
+    <Item Name="Arrows (30)" Value="0x4B" Key="item_arrows_30"/>
+    <Item Name="Deku Stick (1)" Value="0x07" Key="item_deku_stick_1"/>
+    <Item Name="Deku Stick (5)" Value="0x61" Key="item_deku_stick_5"/>
+    <Item Name="Deku Stick (10)" Value="0x62" Key="item_deku_stick_10"/>
+    <Item Name="Deku Nuts (5)" Value="0x02" Key="item_deku_nuts_5"/>
+    <Item Name="Deku Nuts (10)" Value="0x64" Key="item_deku_nuts_10"/>
+    <Item Name="Bombchus (5)" Value="0x6A" Key="item_bombchus_5"/>
+    <Item Name="Bombchus (10)" Value="0x03" Key="item_bombchus_10"/>
+    <Item Name="Bombchus (20)" Value="0x6B" Key="item_bombchus_20"/>
+    <Item Name="Deku Seeds (30)" Value="0x69" Key="item_deku_seeds_30"/>
+    <Item Name="Small Magic Jar" Value="0x43" Key="item_small_magic_jar"/>
+    <Item Name="Large Magic Jar" Value="0x44" Key="item_large_magic_jar"/>
+    <Item Name="Piece of Heart" Value="0x3E" Key="item_piece_of_heart"/>
+    <Item Name="Deku Shield" Value="0x29" Key="item_deku_shield"/>
+    <Item Name="Hylian Shield" Value="0x2A" Key="item_hylian_shield"/>
+    <Item Name="Mirror Shield" Value="0x2B" Key="item_mirror_shield"/>
+    <Item Name="Goron Tunic" Value="0x2C" Key="item_goron_tunic"/>
+    <Item Name="Zora Tunic" Value="0x2D" Key="item_zora_tunic"/>
+    <Item Name="Iron Boots" Value="0x2E" Key="item_iron_boots"/>
+    <Item Name="Hover Boots" Value="0x2F" Key="item_hover_boots"/>
+    <Item Name="Kokiri’s Sword" Value="0x27" Key="item_kokiris_sword"/>
+    <Item Name="Giant’s Knife" Value="0x28" Key="item_giants_knife"/>
+    <Item Name="Biggoron’s Sword" Value="0x57" Key="item_biggorons_sword"/>
+    <Item Name="Goron Bracelet" Value="0x54" Key="item_goron_bracelet"/>
+    <Item Name="Silver Gauntlets" Value="0x35" Key="item_silver_gauntlets"/>
+    <Item Name="Golden Gauntlets" Value="0x36" Key="item_golden_gauntlets"/>
+    <Item Name="Silver Scale" Value="0x37" Key="item_silver_scale"/>
+    <Item Name="Golden Scale" Value="0x38" Key="item_golden_scale"/>
+    <Item Name="Fairy Bow" Value="0x04" Key="item_fairy_bow"/>
+    <Item Name="Fairy Slingshot" Value="0x05" Key="item_fairy_slingshot"/>
+    <Item Name="Boomerang" Value="0x06" Key="item_boomerang"/>
+    <Item Name="Hookshot" Value="0x08" Key="item_hookshot"/>
+    <Item Name="Longshot" Value="0x09" Key="item_longshot"/>
+    <Item Name="Lens of Truth" Value="0x0A" Key="item_lens_of_truth"/>
+    <Item Name="Fairy Ocarina" Value="0x3B" Key="item_fairy_ocarina"/>
+    <Item Name="Ocarina of Time" Value="0x0C" Key="item_ocarina_of_time"/>
+    <Item Name="Megaton Hammer" Value="0x0D" Key="item_megaton_hammer"/>
+    <Item Name="Magic Bean" Value="0x16" Key="item_magic_bean"/>
+    <Item Name="Fire Arrow" Value="0x58" Key="item_fire_arrow"/>
+    <Item Name="Ice Arrow" Value="0x59" Key="item_ice_arrow"/>
+    <Item Name="Light Arrow" Value="0x5A" Key="item_light_arrow"/>
+    <Item Name="Din’s Fire" Value="0x5C" Key="item_dins_fire"/>
+    <Item Name="Farore’s Wind" Value="0x5D" Key="item_farores_wind"/>
+    <Item Name="Nayru’s Love" Value="0x5E" Key="item_nayrus_love"/>
+    <Item Name="Stone of Agony" Value="0x39" Key="item_stone_of_agony"/>
+    <Item Name="Gerudo Membership Card" Value="0x3A" Key="item_gerudo_membership_card"/>
+    <Item Name="Gold Skulltula Token" Value="0x5B" Key="item_gold_skulltula_token"/>
+    <Item Name="Empty Bottle" Value="0x0F" Key="item_empty_bottle"/>
+    <Item Name="Red Potion" Value="0x10" Key="item_red_potion"/>
+    <Item Name="Green Potion" Value="0x11" Key="item_green_potion"/>
+    <Item Name="Blue Potion" Value="0x12" Key="item_blue_potion"/>
+    <Item Name="Bottled Fairy" Value="0x13" Key="item_bottled_fairy"/>
+    <Item Name="Milk Bottle" Value="0x14" Key="item_milk_bottle"/>
+    <Item Name="Ruto's Letter" Value="0x15" Key="item_rutos_letter"/>
+    <Item Name="Bottled Fish" Value="0x6C" Key="item_fish"/>
+    <Item Name="Bottled Bug" Value="0x6D" Key="item_bug"/>
+    <Item Name="Blue Fire" Value="0x6E" Key="item_blue_fire"/>
+    <Item Name="Bottled Poe" Value="0x6F" Key="item_poe"/>
+    <Item Name="Bottled Big Poe" Value="0x70" Key="item_big_poe"/>
+    <Item Name="Milk Refill" Value="0x50" Key="item_milk_refill"/>
+    <Item Name="Weird Egg" Value="0x47" Key="item_weird_egg"/>
+    <Item Name="Chicken" Value="0x19" Key="item_chicken"/>
+    <Item Name="Zelda’s Letter" Value="0x0B" Key="item_zeldas_letter"/>
+    <Item Name="Keaton Mask" Value="0x1A" Key="item_keaton_mask"/>
+    <Item Name="Skull Mask" Value="0x17" Key="item_skull_mask"/>
+    <Item Name="Spooky Mask" Value="0x18" Key="item_spooky_mask"/>
+    <Item Name="Bunny Hood" Value="0x1B" Key="item_bunny_hood"/>
+    <Item Name="Mask of Truth" Value="0x1C" Key="item_mask_of_truth"/>
+    <Item Name="Goron Mask" Value="0x51" Key="item_goron_mask"/>
+    <Item Name="Zora Mask" Value="0x52" Key="item_zora_mask"/>
+    <Item Name="Gerudo Mask" Value="0x53" Key="item_gerudo_mask"/>
+    <Item Name="Pocket Egg" Value="0x1D" Key="item_pocket_egg"/>
+    <Item Name="Pocket Cucco" Value="0x1E" Key="item_pocket_cucco"/>
+    <Item Name="Cojiro" Value="0x0E" Key="item_cojiro"/>
+    <Item Name="Odd Mushroom" Value="0x1F" Key="item_odd_mushroom"/>
+    <Item Name="Odd Potion" Value="0x20" Key="item_odd_potion"/>
+    <Item Name="Poacher’s Saw" Value="0x21" Key="item_saw"/>
+    <Item Name="Broken Goron’s Sword" Value="0x22" Key="item_broken_sword"/>
+    <Item Name="Prescription" Value="0x23" Key="item_prescription"/>
+    <Item Name="Eyeball Frog" Value="0x24" Key="item_eyeball_frog"/>
+    <Item Name="World’s Finest Eye Drops" Value="0x25" Key="item_eye_drops"/>
+    <Item Name="Claim Check" Value="0x26" Key="item_claim_check"/>
+    <Item Name="Big Quiver" Value="0x30" Key="item_big_quiver"/>
+    <Item Name="Biggest Quiver" Value="0x31" Key="item_biggest_quiver"/>
+    <Item Name="Bomb Bag (20)" Value="0x32" Key="item_bomb_bag_20"/>
+    <Item Name="Big Bomb Bag (30)" Value="0x33" Key="item_big_bomb_bag_30"/>
+    <Item Name="Biggest Bomb Bag (40)" Value="0x34" Key="item_biggest_bomb_bag_40"/>
+    <Item Name="Adult Wallet" Value="0x45" Key="item_adult_wallet"/>
+    <Item Name="Giant Wallet" Value="0x46" Key="item_giant_wallet"/>
+    <Item Name="Deku Stick Upgrade (20)" Value="0x77" Key="item_deku_stick_upgrade_20"/>
+    <Item Name="Deku Stick Upgrade (30)" Value="0x78" Key="item_deku_stick_upgrade_30"/>
+    <Item Name="Deku Nut Upgrade (30)" Value="0x79" Key="item_deku_nut_upgrade_30"/>
+    <Item Name="Deku Nut Upgrade (40)" Value="0x7A" Key="item_deku_nut_upgrade_40"/>
+    <Item Name="Deku Seeds Bag (30)" Value="0x5F" Key="item_deku_seeds_bag_30"/>
+    <Item Name="Deku Seeds Bag (40)" Value="0x60" Key="item_deku_seeds_bag_40"/>
+    <Item Name="Deku Seeds Bag (50)" Value="0x7B" Key="item_deku_seeds_bag_50"/>
+    <Item Name="Compass" Value="0x40" Key="item_compass"/>
+    <Item Name="Map" Value="0x41" Key="item_map"/>
+    <Item Name="Small Key" Value="0x42" Key="item_small_key"/>
+    <Item Name="Boss Key" Value="0x3F" Key="item_boss_key"/>
+    <Item Name="Heart Container" Value="0x3D" Key="item_heart_container"/>
+    <Item Name="Door Key (Treasure Box Shop)" Value="0x71" Key="item_door_key"/>
+    <Item Name="Loser Green Rupee (Treasure Box Shop)" Value="0x72" Key="item_loser_green_rupee"/>
+    <Item Name="Loser Blue Rupee (Treasure Box Shop)" Value="0x73" Key="item_loser_blue_rupee"/>
+    <Item Name="Loser Red Rupee (Treasure Box Shop)" Value="0x74" Key="item_loser_red_rupee"/>
+    <Item Name="Winner Purple Rupee (Treasure Box Shop)" Value="0x75" Key="item_winner_purple_rupee"/>
+    <Item Name="Winner Piece of Heart (Treasure Box Shop)" Value="0x76" Key="item_winner_piece_of_heart"/>
+    <Item Name="Ice Trap" Value="0x7C" Key="item_ice_trap"/>
   </List>
 </Table>
