@@ -835,37 +835,37 @@ def upgradeActorInit(obj):
 			if params == 0:
 				actorProp = obj.fast64.oot.actor
 			upgradeActorProcess(objType, obj, obj.ootActorProperty.actorID, obj.fast64.oot.actor,
-				params, 'actorID', 'actorParam', 'Params')
+				params, 'actorParam', 'Params')
 			obj.fast64.oot.actor.actorParam
 			if actorProp.rotOverride:
 				if actorProp.rotOverrideX != '0' or actorProp.rotOverrideX != '0x0':
 					upgradeActorProcess('XRot', obj, obj.ootActorProperty.actorID, obj.fast64.oot.actor,
-						int(actorProp.rotOverrideX, base=16), 'actorID', 'rotOverrideX', 'XRot')
+						int(actorProp.rotOverrideX, base=16), 'rotOverrideX', 'XRot')
 					obj.fast64.oot.actor.rotOverrideX
 				if actorProp.rotOverrideY != '0' or actorProp.rotOverrideY != '0x0':
 					upgradeActorProcess('YRot', obj, obj.ootActorProperty.actorID, obj.fast64.oot.actor,
-						int(actorProp.rotOverrideY, base=16), 'actorID', 'rotOverrideY', 'YRot')
+						int(actorProp.rotOverrideY, base=16), 'rotOverrideY', 'YRot')
 					obj.fast64.oot.actor.rotOverrideY
 				if actorProp.rotOverrideZ != '0' or actorProp.rotOverrideZ != '0x0':
 					upgradeActorProcess('ZRot', obj, obj.ootActorProperty.actorID, obj.fast64.oot.actor,
-						int(actorProp.rotOverrideZ, base=16), 'actorID', 'rotOverrideZ', 'ZRot')
+						int(actorProp.rotOverrideZ, base=16), 'rotOverrideZ', 'ZRot')
 					obj.fast64.oot.actor.rotOverrideZ
 		elif objType == "Transition Actor":
 			transActorProp = obj.ootTransitionActorProperty
 			upgradeActorProcess(objType, obj, transActorProp.actor.actorID, obj.fast64.oot.actor,
-				int(transActorProp.actor.actorParam, base=16), 'actorID', 'actorParam', 'Params')
+				int(transActorProp.actor.actorParam, base=16), 'actorParam', 'Params')
 			obj.fast64.oot.actor.transActorParam
 
 		elif objType == "Entrance":
 			entranceProp = obj.ootEntranceProperty.actor
 			upgradeActorProcess(objType, obj, entranceProp.actorID, obj.fast64.oot.actor,
-				int(entranceProp.actorParam, base=16), 'actorID', 'actorParam', 'Params')
+				int(entranceProp.actorParam, base=16), 'actorParam', 'Params')
 			obj.fast64.oot.actor.actorParam
 
 	for childObj in obj.children:
 		upgradeActorInit(childObj)
 
-def upgradeActorProcess(user, obj, actorID, detailedProp, params, idField, paramField, paramTarget):
+def upgradeActorProcess(user, obj, actorID, detailedProp, params, paramField, paramTarget):
 	if not obj.ootEntranceProperty.customActor and actorID != 'Custom':
 		actorParams = 0
 		for actorNode in root:
@@ -894,21 +894,22 @@ def upgradeActorProcess(user, obj, actorID, detailedProp, params, idField, param
 	else:
 		detailedProp.actorKey = detailedProp.transActorKey = 'Custom'
 		if user != 'Transition Actor':
-			setattr(detailedProp, idField, getattr(obj.ootActorProperty, idField))
-			if user == 'Actor':
-				setattr(detailedProp, getCustomPropName(paramField), getattr(obj.ootActorProperty, paramField))
-			elif user == 'Entrance':
-				setattr(detailedProp, getCustomPropName(paramField), getattr(obj.ootEntranceProperty.actor, paramField))
-			else:
-				if obj.ootActorProperty.rotOverride:
-					if (obj.ootActorProperty.rotOverrideX != '0' or obj.ootActorProperty.rotOverrideX != '0x0') or \
-					(obj.ootActorProperty.rotOverrideY != '0' or obj.ootActorProperty.rotOverrideY != '0x0') or \
-					(obj.ootActorProperty.rotOverrideZ != '0' or obj.ootActorProperty.rotOverrideZ != '0x0'):
-						detailedProp.rotOverride = True
-						setattr(detailedProp, getCustomPropName(paramField), getattr(obj.ootActorProperty, paramField))
+			actorProp = obj.ootActorProperty
+			if user == 'Entrance':
+				actorProp = obj.ootEntranceProperty.actor
+			detailedProp.actorID = getattr(actorProp, 'actorIDCustom')
+			setattr(detailedProp, getCustomPropName(paramField), getattr(actorProp, paramField))
+
+			if obj.ootActorProperty.rotOverride:
+				rotX = eval(obj.ootActorProperty.rotOverrideX)
+				rotY = eval(obj.ootActorProperty.rotOverrideY)
+				rotZ = eval(obj.ootActorProperty.rotOverrideZ)
+				if not (rotX == 0) or not (rotY == 0) or not (rotZ == 0):
+					detailedProp.rotOverride = True
+					setattr(detailedProp, getCustomPropName(paramField), getattr(obj.ootActorProperty, paramField))
 		else:
-			setattr(detailedProp, 'transActorID', getattr(obj.ootTransitionActorProperty.actor, idField))
-			setattr(detailedProp, 'transActorParamCustom', getattr(obj.ootTransitionActorProperty.actor, paramField))
+			detailedProp.transActorID = getattr(obj.ootTransitionActorProperty.actor, 'actorIDCustom')
+			detailedProp.transActorParamCustom = detailedProp.transActorParam = getattr(obj.ootTransitionActorProperty.actor, paramField)
 
 	obj.fast64.oot.version = obj.fast64.oot.cur_version
 

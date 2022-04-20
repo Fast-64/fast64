@@ -67,13 +67,13 @@ class OOTActorProperties(bpy.types.PropertyGroup):
 	# Rotations
 	rotOverride : bpy.props.BoolProperty(name = 'Rot Override', default = False)
 	rotOverrideX : bpy.props.StringProperty(name = 'Rot X', default = '0x0',
-		get=lambda self: getValues(self, self.actorKey, None, 'XRot', None),
+		get=lambda self: getValues(self, self.actorKey, 'rotOverrideX', 'XRot', None),
 		set=lambda self, value: setValues(self, value, 'XRot', 'actorID'))
 	rotOverrideY : bpy.props.StringProperty(name = 'Rot Y', default = '0x0',
-		get=lambda self: getValues(self, self.actorKey, None, 'YRot', None),
+		get=lambda self: getValues(self, self.actorKey, 'rotOverrideY', 'YRot', None),
 		set=lambda self, value: setValues(self, value, 'YRot', 'actorID'))
 	rotOverrideZ : bpy.props.StringProperty(name = 'Rot Z', default = '0x0',
-		get=lambda self: getValues(self, self.actorKey, None, 'ZRot', None),
+		get=lambda self: getValues(self, self.actorKey, 'rotOverrideZ', 'ZRot', None),
 		set=lambda self, value: setValues(self, value, 'ZRot', 'actorID'))
 	rotOverrideXCustom : bpy.props.StringProperty(name = 'Rot X', default = '0x0')
 	rotOverrideYCustom : bpy.props.StringProperty(name = 'Rot Y', default = '0x0')
