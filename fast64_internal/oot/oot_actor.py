@@ -98,7 +98,7 @@ class OOTActorProperties(bpy.types.PropertyGroup):
 				print(f"Processing '{obj.name}'...")
 				for child in obj.children:
 					OOTActorProperties.upgrade_object(child)
-			elif ((obj.fast64.oot.version != obj.fast64.oot.cur_version) and
+			elif ((obj.fast64.oot.version < obj.fast64.oot.cur_version) and
 				(obj.ootEmptyType == 'Actor' or	obj.ootEmptyType == 'Transition Actor' or obj.ootEmptyType == 'Entrance')):
 				upgradeActorInit(obj)
 
@@ -111,12 +111,13 @@ def getValues(self, actorKey, actorField, target, paramField):
 			and bpy.context.object.ootEntranceProperty.customActor):
 			if target == 'Params':
 				return self.actorParamCustom
-			if target == 'XRot':
-				return self.rotOverrideXCustom
-			if target == 'YRot':
-				return self.rotOverrideYCustom
-			if target == 'ZRot':
-				return self.rotOverrideZCustom
+			if self.rotOverride:
+				if target == 'XRot':
+					return self.rotOverrideXCustom
+				if target == 'YRot':
+					return self.rotOverrideYCustom
+				if target == 'ZRot':
+					return self.rotOverrideZCustom
 		else:
 			for actorNode in root:
 				if actorNode.get('Key') == actorKey:
@@ -214,9 +215,6 @@ def drawParams(box, detailedProp, key, elemField, elemName, elTag, elType, lenSw
 				attr = getattr(detailedProp, field, None)
 				tiedParam = elem.get('TiedParam')
 				actorType = getattr(detailedProp, key + '.type', None)
-
-				if elType == 'Chest':
-					print(field)
 
 				if name != 'None' and elem.tag == elTag and elType == elem.get('Type') and attr is not None:
 					if hasActorTiedParams(tiedParam, actorType) is True:
@@ -482,6 +480,8 @@ class OOT_SearchActorIDEnumOperator(bpy.types.Operator):
 		if actorID is not None:
 			detailedProp.actorID = obj.ootActorProperty.actorID = actorID
 			detailedProp.actorKey = self.actorKey
+			if self.transActorKey == 'Custom':
+				detailedProp.transActorKey = self.actorKey
 
 		bpy.context.region.tag_redraw()
 		self.report({'INFO'}, "Selected: " + self.actorKey)
@@ -528,6 +528,8 @@ class OOT_SearchTransActorIDEnumOperator(bpy.types.Operator):
 		if actorID is not None:
 			detailedProp.transActorID = actorID
 			detailedProp.transActorKey = self.transActorKey
+			if self.transActorKey == 'Custom':
+				detailedProp.actorKey = self.transActorKey
 
 		bpy.context.region.tag_redraw()
 		self.report({'INFO'}, "Selected: " + self.transActorKey)

@@ -380,34 +380,29 @@ def getCustomProperty(data, prop):
 	value = getattr(data, prop)
 	return value if value != "Custom" else getattr(data, prop + str("Custom"))
 
-def getActorExportValue(detailedProp, idField, field, entranceProp):
-	if idField == 'Custom' or (entranceProp is not None and entranceProp.customActor):
-		field = getCustomPropName(field)
-		return getattr(detailedProp, field, None)
-	else:
-		if field != 'actorID' and field != 'transActorID':
-			if field == 'actorParam':
-				return getActorParameter(detailedProp, detailedProp.actorKey, 'Params', field)
-			elif field == 'transActorParam':
-				return getActorParameter(detailedProp, detailedProp.transActorKey, 'Params', field)
-			else:
-				dpKey = detailedProp.actorKey
-				actorType = getattr(detailedProp, dpKey + '.type', None)
-				for actorNode in root:
-					if dpKey == actorNode.get('Key'):
-						for elem in actorNode:
-							target = elem.get('Target')
-							if hasActorTiedParams(elem.get('TiedParam'), actorType):
-								if target == field == 'XRot':
-									return getActorParameter(detailedProp, dpKey, 'XRot', None)
-								elif target == field == 'YRot':
-									return getActorParameter(detailedProp, dpKey, 'YRot', None)
-								elif target == field == 'ZRot':
-									return getActorParameter(detailedProp, dpKey, 'ZRot', None)
-				return None
-		elif field == 'actorID' or field == 'transActorID':
-			return getattr(detailedProp, field)
-	return None
+def getActorExportValue(detailedProp, field):
+	if field != 'actorID' and field != 'transActorID':
+		if field == 'actorParam':
+			return getActorParameter(detailedProp, detailedProp.actorKey, 'Params', field)
+		elif field == 'transActorParam':
+			return getActorParameter(detailedProp, detailedProp.transActorKey, 'Params', field)
+		elif field in {"XRot", "YRot", "ZRot"}:
+			dpKey = detailedProp.actorKey
+			actorType = getattr(detailedProp, dpKey + '.type', None)
+			for actorNode in root:
+				if dpKey == actorNode.get('Key'):
+					for elem in actorNode:
+						target = elem.get('Target')
+						if hasActorTiedParams(elem.get('TiedParam'), actorType):
+							if target == field:
+								return getActorParameter(detailedProp, dpKey, field, None)
+		return None
+	elif field == 'actorID' or field == 'transActorID':
+		return getattr(detailedProp, field)
+
+def getCustomActorExportValue(detailedProp, field):
+	field = getCustomPropName(field)
+	return getattr(detailedProp, field, None)
 
 def convertIntTo2sComplement(value, length, signed):
 	return int.from_bytes(int(round(value)).to_bytes(length, 'big', signed = signed), 'big')
@@ -875,7 +870,7 @@ def upgradeActorProcess(user, obj, actorID, detailedProp, params, idField, param
 		actorParams = 0
 		for actorNode in root:
 			dPKey = actorNode.get('Key')
-			if ("ACTOR_" + dPKey.upper()) == actorID:
+			if dPKey is not None and (("ACTOR_" + dPKey.upper()) == actorID):
 				if user != 'Transition Actor':
 					detailedProp.actorID = actorID
 					detailedProp.actorKey = dPKey
@@ -897,6 +892,7 @@ def upgradeActorProcess(user, obj, actorID, detailedProp, params, idField, param
 		else:
 			actorParams = getActorParameter(detailedProp, detailedProp.transActorKey, paramTarget, None)
 	else:
+		detailedProp.actorKey = detailedProp.transActorKey = 'Custom'
 		if user != 'Transition Actor':
 			setattr(detailedProp, idField, getattr(obj.ootActorProperty, idField))
 			if user == 'Actor':
