@@ -18,11 +18,7 @@ class OOT_SearchChestContentEnumOperator(bpy.types.Operator):
 	objName : bpy.props.StringProperty()
 
 	def execute(self, context):
-		for listNode in root:
-			if listNode.tag == 'List' and listNode.get('Name') == 'Chest Content':
-				for elem in listNode:
-					if elem.get('Key') == self.itemChest:
-						bpy.data.objects[self.objName].fast64.oot.actor.itemChest = elem.get('Value')
+		bpy.data.objects[self.objName].fast64.oot.actor.itemChest = self.itemChest
 		bpy.context.region.tag_redraw()
 		self.report({'INFO'}, "Selected: " + self.itemChest)
 		return {'FINISHED'}
@@ -41,11 +37,7 @@ class OOT_SearchNaviMsgIDEnumOperator(bpy.types.Operator):
 	objName : bpy.props.StringProperty()
 
 	def execute(self, context):
-		for listNode in root:
-			if listNode.tag == 'List' and listNode.get('Name') == 'Elf_Msg Message ID':
-				for elem in listNode:
-					if elem.get('Key') == self.naviMsgID:
-						bpy.data.objects[self.objName].fast64.oot.actor.naviMsgID = elem.get('Value')
+		bpy.data.objects[self.objName].fast64.oot.actor.naviMsgID = self.naviMsgID
 		bpy.context.region.tag_redraw()
 		self.report({'INFO'}, "Selected: " + self.naviMsgID)
 		return {'FINISHED'}
@@ -61,20 +53,20 @@ class OOTActorProperties(bpy.types.PropertyGroup):
 	actorKey : bpy.props.EnumProperty(name='Actor Key', items=ootEnumActorID)
 	actorParam : bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000',
 		get=lambda self: getValues(self, self.actorKey, 'actorParam', 'Params', None),
-		set=lambda self, value: setValues(self, value, 'Params', 'actorID'))
+		set=lambda self, value: setValues(self, value, 'Params', 'actorKey'))
 	actorParamCustom : bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000')
 
 	# Rotations
 	rotOverride : bpy.props.BoolProperty(name = 'Rot Override', default = False)
 	rotOverrideX : bpy.props.StringProperty(name = 'Rot X', default = '0x0',
 		get=lambda self: getValues(self, self.actorKey, 'rotOverrideX', 'XRot', None),
-		set=lambda self, value: setValues(self, value, 'XRot', 'actorID'))
+		set=lambda self, value: setValues(self, value, 'XRot', 'actorKey'))
 	rotOverrideY : bpy.props.StringProperty(name = 'Rot Y', default = '0x0',
 		get=lambda self: getValues(self, self.actorKey, 'rotOverrideY', 'YRot', None),
-		set=lambda self, value: setValues(self, value, 'YRot', 'actorID'))
+		set=lambda self, value: setValues(self, value, 'YRot', 'actorKey'))
 	rotOverrideZ : bpy.props.StringProperty(name = 'Rot Z', default = '0x0',
 		get=lambda self: getValues(self, self.actorKey, 'rotOverrideZ', 'ZRot', None),
-		set=lambda self, value: setValues(self, value, 'ZRot', 'actorID'))
+		set=lambda self, value: setValues(self, value, 'ZRot', 'actorKey'))
 	rotOverrideXCustom : bpy.props.StringProperty(name = 'Rot X', default = '0x0')
 	rotOverrideYCustom : bpy.props.StringProperty(name = 'Rot Y', default = '0x0')
 	rotOverrideZCustom : bpy.props.StringProperty(name = 'Rot Z', default = '0x0')
@@ -84,12 +76,12 @@ class OOTActorProperties(bpy.types.PropertyGroup):
 	transActorKey : bpy.props.EnumProperty(name='Transition Actor ID', items=ootEnumTransitionActorID)
 	transActorParam : bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000',
 		get=lambda self: getValues(self, self.transActorKey, 'actorParam', 'Params', 'transActorParam'),
-		set=lambda self, value: setValues(self, value, 'Params', 'transActorID'))
+		set=lambda self, value: setValues(self, value, 'Params', 'transActorKey'))
 	transActorParamCustom : bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000')
 
 	# Other
-	itemChest : bpy.props.StringProperty(name='Chest Content', default = '0x48')
-	naviMsgID : bpy.props.StringProperty(name='Navi Message ID', default = '0x00')
+	itemChest : bpy.props.StringProperty(name='Chest Content', default = 'item_heart')
+	naviMsgID : bpy.props.StringProperty(name='Navi Message ID', default = 'msg_00')
 
 	@staticmethod
 	def upgrade_object(obj):
@@ -156,8 +148,8 @@ def setValues(self, value, paramTarget, field):
 				self.rotOverrideZCustom = value
 	else:
 		for actorNode in root:
-			if actorNode.get('ID') == getattr(self, field, '0x0'):
-				dPKey = actorNode.get('Key')
+			dPKey = actorNode.get('Key')
+			if dPKey == getattr(self, field, '0x0'):
 				lenProp = getActorLastElemIndex(dPKey, 'Property', None)
 				lenSwitch = getActorLastElemIndex(dPKey, 'Flag', 'Switch')
 				lenBool = getActorLastElemIndex(dPKey, 'Bool', None)
@@ -321,33 +313,16 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 
 		if user == userActor:
 			rotXBool = rotYBool = rotZBool = False
-			if userActorID is not None and userActorID == detailedProp.actorID:
-				if dpKey == 'en_box':
-					enumValue = detailedProp.itemChest
-				elif dpKey == 'elf_msg':
-					enumValue = detailedProp.naviMsgID
-				else:
-					enumValue = None
-
-				if enumValue is not None:
-					for listNode in root:
-						listName = listNode.get('Name')
-						if listNode.tag == 'List' and (listName == 'Elf_Msg Message ID' or listName == 'Chest Content'):
-							for elem in listNode:
-								if elem.get('Value') == enumValue:
-									enumName = elem.get('Name')
-
-				for actorNode in root:
-					if actorNode.get('ID') == userActorID:
-						for elem in actorNode:
-							if elem.tag == 'ChestContent':
-								# Draw chest content searchbox
-								searchOp = userLayout.operator(OOT_SearchChestContentEnumOperator.bl_idname, icon='VIEWZOOM')
-								drawOperatorBox(userLayout, userObj, enumName, 'Chest Content', searchOp)
-							if elem.tag == 'Message':
-								# Draw Navi message ID searchbox
-								searchOp = userLayout.operator(OOT_SearchNaviMsgIDEnumOperator.bl_idname, icon='VIEWZOOM')
-								drawOperatorBox(userLayout, userObj, detailedProp.naviMsgID, 'Message ID', searchOp)
+			if dpKey == 'en_box':
+				# Draw chest content searchbox
+				searchOp = userLayout.operator(OOT_SearchChestContentEnumOperator.bl_idname, icon='VIEWZOOM')
+				drawOperatorBox(userLayout, userObj,
+					getItemNameFromKey('Chest Content', detailedProp.itemChest), 'Chest Content', searchOp)
+			elif dpKey == 'elf_msg':
+				# Draw Navi message ID searchbox
+				searchOp = userLayout.operator(OOT_SearchNaviMsgIDEnumOperator.bl_idname, icon='VIEWZOOM')
+				drawOperatorBox(userLayout, userObj,
+					getItemValueFromKey('Elf_Msg Message ID', detailedProp.naviMsgID), 'Message ID', searchOp)
 
 			drawParams(userLayout, detailedProp, dpKey, dpKey + '.collectibleDrop', 'Collectible Drop', 'Collectible', 'Drop', None)
 			drawParams(userLayout, detailedProp, dpKey, dpKey + '.chestFlag', 'Chest Flag', 'Flag', 'Chest', None)
@@ -476,12 +451,9 @@ class OOT_SearchActorIDEnumOperator(bpy.types.Operator):
 	def execute(self, context):
 		obj = bpy.data.objects[self.objName]
 		detailedProp = obj.fast64.oot.actor
-		actorID = getIDFromKey(self.actorKey)
-		if actorID is not None:
-			detailedProp.actorID = obj.ootActorProperty.actorID = actorID
-			detailedProp.actorKey = self.actorKey
-			if self.transActorKey == 'Custom':
-				detailedProp.transActorKey = self.actorKey
+		detailedProp.actorKey = self.actorKey
+		if self.actorKey == 'Custom':
+			detailedProp.transActorKey = self.actorKey
 
 		bpy.context.region.tag_redraw()
 		self.report({'INFO'}, "Selected: " + self.actorKey)
@@ -524,12 +496,9 @@ class OOT_SearchTransActorIDEnumOperator(bpy.types.Operator):
 	def execute(self, context):
 		obj = bpy.data.objects[self.objName]
 		detailedProp = obj.fast64.oot.actor
-		actorID = getIDFromKey(self.transActorKey)
-		if actorID is not None:
-			detailedProp.transActorID = actorID
-			detailedProp.transActorKey = self.transActorKey
-			if self.transActorKey == 'Custom':
-				detailedProp.actorKey = self.transActorKey
+		detailedProp.transActorKey = self.transActorKey
+		if self.transActorKey == 'Custom':
+			detailedProp.actorKey = self.transActorKey
 
 		bpy.context.region.tag_redraw()
 		self.report({'INFO'}, "Selected: " + self.transActorKey)

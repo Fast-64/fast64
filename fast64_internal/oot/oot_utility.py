@@ -381,24 +381,21 @@ def getCustomProperty(data, prop):
 	return value if value != "Custom" else getattr(data, prop + str("Custom"))
 
 def getActorExportValue(detailedProp, field):
-	if field != 'actorID' and field != 'transActorID':
-		if field == 'actorParam':
-			return getActorParameter(detailedProp, detailedProp.actorKey, 'Params', field)
-		elif field == 'transActorParam':
-			return getActorParameter(detailedProp, detailedProp.transActorKey, 'Params', field)
-		elif field in {"XRot", "YRot", "ZRot"}:
-			dpKey = detailedProp.actorKey
-			actorType = getattr(detailedProp, dpKey + '.type', None)
-			for actorNode in root:
-				if dpKey == actorNode.get('Key'):
-					for elem in actorNode:
-						target = elem.get('Target')
-						if hasActorTiedParams(elem.get('TiedParam'), actorType):
-							if target == field:
-								return getActorParameter(detailedProp, dpKey, field, None)
-		return None
-	elif field == 'actorID' or field == 'transActorID':
-		return getattr(detailedProp, field)
+	if field == 'actorParam':
+		return getActorParameter(detailedProp, detailedProp.actorKey, 'Params', field)
+	elif field == 'transActorParam':
+		return getActorParameter(detailedProp, detailedProp.transActorKey, 'Params', field)
+	elif field in {"XRot", "YRot", "ZRot"}:
+		dpKey = detailedProp.actorKey
+		actorType = getattr(detailedProp, dpKey + '.type', None)
+		for actorNode in root:
+			if dpKey == actorNode.get('Key'):
+				for elem in actorNode:
+					target = elem.get('Target')
+					if hasActorTiedParams(elem.get('TiedParam'), actorType):
+						if target == field:
+							return getActorParameter(detailedProp, dpKey, field, None)
+	return None
 
 def getCustomActorExportValue(detailedProp, field):
 	field = getCustomPropName(field)
@@ -633,11 +630,7 @@ def getAndFormatActorProperty(object, field, shift, mask):
 	attr = getattr(object, field, '0x00')
 
 	if field.find('.collectibleDrop') != -1:
-		for listNode in root:
-			if listNode.tag == 'List' and listNode.get('Name') == 'Collectibles':
-				for elem in listNode:
-					if elem.get('Key') == attr:
-						attr = elem.get('Value')
+		attr = getItemValueFromKey('Collectibles', attr)
 
 	if attr != '0x00' and attr is not None:
 		if isinstance(attr, str):
@@ -690,20 +683,19 @@ def setActorParameterPart(object, field, param, mask):
 	'''Sets the attributes to have the correct display on the UI'''
 	shift = len(f'{mask:016b}') - len(f'{mask:016b}'.rstrip('0'))
 	attr = getattr(object, field, '0x0')
+	paramPart = f'0x{(param & mask) >> shift:02X}'
 
 	if field.endswith('.type'):
 		setattr(object, field, f'{param & mask:04X}')
 	elif field.find('.collectibleDrop') != -1:
-		for listNode in root:
-			if listNode.tag == 'List' and listNode.get('Name') == 'Collectibles':
-				for elem in listNode:
-					value = f'0x{(param & mask) >> shift:02X}'
-					if elem.get('Value') == value:
-						setattr(object, field, elem.get('Key'))
-						break
+		setKeyFromItemValue('Collectibles', object, field, attr)
+	elif field == 'itemChest':
+		setKeyFromItemValue('Chest Content', object, field, paramPart)
+	elif field == 'naviMsgID':
+		setKeyFromItemValue('Elf_Msg Message ID', object, field, paramPart)
 	else:
 		if isinstance(attr, str):
-			setattr(object, field, f'0x{(param & mask) >> shift:02X}')
+			setattr(object, field, paramPart)
 		elif isinstance(attr, bool):
 			setattr(object, field, bool((param & mask) >> shift))
 		else:
@@ -761,15 +753,17 @@ def getActorParameterPart(elem, detailedProp, field, lenProp, lenSwitch, lenBool
 			if lenProp is not None and (target == paramTarget):
 				paramPart = getAndFormatActorProperty(detailedProp, (field + f'.props{i}'), shift, strMask)
 		elif elem.tag == 'ChestContent' and (target == paramTarget):
+			itemChest = getItemValueFromKey('Chest Content', detailedProp.itemChest)
 			if shift != '0':
-				paramPart = f"(({detailedProp.itemChest} << {shift}) & 0x{mask:X})"
+				paramPart = f"(({itemChest} << {shift}) & 0x{mask:X})"
 			else:
-				paramPart = f"({detailedProp.itemChest} & 0x{mask:X})"
+				paramPart = f"({itemChest} & 0x{mask:X})"
 		elif elem.tag == 'Message' and (target == paramTarget):
+			naviMsg = getItemValueFromKey('Elf_Msg Message ID', detailedProp.naviMsgID)
 			if shift != '0':
-				paramPart = f"(({detailedProp.naviMsgID} << {shift}) & 0x{mask:X})"
+				paramPart = f"(({naviMsg} << {shift}) & 0x{mask:X})"
 			else:
-				paramPart = f"({detailedProp.naviMsgID} & 0x{mask:X})"
+				paramPart = f"({naviMsg} & 0x{mask:X})"
 		elif elem.tag == 'Collectible' and (target == paramTarget):
 			paramPart = getAndFormatActorProperty(detailedProp, field + f'.collectibleDrop{i}', shift, strMask)
 		elif elem.tag == 'Bool':
@@ -869,24 +863,23 @@ def upgradeActorProcess(user, obj, actorID, detailedProp, params, paramField, pa
 	if not obj.ootEntranceProperty.customActor and actorID != 'Custom':
 		actorParams = 0
 		for actorNode in root:
-			dPKey = actorNode.get('Key')
-			if dPKey is not None and (("ACTOR_" + dPKey.upper()) == actorID):
-				if user != 'Transition Actor':
-					detailedProp.actorID = actorID
-					detailedProp.actorKey = dPKey
-				else:
-					detailedProp.transActorID = actorID
-					detailedProp.transActorKey = dPKey
-				if len(actorNode) != 0:
-					lenProp = getActorLastElemIndex(dPKey, 'Property', None)
-					lenSwitch = getActorLastElemIndex(dPKey, 'Flag', 'Switch')
-					lenBool = getActorLastElemIndex(dPKey, 'Bool', None)
-					lenEnum = getActorLastElemIndex(dPKey, 'Enum', None)
-					for elem in actorNode:
-						tiedParam = elem.get('TiedParam')
-						actorType = getattr(detailedProp, dPKey + '.type', None)
-						if hasActorTiedParams(tiedParam, actorType) is True:
-							setActorParameter(elem, params, detailedProp, dPKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
+			if actorNode.tag == 'Actor':
+				dPKey = actorNode.get('Key')
+				if ("ACTOR_" + dPKey.upper()) == actorID:
+					if user != 'Transition Actor':
+						detailedProp.actorKey = dPKey
+					else:
+						detailedProp.transActorKey = dPKey
+					if len(actorNode) != 0:
+						lenProp = getActorLastElemIndex(dPKey, 'Property', None)
+						lenSwitch = getActorLastElemIndex(dPKey, 'Flag', 'Switch')
+						lenBool = getActorLastElemIndex(dPKey, 'Bool', None)
+						lenEnum = getActorLastElemIndex(dPKey, 'Enum', None)
+						for elem in actorNode:
+							tiedParam = elem.get('TiedParam')
+							actorType = getattr(detailedProp, dPKey + '.type', None)
+							if hasActorTiedParams(tiedParam, actorType) is True:
+								setActorParameter(elem, params, detailedProp, dPKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget)
 		if user != 'Transition Actor':
 			actorParams = getActorParameter(detailedProp, detailedProp.actorKey, paramTarget, None)
 		else:
@@ -932,3 +925,25 @@ def getIDFromKey(actorKey):
 	else:
 		return actorKey
 	return None
+
+def getItemValueFromKey(enum, key):
+	for listNode in root:
+		if listNode.tag == 'List' and listNode.get('Name') == enum:
+			for elem in listNode:
+				if elem.get('Key') == key:
+					return elem.get('Value')
+
+def getItemNameFromKey(enum, key):
+	for listNode in root:
+		if listNode.tag == 'List' and listNode.get('Name') == enum:
+			for elem in listNode:
+				if elem.get('Key') == key:
+					return elem.get('Name')
+
+def setKeyFromItemValue(enum, object, field, value):
+	for listNode in root:
+		if listNode.tag == 'List' and listNode.get('Name') == enum:
+			for elem in listNode:
+				if elem.get('Value') == value:
+					setattr(object, field, elem.get('Key'))
+					return

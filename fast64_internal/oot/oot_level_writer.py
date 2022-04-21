@@ -467,15 +467,15 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 			if actorKey == 'Custom':
 				actorID = getCustomActorExportValue(detailedProp, 'actorID')
 				actorParams = getCustomActorExportValue(detailedProp, 'actorParam')
-				rotX = getCustomActorExportValue(detailedProp, 'XRot')
-				rotY = getCustomActorExportValue(detailedProp, 'YRot')
-				rotZ = getCustomActorExportValue(detailedProp, 'ZRot')
+				rotX = getCustomActorExportValue(detailedProp, 'rotOverrideX')
+				rotY = getCustomActorExportValue(detailedProp, 'rotOverrideY')
+				rotZ = getCustomActorExportValue(detailedProp, 'rotOverrideZ')
 				if detailedProp.rotOverride is False:
 					rotX = f'{rotation[0]}'
 					rotY = f'{rotation[1]}'
 					rotZ = f'{rotation[2]}'
 			else:
-				actorID = getActorExportValue(detailedProp, 'actorID')
+				actorID = getIDFromKey(actorKey)
 				actorParams = getActorExportValue(detailedProp, 'actorParam')
 				rotX = getActorExportValue(detailedProp, 'XRot')
 				rotY = getActorExportValue(detailedProp, 'YRot')
@@ -502,9 +502,9 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 			if actorKey == 'Custom':
 				actorID = getCustomActorExportValue(detailedProp, 'transActorID')
 				actorParams = getCustomActorExportValue(detailedProp, 'transActorParam')
-				rotY = getCustomActorExportValue(detailedProp, 'YRot')
+				rotY = getCustomActorExportValue(detailedProp, 'rotOverrideY')
 			else:
-				actorID = getActorExportValue(detailedProp, 'transActorID')
+				actorID = getIDFromKey(actorKey)
 				actorParams = getActorExportValue(detailedProp, 'transActorParam')
 				rotY = getActorExportValue(detailedProp, 'YRot')
 
