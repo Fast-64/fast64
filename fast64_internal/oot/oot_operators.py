@@ -51,7 +51,6 @@ class OOT_AddDoor(bpy.types.Operator):
 		emptyObj = context.view_layer.objects.active
 		emptyObj.ootEmptyType = "Transition Actor"
 		emptyObj.name = "Door Actor"
-		emptyObj.fast64.oot.actor.transActorID = "ACTOR_EN_DOOR"
 		emptyObj.fast64.oot.actor.transActorKey = "en_door"
 		emptyObj.fast64.oot.version = emptyObj.fast64.oot.cur_version
 		
@@ -86,7 +85,6 @@ class OOT_AddScene(bpy.types.Operator):
 		entranceObj = context.view_layer.objects.active
 		entranceObj.ootEmptyType = "Entrance"
 		entranceObj.name = "Entrance"
-		entranceObj.fast64.oot.actor.actorID = 'ACTOR_PLAYER'
 		entranceObj.fast64.oot.actor.actorKey = 'player'
 		entranceObj.fast64.oot.version = entranceObj.fast64.oot.cur_version
 		setattr(entranceObj.fast64.oot.actor, 'player.type', '0F00')
@@ -182,7 +180,6 @@ class OOT_AddActor(bpy.types.Operator):
 		emptyObj = context.view_layer.objects.active
 		emptyObj.ootEmptyType = "Actor"
 		emptyObj.name = "New Actor"
-		emptyObj.fast64.oot.actor.actorID = "ACTOR_PLAYER"
 		emptyObj.fast64.oot.actor.actorKey = "player"
 		emptyObj.fast64.oot.version = emptyObj.fast64.oot.cur_version
 

@@ -465,7 +465,7 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 
 			# Figure out which rotation to export, Blender's or the override
 			if actorKey == 'Custom':
-				actorID = getCustomActorExportValue(detailedProp, 'actorID')
+				actorID = getCustomActorExportValue(detailedProp, 'actorIDCustom')
 				actorParams = getCustomActorExportValue(detailedProp, 'actorParam')
 				rotX = getCustomActorExportValue(detailedProp, 'rotOverrideX')
 				rotY = getCustomActorExportValue(detailedProp, 'rotOverrideY')
@@ -500,7 +500,7 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 			transActorProp = obj.ootTransitionActorProperty
 			actorKey = detailedProp.transActorKey
 			if actorKey == 'Custom':
-				actorID = getCustomActorExportValue(detailedProp, 'transActorID')
+				actorID = getCustomActorExportValue(detailedProp, 'transActorIDCustom')
 				actorParams = getCustomActorExportValue(detailedProp, 'transActorParam')
 				rotY = getCustomActorExportValue(detailedProp, 'rotOverrideY')
 			else:
@@ -532,7 +532,7 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 
 			addActor(scene, OOTEntrance(room.roomIndex, spawnIndex), entranceProp.actor, "entranceList", obj.name)
 			addStartPosition(scene, spawnIndex, OOTActor(
-				"ACTOR_PLAYER" if not entranceProp.customActor else detailedProp.actorID,
+				"ACTOR_PLAYER" if not entranceProp.customActor else detailedProp.actorIDCustom,
 				translation, rotation, actorParams, None), entranceProp.actor, obj.name)
 		elif obj.ootEmptyType == "Water Box":
 			ootProcessWaterBox(sceneObj, obj, transformMatrix, scene, room.roomIndex)
