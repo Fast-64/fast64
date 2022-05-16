@@ -305,7 +305,7 @@ def exportAnimationCommon(armatureObj, loopAnim, name):
 		len(sm64_anim.values.shortData) * 2
 	
 	sm64_anim.header = SM64_AnimationHeader(sm64_anim.name, repetitions,
-		marioYOffset, frameInterval, nodeCount, transformValuesStart, 
+		marioYOffset, [frame_start, frame_last + 1], nodeCount, transformValuesStart, 
 		transformIndicesStart, animSize)
 	
 	return sm64_anim
