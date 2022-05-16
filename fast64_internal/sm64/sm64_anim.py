@@ -255,17 +255,15 @@ def exportAnimationCommon(armatureObj, loopAnim, name):
 	sm64_anim = SM64_Animation(toAlnum(name + "_" + anim.name))
 
 	nodeCount = len(armatureObj.data.bones)
-		
-	frameInterval = [0,0]
 
-	# frame_start is minimum 0
-	frameInterval[0] = max(bpy.context.scene.frame_start,
-		int(round(anim.frame_range[0])))
+	frame_start, frame_last = getFrameInterval(anim)
 
-	frameInterval[1] = \
-		max(min(bpy.context.scene.frame_end, 
-			int(round(anim.frame_range[1]))), frameInterval[0]) + 1
-	translationData, armatureFrameData = convertAnimationData(anim, armatureObj, frameInterval[1])
+	translationData, armatureFrameData = convertAnimationData(
+		anim,
+		armatureObj,
+		frame_start=frame_start,
+		frame_count=(frame_last - frame_start + 1),
+	)
 
 	repetitions = 0 if loopAnim else 1
 	marioYOffset = 0x00 # ??? Seems to be this value for most animations
@@ -312,7 +310,7 @@ def exportAnimationCommon(armatureObj, loopAnim, name):
 	
 	return sm64_anim
 	
-def convertAnimationData(anim, armatureObj, frameEnd):
+def convertAnimationData(anim, armatureObj, *, frame_start, frame_count):
 	bonesToProcess = findStartBones(armatureObj)
 	currentBone = armatureObj.data.bones[bonesToProcess[0]]
 	animBones = []
@@ -340,7 +338,7 @@ def convertAnimationData(anim, armatureObj, frameEnd):
 		ValueFrameData(i, 2, [])] for i in range(len(animBones))]
 
 	currentFrame = bpy.context.scene.frame_current
-	for frame in range(frameEnd):
+	for frame in range(frame_start, frame_start + frame_count):
 		bpy.context.scene.frame_set(frame)
 		rootBone = armatureObj.data.bones[animBones[0]]
 		rootPoseBone = armatureObj.pose.bones[animBones[0]]
@@ -716,6 +714,8 @@ class SM64_ExportAnimPanel(SM64_Panel):
 		propsAnimExport = col.operator(SM64_ExportAnimMario.bl_idname)
 
 		col.prop(context.scene, 'loopAnimation')
+		prop_split(col, context.scene.fast64.settings, 'anim_range_choice', 'Anim Range')
+
 		if context.scene.fast64.sm64.exportType == 'C':
 			col.prop(context.scene, 'animCustomExport')
 			if context.scene.animCustomExport:
@@ -765,7 +765,7 @@ class SM64_ExportAnimPanel(SM64_Panel):
 			col.separator()
 			prop_split(col, context.scene, 'animExportStart', 'Start Address')
 			prop_split(col, context.scene, 'animExportEnd', 'End Address')
-			
+
 class SM64_ImportAnimMario(bpy.types.Operator):
 	bl_idname = 'object.sm64_import_anim'
 	bl_label = "Import Animation"

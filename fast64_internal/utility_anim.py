@@ -1,5 +1,11 @@
 import bpy, math, mathutils
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+	from .. import Fast64_Properties
+	from .. import Fast64Settings_Properties
+
 class ValueFrameData:
 	def __init__(self, boneIndex, field, frames):
 		self.boneIndex = boneIndex
@@ -42,15 +48,39 @@ def saveTranslationFrame(frameData, translation):
 	for i in range(3):
 		frameData[i].frames.append(min(int(round(translation[i])), 2**16 - 1))
 
-def getFrameInterval(anim):
-	frameInterval = [0,0]
+def getFrameInterval(action: bpy.types.Action):
+	scene = bpy.context.scene
 
-	# frame_start is minimum 0
-	frameInterval[0] = max(bpy.context.scene.frame_start,
-		int(round(anim.frame_range[0])))
+	fast64_props = scene.fast64  # type: Fast64_Properties
+	fast64settings_props = fast64_props.settings  # type: Fast64Settings_Properties
 
-	frameInterval[1] = \
-		max(min(bpy.context.scene.frame_end, 
-			int(round(anim.frame_range[1]))), frameInterval[0]) + 1
-	
-	return frameInterval
+	anim_range_choice = fast64settings_props.anim_range_choice
+
+	def getIntersectionInterval():
+		"""
+		intersect action range and scene range
+		Note: this doesn't handle correctly the case where the two ranges don't intersect, not a big deal
+		"""
+
+		frame_start = max(
+			scene.frame_start,
+			int(round(action.frame_range[0])),
+		)
+
+		frame_last = max(
+			min(
+				scene.frame_end,
+				int(round(action.frame_range[1])),
+			),
+			frame_start,
+		)
+
+		return frame_start, frame_last
+
+	range_get_by_choice = {
+		"action": lambda: (int(round(action.frame_range[0])), int(round(action.frame_range[1]))),
+		"scene": lambda: (int(round(scene.frame_start)), int(round(scene.frame_end))),
+		"intersect_action_and_scene": getIntersectionInterval,
+	}
+
+	return range_get_by_choice[anim_range_choice]()
