@@ -421,7 +421,6 @@ class OOT_ExportAnimPanel(OOT_Panel):
 		else:
 			prop_split(col, context.scene, 'ootAnimExportFolderName', 'Object')
 		col.prop(context.scene, 'ootAnimIsCustomExport')
-		prop_split(col, context.scene.fast64.settings, 'anim_range_choice', 'Anim Range')
 
 
 		col.operator(OOT_ImportAnim.bl_idname)

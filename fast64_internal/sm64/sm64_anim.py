@@ -714,7 +714,6 @@ class SM64_ExportAnimPanel(SM64_Panel):
 		propsAnimExport = col.operator(SM64_ExportAnimMario.bl_idname)
 
 		col.prop(context.scene, 'loopAnimation')
-		prop_split(col, context.scene.fast64.settings, 'anim_range_choice', 'Anim Range')
 
 		if context.scene.fast64.sm64.exportType == 'C':
 			col.prop(context.scene, 'animCustomExport')
