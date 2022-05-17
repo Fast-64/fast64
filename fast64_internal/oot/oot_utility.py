@@ -663,8 +663,9 @@ def getActorParameter(detailedProp, actorKey, paramTarget, field):
 			lenEnum = getActorLastElemIndex(actorKey, 'Enum', None)
 			for elem in actorNode:
 				actorType = getattr(detailedProp, actorKey + '.type', None)
+				index = int(elem.get('Index', '1'), base=10)
 				if hasActorTiedParams(elem.get('TiedParam'), actorType):
-					paramPart = getActorParameterPart(elem, detailedProp, actorKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget, 1)
+					paramPart = getActorParameterPart(elem, detailedProp, actorKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget, index)
 					if paramPart is not None and paramPart != '':
 						params.append(paramPart)
 	actorProps = " | ".join(params)

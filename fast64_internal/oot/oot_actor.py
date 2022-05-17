@@ -268,40 +268,34 @@ def editOOTActorProperties():
 
 	# Generate the fields
 	for actorNode in root:
-		i_drop = i_property = i_chest = i_collectible = i_switch = i_bool = i_enum = 1
 		actorKey = actorNode.get('Key')
 		for elem in actorNode:
+			index = int(elem.get('Index', '1'), base=10)
 			if elem.tag == 'Property':
-				genString(propAnnotations, actorKey, f'.props{i_property}', actorKey)
-				i_property += 1
+				genString(propAnnotations, actorKey, f'.props{index}', actorKey)
 			elif elem.tag == 'Flag':
 				if elem.get('Type') == 'Chest':
-					genString(propAnnotations, actorKey, f'.chestFlag{i_chest}', 'Chest Flag')
-					i_chest += 1
+					genString(propAnnotations, actorKey, f'.chestFlag{index}', 'Chest Flag')
 				elif elem.get('Type') == 'Collectible':
-					genString(propAnnotations, actorKey, f'.collectibleFlag{i_collectible}', 'Collectible Flag')
-					i_collectible += 1
+					genString(propAnnotations, actorKey, f'.collectibleFlag{index}', 'Collectible Flag')
 				elif elem.get('Type') == 'Switch':
-					genString(propAnnotations, actorKey, f'.switchFlag{i_switch}', 'Switch Flag')
-					i_switch += 1
+					genString(propAnnotations, actorKey, f'.switchFlag{index}', 'Switch Flag')
 			elif elem.tag == 'Collectible':
-				genEnum(propAnnotations, actorKey, f'.collectibleDrop{i_drop}', itemDrops, 'Collectible Drop')
+				genEnum(propAnnotations, actorKey, f'.collectibleDrop{index}', itemDrops, 'Collectible Drop')
 			elif elem.tag == 'Parameter':
 				actorTypeList = [(elem2.get('Params'), elem2.text, elem2.get('Params'))
 								for actorNode2 in root for elem2 in actorNode2
 								if actorNode2.get('Key') == actorKey and elem2.tag == 'Parameter']
 				genEnum(propAnnotations, actorKey, '.type', actorTypeList, 'Actor Type')
 			elif elem.tag == 'Bool':
-				objName = actorKey + f'.bool{i_bool}'
+				objName = actorKey + f'.bool{index}'
 				prop = bpy.props.BoolProperty(default=False)
 				propAnnotations[objName] = prop
-				i_bool += 1
 			elif elem.tag == 'Enum':
 				actorEnumList = [(item.get('Value'), item.get('Name'), item.get('Value'))
 								for actorNode2 in root if actorNode2.get('Key') == actorKey
-								for elem2 in actorNode2 if elem2.tag == 'Enum' and elem2.get('Index') == f'{i_enum}' for item in elem2]
-				genEnum(propAnnotations, actorKey, f'.enum{i_enum}', actorEnumList, elem.get('Name'))
-				i_enum += 1
+								for elem2 in actorNode2 if elem2.tag == 'Enum' and elem2.get('Index') == f'{index}' for item in elem2]
+				genEnum(propAnnotations, actorKey, f'.enum{index}', actorEnumList, elem.get('Name'))
 
 def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, userIDField, userParamField, detailedProp, dpKey):
 	'''This function handles the drawing of the detailed actor panel'''
