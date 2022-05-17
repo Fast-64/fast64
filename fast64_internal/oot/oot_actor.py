@@ -189,10 +189,11 @@ def setActorParameterValues(self, value, field, target):
 		dPKey = actorNode.get('Key')
 		if dPKey == getattr(self, field, '0x0'):
 			for elem in actorNode:
+				index = int(elem.get('Index', '1'), base=10)
 				if hasActorTiedParams(elem.get('TiedParam'), getattr(self, dPKey + '.type', None)) is True:
 					setActorParameter(elem, getComputedActorValues(value), self, dPKey,
 						getActorLastElemIndex(dPKey, 'Property', None),	getActorLastElemIndex(dPKey, 'Flag', 'Switch'), 
-						getActorLastElemIndex(dPKey, 'Bool', None),	getActorLastElemIndex(dPKey, 'Enum', None), target, 1)
+						getActorLastElemIndex(dPKey, 'Bool', None),	getActorLastElemIndex(dPKey, 'Enum', None), target, index)
 
 def setActorValues(self, value, actorKey, target):
 	if isActorCustom(actorKey):
@@ -223,10 +224,10 @@ def genString(annotations, key, suffix, stringName):
 def drawParams(box, detailedProp, key, elemField, elemName, elTag, elType, lenSwitch):
 	'''Actual draw on the UI'''
 	for actorNode in root:
-		i = 1
 		name = 'None'
 		if key == actorNode.get('Key'):
 			for elem in actorNode:
+				i = int(elem.get('Index', '1'), base=10)
 				# Checks if there's at least 2 Switch Flags, in this case the
 				# Name will be 'Switch Flag #[number]
 				# If it's not a Switch Flag, change nothing to the name

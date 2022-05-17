@@ -860,10 +860,11 @@ def upgradeActorProcess(user, obj, actorID, detailedProp, params, paramField, pa
 						lenBool = getActorLastElemIndex(dPKey, 'Bool', None)
 						lenEnum = getActorLastElemIndex(dPKey, 'Enum', None)
 						for elem in actorNode:
+							index = int(elem.get('Index', '1'), base=10)
 							tiedParam = elem.get('TiedParam')
 							actorType = getattr(detailedProp, dPKey + '.type', None)
 							if hasActorTiedParams(tiedParam, actorType) is True:
-								setActorParameter(elem, params, detailedProp, dPKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget, 1)
+								setActorParameter(elem, params, detailedProp, dPKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget, index)
 		if user != 'Transition Actor':
 			actorParams = getActorParameter(detailedProp, detailedProp.actorKey, paramTarget, None)
 		else:
