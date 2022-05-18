@@ -586,3 +586,13 @@ def oot_utility_register():
 def oot_utility_unregister():
 	for cls in reversed(oot_utility_classes):
 		unregister_class(cls)
+
+def getIDFromKey(key, root):
+	if not (key == 'Custom'):
+		for node in root:
+			dataKey = node.get('Key')
+			if dataKey is not None and dataKey == key:
+				return node.get('ID')
+	else:
+		return key
+	return None

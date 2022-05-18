@@ -59,7 +59,7 @@ class OOT_SearchObjectEnumOperator(bpy.types.Operator):
 	bl_property = "ootObjectID"
 	bl_options = {'REGISTER', 'UNDO'} 
 
-	ootObjectID : bpy.props.EnumProperty(items = ootEnumObjectID, default = "OBJECT_HUMAN")
+	ootObjectID : bpy.props.EnumProperty(items = ootEnumObjectID, default = "obj_human")
 	headerIndex : bpy.props.IntProperty(default = 0, min = 0)
 	index : bpy.props.IntProperty(default = 0, min = 0)
 	objName : bpy.props.StringProperty()
@@ -164,8 +164,8 @@ def drawExitProperty(layout, exitProp, index, headerIndex, objName):
 
 class OOTObjectProperty(bpy.types.PropertyGroup):
 	expandTab : bpy.props.BoolProperty(name = "Expand Tab")
-	objectID : bpy.props.EnumProperty(items = ootEnumObjectID, default = 'OBJECT_HUMAN')
-	objectIDCustom : bpy.props.StringProperty(default = 'OBJECT_HUMAN')
+	objectID : bpy.props.EnumProperty(items = ootEnumObjectID, default = 'obj_human')
+	objectIDCustom : bpy.props.StringProperty(default = 'OBJECT_CUSTOM')
 
 def drawObjectProperty(layout, objectProp, headerIndex, index, objName):
 	objItemBox = layout.box()
