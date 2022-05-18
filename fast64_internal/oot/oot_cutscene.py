@@ -379,11 +379,11 @@ def ootCutsceneDataToC(csParent, csName):
 	data.header = "extern s32 " + csName + "[];\n"
 	data.source = "s32 " + csName + "[] = {\n"
 	nentries = len(csParent.csLists) + (1 if csParent.csWriteTerminator else 0)
-	data.source += "\tCS_BEGIN_CUTSCENE(" + str(nentries) + ", " + str(csParent.csEndFrame) + "),\n"
+	data.source += indent + "CS_BEGIN_CUTSCENE(" + str(nentries) + ", " + str(csParent.csEndFrame) + "),\n"
 	if csParent.csWriteTerminator:
-		data.source += "\tCS_TERMINATOR(" + str(csParent.csTermIdx) + ", " + str(csParent.csTermStart) + ", " + str(csParent.csTermEnd) + "),\n"
+		data.source += indent + "CS_TERMINATOR(" + str(csParent.csTermIdx) + ", " + str(csParent.csTermStart) + ", " + str(csParent.csTermEnd) + "),\n"
 	for list in csParent.csLists:
-		data.source += "\t" + ootEnumCSListTypeListC[list.listType] + "("
+		data.source += indent + ootEnumCSListTypeListC[list.listType] + "("
 		if list.listType == "Unk":
 			data.source += list.unkType + ", "
 		if list.listType == "FX":
@@ -392,7 +392,7 @@ def ootCutsceneDataToC(csParent, csName):
 			data.source += str(len(list.entries))
 		data.source += "),\n"
 		for e in list.entries:
-			data.source += "\t\t"
+			data.source += (indent * 2)
 			if list.listType == "Textbox":
 				data.source += ootEnumCSTextboxTypeEntryC[e.textboxType]
 			else:
@@ -434,7 +434,7 @@ def ootCutsceneDataToC(csParent, csName):
 			else:
 				raise PluginError("Internal error: invalid cutscene list type " + list.listType)
 			data.source += "),\n"
-	data.source += "\tCS_END(),\n"
+	data.source += indent + "CS_END(),\n"
 	data.source += "};\n\n"
 	return data
 

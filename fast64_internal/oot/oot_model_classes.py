@@ -85,8 +85,8 @@ class OOTGfxFormatter(GfxFormatter):
 		data.header = 'Gfx* ' + fMaterial.material.name + '(Gfx* glistp, int s, int t);\n'
 		data.source = 'Gfx* ' + materialGfx.name + '(Gfx* glistp, int s, int t) {\n'
 		for command in materialGfx.commands:
-			data.source += '\t' + command.to_c(False) + ';\n'
-		data.source += '\treturn glistp;\n}' + '\n\n'
+			data.source += indent + command.to_c(False) + ';\n'
+		data.source += indent + 'return glistp;\n}' + '\n\n'
 
 		if fMaterial.revert is not None:
 			data.append(fMaterial.revert.to_c(f3d))

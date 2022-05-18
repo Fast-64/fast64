@@ -31,7 +31,7 @@ class OOTAnimation:
 		counter = 0
 		for value in self.values:
 			if counter == 0:
-				data.source += '\t'
+				data.source += indent
 			data.source += format(value, '#06x') + ", "
 			counter += 1
 			if counter >= 16: # round number for finding/counting data
@@ -42,7 +42,7 @@ class OOTAnimation:
 		# indices (index -1 => translation)
 		data.source += "JointIndex " + self.indicesName() + "[" + str(len(self.indices)) + "] = {\n"
 		for index in range(-1, len(self.indices) - 1):
-			data.source += '\t{ '
+			data.source += indent + '{ '
 			for field in range(3):
 				data.source += format(self.indices[index][field], '#06x') + ", "
 			data.source += '},\n'

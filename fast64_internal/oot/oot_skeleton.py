@@ -68,7 +68,7 @@ class OOTSkeleton():
 		data.source += "void* " + self.limbsName() + "[" + str(self.getNumLimbs()) + "] = {\n"
 		for limb in limbList:
 			limbData.source += limb.toC(self.hasLOD)
-			data.source += '\t&' + limb.name() + ',\n'
+			data.source += indent + '&' + limb.name() + ',\n'
 		limbData.source += '\n'
 		data.source += "};\n\n"
 

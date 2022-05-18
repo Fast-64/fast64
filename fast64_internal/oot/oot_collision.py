@@ -356,7 +356,7 @@ def ootCameraDataToC(camData):
 		
 		camPosIndex = 0
 		for i in range(len(camData.camPosDict)):
-			camC.source += '\t' + ootCameraEntryToC(camData.camPosDict[i], camData, camPosIndex)
+			camC.source += indent + ootCameraEntryToC(camData.camPosDict[i], camData, camPosIndex)
 			if camData.camPosDict[i].hasPositionData:
 				posC.source += ootCameraPosToC(camData.camPosDict[i])
 				camPosIndex += 3
@@ -371,13 +371,13 @@ def ootCameraDataToC(camData):
 	return posC
 
 def ootCameraPosToC(camPos):
-	return "\t{ " +\
+	return indent + "{ " +\
 		str(camPos.position[0]) + ', ' +\
 		str(camPos.position[1]) + ', ' +\
-		str(camPos.position[2]) + ' },\n\t{ ' +\
+		str(camPos.position[2]) + ' },\n' + indent + '{ ' +\
 		str(camPos.rotation[0]) + ', ' +\
 		str(camPos.rotation[1]) + ', ' +\
-		str(camPos.rotation[2]) + ' },\n\t{ ' +\
+		str(camPos.rotation[2]) + ' },\n' + indent + '{ ' +\
 		str(camPos.fov) + ', ' +\
 		str(camPos.jfifID) + ', ' +\
 		str(camPos.unknown) + ' },\n'
@@ -401,9 +401,9 @@ def ootCollisionToC(collision):
 		polygonC = "CollisionPoly " + collision.polygonsName() + "[] = {\n"
 		polygonIndex = 0
 		for polygonType, polygons in collision.polygonGroups.items():
-			polygonTypeC += '\t' + ootPolygonTypeToC(polygonType)
+			polygonTypeC += indent + ootPolygonTypeToC(polygonType)
 			for polygon in polygons:
-				polygonC += '\t' + ootCollisionPolygonToC(polygon, 
+				polygonC += indent + ootCollisionPolygonToC(polygon, 
 					polygonType.ignoreCameraCollision,
 					polygonType.ignoreActorCollision,
 					polygonType.ignoreProjectileCollision,
@@ -424,7 +424,7 @@ def ootCollisionToC(collision):
 		data.header += "extern Vec3s " + collision.verticesName() + "[" + str(len(collision.vertices)) + "];\n"
 		data.source += "Vec3s " + collision.verticesName() + "[" + str(len(collision.vertices)) + "] = {\n"
 		for vertex in collision.vertices:
-			data.source += '\t' + ootCollisionVertexToC(vertex)
+			data.source += indent + ootCollisionVertexToC(vertex)
 		data.source += '};\n\n'
 		collisionVerticesName = collision.verticesName()
 	else:
@@ -434,14 +434,14 @@ def ootCollisionToC(collision):
 		data.header += "extern WaterBox " + collision.waterBoxesName() + "[];\n"
 		data.source += "WaterBox " + collision.waterBoxesName() + "[] = {\n"
 		for waterBox in collision.waterBoxes:
-			data.source += '\t' + ootWaterBoxToC(waterBox)
+			data.source += indent + ootWaterBoxToC(waterBox)
 		data.source += '};\n\n'
 		waterBoxesName = collision.waterBoxesName()
 	else:
 		waterBoxesName = '0'
 
 	if len(collision.cameraData.camPosDict) > 0:
-		camDataName = "&" + collision.camDataName()
+		camDataName = collision.camDataName()
 	else:
 		camDataName = '0'
 
@@ -451,19 +451,19 @@ def ootCollisionToC(collision):
 	if len(collision.bounds) == 2:
 		for bound in range(2): # min, max bound
 			for field in range(3): # x, y, z
-				data.source += '\t' + str(collision.bounds[bound][field]) + ',\n'
+				data.source += indent + str(collision.bounds[bound][field]) + ',\n'
 	else:
 		data.source += '0, 0, 0, 0, 0, 0, '
 	
 	data.source += \
-		'\t' + str(len(collision.vertices)) + ',\n' +\
-		'\t' + collisionVerticesName + ',\n' +\
-		'\t' + str(collision.polygonCount()) + ',\n' +\
-		'\t' + polygonsName + ',\n' +\
-		'\t' + polygonTypesName + ',\n' +\
-		'\t' + camDataName + ',\n' +\
-		'\t' + str(len(collision.waterBoxes)) + ',\n' +\
-		'\t' + waterBoxesName + '\n' +\
+		indent + str(len(collision.vertices)) + ',\n' +\
+		indent + collisionVerticesName + ',\n' +\
+		indent + str(collision.polygonCount()) + ',\n' +\
+		indent + polygonsName + ',\n' +\
+		indent + polygonTypesName + ',\n' +\
+		indent + camDataName + ',\n' +\
+		indent + str(len(collision.waterBoxes)) + ',\n' +\
+		indent + waterBoxesName + '\n' +\
 		'};\n\n'
 
 	return data
