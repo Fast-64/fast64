@@ -118,7 +118,7 @@ def getCustomTransActorValues(self, target):
 def getParameterValue(self, actorProp, actorKey, target):
 	'''Returns the actor's parameters'''
 	value = ""
-	for actorNode in root:
+	for actorNode in actorRoot:
 		if actorNode.get('Key') == actorKey:
 			for elem in actorNode:
 				paramTarget = elem.get('Target', 'Params')
@@ -185,7 +185,7 @@ def setCustomTransActorValues(self, value, target):
 
 def setActorParameterValues(self, value, field, target):
 	'''Sets the actor's parameters'''
-	for actorNode in root:
+	for actorNode in actorRoot:
 		dPKey = actorNode.get('Key')
 		if dPKey == getattr(self, field, '0x0'):
 			for elem in actorNode:
@@ -223,7 +223,7 @@ def genString(annotations, key, suffix, stringName):
 
 def drawParams(box, detailedProp, key, elemField, elemName, elTag, elType, lenSwitch):
 	'''Actual draw on the UI'''
-	for actorNode in root:
+	for actorNode in actorRoot:
 		name = 'None'
 		if key == actorNode.get('Key'):
 			for elem in actorNode:
@@ -264,11 +264,11 @@ def editOOTActorProperties():
 
 	# Collectible Drops List
 	itemDrops = [(elem.get('Key'), elem.get('Name'),
-					elem.get('Name')) for listNode in root for elem in listNode if listNode.tag == 'List'
+					elem.get('Name')) for listNode in actorRoot for elem in listNode if listNode.tag == 'List'
 					and listNode.get('Name') == 'Collectibles']
 
 	# Generate the fields
-	for actorNode in root:
+	for actorNode in actorRoot:
 		actorKey = actorNode.get('Key')
 		for elem in actorNode:
 			index = int(elem.get('Index', '1'), base=10)
@@ -285,7 +285,7 @@ def editOOTActorProperties():
 				genEnum(propAnnotations, actorKey, f'.collectibleDrop{index}', itemDrops, 'Collectible Drop')
 			elif elem.tag == 'Parameter':
 				actorTypeList = [(elem2.get('Params'), elem2.text, elem2.get('Params'))
-								for actorNode2 in root for elem2 in actorNode2
+								for actorNode2 in actorRoot for elem2 in actorNode2
 								if actorNode2.get('Key') == actorKey and elem2.tag == 'Parameter']
 				genEnum(propAnnotations, actorKey, '.type', actorTypeList, 'Actor Type')
 			elif elem.tag == 'Bool':
@@ -294,7 +294,7 @@ def editOOTActorProperties():
 				propAnnotations[objName] = prop
 			elif elem.tag == 'Enum':
 				actorEnumList = [(item.get('Value'), item.get('Name'), item.get('Value'))
-								for actorNode2 in root if actorNode2.get('Key') == actorKey
+								for actorNode2 in actorRoot if actorNode2.get('Key') == actorKey
 								for elem2 in actorNode2 if elem2.tag == 'Enum' and elem2.get('Index') == f'{index}' for item in elem2]
 				genEnum(propAnnotations, actorKey, f'.enum{index}', actorEnumList, elem.get('Name'))
 
@@ -376,7 +376,7 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 			paramBox.label(text="This Actor doesn't have parameters.")
 
 		if user == userActor:
-			for actorNode in root:
+			for actorNode in actorRoot:
 				if dpKey == actorNode.get('Key'):
 					for elem in actorNode:
 						target = elem.get('Target')

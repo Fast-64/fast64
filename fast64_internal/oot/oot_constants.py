@@ -2,12 +2,12 @@ import os
 import xml.etree.ElementTree as ET
 from ..utility import PluginError
 
-# Read the XML file, throws an error if the file is missing
+# Read the XML files, throws an error if a file is missing
 try:
-	tree = ET.parse(os.path.dirname(os.path.abspath(__file__)) + '/ActorList.xml')
+	actorTree = ET.parse(os.path.dirname(os.path.abspath(__file__)) + '/ActorList.xml')
 except:
 	raise PluginError("ERROR: File 'fast64_internal/oot/ActorList.xml' is missing or malformed.")
-root = tree.getroot()
+actorRoot = actorTree.getroot()
 
 ootEnumMeshType = [
 	#("Custom", "Custom", "Custom"),
@@ -57,26 +57,26 @@ ootEnumLightGroupMenu = [
 
 # Add every actor that is a transition actor (defined by the category 'ACTORCAT_DOOR')
 ootEnumTransitionActorID = [(actorNode.get('Key'), actorNode.get('Name'),
-					actorNode.get('ID').replace('ACTOR_','')) for actorNode in root if actorNode.get('ID') is not None
+					actorNode.get('ID').replace('ACTOR_','')) for actorNode in actorRoot if actorNode.get('ID') is not None
 						and actorNode.get('Category') == 'ACTORCAT_DOOR']
 ootEnumTransitionActorID.insert(0, ("Custom", "Custom Actor", "Custom"))
 
 # Add every actor
 ootEnumActorID = [(actorNode.get('Key'), actorNode.get('Name'),
-					actorNode.get('ID').replace('ACTOR_','')) for actorNode in root if actorNode.get('ID') is not None]
+					actorNode.get('ID').replace('ACTOR_','')) for actorNode in actorRoot if actorNode.get('ID') is not None]
 ootEnumActorID.insert(0, ("Custom", "Custom Actor", "Custom"))
 
 # Old actor list, we can't delete this (for now) as it'd create compatibility issues
 ootEnumActorIDLegacy = [("ACTOR_" + (actorNode.get('Key').upper()), actorNode.get('Name'),
-					actorNode.get('ID').replace('ACTOR_','')) for actorNode in root if actorNode.get('ID') is not None]
+					actorNode.get('ID').replace('ACTOR_','')) for actorNode in actorRoot if actorNode.get('ID') is not None]
 ootEnumActorIDLegacy.insert(0, ("Custom", "Custom Actor", "Custom"))
 
 ootChestContent = [(elem.get('Key'), elem.get('Name'),
-					elem.get('Name')) for listNode in root for elem in listNode if listNode.tag == 'List'
+					elem.get('Name')) for listNode in actorRoot for elem in listNode if listNode.tag == 'List'
 					and listNode.get('Name') == 'Chest Content']
 
 ootNaviMsgID = [(elem.get('Key'), elem.get('Name'),
-				elem.get('Name')) for listNode in root for elem in listNode if listNode.tag == 'List'
+				elem.get('Name')) for listNode in actorRoot for elem in listNode if listNode.tag == 'List'
 				and listNode.get('Name') == 'Elf_Msg Message ID']
 
 ootEnumLinkIdle = [

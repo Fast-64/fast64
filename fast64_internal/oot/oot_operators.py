@@ -1,7 +1,6 @@
 import bpy, mathutils, math, string
 
 from .oot_utility import *
-from .oot_constants import root
 from bpy.utils import register_class, unregister_class
 from ..utility import *
 from ..f3d.f3d_material import *

@@ -1,7 +1,7 @@
 from ..utility import *
 import bpy, math, mathutils, os, re
 from bpy.utils import register_class, unregister_class
-from .oot_constants import root
+from .oot_constants import actorRoot
 
 # default indentation to use when writing to decomp files
 indent = " " * 4
@@ -388,7 +388,7 @@ def getActorExportValue(detailedProp, field):
 	elif field in {"XRot", "YRot", "ZRot"}:
 		dpKey = detailedProp.actorKey
 		actorType = getattr(detailedProp, dpKey + '.type', None)
-		for actorNode in root:
+		for actorNode in actorRoot:
 			if dpKey == actorNode.get('Key'):
 				for elem in actorNode:
 					target = elem.get('Target')
@@ -639,7 +639,7 @@ def getActorParameter(detailedProp, actorKey, paramTarget, field):
 		panelParams = getattr(detailedProp, field, "")
 		if panelParams == "":
 			return "0x0"
-	for actorNode in root:
+	for actorNode in actorRoot:
 		if actorKey == actorNode.get('Key'):
 			lenProp = getActorLastElemIndex(actorKey, 'Property', None)
 			lenSwitch = getActorLastElemIndex(actorKey, 'Flag', 'Switch')
@@ -690,7 +690,7 @@ def setActorParameterPart(object, field, param, mask):
 def getActorLastElemIndex(actorKey, elemTag, flagType):
 	'''Looking for the last index of an actor's property (from XML data)'''
 	indices = []
-	for actorNode in root:
+	for actorNode in actorRoot:
 		if actorNode.get('Key') == actorKey:
 			for elem in actorNode:
 				if elem.tag == elemTag:
@@ -846,7 +846,7 @@ def upgradeActorInit(obj):
 def upgradeActorProcess(user, obj, actorID, detailedProp, params, paramField, paramTarget):
 	if not obj.ootEntranceProperty.customActor and actorID != 'Custom':
 		actorParams = 0
-		for actorNode in root:
+		for actorNode in actorRoot:
 			if actorNode.tag == 'Actor':
 				dPKey = actorNode.get('Key')
 				if ("ACTOR_" + dPKey.upper()) == actorID:
@@ -912,7 +912,7 @@ def getLegacyPropName(propName):
 
 def getIDFromKey(actorKey):
 	if not (actorKey == 'Custom'):
-		for actorNode in root:
+		for actorNode in actorRoot:
 			key = actorNode.get('Key')
 			if key is not None and key == actorKey:
 				return actorNode.get('ID')
@@ -921,14 +921,14 @@ def getIDFromKey(actorKey):
 	return None
 
 def getItemAttrFromKey(enum, key, elemToGet):
-	for listNode in root:
+	for listNode in actorRoot:
 		if listNode.tag == 'List' and listNode.get('Name') == enum:
 			for elem in listNode:
 				if elem.get('Key') == key:
 					return elem.get(elemToGet)
 
 def setKeyFromItemValue(enum, object, field, value):
-	for listNode in root:
+	for listNode in actorRoot:
 		if listNode.tag == 'List' and listNode.get('Name') == enum:
 			for elem in listNode:
 				if elem.get('Value') == value:
