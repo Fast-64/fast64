@@ -305,7 +305,7 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 	entranceBool = None
 	if user != userEntrance:
 		# Entrance prop has specific fields to display
-		userActorID = getIDFromKey(dpKey)
+		userActorID = getIDFromKey(dpKey, actorRoot)
 		searchOp = userLayout.operator(userSearchOp.bl_idname, icon = 'VIEWZOOM')
 		searchOp.objName = userObj
 		if user == userActor:

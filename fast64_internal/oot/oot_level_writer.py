@@ -475,7 +475,7 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 					rotY = f'{rotation[1]}'
 					rotZ = f'{rotation[2]}'
 			else:
-				actorID = getIDFromKey(actorKey)
+				actorID = getIDFromKey(actorKey, actorRoot)
 				actorParams = getActorExportValue(detailedProp, 'actorParam')
 				rotX = getActorExportValue(detailedProp, 'XRot')
 				rotY = getActorExportValue(detailedProp, 'YRot')
@@ -504,7 +504,7 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 				actorParams = getCustomActorExportValue(detailedProp, 'transActorParam')
 				rotY = getCustomActorExportValue(detailedProp, 'rotOverrideY')
 			else:
-				actorID = getIDFromKey(actorKey)
+				actorID = getIDFromKey(actorKey, actorRoot)
 				actorParams = getActorExportValue(detailedProp, 'transActorParam')
 				rotY = getActorExportValue(detailedProp, 'YRot')
 

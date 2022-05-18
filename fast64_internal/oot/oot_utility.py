@@ -910,14 +910,14 @@ def getLegacyPropName(propName):
 	}
 	return legacyPropNameByPropName[propName] if propName in legacyPropNameByPropName else propName
 
-def getIDFromKey(actorKey):
-	if not (actorKey == 'Custom'):
-		for actorNode in actorRoot:
-			key = actorNode.get('Key')
-			if key is not None and key == actorKey:
-				return actorNode.get('ID')
+def getIDFromKey(key, root):
+	if not (key == 'Custom'):
+		for node in root:
+			dataKey = node.get('Key')
+			if dataKey is not None and dataKey == key:
+				return node.get('ID')
 	else:
-		return actorKey
+		return key
 	return None
 
 def getItemAttrFromKey(enum, key, elemToGet):
