@@ -135,18 +135,22 @@ def cmdMesh(room, header, cmdCount):
 
 def cmdObjectList(room, header, cmdCount):
 	cmd = CData()
-	cmd.source = indent + "SCENE_CMD_OBJECT_LIST(" + str(len(room.objectList)) + ", &" + str(room.objectListName(header)) + "),\n"
+	listLengthDefine = "LENGTH_" + str(room.objectListName(header)).upper()
+	cmd.source = indent + "SCENE_CMD_OBJECT_LIST(" + listLengthDefine + ", &" + str(room.objectListName(header)) + "),\n"
 	return cmd
 
 def cmdActorList(room, header, cmdCount):
 	cmd = CData()
-	cmd.source = indent + "SCENE_CMD_ACTOR_LIST(" + str(len(room.actorList)) + ", &" + str(room.actorListName(header)) + "),\n"
+	listLengthDefine = "LENGTH_" + str(room.actorListName(header)).upper()
+	cmd.source = indent + "SCENE_CMD_ACTOR_LIST(" + listLengthDefine + ", &" + str(room.actorListName(header)) + "),\n"
 	return cmd
 
 def ootObjectListToC(room, headerIndex):
 	data = CData()
-	data.header = "extern s16 " + room.objectListName(headerIndex) + "[];\n" 
-	data.source = "s16 " + room.objectListName(headerIndex) + "[] = {\n"
+	data.header = ("extern s16 " + room.objectListName(headerIndex) + 
+		"[LENGTH_" + str(room.objectListName(headerIndex)).upper() + "];\n")
+	data.source = ("s16 " + room.objectListName(headerIndex) + 
+		"[LENGTH_" + str(room.objectListName(headerIndex)).upper() + "] = {\n")
 	for objectItem in room.objectList:
 		data.source += indent + getIDFromKey(objectItem, objectRoot) + ',\n'
 	data.source += '};\n\n'
@@ -170,8 +174,10 @@ def ootActorToC(actor):
 
 def ootActorListToC(room, headerIndex):
 	data = CData()
-	data.header = "extern ActorEntry " + room.actorListName(headerIndex) + "[" + str(len(room.actorList)) + "];\n"
-	data.source = "ActorEntry " + room.actorListName(headerIndex) + "[" + str(len(room.actorList)) + "] = {\n"
+	data.header = ("extern ActorEntry " + room.actorListName(headerIndex) + 
+		"[LENGTH_" + str(room.actorListName(headerIndex)).upper() + "];\n")
+	data.source = ("ActorEntry " + room.actorListName(headerIndex) + 
+		"[LENGTH_" + str(room.actorListName(headerIndex)).upper() + "] = {\n")
 	for actor in room.actorList:
 		data.source += indent + ootActorToC(actor)
 	data.source += "};\n\n"
@@ -298,7 +304,7 @@ def ootRoomMainToC(scene, room, headerIndex):
 	if len(room.actorList) > 0:
 		roomMainC.append(ootActorListToC(room, headerIndex))
 	roomMainC.append(altData)
-	
+
 	return roomMainC
 
 def ootSceneCommandsToC(scene, headerIndex):
@@ -520,6 +526,12 @@ def ootAlternateSceneMainToC(scene):
 def ootSceneMainToC(scene, headerIndex):
 	sceneMainC = CData()
 
+	for i in range(len(scene.rooms)):
+		room = scene.rooms[i]
+		sceneMainC.append(ootGetHeaderDefines(room, headerIndex))
+		if room.hasAlternateHeaders():
+			sceneMainC.append(ootGetAltHeaderDefines(room))
+
 	if headerIndex == 0:
 		# Check if this is the first time the function is being called, we do not want to write this data multiple times
 		roomHeaderData = ootRoomListHeaderToC(scene)
@@ -622,6 +634,8 @@ def ootLevelToC(scene, textureExportSettings):
 
 	for i in range(len(scene.rooms)):
 		levelC.roomMainC[scene.rooms[i].roomName()] = ootRoomMainToC(scene, scene.rooms[i], 0)
+		levelC.roomMainC[scene.rooms[i].roomName()].append(ootGetUndefines(scene.rooms[i], 0))
+		levelC.roomMainC[scene.rooms[i].roomName()].append(ootGetAltUndefines(scene.rooms[i]))
 		meshHeader, meshData = ootRoomMeshToC(scene.rooms[i], textureExportSettings)
 		levelC.roomMeshInfoC[scene.rooms[i].roomName()] = meshHeader
 		levelC.roomMeshC[scene.rooms[i].roomName()] = meshData
@@ -646,3 +660,63 @@ class OOTLevelC:
 		self.roomMainC = {}
 		self.roomMeshInfoC = {}
 		self.roomMeshC = {}
+
+def ootGetHeaderDefines(room, headerIndex):
+	'''Returns CData containing defines for actor and object lists lengths'''
+	data = CData()
+
+	if len(room.objectList) > 0:
+		data.header += ("#define LENGTH_" + str(room.objectListName(headerIndex)).upper() +
+			" " + str(len(room.objectList))) + "\n"
+	if len(room.actorList) > 0:
+		data.header += ("#define LENGTH_" + str(room.actorListName(headerIndex)).upper() +
+			" " + str(len(room.actorList))) + "\n"
+	if not (data.header == ""):
+		data.header += "\n"
+	
+	return data
+
+def ootGetAltHeaderDefines(room):
+	'''Get the defines for alternate room headers'''
+	data = CData()
+
+	if room.childNightHeader is not None:
+		data.header += ootGetHeaderDefines(room.childNightHeader, 1).header
+	if room.adultDayHeader is not None:
+		data.header += ootGetHeaderDefines(room.adultDayHeader, 2).header
+	if room.adultNightHeader is not None:
+		data.header += ootGetHeaderDefines(room.adultNightHeader, 3).header
+	for i in range(len(room.cutsceneHeaders)):
+		csRoom = room.cutsceneHeaders[i]
+		data.header += ootGetHeaderDefines(csRoom, (i + 4)).header
+	
+	return data
+
+def ootGetUndefines(room, headerIndex):
+	'''Returns CData containing undefines for actor and object lists lengths'''
+	data = CData()
+
+	if len(room.objectList) > 0:
+		data.source += "#undef LENGTH_" + str(room.objectListName(headerIndex)).upper() + "\n"
+	if len(room.actorList) > 0:
+		data.source += "#undef LENGTH_" + str(room.actorListName(headerIndex)).upper() + "\n"
+	if not (data.source == ""):
+		data.source += "\n"
+	
+	return data
+
+def ootGetAltUndefines(room):
+	'''Get the undefines for alternate room headers'''
+	data = CData()
+
+	if room.childNightHeader is not None:
+		data.source += ootGetUndefines(room.childNightHeader, 1).source
+	if room.adultDayHeader is not None:
+		data.source += ootGetUndefines(room.adultDayHeader, 2).source
+	if room.adultNightHeader is not None:
+		data.source += ootGetUndefines(room.adultNightHeader, 3).source
+	for i in range(len(room.cutsceneHeaders)):
+		csRoom = room.cutsceneHeaders[i]
+		data.source += ootGetUndefines(csRoom, (i + 4)).source
+	
+	return data
