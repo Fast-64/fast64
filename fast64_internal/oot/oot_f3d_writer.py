@@ -205,8 +205,6 @@ class OOT_DisplayListPanel(bpy.types.Panel):
 		# Doesn't work since all static meshes are pre-transformed
 		#box.prop(obj.ootDynamicTransform, "billboard")
 
-		#drawParentSceneRoom(box, obj)
-
 class OOT_ImportDL(bpy.types.Operator):
 	# set bl_ properties
 	bl_idname = 'object.oot_import_dl'

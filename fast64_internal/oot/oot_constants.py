@@ -4,6 +4,12 @@ from ..utility import PluginError
 
 # Read the XML files, throws an error if a file is missing
 try:
+	actorTree = ET.parse(os.path.dirname(os.path.abspath(__file__)) + '/ActorList.xml')
+except:
+	raise PluginError("ERROR: File 'fast64_internal/oot/ActorList.xml' is missing or malformed.")
+actorRoot = actorTree.getroot()
+
+try:
 	objectTree = ET.parse(os.path.dirname(os.path.abspath(__file__)) + '/ObjectList.xml')
 except:
 	raise PluginError("ERROR: File 'fast64_internal/oot/ObjectList.xml' is missing or malformed.")

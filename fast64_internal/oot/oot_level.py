@@ -111,9 +111,6 @@ class OOTObjectPanel(bpy.types.Panel):
 		elif obj.ootEmptyType == 'None':
 			box.label(text = 'Geometry can be parented to this.')
 
-		#if obj.ootEmptyType != "Scene" and obj.ootEmptyType != "Room":
-		#	drawParentSceneRoom(box, context.object)
-
 def drawLODProperty(box, obj):
 	col = box.column()
 	col.box().label(text = "LOD Settings (Blender Units)")

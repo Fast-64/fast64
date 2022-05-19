@@ -49,8 +49,6 @@ class OOTSplinePanel(bpy.types.Panel):
 			box.label(text = 'Only NURBS curves are compatible.')
 		else:
 			prop_split(box, context.object.ootSplineProperty, "index", "Index")
-		
-		#drawParentSceneRoom(box, context.object)
 
 class OOTSplineProperty(bpy.types.PropertyGroup):
 	index : bpy.props.IntProperty(default = 0, min = 0)

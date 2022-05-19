@@ -81,6 +81,10 @@ def ootExportSceneToC(originalSceneObj, transformMatrix,
 		if exportSubdir == "":
 			raise PluginError("Scene folder " + sceneName + " cannot be found in the ootSceneDirs list.")
 
+	roomObjects = [obj for obj in bpy.data.objects if ((obj.parent == originalSceneObj) and (obj.ootEmptyType == 'Room'))]
+	for i in range(len(scene.rooms)):
+		addMissingObjectsToList(roomObjects[i], scene.rooms[i], actorRoot, 0, None)
+		addAltHeadersObjects(roomObjects[i], scene.rooms[i], actorRoot)
 	levelPath = ootGetPath(exportPath, isCustomExport, exportSubdir, sceneName, True, True)	
 	levelC = ootLevelToC(scene, TextureExportSettings(False, savePNG, exportSubdir + sceneName, levelPath))
 
@@ -562,6 +566,10 @@ class OOT_ExportScene(bpy.types.Operator):
 			#	context.scene.ootSceneCustomExport, DLFormat.Dynamic)
 			self.report({'INFO'}, 'Success!')
 
+			# don't select the scene
+			for elem in bpy.context.selectable_objects:
+				elem.select_set(False)
+
 			context.view_layer.objects.active = activeObj
 			if activeObj is not None:
 				activeObj.select_set(True)
@@ -572,6 +580,9 @@ class OOT_ExportScene(bpy.types.Operator):
 		except Exception as e:
 			if context.mode != 'OBJECT':
 				bpy.ops.object.mode_set(mode = 'OBJECT')
+			# don't select the scene
+			for elem in bpy.context.selectable_objects:
+				elem.select_set(False)
 			context.view_layer.objects.active = activeObj
 			if activeObj is not None:
 				activeObj.select_set(True)

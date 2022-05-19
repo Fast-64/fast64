@@ -92,8 +92,6 @@ class OOT_CameraPosPanel(bpy.types.Panel):
 			prop_split(box, obj.ootCameraPositionProperty, "jfifID", "JFIF ID")
 		box.prop(obj.ootCameraPositionProperty, 'hasPositionData')
 
-		#drawParentSceneRoom(box, context.object)
-	
 
 class OOT_CollisionPanel(bpy.types.Panel):
 	bl_label = "Collision Inspector"

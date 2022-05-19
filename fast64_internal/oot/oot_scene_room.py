@@ -577,27 +577,3 @@ class OOTAlternateRoomHeaderProperty(bpy.types.PropertyGroup):
 
 	headerMenuTab : bpy.props.EnumProperty(name = "Header Menu", items = ootEnumHeaderMenu)
 	currentCutsceneIndex : bpy.props.IntProperty(min = 4, default = 4)
-
-def drawParentSceneRoom(box, obj):
-	sceneObj = getSceneObj(obj)
-	roomObj = getRoomObj(obj)
-
-	#box = layout.box().column()
-	box.box().column().label(text = "Parent Scene/Room Settings")
-	box.row().prop(obj, 'ootObjectMenu', expand = True)
-	
-	if obj.ootObjectMenu == "Scene":
-		if sceneObj is not None:
-			drawSceneHeaderProperty(box, sceneObj.ootSceneHeader, None, None, sceneObj.name)
-			if sceneObj.ootSceneHeader.menuTab == 'Alternate':
-				drawAlternateSceneHeaderProperty(box, sceneObj.ootAlternateSceneHeaders, sceneObj.name)
-		else:
-			box.label(text = "This object is not part of any Scene hierarchy.", icon = 'OUTLINER')
-	
-	elif obj.ootObjectMenu == "Room":
-		if roomObj is not None:
-			drawRoomHeaderProperty(box, roomObj.ootRoomHeader, None, None, roomObj.name)
-			if roomObj.ootRoomHeader.menuTab == 'Alternate':
-				drawAlternateRoomHeaderProperty(box, roomObj.ootAlternateRoomHeaders, roomObj.name)
-		else:
-			box.label(text = "This object is not part of any Room hierarchy.", icon = 'OUTLINER')

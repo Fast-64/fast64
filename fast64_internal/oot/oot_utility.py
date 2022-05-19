@@ -588,6 +588,7 @@ def oot_utility_unregister():
 		unregister_class(cls)
 
 def getIDFromKey(key, root):
+	'''Returns the actor/object ID using the key'''
 	if not (key == 'Custom'):
 		for node in root:
 			dataKey = node.get('Key')
@@ -596,3 +597,44 @@ def getIDFromKey(key, root):
 	else:
 		return key
 	return None
+
+def addMissingObjectsToList(roomObj, room, actorRoot, headerIndex, csHeaderIndex):
+	'''Adds missing objects to the object list'''
+	if len(room.actorList) > 0:
+		for actor in room.actorList:
+			for actorNode in actorRoot:
+				if actorNode.get('ID') == actor.actorID and not (actorNode.get('Key') == 'player'):
+					for obj in actorNode.get('ObjectKey').split(','):
+						if not (obj in room.objectList):
+							room.objectList.append(obj)
+							addMissingObjectToUI(roomObj, headerIndex, obj, csHeaderIndex)
+
+def addMissingObjectToUI(roomObj, headerIndex, objectID, csHeaderIndex):
+	'''Add the missing object to the room empty object OoT object list'''
+	if roomObj is not None:
+		if headerIndex == 0:
+			roomProp = roomObj.ootRoomHeader
+		elif headerIndex == 1:
+			roomProp = roomObj.ootAlternateRoomHeaders.childNightHeader
+		elif headerIndex == 2:
+			roomProp = roomObj.ootAlternateRoomHeaders.adultDayHeader
+		elif headerIndex == 3:
+			roomProp = roomObj.ootAlternateRoomHeaders.adultNightHeader
+		elif csHeaderIndex is not None:
+			roomProp = roomObj.ootAlternateRoomHeaders.cutsceneHeaders[csHeaderIndex]
+		if roomProp is not None:
+			collection = getCollection(roomObj.name, "Object", headerIndex)
+			collection.add()
+			collection.move(len(collection)-1, (headerIndex + 1))
+			roomProp.objectList[len(roomProp.objectList) - 1].objectID = objectID
+
+def addAltHeadersObjects(roomObj, room, actorRoot):
+	'''Adds missing objects for alternate room headers'''
+	if room.childNightHeader is not None:
+		addMissingObjectsToList(roomObj, room.childNightHeader, actorRoot, 1, None)
+	if room.adultDayHeader is not None:
+		addMissingObjectsToList(roomObj, room.adultDayHeader, actorRoot, 2, None)
+	if room.adultNightHeader is not None:
+		addMissingObjectsToList(roomObj, room.adultNightHeader, actorRoot, 3, None)
+	for i in range(len(room.cutsceneHeaders)):
+		addMissingObjectsToList(roomObj, room.cutsceneHeaders[i], actorRoot, 4, i)
