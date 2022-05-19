@@ -228,6 +228,7 @@ class Fast64_GlobalSettingsPanel(bpy.types.Panel):
 		prop_split(col, context.scene, 'gameEditorMode', "Game")
 		col.prop(context.scene, 'exportHiddenGeometry')
 		col.prop(context.scene, 'fullTraceback')
+		prop_split(col, context.scene.fast64.settings, 'anim_range_choice', 'Anim Range')
 
 class Fast64_GlobalToolsPanel(bpy.types.Panel):
 	bl_idname = "FAST64_PT_global_tools"
@@ -249,6 +250,39 @@ class Fast64_GlobalToolsPanel(bpy.types.Panel):
 class Fast64Settings_Properties(bpy.types.PropertyGroup):
 	'''Settings affecting exports for all games found in scene.fast64.settings'''
 	version: bpy.props.IntProperty(name="Fast64Settings_Properties Version", default=0)
+
+	anim_range_choice: bpy.props.EnumProperty(
+		name="Anim Range",
+		description="What to use to determine what frames of the animation to export",
+		items=[
+			(
+				"action",
+				"Action",
+				"Export all frames from the action",
+				0
+			),
+			(
+				"scene",
+				"Playback",
+				(
+					"Export all frames in the scene's animation preview playback range.\n"
+					"(export frames being played in Blender)"
+				),
+				1,
+			),
+			(
+				"intersect_action_and_scene",
+				"Smart",
+				(
+					"Intersect Action & Scene\n"
+					"Export all frames from the action that are also in the scene playback range.\n"
+					"(export frames being played in Blender that also are part of the action frames)"
+				),
+				2,
+			),
+		],
+		default="intersect_action_and_scene",
+	)
 
 class Fast64_Properties(bpy.types.PropertyGroup):
 	'''
