@@ -634,8 +634,6 @@ def ootLevelToC(scene, textureExportSettings):
 
 	for i in range(len(scene.rooms)):
 		levelC.roomMainC[scene.rooms[i].roomName()] = ootRoomMainToC(scene, scene.rooms[i], 0)
-		levelC.roomMainC[scene.rooms[i].roomName()].append(ootGetUndefines(scene.rooms[i], 0))
-		levelC.roomMainC[scene.rooms[i].roomName()].append(ootGetAltUndefines(scene.rooms[i]))
 		meshHeader, meshData = ootRoomMeshToC(scene.rooms[i], textureExportSettings)
 		levelC.roomMeshInfoC[scene.rooms[i].roomName()] = meshHeader
 		levelC.roomMeshC[scene.rooms[i].roomName()] = meshData
@@ -689,34 +687,5 @@ def ootGetAltHeaderDefines(room):
 	for i in range(len(room.cutsceneHeaders)):
 		csRoom = room.cutsceneHeaders[i]
 		data.header += ootGetHeaderDefines(csRoom, (i + 4)).header
-	
-	return data
-
-def ootGetUndefines(room, headerIndex):
-	'''Returns CData containing undefines for actor and object lists lengths'''
-	data = CData()
-
-	if len(room.objectList) > 0:
-		data.source += "#undef LENGTH_" + str(room.objectListName(headerIndex)).upper() + "\n"
-	if len(room.actorList) > 0:
-		data.source += "#undef LENGTH_" + str(room.actorListName(headerIndex)).upper() + "\n"
-	if not (data.source == ""):
-		data.source += "\n"
-	
-	return data
-
-def ootGetAltUndefines(room):
-	'''Get the undefines for alternate room headers'''
-	data = CData()
-
-	if room.childNightHeader is not None:
-		data.source += ootGetUndefines(room.childNightHeader, 1).source
-	if room.adultDayHeader is not None:
-		data.source += ootGetUndefines(room.adultDayHeader, 2).source
-	if room.adultNightHeader is not None:
-		data.source += ootGetUndefines(room.adultNightHeader, 3).source
-	for i in range(len(room.cutsceneHeaders)):
-		csRoom = room.cutsceneHeaders[i]
-		data.source += ootGetUndefines(csRoom, (i + 4)).source
 	
 	return data
