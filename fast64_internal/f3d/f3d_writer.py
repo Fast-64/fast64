@@ -129,7 +129,7 @@ def fixLargeUVs(obj):
 
 	texSizeDict = {}
 	if len(obj.data.materials) == 0:
-		raise PluginError("This object needs an f3d material on it.")
+		raise PluginError(f"{obj.name}: This object needs an f3d material on it.")
 
 		# Don't get tex dimensions here, as it also processes unused materials.
 		#texSizeDict[material] = getTexDimensions(material)
