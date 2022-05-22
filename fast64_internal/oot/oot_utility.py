@@ -604,10 +604,12 @@ def addMissingObjectsToList(roomObj, room, actorRoot, headerIndex, csHeaderIndex
 		for actor in room.actorList:
 			for actorNode in actorRoot:
 				if actorNode.get('ID') == actor.actorID and not (actorNode.get('Key') == 'player'):
-					for obj in actorNode.get('ObjectKey').split(','):
-						if not (obj in room.objectList) and not (obj.startswith('obj_gameplay')):
-							room.objectList.append(obj)
-							addMissingObjectToUI(roomObj, headerIndex, obj, csHeaderIndex)
+					dataObj = actorNode.get('ObjectKey')
+					if dataObj is not None:
+						for obj in dataObj.split(','):
+							if not (obj in room.objectList) and not (obj.startswith('obj_gameplay')):
+								room.objectList.append(obj)
+								addMissingObjectToUI(roomObj, headerIndex, obj, csHeaderIndex)
 
 def addMissingObjectToUI(roomObj, headerIndex, objectID, csHeaderIndex):
 	'''Add the missing object to the room empty object OoT object list'''
