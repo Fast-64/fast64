@@ -275,7 +275,7 @@ def saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, drawLa
 	'''
 	lastMaterialName is for optimization; set it to None to disable optimization.
 	'''
-	
+
 	if len(faces) == 0:
 		print('0 Faces Provided.')
 		return
@@ -629,7 +629,7 @@ def saveMeshByFaces(material, faces, fModel, fMesh, obj, drawLayer,
 	'''
 	lastMaterialName is for optimization; set it to None to disable optimization.
 	'''
-	
+
 	if len(faces) == 0:
 		print('0 Faces Provided.')
 		return
@@ -1276,13 +1276,13 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 		texDimensions0, nextTmem = saveTextureIndex(material.name, fModel,
 			fMaterial, fMaterial.material, fMaterial.revert, f3dMat.tex0, 0, nextTmem, None, convertTextureData,
 			None, loadTextures, True)
-	
+
 	# If the texture in both texels is the same then it can be rewritten to the same location in tmem
 	# This allows for a texture that fills tmem to still be used for both texel0 and texel1
 	if f3dMat.tex0.tex == f3dMat.tex1.tex:
 		if nextTmem >= (512 if f3dMat.tex0.tex_format[:2] != 'CI' else 256):
 			nextTmem = 0
-	
+
 	if useDict['Texture 1'] and f3dMat.tex1.tex_set:
 		if f3dMat.tex1.tex is None and not f3dMat.tex1.use_tex_reference:
 			raise PluginError('In material \"' + material.name + '\", a texture has not been set.')
@@ -1558,7 +1558,7 @@ def saveTextureLoading(fMaterial, fImage, loadTexGfx, clamp_S, mirror_S, clamp_T
 		sh2 = int(SH * (2 ** (f3d.G_TEXTURE_IMAGE_FRAC - 1)))
 
 		dxt = f3d.CALC_DXT_4b(fImage.width)
-		line = (((int(SH - SL) + 1) >> 1) + 7) >> 3
+		line = (((int(fImage.width) + 1) >> 1) + 7) >> 3
 
 		if useLoadBlock:
 			loadTexGfx.commands.extend([
@@ -1581,8 +1581,7 @@ def saveTextureLoading(fMaterial, fImage, loadTexGfx, clamp_S, mirror_S, clamp_T
 	else:
 		dxt = f3d.CALC_DXT(fImage.width, f3d.G_IM_SIZ_VARS[siz + '_BYTES'])
 		# Note that _LINE_BYTES and _TILE_BYTES variables are the same.
-		line = (((int(SH - SL) + 1) * \
-			f3d.G_IM_SIZ_VARS[siz + '_LINE_BYTES']) + 7) >> 3
+		line = int((fImage.width * f3d.G_IM_SIZ_VARS[siz + "_LINE_BYTES"]) + 7) >> 3
 
 		if useLoadBlock:
 			loadTexGfx.commands.extend([
@@ -2227,7 +2226,7 @@ def saveOtherModeLDefinitionIndividual(fMaterial, settings, defaults, defaultRen
 
 	saveModeSetting(fMaterial, settings.g_mdsft_zsrcsel,
 		defaults.g_mdsft_zsrcsel, DPSetDepthSource)
-	
+
 	if settings.g_mdsft_zsrcsel == 'G_ZS_PRIM':
 		fMaterial.material.commands.append(DPSetPrimDepth(z=settings.prim_depth.z, dz=settings.prim_depth.dz))
 		fMaterial.revert.commands.append(DPSetPrimDepth())
