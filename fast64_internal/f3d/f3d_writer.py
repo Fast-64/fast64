@@ -1553,12 +1553,17 @@ def saveTextureLoading(fMaterial, fImage, loadTexGfx, clamp_S, mirror_S, clamp_T
 	# except for the load tile index which will be 6 instead of 7 for render tile = 1.
 	# This may be unnecessary, but at this point DPLoadMultiBlock/Tile is not implemented yet
 	# so it would be extra work for the same outcome.
+	base_width = int(fImage.width)
+	if fImage.isLargeTexture:
+		# TODO: Use width of block to load
+		base_width = int(SH - SL)
+
 	if siz == 'G_IM_SIZ_4b':
 		sl2 = int(SL * (2 ** (f3d.G_TEXTURE_IMAGE_FRAC - 1)))
 		sh2 = int(SH * (2 ** (f3d.G_TEXTURE_IMAGE_FRAC - 1)))
 
 		dxt = f3d.CALC_DXT_4b(fImage.width)
-		line = (((int(fImage.width) + 1) >> 1) + 7) >> 3
+		line = (((base_width + 1) >> 1) + 7) >> 3
 
 		if useLoadBlock:
 			loadTexGfx.commands.extend([
@@ -1581,7 +1586,7 @@ def saveTextureLoading(fMaterial, fImage, loadTexGfx, clamp_S, mirror_S, clamp_T
 	else:
 		dxt = f3d.CALC_DXT(fImage.width, f3d.G_IM_SIZ_VARS[siz + '_BYTES'])
 		# Note that _LINE_BYTES and _TILE_BYTES variables are the same.
-		line = int((fImage.width * f3d.G_IM_SIZ_VARS[siz + "_LINE_BYTES"]) + 7) >> 3
+		line = int((base_width * f3d.G_IM_SIZ_VARS[siz + "_LINE_BYTES"]) + 7) >> 3
 
 		if useLoadBlock:
 			loadTexGfx.commands.extend([
