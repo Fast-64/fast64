@@ -357,6 +357,23 @@ def after_load(_a, _b):
 # register operators and panels here
 # append menu layout drawing function to an existing window
 def register():
+
+	if bpy.app.version >= (3, 1, 0):
+		import types
+
+		msg = "\n".join(
+			(
+				"This version of Fast64 does not work properly in Blender 3.1.0 and later Blender versions.",
+				"Your Blender version: " + ".".join(str(i) for i in bpy.app.version),
+				"This is a known issue, the fix is not trivial and is in progress.",
+				"See the GitHub issue: https://github.com/Fast-64/fast64/issues/85",
+				"If it has been resolved, update Fast64.",
+			)
+		)
+		print(msg)
+		blender_3_1_0_and_later_unsupported = Exception("\n\n" + msg)
+		raise blender_3_1_0_and_later_unsupported
+
 	mat_register()
 	render_engine_register()
 	bsdf_conv_register()
