@@ -359,12 +359,10 @@ def after_load(_a, _b):
 def register():
 
 	if bpy.app.version >= (3, 1, 0):
-		import types
-
 		msg = "\n".join(
 			(
 				"This version of Fast64 does not work properly in Blender 3.1.0 and later Blender versions.",
-				"Your Blender version: " + ".".join(str(i) for i in bpy.app.version),
+				"Your Blender version is: " + ".".join(str(i) for i in bpy.app.version),
 				"This is a known issue, the fix is not trivial and is in progress.",
 				"See the GitHub issue: https://github.com/Fast-64/fast64/issues/85",
 				"If it has been resolved, update Fast64.",
