@@ -166,9 +166,14 @@ def onUpdateOOTEmptyType(self, context):
 
 class OOT_ObjectProperties(bpy.types.PropertyGroup):
 	version: bpy.props.IntProperty(name="OOT_ObjectProperties Version", default=0)
-	cur_version = 0 # version after property migration
+	cur_version = 1 # version after property migration
 
 	scene: bpy.props.PointerProperty(type=OOTSceneProperties)
+
+	@staticmethod
+	def upgrade_changed_props():
+		for obj in bpy.context.scene.objects:
+			OOTObjectProperty.upgrade_object(obj)
 
 oot_obj_classes = (
 	OOTSceneProperties,

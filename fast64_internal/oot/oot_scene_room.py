@@ -165,7 +165,18 @@ def drawExitProperty(layout, exitProp, index, headerIndex, objName):
 class OOTObjectProperty(bpy.types.PropertyGroup):
 	expandTab : bpy.props.BoolProperty(name = "Expand Tab")
 	objectID : bpy.props.EnumProperty(items = ootEnumObjectID, default = 'obj_human')
+	objectIDLegacy : bpy.props.EnumProperty(items = ootEnumObjectIDLegacy, default = 'OBJECT_HUMAN')
 	objectIDCustom : bpy.props.StringProperty(default = 'OBJECT_CUSTOM')
+
+	@staticmethod
+	def upgrade_object(obj):
+		if obj.data is None:
+			if (obj.ootEmptyType == 'Scene') or (obj.ootEmptyType == 'Room'):
+				print(f"Processing '{obj.name}'...")
+				for child in obj.children:
+					OOTObjectProperty.upgrade_object(child)
+			elif (obj.fast64.oot.version < obj.fast64.oot.cur_version):
+				upgradeObjectInit(obj, objectRoot)
 
 def drawObjectProperty(layout, objectProp, headerIndex, index, objName):
 	objItemBox = layout.box()

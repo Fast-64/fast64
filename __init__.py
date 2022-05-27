@@ -314,6 +314,7 @@ def upgrade_changed_props():
 	'''Set scene properties after a scene loads, used for migrating old properties'''
 	SM64_Properties.upgrade_changed_props()
 	SM64_ObjectProperties.upgrade_changed_props()
+	OOT_ObjectProperties.upgrade_changed_props()
 
 @bpy.app.handlers.persistent
 def after_load(_a, _b):

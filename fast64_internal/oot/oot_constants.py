@@ -510,6 +510,10 @@ ootEnumObjectID = [(objectNode.get('Key'), (objectNode.get('Name') + f" - {objec
 					objectNode.get('ID').replace('OBJECT_','')) for objectNode in objectRoot if objectNode.get('ID') is not None]
 ootEnumObjectID.insert(0, ("Custom", "Custom Object", "Custom"))
 
+ootEnumObjectIDLegacy = [(objectNode.get('ID'), (objectNode.get('Name')),
+					objectNode.get('ID').replace('OBJECT_','')) for objectNode in objectRoot if objectNode.get('ID') is not None]
+ootEnumObjectIDLegacy.insert(0, ("Custom", "Custom Object", "Custom"))
+
 ootEnumLinkIdle = [
 	("Custom", "Custom", "Custom"),
 	("0x00", "Default", "Default"),

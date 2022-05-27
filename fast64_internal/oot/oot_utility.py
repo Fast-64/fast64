@@ -640,3 +640,16 @@ def addAltHeadersObjects(roomObj, room, actorRoot):
 		addMissingObjectsToList(roomObj, room.adultNightHeader, actorRoot, 3, None)
 	for i in range(len(room.cutsceneHeaders)):
 		addMissingObjectsToList(roomObj, room.cutsceneHeaders[i], actorRoot, 4, i)
+
+def upgradeObjectInit(obj, objectRoot):
+	if obj.data is None and obj.ootEmptyType == 'Room':
+		for i in range(len(obj.objectList)):
+			for objectNode in objectRoot:
+				obj.objectList[i].objectIDLegacy = obj.objectList[i].objectID
+				if obj.objectList[i].objectIDLegacy == objectNode.get('ID'):
+					obj.objectList[i].objectID = objectNode.get('Key')
+
+		obj.fast64.oot.version = obj.fast64.oot.cur_version
+
+	for childObj in obj.children:
+		upgradeObjectInit(childObj, objectRoot)
