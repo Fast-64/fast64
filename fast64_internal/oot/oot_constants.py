@@ -62,7 +62,7 @@ ootEnumTransitionActorID = [(actorNode.get('Key'), actorNode.get('Name'),
 ootEnumTransitionActorID.insert(0, ("Custom", "Custom Actor", "Custom"))
 
 # Add every actor
-ootEnumActorID = [(actorNode.get('Key'), actorNode.get('Name'),
+ootEnumActorID = [(actorNode.get('Key'), (actorNode.get('Name') + f" - {actorNode.get('ID').replace('ACTOR_', '')}"),
 					actorNode.get('ID').replace('ACTOR_','')) for actorNode in actorRoot if actorNode.get('ID') is not None]
 ootEnumActorID.insert(0, ("Custom", "Custom Actor", "Custom"))
 
