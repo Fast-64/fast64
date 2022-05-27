@@ -506,7 +506,7 @@ ootEnumActorID = [
 ]
 
 # Add every objects
-ootEnumObjectID = [(objectNode.get('Key'), objectNode.get('Name'),
+ootEnumObjectID = [(objectNode.get('Key'), (objectNode.get('Name') + f" - {objectNode.get('ID').replace('OBJECT_', '')}"),
 					objectNode.get('ID').replace('OBJECT_','')) for objectNode in objectRoot if objectNode.get('ID') is not None]
 ootEnumObjectID.insert(0, ("Custom", "Custom Object", "Custom"))
 

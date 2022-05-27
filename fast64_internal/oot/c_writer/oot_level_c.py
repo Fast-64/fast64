@@ -263,25 +263,25 @@ def ootAlternateRoomMainToC(scene, room):
 	altHeader.source = "SCmdBase* " + room.alternateHeadersName() + "[] = {\n"
 	
 	if room.childNightHeader is not None:
-		altHeader.source += indent + "" + room.roomName() + "_header" + format(1, '02') + ",\n"
+		altHeader.source += indent + room.roomName() + "_header" + format(1, '02') + ",\n"
 		altData.append(ootRoomMainToC(scene, room.childNightHeader, 1))
 	else:
 		altHeader.source += indent + "0,\n"
 
 	if room.adultDayHeader is not None:
-		altHeader.source += indent + "" + room.roomName() + "_header" + format(2, '02') + ",\n"
+		altHeader.source += indent + room.roomName() + "_header" + format(2, '02') + ",\n"
 		altData.append(ootRoomMainToC(scene, room.adultDayHeader, 2))
 	else:
 		altHeader.source += indent + "0,\n"
 
 	if room.adultNightHeader is not None:
-		altHeader.source += indent + "" + room.roomName() + "_header" + format(3, '02') + ",\n"
+		altHeader.source += indent + room.roomName() + "_header" + format(3, '02') + ",\n"
 		altData.append(ootRoomMainToC(scene, room.adultNightHeader, 3))
 	else:
 		altHeader.source += indent + "0,\n"
 
 	for i in range(len(room.cutsceneHeaders)):
-		altHeader.source += indent + "" + room.roomName() + "_header" + format(i + 4, '02') + ",\n"
+		altHeader.source += indent + room.roomName() + "_header" + format(i + 4, '02') + ",\n"
 		altData.append(ootRoomMainToC(scene, room.cutsceneHeaders[i], i + 4))
 
 	altHeader.source += '};\n\n'
@@ -290,6 +290,10 @@ def ootAlternateRoomMainToC(scene, room):
 
 def ootRoomMainToC(scene, room, headerIndex):
 	roomMainC = CData()
+
+	roomMainC.source += ootGetHeaderDefines(room, 0)
+	if room.hasAlternateHeaders():
+		roomMainC.source += ootGetAltHeaderDefines(room)
 	
 	if room.hasAlternateHeaders():
 		altHeader, altData = ootAlternateRoomMainToC(scene, room)
@@ -498,25 +502,25 @@ def ootAlternateSceneMainToC(scene):
 	altHeader.source = "SCmdBase* " + scene.alternateHeadersName() + "[] = {\n"
 	
 	if scene.childNightHeader is not None:
-		altHeader.source += indent + "" + scene.sceneName() + "_header" + format(1, '02') + ",\n"
+		altHeader.source += indent + scene.sceneName() + "_header" + format(1, '02') + ",\n"
 		altData.append(ootSceneMainToC(scene.childNightHeader, 1))
 	else:
 		altHeader.source += indent + "0,\n"
 
 	if scene.adultDayHeader is not None:
-		altHeader.source += indent + "" + scene.sceneName() + "_header" + format(2, '02') + ",\n"
+		altHeader.source += indent + scene.sceneName() + "_header" + format(2, '02') + ",\n"
 		altData.append(ootSceneMainToC(scene.adultDayHeader, 2))
 	else:
 		altHeader.source += indent + "0,\n"
 
 	if scene.adultNightHeader is not None:
-		altHeader.source += indent + "" + scene.sceneName() + "_header" + format(3, '02') + ",\n"
+		altHeader.source += indent + scene.sceneName() + "_header" + format(3, '02') + ",\n"
 		altData.append(ootSceneMainToC(scene.adultNightHeader, 3))
 	else:
 		altHeader.source += indent + "0,\n"
 
 	for i in range(len(scene.cutsceneHeaders)):
-		altHeader.source += indent + "" + scene.sceneName() + "_header" + format(i + 4, '02') + ",\n"
+		altHeader.source += indent + scene.sceneName() + "_header" + format(i + 4, '02') + ",\n"
 		altData.append(ootSceneMainToC(scene.cutsceneHeaders[i], i + 4))
 
 	altHeader.source += '};\n\n'
@@ -525,12 +529,6 @@ def ootAlternateSceneMainToC(scene):
 
 def ootSceneMainToC(scene, headerIndex):
 	sceneMainC = CData()
-
-	for i in range(len(scene.rooms)):
-		room = scene.rooms[i]
-		sceneMainC.append(ootGetHeaderDefines(room, headerIndex))
-		if room.hasAlternateHeaders():
-			sceneMainC.append(ootGetAltHeaderDefines(room))
 
 	if headerIndex == 0:
 		# Check if this is the first time the function is being called, we do not want to write this data multiple times
@@ -672,20 +670,20 @@ def ootGetHeaderDefines(room, headerIndex):
 	if not (data.header == ""):
 		data.header += "\n"
 	
-	return data
+	return data.header
 
 def ootGetAltHeaderDefines(room):
 	'''Get the defines for alternate room headers'''
 	data = CData()
 
 	if room.childNightHeader is not None:
-		data.header += ootGetHeaderDefines(room.childNightHeader, 1).header
+		data.header += ootGetHeaderDefines(room.childNightHeader, 1)
 	if room.adultDayHeader is not None:
-		data.header += ootGetHeaderDefines(room.adultDayHeader, 2).header
+		data.header += ootGetHeaderDefines(room.adultDayHeader, 2)
 	if room.adultNightHeader is not None:
-		data.header += ootGetHeaderDefines(room.adultNightHeader, 3).header
+		data.header += ootGetHeaderDefines(room.adultNightHeader, 3)
 	for i in range(len(room.cutsceneHeaders)):
 		csRoom = room.cutsceneHeaders[i]
-		data.header += ootGetHeaderDefines(csRoom, (i + 4)).header
+		data.header += ootGetHeaderDefines(csRoom, (i + 4))
 	
-	return data
+	return data.header

@@ -625,10 +625,10 @@ def addMissingObjectToUI(roomObj, headerIndex, objectID, csHeaderIndex):
 		elif csHeaderIndex is not None:
 			roomProp = roomObj.ootAlternateRoomHeaders.cutsceneHeaders[csHeaderIndex]
 		if roomProp is not None:
-			collection = getCollection(roomObj.name, "Object", headerIndex)
+			collection = roomProp.objectList
 			collection.add()
 			collection.move(len(collection)-1, (headerIndex + 1))
-			roomProp.objectList[len(roomProp.objectList) - 1].objectID = objectID
+			roomProp.objectList[-1].objectID = objectID
 
 def addAltHeadersObjects(roomObj, room, actorRoot):
 	'''Adds missing objects for alternate room headers'''
