@@ -1406,7 +1406,7 @@ def update_node_values_of_material(material, context):
 
 def setAutoProp(fieldProperty, pixelLength):
     fieldProperty.low = 0
-    fieldProperty.high = pixelLength - 1
+    fieldProperty.high = pixelLength
     fieldProperty.mask = math.ceil(math.log(pixelLength, 2) - 0.001)
     fieldProperty.shift = 0
 
