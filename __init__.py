@@ -23,7 +23,7 @@ bl_info = {
     "location": "3DView",
     "description": "Plugin for exporting F3D display lists and other game data related to Super Mario 64.",
     "category": "Import-Export",
-    "blender": (2, 82, 0),
+    "blender": (3, 2, 0),
 }
 
 gameEditorEnum = (
@@ -262,7 +262,6 @@ class Fast64_GlobalToolsPanel(bpy.types.Panel):
         # col.operator(CreateMetarig.bl_idname)
         addon_updater_ops.update_notice_box_ui(self, context)
 
-
 class Fast64Settings_Properties(bpy.types.PropertyGroup):
     """Settings affecting exports for all games found in scene.fast64.settings"""
 
@@ -306,6 +305,7 @@ class Fast64_Properties(bpy.types.PropertyGroup):
     sm64: bpy.props.PointerProperty(type=SM64_Properties, name="SM64 Properties")
     oot: bpy.props.PointerProperty(type=OOT_Properties, name="OOT Properties")
     settings: bpy.props.PointerProperty(type=Fast64Settings_Properties, name="Fast64 Settings")
+    renderSettings: bpy.props.PointerProperty(type=Fast64RenderSettings_Properties, name="Fast64 Render Settings")
 
 
 class Fast64_BoneProperties(bpy.types.PropertyGroup):
@@ -326,6 +326,42 @@ class Fast64_ObjectProperties(bpy.types.PropertyGroup):
     sm64: bpy.props.PointerProperty(type=SM64_ObjectProperties, name="SM64 Object Properties")
     oot: bpy.props.PointerProperty(type=OOT_ObjectProperties, name="OOT Object Properties")
 
+class UpgradeF3DMaterialsDialog(bpy.types.Operator):
+    bl_idname = "dialog.upgrade_f3d_materials"
+    bl_label = "Upgrade F3D Materials"
+    bl_options = {'REGISTER', 'UNDO'}
+    
+    done = False
+
+    def draw(self, context):
+        if self.done:
+            return
+        layout = self.layout
+        layout.alert = True
+        box = layout.box()
+        l = box.label(text="Your project contains F3D materials that need to be upgraded in order to continue!")
+        box.label(text="Before upgrading, make sure to create a duplicate of this blend file before continuing.")
+        box.separator()
+
+        col = box.column()
+        col.alignment = 'CENTER'
+        col.alert = True
+        col.label(text="Upgrade F3D Materials?")
+    
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self, width=600)
+
+    def execute(self, context: 'bpy.types.Context'):
+        if context.mode != "OBJECT":
+            bpy.ops.object.mode_set(mode="OBJECT")
+
+        upgradeF3DVersionAll(
+            [obj for obj in bpy.data.objects if isinstance(obj.data, bpy.types.Mesh)],
+            bpy.data.armatures,
+            MatUpdateConvert.version,
+        )
+        self.done = True
+        return {'FINISHED'}
 
 # def updateGameEditor(scene, context):
 # 	if scene.currentGameEditorMode == 'SM64':
@@ -354,6 +390,7 @@ class ExampleAddonPreferences(bpy.types.AddonPreferences, addon_updater_ops.Addo
 
 classes = (
     Fast64Settings_Properties,
+    Fast64RenderSettings_Properties,
     Fast64_Properties,
     Fast64_BoneProperties,
     Fast64_ObjectProperties,
@@ -366,6 +403,7 @@ classes = (
     Fast64_GlobalSettingsPanel,
     SM64_ArmatureToolsPanel,
     Fast64_GlobalToolsPanel,
+    UpgradeF3DMaterialsDialog,
 )
 
 
@@ -374,10 +412,39 @@ def upgrade_changed_props():
     SM64_Properties.upgrade_changed_props()
     SM64_ObjectProperties.upgrade_changed_props()
 
+def upgrade_scene_props_node():
+    '''update f3d materials with SceneProperties node'''
+    has_old_f3d_mats = bool(len([
+        mat for mat in bpy.data.materials if mat.is_f3d and mat.mat_ver < MatUpdateConvert.version
+    ]))
+    if has_old_f3d_mats:
+        bpy.ops.dialog.upgrade_f3d_materials('INVOKE_DEFAULT')
+
+    # upgradeF3DVersionAll(
+    #     [obj for obj in bpy.data.objects if isinstance(obj.data, bpy.types.Mesh)],
+    #     bpy.data.armatures,
+    #     MatUpdateConvert.version,
+    # )
+        
+    # for mat in bpy.data.materials:
+    #     if mat.is_f3d and hasNodeGraph(mat):
+    #         node_tree: bpy.types.NodeTree = mat.node_tree
+    #         for node in node_tree.nodes:
+    #             if node.name == 'SceneProperties':
+    #                 continue
+    #             try:
+    #                 node_tree.nodes.remove(node.name)
+    #             except:
+    #                 print('ERROR: could not remove', node.name)
+    #         createScenePropertiesForMaterial(mat)
+    #         update_preset_manual(mat, bpy.context)
+            
 
 @bpy.app.handlers.persistent
 def after_load(_a, _b):
+    # link_f3d_material_library()
     upgrade_changed_props()
+    upgrade_scene_props_node()
 
 
 # called on add-on enabling
@@ -428,11 +495,13 @@ def register():
     bpy.types.Scene.saveTextures = bpy.props.BoolProperty(name="Save Textures As PNGs (Breaks CI Textures)")
     bpy.types.Scene.generateF3DNodeGraph = bpy.props.BoolProperty(name="Generate F3D Node Graph", default=True)
     bpy.types.Scene.exportHiddenGeometry = bpy.props.BoolProperty(name="Export Hidden Geometry", default=True)
-    bpy.types.Scene.blenderF3DScale = bpy.props.FloatProperty(name="F3D Blender Scale", default=100)
+    bpy.types.Scene.blenderF3DScale = bpy.props.FloatProperty(name="F3D Blender Scale", default=100, update=on_update_render_settings)
 
     bpy.types.Scene.fast64 = bpy.props.PointerProperty(type=Fast64_Properties, name="Fast64 Properties")
     bpy.types.Bone.fast64 = bpy.props.PointerProperty(type=Fast64_BoneProperties, name="Fast64 Bone Properties")
     bpy.types.Object.fast64 = bpy.props.PointerProperty(type=Fast64_ObjectProperties, name="Fast64 Object Properties")
+
+    bpy.types.Scene.alreadyLinkedMaterialNodes = bpy.props.BoolProperty(name="Already Linked New Material Nodes", default=False)
 
     bpy.app.handlers.load_post.append(after_load)
 

@@ -13,6 +13,7 @@ from .sm64_level_writer import *
 from .sm64_spline import *
 from .sm64_f3d_parser import *
 from ..panels import SM64_Panel, sm64GoalTypeEnum, sm64GoalImport
+from ..render_settings import on_update_render_settings
 
 import bpy
 from bpy.utils import register_class, unregister_class
@@ -251,7 +252,7 @@ def sm64_register(registerPanels):
     bpy.types.Scene.refreshVer = bpy.props.EnumProperty(items=enumRefreshVer, name="Refresh", default="Refresh 13")
     bpy.types.Scene.disableScroll = bpy.props.BoolProperty(name="Disable Scrolling Textures")
 
-    bpy.types.Scene.blenderToSM64Scale = bpy.props.FloatProperty(name="Blender To SM64 Scale", default=100)  # 212.766
+    bpy.types.Scene.blenderToSM64Scale = bpy.props.FloatProperty(name="Blender To SM64 Scale", default=100, update=on_update_render_settings)
     bpy.types.Scene.decompPath = bpy.props.StringProperty(name="Decomp Folder", subtype="FILE_PATH")
 
     bpy.types.Scene.compressionFormat = bpy.props.EnumProperty(

@@ -187,6 +187,52 @@ def copyPropertyGroup(oldProp, newProp):
             setattr(newProp, sub_value_attr, sub_value)
 
 
+def get_attr_or_property(prop: dict | object, attr: str, newProp: dict | object):
+    """Safely get an attribute or old dict property"""
+    val = getattr(prop, attr, prop.get(attr))
+    
+    # might be a dead enum that needs to be mapped back
+    if type(val) is int:
+        try:
+            newPropDef: bpy.types.Property = newProp.bl_rna.properties[attr]
+            if 'Enum' in newPropDef.bl_rna.name: # Should be "Enum Definition"
+                # change type hint to proper type
+                newPropDef: bpy.types.EnumProperty = newPropDef
+                return newPropDef.enum_items[val].identifier
+        except Exception as e:
+            pass
+    return val
+
+
+def iter_prop(prop):
+    """Return iterable keys or attributes"""
+    if isinstance(prop, bpy.types.PropertyGroup):
+        return prop.bl_rna.properties.keys()
+    elif type(prop).__name__ == "bpy_prop_collection_idprop":
+        return prop
+    elif type(prop).__name__ == "IDPropertyGroup":
+        return prop.keys()
+
+    return prop
+
+
+def recursiveCopyOldPropertyGroup(oldProp, newProp):
+    """Recursively go through an old property group, copying to the new one"""
+    for sub_value_attr in iter_prop(oldProp):
+        if sub_value_attr == "rna_type":
+            continue
+        sub_value = get_attr_or_property(oldProp, sub_value_attr, newProp)
+
+        if (
+            isinstance(sub_value, bpy.types.PropertyGroup)
+            or type(sub_value).__name__ in ("bpy_prop_collection_idprop", "IDPropertyGroup")
+        ):
+            newCollection = getattr(newProp, sub_value_attr)
+            recursiveCopyOldPropertyGroup(sub_value, newCollection)
+        else:
+            setattr(newProp, sub_value_attr, sub_value)
+
+
 def propertyCollectionEquals(oldProp, newProp):
     if len(oldProp) != len(newProp):
         print("Unequal size: " + str(oldProp) + " " + str(len(oldProp)) + ", " + str(newProp) + str(len(newProp)))
@@ -1322,3 +1368,26 @@ def rotate_quat_blender_to_n64(rotation: mathutils.Quaternion):
 
 def all_values_equal_x(vals: Iterable, test):
     return len(set(vals) - set([test])) == 0
+
+def get_blender_to_game_scale(context):
+    match context.scene.gameEditorMode:
+        case "SM64":
+            return context.scene.blenderToSM64Scale
+        case "OOT":
+            return context.scene.ootBlenderScale
+        case "F3D":
+            # TODO: (V5) create F3D game editor mode, utilize that scale
+            return context.scene.blenderF3DScale
+        case _:
+            pass
+    return context.scene.blenderF3DScale
+
+
+def get_material_from_context(context: bpy.types.Context):
+    """Safely check if the context has a valid material and return it"""
+    try:
+        if type(getattr(context, 'material', None)) == bpy.types.Material:
+            return context.material
+        return context.material_slot.material
+    except:
+        return None

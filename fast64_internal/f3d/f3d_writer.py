@@ -1226,6 +1226,7 @@ def getLoopColor(loop, mesh, mat_ver):
     alpha_layer = mesh.vertex_colors["Alpha"].data if "Alpha" in mesh.vertex_colors else None
 
     if color_layer is not None:
+        # Apparently already gamma corrected to linear
         normalizedRGB = color_layer[loop.index].color
     else:
         normalizedRGB = [1, 1, 1]
@@ -1420,12 +1421,14 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         else:
             fog_position = f3dMat.fog_position
             fog_color = f3dMat.fog_color
+        # TODO: (V5) update fog color to reverse gamma corrected for V3/V4 upgrades
+        corrected_color = gammaCorrect(fog_color)
         fMaterial.material.commands.extend(
             [
                 DPSetFogColor(
-                    int(round(fog_color[0] * 255)),
-                    int(round(fog_color[1] * 255)),
-                    int(round(fog_color[2] * 255)),
+                    int(round(corrected_color[0] * 255)),
+                    int(round(corrected_color[1] * 255)),
+                    int(round(corrected_color[2] * 255)),
                     int(round(fog_color[3] * 255)),
                 ),
                 SPFogPosition(fog_position[0], fog_position[1]),
@@ -1804,7 +1807,7 @@ def saveTextureLoading(
     TH,
     tex_format,
     texIndex,
-    f3d,
+    f3d: F3D,
     tmem,
 ):
     cms = [("G_TX_CLAMP" if clamp_S else "G_TX_WRAP"), ("G_TX_MIRROR" if mirror_S else "G_TX_NOMIRROR")]
@@ -2115,7 +2118,7 @@ def checkDuplicateTextureName(fModelOrTexRect, name):
     return name
 
 
-def saveOrGetTextureDefinition(fMaterial, fModel, image, imageName, texFormat, convertTextureData):
+def saveOrGetTextureDefinition(fMaterial, fModel, image: bpy.types.Image, imageName, texFormat, convertTextureData):
     fmt = texFormatOf[texFormat]
     bitSize = texBitSizeOf[texFormat]
 
@@ -2144,7 +2147,8 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image, imageName, texFormat, c
         fImage.isLargeTexture = True
 
     if convertTextureData:
-        print("Converting texture data.")
+        pixels = image.pixels[:]
+        print(f"Converting texture data for {filename}")
         if fmt == "G_IM_FMT_RGBA":
             if bitSize == "G_IM_SIZ_16b":
                 # fImage.data = bytearray([byteVal for doubleByte in [
@@ -2164,7 +2168,7 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image, imageName, texFormat, c
                                     (
                                         (
                                             int(
-                                                round(image.pixels[(j * image.size[0] + i) * image.channels + 0] * 0x1F)
+                                                round(pixels[(j * image.size[0] + i) * image.channels + 0] * 0x1F)
                                             )
                                             & 0x1F
                                         )
@@ -2173,7 +2177,7 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image, imageName, texFormat, c
                                     | (
                                         (
                                             int(
-                                                round(image.pixels[(j * image.size[0] + i) * image.channels + 1] * 0x1F)
+                                                round(pixels[(j * image.size[0] + i) * image.channels + 1] * 0x1F)
                                             )
                                             & 0x1F
                                         )
@@ -2184,7 +2188,7 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image, imageName, texFormat, c
                                     (
                                         (
                                             int(
-                                                round(image.pixels[(j * image.size[0] + i) * image.channels + 1] * 0x1F)
+                                                round(pixels[(j * image.size[0] + i) * image.channels + 1] * 0x1F)
                                             )
                                             & 0x03
                                         )
@@ -2193,13 +2197,13 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image, imageName, texFormat, c
                                     | (
                                         (
                                             int(
-                                                round(image.pixels[(j * image.size[0] + i) * image.channels + 2] * 0x1F)
+                                                round(pixels[(j * image.size[0] + i) * image.channels + 2] * 0x1F)
                                             )
                                             & 0x1F
                                         )
                                         << 1
                                     )
-                                    | (1 if image.pixels[(j * image.size[0] + i) * image.channels + 3] > 0.5 else 0)
+                                    | (1 if pixels[(j * image.size[0] + i) * image.channels + 3] > 0.5 else 0)
                                 ),
                             )
                             for j in reversed(range(image.size[1]))
@@ -2211,7 +2215,7 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image, imageName, texFormat, c
             elif bitSize == "G_IM_SIZ_32b":
                 fImage.data = bytearray(
                     [
-                        int(round(image.pixels[(j * image.size[0] + i) * image.channels + field] * 0xFF)) & 0xFF
+                        int(round(pixels[(j * image.size[0] + i) * image.channels + field] * 0xFF)) & 0xFF
                         for j in reversed(range(image.size[1]))
                         for i in range(image.size[0])
                         for field in range(image.channels)
@@ -2239,7 +2243,7 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image, imageName, texFormat, c
                                 int(
                                     round(
                                         mathutils.Color(
-                                            image.pixels[
+                                            pixels[
                                                 (j * image.size[0] + i)
                                                 * image.channels : (j * image.size[0] + i)
                                                 * image.channels
@@ -2253,7 +2257,7 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image, imageName, texFormat, c
                             )
                             << 1
                         )
-                        | (1 if image.pixels[(j * image.size[0] + i) * image.channels + 3] > 0.5 else 0)
+                        | (1 if pixels[(j * image.size[0] + i) * image.channels + 3] > 0.5 else 0)
                         for j in reversed(range(image.size[1]))
                         for i in range(image.size[0])
                     ]
@@ -2266,7 +2270,7 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image, imageName, texFormat, c
                                 int(
                                     round(
                                         mathutils.Color(
-                                            image.pixels[
+                                            pixels[
                                                 (j * image.size[0] + i)
                                                 * image.channels : (j * image.size[0] + i)
                                                 * image.channels
@@ -2280,7 +2284,7 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image, imageName, texFormat, c
                             )
                             << 4
                         )
-                        | (int(round(image.pixels[(j * image.size[0] + i) * image.channels + 3] * 0xF)) & 0xF)
+                        | (int(round(pixels[(j * image.size[0] + i) * image.channels + 3] * 0xF)) & 0xF)
                         for j in reversed(range(image.size[1]))
                         for i in range(image.size[0])
                     ]
@@ -2294,7 +2298,7 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image, imageName, texFormat, c
                                 int(
                                     round(
                                         mathutils.Color(
-                                            image.pixels[
+                                            pixels[
                                                 (j * image.size[0] + i)
                                                 * image.channels : (j * image.size[0] + i)
                                                 * image.channels
@@ -2305,7 +2309,7 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image, imageName, texFormat, c
                                     )
                                 )
                                 & 0xFF,
-                                int(round(image.pixels[(j * image.size[0] + i) * image.channels + 3] * 0xFF)) & 0xFF,
+                                int(round(pixels[(j * image.size[0] + i) * image.channels + 3] * 0xFF)) & 0xFF,
                             )
                             for j in reversed(range(image.size[1]))
                             for i in range(image.size[0])
@@ -2322,7 +2326,7 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image, imageName, texFormat, c
                         int(
                             round(
                                 mathutils.Color(
-                                    image.pixels[
+                                    pixels[
                                         (j * image.size[0] + i)
                                         * image.channels : (j * image.size[0] + i)
                                         * image.channels
@@ -2343,7 +2347,7 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image, imageName, texFormat, c
                         int(
                             round(
                                 mathutils.Color(
-                                    image.pixels[
+                                    pixels[
                                         (j * image.size[0] + i)
                                         * image.channels : (j * image.size[0] + i)
                                         * image.channels
