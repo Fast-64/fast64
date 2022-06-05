@@ -654,40 +654,50 @@ class F3DPanel(bpy.types.Panel):
         prop_input.enabled = setProp
         return inputGroup
 
-    def ui_lights(self, material, layout, name, showCheckBox):
+    def ui_lights(self, f3d_mat: "F3DMaterialProperty", layout: bpy.types.UILayout, name, showCheckBox):
         inputGroup = layout.row()
-        prop_input_name = inputGroup.column()
+        prop_input_left = inputGroup.column()
         prop_input = inputGroup.column()
         if showCheckBox:
-            prop_input_name.prop(material, "set_lights", text=name)
+            prop_input_left.prop(f3d_mat, "set_lights", text=name)
         else:
-            prop_input_name.label(text=name)
-        prop_input_name.enabled = material.rdp_settings.g_lighting and material.rdp_settings.g_shade
-        lightSettings = prop_input.column()
-        if material.rdp_settings.g_lighting:
-            if material.use_default_lighting:
-                lightSettings.prop(material, "default_light_color", text="")
-            else:
-                lightSettings.prop(material, "ambient_light_color", text="Ambient Color")
+            prop_input_left.label(text=name)
 
-                lightSettings.prop_search(material, "f3d_light1", bpy.data, "lights", text="")
-                if material.f3d_light1 is not None:
-                    lightSettings.prop_search(material, "f3d_light2", bpy.data, "lights", text="")
-                if material.f3d_light2 is not None:
-                    lightSettings.prop_search(material, "f3d_light3", bpy.data, "lights", text="")
-                if material.f3d_light3 is not None:
-                    lightSettings.prop_search(material, "f3d_light4", bpy.data, "lights", text="")
-                if material.f3d_light4 is not None:
-                    lightSettings.prop_search(material, "f3d_light5", bpy.data, "lights", text="")
-                if material.f3d_light5 is not None:
-                    lightSettings.prop_search(material, "f3d_light6", bpy.data, "lights", text="")
-                if material.f3d_light6 is not None:
-                    lightSettings.prop_search(material, "f3d_light7", bpy.data, "lights", text="")
-            prop_input.prop(material, "use_default_lighting", text="Use Custom Lighting", invert_checkbox=True)
+        prop_input_left.enabled = f3d_mat.rdp_settings.g_lighting and f3d_mat.rdp_settings.g_shade
+        lightSettings: bpy.types.UILayout = prop_input.column()
+        if f3d_mat.rdp_settings.g_lighting:
+            prop_input_left.separator(factor=.25)
+            light_controls = prop_input_left.box()
+
+            light_controls.prop(f3d_mat, "use_default_lighting", text="Use Custom Lighting", invert_checkbox=True)
+
+            if f3d_mat.use_default_lighting:
+                lightSettings.prop(f3d_mat, "default_light_color", text="Light Color")
+                light_controls.prop(f3d_mat, "set_ambient_from_light", text="Automatic Ambient Color")
+                ambCol = lightSettings.column()
+                ambCol.enabled = not f3d_mat.set_ambient_from_light
+                ambCol.prop(f3d_mat, "ambient_light_color", text="Ambient Color")
+            else:
+                lightSettings.prop(f3d_mat, "ambient_light_color", text="Ambient Color")
+
+                lightSettings.prop_search(f3d_mat, "f3d_light1", bpy.data, "lights", text="")
+                if f3d_mat.f3d_light1 is not None:
+                    lightSettings.prop_search(f3d_mat, "f3d_light2", bpy.data, "lights", text="")
+                if f3d_mat.f3d_light2 is not None:
+                    lightSettings.prop_search(f3d_mat, "f3d_light3", bpy.data, "lights", text="")
+                if f3d_mat.f3d_light3 is not None:
+                    lightSettings.prop_search(f3d_mat, "f3d_light4", bpy.data, "lights", text="")
+                if f3d_mat.f3d_light4 is not None:
+                    lightSettings.prop_search(f3d_mat, "f3d_light5", bpy.data, "lights", text="")
+                if f3d_mat.f3d_light5 is not None:
+                    lightSettings.prop_search(f3d_mat, "f3d_light6", bpy.data, "lights", text="")
+                if f3d_mat.f3d_light6 is not None:
+                    lightSettings.prop_search(f3d_mat, "f3d_light7", bpy.data, "lights", text="")
+
             # layout.box().label(text = "Note: Lighting preview is not 100% accurate.")
             # layout.box().label(text = "For vertex colors, clear 'Lighting'.")
             prop_input.enabled = (
-                material.set_lights and material.rdp_settings.g_lighting and material.rdp_settings.g_shade
+                f3d_mat.set_lights and f3d_mat.rdp_settings.g_lighting and f3d_mat.rdp_settings.g_shade
             )
 
         return inputGroup
@@ -866,7 +876,7 @@ class F3DPanel(bpy.types.Panel):
 
         showLightProperty = f3dMat.set_lights and f3dMat.rdp_settings.g_lighting and f3dMat.rdp_settings.g_shade
         if useDict["Shade"] and showLightProperty:
-            self.ui_lights(f3dMat, inputCol, "Shade Color", False)
+            self.ui_lights(f3dMat, inputCol, "Lighting", False)
 
         if useDict["Key"] and f3dMat.set_key:
             self.ui_chroma(material, inputCol, "Chroma Key Center", "set_key", f3dMat.set_key, False)
@@ -960,7 +970,7 @@ class F3DPanel(bpy.types.Panel):
                 self.ui_env(material, inputCol, True)
 
             if useDict["Shade"]:
-                self.ui_lights(f3dMat, inputCol, "Shade Color", True)
+                self.ui_lights(f3dMat, inputCol, "Lighting", True)
 
             if useDict["Key"]:
                 self.ui_chroma(material, inputCol, "Chroma Key Center", "set_key", f3dMat.set_key, True)
@@ -1112,6 +1122,13 @@ def update_node_values_with_preset(self, context):
 
 def update_node_values_without_preset(self, context):
     update_node_values(self, context, update_preset=False)
+
+def update_light_properties(self, context):
+    with F3DMaterial_UpdateLock(get_material_from_context(context)) as material:
+        if not material:
+            return
+
+        update_light_colors(material, context)
 
 def getSocketFromCombinerToNodeDictColor(nodes, combinerInput):
     nodeName, socketIndex = combinerToNodeDictColor[combinerInput]
@@ -1322,6 +1339,46 @@ def set_output_node_groups(material: bpy.types.Material):
         else:
             output_node.node_tree = bpy.data.node_groups["OUTPUT_2CYCLE_XLU"]
 
+def update_light_colors(material, context):
+    f3dMat: "F3DMaterialProperty" = material.f3d_mat
+    nodes = material.node_tree.nodes
+    
+    if f3dMat.use_default_lighting and f3dMat.set_ambient_from_light:
+        amb: Color = Color(f3dMat.default_light_color[:3])
+        amb.v /= 4.672 # dividing by 4.672 approximates to half of the light color's value after gamma correction is performed on both
+
+        new_amb = [c for c in amb]
+        new_amb.append(1.0)
+
+        f3dMat.ambient_light_color = new_amb
+
+    if f3dMat.set_lights:
+        remove_first_link_if_exists(material, nodes["Shade Color"].inputs["Shade Color"].links)
+        remove_first_link_if_exists(material, nodes["Shade Color"].inputs["Ambient Color"].links)
+
+        # TODO: (V5) feature to toggle gamma correction
+        light = f3dMat.default_light_color
+        if not f3dMat.use_default_lighting:
+            if f3dMat.f3d_light1 is not None:
+                light = f3dMat.f3d_light1.color
+            else:
+                light = [1.0, 1.0, 1.0, 1.0]
+            
+        corrected_col = gammaCorrect(light)
+        corrected_col.append(1.0)
+        corrected_amb = gammaCorrect(f3dMat.ambient_light_color)
+        corrected_amb.append(1.0)
+
+        nodes["Shade Color"].inputs["Shade Color"].default_value = tuple(c for c in corrected_col)
+        nodes["Shade Color"].inputs["Ambient Color"].default_value = tuple(c for c in corrected_amb)
+    else:
+        col = [1.0, 1.0, 1.0, 1.0]
+        amb_col = [0.5, 0.5, 0.5, 1.0]
+        nodes["Shade Color"].inputs["Shade Color"].default_value = tuple(c for c in col)
+        nodes["Shade Color"].inputs["Ambient Color"].default_value = tuple(c for c in amb_col)
+        link_if_none_exist(material, nodes['ShadeColOut'].outputs[0], nodes["Shade Color"].inputs["Shade Color"])
+        link_if_none_exist(material, nodes['AmbientColOut'].outputs[0], nodes["Shade Color"].inputs["Ambient Color"])
+
 def update_node_values_of_material(material, context):
     nodes = material.node_tree.nodes
 
@@ -1350,24 +1407,7 @@ def update_node_values_of_material(material, context):
     else:
         nodes["Shade Color"].node_tree = bpy.data.node_groups["ShdCol_V"]
 
-    if f3dMat.set_lights:
-        remove_first_link_if_exists(material, nodes["Shade Color"].inputs["Shade Color"].links)
-        remove_first_link_if_exists(material, nodes["Shade Color"].inputs["Ambient Color"].links)
-        col = f3dMat.default_light_color if f3dMat.use_default_lighting else f3dMat.ambient_light_color
-        # TODO: (V5) feature to toggle gamma correction
-        corrected_col = gammaCorrect(col)
-        corrected_col.append(1.0)
-        corrected_amb = [c / 2.0 for c in corrected_col]
-
-        nodes["Shade Color"].inputs["Shade Color"].default_value = tuple(c for c in corrected_col)
-        nodes["Shade Color"].inputs["Ambient Color"].default_value = tuple(c for c in corrected_amb)
-    else:
-        col = [1.0, 1.0, 1.0, 1.0]
-        amb_col = [0.5, 0.5, 0.5, 1.0]
-        nodes["Shade Color"].inputs["Shade Color"].default_value = tuple(c for c in col)
-        nodes["Shade Color"].inputs["Ambient Color"].default_value = tuple(c for c in amb_col)
-        link_if_none_exist(material, nodes['ShadeColOut'].outputs[0], nodes["Shade Color"].inputs["Shade Color"])
-        link_if_none_exist(material, nodes['AmbientColOut'].outputs[0], nodes["Shade Color"].inputs["Ambient Color"])
+    update_light_colors(material, context)
 
     combiner_inputs = nodes["CombinerInputs"].inputs
 
@@ -2705,8 +2745,9 @@ class F3DMaterialProperty(bpy.types.PropertyGroup):
         min=0,
         max=1,
         default=(1, 1, 1, 1),
-        update=update_node_values_without_preset,
+        update=update_light_properties,
     )
+    set_ambient_from_light: bpy.props.BoolProperty("Automatic Ambient Color", default=True, update=update_light_properties)
     ambient_light_color: bpy.props.FloatVectorProperty(
         name="Ambient Light Color",
         subtype="COLOR",
@@ -2714,7 +2755,7 @@ class F3DMaterialProperty(bpy.types.PropertyGroup):
         min=0,
         max=1,
         default=(0.5, 0.5, 0.5, 1),
-        update=update_node_values_without_preset,
+        update=update_light_properties,
     )
     f3d_light1: bpy.props.PointerProperty(type=bpy.types.Light, update=F3DOrganizeLights)
     f3d_light2: bpy.props.PointerProperty(type=bpy.types.Light, update=F3DOrganizeLights)

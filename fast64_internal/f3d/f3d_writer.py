@@ -1422,15 +1422,10 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             fog_position = f3dMat.fog_position
             fog_color = f3dMat.fog_color
         # TODO: (V5) update fog color to reverse gamma corrected for V3/V4 upgrades
-        corrected_color = gammaCorrect(fog_color)
+        corrected_color = exportColor(fog_color[0:3]) + [scaleToU8(fog_color[3])]
         fMaterial.material.commands.extend(
             [
-                DPSetFogColor(
-                    int(round(corrected_color[0] * 255)),
-                    int(round(corrected_color[1] * 255)),
-                    int(round(corrected_color[2] * 255)),
-                    int(round(fog_color[3] * 255)),
-                ),
+                DPSetFogColor(*corrected_color),
                 SPFogPosition(fog_position[0], fog_position[1]),
             ]
         )
@@ -1533,37 +1528,22 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 
     nodes = material.node_tree.nodes
     if useDict["Primitive"] and f3dMat.set_prim:
-        if material.mat_ver > 3:
-            color = f3dMat.prim_color
-        elif material.mat_ver == 3:
-            color = nodes["Primitive Color Output"].inputs[0].default_value
-        else:
-            color = nodes["Primitive Color"].outputs[0].default_value
-        color = gammaCorrect(color[0:3]) + [color[3]]
+        color = exportColor(f3dMat.prim_color[0:3]) + [scaleToU8(f3dMat.prim_color[3])]
         fMaterial.material.commands.append(
             DPSetPrimColor(
-                int(f3dMat.prim_lod_min * 255),
-                int(f3dMat.prim_lod_frac * 255),
-                int(color[0] * 255),
-                int(color[1] * 255),
-                int(color[2] * 255),
-                int(color[3] * 255),
+                scaleToU8(f3dMat.prim_lod_min),
+                scaleToU8(f3dMat.prim_lod_frac),
+                *color
             )
         )
 
     if useDict["Environment"] and f3dMat.set_env:
-        if material.mat_ver > 3:
-            color = f3dMat.env_color
-        elif material.mat_ver == 3:
-            color = nodes["Environment Color Output"].inputs[0].default_value
-        else:
-            color = nodes["Environment Color"].outputs[0].default_value
-        color = gammaCorrect(color[0:3]) + [color[3]]
-        fMaterial.material.commands.append(
-            DPSetEnvColor(int(color[0] * 255), int(color[1] * 255), int(color[2] * 255), int(color[3] * 255))
-        )
+        color = exportColor(f3dMat.env_color[0:3]) + [scaleToU8(0xFF*f3dMat.env_color[3])]
+        fMaterial.material.commands.append(DPSetEnvColor(*color))
 
-    if useDict["Shade"] and f3dMat.set_lights:
+    # Checking for f3dMat.rdp_settings.g_lighting here will prevent accidental exports,
+    # There may be some edge case where this isn't desired.
+    if useDict["Shade"] and f3dMat.set_lights and f3dMat.rdp_settings.g_lighting:
         fLights = saveLightsDefinition(fModel, fMaterial, f3dMat, materialName + "_lights")
         fMaterial.material.commands.extend([SPSetLights(fLights)])  # TODO: handle synching: NO NEED?
 
@@ -2448,7 +2428,6 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image: bpy.types.Image, imageN
 #
 # return fImage
 
-
 def saveLightsDefinition(fModel, fMaterial, material, lightsName):
     lights = fModel.getLightAndHandleShared(lightsName)
     if lights is not None:
@@ -2457,13 +2436,10 @@ def saveLightsDefinition(fModel, fMaterial, material, lightsName):
     lights = Lights(toAlnum(lightsName))
 
     if material.use_default_lighting:
-        color = gammaCorrect(material.default_light_color)
-        lights.a = Ambient([int(color[0] * 255 / 2), int(color[1] * 255 / 2), int(color[2] * 255 / 2)])
-        lights.l.append(Light([int(color[0] * 255), int(color[1] * 255), int(color[2] * 255)], [0x28, 0x28, 0x28]))
+        lights.a = Ambient(exportColor(material.ambient_light_color))
+        lights.l.append(Light(exportColor(material.default_light_color), [0x28, 0x28, 0x28]))
     else:
-        ambientColor = gammaCorrect(material.ambient_light_color)
-
-        lights.a = Ambient([int(ambientColor[0] * 255), int(ambientColor[1] * 255), int(ambientColor[2] * 255)])
+        lights.a = Ambient(exportColor(material.ambient_light_color))
 
         if material.f3d_light1 is not None:
             addLightDefinition(material, material.f3d_light1, lights)
@@ -2498,14 +2474,17 @@ def addLightDefinition(mat, f3d_light, fLights):
 
     fLights.l.append(
         Light(
-            getLightColor(f3d_light.color),
+            exportColor(f3d_light.color),
             getLightRotation(f3d_light),
         )
     )
 
 
-def getLightColor(lightColor):
-    return [int(round(value * 0xFF)) for value in gammaCorrect(lightColor)]
+def scaleToU8(val):
+    return int(round(val*0xFF))
+
+def exportColor(lightColor):
+    return [scaleToU8(value) for value in gammaCorrect(lightColor)]
 
 
 def getLightRotation(lightData):
