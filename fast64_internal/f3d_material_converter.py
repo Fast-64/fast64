@@ -121,7 +121,7 @@ def get_best_draw_layer_for_materials():
     objects = bpy.data.objects
     obj: bpy.types.Object = None
     for obj in objects:
-        if not isinstance(obj.data, bpy.types.Mesh):
+        if not isinstance(obj.data, bpy.types.Mesh) or len(obj.material_slots) < 1:
             continue
 
         p: bpy.types.MeshPolygon = None
