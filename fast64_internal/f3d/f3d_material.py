@@ -1229,7 +1229,6 @@ def update_node_combiner(material, combinerInputs, cycleIndex):
                 input_value = input_node.outputs[output_name]
                 material.node_tree.links.new(cycle_node.inputs[i], input_value)
 
-
 def check_fog_settings(material: bpy.types.Material):
     f3dMat: "F3DMaterialProperty" = material.f3d_mat
     fog_enabled: bool = f3dMat.rdp_settings.g_fog
@@ -1292,8 +1291,19 @@ def update_fog_nodes(material: bpy.types.Material, context: bpy.types.Context):
         nodes["CalcFog"].inputs["FogNear"].default_value = f3dMat.fog_position[0]
         nodes["CalcFog"].inputs["FogFar"].default_value = f3dMat.fog_position[1]
 
+def update_noise_nodes(material: bpy.types.Material):
+    f3dMat: "F3DMaterialProperty" = material.f3d_mat
+    uses_noise = f3dMat.combiner1.A == 'NOISE' or f3dMat.combiner2.A == 'NOISE'
+    noise_group = bpy.data.node_groups["F3DNoise_Animated" if uses_noise else "F3DNoise_NonAnimated"]
+
+    nodes = material.node_tree.nodes
+    if nodes["F3DNoiseFactor"].node_tree is not noise_group:
+        nodes["F3DNoiseFactor"].node_tree = noise_group
+
 def update_combiner_connections(material: bpy.types.Material, context: bpy.types.Context, combiner: (int | None) = None):
     f3dMat: "F3DMaterialProperty" = material.f3d_mat
+
+    update_noise_nodes(material)
 
     # Combiner can be specified for performance reasons
     if not combiner or combiner == 1:
