@@ -1447,6 +1447,8 @@ def update_node_values_of_material(material, context):
 def setAutoProp(fieldProperty, pixelLength):
     fieldProperty.low = 0
     fieldProperty.high = pixelLength
+    if fieldProperty.clamp and fieldProperty.mirror:
+        fieldProperty.high *= 2
     fieldProperty.mask = math.ceil(math.log(pixelLength, 2) - 0.001)
     fieldProperty.shift = 0
 
@@ -1471,10 +1473,10 @@ def update_tex_values_field(
     
     set_texture_size(self, tex_size, tex_index)
 
-    # if texProperty.autoprop:
+    if texProperty.autoprop:
     #     # TODO: (V5) is this f****** necessary? it happens in like 50 places
-    #     setAutoProp(texProperty.S, tex_size[0])
-    #     setAutoProp(texProperty.T, tex_size[1])
+        setAutoProp(texProperty.S, tex_size[0])
+        setAutoProp(texProperty.T, tex_size[1])
     
     str_index = str(tex_index)
 
