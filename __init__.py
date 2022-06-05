@@ -334,12 +334,31 @@ class UpgradeF3DMaterialsDialog(bpy.types.Operator):
     done = False
 
     def draw(self, context):
-        if self.done:
-            return
         layout = self.layout
+        if self.done:
+            layout.label(text="Success!")
+            box = layout.box()
+            box.label(text="Materials were successfully upgraded.")
+            box.label(text="Please purge your remaining materials.")
+
+            purge_box = box.box()
+            purge_box.scale_y = 0.25
+            purge_box.separator(factor=0.5)
+            purge_box.label(text="How to purge:")
+            purge_box.separator(factor=0.5)
+            purge_box.label(text='Go to the outliner, change the display mode')
+            purge_box.label(text='to "Orphan Data" (broken heart icon)')
+            purge_box.separator(factor=0.25)
+            purge_box.label(text='Click "Purge" in the top right corner.')
+            purge_box.separator(factor=0.25)
+            purge_box.label(text='Purge multiple times until the node groups')
+            purge_box.label(text='are gone.')
+            layout.separator(factor=0.25)
+            layout.label(text="You may click anywhere to close this dialog.")
+            return
         layout.alert = True
         box = layout.box()
-        l = box.label(text="Your project contains F3D materials that need to be upgraded in order to continue!")
+        box.label(text="Your project contains F3D materials that need to be upgraded in order to continue!")
         box.label(text="Before upgrading, make sure to create a duplicate of this blend file before continuing.")
         box.separator()
 
