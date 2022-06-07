@@ -998,7 +998,7 @@ class F3DPanel(bpy.types.Panel):
         material = context.material
         if material is None:
             return
-        elif not (material.use_nodes and material.is_f3d):
+        elif not material.use_nodes or not material.is_f3d:
             layout.label(text="This is not a Fast3D material.")
             return
 
@@ -1470,6 +1470,9 @@ def set_texture_size(self, tex_size, tex_index):
     inputs[f"{tex_index} S TexSize"].default_value = tex_size[0]
     inputs[f"{tex_index} T TexSize"].default_value = tex_size[1]
 
+def round_10_2(val: float):
+    return (float(int(val * 4)) / 4.0)
+
 def update_tex_values_field(
     self: bpy.types.Material,
     texProperty: "TextureProperty",
@@ -1491,12 +1494,12 @@ def update_tex_values_field(
     str_index = str(tex_index)
 
     # S/T Low
-    inputs[str_index + " S Low"].default_value = texProperty.S.low
-    inputs[str_index + " T Low"].default_value = texProperty.T.low
+    inputs[str_index + " S Low"].default_value = round_10_2(texProperty.S.low)
+    inputs[str_index + " T Low"].default_value = round_10_2(texProperty.T.low)
 
     # S/T High
-    inputs[str_index + " S High"].default_value = texProperty.S.high
-    inputs[str_index + " T High"].default_value = texProperty.T.high
+    inputs[str_index + " S High"].default_value = round_10_2(texProperty.S.high)
+    inputs[str_index + " T High"].default_value = round_10_2(texProperty.T.high)
 
     # Clamp
     inputs[str_index + " ClampX"].default_value = 1 if texProperty.S.clamp else 0
