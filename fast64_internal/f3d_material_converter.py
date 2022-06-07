@@ -51,7 +51,7 @@ def upgradeF3DVersionOneObject(obj, materialDict, version):
             else:
                 convertF3DtoNewVersion(obj, index, material, materialDict, version)
 
-    # # only use materials that are used by the object
+    # only use materials that are used by the object
     # used_mats = set()
     # for p in obj.data.polygons:
     #     if type(p.material_index) is int:
@@ -70,6 +70,7 @@ def upgradeF3DVersionOneObject(obj, materialDict, version):
     #     if index not in used_mats:
     #         obj.active_material_index = index
     #         material = obj.material_slots[index].material
+    #         print('bpy.ops.object.material_slot_remove', material.name)
     #         bpy.ops.object.material_slot_remove({ 'object': obj })
 
 
@@ -156,31 +157,32 @@ def get_best_draw_layer_for_materials():
   
 
 def convertF3DtoNewVersion(obj: bpy.types.Object | bpy.types.Bone, index, material, materialDict, version):
-    if material.mat_ver > 3:
-        oldPreset = AddPresetBase.as_filename(material.f3d_mat.presetName)
-    else:
-        oldPreset = material.get('f3d_preset')
+    try:
+        if material.mat_ver > 3:
+            oldPreset = AddPresetBase.as_filename(material.f3d_mat.presetName)
+        else:
+            oldPreset = material.get('f3d_preset')
 
-    newMat = createF3DMat(obj, preset=getV4PresetName(oldPreset), index=index)
+        newMat = createF3DMat(obj, preset=getV4PresetName(oldPreset), index=index)
 
-    if material.mat_ver > 3:
-        copyPropertyGroup(material.f3d_mat, newMat.f3d_mat)
-    else:
-        convertToNewMat(newMat, material)
-    
-    # if material.mat_ver <= 3:
-    #     if newMat.f3d_mat.draw_layer.sm64 != obj.draw_layer_static:
-    newMat.f3d_mat.draw_layer.sm64 = material.f3d_mat.draw_layer.sm64
+        if material.mat_ver > 3:
+            copyPropertyGroup(material.f3d_mat, newMat.f3d_mat)
+        else:
+            convertToNewMat(newMat, material)
 
-    copyPropertyGroup(material.ootMaterial, newMat.ootMaterial)
-    copyPropertyGroup(material.ootCollisionProperty, newMat.ootCollisionProperty)
+        newMat.f3d_mat.draw_layer.sm64 = material.f3d_mat.draw_layer.sm64
 
-    colSettings = CollisionSettings()
-    colSettings.load(material)
-    colSettings.apply(newMat)
+        copyPropertyGroup(material.ootMaterial, newMat.ootMaterial)
+        copyPropertyGroup(material.ootCollisionProperty, newMat.ootCollisionProperty)
 
-    updateMatWithNewVersionName(newMat, material, materialDict, version)
+        colSettings = CollisionSettings()
+        colSettings.load(material)
+        colSettings.apply(newMat)
 
+        updateMatWithNewVersionName(newMat, material, materialDict, version)
+    except Exception as exc:
+        print('Failed to upgrade', material.name)
+        print(exc)
 
 def convertAllBSDFtoF3D(objs, renameUV):
     # Dict of non-f3d materials : converted f3d materials
