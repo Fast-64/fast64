@@ -1454,6 +1454,19 @@ def update_node_values_of_material(material, context):
     update_blend_method(material, context)
     update_fog_nodes(material, context)
 
+def set_texture_settings_node(material: bpy.types.Material):
+    nodes = material.node_tree.nodes
+    textureSettings: bpy.types.ShaderNodeGroup = nodes["TextureSettings"]
+
+    desired_group = bpy.data.node_groups['TextureSettings_Lite']
+    if (
+        (material.f3d_mat.tex0.tex and not material.f3d_mat.tex0.autoprop)
+        or (material.f3d_mat.tex1.tex and not material.f3d_mat.tex1.autoprop)
+    ):
+        desired_group = bpy.data.node_groups['TextureSettings_Advanced']
+    if textureSettings.node_tree is not desired_group:
+        textureSettings.node_tree = desired_group
+
 def setAutoProp(fieldProperty, pixelLength):
     fieldProperty.low = 0
     fieldProperty.high = pixelLength
@@ -1611,9 +1624,9 @@ def update_tex_values(self, context):
 
         update_tex_values_manual(material, context, prop_path=prop_path)
 
-def update_tex_values_manual(self, context, prop_path=None):
-    f3dMat: "F3DMaterialProperty" = self.f3d_mat
-    nodes = self.node_tree.nodes
+def update_tex_values_manual(material: bpy.types.Material, context, prop_path=None):
+    f3dMat: "F3DMaterialProperty" = material.f3d_mat
+    nodes = material.node_tree.nodes
     texture_settings = nodes["TextureSettings"]
     texture_inputs: bpy.types.NodeInputs = texture_settings.inputs
     
@@ -1673,11 +1686,12 @@ def update_tex_values_manual(self, context, prop_path=None):
         uvBasisScale1 = (1, 1)
 
     if not prop_path or 'tex0' in prop_path:
-        update_tex_values_index(self, texProperty=f3dMat.tex0, uvBasisScale=uvBasisScale0, texIndex=0)
+        update_tex_values_index(material, texProperty=f3dMat.tex0, uvBasisScale=uvBasisScale0, texIndex=0)
     if not prop_path or 'tex1' in prop_path:
-        update_tex_values_index(self, texProperty=f3dMat.tex1, uvBasisScale=uvBasisScale1, texIndex=1)
+        update_tex_values_index(material, texProperty=f3dMat.tex1, uvBasisScale=uvBasisScale1, texIndex=1)
 
     texture_inputs['3 Point'].default_value = int(f3dMat.rdp_settings.g_mdsft_text_filt == "G_TF_BILERP")
+    set_texture_settings_node(material)
 
 def getMaterialScrollDimensions(material):
     useDict = all_combiner_uses(material)
@@ -1959,6 +1973,7 @@ def update_tex_field_prop(self: bpy.types.Property, context: bpy.types.Context):
 
         if tex_size[0] > 0 and tex_size[1] > 0:
             update_tex_values_field(material, tex_property, tex_size, uv_basis_scale, tex_index)
+        set_texture_settings_node(material)
 
 def toggle_auto_prop(self, context: bpy.types.Context):
     with F3DMaterial_UpdateLock(get_material_from_context(context)) as material:
@@ -1974,6 +1989,8 @@ def toggle_auto_prop(self, context: bpy.types.Context):
             setAutoProp(tex_property.S, tex_size[0])
             setAutoProp(tex_property.T, tex_size[1])
             update_tex_values_field(material, tex_property, tex_size, uv_basis_scale, tex_index)
+
+        set_texture_settings_node(material)
 
 class TextureFieldProperty(bpy.types.PropertyGroup):
     clamp: bpy.props.BoolProperty(name="Clamp", update=update_tex_field_prop)
