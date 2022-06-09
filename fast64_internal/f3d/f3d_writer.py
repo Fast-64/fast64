@@ -1538,7 +1538,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         )
 
     if useDict["Environment"] and f3dMat.set_env:
-        color = exportColor(f3dMat.env_color[0:3]) + [scaleToU8(0xFF*f3dMat.env_color[3])]
+        color = exportColor(f3dMat.env_color[0:3]) + [scaleToU8(f3dMat.env_color[3])]
         fMaterial.material.commands.append(DPSetEnvColor(*color))
 
     # Checking for f3dMat.rdp_settings.g_lighting here will prevent accidental exports,
