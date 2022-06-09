@@ -1468,12 +1468,13 @@ def set_texture_settings_node(material: bpy.types.Material):
         textureSettings.node_tree = desired_group
 
 def setAutoProp(fieldProperty, pixelLength):
+    fieldProperty.mask = math.ceil(math.log(pixelLength, 2) - 0.001)
+    fieldProperty.shift = 0
     fieldProperty.low = 0
     fieldProperty.high = pixelLength
     if fieldProperty.clamp and fieldProperty.mirror:
         fieldProperty.high *= 2
-    fieldProperty.mask = math.ceil(math.log(pixelLength, 2) - 0.001)
-    fieldProperty.shift = 0
+    fieldProperty.high -= 1
 
 def set_texture_size(self, tex_size, tex_index):
     nodes = self.node_tree.nodes
