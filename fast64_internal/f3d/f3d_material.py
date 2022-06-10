@@ -668,6 +668,7 @@ class F3DPanel(bpy.types.Panel):
         if f3d_mat.rdp_settings.g_lighting:
             prop_input_left.separator(factor=.25)
             light_controls = prop_input_left.box()
+            light_controls.enabled = f3d_mat.set_lights
 
             light_controls.prop(f3d_mat, "use_default_lighting", text="Use Custom Lighting", invert_checkbox=True)
 
@@ -1784,7 +1785,7 @@ BLENDER_MODE_TO_MODE_SET = {
 }
 get_mode_set_from_context_mode = lambda mode: BLENDER_MODE_TO_MODE_SET.get(mode, "OBJECT")
 
-SCENE_PROPERTIES_VERSION = 0
+SCENE_PROPERTIES_VERSION = 1
 
 def createOrUpdateSceneProperties():
     group = bpy.data.node_groups.get("SceneProperties")
@@ -1818,6 +1819,7 @@ def createOrUpdateSceneProperties():
     _nodeFogFar: bpy.types.NodeSocketInt = new_group.outputs.new("NodeSocketInt", "FogFar")
     _nodeShadeColor: bpy.types.NodeSocketColor = new_group.outputs.new("NodeSocketColor", "ShadeColor")
     _nodeAmbientColor: bpy.types.NodeSocketColor = new_group.outputs.new("NodeSocketColor", "AmbientColor")
+    _nodeLightDirection: bpy.types.NodeSocketColor = new_group.outputs.new("NodeSocketVectorDirection", "LightDirection")
 
     # Set outputs from render settings
     sceneOutputs: bpy.types.NodeGroupOutput = new_group.nodes['Group Output']
@@ -1847,6 +1849,7 @@ def createScenePropertiesForMaterial(material: bpy.types.Material):
 
     node_tree.links.new(scene_props.outputs["ShadeColor"], node_tree.nodes["ShadeColor"].inputs[0])
     node_tree.links.new(scene_props.outputs["AmbientColor"], node_tree.nodes["AmbientColor"].inputs[0])
+    node_tree.links.new(scene_props.outputs["LightDirection"], node_tree.nodes["LightDirection"].inputs[0])
 
 def link_f3d_material_library():
     dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "f3d_material_library.blend")
@@ -2900,6 +2903,7 @@ class F3DRenderSettingsPanel(bpy.types.Panel):
         globalSettingsBox.separator(factor=0.125)
         prop_split(globalSettingsBox, renderSettings, 'ambientColor', "Ambient Light")
         prop_split(globalSettingsBox, renderSettings, 'lightColor', "Light Color")
+        prop_split(globalSettingsBox, renderSettings, 'lightDirection', "Light Direction")
         
         if context.scene.gameEditorMode in ["SM64", "OOT"]:
             layout.separator(factor=0.5)

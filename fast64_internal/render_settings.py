@@ -1,5 +1,6 @@
 import bpy
-from .utility import get_blender_to_game_scale
+import mathutils
+from .utility import get_blender_to_game_scale, transform_mtx_blender_to_n64
 
 def on_update_sm64_render_settings(self, context: bpy.types.Context):
     renderSettings: "Fast64RenderSettings_Properties" = context.scene.fast64.renderSettings
@@ -27,7 +28,10 @@ def update_scene_props_from_render_settings(context: bpy.types.Context, sceneOut
 
     sceneOutputs.inputs['ShadeColor'].default_value = tuple(c for c in renderSettings.lightColor)
     sceneOutputs.inputs['AmbientColor'].default_value = tuple(c for c in renderSettings.ambientColor)
-    
+    sceneOutputs.inputs['LightDirection'].default_value = tuple(
+        d for d in (
+            mathutils.Vector(renderSettings.lightDirection) @ transform_mtx_blender_to_n64()))
+
     sceneOutputs.inputs['Blender_Game_Scale'].default_value = float(get_blender_to_game_scale(context))
     
 
@@ -94,6 +98,15 @@ class Fast64RenderSettings_Properties(bpy.types.PropertyGroup):
         min=0,
         max=1,
         default=(1, 1, 1, 1),
+        update=on_update_render_preview_nodes
+    )
+    lightDirection: bpy.props.FloatVectorProperty(
+        name="Light Direction",
+        subtype="DIRECTION",
+        size=3,
+        min=-1,
+        max=1,
+        default=mathutils.Vector((0.5, 0.5, 1)).normalized(), # pre normalized
         update=on_update_render_preview_nodes
     )
     # Fog Preview is int because values reflect F3D values
