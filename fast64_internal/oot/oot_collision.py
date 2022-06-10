@@ -383,11 +383,11 @@ def ootCameraPosToC(camPos):
 		str(camPos.unknown) + ' },\n'
 
 def ootCameraEntryToC(camPos, camData, camPosIndex):
-	return "{ " +\
-		str(camPos.camSType) + ', ' +\
-		('3' if camPos.hasPositionData else '0') + ', ' +\
-		(("&" + camData.camPositionsName()  + '[' + str(camPosIndex) + ']') 
-		if camPos.hasPositionData else "0") + ' },\n'
+	return " ".join((
+		f"{'{'} {camPos.camSType},",
+		f"{'3' if camPos.hasPositionData else '0'},",
+		f"{f'&{camData.camPositionsName()}[{camPosIndex}]' if camPosIndex > 0 else camData.camPositionsName()} {'}'}\n"
+	))
 
 def ootCollisionToC(collision):
 	data = CData()
