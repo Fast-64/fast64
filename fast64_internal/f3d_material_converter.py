@@ -108,7 +108,9 @@ def get_group_from_polygon(obj: bpy.types.Object, polygon: bpy.types.MeshPolygon
             if g.weight > 0.99:
                 return obj.vertex_groups[sample_vert.groups[0].group]
     return None
-    
+
+def has_valid_mat_ver(material: bpy.types.Material):
+    return getattr(material, 'mat_ver', -1) >= 1
 
 def get_best_draw_layer_for_materials():
     bone_map = {}
@@ -128,7 +130,11 @@ def get_best_draw_layer_for_materials():
         p: bpy.types.MeshPolygon = None
         for p in obj.data.polygons:
             mat: bpy.types.Material = obj.material_slots[p.material_index].material
-            if mat.mat_ver >= 4 or mat.name in finished_mats:
+            if (
+                not has_valid_mat_ver(mat)
+                or mat.mat_ver >= 4
+                or mat.name in finished_mats
+            ):
                 continue
 
             # default to object's draw layer
@@ -149,7 +155,11 @@ def get_best_draw_layer_for_materials():
             continue
         for mat_slot in obj.material_slots:
             mat: bpy.types.Material = mat_slot.material
-            if mat.mat_ver >= 4 or mat.name in finished_mats:
+            if (
+                not has_valid_mat_ver(mat)
+                or mat.mat_ver >= 4
+                or mat.name in finished_mats
+            ):
                 continue
 
             mat.f3d_mat.draw_layer.sm64 = obj.draw_layer_static
@@ -158,6 +168,8 @@ def get_best_draw_layer_for_materials():
 
 def convertF3DtoNewVersion(obj: bpy.types.Object | bpy.types.Bone, index, material, materialDict, version):
     try:
+        if not has_valid_mat_ver(material):
+            return
         if material.mat_ver > 3:
             oldPreset = AddPresetBase.as_filename(material.f3d_mat.presetName)
         else:
