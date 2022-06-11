@@ -147,8 +147,7 @@ def cmdActorList(room, header, cmdCount):
 
 def ootObjectListToC(room, headerIndex):
 	data = CData()
-	data.header = ("extern s16 " + room.objectListName(headerIndex) + 
-		"[LENGTH_" + str(room.objectListName(headerIndex)).upper() + "];\n")
+	data.header = ("extern s16 " + room.objectListName(headerIndex) + "[];\n")
 	data.source = ("s16 " + room.objectListName(headerIndex) + 
 		"[LENGTH_" + str(room.objectListName(headerIndex)).upper() + "] = {\n")
 	for objectItem in room.objectList:
@@ -174,8 +173,7 @@ def ootActorToC(actor):
 
 def ootActorListToC(room, headerIndex):
 	data = CData()
-	data.header = ("extern ActorEntry " + room.actorListName(headerIndex) + 
-		"[LENGTH_" + str(room.actorListName(headerIndex)).upper() + "];\n")
+	data.header = ("extern ActorEntry " + room.actorListName(headerIndex) + "[];\n")
 	data.source = ("ActorEntry " + room.actorListName(headerIndex) + 
 		"[LENGTH_" + str(room.actorListName(headerIndex)).upper() + "] = {\n")
 	for actor in room.actorList:
