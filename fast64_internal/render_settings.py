@@ -30,7 +30,14 @@ def update_scene_props_from_render_settings(context: bpy.types.Context, sceneOut
     sceneOutputs.inputs['AmbientColor'].default_value = tuple(c for c in renderSettings.ambientColor)
     sceneOutputs.inputs['LightDirection'].default_value = tuple(
         d for d in (
-            mathutils.Vector(renderSettings.lightDirection) @ transform_mtx_blender_to_n64()))
+            mathutils.Vector(renderSettings.lightDirection) @ transform_mtx_blender_to_n64()
+        )
+    )
+    
+    if renderSettings.useWorldSpaceLighting:
+        bpy.data.node_groups['ShdCol_L'].nodes['GeometryNormal'].node_tree = bpy.data.node_groups['GeometryNormal_WorldSpace']
+    else:
+        bpy.data.node_groups['ShdCol_L'].nodes['GeometryNormal'].node_tree = bpy.data.node_groups['GeometryNormal_ViewSpace']
 
     sceneOutputs.inputs['Blender_Game_Scale'].default_value = float(get_blender_to_game_scale(context))
     
@@ -109,6 +116,7 @@ class Fast64RenderSettings_Properties(bpy.types.PropertyGroup):
         default=mathutils.Vector((0.5, 0.5, 1)).normalized(), # pre normalized
         update=on_update_render_preview_nodes
     )
+    useWorldSpaceLighting: bpy.props.BoolProperty(name="Use World Space Lighting", default=True, update=on_update_render_settings)
     # Fog Preview is int because values reflect F3D values
     fogPreviewPosition: bpy.props.IntVectorProperty(name="Fog Position", size=2, min=0, max=0x7FFFFFFF, default=(985, 1000), update=on_update_render_preview_nodes)
     # Clipping planes are float because values reflect F3D values

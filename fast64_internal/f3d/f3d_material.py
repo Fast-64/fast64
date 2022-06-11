@@ -2901,9 +2901,11 @@ class F3DRenderSettingsPanel(bpy.types.Panel):
         prop_split(globalSettingsBox, renderSettings, 'clippingPlanes', "Clipping Planes")
 
         globalSettingsBox.separator(factor=0.125)
+        # TODO: (v5) add headings
         prop_split(globalSettingsBox, renderSettings, 'ambientColor', "Ambient Light")
         prop_split(globalSettingsBox, renderSettings, 'lightColor', "Light Color")
         prop_split(globalSettingsBox, renderSettings, 'lightDirection', "Light Direction")
+        prop_split(globalSettingsBox, renderSettings, 'useWorldSpaceLighting', "Use World Space Lighting")
         
         if context.scene.gameEditorMode in ["SM64", "OOT"]:
             layout.separator(factor=0.5)
