@@ -16,12 +16,12 @@ def cmdSoundSettings(scene, header, cmdCount):
 
 def cmdRoomList(scene, header, cmdCount):
 	cmd = CData()
-	cmd.source = "\tSCENE_CMD_ROOM_LIST(" + str(len(scene.rooms)) + ", &" + scene.roomListName() + "),\n"
+	cmd.source = "\tSCENE_CMD_ROOM_LIST(" + str(len(scene.rooms)) + ", " + scene.roomListName() + "),\n"
 	return cmd
 
 def cmdTransiActorList(scene, header, cmdCount):
 	cmd = CData()
-	cmd.source = "\tSCENE_CMD_TRANSITION_ACTOR_LIST(" + str(len(scene.transitionActorList)) + ", &" + \
+	cmd.source = "\tSCENE_CMD_TRANSITION_ACTOR_LIST(" + str(len(scene.transitionActorList)) + ", " + \
 		scene.transitionActorListName(header) + "),\n"
 	return cmd
 
@@ -37,7 +37,7 @@ def cmdColHeader(scene, header, cmdCount):
 
 def cmdEntranceList(scene, header, cmdCount):
 	cmd = CData()
-	cmd.source = "\tSCENE_CMD_ENTRANCE_LIST(" + (('&' + scene.entranceListName(header)) if len(scene.entranceList) > 0 else "NULL") + "),\n"
+	cmd.source = "\tSCENE_CMD_ENTRANCE_LIST(" + (scene.entranceListName(header) if len(scene.entranceList) > 0 else "NULL") + "),\n"
 	return cmd
 
 def cmdSpecialFiles(scene, header, cmdCount):
@@ -47,13 +47,13 @@ def cmdSpecialFiles(scene, header, cmdCount):
 
 def cmdPathList(scene, header, cmdCount):
 	cmd = CData()
-	cmd.source = "\tSCENE_CMD_PATH_LIST(&" + scene.pathListName() + "),\n"
+	cmd.source = "\tSCENE_CMD_PATH_LIST(" + scene.pathListName() + "),\n"
 	return cmd
 
 def cmdSpawnList(scene, header, cmdCount):
 	cmd = CData()
 	cmd.source = "\tSCENE_CMD_SPAWN_LIST(" + str(len(scene.startPositions)) + ", " + \
-		(('&' + scene.startPositionsName(header)) if len(scene.startPositions) > 0 else 'NULL') + "),\n"
+		(scene.startPositionsName(header) if len(scene.startPositions) > 0 else 'NULL') + "),\n"
 	return cmd
 
 def cmdSkyboxSettings(scene, header, cmdCount):
@@ -64,13 +64,13 @@ def cmdSkyboxSettings(scene, header, cmdCount):
 	
 def cmdExitList(scene, header, cmdCount):
 	cmd = CData()
-	cmd.source = "\tSCENE_CMD_EXIT_LIST(&" + scene.exitListName(header) + "),\n"
+	cmd.source = "\tSCENE_CMD_EXIT_LIST(" + scene.exitListName(header) + "),\n"
 	return cmd
 
 def cmdLightSettingList(scene, header, cmdCount):
 	cmd = CData()
 	cmd.source = "\tSCENE_CMD_ENV_LIGHT_SETTINGS(" + str(len(scene.lights)) + ", " + \
-		(('&' + scene.lightListName(header)) if len(scene.lights) > 0 else 'NULL') + "),\n"
+		(scene.lightListName(header) if len(scene.lights) > 0 else 'NULL') + "),\n"
 	return cmd
 
 def cmdCutsceneData(scene, header, cmdCount):
@@ -81,7 +81,7 @@ def cmdCutsceneData(scene, header, cmdCount):
 		csname = scene.csWriteObject.name
 	elif scene.csWriteType == "Custom":
 		csname = scene.csWriteCustom
-	cmd.source = "\tSCENE_CMD_CUTSCENE_DATA(&" + csname + "),\n"
+	cmd.source = "\tSCENE_CMD_CUTSCENE_DATA(" + csname + "),\n"
 	return cmd
 
 def cmdEndMarker(name, header, cmdCount):
@@ -92,7 +92,7 @@ def cmdEndMarker(name, header, cmdCount):
 # Room Commands
 def cmdAltHeaders(name, altName, header, cmdCount):
 	cmd = CData()
-	cmd.source = "\tSCENE_CMD_ALTERNATE_HEADER_LIST(&" + altName + "),\n"
+	cmd.source = "\tSCENE_CMD_ALTERNATE_HEADER_LIST(" + altName + "),\n"
 	return cmd
 
 def cmdEchoSettings(room, header, cmdCount):
@@ -134,12 +134,12 @@ def cmdMesh(room, header, cmdCount):
 
 def cmdObjectList(room, header, cmdCount):
 	cmd = CData()
-	cmd.source = "\tSCENE_CMD_OBJECT_LIST(" + str(len(room.objectList)) + ", &" + str(room.objectListName(header)) + "),\n"
+	cmd.source = "\tSCENE_CMD_OBJECT_LIST(" + str(len(room.objectList)) + ", " + str(room.objectListName(header)) + "),\n"
 	return cmd
 
 def cmdActorList(room, header, cmdCount):
 	cmd = CData()
-	cmd.source = "\tSCENE_CMD_ACTOR_LIST(" + str(len(room.actorList)) + ", &" + str(room.actorListName(header)) + "),\n"
+	cmd.source = "\tSCENE_CMD_ACTOR_LIST(" + str(len(room.actorList)) + ", " + str(room.actorListName(header)) + "),\n"
 	return cmd
 
 def ootObjectListToC(room, headerIndex):
@@ -181,11 +181,11 @@ def ootMeshEntryToC(meshEntry, meshType):
 	transparentName = meshEntry.DLGroup.transparent.name if meshEntry.DLGroup.transparent is not None else "0"
 	data = "{ "
 	if meshType == "1":
-		raise PluginError("MeshHeader1 not supported.")
+		raise PluginError("Pre-Rendered rooms not supported.")
 	elif meshType == "2":
-		data += str(meshEntry.cullGroup.position[0]) + ", " + str(meshEntry.cullGroup.position[1]) + ", "
-		data += str(meshEntry.cullGroup.position[2]) + ", " + str(meshEntry.cullGroup.cullDepth) + ", "
-	data += "(u32)" + opaqueName + ", (u32)" + transparentName + ' },\n' 
+		data += "{ " + f"{meshEntry.cullGroup.position[0]}, {meshEntry.cullGroup.position[1]}, {meshEntry.cullGroup.position[2]}" + " }, "
+		data += str(meshEntry.cullGroup.cullDepth) + ", "
+	data += (opaqueName if opaqueName != '0' else 'NULL') + ", " + (transparentName if transparentName != '0' else 'NULL') + " },\n"
 
 	return data
 
@@ -195,18 +195,23 @@ def ootRoomMeshToC(room, textureExportSettings):
 		raise PluginError("Error: Room " + str(room.index) + " has no mesh children.")
 
 	meshHeader = CData()
-	meshHeader.header = "extern MeshHeader" + str(mesh.meshType) + " " + mesh.headerName() + ';\n'
-	meshHeader.source = "MeshHeader" + str(mesh.meshType) + " " + mesh.headerName() + ' = ' +\
-		"{ {" + str(mesh.meshType) + "}, " + str(len(mesh.meshEntries)) + ", " +\
-		"(u32)&" + mesh.entriesName() + ", (u32)&(" + mesh.entriesName() + ") + " +\
-		"sizeof(" + mesh.entriesName() + ") };\n\n"
+	meshHeader.header = "extern MeshHeader" + mesh.meshType + " " + mesh.headerName() + ";\n"
+	meshHeader.source = '\n'.join((
+		"MeshHeader" + mesh.meshType + " " + mesh.headerName() + "= {",
+		indent + mesh.meshType + ",",
+		indent + str(len(mesh.meshEntries)) + ",",
+		indent + mesh.entriesName() + ",",
+		indent + mesh.entriesName() + " + ARRAY_COUNT(" + mesh.entriesName() + ")",
+		"};"
+	)) + "\n\n"
 
 	meshEntries = CData()
-	meshEntries.header = "extern MeshEntry" + str(mesh.meshType) + " " + mesh.entriesName() + "[" + str(len(mesh.meshEntries)) + "];\n"
-	meshEntries.source = "MeshEntry" + str(mesh.meshType) + " " + mesh.entriesName() + "[" + str(len(mesh.meshEntries)) + "] = {\n"
+	meshEntryType = "MeshHeader" + ('01' if mesh.meshType == '0' else '2') + "Entry "
+	meshEntries.header = "extern " + meshEntryType + " " + mesh.entriesName() + "[" + str(len(mesh.meshEntries)) + "];\n"
+	meshEntries.source = meshEntryType + mesh.entriesName() + "[" + str(len(mesh.meshEntries)) + "] = {\n"
 	meshData = CData()
 	for entry in mesh.meshEntries:
-		meshEntries.source  += '\t' + ootMeshEntryToC(entry, str(mesh.meshType))
+		meshEntries.source  += '\t' + ootMeshEntryToC(entry, mesh.meshType)
 		if entry.DLGroup.opaque is not None:
 			meshData.append(entry.DLGroup.opaque.to_c(mesh.model.f3d))
 		if entry.DLGroup.transparent is not None:
@@ -460,7 +465,7 @@ def ootPathListToC(scene):
 	pathData = CData()
 	for i in range(len(scene.pathList)):
 		path = scene.pathList[i]
-		data.source += '\t' + "{ " + str(len(path.points)) + ', (u32)' + path.pathName() + " },\n"
+		data.source += '\t' + "{ " + str(len(path.points)) + ', ' + path.pathName() + " },\n"
 		pathData.append(ootPathToC(path))
 	data.source += '};\n\n'
 	pathData.append(data)

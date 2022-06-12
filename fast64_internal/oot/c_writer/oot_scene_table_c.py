@@ -1,6 +1,6 @@
 import os, bpy
 from ...utility import PluginError, writeFile
-from ..oot_constants import ootEnumSceneID
+from ..oot_constants import ootEnumSceneID, ootDrawConfigNames
 
 
 def getSceneTable(exportPath):
@@ -150,6 +150,8 @@ def modifySceneTable(scene, exportInfo):
 
     if scene is None:
         sceneDrawConfig = None
+    elif scene.sceneTableEntry.drawConfig < len(ootDrawConfigNames):
+        sceneDrawConfig = ootDrawConfigNames[scene.sceneTableEntry.drawConfig]
     else:
         sceneDrawConfig = scene.sceneTableEntry.drawConfig
 
