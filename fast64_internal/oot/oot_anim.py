@@ -114,7 +114,7 @@ def ootGetAnimBoneRot(bone, poseBone, convertTransformMatrix, isRoot):
 		raise RuntimeError('Animation contains non-root bones with animated translation. OoT SkelAnime only supports animated translation on the root bone.')
 	return finalRotation
 
-def ootConvertAnimationData(anim, armatureObj, frameInterval, convertTransformMatrix):
+def ootConvertAnimationData(anim, armatureObj, convertTransformMatrix, *, frame_start, frame_count):
 	checkForStartBone(armatureObj)
 	bonesToProcess = [getStartBone(armatureObj)]
 	currentBone = armatureObj.data.bones[bonesToProcess[0]]
@@ -145,7 +145,7 @@ def ootConvertAnimationData(anim, armatureObj, frameInterval, convertTransformMa
 		ValueFrameData(i, 2, [])] for i in range(len(animBones))]
 
 	currentFrame = bpy.context.scene.frame_current
-	for frame in range(frameInterval[0], frameInterval[1]):
+	for frame in range(frame_start, frame_start + frame_count):
 		bpy.context.scene.frame_set(frame)
 		rootBone = armatureObj.data.bones[animBones[0]]
 		rootPoseBone = armatureObj.pose.bones[animBones[0]]
@@ -185,9 +185,16 @@ def ootExportAnimationCommon(armatureObj, convertTransformMatrix, skeletonName):
 	
 	skeleton = ootConvertArmatureToSkeletonWithoutMesh(armatureObj, convertTransformMatrix, skeletonName)
 
-	frameInterval = getFrameInterval(anim)
-	ootAnim.frameCount = frameInterval[1] - frameInterval[0]
-	armatureFrameData = ootConvertAnimationData(anim, armatureObj, frameInterval, convertTransformMatrix)
+	frame_start, frame_last = getFrameInterval(anim)
+	ootAnim.frameCount = frame_last - frame_start + 1
+
+	armatureFrameData = ootConvertAnimationData(
+		anim,
+		armatureObj,
+		convertTransformMatrix,
+		frame_start=frame_start,
+		frame_count=(frame_last - frame_start + 1),
+	)
 
 	singleFrameData = []
 	multiFrameData = []

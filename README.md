@@ -15,10 +15,12 @@ Make sure to save often, as this plugin is prone to crashing when creating mater
 
 ![alt-text](/images/mat_inspector.png)
 
-
 ### Credits
 Thanks to anonymous_moose, Cheezepin, Rovert, and especially InTheBeef for testing.
 Thanks to InTheBeef for LowPolySkinnedMario.
+
+### Discord Server
+We have a Discord server for support as well as development [here](https://discord.gg/ny7PDcN2x8).
 
 ### Table of Contents
 1. [ Super Mario 64 ](/fast64_internal/sm64/README.md)
