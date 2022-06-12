@@ -183,9 +183,9 @@ def ootMeshEntryToC(meshEntry, meshType):
 	if meshType == "1":
 		raise PluginError("Pre-Rendered rooms not supported.")
 	elif meshType == "2":
-		data += f"{'{'} {meshEntry.cullGroup.position[0]}, {meshEntry.cullGroup.position[1]}, {meshEntry.cullGroup.position[2]} {'}'}, "
+		data += "{ " + f"{meshEntry.cullGroup.position[0]}, {meshEntry.cullGroup.position[1]}, {meshEntry.cullGroup.position[2]}" + " }, "
 		data += str(meshEntry.cullGroup.cullDepth) + ", "
-	data += f"{opaqueName if opaqueName != '0' else 'NULL'}, {transparentName if transparentName != '0' else 'NULL'}" + "},\n"
+	data += (opaqueName if opaqueName != '0' else 'NULL') + ", " + (transparentName if transparentName != '0' else 'NULL') + " },\n"
 
 	return data
 
@@ -195,18 +195,18 @@ def ootRoomMeshToC(room, textureExportSettings):
 		raise PluginError("Error: Room " + str(room.index) + " has no mesh children.")
 
 	meshHeader = CData()
-	meshHeader.header = f"extern MeshHeader{mesh.meshType} {mesh.headerName()};\n"
+	meshHeader.header = "extern MeshHeader" + mesh.meshType + " " + mesh.headerName() + ";\n"
 	meshHeader.source = '\n'.join((
-		f"MeshHeader{mesh.meshType} {mesh.headerName()} = {'{'}",
-		f"{indent}{mesh.meshType},",
-		f"{indent}{len(mesh.meshEntries)},",
-		f"{indent}{mesh.entriesName()},",
-		f"{indent}{mesh.entriesName()} + sizeof({mesh.entriesName()})",
-		f"{'}'};"
+		"MeshHeader" + mesh.meshType + " " + mesh.headerName() + "= {",
+		indent + mesh.meshType + ",",
+		indent + str(len(mesh.meshEntries)) + ",",
+		indent + mesh.entriesName() + ",",
+		indent + mesh.entriesName() + " + sizeof(" + mesh.entriesName() + ")",
+		"};"
 	)) + "\n\n"
 
 	meshEntries = CData()
-	meshEntryType = f"MeshHeader{'01' if not int(mesh.meshType, base=10) else '2'}Entry "
+	meshEntryType = "MeshHeader" + ('01' if mesh.meshType == '0' else '2') + "Entry "
 	meshEntries.header = "extern " + meshEntryType + mesh.entriesName() + "[" + str(len(mesh.meshEntries)) + "];\n"
 	meshEntries.source = meshEntryType + mesh.entriesName() + "[" + str(len(mesh.meshEntries)) + "] = {\n"
 	meshData = CData()

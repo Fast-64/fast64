@@ -259,7 +259,7 @@ def drawLightProperty(layout, lightProp, name, showExpandTab, index, sceneHeader
 
 
 class OOTSceneTableEntryProperty(bpy.types.PropertyGroup):
-	drawConfig : bpy.props.IntProperty(name = "Scene Draw Config", min = 0, max = 52)
+	drawConfig : bpy.props.IntProperty(name = "Scene Draw Config", min = 0)
 	hasTitle : bpy.props.BoolProperty(default = True)
 
 class OOTExtraCutsceneProperty(bpy.types.PropertyGroup):

@@ -150,8 +150,10 @@ def modifySceneTable(scene, exportInfo):
 
     if scene is None:
         sceneDrawConfig = None
-    else:
+    elif scene.sceneTableEntry.drawConfig < len(ootDrawConfigNames):
         sceneDrawConfig = ootDrawConfigNames[scene.sceneTableEntry.drawConfig]
+    else:
+        sceneDrawConfig = scene.sceneTableEntry.drawConfig
 
     # ``DEFINE_SCENE()`` parameters
     sceneParams = [sceneName, sceneTitle, sceneID, sceneDrawConfig, sceneUnk10, sceneUnk12]
