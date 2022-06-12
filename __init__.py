@@ -13,9 +13,12 @@ from .fast64_internal.oot.oot_level import OOT_ObjectProperties
 import cProfile
 import pstats
 
+from . import addon_updater_ops
+
 # info about add on
 bl_info = {
 	"name": "Fast64",
+	"version": (1, 0, 0),
 	"author": "kurethedead",
 	"location": "3DView",
 	"description": "Plugin for exporting F3D display lists and other game data related to Super Mario 64.",
@@ -246,6 +249,7 @@ class Fast64_GlobalToolsPanel(bpy.types.Panel):
 		col = self.layout.column()
 		col.operator(ArmatureApplyWithMesh.bl_idname)
 		#col.operator(CreateMetarig.bl_idname)
+		addon_updater_ops.update_notice_box_ui(self, context)
 
 class Fast64Settings_Properties(bpy.types.PropertyGroup):
 	'''Settings affecting exports for all games found in scene.fast64.settings'''
@@ -326,6 +330,13 @@ class Fast64_ObjectProperties(bpy.types.PropertyGroup):
 #
 #	scene.currentGameEditorMode = scene.gameEditorMode
 
+class ExampleAddonPreferences(bpy.types.AddonPreferences, addon_updater_ops.AddonUpdaterPreferences):
+	bl_idname = __package__
+
+	def draw(self, context):
+		addon_updater_ops.update_settings_ui(self, context)
+
+
 classes = (
 	Fast64Settings_Properties,
 	Fast64_Properties,
@@ -371,6 +382,11 @@ def register():
 		print(msg)
 		blender_3_1_0_and_later_unsupported = Exception("\n\n" + msg)
 		raise blender_3_1_0_and_later_unsupported
+
+	# Register addon updater first,
+	# this way if a broken version fails to register the user can still pick another version.
+	register_class(ExampleAddonPreferences)
+	addon_updater_ops.register(bl_info)
 
 	mat_register()
 	render_engine_register()
@@ -435,3 +451,6 @@ def unregister():
 		unregister_class(cls)
 	
 	bpy.app.handlers.load_post.remove(after_load)
+
+	addon_updater_ops.unregister()
+	unregister_class(ExampleAddonPreferences)
