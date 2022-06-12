@@ -201,13 +201,13 @@ def ootRoomMeshToC(room, textureExportSettings):
 		indent + mesh.meshType + ",",
 		indent + str(len(mesh.meshEntries)) + ",",
 		indent + mesh.entriesName() + ",",
-		indent + mesh.entriesName() + " + sizeof(" + mesh.entriesName() + ")",
+		indent + mesh.entriesName() + " + ARRAY_COUNT(" + mesh.entriesName() + ")",
 		"};"
 	)) + "\n\n"
 
 	meshEntries = CData()
 	meshEntryType = "MeshHeader" + ('01' if mesh.meshType == '0' else '2') + "Entry "
-	meshEntries.header = "extern " + meshEntryType + mesh.entriesName() + "[" + str(len(mesh.meshEntries)) + "];\n"
+	meshEntries.header = "extern " + meshEntryType + " " + mesh.entriesName() + "[" + str(len(mesh.meshEntries)) + "];\n"
 	meshEntries.source = meshEntryType + mesh.entriesName() + "[" + str(len(mesh.meshEntries)) + "] = {\n"
 	meshData = CData()
 	for entry in mesh.meshEntries:
