@@ -386,15 +386,12 @@ def getActorExportValue(detailedProp, field):
 	elif field == 'transActorParam':
 		return getActorParameter(detailedProp, detailedProp.transActorKey, 'Params', field)
 	elif field in {"XRot", "YRot", "ZRot"}:
-		dpKey = detailedProp.actorKey
-		actorType = getActorType(detailedProp, dpKey)
-		for actorNode in actorRoot:
-			if dpKey == actorNode.get('Key'):
-				for elem in actorNode:
-					target = elem.get('Target')
-					if hasActorTiedParams(elem.get('TiedParam'), actorType):
-						if target == field:
-							return getActorParameter(detailedProp, dpKey, field, None)
+		actorType = getActorType(detailedProp, detailedProp.actorKey)
+		actorNode = actorRoot[getActorIndexFromKey(detailedProp.actorKey)]
+		for elem in actorNode:
+			target = elem.get('Target')
+			if hasActorTiedParams(elem.get('TiedParam'), actorType) and (target == field):
+				return getActorParameter(detailedProp, detailedProp.actorKey, field, None)
 	return None
 
 def getCustomActorExportValue(detailedProp, field):
@@ -639,19 +636,18 @@ def getActorParameter(detailedProp, actorKey, paramTarget, field):
 		panelParams = getattr(detailedProp, field, "")
 		if panelParams == "":
 			return "0x0"
-	for actorNode in actorRoot:
-		if actorKey == actorNode.get('Key'):
-			lenProp = getActorLastElemIndex(actorKey, 'Property', None)
-			lenSwitch = getActorLastElemIndex(actorKey, 'Flag', 'Switch')
-			lenBool = getActorLastElemIndex(actorKey, 'Bool', None)
-			lenEnum = getActorLastElemIndex(actorKey, 'Enum', None)
-			for elem in actorNode:
-				actorType = getActorType(detailedProp, actorKey)
-				index = int(elem.get('Index', '1'), base=10)
-				if hasActorTiedParams(elem.get('TiedParam'), actorType):
-					paramPart = getActorParameterPart(elem, detailedProp, actorKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget, index)
-					if paramPart is not None and paramPart != '':
-						params.append(paramPart)
+	actorNode = actorRoot[getActorIndexFromKey(actorKey)]
+	lenProp = getActorLastElemIndex(actorKey, 'Property', None)
+	lenSwitch = getActorLastElemIndex(actorKey, 'Flag', 'Switch')
+	lenBool = getActorLastElemIndex(actorKey, 'Bool', None)
+	lenEnum = getActorLastElemIndex(actorKey, 'Enum', None)
+	for elem in actorNode:
+		actorType = getActorType(detailedProp, actorKey)
+		index = int(elem.get('Index', '1'), base=10)
+		if hasActorTiedParams(elem.get('TiedParam'), actorType):
+			paramPart = getActorParameterPart(elem, detailedProp, actorKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget, index)
+			if paramPart is not None and paramPart != '':
+				params.append(paramPart)
 	actorProps = " | ".join(params)
 	if paramTarget == 'Params':
 		actorType = getActorType(detailedProp, actorKey)
@@ -690,12 +686,11 @@ def setActorParameterPart(object, field, param, mask):
 def getActorLastElemIndex(actorKey, elemTag, flagType):
 	'''Looking for the last index of an actor's property (from XML data)'''
 	indices = []
-	for actorNode in actorRoot:
-		if actorNode.get('Key') == actorKey:
-			for elem in actorNode:
-				if elem.tag == elemTag:
-					if flagType is None or (flagType == 'Switch' and elem.get('Type') == flagType):
-						indices.append(int(elem.get('Index'), base=10))
+	actorNode = actorRoot[getActorIndexFromKey(actorKey)]
+	for elem in actorNode:
+		if elem.tag == elemTag:
+			if flagType is None or (flagType == 'Switch' and elem.get('Type') == flagType):
+				indices.append(int(elem.get('Index'), base=10))
 	return max(indices) if indices else None
 
 def hasActorTiedParams(tiedParam, actorType):
@@ -943,6 +938,7 @@ def isActorCustom(actorKey):
 				and bpy.context.object.ootEntranceProperty.customActor)
 
 def getActorType(detailedProp, actorKey):
+	'''Returns the value of ``actor.type``'''
 	actorNode = actorRoot[getActorIndexFromKey(actorKey)]
 	for elem in actorNode:
 		if actorKey == actorNode.get('Key'):
@@ -950,6 +946,7 @@ def getActorType(detailedProp, actorKey):
 			return getattr(detailedProp, actorKey + '.type' + index, None)
 
 def getActorIndexFromKey(actorKey):
-    for actorListIndex, elem in enumerate(ootEnumActorID):
-        if actorKey == elem[0]:
-            return (actorListIndex - 1)
+	'''Returns the index of an actor in the list'''
+	for actorListIndex, elem in enumerate(ootEnumActorID):
+		if actorKey == elem[0]:
+			return (actorListIndex - 1)

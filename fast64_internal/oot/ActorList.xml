@@ -1272,8 +1272,8 @@ ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
       <Item Params="0004"> Same as 0001, but graphics are glitched</Item>
     </Type>
     <Flag Index="1" Mask="0xFF00" TiedParam="0003" Type="Switch"/>
+    <Notes>+0xFF00 = Switch Flag //Type 03 Only</Notes>
   </Actor>
-  <Notes>+0xFF00 = Switch Flag //Type 03 Only</Notes>
   <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_HAKA_SHIP" Key="bg_haka_ship" Name="Shadow Temple Ship" ObjectKey="obj_haka_objects">
     <Flag Index="1" Mask="0x3F00" Type="Switch"/>
     <Notes>+0x3F00 = Switch Flag for Zelda's Lullaby spot

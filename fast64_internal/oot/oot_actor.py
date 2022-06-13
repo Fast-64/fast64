@@ -118,13 +118,12 @@ def getCustomTransActorValues(self, target):
 def getParameterValue(self, actorProp, actorKey, target):
 	'''Returns the actor's parameters'''
 	value = ""
-	for actorNode in actorRoot:
-		if actorNode.get('Key') == actorKey:
-			for elem in actorNode:
-				paramTarget = elem.get('Target', 'Params')
-				if paramTarget == target:
-					if hasActorTiedParams(elem.get('TiedParam'), getActorType(self, actorKey)):
-						value = getActorParameter(actorProp, actorKey, paramTarget, None)
+	actorNode = actorRoot[getActorIndexFromKey(actorKey)]
+	for elem in actorNode:
+		paramTarget = elem.get('Target', 'Params')
+		if paramTarget == target:
+			if hasActorTiedParams(elem.get('TiedParam'), getActorType(self, actorKey)):
+				value = getActorParameter(actorProp, actorKey, paramTarget, None)
 	return value
 
 def getAccurateParameter(self, actorKey, target, user):
@@ -185,15 +184,14 @@ def setCustomTransActorValues(self, value, target):
 
 def setActorParameterValues(self, value, field, target):
 	'''Sets the actor's parameters'''
-	for actorNode in actorRoot:
-		dPKey = actorNode.get('Key')
-		if dPKey == getattr(self, field, '0x0'):
-			for elem in actorNode:
-				index = int(elem.get('Index', '1'), base=10)
-				if hasActorTiedParams(elem.get('TiedParam'), getActorType(self, dPKey)) is True:
-					setActorParameter(elem, getComputedActorValues(value), self, dPKey,
-						getActorLastElemIndex(dPKey, 'Property', None),	getActorLastElemIndex(dPKey, 'Flag', 'Switch'), 
-						getActorLastElemIndex(dPKey, 'Bool', None),	getActorLastElemIndex(dPKey, 'Enum', None), target, index)
+	actorNode = actorRoot[getActorIndexFromKey(getattr(self, field, '0x0'))]
+	dPKey = actorNode.get('Key')
+	for elem in actorNode:
+		index = int(elem.get('Index', '1'), base=10)
+		if hasActorTiedParams(elem.get('TiedParam'), getActorType(self, dPKey)) is True:
+			setActorParameter(elem, getComputedActorValues(value), self, dPKey,
+				getActorLastElemIndex(dPKey, 'Property', None),	getActorLastElemIndex(dPKey, 'Flag', 'Switch'),
+				getActorLastElemIndex(dPKey, 'Bool', None),	getActorLastElemIndex(dPKey, 'Enum', None), target, index)
 
 def setActorValues(self, value, actorKey, target):
 	if isActorCustom(actorKey):
@@ -223,37 +221,35 @@ def genString(annotations, key, suffix, stringName):
 
 def drawParams(box, detailedProp, key, elemField, elemName, elTag, elType, lenSwitch):
 	'''Actual draw on the UI'''
-	for actorNode in actorRoot:
-		name = 'None'
-		if key == actorNode.get('Key'):
-			for elem in actorNode:
-				i = int(elem.get('Index', '1'), base=10)
-				# Checks if there's at least 2 Switch Flags, in this case the
-				# Name will be 'Switch Flag #[number]
-				# If it's not a Switch Flag, change nothing to the name
-				name = elemName
-				if lenSwitch is not None and int(lenSwitch) > 1:
-					name = f'{elemName} #{i}'
+	actorNode = actorRoot[getActorIndexFromKey(key)]
+	for elem in actorNode:
+		i = int(elem.get('Index', '1'), base=10)
+		# Checks if there's at least 2 Switch Flags, in this case the
+		# Name will be 'Switch Flag #[number]
+		# If it's not a Switch Flag, change nothing to the name
+		name = elemName
+		if lenSwitch is not None and int(lenSwitch) > 1:
+			name = f'{elemName} #{i}'
 
-				# Set the name to none to use the element's name instead
-				# Set the name to the element's name if it's a flag and its name is set
-				curName = elem.get('Name')
-				if elemName is None or (elTag == 'Flag' and curName is not None):
-					name = curName
+		# Set the name to none to use the element's name instead
+		# Set the name to the element's name if it's a flag and its name is set
+		curName = elem.get('Name')
+		if elemName is None or (elTag == 'Flag' and curName is not None):
+			name = curName
 
-				# Add the index to get the proper attribute
-				field = elemField + f'{i}'
-				if elTag == 'Type':
-					field = elemField
+		# Add the index to get the proper attribute
+		field = elemField + f'{i}'
+		if elTag == 'Type':
+			field = elemField
 
-				attr = getattr(detailedProp, field, None)
-				tiedParam = elem.get('TiedParam')
-				actorType = getActorType(detailedProp, key)
+		attr = getattr(detailedProp, field, None)
+		tiedParam = elem.get('TiedParam')
+		actorType = getActorType(detailedProp, key)
 
-				if name != 'None' and elem.tag == elTag and elType == elem.get('Type') and attr is not None:
-					if hasActorTiedParams(tiedParam, actorType) is True:
-						prop_split(box, detailedProp, field, name)
-					i += 1
+		if name is not None and elem.tag == elTag and elType == elem.get('Type') and attr is not None:
+			if hasActorTiedParams(tiedParam, actorType) is True:
+				prop_split(box, detailedProp, field, name)
+			i += 1
 
 def editOOTActorProperties():
 	'''This function is used to edit the OOTActorProperties class before it's registered'''
@@ -391,18 +387,17 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 			paramBox.label(text="This Actor doesn't have parameters.")
 
 		if user == userActor:
-			for actorNode in actorRoot:
-				if dpKey == actorNode.get('Key'):
-					for elem in actorNode:
-						target = elem.get('Target')
-						actorType = getActorType(detailedProp, dpKey)
-						if hasActorTiedParams(elem.get('TiedParam'), actorType):
-							if target == 'XRot':
-								rotXBool = True
-							elif target == 'YRot':
-								rotYBool = True
-							elif target == 'ZRot':
-								rotZBool = True
+			actorNode = actorRoot[getActorIndexFromKey(dpKey)]
+			for elem in actorNode:
+				target = elem.get('Target')
+				actorType = getActorType(detailedProp, dpKey)
+				if hasActorTiedParams(elem.get('TiedParam'), actorType):
+					if target == 'XRot':
+						rotXBool = True
+					elif target == 'YRot':
+						rotYBool = True
+					elif target == 'ZRot':
+						rotZBool = True
 
 			if rotXBool:
 				prop_split(paramBox, detailedProp, 'rotOverrideX', 'Rot X')
