@@ -122,7 +122,9 @@ def getParameterValue(self, actorProp, actorKey, target):
 	for elem in actorNode:
 		paramTarget = elem.get('Target', 'Params')
 		if paramTarget == target:
-			if hasActorTiedParams(elem.get('TiedParam'), getActorType(self, actorKey)):
+			tiedParams = elem.get('TiedParam')
+			actorType = getActorType(self, actorKey)
+			if (tiedParams is None or actorType is None) or hasActorTiedParams(tiedParams, actorType):
 				value = getActorParameter(actorProp, actorKey, paramTarget, None)
 	return value
 
@@ -188,7 +190,9 @@ def setActorParameterValues(self, value, field, target):
 	dPKey = actorNode.get('Key')
 	for elem in actorNode:
 		index = int(elem.get('Index', '1'), base=10)
-		if hasActorTiedParams(elem.get('TiedParam'), getActorType(self, dPKey)) is True:
+		tiedParams = elem.get('TiedParam')
+		actorType = getActorType(self, dPKey)
+		if (tiedParams is None or actorType is None) or hasActorTiedParams(tiedParams, actorType) is True:
 			setActorParameter(elem, getComputedActorValues(value), self, dPKey,
 				getActorLastElemIndex(dPKey, 'Property', None),	getActorLastElemIndex(dPKey, 'Flag', 'Switch'),
 				getActorLastElemIndex(dPKey, 'Bool', None),	getActorLastElemIndex(dPKey, 'Enum', None), target, index)
@@ -243,11 +247,11 @@ def drawParams(box, detailedProp, key, elemField, elemName, elTag, elType, lenSw
 			field = elemField
 
 		attr = getattr(detailedProp, field, None)
-		tiedParam = elem.get('TiedParam')
+		tiedParams = elem.get('TiedParam')
 		actorType = getActorType(detailedProp, key)
 
 		if name is not None and elem.tag == elTag and elType == elem.get('Type') and attr is not None:
-			if hasActorTiedParams(tiedParam, actorType) is True:
+			if (tiedParams is None or actorType is None) or hasActorTiedParams(tiedParams, actorType) is True:
 				prop_split(box, detailedProp, field, name)
 			i += 1
 
@@ -391,7 +395,8 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 			for elem in actorNode:
 				target = elem.get('Target')
 				actorType = getActorType(detailedProp, dpKey)
-				if hasActorTiedParams(elem.get('TiedParam'), actorType):
+				tiedParams = elem.get('TiedParam')
+				if (tiedParams is None or actorType is None) or hasActorTiedParams(tiedParams, actorType):
 					if target == 'XRot':
 						rotXBool = True
 					elif target == 'YRot':

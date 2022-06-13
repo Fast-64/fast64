@@ -390,7 +390,8 @@ def getActorExportValue(detailedProp, field):
 		actorNode = actorRoot[getActorIndexFromKey(detailedProp.actorKey)]
 		for elem in actorNode:
 			target = elem.get('Target')
-			if hasActorTiedParams(elem.get('TiedParam'), actorType) and (target == field):
+			tiedParams = elem.get('TiedParams')
+			if (tiedParams is None or actorType is None) or hasActorTiedParams(tiedParams, actorType) and (target == field):
 				return getActorParameter(detailedProp, detailedProp.actorKey, field, None)
 	return None
 
@@ -644,7 +645,8 @@ def getActorParameter(detailedProp, actorKey, paramTarget, field):
 	for elem in actorNode:
 		actorType = getActorType(detailedProp, actorKey)
 		index = int(elem.get('Index', '1'), base=10)
-		if hasActorTiedParams(elem.get('TiedParam'), actorType):
+		tiedParams = elem.get('TiedParams')
+		if (tiedParams is None or actorType is None) or hasActorTiedParams(tiedParams, actorType):
 			paramPart = getActorParameterPart(elem, detailedProp, actorKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget, index)
 			if paramPart is not None and paramPart != '':
 				params.append(paramPart)
@@ -695,12 +697,8 @@ def getActorLastElemIndex(actorKey, elemTag, flagType):
 
 def hasActorTiedParams(tiedParam, actorType):
 	'''Looking for parameters that depend on other parameters'''
-	if tiedParam is None or actorType is None:
-		return True
-	else:
-		tiedList = tiedParam.split(',')
-		if actorType is not None:
-			return actorType in tiedList
+	if tiedParam is not None and actorType is not None:
+		return actorType in tiedParam.split(',')
 	return False
 
 def getActorParameterPart(elem, detailedProp, field, lenProp, lenSwitch, lenBool, lenEnum, paramTarget, index):
@@ -856,9 +854,9 @@ def upgradeActorProcess(user, obj, actorID, detailedProp, params, paramField, pa
 						lenEnum = getActorLastElemIndex(dPKey, 'Enum', None)
 						for elem in actorNode:
 							index = int(elem.get('Index', '1'), base=10)
-							tiedParam = elem.get('TiedParam')
+							tiedParams = elem.get('TiedParam')
 							actorType = getActorType(detailedProp, dPKey)
-							if hasActorTiedParams(tiedParam, actorType) is True:
+							if (tiedParams is None or actorType is None) or hasActorTiedParams(tiedParams, actorType) is True:
 								setActorParameter(elem, params, detailedProp, dPKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget, index)
 		if user != 'Transition Actor':
 			actorParams = getActorParameter(detailedProp, detailedProp.actorKey, paramTarget, None)
