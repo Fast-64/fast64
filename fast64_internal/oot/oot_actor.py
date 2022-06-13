@@ -123,7 +123,7 @@ def getParameterValue(self, actorProp, actorKey, target):
 			for elem in actorNode:
 				paramTarget = elem.get('Target', 'Params')
 				if paramTarget == target:
-					if hasActorTiedParams(elem.get('TiedParam'), getattr(self, actorKey + '.type', None)):
+					if hasActorTiedParams(elem.get('TiedParam'), getActorType(self, actorKey)):
 						value = getActorParameter(actorProp, actorKey, paramTarget, None)
 	return value
 
@@ -190,7 +190,7 @@ def setActorParameterValues(self, value, field, target):
 		if dPKey == getattr(self, field, '0x0'):
 			for elem in actorNode:
 				index = int(elem.get('Index', '1'), base=10)
-				if hasActorTiedParams(elem.get('TiedParam'), getattr(self, dPKey + '.type', None)) is True:
+				if hasActorTiedParams(elem.get('TiedParam'), getActorType(self, dPKey)) is True:
 					setActorParameter(elem, getComputedActorValues(value), self, dPKey,
 						getActorLastElemIndex(dPKey, 'Property', None),	getActorLastElemIndex(dPKey, 'Flag', 'Switch'), 
 						getActorLastElemIndex(dPKey, 'Bool', None),	getActorLastElemIndex(dPKey, 'Enum', None), target, index)
@@ -243,12 +243,12 @@ def drawParams(box, detailedProp, key, elemField, elemName, elTag, elType, lenSw
 
 				# Add the index to get the proper attribute
 				field = elemField + f'{i}'
-				if elTag == 'Parameter':
+				if elTag == 'Type':
 					field = elemField
 
 				attr = getattr(detailedProp, field, None)
 				tiedParam = elem.get('TiedParam')
-				actorType = getattr(detailedProp, key + '.type', None)
+				actorType = getActorType(detailedProp, key)
 
 				if name != 'None' and elem.tag == elTag and elType == elem.get('Type') and attr is not None:
 					if hasActorTiedParams(tiedParam, actorType) is True:
@@ -269,6 +269,10 @@ def editOOTActorProperties():
 
 	# Generate the fields
 	for actorNode in actorRoot:
+		actorTypeList = []
+		actorEnumList = []
+		enumIndexList = []
+		typeIndexList = []
 		actorKey = actorNode.get('Key')
 		for elem in actorNode:
 			index = int(elem.get('Index', '1'), base=10)
@@ -283,20 +287,27 @@ def editOOTActorProperties():
 					genString(propAnnotations, actorKey, f'.switchFlag{index}', 'Switch Flag')
 			elif elem.tag == 'Collectible':
 				genEnum(propAnnotations, actorKey, f'.collectibleDrop{index}', itemDrops, 'Collectible Drop')
-			elif elem.tag == 'Parameter':
-				actorTypeList = [(elem2.get('Params'), elem2.text, elem2.get('Params'))
-								for actorNode2 in actorRoot for elem2 in actorNode2
-								if actorNode2.get('Key') == actorKey and elem2.tag == 'Parameter']
-				genEnum(propAnnotations, actorKey, '.type', actorTypeList, 'Actor Type')
+			elif elem.tag == 'Type':
+				actorTypeList.append([(item.get('Params'), item.text, item.get('Params')) for item in elem])
+				typeIndexList.append(index)
 			elif elem.tag == 'Bool':
 				objName = actorKey + f'.bool{index}'
 				prop = bpy.props.BoolProperty(default=False)
 				propAnnotations[objName] = prop
 			elif elem.tag == 'Enum':
-				actorEnumList = [(item.get('Value'), item.get('Name'), item.get('Value'))
-								for actorNode2 in actorRoot if actorNode2.get('Key') == actorKey
-								for elem2 in actorNode2 if elem2.tag == 'Enum' and elem2.get('Index') == f'{index}' for item in elem2]
-				genEnum(propAnnotations, actorKey, f'.enum{index}', actorEnumList, elem.get('Name'))
+				actorEnumList.append([(item.get('Value'), item.get('Name'), item.get('Value')) for item in elem])
+				enumIndexList.append(index)
+				enumName = elem.get('Name')
+		if actorNode.tag == 'Actor':
+			if len(typeIndexList) > 0:
+				for elem in actorTypeList:
+					index = typeIndexList.pop(0)
+					genEnum(propAnnotations, actorKey, f'.type{index}', elem, 'Actor Type')
+
+			if len(enumIndexList) > 0:
+				for elem in actorEnumList:
+					index = enumIndexList.pop(0)
+					genEnum(propAnnotations, actorKey, f'.enum{index}', elem, enumName)
 
 def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, userIDField, userParamField, detailedProp, dpKey):
 	'''This function handles the drawing of the detailed actor panel'''
@@ -337,9 +348,13 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 		else:
 			typeText = 'Spawn Type'
 
-		propAnnot = getattr(detailedProp, dpKey + '.type', None)
+		propAnnot = getActorType(detailedProp, dpKey)
 		if propAnnot is not None:
-			prop_split(userLayout, detailedProp, dpKey + '.type', typeText)
+			actorNode = actorRoot[getActorIndexFromKey(dpKey)]
+			for elem in actorNode:
+				if elem.tag == 'Type':
+					index = elem.get('Index', '1')
+					prop_split(userLayout, detailedProp, dpKey + '.type' + index, typeText)
 
 		if user == userActor:
 			rotXBool = rotYBool = rotZBool = False
@@ -380,7 +395,7 @@ def drawDetailedProperties(user, userProp, userLayout, userObj, userSearchOp, us
 				if dpKey == actorNode.get('Key'):
 					for elem in actorNode:
 						target = elem.get('Target')
-						actorType = getattr(detailedProp, dpKey + '.type', None)
+						actorType = getActorType(detailedProp, dpKey)
 						if hasActorTiedParams(elem.get('TiedParam'), actorType):
 							if target == 'XRot':
 								rotXBool = True

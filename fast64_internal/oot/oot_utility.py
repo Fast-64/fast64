@@ -1,7 +1,7 @@
 from ..utility import *
 import bpy, math, mathutils, os, re
 from bpy.utils import register_class, unregister_class
-from .oot_constants import actorRoot
+from .oot_constants import actorRoot, ootEnumActorID
 
 # default indentation to use when writing to decomp files
 indent = " " * 4
@@ -387,7 +387,7 @@ def getActorExportValue(detailedProp, field):
 		return getActorParameter(detailedProp, detailedProp.transActorKey, 'Params', field)
 	elif field in {"XRot", "YRot", "ZRot"}:
 		dpKey = detailedProp.actorKey
-		actorType = getattr(detailedProp, dpKey + '.type', None)
+		actorType = getActorType(detailedProp, dpKey)
 		for actorNode in actorRoot:
 			if dpKey == actorNode.get('Key'):
 				for elem in actorNode:
@@ -646,7 +646,7 @@ def getActorParameter(detailedProp, actorKey, paramTarget, field):
 			lenBool = getActorLastElemIndex(actorKey, 'Bool', None)
 			lenEnum = getActorLastElemIndex(actorKey, 'Enum', None)
 			for elem in actorNode:
-				actorType = getattr(detailedProp, actorKey + '.type', None)
+				actorType = getActorType(detailedProp, actorKey)
 				index = int(elem.get('Index', '1'), base=10)
 				if hasActorTiedParams(elem.get('TiedParam'), actorType):
 					paramPart = getActorParameterPart(elem, detailedProp, actorKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget, index)
@@ -654,7 +654,7 @@ def getActorParameter(detailedProp, actorKey, paramTarget, field):
 						params.append(paramPart)
 	actorProps = " | ".join(params)
 	if paramTarget == 'Params':
-		actorType = getattr(detailedProp, actorKey + '.type', '0')
+		actorType = getActorType(detailedProp, actorKey)
 		if len(params) == 0:
 			return f'0x{actorType}'
 		else:
@@ -670,7 +670,7 @@ def setActorParameterPart(object, field, param, mask):
 	attr = getattr(object, field, None)
 	paramPart = f'0x{(param & mask) >> shift:02X}'
 
-	if field.endswith('.type'):
+	if field.find('.type') != -1:
 		setattr(object, field, f'{param & mask:04X}')
 	elif field.find('.collectibleDrop') != -1:
 		setKeyFromItemValue('Collectibles', object, field, attr)
@@ -716,7 +716,7 @@ def getActorParameterPart(elem, detailedProp, field, lenProp, lenSwitch, lenBool
 	target = elem.get('Target')
 	if target is None:
 		target = "Params"
-	if elem.tag != 'Parameter' and strMask is not None:
+	if elem.tag != 'Type' and strMask is not None:
 		mask = int(strMask, base=16)
 		shiftTmp = len(f'{mask:016b}') - len(f'{mask:016b}'.rstrip('0'))
 		shift = f'{shiftTmp}'
@@ -772,8 +772,8 @@ def setActorParameter(elem, params, detailedProp, field, lenProp, lenSwitch, len
 		mask = 0xFFFF
 
 	if target == paramTarget:
-		if elem.tag == 'Parameter':
-			attr = setActorParameterPart(detailedProp, field + '.type', params, mask)
+		if elem.tag == 'Type':
+			attr = setActorParameterPart(detailedProp, field + f'.type{index}', params, mask)
 		if elem.tag == 'Flag':
 			elemType = elem.get('Type')
 			if elemType == 'Chest':
@@ -862,7 +862,7 @@ def upgradeActorProcess(user, obj, actorID, detailedProp, params, paramField, pa
 						for elem in actorNode:
 							index = int(elem.get('Index', '1'), base=10)
 							tiedParam = elem.get('TiedParam')
-							actorType = getattr(detailedProp, dPKey + '.type', None)
+							actorType = getActorType(detailedProp, dPKey)
 							if hasActorTiedParams(tiedParam, actorType) is True:
 								setActorParameter(elem, params, detailedProp, dPKey, lenProp, lenSwitch, lenBool, lenEnum, paramTarget, index)
 		if user != 'Transition Actor':
@@ -941,3 +941,15 @@ def isLatestVersion():
 def isActorCustom(actorKey):
 	return actorKey == 'Custom' or (bpy.context.view_layer.objects.active.ootEmptyType == 'Entrance'
 				and bpy.context.object.ootEntranceProperty.customActor)
+
+def getActorType(detailedProp, actorKey):
+	actorNode = actorRoot[getActorIndexFromKey(actorKey)]
+	for elem in actorNode:
+		if actorKey == actorNode.get('Key'):
+			index = elem.get('Index', '1')
+			return getattr(detailedProp, actorKey + '.type' + index, None)
+
+def getActorIndexFromKey(actorKey):
+    for actorListIndex, elem in enumerate(ootEnumActorID):
+        if actorKey == elem[0]:
+            return (actorListIndex - 1)
