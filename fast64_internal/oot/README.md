@@ -32,11 +32,11 @@ Read the "Getting Started" section for informations on scene exportation.
 To add an actor you need to create a new empty object in Blender, the shape doesn't matter.
 When the empty object is created you can set the ``Actor`` object type in the ``Object Properties`` panel. (Note: PR #56 will add a button to add actors.)
 
-To add actors to a scene, create a new Empty and parent it to a Room. Then in the Object Properties panel select ``Actor`` as the Object Type. Use the ``Select Actor ID`` button to choose an actor, and then set the Actor Parameter value as desired (see the list of Actor Parameters below). 
+To add actors to a scene, create a new Empty and parent it to a Scene or a Room, otherwise they will not be exported in the room C code. Then in the Object Properties panel select ``Actor`` as the Object Type. Use the ``Select Actor ID`` button to choose an actor, and then set the Actor Parameter value as desired (see the list of Actor Parameters below). 
 
-Finally, every actors you are using must be parented to a Scene or a Room (Empty) Object, otherwise they will not be exported in the room C code. Also, many Actors needs their assets, in OoT they're called "Objects", if an actor is missing an object the code will kill the actor.
+Finally, every actors you are using needs their assets. In OoT they're called "Objects", if an actor is missing an object the code will kill the actor. To do this select the Room that your actor is parented to, select the "Objects" tab in its Object Properties window, and click "Add Item". 
 
-To do this select the Room that your actor is parented to, select the "Objects" tab in its Object Properties window, and click "Add Item". Then "Search Object ID" to find the actor object you need. For example, if adding a Deku Baba actor (EN_DEKUBABA) you need to add the "Dekubaba" object to the Room's object dependencies. Note that the object list must not contain more than 15 items.
+Then "Search Object ID" to find the actor object you need. For example, if adding a Deku Baba actor (EN_DEKUBABA) you need to add the "Dekubaba" object to the Room's object dependencies. Note that the object list must not contain more than 15 items.
 
 Note: parenting an Actor to a Scene object will keep it loaded, even on room transition, in this case the room number will be ``-1`` (for instance, that's how the diving mini-game Zora "remembers" you completed the mini-game)
 
