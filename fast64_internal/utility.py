@@ -1127,31 +1127,17 @@ def getNameFromPath(path, removeExtension=False):
     return toAlnum(name)
 
 
-def gammaCorrect(color):
-    return [gammaCorrectValue(color[0]), gammaCorrectValue(color[1]), gammaCorrectValue(color[2])]
+def gammaCorrect(linearColor):
+    return list(c for c in mathutils.Color(linearColor[:3]).from_scene_linear_to_srgb())
 
+def gammaCorrectValue(linearValue):
+    return mathutils.Color((linearValue, linearValue, linearValue)).from_scene_linear_to_srgb().v
 
-def gammaCorrectValue(u):
-    if u < 0.0031308:
-        y = u * 12.92
-    else:
-        y = 1.055 * pow(u, (1 / 2.4)) - 0.055
+def gammaInverse(sRGBColor):
+    return list(c for c in mathutils.Color(sRGBColor[:3]).from_srgb_to_scene_linear())
 
-    return min(max(y, 0), 1)
-
-
-def gammaInverse(color):
-    return [gammaInverseValue(color[0]), gammaInverseValue(color[1]), gammaInverseValue(color[2])]
-
-
-def gammaInverseValue(u):
-    if u < 0.04045:
-        y = u / 12.92
-    else:
-        y = ((u + 0.055) / 1.055) ** 2.4
-
-    return min(max(y, 0), 1)
-
+def gammaInverseValue(sRGBValue):
+    return mathutils.Color((sRGBValue, sRGBValue, sRGBValue)).from_srgb_to_scene_linear().v
 
 def printBlenderMessage(msgSet, message, blenderOp):
     if blenderOp is not None:

@@ -1,3 +1,4 @@
+import functools
 import bpy, bmesh, mathutils, os, re, copy, math
 from math import pi, ceil
 from io import BytesIO
@@ -1215,19 +1216,34 @@ def convertVertexData(
 
     return Vtx(position, uv, colorOrNormal)
 
+def getColorLayer(mesh: bpy.types.Mesh, layer = "Col"):
+    if layer in mesh.attributes and getattr(mesh.attributes[layer], "data", None):
+        return mesh.attributes[layer].data
+    if layer in mesh.vertex_colors:
+        return mesh.vertex_colors[layer].data
+    return None
+
+@functools.lru_cache(0)
+def is3_2_or_above():
+    return bpy.app.version[0] >= 3 and bpy.app.version[1] >= 2
+    
 
 def getLoopColor(loop: bpy.types.MeshLoop, mesh, mat_ver):
 
-    color_layer = mesh.vertex_colors["Col"].data if "Col" in mesh.vertex_colors else None
-    alpha_layer = mesh.vertex_colors["Alpha"].data if "Alpha" in mesh.vertex_colors else None
+    color_layer = getColorLayer(mesh, layer="Col")
+    alpha_layer = getColorLayer(mesh, layer="Alpha")
 
     if color_layer is not None:
         # Apparently already gamma corrected to linear
         normalizedRGB = color_layer[loop.index].color
+        if is3_2_or_above():
+            normalizedRGB = gammaCorrect(normalizedRGB)
     else:
         normalizedRGB = [1, 1, 1]
     if alpha_layer is not None:
         normalizedAColor = alpha_layer[loop.index].color
+        if is3_2_or_above():
+            normalizedAColor = gammaCorrect(normalizedAColor)
         normalizedA = mathutils.Color(normalizedAColor[0:3]).v
     else:
         normalizedA = 1
