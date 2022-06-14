@@ -36,10 +36,10 @@ To add actors to a scene, create a new Empty and parent it to a Room. Then in th
 
 Finally, every actors you are using must be parented to a Room (Empty) Object, otherwise they will not be exported in the room C code. Also, many Actors needs their assets, in OoT they're called "Objects", if an actor is missing an object the code will kill the actor. 
 
-To do this select the Room that your actor is parented to, select the "Objects" tab in its Object Properties window, and click "Add Item". Then "Search Object ID" to find the actor object you need. For example, if adding a Deku Baba actor (EN_DEKUBABA) you need to add the "Dekubaba" object to the Room's object dependencies.
+To do this select the Room that your actor is parented to, select the "Objects" tab in its Object Properties window, and click "Add Item". Then "Search Object ID" to find the actor object you need. For example, if adding a Deku Baba actor (EN_DEKUBABA) you need to add the "Dekubaba" object to the Room's object dependencies. Note that the object list must not contain more than 15 items.
 
 #### Actor Parameters
-Actor parameters can be found at https://wiki.cloudmodding.com/oot/Actor_List_(Variables). This documentation is NOT 100% accurate, you can get more informations with the OoT Decomp. Look for ``rot.z`` and ``params`` in the actor you want. (Note: PR #56 will add a better panel to set actor parameters)
+Actor parameters can be found at https://wiki.cloudmodding.com/oot/Actor_List_(Variables). This documentation is NOT 100% accurate, you can get more informations with the OoT Decomp. Look for ``rot.z`` and ``params`` in the actor you want, some actors may use ``rot.x`` and ``rot.y``.
 
 ### Exits
 The debug menu scene select can be found at ``SceneSelectEntry sScenes[]`` in ``src/overlays/gamestates/ovl_select/z_select.c``.
@@ -103,7 +103,7 @@ Note: a "cutscene terminator" is a cutscene command that makes a scene transitio
 
 <details closed>
 <summary>Object Data Properties Panel</summary>
-![](/images/oot_object_data_properties.png)
+<img src="/images/oot_object_data_properties.png" width=500/>
 </details>
 
 
