@@ -81,7 +81,7 @@ def getInfoDict(obj):
     edgeValidDict = infoDict.edgeValid
     validNeighborDict = infoDict.validNeighbors
 
-    mesh = obj.data
+    mesh: bpy.types.Mesh = obj.data
     if len(obj.data.uv_layers) == 0:
         uv_data = obj.data.uv_layers.new().data
     else:
@@ -786,7 +786,7 @@ def saveMeshByFaces(
     return currentGroupIndex
 
 
-def get8bitRoundedNormal(loop, mesh):
+def get8bitRoundedNormal(loop: bpy.types.MeshLoop, mesh):
     alpha_layer = mesh.vertex_colors["Alpha"].data if "Alpha" in mesh.vertex_colors else None
 
     if alpha_layer is not None:
@@ -1038,7 +1038,7 @@ class TriangleConverter:
             self.triList.commands.append(SPEndDisplayList())
 
 
-def getF3DVert(loop, face, convertInfo, mesh):
+def getF3DVert(loop: bpy.types.MeshLoop, face, convertInfo, mesh):
     position = mesh.vertices[loop.vertex_index].co.copy().freeze()
     # N64 is -Y, Blender is +Y
     uv = convertInfo.uv_data[loop.index].uv.copy()
@@ -1052,7 +1052,7 @@ def getF3DVert(loop, face, convertInfo, mesh):
     return (position, uv, colorOrNormal)
 
 
-def getLoopNormal(loop, face, mesh, isFlatShaded):
+def getLoopNormal(loop: bpy.types.MeshLoop, face, mesh, isFlatShaded):
     # This is a workaround for flat shading not working well.
     # Since we support custom blender normals we can now ignore this.
     # if isFlatShaded:
@@ -1201,12 +1201,8 @@ def convertVertexData(
 
     # Color/Normal (4 bytes)
     if exportVertexColors:
-        colorOrNormal = [
-            int(round(loopColorOrNormal[0] * 255)).to_bytes(1, "big")[0],
-            int(round(loopColorOrNormal[1] * 255)).to_bytes(1, "big")[0],
-            int(round(loopColorOrNormal[2] * 255)).to_bytes(1, "big")[0],
-            int(round(loopColorOrNormal[3] * 255)).to_bytes(1, "big")[0],
-        ]
+        # colorOrNormal = exportColor(loopColorOrNormal[:3]) + [int(round(loopColorOrNormal[3] * 255))]
+        colorOrNormal = [scaleToU8(c).to_bytes(1, "big")[0] for c in loopColorOrNormal]
     else:
         # normal transformed correctly.
         normal = (transformMatrix.inverted().transposed() @ loopColorOrNormal).normalized()
@@ -1220,7 +1216,7 @@ def convertVertexData(
     return Vtx(position, uv, colorOrNormal)
 
 
-def getLoopColor(loop, mesh, mat_ver):
+def getLoopColor(loop: bpy.types.MeshLoop, mesh, mat_ver):
 
     color_layer = mesh.vertex_colors["Col"].data if "Col" in mesh.vertex_colors else None
     alpha_layer = mesh.vertex_colors["Alpha"].data if "Alpha" in mesh.vertex_colors else None
@@ -1239,7 +1235,7 @@ def getLoopColor(loop, mesh, mat_ver):
     return (normalizedRGB[0], normalizedRGB[1], normalizedRGB[2], normalizedA)
 
 
-def getLoopColorOrNormal(loop, face, mesh, obj, exportVertexColors):
+def getLoopColorOrNormal(loop: bpy.types.MeshLoop, face, mesh, obj, exportVertexColors):
     material = obj.material_slots[face.material_index].material
     isFlatShaded = checkIfFlatShaded(material)
     if exportVertexColors:
