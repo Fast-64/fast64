@@ -32,6 +32,13 @@ Read the "Getting Started" section for informations on scene exportation.
 To add an actor you need to create a new empty object in Blender, the shape doesn't matter.
 When the empty object is created you can set the ``Actor`` object type in the ``Object Properties`` panel. (Note: PR #56 will add a button to add actors.)
 
+To add actors to a scene, create a new Empty and parent it to a Room. Then in the Object Properties panel select ``Actor`` as the Object Type. Use the ``Select Actor ID`` button to choose an actor, and then set the Actor Parameter value as desired (see the list of Actor Parameters below). 
+
+Finally, every actors you are using must be parented to a Room (Empty) Object, otherwise they will not be exported in the room C code. Also, many Actors needs their assets, in OoT they're called "Objects", if an actor is missing an object the code will kill the actor. 
+
+To do this select the Room that your actor is parented to, select the "Objects" tab in its Object Properties window, and click "Add Item". Then "Search Object ID" to find the actor object you need. For example, if adding a Deku Baba actor (EN_DEKUBABA) you need to add the "Dekubaba" object to the Room's object dependencies.
+
+#### Actor Parameters
 Actor parameters can be found at https://wiki.cloudmodding.com/oot/Actor_List_(Variables). This documentation is NOT 100% accurate, you can get more informations with the OoT Decomp. Look for ``rot.z`` and ``params`` in the actor you want. (Note: PR #56 will add a better panel to set actor parameters)
 
 ### Exits
@@ -67,7 +74,7 @@ To import a skeletal mesh, just click "Import" for the armature importer. You ma
 
 1. Eye/face textures are black: Texture pointers which are set dynamically will not be imported. Instead, the name of the pointer will be used instead of the actual data.
 2. Certain colors are white/different: Some graphical effects are achieved through dynamic Gfx commands, such as tinting white textures. These effects will not be imported.
-3. Strange imported normals: Due to the behaviour of rotating vertices on a skinned triangle that differs between Blender and the N64, normals may look strange. Note that these normals will look correct if re exported back into the game (assuming the rest pose is not changed). 
+3. Strange imported normals: Due to the behaviour of rotating vertices on a skinned triangle that differs between Blender and the N64, normals may look strange. Note that these normals will look correct if re exported back into the game (assuming the rest pose is not changed).
 
 Note that rest pose rotations are zeroed out on export, so you can modify the rest pose of imported armature while still preserving its structure. You can do this by using the "Apply As Rest Pose" operator under the Fast64 tab. Note that imported animations however still require the imported rest pose to work correctly.
 

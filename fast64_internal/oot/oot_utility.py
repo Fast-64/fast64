@@ -2,6 +2,9 @@ from ..utility import *
 import bpy, math, mathutils, os, re
 from bpy.utils import register_class, unregister_class
 
+# default indentation to use when writing to decomp files
+indent = " " * 4
+
 ootSceneDungeons = [
 	"bdan",
 	"bdan_boss",
@@ -383,22 +386,6 @@ def drawEnumWithCustom(panel, data, attribute, name, customName):
 	prop_split(panel, data, attribute, name)
 	if getattr(data, attribute) == "Custom":
 		prop_split(panel, data, attribute + "Custom", customName)
-
-def clampShort(value):
-	return min(max(round(value), -2**15), 2**15 - 1)
-
-def convertNormalizedFloatToShort(value):
-	value *= 2**15
-	value = clampShort(value)
-	
-	return int.from_bytes(int(value).to_bytes(2, 'big', signed = True), 'big')
-
-def convertNormalizedVectorToShort(value):
-	return (
-		convertNormalizedFloatToShort(value[0]),
-		convertNormalizedFloatToShort(value[1]),
-		convertNormalizedFloatToShort(value[2]),
-	)
 
 def getEnumName(enumItems, value):
 	for enumTuple in enumItems:
