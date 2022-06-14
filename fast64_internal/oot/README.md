@@ -94,6 +94,11 @@ To get more informations about the game's cutscene system/camera system, read [z
 
 Note: a "cutscene terminator" is a cutscene command that makes a scene transition. For example, this is used in the intro cutscene or in the credits.
 
+<details closed>
+<summary>Object Data Properties Panel</summary>
+![](/images/oot_object_data_properties.png)
+</details>
+
 
 **Watching the cutscene in-game**
 
@@ -106,13 +111,15 @@ To be able to actually watch your cutscene you need to have a way to trigger it,
 - ``AGE_RESTRICTION`` defines if you want to play your cutscene only as child (set it to 1), as adult (set it to 0) or both (set it to 2)
 - ``FLAG`` is the ``event_chk_inf`` flag that will prevent playing the cutscene everytime, you can use something unused like ``0x0F`` (https://wiki.cloudmodding.com/oot/Save_Format#event_chk_inf for more informations)
 - ``SEGMENT_ADDRESS`` is the important part. This is the memory address where your cutscene is located. Using the ``#include`` will allow you to use the name of the array containing the cutscene commands in the file you exported you're cutscene, if you named the cutscene object ``Cutscene.YOUR_CS_NAME`` then this array will be named ``YOUR_CS_NAME``, use that name for the segment address.
-3. Example with: ``{ 0x0185, 2, 0xA0, gHyruleFieldIntroCs },``
-- ``0x0185`` is the Hyrule Field entrance from Lost Woods
+3. Example with: ``{ ENTR_SPOT00_3, 2, EVENTCHKINF_A0, gHyruleFieldIntroCs },``
+- ``ENTR_SPOT00_3`` is the Hyrule Field entrance from Lost Woods, see ``entrance_table.h`` to view/add entrances
 - ``2`` means this cutscene can be watched as child AND as adult
-- ``0xA0`` is the flag set in the ``event_chk_inf`` table
+- ``EVENTCHKINF_A0`` is the flag set in the ``event_chk_inf`` table, this is a macro but you can use raw hex: ``0xA0``
 - ``gHyruleFieldIntroCs`` is the name of the array with the cutscene commands, as defined in ``assets/scenes/overworld/spot00_scene.c``, ``CutsceneData gHyruleFieldIntroCs[]``
 4. Compile the game again and use the entrance you chose for ``sEntranceCutsceneTable`` and your cutscene should play.
 
-Note that you can have the actual address of your cutscene if you use ``sym_info.py`` from decomp.
+Note that you can have the actual address of your cutscene if you use ``sym_info.py`` from decomp. Example with ``gHyruleFieldIntroCs``:
+- Command: ``./sym_info.py gHyruleFieldIntroCs`` (on a matching build)
+- Result: ``Symbol gHyruleFieldIntroCs (RAM: 0x02013AA0, ROM: 0x27E9AA0, build/assets/scenes/overworld/spot00/spot00_scene.o)``
 
 If you have a softlock in-game then it you probably did something wrong when creating the cutscene. Make sure you set up the bones properly. The softlock means the game is playing a cutscene but it's probably reading wrong data. Make sure the cutscene is exported, if it's not export it again.
