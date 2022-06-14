@@ -6,10 +6,10 @@
 3. Switch to the ``OOT`` tab. In ``OOT File Settings``, set your decomp path to the path of your [OoT Decomp](https://github.com/zeldaret/oot/) repository on disk.
 4. In ``OOT Tools``, click "Add Scene" to create a basic scene.
 5. In ``OOT Scene Exporter`` you can choose the scene to replace or add. Some scenes have some hardcoded things that will cause them to break, so choose something like ``Market Entrance (Child Day) (Entra)``.
-- To add a custom scene choose ``Custom`` in the scene search box, then choose in which folder you want to export the scene and which name you want it to be (note that Fast64 will force the lower-case for the scene name).
+- To add a custom scene choose ``Custom`` in the scene search box, then choose in which folder you want to export the scene and which name you want it to be (note that Fast64 will force the scene name to be lower-case).
 6. Make sure you selected the right scene in ``Scene Object`` then click "Export Scene" to export it. When you click ``Add Scene`` this is set automatically.
 7. Compile and run the game. This was tested for commit ef56b01.
-8. (Optionnal) In the ``View`` tab you may want to increase the ``Clip End`` value.
+8. (Optional) In the ``View`` tab you may want to increase the ``Clip End`` value.
 9. Note: You can enable ``Export as Single File`` if you want to have your scene in the same format as the other ones in decomp.
 10. Note: You can read [this code](https://github.com/Dragorn421/oot/tree/mod_base_for_mods) to take a glance at what you can do for quality of life for testing.
 
@@ -26,19 +26,17 @@ Properties for empties/meshes can be found in the Blender object properties wind
 
 ![](/images/oot_object_inspector.png)
 
-Read the "Getting Started" section for informations on scene exportation.
+Read the "Getting Started" section for information on scene exporting.
 
 ### Actors
 To add an actor you need to create a new empty object in Blender, the shape doesn't matter.
-When the empty object is created you can set the ``Actor`` object type in the ``Object Properties`` panel. (Note: PR #56 will add a button to add actors.)
+When the empty object is created you can set the ``Actor`` object type in the ``Object Properties`` panel.
 
-To add actors to a scene, create a new Empty and parent it to a Scene or a Room, otherwise they will not be exported in the room C code. Then in the Object Properties panel select ``Actor`` as the Object Type. Use the ``Select Actor ID`` button to choose an actor, and then set the Actor Parameter value as desired (see the list of Actor Parameters below). 
+To add actors to a scene, create a new Empty and parent it to a Room, otherwise they will not be exported in the room C code. Then in the Object Properties panel select ``Actor`` as the Object Type. Use the ``Select Actor ID`` button to choose an actor, and then set the Actor Parameter value as desired (see the list of Actor Parameters below). 
 
-Finally, every actors you are using needs their assets. In OoT they're called "Objects", if an actor is missing an object the code will kill the actor. To do this select the Room that your actor is parented to, select the "Objects" tab in its Object Properties window, and click "Add Item". 
+Finally, every actors you are using needs their assets. In OoT they're called "Objects", if an actor is missing an object the code will not spawn the actor. To do this select the Room that your actor is parented to, select the "Objects" tab in its Object Properties window, and click "Add Item". 
 
 Then "Search Object ID" to find the actor object you need. For example, if adding a Deku Baba actor (EN_DEKUBABA) you need to add the "Dekubaba" object to the Room's object dependencies. Note that the object list must not contain more than 15 items.
-
-Note: parenting an Actor to a Scene object will keep it loaded, even on room transition, in this case the room number will be ``-1`` (for instance, that's how the diving mini-game Zora "remembers" you completed the mini-game)
 
 #### Actor Parameters
 Actor parameters can be found at https://wiki.cloudmodding.com/oot/Actor_List_(Variables). This documentation is NOT 100% accurate, you can get more informations with the OoT Decomp. Look for ``rot.z`` and ``params`` in the actor you want, some actors may use ``rot.x`` and ``rot.y``.
@@ -85,7 +83,7 @@ There may also be an issue where some meshes import completely black due to the 
 To import an animation, select the armature the animation belongs to then click "Import" on the animation importer.
 To export an animation, select an armature and click "Export", which will export the active animation of the armature.
 
-### Creating A Cutscene
+### Creating a Cutscene
 **Creating the cutscene itself:**
 
 To create custom cutscenes you need to get [zcamedit, made by Sauraen](https://github.com/sauraen/zcamedit).
@@ -104,14 +102,14 @@ To get more informations about the game's cutscene system/camera system, read [z
 Note: a "cutscene terminator" is a cutscene command that makes a scene transition. For example, this is used in the intro cutscene or in the credits.
 
 <details closed>
-<summary>Object Data Properties Panel</summary>
-<img src="/images/oot_object_data_properties.png" width=500/>
+<summary>Armature Data Properties Panel</summary>
+<img src="/images/oot_armature_data_properties.png" width=500/>
 </details>
 
 
 **Watching the cutscene in-game**
 
-To be able to actually watch your cutscene you need to have a way to trigger it, this can be done by an actor (for instance) or using the entrance cutscene table. This guide will be explain how to use an entrance.
+To be able to actually watch your cutscene you need to have a way to trigger it, this can be done by an actor (for instance) or using the entrance cutscene table. This guide will be explaining how to use an entrance.
 
 1. Open ``src/code/z_demo.c`` and add an ``#include`` with the path of the file containing your cutscene.
 2. Add an entry at the end of ``EntranceCutscene sEntranceCutsceneTable[]``, the format is:
@@ -128,7 +126,7 @@ To be able to actually watch your cutscene you need to have a way to trigger it,
 4. Compile the game again and use the entrance you chose for ``sEntranceCutsceneTable`` and your cutscene should play.
 
 Note that you can have the actual address of your cutscene if you use ``sym_info.py`` from decomp. Example with ``gHyruleFieldIntroCs``:
-- Command: ``./sym_info.py gHyruleFieldIntroCs`` (on a matching build)
+- Command: ``./sym_info.py gHyruleFieldIntroCs``
 - Result: ``Symbol gHyruleFieldIntroCs (RAM: 0x02013AA0, ROM: 0x27E9AA0, build/assets/scenes/overworld/spot00/spot00_scene.o)``
 
-If you have a softlock in-game then it you probably did something wrong when creating the cutscene. Make sure you set up the bones properly. The softlock means the game is playing a cutscene but it's probably reading wrong data. Make sure the cutscene is exported, if it's not export it again.
+If you have a softlock in-game then you probably did something wrong when creating the cutscene. Make sure you set up the bones properly. The softlock means the game is playing a cutscene but it's probably reading wrong data. Make sure the cutscene is exported, if it's not export it again.
