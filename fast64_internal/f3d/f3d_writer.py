@@ -229,15 +229,19 @@ class TileLoad:
         self.texDimensions = texDimensions
         self.tmemMax = getTmemMax(texFormat)
 
-    # offset by 1 pixel for filtering purposes
     def getLow(self, value):
-        return int(max(math.floor(value - 1), 0))
+        return int(max(math.floor(value), 0))
 
     def getHigh(self, value, field):
         # 1024 wraps around to 0
         # -1 is because the high value is (max value - 1)
         # ex. 32 pixel width -> high = 31
-        return int(min(math.ceil(value + 1), min(self.texDimensions[field], 1024)) - 1)
+        return int(
+            min(
+                math.ceil(value),
+                min(self.texDimensions[field], 1024)
+            ) - 1
+        )
 
     def tryAppend(self, other):
         return self.appendTile(other.sl, other.sh, other.tl, other.th)
@@ -335,6 +339,7 @@ def saveMeshWithLargeTexturesByFaces(
     faceTileLoads = {}
     for face in faces:
         uvs = [UVtoST(obj, loopIndex, uv_data, texDimensions, isPointSampled) for loopIndex in face.loops]
+
         faceTileLoad = TileLoad(texFormat, twoTextures, texDimensions)
         faceTileLoads[face] = faceTileLoad
         if not faceTileLoad.tryAdd(uvs):
@@ -1202,7 +1207,6 @@ def convertVertexData(
 
     # Color/Normal (4 bytes)
     if exportVertexColors:
-        # colorOrNormal = exportColor(loopColorOrNormal[:3]) + [int(round(loopColorOrNormal[3] * 255))]
         colorOrNormal = [scaleToU8(c).to_bytes(1, "big")[0] for c in loopColorOrNormal]
     else:
         # normal transformed correctly.
