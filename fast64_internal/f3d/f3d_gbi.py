@@ -2513,10 +2513,6 @@ class FModel:
         for info, texture in self.textures.items():
             texture.save_binary(romfile)
         for materialKey, (fMaterial, texDimensions) in self.materials.items():
-            if fMaterial.useLargeTextures and (fMaterial.saveLargeTextures[0] or fMaterial.saveLargeTextures[0]):
-                raise PluginError(
-                    "Large texture mode textures must have their texture specific 'Save As PNG' disabled for binary export."
-                )
             fMaterial.save_binary(romfile, self.f3d, segments)
         for name, mesh in self.meshes.items():
             mesh.save_binary(romfile, self.f3d, segments)
@@ -2540,7 +2536,7 @@ class FModel:
             texDir += "/"
         data = CData()
         for info, texture in self.textures.items():
-            if savePNG or texture.isLargeTexture:
+            if savePNG:
                 data.append(texture.to_c_tex_separate(texDir, texArrayBitSize))
             else:
                 data.append(texture.to_c(texArrayBitSize))
@@ -2596,7 +2592,6 @@ class FModel:
 
         dynamicData.append(self.to_c_material_revert(gfxFormatter))
 
-        self.texturesSavedLastExport = self.save_textures(textureExportSettings.exportPath, not savePNG)
         self.freePalettes()
         return ExportCData(staticData, dynamicData, texC)
 
@@ -2619,6 +2614,7 @@ class FModel:
         return scrollData, hasScrolling
 
     def save_textures(self, dirpath, largeTexturesOnly):
+        # TODO: Saving texture should come from FImage
         texturesSaved = 0
         for (image, texInfo), texture in self.textures.items():
             if texInfo[1] == "PAL" or (largeTexturesOnly and not texture.isLargeTexture):
@@ -2952,7 +2948,6 @@ class FMaterial:
         self.useLargeTextures = False
         self.largeTextureIndex = None
         self.texturesLoaded = [False, False]
-        self.saveLargeTextures = [True, True]
 
     def getScrollData(self, material, dimensions):
         self.getScrollDataField(material, 0, 0)

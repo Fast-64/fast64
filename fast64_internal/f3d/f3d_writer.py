@@ -20,6 +20,12 @@ from .f3d_gbi import _DPLoadTextureBlock
 
 from ..utility import *
 
+def getColorLayer(mesh: bpy.types.Mesh, layer = "Col"):
+    if layer in mesh.attributes and getattr(mesh.attributes[layer], "data", None):
+        return mesh.attributes[layer].data
+    if layer in mesh.vertex_colors:
+        return mesh.vertex_colors[layer].data
+    return None
 
 def getEdgeToFaceDict(mesh):
     edgeDict = {}
@@ -83,6 +89,7 @@ def getInfoDict(obj):
     validNeighborDict = infoDict.validNeighbors
 
     mesh: bpy.types.Mesh = obj.data
+    uv_data: bpy.types.bpy_prop_collection | list[bpy.types.MeshUVLoop] = None
     if len(obj.data.uv_layers) == 0:
         uv_data = obj.data.uv_layers.new().data
     else:
@@ -158,13 +165,10 @@ def fixLargeUVs(obj):
 
         if material not in texSizeDict:
             texSizeDict[material] = getTexDimensions(material)
-        if material.mat_ver > 3 and material.f3d_mat.use_large_textures:
+        if material.f3d_mat.use_large_textures:
             continue
 
-        if material.mat_ver > 3:
-            f3dMat = material.f3d_mat
-        else:
-            f3dMat = material
+        f3dMat = material.f3d_mat
 
         UVinterval = [
             2 if f3dMat.tex0.S.mirror or f3dMat.tex1.S.mirror else 1,
@@ -192,12 +196,6 @@ def fixLargeUVs(obj):
         for loopIndex in polygon.loop_indices:
             newUV = (uv_data[loopIndex].uv[0] + uvOffset[0], uv_data[loopIndex].uv[1] + uvOffset[1])
             uv_data[loopIndex].uv = newUV
-
-            # if newUV[0] > cellSize[0] or \
-            # 	newUV[1] > cellSize[1] or \
-            # 	newUV[0] < -cellSize[0] or \
-            # 	newUV[1] < -cellSize[1]:
-            # 	print("TOO BIG: " + str(newUV))
 
 
 def applyOffset(minUV, maxUV, uvOffset, offset, i):
@@ -717,18 +715,13 @@ def saveTriangleStrip(triConverter, faces, mesh, terminateDL):
 
 # Necessary for UV half pixel offset (see 13.7.5.3)
 def isTexturePointSampled(material):
-    if material.mat_ver > 3:
-        f3dMat = material.f3d_mat
-    else:
-        f3dMat = material
+    f3dMat = material.f3d_mat
+
     return f3dMat.rdp_settings.g_mdsft_text_filt == "G_TF_POINT"
 
 
 def isLightingDisabled(material):
-    if material.mat_ver > 3:
-        f3dMat = material.f3d_mat
-    else:
-        f3dMat = material
+    f3dMat = material.f3d_mat
     return not f3dMat.rdp_settings.g_lighting
 
 
@@ -793,7 +786,7 @@ def saveMeshByFaces(
 
 
 def get8bitRoundedNormal(loop: bpy.types.MeshLoop, mesh):
-    alpha_layer = mesh.vertex_colors["Alpha"].data if "Alpha" in mesh.vertex_colors else None
+    alpha_layer = getColorLayer(mesh, "Alpha")
 
     if alpha_layer is not None:
         normalizedAColor = alpha_layer[loop.index].color
@@ -808,8 +801,8 @@ def get8bitRoundedNormal(loop: bpy.types.MeshLoop, mesh):
 
 
 class LoopConvertInfo:
-    def __init__(self, uv_data, obj, exportVertexColors):
-        self.uv_data = uv_data
+    def __init__(self, uv_data: bpy.types.bpy_prop_collection | list[bpy.types.MeshUVLoop], obj, exportVertexColors):
+        self.uv_data: bpy.types.bpy_prop_collection | list[bpy.types.MeshUVLoop] = uv_data
         self.obj = obj
         self.exportVertexColors = exportVertexColors
 
@@ -1044,10 +1037,10 @@ class TriangleConverter:
             self.triList.commands.append(SPEndDisplayList())
 
 
-def getF3DVert(loop: bpy.types.MeshLoop, face, convertInfo, mesh):
-    position = mesh.vertices[loop.vertex_index].co.copy().freeze()
+def getF3DVert(loop: bpy.types.MeshLoop, face, convertInfo: LoopConvertInfo, mesh: bpy.types.Mesh):
+    position: mathutils.Vector = mesh.vertices[loop.vertex_index].co.copy().freeze()
     # N64 is -Y, Blender is +Y
-    uv = convertInfo.uv_data[loop.index].uv.copy()
+    uv: mathutils.Vector = convertInfo.uv_data[loop.index].uv.copy()
     uv[:] = [field if not math.isnan(field) else 0 for field in uv]
     uv[1] = 1 - uv[1]
     uv = uv.freeze()
@@ -1204,6 +1197,8 @@ def convertVertexData(
         convertFloatToFixed16(loopUV[0] * texDimensions[0] - pixelOffset),
         convertFloatToFixed16(loopUV[1] * texDimensions[1] - pixelOffset),
     ]
+    if isPointSampled:
+        print(mesh.name, isPointSampled, pixelOffset, [u for u in uv])
 
     # Color/Normal (4 bytes)
     if exportVertexColors:
@@ -1219,13 +1214,6 @@ def convertVertexData(
         ]
 
     return Vtx(position, uv, colorOrNormal)
-
-def getColorLayer(mesh: bpy.types.Mesh, layer = "Col"):
-    if layer in mesh.attributes and getattr(mesh.attributes[layer], "data", None):
-        return mesh.attributes[layer].data
-    if layer in mesh.vertex_colors:
-        return mesh.vertex_colors[layer].data
-    return None
 
 @functools.lru_cache(0)
 def is3_2_or_above():
@@ -1316,10 +1304,8 @@ defaultLighting = [
 
 
 def getTexDimensions(material):
-    if material.mat_ver > 3:
-        f3dMat = material.f3d_mat
-    else:
-        f3dMat = material
+    f3dMat = material.f3d_mat
+
     texDimensions0 = None
     texDimensions1 = None
     useDict = all_combiner_uses(f3dMat)
@@ -1478,7 +1464,6 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 
         fMaterial.useLargeTextures = not loadTextures
         fMaterial.texturesLoaded[0] = True
-        fMaterial.saveLargeTextures[0] = f3dMat.tex0.save_large_texture
         texDimensions0, nextTmem = saveTextureIndex(
             material.name,
             fModel,
@@ -1507,7 +1492,6 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 
         fMaterial.useLargeTextures = not loadTextures
         fMaterial.texturesLoaded[1] = True
-        fMaterial.saveLargeTextures[1] = f3dMat.tex1.save_large_texture
         texDimensions1, nextTmem = saveTextureIndex(
             material.name,
             fModel,
@@ -1732,7 +1716,6 @@ def saveTextureIndex(
         mask_T = 0
         shift_T = 0
 
-    convertTextureData = convertTextureData and not (fMaterial.useLargeTextures and fMaterial.saveLargeTextures[index])
     if isCITexture:
         if texProp.use_tex_reference:
             fImage = FImage(texProp.tex_reference, None, None, width, height, None, False)
