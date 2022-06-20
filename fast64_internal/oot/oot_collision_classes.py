@@ -442,7 +442,7 @@ class OOTCameraData:
 
 class OOTCameraPosData:
 	def __init__(self, camSType, hasPositionData, position, rotation, fov, jfifID):
-		self.camSType = decomp_compat_map_CameraSType.get(camSType, camSType)
+		self.camSType = camSType
 		self.position = position
 		self.rotation = rotation
 		self.fov = fov
