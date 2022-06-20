@@ -528,9 +528,6 @@ class F3DPanel(bpy.types.Panel):
                 prop_input.label(text="Large texture mode enabled.")
                 prop_input.label(text="Each triangle must fit in a single tile load.")
                 prop_input.label(text="UVs must be in the [0, 1024] pixel range.")
-                prop_input.prop(textureProp, "save_large_texture")
-                if not textureProp.save_large_texture:
-                    prop_input.label(text="Most large textures will take forever to convert.", icon="PREVIEW_RANGE")
             else:
                 tmemUsageUI(prop_input, textureProp)
 
@@ -1492,7 +1489,6 @@ def update_tex_values_field(
     self: bpy.types.Material,
     texProperty: "TextureProperty",
     tex_size: list[int],
-    uvBasisScale,
     tex_index: int
 ):
     nodes = self.node_tree.nodes
@@ -1531,12 +1527,6 @@ def update_tex_values_field(
     # Shift
     inputs[str_index + " S Shift"].default_value = texProperty.S.shift
     inputs[str_index + " T Shift"].default_value = texProperty.T.shift
-
-    # Scale
-    # TODO: (V5) set texture size props i reckon
-    # nodes['Get UV ' + str_index + ' F3D v3'].inputs[9].default_value = (
-    # 	scale[0] * uvBasisScale[0],
-    # 	scale[1] * uvBasisScale[1], 0)
 
 def iter_tex_nodes(node_tree: bpy.types.NodeTree, texIndex: int) -> Generator[bpy.types.TextureNodeImage, None, None]:
     for i in range(1, 5):
@@ -1577,7 +1567,6 @@ def update_tex_values_index(
     self: bpy.types.Material,
     *,
     texProperty: "TextureProperty",
-    uvBasisScale,
     texIndex
 ):
     nodes = self.node_tree.nodes
@@ -1589,7 +1578,7 @@ def update_tex_values_index(
             if texProperty.autoprop:
                 setAutoProp(texProperty.S, tex_size[0])
                 setAutoProp(texProperty.T, tex_size[1])
-            update_tex_values_field(self, texProperty, tex_size, uvBasisScale, texIndex)
+            update_tex_values_field(self, texProperty, tex_size, texIndex)
 
             texFormat = texProperty.tex_format
             ciFormat = texProperty.ci_format
@@ -1659,38 +1648,19 @@ def update_tex_values_manual(material: bpy.types.Material, context, prop_path=No
             texture_inputs["1 S TexSize"].default_value = f3dMat.tex1.tex.size[0]
             texture_inputs["1 T TexSize"].default_value = f3dMat.tex1.tex.size[0]
 
-    useDict = all_combiner_uses(f3dMat)
-
-    if (
-        useDict["Texture 0"]
-        and f3dMat.tex0.tex is not None
-        and useDict["Texture 1"]
-        and f3dMat.tex1.tex is not None
-        and f3dMat.tex0.tex.size[0] > 0
-        and f3dMat.tex0.tex.size[1] > 0
-        and f3dMat.tex1.tex.size[0] > 0
-        and f3dMat.tex1.tex.size[1] > 0
-    ):
-        if f3dMat.uv_basis == "TEXEL0":
-            uvBasisScale0 = (1, 1)
-            uvBasisScale1 = (
-                f3dMat.tex0.tex.size[0] / f3dMat.tex1.tex.size[0],
-                f3dMat.tex0.tex.size[1] / f3dMat.tex1.tex.size[1],
-            )
-        else:
-            uvBasisScale1 = (1, 1)
-            uvBasisScale0 = (
-                f3dMat.tex1.tex.size[0] / f3dMat.tex0.tex.size[0],
-                f3dMat.tex1.tex.size[1] / f3dMat.tex0.tex.size[1],
-            )
+    uv_basis: bpy.types.ShaderNodeGroup = nodes['UV Basis']
+    if f3dMat.uv_basis == "TEXEL0":
+        uv_basis.node_tree = bpy.data.node_groups["UV Basis 0"]
     else:
-        uvBasisScale0 = (1, 1)
-        uvBasisScale1 = (1, 1)
+        uv_basis.node_tree = bpy.data.node_groups["UV Basis 1"]
+
+    uv_basis.inputs['S Scale'].default_value = f3dMat.tex_scale[0]
+    uv_basis.inputs['T Scale'].default_value = f3dMat.tex_scale[1]
 
     if not prop_path or 'tex0' in prop_path:
-        update_tex_values_index(material, texProperty=f3dMat.tex0, uvBasisScale=uvBasisScale0, texIndex=0)
+        update_tex_values_index(material, texProperty=f3dMat.tex0, texIndex=0)
     if not prop_path or 'tex1' in prop_path:
-        update_tex_values_index(material, texProperty=f3dMat.tex1, uvBasisScale=uvBasisScale1, texIndex=1)
+        update_tex_values_index(material, texProperty=f3dMat.tex1, texIndex=1)
 
     texture_inputs['3 Point'].default_value = int(f3dMat.rdp_settings.g_mdsft_text_filt == "G_TF_BILERP")
     set_texture_settings_node(material)
@@ -1973,10 +1943,9 @@ def update_tex_field_prop(self: bpy.types.Property, context: bpy.types.Context):
         prop_path = self.path_from_id()
         tex_property, tex_index = get_tex_prop_from_path(material, prop_path)
         tex_size = tex_property.get_tex_size()
-        uv_basis_scale = (1, 1) # TODO: (V5) UV Basis
 
         if tex_size[0] > 0 and tex_size[1] > 0:
-            update_tex_values_field(material, tex_property, tex_size, uv_basis_scale, tex_index)
+            update_tex_values_field(material, tex_property, tex_size, tex_index)
         set_texture_settings_node(material)
 
 def toggle_auto_prop(self, context: bpy.types.Context):
@@ -1988,11 +1957,10 @@ def toggle_auto_prop(self, context: bpy.types.Context):
         tex_property, tex_index = get_tex_prop_from_path(material, prop_path)
         if tex_property.autoprop:
             tex_size = tuple([s for s in tex_property.get_tex_size()])
-            uv_basis_scale = (1, 1) # TODO: (V5) UV Basis
 
             setAutoProp(tex_property.S, tex_size[0])
             setAutoProp(tex_property.T, tex_size[1])
-            update_tex_values_field(material, tex_property, tex_size, uv_basis_scale, tex_index)
+            update_tex_values_field(material, tex_property, tex_size, tex_index)
 
         set_texture_settings_node(material)
 
@@ -2029,7 +1997,6 @@ class TextureProperty(bpy.types.PropertyGroup):
     menu: bpy.props.BoolProperty()
     tex_set: bpy.props.BoolProperty(default=True, update=update_node_values_with_preset)
     autoprop: bpy.props.BoolProperty(name="Autoprop", update=toggle_auto_prop, default=True)
-    save_large_texture: bpy.props.BoolProperty(name="Save Large Texture As PNG", default=True)
     tile_scroll: bpy.props.PointerProperty(type=SetTileSizeScrollProperty)
     
     def get_tex_size(self) -> list[int]:
@@ -2394,7 +2361,7 @@ class AddPresetF3D(AddPresetBase, Operator):
         # "Shaded Texture",
     ]
 
-    ignore_props = [
+    ignore_props = {
         "f3d_mat.tex0.tex",
         "f3d_mat.tex0.tex_format",
         "f3d_mat.tex0.ci_format",
@@ -2443,7 +2410,7 @@ class AddPresetF3D(AddPresetBase, Operator):
         "f3d_mat.f3d_update_flag",
         "f3d_mat.name",
         "f3d_mat.use_large_textures",
-    ]
+    }
 
     def execute(self, context):
         import os
