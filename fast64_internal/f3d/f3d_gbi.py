@@ -1751,7 +1751,12 @@ def get_tex_sts_code(tex: FSetTileSizeScrollField, tex_num: int, cmd_num: int):
         # indent again for if statement
         lines = [("\t" + func) for func in lines]
 
-        lines = [f"\n\tif (--{cur_interval} <= 0) {{", *lines, f"\t\t{cur_interval} = {interval};", "\t}"]
+        lines = [
+            f"\n\tif (--{cur_interval} <= 0) {{",
+            *lines,
+            f"\t\t{cur_interval} = {interval};",
+            "\t}",
+        ]
     return variables, lines
 
 
@@ -1759,7 +1764,7 @@ def mat_tile_scroll(
     mat: str, tex0: FSetTileSizeScrollField, tex1: FSetTileSizeScrollField, cmd_num0: int, cmd_num1: int
 ):
     func = f"void scroll_sts_{mat}()"
-    lines = [f"{func} {{"]
+    lines = [func + " {"]
 
     tex0_variables, tex0_lines = get_tex_sts_code(tex0, 0, cmd_num0)
     tex1_variables, tex1_lines = get_tex_sts_code(tex1, 1, cmd_num1)
@@ -1789,20 +1794,14 @@ class GfxFormatter:
         if scrollDataFields[0].animType == "None" and scrollDataFields[1].animType == "None":
             return ""
 
-        data = (
-            "void scroll_"
-            + name
-            + "() {\n"
-            + "\tint i = 0;\n"
-            + "\tint count = "
-            + str(count)
-            + ";\n"
-            + "\tint width = "
-            + str(fScrollData.dimensions[0])
-            + " * 0x20;\n"
-            + "\tint height = "
-            + str(fScrollData.dimensions[1])
-            + " * 0x20;"
+        data = "\n".join(
+            (
+                "void scroll_" + name + "() {",
+                "\tint i = 0;",
+                f"\tint count = {count};",
+                f"\tint width = {fScrollData.dimensions[0]} * 0x20;",
+                f"\tint height = {fScrollData.dimensions[1]} * 0x20;",
+            )
         )
 
         variables = ""
@@ -1816,55 +1815,31 @@ class GfxFormatter:
             axis = ["width", "height"][i]
             if scrollDataFields[i].animType != "None":
                 currentVars += "\tstatic int current" + field + " = 0;\n\tint delta" + field + ";\n"
-                checkOverflow += (
-                    "\tif ("
-                    + absFunc
-                    + "(current"
-                    + field
-                    + ") > "
-                    + axis
-                    + ") {\n"
-                    + "\t\tdelta"
-                    + field
-                    + " -= (int)(absi(current"
-                    + field
-                    + ") / "
-                    + axis
-                    + ") * "
-                    + axis
-                    + " * "
-                    + signFunc
-                    + "(delta"
-                    + field
-                    + ");\n\t}\n"
+                checkOverflow += "\n".join(
+                    (
+                        "\tif (" + absFunc + "(current" + field + ") > " + axis + ") {",
+                        (
+                            f"\t\tdelta{field} -= (int)(absi(current{field}) / {axis}) "
+                            f"* {axis} * {signFunc}(delta{field});"
+                        ),
+                        "\t}",
+                        "",
+                    )
                 )
-                scrolling += "\t\tvertices[i].n.tc[" + str(i) + "] += delta" + field + ";\n"
-                increaseCurrentDelta += "\tcurrent" + field + " += delta" + field + ";"
+                scrolling += f"\t\tvertices[i].n.tc[{i}] += delta{field};\n"
+                increaseCurrentDelta += f"\tcurrent{field} += delta{field};"
 
                 if scrollDataFields[i].animType == "Linear":
-                    deltaCalculate += (
-                        "\tdelta" + field + " = (int)(" + str(scrollDataFields[i].speed) + " * 0x20) % " + axis + ";\n"
-                    )
+                    deltaCalculate += f"\tdelta{field} = (int)({scrollDataFields[i].speed} * 0x20) % {axis};\n"
                 elif scrollDataFields[i].animType == "Sine":
-                    currentVars += (
-                        "\tstatic int time"
-                        + field
-                        + ";\n"
-                        + "\tfloat amplitude"
-                        + field
-                        + " = "
-                        + str(scrollDataFields[i].amplitude)
-                        + ";\n"
-                        + "\tfloat frequency"
-                        + field
-                        + " = "
-                        + str(scrollDataFields[i].frequency)
-                        + ";\n"
-                        + "\tfloat offset"
-                        + field
-                        + " = "
-                        + str(scrollDataFields[i].offset)
-                        + ";\n"
+                    currentVars += "\n".join(
+                        (
+                            "\tstatic int time" + field + ";",
+                            "\tfloat amplitude" + field + " = " + str(scrollDataFields[i].amplitude) + ";",
+                            "\tfloat frequency" + field + " = " + str(scrollDataFields[i].frequency) + ";",
+                            "\tfloat offset" + field + " = " + str(scrollDataFields[i].offset) + ";",
+                            "",
+                        )
                     )
 
                     deltaCalculate += (
@@ -1905,26 +1880,21 @@ class GfxFormatter:
                 else:
                     raise PluginError("Unhandled scroll type: " + str(scrollDataFields[i].animType))
 
-        return (
-            data
-            + "\n"
-            + variables
-            + "\n"
-            + currentVars
-            + "\tVtx *vertices = "
-            + segToVirtualFunc
-            + "("
-            + name
-            + ");\n\n"
-            + deltaCalculate
-            + "\n"
-            + checkOverflow
-            + "\n"
-            + "\tfor (i = 0; i < count; i++) {\n"
-            + scrolling
-            + "\t}\n"
-            + increaseCurrentDelta
-            + "\n}\n\n"
+        return "\n".join(
+            (
+                data,
+                variables,
+                currentVars + "\tVtx *vertices = " + segToVirtualFunc + "(" + name + ");",
+                "",
+                deltaCalculate,
+                checkOverflow,
+                "\tfor (i = 0; i < count; i++) {",
+                scrolling + "\t}",
+                increaseCurrentDelta,
+                "}",
+                "",
+                "",
+            )
         )
 
     # Called for handling vertex texture scrolling.
@@ -1994,89 +1964,71 @@ class Vtx:
         if bpy.context.scene.decomp_compatible:
             return (
                 "{{"
-                + "{"
-                + str(self.position[0])
-                + ", "
-                + str(self.position[1])
-                + ", "
-                + str(self.position[2])
-                + "},"
-                + "0, "
-                + "{"
-                + str(self.uv[0])
-                + ", "
-                + str(self.uv[1])
-                + "},"
-                + "{"
-                + "0x"
-                + format(self.colorOrNormal[0], "X")
-                + ", "
-                + "0x"
-                + format(self.colorOrNormal[1], "X")
-                + ", "
-                + "0x"
-                + format(self.colorOrNormal[2], "X")
-                + ", "
-                + "0x"
-                + format(self.colorOrNormal[3], "X")
-                + "}"
+                + ", ".join(
+                    (
+                        (
+                            "{"
+                            + ", ".join(
+                                (
+                                    str(self.position[0]),
+                                    str(self.position[1]),
+                                    str(self.position[2]),
+                                )
+                            )
+                            + "}"
+                        ),
+                        "0",
+                        "{" + str(self.uv[0]) + ", " + str(self.uv[1]) + "}",
+                        (
+                            "{"
+                            + ", ".join(
+                                (
+                                    "0x" + format(self.colorOrNormal[0], "X"),
+                                    "0x" + format(self.colorOrNormal[1], "X"),
+                                    "0x" + format(self.colorOrNormal[2], "X"),
+                                    "0x" + format(self.colorOrNormal[3], "X"),
+                                )
+                            )
+                            + "}"
+                        ),
+                    )
+                )
                 + "}}"
             )
         else:
             return (
                 "{"
-                + str(self.position[0])
-                + ", "
-                + str(self.position[1])
-                + ", "
-                + str(self.position[2])
-                + ", "
-                + "0, "
-                + str(self.uv[0])
-                + ", "
-                + str(self.uv[1])
-                + ", "
-                + "0x"
-                + format(self.colorOrNormal[0], "X")
-                + ", "
-                + "0x"
-                + format(self.colorOrNormal[1], "X")
-                + ", "
-                + "0x"
-                + format(self.colorOrNormal[2], "X")
-                + ", "
-                + "0x"
-                + format(self.colorOrNormal[3], "X")
+                + ", ".join(
+                    (
+                        str(self.position[0]),
+                        str(self.position[1]),
+                        str(self.position[2]),
+                        "0",
+                        str(self.uv[0]),
+                        str(self.uv[1]),
+                        "0x" + format(self.colorOrNormal[0], "X"),
+                        "0x" + format(self.colorOrNormal[1], "X"),
+                        "0x" + format(self.colorOrNormal[2], "X"),
+                        "0x" + format(self.colorOrNormal[3], "X"),
+                    )
+                )
                 + "}"
             )
 
     def to_sm64_decomp_s(self):
-        return (
-            "vertex "
-            + str(self.position[0])
-            + ", "
-            + str(self.position[1])
-            + ", "
-            + str(self.position[2])
-            + ", "
-            + "0, "
-            + "0x"
-            + format(self.uv[0], "X")
-            + ", "
-            + "0x"
-            + format(self.uv[1], "X")
-            + ", "
-            + "0x"
-            + format(self.colorOrNormal[0], "X")
-            + ", "
-            + "0x"
-            + format(self.colorOrNormal[1], "X")
-            + ", "
-            + "0x"
-            + format(self.colorOrNormal[2], "X")
-            + ", "
-            + "0x"
-            + format(self.colorOrNormal[3], "X")
+        return "vertex " + ", ".join(
+            (
+                str(self.position[0]),
+                str(self.position[1]),
+                str(self.position[2]),
+                "0",
+                "0x" + format(self.uv[0], "X"),
+                "0x" + format(self.uv[1], "X"),
+                "0x" + format(self.colorOrNormal[0], "X"),
+                "0x" + format(self.colorOrNormal[1], "X"),
+                "0x" + format(self.colorOrNormal[2], "X"),
+                "0x" + format(self.colorOrNormal[3], "X"),
+            )
         )
 
 
@@ -2490,7 +2442,8 @@ class FModel:
         for materialKey, (fMaterial, texDimensions) in self.materials.items():
             if fMaterial.useLargeTextures and (fMaterial.saveLargeTextures[0] or fMaterial.saveLargeTextures[0]):
                 raise PluginError(
-                    "Large texture mode textures must have their texture specific 'Save As PNG' disabled for binary export."
+                    "Large texture mode textures must have their "
+                    "texture specific 'Save As PNG' disabled for binary export."
                 )
             fMaterial.save_binary(romfile, self.f3d, segments)
         for name, mesh in self.meshes.items():
@@ -2621,12 +2574,7 @@ class FModel:
         return texturesSaved
 
     def freePalettes(self):
-        # Palettes no longer saved
-        return
-        for (image, texInfo), texture in self.textures.items():
-            # texDict[name] = texture.to_c_data() + '\n'
-            if texInfo[1] == "PAL":
-                bpy.data.images.remove(image)
+        pass
 
 
 class FTexRect(FModel):
@@ -3017,61 +2965,44 @@ class Light:
         return bytearray(self.color + [0x00] + self.color + [0x00] + self.normal + [0x00] + [0x00] * 4)
 
     def to_c(self):
-        return (
-            "0x"
-            + format(self.color[0], "X")
-            + ", "
-            + "0x"
-            + format(self.color[1], "X")
-            + ", "
-            + "0x"
-            + format(self.color[2], "X")
-            + ", "
-            + "0x"
-            + format(self.normal[0], "X")
-            + ", "
-            + "0x"
-            + format(self.normal[1], "X")
-            + ", "
-            + "0x"
-            + format(self.normal[2], "X")
+        return ",".join(
+            (
+                "0x" + format(self.color[0], "X"),
+                "0x" + format(self.color[1], "X"),
+                "0x" + format(self.color[2], "X"),
+                "0x" + format(self.normal[0], "X"),
+                "0x" + format(self.normal[1], "X"),
+                "0x" + format(self.normal[2], "X"),
+            )
         )
 
     def to_sm64_decomp_s(self):
         return (
             ".byte "
-            + "0x"
-            + format(self.color[0], "X")
-            + ", "
-            + "0x"
-            + format(self.color[1], "X")
-            + ", "
-            + "0x"
-            + format(self.color[2], "X")
-            + ", "
-            + "0x00, "
-            + "0x"
-            + format(self.color[0], "X")
-            + ", "
-            + "0x"
-            + format(self.color[1], "X")
-            + ", "
-            + "0x"
-            + format(self.color[2], "X")
-            + ", "
-            + "0x00 \n"
+            + ", ".join(
+                (
+                    "0x" + format(self.color[0], "X"),
+                    "0x" + format(self.color[1], "X"),
+                    "0x" + format(self.color[2], "X"),
+                    "0x00",
+                    "0x" + format(self.color[0], "X"),
+                    "0x" + format(self.color[1], "X"),
+                    "0x" + format(self.color[2], "X"),
+                    "0x00",
+                )
+            )
+            + "\n"
             + ".byte "
-            + "0x"
-            + format(self.normal[0], "X")
-            + ", "
-            + "0x"
-            + format(self.normal[1], "X")
-            + ", "
-            + "0x"
-            + format(self.normal[2], "X")
-            + ", "
-            + "0x00, "
-            + "0x00, 0x00, 0x00, 0x00\n"
+            + ", ".join(
+                (
+                    "0x" + format(self.normal[0], "X"),
+                    "0x" + format(self.normal[1], "X"),
+                    "0x" + format(self.normal[2], "X"),
+                    "0x00",
+                    "0x00, 0x00, 0x00, 0x00",
+                )
+            )
+            + "\n"
         )
 
 
