@@ -110,6 +110,10 @@ def checkObjectReference(obj, title):
             title + " not in current view layer.\n The object is either in a different view layer or is deleted."
         )
 
+def selectSingleObject(obj: bpy.types.Object):
+    bpy.ops.object.select_all(action="DESELECT")
+    obj.select_set(True)
+    bpy.context.view_layer.objects.active = obj
 
 def parentObject(parent, child):
     bpy.ops.object.select_all(action="DESELECT")

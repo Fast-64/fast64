@@ -1852,6 +1852,51 @@ def link_f3d_material_library():
     if prevMode != "OBJECT":
         bpy.ops.object.mode_set(mode=get_mode_set_from_context_mode(prevMode))
 
+def shouldConvOrCreateColorAttribute(mesh: bpy.types.Mesh, attr_name="Col"):
+    has_attr, conv_attr = False, False
+    if attr_name in mesh.attributes:
+        attribute: bpy.types.Attribute = mesh.attributes[attr_name]
+        has_attr = True
+        conv_attr = attribute.data_type != "FLOAT_COLOR" or attribute.domain != "CORNER"
+    return has_attr, conv_attr
+
+def convertColorAttribute(mesh: bpy.types.Mesh, attr_name="Col"):
+    prev_index = mesh.attributes.active_index
+    attr_index = mesh.attributes.find(attr_name)
+    if attr_index < 0:
+        raise PluginError(f"Failed to find the index for mesh attr {attr_name}. Attribute conversion has failed!")
+
+    mesh.attributes.active_index = attr_index
+    bpy.ops.geometry.attribute_convert(mode="GENERIC", domain="CORNER", data_type="FLOAT_COLOR")
+    mesh.attributes.active_index = prev_index
+
+def addColorAttributesToModel(obj: bpy.types.Object):
+    if not isinstance(obj.data, bpy.types.Mesh):
+        return
+
+    prevMode = bpy.context.mode
+    if prevMode != "OBJECT":
+        bpy.ops.object.mode_set(mode="OBJECT")
+        
+    selectSingleObject(obj)
+
+    mesh: bpy.types.Mesh = obj.data
+
+    conv_col, has_col = shouldConvOrCreateColorAttribute(mesh, attr_name="Col")
+    if conv_col:
+        convertColorAttribute(mesh, attr_name="Col")
+    elif not has_col:
+        bpy.ops.geometry.color_attribute_add(name="Col", domain="CORNER", data_type="COLOR")
+
+    conv_alpha, has_alpha = shouldConvOrCreateColorAttribute(mesh, attr_name="Alpha")
+    if conv_alpha:
+        convertColorAttribute(mesh, attr_name="Alpha")
+    elif not has_alpha:
+        bpy.ops.geometry.color_attribute_add(name="Alpha", domain="CORNER", data_type="COLOR")
+
+    if prevMode != "OBJECT":
+        bpy.ops.object.mode_set(mode=get_mode_set_from_context_mode(prevMode))
+
 def createF3DMat(obj, preset="Shaded Solid", index=None):
     # link all node_groups + material from addon's data .blend
     link_f3d_material_library()
@@ -1865,6 +1910,7 @@ def createF3DMat(obj, preset="Shaded Solid", index=None):
     bpy.data.materials.remove(mat)
 
     createScenePropertiesForMaterial(material)
+    addColorAttributesToModel(obj)
 
     # add material to object
     if obj is not None:
