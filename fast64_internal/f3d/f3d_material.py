@@ -1364,7 +1364,7 @@ def update_light_colors(material, context):
         remove_first_link_if_exists(material, nodes["Shade Color"].inputs["Shade Color"].links)
         remove_first_link_if_exists(material, nodes["Shade Color"].inputs["Ambient Color"].links)
 
-        # TODO: (V5) feature to toggle gamma correction
+        # TODO: feature to toggle gamma correction
         light = f3dMat.default_light_color
         if not f3dMat.use_default_lighting:
             if f3dMat.f3d_light1 is not None:
@@ -1387,7 +1387,33 @@ def update_light_colors(material, context):
         link_if_none_exist(material, nodes['ShadeColOut'].outputs[0], nodes["Shade Color"].inputs["Shade Color"])
         link_if_none_exist(material, nodes['AmbientColOut'].outputs[0], nodes["Shade Color"].inputs["Ambient Color"])
 
-def update_node_values_of_material(material, context):
+def update_color_node(combiner_inputs, color: Color, prefix: str):
+    '''Function for updating either Prim or Env colors'''
+    # TODO: feature to toggle gamma correction
+    corrected_prim = gammaCorrect(color)
+    combiner_inputs[f"{prefix} Color"].default_value = (
+        corrected_prim[0],
+        corrected_prim[1],
+        corrected_prim[2],
+        1.0,
+    )
+    combiner_inputs[f"{prefix} Alpha"].default_value = color[3]
+    
+# prim_color | Prim
+# env_color | Env
+def get_color_input_update_callback(attr_name="", prefix=""):
+    def input_update_callback(self: bpy.types.Material, context: bpy.types.Context):
+        with F3DMaterial_UpdateLock(get_material_from_context(context)) as material:
+            if not material:
+                return
+            f3dMat: "F3DMaterialProperty" = material.f3d_mat
+            nodes = material.node_tree.nodes
+            combiner_inputs = nodes["CombinerInputs"].inputs
+            update_color_node(combiner_inputs, getattr(f3dMat, attr_name), prefix)
+    return input_update_callback
+        
+
+def update_node_values_of_material(material: bpy.types.Material, context):
     nodes = material.node_tree.nodes
 
     # Case where f3d render engine is used instead of node graph
@@ -1419,20 +1445,8 @@ def update_node_values_of_material(material, context):
 
     combiner_inputs = nodes["CombinerInputs"].inputs
 
-    # TODO: (V5) feature to toggle gamma correction
-    corrected_prim = gammaCorrect(f3dMat.prim_color)
-    corrected_env = gammaCorrect(f3dMat.env_color)
-
-    combiner_inputs["Prim Color"].default_value = (
-        corrected_prim[0],
-        corrected_prim[1],
-        corrected_prim[2],
-        1.0,
-    )
-    combiner_inputs["Prim Alpha"].default_value = f3dMat.prim_color[3]
-
-    combiner_inputs["Env Color"].default_value = (corrected_env[0], corrected_env[1], corrected_env[2], 1.0)
-    combiner_inputs["Env Alpha"].default_value = f3dMat.env_color[3]
+    update_color_node(combiner_inputs, f3dMat.prim_color, "Prim")
+    update_color_node(combiner_inputs, f3dMat.env_color, "Env")
 
     combiner_inputs["Chroma Key Center"].default_value = (
         f3dMat.key_center[0],
@@ -1584,12 +1598,14 @@ def update_tex_values_index(
             ciFormat = texProperty.ci_format
             if hasNodeGraph(self):
                 tex_I_node = nodes["Tex" + str(texIndex) + "_I"]
+                desired_node = bpy.data.node_groups["Is not i"]
                 if "IA" in texFormat or (texFormat[:2] == "CI" and "IA" in ciFormat):
-                    tex_I_node.node_tree = bpy.data.node_groups["Is ia"]
+                    desired_node = bpy.data.node_groups["Is ia"]
                 elif texFormat[0] == "I" or (texFormat[:2] == "CI" and ciFormat[0] == "I"):
-                    tex_I_node.node_tree = bpy.data.node_groups["Is i"]
-                else:
-                    tex_I_node.node_tree = bpy.data.node_groups["Is not i"]
+                    desired_node = bpy.data.node_groups["Is i"]
+
+                if tex_I_node.node_tree is not desired_node:
+                    tex_I_node.node_tree = desired_node
 
 def update_tex_values_and_formats(self, context):
     with F3DMaterial_UpdateLock(get_material_from_context(context)) as material:
@@ -2332,7 +2348,7 @@ def getOptimalFormat(tex, useLargeTextures, isMultitexture):
                 texFormat = "I8"
             else:
                 texFormat = "IA8"
-    elif isMultitexture:
+    elif isMultitexture and tex.size[0] * tex.size[1] <= 1024:
         texFormat = "RGBA16"
     else:
         if len(pixelValues) <= 16:
@@ -2749,7 +2765,7 @@ class F3DMaterialProperty(bpy.types.PropertyGroup):
         min=0,
         max=1,
         default=(1, 1, 1, 1),
-        update=update_node_values_without_preset,
+        update=get_color_input_update_callback("prim_color", "Prim"),
     )
     env_color: bpy.props.FloatVectorProperty(
         name="Environment Color",
@@ -2758,7 +2774,7 @@ class F3DMaterialProperty(bpy.types.PropertyGroup):
         min=0,
         max=1,
         default=(1, 1, 1, 1),
-        update=update_node_values_without_preset,
+        update=get_color_input_update_callback("env_color", "Env"),
     )
     key_center: bpy.props.FloatVectorProperty(
         name="Key Center",
