@@ -1131,15 +1131,14 @@ class SM64ObjectPanel(bpy.types.Panel):
         if game_object.use_individual_params:
             individuals = box.box()
             individuals.label(text="Individual Behavior Parameters")
-            row = individuals.row()
+            column = individuals.column()
             for i in range(1, 5):
-                column = row.column()
-                column.label(text=f"Param {i}")
-                column.prop(game_object, f"bparam{i}", text="")
-            individuals.separator()
+                row = column.row()
+                row.prop(game_object, f"bparam{i}", text=f"Param {i}")
+            individuals.separator(factor=.25)
             individuals.label(text=f"Result: {game_object.get_combined_bparams()}")
         else:
-            box.separator()
+            box.separator(factor=.5)
             box.label(text="All Behavior Parameters")
             box.prop(game_object, "bparams", text="")
             parent_box.separator()
