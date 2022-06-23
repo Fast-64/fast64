@@ -77,8 +77,8 @@
       <Item Params="0380"> Loads Room</Item>
     </Type>
     <Bool Index="1" Mask="0x0040" Name="Double Door"/>
-    <Flag Index="1" Mask="0x003F" TiedParam="0080" Type="Switch"/>
-    <Property Index="1" Mask="0x003F" Name="Message ID (+0200)" TiedParam="0280"/>
+    <Flag Index="1" Mask="0x003F" TiedActorTypes="0080" Type="Switch"/>
+    <Property Index="1" Mask="0x003F" Name="Message ID (+0200)" TiedActorTypes="0280"/>
     <Notes> Model depends on the scene </Notes>
   </Actor>
   <Actor Category="ACTORCAT_CHEST" ID="ACTOR_EN_BOX" Key="en_box" Name="Treasure Chest" ObjectKey="obj_box">
@@ -147,7 +147,7 @@
       <Item Params="0001"> Proximity Spawn</Item>
       <Item Params="0002"> Spawn on Switch Flag</Item>
     </Type>
-    <Flag Index="1" Mask="0x3F00" TiedParam="0002" Type="Switch"/>
+    <Flag Index="1" Mask="0x3F00" TiedActorTypes="0002" Type="Switch"/>
     <Notes>+ 0x3F00 = Switch Flag (Flag to spawn on. Used by type 02 only)</Notes>
   </Actor>
   <Actor Category="ACTORCAT_ENEMY" ID="ACTOR_EN_DODONGO" Key="en_dodongo" Name="Dodongo" ObjectKey="obj_dodongo">
@@ -276,7 +276,7 @@
       <Item Params="0100">Vertical, two-way, no fade</Item>
       <Item Params="0140">Up/Down, two-way, fades black when approached</Item>
     </Type>
-    <Flag Index="1" Mask="0x003F" TiedParam="00C0" Type="Switch"/>
+    <Flag Index="1" Mask="0x003F" TiedActorTypes="00C0" Type="Switch"/>
   </Actor>
   <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_SCENE_CHANGE" Key="en_scene_change" Name="(Unknown scene change)" ObjectKey="obj_jj">
   </Actor>
@@ -462,7 +462,7 @@ Depending on the scene ID, they need certain objects loaded as the first one in 
       <Item Params="0015"> Cows</Item>
       <Item Params="0016"> Outside of the ambient noise domain</Item>
     </Type>
-    <Property Index="1" Mask="0xFF00" Name="Path ID (River)" TiedParam="0000,0004,0005"/>
+    <Property Index="1" Mask="0xFF00" Name="Path ID (River)" TiedActorTypes="0000,0004,0005"/>
     <Notes>+0xFF00 = Path ID (Used for sound sources, Type 00, 04 and 05 only)</Notes>
   </Actor>
   <Actor Category="ACTORCAT_BG" ID="ACTOR_EN_HORSE_NORMAL" Key="en_horse_normal" Name="Normal Horse" ObjectKey="obj_horse_normal">
@@ -583,7 +583,7 @@ Out-of-bounds Plane (typ.)</Notes>
       <Item Params="0000"> Club Moblin //Pounds the ground</Item>
       <Item Params="00FF"> Spear Moblin</Item>
     </Type>
-    <Property Index="1" Mask="0xFF00" Name="Path ID" TiedParam="00FF"/>
+    <Property Index="1" Mask="0xFF00" Name="Path ID" TiedActorTypes="00FF"/>
     <Notes>+0xFF00 = path Id (Spear Moblins only)</Notes>
   </Actor>
   <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_BOMBF" Key="en_bombf" Name="Bomb Flower" ObjectKey="obj_bombf">
@@ -687,7 +687,7 @@ Out-of-bounds Plane (typ.)</Notes>
       <Item Params="2000"> Wooden Torch</Item>
     </Type>
     <Flag Index="1" Mask="0x003F" Type="Switch"/>
-    <Property Index="1" Mask="0x03C0" Name="# of Torches" TiedParam="1000"/>
+    <Property Index="1" Mask="0x03C0" Name="# of Torches" TiedActorTypes="1000"/>
     <Bool Index="1" Mask="0x0400" Name="Is Lit"/>
     <Notes>+0x3C0 = Torches to light to solve puzzle (Timed Torch)
 	+0x3F = Switch Flag</Notes>
@@ -718,10 +718,10 @@ Out-of-bounds Plane (typ.)</Notes>
       <Item Params="6000"> Dragon Head Statue</Item>
       <Item Params="7000"> Moving Square Platform with Hookshot Target</Item>
     </Type>
-    <Property Index="1" Mask="0x0F00" Name="Path ID" TiedParam="7000"/>
-    <Property Index="2" Mask="0x00F0" Name="Speed" TiedParam="7000"/>
-    <Property Index="3" Mask="0x000F" Name="Start point on path" TiedParam="7000"/>
-    <Flag Index="1" Mask="0x003F" TiedParam="4000,5000,6000" Type="Switch"/>
+    <Property Index="1" Mask="0x0F00" Name="Path ID" TiedActorTypes="7000"/>
+    <Property Index="2" Mask="0x00F0" Name="Speed" TiedActorTypes="7000"/>
+    <Property Index="3" Mask="0x000F" Name="Start point on path" TiedActorTypes="7000"/>
+    <Flag Index="1" Mask="0x003F" TiedActorTypes="4000,5000,6000" Type="Switch"/>
     <Notes>
 +0x0F00 = Path to follow //Type 7 only
 +0x00F0 = Speed //Type 7 only
@@ -887,7 +887,7 @@ ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
       <Item Params="0010"> Line Loop</Item>
       <Item Params="0020"> Circle Loop</Item>
     </Type>
-    <Property Index="1" Mask="0xF000" Name="Radius" TiedParam="0000,0020"/>
+    <Property Index="1" Mask="0xF000" Name="Radius" TiedActorTypes="0000,0020"/>
     <Property Index="2" Mask="0x0001" Name="Move North"/>
     <Property Index="3" Mask="0x0002" Name="Move South"/>
     <Property Index="4" Mask="0x0004" Name="Move West"/>
@@ -951,8 +951,8 @@ ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
       <Item Params="0018"> Large Block of Time Time Warp Effect</Item>
       <Item Params="0019"> Small Block of Time Time Warp Effect</Item>
     </Type>
-    <Bool Index="1" Mask="0x0F00" Name="Is Light Large" TiedParam="0012"/>
-    <Enum Index="1" Mask="0xF000" Name="Light Color" Target="Params" TiedParam="0012">
+    <Bool Index="1" Mask="0x0F00" Name="Is Light Large" TiedActorTypes="0012"/>
+    <Enum Index="1" Mask="0xF000" Name="Light Color" Target="Params" TiedActorTypes="0012">
       <Item Name="Red Light" Value="0x00"/>
       <Item Name="Blue Light" Value="0x01"/>
       <Item Name="Green Light" Value="0x02"/>
@@ -1012,12 +1012,12 @@ ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
     </Type>
     <Flag Index="1" Mask="0x7F00" Type="Switch"/>
     <Bool Index="1" Mask="0x8000" Name="Can Player Freeze"/>
-    <Enum Index="1" Mask="0x00FF" Name="Action" Target="Params" TiedParam="0000">
+    <Enum Index="1" Mask="0x00FF" Name="Action" Target="Params" TiedActorTypes="0000">
       <Item Name="Standing" Value="0x00"/>
       <Item Name="Crouching" Value="0x02"/>
       <Item Name="Invisible" Value="0x03"/>
     </Enum>
-    <Enum Index="2" Mask="0x00FF" Name="Action" Target="Params" TiedParam="0080">
+    <Enum Index="2" Mask="0x00FF" Name="Action" Target="Params" TiedActorTypes="0080">
       <Item Name="Standing" Value="0xFE"/>
       <Item Name="Lying Down, floats into standing position" Value="0xFD"/>
     </Enum>
@@ -1076,9 +1076,9 @@ ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
       <Item Params="0000"> Skullwalltula</Item>
       <Item Params="8000"> Gold Skulltula</Item>
     </Type>
-    <Bool Index="1" Mask="0x2000" Name="Spawns at night" TiedParam="8000"/>
+    <Bool Index="1" Mask="0x2000" Name="Spawns at night" TiedActorTypes="8000"/>
     <Property Index="1" Mask="0x00FF" Name="Skulltula Flag"/>
-    <Enum Index="1" Mask="0x1F00" Name="Location" Target="Params" TiedParam="8000">
+    <Enum Index="1" Mask="0x1F00" Name="Location" Target="Params" TiedActorTypes="8000">
       <Item Name="Deku Tree" Value="0x01"/>
       <Item Name="Dodongo's Cavern" Value="0x02"/>
       <Item Name="Jabu-Jabu's Belly" Value="0x03"/>
@@ -1129,7 +1129,7 @@ ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
     <Bool Index="1" Mask="0xF000" Name="Is Small Fairy Fountain" Target="Params"/>
     <ChestContent Mask="0x00E0" Target="Params"/>
     <Flag Index="1" Mask="0x001F" Target="Params" Type="Chest"/>
-    <Enum Index="1" Mask="0x000F" Name="Destination" Target="ZRot" TiedParam="0000,0100,0200">
+    <Enum Index="1" Mask="0x000F" Name="Destination" Target="ZRot" TiedActorTypes="0000,0100,0200">
       <Item Name="Generic Grotto" Value="0x00"/>
       <Item Name="Big Skulltula" Value="0x01"/>
       <Item Name="Heart Piece Scrub" Value="0x02"/>
@@ -1271,7 +1271,7 @@ ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
       <Item Params="0003"> Metal grate</Item>
       <Item Params="0004"> Same as 0001, but graphics are glitched</Item>
     </Type>
-    <Flag Index="1" Mask="0xFF00" TiedParam="0003" Type="Switch"/>
+    <Flag Index="1" Mask="0xFF00" TiedActorTypes="0003" Type="Switch"/>
     <Notes>+0xFF00 = Switch Flag //Type 03 Only</Notes>
   </Actor>
   <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_HAKA_SHIP" Key="bg_haka_ship" Name="Shadow Temple Ship" ObjectKey="obj_haka_objects">
@@ -1477,14 +1477,14 @@ ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
       <Item Params="0000">Iceberg</Item>
       <Item Params="0200">Ice Ramp</Item>
     </Type>
-    <Enum Index="1" Mask="0x000F" Name="Action" Target="Params" TiedParam="0000">
+    <Enum Index="1" Mask="0x000F" Name="Action" Target="Params" TiedActorTypes="0000">
       <Item Name="Floating" Value="0x00"/>
       <Item Name="Floating (?)" Value="0x01"/>
       <Item Name="Floating, rotating" Value="0x02"/>
       <Item Name="Orbiting Twins" Value="0x03"/>
       <Item Name="Static" Value="0x04"/>
     </Enum>
-    <Enum Index="2" Mask="0x00F0" Name="Size" Target="Params" TiedParam="0080">
+    <Enum Index="2" Mask="0x00F0" Name="Size" Target="Params" TiedActorTypes="0080">
       <Item Name="Large" Value="0x00"/>
       <Item Name="Medium" Value="0x01"/>
       <Item Name="Small" Value="0x02"/>
@@ -1497,7 +1497,7 @@ ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
       <Item Params="0003"> Credits</Item>
       <Item Params="0004"> Water Temple Meeting</Item>
     </Type>
-    <Flag Index="1" Mask="0x3F00" TiedParam="0004" Type="Switch"/>
+    <Flag Index="1" Mask="0x3F00" TiedActorTypes="0004" Type="Switch"/>
   </Actor>
   <Actor Category="ACTORCAT_NPC" ID="ACTOR_OBJ_DEKUJR" Key="obj_dekujr" Name="Deku Tree Sprout" ObjectKey="obj_dekujr">
   </Actor>
@@ -1567,7 +1567,7 @@ ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
       <Item Params="0000"> Rotating platforms</Item>
       <Item Params="0001"> Metal Gate</Item>
     </Type>
-    <Flag Index="1" Mask="0xFF00" Name="Switch Flag (Nullable)" TiedParam="0001" Type="Switch"/>
+    <Flag Index="1" Mask="0xFF00" Name="Switch Flag (Nullable)" TiedActorTypes="0001" Type="Switch"/>
   </Actor>
   <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_MORI_IDOMIZU" Key="bg_mori_idomizu" Name="Forest Temple Well Water" ObjectKey="obj_mori_objects">
     <Flag Index="1" Mask="0x003F" Type="Switch"/>
@@ -1744,7 +1744,7 @@ The sun switch has to be between 252 and 308 units from the cobra mirror to be a
     </Type>
     <Bool Index="1" Mask="0x0004" Name="Puzzle Solution"/>
     <Flag Index="1" Mask="0xFF00" Name="Switch Flag (ignored if over 0x3F)" Type="Switch"/>
-    <Enum Index="1" Mask="0x00C0" Name="Color (Scene Based)" Target="Params" TiedParam="0000,0001,0002,0003">
+    <Enum Index="1" Mask="0x00C0" Name="Color (Scene Based)" Target="Params" TiedActorTypes="0000,0001,0002,0003">
       <Item Name="Deku Tree" Value="0x00"/>
       <Item Name="Dodongo's Cavern" Value="0x01"/>
       <Item Name="Forest Temple" Value="0x02"/>
@@ -1824,10 +1824,7 @@ The sun switch has to be between 252 and 308 units from the cobra mirror to be a
   <Actor Category="ACTORCAT_PROP" HasEnum="True" ID="ACTOR_OBJ_TSUBO" Key="obj_tsubo" Name="Breakable Pot" ObjectKey="obj_gameplay_dangeon_keep">
     <Flag Index="1" Mask="0x7E00" Type="Collectible"/>
     <Collectible Index="1" Mask="0x001F" Type="Drop"/>
-    <Enum Index="1" Mask="0x0100" Name="Object Bank" Target="Params">
-      <Item Name="Dungeon Keep" Value="0x00"/>
-      <Item Name="Object Tsubo" Value="0x01"/>
-    </Enum>
+    <Bool Index="1" Mask="0x0100" Name="Use Object_Tsubo"/>
   </Actor>
   <Actor Category="ACTORCAT_PROP" HasEnum="True" ID="ACTOR_EN_WONDER_ITEM" Key="en_wonder_item" Name="Invisible Collectibles">
     <Type Index="1" Mask="0xF800">
@@ -1842,10 +1839,10 @@ The sun switch has to be between 252 and 308 units from the cobra mirror to be a
       <Item Params="4800"> Collectible gave if player rolls</Item>
     </Type>
     <Flag Index="1" Mask="0x003F" Target="Params" Type="Switch"/>
-    <Property Index="1" Mask="0x00FF" Name="# of Collectibles" Target="ZRot" TiedParam="1000,4800"/>
-    <Property Index="2" Mask="0x00FF" Name="Tag Point #" Target="ZRot" TiedParam="0800,3000"/>
-    <Property Index="3" Mask="0x00FF" Name="Total of Tag Points" Target="ZRot" TiedParam="0000,2800"/>
-    <Enum Index="1" Mask="0x07C0" Name="Collectible Type" Target="Params" TiedParam="0000,1000,1800,2800,4800">
+    <Property Index="1" Mask="0x00FF" Name="# of Collectibles" Target="ZRot" TiedActorTypes="1000,4800"/>
+    <Property Index="2" Mask="0x00FF" Name="Tag Point #" Target="ZRot" TiedActorTypes="0800,3000"/>
+    <Property Index="3" Mask="0x00FF" Name="Total of Tag Points" Target="ZRot" TiedActorTypes="0000,2800"/>
+    <Enum Index="1" Mask="0x07C0" Name="Collectible Type" Target="Params" TiedActorTypes="0000,1000,1800,2800,4800">
       <Item Name="Deku Nuts" Value="0x00"/>
       <Item Name="Heart Piece" Value="0x01"/>
       <Item Name="Large Magic Jar" Value="0x02"/>
@@ -1860,7 +1857,7 @@ The sun switch has to be between 252 and 308 units from the cobra mirror to be a
       <Item Name="Flex Drop" Value="0x0B"/>
       <Item Name="Random Drop" Value="0x0C"/>
     </Enum>
-    <Enum Index="2" Mask="0x00FF" Name="Spawn Trigger" Target="ZRot" TiedParam="1800">
+    <Enum Index="2" Mask="0x00FF" Name="Spawn Trigger" Target="ZRot" TiedActorTypes="1800">
       <Item Name="Sword Slash" Value="0x00"/>
       <Item Name="Arrows" Value="0x01"/>
       <Item Name="Hammer" Value="0x02"/>
@@ -2039,10 +2036,10 @@ ZROT +0x0003 = Speed, Acceleration
     </Type>
     <Flag Index="1" Mask="0x3F00" Type="Switch"/>
     <Bool Index="1" Mask="0x0010" Name="Toggle"/>
-    <Bool Index="2" Mask="0x0020" Name="Reset" TiedParam="0000,0001"/>
-    <Bool Index="3" Mask="0x0030" Name="Reset Inverted (Flag Only)" TiedParam="0000,0001"/>
-    <Bool Index="4" Mask="0x0040" Name="Flag Sync" TiedParam="0003,0004"/>
-    <Bool Index="5" Mask="0x0080" Name="Frozen" TiedParam="0002"/>
+    <Bool Index="2" Mask="0x0020" Name="Reset" TiedActorTypes="0000,0001"/>
+    <Bool Index="3" Mask="0x0030" Name="Reset Inverted (Flag Only)" TiedActorTypes="0000,0001"/>
+    <Bool Index="4" Mask="0x0040" Name="Flag Sync" TiedActorTypes="0003,0004"/>
+    <Bool Index="5" Mask="0x0080" Name="Frozen" TiedActorTypes="0002"/>
   </Actor>
   <Actor Category="ACTORCAT_BG" ID="ACTOR_OBJ_ELEVATOR" Key="obj_elevator" Name="Huge Stone Switch/Stone Elevator" ObjectKey="obj_d_elevator">
     <Type Index="1" Mask="0x0001">
@@ -2078,8 +2075,8 @@ ZROT +0x0003 = Speed, Acceleration
       <Item Params="1C00"> Puzzle Spot</Item>
     </Type>
     <Flag Index="1" Mask="0x003F" Target="Params" Type="Switch"/>
-    <Property Index="1" Mask="0xFFFF" Name="Range" Target="ZRot" TiedParam="1C00"/>
-    <Enum Index="1" Mask="0x03C0" Name="Song to Play" Target="Params" TiedParam="1C00">
+    <Property Index="1" Mask="0xFFFF" Name="Range" Target="ZRot" TiedActorTypes="1C00"/>
+    <Enum Index="1" Mask="0x03C0" Name="Song to Play" Target="Params" TiedActorTypes="1C00">
       <Item Name="Saria's Song" Value="0x00"/>
       <Item Name="Epona's Song" Value="0x01"/>
       <Item Name="Zelda's Lullaby" Value="0x02"/>
@@ -2557,7 +2554,7 @@ ROTZ 0x0001 = Behavior after colliding with Link
       <Item Params="0013"> Old bald man in purple // Use object 010C</Item>
       <Item Params="0014"> Man in two shades of green // Use object 0107</Item>
     </Type>
-    <Property Index="1" Mask="0x0780" Name="Path ID" TiedParam="0003,0007"/>
+    <Property Index="1" Mask="0x0780" Name="Path ID" TiedActorTypes="0003,0007"/>
     <Notes>+0x780 = Path Id //NPCs 03 and 07 only</Notes>
   </Actor>
   <Actor Category="ACTORCAT_BOSS" ID="ACTOR_EN_GANON_MANT" Key="en_ganon_mant" Name="Ganondorf's Mantle">
@@ -2607,10 +2604,10 @@ ROTZ 0x0001 = Behavior after colliding with Link
   </Actor>
   <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_HEISHI4" Key="en_heishi4" Name="Hyrule Guard" ObjectKey="obj_sd">
     <Type Index="1" Mask="0x00FF">
-      <Item Params="FF00"> Time teller</Item>
-      <Item Params="FF04"> Stands by Impa's House, tells time</Item>
-      <Item Params="FF07"> Dying guard in Market Town</Item>
-      <Item Params="FF08"> Stands in Market Town at night</Item>
+      <Item Params="0000"> Time teller</Item>
+      <Item Params="0004"> Stands by Impa's House, tells time</Item>
+      <Item Params="0007"> Dying guard in Market Town</Item>
+      <Item Params="0008"> Stands in Market Town at night</Item>
     </Type>
     <Notes>Text ID 5063, then 5064</Notes>
   </Actor>
@@ -2987,7 +2984,7 @@ ROTZ 0x0001 = Behavior after colliding with Link
       <Item Params="0003"> Shooting Gallery (Partially Complete) //Spawns Carpenter Sabooro (Kakariko) during the day</Item>
       <Item Params="0004"> Shooting Gallery (Complete)</Item>
     </Type>
-    <Property Index="1" Mask="0xFF00" Name="Path ID" TiedParam="0003"/>
+    <Property Index="1" Mask="0xFF00" Name="Path ID" TiedActorTypes="0003"/>
   </Actor>
   <Actor Category="ACTORCAT_PROP" ID="ACTOR_OBJ_COMB" Key="obj_comb" Name="Beehive" ObjectKey="obj_gameplay_field_keep">
     <Flag Index="1" Mask="0x3F00" Type="Collectible"/>
