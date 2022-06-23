@@ -505,9 +505,14 @@ def getRGBA16Tuple(color):
         | (1 if color[3] > 0.5 else 0)
     )
 
+RGB_TO_LUM_COEF = mathutils.Vector([0.2126729, 0.7151522, 0.0721750])
+def colorToLuminance(color: mathutils.Color | list[float] | Vector):
+    # https://github.com/blender/blender/blob/594f47ecd2d5367ca936cf6fc6ec8168c2b360d0/intern/cycles/render/shader.cpp#L387
+    # These coefficients are used by Blender, so we use them as well for parity between Fast64 exports and Blender color conversions
+    return RGB_TO_LUM_COEF.dot(color[:3])
 
 def getIA16Tuple(color):
-    intensity = mathutils.Color(color[0:3]).v
+    intensity = colorToLuminance(color[0:3])
     alpha = color[3]
     return (int(round(intensity * 0xFF)) << 8) | int(alpha * 0xFF)
 
@@ -1135,12 +1140,14 @@ def gammaCorrect(linearColor):
     return list(c for c in mathutils.Color(linearColor[:3]).from_scene_linear_to_srgb())
 
 def gammaCorrectValue(linearValue):
+    # doesn't need to use `colorToLuminance` since all values are the same
     return mathutils.Color((linearValue, linearValue, linearValue)).from_scene_linear_to_srgb().v
 
 def gammaInverse(sRGBColor):
     return list(c for c in mathutils.Color(sRGBColor[:3]).from_srgb_to_scene_linear())
 
 def gammaInverseValue(sRGBValue):
+    # doesn't need to use `colorToLuminance` since all values are the same
     return mathutils.Color((sRGBValue, sRGBValue, sRGBValue)).from_srgb_to_scene_linear().v
 
 def printBlenderMessage(msgSet, message, blenderOp):

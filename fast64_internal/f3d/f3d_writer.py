@@ -790,7 +790,9 @@ def get8bitRoundedNormal(loop: bpy.types.MeshLoop, mesh):
 
     if alpha_layer is not None:
         normalizedAColor = alpha_layer[loop.index].color
-        normalizedA = mathutils.Color(normalizedAColor[0:3]).v
+        if is3_2_or_above():
+            normalizedAColor = gammaCorrect(normalizedAColor)
+        normalizedA = colorToLuminance(normalizedAColor[0:3])
     else:
         normalizedA = 1
 
@@ -871,9 +873,9 @@ class TriangleConverterInfo:
 class TriangleConverter:
     def __init__(
         self,
-        triConverterInfo,
+        triConverterInfo: TriangleConverterInfo,
         texDimensions,
-        material,
+        material: bpy.types.Material,
         currentGroupIndex,
         triList,
         vtxList,
@@ -904,6 +906,7 @@ class TriangleConverter:
         self.texDimensions = texDimensions
         self.isPointSampled = isPointSampled
         self.exportVertexColors = exportVertexColors
+        self.tex_scale = material.f3d_mat.tex_scale
 
     def vertInBuffer(self, bufferVert, material_index):
         if self.existingVertexMaterialRegions is None:
@@ -952,6 +955,7 @@ class TriangleConverter:
                         self.triConverterInfo.getTransformMatrix(bufferVert.groupIndex),
                         self.isPointSampled,
                         self.exportVertexColors,
+                        tex_scale=self.tex_scale
                     )
                 )
 
@@ -985,6 +989,7 @@ class TriangleConverter:
                         self.triConverterInfo.getTransformMatrix(bufferVert.groupIndex),
                         self.isPointSampled,
                         self.exportVertexColors,
+                        tex_scale=self.tex_scale
                     )
                 )
 
@@ -1178,12 +1183,8 @@ def UVtoST(obj, loopIndex, uv_data, texDimensions, isPointSampled):
 
 
 def convertVertexData(
-    mesh, loopPos, loopUV, loopColorOrNormal, texDimensions, transformMatrix, isPointSampled, exportVertexColors
+    mesh, loopPos, loopUV, loopColorOrNormal, texDimensions, transformMatrix, isPointSampled, exportVertexColors, tex_scale=(1, 1)
 ):
-    # uv_layer = mesh.uv_layers.active
-    # color_layer = mesh.vertex_colors['Col']
-    # alpha_layer = mesh.vertex_colors['Alpha']
-
     # Position (8 bytes)
     position = [int(round(floatValue)) for floatValue in (transformMatrix @ loopPos)]
 
@@ -1192,13 +1193,14 @@ def convertVertexData(
     # However, Point samples from the corner.
     # Thus we add 0.5 to the UV only if bilinear filtering.
     # see section 13.7.5.3 in programming manual.
-    pixelOffset = 0 if isPointSampled else 0.5
+    tex_scale=(1, 1)
+    # TODO: (V5) Properly offset based on tex scale
+    # pixelOffset = (0, 0) if isPointSampled else (0.5*(1.0/tex_scale[0]), 0.5*(1.0/tex_scale[1]))
+    pixelOffset = (0, 0) if isPointSampled else (0.5, 0.5)
     uv = [
-        convertFloatToFixed16(loopUV[0] * texDimensions[0] - pixelOffset),
-        convertFloatToFixed16(loopUV[1] * texDimensions[1] - pixelOffset),
+        convertFloatToFixed16(loopUV[0] * texDimensions[0] - pixelOffset[0]),
+        convertFloatToFixed16(loopUV[1] * texDimensions[1] - pixelOffset[1]),
     ]
-    if isPointSampled:
-        print(mesh.name, isPointSampled, pixelOffset, [u for u in uv])
 
     # Color/Normal (4 bytes)
     if exportVertexColors:
@@ -1236,7 +1238,7 @@ def getLoopColor(loop: bpy.types.MeshLoop, mesh, mat_ver):
         normalizedAColor = alpha_layer[loop.index].color
         if is3_2_or_above():
             normalizedAColor = gammaCorrect(normalizedAColor)
-        normalizedA = mathutils.Color(normalizedAColor[0:3]).v
+        normalizedA = colorToLuminance(normalizedAColor[0:3])
     else:
         normalizedA = 1
 
@@ -1449,8 +1451,8 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     saveOtherDefinition(fMaterial, f3dMat, defaults)
 
     # Set scale
-    s = int(f3dMat.tex_scale[0] * 0xFFFF)
-    t = int(f3dMat.tex_scale[1] * 0xFFFF)
+    s = int(min(round(f3dMat.tex_scale[0] * 0x10000), 0xFFFF))
+    t = int(min(round(f3dMat.tex_scale[1] * 0x10000), 0xFFFF))
     fMaterial.material.commands.append(SPTexture(s, t, 0, fModel.f3d.G_TX_RENDERTILE, 1))
 
     # Save textures
@@ -2007,11 +2009,12 @@ def saveOrGetPaletteDefinition(fMaterial, fModelOrTexRect, image, imageName, tex
     maxColors = 16 if bitSize == "G_IM_SIZ_4b" else 256
     if convertTextureData:
         # N64 is -Y, Blender is +Y
+        pixels = image.pixels[:]
         for j in reversed(range(image.size[1])):
             for i in range(image.size[0]):
                 color = [1, 1, 1, 1]
                 for field in range(image.channels):
-                    color[field] = image.pixels[(j * image.size[0] + i) * image.channels + field]
+                    color[field] = pixels[(j * image.size[0] + i) * image.channels + field]
                 if palFormat == "G_IM_FMT_RGBA":
                     pixelColor = getRGBA16Tuple(color)
                 elif palFormat == "G_IM_FMT_IA":
@@ -2221,14 +2224,14 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image: bpy.types.Image, imageN
                             (
                                 int(
                                     round(
-                                        mathutils.Color(
+                                        colorToLuminance(
                                             pixels[
                                                 (j * image.size[0] + i)
                                                 * image.channels : (j * image.size[0] + i)
                                                 * image.channels
                                                 + 3
                                             ]
-                                        ).v
+                                        )
                                         * 0x7
                                     )
                                 )
@@ -2248,14 +2251,14 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image: bpy.types.Image, imageN
                             (
                                 int(
                                     round(
-                                        mathutils.Color(
+                                        colorToLuminance(
                                             pixels[
                                                 (j * image.size[0] + i)
                                                 * image.channels : (j * image.size[0] + i)
                                                 * image.channels
                                                 + 3
                                             ]
-                                        ).v
+                                        )
                                         * 0xF
                                     )
                                 )
@@ -2276,14 +2279,9 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image: bpy.types.Image, imageN
                             (
                                 int(
                                     round(
-                                        mathutils.Color(
-                                            pixels[
-                                                (j * image.size[0] + i)
-                                                * image.channels : (j * image.size[0] + i)
-                                                * image.channels
-                                                + 3
-                                            ]
-                                        ).v
+                                        colorToLuminance(
+                                            pixels[(j * image.size[0] + i) * image.channels : (j * image.size[0] + i) * image.channels + 3]
+                                        )
                                         * 0xFF
                                     )
                                 )
@@ -2304,14 +2302,14 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image: bpy.types.Image, imageN
                     [
                         int(
                             round(
-                                mathutils.Color(
+                                colorToLuminance(
                                     pixels[
                                         (j * image.size[0] + i)
                                         * image.channels : (j * image.size[0] + i)
                                         * image.channels
                                         + 3
                                     ]
-                                ).v
+                                )
                                 * 0xF
                             )
                         )
@@ -2325,14 +2323,14 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image: bpy.types.Image, imageN
                     [
                         int(
                             round(
-                                mathutils.Color(
+                                colorToLuminance(
                                     pixels[
                                         (j * image.size[0] + i)
                                         * image.channels : (j * image.size[0] + i)
                                         * image.channels
                                         + 3
                                     ]
-                                ).v
+                                )
                                 * 0xFF
                             )
                         )
@@ -2354,78 +2352,6 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image: bpy.types.Image, imageN
     fModel.addTexture((image, (texFormat, "NONE")), fImage, fMaterial)
 
     return fImage
-
-    # Ignore, old version not using list comprehension
-    # Warning, ints not rounded
-    # if convertTextureData:
-    # 	# N64 is -Y, Blender is +Y
-    # 	for j in reversed(range(image.size[1])):
-    # 		for i in range(image.size[0]):
-    # 			color = [1,1,1,1]
-    # 			for field in range(image.channels):
-    # 				color[field] = image.pixels[
-    # 					(j * image.size[0] + i) * image.channels + field]
-    # 			if fmt == 'G_IM_FMT_RGBA':
-    # 				if bitSize == 'G_IM_SIZ_16b':
-    # 					words = \
-    # 						((int(color[0] * 0x1F) & 0x1F) << 11) | \
-    # 						((int(color[1] * 0x1F) & 0x1F) << 6) | \
-    # 						((int(color[2] * 0x1F) & 0x1F) << 1) | \
-    # 						(1 if color[3] > 0.5 else 0)
-    # 					fImage.data.extend(bytearray(words.to_bytes(2, 'big')))
-    # 				elif bitSize == 'G_IM_SIZ_32b':
-    # 					fImage.data.extend(bytearray([
-    # 						int(value * 0xFF) & 0xFF for value in color]))
-    # 				else:
-    # 					raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
-
-
-#
-# 			elif fmt == 'G_IM_FMT_YUV':
-# 				raise PluginError("YUV not yet implemented.")
-# 				if bitSize == 'G_IM_SIZ_16b':
-# 					pass
-# 				else:
-# 					raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
-#
-# 			elif fmt == 'G_IM_FMT_CI':
-# 				raise PluginError("CI not yet implemented.")
-#
-# 			elif fmt == 'G_IM_FMT_IA':
-# 				intensity = mathutils.Color(color[0:3]).v
-# 				alpha = color[3]
-# 				if bitSize == 'G_IM_SIZ_4b':
-# 					fImage.data.append(
-# 						((int(intensity * 0x7) & 0x7) << 1) | \
-# 						(1 if alpha > 0.5 else 0))
-# 				elif bitSize == 'G_IM_SIZ_8b':
-# 					fImage.data.append(
-# 						((int(intensity * 0xF) & 0xF) << 4) | \
-# 						(int(alpha * 0xF) & 0xF))
-# 				elif bitSize == 'G_IM_SIZ_16b':
-# 					fImage.data.extend(bytearray(
-# 						[int(intensity * 0xFF), int(alpha * 0xFF)]))
-# 				else:
-# 					raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
-# 			elif fmt == 'G_IM_FMT_I':
-# 				intensity = mathutils.Color(color[0:3]).v
-# 				if bitSize == 'G_IM_SIZ_4b':
-# 					fImage.data.append(int(intensity * 0xF))
-# 				elif bitSize == 'G_IM_SIZ_8b':
-# 					fImage.data.append(int(intensity * 0xFF))
-# 				else:
-# 					raise PluginError("Invalid combo: " + fmt + ', ' + bitSize)
-# 			else:
-# 				raise PluginError("Invalid image format " + fmt)
-#
-# 	# We stored 4bit values in byte arrays, now to convert
-# 	if bitSize == 'G_IM_SIZ_4b':
-# 		fImage.data = \
-# 			compactNibbleArray(fImage.data, image.size[0], image.size[1])
-#
-# fModel.addTexture((image, (texFormat, 'NONE')), fImage, fMaterial)
-#
-# return fImage
 
 def saveLightsDefinition(fModel, fMaterial, material, lightsName):
     lights = fModel.getLightAndHandleShared(lightsName)
@@ -2462,15 +2388,6 @@ def saveLightsDefinition(fModel, fMaterial, material, lightsName):
 
 
 def addLightDefinition(mat, f3d_light, fLights):
-    # lightObj = None
-    # for obj in bpy.context.scene.objects:
-    # 	if obj.data == f3d_light:
-    # 		lightObj = obj
-    # 		break
-    # if lightObj is None:
-    # 	raise PluginError(
-    # 		"The material \"" + mat.name + "\" is referencing a light that is no longer in the scene (i.e. has been deleted).")
-
     fLights.l.append(
         Light(
             exportColor(f3d_light.color),
