@@ -1631,6 +1631,20 @@ def update_tex_values(self, context):
 
         update_tex_values_manual(material, context, prop_path=prop_path)
 
+def get_tex_basis_size(f3d_mat: "F3DMaterialProperty"):
+    tex_size = None
+    if f3d_mat.tex0.tex is not None and f3d_mat.tex1.tex is not None:
+        return f3d_mat.tex0.tex.size if f3d_mat.uv_basis == 'TEXEL0' else \
+            f3d_mat.tex1.tex.size
+    elif f3d_mat.tex0.tex is not None:
+        return f3d_mat.tex0.tex.size
+    elif f3d_mat.tex1.tex is not None:
+        return f3d_mat.tex1.tex.size
+    return tex_size
+
+def get_tex_gen_size(tex_size: list[int | float]):
+    return (tex_size[0] - 1) / 1024, (tex_size[1] - 1) / 1024
+
 def update_tex_values_manual(material: bpy.types.Material, context, prop_path=None):
     f3dMat: "F3DMaterialProperty" = material.f3d_mat
     nodes = material.node_tree.nodes
@@ -1641,19 +1655,11 @@ def update_tex_values_manual(material: bpy.types.Material, context, prop_path=No
 
     if f3dMat.scale_autoprop:
         if isTexGen:
-            tex_size = None
-            if f3dMat.tex0.tex is not None and f3dMat.tex1.tex is not None:
-                tex_size = f3dMat.tex0.tex.size if f3dMat.uv_basis == 'TEXEL0' else \
-                    f3dMat.tex1.tex.size
-            elif f3dMat.tex0.tex is not None:
-                tex_size = f3dMat.tex0.tex.size
-            elif f3dMat.tex1.tex is not None:
-                tex_size = f3dMat.tex1.tex.size
+            tex_size = get_tex_basis_size(f3dMat)
 
             if tex_size is not None:
                 # This is needed for exporting tex gen!
-                f3dMat.tex_scale = ((tex_size[0] - 1) / 1024,
-                    (tex_size[1] - 1) / 1024)
+                f3dMat.tex_scale = get_tex_gen_size(tex_size)
         else:
             f3dMat.tex_scale = (1,1)
 
@@ -1670,8 +1676,19 @@ def update_tex_values_manual(material: bpy.types.Material, context, prop_path=No
     else:
         uv_basis.node_tree = bpy.data.node_groups["UV Basis 1"]
 
-    uv_basis.inputs['S Scale'].default_value = f3dMat.tex_scale[0]
-    uv_basis.inputs['T Scale'].default_value = f3dMat.tex_scale[1]
+    if not isTexGen:
+        uv_basis.inputs['S Scale'].default_value = f3dMat.tex_scale[0]
+        uv_basis.inputs['T Scale'].default_value = f3dMat.tex_scale[1]
+    elif f3dMat.scale_autoprop:
+        # Tex gen is 1:1
+        uv_basis.inputs['S Scale'].default_value = 1
+        uv_basis.inputs['T Scale'].default_value = 1
+    else:
+        gen_size = get_tex_gen_size(get_tex_basis_size(f3dMat))
+        # scale tex gen proportionally
+        node_uv_scale = (f3dMat.tex_scale[0] / gen_size[0], f3dMat.tex_scale[1] / gen_size[1])
+        uv_basis.inputs['S Scale'].default_value = node_uv_scale[0]
+        uv_basis.inputs['T Scale'].default_value = node_uv_scale[1]
 
     if not prop_path or 'tex0' in prop_path:
         update_tex_values_index(material, texProperty=f3dMat.tex0, texIndex=0)
