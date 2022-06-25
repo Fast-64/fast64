@@ -147,7 +147,7 @@ def getParameterValue(self, actorKey, target, user):
 			# check if the element is tied to a specific type
 			if (tiedActorTypes is None or actorType is None) or hasActorTiedParams(tiedActorTypes, actorType):
 				# get the param value
-				value = getActorParameter(self, actorKey, paramTarget, None, user)
+				value = getActorParameter(self, actorKey, paramTarget, user)
 	return value
 
 def getAccurateParameter(self, target, user):
@@ -161,7 +161,11 @@ def getAccurateParameter(self, target, user):
 		else:
 			return getCustomActorValues(self, target)
 	else:
-		return getParameterValue(self, self.actorKey, target, user)
+		if user == "default":
+			actorKey = self.actorKey
+		else:
+			actorKey = self.transActorKey
+		return getParameterValue(self, actorKey, target, user)
 
 def getActorValues(self, target):
 	"""Returns the right value depending on the version"""

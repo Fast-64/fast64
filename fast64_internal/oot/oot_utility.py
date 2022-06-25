@@ -383,9 +383,9 @@ def getCustomProperty(data, prop):
 def getActorExportValue(actor, field, user):
 	"""Returns an actor's prop value"""
 	if field == 'actorParam':
-		return getActorParameter(actor, actor.actorKey, 'Params', field, user)
+		return getActorParameter(actor, actor.actorKey, 'Params', user)
 	elif field == 'transActorParam':
-		return getActorParameter(actor, actor.transActorKey, 'Params', field, user)
+		return getActorParameter(actor, actor.transActorKey, 'Params', user)
 	elif field in {"XRot", "YRot", "ZRot"}:
 		actorType = getActorType(actor, actor.actorKey)
 		actorIndex = getIndexFromKey(actor.actorKey, ootEnumActorID)
@@ -393,8 +393,8 @@ def getActorExportValue(actor, field, user):
 			target = elem.get('Target')
 			tiedActorTypes = elem.get('TiedParams')
 			# check if the element is tied to a specific type
-			if (tiedActorTypes is None or actorType is None) or hasActorTiedParams(tiedActorTypes, actorType) and (target == field):
-				return getActorParameter(actor, actor.actorKey, field, None, user)
+			if ((tiedActorTypes is None or actorType is None) or hasActorTiedParams(tiedActorTypes, actorType)) and (target == field):
+				return getActorParameter(actor, actor.actorKey, field, user)
 	return None
 
 def getCustomActorExportValue(actor, field):
@@ -623,7 +623,7 @@ def getAndFormatActorProperty(object, field, shift, mask):
 		# then determine the right format to use
 		# and return the string
 		if isinstance(attr, str):
-			if shift != '0':
+			if shift > 0:
 				return f"(({attr} << {shift}) & {mask})"
 			else:
 				return f"({attr} & {mask})"
@@ -639,44 +639,51 @@ def getAndFormatActorProperty(object, field, shift, mask):
 		# by default, return None
 		return None
 
-def getActorParameter(actor, actorKey, paramTarget, field, user):
+def getActorParameter(actor, actorKey, paramTarget, user):
 	"""Returns the current actor's parameters"""
 	params = []
-	### ??? ###
-	if field is not None:
-		panelParams = getattr(actor, field, "")
-		if panelParams == "":
-			return "0x0"
-	### ??? ###
 	actorIndex = getIndexFromKey(actorKey, ootEnumActorID)
 	paramPart = ""
 	for elem in actorRoot[actorIndex]:
 		actorType = getActorType(actor, actorKey)
 		index = int(elem.get('Index', '1'), base=10)
 		tiedActorTypes = elem.get('TiedParams')
+
 		# check if the element is tied to a specific type
 		if (tiedActorTypes is None or actorType is None) or hasActorTiedParams(tiedActorTypes, actorType):
 			# if the param part it's not none and not empty add it to the list
 			paramPart = getActorParameterPart(elem, actor, paramTarget, index, user)
-
-			if paramPart is not None and paramPart != '':
+			if paramPart is not None and paramPart != '' and evalActorParams(paramPart) != 0:
 				params.append(paramPart)
+
 	# when the param part list is completed,
 	# make a string with each element separated by a ``|``
 	propsParams = " | ".join(params)
+
+	# format and return the value
 	if paramTarget == 'Params':
+		# get and format the actor type if neccessary
 		actorType = getActorType(actor, actorKey)
-		returnValue = ''
-		# determine if we need to add the type
 		if actorType is not None:
-			returnValue = f'0x{actorType}'
-		# then return the string
-		if len(params) == 0:
-			return returnValue
-		elif returnValue == '':
+			actorType = f'0x{actorType}'
+
+		# if the list containing every param parts has items
+		hasParams = len(params) > 0
+
+		# if there's an actor type
+		hasType = actorType is not None and actorType != '' and evalActorParams(actorType) != 0
+
+		# format and return the final string
+		if not hasParams and hasType:
+			return actorType
+		elif hasParams and not hasType:
 			return f'({propsParams})'
+		elif hasParams and hasType:
+			return f'({actorType} | ({propsParams}))'
+		elif not hasParams and not hasType:
+			return "0x0"
 		else:
-			return f'({returnValue} | ({propsParams}))'
+			raise NotImplementedError
 	elif len(params) > 0:
 		# else if the target is a rotation and the list
 		# is not empty, return the string
@@ -751,8 +758,8 @@ def getActorParameterPart(elem, actor, paramTarget, index, user):
 	if target is None:
 		target = "Params"
 
-	# if not <Type> and there's a bit mask
-	if elem.tag != 'Type' and strMask is not None:
+	# if: not <Type>, there's a bit mask and it's the right target
+	if elem.tag != 'Type' and strMask is not None and (target == paramTarget):
 		mask = int(strMask, base=16)
 		shift = getShiftFromMask(mask)
 
@@ -761,31 +768,31 @@ def getActorParameterPart(elem, actor, paramTarget, index, user):
 		if elem.tag == 'Flag':
 			# we need to look for type of flags
 			elemType = elem.get('Type')
-			if elemType == 'Chest' and (target == paramTarget):
+			if elemType == 'Chest':
 				paramPart = getAndFormatActorProperty(actor, getActorKey(actor, user) + f'.chestFlag{index}', shift, strMask)
-			elif elemType == 'Collectible' and (target == paramTarget):
+			elif elemType == 'Collectible':
 				paramPart = getAndFormatActorProperty(actor, getActorKey(actor, user) + f'.collectibleFlag{index}', shift, strMask)
-			elif (elemType == 'Switch' and (target == paramTarget)) and (target == paramTarget):
+			elif elemType == 'Switch':
 				paramPart = getAndFormatActorProperty(actor, getActorKey(actor, user) + f'.switchFlag{index}', shift, strMask)
-		elif (elem.tag == 'Property' and elem.get('Name') != 'None') and (target == paramTarget):
+		elif elem.tag == 'Property':
 			paramPart = getAndFormatActorProperty(actor, (getActorKey(actor, user) + f'.props{index}'), shift, strMask)
-		elif elem.tag == 'ChestContent' and (target == paramTarget):
+		elif elem.tag == 'ChestContent':
 			itemChest = getItemAttrFromKey('Chest Content', actor.itemChest, 'Value')
-			if shift != '0':
+			if shift > 0:
 				paramPart = f"(({itemChest} << {shift}) & 0x{mask:X})"
 			else:
 				paramPart = f"({itemChest} & 0x{mask:X})"
-		elif elem.tag == 'Message' and (target == paramTarget):
+		elif elem.tag == 'Message':
 			naviMsg = getItemAttrFromKey('Elf_Msg Message ID', actor.naviMsgID, 'Value')
-			if shift != '0':
+			if shift > 0:
 				paramPart = f"(({naviMsg} << {shift}) & 0x{mask:X})"
 			else:
 				paramPart = f"({naviMsg} & 0x{mask:X})"
-		elif elem.tag == 'Collectible' and (target == paramTarget):
+		elif elem.tag == 'Collectible':
 			paramPart = getAndFormatActorProperty(actor, getActorKey(actor, user) + f'.collectibleDrop{index}', shift, strMask)
-		elif (elem.tag == 'Bool') and (target == paramTarget):
+		elif elem.tag == 'Bool':
 			paramPart = getAndFormatActorProperty(actor, (getActorKey(actor, user) + f'.bool{index}'), shift, strMask)
-		elif (elem.tag == 'Enum') and (target == paramTarget):
+		elif elem.tag == 'Enum':
 			paramPart = getAndFormatActorProperty(actor, (getActorKey(actor, user) + f'.enum{index}'), shift, strMask)
 
 	# if the return value is none execute again this function
@@ -870,7 +877,7 @@ def upgradeActorInit(obj):
 			upgradeActorProcess(rotName, obj, legacyActor.actorID, actor, rotParam, getLegacyPropName(rotName), rotName)
 
 			# and set the value to the new actor
-			setattr(actor, getLegacyPropName(rotName), getActorParameter(actor, actor.actorKey, rotName, None, objType))
+			setattr(actor, getLegacyPropName(rotName), getActorParameter(actor, actor.actorKey, rotName, objType))
 
 	# actors are empty objects
 	if obj.data is None:
@@ -906,7 +913,7 @@ def upgradeActorInit(obj):
 					legacyParams, 'actorParam', 'Params')
 
 				# update the parameters since every props are set
-				actor.actorParam = getActorParameter(actor, actor.actorKey, 'Params', None, objType)
+				actor.actorParam = getActorParameter(actor, actor.actorKey, 'Params', objType)
 
 				# do the same thing for rotations values if needed
 				if legacyActor.rotOverride:
@@ -935,7 +942,7 @@ def upgradeActorInit(obj):
 					legacyParams, 'actorParam', 'Params')
 
 				# update the parameters since every props are set
-				actor.transActorParam = getActorParameter(actor, actor.transActorKey, 'Params', None, objType)
+				actor.transActorParam = getActorParameter(actor, actor.transActorKey, 'Params', objType)
 		elif objType == "Entrance":
 			# get the legacy data
 			legacyActor = obj.ootEntranceProperty.actor
@@ -955,7 +962,7 @@ def upgradeActorInit(obj):
 					legacyParams, 'actorParam', 'Params')
 
 				# update the parameters since every props are set
-				actor.actorParam = getActorParameter(actor, actor.actorKey, 'Params', None, objType)
+				actor.actorParam = getActorParameter(actor, actor.actorKey, 'Params', objType)
 
 	# a non-scene/room empty type can have child objects
 	for childObj in obj.children:
@@ -1137,12 +1144,15 @@ def isLatestVersion():
 def isActorCustom(actor):
 	"""Checks either the actor is an entrance in custom mode or a transition/normal actor with the actor key ``Custom``"""
 
+	# if it's a regular or transition actor
+	isTransition = bpy.context.view_layer.objects.active.ootEmptyType == 'Transition Actor'
+	isCustom = (actor.transActorKey == "Custom") if isTransition else (actor.actorKey == "Custom")
+
 	# if the actor is an entrance
 	isEntrance = bpy.context.view_layer.objects.active.ootEmptyType == 'Entrance'
+	isEntranceCustom = bpy.context.view_layer.objects.active.ootEntranceProperty.customActor
 
-	# if it isn't an entrance actor, check if the actor key is ``Custom``
-	# else simply return the ``customActor`` bool prop value
-	return (actor.actorKey == "Custom") if isEntrance is False else actor.customActor
+	return isCustom if isEntrance is False else isEntranceCustom
 
 def getActorType(actor, actorKey):
 	"""Returns the value of ``actor.type``"""

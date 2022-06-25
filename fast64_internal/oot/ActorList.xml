@@ -358,7 +358,7 @@ To differentiate the two encounters (as both are in room 3), the switch flag is 
       <Item Params="02C0">Key Locked door</Item>
     </Type>
     <Flag Index="1" Mask="0x003F" Type="Switch"/>
-    <Notes>+003F = Switch Flag //Used by switch flag iron bar and locked doors 
+    <Notes>+003F = Switch Flag //Used by switch flag iron bar and locked doors
 Depending on the scene ID, they need certain objects loaded as the first one in the object list. Scene IDs:
 00: needs object 0036
 01: needs object 002B
@@ -1006,21 +1006,17 @@ ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
     <Notes>Rupees circle spawned if Path ID == 3</Notes>
   </Actor>
   <Actor Category="ACTORCAT_ENEMY" HasEnum="True" ID="ACTOR_EN_RD" Key="en_rd" Name="Redead/Gibdo" ObjectKey="obj_rd">
-    <Type Index="1" Mask="0x0080">
-      <Item Params="0000"> Redead</Item>
-      <Item Params="0080"> Gibdo</Item>
+    <Type Index="1" Mask="0x00FF">
+      <Item Params="00FD"> Rising Gibdo</Item>
+      <Item Params="00FE"> Gibdo</Item>
+      <Item Params="00FF"> Redead, doesn't mourn</Item>
+      <Item Params="0000"> Redead, doesn't mourn if walking</Item>
+      <Item Params="0001"> Redead</Item>
+      <Item Params="0002"> Crying Redead</Item>
+      <Item Params="0003"> Invisible Redead</Item>
     </Type>
     <Flag Index="1" Mask="0x7F00" Type="Switch"/>
-    <Bool Index="1" Mask="0x8000" Name="Can Player Freeze"/>
-    <Enum Index="1" Mask="0x00FF" Name="Action" Target="Params" TiedActorTypes="0000">
-      <Item Name="Standing" Value="0x00"/>
-      <Item Name="Crouching" Value="0x02"/>
-      <Item Name="Invisible" Value="0x03"/>
-    </Enum>
-    <Enum Index="2" Mask="0x00FF" Name="Action" Target="Params" TiedActorTypes="0080">
-      <Item Name="Standing" Value="0xFE"/>
-      <Item Name="Lying Down, floats into standing position" Value="0xFD"/>
-    </Enum>
+    <Bool Index="1" Mask="0x8000" Name="Can't Freeze Player"/>
   </Actor>
   <Actor Category="ACTORCAT_ENEMY" ID="ACTOR_EN_PO_SISTERS" Key="en_po_sisters" Name="Poe Sisters" ObjectKey="obj_po_sisters">
     <Type Index="1" Mask="0x0300">
