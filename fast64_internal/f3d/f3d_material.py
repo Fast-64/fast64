@@ -1696,6 +1696,7 @@ def update_tex_values_manual(material: bpy.types.Material, context, prop_path=No
         update_tex_values_index(material, texProperty=f3dMat.tex1, texIndex=1)
 
     texture_inputs['3 Point'].default_value = int(f3dMat.rdp_settings.g_mdsft_text_filt == "G_TF_BILERP")
+    uv_basis.inputs['EnableOffset'].default_value = int(f3dMat.rdp_settings.g_mdsft_text_filt != "G_TF_POINT")
     set_texture_settings_node(material)
 
 def getMaterialScrollDimensions(material):
