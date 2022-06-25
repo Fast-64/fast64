@@ -336,8 +336,12 @@ def readCamPos(camPosProp, obj, scene, sceneObj, transformMatrix):
     # TODO: FOV conversion?
     if index in scene.collision.cameraData.camPosDict:
         raise PluginError("Error: Repeated camera position index: " + str(index))
+    if camPosProp.camSType == "Custom":
+        camSType = camPosProp.camSTypeCustom
+    else:
+        camSType = decomp_compat_map_CameraSType.get(camPosProp.camSType, camPosProp.camSType)
     scene.collision.cameraData.camPosDict[index] = OOTCameraPosData(
-        getCustomProperty(camPosProp, "camSType"),
+        camSType,
         camPosProp.hasPositionData,
         translation,
         rotation,
