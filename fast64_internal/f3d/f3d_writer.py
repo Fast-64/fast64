@@ -2395,7 +2395,7 @@ def addLightDefinition(mat, f3d_light, fLights):
 
 
 def scaleToU8(val):
-    return int(round(val*0xFF))
+    return min(int(round(val*0xFF)), 255)
 
 def exportColor(lightColor):
     return [scaleToU8(value) for value in gammaCorrect(lightColor)]
