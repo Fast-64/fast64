@@ -885,7 +885,7 @@ class F3DPanel(bpy.types.Panel):
         if f3dMat.set_fog:
             self.ui_fog(f3dMat, inputCol, False)
 
-    def draw_full(self, f3dMat, material, layout, context):
+    def draw_full(self, f3dMat, material, layout: bpy.types.UILayout, context):
 
         layout.row().prop(material, "menu_tab", expand=True)
         menuTab = material.menu_tab
@@ -936,6 +936,11 @@ class F3DPanel(bpy.types.Panel):
                 rowAlpha2.prop(f3dMat.combiner2, "B_alpha")
                 rowAlpha2.prop(f3dMat.combiner2, "C_alpha")
                 rowAlpha2.prop(f3dMat.combiner2, "D_alpha")
+
+                if useDict["Texture 0"]:
+                    cc_list = ['A', 'B', 'C', 'D', 'A_alpha', 'B_alpha', 'C_alpha', 'D_alpha']
+                    if len([c for c in cc_list if getattr(f3dMat.combiner2, c) == 'TEXEL1']):
+                        combinerBox2.label(text="Warning: Using 'Texture 1' in Cycle 2 can cause display issues!", icon="LIBRARY_DATA_BROKEN")
 
                 combinerBox2.label(text="Note: In second cycle, texture 0 and texture 1 are flipped.")
         if menuTab == "Sources":
