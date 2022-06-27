@@ -15,6 +15,12 @@ def on_update_oot_render_settings(self, context: bpy.types.Context):
     # TODO: Update render properties from selected OOTLightProperty
     pass
 
+def update_lighting_space(renderSettings: "Fast64RenderSettings_Properties"):
+    if renderSettings.useWorldSpaceLighting:
+        bpy.data.node_groups['ShdCol_L'].nodes['GeometryNormal'].node_tree = bpy.data.node_groups['GeometryNormal_WorldSpace']
+    else:
+        bpy.data.node_groups['ShdCol_L'].nodes['GeometryNormal'].node_tree = bpy.data.node_groups['GeometryNormal_ViewSpace']
+
 def update_scene_props_from_render_settings(context: bpy.types.Context, sceneOutputs: bpy.types.NodeGroupOutput, renderSettings: "Fast64RenderSettings_Properties"):
     enableFog = int(renderSettings.enableFogPreview)
     sceneOutputs.inputs['FogEnable'].default_value = enableFog
@@ -33,14 +39,11 @@ def update_scene_props_from_render_settings(context: bpy.types.Context, sceneOut
             mathutils.Vector(renderSettings.lightDirection) @ transform_mtx_blender_to_n64()
         )
     )
-    
-    if renderSettings.useWorldSpaceLighting:
-        bpy.data.node_groups['ShdCol_L'].nodes['GeometryNormal'].node_tree = bpy.data.node_groups['GeometryNormal_WorldSpace']
-    else:
-        bpy.data.node_groups['ShdCol_L'].nodes['GeometryNormal'].node_tree = bpy.data.node_groups['GeometryNormal_ViewSpace']
+
+    update_lighting_space(renderSettings)
 
     sceneOutputs.inputs['Blender_Game_Scale'].default_value = float(get_blender_to_game_scale(context))
-    
+
 
 def on_update_render_preview_nodes(self, context: bpy.types.Context):
     sceneProps = bpy.data.node_groups.get("SceneProperties")
@@ -58,9 +61,6 @@ def on_update_render_settings(self, context: bpy.types.Context):
         print('Could not locate sceneProps!')
         return
 
-    sceneOutputs: bpy.types.NodeGroupOutput = sceneProps.nodes['Group Output']
-    renderSettings: "Fast64RenderSettings_Properties" = context.scene.fast64.renderSettings
-
     match context.scene.gameEditorMode:
         case "SM64":
             on_update_sm64_render_settings(self, context)
@@ -77,6 +77,13 @@ def poll_sm64_area(self, object):
 
 def poll_oot_scene(self, object):
     return object.ootEmptyType == "Scene"
+
+def resync_scene_props():
+    if 'ShdCol_L' in bpy.data.node_groups and 'GeometryNormal_WorldSpace' in bpy.data.node_groups:
+        renderSettings: "Fast64RenderSettings_Properties" = bpy.context.scene.fast64.renderSettings
+        # Lighting space needs to be updated due to the nodes being shared and reloaded
+        update_lighting_space(renderSettings)
+
 
 class Fast64RenderSettings_Properties(bpy.types.PropertyGroup):
     enableFogPreview: bpy.props.BoolProperty(name="Enable Fog Preview", default=True, update=on_update_render_settings)

@@ -6,9 +6,11 @@ import bpy
 import traceback
 import os
 from pathlib import Path
+
 from .fast64_internal import *
 from .fast64_internal.panels import SM64_Panel
 from .fast64_internal.oot.oot_level import OOT_ObjectProperties
+from .fast64_internal.render_settings import Fast64RenderSettings_Properties, resync_scene_props, on_update_render_settings
 
 import cProfile
 import pstats
@@ -439,31 +441,13 @@ def upgrade_scene_props_node():
     if has_old_f3d_mats:
         bpy.ops.dialog.upgrade_f3d_materials('INVOKE_DEFAULT')
 
-    # upgradeF3DVersionAll(
-    #     [obj for obj in bpy.data.objects if isinstance(obj.data, bpy.types.Mesh)],
-    #     bpy.data.armatures,
-    #     MatUpdateConvert.version,
-    # )
-        
-    # for mat in bpy.data.materials:
-    #     if mat.is_f3d and hasNodeGraph(mat):
-    #         node_tree: bpy.types.NodeTree = mat.node_tree
-    #         for node in node_tree.nodes:
-    #             if node.name == 'SceneProperties':
-    #                 continue
-    #             try:
-    #                 node_tree.nodes.remove(node.name)
-    #             except:
-    #                 print('ERROR: could not remove', node.name)
-    #         createScenePropertiesForMaterial(mat)
-    #         update_preset_manual(mat, bpy.context)
-            
 
 @bpy.app.handlers.persistent
 def after_load(_a, _b):
     # link_f3d_material_library()
     upgrade_changed_props()
     upgrade_scene_props_node()
+    resync_scene_props()
 
 
 # called on add-on enabling
