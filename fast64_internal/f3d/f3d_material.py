@@ -1936,7 +1936,7 @@ def addColorAttributesToModel(obj: bpy.types.Object):
     if prevMode != "OBJECT":
         bpy.ops.object.mode_set(mode=get_mode_set_from_context_mode(prevMode))
 
-def createF3DMat(obj, preset="Shaded Solid", index=None):
+def createF3DMat(obj: bpy.types.Object | None, preset="Shaded Solid", index=None):
     # link all node_groups + material from addon's data .blend
     link_f3d_material_library()
 
@@ -1949,10 +1949,10 @@ def createF3DMat(obj, preset="Shaded Solid", index=None):
     bpy.data.materials.remove(mat)
 
     createScenePropertiesForMaterial(material)
-    addColorAttributesToModel(obj)
 
     # add material to object
     if obj is not None:
+        addColorAttributesToModel(obj)
         if index is None:
             obj.data.materials.append(material)
             if bpy.context.object is not None:
