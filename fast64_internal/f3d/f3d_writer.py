@@ -1210,7 +1210,7 @@ def convertVertexData(
             int(round(normal[0] * 127)).to_bytes(1, "big", signed=True)[0],
             int(round(normal[1] * 127)).to_bytes(1, "big", signed=True)[0],
             int(round(normal[2] * 127)).to_bytes(1, "big", signed=True)[0],
-            int(round(loopColorOrNormal[3] * 255)).to_bytes(1, "big")[0],
+            scaleToU8(loopColorOrNormal[3]).to_bytes(1, "big")[0],
         ]
 
     return Vtx(position, uv, colorOrNormal)
