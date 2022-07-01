@@ -463,19 +463,17 @@ def after_load(_a, _b):
 # append menu layout drawing function to an existing window
 def register():
 
-    if bpy.app.version >= (3, 1, 0):
+    if bpy.app.version <= (3, 1, 0):
         msg = "\n".join(
             (
-                "This version of Fast64 does not work properly in Blender 3.1.0 and later Blender versions.",
+                "This version of Fast64 does not work properly in Blender 3.1.0 and earlier Blender versions.",
                 "Your Blender version is: " + ".".join(str(i) for i in bpy.app.version),
-                "This is a known issue, the fix is not trivial and is in progress.",
-                "See the GitHub issue: https://github.com/Fast-64/fast64/issues/85",
-                "If it has been resolved, update Fast64.",
+                "Please upgrade to 3.2.0 or above.",
             )
         )
         print(msg)
-        blender_3_1_0_and_later_unsupported = Exception("\n\n" + msg)
-        raise blender_3_1_0_and_later_unsupported
+        unsupported_exc = Exception("\n\n" + msg)
+        raise unsupported_exc
 
     # Register addon updater first,
     # this way if a broken version fails to register the user can still pick another version.
