@@ -86,7 +86,9 @@ def oot_register(registerPanels):
     if registerPanels:
         oot_panel_register()
 
-    bpy.types.Scene.ootBlenderScale = bpy.props.FloatProperty(name="Blender To OOT Scale", default=10, update=on_update_render_settings)
+    bpy.types.Scene.ootBlenderScale = bpy.props.FloatProperty(
+        name="Blender To OOT Scale", default=10, update=on_update_render_settings
+    )
     bpy.types.Scene.ootActorBlenderScale = bpy.props.FloatProperty(name="Blender To OOT Actor Scale", default=1000)
     bpy.types.Scene.ootDecompPath = bpy.props.StringProperty(name="Decomp Folder", subtype="FILE_PATH")
 

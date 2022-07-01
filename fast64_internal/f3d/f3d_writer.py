@@ -20,12 +20,14 @@ from .f3d_gbi import _DPLoadTextureBlock
 
 from ..utility import *
 
-def getColorLayer(mesh: bpy.types.Mesh, layer = "Col"):
+
+def getColorLayer(mesh: bpy.types.Mesh, layer="Col"):
     if layer in mesh.attributes and getattr(mesh.attributes[layer], "data", None):
         return mesh.attributes[layer].data
     if layer in mesh.vertex_colors:
         return mesh.vertex_colors[layer].data
     return None
+
 
 def getEdgeToFaceDict(mesh):
     edgeDict = {}
@@ -234,12 +236,7 @@ class TileLoad:
         # 1024 wraps around to 0
         # -1 is because the high value is (max value - 1)
         # ex. 32 pixel width -> high = 31
-        return int(
-            min(
-                math.ceil(value),
-                min(self.texDimensions[field], 1024)
-            ) - 1
-        )
+        return int(min(math.ceil(value), min(self.texDimensions[field], 1024)) - 1)
 
     def tryAppend(self, other):
         return self.appendTile(other.sl, other.sh, other.tl, other.th)
@@ -955,7 +952,7 @@ class TriangleConverter:
                         self.triConverterInfo.getTransformMatrix(bufferVert.groupIndex),
                         self.isPointSampled,
                         self.exportVertexColors,
-                        tex_scale=self.tex_scale
+                        tex_scale=self.tex_scale,
                     )
                 )
 
@@ -989,7 +986,7 @@ class TriangleConverter:
                         self.triConverterInfo.getTransformMatrix(bufferVert.groupIndex),
                         self.isPointSampled,
                         self.exportVertexColors,
-                        tex_scale=self.tex_scale
+                        tex_scale=self.tex_scale,
                     )
                 )
 
@@ -1183,7 +1180,15 @@ def UVtoST(obj, loopIndex, uv_data, texDimensions, isPointSampled):
 
 
 def convertVertexData(
-    mesh, loopPos, loopUV, loopColorOrNormal, texDimensions, transformMatrix, isPointSampled, exportVertexColors, tex_scale=(1, 1)
+    mesh,
+    loopPos,
+    loopUV,
+    loopColorOrNormal,
+    texDimensions,
+    transformMatrix,
+    isPointSampled,
+    exportVertexColors,
+    tex_scale=(1, 1),
 ):
     # Position (8 bytes)
     position = [int(round(floatValue)) for floatValue in (transformMatrix @ loopPos)]
@@ -1193,7 +1198,7 @@ def convertVertexData(
     # However, Point samples from the corner.
     # Thus we add 0.5 to the UV only if bilinear filtering.
     # see section 13.7.5.3 in programming manual.
-    pixelOffset = (0, 0) if isPointSampled else (0.5/tex_scale[0], 0.5/tex_scale[1])
+    pixelOffset = (0, 0) if isPointSampled else (0.5 / tex_scale[0], 0.5 / tex_scale[1])
 
     uv = [
         convertFloatToFixed16(loopUV[0] * texDimensions[0] - pixelOffset[0]),
@@ -1215,10 +1220,11 @@ def convertVertexData(
 
     return Vtx(position, uv, colorOrNormal)
 
+
 @functools.lru_cache(0)
 def is3_2_or_above():
     return bpy.app.version[0] >= 3 and bpy.app.version[1] >= 2
-    
+
 
 def getLoopColor(loop: bpy.types.MeshLoop, mesh, mat_ver):
 
@@ -1530,11 +1536,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     if useDict["Primitive"] and f3dMat.set_prim:
         color = exportColor(f3dMat.prim_color[0:3]) + [scaleToU8(f3dMat.prim_color[3])]
         fMaterial.material.commands.append(
-            DPSetPrimColor(
-                scaleToU8(f3dMat.prim_lod_min),
-                scaleToU8(f3dMat.prim_lod_frac),
-                *color
-            )
+            DPSetPrimColor(scaleToU8(f3dMat.prim_lod_min), scaleToU8(f3dMat.prim_lod_frac), *color)
         )
 
     if useDict["Environment"] and f3dMat.set_env:
@@ -2146,41 +2148,21 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image: bpy.types.Image, imageN
                             (
                                 (
                                     (
-                                        (
-                                            int(
-                                                round(pixels[(j * image.size[0] + i) * image.channels + 0] * 0x1F)
-                                            )
-                                            & 0x1F
-                                        )
+                                        (int(round(pixels[(j * image.size[0] + i) * image.channels + 0] * 0x1F)) & 0x1F)
                                         << 3
                                     )
                                     | (
-                                        (
-                                            int(
-                                                round(pixels[(j * image.size[0] + i) * image.channels + 1] * 0x1F)
-                                            )
-                                            & 0x1F
-                                        )
+                                        (int(round(pixels[(j * image.size[0] + i) * image.channels + 1] * 0x1F)) & 0x1F)
                                         >> 2
                                     )
                                 ),
                                 (
                                     (
-                                        (
-                                            int(
-                                                round(pixels[(j * image.size[0] + i) * image.channels + 1] * 0x1F)
-                                            )
-                                            & 0x03
-                                        )
+                                        (int(round(pixels[(j * image.size[0] + i) * image.channels + 1] * 0x1F)) & 0x03)
                                         << 6
                                     )
                                     | (
-                                        (
-                                            int(
-                                                round(pixels[(j * image.size[0] + i) * image.channels + 2] * 0x1F)
-                                            )
-                                            & 0x1F
-                                        )
+                                        (int(round(pixels[(j * image.size[0] + i) * image.channels + 2] * 0x1F)) & 0x1F)
                                         << 1
                                     )
                                     | (1 if pixels[(j * image.size[0] + i) * image.channels + 3] > 0.5 else 0)
@@ -2278,7 +2260,12 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image: bpy.types.Image, imageN
                                 int(
                                     round(
                                         colorToLuminance(
-                                            pixels[(j * image.size[0] + i) * image.channels : (j * image.size[0] + i) * image.channels + 3]
+                                            pixels[
+                                                (j * image.size[0] + i)
+                                                * image.channels : (j * image.size[0] + i)
+                                                * image.channels
+                                                + 3
+                                            ]
                                         )
                                         * 0xFF
                                     )
@@ -2351,6 +2338,7 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image: bpy.types.Image, imageN
 
     return fImage
 
+
 def saveLightsDefinition(fModel, fMaterial, material, lightsName):
     lights = fModel.getLightAndHandleShared(lightsName)
     if lights is not None:
@@ -2395,7 +2383,8 @@ def addLightDefinition(mat, f3d_light, fLights):
 
 
 def scaleToU8(val):
-    return min(int(round(val*0xFF)), 255)
+    return min(int(round(val * 0xFF)), 255)
+
 
 def exportColor(lightColor):
     return [scaleToU8(value) for value in gammaCorrect(lightColor)]

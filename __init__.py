@@ -10,7 +10,11 @@ from pathlib import Path
 from .fast64_internal import *
 from .fast64_internal.panels import SM64_Panel
 from .fast64_internal.oot.oot_level import OOT_ObjectProperties
-from .fast64_internal.render_settings import Fast64RenderSettings_Properties, resync_scene_props, on_update_render_settings
+from .fast64_internal.render_settings import (
+    Fast64RenderSettings_Properties,
+    resync_scene_props,
+    on_update_render_settings,
+)
 
 import cProfile
 import pstats
@@ -264,6 +268,7 @@ class Fast64_GlobalToolsPanel(bpy.types.Panel):
         # col.operator(CreateMetarig.bl_idname)
         addon_updater_ops.update_notice_box_ui(self, context)
 
+
 class Fast64Settings_Properties(bpy.types.PropertyGroup):
     """Settings affecting exports for all games found in scene.fast64.settings"""
 
@@ -328,11 +333,12 @@ class Fast64_ObjectProperties(bpy.types.PropertyGroup):
     sm64: bpy.props.PointerProperty(type=SM64_ObjectProperties, name="SM64 Object Properties")
     oot: bpy.props.PointerProperty(type=OOT_ObjectProperties, name="OOT Object Properties")
 
+
 class UpgradeF3DMaterialsDialog(bpy.types.Operator):
     bl_idname = "dialog.upgrade_f3d_materials"
     bl_label = "Upgrade F3D Materials"
-    bl_options = {'REGISTER', 'UNDO'}
-    
+    bl_options = {"REGISTER", "UNDO"}
+
     done = False
 
     def draw(self, context):
@@ -348,13 +354,13 @@ class UpgradeF3DMaterialsDialog(bpy.types.Operator):
             purge_box.separator(factor=0.5)
             purge_box.label(text="How to purge:")
             purge_box.separator(factor=0.5)
-            purge_box.label(text='Go to the outliner, change the display mode')
+            purge_box.label(text="Go to the outliner, change the display mode")
             purge_box.label(text='to "Orphan Data" (broken heart icon)')
             purge_box.separator(factor=0.25)
             purge_box.label(text='Click "Purge" in the top right corner.')
             purge_box.separator(factor=0.25)
-            purge_box.label(text='Purge multiple times until the node groups')
-            purge_box.label(text='are gone.')
+            purge_box.label(text="Purge multiple times until the node groups")
+            purge_box.label(text="are gone.")
             layout.separator(factor=0.25)
             layout.label(text="You may click anywhere to close this dialog.")
             return
@@ -365,14 +371,14 @@ class UpgradeF3DMaterialsDialog(bpy.types.Operator):
         box.separator()
 
         col = box.column()
-        col.alignment = 'CENTER'
+        col.alignment = "CENTER"
         col.alert = True
         col.label(text="Upgrade F3D Materials?")
-    
+
     def invoke(self, context, event):
         return context.window_manager.invoke_props_dialog(self, width=600)
 
-    def execute(self, context: 'bpy.types.Context'):
+    def execute(self, context: "bpy.types.Context"):
         if context.mode != "OBJECT":
             bpy.ops.object.mode_set(mode="OBJECT")
 
@@ -382,7 +388,8 @@ class UpgradeF3DMaterialsDialog(bpy.types.Operator):
             MatUpdateConvert.version,
         )
         self.done = True
-        return {'FINISHED'}
+        return {"FINISHED"}
+
 
 # def updateGameEditor(scene, context):
 # 	if scene.currentGameEditorMode == 'SM64':
@@ -433,13 +440,14 @@ def upgrade_changed_props():
     SM64_Properties.upgrade_changed_props()
     SM64_ObjectProperties.upgrade_changed_props()
 
+
 def upgrade_scene_props_node():
-    '''update f3d materials with SceneProperties node'''
-    has_old_f3d_mats = bool(len([
-        mat for mat in bpy.data.materials if mat.is_f3d and mat.mat_ver < MatUpdateConvert.version
-    ]))
+    """update f3d materials with SceneProperties node"""
+    has_old_f3d_mats = bool(
+        len([mat for mat in bpy.data.materials if mat.is_f3d and mat.mat_ver < MatUpdateConvert.version])
+    )
     if has_old_f3d_mats:
-        bpy.ops.dialog.upgrade_f3d_materials('INVOKE_DEFAULT')
+        bpy.ops.dialog.upgrade_f3d_materials("INVOKE_DEFAULT")
 
 
 @bpy.app.handlers.persistent
@@ -498,13 +506,17 @@ def register():
     bpy.types.Scene.saveTextures = bpy.props.BoolProperty(name="Save Textures As PNGs (Breaks CI Textures)")
     bpy.types.Scene.generateF3DNodeGraph = bpy.props.BoolProperty(name="Generate F3D Node Graph", default=True)
     bpy.types.Scene.exportHiddenGeometry = bpy.props.BoolProperty(name="Export Hidden Geometry", default=True)
-    bpy.types.Scene.blenderF3DScale = bpy.props.FloatProperty(name="F3D Blender Scale", default=100, update=on_update_render_settings)
+    bpy.types.Scene.blenderF3DScale = bpy.props.FloatProperty(
+        name="F3D Blender Scale", default=100, update=on_update_render_settings
+    )
 
     bpy.types.Scene.fast64 = bpy.props.PointerProperty(type=Fast64_Properties, name="Fast64 Properties")
     bpy.types.Bone.fast64 = bpy.props.PointerProperty(type=Fast64_BoneProperties, name="Fast64 Bone Properties")
     bpy.types.Object.fast64 = bpy.props.PointerProperty(type=Fast64_ObjectProperties, name="Fast64 Object Properties")
 
-    bpy.types.Scene.alreadyLinkedMaterialNodes = bpy.props.BoolProperty(name="Already Linked New Material Nodes", default=False)
+    bpy.types.Scene.alreadyLinkedMaterialNodes = bpy.props.BoolProperty(
+        name="Already Linked New Material Nodes", default=False
+    )
 
     bpy.app.handlers.load_post.append(after_load)
 

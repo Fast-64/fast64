@@ -74,40 +74,40 @@ drawLayerRenderMode = {
 }
 
 CCMUXDict = {
-	'COMBINED' : 	    0,
-	'TEXEL0' : 		    1,
-	'TEXEL1' : 		    2,
-	'PRIMITIVE' : 	    3,
-	'SHADE' : 		    4,
-	'ENVIRONMENT' : 	5,
-	'CENTER' : 		    6,
-	'SCALE' : 		    6,
-	'COMBINED_ALPHA' : 	7,
-	'TEXEL0_ALPHA' : 	8,
-	'TEXEL1_ALPHA' : 	9,
-	'PRIMITIVE_ALPHA' : 10,
-	'SHADE_ALPHA' : 	11,
-	'ENV_ALPHA' : 	    12,
-	'LOD_FRACTION' : 	13,
-	'PRIM_LOD_FRAC' : 	14,
-	'NOISE' : 		    7,
-	'K4' : 		        7,
-	'K5' : 		        15,
-	'1' : 		        6,
-	'0' : 		        31
+    "COMBINED": 0,
+    "TEXEL0": 1,
+    "TEXEL1": 2,
+    "PRIMITIVE": 3,
+    "SHADE": 4,
+    "ENVIRONMENT": 5,
+    "CENTER": 6,
+    "SCALE": 6,
+    "COMBINED_ALPHA": 7,
+    "TEXEL0_ALPHA": 8,
+    "TEXEL1_ALPHA": 9,
+    "PRIMITIVE_ALPHA": 10,
+    "SHADE_ALPHA": 11,
+    "ENV_ALPHA": 12,
+    "LOD_FRACTION": 13,
+    "PRIM_LOD_FRAC": 14,
+    "NOISE": 7,
+    "K4": 7,
+    "K5": 15,
+    "1": 6,
+    "0": 31,
 }
 
 ACMUXDict = {
-	'COMBINED' : 	    0,
-	'TEXEL0' : 		    1,
-	'TEXEL1' : 		    2,
-	'PRIMITIVE' : 	    3,
-	'SHADE' : 		    4,
-	'ENVIRONMENT' : 	5,
-	'LOD_FRACTION' : 	0,
-	'PRIM_LOD_FRAC' : 	6,
-	'1' : 		        6,
-	'0' : 		        7,
+    "COMBINED": 0,
+    "TEXEL0": 1,
+    "TEXEL1": 2,
+    "PRIMITIVE": 3,
+    "SHADE": 4,
+    "ENVIRONMENT": 5,
+    "LOD_FRACTION": 0,
+    "PRIM_LOD_FRAC": 6,
+    "1": 6,
+    "0": 7,
 }
 
 
@@ -1680,11 +1680,9 @@ class F3D:
             raise PluginError("Invalid G_MWO_b value for lights: " + n)
 
 
-g_F3D = {
-    "GBI": None,
-    "f3d_type": None,
-    "isHWv1": None
-}
+g_F3D = {"GBI": None, "f3d_type": None, "isHWv1": None}
+
+
 def get_cached_F3D_GBI(f3d_type: str, isHWv1: bool) -> F3D:
     """Get constructed/cached F3D class"""
     global g_F3D
@@ -1694,9 +1692,11 @@ def get_cached_F3D_GBI(f3d_type: str, isHWv1: bool) -> F3D:
         g_F3D["GBI"] = F3D(f3d_type, isHWv1)
     return g_F3D["GBI"]
 
+
 def get_F3D_GBI() -> F3D:
     """Gets cached F3D class and automatically supplies params"""
     return get_cached_F3D_GBI(bpy.context.scene.f3d_type, bpy.context.scene.isHWv1)
+
 
 def _SHIFTL(value, amount, mask):
     return (int(value) & ((1 << mask) - 1)) << amount
@@ -5133,9 +5133,7 @@ class DPSetCombineMode:
             | GCCc1w0(CCMUXDict[self.a1], CCMUXDict[self.c1]),
             0,
             24,
-        ), GCCc0w1(
-            CCMUXDict[self.b0], CCMUXDict[self.d0], ACMUXDict[self.Ab0], ACMUXDict[self.Ad0]
-        ) | GCCc1w1(
+        ), GCCc0w1(CCMUXDict[self.b0], CCMUXDict[self.d0], ACMUXDict[self.Ab0], ACMUXDict[self.Ad0]) | GCCc1w1(
             CCMUXDict[self.b1],
             ACMUXDict[self.Aa1],
             ACMUXDict[self.Ac1],

@@ -2,6 +2,7 @@ import bpy
 import mathutils
 from .utility import get_blender_to_game_scale, transform_mtx_blender_to_n64
 
+
 def on_update_sm64_render_settings(self, context: bpy.types.Context):
     renderSettings: "Fast64RenderSettings_Properties" = context.scene.fast64.renderSettings
     if renderSettings.sm64Area and renderSettings.useObjectRenderPreview:
@@ -11,54 +12,64 @@ def on_update_sm64_render_settings(self, context: bpy.types.Context):
 
         renderSettings.clippingPlanes = tuple(float(p) for p in area.clipPlanes)
 
+
 def on_update_oot_render_settings(self, context: bpy.types.Context):
     # TODO: Update render properties from selected OOTLightProperty
     pass
 
+
 def update_lighting_space(renderSettings: "Fast64RenderSettings_Properties"):
     if renderSettings.useWorldSpaceLighting:
-        bpy.data.node_groups['ShdCol_L'].nodes['GeometryNormal'].node_tree = bpy.data.node_groups['GeometryNormal_WorldSpace']
+        bpy.data.node_groups["ShdCol_L"].nodes["GeometryNormal"].node_tree = bpy.data.node_groups[
+            "GeometryNormal_WorldSpace"
+        ]
     else:
-        bpy.data.node_groups['ShdCol_L'].nodes['GeometryNormal'].node_tree = bpy.data.node_groups['GeometryNormal_ViewSpace']
+        bpy.data.node_groups["ShdCol_L"].nodes["GeometryNormal"].node_tree = bpy.data.node_groups[
+            "GeometryNormal_ViewSpace"
+        ]
 
-def update_scene_props_from_render_settings(context: bpy.types.Context, sceneOutputs: bpy.types.NodeGroupOutput, renderSettings: "Fast64RenderSettings_Properties"):
+
+def update_scene_props_from_render_settings(
+    context: bpy.types.Context,
+    sceneOutputs: bpy.types.NodeGroupOutput,
+    renderSettings: "Fast64RenderSettings_Properties",
+):
     enableFog = int(renderSettings.enableFogPreview)
-    sceneOutputs.inputs['FogEnable'].default_value = enableFog
+    sceneOutputs.inputs["FogEnable"].default_value = enableFog
 
-    sceneOutputs.inputs['FogColor'].default_value = tuple(c for c in renderSettings.fogPreviewColor)
-    sceneOutputs.inputs['FogNear'].default_value = renderSettings.fogPreviewPosition[0]
-    sceneOutputs.inputs['FogFar'].default_value = renderSettings.fogPreviewPosition[1]
+    sceneOutputs.inputs["FogColor"].default_value = tuple(c for c in renderSettings.fogPreviewColor)
+    sceneOutputs.inputs["FogNear"].default_value = renderSettings.fogPreviewPosition[0]
+    sceneOutputs.inputs["FogFar"].default_value = renderSettings.fogPreviewPosition[1]
 
-    sceneOutputs.inputs['F3D_NearClip'].default_value = float(renderSettings.clippingPlanes[0])
-    sceneOutputs.inputs['F3D_FarClip'].default_value = float(renderSettings.clippingPlanes[1])
+    sceneOutputs.inputs["F3D_NearClip"].default_value = float(renderSettings.clippingPlanes[0])
+    sceneOutputs.inputs["F3D_FarClip"].default_value = float(renderSettings.clippingPlanes[1])
 
-    sceneOutputs.inputs['ShadeColor'].default_value = tuple(c for c in renderSettings.lightColor)
-    sceneOutputs.inputs['AmbientColor'].default_value = tuple(c for c in renderSettings.ambientColor)
-    sceneOutputs.inputs['LightDirection'].default_value = tuple(
-        d for d in (
-            mathutils.Vector(renderSettings.lightDirection) @ transform_mtx_blender_to_n64()
-        )
+    sceneOutputs.inputs["ShadeColor"].default_value = tuple(c for c in renderSettings.lightColor)
+    sceneOutputs.inputs["AmbientColor"].default_value = tuple(c for c in renderSettings.ambientColor)
+    sceneOutputs.inputs["LightDirection"].default_value = tuple(
+        d for d in (mathutils.Vector(renderSettings.lightDirection) @ transform_mtx_blender_to_n64())
     )
 
     update_lighting_space(renderSettings)
 
-    sceneOutputs.inputs['Blender_Game_Scale'].default_value = float(get_blender_to_game_scale(context))
+    sceneOutputs.inputs["Blender_Game_Scale"].default_value = float(get_blender_to_game_scale(context))
 
 
 def on_update_render_preview_nodes(self, context: bpy.types.Context):
     sceneProps = bpy.data.node_groups.get("SceneProperties")
     if sceneProps == None:
-        print('Could not locate SceneProperties!')
+        print("Could not locate SceneProperties!")
         return
 
-    sceneOutputs: bpy.types.NodeGroupOutput = sceneProps.nodes['Group Output']
+    sceneOutputs: bpy.types.NodeGroupOutput = sceneProps.nodes["Group Output"]
     renderSettings: "Fast64RenderSettings_Properties" = context.scene.fast64.renderSettings
     update_scene_props_from_render_settings(context, sceneOutputs, renderSettings)
+
 
 def on_update_render_settings(self, context: bpy.types.Context):
     sceneProps = bpy.data.node_groups.get("SceneProperties")
     if sceneProps == None:
-        print('Could not locate sceneProps!')
+        print("Could not locate sceneProps!")
         return
 
     match context.scene.gameEditorMode:
@@ -75,11 +86,13 @@ def on_update_render_settings(self, context: bpy.types.Context):
 def poll_sm64_area(self, object):
     return object.sm64_obj_type == "Area Root"
 
+
 def poll_oot_scene(self, object):
     return object.ootEmptyType == "Scene"
 
+
 def resync_scene_props():
-    if 'ShdCol_L' in bpy.data.node_groups and 'GeometryNormal_WorldSpace' in bpy.data.node_groups:
+    if "ShdCol_L" in bpy.data.node_groups and "GeometryNormal_WorldSpace" in bpy.data.node_groups:
         renderSettings: "Fast64RenderSettings_Properties" = bpy.context.scene.fast64.renderSettings
         # Lighting space needs to be updated due to the nodes being shared and reloaded
         update_lighting_space(renderSettings)
@@ -94,7 +107,7 @@ class Fast64RenderSettings_Properties(bpy.types.PropertyGroup):
         min=0,
         max=1,
         default=(1, 1, 1, 1),
-        update=on_update_render_preview_nodes
+        update=on_update_render_preview_nodes,
     )
     ambientColor: bpy.props.FloatVectorProperty(
         name="Ambient Light",
@@ -103,7 +116,7 @@ class Fast64RenderSettings_Properties(bpy.types.PropertyGroup):
         min=0,
         max=1,
         default=(0.5, 0.5, 0.5, 1),
-        update=on_update_render_preview_nodes
+        update=on_update_render_preview_nodes,
     )
     lightColor: bpy.props.FloatVectorProperty(
         name="Light Color",
@@ -112,7 +125,7 @@ class Fast64RenderSettings_Properties(bpy.types.PropertyGroup):
         min=0,
         max=1,
         default=(1, 1, 1, 1),
-        update=on_update_render_preview_nodes
+        update=on_update_render_preview_nodes,
     )
     lightDirection: bpy.props.FloatVectorProperty(
         name="Light Direction",
@@ -120,16 +133,28 @@ class Fast64RenderSettings_Properties(bpy.types.PropertyGroup):
         size=3,
         min=-1,
         max=1,
-        default=mathutils.Vector((0.5, 0.5, 1)).normalized(), # pre normalized
-        update=on_update_render_preview_nodes
+        default=mathutils.Vector((0.5, 0.5, 1)).normalized(),  # pre normalized
+        update=on_update_render_preview_nodes,
     )
-    useWorldSpaceLighting: bpy.props.BoolProperty(name="Use World Space Lighting", default=True, update=on_update_render_settings)
+    useWorldSpaceLighting: bpy.props.BoolProperty(
+        name="Use World Space Lighting", default=True, update=on_update_render_settings
+    )
     # Fog Preview is int because values reflect F3D values
-    fogPreviewPosition: bpy.props.IntVectorProperty(name="Fog Position", size=2, min=0, max=0x7FFFFFFF, default=(985, 1000), update=on_update_render_preview_nodes)
+    fogPreviewPosition: bpy.props.IntVectorProperty(
+        name="Fog Position", size=2, min=0, max=0x7FFFFFFF, default=(985, 1000), update=on_update_render_preview_nodes
+    )
     # Clipping planes are float because values reflect F3D values
-    clippingPlanes: bpy.props.FloatVectorProperty(name="Clipping Planes", size=2, min=0, default=(100, 30000), update=on_update_render_preview_nodes)
-    useObjectRenderPreview: bpy.props.BoolProperty(name="Use Object Preview", default=True, update=on_update_render_settings)
+    clippingPlanes: bpy.props.FloatVectorProperty(
+        name="Clipping Planes", size=2, min=0, default=(100, 30000), update=on_update_render_preview_nodes
+    )
+    useObjectRenderPreview: bpy.props.BoolProperty(
+        name="Use Object Preview", default=True, update=on_update_render_settings
+    )
     # SM64
-    sm64Area: bpy.props.PointerProperty(name="Area Object", type=bpy.types.Object, update=on_update_sm64_render_settings, poll=poll_sm64_area)
+    sm64Area: bpy.props.PointerProperty(
+        name="Area Object", type=bpy.types.Object, update=on_update_sm64_render_settings, poll=poll_sm64_area
+    )
     # OOT
-    ootSceneObject: bpy.props.PointerProperty(name="Scene Object", type=bpy.types.Object, update=on_update_oot_render_settings, poll=poll_oot_scene)
+    ootSceneObject: bpy.props.PointerProperty(
+        name="Scene Object", type=bpy.types.Object, update=on_update_oot_render_settings, poll=poll_oot_scene
+    )

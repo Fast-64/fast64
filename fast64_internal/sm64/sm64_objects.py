@@ -1135,10 +1135,10 @@ class SM64ObjectPanel(bpy.types.Panel):
             for i in range(1, 5):
                 row = column.row()
                 row.prop(game_object, f"bparam{i}", text=f"Param {i}")
-            individuals.separator(factor=.25)
+            individuals.separator(factor=0.25)
             individuals.label(text=f"Result: {game_object.get_combined_bparams()}")
         else:
-            box.separator(factor=.5)
+            box.separator(factor=0.5)
             box.label(text="All Behavior Parameters")
             box.prop(game_object, "bparams", text="")
             parent_box.separator()
@@ -1844,6 +1844,7 @@ def sm64_obj_panel_unregister():
     for cls in sm64_obj_panel_classes:
         unregister_class(cls)
 
+
 def sm64_on_update_area_render_settings(self: bpy.types.Object, context: bpy.types.Context):
     renderSettings = context.scene.fast64.renderSettings
     if renderSettings.useObjectRenderPreview and renderSettings.sm64Area == self:
@@ -1852,7 +1853,7 @@ def sm64_on_update_area_render_settings(self: bpy.types.Object, context: bpy.typ
         renderSettings.fogPreviewPosition = tuple(round(p) for p in area.area_fog_position)
 
         renderSettings.clippingPlanes = tuple(float(p) for p in area.clipPlanes)
-    
+
 
 def sm64_obj_register():
     for cls in sm64_obj_classes:
@@ -1928,14 +1929,27 @@ def sm64_obj_register():
 
     bpy.types.Object.useDefaultScreenRect = bpy.props.BoolProperty(name="Use Default Screen Rect", default=True)
 
-    bpy.types.Object.clipPlanes = bpy.props.IntVectorProperty(name="Clip Planes", size=2, min=0, default=(100, 30000), update=sm64_on_update_area_render_settings)
+    bpy.types.Object.clipPlanes = bpy.props.IntVectorProperty(
+        name="Clip Planes", size=2, min=0, default=(100, 30000), update=sm64_on_update_area_render_settings
+    )
 
     bpy.types.Object.area_fog_color = bpy.props.FloatVectorProperty(
-        name="Area Fog Color", subtype="COLOR", size=4, min=0, max=1, default=(0, 0, 0, 1), update=sm64_on_update_area_render_settings
+        name="Area Fog Color",
+        subtype="COLOR",
+        size=4,
+        min=0,
+        max=1,
+        default=(0, 0, 0, 1),
+        update=sm64_on_update_area_render_settings,
     )
 
     bpy.types.Object.area_fog_position = bpy.props.FloatVectorProperty(
-        name="Area Fog Position", size=2, min=0, max=0x7FFFFFFF, default=(985, 1000), update=sm64_on_update_area_render_settings
+        name="Area Fog Position",
+        size=2,
+        min=0,
+        max=0x7FFFFFFF,
+        default=(985, 1000),
+        update=sm64_on_update_area_render_settings,
     )
 
     bpy.types.Object.areaOverrideBG = bpy.props.BoolProperty(name="Override Background")
