@@ -2592,6 +2592,9 @@ class FModel:
 
         dynamicData.append(self.to_c_material_revert(gfxFormatter))
 
+        if savePNG:
+            self.texturesSavedLastExport = self.save_textures(textureExportSettings.exportPath)
+
         self.freePalettes()
         return ExportCData(staticData, dynamicData, texC)
 
@@ -2613,24 +2616,22 @@ class FModel:
         scrollData.header += "extern void scroll_" + scrollName + "();\n"
         return scrollData, hasScrolling
 
-    def save_textures(self, dirpath, largeTexturesOnly):
+    def save_textures(self, exportPath):
         # TODO: Saving texture should come from FImage
         texturesSaved = 0
         for (image, texInfo), texture in self.textures.items():
-            if texInfo[1] == "PAL" or (largeTexturesOnly and not texture.isLargeTexture):
+            if texInfo[1] == "PAL":
                 continue
 
             # remove '.inc.c'
             imageFileName = texture.filename[:-6] + ".png"
-
-            # 	image.save_render(os.path.join(dirpath, imageFileName))
 
             isPacked = image.packed_file is not None
             if not isPacked:
                 image.pack()
             oldpath = image.filepath
             try:
-                image.filepath = bpy.path.abspath(os.path.join(dirpath, imageFileName))
+                image.filepath = bpy.path.abspath(os.path.join(exportPath, imageFileName))
                 image.save()
                 texturesSaved += 1
                 if not isPacked:
