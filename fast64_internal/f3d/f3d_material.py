@@ -1,11 +1,9 @@
-from cgitb import text
 import logging
-from pprint import pformat
-import bpy, math, os, nodeitems_utils
+import bpy, math, os
 from bpy.types import Operator, Menu
 from bl_operators.presets import AddPresetBase
 from bpy.utils import register_class, unregister_class
-from nodeitems_utils import NodeItem
+
 from .f3d_enums import *
 from .f3d_gbi import get_F3D_GBI, GBL_c1, GBL_c2, enumTexScroll
 from .f3d_material_presets import *
@@ -15,11 +13,9 @@ from .f3d_material_helpers import F3DMaterial_UpdateLock
 from bpy.app.handlers import persistent
 from typing import Generator, Tuple
 
-from time import perf_counter_ns
 
 logging.basicConfig(format="%(asctime)s: %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p")
 logger = logging.getLogger(__name__)
-logger.setLevel("DEBUG")
 
 bitSizeDict = {
     "G_IM_SIZ_4b": 4,
@@ -145,7 +141,6 @@ def update_draw_layer(self, context):
     with F3DMaterial_UpdateLock(get_material_from_context(context)) as material:
         if not material:
             return
-        logger.info("update_draw_layer 2")
 
         drawLayer = material.f3d_mat.draw_layer
         if context.scene.gameEditorMode == "SM64":
@@ -159,9 +154,7 @@ def update_draw_layer(self, context):
                     material.f3d_mat.draw_layer.sm64 = "5"
         material.f3d_mat.presetName = "Custom"
         update_blend_method(material, context)
-        logger.info("update_draw_layer 3")
         set_output_node_groups(material)
-        logger.info("update_draw_layer 4")
 
 
 def get_blend_method(material):
@@ -692,8 +685,6 @@ class F3DPanel(bpy.types.Panel):
                 if f3d_mat.f3d_light6 is not None:
                     lightSettings.prop_search(f3d_mat, "f3d_light7", bpy.data, "lights", text="")
 
-            # layout.box().label(text = "Note: Lighting preview is not 100% accurate.")
-            # layout.box().label(text = "For vertex colors, clear 'Lighting'.")
             prop_input.enabled = f3d_mat.set_lights and f3d_mat.rdp_settings.g_lighting and f3d_mat.rdp_settings.g_shade
 
         return inputGroup
@@ -1540,7 +1531,6 @@ def update_tex_values_field(
     set_texture_size(self, tex_size, tex_index)
 
     if texProperty.autoprop:
-        #     # TODO: (V5) is this f****** necessary? it happens in like 50 places
         setAutoProp(texProperty.S, tex_size[0])
         setAutoProp(texProperty.T, tex_size[1])
 
@@ -2724,8 +2714,6 @@ def convertToNewMat(material, oldMat):
     # Combiners
     recursiveCopyOldPropertyGroup(oldMat["combiner1"], material.f3d_mat.combiner1)
     recursiveCopyOldPropertyGroup(oldMat["combiner2"], material.f3d_mat.combiner2)
-    # material.f3d_mat.combiner1 = oldMat.combiner1
-    # material.f3d_mat.combiner2 = oldMat.combiner2
 
     # Texture animation
     material.f3d_mat.menu_procAnim = oldMat.get("menu_procAnim", material.f3d_mat.menu_procAnim)
@@ -3006,8 +2994,6 @@ class F3DRenderSettingsPanel(bpy.types.Panel):
     bl_idname = "OBJECT_PT_F3D_RENDER_SETTINGS_PANEL"
     bl_space_type = "VIEW_3D"
     bl_region_type = "WINDOW"
-    # bl_context = "objectmode"
-    # bl_context = "world"
 
     @classmethod
     def poll(cls, context):
@@ -3019,7 +3005,6 @@ class F3DRenderSettingsPanel(bpy.types.Panel):
         renderSettings = context.scene.fast64.renderSettings
 
         globalSettingsBox = layout.box()
-        # globalSettingsBox.emboss = "RADIAL_MENU"
         labelbox = globalSettingsBox.box()
         labelbox.label(text="Global Settings")
         labelbox.ui_units_x = 6

@@ -51,28 +51,6 @@ def upgradeF3DVersionOneObject(obj, materialDict, version):
             else:
                 convertF3DtoNewVersion(obj, index, material, materialDict, version)
 
-    # only use materials that are used by the object
-    # used_mats = set()
-    # for p in obj.data.polygons:
-    #     if type(p.material_index) is int:
-    #         used_mats.add(p.material_index)
-
-    # for index in used_mats:
-    #     material = obj.material_slots[index].material
-    #     if material is not None and material.is_f3d:
-    #         if material in materialDict:
-    #             obj.material_slots[index].material = materialDict[material]
-    #         else:
-    #             convertF3DtoNewVersion(obj, index, material, materialDict, version)
-    
-    # # Remove materials not used by the object
-    # for index in reversed(range(len(obj.material_slots))):
-    #     if index not in used_mats:
-    #         obj.active_material_index = index
-    #         material = obj.material_slots[index].material
-    #         print('bpy.ops.object.material_slot_remove', material.name)
-    #         bpy.ops.object.material_slot_remove({ 'object': obj })
-
 
 V4PresetName = {
     "Unlit Texture": "sm64_unlit_texture",
@@ -100,6 +78,7 @@ def getV4PresetName(name):
         newName = "Custom"
     return newName
 
+
 def get_group_from_polygon(obj: bpy.types.Object, polygon: bpy.types.MeshPolygon):
     sample_vert: bpy.types.MeshVertex = obj.data.vertices[polygon.vertices[0]]
     if len(sample_vert.groups):
@@ -109,8 +88,10 @@ def get_group_from_polygon(obj: bpy.types.Object, polygon: bpy.types.MeshPolygon
                 return obj.vertex_groups[sample_vert.groups[0].group]
     return None
 
+
 def has_valid_mat_ver(material: bpy.types.Material):
-    return getattr(material, 'mat_ver', -1) >= 1
+    return getattr(material, "mat_ver", -1) >= 1
+
 
 def get_best_draw_layer_for_materials():
     bone_map = {}
@@ -120,7 +101,7 @@ def get_best_draw_layer_for_materials():
             bone_map[bone.name] = bone
 
     finished_mats = set()
-    
+
     objects = bpy.data.objects
     obj: bpy.types.Object = None
     for obj in objects:
@@ -130,11 +111,7 @@ def get_best_draw_layer_for_materials():
         p: bpy.types.MeshPolygon = None
         for p in obj.data.polygons:
             mat: bpy.types.Material = obj.material_slots[p.material_index].material
-            if (
-                not has_valid_mat_ver(mat)
-                or mat.mat_ver >= 4
-                or mat.name in finished_mats
-            ):
+            if not has_valid_mat_ver(mat) or mat.mat_ver >= 4 or mat.name in finished_mats:
                 continue
 
             # default to object's draw layer
@@ -155,16 +132,12 @@ def get_best_draw_layer_for_materials():
             continue
         for mat_slot in obj.material_slots:
             mat: bpy.types.Material = mat_slot.material
-            if (
-                not has_valid_mat_ver(mat)
-                or mat.mat_ver >= 4
-                or mat.name in finished_mats
-            ):
+            if not has_valid_mat_ver(mat) or mat.mat_ver >= 4 or mat.name in finished_mats:
                 continue
 
             mat.f3d_mat.draw_layer.sm64 = obj.draw_layer_static
             finished_mats.add(mat.name)
-  
+
 
 def convertF3DtoNewVersion(obj: bpy.types.Object | bpy.types.Bone, index, material, materialDict, version):
     try:
@@ -173,7 +146,7 @@ def convertF3DtoNewVersion(obj: bpy.types.Object | bpy.types.Bone, index, materi
         if material.mat_ver > 3:
             oldPreset = AddPresetBase.as_filename(material.f3d_mat.presetName)
         else:
-            oldPreset = material.get('f3d_preset')
+            oldPreset = material.get("f3d_preset")
 
         newMat = createF3DMat(obj, preset=getV4PresetName(oldPreset), index=index)
 
@@ -193,8 +166,9 @@ def convertF3DtoNewVersion(obj: bpy.types.Object | bpy.types.Bone, index, materi
 
         updateMatWithNewVersionName(newMat, material, materialDict, version)
     except Exception as exc:
-        print('Failed to upgrade', material.name)
+        print("Failed to upgrade", material.name)
         print(exc)
+
 
 def convertAllBSDFtoF3D(objs, renameUV):
     # Dict of non-f3d materials : converted f3d materials
