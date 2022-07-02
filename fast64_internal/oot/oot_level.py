@@ -1,6 +1,5 @@
-import math, os, bpy, bmesh, mathutils
+import bpy
 from bpy.utils import register_class, unregister_class
-from io import BytesIO
 
 from ..f3d.f3d_gbi import *
 from .oot_constants import *
@@ -9,9 +8,6 @@ from .oot_scene_room import *
 from .oot_actor import *
 from .oot_collision import *
 from .oot_spline import *
-
-# from .oot_function_map import func_map
-
 from ..utility import *
 
 
@@ -29,30 +25,6 @@ def headerSettingsToIndices(headerSettings):
         headers.add(cutsceneHeader.headerIndex)
 
     return headers
-
-
-# These are all done in reference to refresh 8
-def handleRefreshDiffModelIDs(modelID):
-    if bpy.context.scene.refreshVer == "Refresh 8" or bpy.context.scene.refreshVer == "Refresh 7":
-        pass
-    elif bpy.context.scene.refreshVer == "Refresh 6":
-        if modelID == "MODEL_TWEESTER":
-            modelID = "MODEL_TORNADO"
-    elif (
-        bpy.context.scene.refreshVer == "Refresh 5"
-        or bpy.context.scene.refreshVer == "Refresh 4"
-        or bpy.context.scene.refreshVer == "Refresh 3"
-    ):
-        if modelID == "MODEL_TWEESTER":
-            modelID = "MODEL_TORNADO"
-        elif modelID == "MODEL_WAVE_TRAIL":
-            modelID = "MODEL_WATER_WAVES"
-        elif modelID == "MODEL_IDLE_WATER_WAVE":
-            modelID = "MODEL_WATER_WAVES_SURF"
-        elif modelID == "MODEL_SMALL_WATER_SPLASH":
-            modelID = "MODEL_SPOT_ON_GROUND"
-
-    return modelID
 
 
 class OOTObjectPanel(bpy.types.Panel):
@@ -123,13 +95,6 @@ class OOTObjectPanel(bpy.types.Panel):
 def drawLODProperty(box, obj):
     col = box.column()
     col.box().label(text="LOD Settings (Blender Units)")
-    # if bpy.context.scene.exportHiddenGeometry:
-    # 	for otherObj in bpy.data.objects:
-    # 		if otherObj.parent == obj:
-    # 			prop_split(col, otherObj, "f3d_lod_z", otherObj.name)
-    # else:
-    # 	for otherObj in obj.children:
-    # 		prop_split(col, otherObj, "f3d_lod_z", otherObj.name)
     for otherObj in obj.children:
         if bpy.context.scene.exportHiddenGeometry or not otherObj.hide_get():
             prop_split(col, otherObj, "f3d_lod_z", otherObj.name)
@@ -138,8 +103,6 @@ def drawLODProperty(box, obj):
 
 def drawCullGroupProperty(box, obj):
     col = box.column()
-    # prop_split(col, obj, 'ootCullDepth', "Cull Depth")
-    # col.label(text = "Depth behind the camera at which point culling happens.")
     col.label(text="Use Options -> Transform -> Affect Only -> Parent ")
     col.label(text="to move object without affecting children.")
 
@@ -255,7 +218,6 @@ def oot_obj_register():
     bpy.types.Object.ootAlternateRoomHeaders = bpy.props.PointerProperty(type=OOTAlternateRoomHeaderProperty)
     bpy.types.Object.ootEntranceProperty = bpy.props.PointerProperty(type=OOTEntranceProperty)
     bpy.types.Object.ootCutsceneProperty = bpy.props.PointerProperty(type=OOTCutsceneProperty)
-    # bpy.types.Object.ootCullDepth = bpy.props.IntProperty(name = "Cull Depth", min = 1, default = 400)
 
 
 def oot_obj_unregister():
@@ -271,7 +233,6 @@ def oot_obj_unregister():
     del bpy.types.Object.ootAlternateRoomHeaders
     del bpy.types.Object.ootEntranceProperty
     del bpy.types.Object.ootCutsceneProperty
-    # del bpy.types.Object.ootCullDepth
 
     for cls in reversed(oot_obj_classes):
         unregister_class(cls)
