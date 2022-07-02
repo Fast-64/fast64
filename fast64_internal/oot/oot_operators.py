@@ -103,13 +103,10 @@ class OOT_AddScene(bpy.types.Operator):
 
         bpy.context.scene.ootSceneExportObj = sceneObj
 
-        # setOrigin(emptyObj, cubeObj)
-
         return {"FINISHED"}
 
 
 class OOT_AddRoom(bpy.types.Operator):
-    # set bl_ properties
     bl_idname = "object.oot_add_room"
     bl_label = "Add Room"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
@@ -143,7 +140,6 @@ class OOT_AddRoom(bpy.types.Operator):
 
 
 class OOT_AddCutscene(bpy.types.Operator):
-    # set bl_ properties
     bl_idname = "object.oot_add_cutscene"
     bl_label = "Add Cutscene"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
@@ -168,7 +164,6 @@ class OOT_OperatorsPanel(OOT_Panel):
     bl_idname = "OOT_PT_operators"
     bl_label = "OOT Tools"
 
-    # called every frame
     def draw(self, context):
         col = self.layout.column()
         col.operator(OOT_AddScene.bl_idname)
