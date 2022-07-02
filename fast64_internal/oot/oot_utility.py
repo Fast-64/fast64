@@ -581,7 +581,6 @@ class OOTCollectionAdd(bpy.types.Operator):
 
         collection.add()
         collection.move(len(collection) - 1, self.option)
-        # self.report({'INFO'}, 'Success!')
         return {"FINISHED"}
 
 
@@ -598,7 +597,6 @@ class OOTCollectionRemove(bpy.types.Operator):
     def execute(self, context):
         collection = getCollection(self.objName, self.collectionType, self.subIndex)
         collection.remove(self.option)
-        # self.report({'INFO'}, 'Success!')
         return {"FINISHED"}
 
 
@@ -617,7 +615,6 @@ class OOTCollectionMove(bpy.types.Operator):
     def execute(self, context):
         collection = getCollection(self.objName, self.collectionType, self.subIndex)
         collection.move(self.option, self.option + self.offset)
-        # self.report({'INFO'}, 'Success!')
         return {"FINISHED"}
 
 
