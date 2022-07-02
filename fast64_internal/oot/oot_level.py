@@ -1,5 +1,6 @@
-import bpy
+import math, os, bpy, bmesh, mathutils
 from bpy.utils import register_class, unregister_class
+from io import BytesIO
 
 from ..f3d.f3d_gbi import *
 from .oot_constants import *
