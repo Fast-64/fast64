@@ -3014,40 +3014,30 @@ class Ambient:
         return bytearray(self.color + [0x00] + self.color + [0x00])
 
     def to_c(self):
-        return (
-            "0x"
-            + format(self.color[0], "X")
-            + ", "
-            + "0x"
-            + format(self.color[1], "X")
-            + ", "
-            + "0x"
-            + format(self.color[2], "X")
+        return ", ".join(
+            (
+                "0x" + format(self.color[0], "X"),
+                "0x" + format(self.color[1], "X"),
+                "0x" + format(self.color[2], "X"),
+            )
         )
 
     def to_sm64_decomp_s(self):
         return (
             ".byte "
-            + "0x"
-            + format(self.color[0], "X")
-            + ", "
-            + "0x"
-            + format(self.color[1], "X")
-            + ", "
-            + "0x"
-            + format(self.color[2], "X")
-            + ", "
-            + "0x00, "
-            + "0x"
-            + format(self.color[0], "X")
-            + ", "
-            + "0x"
-            + format(self.color[1], "X")
-            + ", "
-            + "0x"
-            + format(self.color[2], "X")
-            + ", "
-            + "0x00\n"
+            + ", ".join(
+                (
+                    "0x" + format(self.color[0], "X"),
+                    "0x" + format(self.color[1], "X"),
+                    "0x" + format(self.color[2], "X"),
+                    "0x00",
+                    "0x" + format(self.color[0], "X"),
+                    "0x" + format(self.color[1], "X"),
+                    "0x" + format(self.color[2], "X"),
+                    "0x00",
+                )
+            )
+            + "\n"
         )
 
 
@@ -3814,8 +3804,6 @@ class SPModifyVertex:
         else:
             return gsMoveWd(f3d.G_MW_POINTS, (self.vtx) * 40 + (self.where), self.val, f3d)
 
-        return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
-
     def to_c(self, static=True):
         header = "gsSPModifyVertex(" if static else "gSPModifyVertex(glistp++, "
         return header + str(self.vtx) + ", " + str(self.where) + ", " + str(self.val) + ")"
@@ -4058,8 +4046,7 @@ class DPSetHilite1Tile:
             header
             + str(self.tile)
             + ", "
-            + "&"
-            + self.hilite.name
+            + ("&" + self.hilite.name)
             + ", "
             + str(self.width)
             + ", "
@@ -4105,8 +4092,7 @@ class DPSetHilite2Tile:
             header
             + str(self.tile)
             + ", "
-            + "&"
-            + self.hilite.name
+            + ("&" + self.hilite.name)
             + ", "
             + str(self.width)
             + ", "
@@ -4905,44 +4891,6 @@ class DPSetRenderMode:
 
     def to_sm64_decomp_s(self):
         raise PluginError("Cannot use DPSetRenderMode with gbi.inc.")
-        flagWord = renderFlagListToWord(self.flagList, f3d)
-        data = "gsDPSetRenderMode "
-        data += "0x" + format(flagWord, "X") + ", "
-        data += "0x" + format(self.getGBL_c(f3d), "X")
-        return data
-
-        """
-		# G_SETOTHERMODE_L gSetRenderMode
-		self.AA_EN = AA_EN = 		0x8
-		self.Z_CMP = Z_CMP = 		0x10
-		self.Z_UPD = Z_UPD = 		0x20
-		self.IM_RD = IM_RD = 		0x40
-		self.CLR_ON_CVG = CLR_ON_CVG = 	0x80
-		self.CVG_DST_CLAMP = CVG_DST_CLAMP = 	0
-		self.CVG_DST_WRAP = CVG_DST_WRAP = 	0x100
-		self.CVG_DST_FULL = CVG_DST_FULL = 	0x200
-		self.CVG_DST_SAVE = CVG_DST_SAVE = 	0x300
-		self.ZMODE_OPA = ZMODE_OPA = 	0
-		self.ZMODE_INTER = ZMODE_INTER = 	0x400
-		self.ZMODE_XLU = ZMODE_XLU = 	0x800
-		self.ZMODE_DEC = ZMODE_DEC = 	0xc00
-		self.CVG_X_ALPHA = CVG_X_ALPHA = 	0x1000
-		self.ALPHA_CVG_SEL = ALPHA_CVG_SEL = 	0x2000
-		self.FORCE_BL = FORCE_BL = 	0x4000
-		self.TEX_EDGE = TEX_EDGE = 	0x0000 # used to be 0x8000
-
-		self.G_BL_CLR_IN = G_BL_CLR_IN = 	0
-		self.G_BL_CLR_MEM = G_BL_CLR_MEM = 	1
-		self.G_BL_CLR_BL = G_BL_CLR_BL = 	2
-		self.G_BL_CLR_FOG = G_BL_CLR_FOG = 	3
-		self.G_BL_1MA = G_BL_1MA = 	0
-		self.G_BL_A_MEM = G_BL_A_MEM = 	1
-		self.G_BL_A_IN = G_BL_A_IN = 	0
-		self.G_BL_A_FOG = G_BL_A_FOG = 	1
-		self.G_BL_A_SHADE = G_BL_A_SHADE = 	2
-		self.G_BL_1 = G_BL_1 = 		2
-		self.G_BL_0 = G_BL_0 = 		3
-		"""
 
     def size(self, f3d):
         return GFX_SIZE
@@ -5499,17 +5447,13 @@ class DPSetTile:
             + ", "
             + str(self.palette)
             + ", "
-            + self.cmt[0]
-            + " | "
-            + self.cmt[1]
+            + (self.cmt[0] + " | " + self.cmt[1])
             + ", "
             + str(self.maskt)
             + ", "
             + str(self.shiftt)
             + ", "
-            + self.cms[0]
-            + " | "
-            + self.cms[1]
+            + (self.cms[0] + " | " + self.cms[1])
             + ", "
             + str(self.masks)
             + ", "
@@ -5532,17 +5476,13 @@ class DPSetTile:
             + ", "
             + str(self.palette)
             + ", "
-            + self.cmt[0]
-            + " | "
-            + self.cmt[1]
+            + (self.cmt[0] + " | " + self.cmt[1])
             + ", "
             + str(self.maskt)
             + ", "
             + str(self.shiftt)
             + ", "
-            + self.cms[0]
-            + " | "
-            + self.cms[1]
+            + (self.cms[0] + " | " + self.cms[1])
             + ", "
             + str(self.masks)
             + ", "
@@ -5698,8 +5638,7 @@ class DPLoadTextureBlock:
         header = "gsDPLoadTextureBlock(" if static else "gDPLoadTextureBlock(glistp++, "
         return (
             header
-            + "&"
-            + self.timg.name
+            + ("&" + self.timg.name)
             + ", "
             + self.fmt
             + ", "
@@ -5711,13 +5650,9 @@ class DPLoadTextureBlock:
             + ", "
             + str(self.pal)
             + ", "
-            + self.cms[0]
-            + " | "
-            + self.cms[1]
+            + (self.cms[0] + " | " + self.cms[1])
             + ", "
-            + self.cmt[0]
-            + " | "
-            + self.cmt[1]
+            + (self.cmt[0] + " | " + self.cmt[1])
             + ", "
             + str(self.masks)
             + ", "
@@ -5836,8 +5771,7 @@ class DPLoadTextureBlockYuv:
         header = "gsDPLoadTextureBlockYuv(" if static else "gDPLoadTextureBlockYuv(glistp++, "
         return (
             header
-            + "&"
-            + self.timg.name
+            + ("&" + self.timg.name)
             + ", "
             + self.fmt
             + ", "
@@ -5849,13 +5783,9 @@ class DPLoadTextureBlockYuv:
             + ", "
             + str(self.pal)
             + ", "
-            + self.cms[0]
-            + " | "
-            + self.cms[1]
+            + (self.cms[0] + " | " + self.cms[1])
             + ", "
-            + self.cmt[0]
-            + " | "
-            + self.cmt[1]
+            + (self.cmt[0] + " | " + self.cmt[1])
             + ", "
             + str(self.masks)
             + ", "
@@ -5980,8 +5910,7 @@ class _DPLoadTextureBlock:
         header = "_gsDPLoadTextureBlock(" if static else "_gDPLoadTextureBlock(glistp++, "
         return (
             header
-            + "&"
-            + self.timg.name
+            + ("&" + self.timg.name)
             + ", "
             + str(self.tmem)
             + ", "
@@ -5995,13 +5924,9 @@ class _DPLoadTextureBlock:
             + ", "
             + str(self.pal)
             + ", "
-            + self.cms[0]
-            + " | "
-            + self.cms[1]
+            + (self.cms[0] + " | " + self.cms[1])
             + ", "
-            + self.cmt[0]
-            + " | "
-            + self.cmt[1]
+            + (self.cmt[0] + " | " + self.cmt[1])
             + ", "
             + str(self.masks)
             + ", "
@@ -6118,8 +6043,7 @@ class DPLoadTextureBlock_4b:
         header = "gsDPLoadTextureBlock_4b(" if static else "gDPLoadTextureBlock_4b(glistp++, "
         return (
             header
-            + "&"
-            + self.timg.name
+            + ("&" + self.timg.name)
             + ", "
             + self.fmt
             + ", "
@@ -6129,13 +6053,9 @@ class DPLoadTextureBlock_4b:
             + ", "
             + str(self.pal)
             + ", "
-            + self.cms[0]
-            + " | "
-            + self.cms[1]
+            + (self.cms[0] + " | " + self.cms[1])
             + ", "
-            + self.cmt[0]
-            + " | "
-            + self.cmt[1]
+            + (self.cmt[0] + " | " + self.cmt[1])
             + ", "
             + str(self.masks)
             + ", "
@@ -6258,8 +6178,7 @@ class DPLoadTextureTile:
         header = "gsDPLoadTextureTile(" if static else "gDPLoadTextureTile(glistp++, "
         return (
             header
-            + "&"
-            + self.timg.name
+            + ("&" + self.timg.name)
             + ", "
             + self.fmt
             + ", "
@@ -6275,16 +6194,11 @@ class DPLoadTextureTile:
             + ", "
             + str(self.lrs)
             + ", "
-            + str(self.lrt)
-            + str(self.pal)
+            + (str(self.lrt) + str(self.pal))
             + ", "
-            + self.cms[0]
-            + " | "
-            + self.cms[1]
+            + (self.cms[0] + " | " + self.cms[1])
             + ", "
-            + self.cmt[0]
-            + " | "
-            + self.cmt[1]
+            + (self.cmt[0] + " | " + self.cmt[1])
             + ", "
             + str(self.masks)
             + ", "
@@ -6413,8 +6327,7 @@ class DPLoadTextureTile_4b:
         header = "gsDPLoadTextureTile_4b(" if static else "gDPLoadTextureTile_4b(glistp++, "
         return (
             header
-            + "&"
-            + self.timg.name
+            + ("&" + self.timg.name)
             + ", "
             + self.fmt
             + ", "
@@ -6428,16 +6341,11 @@ class DPLoadTextureTile_4b:
             + ", "
             + str(self.lrs)
             + ", "
-            + str(self.lrt)
-            + str(self.pal)
+            + (str(self.lrt) + str(self.pal))
             + ", "
-            + self.cms[0]
-            + " | "
-            + self.cms[1]
+            + (self.cms[0] + " | " + self.cms[1])
             + ", "
-            + self.cmt[0]
-            + " | "
-            + self.cmt[1]
+            + (self.cmt[0] + " | " + self.cmt[1])
             + ", "
             + str(self.masks)
             + ", "
