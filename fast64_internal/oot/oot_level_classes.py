@@ -108,15 +108,18 @@ class OOTCS0x09:
 
 class OOTCSUnk:
     def __unk__(self):
-        self.unk1 = (
-            self.unk2
-        ) = (
-            self.unk3
-        ) = (
-            self.unk4
-        ) = (
-            self.unk5
-        ) = self.unk6 = self.unk7 = self.unk8 = self.unk9 = self.unk10 = self.unk11 = self.unk12 = "0x00000000"
+        self.unk1 = "0x00000000"
+        self.unk2 = "0x00000000"
+        self.unk3 = "0x00000000"
+        self.unk4 = "0x00000000"
+        self.unk5 = "0x00000000"
+        self.unk6 = "0x00000000"
+        self.unk7 = "0x00000000"
+        self.unk8 = "0x00000000"
+        self.unk9 = "0x00000000"
+        self.unk10 = "0x00000000"
+        self.unk11 = "0x00000000"
+        self.unk12 = "0x00000000"
 
 
 class OOTCSList:
