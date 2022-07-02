@@ -512,10 +512,6 @@ def register():
     bpy.types.Bone.fast64 = bpy.props.PointerProperty(type=Fast64_BoneProperties, name="Fast64 Bone Properties")
     bpy.types.Object.fast64 = bpy.props.PointerProperty(type=Fast64_ObjectProperties, name="Fast64 Object Properties")
 
-    bpy.types.Scene.alreadyLinkedMaterialNodes = bpy.props.BoolProperty(
-        name="Already Linked New Material Nodes", default=False
-    )
-
     bpy.app.handlers.load_post.append(after_load)
 
 

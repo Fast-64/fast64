@@ -1899,7 +1899,6 @@ def link_f3d_material_library():
             for node_group in data_from.node_groups:
                 if node_group is not None:
                     bpy.ops.wm.link(filepath=os.path.join(dirNode, node_group), directory=dirNode, filename=node_group)
-            bpy.context.scene.alreadyLinkedMaterialNodes = True
             bpy.context.scene["f3d_lib_dir"] = dirNode
 
     # TODO: Figure out a better way to save the user's old mode
