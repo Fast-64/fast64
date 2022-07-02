@@ -48,6 +48,28 @@ There may occur cases where code is formatted differently based on the code use 
 ### Converting To F3D v4 Materials
 A new optimized shader graph was introduced to decrease processing times for material creation and exporting. If you have a project that still uses old materials, you may want to convert them to v4. To convert an old project, click the "Recreate F3D Materials As V4" operator near the top of the Fast64 tab in 3D view. This may take a while depending on the number of materials in the project. Then go to the outliner, change the display mode to "Orphan Data" (broken heart icon), then click "Purge" in the top right corner. Purge multiple times until all of the old node groups are gone.
 
+### Updater
+
+Fast64 features an updater ([CGCookie/blender-addon-updater](https://github.com/CGCookie/blender-addon-updater)).
+
+It can be found in the addon preferences:
+
+![How the updater in the addon preferences looks, right after addon install](/images/updater_initially.png)
+
+Click the "Check now for fast64 update" button to check for updates.
+
+![Updater preferences after clicking the "check for updates" button](/images/updater_after_check.png)
+
+Click "Install main / old version" and choose "Main" if it isn't already selected:
+
+![Updater: install main](/images/updater_install_main.png)
+
+Click OK, there should be a message "Addon successfully installed" and prompting you to restart Blender:
+
+![Updater: successful install, must restart](/images/updater_success_restart.png)
+
+Clicking the red button will close Blender. After restarting, fast64 will be up-to-date with the latest main revision.
+
 ### Fast64 Development
 If you'd like to develop in VSCode, follow this tutorial to get proper autocomplete. Skip the linter for now, we'll need to make sure the entire project gets linted before enabling autosave linting because the changes will be massive.
 https://b3d.interplanety.org/en/using-microsoft-visual-studio-code-as-external-ide-for-writing-blender-scripts-add-ons/
@@ -61,3 +83,13 @@ To make VS Code use it, change the `python.formatting.provider` setting to "blac
 To format the whole repo, run `black .` (or `python3 -m black .` depending on how it is installed) from the root of the repo.
 
 The (minimal) configuration for Black is in `/pyproject.toml`.
+
+#### Updater notes
+
+Be careful if testing the updater when using git, it may mess up the .git folder in some cases.
+
+Also see the extensive documentation in the https://github.com/CGCookie/blender-addon-updater README.
+
+The "Update directly to main" button uses `bl_info["version"]` as the current version, and versions parsed from git tags as other versions. This means that to create a new version, the `bl_info` version should be bumped and a corresponding tag should be created (for example `"version": (1, 0, 2),` and a `v1.0.2` tag). This tag will then be available to update to, if it denotes a version that is more recent than the current version.
+
+The "Install main / old version" button will install the latest revision from the `main` branch.

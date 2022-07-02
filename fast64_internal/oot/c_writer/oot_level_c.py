@@ -17,12 +17,12 @@ def cmdSoundSettings(scene, header, cmdCount):
 
 def cmdRoomList(scene, header, cmdCount):
 	cmd = CData()
-	cmd.source = indent + "SCENE_CMD_ROOM_LIST(" + str(len(scene.rooms)) + ", &" + scene.roomListName() + "),\n"
+	cmd.source = indent + "SCENE_CMD_ROOM_LIST(" + str(len(scene.rooms)) + ", " + scene.roomListName() + "),\n"
 	return cmd
 
 def cmdTransiActorList(scene, header, cmdCount):
 	cmd = CData()
-	cmd.source = indent + "SCENE_CMD_TRANSITION_ACTOR_LIST(" + str(len(scene.transitionActorList)) + ", &" + \
+	cmd.source = indent + "SCENE_CMD_TRANSITION_ACTOR_LIST(" + str(len(scene.transitionActorList)) + ", " + \
 		scene.transitionActorListName(header) + "),\n"
 	return cmd
 
@@ -38,7 +38,7 @@ def cmdColHeader(scene, header, cmdCount):
 
 def cmdEntranceList(scene, header, cmdCount):
 	cmd = CData()
-	cmd.source = indent + "SCENE_CMD_ENTRANCE_LIST(" + (('&' + scene.entranceListName(header)) if len(scene.entranceList) > 0 else "NULL") + "),\n"
+	cmd.source = indent + "SCENE_CMD_ENTRANCE_LIST(" + (scene.entranceListName(header) if len(scene.entranceList) > 0 else "NULL") + "),\n"
 	return cmd
 
 def cmdSpecialFiles(scene, header, cmdCount):
@@ -48,13 +48,13 @@ def cmdSpecialFiles(scene, header, cmdCount):
 
 def cmdPathList(scene, header, cmdCount):
 	cmd = CData()
-	cmd.source = indent + "SCENE_CMD_PATH_LIST(&" + scene.pathListName() + "),\n"
+	cmd.source = indent + "SCENE_CMD_PATH_LIST(" + scene.pathListName() + "),\n"
 	return cmd
 
 def cmdSpawnList(scene, header, cmdCount):
 	cmd = CData()
 	cmd.source = indent + "SCENE_CMD_SPAWN_LIST(" + str(len(scene.startPositions)) + ", " + \
-		(('&' + scene.startPositionsName(header)) if len(scene.startPositions) > 0 else 'NULL') + "),\n"
+		(scene.startPositionsName(header) if len(scene.startPositions) > 0 else 'NULL') + "),\n"
 	return cmd
 
 def cmdSkyboxSettings(scene, header, cmdCount):
@@ -62,16 +62,16 @@ def cmdSkyboxSettings(scene, header, cmdCount):
 	cmd.source = indent + "SCENE_CMD_SKYBOX_SETTINGS(" + str(scene.skyboxID) + ", " + str(scene.skyboxCloudiness) \
 		+ ", " + str(scene.skyboxLighting) + "),\n"
 	return cmd
-	
+
 def cmdExitList(scene, header, cmdCount):
 	cmd = CData()
-	cmd.source = indent + "SCENE_CMD_EXIT_LIST(&" + scene.exitListName(header) + "),\n"
+	cmd.source = indent + "SCENE_CMD_EXIT_LIST(" + scene.exitListName(header) + "),\n"
 	return cmd
 
 def cmdLightSettingList(scene, header, cmdCount):
 	cmd = CData()
 	cmd.source = indent + "SCENE_CMD_ENV_LIGHT_SETTINGS(" + str(len(scene.lights)) + ", " + \
-		(('&' + scene.lightListName(header)) if len(scene.lights) > 0 else 'NULL') + "),\n"
+		(scene.lightListName(header) if len(scene.lights) > 0 else 'NULL') + "),\n"
 	return cmd
 
 def cmdCutsceneData(scene, header, cmdCount):
@@ -82,7 +82,7 @@ def cmdCutsceneData(scene, header, cmdCount):
 		csname = scene.csWriteObject.name
 	elif scene.csWriteType == "Custom":
 		csname = scene.csWriteCustom
-	cmd.source = indent + "SCENE_CMD_CUTSCENE_DATA(&" + csname + "),\n"
+	cmd.source = indent + "SCENE_CMD_CUTSCENE_DATA(" + csname + "),\n"
 	return cmd
 
 def cmdEndMarker(name, header, cmdCount):
@@ -93,7 +93,7 @@ def cmdEndMarker(name, header, cmdCount):
 # Room Commands
 def cmdAltHeaders(name, altName, header, cmdCount):
 	cmd = CData()
-	cmd.source = indent + "SCENE_CMD_ALTERNATE_HEADER_LIST(&" + altName + "),\n"
+	cmd.source = indent + "SCENE_CMD_ALTERNATE_HEADER_LIST(" + altName + "),\n"
 	return cmd
 
 def cmdEchoSettings(room, header, cmdCount):
@@ -135,20 +135,18 @@ def cmdMesh(room, header, cmdCount):
 
 def cmdObjectList(room, header, cmdCount):
 	cmd = CData()
-	listLengthDefine = "LENGTH_" + str(room.objectListName(header)).upper()
-	cmd.source = indent + "SCENE_CMD_OBJECT_LIST(" + listLengthDefine + ", &" + str(room.objectListName(header)) + "),\n"
+	cmd.source = indent + "SCENE_CMD_OBJECT_LIST(" + str(len(room.objectList)) + ", " + str(room.objectListName(header)) + "),\n"
 	return cmd
 
 def cmdActorList(room, header, cmdCount):
 	cmd = CData()
-	listLengthDefine = "LENGTH_" + str(room.actorListName(header)).upper()
-	cmd.source = indent + "SCENE_CMD_ACTOR_LIST(" + listLengthDefine + ", &" + str(room.actorListName(header)) + "),\n"
+	cmd.source = indent + "SCENE_CMD_ACTOR_LIST(" + str(len(room.actorList)) + ", " + str(room.actorListName(header)) + "),\n"
 	return cmd
 
 def ootObjectListToC(room, headerIndex):
 	data = CData()
 	data.header = ("extern s16 " + room.objectListName(headerIndex) + "[];\n")
-	data.source = ("s16 " + room.objectListName(headerIndex) + 
+	data.source = ("s16 " + room.objectListName(headerIndex) +
 		"[LENGTH_" + str(room.objectListName(headerIndex)).upper() + "] = {\n")
 	for objectItem in room.objectList:
 		data.source += indent + getIDFromKey(objectItem, objectRoot) + ',\n'
@@ -174,7 +172,7 @@ def ootActorToC(actor):
 def ootActorListToC(room, headerIndex):
 	data = CData()
 	data.header = ("extern ActorEntry " + room.actorListName(headerIndex) + "[];\n")
-	data.source = ("ActorEntry " + room.actorListName(headerIndex) + 
+	data.source = ("ActorEntry " + room.actorListName(headerIndex) +
 		"[LENGTH_" + str(room.actorListName(headerIndex)).upper() + "] = {\n")
 	for actor in room.actorList:
 		data.source += indent + ootActorToC(actor)
@@ -186,11 +184,11 @@ def ootMeshEntryToC(meshEntry, meshType):
 	transparentName = meshEntry.DLGroup.transparent.name if meshEntry.DLGroup.transparent is not None else "0"
 	data = "{ "
 	if meshType == "1":
-		raise PluginError("MeshHeader1 not supported.")
+		raise PluginError("Pre-Rendered rooms not supported.")
 	elif meshType == "2":
-		data += str(meshEntry.cullGroup.position[0]) + ", " + str(meshEntry.cullGroup.position[1]) + ", "
-		data += str(meshEntry.cullGroup.position[2]) + ", " + str(meshEntry.cullGroup.cullDepth) + ", "
-	data += "(u32)" + opaqueName + ", (u32)" + transparentName + ' },\n' 
+		data += "{ " + f"{meshEntry.cullGroup.position[0]}, {meshEntry.cullGroup.position[1]}, {meshEntry.cullGroup.position[2]}" + " }, "
+		data += str(meshEntry.cullGroup.cullDepth) + ", "
+	data += (opaqueName if opaqueName != '0' else 'NULL') + ", " + (transparentName if transparentName != '0' else 'NULL') + " },\n"
 
 	return data
 
@@ -200,18 +198,23 @@ def ootRoomMeshToC(room, textureExportSettings):
 		raise PluginError("Error: Room " + str(room.index) + " has no mesh children.")
 
 	meshHeader = CData()
-	meshHeader.header = "extern MeshHeader" + str(mesh.meshType) + " " + mesh.headerName() + ';\n'
-	meshHeader.source = "MeshHeader" + str(mesh.meshType) + " " + mesh.headerName() + ' = ' +\
-		"{ {" + str(mesh.meshType) + "}, " + str(len(mesh.meshEntries)) + ", " +\
-		"(u32)&" + mesh.entriesName() + ", (u32)&(" + mesh.entriesName() + ") + " +\
-		"sizeof(" + mesh.entriesName() + ") };\n\n"
+	meshHeader.header = "extern MeshHeader" + mesh.meshType + " " + mesh.headerName() + ";\n"
+	meshHeader.source = '\n'.join((
+		"MeshHeader" + mesh.meshType + " " + mesh.headerName() + "= {",
+		indent + mesh.meshType + ",",
+		indent + str(len(mesh.meshEntries)) + ",",
+		indent + mesh.entriesName() + ",",
+		indent + mesh.entriesName() + " + ARRAY_COUNT(" + mesh.entriesName() + ")",
+		"};"
+	)) + "\n\n"
 
 	meshEntries = CData()
-	meshEntries.header = "extern MeshEntry" + str(mesh.meshType) + " " + mesh.entriesName() + "[" + str(len(mesh.meshEntries)) + "];\n"
-	meshEntries.source = "MeshEntry" + str(mesh.meshType) + " " + mesh.entriesName() + "[" + str(len(mesh.meshEntries)) + "] = {\n"
+	meshEntryType = "MeshHeader" + ('01' if mesh.meshType == '0' else '2') + "Entry "
+	meshEntries.header = "extern " + meshEntryType + " " + mesh.entriesName() + "[" + str(len(mesh.meshEntries)) + "];\n"
+	meshEntries.source = meshEntryType + mesh.entriesName() + "[" + str(len(mesh.meshEntries)) + "] = {\n"
 	meshData = CData()
 	for entry in mesh.meshEntries:
-		meshEntries.source  += indent + ootMeshEntryToC(entry, str(mesh.meshType))
+		meshEntries.source  += indent + ootMeshEntryToC(entry, mesh.meshType)
 		if entry.DLGroup.opaque is not None:
 			meshData.append(entry.DLGroup.opaque.to_c(mesh.model.f3d))
 		if entry.DLGroup.transparent is not None:
@@ -243,7 +246,7 @@ def ootRoomCommandsToC(room, headerIndex):
 	commands.append(cmdEndMarker(room.roomName(), headerIndex, len(commands)))
 
 	data = CData()
-	
+
 	# data.header = ''.join([command.header for command in commands]) +'\n'
 	data.header = "extern SCmdBase " + room.roomName() + "_header" + format(headerIndex, '02') + "[];\n"
 
@@ -259,7 +262,7 @@ def ootAlternateRoomMainToC(scene, room):
 
 	altHeader.header = "extern SCmdBase* " + room.alternateHeadersName() + "[];\n"
 	altHeader.source = "SCmdBase* " + room.alternateHeadersName() + "[] = {\n"
-	
+
 	if room.childNightHeader is not None:
 		altHeader.source += indent + room.roomName() + "_header" + format(1, '02') + ",\n"
 		altData.append(ootRoomMainToC(scene, room.childNightHeader, 1))
@@ -292,7 +295,7 @@ def ootRoomMainToC(scene, room, headerIndex):
 	roomMainC.source += ootGetHeaderDefines(room, 0)
 	if room.hasAlternateHeaders():
 		roomMainC.source += ootGetAltHeaderDefines(room)
-	
+
 	if room.hasAlternateHeaders():
 		altHeader, altData = ootAlternateRoomMainToC(scene, room)
 	else:
@@ -333,10 +336,10 @@ def ootSceneCommandsToC(scene, headerIndex):
 	commands.append(cmdEndMarker(scene.sceneName(), headerIndex, len(commands)))
 
 	data = CData()
-	
+
 	# data.header = ''.join([command.header for command in commands]) +'\n'
 	data.header = "extern SCmdBase " + scene.sceneName() + "_header" + format(headerIndex, '02') + "[];\n"
-	
+
 	data.source = "SCmdBase " + scene.sceneName() + "_header" + format(headerIndex, '02') + "[] = {\n"
 	data.source += ''.join([command.source for command in commands])
 	data.source += "};\n\n"
@@ -397,7 +400,7 @@ def ootRoomListHeaderToC(scene):
 		data.source += "\n"
 
 		data.source += "RomFile " + scene.roomListName() + "[] = {\n"
-		
+
 		for i in range(len(scene.rooms)):
 			data.source += indent + ootRoomListEntryToC(scene.rooms[i])
 		data.source += '};\n\n'
@@ -461,7 +464,7 @@ def ootPathToC(path):
 	data.source += '};\n\n'
 
 	return data
-	
+
 def ootPathListToC(scene):
 	data = CData()
 	data.header = "extern Path " + scene.pathListName() + "[" + str(len(scene.pathList)) + "];\n"
@@ -469,7 +472,7 @@ def ootPathListToC(scene):
 	pathData = CData()
 	for i in range(len(scene.pathList)):
 		path = scene.pathList[i]
-		data.source += indent + "{ " + str(len(path.points)) + ', (u32)' + path.pathName() + " },\n"
+		data.source += indent + "{ " + str(len(path.points)) + ', ' + path.pathName() + " },\n"
 		pathData.append(ootPathToC(path))
 	data.source += '};\n\n'
 	pathData.append(data)
@@ -498,7 +501,7 @@ def ootAlternateSceneMainToC(scene):
 
 	altHeader.header = "extern SCmdBase* " + scene.alternateHeadersName() + "[];\n"
 	altHeader.source = "SCmdBase* " + scene.alternateHeadersName() + "[] = {\n"
-	
+
 	if scene.childNightHeader is not None:
 		altHeader.source += indent + scene.sceneName() + "_header" + format(1, '02') + ",\n"
 		altData.append(ootSceneMainToC(scene.childNightHeader, 1))
@@ -557,26 +560,26 @@ def ootSceneMainToC(scene, headerIndex):
 	# Write the spawn position list data
 	if len(scene.startPositions) > 0:
 		sceneMainC.append(ootStartPositionListToC(scene, headerIndex))
-	
+
 	# Write the transition actor list data
 	if len(scene.transitionActorList) > 0:
 		sceneMainC.append(ootTransitionActorListToC(scene, headerIndex))
-	
+
 	# Write the room segment list
 	sceneMainC.append(roomHeaderData)
-	
+
 	# Write the entrance list
 	if len(scene.entranceList) > 0:
 		sceneMainC.append(ootEntranceListToC(scene, headerIndex))
-	
+
 	# Write the exit list
 	if len(scene.exitList) > 0:
 		sceneMainC.append(ootExitListToC(scene, headerIndex))
-	
+
 	# Write the light data
 	if len(scene.lights) > 0:
 		sceneMainC.append(ootLightSettingsToC(scene, scene.skyboxLighting == '0x01', headerIndex))
-	
+
 	# Write the path data, if used
 	sceneMainC.append(pathData)
 
@@ -612,17 +615,17 @@ def ootSceneCutscenesToC(scene):
 	sceneCutscenes.extend(ootGetCutsceneC(scene.childNightHeader, 1))
 	sceneCutscenes.extend(ootGetCutsceneC(scene.adultDayHeader, 2))
 	sceneCutscenes.extend(ootGetCutsceneC(scene.adultNightHeader, 3))
-	
+
 	for i in range(len(scene.cutsceneHeaders)):
 		sceneCutscenes.extend(ootGetCutsceneC(scene.cutsceneHeaders[i], i + 4))
 	for ec in scene.extraCutscenes:
 		sceneCutscenes.append(ootCutsceneDataToC(ec, ec.name))
-	
+
 	return sceneCutscenes
 
 def ootLevelToC(scene, textureExportSettings):
 	levelC = OOTLevelC()
-	
+
 	levelC.sceneMainC = ootSceneMainToC(scene, 0)
 	levelC.sceneTexturesC = ootSceneTexturesToC(scene, textureExportSettings)
 	levelC.sceneCollisionC = ootSceneCollisionToC(scene)
@@ -667,7 +670,7 @@ def ootGetHeaderDefines(room, headerIndex):
 			" " + str(len(room.actorList))) + "\n"
 	if not (data.header == ""):
 		data.header += "\n"
-	
+
 	return data.header
 
 def ootGetAltHeaderDefines(room):
@@ -683,5 +686,5 @@ def ootGetAltHeaderDefines(room):
 	for i in range(len(room.cutsceneHeaders)):
 		csRoom = room.cutsceneHeaders[i]
 		data.header += ootGetHeaderDefines(csRoom, (i + 4))
-	
+
 	return data.header
