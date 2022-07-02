@@ -1685,7 +1685,6 @@ g_F3D = {"GBI": None, "f3d_type": None, "isHWv1": None}
 
 def get_cached_F3D_GBI(f3d_type: str, isHWv1: bool) -> F3D:
     """Get constructed/cached F3D class"""
-    global g_F3D
     if g_F3D["GBI"] is None or f3d_type != g_F3D["f3d_type"] or isHWv1 != g_F3D["isHWv1"]:
         g_F3D["f3d_type"] = f3d_type
         g_F3D["isHWv1"] = isHWv1
