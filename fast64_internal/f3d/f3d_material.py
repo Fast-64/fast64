@@ -86,12 +86,6 @@ drawLayerOOTtoSM64 = {
     "Overlay": "1",
 }
 
-# drawLayerOOTAlpha = {
-# 	"Opaque" : "OPAQUE",
-# 	"Transparent" : "BLEND",
-# 	"Overlay" : 'CLIP',
-# }
-
 drawLayerSM64Alpha = {
     "0": "OPAQUE",
     "1": "OPAQUE",
@@ -483,7 +477,6 @@ class F3DPanel(bpy.types.Panel):
     bl_options = {"HIDE_HEADER"}
 
     def ui_image(self, material, layout, textureProp, name, showCheckBox):
-        nodes = material.node_tree.nodes
         inputGroup = layout.box().column()
 
         inputGroup.prop(
@@ -2003,8 +1996,6 @@ class CreateFast3DMaterial(bpy.types.Operator):
     bl_label = "Create Fast3D Material"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
 
-    # Called on demand (i.e. button press, menu item)
-    # Can also be called from operator search menu (Spacebar)
     def execute(self, context):
         obj = bpy.context.view_layer.objects.active
         if obj is None:
@@ -2013,21 +2004,18 @@ class CreateFast3DMaterial(bpy.types.Operator):
             preset = getDefaultMaterialPreset("Shaded Solid")
             createF3DMat(obj, preset)
             self.report({"INFO"}, "Created new Fast3D material.")
-        return {"FINISHED"}  # must return a set
+        return {"FINISHED"}
 
 
 class ReloadDefaultF3DPresets(bpy.types.Operator):
-    # set bl_ properties
     bl_idname = "object.reload_f3d_presets"
     bl_label = "Reload Default Fast3D Presets"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
 
-    # Called on demand (i.e. button press, menu item)
-    # Can also be called from operator search menu (Spacebar)
     def execute(self, context):
         reloadDefaultF3DPresets()
         self.report({"INFO"}, "Success!")
-        return {"FINISHED"}  # must return a set
+        return {"FINISHED"}
 
 
 def get_tex_prop_from_path(material: bpy.types.Material, path: str) -> Tuple["TextureProperty", int]:
@@ -2073,12 +2061,39 @@ def toggle_auto_prop(self, context: bpy.types.Context):
 
 
 class TextureFieldProperty(bpy.types.PropertyGroup):
-    clamp: bpy.props.BoolProperty(name="Clamp", update=update_tex_field_prop)
-    mirror: bpy.props.BoolProperty(name="Mirror", update=update_tex_field_prop)
-    low: bpy.props.FloatProperty(name="Low", min=0, max=1023.75, update=update_tex_field_prop)
-    high: bpy.props.FloatProperty(name="High", min=0, max=1023.75, update=update_tex_field_prop)
-    mask: bpy.props.IntProperty(name="Mask", min=0, max=15, default=5, update=update_tex_field_prop)
-    shift: bpy.props.IntProperty(name="Shift", min=-5, max=10, update=update_tex_field_prop)
+    clamp: bpy.props.BoolProperty(
+        name="Clamp",
+        update=update_tex_field_prop,
+    )
+    mirror: bpy.props.BoolProperty(
+        name="Mirror",
+        update=update_tex_field_prop,
+    )
+    low: bpy.props.FloatProperty(
+        name="Low",
+        min=0,
+        max=1023.75,
+        update=update_tex_field_prop,
+    )
+    high: bpy.props.FloatProperty(
+        name="High",
+        min=0,
+        max=1023.75,
+        update=update_tex_field_prop,
+    )
+    mask: bpy.props.IntProperty(
+        name="Mask",
+        min=0,
+        max=15,
+        default=5,
+        update=update_tex_field_prop,
+    )
+    shift: bpy.props.IntProperty(
+        name="Shift",
+        min=-5,
+        max=10,
+        update=update_tex_field_prop,
+    )
 
 
 class SetTileSizeScrollProperty(bpy.types.PropertyGroup):
@@ -2088,24 +2103,63 @@ class SetTileSizeScrollProperty(bpy.types.PropertyGroup):
 
 
 class TextureProperty(bpy.types.PropertyGroup):
-    tex: bpy.props.PointerProperty(type=bpy.types.Image, name="Texture", update=update_tex_values_and_formats)
+    tex: bpy.props.PointerProperty(
+        type=bpy.types.Image,
+        name="Texture",
+        update=update_tex_values_and_formats,
+    )
 
-    tex_format: bpy.props.EnumProperty(name="Format", items=enumTexFormat, default="RGBA16", update=update_tex_values)
-    ci_format: bpy.props.EnumProperty(name="CI Format", items=enumCIFormat, default="RGBA16", update=update_tex_values)
+    tex_format: bpy.props.EnumProperty(
+        name="Format",
+        items=enumTexFormat,
+        default="RGBA16",
+        update=update_tex_values,
+    )
+    ci_format: bpy.props.EnumProperty(
+        name="CI Format",
+        items=enumCIFormat,
+        default="RGBA16",
+        update=update_tex_values,
+    )
     S: bpy.props.PointerProperty(type=TextureFieldProperty)
     T: bpy.props.PointerProperty(type=TextureFieldProperty)
 
-    use_tex_reference: bpy.props.BoolProperty(name="Use Texture Reference", default=False, update=update_tex_values)
-    tex_reference: bpy.props.StringProperty(name="Texture Reference", default="0x08000000")
-    tex_reference_size: bpy.props.IntVectorProperty(
-        name="Texture Reference Size", min=1, size=2, default=(32, 32), update=update_tex_values
+    use_tex_reference: bpy.props.BoolProperty(
+        name="Use Texture Reference",
+        default=False,
+        update=update_tex_values,
     )
-    pal_reference: bpy.props.StringProperty(name="Palette Reference", default="0x08000000")
-    pal_reference_size: bpy.props.IntProperty(name="Texture Reference Size", min=1, default=16)
+    tex_reference: bpy.props.StringProperty(
+        name="Texture Reference",
+        default="0x08000000",
+    )
+    tex_reference_size: bpy.props.IntVectorProperty(
+        name="Texture Reference Size",
+        min=1,
+        size=2,
+        default=(32, 32),
+        update=update_tex_values,
+    )
+    pal_reference: bpy.props.StringProperty(
+        name="Palette Reference",
+        default="0x08000000",
+    )
+    pal_reference_size: bpy.props.IntProperty(
+        name="Texture Reference Size",
+        min=1,
+        default=16,
+    )
 
     menu: bpy.props.BoolProperty()
-    tex_set: bpy.props.BoolProperty(default=True, update=update_node_values_with_preset)
-    autoprop: bpy.props.BoolProperty(name="Autoprop", update=toggle_auto_prop, default=True)
+    tex_set: bpy.props.BoolProperty(
+        default=True,
+        update=update_node_values_with_preset,
+    )
+    autoprop: bpy.props.BoolProperty(
+        name="Autoprop",
+        update=toggle_auto_prop,
+        default=True,
+    )
     tile_scroll: bpy.props.PointerProperty(type=SetTileSizeScrollProperty)
 
     def get_tex_size(self) -> list[int]:
@@ -2230,57 +2284,128 @@ class PrimDepthSettings(bpy.types.PropertyGroup):
         default=0,
         soft_min=-1,
         soft_max=0x7FFF,
-        description="""The value to use for z is the screen Z position of the object you are rendering. This is a value ranging from 0x0000 to 0x7fff, where 0x0000 usually corresponds to the near clipping plane and 0x7fff usually corresponds to the far clipping plane. You can use -1 to force Z to be at the far clipping plane.""",
+        description=(
+            """The value to use for z is the screen Z position of the object you are rendering."""
+            """ This is a value ranging from 0x0000 to 0x7fff, where 0x0000 usually corresponds to """
+            """the near clipping plane and 0x7fff usually corresponds to the far clipping plane."""
+            """ You can use -1 to force Z to be at the far clipping plane."""
+        ),
     )
     dz: bpy.props.IntProperty(
         name="Prim Depth: Delta Z",
         default=0,
         soft_min=0,
         soft_max=0x4000,
-        description="""The dz value should be set to 0. This value is used for antialiasing and objects drawn in decal render mode and must always be a power of 2 (0, 1, 2, 4, 8, ... 0x4000). If you are using decal mode and part of the decaled object is not being rendered correctly, try setting this to powers of 2. Otherwise use 0.""",
+        description=(
+            """The dz value should be set to 0."""
+            """ This value is used for antialiasing and objects drawn in decal render mode """
+            """and must always be a power of 2 (0, 1, 2, 4, 8, ... 0x4000)."""
+            """ If you are using decal mode and part of the decaled object is not being rendered correctly, """
+            """try setting this to powers of 2. Otherwise use 0."""
+        ),
     )
 
 
 class RDPSettings(bpy.types.PropertyGroup):
-    g_zbuffer: bpy.props.BoolProperty(name="Z Buffer", default=True, update=update_node_values_with_preset)
-    g_shade: bpy.props.BoolProperty(name="Shading", default=True, update=update_node_values_with_preset)
+    g_zbuffer: bpy.props.BoolProperty(
+        name="Z Buffer",
+        default=True,
+        update=update_node_values_with_preset,
+    )
+    g_shade: bpy.props.BoolProperty(
+        name="Shading",
+        default=True,
+        update=update_node_values_with_preset,
+    )
     # v1/2 difference
-    g_cull_front: bpy.props.BoolProperty(name="Cull Front", update=update_node_values_with_preset)
+    g_cull_front: bpy.props.BoolProperty(
+        name="Cull Front",
+        update=update_node_values_with_preset,
+    )
     # v1/2 difference
-    g_cull_back: bpy.props.BoolProperty(name="Cull Back", default=True, update=update_node_values_with_preset)
-    g_fog: bpy.props.BoolProperty(name="Fog", update=update_node_values_with_preset)
-    g_lighting: bpy.props.BoolProperty(name="Lighting", default=True, update=update_node_values_with_preset)
-    g_tex_gen: bpy.props.BoolProperty(name="Texture UV Generate", update=update_node_values_with_preset)
-    g_tex_gen_linear: bpy.props.BoolProperty(name="Texture UV Generate Linear", update=update_node_values_with_preset)
+    g_cull_back: bpy.props.BoolProperty(
+        name="Cull Back",
+        default=True,
+        update=update_node_values_with_preset,
+    )
+    g_fog: bpy.props.BoolProperty(
+        name="Fog",
+        update=update_node_values_with_preset,
+    )
+    g_lighting: bpy.props.BoolProperty(
+        name="Lighting",
+        default=True,
+        update=update_node_values_with_preset,
+    )
+    g_tex_gen: bpy.props.BoolProperty(
+        name="Texture UV Generate",
+        update=update_node_values_with_preset,
+    )
+    g_tex_gen_linear: bpy.props.BoolProperty(
+        name="Texture UV Generate Linear",
+        update=update_node_values_with_preset,
+    )
     # v1/2 difference
-    g_shade_smooth: bpy.props.BoolProperty(name="Smooth Shading", default=True, update=update_node_values_with_preset)
+    g_shade_smooth: bpy.props.BoolProperty(
+        name="Smooth Shading",
+        default=True,
+        update=update_node_values_with_preset,
+    )
     # f3dlx2 only
-    g_clipping: bpy.props.BoolProperty(name="Clipping", update=update_node_values_with_preset)
+    g_clipping: bpy.props.BoolProperty(
+        name="Clipping",
+        update=update_node_values_with_preset,
+    )
 
     # upper half mode
     # v2 only
     g_mdsft_alpha_dither: bpy.props.EnumProperty(
-        name="Alpha Dither", items=enumAlphaDither, default="G_AD_NOISE", update=update_node_values_with_preset
+        name="Alpha Dither",
+        items=enumAlphaDither,
+        default="G_AD_NOISE",
+        update=update_node_values_with_preset,
     )
     # v2 only
     g_mdsft_rgb_dither: bpy.props.EnumProperty(
-        name="RGB Dither", items=enumRGBDither, default="G_CD_MAGICSQ", update=update_node_values_with_preset
+        name="RGB Dither",
+        items=enumRGBDither,
+        default="G_CD_MAGICSQ",
+        update=update_node_values_with_preset,
     )
     g_mdsft_combkey: bpy.props.EnumProperty(
-        name="Chroma Key", items=enumCombKey, default="G_CK_NONE", update=update_node_values_with_preset
+        name="Chroma Key",
+        items=enumCombKey,
+        default="G_CK_NONE",
+        update=update_node_values_with_preset,
     )
     g_mdsft_textconv: bpy.props.EnumProperty(
-        name="Texture Convert", items=enumTextConv, default="G_TC_FILT", update=update_node_values_with_preset
+        name="Texture Convert",
+        items=enumTextConv,
+        default="G_TC_FILT",
+        update=update_node_values_with_preset,
     )
     g_mdsft_text_filt: bpy.props.EnumProperty(
-        name="Texture Filter", items=enumTextFilt, default="G_TF_BILERP", update=update_node_values_without_preset
+        name="Texture Filter",
+        items=enumTextFilt,
+        default="G_TF_BILERP",
+        update=update_node_values_without_preset,
     )
-    g_mdsft_textlut: bpy.props.EnumProperty(name="Texture LUT", items=enumTextLUT, default="G_TT_NONE")
+    g_mdsft_textlut: bpy.props.EnumProperty(
+        name="Texture LUT",
+        items=enumTextLUT,
+        default="G_TT_NONE",
+    )
     g_mdsft_textlod: bpy.props.EnumProperty(
-        name="Texture LOD", items=enumTextLOD, default="G_TL_TILE", update=update_node_values_with_preset
+        name="Texture LOD",
+        items=enumTextLOD,
+        default="G_TL_TILE",
+        update=update_node_values_with_preset,
     )
     g_mdsft_textdetail: bpy.props.EnumProperty(
-        name="Texture Detail", items=enumTextDetail, default="G_TD_CLAMP", update=update_node_values_with_preset
+        name="Texture Detail",
+        items=enumTextDetail,
+        default="G_TD_CLAMP",
+        update=update_node_values_with_preset,
     )
     g_mdsft_textpersp: bpy.props.EnumProperty(
         name="Texture Perspective Correction",
@@ -2289,11 +2414,17 @@ class RDPSettings(bpy.types.PropertyGroup):
         update=update_node_values_with_preset,
     )
     g_mdsft_cycletype: bpy.props.EnumProperty(
-        name="Cycle Type", items=enumCycleType, default="G_CYC_1CYCLE", update=update_node_values_with_preset
+        name="Cycle Type",
+        items=enumCycleType,
+        default="G_CYC_1CYCLE",
+        update=update_node_values_with_preset,
     )
     # v1 only
     g_mdsft_color_dither: bpy.props.EnumProperty(
-        name="Color Dither", items=enumColorDither, default="G_CD_ENABLE", update=update_node_values_with_preset
+        name="Color Dither",
+        items=enumColorDither,
+        default="G_CD_ENABLE",
+        update=update_node_values_with_preset,
     )
     g_mdsft_pipeline: bpy.props.EnumProperty(
         name="Pipeline Span Buffer Coherency",
@@ -2304,21 +2435,40 @@ class RDPSettings(bpy.types.PropertyGroup):
 
     # lower half mode
     g_mdsft_alpha_compare: bpy.props.EnumProperty(
-        name="Alpha Compare", items=enumAlphaCompare, default="G_AC_NONE", update=update_node_values_with_preset
+        name="Alpha Compare",
+        items=enumAlphaCompare,
+        default="G_AC_NONE",
+        update=update_node_values_with_preset,
     )
     g_mdsft_zsrcsel: bpy.props.EnumProperty(
-        name="Z Source Selection", items=enumDepthSource, default="G_ZS_PIXEL", update=update_node_values_with_preset
+        name="Z Source Selection",
+        items=enumDepthSource,
+        default="G_ZS_PIXEL",
+        update=update_node_values_with_preset,
     )
 
     prim_depth: bpy.props.PointerProperty(
-        type=PrimDepthSettings, name="Prim Depth Settings (gDPSetPrimDepth)", description="gDPSetPrimDepth"
+        type=PrimDepthSettings,
+        name="Prim Depth Settings (gDPSetPrimDepth)",
+        description="gDPSetPrimDepth",
     )
 
-    clip_ratio: bpy.props.IntProperty(default=1, min=1, max=2**15 - 1, update=update_node_values_with_preset)
+    clip_ratio: bpy.props.IntProperty(
+        default=1,
+        min=1,
+        max=2**15 - 1,
+        update=update_node_values_with_preset,
+    )
 
     # cycle independent
-    set_rendermode: bpy.props.BoolProperty(default=False, update=update_node_values_with_preset)
-    rendermode_advanced_enabled: bpy.props.BoolProperty(default=False, update=update_node_values_with_preset)
+    set_rendermode: bpy.props.BoolProperty(
+        default=False,
+        update=update_node_values_with_preset,
+    )
+    rendermode_advanced_enabled: bpy.props.BoolProperty(
+        default=False,
+        update=update_node_values_with_preset,
+    )
     rendermode_preset_cycle_1: bpy.props.EnumProperty(
         items=enumRenderModesCycle1,
         default="G_RM_AA_ZB_OPA_SURF",
@@ -2331,28 +2481,82 @@ class RDPSettings(bpy.types.PropertyGroup):
         name="Render Mode Cycle 2",
         update=update_node_values_with_preset,
     )
-    aa_en: bpy.props.BoolProperty(update=update_node_values_with_preset)
-    z_cmp: bpy.props.BoolProperty(update=update_node_values_with_preset)
-    z_upd: bpy.props.BoolProperty(update=update_node_values_with_preset)
-    im_rd: bpy.props.BoolProperty(update=update_node_values_with_preset)
-    clr_on_cvg: bpy.props.BoolProperty(update=update_node_values_with_preset)
-    cvg_dst: bpy.props.EnumProperty(
-        name="Coverage Destination", items=enumCoverage, update=update_node_values_with_preset
+    aa_en: bpy.props.BoolProperty(
+        update=update_node_values_with_preset,
     )
-    zmode: bpy.props.EnumProperty(name="Z Mode", items=enumZMode, update=update_node_values_with_preset)
-    cvg_x_alpha: bpy.props.BoolProperty(update=update_node_values_with_preset)
-    alpha_cvg_sel: bpy.props.BoolProperty(update=update_node_values_with_preset)
-    force_bl: bpy.props.BoolProperty(update=update_node_values_with_preset)
+    z_cmp: bpy.props.BoolProperty(
+        update=update_node_values_with_preset,
+    )
+    z_upd: bpy.props.BoolProperty(
+        update=update_node_values_with_preset,
+    )
+    im_rd: bpy.props.BoolProperty(
+        update=update_node_values_with_preset,
+    )
+    clr_on_cvg: bpy.props.BoolProperty(
+        update=update_node_values_with_preset,
+    )
+    cvg_dst: bpy.props.EnumProperty(
+        name="Coverage Destination",
+        items=enumCoverage,
+        update=update_node_values_with_preset,
+    )
+    zmode: bpy.props.EnumProperty(
+        name="Z Mode",
+        items=enumZMode,
+        update=update_node_values_with_preset,
+    )
+    cvg_x_alpha: bpy.props.BoolProperty(
+        update=update_node_values_with_preset,
+    )
+    alpha_cvg_sel: bpy.props.BoolProperty(
+        update=update_node_values_with_preset,
+    )
+    force_bl: bpy.props.BoolProperty(
+        update=update_node_values_with_preset,
+    )
 
     # cycle dependent - (P * A + M - B) / (A + B)
-    blend_p1: bpy.props.EnumProperty(name="Color Source 1", items=enumBlendColor, update=update_node_values_with_preset)
-    blend_p2: bpy.props.EnumProperty(name="Color Source 1", items=enumBlendColor, update=update_node_values_with_preset)
-    blend_m1: bpy.props.EnumProperty(name="Color Source 2", items=enumBlendColor, update=update_node_values_with_preset)
-    blend_m2: bpy.props.EnumProperty(name="Color Source 2", items=enumBlendColor, update=update_node_values_with_preset)
-    blend_a1: bpy.props.EnumProperty(name="Alpha Source", items=enumBlendAlpha, update=update_node_values_with_preset)
-    blend_a2: bpy.props.EnumProperty(name="Alpha Source", items=enumBlendAlpha, update=update_node_values_with_preset)
-    blend_b1: bpy.props.EnumProperty(name="Alpha Mix", items=enumBlendMix, update=update_node_values_with_preset)
-    blend_b2: bpy.props.EnumProperty(name="Alpha Mix", items=enumBlendMix, update=update_node_values_with_preset)
+    blend_p1: bpy.props.EnumProperty(
+        name="Color Source 1",
+        items=enumBlendColor,
+        update=update_node_values_with_preset,
+    )
+    blend_p2: bpy.props.EnumProperty(
+        name="Color Source 1",
+        items=enumBlendColor,
+        update=update_node_values_with_preset,
+    )
+    blend_m1: bpy.props.EnumProperty(
+        name="Color Source 2",
+        items=enumBlendColor,
+        update=update_node_values_with_preset,
+    )
+    blend_m2: bpy.props.EnumProperty(
+        name="Color Source 2",
+        items=enumBlendColor,
+        update=update_node_values_with_preset,
+    )
+    blend_a1: bpy.props.EnumProperty(
+        name="Alpha Source",
+        items=enumBlendAlpha,
+        update=update_node_values_with_preset,
+    )
+    blend_a2: bpy.props.EnumProperty(
+        name="Alpha Source",
+        items=enumBlendAlpha,
+        update=update_node_values_with_preset,
+    )
+    blend_b1: bpy.props.EnumProperty(
+        name="Alpha Mix",
+        items=enumBlendMix,
+        update=update_node_values_with_preset,
+    )
+    blend_b2: bpy.props.EnumProperty(
+        name="Alpha Mix",
+        items=enumBlendMix,
+        update=update_node_values_with_preset,
+    )
 
 
 class DefaultRDPSettingsPanel(bpy.types.Panel):
@@ -2371,7 +2575,7 @@ class DefaultRDPSettingsPanel(bpy.types.Panel):
         world = context.scene.world
         layout = self.layout
         layout.box().label(text="RDP Default Settings")
-        layout.label(text="If a material setting is a same as a default " + "setting, then it won't be set.")
+        layout.label(text="If a material setting is a same as a default setting, then it won't be set.")
         ui_geo_mode(world.rdp_defaults, world, layout, True)
         ui_upper_mode(world.rdp_defaults, world, layout, True)
         ui_lower_mode(world.rdp_defaults, world, layout, True)
@@ -2451,15 +2655,12 @@ class MATERIAL_MT_f3d_presets(Menu):
         - preset_extensions (set of strings)
         - preset_operator_defaults (dict of keyword args)
         """
-        import bpy
-
         ext_valid = getattr(self, "preset_extensions", {".py", ".xml"})
         props_default = getattr(self, "preset_operator_defaults", None)
         add_operator = getattr(self, "preset_add_operator", None)
         presetDir = getCurrentPresetDir()
-        paths = (
-            bpy.utils.preset_paths(presetDir) if not bpy.context.scene.f3dUserPresetsOnly else []
-        ) + bpy.utils.preset_paths("f3d/user")
+        paths = bpy.utils.preset_paths(presetDir) if not bpy.context.scene.f3dUserPresetsOnly else []
+        paths += bpy.utils.preset_paths("f3d/user")
         self.path_menu(
             paths,
             self.preset_operator,
@@ -2704,7 +2905,6 @@ class AddPresetF3D(AddPresetBase, Operator):
 
 
 def convertToNewMat(material, oldMat):
-    # mat_register_old()
     material.f3d_mat.presetName = oldMat.get("presetName", "Custom")
 
     material.f3d_mat.scale_autoprop = oldMat["scale_autoprop"]
@@ -2794,10 +2994,22 @@ def convertToNewMat(material, oldMat):
 
 
 class F3DMaterialProperty(bpy.types.PropertyGroup):
-    presetName: bpy.props.StringProperty(name="Preset Name", default="Custom")
+    presetName: bpy.props.StringProperty(
+        name="Preset Name",
+        default="Custom",
+    )
 
-    scale_autoprop: bpy.props.BoolProperty(name="Auto Set Scale", default=True, update=update_tex_values)
-    uv_basis: bpy.props.EnumProperty(name="UV Basis", default="TEXEL0", items=enumTexUV, update=update_tex_values)
+    scale_autoprop: bpy.props.BoolProperty(
+        name="Auto Set Scale",
+        default=True,
+        update=update_tex_values,
+    )
+    uv_basis: bpy.props.EnumProperty(
+        name="UV Basis",
+        default="TEXEL0",
+        items=enumTexUV,
+        update=update_tex_values,
+    )
 
     # Combiners
     combiner1: bpy.props.PointerProperty(type=CombinerProperty)
@@ -2809,24 +3021,60 @@ class F3DMaterialProperty(bpy.types.PropertyGroup):
     UVanim1: bpy.props.PointerProperty(type=ProcAnimVectorProperty)
 
     # material textures
-    tex_scale: bpy.props.FloatVectorProperty(min=0, max=1, size=2, default=(1, 1), step=1, update=update_tex_values)
+    tex_scale: bpy.props.FloatVectorProperty(
+        min=0,
+        max=1,
+        size=2,
+        default=(1, 1),
+        step=1,
+        update=update_tex_values,
+    )
     tex0: bpy.props.PointerProperty(type=TextureProperty, name="tex0")
     tex1: bpy.props.PointerProperty(type=TextureProperty, name="tex1")
 
     # Should Set?
 
-    set_prim: bpy.props.BoolProperty(default=True, update=update_node_values_with_preset)
-    set_lights: bpy.props.BoolProperty(default=True, update=update_node_values_with_preset)
-    set_env: bpy.props.BoolProperty(default=False, update=update_node_values_with_preset)
-    set_blend: bpy.props.BoolProperty(default=False, update=update_node_values_with_preset)
-    set_key: bpy.props.BoolProperty(default=True, update=update_node_values_with_preset)
-    set_k0_5: bpy.props.BoolProperty(default=True, update=update_node_values_with_preset)
-    set_combiner: bpy.props.BoolProperty(default=True, update=update_node_values_with_preset)
-    use_default_lighting: bpy.props.BoolProperty(default=True, update=update_node_values_without_preset)
+    set_prim: bpy.props.BoolProperty(
+        default=True,
+        update=update_node_values_with_preset,
+    )
+    set_lights: bpy.props.BoolProperty(
+        default=True,
+        update=update_node_values_with_preset,
+    )
+    set_env: bpy.props.BoolProperty(
+        default=False,
+        update=update_node_values_with_preset,
+    )
+    set_blend: bpy.props.BoolProperty(
+        default=False,
+        update=update_node_values_with_preset,
+    )
+    set_key: bpy.props.BoolProperty(
+        default=True,
+        update=update_node_values_with_preset,
+    )
+    set_k0_5: bpy.props.BoolProperty(
+        default=True,
+        update=update_node_values_with_preset,
+    )
+    set_combiner: bpy.props.BoolProperty(
+        default=True,
+        update=update_node_values_with_preset,
+    )
+    use_default_lighting: bpy.props.BoolProperty(
+        default=True,
+        update=update_node_values_without_preset,
+    )
 
     # Blend Color
     blend_color: bpy.props.FloatVectorProperty(
-        name="Blend Color", subtype="COLOR", size=4, min=0, max=1, default=(0, 0, 0, 1)
+        name="Blend Color",
+        subtype="COLOR",
+        size=4,
+        min=0,
+        max=1,
+        default=(0, 0, 0, 1),
     )
     prim_color: bpy.props.FloatVectorProperty(
         name="Primitive Color",
@@ -2858,24 +3106,77 @@ class F3DMaterialProperty(bpy.types.PropertyGroup):
 
     # Chroma
     key_scale: bpy.props.FloatVectorProperty(
-        name="Key Scale", min=0, max=1, step=1, update=update_node_values_with_preset
+        name="Key Scale",
+        min=0,
+        max=1,
+        step=1,
+        update=update_node_values_with_preset,
     )
-    key_width: bpy.props.FloatVectorProperty(name="Key Width", min=0, max=16, update=update_node_values_with_preset)
+    key_width: bpy.props.FloatVectorProperty(
+        name="Key Width",
+        min=0,
+        max=16,
+        update=update_node_values_with_preset,
+    )
 
     # Convert
-    k0: bpy.props.FloatProperty(min=-1, max=1, default=175 / 255, step=1, update=update_node_values_with_preset)
-    k1: bpy.props.FloatProperty(min=-1, max=1, default=-43 / 255, step=1, update=update_node_values_with_preset)
-    k2: bpy.props.FloatProperty(min=-1, max=1, default=-89 / 255, step=1, update=update_node_values_with_preset)
-    k3: bpy.props.FloatProperty(min=-1, max=1, default=222 / 255, step=1, update=update_node_values_with_preset)
-    k4: bpy.props.FloatProperty(min=-1, max=1, default=114 / 255, step=1, update=update_node_values_with_preset)
-    k5: bpy.props.FloatProperty(min=-1, max=1, default=42 / 255, step=1, update=update_node_values_with_preset)
+    k0: bpy.props.FloatProperty(
+        min=-1,
+        max=1,
+        default=175 / 255,
+        step=1,
+        update=update_node_values_with_preset,
+    )
+    k1: bpy.props.FloatProperty(
+        min=-1,
+        max=1,
+        default=-43 / 255,
+        step=1,
+        update=update_node_values_with_preset,
+    )
+    k2: bpy.props.FloatProperty(
+        min=-1,
+        max=1,
+        default=-89 / 255,
+        step=1,
+        update=update_node_values_with_preset,
+    )
+    k3: bpy.props.FloatProperty(
+        min=-1,
+        max=1,
+        default=222 / 255,
+        step=1,
+        update=update_node_values_with_preset,
+    )
+    k4: bpy.props.FloatProperty(
+        min=-1,
+        max=1,
+        default=114 / 255,
+        step=1,
+        update=update_node_values_with_preset,
+    )
+    k5: bpy.props.FloatProperty(
+        min=-1,
+        max=1,
+        default=42 / 255,
+        step=1,
+        update=update_node_values_with_preset,
+    )
 
     # Prim
     prim_lod_frac: bpy.props.FloatProperty(
-        name="Prim LOD Frac", min=0, max=1, step=1, update=update_node_values_with_preset
+        name="Prim LOD Frac",
+        min=0,
+        max=1,
+        step=1,
+        update=update_node_values_with_preset,
     )
     prim_lod_min: bpy.props.FloatProperty(
-        name="Min LOD Ratio", min=0, max=1, step=1, update=update_node_values_with_preset
+        name="Min LOD Ratio",
+        min=0,
+        max=1,
+        step=1,
+        update=update_node_values_with_preset,
     )
 
     # lights
@@ -2920,7 +3221,12 @@ class F3DMaterialProperty(bpy.types.PropertyGroup):
     )
     # TODO: (V5) dragorn421 should ask me if this is _actually_ the fog position max because this seems wrong to him
     fog_position: bpy.props.IntVectorProperty(
-        name="Fog Range", size=2, min=0, max=0x10000, default=(985, 1000), update=update_node_values_without_preset
+        name="Fog Range",
+        size=2,
+        min=0,
+        max=0x10000,
+        default=(985, 1000),
+        update=update_node_values_without_preset,
     )
     set_fog: bpy.props.BoolProperty(update=update_node_values_without_preset)
     use_global_fog: bpy.props.BoolProperty(default=False, update=update_node_values_without_preset)
@@ -3109,7 +3415,11 @@ def mat_register():
 
     savePresets()
 
-    bpy.types.Scene.f3d_type = bpy.props.EnumProperty(name="F3D Microcode", items=enumF3D, default="F3D")
+    bpy.types.Scene.f3d_type = bpy.props.EnumProperty(
+        name="F3D Microcode",
+        items=enumF3D,
+        default="F3D",
+    )
     bpy.types.Scene.isHWv1 = bpy.props.BoolProperty(name="Is Hardware v1?")
 
     # RDP Defaults
@@ -3130,11 +3440,16 @@ def mat_register():
     bpy.types.Scene.f3d_simple = bpy.props.BoolProperty(name="Display Simple", default=True)
 
     bpy.types.Object.use_f3d_culling = bpy.props.BoolProperty(
-        name="Enable Culling (Applies to F3DEX and up)", default=True
+        name="Enable Culling (Applies to F3DEX and up)",
+        default=True,
     )
     bpy.types.Object.ignore_render = bpy.props.BoolProperty(name="Ignore Render")
     bpy.types.Object.ignore_collision = bpy.props.BoolProperty(name="Ignore Collision")
-    bpy.types.Object.f3d_lod_z = bpy.props.IntProperty(name="F3D LOD Z", min=1, default=10)
+    bpy.types.Object.f3d_lod_z = bpy.props.IntProperty(
+        name="F3D LOD Z",
+        min=1,
+        default=10,
+    )
     bpy.types.Object.f3d_lod_always_render_farthest = bpy.props.BoolProperty(name="Always Render Farthest LOD")
 
     bpy.types.VIEW3D_HT_header.append(draw_f3d_render_settings)
