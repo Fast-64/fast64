@@ -372,7 +372,7 @@ def ootCameraDataToC(camData):
 
         camPosIndex = 0
         for i in range(len(camData.camPosDict)):
-            camC.source += indent + ootCameraEntryToC(camData.camPosDict[i], camData, camPosIndex)
+            camC.source += "\t" + ootCameraEntryToC(camData.camPosDict[i], camData, camPosIndex) + ",\n"
             if camData.camPosDict[i].hasPositionData:
                 posC.source += ootCameraPosToC(camData.camPosDict[i])
                 camPosIndex += 3
@@ -423,7 +423,7 @@ def ootCameraEntryToC(camPos, camData, camPosIndex):
             camPos.camSType + ",",
             ("3" if camPos.hasPositionData else "0") + ",",
             ("&" + camData.camPositionsName() + "[" + str(camPosIndex) + "]"),
-            "}\n",
+            "}",
         )
     )
 

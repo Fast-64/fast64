@@ -742,8 +742,12 @@ def ootAddLimbRecursively(
             hexOrDecInt(matchResult.group(2)),
             hexOrDecInt(matchResult.group(3)),
         ]
-    nextChildIndex = hexOrDecInt(matchResult.group(4))
-    nextSiblingIndex = hexOrDecInt(matchResult.group(5))
+
+    LIMB_DONE = 0xFF
+    nextChildIndexStr = matchResult.group(4)
+    nextChildIndex = LIMB_DONE if nextChildIndexStr == "LIMB_DONE" else hexOrDecInt(nextChildIndexStr)
+    nextSiblingIndexStr = matchResult.group(5)
+    nextSiblingIndex = LIMB_DONE if nextSiblingIndexStr == "LIMB_DONE" else hexOrDecInt(nextSiblingIndexStr)
 
     # str(limbIndex) + " " + str(translation) + " " + str(nextChildIndex) + " " + \
     # 	str(nextSiblingIndex) + " " + str(dlName))
@@ -760,12 +764,12 @@ def ootAddLimbRecursively(
         f3dContext.dlList.append(OOTDLEntry(dlName, limbIndex))
         # parseF3D(skeletonData, dlName, obj, transformMatrix, boneName, f3dContext)
 
-    if nextChildIndex != 255:
+    if nextChildIndex != LIMB_DONE:
         isLOD |= ootAddLimbRecursively(
             nextChildIndex, skeletonData, obj, armatureObj, currentTransform, boneName, f3dContext, useFarLOD
         )
 
-    if nextSiblingIndex != 255:
+    if nextSiblingIndex != LIMB_DONE:
         isLOD |= ootAddLimbRecursively(
             nextSiblingIndex, skeletonData, obj, armatureObj, parentTransform, parentBoneName, f3dContext, useFarLOD
         )
