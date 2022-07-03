@@ -683,7 +683,8 @@ def getAndFormatActorProperty(object, field, shift, mask):
             if attr:
                 return f"(1 << {shift})"
             else:
-                return f"(0 << {shift})"
+                # return an empty string as it's not useful to return 'False' value
+                return ""
         else:
             # by default, raise an error
             raise NotImplementedError
@@ -932,8 +933,8 @@ def upgradeActorInit(obj):
         if rotValue != "0" or rotValue != "0x0":
             # convert the value to an integer
             try:
-                rotParam = int(rotValue, base=16)
-            except ValueError:
+                rotParam = evalActorParams(rotValue)
+            except SyntaxError:
                 # if the value is not an hexadecimal number convert the actor to a custom one
                 convertLegacyActorToCustom(obj, legacyActor, actor, objType, getLegacyPropName(rotName))
 
@@ -958,8 +959,8 @@ def upgradeActorInit(obj):
 
             # convert the value to an integer
             try:
-                legacyParams = int(legacyActor.actorParam, base=16)
-            except ValueError:
+                legacyParams = evalActorParams(legacyActor.actorParam)
+            except SyntaxError:
                 # if the value is not an hexadecimal number convert the actor to a custom one
                 # legacyParams is none to check if we should start the upgrade process
                 legacyParams = None
@@ -998,8 +999,8 @@ def upgradeActorInit(obj):
 
             # convert the value to an integer
             try:
-                legacyParams = int(legacyActor.actorParam, base=16)
-            except ValueError:
+                legacyParams = evalActorParams(legacyActor.actorParam)
+            except SyntaxError:
                 # if the value is not an hexadecimal number convert the actor to a custom one
                 legacyParams = None
                 convertLegacyActorToCustom(obj, legacyActor, actor, objType, None)
@@ -1017,8 +1018,8 @@ def upgradeActorInit(obj):
 
             # convert the value to an integer
             try:
-                legacyParams = int(legacyActor.actorParam, base=16)
-            except ValueError:
+                legacyParams = evalActorParams(legacyActor.actorParam)
+            except SyntaxError:
                 # if the value is not an hexadecimal number convert the actor to a custom one
                 legacyParams = None
                 convertLegacyActorToCustom(obj, legacyActor, actor, objType, None)
