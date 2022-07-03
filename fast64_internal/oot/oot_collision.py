@@ -326,9 +326,9 @@ def ootCollisionPolygonToC(polygon, ignoreCamera, ignoreActor, ignoreProjectile,
                 format(polygon.convertShort02(ignoreCamera, ignoreActor, ignoreProjectile), "#06x"),
                 format(polygon.convertShort04(enableConveyor), "#06x"),
                 format(polygon.convertShort06(), "#06x"),
-                "COLPOLY_SNORMAL({})".format(polygon.normal[0]),
-                "COLPOLY_SNORMAL({})".format(polygon.normal[1]),
-                "COLPOLY_SNORMAL({})".format(polygon.normal[2]),
+                f"COLPOLY_SNORMAL({polygon.normal[0]})",
+                f"COLPOLY_SNORMAL({polygon.normal[1]})",
+                f"COLPOLY_SNORMAL({polygon.normal[2]})",
                 format(polygon.distance, "#06x"),
             )
         )

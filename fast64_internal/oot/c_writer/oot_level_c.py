@@ -616,7 +616,7 @@ def ootExitListToC(scene, headerIndex):
 
 
 def ootVectorToC(vector):
-    return "0x{:02X}, 0x{:02X}, 0x{:02X}".format(vector[0], vector[1], vector[2])
+    return f"0x{vector[0]:02X}, 0x{vector[1]:02X}, 0x{vector[2]:02X}"
 
 
 def ootLightToC(light):
@@ -632,7 +632,7 @@ def ootLightToC(light):
                 ootVectorToC(light.diffuse1),
                 ootVectorToC(light.fogColor),
                 light.getBlendFogShort(),
-                "0x{:04X}".format(light.fogFar),
+                f"0x{light.fogFar:04X}",
             )
         )
         + " },\n"
