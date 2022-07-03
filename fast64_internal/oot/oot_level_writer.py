@@ -647,7 +647,6 @@ def ootProcessWaterBox(sceneObj, obj, transformMatrix, scene, roomIndex):
 
 
 class OOT_ExportScene(bpy.types.Operator):
-    # set bl_ properties
     bl_idname = "object.oot_export_level"
     bl_label = "Export Scene"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
@@ -665,14 +664,12 @@ class OOT_ExportScene(bpy.types.Operator):
             elif obj.data is not None or obj.ootEmptyType != "Scene":
                 raise PluginError("The input object is not an empty with the Scene type.")
 
-            # obj = context.active_object
-
             scaleValue = bpy.context.scene.ootBlenderScale
             finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((scaleValue, scaleValue, scaleValue))).to_4x4()
 
         except Exception as e:
             raisePluginError(self, e)
-            return {"CANCELLED"}  # must return a set
+            return {"CANCELLED"}
         try:
             levelName = context.scene.ootSceneName
             if context.scene.ootSceneCustomExport:
@@ -684,8 +681,6 @@ class OOT_ExportScene(bpy.types.Operator):
                     levelName = sceneNameFromID(context.scene.ootSceneOption)
                     subfolder = None
                 exportInfo = ExportInfo(False, bpy.path.abspath(context.scene.ootDecompPath), subfolder, levelName)
-            # if not context.scene.ootSceneCustomExport:
-            # 	applyBasicTweaks(exportPath)
 
             ootExportSceneToC(
                 obj,
@@ -698,18 +693,13 @@ class OOT_ExportScene(bpy.types.Operator):
                 exportInfo,
             )
 
-            # ootExportScene(obj, finalTransform,
-            # 	context.scene.f3d_type, context.scene.isHWv1, levelName, exportPath,
-            # 	context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions,
-            # 	context.scene.ootSceneCustomExport, DLFormat.Dynamic)
             self.report({"INFO"}, "Success!")
 
             context.view_layer.objects.active = activeObj
             if activeObj is not None:
                 activeObj.select_set(True)
 
-            # applyRotation(obj.children, math.radians(0), 'X')
-            return {"FINISHED"}  # must return a set
+            return {"FINISHED"}
 
         except Exception as e:
             if context.mode != "OBJECT":
@@ -718,7 +708,7 @@ class OOT_ExportScene(bpy.types.Operator):
             if activeObj is not None:
                 activeObj.select_set(True)
             raisePluginError(self, e)
-            return {"CANCELLED"}  # must return a set
+            return {"CANCELLED"}
 
 
 def ootRemoveSceneC(exportInfo):
@@ -728,7 +718,6 @@ def ootRemoveSceneC(exportInfo):
 
 
 class OOT_RemoveScene(bpy.types.Operator):
-    # set bl_ properties
     bl_idname = "object.oot_remove_level"
     bl_label = "Remove Scene"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
@@ -749,14 +738,13 @@ class OOT_RemoveScene(bpy.types.Operator):
         ootRemoveSceneC(exportInfo)
 
         self.report({"INFO"}, "Success!")
-        return {"FINISHED"}  # must return a set
+        return {"FINISHED"}
 
 
 class OOT_ExportScenePanel(OOT_Panel):
     bl_idname = "OOT_PT_export_level"
     bl_label = "OOT Scene Exporter"
 
-    # called every frame
     def draw(self, context):
         col = self.layout.column()
         col.operator(OOT_ExportScene.bl_idname)
