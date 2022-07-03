@@ -14,11 +14,13 @@ def cmdSoundSettings(scene, header, cmdCount):
     cmd = CData()
     cmd.source = (
         "\tSCENE_CMD_SOUND_SETTINGS("
-        + str(scene.audioSessionPreset)
-        + ", "
-        + str(scene.nightSeq)
-        + ", "
-        + str(scene.musicSeq)
+        + ", ".join(
+            (
+                str(scene.audioSessionPreset),
+                str(scene.nightSeq),
+                str(scene.musicSeq),
+            )
+        )
         + "),\n"
     )
     return cmd
@@ -92,11 +94,13 @@ def cmdSkyboxSettings(scene, header, cmdCount):
     cmd = CData()
     cmd.source = (
         "\tSCENE_CMD_SKYBOX_SETTINGS("
-        + str(scene.skyboxID)
-        + ", "
-        + str(scene.skyboxCloudiness)
-        + ", "
-        + str(scene.skyboxLighting)
+        + ", ".join(
+            (
+                str(scene.skyboxID),
+                str(scene.skyboxCloudiness),
+                str(scene.skyboxLighting),
+            )
+        )
         + "),\n"
     )
     return cmd
@@ -155,13 +159,14 @@ def cmdRoomBehaviour(room, header, cmdCount):
     cmd = CData()
     cmd.source = (
         "\tSCENE_CMD_ROOM_BEHAVIOR("
-        + str(room.roomBehaviour)
-        + ", "
-        + str(room.linkIdleMode)
-        + ", "
-        + ("true" if room.showInvisibleActors else "false")
-        + ", "
-        + ("true" if room.disableWarpSongs else "false")
+        + ", ".join(
+            (
+                str(room.roomBehaviour),
+                str(room.linkIdleMode),
+                ("true" if room.showInvisibleActors else "false"),
+                ("true" if room.disableWarpSongs else "false"),
+            )
+        )
         + "),\n"
     )
     return cmd
@@ -183,11 +188,13 @@ def cmdTimeSettings(room, header, cmdCount):
     cmd = CData()
     cmd.source = (
         "\tSCENE_CMD_TIME_SETTINGS("
-        + str(room.timeHours)
-        + ", "
-        + str(room.timeMinutes)
-        + ", "
-        + str(room.timeSpeed)
+        + ", ".join(
+            (
+                str(room.timeHours),
+                str(room.timeMinutes),
+                str(room.timeSpeed),
+            )
+        )
         + "),\n"
     )
     return cmd
@@ -197,13 +204,14 @@ def cmdWindSettings(room, header, cmdCount):
     cmd = CData()
     cmd.source = (
         "\tSCENE_CMD_WIND_SETTINGS("
-        + str(room.windVector[0])
-        + ", "
-        + str(room.windVector[1])
-        + ", "
-        + str(room.windVector[2])
-        + ", "
-        + str(room.windStrength)
+        + ", ".join(
+            (
+                str(room.windVector[0]),
+                str(room.windVector[1]),
+                str(room.windVector[2]),
+                str(room.windStrength),
+            )
+        )
         + "),\n"
     )
     return cmd
@@ -242,27 +250,28 @@ def ootObjectListToC(room, headerIndex):
 def ootActorToC(actor):
     return (
         "{ "
-        + str(actor.actorID)
-        + ", "
-        + str(int(round(actor.position[0])))
-        + ", "
-        + str(int(round(actor.position[1])))
-        + ", "
-        + str(int(round(actor.position[2])))
-        + ", "
-        + (
-            (actor.rotOverride[0] + ", " + actor.rotOverride[1] + ", " + actor.rotOverride[2] + ", ")
-            if actor.rotOverride is not None
-            else (
-                str(int(round(actor.rotation[0])))
-                + ", "
-                + str(int(round(actor.rotation[1])))
-                + ", "
-                + str(int(round(actor.rotation[2])))
-                + ", "
+        + ", ".join(
+            (
+                str(actor.actorID),
+                str(int(round(actor.position[0]))),
+                str(int(round(actor.position[1]))),
+                str(int(round(actor.position[2]))),
+                *(
+                    (
+                        actor.rotOverride[0],
+                        actor.rotOverride[1],
+                        actor.rotOverride[2],
+                    )
+                    if actor.rotOverride is not None
+                    else (
+                        str(int(round(actor.rotation[0]))),
+                        str(int(round(actor.rotation[1]))),
+                        str(int(round(actor.rotation[2]))),
+                    )
+                ),
+                str(actor.actorParam),
             )
         )
-        + str(actor.actorParam)
         + " },\n"
     )
 
@@ -475,25 +484,20 @@ def ootStartPositionListToC(scene, headerIndex):
 def ootTransitionActorToC(transActor):
     return (
         "{ "
-        + str(transActor.frontRoom)
-        + ", "
-        + str(transActor.frontCam)
-        + ", "
-        + str(transActor.backRoom)
-        + ", "
-        + str(transActor.backCam)
-        + ", "
-        + str(transActor.actorID)
-        + ", "
-        + str(int(round(transActor.position[0])))
-        + ", "
-        + str(int(round(transActor.position[1])))
-        + ", "
-        + str(int(round(transActor.position[2])))
-        + ", "
-        + str(transActor.rotationY)
-        + ", "
-        + str(transActor.actorParam)
+        + ", ".join(
+            (
+                str(transActor.frontRoom),
+                str(transActor.frontCam),
+                str(transActor.backRoom),
+                str(transActor.backCam),
+                str(transActor.actorID),
+                str(int(round(transActor.position[0]))),
+                str(int(round(transActor.position[1]))),
+                str(int(round(transActor.position[2]))),
+                str(int(round(transActor.rotationY))),
+                str(transActor.actorParam),
+            )
+        )
         + " },\n"
     )
 
@@ -521,13 +525,8 @@ def ootTransitionActorListToC(scene, headerIndex):
 
 
 def ootRoomExternToC(room):
-    return (
-        "extern u8 _"
-        + room.roomName()
-        + "SegmentRomStart[];\n"
-        + "extern u8 _"
-        + room.roomName()
-        + "SegmentRomEnd[];\n"
+    return ("extern u8 _" + room.roomName() + "SegmentRomStart[];\n") + (
+        "extern u8 _" + room.roomName() + "SegmentRomEnd[];\n"
     )
 
 
@@ -591,21 +590,18 @@ def ootVectorToC(vector):
 def ootLightToC(light):
     return (
         "\t{ "
-        + ootVectorToC(light.ambient)
-        + ", "
-        + ootVectorToC(light.diffuseDir0)
-        + ", "
-        + ootVectorToC(light.diffuse0)
-        + ", "
-        + ootVectorToC(light.diffuseDir1)
-        + ", "
-        + ootVectorToC(light.diffuse1)
-        + ", "
-        + ootVectorToC(light.fogColor)
-        + ", "
-        + light.getBlendFogShort()
-        + ", "
-        + "0x{:04X}".format(light.fogFar)
+        + ", ".join(
+            (
+                ootVectorToC(light.ambient),
+                ootVectorToC(light.diffuseDir0),
+                ootVectorToC(light.diffuse0),
+                ootVectorToC(light.diffuseDir1),
+                ootVectorToC(light.diffuse1),
+                ootVectorToC(light.fogColor),
+                light.getBlendFogShort(),
+                "0x{:04X}".format(light.fogFar),
+            )
+        )
         + " },\n"
     )
 
