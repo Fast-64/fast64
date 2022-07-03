@@ -1,5 +1,48 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Table KeyType="System.UInt16" ValueType="System.String">
+
+<!--
+Documentation on this file's format:
+
+elements:
+- <Actor> -> defines an actor
+* Category -> the actor's category
+* ID -> the actor's ID (written when exporting to C)
+* Key -> the actor's identifier (shouldn't be changed ever, saved in the .blend)
+* Name -> Display name (seen in the UI)
+* ObjectKey -> the actor's tied objects (identified by the never-changing key)
+
+- <List> -> defines a hardcoded list (WIP, can't be used atm)
+* Name -> name of the list
+* Key -> the list identifier (shouldn't be changed)
+
+
+sub-elements of <Actor>:
+- <Type> -> adds an enum property of the actor's basic parameter (can't use multiple ones atm)
+* Index -> defines an order
+* Mask -> the mask to apply to the value (as in `value & mask`)
+# <Item> -> represents a single element of the enum (Params -> the parameter value, already shifted)
+
+for each sub element (of <Actor>) mentioned below:
+* Index -> defines an order (should not change, used for saving in the .blend)
+* Mask -> the mask to apply to the value (as in `value & mask`), the amount of shifting is determined from that
+* Name -> display name (in the UI)
+* TiedActorTypes -> optional, used to use this property for the current actor type (see en_rd for an example)
+* Target -> optional, defines which variable should be used to store this parameter (actor.home.rot.X-Y-Z, actor.params), if none then Params is used by default
+
+- <Bool> -> adds a bool property (checkbox)
+- <Enum> -> adds an enum property, different from <Type> (use this if you want multiple <Type> enums for now)
+* Value -> the not-shifted hex value (0x1, 0x2, etc)
+
+- <Property> -> adds a string property, expects an hex value
+- <Flag> -> adds a string property, specific to actor flags (switch flag, chest flag, etc)
+* Type -> the type of flag we're dealing with: switch, collectible or chest
+
+- <Message> -> used to draw the navi message id <List>
+- <ChestContent> -> used to draw the chest content item <List>
+- <Collectible> -> used to draw the collectible drop item <List>
+-->
+
   <Actor Category="ACTORCAT_PLAYER" ID="ACTOR_PLAYER" Key="player" Name="Link / Spawn point">
     <Type Index="1" Mask="0x0F00">
       <Item Params="0000"> Invisible, Can't Control //Used for cutscenes without Link</Item>
