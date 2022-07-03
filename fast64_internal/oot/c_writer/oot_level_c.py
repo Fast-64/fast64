@@ -494,7 +494,7 @@ def ootTransitionActorToC(transActor):
                 str(int(round(transActor.position[0]))),
                 str(int(round(transActor.position[1]))),
                 str(int(round(transActor.position[2]))),
-                str(int(round(transActor.rotationY))),
+                transActor.rotationY,
                 str(transActor.actorParam),
             )
         )
