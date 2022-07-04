@@ -39,11 +39,11 @@ class OOT_UpgradeActors(bpy.types.Operator):
 
 
 def drawUpgradeActorData(obj, layout):
-    if obj.fast64.oot.version > obj.fast64.oot.cur_version:
+    if obj.fast64.oot.version > OOT_ObjectProperties.cur_version:
         box = layout.column().box()
         box.label(text="This blend was made with newer Fast64.")
         box.label(text="Upgrade now.")
-    elif not (obj.fast64.oot.version == obj.fast64.oot.cur_version):
+    elif not (obj.fast64.oot.version == OOT_ObjectProperties.cur_version):
         layout.column().box().label(text="Legacy data has not been upgraded!")
         layout.column().operator(OOT_UpgradeActors.bl_idname, text="Upgrade Data Now!")
 
@@ -173,7 +173,7 @@ def onUpdateOOTEmptyType(self, context):
 
 
 class OOT_ObjectProperties(bpy.types.PropertyGroup):
-    cur_version = 1  # version after property migration
+    cur_version = 1  # version after property migration (also change the temporary OOT_ObjectProperties_cur_version)
     version: bpy.props.IntProperty(name="OOT_ObjectProperties Version", default=0)
 
     scene: bpy.props.PointerProperty(type=OOTSceneProperties)

@@ -3,6 +3,10 @@ import bpy, math, mathutils, os, re, ast
 from bpy.utils import register_class, unregister_class
 from .oot_constants import actorRoot, ootEnumActorID
 
+# TODO use OOT_ObjectProperties.cur_version instead when imports are cleaned up
+OOT_ObjectProperties_cur_version = 1
+
+
 # default indentation to use when writing to decomp files
 indent = " " * 4
 
@@ -1211,7 +1215,7 @@ def setKeyFromItemValue(enum, object, field, value):
 
 def isLatestVersion():
     """Returns ``True`` or ``False`` if the object is on the latest version or not"""
-    return bpy.context.object.fast64.oot.version == bpy.context.object.fast64.oot.cur_version
+    return bpy.context.object.fast64.oot.version == OOT_ObjectProperties_cur_version
 
 
 def isActorCustom(actor):
