@@ -3,6 +3,10 @@ import bpy, math, mathutils, os, re, ast
 from bpy.utils import register_class, unregister_class
 from .oot_constants import actorRoot, ootEnumActorID
 
+# TODO use OOT_ObjectProperties.cur_version instead when imports are cleaned up
+OOT_ObjectProperties_cur_version = 1
+
+
 # default indentation to use when writing to decomp files
 indent = " " * 4
 
@@ -936,7 +940,7 @@ def upgradeActorInit(obj):
             # convert the value to an integer
             try:
                 rotParam = evalActorParams(rotValue)
-            except SyntaxError:
+            except ValueError:
                 # if the value is not an hexadecimal number convert the actor to a custom one
                 convertLegacyActorToCustom(obj, legacyActor, actor, objType, getLegacyPropName(rotName))
 
@@ -962,7 +966,7 @@ def upgradeActorInit(obj):
             # convert the value to an integer
             try:
                 legacyParams = evalActorParams(legacyActor.actorParam)
-            except SyntaxError:
+            except ValueError:
                 # if the value is not an hexadecimal number convert the actor to a custom one
                 # legacyParams is none to check if we should start the upgrade process
                 legacyParams = None
@@ -1002,7 +1006,7 @@ def upgradeActorInit(obj):
             # convert the value to an integer
             try:
                 legacyParams = evalActorParams(legacyActor.actorParam)
-            except SyntaxError:
+            except ValueError:
                 # if the value is not an hexadecimal number convert the actor to a custom one
                 legacyParams = None
                 convertLegacyActorToCustom(obj, legacyActor, actor, objType, None)
@@ -1021,7 +1025,7 @@ def upgradeActorInit(obj):
             # convert the value to an integer
             try:
                 legacyParams = evalActorParams(legacyActor.actorParam)
-            except SyntaxError:
+            except ValueError:
                 # if the value is not an hexadecimal number convert the actor to a custom one
                 legacyParams = None
                 convertLegacyActorToCustom(obj, legacyActor, actor, objType, None)
@@ -1211,7 +1215,7 @@ def setKeyFromItemValue(enum, object, field, value):
 
 def isLatestVersion():
     """Returns ``True`` or ``False`` if the object is on the latest version or not"""
-    return bpy.context.object.fast64.oot.version == bpy.context.object.fast64.oot.cur_version
+    return bpy.context.object.fast64.oot.version == OOT_ObjectProperties_cur_version
 
 
 def isActorCustom(actor):
@@ -1263,20 +1267,17 @@ def getShiftFromMask(mask):
 
 
 def evalActorParams(params):
-    """Compute the parameters"""
+    """Evaluate the params string argument to an integer
+    Raises ValueError if something goes wrong
+    """
 
     # remove spaces
-    s = params.strip()
+    params = params.strip()
 
-    # check if we need to add '0x'
-    if not "&" in s:
-        match = re.finditer(r"[xXa-fA-F0-9]+", s)
-        for elem in match:
-            elem = elem.group(0)
-            if not "0x" in elem and not "|" in s:
-                s = "0x" + elem
-
-    node = ast.parse(s, mode="eval")
+    try:
+        node = ast.parse(params, mode="eval")
+    except Exception as e:
+        raise ValueError(f"Could not parse params {params} as an AST.") from e
 
     def _eval(node):
         if isinstance(node, ast.Expression):
@@ -1289,11 +1290,11 @@ def evalActorParams(params):
             elif isinstance(node.op, ast.Invert):
                 return ~_eval(node.operand)
             else:
-                raise Exception("Unsupported type {}".format(node.op))
+                raise ValueError(f"Unsupported unary operator {node.op}")
         elif isinstance(node, ast.BinOp):
             return binOps[type(node.op)](_eval(node.left), _eval(node.right))
         else:
-            raise Exception("Unsupported type {}".format(node))
+            raise ValueError(f"Unsupported AST node {node}")
 
     return _eval(node.body)
 

@@ -6,6 +6,9 @@ from .oot_utility import *
 from ..utility import *
 from .oot_operators import *
 
+# TODO use OOT_ObjectProperties.cur_version instead when imports are cleaned up
+OOT_ObjectProperties_cur_version = 1
+
 # General classes
 
 
@@ -658,7 +661,7 @@ class OOTActorPropertiesLegacy(bpy.types.PropertyGroup):
 def drawActorProperty(layout, actorProp, altRoomProp, objName, actor):
     actorIDBox = layout.column()
 
-    if actor.version == actor.cur_version:
+    if actor.version == OOT_ObjectProperties_cur_version:
         drawDetailedProperties("Actor Property", actorProp, actorIDBox, objName, actor.actor)
         drawActorHeaderProperty(actorIDBox, actorProp.headerSettings, "Actor", altRoomProp, objName)
 
@@ -696,7 +699,7 @@ class OOTTransitionActorProperty(bpy.types.PropertyGroup):
 def drawTransitionActorProperty(layout, transActorProp, altSceneProp, roomObj, objName, actor):
     actorIDBox = layout.column()
 
-    if actor.version == actor.cur_version:
+    if actor.version == OOT_ObjectProperties_cur_version:
         drawDetailedProperties("Transition Property", actor.actor, actorIDBox, objName, actor.actor)
         if roomObj is None:
             actorIDBox.label(text="This must be part of a Room empty's hierarchy.", icon="ERROR")
@@ -724,6 +727,6 @@ def drawEntranceProperty(layout, obj, altSceneProp, objName, actor):
     box = layout.column()
     entranceProp = obj.ootEntranceProperty
 
-    if actor.version == actor.cur_version:
+    if actor.version == OOT_ObjectProperties_cur_version:
         drawDetailedProperties("Entrance Property", entranceProp, box, objName, actor.actor)
         drawActorHeaderProperty(box, entranceProp.actor.headerSettings, "Entrance", altSceneProp, objName)

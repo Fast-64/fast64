@@ -7,6 +7,9 @@ from ..f3d.f3d_material import *
 from ..operators import *
 from ..panels import OOT_Panel
 
+# TODO use OOT_ObjectProperties.cur_version instead when imports are cleaned up
+OOT_ObjectProperties_cur_version = 1
+
 
 class OOT_AddWaterBox(AddWaterBox):
     bl_idname = "object.oot_add_water_box"
@@ -52,7 +55,7 @@ class OOT_AddDoor(bpy.types.Operator):
         emptyObj.ootEmptyType = "Transition Actor"
         emptyObj.name = "Door Actor"
         emptyObj.fast64.oot.actor.transActorKey = "en_door"
-        emptyObj.fast64.oot.version = emptyObj.fast64.oot.cur_version
+        emptyObj.fast64.oot.version = OOT_ObjectProperties_cur_version
 
         parentObject(cubeObj, emptyObj)
 
@@ -87,7 +90,7 @@ class OOT_AddScene(bpy.types.Operator):
         entranceObj.ootEmptyType = "Entrance"
         entranceObj.name = "Entrance"
         entranceObj.fast64.oot.actor.actorKey = "player"
-        entranceObj.fast64.oot.version = entranceObj.fast64.oot.cur_version
+        entranceObj.fast64.oot.version = OOT_ObjectProperties_cur_version
         setattr(entranceObj.fast64.oot.actor, "player.type", "0F00")
         setattr(entranceObj.fast64.oot.actor, "player.props1", "0xFF")
         parentObject(planeObj, entranceObj)
@@ -181,7 +184,7 @@ class OOT_AddActor(bpy.types.Operator):
         emptyObj.ootEmptyType = "Actor"
         emptyObj.name = "New Actor"
         emptyObj.fast64.oot.actor.actorKey = "player"
-        emptyObj.fast64.oot.version = emptyObj.fast64.oot.cur_version
+        emptyObj.fast64.oot.version = OOT_ObjectProperties_cur_version
 
         return {"FINISHED"}
 
