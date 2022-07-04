@@ -1631,6 +1631,10 @@ ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
     <Notes> +0x3F00 = Switch Flag</Notes>
   </Actor>
   <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_MA1" Key="en_ma1" Name="Young Malon" ObjectKey="obj_ma1">
+    <Enum Index="1" Mask="0x000F" Name="Unknown" Target="ZRot">
+      <Item Name="Outside Lon-Lon Ranch" Value="0x00"/>
+      <Item Name="Inside Lon-Lon Ranch" Value="0x03"/>
+    </Enum>
   </Actor>
   <Actor Category="ACTORCAT_BOSS" ID="ACTOR_BOSS_GANON" Key="boss_ganon" Name="Boss Ganondorf" ObjectID="OBJECT_GANON,OBJECT_GANON_ANIME1,OBJECT_GANON_ANIME2">
     <Type Index="1">
@@ -2351,21 +2355,19 @@ ROTZ 0x0001 = Behavior after colliding with Link
   <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_BOM_BOWL_PIT" Key="en_bom_bowl_pit" Name="Bombchu Bowling Pit">
   </Actor>
   <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_OWL" Key="en_owl" Name="Kaepora Gaebora" ObjectKey="obj_owl">
-    <Type Index="1" Mask="0x03C0">
-      <Item Params="0000"> Does nothing</Item>
-      <Item Params="0040"> Outside of Kokiri Forest exit, auto talks</Item>
-      <Item Params="0080"> Near Hyrule Castle, auto talks</Item>
-      <Item Params="00C0"> In front of Kakariko Village, auto talks</Item>
-      <Item Params="0100"> Between Lake Hylia and Gerudo Valley, auto talks</Item>
-      <Item Params="0140"> In front of Lake Hylia, auto talks</Item>
-      <Item Params="0180"> Nothing</Item>
-      <Item Params="01C0"> Lake Hylia, manual talk, talon grab shortcut</Item>
-      <Item Params="0200"> Death Mountain summit, manual talk, talon grab shortcut</Item>
-      <Item Params="0240"> Death Mountain summit, manual talk, talon grab shortcut</Item>
-      <Item Params="0280"> Desert Colossus, auto talks</Item>
-      <Item Params="02C0"> Lost Woods, before meeting Saria, auto talks</Item>
-      <Item Params="0300"> Lost Woods, after meeting Saria, auto talks</Item>
-      <Item Params="0340"> Outside of Kokiri Forest exit, auto talks, Head position alternates?</Item>
+    <Type Index="1" Mask="0x0FC0">
+      <Item Params="0000"> Default</Item>
+      <Item Params="0040"> Outside Kokiri Forest</Item>
+      <Item Params="0080"> Hyrule Castle</Item>
+      <Item Params="00C0"> Near Kakariko Village</Item>
+      <Item Params="0100"> Between Lake Hylia and Gerudo Valley</Item>
+      <Item Params="0140"> Near Lake Hylia</Item>
+      <Item Params="0180"> Zora's River</Item>
+      <Item Params="01C0"> Lake Hylia Shortcut</Item>
+      <Item Params="0200"> Death Mountain Trail Shortcut</Item>
+      <Item Params="0280"> Desert Colossus</Item>
+      <Item Params="02C0"> Lost Woods before Saria</Item>
+      <Item Params="0300"> Lost Woods after Saria</Item>
     </Type>
     <Flag Index="1" Mask="0x003F" Type="Switch"/>
     <Notes>+0x3F = Switch Flag</Notes>

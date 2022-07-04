@@ -484,11 +484,12 @@ def drawDetailedProperties(user, prop, layout, objName, actor):
         # Draw actor parameters box
         paramBox = layout.box()
         params = getattr(actor, paramField, "")
-        paramBox.label(text=f"Actor Parameter (0x{evalActorParams(params):X})")
         if params != "":
+            paramBox.label(text=f"Actor Parameter (0x{evalActorParams(params):X})")
             paramBox.prop(actor, paramField, text="")
+            hasParameters = True
         else:
-            paramBox.label(text="This Actor doesn't have parameters.")
+            hasParameters = False
 
         # Draw rotations overrides (when you use a rotation variable to store parameters)
         if user == userActor:
@@ -506,6 +507,7 @@ def drawDetailedProperties(user, prop, layout, objName, actor):
                         rotYBool = True
                     elif target == "ZRot":
                         rotZBool = True
+                    hasParameters = hasParameters or rotXBool or rotYBool or rotZBool
 
             # Draw the prop if the sub-element has one of the 3 rotations in the target
             if rotXBool:
@@ -529,6 +531,8 @@ def drawDetailedProperties(user, prop, layout, objName, actor):
                     "rotOverrideZ",
                     f'Rot Z (0x{evalActorParams(getattr(actor, "rotOverrideZ", "")):X})',
                 )
+        if not hasParameters:
+            paramBox.label(text="This Actor doesn't have parameters.")
     else:
         # If the current actor is custom
         # Draw basic props
