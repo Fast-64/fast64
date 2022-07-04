@@ -1,9 +1,14 @@
-import bpy, mathutils, math
+import bpy, mathutils, math, string
+
+from .oot_utility import *
 from bpy.utils import register_class, unregister_class
 from ..utility import *
 from ..f3d.f3d_material import *
 from ..operators import *
 from ..panels import OOT_Panel
+
+# TODO use OOT_ObjectProperties.cur_version instead when imports are cleaned up
+OOT_ObjectProperties_cur_version = 1
 
 
 class OOT_AddWaterBox(AddWaterBox):
@@ -49,8 +54,8 @@ class OOT_AddDoor(bpy.types.Operator):
         emptyObj = context.view_layer.objects.active
         emptyObj.ootEmptyType = "Transition Actor"
         emptyObj.name = "Door Actor"
-        emptyObj.ootTransitionActorProperty.actor.actorID = "ACTOR_DOOR_SHUTTER"
-        emptyObj.ootTransitionActorProperty.actor.actorParam = "0x0000"
+        emptyObj.fast64.oot.actor.transActorKey = "en_door"
+        emptyObj.fast64.oot.version = OOT_ObjectProperties_cur_version
 
         parentObject(cubeObj, emptyObj)
 
@@ -84,7 +89,10 @@ class OOT_AddScene(bpy.types.Operator):
         entranceObj = context.view_layer.objects.active
         entranceObj.ootEmptyType = "Entrance"
         entranceObj.name = "Entrance"
-        entranceObj.ootEntranceProperty.actor.actorParam = "0x0FFF"
+        entranceObj.fast64.oot.actor.actorKey = "player"
+        entranceObj.fast64.oot.version = OOT_ObjectProperties_cur_version
+        setattr(entranceObj.fast64.oot.actor, "player.type", "0F00")
+        setattr(entranceObj.fast64.oot.actor, "player.props1", "0xFF")
         parentObject(planeObj, entranceObj)
 
         location += mathutils.Vector([0, 0, 10])
@@ -160,6 +168,27 @@ class OOT_AddCutscene(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class OOT_AddActor(bpy.types.Operator):
+    bl_idname = "object.oot_add_actor"
+    bl_label = "Add Actor"
+    bl_options = {"REGISTER", "UNDO", "PRESET"}
+
+    def execute(self, context):
+        if context.mode != "OBJECT":
+            bpy.ops.object.mode_set(mode="OBJECT")
+        bpy.ops.object.select_all(action="DESELECT")
+
+        location = mathutils.Vector(bpy.context.scene.cursor.location)
+        bpy.ops.object.empty_add(type="CUBE", radius=1, align="WORLD", location=location[:])
+        emptyObj = context.view_layer.objects.active
+        emptyObj.ootEmptyType = "Actor"
+        emptyObj.name = "New Actor"
+        emptyObj.fast64.oot.actor.actorKey = "player"
+        emptyObj.fast64.oot.version = OOT_ObjectProperties_cur_version
+
+        return {"FINISHED"}
+
+
 class OOT_OperatorsPanel(OOT_Panel):
     bl_idname = "OOT_PT_operators"
     bl_label = "OOT Tools"
@@ -168,6 +197,7 @@ class OOT_OperatorsPanel(OOT_Panel):
         col = self.layout.column()
         col.operator(OOT_AddScene.bl_idname)
         col.operator(OOT_AddRoom.bl_idname)
+        col.operator(OOT_AddActor.bl_idname)
         col.operator(OOT_AddWaterBox.bl_idname)
         col.operator(OOT_AddDoor.bl_idname)
         col.operator(OOT_AddCutscene.bl_idname)
@@ -179,6 +209,7 @@ oot_operator_classes = (
     OOT_AddScene,
     OOT_AddRoom,
     OOT_AddCutscene,
+    OOT_AddActor,
 )
 
 oot_operator_panel_classes = (OOT_OperatorsPanel,)

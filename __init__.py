@@ -359,6 +359,7 @@ def upgrade_changed_props():
 	'''Set scene properties after a scene loads, used for migrating old properties'''
 	SM64_Properties.upgrade_changed_props()
 	SM64_ObjectProperties.upgrade_changed_props()
+	OOT_ObjectProperties.upgrade_changed_props()
 
 @bpy.app.handlers.persistent
 def after_load(_a, _b):
@@ -368,7 +369,6 @@ def after_load(_a, _b):
 # register operators and panels here
 # append menu layout drawing function to an existing window
 def register():
-
 	if bpy.app.version >= (3, 1, 0):
 		msg = "\n".join(
 			(
@@ -388,6 +388,7 @@ def register():
 	register_class(ExampleAddonPreferences)
 	addon_updater_ops.register(bl_info)
 
+	editOOTActorProperties()
 	mat_register()
 	render_engine_register()
 	bsdf_conv_register()

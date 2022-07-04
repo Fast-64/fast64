@@ -4,7 +4,7 @@ from .f3d_gbi import *
 from .f3d_material import createF3DMat, update_preset_manual, update_node_values_directly, all_combiner_uses, ootEnumDrawLayers
 from .f3d_writer import BufferVertex
 from ..utility import *
-import ast, operator
+import ast
 
 colorCombinationCommands = [
 	0x03, #load lighting data
@@ -347,20 +347,6 @@ def createNewTextureMaterial(romfile, textureStart, textureSize, texelCount, col
 			oldPixel = textureData[n : n + texelSize]
 			newImg.pixels[n : n+4] = read16bitRGBA(
 				int.from_bytes(oldPixel, 'big'))
-
-binOps = {
-	ast.Add: operator.add,
-	ast.Sub: operator.sub,
-	ast.Mult: operator.mul,
-	ast.Div: operator.truediv,
-	ast.Mod: operator.mod,
-	ast.LShift: operator.lshift,
-	ast.RShift: operator.rshift,
-	ast.RShift: operator.rshift,
-	ast.BitOr: operator.or_,
-	ast.BitAnd: operator.and_,
-	ast.BitXor: operator.xor,
-}
 
 def math_eval (s, f3d):
 	if isinstance(s, int):

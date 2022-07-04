@@ -28,6 +28,26 @@ def headerSettingsToIndices(headerSettings):
     return headers
 
 
+class OOT_UpgradeActors(bpy.types.Operator):
+    bl_idname = "object.oot_upgrade_actors"
+    bl_label = "Upgrade Fast64 OoT actors data"
+    bl_options = {"REGISTER", "UNDO", "PRESET"}
+
+    def execute(self, context):
+        OOT_ObjectProperties.upgrade_changed_props()
+        return {"FINISHED"}
+
+
+def drawUpgradeActorData(obj, layout):
+    if obj.fast64.oot.version > OOT_ObjectProperties.cur_version:
+        box = layout.column().box()
+        box.label(text="This blend was made with newer Fast64.")
+        box.label(text="Upgrade now.")
+    elif not (obj.fast64.oot.version == OOT_ObjectProperties.cur_version):
+        layout.column().box().label(text="Legacy data has not been upgraded!")
+        layout.column().operator(OOT_UpgradeActors.bl_idname, text="Upgrade Data Now!")
+
+
 class OOTObjectPanel(bpy.types.Panel):
     bl_label = "Object Inspector"
     bl_idname = "OBJECT_PT_OOT_Object_Inspector"
@@ -55,10 +75,14 @@ class OOTObjectPanel(bpy.types.Panel):
         altRoomProp = roomObj.ootAlternateRoomHeaders if roomObj is not None else None
 
         if obj.ootEmptyType == "Actor":
-            drawActorProperty(box, obj.ootActorProperty, altRoomProp, objName)
+            drawActorProperty(box, obj.ootActorProperty, altRoomProp, objName, obj.fast64.oot)
+            drawUpgradeActorData(obj, box)
 
         elif obj.ootEmptyType == "Transition Actor":
-            drawTransitionActorProperty(box, obj.ootTransitionActorProperty, altSceneProp, roomObj, objName)
+            drawTransitionActorProperty(
+                box, obj.ootTransitionActorProperty, altSceneProp, roomObj, objName, obj.fast64.oot
+            )
+            drawUpgradeActorData(obj, box)
 
         elif obj.ootEmptyType == "Water Box":
             drawWaterBoxProperty(box, obj.ootWaterBoxProperty)
@@ -75,7 +99,8 @@ class OOTObjectPanel(bpy.types.Panel):
                 drawAlternateRoomHeaderProperty(box, obj.ootAlternateRoomHeaders, objName)
 
         elif obj.ootEmptyType == "Entrance":
-            drawEntranceProperty(box, obj, altSceneProp, objName)
+            drawEntranceProperty(box, obj, altSceneProp, objName, obj.fast64.oot)
+            drawUpgradeActorData(obj, box)
 
         elif obj.ootEmptyType == "Cull Group":
             drawCullGroupProperty(box, obj)
@@ -148,19 +173,33 @@ def onUpdateOOTEmptyType(self, context):
 
 
 class OOT_ObjectProperties(bpy.types.PropertyGroup):
+    cur_version = 1  # version after property migration (also change the temporary OOT_ObjectProperties_cur_version)
     version: bpy.props.IntProperty(name="OOT_ObjectProperties Version", default=0)
-    cur_version = 0  # version after property migration
 
     scene: bpy.props.PointerProperty(type=OOTSceneProperties)
+    actor: bpy.props.PointerProperty(type=OOTActorProperties)
+
+    @staticmethod
+    def upgrade_changed_props():
+        for obj in bpy.data.objects:
+            if obj.fast64.oot.version < OOT_ObjectProperties.cur_version:
+                OOTActorProperties.upgrade_object(obj)
+                # bump the version
+                obj.fast64.oot.version = OOT_ObjectProperties.cur_version
 
 
 oot_obj_classes = (
+    OOTActorProperties,
     OOTSceneProperties,
     OOT_ObjectProperties,
     OOT_SearchActorIDEnumOperator,
+    OOT_SearchTransActorIDEnumOperator,
     OOT_SearchMusicSeqEnumOperator,
     OOT_SearchObjectEnumOperator,
     OOT_SearchSceneEnumOperator,
+    OOT_SearchChestContentEnumOperator,
+    OOT_SearchNaviMsgIDEnumOperator,
+    OOT_UpgradeActors,
     OOTLightProperty,
     OOTLightGroupProperty,
     OOTObjectProperty,
@@ -180,7 +219,7 @@ oot_obj_classes = (
     OOTExtraCutsceneProperty,
     OOTActorHeaderItemProperty,
     OOTActorHeaderProperty,
-    OOTActorProperty,
+    OOTActorPropertiesLegacy,
     OOTTransitionActorProperty,
     OOTEntranceProperty,
     OOTSceneHeaderProperty,
@@ -210,7 +249,7 @@ def oot_obj_register():
         name="OOT Object Type", items=ootEnumEmptyType, default="None", update=onUpdateOOTEmptyType
     )
 
-    bpy.types.Object.ootActorProperty = bpy.props.PointerProperty(type=OOTActorProperty)
+    bpy.types.Object.ootActorProperty = bpy.props.PointerProperty(type=OOTActorPropertiesLegacy)
     bpy.types.Object.ootTransitionActorProperty = bpy.props.PointerProperty(type=OOTTransitionActorProperty)
     bpy.types.Object.ootWaterBoxProperty = bpy.props.PointerProperty(type=OOTWaterBoxProperty)
     bpy.types.Object.ootRoomHeader = bpy.props.PointerProperty(type=OOTRoomHeaderProperty)

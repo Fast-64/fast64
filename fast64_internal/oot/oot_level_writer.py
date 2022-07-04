@@ -519,36 +519,76 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
     translation, rotation, scale, orientedRotation = getConvertedTransform(transformMatrix, sceneObj, obj, True)
 
     if obj.data is None:
+        actor = obj.fast64.oot.actor
+        actorKey = actor.actorKey
         if obj.ootEmptyType == "Actor":
             actorProp = obj.ootActorProperty
+
+            # Figure out which rotation to export, Blender's or the override
+            if actorKey == "Custom":
+                actorID = getCustomActorExportValue(actor, "actorIDCustom")
+                actorParams = getCustomActorExportValue(actor, "actorParam")
+                rotX = getCustomActorExportValue(actor, "rotOverrideX")
+                rotY = getCustomActorExportValue(actor, "rotOverrideY")
+                rotZ = getCustomActorExportValue(actor, "rotOverrideZ")
+                if actor.rotOverride is False:
+                    rotX = f"{rotation[0]}"
+                    rotY = f"{rotation[1]}"
+                    rotZ = f"{rotation[2]}"
+            else:
+                actorID = getIDFromKey(actorKey, actorRoot, ootEnumActorID)
+                actorParams = getActorExportValue(actor, "actorParam", obj.ootEmptyType)
+                rotX = getActorExportValue(actor, "XRot", obj.ootEmptyType)
+                rotY = getActorExportValue(actor, "YRot", obj.ootEmptyType)
+                rotZ = getActorExportValue(actor, "ZRot", obj.ootEmptyType)
+
+            if actorID is None or actorParams is None:
+                raise PluginError("ERROR: ID or Parameters is 'None'!")
+            if rotX is None:
+                rotX = f"{rotation[0]}"
+            if rotY is None:
+                rotY = f"{rotation[1]}"
+            if rotZ is None:
+                rotZ = f"{rotation[2]}"
+
             addActor(
                 room,
-                OOTActor(
-                    getCustomProperty(actorProp, "actorID"),
-                    translation,
-                    rotation,
-                    actorProp.actorParam,
-                    None
-                    if not actorProp.rotOverride
-                    else (actorProp.rotOverrideX, actorProp.rotOverrideY, actorProp.rotOverrideZ),
-                ),
+                OOTActor(actorID, translation, rotation, actorParams, (rotX, rotY, rotZ)),
                 actorProp,
                 "actorList",
                 obj.name,
             )
         elif obj.ootEmptyType == "Transition Actor":
+            if rotation[0] != 0 or rotation[2] != 0:
+                raise PluginError("Transition Actors can't have X and Y Rotations!")
+
             transActorProp = obj.ootTransitionActorProperty
+            actorKey = actor.transActorKey
+            if actorKey == "Custom":
+                actorID = getCustomActorExportValue(actor, "transActorIDCustom")
+                actorParams = getCustomActorExportValue(actor, "transActorParam")
+                rotY = getCustomActorExportValue(actor, "rotOverrideY")
+            else:
+                actorID = getIDFromKey(actorKey, actorRoot, ootEnumActorID)
+                actorParams = getActorExportValue(actor, "transActorParam", obj.ootEmptyType)
+                rotY = getActorExportValue(actor, "YRot", obj.ootEmptyType)
+
+            if actorID is None or actorParams is None:
+                raise PluginError("ERROR: ID or Parameters is 'None'!")
+            if rotY is None:
+                rotY = f"{int(round(rotation[1]))}"
+
             addActor(
                 scene,
                 OOTTransitionActor(
-                    getCustomProperty(transActorProp.actor, "actorID"),
+                    actorID,
                     room.roomIndex,
                     transActorProp.roomIndex,
                     getCustomProperty(transActorProp, "cameraTransitionFront"),
                     getCustomProperty(transActorProp, "cameraTransitionBack"),
                     translation,
-                    rotation[1],  # TODO: Correct axis?
-                    transActorProp.actor.actorParam,
+                    rotY,
+                    actorParams,
                 ),
                 transActorProp.actor,
                 "transitionActorList",
@@ -557,15 +597,21 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
         elif obj.ootEmptyType == "Entrance":
             entranceProp = obj.ootEntranceProperty
             spawnIndex = obj.ootEntranceProperty.spawnIndex
+
+            if entranceProp.customActor:
+                actorParams = getCustomActorExportValue(actor, "actorParam")
+            else:
+                actorParams = getActorExportValue(actor, "actorParam", obj.ootEmptyType)
+
             addActor(scene, OOTEntrance(room.roomIndex, spawnIndex), entranceProp.actor, "entranceList", obj.name)
             addStartPosition(
                 scene,
                 spawnIndex,
                 OOTActor(
-                    "ACTOR_PLAYER" if not entranceProp.customActor else entranceProp.actor.actorIDCustom,
+                    "ACTOR_PLAYER" if not entranceProp.customActor else actor.actorIDCustom,
                     translation,
                     rotation,
-                    entranceProp.actor.actorParam,
+                    actorParams,
                     None,
                 ),
                 entranceProp.actor,

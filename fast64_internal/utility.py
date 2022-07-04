@@ -1,4 +1,4 @@
-import bpy, random, string, os, math, traceback, re, os, mathutils
+import bpy, random, string, os, math, traceback, re, os, mathutils, ast, operator
 from math import pi, ceil, degrees, radians
 from mathutils import *
 from .utility_anim import *
@@ -42,6 +42,19 @@ enumCompressionFormat = [
 	('mio0', 'MIO0', 'MIO0'),
 	('yay0', 'YAY0', 'YAY0'),
 ]
+
+binOps = {
+	ast.Add: operator.add,
+	ast.Sub: operator.sub,
+	ast.Mult: operator.mul,
+	ast.Div: operator.truediv,
+	ast.Mod: operator.mod,
+	ast.LShift: operator.lshift,
+	ast.RShift: operator.rshift,
+	ast.BitOr: operator.or_,
+	ast.BitAnd: operator.and_,
+	ast.BitXor: operator.xor,
+}
 
 
 def isPowerOf2(n):
