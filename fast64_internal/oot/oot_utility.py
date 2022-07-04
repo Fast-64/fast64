@@ -923,6 +923,8 @@ def upgradeActorInit(obj):
     to the new system
     """
 
+    print("Upgrading actor props of object", obj.name, obj.ootEmptyType)
+
     def _processRotation(rotName, legacyActor, actor):
         """Process the rotation values if needed"""
 
@@ -1032,10 +1034,6 @@ def upgradeActorInit(obj):
                 # update the parameters since every props are set
                 actor.actorParam = getActorParameter(actor, actor.actorKey, "Params", objType)
 
-    # a non-scene/room empty type can have child objects
-    for childObj in obj.children:
-        upgradeActorInit(childObj)
-
 
 def upgradeActorProcess(user, obj, actorID, actor, params, paramField, paramTarget):
     # for non-custom
@@ -1108,9 +1106,6 @@ def upgradeActorProcess(user, obj, actorID, actor, params, paramField, paramTarg
                 obj.ootTransitionActorProperty.actor, paramField
             )
 
-    # finally, update the version
-    obj.fast64.oot.version = obj.fast64.oot.cur_version
-
 
 def convertLegacyActorToCustom(obj, legacyActor, actor, user, rotField):
     """Converts the legacy data to a custom actor"""
@@ -1149,9 +1144,6 @@ def convertLegacyActorToCustom(obj, legacyActor, actor, user, rotField):
         # then move the ID and the parameters
         actor.transActorIDCustom = legacyActor.actorIDCustom
         actor.transActorParamCustom = legacyActor.actorParam
-
-    # finally, update the version
-    obj.fast64.oot.version = obj.fast64.oot.cur_version
 
 
 def getCustomPropName(propName):

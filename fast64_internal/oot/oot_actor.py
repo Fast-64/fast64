@@ -109,21 +109,14 @@ class OOTActorProperties(bpy.types.PropertyGroup):
     itemChest: bpy.props.StringProperty(name="Chest Content", default="item_heart")
     naviMsgID: bpy.props.StringProperty(name="Navi Message ID", default="msg_00")
 
-    # called if the current actor hasn't been upgraded yet
+    # called if the object props version is outdated
     @staticmethod
     def upgrade_object(obj):
-        # look for empty objects
-        if obj.data is None:
-            # if the object is a scene or a room process every child objects it has
-            if (obj.ootEmptyType == "Scene") or (obj.ootEmptyType == "Room"):
-                print(f"Processing '{obj.name}'...")
-                for child in obj.children:
-                    OOTActorProperties.upgrade_object(child)
-            # else check the version and check if that's the right object type
-            elif (obj.fast64.oot.version < obj.fast64.oot.cur_version) and (
-                obj.ootEmptyType == "Actor" or obj.ootEmptyType == "Transition Actor" or obj.ootEmptyType == "Entrance"
-            ):
-                # then upgrade the actor to the newer version
+        # if obj is a fast64 oot empty object
+        if obj.type == "EMPTY" and obj.ootEmptyType != "None":
+            # if obj is an "actor-like" empty
+            if obj.ootEmptyType in {"Actor", "Transition Actor", "Entrance"}:
+                # upgrade the empty to the newest version
                 upgradeActorInit(obj)
 
 

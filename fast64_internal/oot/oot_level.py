@@ -181,8 +181,11 @@ class OOT_ObjectProperties(bpy.types.PropertyGroup):
 
     @staticmethod
     def upgrade_changed_props():
-        for obj in bpy.context.scene.objects:
-            OOTActorProperties.upgrade_object(obj)
+        for obj in bpy.data.objects:
+            if obj.fast64.oot.version < OOT_ObjectProperties.cur_version:
+                OOTActorProperties.upgrade_object(obj)
+                # bump the version
+                obj.fast64.oot.version = OOT_ObjectProperties.cur_version
 
 
 oot_obj_classes = (
