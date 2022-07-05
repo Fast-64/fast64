@@ -154,11 +154,12 @@ class OOTF3DContext(F3DContext):
 			return name
 		else:
 			segment = pointer >> 24
-			print("POINTER")
 			if segment >= 0x08 and segment <= 0x0D:
-				print("SETTING " + str(segment))
+				print("Calls DL in segment " + hex(segment))
 				setattr(self.materialContext.ootMaterial.opaque, "segment" + format(segment, "1X"), True)
 				setattr(self.materialContext.ootMaterial.transparent, "segment" + format(segment, "1X"), True)
+			else:
+				print("Calls DL " + name)
 			return None
 		return name
 
