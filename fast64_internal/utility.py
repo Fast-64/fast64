@@ -740,11 +740,6 @@ def copy_object_and_apply(obj: bpy.types.Object, apply_scale=False, apply_modifi
             obj["original_mtx"] = translation_rotation_from_mtx(mathutils.Matrix(obj["original_mtx"]))
 
     obj_copy = obj.copy()
-    obj_copy.parent = None
-    # reset transformations
-    obj_copy.location = mathutils.Vector([0.0, 0.0, 0.0])
-    obj_copy.scale = mathutils.Vector([1.0, 1.0, 1.0])
-    obj_copy.rotation_quaternion = mathutils.Quaternion([1, 0, 0, 0])
     obj_copy.data = obj_copy.data.copy()
 
     if apply_modifiers:
@@ -757,6 +752,12 @@ def copy_object_and_apply(obj: bpy.types.Object, apply_scale=False, apply_modifi
             attemptModifierApply(modifier)
 
         bpy.context.view_layer.objects.active = prev_active
+
+    obj_copy.parent = None
+    # reset transformations
+    obj_copy.location = mathutils.Vector([0.0, 0.0, 0.0])
+    obj_copy.scale = mathutils.Vector([1.0, 1.0, 1.0])
+    obj_copy.rotation_quaternion = mathutils.Quaternion([1, 0, 0, 0])
 
     mtx = transform_mtx_blender_to_n64()
     if apply_scale:
