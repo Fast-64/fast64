@@ -921,7 +921,7 @@ class SM64_MaterialPanel(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.material is not None and context.scene.gameEditorMode == "SM64"
+        return context.material is not None and context.material.is_f3d and context.scene.gameEditorMode == "SM64"
 
     def draw(self, context):
         layout = self.layout
