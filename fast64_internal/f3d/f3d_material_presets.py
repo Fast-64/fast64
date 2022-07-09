@@ -1,4 +1,4 @@
-oot_shaded_environment_mapped = '''
+oot_shaded_environment_mapped = """
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
@@ -115,9 +115,9 @@ f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
-oot_shaded_environment_mapped_transparent = '''
+oot_shaded_environment_mapped_transparent = """
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
@@ -234,9 +234,9 @@ f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
-oot_shaded_multitexture_lerp = '''
+oot_shaded_multitexture_lerp = """
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
@@ -353,9 +353,9 @@ f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
-oot_shaded_multitexture_lerp_transparent = '''
+oot_shaded_multitexture_lerp_transparent = """
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
@@ -472,9 +472,9 @@ f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
-oot_shaded_solid = '''
+oot_shaded_solid = """
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
@@ -591,9 +591,9 @@ f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
-oot_shaded_solid_transparent = '''
+oot_shaded_solid_transparent = """
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
@@ -710,9 +710,9 @@ f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
-oot_shaded_texture = '''
+oot_shaded_texture = """
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
@@ -829,9 +829,9 @@ f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
-oot_shaded_texture_cutout = '''
+oot_shaded_texture_cutout = """
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
@@ -948,9 +948,9 @@ f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
-oot_shaded_texture_transparent = '''
+oot_shaded_texture_transparent = """
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
@@ -1067,9 +1067,9 @@ f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
-oot_unlit_texture = '''
+oot_unlit_texture = """
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
@@ -1186,9 +1186,9 @@ f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
-oot_unlit_texture_cutout = '''
+oot_unlit_texture_cutout = """
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
@@ -1305,9 +1305,9 @@ f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
-oot_unlit_texture_transparent = '''
+oot_unlit_texture_transparent = """
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
@@ -1424,9 +1424,9 @@ f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
-oot_vertex_colored_texture = '''
+oot_vertex_colored_texture = """
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
@@ -1543,9 +1543,9 @@ f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
-oot_vertex_colored_texture_cutout = '''
+oot_vertex_colored_texture_cutout = """
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
@@ -1662,9 +1662,9 @@ f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
-oot_vertex_colored_texture_transparent = '''
+oot_vertex_colored_texture_transparent = """
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
@@ -1781,9 +1781,9 @@ f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
-sm64_decal = '''
+sm64_decal = """
 
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
@@ -1899,9 +1899,9 @@ f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
-sm64_environment_map = '''
+sm64_environment_map = """
 
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
@@ -2017,9 +2017,9 @@ f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
-sm64_fog_shaded_texture = '''
+sm64_fog_shaded_texture = """
 
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
@@ -2135,9 +2135,9 @@ f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
-sm64_fog_shaded_texture_cutout = '''
+sm64_fog_shaded_texture_cutout = """
 
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
@@ -2253,9 +2253,9 @@ f3d_mat.draw_layer.sm64 = '4'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
-sm64_fog_shaded_texture_transparent = '''
+sm64_fog_shaded_texture_transparent = """
 
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
@@ -2371,9 +2371,9 @@ f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
-sm64_shaded_noise = '''
+sm64_shaded_noise = """
 
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
@@ -2489,9 +2489,9 @@ f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
-sm64_shaded_solid = '''
+sm64_shaded_solid = """
 
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
@@ -2607,9 +2607,9 @@ f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
-sm64_shaded_texture = '''
+sm64_shaded_texture = """
 
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
@@ -2725,9 +2725,9 @@ f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
-sm64_shaded_texture_cutout = '''
+sm64_shaded_texture_cutout = """
 
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
@@ -2843,9 +2843,9 @@ f3d_mat.draw_layer.sm64 = '4'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
-sm64_shaded_texture_transparent = '''
+sm64_shaded_texture_transparent = """
 
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
@@ -2961,9 +2961,9 @@ f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
-sm64_unlit_texture = '''
+sm64_unlit_texture = """
 
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
@@ -3079,9 +3079,9 @@ f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
-sm64_unlit_texture_cutout = '''
+sm64_unlit_texture_cutout = """
 
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
@@ -3197,9 +3197,9 @@ f3d_mat.draw_layer.sm64 = '4'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
-sm64_vertex_colored_texture = '''
+sm64_vertex_colored_texture = """
 
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
@@ -3315,9 +3315,9 @@ f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
-sm64_vertex_colored_texture_transparent = '''
+sm64_vertex_colored_texture_transparent = """
 
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
@@ -3433,9 +3433,9 @@ f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
-oot_shaded_multitexture_lerp_transparent_vertex_alpha = '''
+oot_shaded_multitexture_lerp_transparent_vertex_alpha = """
 
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
@@ -3553,9 +3553,9 @@ f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
-oot_shaded_texture_transparent_vertex_alpha = '''
+oot_shaded_texture_transparent_vertex_alpha = """
 
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
@@ -3673,7 +3673,7 @@ f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
 oot_cel_shaded_texture = '''
 
@@ -3921,41 +3921,41 @@ f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
 '''
 
 material_presets = {
-	"oot" : {
-		"oot_shaded_environment_mapped" : oot_shaded_environment_mapped,
-		"oot_shaded_environment_mapped_transparent" : oot_shaded_environment_mapped_transparent,
-		"oot_shaded_multitexture_lerp" : oot_shaded_multitexture_lerp,
-		"oot_shaded_multitexture_lerp_transparent" : oot_shaded_multitexture_lerp_transparent,
-		"oot_shaded_multitexture_lerp_transparent_vertex_alpha" : oot_shaded_multitexture_lerp_transparent_vertex_alpha,
-		"oot_shaded_solid" : oot_shaded_solid,
-		"oot_shaded_solid_transparent" : oot_shaded_solid_transparent,
-		"oot_shaded_texture" : oot_shaded_texture,
-		"oot_shaded_texture_cutout" : oot_shaded_texture_cutout,
-		"oot_shaded_texture_transparent" : oot_shaded_texture_transparent,
-		"oot_shaded_texture_transparent_vertex_alpha" : oot_shaded_texture_transparent_vertex_alpha,
-		"oot_unlit_texture" : oot_unlit_texture,
-		"oot_unlit_texture_cutout" : oot_unlit_texture_cutout,
-		"oot_unlit_texture_transparent" : oot_unlit_texture_transparent,
-		"oot_vertex_colored_texture" : oot_vertex_colored_texture,
-		"oot_vertex_colored_texture_cutout" : oot_vertex_colored_texture_cutout,
-		"oot_vertex_colored_texture_transparent" : oot_vertex_colored_texture_transparent,
+    "oot": {
+        "oot_shaded_environment_mapped": oot_shaded_environment_mapped,
+        "oot_shaded_environment_mapped_transparent": oot_shaded_environment_mapped_transparent,
+        "oot_shaded_multitexture_lerp": oot_shaded_multitexture_lerp,
+        "oot_shaded_multitexture_lerp_transparent": oot_shaded_multitexture_lerp_transparent,
+        "oot_shaded_multitexture_lerp_transparent_vertex_alpha": oot_shaded_multitexture_lerp_transparent_vertex_alpha,
+        "oot_shaded_solid": oot_shaded_solid,
+        "oot_shaded_solid_transparent": oot_shaded_solid_transparent,
+        "oot_shaded_texture": oot_shaded_texture,
+        "oot_shaded_texture_cutout": oot_shaded_texture_cutout,
+        "oot_shaded_texture_transparent": oot_shaded_texture_transparent,
+        "oot_shaded_texture_transparent_vertex_alpha": oot_shaded_texture_transparent_vertex_alpha,
+        "oot_unlit_texture": oot_unlit_texture,
+        "oot_unlit_texture_cutout": oot_unlit_texture_cutout,
+        "oot_unlit_texture_transparent": oot_unlit_texture_transparent,
+        "oot_vertex_colored_texture": oot_vertex_colored_texture,
+        "oot_vertex_colored_texture_cutout": oot_vertex_colored_texture_cutout,
+        "oot_vertex_colored_texture_transparent": oot_vertex_colored_texture_transparent,
 		"oot_cel_shaded_texture" : oot_cel_shaded_texture,
 		"oot_cel_shaded_solid" : oot_cel_shaded_solid
-	},
-	"sm64" : {
-		"sm64_decal" : sm64_decal,
-		"sm64_environment_map" : sm64_environment_map,
-		"sm64_fog_shaded_texture" : sm64_fog_shaded_texture,
-		"sm64_fog_shaded_texture_cutout" : sm64_fog_shaded_texture_cutout,
-		"sm64_fog_shaded_texture_transparent" : sm64_fog_shaded_texture_transparent,
-		"sm64_shaded_noise" : sm64_shaded_noise,
-		"sm64_shaded_solid" : sm64_shaded_solid,
-		"sm64_shaded_texture" : sm64_shaded_texture,
-		"sm64_shaded_texture_cutout" : sm64_shaded_texture_cutout,
-		"sm64_shaded_texture_transparent" : sm64_shaded_texture_transparent,
-		"sm64_unlit_texture" : sm64_unlit_texture,
-		"sm64_unlit_texture_cutout" : sm64_unlit_texture_cutout,
-		"sm64_vertex_colored_texture" : sm64_vertex_colored_texture,
-		"sm64_vertex_colored_texture_transparent" : sm64_vertex_colored_texture_transparent,
-	},
+    },
+    "sm64": {
+        "sm64_decal": sm64_decal,
+        "sm64_environment_map": sm64_environment_map,
+        "sm64_fog_shaded_texture": sm64_fog_shaded_texture,
+        "sm64_fog_shaded_texture_cutout": sm64_fog_shaded_texture_cutout,
+        "sm64_fog_shaded_texture_transparent": sm64_fog_shaded_texture_transparent,
+        "sm64_shaded_noise": sm64_shaded_noise,
+        "sm64_shaded_solid": sm64_shaded_solid,
+        "sm64_shaded_texture": sm64_shaded_texture,
+        "sm64_shaded_texture_cutout": sm64_shaded_texture_cutout,
+        "sm64_shaded_texture_transparent": sm64_shaded_texture_transparent,
+        "sm64_unlit_texture": sm64_unlit_texture,
+        "sm64_unlit_texture_cutout": sm64_unlit_texture_cutout,
+        "sm64_vertex_colored_texture": sm64_vertex_colored_texture,
+        "sm64_vertex_colored_texture_transparent": sm64_vertex_colored_texture_transparent,
+    },
 }
