@@ -3784,7 +3784,7 @@ f3d_mat.draw_layer.oot = 'Opaque'
 f3d_mat.do_cel_shading = True
 f3d_mat.cel_shading.solid = False
 while len(f3d_mat.cel_shading.levels) < 2:
-	f3d_mat.cel_shading.levels.add()
+    f3d_mat.cel_shading.levels.add()
 f3d_mat.cel_shading.levels[0].inverse = True
 f3d_mat.cel_shading.levels[0].lighten = False
 f3d_mat.cel_shading.levels[0].fade = 200
@@ -3907,7 +3907,7 @@ f3d_mat.draw_layer.oot = 'Opaque'
 f3d_mat.do_cel_shading = True
 f3d_mat.cel_shading.solid = True
 while len(f3d_mat.cel_shading.levels) < 2:
-	f3d_mat.cel_shading.levels.add()
+    f3d_mat.cel_shading.levels.add()
 f3d_mat.cel_shading.levels[0].inverse = True
 f3d_mat.cel_shading.levels[0].lighten = False
 f3d_mat.cel_shading.levels[0].fade = 200
@@ -3939,8 +3939,8 @@ material_presets = {
         "oot_vertex_colored_texture": oot_vertex_colored_texture,
         "oot_vertex_colored_texture_cutout": oot_vertex_colored_texture_cutout,
         "oot_vertex_colored_texture_transparent": oot_vertex_colored_texture_transparent,
-		"oot_cel_shaded_texture" : oot_cel_shaded_texture,
-		"oot_cel_shaded_solid" : oot_cel_shaded_solid
+        "oot_cel_shaded_texture" : oot_cel_shaded_texture,
+        "oot_cel_shaded_solid" : oot_cel_shaded_solid
     },
     "sm64": {
         "sm64_decal": sm64_decal,

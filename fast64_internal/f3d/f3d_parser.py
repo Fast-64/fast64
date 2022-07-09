@@ -97,7 +97,7 @@ def cmdToPositiveInt(cmd):
 	return cmd if cmd >= 0 else 256 + cmd
 
 def parseF3DBinary(romfile, startAddress, scene,
-	bMesh, obj, transformMatrix, groupName,  segmentData, vertexBuffer):
+	bMesh, obj, transformMatrix, groupName,	 segmentData, vertexBuffer):
 	f3d = F3D('F3D', False)
 	currentAddress = startAddress
 	romfile.seek(currentAddress)

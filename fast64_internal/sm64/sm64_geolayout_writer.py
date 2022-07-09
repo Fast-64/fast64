@@ -39,14 +39,14 @@ def replaceStarReferences(basePath):
 		'GEO\_TRANSLATE\_ROTATE\_WITH\_DL\([^\)]*? star\_seg3.*?GEO\_CLOSE\_NODE\(\)\,'
 
 	unagiReplacement = 'GEO_TRANSLATE_ROTATE(LAYER_OPAQUE, 500, 0, 0, 0, 0, 0),\n' +\
-        '\t' * 10 + 'GEO_OPEN_NODE(),\n' +\
-        '\t' * 10 + '\tGEO_BRANCH_AND_LINK(star_geo),\n' +\
-        '\t' * 10 + 'GEO_CLOSE_NODE(),'
+		'\t' * 10 + 'GEO_OPEN_NODE(),\n' +\
+		'\t' * 10 + '\tGEO_BRANCH_AND_LINK(star_geo),\n' +\
+		'\t' * 10 + 'GEO_CLOSE_NODE(),'
 
 	kleptoReplacement = 'GEO_TRANSLATE_ROTATE(LAYER_OPAQUE, 75, 75, 0, 180, 270, 0),\n' +\
-        '\t' * 10 + 'GEO_OPEN_NODE(),\n' +\
-        '\t' * 10 + '\tGEO_BRANCH_AND_LINK(star_geo),\n' +\
-        '\t' * 10 + 'GEO_CLOSE_NODE(),'
+		'\t' * 10 + 'GEO_OPEN_NODE(),\n' +\
+		'\t' * 10 + '\tGEO_BRANCH_AND_LINK(star_geo),\n' +\
+		'\t' * 10 + 'GEO_CLOSE_NODE(),'
 
 	unagiPath = os.path.join(basePath, 'actors/unagi/geo.inc.c')
 	replaceDLReferenceInGeo(unagiPath, unagiPattern, unagiReplacement)
@@ -61,9 +61,9 @@ def replaceTransparentStarReferences(basePath):
 		'GEO\_TRANSLATE\_ROTATE\_WITH\_DL\([^\)]*? transparent_star\_seg3.*?GEO\_CLOSE\_NODE\(\)\,'
 
 	kleptoReplacement = 'GEO_TRANSLATE_ROTATE(LAYER_OPAQUE, 75, 75, 0, 180, 270, 0),\n' +\
-        '\t' * 10 + 'GEO_OPEN_NODE(),\n' +\
-        '\t' * 10 + '\tGEO_BRANCH_AND_LINK(transparent_star_geo),\n' +\
-        '\t' * 10 + 'GEO_CLOSE_NODE(),'
+		'\t' * 10 + 'GEO_OPEN_NODE(),\n' +\
+		'\t' * 10 + '\tGEO_BRANCH_AND_LINK(transparent_star_geo),\n' +\
+		'\t' * 10 + 'GEO_CLOSE_NODE(),'
 
 	kleptoPath = os.path.join(basePath, 'actors/klepto/geo.inc.c')
 	replaceDLReferenceInGeo(kleptoPath, pattern, kleptoReplacement)
@@ -76,25 +76,25 @@ def replaceCapReferences(basePath):
 		'GEO\_TRANSLATE\_ROTATE\_WITH\_DL\([^\)]*? mario\_cap\_seg3.*?GEO\_CLOSE\_NODE\(\)\,'
 
 	kleptoReplacement = 'GEO_TRANSLATE_ROTATE(LAYER_OPAQUE, 75, 75, 0, 180, 270, 0),\n' +\
-        '\t' * 10 + 'GEO_OPEN_NODE(),\n' +\
-        '\t' * 10 + '\tGEO_BRANCH_AND_LINK(marios_cap_geo),\n' +\
-        '\t' * 10 + 'GEO_CLOSE_NODE(),'
+		'\t' * 10 + 'GEO_OPEN_NODE(),\n' +\
+		'\t' * 10 + '\tGEO_BRANCH_AND_LINK(marios_cap_geo),\n' +\
+		'\t' * 10 + 'GEO_CLOSE_NODE(),'
 
 	ukikiReplacement = 'GEO_TRANSLATE_ROTATE(LAYER_OPAQUE, 100, 0, 0, -90, -90, 0),\n' +\
-        '\t' * 8 + 'GEO_OPEN_NODE(),\n' +\
+		'\t' * 8 + 'GEO_OPEN_NODE(),\n' +\
 		'\t' * 8 + 'GEO_SCALE(0x00, 0x40000),\n' +\
 		'\t' * 8 + '\tGEO_OPEN_NODE(),\n' +\
-        '\t' * 8 + '\t\tGEO_BRANCH_AND_LINK(marios_cap_geo),\n' +\
+		'\t' * 8 + '\t\tGEO_BRANCH_AND_LINK(marios_cap_geo),\n' +\
 		'\t' * 8 + '\tGEO_CLOSE_NODE(),' +\
-        '\t' * 8 + 'GEO_CLOSE_NODE(),'
+		'\t' * 8 + 'GEO_CLOSE_NODE(),'
 
 	snowmanReplacement = 'GEO_TRANSLATE_ROTATE(LAYER_OPAQUE, 490, 14, 43, 305, 0, 248),\n' +\
 		'\t' * 7 + 'GEO_OPEN_NODE(),\n' +\
 		'\t' * 7 + 'GEO_SCALE(0x00, 0x40000),\n' +\
 		'\t' * 7 + '\tGEO_OPEN_NODE(),\n' +\
-        '\t' * 7 + '\t\tGEO_BRANCH_AND_LINK(marios_cap_geo),\n' +\
+		'\t' * 7 + '\t\tGEO_BRANCH_AND_LINK(marios_cap_geo),\n' +\
 		'\t' * 7 + '\tGEO_CLOSE_NODE(),' +\
-        '\t' * 7 + 'GEO_CLOSE_NODE(),'
+		'\t' * 7 + 'GEO_CLOSE_NODE(),'
 
 	ukikiPath = os.path.join(basePath, 'actors/ukiki/geo.inc.c')
 	replaceDLReferenceInGeo(ukikiPath, pattern, ukikiReplacement)
@@ -294,7 +294,7 @@ def exportGeolayoutObjectC(obj, convertTransformMatrix,
 		savePNG, texSeparate, groupName, headerType, levelName, customExport, DLFormat)
 
 def saveGeolayoutC(geoName, dirName, geolayoutGraph: GeolayoutGraph, fModel: FModel, exportDir, texDir, savePNG,
- 	texSeparate, groupName, headerType, levelName, customExport, DLFormat):
+	texSeparate, groupName, headerType, levelName, customExport, DLFormat):
 	dirPath, texDir = getExportDir(customExport, exportDir, headerType,
 		levelName, texDir, dirName)
 
@@ -516,7 +516,7 @@ def saveGeolayoutInsertableBinary(geolayoutGraph, fModel, filepath, f3d):
 
 # Binary Bank 0 Export
 def exportGeolayoutArmatureBinaryBank0(romfile, armatureObj, obj, exportRange,
- 	convertTransformMatrix, levelCommandPos, modelID, textDumpFilePath,
+	convertTransformMatrix, levelCommandPos, modelID, textDumpFilePath,
 	f3dType, isHWv1, RAMAddr, camera):
 
 	geolayoutGraph, fModel = convertArmatureToGeolayout(armatureObj, obj,
@@ -526,7 +526,7 @@ def exportGeolayoutArmatureBinaryBank0(romfile, armatureObj, obj, exportRange,
 		exportRange, levelCommandPos, modelID, textDumpFilePath, RAMAddr)
 
 def exportGeolayoutObjectBinaryBank0(romfile, obj, exportRange,
- 	convertTransformMatrix, levelCommandPos, modelID, textDumpFilePath,
+	convertTransformMatrix, levelCommandPos, modelID, textDumpFilePath,
 	f3dType, isHWv1, RAMAddr, camera):
 
 	geolayoutGraph, fModel = convertObjectToGeolayout(obj,
@@ -536,7 +536,7 @@ def exportGeolayoutObjectBinaryBank0(romfile, obj, exportRange,
 		exportRange, levelCommandPos, modelID, textDumpFilePath, RAMAddr)
 
 def saveGeolayoutBinaryBank0(romfile, fModel, geolayoutGraph, exportRange,
- 	levelCommandPos, modelID, textDumpFilePath, RAMAddr):
+	levelCommandPos, modelID, textDumpFilePath, RAMAddr):
 	data, startRAM = getBinaryBank0GeolayoutData(
 		fModel, geolayoutGraph, RAMAddr, exportRange)
 	segmentData = copy.copy(bank0Segment)
@@ -576,27 +576,27 @@ def getBinaryBank0GeolayoutData(fModel, geolayoutGraph, RAMAddr, exportRange):
 
 # Binary Export
 def exportGeolayoutArmatureBinary(romfile, armatureObj, obj, exportRange,
- 	convertTransformMatrix, levelData, levelCommandPos, modelID,
+	convertTransformMatrix, levelData, levelCommandPos, modelID,
 	textDumpFilePath, f3dType, isHWv1, camera):
 
 	geolayoutGraph, fModel = convertArmatureToGeolayout(armatureObj, obj,
 		convertTransformMatrix, f3dType, isHWv1, camera, armatureObj.name, DLFormat.Static, True)
 
 	return saveGeolayoutBinary(romfile, geolayoutGraph, fModel, exportRange,
- 		levelData, levelCommandPos, modelID, textDumpFilePath)
+		levelData, levelCommandPos, modelID, textDumpFilePath)
 
 def exportGeolayoutObjectBinary(romfile, obj, exportRange,
- 	convertTransformMatrix, levelData, levelCommandPos, modelID,
+	convertTransformMatrix, levelData, levelCommandPos, modelID,
 	textDumpFilePath, f3dType, isHWv1, camera):
 
 	geolayoutGraph, fModel = convertObjectToGeolayout(obj,
 		convertTransformMatrix, f3dType, isHWv1, camera, obj.name, None, None, DLFormat.Static, True)
 
 	return saveGeolayoutBinary(romfile, geolayoutGraph, fModel, exportRange,
- 		levelData, levelCommandPos, modelID, textDumpFilePath)
+		levelData, levelCommandPos, modelID, textDumpFilePath)
 
 def saveGeolayoutBinary(romfile, geolayoutGraph, fModel, exportRange,
- 	levelData, levelCommandPos, modelID, textDumpFilePath):
+	levelData, levelCommandPos, modelID, textDumpFilePath):
 	fModel.freePalettes()
 
 	# Get length of data, then actually write it after relative addresses
@@ -1657,26 +1657,26 @@ def addSkinnedMeshNode(armatureObj, boneName, skinnedMesh, transformNode, parent
 	return transformNode
 
 def getAncestorGroups(parentGroup, vertexGroup, armatureObj, obj):
-    if parentGroup is None:
-        return []
-    ancestorBones = []
-    processingBones = [armatureObj.data.bones[vertexGroup]]
-    while len(processingBones) > 0:
-        currentBone = processingBones[0]
-        processingBones = processingBones[1:]
+	if parentGroup is None:
+		return []
+	ancestorBones = []
+	processingBones = [armatureObj.data.bones[vertexGroup]]
+	while len(processingBones) > 0:
+		currentBone = processingBones[0]
+		processingBones = processingBones[1:]
 
-        ancestorBones.append(currentBone)
-        processingBones.extend(currentBone.children)
+		ancestorBones.append(currentBone)
+		processingBones.extend(currentBone.children)
 
-    currentBone = armatureObj.data.bones[vertexGroup].parent
-    while currentBone is not None and currentBone.name != parentGroup:
-        ancestorBones.append(currentBone)
-        currentBone = currentBone.parent
-    ancestorBones.append(armatureObj.data.bones[parentGroup])
+	currentBone = armatureObj.data.bones[vertexGroup].parent
+	while currentBone is not None and currentBone.name != parentGroup:
+		ancestorBones.append(currentBone)
+		currentBone = currentBone.parent
+	ancestorBones.append(armatureObj.data.bones[parentGroup])
 
-    #print(vertexGroup + ", " + parentGroup)
-    #print([bone.name for bone in ancestorBones])
-    return [getGroupIndexFromname(obj, bone.name) for bone in armatureObj.data.bones if bone not in ancestorBones]
+	#print(vertexGroup + ", " + parentGroup)
+	#print([bone.name for bone in ancestorBones])
+	return [getGroupIndexFromname(obj, bone.name) for bone in armatureObj.data.bones if bone not in ancestorBones]
 
 # returns fMeshes, fSkinnedMeshes, makeLastDeformBone
 def saveModelGivenVertexGroup(fModel, obj, vertexGroup,
@@ -2077,7 +2077,7 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, meshName, skinnedMeshName, o
 			saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj,
 				drawLayer, convertTextureData, None, triConverterInfo,
 				copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict),
-    			lastMaterialName)
+				lastMaterialName)
 		else:
 			saveMeshByFaces(material, faces,
 				fModel, fMesh, obj, drawLayer,
@@ -2118,13 +2118,13 @@ def writeDynamicMeshFunction(name, displayList):
 	data = \
 """Gfx *{}(s32 callContext, struct GraphNode *node, UNUSED Mat4 *c) {
 	struct GraphNodeGenerated *asmNode = (struct GraphNodeGenerated *) node;
-    Gfx *displayListStart = NULL;
-    if (callContext == GEO_CONTEXT_RENDER) {
-        displayListStart = alloc_display_list({} * sizeof(*displayListStart));
-        Gfx* glistp = displayListStart;
+	Gfx *displayListStart = NULL;
+	if (callContext == GEO_CONTEXT_RENDER) {
+		displayListStart = alloc_display_list({} * sizeof(*displayListStart));
+		Gfx* glistp = displayListStart;
 		{}
-    }
-    return displayListStart;
+	}
+	return displayListStart;
 }""".format(name, str(len(displayList.commands)), displayList.to_c(False))
 
 	return data
@@ -2230,7 +2230,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
 					addrRange, startRAM, geoStart = \
 						exportGeolayoutObjectBinaryBank0(
 						romfileOutput, obj, exportRange,
- 						finalTransform, *modelLoadInfo, textDumpFilePath,
+						finalTransform, *modelLoadInfo, textDumpFilePath,
 						context.scene.f3d_type, context.scene.isHWv1,
 						getAddressFromRAMAddress(int(
 						context.scene.geoRAMAddr, 16)),
@@ -2354,7 +2354,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 			obj.select_set(True)
 			bpy.context.view_layer.objects.active = obj
 			bpy.ops.object.transform_apply(location = False, rotation = True,
-				scale = True, properties =  False)
+				scale = True, properties =	False)
 			if context.scene.fast64.sm64.exportType == 'C':
 				exportPath, levelName = getPathAndLevel(context.scene.geoCustomExport,
 					context.scene.geoExportPath, context.scene.geoLevelName,
@@ -2415,7 +2415,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 					addrRange, startRAM, geoStart = \
 						exportGeolayoutArmatureBinaryBank0(
 						romfileOutput, armatureObj, obj, exportRange,
- 						finalTransform, *modelLoadInfo, textDumpFilePath,
+						finalTransform, *modelLoadInfo, textDumpFilePath,
 						context.scene.f3d_type, context.scene.isHWv1,
 						getAddressFromRAMAddress(int(
 						context.scene.geoRAMAddr, 16)), None)

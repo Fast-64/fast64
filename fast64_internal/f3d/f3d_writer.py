@@ -579,7 +579,7 @@ def saveTriangleStrip(triConverter, faces, mesh, terminateDL):
 				possibleFaces = []
 			else:
 				#print('get new neighbor')
-				neighborFace =  getLowestUnvisitedNeighborCountFace(
+				neighborFace =	getLowestUnvisitedNeighborCountFace(
 					unvisitedFaces, infoDict)
 				lastEdgeKey = None
 
@@ -1599,7 +1599,7 @@ def saveTextureIndex(propName, fModel, fMaterial, loadTexGfx, revertTexGfx, texP
 		loadTexGfx.commands.append(DPSetTextureLUT('G_TT_NONE'))
 	if loadTextures:
 		saveTextureLoading(fMaterial, fImage, loadTexGfx, clamp_S,
-		 	mirror_S, clamp_T, mirror_T,
+			mirror_S, clamp_T, mirror_T,
 			mask_S, mask_T, shift_S,
 			shift_T, tex_SL, tex_TL, tex_SH,
 			tex_TH, texFormat, index, fModel.f3d, tmem)
@@ -1670,7 +1670,7 @@ def saveTextureLoading(fMaterial, fImage, loadTexGfx, clamp_S, mirror_S, clamp_T
 				DPSetTextureImage(fmt, 'G_IM_SIZ_8b', fImage.width >> 1, fImage),
 				DPSetTile(fmt, 'G_IM_SIZ_8b', line, tmem,
 					f3d.G_TX_LOADTILE - texIndex, 0, cmt, maskt, shiftt,
-				 	cms, masks, shifts),
+					cms, masks, shifts),
 				DPLoadSync(),
 				DPLoadTile(f3d.G_TX_LOADTILE - texIndex, sl2, tl, sh2, th),])
 
@@ -1687,7 +1687,7 @@ def saveTextureLoading(fMaterial, fImage, loadTexGfx, clamp_S, mirror_S, clamp_T
 				DPSetTextureImage(fmt, siz + '_LOAD_BLOCK', 1, fImage),
 				DPSetTile(fmt, siz + '_LOAD_BLOCK', 0, tmem,
 					f3d.G_TX_LOADTILE - texIndex, 0, cmt, maskt, shiftt,
-				 	cms, masks, shifts),
+					cms, masks, shifts),
 				DPLoadSync(),
 				DPLoadBlock(f3d.G_TX_LOADTILE - texIndex, 0, 0, \
 					(((fImage.width)*(fImage.height) + \
@@ -1702,7 +1702,7 @@ def saveTextureLoading(fMaterial, fImage, loadTexGfx, clamp_S, mirror_S, clamp_T
 				DPSetTextureImage(fmt, siz, fImage.width, fImage),
 				DPSetTile(fmt, siz, line, tmem,
 					f3d.G_TX_LOADTILE - texIndex, 0, cmt, maskt, shiftt,
-				 	cms, masks, shifts),
+					cms, masks, shifts),
 				DPLoadSync(),
 				DPLoadTile(f3d.G_TX_LOADTILE - texIndex, sl, tl, sh, th),]) # added in
 
@@ -1745,8 +1745,8 @@ def savePaletteLoading(loadTexGfx, revertTexGfx, fPalette, palFormat, pal,
 		loadTexGfx.commands.extend([
 			_DPLoadTextureBlock(fPalette, \
 				(256+(((pal)&0xf)*16)), \
-            	palFmt, 'G_IM_SIZ_16b', 4*colorCount, 1,
-            	pal, cms, cmt, 0, 0, 0, 0)])
+				palFmt, 'G_IM_SIZ_16b', 4*colorCount, 1,
+				pal, cms, cmt, 0, 0, 0, 0)])
 
 def saveOrGetPaletteDefinition(fMaterial, fModelOrTexRect, image, imageName, texFmt, palFmt, convertTextureData):
 	texFormat = texFormatOf[texFmt]
@@ -2138,7 +2138,7 @@ def saveGeoModeDefinitionF3DEX2(fMaterial, settings, defaults, matWriteMethod):
 		geo, matWriteMethod)
 	saveBitGeoF3DEX2(settings.g_cull_front, defaults.g_cull_front, 'G_CULL_FRONT',
 		geo, matWriteMethod)
-	saveBitGeoF3DEX2(settings.g_cull_back,  defaults.g_cull_back, 'G_CULL_BACK',
+	saveBitGeoF3DEX2(settings.g_cull_back,	defaults.g_cull_back, 'G_CULL_BACK',
 		geo, matWriteMethod)
 	saveBitGeoF3DEX2(settings.g_fog, defaults.g_fog, 'G_FOG', geo, matWriteMethod)
 	saveBitGeoF3DEX2(settings.g_lighting, defaults.g_lighting, 'G_LIGHTING',

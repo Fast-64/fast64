@@ -12,8 +12,8 @@ from .oot_model_classes import *
 from .oot_scene_room import *
 
 # returns: 
-# 	mesh, 
-# 	anySkinnedFaces (to determine if skeleton should be flex)
+#	mesh, 
+#	anySkinnedFaces (to determine if skeleton should be flex)
 def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, armatureObj, namePrefix,
 	meshInfo, drawLayerOverride, convertTextureData, lastMaterialName):
 
@@ -137,7 +137,7 @@ def ootConvertMeshToC(originalObj, finalTransform, f3dType, isHWv1, name, folder
 	name = toAlnum(name)
 
 	try:
-		obj, allObjs = ootDuplicateHierarchy(originalObj, None, False,  OOTObjectCategorizer())
+		obj, allObjs = ootDuplicateHierarchy(originalObj, None, False,	OOTObjectCategorizer())
 
 		fModel = OOTModel(f3dType, isHWv1, name, DLFormat, drawLayer)
 		triConverterInfo = TriangleConverterInfo(obj, None, fModel.f3d, finalTransform, getInfoDict(obj))
