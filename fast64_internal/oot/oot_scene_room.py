@@ -11,6 +11,16 @@ from .oot_actor import *
 #from .oot_collision import *
 from .oot_cutscene import *
 
+class OOTSceneProperties(bpy.types.PropertyGroup):
+	write_dummy_room_list: bpy.props.BoolProperty(
+		name = "Dummy Room List",
+		default = False,
+		description = (
+			"When exporting the scene to C, use NULL for the pointers to room "
+			"start/end offsets, instead of the appropriate symbols"
+		),
+	)
+
 class OOT_SearchMusicSeqEnumOperator(bpy.types.Operator):
 	bl_idname = "object.oot_search_music_seq_enum_operator"
 	bl_label = "Search Music Sequence"
@@ -83,33 +93,9 @@ class OOT_SearchSceneEnumOperator(bpy.types.Operator):
 	bl_options = {'REGISTER', 'UNDO'} 
 
 	ootSceneID : bpy.props.EnumProperty(items = ootEnumSceneID, default = "SCENE_YDAN")
-	headerIndex : bpy.props.IntProperty(default = -1, min = -1)
-	index : bpy.props.IntProperty(default = 0, min = 0)
-	objName : bpy.props.StringProperty()
 
 	def execute(self, context):
-		if self.objName != "":
-			obj = bpy.data.objects[self.objName]
-		else:
-			obj = None
-
-		if self.headerIndex == -1:
-			pass
-		elif self.headerIndex == 0:
-			sceneHeader = obj.ootSceneHeader
-		elif self.headerIndex == 1:
-			sceneHeader = obj.ootAlternateSceneHeaders.childNightHeader
-		elif self.headerIndex == 2:
-			sceneHeader = obj.ootAlternateSceneHeaders.adultDayHeader
-		elif self.headerIndex == 3:
-			sceneHeader = obj.ootAlternateSceneHeaders.adultNightHeader
-		else:
-			sceneHeader = obj.ootAlternateSceneHeaders.cutsceneHeaders[self.headerIndex - 4]
-
-		if self.headerIndex == -1:
-			context.scene.ootSceneOption = self.ootSceneID
-		else:
-			sceneHeader.exitList[self.index].sceneID = self.sceneID
+		context.scene.ootSceneOption = self.ootSceneID
 		bpy.context.region.tag_redraw()
 		self.report({'INFO'}, "Selected: " + self.ootSceneID)
 		return {'FINISHED'}
