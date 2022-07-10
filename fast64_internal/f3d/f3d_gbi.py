@@ -105,111 +105,111 @@ class F3D:
 			self.G_SETOTHERMODE_H =	0xe3
 			self.G_SETOTHERMODE_L =	0xe2
 			self.G_RDPHALF_1 =		0xe1
-			self.G_SPNOOP =			0xe0
+			self.G_SPNOOP =		    0xe0
 			self.G_ENDDL =			0xdf
-			self.G_DL =				0xde
+			self.G_DL =			    0xde
 			self.G_LOAD_UCODE =		0xdd
 			self.G_MOVEMEM =		0xdc
 			self.G_MOVEWORD =		0xdb
 			self.G_MTX =			0xda
 			self.G_GEOMETRYMODE =	0xd9
-			self.G_POPMTX =			0xd8
+			self.G_POPMTX =		    0xd8
 			self.G_TEXTURE =		0xd7
-			self.G_DMA_IO =			0xd6
+			self.G_DMA_IO =		    0xd6
 			self.G_SPECIAL_1 =		0xd5
 			self.G_SPECIAL_2 =		0xd4
 			self.G_SPECIAL_3 =		0xd3
 
-			self.G_VTX =			0x01
-			self.G_MODIFYVTX =		0x02
-			self.G_CULLDL =			0x03
-			self.G_BRANCH_Z =		0x04
-			self.G_TRI1 =			0x05
-			self.G_TRI2 =			0x06
-			self.G_QUAD =			0x07
-			self.G_LINE3D =			0x08
+			self.G_VTX = 			0x01
+			self.G_MODIFYVTX = 		0x02
+			self.G_CULLDL = 		0x03
+			self.G_BRANCH_Z = 		0x04
+			self.G_TRI1 = 			0x05
+			self.G_TRI2 = 			0x06
+			self.G_QUAD = 			0x07
+			self.G_LINE3D = 		0x08
 		
 		else:
 			# DMA commands
-			self.G_SPNOOP =			0	# handle 0 gracefully
-			self.G_MTX =			1
-			self.G_RESERVED0 =		2	# not implemeted
-			self.G_MOVEMEM =		3	# move a block of memory (up to 4 words) to dmem
-			self.G_VTX =			4
-			self.G_RESERVED1 =		5	# not implemeted
-			self.G_DL =				6
-			self.G_RESERVED2 =		7	# not implemeted
-			self.G_RESERVED3 =		8	# not implemeted
-			self.G_SPRITE2D_BASE =	9	# sprite command
+			self.G_SPNOOP = 		0	# handle 0 gracefully
+			self.G_MTX = 			1
+			self.G_RESERVED0 = 		2	# not implemeted
+			self.G_MOVEMEM = 		3	# move a block of memory (up to 4 words) to dmem
+			self.G_VTX = 			4
+			self.G_RESERVED1 = 		5	# not implemeted
+			self.G_DL = 			6
+			self.G_RESERVED2 = 		7	# not implemeted
+			self.G_RESERVED3 = 		8	# not implemeted
+			self.G_SPRITE2D_BASE = 	9	# sprite command
 
 			# IMMEDIATE commands
-			self.G_IMMFIRST =				-65
-			self.G_TRI1 =				(self.G_IMMFIRST-0)
-			self.G_CULLDL =				(self.G_IMMFIRST-1)
-			self.G_POPMTX =				(self.G_IMMFIRST-2)
-			self.G_MOVEWORD =			(self.G_IMMFIRST-3)
-			self.G_TEXTURE =			(self.G_IMMFIRST-4)
-			self.G_SETOTHERMODE_H =		(self.G_IMMFIRST-5)
-			self.G_SETOTHERMODE_L =		(self.G_IMMFIRST-6)
-			self.G_ENDDL =				(self.G_IMMFIRST-7)
-			self.G_SETGEOMETRYMODE =	(self.G_IMMFIRST-8)
-			self.G_CLEARGEOMETRYMODE =	(self.G_IMMFIRST-9)
-			self.G_LINE3D =				(self.G_IMMFIRST-10)
-			self.G_RDPHALF_1 =			(self.G_IMMFIRST-11)
-			self.G_RDPHALF_2 =			(self.G_IMMFIRST-12)
+			self.G_IMMFIRST = 		        -65
+			self.G_TRI1 = 			    (self.G_IMMFIRST-0)
+			self.G_CULLDL = 		    (self.G_IMMFIRST-1)
+			self.G_POPMTX = 		    (self.G_IMMFIRST-2)
+			self.G_MOVEWORD = 		    (self.G_IMMFIRST-3)
+			self.G_TEXTURE = 		    (self.G_IMMFIRST-4)
+			self.G_SETOTHERMODE_H = 	(self.G_IMMFIRST-5)
+			self.G_SETOTHERMODE_L = 	(self.G_IMMFIRST-6)
+			self.G_ENDDL = 			    (self.G_IMMFIRST-7)
+			self.G_SETGEOMETRYMODE = 	(self.G_IMMFIRST-8)
+			self.G_CLEARGEOMETRYMODE = 	(self.G_IMMFIRST-9)
+			self.G_LINE3D = 		    (self.G_IMMFIRST-10)
+			self.G_RDPHALF_1 = 		    (self.G_IMMFIRST-11)
+			self.G_RDPHALF_2 = 		    (self.G_IMMFIRST-12)
 			if F3DEX_GBI or F3DLP_GBI:
-				self.G_MODIFYVTX =		(self.G_IMMFIRST-13)
-				self.G_TRI2 =			(self.G_IMMFIRST-14)
-				self.G_BRANCH_Z =		(self.G_IMMFIRST-15)
-				self.G_LOAD_UCODE =		(self.G_IMMFIRST-16)
+				self.G_MODIFYVTX = 		(self.G_IMMFIRST-13)
+				self.G_TRI2 = 		    (self.G_IMMFIRST-14)
+				self.G_BRANCH_Z = 		(self.G_IMMFIRST-15)
+				self.G_LOAD_UCODE = 	(self.G_IMMFIRST-16)
 			else:
-				self.G_RDPHALF_CONT	=	(self.G_IMMFIRST-13)
+				self.G_RDPHALF_CONT	=   (self.G_IMMFIRST-13)
 
 			# We are overloading 2 of the immediate commands
 			# to keep the byte alignment of dmem the same
 
-			self.G_SPRITE2D_SCALEFLIP =	 (self.G_IMMFIRST-1)
-			self.G_SPRITE2D_DRAW =		 (self.G_IMMFIRST-2)
+			self.G_SPRITE2D_SCALEFLIP =  (self.G_IMMFIRST-1)
+			self.G_SPRITE2D_DRAW =       (self.G_IMMFIRST-2)
 
 			# RDP commands
 			self.G_NOOP = 0xc0
 		
 		# RDP commands
-		self.G_SETCIMG =			0xff	#  -1
-		self.G_SETZIMG =			0xfe	#  -2
-		self.G_SETTIMG =			0xfd	#  -3
-		self.G_SETCOMBINE =			0xfc	#  -4
-		self.G_SETENVCOLOR =		0xfb	#  -5
-		self.G_SETPRIMCOLOR =		0xfa	#  -6
-		self.G_SETBLENDCOLOR =		0xf9	#  -7
-		self.G_SETFOGCOLOR =		0xf8	#  -8
-		self.G_SETFILLCOLOR =		0xf7	#  -9
-		self.G_FILLRECT =			0xf6	# -10
-		self.G_SETTILE =			0xf5	# -11
-		self.G_LOADTILE =			0xf4	# -12
-		self.G_LOADBLOCK =			0xf3	# -13
-		self.G_SETTILESIZE =		0xf2	# -14
-		self.G_LOADTLUT =			0xf0	# -16
-		self.G_RDPSETOTHERMODE =	0xef	# -17
-		self.G_SETPRIMDEPTH =		0xee	# -18
-		self.G_SETSCISSOR =			0xed	# -19
-		self.G_SETCONVERT =			0xec	# -20
-		self.G_SETKEYR =			0xeb	# -21
-		self.G_SETKEYGB =			0xea	# -22
-		self.G_RDPFULLSYNC =		0xe9	# -23
-		self.G_RDPTILESYNC =		0xe8	# -24
-		self.G_RDPPIPESYNC =		0xe7	# -25
-		self.G_RDPLOADSYNC =		0xe6	# -26
-		self.G_TEXRECTFLIP =		0xe5	# -27
-		self.G_TEXRECT =			0xe4	# -28
+		self.G_SETCIMG = 		    0xff	#  -1
+		self.G_SETZIMG = 		    0xfe	#  -2
+		self.G_SETTIMG = 		    0xfd	#  -3
+		self.G_SETCOMBINE = 	    0xfc	#  -4
+		self.G_SETENVCOLOR = 	    0xfb	#  -5
+		self.G_SETPRIMCOLOR = 	    0xfa	#  -6
+		self.G_SETBLENDCOLOR = 	    0xf9	#  -7
+		self.G_SETFOGCOLOR = 	    0xf8	#  -8
+		self.G_SETFILLCOLOR = 	    0xf7	#  -9
+		self.G_FILLRECT = 		    0xf6	# -10
+		self.G_SETTILE = 		    0xf5	# -11
+		self.G_LOADTILE = 		    0xf4	# -12
+		self.G_LOADBLOCK = 		    0xf3	# -13
+		self.G_SETTILESIZE = 	    0xf2	# -14
+		self.G_LOADTLUT = 		    0xf0	# -16
+		self.G_RDPSETOTHERMODE = 	0xef	# -17
+		self.G_SETPRIMDEPTH = 		0xee	# -18
+		self.G_SETSCISSOR = 		0xed	# -19
+		self.G_SETCONVERT = 		0xec	# -20
+		self.G_SETKEYR = 		    0xeb	# -21
+		self.G_SETKEYGB = 		    0xea	# -22
+		self.G_RDPFULLSYNC = 		0xe9	# -23
+		self.G_RDPTILESYNC = 		0xe8	# -24
+		self.G_RDPPIPESYNC = 		0xe7	# -25
+		self.G_RDPLOADSYNC = 		0xe6	# -26
+		self.G_TEXRECTFLIP = 		0xe5	# -27
+		self.G_TEXRECT = 		    0xe4	# -28
 
-		self.G_TRI_FILL =			0xc8 # fill triangle:			 11001000
-		self.G_TRI_SHADE =			0xcc # shade triangle:			 11001100
-		self.G_TRI_TXTR =			0xca # texture triangle:		 11001010
-		self.G_TRI_SHADE_TXTR =		0xce # shade, texture triangle:	 11001110
-		self.G_TRI_FILL_ZBUFF =		0xc9 # fill, zbuff triangle:	 11001001
-		self.G_TRI_SHADE_ZBUFF =	0xcd # shade, zbuff triangle:	 11001101
-		self.G_TRI_TXTR_ZBUFF =		0xcb # texture, zbuff triangle:	 11001011
+		self.G_TRI_FILL =		    0xc8 # fill triangle:            11001000
+		self.G_TRI_SHADE =		    0xcc # shade triangle:           11001100
+		self.G_TRI_TXTR =		    0xca # texture triangle:         11001010
+		self.G_TRI_SHADE_TXTR =	    0xce # shade, texture triangle:  11001110
+		self.G_TRI_FILL_ZBUFF =	    0xc9 # fill, zbuff triangle:     11001001
+		self.G_TRI_SHADE_ZBUFF =	0xcd # shade, zbuff triangle:    11001101
+		self.G_TRI_TXTR_ZBUFF =	    0xcb # texture, zbuff triangle:  11001011
 		self.G_TRI_SHADE_TXTR_ZBUFF=0xcf # shade, txtr, zbuff trngl: 11001111
 
 		# masks to build RDP triangle commands
@@ -233,7 +233,7 @@ class F3D:
 		# Coordinate shift values, number of bits of fraction
 		self.G_TEXTURE_IMAGE_FRAC =	2
 		self.G_TEXTURE_SCALE_FRAC =	16
-		self.G_SCALE_FRAC =			8
+		self.G_SCALE_FRAC =		    8
 		self.G_ROTATE_FRAC =		16
 
 		self.G_MAXFBZ =		0x3fff	# 3b exp, 11b mantissa
@@ -256,31 +256,31 @@ class F3D:
 			self.G_MTX_NOPUSH =		0x00	# push or not
 			self.G_MTX_PUSH =		0x04
 		
-		self.G_ZBUFFER =			0x00000001
-		self.G_SHADE =				0x00000004	# enable Gouraud interp
+		self.G_ZBUFFER =            0x00000001
+		self.G_SHADE =              0x00000004	# enable Gouraud interp
 		# rest of low byte reserved for setup ucode
 		if F3DEX_GBI_2:
-			self.G_TEXTURE_ENABLE = 0x00000000	# Ignored			   
+			self.G_TEXTURE_ENABLE = 0x00000000	# Ignored              
 			self.G_SHADING_SMOOTH = 0x00200000	# flat or smooth shaded
-			self.G_CULL_FRONT =		0x00000200
-			self.G_CULL_BACK =		0x00000400
-			self.G_CULL_BOTH =		0x00000600	# To make code cleaner
+			self.G_CULL_FRONT =     0x00000200
+			self.G_CULL_BACK =      0x00000400
+			self.G_CULL_BOTH =      0x00000600	# To make code cleaner
 		else:
 			self.G_TEXTURE_ENABLE = 0x00000002	# Microcode use only
 			self.G_SHADING_SMOOTH = 0x00000200	# flat or smooth shaded
-			self.G_CULL_FRONT =		0x00001000
-			self.G_CULL_BACK =		0x00002000
-			self.G_CULL_BOTH =		0x00003000	# To make code cleaner
-		self.G_FOG =				0x00010000
-		self.G_LIGHTING =			0x00020000
-		self.G_TEXTURE_GEN =		0x00040000
+			self.G_CULL_FRONT =     0x00001000
+			self.G_CULL_BACK =      0x00002000
+			self.G_CULL_BOTH =      0x00003000	# To make code cleaner
+		self.G_FOG =                0x00010000
+		self.G_LIGHTING =           0x00020000
+		self.G_TEXTURE_GEN =        0x00040000
 		self.G_TEXTURE_GEN_LINEAR = 0x00080000
-		self.G_LOD =				0x00100000	# NOT IMPLEMENTED
-		self.G_CELSHADING =			0x00400000
+		self.G_LOD =                0x00100000	# NOT IMPLEMENTED
+		self.G_CELSHADING =         0x00400000
 		if F3DEX_GBI or F3DLP_GBI:
-			self.G_CLIPPING =		0x00800000
+			self.G_CLIPPING =       0x00800000
 		else:
-			self.G_CLIPPING =		0x00000000
+			self.G_CLIPPING =       0x00000000
 
 		#if _LANGUAGE_ASSEMBLY:
 		self.G_FOG_H = (self.G_FOG/0x10000)
@@ -316,165 +316,165 @@ class F3D:
 		}
 						
 		# G_SETIMG fmt: set image formats
-		self.G_IM_FMT_RGBA =	0
-		self.G_IM_FMT_YUV =		1
-		self.G_IM_FMT_CI =		2
-		self.G_IM_FMT_IA =		3
-		self.G_IM_FMT_I =		4
+		self.G_IM_FMT_RGBA =    0
+		self.G_IM_FMT_YUV =     1
+		self.G_IM_FMT_CI = 	    2
+		self.G_IM_FMT_IA = 	    3
+		self.G_IM_FMT_I = 	    4
 
 		self.G_IM_FMT_VARS = {
-			'0' :				 0,
-			'G_IM_FMT_RGBA' :	 0,
-			'G_IM_FMT_YUV' :	 1,
-			'G_IM_FMT_CI' :		 2,
-			'G_IM_FMT_IA' :		 3,
-			'G_IM_FMT_I' :		 4,
+			'0' : 				 0,
+			'G_IM_FMT_RGBA' :    0,
+			'G_IM_FMT_YUV' :     1,
+			'G_IM_FMT_CI' : 	 2,
+			'G_IM_FMT_IA' : 	 3,
+			'G_IM_FMT_I' : 	     4,
 		}
 	   
 		# G_SETIMG siz: set image pixel size  
-		self.G_IM_SIZ_4b =		0
-		self.G_IM_SIZ_8b =		1
-		self.G_IM_SIZ_16b =		2
-		self.G_IM_SIZ_32b =		3
-		self.G_IM_SIZ_DD =		5
+		self.G_IM_SIZ_4b = 	    0
+		self.G_IM_SIZ_8b = 	    1
+		self.G_IM_SIZ_16b =     2
+		self.G_IM_SIZ_32b =     3
+		self.G_IM_SIZ_DD = 	    5
 
-		self.G_IM_SIZ_4b_BYTES =		0
-		self.G_IM_SIZ_4b_TILE_BYTES =	self.G_IM_SIZ_4b_BYTES
-		self.G_IM_SIZ_4b_LINE_BYTES =	self.G_IM_SIZ_4b_BYTES
+		self.G_IM_SIZ_4b_BYTES = 		0
+		self.G_IM_SIZ_4b_TILE_BYTES = 	self.G_IM_SIZ_4b_BYTES
+		self.G_IM_SIZ_4b_LINE_BYTES = 	self.G_IM_SIZ_4b_BYTES
 
-		self.G_IM_SIZ_8b_BYTES =		1
-		self.G_IM_SIZ_8b_TILE_BYTES =	self.G_IM_SIZ_8b_BYTES
-		self.G_IM_SIZ_8b_LINE_BYTES =	self.G_IM_SIZ_8b_BYTES
+		self.G_IM_SIZ_8b_BYTES = 		1
+		self.G_IM_SIZ_8b_TILE_BYTES = 	self.G_IM_SIZ_8b_BYTES
+		self.G_IM_SIZ_8b_LINE_BYTES = 	self.G_IM_SIZ_8b_BYTES
 
-		self.G_IM_SIZ_16b_BYTES =		2
-		self.G_IM_SIZ_16b_TILE_BYTES =	self.G_IM_SIZ_16b_BYTES
-		self.G_IM_SIZ_16b_LINE_BYTES =	self.G_IM_SIZ_16b_BYTES
+		self.G_IM_SIZ_16b_BYTES = 		2
+		self.G_IM_SIZ_16b_TILE_BYTES = 	self.G_IM_SIZ_16b_BYTES
+		self.G_IM_SIZ_16b_LINE_BYTES = 	self.G_IM_SIZ_16b_BYTES
 
-		self.G_IM_SIZ_32b_BYTES =		4
-		self.G_IM_SIZ_32b_TILE_BYTES =	2
-		self.G_IM_SIZ_32b_LINE_BYTES =	2
+		self.G_IM_SIZ_32b_BYTES = 		4
+		self.G_IM_SIZ_32b_TILE_BYTES = 	2
+		self.G_IM_SIZ_32b_LINE_BYTES = 	2
 
-		self.G_IM_SIZ_4b_LOAD_BLOCK =	self.G_IM_SIZ_16b
-		self.G_IM_SIZ_8b_LOAD_BLOCK =	self.G_IM_SIZ_16b
-		self.G_IM_SIZ_16b_LOAD_BLOCK =	self.G_IM_SIZ_16b
-		self.G_IM_SIZ_32b_LOAD_BLOCK =	self.G_IM_SIZ_32b
+		self.G_IM_SIZ_4b_LOAD_BLOCK = 	self.G_IM_SIZ_16b
+		self.G_IM_SIZ_8b_LOAD_BLOCK = 	self.G_IM_SIZ_16b
+		self.G_IM_SIZ_16b_LOAD_BLOCK = 	self.G_IM_SIZ_16b
+		self.G_IM_SIZ_32b_LOAD_BLOCK = 	self.G_IM_SIZ_32b
 
 		self.G_IM_SIZ_4b_SHIFT =   2
 		self.G_IM_SIZ_8b_SHIFT =   1
 		self.G_IM_SIZ_16b_SHIFT =  0
 		self.G_IM_SIZ_32b_SHIFT =  0
 
-		self.G_IM_SIZ_4b_INCR =	  3
-		self.G_IM_SIZ_8b_INCR =	  1
+		self.G_IM_SIZ_4b_INCR =   3
+		self.G_IM_SIZ_8b_INCR =   1
 		self.G_IM_SIZ_16b_INCR =  0
 		self.G_IM_SIZ_32b_INCR =  0
 
 		self.G_IM_SIZ_VARS = {
 			'0' :						0,
-			'G_IM_SIZ_4b' :				0,
-			'G_IM_SIZ_8b' :				1,
-			'G_IM_SIZ_16b' :			2,
-			'G_IM_SIZ_32b' :			3,
-			'G_IM_SIZ_DD' :				5,
-			'G_IM_SIZ_4b_BYTES' :		0,
-			'G_IM_SIZ_4b_TILE_BYTES' :	self.G_IM_SIZ_4b_BYTES,
-			'G_IM_SIZ_4b_LINE_BYTES' :	self.G_IM_SIZ_4b_BYTES,
-			'G_IM_SIZ_8b_BYTES' :		1,
-			'G_IM_SIZ_8b_TILE_BYTES' :	self.G_IM_SIZ_8b_BYTES,
-			'G_IM_SIZ_8b_LINE_BYTES' :	self.G_IM_SIZ_8b_BYTES,
-			'G_IM_SIZ_16b_BYTES' :		2,
+			'G_IM_SIZ_4b' : 	    	0,
+			'G_IM_SIZ_8b' : 	    	1,
+			'G_IM_SIZ_16b' :     		2,
+			'G_IM_SIZ_32b' :     		3,
+			'G_IM_SIZ_DD' : 	    	5,
+			'G_IM_SIZ_4b_BYTES' : 		0,
+			'G_IM_SIZ_4b_TILE_BYTES' : 	self.G_IM_SIZ_4b_BYTES,
+			'G_IM_SIZ_4b_LINE_BYTES' : 	self.G_IM_SIZ_4b_BYTES,
+			'G_IM_SIZ_8b_BYTES' : 		1,
+			'G_IM_SIZ_8b_TILE_BYTES' : 	self.G_IM_SIZ_8b_BYTES,
+			'G_IM_SIZ_8b_LINE_BYTES' : 	self.G_IM_SIZ_8b_BYTES,
+			'G_IM_SIZ_16b_BYTES' : 		2,
 			'G_IM_SIZ_16b_TILE_BYTES' : self.G_IM_SIZ_16b_BYTES,
 			'G_IM_SIZ_16b_LINE_BYTES' : self.G_IM_SIZ_16b_BYTES,
-			'G_IM_SIZ_32b_BYTES' :		4,
+			'G_IM_SIZ_32b_BYTES' : 		4,
 			'G_IM_SIZ_32b_TILE_BYTES' : 2,
 			'G_IM_SIZ_32b_LINE_BYTES' : 2,
-			'G_IM_SIZ_4b_LOAD_BLOCK' :	self.G_IM_SIZ_16b,
-			'G_IM_SIZ_8b_LOAD_BLOCK' :	self.G_IM_SIZ_16b,
+			'G_IM_SIZ_4b_LOAD_BLOCK' : 	self.G_IM_SIZ_16b,
+			'G_IM_SIZ_8b_LOAD_BLOCK' : 	self.G_IM_SIZ_16b,
 			'G_IM_SIZ_16b_LOAD_BLOCK' : self.G_IM_SIZ_16b,
 			'G_IM_SIZ_32b_LOAD_BLOCK' : self.G_IM_SIZ_32b,
-			'G_IM_SIZ_4b_SHIFT' :		2,
-			'G_IM_SIZ_8b_SHIFT' :		1,
-			'G_IM_SIZ_16b_SHIFT' :		0,
-			'G_IM_SIZ_32b_SHIFT' :		0,
-			'G_IM_SIZ_4b_INCR' :		3,
-			'G_IM_SIZ_8b_INCR' :		1,
-			'G_IM_SIZ_16b_INCR' :		0,
-			'G_IM_SIZ_32b_INCR' :		0
+			'G_IM_SIZ_4b_SHIFT' :   	2,
+			'G_IM_SIZ_8b_SHIFT' :   	1,
+			'G_IM_SIZ_16b_SHIFT' :  	0,
+			'G_IM_SIZ_32b_SHIFT' :  	0,
+			'G_IM_SIZ_4b_INCR' :  		3,
+			'G_IM_SIZ_8b_INCR' :  		1,
+			'G_IM_SIZ_16b_INCR' : 		0,
+			'G_IM_SIZ_32b_INCR' : 		0
 		}
 		
 		# G_SETCOMBINE: color combine modes
 		
 		# Color combiner constants:
-		self.G_CCMUX_COMBINED =			0
-		self.G_CCMUX_TEXEL0 =			1
-		self.G_CCMUX_TEXEL1 =			2
-		self.G_CCMUX_PRIMITIVE =		3
-		self.G_CCMUX_SHADE =			4
-		self.G_CCMUX_ENVIRONMENT =		5
-		self.G_CCMUX_CENTER =			6
-		self.G_CCMUX_SCALE =			6
-		self.G_CCMUX_COMBINED_ALPHA =	7
-		self.G_CCMUX_TEXEL0_ALPHA =		8
-		self.G_CCMUX_TEXEL1_ALPHA =		9
-		self.G_CCMUX_PRIMITIVE_ALPHA =	10
-		self.G_CCMUX_SHADE_ALPHA =		11
-		self.G_CCMUX_ENV_ALPHA =		12
-		self.G_CCMUX_LOD_FRACTION =		13
-		self.G_CCMUX_PRIM_LOD_FRAC =	14
-		self.G_CCMUX_NOISE =			7
-		self.G_CCMUX_K4 =				7
-		self.G_CCMUX_K5 =				15
-		self.G_CCMUX_1 =				6
-		self.G_CCMUX_0 =				31
+		self.G_CCMUX_COMBINED = 	    0
+		self.G_CCMUX_TEXEL0 = 		    1
+		self.G_CCMUX_TEXEL1 = 		    2
+		self.G_CCMUX_PRIMITIVE = 	    3
+		self.G_CCMUX_SHADE = 		    4
+		self.G_CCMUX_ENVIRONMENT = 	    5
+		self.G_CCMUX_CENTER = 		    6
+		self.G_CCMUX_SCALE = 		    6
+		self.G_CCMUX_COMBINED_ALPHA = 	7
+		self.G_CCMUX_TEXEL0_ALPHA = 	8
+		self.G_CCMUX_TEXEL1_ALPHA = 	9
+		self.G_CCMUX_PRIMITIVE_ALPHA = 	10
+		self.G_CCMUX_SHADE_ALPHA = 	    11
+		self.G_CCMUX_ENV_ALPHA = 	    12
+		self.G_CCMUX_LOD_FRACTION = 	13
+		self.G_CCMUX_PRIM_LOD_FRAC = 	14
+		self.G_CCMUX_NOISE = 		    7
+		self.G_CCMUX_K4 = 		        7
+		self.G_CCMUX_K5 = 		        15
+		self.G_CCMUX_1 = 		        6
+		self.G_CCMUX_0 = 		        31
 
 		self.CCMUXDict = {
-			'COMBINED' :		0,
-			'TEXEL0' :			1,
-			'TEXEL1' :			2,
-			'PRIMITIVE' :		3,
-			'SHADE' :			4,
-			'ENVIRONMENT' :		5,
-			'CENTER' :			6,
-			'SCALE' :			6,
-			'COMBINED_ALPHA' :	7,
-			'TEXEL0_ALPHA' :	8,
-			'TEXEL1_ALPHA' :	9,
+			'COMBINED' : 	    0,
+			'TEXEL0' : 		    1,
+			'TEXEL1' : 		    2,
+			'PRIMITIVE' : 	    3,
+			'SHADE' : 		    4,
+			'ENVIRONMENT' : 	5,
+			'CENTER' : 		    6,
+			'SCALE' : 		    6,
+			'COMBINED_ALPHA' : 	7,
+			'TEXEL0_ALPHA' : 	8,
+			'TEXEL1_ALPHA' : 	9,
 			'PRIMITIVE_ALPHA' : 10,
-			'SHADE_ALPHA' :		11,
-			'ENV_ALPHA' :		12,
-			'LOD_FRACTION' :	13,
-			'PRIM_LOD_FRAC' :	14,
-			'NOISE' :			7,
-			'K4' :				7,
-			'K5' :				15,
-			'1' :				6,
-			'0' :				31
+			'SHADE_ALPHA' : 	11,
+			'ENV_ALPHA' : 	    12,
+			'LOD_FRACTION' : 	13,
+			'PRIM_LOD_FRAC' : 	14,
+			'NOISE' : 		    7,
+			'K4' : 		        7,
+			'K5' : 		        15,
+			'1' : 		        6,
+			'0' : 		        31
 		}
 
 		self.ACMUXDict = {
-			'COMBINED' :		0,
-			'TEXEL0' :			1,
-			'TEXEL1' :			2,
-			'PRIMITIVE' :		3,
-			'SHADE' :			4,
-			'ENVIRONMENT' :		5,
-			'LOD_FRACTION' :	0,
-			'PRIM_LOD_FRAC' :	6,
-			'1' :				6,
-			'0' :				7,
+			'COMBINED' : 	    0,
+			'TEXEL0' : 		    1,
+			'TEXEL1' : 		    2,
+			'PRIMITIVE' : 	    3,
+			'SHADE' : 		    4,
+			'ENVIRONMENT' : 	5,
+			'LOD_FRACTION' : 	0,
+			'PRIM_LOD_FRAC' : 	6,
+			'1' : 		        6,
+			'0' : 		        7,
 		}
 
 		# Alpha combiner constants:
-		self.G_ACMUX_COMBINED =			0
-		self.G_ACMUX_TEXEL0 =			1
-		self.G_ACMUX_TEXEL1 =			2
-		self.G_ACMUX_PRIMITIVE =		3
-		self.G_ACMUX_SHADE =			4
-		self.G_ACMUX_ENVIRONMENT =		5
-		self.G_ACMUX_LOD_FRACTION =		0
-		self.G_ACMUX_PRIM_LOD_FRAC =	6
-		self.G_ACMUX_1 =				6
-		self.G_ACMUX_0 =				7
+		self.G_ACMUX_COMBINED = 	    0
+		self.G_ACMUX_TEXEL0 = 		    1
+		self.G_ACMUX_TEXEL1 = 		    2
+		self.G_ACMUX_PRIMITIVE = 	    3
+		self.G_ACMUX_SHADE = 		    4
+		self.G_ACMUX_ENVIRONMENT = 	    5
+		self.G_ACMUX_LOD_FRACTION = 	0
+		self.G_ACMUX_PRIM_LOD_FRAC = 	6
+		self.G_ACMUX_1 = 		        6
+		self.G_ACMUX_0 = 		        7
 
 		# typical CC cycle 1 modes
 		self.G_CC_PRIMITIVE = '0', '0', '0', 'PRIMITIVE', '0', '0', '0', 'PRIMITIVE'
@@ -577,128 +577,128 @@ class F3D:
 
 		# G_SETOTHERMODE_L sft: shift count
 		
-		self.G_MDSFT_ALPHACOMPARE = G_MDSFT_ALPHACOMPARE =		0
-		self.G_MDSFT_ZSRCSEL = G_MDSFT_ZSRCSEL =			2
-		self.G_MDSFT_RENDERMODE = G_MDSFT_RENDERMODE =		3
-		self.G_MDSFT_BLENDER = G_MDSFT_BLENDER =			16
+		self.G_MDSFT_ALPHACOMPARE = G_MDSFT_ALPHACOMPARE = 		0
+		self.G_MDSFT_ZSRCSEL = G_MDSFT_ZSRCSEL = 			2
+		self.G_MDSFT_RENDERMODE = G_MDSFT_RENDERMODE = 		3
+		self.G_MDSFT_BLENDER = G_MDSFT_BLENDER = 			16
 
 		
 		# G_SETOTHERMODE_H sft: shift count
 		
-		self.G_MDSFT_BLENDMASK = G_MDSFT_BLENDMASK =		0	# unsupported
-		self.G_MDSFT_ALPHADITHER = G_MDSFT_ALPHADITHER =		4
-		self.G_MDSFT_RGBDITHER = G_MDSFT_RGBDITHER =		6
+		self.G_MDSFT_BLENDMASK = G_MDSFT_BLENDMASK = 		0	# unsupported
+		self.G_MDSFT_ALPHADITHER = G_MDSFT_ALPHADITHER = 		4
+		self.G_MDSFT_RGBDITHER = G_MDSFT_RGBDITHER = 		6
 
-		self.G_MDSFT_COMBKEY = G_MDSFT_COMBKEY =			8
-		self.G_MDSFT_TEXTCONV = G_MDSFT_TEXTCONV =		9
-		self.G_MDSFT_TEXTFILT = G_MDSFT_TEXTFILT =		12
-		self.G_MDSFT_TEXTLUT = G_MDSFT_TEXTLUT =			14
-		self.G_MDSFT_TEXTLOD = G_MDSFT_TEXTLOD =			16
-		self.G_MDSFT_TEXTDETAIL = G_MDSFT_TEXTDETAIL =		17
-		self.G_MDSFT_TEXTPERSP = G_MDSFT_TEXTPERSP =		19
-		self.G_MDSFT_CYCLETYPE = G_MDSFT_CYCLETYPE =		20
-		self.G_MDSFT_COLORDITHER = G_MDSFT_COLORDITHER =		22	# unsupported in HW 2.0
-		self.G_MDSFT_PIPELINE = G_MDSFT_PIPELINE =		23
+		self.G_MDSFT_COMBKEY = G_MDSFT_COMBKEY = 			8
+		self.G_MDSFT_TEXTCONV = G_MDSFT_TEXTCONV = 		9
+		self.G_MDSFT_TEXTFILT = G_MDSFT_TEXTFILT = 		12
+		self.G_MDSFT_TEXTLUT = G_MDSFT_TEXTLUT = 			14
+		self.G_MDSFT_TEXTLOD = G_MDSFT_TEXTLOD = 			16
+		self.G_MDSFT_TEXTDETAIL = G_MDSFT_TEXTDETAIL = 		17
+		self.G_MDSFT_TEXTPERSP = G_MDSFT_TEXTPERSP = 		19
+		self.G_MDSFT_CYCLETYPE = G_MDSFT_CYCLETYPE = 		20
+		self.G_MDSFT_COLORDITHER = G_MDSFT_COLORDITHER = 		22	# unsupported in HW 2.0
+		self.G_MDSFT_PIPELINE = G_MDSFT_PIPELINE = 		23
 
 		# G_SETOTHERMODE_H gPipelineMode
-		self.G_PM_1PRIMITIVE =		(1 << G_MDSFT_PIPELINE)
-		self.G_PM_NPRIMITIVE =		(0 << G_MDSFT_PIPELINE)
+		self.G_PM_1PRIMITIVE = 		(1 << G_MDSFT_PIPELINE)
+		self.G_PM_NPRIMITIVE = 		(0 << G_MDSFT_PIPELINE)
 
 		# G_SETOTHERMODE_H gSetCycleType
-		self.G_CYC_1CYCLE =			(0 << G_MDSFT_CYCLETYPE)
-		self.G_CYC_2CYCLE =			(1 << G_MDSFT_CYCLETYPE)
-		self.G_CYC_COPY =		(2 << G_MDSFT_CYCLETYPE)
-		self.G_CYC_FILL =		(3 << G_MDSFT_CYCLETYPE)
+		self.G_CYC_1CYCLE = 		(0 << G_MDSFT_CYCLETYPE)
+		self.G_CYC_2CYCLE = 		(1 << G_MDSFT_CYCLETYPE)
+		self.G_CYC_COPY = 		(2 << G_MDSFT_CYCLETYPE)
+		self.G_CYC_FILL = 		(3 << G_MDSFT_CYCLETYPE)
 
 		# G_SETOTHERMODE_H gSetTexturePersp
-		self.G_TP_NONE =	(0 << G_MDSFT_TEXTPERSP)
-		self.G_TP_PERSP =	(1 << G_MDSFT_TEXTPERSP)
+		self.G_TP_NONE = 	(0 << G_MDSFT_TEXTPERSP)
+		self.G_TP_PERSP = 	(1 << G_MDSFT_TEXTPERSP)
 
 		# G_SETOTHERMODE_H gSetTextureDetail
-		self.G_TD_CLAMP =	(0 << G_MDSFT_TEXTDETAIL)
-		self.G_TD_SHARPEN =		(1 << G_MDSFT_TEXTDETAIL)
-		self.G_TD_DETAIL =	(2 << G_MDSFT_TEXTDETAIL)
+		self.G_TD_CLAMP = 	(0 << G_MDSFT_TEXTDETAIL)
+		self.G_TD_SHARPEN = 	(1 << G_MDSFT_TEXTDETAIL)
+		self.G_TD_DETAIL = 	(2 << G_MDSFT_TEXTDETAIL)
 
 		# G_SETOTHERMODE_H gSetTextureLOD
-		self.G_TL_TILE =	(0 << G_MDSFT_TEXTLOD)
-		self.G_TL_LOD =		(1 << G_MDSFT_TEXTLOD)
+		self.G_TL_TILE = 	(0 << G_MDSFT_TEXTLOD)
+		self.G_TL_LOD = 	(1 << G_MDSFT_TEXTLOD)
 
 		# G_SETOTHERMODE_H gSetTextureLUT
-		self.G_TT_NONE =	(0 << G_MDSFT_TEXTLUT)
-		self.G_TT_RGBA16 =	(2 << G_MDSFT_TEXTLUT)
-		self.G_TT_IA16 =	(3 << G_MDSFT_TEXTLUT)
+		self.G_TT_NONE = 	(0 << G_MDSFT_TEXTLUT)
+		self.G_TT_RGBA16 = 	(2 << G_MDSFT_TEXTLUT)
+		self.G_TT_IA16 = 	(3 << G_MDSFT_TEXTLUT)
 
 		# G_SETOTHERMODE_H gSetTextureFilter
-		self.G_TF_POINT =	(0 << G_MDSFT_TEXTFILT)
-		self.G_TF_AVERAGE =		(3 << G_MDSFT_TEXTFILT)
-		self.G_TF_BILERP =	(2 << G_MDSFT_TEXTFILT)
+		self.G_TF_POINT = 	(0 << G_MDSFT_TEXTFILT)
+		self.G_TF_AVERAGE = 	(3 << G_MDSFT_TEXTFILT)
+		self.G_TF_BILERP = 	(2 << G_MDSFT_TEXTFILT)
 
 		# G_SETOTHERMODE_H gSetTextureConvert
-		self.G_TC_CONV =	(0 << G_MDSFT_TEXTCONV)
-		self.G_TC_FILTCONV =	(5 << G_MDSFT_TEXTCONV)
-		self.G_TC_FILT =	(6 << G_MDSFT_TEXTCONV)
+		self.G_TC_CONV = 	(0 << G_MDSFT_TEXTCONV)
+		self.G_TC_FILTCONV = 	(5 << G_MDSFT_TEXTCONV)
+		self.G_TC_FILT = 	(6 << G_MDSFT_TEXTCONV)
 
 		# G_SETOTHERMODE_H gSetCombineKey
-		self.G_CK_NONE =	(0 << G_MDSFT_COMBKEY)
-		self.G_CK_KEY =		(1 << G_MDSFT_COMBKEY)
+		self.G_CK_NONE = 	(0 << G_MDSFT_COMBKEY)
+		self.G_CK_KEY = 	(1 << G_MDSFT_COMBKEY)
 
 		# G_SETOTHERMODE_H gSetColorDither
-		self.G_CD_MAGICSQ =			(0 << G_MDSFT_RGBDITHER)
-		self.G_CD_BAYER =		(1 << G_MDSFT_RGBDITHER)
-		self.G_CD_NOISE =		(2 << G_MDSFT_RGBDITHER)
+		self.G_CD_MAGICSQ = 		(0 << G_MDSFT_RGBDITHER)
+		self.G_CD_BAYER = 		(1 << G_MDSFT_RGBDITHER)
+		self.G_CD_NOISE = 		(2 << G_MDSFT_RGBDITHER)
 
 		if not _HW_VERSION_1:
-			self.G_CD_DISABLE =			(3 << G_MDSFT_RGBDITHER)
-			self.G_CD_ENABLE =		self.G_CD_NOISE	# HW 1.0 compatibility mode
+			self.G_CD_DISABLE = 		(3 << G_MDSFT_RGBDITHER)
+			self.G_CD_ENABLE = 		self.G_CD_NOISE	# HW 1.0 compatibility mode
 		else:
-			self.G_CD_ENABLE =		(1 << G_MDSFT_COLORDITHER)
-			self.G_CD_DISABLE =			(0 << G_MDSFT_COLORDITHER)
+			self.G_CD_ENABLE = 		(1 << G_MDSFT_COLORDITHER)
+			self.G_CD_DISABLE = 		(0 << G_MDSFT_COLORDITHER)
 
 		# G_SETOTHERMODE_H gSetAlphaDither
-		self.G_AD_PATTERN =			(0 << G_MDSFT_ALPHADITHER)
-		self.G_AD_NOTPATTERN =		(1 << G_MDSFT_ALPHADITHER)
-		self.G_AD_NOISE =		(2 << G_MDSFT_ALPHADITHER)
-		self.G_AD_DISABLE =			(3 << G_MDSFT_ALPHADITHER)
+		self.G_AD_PATTERN = 		(0 << G_MDSFT_ALPHADITHER)
+		self.G_AD_NOTPATTERN = 		(1 << G_MDSFT_ALPHADITHER)
+		self.G_AD_NOISE = 		(2 << G_MDSFT_ALPHADITHER)
+		self.G_AD_DISABLE = 		(3 << G_MDSFT_ALPHADITHER)
 
 		# G_SETOTHERMODE_L gSetAlphaCompare
-		self.G_AC_NONE =		(0 << G_MDSFT_ALPHACOMPARE)
-		self.G_AC_THRESHOLD =		(1 << G_MDSFT_ALPHACOMPARE)
-		self.G_AC_DITHER =		(3 << G_MDSFT_ALPHACOMPARE)
+		self.G_AC_NONE = 		(0 << G_MDSFT_ALPHACOMPARE)
+		self.G_AC_THRESHOLD = 		(1 << G_MDSFT_ALPHACOMPARE)
+		self.G_AC_DITHER = 		(3 << G_MDSFT_ALPHACOMPARE)
 
 		# G_SETOTHERMODE_L gSetDepthSource
-		self.G_ZS_PIXEL =		(0 << G_MDSFT_ZSRCSEL)
-		self.G_ZS_PRIM =		(1 << G_MDSFT_ZSRCSEL)
+		self.G_ZS_PIXEL = 		(0 << G_MDSFT_ZSRCSEL)
+		self.G_ZS_PRIM = 		(1 << G_MDSFT_ZSRCSEL)
 
 		# G_SETOTHERMODE_L gSetRenderMode
-		self.AA_EN = AA_EN =		0x8
-		self.Z_CMP = Z_CMP =		0x10
-		self.Z_UPD = Z_UPD =		0x20
-		self.IM_RD = IM_RD =		0x40
-		self.CLR_ON_CVG = CLR_ON_CVG =	0x80
-		self.CVG_DST_CLAMP = CVG_DST_CLAMP =	0
-		self.CVG_DST_WRAP = CVG_DST_WRAP =	0x100
-		self.CVG_DST_FULL = CVG_DST_FULL =	0x200
-		self.CVG_DST_SAVE = CVG_DST_SAVE =	0x300
-		self.ZMODE_OPA = ZMODE_OPA =	0
-		self.ZMODE_INTER = ZMODE_INTER =	0x400
-		self.ZMODE_XLU = ZMODE_XLU =	0x800
-		self.ZMODE_DEC = ZMODE_DEC =	0xc00
-		self.CVG_X_ALPHA = CVG_X_ALPHA =	0x1000
-		self.ALPHA_CVG_SEL = ALPHA_CVG_SEL =	0x2000
-		self.FORCE_BL = FORCE_BL =	0x4000
-		self.TEX_EDGE = TEX_EDGE =	0x0000 # used to be 0x8000
+		self.AA_EN = AA_EN = 		0x8
+		self.Z_CMP = Z_CMP = 		0x10
+		self.Z_UPD = Z_UPD = 		0x20
+		self.IM_RD = IM_RD = 		0x40
+		self.CLR_ON_CVG = CLR_ON_CVG = 	0x80
+		self.CVG_DST_CLAMP = CVG_DST_CLAMP = 	0
+		self.CVG_DST_WRAP = CVG_DST_WRAP = 	0x100
+		self.CVG_DST_FULL = CVG_DST_FULL = 	0x200
+		self.CVG_DST_SAVE = CVG_DST_SAVE = 	0x300
+		self.ZMODE_OPA = ZMODE_OPA = 	0
+		self.ZMODE_INTER = ZMODE_INTER = 	0x400
+		self.ZMODE_XLU = ZMODE_XLU = 	0x800
+		self.ZMODE_DEC = ZMODE_DEC = 	0xc00
+		self.CVG_X_ALPHA = CVG_X_ALPHA = 	0x1000
+		self.ALPHA_CVG_SEL = ALPHA_CVG_SEL = 	0x2000
+		self.FORCE_BL = FORCE_BL = 	0x4000
+		self.TEX_EDGE = TEX_EDGE = 	0x0000 # used to be 0x8000
 
-		self.G_BL_CLR_IN = G_BL_CLR_IN =	0
-		self.G_BL_CLR_MEM = G_BL_CLR_MEM =	1
-		self.G_BL_CLR_BL = G_BL_CLR_BL =	2
-		self.G_BL_CLR_FOG = G_BL_CLR_FOG =	3
-		self.G_BL_1MA = G_BL_1MA =	0
-		self.G_BL_A_MEM = G_BL_A_MEM =	1
-		self.G_BL_A_IN = G_BL_A_IN =	0
-		self.G_BL_A_FOG = G_BL_A_FOG =	1
-		self.G_BL_A_SHADE = G_BL_A_SHADE =	2
-		self.G_BL_1 = G_BL_1 =		2
-		self.G_BL_0 = G_BL_0 =		3
+		self.G_BL_CLR_IN = G_BL_CLR_IN = 	0
+		self.G_BL_CLR_MEM = G_BL_CLR_MEM = 	1
+		self.G_BL_CLR_BL = G_BL_CLR_BL = 	2
+		self.G_BL_CLR_FOG = G_BL_CLR_FOG = 	3
+		self.G_BL_1MA = G_BL_1MA = 	0
+		self.G_BL_A_MEM = G_BL_A_MEM = 	1
+		self.G_BL_A_IN = G_BL_A_IN = 	0
+		self.G_BL_A_FOG = G_BL_A_FOG = 	1
+		self.G_BL_A_SHADE = G_BL_A_SHADE = 	2
+		self.G_BL_1 = G_BL_1 = 		2
+		self.G_BL_0 = G_BL_0 = 		3
 
 		self.cvgDstDict = {
 			CVG_DST_CLAMP : "CVG_DST_CLAMP", 
@@ -827,7 +827,7 @@ class F3D:
 		def	RM_AA_ZB_PCL_SURF(clk):
 			func = GBL_c1 if clk == 1 else GBL_c2
 			return AA_EN | Z_CMP | Z_UPD | IM_RD | CVG_DST_CLAMP |		\
-			ZMODE_OPA | self.G_AC_DITHER |				\
+			ZMODE_OPA | self.G_AC_DITHER | 				\
 			func(G_BL_CLR_IN, G_BL_A_IN, G_BL_CLR_MEM, G_BL_1MA)
 		
 		def	RM_AA_ZB_OPA_TERR(clk):
@@ -894,7 +894,7 @@ class F3D:
 		def	RM_AA_PCL_SURF(clk):
 			func = GBL_c1 if clk == 1 else GBL_c2
 			return AA_EN | IM_RD | CVG_DST_CLAMP |				\
-			ZMODE_OPA | self.G_AC_DITHER |				\
+			ZMODE_OPA | self.G_AC_DITHER | 				\
 			func(G_BL_CLR_IN, G_BL_A_IN, G_BL_CLR_MEM, G_BL_1MA)
 		
 		def	RM_AA_OPA_TERR(clk):
@@ -950,7 +950,7 @@ class F3D:
 		def	RM_ZB_PCL_SURF(clk):
 			func = GBL_c1 if clk == 1 else GBL_c2
 			return Z_CMP | Z_UPD | CVG_DST_FULL | ZMODE_OPA |		\
-			self.G_AC_DITHER |						\
+			self.G_AC_DITHER | 						\
 			func(G_BL_CLR_IN, G_BL_0, G_BL_CLR_IN, G_BL_1)
 		
 		
@@ -977,8 +977,8 @@ class F3D:
 		
 		def	RM_PCL_SURF(clk):
 			func = GBL_c1 if clk == 1 else GBL_c2
-			return CVG_DST_FULL | FORCE_BL | ZMODE_OPA |			\
-			self.G_AC_DITHER |						\
+			return CVG_DST_FULL | FORCE_BL | ZMODE_OPA | 			\
+			self.G_AC_DITHER | 						\
 			func(G_BL_CLR_IN, G_BL_0, G_BL_CLR_IN, G_BL_1)
 		
 		def	RM_ADD(clk):
@@ -992,136 +992,136 @@ class F3D:
 		
 		def RM_VISCVG(clk):
 			func = GBL_c1 if clk == 1 else GBL_c2
-			return IM_RD | FORCE_BL |	  \
+			return IM_RD | FORCE_BL |     \
 			func(G_BL_CLR_IN, G_BL_0, G_BL_CLR_BL, G_BL_A_MEM)
 		
 		# for rendering to an 8-bit framebuffer
 		def RM_OPA_CI(clk):
 			func = GBL_c1 if clk == 1 else GBL_c2
-			return CVG_DST_CLAMP | ZMODE_OPA |			\
+			return CVG_DST_CLAMP | ZMODE_OPA |          \
 			func(G_BL_CLR_IN, G_BL_0, G_BL_CLR_IN, G_BL_1)
 
-		self.G_RM_AA_ZB_OPA_SURF =	RM_AA_ZB_OPA_SURF(1)
-		self.G_RM_AA_ZB_OPA_SURF2 =		RM_AA_ZB_OPA_SURF(2)
-		self.G_RM_AA_ZB_XLU_SURF =	RM_AA_ZB_XLU_SURF(1)
-		self.G_RM_AA_ZB_XLU_SURF2 =		RM_AA_ZB_XLU_SURF(2)
-		self.G_RM_AA_ZB_OPA_DECAL =		RM_AA_ZB_OPA_DECAL(1)
-		self.G_RM_AA_ZB_OPA_DECAL2 =	RM_AA_ZB_OPA_DECAL(2)
-		self.G_RM_AA_ZB_XLU_DECAL =		RM_AA_ZB_XLU_DECAL(1)
-		self.G_RM_AA_ZB_XLU_DECAL2 =	RM_AA_ZB_XLU_DECAL(2)
-		self.G_RM_AA_ZB_OPA_INTER =		RM_AA_ZB_OPA_INTER(1)
-		self.G_RM_AA_ZB_OPA_INTER2 =	RM_AA_ZB_OPA_INTER(2)
-		self.G_RM_AA_ZB_XLU_INTER =		RM_AA_ZB_XLU_INTER(1)
-		self.G_RM_AA_ZB_XLU_INTER2 =	RM_AA_ZB_XLU_INTER(2)
-		self.G_RM_AA_ZB_XLU_LINE =	RM_AA_ZB_XLU_LINE(1)
-		self.G_RM_AA_ZB_XLU_LINE2 =		RM_AA_ZB_XLU_LINE(2)
-		self.G_RM_AA_ZB_DEC_LINE =	RM_AA_ZB_DEC_LINE(1)
-		self.G_RM_AA_ZB_DEC_LINE2 =		RM_AA_ZB_DEC_LINE(2)
-		self.G_RM_AA_ZB_TEX_EDGE =	RM_AA_ZB_TEX_EDGE(1)
-		self.G_RM_AA_ZB_TEX_EDGE2 =		RM_AA_ZB_TEX_EDGE(2)
-		self.G_RM_AA_ZB_TEX_INTER =		RM_AA_ZB_TEX_INTER(1)
-		self.G_RM_AA_ZB_TEX_INTER2 =	RM_AA_ZB_TEX_INTER(2)
-		self.G_RM_AA_ZB_SUB_SURF =	RM_AA_ZB_SUB_SURF(1)
-		self.G_RM_AA_ZB_SUB_SURF2 =		RM_AA_ZB_SUB_SURF(2)
-		self.G_RM_AA_ZB_PCL_SURF =	RM_AA_ZB_PCL_SURF(1)
-		self.G_RM_AA_ZB_PCL_SURF2 =		RM_AA_ZB_PCL_SURF(2)
-		self.G_RM_AA_ZB_OPA_TERR =	RM_AA_ZB_OPA_TERR(1)
-		self.G_RM_AA_ZB_OPA_TERR2 =		RM_AA_ZB_OPA_TERR(2)
-		self.G_RM_AA_ZB_TEX_TERR =	RM_AA_ZB_TEX_TERR(1)
-		self.G_RM_AA_ZB_TEX_TERR2 =		RM_AA_ZB_TEX_TERR(2)
-		self.G_RM_AA_ZB_SUB_TERR =	RM_AA_ZB_SUB_TERR(1)
-		self.G_RM_AA_ZB_SUB_TERR2 =		RM_AA_ZB_SUB_TERR(2)
+		self.G_RM_AA_ZB_OPA_SURF = 	RM_AA_ZB_OPA_SURF(1)
+		self.G_RM_AA_ZB_OPA_SURF2 = 	RM_AA_ZB_OPA_SURF(2)
+		self.G_RM_AA_ZB_XLU_SURF = 	RM_AA_ZB_XLU_SURF(1)
+		self.G_RM_AA_ZB_XLU_SURF2 = 	RM_AA_ZB_XLU_SURF(2)
+		self.G_RM_AA_ZB_OPA_DECAL = 	RM_AA_ZB_OPA_DECAL(1)
+		self.G_RM_AA_ZB_OPA_DECAL2 = 	RM_AA_ZB_OPA_DECAL(2)
+		self.G_RM_AA_ZB_XLU_DECAL = 	RM_AA_ZB_XLU_DECAL(1)
+		self.G_RM_AA_ZB_XLU_DECAL2 = 	RM_AA_ZB_XLU_DECAL(2)
+		self.G_RM_AA_ZB_OPA_INTER = 	RM_AA_ZB_OPA_INTER(1)
+		self.G_RM_AA_ZB_OPA_INTER2 = 	RM_AA_ZB_OPA_INTER(2)
+		self.G_RM_AA_ZB_XLU_INTER = 	RM_AA_ZB_XLU_INTER(1)
+		self.G_RM_AA_ZB_XLU_INTER2 = 	RM_AA_ZB_XLU_INTER(2)
+		self.G_RM_AA_ZB_XLU_LINE = 	RM_AA_ZB_XLU_LINE(1)
+		self.G_RM_AA_ZB_XLU_LINE2 = 	RM_AA_ZB_XLU_LINE(2)
+		self.G_RM_AA_ZB_DEC_LINE = 	RM_AA_ZB_DEC_LINE(1)
+		self.G_RM_AA_ZB_DEC_LINE2 = 	RM_AA_ZB_DEC_LINE(2)
+		self.G_RM_AA_ZB_TEX_EDGE = 	RM_AA_ZB_TEX_EDGE(1)
+		self.G_RM_AA_ZB_TEX_EDGE2 = 	RM_AA_ZB_TEX_EDGE(2)
+		self.G_RM_AA_ZB_TEX_INTER = 	RM_AA_ZB_TEX_INTER(1)
+		self.G_RM_AA_ZB_TEX_INTER2 = 	RM_AA_ZB_TEX_INTER(2)
+		self.G_RM_AA_ZB_SUB_SURF = 	RM_AA_ZB_SUB_SURF(1)
+		self.G_RM_AA_ZB_SUB_SURF2 = 	RM_AA_ZB_SUB_SURF(2)
+		self.G_RM_AA_ZB_PCL_SURF = 	RM_AA_ZB_PCL_SURF(1)
+		self.G_RM_AA_ZB_PCL_SURF2 = 	RM_AA_ZB_PCL_SURF(2)
+		self.G_RM_AA_ZB_OPA_TERR = 	RM_AA_ZB_OPA_TERR(1)
+		self.G_RM_AA_ZB_OPA_TERR2 = 	RM_AA_ZB_OPA_TERR(2)
+		self.G_RM_AA_ZB_TEX_TERR = 	RM_AA_ZB_TEX_TERR(1)
+		self.G_RM_AA_ZB_TEX_TERR2 = 	RM_AA_ZB_TEX_TERR(2)
+		self.G_RM_AA_ZB_SUB_TERR = 	RM_AA_ZB_SUB_TERR(1)
+		self.G_RM_AA_ZB_SUB_TERR2 = 	RM_AA_ZB_SUB_TERR(2)
 
-		self.G_RM_RA_ZB_OPA_SURF =	RM_RA_ZB_OPA_SURF(1)
-		self.G_RM_RA_ZB_OPA_SURF2 =		RM_RA_ZB_OPA_SURF(2)
-		self.G_RM_RA_ZB_OPA_DECAL =		RM_RA_ZB_OPA_DECAL(1)
-		self.G_RM_RA_ZB_OPA_DECAL2 =	RM_RA_ZB_OPA_DECAL(2)
-		self.G_RM_RA_ZB_OPA_INTER =		RM_RA_ZB_OPA_INTER(1)
-		self.G_RM_RA_ZB_OPA_INTER2 =	RM_RA_ZB_OPA_INTER(2)
+		self.G_RM_RA_ZB_OPA_SURF = 	RM_RA_ZB_OPA_SURF(1)
+		self.G_RM_RA_ZB_OPA_SURF2 = 	RM_RA_ZB_OPA_SURF(2)
+		self.G_RM_RA_ZB_OPA_DECAL = 	RM_RA_ZB_OPA_DECAL(1)
+		self.G_RM_RA_ZB_OPA_DECAL2 = 	RM_RA_ZB_OPA_DECAL(2)
+		self.G_RM_RA_ZB_OPA_INTER = 	RM_RA_ZB_OPA_INTER(1)
+		self.G_RM_RA_ZB_OPA_INTER2 = 	RM_RA_ZB_OPA_INTER(2)
 
-		self.G_RM_AA_OPA_SURF =		RM_AA_OPA_SURF(1)
-		self.G_RM_AA_OPA_SURF2 =	RM_AA_OPA_SURF(2)
-		self.G_RM_AA_XLU_SURF =		RM_AA_XLU_SURF(1)
-		self.G_RM_AA_XLU_SURF2 =	RM_AA_XLU_SURF(2)
-		self.G_RM_AA_XLU_LINE =		RM_AA_XLU_LINE(1)
-		self.G_RM_AA_XLU_LINE2 =	RM_AA_XLU_LINE(2)
-		self.G_RM_AA_DEC_LINE =		RM_AA_DEC_LINE(1)
-		self.G_RM_AA_DEC_LINE2 =	RM_AA_DEC_LINE(2)
-		self.G_RM_AA_TEX_EDGE =		RM_AA_TEX_EDGE(1)
-		self.G_RM_AA_TEX_EDGE2 =	RM_AA_TEX_EDGE(2)
-		self.G_RM_AA_SUB_SURF =		RM_AA_SUB_SURF(1)
-		self.G_RM_AA_SUB_SURF2 =	RM_AA_SUB_SURF(2)
-		self.G_RM_AA_PCL_SURF =		RM_AA_PCL_SURF(1)
-		self.G_RM_AA_PCL_SURF2 =	RM_AA_PCL_SURF(2)
-		self.G_RM_AA_OPA_TERR =		RM_AA_OPA_TERR(1)
-		self.G_RM_AA_OPA_TERR2 =	RM_AA_OPA_TERR(2)
-		self.G_RM_AA_TEX_TERR =		RM_AA_TEX_TERR(1)
-		self.G_RM_AA_TEX_TERR2 =	RM_AA_TEX_TERR(2)
-		self.G_RM_AA_SUB_TERR =		RM_AA_SUB_TERR(1)
-		self.G_RM_AA_SUB_TERR2 =	RM_AA_SUB_TERR(2)
+		self.G_RM_AA_OPA_SURF = 	RM_AA_OPA_SURF(1)
+		self.G_RM_AA_OPA_SURF2 = 	RM_AA_OPA_SURF(2)
+		self.G_RM_AA_XLU_SURF = 	RM_AA_XLU_SURF(1)
+		self.G_RM_AA_XLU_SURF2 = 	RM_AA_XLU_SURF(2)
+		self.G_RM_AA_XLU_LINE = 	RM_AA_XLU_LINE(1)
+		self.G_RM_AA_XLU_LINE2 = 	RM_AA_XLU_LINE(2)
+		self.G_RM_AA_DEC_LINE = 	RM_AA_DEC_LINE(1)
+		self.G_RM_AA_DEC_LINE2 = 	RM_AA_DEC_LINE(2)
+		self.G_RM_AA_TEX_EDGE = 	RM_AA_TEX_EDGE(1)
+		self.G_RM_AA_TEX_EDGE2 = 	RM_AA_TEX_EDGE(2)
+		self.G_RM_AA_SUB_SURF = 	RM_AA_SUB_SURF(1)
+		self.G_RM_AA_SUB_SURF2 = 	RM_AA_SUB_SURF(2)
+		self.G_RM_AA_PCL_SURF = 	RM_AA_PCL_SURF(1)
+		self.G_RM_AA_PCL_SURF2 = 	RM_AA_PCL_SURF(2)
+		self.G_RM_AA_OPA_TERR = 	RM_AA_OPA_TERR(1)
+		self.G_RM_AA_OPA_TERR2 = 	RM_AA_OPA_TERR(2)
+		self.G_RM_AA_TEX_TERR = 	RM_AA_TEX_TERR(1)
+		self.G_RM_AA_TEX_TERR2 = 	RM_AA_TEX_TERR(2)
+		self.G_RM_AA_SUB_TERR = 	RM_AA_SUB_TERR(1)
+		self.G_RM_AA_SUB_TERR2 = 	RM_AA_SUB_TERR(2)
 
-		self.G_RM_RA_OPA_SURF =		RM_RA_OPA_SURF(1)
-		self.G_RM_RA_OPA_SURF2 =	RM_RA_OPA_SURF(2)
+		self.G_RM_RA_OPA_SURF = 	RM_RA_OPA_SURF(1)
+		self.G_RM_RA_OPA_SURF2 = 	RM_RA_OPA_SURF(2)
 
-		self.G_RM_ZB_OPA_SURF =		RM_ZB_OPA_SURF(1)
-		self.G_RM_ZB_OPA_SURF2 =	RM_ZB_OPA_SURF(2)
-		self.G_RM_ZB_XLU_SURF =		RM_ZB_XLU_SURF(1)
-		self.G_RM_ZB_XLU_SURF2 =	RM_ZB_XLU_SURF(2)
-		self.G_RM_ZB_OPA_DECAL =	RM_ZB_OPA_DECAL(1)
-		self.G_RM_ZB_OPA_DECAL2 =	RM_ZB_OPA_DECAL(2)
-		self.G_RM_ZB_XLU_DECAL =	RM_ZB_XLU_DECAL(1)
-		self.G_RM_ZB_XLU_DECAL2 =	RM_ZB_XLU_DECAL(2)
-		self.G_RM_ZB_CLD_SURF =		RM_ZB_CLD_SURF(1)
-		self.G_RM_ZB_CLD_SURF2 =	RM_ZB_CLD_SURF(2)
-		self.G_RM_ZB_OVL_SURF =		RM_ZB_OVL_SURF(1)
-		self.G_RM_ZB_OVL_SURF2 =	RM_ZB_OVL_SURF(2)
-		self.G_RM_ZB_PCL_SURF =		RM_ZB_PCL_SURF(1)
-		self.G_RM_ZB_PCL_SURF2 =	RM_ZB_PCL_SURF(2)
+		self.G_RM_ZB_OPA_SURF = 	RM_ZB_OPA_SURF(1)
+		self.G_RM_ZB_OPA_SURF2 = 	RM_ZB_OPA_SURF(2)
+		self.G_RM_ZB_XLU_SURF = 	RM_ZB_XLU_SURF(1)
+		self.G_RM_ZB_XLU_SURF2 = 	RM_ZB_XLU_SURF(2)
+		self.G_RM_ZB_OPA_DECAL = 	RM_ZB_OPA_DECAL(1)
+		self.G_RM_ZB_OPA_DECAL2 = 	RM_ZB_OPA_DECAL(2)
+		self.G_RM_ZB_XLU_DECAL = 	RM_ZB_XLU_DECAL(1)
+		self.G_RM_ZB_XLU_DECAL2 = 	RM_ZB_XLU_DECAL(2)
+		self.G_RM_ZB_CLD_SURF = 	RM_ZB_CLD_SURF(1)
+		self.G_RM_ZB_CLD_SURF2 = 	RM_ZB_CLD_SURF(2)
+		self.G_RM_ZB_OVL_SURF = 	RM_ZB_OVL_SURF(1)
+		self.G_RM_ZB_OVL_SURF2 = 	RM_ZB_OVL_SURF(2)
+		self.G_RM_ZB_PCL_SURF = 	RM_ZB_PCL_SURF(1)
+		self.G_RM_ZB_PCL_SURF2 = 	RM_ZB_PCL_SURF(2)
 
-		self.G_RM_OPA_SURF =		RM_OPA_SURF(1)
-		self.G_RM_OPA_SURF2 =		RM_OPA_SURF(2)
-		self.G_RM_XLU_SURF =		RM_XLU_SURF(1)
-		self.G_RM_XLU_SURF2 =		RM_XLU_SURF(2)
-		self.G_RM_CLD_SURF =		RM_CLD_SURF(1)
-		self.G_RM_CLD_SURF2 =		RM_CLD_SURF(2)
-		self.G_RM_TEX_EDGE =		RM_TEX_EDGE(1)
-		self.G_RM_TEX_EDGE2 =		RM_TEX_EDGE(2)
-		self.G_RM_PCL_SURF =		RM_PCL_SURF(1)
-		self.G_RM_PCL_SURF2 =		RM_PCL_SURF(2)
-		self.G_RM_ADD =				RM_ADD(1)
-		self.G_RM_ADD2 =			RM_ADD(2)
-		self.G_RM_NOOP =			RM_NOOP(1)
-		self.G_RM_NOOP2 =			RM_NOOP(2)
-		self.G_RM_VISCVG =			RM_VISCVG(1)
-		self.G_RM_VISCVG2 =			RM_VISCVG(2)
-		self.G_RM_OPA_CI =			RM_OPA_CI(1)
-		self.G_RM_OPA_CI2 =			RM_OPA_CI(2)
+		self.G_RM_OPA_SURF = 		RM_OPA_SURF(1)
+		self.G_RM_OPA_SURF2 = 		RM_OPA_SURF(2)
+		self.G_RM_XLU_SURF = 		RM_XLU_SURF(1)
+		self.G_RM_XLU_SURF2 = 		RM_XLU_SURF(2)
+		self.G_RM_CLD_SURF = 		RM_CLD_SURF(1)
+		self.G_RM_CLD_SURF2 = 		RM_CLD_SURF(2)
+		self.G_RM_TEX_EDGE = 		RM_TEX_EDGE(1)
+		self.G_RM_TEX_EDGE2 = 		RM_TEX_EDGE(2)
+		self.G_RM_PCL_SURF = 		RM_PCL_SURF(1)
+		self.G_RM_PCL_SURF2 = 		RM_PCL_SURF(2)
+		self.G_RM_ADD =        		RM_ADD(1)
+		self.G_RM_ADD2 =       		RM_ADD(2)
+		self.G_RM_NOOP =        	RM_NOOP(1)
+		self.G_RM_NOOP2 =       	RM_NOOP(2)
+		self.G_RM_VISCVG =     		RM_VISCVG(1)
+		self.G_RM_VISCVG2 =     	RM_VISCVG(2)
+		self.G_RM_OPA_CI =          RM_OPA_CI(1)
+		self.G_RM_OPA_CI2 =         RM_OPA_CI(2)
 
 
-		self.G_RM_FOG_SHADE_A =		GBL_c1(G_BL_CLR_FOG, G_BL_A_SHADE, G_BL_CLR_IN, G_BL_1MA)
-		self.G_RM_FOG_PRIM_A =		GBL_c1(G_BL_CLR_FOG, G_BL_A_FOG, G_BL_CLR_IN, G_BL_1MA)
-		self.G_RM_PASS =		GBL_c1(G_BL_CLR_IN, G_BL_0, G_BL_CLR_IN, G_BL_1)
+		self.G_RM_FOG_SHADE_A = 	GBL_c1(G_BL_CLR_FOG, G_BL_A_SHADE, G_BL_CLR_IN, G_BL_1MA)
+		self.G_RM_FOG_PRIM_A = 		GBL_c1(G_BL_CLR_FOG, G_BL_A_FOG, G_BL_CLR_IN, G_BL_1MA)
+		self.G_RM_PASS = 		GBL_c1(G_BL_CLR_IN, G_BL_0, G_BL_CLR_IN, G_BL_1)
 
 		
 		# G_SETCONVERT: K0-5
 		
-		self.G_CV_K0 =		175
-		self.G_CV_K1 =		-43
-		self.G_CV_K2 =		-89
-		self.G_CV_K3 =		222
-		self.G_CV_K4 =		114
-		self.G_CV_K5 =		42
+		self.G_CV_K0 = 		175
+		self.G_CV_K1 = 		-43
+		self.G_CV_K2 = 		-89
+		self.G_CV_K3 = 		222
+		self.G_CV_K4 = 		114
+		self.G_CV_K5 = 		42
 
 		
 		# G_SETSCISSOR: interlace mode
 		
-		self.G_SC_NON_INTERLACE =	0
-		self.G_SC_ODD_INTERLACE =	3
-		self.G_SC_EVEN_INTERLACE =	2
+		self.G_SC_NON_INTERLACE = 	0
+		self.G_SC_ODD_INTERLACE = 	3
+		self.G_SC_EVEN_INTERLACE = 	2
 
 		# flags to inhibit pushing of the display list (on branch)
-		self.G_DL_PUSH =		0x00
-		self.G_DL_NOPUSH =		0x01
+		self.G_DL_PUSH = 		0x00
+		self.G_DL_NOPUSH = 		0x01
 
 		# Some structs here
 
@@ -1139,39 +1139,39 @@ class F3D:
 		
 		if	F3DEX_GBI_2:
 			# 0,4 are reserved by G_MTX
-			self.G_MV_MMTX =	2	
-			self.G_MV_PMTX =	6
-			self.G_MV_VIEWPORT =	8
-			self.G_MV_LIGHT =	10
-			self.G_MV_POINT =	12
-			self.G_MV_MATRIX =	14		# NOTE: this is in moveword table
-			self.G_MVO_LOOKATX =	(0*24)
-			self.G_MVO_LOOKATY =	(1*24)
-			self.G_MVO_L0 =		(2*24)
-			self.G_MVO_L1 =		(3*24)
-			self.G_MVO_L2 =		(4*24)
-			self.G_MVO_L3 =		(5*24)
-			self.G_MVO_L4 =		(6*24)
-			self.G_MVO_L5 =		(7*24)
-			self.G_MVO_L6 =		(8*24)
-			self.G_MVO_L7 =		(9*24)
+			self.G_MV_MMTX = 	2	
+			self.G_MV_PMTX = 	6
+			self.G_MV_VIEWPORT = 	8
+			self.G_MV_LIGHT = 	10
+			self.G_MV_POINT = 	12
+			self.G_MV_MATRIX = 	14		# NOTE: this is in moveword table
+			self.G_MVO_LOOKATX = 	(0*24)
+			self.G_MVO_LOOKATY = 	(1*24)
+			self.G_MVO_L0 = 	(2*24)
+			self.G_MVO_L1 = 	(3*24)
+			self.G_MVO_L2 = 	(4*24)
+			self.G_MVO_L3 = 	(5*24)
+			self.G_MVO_L4 = 	(6*24)
+			self.G_MVO_L5 = 	(7*24)
+			self.G_MVO_L6 = 	(8*24)
+			self.G_MVO_L7 = 	(9*24)
 		else:
-			self.G_MV_VIEWPORT =	0x80
-			self.G_MV_LOOKATY =		0x82
-			self.G_MV_LOOKATX =		0x84
-			self.G_MV_L0 =	0x86
-			self.G_MV_L1 =	0x88
-			self.G_MV_L2 =	0x8a
-			self.G_MV_L3 =	0x8c
-			self.G_MV_L4 =	0x8e
-			self.G_MV_L5 =	0x90
-			self.G_MV_L6 =	0x92
-			self.G_MV_L7 =	0x94
-			self.G_MV_TXTATT =	0x96
-			self.G_MV_MATRIX_1 =	0x9e	# NOTE: this is in moveword table
-			self.G_MV_MATRIX_2 =	0x98
-			self.G_MV_MATRIX_3 =	0x9a
-			self.G_MV_MATRIX_4 =	0x9c
+			self.G_MV_VIEWPORT = 	0x80
+			self.G_MV_LOOKATY = 	0x82
+			self.G_MV_LOOKATX = 	0x84
+			self.G_MV_L0 = 	0x86
+			self.G_MV_L1 = 	0x88
+			self.G_MV_L2 = 	0x8a
+			self.G_MV_L3 = 	0x8c
+			self.G_MV_L4 = 	0x8e
+			self.G_MV_L5 = 	0x90
+			self.G_MV_L6 = 	0x92
+			self.G_MV_L7 = 	0x94
+			self.G_MV_TXTATT = 	0x96
+			self.G_MV_MATRIX_1 = 	0x9e	# NOTE: this is in moveword table
+			self.G_MV_MATRIX_2 = 	0x98
+			self.G_MV_MATRIX_3 = 	0x9a
+			self.G_MV_MATRIX_4 = 	0x9c
 
 		'''
 		MOVEWORD indices
@@ -1181,152 +1181,152 @@ class F3D:
 		an immediate word will be stored.
 		'''
 		
-		self.G_MW_MATRIX =		0x00	# NOTE: also used by movemem
-		self.G_MW_NUMLIGHT =		0x02
-		self.G_MW_CLIP =		0x04
-		self.G_MW_SEGMENT =			0x06
-		self.G_MW_FOG =			0x08
-		self.G_MW_LIGHTCOL =		0x0a
+		self.G_MW_MATRIX = 		0x00	# NOTE: also used by movemem
+		self.G_MW_NUMLIGHT = 		0x02
+		self.G_MW_CLIP = 		0x04
+		self.G_MW_SEGMENT = 		0x06
+		self.G_MW_FOG = 		0x08
+		self.G_MW_LIGHTCOL = 		0x0a
 		if	F3DEX_GBI_2:
-			self.G_MW_FORCEMTX =		0x0c
+			self.G_MW_FORCEMTX = 		0x0c
 		else:
-			self.G_MW_POINTS =		0x0c
-		self.G_MW_PERSPNORM =		0x0e
+			self.G_MW_POINTS = 		0x0c
+		self.G_MW_PERSPNORM = 		0x0e
 
 		
 		# These are offsets from the address in the dmem table
 		 
-		self.G_MWO_NUMLIGHT =		0x00
-		self.G_MWO_CLIP_RNX =		0x04
-		self.G_MWO_CLIP_RNY =		0x0c
-		self.G_MWO_CLIP_RPX =		0x14
-		self.G_MWO_CLIP_RPY =		0x1c
-		self.G_MWO_SEGMENT_0 =		0x00
-		self.G_MWO_SEGMENT_1 =		0x01
-		self.G_MWO_SEGMENT_2 =		0x02
-		self.G_MWO_SEGMENT_3 =		0x03
-		self.G_MWO_SEGMENT_4 =		0x04
-		self.G_MWO_SEGMENT_5 =		0x05
-		self.G_MWO_SEGMENT_6 =		0x06
-		self.G_MWO_SEGMENT_7 =		0x07
-		self.G_MWO_SEGMENT_8 =		0x08
-		self.G_MWO_SEGMENT_9 =		0x09
-		self.G_MWO_SEGMENT_A =		0x0a
-		self.G_MWO_SEGMENT_B =		0x0b
-		self.G_MWO_SEGMENT_C =		0x0c
-		self.G_MWO_SEGMENT_D =		0x0d
-		self.G_MWO_SEGMENT_E =		0x0e
-		self.G_MWO_SEGMENT_F =		0x0f
-		self.G_MWO_FOG =		0x00
-		self.G_MWO_aLIGHT_1 =		0x00
-		self.G_MWO_bLIGHT_1 =		0x04
+		self.G_MWO_NUMLIGHT = 		0x00
+		self.G_MWO_CLIP_RNX = 		0x04
+		self.G_MWO_CLIP_RNY = 		0x0c
+		self.G_MWO_CLIP_RPX = 		0x14
+		self.G_MWO_CLIP_RPY = 		0x1c
+		self.G_MWO_SEGMENT_0 = 		0x00
+		self.G_MWO_SEGMENT_1 = 		0x01
+		self.G_MWO_SEGMENT_2 = 		0x02
+		self.G_MWO_SEGMENT_3 = 		0x03
+		self.G_MWO_SEGMENT_4 = 		0x04
+		self.G_MWO_SEGMENT_5 = 		0x05
+		self.G_MWO_SEGMENT_6 = 		0x06
+		self.G_MWO_SEGMENT_7 = 		0x07
+		self.G_MWO_SEGMENT_8 = 		0x08
+		self.G_MWO_SEGMENT_9 = 		0x09
+		self.G_MWO_SEGMENT_A = 		0x0a
+		self.G_MWO_SEGMENT_B = 		0x0b
+		self.G_MWO_SEGMENT_C = 		0x0c
+		self.G_MWO_SEGMENT_D = 		0x0d
+		self.G_MWO_SEGMENT_E = 		0x0e
+		self.G_MWO_SEGMENT_F = 		0x0f
+		self.G_MWO_FOG = 		0x00
+		self.G_MWO_aLIGHT_1 = 		0x00
+		self.G_MWO_bLIGHT_1 = 		0x04
 
 		if	F3DEX_GBI_2:
-			self.G_MWO_aLIGHT_2 =		0x18
-			self.G_MWO_bLIGHT_2 =		0x1c
-			self.G_MWO_aLIGHT_3 =		0x30
-			self.G_MWO_bLIGHT_3 =		0x34
-			self.G_MWO_aLIGHT_4 =		0x48
-			self.G_MWO_bLIGHT_4 =		0x4c
-			self.G_MWO_aLIGHT_5 =		0x60
-			self.G_MWO_bLIGHT_5 =		0x64
-			self.G_MWO_aLIGHT_6 =		0x78
-			self.G_MWO_bLIGHT_6 =		0x7c
-			self.G_MWO_aLIGHT_7 =		0x90
-			self.G_MWO_bLIGHT_7 =		0x94
-			self.G_MWO_aLIGHT_8 =		0xa8
-			self.G_MWO_bLIGHT_8 =		0xac
+			self.G_MWO_aLIGHT_2 = 		0x18
+			self.G_MWO_bLIGHT_2 = 		0x1c
+			self.G_MWO_aLIGHT_3 = 		0x30
+			self.G_MWO_bLIGHT_3 = 		0x34
+			self.G_MWO_aLIGHT_4 = 		0x48
+			self.G_MWO_bLIGHT_4 = 		0x4c
+			self.G_MWO_aLIGHT_5 = 		0x60
+			self.G_MWO_bLIGHT_5 = 		0x64
+			self.G_MWO_aLIGHT_6 = 		0x78
+			self.G_MWO_bLIGHT_6 = 		0x7c
+			self.G_MWO_aLIGHT_7 = 		0x90
+			self.G_MWO_bLIGHT_7 = 		0x94
+			self.G_MWO_aLIGHT_8 = 		0xa8
+			self.G_MWO_bLIGHT_8 = 		0xac
 		else:
-			self.G_MWO_aLIGHT_2 =		0x20
-			self.G_MWO_bLIGHT_2 =		0x24
-			self.G_MWO_aLIGHT_3 =		0x40
-			self.G_MWO_bLIGHT_3 =		0x44
-			self.G_MWO_aLIGHT_4 =		0x60
-			self.G_MWO_bLIGHT_4 =		0x64
-			self.G_MWO_aLIGHT_5 =		0x80
-			self.G_MWO_bLIGHT_5 =		0x84
-			self.G_MWO_aLIGHT_6 =		0xa0
-			self.G_MWO_bLIGHT_6 =		0xa4
-			self.G_MWO_aLIGHT_7 =		0xc0
-			self.G_MWO_bLIGHT_7 =		0xc4
-			self.G_MWO_aLIGHT_8 =		0xe0
-			self.G_MWO_bLIGHT_8 =		0xe4
+			self.G_MWO_aLIGHT_2 = 		0x20
+			self.G_MWO_bLIGHT_2 = 		0x24
+			self.G_MWO_aLIGHT_3 = 		0x40
+			self.G_MWO_bLIGHT_3 = 		0x44
+			self.G_MWO_aLIGHT_4 = 		0x60
+			self.G_MWO_bLIGHT_4 = 		0x64
+			self.G_MWO_aLIGHT_5 = 		0x80
+			self.G_MWO_bLIGHT_5 = 		0x84
+			self.G_MWO_aLIGHT_6 = 		0xa0
+			self.G_MWO_bLIGHT_6 = 		0xa4
+			self.G_MWO_aLIGHT_7 = 		0xc0
+			self.G_MWO_bLIGHT_7 = 		0xc4
+			self.G_MWO_aLIGHT_8 = 		0xe0
+			self.G_MWO_bLIGHT_8 = 		0xe4
 
-		self.G_MWO_MATRIX_XX_XY_I =		0x00
-		self.G_MWO_MATRIX_XZ_XW_I =		0x04
-		self.G_MWO_MATRIX_YX_YY_I =		0x08
-		self.G_MWO_MATRIX_YZ_YW_I =		0x0c
-		self.G_MWO_MATRIX_ZX_ZY_I =		0x10
-		self.G_MWO_MATRIX_ZZ_ZW_I =		0x14
-		self.G_MWO_MATRIX_WX_WY_I =		0x18
-		self.G_MWO_MATRIX_WZ_WW_I =		0x1c
-		self.G_MWO_MATRIX_XX_XY_F =		0x20
-		self.G_MWO_MATRIX_XZ_XW_F =		0x24
-		self.G_MWO_MATRIX_YX_YY_F =		0x28
-		self.G_MWO_MATRIX_YZ_YW_F =		0x2c
-		self.G_MWO_MATRIX_ZX_ZY_F =		0x30
-		self.G_MWO_MATRIX_ZZ_ZW_F =		0x34
-		self.G_MWO_MATRIX_WX_WY_F =		0x38
-		self.G_MWO_MATRIX_WZ_WW_F =		0x3c
-		self.G_MWO_POINT_RGBA =		0x10
-		self.G_MWO_POINT_ST =		0x14
-		self.G_MWO_POINT_XYSCREEN =		0x18
-		self.G_MWO_POINT_ZSCREEN =	0x1c
+		self.G_MWO_MATRIX_XX_XY_I = 	0x00
+		self.G_MWO_MATRIX_XZ_XW_I = 	0x04
+		self.G_MWO_MATRIX_YX_YY_I = 	0x08
+		self.G_MWO_MATRIX_YZ_YW_I = 	0x0c
+		self.G_MWO_MATRIX_ZX_ZY_I = 	0x10
+		self.G_MWO_MATRIX_ZZ_ZW_I = 	0x14
+		self.G_MWO_MATRIX_WX_WY_I = 	0x18
+		self.G_MWO_MATRIX_WZ_WW_I = 	0x1c
+		self.G_MWO_MATRIX_XX_XY_F = 	0x20
+		self.G_MWO_MATRIX_XZ_XW_F = 	0x24
+		self.G_MWO_MATRIX_YX_YY_F = 	0x28
+		self.G_MWO_MATRIX_YZ_YW_F = 	0x2c
+		self.G_MWO_MATRIX_ZX_ZY_F = 	0x30
+		self.G_MWO_MATRIX_ZZ_ZW_F = 	0x34
+		self.G_MWO_MATRIX_WX_WY_F = 	0x38
+		self.G_MWO_MATRIX_WZ_WW_F = 	0x3c
+		self.G_MWO_POINT_RGBA = 	0x10
+		self.G_MWO_POINT_ST = 		0x14
+		self.G_MWO_POINT_XYSCREEN = 	0x18
+		self.G_MWO_POINT_ZSCREEN = 	0x1c
 
 		
 		# Texturing macros
 
 		# These are also defined defined above for Sprite Microcode
-		self.G_TX_LOADTILE =	7
-		self.G_TX_RENDERTILE =	0
+		self.G_TX_LOADTILE = 	7
+		self.G_TX_RENDERTILE = 	0
 
-		self.G_TX_NOMIRROR =	0
-		self.G_TX_WRAP =	0
-		self.G_TX_MIRROR =	0x1
-		self.G_TX_CLAMP =	0x2
-		self.G_TX_NOMASK =	0
-		self.G_TX_NOLOD =	0
+		self.G_TX_NOMIRROR = 	0
+		self.G_TX_WRAP = 	0
+		self.G_TX_MIRROR = 	0x1
+		self.G_TX_CLAMP = 	0x2
+		self.G_TX_NOMASK = 	0
+		self.G_TX_NOLOD = 	0
 
 		'''
 		Dxt is the inverse of the number of 64-bit words in a line of
-		the texture being loaded using the load_block command.	If
+		the texture being loaded using the load_block command.  If
 		there are any 1's to the right of the 11th fractional bit,
 		dxt should be rounded up.  The following macros accomplish
 		this.  The 4b macros are a special case since 4-bit textures
 		are loaded as 8-bit textures.  Dxt is fixed point 1.11. RJM
 		'''
-		self.G_TX_DXT_FRAC =	11
+		self.G_TX_DXT_FRAC = 	11
 
 		'''
 		For RCP 2.0, the maximum number of texels that can be loaded
-		using a load_block command is 2048.	 In order to load the total
+		using a load_block command is 2048.  In order to load the total
 		4kB of Tmem, change the texel size when loading to be G_IM_SIZ_16b,
 		then change the tile to the proper texel size after the load.
 		The g*DPLoadTextureBlock macros already do this, so this change
 		will be transparent if you use these macros.  If you use
 		the g*DPLoadBlock macros directly, you will need to handle this
-		tile manipulation yourself.	 RJM.
+		tile manipulation yourself.  RJM.
 		'''
 		
 		if _HW_VERSION_1:
-			self.G_TX_LDBLK_MAX_TXL =	4095
+			self.G_TX_LDBLK_MAX_TXL = 	4095
 		else:
-			self.G_TX_LDBLK_MAX_TXL =	2047
+			self.G_TX_LDBLK_MAX_TXL = 	2047
 
 		
 		# Clipping Macros
-		self.FR_NEG_FRUSTRATIO_1 =	0x00000001
-		self.FR_POS_FRUSTRATIO_1 =	0x0000ffff
-		self.FR_NEG_FRUSTRATIO_2 =	0x00000002
-		self.FR_POS_FRUSTRATIO_2 =	0x0000fffe
-		self.FR_NEG_FRUSTRATIO_3 =	0x00000003
-		self.FR_POS_FRUSTRATIO_3 =	0x0000fffd
-		self.FR_NEG_FRUSTRATIO_4 =	0x00000004
-		self.FR_POS_FRUSTRATIO_4 =	0x0000fffc
-		self.FR_NEG_FRUSTRATIO_5 =	0x00000005
-		self.FR_POS_FRUSTRATIO_5 =	0x0000fffb
-		self.FR_NEG_FRUSTRATIO_6 =	0x00000006
-		self.FR_POS_FRUSTRATIO_6 =	0x0000fffa
+		self.FR_NEG_FRUSTRATIO_1 = 	0x00000001
+		self.FR_POS_FRUSTRATIO_1 = 	0x0000ffff
+		self.FR_NEG_FRUSTRATIO_2 = 	0x00000002
+		self.FR_POS_FRUSTRATIO_2 = 	0x0000fffe
+		self.FR_NEG_FRUSTRATIO_3 = 	0x00000003
+		self.FR_POS_FRUSTRATIO_3 = 	0x0000fffd
+		self.FR_NEG_FRUSTRATIO_4 = 	0x00000004
+		self.FR_POS_FRUSTRATIO_4 = 	0x0000fffc
+		self.FR_NEG_FRUSTRATIO_5 = 	0x00000005
+		self.FR_POS_FRUSTRATIO_5 = 	0x0000fffb
+		self.FR_NEG_FRUSTRATIO_6 = 	0x00000006
+		self.FR_POS_FRUSTRATIO_6 = 	0x0000fffa
 
 		self.G_BZ_PERSP	= 0
 		self.G_BZ_ORTHO	= 1
@@ -1356,8 +1356,8 @@ class F3D:
 
 	def GPACK_RGBA5551(self, r, g, b, a):	
 		return ((((r)<<8) & 0xf800) | \
-			(((g)<<3) & 0x7c0) |		\
-			(((b)>>2) & 0x3e) | ((a) & 0x1))
+		 	(((g)<<3) & 0x7c0) |		\
+		 	(((b)>>2) & 0x3e) | ((a) & 0x1))
 	def GPACK_ZDZ(self, z, dz):
 		return ((z) << 2 | (dz))
 
@@ -1376,7 +1376,7 @@ class F3D:
 		return ((nVal)*24) if self.F3DEX_GBI_2 else (((nVal)+1)*32 + 0x80000000)
 	
 	def getLightMWO_a(self, n):
-		if	 n == 'G_MWO_aLIGHT_1': return	self.G_MWO_aLIGHT_1
+		if   n == 'G_MWO_aLIGHT_1': return	self.G_MWO_aLIGHT_1
 		elif n == 'G_MWO_aLIGHT_2': return self.G_MWO_aLIGHT_2
 		elif n == 'G_MWO_aLIGHT_3': return self.G_MWO_aLIGHT_3
 		elif n == 'G_MWO_aLIGHT_4': return self.G_MWO_aLIGHT_4
@@ -1387,7 +1387,7 @@ class F3D:
 		else: raise PluginError('Invalid G_MWO_a value for lights: ' + n)
 	
 	def getLightMWO_b(self, n):
-		if	 n == 'G_MWO_bLIGHT_1': return self.G_MWO_bLIGHT_1
+		if   n == 'G_MWO_bLIGHT_1': return self.G_MWO_bLIGHT_1
 		elif n == 'G_MWO_bLIGHT_2': return self.G_MWO_bLIGHT_2
 		elif n == 'G_MWO_bLIGHT_3': return self.G_MWO_bLIGHT_3
 		elif n == 'G_MWO_bLIGHT_4': return self.G_MWO_bLIGHT_4
@@ -3112,8 +3112,8 @@ def _gsSP1Triangle_w1f(v0, v1, v2, flag, f3d):
 		else:
 			return _gsSP1Triangle_w1(v2, v0, v1)
 	else:
-		return	(_SHIFTL((flag), 24,8)|_SHIFTL((v0)*10,16,8)|\
-			_SHIFTL((v1)*10, 8,8)|_SHIFTL((v2)*10, 0,8))
+		return  (_SHIFTL((flag), 24,8)|_SHIFTL((v0)*10,16,8)|\
+	  		_SHIFTL((v1)*10, 8,8)|_SHIFTL((v2)*10, 0,8))
 
 def _gsSPLine3D_w1(v0, v1, wd):
 	return (_SHIFTL((v0)*2,16,8)|_SHIFTL((v1)*2,8,8)|_SHIFTL((wd),0,8))
@@ -3126,7 +3126,7 @@ def _gsSPLine3D_w1f(v0, v1, wd, flag, f3d):
 			return _gsSPLine3D_w1(v1, v0, wd)
 	else:
 		return (_SHIFTL((flag), 24,8)|_SHIFTL((v0)*10,16,8)| \
-			_SHIFTL((v1)*10, 8,8)|_SHIFTL((wd),0,8))
+	 		_SHIFTL((v1)*10, 8,8)|_SHIFTL((wd),0,8))
 
 def _gsSP1Quadrangle_w1f(v0, v1, v2, v3, flag):
 	if flag == 0:
@@ -3269,7 +3269,7 @@ class SP2Triangles:
 
 	def to_sm64_decomp_s(self):
 		return 'gsSP2Triangles ' + str(self.v00) + ', ' + str(self.v01) + \
-			', ' + str(self.v02) + ', ' + str(self.flag0) +	 ', ' + \
+			', ' + str(self.v02) + ', ' + str(self.flag0) +  ', ' + \
 			str(self.v10) + ', ' + str(self.v11) + ', ' + str(self.v12) + \
 			', ' + str(self.flag1)
 	
@@ -3304,7 +3304,7 @@ class SPCullDisplayList:
 class SPSegment:
 	def __init__(self, segment, base):
 		self.segment = segment
-		self.base =	 base
+		self.base =  base
 
 	def to_binary(self, f3d, segments):
 		return gsMoveWd(f3d.G_MW_SEGMENT, (self.segment)*4, self.base, f3d)
@@ -3690,13 +3690,13 @@ class SPTexture:
 		if f3d.F3DEX_GBI_2:
 			words = (_SHIFTL(f3d.G_TEXTURE,24,8) | \
 				_SHIFTL(f3d.BOWTIE_VAL,16,8) | \
-				_SHIFTL((self.level),11,3) | _SHIFTL((self.tile),8,3) | \
+	 			_SHIFTL((self.level),11,3) | _SHIFTL((self.tile),8,3) | \
 				_SHIFTL((self.on),1,7)), (_SHIFTL((self.s),16,16) | \
 				_SHIFTL((self.t),0,16))	
 		else:
 			words = (_SHIFTL(f3d.G_TEXTURE,24,8) | \
 				_SHIFTL(f3d.BOWTIE_VAL,16,8) | \
-				_SHIFTL((self.level),11,3)|_SHIFTL((self.tile),8,3) | \
+	 			_SHIFTL((self.level),11,3)|_SHIFTL((self.tile),8,3) | \
 				_SHIFTL((self.on),0,8)), (_SHIFTL((self.s),16,16) | \
 				_SHIFTL((self.t),0,16))
 
@@ -3768,7 +3768,7 @@ def gsSPGeometryMode_Non_F3DEX_GBI_2(word, f3d):
 def geoFlagListToWord(flagList, f3d):
 	word = 0
 	for name in flagList:
-		if	 name == 'G_ZBUFFER': word += f3d.G_ZBUFFER
+		if   name == 'G_ZBUFFER': word += f3d.G_ZBUFFER
 		elif name == 'G_SHADE': word += f3d.G_SHADE
 		elif name == 'G_TEXTURE_ENABLE': word += f3d.G_TEXTURE_ENABLE
 		elif name == 'G_SHADING_SMOOTH': word += f3d.G_SHADING_SMOOTH
@@ -3790,7 +3790,7 @@ class SPGeometryMode:
 	def __init__(self, clearFlagList, setFlagList):
 		self.clearFlagList = clearFlagList
 		self.setFlagList = setFlagList
-	
+    
 	def to_binary(self, f3d, segments):
 		if f3d.F3DEX_GBI_2:
 			wordClear = geoFlagListToWord(self.clearFlagList, f3d)
@@ -3974,7 +3974,7 @@ class DPSetCycleType:
 		self.mode = mode
 	
 	def to_binary(self, f3d, segments):
-		if	 self.mode == 'G_CYC_1CYCLE': modeVal = f3d.G_CYC_1CYCLE
+		if   self.mode == 'G_CYC_1CYCLE': modeVal = f3d.G_CYC_1CYCLE
 		elif self.mode == 'G_CYC_2CYCLE': modeVal = f3d.G_CYC_2CYCLE
 		elif self.mode == 'G_CYC_COPY': modeVal = f3d.G_CYC_COPY
 		elif self.mode == 'G_CYC_FILL': modeVal = f3d.G_CYC_FILL
@@ -3999,7 +3999,7 @@ class DPSetTexturePersp:
 		self.mode = mode
 	
 	def to_binary(self, f3d, segments):
-		if	 self.mode == 'G_TP_NONE': modeVal = f3d.G_TP_NONE
+		if   self.mode == 'G_TP_NONE': modeVal = f3d.G_TP_NONE
 		elif self.mode == 'G_TP_PERSP': modeVal = f3d.G_TP_PERSP
 		return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, 
 			f3d.G_MDSFT_TEXTPERSP, 1, modeVal, f3d)
@@ -4021,7 +4021,7 @@ class DPSetTextureDetail:
 		self.mode = mode
 	
 	def to_binary(self, f3d, segments):
-		if	 self.mode == 'G_TD_CLAMP': modeVal = f3d.G_TD_CLAMP
+		if   self.mode == 'G_TD_CLAMP': modeVal = f3d.G_TD_CLAMP
 		elif self.mode == 'G_TD_SHARPEN': modeVal = f3d.G_TD_SHARPEN
 		elif self.mode == 'G_TD_DETAIL': modeVal = f3d.G_TD_DETAIL
 		return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, 
@@ -4044,7 +4044,7 @@ class DPSetTextureLOD:
 		self.mode = mode
 	
 	def to_binary(self, f3d, segments):
-		if	 self.mode == 'G_TL_TILE': modeVal = f3d.G_TL_TILE
+		if   self.mode == 'G_TL_TILE': modeVal = f3d.G_TL_TILE
 		elif self.mode == 'G_TL_LOD': modeVal = f3d.G_TL_LOD
 		return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, 
 			f3d.G_MDSFT_TEXTLOD, 1, modeVal, f3d)
@@ -4066,7 +4066,7 @@ class DPSetTextureLUT:
 		self.mode = mode
 	
 	def to_binary(self, f3d, segments):
-		if	 self.mode == 'G_TT_NONE': modeVal = f3d.G_TT_NONE
+		if   self.mode == 'G_TT_NONE': modeVal = f3d.G_TT_NONE
 		elif self.mode == 'G_TT_RGBA16': modeVal = f3d.G_TT_RGBA16
 		elif self.mode == 'G_TT_IA16': modeVal = f3d.G_TT_IA16
 		else: print("Invalid LUT mode " + str(self.mode))
@@ -4090,7 +4090,7 @@ class DPSetTextureFilter:
 		self.mode = mode
 	
 	def to_binary(self, f3d, segments):
-		if	 self.mode == 'G_TF_POINT': modeVal = f3d.G_TF_POINT
+		if   self.mode == 'G_TF_POINT': modeVal = f3d.G_TF_POINT
 		elif self.mode == 'G_TF_AVERAGE': modeVal = f3d.G_TF_AVERAGE
 		elif self.mode == 'G_TF_BILERP': modeVal = f3d.G_TF_BILERP
 		return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, 
@@ -4113,7 +4113,7 @@ class DPSetTextureConvert:
 		self.mode = mode
 	
 	def to_binary(self, f3d, segments):
-		if	 self.mode == 'G_TC_CONV': modeVal = f3d.G_TC_CONV
+		if   self.mode == 'G_TC_CONV': modeVal = f3d.G_TC_CONV
 		elif self.mode == 'G_TC_FILTCONV': modeVal = f3d.G_TC_FILTCONV
 		elif self.mode == 'G_TC_FILT': modeVal = f3d.G_TC_FILT
 		return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, 
@@ -4136,7 +4136,7 @@ class DPSetCombineKey:
 		self.mode = mode
 	
 	def to_binary(self, f3d, segments):
-		if	 self.mode == 'G_CK_NONE': modeVal = f3d.G_CK_NONE
+		if   self.mode == 'G_CK_NONE': modeVal = f3d.G_CK_NONE
 		elif self.mode == 'G_CK_KEY': modeVal = f3d.G_CK_KEY
 		return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, 
 			f3d.G_MDSFT_COMBKEY, 1, modeVal, f3d)
@@ -4159,7 +4159,7 @@ class DPSetColorDither:
 	
 	def to_binary(self, f3d, segments):
 		if not f3d._HW_VERSION_1:
-			if	 self.mode == 'G_CD_MAGICSQ': modeVal = f3d.G_CD_MAGICSQ
+			if   self.mode == 'G_CD_MAGICSQ': modeVal = f3d.G_CD_MAGICSQ
 			elif self.mode == 'G_CD_BAYER': modeVal = f3d.G_CD_BAYER
 			elif self.mode == 'G_CD_NOISE': modeVal = f3d.G_CD_NOISE
 			elif self.mode == 'G_CD_DISABLE': modeVal = f3d.G_CD_DISABLE
@@ -4167,7 +4167,7 @@ class DPSetColorDither:
 			return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, 
 				f3d.G_MDSFT_RGBDITHER, 2, modeVal, f3d)
 		else:
-			if	 self.mode == 'G_CD_ENABLE': modeVal = f3d.G_CD_ENABLE
+			if   self.mode == 'G_CD_ENABLE': modeVal = f3d.G_CD_ENABLE
 			elif self.mode == 'G_CD_DISABLE': modeVal = f3d.G_CD_DISABLE
 			return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, 
 				f3d.G_MDSFT_COLORDITHER, 1, modeVal, f3d)
@@ -4190,7 +4190,7 @@ class DPSetAlphaDither:
 	
 	def to_binary(self, f3d, segments):
 		if not f3d._HW_VERSION_1:
-			if	 self.mode == 'G_AD_PATTERN': modeVal = f3d.G_AD_PATTERN
+			if   self.mode == 'G_AD_PATTERN': modeVal = f3d.G_AD_PATTERN
 			elif self.mode == 'G_AD_NOTPATTERN': modeVal = f3d.G_AD_NOTPATTERN
 			elif self.mode == 'G_AD_NOISE': modeVal = f3d.G_AD_NOISE
 			elif self.mode == 'G_AD_DISABLE': modeVal = f3d.G_AD_DISABLE
@@ -4216,7 +4216,7 @@ class DPSetAlphaCompare:
 		self.mask = mask
 	
 	def to_binary(self, f3d, segments):
-		if	 self.mask == 'G_AC_NONE': maskVal = f3d.G_AC_NONE
+		if   self.mask == 'G_AC_NONE': maskVal = f3d.G_AC_NONE
 		elif self.mask == 'G_AC_THRESHOLD': maskVal = f3d.G_AC_THRESHOLD
 		elif self.mask == 'G_AC_DITHER': maskVal = f3d.G_AC_DITHER
 		return gsSPSetOtherMode(f3d.G_SETOTHERMODE_L, 
@@ -4239,7 +4239,7 @@ class DPSetDepthSource:
 		self.src = src
 	
 	def to_binary(self, f3d, segments):
-		if	 self.src == 'G_ZS_PIXEL': srcVal = f3d.G_ZS_PIXEL
+		if   self.src == 'G_ZS_PIXEL': srcVal = f3d.G_ZS_PIXEL
 		elif self.src == 'G_ZS_PRIM': srcVal = f3d.G_ZS_PRIM
 		return gsSPSetOtherMode(f3d.G_SETOTHERMODE_L, 
 			f3d.G_MDSFT_ZSRCSEL, 1, srcVal, f3d)
@@ -4331,35 +4331,35 @@ class DPSetRenderMode:
 
 		'''
 		# G_SETOTHERMODE_L gSetRenderMode
-		self.AA_EN = AA_EN =		0x8
-		self.Z_CMP = Z_CMP =		0x10
-		self.Z_UPD = Z_UPD =		0x20
-		self.IM_RD = IM_RD =		0x40
-		self.CLR_ON_CVG = CLR_ON_CVG =	0x80
-		self.CVG_DST_CLAMP = CVG_DST_CLAMP =	0
-		self.CVG_DST_WRAP = CVG_DST_WRAP =	0x100
-		self.CVG_DST_FULL = CVG_DST_FULL =	0x200
-		self.CVG_DST_SAVE = CVG_DST_SAVE =	0x300
-		self.ZMODE_OPA = ZMODE_OPA =	0
-		self.ZMODE_INTER = ZMODE_INTER =	0x400
-		self.ZMODE_XLU = ZMODE_XLU =	0x800
-		self.ZMODE_DEC = ZMODE_DEC =	0xc00
-		self.CVG_X_ALPHA = CVG_X_ALPHA =	0x1000
-		self.ALPHA_CVG_SEL = ALPHA_CVG_SEL =	0x2000
-		self.FORCE_BL = FORCE_BL =	0x4000
-		self.TEX_EDGE = TEX_EDGE =	0x0000 # used to be 0x8000
+		self.AA_EN = AA_EN = 		0x8
+		self.Z_CMP = Z_CMP = 		0x10
+		self.Z_UPD = Z_UPD = 		0x20
+		self.IM_RD = IM_RD = 		0x40
+		self.CLR_ON_CVG = CLR_ON_CVG = 	0x80
+		self.CVG_DST_CLAMP = CVG_DST_CLAMP = 	0
+		self.CVG_DST_WRAP = CVG_DST_WRAP = 	0x100
+		self.CVG_DST_FULL = CVG_DST_FULL = 	0x200
+		self.CVG_DST_SAVE = CVG_DST_SAVE = 	0x300
+		self.ZMODE_OPA = ZMODE_OPA = 	0
+		self.ZMODE_INTER = ZMODE_INTER = 	0x400
+		self.ZMODE_XLU = ZMODE_XLU = 	0x800
+		self.ZMODE_DEC = ZMODE_DEC = 	0xc00
+		self.CVG_X_ALPHA = CVG_X_ALPHA = 	0x1000
+		self.ALPHA_CVG_SEL = ALPHA_CVG_SEL = 	0x2000
+		self.FORCE_BL = FORCE_BL = 	0x4000
+		self.TEX_EDGE = TEX_EDGE = 	0x0000 # used to be 0x8000
 
-		self.G_BL_CLR_IN = G_BL_CLR_IN =	0
-		self.G_BL_CLR_MEM = G_BL_CLR_MEM =	1
-		self.G_BL_CLR_BL = G_BL_CLR_BL =	2
-		self.G_BL_CLR_FOG = G_BL_CLR_FOG =	3
-		self.G_BL_1MA = G_BL_1MA =	0
-		self.G_BL_A_MEM = G_BL_A_MEM =	1
-		self.G_BL_A_IN = G_BL_A_IN =	0
-		self.G_BL_A_FOG = G_BL_A_FOG =	1
-		self.G_BL_A_SHADE = G_BL_A_SHADE =	2
-		self.G_BL_1 = G_BL_1 =		2
-		self.G_BL_0 = G_BL_0 =		3
+		self.G_BL_CLR_IN = G_BL_CLR_IN = 	0
+		self.G_BL_CLR_MEM = G_BL_CLR_MEM = 	1
+		self.G_BL_CLR_BL = G_BL_CLR_BL = 	2
+		self.G_BL_CLR_FOG = G_BL_CLR_FOG = 	3
+		self.G_BL_1MA = G_BL_1MA = 	0
+		self.G_BL_A_MEM = G_BL_A_MEM = 	1
+		self.G_BL_A_IN = G_BL_A_IN = 	0
+		self.G_BL_A_FOG = G_BL_A_FOG = 	1
+		self.G_BL_A_SHADE = G_BL_A_SHADE = 	2
+		self.G_BL_1 = G_BL_1 = 		2
+		self.G_BL_0 = G_BL_0 = 		3
 		'''
 	
 	def size(self, f3d):
@@ -4436,19 +4436,19 @@ class DPSetCombineMode:
 		self.b0 = b0  
 		self.c0 = c0  
 		self.d0 = d0  
-		self.Aa0 = Aa0	
-		self.Ab0 = Ab0	
-		self.Ac0 = Ac0	
+		self.Aa0 = Aa0  
+		self.Ab0 = Ab0  
+		self.Ac0 = Ac0  
 		self.Ad0 = Ad0 
 		
 		self.a1 = a1  
 		self.b1 = b1  
 		self.c1 = c1  
-		self.d1 = d1	
-		self.Aa1 = Aa1	
-		self.Ab1 = Ab1	
-		self.Ac1 = Ac1	
-		self.Ad1 = Ad1	
+		self.d1 = d1 	
+		self.Aa1 = Aa1  
+		self.Ab1 = Ab1  
+		self.Ac1 = Ac1  
+		self.Ad1 = Ad1 	
 
 	def to_binary(self, f3d, segments):
 		words = _SHIFTL(f3d.G_SETCOMBINE, 24, 8) | \
@@ -4456,7 +4456,7 @@ class DPSetCombineMode:
 				GCCc0w0(
 					f3d.CCMUXDict[self.a0], f3d.CCMUXDict[self.c0], \
 					f3d.ACMUXDict[self.Aa0], f3d.ACMUXDict[self.Ac0]) |	\
-				GCCc1w0(
+		   		GCCc1w0(
 					f3d.CCMUXDict[self.a1], f3d.CCMUXDict[self.c1]), \
 			0, 24),\
 			GCCc0w1(
@@ -4635,7 +4635,7 @@ class DPSetPrimColor:
 	
 	def to_binary(self, f3d, segments):
 		words = (_SHIFTL(f3d.G_SETPRIMCOLOR, 24, 8) | _SHIFTL(self.m, 8, 8) | \
-			_SHIFTL(self.l, 0, 8)), (_SHIFTL(self.r, 24, 8) | \
+	 		_SHIFTL(self.l, 0, 8)), (_SHIFTL(self.r, 24, 8) | \
 			_SHIFTL(self.g, 16, 8) | _SHIFTL(self.b, 8, 8) | \
 			_SHIFTL(self.a, 0, 8))
 		return words[0].to_bytes(4, 'big') + words[1].to_bytes(4, 'big')	
@@ -4889,7 +4889,7 @@ class DPLoadTextureBlock:
 		return header + '&' + self.timg.name + ', ' + self.fmt + ', ' + \
 			self.siz + ', ' + str(self.width) + ', ' + \
 			str(self.height) + ', ' + str(self.pal) + ', ' + \
-			self.cms[0] + ' | ' + self.cms[1] +	 ', ' + self.cmt[0] + \
+			self.cms[0] + ' | ' + self.cms[1] +  ', ' + self.cmt[0] + \
 			' | ' + self.cmt[1] + ', ' + \
 			str(self.masks) + ', ' + str(self.maskt) + ', ' + \
 			str(self.shifts) + ', ' + str(self.shiftt) + ')'
@@ -4956,7 +4956,7 @@ class DPLoadTextureBlockYuv:
 		return header + '&' + self.timg.name + ', ' + self.fmt + ', ' + \
 			self.siz + ', ' + str(self.width) + ', ' + \
 			str(self.height) + ', ' + str(self.pal) + ', ' + \
-			self.cms[0] + ' | ' + self.cms[1] +	 ', ' + self.cmt[0] + \
+			self.cms[0] + ' | ' + self.cms[1] +  ', ' + self.cmt[0] + \
 			' | ' + self.cmt[1] + ', ' + \
 			str(self.masks) + ', ' + str(self.maskt) + ', ' + \
 			str(self.shifts) + ', ' + str(self.shiftt) + ')'
@@ -5029,7 +5029,7 @@ class _DPLoadTextureBlock:
 		return header + '&' + self.timg.name + ', ' + str(self.tmem) + ', ' +\
 			self.fmt + ', ' + self.siz + ', ' + str(self.width) + ', ' + \
 			str(self.height) + ', ' + str(self.pal) + ', ' + \
-			self.cms[0] + ' | ' + self.cms[1] +	 ', ' + self.cmt[0] + \
+			self.cms[0] + ' | ' + self.cms[1] +  ', ' + self.cmt[0] + \
 			' | ' + self.cmt[1] + ', ' + \
 			str(self.masks) + ', ' + str(self.maskt) + ', ' + \
 			str(self.shifts) + ', ' + str(self.shiftt) + ')'
@@ -5095,7 +5095,7 @@ class DPLoadTextureBlock_4b:
 			'gDPLoadTextureBlock_4b(glistp++, '
 		return header + '&' + self.timg.name + ', ' + self.fmt + ', ' + str(self.width) + ', ' + \
 			str(self.height) + ', ' + str(self.pal) + ', ' + \
-			self.cms[0] + ' | ' + self.cms[1] +	 ', ' + self.cmt[0] + \
+			self.cms[0] + ' | ' + self.cms[1] +  ', ' + self.cmt[0] + \
 			' | ' + self.cmt[1] + ', ' + \
 			str(self.masks) + ', ' + str(self.maskt) + ', ' + \
 			str(self.shifts) + ', ' + str(self.shiftt) + ')'
@@ -5177,7 +5177,7 @@ class DPLoadTextureTile:
 			self.siz + ', ' + str(self.width) + ', ' + \
 			str(self.height) + ', ' + self.uls + ', ' + str(self.ult)  + \
 			', ' + str(self.lrs)  + ', ' + str(self.lrt) + str(self.pal) + \
-			', ' + self.cms[0] + ' | ' + self.cms[1] +	', ' + self.cmt[0] + \
+			', ' + self.cms[0] + ' | ' + self.cms[1] +  ', ' + self.cmt[0] + \
 			' | ' + self.cmt[1] + ', ' + \
 			str(self.masks) + ', ' + str(self.maskt) + ', ' + \
 			str(self.shifts) + ', ' + str(self.shiftt) + ')'
@@ -5256,7 +5256,7 @@ class DPLoadTextureTile_4b:
 			str(self.width) + ', ' + \
 			str(self.height) + ', ' + self.uls + ', ' + str(self.ult)  + \
 			', ' + str(self.lrs)  + ', ' + str(self.lrt) + str(self.pal) + \
-			', ' + self.cms[0] + ' | ' + self.cms[1] +	', ' + self.cmt[0] + \
+			', ' + self.cms[0] + ' | ' + self.cms[1] +  ', ' + self.cmt[0] + \
 			' | ' + self.cmt[1] + ', ' + \
 			str(self.masks) + ', ' + str(self.maskt) + ', ' + \
 			str(self.shifts) + ', ' + str(self.shiftt) + ')'
@@ -5568,7 +5568,7 @@ class SPScisTextureRectangle:
 			', ' + str(self.s) + ', ' + str(self.t) + ', ' + str(self.dsdx) + ', ' + str(self.dtdy) 
 
 	def size(self, f3d):
-		return GFX_SIZE * 2			  
+		return GFX_SIZE * 2           
 
 # gsSPTextureRectangleFlip
 # gsDPWord
