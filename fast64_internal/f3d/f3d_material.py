@@ -230,15 +230,15 @@ def combiner_uses(material, checkList, is2Cycle):
 
 		display |= material.combiner1.B == value1
 		if is2Cycle:
-			display |= material.combiner2.B	 == value2
+			display |= material.combiner2.B  == value2
 
 		display |= material.combiner1.C == value1
 		if is2Cycle:
-			display |= material.combiner2.C	 == value2
+			display |= material.combiner2.C  == value2
 
 		display |= material.combiner1.D == value1
 		if is2Cycle:
-			display |= material.combiner2.D	 == value2
+			display |= material.combiner2.D  == value2
 
 
 		display |= material.combiner1.A_alpha == value1
@@ -1094,7 +1094,7 @@ class F3DPanel(bpy.types.Panel):
 			if material.mat_ver > 3:
 				presetCol.prop(context.scene, 'f3dUserPresetsOnly')
 			self.draw_full(f3dMat, material, layout, context)
-		
+
 		self.ui_cel_shading(material, layout)
 
 #def ui_procAnimVec(self, procAnimVec, layout, name, vecType):
@@ -1206,7 +1206,7 @@ def ui_procAnim(material, layout, useTex0, useTex1, title, useDropdown):
 	#	ui_procAnimVec(material.positionAnim, procAnimBox,
 	#		"Position", 'XYZ')
 	#	ui_procAnimVec(material.colorAnim, procAnimBox, "Color",
-	#		'RGB')
+	#	 	'RGB')
 
 
 def update_node_values(self, context):
@@ -1672,7 +1672,7 @@ def update_tex_values_index(self, context, texProperty, texNodeName,
 
 					# Has Alpha
 					nodes[getTextureColorName].inputs[3].default_value = \
-						1 if ('A' in texFormat or \
+	 					1 if ('A' in texFormat or \
 						(texFormat[:2] == 'CI' and 'A' in ciFormat)) else 0
 
 					# Is Intensity
@@ -1681,10 +1681,10 @@ def update_tex_values_index(self, context, texProperty, texNodeName,
 
 			else:
 				nodes[texNodeName + ' Is Greyscale'].outputs[0].default_value = \
-					1 if (texFormat[0] == 'I' or \
+	 				1 if (texFormat[0] == 'I' or \
 					(texFormat[:2] == 'CI' and ciFormat[0] == 'I')) else 0
 				nodes[texNodeName + ' Has Alpha'].outputs[0].default_value = \
-					1 if ('A' in texFormat or \
+	 				1 if ('A' in texFormat or \
 					(texFormat[:2] == 'CI' and 'A' in ciFormat))else 0
 
 				if texNodeName + " Is Intensity" in nodes:
@@ -2672,7 +2672,7 @@ class AddPresetF3D(AddPresetBase, Operator):
 									continue
 								sub_value = getattr(value, sub_value_attr)
 								rna_recursive_attr_expand(sub_value, "%s.%s" % (rna_path_step, sub_value_attr), level)
-						elif type(value).__name__ == "bpy_prop_collection_idprop":	# could use nicer method
+						elif type(value).__name__ == "bpy_prop_collection_idprop":  # could use nicer method
 							file_preset.write("%s.clear()\n" % rna_path_step)
 							for sub_value in value:
 								file_preset.write("item_sub_%d = %s.add()\n" % (level, rna_path_step))
@@ -2949,7 +2949,7 @@ class F3DMaterialProperty(bpy.types.PropertyGroup):
 
 	draw_layer : bpy.props.PointerProperty(type = DrawLayerProperty)
 	use_large_textures : bpy.props.BoolProperty(name = "Large Texture Mode")
-	
+
 	# cel shading
 	do_cel_shading : bpy.props.BoolProperty(name = "Cel Shading")
 	cel_shading : bpy.props.PointerProperty(type = CelShadingProperty)

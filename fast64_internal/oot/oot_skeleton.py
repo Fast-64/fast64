@@ -242,7 +242,7 @@ def ootDuplicateArmature(originalArmatureObj):
 
 		bpy.ops.object.make_single_user(obdata = True)
 		bpy.ops.object.transform_apply(location = False, 
-			rotation = True, scale = True, properties =	 False)
+			rotation = True, scale = True, properties =  False)
 		for selectedObj in meshObjs:
 			bpy.ops.object.select_all(action = 'DESELECT')
 			selectedObj.select_set(True)
