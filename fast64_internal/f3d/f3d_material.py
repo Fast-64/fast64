@@ -357,7 +357,8 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
 		inputGroup.prop(settings, 'g_tex_gen_linear',
 			text = 'Texture UV Generate Linear')
 		inputGroup.prop(settings, 'g_shade_smooth', text = 'Smooth Shading')
-		inputGroup.prop(settings, 'g_celshading', text = 'Cel Shading (Shade G -> A)')
+		if bpy.context.scene.celShadingPatch:
+			inputGroup.prop(settings, 'g_celshading', text = 'Cel Shading (Shade G -> A)')
 		if bpy.context.scene.f3d_type == 'F3DEX_GBI_2' or \
 			bpy.context.scene.f3d_type == 'F3DEX_GBI':
 			inputGroup.prop(settings, 'g_clipping', text = 'Clipping')
@@ -858,7 +859,7 @@ class F3DPanel(bpy.types.Panel):
 					r.prop(l, "fade")
 					r.label(text = 'White' if l.lighten else 'Color')
 					r = box.row().split(factor=0.3, align=True)
-					r.label(text = 'Write if ' + ('<=' if l.inverse else '>='))
+					r.label(text = 'Draw/fill if ' + ('<=' if l.inverse else '>='))
 					r.prop(l, "threshold")
 				r = inputGroup.row()
 				op = r.operator(CelLevelAdd.bl_idname)
@@ -1095,7 +1096,8 @@ class F3DPanel(bpy.types.Panel):
 				presetCol.prop(context.scene, 'f3dUserPresetsOnly')
 			self.draw_full(f3dMat, material, layout, context)
 
-		self.ui_cel_shading(material, layout)
+		if context.scene.celShadingPatch:
+			self.ui_cel_shading(material, layout)
 
 #def ui_procAnimVec(self, procAnimVec, layout, name, vecType):
 #	layout.prop(procAnimVec, 'menu', text = name,
@@ -2337,14 +2339,9 @@ class CelShadingProperty(bpy.types.PropertyGroup):
 	levels : bpy.props.CollectionProperty(type = CelLevelProperty, name = "Cel Levels")
 
 def celGetMatlLevels(matlName):
-	for m in bpy.data.materials:
-		if m.name == matlName:
-			matl = m
-			break
-	else:
+	m = bpy.data.materials.get(matlName)
+	if m is None:
 		raise PluginError('Could not find material ' + matlName)
-	if m.mat_ver <= 3:
-		raise PluginError('Material version is <= 3')
 	return m.f3d_mat.cel_shading.levels
 
 class CelLevelAdd(bpy.types.Operator):
@@ -3301,6 +3298,8 @@ def mat_register():
 
 	bpy.types.Scene.f3d_type = bpy.props.EnumProperty(
 		name = 'F3D Microcode', items = enumF3D, default = 'F3D')
+	bpy.types.Scene.celShadingPatch = bpy.props.BoolProperty(
+		name = 'Cel Shading Microcode Patch Installed')
 	bpy.types.Scene.isHWv1 = bpy.props.BoolProperty(name = 'Is Hardware v1?')
 
 	# RDP Defaults
