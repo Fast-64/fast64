@@ -816,6 +816,23 @@ def get_obj_temp_mesh(obj):
         if o.get("temp_export") and o.get("instanced_mesh_name") == obj.get("instanced_mesh_name"):
             return o
 
+def apply_objects_transformations(allObjs: Iterable[bpy.types.Object]):
+    # first apply modifiers so that any objects that affect each other are taken into consideration
+    for selectedObj in allObjs:
+        bpy.ops.object.select_all(action="DESELECT")
+        selectedObj.select_set(True)
+        bpy.context.view_layer.objects.active = selectedObj
+
+        for modifier in selectedObj.modifiers:
+            attemptModifierApply(modifier)
+
+    # apply transformations now that world space changes are applied
+    for selectedObj in allObjs:
+        bpy.ops.object.select_all(action="DESELECT")
+        selectedObj.select_set(True)
+        bpy.context.view_layer.objects.active = selectedObj
+
+        bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
 
 def duplicateHierarchy(obj, ignoreAttr, includeEmpties, areaIndex):
     # Duplicate objects to apply scale / modifiers / linked data
@@ -829,15 +846,9 @@ def duplicateHierarchy(obj, ignoreAttr, includeEmpties, areaIndex):
         allObjs = bpy.context.selected_objects
 
         bpy.ops.object.make_single_user(obdata=True)
-        bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
 
-        for selectedObj in allObjs:
-            bpy.ops.object.select_all(action="DESELECT")
-            selectedObj.select_set(True)
-            bpy.context.view_layer.objects.active = selectedObj
+        apply_objects_transformations(allObjs)
 
-            for modifier in selectedObj.modifiers:
-                attemptModifierApply(modifier)
         for selectedObj in allObjs:
             if ignoreAttr is not None and getattr(selectedObj, ignoreAttr):
                 for child in selectedObj.children:
@@ -954,12 +965,8 @@ def combineObjects(obj, includeChildren, ignoreAttr, areaIndex):
         # duplicate obj and apply modifiers / make single user
         allObjs = bpy.context.selected_objects
         bpy.ops.object.make_single_user(obdata=True)
-        bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
-        for selectedObj in allObjs:
-            bpy.ops.object.select_all(action="DESELECT")
-            selectedObj.select_set(True)
-            for modifier in selectedObj.modifiers:
-                attemptModifierApply(modifier)
+
+        apply_objects_transformations(allObjs)
 
         bpy.ops.object.select_all(action="DESELECT")
 
