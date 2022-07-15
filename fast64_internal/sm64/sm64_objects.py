@@ -1373,6 +1373,26 @@ enumStarGetCutscene = [
     ("4", "100 Coin Star", "100 Coin Star"),
 ]
 
+def get_parent_area_obj(obj: bpy.types.Object):
+    if obj.sm64_obj_type == "Area Root":
+        return obj
+    if type(obj.parent) == bpy.types.Object:
+        return get_parent_area_obj(obj.parent)
+    return None
+
+def get_relative_location_area(obj: bpy.types.Object, isExport=False):
+    if obj.sm64_obj_type == "Area Root":
+        return obj.location
+    parent_area = get_parent_area_obj(obj)
+    if parent_area is None:
+        return obj.location
+
+    parent_loc = Vector(parent_area.location.copy())
+    if isExport:
+        # area empties are in n64 space when exporting, so we need to transform the location back
+        parent_loc = Vector((parent_loc.x, -parent_loc.z, parent_loc.y))
+
+    return obj.location - parent_loc
 
 class WarpNodeProperty(bpy.types.PropertyGroup):
     warpType: bpy.props.EnumProperty(name="Warp Type", items=enumWarpType, default="Warp")
@@ -1396,11 +1416,11 @@ class WarpNodeProperty(bpy.types.PropertyGroup):
             and self.instantWarpObject2.sm64_obj_type == "Area Root"
         )
 
-    def calc_offsets_from_objects(self, reverse=False):
+    def calc_offsets_from_objects(self, reverse=False, isExport=False):
         if self.instantWarpObject1 is None or self.instantWarpObject2 is None:
             raise PluginError(f"Warp Start and Warp End in Warp Node {self.warpID} must have objects selected.")
 
-        difference = self.instantWarpObject2.location - self.instantWarpObject1.location
+        difference = get_relative_location_area(self.instantWarpObject2, isExport=isExport) - get_relative_location_area(self.instantWarpObject1, isExport=isExport)
 
         if reverse:
             difference *= -1
@@ -1417,7 +1437,7 @@ class WarpNodeProperty(bpy.types.PropertyGroup):
             offset = Vector()
 
             if self.useOffsetObjects:
-                offset = self.calc_offsets_from_objects(self.uses_area_nodes())
+                offset = self.calc_offsets_from_objects(self.uses_area_nodes(), isExport=True)
             else:
                 offset.x = self.instantOffset[0]
                 offset.y = self.instantOffset[1]
