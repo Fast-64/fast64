@@ -2483,9 +2483,11 @@ class MATERIAL_MT_f3d_presets(Menu):
 		props_default = getattr(self, "preset_operator_defaults", None)
 		add_operator = getattr(self, "preset_add_operator", None)
 		presetDir = getCurrentPresetDir()
-		paths = (bpy.utils.preset_paths(presetDir) if \
-			not bpy.context.scene.f3dUserPresetsOnly else []) + \
-			bpy.utils.preset_paths("f3d/user")
+		paths = bpy.utils.preset_paths("f3d/user")
+		if not bpy.context.scene.f3dUserPresetsOnly:
+			paths += bpy.utils.preset_paths(presetDir)
+			if bpy.context.scene.celShadingPatch:
+				paths += bpy.utils.preset_paths(presetDir + "_cel")
 		self.path_menu(
 			paths,
 			self.preset_operator,
