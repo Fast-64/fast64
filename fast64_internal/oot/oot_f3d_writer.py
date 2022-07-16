@@ -160,7 +160,8 @@ def ootConvertMeshToC(originalObj, finalTransform, f3dType, isHWv1, name, folder
 		data.source += '#include "' + folderName + '.h"\n\n'
 	else:
 		data.source += '\n'
-	data.source += '#define G_CELSHADING 0x00400000\n\n'
+	if bpy.context.scene.celShadingPatch:
+		data.source += '#define G_CELSHADING 0x00400000\n\n'
 
 	exportData = fModel.to_c(
 		TextureExportSettings(False, saveTextures, "test"), OOTGfxFormatter(ScrollMethod.Vertex))
