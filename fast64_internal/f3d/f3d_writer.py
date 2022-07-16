@@ -358,8 +358,7 @@ def saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, drawLa
 				[None, tileLoad], True, False)
 
 		triConverter = TriangleConverter(triConverterInfo, texDimensions, material, currentGroupIndex,
-			triGroup.triList, triGroup.vertexList,
-			copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict))
+			triGroup, copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict), None)
 
 		currentGroupIndex = saveTriangleStrip(triConverter, tileFaces, obj.data, False)
 
@@ -637,6 +636,7 @@ def saveMeshByFaces(material, faces, fModel, fMesh, obj, drawLayer,
 		saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
 	isPointSampled = isTexturePointSampled(material)
 	exportVertexColors = isLightingDisabled(material)
+	celShadingInfo = getCelShadingInfo(material)
 	uv_data = obj.data.uv_layers['UVMap'].data
 	convertInfo = LoopConvertInfo(uv_data, obj, exportVertexColors)
 
@@ -646,8 +646,9 @@ def saveMeshByFaces(material, faces, fModel, fMesh, obj, drawLayer,
 	fMesh.draw.commands.append(SPDisplayList(triGroup.triList))
 
 	triConverter = TriangleConverter(triConverterInfo, texDimensions, material,
-		currentGroupIndex, triGroup.triList, triGroup.vertexList,
-		copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict))
+		currentGroupIndex, triGroup,
+		copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict), 
+		celShadingInfo)
 
 	currentGroupIndex = saveTriangleStrip(triConverter, faces, obj.data, True)
 
@@ -737,7 +738,7 @@ class TriangleConverterInfo:
 # loaded in from a previous matrix transform (ex. sm64 skinning)
 class TriangleConverter:
 	def __init__(self, triConverterInfo, texDimensions, material, currentGroupIndex,
-		triList, vtxList, existingVertexData, existingVertexMaterialRegions):
+		triGroup, existingVertexData, existingVertexMaterialRegions, celShadingInfo):
 		self.triConverterInfo = triConverterInfo
 		self.currentGroupIndex = currentGroupIndex
 		self.originalGroupIndex = currentGroupIndex
@@ -752,8 +753,9 @@ class TriangleConverter:
 		self.bufferStart = len(self.vertBuffer)
 		self.vertexBufferTriangles = [] # [(index0, index1, index2)]
 
-		self.triList = triList
-		self.vtxList = vtxList
+		self.triGroup = triGroup
+		self.triList = triGroup.triList
+		self.vtxList = triGroup.vertexList
 
 		isPointSampled = isTexturePointSampled(material)
 		exportVertexColors = isLightingDisabled(material)
@@ -763,6 +765,7 @@ class TriangleConverter:
 		self.isPointSampled = isPointSampled
 		self.exportVertexColors = exportVertexColors
 
+		self.celShadingInfo = celShadingInfo
 
 
 	def vertInBuffer(self, bufferVert, material_index):
@@ -833,8 +836,79 @@ class TriangleConverter:
 			bufferStart = bufferEnd
 
 		# Load triangles
-		self.triList.commands.extend(createTriangleCommands(
-			self.vertexBufferTriangles, self.vertBuffer, self.triConverterInfo.f3d.F3DEX_GBI))
+		triCmds = createTriangleCommands(
+			self.vertexBufferTriangles, self.vertBuffer, self.triConverterInfo.f3d.F3DEX_GBI)
+		if self.celShadingInfo is None:
+			self.triList.commands.extend(triCmds)
+		else:
+			if len(triCmds) <= 2:
+				self.writeCelLevels(triCmds=triCmds)
+			else:
+				celTriList = self.triGroup.add_cel_tri_list()
+				celTriList.commands.extend(triCmds)
+				celTriList.commands.append(SPEndDisplayList())
+				self.writeCelLevels(celTriList=celTriList)
+			
+	def writeCelLevels(self, celTriList = None, triCmds = None):
+		lastInverse = None
+		lastLighten = None
+		usedForward = usedInverse = useDecal = False
+		for level in self.celShadingInfo['levels']:
+			if level['inverse']:
+				if usedInverse:
+					useDecal = True
+				elif useDecal:
+					raise PluginError('Must use forward and inverse cel levels before using more duplicates')
+				usedInverse = True
+			else:
+				if usedForward:
+					useDecal = True
+				elif useDecal:
+					raise PluginError('Must use forward and inverse cel levels before using more duplicates')
+				usedForward = True
+		colorSrc = 'ENVIRONMENT' if self.celShadingInfo['solid'] else 'TEXEL0'
+		usedForward = usedInverse = wroteOpaque = wroteDecal = False
+		for level in self.celShadingInfo['levels']:
+			self.triList.commands.append(DPPipeSync())
+			if useDecal:
+				if not wroteOpaque:
+					wroteOpaque = True
+					self.triList.commands.append(SPSetOtherMode("G_SETOTHERMODE_L",
+						10, 2, ["ZMODE_OPA"]))
+				elif not wroteDecal and (level['inverse'] and usedInverse or 
+					not level['inverse'] and usedForward):
+					wroteDecal = True
+					self.triList.commands.append(SPSetOtherMode("G_SETOTHERMODE_L",
+						10, 2, ["ZMODE_DEC"]))
+			if level['inverse']:
+				usedInverse = True
+			else:
+				usedForward = True
+			if lastInverse != level['inverse'] or lastLighten != level['lighten']:
+				# Set up combiner
+				lastInverse = level['inverse']
+				lastLighten = level['lighten']
+				def Combiner(a0, b0, c0, d0, aa0, ab0, ac0, ad0):
+					return DPSetCombineMode(a0, b0, c0, d0, aa0, ab0, ac0, ad0,
+						a0, b0, c0, d0, aa0, ab0, ac0, ad0)
+				def CombinerForward(a0, b0, c0, d0):
+					return Combiner(a0, b0, c0, d0, 'SHADE', '0', colorSrc, '0')
+				def CombinerInverse(a0, b0, c0, d0):
+					return Combiner(a0, b0, c0, d0, '1', 'SHADE', colorSrc, '0')
+				def CombinerDarken(fwdinv):
+					return fwdinv(colorSrc, '0', 'PRIMITIVE_ALPHA', '0')
+				def CombinerLighten(fwdinv):
+					return fwdinv('1', colorSrc, 'PRIMITIVE_ALPHA', colorSrc)
+				self.triList.commands.append(
+					(CombinerLighten if level['lighten'] else CombinerDarken)
+					(CombinerInverse if level['inverse'] else CombinerForward))
+			self.triList.commands.append(DPSetPrimColor(0, 0, 255, 255, 255, level['fade']))
+			self.triList.commands.append(DPSetBlendColor(255, 255, 255, 
+				255 - level['threshold'] if level['inverse'] else level['threshold']))
+			if triCmds is not None:
+				self.triList.commands.extend(triCmds)
+			else:
+				self.triList.commands.append(SPDisplayList(celTriList))
 
 	def addFace(self, face):
 		triIndices = []
@@ -1404,6 +1478,23 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 	fModel.materials[materialKey] = (fMaterial, texDimensions)
 
 	return fMaterial, texDimensions
+
+def getCelShadingInfo(material):
+	if material.mat_ver <= 3:
+		return None
+	f3dMat = material.f3d_mat
+	if not f3dMat.do_cel_shading:
+		return None
+	levels = []
+	if len(f3dMat.cel_shading.levels) == 0:
+		raise PluginError('Material ' + material.name + ' has cel shading enabled, but no cel levels')
+	for l in f3dMat.cel_shading.levels:
+		lvl = {'inverse': bool(l.inverse),
+			'lighten': bool(l.lighten),
+			'fade': int(l.fade),
+			'threshold': int(l.threshold)}
+		levels.append(lvl)
+	return {'solid': bool(f3dMat.cel_shading.solid), 'levels': levels}
 
 def saveTextureIndex(propName, fModel, fMaterial, loadTexGfx, revertTexGfx, texProp, index, tmem,
 	overrideName, convertTextureData, tileSettingsOverride, loadTextures, loadPalettes):
@@ -2060,6 +2151,8 @@ def saveGeoModeDefinitionF3DEX2(fMaterial, settings, defaults, matWriteMethod):
 		'G_TEXTURE_GEN_LINEAR', geo, matWriteMethod)
 	saveBitGeoF3DEX2(settings.g_shade_smooth, defaults.g_shade_smooth,
 		'G_SHADING_SMOOTH', geo, matWriteMethod)
+	saveBitGeoF3DEX2(settings.g_celshading, defaults.g_celshading,
+		'G_CELSHADING', geo, matWriteMethod)
 	saveBitGeoF3DEX2(settings.g_clipping, defaults.g_clipping, 'G_CLIPPING',
 		geo, matWriteMethod)
 
@@ -2105,6 +2198,8 @@ def saveGeoModeDefinition(fMaterial, settings, defaults, matWriteMethod):
 		'G_TEXTURE_GEN_LINEAR', setGeo, clearGeo, matWriteMethod)
 	saveBitGeo(settings.g_shade_smooth, defaults.g_shade_smooth,
 		'G_SHADING_SMOOTH', setGeo, clearGeo, matWriteMethod)
+	saveBitGeo(settings.g_celshading, defaults.g_celshading,
+		'G_CELSHADING', setGeo, clearGeo, matWriteMethod)
 	if bpy.context.scene.f3d_type == 'F3DEX_GBI_2' or \
 		bpy.context.scene.f3d_type == 'F3DEX_GBI':
 		saveBitGeo(settings.g_clipping, defaults.g_clipping, 'G_CLIPPING',
