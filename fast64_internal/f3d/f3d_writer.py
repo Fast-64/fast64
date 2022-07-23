@@ -436,6 +436,7 @@ def saveMeshWithLargeTexturesByFaces(
 
     return currentGroupIndex
 
+
 # Make sure to set original_name before calling this
 # used when duplicating an object
 def saveStaticModel(
@@ -998,7 +999,7 @@ class TriangleConverter:
         triCmds = createTriangleCommands(
             self.vertexBufferTriangles,
             self.vertBuffer,
-            self.triConverterInfo.f3d.F3DEX_GBI
+            self.triConverterInfo.f3d.F3DEX_GBI,
         )
         if self.celShadingInfo is None:
             self.triList.commands.extend(triCmds)

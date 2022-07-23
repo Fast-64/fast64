@@ -72,6 +72,7 @@ drawLayerRenderMode = {
     7: ("G_RM_AA_ZB_XLU_INTER", "G_RM_NOOP2"),
 }
 
+
 class F3D:
     def __init__(self, F3D_VER, _HW_VERSION_1):
         if F3D_VER == "F3DEX2.Rej/LX2.Rej" or F3D_VER == "F3DEX2/LX2":
@@ -2820,7 +2821,7 @@ class FTriGroup:
     def get_ptr_addresses(self, f3d):
         return self.triList.get_ptr_addresses(f3d)
 
-    def set_addr(self, startAddress, f3d):	
+    def set_addr(self, startAddress, f3d):
         addrRange = [0, startAddress]
         for ctl in self.celTriLists:
             addrRange = ctl.set_addr(addrRange[1], f3d)
