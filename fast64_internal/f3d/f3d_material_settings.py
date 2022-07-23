@@ -49,6 +49,7 @@ class F3DMaterialSettings:
         self.g_tex_gen = False
         self.g_tex_gen_linear = False
         self.g_shade_smooth = True
+        self.g_celshading = False
         # f3dlx2 only
         self.g_clipping = False
 
@@ -161,6 +162,7 @@ class F3DMaterialSettings:
         self.g_tex_gen = material.rdp_settings.g_tex_gen
         self.g_tex_gen_linear = material.rdp_settings.g_tex_gen_linear
         self.g_shade_smooth = material.rdp_settings.g_shade_smooth
+        self.g_celshading = material.rdp_settings.g_celshading
         # f3dlx2 only
         self.g_clipping = material.rdp_settings.g_clipping
 
@@ -279,6 +281,7 @@ class F3DMaterialSettings:
         material.rdp_settings.g_tex_gen = self.g_tex_gen
         material.rdp_settings.g_tex_gen_linear = self.g_tex_gen_linear
         material.rdp_settings.g_shade_smooth = self.g_shade_smooth
+        material.rdp_settings.g_celshading = self.g_celshading
         # f3dlx2 only
         material.rdp_settings.g_clipping = self.g_clipping
 

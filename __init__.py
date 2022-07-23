@@ -197,6 +197,7 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
         col.scale_y = 1.1  # extra padding
         prop_split(col, context.scene, "f3d_type", "F3D Microcode")
         col.prop(context.scene, "isHWv1")
+        col.prop(context.scene, 'celShadingPatch')
         col.prop(context.scene, "saveTextures")
         col.prop(context.scene, "f3d_simple", text="Simple Material UI")
         col.prop(context.scene, "generateF3DNodeGraph", text="Generate F3D Node Graph For Materials")
