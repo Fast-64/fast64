@@ -32,18 +32,7 @@ class OOT_SearchMusicSeqEnumOperator(bpy.types.Operator):
 	objName : bpy.props.StringProperty()
 
 	def execute(self, context):
-		obj = bpy.data.objects[self.objName]
-		if self.headerIndex == 0:
-			sceneHeader = obj.ootSceneHeader
-		elif self.headerIndex == 1:
-			sceneHeader = obj.ootAlternateSceneHeaders.childNightHeader
-		elif self.headerIndex == 2:
-			sceneHeader = obj.ootAlternateSceneHeaders.adultDayHeader
-		elif self.headerIndex == 3:
-			sceneHeader = obj.ootAlternateSceneHeaders.adultNightHeader
-		else:
-			sceneHeader = obj.ootAlternateSceneHeaders.cutsceneHeaders[self.headerIndex - 4]
-
+		sceneHeader = ootGetSceneOrRoomHeader(bpy.data.objects[self.objName], self.headerIndex, False)
 		sceneHeader.musicSeq = self.ootMusicSeq
 		bpy.context.region.tag_redraw()
 		self.report({'INFO'}, "Selected: " + self.ootMusicSeq)
@@ -65,18 +54,7 @@ class OOT_SearchObjectEnumOperator(bpy.types.Operator):
 	objName : bpy.props.StringProperty()
 
 	def execute(self, context):
-		obj = bpy.data.objects[self.objName]
-		if self.headerIndex == 0:
-			roomHeader = obj.ootRoomHeader
-		elif self.headerIndex == 1:
-			roomHeader = obj.ootAlternateRoomHeaders.childNightHeader
-		elif self.headerIndex == 2:
-			roomHeader = obj.ootAlternateRoomHeaders.adultDayHeader
-		elif self.headerIndex == 3:
-			roomHeader = obj.ootAlternateRoomHeaders.adultNightHeader
-		else:
-			roomHeader = obj.ootAlternateRoomHeaders.cutsceneHeaders[self.headerIndex - 4]
-
+		roomHeader = ootGetSceneOrRoomHeader(bpy.data.objects[self.objName], self.headerIndex, True)
 		roomHeader.objectList[self.index].objectID = self.ootObjectID
 		bpy.context.region.tag_redraw()
 		self.report({'INFO'}, "Selected: " + self.ootObjectID)

@@ -158,3 +158,23 @@ class Fast64RenderSettings_Properties(bpy.types.PropertyGroup):
     ootSceneObject: bpy.props.PointerProperty(
         name="Scene Object", type=bpy.types.Object, update=on_update_oot_render_settings, poll=poll_oot_scene
     )
+    ootSceneHeader: bpy.props.IntProperty(
+        name="Header/Setup",
+        description="Scene header / setup to use lighting data from.",
+        min=0, soft_max=10, default=0
+    )
+    ootForceTimeOfDay: bpy.props.BoolProperty(
+        name="Force Time of Day",
+        description="Interpolate between four lights based on the time.",
+        default=False
+    )
+    ootLightIdx: bpy.props.IntProperty(
+        name="Light Index",
+        min=0, soft_max=10, default=0
+    )
+    ootTime: bpy.props.FloatProperty(
+        name="Time of Day (Hours)",
+        description="Time of day to emulate lighting conditions at, in hours.",
+        min=0.0, max=23.99, precision=2, subtype="TIME", unit="TIME"
+    )
+    

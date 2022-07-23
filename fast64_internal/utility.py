@@ -1399,3 +1399,27 @@ def get_material_from_context(context: bpy.types.Context):
         return context.material_slot.material
     except:
         return None
+
+def ootGetSceneOrRoomHeader(parent, idx, isRoom):
+    # This should be in oot_utility.py, but it is needed in f3d_material.py
+    # which creates a circular import. The real problem is that the F3D render
+    # settings stuff should be in a place which can import both SM64 and OoT
+    # code without circular dependencies.
+    if idx < 0:
+        raise PluginError("Alternate scene/room header index too low: " + str(idx))
+    target = "Room" if isRoom else "Scene"
+    altHeaders = getattr(parent, "ootAlternate" + target + "Headers")
+    if idx == 0:
+        return getattr(parent, "oot" + target + "Header")
+    elif 1 <= idx <= 3:
+        if idx == 1:
+            ret = altHeaders.childNightHeader
+        elif idx == 2:
+            ret = altHeaders.adultDayHeader
+        else:
+            ret = altHeaders.adultNightHeader
+        return None if ret.usePreviousHeader else ret
+    else:
+        if idx - 4 >= len(altHeaders.cutsceneHeaders):
+            return None
+        return altHeaders.cutsceneHeaders[idx - 4]
