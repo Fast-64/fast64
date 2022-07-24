@@ -1346,6 +1346,7 @@ def convertFloatToFixed16(value):
     # return int.from_bytes(
     # 	int(round(value)).to_bytes(2, 'big', signed = True), 'big')
 
+
 def scaleToU8(val):
     return min(int(round(val * 0xFF)), 255)
 

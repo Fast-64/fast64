@@ -327,9 +327,11 @@ def getRoomObj(obj):
     else:
         return obj
 
+
 def checkEmptyName(name):
     if name == "":
         raise PluginError("No name entered for the exporter.")
+
 
 def ootGetObjectPath(isCustomExport, exportPath, folderName):
     if isCustomExport:
