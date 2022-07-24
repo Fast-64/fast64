@@ -1160,6 +1160,10 @@ def gammaInverseValue(sRGBValue):
     return mathutils.Color((sRGBValue, sRGBValue, sRGBValue)).from_srgb_to_scene_linear().v
 
 
+def exportColor(lightColor):
+    return [scaleToU8(value) for value in gammaCorrect(lightColor)]
+
+
 def printBlenderMessage(msgSet, message, blenderOp):
     if blenderOp is not None:
         blenderOp.report(msgSet, message)
@@ -1267,6 +1271,15 @@ def writeEulerFloatToShort(command, offset, value):
     command[offset : offset + 2] = int(round(degrees(value))).to_bytes(2, "big", signed=True)
 
 
+def getObjDirectionVec(obj, toExport: bool):
+    rotation = getObjectQuaternion(obj)
+    if toExport:
+        spaceRot = mathutils.Euler((-pi / 2, 0, 0)).to_quaternion()
+        rotation = spaceRot @ rotation
+    normal = (rotation @ mathutils.Vector((0, 0, 1))).normalized()
+    return normal
+
+
 # convert 32 bit (8888) to 16 bit (5551) color
 def convert32to16bitRGBA(oldPixel):
     if oldPixel[3] > 127:
@@ -1332,6 +1345,13 @@ def convertFloatToFixed16(value):
     # value = min(max(value, -2**15), 2**15 - 1)
     # return int.from_bytes(
     # 	int(round(value)).to_bytes(2, 'big', signed = True), 'big')
+
+def scaleToU8(val):
+    return min(int(round(val * 0xFF)), 255)
+
+
+def normToSigned8Vector(normal):
+    return [int.from_bytes(int(value * 127).to_bytes(1, "big", signed=True), "big") for value in normal]
 
 
 # Normal values are signed bytes (-128 to 127)
@@ -1400,6 +1420,14 @@ def get_material_from_context(context: bpy.types.Context):
     except:
         return None
 
+
+def lightDataToObj(lightData):
+    for obj in bpy.context.scene.objects:
+        if obj.data == lightData:
+            return obj
+    raise PluginError("A material is referencing a light that is no longer in the scene (i.e. has been deleted).")
+
+
 def ootGetSceneOrRoomHeader(parent, idx, isRoom):
     # This should be in oot_utility.py, but it is needed in f3d_material.py
     # which creates a circular import. The real problem is that the F3D render
@@ -1423,3 +1451,26 @@ def ootGetSceneOrRoomHeader(parent, idx, isRoom):
         if idx - 4 >= len(altHeaders.cutsceneHeaders):
             return None
         return altHeaders.cutsceneHeaders[idx - 4]
+
+
+def ootGetBaseOrCustomLight(prop, idx, toExport: bool, errIfMissing: bool):
+    # This should be in oot_utility.py, but it is needed in render_settings.py
+    # which creates a circular import. The real problem is that the F3D render
+    # settings stuff should be in a place which can import both SM64 and OoT
+    # code without circular dependencies.
+    assert idx in {0, 1}
+    col = getattr(prop, "diffuse" + str(idx))
+    dir = (mathutils.Vector((1.0, 1.0, 1.0)) * (1.0 if idx == 0 else -1.0)).normalized()
+    if getattr(prop, "useCustomDiffuse" + str(idx)):
+        light = getattr(prop, "diffuse" + str(idx) + "Custom")
+        if light is None:
+            if errIfMissing:
+                raise PluginError("Error: Diffuse " + str(idx) + " light object not set in a scene lighting property.")
+            else:
+                col = light.color
+                lightObj = lightDataToObj(light)
+                dir = getObjDirectionVec(lightObj, toExport)
+    col = mathutils.Vector(tuple(c for c in col))
+    if toExport:
+        col, dir = exportColor(col), normToSigned8Vector(dir)
+    return col, dir
