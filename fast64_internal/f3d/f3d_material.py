@@ -3345,30 +3345,31 @@ class F3DRenderSettingsPanel(bpy.types.Panel):
                     gameSettingsBox.prop(renderSettings, "ootSceneObject")
                     
                     if renderSettings.ootSceneObject is not None:
-                        b = gameSettingsBox.box().column()
-                        b.prop(renderSettings, "ootSceneHeader")
+                        b = gameSettingsBox.column()
+                        r = b.row().split(factor=0.4)
+                        r.prop(renderSettings, "ootSceneHeader")
                         header = ootGetSceneOrRoomHeader(
                             renderSettings.ootSceneObject,
                             renderSettings.ootSceneHeader,
                             False,
                         )
                         if header is None:
-                            b.label(text = "Scene header does not exist.", icon="QUESTION")
+                            r.label(text = "Header does not exist.", icon="QUESTION")
                         else:
                             numLightsNeeded = 1
                             if header.skyboxLighting == "Custom":
-                                r = b.row()
-                                r.prop(renderSettings, "ootForceTimeOfDay")
+                                r2 = b.row()
+                                r2.prop(renderSettings, "ootForceTimeOfDay")
                                 if renderSettings.ootForceTimeOfDay:
-                                    r.label(text = "Light Index sets first of four lights.", icon="INFO")
+                                    r2.label(text = "Light Index sets first of four lights.", icon="INFO")
                                     numLightsNeeded = 4
                             if header.skyboxLighting != "0x00":
-                                b.prop(renderSettings, "ootLightIdx")
+                                r.prop(renderSettings, "ootLightIdx")
                                 if renderSettings.ootLightIdx + numLightsNeeded > len(header.lightList):
                                     b.label(text = "Light does not exist.", icon="QUESTION")
                             if header.skyboxLighting == "0x00" or (
                                 header.skyboxLighting == "Custom" and renderSettings.ootForceTimeOfDay):
-                                b.prop(renderSettings, "ootTime")
+                                r.prop(renderSettings, "ootTime")
                 case _:
                     pass
 

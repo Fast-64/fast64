@@ -226,13 +226,13 @@ class Fast64RenderSettings_Properties(bpy.types.PropertyGroup):
     )
     ootSceneHeader: bpy.props.IntProperty(
         name="Header/Setup",
-        description="Scene header / setup to use lighting data from.",
+        description="Scene header / setup to use lighting data from",
         min=0, soft_max=10, default=0,
         update=on_update_oot_render_settings,
     )
     ootForceTimeOfDay: bpy.props.BoolProperty(
         name="Force Time of Day",
-        description="Interpolate between four lights based on the time.",
+        description="Interpolate between four lights based on the time",
         default=False,
         update=on_update_oot_render_settings,
     )
@@ -243,7 +243,7 @@ class Fast64RenderSettings_Properties(bpy.types.PropertyGroup):
     )
     ootTime: bpy.props.FloatProperty(
         name="Time of Day (Hours)",
-        description="Time of day to emulate lighting conditions at, in hours.",
+        description="Time of day to emulate lighting conditions at, in hours",
         min=0.0, max=23.99, default = 10.0, precision=2, subtype="TIME", unit="TIME",
         update=on_update_oot_render_settings,
     )
