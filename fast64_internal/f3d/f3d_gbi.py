@@ -319,6 +319,7 @@ class F3D:
         self.G_TEXTURE_GEN = 0x00040000
         self.G_TEXTURE_GEN_LINEAR = 0x00080000
         self.G_LOD = 0x00100000  # NOT IMPLEMENTED
+        self.G_CELSHADING = 0x00400000
         if F3DEX_GBI or F3DLP_GBI:
             self.G_CLIPPING = 0x00800000
         else:
@@ -330,6 +331,7 @@ class F3D:
         self.G_TEXTURE_GEN_H = self.G_TEXTURE_GEN / 0x10000
         self.G_TEXTURE_GEN_LINEAR_H = self.G_TEXTURE_GEN_LINEAR / 0x10000
         self.G_LOD_H = self.G_LOD / 0x10000  # NOT IMPLEMENTED
+        self.G_CELSHADING_H = (self.G_CELSHADING/0x10000)
         if F3DEX_GBI or F3DLP_GBI:
             self.G_CLIPPING_H = self.G_CLIPPING / 0x10000
         # endif
@@ -2828,26 +2830,41 @@ class FTriGroup:
         self.fMaterial = fMaterial
         self.vertexList = VtxList(name + "_vtx_" + str(index))
         self.triList = GfxList(name + "_tri_" + str(index), GfxListTag.Geometry, DLFormat.Static)
+        self.celTriLists = []
+        self.celTriListBaseName = name + '_tri_' + str(index) + '_cel'
+        
+    def add_cel_tri_list(self):
+        ret = GfxList(self.celTriListBaseName + str(len(self.celTriLists)), GfxListTag.Geometry, DLFormat.Static)
+        self.celTriLists.append(ret)
+        return ret
 
     def get_ptr_addresses(self, f3d):
         return self.triList.get_ptr_addresses(f3d)
 
     def set_addr(self, startAddress, f3d):
-        addrRange = self.triList.set_addr(startAddress, f3d)
+        addrRange = [0, startAddress]
+        for ctl in self.celTriLists:
+            addrRange = ctl.set_addr(addrRange[1], f3d)
+        addrRange = self.triList.set_addr(addrRange[1], f3d)
         addrRange = self.vertexList.set_addr(addrRange[1])
         return startAddress, addrRange[1]
 
     def save_binary(self, romfile, f3d, segments):
+        for ctl in self.celTriLists:
+            ctl.save_binary(romfile, f3d, segments)
         self.triList.save_binary(romfile, f3d, segments)
         self.vertexList.save_binary(romfile)
 
     def to_c(self, f3d, gfxFormatter):
         data = CData()
         data.append(self.vertexList.to_c())
+        for ctl in self.celTriLists:
+            data.append(ctl.to_c(f3d))
         data.append(self.triList.to_c(f3d))
         return data
 
     def to_c_vertex_scroll(self, gfxFormatter: GfxFormatter):
+        assert len(self.celTriLists) == 0
         if self.fMaterial.scrollData is not None:
             return gfxFormatter.vertexScrollToC(self.fMaterial, self.vertexList.name, len(self.vertexList.vertices))
         else:
@@ -4323,6 +4340,8 @@ def geoFlagListToWord(flagList, f3d):
             word += f3d.G_TEXTURE_GEN_LINEAR
         elif name == "G_LOD":
             word += f3d.G_LOD
+        elif name == "G_CELSHADING":
+            word += f3d.G_CELSHADING
         elif name == "G_CLIPPING":
             word += f3d.G_CLIPPING
         else:
@@ -4460,7 +4479,7 @@ class SPSetOtherMode:
         self.cmd = cmd
         self.sft = sft
         self.length = length
-        self.flagList = []
+        self.flagList = flagList
 
     def to_binary(self, f3d, segments):
         data = 0

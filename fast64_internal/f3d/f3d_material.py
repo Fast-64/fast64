@@ -381,6 +381,8 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
         inputGroup.prop(settings, "g_tex_gen", text="Texture UV Generate")
         inputGroup.prop(settings, "g_tex_gen_linear", text="Texture UV Generate Linear")
         inputGroup.prop(settings, "g_shade_smooth", text="Smooth Shading")
+        if bpy.context.scene.celShadingPatch:
+            inputGroup.prop(settings, "g_celshading", text = "Cel Shading (Shade G -> A)")
         if bpy.context.scene.f3d_type == "F3DEX_GBI_2" or bpy.context.scene.f3d_type == "F3DEX_GBI":
             inputGroup.prop(settings, "g_clipping", text="Clipping")
 
@@ -808,6 +810,34 @@ class F3DPanel(bpy.types.Panel):
                     fogPositionGroup.label(text="Fog Range")
                     fogPositionGroup.prop(f3dMat, "fog_position", text="")
 
+    def ui_cel_shading(self, material, layout):
+        nodes = material.node_tree.nodes
+        inputGroup = layout.box().column()
+        inputGroup.prop(material.f3d_mat, "do_cel_shading")
+        if material.f3d_mat.do_cel_shading:
+            cel = material.f3d_mat.cel_shading
+            inputGroup.prop(cel, "solid")
+            for l in cel.levels:
+                box = inputGroup.box().column()
+                r = box.row()
+                r.prop(l, "inverse")
+                r.prop(l, "lighten")
+                r = box.row().split(factor=0.25, align=True)
+                r.label(text = 'Color' if l.lighten else 'Black')
+                r = r.split(factor=0.66, align=True)
+                r.prop(l, "fade")
+                r.label(text = 'White' if l.lighten else 'Color')
+                r = box.row().split(factor=0.3, align=True)
+                r.label(text = 'Draw/fill if ' + ('<=' if l.inverse else '>='))
+                r.prop(l, "threshold")
+            r = inputGroup.row()
+            op = r.operator(CelLevelAdd.bl_idname)
+            op.matlName = material.name
+            if len(cel.levels) > 0:
+                op = r.operator(CelLevelRemove.bl_idname)
+                op.matlName = material.name
+        return inputGroup
+
     def drawVertexColorNotice(self, layout):
         noticeBox = layout.box().column()
         noticeBox.label(text="There must be two vertex color layers.", icon="LINENUMBERS_ON")
@@ -1009,6 +1039,9 @@ class F3DPanel(bpy.types.Panel):
         else:
             presetCol.prop(context.scene, "f3dUserPresetsOnly")
             self.draw_full(f3dMat, material, layout, context)
+        
+        if context.scene.celShadingPatch:
+            self.ui_cel_shading(material, layout)
 
 
 def ui_tileScroll(tex, name, layout):
@@ -2351,6 +2384,11 @@ class RDPSettings(bpy.types.PropertyGroup):
         default=True,
         update=update_node_values_with_preset,
     )
+    g_celshading: bpy.props.BoolProperty(
+        name="Cel Shading (Shade G -> A)",
+        default=False,
+        update=update_node_values_with_preset,
+    )
     # f3dlx2 only
     g_clipping: bpy.props.BoolProperty(
         name="Clipping",
@@ -2582,6 +2620,47 @@ class DefaultRDPSettingsPanel(bpy.types.Panel):
         ui_other(world.rdp_defaults, world, layout, True)
 
 
+class CelLevelProperty(bpy.types.PropertyGroup):
+    inverse : bpy.props.BoolProperty(name = 'Inverse')
+    lighten : bpy.props.BoolProperty(name = 'Lighten')
+    fade : bpy.props.IntProperty(name = 'Fade', min = 0, max = 255, default = 200)
+    threshold : bpy.props.IntProperty(name = 'Threshold', min = 0, max = 255, default = 128)
+
+class CelShadingProperty(bpy.types.PropertyGroup):
+    solid : bpy.props.BoolProperty(name = "Color src: ENV (off = TEXEL0)")
+    levels : bpy.props.CollectionProperty(type = CelLevelProperty, name = "Cel Levels")
+
+def celGetMatlLevels(matlName):
+    m = bpy.data.materials.get(matlName)
+    if m is None:
+        raise PluginError('Could not find material ' + matlName)
+    return m.f3d_mat.cel_shading.levels
+
+class CelLevelAdd(bpy.types.Operator):
+    bl_idname = 'material.f3d_cel_level_add'
+    bl_label = 'Add Cel Level'
+    bl_options = {'REGISTER', 'UNDO'}
+    
+    matlName : bpy.props.StringProperty()
+    
+    def execute(self, context):
+        levels = celGetMatlLevels(self.matlName)
+        levels.add()
+        return {'FINISHED'}
+
+class CelLevelRemove(bpy.types.Operator):
+    bl_idname = 'material.f3d_cel_level_remove'
+    bl_label = 'Remove Last Level'
+    bl_options = {'REGISTER', 'UNDO'}
+    
+    matlName : bpy.props.StringProperty()
+    
+    def execute(self, context):
+        levels = celGetMatlLevels(self.matlName)
+        levels.remove(len(levels) - 1)
+        return {'FINISHED'}
+
+
 def getOptimalFormat(tex, useLargeTextures, isMultitexture):
     texFormat = "RGBA16"
     if useLargeTextures:
@@ -2659,8 +2738,11 @@ class MATERIAL_MT_f3d_presets(Menu):
         props_default = getattr(self, "preset_operator_defaults", None)
         add_operator = getattr(self, "preset_add_operator", None)
         presetDir = getCurrentPresetDir()
-        paths = bpy.utils.preset_paths(presetDir) if not bpy.context.scene.f3dUserPresetsOnly else []
-        paths += bpy.utils.preset_paths("f3d/user")
+        paths = bpy.utils.preset_paths("f3d/user")
+        if not bpy.context.scene.f3dUserPresetsOnly:
+            paths += bpy.utils.preset_paths(presetDir)
+            if bpy.context.scene.celShadingPatch:
+                paths += bpy.utils.preset_paths(presetDir + "_cel")
         self.path_menu(
             paths,
             self.preset_operator,
@@ -3242,6 +3324,9 @@ class F3DMaterialProperty(bpy.types.PropertyGroup):
     draw_layer: bpy.props.PointerProperty(type=DrawLayerProperty)
     use_large_textures: bpy.props.BoolProperty(name="Large Texture Mode")
 
+    # cel shading
+    do_cel_shading : bpy.props.BoolProperty(name = "Cel Shading")
+    cel_shading : bpy.props.PointerProperty(type = CelShadingProperty)
 
 class UnlinkF3DImage0(bpy.types.Operator):
     bl_idname = "image.tex0_unlink"
@@ -3371,6 +3456,10 @@ mat_classes = (
     PrimDepthSettings,
     RDPSettings,
     DefaultRDPSettingsPanel,
+    CelLevelProperty,
+    CelShadingProperty,
+    CelLevelAdd,
+    CelLevelRemove,
     F3DMaterialProperty,
     ReloadDefaultF3DPresets,
     UpdateF3DNodes,
@@ -3419,6 +3508,9 @@ def mat_register():
         name="F3D Microcode",
         items=enumF3D,
         default="F3D",
+    )
+    bpy.types.Scene.celShadingPatch = bpy.props.BoolProperty(
+        name = 'Cel Shading Microcode Patch Installed',
     )
     bpy.types.Scene.isHWv1 = bpy.props.BoolProperty(name="Is Hardware v1?")
 
