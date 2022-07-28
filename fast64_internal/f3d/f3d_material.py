@@ -1793,7 +1793,7 @@ def load_handler(dummy):
 
 bpy.app.handlers.load_post.append(load_handler)
 
-# bpy.context.mode returns the key's here, while the values are required by bpy.ops.object.mode_set
+# bpy.context.mode returns the keys here, while the values are required by bpy.ops.object.mode_set
 BLENDER_MODE_TO_MODE_SET = {"PAINT_VERTEX": "VERTEX_PAINT", "EDIT_MESH": "EDIT"}
 get_mode_set_from_context_mode = lambda mode: BLENDER_MODE_TO_MODE_SET.get(mode, "OBJECT")
 
