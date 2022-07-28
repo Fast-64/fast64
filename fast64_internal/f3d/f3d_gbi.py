@@ -1,7 +1,5 @@
 # Macros are all copied over from gbi.h
-import bpy, os, copy, enum
-from math import ceil
-from functools import lru_cache
+import bpy, os, enum
 from ..utility import *
 
 
