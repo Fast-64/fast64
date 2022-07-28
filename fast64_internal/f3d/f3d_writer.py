@@ -896,7 +896,7 @@ class TriangleConverter:
 
         self.triGroup = triGroup
         self.triList = triGroup.triList
-        self.vtxList = triGroup.vtxList
+        self.vtxList = triGroup.vertexList
 
         isPointSampled = isTexturePointSampled(material)
         exportVertexColors = isLightingDisabled(material)
