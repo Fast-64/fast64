@@ -1206,27 +1206,27 @@ def update_node_combiner(material, combinerInputs, cycleIndex):
                 material.node_tree.links.remove(link)
 
         if i < 4:
-            node_name, output_name = color_combiner_inputs[combiner_input]
+            node_name, output_key = color_combiner_inputs[combiner_input]
             if cycleIndex == 2:
                 if combiner_input == "COMBINED":
                     node_name = "Combined_C"
-                    output_name = 0  # using an index due to it being a reroute node
+                    output_key = 0  # using an index due to it being a reroute node
                 elif combiner_input == "COMBINED_ALPHA":
                     node_name = "Combined_A"
-                    output_name = 0  # using an index due to it being a reroute node
+                    output_key = 0  # using an index due to it being a reroute node
             if node_name is not None:
                 input_node = nodes[node_name]
-                input_value = input_node.outputs[output_name]
+                input_value = input_node.outputs[output_key]
                 material.node_tree.links.new(cycle_node.inputs[i], input_value)
         else:
-            node_name, output_name = alpha_combiner_inputs[combiner_input]
+            node_name, output_key = alpha_combiner_inputs[combiner_input]
             if cycleIndex == 2:
                 if combiner_input == "COMBINED":
                     node_name = "Combined_A"
-                    output_name = 0  # using an index due to it being a reroute node
+                    output_key = 0  # using an index due to it being a reroute node
             if node_name is not None:
                 input_node = nodes[node_name]
-                input_value = input_node.outputs[output_name]
+                input_value = input_node.outputs[output_key]
                 material.node_tree.links.new(cycle_node.inputs[i], input_value)
 
 
