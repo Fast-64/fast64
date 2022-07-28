@@ -443,8 +443,8 @@ def upgrade_changed_props():
 
 def upgrade_scene_props_node():
     """update f3d materials with SceneProperties node"""
-    has_old_f3d_mats = bool(
-        len([mat for mat in bpy.data.materials if mat.is_f3d and mat.mat_ver < MatUpdateConvert.version])
+    has_old_f3d_mats = any(
+        mat.is_f3d and mat.mat_ver < MatUpdateConvert.version for mat in bpy.data.materials
     )
     if has_old_f3d_mats:
         bpy.ops.dialog.upgrade_f3d_materials("INVOKE_DEFAULT")
