@@ -1094,7 +1094,7 @@ def ui_procAnim(material, layout, useTex0, useTex1, title, useDropdown):
     ui_procAnimVecEnum(material.f3d_mat, material.f3d_mat.UVanim0, layout, title, "UV", useDropdown, useTex0, useTex1)
 
 
-def update_node_values(self, context, update_preset=True):
+def update_node_values(self, context, update_preset):
     if hasattr(context.scene, "world") and self == context.scene.world.rdp_defaults:
         pass
 
