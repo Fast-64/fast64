@@ -367,7 +367,7 @@ class UpgradeF3DMaterialsDialog(bpy.types.Operator):
         layout.alert = True
         box = layout.box()
         box.label(text="Your project contains F3D materials that need to be upgraded in order to continue!")
-        box.label(text="Before upgrading, make sure to create a duplicate of this blend file before continuing.")
+        box.label(text="Before upgrading, make sure to create a duplicate (backup) of this blend file.")
         box.separator()
 
         col = box.column()
