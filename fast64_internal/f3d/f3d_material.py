@@ -1173,14 +1173,14 @@ alpha_combiner_inputs = {
 }
 
 
-def remove_first_link_if_exists(material: bpy.types.Material, links):  # TODO: (V5) add links type annotation
+def remove_first_link_if_exists(material: bpy.types.Material, links: tuple[bpy.types.NodeLink]):
     if len(links) > 0:
         link = links[0]
         material.node_tree.links.remove(link)
 
 
 def link_if_none_exist(
-    material: bpy.types.Material, fromOutput, toInput
+    material: bpy.types.Material, fromOutput: bpy.types.NodeSocket, toInput: bpy.types.NodeSocket
 ):  # TODO: (V5) add output/input type annotations
     if len(fromOutput.links) == 0:
         material.node_tree.links.new(fromOutput, toInput)
