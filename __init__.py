@@ -452,7 +452,6 @@ def upgrade_scene_props_node():
 
 @bpy.app.handlers.persistent
 def after_load(_a, _b):
-    # link_f3d_material_library()
     upgrade_changed_props()
     upgrade_scene_props_node()
     resync_scene_props()
