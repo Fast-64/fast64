@@ -1360,7 +1360,7 @@ def update_light_colors(material, context):
     nodes = material.node_tree.nodes
 
     if f3dMat.use_default_lighting and f3dMat.set_ambient_from_light:
-        amb: Color = Color(f3dMat.default_light_color[:3])
+        amb = Color(f3dMat.default_light_color[:3])
         # dividing by 4.672 approximates to half of the light color's value after gamma correction is performed on both ambient and light colors
         amb.v /= 4.672
 
