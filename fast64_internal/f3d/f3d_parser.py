@@ -475,6 +475,8 @@ class F3DContext:
 
         self.tlutAppliedTextures = []  # c name
         self.currentTextureName = None
+        self.imagesLoadedFromFile = [] # image
+        self.CIImageFilesStoredAsFullColor = True # determines whether to apply tlut to file or import as is
 
         # This macro has all the tile setting properties, so we reuse it
         self.tileSettings = [
@@ -713,6 +715,7 @@ class F3DContext:
             and texProp.tex_set
             and texProp.tex_format[:2] == "CI"
             and (texProp.tex not in self.tlutAppliedTextures or texProp.use_tex_reference)
+            and (texProp.tex not in self.imagesLoadedFromFile or not self.CIImageFilesStoredAsFullColor) # oot currently stores CI textures in full color pngs
         ):
 
             # Only handles TLUT at 256
@@ -1361,7 +1364,9 @@ class F3DContext:
 
         # TODO: Textures are sometimes loaded in with different dimensions than for rendering.
         # This means width is incorrect?
-        image = parseTextureData(data, textureName, self, tileSettings.fmt, siz, width, self.basePath, isLUT, self.f3d)
+        image, loadedFromImageFile = parseTextureData(data, textureName, self, tileSettings.fmt, siz, width, self.basePath, isLUT, self.f3d)
+        if loadedFromImageFile and image not in self.imagesLoadedFromFile:
+            self.imagesLoadedFromFile.append(image)
 
         self.textureData[textureName] = image
         return self.textureData[textureName]
@@ -1852,9 +1857,11 @@ def parseTextureData(dlData, textureName, f3dContext, imageFormat, imageSize, wi
     )
     if matchResult is None:
         print("Cannot find texture named " + textureName)
-        return F3DTextureReference(textureName, width)
+        return F3DTextureReference(textureName, width), False
     data = matchResult.group(2)
     valueSize = matchResult.group(1)
+
+    loadedFromImageFile = False
 
     pathMatch = re.search('\#include\s*"([^"]*)"', data, re.DOTALL)
     if pathMatch is not None:
@@ -1873,6 +1880,8 @@ def parseTextureData(dlData, textureName, f3dContext, imageFormat, imageSize, wi
                 image.pixels[width * j * 4 : width * (j + 1) * 4] = flippedValues[
                     width * (height - (j + 1)) * 4 : width * (height - j) * 4
                 ]
+        
+        loadedFromImageFile = True
     else:
         values = [value.strip() for value in data.split(",") if value.strip() != ""]
         newValues = []
@@ -1946,7 +1955,7 @@ def parseTextureData(dlData, textureName, f3dContext, imageFormat, imageSize, wi
                     width * (height - (j + 1)) * 4 : width * (height - j) * 4
                 ]
 
-    return image
+    return image, loadedFromImageFile
 
 
 def parseMacroList(data):
