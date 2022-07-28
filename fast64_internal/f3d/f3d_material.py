@@ -1428,10 +1428,8 @@ def get_color_input_update_callback(attr_name="", prefix=""):
 def update_node_values_of_material(material: bpy.types.Material, context):
     nodes = material.node_tree.nodes
 
-    # Case where f3d render engine is used instead of node graph
-    # Note that v4 doesn't change the node graph from v3, so we use that name
     update_blend_method(material, context)
-    if not hasNodeGraph(material):
+    if not has_f3d_nodes(material):
         return
 
     f3dMat: "F3DMaterialProperty" = material.f3d_mat
@@ -1603,7 +1601,7 @@ def update_tex_values_index(self: bpy.types.Material, *, texProperty: "TexturePr
 
             texFormat = texProperty.tex_format
             ciFormat = texProperty.ci_format
-            if hasNodeGraph(self):
+            if has_f3d_nodes(self):
                 tex_I_node = nodes["Tex" + str(texIndex) + "_I"]
                 desired_node = bpy.data.node_groups["Is not i"]
                 if "IA" in texFormat or (texFormat[:2] == "CI" and "IA" in ciFormat):
@@ -1747,7 +1745,7 @@ def getMaterialScrollDimensions(material):
 
 
 def update_preset_manual(material, context):
-    if hasNodeGraph(material):
+    if has_f3d_nodes(material):
         update_node_values_of_material(material, context)
     update_tex_values_manual(material, context)
 
@@ -1767,7 +1765,7 @@ def update_preset_manual_v4(material, preset):
         material.f3d_update_flag = False
 
 
-def hasNodeGraph(material: bpy.types.Material):
+def has_f3d_nodes(material: bpy.types.Material):
     return "Material Output F3D" in material.node_tree.nodes
 
 
