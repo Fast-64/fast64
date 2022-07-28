@@ -361,3 +361,13 @@ enumF3D = [
     ("F3DEX2/LX2", "F3DEX2/LX2", "F3DEX2/LX2"),
     ("F3DEX2.Rej/LX2.Rej", "F3DEX2.Rej/LX2.Rej", "F3DEX2.Rej/LX2.Rej"),
 ]
+
+enumCelBaseColor = {
+    ("TEXEL0", "Texel 0", "Texel 0"),
+    ("ENV", "Env Color", "Environment Color"),
+}
+
+enumCelTintType = {
+    ("Fixed", "Fixed", "Fixed tint color and amount stored directly in DL"),
+    ("Segment", "Segment", "Call a segmented DL to set the tint, can change at runtime"),
+}

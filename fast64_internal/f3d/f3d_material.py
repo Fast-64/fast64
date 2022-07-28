@@ -813,23 +813,39 @@ class F3DPanel(bpy.types.Panel):
     def ui_cel_shading(self, material, layout):
         nodes = material.node_tree.nodes
         inputGroup = layout.box().column()
-        inputGroup.prop(material.f3d_mat, "do_cel_shading")
+        r = inputGroup.row().split(factor=0.3)
+        r.prop(material.f3d_mat, "do_cel_shading")
         if material.f3d_mat.do_cel_shading:
             cel = material.f3d_mat.cel_shading
-            inputGroup.prop(cel, "solid")
+            r.prop(cel, "baseColor")
+            showSegHelp = False
             for l in cel.levels:
                 box = inputGroup.box().column()
                 r = box.row()
-                r.prop(l, "inverse")
-                r.prop(l, "lighten")
-                r = box.row().split(factor=0.25, align=True)
-                r.label(text = 'Color' if l.lighten else 'Black')
-                r = r.split(factor=0.66, align=True)
-                r.prop(l, "fade")
-                r.label(text = 'White' if l.lighten else 'Color')
-                r = box.row().split(factor=0.3, align=True)
-                r.label(text = 'Draw/fill if ' + ('<=' if l.inverse else '>='))
                 r.prop(l, "threshold")
+                r.prop(l, "inverse")
+                box.prop(l, "tintType")
+                if l.tintType == "Fixed":
+                    r = box.row().split(factor=0.4)
+                    r.prop(l, "tintFixedLevel")
+                    r = r.split(factor=0.3)
+                    r.label(text="Tint color:")
+                    r.prop(l, "tintFixedColor", text="")
+                else:
+                    r = box.row().split(factor=0.4)
+                    r.prop(l, "tintSegmentNum")
+                    r.prop(l, "tintSegmentOffset")
+                    showSegHelp = True
+            if showSegHelp:
+                r = inputGroup.row()
+                r.label(icon="INFO", text="Segments: In your code, set up DL in segment(s) used with")
+                r.scale_y = 0.7
+                r = inputGroup.row()
+                r.label(text="gsDPSetPrimColor then gsSPEndDisplayList at appropriate offset")
+                r.scale_y = 0.7
+                r = inputGroup.row()
+                r.label(text="with prim color = tint color and prim alpha = tint level.")
+                r.scale_y = 0.7
             r = inputGroup.row()
             op = r.operator(CelLevelAdd.bl_idname)
             op.matlName = material.name
@@ -2621,13 +2637,49 @@ class DefaultRDPSettingsPanel(bpy.types.Panel):
 
 
 class CelLevelProperty(bpy.types.PropertyGroup):
-    inverse : bpy.props.BoolProperty(name = 'Inverse')
-    lighten : bpy.props.BoolProperty(name = 'Lighten')
-    fade : bpy.props.IntProperty(name = 'Fade', min = 0, max = 255, default = 200)
-    threshold : bpy.props.IntProperty(name = 'Threshold', min = 0, max = 255, default = 128)
+    threshold : bpy.props.IntProperty(
+        name = "Threshold",
+        description = "Light level at which the boundary between cel levels occurs",
+        min = 0,
+        max = 255,
+        default = 128
+    )
+    inverse : bpy.props.BoolProperty(
+        name = "Draw when Darker",
+        description = "If selected, draw when the light level is darker than the threshold",
+    )
+    tintType : bpy.props.EnumProperty(items = enumCelTintType, name = "Tint type", default = "Fixed")
+    tintFixedLevel : bpy.props.IntProperty(
+        name = "Tint level",
+        description = "0: original color <=> 255: fully tint color",
+        min = 0,
+        max = 255,
+        default = 50,
+    )
+    tintFixedColor : bpy.props.FloatVectorProperty(
+        name = "Tint color",
+        size = 3,
+        min = 0.0,
+        max = 1.0,
+        subtype = "COLOR",
+    )
+    tintSegmentNum : bpy.props.IntProperty(
+        name = "Segment",
+        description = "Segment number to store tint DL in",
+        min = 8,
+        max = 0xD,
+        default = 8
+    )
+    tintSegmentOffset : bpy.props.IntProperty(
+        name = "Offset (instructions)",
+        description = "Number of instructions (8 bytes) within this DL to jump to",
+        min = 0,
+        max = 1000,
+        default = 0
+    )
 
 class CelShadingProperty(bpy.types.PropertyGroup):
-    solid : bpy.props.BoolProperty(name = "Color src: ENV (off = TEXEL0)")
+    baseColor : bpy.props.EnumProperty(items = enumCelBaseColor, name = "Base color", default = "TEXEL0")
     levels : bpy.props.CollectionProperty(type = CelLevelProperty, name = "Cel Levels")
 
 def celGetMatlLevels(matlName):
