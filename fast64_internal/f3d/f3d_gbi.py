@@ -110,7 +110,7 @@ ACMUXDict = {
 
 
 class F3D:
-    """NOTE: do not initialize this class manually! use get_F3D_GBI so that the single instance is cached from the microcode."""
+    """NOTE: do not initialize this class manually! use get_F3D_GBI so that the single instance is cached from the microcode type."""
 
     def __init__(self, F3D_VER, _HW_VERSION_1):
         if F3D_VER == "F3DEX2.Rej/LX2.Rej" or F3D_VER == "F3DEX2/LX2":
