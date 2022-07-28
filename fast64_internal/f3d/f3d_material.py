@@ -1510,7 +1510,7 @@ def set_texture_size(self, tex_size, tex_index):
 
 
 def round_10_2(val: float):
-    return float(int(val * 4)) / 4.0
+    return int(val * 4) / 4
 
 
 def update_tex_values_field(
