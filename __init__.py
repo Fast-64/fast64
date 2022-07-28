@@ -463,12 +463,12 @@ def after_load(_a, _b):
 # append menu layout drawing function to an existing window
 def register():
 
-    if bpy.app.version <= (3, 1, 0):
+    if bpy.app.version < (3, 2, 0):
         msg = "\n".join(
             (
-                "This version of Fast64 does not work properly in Blender 3.1.0 and earlier Blender versions.",
+                "This version of Fast64 does not support Blender 3.1.x and earlier Blender versions.",
                 "Your Blender version is: " + ".".join(str(i) for i in bpy.app.version),
-                "Please upgrade to 3.2.0 or above.",
+                "Please upgrade Blender to 3.2.0 or above.",
             )
         )
         print(msg)
