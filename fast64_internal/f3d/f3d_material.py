@@ -1133,7 +1133,7 @@ def getSocketFromCombinerToNodeDictAlpha(nodes, combinerInput):
     return nodes[nodeName].outputs[socketIndex] if nodeName is not None else None
 
 
-# Maps the color combiner input name to the corresponding node name and output name
+# Maps the color combiner input name to the corresponding node name and output socket name
 color_combiner_inputs = {
     "COMBINED": (None, "Color"),
     "TEXEL0": ("Tex0_I", "Color"),
