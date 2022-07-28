@@ -384,7 +384,7 @@ class UpgradeF3DMaterialsDialog(bpy.types.Operator):
 
         upgradeF3DVersionAll(
             [obj for obj in bpy.data.objects if isinstance(obj.data, bpy.types.Mesh)],
-            bpy.data.armatures,
+            list(bpy.data.armatures),
             MatUpdateConvert.version,
         )
         self.done = True
