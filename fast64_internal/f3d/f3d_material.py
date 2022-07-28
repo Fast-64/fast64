@@ -1361,7 +1361,8 @@ def update_light_colors(material, context):
 
     if f3dMat.use_default_lighting and f3dMat.set_ambient_from_light:
         amb: Color = Color(f3dMat.default_light_color[:3])
-        amb.v /= 4.672  # dividing by 4.672 approximates to half of the light color's value after gamma correction is performed on both
+        # dividing by 4.672 approximates to half of the light color's value after gamma correction is performed on both ambient and light colors
+        amb.v /= 4.672
 
         new_amb = [c for c in amb]
         new_amb.append(1.0)
