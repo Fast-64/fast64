@@ -11,7 +11,7 @@ from ..utility import *
 from ..render_settings import Fast64RenderSettings_Properties, update_scene_props_from_render_settings
 from .f3d_material_helpers import F3DMaterial_UpdateLock
 from bpy.app.handlers import persistent
-from typing import Generator, Tuple
+from typing import Generator, Optional, Tuple
 
 
 logging.basicConfig(format="%(asctime)s: %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p")
@@ -1567,7 +1567,7 @@ def set_texture_nodes_settings(
     f3dMat: "F3DMaterialProperty" = material.f3d_mat
 
     # Return value
-    texSize: None | list["int"] = None
+    texSize: Optional[list[int]] = None
     # Enforce typing from generator
     texNode: None | bpy.types.TextureNodeImage = None
 
