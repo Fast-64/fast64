@@ -1832,7 +1832,7 @@ def createOrUpdateSceneProperties():
     _nodeFogFar: bpy.types.NodeSocketInt = new_group.outputs.new("NodeSocketInt", "FogFar")
     _nodeShadeColor: bpy.types.NodeSocketColor = new_group.outputs.new("NodeSocketColor", "ShadeColor")
     _nodeAmbientColor: bpy.types.NodeSocketColor = new_group.outputs.new("NodeSocketColor", "AmbientColor")
-    _nodeLightDirection: bpy.types.NodeSocketColor = new_group.outputs.new(
+    _nodeLightDirection: bpy.types.NodeSocketVectorDirection = new_group.outputs.new(
         "NodeSocketVectorDirection", "LightDirection"
     )
 
