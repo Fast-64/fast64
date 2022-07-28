@@ -65,7 +65,7 @@ def ootCombineSceneFiles(levelC):
     return sceneC
 
 
-def ootExportSceneToC(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneName, DLFormat, savePNG, exportInfo):
+def ootExportSceneToC(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneName, DLFormat, savePNG, exportInfo, bootToSceneOptions):
 
     checkObjectReference(originalSceneObj, "Scene object")
     isCustomExport = exportInfo.isCustomExportPath
@@ -140,6 +140,8 @@ def ootExportSceneToC(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneN
 
     if not isCustomExport:
         writeOtherSceneProperties(scene, exportInfo, levelC)
+        if bootToSceneOptions.bootToScene:
+            setBootupScene(exportPath, "ENTR_" + sceneName.upper() + "_" + str(bootToSceneOptions.spawnIndex), bootToSceneOptions)
 
 
 def writeOtherSceneProperties(scene, exportInfo, levelC):
@@ -645,6 +647,7 @@ class OOT_ExportScene(bpy.types.Operator):
                 DLFormat.Static,
                 context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions,
                 exportInfo,
+                context.scene.ootBootupSceneOptions
             )
 
             self.report({"INFO"}, "Success!")
@@ -673,7 +676,7 @@ def ootRemoveSceneC(exportInfo):
 
 class OOT_RemoveScene(bpy.types.Operator):
     bl_idname = "object.oot_remove_level"
-    bl_label = "Remove Scene"
+    bl_label = "Are you sure you want to remove this level?"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
 
     def execute(self, context):
@@ -694,6 +697,8 @@ class OOT_RemoveScene(bpy.types.Operator):
         self.report({"INFO"}, "Success!")
         return {"FINISHED"}
 
+    def invoke(self, context, event):
+        return context.window_manager.invoke_confirm(self, event)
 
 class OOT_ExportScenePanel(OOT_Panel):
     bl_idname = "OOT_PT_export_level"
@@ -712,13 +717,22 @@ class OOT_ExportScenePanel(OOT_Panel):
             prop_split(col, context.scene, "ootSceneName", "Name")
             customExportWarning(col)
         else:
+            col.prop(context.scene.ootBootupSceneOptions, "bootToScene")
+            if context.scene.ootBootupSceneOptions.bootToScene:
+                prop_split(col, context.scene.ootBootupSceneOptions, "spawnIndex", "Spawn")
+                col.prop(context.scene.ootBootupSceneOptions, "overrideHeader")
+                if context.scene.ootBootupSceneOptions.overrideHeader:
+                    prop_split(col, context.scene.ootBootupSceneOptions, "headerOption", "Header Option")
+                    if context.scene.ootBootupSceneOptions.headerOption == "Cutscene":
+                        prop_split(col, context.scene.ootBootupSceneOptions, "cutsceneIndex", "Cutscene Index")
             col.operator(OOT_SearchSceneEnumOperator.bl_idname, icon="VIEWZOOM")
             col.box().column().label(text=getEnumName(ootEnumSceneID, context.scene.ootSceneOption))
             # col.prop(context.scene, 'ootSceneOption')
             if context.scene.ootSceneOption == "Custom":
                 prop_split(col, context.scene, "ootSceneSubFolder", "Subfolder")
                 prop_split(col, context.scene, "ootSceneName", "Name")
-            col.operator(OOT_RemoveScene.bl_idname)
+            col.operator(OOT_ClearBootupScene.bl_idname)
+            col.operator(OOT_RemoveScene.bl_idname, text="Remove Scene")
 
 
 def isSceneObj(self, obj):
@@ -747,6 +761,8 @@ def oot_level_register():
     for cls in oot_level_classes:
         register_class(cls)
 
+    ootSceneBootupRegister()
+
     bpy.types.Scene.ootSceneName = bpy.props.StringProperty(name="Name", default="spot03")
     bpy.types.Scene.ootSceneSubFolder = bpy.props.StringProperty(name="Subfolder", default="overworld")
     bpy.types.Scene.ootSceneOption = bpy.props.EnumProperty(name="Scene", items=ootEnumSceneID, default="SCENE_YDAN")
@@ -763,6 +779,8 @@ def oot_level_register():
 def oot_level_unregister():
     for cls in reversed(oot_level_classes):
         unregister_class(cls)
+
+    ootSceneBootupUnregister()
 
     del bpy.types.Scene.ootSceneName
     del bpy.types.Scene.ootSceneExportPath
