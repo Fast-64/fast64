@@ -364,7 +364,7 @@ enumF3D = [
 
 enumCelBaseColor = {
     ("TEXEL0", "Texel 0", "Texel 0"),
-    ("ENV", "Env Color", "Environment Color"),
+    ("ENVIRONMENT", "Env Color", "Environment Color"),
 }
 
 enumCelTintType = {

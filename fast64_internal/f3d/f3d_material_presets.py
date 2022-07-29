@@ -3675,7 +3675,7 @@ bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
 """
 
-oot_cel_shaded_texture = '''
+oot_cel_shaded_texture = """
 
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
@@ -3782,22 +3782,24 @@ f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Opaque'
 f3d_mat.do_cel_shading = True
-f3d_mat.cel_shading.solid = False
+f3d_mat.cel_shading.baseColor = "TEXEL0"
 while len(f3d_mat.cel_shading.levels) < 2:
     f3d_mat.cel_shading.levels.add()
-f3d_mat.cel_shading.levels[0].inverse = True
-f3d_mat.cel_shading.levels[0].lighten = False
-f3d_mat.cel_shading.levels[0].fade = 200
 f3d_mat.cel_shading.levels[0].threshold = 128
-f3d_mat.cel_shading.levels[1].inverse = False
-f3d_mat.cel_shading.levels[1].lighten = True
-f3d_mat.cel_shading.levels[1].fade = 0
+f3d_mat.cel_shading.levels[0].inverse = True
+f3d_mat.cel_shading.levels[0].tintType = "Fixed"
+f3d_mat.cel_shading.levels[0].tintFixedLevel = 50
+f3d_mat.cel_shading.levels[0].tintFixedColor = (0.0, 0.0, 0.2)
 f3d_mat.cel_shading.levels[1].threshold = 128
+f3d_mat.cel_shading.levels[1].inverse = False
+f3d_mat.cel_shading.levels[0].tintType = "Fixed"
+f3d_mat.cel_shading.levels[0].tintFixedLevel = 10
+f3d_mat.cel_shading.levels[0].tintFixedColor = (1.0, 1.0, 0.8)
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
-oot_cel_shaded_solid = '''
+oot_cel_shaded_solid = """
 
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
@@ -3905,20 +3907,22 @@ f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Opaque'
 f3d_mat.do_cel_shading = True
-f3d_mat.cel_shading.solid = True
+f3d_mat.cel_shading.baseColor = "ENV"
 while len(f3d_mat.cel_shading.levels) < 2:
     f3d_mat.cel_shading.levels.add()
-f3d_mat.cel_shading.levels[0].inverse = True
-f3d_mat.cel_shading.levels[0].lighten = False
-f3d_mat.cel_shading.levels[0].fade = 200
 f3d_mat.cel_shading.levels[0].threshold = 128
-f3d_mat.cel_shading.levels[1].inverse = False
-f3d_mat.cel_shading.levels[1].lighten = True
-f3d_mat.cel_shading.levels[1].fade = 0
+f3d_mat.cel_shading.levels[0].inverse = True
+f3d_mat.cel_shading.levels[0].tintType = "Fixed"
+f3d_mat.cel_shading.levels[0].tintFixedLevel = 50
+f3d_mat.cel_shading.levels[0].tintFixedColor = (0.0, 0.0, 0.2)
 f3d_mat.cel_shading.levels[1].threshold = 128
+f3d_mat.cel_shading.levels[1].inverse = False
+f3d_mat.cel_shading.levels[0].tintType = "Fixed"
+f3d_mat.cel_shading.levels[0].tintFixedLevel = 10
+f3d_mat.cel_shading.levels[0].tintFixedColor = (1.0, 1.0, 0.8)
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-'''
+"""
 
 material_presets = {
     "oot": {

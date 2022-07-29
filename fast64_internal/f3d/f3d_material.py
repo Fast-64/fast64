@@ -817,7 +817,9 @@ class F3DPanel(bpy.types.Panel):
         r.prop(material.f3d_mat, "do_cel_shading")
         if material.f3d_mat.do_cel_shading:
             cel = material.f3d_mat.cel_shading
-            r.prop(cel, "baseColor")
+            r = r.split(factor=0.4)
+            r.label(text="Base color:")
+            r.prop(cel, "baseColor", text="")
             showSegHelp = False
             for l in cel.levels:
                 box = inputGroup.box().column()
