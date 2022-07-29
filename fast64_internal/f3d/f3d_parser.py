@@ -475,8 +475,8 @@ class F3DContext:
 
         self.tlutAppliedTextures = []  # c name
         self.currentTextureName = None
-        self.imagesLoadedFromFile = [] # image
-        self.CIImageFilesStoredAsFullColor = True # determines whether to apply tlut to file or import as is
+        self.imagesDontApplyTlut = set() # image
+        self.ciImageFilesStoredAsFullColor = True # determines whether to apply tlut to file or import as is
 
         # This macro has all the tile setting properties, so we reuse it
         self.tileSettings = [
@@ -715,7 +715,7 @@ class F3DContext:
             and texProp.tex_set
             and texProp.tex_format[:2] == "CI"
             and (texProp.tex not in self.tlutAppliedTextures or texProp.use_tex_reference)
-            and (texProp.tex not in self.imagesLoadedFromFile or not self.CIImageFilesStoredAsFullColor) # oot currently stores CI textures in full color pngs
+            and (texProp.tex not in self.imagesDontApplyTlut or not self.ciImageFilesStoredAsFullColor) # oot currently stores CI textures in full color pngs
         ):
 
             # Only handles TLUT at 256
@@ -1365,8 +1365,8 @@ class F3DContext:
         # TODO: Textures are sometimes loaded in with different dimensions than for rendering.
         # This means width is incorrect?
         image, loadedFromImageFile = parseTextureData(data, textureName, self, tileSettings.fmt, siz, width, self.basePath, isLUT, self.f3d)
-        if loadedFromImageFile and image not in self.imagesLoadedFromFile:
-            self.imagesLoadedFromFile.append(image)
+        if loadedFromImageFile:
+            self.imagesDontApplyTlut.add(image)
 
         self.textureData[textureName] = image
         return self.textureData[textureName]
