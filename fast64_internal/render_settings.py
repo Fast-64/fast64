@@ -78,6 +78,7 @@ def on_update_oot_render_settings(self, context: bpy.types.Context):
             -cost * 120.0 / 127.0,
             -cost *  20.0 / 127.0,
         )).normalized()
+        # TODO: Implement light1 into shader nodes
         # renderSettings.light1Direction = -renderSettings.lightDirection
         renderSettings.fogColor = interpColors(la.fogColor, lb.fogColor, fade)
         renderSettings.fogPreviewPosition = (
