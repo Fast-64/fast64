@@ -875,7 +875,7 @@ class TriangleConverter:
         texDimensions,
         material: bpy.types.Material,
         currentGroupIndex,
-        triGroup,
+        triGroup: FTriGroup,
         existingVertexData,
         existingVertexMaterialRegions,
         celShadingInfo
