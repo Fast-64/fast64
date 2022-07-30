@@ -34,6 +34,7 @@ def on_update_oot_render_settings(self, context: bpy.types.Context):
         col0, dir0 = ootGetBaseOrCustomLight(l, 0, False, False)
         renderSettings.lightColor = tuple(c for c in col0)
         renderSettings.lightDirection = tuple(d for d in dir0)
+        # TODO: Implement light1 into shader nodes
         # col1, dir1 = ootGetBaseOrCustomLight(l, 1, False, False)
         # renderSettings.light1Color = tuple(c for c in col1)
         # renderSettings.light1Direction = tuple(d for d in dir1)
