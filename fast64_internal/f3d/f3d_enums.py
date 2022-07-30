@@ -362,12 +362,17 @@ enumF3D = [
     ("F3DEX2.Rej/LX2.Rej", "F3DEX2.Rej/LX2.Rej", "F3DEX2.Rej/LX2.Rej"),
 ]
 
+enumCelThreshMode = {
+    ("Regular", "Lighter", "This cel level is drawn when the lighting level per-pixel is LIGHTER than the threshold"),
+    ("Inverse", "Darker", "This cel level is drawn when the lighting level per-pixel is DARKER than the threshold"),
+}
+
 enumCelBaseColor = {
     ("TEXEL0", "Texel 0", "Texel 0"),
     ("ENVIRONMENT", "Env Color", "Environment Color"),
 }
 
 enumCelTintType = {
-    ("Fixed", "Fixed", "Fixed tint color and amount stored directly in DL"),
+    ("Fixed", "Fixed", "Fixed tint color and level stored directly in DL"),
     ("Segment", "Segment", "Call a segmented DL to set the tint, can change at runtime"),
 }

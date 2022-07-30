@@ -1014,51 +1014,51 @@ class TriangleConverter:
                 self.writeCelLevels(celTriList=celTriList)
             
     def writeCelLevels(self, celTriList = None, triCmds = None):
-        usedForward = usedInverse = useDecal = False
+        usedRegular = usedInverse = useDecal = False
         for level in self.celShadingInfo["levels"]:
-            if level["inverse"]:
+            if level["threshMode"] == "Inverse":
                 if usedInverse:
                     useDecal = True
                 elif useDecal:
-                    raise PluginError("Must use normal and draw-when-darker cel levels before using more duplicates")
+                    raise PluginError("Must use Lighter and Darker cel levels before using more duplicates")
                 usedInverse = True
             else:
-                if usedForward:
+                if usedRegular:
                     useDecal = True
                 elif useDecal:
-                    raise PluginError("Must use normal and draw-when-darker cel levels before using more duplicates")
-                usedForward = True
+                    raise PluginError("Must use Lighter and Darker cel levels before using more duplicates")
+                usedRegular = True
         baseColor = self.celShadingInfo["baseColor"]
-        usedForward = usedInverse = wroteOpaque = wroteDecal = False
+        usedRegular = usedInverse = wroteOpaque = wroteDecal = False
         lastInverse = None
         for level in self.celShadingInfo["levels"]:
-            inv = level["inverse"]
+            inv = level["threshMode"] == "Inverse"
             self.triList.commands.append(DPPipeSync())
             if useDecal:
                 if not wroteOpaque:
                     wroteOpaque = True
                     self.triList.commands.append(SPSetOtherMode("G_SETOTHERMODE_L",
                         10, 2, ["ZMODE_OPA"]))
-                elif not wroteDecal and (inv and usedInverse or not inv and usedForward):
+                elif not wroteDecal and (inv and usedInverse or not inv and usedRegular):
                     wroteDecal = True
                     self.triList.commands.append(SPSetOtherMode("G_SETOTHERMODE_L",
                         10, 2, ["ZMODE_DEC"]))
             if inv:
                 usedInverse = True
             else:
-                usedForward = True
+                usedRegular = True
             if lastInverse != inv:
                 # Set up combiner
                 lastInverse = inv
                 def Combiner(a0, b0, c0, d0, aa0, ab0, ac0, ad0):
                     return DPSetCombineMode(a0, b0, c0, d0, aa0, ab0, ac0, ad0,
                         a0, b0, c0, d0, aa0, ab0, ac0, ad0)
-                def CombinerForward(a0, b0, c0, d0):
+                def CombinerRegular(a0, b0, c0, d0):
                     return Combiner(a0, b0, c0, d0, "SHADE", "0", baseColor, "0")
                 def CombinerInverse(a0, b0, c0, d0):
                     return Combiner(a0, b0, c0, d0, "1", "SHADE", baseColor, "0")
                 self.triList.commands.append(
-                    (CombinerInverse if level["inverse"] else CombinerForward)(
+                    (CombinerInverse if inv else CombinerRegular)(
                         "PRIMITIVE", baseColor, "PRIMITIVE_ALPHA", baseColor
                     )
                 )
@@ -1078,7 +1078,7 @@ class TriangleConverter:
                     DLFormat.Static
                 )))
             self.triList.commands.append(DPSetBlendColor(255, 255, 255, 
-                255 - level["threshold"] if level["inverse"] else level["threshold"]))
+                255 - level["threshold"] if inv else level["threshold"]))
             if triCmds is not None:
                 self.triList.commands.extend(triCmds)
             else:
@@ -1709,8 +1709,8 @@ def getCelShadingInfo(material):
         raise PluginError("Material " + material.name + " has cel shading enabled, but no cel levels")
     for l in f3dMat.cel_shading.levels:
         lvl = {
+            "threshMode": str(l.threshMode),
             "threshold": int(l.threshold),
-            "inverse": bool(l.inverse),
             "tintType": str(l.tintType),
             "tintFixedLevel": int(l.tintFixedLevel),
             "tintFixedColor": exportColor(l.tintFixedColor),

@@ -817,24 +817,31 @@ class F3DPanel(bpy.types.Panel):
         r.prop(material.f3d_mat, "do_cel_shading")
         if material.f3d_mat.do_cel_shading:
             cel = material.f3d_mat.cel_shading
-            r = r.split(factor=0.4)
+            r = r.split(factor=0.35)
             r.label(text="Base color:")
             r.prop(cel, "baseColor", text="")
             showSegHelp = False
             for l in cel.levels:
                 box = inputGroup.box().column()
-                r = box.row()
+                r = box.row().split(factor=0.2)
+                r.label(text="Draw when")
+                r = r.split(factor=0.3)
+                r.prop(l, "threshMode", text="")
+                r = r.split(factor=0.2)
+                r.label(text="than")
                 r.prop(l, "threshold")
-                r.prop(l, "inverse")
-                box.prop(l, "tintType")
+                r = box.row().split(factor=0.08)
+                r.label(text="Tint:")
+                r = r.split(factor=0.27)
+                r.prop(l, "tintType", text="")
                 if l.tintType == "Fixed":
-                    r = box.row().split(factor=0.4)
+                    r = r.split(factor=0.45)
                     r.prop(l, "tintFixedLevel")
                     r = r.split(factor=0.3)
-                    r.label(text="Tint color:")
+                    r.label(text="Color:")
                     r.prop(l, "tintFixedColor", text="")
                 else:
-                    r = box.row().split(factor=0.4)
+                    r = r.split(factor=0.45)
                     r.prop(l, "tintSegmentNum")
                     r.prop(l, "tintSegmentOffset")
                     showSegHelp = True
@@ -2639,6 +2646,7 @@ class DefaultRDPSettingsPanel(bpy.types.Panel):
 
 
 class CelLevelProperty(bpy.types.PropertyGroup):
+    threshMode : bpy.props.EnumProperty(items = enumCelThreshMode, name = "Draw when", default = "Regular")
     threshold : bpy.props.IntProperty(
         name = "Threshold",
         description = "Light level at which the boundary between cel levels occurs",
@@ -2646,13 +2654,9 @@ class CelLevelProperty(bpy.types.PropertyGroup):
         max = 255,
         default = 128
     )
-    inverse : bpy.props.BoolProperty(
-        name = "Draw when Darker",
-        description = "If selected, draw when the light level is darker than the threshold",
-    )
     tintType : bpy.props.EnumProperty(items = enumCelTintType, name = "Tint type", default = "Fixed")
     tintFixedLevel : bpy.props.IntProperty(
-        name = "Tint level",
+        name = "Level",
         description = "0: original color <=> 255: fully tint color",
         min = 0,
         max = 255,
@@ -2673,7 +2677,7 @@ class CelLevelProperty(bpy.types.PropertyGroup):
         default = 8
     )
     tintSegmentOffset : bpy.props.IntProperty(
-        name = "Offset (instructions)",
+        name = "Offset (instr)",
         description = "Number of instructions (8 bytes) within this DL to jump to",
         min = 0,
         max = 1000,
