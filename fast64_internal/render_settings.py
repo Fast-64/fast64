@@ -68,6 +68,7 @@ def on_update_oot_render_settings(self, context: bpy.types.Context):
         col0a, _ = ootGetBaseOrCustomLight(la, 0, False, False)
         col0b, _ = ootGetBaseOrCustomLight(lb, 0, False, False)
         renderSettings.lightColor = col0a + (col0b - col0a) * fade
+        # TODO: Implement light1 into shader nodes
         # col1a, _ = ootGetBaseOrCustomLight(la, 1, False, False)
         # col1b, _ = ootGetBaseOrCustomLight(lb, 1, False, False)
         # renderSettings.light1Color = col1a * fa + col1b * fb
