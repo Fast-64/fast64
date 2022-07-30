@@ -1185,6 +1185,12 @@ def link_if_none_exist(
     if len(fromOutput.links) == 0:
         material.node_tree.links.new(fromOutput, toInput)
 
+swaps_tex01 = {
+    "TEXEL0": "TEXEL1",
+    "TEXEL0_ALPHA": "TEXEL1_ALPHA",
+    "TEXEL1": "TEXEL0",
+    "TEXEL1_ALPHA": "TEXEL0_ALPHA",
+}
 
 def update_node_combiner(material, combinerInputs, cycleIndex):
     nodes = material.node_tree.nodes
@@ -1196,10 +1202,9 @@ def update_node_combiner(material, combinerInputs, cycleIndex):
 
     for i in range(8):
         combiner_input = combinerInputs[i]
-        if cycleIndex == 2 and "TEXEL" in combiner_input:
-            combiner_input = (
-                combiner_input.replace("0", "1") if "0" in combiner_input else combiner_input.replace("1", "0")
-            )
+        if cycleIndex == 2:
+            # Swap texel0 for texel1 and vise versa
+            combiner_input = swaps_tex01.get(combiner_input, combiner_input)
 
         if combiner_input == "0":
             for link in cycle_node.inputs[i].links:
