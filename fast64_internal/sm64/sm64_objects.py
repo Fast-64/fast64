@@ -1424,6 +1424,8 @@ class WarpNodeProperty(bpy.types.PropertyGroup):
 
         if reverse:
             difference *= -1
+        if isExport:
+            difference = Vector((difference.x, difference.z, difference.y,))
 
         # Convert from Blender space to SM64 space
         ret = Vector()
@@ -1437,7 +1439,7 @@ class WarpNodeProperty(bpy.types.PropertyGroup):
             offset = Vector()
 
             if self.useOffsetObjects:
-                offset = self.calc_offsets_from_objects(self.uses_area_nodes(), isExport=True)
+                offset = self.calc_offsets_from_objects(reverse=self.uses_area_nodes(), isExport=True)
             else:
                 offset.x = self.instantOffset[0]
                 offset.y = self.instantOffset[1]
