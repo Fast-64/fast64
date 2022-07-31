@@ -65,7 +65,9 @@ def ootCombineSceneFiles(levelC):
     return sceneC
 
 
-def ootExportSceneToC(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneName, DLFormat, savePNG, exportInfo, bootToSceneOptions):
+def ootExportSceneToC(
+    originalSceneObj, transformMatrix, f3dType, isHWv1, sceneName, DLFormat, savePNG, exportInfo, bootToSceneOptions
+):
 
     checkObjectReference(originalSceneObj, "Scene object")
     isCustomExport = exportInfo.isCustomExportPath
@@ -141,7 +143,9 @@ def ootExportSceneToC(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneN
     if not isCustomExport:
         writeOtherSceneProperties(scene, exportInfo, levelC)
         if bootToSceneOptions.bootToScene:
-            setBootupScene(exportPath, "ENTR_" + sceneName.upper() + "_" + str(bootToSceneOptions.spawnIndex), bootToSceneOptions)
+            setBootupScene(
+                exportPath, "ENTR_" + sceneName.upper() + "_" + str(bootToSceneOptions.spawnIndex), bootToSceneOptions
+            )
 
 
 def writeOtherSceneProperties(scene, exportInfo, levelC):
@@ -647,7 +651,7 @@ class OOT_ExportScene(bpy.types.Operator):
                 DLFormat.Static,
                 context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions,
                 exportInfo,
-                context.scene.ootBootupSceneOptions
+                context.scene.ootBootupSceneOptions,
             )
 
             self.report({"INFO"}, "Success!")
@@ -700,6 +704,7 @@ class OOT_RemoveScene(bpy.types.Operator):
     def invoke(self, context, event):
         return context.window_manager.invoke_confirm(self, event)
 
+
 class OOT_ExportScenePanel(OOT_Panel):
     bl_idname = "OOT_PT_export_level"
     bl_label = "OOT Scene Exporter"
@@ -719,6 +724,10 @@ class OOT_ExportScenePanel(OOT_Panel):
         else:
             col.prop(context.scene.ootBootupSceneOptions, "bootToScene")
             if context.scene.ootBootupSceneOptions.bootToScene:
+                col.prop(context.scene.ootBootupSceneOptions, "newGameOnly")
+                prop_split(col, context.scene.ootBootupSceneOptions, "bootMode", "Boot Mode")
+                if context.scene.ootBootupSceneOptions.bootMode == "Play":
+                    prop_split(col, context.scene.ootBootupSceneOptions, "newGameName", "New Game Name")
                 prop_split(col, context.scene.ootBootupSceneOptions, "spawnIndex", "Spawn")
                 col.prop(context.scene.ootBootupSceneOptions, "overrideHeader")
                 if context.scene.ootBootupSceneOptions.overrideHeader:
