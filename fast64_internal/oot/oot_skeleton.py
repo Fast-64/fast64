@@ -11,6 +11,7 @@ from ..f3d.f3d_parser import *
 from ..f3d.f3d_writer import *
 from ..f3d.f3d_material import TextureProperty, tmemUsageUI
 from .oot_f3d_writer import *
+from .oot_texture_array import ootReadTextureArrays
 
 ootEnumBoneType = [
     ("Default", "Default", "Default"),
@@ -599,7 +600,9 @@ def ootGetLimb(skeletonData, limbName, continueOnError):
     return matchResult
 
 
-def ootImportSkeletonC(filepaths, skeletonName, actorScale, removeDoubles, importNormals, basePath, drawLayer):
+def ootImportSkeletonC(
+    filepaths, skeletonName, actorName, actorScale, removeDoubles, importNormals, basePath, drawLayer
+):
     skeletonData = getImportData(filepaths)
 
     matchResult = ootGetSkeleton(skeletonData, skeletonName, False)
@@ -611,17 +614,44 @@ def ootImportSkeletonC(filepaths, skeletonName, actorScale, removeDoubles, impor
 
     # print(limbList)
     isLOD, armatureObj = ootBuildSkeleton(
-        skeletonName, skeletonData, limbList, actorScale, removeDoubles, importNormals, False, basePath, drawLayer
+        skeletonName,
+        actorName,
+        skeletonData,
+        limbList,
+        actorScale,
+        removeDoubles,
+        importNormals,
+        False,
+        basePath,
+        drawLayer,
     )
     if isLOD:
         isLOD, LODArmatureObj = ootBuildSkeleton(
-            skeletonName, skeletonData, limbList, actorScale, removeDoubles, importNormals, True, basePath, drawLayer
+            skeletonName,
+            actorName,
+            skeletonData,
+            limbList,
+            actorScale,
+            removeDoubles,
+            importNormals,
+            True,
+            basePath,
+            drawLayer,
         )
         armatureObj.ootFarLOD = LODArmatureObj
 
 
 def ootBuildSkeleton(
-    skeletonName, skeletonData, limbList, actorScale, removeDoubles, importNormals, useFarLOD, basePath, drawLayer
+    skeletonName,
+    actorName,
+    skeletonData,
+    limbList,
+    actorScale,
+    removeDoubles,
+    importNormals,
+    useFarLOD,
+    basePath,
+    drawLayer,
 ):
     lodString = "_lod" if useFarLOD else ""
 
@@ -643,6 +673,9 @@ def ootBuildSkeleton(
 
     f3dContext = OOTF3DContext(F3D("F3DEX2/LX2", False), limbList, basePath)
     f3dContext.mat().draw_layer.oot = armatureObj.ootDrawLayer
+
+    ootReadTextureArrays(basePath, actorName, f3dContext)
+
     transformMatrix = mathutils.Matrix.Scale(1 / actorScale, 4)
     isLOD = ootAddLimbRecursively(0, skeletonData, obj, armatureObj, transformMatrix, None, f3dContext, useFarLOD)
     for dlEntry in f3dContext.dlList:
@@ -841,6 +874,7 @@ class OOT_ImportSkeleton(bpy.types.Operator):
             isCustomImport = context.scene.ootSkeletonImportUseCustomPath
             folderName = context.scene.ootSkeletonImportFolderName
             skeletonName = context.scene.ootSkeletonImportName
+            actorName = context.scene.ootSkeletonImportActor
             scale = context.scene.ootActorBlenderScale
             removeDoubles = context.scene.ootActorRemoveDoubles
             importNormals = context.scene.ootActorImportNormals
@@ -853,7 +887,9 @@ class OOT_ImportSkeleton(bpy.types.Operator):
                     os.path.join(bpy.context.scene.ootDecompPath, "assets/objects/gameplay_keep/gameplay_keep.c")
                 )
 
-            ootImportSkeletonC(filepaths, skeletonName, scale, removeDoubles, importNormals, decompPath, drawLayer)
+            ootImportSkeletonC(
+                filepaths, skeletonName, actorName, scale, removeDoubles, importNormals, decompPath, drawLayer
+            )
 
             self.report({"INFO"}, "Success!")
             return {"FINISHED"}
@@ -1064,6 +1100,7 @@ def oot_skeleton_register():
     bpy.types.Scene.ootSkeletonImportFolderName = bpy.props.StringProperty(
         name="Skeleton Folder", default="object_geldb"
     )
+    bpy.types.Scene.ootSkeletonImportActor = bpy.props.StringProperty(name="Actor", default="z_en_geldb")
     bpy.types.Scene.ootSkeletonImportCustomPath = bpy.props.StringProperty(
         name="Custom Skeleton Path", subtype="FILE_PATH"
     )
@@ -1095,6 +1132,7 @@ def oot_skeleton_unregister():
 
     del bpy.types.Scene.ootSkeletonImportName
     del bpy.types.Scene.ootSkeletonImportFolderName
+    del bpy.types.Scene.ootSkeletonImportActor
     del bpy.types.Scene.ootSkeletonImportCustomPath
     del bpy.types.Scene.ootSkeletonImportUseCustomPath
 
