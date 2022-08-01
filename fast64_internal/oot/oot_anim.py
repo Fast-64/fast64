@@ -315,8 +315,12 @@ def getFrameData(filepath, animData, frameDataName):
 	if matchResult is None:
 		raise PluginError("Cannot find animation frame data named " + frameDataName + " in " + filepath)
 	data = matchResult.group(1)
-	frameData = [int.from_bytes([int(value.strip()[2:4], 16), int(value.strip()[4:6], 16)], 
-		'big', signed = True) for value in data.split(",") if value.strip() != ""]
+	def s16(v):
+		v %= 0x10000
+		if v >= 0x8000:
+			v -= 0x10000
+		return v
+	frameData = [s16(int(value.strip(), 0)) for value in data.split(",") if value.strip() != ""]
 
 	return frameData
 
