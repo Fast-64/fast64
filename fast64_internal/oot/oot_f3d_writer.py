@@ -530,7 +530,7 @@ class OOTDynamicMaterialDrawLayerProperty(bpy.types.PropertyGroup):
 
 
 class ImagePointerProperty(bpy.types.PropertyGroup):
-    texture: bpy.props.PointerProperty(type=bpy.types.Image)
+    image: bpy.props.PointerProperty(type=bpy.types.Image)
 
 
 def drawTextureArray(layout: bpy.types.UILayout, textureArray: bpy.types.CollectionProperty, index: int):
@@ -546,9 +546,13 @@ def drawTextureArrayProperty(
     layout: bpy.types.UILayout, texturePointer: ImagePointerProperty, arrayIndex: int, texNum: int
 ):
     row = layout.row()
-    row.prop(texturePointer, "texture", text="")
+    row.prop(texturePointer, "image", text="")
 
     buttons = row.row(align=True)
+    visualizeOp = buttons.operator(OOTVisualizeFlipbookTexture.bl_idname, text="", icon="VIEW_CAMERA")
+    visualizeOp.arrayIndex = arrayIndex
+    visualizeOp.combinerTexIndex = texNum
+
     addOp = buttons.operator(OOTAddFlipbookTexture.bl_idname, text="", icon="ADD")
     addOp.arrayIndex = arrayIndex + 1
     addOp.combinerTexIndex = texNum
@@ -615,6 +619,22 @@ class OOTMoveFlipbookTexture(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class OOTVisualizeFlipbookTexture(bpy.types.Operator):
+    bl_idname = "material.visualize_flipbook_texture"
+    bl_label = "Visualize Flipbook Texture"
+    bl_options = {"REGISTER", "UNDO"}
+    combinerTexIndex: bpy.props.IntProperty()
+    arrayIndex: bpy.props.IntProperty()
+
+    def execute(self, context):
+        material = context.material
+        flipbook = getattr(material.ootMaterial, "flipbook" + str(self.combinerTexIndex))
+        texProp = getattr(material.f3d_mat, "tex" + str(self.combinerTexIndex))
+        texProp.tex = flipbook.textures[self.arrayIndex].image
+        self.report({"INFO"}, "Success!")
+        return {"FINISHED"}
+
+
 class OOTTextureFlipbookProperty(bpy.types.PropertyGroup):
     enable: bpy.props.BoolProperty()
     name: bpy.props.StringProperty(default="sFlipbookTextures")
@@ -643,6 +663,7 @@ oot_dl_writer_classes = (
     OOTAddFlipbookTexture,
     OOTRemoveFlipbookTexture,
     OOTMoveFlipbookTexture,
+    OOTVisualizeFlipbookTexture,
     OOTTextureFlipbookProperty,
     OOTDefaultRenderModesProperty,
     OOTDynamicMaterialDrawLayerProperty,

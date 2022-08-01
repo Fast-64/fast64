@@ -229,10 +229,10 @@ class OOTF3DContext(F3DContext):
                 for textureName in self.flipbooks[flipbookKey].textureNames:
                     image = self.loadTexture(data, textureName, None, tileSettings, False)
                     flipbook.textures.add()
-                    flipbook.textures[-1].texture = image
+                    flipbook.textures[-1].image = image
 
                 texProp = getattr(material.f3d_mat, "tex" + str(index))
-                texProp.tex = flipbook.textures[0].texture  # for visual purposes only, will be ignored
+                texProp.tex = flipbook.textures[0].image  # for visual purposes only, will be ignored
                 texProp.use_tex_reference = True
                 texProp.tex_reference = name
             else:
