@@ -121,8 +121,9 @@ class OOTVertexGroupInfo(VertexGroupInfo):
 
 
 class OOTTextureFlipbook:
-    def __init__(self, name: str, textureNames: List[str]):
+    def __init__(self, name: str, exportMode: str, textureNames: List[str]):
         self.name = name
+        self.exportMode = exportMode
         self.textureNames = textureNames
 
 
@@ -213,26 +214,31 @@ class OOTF3DContext(F3DContext):
         data: str,
     ):
         # check for texture arrays.
+        clearOOTFlipbookProperty(getattr(material.ootMaterial, "flipbook" + str(index)))
         match = re.search(f"(0x0[0-9a-fA-F])000000", name)
         if match:
             segment = int(match.group(1), 16)
             flipbookKey = (segment, material.f3d_mat.draw_layer.oot)
             if flipbookKey in self.flipbooks:
-                flipbook = getattr(material.ootMaterial, "flipbook" + str(index))
-                flipbook.enable = True
-                flipbook.name = self.flipbooks[flipbookKey].name
+                flipbook = self.flipbooks[flipbookKey]
 
-                if len(self.flipbooks[flipbookKey].textureNames) == 0:
+                flipbookProp = getattr(material.ootMaterial, "flipbook" + str(index))
+                flipbookProp.enable = True
+                flipbookProp.exportMode = flipbook.exportMode
+                if flipbookProp.exportMode == "Array":
+                    flipbookProp.name = flipbook.name
+
+                if len(flipbook.textureNames) == 0:
                     raise PluginError(
-                        f'Texture array "{flipbook.name}" pointed at segment {hex(segment)} is a zero element array, which is invalid.'
+                        f'Texture array "{flipbookProp.name}" pointed at segment {hex(segment)} is a zero element array, which is invalid.'
                     )
-                for textureName in self.flipbooks[flipbookKey].textureNames:
+                for textureName in flipbook.textureNames:
                     image = self.loadTexture(data, textureName, None, tileSettings, False)
-                    flipbook.textures.add()
-                    flipbook.textures[-1].image = image
+                    flipbookProp.textures.add()
+                    flipbookProp.textures[-1].image = image
 
                 texProp = getattr(material.f3d_mat, "tex" + str(index))
-                texProp.tex = flipbook.textures[0].image  # for visual purposes only, will be ignored
+                texProp.tex = flipbookProp.textures[0].image  # for visual purposes only, will be ignored
                 texProp.use_tex_reference = True
                 texProp.tex_reference = name
             else:
@@ -241,13 +247,14 @@ class OOTF3DContext(F3DContext):
             super().handleTextureReference(name, image, material, index, tileSettings, data)
 
     def handleTextureValue(self, material: bpy.types.Material, image: bpy.types.Image, index: int):
-        super().handleTextureValue(material, image, index)
         clearOOTFlipbookProperty(getattr(material.ootMaterial, "flipbook" + str(index)))
+        super().handleTextureValue(material, image, index)
 
 
 def clearOOTFlipbookProperty(flipbookProp):
     flipbookProp.enable = False
     flipbookProp.name = "sFlipbookTextures"
+    flipbookProp.exportMode = "Array"
     flipbookProp.textures.clear()
 
 

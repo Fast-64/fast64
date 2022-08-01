@@ -635,9 +635,16 @@ class OOTVisualizeFlipbookTexture(bpy.types.Operator):
         return {"FINISHED"}
 
 
+ootEnumFlipbookExportMode = [
+    ("Array", "Array", "Array"),
+    ("Individual", "Individual", "Individual"),
+]
+
+
 class OOTTextureFlipbookProperty(bpy.types.PropertyGroup):
     enable: bpy.props.BoolProperty()
     name: bpy.props.StringProperty(default="sFlipbookTextures")
+    exportMode: bpy.props.EnumProperty(default="Array", items=ootEnumFlipbookExportMode)
     textures: bpy.props.CollectionProperty(type=ImagePointerProperty)
 
 
@@ -654,7 +661,9 @@ def drawOOTFlipbookProperty(layout: bpy.types.UILayout, flipbookProp: OOTTexture
     box = layout.box().column()
     box.prop(flipbookProp, "enable", text="Export Flipbook Textures " + str(index))
     if flipbookProp.enable:
-        prop_split(box, flipbookProp, "name", "Array Name")
+        prop_split(box, flipbookProp, "exportMode", "Export Mode")
+        if flipbookProp.exportMode == "Array":
+            prop_split(box, flipbookProp, "name", "Array Name")
         drawTextureArray(box.column(), flipbookProp.textures, index)
 
 
