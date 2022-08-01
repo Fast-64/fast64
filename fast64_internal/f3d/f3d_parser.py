@@ -7,6 +7,7 @@ from .f3d_material import (
     update_node_values_directly,
     all_combiner_uses,
     ootEnumDrawLayers,
+    TextureProperty,
 )
 from .f3d_writer import BufferVertex
 from ..utility import *
@@ -444,6 +445,12 @@ def convertF3DUV(value, maxSize):
     return ((int.from_bytes(valueBytes, "big", signed=True) / 32) + 0.5) / (maxSize if maxSize > 0 else 1)
 
 
+class F3DTextureReference:
+    def __init__(self, name, width):
+        self.name = name
+        self.width = width
+
+
 class F3DParsedCommands:
     def __init__(self, name, commands, index):
         self.name = name
@@ -661,14 +668,14 @@ class F3DContext:
             if tileSettings.tmem in self.tmemDict:
                 textureName = self.tmemDict[tileSettings.tmem]
                 self.loadTexture(dlData, textureName, region, tileSettings, False)
-                self.applyTileToMaterial(0, tileSettings, tileSizeSettings)
+                self.applyTileToMaterial(0, tileSettings, tileSizeSettings, dlData)
 
             tileSettings = self.tileSettings[1]
             tileSizeSettings = self.tileSizes[1]
             if tileSettings.tmem in self.tmemDict:
                 textureName = self.tmemDict[tileSettings.tmem]
                 self.loadTexture(dlData, textureName, region, tileSettings, False)
-                self.applyTileToMaterial(1, tileSettings, tileSizeSettings)
+                self.applyTileToMaterial(1, tileSettings, tileSizeSettings, dlData)
 
             self.applyLights()
 
@@ -1300,7 +1307,32 @@ class F3DContext:
         self.setTile([0, 0, 0, 256, "G_TX_LOADTILE", 0, 0, 0, 0, 0, 0, 0], dlData)
         self.loadTLUT(["G_TX_LOADTILE", count], dlData)
 
-    def applyTileToMaterial(self, index, tileSettings, tileSizeSettings):
+    # override this in a parent context to handle texture references.
+    # keep material parameter for use by parent.
+    # ex. In OOT, you can call self.loadTexture() here based on texture arrays.
+    def handleTextureReference(
+        self,
+        name: str,
+        image: F3DTextureReference,
+        material: bpy.types.Material,
+        index: int,
+        tileSettings: DPSetTile,
+        data: str,
+    ):
+        texProp = getattr(material.f3d_mat, "tex" + str(index))
+        texProp.tex = None
+        texProp.use_tex_reference = True
+        texProp.tex_reference = name
+        size = texProp.tex_reference_size
+
+    # add to this by overriding in a parent context, to handle clearing settings related to previous texture references.
+    def handleTextureValue(self, material: bpy.types.Material, image: bpy.types.Image, index: int):
+        texProp = getattr(material.f3d_mat, "tex" + str(index))
+        texProp.tex = image
+        texProp.use_tex_reference = False
+        size = texProp.tex.size
+
+    def applyTileToMaterial(self, index, tileSettings, tileSizeSettings, dlData: str):
         mat = self.mat()
 
         texProp = getattr(mat, "tex" + str(index))
@@ -1308,14 +1340,9 @@ class F3DContext:
         name = self.tmemDict[tileSettings.tmem]
         image = self.textureData[name]
         if isinstance(image, F3DTextureReference):
-            texProp.tex = None
-            texProp.use_tex_reference = True
-            texProp.tex_reference = name
-            size = texProp.tex_reference_size
+            self.handleTextureReference(name, image, self.materialContext, index, tileSettings, dlData)
         else:
-            texProp.tex = image
-            texProp.use_tex_reference = False
-            size = texProp.tex.size
+            self.handleTextureValue(self.materialContext, image, index)
         texProp.tex_set = True
 
         # TODO: Handle low/high for image files?
@@ -1350,12 +1377,8 @@ class F3DContext:
 
         # TODO: Handle S and T properties
 
-    # Override this to handle game specific references.
-    def handleTextureName(self, textureName):
-        return textureName
-
     def loadTexture(self, data, name, region, tileSettings, isLUT):
-        textureName = self.handleTextureName(name)
+        textureName = name
 
         if textureName in self.textureData:
             return self.textureData[textureName]
@@ -1385,7 +1408,7 @@ class F3DContext:
     def loadTLUT(self, params, dlData):
         tileSettings = self.getTileSettings(params[0])
         name = self.currentTextureName
-        textureName = self.handleTextureName(name)
+        textureName = name
         self.tmemDict[tileSettings.tmem] = textureName
 
         tlut = self.loadTexture(dlData, textureName, [0, 0, 16, 16], tileSettings, True)
@@ -1851,12 +1874,6 @@ def CI8toRGBA32(value):
 
 def CI4toRGBA32(value):
     return [value / 255, value / 255, value / 255, 1]
-
-
-class F3DTextureReference:
-    def __init__(self, name, width):
-        self.name = name
-        self.width = width
 
 
 def parseTextureData(dlData, textureName, f3dContext, imageFormat, imageSize, width, basePath, isLUT, f3d):

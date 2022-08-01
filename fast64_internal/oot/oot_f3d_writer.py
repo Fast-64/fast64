@@ -10,6 +10,7 @@ from ..panels import OOT_Panel
 
 from .oot_model_classes import *
 from .oot_scene_room import *
+from .oot_texture_array import *
 
 # returns:
 # 	mesh,
@@ -509,7 +510,7 @@ def drawOOTMaterialProperty(layout, mat, drawLayer):
     layout.label(text="reference with name = 0x0?000000.")
     for i in range(2):
         tex = getattr(f3d_mat, "tex" + str(i))
-        if tex.use_tex_reference:
+        if all_combiner_uses(mat.f3d_mat)["Texture " + str(i)] and tex.use_tex_reference:
             match = re.search(f"0x0([0-9A-F])000000", tex.tex_reference)
             if match:
                 drawOOTFlipbookProperty(layout.column(), getattr(mat.ootMaterial, "flipbook" + str(i)), i)

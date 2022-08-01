@@ -1,5 +1,6 @@
 import shutil, copy, bpy, os
 from bpy.utils import register_class, unregister_class
+from typing import Dict, List
 
 from .oot_utility import *
 from .oot_constants import *
@@ -119,11 +120,19 @@ class OOTVertexGroupInfo(VertexGroupInfo):
 # 		self.maxBounds = [2**8 - 1, 2**8 - 1]
 
 
+class OOTTextureFlipbook:
+    def __init__(self, name: str, textureNames: List[str]):
+        self.name = name
+        self.textureNames = textureNames
+
+
 class OOTF3DContext(F3DContext):
     def __init__(self, f3d, limbList, basePath):
         self.limbList = limbList
         self.dlList = []  # in the order they are rendered
         self.isBillboard = False
+        self.flipbooks = {}  # {(segment, draw layer) : OOTTextureFlipbook}
+
         materialContext = createF3DMat(None, preset="oot_shaded_solid")
         # materialContext.f3d_mat.rdp_settings.g_mdsft_cycletype = "G_CYC_1CYCLE"
         F3DContext.__init__(self, f3d, basePath, materialContext)
@@ -186,11 +195,60 @@ class OOTF3DContext(F3DContext):
         self.isBillboard = False
         clearOOTMaterialDrawLayerProperty(self.materialContext.ootMaterial.opaque)
         clearOOTMaterialDrawLayerProperty(self.materialContext.ootMaterial.transparent)
+        clearOOTFlipbookProperty(self.materialContext.ootMaterial.flipbook0)
+        clearOOTFlipbookProperty(self.materialContext.ootMaterial.flipbook1)
         F3DContext.clearMaterial(self)
 
     def postMaterialChanged(self):
         clearOOTMaterialDrawLayerProperty(self.materialContext.ootMaterial.opaque)
         clearOOTMaterialDrawLayerProperty(self.materialContext.ootMaterial.transparent)
+
+    def handleTextureReference(
+        self,
+        name: str,
+        image: F3DTextureReference,
+        material: bpy.types.Material,
+        index: int,
+        tileSettings: DPSetTile,
+        data: str,
+    ):
+        # check for texture arrays.
+        match = re.search(f"(0x0[0-9a-fA-F])000000", name)
+        if match:
+            segment = int(match.group(1), 16)
+            flipbookKey = (segment, material.f3d_mat.draw_layer.oot)
+            if flipbookKey in self.flipbooks:
+                flipbook = getattr(material.ootMaterial, "flipbook" + str(index))
+                flipbook.enable = True
+                flipbook.name = self.flipbooks[flipbookKey].name
+
+                if len(self.flipbooks[flipbookKey].textureNames) == 0:
+                    raise PluginError(
+                        f'Texture array "{flipbook.name}" pointed at segment {hex(segment)} is a zero element array, which is invalid.'
+                    )
+                for textureName in self.flipbooks[flipbookKey].textureNames:
+                    image = self.loadTexture(data, textureName, None, tileSettings, False)
+                    flipbook.textures.add()
+                    flipbook.textures[-1].texture = image
+
+                texProp = getattr(material.f3d_mat, "tex" + str(index))
+                texProp.tex = flipbook.textures[0].texture  # for visual purposes only, will be ignored
+                texProp.use_tex_reference = True
+                texProp.tex_reference = name
+            else:
+                super().handleTextureReference(name, image, material, index, tileSettings, data)
+        else:
+            super().handleTextureReference(name, image, material, index, tileSettings, data)
+
+    def handleTextureValue(self, material: bpy.types.Material, image: bpy.types.Image, index: int):
+        super().handleTextureValue(material, image, index)
+        clearOOTFlipbookProperty(getattr(material.ootMaterial, "flipbook" + str(index)))
+
+
+def clearOOTFlipbookProperty(flipbookProp):
+    flipbookProp.enable = False
+    flipbookProp.name = "sFlipbookTextures"
+    flipbookProp.textures.clear()
 
 
 def clearOOTMaterialDrawLayerProperty(matDrawLayerProp):

@@ -601,7 +601,7 @@ def ootGetLimb(skeletonData, limbName, continueOnError):
 
 
 def ootImportSkeletonC(
-    filepaths, skeletonName, actorName, actorScale, removeDoubles, importNormals, basePath, drawLayer
+    filepaths, skeletonName, overlayName, actorScale, removeDoubles, importNormals, basePath, drawLayer
 ):
     skeletonData = getImportData(filepaths)
 
@@ -615,7 +615,7 @@ def ootImportSkeletonC(
     # print(limbList)
     isLOD, armatureObj = ootBuildSkeleton(
         skeletonName,
-        actorName,
+        overlayName,
         skeletonData,
         limbList,
         actorScale,
@@ -628,7 +628,7 @@ def ootImportSkeletonC(
     if isLOD:
         isLOD, LODArmatureObj = ootBuildSkeleton(
             skeletonName,
-            actorName,
+            overlayName,
             skeletonData,
             limbList,
             actorScale,
@@ -643,7 +643,7 @@ def ootImportSkeletonC(
 
 def ootBuildSkeleton(
     skeletonName,
-    actorName,
+    overlayName,
     skeletonData,
     limbList,
     actorScale,
@@ -674,7 +674,8 @@ def ootBuildSkeleton(
     f3dContext = OOTF3DContext(F3D("F3DEX2/LX2", False), limbList, basePath)
     f3dContext.mat().draw_layer.oot = armatureObj.ootDrawLayer
 
-    ootReadTextureArrays(basePath, actorName, f3dContext)
+    if overlayName:
+        ootReadTextureArrays(basePath, overlayName, f3dContext)
 
     transformMatrix = mathutils.Matrix.Scale(1 / actorScale, 4)
     isLOD = ootAddLimbRecursively(0, skeletonData, obj, armatureObj, transformMatrix, None, f3dContext, useFarLOD)
@@ -874,7 +875,7 @@ class OOT_ImportSkeleton(bpy.types.Operator):
             isCustomImport = context.scene.ootSkeletonImportUseCustomPath
             folderName = context.scene.ootSkeletonImportFolderName
             skeletonName = context.scene.ootSkeletonImportName
-            actorName = context.scene.ootSkeletonImportActor
+            overlayName = context.scene.ootSkeletonImportOverlay if not isCustomImport else None
             scale = context.scene.ootActorBlenderScale
             removeDoubles = context.scene.ootActorRemoveDoubles
             importNormals = context.scene.ootActorImportNormals
@@ -888,7 +889,7 @@ class OOT_ImportSkeleton(bpy.types.Operator):
                 )
 
             ootImportSkeletonC(
-                filepaths, skeletonName, actorName, scale, removeDoubles, importNormals, decompPath, drawLayer
+                filepaths, skeletonName, overlayName, scale, removeDoubles, importNormals, decompPath, drawLayer
             )
 
             self.report({"INFO"}, "Success!")
@@ -992,6 +993,7 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
         if context.scene.ootSkeletonImportUseCustomPath:
             prop_split(col, context.scene, "ootSkeletonImportCustomPath", "File")
         else:
+            prop_split(col, context.scene, "ootSkeletonImportOverlay", "Overlay")
             prop_split(col, context.scene, "ootSkeletonImportFolderName", "Object")
         prop_split(col, context.scene, "ootActorImportDrawLayer", "Import Draw Layer")
 
@@ -1100,7 +1102,7 @@ def oot_skeleton_register():
     bpy.types.Scene.ootSkeletonImportFolderName = bpy.props.StringProperty(
         name="Skeleton Folder", default="object_geldb"
     )
-    bpy.types.Scene.ootSkeletonImportActor = bpy.props.StringProperty(name="Actor", default="z_en_geldb")
+    bpy.types.Scene.ootSkeletonImportOverlay = bpy.props.StringProperty(name="Overlay", default="ovl_En_GeldB")
     bpy.types.Scene.ootSkeletonImportCustomPath = bpy.props.StringProperty(
         name="Custom Skeleton Path", subtype="FILE_PATH"
     )
@@ -1132,7 +1134,7 @@ def oot_skeleton_unregister():
 
     del bpy.types.Scene.ootSkeletonImportName
     del bpy.types.Scene.ootSkeletonImportFolderName
-    del bpy.types.Scene.ootSkeletonImportActor
+    del bpy.types.Scene.ootSkeletonImportOverlay
     del bpy.types.Scene.ootSkeletonImportCustomPath
     del bpy.types.Scene.ootSkeletonImportUseCustomPath
 
