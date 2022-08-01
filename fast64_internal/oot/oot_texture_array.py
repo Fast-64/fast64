@@ -62,6 +62,5 @@ def ootReadTextureArrays(basePath: str, overlayName: str, f3dContext: OOTF3DCont
                 and segmentParam[1].isupper()
             )
             if singleTextureReference:
-                # This is not technically correct (pointer to single element array instead of pointer to texture)
-                # However, its only for getting the texture visual onto model
+                # This is will not get correct texture name, but otherwise works fine.
                 f3dContext.flipbooks[flipbookKey] = OOTTextureFlipbook("", "Individual", [segmentParam])

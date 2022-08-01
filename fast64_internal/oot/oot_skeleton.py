@@ -995,6 +995,25 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
         else:
             prop_split(col, context.scene, "ootSkeletonImportOverlay", "Overlay")
             prop_split(col, context.scene, "ootSkeletonImportFolderName", "Object")
+            if context.scene.ootSkeletonImportOverlay == "ovl_En_Wf":
+                col.box().column().label(
+                    text="This actor has branching gSPSegment calls and will not import correctly unless one of the branches is deleted.",
+                    icon="ERROR",
+                )
+            elif context.scene.ootSkeletonImportOverlay == "ovl_Obj_Switch":
+                col.box().column().label(
+                    text="This actor has a 2D texture array and will not import correctly unless the array is flattened.",
+                    icon="ERROR",
+                )
+            elif (
+                context.scene.ootSkeletonImportOverlay == "ovl_Demo_Ec"
+                or context.scene.ootSkeletonImportOverlay == "ovl_En_Ossan"
+            ):
+                col.box().column().label(
+                    text="Texture array importing not supported for this overlay.",
+                    icon="ERROR",
+                )
+
         prop_split(col, context.scene, "ootActorImportDrawLayer", "Import Draw Layer")
 
         col.prop(context.scene, "ootSkeletonImportUseCustomPath")
