@@ -3,32 +3,24 @@ from typing import Tuple, Callable
 import bpy, os, re
 from bpy.utils import register_class, unregister_class
 from ..utility import PluginError, hexOrDecInt
-from .oot_model_classes import OOTF3DContext, OOTTextureFlipbook
+from .oot_model_classes import (
+    OOTF3DContext,
+    OOTTextureFlipbook,
+    ootGetActorData,
+    ootGetIncludedAssetData,
+    ootGetLinkData,
+)
 from ..f3d.f3d_parser import getImportData
-
-# read included asset data
-def getIncludedAssetData(basePath: str, actorData: str) -> str:
-    includeData = ""
-    for includeMatch in re.finditer(r"\#include\s*\"(assets/objects/(.*?))\"", actorData):
-        includeData += getImportData([os.path.join(basePath, includeMatch.group(1))]) + "\n"
-    return includeData
-
-
-# read actor data
-def getActorData(basePath: str, overlayName: str) -> str:
-    actorFilePath = os.path.join(basePath, f"src/overlays/actors/{overlayName}/z_{overlayName[4:].lower()}.c")
-    actorFileDataPath = f"{actorFilePath[:-2]}_data.c"  # some bosses store texture arrays here
-    actorData = getImportData([actorFileDataPath, actorFilePath])
-
-    return actorData
-
 
 # Special cases:
 # z_en_xc: one texture is not stored in any array.
 # skeletonName only used for en_ossan (shopkeepers) and demo_ec (end credits party), which have multiple actors in it
-def ootReadTextureArrays(basePath: str, overlayName: str, skeletonName: str, f3dContext: OOTF3DContext):
-    actorData = getActorData(basePath, overlayName)
-    actorData = getIncludedAssetData(basePath, actorData) + actorData
+def ootReadTextureArrays(basePath: str, overlayName: str, skeletonName: str, f3dContext: OOTF3DContext, isLink: bool):
+    if not isLink:
+        actorData = ootGetActorData(basePath, overlayName)
+    else:
+        actorData = ootGetLinkData(basePath)
+    actorData = ootGetIncludedAssetData(basePath, actorData) + actorData
 
     # search for texture arrays
     # this is done first so that its easier to tell which gSPSegment calls refer to texture data.

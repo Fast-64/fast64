@@ -9,6 +9,32 @@ from ..f3d.f3d_material import *
 from ..f3d.f3d_parser import *
 
 
+# read included asset data
+def ootGetIncludedAssetData(basePath: str, data: str) -> str:
+    includeData = ""
+    for includeMatch in re.finditer(r"\#include\s*\"(assets/objects/(.*?))\"", data):
+        includeData += getImportData([os.path.join(basePath, includeMatch.group(1))]) + "\n"
+    for includeMatch in re.finditer(r"\#include\s*\"(assets/misc/(.*?))\"", data):
+        includeData += getImportData([os.path.join(basePath, includeMatch.group(1))]) + "\n"
+    return includeData
+
+
+# read actor data
+def ootGetActorData(basePath: str, overlayName: str) -> str:
+    actorFilePath = os.path.join(basePath, f"src/overlays/actors/{overlayName}/z_{overlayName[4:].lower()}.c")
+    actorFileDataPath = f"{actorFilePath[:-2]}_data.c"  # some bosses store texture arrays here
+    actorData = getImportData([actorFileDataPath, actorFilePath])
+
+    return actorData
+
+
+def ootGetLinkData(basePath: str) -> str:
+    linkFilePath = os.path.join(basePath, f"src/code/z_player_lib.c")
+    actorData = getImportData([linkFilePath])
+
+    return actorData
+
+
 class OOTModel(FModel):
     def __init__(self, f3dType, isHWv1, name, DLFormat, drawLayerOverride):
         self.drawLayerOverride = drawLayerOverride

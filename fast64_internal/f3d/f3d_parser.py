@@ -2050,8 +2050,7 @@ def getImportData(filepaths):
     return data
 
 
-def importMeshC(filepaths, name, scale, removeDoubles, importNormals, drawLayer, f3dContext):
-    data = getImportData(filepaths)
+def importMeshC(data, name, scale, removeDoubles, importNormals, drawLayer, f3dContext):
 
     # Create new skinned mesh
     mesh = bpy.data.meshes.new(name + "_mesh")
@@ -2094,10 +2093,10 @@ class F3D_ImportDL(bpy.types.Operator):
             f3dType = context.scene.f3d_type
             isHWv1 = context.scene.isHWv1
 
-            importPaths = [importPath]
+            data = getImportData([importPath])
 
             importMeshC(
-                importPaths,
+                data,
                 name,
                 scaleValue,
                 removeDoubles,

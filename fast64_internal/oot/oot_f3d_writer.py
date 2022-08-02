@@ -281,14 +281,12 @@ class OOT_ImportDL(bpy.types.Operator):
             importNormals = context.scene.ootDLImportNormals
             drawLayer = bpy.context.scene.ootDLImportDrawLayer
 
-            filepaths = [ootGetObjectPath(isCustomImport, importPath, folderName)]
+            data = getImportData([ootGetObjectPath(isCustomImport, importPath, folderName)])
             if not isCustomImport:
-                filepaths.append(
-                    os.path.join(bpy.context.scene.ootDecompPath, "assets/objects/gameplay_keep/gameplay_keep.c")
-                )
+                data = ootGetIncludedAssetData(data, basePath) + data
 
             importMeshC(
-                filepaths,
+                data,
                 name,
                 scale,
                 removeDoubles,
