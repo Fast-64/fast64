@@ -719,21 +719,14 @@ class F3DContext:
                 return name
         return None
 
+    # we only want to apply tlut to an existing image under specific conditions.
+    # however we always want to record the changing tlut for texture references.
     def applyTLUTToIndex(self, index):
         mat = self.mat()
         texProp = getattr(mat, "tex" + str(index))
         combinerUses = all_combiner_uses(mat)
-        if (
-            combinerUses["Texture " + str(index)]
-            and (texProp.tex is not None or texProp.use_tex_reference)
-            and texProp.tex_set
-            and texProp.tex_format[:2] == "CI"
-            and (texProp.tex not in self.tlutAppliedTextures or texProp.use_tex_reference)
-            and (
-                texProp.tex not in self.imagesDontApplyTlut or not self.ciImageFilesStoredAsFullColor
-            )  # oot currently stores CI textures in full color pngs
-        ):
 
+        if texProp.tex_format[:2] == "CI":
             # Only handles TLUT at 256
             tlutName = self.tmemDict[256]
             if 256 in self.tmemDict and tlutName is not None:
@@ -754,11 +747,19 @@ class F3DContext:
                         texProp.pal_reference = tlutName
                         texProp.pal_reference_size = min(tlut.size[0] * tlut.size[1], 256)
 
-                else:
+                elif (
+                    combinerUses["Texture " + str(index)]
+                    and (texProp.tex is not None or texProp.use_tex_reference)
+                    and texProp.tex_set
+                    and (texProp.tex not in self.tlutAppliedTextures or texProp.use_tex_reference)
+                    and (
+                        texProp.tex not in self.imagesDontApplyTlut or not self.ciImageFilesStoredAsFullColor
+                    )  # oot currently stores CI textures in full color pngs
+                ):
                     self.applyTLUT(texProp.tex, tlut)
                     self.tlutAppliedTextures.append(texProp.tex)
-            else:
-                print("Ignoring TLUT.")
+        else:
+            print("Ignoring TLUT.")
 
     def postMaterialChanged(self):
         return
