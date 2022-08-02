@@ -234,6 +234,10 @@ class OOTF3DContext(F3DContext):
                     )
                 for textureName in flipbook.textureNames:
                     image = self.loadTexture(data, textureName, None, tileSettings, False)
+                    if not isinstance(image, bpy.types.Image):
+                        raise PluginError(
+                            f'Could not find texture "{textureName}", so it can not be used in a flipbook texture.'
+                        )
                     flipbookProp.textures.add()
                     flipbookProp.textures[-1].image = image
 

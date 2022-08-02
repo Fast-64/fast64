@@ -675,7 +675,7 @@ def ootBuildSkeleton(
     f3dContext.mat().draw_layer.oot = armatureObj.ootDrawLayer
 
     if overlayName:
-        ootReadTextureArrays(basePath, overlayName, f3dContext)
+        ootReadTextureArrays(basePath, overlayName, skeletonName, f3dContext)
 
     transformMatrix = mathutils.Matrix.Scale(1 / actorScale, 4)
     isLOD = ootAddLimbRecursively(0, skeletonData, obj, armatureObj, transformMatrix, None, f3dContext, useFarLOD)
