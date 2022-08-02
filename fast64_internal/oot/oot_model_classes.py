@@ -267,6 +267,9 @@ class OOTF3DContext(F3DContext):
                     flipbookProp.textures.add()
                     flipbookProp.textures[-1].image = image
 
+                    if flipbookProp.exportMode == "Individual":
+                        flipbookProp.textures[-1].name = textureName
+
                 texProp = getattr(material.f3d_mat, "tex" + str(index))
                 texProp.tex = flipbookProp.textures[0].image  # for visual purposes only, will be ignored
                 texProp.use_tex_reference = True

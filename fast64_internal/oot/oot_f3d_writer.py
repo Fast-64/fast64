@@ -529,11 +529,14 @@ class OOTDynamicMaterialDrawLayerProperty(bpy.types.PropertyGroup):
 
 class ImagePointerProperty(bpy.types.PropertyGroup):
     image: bpy.props.PointerProperty(type=bpy.types.Image)
+    name: bpy.props.StringProperty(name="Name", default="gImage")
 
 
-def drawTextureArray(layout: bpy.types.UILayout, textureArray: bpy.types.CollectionProperty, index: int):
+def drawTextureArray(
+    layout: bpy.types.UILayout, textureArray: bpy.types.CollectionProperty, index: int, exportMode: str
+):
     for i in range(len(textureArray)):
-        drawTextureArrayProperty(layout, textureArray[i], i, index)
+        drawTextureArrayProperty(layout, textureArray[i], i, index, exportMode)
 
     addOp = layout.operator(OOTAddFlipbookTexture.bl_idname, text="Add Texture")
     addOp.combinerTexIndex = index
@@ -541,9 +544,15 @@ def drawTextureArray(layout: bpy.types.UILayout, textureArray: bpy.types.Collect
 
 
 def drawTextureArrayProperty(
-    layout: bpy.types.UILayout, texturePointer: ImagePointerProperty, arrayIndex: int, texNum: int
+    layout: bpy.types.UILayout, texturePointer: ImagePointerProperty, arrayIndex: int, texNum: int, exportMode: str
 ):
-    row = layout.row()
+    col = layout.column()
+    if exportMode == "Individual":
+        box = col.box()
+        prop_split(box, texturePointer, "name", "Texture Name")
+        row = box.row()
+    else:
+        row = layout.row()
     row.prop(texturePointer, "image", text="")
 
     buttons = row.row(align=True)
@@ -662,7 +671,7 @@ def drawOOTFlipbookProperty(layout: bpy.types.UILayout, flipbookProp: OOTTexture
         prop_split(box, flipbookProp, "exportMode", "Export Mode")
         if flipbookProp.exportMode == "Array":
             prop_split(box, flipbookProp, "name", "Array Name")
-        drawTextureArray(box.column(), flipbookProp.textures, index)
+        drawTextureArray(box.column(), flipbookProp.textures, index, flipbookProp.exportMode)
 
 
 oot_dl_writer_classes = (
