@@ -73,7 +73,6 @@ def ootReadTextureArraysFromMultiple(
         return
 
     drawData = drawMatch.group(1)
-    print(drawData)
     flipbookList = getTextureArrays(drawData)
     ootReadTextureArraysGeneric(flipbookList, drawData, getSegmentCallsFunc, f3dContext)
 
@@ -173,7 +172,6 @@ def getSPSegmentCallsDemoEc(actorData: str) -> list[tuple[tuple[int, str], str, 
     functionMatch = re.search(
         r"DemoEc\_DrawSkeleton(CustomColor)?\s*\(.*?,.*?,(.*?),(.*?),", actorData, flags=re.DOTALL
     )
-    print(actorData)
     if functionMatch:
         isCustomColor = functionMatch.group(1) is not None
         param1 = functionMatch.group(2).strip()
@@ -196,7 +194,5 @@ def getSPSegmentCallsDemoEc(actorData: str) -> list[tuple[tuple[int, str], str, 
                     segmentCalls.append(((0x09, "Opaque"), param1, functionMatch))
             if param2:
                 segmentCalls.append(((0x09, "Opaque"), param2, functionMatch))
-    else:
-        print("Failed to match " + r"DemoEc\_DrawSkeleton(CustomColor)?\s*\(.*?,.*?,(.*?),(.*?),")
 
     return segmentCalls
