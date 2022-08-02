@@ -574,6 +574,7 @@ def writeTextureArraysExisting(exportPath: str, overlayName: str, isLink: bool, 
 
             # otherwise, add to end of asset includes
             else:
+                newArrayData = flipbook_to_c(flipbook, True)
                 # get last asset include
                 includeMatch = None
                 for includeMatchItem in re.search(r"\#include\s*\"assets/.*?\"\s*?\n", newData, flags=re.DOTALL):
