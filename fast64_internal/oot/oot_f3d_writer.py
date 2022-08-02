@@ -637,7 +637,14 @@ class OOTVisualizeFlipbookTexture(bpy.types.Operator):
         material = context.material
         flipbook = getattr(material.ootMaterial, "flipbook" + str(self.combinerTexIndex))
         texProp = getattr(material.f3d_mat, "tex" + str(self.combinerTexIndex))
+
+        # We manually update texture without optimizing format
+        # we want to keep format the same
+        context.material.f3d_update_flag = True
         texProp.tex = flipbook.textures[self.arrayIndex].image
+        update_tex_values_manual(material, context)
+        context.material.f3d_update_flag = False
+
         self.report({"INFO"}, "Success!")
         return {"FINISHED"}
 
