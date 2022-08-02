@@ -2243,7 +2243,7 @@ class FModel:
         self.texturesSavedLastExport = 0  # hacky
 
     # Called before SPEndDisplayList
-    def onMaterialCommandsBuilt(self, gfxList, revertList, material, drawLayer):
+    def onMaterialCommandsBuilt(self, fMaterial, material, drawLayer):
         return
 
     def getTextureSuffixFromFormat(self, texFmt):

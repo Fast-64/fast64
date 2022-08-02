@@ -507,11 +507,11 @@ def drawOOTMaterialProperty(layout, mat, drawLayer):
     layout.label(text="To use this, material must use a texture ")
     layout.label(text="reference with name = 0x0?000000.")
     for i in range(2):
-        tex = getattr(f3d_mat, "tex" + str(i))
-        if all_combiner_uses(mat.f3d_mat)["Texture " + str(i)] and tex.use_tex_reference:
-            match = re.search(f"0x0([0-9A-F])000000", tex.tex_reference)
-            if match:
-                drawOOTFlipbookProperty(layout.column(), getattr(mat.ootMaterial, "flipbook" + str(i)), i)
+        flipbook = getattr(mat.ootMaterial, "flipbook" + str(i))
+        if usesFlipbook(mat, flipbook, i):
+            drawOOTFlipbookProperty(layout.column(), flipbook, i)
+            if getattr(mat.f3d_mat, "tex" + str(i)).tex_format[:2] == "CI":
+                layout.label(text="CI palette sharing not supported: use RGBA instead.", icon="ERROR")
 
 
 class OOTDynamicMaterialDrawLayerProperty(bpy.types.PropertyGroup):

@@ -13,6 +13,7 @@ from .f3d_material import (
     bitSizeDict,
     texBitSizeOf,
     texFormatOf,
+    TextureProperty,
 )
 from .f3d_gbi import *
 from .f3d_gbi import _DPLoadTextureBlock
@@ -1605,7 +1606,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             ]
         )
 
-    fModel.onMaterialCommandsBuilt(fMaterial.material, fMaterial.revert, material, drawLayer)
+    fModel.onMaterialCommandsBuilt(fMaterial, material, drawLayer)
 
     # End Display List
     # For dynamic calls, materials will be called as functions and should not end the DL.
@@ -1627,6 +1628,25 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     fModel.materials[materialKey] = (fMaterial, texDimensions)
 
     return fMaterial, texDimensions
+
+
+def getTextureName(texProp: TextureProperty, fModelName: str, overrideName: str) -> str:
+    tex = texProp.tex
+    texFormat = texProp.tex_format
+    if not texProp.use_tex_reference:
+        if tex.filepath == "":
+            name = tex.name
+        else:
+            name = tex.filepath
+    else:
+        name = texProp.tex_reference
+    texName = (
+        fModelName
+        + "_"
+        + (getNameFromPath(name, True) + "_" + texFormat.lower() if overrideName is None else overrideName)
+    )
+
+    return texName
 
 
 def saveTextureIndex(
@@ -1665,18 +1685,7 @@ def saveTextureIndex(
     isCITexture = texFormat[:2] == "CI"
     palFormat = texProp.ci_format if isCITexture else ""
 
-    if not texProp.use_tex_reference:
-        if tex.filepath == "":
-            name = tex.name
-        else:
-            name = tex.filepath
-    else:
-        name = texProp.tex_reference
-    texName = (
-        fModel.name
-        + "_"
-        + (getNameFromPath(name, True) + "_" + texFormat.lower() if overrideName is None else overrideName)
-    )
+    texName = getTextureName(texProp, fModel.name, overrideName)
 
     if tileSettingsOverride is not None:
         tileSettings = tileSettingsOverride[index]

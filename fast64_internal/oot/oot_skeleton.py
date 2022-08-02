@@ -477,6 +477,8 @@ def ootConvertArmatureToC(
     isCustomExport,
     drawLayer,
     removeVanillaData,
+    overlayName: str,
+    isLink: bool,
 ):
     skeletonName = toAlnum(skeletonName)
 
@@ -522,13 +524,67 @@ def ootConvertArmatureToC(
     data.append(exportData.all())
     data.append(skeletonC)
 
+    if isCustomExport:
+        textureArrayData = writeTextureArraysNew(fModel)
+        data.append(textureArrayData)
+
     path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, False)
     writeCData(data, os.path.join(path, skeletonName + ".h"), os.path.join(path, skeletonName + ".c"))
 
     if not isCustomExport:
+        writeTextureArraysExisting(bpy.context.scene.ootDecompPath, overlayName, isLink, fModel)
         addIncludeFiles(folderName, path, skeletonName)
         if removeVanillaData:
             ootRemoveSkeleton(path, folderName, skeletonName)
+
+
+def writeTextureArraysNew(fModel: OOTModel):
+    textureArrayData = CData()
+    for flipbook in fModel.flipbooks:
+        if flipbook.exportMode == "Array":
+            textureArrayData.source += flipbook_to_c(flipbook, True) + "\n"
+    return textureArrayData
+
+
+def writeTextureArraysExisting(exportPath: str, overlayName: str, isLink: bool, fModel: OOTModel):
+    if isLink:
+        actorFilePath = os.path.join(exportPath, f"src/code/z_player_lib.c")
+    else:
+        actorFilePath = os.path.join(exportPath, f"src/overlays/actors/{overlayName}/z_{overlayName[4:].lower()}.c")
+        actorFileDataPath = f"{actorFilePath[:-2]}_data.c"  # some bosses store texture arrays here
+
+        if os.path.exists(actorFileDataPath):
+            actorFilePath = actorFileDataPath
+
+    actorData = readFile(actorFilePath)
+    newData = actorData
+
+    for flipbook in fModel.flipbooks:
+        if flipbook.exportMode == "Array":
+            arrayMatch = re.search(
+                r"(static\s*)?void\s*\*\s*" + re.escape(flipbook.name) + r"\s*\[\s*\]\s*=\s*\{(((?!\}).)*)\}\s*;",
+                newData,
+                flags=re.DOTALL,
+            )
+
+            # replace array if found
+            if arrayMatch:
+                newArrayData = flipbook_to_c(flipbook, arrayMatch.group(1))
+                newData = newData[: arrayMatch.start(0)] + newArrayData + newData[arrayMatch.end(0) :]
+
+            # otherwise, add to end of asset includes
+            else:
+                # get last asset include
+                includeMatch = None
+                for includeMatchItem in re.search(r"\#include\s*\"assets/.*?\"\s*?\n", newData, flags=re.DOTALL):
+                    includeMatch = includeMatchItem
+                if includeMatch:
+                    newData = newData[: includeMatch.end(0)] + newArrayData + "\n" + newData[includeMatch.end(0) :]
+                else:
+                    newData += newArrayData + "\n"
+
+    if newData != actorData:
+        writeFile(actorFilePath, newData)
 
 
 class OOTDLEntry:
@@ -946,6 +1002,8 @@ class OOT_ExportSkeleton(bpy.types.Operator):
             isCustomExport = context.scene.ootSkeletonExportUseCustomPath
             drawLayer = armatureObj.ootDrawLayer
             removeVanillaData = context.scene.ootSkeletonRemoveVanillaData
+            overlayName = context.scene.ootSkeletonExportOverlay if not isCustomExport else None
+            isLink = context.scene.ootSkeletonExportIsLink
 
             ootConvertArmatureToC(
                 armatureObj,
@@ -960,6 +1018,8 @@ class OOT_ExportSkeleton(bpy.types.Operator):
                 isCustomExport,
                 drawLayer,
                 removeVanillaData,
+                overlayName,
+                isLink,
             )
 
             self.report({"INFO"}, "Success!")
@@ -986,6 +1046,9 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
             prop_split(col, context.scene, "ootSkeletonExportCustomPath", "Folder")
         else:
             prop_split(col, context.scene, "ootSkeletonExportFolderName", "Object")
+            if not context.scene.ootSkeletonExportIsLink:
+                prop_split(col, context.scene, "ootSkeletonExportOverlay", "Overlay")
+            col.prop(context.scene, "ootSkeletonExportIsLink")
         col.prop(context.scene, "ootSkeletonExportUseCustomPath")
         col.prop(context.scene, "ootSkeletonExportOptimize")
         if context.scene.ootSkeletonExportOptimize:
@@ -1106,6 +1169,8 @@ def oot_skeleton_register():
     bpy.types.Scene.ootSkeletonExportFolderName = bpy.props.StringProperty(
         name="Skeleton Folder", default="object_geldb"
     )
+    bpy.types.Scene.ootSkeletonExportOverlay = bpy.props.StringProperty(name="Overlay", default="ovl_En_GeldB")
+    bpy.types.Scene.ootSkeletonExportIsLink = bpy.props.BoolProperty(name="Is Link", default=False)
     bpy.types.Scene.ootSkeletonExportCustomPath = bpy.props.StringProperty(
         name="Custom Skeleton Path", subtype="FILE_PATH"
     )
@@ -1148,6 +1213,8 @@ def oot_skeleton_register():
 def oot_skeleton_unregister():
     del bpy.types.Scene.ootSkeletonExportName
     del bpy.types.Scene.ootSkeletonExportFolderName
+    del bpy.types.Scene.ootSkeletonExportOverlay
+    del bpy.types.Scene.ootSkeletonExportIsLink
     del bpy.types.Scene.ootSkeletonExportCustomPath
     del bpy.types.Scene.ootSkeletonExportUseCustomPath
     del bpy.types.Scene.ootSkeletonExportOptimize

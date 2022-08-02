@@ -1,12 +1,22 @@
 import shutil, copy, bpy, os
 from bpy.utils import register_class, unregister_class
-from typing import Dict, List
+from typing import Dict, List, Any
 
 from .oot_utility import *
 from .oot_constants import *
 from ..f3d.f3d_writer import *
 from ..f3d.f3d_material import *
 from ..f3d.f3d_parser import *
+
+
+def usesFlipbook(material: bpy.types.Material, flipbookProperty: Any, index: int) -> bool:
+    texProp = getattr(material.f3d_mat, "tex" + str(index))
+    # return all_combiner_uses(material)["Texture " + str(index)] and texProp.use_tex_reference and
+    if all_combiner_uses(material.f3d_mat)["Texture " + str(index)] and texProp.use_tex_reference:
+        match = re.search(f"0x0([0-9A-F])000000", texProp.tex_reference)
+        return match is not None
+    else:
+        return False
 
 
 # read included asset data
@@ -35,9 +45,19 @@ def ootGetLinkData(basePath: str) -> str:
     return actorData
 
 
+def flipbook_to_c(flipbook, isStatic):
+    newArrayData = "void* " if not isStatic else "static void* "
+    newArrayData += f"{flipbook.name}[] = {{ "
+    for textureName in flipbook.textureNames:
+        newArrayData += textureName + ", "
+    newArrayData += " };"
+    return newArrayData
+
+
 class OOTModel(FModel):
     def __init__(self, f3dType, isHWv1, name, DLFormat, drawLayerOverride):
         self.drawLayerOverride = drawLayerOverride
+        self.flipbooks = []  # OOTTextureFlipbook
         FModel.__init__(self, f3dType, isHWv1, name, DLFormat, GfxMatWriteMethod.WriteAll)
 
     def getDrawLayerV3(self, obj):
@@ -59,7 +79,9 @@ class OOTModel(FModel):
         else:
             return texFmt.lower()
 
-    def onMaterialCommandsBuilt(self, gfxList, revertList, material, drawLayer):
+    def onMaterialCommandsBuilt(self, fMaterial, material, drawLayer):
+        # handle dynamic material calls
+        gfxList = fMaterial.material
         matDrawLayer = getattr(material.ootMaterial, drawLayer.lower())
         for i in range(8, 14):
             if getattr(matDrawLayer, "segment" + format(i, "X")):
@@ -72,6 +94,35 @@ class OOTModel(FModel):
                 gfxList.commands.append(
                     SPDisplayList(GfxList(getattr(matDrawLayer, p + "_seg"), GfxListTag.Material, DLFormat.Static))
                 )
+
+        # save flipbook textures
+        for i in range(2):
+            flipbookProp = getattr(material.ootMaterial, "flipbook" + str(i))
+            texProp = getattr(material.f3d_mat, "tex" + str(i))
+            if usesFlipbook(material, flipbookProp, i):
+                flipbook = OOTTextureFlipbook(flipbookProp.name, flipbookProp.exportMode, [])
+                for flipbookTexture in flipbookProp.textures:
+                    name = (
+                        flipbookTexture.name
+                        if flipbookProp.exportMode == "Individual"
+                        else self.name + "_" + flipbookTexture.image.name + "_" + texProp.tex_format.lower()
+                    )
+                    if texProp.tex_format[:2] == "CI":
+                        fImage, fPalette = saveOrGetPaletteDefinition(
+                            fMaterial, self, flipbookTexture.image, name, texProp.tex_format, texProp.ci_format, True
+                        )
+                    else:
+                        fImage = saveOrGetTextureDefinition(
+                            fMaterial,
+                            self,
+                            flipbookTexture.image,
+                            name,
+                            texProp.tex_format,
+                            True,
+                        )
+                    newName = fImage.name
+                    flipbook.textureNames.append(newName)
+                self.flipbooks.append(flipbook)
 
     def onAddMesh(self, fMesh, contextObj):
         if contextObj is not None and hasattr(contextObj, "ootDynamicTransform"):
@@ -200,9 +251,7 @@ class OOTF3DContext(F3DContext):
             return name
         else:
             segment = pointer >> 24
-            print("POINTER")
             if segment >= 0x08 and segment <= 0x0D:
-                print("SETTING " + str(segment))
                 setattr(self.materialContext.ootMaterial.opaque, "segment" + format(segment, "1X"), True)
                 setattr(self.materialContext.ootMaterial.transparent, "segment" + format(segment, "1X"), True)
             return None
