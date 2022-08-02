@@ -553,7 +553,7 @@ def drawTextureArrayProperty(
         row = box.row()
     else:
         row = layout.row()
-    row.prop(texturePointer, "image", text="")
+    row.template_ID(texturePointer, "image", new="image.new", open="image.open")
 
     buttons = row.row(align=True)
     visualizeOp = buttons.operator(OOTVisualizeFlipbookTexture.bl_idname, text="", icon="VIEW_CAMERA")
