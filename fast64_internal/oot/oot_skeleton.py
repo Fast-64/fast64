@@ -621,7 +621,7 @@ def ootImportSkeletonC(
     arrayIndex2D: int,
 ):
     skeletonData = getImportData(filepaths)
-    if overlayName or isLink:
+    if overlayName is not None or isLink:
         skeletonData = ootGetIncludedAssetData(basePath, filepaths, skeletonData) + skeletonData
 
     matchResult = ootGetSkeleton(skeletonData, skeletonName, False)
@@ -699,7 +699,7 @@ def ootBuildSkeleton(
     f3dContext = OOTF3DContext(F3D("F3DEX2/LX2", False), limbList, basePath)
     f3dContext.mat().draw_layer.oot = armatureObj.ootDrawLayer
 
-    if overlayName:
+    if overlayName is not None:
         ootReadTextureArrays(basePath, overlayName, skeletonName, f3dContext, isLink, arrayIndex2D)
 
     transformMatrix = mathutils.Matrix.Scale(1 / actorScale, 4)

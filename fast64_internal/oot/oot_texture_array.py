@@ -1,4 +1,5 @@
 from array import array
+from pprint import pprint
 from typing import Tuple, Callable
 import bpy, os, re
 from bpy.utils import register_class, unregister_class
@@ -21,23 +22,25 @@ def ootReadTextureArrays(
 ):
     if not isLink:
         actorData = ootGetActorData(basePath, overlayName)
+        currentPaths = ootGetActorDataPaths(basePath, overlayName)
     else:
         actorData = ootGetLinkData(basePath)
-    actorData = ootGetIncludedAssetData(basePath, ootGetActorDataPaths(basePath, overlayName), actorData) + actorData
+        currentPaths = [os.path.join(basePath, f"src/code/z_player_lib.c")]
+    actorData = ootGetIncludedAssetData(basePath, currentPaths, actorData) + actorData
 
     # search for texture arrays
     # this is done first so that its easier to tell which gSPSegment calls refer to texture data.
     flipbookList = getTextureArrays(actorData, arrayIndex2D)
 
-    if overlayName == "ovl_En_Ossan":
+    if not isLink and overlayName == "ovl_En_Ossan":
         # remove function declarations
         actorData = re.sub(r"void\s*EnOssan\_(((?!\{).)*)?\)\s*;", "", actorData)
         ootReadTextureArraysFromMultiple(
-            flipbookList, skeletonName, actorData, f3dContext, "EnOssan", getSPSegmentCalls
+            flipbookList, skeletonName, actorData, f3dContext, "EnOssan", getSPSegmentCalls, arrayIndex2D
         )
-    elif overlayName == "ovl_Demo_Ec":
+    elif not isLink and overlayName == "ovl_Demo_Ec":
         ootReadTextureArraysFromMultiple(
-            flipbookList, skeletonName, actorData, f3dContext, "DemoEc", getSPSegmentCallsDemoEc
+            flipbookList, skeletonName, actorData, f3dContext, "DemoEc", getSPSegmentCallsDemoEc, arrayIndex2D
         )
     else:
         ootReadTextureArraysGeneric(flipbookList, actorData, getSPSegmentCalls, f3dContext)
@@ -51,6 +54,7 @@ def ootReadTextureArraysFromMultiple(
     f3dContext: OOTF3DContext,
     functionPrefix: str,
     getSegmentCallsFunc: Callable[[str], None],
+    arrayIndex2D: int,
 ):
     # regex should ignore DemoEc_Init()
     # relies on formatting convention (tabs indicating bracket scope)
@@ -76,7 +80,7 @@ def ootReadTextureArraysFromMultiple(
         return
 
     drawData = drawMatch.group(1)
-    flipbookList = getTextureArrays(drawData)
+    flipbookList = getTextureArrays(drawData, arrayIndex2D)
     ootReadTextureArraysGeneric(flipbookList, drawData, getSegmentCallsFunc, f3dContext)
 
 

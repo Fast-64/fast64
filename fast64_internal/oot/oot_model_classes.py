@@ -374,6 +374,23 @@ class OOTF3DContext(F3DContext):
         clearOOTFlipbookProperty(getattr(material.ootMaterial, "flipbook" + str(index)))
         super().handleTextureValue(material, image, index)
 
+    def handleApplyTLUT(
+        self,
+        material: bpy.types.Material,
+        texProp: TextureProperty,
+        tlut: Union[F3DTextureReference, bpy.types.Image],
+        index: int,
+    ):
+        self.applyTLUT(texProp.tex, tlut)
+        self.tlutAppliedTextures.append(texProp.tex)
+
+        flipbook = getattr(material.ootMaterial, "flipbook" + str(index))
+        if flipbook.enable:
+            for flipbookTexture in flipbook.textures:
+                # print(f"Apply tlut to {str(flipbookTexture.image)}")
+                self.applyTLUT(flipbookTexture.image, tlut)
+                self.tlutAppliedTextures.append(flipbookTexture.image)
+
 
 def clearOOTFlipbookProperty(flipbookProp):
     flipbookProp.enable = False

@@ -413,7 +413,7 @@ class OOT_ImportDL(bpy.types.Operator):
                 data = ootGetIncludedAssetData(basePath, paths, data) + data
 
                 f3dContext = OOTF3DContext(F3D("F3DEX2/LX2", False), [name], basePath)
-                if overlayName:
+                if overlayName is not None:
                     ootReadTextureArrays(basePath, overlayName, name, f3dContext, False, arrayIndex2D)
 
             importMeshC(

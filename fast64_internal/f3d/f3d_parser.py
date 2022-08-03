@@ -1,3 +1,4 @@
+from typing import Union
 import bmesh, bpy, mathutils, pprint, re, math, traceback
 from bpy.utils import register_class, unregister_class
 from .f3d_gbi import *
@@ -719,6 +720,18 @@ class F3DContext:
                 return name
         return None
 
+    # override this to handle applying tlut to other texture
+    # ex. in oot, apply to flipbook textures
+    def handleApplyTLUT(
+        self,
+        material: bpy.types.Material,
+        texProp: TextureProperty,
+        tlut: Union[F3DTextureReference, bpy.types.Image],
+        index: int,
+    ):
+        self.applyTLUT(texProp.tex, tlut)
+        self.tlutAppliedTextures.append(texProp.tex)
+
     # we only want to apply tlut to an existing image under specific conditions.
     # however we always want to record the changing tlut for texture references.
     def applyTLUTToIndex(self, index):
@@ -731,6 +744,7 @@ class F3DContext:
             tlutName = self.tmemDict[256]
             if 256 in self.tmemDict and tlutName is not None:
                 tlut = self.textureData[tlutName]
+                # print(f"TLUT: {tlutName}, {isinstance(tlut, F3DTextureReference)}")
                 if isinstance(tlut, F3DTextureReference) or texProp.use_tex_reference:
                     if not texProp.use_tex_reference:
                         texProp.use_tex_reference = True
@@ -750,17 +764,17 @@ class F3DContext:
                 if (
                     not isinstance(tlut, F3DTextureReference)
                     and combinerUses["Texture " + str(index)]
-                    and (texProp.tex is not None or texProp.use_tex_reference)
+                    and (texProp.tex is not None)
                     and texProp.tex_set
                     and (texProp.tex not in self.tlutAppliedTextures or texProp.use_tex_reference)
                     and (
                         texProp.tex not in self.imagesDontApplyTlut or not self.ciImageFilesStoredAsFullColor
                     )  # oot currently stores CI textures in full color pngs
                 ):
-                    self.applyTLUT(texProp.tex, tlut)
-                    self.tlutAppliedTextures.append(texProp.tex)
-        else:
-            print("Ignoring TLUT.")
+                    # print(f"Apply tlut {tlutName} to {self.getImageName(texProp.tex)}")
+                    self.handleApplyTLUT(self.materialContext, texProp, tlut, index)
+            else:
+                print("Ignoring TLUT.")
 
     def postMaterialChanged(self):
         return
