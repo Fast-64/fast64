@@ -1033,6 +1033,8 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
                         box.label(text="Adult Link", icon="OPTIONS")
                     elif context.scene.ootSkeletonExportArrayIndex2D == 1:
                         box.label(text="Child Link", icon="OPTIONS")
+                    box.label(text="LOD mesh will override flipbook settings on base mesh.", icon="ERROR")
+                    box.label(text="Make sure they're consistent across both.")
         col.prop(context.scene, "ootSkeletonExportUseCustomPath")
         col.prop(context.scene, "ootSkeletonExportOptimize")
         if context.scene.ootSkeletonExportOptimize:
