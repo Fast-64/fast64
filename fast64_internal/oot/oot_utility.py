@@ -143,6 +143,10 @@ ootSceneDirs = {
 }
 
 
+def replaceMatchContent(data: str, newContent: str, match: re.Match, index: int) -> str:
+    return data[: match.start(index)] + newContent + data[match.end(index) :]
+
+
 def addIncludeFiles(objectName, objectPath, assetName):
     addIncludeFilesExtension(objectName, objectPath, assetName, "h")
     addIncludeFilesExtension(objectName, objectPath, assetName, "c")

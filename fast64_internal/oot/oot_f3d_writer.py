@@ -281,9 +281,10 @@ class OOT_ImportDL(bpy.types.Operator):
             importNormals = context.scene.ootDLImportNormals
             drawLayer = bpy.context.scene.ootDLImportDrawLayer
 
-            data = getImportData([ootGetObjectPath(isCustomImport, importPath, folderName)])
+            paths = [ootGetObjectPath(isCustomImport, importPath, folderName)]
+            data = getImportData(paths)
             if not isCustomImport:
-                data = ootGetIncludedAssetData(data, basePath) + data
+                data = ootGetIncludedAssetData(basePath, paths, data) + data
 
             importMeshC(
                 data,

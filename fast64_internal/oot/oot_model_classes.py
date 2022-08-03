@@ -20,21 +20,39 @@ def usesFlipbook(material: bpy.types.Material, flipbookProperty: Any, index: int
 
 
 # read included asset data
-def ootGetIncludedAssetData(basePath: str, data: str) -> str:
+def ootGetIncludedAssetData(basePath: str, currentPaths: list[str], data: str) -> str:
     includeData = ""
-    for includeMatch in re.finditer(r"\#include\s*\"(assets/objects/(.*?))\"", data):
-        includeData += getImportData([os.path.join(basePath, includeMatch.group(1))]) + "\n"
-    for includeMatch in re.finditer(r"\#include\s*\"(assets/misc/(.*?))\"", data):
-        includeData += getImportData([os.path.join(basePath, includeMatch.group(1))]) + "\n"
+
+    # search assets
+    for includeMatch in re.finditer(r"\#include\s*\"(assets/objects/(.*?))\.h\"", data):
+        includeData += getImportData([os.path.join(basePath, includeMatch.group(1) + ".c")]) + "\n"
+    for includeMatch in re.finditer(r"\#include\s*\"(assets/misc/(.*?))\.h\"", data):
+        includeData += getImportData([os.path.join(basePath, includeMatch.group(1) + ".c")]) + "\n"
+
+    # search same directory c includes
+    for includeMatch in re.finditer(r"\#include\s*\"(((?![/\"]).)*)\.c\"", data):
+        includeData += (
+            getImportData(
+                [
+                    os.path.join(os.path.dirname(currentPath), includeMatch.group(1) + ".c")
+                    for currentPath in currentPaths
+                ]
+            )
+            + "\n"
+        )
     return includeData
+
+
+def ootGetActorDataPaths(basePath: str, overlayName: str) -> list[str]:
+    actorFilePath = os.path.join(basePath, f"src/overlays/actors/{overlayName}/z_{overlayName[4:].lower()}.c")
+    actorFileDataPath = f"{actorFilePath[:-2]}_data.c"  # some bosses store texture arrays here
+
+    return [actorFileDataPath, actorFilePath]
 
 
 # read actor data
 def ootGetActorData(basePath: str, overlayName: str) -> str:
-    actorFilePath = os.path.join(basePath, f"src/overlays/actors/{overlayName}/z_{overlayName[4:].lower()}.c")
-    actorFileDataPath = f"{actorFilePath[:-2]}_data.c"  # some bosses store texture arrays here
-    actorData = getImportData([actorFileDataPath, actorFilePath])
-
+    actorData = getImportData(ootGetActorDataPaths(basePath, overlayName))
     return actorData
 
 
@@ -48,9 +66,24 @@ def ootGetLinkData(basePath: str) -> str:
 def flipbook_to_c(flipbook, isStatic):
     newArrayData = "void* " if not isStatic else "static void* "
     newArrayData += f"{flipbook.name}[] = {{ "
-    for textureName in flipbook.textureNames:
-        newArrayData += textureName + ", "
+    newArrayData += flipbook_data_to_c(flipbook)
     newArrayData += " };"
+    return newArrayData
+
+
+def flipbook_2d_to_c(flipbook, isStatic, count):
+    newArrayData = "void* " if not isStatic else "static void* "
+    newArrayData += f"{flipbook.name}[][{count}] = {{ "
+    for i in range(count):
+        newArrayData += "{ " + flipbook_data_to_c(flipbook) + " },\n"
+    newArrayData += " };"
+    return newArrayData
+
+
+def flipbook_data_to_c(flipbook):
+    newArrayData = ""
+    for textureName in flipbook.textureNames:
+        newArrayData += textureName + ",\n"
     return newArrayData
 
 

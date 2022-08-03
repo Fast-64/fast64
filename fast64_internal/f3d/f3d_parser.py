@@ -747,8 +747,9 @@ class F3DContext:
                         texProp.pal_reference = tlutName
                         texProp.pal_reference_size = min(tlut.size[0] * tlut.size[1], 256)
 
-                elif (
-                    combinerUses["Texture " + str(index)]
+                if (
+                    not isinstance(tlut, F3DTextureReference)
+                    and combinerUses["Texture " + str(index)]
                     and (texProp.tex is not None or texProp.use_tex_reference)
                     and texProp.tex_set
                     and (texProp.tex not in self.tlutAppliedTextures or texProp.use_tex_reference)

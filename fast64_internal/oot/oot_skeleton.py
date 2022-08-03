@@ -479,6 +479,7 @@ def ootConvertArmatureToC(
     removeVanillaData,
     overlayName: str,
     isLink: bool,
+    arrayIndex2D: int,
 ):
     skeletonName = toAlnum(skeletonName)
 
@@ -525,28 +526,31 @@ def ootConvertArmatureToC(
     data.append(skeletonC)
 
     if isCustomExport:
-        textureArrayData = writeTextureArraysNew(fModel)
+        textureArrayData = writeTextureArraysNew(fModel, arrayIndex2D)
         data.append(textureArrayData)
 
     path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, False)
     writeCData(data, os.path.join(path, skeletonName + ".h"), os.path.join(path, skeletonName + ".c"))
 
     if not isCustomExport:
-        writeTextureArraysExisting(bpy.context.scene.ootDecompPath, overlayName, isLink, fModel)
+        writeTextureArraysExisting(bpy.context.scene.ootDecompPath, overlayName, isLink, arrayIndex2D, fModel)
         addIncludeFiles(folderName, path, skeletonName)
         if removeVanillaData:
             ootRemoveSkeleton(path, folderName, skeletonName)
 
 
-def writeTextureArraysNew(fModel: OOTModel):
+def writeTextureArraysNew(fModel: OOTModel, arrayIndex: int):
     textureArrayData = CData()
     for flipbook in fModel.flipbooks:
         if flipbook.exportMode == "Array":
-            textureArrayData.source += flipbook_to_c(flipbook, True) + "\n"
+            if arrayIndex is not None:
+                textureArrayData.source += flipbook_2d_to_c(flipbook, True, arrayIndex + 1) + "\n"
+            else:
+                textureArrayData.source += flipbook_to_c(flipbook, True) + "\n"
     return textureArrayData
 
 
-def writeTextureArraysExisting(exportPath: str, overlayName: str, isLink: bool, fModel: OOTModel):
+def writeTextureArraysExisting(exportPath: str, overlayName: str, isLink: bool, arrayIndex2D: int, fModel: OOTModel):
     if isLink:
         actorFilePath = os.path.join(exportPath, f"src/code/z_player_lib.c")
     else:
@@ -561,31 +565,90 @@ def writeTextureArraysExisting(exportPath: str, overlayName: str, isLink: bool, 
 
     for flipbook in fModel.flipbooks:
         if flipbook.exportMode == "Array":
-            arrayMatch = re.search(
-                r"(static\s*)?void\s*\*\s*" + re.escape(flipbook.name) + r"\s*\[\s*\]\s*=\s*\{(((?!\}).)*)\}\s*;",
-                newData,
-                flags=re.DOTALL,
-            )
-
-            # replace array if found
-            if arrayMatch:
-                newArrayData = flipbook_to_c(flipbook, arrayMatch.group(1))
-                newData = newData[: arrayMatch.start(0)] + newArrayData + newData[arrayMatch.end(0) :]
-
-            # otherwise, add to end of asset includes
+            if arrayIndex2D is None:
+                newData = writeTextureArraysExisting1D(newData, flipbook)
             else:
-                newArrayData = flipbook_to_c(flipbook, True)
-                # get last asset include
-                includeMatch = None
-                for includeMatchItem in re.search(r"\#include\s*\"assets/.*?\"\s*?\n", newData, flags=re.DOTALL):
-                    includeMatch = includeMatchItem
-                if includeMatch:
-                    newData = newData[: includeMatch.end(0)] + newArrayData + "\n" + newData[includeMatch.end(0) :]
-                else:
-                    newData += newArrayData + "\n"
+                newData = writeTextureArraysExisting2D(newData, flipbook, arrayIndex2D)
 
     if newData != actorData:
         writeFile(actorFilePath, newData)
+
+
+def writeTextureArraysExisting1D(data: str, flipbook: OOTTextureFlipbook) -> str:
+    newData = data
+    arrayMatch = re.search(
+        r"(static\s*)?void\s*\*\s*" + re.escape(flipbook.name) + r"\s*\[\s*\]\s*=\s*\{(((?!\}).)*)\}\s*;",
+        newData,
+        flags=re.DOTALL,
+    )
+
+    # replace array if found
+    if arrayMatch:
+        newArrayData = flipbook_to_c(flipbook, arrayMatch.group(1))
+        newData = newData[: arrayMatch.start(0)] + newArrayData + newData[arrayMatch.end(0) :]
+
+        # otherwise, add to end of asset includes
+    else:
+        newArrayData = flipbook_to_c(flipbook, True)
+        # get last asset include
+        includeMatch = None
+        for includeMatchItem in re.finditer(r"\#include\s*\"assets/.*?\"\s*?\n", newData, flags=re.DOTALL):
+            includeMatch = includeMatchItem
+        if includeMatch:
+            newData = newData[: includeMatch.end(0)] + newArrayData + "\n" + newData[includeMatch.end(0) :]
+        else:
+            newData += newArrayData + "\n"
+
+    return newData
+
+
+# for flipbook textures, we only replace one element of the 2D array.
+def writeTextureArraysExisting2D(data: str, flipbook: OOTTextureFlipbook, arrayIndex2D: int) -> str:
+    newData = data
+
+    # for !AVOID_UB, Link has textures in 2D Arrays
+    array2DMatch = re.search(
+        r"(static\s*)?void\s*\*\s*"
+        + re.escape(flipbook.name)
+        + r"\s*\[\s*\]\s*\[\s*[0-9a-fA-Fx]*\s*\]\s*=\s*\{(.*?)\}\s*;",
+        newData,
+        flags=re.DOTALL,
+    )
+
+    newArrayData = "{ " + flipbook_data_to_c(flipbook) + " }"
+
+    # build a list of arrays here
+    # replace existing element if list is large enough
+    # otherwise, pad list with repeated arrays
+    if array2DMatch:
+        arrayMatchData = [
+            arrayMatch.group(0) for arrayMatch in re.finditer(r"\{(.*?)\}", array2DMatch.group(2), flags=re.DOTALL)
+        ]
+
+        if arrayIndex2D >= len(arrayMatchData):
+            while len(arrayMatchData) <= arrayIndex2D:
+                arrayMatchData.append(newArrayData)
+        else:
+            arrayMatchData[arrayIndex2D] = newArrayData
+
+        newArray2DData = ",\n".join([item for item in arrayMatchData])
+        newData = replaceMatchContent(newData, newArray2DData, array2DMatch, 2)
+
+        # otherwise, add to end of asset includes
+    else:
+        arrayMatchData = [newArrayData] * (arrayIndex2D + 1)
+        newArray2DData = ",\n".join([item for item in arrayMatchData])
+
+        # get last asset include
+        includeMatch = None
+        for includeMatchItem in re.finditer(r"\#include\s*\"assets/.*?\"\s*?\n", newData, flags=re.DOTALL):
+            includeMatch = includeMatchItem
+        if includeMatch:
+            newData = newData[: includeMatch.end(0)] + newArray2DData + "\n" + newData[includeMatch.end(0) :]
+        else:
+            newData += newArray2DData + "\n"
+
+    return newData
 
 
 class OOTDLEntry:
@@ -658,11 +721,20 @@ def ootGetLimb(skeletonData, limbName, continueOnError):
 
 
 def ootImportSkeletonC(
-    filepaths, skeletonName, overlayName, actorScale, removeDoubles, importNormals, basePath, drawLayer, isLink
+    filepaths,
+    skeletonName,
+    overlayName,
+    actorScale,
+    removeDoubles,
+    importNormals,
+    basePath,
+    drawLayer,
+    isLink,
+    arrayIndex2D: int,
 ):
     skeletonData = getImportData(filepaths)
-    if overlayName:
-        skeletonData = ootGetIncludedAssetData(basePath, skeletonData) + skeletonData
+    if overlayName or isLink:
+        skeletonData = ootGetIncludedAssetData(basePath, filepaths, skeletonData) + skeletonData
 
     matchResult = ootGetSkeleton(skeletonData, skeletonName, False)
     limbsName = matchResult.group(2)
@@ -684,6 +756,7 @@ def ootImportSkeletonC(
         basePath,
         drawLayer,
         isLink,
+        arrayIndex2D,
     )
     if isLOD:
         isLOD, LODArmatureObj = ootBuildSkeleton(
@@ -698,6 +771,7 @@ def ootImportSkeletonC(
             basePath,
             drawLayer,
             isLink,
+            arrayIndex2D,
         )
         armatureObj.ootFarLOD = LODArmatureObj
 
@@ -714,6 +788,7 @@ def ootBuildSkeleton(
     basePath,
     drawLayer,
     isLink,
+    arrayIndex2D: int,
 ):
     lodString = "_lod" if useFarLOD else ""
 
@@ -737,7 +812,7 @@ def ootBuildSkeleton(
     f3dContext.mat().draw_layer.oot = armatureObj.ootDrawLayer
 
     if overlayName:
-        ootReadTextureArrays(basePath, overlayName, skeletonName, f3dContext, isLink)
+        ootReadTextureArrays(basePath, overlayName, skeletonName, f3dContext, isLink, arrayIndex2D)
 
     transformMatrix = mathutils.Matrix.Scale(1 / actorScale, 4)
     isLOD = ootAddLimbRecursively(0, skeletonData, obj, armatureObj, transformMatrix, None, f3dContext, useFarLOD)
@@ -944,6 +1019,8 @@ class OOT_ImportSkeleton(bpy.types.Operator):
             decompPath = bpy.path.abspath(bpy.context.scene.ootDecompPath)
             drawLayer = bpy.context.scene.ootActorImportDrawLayer
             isLink = bpy.context.scene.ootSkeletonImportIsLink
+            is2DArray = context.scene.ootSkeletonImportIs2DArray
+            arrayIndex2D = context.scene.ootSkeletonImportArrayIndex2D if isLink or is2DArray else None
 
             filepaths = [ootGetObjectPath(isCustomImport, importPath, folderName)]
             if not isCustomImport:
@@ -952,7 +1029,16 @@ class OOT_ImportSkeleton(bpy.types.Operator):
                 )
 
             ootImportSkeletonC(
-                filepaths, skeletonName, overlayName, scale, removeDoubles, importNormals, decompPath, drawLayer, isLink
+                filepaths,
+                skeletonName,
+                overlayName,
+                scale,
+                removeDoubles,
+                importNormals,
+                decompPath,
+                drawLayer,
+                isLink,
+                arrayIndex2D,
             )
 
             self.report({"INFO"}, "Success!")
@@ -1005,6 +1091,8 @@ class OOT_ExportSkeleton(bpy.types.Operator):
             removeVanillaData = context.scene.ootSkeletonRemoveVanillaData
             overlayName = context.scene.ootSkeletonExportOverlay if not isCustomExport else None
             isLink = context.scene.ootSkeletonExportIsLink
+            is2DArray = context.scene.ootSkeletonExportIs2DArray
+            arrayIndex2D = context.scene.ootSkeletonExportArrayIndex2D if isLink or is2DArray else None
 
             ootConvertArmatureToC(
                 armatureObj,
@@ -1021,6 +1109,7 @@ class OOT_ExportSkeleton(bpy.types.Operator):
                 removeVanillaData,
                 overlayName,
                 isLink,
+                arrayIndex2D,
             )
 
             self.report({"INFO"}, "Success!")
@@ -1050,6 +1139,16 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
             if not context.scene.ootSkeletonExportIsLink:
                 prop_split(col, context.scene, "ootSkeletonExportOverlay", "Overlay")
             col.prop(context.scene, "ootSkeletonExportIsLink")
+            if not context.scene.ootSkeletonExportIsLink:
+                col.prop(context.scene, "ootSkeletonExportIs2DArray")
+            if context.scene.ootSkeletonExportIsLink or context.scene.ootSkeletonExportIs2DArray:
+                box = col.box().column()
+                prop_split(box, context.scene, "ootSkeletonExportArrayIndex2D", "Flipbook Index")
+                if context.scene.ootSkeletonExportIsLink:
+                    if context.scene.ootSkeletonExportArrayIndex2D == 0:
+                        box.label(text="Adult Link", icon="OPTIONS")
+                    elif context.scene.ootSkeletonExportArrayIndex2D == 1:
+                        box.label(text="Child Link", icon="OPTIONS")
         col.prop(context.scene, "ootSkeletonExportUseCustomPath")
         col.prop(context.scene, "ootSkeletonExportOptimize")
         if context.scene.ootSkeletonExportOptimize:
@@ -1067,6 +1166,16 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
             if not context.scene.ootSkeletonImportIsLink:
                 prop_split(col, context.scene, "ootSkeletonImportOverlay", "Overlay")
             col.prop(context.scene, "ootSkeletonImportIsLink")
+            if not context.scene.ootSkeletonImportIsLink:
+                col.prop(context.scene, "ootSkeletonImportIs2DArray")
+            if context.scene.ootSkeletonImportIsLink or context.scene.ootSkeletonImportIs2DArray:
+                box = col.box().column()
+                prop_split(box, context.scene, "ootSkeletonImportArrayIndex2D", "Flipbook Index")
+                if context.scene.ootSkeletonImportIsLink:
+                    if context.scene.ootSkeletonImportArrayIndex2D == 0:
+                        box.label(text="Adult Link", icon="OPTIONS")
+                    elif context.scene.ootSkeletonImportArrayIndex2D == 1:
+                        box.label(text="Child Link", icon="OPTIONS")
             if context.scene.ootSkeletonImportOverlay == "ovl_En_Wf":
                 col.box().column().label(
                     text="This actor has branching gSPSegment calls and will not import correctly unless one of the branches is deleted.",
@@ -1172,6 +1281,8 @@ def oot_skeleton_register():
     )
     bpy.types.Scene.ootSkeletonExportOverlay = bpy.props.StringProperty(name="Overlay", default="ovl_En_GeldB")
     bpy.types.Scene.ootSkeletonExportIsLink = bpy.props.BoolProperty(name="Is Link", default=False)
+    bpy.types.Scene.ootSkeletonExportIs2DArray = bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
+    bpy.types.Scene.ootSkeletonExportArrayIndex2D = bpy.props.IntProperty(name="Index if 2D Array", default=0, min=0)
     bpy.types.Scene.ootSkeletonExportCustomPath = bpy.props.StringProperty(
         name="Custom Skeleton Path", subtype="FILE_PATH"
     )
@@ -1189,6 +1300,8 @@ def oot_skeleton_register():
     )
     bpy.types.Scene.ootSkeletonImportOverlay = bpy.props.StringProperty(name="Overlay", default="ovl_En_GeldB")
     bpy.types.Scene.ootSkeletonImportIsLink = bpy.props.BoolProperty(name="Is Link", default=False)
+    bpy.types.Scene.ootSkeletonImportIs2DArray = bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
+    bpy.types.Scene.ootSkeletonImportArrayIndex2D = bpy.props.IntProperty(name="Index if 2D Array", default=0, min=0)
     bpy.types.Scene.ootSkeletonImportCustomPath = bpy.props.StringProperty(
         name="Custom Skeleton Path", subtype="FILE_PATH"
     )
@@ -1216,6 +1329,8 @@ def oot_skeleton_unregister():
     del bpy.types.Scene.ootSkeletonExportFolderName
     del bpy.types.Scene.ootSkeletonExportOverlay
     del bpy.types.Scene.ootSkeletonExportIsLink
+    del bpy.types.Scene.ootSkeletonExportArrayIndex2D
+    del bpy.types.Scene.ootSkeletonExportIs2DArray
     del bpy.types.Scene.ootSkeletonExportCustomPath
     del bpy.types.Scene.ootSkeletonExportUseCustomPath
     del bpy.types.Scene.ootSkeletonExportOptimize
@@ -1224,6 +1339,8 @@ def oot_skeleton_unregister():
     del bpy.types.Scene.ootSkeletonImportFolderName
     del bpy.types.Scene.ootSkeletonImportOverlay
     del bpy.types.Scene.ootSkeletonImportIsLink
+    del bpy.types.Scene.ootSkeletonImportArrayIndex2D
+    del bpy.types.Scene.ootSkeletonImportIs2DArray
     del bpy.types.Scene.ootSkeletonImportCustomPath
     del bpy.types.Scene.ootSkeletonImportUseCustomPath
 

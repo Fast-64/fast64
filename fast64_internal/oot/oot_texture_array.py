@@ -7,6 +7,7 @@ from .oot_model_classes import (
     OOTF3DContext,
     OOTTextureFlipbook,
     ootGetActorData,
+    ootGetActorDataPaths,
     ootGetIncludedAssetData,
     ootGetLinkData,
 )
@@ -15,16 +16,18 @@ from ..f3d.f3d_parser import getImportData
 # Special cases:
 # z_en_xc: one texture is not stored in any array.
 # skeletonName only used for en_ossan (shopkeepers) and demo_ec (end credits party), which have multiple actors in it
-def ootReadTextureArrays(basePath: str, overlayName: str, skeletonName: str, f3dContext: OOTF3DContext, isLink: bool):
+def ootReadTextureArrays(
+    basePath: str, overlayName: str, skeletonName: str, f3dContext: OOTF3DContext, isLink: bool, arrayIndex2D: int
+):
     if not isLink:
         actorData = ootGetActorData(basePath, overlayName)
     else:
         actorData = ootGetLinkData(basePath)
-    actorData = ootGetIncludedAssetData(basePath, actorData) + actorData
+    actorData = ootGetIncludedAssetData(basePath, ootGetActorDataPaths(basePath, overlayName), actorData) + actorData
 
     # search for texture arrays
     # this is done first so that its easier to tell which gSPSegment calls refer to texture data.
-    flipbookList = getTextureArrays(actorData)
+    flipbookList = getTextureArrays(actorData, arrayIndex2D)
 
     if overlayName == "ovl_En_Ossan":
         # remove function declarations
@@ -130,18 +133,41 @@ def findSingleTextureReference(segmentParam: str) -> re.Match:
 
 # check for texture arrays in data.
 # void* ???[] = {a, b, c,}
-def getTextureArrays(actorData: str) -> dict[str, OOTTextureFlipbook]:
+def getTextureArrays(actorData: str, arrayIndex2D: int) -> dict[str, OOTTextureFlipbook]:
     flipbookList = {}  # {array name : OOTTextureFlipbook}
-    for texArrayMatch in re.finditer(
-        r"void\s*\*\s*([0-9a-zA-Z\_]*)\s*\[\s*\]\s*=\s*\{(((?!\}).)*)\}", actorData, flags=re.DOTALL
-    ):
-        arrayName = texArrayMatch.group(1).strip()
-        textureList = [item.strip() for item in texArrayMatch.group(2).split(",")]
 
-        # handle trailing comma
-        if textureList[-1] == "":
-            textureList.pop()
-        flipbookList[arrayName] = OOTTextureFlipbook(arrayName, "Array", textureList)
+    if arrayIndex2D is not None:
+        for texArray2DMatch in re.finditer(
+            r"void\s*\*\s*([0-9a-zA-Z\_]*)\s*\[\s*\]\s*\[[0-9a-fA-Fx]*\]\s*=\s*\{(.*?)\}\s*;",
+            actorData,
+            flags=re.DOTALL,
+        ):
+            arrayMatchData = [
+                arrayMatch.group(1)
+                for arrayMatch in re.finditer(r"\{(((?!\}).)*)\}", texArray2DMatch.group(2), flags=re.DOTALL)
+            ]
+
+            if arrayIndex2D >= len(arrayMatchData):
+                continue
+
+            arrayName = texArray2DMatch.group(1).strip()
+            textureList = [item.strip() for item in arrayMatchData[arrayIndex2D].split(",")]
+
+            # handle trailing comma
+            if textureList[-1] == "":
+                textureList.pop()
+            flipbookList[arrayName] = OOTTextureFlipbook(arrayName, "Array", textureList)
+    else:
+        for texArrayMatch in re.finditer(
+            r"void\s*\*\s*([0-9a-zA-Z\_]*)\s*\[\s*\]\s*=\s*\{(((?!\}).)*)\}", actorData, flags=re.DOTALL
+        ):
+            arrayName = texArrayMatch.group(1).strip()
+            textureList = [item.strip() for item in texArrayMatch.group(2).split(",")]
+
+            # handle trailing comma
+            if textureList[-1] == "":
+                textureList.pop()
+            flipbookList[arrayName] = OOTTextureFlipbook(arrayName, "Array", textureList)
 
     return flipbookList
 
