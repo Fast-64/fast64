@@ -1,3 +1,4 @@
+from typing import Union
 import bpy, bmesh, mathutils, os, re, copy, math
 from math import pi, ceil
 from io import BytesIO
@@ -1649,6 +1650,14 @@ def getTextureName(texProp: TextureProperty, fModelName: str, overrideName: str)
     return texName
 
 
+def getTextureNameTexRef(texProp: TextureProperty, fModelName: str) -> str:
+    texFormat = texProp.tex_format
+    name = texProp.tex_reference
+    texName = fModelName + "_" + (getNameFromPath(name, True) + "_" + texFormat.lower())
+
+    return texName
+
+
 def saveTextureIndex(
     propName,
     fModel,
@@ -1748,9 +1757,12 @@ def saveTextureIndex(
             fImage = FImage(texProp.tex_reference, None, None, width, height, None, False)
             fPalette = FImage(texProp.pal_reference, None, None, 1, texProp.pal_reference_size, None, False)
         else:
-            fImage, fPalette = saveOrGetPaletteDefinition(
-                fMaterial, fModel, tex, texName, texFormat, palFormat, convertTextureData
+            print(f"Saving CI texture : {texName}")
+            # fPalette should be an fImage here, since sharedPalette is None
+            fImage, fPalette = saveOrGetPaletteAndImageDefinition(
+                fMaterial, fModel, tex, texName, texFormat, palFormat, convertTextureData, None
             )
+            print(str(fPalette))
 
         if loadPalettes:
             savePaletteLoading(
@@ -2017,19 +2029,70 @@ def savePaletteLoading(loadTexGfx, revertTexGfx, fPalette, palFormat, pal, color
         )
 
 
-def saveOrGetPaletteDefinition(fMaterial, fModelOrTexRect, image, imageName, texFmt, palFmt, convertTextureData):
+class FSharedPalette:
+    def __init__(self, name):
+        self.name = name
+        self.palette = []
+
+
+def saveOrGetPaletteOnlyDefinition(
+    fMaterial: FMaterial,
+    fModel: FModel,
+    imageName: str,
+    texFmt: str,
+    palFmt: str,
+    convertTextureData: bool,
+    palette: list[int],
+) -> FImage:
+
+    palFormat = texFormatOf[palFmt]
+    paletteName = checkDuplicateTextureName(fModel, toAlnum(imageName) + "_pal_" + palFmt.lower())
+    paletteKey = (paletteName, (palFmt, "PAL"))
+    paletteFilename = getNameFromPath(imageName, True) + "." + fModel.getTextureSuffixFromFormat(texFmt) + ".pal"
+
+    fPalette = FImage(
+        paletteName,
+        palFormat,
+        "G_IM_SIZ_16b",
+        1,
+        len(palette),
+        paletteFilename,
+        convertTextureData,
+    )
+
+    if fMaterial.useLargeTextures:
+        fPalette.isLargeTexture = True
+
+    if convertTextureData:
+        for color in palette:
+            fPalette.data.extend(color.to_bytes(2, "big"))
+
+    print(f"Palette data: {paletteName} - length {len(fPalette.data)}")
+
+    fModel.addTexture(paletteKey, fPalette, fMaterial)
+    return fPalette
+
+
+# if using sharedPalette, return palette
+# otherwise, return FImage representing complete palette image
+# paletteKey format is unfortunately different form imageKey
+# because palettes can be shared across multiple images.
+def saveOrGetPaletteAndImageDefinition(
+    fMaterial, fModelOrTexRect, image, imageName, texFmt, palFmt, convertTextureData, sharedPalette: FSharedPalette
+) -> tuple[FImage, FImage]:
     texFormat = texFormatOf[texFmt]
     palFormat = texFormatOf[palFmt]
     bitSize = texBitSizeOf[texFmt]
     # If image already loaded, return that data.
-    paletteName = toAlnum(imageName) + "_pal_" + palFmt.lower()
     imageKey = (image, (texFmt, palFmt))
-    paletteKey = (image, (palFmt, "PAL"))
     fImage, fPalette = fModelOrTexRect.getTextureAndHandleShared(imageKey)
     if fImage is not None:
         return fImage, fPalette
 
-    palette = []
+    if sharedPalette is not None:
+        palette = sharedPalette.palette
+    else:
+        palette = []
     texture = []
     maxColors = 16 if bitSize == "G_IM_SIZ_4b" else 256
     if convertTextureData:
@@ -2049,7 +2112,13 @@ def saveOrGetPaletteDefinition(fMaterial, fModelOrTexRect, image, imageName, tex
                 if pixelColor not in palette:
                     palette.append(pixelColor)
                     if len(palette) > maxColors:
-                        raise PluginError("Texture " + imageName + " has more than " + str(maxColors) + " colors.")
+                        raise PluginError(
+                            "Texture "
+                            + imageName
+                            + " has more than "
+                            + str(maxColors)
+                            + " colors, or is part of a shared palette with too many colors."
+                        )
                 texture.append(palette.index(pixelColor))
 
     if image.filepath == "":
@@ -2057,7 +2126,7 @@ def saveOrGetPaletteDefinition(fMaterial, fModelOrTexRect, image, imageName, tex
     else:
         name = image.filepath
     filename = getNameFromPath(name, True) + "." + fModelOrTexRect.getTextureSuffixFromFormat(texFmt) + ".inc.c"
-    paletteFilename = getNameFromPath(name, True) + "." + fModelOrTexRect.getTextureSuffixFromFormat(texFmt) + ".pal"
+
     # paletteFilename = getNameFromPath(name, True) + '.' + \
     # 	fModelOrTexRect.getTextureSuffixFromFormat(palFmt) + '.inc.c'
     fImage = FImage(
@@ -2070,35 +2139,35 @@ def saveOrGetPaletteDefinition(fMaterial, fModelOrTexRect, image, imageName, tex
         convertTextureData,
     )
 
-    fPalette = FImage(
-        checkDuplicateTextureName(fModelOrTexRect, paletteName),
-        palFormat,
-        "G_IM_SIZ_16b",
-        1,
-        len(palette),
-        paletteFilename,
-        convertTextureData,
-    )
     if fMaterial.useLargeTextures:
         fImage.isLargeTexture = True
-        fPalette.isLargeTexture = True
-    fImage.paletteKey = paletteKey
 
     # paletteImage = bpy.data.images.new(paletteName, 1, len(palette))
     # paletteImage.pixels = palette
     # paletteImage.filepath = paletteFilename
 
     if convertTextureData:
-        for color in palette:
-            fPalette.data.extend(color.to_bytes(2, "big"))
-
         if bitSize == "G_IM_SIZ_4b":
             fImage.data = compactNibbleArray(texture, image.size[0], image.size[1])
         else:
             fImage.data = bytearray(texture)
 
     fModelOrTexRect.addTexture((image, (texFmt, palFmt)), fImage, fMaterial)
-    fModelOrTexRect.addTexture((image, (palFmt, "PAL")), fPalette, fMaterial)
+
+    # For shared palettes, paletteName should be the same for the same imageName until
+    # the next saveOrGetPaletteOnlyDefinition
+    # Make sure paletteName is read here before saveOrGetPaletteOnlyDefinition is called.
+    paletteName = checkDuplicateTextureName(fModelOrTexRect, toAlnum(imageName) + "_pal_" + palFmt.lower())
+    paletteKey = (paletteName, (palFmt, "PAL"))
+
+    if sharedPalette is None:
+        fPalette = saveOrGetPaletteOnlyDefinition(
+            fMaterial, fModelOrTexRect, imageName, texFmt, palFmt, convertTextureData, palette
+        )
+    else:
+        fPalette = None
+
+    fImage.paletteKey = paletteKey
 
     return fImage, fPalette  # , paletteImage
 

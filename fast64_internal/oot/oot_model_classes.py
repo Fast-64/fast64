@@ -142,7 +142,11 @@ class OOTModel(FModel):
             flipbookProp = getattr(material.ootMaterial, "flipbook" + str(i))
             texProp = getattr(material.f3d_mat, "tex" + str(i))
             if usesFlipbook(material, flipbookProp, i):
+                if len(flipbookProp.textures) == 0:
+                    raise PluginError(f"{str(material)} cannot have a flipbook material with no flipbook textures.")
+
                 flipbook = OOTTextureFlipbook(flipbookProp.name, flipbookProp.exportMode, [])
+                sharedPalette = FSharedPalette(self.name + "_" + flipbookProp.textures[0].image.name + "_pal")
                 for flipbookTexture in flipbookProp.textures:
                     name = (
                         flipbookTexture.name
@@ -150,8 +154,17 @@ class OOTModel(FModel):
                         else self.name + "_" + flipbookTexture.image.name + "_" + texProp.tex_format.lower()
                     )
                     if texProp.tex_format[:2] == "CI":
-                        fImage, fPalette = saveOrGetPaletteDefinition(
-                            fMaterial, self, flipbookTexture.image, name, texProp.tex_format, texProp.ci_format, True
+                        texName = getTextureNameTexRef(texProp, self.name)
+                        # fPalette should be None here, since sharedPalette is not None
+                        fImage, fPalette = saveOrGetPaletteAndImageDefinition(
+                            fMaterial,
+                            self,
+                            flipbookTexture.image,
+                            name,
+                            texProp.tex_format,
+                            texProp.ci_format,
+                            True,
+                            sharedPalette,
                         )
                     else:
                         fImage = saveOrGetTextureDefinition(
@@ -165,6 +178,41 @@ class OOTModel(FModel):
                     newName = fImage.name
                     flipbook.textureNames.append(newName)
                 self.flipbooks.append(flipbook)
+
+                if texProp.tex_format[:2] == "CI":
+                    print(f"Palette length for {sharedPalette.name}: {len(sharedPalette.palette)}")
+                    fPalette = saveOrGetPaletteOnlyDefinition(
+                        fMaterial,
+                        self,
+                        sharedPalette.name,
+                        texProp.tex_format,
+                        texProp.ci_format,
+                        True,
+                        sharedPalette.palette,
+                    )
+
+                    # Modfiy DL to use new palette texture
+                    tlutCmdIndex = 0
+                    while tlutCmdIndex < len(gfxList.commands):
+                        if isinstance(gfxList.commands[tlutCmdIndex], DPLoadTLUTCmd):
+                            loadTlutCmd = gfxList.commands[tlutCmdIndex]
+                            loadTlutCmd.count = len(sharedPalette.palette) - 1
+
+                            setTLUTCmd = gfxList.commands[tlutCmdIndex - 5]
+                            setTImageCmd = gfxList.commands[tlutCmdIndex - 4]
+                            if tlutCmdIndex < 5 or not isinstance(setTLUTCmd, DPSetTextureLUT):
+                                raise PluginError(
+                                    "Error when processing flipbook CI textures: unexpected display list format."
+                                )
+                            setTImageCmd.fmt = texFormatOf[texProp.ci_format]
+                            setTImageCmd.image = fPalette
+                            setTLUTCmd.mode = "G_TT_RGBA16" if setTImageCmd.fmt == "G_IM_FMT_RGBA" else "G_TT_IA16"
+                            break
+
+                        else:
+                            tlutCmdIndex += 1
+                    if tlutCmdIndex == len(gfxList.commands):
+                        raise PluginError(f"Can not find TLUT command in material {material.name}")
 
     def onAddMesh(self, fMesh, contextObj):
         if contextObj is not None and hasattr(contextObj, "ootDynamicTransform"):

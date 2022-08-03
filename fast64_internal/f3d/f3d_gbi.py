@@ -2298,7 +2298,16 @@ class FModel:
         # Check if texture is in self
         if imageKey in self.textures:
             fImage = self.textures[imageKey]
-            fPalette = self.textures[fImage.paletteKey] if fImage.paletteKey is not None else None
+            if fImage.paletteKey is not None:
+                if fImage.paletteKey in self.textures:
+                    fPalette = self.textures[fImage.paletteKey]
+                else:
+                    print(f"Can't find {str(fImage.paletteKey)}")
+                    fPalette = None
+            else:
+                print("Palette key is None")
+                fPalette = None
+
             return fImage, fPalette
 
         if self.parentModel is not None:
@@ -2549,6 +2558,7 @@ class FModel:
     def save_textures(self, dirpath, largeTexturesOnly):
         texturesSaved = 0
         for (image, texInfo), texture in self.textures.items():
+            # Note that if PAL, then "image" would actually be string in this case instead of an FImage.
             if texInfo[1] == "PAL" or (largeTexturesOnly and not texture.isLargeTexture):
                 continue
 
