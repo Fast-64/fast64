@@ -23,14 +23,23 @@ def usesFlipbook(material: bpy.types.Material, flipbookProperty: Any, index: int
 def ootGetIncludedAssetData(basePath: str, currentPaths: list[str], data: str) -> str:
     includeData = ""
 
+    print("Included paths:")
+
     # search assets
     for includeMatch in re.finditer(r"\#include\s*\"(assets/objects/(.*?))\.h\"", data):
-        includeData += getImportData([os.path.join(basePath, includeMatch.group(1) + ".c")]) + "\n"
-    for includeMatch in re.finditer(r"\#include\s*\"(assets/misc/(.*?))\.h\"", data):
-        includeData += getImportData([os.path.join(basePath, includeMatch.group(1) + ".c")]) + "\n"
+        path = os.path.join(basePath, includeMatch.group(1) + ".c")
+        subIncludeData = getImportData([path]) + "\n"
+        includeData += subIncludeData
+        print(path)
 
-    # search same directory c includes
+        for subIncludeMatch in re.finditer(r"\#include\s*\"(((?![/\"]).)*)\.c\"", subIncludeData):
+            print(os.path.join(os.path.dirname(path), subIncludeMatch.group(1) + ".c"))
+            includeData += getImportData([os.path.join(os.path.dirname(path), subIncludeMatch.group(1) + ".c")]) + "\n"
+
+    # search same directory c includes, both in current path and in included object files
+    # these are usually fast64 exported files
     for includeMatch in re.finditer(r"\#include\s*\"(((?![/\"]).)*)\.c\"", data):
+        print(os.path.join(os.path.dirname(currentPaths[0]), includeMatch.group(1) + ".c"))
         includeData += (
             getImportData(
                 [

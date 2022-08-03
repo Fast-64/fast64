@@ -184,6 +184,8 @@ def ootConvertMeshToC(
     isCustomExport,
     drawLayer,
     removeVanillaData,
+    overlayName: str,
+    arrayIndex2D: int,
 ):
     name = toAlnum(name)
 
@@ -217,15 +219,136 @@ def ootConvertMeshToC(
 
     data.append(exportData.all())
 
+    if isCustomExport:
+        textureArrayData = writeTextureArraysNew(fModel, arrayIndex2D)
+        data.append(textureArrayData)
+
     path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, False)
     writeCData(data, os.path.join(path, name + ".h"), os.path.join(path, name + ".c"))
 
     if not isCustomExport:
+        writeTextureArraysExisting(bpy.context.scene.ootDecompPath, overlayName, False, arrayIndex2D, fModel)
         addIncludeFiles(folderName, path, name)
         if removeVanillaData:
             headerPath = os.path.join(path, folderName + ".h")
             sourcePath = os.path.join(path, folderName + ".c")
             removeDL(sourcePath, headerPath, name)
+
+
+def writeTextureArraysNew(fModel: OOTModel, arrayIndex: int):
+    textureArrayData = CData()
+    for flipbook in fModel.flipbooks:
+        if flipbook.exportMode == "Array":
+            if arrayIndex is not None:
+                textureArrayData.source += flipbook_2d_to_c(flipbook, True, arrayIndex + 1) + "\n"
+            else:
+                textureArrayData.source += flipbook_to_c(flipbook, True) + "\n"
+    return textureArrayData
+
+
+def writeTextureArraysExisting(exportPath: str, overlayName: str, isLink: bool, arrayIndex2D: int, fModel: OOTModel):
+    if isLink:
+        actorFilePath = os.path.join(exportPath, f"src/code/z_player_lib.c")
+    else:
+        actorFilePath = os.path.join(exportPath, f"src/overlays/actors/{overlayName}/z_{overlayName[4:].lower()}.c")
+        actorFileDataPath = f"{actorFilePath[:-2]}_data.c"  # some bosses store texture arrays here
+
+        if os.path.exists(actorFileDataPath):
+            actorFilePath = actorFileDataPath
+
+    if not os.path.exists(actorFilePath):
+        print(f"{actorFilePath} not found, ignoring texture array writing.")
+        return
+
+    actorData = readFile(actorFilePath)
+    newData = actorData
+
+    for flipbook in fModel.flipbooks:
+        if flipbook.exportMode == "Array":
+            if arrayIndex2D is None:
+                newData = writeTextureArraysExisting1D(newData, flipbook)
+            else:
+                newData = writeTextureArraysExisting2D(newData, flipbook, arrayIndex2D)
+
+    if newData != actorData:
+        writeFile(actorFilePath, newData)
+
+
+def writeTextureArraysExisting1D(data: str, flipbook: OOTTextureFlipbook) -> str:
+    newData = data
+    arrayMatch = re.search(
+        r"(static\s*)?void\s*\*\s*" + re.escape(flipbook.name) + r"\s*\[\s*\]\s*=\s*\{(((?!\}).)*)\}\s*;",
+        newData,
+        flags=re.DOTALL,
+    )
+
+    # replace array if found
+    if arrayMatch:
+        newArrayData = flipbook_to_c(flipbook, arrayMatch.group(1))
+        newData = newData[: arrayMatch.start(0)] + newArrayData + newData[arrayMatch.end(0) :]
+
+        # otherwise, add to end of asset includes
+    else:
+        newArrayData = flipbook_to_c(flipbook, True)
+        # get last asset include
+        includeMatch = None
+        for includeMatchItem in re.finditer(r"\#include\s*\"assets/.*?\"\s*?\n", newData, flags=re.DOTALL):
+            includeMatch = includeMatchItem
+        if includeMatch:
+            newData = newData[: includeMatch.end(0)] + newArrayData + "\n" + newData[includeMatch.end(0) :]
+        else:
+            newData += newArrayData + "\n"
+
+    return newData
+
+
+# for flipbook textures, we only replace one element of the 2D array.
+def writeTextureArraysExisting2D(data: str, flipbook: OOTTextureFlipbook, arrayIndex2D: int) -> str:
+    newData = data
+
+    # for !AVOID_UB, Link has textures in 2D Arrays
+    array2DMatch = re.search(
+        r"(static\s*)?void\s*\*\s*"
+        + re.escape(flipbook.name)
+        + r"\s*\[\s*\]\s*\[\s*[0-9a-fA-Fx]*\s*\]\s*=\s*\{(.*?)\}\s*;",
+        newData,
+        flags=re.DOTALL,
+    )
+
+    newArrayData = "{ " + flipbook_data_to_c(flipbook) + " }"
+
+    # build a list of arrays here
+    # replace existing element if list is large enough
+    # otherwise, pad list with repeated arrays
+    if array2DMatch:
+        arrayMatchData = [
+            arrayMatch.group(0) for arrayMatch in re.finditer(r"\{(.*?)\}", array2DMatch.group(2), flags=re.DOTALL)
+        ]
+
+        if arrayIndex2D >= len(arrayMatchData):
+            while len(arrayMatchData) <= arrayIndex2D:
+                arrayMatchData.append(newArrayData)
+        else:
+            arrayMatchData[arrayIndex2D] = newArrayData
+
+        newArray2DData = ",\n".join([item for item in arrayMatchData])
+        newData = replaceMatchContent(newData, newArray2DData, array2DMatch, 2)
+
+        # otherwise, add to end of asset includes
+    else:
+        arrayMatchData = [newArrayData] * (arrayIndex2D + 1)
+        newArray2DData = ",\n".join([item for item in arrayMatchData])
+
+        # get last asset include
+        includeMatch = None
+        for includeMatchItem in re.finditer(r"\#include\s*\"assets/.*?\"\s*?\n", newData, flags=re.DOTALL):
+            includeMatch = includeMatchItem
+        if includeMatch:
+            newData = newData[: includeMatch.end(0)] + newArray2DData + "\n" + newData[includeMatch.end(0) :]
+        else:
+            newData += newArray2DData + "\n"
+
+    return newData
 
 
 class OOT_DisplayListPanel(bpy.types.Panel):
@@ -280,11 +403,18 @@ class OOT_ImportDL(bpy.types.Operator):
             removeDoubles = context.scene.ootDLRemoveDoubles
             importNormals = context.scene.ootDLImportNormals
             drawLayer = bpy.context.scene.ootDLImportDrawLayer
+            overlayName = bpy.context.scene.ootDLImportOverlay
+            is2DArray = context.scene.ootDLImportIs2DArray
+            arrayIndex2D = context.scene.ootDLImportArrayIndex2D if is2DArray else None
 
             paths = [ootGetObjectPath(isCustomImport, importPath, folderName)]
             data = getImportData(paths)
             if not isCustomImport:
                 data = ootGetIncludedAssetData(basePath, paths, data) + data
+
+                f3dContext = OOTF3DContext(F3D("F3DEX2/LX2", False), [name], basePath)
+                if overlayName:
+                    ootReadTextureArrays(basePath, overlayName, name, f3dContext, False, arrayIndex2D)
 
             importMeshC(
                 data,
@@ -293,7 +423,7 @@ class OOT_ImportDL(bpy.types.Operator):
                 removeDoubles,
                 importNormals,
                 drawLayer,
-                OOTF3DContext(F3D("F3DEX2/LX2", False), [name], basePath),
+                f3dContext,
             )
 
             self.report({"INFO"}, "Success!")
@@ -341,6 +471,9 @@ class OOT_ExportDL(bpy.types.Operator):
             isCustomExport = context.scene.ootDLExportUseCustomPath
             drawLayer = context.scene.ootDLExportDrawLayer
             removeVanillaData = context.scene.ootDLRemoveVanillaData
+            overlayName = bpy.context.scene.ootDLExportOverlay
+            is2DArray = context.scene.ootDLExportIs2DArray
+            arrayIndex2D = context.scene.ootDLExportArrayIndex2D if is2DArray else None
 
             ootConvertMeshToC(
                 obj,
@@ -355,6 +488,8 @@ class OOT_ExportDL(bpy.types.Operator):
                 isCustomExport,
                 drawLayer,
                 removeVanillaData,
+                overlayName,
+                arrayIndex2D,
             )
 
             self.report({"INFO"}, "Success!")
@@ -381,6 +516,11 @@ class OOT_ExportDLPanel(OOT_Panel):
             prop_split(col, context.scene, "ootDLExportCustomPath", "Folder")
         else:
             prop_split(col, context.scene, "ootDLExportFolderName", "Object")
+            prop_split(col, context.scene, "ootDLExportOverlay", "Overlay (Optional)")
+            col.prop(context.scene, "ootDLExportIs2DArray")
+            if context.scene.ootDLExportIs2DArray:
+                box = col.box().column()
+                prop_split(box, context.scene, "ootDLExportArrayIndex2D", "Flipbook Index")
         prop_split(col, context.scene, "ootDLExportDrawLayer", "Export Draw Layer")
         col.prop(context.scene, "ootDLExportUseCustomPath")
         col.prop(context.scene, "ootDLRemoveVanillaData")
@@ -392,6 +532,11 @@ class OOT_ExportDLPanel(OOT_Panel):
             prop_split(col, context.scene, "ootDLImportCustomPath", "File")
         else:
             prop_split(col, context.scene, "ootDLImportFolderName", "Object")
+            prop_split(col, context.scene, "ootDLImportOverlay", "Overlay (Optional)")
+            col.prop(context.scene, "ootDLImportIs2DArray")
+            if context.scene.ootDLImportIs2DArray:
+                box = col.box().column()
+                prop_split(box, context.scene, "ootDLImportArrayIndex2D", "Flipbook Index")
         prop_split(col, context.scene, "ootDLImportDrawLayer", "Import Draw Layer")
 
         col.prop(context.scene, "ootDLImportUseCustomPath")
@@ -728,12 +873,18 @@ def oot_dl_writer_register():
 
     bpy.types.Scene.ootDLExportName = bpy.props.StringProperty(name="DL Name", default="gBoulderFragmentsDL")
     bpy.types.Scene.ootDLExportFolderName = bpy.props.StringProperty(name="DL Folder", default="gameplay_keep")
+    bpy.types.Scene.ootDLExportOverlay = bpy.props.StringProperty(name="Overlay", default="")
+    bpy.types.Scene.ootDLExportIs2DArray = bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
+    bpy.types.Scene.ootDLExportArrayIndex2D = bpy.props.IntProperty(name="Index if 2D Array", default=0, min=0)
     bpy.types.Scene.ootDLExportCustomPath = bpy.props.StringProperty(name="Custom DL Path", subtype="FILE_PATH")
     bpy.types.Scene.ootDLExportUseCustomPath = bpy.props.BoolProperty(name="Use Custom Path")
     bpy.types.Scene.ootDLRemoveVanillaData = bpy.props.BoolProperty(name="Replace Vanilla DLs")
 
     bpy.types.Scene.ootDLImportName = bpy.props.StringProperty(name="DL Name", default="gBoulderFragmentsDL")
     bpy.types.Scene.ootDLImportFolderName = bpy.props.StringProperty(name="DL Folder", default="gameplay_keep")
+    bpy.types.Scene.ootDLImportOverlay = bpy.props.StringProperty(name="Overlay", default="")
+    bpy.types.Scene.ootDLImportIs2DArray = bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
+    bpy.types.Scene.ootDLImportArrayIndex2D = bpy.props.IntProperty(name="Index if 2D Array", default=0, min=0)
     bpy.types.Scene.ootDLImportCustomPath = bpy.props.StringProperty(name="Custom DL Path", subtype="FILE_PATH")
     bpy.types.Scene.ootDLImportUseCustomPath = bpy.props.BoolProperty(name="Use Custom Path")
 
@@ -753,12 +904,18 @@ def oot_dl_writer_unregister():
 
     del bpy.types.Scene.ootDLExportName
     del bpy.types.Scene.ootDLExportFolderName
+    del bpy.types.Scene.ootDLExportOverlay
+    del bpy.types.Scene.ootDLExportIs2DArray
+    del bpy.types.Scene.ootDLExportArrayIndex2D
     del bpy.types.Scene.ootDLExportCustomPath
     del bpy.types.Scene.ootDLExportUseCustomPath
     del bpy.types.Scene.ootDLRemoveVanillaData
 
     del bpy.types.Scene.ootDLImportName
     del bpy.types.Scene.ootDLImportFolderName
+    del bpy.types.Scene.ootDLImportOverlay
+    del bpy.types.Scene.ootDLImportIs2DArray
+    del bpy.types.Scene.ootDLImportArrayIndex2D
     del bpy.types.Scene.ootDLImportCustomPath
     del bpy.types.Scene.ootDLImportUseCustomPath
 

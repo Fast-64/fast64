@@ -539,118 +539,6 @@ def ootConvertArmatureToC(
             ootRemoveSkeleton(path, folderName, skeletonName)
 
 
-def writeTextureArraysNew(fModel: OOTModel, arrayIndex: int):
-    textureArrayData = CData()
-    for flipbook in fModel.flipbooks:
-        if flipbook.exportMode == "Array":
-            if arrayIndex is not None:
-                textureArrayData.source += flipbook_2d_to_c(flipbook, True, arrayIndex + 1) + "\n"
-            else:
-                textureArrayData.source += flipbook_to_c(flipbook, True) + "\n"
-    return textureArrayData
-
-
-def writeTextureArraysExisting(exportPath: str, overlayName: str, isLink: bool, arrayIndex2D: int, fModel: OOTModel):
-    if isLink:
-        actorFilePath = os.path.join(exportPath, f"src/code/z_player_lib.c")
-    else:
-        actorFilePath = os.path.join(exportPath, f"src/overlays/actors/{overlayName}/z_{overlayName[4:].lower()}.c")
-        actorFileDataPath = f"{actorFilePath[:-2]}_data.c"  # some bosses store texture arrays here
-
-        if os.path.exists(actorFileDataPath):
-            actorFilePath = actorFileDataPath
-
-    actorData = readFile(actorFilePath)
-    newData = actorData
-
-    for flipbook in fModel.flipbooks:
-        if flipbook.exportMode == "Array":
-            if arrayIndex2D is None:
-                newData = writeTextureArraysExisting1D(newData, flipbook)
-            else:
-                newData = writeTextureArraysExisting2D(newData, flipbook, arrayIndex2D)
-
-    if newData != actorData:
-        writeFile(actorFilePath, newData)
-
-
-def writeTextureArraysExisting1D(data: str, flipbook: OOTTextureFlipbook) -> str:
-    newData = data
-    arrayMatch = re.search(
-        r"(static\s*)?void\s*\*\s*" + re.escape(flipbook.name) + r"\s*\[\s*\]\s*=\s*\{(((?!\}).)*)\}\s*;",
-        newData,
-        flags=re.DOTALL,
-    )
-
-    # replace array if found
-    if arrayMatch:
-        newArrayData = flipbook_to_c(flipbook, arrayMatch.group(1))
-        newData = newData[: arrayMatch.start(0)] + newArrayData + newData[arrayMatch.end(0) :]
-
-        # otherwise, add to end of asset includes
-    else:
-        newArrayData = flipbook_to_c(flipbook, True)
-        # get last asset include
-        includeMatch = None
-        for includeMatchItem in re.finditer(r"\#include\s*\"assets/.*?\"\s*?\n", newData, flags=re.DOTALL):
-            includeMatch = includeMatchItem
-        if includeMatch:
-            newData = newData[: includeMatch.end(0)] + newArrayData + "\n" + newData[includeMatch.end(0) :]
-        else:
-            newData += newArrayData + "\n"
-
-    return newData
-
-
-# for flipbook textures, we only replace one element of the 2D array.
-def writeTextureArraysExisting2D(data: str, flipbook: OOTTextureFlipbook, arrayIndex2D: int) -> str:
-    newData = data
-
-    # for !AVOID_UB, Link has textures in 2D Arrays
-    array2DMatch = re.search(
-        r"(static\s*)?void\s*\*\s*"
-        + re.escape(flipbook.name)
-        + r"\s*\[\s*\]\s*\[\s*[0-9a-fA-Fx]*\s*\]\s*=\s*\{(.*?)\}\s*;",
-        newData,
-        flags=re.DOTALL,
-    )
-
-    newArrayData = "{ " + flipbook_data_to_c(flipbook) + " }"
-
-    # build a list of arrays here
-    # replace existing element if list is large enough
-    # otherwise, pad list with repeated arrays
-    if array2DMatch:
-        arrayMatchData = [
-            arrayMatch.group(0) for arrayMatch in re.finditer(r"\{(.*?)\}", array2DMatch.group(2), flags=re.DOTALL)
-        ]
-
-        if arrayIndex2D >= len(arrayMatchData):
-            while len(arrayMatchData) <= arrayIndex2D:
-                arrayMatchData.append(newArrayData)
-        else:
-            arrayMatchData[arrayIndex2D] = newArrayData
-
-        newArray2DData = ",\n".join([item for item in arrayMatchData])
-        newData = replaceMatchContent(newData, newArray2DData, array2DMatch, 2)
-
-        # otherwise, add to end of asset includes
-    else:
-        arrayMatchData = [newArrayData] * (arrayIndex2D + 1)
-        newArray2DData = ",\n".join([item for item in arrayMatchData])
-
-        # get last asset include
-        includeMatch = None
-        for includeMatchItem in re.finditer(r"\#include\s*\"assets/.*?\"\s*?\n", newData, flags=re.DOTALL):
-            includeMatch = includeMatchItem
-        if includeMatch:
-            newData = newData[: includeMatch.end(0)] + newArray2DData + "\n" + newData[includeMatch.end(0) :]
-        else:
-            newData += newArray2DData + "\n"
-
-    return newData
-
-
 class OOTDLEntry:
     def __init__(self, dlName, limbIndex):
         self.dlName = dlName
@@ -1023,10 +911,6 @@ class OOT_ImportSkeleton(bpy.types.Operator):
             arrayIndex2D = context.scene.ootSkeletonImportArrayIndex2D if isLink or is2DArray else None
 
             filepaths = [ootGetObjectPath(isCustomImport, importPath, folderName)]
-            if not isCustomImport:
-                filepaths.append(
-                    os.path.join(bpy.context.scene.ootDecompPath, "assets/objects/gameplay_keep/gameplay_keep.c")
-                )
 
             ootImportSkeletonC(
                 filepaths,
