@@ -657,7 +657,7 @@ def drawOOTMaterialProperty(layout, mat, drawLayer):
         if usesFlipbook(mat, flipbook, i, False):
             drawOOTFlipbookProperty(layout.column(), flipbook, i)
             if getattr(mat.f3d_mat, "tex" + str(i)).tex_format[:2] == "CI":
-                layout.label(text="CI palette sharing not supported: use RGBA instead.", icon="ERROR")
+                layout.label(text="New shared CI palette will be generated.", icon="ERROR")
 
 
 class OOTDynamicMaterialDrawLayerProperty(bpy.types.PropertyGroup):
@@ -693,16 +693,16 @@ def drawTextureArrayProperty(
     layout: bpy.types.UILayout, texturePointer: ImagePointerProperty, arrayIndex: int, texNum: int, exportMode: str
 ):
     col = layout.column()
-    if exportMode == "Individual":
-        box = col.box()
-        prop_split(box, texturePointer, "name", "Texture Name")
-        row = box.row()
-    else:
-        row = layout.row()
-    row.template_ID(texturePointer, "image", new="image.new", open="image.open")
 
+    box = col.box().column()
+    if exportMode == "Individual":
+        prop_split(box, texturePointer, "name", "Texture Name")
+
+    box.template_ID(texturePointer, "image", new="image.new", open="image.open")
+
+    row = box.row()
     buttons = row.row(align=True)
-    visualizeOp = buttons.operator(OOTVisualizeFlipbookTexture.bl_idname, text="", icon="VIEW_CAMERA")
+    visualizeOp = buttons.operator(OOTVisualizeFlipbookTexture.bl_idname, text="Visualize", icon="VIEW_CAMERA")
     visualizeOp.arrayIndex = arrayIndex
     visualizeOp.combinerTexIndex = texNum
 

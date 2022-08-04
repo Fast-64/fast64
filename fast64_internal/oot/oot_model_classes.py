@@ -210,6 +210,8 @@ class OOTModel(FModel):
         existingFPalette = None
         fImages = []
         for flipbookTexture in flipbookProp.textures:
+            if flipbookTexture.image is None:
+                raise PluginError(f"Flipbook for {fMaterial.name} has a texture array item that has not been set.")
             # print(f"Texture: {str(flipbookTexture.image)}")
             name = (
                 flipbookTexture.name
@@ -269,6 +271,8 @@ class OOTModel(FModel):
     def processFlipbookNonCI(self, fMaterial: FMaterial, flipbookProp: Any, texProp: TextureProperty):
         flipbook = OOTTextureFlipbook(flipbookProp.name, flipbookProp.exportMode, [])
         for flipbookTexture in flipbookProp.textures:
+            if flipbookTexture.image is None:
+                raise PluginError(f"Flipbook for {fMaterial.name} has a texture array item that has not been set.")
             # print(f"Texture: {str(flipbookTexture.image)}")
             name = (
                 flipbookTexture.name
