@@ -9,12 +9,12 @@ from ..f3d.f3d_material import *
 from ..f3d.f3d_parser import *
 
 
-def usesFlipbook(material: bpy.types.Material, flipbookProperty: Any, index: int) -> bool:
+def usesFlipbook(material: bpy.types.Material, flipbookProperty: Any, index: int, checkEnable: bool) -> bool:
     texProp = getattr(material.f3d_mat, "tex" + str(index))
     # return all_combiner_uses(material)["Texture " + str(index)] and texProp.use_tex_reference and
     if all_combiner_uses(material.f3d_mat)["Texture " + str(index)] and texProp.use_tex_reference:
         match = re.search(f"0x0([0-9A-F])000000", texProp.tex_reference)
-        return match is not None
+        return match is not None and (not checkEnable or flipbookProperty.enable)
     else:
         return False
 
@@ -100,6 +100,9 @@ class OOTModel(FModel):
     def __init__(self, f3dType, isHWv1, name, DLFormat, drawLayerOverride):
         self.drawLayerOverride = drawLayerOverride
         self.flipbooks = []  # OOTTextureFlipbook
+        self.processedFlipbooks = (
+            {}
+        )  # bpy.types.Image (first flipbook image) : [bpy.types.Image (list of flipbook textures in order)]
         FModel.__init__(self, f3dType, isHWv1, name, DLFormat, GfxMatWriteMethod.WriteAll)
 
     def getDrawLayerV3(self, obj):
@@ -121,6 +124,147 @@ class OOTModel(FModel):
         else:
             return texFmt.lower()
 
+    def modifyDLForCIFlipbook(self, fMaterial: FMaterial, fPalette: FMaterial, texProp: TextureProperty):
+        # Modfiy DL to use new palette texture
+        tlutCmdIndex = 0
+        gfxList = fMaterial.material
+        while tlutCmdIndex < len(gfxList.commands):
+            if isinstance(gfxList.commands[tlutCmdIndex], DPLoadTLUTCmd):
+                loadTlutCmd = gfxList.commands[tlutCmdIndex]
+                loadTlutCmd.count = int(round(len(fPalette.data) / 2)) - 1
+
+                setTLUTCmd = gfxList.commands[tlutCmdIndex - 5]
+                setTImageCmd = gfxList.commands[tlutCmdIndex - 4]
+                if tlutCmdIndex < 5 or not isinstance(setTLUTCmd, DPSetTextureLUT):
+                    raise PluginError("Error when processing flipbook CI textures: unexpected display list format.")
+                setTImageCmd.fmt = texFormatOf[texProp.ci_format]
+                setTImageCmd.image = fPalette
+                setTLUTCmd.mode = "G_TT_RGBA16" if setTImageCmd.fmt == "G_IM_FMT_RGBA" else "G_TT_IA16"
+                break
+
+            else:
+                tlutCmdIndex += 1
+        if tlutCmdIndex == len(gfxList.commands):
+            raise PluginError(f"Can not find TLUT command in material {fMaterial.name}")
+
+    def validateCIFlipbook(
+        self, existingFPalette: FImage, alreadyExists: bool, fPalette: FImage, flipbookTexture: Any
+    ) -> Union[FImage, bool]:
+        if existingFPalette is None:
+            if alreadyExists:
+                if fPalette:
+                    return fPalette
+                else:
+                    raise PluginError("FPalette not found.")
+            else:
+                return False
+        else:
+            if (
+                alreadyExists  # texture already processed for this export
+                and fPalette is not None  # texture is not a repeat within flipbook
+                and existingFPalette != False  # a previous texture used an existing palette
+                and fPalette != existingFPalette  # the palettes do not match
+            ):
+                raise PluginError(
+                    f"Cannot reuse a CI texture across multiple flipbooks: {str(flipbookTexture.image)}. "
+                    + f"Flipbook textures should only be reused if they are in the same grouping/order, including LOD skeletons."
+                )
+            elif (
+                not alreadyExists  # current texture has not been processed yet
+                and existingFPalette is not None
+                and existingFPalette != False  # a previous texture used an existing palette
+            ):
+                raise PluginError(
+                    f"Flipbook textures before this were part of a different palette: {str(flipbookTexture.image)}. "
+                    + f"Flipbook textures should only be reused if they are in the same grouping/order, including LOD skeletons."
+                )
+            return existingFPalette
+
+    def processFlipbookCI(self, fMaterial: FMaterial, flipbookProp: Any, texProp: TextureProperty):
+        # print("Processing flipbook...")
+        flipbook = OOTTextureFlipbook(flipbookProp.name, flipbookProp.exportMode, [])
+        sharedPalette = FSharedPalette(self.name + "_" + flipbookProp.textures[0].image.name + "_pal")
+        existingFPalette = None
+        fImages = []
+        for flipbookTexture in flipbookProp.textures:
+            # print(f"Texture: {str(flipbookTexture.image)}")
+            name = (
+                flipbookTexture.name
+                if flipbookProp.exportMode == "Individual"
+                else self.name + "_" + flipbookTexture.image.name + "_" + texProp.tex_format.lower()
+            )
+
+            texName = getTextureNameTexRef(texProp, self.name)
+            # fPalette should be None here, since sharedPalette is not None
+            fImage, fPalette, alreadyExists = saveOrGetPaletteAndImageDefinition(
+                fMaterial,
+                self,
+                flipbookTexture.image,
+                name,
+                texProp.tex_format,
+                texProp.ci_format,
+                True,
+                sharedPalette,
+            )
+            existingFPalette = self.validateCIFlipbook(existingFPalette, alreadyExists, fPalette, flipbookTexture)
+            fImages.append(fImage)
+
+            # do this here to check for modified names due to repeats
+            flipbook.textureNames.append(fImage.name)
+
+        self.flipbooks.append(flipbook)
+
+        # print(f"Palette length for {sharedPalette.name}: {len(sharedPalette.palette)}")
+        firstImage = flipbookProp.textures[0].image
+        self.processedFlipbooks[firstImage] = [flipbookTex.image for flipbookTex in flipbookProp.textures]
+
+        if existingFPalette == False:
+
+            palFormat = texProp.ci_format
+            fPalette = saveOrGetPaletteOnlyDefinition(
+                fMaterial,
+                self,
+                firstImage,
+                sharedPalette.name,
+                texProp.tex_format,
+                palFormat,
+                True,
+                sharedPalette.palette,
+            )
+
+            # using the first image for the key, apply paletteKey to all images
+            # while this is not ideal, its better to us an image for the key as
+            # names are modified when duplicates are found
+            paletteKey = (firstImage, (palFormat, "PAL"))
+            for fImage in fImages:
+                fImage.paletteKey = paletteKey
+        else:
+            fPalette = existingFPalette
+
+        self.modifyDLForCIFlipbook(fMaterial, fPalette, texProp)
+
+    def processFlipbookNonCI(self, fMaterial: FMaterial, flipbookProp: Any, texProp: TextureProperty):
+        flipbook = OOTTextureFlipbook(flipbookProp.name, flipbookProp.exportMode, [])
+        for flipbookTexture in flipbookProp.textures:
+            # print(f"Texture: {str(flipbookTexture.image)}")
+            name = (
+                flipbookTexture.name
+                if flipbookProp.exportMode == "Individual"
+                else self.name + "_" + flipbookTexture.image.name + "_" + texProp.tex_format.lower()
+            )
+            fImage = saveOrGetTextureDefinition(
+                fMaterial,
+                self,
+                flipbookTexture.image,
+                name,
+                texProp.tex_format,
+                True,
+            )
+
+            # do this here to check for modified names due to repeats
+            flipbook.textureNames.append(fImage.name)
+        self.flipbooks.append(flipbook)
+
     def onMaterialCommandsBuilt(self, fMaterial, material, drawLayer):
         # handle dynamic material calls
         gfxList = fMaterial.material
@@ -141,123 +285,22 @@ class OOTModel(FModel):
         for i in range(2):
             flipbookProp = getattr(material.ootMaterial, "flipbook" + str(i))
             texProp = getattr(material.f3d_mat, "tex" + str(i))
-            if usesFlipbook(material, flipbookProp, i):
+            if usesFlipbook(material, flipbookProp, i, True):
                 if len(flipbookProp.textures) == 0:
                     raise PluginError(f"{str(material)} cannot have a flipbook material with no flipbook textures.")
 
-                # print("Processing flipbook...")
-                flipbook = OOTTextureFlipbook(flipbookProp.name, flipbookProp.exportMode, [])
-                sharedPalette = FSharedPalette(self.name + "_" + flipbookProp.textures[0].image.name + "_pal")
-                existingFPalette = None
-                fImages = []
-                for flipbookTexture in flipbookProp.textures:
-                    # print(f"Texture: {str(flipbookTexture.image)}")
-                    name = (
-                        flipbookTexture.name
-                        if flipbookProp.exportMode == "Individual"
-                        else self.name + "_" + flipbookTexture.image.name + "_" + texProp.tex_format.lower()
-                    )
-                    if texProp.tex_format[:2] == "CI":
-                        texName = getTextureNameTexRef(texProp, self.name)
-                        # fPalette should be None here, since sharedPalette is not None
-                        fImage, fPalette, alreadyExists = saveOrGetPaletteAndImageDefinition(
-                            fMaterial,
-                            self,
-                            flipbookTexture.image,
-                            name,
-                            texProp.tex_format,
-                            texProp.ci_format,
-                            True,
-                            sharedPalette,
-                        )
-                        if existingFPalette is None:
-                            if alreadyExists and fPalette:
-                                existingFPalette = fPalette
-                            else:
-                                existingFPalette = False
-                        else:
-                            if (
-                                alreadyExists  # texture already processed for this export
-                                and fPalette is not None  # texture is not a repeat within flipbook
-                                and existingFPalette != False  # a previous texture used an existing palette
-                                and fPalette != existingFPalette  # the palettes do not match
-                            ):
-                                raise PluginError(
-                                    f"Cannot reuse a CI texture across multiple flipbooks: {str(flipbookTexture.image)}. "
-                                    + f"Flipbook textures should only be reused if they are in the same grouping/order, including LOD skeletons."
-                                )
-                            elif (
-                                not alreadyExists  # current texture has not been processed yet
-                                and existingFPalette is not None
-                                and existingFPalette != False  # a previous texture used an existing palette
-                            ):
-                                raise PluginError(
-                                    f"Flipbook textures before this were part of a different palette: {str(flipbookTexture.image)}. "
-                                    + f"Flipbook textures should only be reused if they are in the same grouping/order, including LOD skeletons."
-                                )
-
-                    else:
-                        fImage = saveOrGetTextureDefinition(
-                            fMaterial,
-                            self,
-                            flipbookTexture.image,
-                            name,
-                            texProp.tex_format,
-                            True,
-                        )
-                    fImages.append(fImage)
-                    newName = fImage.name
-                    flipbook.textureNames.append(newName)
-                self.flipbooks.append(flipbook)
-
                 if texProp.tex_format[:2] == "CI":
-                    # print(f"Palette length for {sharedPalette.name}: {len(sharedPalette.palette)}")
-
-                    if not existingFPalette:
-                        firstImage = flipbookProp.textures[0].image
-                        palFormat = texProp.ci_format
-                        fPalette = saveOrGetPaletteOnlyDefinition(
-                            fMaterial,
-                            self,
-                            firstImage,
-                            sharedPalette.name,
-                            texProp.tex_format,
-                            palFormat,
-                            True,
-                            sharedPalette.palette,
-                        )
-
-                        # using the first image for the key, apply paletteKey to all images
-                        # while this is not ideal, its better to us an image for the key as
-                        # names are modified when duplicates are found
-                        paletteKey = (firstImage, (palFormat, "PAL"))
-                        for fImage in fImages:
-                            fImage.paletteKey = paletteKey
-                    else:
-                        fPalette = existingFPalette
-
-                    # Modfiy DL to use new palette texture
-                    tlutCmdIndex = 0
-                    while tlutCmdIndex < len(gfxList.commands):
-                        if isinstance(gfxList.commands[tlutCmdIndex], DPLoadTLUTCmd):
-                            loadTlutCmd = gfxList.commands[tlutCmdIndex]
-                            loadTlutCmd.count = len(sharedPalette.palette) - 1
-
-                            setTLUTCmd = gfxList.commands[tlutCmdIndex - 5]
-                            setTImageCmd = gfxList.commands[tlutCmdIndex - 4]
-                            if tlutCmdIndex < 5 or not isinstance(setTLUTCmd, DPSetTextureLUT):
-                                raise PluginError(
-                                    "Error when processing flipbook CI textures: unexpected display list format."
-                                )
-                            setTImageCmd.fmt = texFormatOf[texProp.ci_format]
-                            setTImageCmd.image = fPalette
-                            setTLUTCmd.mode = "G_TT_RGBA16" if setTImageCmd.fmt == "G_IM_FMT_RGBA" else "G_TT_IA16"
-                            break
-
-                        else:
-                            tlutCmdIndex += 1
-                    if tlutCmdIndex == len(gfxList.commands):
-                        raise PluginError(f"Can not find TLUT command in material {material.name}")
+                    self.processFlipbookCI(
+                        fMaterial,
+                        flipbookProp,
+                        texProp,
+                    )
+                else:
+                    self.processFlipbookNonCI(
+                        fMaterial,
+                        flipbookProp,
+                        texProp,
+                    )
 
     def onAddMesh(self, fMesh, contextObj):
         if contextObj is not None and hasattr(contextObj, "ootDynamicTransform"):
@@ -476,7 +519,7 @@ class OOTF3DContext(F3DContext):
     ):
 
         flipbook = getattr(material.ootMaterial, "flipbook" + str(index))
-        if flipbook.enable:
+        if usesFlipbook(material, flipbook, index, True):
             # Don't apply TLUT to texProp.tex, as it is the same texture as the first flipbook texture.
             # Make sure to check if tlut is already applied (ex. LOD skeleton uses same flipbook textures)
             # applyTLUTToIndex() doesn't check for this if texProp.use_tex_reference.

@@ -2082,10 +2082,6 @@ def imageAlreadyExists(fModel: FModel, image: bpy.types.Image, texFmt: str, palF
     return fImage is not None
 
 
-# if using sharedPalette, return palette
-# otherwise, return FImage representing complete palette image
-# paletteKey format is unfortunately different form imageKey
-# because palettes can be shared across multiple images.
 def saveOrGetPaletteAndImageDefinition(
     fMaterial, fModelOrTexRect, image, imageName, texFmt, palFmt, convertTextureData, sharedPalette: FSharedPalette
 ) -> tuple[FImage, FImage, bool]:

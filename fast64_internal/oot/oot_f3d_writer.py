@@ -654,7 +654,7 @@ def drawOOTMaterialProperty(layout, mat, drawLayer):
     layout.label(text="reference with name = 0x0?000000.")
     for i in range(2):
         flipbook = getattr(mat.ootMaterial, "flipbook" + str(i))
-        if usesFlipbook(mat, flipbook, i):
+        if usesFlipbook(mat, flipbook, i, False):
             drawOOTFlipbookProperty(layout.column(), flipbook, i)
             if getattr(mat.f3d_mat, "tex" + str(i)).tex_format[:2] == "CI":
                 layout.label(text="CI palette sharing not supported: use RGBA instead.", icon="ERROR")
