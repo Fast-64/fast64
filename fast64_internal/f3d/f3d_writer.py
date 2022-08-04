@@ -1757,12 +1757,10 @@ def saveTextureIndex(
             fImage = FImage(texProp.tex_reference, None, None, width, height, None, False)
             fPalette = FImage(texProp.pal_reference, None, None, 1, texProp.pal_reference_size, None, False)
         else:
-            print(f"Saving CI texture : {texName}")
             # fPalette should be an fImage here, since sharedPalette is None
             fImage, fPalette, alreadyExists = saveOrGetPaletteAndImageDefinition(
                 fMaterial, fModel, tex, texName, texFormat, palFormat, convertTextureData, None
             )
-            print(str(fPalette))
 
         if loadPalettes:
             savePaletteLoading(
@@ -2068,7 +2066,7 @@ def saveOrGetPaletteOnlyDefinition(
         for color in palette:
             fPalette.data.extend(color.to_bytes(2, "big"))
 
-    print(f"Palette data: {paletteName} - length {len(fPalette.data)}")
+    # print(f"Palette data: {paletteName} - length {len(fPalette.data)}")
 
     fModel.addTexture(paletteKey, fPalette, fMaterial)
     return fPalette

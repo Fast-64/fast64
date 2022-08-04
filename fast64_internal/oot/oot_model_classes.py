@@ -183,7 +183,8 @@ class OOTModel(FModel):
                                 and fPalette != existingFPalette  # the palettes do not match
                             ):
                                 raise PluginError(
-                                    f"Cannot reuse a CI texture across multiple flipbooks: {str(flipbookTexture.image)}"
+                                    f"Cannot reuse a CI texture across multiple flipbooks: {str(flipbookTexture.image)}. "
+                                    + f"Flipbook textures should only be reused if they are in the same grouping/order, including LOD skeletons."
                                 )
                             elif (
                                 not alreadyExists  # current texture has not been processed yet
@@ -191,7 +192,8 @@ class OOTModel(FModel):
                                 and existingFPalette != False  # a previous texture used an existing palette
                             ):
                                 raise PluginError(
-                                    f"Flipbook textures before this were part of a different palette: {str(flipbookTexture.image)}"
+                                    f"Flipbook textures before this were part of a different palette: {str(flipbookTexture.image)}. "
+                                    + f"Flipbook textures should only be reused if they are in the same grouping/order, including LOD skeletons."
                                 )
 
                     else:
