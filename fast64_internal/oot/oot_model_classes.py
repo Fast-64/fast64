@@ -145,9 +145,13 @@ class OOTModel(FModel):
                 if len(flipbookProp.textures) == 0:
                     raise PluginError(f"{str(material)} cannot have a flipbook material with no flipbook textures.")
 
+                print("Processing flipbook...")
                 flipbook = OOTTextureFlipbook(flipbookProp.name, flipbookProp.exportMode, [])
                 sharedPalette = FSharedPalette(self.name + "_" + flipbookProp.textures[0].image.name + "_pal")
+                existingFPalette = None
+                fImages = []
                 for flipbookTexture in flipbookProp.textures:
+                    print(f"Texture: {str(flipbookTexture.image)}")
                     name = (
                         flipbookTexture.name
                         if flipbookProp.exportMode == "Individual"
@@ -156,7 +160,7 @@ class OOTModel(FModel):
                     if texProp.tex_format[:2] == "CI":
                         texName = getTextureNameTexRef(texProp, self.name)
                         # fPalette should be None here, since sharedPalette is not None
-                        fImage, fPalette = saveOrGetPaletteAndImageDefinition(
+                        fImage, fPalette, alreadyExists = saveOrGetPaletteAndImageDefinition(
                             fMaterial,
                             self,
                             flipbookTexture.image,
@@ -166,6 +170,30 @@ class OOTModel(FModel):
                             True,
                             sharedPalette,
                         )
+                        if existingFPalette is None:
+                            if alreadyExists and fPalette:
+                                existingFPalette = fPalette
+                            else:
+                                existingFPalette = False
+                        else:
+                            if (
+                                alreadyExists  # texture already processed for this export
+                                and fPalette is not None  # texture is not a repeat within flipbook
+                                and existingFPalette != False  # a previous texture used an existing palette
+                                and fPalette != existingFPalette  # the palettes do not match
+                            ):
+                                raise PluginError(
+                                    f"Cannot reuse a CI texture across multiple flipbooks: {str(flipbookTexture.image)}"
+                                )
+                            elif (
+                                not alreadyExists  # current texture has not been processed yet
+                                and existingFPalette is not None
+                                and existingFPalette != False  # a previous texture used an existing palette
+                            ):
+                                raise PluginError(
+                                    f"Flipbook textures before this were part of a different palette: {str(flipbookTexture.image)}"
+                                )
+
                     else:
                         fImage = saveOrGetTextureDefinition(
                             fMaterial,
@@ -175,21 +203,36 @@ class OOTModel(FModel):
                             texProp.tex_format,
                             True,
                         )
+                    fImages.append(fImage)
                     newName = fImage.name
                     flipbook.textureNames.append(newName)
                 self.flipbooks.append(flipbook)
 
                 if texProp.tex_format[:2] == "CI":
                     print(f"Palette length for {sharedPalette.name}: {len(sharedPalette.palette)}")
-                    fPalette = saveOrGetPaletteOnlyDefinition(
-                        fMaterial,
-                        self,
-                        sharedPalette.name,
-                        texProp.tex_format,
-                        texProp.ci_format,
-                        True,
-                        sharedPalette.palette,
-                    )
+
+                    if not existingFPalette:
+                        firstImage = flipbookProp.textures[0].image
+                        palFormat = texProp.ci_format
+                        fPalette = saveOrGetPaletteOnlyDefinition(
+                            fMaterial,
+                            self,
+                            firstImage,
+                            sharedPalette.name,
+                            texProp.tex_format,
+                            palFormat,
+                            True,
+                            sharedPalette.palette,
+                        )
+
+                        # using the first image for the key, apply paletteKey to all images
+                        # while this is not ideal, its better to us an image for the key as
+                        # names are modified when duplicates are found
+                        paletteKey = (firstImage, (palFormat, "PAL"))
+                        for fImage in fImages:
+                            fImage.paletteKey = paletteKey
+                    else:
+                        fPalette = existingFPalette
 
                     # Modfiy DL to use new palette texture
                     tlutCmdIndex = 0
@@ -426,7 +469,7 @@ class OOTF3DContext(F3DContext):
         self,
         material: bpy.types.Material,
         texProp: TextureProperty,
-        tlut: Union[F3DTextureReference, bpy.types.Image],
+        tlut: bpy.types.Image,
         index: int,
     ):
         self.applyTLUT(texProp.tex, tlut)

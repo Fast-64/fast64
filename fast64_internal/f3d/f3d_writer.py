@@ -1759,7 +1759,7 @@ def saveTextureIndex(
         else:
             print(f"Saving CI texture : {texName}")
             # fPalette should be an fImage here, since sharedPalette is None
-            fImage, fPalette = saveOrGetPaletteAndImageDefinition(
+            fImage, fPalette, alreadyExists = saveOrGetPaletteAndImageDefinition(
                 fMaterial, fModel, tex, texName, texFormat, palFormat, convertTextureData, None
             )
             print(str(fPalette))
@@ -2038,6 +2038,7 @@ class FSharedPalette:
 def saveOrGetPaletteOnlyDefinition(
     fMaterial: FMaterial,
     fModel: FModel,
+    image: bpy.types.Image,
     imageName: str,
     texFmt: str,
     palFmt: str,
@@ -2047,7 +2048,7 @@ def saveOrGetPaletteOnlyDefinition(
 
     palFormat = texFormatOf[palFmt]
     paletteName = checkDuplicateTextureName(fModel, toAlnum(imageName) + "_pal_" + palFmt.lower())
-    paletteKey = (paletteName, (palFmt, "PAL"))
+    paletteKey = (image, (palFmt, "PAL"))
     paletteFilename = getNameFromPath(imageName, True) + "." + fModel.getTextureSuffixFromFormat(texFmt) + ".pal"
 
     fPalette = FImage(
@@ -2073,13 +2074,23 @@ def saveOrGetPaletteOnlyDefinition(
     return fPalette
 
 
+def imageAlreadyExists(fModel: FModel, image: bpy.types.Image, texFmt: str, palFmt: str) -> bool:
+    texFormat = texFormatOf[texFmt]
+    palFormat = texFormatOf[palFmt]
+    bitSize = texBitSizeOf[texFmt]
+    # If image already loaded, return that data.
+    imageKey = (image, (texFmt, palFmt))
+    fImage, fPalette = fModel.getTextureAndHandleShared(imageKey)
+    return fImage is not None
+
+
 # if using sharedPalette, return palette
 # otherwise, return FImage representing complete palette image
 # paletteKey format is unfortunately different form imageKey
 # because palettes can be shared across multiple images.
 def saveOrGetPaletteAndImageDefinition(
     fMaterial, fModelOrTexRect, image, imageName, texFmt, palFmt, convertTextureData, sharedPalette: FSharedPalette
-) -> tuple[FImage, FImage]:
+) -> tuple[FImage, FImage, bool]:
     texFormat = texFormatOf[texFmt]
     palFormat = texFormatOf[palFmt]
     bitSize = texBitSizeOf[texFmt]
@@ -2087,8 +2098,10 @@ def saveOrGetPaletteAndImageDefinition(
     imageKey = (image, (texFmt, palFmt))
     fImage, fPalette = fModelOrTexRect.getTextureAndHandleShared(imageKey)
     if fImage is not None:
-        return fImage, fPalette
+        print(f"Image already exists")
+        return fImage, fPalette, True
 
+    print(f"Size: {str(image.size[0])} x {str(image.size[1])}, Data: {str(len(image.pixels))}")
     if sharedPalette is not None:
         palette = sharedPalette.palette
     else:
@@ -2158,18 +2171,18 @@ def saveOrGetPaletteAndImageDefinition(
     # the next saveOrGetPaletteOnlyDefinition
     # Make sure paletteName is read here before saveOrGetPaletteOnlyDefinition is called.
     paletteName = checkDuplicateTextureName(fModelOrTexRect, toAlnum(imageName) + "_pal_" + palFmt.lower())
-    paletteKey = (paletteName, (palFmt, "PAL"))
 
     if sharedPalette is None:
         fPalette = saveOrGetPaletteOnlyDefinition(
-            fMaterial, fModelOrTexRect, imageName, texFmt, palFmt, convertTextureData, palette
+            fMaterial, fModelOrTexRect, image, imageName, texFmt, palFmt, convertTextureData, palette
         )
+        paletteKey = (image, (palFmt, "PAL"))
+        fImage.paletteKey = paletteKey
     else:
         fPalette = None
+        fImage.paletteKey = None
 
-    fImage.paletteKey = paletteKey
-
-    return fImage, fPalette  # , paletteImage
+    return fImage, fPalette, False  # , paletteImage
 
 
 def compactNibbleArray(texture, width, height):

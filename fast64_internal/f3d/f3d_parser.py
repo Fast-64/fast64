@@ -726,7 +726,7 @@ class F3DContext:
         self,
         material: bpy.types.Material,
         texProp: TextureProperty,
-        tlut: Union[F3DTextureReference, bpy.types.Image],
+        tlut: bpy.types.Image,
         index: int,
     ):
         self.applyTLUT(texProp.tex, tlut)
@@ -771,7 +771,7 @@ class F3DContext:
                         texProp.tex not in self.imagesDontApplyTlut or not self.ciImageFilesStoredAsFullColor
                     )  # oot currently stores CI textures in full color pngs
                 ):
-                    # print(f"Apply tlut {tlutName} to {self.getImageName(texProp.tex)}")
+                    print(f"Apply tlut {tlutName} ({str(tlut)}) to {self.getImageName(texProp.tex)}")
                     self.handleApplyTLUT(self.materialContext, texProp, tlut, index)
             else:
                 print("Ignoring TLUT.")
@@ -1431,13 +1431,18 @@ class F3DContext:
         self.materialChanged = True
 
     def applyTLUT(self, image, tlut):
+        invalidIndicesDetected = False
         for i in range(int(len(image.pixels) / 4)):
             lutIndex = int(round(image.pixels[4 * i] * 255))
             newValues = tlut.pixels[4 * lutIndex : 4 * (lutIndex + 1)]
             if len(newValues) < 4:
-                print("Invalid lutIndex " + str(lutIndex))
+                # print("Invalid LUT Index " + str(lutIndex))
+                invalidIndicesDetected = True
             else:
                 image.pixels[4 * i : 4 * (i + 1)] = newValues
+
+        if invalidIndicesDetected:
+            print("Invalid LUT Indices detected.")
 
     def processCommands(self, dlData, dlName, dlCommands):
         callStack = [F3DParsedCommands(dlName, dlCommands, 0)]
