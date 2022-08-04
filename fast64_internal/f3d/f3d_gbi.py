@@ -2305,7 +2305,7 @@ class FModel:
                     print(f"Can't find {str(fImage.paletteKey)}")
                     fPalette = None
             else:
-                print("Palette key is None")
+                # print("Palette key is None")
                 fPalette = None
 
             return fImage, fPalette

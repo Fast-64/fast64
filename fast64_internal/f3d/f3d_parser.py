@@ -771,8 +771,8 @@ class F3DContext:
                         texProp.tex not in self.imagesDontApplyTlut or not self.ciImageFilesStoredAsFullColor
                     )  # oot currently stores CI textures in full color pngs
                 ):
-                    print(f"Apply tlut {tlutName} ({str(tlut)}) to {self.getImageName(texProp.tex)}")
-                    print(f"Size: {str(tlut.size[0])} x {str(tlut.size[1])}, Data: {str(len(tlut.pixels))}")
+                    # print(f"Apply tlut {tlutName} ({str(tlut)}) to {self.getImageName(texProp.tex)}")
+                    # print(f"Size: {str(tlut.size[0])} x {str(tlut.size[1])}, Data: {str(len(tlut.pixels))}")
                     self.handleApplyTLUT(self.materialContext, texProp, tlut, index)
             else:
                 print("Ignoring TLUT.")

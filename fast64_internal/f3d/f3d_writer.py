@@ -2098,10 +2098,10 @@ def saveOrGetPaletteAndImageDefinition(
     imageKey = (image, (texFmt, palFmt))
     fImage, fPalette = fModelOrTexRect.getTextureAndHandleShared(imageKey)
     if fImage is not None:
-        print(f"Image already exists")
+        # print(f"Image already exists")
         return fImage, fPalette, True
 
-    print(f"Size: {str(image.size[0])} x {str(image.size[1])}, Data: {str(len(image.pixels))}")
+    # print(f"Size: {str(image.size[0])} x {str(image.size[1])}, Data: {str(len(image.pixels))}")
     if sharedPalette is not None:
         palette = sharedPalette.palette
     else:

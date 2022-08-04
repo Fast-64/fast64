@@ -145,13 +145,13 @@ class OOTModel(FModel):
                 if len(flipbookProp.textures) == 0:
                     raise PluginError(f"{str(material)} cannot have a flipbook material with no flipbook textures.")
 
-                print("Processing flipbook...")
+                # print("Processing flipbook...")
                 flipbook = OOTTextureFlipbook(flipbookProp.name, flipbookProp.exportMode, [])
                 sharedPalette = FSharedPalette(self.name + "_" + flipbookProp.textures[0].image.name + "_pal")
                 existingFPalette = None
                 fImages = []
                 for flipbookTexture in flipbookProp.textures:
-                    print(f"Texture: {str(flipbookTexture.image)}")
+                    # print(f"Texture: {str(flipbookTexture.image)}")
                     name = (
                         flipbookTexture.name
                         if flipbookProp.exportMode == "Individual"
@@ -209,7 +209,7 @@ class OOTModel(FModel):
                 self.flipbooks.append(flipbook)
 
                 if texProp.tex_format[:2] == "CI":
-                    print(f"Palette length for {sharedPalette.name}: {len(sharedPalette.palette)}")
+                    # print(f"Palette length for {sharedPalette.name}: {len(sharedPalette.palette)}")
 
                     if not existingFPalette:
                         firstImage = flipbookProp.textures[0].image
