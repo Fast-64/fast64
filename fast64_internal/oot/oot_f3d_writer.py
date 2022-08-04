@@ -409,10 +409,10 @@ class OOT_ImportDL(bpy.types.Operator):
 
             paths = [ootGetObjectPath(isCustomImport, importPath, folderName)]
             data = getImportData(paths)
+            f3dContext = OOTF3DContext(F3D("F3DEX2/LX2", False), [name], basePath)
             if not isCustomImport:
                 data = ootGetIncludedAssetData(basePath, paths, data) + data
 
-                f3dContext = OOTF3DContext(F3D("F3DEX2/LX2", False), [name], basePath)
                 if overlayName is not None:
                     ootReadTextureArrays(basePath, overlayName, name, f3dContext, False, arrayIndex2D)
 

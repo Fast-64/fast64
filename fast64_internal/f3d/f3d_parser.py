@@ -772,6 +772,7 @@ class F3DContext:
                     )  # oot currently stores CI textures in full color pngs
                 ):
                     print(f"Apply tlut {tlutName} ({str(tlut)}) to {self.getImageName(texProp.tex)}")
+                    print(f"Size: {str(tlut.size[0])} x {str(tlut.size[1])}, Data: {str(len(tlut.pixels))}")
                     self.handleApplyTLUT(self.materialContext, texProp, tlut, index)
             else:
                 print("Ignoring TLUT.")
@@ -1900,7 +1901,7 @@ def CI4toRGBA32(value):
 def parseTextureData(dlData, textureName, f3dContext, imageFormat, imageSize, width, basePath, isLUT, f3d):
 
     matchResult = re.search(
-        "([A-Za-z0-9\_]+)\s*" + re.escape(textureName) + "\s*\[\s*[0-9x]*\s*\]\s*=\s*\{([^\}]*)\s\}\s*;\s*",
+        r"([A-Za-z0-9\_]+)\s*" + re.escape(textureName) + r"\s*\[\s*[0-9a-fA-Fx]*\s*\]\s*=\s*\{([^\}]*)\s*\}\s*;\s*",
         dlData,
         re.DOTALL,
     )
