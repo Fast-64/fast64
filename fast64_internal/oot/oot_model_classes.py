@@ -472,15 +472,18 @@ class OOTF3DContext(F3DContext):
         tlut: bpy.types.Image,
         index: int,
     ):
-        self.applyTLUT(texProp.tex, tlut)
-        self.tlutAppliedTextures.append(texProp.tex)
 
         flipbook = getattr(material.ootMaterial, "flipbook" + str(index))
         if flipbook.enable:
+            # Don't apply TLUT to texProp.tex, as it is the same texture as the first flipbook texture.
+            # Make sure to check if tlut is already applied (ex. LOD skeleton uses same flipbook textures)
+            # applyTLUTToIndex() doesn't check for this if texProp.use_tex_reference.
             for flipbookTexture in flipbook.textures:
-                # print(f"Apply tlut to {str(flipbookTexture.image)}")
-                self.applyTLUT(flipbookTexture.image, tlut)
-                self.tlutAppliedTextures.append(flipbookTexture.image)
+                if flipbookTexture.image not in self.tlutAppliedTextures:
+                    self.applyTLUT(flipbookTexture.image, tlut)
+                    self.tlutAppliedTextures.append(flipbookTexture.image)
+        else:
+            super().handleApplyTLUT(material, texProp, tlut, index)
 
 
 def clearOOTFlipbookProperty(flipbookProp):
