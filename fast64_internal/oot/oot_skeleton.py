@@ -631,12 +631,14 @@ def ootImportSkeletonC(
     limbsData = matchResult.group(2)
     limbList = [entry.strip()[1:] for entry in limbsData.split(",")]
 
+    f3dContext = OOTF3DContext(F3D("F3DEX2/LX2", False), limbList, basePath)
+    f3dContext.mat().draw_layer.oot = drawLayer
+
     # print(limbList)
     isLOD, armatureObj = ootBuildSkeleton(
         skeletonName,
         overlayName,
         skeletonData,
-        limbList,
         actorScale,
         removeDoubles,
         importNormals,
@@ -645,13 +647,14 @@ def ootImportSkeletonC(
         drawLayer,
         isLink,
         arrayIndex2D,
+        f3dContext,
     )
     if isLOD:
+        f3dContext.clearGeometry()
         isLOD, LODArmatureObj = ootBuildSkeleton(
             skeletonName,
             overlayName,
             skeletonData,
-            limbList,
             actorScale,
             removeDoubles,
             importNormals,
@@ -660,15 +663,17 @@ def ootImportSkeletonC(
             drawLayer,
             isLink,
             arrayIndex2D,
+            f3dContext,
         )
         armatureObj.ootFarLOD = LODArmatureObj
+
+    f3dContext.deleteMaterialContext()
 
 
 def ootBuildSkeleton(
     skeletonName,
     overlayName,
     skeletonData,
-    limbList,
     actorScale,
     removeDoubles,
     importNormals,
@@ -677,6 +682,7 @@ def ootBuildSkeleton(
     drawLayer,
     isLink,
     arrayIndex2D: int,
+    f3dContext: OOTF3DContext,
 ):
     lodString = "_lod" if useFarLOD else ""
 
@@ -696,7 +702,6 @@ def ootBuildSkeleton(
     bpy.context.view_layer.objects.active = armatureObj
     # bpy.ops.object.mode_set(mode = 'EDIT')
 
-    f3dContext = OOTF3DContext(F3D("F3DEX2/LX2", False), limbList, basePath)
     f3dContext.mat().draw_layer.oot = armatureObj.ootDrawLayer
 
     if overlayName is not None:
@@ -721,7 +726,7 @@ def ootBuildSkeleton(
         if f3dContext.isBillboard:
             armatureObj.data.bones[boneName].ootDynamicTransform.billboard = True
         f3dContext.clearMaterial()  # THIS IS IMPORTANT
-    f3dContext.createMesh(obj, removeDoubles, importNormals)
+    f3dContext.createMesh(obj, removeDoubles, importNormals, False)
     armatureObj.location = bpy.context.scene.cursor.location
 
     # Set bone rotation mode.

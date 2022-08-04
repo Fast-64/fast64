@@ -527,6 +527,25 @@ class F3DContext:
         self.numLights = 0
         self.lightData = {}  # (color, normal) : list of blender light objects
 
+    # restarts context, but keeps cached materials/textures
+    def clearGeometry(self):
+        self.vertexBuffer = [None] * self.f3d.vert_load_size
+        self.clearMaterial()
+        mat = self.mat()
+        mat.set_combiner = False
+        self.triMatIndices = []
+        self.materialChanged = True
+        self.lastMaterialIndex = None
+        self.vertexData = {}
+        self.currentTextureName = None
+
+        self.matrixData = {}
+        self.currentTransformName = None
+        self.limbToBoneName = {}
+
+        self.verts = []
+        self.limbGroups = {}
+
     # MAKE SURE TO CALL THIS BETWEEN parseF3D() CALLS
     def clearMaterial(self):
         mat = self.mat()
@@ -1681,7 +1700,14 @@ class F3DContext:
     def processDLName(self, name):
         return name
 
-    def createMesh(self, obj, removeDoubles, importNormals):
+    def deleteMaterialContext(self):
+        if self.materialContext is not None:
+            bpy.data.materials.remove(self.materialContext)
+        else:
+            raise PluginError("Attempting to delete material context that is None.")
+
+    # if deleteMaterialContext is False, then manually call self.deleteMaterialContext() later.
+    def createMesh(self, obj, removeDoubles, importNormals, deleteMaterialContext: bool):
         mesh = obj.data
         if len(self.verts) % 3 != 0:
             print(len(self.verts))
@@ -1735,7 +1761,8 @@ class F3DContext:
             bpy.ops.mesh.remove_doubles()
             bpy.ops.object.mode_set(mode="OBJECT")
 
-        bpy.data.materials.remove(self.materialContext)
+        if deleteMaterialContext:
+            self.deleteMaterialContext()
 
         obj.location = bpy.context.scene.cursor.location
 
@@ -2085,7 +2112,7 @@ def importMeshC(data, name, scale, removeDoubles, importNormals, drawLayer, f3dC
     parseF3D(data, name, obj, transformMatrix, name, name, "oot", drawLayer, f3dContext)
 
     f3dContext.clearMaterial()
-    f3dContext.createMesh(obj, removeDoubles, importNormals)
+    f3dContext.createMesh(obj, removeDoubles, importNormals, True)
 
     applyRotation([obj], math.radians(-90), "X")
 

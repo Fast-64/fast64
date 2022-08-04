@@ -9,6 +9,13 @@ from ..f3d.f3d_material import *
 from ..f3d.f3d_parser import *
 
 
+class OOTTextureFlipbook:
+    def __init__(self, name: str, exportMode: str, textureNames: List[str]):
+        self.name = name
+        self.exportMode = exportMode
+        self.textureNames = textureNames
+
+
 def usesFlipbook(material: bpy.types.Material, flipbookProperty: Any, index: int, checkEnable: bool) -> bool:
     texProp = getattr(material.f3d_mat, "tex" + str(index))
     # return all_combiner_uses(material)["Texture " + str(index)] and texProp.use_tex_reference and
@@ -147,6 +154,22 @@ class OOTModel(FModel):
         if tlutCmdIndex == len(gfxList.commands):
             raise PluginError(f"Can not find TLUT command in material {fMaterial.name}")
 
+    def addFlipbookWithRepeatCheck(self, flipbook: OOTTextureFlipbook):
+        for existingFlipbook in self.flipbooks:
+            if existingFlipbook.name == flipbook.name:
+                if len(existingFlipbook.textureNames) != len(flipbook.textureNames):
+                    raise PluginError(
+                        f"There are two flipbooks with differing elements trying to write to the same texture array name: {flipbook.name}."
+                        + f"\nMake sure that this flipbook name is unique, or that repeated uses of this name use the same textures is the same order/format."
+                    )
+                for i in range(len(flipbook.textureNames)):
+                    if existingFlipbook.textureNames[i] != flipbook.textureNames[i]:
+                        raise PluginError(
+                            f"There are two flipbooks with differing elements trying to write to the same texture array name: {flipbook.name}."
+                            + f"\nMake sure that this flipbook name is unique, or that repeated uses of this name use the same textures is the same order/format."
+                        )
+        self.flipbooks.append(flipbook)
+
     def validateCIFlipbook(
         self, existingFPalette: FImage, alreadyExists: bool, fPalette: FImage, flipbookTexture: Any
     ) -> Union[FImage, bool]:
@@ -212,7 +235,7 @@ class OOTModel(FModel):
             # do this here to check for modified names due to repeats
             flipbook.textureNames.append(fImage.name)
 
-        self.flipbooks.append(flipbook)
+        self.addFlipbookWithRepeatCheck(flipbook)
 
         # print(f"Palette length for {sharedPalette.name}: {len(sharedPalette.palette)}")
         firstImage = flipbookProp.textures[0].image
@@ -263,7 +286,7 @@ class OOTModel(FModel):
 
             # do this here to check for modified names due to repeats
             flipbook.textureNames.append(fImage.name)
-        self.flipbooks.append(flipbook)
+        self.addFlipbookWithRepeatCheck(flipbook)
 
     def onMaterialCommandsBuilt(self, fMaterial, material, drawLayer):
         # handle dynamic material calls
@@ -375,13 +398,6 @@ class OOTVertexGroupInfo(VertexGroupInfo):
 # 		self.maxBounds = [2**8 - 1, 2**8 - 1]
 
 
-class OOTTextureFlipbook:
-    def __init__(self, name: str, exportMode: str, textureNames: List[str]):
-        self.name = name
-        self.exportMode = exportMode
-        self.textureNames = textureNames
-
-
 class OOTF3DContext(F3DContext):
     def __init__(self, f3d, limbList, basePath):
         self.limbList = limbList
@@ -444,6 +460,11 @@ class OOTF3DContext(F3DContext):
             return textureName
             # if (pointer >> 24) == 0x08:
             # 	print("Unhandled OOT pointer: " + textureName)
+
+    def clearGeometry(self):
+        self.dlList = []
+        self.isBillboard = False
+        super().clearGeometry()
 
     def clearMaterial(self):
         self.isBillboard = False
