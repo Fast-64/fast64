@@ -4,8 +4,10 @@ from bpy.utils import register_class, unregister_class
 from .oot_constants import *
 from .oot_utility import *
 from .oot_skeleton import *
+from .oot_model_classes import usesFlipbook
 from ..utility import *
 from ..panels import OOT_Panel
+from bpy.app.handlers import persistent
 
 
 class OOTAnimation:
@@ -271,7 +273,32 @@ def getNextBone(boneStack, armatureObj):
     return bone, boneStack
 
 
-def ootImportAnimationC(armatureObj, filepath, animName, actorScale):
+def ootImportAnimationC(
+    armatureObj: bpy.types.Object, filepath: str, animName: str, actorScale: float, isLink: bool, isCustomImport: bool
+):
+    if isLink:
+        numLimbs = 21
+        if not isCustomImport:
+            basePath = bpy.path.abspath(bpy.context.scene.ootDecompPath)
+            animFilepath = os.path.join(basePath, "assets/misc/link_animetion/link_animetion.c")
+            animHeaderFilepath = os.path.join(basePath, "assets/objects/gameplay_keep/gameplay_keep.c")
+        else:
+            animFilepath = filepath
+            animHeaderFilepath = filepath
+        ootImportLinkAnimationC(
+            armatureObj,
+            animHeaderFilepath,
+            animFilepath,
+            animName,
+            actorScale,
+            numLimbs,
+            isCustomImport,
+        )
+    else:
+        ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale)
+
+
+def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale):
     animData = readFile(filepath)
 
     matchResult = re.search(
@@ -311,11 +338,11 @@ def ootImportAnimationC(armatureObj, filepath, animName, actorScale):
                     action_group=startBoneName,
                 )
                 if jointIndex[propertyIndex] < staticIndexMax:
-                    value = frameData[jointIndex[propertyIndex]] / actorScale
+                    value = ootTranslationValue(frameData[jointIndex[propertyIndex]], actorScale)
                     fcurve.keyframe_points.insert(0, value)
                 else:
                     for frame in range(frameCount):
-                        value = frameData[jointIndex[propertyIndex] + frame] / actorScale
+                        ootTranslationValue(frameData[jointIndex[propertyIndex] + frame], actorScale)
                         fcurve.keyframe_points.insert(frame, value)
             isRootTranslation = False
         else:
@@ -329,16 +356,139 @@ def ootImportAnimationC(armatureObj, filepath, animName, actorScale):
                     action_group=bone.name,
                 )
                 if jointIndex[propertyIndex] < staticIndexMax:
-                    value = math.radians(frameData[jointIndex[propertyIndex]] * 360 / (2**16))
+                    value = ootRotationValue(frameData[jointIndex[propertyIndex]])
                     fcurve.keyframe_points.insert(0, value)
                 else:
                     for frame in range(frameCount):
-                        value = math.radians(frameData[jointIndex[propertyIndex] + frame] * 360 / (2**16))
+                        value = ootRotationValue(frameData[jointIndex[propertyIndex] + frame])
                         fcurve.keyframe_points.insert(frame, value)
 
     if armatureObj.animation_data is None:
         armatureObj.animation_data_create()
     armatureObj.animation_data.action = anim
+
+
+# filepath is gameplay_keep.c
+# animName is header name.
+# numLimbs = 21 for link.
+
+
+def ootImportLinkAnimationC(
+    armatureObj: bpy.types.Object,
+    animHeaderFilepath: str,
+    animFilepath: str,
+    animHeaderName: str,
+    actorScale: float,
+    numLimbs: int,
+    isCustomImport: bool,
+):
+    animHeaderData = getImportData([animHeaderFilepath])
+    animData = getImportData([animFilepath])
+    if not isCustomImport:
+        basePath = bpy.path.abspath(bpy.context.scene.ootDecompPath)
+        animHeaderData = ootGetIncludedAssetData(basePath, [animHeaderFilepath], animHeaderData) + animHeaderData
+        animData = ootGetIncludedAssetData(basePath, [animFilepath], animData) + animData
+
+    matchResult = re.search(
+        re.escape(animHeaderName) + "\s*=\s*\{\s*\{\s*([^,\s]*)\s*\}*\s*,\s*([^,\s]*)\s*\}\s*;",
+        animHeaderData,
+    )
+    if matchResult is None:
+        raise PluginError("Cannot find animation named " + animHeaderName + " in " + animHeaderFilepath)
+    frameCount = hexOrDecInt(matchResult.group(1).strip())
+    frameDataName = matchResult.group(2).strip()
+
+    frameData = getFrameData(animFilepath, animData, frameDataName)
+    print(f"{frameDataName}: {frameCount} frames, {len(frameData)} values.")
+
+    bpy.context.scene.frame_end = frameCount
+    anim = bpy.data.actions.new(animHeaderName)
+
+    # get ordered list of bone names
+    # create animation curves for each bone
+    startBoneName = getStartBone(armatureObj)
+    boneList = []
+    boneCurvesRotation = []
+    boneCurveTranslation = None
+    textureCurves = []
+    boneStack = [startBoneName]
+
+    eyesCurve = anim.fcurves.new(
+        data_path="ootLinkTextureAnim.eyes",
+        action_group="Texture Animations",
+    )
+    mouthCurve = anim.fcurves.new(
+        data_path="ootLinkTextureAnim.mouth",
+        action_group="Texture Animations",
+    )
+
+    # create all necessary fcurves
+    while len(boneStack) > 0:
+        bone, boneStack = getNextBone(boneStack, armatureObj)
+        boneList.append(bone)
+
+        if boneCurveTranslation is None:
+            boneCurveTranslation = [
+                anim.fcurves.new(
+                    data_path='pose.bones["' + bone.name + '"].location',
+                    index=propertyIndex,
+                    action_group=startBoneName,
+                )
+                for propertyIndex in range(3)
+            ]
+
+        boneCurvesRotation.append(
+            [
+                anim.fcurves.new(
+                    data_path='pose.bones["' + bone.name + '"].rotation_euler',
+                    index=propertyIndex,
+                    action_group=bone.name,
+                )
+                for propertyIndex in range(3)
+            ]
+        )
+
+    # vec3 = 3x s16 values
+    # padding = u8, tex anim = u8
+    # root trans vec3 + rot vec3 for each limb + (padding + anim index struct)
+    frameSize = 3 + 3 * numLimbs + 1
+    for frame in range(frameCount):
+        currentFrame = frameData[frame * frameSize : (frame + 1) * frameSize]
+        if len(currentFrame) < frameSize:
+            raise PluginError(
+                f"{frameDataName} has malformed data. Framesize = {frameSize}, CurrentFrame = {len(currentFrame)}"
+            )
+
+        for i in range(3):
+            value = ootTranslationValue(currentFrame[i], actorScale)
+            boneCurveTranslation[i].keyframe_points.insert(frame, value)
+
+        for boneIndex in range(numLimbs):
+            for i in range(3):
+                value = ootRotationValue(currentFrame[i + (boneIndex + 1) * 3])
+                boneCurvesRotation[boneIndex][i].keyframe_points.insert(frame, value)
+
+        # convert to unsigned byte representation
+        texAnimValue = int.from_bytes(
+            currentFrame[(numLimbs + 1) * 3].to_bytes(2, "big", signed=True), "big", signed=False
+        )
+        eyesValue = texAnimValue & 0xF
+        mouthValue = texAnimValue >> 4 & 0xF
+
+        eyesCurve.keyframe_points.insert(frame, eyesValue).interpolation = "CONSTANT"
+        mouthCurve.keyframe_points.insert(frame, mouthValue).interpolation = "CONSTANT"
+
+    if armatureObj.animation_data is None:
+        armatureObj.animation_data_create()
+    armatureObj.animation_data.action = anim
+
+
+def ootTranslationValue(value, actorScale):
+    return value / actorScale
+
+
+def ootRotationValue(value):
+    return math.radians(value * 360 / (2**16))
 
 
 def getFrameData(filepath, animData, frameDataName):
@@ -395,6 +545,7 @@ class OOT_ExportAnim(bpy.types.Operator):
             exportPath = bpy.path.abspath(context.scene.ootAnimExportCustomPath)
             folderName = context.scene.ootAnimExportFolderName
             skeletonName = context.scene.ootAnimSkeletonName
+            isLink = context.scene.ootAnimExportIsLink
 
             path = ootGetObjectPath(isCustomExport, exportPath, folderName)
 
@@ -436,10 +587,11 @@ class OOT_ImportAnim(bpy.types.Operator):
             importPath = bpy.path.abspath(context.scene.ootAnimImportCustomPath)
             animName = context.scene.ootAnimName
             actorScale = context.scene.ootActorBlenderScale
+            isLink = context.scene.ootAnimImportIsLink
 
             path = ootGetObjectPath(isCustomImport, importPath, folderName)
 
-            ootImportAnimationC(armatureObj, path, animName, actorScale)
+            ootImportAnimationC(armatureObj, path, animName, actorScale, isLink, isCustomImport)
             self.report({"INFO"}, "Success!")
 
         except Exception as e:
@@ -461,26 +613,111 @@ class OOT_ExportAnimPanel(OOT_Panel):
         prop_split(col, context.scene, "ootAnimSkeletonName", "Skeleton Name")
         if context.scene.ootAnimIsCustomExport:
             prop_split(col, context.scene, "ootAnimExportCustomPath", "Folder")
-        else:
+        elif not context.scene.ootAnimExportIsLink:
             prop_split(col, context.scene, "ootAnimExportFolderName", "Object")
+        col.prop(context.scene, "ootAnimExportIsLink")
         col.prop(context.scene, "ootAnimIsCustomExport")
 
         col.operator(OOT_ImportAnim.bl_idname)
         prop_split(col, context.scene, "ootAnimName", "Anim Name")
-
         if context.scene.ootAnimIsCustomImport:
             prop_split(col, context.scene, "ootAnimImportCustomPath", "File")
-        else:
+        elif not context.scene.ootAnimImportIsLink:
             prop_split(col, context.scene, "ootAnimImportFolderName", "Object")
+        col.prop(context.scene, "ootAnimImportIsLink")
         col.prop(context.scene, "ootAnimIsCustomImport")
+
+
+@persistent
+def load_handler(dummy):
+    if bpy.context.scene.gameEditorMode == "OOT":
+        for obj in bpy.data.objects:
+            if isinstance(obj.data, bpy.types.Armature):
+                ootUpdateTextureAnim(obj.data, obj, "8", obj.ootLinkTextureAnim.eyes)
+                ootUpdateTextureAnim(obj.data, obj, "9", obj.ootLinkTextureAnim.mouth)
+
+
+def ootUpdateTextureAnim(self, armatureObj, segment, index):
+    # we only want to update texture on keyframed armatures.
+    # this somewhat mitigates the issue of two skeletons using the same flipbook material.
+    if armatureObj.animation_data is None or armatureObj.animation_data.action is None:
+        return
+    action = armatureObj.animation_data.action
+    if (
+        action.fcurves.find("ootLinkTextureAnim.eyes") is None
+        or action.fcurves.find("ootLinkTextureAnim.mouth") is None
+    ):
+        return
+
+    for child in armatureObj.children:
+        if isinstance(child.data, bpy.types.Mesh):
+            mesh = child.data
+            for material in mesh.materials:
+                for i in range(2):
+                    flipbook = getattr(material.ootMaterial, "flipbook" + str(i))
+                    texProp = getattr(material.f3d_mat, "tex" + str(i))
+                    if usesFlipbook(material, flipbook, i, True):
+                        match = re.search(f"0x0([0-9A-F])000000", texProp.tex_reference)
+                        if match is None:
+                            return
+                        if match.group(1) == segment:
+                            # material.f3d_update_flag = True
+
+                            # Remember that index 0 = auto, and keyframed values start at 1
+                            textureIndex = min((index - 1 if index > 0 else 0), len(flipbook.textures) - 1)
+                            material.node_tree.nodes["Texture " + str(i)].image = flipbook.textures[textureIndex].image
+
+                            # update_tex_values_manual(material, bpy.context)
+                            # material.f3d_update_flag = False
+
+
+def ootUpdateEyes(self, context):
+    index = self.eyes
+    ootUpdateTextureAnim(self, context.object, "8", index)
+
+
+def ootUpdateMouth(self, context):
+    index = self.mouth
+    ootUpdateTextureAnim(self, context.object, "9", index)
+
+
+class OOTLinkTextureAnimProperty(bpy.types.PropertyGroup):
+    eyes: bpy.props.IntProperty(min=0, max=15, default=0, name="Eyes", update=ootUpdateEyes)
+    mouth: bpy.props.IntProperty(min=0, max=15, default=0, name="Mouth", update=ootUpdateMouth)
+
+
+class OOT_LinkAnimPanel(bpy.types.Panel):
+    bl_idname = "OOT_PT_link_anim"
+    bl_label = "OOT Link Animation Properties"
+    bl_space_type = "PROPERTIES"
+    bl_region_type = "WINDOW"
+    bl_context = "object"
+    bl_options = {"HIDE_HEADER"}
+
+    @classmethod
+    def poll(cls, context):
+        return (
+            context.scene.gameEditorMode == "OOT"
+            and hasattr(context, "object")
+            and context.object is not None
+            and isinstance(context.object.data, bpy.types.Armature)
+        )
+
+    # called every frame
+    def draw(self, context):
+        col = self.layout.box().column()
+        col.box().label(text="OOT Link Animation Inspector")
+        prop_split(col, context.object.ootLinkTextureAnim, "eyes", "Eyes")
+        prop_split(col, context.object.ootLinkTextureAnim, "mouth", "Mouth")
 
 
 oot_anim_classes = (
     OOT_ExportAnim,
     OOT_ImportAnim,
+    OOTLinkTextureAnimProperty,
 )
 
-oot_anim_panels = (OOT_ExportAnimPanel,)
+oot_anim_panels = (OOT_ExportAnimPanel, OOT_LinkAnimPanel)
 
 
 def oot_anim_panel_register():
@@ -494,30 +731,40 @@ def oot_anim_panel_unregister():
 
 
 def oot_anim_register():
+    for cls in oot_anim_classes:
+        register_class(cls)
+
+    bpy.app.handlers.frame_change_pre.append(load_handler)
+
     bpy.types.Scene.ootAnimIsCustomExport = bpy.props.BoolProperty(name="Use Custom Path")
     bpy.types.Scene.ootAnimExportCustomPath = bpy.props.StringProperty(name="Folder", subtype="FILE_PATH")
     bpy.types.Scene.ootAnimExportFolderName = bpy.props.StringProperty(name="Animation Folder", default="object_geldb")
+    bpy.types.Scene.ootAnimExportIsLink = bpy.props.BoolProperty(name="Is Link", default=False)
 
     bpy.types.Scene.ootAnimIsCustomImport = bpy.props.BoolProperty(name="Use Custom Path")
     bpy.types.Scene.ootAnimImportCustomPath = bpy.props.StringProperty(name="Folder", subtype="FILE_PATH")
     bpy.types.Scene.ootAnimImportFolderName = bpy.props.StringProperty(name="Animation Folder", default="object_geldb")
+    bpy.types.Scene.ootAnimImportIsLink = bpy.props.BoolProperty(name="Is Link", default=False)
 
     bpy.types.Scene.ootAnimSkeletonName = bpy.props.StringProperty(name="Skeleton Name", default="gGerudoRedSkel")
     bpy.types.Scene.ootAnimName = bpy.props.StringProperty(name="Anim Name", default="gGerudoRedSpinAttackAnim")
-    for cls in oot_anim_classes:
-        register_class(cls)
+    bpy.types.Object.ootLinkTextureAnim = bpy.props.PointerProperty(type=OOTLinkTextureAnimProperty)
 
 
 def oot_anim_unregister():
+    for cls in reversed(oot_anim_classes):
+        unregister_class(cls)
+
     del bpy.types.Scene.ootAnimIsCustomExport
     del bpy.types.Scene.ootAnimExportCustomPath
     del bpy.types.Scene.ootAnimExportFolderName
+    del bpy.types.Scene.ootAnimExportIsLink
 
     del bpy.types.Scene.ootAnimIsCustomImport
     del bpy.types.Scene.ootAnimImportCustomPath
     del bpy.types.Scene.ootAnimImportFolderName
+    del bpy.types.Scene.ootAnimImportIsLink
 
     del bpy.types.Scene.ootAnimSkeletonName
     del bpy.types.Scene.ootAnimName
-    for cls in reversed(oot_anim_classes):
-        unregister_class(cls)
+    del bpy.types.Scene.ootLinkTextureAnim
