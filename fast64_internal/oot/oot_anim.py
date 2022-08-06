@@ -10,6 +10,22 @@ from ..panels import OOT_Panel
 from bpy.app.handlers import persistent
 
 
+class OOTAnimExportSettingsProperty(bpy.types.PropertyGroup):
+    isCustom: bpy.props.BoolProperty(name="Use Custom Path")
+    customPath: bpy.props.StringProperty(name="Folder", subtype="FILE_PATH")
+    folderName: bpy.props.StringProperty(name="Animation Folder", default="object_geldb")
+    isLink: bpy.props.BoolProperty(name="Is Link", default=False)
+    skeletonName: bpy.props.StringProperty(name="Skeleton Name", default="gGerudoRedSkel")
+
+
+class OOTAnimImportSettingsProperty(bpy.types.PropertyGroup):
+    isCustom: bpy.props.BoolProperty(name="Use Custom Path")
+    customPath: bpy.props.StringProperty(name="Folder", subtype="FILE_PATH")
+    folderName: bpy.props.StringProperty(name="Animation Folder", default="object_geldb")
+    isLink: bpy.props.BoolProperty(name="Is Link", default=False)
+    animName: bpy.props.StringProperty(name="Anim Name", default="gGerudoRedSpinAttackAnim")
+
+
 def convertToUnsignedShort(value: int) -> int:
     return int.from_bytes(value.to_bytes(2, "big", signed=(value < 0)), "big", signed=False)
 
@@ -385,37 +401,33 @@ def ootExportLinkAnimation(armatureObj, convertTransformMatrix, skeletonName):
     return ootAnim
 
 
-def exportAnimationC(
-    armatureObj: bpy.types.Object,
-    exportPath: str,
-    isCustomExport: bool,
-    folderName: str,
-    skeletonName: str,
-    isLink: bool,
-):
-    checkEmptyName(folderName)
-    checkEmptyName(skeletonName)
+def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSettingsProperty):
+    path = bpy.path.abspath(settings.customPath)
+    exportPath = ootGetObjectPath(settings.isCustom, path, settings.folderName)
+
+    checkEmptyName(settings.folderName)
+    checkEmptyName(settings.skeletonName)
     convertTransformMatrix = (
         mathutils.Matrix.Scale(bpy.context.scene.ootActorBlenderScale, 4)
         @ mathutils.Matrix.Diagonal(armatureObj.scale).to_4x4()
     )
 
-    if isLink:
+    if settings.isLink:
         ootAnim = ootExportLinkAnimation(armatureObj, convertTransformMatrix, "gLink")
-        ootAnimC, ootAnimHeaderC = ootAnim.toC(isCustomExport)
+        ootAnimC, ootAnimHeaderC = ootAnim.toC(settings.isCustom)
         path = ootGetPath(
             exportPath,
-            isCustomExport,
+            settings.isCustom,
             "assets/misc/link_animetion",
-            folderName if isCustomExport else "",
+            settings.folderName if settings.isCustom else "",
             False,
             False,
         )
         headerPath = ootGetPath(
             exportPath,
-            isCustomExport,
+            settings.isCustom,
             "assets/objects/gameplay_keep",
-            folderName if isCustomExport else "",
+            settings.folderName if settings.isCustom else "",
             False,
             False,
         )
@@ -428,19 +440,19 @@ def exportAnimationC(
             os.path.join(headerPath, ootAnim.headerName + ".c"),
         )
 
-        if not isCustomExport:
+        if not settings.isCustom:
             addIncludeFiles("link_animetion", path, ootAnim.dataName())
             addIncludeFiles("gameplay_keep", headerPath, ootAnim.headerName)
 
     else:
-        ootAnim = ootExportNonLinkAnimation(armatureObj, convertTransformMatrix, skeletonName)
+        ootAnim = ootExportNonLinkAnimation(armatureObj, convertTransformMatrix, settings.skeletonName)
 
         ootAnimC = ootAnim.toC()
-        path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, False)
+        path = ootGetPath(exportPath, settings.isCustom, "assets/objects/", settings.folderName, False, False)
         writeCData(ootAnimC, os.path.join(path, ootAnim.name + ".h"), os.path.join(path, ootAnim.name + ".c"))
 
-        if not isCustomExport:
-            addIncludeFiles(folderName, path, ootAnim.name)
+        if not settings.isCustom:
+            addIncludeFiles(settings.folderName, path, ootAnim.name)
 
 
 def getNextBone(boneStack, armatureObj):
@@ -453,11 +465,15 @@ def getNextBone(boneStack, armatureObj):
 
 
 def ootImportAnimationC(
-    armatureObj: bpy.types.Object, filepath: str, animName: str, actorScale: float, isLink: bool, isCustomImport: bool
+    armatureObj: bpy.types.Object,
+    settings: OOTAnimImportSettingsProperty,
+    actorScale: float,
 ):
-    if isLink:
+    importPath = bpy.path.abspath(settings.customPath)
+    filepath = ootGetObjectPath(settings.isCustom, importPath, settings.folderName)
+    if settings.isLink:
         numLimbs = 21
-        if not isCustomImport:
+        if not settings.isCustom:
             basePath = bpy.path.abspath(bpy.context.scene.ootDecompPath)
             animFilepath = os.path.join(basePath, "assets/misc/link_animetion/link_animetion.c")
             animHeaderFilepath = os.path.join(basePath, "assets/objects/gameplay_keep/gameplay_keep.c")
@@ -468,13 +484,13 @@ def ootImportAnimationC(
             armatureObj,
             animHeaderFilepath,
             animFilepath,
-            animName,
+            settings.animName,
             actorScale,
             numLimbs,
-            isCustomImport,
+            settings.isCustom,
         )
     else:
-        ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale)
+        ootImportNonLinkAnimationC(armatureObj, filepath, settings.animName, actorScale)
 
 
 def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale):
@@ -720,15 +736,8 @@ class OOT_ExportAnim(bpy.types.Operator):
             return {"CANCELLED"}
 
         try:
-            isCustomExport = context.scene.ootAnimIsCustomExport
-            exportPath = bpy.path.abspath(context.scene.ootAnimExportCustomPath)
-            folderName = context.scene.ootAnimExportFolderName
-            skeletonName = context.scene.ootAnimSkeletonName
-            isLink = context.scene.ootAnimExportIsLink
-
-            path = ootGetObjectPath(isCustomExport, exportPath, folderName)
-
-            exportAnimationC(armatureObj, path, isCustomExport, folderName, skeletonName, isLink)
+            settings = context.scene.ootAnimExportSettings
+            exportAnimationC(armatureObj, settings)
             self.report({"INFO"}, "Success!")
 
         except Exception as e:
@@ -761,16 +770,9 @@ class OOT_ImportAnim(bpy.types.Operator):
             return {"CANCELLED"}
 
         try:
-            isCustomImport = context.scene.ootAnimIsCustomImport
-            folderName = context.scene.ootAnimImportFolderName
-            importPath = bpy.path.abspath(context.scene.ootAnimImportCustomPath)
-            animName = context.scene.ootAnimName
             actorScale = context.scene.ootActorBlenderScale
-            isLink = context.scene.ootAnimImportIsLink
-
-            path = ootGetObjectPath(isCustomImport, importPath, folderName)
-
-            ootImportAnimationC(armatureObj, path, animName, actorScale, isLink, isCustomImport)
+            settings = context.scene.ootAnimImportSettings
+            ootImportAnimationC(armatureObj, settings, actorScale)
             self.report({"INFO"}, "Success!")
 
         except Exception as e:
@@ -789,22 +791,24 @@ class OOT_ExportAnimPanel(OOT_Panel):
         col = self.layout.column()
 
         col.operator(OOT_ExportAnim.bl_idname)
-        prop_split(col, context.scene, "ootAnimSkeletonName", "Anim Name Prefix")
-        if context.scene.ootAnimIsCustomExport:
-            prop_split(col, context.scene, "ootAnimExportCustomPath", "Folder")
-        elif not context.scene.ootAnimExportIsLink:
-            prop_split(col, context.scene, "ootAnimExportFolderName", "Object")
-        col.prop(context.scene, "ootAnimExportIsLink")
-        col.prop(context.scene, "ootAnimIsCustomExport")
+        exportSettings = context.scene.ootAnimExportSettings
+        prop_split(col, exportSettings, "skeletonName", "Anim Name Prefix")
+        if exportSettings.isCustom:
+            prop_split(col, exportSettings, "customPath", "Folder")
+        elif not exportSettings.isLink:
+            prop_split(col, exportSettings, "folderName", "Object")
+        col.prop(exportSettings, "isLink")
+        col.prop(exportSettings, "isCustom")
 
         col.operator(OOT_ImportAnim.bl_idname)
-        prop_split(col, context.scene, "ootAnimName", "Anim Header Name")
-        if context.scene.ootAnimIsCustomImport:
-            prop_split(col, context.scene, "ootAnimImportCustomPath", "File")
-        elif not context.scene.ootAnimImportIsLink:
-            prop_split(col, context.scene, "ootAnimImportFolderName", "Object")
-        col.prop(context.scene, "ootAnimImportIsLink")
-        col.prop(context.scene, "ootAnimIsCustomImport")
+        importSettings = context.scene.ootAnimImportSettings
+        prop_split(col, importSettings, "animName", "Anim Header Name")
+        if importSettings.isCustom:
+            prop_split(col, importSettings, "customPath", "File")
+        elif not importSettings.isLink:
+            prop_split(col, importSettings, "folderName", "Object")
+        col.prop(importSettings, "isLink")
+        col.prop(importSettings, "isCustom")
 
 
 # we use a handler since update functions are not called when a property is animated.
@@ -896,6 +900,8 @@ oot_anim_classes = (
     OOT_ExportAnim,
     OOT_ImportAnim,
     OOTLinkTextureAnimProperty,
+    OOTAnimExportSettingsProperty,
+    OOTAnimImportSettingsProperty,
 )
 
 oot_anim_panels = (OOT_ExportAnimPanel, OOT_LinkAnimPanel)
@@ -917,18 +923,9 @@ def oot_anim_register():
 
     bpy.app.handlers.frame_change_pre.append(load_handler)
 
-    bpy.types.Scene.ootAnimIsCustomExport = bpy.props.BoolProperty(name="Use Custom Path")
-    bpy.types.Scene.ootAnimExportCustomPath = bpy.props.StringProperty(name="Folder", subtype="FILE_PATH")
-    bpy.types.Scene.ootAnimExportFolderName = bpy.props.StringProperty(name="Animation Folder", default="object_geldb")
-    bpy.types.Scene.ootAnimExportIsLink = bpy.props.BoolProperty(name="Is Link", default=False)
+    bpy.types.Scene.ootAnimExportSettings = bpy.props.PointerProperty(type=OOTAnimExportSettingsProperty)
+    bpy.types.Scene.ootAnimImportSettings = bpy.props.PointerProperty(type=OOTAnimImportSettingsProperty)
 
-    bpy.types.Scene.ootAnimIsCustomImport = bpy.props.BoolProperty(name="Use Custom Path")
-    bpy.types.Scene.ootAnimImportCustomPath = bpy.props.StringProperty(name="Folder", subtype="FILE_PATH")
-    bpy.types.Scene.ootAnimImportFolderName = bpy.props.StringProperty(name="Animation Folder", default="object_geldb")
-    bpy.types.Scene.ootAnimImportIsLink = bpy.props.BoolProperty(name="Is Link", default=False)
-
-    bpy.types.Scene.ootAnimSkeletonName = bpy.props.StringProperty(name="Skeleton Name", default="gGerudoRedSkel")
-    bpy.types.Scene.ootAnimName = bpy.props.StringProperty(name="Anim Name", default="gGerudoRedSpinAttackAnim")
     bpy.types.Object.ootLinkTextureAnim = bpy.props.PointerProperty(type=OOTLinkTextureAnimProperty)
 
 
@@ -936,16 +933,7 @@ def oot_anim_unregister():
     for cls in reversed(oot_anim_classes):
         unregister_class(cls)
 
-    del bpy.types.Scene.ootAnimIsCustomExport
-    del bpy.types.Scene.ootAnimExportCustomPath
-    del bpy.types.Scene.ootAnimExportFolderName
-    del bpy.types.Scene.ootAnimExportIsLink
+    del bpy.types.Scene.ootAnimExportSettings
+    del bpy.types.Scene.ootAnimImportSettings
 
-    del bpy.types.Scene.ootAnimIsCustomImport
-    del bpy.types.Scene.ootAnimImportCustomPath
-    del bpy.types.Scene.ootAnimImportFolderName
-    del bpy.types.Scene.ootAnimImportIsLink
-
-    del bpy.types.Scene.ootAnimSkeletonName
-    del bpy.types.Scene.ootAnimName
-    del bpy.types.Scene.ootLinkTextureAnim
+    del bpy.types.Object.ootLinkTextureAnim
