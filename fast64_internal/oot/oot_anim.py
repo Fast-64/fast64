@@ -10,6 +10,10 @@ from ..panels import OOT_Panel
 from bpy.app.handlers import persistent
 
 
+def convertToUnsignedShort(value: int) -> int:
+    return int.from_bytes(value.to_bytes(2, "big", signed=(value < 0)), "big", signed=False)
+
+
 class OOTAnimation:
     def __init__(self, name):
         self.name = toAlnum(name)
@@ -35,7 +39,7 @@ class OOTAnimation:
         for value in self.values:
             if counter == 0:
                 data.source += "\t"
-            data.source += format(value, "#06x") + ", "
+            data.source += format(convertToUnsignedShort(value), "#06x") + ", "
             counter += 1
             if counter >= 16:  # round number for finding/counting data
                 counter = 0
@@ -47,7 +51,13 @@ class OOTAnimation:
         for index in range(-1, len(self.indices) - 1):
             data.source += "\t{ "
             for field in range(3):
-                data.source += format(self.indices[index][field], "#06x") + ", "
+                data.source += (
+                    format(
+                        convertToUnsignedShort(self.indices[index][field]),
+                        "#06x",
+                    )
+                    + ", "
+                )
             data.source += "},\n"
         data.source += "};\n\n"
 
@@ -68,6 +78,51 @@ class OOTAnimation:
         )
 
         return data
+
+
+class OOTLinkAnimation:
+    def __init__(self, name):
+        self.headerName = toAlnum(name)
+        self.frameCount = None
+        self.data = []
+
+    def dataName(self):
+        return self.headerName + "Data"
+
+    def toC(self, isCustomExport: bool):
+        data = CData()
+        animHeaderData = CData()
+
+        data.source += '#include "ultra64.h"\n#include "global.h"\n\n'
+        animHeaderData.source += '#include "ultra64.h"\n#include "global.h"\n\n'
+
+        # TODO: handle custom import?
+        if isCustomExport:
+            animHeaderData.source += f'#include "{self.dataName()}.h"\n'
+        else:
+            animHeaderData.source += f'#include "assets/misc/link_animetion/{self.dataName()}.h"\n'
+
+        # data
+        data.header += f"extern s16 {self.dataName()}[];\n"
+        data.source += f"s16 {self.dataName()}[] = {{\n"
+        counter = 0
+        for value in self.data:
+            if counter == 0:
+                data.source += "\t"
+            data.source += format(convertToUnsignedShort(value), "#06x") + ", "
+            counter += 1
+            if counter >= 8:  # round number for finding/counting data
+                counter = 0
+                data.source += "\n"
+        data.source += "\n};\n\n"
+
+        # header
+        animHeaderData.header += f"extern LinkAnimationHeader {self.headerName};\n"
+        animHeaderData.source += (
+            f"LinkAnimationHeader {self.headerName} = {{\n\t{{ {str(self.frameCount)} }}, {self.dataName()} \n}};\n\n"
+        )
+
+        return data, animHeaderData
 
 
 def ootGetAnimBoneRot(bone, poseBone, convertTransformMatrix, isRoot):
@@ -134,7 +189,7 @@ def ootGetAnimBoneRot(bone, poseBone, convertTransformMatrix, isRoot):
     return finalRotation
 
 
-def ootConvertAnimationData(anim, armatureObj, convertTransformMatrix, *, frame_start, frame_count):
+def ootConvertNonLinkAnimationData(anim, armatureObj, convertTransformMatrix, *, frame_start, frame_count):
     checkForStartBone(armatureObj)
     bonesToProcess = [getStartBone(armatureObj)]
     currentBone = armatureObj.data.bones[bonesToProcess[0]]
@@ -200,7 +255,70 @@ def ootConvertAnimationData(anim, armatureObj, convertTransformMatrix, *, frame_
     return armatureFrameData
 
 
-def ootExportAnimationCommon(armatureObj, convertTransformMatrix, skeletonName):
+def ootConvertLinkAnimationData(anim, armatureObj, convertTransformMatrix, *, frame_start, frame_count):
+    checkForStartBone(armatureObj)
+    bonesToProcess = [getStartBone(armatureObj)]
+    currentBone = armatureObj.data.bones[bonesToProcess[0]]
+    animBones = []
+
+    # Get animation bones in order
+    # must be SAME order as ootProcessBone
+    while len(bonesToProcess) > 0:
+        boneName = bonesToProcess[0]
+        currentBone = armatureObj.data.bones[boneName]
+        bonesToProcess = bonesToProcess[1:]
+
+        animBones.append(boneName)
+
+        childrenNames = getSortedChildren(armatureObj, currentBone)
+        bonesToProcess = childrenNames + bonesToProcess
+
+    # list of boneFrameData, which is [[x frames], [y frames], [z frames]]
+    # boneIndex is index in animBones in ootConvertAnimationData.
+    # since we are processing the bones in the same order as ootProcessBone,
+    # they should be the same as the limb indices.
+
+    frameData = []
+
+    currentFrame = bpy.context.scene.frame_current
+    for frame in range(frame_start, frame_start + frame_count):
+        bpy.context.scene.frame_set(frame)
+        rootBone = armatureObj.data.bones[animBones[0]]
+        rootPoseBone = armatureObj.pose.bones[animBones[0]]
+
+        # Convert Z-up to Y-up for root translation animation
+        translation = (
+            mathutils.Quaternion((1, 0, 0), math.radians(-90.0))
+            @ (convertTransformMatrix @ rootPoseBone.matrix).decompose()[0]
+        )
+
+        for i in range(3):
+            frameData.append(min(int(round(translation[i])), 2**16 - 1))
+
+        for boneIndex in range(len(animBones)):
+            boneName = animBones[boneIndex]
+            currentBone = armatureObj.data.bones[boneName]
+            currentPoseBone = armatureObj.pose.bones[boneName]
+
+            rotation = ootGetAnimBoneRot(currentBone, currentPoseBone, convertTransformMatrix, boneIndex == 0)
+            for i in range(3):
+                field = rotation.to_euler()[i]
+                value = (math.degrees(field) % 360) / 360
+                frameData.append(min(int(round(value * (2**16 - 1))), 2**16 - 1))
+
+        textureAnimValue = (armatureObj.ootLinkTextureAnim.eyes & 0xF) | (
+            (armatureObj.ootLinkTextureAnim.mouth & 0xF) << 4
+        )
+        frameData.append(textureAnimValue)
+
+    bpy.context.scene.frame_set(currentFrame)
+
+    # need to deepcopy?
+
+    return frameData
+
+
+def ootExportNonLinkAnimation(armatureObj, convertTransformMatrix, skeletonName):
     if armatureObj.animation_data is None or armatureObj.animation_data.action is None:
         raise PluginError("No active animation selected.")
     anim = armatureObj.animation_data.action
@@ -211,7 +329,7 @@ def ootExportAnimationCommon(armatureObj, convertTransformMatrix, skeletonName):
     frame_start, frame_last = getFrameInterval(anim)
     ootAnim.frameCount = frame_last - frame_start + 1
 
-    armatureFrameData = ootConvertAnimationData(
+    armatureFrameData = ootConvertNonLinkAnimationData(
         anim,
         armatureObj,
         convertTransformMatrix,
@@ -247,21 +365,82 @@ def ootExportAnimationCommon(armatureObj, convertTransformMatrix, skeletonName):
     return ootAnim
 
 
-def exportAnimationC(armatureObj, exportPath, isCustomExport, folderName, skeletonName):
+def ootExportLinkAnimation(armatureObj, convertTransformMatrix, skeletonName):
+    if armatureObj.animation_data is None or armatureObj.animation_data.action is None:
+        raise PluginError("No active animation selected.")
+    anim = armatureObj.animation_data.action
+    ootAnim = OOTLinkAnimation(toAlnum(skeletonName + anim.name.capitalize() + "Anim"))
+
+    frame_start, frame_last = getFrameInterval(anim)
+    ootAnim.frameCount = frame_last - frame_start + 1
+
+    ootAnim.data = ootConvertLinkAnimationData(
+        anim,
+        armatureObj,
+        convertTransformMatrix,
+        frame_start=frame_start,
+        frame_count=(frame_last - frame_start + 1),
+    )
+
+    return ootAnim
+
+
+def exportAnimationC(
+    armatureObj: bpy.types.Object,
+    exportPath: str,
+    isCustomExport: bool,
+    folderName: str,
+    skeletonName: str,
+    isLink: bool,
+):
     checkEmptyName(folderName)
     checkEmptyName(skeletonName)
     convertTransformMatrix = (
         mathutils.Matrix.Scale(bpy.context.scene.ootActorBlenderScale, 4)
         @ mathutils.Matrix.Diagonal(armatureObj.scale).to_4x4()
     )
-    ootAnim = ootExportAnimationCommon(armatureObj, convertTransformMatrix, skeletonName)
 
-    ootAnimC = ootAnim.toC()
-    path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, False)
-    writeCData(ootAnimC, os.path.join(path, ootAnim.name + ".h"), os.path.join(path, ootAnim.name + ".c"))
+    if isLink:
+        ootAnim = ootExportLinkAnimation(armatureObj, convertTransformMatrix, "gLink")
+        ootAnimC, ootAnimHeaderC = ootAnim.toC(isCustomExport)
+        path = ootGetPath(
+            exportPath,
+            isCustomExport,
+            "assets/misc/link_animetion",
+            folderName if isCustomExport else "",
+            False,
+            False,
+        )
+        headerPath = ootGetPath(
+            exportPath,
+            isCustomExport,
+            "assets/objects/gameplay_keep",
+            folderName if isCustomExport else "",
+            False,
+            False,
+        )
+        writeCData(
+            ootAnimC, os.path.join(path, ootAnim.dataName() + ".h"), os.path.join(path, ootAnim.dataName() + ".c")
+        )
+        writeCData(
+            ootAnimHeaderC,
+            os.path.join(headerPath, ootAnim.headerName + ".h"),
+            os.path.join(headerPath, ootAnim.headerName + ".c"),
+        )
 
-    if not isCustomExport:
-        addIncludeFiles(folderName, path, ootAnim.name)
+        if not isCustomExport:
+            addIncludeFiles("link_animetion", path, ootAnim.dataName())
+            addIncludeFiles("gameplay_keep", headerPath, ootAnim.headerName)
+
+    else:
+        ootAnim = ootExportNonLinkAnimation(armatureObj, convertTransformMatrix, skeletonName)
+
+        ootAnimC = ootAnim.toC()
+        path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, False)
+        writeCData(ootAnimC, os.path.join(path, ootAnim.name + ".h"), os.path.join(path, ootAnim.name + ".c"))
+
+        if not isCustomExport:
+            addIncludeFiles(folderName, path, ootAnim.name)
 
 
 def getNextBone(boneStack, armatureObj):
@@ -342,7 +521,7 @@ def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale):
                     fcurve.keyframe_points.insert(0, value)
                 else:
                     for frame in range(frameCount):
-                        ootTranslationValue(frameData[jointIndex[propertyIndex] + frame], actorScale)
+                        value = ootTranslationValue(frameData[jointIndex[propertyIndex] + frame], actorScale)
                         fcurve.keyframe_points.insert(frame, value)
             isRootTranslation = False
         else:
@@ -390,7 +569,7 @@ def ootImportLinkAnimationC(
         animData = ootGetIncludedAssetData(basePath, [animFilepath], animData) + animData
 
     matchResult = re.search(
-        re.escape(animHeaderName) + "\s*=\s*\{\s*\{\s*([^,\s]*)\s*\}*\s*,\s*([^,\s]*)\s*\}\s*;",
+        re.escape(animHeaderName) + "\s*=\s*\{\s*\{\s*([^,\s]*)\s*\}\s*,\s*([^,\s]*)\s*\}\s*;",
         animHeaderData,
     )
     if matchResult is None:
@@ -549,7 +728,7 @@ class OOT_ExportAnim(bpy.types.Operator):
 
             path = ootGetObjectPath(isCustomExport, exportPath, folderName)
 
-            exportAnimationC(armatureObj, path, isCustomExport, folderName, skeletonName)
+            exportAnimationC(armatureObj, path, isCustomExport, folderName, skeletonName, isLink)
             self.report({"INFO"}, "Success!")
 
         except Exception as e:
@@ -610,7 +789,7 @@ class OOT_ExportAnimPanel(OOT_Panel):
         col = self.layout.column()
 
         col.operator(OOT_ExportAnim.bl_idname)
-        prop_split(col, context.scene, "ootAnimSkeletonName", "Skeleton Name")
+        prop_split(col, context.scene, "ootAnimSkeletonName", "Anim Name Prefix")
         if context.scene.ootAnimIsCustomExport:
             prop_split(col, context.scene, "ootAnimExportCustomPath", "Folder")
         elif not context.scene.ootAnimExportIsLink:
@@ -619,7 +798,7 @@ class OOT_ExportAnimPanel(OOT_Panel):
         col.prop(context.scene, "ootAnimIsCustomExport")
 
         col.operator(OOT_ImportAnim.bl_idname)
-        prop_split(col, context.scene, "ootAnimName", "Anim Name")
+        prop_split(col, context.scene, "ootAnimName", "Anim Header Name")
         if context.scene.ootAnimIsCustomImport:
             prop_split(col, context.scene, "ootAnimImportCustomPath", "File")
         elif not context.scene.ootAnimImportIsLink:
@@ -628,6 +807,7 @@ class OOT_ExportAnimPanel(OOT_Panel):
         col.prop(context.scene, "ootAnimIsCustomImport")
 
 
+# we use a handler since update functions are not called when a property is animated.
 @persistent
 def load_handler(dummy):
     if bpy.context.scene.gameEditorMode == "OOT":
@@ -709,6 +889,7 @@ class OOT_LinkAnimPanel(bpy.types.Panel):
         col.box().label(text="OOT Link Animation Inspector")
         prop_split(col, context.object.ootLinkTextureAnim, "eyes", "Eyes")
         prop_split(col, context.object.ootLinkTextureAnim, "mouth", "Mouth")
+        col.label(text="Index 0 is for auto, flipbook starts at index 1.", icon="INFO")
 
 
 oot_anim_classes = (
