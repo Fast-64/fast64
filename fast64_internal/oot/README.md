@@ -81,6 +81,14 @@ There may also be an issue where some meshes import completely black due to the 
 To import an animation, select the armature the animation belongs to then click "Import" on the animation importer.
 To export an animation, select an armature and click "Export", which will export the active animation of the armature.
 
+### Flipbook Textures
+Many actors in OOT will animate textures through code using a flipbook method, like with Link's eyes/mouth. A flipbook material will use a texture reference pointing to an address formatted as 0x0?000000. You can find the flipbook texture frames in the material properties tab underneath the dynamic material section. 
+![](/images/oot_flipbook.png)
+On import, Fast64 will try to read the provided actors code for flipbook textures. On export, Fast64 will try to modify texture arrays used for flipbook textures.
+
+For Link, the eyes/mouth materials use flipbook textures. For Link animations you can animate these flipbook indices in the Link Animation Inspector, located in the object properties tab for an armature object. Note that the 0 index is reserved for the "auto" setting, and that flipbook texture indices start at 1.
+![](/images/oot_link_texture_anim.png)
+
 ### Creating a Cutscene
 **Creating the cutscene itself:**
 
