@@ -142,7 +142,7 @@ def ootExportSceneToC(
 
     if not isCustomExport:
         writeOtherSceneProperties(scene, exportInfo, levelC)
-        if bootToSceneOptions.bootToScene:
+        if bootToSceneOptions is not None and bootToSceneOptions.bootToScene:
             setBootupScene(
                 exportPath, "ENTR_" + sceneName.upper() + "_" + str(bootToSceneOptions.spawnIndex), bootToSceneOptions
             )
@@ -651,7 +651,7 @@ class OOT_ExportScene(bpy.types.Operator):
                 DLFormat.Static,
                 context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions,
                 exportInfo,
-                context.scene.ootBootupSceneOptions,
+                context.scene.ootBootupSceneOptions if context.scene.ootHackerFeaturesEnabled else None,
             )
 
             self.report({"INFO"}, "Success!")
@@ -722,25 +722,27 @@ class OOT_ExportScenePanel(OOT_Panel):
             prop_split(col, context.scene, "ootSceneName", "Name")
             customExportWarning(col)
         else:
-            col.prop(context.scene.ootBootupSceneOptions, "bootToScene")
-            if context.scene.ootBootupSceneOptions.bootToScene:
-                col.prop(context.scene.ootBootupSceneOptions, "newGameOnly")
-                prop_split(col, context.scene.ootBootupSceneOptions, "bootMode", "Boot Mode")
-                if context.scene.ootBootupSceneOptions.bootMode == "Play":
-                    prop_split(col, context.scene.ootBootupSceneOptions, "newGameName", "New Game Name")
-                prop_split(col, context.scene.ootBootupSceneOptions, "spawnIndex", "Spawn")
-                col.prop(context.scene.ootBootupSceneOptions, "overrideHeader")
-                if context.scene.ootBootupSceneOptions.overrideHeader:
-                    prop_split(col, context.scene.ootBootupSceneOptions, "headerOption", "Header Option")
-                    if context.scene.ootBootupSceneOptions.headerOption == "Cutscene":
-                        prop_split(col, context.scene.ootBootupSceneOptions, "cutsceneIndex", "Cutscene Index")
+            if context.scene.ootHackerFeaturesEnabled:
+                col.prop(context.scene.ootBootupSceneOptions, "bootToScene", text="Boot To Scene (HackerOOT)")
+                if context.scene.ootBootupSceneOptions.bootToScene:
+                    col.prop(context.scene.ootBootupSceneOptions, "newGameOnly")
+                    prop_split(col, context.scene.ootBootupSceneOptions, "bootMode", "Boot Mode")
+                    if context.scene.ootBootupSceneOptions.bootMode == "Play":
+                        prop_split(col, context.scene.ootBootupSceneOptions, "newGameName", "New Game Name")
+                    prop_split(col, context.scene.ootBootupSceneOptions, "spawnIndex", "Spawn")
+                    col.prop(context.scene.ootBootupSceneOptions, "overrideHeader")
+                    if context.scene.ootBootupSceneOptions.overrideHeader:
+                        prop_split(col, context.scene.ootBootupSceneOptions, "headerOption", "Header Option")
+                        if context.scene.ootBootupSceneOptions.headerOption == "Cutscene":
+                            prop_split(col, context.scene.ootBootupSceneOptions, "cutsceneIndex", "Cutscene Index")
+                col.label(text="Note: Scene boot config changes aren't detected by the make process.", icon="ERROR")
+                col.operator(OOT_ClearBootupScene.bl_idname, text="Undo Boot To Scene (HackerOOT)")
             col.operator(OOT_SearchSceneEnumOperator.bl_idname, icon="VIEWZOOM")
             col.box().column().label(text=getEnumName(ootEnumSceneID, context.scene.ootSceneOption))
             # col.prop(context.scene, 'ootSceneOption')
             if context.scene.ootSceneOption == "Custom":
                 prop_split(col, context.scene, "ootSceneSubFolder", "Subfolder")
                 prop_split(col, context.scene, "ootSceneName", "Name")
-            col.operator(OOT_ClearBootupScene.bl_idname)
             col.operator(OOT_RemoveScene.bl_idname, text="Remove Scene")
 
 
