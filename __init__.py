@@ -9,6 +9,7 @@ from pathlib import Path
 from .fast64_internal import *
 from .fast64_internal.panels import SM64_Panel
 from .fast64_internal.oot.oot_level import OOT_ObjectProperties
+from .fast64_internal.utility_anim import utility_anim_register, utility_anim_unregister, ArmatureApplyWithMesh
 
 import cProfile
 import pstats
@@ -30,63 +31,6 @@ gameEditorEnum = (
     ("SM64", "SM64", "Super Mario 64"),
     ("OOT", "OOT", "Ocarina Of Time"),
 )
-
-
-class ArmatureApplyWithMesh(bpy.types.Operator):
-    # set bl_ properties
-    bl_description = (
-        "Applies current pose as default pose. Useful for "
-        + "rigging an armature that is not in T/A pose. Note that when using "
-        + " with an SM64 armature, you must revert to the default pose after "
-        + "skinning."
-    )
-    bl_idname = "object.armature_apply_w_mesh"
-    bl_label = "Apply As Rest Pose"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
-
-    # Called on demand (i.e. button press, menu item)
-    # Can also be called from operator search menu (Spacebar)
-    def execute(self, context):
-        try:
-            if context.mode != "OBJECT":
-                bpy.ops.object.mode_set(mode="OBJECT")
-
-            if len(context.selected_objects) == 0:
-                raise PluginError("Armature not selected.")
-            elif type(context.selected_objects[0].data) is not bpy.types.Armature:
-                raise PluginError("Armature not selected.")
-
-            armatureObj = context.selected_objects[0]
-            for child in armatureObj.children:
-                if type(child.data) is not bpy.types.Mesh:
-                    continue
-                armatureModifier = None
-                for modifier in child.modifiers:
-                    if isinstance(modifier, bpy.types.ArmatureModifier):
-                        armatureModifier = modifier
-                if armatureModifier is None:
-                    continue
-                print(armatureModifier.name)
-                bpy.ops.object.select_all(action="DESELECT")
-                context.view_layer.objects.active = child
-                bpy.ops.object.modifier_copy(modifier=armatureModifier.name)
-                print(len(child.modifiers))
-                attemptModifierApply(armatureModifier)
-
-            bpy.ops.object.select_all(action="DESELECT")
-            context.view_layer.objects.active = armatureObj
-            bpy.ops.object.mode_set(mode="POSE")
-            bpy.ops.pose.armature_apply()
-            if context.mode != "OBJECT":
-                bpy.ops.object.mode_set(mode="OBJECT")
-        except Exception as e:
-            if context.mode != "OBJECT":
-                bpy.ops.object.mode_set(mode="OBJECT")
-            raisePluginError(self, e)
-            return {"CANCELLED"}
-
-        self.report({"INFO"}, "Applied armature with mesh.")
-        return {"FINISHED"}  # must return a set
 
 
 class AddBoneGroups(bpy.types.Operator):
@@ -357,7 +301,6 @@ classes = (
     Fast64_Properties,
     Fast64_BoneProperties,
     Fast64_ObjectProperties,
-    ArmatureApplyWithMesh,
     AddBoneGroups,
     CreateMetarig,
     SM64_AddWaterBox,
@@ -404,6 +347,7 @@ def register():
     register_class(ExampleAddonPreferences)
     addon_updater_ops.register(bl_info)
 
+    utility_anim_register()
     mat_register()
     render_engine_register()
     bsdf_conv_register()
@@ -439,6 +383,7 @@ def register():
 
 # called on add-on disabling
 def unregister():
+    utility_anim_unregister()
     f3d_writer_unregister()
     f3d_parser_unregister()
     sm64_unregister(True)

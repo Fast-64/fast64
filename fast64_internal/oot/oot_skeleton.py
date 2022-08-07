@@ -2,6 +2,7 @@ import shutil, copy, mathutils, bpy, math, os, re
 from bpy.utils import register_class, unregister_class
 
 from ..utility import *
+from ..utility_anim import armatureApplyWithMesh
 from .oot_utility import *
 from .oot_constants import *
 from .oot_model_classes import *
@@ -240,7 +241,7 @@ def getGroupIndexOfVert(vert, armatureObj, obj, rootGroupIndex):
     return vertGroup.group
 
 
-def ootDuplicateArmature(originalArmatureObj):
+def ootDuplicateArmatureAndRemoveRotations(originalArmatureObj: bpy.types.Object):
     # Duplicate objects to apply scale / modifiers / linked data
     bpy.ops.object.select_all(action="DESELECT")
 
@@ -264,6 +265,8 @@ def ootDuplicateArmature(originalArmatureObj):
         armatureObj.select_set(True)
         bpy.context.view_layer.objects.active = armatureObj
         bpy.ops.object.transform_apply(location=False, rotation=False, scale=True, properties=False)
+
+        ootRemoveRotationsFromArmature(armatureObj)
 
         # Apply modifiers/data to mesh objs
         bpy.ops.object.select_all(action="DESELECT")
@@ -311,12 +314,42 @@ def ootConvertArmatureToSkeletonWithMesh(
     )
 
 
+def ootRemoveRotationsFromArmature(armatureObj: bpy.types.Object) -> None:
+    checkForStartBone(armatureObj)
+    startBoneName = getStartBone(armatureObj)
+    ootRemoveRotationsFromBone(armatureObj, armatureObj.data.bones[startBoneName])
+    armatureApplyWithMesh(armatureObj, bpy.context)
+
+
+# TODO: check for bone type?
+def ootRemoveRotationsFromBone(armatureObj: bpy.types.Object, bone: bpy.types.Bone):
+    for childBone in bone.children:
+        ootRemoveRotationsFromBone(armatureObj, childBone)
+
+    yUpToZUp = mathutils.Quaternion((1, 0, 0), math.radians(90.0)).to_matrix().to_4x4()
+
+    if bone.parent is not None:
+        transform = bone.parent.matrix_local.inverted() @ bone.matrix_local
+    else:
+        transform = bone.matrix_local
+
+    # extract local transform, excluding rotation/scale
+    # apply the inverse of that to the pose bone to get it to zero-rotation rest pose
+    translate = mathutils.Matrix.Translation(transform.decompose()[0])
+    undoRotationTransform = transform.inverted() @ translate
+    if bone.parent is None:
+        undoRotationTransform = yUpToZUp @ undoRotationTransform
+
+    poseBone = armatureObj.pose.bones[bone.name]
+    poseBone.matrix_basis = undoRotationTransform
+
+
 def ootConvertArmatureToSkeleton(
     originalArmatureObj, convertTransformMatrix, fModel, name, convertTextureData, skeletonOnly, drawLayer
 ):
     checkEmptyName(name)
 
-    armatureObj, meshObjs = ootDuplicateArmature(originalArmatureObj)
+    armatureObj, meshObjs = ootDuplicateArmatureAndRemoveRotations(originalArmatureObj)
 
     try:
         skeleton = OOTSkeleton(name)
@@ -1083,6 +1116,8 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
         col.prop(context.scene, "ootActorRemoveDoubles")
         col.prop(context.scene, "ootActorImportNormals")
         col.prop(context.scene, "ootSkeletonRemoveVanillaData")
+
+        col.operator(ArmatureApplyWithMesh.bl_idname)
 
 
 class OOT_SkeletonPanel(bpy.types.Panel):

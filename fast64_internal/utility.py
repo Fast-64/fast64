@@ -120,13 +120,6 @@ def parentObject(parent, child):
     bpy.ops.object.parent_set(type="OBJECT", keep_transform=True)
 
 
-def attemptModifierApply(modifier):
-    try:
-        bpy.ops.object.modifier_apply(modifier=modifier.name)
-    except Exception as e:
-        print("Skipping modifier " + str(modifier.name))
-
-
 def getFMeshName(vertexGroup, namePrefix, drawLayer, isSkinned):
     fMeshName = toAlnum(namePrefix + ("_" if namePrefix != "" else "") + vertexGroup)
     if isSkinned:
