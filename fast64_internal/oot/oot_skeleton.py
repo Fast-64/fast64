@@ -905,7 +905,7 @@ def ootRemoveSkeleton(filepath, objectName, skeletonName):
         return
     skeletonDataC = skeletonDataC[: matchResult.start(0)] + skeletonDataC[matchResult.end(0) :]
     limbsData = matchResult.group(2)
-    limbList = [entry.strip()[1:] for entry in limbsData.split(",")]
+    limbList = [entry.strip()[1:] for entry in limbsData.split(",") if entry.strip() != ""]
 
     headerMatch = getDeclaration(skeletonDataH, limbsName)
     if headerMatch is not None:
