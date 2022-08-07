@@ -5,317 +5,52 @@ from ...utility import PluginError, writeFile
 from ..oot_constants import ootEnumHeaderMenuComplete
 from typing import Callable, Iterable, Any, List
 
-# note: current regex relies on formatting convention to find function bracket close (i.e. "\n}")
-
 
 def setBootupScene(exportPath: str, entranceIndex: str, options: Any):
-    editTitleSetup(exportPath, "SET_NEXT_GAMESTATE(&this->state, FileSelect_Init, FileSelectState);")
-    if options.bootMode == "Play":
-        editFileSelect(exportPath, entranceIndex, options, setFileSelectInit, setFileSelectLoadGame)
-    else:
-        editFileSelect(exportPath, "", None, clearFileSelectInit, clearFileSelectLoadGame)
-    editSramInitSave(exportPath, entranceIndex, options, setSramInitSave)
+
+    linkAge = "LINK_AGE_CHILD"
+    timeOfDay = "NEXT_TIME_NONE"
+    cutsceneIndex = "0xFFEF"
+    saveFileNameData = ", ".join(["0x" + format(i, "02X") for i in stringToSaveNameBytes(options.newGameName)])
+    if options.overrideHeader:
+        timeOfDay, linkAge = getParamsFromOptions(options)
+        if options.headerOption == "Cutscene":
+            cutsceneIndex = "0xFFF" + format(options.cutsceneIndex - 4, "X")
+
+    data = (
+        f"#ifndef CONFIG_BOOTUP_H\n"
+        + f"#define CONFIG_BOOTUP_H\n\n"
+        + (("" if options.bootMode == "Play" else "// ") + "#define BOOT_TO_SCENE\n")
+        + (("" if options.newGameOnly else "// ") + "#define BOOT_TO_SCENE_NEW_GAME_ONLY\n")
+        + (("" if options.bootMode == "File Select" else "// ") + "#define BOOT_TO_FILE_SELECT\n")
+        + f"#define BOOT_ENTRANCE {entranceIndex}\n"
+        + f"#define BOOT_AGE {linkAge}\n"
+        + f"#define BOOT_TIME {timeOfDay}\n"
+        + f"#define BOOT_CUTSCENE {cutsceneIndex}\n"
+        + f"#define BOOT_LINK_NAME {saveFileNameData}\n\n"
+        + f"#endif\n"
+    )
+
+    writeFile(os.path.join(exportPath, "include/config/config_bootup.h"), data)
 
 
 def clearBootupScene(exportPath: str):
-    editTitleSetup(exportPath, "SET_NEXT_GAMESTATE(&this->state, ConsoleLogo_Init, ConsoleLogoState);")
-    editFileSelect(exportPath, "", None, clearFileSelectInit, clearFileSelectLoadGame)
-    editSramInitSave(exportPath, "", None, clearSramInitSave)
 
-
-# modify save init to ignore file 1 specific code (for debug map select)
-def editSramInitSave(
-    exportPath: str, entranceIndex: str, options: Any, editSramInitFunction: Callable[[str, Any], str]
-):
-    try:
-        editSramFilepath = os.path.join(exportPath, "src/code/z_sram.c")
-        with open(editSramFilepath) as file:
-            fileData = file.read()
-
-            # editing Sram_InitSave()
-            match = re.search(
-                r"void\s*Sram\_InitSave\s*\((((?!\)).)*)\)\s*\{(((?!\n\}).)*)\n\}", fileData, flags=re.DOTALL
-            )
-            if match:
-                functionContents = match.group(3)
-                newContents = editSramInitFunction(functionContents, entranceIndex, options)
-                newData = fileData[: match.start(3)] + newContents + fileData[match.end(3) :]
-
-                if newData != fileData:
-                    writeFile(editSramFilepath, newData)
-
-    except FileNotFoundError:
-        raise PluginError("ERROR: Can't find Sram_InitSave() in src/code/z_ram.c.")
-
-
-def setSramInitSave(functionContents: str, entranceIndex: str, options: Any):
-    newContents = functionContents
-
-    # disables file 1 specific code
-    newContents = re.sub(
-        r"if\s*\(fileSelect-\>buttonIndex\s*==\s*0\s*\)",
-        "if (fileSelect->buttonIndex == 0 && false)",
-        newContents,
-        flags=re.DOTALL,
-    )
-    newContents = re.sub(
-        r"if\s*\(fileSelect-\>buttonIndex\s*\!=\s*0\s*\)",
-        "if (fileSelect->buttonIndex != 0 || true)",
-        newContents,
-        flags=re.DOTALL,
+    data = (
+        f"#ifndef CONFIG_BOOTUP_H\n"
+        + f"#define CONFIG_BOOTUP_H\n\n"
+        + f"// #define BOOT_TO_SCENE\n"
+        + f"// #define BOOT_TO_SCENE_NEW_GAME_ONLY\n"
+        + f"// #define BOOT_TO_FILE_SELECT\n"
+        + f"#define BOOT_ENTRANCE 0\n"
+        + f"#define BOOT_AGE LINK_AGE_CHILD\n"
+        + f"#define BOOT_TIME NEXT_TIME_NONE\n"
+        + f"#define BOOT_CUTSCENE 0xFFEF\n"
+        + f"#define BOOT_LINK_NAME 0x15, 0x12, 0x17, 0x14, 0x3E, 0x3E, 0x3E, 0x3E\n\n"
+        + f"#endif\n"
     )
 
-    # sets entrance index
-    newContents = addOrModifyAssignment(newContents, "gSaveContext.entranceIndex", entranceIndex)
-
-    # overrides other properties for header
-    if options.overrideHeader:
-        timeOfDay, linkAge = getParamsFromOptions(options)
-
-        newContents = addOrModifyAssignment(newContents, "gSaveContext.dayTime", timeOfDay)
-        newContents = addOrModifyAssignment(newContents, "gSaveContext.linkAge", linkAge)
-
-        if options.headerOption == "Cutscene":
-            cutsceneIndex = "0xFFF" + format(options.cutsceneIndex - 4, "X")
-            newContents = addOrModifyAssignment(newContents, "gSaveContext.cutsceneIndex", cutsceneIndex)
-        else:
-            newContents = addOrModifyAssignment(newContents, "gSaveContext.cutsceneIndex", "0")
-    else:
-        newContents = addOrModifyAssignment(newContents, "gSaveContext.dayTime", "CLOCK_TIME(10, 0)")
-        newContents = addOrModifyAssignment(newContents, "gSaveContext.cutsceneIndex", "0")
-        newContents = addOrModifyAssignment(newContents, "gSaveContext.linkAge", "LINK_AGE_CHILD")
-
-    return newContents
-
-
-def clearSramInitSave(functionContents: str, entranceIndex: str, options: Any):
-    newContents = functionContents
-
-    # enables file 1 specific code
-    newContents = re.sub(
-        r"if\s*\(fileSelect-\>buttonIndex\s*\!=\s*0\s*\|\|\s*true\s*\)",
-        "if (fileSelect->buttonIndex != 0)",
-        newContents,
-        flags=re.DOTALL,
-    )
-    newContents = re.sub(
-        r"if\s*\(fileSelect-\>buttonIndex\s*==\s*0\s*\&\&\s*false\s*\)",
-        "if (fileSelect->buttonIndex == 0)",
-        newContents,
-        flags=re.DOTALL,
-    )
-
-    # restores default settings
-    newContents = addOrModifyAssignment(newContents, "gSaveContext.entranceIndex", "ENTR_LINK_HOME_0")
-    newContents = addOrModifyAssignment(newContents, "gSaveContext.dayTime", "CLOCK_TIME(10, 0)")
-    newContents = addOrModifyAssignment(newContents, "gSaveContext.cutsceneIndex", "0xFFF1")
-    newContents = addOrModifyAssignment(newContents, "gSaveContext.linkAge", "LINK_AGE_CHILD")
-
-    return newContents
-
-
-# modify setup init to skip console logo and go straight to file select, or revert this process
-def editTitleSetup(exportPath: str, gameStateFunction: str):
-    try:
-        titleSetupFilepath = os.path.join(exportPath, "src/code/title_setup.c")
-        with open(titleSetupFilepath) as file:
-            fileData = file.read()
-
-            # editing Setup_InitImpl()
-            match = re.search(
-                r"void\s*Setup\_InitImpl\s*\((((?!\)).)*)\)\s*\{(((?!\n\}).)*)\n\}", fileData, flags=re.DOTALL
-            )
-            if match:
-                functionContents = match.group(3)
-                newContents = (
-                    re.sub(r"SET_NEXT_GAMESTATE\s*\((((?!\)).)*)\)\s*;", "", functionContents, flags=re.DOTALL)
-                    + gameStateFunction
-                )
-                newData = fileData[: match.start(3)] + newContents + fileData[match.end(3) :]
-
-                if newData != fileData:
-                    writeFile(titleSetupFilepath, newData)
-
-    except FileNotFoundError:
-        raise PluginError("ERROR: Can't find Setup_InitImpl() in src/code/title_setup.c.")
-
-
-# modify file select to immediately load the first save and override entrance index, or reverse this process
-def editFileSelect(
-    exportPath: str,
-    entranceIndex: str,
-    options: Any,
-    editInitFunction: Callable[[str], str],
-    editLoadGameFunction: Callable[[str, str, Any], str],
-):
-    try:
-        fileSelectPath = os.path.join(exportPath, "src/overlays/gamestates/ovl_file_choose/z_file_choose.c")
-        with open(fileSelectPath) as file:
-            fileData = file.read()
-            newData = fileData
-
-            # editing FileSelect_Init()
-            match = re.search(
-                r"void\s*FileSelect\_Init\s*\((((?!\)).)*)\)\s*\{(((?!\n\}).)*)\n\}", newData, flags=re.DOTALL
-            )
-            if match:
-                functionContents = match.group(3)
-                newContents = editInitFunction(functionContents)
-                newData = newData[: match.start(3)] + newContents + newData[match.end(3) :]
-            else:
-                raise PluginError(
-                    "ERROR: Can't find FileSelect_Init() in src/overlays/gamestates/ovl_file_choose/z_file_choose.c."
-                )
-
-            match = None
-            newContents = None
-
-            # editing FileSelect_LoadGame()
-            match = re.search(
-                r"void\s*FileSelect\_LoadGame\s*\((((?!\)).)*)\)\s*\{(((?!\n\}).)*)\n\}", newData, flags=re.DOTALL
-            )
-            if match:
-                functionContents = match.group(3)
-                newContents = editLoadGameFunction(functionContents, entranceIndex, options)
-                newData = newData[: match.start(3)] + newContents + newData[match.end(3) :]
-            else:
-                raise PluginError(
-                    "ERROR: Can't find FileSelect_LoadGame() in src/overlays/gamestates/ovl_file_choose/z_file_choose.c."
-                )
-
-            if newData != fileData:
-                writeFile(fileSelectPath, newData)
-
-    except FileNotFoundError:
-        raise PluginError("ERROR: Can't open src/overlays/gamestates/ovl_file_choose/z_file_choose.c")
-
-
-def setFileSelectInit(functionContents: str) -> str:
-    # removes file select audio blip on map load (not completely necessary)
-    newContents = re.sub(r"func_800F5E18\s*\((((?!\)).)*)\)\s*;", "", functionContents, flags=re.DOTALL)
-
-    # immediately loads first save on init
-    if not "FileSelect_LoadGame" in newContents:
-        newContents += "FileSelect_LoadGame(thisx);"
-
-    return newContents
-
-
-def setFileSelectLoadGame(functionContents: str, entranceIndex: str, options: Any) -> str:
-    newContents = functionContents
-
-    # disables file 1 specific code
-    newContents = re.sub(
-        r"if\s*\(this-\>buttonIndex\s*==\s*FS\_BTN\_SELECT\_FILE\_1\s*\)",
-        "if (this->buttonIndex == FS_BTN_SELECT_FILE_1 && false)",
-        newContents,
-        flags=re.DOTALL,
-    )
-
-    saveFileNameData = ", ".join(["0x" + format(i, "02X") for i in stringToSaveNameBytes(options.newGameName)])
-
-    # adds empty file check
-    if "SLOT_OCCUPIED" not in newContents:
-        newContents += (
-            f"\n\tif (!SLOT_OCCUPIED((&this->sramCtx), this->buttonIndex)) {{"
-            f"\n\t\tu8 name[] = {{ {saveFileNameData} }};"
-            f"\n\t\tthis->n64ddFlag = 0;"  # note this is normally called in FileSelect_Main, which would be skipped in this case
-            f"\n\t\tMemCpy(&this->fileNames[this->buttonIndex][0], &name, sizeof(name));"
-            f"\n\t\tSram_InitSave(this, &this->sramCtx);"
-            f"\n\t}}"
-        )
-    else:
-        newContents = re.sub(
-            r"u8\s*name\s*\[((?!;).)*;", f"u8 name[] = {{ {saveFileNameData} }};", newContents, flags=re.DOTALL
-        )
-
-    # if we only want to change settings for new game, then we wouldn't write this here.
-    if not options.newGameOnly:
-
-        # overrides entrance index
-        newContents = addOrModifyAssignment(newContents, "gSaveContext.entranceIndex", entranceIndex)
-
-        # overrides other properties for header
-        if options.overrideHeader:
-            timeOfDay, linkAge = getParamsFromOptions(options)
-
-            newContents = addOrModifyAssignment(newContents, "gSaveContext.nextDayTime", timeOfDay)
-            newContents = addOrModifyAssignment(newContents, "gSaveContext.linkAge", linkAge)
-
-            if options.headerOption == "Cutscene":
-                cutsceneIndex = "0xFFF" + format(options.cutsceneIndex - 4, "X")
-                newContents = addOrModifyAssignment(newContents, "gSaveContext.nextCutsceneIndex", cutsceneIndex)
-            else:
-                newContents = addOrModifyAssignment(newContents, "gSaveContext.nextCutsceneIndex", "0xFFEF")
-
-        else:
-            newContents = addOrModifyAssignment(newContents, "gSaveContext.nextDayTime", "NEXT_TIME_NONE")
-            newContents = addOrModifyAssignment(newContents, "gSaveContext.nextCutsceneIndex", "0xFFEF")
-            newContents = removeAssignment(newContents, "gSaveContext.linkAge")
-
-    else:
-        newContents = removeAssignment(newContents, "gSaveContext.entranceIndex")
-        newContents = addOrModifyAssignment(newContents, "gSaveContext.nextDayTime", "NEXT_TIME_NONE")
-        newContents = addOrModifyAssignment(newContents, "gSaveContext.nextCutsceneIndex", "0xFFEF")
-        newContents = removeAssignment(newContents, "gSaveContext.linkAge")
-
-    return newContents
-
-
-def clearFileSelectInit(functionContents: str) -> str:
-    # removes file select auto loading
-    newContents = re.sub(r"FileSelect\_LoadGame\s*\((((?!\)).)*)\)\s*;", "", functionContents, flags=re.DOTALL)
-
-    # restores file select audio
-    if not "func_800F5E18" in newContents:
-        newContents += "func_800F5E18(SEQ_PLAYER_BGM_MAIN, NA_BGM_FILE_SELECT, 0, 7, 1);"
-
-    return newContents
-
-
-# entranceIndex and options will have empty/null values, this is just to match the paired function's signature
-def clearFileSelectLoadGame(functionContents: str, entranceIndex: str, options: Any) -> str:
-
-    # restores map select
-    newContents = functionContents
-
-    # re enables file 1 specific code
-    newContents = re.sub(
-        r"if\s*\(this-\>buttonIndex\s*==\s*FS\_BTN\_SELECT\_FILE\_1\s*\&\&\s*false\s*\)",
-        "if (this->buttonIndex == FS_BTN_SELECT_FILE_1)",
-        newContents,
-        flags=re.DOTALL,
-    )
-
-    # removes empty file check
-    newContents = re.sub(
-        r"(\n\s*)?if\s*\(\!SLOT\_OCCUPIED\(\(\s*\&this-\>sramCtx\s*\),\s*this-\>buttonIndex\s*\)\)\s*\{(((?!\n\s+\}).)*)\n\s+\}",
-        "",
-        newContents,
-        flags=re.DOTALL,
-    )
-
-    # restores default settings
-    newContents = removeAssignment(newContents, "gSaveContext.entranceIndex")
-    newContents = addOrModifyAssignment(newContents, "gSaveContext.nextDayTime", "NEXT_TIME_NONE")
-    newContents = addOrModifyAssignment(newContents, "gSaveContext.nextCutsceneIndex", "0xFFEF")
-    newContents = removeAssignment(newContents, "gSaveContext.linkAge")
-
-    return newContents
-
-
-def addOrModifyAssignment(data: str, name: str, value: str) -> str:
-    setSceneMatch = re.search(re.escape(name) + r"\s*=\s*(((?!;).)*)\s*;", data, re.DOTALL)
-    if setSceneMatch:
-        data = data[: setSceneMatch.start(1)] + value + data[setSceneMatch.end(1) :]
-    else:
-        data += "\n\t" + name + " = " + value + ";"
-
-    return data
-
-
-def removeAssignment(data: str, name: str) -> str:
-    return re.sub("(\n\t)?" + re.escape(name) + r"\s*=\s*([a-zA-Z0-9_]*)\s*;", "", data, flags=re.DOTALL)
+    writeFile(os.path.join(exportPath, "include/config/config_bootup.h"), data)
 
 
 def getParamsFromOptions(options: Any) -> tuple[str, str]:
