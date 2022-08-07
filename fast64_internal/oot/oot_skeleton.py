@@ -317,6 +317,12 @@ def ootConvertArmatureToSkeletonWithMesh(
 def ootRemoveRotationsFromArmature(armatureObj: bpy.types.Object) -> None:
     checkForStartBone(armatureObj)
     startBoneName = getStartBone(armatureObj)
+
+    if bpy.context.mode != "EDIT":
+        bpy.ops.object.mode_set(mode="EDIT")
+    for editBone in armatureObj.data.edit_bones:
+        editBone.use_connect = False
+    bpy.ops.object.mode_set(mode="OBJECT")
     ootRemoveRotationsFromBone(armatureObj, armatureObj.data.bones[startBoneName])
     armatureApplyWithMesh(armatureObj, bpy.context)
 
@@ -338,7 +344,7 @@ def ootRemoveRotationsFromBone(armatureObj: bpy.types.Object, bone: bpy.types.Bo
     translate = mathutils.Matrix.Translation(transform.decompose()[0])
     undoRotationTransform = transform.inverted() @ translate
     if bone.parent is None:
-        undoRotationTransform = yUpToZUp @ undoRotationTransform
+        undoRotationTransform = undoRotationTransform @ yUpToZUp
 
     poseBone = armatureObj.pose.bones[bone.name]
     poseBone.matrix_basis = undoRotationTransform
@@ -996,6 +1002,13 @@ class OOT_ExportSkeleton(bpy.types.Operator):
 
         obj = armatureObj.children[0]
         finalTransform = mathutils.Matrix.Scale(context.scene.ootActorBlenderScale, 4)
+
+        # Rotation must be applied before exporting skeleton.
+        # For some reason this does not work if done on the duplicate generated later, so we have to do it before then.
+        bpy.ops.object.select_all(action="DESELECT")
+        armatureObj.select_set(True)
+        bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
+        bpy.ops.object.select_all(action="DESELECT")
 
         try:
             # exportPath, levelName = getPathAndLevel(context.scene.geoCustomExport,
