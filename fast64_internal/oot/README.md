@@ -90,7 +90,9 @@ To export an animation, select an armature and click "Export", which will export
     - Animation Header Name: struct of type AnimationHeader or LinkAnimationHeader, found in the object files.
 3. Replace the existing mesh with your own.
 4. Export the skeleton back into the game. It is not necessary to re-fold the armature before export.
-5. If "Replace Vanilla Headers On Export" is enabled, then you should be able to re-compile without manually modifying code.
+5. If "Replace Vanilla Headers On Export" is enabled, then any reference conflicts should be removed.
+6. In the actor header file, (in src/overlays/actors/\<name\>/), set the joint/morph table sizes to be (number of bones + 1)
+7. In the actor source file, this value should also be used for the limbCount argument in SkelAnime_InitFlex().
 
 ### Flipbook Textures
 Many actors in OOT will animate textures through code using a flipbook method, like with Link's eyes/mouth. A flipbook material will use a texture reference pointing to an address formatted as 0x0?000000. You can find the flipbook texture frames in the material properties tab underneath the dynamic material section. 
