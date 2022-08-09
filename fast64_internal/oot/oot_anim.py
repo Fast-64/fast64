@@ -529,19 +529,30 @@ def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale, isCu
     # property index = 0,1,2 (aka x,y,z)
     for jointIndex in jointIndices:
         if isRootTranslation:
-            for propertyIndex in range(3):
-                fcurve = anim.fcurves.new(
+            fcurves = [
+                anim.fcurves.new(
                     data_path='pose.bones["' + startBoneName + '"].location',
                     index=propertyIndex,
                     action_group=startBoneName,
                 )
-                if jointIndex[propertyIndex] < staticIndexMax:
-                    value = ootTranslationValue(frameData[jointIndex[propertyIndex]], actorScale)
-                    fcurve.keyframe_points.insert(0, value)
-                else:
-                    for frame in range(frameCount):
+                for propertyIndex in range(3)
+            ]
+            for frame in range(frameCount):
+                rawTranslation = mathutils.Vector((0, 0, 0))
+                for propertyIndex in range(3):
+
+                    if jointIndex[propertyIndex] < staticIndexMax:
+                        value = ootTranslationValue(frameData[jointIndex[propertyIndex]], actorScale)
+                    else:
                         value = ootTranslationValue(frameData[jointIndex[propertyIndex] + frame], actorScale)
-                        fcurve.keyframe_points.insert(frame, value)
+
+                    rawTranslation[propertyIndex] = value
+
+                trueTranslation = getTranslationRelativeToRest(armatureObj.data.bones[startBoneName], rawTranslation)
+
+                for propertyIndex in range(3):
+                    fcurves[propertyIndex].keyframe_points.insert(frame, trueTranslation[propertyIndex])
+
             isRootTranslation = False
         else:
             # WARNING: This assumes the order bones are processed are in alphabetical order.
@@ -667,9 +678,12 @@ def ootImportLinkAnimationC(
                 f"{frameDataName} has malformed data. Framesize = {frameSize}, CurrentFrame = {len(currentFrame)}"
             )
 
+        translation = getTranslationRelativeToRest(
+            boneList[0], mathutils.Vector([ootTranslationValue(currentFrame[i], actorScale) for i in range(3)])
+        )
+
         for i in range(3):
-            value = ootTranslationValue(currentFrame[i], actorScale)
-            boneCurveTranslation[i].keyframe_points.insert(frame, value)
+            boneCurveTranslation[i].keyframe_points.insert(frame, translation[i])
 
         for boneIndex in range(numLimbs):
             bone = boneList[boneIndex]
@@ -782,6 +796,13 @@ class OOT_ImportAnim(bpy.types.Operator):
             armatureObj = context.selected_objects[0]
             if context.mode != "OBJECT":
                 bpy.ops.object.mode_set(mode="OBJECT")
+
+            # We need to apply scale otherwise translation imports won't be correct.
+            bpy.ops.object.select_all(action="DESELECT")
+            armatureObj.select_set(True)
+            bpy.context.view_layer.objects.active = armatureObj
+            bpy.ops.object.transform_apply(location=False, rotation=False, scale=True, properties=False)
+
         except Exception as e:
             raisePluginError(self, e)
             return {"CANCELLED"}

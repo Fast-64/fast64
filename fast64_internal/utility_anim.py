@@ -44,6 +44,13 @@ class ArmatureApplyWithMesh(bpy.types.Operator):
         return {"FINISHED"}  # must return a set
 
 
+# This code only handles root bone with no parent, which is the only bone that translates.
+def getTranslationRelativeToRest(bone: bpy.types.Bone, inputVector: mathutils.Vector) -> mathutils.Vector:
+    zUpToYUp = mathutils.Quaternion((1, 0, 0), math.radians(-90.0)).to_matrix().to_4x4()
+    actualTranslation = (zUpToYUp @ bone.matrix_local).inverted() @ mathutils.Matrix.Translation(inputVector).to_4x4()
+    return actualTranslation.decompose()[0]
+
+
 def getRotationRelativeToRest(bone: bpy.types.Bone, inputEuler: mathutils.Euler) -> mathutils.Euler:
     if bone.parent is None:
         parentRotation = mathutils.Quaternion((1, 0, 0), math.radians(90.0)).to_matrix().to_4x4()
