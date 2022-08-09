@@ -27,7 +27,7 @@ def setBootupScene(exportPath: str, entranceIndex: str, options: Any):
         + f"#define BOOT_AGE {linkAge}\n"
         + f"#define BOOT_TIME {timeOfDay}\n"
         + f"#define BOOT_CUTSCENE {cutsceneIndex}\n"
-        + f"#define BOOT_LINK_NAME {saveFileNameData}\n\n"
+        + f"#define BOOT_PLAYER_NAME {saveFileNameData}\n\n"
         + f"#endif\n"
     )
 
@@ -46,7 +46,7 @@ def clearBootupScene(exportPath: str):
         + f"#define BOOT_AGE LINK_AGE_CHILD\n"
         + f"#define BOOT_TIME NEXT_TIME_NONE\n"
         + f"#define BOOT_CUTSCENE 0xFFEF\n"
-        + f"#define BOOT_LINK_NAME 0x15, 0x12, 0x17, 0x14, 0x3E, 0x3E, 0x3E, 0x3E\n\n"
+        + f"#define BOOT_PLAYER_NAME 0x15, 0x12, 0x17, 0x14, 0x3E, 0x3E, 0x3E, 0x3E\n\n"
         + f"#endif\n"
     )
 
