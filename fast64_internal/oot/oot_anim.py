@@ -490,11 +490,14 @@ def ootImportAnimationC(
             settings.isCustom,
         )
     else:
-        ootImportNonLinkAnimationC(armatureObj, filepath, settings.animName, actorScale)
+        ootImportNonLinkAnimationC(armatureObj, filepath, settings.animName, actorScale, settings.isCustom)
 
 
-def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale):
-    animData = readFile(filepath)
+def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale, isCustomImport: bool):
+    animData = getImportData([filepath])
+    if not isCustomImport:
+        basePath = bpy.path.abspath(bpy.context.scene.ootDecompPath)
+        animData = ootGetIncludedAssetData(basePath, [filepath], animData) + animData
 
     matchResult = re.search(
         re.escape(animName)
@@ -544,19 +547,30 @@ def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale):
             # WARNING: This assumes the order bones are processed are in alphabetical order.
             # If this changes in the future, then this won't work.
             bone, boneStack = getNextBone(boneStack, armatureObj)
-            for propertyIndex in range(3):
-                fcurve = anim.fcurves.new(
+
+            fcurves = [
+                anim.fcurves.new(
                     data_path='pose.bones["' + bone.name + '"].rotation_euler',
                     index=propertyIndex,
                     action_group=bone.name,
                 )
-                if jointIndex[propertyIndex] < staticIndexMax:
-                    value = ootRotationValue(frameData[jointIndex[propertyIndex]])
-                    fcurve.keyframe_points.insert(0, value)
-                else:
-                    for frame in range(frameCount):
+                for propertyIndex in range(3)
+            ]
+
+            for frame in range(frameCount):
+                rawRotation = mathutils.Euler((0, 0, 0), "XYZ")
+                for propertyIndex in range(3):
+                    if jointIndex[propertyIndex] < staticIndexMax:
+                        value = ootRotationValue(frameData[jointIndex[propertyIndex]])
+                    else:
                         value = ootRotationValue(frameData[jointIndex[propertyIndex] + frame])
-                        fcurve.keyframe_points.insert(frame, value)
+
+                    rawRotation[propertyIndex] = value
+
+                trueRotation = getRotationRelativeToRest(bone, rawRotation)
+
+                for propertyIndex in range(3):
+                    fcurves[propertyIndex].keyframe_points.insert(frame, trueRotation[propertyIndex])
 
     if armatureObj.animation_data is None:
         armatureObj.animation_data_create()
@@ -605,7 +619,6 @@ def ootImportLinkAnimationC(
     boneList = []
     boneCurvesRotation = []
     boneCurveTranslation = None
-    textureCurves = []
     boneStack = [startBoneName]
 
     eyesCurve = anim.fcurves.new(
@@ -659,9 +672,13 @@ def ootImportLinkAnimationC(
             boneCurveTranslation[i].keyframe_points.insert(frame, value)
 
         for boneIndex in range(numLimbs):
+            bone = boneList[boneIndex]
+            rawRotation = mathutils.Euler(
+                [ootRotationValue(currentFrame[i + (boneIndex + 1) * 3]) for i in range(3)], "XYZ"
+            )
+            trueRotation = getRotationRelativeToRest(bone, rawRotation)
             for i in range(3):
-                value = ootRotationValue(currentFrame[i + (boneIndex + 1) * 3])
-                boneCurvesRotation[boneIndex][i].keyframe_points.insert(frame, value)
+                boneCurvesRotation[boneIndex][i].keyframe_points.insert(frame, trueRotation[i])
 
         # convert to unsigned byte representation
         texAnimValue = int.from_bytes(

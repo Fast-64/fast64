@@ -44,6 +44,16 @@ class ArmatureApplyWithMesh(bpy.types.Operator):
         return {"FINISHED"}  # must return a set
 
 
+def getRotationRelativeToRest(bone: bpy.types.Bone, inputEuler: mathutils.Euler) -> mathutils.Euler:
+    if bone.parent is None:
+        parentRotation = mathutils.Quaternion((1, 0, 0), math.radians(90.0)).to_matrix().to_4x4()
+    else:
+        parentRotation = bone.parent.matrix_local
+
+    restRotation = (parentRotation.inverted() @ bone.matrix_local).decompose()[1].to_matrix().to_4x4()
+    return (restRotation.inverted() @ inputEuler.to_matrix().to_4x4()).to_euler("XYZ", inputEuler)
+
+
 def attemptModifierApply(modifier):
     try:
         bpy.ops.object.modifier_apply(modifier=modifier.name)
