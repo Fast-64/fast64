@@ -17,7 +17,7 @@ def upgradeF3DVersionAll(objs, armatures, version):
     for deleteGroup in deleteGroups:
         bpy.data.node_groups.remove(deleteGroup)
 
-    get_best_draw_layer_for_materials()
+    set_best_draw_layer_for_materials()
 
     # Dict of non-f3d materials : converted f3d materials
     # handles cases where materials are used in multiple objects
@@ -93,7 +93,7 @@ def has_valid_mat_ver(material: bpy.types.Material):
     return getattr(material, "mat_ver", -1) >= 1
 
 
-def get_best_draw_layer_for_materials():
+def set_best_draw_layer_for_materials():
     bone_map = {}
     for armature in bpy.data.armatures:
         bone: bpy.types.Bone = None
