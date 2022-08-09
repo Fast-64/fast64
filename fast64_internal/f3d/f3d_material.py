@@ -1186,13 +1186,15 @@ def link_if_none_exist(
         material.node_tree.links.new(fromOutput, toInput)
 
 
-def update_node_combiner(material, combinerInputs, cycleIndex):
+def update_node_combiner(material: bpy.types.Material, combinerInputs, cycleIndex):
     nodes = material.node_tree.nodes
 
     if cycleIndex == 1:
-        cycle_node = nodes["Cycle_1"]
+        cycle_node: bpy.types.Node = nodes["Cycle_1"]
     else:
-        cycle_node = nodes["Cycle_2"]
+        cycle_node: bpy.types.Node = nodes["Cycle_2"]
+        is_one_cycle = material.f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_1CYCLE"
+        cycle_node.mute = is_one_cycle
 
     for i in range(8):
         combiner_input = combinerInputs[i]
@@ -1572,7 +1574,22 @@ def set_texture_nodes_settings(
     # Enforce typing from generator
     texNode: None | bpy.types.TextureNodeImage = None
 
+    node3point_key = '3 Point Lerp' if texIndex == 0 else '3 Point Lerp.001'
+    tpnode = node_tree.nodes.get(node3point_key)
+
+    if texProperty.tex is None:
+        for texNode in iter_tex_nodes(node_tree, texIndex):
+            texNode.mute = True
+        if tpnode and not tpnode.mute:
+            tpnode.mute = True
+        return texSize
+    
+    mute_3point =  f3dMat.rdp_settings.g_mdsft_text_filt != "G_TF_BILERP"
+    if tpnode and tpnode.mute != mute_3point:
+        tpnode.mute = mute_3point
+
     for texNode in iter_tex_nodes(node_tree, texIndex):
+        texNode.mute = False
         if texNode.image is not texProperty.tex:
             texNode.image = texProperty.tex
         texNode.interpolation = "Linear" if f3dMat.rdp_settings.g_mdsft_text_filt == "G_TF_AVERAGE" else "Closest"
@@ -1660,6 +1677,14 @@ def update_tex_values_manual(material: bpy.types.Material, context, prop_path=No
     nodes = material.node_tree.nodes
     texture_settings = nodes["TextureSettings"]
     texture_inputs: bpy.types.NodeInputs = texture_settings.inputs
+    
+    if f3dMat.tex0.tex is None and f3dMat.tex1.tex is None:
+        texture_settings.mute = True
+        set_texture_nodes_settings(material, f3dMat.tex0, 0)
+        set_texture_nodes_settings(material, f3dMat.tex1, 1)
+        return
+    elif texture_settings.mute: 
+        texture_settings.mute = False
 
     isTexGen = f3dMat.rdp_settings.g_tex_gen  # linear requires tex gen to be enabled as well
 
