@@ -4,10 +4,10 @@ from bpy.utils import register_class, unregister_class
 from .oot_constants import *
 from .oot_utility import *
 from .oot_skeleton import *
-from .oot_model_classes import usesFlipbook
+from ..f3d.flipbook import usesFlipbook, ootFlipbookAnimUpdate
 from ..utility import *
 from ..panels import OOT_Panel
-from bpy.app.handlers import persistent
+from ..f3d.f3d_material import iter_tex_nodes
 
 
 class OOTAnimExportSettingsProperty(bpy.types.PropertyGroup):
@@ -849,58 +849,15 @@ class OOT_ExportAnimPanel(OOT_Panel):
         col.prop(importSettings, "isCustom")
 
 
-# we use a handler since update functions are not called when a property is animated.
-@persistent
-def load_handler(dummy):
-    if bpy.context.scene.gameEditorMode == "OOT":
-        for obj in bpy.data.objects:
-            if isinstance(obj.data, bpy.types.Armature):
-                ootUpdateTextureAnim(obj.data, obj, "8", obj.ootLinkTextureAnim.eyes)
-                ootUpdateTextureAnim(obj.data, obj, "9", obj.ootLinkTextureAnim.mouth)
-
-
-def ootUpdateTextureAnim(self, armatureObj, segment, index):
-    # we only want to update texture on keyframed armatures.
-    # this somewhat mitigates the issue of two skeletons using the same flipbook material.
-    if armatureObj.animation_data is None or armatureObj.animation_data.action is None:
-        return
-    action = armatureObj.animation_data.action
-    if (
-        action.fcurves.find("ootLinkTextureAnim.eyes") is None
-        or action.fcurves.find("ootLinkTextureAnim.mouth") is None
-    ):
-        return
-
-    for child in armatureObj.children:
-        if isinstance(child.data, bpy.types.Mesh):
-            mesh = child.data
-            for material in mesh.materials:
-                for i in range(2):
-                    flipbook = getattr(material.ootMaterial, "flipbook" + str(i))
-                    texProp = getattr(material.f3d_mat, "tex" + str(i))
-                    if usesFlipbook(material, flipbook, i, True):
-                        match = re.search(f"0x0([0-9A-F])000000", texProp.tex_reference)
-                        if match is None:
-                            return
-                        if match.group(1) == segment:
-                            # material.f3d_update_flag = True
-
-                            # Remember that index 0 = auto, and keyframed values start at 1
-                            textureIndex = min((index - 1 if index > 0 else 0), len(flipbook.textures) - 1)
-                            material.node_tree.nodes["Texture " + str(i)].image = flipbook.textures[textureIndex].image
-
-                            # update_tex_values_manual(material, bpy.context)
-                            # material.f3d_update_flag = False
-
-
+# We still want update callbacks for manually setting texture with visualize operator.
 def ootUpdateEyes(self, context):
     index = self.eyes
-    ootUpdateTextureAnim(self, context.object, "8", index)
+    ootFlipbookAnimUpdate(self, context.object, "8", index)
 
 
 def ootUpdateMouth(self, context):
     index = self.mouth
-    ootUpdateTextureAnim(self, context.object, "9", index)
+    ootFlipbookAnimUpdate(self, context.object, "9", index)
 
 
 class OOTLinkTextureAnimProperty(bpy.types.PropertyGroup):
@@ -958,8 +915,6 @@ def oot_anim_panel_unregister():
 def oot_anim_register():
     for cls in oot_anim_classes:
         register_class(cls)
-
-    bpy.app.handlers.frame_change_pre.append(load_handler)
 
     bpy.types.Scene.ootAnimExportSettings = bpy.props.PointerProperty(type=OOTAnimExportSettingsProperty)
     bpy.types.Scene.ootAnimImportSettings = bpy.props.PointerProperty(type=OOTAnimImportSettingsProperty)

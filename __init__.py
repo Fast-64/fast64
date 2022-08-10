@@ -432,6 +432,7 @@ def register():
 
     bsdf_conv_panel_regsiter()
     f3d_writer_register()
+    flipbook_register()
     f3d_parser_register()
 
     # ROM
@@ -459,6 +460,7 @@ def register():
 # called on add-on disabling
 def unregister():
     utility_anim_unregister()
+    flipbook_unregister()
     f3d_writer_unregister()
     f3d_parser_unregister()
     sm64_unregister(True)

@@ -6,6 +6,7 @@ from .oot_constants import *
 from ..f3d.f3d_writer import *
 from ..f3d.f3d_material import *
 from ..f3d.f3d_parser import *
+from ..f3d.flipbook import *
 from ..panels import OOT_Panel
 
 from .oot_model_classes import *
@@ -274,7 +275,7 @@ def writeTextureArraysExisting(exportPath: str, overlayName: str, isLink: bool, 
         writeFile(actorFilePath, newData)
 
 
-def writeTextureArraysExisting1D(data: str, flipbook: OOTTextureFlipbook) -> str:
+def writeTextureArraysExisting1D(data: str, flipbook: TextureFlipbook) -> str:
     newData = data
     arrayMatch = re.search(
         r"(static\s*)?void\s*\*\s*" + re.escape(flipbook.name) + r"\s*\[\s*\]\s*=\s*\{(((?!\}).)*)\}\s*;",
@@ -303,7 +304,7 @@ def writeTextureArraysExisting1D(data: str, flipbook: OOTTextureFlipbook) -> str
 
 
 # for flipbook textures, we only replace one element of the 2D array.
-def writeTextureArraysExisting2D(data: str, flipbook: OOTTextureFlipbook, arrayIndex2D: int) -> str:
+def writeTextureArraysExisting2D(data: str, flipbook: TextureFlipbook, arrayIndex2D: int) -> str:
     newData = data
 
     # for !AVOID_UB, Link has textures in 2D Arrays
@@ -649,15 +650,6 @@ def drawOOTMaterialProperty(layout, mat, drawLayer):
     if not mat.is_f3d:
         return
     f3d_mat = mat.f3d_mat
-    layout.box().column().label(text="OOT Flipbook Properties")
-    layout.label(text="To use this, material must use a texture ")
-    layout.label(text="reference with name = 0x0?000000.")
-    for i in range(2):
-        flipbook = getattr(mat.ootMaterial, "flipbook" + str(i))
-        if usesFlipbook(mat, flipbook, i, False):
-            drawOOTFlipbookProperty(layout.column(), flipbook, i)
-            if getattr(mat.f3d_mat, "tex" + str(i)).tex_format[:2] == "CI":
-                layout.label(text="New shared CI palette will be generated.", icon="ERROR")
 
 
 class OOTDynamicMaterialDrawLayerProperty(bpy.types.PropertyGroup):
@@ -673,167 +665,14 @@ class OOTDynamicMaterialDrawLayerProperty(bpy.types.PropertyGroup):
     customCall1_seg: bpy.props.StringProperty(description="Segment address of a display list to call, e.g. 0x08000010")
 
 
-class ImagePointerProperty(bpy.types.PropertyGroup):
-    image: bpy.props.PointerProperty(type=bpy.types.Image)
-    name: bpy.props.StringProperty(name="Name", default="gImage")
-
-
-def drawTextureArray(
-    layout: bpy.types.UILayout, textureArray: bpy.types.CollectionProperty, index: int, exportMode: str
-):
-    for i in range(len(textureArray)):
-        drawTextureArrayProperty(layout, textureArray[i], i, index, exportMode)
-
-    addOp = layout.operator(OOTAddFlipbookTexture.bl_idname, text="Add Texture")
-    addOp.combinerTexIndex = index
-    addOp.arrayIndex = len(textureArray)
-
-
-def drawTextureArrayProperty(
-    layout: bpy.types.UILayout, texturePointer: ImagePointerProperty, arrayIndex: int, texNum: int, exportMode: str
-):
-    col = layout.column()
-
-    box = col.box().column()
-    if exportMode == "Individual":
-        prop_split(box, texturePointer, "name", "Texture Name")
-
-    box.template_ID(texturePointer, "image", new="image.new", open="image.open")
-
-    row = box.row()
-    buttons = row.row(align=True)
-    visualizeOp = buttons.operator(OOTVisualizeFlipbookTexture.bl_idname, text="Visualize", icon="VIEW_CAMERA")
-    visualizeOp.arrayIndex = arrayIndex
-    visualizeOp.combinerTexIndex = texNum
-
-    addOp = buttons.operator(OOTAddFlipbookTexture.bl_idname, text="", icon="ADD")
-    addOp.arrayIndex = arrayIndex + 1
-    addOp.combinerTexIndex = texNum
-
-    removeOp = buttons.operator(OOTRemoveFlipbookTexture.bl_idname, text="", icon="REMOVE")
-    removeOp.arrayIndex = arrayIndex
-    removeOp.combinerTexIndex = texNum
-
-    moveUp = buttons.operator(OOTMoveFlipbookTexture.bl_idname, text="", icon="TRIA_UP")
-    moveUp.arrayIndex = arrayIndex
-    moveUp.offset = -1
-    moveUp.combinerTexIndex = texNum
-
-    moveDown = buttons.operator(OOTMoveFlipbookTexture.bl_idname, text="", icon="TRIA_DOWN")
-    moveDown.arrayIndex = arrayIndex
-    moveDown.offset = 1
-    moveUp.combinerTexIndex = texNum
-
-
-class OOTAddFlipbookTexture(bpy.types.Operator):
-    bl_idname = "material.add_flipbook_texture"
-    bl_label = "Add Flipbook Texture"
-    bl_options = {"REGISTER", "UNDO"}
-    arrayIndex: bpy.props.IntProperty()
-    combinerTexIndex: bpy.props.IntProperty()
-
-    def execute(self, context):
-        material = context.material
-        flipbook = getattr(material.ootMaterial, "flipbook" + str(self.combinerTexIndex))
-        flipbook.textures.add()
-        flipbook.textures.move(len(flipbook.textures) - 1, self.arrayIndex)
-        self.report({"INFO"}, "Success!")
-        return {"FINISHED"}
-
-
-class OOTRemoveFlipbookTexture(bpy.types.Operator):
-    bl_idname = "material.remove_flipbook_texture"
-    bl_label = "Remove Flipbook Texture"
-    bl_options = {"REGISTER", "UNDO"}
-    arrayIndex: bpy.props.IntProperty()
-    combinerTexIndex: bpy.props.IntProperty()
-
-    def execute(self, context):
-        material = context.material
-        flipbook = getattr(material.ootMaterial, "flipbook" + str(self.combinerTexIndex))
-        flipbook.textures.remove(self.arrayIndex)
-        self.report({"INFO"}, "Success!")
-        return {"FINISHED"}
-
-
-class OOTMoveFlipbookTexture(bpy.types.Operator):
-    bl_idname = "material.move_flipbook_texture"
-    bl_label = "Move Flipbook Texture"
-    bl_options = {"REGISTER", "UNDO"}
-    combinerTexIndex: bpy.props.IntProperty()
-    arrayIndex: bpy.props.IntProperty()
-    offset: bpy.props.IntProperty()
-
-    def execute(self, context):
-        material = context.material
-        flipbook = getattr(material.ootMaterial, "flipbook" + str(self.combinerTexIndex))
-        flipbook.textures.move(self.arrayIndex, self.arrayIndex + self.offset)
-        self.report({"INFO"}, "Success!")
-        return {"FINISHED"}
-
-
-class OOTVisualizeFlipbookTexture(bpy.types.Operator):
-    bl_idname = "material.visualize_flipbook_texture"
-    bl_label = "Visualize Flipbook Texture"
-    bl_options = {"REGISTER", "UNDO"}
-    combinerTexIndex: bpy.props.IntProperty()
-    arrayIndex: bpy.props.IntProperty()
-
-    def execute(self, context):
-        material = context.material
-        flipbook = getattr(material.ootMaterial, "flipbook" + str(self.combinerTexIndex))
-        texProp = getattr(material.f3d_mat, "tex" + str(self.combinerTexIndex))
-
-        # We manually update texture without optimizing format
-        # we want to keep format the same
-        context.material.f3d_update_flag = True
-        texProp.tex = flipbook.textures[self.arrayIndex].image
-        update_tex_values_manual(material, context)
-        context.material.f3d_update_flag = False
-
-        self.report({"INFO"}, "Success!")
-        return {"FINISHED"}
-
-
-ootEnumFlipbookExportMode = [
-    ("Array", "Array", "Array"),
-    ("Individual", "Individual", "Individual"),
-]
-
-
-class OOTTextureFlipbookProperty(bpy.types.PropertyGroup):
-    enable: bpy.props.BoolProperty()
-    name: bpy.props.StringProperty(default="sFlipbookTextures")
-    exportMode: bpy.props.EnumProperty(default="Array", items=ootEnumFlipbookExportMode)
-    textures: bpy.props.CollectionProperty(type=ImagePointerProperty)
-
-
 # The reason these are separate is for the case when the user changes the material draw layer, but not the
 # dynamic material calls. This could cause crashes which would be hard to detect.
 class OOTDynamicMaterialProperty(bpy.types.PropertyGroup):
     opaque: bpy.props.PointerProperty(type=OOTDynamicMaterialDrawLayerProperty)
     transparent: bpy.props.PointerProperty(type=OOTDynamicMaterialDrawLayerProperty)
-    flipbook0: bpy.props.PointerProperty(type=OOTTextureFlipbookProperty)
-    flipbook1: bpy.props.PointerProperty(type=OOTTextureFlipbookProperty)
-
-
-def drawOOTFlipbookProperty(layout: bpy.types.UILayout, flipbookProp: OOTTextureFlipbookProperty, index: int):
-    box = layout.box().column()
-    box.prop(flipbookProp, "enable", text="Export Flipbook Textures " + str(index))
-    if flipbookProp.enable:
-        prop_split(box, flipbookProp, "exportMode", "Export Mode")
-        if flipbookProp.exportMode == "Array":
-            prop_split(box, flipbookProp, "name", "Array Name")
-        drawTextureArray(box.column(), flipbookProp.textures, index, flipbookProp.exportMode)
 
 
 oot_dl_writer_classes = (
-    ImagePointerProperty,
-    OOTAddFlipbookTexture,
-    OOTRemoveFlipbookTexture,
-    OOTMoveFlipbookTexture,
-    OOTVisualizeFlipbookTexture,
-    OOTTextureFlipbookProperty,
     OOTDefaultRenderModesProperty,
     OOTDynamicMaterialDrawLayerProperty,
     OOTDynamicMaterialProperty,

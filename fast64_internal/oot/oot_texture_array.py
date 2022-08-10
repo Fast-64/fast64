@@ -6,7 +6,7 @@ from bpy.utils import register_class, unregister_class
 from ..utility import PluginError, hexOrDecInt
 from .oot_model_classes import (
     OOTF3DContext,
-    OOTTextureFlipbook,
+    TextureFlipbook,
     ootGetActorData,
     ootGetActorDataPaths,
     ootGetIncludedAssetData,
@@ -48,7 +48,7 @@ def ootReadTextureArrays(
 
 # we return when no matches found to handle cases where actor does not have dynamic textures.
 def ootReadTextureArraysFromMultiple(
-    flipbookList: dict[str, OOTTextureFlipbook],
+    flipbookList: dict[str, TextureFlipbook],
     skeletonName: str,
     actorData: str,
     f3dContext: OOTF3DContext,
@@ -85,7 +85,7 @@ def ootReadTextureArraysFromMultiple(
 
 
 def ootReadTextureArraysGeneric(
-    flipbookList: dict[str, OOTTextureFlipbook],
+    flipbookList: dict[str, TextureFlipbook],
     actorData: str,
     getSegmentCallsFunc: Callable[[str], None],
     f3dContext: OOTF3DContext,
@@ -104,7 +104,7 @@ def ootReadTextureArraysGeneric(
         # check if single non-array texture reference (ex. z_en_ta, which uses a different texture in z_demo_ec (red nose))
         # This is will not get correct texture name, but otherwise works fine.
         if flipbookKey not in f3dContext.flipbooks and findSingleTextureReference(segmentParam):
-            f3dContext.flipbooks[flipbookKey] = OOTTextureFlipbook("", "Individual", [segmentParam])
+            f3dContext.flipbooks[flipbookKey] = TextureFlipbook("", "Individual", [segmentParam])
 
 
 # check if array is directly referenced in gSPSegment
@@ -137,8 +137,8 @@ def findSingleTextureReference(segmentParam: str) -> re.Match:
 
 # check for texture arrays in data.
 # void* ???[] = {a, b, c,}
-def getTextureArrays(actorData: str, arrayIndex2D: int) -> dict[str, OOTTextureFlipbook]:
-    flipbookList = {}  # {array name : OOTTextureFlipbook}
+def getTextureArrays(actorData: str, arrayIndex2D: int) -> dict[str, TextureFlipbook]:
+    flipbookList = {}  # {array name : TextureFlipbook}
 
     if arrayIndex2D is not None:
         for texArray2DMatch in re.finditer(
@@ -160,7 +160,7 @@ def getTextureArrays(actorData: str, arrayIndex2D: int) -> dict[str, OOTTextureF
             # handle trailing comma
             if textureList[-1] == "":
                 textureList.pop()
-            flipbookList[arrayName] = OOTTextureFlipbook(arrayName, "Array", textureList)
+            flipbookList[arrayName] = TextureFlipbook(arrayName, "Array", textureList)
     else:
         for texArrayMatch in re.finditer(
             r"void\s*\*\s*([0-9a-zA-Z\_]*)\s*\[\s*\]\s*=\s*\{(((?!\}).)*)\}", actorData, flags=re.DOTALL
@@ -171,7 +171,7 @@ def getTextureArrays(actorData: str, arrayIndex2D: int) -> dict[str, OOTTextureF
             # handle trailing comma
             if textureList[-1] == "":
                 textureList.pop()
-            flipbookList[arrayName] = OOTTextureFlipbook(arrayName, "Array", textureList)
+            flipbookList[arrayName] = TextureFlipbook(arrayName, "Array", textureList)
 
     return flipbookList
 

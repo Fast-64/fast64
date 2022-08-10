@@ -7,24 +7,7 @@ from .oot_constants import *
 from ..f3d.f3d_writer import *
 from ..f3d.f3d_material import *
 from ..f3d.f3d_parser import *
-
-
-class OOTTextureFlipbook:
-    def __init__(self, name: str, exportMode: str, textureNames: List[str]):
-        self.name = name
-        self.exportMode = exportMode
-        self.textureNames = textureNames
-
-
-def usesFlipbook(material: bpy.types.Material, flipbookProperty: Any, index: int, checkEnable: bool) -> bool:
-    texProp = getattr(material.f3d_mat, "tex" + str(index))
-    # return all_combiner_uses(material)["Texture " + str(index)] and texProp.use_tex_reference and
-    if all_combiner_uses(material.f3d_mat)["Texture " + str(index)] and texProp.use_tex_reference:
-        match = re.search(f"0x0([0-9A-F])000000", texProp.tex_reference)
-        return match is not None and (not checkEnable or flipbookProperty.enable)
-    else:
-        return False
-
+from ..f3d.flipbook import TextureFlipbook, FlipbookProperty, usesFlipbook, ootFlipbookReferenceIsValid
 
 # read included asset data
 def ootGetIncludedAssetData(basePath: str, currentPaths: list[str], data: str) -> str:
@@ -79,30 +62,6 @@ def ootGetLinkData(basePath: str) -> str:
     return actorData
 
 
-def flipbook_to_c(flipbook, isStatic):
-    newArrayData = "void* " if not isStatic else "static void* "
-    newArrayData += f"{flipbook.name}[] = {{ "
-    newArrayData += flipbook_data_to_c(flipbook)
-    newArrayData += " };"
-    return newArrayData
-
-
-def flipbook_2d_to_c(flipbook, isStatic, count):
-    newArrayData = "void* " if not isStatic else "static void* "
-    newArrayData += f"{flipbook.name}[][{count}] = {{ "
-    for i in range(count):
-        newArrayData += "{ " + flipbook_data_to_c(flipbook) + " },\n"
-    newArrayData += " };"
-    return newArrayData
-
-
-def flipbook_data_to_c(flipbook):
-    newArrayData = ""
-    for textureName in flipbook.textureNames:
-        newArrayData += textureName + ",\n"
-    return newArrayData
-
-
 class OOTModel(FModel):
     def __init__(self, f3dType, isHWv1, name, DLFormat, drawLayerOverride):
         self.drawLayerOverride = drawLayerOverride
@@ -154,7 +113,7 @@ class OOTModel(FModel):
         if tlutCmdIndex == len(gfxList.commands):
             raise PluginError(f"Can not find TLUT command in material {fMaterial.name}")
 
-    def addFlipbookWithRepeatCheck(self, flipbook: OOTTextureFlipbook):
+    def addFlipbookWithRepeatCheck(self, flipbook: TextureFlipbook):
         for existingFlipbook in self.flipbooks:
             if existingFlipbook.name == flipbook.name:
                 if len(existingFlipbook.textureNames) != len(flipbook.textureNames):
@@ -203,7 +162,7 @@ class OOTModel(FModel):
                 )
             return existingFPalette
 
-    def processFlipbookCI(self, fMaterial: FMaterial, flipbookProp: Any, texProp: TextureProperty):
+    def processFlipbookCI(self, fMaterial: FMaterial, flipbookProp: FlipbookProperty, texProp: TextureProperty):
         # print("Processing flipbook...")
         flipbook = OOTTextureFlipbook(flipbookProp.name, flipbookProp.exportMode, [])
         sharedPalette = FSharedPalette(self.name + "_" + flipbookProp.textures[0].image.name + "_pal")
@@ -269,7 +228,7 @@ class OOTModel(FModel):
         self.modifyDLForCIFlipbook(fMaterial, fPalette, texProp)
 
     def processFlipbookNonCI(self, fMaterial: FMaterial, flipbookProp: Any, texProp: TextureProperty):
-        flipbook = OOTTextureFlipbook(flipbookProp.name, flipbookProp.exportMode, [])
+        flipbook = TextureFlipbook(flipbookProp.name, flipbookProp.exportMode, [])
         for flipbookTexture in flipbookProp.textures:
             if flipbookTexture.image is None:
                 raise PluginError(f"Flipbook for {fMaterial.name} has a texture array item that has not been set.")
@@ -295,7 +254,7 @@ class OOTModel(FModel):
     def onMaterialCommandsBuilt(self, fMaterial, material, drawLayer):
         # handle dynamic material calls
         gfxList = fMaterial.material
-        matDrawLayer = getattr(material.ootMaterial, drawLayer.lower())
+        matDrawLayer = getattr(material.flipbookGroup, drawLayer.lower())
         for i in range(8, 14):
             if getattr(matDrawLayer, "segment" + format(i, "X")):
                 gfxList.commands.append(
@@ -310,9 +269,9 @@ class OOTModel(FModel):
 
         # save flipbook textures
         for i in range(2):
-            flipbookProp = getattr(material.ootMaterial, "flipbook" + str(i))
+            flipbookProp = getattr(material.flipbookGroup, "flipbook" + str(i))
             texProp = getattr(material.f3d_mat, "tex" + str(i))
-            if usesFlipbook(material, flipbookProp, i, True):
+            if usesFlipbook(material, flipbookProp, i, True, ootFlipbookReferenceIsValid):
                 if len(flipbookProp.textures) == 0:
                     raise PluginError(f"{str(material)} cannot have a flipbook material with no flipbook textures.")
 
@@ -474,8 +433,8 @@ class OOTF3DContext(F3DContext):
         self.isBillboard = False
         clearOOTMaterialDrawLayerProperty(self.materialContext.ootMaterial.opaque)
         clearOOTMaterialDrawLayerProperty(self.materialContext.ootMaterial.transparent)
-        clearOOTFlipbookProperty(self.materialContext.ootMaterial.flipbook0)
-        clearOOTFlipbookProperty(self.materialContext.ootMaterial.flipbook1)
+        clearOOTFlipbookProperty(self.materialContext.flipbookGroup.flipbook0)
+        clearOOTFlipbookProperty(self.materialContext.flipbookGroup.flipbook1)
         F3DContext.clearMaterial(self)
 
     def postMaterialChanged(self):
@@ -492,7 +451,7 @@ class OOTF3DContext(F3DContext):
         data: str,
     ):
         # check for texture arrays.
-        clearOOTFlipbookProperty(getattr(material.ootMaterial, "flipbook" + str(index)))
+        clearOOTFlipbookProperty(getattr(material.flipbookGroup, "flipbook" + str(index)))
         match = re.search(f"(0x0[0-9a-fA-F])000000", name)
         if match:
             segment = int(match.group(1), 16)
@@ -500,7 +459,7 @@ class OOTF3DContext(F3DContext):
             if flipbookKey in self.flipbooks:
                 flipbook = self.flipbooks[flipbookKey]
 
-                flipbookProp = getattr(material.ootMaterial, "flipbook" + str(index))
+                flipbookProp = getattr(material.flipbookGroup, "flipbook" + str(index))
                 flipbookProp.enable = True
                 flipbookProp.exportMode = flipbook.exportMode
                 if flipbookProp.exportMode == "Array":
@@ -532,7 +491,7 @@ class OOTF3DContext(F3DContext):
             super().handleTextureReference(name, image, material, index, tileSettings, data)
 
     def handleTextureValue(self, material: bpy.types.Material, image: bpy.types.Image, index: int):
-        clearOOTFlipbookProperty(getattr(material.ootMaterial, "flipbook" + str(index)))
+        clearOOTFlipbookProperty(getattr(material.flipbookGroup, "flipbook" + str(index)))
         super().handleTextureValue(material, image, index)
 
     def handleApplyTLUT(
@@ -543,8 +502,8 @@ class OOTF3DContext(F3DContext):
         index: int,
     ):
 
-        flipbook = getattr(material.ootMaterial, "flipbook" + str(index))
-        if usesFlipbook(material, flipbook, index, True):
+        flipbook = getattr(material.flipbookGroup, "flipbook" + str(index))
+        if usesFlipbook(material, flipbook, index, True, ootFlipbookReferenceIsValid):
             # Don't apply TLUT to texProp.tex, as it is the same texture as the first flipbook texture.
             # Make sure to check if tlut is already applied (ex. LOD skeleton uses same flipbook textures)
             # applyTLUTToIndex() doesn't check for this if texProp.use_tex_reference.
