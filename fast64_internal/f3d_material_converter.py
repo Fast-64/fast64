@@ -17,6 +17,8 @@ def upgradeF3DVersionAll(objs, armatures, version):
     for deleteGroup in deleteGroups:
         bpy.data.node_groups.remove(deleteGroup)
 
+    set_best_draw_layer_for_materials()
+
     # Dict of non-f3d materials : converted f3d materials
     # handles cases where materials are used in multiple objects
     materialDict = {}
@@ -77,35 +79,95 @@ def getV4PresetName(name):
     return newName
 
 
-def convertF3DtoNewVersion(obj, index, material, materialDict, version):
+def get_group_from_polygon(obj: bpy.types.Object, polygon: bpy.types.MeshPolygon):
+    sample_vert: bpy.types.MeshVertex = obj.data.vertices[polygon.vertices[0]]
+    if len(sample_vert.groups):
+        g: bpy.types.VertexGroupElement = None
+        for g in sample_vert.groups:
+            if g.weight > 0.99:
+                return obj.vertex_groups[sample_vert.groups[0].group]
+    return None
 
-    if material.mat_ver > 3:
-        oldPreset = AddPresetBase.as_filename(material.f3d_mat.presetName)
-    else:
-        oldPreset = material.f3d_preset
 
-    if version > 3:
+def has_valid_mat_ver(material: bpy.types.Material):
+    return getattr(material, "mat_ver", -1) >= 1
+
+
+def set_best_draw_layer_for_materials():
+    bone_map = {}
+    for armature in bpy.data.armatures:
+        bone: bpy.types.Bone = None
+        for bone in armature.bones:
+            bone_map[bone.name] = bone
+
+    finished_mats = set()
+
+    objects = bpy.data.objects
+    obj: bpy.types.Object = None
+    for obj in objects:
+        if not isinstance(obj.data, bpy.types.Mesh) or len(obj.material_slots) < 1:
+            continue
+
+        p: bpy.types.MeshPolygon = None
+        for p in obj.data.polygons:
+            mat: bpy.types.Material = obj.material_slots[p.material_index].material
+            if not has_valid_mat_ver(mat) or mat.mat_ver >= 4 or mat.name in finished_mats:
+                continue
+
+            # default to object's draw layer
+            mat.f3d_mat.draw_layer.sm64 = obj.draw_layer_static
+
+            # get vertex group in the polygon
+            group = get_group_from_polygon(obj, p)
+            if isinstance(group, bpy.types.VertexGroup):
+                # check for matching bone from group name
+                bone = bone_map.get(group.name)
+                if bone is not None:
+                    # override material draw later with bone's draw layer
+                    mat.f3d_mat.draw_layer.sm64 = bone.draw_layer
+            finished_mats.add(mat.name)
+
+    for obj in objects:
+        if not isinstance(obj.data, bpy.types.Mesh):
+            continue
+        for mat_slot in obj.material_slots:
+            mat: bpy.types.Material = mat_slot.material
+            if not has_valid_mat_ver(mat) or mat.mat_ver >= 4 or mat.name in finished_mats:
+                continue
+
+            mat.f3d_mat.draw_layer.sm64 = obj.draw_layer_static
+            finished_mats.add(mat.name)
+
+
+def convertF3DtoNewVersion(obj: bpy.types.Object | bpy.types.Bone, index, material, materialDict, version):
+    try:
+        if not has_valid_mat_ver(material):
+            return
+        if material.mat_ver > 3:
+            oldPreset = AddPresetBase.as_filename(material.f3d_mat.presetName)
+        else:
+            oldPreset = material.get("f3d_preset")
+
         newMat = createF3DMat(obj, preset=getV4PresetName(oldPreset), index=index)
+
         if material.mat_ver > 3:
             copyPropertyGroup(material.f3d_mat, newMat.f3d_mat)
         else:
             convertToNewMat(newMat, material)
-        if newMat.f3d_mat.draw_layer.sm64 != obj.draw_layer_static:
-            newMat.f3d_mat.draw_layer.sm64 = obj.draw_layer_static
-    else:
-        newMat = createF3DMat(obj, preset=oldPreset, index=index)
-        matSettings = F3DMaterialSettings()
-        matSettings.loadFromMaterial(material, True)
-        matSettings.applyToMaterial(newMat, True, update_node_values_of_material, bpy.context)
 
-    copyPropertyGroup(material.ootMaterial, newMat.ootMaterial)
-    copyPropertyGroup(material.ootCollisionProperty, newMat.ootCollisionProperty)
+        newMat.f3d_mat.draw_layer.sm64 = material.f3d_mat.draw_layer.sm64
 
-    colSettings = CollisionSettings()
-    colSettings.load(material)
-    colSettings.apply(newMat)
+        copyPropertyGroup(material.ootMaterial, newMat.ootMaterial)
+        copyPropertyGroup(material.ootCollisionProperty, newMat.ootCollisionProperty)
 
-    updateMatWithNewVersionName(newMat, material, materialDict, version)
+        colSettings = CollisionSettings()
+        colSettings.load(material)
+        colSettings.apply(newMat)
+
+        updateMatWithNewVersionName(newMat, material, materialDict, version)
+    except Exception as exc:
+        print("Failed to upgrade", material.name)
+        print(exc)
 
 
 def convertAllBSDFtoF3D(objs, renameUV):
@@ -177,9 +239,8 @@ def updateMatWithName(f3dMat, oldMat, materialDict):
 
 def updateMatWithNewVersionName(f3dMat, oldMat, materialDict, version):
     name = oldMat.name
-    if oldMat.name[-3:-1] == "_v":
-        name = oldMat.name[:-3]
-    f3dMat.name = name + "_v" + str(version)
+    f3dMat.name = name
+    oldMat.name = name + "_v" + str(oldMat.mat_ver)
     update_preset_manual(f3dMat, bpy.context)
     materialDict[oldMat] = f3dMat
 
@@ -221,7 +282,7 @@ class BSDFConvert(bpy.types.Operator):
 
 class MatUpdateConvert(bpy.types.Operator):
     # set bl_ properties
-    version = 4
+    version = 5
     bl_idname = "object.convert_f3d_update"
     bl_label = "Recreate F3D Materials As v" + str(version)
     bl_options = {"REGISTER", "UNDO", "PRESET"}
