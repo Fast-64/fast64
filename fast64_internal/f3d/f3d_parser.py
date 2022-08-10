@@ -5,7 +5,6 @@ from .f3d_gbi import *
 from .f3d_material import (
     createF3DMat,
     update_preset_manual,
-    update_node_values_directly,
     all_combiner_uses,
     ootEnumDrawLayers,
     TextureProperty,
@@ -318,7 +317,6 @@ def printvbuf(vertexBuffer):
 
 def createBlankMaterial(obj):
     material = createF3DMat(obj)
-    material.f3d_preset = "Shaded Solid"
     update_preset_manual(material, bpy.context)
 
 

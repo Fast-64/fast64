@@ -1,6 +1,5 @@
 # Macros are all copied over from gbi.h
-import bpy, os, copy, enum
-from math import ceil
+import bpy, os, enum
 from ..utility import *
 
 
@@ -72,8 +71,47 @@ drawLayerRenderMode = {
     7: ("G_RM_AA_ZB_XLU_INTER", "G_RM_NOOP2"),
 }
 
+CCMUXDict = {
+    "COMBINED": 0,
+    "TEXEL0": 1,
+    "TEXEL1": 2,
+    "PRIMITIVE": 3,
+    "SHADE": 4,
+    "ENVIRONMENT": 5,
+    "CENTER": 6,
+    "SCALE": 6,
+    "COMBINED_ALPHA": 7,
+    "TEXEL0_ALPHA": 8,
+    "TEXEL1_ALPHA": 9,
+    "PRIMITIVE_ALPHA": 10,
+    "SHADE_ALPHA": 11,
+    "ENV_ALPHA": 12,
+    "LOD_FRACTION": 13,
+    "PRIM_LOD_FRAC": 14,
+    "NOISE": 7,
+    "K4": 7,
+    "K5": 15,
+    "1": 6,
+    "0": 31,
+}
+
+ACMUXDict = {
+    "COMBINED": 0,
+    "TEXEL0": 1,
+    "TEXEL1": 2,
+    "PRIMITIVE": 3,
+    "SHADE": 4,
+    "ENVIRONMENT": 5,
+    "LOD_FRACTION": 0,
+    "PRIM_LOD_FRAC": 6,
+    "1": 6,
+    "0": 7,
+}
+
 
 class F3D:
+    """NOTE: do not initialize this class manually! use get_F3D_GBI so that the single instance is cached from the microcode type."""
+
     def __init__(self, F3D_VER, _HW_VERSION_1):
         if F3D_VER == "F3DEX2.Rej/LX2.Rej" or F3D_VER == "F3DEX2/LX2":
             self.F3DEX_GBI = False
@@ -428,42 +466,9 @@ class F3D:
         self.G_CCMUX_1 = 6
         self.G_CCMUX_0 = 31
 
-        self.CCMUXDict = {
-            "COMBINED": 0,
-            "TEXEL0": 1,
-            "TEXEL1": 2,
-            "PRIMITIVE": 3,
-            "SHADE": 4,
-            "ENVIRONMENT": 5,
-            "CENTER": 6,
-            "SCALE": 6,
-            "COMBINED_ALPHA": 7,
-            "TEXEL0_ALPHA": 8,
-            "TEXEL1_ALPHA": 9,
-            "PRIMITIVE_ALPHA": 10,
-            "SHADE_ALPHA": 11,
-            "ENV_ALPHA": 12,
-            "LOD_FRACTION": 13,
-            "PRIM_LOD_FRAC": 14,
-            "NOISE": 7,
-            "K4": 7,
-            "K5": 15,
-            "1": 6,
-            "0": 31,
-        }
+        self.CCMUXDict = CCMUXDict
 
-        self.ACMUXDict = {
-            "COMBINED": 0,
-            "TEXEL0": 1,
-            "TEXEL1": 2,
-            "PRIMITIVE": 3,
-            "SHADE": 4,
-            "ENVIRONMENT": 5,
-            "LOD_FRACTION": 0,
-            "PRIM_LOD_FRAC": 6,
-            "1": 6,
-            "0": 7,
-        }
+        self.ACMUXDict = ACMUXDict
 
         # Alpha combiner constants:
         self.G_ACMUX_COMBINED = 0
@@ -1673,6 +1678,23 @@ class F3D:
             raise PluginError("Invalid G_MWO_b value for lights: " + n)
 
 
+g_F3D = {"GBI": None, "f3d_type": None, "isHWv1": None}
+
+
+def get_cached_F3D_GBI(f3d_type: str, isHWv1: bool) -> F3D:
+    """Get constructed/cached F3D class"""
+    if g_F3D["GBI"] is None or f3d_type != g_F3D["f3d_type"] or isHWv1 != g_F3D["isHWv1"]:
+        g_F3D["f3d_type"] = f3d_type
+        g_F3D["isHWv1"] = isHWv1
+        g_F3D["GBI"] = F3D(f3d_type, isHWv1)
+    return g_F3D["GBI"]
+
+
+def get_F3D_GBI() -> F3D:
+    """Gets cached F3D class and automatically supplies params"""
+    return get_cached_F3D_GBI(bpy.context.scene.f3d_type, bpy.context.scene.isHWv1)
+
+
 def _SHIFTL(value, amount, mask):
     return (int(value) & ((1 << mask) - 1)) << amount
 
@@ -2159,7 +2181,7 @@ class GfxList:
 
 
 class FFogData:
-    def __init__(self, position=(970, 1000), color=(0, 0, 0, 1)):
+    def __init__(self, position=(985, 1000), color=(0, 0, 0, 1)):
         self.position = tuple(position)
         self.color = (round(color[0], 8), round(color[1], 8), round(color[2], 8), round(color[3], 8))
 
@@ -2449,11 +2471,6 @@ class FModel:
         for info, texture in self.textures.items():
             texture.save_binary(romfile)
         for materialKey, (fMaterial, texDimensions) in self.materials.items():
-            if fMaterial.useLargeTextures and (fMaterial.saveLargeTextures[0] or fMaterial.saveLargeTextures[0]):
-                raise PluginError(
-                    "Large texture mode textures must have their "
-                    "texture specific 'Save As PNG' disabled for binary export."
-                )
             fMaterial.save_binary(romfile, self.f3d, segments)
         for name, mesh in self.meshes.items():
             mesh.save_binary(romfile, self.f3d, segments)
@@ -2477,7 +2494,7 @@ class FModel:
             texDir += "/"
         data = CData()
         for info, texture in self.textures.items():
-            if savePNG or texture.isLargeTexture:
+            if savePNG:
                 data.append(texture.to_c_tex_separate(texDir, texArrayBitSize))
             else:
                 data.append(texture.to_c(texArrayBitSize))
@@ -2533,7 +2550,9 @@ class FModel:
 
         dynamicData.append(self.to_c_material_revert(gfxFormatter))
 
-        self.texturesSavedLastExport = self.save_textures(textureExportSettings.exportPath, not savePNG)
+        if savePNG:
+            self.texturesSavedLastExport = self.save_textures(textureExportSettings.exportPath)
+
         self.freePalettes()
         return ExportCData(staticData, dynamicData, texC)
 
@@ -2555,24 +2574,22 @@ class FModel:
         scrollData.header += "extern void scroll_" + scrollName + "();\n"
         return scrollData, hasScrolling
 
-    def save_textures(self, dirpath, largeTexturesOnly):
+    def save_textures(self, exportPath):
+        # TODO: Saving texture should come from FImage
         texturesSaved = 0
         for (image, texInfo), texture in self.textures.items():
-            # Note that if PAL, then "image" would actually be string in this case instead of an FImage.
-            if texInfo[1] == "PAL" or (largeTexturesOnly and not texture.isLargeTexture):
+            if texInfo[1] == "PAL":
                 continue
 
             # remove '.inc.c'
             imageFileName = texture.filename[:-6] + ".png"
-
-            # 	image.save_render(os.path.join(dirpath, imageFileName))
 
             isPacked = image.packed_file is not None
             if not isPacked:
                 image.pack()
             oldpath = image.filepath
             try:
-                image.filepath = bpy.path.abspath(os.path.join(dirpath, imageFileName))
+                image.filepath = bpy.path.abspath(os.path.join(exportPath, imageFileName))
                 image.save()
                 texturesSaved += 1
                 if not isPacked:
@@ -2885,7 +2902,6 @@ class FMaterial:
         self.useLargeTextures = False
         self.largeTextureIndex = None
         self.texturesLoaded = [False, False]
-        self.saveLargeTextures = [True, True]
 
     def getScrollData(self, material, dimensions):
         self.getScrollDataField(material, 0, 0)
@@ -4998,19 +5014,17 @@ class DPSetCombineMode:
 
     def to_binary(self, f3d, segments):
         words = _SHIFTL(f3d.G_SETCOMBINE, 24, 8) | _SHIFTL(
-            GCCc0w0(f3d.CCMUXDict[self.a0], f3d.CCMUXDict[self.c0], f3d.ACMUXDict[self.Aa0], f3d.ACMUXDict[self.Ac0])
-            | GCCc1w0(f3d.CCMUXDict[self.a1], f3d.CCMUXDict[self.c1]),
+            GCCc0w0(CCMUXDict[self.a0], CCMUXDict[self.c0], ACMUXDict[self.Aa0], ACMUXDict[self.Ac0])
+            | GCCc1w0(CCMUXDict[self.a1], CCMUXDict[self.c1]),
             0,
             24,
-        ), GCCc0w1(
-            f3d.CCMUXDict[self.b0], f3d.CCMUXDict[self.d0], f3d.ACMUXDict[self.Ab0], f3d.ACMUXDict[self.Ad0]
-        ) | GCCc1w1(
-            f3d.CCMUXDict[self.b1],
-            f3d.ACMUXDict[self.Aa1],
-            f3d.ACMUXDict[self.Ac1],
-            f3d.CCMUXDict[self.d1],
-            f3d.ACMUXDict[self.Ab1],
-            f3d.ACMUXDict[self.Ad1],
+        ), GCCc0w1(CCMUXDict[self.b0], CCMUXDict[self.d0], ACMUXDict[self.Ab0], ACMUXDict[self.Ad0]) | GCCc1w1(
+            CCMUXDict[self.b1],
+            ACMUXDict[self.Aa1],
+            ACMUXDict[self.Ac1],
+            CCMUXDict[self.d1],
+            ACMUXDict[self.Ab1],
+            ACMUXDict[self.Ad1],
         )
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
