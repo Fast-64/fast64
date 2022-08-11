@@ -1111,7 +1111,7 @@ ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
 </Notes>
   </Actor>
   <Actor Category="ACTORCAT_NPC" HasEnum="True" ID="ACTOR_EN_SW" Key="en_sw" Name="Skullwalltula/Golden Skulltula" ObjectKey="obj_st">
-    <Type Index="1" Mask="0xE000">
+    <Type Index="1" Mask="0x8000">
       <Item Params="0000"> Skullwalltula</Item>
       <Item Params="8000"> Gold Skulltula</Item>
     </Type>
@@ -1213,10 +1213,14 @@ ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
   </Actor>
   <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_RU1" Key="en_ru1" Name="Young Ruto" ObjectKey="obj_ru1">
     <Type Index="1">
-      <Item Params="0000"> Blue Warp and Ruto</Item>
-      <Item Params="0001"> Leaning Ruto //no collision data, targetable</Item>
-      <Item Params="0002"> Ruto, First Encounter //Plays cutscene from Jabu-Jabu’s Belly when you first meet her</Item>
-      <Item Params="0003"> Ruto, after falling down the hole in Jabu-Jabu</Item>
+      <Item Params="0000"> Ruto with Blue Warp</Item>
+      <Item Params="0001"> Ruto from Sapphire CS</Item>
+      <Item Params="0002"> First Time Meeting Ruto</Item>
+      <Item Params="0003"> Carry Ruto</Item>
+      <Item Params="0004"> Ruto from Big Octo CS</Item>
+      <Item Params="0005"> Ruto from Zora's Domain</Item>
+      <Item Params="0006"> Ruto near Blue Switch</Item>
+      <Item Params="000A"> Unknown</Item>
     </Type>
   </Actor>
   <Actor Category="ACTORCAT_BOSS" ID="ACTOR_BOSS_FD2" Key="boss_fd2" Name="Hole Volvagia" ObjectKey="obj_fd2">
@@ -1337,22 +1341,30 @@ ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
   </Actor>
   <Actor Category="ACTORCAT_ENEMY" ID="ACTOR_EN_FIRE_ROCK" Key="en_fire_rock" Name="Flying Rubble" ObjectKey="obj_efc_star_field">
     <Type Index="1">
-      <Item Params="0000"> Large</Item>
-      <Item Params="0001"> Medium</Item>
-      <Item Params="0002"> Small</Item>
-      <Item Params="0003"> Large</Item>
+      <Item Params="0000"> Falling 1</Item>
+      <Item Params="0001"> Broken Pieces 1</Item>
+      <Item Params="0002"> Broken Pieces 2</Item>
+      <Item Params="0003"> Falling 2</Item>
+      <Item Params="0005"> Ceiling Spawner</Item>
+      <Item Params="0006"> On Floor</Item>
     </Type>
   </Actor>
   <Actor Category="ACTORCAT_ENEMY" ID="ACTOR_EN_BROB" Key="en_brob" Name="Flobbery Muscle Block" ObjectKey="obj_brob">
     <Bool Index="1" Mask="0x1000" Name="Smaller Size"/>
     <Property Index="1" Mask="0x00FF" Name="Height Modifier"/>
   </Actor>
-  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_MIR_RAY" Key="mir_ray" Name="Sun Block Switch (Hardcoded Positions)" ObjectKey="obj_mir_ray">
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_MIR_RAY" Key="mir_ray" Name="Reflectable Lights" ObjectKey="obj_mir_ray">
     <Type Index="1">
+      <Item Params="0000"> Spirit Temple's Bombable Wall Light</Item>
       <Item Params="0001"> Spirit Temple's Sun-Block Room</Item>
       <Item Params="0002"> Spirit Temple's Single Cobra-Mirror Room</Item>
       <Item Params="0003"> Spirit Temple's Four Armos Room</Item>
       <Item Params="0004"> Spirit Temple's Topmost Room</Item>
+      <Item Params="0005"> Spirit Temple Big Mirror</Item>
+      <Item Params="0006"> Cobra Mirror</Item>
+      <Item Params="0007"> Big Mirror Room Cobra 1 to Cobra 2</Item>
+      <Item Params="0008"> Big Mirror Room Cobra 2 to Big Mirror</Item>
+      <Item Params="0009"> Spirit Trial Ceiling</Item>
     </Type>
   </Actor>
   <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_SPOT09_OBJ" Key="bg_spot09_obj" Name="Gerudo Valley Objects" ObjectKey="obj_spot09_obj">
@@ -1373,7 +1385,27 @@ ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
   </Actor>
   <Actor Category="ACTORCAT_BOSS" ID="ACTOR_BOSS_VA" Key="boss_va" Name="Barinade" ObjectKey="obj_bv">
     <Type Index="1">
-      <Item Params="FFFF"> Barinade</Item>
+      <Item Params="FFFF"> Default</Item>
+      <Item Params="0000"> Support 1</Item>
+      <Item Params="0001"> Support 2</Item>
+      <Item Params="0002"> Support 3</Item>
+      <Item Params="0003"> Zapper 1</Item>
+      <Item Params="0004"> Zapper 2</Item>
+      <Item Params="0005"> Zapper 3</Item>
+      <Item Params="0006"> Bari Upper 1</Item>
+      <Item Params="0007"> Bari Upper 2</Item>
+      <Item Params="0008"> Bari Upper 3</Item>
+      <Item Params="0009"> Bari Upper 4</Item>
+      <Item Params="000A"> Bari Upper 5</Item>
+      <Item Params="000B"> Bari Lower 1</Item>
+      <Item Params="000C"> Bari Lower 2</Item>
+      <Item Params="000D"> Bari Lower 3</Item>
+      <Item Params="000E"> Bari Lower 4</Item>
+      <Item Params="000F"> Bari Lower 5</Item>
+      <Item Params="0010"> Stump 1</Item>
+      <Item Params="0011"> Stump 2</Item>
+      <Item Params="0012"> Stump 3</Item>
+      <Item Params="0013"> Door</Item>
     </Type>
   </Actor>
   <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_HAKA_TUBO" Key="bg_haka_tubo" Name="Open Topped Skull Statue" ObjectKey="obj_haka_objects">
@@ -1393,8 +1425,9 @@ ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
   </Actor>
   <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_HAKA_HUTA" Key="bg_haka_huta" Name="Coffin Lid" ObjectKey="obj_hakach_objects">
     <Type Index="1" Mask="0xFF00">
-      <Item Params="0100"> Spawns gibdo //(needs object 0098)</Item>
-      <Item Params="0200"> Spawns 2 keese //(needs object 000D)</Item>
+      <Item Params="0000"> Empty</Item>
+      <Item Params="0100"> Gibdo</Item>
+      <Item Params="0200"> 2 Keese</Item>
     </Type>
     <Flag Index="1" Mask="0x003F" Type="Switch"/>
     <Notes>+0x3F = Switch Flag</Notes>
@@ -1490,11 +1523,12 @@ ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
   <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_SPOT16_BOMBSTONE" Key="bg_spot16_bombstone" Name="Giant Boulder Blocking Dodongo's Cavern" ObjectKey="obj_spot16_obj">
     <Type Index="1" Mask="0x00FF">
       <Item Params="00FF"> Default</Item>
-      <Item Params="0001"> Debris</Item>
-      <Item Params="0002"> Debris</Item>
-      <Item Params="0003"> Debris</Item>
-      <Item Params="0004"> Debris</Item>
-      <Item Params="0005"> Debris</Item>
+      <Item Params="0000"> Debris 1</Item>
+      <Item Params="0001"> Debris 2</Item>
+      <Item Params="0002"> Debris 3</Item>
+      <Item Params="0003"> Debris 4</Item>
+      <Item Params="0004"> Debris 5</Item>
+      <Item Params="0005"> Debris 6</Item>
     </Type>
     <Flag Index="1" Mask="0x3F00" Type="Switch"/>
   </Actor>
@@ -1564,6 +1598,7 @@ ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
   </Actor>
   <Actor Category="ACTORCAT_BG" ID="ACTOR_EN_HORSE_GAME_CHECK" Key="en_horse_game_check" Name="Horseback Games">
     <Type Index="1">
+      <Item Params="0000"> Nothing</Item>
       <Item Params="0001"> Ingo Race</Item>
       <Item Params="0002"> Gerudo Archery</Item>
       <Item Params="0003"> Unused?</Item>
@@ -1598,7 +1633,8 @@ ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
   </Actor>
   <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_MORI_HASHIGO" Key="bg_mori_hashigo" Name="Ladder with Clasp (Unused)" ObjectID="OBJECT_MORI_OBJECTS,OBJECT_MORI_TEX">
     <Type Index="1">
-      <Item Params="FFFF"> Default</Item>
+      <Item Params="FFFF"> Clasp (Default)</Item>
+      <Item Params="0000"> Ladder</Item>
     </Type>
   </Actor>
   <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_MORI_HASHIRA4" Key="bg_mori_hashira4" Name="Gates and Rotating Pillars" ObjectID="OBJECT_MORI_OBJECTS,OBJECT_MORI_TEX">
@@ -1645,7 +1681,9 @@ ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
   </Actor>
   <Actor Category="ACTORCAT_BOSS" ID="ACTOR_BOSS_SST" Key="boss_sst" Name="Bongo Bongo" ObjectKey="obj_sst">
     <Type Index="1">
-      <Item Params="FFFF"> Default</Item>
+      <Item Params="FFFF"> Head (Default)</Item>
+      <Item Params="0000"> Left Hand</Item>
+      <Item Params="0001"> Right Hand</Item>
     </Type>
   </Actor>
   <Actor Category="ACTORCAT_ENEMY" ID="ACTOR_EN_NY" Key="en_ny" Name="Spike Enemy" ObjectKey="obj_ny">
@@ -1771,11 +1809,7 @@ The sun switch has to be between 252 and 308 units from the cobra mirror to be a
   </Actor>
   <Actor Category="ACTORCAT_NPC" ID="ACTOR_FISHING" Key="fishing" Name="Fishing Game, Fish, and Fisherman" ObjectKey="obj_fish">
     <Type Index="1">
-      <Item Params="0000"> Wearing red vest over blue shirt, no hat</Item>
-      <Item Params="0064"> Normal fish</Item>
-      <Item Params="0073"> Hylian Loach</Item>
-      <Item Params="0100"> Huge Hylian Loach</Item>
-      <Item Params="8000"> Pond stuff, still no hat</Item>
+      <Item Params="FFFF"> Default</Item>
     </Type>
   </Actor>
   <Actor Category="ACTORCAT_PROP" HasEnum="True" ID="ACTOR_OBJ_OSHIHIKI" Key="obj_oshihiki" Name="Push Block" ObjectKey="obj_gameplay_dangeon_keep">
@@ -2221,7 +2255,7 @@ ROTZ 0x0001 = Behavior after colliding with Link
   </Actor>
   <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_HS" Key="en_hs" Name="Carpenter's Son" ObjectKey="obj_hs">
     <Type Index="1">
-      <Item Params="FFFF"> Default</Item>
+      <Item Params="0000"> Default</Item>
     </Type>
     <Notes>Text ID 10B1 when sleeping</Notes>
   </Actor>
@@ -2325,21 +2359,21 @@ ROTZ 0x0001 = Behavior after colliding with Link
   </Actor>
   <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_SPOT01_IDOSOKO" Key="bg_spot01_idosoko" Name="Stone Blocking Well Entrance" ObjectKey="obj_spot01_matoya">
     <Type Index="1">
-      <Item Params="FFFF"> Default</Item>
+      <Item Params="0000"> Default</Item>
     </Type>
   </Actor>
   <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_SA" Key="en_sa" Name="Saria" ObjectKey="obj_sa">
     <Type Index="1">
-      <Item Params="FFFF"> Default</Item>
+      <Item Params="0000"> Default</Item>
     </Type>
   </Actor>
   <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_WONDER_TALK" Key="en_wonder_talk" Name="Checkable Spot">
     <Type Index="1" Mask="0xF800">
       <Item Params="0800"> Temple of Time stone altar dialog</Item>
       <Item Params="1000"> Gravekeeper's diary dialog //Navi hovers higher than normal</Item>
-      <Item Params="1800"> Royal Composer Sharp's grave dialog //Use Object 006E, Sets Temporary Switch Flag 09, spawns Sharp</Item>
-      <Item Params="2000"> &quot;Royal Family Tomb&quot; dialog</Item>
-      <Item Params="2800"> Royal Composer Flat's grave dialog //Use Object 006E, Sets Temporary Switch Flag 08, spawns Flat</Item>
+      <Item Params="1800"> Royal Composer Sharp's grave dialog //Use Object 006E, spawns Sharp</Item>
+      <Item Params="2000"> Royal Family Tomb dialog</Item>
+      <Item Params="2800"> Royal Composer Flat's grave dialog //Use Object 006E, spawns Flat</Item>
     </Type>
     <Flag Index="1" Mask="0x003F" Type="Switch"/>
     <Notes>+0x3F = Switch Flag //Spot deactivates when flag is set</Notes>
