@@ -440,8 +440,7 @@ def getActorExportValue(actor, field, user):
 
 def getCustomActorExportValue(actor, field):
     """Returns the value of a custom actor's prop"""
-    field = getCustomPropName(field)
-    return getattr(actor, field, None)
+    return getattr(actor, getCustomPropName(field), None)
 
 
 def convertIntTo2sComplement(value, length, signed):
@@ -1267,7 +1266,8 @@ def getShiftFromMask(mask):
 
 
 def evalActorParams(params):
-    """Evaluate the params string argument to an integer
+    """
+    Evaluate the params string argument to an integer
     Raises ValueError if something goes wrong
     """
 

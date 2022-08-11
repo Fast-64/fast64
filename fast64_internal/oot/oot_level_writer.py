@@ -544,6 +544,8 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 
             if actorID is None or actorParams is None:
                 raise PluginError("ERROR: ID or Parameters is 'None'!")
+
+            # if the rotation value is ``None``, use the blender's rotation value
             if rotX is None:
                 rotX = f"{rotation[0]}"
             if rotY is None:
