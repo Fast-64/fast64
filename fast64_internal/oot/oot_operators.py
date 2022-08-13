@@ -189,6 +189,28 @@ class OOT_AddActor(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class OOT_AddEntrance(bpy.types.Operator):
+    bl_idname = "object.oot_add_entrance"
+    bl_label = "Add Entrance"
+    bl_options = {"REGISTER", "UNDO", "PRESET"}
+
+    def execute(self, context):
+        if context.mode != "OBJECT":
+            bpy.ops.object.mode_set(mode="OBJECT")
+        bpy.ops.object.select_all(action="DESELECT")
+
+        location = mathutils.Vector(bpy.context.scene.cursor.location)
+        bpy.ops.object.empty_add(type="CONE", radius=1, align="WORLD", location=location[:])
+        emptyObj = context.view_layer.objects.active
+        emptyObj.ootEmptyType = "Entrance"
+        emptyObj.name = "New Entrance"
+        emptyObj.fast64.oot.actor.actorKey = "player"
+        emptyObj.fast64.oot.actor.actorParam = "0xFFF"
+        emptyObj.fast64.oot.version = OOT_ObjectProperties_cur_version
+
+        return {"FINISHED"}
+
+
 class OOT_OperatorsPanel(OOT_Panel):
     bl_idname = "OOT_PT_operators"
     bl_label = "OOT Tools"
@@ -198,8 +220,9 @@ class OOT_OperatorsPanel(OOT_Panel):
         col.operator(OOT_AddScene.bl_idname)
         col.operator(OOT_AddRoom.bl_idname)
         col.operator(OOT_AddActor.bl_idname)
-        col.operator(OOT_AddWaterBox.bl_idname)
+        col.operator(OOT_AddEntrance.bl_idname)
         col.operator(OOT_AddDoor.bl_idname)
+        col.operator(OOT_AddWaterBox.bl_idname)
         col.operator(OOT_AddCutscene.bl_idname)
 
 
@@ -210,6 +233,7 @@ oot_operator_classes = (
     OOT_AddRoom,
     OOT_AddCutscene,
     OOT_AddActor,
+    OOT_AddEntrance,
 )
 
 oot_operator_panel_classes = (OOT_OperatorsPanel,)
