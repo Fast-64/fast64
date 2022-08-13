@@ -76,6 +76,7 @@ for each sub element (of <Actor>) mentioned below:
   </Actor>
   <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_EN_PART" Key="en_part" Name="Disintegrating Blue Flame">
     <Type Index="1">
+      <Item Params="0000"> Unknown</Item>
       <Item Params="0001"> Green Flame</Item>
       <Item Params="0003"> Purple Flame</Item>
       <Item Params="0004"> Red Bubbles</Item>
@@ -87,26 +88,28 @@ for each sub element (of <Actor>) mentioned below:
     </Type>
   </Actor>
   <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_EN_LIGHT" Key="en_light" Name="Flame">
-    <Type Index="1">
+    <Type Index="1" Mask="0x000F">
       <Item Params="0000"> Large Orange Flame</Item>
-      <Item Params="0001"> Large Orange Flame</Item>
+      <Item Params="0001"> Large Orange Flame</Item>*
       <Item Params="0002"> Large Blue Flame</Item>
-      <Item Params="0003"> Large Green Flame</Item>
+      <Item Params="0003"> Large Green Flame</Item>*
       <Item Params="0004"> Small Orange Flame</Item>
-      <Item Params="0005"> Large Orange Flame</Item>
+      <Item Params="0005"> Large Orange Flame</Item>*
       <Item Params="0006"> Large Green Flame</Item>
-      <Item Params="0007"> Large Blue Flame</Item>
+      <Item Params="0007"> Large Blue Flame</Item>*
       <Item Params="0008"> Large Magenta Flame</Item>
-      <Item Params="0009"> Large Pale Orange Flame</Item>
+      <Item Params="0009"> Large Pale Orange Flame</Item>*
       <Item Params="000A"> Large Pale Yellow Flame</Item>
-      <Item Params="000B"> Large Pale Green Flame</Item>
+      <Item Params="000B"> Large Pale Green Flame</Item>*
       <Item Params="000C"> Large Pale Pink Flame</Item>
-      <Item Params="000D"> Large Pale Purple Flame</Item>
-      <Item Params="000E"> Large Pale Indigo Flame</Item>
-      <Item Params="000F"> Large Pale Blue Flame</Item>
-      <Item Params="83F0"> Candle Flame</Item>
-      <Item Params="FFFF"> Faint Blue Aura</Item>
+      <Item Params="000D"> Large Pale Purple Flame</Item>*
+      <Item Params="000E"> Large Pale Indigo Flame</Item>*
+      <Item Params="000F"> Large Pale Blue Flame</Item>*
     </Type>
+    <Flag Index="1" Mask="0x03F0" Type="Switch"/>
+    <Bool Index="1" Mask="0x0400" Name="Shrinking Mode"/>
+    <Bool Index="2" Mask="0x0800" Name="Is Lit (used with shrink)"/>
+    <Bool Index="3" Mask="0x8000" Name="Is Candle"/>
   </Actor>
   <Actor Category="ACTORCAT_DOOR" ID="ACTOR_EN_DOOR" Key="en_door" Name="Wooden Door">
     <Type Index="1" Mask="0x0380">
@@ -145,7 +148,7 @@ for each sub element (of <Actor>) mentioned below:
   </Actor>
   <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_DY_YOSEIZO" Key="bg_dy_yoseizo" Name="Great Fairy" ObjectKey="obj_dy_obj">
     <Type Index="1">
-      <Item Params="FFFF">Default</Item>
+      <Item Params="0000">Default</Item>
     </Type>
     <Notes>Hardcoded cutscene camera points to -19, -2 ,-1000</Notes>
   </Actor>
@@ -433,11 +436,17 @@ Depending on the scene ID, they need certain objects loaded as the first one in 
   <Actor Category="ACTORCAT_ENEMY" ID="ACTOR_EN_BILI" Key="en_bili" Name="Biri" ObjectKey="obj_bl">
     <Type Index="1">
       <Item Params="FFFF">Default</Item>
+      <Item Params="0000">Spawned by Bari</Item>
+      <Item Params="0001">Dying</Item>
     </Type>
   </Actor>
   <Actor Category="ACTORCAT_ENEMY" ID="ACTOR_EN_TP" Key="en_tp" Name="Taliparisan" ObjectKey="obj_tp">
     <Type Index="1">
       <Item Params="FFFF">Default</Item>
+      <Item Params="0000">Tail</Item>
+      <Item Params="000A">Fragment</Item>
+      <Item Params="000B">Tail Dying</Item>
+      <Item Params="000C">Head Dying</Item>
     </Type>
   </Actor>
   <Actor Category="ACTORCAT_ENEMY" ID="ACTOR_EN_ST" Key="en_st" Name="Skulltula" ObjectKey="obj_st">
@@ -2852,12 +2861,12 @@ ROTZ 0x0001 = Behavior after colliding with Link
 +0x3F = Switch Flag</Notes>
   </Actor>
   <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_GE2" Key="en_ge2" Name="Patrolling Gerudo" ObjectKey="obj_gla">
-    <Type Index="1">
-      <Item Params="0000"> Turns around, can’t move, whistle-blower</Item>
-      <Item Params="0001"> Won’t turn around, can’t move, whistle-blower</Item>
-      <Item Params="0002"> Purple Gerudo, acts like the one that gives you the membership card</Item>
+    <Type Index="1" Mask="0x00FF">
+      <Item Params="0000"> Patrolling</Item>
+      <Item Params="0001"> Stationary</Item>
+      <Item Params="0002"> Gerudo Card Giver</Item>
     </Type>
-    <Property Index="1" Mask="0x0F00" Name="Range of movements (type 0)"/>
+    <Property Index="1" Mask="0xFF00" Name="Walk Duration"/>
   </Actor>
   <Actor Category="ACTORCAT_ENEMY" ID="ACTOR_OBJ_ROOMTIMER" Key="obj_roomtimer" Name="Room Timer">
     <Flag Index="1" Mask="0xFC00" Type="Switch"/>
@@ -2946,9 +2955,10 @@ ROTZ 0x0001 = Behavior after colliding with Link
   </Actor>
   <Actor Category="ACTORCAT_ENEMY" ID="ACTOR_EN_HINTNUTS" Key="en_hintnuts" Name="Green Deku Scrubs" ObjectKey="obj_hintnuts">
     <Type Index="1" Mask="0xFF00">
-      <Item Params="1A00"> Scrub on path to Deku Slingshot</Item>
-      <Item Params="9B00"> 231/312 Hint scrub</Item>
-      <Item Params="9C00"> Final Deku Scrub</Item>
+      <Item Params="0000"> No Dialog (used for 231/312 puzzle)</Item>
+      <Item Params="1A00"> High Cliff Hint Dialog</Item>
+      <Item Params="9B00"> 231/312 Hint Dialog</Item>
+      <Item Params="9C00"> 231/312 Puzzle Dialog</Item>
     </Type>
     <Property Index="1" Mask="0x00FF" Name="Puzzle Scrub #"/>
     <Notes>
@@ -3078,17 +3088,17 @@ ROTZ 0x0001 = Behavior after colliding with Link
 X ROTATION +0xFF = Collectible Item Dropped (see actor 0015)
 Z ROTATION +0x3F = Collectible Flag</Notes>
   </Actor>
-  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_DNT_DEMO" Key="en_dnt_demo" Name="Deku Stage Cutscene">
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_DNT_DEMO" Key="en_dnt_demo" Name="Deku Stage Mini-Game">
     <Type Index="1">
       <Item Params="FFFF"> Default</Item>
     </Type>
   </Actor>
   <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_DNT_JIJI" Key="en_dnt_jiji" Name="Deku Stage Judge" ObjectKey="obj_dns">
-    <Notes>Spawned by Deku Panel</Notes>
   </Actor>
-  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_DNT_NOMAL" Key="en_dnt_nomal" Name="Deku Panel">
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_DNT_NOMAL" Key="en_dnt_nomal" Name="Lost Woods Mini-Games Scrubs">
     <Type Index="1">
-      <Item Params="FFFF"> Default</Item>
+      <Item Params="0000"> Slingshot Target Mini-Game Scrub</Item>
+      <Item Params="0001"> Deku Theater Scrub (spawned by EN_DNT_DEMO)</Item>
     </Type>
     <Notes>Yields deku seed upgrade</Notes>
   </Actor>
@@ -3379,12 +3389,11 @@ Z ROTATION +0x3F = Collectible Flag</Notes>
   </Actor>
   <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_ICE_SHUTTER" Key="bg_ice_shutter" Name="2D Ice Bars" ObjectKey="obj_ice_objects">
     <Type Index="1">
-      <Item Params="FF00"> vertical, clear flag</Item>
-      <Item Params="0001"> vertical, switch softlock</Item>
-      <Item Params="FF02"> horizontal, clear flag</Item>
+      <Item Params="0000"> Vertical (Room Clear)</Item>
+      <Item Params="0001"> Vertical (Switch Flag)</Item>
+      <Item Params="0002"> Horizontal (Room Clear)</Item>
     </Type>
-    <Flag Index="1" Mask="0x3F00" Name="Switch Flag (type 1)" Type="Switch"/>
-    <Notes>+0x3F00 switchflag</Notes>
+    <Flag Index="1" Mask="0xFF00" Name="Switch Flag" Type="Switch"/>
   </Actor>
   <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_KAKASI2" Key="en_kakasi2" Name="Scarecrow Song Spot" ObjectKey="obj_ka">
     <Flag Index="1" Mask="0x003F" Target="Params" Type="Switch"/>
