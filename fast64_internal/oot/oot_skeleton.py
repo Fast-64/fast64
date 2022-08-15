@@ -52,6 +52,8 @@ class OOTSkeletonImportSettings(bpy.types.PropertyGroup):
     overlay: bpy.props.StringProperty(name="Overlay", default="ovl_En_GeldB")
     is2DArray: bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
     arrayIndex2D: bpy.props.IntProperty(name="Index if 2D Array", default=0, min=0)
+    autoDetectActorScale: bpy.props.BoolProperty(name="Auto Detect Actor Scale", default=True)
+    actorScale: bpy.props.FloatProperty(name="Actor Scale", min=0, default=100)
 
 
 ootEnumBoneType = [
@@ -795,10 +797,10 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
     f3dContext = OOTF3DContext(F3D("F3DEX2/LX2", False), limbList, basePath)
     f3dContext.mat().draw_layer.oot = drawLayer
 
-    if overlayName is not None:
+    if overlayName is not None and importSettings.autoDetectActorScale:
         actorScale = ootReadActorScale(basePath, overlayName, isLink)
     else:
-        actorScale = getOOTScale(100)
+        actorScale = importSettings.actorScale
 
     # print(limbList)
     isLOD, armatureObj = ootBuildSkeleton(
@@ -1193,6 +1195,9 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
                 prop_split(col, importSettings, "name", "Skeleton")
                 prop_split(col, importSettings, "folder", "Object")
                 prop_split(col, importSettings, "overlay", "Overlay")
+                col.prop(importSettings, "autoDetectActorScale")
+                if not importSettings.autoDetectActorScale:
+                    prop_split(col, importSettings, "actorScale", "Actor Scale")
                 col.prop(importSettings, "is2DArray")
                 if importSettings.is2DArray:
                     box = col.box().column()

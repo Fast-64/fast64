@@ -12,33 +12,43 @@ from ..f3d.flipbook import TextureFlipbook, FlipbookProperty, usesFlipbook, ootF
 # read included asset data
 def ootGetIncludedAssetData(basePath: str, currentPaths: list[str], data: str) -> str:
     includeData = ""
+    searchedPaths = currentPaths[:]
 
     print("Included paths:")
 
     # search assets
     for includeMatch in re.finditer(r"\#include\s*\"(assets/objects/(.*?))\.h\"", data):
         path = os.path.join(basePath, includeMatch.group(1) + ".c")
+        if path in searchedPaths:
+            continue
+        searchedPaths.append(path)
         subIncludeData = getImportData([path]) + "\n"
         includeData += subIncludeData
         print(path)
 
         for subIncludeMatch in re.finditer(r"\#include\s*\"(((?![/\"]).)*)\.c\"", subIncludeData):
-            print(os.path.join(os.path.dirname(path), subIncludeMatch.group(1) + ".c"))
-            includeData += getImportData([os.path.join(os.path.dirname(path), subIncludeMatch.group(1) + ".c")]) + "\n"
+            subPath = os.path.join(os.path.dirname(path), subIncludeMatch.group(1) + ".c")
+            if subPath in searchedPaths:
+                continue
+            searchedPaths.append(subPath)
+            print(subPath)
+            includeData += getImportData([subPath]) + "\n"
 
     # search same directory c includes, both in current path and in included object files
     # these are usually fast64 exported files
     for includeMatch in re.finditer(r"\#include\s*\"(((?![/\"]).)*)\.c\"", data):
-        print(os.path.join(os.path.dirname(currentPaths[0]), includeMatch.group(1) + ".c"))
-        includeData += (
-            getImportData(
-                [
-                    os.path.join(os.path.dirname(currentPath), includeMatch.group(1) + ".c")
-                    for currentPath in currentPaths
-                ]
-            )
-            + "\n"
-        )
+        sameDirPaths = [
+            os.path.join(os.path.dirname(currentPath), includeMatch.group(1) + ".c") for currentPath in currentPaths
+        ]
+        sameDirPathsToSearch = []
+        for sameDirPath in sameDirPaths:
+            if sameDirPath not in searchedPaths:
+                sameDirPathsToSearch.append(sameDirPath)
+
+        for sameDirPath in sameDirPathsToSearch:
+            print(sameDirPath)
+
+        includeData += getImportData(sameDirPathsToSearch) + "\n"
     return includeData
 
 

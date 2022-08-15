@@ -42,6 +42,8 @@ class OOTDLImportSettings(bpy.types.PropertyGroup):
     overlay: bpy.props.StringProperty(name="Overlay", default="")
     is2DArray: bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
     arrayIndex2D: bpy.props.IntProperty(name="Index if 2D Array", default=0, min=0)
+    autoDetectActorScale: bpy.props.BoolProperty(name="Auto Detect Actor Scale", default=True)
+    actorScale: bpy.props.FloatProperty(name="Actor Scale", min=0, default=100)
 
 
 # returns:
@@ -402,19 +404,17 @@ def ootReadActorScale(basePath: str, overlayName: str, isLink: bool) -> float:
 
     chainInitMatch = re.search(r"CHAIN_VEC3F_DIV1000\s*\(\s*scale\s*,\s*(.*?)\s*,", actorData, re.DOTALL)
     if chainInitMatch is not None:
-        try:
-            scale = hexOrDecInt(chainInitMatch.group(1))
-            return getOOTScale(1 / (scale / 1000))
-        except ValueError:
-            pass
+        scale = chainInitMatch.group(1).strip()
+        if scale[-1] == "f":
+            scale = scale[:-1]
+        return getOOTScale(1 / (float(scale) / 1000))
 
-    actorScaleMatch = re.search(r"Actor\_SetScale\s*\(\s*[A-Za-z0-9\_]*\s*,\s*(.*?)\s*\)", actorData, re.DOTALL)
+    actorScaleMatch = re.search(r"Actor\_SetScale\s*\(.*?,\s*(.*?)\s*\)", actorData, re.DOTALL)
     if actorScaleMatch is not None:
-        try:
-            scale = hexOrDecInt(actorScaleMatch.group(1))
-            return getOOTScale(1 / scale)
-        except ValueError:
-            pass
+        scale = actorScaleMatch.group(1).strip()
+        if scale[-1] == "f":
+            scale = scale[:-1]
+        return getOOTScale(1 / float(scale))
 
     return getOOTScale(100)
 
@@ -483,15 +483,14 @@ class OOT_ImportDL(bpy.types.Operator):
             data = getImportData(paths)
             f3dContext = OOTF3DContext(F3D("F3DEX2/LX2", False), [name], basePath)
 
-            scale = None
+            scale = settings.actorScale
             if not isCustomImport:
                 data = ootGetIncludedAssetData(basePath, paths, data) + data
 
                 if overlayName is not None:
                     ootReadTextureArrays(basePath, overlayName, name, f3dContext, False, arrayIndex2D)
+                if settings.autoDetectActorScale:
                     scale = ootReadActorScale(basePath, overlayName, False)
-            if scale is None:
-                scale = getOOTScale(100)
 
             obj = importMeshC(
                 data,
@@ -599,6 +598,9 @@ class OOT_ExportDLPanel(OOT_Panel):
         else:
             prop_split(col, importSettings, "folder", "Object")
             prop_split(col, importSettings, "overlay", "Overlay (Optional)")
+            col.prop(importSettings, "autoDetectActorScale")
+            if not importSettings.autoDetectActorScale:
+                prop_split(col, importSettings, "actorScale", "Actor Scale")
             col.prop(importSettings, "is2DArray")
             if importSettings.is2DArray:
                 box = col.box().column()
