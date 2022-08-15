@@ -143,6 +143,10 @@ ootSceneDirs = {
 }
 
 
+def getOOTScale(actorScale: float) -> float:
+    return bpy.context.scene.ootBlenderScale * actorScale
+
+
 def replaceMatchContent(data: str, newContent: str, match: re.Match, index: int) -> str:
     return data[: match.start(index)] + newContent + data[match.end(index) :]
 

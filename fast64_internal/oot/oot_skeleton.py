@@ -739,7 +739,7 @@ def ootGetLimb(skeletonData, limbName, continueOnError):
     return matchResult
 
 
-def ootImportSkeletonC(actorScale: float, basePath: str, importSettings: OOTSkeletonImportSettings):
+def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings):
     importPath = bpy.path.abspath(importSettings.customPath)
     isCustomImport = importSettings.isCustom
 
@@ -780,6 +780,11 @@ def ootImportSkeletonC(actorScale: float, basePath: str, importSettings: OOTSkel
 
     f3dContext = OOTF3DContext(F3D("F3DEX2/LX2", False), limbList, basePath)
     f3dContext.mat().draw_layer.oot = drawLayer
+
+    if overlayName is not None:
+        actorScale = ootReadActorScale(basePath, overlayName, isLink)
+    else:
+        actorScale = getOOTScale(100)
 
     # print(limbList)
     isLOD, armatureObj = ootBuildSkeleton(
@@ -900,6 +905,7 @@ def ootBuildSkeleton(
     bpy.ops.object.parent_set(type="ARMATURE")
 
     applyRotation([armatureObj], math.radians(-90), "X")
+    armatureObj.ootActorScale = actorScale / bpy.context.scene.ootBlenderScale
 
     return isLOD, armatureObj
 
@@ -1056,10 +1062,9 @@ class OOT_ImportSkeleton(bpy.types.Operator):
 
         try:
             importSettings: OOTSkeletonImportSettings = context.scene.fast64.oot.skeletonImportSettings
-            scale = context.scene.ootActorBlenderScale
             decompPath = bpy.path.abspath(bpy.context.scene.ootDecompPath)
 
-            ootImportSkeletonC(scale, decompPath, importSettings)
+            ootImportSkeletonC(decompPath, importSettings)
 
             self.report({"INFO"}, "Success!")
             return {"FINISHED"}
@@ -1093,7 +1098,7 @@ class OOT_ExportSkeleton(bpy.types.Operator):
             raise PluginError("Armature does not have any mesh children, or " + "has a non-mesh child.")
 
         obj = armatureObj.children[0]
-        finalTransform = mathutils.Matrix.Scale(context.scene.ootActorBlenderScale, 4)
+        finalTransform = mathutils.Matrix.Scale(getOOTScale(armatureObj.ootActorScale), 4)
 
         # Rotation must be applied before exporting skeleton.
         # For some reason this does not work if done on the duplicate generated later, so we have to do it before then.
@@ -1218,6 +1223,7 @@ class OOT_SkeletonPanel(bpy.types.Panel):
         prop_split(col, context.object, "ootFarLOD", "LOD Skeleton")
         if context.object.ootFarLOD is not None:
             col.label(text="Make sure LOD has same bone structure.", icon="BONE_DATA")
+        prop_split(col, context.object, "ootActorScale", "Actor Scale")
 
 
 class OOT_BonePanel(bpy.types.Panel):
@@ -1280,6 +1286,7 @@ def oot_skeleton_register():
         register_class(cls)
 
     bpy.types.Object.ootFarLOD = bpy.props.PointerProperty(type=bpy.types.Object, poll=pollArmature)
+    bpy.types.Object.ootActorScale = bpy.props.FloatProperty(min=0, default=100)
 
     bpy.types.Bone.ootBoneType = bpy.props.EnumProperty(name="Bone Type", items=ootEnumBoneType)
     bpy.types.Bone.ootDynamicTransform = bpy.props.PointerProperty(type=OOTDynamicTransformProperty)
@@ -1289,6 +1296,7 @@ def oot_skeleton_register():
 def oot_skeleton_unregister():
 
     del bpy.types.Object.ootFarLOD
+    del bpy.types.Object.ootActorScale
 
     del bpy.types.Bone.ootBoneType
     del bpy.types.Bone.ootDynamicTransform

@@ -393,6 +393,32 @@ def writeTextureArraysExisting2D(data: str, flipbook: TextureFlipbook, arrayInde
     return newData
 
 
+# Note this does not work well with actors containing multiple "parts". (z_en_honotrap)
+def ootReadActorScale(basePath: str, overlayName: str, isLink: bool) -> float:
+    if not isLink:
+        actorData = ootGetActorData(basePath, overlayName)
+    else:
+        actorData = ootGetLinkData(basePath)
+
+    chainInitMatch = re.search(r"CHAIN_VEC3F_DIV1000\s*\(\s*scale\s*,\s*(.*?)\s*,", actorData, re.DOTALL)
+    if chainInitMatch is not None:
+        try:
+            scale = hexOrDecInt(chainInitMatch.group(1))
+            return getOOTScale(1 / (scale / 1000))
+        except ValueError:
+            pass
+
+    actorScaleMatch = re.search(r"Actor\_SetScale\s*\(\s*[A-Za-z0-9\_]*\s*,\s*(.*?)\s*\)", actorData, re.DOTALL)
+    if actorScaleMatch is not None:
+        try:
+            scale = hexOrDecInt(actorScaleMatch.group(1))
+            return getOOTScale(1 / scale)
+        except ValueError:
+            pass
+
+    return getOOTScale(100)
+
+
 class OOT_DisplayListPanel(bpy.types.Panel):
     bl_label = "Display List Inspector"
     bl_idname = "OBJECT_PT_OOT_DL_Inspector"
@@ -415,6 +441,10 @@ class OOT_DisplayListPanel(bpy.types.Panel):
         # prop_split(box, obj, "ootDrawLayer", "Draw Layer")
         box.prop(obj, "ignore_render")
         box.prop(obj, "ignore_collision")
+
+        if not (obj.parent is not None and isinstance(obj.parent.data, bpy.types.Armature)):
+            prop_split(box, obj, "ootActorScale", "Actor Scale")
+            box.label(text="This applies to actor exports only.", icon="INFO")
 
         # Doesn't work since all static meshes are pre-transformed
         # box.prop(obj.ootDynamicTransform, "billboard")
@@ -441,7 +471,6 @@ class OOT_ImportDL(bpy.types.Operator):
             folderName = settings.folder
             importPath = bpy.path.abspath(settings.customPath)
             isCustomImport = settings.isCustom
-            scale = context.scene.ootActorBlenderScale
             basePath = bpy.path.abspath(context.scene.ootDecompPath)
             removeDoubles = settings.removeDoubles
             importNormals = settings.importNormals
@@ -453,13 +482,18 @@ class OOT_ImportDL(bpy.types.Operator):
             paths = [ootGetObjectPath(isCustomImport, importPath, folderName)]
             data = getImportData(paths)
             f3dContext = OOTF3DContext(F3D("F3DEX2/LX2", False), [name], basePath)
+
+            scale = None
             if not isCustomImport:
                 data = ootGetIncludedAssetData(basePath, paths, data) + data
 
                 if overlayName is not None:
                     ootReadTextureArrays(basePath, overlayName, name, f3dContext, False, arrayIndex2D)
+                    scale = ootReadActorScale(basePath, overlayName, False)
+            if scale is None:
+                scale = getOOTScale(100)
 
-            importMeshC(
+            obj = importMeshC(
                 data,
                 name,
                 scale,
@@ -468,6 +502,7 @@ class OOT_ImportDL(bpy.types.Operator):
                 drawLayer,
                 f3dContext,
             )
+            obj.ootActorScale = scale / bpy.context.scene.ootBlenderScale
 
             self.report({"INFO"}, "Success!")
             return {"FINISHED"}
@@ -497,7 +532,7 @@ class OOT_ExportDL(bpy.types.Operator):
         if type(obj.data) is not bpy.types.Mesh:
             raise PluginError("Mesh not selected.")
 
-        finalTransform = mathutils.Matrix.Scale(context.scene.ootActorBlenderScale, 4)
+        finalTransform = mathutils.Matrix.Scale(getOOTScale(obj.ootActorScale), 4)
 
         try:
             # exportPath, levelName = getPathAndLevel(context.scene.geoCustomExport,

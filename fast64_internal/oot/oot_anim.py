@@ -408,7 +408,7 @@ def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSetti
     checkEmptyName(settings.folderName)
     checkEmptyName(settings.skeletonName)
     convertTransformMatrix = (
-        mathutils.Matrix.Scale(bpy.context.scene.ootActorBlenderScale, 4)
+        mathutils.Matrix.Scale(getOOTScale(armatureObj.ootActorScale), 4)
         @ mathutils.Matrix.Diagonal(armatureObj.scale).to_4x4()
     )
 
@@ -798,7 +798,7 @@ class OOT_ImportAnim(bpy.types.Operator):
             return {"CANCELLED"}
 
         try:
-            actorScale = context.scene.ootActorBlenderScale
+            actorScale = getOOTScale(armatureObj.ootActorScale)
             settings = context.scene.ootAnimImportSettings
             ootImportAnimationC(armatureObj, settings, actorScale)
             self.report({"INFO"}, "Success!")

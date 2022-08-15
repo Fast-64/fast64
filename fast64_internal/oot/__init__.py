@@ -27,7 +27,6 @@ class OOT_FileSettingsPanel(OOT_Panel):
         col = self.layout.column()
         col.scale_y = 1.1  # extra padding, makes it easier to see these main settings
         prop_split(col, context.scene, "ootBlenderScale", "OOT Scene Scale")
-        prop_split(col, context.scene, "ootActorBlenderScale", "OOT Actor Scale")
 
         prop_split(col, context.scene, "ootDecompPath", "Decomp Path")
 
@@ -93,7 +92,6 @@ def oot_register(registerPanels):
     bpy.types.Scene.ootBlenderScale = bpy.props.FloatProperty(
         name="Blender To OOT Scale", default=10, update=on_update_render_settings
     )
-    bpy.types.Scene.ootActorBlenderScale = bpy.props.FloatProperty(name="Blender To OOT Actor Scale", default=1000)
     bpy.types.Scene.ootDecompPath = bpy.props.StringProperty(name="Decomp Folder", subtype="FILE_PATH")
 
 
@@ -116,5 +114,4 @@ def oot_unregister(unregisterPanels):
         oot_panel_unregister()
 
     del bpy.types.Scene.ootBlenderScale
-    del bpy.types.Scene.ootActorBlenderScale
     del bpy.types.Scene.ootDecompPath
