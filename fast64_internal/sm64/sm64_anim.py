@@ -185,34 +185,33 @@ def exportAnimationC(armatureObj, loopAnim, dirPath, dirName, groupName,
 		tableFile.close()
 		
 	# if table exists, find the footer and add the animation
-	else:
-		fileData = open(tableFilePath, 'r')
-		fileData.seek(0)
-		stringData = fileData.read()
-		fileData.close()
+	fileData = open(tableFilePath, 'r')
+	fileData.seek(0)
+	stringData = fileData.read()
+	fileData.close()
 
-		# if animation header isn´t already in the table then add it.
-		if sm64_anim.header.name not in stringData:
+	# if animation header isn´t already in the table then add it.
+	if sm64_anim.header.name not in stringData:
 
-			# search for the NULL value which represents the end of the table 
-			# (this value is not present in vanilla animation tables)
-			footerIndex = stringData.rfind('\tNULL,\n')
+		# search for the NULL value which represents the end of the table 
+		# (this value is not present in vanilla animation tables)
+		footerIndex = stringData.rfind('\tNULL,\n')
 
-			# if the null value cant be found, look for the end of the array
+		# if the null value cant be found, look for the end of the array
+		if footerIndex == -1:
+			footerIndex = stringData.rfind('};')
+
+			# if that can´t be found then throw an error.
 			if footerIndex == -1:
-				footerIndex = stringData.rfind('};')
-
-				# if that can´t be found then throw an error.
-				if footerIndex == -1:
-					raise PluginError("Animation table´s footer does not seem to exist.")
-				
-				stringData = stringData[:footerIndex] + '\tNULL,\n' + stringData[footerIndex:]
-
-			stringData = stringData[:footerIndex] + '\t&{0},\n'.format(sm64_anim.header.name) + stringData[footerIndex:]
+				raise PluginError("Animation table´s footer does not seem to exist.")
 			
-			fileData = open(tableFilePath, 'w', newline = '\n')
-			fileData.write(stringData)
-			fileData.close()
+			stringData = stringData[:footerIndex] + '\tNULL,\n' + stringData[footerIndex:]
+
+		stringData = stringData[:footerIndex] + '\t&{0},\n'.format(sm64_anim.header.name) + stringData[footerIndex:]
+		
+		fileData = open(tableFilePath, 'w', newline = '\n')
+		fileData.write(stringData)
+		fileData.close()
 
 	if not customExport:
 		if headerType == 'Actor':
