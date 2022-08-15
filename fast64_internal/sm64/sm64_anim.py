@@ -184,7 +184,6 @@ def exportAnimationC(armatureObj, loopAnim, dirPath, dirName, groupName,
 			animsName + '[] = {\n\tNULL,\n};\n')
 		tableFile.close()
 		
-	# if table exists, find the footer and add the animation
 	fileData = open(tableFilePath, 'r')
 	fileData.seek(0)
 	stringData = fileData.read()
