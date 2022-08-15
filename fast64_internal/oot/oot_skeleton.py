@@ -61,6 +61,20 @@ ootEnumBoneType = [
 ]
 
 
+def pollArmature(self, obj):
+    return isinstance(obj.data, bpy.types.Armature)
+
+
+class OOTBoneProperty(bpy.types.PropertyGroup):
+    boneType: bpy.props.EnumProperty(name="Bone Type", items=ootEnumBoneType)
+    dynamicTransform: bpy.props.PointerProperty(type=OOTDynamicTransformProperty)
+    customDLName: bpy.props.StringProperty(name="Custom DL", default="gEmptyDL")
+
+
+class OOTSkeletonProperty(bpy.types.PropertyGroup):
+    LOD: bpy.props.PointerProperty(type=bpy.types.Object, poll=pollArmature)
+
+
 class OOTSkeleton:
     def __init__(self, name):
         self.name = name
@@ -511,7 +525,7 @@ def ootProcessBone(
             optimize,
         )
 
-    if bone.ootBoneType == "Custom DL":
+    if bone.ootBone.boneType == "Custom DL":
         if mesh is not None:
             raise PluginError(
                 bone.name
@@ -519,7 +533,7 @@ def ootProcessBone(
             )
         else:
             # Dummy data, only used so that name is set correctly
-            mesh = FMesh(bone.ootCustomDLName, DLFormat.Static)
+            mesh = FMesh(bone.ootBone.customDLName, DLFormat.Static)
 
     DL = None
     if mesh is not None:
@@ -609,9 +623,9 @@ def ootConvertArmatureToC(
         originalArmatureObj, convertTransformMatrix, fModel, skeletonName, not savePNG, drawLayer, optimize
     )
 
-    if originalArmatureObj.ootFarLOD is not None:
+    if originalArmatureObj.ootSkeleton.LOD is not None:
         lodSkeleton, fModel = ootConvertArmatureToSkeletonWithMesh(
-            originalArmatureObj.ootFarLOD,
+            originalArmatureObj.ootSkeleton.LOD,
             convertTransformMatrix,
             fModel,
             skeletonName + "_lod",
@@ -631,7 +645,7 @@ def ootConvertArmatureToC(
             raise PluginError(
                 originalArmatureObj.name
                 + " cannot use "
-                + originalArmatureObj.ootFarLOD.name
+                + originalArmatureObj.ootSkeleton.LOD.name
                 + "as LOD because they do not have the same bone structure."
             )
 
@@ -817,7 +831,7 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
             arrayIndex2D,
             f3dContext,
         )
-        armatureObj.ootFarLOD = LODArmatureObj
+        armatureObj.ootSkeleton.LOD = LODArmatureObj
         LODArmatureObj.location += mathutils.Vector((10, 0, 0))
 
     f3dContext.deleteMaterialContext()
@@ -882,7 +896,7 @@ def ootBuildSkeleton(
             f3dContext,
         )
         if f3dContext.isBillboard:
-            armatureObj.data.bones[boneName].ootDynamicTransform.billboard = True
+            armatureObj.data.bones[boneName].ootBone.dynamicTransform.billboard = True
         f3dContext.clearMaterial()  # THIS IS IMPORTANT
     f3dContext.createMesh(obj, removeDoubles, importNormals, False)
     armatureObj.location = bpy.context.scene.cursor.location
@@ -1056,7 +1070,6 @@ class OOT_ImportSkeleton(bpy.types.Operator):
     # Called on demand (i.e. button press, menu item)
     # Can also be called from operator search menu (Spacebar)
     def execute(self, context):
-        armatureObj = None
         if context.mode != "OBJECT":
             bpy.ops.object.mode_set(mode="OBJECT")
 
@@ -1220,8 +1233,8 @@ class OOT_SkeletonPanel(bpy.types.Panel):
         col = self.layout.box().column()
         col.box().label(text="OOT Skeleton Inspector")
         prop_split(col, context.object, "ootDrawLayer", "Draw Layer")
-        prop_split(col, context.object, "ootFarLOD", "LOD Skeleton")
-        if context.object.ootFarLOD is not None:
+        prop_split(col, context.object.ootSkeleton, "LOD", "LOD Skeleton")
+        if context.object.ootSkeleton.LOD is not None:
             col.label(text="Make sure LOD has same bone structure.", icon="BONE_DATA")
         prop_split(col, context.object, "ootActorScale", "Actor Scale")
 
@@ -1242,18 +1255,14 @@ class OOT_BonePanel(bpy.types.Panel):
     def draw(self, context):
         col = self.layout.box().column()
         col.box().label(text="OOT Bone Inspector")
-        prop_split(col, context.bone, "ootBoneType", "Bone Type")
-        if context.bone.ootBoneType == "Custom DL":
-            prop_split(col, context.bone, "ootCustomDLName", "DL Name")
-        if context.bone.ootBoneType == "Custom DL" or context.bone.ootBoneType == "Ignore":
+        prop_split(col, context.bone.ootBone, "boneType", "Bone Type")
+        if context.bone.ootBone.boneType == "Custom DL":
+            prop_split(col, context.bone.ootBone, "customDLName", "DL Name")
+        if context.bone.ootBone.boneType == "Custom DL" or context.bone.ootBone.boneType == "Ignore":
             col.label(text="Make sure no geometry is skinned to this bone.", icon="BONE_DATA")
 
-        if context.bone.ootBoneType != "Ignore":
-            col.prop(context.bone.ootDynamicTransform, "billboard")
-
-
-def pollArmature(self, obj):
-    return isinstance(obj.data, bpy.types.Armature)
+        if context.bone.ootBone.boneType != "Ignore":
+            col.prop(context.bone.ootBone.dynamicTransform, "billboard")
 
 
 oot_skeleton_classes = (
@@ -1262,6 +1271,8 @@ oot_skeleton_classes = (
     OOTSkeletonExportSettings,
     OOTSkeletonImportSettings,
     OOT_SaveRestPose,
+    OOTBoneProperty,
+    OOTSkeletonProperty,
 )
 
 oot_skeleton_panels = (
@@ -1285,22 +1296,16 @@ def oot_skeleton_register():
     for cls in oot_skeleton_classes:
         register_class(cls)
 
-    bpy.types.Object.ootFarLOD = bpy.props.PointerProperty(type=bpy.types.Object, poll=pollArmature)
     bpy.types.Object.ootActorScale = bpy.props.FloatProperty(min=0, default=100)
-
-    bpy.types.Bone.ootBoneType = bpy.props.EnumProperty(name="Bone Type", items=ootEnumBoneType)
-    bpy.types.Bone.ootDynamicTransform = bpy.props.PointerProperty(type=OOTDynamicTransformProperty)
-    bpy.types.Bone.ootCustomDLName = bpy.props.StringProperty(name="Custom DL", default="gEmptyDL")
+    bpy.types.Object.ootSkeleton = bpy.props.PointerProperty(type=OOTSkeletonProperty)
+    bpy.types.Bone.ootBone = bpy.props.PointerProperty(type=OOTBoneProperty)
 
 
 def oot_skeleton_unregister():
 
-    del bpy.types.Object.ootFarLOD
     del bpy.types.Object.ootActorScale
-
-    del bpy.types.Bone.ootBoneType
-    del bpy.types.Bone.ootDynamicTransform
-    del bpy.types.Bone.ootCustomDLName
+    del bpy.types.Bone.ootBone
+    del bpy.types.Object.ootSkeleton
 
     for cls in reversed(oot_skeleton_classes):
         unregister_class(cls)

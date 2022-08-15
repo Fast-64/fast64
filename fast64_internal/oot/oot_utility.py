@@ -370,14 +370,14 @@ def ootGetPath(exportPath, isCustomExport, subPath, folderName, makeIfNotExists,
 
 def getSortedChildren(armatureObj, bone):
     return sorted(
-        [child.name for child in bone.children if child.ootBoneType != "Ignore"],
+        [child.name for child in bone.children if child.ootBone.boneType != "Ignore"],
         key=lambda childName: childName.lower(),
     )
 
 
 def getStartBone(armatureObj):
     startBoneNames = [
-        bone.name for bone in armatureObj.data.bones if bone.parent is None and bone.ootBoneType != "Ignore"
+        bone.name for bone in armatureObj.data.bones if bone.parent is None and bone.ootBone.boneType != "Ignore"
     ]
     if len(startBoneNames) == 0:
         raise PluginError(armatureObj.name + ' does not have any root bones that are not of the "Ignore" type.')
