@@ -206,7 +206,7 @@ def exportAnimationC(armatureObj, loopAnim, dirPath, dirName, groupName,
 			
 			stringData = stringData[:footerIndex] + '\tNULL,\n' + stringData[footerIndex:]
 
-		stringData = stringData[:footerIndex] + '\t&{0},\n'.format(sm64_anim.header.name) + stringData[footerIndex:]
+		stringData = stringData[:footerIndex] + f'\t&{sm64_anim.header.name},\n' + stringData[footerIndex:]
 		
 		fileData = open(tableFilePath, 'w', newline = '\n')
 		fileData.write(stringData)
