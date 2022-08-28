@@ -687,7 +687,6 @@ def ootImportSkeletonC(
         f3dContext,
     )
     if isLOD:
-        f3dContext.clearGeometry()
         isLOD, LODArmatureObj = ootBuildSkeleton(
             skeletonName,
             overlayName,
@@ -762,7 +761,6 @@ def ootBuildSkeleton(
         )
         if f3dContext.isBillboard:
             armatureObj.data.bones[boneName].ootDynamicTransform.billboard = True
-        f3dContext.clearMaterial()  # THIS IS IMPORTANT
     f3dContext.createMesh(obj, removeDoubles, importNormals, False)
     armatureObj.location = bpy.context.scene.cursor.location
 

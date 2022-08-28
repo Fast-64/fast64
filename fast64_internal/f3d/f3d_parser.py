@@ -525,7 +525,7 @@ class F3DContext:
         self.numLights = 0
         self.lightData = {}  # (color, normal) : list of blender light objects
 
-    # restarts context, but keeps cached materials/textures
+    # restarts context, but keeps cached materials/textures/matrices
     def clearGeometry(self):
         self.vertexBuffer = [None] * self.f3d.vert_load_size
         self.clearMaterial()
@@ -537,9 +537,7 @@ class F3DContext:
         self.vertexData = {}
         self.currentTextureName = None
 
-        self.matrixData = {}
         self.currentTransformName = None
-        self.limbToBoneName = {}
 
         self.verts = []
         self.limbGroups = {}
@@ -615,9 +613,20 @@ class F3DContext:
             + "\}",
         ]
 
+    def addMatrix(self, name, matrix):
+        self.matrixData[name] = matrix
+        self.limbToBoneName[name] = name
+
     # For game specific instance, override this to be able to identify which verts belong to which bone.
-    def setCurrentTransform(self, name):
-        self.currentTransformName = name
+    def setCurrentTransform(self, name, flagList="G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW"):
+        flags = [value.strip() for value in flagList.split("|")]
+        if "G_MTX_MUL" in flags:
+            tempName = name + "_x_" + str(self.currentTransformName)
+            self.addMatrix(tempName, self.matrixData[name] @ self.matrixData[self.currentTransformName])
+            self.limbToBoneName[tempName] = tempName
+            self.currentTransformName = tempName
+        else:
+            self.currentTransformName = name
 
     def getTransformedVertex(self, index):
         bufferVert = self.vertexBuffer[index]
@@ -1479,7 +1488,7 @@ class F3DContext:
                 parseVertexData(dlData, vertexDataName, self)
                 self.addVertices(command.params[1], command.params[2], vertexDataName, vertexDataOffset)
             elif command.name == "gsSPMatrix":
-                self.setCurrentTransform(command.params[0])
+                self.setCurrentTransform(command.params[0], command.params[1])
             elif command.name == "gsSPPopMatrix":
                 print("gsSPPopMatrix not handled.")
             elif command.name == "gsSP1Triangle":
@@ -1761,6 +1770,7 @@ class F3DContext:
 
         if deleteMaterialContext:
             self.deleteMaterialContext()
+        self.clearGeometry()
 
         obj.location = bpy.context.scene.cursor.location
 
@@ -1783,7 +1793,17 @@ class ParsedMacro:
 # we distinguish these because there is no guarantee of bone order in blender,
 # so we usually rely on alphabetical naming.
 # This means changing the c variable names.
-def parseF3D(dlData, dlName, obj, transformMatrix, limbName, boneName, drawLayerPropName, drawLayer, f3dContext):
+def parseF3D(
+    dlData,
+    dlName,
+    obj,
+    transformMatrix,
+    limbName,
+    boneName,
+    drawLayerPropName,
+    drawLayer,
+    f3dContext,
+):
 
     f3dContext.matrixData[limbName] = transformMatrix
     f3dContext.setCurrentTransform(limbName)
@@ -1795,6 +1815,7 @@ def parseF3D(dlData, dlName, obj, transformMatrix, limbName, boneName, drawLayer
 
     dlCommands = parseDLData(dlData, dlName)
     f3dContext.processCommands(dlData, dlName, dlCommands)
+    f3dContext.clearMaterial()
 
 
 def parseDLData(dlData, dlName):
@@ -2097,7 +2118,31 @@ def getImportData(filepaths):
     return data
 
 
-def importMeshC(data, name, scale, removeDoubles, importNormals, drawLayer, f3dContext):
+def parseMatrices(sceneData: str, f3dContext: F3DContext, importScale: float = 1):
+    for match in re.finditer(rf"Mtx\s*([a-zA-Z0-9\_]+)\s*=\s*\{{(.*?)\}}\s*;", sceneData, flags=re.DOTALL):
+        name = "&" + match.group(1)
+        values = [hexOrDecInt(value.strip()) for value in match.group(2).split(",") if value.strip() != ""]
+        trueValues = []
+        for n in range(8):
+            valueInt = int.from_bytes(values[n].to_bytes(4, "big", signed=True), "big", signed=False)
+            valueFrac = int.from_bytes(values[n + 8].to_bytes(4, "big", signed=True), "big", signed=False)
+            int1 = values[n] >> 16
+            int2 = int.from_bytes((valueInt & (2**16 - 1)).to_bytes(2, "big", signed=False), "big", signed=True)
+            frac1 = valueFrac >> 16
+            frac2 = valueFrac & (2**16 - 1)
+            trueValues.append(int1 + (frac1 / (2**16)))
+            trueValues.append(int2 + (frac2 / (2**16)))
+
+        matrix = mathutils.Matrix()
+        for i in range(4):
+            for j in range(4):
+                matrix[j][i] = trueValues[i * 4 + j]
+
+        print(f"{name}: \n{str(matrix)}")
+        f3dContext.addMatrix(name, mathutils.Matrix.Scale(importScale, 4) @ matrix)
+
+
+def importMeshC(data, name, scale, removeDoubles, importNormals, drawLayer, f3dContext, deleteMaterialContext=True):
 
     # Create new skinned mesh
     mesh = bpy.data.meshes.new(name + "_mesh")
@@ -2108,9 +2153,7 @@ def importMeshC(data, name, scale, removeDoubles, importNormals, drawLayer, f3dC
     transformMatrix = mathutils.Matrix.Scale(1 / scale, 4)
 
     parseF3D(data, name, obj, transformMatrix, name, name, "oot", drawLayer, f3dContext)
-
-    f3dContext.clearMaterial()
-    f3dContext.createMesh(obj, removeDoubles, importNormals, True)
+    f3dContext.createMesh(obj, removeDoubles, importNormals, deleteMaterialContext)
 
     applyRotation([obj], math.radians(-90), "X")
 

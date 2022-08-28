@@ -386,18 +386,26 @@ class OOTF3DContext(F3DContext):
             return F3DContext.vertexFormatPatterns(self, data)
 
     # For game specific instance, override this to be able to identify which verts belong to which bone.
-    def setCurrentTransform(self, name):
+    def setCurrentTransform(self, name, flagList="G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW"):
         if name[:4].lower() == "0x0d":
+            # This code is for skeletons
             index = int(int(name[4:], 16) / MTX_SIZE)
             if index < len(self.dlList):
-                self.currentTransformName = self.getLimbName(self.dlList[index].limbIndex)
+                transformName = self.getLimbName(self.dlList[index].limbIndex)
+
+            # This code is for jabu jabu level, requires not adding to self.dlList?
             else:
-                raise PluginError(f"Matrix {name} has not been processed from dlList.")
+                transformName = name
+                self.matrixData[name] = mathutils.Matrix.Identity(4)
+                print(f"Matrix {name} has not been processed from dlList, substituting identity matrix.")
+
+            F3DContext.setCurrentTransform(self, transformName, flagList)
+
         else:
             try:
                 pointer = hexOrDecInt(name)
             except:
-                self.currentTransformName = name
+                F3DContext.setCurrentTransform(self, name, flagList)
             else:
                 if pointer >> 24 == 0x01:
                     self.isBillboard = True

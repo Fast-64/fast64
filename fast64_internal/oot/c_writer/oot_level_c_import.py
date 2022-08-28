@@ -47,10 +47,19 @@ def parseScene(
     if bpy.context.mode != "OBJECT":
         bpy.context.mode = "OBJECT"
 
-    sceneObj = parseSceneCommands(sceneName, sceneData, settings.isCustomDest)
+    f3dContext = OOTF3DContext(F3D("F3DEX2/LX2", False), [], bpy.path.abspath(bpy.context.scene.ootDecompPath))
+    parseMatrices(sceneData, f3dContext, 1 / bpy.context.scene.ootBlenderScale)
+    f3dContext.addMatrix("&gMtxClear", mathutils.Matrix.Scale(1 / bpy.context.scene.ootBlenderScale, 4))
+
+    sceneObj = parseSceneCommands(
+        sceneName,
+        sceneData,
+        settings.isCustomDest,
+        f3dContext,
+    )
 
 
-def parseSceneCommands(sceneName: str, sceneData: str, isCustomImport: bool):
+def parseSceneCommands(sceneName: str, sceneData: str, isCustomImport: bool, f3dContext: OOTF3DContext):
     sceneCommandsName = f"{sceneName}_sceneCommands"
 
     location = mathutils.Vector((0, 0, 10))
@@ -82,7 +91,7 @@ def parseSceneCommands(sceneName: str, sceneData: str, isCustomImport: bool):
             setCustomProperty(sceneHeader, "musicSeq", args[2], ootEnumMusicSeq)
         elif command == "SCENE_CMD_ROOM_LIST":
             roomListName = args[1]
-            parseRoomList(sceneObj, sceneData, roomListName)
+            parseRoomList(sceneObj, sceneData, roomListName, f3dContext)
         elif command == "SCENE_CMD_TRANSITION_ACTOR_LIST":
             transActorHeaderName = args[1]
             print("Command not implemented.")
@@ -133,7 +142,7 @@ def parseSceneCommands(sceneName: str, sceneData: str, isCustomImport: bool):
     return sceneObj
 
 
-def parseRoomList(sceneObj: bpy.types.Object, sceneData: str, roomListName: str):
+def parseRoomList(sceneObj: bpy.types.Object, sceneData: str, roomListName: str, f3dContext: OOTF3DContext):
     match = re.search(
         rf"RomFile\s*{re.escape(roomListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
         sceneData,
@@ -147,14 +156,14 @@ def parseRoomList(sceneObj: bpy.types.Object, sceneData: str, roomListName: str)
     roomObjs = []
     for roomMatch in re.finditer(rf"\{{([\sA-Za-z0-9\_]*),([\sA-Za-z0-9\_]*)\}}\s*,", roomList, flags=re.DOTALL):
         roomName = roomMatch.group(1).strip().replace("SegmentRomStart", "")[1:]
-        roomObj = parseRoomCommands(sceneData, roomName, index)
+        roomObj = parseRoomCommands(sceneData, roomName, index, f3dContext)
         parentObject(sceneObj, roomObj)
         index += 1
 
     return roomObjs
 
 
-def parseRoomCommands(sceneData: str, roomName: str, roomIndex: int):
+def parseRoomCommands(sceneData: str, roomName: str, roomIndex: int, f3dContext: OOTF3DContext):
     roomCommandsName = f"{roomName}Commands"
 
     bpy.ops.object.empty_add(type="SPHERE", radius=1, align="WORLD", location=[0, 0, 8 - roomIndex * 2])
@@ -203,7 +212,7 @@ def parseRoomCommands(sceneData: str, roomName: str, roomIndex: int):
             print("Command not implemented.")
         elif command == "SCENE_CMD_MESH":
             meshHeaderName = args[0][1:]  # remove '&'
-            parseMeshHeader(roomObj, sceneData, meshHeaderName)
+            parseMeshHeader(roomObj, sceneData, meshHeaderName, f3dContext)
         elif command == "SCENE_CMD_OBJECT_LIST":
             objectListName = args[1]
             print("Command not implemented.")
@@ -214,7 +223,7 @@ def parseRoomCommands(sceneData: str, roomName: str, roomIndex: int):
     return roomObj
 
 
-def parseMeshHeader(roomObj: bpy.types.Object, sceneData: str, meshHeaderName: str):
+def parseMeshHeader(roomObj: bpy.types.Object, sceneData: str, meshHeaderName: str, f3dContext: OOTF3DContext):
     roomHeader = roomObj.ootRoomHeader
     match = re.search(
         rf"([0-9A-Za-z\_]+)\s*{re.escape(meshHeaderName)}\s*=\s*\{{(.*?)\}}\s*;",
@@ -229,10 +238,12 @@ def parseMeshHeader(roomObj: bpy.types.Object, sceneData: str, meshHeaderName: s
     roomHeader.meshType = meshParams[0]
 
     meshListName = meshParams[2]
-    parseMeshList(roomObj, sceneData, meshListName, int(meshParams[0]))
+    parseMeshList(roomObj, sceneData, meshListName, int(meshParams[0]), f3dContext)
 
 
-def parseMeshList(roomObj: bpy.types.Object, sceneData: str, meshListName: str, meshType: int):
+def parseMeshList(
+    roomObj: bpy.types.Object, sceneData: str, meshListName: str, meshType: int, f3dContext: OOTF3DContext
+):
     roomHeader = roomObj.ootRoomHeader
     match = re.search(
         rf"([0-9A-Za-z\_]+)\s*{re.escape(meshListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
@@ -281,14 +292,6 @@ def parseMeshList(roomObj: bpy.types.Object, sceneData: str, meshListName: str, 
         for displayList, drawLayer in [(opaqueDL, "Opaque"), (transparentDL, "Transparent")]:
             if displayList != "0" and displayList != "NULL":
                 meshObj = importMeshC(
-                    sceneData,
-                    displayList,
-                    bpy.context.scene.ootBlenderScale,
-                    True,
-                    True,
-                    drawLayer,
-                    f3dContext=OOTF3DContext(
-                        F3D("F3DEX2/LX2", False), [displayList], bpy.path.abspath(bpy.context.scene.ootDecompPath)
-                    ),
+                    sceneData, displayList, bpy.context.scene.ootBlenderScale, True, True, drawLayer, f3dContext, False
                 )
                 parentObject(parentObj, meshObj)
