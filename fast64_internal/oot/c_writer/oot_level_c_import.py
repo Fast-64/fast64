@@ -82,6 +82,7 @@ def parseSceneCommands(sceneName: str, sceneData: str, isCustomImport: bool, f3d
         raise PluginError(f"Could not find scene commands {sceneCommandsName}.")
 
     commands = match.group(1)
+    roomObjs = None
     for commandMatch in re.finditer(rf"(SCENE\_CMD\_[a-zA-Z0-9\_]*)\s*\((.*?)\)\s*,", commands, flags=re.DOTALL):
         command = commandMatch.group(1)
         args = [arg.strip() for arg in commandMatch.group(2).split(",")]
@@ -91,10 +92,12 @@ def parseSceneCommands(sceneName: str, sceneData: str, isCustomImport: bool, f3d
             setCustomProperty(sceneHeader, "musicSeq", args[2], ootEnumMusicSeq)
         elif command == "SCENE_CMD_ROOM_LIST":
             roomListName = args[1]
-            parseRoomList(sceneObj, sceneData, roomListName, f3dContext)
+            roomObjs = parseRoomList(sceneObj, sceneData, roomListName, f3dContext)
+
+        # This must be handled after rooms, so that room objs can be referenced
         elif command == "SCENE_CMD_TRANSITION_ACTOR_LIST":
-            transActorHeaderName = args[1]
-            print("Command not implemented.")
+            transActorListName = args[1]
+            parseTransActorList(roomObjs, sceneData, transActorListName)
         elif command == "SCENE_CMD_MISC_SETTINGS":
             setCustomProperty(sceneHeader, "cameraMode", args[0], ootEnumCameraMode)
             setCustomProperty(sceneHeader, "mapLocation", args[1], ootEnumMapLocation)
@@ -159,6 +162,7 @@ def parseRoomList(sceneObj: bpy.types.Object, sceneData: str, roomListName: str,
         roomObj = parseRoomCommands(sceneData, roomName, index, f3dContext)
         parentObject(sceneObj, roomObj)
         index += 1
+        roomObjs.append(roomObj)
 
     return roomObjs
 
@@ -295,3 +299,39 @@ def parseMeshList(
                     sceneData, displayList, bpy.context.scene.ootBlenderScale, True, True, drawLayer, f3dContext, False
                 )
                 parentObject(parentObj, meshObj)
+
+
+def parseTransActorList(roomObjs: list[bpy.types.Object], sceneData: str, transActorListName: str):
+    match = re.search(
+        rf"TransitionActorEntry\s*{re.escape(transActorListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
+        sceneData,
+        flags=re.DOTALL,
+    )
+    if not match:
+        raise PluginError(f"Could not find transition actor list {transActorListName}.")
+
+    transitionActorList = match.group(1)
+    for actorMatch in re.finditer(rf"\{{(.*?)\}}\s*,", transitionActorList, flags=re.DOTALL):
+        params = [value.strip() for value in actorMatch.group(1).split(",") if value.strip() != ""]
+
+        position = (
+            yUpToZUp
+            @ mathutils.Matrix.Scale(1 / bpy.context.scene.ootBlenderScale, 4)
+            @ mathutils.Vector([hexOrDecInt(value) for value in params[5:8]])
+        )
+        rotation = yUpToZUp @ mathutils.Vector(ootParseRotation([0, hexOrDecInt(params[8]), 0]))
+
+        bpy.ops.object.empty_add(type="CUBE", radius=1, align="WORLD", location=position[:], rotation=rotation[:])
+        actorObj = bpy.context.view_layer.objects.active
+        actorObj.ootEmptyType = "Transition Actor"
+        actorObj.name = params[4].replace("_", " ").lower().capitalize()
+        transActorProp = actorObj.ootTransitionActorProperty
+
+        parentObject(roomObjs[hexOrDecInt(params[0])], actorObj)
+        setCustomProperty(transActorProp, "cameraTransitionFront", params[1], ootEnumCamTransition)
+        transActorProp.roomIndex = hexOrDecInt(params[2])
+        setCustomProperty(transActorProp, "cameraTransitionBack", params[3], ootEnumCamTransition)
+
+        actorProp = transActorProp.actor
+        setCustomProperty(actorProp, "actorID", params[4], ootEnumActorID)
+        actorProp.actorParam = params[9]

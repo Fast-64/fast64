@@ -424,17 +424,19 @@ def setCustomProperty(data: any, prop: str, value: str, enumList: list[tuple[str
     if enumList is not None:
         if value in [enumItem[0] for enumItem in enumList]:
             setattr(data, prop, value)
+            return
         else:
             try:
                 numberValue = hexOrDecInt(value)
                 hexValue = f'0x{format(numberValue, "02X")}'
                 if hexValue in [enumItem[0] for enumItem in enumList]:
                     setattr(data, prop, hexValue)
+                    return
             except ValueError:
                 pass
-    else:
-        setattr(data, prop, "Custom")
-        setattr(data, prop + str("Custom"), value)
+
+    setattr(data, prop, "Custom")
+    setattr(data, prop + str("Custom"), value)
 
 
 def getCustomProperty(data, prop):
@@ -466,6 +468,13 @@ def ootConvertTranslation(translation):
 def ootConvertRotation(rotation):
     # see BINANG_TO_DEGF
     return [int(round((math.degrees(value) % 360) / 360 * (2**16))) % (2**16) for value in rotation.to_euler()]
+
+
+def ootParseRotation(values):
+    return [
+        math.radians((int.from_bytes(value.to_bytes(2, "big", signed=True), "big", signed=False) / 2**16) * 360)
+        for value in values
+    ]
 
 
 def getCutsceneName(obj):
