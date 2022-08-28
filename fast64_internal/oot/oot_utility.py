@@ -1,6 +1,7 @@
 from ..utility import *
 import bpy, math, mathutils, os, re
 from bpy.utils import register_class, unregister_class
+from .oot_constants import ootSceneIDToName
 
 # default indentation to use when writing to decomp files
 indent = " " * 4
@@ -141,6 +142,13 @@ ootSceneDirs = {
     "assets/scenes/shops/": ootSceneShops,
     "assets/scenes/test_levels/": ootSceneTest_levels,
 }
+
+
+def sceneNameFromID(sceneID):
+    if sceneID in ootSceneIDToName:
+        return ootSceneIDToName[sceneID]
+    else:
+        raise PluginError("Cannot find scene ID " + str(sceneID))
 
 
 def replaceMatchContent(data: str, newContent: str, match: re.Match, index: int) -> str:
@@ -410,6 +418,23 @@ class CullGroup:
     def __init__(self, position, scale, emptyScale):
         self.position = [int(round(field)) for field in position]
         self.cullDepth = abs(int(round(scale[0] * emptyScale)))
+
+
+def setCustomProperty(data: any, prop: str, value: str, enumList: list[tuple[str, str, str]] | None):
+    if enumList is not None:
+        if value in [enumItem[0] for enumItem in enumList]:
+            setattr(data, prop, value)
+        else:
+            try:
+                numberValue = hexOrDecInt(value)
+                hexValue = f'0x{format(numberValue, "02X")}'
+                if hexValue in [enumItem[0] for enumItem in enumList]:
+                    setattr(data, prop, hexValue)
+            except ValueError:
+                pass
+    else:
+        setattr(data, prop, "Custom")
+        setattr(data, prop + str("Custom"), value)
 
 
 def getCustomProperty(data, prop):

@@ -277,7 +277,8 @@ def drawLightProperty(layout, lightProp, name, showExpandTab, index, sceneHeader
 
 
 class OOTSceneTableEntryProperty(bpy.types.PropertyGroup):
-    drawConfig: bpy.props.IntProperty(name="Scene Draw Config", min=0)
+    drawConfig: bpy.props.EnumProperty(items=ootEnumDrawConfig, name="Scene Draw Config")
+    drawConfigCustom: bpy.props.StringProperty(name="Scene Draw Config Custom")
     hasTitle: bpy.props.BoolProperty(default=True)
 
 
@@ -343,7 +344,7 @@ class OOTSceneHeaderProperty(bpy.types.PropertyGroup):
 
 
 def drawSceneTableEntryProperty(layout, sceneTableEntryProp):
-    prop_split(layout, sceneTableEntryProp, "drawConfig", "Draw Config")
+    drawEnumWithCustom(layout, sceneTableEntryProp, "drawConfig", "Draw Config", "")
 
 
 def drawSceneHeaderProperty(layout, sceneProp, dropdownLabel, headerIndex, objName):

@@ -1,6 +1,7 @@
 import os, bpy
 from ...utility import PluginError, writeFile
-from ..oot_constants import ootEnumSceneID, ootDrawConfigNames
+from ..oot_constants import ootEnumSceneID
+from ..oot_utility import getCustomProperty
 
 
 def getSceneTable(exportPath):
@@ -46,7 +47,7 @@ def getSceneIndex(sceneNameList, sceneName):
 def getOriginalIndex(sceneName):
     """
     Returns the index of a specific scene defined by which one the user chose
-	or by the ``sceneName`` parameter if it's not set to ``None``
+        or by the ``sceneName`` parameter if it's not set to ``None``
     """
     i = 0
 
@@ -141,6 +142,17 @@ def sceneTableToC(data, header, sceneNames, scene):
     return fileData
 
 
+def getDrawConfig(sceneName: str):
+    """Read draw config from scene table"""
+    fileData, header, sceneNames = getSceneTable(bpy.path.abspath(bpy.context.scene.ootDecompPath))
+
+    for sceneEntry in fileData:
+        if sceneEntry[0] == f"{sceneName}_scene":
+            return sceneEntry[3]
+
+    raise PluginError(f"Scene name {sceneName} not found in scene table.")
+
+
 def modifySceneTable(scene, exportInfo):
     """Edit the scene table with the new data"""
     exportPath = exportInfo.exportPath
@@ -150,10 +162,8 @@ def modifySceneTable(scene, exportInfo):
 
     if scene is None:
         sceneDrawConfig = None
-    elif scene.sceneTableEntry.drawConfig < len(ootDrawConfigNames):
-        sceneDrawConfig = ootDrawConfigNames[scene.sceneTableEntry.drawConfig]
     else:
-        sceneDrawConfig = scene.sceneTableEntry.drawConfig
+        sceneDrawConfig = getCustomProperty(scene.sceneTableEntry, "drawConfig")
 
     # ``DEFINE_SCENE()`` parameters
     sceneParams = [sceneName, sceneTitle, sceneID, sceneDrawConfig, sceneUnk10, sceneUnk12]

@@ -154,6 +154,36 @@ class OOT_ObjectProperties(bpy.types.PropertyGroup):
     scene: bpy.props.PointerProperty(type=OOTSceneProperties)
 
 
+class OOTExportSceneSettingsProperty(bpy.types.PropertyGroup):
+    name: bpy.props.StringProperty(name="Name", default="spot03")
+    subFolder: bpy.props.StringProperty(name="Subfolder", default="overworld")
+    exportPath: bpy.props.StringProperty(name="Directory", subtype="FILE_PATH")
+    customExport: bpy.props.BoolProperty(name="Custom Export Path")
+    singleFile: bpy.props.BoolProperty(
+        name="Export as Single File",
+        default=False,
+        description="Does not split the scene and rooms into multiple files.",
+    )
+
+
+class OOTImportSceneSettingsProperty(bpy.types.PropertyGroup):
+    name: bpy.props.StringProperty(name="Name", default="spot03")
+    subFolder: bpy.props.StringProperty(name="Subfolder", default="overworld")
+    destPath: bpy.props.StringProperty(name="Directory", subtype="FILE_PATH")
+    isCustomDest: bpy.props.BoolProperty(name="Custom Path")
+
+    def draw(self, layout: bpy.types.UILayout):
+        col = layout.column()
+        col.prop(self, "isCustomDest")
+        if self.isCustomDest:
+            prop_split(col, self, "destPath", "Directory")
+            prop_split(col, self, "name", "Name")
+        else:
+            if bpy.context.scene.ootSceneOption == "Custom":
+                prop_split(col, self, "subFolder", "Subfolder")
+                prop_split(col, self, "name", "Name")
+
+
 oot_obj_classes = (
     OOTSceneProperties,
     OOT_ObjectProperties,
@@ -187,6 +217,8 @@ oot_obj_classes = (
     OOTAlternateSceneHeaderProperty,
     OOTRoomHeaderProperty,
     OOTAlternateRoomHeaderProperty,
+    OOTImportSceneSettingsProperty,
+    OOTExportSceneSettingsProperty,
 )
 
 oot_obj_panel_classes = (OOTObjectPanel,)
@@ -202,6 +234,10 @@ def oot_obj_panel_unregister():
         unregister_class(cls)
 
 
+def isSceneObj(self, obj):
+    return obj.data is None and obj.ootEmptyType == "Scene"
+
+
 def oot_obj_register():
     for cls in oot_obj_classes:
         register_class(cls)
@@ -209,6 +245,11 @@ def oot_obj_register():
     bpy.types.Object.ootEmptyType = bpy.props.EnumProperty(
         name="OOT Object Type", items=ootEnumEmptyType, default="None", update=onUpdateOOTEmptyType
     )
+
+    bpy.types.Scene.ootSceneExportSettings = bpy.props.PointerProperty(type=OOTExportSceneSettingsProperty)
+    bpy.types.Scene.ootSceneImportSettings = bpy.props.PointerProperty(type=OOTImportSceneSettingsProperty)
+    bpy.types.Scene.ootSceneExportObj = bpy.props.PointerProperty(type=bpy.types.Object, poll=isSceneObj)
+    bpy.types.Scene.ootSceneOption = bpy.props.EnumProperty(name="Scene", items=ootEnumSceneID, default="SCENE_YDAN")
 
     bpy.types.Object.ootActorProperty = bpy.props.PointerProperty(type=OOTActorProperty)
     bpy.types.Object.ootTransitionActorProperty = bpy.props.PointerProperty(type=OOTTransitionActorProperty)
@@ -222,6 +263,11 @@ def oot_obj_register():
 
 
 def oot_obj_unregister():
+
+    del bpy.types.Scene.ootSceneExportSettings
+    del bpy.types.Scene.ootSceneImportSettings
+    del bpy.types.Scene.ootSceneExportObj
+    del bpy.types.Scene.ootSceneOption
 
     del bpy.types.Object.ootEmptyType
 
