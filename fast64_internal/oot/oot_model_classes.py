@@ -388,7 +388,11 @@ class OOTF3DContext(F3DContext):
     # For game specific instance, override this to be able to identify which verts belong to which bone.
     def setCurrentTransform(self, name):
         if name[:4].lower() == "0x0d":
-            self.currentTransformName = self.getLimbName(self.dlList[int(int(name[4:], 16) / MTX_SIZE)].limbIndex)
+            index = int(int(name[4:], 16) / MTX_SIZE)
+            if index < len(self.dlList):
+                self.currentTransformName = self.getLimbName(self.dlList[index].limbIndex)
+            else:
+                raise PluginError(f"Matrix {name} has not been processed from dlList.")
         else:
             try:
                 pointer = hexOrDecInt(name)
