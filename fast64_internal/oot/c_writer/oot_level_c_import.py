@@ -210,7 +210,17 @@ def parseRoomCommands(sceneData: str, roomName: str, roomIndex: int, f3dContext:
                 roomHeader.timeMinutes = minutes
             roomHeader.timeSpeed = hexOrDecInt(args[2]) / 10
         elif command == "SCENE_CMD_WIND_SETTINGS":
-            print("Command not implemented.")
+            windVector = [
+                int.from_bytes(
+                    hexOrDecInt(value).to_bytes(1, "big", signed=hexOrDecInt(value) < 0x80), "big", signed=True
+                )
+                for value in args[0:3]
+            ]
+            windStrength = hexOrDecInt(args[3])
+
+            roomHeader.windVector = windVector
+            roomHeader.windStrength = windStrength
+            roomHeader.setWind = True
         elif command == "SCENE_CMD_MESH":
             meshHeaderName = args[0][1:]  # remove '&'
             parseMeshHeader(roomObj, sceneData, meshHeaderName, f3dContext)
@@ -396,10 +406,10 @@ def parseSpawnList(
     spawnList = match.group(1)
     index = 0
     for spawnMatch in re.finditer(r"\{(.*?),\s*\{(.*?)\}\s*,\s*\{(.*?)\}\s*,(.*?)\}\s*,", spawnList, flags=re.DOTALL):
-        actorID = spawnMatch.group(1)
+        actorID = spawnMatch.group(1).strip()
         position = [hexOrDecInt(value.strip()) for value in spawnMatch.group(2).split(",") if value.strip() != ""]
         rotation = [hexOrDecInt(value.strip()) for value in spawnMatch.group(3).split(",") if value.strip() != ""]
-        actorParam = spawnMatch.group(4)
+        actorParam = spawnMatch.group(4).strip()
 
         spawnIndex, roomIndex = [value for value in entranceList if value[0] == index][0]
 

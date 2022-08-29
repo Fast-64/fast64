@@ -2215,7 +2215,7 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image: bpy.types.Image, imageN
 
     if convertTextureData:
         pixels = image.pixels[:]
-        print(f"Converting texture data for {filename}")
+        # print(f"Converting texture data for {filename}")
         if fmt == "G_IM_FMT_RGBA":
             if bitSize == "G_IM_SIZ_16b":
                 # fImage.data = bytearray([byteVal for doubleByte in [
@@ -2418,7 +2418,7 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image: bpy.types.Image, imageN
         if bitSize == "G_IM_SIZ_4b":
             fImage.data = compactNibbleArray(fImage.data, image.size[0], image.size[1])
 
-    print("Finished converting.")
+    # print("Finished converting.")
     fModel.addTexture((image, (texFormat, "NONE")), fImage, fMaterial)
 
     return fImage

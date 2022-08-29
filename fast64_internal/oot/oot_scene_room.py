@@ -483,7 +483,8 @@ class OOTRoomHeaderProperty(bpy.types.PropertyGroup):
     customBehaviourY: bpy.props.StringProperty(name="Custom Behaviour Y", default="0x00")
 
     setWind: bpy.props.BoolProperty(name="Set Wind")
-    windVector: bpy.props.FloatVectorProperty(name="Wind Vector", size=3)
+    windVector: bpy.props.IntVectorProperty(name="Wind Vector", size=3, min=-127, max=127)
+    windStrength: bpy.props.IntProperty(name="Wind Strength", min=0, max=255)
 
     leaveTimeUnchanged: bpy.props.BoolProperty(name="Leave Time Unchanged", default=True)
     timeHours: bpy.props.IntProperty(name="Hours", default=0, min=0, max=23)  # 0xFFFE
@@ -565,7 +566,9 @@ def drawRoomHeaderProperty(layout, roomProp, dropdownLabel, headerIndex, objName
         windBox.box().label(text="Wind")
         windBox.prop(roomProp, "setWind", text="Set Wind")
         if roomProp.setWind:
-            windBox.row().prop(roomProp, "windVector", text="")
+            windBoxRow = windBox.row()
+            windBoxRow.prop(roomProp, "windVector", text="")
+            windBox.prop(roomProp, "windStrength", text="Strength")
             # prop_split(windBox, roomProp, "windVector", "Wind Vector")
 
     elif menuTab == "Objects":

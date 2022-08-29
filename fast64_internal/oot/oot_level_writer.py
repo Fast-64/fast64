@@ -279,8 +279,8 @@ def readRoomData(room, roomHeader, alternateRoomHeaders):
     room.linkIdleMode = getCustomProperty(roomHeader, "linkIdleMode")
     room.linkIdleModeCustom = roomHeader.linkIdleModeCustom
     room.setWind = roomHeader.setWind
-    room.windVector = normToSigned8Vector(mathutils.Vector(roomHeader.windVector).normalized())
-    room.windStrength = int(0xFF * max(mathutils.Vector(roomHeader.windVector).length, 1))
+    room.windVector = roomHeader.windVector[:]
+    room.windStrength = roomHeader.windStrength
     if roomHeader.leaveTimeUnchanged:
         room.timeHours = "0xFF"
         room.timeMinutes = "0xFF"
