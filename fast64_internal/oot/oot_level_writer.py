@@ -76,7 +76,7 @@ def ootExportSceneToC(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneN
     levelPath = ootGetPath(exportPath, isCustomExport, exportSubdir, sceneName, True, True)
     levelC = ootLevelToC(scene, TextureExportSettings(False, savePNG, exportSubdir + sceneName, levelPath))
 
-    if bpy.context.scene.ootSceneSingleFile:
+    if bpy.context.scene.ootSceneExportSettings.singleFile:
         writeCDataSourceOnly(
             ootPreprendSceneIncludes(scene, ootCombineSceneFiles(levelC)),
             os.path.join(levelPath, scene.sceneName() + ".c"),
@@ -150,6 +150,7 @@ def readSceneData(scene, scene_properties, sceneHeader, alternateSceneHeaders):
     scene.musicSeq = getCustomProperty(sceneHeader, "musicSeq")
     scene.nightSeq = getCustomProperty(sceneHeader, "nightSeq")
     scene.audioSessionPreset = getCustomProperty(sceneHeader, "audioSessionPreset")
+    scene.appendNullEntrance = sceneHeader.appendNullEntrance
 
     if sceneHeader.skyboxLighting == "0x00":  # Time of Day
         scene.lights.append(getLightData(sceneHeader.timeOfDayLights.dawn))
@@ -399,6 +400,8 @@ def ootConvertScene(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneNam
 
         scene.validateIndices()
         scene.entranceList = sorted(scene.entranceList, key=lambda x: x.startPositionIndex)
+        if scene.appendNullEntrance:
+            scene.entranceList.append(OOTEntrance(0, 0))
         exportCollisionCommon(scene.collision, sceneObj, transformMatrix, True, sceneName)
 
         ootCleanupScene(originalSceneObj, allObjs)

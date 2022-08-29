@@ -597,8 +597,8 @@ ootEnumSkybox = [
 
 ootEnumSkyboxLighting = [
     ("Custom", "Custom", "Custom"),
-    ("0x00", "Time Of Day", "Time Of Day"),
-    ("0x01", "Indoor", "Indoor"),
+    ("false", "Time Of Day", "Time Of Day"),
+    ("true", "Indoor", "Indoor"),
 ]
 
 ootEnumAudioSessionPreset = [
@@ -1134,9 +1134,9 @@ ootEnumObjectID = [
 
 ootEnumGlobalObject = [
     ("Custom", "Custom", "Custom"),
-    ("0x0000", "None", "None"),
-    ("0x0002", "Overworld", "gameplay_field_keep"),
-    ("0x0003", "Dungeon", "gameplay_dangeon_keep"),
+    ("OBJECT_INVALID", "None", "None"),
+    ("OBJECT_GAMEPLAY_FIELD_KEEP", "Overworld", "gameplay_field_keep"),
+    ("OBJECT_GAMEPLAY_DANGEON_KEEP", "Dungeon", "gameplay_dangeon_keep"),
 ]
 
 ootEnumNaviHints = [

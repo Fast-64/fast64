@@ -99,6 +99,7 @@ def parseSceneCommands(sceneName: str, sceneData: str, isCustomImport: bool, f3d
         elif command == "SCENE_CMD_TRANSITION_ACTOR_LIST":
             transActorListName = args[1]
             parseTransActorList(roomObjs, sceneData, transActorListName)
+
         elif command == "SCENE_CMD_MISC_SETTINGS":
             setCustomProperty(sceneHeader, "cameraMode", args[0], ootEnumCameraMode)
             setCustomProperty(sceneHeader, "mapLocation", args[1], ootEnumMapLocation)
@@ -106,11 +107,9 @@ def parseSceneCommands(sceneName: str, sceneData: str, isCustomImport: bool, f3d
             collisionHeaderName = args[0][1:]  # remove '&'
             print("Command not implemented.")
         elif command == "SCENE_CMD_ENTRANCE_LIST":
-            if args[0] == "NULL" or args[0] == "0" or args[0] == "0x00":
-                pass
-            else:
+            if not (args[0] == "NULL" or args[0] == "0" or args[0] == "0x00"):
                 entranceListName = args[0]
-                entranceList = parseEntranceList(roomObjs, sceneData, entranceListName)
+                entranceList = parseEntranceList(sceneObj, roomObjs, sceneData, entranceListName)
         elif command == "SCENE_CMD_SPECIAL_FILES":
             setCustomProperty(sceneHeader, "naviCup", args[0], ootEnumNaviHints)
             setCustomProperty(sceneHeader, "globalObject", args[1], ootEnumGlobalObject)
@@ -120,23 +119,22 @@ def parseSceneCommands(sceneName: str, sceneData: str, isCustomImport: bool, f3d
         elif command == "SCENE_CMD_PATH_LIST":
             pathListName = args[0]
             print("Command not implemented.")
+
+        # This must be handled after entrance list, so that entrance list can be referenced
         elif command == "SCENE_CMD_SPAWN_LIST":
-            if args[1] == "NULL" or args[1] == "0" or args[1] == "0x00":
-                pass
-            else:
+            if not (args[1] == "NULL" or args[1] == "0" or args[1] == "0x00"):
                 spawnListName = args[1]
                 parseSpawnList(roomObjs, sceneData, spawnListName, entranceList)
+
         elif command == "SCENE_CMD_SKYBOX_SETTINGS":
             setCustomProperty(sceneHeader, "skyboxID", args[0], ootEnumSkybox)
             setCustomProperty(sceneHeader, "skyboxCloudiness", args[1], ootEnumCloudiness)
             setCustomProperty(sceneHeader, "skyboxLighting", args[2], ootEnumSkyboxLighting)
         elif command == "SCENE_CMD_EXIT_LIST":
             exitListName = args[0]
-            print("Command not implemented.")
+            parseExitList(sceneObj, sceneData, exitListName)
         elif command == "SCENE_CMD_ENV_LIGHT_SETTINGS":
-            if args[1] == "NULL" or args[1] == "0" or args[1] == "0x00":
-                pass
-            else:
+            if not (args[1] == "NULL" or args[1] == "0" or args[1] == "0x00"):
                 lightListName = args[1]
             print("Command not implemented.")
         elif command == "SCENE_CMD_CUTSCENE_DATA":
@@ -357,14 +355,16 @@ def parseTransActorList(roomObjs: list[bpy.types.Object], sceneData: str, transA
         actorProp.actorParam = actorParam
 
 
-def parseEntranceList(roomObjs: list[bpy.types.Object], sceneData: str, entranceListName: str):
+def parseEntranceList(
+    sceneObj: bpy.types.Object, roomObjs: list[bpy.types.Object], sceneData: str, entranceListName: str
+):
     match = re.search(
         rf"EntranceEntry\s*{re.escape(entranceListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
         sceneData,
         flags=re.DOTALL,
     )
     if not match:
-        raise PluginError(f"Could not find transition actor list {entranceListName}.")
+        raise PluginError(f"Could not find entrance list {entranceListName}.")
 
     # see also start position list
     entranceList = match.group(1)
@@ -375,6 +375,10 @@ def parseEntranceList(roomObjs: list[bpy.types.Object], sceneData: str, entrance
         spawnIndex = hexOrDecInt(params[0])
 
         entrances.append((spawnIndex, roomIndex))
+
+    if len(entrances) > 1 and entrances[-1] == (0, 0):
+        entrances.pop()
+        sceneObj.ootSceneHeader.appendNullEntrance = True
 
     return entrances
 
@@ -388,7 +392,7 @@ def parseSpawnList(
         flags=re.DOTALL,
     )
     if not match:
-        raise PluginError(f"Could not find transition actor list {spawnListName}.")
+        raise PluginError(f"Could not find spawn list {spawnListName}.")
 
     # see also start position list
     spawnList = match.group(1)
@@ -399,21 +403,34 @@ def parseSpawnList(
         rotation = [hexOrDecInt(value.strip()) for value in spawnMatch.group(3).split(",") if value.strip() != ""]
         actorParam = spawnMatch.group(4)
 
-        entranceEntries = [value for value in entranceList if value[0] == index]
+        spawnIndex, roomIndex = [value for value in entranceList if value[0] == index][0]
 
-        # A spawn can belong to multiple rooms, which I didn't think about before creating exporter.
-        # Therefore importer will duplicate a spawn that falls in this category.
-        # In exporter, duplicate actors in different rooms should be merged. (TODO)
-        for spawnIndex, roomIndex in entranceEntries:
-            spawnObj = createEmptyWithTransform(position, rotation)
-            spawnObj.ootEmptyType = "Entrance"
-            spawnObj.name = "Entrance"
-            spawnProp = spawnObj.ootEntranceProperty
-            spawnProp.spawnIndex = spawnIndex
-            spawnProp.customActor = actorID != "ACTOR_PLAYER"
-            actorProp = spawnProp.actor
-            setCustomProperty(actorProp, "actorID", actorID, ootEnumActorID)
-            actorProp.actorParam = actorParam
+        spawnObj = createEmptyWithTransform(position, rotation)
+        spawnObj.ootEmptyType = "Entrance"
+        spawnObj.name = "Entrance"
+        spawnProp = spawnObj.ootEntranceProperty
+        spawnProp.spawnIndex = spawnIndex
+        spawnProp.customActor = actorID != "ACTOR_PLAYER"
+        actorProp = spawnProp.actor
+        setCustomProperty(actorProp, "actorID", actorID, ootEnumActorID)
+        actorProp.actorParam = actorParam
 
-            parentObject(roomObjs[roomIndex], spawnObj)
+        parentObject(roomObjs[roomIndex], spawnObj)
         index += 1
+
+
+def parseExitList(sceneObj: bpy.types.Object, sceneData: str, exitListName: str):
+    match = re.search(
+        rf"u16\s*{re.escape(exitListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
+        sceneData,
+        flags=re.DOTALL,
+    )
+    if not match:
+        raise PluginError(f"Could not find exit list {exitListName}.")
+
+    # see also start position list
+    exitList = [value.strip() for value in match.group(1).split(",") if value.strip() != ""]
+    for exit in exitList:
+        exitProp = sceneObj.ootSceneHeader.exitList.add()
+        exitProp.exitIndex = "Custom"
+        exitProp.exitIndexCustom = exit

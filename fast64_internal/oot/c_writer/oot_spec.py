@@ -69,7 +69,7 @@ def modifySegmentDefinition(scene, exportInfo, levelC):
         firstIndex = len(segmentDefinitions)
 
     if scene is not None:
-        if bpy.context.scene.ootSceneSingleFile:
+        if bpy.context.scene.ootSceneExportSettings.singleFile:
             segmentDefinitions.insert(
                 firstIndex,
                 "\n"

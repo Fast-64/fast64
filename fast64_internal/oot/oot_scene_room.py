@@ -290,7 +290,9 @@ class OOTSceneHeaderProperty(bpy.types.PropertyGroup):
     expandTab: bpy.props.BoolProperty(name="Expand Tab")
     usePreviousHeader: bpy.props.BoolProperty(name="Use Previous Header", default=True)
 
-    globalObject: bpy.props.EnumProperty(name="Global Object", default="0x0002", items=ootEnumGlobalObject)
+    globalObject: bpy.props.EnumProperty(
+        name="Global Object", default="OBJECT_GAMEPLAY_DANGEON_KEEP", items=ootEnumGlobalObject
+    )
     globalObjectCustom: bpy.props.StringProperty(name="Global Object Custom", default="0x00")
     naviCup: bpy.props.EnumProperty(name="Navi Hints", default="0x00", items=ootEnumNaviHints)
     naviCupCustom: bpy.props.StringProperty(name="Navi Hints Custom", default="0x00")
@@ -299,7 +301,7 @@ class OOTSceneHeaderProperty(bpy.types.PropertyGroup):
     skyboxIDCustom: bpy.props.StringProperty(name="Skybox ID", default="0")
     skyboxCloudiness: bpy.props.EnumProperty(name="Cloudiness", items=ootEnumCloudiness, default="0x00")
     skyboxCloudinessCustom: bpy.props.StringProperty(name="Cloudiness ID", default="0x00")
-    skyboxLighting: bpy.props.EnumProperty(name="Skybox Lighting", items=ootEnumSkyboxLighting, default="0x00")
+    skyboxLighting: bpy.props.EnumProperty(name="Skybox Lighting", items=ootEnumSkyboxLighting, default="false")
     skyboxLightingCustom: bpy.props.StringProperty(name="Skybox Lighting Custom", default="0x00")
 
     mapLocation: bpy.props.EnumProperty(name="Map Location", items=ootEnumMapLocation, default="0x00")
@@ -342,6 +344,12 @@ class OOTSceneHeaderProperty(bpy.types.PropertyGroup):
     menuTab: bpy.props.EnumProperty(name="Menu", items=ootEnumSceneMenu)
     altMenuTab: bpy.props.EnumProperty(name="Menu", items=ootEnumSceneMenuAlternate)
 
+    appendNullEntrance: bpy.props.BoolProperty(
+        name="Append Null Entrance",
+        description="Add an additional {0, 0} to the end of the EntranceEntry list.",
+        default=False,
+    )
+
 
 def drawSceneTableEntryProperty(layout, sceneTableEntryProp):
     drawEnumWithCustom(layout, sceneTableEntryProp, "drawConfig", "Draw Config", "")
@@ -372,10 +380,11 @@ def drawSceneHeaderProperty(layout, sceneProp, dropdownLabel, headerIndex, objNa
     if menuTab == "General":
         general = layout.column()
         general.box().label(text="General")
-        if headerIndex is None or headerIndex == 0:
-            drawSceneTableEntryProperty(layout, sceneProp.sceneTableEntry)
         drawEnumWithCustom(general, sceneProp, "globalObject", "Global Object", "")
         drawEnumWithCustom(general, sceneProp, "naviCup", "Navi Hints", "")
+        if headerIndex is None or headerIndex == 0:
+            drawSceneTableEntryProperty(general, sceneProp.sceneTableEntry)
+        general.prop(sceneProp, "appendNullEntrance")
 
         skyboxAndSound = layout.column()
         skyboxAndSound.box().label(text="Skybox And Sound")
