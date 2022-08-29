@@ -8,6 +8,45 @@ from ..oot_scene_room import OOTSceneHeaderProperty
 from .oot_scene_table_c import getDrawConfig
 from ...utility import yUpToZUp
 
+headerNames = ["childDayHeader", "childNightHeader", "adultDayHeader", "adultNightHeader"]
+
+
+class SharedActorData:
+    def __init__(self):
+        self.actorDict = {}  # actor hash : blender object
+        self.entranceDict = {}  # actor hash : blender object
+        self.transDict = {}  # actor hash : blender object
+
+    def addHeaderIfActorExists(self, actorHash, emptyType: str, headerIndex: int):
+        if emptyType == "Actor":
+            dictToAdd = self.actorDict
+        elif emptyType == "Entrance":
+            dictToAdd = self.entranceDict
+        elif emptyType == "Transition Actor":
+            dictToAdd = self.transDict
+        else:
+            raise PluginError(f"Invalid empty type for shared actor handling: {emptyType}")
+
+        if actorHash not in dictToAdd:
+            return False
+
+        actorObj = dictToAdd[actorHash]
+        if emptyType == "Actor":
+            actorProp = actorObj.ootActorProperty
+        elif emptyType == "Entrance":
+            actorProp = actorObj.ootEntranceProperty.actor
+        elif emptyType == "Transition Actor":
+            actorProp = actorObj.ootTransitionActorProperty.actor
+
+        if headerIndex < 4:
+            setattr(actorProp.headerSettings, headerNames[headerIndex], True)
+        else:
+            cutsceneHeaders = actorProp.headerSettings.cutsceneHeaders
+            if len([header for header in cutsceneHeaders if header.headerIndex == headerIndex]) == 0:
+                cutsceneHeaders.add().headerIndex = headerIndex
+
+        return True
+
 
 def parseScene(
     f3dType: str,
@@ -49,27 +88,43 @@ def parseScene(
     parseMatrices(sceneData, f3dContext, 1 / bpy.context.scene.ootBlenderScale)
     f3dContext.addMatrix("&gMtxClear", mathutils.Matrix.Scale(1 / bpy.context.scene.ootBlenderScale, 4))
 
-    sceneObj = parseSceneCommands(
-        sceneName,
-        sceneData,
-        settings.isCustomDest,
-        f3dContext,
-    )
-
-
-def parseSceneCommands(sceneName: str, sceneData: str, isCustomImport: bool, f3dContext: OOTF3DContext):
     sceneCommandsName = f"{sceneName}_sceneCommands"
-
-    location = mathutils.Vector((0, 0, 10))
-    bpy.ops.object.empty_add(type="SPHERE", radius=1, align="WORLD", location=location[:])
-    sceneObj = bpy.context.view_layer.objects.active
-    sceneObj.ootEmptyType = "Scene"
-    sceneObj.name = sceneName
+    sharedActorData = SharedActorData()
+    sceneObj = parseSceneCommands(None, None, sceneCommandsName, sceneData, f3dContext, 0, sharedActorData)
     bpy.context.scene.ootSceneExportObj = sceneObj
-    sceneHeader = sceneObj.ootSceneHeader
 
-    if not isCustomImport:
-        setCustomProperty(sceneHeader.sceneTableEntry, "drawConfig", getDrawConfig(sceneName), ootEnumDrawConfig)
+    if not settings.isCustomDest:
+        setCustomProperty(
+            sceneObj.ootSceneHeader.sceneTableEntry, "drawConfig", getDrawConfig(sceneName), ootEnumDrawConfig
+        )
+
+
+def parseSceneCommands(
+    sceneObj: bpy.types.Object | None,
+    roomObjs: list[bpy.types.Object] | None,
+    sceneCommandsName: str,
+    sceneData: str,
+    f3dContext: OOTF3DContext,
+    headerIndex: int,
+    sharedActorData: SharedActorData,
+):
+    if sceneObj is None:
+        location = mathutils.Vector((0, 0, 10))
+        bpy.ops.object.empty_add(type="SPHERE", radius=1, align="WORLD", location=location[:])
+        sceneObj = bpy.context.view_layer.objects.active
+        sceneObj.ootEmptyType = "Scene"
+        sceneObj.name = sceneCommandsName
+
+    if headerIndex == 0:
+        sceneHeader = sceneObj.ootSceneHeader
+    elif headerIndex < 4:
+        sceneHeader = getattr(sceneObj.ootAlternateSceneHeaders, headerNames[headerIndex])
+        sceneHeader.usePreviousHeader = False
+    else:
+        cutsceneHeaders = sceneObj.ootAlternateSceneHeaders.cutsceneHeaders
+        while len(cutsceneHeaders) < headerIndex - 3:
+            cutsceneHeaders.add()
+        sceneHeader = cutsceneHeaders[headerIndex - 4]
 
     match = re.search(
         rf"SceneCmd\s*{re.escape(sceneCommandsName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
@@ -80,8 +135,8 @@ def parseSceneCommands(sceneName: str, sceneData: str, isCustomImport: bool, f3d
         raise PluginError(f"Could not find scene commands {sceneCommandsName}.")
 
     commands = match.group(1)
-    roomObjs = None
     entranceList = None
+    altHeadersListName = None
     for commandMatch in re.finditer(rf"(SCENE\_CMD\_[a-zA-Z0-9\_]*)\s*\((.*?)\)\s*,", commands, flags=re.DOTALL):
         command = commandMatch.group(1)
         args = [arg.strip() for arg in commandMatch.group(2).split(",")]
@@ -90,24 +145,30 @@ def parseSceneCommands(sceneName: str, sceneData: str, isCustomImport: bool, f3d
             setCustomProperty(sceneHeader, "nightSeq", args[1], ootEnumNightSeq)
             setCustomProperty(sceneHeader, "musicSeq", args[2], ootEnumMusicSeq)
         elif command == "SCENE_CMD_ROOM_LIST":
-            roomListName = args[1]
-            roomObjs = parseRoomList(sceneObj, sceneData, roomListName, f3dContext)
+            # Assumption that all scenes use the same room list.
+            if headerIndex == 0:
+                if roomObjs is not None:
+                    raise PluginError("Attempting to parse a room list while room objs already loaded.")
+                roomListName = args[1]
+                roomObjs = parseRoomList(sceneObj, sceneData, roomListName, f3dContext, sharedActorData, headerIndex)
 
         # This must be handled after rooms, so that room objs can be referenced
         elif command == "SCENE_CMD_TRANSITION_ACTOR_LIST":
             transActorListName = args[1]
-            parseTransActorList(roomObjs, sceneData, transActorListName)
+            parseTransActorList(roomObjs, sceneData, transActorListName, sharedActorData, headerIndex)
 
         elif command == "SCENE_CMD_MISC_SETTINGS":
             setCustomProperty(sceneHeader, "cameraMode", args[0], ootEnumCameraMode)
             setCustomProperty(sceneHeader, "mapLocation", args[1], ootEnumMapLocation)
         elif command == "SCENE_CMD_COL_HEADER":
-            collisionHeaderName = args[0][1:]  # remove '&'
+            # Assumption that all scenes use the same collision.
+            if headerIndex == 0:
+                collisionHeaderName = args[0][1:]  # remove '&'
             print("Command not implemented.")
         elif command == "SCENE_CMD_ENTRANCE_LIST":
             if not (args[0] == "NULL" or args[0] == "0" or args[0] == "0x00"):
                 entranceListName = args[0]
-                entranceList = parseEntranceList(sceneObj, roomObjs, sceneData, entranceListName)
+                entranceList = parseEntranceList(sceneHeader, roomObjs, sceneData, entranceListName)
         elif command == "SCENE_CMD_SPECIAL_FILES":
             setCustomProperty(sceneHeader, "naviCup", args[0], ootEnumNaviHints)
             setCustomProperty(sceneHeader, "globalObject", args[1], ootEnumGlobalObject)
@@ -122,7 +183,7 @@ def parseSceneCommands(sceneName: str, sceneData: str, isCustomImport: bool, f3d
         elif command == "SCENE_CMD_SPAWN_LIST":
             if not (args[1] == "NULL" or args[1] == "0" or args[1] == "0x00"):
                 spawnListName = args[1]
-                parseSpawnList(roomObjs, sceneData, spawnListName, entranceList)
+                parseSpawnList(roomObjs, sceneData, spawnListName, entranceList, sharedActorData, headerIndex)
 
         elif command == "SCENE_CMD_SKYBOX_SETTINGS":
             setCustomProperty(sceneHeader, "skyboxID", args[0], ootEnumSkybox)
@@ -130,7 +191,7 @@ def parseSceneCommands(sceneName: str, sceneData: str, isCustomImport: bool, f3d
             setCustomProperty(sceneHeader, "skyboxLighting", args[2], ootEnumSkyboxLighting)
         elif command == "SCENE_CMD_EXIT_LIST":
             exitListName = args[0]
-            parseExitList(sceneObj, sceneData, exitListName)
+            parseExitList(sceneHeader, sceneData, exitListName)
         elif command == "SCENE_CMD_ENV_LIGHT_SETTINGS":
             if not (args[1] == "NULL" or args[1] == "0" or args[1] == "0x00"):
                 lightListName = args[1]
@@ -138,11 +199,24 @@ def parseSceneCommands(sceneName: str, sceneData: str, isCustomImport: bool, f3d
         elif command == "SCENE_CMD_CUTSCENE_DATA":
             cutsceneName = args[0]
             print("Command not implemented.")
+        elif command == "SCENE_CMD_ALTERNATE_HEADER_LIST":
+            # Delay until after rooms are parsed
+            altHeadersListName = args[0]
+
+    if altHeadersListName is not None:
+        parseAlternateSceneHeaders(sceneObj, roomObjs, sceneData, altHeadersListName, f3dContext, sharedActorData)
 
     return sceneObj
 
 
-def parseRoomList(sceneObj: bpy.types.Object, sceneData: str, roomListName: str, f3dContext: OOTF3DContext):
+def parseRoomList(
+    sceneObj: bpy.types.Object,
+    sceneData: str,
+    roomListName: str,
+    f3dContext: OOTF3DContext,
+    sharedActorData: SharedActorData,
+    headerIndex: int,
+):
     match = re.search(
         rf"RomFile\s*{re.escape(roomListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
         sceneData,
@@ -154,9 +228,12 @@ def parseRoomList(sceneObj: bpy.types.Object, sceneData: str, roomListName: str,
     roomList = match.group(1)
     index = 0
     roomObjs = []
+
+    # Assumption that alternate scene headers all use the same room list.
     for roomMatch in re.finditer(rf"\{{([\sA-Za-z0-9\_]*),([\sA-Za-z0-9\_]*)\}}\s*,", roomList, flags=re.DOTALL):
         roomName = roomMatch.group(1).strip().replace("SegmentRomStart", "")[1:]
-        roomObj = parseRoomCommands(sceneData, roomName, index, f3dContext)
+        roomCommandsName = f"{roomName}Commands"
+        roomObj = parseRoomCommands(None, sceneData, roomCommandsName, index, f3dContext, sharedActorData, headerIndex)
         parentObject(sceneObj, roomObj)
         index += 1
         roomObjs.append(roomObj)
@@ -164,15 +241,32 @@ def parseRoomList(sceneObj: bpy.types.Object, sceneData: str, roomListName: str,
     return roomObjs
 
 
-def parseRoomCommands(sceneData: str, roomName: str, roomIndex: int, f3dContext: OOTF3DContext):
-    roomCommandsName = f"{roomName}Commands"
+def parseRoomCommands(
+    roomObj: bpy.types.Object | None,
+    sceneData: str,
+    roomCommandsName: str,
+    roomIndex: int,
+    f3dContext: OOTF3DContext,
+    sharedActorData: SharedActorData,
+    headerIndex: int,
+):
+    if roomObj is None:
+        bpy.ops.object.empty_add(type="SPHERE", radius=1, align="WORLD", location=[0, 0, 8 - roomIndex * 2])
+        roomObj = bpy.context.view_layer.objects.active
+        roomObj.ootEmptyType = "Room"
+        roomObj.name = roomCommandsName
+        roomObj.ootRoomHeader.roomIndex = roomIndex
 
-    bpy.ops.object.empty_add(type="SPHERE", radius=1, align="WORLD", location=[0, 0, 8 - roomIndex * 2])
-    roomObj = bpy.context.view_layer.objects.active
-    roomObj.ootEmptyType = "Room"
-    roomObj.name = roomName
-    roomHeader = roomObj.ootRoomHeader
-    roomHeader.roomIndex = roomIndex
+    if headerIndex == 0:
+        roomHeader = roomObj.ootRoomHeader
+    elif headerIndex < 4:
+        roomHeader = getattr(roomObj.ootAlternateRoomHeaders, headerNames[headerIndex])
+        roomHeader.usePreviousHeader = False
+    else:
+        cutsceneHeaders = roomObj.ootAlternateRoomHeaders.cutsceneHeaders
+        while len(cutsceneHeaders) < headerIndex - 3:
+            cutsceneHeaders.add()
+        roomHeader = cutsceneHeaders[headerIndex - 4]
 
     match = re.search(
         rf"SceneCmd\s*{re.escape(roomCommandsName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
@@ -187,8 +281,8 @@ def parseRoomCommands(sceneData: str, roomName: str, roomIndex: int, f3dContext:
         command = commandMatch.group(1)
         args = [arg.strip() for arg in commandMatch.group(2).split(",")]
         if command == "SCENE_CMD_ALTERNATE_HEADER_LIST":
-            altHeadersList = args[0]
-            print("Command not implemented.")
+            altHeadersListName = args[0]
+            parseAlternateRoomHeaders(roomObj, roomIndex, sharedActorData, sceneData, altHeadersListName, f3dContext)
         elif command == "SCENE_CMD_ECHO_SETTINGS":
             roomHeader.echo = args[0]
         elif command == "SCENE_CMD_ROOM_BEHAVIOR":
@@ -222,14 +316,16 @@ def parseRoomCommands(sceneData: str, roomName: str, roomIndex: int, f3dContext:
             roomHeader.windStrength = windStrength
             roomHeader.setWind = True
         elif command == "SCENE_CMD_MESH":
-            meshHeaderName = args[0][1:]  # remove '&'
-            parseMeshHeader(roomObj, sceneData, meshHeaderName, f3dContext)
+            # Assumption that all rooms use the same mesh.
+            if headerIndex == 0:
+                meshHeaderName = args[0][1:]  # remove '&'
+                parseMeshHeader(roomObj, sceneData, meshHeaderName, f3dContext)
         elif command == "SCENE_CMD_OBJECT_LIST":
             objectListName = args[1]
-            parseObjectList(roomObj, sceneData, objectListName)
+            parseObjectList(roomHeader, sceneData, objectListName)
         elif command == "SCENE_CMD_ACTOR_LIST":
             actorListName = args[1]
-            parseActorList(roomObj, sceneData, actorListName)
+            parseActorList(roomObj, sceneData, actorListName, sharedActorData, headerIndex)
 
     return roomObj
 
@@ -325,7 +421,13 @@ def getDisplayNameFromActorID(actorID: str):
     return " ".join([word.lower().capitalize() for word in actorID.split("_") if word != "ACTOR"])
 
 
-def parseTransActorList(roomObjs: list[bpy.types.Object], sceneData: str, transActorListName: str):
+def parseTransActorList(
+    roomObjs: list[bpy.types.Object],
+    sceneData: str,
+    transActorListName: str,
+    sharedActorData: SharedActorData,
+    headerIndex: int,
+):
     match = re.search(
         rf"TransitionActorEntry\s*{re.escape(transActorListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
         sceneData,
@@ -338,8 +440,8 @@ def parseTransActorList(roomObjs: list[bpy.types.Object], sceneData: str, transA
     for actorMatch in re.finditer(rf"\{{(.*?)\}}\s*,", transitionActorList, flags=re.DOTALL):
         params = [value.strip() for value in actorMatch.group(1).split(",") if value.strip() != ""]
 
-        position = [hexOrDecInt(value) for value in params[5:8]]
-        rotation = [0, hexOrDecInt(params[8]), 0]
+        position = tuple([hexOrDecInt(value) for value in params[5:8]])
+        rotation = tuple([0, hexOrDecInt(params[8]), 0])
 
         roomIndexFront = hexOrDecInt(params[0])
         camFront = params[1]
@@ -348,10 +450,25 @@ def parseTransActorList(roomObjs: list[bpy.types.Object], sceneData: str, transA
         actorID = params[4]
         actorParam = params[9]
 
+        actorHash = (
+            roomIndexFront,
+            camFront,
+            roomIndexBack,
+            camBack,
+            actorID,
+            position,
+            rotation,
+            actorParam,
+        )
+        if sharedActorData.addHeaderIfActorExists(actorHash, "Transition Actor", headerIndex):
+            continue
+
         actorObj = createEmptyWithTransform(position, rotation)
         actorObj.ootEmptyType = "Transition Actor"
         actorObj.name = "Transition " + getDisplayNameFromActorID(params[4])
         transActorProp = actorObj.ootTransitionActorProperty
+
+        sharedActorData.transDict[actorHash] = actorObj
 
         parentObject(roomObjs[roomIndexFront], actorObj)
         setCustomProperty(transActorProp, "cameraTransitionFront", camFront, ootEnumCamTransition)
@@ -361,10 +478,11 @@ def parseTransActorList(roomObjs: list[bpy.types.Object], sceneData: str, transA
         actorProp = transActorProp.actor
         setCustomProperty(actorProp, "actorID", actorID, ootEnumActorID)
         actorProp.actorParam = actorParam
+        unsetAllHeadersExceptSpecified(actorProp, headerIndex)
 
 
 def parseEntranceList(
-    sceneObj: bpy.types.Object, roomObjs: list[bpy.types.Object], sceneData: str, entranceListName: str
+    sceneHeader: OOTSceneHeaderProperty, roomObjs: list[bpy.types.Object], sceneData: str, entranceListName: str
 ):
     match = re.search(
         rf"EntranceEntry\s*{re.escape(entranceListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
@@ -386,22 +504,36 @@ def parseEntranceList(
 
     if len(entrances) > 1 and entrances[-1] == (0, 0):
         entrances.pop()
-        sceneObj.ootSceneHeader.appendNullEntrance = True
+        sceneHeader.appendNullEntrance = True
 
     return entrances
 
 
 def parseActorInfo(actorMatch: re.Match) -> tuple[str, list[int], list[int], str]:
     actorID = actorMatch.group(1).strip()
-    position = [hexOrDecInt(value.strip()) for value in actorMatch.group(2).split(",") if value.strip() != ""]
-    rotation = [hexOrDecInt(value.strip()) for value in actorMatch.group(3).split(",") if value.strip() != ""]
+    position = tuple([hexOrDecInt(value.strip()) for value in actorMatch.group(2).split(",") if value.strip() != ""])
+    rotation = tuple([hexOrDecInt(value.strip()) for value in actorMatch.group(3).split(",") if value.strip() != ""])
     actorParam = actorMatch.group(4).strip()
 
     return actorID, position, rotation, actorParam
 
 
+def unsetAllHeadersExceptSpecified(actorProp: OOTActorProperty, headerIndex: int):
+    actorProp.headerSettings.sceneSetupPreset = "Custom"
+    for i in range(len(headerNames)):
+        setattr(actorProp.headerSettings, headerNames[i], i == headerIndex)
+
+    if headerIndex >= 4:
+        actorProp.headerSettings.cutsceneHeaders.add().headerIndex = headerIndex
+
+
 def parseSpawnList(
-    roomObjs: list[bpy.types.Object], sceneData: str, spawnListName: str, entranceList: list[tuple[str, str]]
+    roomObjs: list[bpy.types.Object],
+    sceneData: str,
+    spawnListName: str,
+    entranceList: list[tuple[str, str]],
+    sharedActorData: SharedActorData,
+    headerIndex: int,
 ):
     match = re.search(
         rf"ActorEntry\s*{re.escape(spawnListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
@@ -416,8 +548,11 @@ def parseSpawnList(
     index = 0
     for spawnMatch in re.finditer(r"\{(.*?),\s*\{(.*?)\}\s*,\s*\{(.*?)\}\s*,(.*?)\}\s*,", spawnList, flags=re.DOTALL):
         actorID, position, rotation, actorParam = parseActorInfo(spawnMatch)
-
         spawnIndex, roomIndex = [value for value in entranceList if value[0] == index][0]
+        actorHash = (actorID, position, rotation, actorParam, spawnIndex, roomIndex)
+
+        if sharedActorData.addHeaderIfActorExists(actorHash, "Entrance", headerIndex):
+            continue
 
         spawnObj = createEmptyWithTransform(position, rotation)
         spawnObj.ootEmptyType = "Entrance"
@@ -428,12 +563,15 @@ def parseSpawnList(
         actorProp = spawnProp.actor
         setCustomProperty(actorProp, "actorID", actorID, ootEnumActorID)
         actorProp.actorParam = actorParam
+        unsetAllHeadersExceptSpecified(actorProp, headerIndex)
+
+        sharedActorData.entranceDict[actorHash] = spawnObj
 
         parentObject(roomObjs[roomIndex], spawnObj)
         index += 1
 
 
-def parseExitList(sceneObj: bpy.types.Object, sceneData: str, exitListName: str):
+def parseExitList(sceneHeader: OOTSceneHeaderProperty, sceneData: str, exitListName: str):
     match = re.search(
         rf"u16\s*{re.escape(exitListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
         sceneData,
@@ -445,12 +583,12 @@ def parseExitList(sceneObj: bpy.types.Object, sceneData: str, exitListName: str)
     # see also start position list
     exitList = [value.strip() for value in match.group(1).split(",") if value.strip() != ""]
     for exit in exitList:
-        exitProp = sceneObj.ootSceneHeader.exitList.add()
+        exitProp = sceneHeader.exitList.add()
         exitProp.exitIndex = "Custom"
         exitProp.exitIndexCustom = exit
 
 
-def parseObjectList(roomObj: bpy.types.Object, sceneData: str, objectListName: str):
+def parseObjectList(roomHeader: OOTRoomHeaderProperty, sceneData: str, objectListName: str):
     match = re.search(
         rf"s16\s*{re.escape(objectListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
         sceneData,
@@ -462,11 +600,13 @@ def parseObjectList(roomObj: bpy.types.Object, sceneData: str, objectListName: s
     objects = [value.strip() for value in match.group(1).split(",") if value.strip() != ""]
 
     for object in objects:
-        objectProp = roomObj.ootRoomHeader.objectList.add()
+        objectProp = roomHeader.objectList.add()
         setCustomProperty(objectProp, "objectID", object, ootEnumObjectID)
 
 
-def parseActorList(roomObj: bpy.types.Object, sceneData: str, actorListName: str):
+def parseActorList(
+    roomObj: bpy.types.Object, sceneData: str, actorListName: str, sharedActorData: SharedActorData, headerIndex: int
+):
     match = re.search(
         rf"ActorEntry\s*{re.escape(actorListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
         sceneData,
@@ -477,7 +617,12 @@ def parseActorList(roomObj: bpy.types.Object, sceneData: str, actorListName: str
 
     actorList = match.group(1)
     for actorMatch in re.finditer(r"\{(.*?),\s*\{(.*?)\}\s*,\s*\{(.*?)\}\s*,(.*?)\}\s*,", actorList, flags=re.DOTALL):
-        actorID, position, rotation, actorParam = parseActorInfo(actorMatch)
+        actorHash = parseActorInfo(actorMatch) + (roomObj.ootRoomHeader.roomIndex,)
+
+        if sharedActorData.addHeaderIfActorExists(actorHash, "Actor", headerIndex):
+            continue
+
+        actorID, position, rotation, actorParam, roomIndex = actorHash
 
         actorObj = createEmptyWithTransform(position, rotation)
         actorObj.ootEmptyType = "Actor"
@@ -486,5 +631,54 @@ def parseActorList(roomObj: bpy.types.Object, sceneData: str, actorListName: str
 
         setCustomProperty(actorProp, "actorID", actorID, ootEnumActorID)
         actorProp.actorParam = actorParam
+        unsetAllHeadersExceptSpecified(actorProp, headerIndex)
+
+        sharedActorData.actorDict[actorHash] = actorObj
 
         parentObject(roomObj, actorObj)
+
+
+def parseAlternateSceneHeaders(
+    sceneObj: bpy.types.Object,
+    roomObjs: list[bpy.types.Object],
+    sceneData: str,
+    altHeadersListName: str,
+    f3dContext: OOTF3DContext,
+    sharedActorData: SharedActorData,
+):
+    match = re.search(
+        rf"SceneCmd\*\s*{re.escape(altHeadersListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
+        sceneData,
+        flags=re.DOTALL,
+    )
+    if not match:
+        raise PluginError(f"Could not find alternate header list {altHeadersListName}.")
+
+    altHeadersList = [value.strip() for value in match.group(1).split(",") if value.strip() != ""]
+
+    for i in range(len(altHeadersList)):
+        if not (altHeadersList[i] == "NULL" or altHeadersList[i] == "0"):
+            parseSceneCommands(sceneObj, roomObjs, altHeadersList[i], sceneData, f3dContext, i + 1, sharedActorData)
+
+
+def parseAlternateRoomHeaders(
+    roomObj: bpy.types.Object,
+    roomIndex: int,
+    sharedActorData: SharedActorData,
+    sceneData: str,
+    altHeadersListName: str,
+    f3dContext: OOTF3DContext,
+):
+    match = re.search(
+        rf"SceneCmd\*\s*{re.escape(altHeadersListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
+        sceneData,
+        flags=re.DOTALL,
+    )
+    if not match:
+        raise PluginError(f"Could not find alternate header list {altHeadersListName}.")
+
+    altHeadersList = [value.strip() for value in match.group(1).split(",") if value.strip() != ""]
+
+    for i in range(len(altHeadersList)):
+        if not (altHeadersList[i] == "NULL" or altHeadersList[i] == "0"):
+            parseRoomCommands(roomObj, sceneData, altHeadersList[i], roomIndex, f3dContext, sharedActorData, i + 1)
