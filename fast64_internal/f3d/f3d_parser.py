@@ -2138,7 +2138,6 @@ def parseMatrices(sceneData: str, f3dContext: F3DContext, importScale: float = 1
             for j in range(4):
                 matrix[j][i] = trueValues[i * 4 + j]
 
-        print(f"{name}: \n{str(matrix)}")
         f3dContext.addMatrix(name, mathutils.Matrix.Scale(importScale, 4) @ matrix)
 
 

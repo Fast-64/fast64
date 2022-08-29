@@ -472,7 +472,9 @@ def ootConvertRotation(rotation):
 
 def ootParseRotation(values):
     return [
-        math.radians((int.from_bytes(value.to_bytes(2, "big", signed=True), "big", signed=False) / 2**16) * 360)
+        math.radians(
+            (int.from_bytes(value.to_bytes(2, "big", signed=value < 0x8000), "big", signed=False) / 2**16) * 360
+        )
         for value in values
     ]
 

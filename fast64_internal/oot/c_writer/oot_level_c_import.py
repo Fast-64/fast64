@@ -83,6 +83,7 @@ def parseSceneCommands(sceneName: str, sceneData: str, isCustomImport: bool, f3d
 
     commands = match.group(1)
     roomObjs = None
+    entranceList = None
     for commandMatch in re.finditer(rf"(SCENE\_CMD\_[a-zA-Z0-9\_]*)\s*\((.*?)\)\s*,", commands, flags=re.DOTALL):
         command = commandMatch.group(1)
         args = [arg.strip() for arg in commandMatch.group(2).split(",")]
@@ -109,7 +110,7 @@ def parseSceneCommands(sceneName: str, sceneData: str, isCustomImport: bool, f3d
                 pass
             else:
                 entranceListName = args[0]
-            print("Command not implemented.")
+                entranceList = parseEntranceList(roomObjs, sceneData, entranceListName)
         elif command == "SCENE_CMD_SPECIAL_FILES":
             setCustomProperty(sceneHeader, "naviCup", args[0], ootEnumNaviHints)
             setCustomProperty(sceneHeader, "globalObject", args[1], ootEnumGlobalObject)
@@ -123,8 +124,8 @@ def parseSceneCommands(sceneName: str, sceneData: str, isCustomImport: bool, f3d
             if args[1] == "NULL" or args[1] == "0" or args[1] == "0x00":
                 pass
             else:
-                pathListName = args[1]
-            print("Command not implemented.")
+                spawnListName = args[1]
+                parseSpawnList(roomObjs, sceneData, spawnListName, entranceList)
         elif command == "SCENE_CMD_SKYBOX_SETTINGS":
             setCustomProperty(sceneHeader, "skyboxID", args[0], ootEnumSkybox)
             setCustomProperty(sceneHeader, "skyboxCloudiness", args[1], ootEnumCloudiness)
@@ -301,6 +302,23 @@ def parseMeshList(
                 parentObject(parentObj, meshObj)
 
 
+def createEmptyWithTransform(positionValues: list[float], rotationValues: list[float]) -> bpy.types.Object:
+    position = (
+        yUpToZUp
+        @ mathutils.Matrix.Scale(1 / bpy.context.scene.ootBlenderScale, 4)
+        @ mathutils.Vector([hexOrDecInt(value) for value in positionValues])
+    )
+    rotation = yUpToZUp @ mathutils.Vector(ootParseRotation(rotationValues))
+
+    bpy.ops.object.empty_add(type="CUBE", radius=1, align="WORLD", location=position[:], rotation=rotation[:])
+    obj = bpy.context.view_layer.objects.active
+    return obj
+
+
+def getDisplayNameFromActorID(actorID: str):
+    return " ".join([word.lower().capitalize() for word in actorID.split("_") if word != "ACTOR"])
+
+
 def parseTransActorList(roomObjs: list[bpy.types.Object], sceneData: str, transActorListName: str):
     match = re.search(
         rf"TransitionActorEntry\s*{re.escape(transActorListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
@@ -314,24 +332,88 @@ def parseTransActorList(roomObjs: list[bpy.types.Object], sceneData: str, transA
     for actorMatch in re.finditer(rf"\{{(.*?)\}}\s*,", transitionActorList, flags=re.DOTALL):
         params = [value.strip() for value in actorMatch.group(1).split(",") if value.strip() != ""]
 
-        position = (
-            yUpToZUp
-            @ mathutils.Matrix.Scale(1 / bpy.context.scene.ootBlenderScale, 4)
-            @ mathutils.Vector([hexOrDecInt(value) for value in params[5:8]])
-        )
-        rotation = yUpToZUp @ mathutils.Vector(ootParseRotation([0, hexOrDecInt(params[8]), 0]))
+        position = [hexOrDecInt(value) for value in params[5:8]]
+        rotation = [0, hexOrDecInt(params[8]), 0]
 
-        bpy.ops.object.empty_add(type="CUBE", radius=1, align="WORLD", location=position[:], rotation=rotation[:])
-        actorObj = bpy.context.view_layer.objects.active
+        roomIndexFront = hexOrDecInt(params[0])
+        camFront = params[1]
+        roomIndexBack = hexOrDecInt(params[2])
+        camBack = params[3]
+        actorID = params[4]
+        actorParam = params[9]
+
+        actorObj = createEmptyWithTransform(position, rotation)
         actorObj.ootEmptyType = "Transition Actor"
-        actorObj.name = params[4].replace("_", " ").lower().capitalize()
+        actorObj.name = "Transition " + getDisplayNameFromActorID(params[4])
         transActorProp = actorObj.ootTransitionActorProperty
 
-        parentObject(roomObjs[hexOrDecInt(params[0])], actorObj)
-        setCustomProperty(transActorProp, "cameraTransitionFront", params[1], ootEnumCamTransition)
-        transActorProp.roomIndex = hexOrDecInt(params[2])
-        setCustomProperty(transActorProp, "cameraTransitionBack", params[3], ootEnumCamTransition)
+        parentObject(roomObjs[roomIndexFront], actorObj)
+        setCustomProperty(transActorProp, "cameraTransitionFront", camFront, ootEnumCamTransition)
+        transActorProp.roomIndex = roomIndexBack
+        setCustomProperty(transActorProp, "cameraTransitionBack", camBack, ootEnumCamTransition)
 
         actorProp = transActorProp.actor
-        setCustomProperty(actorProp, "actorID", params[4], ootEnumActorID)
-        actorProp.actorParam = params[9]
+        setCustomProperty(actorProp, "actorID", actorID, ootEnumActorID)
+        actorProp.actorParam = actorParam
+
+
+def parseEntranceList(roomObjs: list[bpy.types.Object], sceneData: str, entranceListName: str):
+    match = re.search(
+        rf"EntranceEntry\s*{re.escape(entranceListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
+        sceneData,
+        flags=re.DOTALL,
+    )
+    if not match:
+        raise PluginError(f"Could not find transition actor list {entranceListName}.")
+
+    # see also start position list
+    entranceList = match.group(1)
+    entrances = []
+    for entranceMatch in re.finditer(rf"\{{(.*?)\}}\s*,", entranceList, flags=re.DOTALL):
+        params = [value.strip() for value in entranceMatch.group(1).split(",") if value.strip() != ""]
+        roomIndex = hexOrDecInt(params[1])
+        spawnIndex = hexOrDecInt(params[0])
+
+        entrances.append((spawnIndex, roomIndex))
+
+    return entrances
+
+
+def parseSpawnList(
+    roomObjs: list[bpy.types.Object], sceneData: str, spawnListName: str, entranceList: list[tuple[str, str]]
+):
+    match = re.search(
+        rf"ActorEntry\s*{re.escape(spawnListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
+        sceneData,
+        flags=re.DOTALL,
+    )
+    if not match:
+        raise PluginError(f"Could not find transition actor list {spawnListName}.")
+
+    # see also start position list
+    spawnList = match.group(1)
+    index = 0
+    for spawnMatch in re.finditer(r"\{(.*?),\s*\{(.*?)\}\s*,\s*\{(.*?)\}\s*,(.*?)\}\s*,", spawnList, flags=re.DOTALL):
+        actorID = spawnMatch.group(1)
+        position = [hexOrDecInt(value.strip()) for value in spawnMatch.group(2).split(",") if value.strip() != ""]
+        rotation = [hexOrDecInt(value.strip()) for value in spawnMatch.group(3).split(",") if value.strip() != ""]
+        actorParam = spawnMatch.group(4)
+
+        entranceEntries = [value for value in entranceList if value[0] == index]
+
+        # A spawn can belong to multiple rooms, which I didn't think about before creating exporter.
+        # Therefore importer will duplicate a spawn that falls in this category.
+        # In exporter, duplicate actors in different rooms should be merged. (TODO)
+        for spawnIndex, roomIndex in entranceEntries:
+            spawnObj = createEmptyWithTransform(position, rotation)
+            spawnObj.ootEmptyType = "Entrance"
+            spawnObj.name = "Entrance"
+            spawnProp = spawnObj.ootEntranceProperty
+            spawnProp.spawnIndex = spawnIndex
+            spawnProp.customActor = actorID != "ACTOR_PLAYER"
+            actorProp = spawnProp.actor
+            setCustomProperty(actorProp, "actorID", actorID, ootEnumActorID)
+            actorProp.actorParam = actorParam
+
+            parentObject(roomObjs[roomIndex], spawnObj)
+        index += 1

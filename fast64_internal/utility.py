@@ -63,7 +63,7 @@ def hexOrDecInt(value):
     elif ">>" in value:
         i = value.index(">>")
         return hexOrDecInt(value[:i]) >> hexOrDecInt(value[i + 2 :])
-    elif "x" in value:
+    elif "x" in value or "X" in value:
         return int(value, 16)
     else:
         return int(value)
