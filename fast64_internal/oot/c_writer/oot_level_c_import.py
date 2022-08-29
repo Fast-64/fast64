@@ -226,10 +226,10 @@ def parseRoomCommands(sceneData: str, roomName: str, roomIndex: int, f3dContext:
             parseMeshHeader(roomObj, sceneData, meshHeaderName, f3dContext)
         elif command == "SCENE_CMD_OBJECT_LIST":
             objectListName = args[1]
-            print("Command not implemented.")
+            parseObjectList(roomObj, sceneData, objectListName)
         elif command == "SCENE_CMD_ACTOR_LIST":
             actorListName = args[1]
-            print("Command not implemented.")
+            parseActorList(roomObj, sceneData, actorListName)
 
     return roomObj
 
@@ -391,6 +391,15 @@ def parseEntranceList(
     return entrances
 
 
+def parseActorInfo(actorMatch: re.Match) -> tuple[str, list[int], list[int], str]:
+    actorID = actorMatch.group(1).strip()
+    position = [hexOrDecInt(value.strip()) for value in actorMatch.group(2).split(",") if value.strip() != ""]
+    rotation = [hexOrDecInt(value.strip()) for value in actorMatch.group(3).split(",") if value.strip() != ""]
+    actorParam = actorMatch.group(4).strip()
+
+    return actorID, position, rotation, actorParam
+
+
 def parseSpawnList(
     roomObjs: list[bpy.types.Object], sceneData: str, spawnListName: str, entranceList: list[tuple[str, str]]
 ):
@@ -406,10 +415,7 @@ def parseSpawnList(
     spawnList = match.group(1)
     index = 0
     for spawnMatch in re.finditer(r"\{(.*?),\s*\{(.*?)\}\s*,\s*\{(.*?)\}\s*,(.*?)\}\s*,", spawnList, flags=re.DOTALL):
-        actorID = spawnMatch.group(1).strip()
-        position = [hexOrDecInt(value.strip()) for value in spawnMatch.group(2).split(",") if value.strip() != ""]
-        rotation = [hexOrDecInt(value.strip()) for value in spawnMatch.group(3).split(",") if value.strip() != ""]
-        actorParam = spawnMatch.group(4).strip()
+        actorID, position, rotation, actorParam = parseActorInfo(spawnMatch)
 
         spawnIndex, roomIndex = [value for value in entranceList if value[0] == index][0]
 
@@ -442,3 +448,43 @@ def parseExitList(sceneObj: bpy.types.Object, sceneData: str, exitListName: str)
         exitProp = sceneObj.ootSceneHeader.exitList.add()
         exitProp.exitIndex = "Custom"
         exitProp.exitIndexCustom = exit
+
+
+def parseObjectList(roomObj: bpy.types.Object, sceneData: str, objectListName: str):
+    match = re.search(
+        rf"s16\s*{re.escape(objectListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
+        sceneData,
+        flags=re.DOTALL,
+    )
+    if not match:
+        raise PluginError(f"Could not find object list {objectListName}.")
+
+    objects = [value.strip() for value in match.group(1).split(",") if value.strip() != ""]
+
+    for object in objects:
+        objectProp = roomObj.ootRoomHeader.objectList.add()
+        setCustomProperty(objectProp, "objectID", object, ootEnumObjectID)
+
+
+def parseActorList(roomObj: bpy.types.Object, sceneData: str, actorListName: str):
+    match = re.search(
+        rf"ActorEntry\s*{re.escape(actorListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
+        sceneData,
+        flags=re.DOTALL,
+    )
+    if not match:
+        raise PluginError(f"Could not find actor list {actorListName}.")
+
+    actorList = match.group(1)
+    for actorMatch in re.finditer(r"\{(.*?),\s*\{(.*?)\}\s*,\s*\{(.*?)\}\s*,(.*?)\}\s*,", actorList, flags=re.DOTALL):
+        actorID, position, rotation, actorParam = parseActorInfo(actorMatch)
+
+        actorObj = createEmptyWithTransform(position, rotation)
+        actorObj.ootEmptyType = "Actor"
+        actorObj.name = getDisplayNameFromActorID(actorID)
+        actorProp = actorObj.ootActorProperty
+
+        setCustomProperty(actorProp, "actorID", actorID, ootEnumActorID)
+        actorProp.actorParam = actorParam
+
+        parentObject(roomObj, actorObj)
