@@ -604,8 +604,6 @@ class OOT_ImportScene(bpy.types.Operator):
             parseScene(
                 context.scene.f3d_type,
                 context.scene.isHWv1,
-                DLFormat.Static,
-                context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions,
                 settings,
                 bpy.context.scene.ootSceneOption,
             )

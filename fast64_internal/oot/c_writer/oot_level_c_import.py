@@ -12,8 +12,6 @@ from ...utility import yUpToZUp
 def parseScene(
     f3dType: str,
     isHWv1: bool,
-    dlFormat: DLFormat,
-    saveTexture: bool,
     settings: OOTImportSceneSettingsProperty,
     option: str,
 ):
@@ -47,7 +45,7 @@ def parseScene(
     if bpy.context.mode != "OBJECT":
         bpy.context.mode = "OBJECT"
 
-    f3dContext = OOTF3DContext(F3D("F3DEX2/LX2", False), [], bpy.path.abspath(bpy.context.scene.ootDecompPath))
+    f3dContext = OOTF3DContext(F3D(f3dType, isHWv1), [], bpy.path.abspath(bpy.context.scene.ootDecompPath))
     parseMatrices(sceneData, f3dContext, 1 / bpy.context.scene.ootBlenderScale)
     f3dContext.addMatrix("&gMtxClear", mathutils.Matrix.Scale(1 / bpy.context.scene.ootBlenderScale, 4))
 
