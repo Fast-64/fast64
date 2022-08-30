@@ -288,6 +288,55 @@ class OOTExtraCutsceneProperty(bpy.types.PropertyGroup):
     csObject: bpy.props.PointerProperty(name="Cutscene Object", type=bpy.types.Object)
 
 
+def onMenuTabChange(self, context: bpy.types.Context):
+    def callback(thisHeader, otherObj: bpy.types.Object):
+        if otherObj.ootEmptyType == "Scene":
+            header = otherObj.ootSceneHeader
+        else:
+            header = otherObj.ootRoomHeader
+
+        if thisHeader.menuTab != "Alternate" and header.menuTab == "Alternate":
+            header.menuTab = "General"
+        if thisHeader.menuTab == "Alternate" and header.menuTab != "Alternate":
+            header.menuTab = "Alternate"
+
+    onHeaderPropertyChange(self, context, callback)
+
+
+def onHeaderMenuTabChange(self, context: bpy.types.Context):
+    def callback(thisHeader, otherObj: bpy.types.Object):
+        if otherObj.ootEmptyType == "Scene":
+            header = otherObj.ootAlternateSceneHeaders
+        else:
+            header = otherObj.ootAlternateRoomHeaders
+
+        header.headerMenuTab = thisHeader.headerMenuTab
+        header.currentCutsceneIndex = thisHeader.currentCutsceneIndex
+
+    onHeaderPropertyChange(self, context, callback)
+
+
+def onHeaderPropertyChange(self, context: bpy.types.Context, callback: Callable[[any, bpy.types.Object], None]):
+    if not bpy.context.scene.ootHeaderTabAffectsVisibility or bpy.context.scene.ootActiveHeaderLock:
+        return
+    bpy.context.scene.ootActiveHeaderLock = True
+
+    thisHeader = self
+    thisObj = context.object
+    otherObjs = [
+        obj
+        for obj in bpy.data.objects
+        if (obj.ootEmptyType == "Scene" or obj.ootEmptyType == "Room") and obj != thisObj
+    ]
+
+    for otherObj in otherObjs:
+        callback(thisHeader, otherObj)
+
+    setAllActorsVisibility(self, context)
+
+    bpy.context.scene.ootActiveHeaderLock = False
+
+
 class OOTSceneHeaderProperty(bpy.types.PropertyGroup):
     expandTab: bpy.props.BoolProperty(name="Expand Tab")
     usePreviousHeader: bpy.props.BoolProperty(name="Use Previous Header", default=True)
@@ -343,7 +392,7 @@ class OOTSceneHeaderProperty(bpy.types.PropertyGroup):
 
     sceneTableEntry: bpy.props.PointerProperty(type=OOTSceneTableEntryProperty)
 
-    menuTab: bpy.props.EnumProperty(name="Menu", items=ootEnumSceneMenu)
+    menuTab: bpy.props.EnumProperty(name="Menu", items=ootEnumSceneMenu, update=onMenuTabChange)
     altMenuTab: bpy.props.EnumProperty(name="Menu", items=ootEnumSceneMenuAlternate)
 
     appendNullEntrance: bpy.props.BoolProperty(
@@ -462,7 +511,7 @@ def drawSceneHeaderProperty(layout, sceneProp, dropdownLabel, headerIndex, objNa
 
 class OOTRoomHeaderProperty(bpy.types.PropertyGroup):
     expandTab: bpy.props.BoolProperty(name="Expand Tab")
-    menuTab: bpy.props.EnumProperty(items=ootEnumRoomMenu)
+    menuTab: bpy.props.EnumProperty(items=ootEnumRoomMenu, update=onMenuTabChange)
     altMenuTab: bpy.props.EnumProperty(items=ootEnumRoomMenuAlternate)
     usePreviousHeader: bpy.props.BoolProperty(name="Use Previous Header", default=True)
 
@@ -584,8 +633,8 @@ class OOTAlternateSceneHeaderProperty(bpy.types.PropertyGroup):
     adultNightHeader: bpy.props.PointerProperty(name="Adult Night Header", type=OOTSceneHeaderProperty)
     cutsceneHeaders: bpy.props.CollectionProperty(type=OOTSceneHeaderProperty)
 
-    headerMenuTab: bpy.props.EnumProperty(name="Header Menu", items=ootEnumHeaderMenu)
-    currentCutsceneIndex: bpy.props.IntProperty(min=4, default=4)
+    headerMenuTab: bpy.props.EnumProperty(name="Header Menu", items=ootEnumHeaderMenu, update=onHeaderMenuTabChange)
+    currentCutsceneIndex: bpy.props.IntProperty(min=4, default=4, update=onHeaderMenuTabChange)
 
 
 def drawAlternateSceneHeaderProperty(layout, headerProp, objName):
@@ -616,8 +665,8 @@ class OOTAlternateRoomHeaderProperty(bpy.types.PropertyGroup):
     adultNightHeader: bpy.props.PointerProperty(name="Adult Night Header", type=OOTRoomHeaderProperty)
     cutsceneHeaders: bpy.props.CollectionProperty(type=OOTRoomHeaderProperty)
 
-    headerMenuTab: bpy.props.EnumProperty(name="Header Menu", items=ootEnumHeaderMenu)
-    currentCutsceneIndex: bpy.props.IntProperty(min=4, default=4)
+    headerMenuTab: bpy.props.EnumProperty(name="Header Menu", items=ootEnumHeaderMenu, update=onHeaderMenuTabChange)
+    currentCutsceneIndex: bpy.props.IntProperty(min=4, default=4, update=onHeaderMenuTabChange)
 
 
 def drawParentSceneRoom(box, obj):

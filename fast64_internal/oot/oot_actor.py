@@ -9,6 +9,75 @@ from .oot_utility import *
 from ..utility import *
 
 
+def getActiveHeaderIndex() -> int:
+    # All scenes/rooms should have synchronized tabs from property callbacks
+    headerObjs = [obj for obj in bpy.data.objects if obj.ootEmptyType == "Scene" or obj.ootEmptyType == "Room"]
+    if len(headerObjs) == 0:
+        return 0
+
+    headerObj = headerObjs[0]
+    if headerObj.ootEmptyType == "Scene":
+        header = headerObj.ootSceneHeader
+        altHeader = headerObj.ootAlternateSceneHeaders
+    else:
+        header = headerObj.ootRoomHeader
+        altHeader = headerObj.ootAlternateRoomHeaders
+
+    if header.menuTab != "Alternate":
+        headerIndex = 0
+    else:
+        if altHeader.headerMenuTab == "Child Night":
+            headerIndex = 1
+        elif altHeader.headerMenuTab == "Adult Day":
+            headerIndex = 2
+        elif altHeader.headerMenuTab == "Adult Night":
+            headerIndex = 3
+        else:
+            headerIndex = altHeader.currentCutsceneIndex
+
+    return headerIndex
+
+
+def setAllActorsVisibility(self, context: bpy.types.Context):
+    headerIndex = getActiveHeaderIndex()
+
+    actorObjs = [
+        obj
+        for obj in bpy.data.objects
+        if obj.ootEmptyType in ["Actor", "Transition Actor", "Entrance"]
+        or (obj.data is not None and isinstance(obj.data, bpy.types.Curve))
+    ]
+
+    for actorObj in actorObjs:
+        setActorVisibility(actorObj, headerIndex)
+
+
+# def setSingleActorVisibility(self, context: bpy.types.Context):
+#    actorObj = context.object
+#    if not (
+#        actorObj.ootEmptyType in ["Actor", "Transition Actor", "Entrance"]
+#        or (actorObj.data is not None and isinstance(actorObj.data, bpy.types.Curve))
+#    ):
+#        return
+#
+#    headerIndex = getActiveHeaderIndex()
+#    setActorVisibility(actorObj, headerIndex)
+
+
+def setActorVisibility(actorObj: bpy.types.Object, headerIndex: int):
+    headerSettings = getHeaderSettings(actorObj)
+    if headerSettings is None:
+        return
+    if headerSettings.sceneSetupPreset == "All Scene Setups":
+        actorObj.hide_set(False)
+    elif headerSettings.sceneSetupPreset == "All Non-Cutscene Scene Setups":
+        actorObj.hide_set(headerIndex >= 4)
+    elif headerSettings.sceneSetupPreset == "Custom":
+        actorObj.hide_set(not headerSettings.checkHeader(headerIndex))
+    else:
+        print("Error: unhandled header case")
+
+
 class OOT_SearchActorIDEnumOperator(bpy.types.Operator):
     bl_idname = "object.oot_search_actor_id_enum_operator"
     bl_label = "Select Actor ID"
@@ -53,6 +122,18 @@ class OOTActorHeaderProperty(bpy.types.PropertyGroup):
     adultDayHeader: bpy.props.BoolProperty(name="Adult Day Header", default=True)
     adultNightHeader: bpy.props.BoolProperty(name="Adult Night Header", default=True)
     cutsceneHeaders: bpy.props.CollectionProperty(type=OOTActorHeaderItemProperty)
+
+    def checkHeader(self, index: int) -> bool:
+        if index == 0:
+            return self.childDayHeader
+        elif index == 1:
+            return self.childNightHeader
+        elif index == 2:
+            return self.adultDayHeader
+        elif index == 3:
+            return self.adultNightHeader
+        else:
+            return index in [value.headerIndex for value in self.cutsceneHeaders]
 
 
 def drawActorHeaderProperty(layout, headerProp, propUser, altProp, objName):

@@ -34,14 +34,7 @@ class SharedSceneData:
             return False
 
         actorObj = dictToAdd[hash]
-        if itemType == "Actor":
-            headerSettings = actorObj.ootActorProperty.headerSettings
-        elif itemType == "Entrance":
-            headerSettings = actorObj.ootEntranceProperty.actor.headerSettings
-        elif itemType == "Transition Actor":
-            headerSettings = actorObj.ootTransitionActorProperty.actor.headerSettings
-        elif itemType == "Curve":
-            headerSettings = actorObj.ootSplineProperty.headerSettings
+        headerSettings = getHeaderSettings(actorObj)
 
         if headerIndex < 4:
             setattr(headerSettings, headerNames[headerIndex], True)

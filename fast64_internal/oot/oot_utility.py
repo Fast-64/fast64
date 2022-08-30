@@ -663,6 +663,25 @@ class OOTCollectionMove(bpy.types.Operator):
         return {"FINISHED"}
 
 
+def getHeaderSettings(actorObj: bpy.types.Object):
+    itemType = actorObj.ootEmptyType
+    if actorObj.data is None:
+        if itemType == "Actor":
+            headerSettings = actorObj.ootActorProperty.headerSettings
+        elif itemType == "Entrance":
+            headerSettings = actorObj.ootEntranceProperty.actor.headerSettings
+        elif itemType == "Transition Actor":
+            headerSettings = actorObj.ootTransitionActorProperty.actor.headerSettings
+        else:
+            headerSettings = None
+    elif actorObj.data is not None and isinstance(actorObj.data, bpy.types.Curve):
+        headerSettings = actorObj.ootSplineProperty.headerSettings
+    else:
+        headerSettings = None
+
+    return headerSettings
+
+
 oot_utility_classes = (
     OOTCollectionAdd,
     OOTCollectionRemove,

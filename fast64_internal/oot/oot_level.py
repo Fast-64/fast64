@@ -64,10 +64,7 @@ class OOTObjectPanel(bpy.types.Panel):
             drawWaterBoxProperty(box, obj.ootWaterBoxProperty)
 
         elif obj.ootEmptyType == "Scene":
-            drawSceneHeaderProperty(box, obj.ootSceneHeader, None, None, objName)
-            if obj.ootSceneHeader.menuTab == "Alternate":
-                drawAlternateSceneHeaderProperty(box, obj.ootAlternateSceneHeaders, objName)
-            box.prop(obj.fast64.oot.scene, "write_dummy_room_list")
+            drawSceneHeader(box, obj)
 
         elif obj.ootEmptyType == "Room":
             drawRoomHeaderProperty(box, obj.ootRoomHeader, None, None, objName)
@@ -91,6 +88,14 @@ class OOTObjectPanel(bpy.types.Panel):
 
         # if obj.ootEmptyType != "Scene" and obj.ootEmptyType != "Room":
         # 	drawParentSceneRoom(box, context.object)
+
+
+def drawSceneHeader(box: bpy.types.UILayout, obj: bpy.types.Object):
+    objName = obj.name
+    drawSceneHeaderProperty(box, obj.ootSceneHeader, None, None, objName)
+    if obj.ootSceneHeader.menuTab == "Alternate":
+        drawAlternateSceneHeaderProperty(box, obj.ootAlternateSceneHeaders, objName)
+    box.prop(obj.fast64.oot.scene, "write_dummy_room_list")
 
 
 def drawLODProperty(box, obj):
@@ -250,6 +255,7 @@ def oot_obj_register():
     bpy.types.Scene.ootSceneImportSettings = bpy.props.PointerProperty(type=OOTImportSceneSettingsProperty)
     bpy.types.Scene.ootSceneExportObj = bpy.props.PointerProperty(type=bpy.types.Object, poll=isSceneObj)
     bpy.types.Scene.ootSceneOption = bpy.props.EnumProperty(name="Scene", items=ootEnumSceneID, default="SCENE_YDAN")
+    bpy.types.Scene.ootActiveHeaderLock = bpy.props.BoolProperty(default=False)
 
     bpy.types.Object.ootActorProperty = bpy.props.PointerProperty(type=OOTActorProperty)
     bpy.types.Object.ootTransitionActorProperty = bpy.props.PointerProperty(type=OOTTransitionActorProperty)
@@ -268,6 +274,7 @@ def oot_obj_unregister():
     del bpy.types.Scene.ootSceneImportSettings
     del bpy.types.Scene.ootSceneExportObj
     del bpy.types.Scene.ootSceneOption
+    del bpy.types.Scene.ootActiveHeaderLock
 
     del bpy.types.Object.ootEmptyType
 
