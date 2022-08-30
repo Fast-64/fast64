@@ -177,22 +177,24 @@ class OOTObjectProperty(bpy.types.PropertyGroup):
 
 
 def drawObjectProperty(layout, objectProp, headerIndex, index, objName):
-    objItemBox = layout.box()
+    objItemBox = layout.column()
     objectName = getEnumName(ootEnumObjectID, objectProp.objectID)
-    objItemBox.prop(
-        objectProp, "expandTab", text=objectName, icon="TRIA_DOWN" if objectProp.expandTab else "TRIA_RIGHT"
-    )
-    if objectProp.expandTab:
-        drawCollectionOps(objItemBox, index, "Object", headerIndex, objName)
-
-        objSearch = objItemBox.operator(OOT_SearchObjectEnumOperator.bl_idname, icon="VIEWZOOM")
-        objSearch.objName = objName
-        objItemBox.column().label(text="ID: " + objectName)
-        # prop_split(objItemBox, objectProp, "objectID", name = "ID")
-        if objectProp.objectID == "Custom":
-            prop_split(objItemBox, objectProp, "objectIDCustom", "Object ID Custom")
-        objSearch.headerIndex = headerIndex if headerIndex is not None else 0
-        objSearch.index = index
+    # objItemBox.prop(
+    #    objectProp, "expandTab", text=objectName, icon="TRIA_DOWN" if objectProp.expandTab else "TRIA_RIGHT"
+    # )
+    # if objectProp.expandTab:
+    row = objItemBox.row()
+    row.label(text=f"{objectName}")
+    buttons = row.row(align=True)
+    objSearch = buttons.operator(OOT_SearchObjectEnumOperator.bl_idname, icon="VIEWZOOM", text="Select")
+    drawCollectionOps(buttons, index, "Object", headerIndex, objName, compact=True)
+    objSearch.objName = objName
+    objSearch.headerIndex = headerIndex if headerIndex is not None else 0
+    objSearch.index = index
+    # objItemBox.column().label(text="ID: " + objectName)
+    # prop_split(objItemBox, objectProp, "objectID", name = "ID")
+    if objectProp.objectID == "Custom":
+        prop_split(objItemBox, objectProp, "objectIDCustom", "Object ID Custom")
 
 
 class OOTLightProperty(bpy.types.PropertyGroup):

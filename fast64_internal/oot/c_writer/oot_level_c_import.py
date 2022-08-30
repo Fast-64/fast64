@@ -260,7 +260,7 @@ def parseRoomCommands(
     headerIndex: int,
 ):
     if roomObj is None:
-        bpy.ops.object.empty_add(type="SPHERE", radius=1, align="WORLD", location=[0, 0, -roomIndex * 2])
+        bpy.ops.object.empty_add(type="SPHERE", radius=1, align="WORLD", location=[0, 0, (roomIndex + 1) * -2])
         roomObj = bpy.context.view_layer.objects.active
         roomObj.ootEmptyType = "Room"
         roomObj.name = roomCommandsName

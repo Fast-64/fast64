@@ -93,19 +93,20 @@ def drawActorHeaderProperty(layout, headerProp, propUser, altProp, objName):
 
 
 def drawActorHeaderItemProperty(layout, propUser, headerItemProp, index, altProp, objName):
-    box = layout.box()
-    box.prop(
-        headerItemProp,
-        "expandTab",
-        text="Header " + str(headerItemProp.headerIndex),
-        icon="TRIA_DOWN" if headerItemProp.expandTab else "TRIA_RIGHT",
-    )
+    box = layout.column()
+    # box.prop(
+    #    headerItemProp,
+    #    "expandTab",
+    #    text="Header " + str(headerItemProp.headerIndex),
+    #    icon="TRIA_DOWN" if headerItemProp.expandTab else "TRIA_RIGHT",
+    # )
 
-    if headerItemProp.expandTab:
-        drawCollectionOps(box, index, propUser, None, objName)
-        prop_split(box, headerItemProp, "headerIndex", "Header Index")
-        if altProp is not None and headerItemProp.headerIndex >= len(altProp.cutsceneHeaders) + 4:
-            box.label(text="Header does not exist.", icon="QUESTION")
+    # if headerItemProp.expandTab:
+    row = box.row()
+    row.prop(headerItemProp, "headerIndex", text="")
+    drawCollectionOps(row.row(align=True), index, propUser, None, objName, compact=True)
+    if altProp is not None and headerItemProp.headerIndex >= len(altProp.cutsceneHeaders) + 4:
+        box.label(text="Above header does not exist.", icon="QUESTION")
 
 
 class OOTActorProperty(bpy.types.PropertyGroup):

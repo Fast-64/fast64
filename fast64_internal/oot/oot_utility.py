@@ -574,33 +574,36 @@ def drawAddButton(layout, index, collectionType, subIndex, objName):
     addOp.objName = objName
 
 
-def drawCollectionOps(layout, index, collectionType, subIndex, objName, allowAdd=True):
+def drawCollectionOps(layout, index, collectionType, subIndex, objName, allowAdd=True, compact=False):
     if subIndex is None:
         subIndex = 0
 
-    buttons = layout.row(align=True)
+    if not compact:
+        buttons = layout.row(align=True)
+    else:
+        buttons = layout
 
     if allowAdd:
-        addOp = buttons.operator(OOTCollectionAdd.bl_idname, text="Add", icon="ADD")
+        addOp = buttons.operator(OOTCollectionAdd.bl_idname, text="Add" if not compact else "", icon="ADD")
         addOp.option = index + 1
         addOp.collectionType = collectionType
         addOp.subIndex = subIndex
         addOp.objName = objName
 
-    removeOp = buttons.operator(OOTCollectionRemove.bl_idname, text="Delete", icon="REMOVE")
+    removeOp = buttons.operator(OOTCollectionRemove.bl_idname, text="Delete" if not compact else "", icon="REMOVE")
     removeOp.option = index
     removeOp.collectionType = collectionType
     removeOp.subIndex = subIndex
     removeOp.objName = objName
 
-    moveUp = buttons.operator(OOTCollectionMove.bl_idname, text="Up", icon="TRIA_UP")
+    moveUp = buttons.operator(OOTCollectionMove.bl_idname, text="Up" if not compact else "", icon="TRIA_UP")
     moveUp.option = index
     moveUp.offset = -1
     moveUp.collectionType = collectionType
     moveUp.subIndex = subIndex
     moveUp.objName = objName
 
-    moveDown = buttons.operator(OOTCollectionMove.bl_idname, text="Down", icon="TRIA_DOWN")
+    moveDown = buttons.operator(OOTCollectionMove.bl_idname, text="Down" if not compact else "", icon="TRIA_DOWN")
     moveDown.option = index
     moveDown.offset = 1
     moveDown.collectionType = collectionType
