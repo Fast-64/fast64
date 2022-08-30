@@ -181,7 +181,7 @@ class OOTScene:
         self.cutsceneHeaders = []
 
         self.exitList = []
-        self.pathList = {}
+        self.pathList = set()
         self.cameraList = []
 
         self.writeCutscene = False
@@ -203,8 +203,8 @@ class OOTScene:
         scene.write_dummy_room_list = self.write_dummy_room_list
         scene.rooms = self.rooms
         scene.collision = self.collision
-        scene.exitList = self.exitList
-        scene.pathList = self.pathList
+        scene.exitList = []
+        scene.pathList = set()
         scene.cameraList = self.cameraList
         return scene
 
@@ -229,8 +229,8 @@ class OOTScene:
     def transitionActorListName(self, headerIndex):
         return self.sceneName() + "_header" + format(headerIndex, "02") + "_transitionActors"
 
-    def pathListName(self):
-        return self.sceneName() + "_pathway"
+    def pathListName(self, headerIndex: int):
+        return self.sceneName() + "_pathway" + str(headerIndex)
 
     def cameraListName(self):
         return self.sceneName() + "_cameraList"
@@ -253,7 +253,6 @@ class OOTScene:
         self.collision.cameraData.validateCamPositions()
         self.validateStartPositions()
         self.validateRoomIndices()
-        self.validatePathIndices()
 
     def validateStartPositions(self):
         count = 0
@@ -275,15 +274,6 @@ class OOTScene:
                 )
             count = count + 1
 
-    def validatePathIndices(self):
-        count = 0
-        while count < len(self.pathList):
-            if count not in self.pathList:
-                raise PluginError(
-                    "Error: Path list does not have a consecutive list of indices.\n" + "Missing index: " + str(count)
-                )
-            count = count + 1
-
     def addRoom(self, roomIndex, roomName, meshType):
         roomModel = self.model.addSubModel(
             OOTModel(self.model.f3d.F3D_VER, self.model.f3d._HW_VERSION_1, roomName + "_dl", self.model.DLFormat, None)
@@ -293,6 +283,20 @@ class OOTScene:
             raise PluginError("Repeat room index " + str(roomIndex) + " for " + str(roomName))
         self.rooms[roomIndex] = room
         return room
+
+    def sortEntrances(self):
+        self.entranceList = sorted(self.entranceList, key=lambda x: x.startPositionIndex)
+        if self.appendNullEntrance:
+            self.entranceList.append(OOTEntrance(0, 0))
+
+        if self.childNightHeader is not None:
+            self.childNightHeader.sortEntrances()
+        if self.adultDayHeader is not None:
+            self.adultDayHeader.sortEntrances()
+        if self.adultNightHeader is not None:
+            self.adultNightHeader.sortEntrances()
+        for header in self.cutsceneHeaders:
+            header.sortEntrances()
 
 
 class OOTRoomMesh:
@@ -416,6 +420,8 @@ class OOTRoom:
         self.adultNightHeader = None
         self.cutsceneHeaders = []
 
+        self.appendNullEntrance = False
+
     def getAlternateHeaderRoom(self, name):
         room = OOTRoom(self.index, name, self.mesh.model, self.mesh.meshType)
         room.mesh = self.mesh
@@ -509,7 +515,7 @@ def addStartPosition(scene, index, actor, actorProp, actorObjName):
                     actorObjName
                     + " uses a cutscene header index that is outside the range of the current number of cutscene headers."
                 )
-            addAtStartPosIndex(scene.cutsceneHeaders[cutsceneHeader.headerIndex - 4].startPositions, index, actor)
+            addStartPosAtIndex(scene.cutsceneHeaders[cutsceneHeader.headerIndex - 4].startPositions, index, actor)
     else:
         raise PluginError("Unhandled scene setup preset: " + str(sceneSetup.sceneSetupPreset))
 

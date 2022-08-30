@@ -74,7 +74,7 @@ def cmdSpecialFiles(scene, header, cmdCount):
 
 def cmdPathList(scene, header, cmdCount):
     cmd = CData()
-    cmd.source = "\tSCENE_CMD_PATH_LIST(" + scene.pathListName() + "),\n"
+    cmd.source = "\tSCENE_CMD_PATH_LIST(" + scene.pathListName(header) + "),\n"
     return cmd
 
 
@@ -617,10 +617,10 @@ def ootLightSettingsToC(scene, useIndoorLighting, headerIndex):
     return data
 
 
-def ootPathToC(path):
+def ootPathToC(path, headerIndex: int, index: int):
     data = CData()
-    data.header = "extern Vec3s " + path.pathName() + "[];\n"
-    data.source = "Vec3s " + path.pathName() + "[] = {\n"
+    data.header = "extern Vec3s " + path.pathName(headerIndex, index) + "[];\n"
+    data.source = "Vec3s " + path.pathName(headerIndex, index) + "[] = {\n"
     for point in path.points:
         data.source += (
             "\t"
@@ -637,15 +637,18 @@ def ootPathToC(path):
     return data
 
 
-def ootPathListToC(scene):
+def ootPathListToC(scene, headerIndex: int):
     data = CData()
-    data.header = "extern Path " + scene.pathListName() + "[" + str(len(scene.pathList)) + "];\n"
-    data.source = "Path " + scene.pathListName() + "[" + str(len(scene.pathList)) + "] = {\n"
+    data.header = "extern Path " + scene.pathListName(headerIndex) + "[" + str(len(scene.pathList)) + "];\n"
+    data.source = "Path " + scene.pathListName(headerIndex) + "[" + str(len(scene.pathList)) + "] = {\n"
     pathData = CData()
-    for i in range(len(scene.pathList)):
-        path = scene.pathList[i]
-        data.source += "\t" + "{ " + str(len(path.points)) + ", " + path.pathName() + " },\n"
-        pathData.append(ootPathToC(path))
+
+    # Parse in alphabetical order of names
+    sortedPathList = sorted(scene.pathList, key=lambda x: x.objName.lower())
+    for i in range(len(sortedPathList)):
+        path = sortedPathList[i]
+        data.source += "\t" + "{ " + str(len(path.points)) + ", " + path.pathName(headerIndex, i) + " },\n"
+        pathData.append(ootPathToC(path, headerIndex, i))
     data.source += "};\n\n"
     pathData.append(data)
     return pathData
@@ -710,13 +713,13 @@ def ootSceneMainToC(scene, headerIndex):
     if headerIndex == 0:
         # Check if this is the first time the function is being called, we do not want to write this data multiple times
         roomHeaderData = ootRoomListHeaderToC(scene)
-        if len(scene.pathList) > 0:
-            pathData = ootPathListToC(scene)
-        else:
-            pathData = CData()
     else:
         # The function has already been called (and is being called for another scene header), so we can make this data be a blank string
         roomHeaderData = CData()
+
+    if len(scene.pathList) > 0:
+        pathData = ootPathListToC(scene, headerIndex)
+    else:
         pathData = CData()
 
     if scene.hasAlternateHeaders():

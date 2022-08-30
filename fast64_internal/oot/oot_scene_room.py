@@ -450,15 +450,12 @@ def drawSceneHeaderProperty(layout, sceneProp, dropdownLabel, headerIndex, objNa
                 drawAddButton(cutscene, 0, "extraCutscenes", 0, objName)
 
     elif menuTab == "Exits":
-        if headerIndex is None or headerIndex == 0:
-            exitBox = layout.column()
-            exitBox.box().label(text="Exit List")
-            for i in range(len(sceneProp.exitList)):
-                drawExitProperty(exitBox, sceneProp.exitList[i], i, headerIndex, objName)
+        exitBox = layout.column()
+        exitBox.box().label(text="Exit List")
+        for i in range(len(sceneProp.exitList)):
+            drawExitProperty(exitBox, sceneProp.exitList[i], i, headerIndex, objName)
 
-            drawAddButton(exitBox, len(sceneProp.exitList), "Exit", headerIndex, objName)
-        else:
-            layout.label(text="Exits are edited in main header.")
+        drawAddButton(exitBox, len(sceneProp.exitList), "Exit", headerIndex, objName)
 
 
 class OOTRoomHeaderProperty(bpy.types.PropertyGroup):

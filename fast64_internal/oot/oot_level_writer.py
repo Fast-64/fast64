@@ -342,10 +342,10 @@ def readCamPos(camPosProp, obj, scene, sceneObj, transformMatrix):
 
 def readPathProp(pathProp, obj, scene, sceneObj, sceneName, transformMatrix):
     relativeTransform = transformMatrix @ sceneObj.matrix_world.inverted() @ obj.matrix_world
-    index = obj.ootSplineProperty.index
-    if index in scene.pathList:
-        raise PluginError("Error: " + obj.name + "has a repeated spline index: " + str(index))
-    scene.pathList[index] = ootConvertPath(sceneName, index, obj, relativeTransform)
+    # scene.pathList[obj.name] = ootConvertPath(sceneName, obj, relativeTransform)
+
+    # actorProp should be an actor, but its purpose is to access headerSettings so this also works.
+    addActor(scene, ootConvertPath(sceneName, obj, relativeTransform), obj.ootSplineProperty, "pathList", obj.name)
 
 
 def ootConvertScene(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneName, DLFormat, convertTextureData):
@@ -399,9 +399,7 @@ def ootConvertScene(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneNam
                 readPathProp(obj.ootSplineProperty, obj, scene, sceneObj, sceneName, transformMatrix)
 
         scene.validateIndices()
-        scene.entranceList = sorted(scene.entranceList, key=lambda x: x.startPositionIndex)
-        if scene.appendNullEntrance:
-            scene.entranceList.append(OOTEntrance(0, 0))
+        scene.sortEntrances()
         exportCollisionCommon(scene.collision, sceneObj, transformMatrix, True, sceneName)
 
         ootCleanupScene(originalSceneObj, allObjs)

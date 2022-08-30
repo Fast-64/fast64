@@ -537,6 +537,8 @@ def getCollection(objName, collectionType, subIndex):
         collection = getCollectionFromIndex(obj, "exitList", subIndex, False)
     elif collectionType == "Object":
         collection = getCollectionFromIndex(obj, "objectList", subIndex, True)
+    elif collectionType == "Curve":
+        collection = obj.ootSplineProperty.headerSettings.cutsceneHeaders
     elif collectionType.startswith("CSHdr."):
         # CSHdr.HeaderNumber[.ListType]
         # Specifying ListType means uses subIndex

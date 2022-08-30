@@ -22,6 +22,7 @@ ootEnumSceneMenuAlternate = [
     ("General", "General", "General"),
     ("Lighting", "Lighting", "Lighting"),
     ("Cutscene", "Cutscene", "Cutscene"),
+    ("Exits", "Exits", "Exits"),
 ]
 
 ootEnumRoomMenu = [

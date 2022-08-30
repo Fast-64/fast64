@@ -7,17 +7,17 @@ from .oot_scene_room import *
 
 
 class OOTPath:
-    def __init__(self, ownerName, splineIndex):
+    def __init__(self, ownerName, objName: str):
         self.ownerName = toAlnum(ownerName)
-        self.splineIndex = splineIndex
+        self.objName = objName
         self.points = []
 
-    def pathName(self):
-        return self.ownerName + "_pathwayList_" + str(self.splineIndex)
+    def pathName(self, headerIndex, index):
+        return self.ownerName + "_pathwayList" + str(headerIndex) + "_" + str(index)
 
 
-def ootConvertPath(name, index, obj, transformMatrix):
-    path = OOTPath(name, index)
+def ootConvertPath(name, obj, transformMatrix):
+    path = OOTPath(name, obj.name)
 
     spline = obj.data.splines[0]
     for point in spline.points:
@@ -53,13 +53,17 @@ class OOTSplinePanel(bpy.types.Panel):
         if curve.splines[0].type != "NURBS":
             box.label(text="Only NURBS curves are compatible.")
         else:
-            prop_split(box, context.object.ootSplineProperty, "index", "Index")
+            sceneObj = getSceneObj(context.object)
+            altSceneProp = sceneObj.ootAlternateSceneHeaders if sceneObj is not None else None
+            drawActorHeaderProperty(
+                box, context.object.ootSplineProperty.headerSettings, "Curve", altSceneProp, context.object.name
+            )
 
         # drawParentSceneRoom(box, context.object)
 
 
 class OOTSplineProperty(bpy.types.PropertyGroup):
-    index: bpy.props.IntProperty(default=0, min=0)
+    headerSettings: bpy.props.PointerProperty(type=OOTActorHeaderProperty)
 
 
 def assertCurveValid(obj):
