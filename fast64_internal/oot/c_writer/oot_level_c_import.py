@@ -1,4 +1,5 @@
 import math, os
+from random import random
 from ..oot_f3d_writer import *
 from ..oot_level_writer import *
 from ..oot_collision import *
@@ -938,7 +939,12 @@ def parseCollision(
 
     surfaceIndex = 0
     for (surface, polygonParams), triList in collisionDict.items():
-        collisionMat = bpy.data.materials.new("oot_collision_mat")
+        randomColor = mathutils.Color((1, 1, 1))
+        randomColor.hsv = (random.random(), 0.5, 0.5)
+        collisionMat = getColliderMat(f"oot_collision_mat_{surfaceIndex}", randomColor[:] + (0.5,))
+        collision = collisionMat.ootCollisionProperty
+        parseSurfaceParams(surface, polygonParams, collision)
+
         mesh.materials.append(collisionMat)
         for j in range(len(triList)):
             triData.append(triList[j][0])
@@ -953,11 +959,54 @@ def parseCollision(
     parentObject(sceneObj, obj)
 
 
+def parseSurfaceParams(
+    surface: tuple[int, int], polygonParams: tuple[bool, bool, bool, bool], collision: OOTMaterialCollisionProperty
+):
+    params = surface
+    ignoreCamera, ignoreActor, ignoreProjectile, enableConveyor = polygonParams
+
+    def checkBit(value: int, index: int) -> bool:
+        return (1 & (value >> index)) == 1
+
+    def getBits(value: int, index: int, size: int) -> int:
+        return ((1 << size) - 1) & (value >> index)
+
+    collision.eponaBlock = checkBit(params[0], 31)
+    collision.decreaseHeight = checkBit(params[0], 30)
+    setCustomProperty(collision, "floorSetting", str(getBits(params[0], 26, 4)), ootEnumFloorSetting)
+    setCustomProperty(collision, "wallSetting", str(getBits(params[0], 21, 5)), ootEnumWallSetting)
+    setCustomProperty(collision, "floorProperty", str(getBits(params[0], 13, 8)), ootEnumFloorProperty)
+    collision.exitID = getBits(params[0], 8, 5)
+    collision.cameraID = getBits(params[0], 0, 8)
+    collision.isWallDamage = checkBit(params[1], 27)
+
+    collision.conveyorRotation = (getBits(params[1], 21, 6) / 0x3F) * (2 * math.pi)
+    collision.conveyorSpeed = "Custom"
+    collision.conveyorSpeedCustom = str(getBits(params[1], 18, 3))
+
+    if collision.conveyorRotation == 0 and collision.conveyorSpeedCustom == "0":
+        collision.conveyorOption = "None"
+    elif enableConveyor:
+        collision.conveyorOption = "Land"
+    else:
+        collision.conveyorOption = "Water"
+
+    collision.hookshotable = checkBit(params[1], 17)
+    collision.echo = str(getBits(params[1], 11, 6))
+    collision.lightingSetting = getBits(params[1], 6, 5)
+    setCustomProperty(collision, "terrain", str(getBits(params[1], 4, 2)), ootEnumCollisionTerrain)
+    setCustomProperty(collision, "sound", str(getBits(params[1], 0, 4)), ootEnumCollisionSound)
+
+    collision.ignoreCameraCollision = ignoreCamera
+    collision.ignoreActorCollision = ignoreActor
+    collision.ignoreProjectileCollision = ignoreProjectile
+
+
 def parseSurfaces(surfaceList: list[str]):
     surfaces = []
     for surfaceData in surfaceList:
         params = [hexOrDecInt(value.strip()) for value in surfaceData.split(",")]
-        surfaces.append(params[0])
+        surfaces.append(tuple(params))
 
     return surfaces
 
@@ -987,7 +1036,7 @@ def parsePolygon(polygonData: str):
 
     # 04
     vertIndices[1] = shorts[2] & 0x1FFF
-    enableConveyer = 1 & (shorts[2] >> 13) == 1
+    enableConveyor = 1 & (shorts[2] >> 13) == 1
 
     # 06
     vertIndices[2] = shorts[3] & 0x1FFF
@@ -1001,4 +1050,4 @@ def parsePolygon(polygonData: str):
     # 0E
     distance = shorts[7]
 
-    return (ignoreCamera, ignoreActor, ignoreProjectile, enableConveyer), surfaceIndex, vertIndices, normal
+    return (ignoreCamera, ignoreActor, ignoreProjectile, enableConveyor), surfaceIndex, vertIndices, normal

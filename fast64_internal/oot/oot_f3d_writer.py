@@ -13,6 +13,22 @@ from .oot_model_classes import *
 from .oot_scene_room import *
 from .oot_texture_array import *
 
+# Creates a semi-transparent solid color material (cached)
+def getColliderMat(name: str, color: tuple[float, float, float, float]) -> bpy.types.Material:
+    if name not in bpy.data.materials:
+        newMat = createF3DMat(None, preset="oot_shaded_texture_transparent", index=0)
+        newMat.name = name
+        newMat.f3d_mat.combiner1.A = "0"
+        newMat.f3d_mat.combiner1.C = "0"
+        newMat.f3d_mat.combiner1.D = "SHADE"
+        newMat.f3d_mat.combiner1.D_alpha = "1"
+        newMat.f3d_mat.prim_color = color
+        update_preset_manual(newMat, bpy.context)
+        return newMat
+    else:
+        return bpy.data.materials[name]
+
+
 # returns:
 # 	mesh,
 # 	anySkinnedFaces (to determine if skeleton should be flex)
