@@ -325,7 +325,7 @@ def readCamPos(camPosProp, obj, scene, sceneObj, transformMatrix):
     index = camPosProp.index
     # TODO: FOV conversion?
     if index in scene.collision.cameraData.camPosDict:
-        raise PluginError("Error: Repeated camera position index: " + str(index))
+        raise PluginError(f"Error: Repeated camera position index: {index} for {obj.name}")
     if camPosProp.camSType == "Custom":
         camSType = camPosProp.camSTypeCustom
     else:
@@ -338,6 +338,28 @@ def readCamPos(camPosProp, obj, scene, sceneObj, transformMatrix):
         int(round(math.degrees(obj.data.angle))),
         camPosProp.jfifID,
     )
+
+
+def readCrawlspace(obj, scene, transformMatrix):
+
+    splineProp = obj.ootSplineProperty
+    index = splineProp.index
+
+    if index in scene.collision.cameraData.camPosDict:
+        raise PluginError(f"Error: Repeated camera position index: {index} for {obj.name}")
+
+    if splineProp.camSType == "Custom":
+        camSType = splineProp.camSTypeCustom
+    else:
+        camSType = decomp_compat_map_CameraSType.get(splineProp.camSType, splineProp.camSType)
+
+    crawlspace = OOTCrawlspaceData(camSType)
+    spline = obj.data.splines[0]
+    for point in spline.points:
+        position = [round(value) for value in transformMatrix @ obj.matrix_world @ point.co]
+        crawlspace.points.append(position)
+
+    scene.collision.cameraData.camPosDict[index] = crawlspace
 
 
 def readPathProp(pathProp, obj, scene, sceneObj, sceneName, transformMatrix):
@@ -396,7 +418,10 @@ def ootConvertScene(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneNam
                 camPosProp = obj.ootCameraPositionProperty
                 readCamPos(camPosProp, obj, scene, sceneObj, transformMatrix)
             elif isinstance(obj.data, bpy.types.Curve) and assertCurveValid(obj):
-                readPathProp(obj.ootSplineProperty, obj, scene, sceneObj, sceneName, transformMatrix)
+                if isPathObject(obj):
+                    readPathProp(obj.ootSplineProperty, obj, scene, sceneObj, sceneName, transformMatrix)
+                else:
+                    readCrawlspace(obj, scene, transformMatrix)
 
         scene.validateIndices()
         scene.sortEntrances()
@@ -567,7 +592,10 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
         camPosProp = obj.ootCameraPositionProperty
         readCamPos(camPosProp, obj, scene, sceneObj, transformMatrix)
     elif isinstance(obj.data, bpy.types.Curve) and assertCurveValid(obj):
-        readPathProp(obj.ootSplineProperty, obj, scene, sceneObj, scene.name, transformMatrix)
+        if isPathObject(obj):
+            readPathProp(obj.ootSplineProperty, obj, scene, sceneObj, scene.name, transformMatrix)
+        else:
+            readCrawlspace(obj, scene, transformMatrix)
 
     for childObj in obj.children:
         ootProcessEmpties(scene, room, sceneObj, childObj, transformMatrix)

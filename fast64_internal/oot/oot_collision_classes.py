@@ -85,6 +85,11 @@ ootEnumConveyorSpeed = [
     ("0x03", "Fast", "Fast"),
 ]
 
+ootEnumCameraCrawlspaceSType = [
+    ("Custom", "Custom", "Custom"),
+    ("CAM_SET_CRAWLSPACE", "Crawlspace", "Crawlspace"),
+]
+
 ootEnumCameraSType = [
     ("Custom", "Custom", "Custom"),
     ("CAM_SET_NONE", "None", "None"),
@@ -467,3 +472,9 @@ class OOTCameraPosData:
         self.jfifID = jfifID
         self.unknown = -1
         self.hasPositionData = hasPositionData
+
+
+class OOTCrawlspaceData:
+    def __init__(self, camSType):
+        self.camSType = camSType
+        self.points = []

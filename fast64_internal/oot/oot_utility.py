@@ -3,6 +3,11 @@ import bpy, math, mathutils, os, re
 from bpy.utils import register_class, unregister_class
 from .oot_constants import ootSceneIDToName
 
+
+def isPathObject(obj: bpy.types.Object) -> bool:
+    return obj.data is not None and isinstance(obj.data, bpy.types.Curve) and obj.ootSplineProperty.splineType == "Path"
+
+
 # default indentation to use when writing to decomp files
 indent = " " * 4
 
@@ -470,6 +475,7 @@ def ootConvertRotation(rotation):
     return [int(round((math.degrees(value) % 360) / 360 * (2**16))) % (2**16) for value in rotation.to_euler()]
 
 
+# parse rotaion in Vec3s format
 def ootParseRotation(values):
     return [
         math.radians(
@@ -674,7 +680,7 @@ def getHeaderSettings(actorObj: bpy.types.Object):
             headerSettings = actorObj.ootTransitionActorProperty.actor.headerSettings
         else:
             headerSettings = None
-    elif actorObj.data is not None and isinstance(actorObj.data, bpy.types.Curve):
+    elif actorObj.data is not None and isPathObject(actorObj):
         headerSettings = actorObj.ootSplineProperty.headerSettings
     else:
         headerSettings = None

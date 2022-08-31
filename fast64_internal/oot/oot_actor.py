@@ -44,8 +44,7 @@ def setAllActorsVisibility(self, context: bpy.types.Context):
     actorObjs = [
         obj
         for obj in bpy.data.objects
-        if obj.ootEmptyType in ["Actor", "Transition Actor", "Entrance"]
-        or (obj.data is not None and isinstance(obj.data, bpy.types.Curve))
+        if obj.ootEmptyType in ["Actor", "Transition Actor", "Entrance"] or isPathObject(obj)
     ]
 
     for actorObj in actorObjs:

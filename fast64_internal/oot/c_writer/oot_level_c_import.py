@@ -13,6 +13,16 @@ from collections import OrderedDict
 headerNames = ["childDayHeader", "childNightHeader", "adultDayHeader", "adultNightHeader"]
 
 
+def getDataMatch(sceneData: str, name: str, dataType: str, errorMessageID: str, isArray: bool = True) -> str:
+    arrayText = rf"\[[\s0-9A-Fa-fx]*\]\s*" if isArray else ""
+    regex = rf"{re.escape(dataType)}\s*{re.escape(name)}\s*{arrayText}=\s*\{{(.*?)\}}\s*;"
+    match = re.search(regex, sceneData, flags=re.DOTALL)
+    if not match:
+        raise PluginError(f"Could not find {errorMessageID} {name}.")
+
+    return match.group(1)
+
+
 class SharedSceneData:
     def __init__(self):
         self.actorDict = {}  # actor hash : blender object
@@ -127,15 +137,7 @@ def parseSceneCommands(
             cutsceneHeaders.add()
         sceneHeader = cutsceneHeaders[headerIndex - 4]
 
-    match = re.search(
-        rf"SceneCmd\s*{re.escape(sceneCommandsName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
-        sceneData,
-        flags=re.DOTALL,
-    )
-    if not match:
-        raise PluginError(f"Could not find scene commands {sceneCommandsName}.")
-
-    commands = match.group(1)
+    commands = getDataMatch(sceneData, sceneCommandsName, "SceneCmd", "scene commands")
     entranceList = None
     altHeadersListName = None
     for commandMatch in re.finditer(rf"(SCENE\_CMD\_[a-zA-Z0-9\_]*)\s*\((.*?)\)\s*,", commands, flags=re.DOTALL):
@@ -221,15 +223,7 @@ def parseRoomList(
     sharedSceneData: SharedSceneData,
     headerIndex: int,
 ):
-    match = re.search(
-        rf"RomFile\s*{re.escape(roomListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
-        sceneData,
-        flags=re.DOTALL,
-    )
-    if not match:
-        raise PluginError(f"Could not find scene commands {roomListName}.")
-
-    roomList = match.group(1)
+    roomList = getDataMatch(sceneData, roomListName, "RomFile", "room list")
     index = 0
     roomObjs = []
 
@@ -272,15 +266,7 @@ def parseRoomCommands(
             cutsceneHeaders.add()
         roomHeader = cutsceneHeaders[headerIndex - 4]
 
-    match = re.search(
-        rf"SceneCmd\s*{re.escape(roomCommandsName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
-        sceneData,
-        flags=re.DOTALL,
-    )
-    if not match:
-        raise PluginError(f"Could not find scene commands {roomCommandsName}.")
-
-    commands = match.group(1)
+    commands = getDataMatch(sceneData, roomCommandsName, "SceneCmd", "scene commands")
     for commandMatch in re.finditer(rf"(SCENE\_CMD\_[a-zA-Z0-9\_]*)\s*\((.*?)\)\s*,", commands, flags=re.DOTALL):
         command = commandMatch.group(1)
         args = [arg.strip() for arg in commandMatch.group(2).split(",")]
@@ -336,16 +322,9 @@ def parseRoomCommands(
 
 def parseMeshHeader(roomObj: bpy.types.Object, sceneData: str, meshHeaderName: str, f3dContext: OOTF3DContext):
     roomHeader = roomObj.ootRoomHeader
-    match = re.search(
-        rf"([0-9A-Za-z\_]+)\s*{re.escape(meshHeaderName)}\s*=\s*\{{(.*?)\}}\s*;",
-        sceneData,
-        flags=re.DOTALL,
-    )
-    if not match:
-        raise PluginError(f"Could not find mesh header {meshHeaderName}.")
+    meshData = getDataMatch(sceneData, meshHeaderName, "", "mesh header", False)
 
-    meshStructType = match.group(1)
-    meshParams = [value.strip() for value in match.group(2).split(",")]
+    meshParams = [value.strip() for value in meshData.split(",")]
     roomHeader.meshType = meshParams[0]
 
     meshListName = meshParams[2]
@@ -356,16 +335,7 @@ def parseMeshList(
     roomObj: bpy.types.Object, sceneData: str, meshListName: str, meshType: int, f3dContext: OOTF3DContext
 ):
     roomHeader = roomObj.ootRoomHeader
-    match = re.search(
-        rf"([0-9A-Za-z\_]+)\s*{re.escape(meshListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
-        sceneData,
-        flags=re.DOTALL,
-    )
-    if not match:
-        raise PluginError(f"Could not find mesh header {meshListName}.")
-
-    meshStructType = match.group(1)
-    meshEntryData = match.group(2)
+    meshEntryData = getDataMatch(sceneData, meshListName, "", "mesh list")
     if meshType == 2:
         matchPattern = r"\{\s*\{(.*?),(.*?),(.*?)\}\s*,(.*?),(.*?),(.*?)\}\s*,"
     elif meshType == 1:
@@ -405,6 +375,7 @@ def parseMeshList(
                 meshObj = importMeshC(
                     sceneData, displayList, bpy.context.scene.ootBlenderScale, True, True, drawLayer, f3dContext, False
                 )
+                meshObj.ignore_collision = True
                 parentObject(parentObj, meshObj)
 
 
@@ -432,15 +403,7 @@ def parseTransActorList(
     sharedSceneData: SharedSceneData,
     headerIndex: int,
 ):
-    match = re.search(
-        rf"TransitionActorEntry\s*{re.escape(transActorListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
-        sceneData,
-        flags=re.DOTALL,
-    )
-    if not match:
-        raise PluginError(f"Could not find transition actor list {transActorListName}.")
-
-    transitionActorList = match.group(1)
+    transitionActorList = getDataMatch(sceneData, transActorListName, "TransitionActorEntry", "transition actor list")
     for actorMatch in re.finditer(rf"\{{(.*?)\}}\s*,", transitionActorList, flags=re.DOTALL):
         params = [value.strip() for value in actorMatch.group(1).split(",") if value.strip() != ""]
 
@@ -486,16 +449,9 @@ def parseTransActorList(
 def parseEntranceList(
     sceneHeader: OOTSceneHeaderProperty, roomObjs: list[bpy.types.Object], sceneData: str, entranceListName: str
 ):
-    match = re.search(
-        rf"EntranceEntry\s*{re.escape(entranceListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
-        sceneData,
-        flags=re.DOTALL,
-    )
-    if not match:
-        raise PluginError(f"Could not find entrance list {entranceListName}.")
+    entranceList = getDataMatch(sceneData, entranceListName, "EntranceEntry", "entrance List")
 
     # see also start position list
-    entranceList = match.group(1)
     entrances = []
     for entranceMatch in re.finditer(rf"\{{(.*?)\}}\s*,", entranceList, flags=re.DOTALL):
         params = [value.strip() for value in entranceMatch.group(1).split(",") if value.strip() != ""]
@@ -537,16 +493,8 @@ def parseSpawnList(
     sharedSceneData: SharedSceneData,
     headerIndex: int,
 ):
-    match = re.search(
-        rf"ActorEntry\s*{re.escape(spawnListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
-        sceneData,
-        flags=re.DOTALL,
-    )
-    if not match:
-        raise PluginError(f"Could not find spawn list {spawnListName}.")
-
     # see also start position list
-    spawnList = match.group(1)
+    spawnList = getDataMatch(sceneData, spawnListName, "ActorEntry", "spawn list")
     index = 0
     for spawnMatch in re.finditer(r"\{(.*?),\s*\{(.*?)\}\s*,\s*\{(.*?)\}\s*,(.*?)\}\s*,", spawnList, flags=re.DOTALL):
         actorID, position, rotation, actorParam = parseActorInfo(spawnMatch)
@@ -572,16 +520,10 @@ def parseSpawnList(
 
 
 def parseExitList(sceneHeader: OOTSceneHeaderProperty, sceneData: str, exitListName: str):
-    match = re.search(
-        rf"u16\s*{re.escape(exitListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
-        sceneData,
-        flags=re.DOTALL,
-    )
-    if not match:
-        raise PluginError(f"Could not find exit list {exitListName}.")
+    exitData = getDataMatch(sceneData, exitListName, "u16", "exit list")
 
     # see also start position list
-    exitList = [value.strip() for value in match.group(1).split(",") if value.strip() != ""]
+    exitList = [value.strip() for value in exitData.split(",") if value.strip() != ""]
     for exit in exitList:
         exitProp = sceneHeader.exitList.add()
         exitProp.exitIndex = "Custom"
@@ -589,15 +531,8 @@ def parseExitList(sceneHeader: OOTSceneHeaderProperty, sceneData: str, exitListN
 
 
 def parseObjectList(roomHeader: OOTRoomHeaderProperty, sceneData: str, objectListName: str):
-    match = re.search(
-        rf"s16\s*{re.escape(objectListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
-        sceneData,
-        flags=re.DOTALL,
-    )
-    if not match:
-        raise PluginError(f"Could not find object list {objectListName}.")
-
-    objects = [value.strip() for value in match.group(1).split(",") if value.strip() != ""]
+    objectData = getDataMatch(sceneData, objectListName, "s16", "object list")
+    objects = [value.strip() for value in objectData.split(",") if value.strip() != ""]
 
     for object in objects:
         objectProp = roomHeader.objectList.add()
@@ -607,15 +542,7 @@ def parseObjectList(roomHeader: OOTRoomHeaderProperty, sceneData: str, objectLis
 def parseActorList(
     roomObj: bpy.types.Object, sceneData: str, actorListName: str, sharedSceneData: SharedSceneData, headerIndex: int
 ):
-    match = re.search(
-        rf"ActorEntry\s*{re.escape(actorListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
-        sceneData,
-        flags=re.DOTALL,
-    )
-    if not match:
-        raise PluginError(f"Could not find actor list {actorListName}.")
-
-    actorList = match.group(1)
+    actorList = getDataMatch(sceneData, actorListName, "ActorEntry", "actor list")
     for actorMatch in re.finditer(r"\{(.*?),\s*\{(.*?)\}\s*,\s*\{(.*?)\}\s*,(.*?)\}\s*,", actorList, flags=re.DOTALL):
         actorHash = parseActorInfo(actorMatch) + (roomObj.ootRoomHeader.roomIndex,)
 
@@ -644,15 +571,8 @@ def parseAlternateSceneHeaders(
     f3dContext: OOTF3DContext,
     sharedSceneData: SharedSceneData,
 ):
-    match = re.search(
-        rf"SceneCmd\*\s*{re.escape(altHeadersListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
-        sceneData,
-        flags=re.DOTALL,
-    )
-    if not match:
-        raise PluginError(f"Could not find alternate header list {altHeadersListName}.")
-
-    altHeadersList = [value.strip() for value in match.group(1).split(",") if value.strip() != ""]
+    altHeadersData = getDataMatch(sceneData, altHeadersListName, "SceneCmd*", "alternate header list")
+    altHeadersList = [value.strip() for value in altHeadersData.split(",") if value.strip() != ""]
 
     for i in range(len(altHeadersList)):
         if not (altHeadersList[i] == "NULL" or altHeadersList[i] == "0"):
@@ -667,15 +587,8 @@ def parseAlternateRoomHeaders(
     altHeadersListName: str,
     f3dContext: OOTF3DContext,
 ):
-    match = re.search(
-        rf"SceneCmd\*\s*{re.escape(altHeadersListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
-        sceneData,
-        flags=re.DOTALL,
-    )
-    if not match:
-        raise PluginError(f"Could not find alternate header list {altHeadersListName}.")
-
-    altHeadersList = [value.strip() for value in match.group(1).split(",") if value.strip() != ""]
+    altHeadersData = getDataMatch(sceneData, altHeadersListName, "SceneCmd*", "alternate header list")
+    altHeadersList = [value.strip() for value in altHeadersData.split(",") if value.strip() != ""]
 
     for i in range(len(altHeadersList)):
         if not (altHeadersList[i] == "NULL" or altHeadersList[i] == "0"):
@@ -689,58 +602,26 @@ def parsePathList(
     headerIndex: int,
     sharedSceneData: SharedSceneData,
 ):
-    match = re.search(
-        rf"Path\s*{re.escape(pathListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
-        sceneData,
-        flags=re.DOTALL,
-    )
-    if not match:
-        raise PluginError(f"Could not find path list {pathListName}.")
-
-    pathList = [value.replace("{", "").strip() for value in match.group(1).split("},") if value.strip() != ""]
+    pathData = getDataMatch(sceneData, pathListName, "Path", "path list")
+    pathList = [value.replace("{", "").strip() for value in pathData.split("},") if value.strip() != ""]
     for pathEntry in pathList:
         numPoints, pathName = [value.strip() for value in pathEntry.split(",")]
         parsePath(sceneObj, sceneData, pathName, headerIndex, sharedSceneData)
 
 
-def parsePath(
-    sceneObj: bpy.types.Object, sceneData: str, pathName: str, headerIndex: int, sharedSceneData: SharedSceneData
-):
-    match = re.search(
-        rf"Vec3s\s*{re.escape(pathName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
-        sceneData,
-        flags=re.DOTALL,
-    )
-    if not match:
-        raise PluginError(f"Could not find path  {pathName}.")
-
-    pathPointsEntries = [value.replace("{", "").strip() for value in match.group(1).split("},") if value.strip() != ""]
-    pathPointsInfo = []
-    for pathPoint in pathPointsEntries:
-        pathPointsInfo.append(tuple([hexOrDecInt(value.strip()) for value in pathPoint.split(",")]))
-    pathPoints = tuple(pathPointsInfo)
-
-    if sharedSceneData.addHeaderIfItemExists(pathPoints, "Curve", headerIndex):
-        return
-
-    curve = bpy.data.curves.new(name=pathName, type="CURVE")
-    curveObj = bpy.data.objects.new(pathName, curve)
+def createCurveFromPoints(points: list[tuple[float, float, float]], name: str):
+    curve = bpy.data.curves.new(name=name, type="CURVE")
+    curveObj = bpy.data.objects.new(name, curve)
     bpy.context.scene.collection.objects.link(curveObj)
 
-    # Note that paths are currently processed in alphabetical order by name.
-    # Most curves in decomp are named by address, so this should be okay.
-    # However name convention might change over time, so keep an eye on this.
-    curveObj.name = pathName
-    splineProp = curveObj.ootSplineProperty
-    curve = curveObj.data
     spline = curve.splines.new("NURBS")
     objLocation = None
     curveObj.show_name = True
 
     # new spline has 1 point by default
-    spline.points.add(len(pathPoints) - 1)
-    for i in range(len(pathPoints)):
-        position = yUpToZUp @ mathutils.Vector([value / bpy.context.scene.ootBlenderScale for value in pathPoints[i]])
+    spline.points.add(len(points) - 1)
+    for i in range(len(points)):
+        position = yUpToZUp @ mathutils.Vector([value / bpy.context.scene.ootBlenderScale for value in points[i]])
 
         # Set the origin to the first point so that we can display name next to it.
         if objLocation is None:
@@ -751,6 +632,25 @@ def parsePath(
     spline.resolution_u = 64
     spline.order_u = 2
     curve.dimensions = "3D"
+
+    return curveObj
+
+
+def parsePath(
+    sceneObj: bpy.types.Object, sceneData: str, pathName: str, headerIndex: int, sharedSceneData: SharedSceneData
+):
+    pathData = getDataMatch(sceneData, pathName, "Vec3s", "path")
+    pathPointsEntries = [value.replace("{", "").strip() for value in pathData.split("},") if value.strip() != ""]
+    pathPointsInfo = []
+    for pathPoint in pathPointsEntries:
+        pathPointsInfo.append(tuple([hexOrDecInt(value.strip()) for value in pathPoint.split(",")]))
+    pathPoints = tuple(pathPointsInfo)
+
+    if sharedSceneData.addHeaderIfItemExists(pathPoints, "Curve", headerIndex):
+        return
+
+    curveObj = createCurveFromPoints(pathPoints, pathName)
+    splineProp = curveObj.ootSplineProperty
 
     unsetAllHeadersExceptSpecified(splineProp.headerSettings, headerIndex)
     sharedSceneData.pathDict[pathPoints] = curveObj
@@ -791,13 +691,7 @@ def parseLightList(
     lightListName: str,
     headerIndex: int,
 ):
-    match = re.search(
-        rf"LightSettings\s*{re.escape(lightListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
-        sceneData,
-        flags=re.DOTALL,
-    )
-    if not match:
-        raise PluginError(f"Could not find light list {lightListName}.")
+    lightData = getDataMatch(sceneData, lightListName, "LightSettings", "light list")
 
     # I currently don't understand the light list format in respect to this lighting flag.
     # So we'll set it to custom instead.
@@ -806,7 +700,7 @@ def parseLightList(
         sceneHeader.skyboxLighting = "Custom"
     sceneHeader.lightList.clear()
 
-    lightList = [value.replace("{", "").strip() for value in match.group(1).split("},") if value.strip() != ""]
+    lightList = [value.replace("{", "").strip() for value in lightData.split("},") if value.strip() != ""]
     index = 0
     for lightEntry in lightList:
         lightParams = [value.strip() for value in lightEntry.split(",")]
@@ -882,38 +776,19 @@ def parseCollisionHeader(sceneObj: bpy.types.Object, sceneData: str, collisionHe
     waterBoxListName = otherParams[7]
 
     parseCollision(sceneObj, vertexListName, polygonListName, surfaceTypeListName, sceneData)
+    parseCamDataList(sceneObj, camDataListName, sceneData)
 
 
 def parseCollision(
     sceneObj: bpy.types.Object, vertexListName: str, polygonListName: str, surfaceTypeListName: str, sceneData: str
 ):
-    vertMatch = re.search(
-        rf"Vec3s\s*{re.escape(vertexListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
-        sceneData,
-        flags=re.DOTALL,
-    )
-    if not vertMatch:
-        raise PluginError(f"Could not find vertex list {vertexListName}.")
+    vertMatchData = getDataMatch(sceneData, vertexListName, "Vec3s", "vertex list")
+    polyMatchData = getDataMatch(sceneData, polygonListName, "CollisionPoly", "polygon list")
+    surfMatchData = getDataMatch(sceneData, surfaceTypeListName, "SurfaceType", "surface type list")
 
-    polyMatch = re.search(
-        rf"CollisionPoly\s*{re.escape(polygonListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
-        sceneData,
-        flags=re.DOTALL,
-    )
-    if not polyMatch:
-        raise PluginError(f"Could not find polygon list {polygonListName}.")
-
-    surfMatch = re.search(
-        rf"SurfaceType\s*{re.escape(surfaceTypeListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
-        sceneData,
-        flags=re.DOTALL,
-    )
-    if not surfMatch:
-        raise PluginError(f"Could not find surface type list {surfaceTypeListName}.")
-
-    vertexList = [value.replace("{", "").strip() for value in vertMatch.group(1).split("},") if value.strip() != ""]
-    polygonList = [value.replace("{", "").strip() for value in polyMatch.group(1).split("},") if value.strip() != ""]
-    surfaceList = [value.replace("{", "").strip() for value in surfMatch.group(1).split("},") if value.strip() != ""]
+    vertexList = [value.replace("{", "").strip() for value in vertMatchData.split("},") if value.strip() != ""]
+    polygonList = [value.replace("{", "").strip() for value in polyMatchData.split("},") if value.strip() != ""]
+    surfaceList = [value.replace("{", "").strip() for value in surfMatchData.split("},") if value.strip() != ""]
 
     # Although polygon params are geometry based, we will group them with surface.
     collisionDict = OrderedDict()  # (surface, polygonParams) : list[triangles]
@@ -935,7 +810,6 @@ def parseCollision(
 
     triData = []
     triMatData = []
-    triNormalData = []
 
     surfaceIndex = 0
     for (surface, polygonParams), triList in collisionDict.items():
@@ -949,12 +823,13 @@ def parseCollision(
         for j in range(len(triList)):
             triData.append(triList[j][0])
             triMatData += [surfaceIndex]
-            triNormalData.append(tuple(triList[j][1]))
         surfaceIndex += 1
 
     mesh.from_pydata(vertices=vertices, edges=[], faces=triData)
     for i in range(len(mesh.polygons)):
         mesh.polygons[i].material_index = triMatData[i]
+
+    obj.ignore_render = True
 
     parentObject(sceneObj, obj)
 
@@ -1022,7 +897,10 @@ def parseVertices(vertexList: list[str]):
 
 
 def parsePolygon(polygonData: str):
-    shorts = [hexOrDecInt(value.strip()) for value in polygonData.split(",")]
+    shorts = [
+        hexOrDecInt(value.strip()) if "COLPOLY_SNORMAL" not in value else value.strip()
+        for value in polygonData.split(",")
+    ]
     vertIndices = [0, 0, 0]
 
     # 00
@@ -1042,12 +920,105 @@ def parsePolygon(polygonData: str):
     vertIndices[2] = shorts[3] & 0x1FFF
 
     # 08-0C
-    normal = [
-        int.from_bytes(value.to_bytes(2, "big", signed=value < 0x8000), "big", signed=True) / 0x7FFF
-        for value in shorts[4:7]
-    ]
+    normal = []
+    for value in shorts[4:7]:
+        if isinstance(value, str) and "COLPOLY_SNORMAL" in value:
+            normal.append(float(value[value.index("(" + 1) : value.index(")")]))
+        else:
+            normal.append(int.from_bytes(value.to_bytes(2, "big", signed=value < 0x8000), "big", signed=True) / 0x7FFF)
 
     # 0E
     distance = shorts[7]
 
     return (ignoreCamera, ignoreActor, ignoreProjectile, enableConveyor), surfaceIndex, vertIndices, normal
+
+
+def parseCamDataList(sceneObj: bpy.types.Object, camDataListName: str, sceneData: str):
+    camMatchData = getDataMatch(sceneData, camDataListName, "CamData", "camera data list")
+    camDataList = [value.replace("{", "").strip() for value in camMatchData.split("},") if value.strip() != ""]
+
+    # orderIndex used for naming cameras in alphabetical order
+    orderIndex = 0
+    for camEntry in camDataList:
+        setting, count, posDataName = [value.strip() for value in camEntry.split(",")]
+        index = None
+
+        objName = f"{camDataListName}_{format(orderIndex, '03')}"
+
+        if posDataName != "NULL" and posDataName != "0":
+            index = hexOrDecInt(posDataName[posDataName.index("[") + 1 : -1])
+            posDataName = posDataName[1 : posDataName.index("[")]  # remove '&' and '[n]'
+
+        if setting == "CAM_SET_CRAWLSPACE" or setting == "0x001E":
+            obj = parseCrawlSpaceData(setting, sceneData, posDataName, index, hexOrDecInt(count), objName, orderIndex)
+        else:
+            obj = parseCamPosData(setting, sceneData, posDataName, index, objName, orderIndex)
+
+        parentObject(sceneObj, obj)
+        orderIndex += 1
+
+
+def parseCamPosData(setting: str, sceneData: str, posDataName: str, index: int, objName: str, orderIndex: str):
+    bpy.ops.object.add(type="CAMERA")
+    camObj = bpy.context.view_layer.objects.active
+    camProp = camObj.ootCameraPositionProperty
+    setCustomProperty(camProp, "camSType", setting, ootEnumCameraSType)
+    camProp.hasPositionData = posDataName != "NULL" and posDataName != "0"
+    camProp.index = orderIndex
+
+    # name is important for alphabetical ordering
+    camObj.name = objName
+
+    if index is None:
+        return camObj
+
+    camPosData = getDataMatch(sceneData, posDataName, "Vec3s", "camera position list")
+    camPosList = [value.replace("{", "").strip() for value in camPosData.split("},") if value.strip() != ""]
+
+    posData = camPosList[index : index + 3]
+    position = yUpToZUp @ mathutils.Vector(
+        [hexOrDecInt(value.strip()) / bpy.context.scene.ootBlenderScale for value in posData[0].split(",")]
+    )
+
+    # camera faces opposite direction
+    rotation = (
+        yUpToZUp.to_quaternion()
+        @ mathutils.Euler(
+            ootParseRotation([hexOrDecInt(value.strip()) for value in posData[1].split(",")])
+        ).to_quaternion()
+        @ mathutils.Quaternion((0, 1, 0), math.radians(180.0))
+    ).to_euler()
+
+    fov, jfifID, unknown = [value.strip() for value in posData[2].split(",")]
+
+    camObj.location = position
+    camObj.rotation_euler = rotation
+    camObj.show_name = True
+
+    camProp = camObj.ootCameraPositionProperty
+    camProp.jfifID = jfifID
+    camObj.data.angle = math.radians(hexOrDecInt(fov))
+
+    return camObj
+
+
+def parseCrawlSpaceData(
+    setting: str, sceneData: str, posDataName: str, index: int, count: int, objName: str, orderIndex: str
+):
+    camPosData = getDataMatch(sceneData, posDataName, "Vec3s", "camera position list")
+    camPosList = [value.replace("{", "").strip() for value in camPosData.split("},") if value.strip() != ""]
+    posData = [camPosList[index : index + count][i] for i in range(0, count, 3)]
+
+    points = []
+    for posDataItem in posData:
+        points.append([hexOrDecInt(value.strip()) for value in posDataItem.split(",")])
+
+    # name is important for alphabetical ordering
+    curveObj = createCurveFromPoints(points, objName)
+    curveObj.show_name = True
+    crawlProp = curveObj.ootSplineProperty
+    crawlProp.splineType = "Crawlspace"
+    crawlProp.index = orderIndex
+    setCustomProperty(crawlProp, "camSType", "CAM_SET_CRAWLSPACE", ootEnumCameraCrawlspaceSType)
+
+    return curveObj

@@ -70,7 +70,7 @@ def drawWaterBoxProperty(layout, waterBoxProp):
 
 
 def drawCameraPosProperty(layout, cameraRefProp, index, headerIndex, objName):
-    camBox = layout.box()
+    camBox = layout.box().column()
     prop_split(camBox, cameraRefProp, "camera", "Camera " + str(index))
     drawCollectionOps(camBox, index, "Camera Position", headerIndex, objName)
 
@@ -88,7 +88,7 @@ class OOT_CameraPosPanel(bpy.types.Panel):
         return context.scene.gameEditorMode == "OOT" and isinstance(context.object.data, bpy.types.Camera)
 
     def draw(self, context):
-        box = self.layout.box()
+        box = self.layout.box().column()
         obj = context.object
 
         box.box().label(text="Camera Data")
@@ -373,11 +373,20 @@ def ootCameraDataToC(camData):
         camC.header = "extern " + camDataName + ";\n"
 
         camPosIndex = 0
+
         for i in range(len(camData.camPosDict)):
-            camC.source += "\t" + ootCameraEntryToC(camData.camPosDict[i], camData, camPosIndex) + ",\n"
-            if camData.camPosDict[i].hasPositionData:
-                posC.source += ootCameraPosToC(camData.camPosDict[i])
-                camPosIndex += 3
+            camItem = camData.camPosDict[i]
+            if isinstance(camItem, OOTCameraPosData):
+                camC.source += "\t" + ootCameraEntryToC(camItem, camData, camPosIndex) + ",\n"
+                if camItem.hasPositionData:
+                    posC.source += ootCameraPosToC(camItem)
+                    camPosIndex += 3
+            elif isinstance(camItem, OOTCrawlspaceData):
+                camC.source += "\t" + ootCrawlspaceEntryToC(camItem, camData, camPosIndex) + ",\n"
+                posC.source += ootCrawlspaceToC(camItem)
+                camPosIndex += len(camItem.points) * 3
+            else:
+                raise PluginError(f"Invalid object type in camera position dict: {type(camItem)}")
         posC.source += "};\n\n"
         camC.source += "};\n\n"
 
@@ -419,6 +428,26 @@ def ootCameraEntryToC(camPos, camData, camPosIndex):
             "{",
             camPos.camSType + ",",
             ("3" if camPos.hasPositionData else "0") + ",",
+            ("&" + camData.camPositionsName() + "[" + str(camPosIndex) + "]" if camPos.hasPositionData else "NULL"),
+            "}",
+        )
+    )
+
+
+def ootCrawlspaceToC(camItem: OOTCrawlspaceData):
+    data = ""
+    for point in camItem.points:
+        data += f"\t{{{point[0]}, {point[1]}, {point[2]}}},\n" * 3
+
+    return data
+
+
+def ootCrawlspaceEntryToC(camItem: OOTCrawlspaceData, camData: OOTCameraData, camPosIndex: int):
+    return " ".join(
+        (
+            "{",
+            camItem.camSType + ",",
+            str((len(camItem.points) * 3)) + ",",
             ("&" + camData.camPositionsName() + "[" + str(camPosIndex) + "]"),
             "}",
         )
