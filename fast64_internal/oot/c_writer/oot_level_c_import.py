@@ -196,8 +196,8 @@ def parseSceneCommands(
             parseExitList(sceneHeader, sceneData, exitListName)
         elif command == "SCENE_CMD_ENV_LIGHT_SETTINGS":
             if not (args[1] == "NULL" or args[1] == "0" or args[1] == "0x00"):
-                lightListName = args[1]
-            print("Command not implemented.")
+                lightsListName = args[1]
+                parseLightList(sceneObj, sceneHeader, sceneData, lightsListName, headerIndex)
         elif command == "SCENE_CMD_CUTSCENE_DATA":
             cutsceneName = args[0]
             print("Command not implemented.")
@@ -754,3 +754,107 @@ def parsePath(
     sharedSceneData.pathDict[pathPoints] = curveObj
 
     parentObject(sceneObj, curveObj)
+
+
+def parseColor(values: tuple[str, str, str]) -> tuple[float, float, float]:
+    return tuple(gammaInverse([hexOrDecInt(value) / 0xFF for value in values]))
+
+
+def parseDirection(index: int, values: tuple[str, str, str]) -> tuple[float, float, float] | int:
+    values = [hexOrDecInt(value) for value in values]
+
+    if tuple(values) == (0, 0, 0):
+        return "Zero"
+    elif index == 0 and tuple(values) == (0x49, 0x49, 0x49):
+        return "Default"
+    elif index == 1 and tuple(values) == (0xB7, 0xB7, 0xB7):
+        return "Default"
+    else:
+        direction = mathutils.Vector(
+            [int.from_bytes(value.to_bytes(1, "big", signed=value < 127), "big", signed=True) / 127 for value in values]
+        )
+
+        return (
+            mathutils.Euler((0, 0, math.pi)).to_quaternion()
+            @ (mathutils.Euler((math.pi / 2, 0, 0)).to_quaternion() @ direction).rotation_difference(
+                mathutils.Vector((0, 0, 1))
+            )
+        ).to_euler()
+
+
+def parseLightList(
+    sceneObj: bpy.types.Object,
+    sceneHeader: OOTSceneHeaderProperty,
+    sceneData: str,
+    lightListName: str,
+    headerIndex: int,
+):
+    match = re.search(
+        rf"LightSettings\s*{re.escape(lightListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
+        sceneData,
+        flags=re.DOTALL,
+    )
+    if not match:
+        raise PluginError(f"Could not find light list {lightListName}.")
+
+    # I currently don't understand the light list format in respect to this lighting flag.
+    # So we'll set it to custom instead.
+    if sceneHeader.skyboxLighting != "Custom":
+        sceneHeader.skyboxLightingCustom = sceneHeader.skyboxLighting
+        sceneHeader.skyboxLighting = "Custom"
+    sceneHeader.lightList.clear()
+
+    lightList = [value.replace("{", "").strip() for value in match.group(1).split("},") if value.strip() != ""]
+    index = 0
+    for lightEntry in lightList:
+        lightParams = [value.strip() for value in lightEntry.split(",")]
+        ambientColor = parseColor(lightParams[0:3])
+        diffuseDir0 = parseDirection(0, lightParams[3:6])
+        diffuseColor0 = parseColor(lightParams[6:9])
+        diffuseDir1 = parseDirection(1, lightParams[9:12])
+        diffuseColor1 = parseColor(lightParams[12:15])
+        fogColor = parseColor(lightParams[15:18])
+
+        blendFogShort = hexOrDecInt(lightParams[18])
+        fogNear = blendFogShort & ((1 << 10) - 1)
+        transitionSpeed = blendFogShort >> 10
+        fogFar = hexOrDecInt(lightParams[19])
+
+        lightHeader = sceneHeader.lightList.add()
+        lightHeader.ambient = ambientColor + (1,)
+
+        lightObj0 = parseLight(lightHeader, 0, diffuseDir0, diffuseColor0)
+        lightObj1 = parseLight(lightHeader, 1, diffuseDir1, diffuseColor1)
+
+        if lightObj0 is not None:
+            parentObject(sceneObj, lightObj0)
+            lightObj0.location = [4 + headerIndex * 2, 0, -index * 2]
+        if lightObj1 is not None:
+            parentObject(sceneObj, lightObj1)
+            lightObj1.location = [4 + headerIndex * 2, 2, -index * 2]
+
+        lightHeader.fogColor = fogColor + (1,)
+        lightHeader.fogNear = fogNear
+        lightHeader.fogFar = fogFar
+        lightHeader.transitionSpeed = transitionSpeed
+
+        index += 1
+
+
+def parseLight(
+    lightHeader: OOTLightProperty, index: int, rotation: mathutils.Euler, color: mathutils.Vector
+) -> bpy.types.Object | None:
+    setattr(lightHeader, f"useCustomDiffuse{index}", rotation != "Zero" and rotation != "Default")
+
+    if rotation == "Zero" or rotation == "Default":
+        setattr(lightHeader, f"zeroDiffuse{index}", rotation == "Zero")
+        setattr(lightHeader, f"diffuse{index}", color + (1,))
+        return None
+    else:
+        bpy.ops.object.add(type="LIGHT")
+        lightObj = bpy.context.view_layer.objects.active
+        setattr(lightHeader, f"diffuse{index}Custom", lightObj.data)
+        lightObj.rotation_euler = rotation
+        lightObj.data.color = color
+        lightObj.data.type = "SUN"
+        return lightObj

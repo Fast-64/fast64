@@ -253,7 +253,7 @@ def getLightData(lightProp):
         light.diffuseDir0 = getLightRotation(lightProp.diffuse0Custom)
     else:
         light.diffuse0 = exportColor(lightProp.diffuse0)
-        light.diffuseDir0 = [0x49, 0x49, 0x49]
+        light.diffuseDir0 = [0x49, 0x49, 0x49] if not lightProp.zeroDiffuse0 else [0x00, 0x00, 0x00]
 
     if lightProp.useCustomDiffuse1:
         if lightProp.diffuse1Custom is None:
@@ -262,7 +262,7 @@ def getLightData(lightProp):
         light.diffuseDir1 = getLightRotation(lightProp.diffuse1Custom)
     else:
         light.diffuse1 = exportColor(lightProp.diffuse1)
-        light.diffuseDir1 = [0xB7, 0xB7, 0xB7]
+        light.diffuseDir1 = [0xB7, 0xB7, 0xB7] if not lightProp.zeroDiffuse1 else [0x00, 0x00, 0x00]
 
     light.fogColor = exportColor(lightProp.fogColor)
     light.fogNear = lightProp.fogNear

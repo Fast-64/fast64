@@ -201,8 +201,8 @@ class OOTLightProperty(bpy.types.PropertyGroup):
     ambient: bpy.props.FloatVectorProperty(
         name="Ambient Color", size=4, min=0, max=1, default=(70 / 255, 40 / 255, 57 / 255, 1), subtype="COLOR"
     )
-    useCustomDiffuse0: bpy.props.BoolProperty(name="Use Custom Diffuse 0 Light Object")
-    useCustomDiffuse1: bpy.props.BoolProperty(name="Use Custom Diffuse 1 Light Object")
+    useCustomDiffuse0: bpy.props.BoolProperty(name="Custom Light")
+    useCustomDiffuse1: bpy.props.BoolProperty(name="Custom Light")
     diffuse0: bpy.props.FloatVectorProperty(
         name="", size=4, min=0, max=1, default=(180 / 255, 154 / 255, 138 / 255, 1), subtype="COLOR"
     )
@@ -211,6 +211,8 @@ class OOTLightProperty(bpy.types.PropertyGroup):
     )
     diffuse0Custom: bpy.props.PointerProperty(name="Diffuse 0", type=bpy.types.Light)
     diffuse1Custom: bpy.props.PointerProperty(name="Diffuse 1", type=bpy.types.Light)
+    zeroDiffuse0: bpy.props.BoolProperty(name="Zero Direction", default=False)
+    zeroDiffuse1: bpy.props.BoolProperty(name="Zero Direction", default=False)
     fogColor: bpy.props.FloatVectorProperty(
         name="", size=4, min=0, max=1, default=(140 / 255, 120 / 255, 110 / 255, 1), subtype="COLOR"
     )
@@ -261,16 +263,22 @@ def drawLightProperty(layout, lightProp, name, showExpandTab, index, sceneHeader
         if lightProp.useCustomDiffuse0:
             prop_split(box, lightProp, "diffuse0Custom", "Diffuse 0")
             box.label(text="Make sure light is not part of scene hierarchy.", icon="FILE_PARENT")
+            box.prop(lightProp, "useCustomDiffuse0")
         else:
             prop_split(box, lightProp, "diffuse0", "Diffuse 0")
-        box.prop(lightProp, "useCustomDiffuse0")
+            row = box.row()
+            row.prop(lightProp, "useCustomDiffuse0")
+            row.prop(lightProp, "zeroDiffuse0")
 
         if lightProp.useCustomDiffuse1:
             prop_split(box, lightProp, "diffuse1Custom", "Diffuse 1")
             box.label(text="Make sure light is not part of scene hierarchy.", icon="FILE_PARENT")
+            box.prop(lightProp, "useCustomDiffuse1")
         else:
             prop_split(box, lightProp, "diffuse1", "Diffuse 1")
-        box.prop(lightProp, "useCustomDiffuse1")
+            row = box.row()
+            row.prop(lightProp, "useCustomDiffuse1")
+            row.prop(lightProp, "zeroDiffuse1")
 
         prop_split(box, lightProp, "fogColor", "Fog Color")
         prop_split(box, lightProp, "fogNear", "Fog Near")
@@ -457,7 +465,7 @@ def drawSceneHeaderProperty(layout, sceneProp, dropdownLabel, headerIndex, objNa
         lighting = layout.column()
         lighting.box().label(text="Lighting List")
         drawEnumWithCustom(lighting, sceneProp, "skyboxLighting", "Lighting Mode", "")
-        if sceneProp.skyboxLighting == "0x00":  # Time of Day
+        if sceneProp.skyboxLighting == "false":  # Time of Day
             drawLightGroupProperty(lighting, sceneProp.timeOfDayLights)
         else:
             for i in range(len(sceneProp.lightList)):
