@@ -7,6 +7,7 @@ from ..oot_level import OOTImportSceneSettingsProperty
 from ..oot_scene_room import OOTSceneHeaderProperty
 from .oot_scene_table_c import getDrawConfig
 from ...utility import yUpToZUp
+from collections import OrderedDict
 
 headerNames = ["childDayHeader", "childNightHeader", "adultDayHeader", "adultNightHeader"]
 
@@ -163,7 +164,7 @@ def parseSceneCommands(
             # Assumption that all scenes use the same collision.
             if headerIndex == 0:
                 collisionHeaderName = args[0][1:]  # remove '&'
-            print("Command not implemented.")
+                parseCollisionHeader(sceneObj, sceneData, collisionHeaderName)
         elif command == "SCENE_CMD_ENTRANCE_LIST":
             if not (args[0] == "NULL" or args[0] == "0" or args[0] == "0x00"):
                 entranceListName = args[0]
@@ -858,3 +859,146 @@ def parseLight(
         lightObj.data.color = color
         lightObj.data.type = "SUN"
         return lightObj
+
+
+def parseCollisionHeader(sceneObj: bpy.types.Object, sceneData: str, collisionHeaderName: str):
+    match = re.search(
+        rf"CollisionHeader\s*{re.escape(collisionHeaderName)}\s*=\s*\{{\s*\{{(.*?)\}}\s*,\s*\{{(.*?)\}}\s*,(.*?)\}}\s*;",
+        sceneData,
+        flags=re.DOTALL,
+    )
+    if not match:
+        raise PluginError(f"Could not find collision header {collisionHeaderName}.")
+
+    minBounds = [hexOrDecInt(value.strip()) for value in match.group(1).split(",")]
+    maxBounds = [hexOrDecInt(value.strip()) for value in match.group(2).split(",")]
+    otherParams = [value.strip() for value in match.group(3).split(",")]
+
+    vertexListName = otherParams[1]
+    polygonListName = otherParams[3]
+    surfaceTypeListName = otherParams[4]
+    camDataListName = otherParams[5]
+    waterBoxListName = otherParams[7]
+
+    parseCollision(sceneObj, vertexListName, polygonListName, surfaceTypeListName, sceneData)
+
+
+def parseCollision(
+    sceneObj: bpy.types.Object, vertexListName: str, polygonListName: str, surfaceTypeListName: str, sceneData: str
+):
+    vertMatch = re.search(
+        rf"Vec3s\s*{re.escape(vertexListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
+        sceneData,
+        flags=re.DOTALL,
+    )
+    if not vertMatch:
+        raise PluginError(f"Could not find vertex list {vertexListName}.")
+
+    polyMatch = re.search(
+        rf"CollisionPoly\s*{re.escape(polygonListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
+        sceneData,
+        flags=re.DOTALL,
+    )
+    if not polyMatch:
+        raise PluginError(f"Could not find polygon list {polygonListName}.")
+
+    surfMatch = re.search(
+        rf"SurfaceType\s*{re.escape(surfaceTypeListName)}\s*\[[\s0-9A-Fa-fx]*\]\s*=\s*\{{(.*?)\}}\s*;",
+        sceneData,
+        flags=re.DOTALL,
+    )
+    if not surfMatch:
+        raise PluginError(f"Could not find surface type list {surfaceTypeListName}.")
+
+    vertexList = [value.replace("{", "").strip() for value in vertMatch.group(1).split("},") if value.strip() != ""]
+    polygonList = [value.replace("{", "").strip() for value in polyMatch.group(1).split("},") if value.strip() != ""]
+    surfaceList = [value.replace("{", "").strip() for value in surfMatch.group(1).split("},") if value.strip() != ""]
+
+    # Although polygon params are geometry based, we will group them with surface.
+    collisionDict = OrderedDict()  # (surface, polygonParams) : list[triangles]
+
+    surfaces = parseSurfaces(surfaceList)
+    vertices = parseVertices(vertexList)
+
+    for polygonData in polygonList:
+        polygonParams, surfaceIndex, vertIndices, normal = parsePolygon(polygonData)
+        key = (surfaces[surfaceIndex], polygonParams)
+        if key not in collisionDict:
+            collisionDict[key] = []
+
+        collisionDict[key].append((vertIndices, normal))
+
+    mesh = bpy.data.meshes.new(polygonListName)
+    obj = bpy.data.objects.new(polygonListName, mesh)
+    bpy.context.scene.collection.objects.link(obj)
+
+    triData = []
+    triMatData = []
+    triNormalData = []
+
+    surfaceIndex = 0
+    for (surface, polygonParams), triList in collisionDict.items():
+        collisionMat = bpy.data.materials.new("oot_collision_mat")
+        mesh.materials.append(collisionMat)
+        for j in range(len(triList)):
+            triData.append(triList[j][0])
+            triMatData += [surfaceIndex]
+            triNormalData.append(tuple(triList[j][1]))
+        surfaceIndex += 1
+
+    mesh.from_pydata(vertices=vertices, edges=[], faces=triData)
+    for i in range(len(mesh.polygons)):
+        mesh.polygons[i].material_index = triMatData[i]
+
+    parentObject(sceneObj, obj)
+
+
+def parseSurfaces(surfaceList: list[str]):
+    surfaces = []
+    for surfaceData in surfaceList:
+        params = [hexOrDecInt(value.strip()) for value in surfaceData.split(",")]
+        surfaces.append(params[0])
+
+    return surfaces
+
+
+def parseVertices(vertexList: list[str]):
+    vertices = []
+    for vertexData in vertexList:
+        vertex = [hexOrDecInt(value.strip()) / bpy.context.scene.ootBlenderScale for value in vertexData.split(",")]
+        position = yUpToZUp @ mathutils.Vector(vertex)
+        vertices.append(position)
+
+    return vertices
+
+
+def parsePolygon(polygonData: str):
+    shorts = [hexOrDecInt(value.strip()) for value in polygonData.split(",")]
+    vertIndices = [0, 0, 0]
+
+    # 00
+    surfaceIndex = shorts[0]
+
+    # 02
+    vertIndices[0] = shorts[1] & 0x1FFF
+    ignoreCamera = 1 & (shorts[1] >> 13) == 1
+    ignoreActor = 1 & (shorts[1] >> 14) == 1
+    ignoreProjectile = 1 & (shorts[1] >> 15) == 1
+
+    # 04
+    vertIndices[1] = shorts[2] & 0x1FFF
+    enableConveyer = 1 & (shorts[2] >> 13) == 1
+
+    # 06
+    vertIndices[2] = shorts[3] & 0x1FFF
+
+    # 08-0C
+    normal = [
+        int.from_bytes(value.to_bytes(2, "big", signed=value < 0x8000), "big", signed=True) / 0x7FFF
+        for value in shorts[4:7]
+    ]
+
+    # 0E
+    distance = shorts[7]
+
+    return (ignoreCamera, ignoreActor, ignoreProjectile, enableConveyer), surfaceIndex, vertIndices, normal
