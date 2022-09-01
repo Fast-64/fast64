@@ -487,7 +487,7 @@ class OOTRoomHeaderProperty(bpy.types.PropertyGroup):
 
     objectList: bpy.props.CollectionProperty(type=OOTObjectProperty)
 
-    roomShape: bpy.props.EnumProperty(items=ootEnumShapeType, default="ROOM_SHAPE_TYPE_NORMAL")
+    roomShape: bpy.props.EnumProperty(items=ootEnumRoomShapeType, default="ROOM_SHAPE_TYPE_NORMAL")
     defaultCullDistance: bpy.props.IntProperty(name="Default Cull Distance", min=1, default=100)
 
 

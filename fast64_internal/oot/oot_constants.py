@@ -1,4 +1,4 @@
-ootEnumShapeType = [
+ootEnumRoomShapeType = [
     # ("Custom", "Custom", "Custom"),
     ("ROOM_SHAPE_TYPE_NORMAL", "Normal", "Normal"),
     ("ROOM_SHAPE_TYPE_IMAGE", "Image", "Image"),
