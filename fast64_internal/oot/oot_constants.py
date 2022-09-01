@@ -1,8 +1,18 @@
-ootEnumMeshType = [
+ootEnumShapeType = [
 	#("Custom", "Custom", "Custom"),
-	("0", "Type 0 (Simple)", "Type 0 (Simple)"),
-	("1", "Type 1 (Prerendered)", "Type 1 (Prerendered)"),
-	("2", "Type 2 (Distance Culling)", "Type 2 (Distance Culling)"),
+	("ROOM_SHAPE_TYPE_NORMAL", "Normal", "Normal"),
+	("ROOM_SHAPE_TYPE_IMAGE", "Image", "Image"),
+	("ROOM_SHAPE_TYPE_CULLABLE", "Cullable", "Cullable"),
+]
+
+ootRoomShapeStructs = [
+	"RoomShapeNormal",
+	"RoomShapeCullable",
+]
+
+ootRoomShapeEntryStructs = [
+	"RoomShapeDListsEntry",
+	"RoomShapeCullableEntry",
 ]
 
 ootEnumSceneMenu = [
@@ -561,7 +571,7 @@ ootEnumMapLocation = [
 
 ootEnumSkybox = [
 	("Custom", "Custom", "Custom"),
-	("0x00", "None", "None"), 
+	("0x00", "None", "None"),
 	("0x01", "Standard Sky", "Standard Sky"),
 	("0x02", "Hylian Bazaar", "Hylian Bazaar"),
 	("0x03", "Brown Cloudy Sky", "Brown Cloudy Sky"),
@@ -601,11 +611,11 @@ ootEnumAudioSessionPreset = [
 	("0x00", "0x00", "0x00"),
 ]
 
-ootEnumMusicSeq = [	
+ootEnumMusicSeq = [
 	("Custom", "Custom", "Custom"),
-	("0x02", "Hyrule Field", "Hyrule Field"),		
-	("0x03", "Hyrule Field (Initial Segment From Loading Area)", "Hyrule Field (Initial Segment From Loading Area)"), 	
-	("0x04", "Hyrule Field (Moving Segment 1)", "Hyrule Field (Moving Segment 1)"),	
+	("0x02", "Hyrule Field", "Hyrule Field"),
+	("0x03", "Hyrule Field (Initial Segment From Loading Area)", "Hyrule Field (Initial Segment From Loading Area)"),
+	("0x04", "Hyrule Field (Moving Segment 1)", "Hyrule Field (Moving Segment 1)"),
 	("0x05", "Hyrule Field (Moving Segment 2)", "Hyrule Field (Moving Segment 2)"),
 	("0x06", "Hyrule Field (Moving Segment 3)", "Hyrule Field (Moving Segment 3)"),
 	("0x07", "Hyrule Field (Moving Segment 4)", "Hyrule Field (Moving Segment 4)"),
@@ -625,17 +635,17 @@ ootEnumMusicSeq = [
 	("0x15", "Hyrule Field (Standing Still Segment 2)", "Hyrule Field (Standing Still Segment 2)"),
 	("0x16", "Hyrule Field (Standing Still Segment 3)", "Hyrule Field (Standing Still Segment 3)"),
 	("0x17", "Hyrule Field (Standing Still Segment 4)", "Hyrule Field (Standing Still Segment 4)"),
-	("0x18", "Dodongo's Cavern", "Dodongo's Cavern"), 		
-	("0x19", "Kakariko Village (Adult)", "Kakariko Village (Adult)"), 		
-	("0x1A", "Enemy Battle", "Enemy Battle"), 		
+	("0x18", "Dodongo's Cavern", "Dodongo's Cavern"),
+	("0x19", "Kakariko Village (Adult)", "Kakariko Village (Adult)"),
+	("0x1A", "Enemy Battle", "Enemy Battle"),
 	("0x1B", "Boss Battle 00", "Boss Battle 00"),
 	("0x1C", "Inside the Deku Tree", "Inside the Deku Tree"),
-	("0x1D", "Market", "Market"), 		
+	("0x1D", "Market", "Market"),
 	("0x1E", "Title Theme", "Title Theme"),
 	("0x1F", "Link's House", "Link's House"),
 	("0x20", "Game Over", "Game Over"),
 	("0x21", "Boss Clear", "Boss Clear"),
-	("0x22", "Item Get", "Item Get"),		
+	("0x22", "Item Get", "Item Get"),
 	("0x23", "Opening Ganon", "Opening Ganon"),
 	("0x24", "Heart Get", "Heart Get"),
 	("0x25", "Prelude Of Light", "Prelude Of Light"),
@@ -647,14 +657,14 @@ ootEnumMusicSeq = [
 	("0x2B", "Open Treasure Chest", "Open Treasure Chest"),
 	("0x2C", "Forest Temple", "Forest Temple"),
 	("0x2D", "Hyrule Castle Courtyard", "Hyrule Castle Courtyard"),
-	("0x2E", "Ganondorf's Theme", "Ganondorf's Theme"), 
+	("0x2E", "Ganondorf's Theme", "Ganondorf's Theme"),
 	("0x2F", "Lon Lon Ranch", "Lon Lon Ranch"),
-	("0x30", "Goron City", "Goron City "),		
-	("0x31", "Hyrule Field Morning Theme", "Hyrule Field Morning Theme"), 		
+	("0x30", "Goron City", "Goron City "),
+	("0x31", "Hyrule Field Morning Theme", "Hyrule Field Morning Theme"),
 	("0x32", "Spiritual Stone Get", "Spiritual Stone Get"),
 	("0x33", "Bolero of Fire", "Bolero of Fire"),
 	("0x34", "Minuet of Woods", "Minuet of Woods"),
-	("0x35", "Serenade of Water", "Serenade of Water"), 
+	("0x35", "Serenade of Water", "Serenade of Water"),
 	("0x36", "Requiem of Spirit", "Requiem of Spirit"),
 	("0x37", "Nocturne of Shadow", "Nocturne of Shadow"),
 	("0x38", "Mini-Boss Battle", "Mini-Boss Battle"),
@@ -672,13 +682,13 @@ ootEnumMusicSeq = [
 	("0x44", "Ocarina Saria's Song", "Ocarina Saria's Song"),
 	("0x45", "Ocarina Epona's Song", "Ocarina Epona's Song"),
 	("0x46", "Ocarina Zelda's Lullaby", "Ocarina Zelda's Lullaby"),
-	("0x47", "Sun's Song", "Sun's Song"), 		
-	("0x48", "Song of Time", "Song of Time"), 		
-	("0x49", "Song of Storms", "Song of Storms"), 		
+	("0x47", "Sun's Song", "Sun's Song"),
+	("0x48", "Song of Time", "Song of Time"),
+	("0x49", "Song of Storms", "Song of Storms"),
 	("0x4A", "Fairy Flying", "Fairy Flying"),
-	("0x4B", "Deku Tree", "Deku Tree"), 		
-	("0x4C", "Windmill Hut", "Windmill Hut"), 		
-	("0x4D", "Legend of Hyrule", "Legend of Hyrule"), 		
+	("0x4B", "Deku Tree", "Deku Tree"),
+	("0x4C", "Windmill Hut", "Windmill Hut"),
+	("0x4D", "Legend of Hyrule", "Legend of Hyrule"),
 	("0x4E", "Shooting Gallery", "Shooting Gallery"),
 	("0x4F", "Sheik's Theme", "Sheik's Theme"),
 	("0x50", "Zora's Domain", "Zora's Domain"),

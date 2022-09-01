@@ -284,11 +284,11 @@ class OOTScene:
                 )
             count = count + 1
 
-    def addRoom(self, roomIndex, roomName, meshType):
+    def addRoom(self, roomIndex, roomName, roomShape):
         roomModel = self.model.addSubModel(
             OOTModel(self.model.f3d.F3D_VER, self.model.f3d._HW_VERSION_1, roomName + "_dl", self.model.DLFormat, None)
         )
-        room = OOTRoom(roomIndex, roomName, roomModel, meshType)
+        room = OOTRoom(roomIndex, roomName, roomModel, roomShape)
         if roomIndex in self.rooms:
             raise PluginError("Repeat room index " + str(roomIndex) + " for " + str(roomName))
         self.rooms[roomIndex] = room
@@ -296,9 +296,9 @@ class OOTScene:
 
 
 class OOTRoomMesh:
-    def __init__(self, roomName, meshType, model):
+    def __init__(self, roomName, roomShape, model):
         self.roomName = roomName
-        self.meshType = meshType
+        self.roomShape = roomShape
         self.meshEntries = []
         self.model = model
 
@@ -307,10 +307,10 @@ class OOTRoomMesh:
             entry.DLGroup.terminateDLs()
 
     def headerName(self):
-        return str(self.roomName) + "_meshHeader"
+        return str(self.roomName) + "_shapeHeader"
 
     def entriesName(self):
-        return str(self.roomName) + "_meshDListEntry"
+        return str(self.roomName) + ("_shapeDListEntry" if self.roomShape == "ROOM_SHAPE_TYPE_NORMAL" else "_shapeCullableEntry")
 
     def addMeshGroup(self, cullGroup):
         meshGroup = OOTRoomMeshGroup(cullGroup, self.model.DLFormat, self.roomName, len(self.meshEntries))
@@ -377,11 +377,11 @@ class OOTRoomMeshGroup:
 
 
 class OOTRoom:
-    def __init__(self, index, name, model, meshType):
+    def __init__(self, index, name, model, roomShape):
         self.ownerName = toAlnum(name)
         self.index = index
         self.actorList = set()
-        self.mesh = OOTRoomMesh(self.roomName(), meshType, model)
+        self.mesh = OOTRoomMesh(self.roomName(), roomShape, model)
 
         # Room behaviour
         self.roomBehaviour = None
@@ -417,7 +417,7 @@ class OOTRoom:
         self.cutsceneHeaders = []
 
     def getAlternateHeaderRoom(self, name):
-        room = OOTRoom(self.index, name, self.mesh.model, self.mesh.meshType)
+        room = OOTRoom(self.index, name, self.mesh.model, self.mesh.roomShape)
         room.mesh = self.mesh
         return room
 
