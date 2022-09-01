@@ -476,90 +476,6 @@ class F3DPanel(bpy.types.Panel):
     bl_context = "material"
     bl_options = {"HIDE_HEADER"}
 
-    def ui_image(self, material, layout, textureProp, name, showCheckBox):
-        inputGroup = layout.box().column()
-
-        inputGroup.prop(
-            textureProp, "menu", text=name + " Properties", icon="TRIA_DOWN" if textureProp.menu else "TRIA_RIGHT"
-        )
-        if textureProp.menu:
-            tex = textureProp.tex
-            prop_input_name = inputGroup.column()
-            prop_input = inputGroup.column()
-
-            if showCheckBox:
-                prop_input_name.prop(textureProp, "tex_set", text="Set Texture")
-            else:
-                prop_input_name.label(text=name)
-            texIndex = name[-1]
-
-            prop_input.prop(textureProp, "use_tex_reference")
-            if textureProp.use_tex_reference:
-                prop_split(prop_input, textureProp, "tex_reference", "Texture Reference")
-                prop_split(prop_input, textureProp, "tex_reference_size", "Texture Size")
-                if textureProp.tex_format[:2] == "CI":
-                    prop_split(prop_input, textureProp, "pal_reference", "Palette Reference")
-                    prop_split(prop_input, textureProp, "pal_reference_size", "Palette Size")
-
-            else:
-                prop_input.template_ID(
-                    textureProp, "tex", new="image.new", open="image.open", unlink="image.tex" + texIndex + "_unlink"
-                )
-                prop_input.enabled = textureProp.tex_set
-
-                if tex is not None:
-                    prop_input.label(text="Size: " + str(tex.size[0]) + " x " + str(tex.size[1]))
-
-            if material.mat_ver > 3 and material.f3d_mat.use_large_textures:
-                prop_input.label(text="Large texture mode enabled.")
-                prop_input.label(text="Each triangle must fit in a single tile load.")
-                prop_input.label(text="UVs must be in the [0, 1024] pixel range.")
-            else:
-                tmemUsageUI(prop_input, textureProp)
-
-            prop_split(prop_input, textureProp, "tex_format", name="Format")
-            if textureProp.tex_format[:2] == "CI":
-                prop_split(prop_input, textureProp, "ci_format", name="CI Format")
-
-            if not (material.mat_ver > 3 and material.f3d_mat.use_large_textures):
-                texFieldSettings = prop_input.column()
-                clampSettings = texFieldSettings.row()
-                clampSettings.prop(textureProp.S, "clamp", text="Clamp S")
-                clampSettings.prop(textureProp.T, "clamp", text="Clamp T")
-
-                mirrorSettings = texFieldSettings.row()
-                mirrorSettings.prop(textureProp.S, "mirror", text="Mirror S")
-                mirrorSettings.prop(textureProp.T, "mirror", text="Mirror T")
-
-                prop_input.prop(textureProp, "autoprop", text="Auto Set Other Properties")
-
-                if not textureProp.autoprop:
-                    mask = prop_input.row()
-                    mask.prop(textureProp.S, "mask", text="Mask S")
-                    mask.prop(textureProp.T, "mask", text="Mask T")
-
-                    shift = prop_input.row()
-                    shift.prop(textureProp.S, "shift", text="Shift S")
-                    shift.prop(textureProp.T, "shift", text="Shift T")
-
-                    low = prop_input.row()
-                    low.prop(textureProp.S, "low", text="S Low")
-                    low.prop(textureProp.T, "low", text="T Low")
-
-                    high = prop_input.row()
-                    high.prop(textureProp.S, "high", text="S High")
-                    high.prop(textureProp.T, "high", text="T High")
-
-                if (
-                    tex is not None
-                    and tex.size[0] > 0
-                    and tex.size[1] > 0
-                    and (math.log(tex.size[0], 2) % 1 > 0.000001 or math.log(tex.size[1], 2) % 1 > 0.000001)
-                ):
-                    warnBox = layout.box()
-                    warnBox.label(text="Warning: Texture dimensions are not power of 2.")
-                    warnBox.label(text="Wrapping only occurs on power of 2 bounds.")
-
     def ui_prop(self, material, layout, name, setName, setProp, showCheckBox):
         nodes = material.node_tree.nodes
         inputGroup = layout.row()
@@ -835,11 +751,12 @@ class F3DPanel(bpy.types.Panel):
         if useMultitexture and f3dMat.tex0.tex_format[:2] == "CI" or f3dMat.tex1.tex_format[:2] == "CI":
             self.drawCIMultitextureNotice(inputCol)
 
+        canUseLargeTextures = material.mat_ver > 3 and material.f3d_mat.use_large_textures
         if useDict["Texture 0"] and f3dMat.tex0.tex_set:
-            self.ui_image(material, inputCol, f3dMat.tex0, "Texture 0", False)
+            ui_image(canUseLargeTextures, inputCol, f3dMat.tex0, "Texture 0", False)
 
         if useDict["Texture 1"] and f3dMat.tex1.tex_set:
-            self.ui_image(material, inputCol, f3dMat.tex1, "Texture 1", False)
+            ui_image(canUseLargeTextures, inputCol, f3dMat.tex1, "Texture 1", False)
 
         if useMultitexture:
             inputCol.prop(f3dMat, "uv_basis", text="UV Basis")
@@ -938,11 +855,12 @@ class F3DPanel(bpy.types.Panel):
             if useMultitexture and f3dMat.tex0.tex_format[:2] == "CI" or f3dMat.tex1.tex_format[:2] == "CI":
                 self.drawCIMultitextureNotice(inputCol)
 
+            canUseLargeTextures = material.mat_ver > 3 and material.f3d_mat.use_large_textures
             if useDict["Texture 0"]:
-                self.ui_image(material, inputCol, f3dMat.tex0, "Texture 0", True)
+                ui_image(canUseLargeTextures, inputCol, f3dMat.tex0, "Texture 0", True)
 
             if useDict["Texture 1"]:
-                self.ui_image(material, inputCol, f3dMat.tex1, "Texture 1", True)
+                ui_image(canUseLargeTextures, inputCol, f3dMat.tex1, "Texture 1", True)
 
             if useMultitexture:
                 inputCol.prop(f3dMat, "uv_basis", text="UV Basis")
@@ -1185,12 +1103,14 @@ def link_if_none_exist(
     if len(fromOutput.links) == 0:
         material.node_tree.links.new(fromOutput, toInput)
 
+
 swaps_tex01 = {
     "TEXEL0": "TEXEL1",
     "TEXEL0_ALPHA": "TEXEL1_ALPHA",
     "TEXEL1": "TEXEL0",
     "TEXEL1_ALPHA": "TEXEL0_ALPHA",
 }
+
 
 def update_node_combiner(material, combinerInputs, cycleIndex):
     nodes = material.node_tree.nodes
@@ -2194,6 +2114,93 @@ def update_combiner_connections_and_preset(self, context: bpy.types.Context):
         combiner = 1 if "combiner1" in prop_path else 2
 
         update_combiner_connections(material, context, combiner=combiner)
+
+
+def ui_image(
+    canUseLargeTextures: bool, layout: bpy.types.UILayout, textureProp: TextureProperty, name: str, showCheckBox: bool
+):
+    inputGroup = layout.box().column()
+
+    inputGroup.prop(
+        textureProp, "menu", text=name + " Properties", icon="TRIA_DOWN" if textureProp.menu else "TRIA_RIGHT"
+    )
+    if textureProp.menu:
+        tex = textureProp.tex
+        prop_input_name = inputGroup.column()
+        prop_input = inputGroup.column()
+
+        if showCheckBox:
+            prop_input_name.prop(textureProp, "tex_set", text="Set Texture")
+        else:
+            prop_input_name.label(text=name)
+        texIndex = name[-1]
+
+        prop_input.prop(textureProp, "use_tex_reference")
+        if textureProp.use_tex_reference:
+            prop_split(prop_input, textureProp, "tex_reference", "Texture Reference")
+            prop_split(prop_input, textureProp, "tex_reference_size", "Texture Size")
+            if textureProp.tex_format[:2] == "CI":
+                prop_split(prop_input, textureProp, "pal_reference", "Palette Reference")
+                prop_split(prop_input, textureProp, "pal_reference_size", "Palette Size")
+
+        else:
+            prop_input.template_ID(
+                textureProp, "tex", new="image.new", open="image.open", unlink="image.tex" + texIndex + "_unlink"
+            )
+            prop_input.enabled = textureProp.tex_set
+
+            if tex is not None:
+                prop_input.label(text="Size: " + str(tex.size[0]) + " x " + str(tex.size[1]))
+
+        if canUseLargeTextures:
+            prop_input.label(text="Large texture mode enabled.")
+            prop_input.label(text="Each triangle must fit in a single tile load.")
+            prop_input.label(text="UVs must be in the [0, 1024] pixel range.")
+        else:
+            tmemUsageUI(prop_input, textureProp)
+
+        prop_split(prop_input, textureProp, "tex_format", name="Format")
+        if textureProp.tex_format[:2] == "CI":
+            prop_split(prop_input, textureProp, "ci_format", name="CI Format")
+
+        if not (canUseLargeTextures):
+            texFieldSettings = prop_input.column()
+            clampSettings = texFieldSettings.row()
+            clampSettings.prop(textureProp.S, "clamp", text="Clamp S")
+            clampSettings.prop(textureProp.T, "clamp", text="Clamp T")
+
+            mirrorSettings = texFieldSettings.row()
+            mirrorSettings.prop(textureProp.S, "mirror", text="Mirror S")
+            mirrorSettings.prop(textureProp.T, "mirror", text="Mirror T")
+
+            prop_input.prop(textureProp, "autoprop", text="Auto Set Other Properties")
+
+            if not textureProp.autoprop:
+                mask = prop_input.row()
+                mask.prop(textureProp.S, "mask", text="Mask S")
+                mask.prop(textureProp.T, "mask", text="Mask T")
+
+                shift = prop_input.row()
+                shift.prop(textureProp.S, "shift", text="Shift S")
+                shift.prop(textureProp.T, "shift", text="Shift T")
+
+                low = prop_input.row()
+                low.prop(textureProp.S, "low", text="S Low")
+                low.prop(textureProp.T, "low", text="T Low")
+
+                high = prop_input.row()
+                high.prop(textureProp.S, "high", text="S High")
+                high.prop(textureProp.T, "high", text="T High")
+
+            if (
+                tex is not None
+                and tex.size[0] > 0
+                and tex.size[1] > 0
+                and (math.log(tex.size[0], 2) % 1 > 0.000001 or math.log(tex.size[1], 2) % 1 > 0.000001)
+            ):
+                warnBox = layout.box()
+                warnBox.label(text="Warning: Texture dimensions are not power of 2.")
+                warnBox.label(text="Wrapping only occurs on power of 2 bounds.")
 
 
 class CombinerProperty(bpy.types.PropertyGroup):

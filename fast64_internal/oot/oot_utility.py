@@ -564,6 +564,8 @@ def getCollection(objName, collectionType, subIndex):
         collection = obj.ootCutsceneProperty.csLists
     elif collectionType == "extraCutscenes":
         collection = obj.ootSceneHeader.extraCutscenes
+    elif collectionType == "BgImage":
+        collection = obj.ootRoomHeader.bgImageList
     else:
         raise PluginError("Invalid collection type: " + collectionType)
 

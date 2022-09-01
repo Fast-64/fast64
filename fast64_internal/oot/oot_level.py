@@ -229,6 +229,7 @@ oot_obj_classes = (
     OOTEntranceProperty,
     OOTSceneHeaderProperty,
     OOTAlternateSceneHeaderProperty,
+    OOTBGProperty,
     OOTRoomHeaderProperty,
     OOTAlternateRoomHeaderProperty,
     OOTImportSceneSettingsProperty,

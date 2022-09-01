@@ -517,6 +517,23 @@ def drawSceneHeaderProperty(layout, sceneProp, dropdownLabel, headerIndex, objNa
         drawAddButton(exitBox, len(sceneProp.exitList), "Exit", headerIndex, objName)
 
 
+class OOTBGProperty(bpy.types.PropertyGroup):
+    image: bpy.props.PointerProperty(type=bpy.types.Image)
+    camera: bpy.props.IntProperty(name="Camera Index", min=0)
+    otherModeFlags: bpy.props.StringProperty(
+        name="DPSetOtherMode Flags", default="0", description="See src/code/z_room.c:func_8009638C()"
+    )
+
+    def draw(self, layout: bpy.types.UILayout, index: int, objName: str, isMulti: bool):
+        box = layout.box().column()
+
+        box.template_ID(self, "image", new="image.new", open="image.open")
+        if isMulti:
+            prop_split(box, self, "camera", "Camera")
+        prop_split(box, self, "otherModeFlags", "Other Mode Flags")
+        drawCollectionOps(box, index, "BgImage", None, objName)
+
+
 class OOTRoomHeaderProperty(bpy.types.PropertyGroup):
     expandTab: bpy.props.BoolProperty(name="Expand Tab")
     menuTab: bpy.props.EnumProperty(items=ootEnumRoomMenu, update=onMenuTabChange)
@@ -556,6 +573,19 @@ class OOTRoomHeaderProperty(bpy.types.PropertyGroup):
 
     meshType: bpy.props.EnumProperty(items=ootEnumMeshType, default="0")
     defaultCullDistance: bpy.props.IntProperty(name="Default Cull Distance", min=1, default=100)
+    bgImageList: bpy.props.CollectionProperty(type=OOTBGProperty)
+    bgImageTab: bpy.props.BoolProperty(name="BG Images")
+
+
+def drawBGImageList(layout: bpy.types.UILayout, roomHeader: OOTRoomHeaderProperty, objName: str):
+    box = layout.column()
+    box.prop(roomHeader, "bgImageTab", text="BG Images", icon="TRIA_DOWN" if roomHeader.bgImageTab else "TRIA_RIGHT")
+    if roomHeader.bgImageTab:
+        imageCount = len(roomHeader.bgImageList)
+        for i in range(imageCount):
+            roomHeader.bgImageList[i].draw(box, i, objName, imageCount > 1)
+
+        drawAddButton(box, len(roomHeader.bgImageList), "BgImage", None, objName)
 
 
 def drawRoomHeaderProperty(layout, roomProp, dropdownLabel, headerIndex, objName):
@@ -587,6 +617,7 @@ def drawRoomHeaderProperty(layout, roomProp, dropdownLabel, headerIndex, objName
             prop_split(general, roomProp, "meshType", "Mesh Type")
             if roomProp.meshType == "1":
                 general.box().label(text="Mesh Type 1 not supported at this time.")
+                drawBGImageList(general, roomProp, objName)
             if roomProp.meshType == "2":
                 prop_split(general, roomProp, "defaultCullDistance", "Default Cull (Blender Units)")
 
