@@ -298,6 +298,36 @@ class OOTScene:
         for header in self.cutsceneHeaders:
             header.sortEntrances()
 
+    def copyBgImages(self, exportPath: str):
+        for i in range(len(self.rooms)):
+            self.rooms[i].mesh.copyBgImages(exportPath)
+
+
+class OOTBGImage:
+    def __init__(self, name: str, image: bpy.types.Image, cameraIndex: int, otherModeFlags: str):
+        self.name = name
+        self.image = image
+        self.cameraIndex = cameraIndex
+        self.otherModeFlags = otherModeFlags
+
+    def getFilename(self) -> str:
+        return f"{self.name}.jpg"
+
+    def singlePropertiesC(self, tabDepth: int) -> str:
+        code = ""
+        code += "\t" * tabDepth + f"{self.name},\n"
+        code += "\t" * tabDepth + f"0x00000000, 0x00000000,\n"
+        code += "\t" * tabDepth + f"{self.image.size[0]}, {self.image.size[1]},\n"
+        code += "\t" * tabDepth + f"0, 2,\n"  # RGBA16
+        code += "\t" * tabDepth + f"{self.otherModeFlags}, 0x0000,\n"
+        return code
+
+    def multiPropertiesC(self, tabDepth: int) -> str:
+        code = ""
+        code += "\t" * tabDepth + f"0x0082, {self.cameraIndex},\n"
+        code += self.singlePropertiesC(tabDepth)
+        return code
+
 
 class OOTRoomMesh:
     def __init__(self, roomName, meshType, model):
@@ -305,6 +335,7 @@ class OOTRoomMesh:
         self.meshType = meshType
         self.meshEntries = []
         self.model = model
+        self.bgImages = []
 
     def terminateDLs(self):
         for entry in self.meshEntries:
@@ -330,6 +361,36 @@ class OOTRoomMesh:
             if not meshEntry.DLGroup.isEmpty():
                 newList.append(meshEntry)
         self.meshEntries = newList
+
+    def copyBgImages(self, exportPath: str):
+        jpegCompatibility = False  # maybe delete some code later if jpeg compatibility improves
+        for bgImage in self.bgImages:
+            image = bgImage.image
+            imageFileName = bgImage.getFilename()
+            if jpegCompatibility:
+                isPacked = image.packed_file is not None
+                if not isPacked:
+                    image.pack()
+                oldpath = image.filepath
+                oldFormat = image.file_format
+                try:
+                    image.filepath = bpy.path.abspath(os.path.join(exportPath, imageFileName))
+                    image.file_format = "JPEG"
+                    image.save()
+                    if not isPacked:
+                        image.unpack()
+                    image.filepath = oldpath
+                    image.file_format = oldFormat
+                except Exception as e:
+                    image.filepath = oldpath
+                    image.file_format = oldFormat
+                    raise Exception(str(e))
+            else:
+                filepath = bpy.path.abspath(os.path.join(exportPath, imageFileName))
+                shutil.copy(bpy.path.abspath(image.filepath), filepath)
+
+    def getMultiBgStructName(self):
+        return self.roomName + "BgImage"
 
 
 class OOTDLGroup:

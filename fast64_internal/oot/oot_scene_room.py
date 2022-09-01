@@ -521,7 +521,7 @@ class OOTBGProperty(bpy.types.PropertyGroup):
     image: bpy.props.PointerProperty(type=bpy.types.Image)
     camera: bpy.props.IntProperty(name="Camera Index", min=0)
     otherModeFlags: bpy.props.StringProperty(
-        name="DPSetOtherMode Flags", default="0", description="See src/code/z_room.c:func_8009638C()"
+        name="DPSetOtherMode Flags", default="0x0000", description="See src/code/z_room.c:func_8009638C()"
     )
 
     def draw(self, layout: bpy.types.UILayout, index: int, objName: str, isMulti: bool):
@@ -581,6 +581,10 @@ def drawBGImageList(layout: bpy.types.UILayout, roomHeader: OOTRoomHeaderPropert
     box = layout.column()
     box.prop(roomHeader, "bgImageTab", text="BG Images", icon="TRIA_DOWN" if roomHeader.bgImageTab else "TRIA_RIGHT")
     if roomHeader.bgImageTab:
+        box.label(text="Mesh Type 1 only allows one room.", icon="INFO")
+        box.label(text="Must be jpg file with file marker.", icon="INFO")
+        box.label(text="Ex. MsPaint compatible, Photoshop not.")
+        box.label(text="Can't use files generated in Blender.")
         imageCount = len(roomHeader.bgImageList)
         for i in range(imageCount):
             roomHeader.bgImageList[i].draw(box, i, objName, imageCount > 1)

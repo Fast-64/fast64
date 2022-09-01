@@ -127,6 +127,9 @@ def ootExportSceneToC(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneN
     # Export the scene .h file
     writeCDataHeaderOnly(ootCreateSceneHeader(levelC), os.path.join(levelPath, scene.sceneName() + ".h"))
 
+    # Copy bg images
+    scene.copyBgImages(levelPath)
+
     if not isCustomExport:
         writeOtherSceneProperties(scene, exportInfo, levelC)
 
@@ -271,7 +274,12 @@ def getLightData(lightProp):
     return light
 
 
-def readRoomData(room, roomHeader, alternateRoomHeaders):
+def readRoomData(
+    sceneName: str,
+    room: OOTRoom,
+    roomHeader: OOTRoomHeaderProperty,
+    alternateRoomHeaders: OOTAlternateRoomHeaderProperty,
+):
     room.roomIndex = roomHeader.roomIndex
     room.roomBehaviour = getCustomProperty(roomHeader, "roomBehaviour")
     room.disableWarpSongs = roomHeader.disableWarpSongs
@@ -298,21 +306,34 @@ def readRoomData(room, roomHeader, alternateRoomHeaders):
     if alternateRoomHeaders is not None:
         if not alternateRoomHeaders.childNightHeader.usePreviousHeader:
             room.childNightHeader = room.getAlternateHeaderRoom(room.ownerName)
-            readRoomData(room.childNightHeader, alternateRoomHeaders.childNightHeader, None)
+            readRoomData(sceneName, room.childNightHeader, alternateRoomHeaders.childNightHeader, None)
 
         if not alternateRoomHeaders.adultDayHeader.usePreviousHeader:
             room.adultDayHeader = room.getAlternateHeaderRoom(room.ownerName)
-            readRoomData(room.adultDayHeader, alternateRoomHeaders.adultDayHeader, None)
+            readRoomData(sceneName, room.adultDayHeader, alternateRoomHeaders.adultDayHeader, None)
 
         if not alternateRoomHeaders.adultNightHeader.usePreviousHeader:
             room.adultNightHeader = room.getAlternateHeaderRoom(room.ownerName)
-            readRoomData(room.adultNightHeader, alternateRoomHeaders.adultNightHeader, None)
+            readRoomData(sceneName, room.adultNightHeader, alternateRoomHeaders.adultNightHeader, None)
 
         for i in range(len(alternateRoomHeaders.cutsceneHeaders)):
             cutsceneHeaderProp = alternateRoomHeaders.cutsceneHeaders[i]
             cutsceneHeader = room.getAlternateHeaderRoom(room.ownerName)
-            readRoomData(cutsceneHeader, cutsceneHeaderProp, None)
+            readRoomData(sceneName, cutsceneHeader, cutsceneHeaderProp, None)
             room.cutsceneHeaders.append(cutsceneHeader)
+
+    if roomHeader.meshType == "1":
+        for bgImage in roomHeader.bgImageList:
+            if bgImage.image is None:
+                raise PluginError("A room is mesh type 1 but does not have an image set in one of its BG images.")
+            room.mesh.bgImages.append(
+                OOTBGImage(
+                    toAlnum(sceneName + "_bg_" + bgImage.image.name),
+                    bgImage.image,
+                    bgImage.camera,
+                    bgImage.otherModeFlags,
+                )
+            )
 
 
 def readCamPos(camPosProp, obj, scene, sceneObj, transformMatrix):
@@ -398,12 +419,18 @@ def ootConvertScene(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneNam
 
             if obj.data is None and obj.ootEmptyType == "Room":
                 roomObj = obj
-                roomIndex = roomObj.ootRoomHeader.roomIndex
+                roomHeader = roomObj.ootRoomHeader
+                roomIndex = roomHeader.roomIndex
                 if roomIndex in processedRooms:
                     raise PluginError("Error: room index " + str(roomIndex) + " is used more than once.")
                 processedRooms.add(roomIndex)
-                room = scene.addRoom(roomIndex, sceneName, roomObj.ootRoomHeader.meshType)
-                readRoomData(room, roomObj.ootRoomHeader, roomObj.ootAlternateRoomHeaders)
+                room = scene.addRoom(roomIndex, sceneName, roomHeader.meshType)
+                readRoomData(sceneName, room, roomHeader, roomObj.ootAlternateRoomHeaders)
+
+                if roomHeader.meshType == "1" and len(roomHeader.bgImageList) < 1:
+                    raise PluginError(f"Room {roomObj.name} uses mesh type 1 but doesn't have any BG images.")
+                if roomHeader.meshType == "1" and len(processedRooms) > 1:
+                    raise PluginError(f"Mesh Type 1 can only have one room in the scene.")
 
                 cullGroup = CullGroup(translation, scale, obj.ootRoomHeader.defaultCullDistance)
                 DLGroup = room.mesh.addMeshGroup(cullGroup).DLGroup

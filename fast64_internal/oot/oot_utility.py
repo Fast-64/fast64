@@ -366,7 +366,7 @@ def ootGetPath(exportPath, isCustomExport, subPath, folderName, makeIfNotExists,
     else:
         if bpy.context.scene.ootDecompPath == "":
             raise PluginError("Decomp base path is empty.")
-        path = bpy.path.abspath(os.path.join(bpy.context.scene.ootDecompPath, subPath + folderName))
+        path = bpy.path.abspath(os.path.join(os.path.join(bpy.context.scene.ootDecompPath, subPath), folderName))
 
     if not os.path.exists(path):
         if isCustomExport and makeIfNotExists:
