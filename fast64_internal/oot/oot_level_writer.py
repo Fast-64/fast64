@@ -405,10 +405,16 @@ def ootConvertScene(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneNam
                 room = scene.addRoom(roomIndex, sceneName, roomObj.ootRoomHeader.meshType)
                 readRoomData(room, roomObj.ootRoomHeader, roomObj.ootAlternateRoomHeaders)
 
-                DLGroup = room.mesh.addMeshGroup(
-                    CullGroup(translation, scale, obj.ootRoomHeader.defaultCullDistance)
-                ).DLGroup
-                ootProcessMesh(room.mesh, DLGroup, sceneObj, roomObj, transformMatrix, convertTextureData, None)
+                cullGroup = CullGroup(translation, scale, obj.ootRoomHeader.defaultCullDistance)
+                DLGroup = room.mesh.addMeshGroup(cullGroup).DLGroup
+                boundingBox = BoundingBox()
+                ootProcessMesh(
+                    room.mesh, DLGroup, sceneObj, roomObj, transformMatrix, convertTextureData, None, boundingBox
+                )
+                centroid, radius = boundingBox.getEnclosingSphere()
+                cullGroup.position = centroid
+                cullGroup.cullDepth = radius
+
                 room.mesh.terminateDLs()
                 room.mesh.removeUnusedEntries()
                 ootProcessEmpties(scene, room, sceneObj, roomObj, transformMatrix)
@@ -436,10 +442,53 @@ def ootConvertScene(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneNam
     return scene
 
 
+class BoundingBox:
+    def __init__(self):
+        self.minPoint = None
+        self.maxPoint = None
+        self.points = []
+
+    def addPoint(self, point: tuple[float, float, float]):
+        if self.minPoint is None:
+            self.minPoint = list(point[:])
+        else:
+            for i in range(3):
+                if point[i] < self.minPoint[i]:
+                    self.minPoint[i] = point[i]
+        if self.maxPoint is None:
+            self.maxPoint = list(point[:])
+        else:
+            for i in range(3):
+                if point[i] > self.maxPoint[i]:
+                    self.maxPoint[i] = point[i]
+        self.points.append(point)
+
+    def addMeshObj(self, obj: bpy.types.Object, transform: mathutils.Matrix):
+        mesh = obj.data
+        for vertex in mesh.vertices:
+            self.addPoint(transform @ vertex.co)
+
+    def getEnclosingSphere(self) -> tuple[float, float]:
+        centroid = (mathutils.Vector(self.minPoint) + mathutils.Vector(self.maxPoint)) / 2
+        radius = 0
+        for point in self.points:
+            distance = (mathutils.Vector(point) - centroid).length
+            if distance > radius:
+                radius = distance
+
+        # print(f"Radius: {radius}, Centroid: {centroid}")
+
+        transformedCentroid = [round(value) for value in centroid]
+        transformedRadius = round(radius)
+        return transformedCentroid, transformedRadius
+
+
 # This function should be called on a copy of an object
 # The copy will have modifiers / scale applied and will be made single user
 # When we duplicated obj hierarchy we stripped all ignore_renders from hierarchy.
-def ootProcessMesh(roomMesh, DLGroup, sceneObj, obj, transformMatrix, convertTextureData, LODHierarchyObject):
+def ootProcessMesh(
+    roomMesh, DLGroup, sceneObj, obj, transformMatrix, convertTextureData, LODHierarchyObject, boundingBox: BoundingBox
+):
 
     relativeTransform = transformMatrix @ sceneObj.matrix_world.inverted() @ obj.matrix_world
     translation, rotation, scale = relativeTransform.decompose()
@@ -453,9 +502,14 @@ def ootProcessMesh(roomMesh, DLGroup, sceneObj, obj, transformMatrix, convertTex
                 + LODHierarchyObject.name
             )
 
+        cullProp = obj.ootCullGroupProperty
         checkUniformScale(scale, obj)
         DLGroup = roomMesh.addMeshGroup(
-            CullGroup(ootConvertTranslation(translation), scale, obj.empty_display_size)
+            CullGroup(
+                ootConvertTranslation(translation),
+                scale if cullProp.sizeControlsCull else [cullProp.manualRadius],
+                obj.empty_display_size if cullProp.sizeControlsCull else 1,
+            )
         ).DLGroup
 
     elif isinstance(obj.data, bpy.types.Mesh) and not obj.ignore_render:
@@ -474,19 +528,37 @@ def ootProcessMesh(roomMesh, DLGroup, sceneObj, obj, transformMatrix, convertTex
             for drawLayer, fMesh in fMeshes.items():
                 DLGroup.addDLCall(fMesh.draw, drawLayer)
 
+        boundingBox.addMeshObj(obj, relativeTransform)
+
     alphabeticalChildren = sorted(obj.children, key=lambda childObj: childObj.original_name.lower())
     for childObj in alphabeticalChildren:
         if childObj.data is None and childObj.ootEmptyType == "LOD":
             ootProcessLOD(
-                roomMesh, DLGroup, sceneObj, childObj, transformMatrix, convertTextureData, LODHierarchyObject
+                roomMesh,
+                DLGroup,
+                sceneObj,
+                childObj,
+                transformMatrix,
+                convertTextureData,
+                LODHierarchyObject,
+                boundingBox,
             )
         else:
             ootProcessMesh(
-                roomMesh, DLGroup, sceneObj, childObj, transformMatrix, convertTextureData, LODHierarchyObject
+                roomMesh,
+                DLGroup,
+                sceneObj,
+                childObj,
+                transformMatrix,
+                convertTextureData,
+                LODHierarchyObject,
+                boundingBox,
             )
 
 
-def ootProcessLOD(roomMesh, DLGroup, sceneObj, obj, transformMatrix, convertTextureData, LODHierarchyObject):
+def ootProcessLOD(
+    roomMesh, DLGroup, sceneObj, obj, transformMatrix, convertTextureData, LODHierarchyObject, boundingBox: BoundingBox
+):
 
     relativeTransform = transformMatrix @ sceneObj.matrix_world.inverted() @ obj.matrix_world
     translation, rotation, scale = relativeTransform.decompose()
@@ -507,11 +579,25 @@ def ootProcessLOD(roomMesh, DLGroup, sceneObj, obj, transformMatrix, convertText
 
         if childObj.data is None and childObj.ootEmptyType == "LOD":
             ootProcessLOD(
-                roomMesh, childDLGroup, sceneObj, childObj, transformMatrix, convertTextureData, LODHierarchyObject
+                roomMesh,
+                childDLGroup,
+                sceneObj,
+                childObj,
+                transformMatrix,
+                convertTextureData,
+                LODHierarchyObject,
+                boundingBox,
             )
         else:
             ootProcessMesh(
-                roomMesh, childDLGroup, sceneObj, childObj, transformMatrix, convertTextureData, LODHierarchyObject
+                roomMesh,
+                childDLGroup,
+                sceneObj,
+                childObj,
+                transformMatrix,
+                convertTextureData,
+                LODHierarchyObject,
+                boundingBox,
             )
 
         # We handle case with no geometry, for the cases where we have "gaps" in the LOD hierarchy.

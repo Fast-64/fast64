@@ -75,7 +75,7 @@ class OOTObjectPanel(bpy.types.Panel):
             drawEntranceProperty(box, obj, altSceneProp, objName)
 
         elif obj.ootEmptyType == "Cull Group":
-            drawCullGroupProperty(box, obj)
+            obj.ootCullGroupProperty.draw(box)
 
         elif obj.ootEmptyType == "LOD":
             drawLODProperty(box, obj)
@@ -105,12 +105,6 @@ def drawLODProperty(box, obj):
         if bpy.context.scene.exportHiddenGeometry or not otherObj.hide_get():
             prop_split(col, otherObj, "f3d_lod_z", otherObj.name)
     col.prop(obj, "f3d_lod_always_render_farthest")
-
-
-def drawCullGroupProperty(box, obj):
-    col = box.column()
-    col.label(text="Use Options -> Transform -> Affect Only -> Parent ")
-    col.label(text="to move object without affecting children.")
 
 
 def setLightPropertyValues(lightProp, ambient, diffuse0, diffuse1, fogColor, fogNear):
@@ -189,6 +183,21 @@ class OOTImportSceneSettingsProperty(bpy.types.PropertyGroup):
                 prop_split(col, self, "name", "Name")
 
 
+class OOTCullGroupProperty(bpy.types.PropertyGroup):
+    sizeControlsCull: bpy.props.BoolProperty(default=True, name="Empty Size Controls Cull Depth")
+    manualRadius: bpy.props.IntProperty(min=0)
+
+    def draw(self, layout: bpy.types.UILayout):
+        col = layout.column()
+        col.prop(self, "sizeControlsCull")
+        if not self.sizeControlsCull:
+            prop_split(col, self, "manualRadius", "Radius (OOT Units)")
+        col.label(text="Meshes generate cull groups automatically.", icon="INFO")
+        col.label(text="This is only for custom cull group shapes.")
+        col.label(text="Use Options -> Transform -> Affect Only -> Parent ", icon="INFO")
+        col.label(text="to move object without affecting children.")
+
+
 oot_obj_classes = (
     OOTSceneProperties,
     OOT_ObjectProperties,
@@ -224,6 +233,7 @@ oot_obj_classes = (
     OOTAlternateRoomHeaderProperty,
     OOTImportSceneSettingsProperty,
     OOTExportSceneSettingsProperty,
+    OOTCullGroupProperty,
 )
 
 oot_obj_panel_classes = (OOTObjectPanel,)
@@ -266,6 +276,7 @@ def oot_obj_register():
     bpy.types.Object.ootAlternateRoomHeaders = bpy.props.PointerProperty(type=OOTAlternateRoomHeaderProperty)
     bpy.types.Object.ootEntranceProperty = bpy.props.PointerProperty(type=OOTEntranceProperty)
     bpy.types.Object.ootCutsceneProperty = bpy.props.PointerProperty(type=OOTCutsceneProperty)
+    bpy.types.Object.ootCullGroupProperty = bpy.props.PointerProperty(type=OOTCullGroupProperty)
 
 
 def oot_obj_unregister():

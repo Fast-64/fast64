@@ -664,7 +664,10 @@ def ootSceneIncludes(scene):
     data.source += '#include "ultra64.h"\n'
     data.source += '#include "z64.h"\n'
     data.source += '#include "macros.h"\n'
-    data.source += '#include "' + scene.sceneName() + '.h"\n\n'
+    data.source += '#include "' + scene.sceneName() + '.h"\n'
+    for i in range(len(scene.rooms)):
+        data.source += f'#include "{scene.rooms[i].roomName()}.h"\n'
+
     data.source += '#include "segment_symbols.h"\n'
     data.source += '#include "command_macros_base.h"\n'
     data.source += '#include "z64cutscene_commands.h"\n'

@@ -383,7 +383,7 @@ class OOT_DisplayListPanel(bpy.types.Panel):
         )
 
     def draw(self, context):
-        box = self.layout.box()
+        box = self.layout.box().column()
         box.box().label(text="OOT DL Inspector")
         obj = context.object
 

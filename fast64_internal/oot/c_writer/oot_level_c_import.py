@@ -21,9 +21,19 @@ def getBits(value: int, index: int, size: int) -> int:
     return ((1 << size) - 1) & (value >> index)
 
 
-def getDataMatch(sceneData: str, name: str, dataType: str, errorMessageID: str, isArray: bool = True) -> str:
+def getDataMatch(
+    sceneData: str, name: str, dataType: str | list[str], errorMessageID: str, isArray: bool = True
+) -> str:
     arrayText = rf"\[[\s0-9A-Fa-fx]*\]\s*" if isArray else ""
-    regex = rf"{re.escape(dataType)}\s*{re.escape(name)}\s*{arrayText}=\s*\{{(.*?)\}}\s*;"
+
+    if isinstance(dataType, list):
+        dataTypeRegex = "(?:"
+        for i in dataType:
+            dataTypeRegex += f"(?:{re.escape(i)})|"
+        dataTypeRegex = dataTypeRegex[:-1] + ")"
+    else:
+        dataTypeRegex = re.escape(dataType)
+    regex = rf"{dataTypeRegex}\s*{re.escape(name)}\s*{arrayText}=\s*\{{(.*?)\}}\s*;"
     match = re.search(regex, sceneData, flags=re.DOTALL)
     if not match:
         raise PluginError(f"Could not find {errorMessageID} {name}.")
@@ -95,7 +105,8 @@ def parseScene(
 
     roomData = ""
     for match in re.finditer(rf"#include\s*\"({re.escape(sceneName)}\_room\_[0-9]+)\.h\"", sceneData, flags=re.DOTALL):
-        roomData += readFile(os.path.join(sceneFolderPath, match.group(1) + ".c"))
+        roomPath = os.path.join(sceneFolderPath, match.group(1) + ".c")
+        roomData += readFile(roomPath)
 
     sceneData += roomData
 
@@ -108,6 +119,8 @@ def parseScene(
 
     bpy.context.space_data.overlay.show_relationship_lines = False
     sceneCommandsName = f"{sceneName}_sceneCommands"
+    if sceneCommandsName not in sceneData:
+        sceneCommandsName = f"{sceneName}_scene_header00"  # fast64 naming
     sharedSceneData = SharedSceneData()
     sceneObj = parseSceneCommands(None, None, sceneCommandsName, sceneData, f3dContext, 0, sharedSceneData)
     bpy.context.scene.ootSceneExportObj = sceneObj
@@ -145,7 +158,7 @@ def parseSceneCommands(
             cutsceneHeaders.add()
         sceneHeader = cutsceneHeaders[headerIndex - 4]
 
-    commands = getDataMatch(sceneData, sceneCommandsName, "SceneCmd", "scene commands")
+    commands = getDataMatch(sceneData, sceneCommandsName, ["SceneCmd", "SCmdBase"], "scene commands")
     entranceList = None
     altHeadersListName = None
     for commandMatch in re.finditer(rf"(SCENE\_CMD\_[a-zA-Z0-9\_]*)\s*\((.*?)\)\s*,", commands, flags=re.DOTALL):
@@ -236,9 +249,17 @@ def parseRoomList(
     roomObjs = []
 
     # Assumption that alternate scene headers all use the same room list.
-    for roomMatch in re.finditer(rf"\{{([\sA-Za-z0-9\_]*),([\sA-Za-z0-9\_]*)\}}\s*,", roomList, flags=re.DOTALL):
-        roomName = roomMatch.group(1).strip().replace("SegmentRomStart", "")[1:]
+    for roomMatch in re.finditer(
+        rf"\{{([\(\)\sA-Za-z0-9\_]*),([\(\)\sA-Za-z0-9\_]*)\}}\s*,", roomList, flags=re.DOTALL
+    ):
+        roomName = roomMatch.group(1).strip().replace("SegmentRomStart", "")
+        if "(u32)" in roomName:
+            roomName = roomName[5:].strip()[1:]  # includes leading underscore
+        else:
+            roomName = roomName[1:]
         roomCommandsName = f"{roomName}Commands"
+        if roomCommandsName not in sceneData:
+            roomCommandsName = f"{roomName}_header00"  # fast64 naming
         roomObj = parseRoomCommands(None, sceneData, roomCommandsName, index, f3dContext, sharedSceneData, headerIndex)
         parentObject(sceneObj, roomObj)
         index += 1
@@ -274,7 +295,7 @@ def parseRoomCommands(
             cutsceneHeaders.add()
         roomHeader = cutsceneHeaders[headerIndex - 4]
 
-    commands = getDataMatch(sceneData, roomCommandsName, "SceneCmd", "scene commands")
+    commands = getDataMatch(sceneData, roomCommandsName, ["SceneCmd", "SCmdBase"], "scene commands")
     for commandMatch in re.finditer(rf"(SCENE\_CMD\_[a-zA-Z0-9\_]*)\s*\((.*?)\)\s*,", commands, flags=re.DOTALL):
         command = commandMatch.group(1)
         args = [arg.strip() for arg in commandMatch.group(2).split(",")]
@@ -365,7 +386,11 @@ def parseMeshList(
             cullObj = bpy.context.view_layer.objects.active
             cullObj.ootEmptyType = "Cull Group"
             cullObj.name = "Cull Group"
-            cullObj.empty_display_size = hexOrDecInt(entryMatch.group(4).strip()) / bpy.context.scene.ootBlenderScale
+            cullProp = cullObj.ootCullGroupProperty
+            cullProp.sizeControlsCull = False
+            cullProp.manualRadius = hexOrDecInt(entryMatch.group(4).strip())
+            cullObj.show_name = True
+            # cullObj.empty_display_size = hexOrDecInt(entryMatch.group(4).strip()) / bpy.context.scene.ootBlenderScale
             parentObject(roomObj, cullObj)
             parentObj = cullObj
 
@@ -383,6 +408,7 @@ def parseMeshList(
                 meshObj = importMeshC(
                     sceneData, displayList, bpy.context.scene.ootBlenderScale, True, True, drawLayer, f3dContext, False
                 )
+                meshObj.location = [0, 0, 0]
                 meshObj.ignore_collision = True
                 parentObject(parentObj, meshObj)
 
@@ -475,11 +501,22 @@ def parseEntranceList(
     return entrances
 
 
-def parseActorInfo(actorMatch: re.Match) -> tuple[str, list[int], list[int], str]:
-    actorID = actorMatch.group(1).strip()
-    position = tuple([hexOrDecInt(value.strip()) for value in actorMatch.group(2).split(",") if value.strip() != ""])
-    rotation = tuple([hexOrDecInt(value.strip()) for value in actorMatch.group(3).split(",") if value.strip() != ""])
-    actorParam = actorMatch.group(4).strip()
+def parseActorInfo(actorMatch: re.Match, nestedBrackets: bool) -> tuple[str, list[int], list[int], str]:
+    if nestedBrackets:
+        actorID = actorMatch.group(1).strip()
+        position = tuple(
+            [hexOrDecInt(value.strip()) for value in actorMatch.group(2).split(",") if value.strip() != ""]
+        )
+        rotation = tuple(
+            [hexOrDecInt(value.strip()) for value in actorMatch.group(3).split(",") if value.strip() != ""]
+        )
+        actorParam = actorMatch.group(4).strip()
+    else:
+        params = [value.strip() for value in actorMatch.group(1).split(",")]
+        actorID = params[0]
+        position = tuple([hexOrDecInt(value) for value in params[1:4]])
+        rotation = tuple([hexOrDecInt(value) for value in params[4:7]])
+        actorParam = params[7]
 
     return actorID, position, rotation, actorParam
 
@@ -504,8 +541,9 @@ def parseSpawnList(
     # see also start position list
     spawnList = getDataMatch(sceneData, spawnListName, "ActorEntry", "spawn list")
     index = 0
-    for spawnMatch in re.finditer(r"\{(.*?),\s*\{(.*?)\}\s*,\s*\{(.*?)\}\s*,(.*?)\}\s*,", spawnList, flags=re.DOTALL):
-        actorID, position, rotation, actorParam = parseActorInfo(spawnMatch)
+    regex, nestedBrackets = getActorRegex(spawnList)
+    for spawnMatch in re.finditer(regex, spawnList, flags=re.DOTALL):
+        actorID, position, rotation, actorParam = parseActorInfo(spawnMatch, nestedBrackets)
         spawnIndex, roomIndex = [value for value in entranceList if value[0] == index][0]
         actorHash = (actorID, position, rotation, actorParam, spawnIndex, roomIndex)
 
@@ -547,12 +585,24 @@ def parseObjectList(roomHeader: OOTRoomHeaderProperty, sceneData: str, objectLis
         setCustomProperty(objectProp, "objectID", object, ootEnumObjectID)
 
 
+def getActorRegex(actorList: list[str]):
+    nestedBrackets = re.search(r"\{[^\}]*\{", actorList) is not None
+    if nestedBrackets:
+        regex = r"\{(.*?),\s*\{(.*?)\}\s*,\s*\{(.*?)\}\s*,(.*?)\}\s*,"
+    else:
+        regex = r"\{(.*?)\}\s*,"
+
+    return regex, nestedBrackets
+
+
 def parseActorList(
     roomObj: bpy.types.Object, sceneData: str, actorListName: str, sharedSceneData: SharedSceneData, headerIndex: int
 ):
     actorList = getDataMatch(sceneData, actorListName, "ActorEntry", "actor list")
-    for actorMatch in re.finditer(r"\{(.*?),\s*\{(.*?)\}\s*,\s*\{(.*?)\}\s*,(.*?)\}\s*,", actorList, flags=re.DOTALL):
-        actorHash = parseActorInfo(actorMatch) + (roomObj.ootRoomHeader.roomIndex,)
+    regex, nestedBrackets = getActorRegex(actorList)
+
+    for actorMatch in re.finditer(regex, actorList, flags=re.DOTALL):
+        actorHash = parseActorInfo(actorMatch, nestedBrackets) + (roomObj.ootRoomHeader.roomIndex,)
 
         if not sharedSceneData.addHeaderIfItemExists(actorHash, "Actor", headerIndex):
             actorID, position, rotation, actorParam, roomIndex = actorHash
@@ -579,7 +629,7 @@ def parseAlternateSceneHeaders(
     f3dContext: OOTF3DContext,
     sharedSceneData: SharedSceneData,
 ):
-    altHeadersData = getDataMatch(sceneData, altHeadersListName, "SceneCmd*", "alternate header list")
+    altHeadersData = getDataMatch(sceneData, altHeadersListName, ["SceneCmd*", "SCmdBase*"], "alternate header list")
     altHeadersList = [value.strip() for value in altHeadersData.split(",") if value.strip() != ""]
 
     for i in range(len(altHeadersList)):
@@ -595,7 +645,7 @@ def parseAlternateRoomHeaders(
     altHeadersListName: str,
     f3dContext: OOTF3DContext,
 ):
-    altHeadersData = getDataMatch(sceneData, altHeadersListName, "SceneCmd*", "alternate header list")
+    altHeadersData = getDataMatch(sceneData, altHeadersListName, ["SceneCmd*", "SCmdBase*"], "alternate header list")
     altHeadersList = [value.strip() for value in altHeadersData.split(",") if value.strip() != ""]
 
     for i in range(len(altHeadersList)):
@@ -772,12 +822,24 @@ def parseCollisionHeader(
         sceneData,
         flags=re.DOTALL,
     )
-    if not match:
-        raise PluginError(f"Could not find collision header {collisionHeaderName}.")
 
-    minBounds = [hexOrDecInt(value.strip()) for value in match.group(1).split(",")]
-    maxBounds = [hexOrDecInt(value.strip()) for value in match.group(2).split(",")]
-    otherParams = [value.strip() for value in match.group(3).split(",")]
+    if not match:
+        match = re.search(
+            rf"CollisionHeader\s*{re.escape(collisionHeaderName)}\s*=\s*\{{(.*?)\}}\s*;",
+            sceneData,
+            flags=re.DOTALL,
+        )
+        params = [value.strip() for value in match.group(1).split(",")]
+        minBounds = [hexOrDecInt(value.strip()) for value in params[0:3]]
+        maxBounds = [hexOrDecInt(value.strip()) for value in params[3:6]]
+        otherParams = [value.strip() for value in params[6:]]
+
+        if not match:
+            raise PluginError(f"Could not find collision header {collisionHeaderName}.")
+    else:
+        minBounds = [hexOrDecInt(value.strip()) for value in match.group(1).split(",")]
+        maxBounds = [hexOrDecInt(value.strip()) for value in match.group(2).split(",")]
+        otherParams = [value.strip() for value in match.group(3).split(",")]
 
     vertexListName = otherParams[1]
     polygonListName = otherParams[3]
@@ -786,8 +848,10 @@ def parseCollisionHeader(
     waterBoxListName = otherParams[7]
 
     parseCollision(sceneObj, vertexListName, polygonListName, surfaceTypeListName, sceneData)
-    parseCamDataList(sceneObj, camDataListName, sceneData)
-    parseWaterBoxes(roomObjs, sceneData, waterBoxListName)
+    if camDataListName != "NULL" and camDataListName != "0":
+        parseCamDataList(sceneObj, camDataListName, sceneData)
+    if waterBoxListName != "NULL" and waterBoxListName != "0":
+        parseWaterBoxes(roomObjs, sceneData, waterBoxListName)
 
 
 def parseCollision(
@@ -928,7 +992,7 @@ def parsePolygon(polygonData: str):
     normal = []
     for value in shorts[4:7]:
         if isinstance(value, str) and "COLPOLY_SNORMAL" in value:
-            normal.append(float(value[value.index("(" + 1) : value.index(")")]))
+            normal.append(float(value[value.index("(") + 1 : value.index(")")]))
         else:
             normal.append(int.from_bytes(value.to_bytes(2, "big", signed=value < 0x8000), "big", signed=True) / 0x7FFF)
 
@@ -1052,9 +1116,9 @@ def parseWaterBoxes(
 
         location = mathutils.Vector([0, 0, 0])
         scale = [dimensions[0] / 2, dimensions[1] / 2, height / 2]
-        location.x = topCorner[0] + scale[0] # x
-        location.y = topCorner[1] - scale[1] # -z
-        location.z = topCorner.z - scale[2] # y
+        location.x = topCorner[0] + scale[0]  # x
+        location.y = topCorner[1] - scale[1]  # -z
+        location.z = topCorner.z - scale[2]  # y
 
         waterBoxObj = bpy.data.objects.new(objName, None)
         bpy.context.scene.collection.objects.link(waterBoxObj)

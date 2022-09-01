@@ -516,7 +516,7 @@ ootEnumEmptyType = [
     ("Transition Actor", "Transition Actor", "Transition Actor"),
     ("Entrance", "Entrance", "Entrance"),
     ("Water Box", "Water Box", "Water Box"),
-    ("Cull Group", "Cull Group", "Cull Group"),
+    ("Cull Group", "Custom Cull Group", "Cull Group"),
     ("LOD", "LOD Group", "LOD Group"),
     ("Cutscene", "Cutscene", "Cutscene"),
     # ('Camera Volume', 'Camera Volume', 'Camera Volume'),
