@@ -336,7 +336,9 @@ def ootRoomMeshToC(room, textureExportSettings):
     meshEntries.header = (
         f"extern {ootRoomShapeEntryStructs[shapeTypeIdx]} {mesh.entriesName()}[{str(len(mesh.meshEntries))}];\n"
     )
-    meshEntries.source = f"{ootRoomShapeEntryStructs[shapeTypeIdx]} {mesh.entriesName()}[{str(len(mesh.meshEntries))}] = " + "{\n"
+    meshEntries.source = (
+        f"{ootRoomShapeEntryStructs[shapeTypeIdx]} {mesh.entriesName()}[{str(len(mesh.meshEntries))}] = " + "{\n"
+    )
     meshData = CData()
     for entry in mesh.meshEntries:
         meshEntries.source += "\t" + ootMeshEntryToC(entry, mesh.roomShape)

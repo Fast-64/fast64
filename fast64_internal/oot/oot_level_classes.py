@@ -310,7 +310,9 @@ class OOTRoomMesh:
         return str(self.roomName) + "_shapeHeader"
 
     def entriesName(self):
-        return str(self.roomName) + ("_shapeDListEntry" if self.roomShape == "ROOM_SHAPE_TYPE_NORMAL" else "_shapeCullableEntry")
+        return str(self.roomName) + (
+            "_shapeDListEntry" if self.roomShape == "ROOM_SHAPE_TYPE_NORMAL" else "_shapeCullableEntry"
+        )
 
     def addMeshGroup(self, cullGroup):
         meshGroup = OOTRoomMeshGroup(cullGroup, self.model.DLFormat, self.roomName, len(self.meshEntries))
