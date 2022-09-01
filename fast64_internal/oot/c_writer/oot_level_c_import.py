@@ -13,6 +13,14 @@ from collections import OrderedDict
 headerNames = ["childDayHeader", "childNightHeader", "adultDayHeader", "adultNightHeader"]
 
 
+def checkBit(value: int, index: int) -> bool:
+    return (1 & (value >> index)) == 1
+
+
+def getBits(value: int, index: int, size: int) -> int:
+    return ((1 << size) - 1) & (value >> index)
+
+
 def getDataMatch(sceneData: str, name: str, dataType: str, errorMessageID: str, isArray: bool = True) -> str:
     arrayText = rf"\[[\s0-9A-Fa-fx]*\]\s*" if isArray else ""
     regex = rf"{re.escape(dataType)}\s*{re.escape(name)}\s*{arrayText}=\s*\{{(.*?)\}}\s*;"
@@ -167,7 +175,7 @@ def parseSceneCommands(
             # Assumption that all scenes use the same collision.
             if headerIndex == 0:
                 collisionHeaderName = args[0][1:]  # remove '&'
-                parseCollisionHeader(sceneObj, sceneData, collisionHeaderName)
+                parseCollisionHeader(sceneObj, roomObjs, sceneData, collisionHeaderName)
         elif command == "SCENE_CMD_ENTRANCE_LIST":
             if not (args[0] == "NULL" or args[0] == "0" or args[0] == "0x00"):
                 entranceListName = args[0]
@@ -756,7 +764,9 @@ def parseLight(
         return lightObj
 
 
-def parseCollisionHeader(sceneObj: bpy.types.Object, sceneData: str, collisionHeaderName: str):
+def parseCollisionHeader(
+    sceneObj: bpy.types.Object, roomObjs: list[bpy.types.Object], sceneData: str, collisionHeaderName: str
+):
     match = re.search(
         rf"CollisionHeader\s*{re.escape(collisionHeaderName)}\s*=\s*\{{\s*\{{(.*?)\}}\s*,\s*\{{(.*?)\}}\s*,(.*?)\}}\s*;",
         sceneData,
@@ -777,6 +787,7 @@ def parseCollisionHeader(sceneObj: bpy.types.Object, sceneData: str, collisionHe
 
     parseCollision(sceneObj, vertexListName, polygonListName, surfaceTypeListName, sceneData)
     parseCamDataList(sceneObj, camDataListName, sceneData)
+    parseWaterBoxes(roomObjs, sceneData, waterBoxListName)
 
 
 def parseCollision(
@@ -839,12 +850,6 @@ def parseSurfaceParams(
 ):
     params = surface
     ignoreCamera, ignoreActor, ignoreProjectile, enableConveyor = polygonParams
-
-    def checkBit(value: int, index: int) -> bool:
-        return (1 & (value >> index)) == 1
-
-    def getBits(value: int, index: int, size: int) -> int:
-        return ((1 << size) - 1) & (value >> index)
 
     collision.eponaBlock = checkBit(params[0], 31)
     collision.decreaseHeight = checkBit(params[0], 30)
@@ -1022,3 +1027,46 @@ def parseCrawlSpaceData(
     setCustomProperty(crawlProp, "camSType", "CAM_SET_CRAWLSPACE", ootEnumCameraCrawlspaceSType)
 
     return curveObj
+
+
+def parseWaterBoxes(
+    roomObjs: list[bpy.types.Object],
+    sceneData: str,
+    waterBoxListName: str,
+):
+    waterBoxListData = getDataMatch(sceneData, waterBoxListName, "WaterBox", "water box list")
+    waterBoxList = [value.replace("{", "").strip() for value in waterBoxListData.split("},") if value.strip() != ""]
+
+    # orderIndex used for naming cameras in alphabetical order
+    orderIndex = 0
+    for waterBoxData in waterBoxList:
+        objName = f"{waterBoxListName}_{format(orderIndex, '03')}"
+        params = [value.strip() for value in waterBoxData.split(",")]
+        topCorner = yUpToZUp @ mathutils.Vector(
+            [hexOrDecInt(value) / bpy.context.scene.ootBlenderScale for value in params[0:3]]
+        )
+        dimensions = [hexOrDecInt(value) / bpy.context.scene.ootBlenderScale for value in params[3:5]]
+        properties = hexOrDecInt(params[5])
+
+        height = 1000 / bpy.context.scene.ootBlenderScale  # just to add volume
+
+        location = mathutils.Vector([0, 0, 0])
+        scale = [dimensions[0] / 2, dimensions[1] / 2, height / 2]
+        location.x = topCorner[0] + scale[0] # x
+        location.y = topCorner[1] - scale[1] # -z
+        location.z = topCorner.z - scale[2] # y
+
+        waterBoxObj = bpy.data.objects.new(objName, None)
+        bpy.context.scene.collection.objects.link(waterBoxObj)
+        waterBoxObj.location = location
+        waterBoxObj.scale = scale
+        waterBoxProp = waterBoxObj.ootWaterBoxProperty
+
+        waterBoxObj.show_name = True
+        waterBoxObj.ootEmptyType = "Water Box"
+        roomIndex = getBits(properties, 13, 19)
+        waterBoxProp.lighting = getBits(properties, 8, 5)
+        waterBoxProp.camera = getBits(properties, 0, 8)
+
+        parentObject(roomObjs[roomIndex], waterBoxObj)
+        orderIndex += 1
