@@ -35,11 +35,16 @@ def getActiveHeaderIndex() -> int:
         else:
             headerIndex = altHeader.currentCutsceneIndex
 
-    return headerIndex
+    return (
+        headerIndex,
+        altHeader.childNightHeader.usePreviousHeader,
+        altHeader.adultDayHeader.usePreviousHeader,
+        altHeader.adultNightHeader.usePreviousHeader,
+    )
 
 
 def setAllActorsVisibility(self, context: bpy.types.Context):
-    headerIndex = getActiveHeaderIndex()
+    activeHeaderInfo = getActiveHeaderIndex()
 
     actorObjs = [
         obj
@@ -48,7 +53,7 @@ def setAllActorsVisibility(self, context: bpy.types.Context):
     ]
 
     for actorObj in actorObjs:
-        setActorVisibility(actorObj, headerIndex)
+        setActorVisibility(actorObj, activeHeaderInfo)
 
 
 # def setSingleActorVisibility(self, context: bpy.types.Context):
@@ -63,7 +68,13 @@ def setAllActorsVisibility(self, context: bpy.types.Context):
 #    setActorVisibility(actorObj, headerIndex)
 
 
-def setActorVisibility(actorObj: bpy.types.Object, headerIndex: int):
+def setActorVisibility(actorObj: bpy.types.Object, activeHeaderInfo: tuple[int, bool, bool, bool]):
+    headerIndex, childNightHeader, adultDayHeader, adultNightHeader = activeHeaderInfo
+    usePreviousHeader = [False, childNightHeader, adultDayHeader, adultNightHeader]
+    if headerIndex < 4:
+        while usePreviousHeader[headerIndex]:
+            headerIndex -= 1
+
     headerSettings = getHeaderSettings(actorObj)
     if headerSettings is None:
         return
