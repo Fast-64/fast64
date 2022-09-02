@@ -1239,7 +1239,7 @@ def parseDrawConfig(drawConfigName: str, sceneData: str, drawConfigData: str, f3
 
     # static environment color
     for envMatch in re.finditer(
-        rf"gDPSetEnvColor\s*\(\s*POLY_[A-Z]{{3}}_DISP\s*\+\+\s*,(.*?)\)\s*;", functionData, flags=re.DOTALL
+        rf"gDPSetEnvColor\s*\(\s*POLY_[A-Z]{{3}}_DISP\s*\+\+\s*,([^\)]*)\)\s*;", functionData, flags=re.DOTALL
     ):
         params = [value.strip() for value in envMatch.group(1).split(",")]
         try:
@@ -1250,7 +1250,7 @@ def parseDrawConfig(drawConfigName: str, sceneData: str, drawConfigData: str, f3
 
     # dynamic textures
     for flipbookMatch in re.finditer(
-        rf"gSPSegment\s*\(\s*POLY_([A-Z]{{3}})_DISP\s*\+\+\s*,\s*(.*?),\s*SEGMENTED_TO_VIRTUAL(.*?)\)\s*;",
+        rf"gSPSegment\s*\(\s*POLY_([A-Z]{{3}})_DISP\s*\+\+\s*,\s*([^,]*),\s*SEGMENTED_TO_VIRTUAL(.*?)\)\s*;",
         functionData,
         flags=re.DOTALL,
     ):
