@@ -8,6 +8,8 @@ from .oot_scene_room import OOTSceneHeaderProperty
 from .c_writer.oot_scene_table_c import getDrawConfig
 from ..utility import yUpToZUp
 from collections import OrderedDict
+from os import listdir
+from os.path import isfile, join
 
 headerNames = ["childDayHeader", "childNightHeader", "adultDayHeader", "adultNightHeader"]
 
@@ -105,9 +107,11 @@ def parseScene(
     sceneData = readFile(os.path.join(sceneFolderPath, f"{sceneName}_scene.c"))
 
     roomData = ""
-    for match in re.finditer(rf"#include\s*\"({re.escape(sceneName)}\_room\_[0-9]+)\.h\"", sceneData, flags=re.DOTALL):
-        roomPath = os.path.join(sceneFolderPath, match.group(1) + ".c")
-        roomData += readFile(roomPath)
+    sceneFolderFiles = [f for f in listdir(sceneFolderPath) if isfile(join(sceneFolderPath, f))]
+    for sceneFile in sceneFolderFiles:
+        if re.search(rf"{sceneName}_room_[0-9]+\.c", sceneFile):
+            roomPath = os.path.join(sceneFolderPath, sceneFile)
+            roomData += readFile(roomPath)
 
     sceneData += roomData
 
@@ -347,7 +351,7 @@ def parseRoomCommands(
             roomHeader.windVector = windVector
             roomHeader.windStrength = windStrength
             roomHeader.setWind = True
-        elif command == "SCENE_CMD_MESH":
+        elif command == "SCENE_CMD_ROOM_SHAPE" or command == "SCENE_CMD_MESH":
             # Assumption that all rooms use the same mesh.
             if headerIndex == 0:
                 meshHeaderName = args[0][1:]  # remove '&'
