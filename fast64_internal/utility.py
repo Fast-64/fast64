@@ -264,6 +264,7 @@ def propertyCollectionEquals(oldProp, newProp):
 def propertyGroupEquals(oldProp, newProp):
     equivalent = True
     for sub_value_attr in oldProp.bl_rna.properties.keys():
+        print(sub_value_attr)
         if sub_value_attr == "rna_type":
             continue
         sub_value = getattr(oldProp, sub_value_attr)
@@ -271,7 +272,7 @@ def propertyGroupEquals(oldProp, newProp):
             equivalent &= propertyGroupEquals(sub_value, getattr(newProp, sub_value_attr))
         elif type(sub_value).__name__ == "bpy_prop_collection_idprop":
             newCollection = getattr(newProp, sub_value_attr)
-            copyPropertyCollection(sub_value, newCollection)
+            equivalent &= propertyCollectionEquals(sub_value, newCollection)
         else:
             newValue = getattr(newProp, sub_value_attr)
             try:

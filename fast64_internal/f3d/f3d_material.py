@@ -212,6 +212,9 @@ class DrawLayerProperty(bpy.types.PropertyGroup):
     sm64: bpy.props.EnumProperty(items=sm64EnumDrawLayers, default="1", update=update_draw_layer)
     oot: bpy.props.EnumProperty(items=ootEnumDrawLayers, default="Opaque", update=update_draw_layer)
 
+    def __eq__(self, other):
+        return simpleEquivalence(self, other, ["sm64", "oot"])
+
 
 def getTmemWordUsage(texFormat, width, height):
     texelsPerLine = 64 / bitSizeDict[texBitSizeOf[texFormat]]
@@ -2019,11 +2022,17 @@ class TextureFieldProperty(bpy.types.PropertyGroup):
         update=update_tex_field_prop,
     )
 
+    def __eq__(self, other):
+        return simpleEquivalence(self, other, ["clamp", "mirror", "low", "high", "mask", "shift"])
+
 
 class SetTileSizeScrollProperty(bpy.types.PropertyGroup):
     s: bpy.props.IntProperty(min=-4095, max=4095, default=0)
     t: bpy.props.IntProperty(min=-4095, max=4095, default=0)
     interval: bpy.props.IntProperty(min=1, soft_max=1000, default=1)
+
+    def __eq__(self, other):
+        return simpleEquivalence(self, other, ["s", "t", "interval"])
 
 
 class TextureProperty(bpy.types.PropertyGroup):
@@ -2093,6 +2102,37 @@ class TextureProperty(bpy.types.PropertyGroup):
             else:
                 return self.tex_reference_size
         return [0, 0]
+
+    def __eq__(self, other):
+        equivalent = True
+        equivalent &= simpleEquivalence(self, other, ["tex_set"])
+        if equivalent and not self.tex_set:
+            return True
+
+        equivalent &= simpleEquivalence(
+            self,
+            other,
+            [
+                "tex",
+                "tex_format",
+                "S",
+                "T",
+                "autoprop",
+                "tile_scroll",
+            ],
+        )
+
+        isCI = self.tex_format == "CI8" or self.tex_format == "CI4"
+        if isCI:
+            equivalent &= simpleEquivalence(self, other, ["ci_format"])
+            equivalent &= conditionalEquivalence(
+                self, other, [("use_tex_reference", ["pal_reference", "pal_reference_size"])]
+            )
+        equivalent &= conditionalEquivalence(
+            self, other, [("use_tex_reference", ["tex_reference", "tex_reference_size"])]
+        )
+
+        return equivalent
 
 
 def on_tex_autoprop(texProperty, context):
@@ -2268,6 +2308,25 @@ class CombinerProperty(bpy.types.PropertyGroup):
         update=update_combiner_connections_and_preset,
     )
 
+    def __eq__(self, other):
+        if not isinstance(other, CombinerProperty):
+            return False
+
+        return simpleEquivalence(
+            self,
+            other,
+            [
+                "A",
+                "B",
+                "C",
+                "D",
+                "A_alpha",
+                "B_alpha",
+                "C_alpha",
+                "D_alpha",
+            ],
+        )
+
 
 class ProceduralAnimProperty(bpy.types.PropertyGroup):
     speed: bpy.props.FloatProperty(name="Speed", default=1)
@@ -2279,6 +2338,16 @@ class ProceduralAnimProperty(bpy.types.PropertyGroup):
     animate: bpy.props.BoolProperty()
     animType: bpy.props.EnumProperty(name="Type", items=enumTexScroll)
 
+    def __eq__(self, other):
+        if not isinstance(other, ProceduralAnimProperty):
+            return False
+
+        return simpleEquivalence(
+            self,
+            other,
+            ["speed", "amplitude", "frequency", "spaceFrequency", "offset", "noiseAmplitude", "animate", "animType"],
+        )
+
 
 class ProcAnimVectorProperty(bpy.types.PropertyGroup):
     x: bpy.props.PointerProperty(type=ProceduralAnimProperty)
@@ -2287,6 +2356,12 @@ class ProcAnimVectorProperty(bpy.types.PropertyGroup):
     pivot: bpy.props.FloatVectorProperty(size=2, name="Pivot")
     angularSpeed: bpy.props.FloatProperty(default=1, name="Angular Speed")
     menu: bpy.props.BoolProperty()
+
+    def __eq__(self, other):
+        if not isinstance(other, ProcAnimVectorProperty):
+            return False
+
+        return simpleEquivalence(self, other, ["x", "y", "z", "pivot", "angularSpeed"])
 
 
 class PrimDepthSettings(bpy.types.PropertyGroup):
@@ -2315,6 +2390,12 @@ class PrimDepthSettings(bpy.types.PropertyGroup):
             """try setting this to powers of 2. Otherwise use 0."""
         ),
     )
+
+    def __eq__(self, other):
+        if not isinstance(other, PrimDepthSettings):
+            return False
+
+        return simpleEquivalence(self, other, ["z", "dz"])
 
 
 class RDPSettings(bpy.types.PropertyGroup):
@@ -2568,6 +2649,74 @@ class RDPSettings(bpy.types.PropertyGroup):
         items=enumBlendMix,
         update=update_node_values_with_preset,
     )
+
+    def __eq__(self, other):
+        if not isinstance(other, RDPSettings):
+            return False
+        equivalent = True
+        equivalent &= simpleEquivalence(
+            self,
+            other,
+            [
+                "g_zbuffer",
+                "g_shade",
+                "g_cull_front",
+                "g_cull_back",
+                "g_fog",
+                "g_lighting",
+                "g_tex_gen",
+                "g_tex_gen_linear",
+                "g_shade_smooth",
+                "g_clipping",
+                "g_mdsft_alpha_dither",
+                "g_mdsft_rgb_dither",
+                "g_mdsft_combkey",
+                "g_mdsft_textconv",
+                "g_mdsft_text_filt",
+                "g_mdsft_textlod",
+                "g_mdsft_textdetail",
+                "g_mdsft_textpersp",
+                "g_mdsft_cycletype",
+                "g_mdsft_color_dither",
+                "g_mdsft_pipeline",
+                "g_mdsft_alpha_compare",
+                "g_mdsft_zsrcsel",
+                "prim_depth",
+                "clip_ratio",
+                "set_rendermode",
+            ],
+        )
+
+        if self.set_rendermode:
+            equivalent &= simpleEquivalence(self, other, ["rendermode_advanced_enabled"])
+            if self.rendermode_advanced_enabled:
+                equivalent &= simpleEquivalence(
+                    self,
+                    other,
+                    [
+                        "aa_en",
+                        "z_cmp",
+                        "z_upd",
+                        "im_rd",
+                        "clr_on_cvg",
+                        "cvg_dst",
+                        "zmode",
+                        "cvg_x_alpha",
+                        "alpha_cvg_sel",
+                        "force_bl",
+                        "blend_p1",
+                        "blend_p2",
+                        "blend_m1",
+                        "blend_m2",
+                        "blend_a1",
+                        "blend_a2",
+                        "blend_b1",
+                        "blend_b2",
+                    ],
+                )
+            else:
+                equivalent &= simpleEquivalence(self, other, ["rendermode_preset_cycle_1", "rendermode_preset_cycle_2"])
+        return equivalent
 
 
 class DefaultRDPSettingsPanel(bpy.types.Panel):
@@ -3252,6 +3401,73 @@ class F3DMaterialProperty(bpy.types.PropertyGroup):
 
     draw_layer: bpy.props.PointerProperty(type=DrawLayerProperty)
     use_large_textures: bpy.props.BoolProperty(name="Large Texture Mode")
+
+    # Don't use this, actual worse than propertyGroupEquals() for material caching
+    def __eq__(self, other):
+        if not isinstance(other, F3DMaterialProperty):
+            return False
+
+        equivalent = True
+        equivalent &= simpleEquivalence(
+            self,
+            other,
+            [
+                "scale_autoprop",
+                "uv_basis",
+                "UVanim0",
+                "UVanim1",
+                "tex_scale",
+                "tex0",
+                "tex1",
+                "rdp_settings",
+                "draw_layer",
+                "use_large_textures",
+                "use_default_lighting",
+            ],
+        )
+
+        equivalent &= conditionalEquivalence(
+            self,
+            other,
+            [
+                ("set_blend", ["blend_color"]),
+                ("set_prim", ["prim_color", "prim_lod_frac", "prim_lod_min"]),
+                ("set_env", ["env_color"]),
+                ("set_key", ["key_center", "key_scale", "key_width"]),
+                ("set_k0_5", ["k0", "k1", "k2", "k3", "k4", "k5"]),
+                ("set_combiner", ["combiner1", "combiner2"]),
+                ("set_k0_5", ["k0", "k1", "k2", "k3", "k4", "k5"]),
+                ("set_fog", ["fog_color", "fog_position", "use_global_fog"]),
+            ],
+        )
+
+        if self.use_default_lighting:
+            equivalent &= simpleEquivalence(
+                self, other, ["default_light_color", "set_ambient_from_light", "ambient_light_color"]
+            )
+        else:
+            equivalent &= simpleEquivalence(self, other, [f"f3d_light{i}" for i in range(1, 8)])
+        return equivalent
+
+
+def simpleEquivalence(prop1, prop2, props: list[str]):
+    equivalent = True
+    for prop in props:
+        equivalent &= getattr(prop1, prop) == getattr(prop2, prop)
+    return equivalent
+
+
+def conditionalEquivalence(prop1, prop2, props: list[tuple[str, list[str]]]):
+    equivalent = True
+    for (prop, dependantProps) in props:
+        equivalent &= getattr(prop1, prop) == getattr(prop2, prop)
+        if not equivalent:
+            return False
+        for otherProp in dependantProps:
+            equivalent &= getattr(prop1, otherProp) == getattr(prop2, otherProp)
+            if not equivalent:
+                return False
+    return equivalent
 
 
 class UnlinkF3DImage0(bpy.types.Operator):

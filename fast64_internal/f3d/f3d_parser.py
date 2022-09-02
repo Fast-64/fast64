@@ -740,6 +740,7 @@ class F3DContext:
         bpy.ops.material.update_f3d_nodes(overrideContext)
 
         for material in self.materials:
+            # Don't use custom equality operator, actually worse
             if propertyGroupEquals(self.materialContext.f3d_mat, material.f3d_mat):
                 return self.materials.index(material)
 
