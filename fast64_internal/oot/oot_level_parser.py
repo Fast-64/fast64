@@ -277,6 +277,7 @@ def parseRoomList(
 
         roomPath = os.path.join(sharedSceneData.scenePath, f"{roomName}.c")
         roomData = readFile(roomPath)
+        parseMatrices(roomData, f3dContext, 1 / bpy.context.scene.ootBlenderScale)
 
         roomCommandsName = f"{roomName}Commands"
         if roomCommandsName not in roomData:

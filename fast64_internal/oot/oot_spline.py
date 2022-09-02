@@ -61,6 +61,7 @@ class OOTSplinePanel(bpy.types.Panel):
             if splineProp.splineType == "Path":
                 drawActorHeaderProperty(box, splineProp.headerSettings, "Curve", altSceneProp, context.object.name)
             elif splineProp.splineType == "Crawlspace":
+                box.label(text="This counts as a camera for index purposes.", icon="INFO")
                 prop_split(box, splineProp, "index", "Index")
                 drawEnumWithCustom(box, splineProp, "camSType", "Camera S Type", "")
 
