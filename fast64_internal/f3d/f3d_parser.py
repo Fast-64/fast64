@@ -424,7 +424,10 @@ def getTileMask(value, f3d):
 
 def getTileShift(value, f3d):
     data = math_eval(value, f3d)
-    return data
+    if data > 10:
+        return data - 16
+    else:
+        return data
 
 
 def renderModeMask(rendermode, cycle, blendOnly):
@@ -542,7 +545,6 @@ class F3DContext:
         self.verts = []
         self.limbGroups = {}
 
-    # MAKE SURE TO CALL THIS BETWEEN parseF3D() CALLS
     def clearMaterial(self):
         mat = self.mat()
 
@@ -563,6 +565,8 @@ class F3DContext:
         mat.tex1.tex = None
         mat.tex0.tex_set = False
         mat.tex1.tex_set = False
+        mat.tex0.autoprop = False
+        mat.tex1.autoprop = False
 
         mat.tex0.tex_format = "RGBA16"
         mat.tex1.tex_format = "RGBA16"
@@ -1273,7 +1277,7 @@ class F3DContext:
         tileSettings.palette = math_eval(params[5], self.f3d)
         tileSettings.cmt = getTileClampMirror(params[6], self.f3d)
         tileSettings.maskt = getTileMask(params[7], self.f3d)
-        tileSettings.shifts = getTileShift(params[8], self.f3d)
+        tileSettings.shiftt = getTileShift(params[8], self.f3d)
         tileSettings.cms = getTileClampMirror(params[9], self.f3d)
         tileSettings.masks = getTileMask(params[10], self.f3d)
         tileSettings.shifts = getTileShift(params[11], self.f3d)
@@ -1388,37 +1392,29 @@ class F3DContext:
             self.handleTextureValue(self.materialContext, image, index)
         texProp.tex_set = True
 
-        # TODO: Handle low/high for image files?
         if texProp.use_tex_reference:
-            # texProp.autoprop = False
-            # texProp.S.low = round(tileSizeSettings.uls / (2 ** self.f3d.G_TEXTURE_IMAGE_FRAC), 3)
-            # texProp.T.low = round(tileSizeSettings.ult / (2 ** self.f3d.G_TEXTURE_IMAGE_FRAC), 3)
-            # texProp.S.high = round(tileSizeSettings.lrs / (2 ** self.f3d.G_TEXTURE_IMAGE_FRAC), 3)
-            # texProp.T.high = round(tileSizeSettings.lrt / (2 ** self.f3d.G_TEXTURE_IMAGE_FRAC), 3)
-
             # WARNING: Inferring texture size from tile size.
             texProp.tex_reference_size = [
                 int(round(tileSizeSettings.lrs / (2**self.f3d.G_TEXTURE_IMAGE_FRAC) + 1)),
                 int(round(tileSizeSettings.lrt / (2**self.f3d.G_TEXTURE_IMAGE_FRAC) + 1)),
             ]
 
-        # if texProp.S.low == 0 and texProp.T.low == 0 and \
-        # 	texProp.S.high == size[0] - 1 and \
-        # 	(texProp.use_tex_reference or texProp.T.high == size[1] - 1):
-        # 	texProp.autoProp = True
-        # else:
-        # 	print(str(texProp.S.low) + " " + str(texProp.T.low) + " " + str(texProp.S.high) + " " + str(texProp.T.high))
-        # 	print(str(size[0]-1) + " " + str(size[1]-1))
-
         texProp.tex_format = tileSettings.fmt[8:].replace("_", "") + tileSettings.siz[8:-1].replace("_", "")
 
         texProp.S.clamp = tileSettings.cms[0]
         texProp.S.mirror = tileSettings.cms[1]
+        texProp.S.mask = tileSettings.masks
+        texProp.S.shift = tileSettings.shifts
 
         texProp.T.clamp = tileSettings.cmt[0]
         texProp.T.mirror = tileSettings.cmt[1]
+        texProp.T.mask = tileSettings.maskt
+        texProp.T.shift = tileSettings.shiftt
 
-        # TODO: Handle S and T properties
+        texProp.S.low = round(tileSizeSettings.uls / (2**self.f3d.G_TEXTURE_IMAGE_FRAC), 3)
+        texProp.T.low = round(tileSizeSettings.ult / (2**self.f3d.G_TEXTURE_IMAGE_FRAC), 3)
+        texProp.S.high = round(tileSizeSettings.lrs / (2**self.f3d.G_TEXTURE_IMAGE_FRAC), 3)
+        texProp.T.high = round(tileSizeSettings.lrt / (2**self.f3d.G_TEXTURE_IMAGE_FRAC), 3)
 
     def loadTexture(self, data, name, region, tileSettings, isLUT):
         textureName = name
