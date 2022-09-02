@@ -390,9 +390,12 @@ def ootCameraDataToC(camData):
         posC.source += "};\n\n"
         camC.source += "};\n\n"
 
-        posDataName = "Vec3s " + camData.camPositionsName() + "[" + str(camPosIndex) + "]"
-        posC.header = "extern " + posDataName + ";\n"
-        posC.source = posDataName + " = {\n" + posC.source
+        if camPosIndex > 0:
+            posDataName = "Vec3s " + camData.camPositionsName() + "[" + str(camPosIndex) + "]"
+            posC.header = "extern " + posDataName + ";\n"
+            posC.source = posDataName + " = {\n" + posC.source
+        else:
+            posC = CData()
 
     posC.append(camC)
     return posC
