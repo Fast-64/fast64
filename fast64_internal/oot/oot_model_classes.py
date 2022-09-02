@@ -497,7 +497,9 @@ class OOTF3DContext(F3DContext):
                     image = self.loadTexture(data, textureName, None, tileSettings, False)
                     if not isinstance(image, bpy.types.Image):
                         raise PluginError(
-                            f'Could not find texture "{textureName}", so it can not be used in a flipbook texture.'
+                            f'Could not find texture "{textureName}", so it can not be used in a flipbook texture.\n'
+                            f"For OOT scenes this may be because the scene's draw config references textures not stored in its scene/room files.\n"
+                            f"In this case, draw configs that use flipbook textures should only be used for one scene.\n"
                         )
                     flipbookProp.textures.add()
                     flipbookProp.textures[-1].image = image
