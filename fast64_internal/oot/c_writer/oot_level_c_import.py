@@ -1,7 +1,6 @@
 import math, os
 from random import random
 from ..oot_f3d_writer import *
-from ..oot_level_writer import *
 from ..oot_collision import *
 from ..oot_cutscene import *
 from ..oot_level import OOTImportSceneSettingsProperty
@@ -375,7 +374,7 @@ def parseMeshHeader(
         if not isMulti:
             parseBGImage(roomHeader, meshParams, sharedSceneData)
         else:
-            bgListName = f"{meshParams[3]}.jpg"
+            bgListName = f"{meshParams[4]}"
             parseBGImageList(roomHeader, sceneData, bgListName, sharedSceneData)
 
 
@@ -390,16 +389,16 @@ def parseBGImage(roomHeader: OOTRoomHeaderProperty, params: list[str], sharedSce
 def parseBGImageList(
     roomHeader: OOTRoomHeaderProperty, sceneData: str, bgListName: str, sharedSceneData: SharedSceneData
 ):
-    bgData = getDataMatch(sceneData, bgListName, "", "bg list", False)
+    bgData = getDataMatch(sceneData, bgListName, "", "bg list")
     bgList = [value.replace("{", "").strip() for value in bgData.split("},") if value.strip() != ""]
     for bgDataItem in bgList:
         params = [value.strip() for value in bgDataItem.split(",") if value.strip() != ""]
         bgImage = roomHeader.bgImageList.add()
-        bgImage.cameraIndex = hexOrDecInt(params[1])
+        bgImage.camera = hexOrDecInt(params[1])
         bgImage.otherModeFlags = params[9]
 
         bgName = params[2]
-        image = bpy.data.images.load(os.path.join(bpy.path.abspath(sharedSceneData.scenePath), f"{bgName}"))
+        image = bpy.data.images.load(os.path.join(bpy.path.abspath(sharedSceneData.scenePath), f"{bgName}.jpg"))
         bgImage.image = image
 
 
