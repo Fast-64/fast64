@@ -128,6 +128,9 @@ def parseScene(
         parseDrawConfig(drawConfigName, sceneData, drawConfigData, f3dContext)
 
     bpy.context.space_data.overlay.show_relationship_lines = False
+    bpy.context.space_data.overlay.show_curve_normals = True
+    bpy.context.space_data.overlay.normals_length = 2
+
     sceneCommandsName = f"{sceneName}_sceneCommands"
     if sceneCommandsName not in sceneData:
         sceneCommandsName = f"{sceneName}_scene_header00"  # fast64 naming
@@ -371,13 +374,18 @@ def parseMeshHeader(
     meshData = meshData.replace("{", "").replace("}", "")
 
     meshParams = [value.strip() for value in meshData.split(",") if value.strip() != ""]
-    meshType = meshParams[0]
-    roomHeader.meshType = meshType
-    isType1 = meshType == "1"
-    isMulti = meshParams[1] == "2"
+    roomShape = meshParams[0]
+    if "ROOM_SHAPE_TYPE_" in roomShape:
+        roomShapeIndex = [value[0] for value in ootEnumRoomShapeType].index(roomShape)
+    else:
+        roomShapeIndex = int(roomShape)
+
+    roomHeader.roomShape = ootEnumRoomShapeType[roomShapeIndex][0]
+    isType1 = roomShapeIndex == 1
+    isMulti = meshParams[1] == "2" or meshParams[1] == "ROOM_SHAPE_IMAGE_AMOUNT_MULTI"
 
     meshListName = meshParams[2][1 if isType1 else 0 :]  # remove &
-    parseMeshList(roomObj, sceneData, meshListName, int(meshType), f3dContext)
+    parseMeshList(roomObj, sceneData, meshListName, roomShapeIndex, f3dContext)
 
     if isType1:
         if not isMulti:
@@ -412,22 +420,22 @@ def parseBGImageList(
 
 
 def parseMeshList(
-    roomObj: bpy.types.Object, sceneData: str, meshListName: str, meshType: int, f3dContext: OOTF3DContext
+    roomObj: bpy.types.Object, sceneData: str, meshListName: str, roomShape: int, f3dContext: OOTF3DContext
 ):
     roomHeader = roomObj.ootRoomHeader
-    meshEntryData = getDataMatch(sceneData, meshListName, "", "mesh list", meshType != 1)
+    meshEntryData = getDataMatch(sceneData, meshListName, "", "mesh list", roomShape != 1)
 
-    if meshType == 2:
+    if roomShape == 2:
         matchPattern = r"\{\s*\{(.*?),(.*?),(.*?)\}\s*,(.*?),(.*?),(.*?)\}\s*,"
         searchItems = re.finditer(matchPattern, meshEntryData, flags=re.DOTALL)
-    elif meshType == 1:
+    elif roomShape == 1:
         searchItems = [meshEntryData]
     else:
         matchPattern = r"\{(.*?),(.*?)\}\s*,"
         searchItems = re.finditer(matchPattern, meshEntryData, flags=re.DOTALL)
 
     for entryMatch in searchItems:
-        if meshType == 2:
+        if roomShape == 2:
             opaqueDL = entryMatch.group(5).strip()
             transparentDL = entryMatch.group(6).strip()
             position = yUpToZUp @ mathutils.Vector(
@@ -447,7 +455,7 @@ def parseMeshList(
             # cullObj.empty_display_size = hexOrDecInt(entryMatch.group(4).strip()) / bpy.context.scene.ootBlenderScale
             parentObject(roomObj, cullObj)
             parentObj = cullObj
-        elif meshType == 1:
+        elif roomShape == 1:
             dls = [value.strip() for value in entryMatch.split(",")]
             opaqueDL = dls[0]
             transparentDL = dls[1]
@@ -1230,7 +1238,7 @@ def parseDrawConfig(drawConfigName: str, sceneData: str, drawConfigData: str, f3
     ):
         params = [value.strip() for value in envMatch.group(1).split(",")]
         try:
-            color = tuple([hexOrDecInt(value) for value in params])
+            color = tuple([hexOrDecInt(value) / 0xFF for value in params])
             f3dContext.mat().env_color = color
         except:
             pass

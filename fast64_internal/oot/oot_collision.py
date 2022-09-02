@@ -508,7 +508,7 @@ def ootCollisionToC(collision):
         waterBoxesName = "0"
 
     if len(collision.cameraData.camPosDict) > 0:
-        camDataName = "&" + collision.camDataName()
+        camDataName = collision.camDataName()
     else:
         camDataName = "0"
 

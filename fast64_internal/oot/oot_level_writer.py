@@ -349,10 +349,12 @@ def readRoomData(
             readRoomData(sceneName, cutsceneHeader, cutsceneHeaderProp, None)
             room.cutsceneHeaders.append(cutsceneHeader)
 
-    if roomHeader.meshType == "1":
+    if roomHeader.roomShape == "ROOM_SHAPE_TYPE_IMAGE":
         for bgImage in roomHeader.bgImageList:
             if bgImage.image is None:
-                raise PluginError("A room is mesh type 1 but does not have an image set in one of its BG images.")
+                raise PluginError(
+                    'A room is has room shape "Image" but does not have an image set in one of its BG images.'
+                )
             room.mesh.bgImages.append(
                 OOTBGImage(
                     toAlnum(sceneName + "_bg_" + bgImage.image.name),
@@ -456,13 +458,13 @@ def ootConvertScene(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneNam
                 if roomIndex in processedRooms:
                     raise PluginError("Error: room index " + str(roomIndex) + " is used more than once.")
                 processedRooms.add(roomIndex)
-                room = scene.addRoom(roomIndex, sceneName, roomHeader.meshType)
+                room = scene.addRoom(roomIndex, sceneName, roomHeader.roomShape)
                 readRoomData(sceneName, room, roomHeader, roomObj.ootAlternateRoomHeaders)
 
-                if roomHeader.meshType == "1" and len(roomHeader.bgImageList) < 1:
-                    raise PluginError(f"Room {roomObj.name} uses mesh type 1 but doesn't have any BG images.")
-                if roomHeader.meshType == "1" and len(processedRooms) > 1:
-                    raise PluginError(f"Mesh Type 1 can only have one room in the scene.")
+                if roomHeader.roomShape == "ROOM_SHAPE_TYPE_IMAGE" and len(roomHeader.bgImageList) < 1:
+                    raise PluginError(f'Room {roomObj.name} uses room shape "Image" but doesn\'t have any BG images.')
+                if roomHeader.roomShape == "ROOM_SHAPE_TYPE_IMAGE" and len(processedRooms) > 1:
+                    raise PluginError(f'Room shape "Image" can only have one room in the scene.')
 
                 cullGroup = CullGroup(translation, scale, obj.ootRoomHeader.defaultCullDistance)
                 DLGroup = room.mesh.addMeshGroup(cullGroup).DLGroup

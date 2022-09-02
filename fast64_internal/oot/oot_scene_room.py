@@ -571,7 +571,7 @@ class OOTRoomHeaderProperty(bpy.types.PropertyGroup):
 
     objectList: bpy.props.CollectionProperty(type=OOTObjectProperty)
 
-    meshType: bpy.props.EnumProperty(items=ootEnumMeshType, default="0")
+    roomShape: bpy.props.EnumProperty(items=ootEnumRoomShapeType, default="ROOM_SHAPE_TYPE_NORMAL")
     defaultCullDistance: bpy.props.IntProperty(name="Default Cull Distance", min=1, default=100)
     bgImageList: bpy.props.CollectionProperty(type=OOTBGProperty)
     bgImageTab: bpy.props.BoolProperty(name="BG Images")
@@ -581,7 +581,7 @@ def drawBGImageList(layout: bpy.types.UILayout, roomHeader: OOTRoomHeaderPropert
     box = layout.column()
     box.prop(roomHeader, "bgImageTab", text="BG Images", icon="TRIA_DOWN" if roomHeader.bgImageTab else "TRIA_RIGHT")
     if roomHeader.bgImageTab:
-        box.label(text="Mesh Type 1 only allows one room.", icon="INFO")
+        box.label(text="Only one room allowed per scene.", icon="INFO")
         box.label(text="Must be jpg file with file marker.", icon="INFO")
         box.label(text="Ex. MsPaint compatible, Photoshop not.")
         box.label(text="Can't use files generated in Blender.")
@@ -618,12 +618,11 @@ def drawRoomHeaderProperty(layout, roomProp, dropdownLabel, headerIndex, objName
             general = layout.column()
             general.box().label(text="General")
             prop_split(general, roomProp, "roomIndex", "Room Index")
-            prop_split(general, roomProp, "meshType", "Mesh Type")
-            if roomProp.meshType == "1":
+            prop_split(general, roomProp, "roomShape", "Room Shape")
+            if roomProp.roomShape == "ROOM_SHAPE_TYPE_IMAGE":
                 drawBGImageList(general, roomProp, objName)
-            if roomProp.meshType == "2":
+            if roomProp.roomShape == "ROOM_SHAPE_TYPE_CULLABLE":
                 prop_split(general, roomProp, "defaultCullDistance", "Default Cull (Blender Units)")
-
         # Behaviour
         behaviourBox = layout.column()
         behaviourBox.box().label(text="Behaviour")

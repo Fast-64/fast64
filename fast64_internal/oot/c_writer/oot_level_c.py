@@ -219,7 +219,7 @@ def cmdWindSettings(room, header, cmdCount):
 
 def cmdMesh(room, header, cmdCount):
     cmd = CData()
-    cmd.source = "\tSCENE_CMD_MESH(&" + room.mesh.headerName() + "),\n"
+    cmd.source = "\tSCENE_CMD_ROOM_SHAPE(&" + room.mesh.headerName() + "),\n"
     return cmd
 
 
@@ -286,11 +286,11 @@ def ootActorListToC(room, headerIndex):
     return data
 
 
-def ootMeshEntryToC(meshEntry: OOTRoomMeshGroup, meshType: str):
+def ootMeshEntryToC(meshEntry: OOTRoomMeshGroup, roomShape: str):
     opaqueName = meshEntry.DLGroup.opaque.name if meshEntry.DLGroup.opaque is not None else "0"
     transparentName = meshEntry.DLGroup.transparent.name if meshEntry.DLGroup.transparent is not None else "0"
     data = "{ "
-    if meshType == "2":
+    if roomShape == "ROOM_SHAPE_TYPE_CULLABLE":
         data += (
             "{ "
             + f"{meshEntry.cullGroup.position[0]}, {meshEntry.cullGroup.position[1]}, {meshEntry.cullGroup.position[2]}"
@@ -338,22 +338,25 @@ def ootRoomMeshToC(room: OOTRoom, textureExportSettings: TextureExportSettings):
     if len(mesh.meshEntries) == 0:
         raise PluginError("Error: Room " + str(room.index) + " has no mesh children.")
 
-    meshStruct = "MeshHeader" + mesh.meshType
-    meshHeader1Format = "Multi" if len(mesh.bgImages) > 1 else "Single"
-    if mesh.meshType == "1":
-        meshStruct += meshHeader1Format
-
     meshHeader = CData()
     meshEntries = CData()
     meshData = CData()
-    meshHeader.header = f"extern {meshStruct} {mesh.headerName()} ;\n"
-    if mesh.meshType != "1":
+
+    shapeTypeIdx = [value[0] for value in ootEnumRoomShapeType].index(mesh.roomShape)
+    meshEntryType = ootRoomShapeEntryStructs[shapeTypeIdx]
+    structName = ootRoomShapeStructs[shapeTypeIdx]
+    roomShapeImageFormat = "Multi" if len(mesh.bgImages) > 1 else "Single"
+    if mesh.roomShape == "ROOM_SHAPE_TYPE_IMAGE":
+        structName += roomShapeImageFormat
+    meshHeader.header = f"extern {structName} {mesh.headerName()};\n"
+
+    if mesh.roomShape != "ROOM_SHAPE_TYPE_IMAGE":
         meshHeader.source = (
             "\n".join(
                 (
-                    f"{meshStruct} {mesh.headerName()} = {{",
-                    indent + mesh.meshType + ",",
-                    indent + str(len(mesh.meshEntries)) + ",",
+                    f"{structName} {mesh.headerName()} = {{",
+                    indent + mesh.roomShape + ",",
+                    indent + "ARRAY_COUNT(" + mesh.entriesName() + ")" + ",",
                     indent + mesh.entriesName() + ",",
                     indent + mesh.entriesName() + " + ARRAY_COUNT(" + mesh.entriesName() + ")",
                     "};",
@@ -361,13 +364,16 @@ def ootRoomMeshToC(room: OOTRoom, textureExportSettings: TextureExportSettings):
             )
             + "\n\n"
         )
-        meshEntryType = "MeshHeader" + ("01" if mesh.meshType == "0" else "2") + "Entry"
+
+        meshData = CData()
+        meshEntries = CData()
+
         arrayText = "[" + str(len(mesh.meshEntries)) + "]"
         meshEntries.header = f"extern {meshEntryType} {mesh.entriesName()}{arrayText};\n"
         meshEntries.source = f"{meshEntryType} {mesh.entriesName()}{arrayText} = {{\n"
 
         for entry in mesh.meshEntries:
-            meshEntries.source += "\t" + ootMeshEntryToC(entry, mesh.meshType)
+            meshEntries.source += "\t" + ootMeshEntryToC(entry, mesh.roomShape)
             if entry.DLGroup.opaque is not None:
                 meshData.append(entry.DLGroup.opaque.to_c(mesh.model.f3d))
             if entry.DLGroup.transparent is not None:
@@ -378,19 +384,22 @@ def ootRoomMeshToC(room: OOTRoom, textureExportSettings: TextureExportSettings):
     else:
         # type 1 only allows 1 room
         entry = mesh.meshEntries[0]
-        meshHeader1FormatValue = "1" if meshHeader1Format == "Single" else "2"
+        roomShapeImageFormatValue = (
+            "ROOM_SHAPE_IMAGE_AMOUNT_SINGLE" if roomShapeImageFormat == "Single" else "ROOM_SHAPE_IMAGE_AMOUNT_MULTI"
+        )
 
-        meshHeader.source += f"{meshStruct} {mesh.headerName()} = {{\n"
-        meshHeader.source += f"\t{{1, {meshHeader1FormatValue}, &{mesh.entriesName()},}},\n"
+        meshHeader.source += f"{structName} {mesh.headerName()} = {{\n"
+        meshHeader.source += f"\t{{1, {roomShapeImageFormatValue}, &{mesh.entriesName()},}},\n"
 
-        if meshHeader1Format == "Single":
+        if roomShapeImageFormat == "Single":
             meshHeader.source += mesh.bgImages[0].singlePropertiesC(1) + "\n};\n\n"
         else:
             meshHeader.source += f"\t{len(mesh.bgImages)}, {mesh.getMultiBgStructName()},\n}};\n\n"
 
-        meshEntryType = "MeshHeader01Entry"
         meshEntries.header = f"extern {meshEntryType} {mesh.entriesName()};\n"
-        meshEntries.source = f"{meshEntryType} {mesh.entriesName()} = {ootMeshEntryToC(entry, mesh.meshType)[:-2]};\n\n"
+        meshEntries.source = (
+            f"{meshEntryType} {mesh.entriesName()} = {ootMeshEntryToC(entry, mesh.roomShape)[:-2]};\n\n"
+        )
 
         if entry.DLGroup.opaque is not None:
             meshData.append(entry.DLGroup.opaque.to_c(mesh.model.f3d))
@@ -402,7 +411,6 @@ def ootRoomMeshToC(room: OOTRoom, textureExportSettings: TextureExportSettings):
     meshData.append(exportData.all())
     meshData.append(ootBgImagesToC(room.mesh, textureExportSettings))
     meshHeader.append(meshEntries)
-    # meshHeader.append(meshData)
 
     return meshHeader, meshData
 
@@ -427,9 +435,9 @@ def ootRoomCommandsToC(room, headerIndex):
     data = CData()
 
     # data.header = ''.join([command.header for command in commands]) +'\n'
-    data.header = "extern SCmdBase " + room.roomName() + "_header" + format(headerIndex, "02") + "[];\n"
+    data.header = "extern SceneCmd " + room.roomName() + "_header" + format(headerIndex, "02") + "[];\n"
 
-    data.source = "SCmdBase " + room.roomName() + "_header" + format(headerIndex, "02") + "[] = {\n"
+    data.source = "SceneCmd " + room.roomName() + "_header" + format(headerIndex, "02") + "[] = {\n"
     data.source += "".join([command.source for command in commands])
     data.source += "};\n\n"
 
@@ -440,8 +448,8 @@ def ootAlternateRoomMainToC(scene, room):
     altHeader = CData()
     altData = CData()
 
-    altHeader.header = "extern SCmdBase* " + room.alternateHeadersName() + "[];\n"
-    altHeader.source = "SCmdBase* " + room.alternateHeadersName() + "[] = {\n"
+    altHeader.header = "extern SceneCmd* " + room.alternateHeadersName() + "[];\n"
+    altHeader.source = "SceneCmd* " + room.alternateHeadersName() + "[] = {\n"
 
     if room.childNightHeader is not None:
         altHeader.source += "\t" + room.roomName() + "_header" + format(1, "02") + ",\n"
@@ -516,9 +524,9 @@ def ootSceneCommandsToC(scene, headerIndex):
     data = CData()
 
     # data.header = ''.join([command.header for command in commands]) +'\n'
-    data.header = "extern SCmdBase " + scene.sceneName() + "_header" + format(headerIndex, "02") + "[];\n"
+    data.header = "extern SceneCmd " + scene.sceneName() + "_header" + format(headerIndex, "02") + "[];\n"
 
-    data.source = "SCmdBase " + scene.sceneName() + "_header" + format(headerIndex, "02") + "[] = {\n"
+    data.source = "SceneCmd " + scene.sceneName() + "_header" + format(headerIndex, "02") + "[] = {\n"
     data.source += "".join([command.source for command in commands])
     data.source += "};\n\n"
 
@@ -734,8 +742,8 @@ def ootAlternateSceneMainToC(scene):
     altHeader = CData()
     altData = CData()
 
-    altHeader.header = "extern SCmdBase* " + scene.alternateHeadersName() + "[];\n"
-    altHeader.source = "SCmdBase* " + scene.alternateHeadersName() + "[] = {\n"
+    altHeader.header = "extern SceneCmd* " + scene.alternateHeadersName() + "[];\n"
+    altHeader.source = "SceneCmd* " + scene.alternateHeadersName() + "[] = {\n"
 
     if scene.childNightHeader is not None:
         altHeader.source += "\t" + scene.sceneName() + "_header" + format(1, "02") + ",\n"
@@ -814,7 +822,7 @@ def ootSceneMainToC(scene, headerIndex):
 
     # Write the light data
     if len(scene.lights) > 0:
-        sceneMainC.append(ootLightSettingsToC(scene, scene.skyboxLighting == "0x01", headerIndex))
+        sceneMainC.append(ootLightSettingsToC(scene, scene.skyboxLighting == "true", headerIndex))
 
     # Write the path data, if used
     sceneMainC.append(pathData)
