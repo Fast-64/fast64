@@ -42,11 +42,13 @@ def getDataMatch(
 
 
 class SharedSceneData:
-    def __init__(self):
+    def __init__(self, scenePath: str):
         self.actorDict = {}  # actor hash : blender object
         self.entranceDict = {}  # actor hash : blender object
         self.transDict = {}  # actor hash : blender object
         self.pathDict = {}  # path hash : blender object
+
+        self.scenePath = scenePath
 
     def addHeaderIfItemExists(self, hash, itemType: str, headerIndex: int):
         if itemType == "Actor":
@@ -121,7 +123,7 @@ def parseScene(
     sceneCommandsName = f"{sceneName}_sceneCommands"
     if sceneCommandsName not in sceneData:
         sceneCommandsName = f"{sceneName}_scene_header00"  # fast64 naming
-    sharedSceneData = SharedSceneData()
+    sharedSceneData = SharedSceneData(sceneFolderPath)
     sceneObj = parseSceneCommands(None, None, sceneCommandsName, sceneData, f3dContext, 0, sharedSceneData)
     bpy.context.scene.ootSceneExportObj = sceneObj
 
@@ -338,7 +340,7 @@ def parseRoomCommands(
             # Assumption that all rooms use the same mesh.
             if headerIndex == 0:
                 meshHeaderName = args[0][1:]  # remove '&'
-                parseMeshHeader(roomObj, sceneData, meshHeaderName, f3dContext)
+                parseMeshHeader(roomObj, sceneData, meshHeaderName, f3dContext, sharedSceneData)
         elif command == "SCENE_CMD_OBJECT_LIST":
             objectListName = args[1]
             parseObjectList(roomHeader, sceneData, objectListName)
@@ -349,30 +351,74 @@ def parseRoomCommands(
     return roomObj
 
 
-def parseMeshHeader(roomObj: bpy.types.Object, sceneData: str, meshHeaderName: str, f3dContext: OOTF3DContext):
+def parseMeshHeader(
+    roomObj: bpy.types.Object,
+    sceneData: str,
+    meshHeaderName: str,
+    f3dContext: OOTF3DContext,
+    sharedSceneData: SharedSceneData,
+):
     roomHeader = roomObj.ootRoomHeader
     meshData = getDataMatch(sceneData, meshHeaderName, "", "mesh header", False)
+    meshData = meshData.replace("{", "").replace("}", "")
 
-    meshParams = [value.strip() for value in meshData.split(",")]
-    roomHeader.meshType = meshParams[0]
+    meshParams = [value.strip() for value in meshData.split(",") if value.strip() != ""]
+    meshType = meshParams[0]
+    roomHeader.meshType = meshType
+    isType1 = meshType == "1"
+    isMulti = meshParams[1] == "2"
 
-    meshListName = meshParams[2]
-    parseMeshList(roomObj, sceneData, meshListName, int(meshParams[0]), f3dContext)
+    meshListName = meshParams[2][1 if isType1 else 0 :]  # remove &
+    parseMeshList(roomObj, sceneData, meshListName, int(meshType), f3dContext)
+
+    if isType1:
+        if not isMulti:
+            parseBGImage(roomHeader, meshParams, sharedSceneData)
+        else:
+            bgListName = f"{meshParams[3]}.jpg"
+            parseBGImageList(roomHeader, sceneData, bgListName, sharedSceneData)
+
+
+def parseBGImage(roomHeader: OOTRoomHeaderProperty, params: list[str], sharedSceneData: SharedSceneData):
+    bgImage = roomHeader.bgImageList.add()
+    bgImage.otherModeFlags = params[10]
+    bgName = f"{params[3]}.jpg"
+    image = bpy.data.images.load(os.path.join(bpy.path.abspath(sharedSceneData.scenePath), f"{bgName}"))
+    bgImage.image = image
+
+
+def parseBGImageList(
+    roomHeader: OOTRoomHeaderProperty, sceneData: str, bgListName: str, sharedSceneData: SharedSceneData
+):
+    bgData = getDataMatch(sceneData, bgListName, "", "bg list", False)
+    bgList = [value.replace("{", "").strip() for value in bgData.split("},") if value.strip() != ""]
+    for bgDataItem in bgList:
+        params = [value.strip() for value in bgDataItem.split(",") if value.strip() != ""]
+        bgImage = roomHeader.bgImageList.add()
+        bgImage.cameraIndex = hexOrDecInt(params[1])
+        bgImage.otherModeFlags = params[9]
+
+        bgName = params[2]
+        image = bpy.data.images.load(os.path.join(bpy.path.abspath(sharedSceneData.scenePath), f"{bgName}"))
+        bgImage.image = image
 
 
 def parseMeshList(
     roomObj: bpy.types.Object, sceneData: str, meshListName: str, meshType: int, f3dContext: OOTF3DContext
 ):
     roomHeader = roomObj.ootRoomHeader
-    meshEntryData = getDataMatch(sceneData, meshListName, "", "mesh list")
+    meshEntryData = getDataMatch(sceneData, meshListName, "", "mesh list", meshType != 1)
+
     if meshType == 2:
         matchPattern = r"\{\s*\{(.*?),(.*?),(.*?)\}\s*,(.*?),(.*?),(.*?)\}\s*,"
+        searchItems = re.finditer(matchPattern, meshEntryData, flags=re.DOTALL)
     elif meshType == 1:
-        raise PluginError(f"Mesh type 1 not supported for {meshListName}")
+        searchItems = [meshEntryData]
     else:
         matchPattern = r"\{(.*?),(.*?)\}\s*,"
+        searchItems = re.finditer(matchPattern, meshEntryData, flags=re.DOTALL)
 
-    for entryMatch in re.finditer(matchPattern, meshEntryData, flags=re.DOTALL):
+    for entryMatch in searchItems:
         if meshType == 2:
             opaqueDL = entryMatch.group(5).strip()
             transparentDL = entryMatch.group(6).strip()
@@ -393,9 +439,11 @@ def parseMeshList(
             # cullObj.empty_display_size = hexOrDecInt(entryMatch.group(4).strip()) / bpy.context.scene.ootBlenderScale
             parentObject(roomObj, cullObj)
             parentObj = cullObj
-
         elif meshType == 1:
-            continue
+            dls = [value.strip() for value in entryMatch.split(",")]
+            opaqueDL = dls[0]
+            transparentDL = dls[1]
+            parentObj = roomObj
         else:
             opaqueDL = entryMatch.group(1).strip()
             transparentDL = entryMatch.group(2).strip()
@@ -847,6 +895,11 @@ def parseCollisionHeader(
     camDataListName = otherParams[5]
     waterBoxListName = otherParams[7]
 
+    if camDataListName[0] == "&":
+        camDataListName = camDataListName[1:]
+    if waterBoxListName[0] == "&":
+        waterBoxListName = waterBoxListName[1:]
+
     parseCollision(sceneObj, vertexListName, polygonListName, surfaceTypeListName, sceneData)
     if camDataListName != "NULL" and camDataListName != "0":
         parseCamDataList(sceneObj, camDataListName, sceneData)
@@ -1039,6 +1092,7 @@ def parseCamPosData(setting: str, sceneData: str, posDataName: str, index: int, 
     camObj.name = objName
 
     if index is None:
+        camObj.location = [0, 0, 0]
         return camObj
 
     camPosData = getDataMatch(sceneData, posDataName, "Vec3s", "camera position list")
@@ -1066,7 +1120,12 @@ def parseCamPosData(setting: str, sceneData: str, posDataName: str, index: int, 
 
     camProp = camObj.ootCameraPositionProperty
     camProp.jfifID = jfifID
-    camObj.data.angle = math.radians(hexOrDecInt(fov))
+
+    fovValue = hexOrDecInt(fov)
+    fovValue = int.from_bytes(fovValue.to_bytes(2, "big", signed=fovValue < 0x8000), "big", signed=True)
+    if fovValue > 360:
+        fovValue *= 0.01  # see CAM_DATA_SCALED() macro
+    camObj.data.angle = math.radians(fovValue)
 
     return camObj
 

@@ -74,7 +74,7 @@ def ootExportSceneToC(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneN
         exportSubdir = os.path.dirname(getSceneDirFromLevelName(sceneName))
 
     levelPath = ootGetPath(exportPath, isCustomExport, exportSubdir, sceneName, True, True)
-    levelC = ootLevelToC(scene, TextureExportSettings(False, savePNG, exportSubdir + sceneName, levelPath))
+    levelC = ootLevelToC(scene, TextureExportSettings(False, savePNG, exportSubdir + "/" + sceneName + "/", levelPath))
 
     if bpy.context.scene.ootSceneExportSettings.singleFile:
         writeCDataSourceOnly(
@@ -351,12 +351,17 @@ def readCamPos(camPosProp, obj, scene, sceneObj, transformMatrix):
         camSType = camPosProp.camSTypeCustom
     else:
         camSType = decomp_compat_map_CameraSType.get(camPosProp.camSType, camPosProp.camSType)
+
+    fov = math.degrees(obj.data.angle)
+    if fov > 3.6:
+        fov *= 100  # see CAM_DATA_SCALED() macro
+
     scene.collision.cameraData.camPosDict[index] = OOTCameraPosData(
         camSType,
         camPosProp.hasPositionData,
         translation,
         rotation,
-        int(round(math.degrees(obj.data.angle))),
+        round(fov),
         camPosProp.jfifID,
     )
 

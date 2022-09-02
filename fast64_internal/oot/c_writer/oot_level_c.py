@@ -328,7 +328,7 @@ def ootBgImagesToC(roomMesh: OOTRoomMesh, textureSettings: TextureExportSettings
         if bitsPerValue != 64:
             code.source += "Gfx " + bgImage.name + "_aligner[] = {gsSPEndDisplayList()};\n"
         code.source += "u" + str(bitsPerValue) + " " + bgImage.name + "[SCREEN_WIDTH * SCREEN_HEIGHT / 4] = {\n\t"
-        code.source += '#include "' + bgImage.getFilename() + '.inc.c"'
+        code.source += '#include "' + textureSettings.includeDir + bgImage.getFilename() + '.inc.c"'
         code.source += "\n};\n\n"
     return code
 
