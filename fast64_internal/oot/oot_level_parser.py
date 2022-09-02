@@ -106,14 +106,14 @@ def parseScene(
     sceneFolderPath = ootGetPath(importPath, settings.isCustomDest, importSubdir, sceneName, False, True)
     sceneData = readFile(os.path.join(sceneFolderPath, f"{sceneName}_scene.c"))
 
-    roomData = ""
-    sceneFolderFiles = [f for f in listdir(sceneFolderPath) if isfile(join(sceneFolderPath, f))]
-    for sceneFile in sceneFolderFiles:
-        if re.search(rf"{sceneName}_room_[0-9]+\.c", sceneFile):
-            roomPath = os.path.join(sceneFolderPath, sceneFile)
-            roomData += readFile(roomPath)
+    # roomData = ""
+    # sceneFolderFiles = [f for f in listdir(sceneFolderPath) if isfile(join(sceneFolderPath, f))]
+    # for sceneFile in sceneFolderFiles:
+    #    if re.search(rf"{sceneName}_room_[0-9]+\.c", sceneFile):
+    #        roomPath = os.path.join(sceneFolderPath, sceneFile)
+    #        roomData += readFile(roomPath)
 
-    sceneData += roomData
+    # sceneData += roomData
 
     if bpy.context.mode != "OBJECT":
         bpy.context.mode = "OBJECT"
@@ -274,10 +274,17 @@ def parseRoomList(
             roomName = roomName[5:].strip()[1:]  # includes leading underscore
         else:
             roomName = roomName[1:]
+
+        roomPath = os.path.join(sharedSceneData.scenePath, f"{roomName}.c")
+        roomData = readFile(roomPath)
+
         roomCommandsName = f"{roomName}Commands"
-        if roomCommandsName not in sceneData:
+        if roomCommandsName not in roomData:
             roomCommandsName = f"{roomName}_header00"  # fast64 naming
-        roomObj = parseRoomCommands(None, sceneData, roomCommandsName, index, f3dContext, sharedSceneData, headerIndex)
+
+        roomObj = parseRoomCommands(
+            None, sceneData + roomData, roomCommandsName, index, f3dContext, sharedSceneData, headerIndex
+        )
         parentObject(sceneObj, roomObj)
         index += 1
         roomObjs.append(roomObj)
@@ -294,6 +301,7 @@ def parseRoomCommands(
     sharedSceneData: SharedSceneData,
     headerIndex: int,
 ):
+    print(f"Size: {len(sceneData)}")
     if roomObj is None:
         bpy.ops.object.empty_add(type="SPHERE", radius=1, align="WORLD", location=[0, 0, (roomIndex + 1) * -2])
         roomObj = bpy.context.view_layer.objects.active
