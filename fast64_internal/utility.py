@@ -264,7 +264,6 @@ def propertyCollectionEquals(oldProp, newProp):
 def propertyGroupEquals(oldProp, newProp):
     equivalent = True
     for sub_value_attr in oldProp.bl_rna.properties.keys():
-        print(sub_value_attr)
         if sub_value_attr == "rna_type":
             continue
         sub_value = getattr(oldProp, sub_value_attr)

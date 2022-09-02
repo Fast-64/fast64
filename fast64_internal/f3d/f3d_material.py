@@ -213,6 +213,8 @@ class DrawLayerProperty(bpy.types.PropertyGroup):
     oot: bpy.props.EnumProperty(items=ootEnumDrawLayers, default="Opaque", update=update_draw_layer)
 
     def __eq__(self, other):
+        if not isinstance(other, DrawLayerProperty):
+            return False
         return simpleEquivalence(self, other, ["sm64", "oot"])
 
 
@@ -2023,6 +2025,8 @@ class TextureFieldProperty(bpy.types.PropertyGroup):
     )
 
     def __eq__(self, other):
+        if not isinstance(other, TextureFieldProperty):
+            return False
         return simpleEquivalence(self, other, ["clamp", "mirror", "low", "high", "mask", "shift"])
 
 
@@ -2032,6 +2036,8 @@ class SetTileSizeScrollProperty(bpy.types.PropertyGroup):
     interval: bpy.props.IntProperty(min=1, soft_max=1000, default=1)
 
     def __eq__(self, other):
+        if not isinstance(other, SetTileSizeScrollProperty):
+            return False
         return simpleEquivalence(self, other, ["s", "t", "interval"])
 
 
@@ -2104,6 +2110,8 @@ class TextureProperty(bpy.types.PropertyGroup):
         return [0, 0]
 
     def __eq__(self, other):
+        if not isinstance(other, TextureProperty):
+            return False
         equivalent = True
         equivalent &= simpleEquivalence(self, other, ["tex_set"])
         if equivalent and not self.tex_set:
