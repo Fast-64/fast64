@@ -73,8 +73,15 @@ def ootExportSceneToC(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneN
     if not isCustomExport and exportInfo.customSubPath is None:
         exportSubdir = os.path.dirname(getSceneDirFromLevelName(sceneName))
 
+    sceneInclude = exportSubdir + "/" + sceneName + "/"
     levelPath = ootGetPath(exportPath, isCustomExport, exportSubdir, sceneName, True, True)
-    levelC = ootLevelToC(scene, TextureExportSettings(False, savePNG, exportSubdir + "/" + sceneName + "/", levelPath))
+    levelC = ootLevelToC(scene, TextureExportSettings(False, savePNG, sceneInclude, levelPath))
+
+    if not isCustomExport:
+        writeTextureArraysExistingScene(scene.model, exportPath, sceneInclude + sceneName + "_scene.h")
+    else:
+        textureArrayData = writeTextureArraysNew(scene.model, None)
+        levelC.sceneTexturesC.append(textureArrayData)
 
     if bpy.context.scene.ootSceneExportSettings.singleFile:
         writeCDataSourceOnly(
@@ -132,6 +139,26 @@ def ootExportSceneToC(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneN
 
     if not isCustomExport:
         writeOtherSceneProperties(scene, exportInfo, levelC)
+
+
+def writeTextureArraysExistingScene(fModel: OOTModel, exportPath: str, sceneInclude: str):
+    drawConfigPath = os.path.join(exportPath, "src/code/z_scene_table.c")
+    drawConfigData = readFile(drawConfigPath)
+    newData = drawConfigData
+
+    if f'#include "{sceneInclude}"' not in newData:
+        additionalIncludes = f'#include "{sceneInclude}"\n'
+    else:
+        additionalIncludes = ""
+
+    for flipbook in fModel.flipbooks:
+        if flipbook.exportMode == "Array":
+            newData = writeTextureArraysExisting1D(newData, flipbook, additionalIncludes)
+        else:
+            raise PluginError("Scenes can only use array flipbooks.")
+
+    if newData != drawConfigData:
+        writeFile(drawConfigPath, newData)
 
 
 def writeOtherSceneProperties(scene, exportInfo, levelC):

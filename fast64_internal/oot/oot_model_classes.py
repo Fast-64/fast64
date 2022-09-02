@@ -71,6 +71,15 @@ class OOTModel(FModel):
         )  # bpy.types.Image (first flipbook image) : [bpy.types.Image (list of flipbook textures in order)]
         FModel.__init__(self, f3dType, isHWv1, name, DLFormat, GfxMatWriteMethod.WriteAll)
 
+    # Since dynamic textures are handled by scene draw config, flipbooks should only belong to scene model.
+    # Thus we have this function.
+    def getFlipbookOwner(self):
+        if self.parentModel is not None:
+            model = self.parentModel
+        else:
+            model = self
+        return model
+
     def getDrawLayerV3(self, obj):
         return obj.ootDrawLayer
 
@@ -114,7 +123,8 @@ class OOTModel(FModel):
             raise PluginError(f"Can not find TLUT command in material {fMaterial.name}")
 
     def addFlipbookWithRepeatCheck(self, flipbook: TextureFlipbook):
-        for existingFlipbook in self.flipbooks:
+        model = self.getFlipbookOwner()
+        for existingFlipbook in model.flipbooks:
             if existingFlipbook.name == flipbook.name:
                 if len(existingFlipbook.textureNames) != len(flipbook.textureNames):
                     raise PluginError(
@@ -127,7 +137,7 @@ class OOTModel(FModel):
                             f"There are two flipbooks with differing elements trying to write to the same texture array name: {flipbook.name}."
                             + f"\nMake sure that this flipbook name is unique, or that repeated uses of this name use the same textures is the same order/format."
                         )
-        self.flipbooks.append(flipbook)
+        model.flipbooks.append(flipbook)
 
     def validateCIFlipbook(
         self, existingFPalette: FImage, alreadyExists: bool, fPalette: FImage, flipbookTexture: Any
@@ -164,8 +174,9 @@ class OOTModel(FModel):
 
     def processFlipbookCI(self, fMaterial: FMaterial, flipbookProp: FlipbookProperty, texProp: TextureProperty):
         # print("Processing flipbook...")
+        model = self.getFlipbookOwner()
         flipbook = OOTTextureFlipbook(flipbookProp.name, flipbookProp.exportMode, [])
-        sharedPalette = FSharedPalette(self.name + "_" + flipbookProp.textures[0].image.name + "_pal")
+        sharedPalette = FSharedPalette(model.name + "_" + flipbookProp.textures[0].image.name + "_pal")
         existingFPalette = None
         fImages = []
         for flipbookTexture in flipbookProp.textures:
@@ -175,14 +186,14 @@ class OOTModel(FModel):
             name = (
                 flipbookTexture.name
                 if flipbookProp.exportMode == "Individual"
-                else self.name + "_" + flipbookTexture.image.name + "_" + texProp.tex_format.lower()
+                else model.name + "_" + flipbookTexture.image.name + "_" + texProp.tex_format.lower()
             )
 
-            texName = getTextureNameTexRef(texProp, self.name)
+            texName = getTextureNameTexRef(texProp, model.name)
             # fPalette should be None here, since sharedPalette is not None
             fImage, fPalette, alreadyExists = saveOrGetPaletteAndImageDefinition(
                 fMaterial,
-                self,
+                model,
                 flipbookTexture.image,
                 name,
                 texProp.tex_format,
@@ -190,24 +201,24 @@ class OOTModel(FModel):
                 True,
                 sharedPalette,
             )
-            existingFPalette = self.validateCIFlipbook(existingFPalette, alreadyExists, fPalette, flipbookTexture)
+            existingFPalette = model.validateCIFlipbook(existingFPalette, alreadyExists, fPalette, flipbookTexture)
             fImages.append(fImage)
 
             # do this here to check for modified names due to repeats
             flipbook.textureNames.append(fImage.name)
 
-        self.addFlipbookWithRepeatCheck(flipbook)
+        model.addFlipbookWithRepeatCheck(flipbook)
 
         # print(f"Palette length for {sharedPalette.name}: {len(sharedPalette.palette)}")
         firstImage = flipbookProp.textures[0].image
-        self.processedFlipbooks[firstImage] = [flipbookTex.image for flipbookTex in flipbookProp.textures]
+        model.processedFlipbooks[firstImage] = [flipbookTex.image for flipbookTex in flipbookProp.textures]
 
         if existingFPalette == False:
 
             palFormat = texProp.ci_format
             fPalette = saveOrGetPaletteOnlyDefinition(
                 fMaterial,
-                self,
+                model,
                 firstImage,
                 sharedPalette.name,
                 texProp.tex_format,
@@ -225,9 +236,10 @@ class OOTModel(FModel):
         else:
             fPalette = existingFPalette
 
-        self.modifyDLForCIFlipbook(fMaterial, fPalette, texProp)
+        model.modifyDLForCIFlipbook(fMaterial, fPalette, texProp)
 
     def processFlipbookNonCI(self, fMaterial: FMaterial, flipbookProp: Any, texProp: TextureProperty):
+        model = self.getFlipbookOwner()
         flipbook = TextureFlipbook(flipbookProp.name, flipbookProp.exportMode, [])
         for flipbookTexture in flipbookProp.textures:
             if flipbookTexture.image is None:
@@ -236,11 +248,11 @@ class OOTModel(FModel):
             name = (
                 flipbookTexture.name
                 if flipbookProp.exportMode == "Individual"
-                else self.name + "_" + flipbookTexture.image.name + "_" + texProp.tex_format.lower()
+                else model.name + "_" + flipbookTexture.image.name + "_" + texProp.tex_format.lower()
             )
             fImage = saveOrGetTextureDefinition(
                 fMaterial,
-                self,
+                model,
                 flipbookTexture.image,
                 name,
                 texProp.tex_format,

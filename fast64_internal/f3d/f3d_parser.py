@@ -556,9 +556,11 @@ class F3DContext:
         mat.set_key = False
         mat.set_k0_5 = False
 
-        mat.prim_color = [1, 1, 1, 1]
-        mat.env_color = [1, 1, 1, 1]
-        mat.blend_color = [1, 1, 1, 1]
+        # Common for games to preserve registers across multiple draws
+        # Maybe remove this?
+        # mat.prim_color = [1, 1, 1, 1]
+        # mat.env_color = [1, 1, 1, 1]
+        # mat.blend_color = [1, 1, 1, 1]
         for i in range(1, 8):
             setattr(mat, "f3d_light" + str(i), None)
         mat.tex0.tex = None
@@ -1955,7 +1957,7 @@ def parseTextureData(dlData, textureName, f3dContext, imageFormat, imageSize, wi
 
     loadedFromImageFile = False
 
-    pathMatch = re.search('\#include\s*"([^"]*)"', data, re.DOTALL)
+    pathMatch = re.search(r'\#include\s*"(.*?)"', data, re.DOTALL)
     if pathMatch is not None:
         path = pathMatch.group(1)
         originalImage = bpy.data.images.load(f3dContext.getImagePathFromInclude(path))

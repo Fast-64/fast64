@@ -283,7 +283,7 @@ def writeTextureArraysExisting(exportPath: str, overlayName: str, isLink: bool, 
     for flipbook in fModel.flipbooks:
         if flipbook.exportMode == "Array":
             if arrayIndex2D is None:
-                newData = writeTextureArraysExisting1D(newData, flipbook)
+                newData = writeTextureArraysExisting1D(newData, flipbook, "")
             else:
                 newData = writeTextureArraysExisting2D(newData, flipbook, arrayIndex2D)
 
@@ -291,7 +291,7 @@ def writeTextureArraysExisting(exportPath: str, overlayName: str, isLink: bool, 
         writeFile(actorFilePath, newData)
 
 
-def writeTextureArraysExisting1D(data: str, flipbook: TextureFlipbook) -> str:
+def writeTextureArraysExisting1D(data: str, flipbook: TextureFlipbook, additionalIncludes: str) -> str:
     newData = data
     arrayMatch = re.search(
         r"(static\s*)?void\s*\*\s*" + re.escape(flipbook.name) + r"\s*\[\s*\]\s*=\s*\{(((?!\}).)*)\}\s*;",
@@ -307,14 +307,20 @@ def writeTextureArraysExisting1D(data: str, flipbook: TextureFlipbook) -> str:
         # otherwise, add to end of asset includes
     else:
         newArrayData = flipbook_to_c(flipbook, True)
-        # get last asset include
-        includeMatch = None
-        for includeMatchItem in re.finditer(r"\#include\s*\"assets/.*?\"\s*?\n", newData, flags=re.DOTALL):
-            includeMatch = includeMatchItem
-        if includeMatch:
-            newData = newData[: includeMatch.end(0)] + newArrayData + "\n" + newData[includeMatch.end(0) :]
-        else:
-            newData += newArrayData + "\n"
+
+    # get last asset include
+    includeMatch = None
+    for includeMatchItem in re.finditer(r"\#include\s*\"assets/.*?\"\s*?\n", newData, flags=re.DOTALL):
+        includeMatch = includeMatchItem
+    if includeMatch:
+        newData = (
+            newData[: includeMatch.end(0)]
+            + additionalIncludes
+            + ((newArrayData + "\n") if not arrayMatch else "")
+            + newData[includeMatch.end(0) :]
+        )
+    else:
+        newData = (additionalIncludes + newData + newArrayData + "\n") if not arrayMatch else newData
 
     return newData
 

@@ -114,9 +114,18 @@ def parseScene(
     if bpy.context.mode != "OBJECT":
         bpy.context.mode = "OBJECT"
 
+    # set scene default registers (see sDefaultDisplayList)
     f3dContext = OOTF3DContext(F3D(f3dType, isHWv1), [], bpy.path.abspath(bpy.context.scene.ootDecompPath))
+    f3dContext.mat().prim_color = (0.5, 0.5, 0.5, 0.5)
+    f3dContext.mat().env_color = (0.5, 0.5, 0.5, 0.5)
+
     parseMatrices(sceneData, f3dContext, 1 / bpy.context.scene.ootBlenderScale)
     f3dContext.addMatrix("&gMtxClear", mathutils.Matrix.Scale(1 / bpy.context.scene.ootBlenderScale, 4))
+
+    if not settings.isCustomDest:
+        drawConfigName = getDrawConfig(sceneName)
+        drawConfigData = readFile(os.path.join(importPath, "src/code/z_scene_table.c"))
+        parseDrawConfig(drawConfigName, sceneData, drawConfigData, f3dContext)
 
     bpy.context.space_data.overlay.show_relationship_lines = False
     sceneCommandsName = f"{sceneName}_sceneCommands"
@@ -226,7 +235,7 @@ def parseSceneCommands(
                 parseLightList(sceneObj, sceneHeader, sceneData, lightsListName, headerIndex)
         elif command == "SCENE_CMD_CUTSCENE_DATA":
             cutsceneName = args[0]
-            print("Command not implemented.")
+            print("Cutscene command parsing not implemented.")
         elif command == "SCENE_CMD_ALTERNATE_HEADER_LIST":
             # Delay until after rooms are parsed
             altHeadersListName = args[0]
@@ -1192,3 +1201,53 @@ def parseWaterBoxes(
 
         parentObject(roomObjs[roomIndex], waterBoxObj)
         orderIndex += 1
+
+
+def parseDrawConfig(drawConfigName: str, sceneData: str, drawConfigData: str, f3dContext: OOTF3DContext):
+    drawFunctionName = "Scene_DrawConfig" + "".join(
+        [value.strip().lower().capitalize() for value in drawConfigName.replace("SDC_", "").split("_")]
+    )
+
+    # get draw function
+    match = re.search(rf"void\s*{re.escape(drawFunctionName)}(.*?)CLOSE\_DISPS", drawConfigData, flags=re.DOTALL)
+    if match is None:
+        print(f"Could not find draw function {drawFunctionName}.")
+        return
+    functionData = match.group(1)
+
+    # get all flipbook textures
+    flipbookDict = {}
+    for fbMatch in re.finditer(
+        r"void\*\s*([a-zA-Z0-9\_]*)\s*\[.*?\]\s*=\s*\{(.*?)\}\s*;", drawConfigData, flags=re.DOTALL
+    ):
+        name = fbMatch.group(1)
+        textureList = [value.strip() for value in fbMatch.group(2).split(",") if value.strip() != ""]
+        flipbookDict[name] = textureList
+
+    # static environment color
+    for envMatch in re.finditer(
+        rf"gDPSetEnvColor\s*\(\s*POLY_[A-Z]{{3}}_DISP\s*\+\+\s*,(.*?)\)\s*;", functionData, flags=re.DOTALL
+    ):
+        params = [value.strip() for value in envMatch.group(1).split(",")]
+        try:
+            color = tuple([hexOrDecInt(value) for value in params])
+            f3dContext.mat().env_color = color
+        except:
+            pass
+
+    # dynamic textures
+    for flipbookMatch in re.finditer(
+        rf"gSPSegment\s*\(\s*POLY_([A-Z]{{3}})_DISP\s*\+\+\s*,\s*(.*?),\s*SEGMENTED_TO_VIRTUAL(.*?)\)\s*;",
+        functionData,
+        flags=re.DOTALL,
+    ):
+        drawLayerID = flipbookMatch.group(1)
+        segment = flipbookMatch.group(2).strip()
+        textureParam = flipbookMatch.group(3)
+
+        drawLayer = "Transparent" if drawLayerID == "XLU" else "Opaque"
+        flipbookKey = (hexOrDecInt(segment), drawLayer)
+
+        for name, textureNames in flipbookDict.items():
+            if name in textureParam:
+                f3dContext.flipbooks[flipbookKey] = TextureFlipbook(name, "Array", flipbookDict[name])
