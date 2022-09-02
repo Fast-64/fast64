@@ -519,7 +519,7 @@ def drawSceneHeaderProperty(layout, sceneProp, dropdownLabel, headerIndex, objNa
 
 class OOTBGProperty(bpy.types.PropertyGroup):
     image: bpy.props.PointerProperty(type=bpy.types.Image)
-    camera: bpy.props.IntProperty(name="Camera Index", min=0)
+    # camera: bpy.props.IntProperty(name="Camera Index", min=0)
     otherModeFlags: bpy.props.StringProperty(
         name="DPSetOtherMode Flags", default="0x0000", description="See src/code/z_room.c:func_8009638C()"
     )
@@ -528,8 +528,8 @@ class OOTBGProperty(bpy.types.PropertyGroup):
         box = layout.box().column()
 
         box.template_ID(self, "image", new="image.new", open="image.open")
-        if isMulti:
-            prop_split(box, self, "camera", "Camera")
+        # if isMulti:
+        #    prop_split(box, self, "camera", "Camera")
         prop_split(box, self, "otherModeFlags", "Other Mode Flags")
         drawCollectionOps(box, index, "BgImage", None, objName)
 
@@ -579,6 +579,7 @@ class OOTRoomHeaderProperty(bpy.types.PropertyGroup):
 
 def drawBGImageList(layout: bpy.types.UILayout, roomHeader: OOTRoomHeaderProperty, objName: str):
     box = layout.column()
+    box.label(text="BG images do not work currently.", icon="ERROR")
     box.prop(roomHeader, "bgImageTab", text="BG Images", icon="TRIA_DOWN" if roomHeader.bgImageTab else "TRIA_RIGHT")
     if roomHeader.bgImageTab:
         box.label(text="Only one room allowed per scene.", icon="INFO")
@@ -623,6 +624,7 @@ def drawRoomHeaderProperty(layout, roomProp, dropdownLabel, headerIndex, objName
             if roomProp.roomShape == "ROOM_SHAPE_TYPE_IMAGE":
                 drawBGImageList(general, roomProp, objName)
             if roomProp.roomShape == "ROOM_SHAPE_TYPE_CULLABLE":
+                general.label(text="Cull regions are generated automatically.", icon="INFO")
                 prop_split(general, roomProp, "defaultCullDistance", "Default Cull (Blender Units)")
         # Behaviour
         behaviourBox = layout.column()

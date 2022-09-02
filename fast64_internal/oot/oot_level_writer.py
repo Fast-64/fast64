@@ -359,7 +359,6 @@ def readRoomData(
                 OOTBGImage(
                     toAlnum(sceneName + "_bg_" + bgImage.image.name),
                     bgImage.image,
-                    bgImage.camera,
                     bgImage.otherModeFlags,
                 )
             )

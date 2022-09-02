@@ -304,10 +304,9 @@ class OOTScene:
 
 
 class OOTBGImage:
-    def __init__(self, name: str, image: bpy.types.Image, cameraIndex: int, otherModeFlags: str):
+    def __init__(self, name: str, image: bpy.types.Image, otherModeFlags: str):
         self.name = name
         self.image = image
-        self.cameraIndex = cameraIndex
         self.otherModeFlags = otherModeFlags
 
     def getFilename(self) -> str:
@@ -322,9 +321,9 @@ class OOTBGImage:
         code += "\t" * tabDepth + f"{self.otherModeFlags}, 0x0000,\n"
         return code
 
-    def multiPropertiesC(self, tabDepth: int) -> str:
+    def multiPropertiesC(self, tabDepth: int, cameraIndex: int) -> str:
         code = ""
-        code += "\t" * tabDepth + f"0x0082, {self.cameraIndex},\n"
+        code += "\t" * tabDepth + f"0x0082, {cameraIndex},\n"
         code += self.singlePropertiesC(tabDepth)
         return code
 

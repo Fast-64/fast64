@@ -415,7 +415,8 @@ def parseBGImageList(
     for bgDataItem in bgList:
         params = [value.strip() for value in bgDataItem.split(",") if value.strip() != ""]
         bgImage = roomHeader.bgImageList.add()
-        bgImage.camera = hexOrDecInt(params[1])
+        # Assuming camera index increments appropriately
+        # bgImage.camera = hexOrDecInt(params[1])
         bgImage.otherModeFlags = params[9]
 
         bgName = params[2]

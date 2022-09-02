@@ -314,9 +314,10 @@ def ootBgImagesToC(roomMesh: OOTRoomMesh, textureSettings: TextureExportSettings
     if len(roomMesh.bgImages) > 1:
         code.header += f"extern BgImage {roomMesh.getMultiBgStructName()}[];\n"
         code.source += f"BgImage {roomMesh.getMultiBgStructName()}[] = {{"
-        for bgImage in roomMesh.bgImages:
+        for i in range(len(roomMesh.bgImages)):
+            bgImage = roomMesh.bgImages[i]
             code.source += f"\t{{\n"
-            code.source += bgImage.multiPropertiesC(2)
+            code.source += bgImage.multiPropertiesC(2, i)
             code.source += f"\t}},\n"
         code.source += f"}};\n\n"
 
