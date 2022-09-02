@@ -147,6 +147,9 @@ def parseScene(
             sceneObj.ootSceneHeader.sceneTableEntry, "drawConfig", getDrawConfig(sceneName), ootEnumDrawConfig
         )
 
+    if bpy.context.scene.ootHeaderTabAffectsVisibility:
+        setAllActorsVisibility(sceneObj, bpy.context)
+
 
 def parseSceneCommands(
     sceneObj: bpy.types.Object | None,
@@ -547,9 +550,14 @@ def parseTransActorList(
 
             sharedSceneData.transDict[actorHash] = actorObj
 
-            parentObject(roomObjs[roomIndexFront], actorObj)
+            if roomIndexFront != 255:
+                parentObject(roomObjs[roomIndexFront], actorObj)
+                transActorProp.roomIndex = roomIndexBack
+            else:
+                parentObject(roomObjs[roomIndexBack], actorObj)
+                transActorProp.dontTransition = True
+
             setCustomProperty(transActorProp, "cameraTransitionFront", camFront, ootEnumCamTransition)
-            transActorProp.roomIndex = roomIndexBack
             setCustomProperty(transActorProp, "cameraTransitionBack", camBack, ootEnumCamTransition)
 
             actorProp = transActorProp.actor

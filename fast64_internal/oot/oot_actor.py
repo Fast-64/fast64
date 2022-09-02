@@ -245,6 +245,7 @@ class OOTTransitionActorProperty(bpy.types.PropertyGroup):
     cameraTransitionFrontCustom: bpy.props.StringProperty(default="0x00")
     cameraTransitionBack: bpy.props.EnumProperty(items=ootEnumCamTransition, default="0x00")
     cameraTransitionBackCustom: bpy.props.StringProperty(default="0x00")
+    dontTransition: bpy.props.BoolProperty(name="Don't Transition", default=False)
 
     actor: bpy.props.PointerProperty(type=OOTActorProperty)
 
@@ -271,8 +272,10 @@ def drawTransitionActorProperty(layout, transActorProp, altSceneProp, roomObj, o
     if roomObj is None:
         actorIDBox.label(text="This must be part of a Room empty's hierarchy.", icon="OUTLINER")
     else:
-        label_split(actorIDBox, "Room To Transition From", str(roomObj.ootRoomHeader.roomIndex))
-    prop_split(actorIDBox, transActorProp, "roomIndex", "Room To Transition To")
+        actorIDBox.prop(transActorProp, "dontTransition")
+        if not transActorProp.dontTransition:
+            label_split(actorIDBox, "Room To Transition From", str(roomObj.ootRoomHeader.roomIndex))
+            prop_split(actorIDBox, transActorProp, "roomIndex", "Room To Transition To")
     actorIDBox.label(text='Y+ side of door faces toward the "from" room.', icon="ORIENTATION_NORMAL")
     drawEnumWithCustom(actorIDBox, transActorProp, "cameraTransitionFront", "Camera Transition Front", "")
     drawEnumWithCustom(actorIDBox, transActorProp, "cameraTransitionBack", "Camera Transition Back", "")

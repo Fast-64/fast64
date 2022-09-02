@@ -8,6 +8,7 @@ from . import oot_operators
 from . import oot_skeleton
 from . import oot_spline
 from . import oot_utility
+from .oot_actor import setAllActorsVisibility
 
 from ..panels import OOT_Panel
 from ..utility import prop_split
@@ -93,7 +94,7 @@ def oot_register(registerPanels):
     bpy.types.Scene.ootActorBlenderScale = bpy.props.FloatProperty(name="Blender To OOT Actor Scale", default=1000)
     bpy.types.Scene.ootDecompPath = bpy.props.StringProperty(name="Decomp Folder", subtype="FILE_PATH")
     bpy.types.Scene.ootHeaderTabAffectsVisibility = bpy.props.BoolProperty(
-        default=False, name="Header Sets Actor Visibility"
+        default=False, name="Header Sets Actor Visibility", update=setAllActorsVisibility
     )
 
 

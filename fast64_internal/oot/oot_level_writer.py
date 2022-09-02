@@ -699,14 +699,20 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
             )
         elif obj.ootEmptyType == "Transition Actor":
             transActorProp = obj.ootTransitionActorProperty
+            if transActorProp.dontTransition:
+                front = (255, getCustomProperty(transActorProp, "cameraTransitionBack"))
+                back = (room.roomIndex, getCustomProperty(transActorProp, "cameraTransitionFront"))
+            else:
+                front = (room.roomIndex, getCustomProperty(transActorProp, "cameraTransitionFront"))
+                back = (transActorProp.roomIndex, getCustomProperty(transActorProp, "cameraTransitionBack"))
             addActor(
                 scene,
                 OOTTransitionActor(
                     getCustomProperty(transActorProp.actor, "actorID"),
-                    room.roomIndex,
-                    transActorProp.roomIndex,
-                    getCustomProperty(transActorProp, "cameraTransitionFront"),
-                    getCustomProperty(transActorProp, "cameraTransitionBack"),
+                    front[0],
+                    back[0],
+                    front[1],
+                    back[1],
                     translation,
                     rotation[1],  # TODO: Correct axis?
                     transActorProp.actor.actorParam,
@@ -914,6 +920,8 @@ class OOT_ExportScenePanel(OOT_Panel):
 
         col.operator(OOT_SearchSceneEnumOperator.bl_idname, icon="VIEWZOOM")
         col.box().column().label(text=getEnumName(ootEnumSceneID, context.scene.ootSceneOption))
+        if "SCENE_BDAN" in context.scene.ootSceneOption:
+            col.label(text="Pulsing wall effect will not be imported.", icon="ERROR")
         # col.prop(settings, 'option')
         if context.scene.ootSceneOption == "Custom":
             prop_split(col, settings, "subFolder", "Subfolder")
