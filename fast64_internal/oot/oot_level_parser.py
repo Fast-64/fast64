@@ -1,12 +1,12 @@
 import math, os
 from random import random
-from ..oot_f3d_writer import *
-from ..oot_collision import *
-from ..oot_cutscene import *
-from ..oot_level import OOTImportSceneSettingsProperty
-from ..oot_scene_room import OOTSceneHeaderProperty
-from .oot_scene_table_c import getDrawConfig
-from ...utility import yUpToZUp
+from .oot_f3d_writer import *
+from .oot_collision import *
+from .oot_cutscene import *
+from .oot_level import OOTImportSceneSettingsProperty
+from .oot_scene_room import OOTSceneHeaderProperty
+from .c_writer.oot_scene_table_c import getDrawConfig
+from ..utility import yUpToZUp
 from collections import OrderedDict
 
 headerNames = ["childDayHeader", "childNightHeader", "adultDayHeader", "adultNightHeader"]

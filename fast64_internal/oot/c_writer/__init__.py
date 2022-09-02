@@ -2,4 +2,4 @@ from .oot_level_c import *
 from .oot_scene_table_c import *
 from .oot_spec import *
 from .oot_scene_folder import *
-from .oot_level_c_import import parseScene
+from ..oot_level_parser import parseScene

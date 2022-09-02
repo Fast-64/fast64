@@ -17,7 +17,7 @@ from .oot_collision import *
 from .oot_spline import *
 from .oot_cutscene import *
 from .c_writer import *
-from .c_writer.oot_level_c_import import *
+from .oot_level_parser import *
 
 
 def ootPreprendSceneIncludes(scene, file):
