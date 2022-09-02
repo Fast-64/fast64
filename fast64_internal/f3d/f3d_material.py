@@ -3410,7 +3410,6 @@ class F3DMaterialProperty(bpy.types.PropertyGroup):
     draw_layer: bpy.props.PointerProperty(type=DrawLayerProperty)
     use_large_textures: bpy.props.BoolProperty(name="Large Texture Mode")
 
-    # Don't use this, actual worse than propertyGroupEquals() for material caching
     def __eq__(self, other):
         if not isinstance(other, F3DMaterialProperty):
             return False
