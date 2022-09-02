@@ -582,6 +582,7 @@ def drawBGImageList(layout: bpy.types.UILayout, roomHeader: OOTRoomHeaderPropert
     box.prop(roomHeader, "bgImageTab", text="BG Images", icon="TRIA_DOWN" if roomHeader.bgImageTab else "TRIA_RIGHT")
     if roomHeader.bgImageTab:
         box.label(text="Only one room allowed per scene.", icon="INFO")
+        box.label(text="Must be framebuffer sized (320x240).", icon="INFO")
         box.label(text="Must be jpg file with file marker.", icon="INFO")
         box.label(text="Ex. MsPaint compatible, Photoshop not.")
         box.label(text="Can't use files generated in Blender.")
