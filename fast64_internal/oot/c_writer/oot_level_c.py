@@ -219,7 +219,7 @@ def cmdWindSettings(room, header, cmdCount):
 
 def cmdMesh(room, header, cmdCount):
     cmd = CData()
-    cmd.source = "\tSCENE_CMD_MESH(&" + room.mesh.headerName() + "),\n"
+    cmd.source = "\tSCENE_CMD_ROOM_SHAPE(&" + room.mesh.headerName() + "),\n"
     return cmd
 
 
@@ -286,13 +286,13 @@ def ootActorListToC(room, headerIndex):
     return data
 
 
-def ootMeshEntryToC(meshEntry, meshType):
+def ootMeshEntryToC(meshEntry, roomShape):
     opaqueName = meshEntry.DLGroup.opaque.name if meshEntry.DLGroup.opaque is not None else "0"
     transparentName = meshEntry.DLGroup.transparent.name if meshEntry.DLGroup.transparent is not None else "0"
     data = "{ "
-    if meshType == "1":
+    if roomShape == "ROOM_SHAPE_TYPE_IMAGE":
         raise PluginError("Pre-Rendered rooms not supported.")
-    elif meshType == "2":
+    elif roomShape == "ROOM_SHAPE_TYPE_CULLABLE":
         data += (
             "{ "
             + f"{meshEntry.cullGroup.position[0]}, {meshEntry.cullGroup.position[1]}, {meshEntry.cullGroup.position[2]}"
@@ -315,13 +315,13 @@ def ootRoomMeshToC(room, textureExportSettings):
         raise PluginError("Error: Room " + str(room.index) + " has no mesh children.")
 
     meshHeader = CData()
-    meshHeader.header = "extern MeshHeader" + mesh.meshType + " " + mesh.headerName() + ";\n"
+    meshHeader.header = f"extern {ootRoomShapeStructs[mesh.roomShape]} {mesh.headerName()};\n"
     meshHeader.source = (
         "\n".join(
             (
-                "MeshHeader" + mesh.meshType + " " + mesh.headerName() + "= {",
-                indent + mesh.meshType + ",",
-                indent + str(len(mesh.meshEntries)) + ",",
+                ootRoomShapeStructs[mesh.roomShape] + " " + mesh.headerName() + " = {",
+                indent + mesh.roomShape + ",",
+                indent + "ARRAY_COUNT(" + mesh.entriesName() + ")" + ",",
                 indent + mesh.entriesName() + ",",
                 indent + mesh.entriesName() + " + ARRAY_COUNT(" + mesh.entriesName() + ")",
                 "};",
@@ -331,14 +331,15 @@ def ootRoomMeshToC(room, textureExportSettings):
     )
 
     meshEntries = CData()
-    meshEntryType = "MeshHeader" + ("01" if mesh.meshType == "0" else "2") + "Entry "
     meshEntries.header = (
-        "extern " + meshEntryType + " " + mesh.entriesName() + "[" + str(len(mesh.meshEntries)) + "];\n"
+        f"extern {ootRoomShapeEntryStructs[mesh.roomShape]} {mesh.entriesName()}[{str(len(mesh.meshEntries))}];\n"
     )
-    meshEntries.source = meshEntryType + mesh.entriesName() + "[" + str(len(mesh.meshEntries)) + "] = {\n"
+    meshEntries.source = (
+        f"{ootRoomShapeEntryStructs[mesh.roomShape]} {mesh.entriesName()}[{str(len(mesh.meshEntries))}] = " + "{\n"
+    )
     meshData = CData()
     for entry in mesh.meshEntries:
-        meshEntries.source += "\t" + ootMeshEntryToC(entry, mesh.meshType)
+        meshEntries.source += "\t" + ootMeshEntryToC(entry, mesh.roomShape)
         if entry.DLGroup.opaque is not None:
             meshData.append(entry.DLGroup.opaque.to_c(mesh.model.f3d))
         if entry.DLGroup.transparent is not None:
@@ -348,7 +349,6 @@ def ootRoomMeshToC(room, textureExportSettings):
 
     meshData.append(exportData.all())
     meshHeader.append(meshEntries)
-    # meshHeader.append(meshData)
 
     return meshHeader, meshData
 
