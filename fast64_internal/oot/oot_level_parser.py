@@ -13,6 +13,30 @@ from os.path import isfile, join
 
 headerNames = ["childDayHeader", "childNightHeader", "adultDayHeader", "adultNightHeader"]
 
+actorsWithRotAsParam = {
+    "ACTOR_EN_BOX": "Z",
+    "ACTOR_EN_WOOD02": "Z",
+    "ACTOR_DOOR_ANA": "Z",
+    "ACTOR_EN_ENCOUNT1": "Z",
+    "ACTOR_EN_MA1": "Z",
+    "ACTOR_EN_WONDER_ITEM": "Z",
+    "ACTOR_EN_WONDER_TALK": "Z",
+    "ACTOR_EN_WONDER_TALK2": "Z",
+    "ACTOR_OBJ_BEAN": "Z",
+    "ACTOR_EN_OKARINA_TAG": "Z",
+    "ACTOR_EN_GOROIWA": "Z",
+    "ACTOR_EN_DAIKU": "Z",
+    "ACTOR_EN_SIOFUKI": "XYZ",
+    "ACTOR_ELF_MSG2": "XYZ",
+    "ACTOR_OBJ_MAKEOSHIHIKI": "Z",
+    "ACTOR_EN_GELDB": "Z",
+    "ACTOR_OBJ_KIBAKO2": "XZ",
+    "ACTOR_EN_GO2": "Z",
+    "ACTOR_EN_KAKASI2": "Z",
+    "ACTOR_EN_KAKASI3": "Z",
+    "ACTOR_OBJ_TIMEBLOCK": "Z",
+}
+
 
 def checkBit(value: int, index: int) -> bool:
     return (1 & (value >> index)) == 1
@@ -550,6 +574,14 @@ def getDisplayNameFromActorID(actorID: str):
     return " ".join([word.lower().capitalize() for word in actorID.split("_") if word != "ACTOR"])
 
 
+def handleActorWithRotAsParam(actorProp: OOTActorProperty, actorID: str, rotation: list[int]):
+    if actorID in actorsWithRotAsParam:
+        actorProp.rotOverride = True
+        actorProp.rotOverrideX = hex(rotation[0])
+        actorProp.rotOverrideY = hex(rotation[1])
+        actorProp.rotOverrideZ = hex(rotation[2])
+
+
 def parseTransActorList(
     roomObjs: list[bpy.types.Object],
     sceneData: str,
@@ -582,7 +614,7 @@ def parseTransActorList(
             actorParam,
         )
         if not sharedSceneData.addHeaderIfItemExists(actorHash, "Transition Actor", headerIndex):
-            actorObj = createEmptyWithTransform(position, rotation)
+            actorObj = createEmptyWithTransform(position, [0, 0, 0] if actorID in actorsWithRotAsParam else rotation)
             actorObj.ootEmptyType = "Transition Actor"
             actorObj.name = "Transition " + getDisplayNameFromActorID(params[4])
             transActorProp = actorObj.ootTransitionActorProperty
@@ -602,6 +634,7 @@ def parseTransActorList(
             actorProp = transActorProp.actor
             setCustomProperty(actorProp, "actorID", actorID, ootEnumActorID)
             actorProp.actorParam = actorParam
+            handleActorWithRotAsParam(actorProp, actorID, rotation)
             unsetAllHeadersExceptSpecified(actorProp.headerSettings, headerIndex)
 
 
@@ -673,7 +706,7 @@ def parseSpawnList(
         actorHash = (actorID, position, rotation, actorParam, spawnIndex, roomIndex)
 
         if not sharedSceneData.addHeaderIfItemExists(actorHash, "Entrance", headerIndex):
-            spawnObj = createEmptyWithTransform(position, rotation)
+            spawnObj = createEmptyWithTransform(position, [0, 0, 0] if actorID in actorsWithRotAsParam else rotation)
             spawnObj.ootEmptyType = "Entrance"
             spawnObj.name = "Entrance"
             spawnProp = spawnObj.ootEntranceProperty
@@ -682,6 +715,7 @@ def parseSpawnList(
             actorProp = spawnProp.actor
             setCustomProperty(actorProp, "actorID", actorID, ootEnumActorID)
             actorProp.actorParam = actorParam
+            handleActorWithRotAsParam(actorProp, actorID, rotation)
             unsetAllHeadersExceptSpecified(actorProp.headerSettings, headerIndex)
 
             sharedSceneData.entranceDict[actorHash] = spawnObj
@@ -732,13 +766,14 @@ def parseActorList(
         if not sharedSceneData.addHeaderIfItemExists(actorHash, "Actor", headerIndex):
             actorID, position, rotation, actorParam, roomIndex = actorHash
 
-            actorObj = createEmptyWithTransform(position, rotation)
+            actorObj = createEmptyWithTransform(position, [0, 0, 0] if actorID in actorsWithRotAsParam else rotation)
             actorObj.ootEmptyType = "Actor"
             actorObj.name = getDisplayNameFromActorID(actorID)
             actorProp = actorObj.ootActorProperty
 
             setCustomProperty(actorProp, "actorID", actorID, ootEnumActorID)
             actorProp.actorParam = actorParam
+            handleActorWithRotAsParam(actorProp, actorID, rotation)
             unsetAllHeadersExceptSpecified(actorProp.headerSettings, headerIndex)
 
             sharedSceneData.actorDict[actorHash] = actorObj
