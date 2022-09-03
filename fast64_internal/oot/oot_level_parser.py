@@ -43,13 +43,32 @@ def getDataMatch(
 
 
 class SharedSceneData:
-    def __init__(self, scenePath: str):
+    def __init__(
+        self,
+        scenePath: str,
+        includeMesh: bool,
+        includeCollision: bool,
+        includeActors: bool,
+        includeCullGroups: bool,
+        includeLights: bool,
+        includeCameras: bool,
+        includePaths: bool,
+        includeWaterBoxes: bool,
+    ):
         self.actorDict = {}  # actor hash : blender object
         self.entranceDict = {}  # actor hash : blender object
         self.transDict = {}  # actor hash : blender object
         self.pathDict = {}  # path hash : blender object
 
         self.scenePath = scenePath
+        self.includeMesh = includeMesh
+        self.includeCollision = includeCollision
+        self.includeActors = includeActors
+        self.includeCullGroups = includeCullGroups
+        self.includeLights = includeLights
+        self.includeCameras = includeCameras
+        self.includePaths = includePaths
+        self.includeWaterBoxes = includeWaterBoxes
 
     def addHeaderIfItemExists(self, hash, itemType: str, headerIndex: int):
         if itemType == "Actor":
@@ -138,7 +157,17 @@ def parseScene(
     sceneCommandsName = f"{sceneName}_sceneCommands"
     if sceneCommandsName not in sceneData:
         sceneCommandsName = f"{sceneName}_scene_header00"  # fast64 naming
-    sharedSceneData = SharedSceneData(sceneFolderPath)
+    sharedSceneData = SharedSceneData(
+        sceneFolderPath,
+        settings.includeMesh,
+        settings.includeCollision,
+        settings.includeActors,
+        settings.includeCullGroups,
+        settings.includeLights,
+        settings.includeCameras,
+        settings.includePaths,
+        settings.includeWaterBoxes,
+    )
     sceneObj = parseSceneCommands(None, None, sceneCommandsName, sceneData, f3dContext, 0, sharedSceneData)
     bpy.context.scene.ootSceneExportObj = sceneObj
 
@@ -197,7 +226,7 @@ def parseSceneCommands(
                 roomObjs = parseRoomList(sceneObj, sceneData, roomListName, f3dContext, sharedSceneData, headerIndex)
 
         # This must be handled after rooms, so that room objs can be referenced
-        elif command == "SCENE_CMD_TRANSITION_ACTOR_LIST":
+        elif command == "SCENE_CMD_TRANSITION_ACTOR_LIST" and sharedSceneData.includeActors:
             transActorListName = args[1]
             parseTransActorList(roomObjs, sceneData, transActorListName, sharedSceneData, headerIndex)
 
@@ -208,23 +237,20 @@ def parseSceneCommands(
             # Assumption that all scenes use the same collision.
             if headerIndex == 0:
                 collisionHeaderName = args[0][1:]  # remove '&'
-                parseCollisionHeader(sceneObj, roomObjs, sceneData, collisionHeaderName)
-        elif command == "SCENE_CMD_ENTRANCE_LIST":
+                parseCollisionHeader(sceneObj, roomObjs, sceneData, collisionHeaderName, sharedSceneData)
+        elif command == "SCENE_CMD_ENTRANCE_LIST" and sharedSceneData.includeActors:
             if not (args[0] == "NULL" or args[0] == "0" or args[0] == "0x00"):
                 entranceListName = args[0]
                 entranceList = parseEntranceList(sceneHeader, roomObjs, sceneData, entranceListName)
         elif command == "SCENE_CMD_SPECIAL_FILES":
             setCustomProperty(sceneHeader, "naviCup", args[0], ootEnumNaviHints)
             setCustomProperty(sceneHeader, "globalObject", args[1], ootEnumGlobalObject)
-        elif command == "SCENE_CMD_SPECIAL_FILES":
-            setCustomProperty(sceneHeader, "naviCup", args[0], ootEnumNaviHints)
-            setCustomProperty(sceneHeader, "globalObject", args[1], ootEnumGlobalObject)
-        elif command == "SCENE_CMD_PATH_LIST":
+        elif command == "SCENE_CMD_PATH_LIST" and sharedSceneData.includePaths:
             pathListName = args[0]
             parsePathList(sceneObj, sceneData, pathListName, headerIndex, sharedSceneData)
 
         # This must be handled after entrance list, so that entrance list can be referenced
-        elif command == "SCENE_CMD_SPAWN_LIST":
+        elif command == "SCENE_CMD_SPAWN_LIST" and sharedSceneData.includeActors:
             if not (args[1] == "NULL" or args[1] == "0" or args[1] == "0x00"):
                 spawnListName = args[1]
                 parseSpawnList(roomObjs, sceneData, spawnListName, entranceList, sharedSceneData, headerIndex)
@@ -239,7 +265,7 @@ def parseSceneCommands(
         elif command == "SCENE_CMD_EXIT_LIST":
             exitListName = args[0]
             parseExitList(sceneHeader, sceneData, exitListName)
-        elif command == "SCENE_CMD_ENV_LIGHT_SETTINGS":
+        elif command == "SCENE_CMD_ENV_LIGHT_SETTINGS" and sharedSceneData.includeLights:
             if not (args[1] == "NULL" or args[1] == "0" or args[1] == "0x00"):
                 lightsListName = args[1]
                 parseLightList(sceneObj, sceneHeader, sceneData, lightsListName, headerIndex)
@@ -364,7 +390,7 @@ def parseRoomCommands(
             roomHeader.windVector = windVector
             roomHeader.windStrength = windStrength
             roomHeader.setWind = True
-        elif command == "SCENE_CMD_ROOM_SHAPE" or command == "SCENE_CMD_MESH":
+        elif (command == "SCENE_CMD_ROOM_SHAPE" or command == "SCENE_CMD_MESH") and sharedSceneData.includeMesh:
             # Assumption that all rooms use the same mesh.
             if headerIndex == 0:
                 meshHeaderName = args[0][1:]  # remove '&'
@@ -372,7 +398,7 @@ def parseRoomCommands(
         elif command == "SCENE_CMD_OBJECT_LIST":
             objectListName = args[1]
             parseObjectList(roomHeader, sceneData, objectListName)
-        elif command == "SCENE_CMD_ACTOR_LIST":
+        elif command == "SCENE_CMD_ACTOR_LIST" and sharedSceneData.includeActors:
             actorListName = args[1]
             parseActorList(roomObj, sceneData, actorListName, sharedSceneData, headerIndex)
 
@@ -402,7 +428,7 @@ def parseMeshHeader(
     isMulti = meshParams[1] == "2" or meshParams[1] == "ROOM_SHAPE_IMAGE_AMOUNT_MULTI"
 
     meshListName = meshParams[2][1 if isType1 else 0 :]  # remove &
-    parseMeshList(roomObj, sceneData, meshListName, roomShapeIndex, f3dContext)
+    parseMeshList(roomObj, sceneData, meshListName, roomShapeIndex, f3dContext, sharedSceneData)
 
     if isType1:
         if not isMulti:
@@ -438,7 +464,12 @@ def parseBGImageList(
 
 
 def parseMeshList(
-    roomObj: bpy.types.Object, sceneData: str, meshListName: str, roomShape: int, f3dContext: OOTF3DContext
+    roomObj: bpy.types.Object,
+    sceneData: str,
+    meshListName: str,
+    roomShape: int,
+    f3dContext: OOTF3DContext,
+    sharedSceneData: SharedSceneData,
 ):
     roomHeader = roomObj.ootRoomHeader
     meshEntryData = getDataMatch(sceneData, meshListName, "", "mesh list", roomShape != 1)
@@ -462,18 +493,21 @@ def parseMeshList(
                     for value in range(1, 4)
                 ]
             )
-            cullObj = bpy.data.objects.new("Cull Group", None)
-            bpy.context.scene.collection.objects.link(cullObj)
-            cullObj.location = position
-            cullObj.ootEmptyType = "Cull Group"
-            cullObj.name = "Cull Group"
-            cullProp = cullObj.ootCullGroupProperty
-            cullProp.sizeControlsCull = False
-            cullProp.manualRadius = hexOrDecInt(entryMatch.group(4).strip())
-            cullObj.show_name = True
-            # cullObj.empty_display_size = hexOrDecInt(entryMatch.group(4).strip()) / bpy.context.scene.ootBlenderScale
-            parentObject(roomObj, cullObj)
-            parentObj = cullObj
+            if sharedSceneData.includeCullGroups:
+                cullObj = bpy.data.objects.new("Cull Group", None)
+                bpy.context.scene.collection.objects.link(cullObj)
+                cullObj.location = position
+                cullObj.ootEmptyType = "Cull Group"
+                cullObj.name = "Cull Group"
+                cullProp = cullObj.ootCullGroupProperty
+                cullProp.sizeControlsCull = False
+                cullProp.manualRadius = hexOrDecInt(entryMatch.group(4).strip())
+                cullObj.show_name = True
+                # cullObj.empty_display_size = hexOrDecInt(entryMatch.group(4).strip()) / bpy.context.scene.ootBlenderScale
+                parentObject(roomObj, cullObj)
+                parentObj = cullObj
+            else:
+                parentObj = roomObj
         elif roomShape == 1:
             dls = [value.strip() for value in entryMatch.split(",")]
             opaqueDL = dls[0]
@@ -504,7 +538,7 @@ def createEmptyWithTransform(positionValues: list[float], rotationValues: list[f
     )
     rotation = yUpToZUp @ mathutils.Vector(ootParseRotation(rotationValues))
 
-    obj = bpy.data.objects.new("Cull Group", None)
+    obj = bpy.data.objects.new("Empty", None)
     bpy.context.scene.collection.objects.link(obj)
     obj.empty_display_type = "CUBE"
     obj.location = position
@@ -907,7 +941,11 @@ def parseLight(
 
 
 def parseCollisionHeader(
-    sceneObj: bpy.types.Object, roomObjs: list[bpy.types.Object], sceneData: str, collisionHeaderName: str
+    sceneObj: bpy.types.Object,
+    roomObjs: list[bpy.types.Object],
+    sceneData: str,
+    collisionHeaderName: str,
+    sharedSceneData: SharedSceneData,
 ):
     match = re.search(
         rf"CollisionHeader\s*{re.escape(collisionHeaderName)}\s*=\s*\{{\s*\{{(.*?)\}}\s*,\s*\{{(.*?)\}}\s*,(.*?)\}}\s*;",
@@ -944,10 +982,11 @@ def parseCollisionHeader(
     if waterBoxListName[0] == "&":
         waterBoxListName = waterBoxListName[1:]
 
-    parseCollision(sceneObj, vertexListName, polygonListName, surfaceTypeListName, sceneData)
-    if camDataListName != "NULL" and camDataListName != "0":
+    if sharedSceneData.includeCollision:
+        parseCollision(sceneObj, vertexListName, polygonListName, surfaceTypeListName, sceneData)
+    if sharedSceneData.includeCameras and camDataListName != "NULL" and camDataListName != "0":
         parseCamDataList(sceneObj, camDataListName, sceneData)
-    if waterBoxListName != "NULL" and waterBoxListName != "0":
+    if sharedSceneData.includeWaterBoxes and waterBoxListName != "NULL" and waterBoxListName != "0":
         parseWaterBoxes(sceneObj, roomObjs, sceneData, waterBoxListName)
 
 

@@ -170,9 +170,30 @@ class OOTImportSceneSettingsProperty(bpy.types.PropertyGroup):
     subFolder: bpy.props.StringProperty(name="Subfolder", default="overworld")
     destPath: bpy.props.StringProperty(name="Directory", subtype="FILE_PATH")
     isCustomDest: bpy.props.BoolProperty(name="Custom Path")
+    includeMesh: bpy.props.BoolProperty(name="Mesh", default=True)
+    includeCollision: bpy.props.BoolProperty(name="Collision", default=True)
+    includeActors: bpy.props.BoolProperty(name="Actors", default=True)
+    includeCullGroups: bpy.props.BoolProperty(name="Cull Groups", default=True)
+    includeLights: bpy.props.BoolProperty(name="Lights", default=True)
+    includeCameras: bpy.props.BoolProperty(name="Cameras", default=True)
+    includePaths: bpy.props.BoolProperty(name="Paths", default=True)
+    includeWaterBoxes: bpy.props.BoolProperty(name="Water Boxes", default=True)
 
     def draw(self, layout: bpy.types.UILayout):
         col = layout.column()
+        includeButtons1 = col.row(align=True)
+        includeButtons1.prop(self, "includeMesh", toggle=1)
+        includeButtons1.prop(self, "includeCollision", toggle=1)
+
+        includeButtons2 = col.row(align=True)
+        includeButtons2.prop(self, "includeActors", toggle=1)
+        includeButtons2.prop(self, "includeCullGroups", toggle=1)
+        includeButtons2.prop(self, "includeLights", toggle=1)
+
+        includeButtons3 = col.row(align=True)
+        includeButtons3.prop(self, "includeCameras", toggle=1)
+        includeButtons3.prop(self, "includePaths", toggle=1)
+        includeButtons3.prop(self, "includeWaterBoxes", toggle=1)
         col.prop(self, "isCustomDest")
         if self.isCustomDest:
             prop_split(col, self, "destPath", "Directory")
