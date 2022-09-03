@@ -743,6 +743,7 @@ class F3DContext:
         # Custom equality operator may or may not be worse
         for material in self.materials:
             if propertyGroupEquals(self.materialContext.f3d_mat, material.f3d_mat):
+                # print(f"Found cached material: {material.name}")
                 return self.materials.index(material)
         # if self.materialContext.f3d_mat == material.f3d_mat:
         #    return self.materials.index(material)
@@ -1516,16 +1517,17 @@ class F3DContext:
             elif command.name == "gsSPEndDisplayList":
                 callStack = callStack[:-1]
 
-            # Material Specific Commands
-            prevMaterialChangedStatus = self.materialChanged
-            self.materialChanged = True
-
             # Should we parse commands into f3d_gbi classes?
             # No, because some parsing involves reading C files, which is separate.
 
             # Assumes macros use variable names instead of values
             mat = self.mat()
             try:
+                # Material Specific Commands
+                # materialChanged status will be reverted if none of these material changing commands are processed
+                prevMaterialChangedStatus = self.materialChanged
+                self.materialChanged = True
+
                 if command.name == "gsSPClipRatio":
                     mat.clip_ratio = math_eval(command.params[0], self.f3d)
                 elif command.name == "gsSPNumLights":
