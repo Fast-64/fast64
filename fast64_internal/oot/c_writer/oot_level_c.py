@@ -315,13 +315,11 @@ def ootRoomMeshToC(room, textureExportSettings):
         raise PluginError("Error: Room " + str(room.index) + " has no mesh children.")
 
     meshHeader = CData()
-    shapeTypeIdx = 0 if mesh.roomShape == "ROOM_SHAPE_TYPE_NORMAL" else 1
-
-    meshHeader.header = f"extern {ootRoomShapeStructs[shapeTypeIdx]} {mesh.headerName()};\n"
+    meshHeader.header = f"extern {ootRoomShapeStructs[mesh.roomShape]} {mesh.headerName()};\n"
     meshHeader.source = (
         "\n".join(
             (
-                ootRoomShapeStructs[shapeTypeIdx] + " " + mesh.headerName() + " = {",
+                ootRoomShapeStructs[mesh.roomShape] + " " + mesh.headerName() + " = {",
                 indent + mesh.roomShape + ",",
                 indent + "ARRAY_COUNT(" + mesh.entriesName() + ")" + ",",
                 indent + mesh.entriesName() + ",",
@@ -334,10 +332,10 @@ def ootRoomMeshToC(room, textureExportSettings):
 
     meshEntries = CData()
     meshEntries.header = (
-        f"extern {ootRoomShapeEntryStructs[shapeTypeIdx]} {mesh.entriesName()}[{str(len(mesh.meshEntries))}];\n"
+        f"extern {ootRoomShapeEntryStructs[mesh.roomShape]} {mesh.entriesName()}[{str(len(mesh.meshEntries))}];\n"
     )
     meshEntries.source = (
-        f"{ootRoomShapeEntryStructs[shapeTypeIdx]} {mesh.entriesName()}[{str(len(mesh.meshEntries))}] = " + "{\n"
+        f"{ootRoomShapeEntryStructs[mesh.roomShape]} {mesh.entriesName()}[{str(len(mesh.meshEntries))}] = " + "{\n"
     )
     meshData = CData()
     for entry in mesh.meshEntries:
