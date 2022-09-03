@@ -917,11 +917,12 @@ class OOT_ExportScenePanel(OOT_Panel):
         importSettings = context.scene.ootSceneImportSettings
         col.operator(OOT_ImportScene.bl_idname)
         importSettings.draw(col)
+        col.label(text="Cutscenes won't be imported.")
 
         col.operator(OOT_SearchSceneEnumOperator.bl_idname, icon="VIEWZOOM")
         col.box().column().label(text=getEnumName(ootEnumSceneID, context.scene.ootSceneOption))
         if "SCENE_BDAN" in context.scene.ootSceneOption:
-            col.label(text="Pulsing wall effect will not be imported.", icon="ERROR")
+            col.label(text="Pulsing wall effect won't be imported.", icon="ERROR")
         # col.prop(settings, 'option')
         if context.scene.ootSceneOption == "Custom":
             prop_split(col, settings, "subFolder", "Subfolder")
