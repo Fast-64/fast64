@@ -429,14 +429,20 @@ def getPolygonType(collisionProp):
 
 
 class OOTWaterBox(BoxEmpty):
-    def __init__(self, roomIndex, lightingSetting, cameraSetting, position, scale, emptyScale):
+    def __init__(self, roomIndex, lightingSetting, cameraSetting, flag19, position, scale, emptyScale):
         self.roomIndex = roomIndex
         self.lightingSetting = lightingSetting
         self.cameraSetting = cameraSetting
+        self.flag19 = flag19
         BoxEmpty.__init__(self, position, scale, emptyScale)
 
     def propertyData(self):
-        value = (int(self.roomIndex) << 13) | (self.lightingSetting << 8) | (self.cameraSetting << 0)
+        value = (
+            ((1 if self.flag19 else 0) << 19)
+            | (int(self.roomIndex) << 13)
+            | (self.lightingSetting << 8)
+            | (self.cameraSetting << 0)
+        )
         return convertIntTo2sComplement(value, 4, False)
 
 

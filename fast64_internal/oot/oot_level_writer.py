@@ -479,6 +479,7 @@ def ootConvertScene(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneNam
                 room.mesh.removeUnusedEntries()
                 ootProcessEmpties(scene, room, sceneObj, roomObj, transformMatrix)
             elif obj.data is None and obj.ootEmptyType == "Water Box":
+                # 0x3F = -1 in 6bit value
                 ootProcessWaterBox(sceneObj, obj, transformMatrix, scene, 0x3F)
             elif isinstance(obj.data, bpy.types.Camera):
                 camPosProp = obj.ootCameraPositionProperty
@@ -763,6 +764,7 @@ def ootProcessWaterBox(sceneObj, obj, transformMatrix, scene, roomIndex):
             roomIndex,
             getCustomProperty(waterBoxProp, "lighting"),
             getCustomProperty(waterBoxProp, "camera"),
+            waterBoxProp.flag19,
             translation,
             scale,
             obj.empty_display_size,

@@ -58,6 +58,7 @@ class OOTMaterialCollisionProperty(bpy.types.PropertyGroup):
 class OOTWaterBoxProperty(bpy.types.PropertyGroup):
     lighting: bpy.props.IntProperty(name="Lighting", min=0)
     camera: bpy.props.IntProperty(name="Camera", min=0)
+    flag19: bpy.props.BoolProperty(name="Flag 19", default=False)
 
 
 def drawWaterBoxProperty(layout, waterBoxProp):
@@ -65,6 +66,7 @@ def drawWaterBoxProperty(layout, waterBoxProp):
     # box.box().label(text = "Properties")
     prop_split(box, waterBoxProp, "lighting", "Lighting")
     prop_split(box, waterBoxProp, "camera", "Camera")
+    box.prop(waterBoxProp, "flag19")
     box.label(text="Defined by top face of box empty.")
     box.label(text="No rotation allowed.")
 

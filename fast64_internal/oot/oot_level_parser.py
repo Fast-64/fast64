@@ -948,7 +948,7 @@ def parseCollisionHeader(
     if camDataListName != "NULL" and camDataListName != "0":
         parseCamDataList(sceneObj, camDataListName, sceneData)
     if waterBoxListName != "NULL" and waterBoxListName != "0":
-        parseWaterBoxes(roomObjs, sceneData, waterBoxListName)
+        parseWaterBoxes(sceneObj, roomObjs, sceneData, waterBoxListName)
 
 
 def parseCollision(
@@ -1198,6 +1198,7 @@ def parseCrawlSpaceData(
 
 
 def parseWaterBoxes(
+    sceneObj: bpy.types.Object,
     roomObjs: list[bpy.types.Object],
     sceneData: str,
     waterBoxListName: str,
@@ -1232,11 +1233,14 @@ def parseWaterBoxes(
 
         waterBoxObj.show_name = True
         waterBoxObj.ootEmptyType = "Water Box"
-        roomIndex = getBits(properties, 13, 19)
+        flag19 = checkBit(properties, 19)
+        roomIndex = getBits(properties, 13, 6)
         waterBoxProp.lighting = getBits(properties, 8, 5)
         waterBoxProp.camera = getBits(properties, 0, 8)
+        waterBoxProp.flag19 = flag19
 
-        parentObject(roomObjs[roomIndex], waterBoxObj)
+        # 0x3F = -1 in 6bit value
+        parentObject(roomObjs[roomIndex] if roomIndex != 0x3F else sceneObj, waterBoxObj)
         orderIndex += 1
 
 
