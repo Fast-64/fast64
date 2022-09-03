@@ -475,6 +475,7 @@ class F3DContext:
         mat.set_combiner = False
 
         self.materials = []  # saved materials
+        # self.materialDict = {}  # key : material
         self.triMatIndices = []  # material indices per triangle
         self.materialChanged = True
         self.lastMaterialIndex = None
@@ -739,10 +740,16 @@ class F3DContext:
         overrideContext["material"] = self.materialContext
         bpy.ops.material.update_f3d_nodes(overrideContext)
 
+        # Custom equality operator may or may not be worse
         for material in self.materials:
-            # Custom equality operator may or may not be worse
             if propertyGroupEquals(self.materialContext.f3d_mat, material.f3d_mat):
                 return self.materials.index(material)
+        # if self.materialContext.f3d_mat == material.f3d_mat:
+        #    return self.materials.index(material)
+
+        # key = self.materialContext.f3d_mat.key()
+        # if key in self.materialDict:
+        #    return self.materialDict[key]
 
         self.addMaterial()
         return len(self.materials) - 1
@@ -824,6 +831,7 @@ class F3DContext:
         overrideContext["material"] = material
         bpy.ops.material.update_f3d_nodes(overrideContext)
         self.materials.append(material)
+        # self.materialDict[material.f3d_mat.key()] = material
         self.materialChanged = False
 
         self.postMaterialChanged()

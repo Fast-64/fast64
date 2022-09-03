@@ -161,9 +161,9 @@ def parseSceneCommands(
     sharedSceneData: SharedSceneData,
 ):
     if sceneObj is None:
-        location = mathutils.Vector((0, 0, 0))
-        bpy.ops.object.empty_add(type="SPHERE", radius=1, align="WORLD", location=location[:])
-        sceneObj = bpy.context.view_layer.objects.active
+        sceneObj = bpy.data.objects.new(sceneCommandsName, None)
+        bpy.context.scene.collection.objects.link(sceneObj)
+        sceneObj.empty_display_type = "SPHERE"
         sceneObj.ootEmptyType = "Scene"
         sceneObj.name = sceneCommandsName
 
@@ -306,8 +306,10 @@ def parseRoomCommands(
     headerIndex: int,
 ):
     if roomObj is None:
-        bpy.ops.object.empty_add(type="SPHERE", radius=1, align="WORLD", location=[0, 0, (roomIndex + 1) * -2])
-        roomObj = bpy.context.view_layer.objects.active
+        roomObj = bpy.data.objects.new(roomCommandsName, None)
+        bpy.context.scene.collection.objects.link(roomObj)
+        roomObj.empty_display_type = "SPHERE"
+        roomObj.location = [0, 0, (roomIndex + 1) * -2]
         roomObj.ootEmptyType = "Room"
         roomObj.name = roomCommandsName
         roomObj.ootRoomHeader.roomIndex = roomIndex
@@ -460,8 +462,9 @@ def parseMeshList(
                     for value in range(1, 4)
                 ]
             )
-            bpy.ops.object.empty_add(type="SPHERE", radius=1, align="WORLD", location=position[:])
-            cullObj = bpy.context.view_layer.objects.active
+            cullObj = bpy.data.objects.new("Cull Group", None)
+            bpy.context.scene.collection.objects.link(cullObj)
+            cullObj.location = position
             cullObj.ootEmptyType = "Cull Group"
             cullObj.name = "Cull Group"
             cullProp = cullObj.ootCullGroupProperty
@@ -501,8 +504,11 @@ def createEmptyWithTransform(positionValues: list[float], rotationValues: list[f
     )
     rotation = yUpToZUp @ mathutils.Vector(ootParseRotation(rotationValues))
 
-    bpy.ops.object.empty_add(type="CUBE", radius=1, align="WORLD", location=position[:], rotation=rotation[:])
-    obj = bpy.context.view_layer.objects.active
+    obj = bpy.data.objects.new("Cull Group", None)
+    bpy.context.scene.collection.objects.link(obj)
+    obj.empty_display_type = "CUBE"
+    obj.location = position
+    obj.rotation_euler = rotation
     return obj
 
 
@@ -890,8 +896,9 @@ def parseLight(
         setattr(lightHeader, f"diffuse{index}", color + (1,))
         return None
     else:
-        bpy.ops.object.add(type="LIGHT")
-        lightObj = bpy.context.view_layer.objects.active
+        light = bpy.data.lights.new("Light", "SUN")
+        lightObj = bpy.data.objects.new("Light", light)
+        bpy.context.scene.collection.objects.link(lightObj)
         setattr(lightHeader, f"diffuse{index}Custom", lightObj.data)
         lightObj.rotation_euler = rotation
         lightObj.data.color = color
@@ -1118,8 +1125,9 @@ def parseCamDataList(sceneObj: bpy.types.Object, camDataListName: str, sceneData
 
 
 def parseCamPosData(setting: str, sceneData: str, posDataName: str, index: int, objName: str, orderIndex: str):
-    bpy.ops.object.add(type="CAMERA")
-    camObj = bpy.context.view_layer.objects.active
+    camera = bpy.data.cameras.new("Camera")
+    camObj = bpy.data.objects.new(objName, camera)
+    bpy.context.scene.collection.objects.link(camObj)
     camProp = camObj.ootCameraPositionProperty
     setCustomProperty(camProp, "camSType", setting, ootEnumCameraSType)
     camProp.hasPositionData = posDataName != "NULL" and posDataName != "0"
