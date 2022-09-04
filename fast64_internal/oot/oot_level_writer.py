@@ -390,7 +390,7 @@ def readCamPos(camPosProp, obj, scene, sceneObj, transformMatrix):
         translation,
         rotation,
         round(fov),
-        camPosProp.jfifID,
+        camPosProp.bgImageOverrideIndex,
     )
 
 

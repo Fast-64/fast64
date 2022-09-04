@@ -1231,14 +1231,14 @@ def parseCamPosData(setting: str, sceneData: str, posDataName: str, index: int, 
         @ mathutils.Quaternion((0, 1, 0), math.radians(180.0))
     ).to_euler()
 
-    fov, jfifID, unknown = [value.strip() for value in posData[2].split(",")]
+    fov, bgImageOverrideIndex, unknown = [value.strip() for value in posData[2].split(",")]
 
     camObj.location = position
     camObj.rotation_euler = rotation
     camObj.show_name = True
 
     camProp = camObj.ootCameraPositionProperty
-    camProp.jfifID = jfifID
+    camProp.bgImageOverrideIndex = hexOrDecInt(bgImageOverrideIndex)
 
     fovValue = hexOrDecInt(fov)
     fovValue = int.from_bytes(fovValue.to_bytes(2, "big", signed=fovValue < 0x8000), "big", signed=True)

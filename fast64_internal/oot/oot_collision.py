@@ -13,7 +13,7 @@ from .oot_scene_room import *
 
 class OOTCameraPositionProperty(bpy.types.PropertyGroup):
     index: bpy.props.IntProperty(min=0)
-    jfifID: bpy.props.StringProperty(default="-1")
+    bgImageOverrideIndex: bpy.props.IntProperty(default=-1, min=-1)
     camSType: bpy.props.EnumProperty(items=ootEnumCameraSType, default="CAM_SET_NONE")
     camSTypeCustom: bpy.props.StringProperty(default="CAM_SET_NONE")
     hasPositionData: bpy.props.BoolProperty(default=True, name="Has Position Data")
@@ -96,10 +96,10 @@ class OOT_CameraPosPanel(bpy.types.Panel):
         box.box().label(text="Camera Data")
         drawEnumWithCustom(box, obj.ootCameraPositionProperty, "camSType", "Camera S Type", "")
         prop_split(box, obj.ootCameraPositionProperty, "index", "Camera Index")
+        box.prop(obj.ootCameraPositionProperty, "hasPositionData")
         if obj.ootCameraPositionProperty.hasPositionData:
             prop_split(box, obj.data, "angle", "Field Of View")
-            prop_split(box, obj.ootCameraPositionProperty, "jfifID", "JFIF ID")
-        box.prop(obj.ootCameraPositionProperty, "hasPositionData")
+            prop_split(box, obj.ootCameraPositionProperty, "bgImageOverrideIndex", "BG Index Override")
 
         # drawParentSceneRoom(box, context.object)
 
@@ -420,7 +420,7 @@ def ootCameraPosToC(camPos):
         + " },\n\t{ "
         + str(camPos.fov)
         + ", "
-        + str(camPos.jfifID)
+        + str(camPos.bgImageOverrideIndex)
         + ", "
         + str(camPos.unknown)
         + " },\n"

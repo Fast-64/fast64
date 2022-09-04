@@ -470,12 +470,12 @@ class OOTCameraData:
 
 
 class OOTCameraPosData:
-    def __init__(self, camSType, hasPositionData, position, rotation, fov, jfifID):
+    def __init__(self, camSType, hasPositionData, position, rotation, fov, bgImageOverrideIndex):
         self.camSType = camSType
         self.position = position
         self.rotation = rotation
         self.fov = fov
-        self.jfifID = jfifID
+        self.bgImageOverrideIndex = bgImageOverrideIndex
         self.unknown = -1
         self.hasPositionData = hasPositionData
 
