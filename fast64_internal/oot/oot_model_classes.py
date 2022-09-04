@@ -254,7 +254,7 @@ class OOTModel(FModel):
     def onMaterialCommandsBuilt(self, fMaterial, material, drawLayer):
         # handle dynamic material calls
         gfxList = fMaterial.material
-        matDrawLayer = getattr(material.flipbookGroup, drawLayer.lower())
+        matDrawLayer = getattr(material.ootMaterial, drawLayer.lower())
         for i in range(8, 14):
             if getattr(matDrawLayer, "segment" + format(i, "X")):
                 gfxList.commands.append(
