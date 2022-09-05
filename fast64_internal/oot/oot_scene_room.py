@@ -498,7 +498,7 @@ class OOTRoomHeaderProperty(bpy.types.PropertyGroup):
 
     objectList: bpy.props.CollectionProperty(type=OOTObjectProperty)
 
-    meshType: bpy.props.EnumProperty(items=ootEnumMeshType, default="0")
+    roomShape: bpy.props.EnumProperty(items=ootEnumRoomShapeType, default="ROOM_SHAPE_TYPE_NORMAL")
     defaultCullDistance: bpy.props.IntProperty(name="Default Cull Distance", min=1, default=100)
 
 
@@ -528,10 +528,10 @@ def drawRoomHeaderProperty(layout, roomProp, dropdownLabel, headerIndex, objName
             general = layout.column()
             general.box().label(text="General")
             prop_split(general, roomProp, "roomIndex", "Room Index")
-            prop_split(general, roomProp, "meshType", "Mesh Type")
-            if roomProp.meshType == "1":
-                general.box().label(text="Mesh Type 1 not supported at this time.")
-            if roomProp.meshType == "2":
+            prop_split(general, roomProp, "roomShape", "Mesh Type")
+            if roomProp.roomShape == "ROOM_SHAPE_TYPE_IMAGE":
+                general.box().label(text="Image Room Shape not supported at this time.")
+            if roomProp.roomShape == "ROOM_SHAPE_TYPE_CULLABLE":
                 prop_split(general, roomProp, "defaultCullDistance", "Default Cull (Blender Units)")
 
         # Behaviour
@@ -617,3 +617,28 @@ class OOTAlternateRoomHeaderProperty(bpy.types.PropertyGroup):
 
     headerMenuTab: bpy.props.EnumProperty(name="Header Menu", items=ootEnumHeaderMenu)
     currentCutsceneIndex: bpy.props.IntProperty(min=4, default=4)
+
+
+def drawParentSceneRoom(box, obj):
+    sceneObj = getSceneObj(obj)
+    roomObj = getRoomObj(obj)
+
+    # box = layout.box().column()
+    box.box().column().label(text="Parent Scene/Room Settings")
+    box.row().prop(obj, "ootObjectMenu", expand=True)
+
+    if obj.ootObjectMenu == "Scene":
+        if sceneObj is not None:
+            drawSceneHeaderProperty(box, sceneObj.ootSceneHeader, None, None, sceneObj.name)
+            if sceneObj.ootSceneHeader.menuTab == "Alternate":
+                drawAlternateSceneHeaderProperty(box, sceneObj.ootAlternateSceneHeaders, sceneObj.name)
+        else:
+            box.label(text="This object is not part of any Scene hierarchy.", icon="OUTLINER")
+
+    elif obj.ootObjectMenu == "Room":
+        if roomObj is not None:
+            drawRoomHeaderProperty(box, roomObj.ootRoomHeader, None, None, roomObj.name)
+            if roomObj.ootRoomHeader.menuTab == "Alternate":
+                drawAlternateRoomHeaderProperty(box, roomObj.ootAlternateRoomHeaders, roomObj.name)
+        else:
+            box.label(text="This object is not part of any Room hierarchy.", icon="OUTLINER")
