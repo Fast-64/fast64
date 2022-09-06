@@ -164,7 +164,7 @@ class OOTModel(FModel):
 
     def processFlipbookCI(self, fMaterial: FMaterial, flipbookProp: FlipbookProperty, texProp: TextureProperty):
         # print("Processing flipbook...")
-        flipbook = OOTTextureFlipbook(flipbookProp.name, flipbookProp.exportMode, [])
+        flipbook = TextureFlipbook(flipbookProp.name, flipbookProp.exportMode, [])
         sharedPalette = FSharedPalette(self.name + "_" + flipbookProp.textures[0].image.name + "_pal")
         existingFPalette = None
         fImages = []
