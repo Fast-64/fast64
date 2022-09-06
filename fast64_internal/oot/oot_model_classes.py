@@ -164,7 +164,7 @@ class OOTModel(FModel):
 
     def processFlipbookCI(self, fMaterial: FMaterial, flipbookProp: FlipbookProperty, texProp: TextureProperty):
         # print("Processing flipbook...")
-        flipbook = OOTTextureFlipbook(flipbookProp.name, flipbookProp.exportMode, [])
+        flipbook = TextureFlipbook(flipbookProp.name, flipbookProp.exportMode, [])
         sharedPalette = FSharedPalette(self.name + "_" + flipbookProp.textures[0].image.name + "_pal")
         existingFPalette = None
         fImages = []
@@ -254,7 +254,7 @@ class OOTModel(FModel):
     def onMaterialCommandsBuilt(self, fMaterial, material, drawLayer):
         # handle dynamic material calls
         gfxList = fMaterial.material
-        matDrawLayer = getattr(material.flipbookGroup, drawLayer.lower())
+        matDrawLayer = getattr(material.ootMaterial, drawLayer.lower())
         for i in range(8, 14):
             if getattr(matDrawLayer, "segment" + format(i, "X")):
                 gfxList.commands.append(
