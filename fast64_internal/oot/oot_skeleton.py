@@ -108,8 +108,21 @@ class OOTSkeleton:
         return limbData
 
 
+class OOTDLReference:
+    def __init__(self, name: str):
+        self.name = name
+
+
 class OOTLimb:
-    def __init__(self, skeletonName, boneName, index, translation, DL, lodDL):
+    def __init__(
+        self,
+        skeletonName: str,
+        boneName: str,
+        index: int,
+        translation: mathutils.Vector,
+        DL: GfxList | OOTDLReference,
+        lodDL: GfxList | OOTDLReference,
+    ):
         self.skeletonName = skeletonName
         self.boneName = boneName
         self.translation = translation
@@ -467,6 +480,12 @@ def ootProcessBone(
             )
         DL = mesh.draw
 
+    # Some skeletons will override the current drawn DL for a limb.
+    # If an override DL is not NULL but the non-override is NULL, then this causes issues.
+    # Thus for cases where we remove geometry, we need to have a dummy DL.
+    elif bone.use_deform:
+        DL = OOTDLReference("gEmptyDL")
+
     if isinstance(parentLimb, OOTSkeleton):
         skeleton = parentLimb
         limb = OOTLimb(skeleton.name, boneName, nextIndex, translate, DL, None)
@@ -668,7 +687,7 @@ def ootImportSkeletonC(
 
     matchResult = ootGetLimbs(skeletonData, limbsName, False)
     limbsData = matchResult.group(2)
-    limbList = [entry.strip()[1:] for entry in limbsData.split(",")]
+    limbList = [entry.strip()[1:] for entry in limbsData.split(",") if entry.strip() != ""]
 
     f3dContext = OOTF3DContext(F3D("F3DEX2/LX2", False), limbList, basePath)
     f3dContext.mat().draw_layer.oot = drawLayer
@@ -798,6 +817,7 @@ def ootAddBone(armatureObj, boneName, parentBoneName, currentTransform, loadDL):
     bpy.ops.object.mode_set(mode="EDIT")
     bone = armatureObj.data.edit_bones.new(boneName)
     bone.use_connect = False
+    bone.use_deform = loadDL
     if parentBoneName is not None:
         bone.parent = armatureObj.data.edit_bones[parentBoneName]
     bone.head = currentTransform @ mathutils.Vector((0, 0, 0))

@@ -247,15 +247,21 @@ def writeTextureArraysNew(fModel: OOTModel, arrayIndex: int):
     return textureArrayData
 
 
-def writeTextureArraysExisting(exportPath: str, overlayName: str, isLink: bool, arrayIndex2D: int, fModel: OOTModel):
+def getActorFilepath(basePath: str, overlayName: str | None, isLink: bool, checkDataPath: bool = False):
     if isLink:
-        actorFilePath = os.path.join(exportPath, f"src/code/z_player_lib.c")
+        actorFilePath = os.path.join(basePath, f"src/code/z_player_lib.c")
     else:
-        actorFilePath = os.path.join(exportPath, f"src/overlays/actors/{overlayName}/z_{overlayName[4:].lower()}.c")
+        actorFilePath = os.path.join(basePath, f"src/overlays/actors/{overlayName}/z_{overlayName[4:].lower()}.c")
         actorFileDataPath = f"{actorFilePath[:-2]}_data.c"  # some bosses store texture arrays here
 
-        if os.path.exists(actorFileDataPath):
+        if checkDataPath and os.path.exists(actorFileDataPath):
             actorFilePath = actorFileDataPath
+
+    return actorFilePath
+
+
+def writeTextureArraysExisting(exportPath: str, overlayName: str, isLink: bool, arrayIndex2D: int, fModel: OOTModel):
+    actorFilePath = getActorFilepath(exportPath, overlayName, isLink, True)
 
     if not os.path.exists(actorFilePath):
         print(f"{actorFilePath} not found, ignoring texture array writing.")
