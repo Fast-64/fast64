@@ -1793,8 +1793,10 @@ def parseF3D(dlData, dlName, obj, transformMatrix, limbName, boneName, drawLayer
     # vertexGroup = getOrMakeVertexGroup(obj, boneName)
     # groupIndex = vertexGroup.index
 
-    dlCommands = parseDLData(dlData, dlName)
-    f3dContext.processCommands(dlData, dlName, dlCommands)
+    processedDLName = f3dContext.processDLName(dlName)
+    if processedDLName is not None:
+        dlCommands = parseDLData(dlData, processedDLName)
+        f3dContext.processCommands(dlData, processedDLName, dlCommands)
 
 
 def parseDLData(dlData, dlName):

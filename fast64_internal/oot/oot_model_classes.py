@@ -405,6 +405,8 @@ class OOTF3DContext(F3DContext):
         try:
             pointer = hexOrDecInt(name)
         except:
+            if name == "gEmptyDL":
+                return None
             return name
         else:
             segment = pointer >> 24
