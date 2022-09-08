@@ -234,6 +234,12 @@ class OOTModel(FModel):
                 texProp.ci_format,
                 True,
                 sharedPalette,
+                FImageKey(
+                    flipbookTexture.image,
+                    texProp.tex_format,
+                    texProp.ci_format,
+                    [flipbookTexture.image for flipbookTexture in flipbookProp.textures],
+                ),
             )
             existingFPalette = model.validateCIFlipbook(
                 existingFPalette, alreadyExists, fPalette, flipbookTexture.image
@@ -255,7 +261,7 @@ class OOTModel(FModel):
             fPalette, paletteKey = saveOrGetPaletteOnlyDefinition(
                 fMaterial,
                 model,
-                firstImage,
+                [tex.image for tex in flipbookProp.textures],
                 sharedPalette.name,
                 texProp.tex_format,
                 palFormat,

@@ -25,6 +25,43 @@ from .f3d_gbi import _DPLoadTextureBlock
 from ..utility import *
 
 
+class FImageKey:
+    def __init__(
+        self, image: bpy.types.Image, texFormat: str, palFormat: str, imagesSharingPalette: list[bpy.types.Image] = []
+    ):
+        self.image = image
+        self.texFormat = texFormat
+        self.palFormat = palFormat
+        self.imagesSharingPalette = tuple(imagesSharingPalette)
+
+    def __hash__(self) -> int:
+        return hash((self.image, self.texFormat, self.palFormat, self.imagesSharingPalette))
+
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, FImageKey):
+            return False
+        return (
+            self.image == __o.image
+            and self.texFormat == __o.texFormat
+            and self.palFormat == __o.palFormat
+            and self.imagesSharingPalette == __o.imagesSharingPalette
+        )
+
+
+class FPaletteKey:
+    def __init__(self, palFormat: str, imagesSharingPalette: list[bpy.types.Image] = []):
+        self.palFormat = palFormat
+        self.imagesSharingPalette = tuple(imagesSharingPalette)
+
+    def __hash__(self) -> int:
+        return hash((self.palFormat, self.imagesSharingPalette))
+
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, FPaletteKey):
+            return False
+        return self.palFormat == __o.palFormat and self.imagesSharingPalette == __o.imagesSharingPalette
+
+
 def getColorLayer(mesh: bpy.types.Mesh, layer="Col"):
     if layer in mesh.attributes and getattr(mesh.attributes[layer], "data", None):
         return mesh.attributes[layer].data
@@ -381,12 +418,13 @@ def saveMeshWithLargeTexturesByFaces(
     # 	bMesh, texDimensions, transformMatrix, isPointSampled, isFlatShaded,
     # 	exportVertexColors, fModel.f3d)
     currentGroupIndex = None
+    imageKey0, imageKey1 = getImageKeys(f3dMat, False)
     for tileLoad, tileFaces in tileLoads:
         revertCommands = GfxList("temp", GfxListTag.Draw, fModel.DLFormat)
         nextTmem = 0
         triGroup.triList.commands.append(DPPipeSync())
         if fMaterial.texturesLoaded[0] and not (otherTextureIndex == 0 and otherTexSingleLoad):
-            texDimensions0, nextTmem = saveTextureIndex(
+            texDimensions0, nextTmem, fImage0 = saveTextureIndex(
                 material.name,
                 fModel,
                 fMaterial,
@@ -400,9 +438,11 @@ def saveMeshWithLargeTexturesByFaces(
                 [tileLoad, None],
                 True,
                 False,
+                None,
+                imageKey0,
             )
         if fMaterial.texturesLoaded[1] and not (otherTextureIndex == 1 and otherTexSingleLoad):
-            texDimensions1, nextTmem = saveTextureIndex(
+            texDimensions1, nextTmem, fImage1 = saveTextureIndex(
                 material.name,
                 fModel,
                 fMaterial,
@@ -416,6 +456,8 @@ def saveMeshWithLargeTexturesByFaces(
                 [None, tileLoad],
                 True,
                 False,
+                None,
+                imageKey1,
             )
 
         triConverter = TriangleConverter(
@@ -1392,6 +1434,23 @@ class FSharedPalette:
         self.palette = []
 
 
+def getImageKeys(f3dMat: F3DMaterialProperty, useSharedCIPalette: bool) -> tuple[FImageKey, FImageKey]:
+    imageKey0 = FImageKey(
+        f3dMat.tex0.tex,
+        f3dMat.tex0.tex_format,
+        f3dMat.tex0.ci_format,
+        [f3dMat.tex0.tex] + ([f3dMat.tex1.tex] if useSharedCIPalette else []),
+    )
+    imageKey1 = FImageKey(
+        f3dMat.tex1.tex,
+        f3dMat.tex1.tex_format,
+        f3dMat.tex1.ci_format,
+        ([f3dMat.tex0.tex] if useSharedCIPalette else []) + [f3dMat.tex1.tex],
+    )
+
+    return imageKey0, imageKey1
+
+
 def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     if material.mat_ver > 3:
         f3dMat = material.f3d_mat
@@ -1550,6 +1609,8 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         loadGfx = fMaterial.material
         revertGfx = fMaterial.revert
 
+    imageKey0, imageKey1 = getImageKeys(f3dMat, useSharedCIPalette)
+
     if useTex0:
         if f3dMat.tex0.tex is None and not f3dMat.tex0.use_tex_reference:
             raise PluginError('In material "' + material.name + '", a texture has not been set.')
@@ -1571,6 +1632,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             True,
             True,
             sharedPalette,
+            imageKey0,
         )
 
     # If the texture in both texels is the same then it can be rewritten to the same location in tmem
@@ -1600,6 +1662,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             True,
             True,
             sharedPalette,
+            imageKey1,
         )
 
     if useSharedCIPalette:
@@ -1609,7 +1672,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         fPalette, paletteKey = saveOrGetPaletteOnlyDefinition(
             fMaterial,
             fModel,
-            f3dMat.tex0.tex,
+            [f3dMat.tex0.tex, f3dMat.tex1.tex],
             sharedPalette.name,
             texFormat,
             palFormat,
@@ -1786,6 +1849,7 @@ def saveTextureIndex(
     loadTextures: bool,
     loadPalettes: bool,
     sharedPalette: FSharedPalette,
+    imageKey: FImageKey,
 ) -> tuple[list[int], int, FImage]:
     tex = texProp.tex
 
@@ -1872,7 +1936,15 @@ def saveTextureIndex(
         else:
             # fPalette should be an fImage here, since sharedPalette is None
             fImage, fPalette, alreadyExists = saveOrGetPaletteAndImageDefinition(
-                fMaterial, fModel, tex, texName, texFormat, palFormat, convertTextureData, sharedPalette
+                fMaterial,
+                fModel,
+                tex,
+                texName,
+                texFormat,
+                palFormat,
+                convertTextureData,
+                sharedPalette,
+                imageKey,
             )
 
         if loadPalettes and sharedPalette is None:
@@ -2143,7 +2215,7 @@ def savePaletteLoading(loadTexGfx, revertTexGfx, fPalette, palFormat, pal, color
 def saveOrGetPaletteOnlyDefinition(
     fMaterial: FMaterial,
     fModel: FModel,
-    image: bpy.types.Image,
+    images: list[bpy.types.Image],
     imageName: str,
     texFmt: str,
     palFmt: str,
@@ -2153,7 +2225,7 @@ def saveOrGetPaletteOnlyDefinition(
 
     palFormat = texFormatOf[palFmt]
     paletteName = checkDuplicateTextureName(fModel, toAlnum(imageName) + "_pal_" + palFmt.lower())
-    paletteKey = (image, (palFmt, "PAL"))
+    paletteKey = FPaletteKey(palFmt, images)
     paletteFilename = getNameFromPath(imageName, True) + "." + fModel.getTextureSuffixFromFormat(texFmt) + ".pal"
 
     fPalette = FImage(
@@ -2179,24 +2251,21 @@ def saveOrGetPaletteOnlyDefinition(
     return fPalette, paletteKey
 
 
-def imageAlreadyExists(fModel: FModel, image: bpy.types.Image, texFmt: str, palFmt: str) -> bool:
-    texFormat = texFormatOf[texFmt]
-    palFormat = texFormatOf[palFmt]
-    bitSize = texBitSizeOf[texFmt]
-    # If image already loaded, return that data.
-    imageKey = (image, (texFmt, palFmt))
-    fImage, fPalette = fModel.getTextureAndHandleShared(imageKey)
-    return fImage is not None
-
-
 def saveOrGetPaletteAndImageDefinition(
-    fMaterial, fModelOrTexRect, image, imageName, texFmt, palFmt, convertTextureData, sharedPalette: FSharedPalette
+    fMaterial,
+    fModelOrTexRect,
+    image,
+    imageName,
+    texFmt,
+    palFmt,
+    convertTextureData,
+    sharedPalette: FSharedPalette,
+    imageKey: FImageKey,
 ) -> tuple[FImage, FImage, bool]:
     texFormat = texFormatOf[texFmt]
     palFormat = texFormatOf[palFmt]
     bitSize = texBitSizeOf[texFmt]
     # If image already loaded, return that data.
-    imageKey = (image, (texFmt, palFmt))
     fImage, fPalette = fModelOrTexRect.getTextureAndHandleShared(imageKey)
     if fImage is not None:
         # print(f"Image already exists")
@@ -2267,7 +2336,7 @@ def saveOrGetPaletteAndImageDefinition(
         else:
             fImage.data = bytearray(texture)
 
-    fModelOrTexRect.addTexture((image, (texFmt, palFmt)), fImage, fMaterial)
+    fModelOrTexRect.addTexture(imageKey, fImage, fMaterial)
 
     # For shared palettes, paletteName should be the same for the same imageName until
     # the next saveOrGetPaletteOnlyDefinition
@@ -2276,7 +2345,7 @@ def saveOrGetPaletteAndImageDefinition(
 
     if sharedPalette is None:
         fPalette, paletteKey = saveOrGetPaletteOnlyDefinition(
-            fMaterial, fModelOrTexRect, image, imageName, texFmt, palFmt, convertTextureData, palette
+            fMaterial, fModelOrTexRect, [image], imageName, texFmt, palFmt, convertTextureData, palette
         )
         fImage.paletteKey = paletteKey
     else:
@@ -2312,7 +2381,8 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image: bpy.types.Image, imageN
     bitSize = texBitSizeOf[texFormat]
 
     # If image already loaded, return that data.
-    imageKey = (image, (texFormat, "NONE"))
+    # We use NONE here for pal format since this function is only to be called for non-ci textures.
+    imageKey = FImageKey(image, texFormat, "NONE")
     fImage, fPalette = fModel.getTextureAndHandleShared(imageKey)
     if fImage is not None:
         return fImage
@@ -2540,8 +2610,8 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image: bpy.types.Image, imageN
         if bitSize == "G_IM_SIZ_4b":
             fImage.data = compactNibbleArray(fImage.data, image.size[0], image.size[1])
 
-    # print("Finished converting.")
-    fModel.addTexture((image, (texFormat, "NONE")), fImage, fMaterial)
+    print("Finished converting.")
+    fModel.addTexture(imageKey, fImage, fMaterial)
 
     return fImage
 
