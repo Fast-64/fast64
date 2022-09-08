@@ -12,6 +12,7 @@ from ..f3d.f3d_writer import (
     DPSetTextureLUT,
     DPSetTile,
     texFormatOf,
+    FImageKey,
 )
 from ..f3d.f3d_parser import F3DContext, F3DTextureReference, getImportData
 from ..f3d.f3d_material import createF3DMat, TextureProperty
@@ -223,6 +224,12 @@ class OOTModel(FModel):
                 texProp.ci_format,
                 True,
                 sharedPalette,
+                FImageKey(
+                    flipbookTexture.image,
+                    texProp.tex_format,
+                    texProp.ci_format,
+                    [flipbookTexture.image for flipbookTexture in flipbookProp.textures],
+                ),
             )
             existingFPalette = self.validateCIFlipbook(existingFPalette, alreadyExists, fPalette, flipbookTexture.image)
             fImages.append(fImage)
@@ -242,7 +249,7 @@ class OOTModel(FModel):
             fPalette, paletteKey = saveOrGetPaletteOnlyDefinition(
                 fMaterial,
                 self,
-                firstImage,
+                [tex.image for tex in flipbookProp.textures],
                 sharedPalette.name,
                 texProp.tex_format,
                 palFormat,

@@ -316,6 +316,8 @@ def exportTexRectCommon(texProp, f3dType, isHWv1, name, convertTextureData):
         None,
         True,
         True,
+        None,
+        FImageKey(texProp.tex, texProp.tex_format, texProp.ci_format, [texProp.tex]),
     )
 
     fTexRect.draw.commands.append(
