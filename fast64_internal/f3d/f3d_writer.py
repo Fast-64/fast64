@@ -1,3 +1,4 @@
+from email.mime import image
 from typing import Union
 import functools
 import bpy, bmesh, mathutils, os, re, copy, math
@@ -16,6 +17,7 @@ from .f3d_material import (
     texBitSizeOf,
     texFormatOf,
     TextureProperty,
+    F3DMaterialProperty,
 )
 from .f3d_gbi import *
 from .f3d_gbi import _DPLoadTextureBlock
@@ -1384,6 +1386,12 @@ def getTexDimensions(material):
     return texDimensions
 
 
+class FSharedPalette:
+    def __init__(self, name):
+        self.name = name
+        self.palette = []
+
+
 def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     if material.mat_ver > 3:
         f3dMat = material.f3d_mat
@@ -1500,8 +1508,10 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     # Set scale
     s = int(min(round(f3dMat.tex_scale[0] * 0x10000), 0xFFFF))
     t = int(min(round(f3dMat.tex_scale[1] * 0x10000), 0xFFFF))
-    if f3dMat.rdp_settings.g_mdsft_textlod == 'G_TL_LOD':
-        fMaterial.material.commands.append(SPTexture(s, t, f3dMat.rdp_settings.num_textures_mipmapped - 1, fModel.f3d.G_TX_RENDERTILE, 1))
+    if f3dMat.rdp_settings.g_mdsft_textlod == "G_TL_LOD":
+        fMaterial.material.commands.append(
+            SPTexture(s, t, f3dMat.rdp_settings.num_textures_mipmapped - 1, fModel.f3d.G_TX_RENDERTILE, 1)
+        )
     else:
         fMaterial.material.commands.append(SPTexture(s, t, 0, fModel.f3d.G_TX_RENDERTILE, 1))
 
@@ -1509,19 +1519,49 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     texDimensions0 = None
     texDimensions1 = None
     nextTmem = 0
-    useLargeTextures = material.mat_ver > 3 and f3dMat.use_large_textures
-    if useDict["Texture 0"] and f3dMat.tex0.tex_set:
+    loadTextures = not (material.mat_ver > 3 and f3dMat.use_large_textures)
+
+    useTex0 = useDict["Texture 0"] and f3dMat.tex0.tex_set
+    isTex0CI = f3dMat.tex0.tex_format[:2] == "CI"
+    useTex1 = useDict["Texture 1"] and f3dMat.tex1.tex_set
+    isTex1CI = f3dMat.tex1.tex_format[:2] == "CI"
+
+    useSharedCIPalette = (
+        useTex0
+        and useTex1
+        and isTex0CI
+        and isTex1CI
+        and not f3dMat.tex0.use_tex_reference
+        and not f3dMat.tex1.use_tex_reference
+        and f3dMat.tex0.tex_format == f3dMat.tex1.tex_format
+        and f3dMat.tex0.ci_format == f3dMat.tex1.ci_format
+    )
+
+    # Without shared palette: (load pal0 -> load tex0) or (load pal1 -> load tex1)
+    # with shared palette: load pal -> load tex0 -> load tex1
+    if useSharedCIPalette:
+        sharedPalette = FSharedPalette(getSharedPaletteName(f3dMat))
+
+        # dummy lists to be appended in later
+        loadGfx = GfxList(None, None, fModel.DLFormat)
+        revertGfx = GfxList(None, None, fModel.DLFormat)
+    else:
+        sharedPalette = None
+        loadGfx = fMaterial.material
+        revertGfx = fMaterial.revert
+
+    if useTex0:
         if f3dMat.tex0.tex is None and not f3dMat.tex0.use_tex_reference:
             raise PluginError('In material "' + material.name + '", a texture has not been set.')
 
         fMaterial.useLargeTextures = useLargeTextures
         fMaterial.texturesLoaded[0] = True
-        texDimensions0, nextTmem = saveTextureIndex(
+        texDimensions0, nextTmem, fImage0 = saveTextureIndex(
             material.name,
             fModel,
             fMaterial,
-            fMaterial.material,
-            fMaterial.revert,
+            loadGfx,
+            revertGfx,
             f3dMat.tex0,
             0,
             nextTmem,
@@ -1530,6 +1570,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             None,
             True,
             True,
+            sharedPalette,
         )
 
     # If the texture in both texels is the same then it can be rewritten to the same location in tmem
@@ -1538,18 +1579,18 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         if nextTmem >= (512 if f3dMat.tex0.tex_format[:2] != "CI" else 256):
             nextTmem = 0
 
-    if useDict["Texture 1"] and f3dMat.tex1.tex_set:
+    if useTex1:
         if f3dMat.tex1.tex is None and not f3dMat.tex1.use_tex_reference:
             raise PluginError('In material "' + material.name + '", a texture has not been set.')
 
         fMaterial.useLargeTextures = useLargeTextures
         fMaterial.texturesLoaded[1] = True
-        texDimensions1, nextTmem = saveTextureIndex(
+        texDimensions1, nextTmem, fImage1 = saveTextureIndex(
             material.name,
             fModel,
             fMaterial,
-            fMaterial.material,
-            fMaterial.revert,
+            loadGfx,
+            revertGfx,
             f3dMat.tex1,
             1,
             nextTmem,
@@ -1558,7 +1599,40 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             None,
             True,
             True,
+            sharedPalette,
         )
+
+    if useSharedCIPalette:
+        texFormat = f3dMat.tex0.tex_format
+        palFormat = f3dMat.tex0.ci_format
+
+        fPalette, paletteKey = saveOrGetPaletteOnlyDefinition(
+            fMaterial,
+            fModel,
+            f3dMat.tex0.tex,
+            sharedPalette.name,
+            texFormat,
+            palFormat,
+            convertTextureData,
+            sharedPalette.palette,
+        )
+        savePaletteLoading(
+            fMaterial.material,
+            fMaterial.revert,
+            fPalette,
+            palFormat,
+            0,
+            fPalette.height,
+            fModel.f3d,
+            fModel.matWriteMethod,
+        )
+
+        # Append these commands after palette loading commands
+        fMaterial.material.commands.extend(loadGfx.commands)
+        fMaterial.revert.commands.extend(revertGfx.commands)
+
+        fImage0.paletteKey = paletteKey
+        fImage1.paletteKey = paletteKey
 
     # Used so we know how to convert normalized UVs when saving verts.
     if texDimensions0 is not None and texDimensions1 is not None:
@@ -1679,6 +1753,16 @@ def getTextureName(texProp: TextureProperty, fModelName: str, overrideName: str)
     return texName
 
 
+def getSharedPaletteName(f3dMat: F3DMaterialProperty):
+    image0 = f3dMat.tex0.tex
+    image1 = f3dMat.tex1.tex
+    texFormat = f3dMat.tex0.tex_format.lower()
+    tex0Name = getNameFromPath(image0.filepath if image0.filepath != "" else image0.name, True)
+    tex1Name = getNameFromPath(image1.filepath if image1.filepath != "" else image1.name, True)
+
+    return f"{tex0Name}_x_{tex1Name}_{texFormat}_pal"
+
+
 def getTextureNameTexRef(texProp: TextureProperty, fModelName: str) -> str:
     texFormat = texProp.tex_format
     name = texProp.tex_reference
@@ -1688,20 +1772,21 @@ def getTextureNameTexRef(texProp: TextureProperty, fModelName: str) -> str:
 
 
 def saveTextureIndex(
-    propName,
-    fModel,
-    fMaterial,
-    loadTexGfx,
-    revertTexGfx,
-    texProp,
-    index,
-    tmem,
-    overrideName,
-    convertTextureData,
+    propName: str,
+    fModel: FModel,
+    fMaterial: FMaterial,
+    loadTexGfx: GfxList,
+    revertTexGfx: GfxList,
+    texProp: TextureProperty,
+    index: int,
+    tmem: int,
+    overrideName: str,
+    convertTextureData: bool,
     tileSettingsOverride,
-    loadTextures,
-    loadPalettes,
-):
+    loadTextures: bool,
+    loadPalettes: bool,
+    sharedPalette: FSharedPalette,
+) -> tuple[list[int], int, FImage]:
     tex = texProp.tex
 
     if tex is not None and (tex.size[0] == 0 or tex.size[1] == 0):
@@ -1787,10 +1872,10 @@ def saveTextureIndex(
         else:
             # fPalette should be an fImage here, since sharedPalette is None
             fImage, fPalette, alreadyExists = saveOrGetPaletteAndImageDefinition(
-                fMaterial, fModel, tex, texName, texFormat, palFormat, convertTextureData, None
+                fMaterial, fModel, tex, texName, texFormat, palFormat, convertTextureData, sharedPalette
             )
 
-        if loadPalettes:
+        if loadPalettes and sharedPalette is None:
             savePaletteLoading(
                 loadTexGfx, revertTexGfx, fPalette, palFormat, 0, fPalette.height, fModel.f3d, fModel.matWriteMethod
             )
@@ -1829,7 +1914,7 @@ def saveTextureIndex(
     # 	texFormatOf[texFormat], texBitSizeOf[texFormat])
     # fModel.textures[texName] = fImage
 
-    return texDimensions, nextTmem
+    return texDimensions, nextTmem, fImage
 
 
 # texIndex: 0 for texture0, 1 for texture1
@@ -2055,12 +2140,6 @@ def savePaletteLoading(loadTexGfx, revertTexGfx, fPalette, palFormat, pal, color
         )
 
 
-class FSharedPalette:
-    def __init__(self, name):
-        self.name = name
-        self.palette = []
-
-
 def saveOrGetPaletteOnlyDefinition(
     fMaterial: FMaterial,
     fModel: FModel,
@@ -2070,7 +2149,7 @@ def saveOrGetPaletteOnlyDefinition(
     palFmt: str,
     convertTextureData: bool,
     palette: list[int],
-) -> FImage:
+) -> tuple[FImage, tuple[bpy.types.Image, tuple[str, str]]]:
 
     palFormat = texFormatOf[palFmt]
     paletteName = checkDuplicateTextureName(fModel, toAlnum(imageName) + "_pal_" + palFmt.lower())
@@ -2097,7 +2176,7 @@ def saveOrGetPaletteOnlyDefinition(
     # print(f"Palette data: {paletteName} - length {len(fPalette.data)}")
 
     fModel.addTexture(paletteKey, fPalette, fMaterial)
-    return fPalette
+    return fPalette, paletteKey
 
 
 def imageAlreadyExists(fModel: FModel, image: bpy.types.Image, texFmt: str, palFmt: str) -> bool:
@@ -2196,10 +2275,9 @@ def saveOrGetPaletteAndImageDefinition(
     paletteName = checkDuplicateTextureName(fModelOrTexRect, toAlnum(imageName) + "_pal_" + palFmt.lower())
 
     if sharedPalette is None:
-        fPalette = saveOrGetPaletteOnlyDefinition(
+        fPalette, paletteKey = saveOrGetPaletteOnlyDefinition(
             fMaterial, fModelOrTexRect, image, imageName, texFmt, palFmt, convertTextureData, palette
         )
-        paletteKey = (image, (palFmt, "PAL"))
         fImage.paletteKey = paletteKey
     else:
         fPalette = None
