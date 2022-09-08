@@ -252,7 +252,7 @@ class OOTModel(FModel):
         if existingFPalette == False:
 
             palFormat = texProp.ci_format
-            fPalette = saveOrGetPaletteOnlyDefinition(
+            fPalette, paletteKey = saveOrGetPaletteOnlyDefinition(
                 fMaterial,
                 model,
                 firstImage,
@@ -266,7 +266,6 @@ class OOTModel(FModel):
             # using the first image for the key, apply paletteKey to all images
             # while this is not ideal, its better to us an image for the key as
             # names are modified when duplicates are found
-            paletteKey = (firstImage, (palFormat, "PAL"))
             for fImage in fImages:
                 fImage.paletteKey = paletteKey
         else:

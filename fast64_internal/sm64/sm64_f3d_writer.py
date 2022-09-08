@@ -302,7 +302,7 @@ def exportTexRectCommon(texProp, f3dType, isHWv1, name, convertTextureData):
 
     drawEndCommands = GfxList("temp", GfxListTag.Draw, DLFormat.Dynamic)
 
-    texDimensions, nextTmem = saveTextureIndex(
+    texDimensions, nextTmem, fImage = saveTextureIndex(
         texProp.tex.name,
         fTexRect,
         fMaterial,
