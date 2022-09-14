@@ -1737,8 +1737,8 @@ class F3DContext:
         mesh.from_pydata(vertices=verts, edges=[], faces=faces)
         uv_layer = mesh.uv_layers.new().data
         # if self.materialContext.f3d_mat.rdp_settings.g_lighting:
-        color_layer = mesh.vertex_colors.new(name="Col").data
         alpha_layer = mesh.vertex_colors.new(name="Alpha").data
+        color_layer = mesh.vertex_colors.new(name="Col").data
         # else:
 
         if importNormals:
