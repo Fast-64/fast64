@@ -347,7 +347,7 @@ def ootWaterBoxToC(waterBox):
 def ootCameraDataToC(camData):
 	posC = CData()
 	camC = CData()
-	hasPosData = False
+	hasPosData = exportPosData = False
 	if len(camData.camPosDict) > 0:
 
 		camDataName = "CamData " + camData.camDataName() + "[" + str(len(camData.camPosDict)) + "]"
@@ -362,6 +362,7 @@ def ootCameraDataToC(camData):
 			if hasPosData:
 				posC.source += ootCameraPosToC(camData.camPosDict[i])
 				camPosIndex += 3
+				exportPosData = True
 		posC.source += '};\n\n'
 		camC.source += '};\n\n'
 
@@ -369,9 +370,9 @@ def ootCameraDataToC(camData):
 		posC.header = "extern " + posDataName + ';\n'
 		posC.source = posDataName + " = {\n" + posC.source
 
-	if hasPosData:
-		posC.append(camC)
-	return posC
+	if not exportPosData:
+		posC = None
+	return posC, camC
 
 def ootCameraPosToC(camPos):
 	return "\t{ " +\
@@ -396,8 +397,11 @@ def ootCameraEntryToC(camPos, camData, camPosIndex, hasPosData):
 
 def ootCollisionToC(collision):
 	data = CData()
+	posC, camC = ootCameraDataToC(collision.cameraData)
 
-	data.append(ootCameraDataToC(collision.cameraData))
+	if posC is not None:
+		data.append(posC)
+	data.append(camC)
 
 	if len(collision.polygonGroups) > 0:
 		data.header += "extern SurfaceType " + collision.polygonTypesName() + "[];\n"
