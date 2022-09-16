@@ -1143,7 +1143,7 @@ def getNameFromPath(path, removeExtension=False):
 
 
 def gammaCorrect(linearColor):
-    return list(c for c in mathutils.Color(linearColor[:3]).from_scene_linear_to_srgb())
+    return list(mathutils.Color(linearColor[:3]).from_scene_linear_to_srgb())
 
 
 def gammaCorrectValue(linearValue):
@@ -1152,7 +1152,7 @@ def gammaCorrectValue(linearValue):
 
 
 def gammaInverse(sRGBColor):
-    return list(c for c in mathutils.Color(sRGBColor[:3]).from_srgb_to_scene_linear())
+    return list(mathutils.Color(sRGBColor[:3]).from_srgb_to_scene_linear())
 
 
 def gammaInverseValue(sRGBValue):

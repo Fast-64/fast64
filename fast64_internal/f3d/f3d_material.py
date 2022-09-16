@@ -11,7 +11,7 @@ from ..utility import *
 from ..render_settings import Fast64RenderSettings_Properties, update_scene_props_from_render_settings
 from .f3d_material_helpers import F3DMaterial_UpdateLock
 from bpy.app.handlers import persistent
-from typing import Generator, Tuple
+from typing import Generator, Optional, Tuple
 
 
 logging.basicConfig(format="%(asctime)s: %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p")
@@ -1094,7 +1094,7 @@ def ui_procAnim(material, layout, useTex0, useTex1, title, useDropdown):
     ui_procAnimVecEnum(material.f3d_mat, material.f3d_mat.UVanim0, layout, title, "UV", useDropdown, useTex0, useTex1)
 
 
-def update_node_values(self, context, update_preset=True):
+def update_node_values(self, context, update_preset):
     if hasattr(context.scene, "world") and self == context.scene.world.rdp_defaults:
         pass
 
@@ -1133,7 +1133,7 @@ def getSocketFromCombinerToNodeDictAlpha(nodes, combinerInput):
     return nodes[nodeName].outputs[socketIndex] if nodeName is not None else None
 
 
-# Maps the color combiner input name to the corresponding node name and output name
+# Maps the color combiner input name to the corresponding node name and output socket name
 color_combiner_inputs = {
     "COMBINED": (None, "Color"),
     "TEXEL0": ("Tex0_I", "Color"),
@@ -1173,18 +1173,24 @@ alpha_combiner_inputs = {
 }
 
 
-def remove_first_link_if_exists(material: bpy.types.Material, links):  # TODO: (V5) add links type annotation
+def remove_first_link_if_exists(material: bpy.types.Material, links: tuple[bpy.types.NodeLink]):
     if len(links) > 0:
         link = links[0]
         material.node_tree.links.remove(link)
 
 
 def link_if_none_exist(
-    material: bpy.types.Material, fromOutput, toInput
+    material: bpy.types.Material, fromOutput: bpy.types.NodeSocket, toInput: bpy.types.NodeSocket
 ):  # TODO: (V5) add output/input type annotations
     if len(fromOutput.links) == 0:
         material.node_tree.links.new(fromOutput, toInput)
 
+swaps_tex01 = {
+    "TEXEL0": "TEXEL1",
+    "TEXEL0_ALPHA": "TEXEL1_ALPHA",
+    "TEXEL1": "TEXEL0",
+    "TEXEL1_ALPHA": "TEXEL0_ALPHA",
+}
 
 def update_node_combiner(material, combinerInputs, cycleIndex):
     nodes = material.node_tree.nodes
@@ -1196,37 +1202,36 @@ def update_node_combiner(material, combinerInputs, cycleIndex):
 
     for i in range(8):
         combiner_input = combinerInputs[i]
-        if cycleIndex == 2 and "TEXEL" in combiner_input:
-            combiner_input = (
-                combiner_input.replace("0", "1") if "0" in combiner_input else combiner_input.replace("1", "0")
-            )
+        if cycleIndex == 2:
+            # Swap texel0 for texel1 and vise versa
+            combiner_input = swaps_tex01.get(combiner_input, combiner_input)
 
         if combiner_input == "0":
             for link in cycle_node.inputs[i].links:
                 material.node_tree.links.remove(link)
 
         if i < 4:
-            node_name, output_name = color_combiner_inputs[combiner_input]
+            node_name, output_key = color_combiner_inputs[combiner_input]
             if cycleIndex == 2:
                 if combiner_input == "COMBINED":
                     node_name = "Combined_C"
-                    output_name = 0  # using an index due to it being a reroute node
+                    output_key = 0  # using an index due to it being a reroute node
                 elif combiner_input == "COMBINED_ALPHA":
                     node_name = "Combined_A"
-                    output_name = 0  # using an index due to it being a reroute node
+                    output_key = 0  # using an index due to it being a reroute node
             if node_name is not None:
                 input_node = nodes[node_name]
-                input_value = input_node.outputs[output_name]
+                input_value = input_node.outputs[output_key]
                 material.node_tree.links.new(cycle_node.inputs[i], input_value)
         else:
-            node_name, output_name = alpha_combiner_inputs[combiner_input]
+            node_name, output_key = alpha_combiner_inputs[combiner_input]
             if cycleIndex == 2:
                 if combiner_input == "COMBINED":
                     node_name = "Combined_A"
-                    output_name = 0  # using an index due to it being a reroute node
+                    output_key = 0  # using an index due to it being a reroute node
             if node_name is not None:
                 input_node = nodes[node_name]
-                input_value = input_node.outputs[output_name]
+                input_value = input_node.outputs[output_key]
                 material.node_tree.links.new(cycle_node.inputs[i], input_value)
 
 
@@ -1360,8 +1365,9 @@ def update_light_colors(material, context):
     nodes = material.node_tree.nodes
 
     if f3dMat.use_default_lighting and f3dMat.set_ambient_from_light:
-        amb: Color = Color(f3dMat.default_light_color[:3])
-        amb.v /= 4.672  # dividing by 4.672 approximates to half of the light color's value after gamma correction is performed on both
+        amb = Color(f3dMat.default_light_color[:3])
+        # dividing by 4.672 approximates to half of the light color's value after gamma correction is performed on both ambient and light colors
+        amb.v /= 4.672
 
         new_amb = [c for c in amb]
         new_amb.append(1.0)
@@ -1427,10 +1433,8 @@ def get_color_input_update_callback(attr_name="", prefix=""):
 def update_node_values_of_material(material: bpy.types.Material, context):
     nodes = material.node_tree.nodes
 
-    # Case where f3d render engine is used instead of node graph
-    # Note that v4 doesn't change the node graph from v3, so we use that name
     update_blend_method(material, context)
-    if not hasNodeGraph(material):
+    if not has_f3d_nodes(material):
         return
 
     f3dMat: "F3DMaterialProperty" = material.f3d_mat
@@ -1510,8 +1514,8 @@ def set_texture_size(self, tex_size, tex_index):
     inputs[f"{tex_index} T TexSize"].default_value = tex_size[1]
 
 
-def round_10_2(val: float):
-    return float(int(val * 4)) / 4.0
+def trunc_10_2(val: float):
+    return int(val * 4) / 4
 
 
 def update_tex_values_field(
@@ -1530,12 +1534,12 @@ def update_tex_values_field(
     str_index = str(tex_index)
 
     # S/T Low
-    inputs[str_index + " S Low"].default_value = round_10_2(texProperty.S.low)
-    inputs[str_index + " T Low"].default_value = round_10_2(texProperty.T.low)
+    inputs[str_index + " S Low"].default_value = trunc_10_2(texProperty.S.low)
+    inputs[str_index + " T Low"].default_value = trunc_10_2(texProperty.T.low)
 
     # S/T High
-    inputs[str_index + " S High"].default_value = round_10_2(texProperty.S.high)
-    inputs[str_index + " T High"].default_value = round_10_2(texProperty.T.high)
+    inputs[str_index + " S High"].default_value = trunc_10_2(texProperty.S.high)
+    inputs[str_index + " T High"].default_value = trunc_10_2(texProperty.T.high)
 
     # Clamp
     inputs[str_index + " ClampX"].default_value = 1 if texProperty.S.clamp else 0
@@ -1568,7 +1572,7 @@ def set_texture_nodes_settings(
     f3dMat: "F3DMaterialProperty" = material.f3d_mat
 
     # Return value
-    texSize: None | list["int"] = None
+    texSize: Optional[list[int]] = None
     # Enforce typing from generator
     texNode: None | bpy.types.TextureNodeImage = None
 
@@ -1602,7 +1606,7 @@ def update_tex_values_index(self: bpy.types.Material, *, texProperty: "TexturePr
 
             texFormat = texProperty.tex_format
             ciFormat = texProperty.ci_format
-            if hasNodeGraph(self):
+            if has_f3d_nodes(self):
                 tex_I_node = nodes["Tex" + str(texIndex) + "_I"]
                 desired_node = bpy.data.node_groups["Is not i"]
                 if "IA" in texFormat or (texFormat[:2] == "CI" and "IA" in ciFormat):
@@ -1746,7 +1750,7 @@ def getMaterialScrollDimensions(material):
 
 
 def update_preset_manual(material, context):
-    if hasNodeGraph(material):
+    if has_f3d_nodes(material):
         update_node_values_of_material(material, context)
     update_tex_values_manual(material, context)
 
@@ -1766,7 +1770,7 @@ def update_preset_manual_v4(material, preset):
         material.f3d_update_flag = False
 
 
-def hasNodeGraph(material: bpy.types.Material):
+def has_f3d_nodes(material: bpy.types.Material):
     return "Material Output F3D" in material.node_tree.nodes
 
 
@@ -1794,7 +1798,7 @@ def load_handler(dummy):
 
 bpy.app.handlers.load_post.append(load_handler)
 
-# bpy.context.mode returns the key's here, while the values are required by bpy.ops.object.mode_set
+# bpy.context.mode returns the keys here, while the values are required by bpy.ops.object.mode_set
 BLENDER_MODE_TO_MODE_SET = {"PAINT_VERTEX": "VERTEX_PAINT", "EDIT_MESH": "EDIT"}
 get_mode_set_from_context_mode = lambda mode: BLENDER_MODE_TO_MODE_SET.get(mode, "OBJECT")
 
@@ -1833,7 +1837,7 @@ def createOrUpdateSceneProperties():
     _nodeFogFar: bpy.types.NodeSocketInt = new_group.outputs.new("NodeSocketInt", "FogFar")
     _nodeShadeColor: bpy.types.NodeSocketColor = new_group.outputs.new("NodeSocketColor", "ShadeColor")
     _nodeAmbientColor: bpy.types.NodeSocketColor = new_group.outputs.new("NodeSocketColor", "AmbientColor")
-    _nodeLightDirection: bpy.types.NodeSocketColor = new_group.outputs.new(
+    _nodeLightDirection: bpy.types.NodeSocketVectorDirection = new_group.outputs.new(
         "NodeSocketVectorDirection", "LightDirection"
     )
 
