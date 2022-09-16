@@ -347,6 +347,7 @@ def ootWaterBoxToC(waterBox):
 def ootCameraDataToC(camData):
 	posC = CData()
 	camC = CData()
+	hasPosData = False
 	if len(camData.camPosDict) > 0:
 
 		camDataName = "CamData " + camData.camDataName() + "[" + str(len(camData.camPosDict)) + "]"
@@ -356,8 +357,9 @@ def ootCameraDataToC(camData):
 
 		camPosIndex = 0
 		for i in range(len(camData.camPosDict)):
-			camC.source += '\t' + ootCameraEntryToC(camData.camPosDict[i], camData, camPosIndex) + ",\n"
-			if camData.camPosDict[i].hasPositionData:
+			hasPosData = camData.camPosDict[i].hasPositionData
+			camC.source += '\t' + ootCameraEntryToC(camData.camPosDict[i], camData, camPosIndex, hasPosData) + ",\n"
+			if hasPosData:
 				posC.source += ootCameraPosToC(camData.camPosDict[i])
 				camPosIndex += 3
 		posC.source += '};\n\n'
@@ -367,7 +369,8 @@ def ootCameraDataToC(camData):
 		posC.header = "extern " + posDataName + ';\n'
 		posC.source = posDataName + " = {\n" + posC.source
 
-	posC.append(camC)
+	if hasPosData:
+		posC.append(camC)
 	return posC
 
 def ootCameraPosToC(camPos):
@@ -382,12 +385,12 @@ def ootCameraPosToC(camPos):
 		str(camPos.jfifID) + ', ' +\
 		str(camPos.unknown) + ' },\n'
 
-def ootCameraEntryToC(camPos, camData, camPosIndex):
+def ootCameraEntryToC(camPos, camData, camPosIndex, hasPosData):
 	return " ".join((
 		"{",
 		camPos.camSType + ',',
 		('3' if camPos.hasPositionData else '0') + ',',
-		('&' + camData.camPositionsName() + '[' + str(camPosIndex) + ']'),
+		(('&' + camData.camPositionsName() + '[' + str(camPosIndex) + ']') if hasPosData else "NULL"),
 		"}"
 	))
 
