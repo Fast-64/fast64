@@ -368,7 +368,7 @@ class UpgradeF3DMaterialsDialog(bpy.types.Operator):
         layout.alert = True
         box = layout.box()
         box.label(text="Your project contains F3D materials that need to be upgraded in order to continue!")
-        box.label(text="Before upgrading, make sure to create a duplicate of this blend file before continuing.")
+        box.label(text="Before upgrading, make sure to create a duplicate (backup) of this blend file.")
         box.separator()
 
         col = box.column()
@@ -385,7 +385,7 @@ class UpgradeF3DMaterialsDialog(bpy.types.Operator):
 
         upgradeF3DVersionAll(
             [obj for obj in bpy.data.objects if isinstance(obj.data, bpy.types.Mesh)],
-            bpy.data.armatures,
+            list(bpy.data.armatures),
             MatUpdateConvert.version,
         )
         self.done = True
@@ -444,8 +444,8 @@ def upgrade_changed_props():
 
 def upgrade_scene_props_node():
     """update f3d materials with SceneProperties node"""
-    has_old_f3d_mats = bool(
-        len([mat for mat in bpy.data.materials if mat.is_f3d and mat.mat_ver < MatUpdateConvert.version])
+    has_old_f3d_mats = any(
+        mat.is_f3d and mat.mat_ver < MatUpdateConvert.version for mat in bpy.data.materials
     )
     if has_old_f3d_mats:
         bpy.ops.dialog.upgrade_f3d_materials("INVOKE_DEFAULT")
@@ -453,7 +453,6 @@ def upgrade_scene_props_node():
 
 @bpy.app.handlers.persistent
 def after_load(_a, _b):
-    # link_f3d_material_library()
     upgrade_changed_props()
     upgrade_scene_props_node()
     resync_scene_props()
@@ -464,12 +463,12 @@ def after_load(_a, _b):
 # append menu layout drawing function to an existing window
 def register():
 
-    if bpy.app.version <= (3, 1, 0):
+    if bpy.app.version < (3, 2, 0):
         msg = "\n".join(
             (
-                "This version of Fast64 does not work properly in Blender 3.1.0 and earlier Blender versions.",
+                "This version of Fast64 does not support Blender 3.1.x and earlier Blender versions.",
                 "Your Blender version is: " + ".".join(str(i) for i in bpy.app.version),
-                "Please upgrade to 3.2.0 or above.",
+                "Please upgrade Blender to 3.2.0 or above.",
             )
         )
         print(msg)

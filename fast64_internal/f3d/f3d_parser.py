@@ -473,6 +473,15 @@ class F3DContext:
 
         self.tlutAppliedTextures = []  # c name
         self.currentTextureName = None
+        self.imagesDontApplyTlut = set()  # image
+
+        # Determines if images in CI formats loaded from png files,
+        # should have the TLUT set by the dlist applied on top of them (False),
+        # or if the image file should just be loaded as is with no further change (True)
+        # OoT64 and SM64 stores CI images as pngs in actual colors (with the TLUT accounted for),
+        # So for now this can be always True.
+        # In the future this could be an option if for example pngs for CI images were grayscale to represent the palette index.
+        self.ciImageFilesStoredAsFullColor = True  # determines whether to apply tlut to file or import as is
 
         # This macro has all the tile setting properties, so we reuse it
         self.tileSettings = [
@@ -711,6 +720,9 @@ class F3DContext:
             and texProp.tex_set
             and texProp.tex_format[:2] == "CI"
             and (texProp.tex not in self.tlutAppliedTextures or texProp.use_tex_reference)
+            and (
+                texProp.tex not in self.imagesDontApplyTlut or not self.ciImageFilesStoredAsFullColor
+            )  # oot currently stores CI textures in full color pngs
         ):
 
             # Only handles TLUT at 256
@@ -1362,7 +1374,11 @@ class F3DContext:
 
         # TODO: Textures are sometimes loaded in with different dimensions than for rendering.
         # This means width is incorrect?
-        image = parseTextureData(data, textureName, self, tileSettings.fmt, siz, width, self.basePath, isLUT, self.f3d)
+        image, loadedFromImageFile = parseTextureData(
+            data, textureName, self, tileSettings.fmt, siz, width, self.basePath, isLUT, self.f3d
+        )
+        if loadedFromImageFile:
+            self.imagesDontApplyTlut.add(image)
 
         self.textureData[textureName] = image
         return self.textureData[textureName]
@@ -1853,9 +1869,11 @@ def parseTextureData(dlData, textureName, f3dContext, imageFormat, imageSize, wi
     )
     if matchResult is None:
         print("Cannot find texture named " + textureName)
-        return F3DTextureReference(textureName, width)
+        return F3DTextureReference(textureName, width), False
     data = matchResult.group(2)
     valueSize = matchResult.group(1)
+
+    loadedFromImageFile = False
 
     pathMatch = re.search('\#include\s*"([^"]*)"', data, re.DOTALL)
     if pathMatch is not None:
@@ -1874,6 +1892,8 @@ def parseTextureData(dlData, textureName, f3dContext, imageFormat, imageSize, wi
                 image.pixels[width * j * 4 : width * (j + 1) * 4] = flippedValues[
                     width * (height - (j + 1)) * 4 : width * (height - j) * 4
                 ]
+
+        loadedFromImageFile = True
     else:
         values = [value.strip() for value in data.split(",") if value.strip() != ""]
         newValues = []
@@ -1947,7 +1967,7 @@ def parseTextureData(dlData, textureName, f3dContext, imageFormat, imageSize, wi
                     width * (height - (j + 1)) * 4 : width * (height - j) * 4
                 ]
 
-    return image
+    return image, loadedFromImageFile
 
 
 def parseMacroList(data):
