@@ -90,21 +90,21 @@ for each sub element (of <Actor>) mentioned below:
   <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_EN_LIGHT" Key="en_light" Name="Flame">
     <Type Index="1" Mask="0x000F">
       <Item Params="0000"> Large Orange Flame</Item>
-      <Item Params="0001"> Large Orange Flame</Item>*
+      <Item Params="0001"> Large Orange Flame</Item>
       <Item Params="0002"> Large Blue Flame</Item>
-      <Item Params="0003"> Large Green Flame</Item>*
+      <Item Params="0003"> Large Green Flame</Item>
       <Item Params="0004"> Small Orange Flame</Item>
-      <Item Params="0005"> Large Orange Flame</Item>*
+      <Item Params="0005"> Large Orange Flame</Item>
       <Item Params="0006"> Large Green Flame</Item>
-      <Item Params="0007"> Large Blue Flame</Item>*
+      <Item Params="0007"> Large Blue Flame</Item>
       <Item Params="0008"> Large Magenta Flame</Item>
-      <Item Params="0009"> Large Pale Orange Flame</Item>*
+      <Item Params="0009"> Large Pale Orange Flame</Item>
       <Item Params="000A"> Large Pale Yellow Flame</Item>
-      <Item Params="000B"> Large Pale Green Flame</Item>*
+      <Item Params="000B"> Large Pale Green Flame</Item>
       <Item Params="000C"> Large Pale Pink Flame</Item>
-      <Item Params="000D"> Large Pale Purple Flame</Item>*
-      <Item Params="000E"> Large Pale Indigo Flame</Item>*
-      <Item Params="000F"> Large Pale Blue Flame</Item>*
+      <Item Params="000D"> Large Pale Purple Flame</Item>
+      <Item Params="000E"> Large Pale Indigo Flame</Item>
+      <Item Params="000F"> Large Pale Blue Flame</Item>
     </Type>
     <Flag Index="1" Mask="0x03F0" Type="Switch"/>
     <Bool Index="1" Mask="0x0400" Name="Shrinking Mode"/>
