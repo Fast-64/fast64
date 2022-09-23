@@ -25,9 +25,8 @@ def ootProcessVertexGroup(
     drawLayerOverride,
     convertTextureData,
     lastMaterialName,
+    optimize: bool,
 ):
-
-    optimize = bpy.context.scene.ootSkeletonExportOptimize
     if not optimize:
         lastMaterialName = None
 
