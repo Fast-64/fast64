@@ -515,13 +515,15 @@ def ootConvertArmatureToC(
     else:
         data.source += "\n"
 
-    exportData = fModel.to_c(TextureExportSettings(False, savePNG, "test"), OOTGfxFormatter(ScrollMethod.Vertex))
+    path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, False)
+    exportData = fModel.to_c(
+        TextureExportSettings(False, savePNG, "include", path), OOTGfxFormatter(ScrollMethod.Vertex)
+    )
     skeletonC = skeleton.toC()
 
     data.append(exportData.all())
     data.append(skeletonC)
 
-    path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, False)
     writeCData(data, os.path.join(path, skeletonName + ".h"), os.path.join(path, skeletonName + ".c"))
 
     if not isCustomExport:

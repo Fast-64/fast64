@@ -212,11 +212,13 @@ def ootConvertMeshToC(
     else:
         data.source += "\n"
 
-    exportData = fModel.to_c(TextureExportSettings(False, saveTextures, "test"), OOTGfxFormatter(ScrollMethod.Vertex))
+    path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, False)
+    exportData = fModel.to_c(
+        TextureExportSettings(False, saveTextures, "include", path), OOTGfxFormatter(ScrollMethod.Vertex)
+    )
 
     data.append(exportData.all())
 
-    path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, False)
     writeCData(data, os.path.join(path, name + ".h"), os.path.join(path, name + ".c"))
 
     if not isCustomExport:
