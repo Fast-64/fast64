@@ -980,6 +980,7 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
             prop_split(col, exportSettings, "assetIncludeDir", "Asset Include Path")
 
         col.prop(exportSettings, "isCustom")
+        col.prop(exportSettings, "removeVanillaData")
         col.prop(exportSettings, "optimize")
         if exportSettings.optimize:
             b = col.box().column()
@@ -999,7 +1000,6 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
         col.prop(importSettings, "isCustom")
         col.prop(importSettings, "removeDoubles")
         col.prop(importSettings, "importNormals")
-        col.prop(importSettings, "removeVanillaData")
 
 
 class OOT_SkeletonPanel(bpy.types.Panel):
