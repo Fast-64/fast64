@@ -19,6 +19,7 @@ class OOTDLExportSettings(bpy.types.PropertyGroup):
     isCustom: bpy.props.BoolProperty(name="Use Custom Path")
     removeVanillaData: bpy.props.BoolProperty(name="Replace Vanilla DLs")
     drawLayer: bpy.props.EnumProperty(name="Draw Layer", items=ootEnumDrawLayers)
+    assetIncludeDir: bpy.props.StringProperty(name="Asset Include Directory", default="assets/objects/gameplay_keep")
 
 
 class OOTDLImportSettings(bpy.types.PropertyGroup):
@@ -231,9 +232,10 @@ def ootConvertMeshToC(
     else:
         data.source += "\n"
 
-    path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, False)
+    path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, True)
+    includeDir = settings.assetIncludeDir if settings.isCustom else f"assets/objects/{folderName}"
     exportData = fModel.to_c(
-        TextureExportSettings(False, saveTextures, "include", path), OOTGfxFormatter(ScrollMethod.Vertex)
+        TextureExportSettings(False, saveTextures, includeDir, path), OOTGfxFormatter(ScrollMethod.Vertex)
     )
 
     data.append(exportData.all())
@@ -389,10 +391,11 @@ class OOT_ExportDLPanel(OOT_Panel):
         exportSettings: OOTDLExportSettings = context.scene.ootDLExportSettings
 
         prop_split(col, exportSettings, "name", "DL")
+        prop_split(col, exportSettings, "folder", "Object" if not exportSettings.isCustom else "Folder")
         if exportSettings.isCustom:
-            prop_split(col, exportSettings, "customPath", "Folder")
-        else:
-            prop_split(col, exportSettings, "folder", "Object")
+            prop_split(col, exportSettings, "assetIncludeDir", "Asset Include Path")
+            prop_split(col, exportSettings, "customPath", "Path")
+
         prop_split(col, exportSettings, "drawLayer", "Export Draw Layer")
         col.prop(exportSettings, "isCustom")
         col.prop(exportSettings, "removeVanillaData")

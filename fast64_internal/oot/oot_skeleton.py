@@ -976,8 +976,8 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
         prop_split(col, exportSettings, "name", "Skeleton")
         prop_split(col, exportSettings, "folder", "Object" if not exportSettings.isCustom else "Folder")
         if exportSettings.isCustom:
-            prop_split(col, exportSettings, "customPath", "Path")
             prop_split(col, exportSettings, "assetIncludeDir", "Asset Include Path")
+            prop_split(col, exportSettings, "customPath", "Path")
 
         col.prop(exportSettings, "isCustom")
         col.prop(exportSettings, "removeVanillaData")
