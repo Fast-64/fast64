@@ -16,6 +16,7 @@ from .oot_f3d_writer import *
 class OOTSkeletonExportSettings(bpy.types.PropertyGroup):
     name: bpy.props.StringProperty(name="Skeleton Name", default="gGerudoRedSkel")
     folder: bpy.props.StringProperty(name="Skeleton Folder", default="object_geldb")
+    assetIncludeDir: bpy.props.StringProperty(name="Asset Include Directory", default="assets/objects/object_geldb")
     customPath: bpy.props.StringProperty(name="Custom Skeleton Path", subtype="FILE_PATH")
     isCustom: bpy.props.BoolProperty(name="Use Custom Path")
     removeVanillaData: bpy.props.BoolProperty(name="Replace Vanilla Headers On Export", default=True)
@@ -558,9 +559,10 @@ def ootConvertArmatureToC(
     else:
         data.source += "\n"
 
-    path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, False)
+    path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, True)
+    includeDir = settings.assetIncludeDir if settings.isCustom else f"assets/objects/{folderName}"
     exportData = fModel.to_c(
-        TextureExportSettings(False, savePNG, "include", path), OOTGfxFormatter(ScrollMethod.Vertex)
+        TextureExportSettings(False, savePNG, includeDir, path), OOTGfxFormatter(ScrollMethod.Vertex)
     )
     skeletonC = skeleton.toC()
 
@@ -972,10 +974,11 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
         exportSettings: OOTSkeletonExportSettings = context.scene.ootSkeletonExportSettings
 
         prop_split(col, exportSettings, "name", "Skeleton")
+        prop_split(col, exportSettings, "folder", "Object" if not exportSettings.isCustom else "Folder")
         if exportSettings.isCustom:
-            prop_split(col, exportSettings, "customPath", "Folder")
-        else:
-            prop_split(col, exportSettings, "folder", "Object")
+            prop_split(col, exportSettings, "customPath", "Path")
+            prop_split(col, exportSettings, "assetIncludeDir", "Asset Include Path")
+
         col.prop(exportSettings, "isCustom")
         col.prop(exportSettings, "optimize")
         if exportSettings.optimize:
