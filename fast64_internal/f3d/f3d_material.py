@@ -1937,20 +1937,17 @@ def addColorAttributesToModel(obj: bpy.types.Object):
 
     mesh: bpy.types.Mesh = obj.data
 
-    useFloatColor: bool = bpy.app.version >= (3, 3, 0)
-    attrDataType: str = "FLOAT_COLOR" if useFloatColor else "COLOR"
-
     conv_col, has_col = shouldConvOrCreateColorAttribute(mesh, attr_name="Col")
     if conv_col:
         convertColorAttribute(mesh, attr_name="Col")
     elif not has_col:
-        bpy.ops.geometry.color_attribute_add(name="Col", domain="CORNER", data_type=attrDataType)
+        mesh.color_attributes.new("Col", "FLOAT_COLOR", "CORNER")
 
     conv_alpha, has_alpha = shouldConvOrCreateColorAttribute(mesh, attr_name="Alpha")
     if conv_alpha:
         convertColorAttribute(mesh, attr_name="Alpha")
     elif not has_alpha:
-        bpy.ops.geometry.color_attribute_add(name="Alpha", domain="CORNER", data_type=attrDataType)
+        mesh.color_attributes.new("Alpha", "FLOAT_COLOR", "CORNER")
 
     if prevMode != "OBJECT":
         bpy.ops.object.mode_set(mode=get_mode_set_from_context_mode(prevMode))
