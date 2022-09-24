@@ -1463,12 +1463,12 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     texDimensions0 = None
     texDimensions1 = None
     nextTmem = 0
-    loadTextures = not (material.mat_ver > 3 and f3dMat.use_large_textures)
     if useDict["Texture 0"] and f3dMat.tex0.tex_set:
         if f3dMat.tex0.tex is None and not f3dMat.tex0.use_tex_reference:
             raise PluginError('In material "' + material.name + '", a texture has not been set.')
 
-        fMaterial.useLargeTextures = not loadTextures
+        useLargeTextures = material.mat_ver > 3 and f3dMat.use_large_textures
+        fMaterial.useLargeTextures = useLargeTextures
         fMaterial.texturesLoaded[0] = True
         texDimensions0, nextTmem = saveTextureIndex(
             material.name,
@@ -1482,7 +1482,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             None,
             convertTextureData,
             None,
-            loadTextures,
+            True,
             True,
         )
 
@@ -1496,7 +1496,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         if f3dMat.tex1.tex is None and not f3dMat.tex1.use_tex_reference:
             raise PluginError('In material "' + material.name + '", a texture has not been set.')
 
-        fMaterial.useLargeTextures = not loadTextures
+        fMaterial.useLargeTextures = useLargeTextures
         fMaterial.texturesLoaded[1] = True
         texDimensions1, nextTmem = saveTextureIndex(
             material.name,
@@ -1510,7 +1510,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             None,
             convertTextureData,
             None,
-            loadTextures,
+            True,
             True,
         )
 
@@ -1677,7 +1677,7 @@ def saveTextureIndex(
 
     nextTmem = tmem + getTmemWordUsage(texFormat, width, height)
 
-    if not bpy.context.scene.ignoreTextureRestrictions and loadTextures:
+    if not (bpy.context.scene.ignoreTextureRestrictions or fMaterial.useLargeTextures):
         if nextTmem > (512 if texFormat[:2] != "CI" else 256):
             raise PluginError(
                 'Error in "'
@@ -1685,8 +1685,8 @@ def saveTextureIndex(
                 + '": Textures are too big. Max TMEM size is 4k '
                 + "bytes, ex. 2 32x32 RGBA 16 bit textures.\nNote that texture width will be internally padded to 64 bit boundaries."
             )
-        if width > 1024 or height > 1024:
-            raise PluginError('Error in "' + propName + '": Any side of an image cannot be greater ' + "than 1024.")
+    if width > 1024 or height > 1024:
+        raise PluginError('Error in "' + propName + '": Any side of an image cannot be greater ' + "than 1024.")
 
     if tileSettings is None:
         clamp_S = texProp.S.clamp
