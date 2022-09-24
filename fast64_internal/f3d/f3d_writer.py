@@ -2821,7 +2821,7 @@ class F3D_ExportDL(bpy.types.Operator):
             f3dType = context.scene.f3d_type
             isHWv1 = context.scene.isHWv1
             texDir = bpy.context.scene.DLTexDir
-            savePNG = bpy.context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions
+            savePNG = bpy.context.scene.saveTextures
             separateTexDef = bpy.context.scene.DLSeparateTextureDef
             DLName = bpy.context.scene.DLName
             matWriteMethod = getWriteMethodFromEnum(context.scene.matWriteMethod)
@@ -2877,10 +2877,9 @@ class F3D_ExportDLPanel(bpy.types.Panel):
         prop_split(col, context.scene, "matWriteMethod", "Material Write Method")
         col.prop(context.scene, "DLExportisStatic")
 
-        if not bpy.context.scene.ignoreTextureRestrictions:
-            if context.scene.saveTextures:
-                prop_split(col, context.scene, "DLTexDir", "Texture Include Path")
-                col.prop(context.scene, "DLSeparateTextureDef")
+        if context.scene.saveTextures:
+            prop_split(col, context.scene, "DLTexDir", "Texture Include Path")
+            col.prop(context.scene, "DLSeparateTextureDef")
 
 
 f3d_writer_classes = (

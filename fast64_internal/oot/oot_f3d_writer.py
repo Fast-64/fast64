@@ -355,7 +355,7 @@ class OOT_ExportDL(bpy.types.Operator):
             # 	context.scene.geoExportPath, context.scene.geoLevelName,
             # 	context.scene.geoLevelOption)
 
-            saveTextures = bpy.context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions
+            saveTextures = bpy.context.scene.saveTextures
             isHWv1 = context.scene.isHWv1
             f3dType = context.scene.f3d_type
             exportSettings = context.scene.ootDLExportSettings

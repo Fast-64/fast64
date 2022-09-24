@@ -944,7 +944,7 @@ class OOT_ExportSkeleton(bpy.types.Operator):
         try:
             exportSettings: OOTSkeletonExportSettings = context.scene.ootSkeletonExportSettings
 
-            saveTextures = bpy.context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions
+            saveTextures = bpy.context.scene.saveTextures
             isHWv1 = context.scene.isHWv1
             f3dType = context.scene.f3d_type
             drawLayer = armatureObj.ootDrawLayer
