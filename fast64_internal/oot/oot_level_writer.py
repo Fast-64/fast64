@@ -651,7 +651,7 @@ class OOT_ExportScene(bpy.types.Operator):
                 DLFormat.Static,
                 context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions,
                 exportInfo,
-                context.scene.ootBootupSceneOptions if context.scene.ootHackerFeaturesEnabled else None,
+                context.scene.ootBootupSceneOptions if context.scene.fast64.oot.hackerFeaturesEnabled else None,
             )
 
             self.report({"INFO"}, "Success!")
@@ -680,8 +680,8 @@ def ootRemoveSceneC(exportInfo):
 
 class OOT_RemoveScene(bpy.types.Operator):
     bl_idname = "object.oot_remove_level"
-    bl_label = "Are you sure you want to remove this level?"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
+    bl_label = "OOT Remove Scene"
+    bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
         levelName = context.scene.ootSceneName
@@ -702,7 +702,11 @@ class OOT_RemoveScene(bpy.types.Operator):
         return {"FINISHED"}
 
     def invoke(self, context, event):
-        return context.window_manager.invoke_confirm(self, event)
+        return context.window_manager.invoke_props_dialog(self, width=300)
+
+    def draw(self, context):
+        layout = self.layout
+        layout.label(text="Are you sure you want to remove this scene?")
 
 
 class OOT_ExportScenePanel(OOT_Panel):
@@ -722,7 +726,7 @@ class OOT_ExportScenePanel(OOT_Panel):
             prop_split(col, context.scene, "ootSceneName", "Name")
             customExportWarning(col)
         else:
-            if context.scene.ootHackerFeaturesEnabled:
+            if context.scene.fast64.oot.hackerFeaturesEnabled:
                 col.prop(context.scene.ootBootupSceneOptions, "bootToScene", text="Boot To Scene (HackerOOT)")
                 if context.scene.ootBootupSceneOptions.bootToScene:
                     col.prop(context.scene.ootBootupSceneOptions, "newGameOnly")

@@ -29,13 +29,14 @@ class OOT_FileSettingsPanel(OOT_Panel):
         prop_split(col, context.scene, "ootActorBlenderScale", "OOT Actor Scale")
 
         prop_split(col, context.scene, "ootDecompPath", "Decomp Path")
-        col.prop(context.scene, "ootHackerFeaturesEnabled")
+        col.prop(context.scene.fast64.oot, "hackerFeaturesEnabled")
 
 
 class OOT_Properties(bpy.types.PropertyGroup):
     """Global OOT Scene Properties found under scene.fast64.oot"""
 
     version: bpy.props.IntProperty(name="OOT_Properties Version", default=0)
+    hackerFeaturesEnabled: bpy.props.BoolProperty(name="Enable HackerOOT Features")
 
 
 oot_classes = (
@@ -89,7 +90,6 @@ def oot_register(registerPanels):
     bpy.types.Scene.ootBlenderScale = bpy.props.FloatProperty(name="Blender To OOT Scale", default=10)
     bpy.types.Scene.ootActorBlenderScale = bpy.props.FloatProperty(name="Blender To OOT Actor Scale", default=1000)
     bpy.types.Scene.ootDecompPath = bpy.props.StringProperty(name="Decomp Folder", subtype="FILE_PATH")
-    bpy.types.Scene.ootHackerFeaturesEnabled = bpy.props.BoolProperty(name="Enable HackerOOT Features")
 
 
 def oot_unregister(unregisterPanels):
@@ -113,4 +113,3 @@ def oot_unregister(unregisterPanels):
     del bpy.types.Scene.ootBlenderScale
     del bpy.types.Scene.ootActorBlenderScale
     del bpy.types.Scene.ootDecompPath
-    del bpy.types.Scene.ootHackerFeaturesEnabled
