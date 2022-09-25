@@ -6,7 +6,7 @@ from ..oot_constants import ootEnumHeaderMenuComplete
 from typing import Callable, Iterable, Any, List
 
 
-def setBootupScene(exportPath: str, entranceIndex: str, options: Any):
+def setBootupScene(exportPath: str, entranceIndex: str, options: "OOTBootupSceneOptions"):
 
     linkAge = "LINK_AGE_CHILD"
     timeOfDay = "NEXT_TIME_NONE"
