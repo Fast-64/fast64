@@ -347,7 +347,7 @@ def ootWaterBoxToC(waterBox):
 def ootCameraDataToC(camData):
 	posC = CData()
 	camC = CData()
-	hasPosData = exportPosData = False
+	exportPosData = False
 	if len(camData.camPosDict) > 0:
 
 		camDataName = "CamData " + camData.camDataName() + "[" + str(len(camData.camPosDict)) + "]"
@@ -357,9 +357,8 @@ def ootCameraDataToC(camData):
 
 		camPosIndex = 0
 		for i in range(len(camData.camPosDict)):
-			hasPosData = camData.camPosDict[i].hasPositionData
-			camC.source += '\t' + ootCameraEntryToC(camData.camPosDict[i], camData, camPosIndex, hasPosData) + ",\n"
-			if hasPosData:
+			camC.source += '\t' + ootCameraEntryToC(camData.camPosDict[i], camData, camPosIndex) + ",\n"
+			if camData.camPosDict[i].hasPositionData:
 				posC.source += ootCameraPosToC(camData.camPosDict[i])
 				camPosIndex += 3
 				exportPosData = True
@@ -386,12 +385,12 @@ def ootCameraPosToC(camPos):
 		str(camPos.jfifID) + ', ' +\
 		str(camPos.unknown) + ' },\n'
 
-def ootCameraEntryToC(camPos, camData, camPosIndex, hasPosData):
+def ootCameraEntryToC(camPos, camData, camPosIndex):
 	return " ".join((
 		"{",
 		camPos.camSType + ',',
 		('3' if camPos.hasPositionData else '0') + ',',
-		(('&' + camData.camPositionsName() + '[' + str(camPosIndex) + ']') if hasPosData else "NULL"),
+		(('&' + camData.camPositionsName() + '[' + str(camPosIndex) + ']') if camPos.hasPositionData else "NULL"),
 		"}"
 	))
 
