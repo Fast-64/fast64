@@ -404,6 +404,8 @@ def ui_upper_mode(settings, dataHolder, layout, useDropdown):
         prop_split(inputGroup, settings, "g_mdsft_textconv", "Texture Convert")
         prop_split(inputGroup, settings, "g_mdsft_text_filt", "Texture Filter")
         prop_split(inputGroup, settings, "g_mdsft_textlod", "Texture LOD")
+        if settings.g_mdsft_textlod == 'G_TL_LOD':
+            inputGroup.prop(settings, "lod_level", text="Texture LOD Level")
         prop_split(inputGroup, settings, "g_mdsft_textdetail", "Texture Detail")
         prop_split(inputGroup, settings, "g_mdsft_textpersp", "Texture Perspective Correction")
         prop_split(inputGroup, settings, "g_mdsft_cycletype", "Cycle Type")
@@ -1734,40 +1736,42 @@ def update_tex_values_manual(material: bpy.types.Material, context, prop_path=No
     uv_basis.inputs["EnableOffset"].default_value = int(f3dMat.rdp_settings.g_mdsft_text_filt != "G_TF_POINT")
     set_texture_settings_node(material)
 
+def shift_num(num: int, amt: int):
+    if amt < 0:
+        return num >> -amt
+    return num << amt
 
-def getMaterialScrollDimensions(material):
-    useDict = all_combiner_uses(material)
+def shift_dimensions(tex_prop: "TextureProperty", dimensions: list[int]):
+    return (shift_num(dimensions[0], tex_prop.S.shift), shift_num(dimensions[1], tex_prop.T.shift))
 
-    if (
-        useDict["Texture 0"]
-        and material.tex0.tex is not None
-        and useDict["Texture 1"]
-        and material.tex1.tex is not None
-        and material.tex0.tex.size[0] > 0
-        and material.tex0.tex.size[1] > 0
-        and material.tex1.tex.size[0] > 0
-        and material.tex1.tex.size[1] > 0
-    ):
-        if material.uv_basis == "TEXEL0":
-            return material.tex0.tex.size
-        else:
-            return material.tex1.tex.size
-    elif (
-        useDict["Texture 1"]
-        and material.tex1.tex is not None
-        and material.tex1.tex.size[0] > 0
-        and material.tex1.tex.size[1] > 0
-    ):
-        return material.tex1.tex.size
-    elif (
-        useDict["Texture 0"]
-        and material.tex0.tex is not None
-        and material.tex0.tex.size[0] > 0
-        and material.tex0.tex.size[1] > 0
-    ):
-        return material.tex0.tex.size
+def getMaterialScrollDimensions(f3dMat):
+    texDimensions0 = None
+    texDimensions1 = None
+    useDict = all_combiner_uses(f3dMat)
+
+    if useDict["Texture 0"] and f3dMat.tex0.tex_set:
+        if f3dMat.tex0.use_tex_reference:
+            texDimensions0 = f3dMat.tex0.tex_reference_size
+        elif f3dMat.tex0.tex:
+            texDimensions0 = f3dMat.tex0.tex.size[0], f3dMat.tex0.tex.size[1]
+
+    if useDict["Texture 1"] and f3dMat.tex1.tex_set:
+        if f3dMat.tex1.use_tex_reference:
+            texDimensions1 = f3dMat.tex1.tex_reference_size
+        elif f3dMat.tex0.tex:
+            texDimensions1 = f3dMat.tex1.tex.size[0], f3dMat.tex1.tex.size[1]
+
+    if texDimensions0 is not None:
+        texDimensions0 = shift_dimensions(f3dMat.tex0, texDimensions0)
     else:
-        return [32, 32]
+        texDimensions0 = (32, 32)
+
+    if texDimensions1 is not None:
+        texDimensions1 = shift_dimensions(f3dMat.tex1, texDimensions1)
+    else:
+        texDimensions1 = (32, 32)
+
+    return (max(texDimensions0[0], texDimensions1[0]), max(texDimensions0[1], texDimensions1[1]))
 
 
 def update_preset_manual(material, context):
@@ -2425,6 +2429,12 @@ class RDPSettings(bpy.types.PropertyGroup):
         items=enumTextLOD,
         default="G_TL_TILE",
         update=update_node_values_with_preset,
+    )
+    lod_level: bpy.props.IntProperty(
+        name="Texture LOD Level",
+        default=0,
+        min=0,
+        max=7
     )
     g_mdsft_textdetail: bpy.props.EnumProperty(
         name="Texture Detail",
