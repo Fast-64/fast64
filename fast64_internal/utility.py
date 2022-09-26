@@ -111,6 +111,12 @@ def checkObjectReference(obj, title):
         )
 
 
+def selectSingleObject(obj: bpy.types.Object):
+    bpy.ops.object.select_all(action="DESELECT")
+    obj.select_set(True)
+    bpy.context.view_layer.objects.active = obj
+
+
 def parentObject(parent, child):
     bpy.ops.object.select_all(action="DESELECT")
 
@@ -183,6 +189,52 @@ def copyPropertyGroup(oldProp, newProp):
         elif type(sub_value).__name__ == "bpy_prop_collection_idprop":
             newCollection = getattr(newProp, sub_value_attr)
             copyPropertyCollection(sub_value, newCollection)
+        else:
+            setattr(newProp, sub_value_attr, sub_value)
+
+
+def get_attr_or_property(prop: dict | object, attr: str, newProp: dict | object):
+    """Safely get an attribute or old dict property"""
+    val = getattr(prop, attr, prop.get(attr))
+
+    # might be a dead enum that needs to be mapped back
+    if type(val) is int:
+        try:
+            newPropDef: bpy.types.Property = newProp.bl_rna.properties[attr]
+            if "Enum" in newPropDef.bl_rna.name:  # Should be "Enum Definition"
+                # change type hint to proper type
+                newPropDef: bpy.types.EnumProperty = newPropDef
+                return newPropDef.enum_items[val].identifier
+        except Exception as e:
+            pass
+    return val
+
+
+def iter_prop(prop):
+    """Return iterable keys or attributes"""
+    if isinstance(prop, bpy.types.PropertyGroup):
+        return prop.bl_rna.properties.keys()
+    elif type(prop).__name__ == "bpy_prop_collection_idprop":
+        return prop
+    elif type(prop).__name__ == "IDPropertyGroup":
+        return prop.keys()
+
+    return prop
+
+
+def recursiveCopyOldPropertyGroup(oldProp, newProp):
+    """Recursively go through an old property group, copying to the new one"""
+    for sub_value_attr in iter_prop(oldProp):
+        if sub_value_attr == "rna_type":
+            continue
+        sub_value = get_attr_or_property(oldProp, sub_value_attr, newProp)
+
+        if isinstance(sub_value, bpy.types.PropertyGroup) or type(sub_value).__name__ in (
+            "bpy_prop_collection_idprop",
+            "IDPropertyGroup",
+        ):
+            newCollection = getattr(newProp, sub_value_attr)
+            recursiveCopyOldPropertyGroup(sub_value, newCollection)
         else:
             setattr(newProp, sub_value_attr, sub_value)
 
@@ -456,8 +508,17 @@ def getRGBA16Tuple(color):
     )
 
 
+RGB_TO_LUM_COEF = mathutils.Vector([0.2126729, 0.7151522, 0.0721750])
+
+
+def colorToLuminance(color: mathutils.Color | list[float] | Vector):
+    # https://github.com/blender/blender/blob/594f47ecd2d5367ca936cf6fc6ec8168c2b360d0/intern/cycles/render/shader.cpp#L387
+    # These coefficients are used by Blender, so we use them as well for parity between Fast64 exports and Blender color conversions
+    return RGB_TO_LUM_COEF.dot(color[:3])
+
+
 def getIA16Tuple(color):
-    intensity = mathutils.Color(color[0:3]).v
+    intensity = colorToLuminance(color[0:3])
     alpha = color[3]
     return (int(round(intensity * 0xFF)) << 8) | int(alpha * 0xFF)
 
@@ -1081,30 +1142,22 @@ def getNameFromPath(path, removeExtension=False):
     return toAlnum(name)
 
 
-def gammaCorrect(color):
-    return [gammaCorrectValue(color[0]), gammaCorrectValue(color[1]), gammaCorrectValue(color[2])]
+def gammaCorrect(linearColor):
+    return list(mathutils.Color(linearColor[:3]).from_scene_linear_to_srgb())
 
 
-def gammaCorrectValue(u):
-    if u < 0.0031308:
-        y = u * 12.92
-    else:
-        y = 1.055 * pow(u, (1 / 2.4)) - 0.055
-
-    return min(max(y, 0), 1)
+def gammaCorrectValue(linearValue):
+    # doesn't need to use `colorToLuminance` since all values are the same
+    return mathutils.Color((linearValue, linearValue, linearValue)).from_scene_linear_to_srgb().v
 
 
-def gammaInverse(color):
-    return [gammaInverseValue(color[0]), gammaInverseValue(color[1]), gammaInverseValue(color[2])]
+def gammaInverse(sRGBColor):
+    return list(mathutils.Color(sRGBColor[:3]).from_srgb_to_scene_linear())
 
 
-def gammaInverseValue(u):
-    if u < 0.04045:
-        y = u / 12.92
-    else:
-        y = ((u + 0.055) / 1.055) ** 2.4
-
-    return min(max(y, 0), 1)
+def gammaInverseValue(sRGBValue):
+    # doesn't need to use `colorToLuminance` since all values are the same
+    return mathutils.Color((sRGBValue, sRGBValue, sRGBValue)).from_srgb_to_scene_linear().v
 
 
 def printBlenderMessage(msgSet, message, blenderOp):
@@ -1322,3 +1375,27 @@ def rotate_quat_blender_to_n64(rotation: mathutils.Quaternion):
 
 def all_values_equal_x(vals: Iterable, test):
     return len(set(vals) - set([test])) == 0
+
+
+def get_blender_to_game_scale(context):
+    match context.scene.gameEditorMode:
+        case "SM64":
+            return context.scene.blenderToSM64Scale
+        case "OOT":
+            return context.scene.ootBlenderScale
+        case "F3D":
+            # TODO: (V5) create F3D game editor mode, utilize that scale
+            return context.scene.blenderF3DScale
+        case _:
+            pass
+    return context.scene.blenderF3DScale
+
+
+def get_material_from_context(context: bpy.types.Context):
+    """Safely check if the context has a valid material and return it"""
+    try:
+        if type(getattr(context, "material", None)) == bpy.types.Material:
+            return context.material
+        return context.material_slot.material
+    except:
+        return None
