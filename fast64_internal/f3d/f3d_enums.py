@@ -307,6 +307,7 @@ enumRenderModesCycle2 = [
     ("G_RM_ZB_XLU_SURF2", "Transparent (No AA)", "G_RM_ZB_XLU_SURF2"),
     ("G_RM_ZB_XLU_DECAL2", "Transparent Decal (No AA)", "G_RM_ZB_XLU_DECAL2"),
     ("G_RM_ZB_CLD_SURF2", "Cloud (No AA)", "G_RM_ZB_CLD_SURF2"),
+    ("G_RM_OPA_SURF2", "Opaque (No AA, No ZBuf)", "G_RM_OPA_SURF2"),
 ]
 
 enumTexFormat = [
