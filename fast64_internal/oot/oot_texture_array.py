@@ -1,9 +1,6 @@
-from array import array
-from pprint import pprint
-from typing import Tuple, Callable
-import bpy, os, re
-from bpy.utils import register_class, unregister_class
-from ..utility import PluginError, hexOrDecInt
+from typing import Callable
+import os, re
+from ..utility import hexOrDecInt
 from .oot_model_classes import (
     OOTF3DContext,
     TextureFlipbook,
@@ -12,7 +9,6 @@ from .oot_model_classes import (
     ootGetIncludedAssetData,
     ootGetLinkData,
 )
-from ..f3d.f3d_parser import getImportData
 
 # Special cases:
 # z_en_xc: one texture is not stored in any array.
