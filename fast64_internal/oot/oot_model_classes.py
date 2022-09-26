@@ -66,7 +66,7 @@ class OOTModel(FModel):
     def __init__(self, f3dType, isHWv1, name, DLFormat, drawLayerOverride):
         self.drawLayerOverride = drawLayerOverride
         self.flipbooks: list[OOTTextureFlipbook] = []
-        
+
         # key: first flipbook image
         # value: list of flipbook textures in order
         self.processedFlipbooks: dict[bpy.types.Image, list[bpy.types.Image]] = {}
@@ -131,7 +131,7 @@ class OOTModel(FModel):
         self.flipbooks.append(flipbook)
 
     def validateCIFlipbook(
-        self, existingFPalette: FImage, alreadyExists: bool, fPalette: FImage, flipbookTexture: Any
+        self, existingFPalette: FImage, alreadyExists: bool, fPalette: FImage, flipbookImage: bpy.types.Image
     ) -> Union[FImage, bool]:
         if existingFPalette is None:
             if alreadyExists:
@@ -149,7 +149,7 @@ class OOTModel(FModel):
                 and fPalette != existingFPalette  # the palettes do not match
             ):
                 raise PluginError(
-                    f"Cannot reuse a CI texture across multiple flipbooks: {str(flipbookTexture.image)}. "
+                    f"Cannot reuse a CI texture across multiple flipbooks: {str(flipbookImage)}. "
                     + f"Flipbook textures should only be reused if they are in the same grouping/order, including LOD skeletons."
                 )
             elif (
@@ -158,7 +158,7 @@ class OOTModel(FModel):
                 and existingFPalette != False  # a previous texture used an existing palette
             ):
                 raise PluginError(
-                    f"Flipbook textures before this were part of a different palette: {str(flipbookTexture.image)}. "
+                    f"Flipbook textures before this were part of a different palette: {str(flipbookImage)}. "
                     + f"Flipbook textures should only be reused if they are in the same grouping/order, including LOD skeletons."
                 )
             return existingFPalette
@@ -191,7 +191,7 @@ class OOTModel(FModel):
                 True,
                 sharedPalette,
             )
-            existingFPalette = self.validateCIFlipbook(existingFPalette, alreadyExists, fPalette, flipbookTexture)
+            existingFPalette = self.validateCIFlipbook(existingFPalette, alreadyExists, fPalette, flipbookTexture.image)
             fImages.append(fImage)
 
             # do this here to check for modified names due to repeats
