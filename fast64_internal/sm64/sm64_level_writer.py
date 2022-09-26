@@ -960,15 +960,28 @@ class SM64_ExportLevel(ObjectDataExporter):
 	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
 	def execute(self, context):
-
+		if context.mode != 'OBJECT':
+			raise PluginError("Operator can only be used in object mode.")
+		obj: bpy.types.Object = None
 		try:
-			if context.mode != 'OBJECT':
-				raise PluginError("Operator can only be used in object mode.")
-			if len(context.selected_objects) == 0:
-				raise PluginError("Object not selected.")
-			obj = context.selected_objects[0]
-			if obj.data is not None or obj.sm64_obj_type != 'Level Root':
-				raise PluginError("The selected object is not an empty with the Level Root type.")
+			try:
+				if len(context.selected_objects) == 0:
+					raise PluginError("Object not selected.")
+				obj = context.selected_objects[0]
+				if obj.data is not None or obj.sm64_obj_type != 'Level Root':
+					raise PluginError("The selected object is not an empty with the Level Root type.")
+			except PluginError:
+				# try to find parent level root
+				if obj is not None:
+					while True:
+						if not obj.parent:
+							break
+						obj = obj.parent
+						if obj.data is None and obj.sm64_obj_type == 'Level Root':
+							break
+				if obj is None or obj.sm64_obj_type != 'Level Root':
+					raise PluginError("Cannot find level empty.")
+				selectSingleObject(obj)
 
 			scaleValue = bpy.context.scene.blenderToSM64Scale
 			finalTransform = mathutils.Matrix.Diagonal(
