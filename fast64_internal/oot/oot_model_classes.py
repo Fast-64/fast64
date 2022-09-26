@@ -65,10 +65,11 @@ def ootGetLinkData(basePath: str) -> str:
 class OOTModel(FModel):
     def __init__(self, f3dType, isHWv1, name, DLFormat, drawLayerOverride):
         self.drawLayerOverride = drawLayerOverride
-        self.flipbooks = []  # OOTTextureFlipbook
-        self.processedFlipbooks = (
-            {}
-        )  # bpy.types.Image (first flipbook image) : [bpy.types.Image (list of flipbook textures in order)]
+        self.flipbooks: list[OOTTextureFlipbook] = []
+        
+        # key: first flipbook image
+        # value: list of flipbook textures in order
+        self.processedFlipbooks: dict[bpy.types.Image, list[bpy.types.Image]] = {}
         FModel.__init__(self, f3dType, isHWv1, name, DLFormat, GfxMatWriteMethod.WriteAll)
 
     def getDrawLayerV3(self, obj):
