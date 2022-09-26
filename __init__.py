@@ -10,7 +10,7 @@ from pathlib import Path
 from .fast64_internal import *
 from .fast64_internal.panels import SM64_Panel
 from .fast64_internal.oot.oot_level import OOT_ObjectProperties
-from .fast64_internal.utility_anim import utility_anim_register, utility_anim_unregister, ArmatureApplyWithMesh
+from .fast64_internal.utility_anim import utility_anim_register, utility_anim_unregister, ArmatureApplyWithMeshOperator
 from .fast64_internal.render_settings import (
     Fast64RenderSettings_Properties,
     resync_scene_props,
@@ -124,7 +124,7 @@ class SM64_ArmatureToolsPanel(SM64_Panel):
     # called every frame
     def draw(self, context):
         col = self.layout.column()
-        col.operator(ArmatureApplyWithMesh.bl_idname)
+        col.operator(ArmatureApplyWithMeshOperator.bl_idname)
         col.operator(AddBoneGroups.bl_idname)
         col.operator(CreateMetarig.bl_idname)
         col.operator(SM64_AddWaterBox.bl_idname)
@@ -208,7 +208,7 @@ class Fast64_GlobalToolsPanel(bpy.types.Panel):
     # called every frame
     def draw(self, context):
         col = self.layout.column()
-        col.operator(ArmatureApplyWithMesh.bl_idname)
+        col.operator(ArmatureApplyWithMeshOperator.bl_idname)
         # col.operator(CreateMetarig.bl_idname)
         addon_updater_ops.update_notice_box_ui(self, context)
 

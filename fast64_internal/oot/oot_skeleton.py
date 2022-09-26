@@ -1150,7 +1150,7 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
         col.prop(context.scene, "ootActorImportNormals")
         col.prop(context.scene, "ootSkeletonRemoveVanillaData")
 
-        col.operator(ArmatureApplyWithMesh.bl_idname)
+        col.operator(ArmatureApplyWithMeshOperator.bl_idname)
 
 
 class OOT_SkeletonPanel(bpy.types.Panel):

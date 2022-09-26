@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from .. import Fast64Settings_Properties
 
 
-class ArmatureApplyWithMesh(bpy.types.Operator):
+class ArmatureApplyWithMeshOperator(bpy.types.Operator):
     # set bl_ properties
     bl_description = (
         "Applies current pose as default pose. Useful for "
@@ -177,7 +177,7 @@ def getFrameInterval(action: bpy.types.Action):
     return range_get_by_choice[anim_range_choice]()
 
 
-classes = (ArmatureApplyWithMesh,)
+classes = (ArmatureApplyWithMeshOperator,)
 
 
 def utility_anim_register():
