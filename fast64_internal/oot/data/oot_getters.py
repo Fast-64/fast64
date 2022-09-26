@@ -1,7 +1,8 @@
 from xml.etree.ElementTree import parse as parseXML, Element
+from .oot_data import OoT_BaseElement
 
 
-def getRoot(xmlPath: str) -> Element:
+def getXMLRoot(xmlPath: str) -> Element:
     """Parse an XML file and return its root element"""
     try:
         return parseXML(xmlPath).getroot()
@@ -11,7 +12,7 @@ def getRoot(xmlPath: str) -> Element:
         raise PluginError(f"ERROR: File '{xmlPath}' is missing or malformed.")
 
 
-def getEnumList(dataList: list, customName: str):
+def getEnumList(dataList: list[OoT_BaseElement], customName: str):
     """Returns lists containing data for Blender's enum properties"""
     enumPropItems: list[tuple] = []
     legacyEnumPropItems: list[tuple] = []  # for older blends

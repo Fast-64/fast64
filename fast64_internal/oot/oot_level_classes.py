@@ -443,6 +443,12 @@ class OOTRoom:
             and len(self.cutsceneHeaders) == 0
         )
 
+    def getObjectLengthDefineName(self, headerIndex: int):
+        return f"#define LENGTH_{self.objectListName(headerIndex).upper()} {len(self.objectList)}\n"
+
+    def getActorLengthDefineName(self, headerIndex: int):
+        return f"#define LENGTH_{self.actorListName(headerIndex).upper()} {len(self.actorList)}\n"
+
 
 def addActor(owner, actor, actorProp, propName, actorObjName):
     sceneSetup = actorProp.headerSettings

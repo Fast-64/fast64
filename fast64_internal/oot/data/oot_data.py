@@ -4,6 +4,12 @@ from .oot_actor_data import OoT_ActorData
 
 
 @dataclass
+class OoT_BaseElement:
+    id: str
+    key: str
+    name: str
+
+@dataclass
 class OoT_Data:
     """Contains data related to OoT, like actors or objects"""
 

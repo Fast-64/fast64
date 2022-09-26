@@ -1,38 +1,31 @@
-from .oot_getters import getRoot, getEnumList
+from dataclasses import dataclass
 from os import path
+from .oot_getters import getXMLRoot, getEnumList
+from .oot_data import OoT_BaseElement
 
 # Note: "object" in this context refers to an OoT Object file (like ``gameplay_keep``)
+
+
+@dataclass
+class OoT_ObjectElement(OoT_BaseElement):
+    pass
 
 
 class OoT_ObjectData:
     """Everything related to OoT objects"""
 
-    from dataclasses import dataclass
-
-    @dataclass
-    class OoT_Object:
-        id: str
-        key: str
-        name: str
-
     def __init__(self):
-        # Path to the ``ObjectList.xml`` file
-        self.objectXML: str
-
         # general object list
-        self.objectList: list[self.OoT_Object] = []
+        self.objectList: list[OoT_ObjectElement] = []
 
         # list of tuples used by Blender's enum properties
         self.ootEnumObjectID: list[tuple] = []
         self.ootEnumObjectIDLegacy: list[tuple] = []  # for old blends
 
-        self.initObjectLists()
-
-    def initObjectLists(self):
-        """Reads the XML and make a list of the useful data to keep"""
-        self.objectXML = path.dirname(path.abspath(__file__)) + "/xml/ObjectList.xml"
-        for obj in getRoot(self.objectXML).iterfind("Object"):
-            self.objectList.append(self.OoT_Object(obj.attrib["ID"], obj.attrib["Key"], obj.attrib["Name"]))
+        # Path to the ``ObjectList.xml`` file
+        objectXML = path.dirname(path.abspath(__file__)) + "/xml/ObjectList.xml"
+        for obj in getXMLRoot(objectXML).iterfind("Object"):
+            self.objectList.append(OoT_ObjectElement(obj.attrib["ID"], obj.attrib["Key"], obj.attrib["Name"]))
         self.ootEnumObjectID, self.ootEnumObjectIDLegacy = getEnumList(self.objectList, "Custom Object")
 
     def upgradeObjectInit(self, obj, objectList):

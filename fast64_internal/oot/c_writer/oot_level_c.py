@@ -881,14 +881,10 @@ def ootGetHeaderDefines(room, headerIndex):
     data = CData()
 
     if len(room.objectList) > 0:
-        data.header += (
-            "#define LENGTH_" + str(room.objectListName(headerIndex)).upper() + " " + str(len(room.objectList))
-        ) + "\n"
+        data.header += room.getObjectLengthDefineName(headerIndex)
     if len(room.actorList) > 0:
-        data.header += (
-            "#define LENGTH_" + str(room.actorListName(headerIndex)).upper() + " " + str(len(room.actorList))
-        ) + "\n"
-    if not (data.header == ""):
+        data.header += room.getActorLengthDefineName(headerIndex)
+    if data.header != "":
         data.header += "\n"
 
     return data.header
