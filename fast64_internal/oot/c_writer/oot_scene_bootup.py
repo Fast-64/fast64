@@ -6,7 +6,7 @@ from ..oot_constants import ootEnumHeaderMenuComplete
 from typing import Callable, Iterable, Any, List
 
 
-def setBootupScene(exportPath: str, entranceIndex: str, options: "OOTBootupSceneOptions"):
+def setBootupScene(configPath: str, entranceIndex: str, options: "OOTBootupSceneOptions"):
 
     linkAge = "LINK_AGE_CHILD"
     timeOfDay = "NEXT_TIME_NONE"
@@ -18,7 +18,7 @@ def setBootupScene(exportPath: str, entranceIndex: str, options: "OOTBootupScene
             cutsceneIndex = "0xFFF" + format(options.cutsceneIndex - 4, "X")
 
     writeBootupSettings(
-        exportPath,
+        configPath,
         options.bootMode,
         options.newGameOnly,
         entranceIndex,
@@ -29,9 +29,9 @@ def setBootupScene(exportPath: str, entranceIndex: str, options: "OOTBootupScene
     )
 
 
-def clearBootupScene(exportPath: str):
+def clearBootupScene(configPath: str):
     writeBootupSettings(
-        exportPath,
+        configPath,
         "",
         False,
         "0",
@@ -43,7 +43,7 @@ def clearBootupScene(exportPath: str):
 
 
 def writeBootupSettings(
-    exportPath: str,
+    configPath: str,
     bootMode: str,
     newGameOnly: bool,
     entranceIndex: str,
@@ -52,9 +52,22 @@ def writeBootupSettings(
     cutsceneIndex: str,
     saveFileNameData: str,
 ):
-    configPath = os.path.join(exportPath, "include/config/config_debug.h")
-    originalData = readFile(configPath)
-    data = originalData
+    if os.path.exists(configPath):
+        originalData = readFile(configPath)
+        data = originalData
+    else:
+        originalData = ""
+        data = (
+            f"// #define BOOT_TO_SCENE\n"
+            + f"// #define BOOT_TO_SCENE_NEW_GAME_ONLY\n"
+            + f"// #define BOOT_TO_FILE_SELECT\n"
+            + f"// #define BOOT_TO_MAP_SELECT\n"
+            + f"#define BOOT_ENTRANCE 0\n"
+            + f"#define BOOT_AGE LINK_AGE_CHILD\n"
+            + f"#define BOOT_TIME NEXT_TIME_NONE\n"
+            + f"#define BOOT_CUTSCENE 0xFFEF\n"
+            + f"#define BOOT_PLAYER_NAME 0x15, 0x12, 0x17, 0x14, 0x3E, 0x3E, 0x3E, 0x3E\n\n"
+        )
 
     data = re.sub(
         r"(//\s*)?#define\s*BOOT_TO_SCENE",
