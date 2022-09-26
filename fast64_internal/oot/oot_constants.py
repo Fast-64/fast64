@@ -6,8 +6,8 @@ ootEnumRoomShapeType = [
 ]
 
 ootRoomShapeStructs = {
-   "ROOM_SHAPE_TYPE_NORMAL": "RoomShapeNormal",
-   "ROOM_SHAPE_TYPE_CULLABLE": "RoomShapeCullable",
+    "ROOM_SHAPE_TYPE_NORMAL": "RoomShapeNormal",
+    "ROOM_SHAPE_TYPE_CULLABLE": "RoomShapeCullable",
 }
 
 ootRoomShapeEntryStructs = {
