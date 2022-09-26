@@ -24,8 +24,11 @@ class OoT_ObjectData:
 
         # Path to the ``ObjectList.xml`` file
         objectXML = path.dirname(path.abspath(__file__)) + "/xml/ObjectList.xml"
+
         for obj in getXMLRoot(objectXML).iterfind("Object"):
             self.objectList.append(OoT_ObjectElement(obj.attrib["ID"], obj.attrib["Key"], obj.attrib["Name"]))
+
+        self.objectsByKey = {obj.key: obj.id for obj in self.objectList}
         self.ootEnumObjectID, self.ootEnumObjectIDLegacy = getEnumList(self.objectList, "Custom Object")
 
     def upgradeObjectInit(self, obj, objectList):

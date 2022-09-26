@@ -25,14 +25,3 @@ def getEnumList(dataList: list[OoT_BaseElement], customName: str):
     enumPropItems.insert(0, customObj)
     legacyEnumPropItems.insert(0, customObj)
     return enumPropItems, legacyEnumPropItems
-
-
-def getIDFromKey(key: str, dataList: list) -> (str | None):
-    """Returns the actor/object ID using the key"""
-    if not (key == "Custom"):
-        for elem in dataList:
-            if elem.key == key:
-                return elem.id
-    else:
-        return key
-    return None

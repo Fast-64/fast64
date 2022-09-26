@@ -29,6 +29,7 @@ class OoT_ActorData:
                     actor.get("ObjectKey"),  # actors doesn't always use an object
                 )
             )
+        self.actorsByKey = {actor.key: actor.id for actor in self.actorList}
         # list of tuples used by Blender's enum properties
         # ``ootEnumActorIDLegacy`` is there for compatibility with older blends
         self.ootEnumActorID, self.ootEnumActorIDLegacy = getEnumList(self.actorList, "Custom Actor")
