@@ -1185,12 +1185,14 @@ def link_if_none_exist(
     if len(fromOutput.links) == 0:
         material.node_tree.links.new(fromOutput, toInput)
 
+
 swaps_tex01 = {
     "TEXEL0": "TEXEL1",
     "TEXEL0_ALPHA": "TEXEL1_ALPHA",
     "TEXEL1": "TEXEL0",
     "TEXEL1_ALPHA": "TEXEL0_ALPHA",
 }
+
 
 def update_node_combiner(material, combinerInputs, cycleIndex):
     nodes = material.node_tree.nodes
@@ -1939,13 +1941,13 @@ def addColorAttributesToModel(obj: bpy.types.Object):
     if conv_col:
         convertColorAttribute(mesh, attr_name="Col")
     elif not has_col:
-        bpy.ops.geometry.color_attribute_add(name="Col", domain="CORNER", data_type="COLOR")
+        mesh.color_attributes.new("Col", "FLOAT_COLOR", "CORNER")
 
     conv_alpha, has_alpha = shouldConvOrCreateColorAttribute(mesh, attr_name="Alpha")
     if conv_alpha:
         convertColorAttribute(mesh, attr_name="Alpha")
     elif not has_alpha:
-        bpy.ops.geometry.color_attribute_add(name="Alpha", domain="CORNER", data_type="COLOR")
+        mesh.color_attributes.new("Alpha", "FLOAT_COLOR", "CORNER")
 
     if prevMode != "OBJECT":
         bpy.ops.object.mode_set(mode=get_mode_set_from_context_mode(prevMode))
