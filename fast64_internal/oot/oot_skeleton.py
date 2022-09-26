@@ -18,7 +18,7 @@ class OOTSkeletonExportSettings(bpy.types.PropertyGroup):
     folder: bpy.props.StringProperty(name="Skeleton Folder", default="object_geldb")
     customPath: bpy.props.StringProperty(name="Custom Skeleton Path", subtype="FILE_PATH")
     isCustom: bpy.props.BoolProperty(name="Use Custom Path")
-    removeVanillaData: bpy.props.BoolProperty(name="Replace Vanilla Headers On Export", default=True)
+    removeVanillaData: bpy.props.BoolProperty(name="Replace Vanilla Skeletons On Export", default=True)
     customAssetIncludeDir: bpy.props.StringProperty(
         name="Asset Include Directory",
         default="assets/objects/object_geldb",
