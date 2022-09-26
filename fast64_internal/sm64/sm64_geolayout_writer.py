@@ -935,7 +935,7 @@ def processMesh(
 		parentTransformNode = addParentNode(parentTransformNode, SwitchNode(switchFunc, switchParam, obj.original_name))
 		alphabeticalChildren = getSwitchChildren(obj)
 		for i in range(len(alphabeticalChildren)):
-			childObj = alphabeticalChildren[i]
+			childObj: bpy.types.Object = alphabeticalChildren[i]
 			if i == 0: # Outside room system
 				# TODO: Allow users to specify whether this should be rendered before or after rooms (currently, it is after)
 				processMesh(fModel, childObj, transformMatrix, preRoomSwitchParentNode,
@@ -951,6 +951,7 @@ def processMesh(
 				else:
 					startNode = TransformNode(StartNode())
 				optionGeolayout.nodes.append(startNode)
+
 				processMesh(fModel, childObj, transformMatrix, startNode,
 					optionGeolayout, geolayoutGraph, False, convertTextureData)
 
@@ -1103,6 +1104,14 @@ def processMesh(
 		transformNode.parent = parentTransformNode
 
 		alphabeticalChildren = sorted(obj.children, key = lambda childObj: childObj.original_name.lower())
+		if obj.parent and obj.parent.sm64_obj_type == 'Area Root' and obj.parent.enableRoomSwitch:
+			room_data = obj.fast64.sm64.room
+			alphabeticalChildren = (
+				[o.obj for o in room_data.objects_render_before if o.obj]
+				+ alphabeticalChildren
+				+ [o.obj for o in room_data.objects_render_after if o.obj]
+			)
+
 		for childObj in alphabeticalChildren:
 			processMesh(fModel, childObj, transformMatrix, transformNode,
 				geolayout, geolayoutGraph, False, convertTextureData)
