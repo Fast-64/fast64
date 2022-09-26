@@ -1463,11 +1463,11 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     texDimensions0 = None
     texDimensions1 = None
     nextTmem = 0
+    useLargeTextures = material.mat_ver > 3 and f3dMat.use_large_textures
     if useDict["Texture 0"] and f3dMat.tex0.tex_set:
         if f3dMat.tex0.tex is None and not f3dMat.tex0.use_tex_reference:
             raise PluginError('In material "' + material.name + '", a texture has not been set.')
 
-        useLargeTextures = material.mat_ver > 3 and f3dMat.use_large_textures
         fMaterial.useLargeTextures = useLargeTextures
         fMaterial.texturesLoaded[0] = True
         texDimensions0, nextTmem = saveTextureIndex(
