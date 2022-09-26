@@ -261,7 +261,7 @@ def ootObjectListToC(room, headerIndex):
         + "] = {\n"
     )
     for objectItem in room.objectList:
-        data.source += indent + getIDFromKey(objectItem, objectRoot) + ",\n"
+        data.source += indent + ootData.common.getters.getIDFromKey(objectItem, ootData.object.objectList) + ",\n"
     data.source += "};\n\n"
     return data
 
@@ -364,7 +364,7 @@ def ootRoomMeshToC(room, textureExportSettings):
     )
     meshData = CData()
     for entry in mesh.meshEntries:
-        meshEntries.source += indent + ootMeshEntryToC(entry, mesh.meshType)
+        meshEntries.source += indent + ootMeshEntryToC(entry, mesh.roomShape)
         if entry.DLGroup.opaque is not None:
             meshData.append(entry.DLGroup.opaque.to_c(mesh.model.f3d))
         if entry.DLGroup.transparent is not None:
