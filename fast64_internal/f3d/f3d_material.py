@@ -2596,7 +2596,9 @@ class DefaultRDPSettingsPanel(bpy.types.Panel):
 
 def getOptimalFormat(tex, curFormat, isMultitexture):
     texFormat = "RGBA16"
-    if (tex.size[0] * tex.size[1] > 8192) or isMultitexture:  # Image too big
+    if isMultitexture:
+        return curFormat
+    if (tex.size[0] * tex.size[1] > 8192):  # Image too big
         return curFormat
 
     isGreyscale = True
