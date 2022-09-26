@@ -8,6 +8,7 @@ from . import oot_operators
 from . import oot_skeleton
 from . import oot_spline
 from . import oot_utility
+from .c_writer import OOTBootupSceneOptions
 
 from ..panels import OOT_Panel
 from ..utility import prop_split
@@ -37,6 +38,7 @@ class OOT_Properties(bpy.types.PropertyGroup):
 
     version: bpy.props.IntProperty(name="OOT_Properties Version", default=0)
     hackerFeaturesEnabled: bpy.props.BoolProperty(name="Enable HackerOOT Features")
+    bootupSceneOptions: bpy.props.PointerProperty(type=OOTBootupSceneOptions)
 
 
 oot_classes = (
@@ -70,9 +72,6 @@ def oot_panel_unregister():
 
 
 def oot_register(registerPanels):
-    for cls in oot_classes:
-        register_class(cls)
-
     oot_operators.oot_operator_register()
     oot_utility.oot_utility_register()
     oot_collision.oot_col_register()  # register first, so panel goes above mat panel
@@ -83,6 +82,9 @@ def oot_register(registerPanels):
     oot_anim.oot_anim_register()
     oot_skeleton.oot_skeleton_register()
     oot_cutscene.oot_cutscene_register()
+
+    for cls in oot_classes:
+        register_class(cls)
 
     if registerPanels:
         oot_panel_register()

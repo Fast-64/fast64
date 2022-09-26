@@ -8,4 +8,5 @@ from .oot_scene_bootup import (
     ootSceneBootupRegister,
     ootSceneBootupUnregister,
     OOT_ClearBootupScene,
+    OOTBootupSceneOptions,
 )

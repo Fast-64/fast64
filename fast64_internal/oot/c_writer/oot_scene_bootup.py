@@ -130,10 +130,8 @@ class OOTBootupSceneOptions(bpy.types.PropertyGroup):
 def ootSceneBootupRegister():
     register_class(OOTBootupSceneOptions)
     register_class(OOT_ClearBootupScene)
-    bpy.types.Scene.ootBootupSceneOptions = bpy.props.PointerProperty(type=OOTBootupSceneOptions)
 
 
 def ootSceneBootupUnregister():
     unregister_class(OOTBootupSceneOptions)
     unregister_class(OOT_ClearBootupScene)
-    del bpy.types.Scene.ootBootupSceneOptions
