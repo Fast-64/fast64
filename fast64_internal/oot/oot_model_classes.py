@@ -123,14 +123,14 @@ class OOTF3DContext(F3DContext):
 
 	def getBoneName(self, index):
 		return "bone" + format(index, "03") + "_" + self.getLimbName(index)
-
+	
 	def vertexFormatPatterns(self, data):
 		# position, uv, color/normal
 		if "VTX" in data:
 			return ["VTX\s*\(([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*)\)"]
 		else:
 			return F3DContext.vertexFormatPatterns(self, data)
-
+	
 	# For game specific instance, override this to be able to identify which verts belong to which bone.
 	def setCurrentTransform(self, name):
 		if name[:4].lower() == "0x0d":
@@ -145,7 +145,7 @@ class OOTF3DContext(F3DContext):
 					self.isBillboard = True
 				else:
 					print("Unhandled matrix: " + name)
-
+	
 	def processDLName(self, name):
 		# Commands loaded to 0x0C are material related only.
 		try:

@@ -66,7 +66,7 @@ def ootGetAnimBoneRot(bone, poseBone, convertTransformMatrix, isRoot):
 	# dlist along its bone. For example, a forearm limb would normally be
 	# modeled along a forearm bone, so when the bone is set to 0 rotation
 	# (sticking up), the forearm mesh also sticks up.
-	#
+	# 
 	# poseBone.matrix is the final bone matrix in object space after constraints
 	# and drivers, which is ultimately the transformation we want to encode.
 	# bone.matrix_local is the edit-mode bone matrix in object space,
@@ -79,9 +79,9 @@ def ootGetAnimBoneRot(bone, poseBone, convertTransformMatrix, isRoot):
 	# we'd simply write this matrix and that's it:
 	# limbMatrix = poseBone.matrix
 	# Of course it does not, so we have to "undo" the game transforms like:
-	# limbMatrix = parentLimbMatrix
-	#             @ limbFixedTranslationMatrix
-	#             @ limbFixedTranslationMatrix.inverted()
+	# limbMatrix = parentLimbMatrix 
+	#             @ limbFixedTranslationMatrix 
+	#             @ limbFixedTranslationMatrix.inverted() 
 	#             @ parentLimbMatrix.inverted()
 	#             @ poseBone.matrix
 	# The product of the final three is what we want to return here.
@@ -131,7 +131,7 @@ def ootConvertAnimationData(anim, armatureObj, convertTransformMatrix, *, frame_
 
 		childrenNames = getSortedChildren(armatureObj, currentBone)
 		bonesToProcess = childrenNames + bonesToProcess
-
+	
 	# list of boneFrameData, which is [[x frames], [y frames], [z frames]]
 	# boneIndex is index in animBones in ootConvertAnimationData.
 	# since we are processing the bones in the same order as ootProcessBone,
@@ -159,10 +159,10 @@ def ootConvertAnimationData(anim, armatureObj, convertTransformMatrix, *, frame_
 			boneName = animBones[boneIndex]
 			currentBone = armatureObj.data.bones[boneName]
 			currentPoseBone = armatureObj.pose.bones[boneName]
-
+			
 			saveQuaternionFrame(rotationData[boneIndex], ootGetAnimBoneRot(
 				currentBone, currentPoseBone, convertTransformMatrix, boneIndex == 0))
-
+	
 	bpy.context.scene.frame_set(currentFrame)
 	squashFramesIfAllSame(translationData)
 	for frameData in rotationData:
@@ -182,7 +182,7 @@ def ootExportAnimationCommon(armatureObj, convertTransformMatrix, skeletonName):
 		raise PluginError("No active animation selected.")
 	anim = armatureObj.animation_data.action
 	ootAnim = OOTAnimation(toAlnum(skeletonName + anim.name.capitalize() + "Anim"))
-
+	
 	skeleton = ootConvertArmatureToSkeletonWithoutMesh(armatureObj, convertTransformMatrix, skeletonName)
 
 	frame_start, frame_last = getFrameInterval(anim)
@@ -220,7 +220,7 @@ def ootExportAnimationCommon(armatureObj, convertTransformMatrix, skeletonName):
 			ootAnim.indices[frameData.boneIndex] = [None, None, None]
 		ootAnim.indices[frameData.boneIndex][frameData.field] = len(ootAnim.values)
 		ootAnim.values.extend(frameData.frames)
-
+	
 	return ootAnim
 
 def exportAnimationC(armatureObj, exportPath, isCustomExport, folderName, skeletonName):
@@ -232,7 +232,7 @@ def exportAnimationC(armatureObj, exportPath, isCustomExport, folderName, skelet
 
 	ootAnimC = ootAnim.toC()
 	path = ootGetPath(exportPath, isCustomExport, 'assets/objects/', folderName, False, False)
-	writeCData(ootAnimC,
+	writeCData(ootAnimC, 
 		os.path.join(path, ootAnim.name + '.h'),
 		os.path.join(path, ootAnim.name + '.c'))
 
@@ -269,7 +269,7 @@ def ootImportAnimationC(armatureObj, filepath, animName, actorScale):
 
 	startBoneName = getStartBone(armatureObj)
 	boneStack = [startBoneName]
-
+	
 	isRootTranslation = True
 	# boneFrameData = [[x keyframes], [y keyframes], [z keyframes]]
 	# len(armatureFrameData) should be = number of bones
@@ -295,7 +295,7 @@ def ootImportAnimationC(armatureObj, filepath, animName, actorScale):
 			bone, boneStack = getNextBone(boneStack, armatureObj)
 			for propertyIndex in range(3):
 				fcurve = anim.fcurves.new(
-					data_path = 'pose.bones["' + bone.name + '"].rotation_euler',
+					data_path = 'pose.bones["' + bone.name + '"].rotation_euler', 
 					index = propertyIndex,
 					action_group = bone.name)
 				if jointIndex[propertyIndex] < staticIndexMax:
@@ -315,7 +315,7 @@ def getFrameData(filepath, animData, frameDataName):
 	if matchResult is None:
 		raise PluginError("Cannot find animation frame data named " + frameDataName + " in " + filepath)
 	data = matchResult.group(1)
-	frameData = [int.from_bytes([int(value.strip()[2:4], 16), int(value.strip()[4:6], 16)],
+	frameData = [int.from_bytes([int(value.strip()[2:4], 16), int(value.strip()[4:6], 16)], 
 		'big', signed = True) for value in data.split(",") if value.strip() != ""]
 
 	return frameData
@@ -357,7 +357,7 @@ class OOT_ExportAnim(bpy.types.Operator):
 			skeletonName = context.scene.ootAnimSkeletonName
 
 			path = ootGetObjectPath(isCustomExport, exportPath, folderName)
-
+			
 			exportAnimationC(armatureObj, path, isCustomExport, folderName, skeletonName)
 			self.report({'INFO'}, 'Success!')
 
@@ -425,13 +425,13 @@ class OOT_ExportAnimPanel(OOT_Panel):
 
 		col.operator(OOT_ImportAnim.bl_idname)
 		prop_split(col, context.scene, 'ootAnimName', 'Anim Name')
-
+		
 		if context.scene.ootAnimIsCustomImport:
 			prop_split(col, context.scene, 'ootAnimImportCustomPath', "File")
 		else:
 			prop_split(col, context.scene, 'ootAnimImportFolderName', 'Object')
 		col.prop(context.scene, 'ootAnimIsCustomImport')
-
+		
 
 
 oot_anim_classes = (

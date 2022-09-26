@@ -74,11 +74,11 @@ class OOTSkeleton():
 
 		if isFlex:
 			data.source += "FlexSkeletonHeader " + self.name + " = { " + self.limbsName() + ", " +\
-				str(self.getNumLimbs()) + ", " + str(self.getNumDLs()) + " };\n\n"
+				str(self.getNumLimbs()) + ", " + str(self.getNumDLs()) + " };\n\n" 
 			data.header = "extern FlexSkeletonHeader " + self.name + ";\n"
 		else:
 			data.source += "SkeletonHeader " + self.name + " = { " + self.limbsName() + ", " +\
-				str(self.getNumLimbs()) + " };\n\n"
+				str(self.getNumLimbs()) + " };\n\n" 
 			data.header = "extern SkeletonHeader " + self.name + ";\n"
 
 		for limb in limbList:
@@ -128,7 +128,7 @@ class OOTLimb():
 			data += "{ " + (self.DL.name if self.DL is not None else "NULL") + ", " +\
 				(self.lodDL.name if self.lodDL is not None else "NULL") + " }"
 
-		data += " };\n"
+		data += " };\n" 
 
 		return data
 
@@ -199,7 +199,7 @@ def getGroupIndexOfVert(vert, armatureObj, obj, rootGroupIndex):
 		#highlightWeightErrors(obj, [vert], "VERT")
 		#raise VertexWeightError("All vertices must be part of a vertex group that corresponds to a bone in the armature.\n" +\
 		#	"Groups of the bad vert that don't correspond to a bone: " + str(nonBoneGroups) + '. If a vert is supposed to belong to this group then either a bone is missing or you have the wrong group.')
-
+	
 	vertGroup = actualGroups[0]
 	for group in actualGroups:
 		if group.weight > vertGroup.weight:
@@ -211,7 +211,7 @@ def getGroupIndexOfVert(vert, armatureObj, obj, rootGroupIndex):
 def ootDuplicateArmature(originalArmatureObj):
 	# Duplicate objects to apply scale / modifiers / linked data
 	bpy.ops.object.select_all(action = 'DESELECT')
-
+	
 	for originalMeshObj in [obj for obj in originalArmatureObj.children if isinstance(obj.data, bpy.types.Mesh)]:
 		originalMeshObj.select_set(True)
 		originalMeshObj.original_name = originalMeshObj.name
@@ -241,7 +241,7 @@ def ootDuplicateArmature(originalArmatureObj):
 			bpy.context.view_layer.objects.active = obj
 
 		bpy.ops.object.make_single_user(obdata = True)
-		bpy.ops.object.transform_apply(location = False,
+		bpy.ops.object.transform_apply(location = False, 
 			rotation = True, scale = True, properties =  False)
 		for selectedObj in meshObjs:
 			bpy.ops.object.select_all(action = 'DESELECT')
@@ -250,7 +250,7 @@ def ootDuplicateArmature(originalArmatureObj):
 
 			for modifier in selectedObj.modifiers:
 				attemptModifierApply(modifier)
-
+		
 		# Apply new armature rest pose
 		bpy.ops.object.select_all(action = "DESELECT")
 		bpy.context.view_layer.objects.active = armatureObj
@@ -266,20 +266,20 @@ def ootDuplicateArmature(originalArmatureObj):
 		raise Exception(str(e))
 
 def ootConvertArmatureToSkeletonWithoutMesh(originalArmatureObj, convertTransformMatrix, name):
-	skeleton, fModel = ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix,
+	skeleton, fModel = ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix, 
 		None, name, False, True, "Opaque")
 	return skeleton
 
 def ootConvertArmatureToSkeletonWithMesh(originalArmatureObj, convertTransformMatrix, fModel, name, convertTextureData, drawLayer):
-	return ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix,
+	return ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix, 
 		fModel, name, convertTextureData, False, drawLayer)
 
-def ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix,
+def ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix, 
 	fModel, name, convertTextureData, skeletonOnly, drawLayer):
 	checkEmptyName(name)
 
 	armatureObj, meshObjs = ootDuplicateArmature(originalArmatureObj)
-
+	
 	try:
 		skeleton = OOTSkeleton(name)
 
@@ -301,7 +301,7 @@ def ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix,
 		#for i in range(len(startBoneNames)):
 		#	startBoneName = startBoneNames[i]
 		ootProcessBone(fModel, startBoneName, skeleton, 0,
-			meshObj, armatureObj, convertTransformMatrix, meshInfo, convertTextureData,
+			meshObj, armatureObj, convertTransformMatrix, meshInfo, convertTextureData, 
 			name, skeletonOnly, drawLayer, None)
 
 		cleanupDuplicatedObjects(meshObjs + [armatureObj])
@@ -315,7 +315,7 @@ def ootConvertArmatureToSkeleton(originalArmatureObj, convertTransformMatrix,
 		bpy.context.view_layer.objects.active = originalArmatureObj
 		raise Exception(str(e))
 
-def ootProcessBone(fModel, boneName, parentLimb, nextIndex, meshObj, armatureObj,
+def ootProcessBone(fModel, boneName, parentLimb, nextIndex, meshObj, armatureObj, 
 	convertTransformMatrix, meshInfo, convertTextureData, namePrefix, skeletonOnly,
 	drawLayer, lastMaterialName):
 	bone = armatureObj.data.bones[boneName]
@@ -335,7 +335,7 @@ def ootProcessBone(fModel, boneName, parentLimb, nextIndex, meshObj, armatureObj
 		hasSkinnedFaces = None
 	else:
 		mesh, hasSkinnedFaces, lastMaterialName = ootProcessVertexGroup(
-			fModel, meshObj, boneName,
+			fModel, meshObj, boneName, 
 			convertTransformMatrix, armatureObj, namePrefix,
 			meshInfo, drawLayer, convertTextureData, lastMaterialName)
 
@@ -351,7 +351,7 @@ def ootProcessBone(fModel, boneName, parentLimb, nextIndex, meshObj, armatureObj
 		if not bone.use_deform:
 			raise PluginError(bone.name + " has vertices in its vertex group but is not set to deformable. Make sure to enable deform on this bone.")
 		DL = mesh.draw
-
+		
 	if isinstance(parentLimb, OOTSkeleton):
 		skeleton = parentLimb
 		limb = OOTLimb(skeleton.name, boneName, nextIndex, translate, DL, None)
@@ -369,22 +369,22 @@ def ootProcessBone(fModel, boneName, parentLimb, nextIndex, meshObj, armatureObj
 	# optimization between limbs.
 	childrenNames = getSortedChildren(armatureObj, bone)
 	for childName in childrenNames:
-		nextIndex, lastMaterialName = ootProcessBone(fModel, childName, limb, nextIndex, meshObj,
-			armatureObj, convertTransformMatrix, meshInfo, convertTextureData,
+		nextIndex, lastMaterialName = ootProcessBone(fModel, childName, limb, nextIndex, meshObj, 
+			armatureObj, convertTransformMatrix, meshInfo, convertTextureData, 
 			namePrefix, skeletonOnly, drawLayer, lastMaterialName)
 
 	return nextIndex, lastMaterialName
 
-def ootConvertArmatureToC(originalArmatureObj, convertTransformMatrix,
+def ootConvertArmatureToC(originalArmatureObj, convertTransformMatrix, 
 	f3dType, isHWv1, skeletonName, folderName, DLFormat, savePNG, exportPath, isCustomExport, drawLayer, removeVanillaData):
 	skeletonName = toAlnum(skeletonName)
 
 	fModel = OOTModel(f3dType, isHWv1, skeletonName, DLFormat, drawLayer)
-	skeleton, fModel = ootConvertArmatureToSkeletonWithMesh(originalArmatureObj, convertTransformMatrix,
+	skeleton, fModel = ootConvertArmatureToSkeletonWithMesh(originalArmatureObj, convertTransformMatrix, 
 		fModel, skeletonName, not savePNG, drawLayer)
 
 	if originalArmatureObj.ootFarLOD is not None:
-		lodSkeleton, fModel = ootConvertArmatureToSkeletonWithMesh(originalArmatureObj.ootFarLOD, convertTransformMatrix,
+		lodSkeleton, fModel = ootConvertArmatureToSkeletonWithMesh(originalArmatureObj.ootFarLOD, convertTransformMatrix, 
 			fModel, skeletonName + "_lod", not savePNG, drawLayer)
 	else:
 		lodSkeleton = None
@@ -401,7 +401,7 @@ def ootConvertArmatureToC(originalArmatureObj, convertTransformMatrix,
 		for i in range(len(limbList)):
 			limbList[i].lodDL = lodLimbList[i].DL
 			limbList[i].isFlex |= lodLimbList[i].isFlex
-
+	
 
 	data = CData()
 	data.source += '#include "ultra64.h"\n#include "global.h"\n'
@@ -418,7 +418,7 @@ def ootConvertArmatureToC(originalArmatureObj, convertTransformMatrix,
 	data.append(skeletonC)
 
 	path = ootGetPath(exportPath, isCustomExport, 'assets/objects/', folderName, False, False)
-	writeCData(data,
+	writeCData(data, 
 		os.path.join(path, skeletonName + '.h'),
 		os.path.join(path, skeletonName + '.c'))
 
@@ -490,15 +490,15 @@ def ootImportSkeletonC(filepaths, skeletonName, actorScale, removeDoubles, impor
 	limbList = [entry.strip()[1:] for entry in limbsData.split(',')]
 
 	#print(limbList)
-	isLOD, armatureObj = ootBuildSkeleton(skeletonName, skeletonData, limbList,
+	isLOD, armatureObj = ootBuildSkeleton(skeletonName, skeletonData, limbList, 
 		actorScale, removeDoubles, importNormals, False, basePath, drawLayer)
 	if isLOD:
-		isLOD, LODArmatureObj = ootBuildSkeleton(skeletonName, skeletonData, limbList,
+		isLOD, LODArmatureObj = ootBuildSkeleton(skeletonName, skeletonData, limbList, 
 			actorScale, removeDoubles, importNormals, True, basePath, drawLayer)
 		armatureObj.ootFarLOD = LODArmatureObj
+	
 
-
-def ootBuildSkeleton(skeletonName, skeletonData, limbList, actorScale, removeDoubles,
+def ootBuildSkeleton(skeletonName, skeletonData, limbList, actorScale, removeDoubles, 
 	importNormals, useFarLOD, basePath, drawLayer):
 	lodString = "_lod" if useFarLOD else ""
 
@@ -525,7 +525,7 @@ def ootBuildSkeleton(skeletonName, skeletonData, limbList, actorScale, removeDou
 	for dlEntry in f3dContext.dlList:
 		limbName = f3dContext.getLimbName(dlEntry.limbIndex)
 		boneName = f3dContext.getBoneName(dlEntry.limbIndex)
-		parseF3D(skeletonData, dlEntry.dlName, obj, f3dContext.matrixData[limbName],
+		parseF3D(skeletonData, dlEntry.dlName, obj, f3dContext.matrixData[limbName], 
 			limbName, boneName, "oot", drawLayer, f3dContext)
 		if f3dContext.isBillboard:
 			armatureObj.data.bones[boneName].ootDynamicTransform.billboard = True
@@ -541,7 +541,7 @@ def ootBuildSkeleton(skeletonName, skeletonData, limbList, actorScale, removeDou
 	for bone in armatureObj.pose.bones:
 		bone.rotation_mode = 'XYZ'
 
-	# Apply mesh to armature.
+	# Apply mesh to armature.	
 	if bpy.context.mode != 'OBJECT':
 		bpy.ops.object.mode_set(mode = 'OBJECT')
 	bpy.ops.object.select_all(action = 'DESELECT')
@@ -567,9 +567,9 @@ def ootAddBone(armatureObj, boneName, parentBoneName, currentTransform, loadDL):
 	bone.head = currentTransform @ mathutils.Vector((0,0,0))
 	bone.tail = bone.head + (currentTransform.to_quaternion() @ \
 		mathutils.Vector((0,0.3,0)))
-
+	
 	# Connect bone to parent if it is possible without changing parent direction.
-
+	
 	if parentBoneName is not None:
 		nodeOffsetVector = mathutils.Vector(bone.head - bone.parent.head)
 		# set fallback to nonzero to avoid creating zero length bones
@@ -628,10 +628,10 @@ def ootAddLimbRecursively(limbIndex, skeletonData, obj, armatureObj, parentTrans
 
 	if nextChildIndex != LIMB_DONE:
 		isLOD |= ootAddLimbRecursively(nextChildIndex, skeletonData, obj, armatureObj, currentTransform, boneName, f3dContext, useFarLOD)
-
+	
 	if nextSiblingIndex != LIMB_DONE:
 		isLOD |= ootAddLimbRecursively(nextSiblingIndex, skeletonData, obj, armatureObj, parentTransform, parentBoneName, f3dContext, useFarLOD)
-
+	
 	return isLOD
 
 def ootRemoveSkeleton(filepath, objectName, skeletonName):
@@ -652,7 +652,7 @@ def ootRemoveSkeleton(filepath, objectName, skeletonName):
 
 	headerMatch = getDeclaration(skeletonDataH, skeletonName)
 	if headerMatch is not None:
-		skeletonDataH = skeletonDataH[:headerMatch.start(0)] + skeletonDataH[headerMatch.end(0):]
+		skeletonDataH = skeletonDataH[:headerMatch.start(0)] + skeletonDataH[headerMatch.end(0):] 
 
 	matchResult = ootGetLimbs(skeletonDataC, limbsName, True)
 	if matchResult is None:
@@ -663,7 +663,7 @@ def ootRemoveSkeleton(filepath, objectName, skeletonName):
 
 	headerMatch = getDeclaration(skeletonDataH, limbsName)
 	if headerMatch is not None:
-		skeletonDataH = skeletonDataH[:headerMatch.start(0)] + skeletonDataH[headerMatch.end(0):]
+		skeletonDataH = skeletonDataH[:headerMatch.start(0)] + skeletonDataH[headerMatch.end(0):] 
 
 	for limb in limbList:
 		matchResult = ootGetLimb(skeletonDataC, limb, True)
@@ -671,7 +671,7 @@ def ootRemoveSkeleton(filepath, objectName, skeletonName):
 			skeletonDataC = skeletonDataC[:matchResult.start(0)] + skeletonDataC[matchResult.end(0):]
 		headerMatch = getDeclaration(skeletonDataH, limb)
 		if headerMatch is not None:
-			skeletonDataH = skeletonDataH[:headerMatch.start(0)] + skeletonDataH[headerMatch.end(0):]
+			skeletonDataH = skeletonDataH[:headerMatch.start(0)] + skeletonDataH[headerMatch.end(0):] 
 
 	if skeletonDataC != originalDataC:
 		writeFile(sourcePath, skeletonDataC)
@@ -709,7 +709,7 @@ class OOT_ImportSkeleton(bpy.types.Operator):
 
 			ootImportSkeletonC(filepaths, skeletonName, scale, removeDoubles, importNormals, decompPath, drawLayer)
 
-			self.report({'INFO'}, 'Success!')
+			self.report({'INFO'}, 'Success!')		
 			return {'FINISHED'}
 
 		except Exception as e:
@@ -745,8 +745,8 @@ class OOT_ExportSkeleton(bpy.types.Operator):
 		finalTransform = mathutils.Matrix.Scale(context.scene.ootActorBlenderScale, 4)
 
 		try:
-			#exportPath, levelName = getPathAndLevel(context.scene.geoCustomExport,
-			#	context.scene.geoExportPath, context.scene.geoLevelName,
+			#exportPath, levelName = getPathAndLevel(context.scene.geoCustomExport, 
+			#	context.scene.geoExportPath, context.scene.geoLevelName, 
 			#	context.scene.geoLevelOption)
 
 			saveTextures = bpy.context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions
@@ -759,11 +759,11 @@ class OOT_ExportSkeleton(bpy.types.Operator):
 			drawLayer = armatureObj.ootDrawLayer
 			removeVanillaData = context.scene.ootSkeletonRemoveVanillaData
 
-			ootConvertArmatureToC(armatureObj, finalTransform,
+			ootConvertArmatureToC(armatureObj, finalTransform, 
 				f3dType, isHWv1, skeletonName, folderName, DLFormat.Static, saveTextures,
 				exportPath, isCustomExport, drawLayer, removeVanillaData)
 
-			self.report({'INFO'}, 'Success!')
+			self.report({'INFO'}, 'Success!')		
 			return {'FINISHED'}
 
 		except Exception as e:
@@ -780,11 +780,11 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
 	def draw(self, context):
 		col = self.layout.column()
 		col.operator(OOT_ExportSkeleton.bl_idname)
-
+		
 		prop_split(col, context.scene, 'ootSkeletonExportName', "Skeleton")
 		if context.scene.ootSkeletonExportUseCustomPath:
 			prop_split(col, context.scene, 'ootSkeletonExportCustomPath', "Folder")
-		else:
+		else:		
 			prop_split(col, context.scene, 'ootSkeletonExportFolderName', "Object")
 		col.prop(context.scene, "ootSkeletonExportUseCustomPath")
 		col.prop(context.scene, "ootSkeletonExportOptimize")
@@ -798,7 +798,7 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
 		prop_split(col, context.scene, 'ootSkeletonImportName', "Skeleton")
 		if context.scene.ootSkeletonImportUseCustomPath:
 			prop_split(col, context.scene, 'ootSkeletonImportCustomPath', "File")
-		else:
+		else:		
 			prop_split(col, context.scene, 'ootSkeletonImportFolderName', "Object")
 		prop_split(col, context.scene, "ootActorImportDrawLayer", "Import Draw Layer")
 
@@ -806,7 +806,7 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
 		col.prop(context.scene, "ootActorRemoveDoubles")
 		col.prop(context.scene, "ootActorImportNormals")
 		col.prop(context.scene, "ootSkeletonRemoveVanillaData")
-
+		
 
 class OOT_SkeletonPanel(bpy.types.Panel):
 	bl_idname = "OOT_PT_skeleton"
@@ -814,7 +814,7 @@ class OOT_SkeletonPanel(bpy.types.Panel):
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
 	bl_context = "object"
-	bl_options = {'HIDE_HEADER'}
+	bl_options = {'HIDE_HEADER'} 
 
 	@classmethod
 	def poll(cls, context):
@@ -836,7 +836,7 @@ class OOT_BonePanel(bpy.types.Panel):
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
 	bl_context = "bone"
-	bl_options = {'HIDE_HEADER'}
+	bl_options = {'HIDE_HEADER'} 
 
 	@classmethod
 	def poll(cls, context):
@@ -852,7 +852,7 @@ class OOT_BonePanel(bpy.types.Panel):
 		if context.bone.ootBoneType == "Custom DL" or\
 			context.bone.ootBoneType == "Ignore":
 			col.label(text = "Make sure no geometry is skinned to this bone.", icon = 'BONE_DATA')
-
+		
 		if context.bone.ootBoneType != "Ignore":
 			col.prop(context.bone.ootDynamicTransform, 'billboard')
 
@@ -934,7 +934,7 @@ def oot_skeleton_unregister():
 	del bpy.types.Scene.ootActorImportDrawLayer
 
 	del bpy.types.Object.ootFarLOD
-
+	
 	del bpy.types.Bone.ootBoneType
 	del bpy.types.Bone.ootDynamicTransform
 	del bpy.types.Bone.ootCustomDLName

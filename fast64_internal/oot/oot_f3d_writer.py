@@ -11,8 +11,8 @@ from ..panels import OOT_Panel
 from .oot_model_classes import *
 from .oot_scene_room import *
 
-# returns:
-# 	mesh,
+# returns: 
+# 	mesh, 
 # 	anySkinnedFaces (to determine if skeleton should be flex)
 def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, armatureObj, namePrefix,
 	meshInfo, drawLayerOverride, convertTextureData, lastMaterialName):
@@ -32,10 +32,10 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 		return None, False, lastMaterialName
 
 	bone = armatureObj.data.bones[vertexGroup]
-
+	
 	# dict of material_index keys to face array values
 	groupFaces = {}
-
+	
 	hasSkinnedFaces = False
 
 	handledFaces = []
@@ -62,14 +62,14 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 					connectedToUnhandledBone = True
 					anyConnectedToUnhandledBone = True
 					break
-
+			
 			if connectedToUnhandledBone:
 				continue
 
 			if face.material_index not in groupFaces:
 				groupFaces[face.material_index] = []
 			groupFaces[face.material_index].append(face)
-
+			
 			handledFaces.append(face)
 
 	if len(groupFaces) == 0:
@@ -85,7 +85,7 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 			return fMesh, False, lastMaterialName
 		else:
 			return None, False, lastMaterialName
-
+	
 	meshInfo.vertexGroupInfo.vertexGroupToMatrixIndex[currentGroupIndex] = nextDLIndex
 	triConverterInfo = OOTTriangleConverterInfo(meshObj, armatureObj.data, fModel.f3d, convertTransformMatrix, meshInfo)
 
@@ -102,9 +102,9 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 	# Usually we would separate DLs into different draw layers.
 	# however it seems like OOT skeletons don't have this ability.
 	# Therefore we always use the drawLayerOverride as the draw layer key.
-	# This means everything will be saved to one mesh.
+	# This means everything will be saved to one mesh. 
 	fMesh = fModel.addMesh(vertexGroup, namePrefix, drawLayerOverride, False, bone)
-
+	
 	for material_index, faces in groupFaces.items():
 		material = meshObj.material_slots[material_index].material
 		checkForF3dMaterialInFaces(meshObj, material)
@@ -113,13 +113,13 @@ def ootProcessVertexGroup(fModel, meshObj, vertexGroup, convertTransformMatrix, 
 
 		if fMaterial.useLargeTextures:
 			currentGroupIndex = saveMeshWithLargeTexturesByFaces(material, faces,
-				fModel, fMesh, meshObj, drawLayerOverride, convertTextureData,
+				fModel, fMesh, meshObj, drawLayerOverride, convertTextureData, 
 				currentGroupIndex, triConverterInfo, None, None, lastMaterialName)
 		else:
-			currentGroupIndex = saveMeshByFaces(material, faces, fModel, fMesh,
-				meshObj, drawLayerOverride, convertTextureData, currentGroupIndex,
+			currentGroupIndex = saveMeshByFaces(material, faces, fModel, fMesh, 
+				meshObj, drawLayerOverride, convertTextureData, currentGroupIndex, 
 				triConverterInfo, None, None, lastMaterialName)
-
+		
 		lastMaterialName = material.name if optimize else None
 
 	fModel.endDraw(fMesh, bone)
@@ -167,7 +167,7 @@ def ootConvertMeshToC(originalObj, finalTransform, f3dType, isHWv1, name, folder
 	data.append(exportData.all())
 
 	path = ootGetPath(exportPath, isCustomExport, 'assets/objects/', folderName, False, False)
-	writeCData(data,
+	writeCData(data, 
 		os.path.join(path, name + '.h'),
 		os.path.join(path, name + '.c'))
 
@@ -177,8 +177,8 @@ def ootConvertMeshToC(originalObj, finalTransform, f3dType, isHWv1, name, folder
 			headerPath = os.path.join(path, folderName + '.h')
 			sourcePath = os.path.join(path, folderName + '.c')
 			removeDL(sourcePath, headerPath, name)
-
-
+		
+	
 
 class OOT_DisplayListPanel(bpy.types.Panel):
 	bl_label = "Display List Inspector"
@@ -186,7 +186,7 @@ class OOT_DisplayListPanel(bpy.types.Panel):
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
 	bl_context = "object"
-	bl_options = {'HIDE_HEADER'}
+	bl_options = {'HIDE_HEADER'} 
 
 	@classmethod
 	def poll(cls, context):
@@ -238,7 +238,7 @@ class OOT_ImportDL(bpy.types.Operator):
 			importMeshC(filepaths, name, scale, removeDoubles, importNormals, drawLayer,
 				OOTF3DContext(F3D("F3DEX2/LX2", False), [name], basePath))
 
-			self.report({'INFO'}, 'Success!')
+			self.report({'INFO'}, 'Success!')		
 			return {'FINISHED'}
 
 		except Exception as e:
@@ -268,8 +268,8 @@ class OOT_ExportDL(bpy.types.Operator):
 		finalTransform = mathutils.Matrix.Scale(context.scene.ootActorBlenderScale, 4)
 
 		try:
-			#exportPath, levelName = getPathAndLevel(context.scene.geoCustomExport,
-			#	context.scene.geoExportPath, context.scene.geoLevelName,
+			#exportPath, levelName = getPathAndLevel(context.scene.geoCustomExport, 
+			#	context.scene.geoExportPath, context.scene.geoLevelName, 
 			#	context.scene.geoLevelOption)
 
 			saveTextures = bpy.context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions
@@ -283,11 +283,11 @@ class OOT_ExportDL(bpy.types.Operator):
 			drawLayer = context.scene.ootDLExportDrawLayer
 			removeVanillaData = context.scene.ootDLRemoveVanillaData
 
-			ootConvertMeshToC(obj, finalTransform,
+			ootConvertMeshToC(obj, finalTransform, 
 				f3dType, isHWv1, name, folderName, DLFormat.Static, saveTextures,
 				exportPath, isCustomExport, drawLayer, removeVanillaData)
 
-			self.report({'INFO'}, 'Success!')
+			self.report({'INFO'}, 'Success!')		
 			return {'FINISHED'}
 
 		except Exception as e:
@@ -304,11 +304,11 @@ class OOT_ExportDLPanel(OOT_Panel):
 	def draw(self, context):
 		col = self.layout.column()
 		col.operator(OOT_ExportDL.bl_idname)
-
+		
 		prop_split(col, context.scene, 'ootDLExportName', "DL")
 		if context.scene.ootDLExportUseCustomPath:
 			prop_split(col, context.scene, 'ootDLExportCustomPath', "Folder")
-		else:
+		else:		
 			prop_split(col, context.scene, 'ootDLExportFolderName', "Object")
 		prop_split(col, context.scene, "ootDLExportDrawLayer", "Export Draw Layer")
 		col.prop(context.scene, "ootDLExportUseCustomPath")
@@ -319,7 +319,7 @@ class OOT_ExportDLPanel(OOT_Panel):
 		prop_split(col, context.scene, 'ootDLImportName', "DL")
 		if context.scene.ootDLImportUseCustomPath:
 			prop_split(col, context.scene, 'ootDLImportCustomPath', "File")
-		else:
+		else:		
 			prop_split(col, context.scene, 'ootDLImportFolderName', "Object")
 		prop_split(col, context.scene, "ootDLImportDrawLayer", "Import Draw Layer")
 
@@ -342,7 +342,7 @@ class OOT_DrawLayersPanel(bpy.types.Panel):
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
 	bl_context = "world"
-	bl_options = {'HIDE_HEADER'}
+	bl_options = {'HIDE_HEADER'} 
 
 	@classmethod
 	def poll(cls, context):
@@ -353,8 +353,8 @@ class OOT_DrawLayersPanel(bpy.types.Panel):
 		layout = self.layout
 
 		inputGroup = layout.column()
-		inputGroup.prop(ootDefaultRenderModeProp, 'expandTab',
-			text = 'Default Render Modes',
+		inputGroup.prop(ootDefaultRenderModeProp, 'expandTab', 
+			text = 'Default Render Modes', 
 			icon = 'TRIA_DOWN' if ootDefaultRenderModeProp.expandTab else 'TRIA_RIGHT')
 		if ootDefaultRenderModeProp.expandTab:
 			prop_split(inputGroup, ootDefaultRenderModeProp, "opaqueCycle1", "Opaque Cycle 1")
@@ -370,7 +370,7 @@ class OOT_MaterialPanel(bpy.types.Panel):
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
 	bl_context = "material"
-	bl_options = {'HIDE_HEADER'}
+	bl_options = {'HIDE_HEADER'} 
 
 	@classmethod
 	def poll(cls, context):
@@ -420,7 +420,7 @@ def drawOOTMaterialProperty(layout, matProp, drawLayer):
 	layout.label(text = "See gSPSegment calls in z_scene_table.c.")
 	layout.label(text = "Based off draw config index in gSceneTable.")
 	drawOOTMaterialDrawLayerProperty(layout.column(), getattr(matProp, drawLayer.lower()), suffix)
-
+		
 
 class OOTDynamicMaterialDrawLayerProperty(bpy.types.PropertyGroup):
 	segment8 : bpy.props.BoolProperty()
@@ -434,7 +434,7 @@ class OOTDynamicMaterialDrawLayerProperty(bpy.types.PropertyGroup):
 	customCall1 : bpy.props.BoolProperty()
 	customCall1_seg : bpy.props.StringProperty(description="Segment address of a display list to call, e.g. 0x08000010")
 
-# The reason these are separate is for the case when the user changes the material draw layer, but not the
+# The reason these are separate is for the case when the user changes the material draw layer, but not the 
 # dynamic material calls. This could cause crashes which would be hard to detect.
 class OOTDynamicMaterialProperty(bpy.types.PropertyGroup):
 	opaque : bpy.props.PointerProperty(type = OOTDynamicMaterialDrawLayerProperty)
