@@ -19,7 +19,11 @@ class OOTDLExportSettings(bpy.types.PropertyGroup):
     isCustom: bpy.props.BoolProperty(name="Use Custom Path")
     removeVanillaData: bpy.props.BoolProperty(name="Replace Vanilla DLs")
     drawLayer: bpy.props.EnumProperty(name="Draw Layer", items=ootEnumDrawLayers)
-    assetIncludeDir: bpy.props.StringProperty(name="Asset Include Directory", default="assets/objects/gameplay_keep")
+    customAssetIncludeDir: bpy.props.StringProperty(
+        name="Asset Include Directory",
+        default="assets/objects/gameplay_keep",
+        description="Used in #include for including image files",
+    )
 
 
 class OOTDLImportSettings(bpy.types.PropertyGroup):
@@ -233,7 +237,7 @@ def ootConvertMeshToC(
         data.source += "\n"
 
     path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, True)
-    includeDir = settings.assetIncludeDir if settings.isCustom else f"assets/objects/{folderName}"
+    includeDir = settings.customAssetIncludeDir if settings.isCustom else f"assets/objects/{folderName}"
     exportData = fModel.to_c(
         TextureExportSettings(False, saveTextures, includeDir, path), OOTGfxFormatter(ScrollMethod.Vertex)
     )
@@ -293,7 +297,7 @@ class OOT_ImportDL(bpy.types.Operator):
             bpy.ops.object.mode_set(mode="OBJECT")
 
         try:
-            settings: OOTDLImportSettings = context.scene.ootDLImportSettings
+            settings: OOTDLImportSettings = context.scene.fast64.oot.DLImportSettings
             name = settings.name
             folderName = settings.folder
             importPath = bpy.path.abspath(settings.customPath)
@@ -358,7 +362,7 @@ class OOT_ExportDL(bpy.types.Operator):
             saveTextures = bpy.context.scene.saveTextures
             isHWv1 = context.scene.isHWv1
             f3dType = context.scene.f3d_type
-            exportSettings = context.scene.ootDLExportSettings
+            exportSettings = context.scene.fast64.oot.DLExportSettings
 
             ootConvertMeshToC(
                 obj,
@@ -388,12 +392,12 @@ class OOT_ExportDLPanel(OOT_Panel):
     def draw(self, context):
         col = self.layout.column()
         col.operator(OOT_ExportDL.bl_idname)
-        exportSettings: OOTDLExportSettings = context.scene.ootDLExportSettings
+        exportSettings: OOTDLExportSettings = context.scene.fast64.oot.DLExportSettings
 
         prop_split(col, exportSettings, "name", "DL")
         prop_split(col, exportSettings, "folder", "Object" if not exportSettings.isCustom else "Folder")
         if exportSettings.isCustom:
-            prop_split(col, exportSettings, "assetIncludeDir", "Asset Include Path")
+            prop_split(col, exportSettings, "customAssetIncludeDir", "Asset Include Path")
             prop_split(col, exportSettings, "customPath", "Path")
 
         prop_split(col, exportSettings, "drawLayer", "Export Draw Layer")
@@ -401,7 +405,7 @@ class OOT_ExportDLPanel(OOT_Panel):
         col.prop(exportSettings, "removeVanillaData")
 
         col.operator(OOT_ImportDL.bl_idname)
-        importSettings: OOTDLImportSettings = context.scene.ootDLImportSettings
+        importSettings: OOTDLImportSettings = context.scene.fast64.oot.DLImportSettings
 
         prop_split(col, importSettings, "name", "DL")
         if importSettings.isCustom:
@@ -574,9 +578,6 @@ def oot_dl_writer_register():
 
     bpy.types.Object.ootDrawLayer = bpy.props.EnumProperty(items=ootEnumDrawLayers, default="Opaque")
 
-    bpy.types.Scene.ootDLExportSettings = bpy.props.PointerProperty(type=OOTDLExportSettings)
-    bpy.types.Scene.ootDLImportSettings = bpy.props.PointerProperty(type=OOTDLImportSettings)
-
     # Doesn't work since all static meshes are pre-transformed
     # bpy.types.Object.ootDynamicTransform = bpy.props.PointerProperty(type = OOTDynamicTransformProperty)
     bpy.types.World.ootDefaultRenderModes = bpy.props.PointerProperty(type=OOTDefaultRenderModesProperty)
@@ -587,9 +588,6 @@ def oot_dl_writer_register():
 def oot_dl_writer_unregister():
     for cls in reversed(oot_dl_writer_classes):
         unregister_class(cls)
-
-    del bpy.types.Scene.ootDLExportSettings
-    del bpy.types.Scene.ootDLImportSettings
 
     del bpy.types.Material.ootMaterial
     del bpy.types.Object.ootObjectMenu

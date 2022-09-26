@@ -36,6 +36,10 @@ class OOT_Properties(bpy.types.PropertyGroup):
     """Global OOT Scene Properties found under scene.fast64.oot"""
 
     version: bpy.props.IntProperty(name="OOT_Properties Version", default=0)
+    DLExportSettings: bpy.props.PointerProperty(type=oot_f3d_writer.OOTDLExportSettings)
+    DLImportSettings: bpy.props.PointerProperty(type=oot_f3d_writer.OOTDLImportSettings)
+    skeletonExportSettings: bpy.props.PointerProperty(type=oot_skeleton.OOTSkeletonExportSettings)
+    skeletonImportSettings: bpy.props.PointerProperty(type=oot_skeleton.OOTSkeletonImportSettings)
 
 
 oot_classes = (

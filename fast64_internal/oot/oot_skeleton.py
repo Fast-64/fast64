@@ -16,10 +16,14 @@ from .oot_f3d_writer import *
 class OOTSkeletonExportSettings(bpy.types.PropertyGroup):
     name: bpy.props.StringProperty(name="Skeleton Name", default="gGerudoRedSkel")
     folder: bpy.props.StringProperty(name="Skeleton Folder", default="object_geldb")
-    assetIncludeDir: bpy.props.StringProperty(name="Asset Include Directory", default="assets/objects/object_geldb")
     customPath: bpy.props.StringProperty(name="Custom Skeleton Path", subtype="FILE_PATH")
     isCustom: bpy.props.BoolProperty(name="Use Custom Path")
     removeVanillaData: bpy.props.BoolProperty(name="Replace Vanilla Headers On Export", default=True)
+    customAssetIncludeDir: bpy.props.StringProperty(
+        name="Asset Include Directory",
+        default="assets/objects/object_geldb",
+        description="Used in #include for including image files",
+    )
     optimize: bpy.props.BoolProperty(
         name="Optimize",
         description="Applies various optimizations between the limbs in a skeleton. "
@@ -560,7 +564,7 @@ def ootConvertArmatureToC(
         data.source += "\n"
 
     path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, True)
-    includeDir = settings.assetIncludeDir if settings.isCustom else f"assets/objects/{folderName}"
+    includeDir = settings.customAssetIncludeDir if settings.isCustom else f"assets/objects/{folderName}"
     exportData = fModel.to_c(
         TextureExportSettings(False, savePNG, includeDir, path), OOTGfxFormatter(ScrollMethod.Vertex)
     )
@@ -891,7 +895,7 @@ class OOT_ImportSkeleton(bpy.types.Operator):
             bpy.ops.object.mode_set(mode="OBJECT")
 
         try:
-            importSettings: OOTSkeletonImportSettings = context.scene.ootSkeletonImportSettings
+            importSettings: OOTSkeletonImportSettings = context.scene.fast64.oot.skeletonImportSettings
 
             importPath = bpy.path.abspath(importSettings.customPath)
             isCustomImport = importSettings.isCustom
@@ -942,7 +946,7 @@ class OOT_ExportSkeleton(bpy.types.Operator):
         finalTransform = mathutils.Matrix.Scale(context.scene.ootActorBlenderScale, 4)
 
         try:
-            exportSettings: OOTSkeletonExportSettings = context.scene.ootSkeletonExportSettings
+            exportSettings: OOTSkeletonExportSettings = context.scene.fast64.oot.skeletonExportSettings
 
             saveTextures = bpy.context.scene.saveTextures
             isHWv1 = context.scene.isHWv1
@@ -971,12 +975,12 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
     def draw(self, context):
         col = self.layout.column()
         col.operator(OOT_ExportSkeleton.bl_idname)
-        exportSettings: OOTSkeletonExportSettings = context.scene.ootSkeletonExportSettings
+        exportSettings: OOTSkeletonExportSettings = context.scene.fast64.oot.skeletonExportSettings
 
         prop_split(col, exportSettings, "name", "Skeleton")
         prop_split(col, exportSettings, "folder", "Object" if not exportSettings.isCustom else "Folder")
         if exportSettings.isCustom:
-            prop_split(col, exportSettings, "assetIncludeDir", "Asset Include Path")
+            prop_split(col, exportSettings, "customAssetIncludeDir", "Asset Include Path")
             prop_split(col, exportSettings, "customPath", "Path")
 
         col.prop(exportSettings, "isCustom")
@@ -988,7 +992,7 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
             b.label(text="callbacks or cull limbs, will be corrupted.")
 
         col.operator(OOT_ImportSkeleton.bl_idname)
-        importSettings: OOTSkeletonImportSettings = context.scene.ootSkeletonImportSettings
+        importSettings: OOTSkeletonImportSettings = context.scene.fast64.oot.skeletonImportSettings
 
         prop_split(col, importSettings, "name", "Skeleton")
         if importSettings.isCustom:
@@ -1087,9 +1091,6 @@ def oot_skeleton_register():
     for cls in oot_skeleton_classes:
         register_class(cls)
 
-    bpy.types.Scene.ootSkeletonExportSettings = bpy.props.PointerProperty(type=OOTSkeletonExportSettings)
-    bpy.types.Scene.ootSkeletonImportSettings = bpy.props.PointerProperty(type=OOTSkeletonImportSettings)
-
     bpy.types.Object.ootFarLOD = bpy.props.PointerProperty(type=bpy.types.Object, poll=pollArmature)
 
     bpy.types.Bone.ootBoneType = bpy.props.EnumProperty(name="Bone Type", items=ootEnumBoneType)
@@ -1098,9 +1099,6 @@ def oot_skeleton_register():
 
 
 def oot_skeleton_unregister():
-
-    del bpy.types.Scene.ootSkeletonExportSettings
-    del bpy.types.Scene.ootSkeletonImportSettings
 
     del bpy.types.Object.ootFarLOD
 
