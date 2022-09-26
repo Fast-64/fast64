@@ -63,7 +63,7 @@ class OOT_SearchObjectEnumOperator(bpy.types.Operator):
     bl_property = "ootObjectID"
     bl_options = {"REGISTER", "UNDO"}
 
-    ootObjectID: bpy.props.EnumProperty(items=ootData.object.ootEnumObjectID, default="obj_human")
+    ootObjectID: bpy.props.EnumProperty(items=ootData.objectData.ootEnumObjectID, default="obj_human")
     headerIndex: bpy.props.IntProperty(default=0, min=0)
     index: bpy.props.IntProperty(default=0, min=0)
     objName: bpy.props.StringProperty()
@@ -172,8 +172,8 @@ def drawExitProperty(layout, exitProp, index, headerIndex, objName):
 
 class OOTObjectProperty(bpy.types.PropertyGroup):
     expandTab: bpy.props.BoolProperty(name="Expand Tab")
-    objectID: bpy.props.EnumProperty(items=ootData.object.ootEnumObjectID, default="obj_human")
-    objectIDLegacy: bpy.props.EnumProperty(items=ootData.object.ootEnumObjectIDLegacy, default="OBJECT_HUMAN")
+    objectID: bpy.props.EnumProperty(items=ootData.objectData.ootEnumObjectID, default="obj_human")
+    objectIDLegacy: bpy.props.EnumProperty(items=ootData.objectData.ootEnumObjectIDLegacy, default="OBJECT_HUMAN")
     objectIDCustom: bpy.props.StringProperty(default="OBJECT_CUSTOM")
 
     @staticmethod
@@ -184,12 +184,12 @@ class OOTObjectProperty(bpy.types.PropertyGroup):
                 for child in obj.children:
                     OOTObjectProperty.upgrade_object(child)
             elif obj.fast64.oot.version < obj.fast64.oot.cur_version:
-                ootData.object.upgradeObjectInit(obj, ootData.object.objectList)
+                ootData.objectData.upgradeObjectInit(obj, ootData.objectData.objectList)
 
 
 def drawObjectProperty(layout, objectProp, headerIndex, index, objName):
     objItemBox = layout.box()
-    objectName = getEnumName(ootData.object.ootEnumObjectID, objectProp.objectID)
+    objectName = getEnumName(ootData.objectData.ootEnumObjectID, objectProp.objectID)
     objItemBox.prop(
         objectProp, "expandTab", text=objectName, icon="TRIA_DOWN" if objectProp.expandTab else "TRIA_RIGHT"
     )

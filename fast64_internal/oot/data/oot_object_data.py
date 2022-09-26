@@ -4,6 +4,14 @@
 class OoT_ObjectData:
     """Everything related to OoT objects"""
 
+    from dataclasses import dataclass
+
+    @dataclass
+    class OoT_Object:
+        id: str
+        key: str
+        name: str
+
     def __init__(self):
         from .oot_data import OoT_Common
 
@@ -11,7 +19,7 @@ class OoT_ObjectData:
         self.objectXML: str
 
         # general object list
-        self.objectList: list[OoT_Common.OoT_Object] = []
+        self.objectList: list[self.OoT_Object] = []
 
         # list of tuples used by Blender's enum properties
         self.ootEnumObjectID: list[tuple] = []
@@ -26,7 +34,7 @@ class OoT_ObjectData:
 
         self.objectXML = path.dirname(path.abspath(__file__)) + "/xml/ObjectList.xml"
         for obj in OoT_Common.getters.getRoot(self.objectXML).iterfind("Object"):
-            self.objectList.append(OoT_Common.OoT_Object(obj.attrib["ID"], obj.attrib["Key"], obj.attrib["Name"]))
+            self.objectList.append(self.OoT_Object(obj.attrib["ID"], obj.attrib["Key"], obj.attrib["Name"]))
         self.ootEnumObjectID, self.ootEnumObjectIDLegacy = OoT_Common.getters.getEnumList(
             self.objectList, "Custom Object"
         )

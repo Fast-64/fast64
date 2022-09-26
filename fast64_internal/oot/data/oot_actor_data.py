@@ -1,14 +1,22 @@
 class OoT_ActorData:
     """Everything related to OoT Actors"""
 
-    def __init__(self):
-        from .oot_data import OoT_Common
+    from dataclasses import dataclass
 
+    @dataclass
+    class OoT_Actor:
+        id: str
+        key: str
+        name: str
+        category: str
+        tiedObjects: str
+
+    def __init__(self):
         # Path to the ``ActorList.xml`` file
         self.actorXML: str
 
         # general actor list
-        self.actorList: list[OoT_Common.OoT_Actor] = []
+        self.actorList: list[self.OoT_Actor] = []
 
         # list of tuples used by Blender's enum properties
         self.ootEnumActorID: list[tuple] = []
@@ -24,7 +32,7 @@ class OoT_ActorData:
         self.actorXML = path.dirname(path.abspath(__file__)) + "/xml/ActorList.xml"
         for actor in OoT_Common.getters.getRoot(self.actorXML).iterfind("Actor"):
             self.actorList.append(
-                OoT_Common.OoT_Actor(
+                self.OoT_Actor(
                     actor.attrib["ID"],
                     actor.attrib["Key"],
                     actor.attrib["Name"],

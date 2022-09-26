@@ -261,7 +261,7 @@ def ootObjectListToC(room, headerIndex):
         + "] = {\n"
     )
     for objectItem in room.objectList:
-        data.source += indent + ootData.common.getters.getIDFromKey(objectItem, ootData.object.objectList) + ",\n"
+        data.source += indent + ootData.commonData.getters.getIDFromKey(objectItem, ootData.objectData.objectList) + ",\n"
     data.source += "};\n\n"
     return data
 
