@@ -1,7 +1,7 @@
 import os, re, bpy
 import string
 from bpy.utils import register_class, unregister_class
-from ...utility import PluginError, writeFile
+from ...utility import PluginError, writeFile, readFile
 from ..oot_constants import ootEnumHeaderMenuComplete
 from typing import Callable, Iterable, Any, List
 
@@ -17,40 +17,73 @@ def setBootupScene(exportPath: str, entranceIndex: str, options: "OOTBootupScene
         if options.headerOption == "Cutscene":
             cutsceneIndex = "0xFFF" + format(options.cutsceneIndex - 4, "X")
 
-    data = (
-        f"#ifndef CONFIG_BOOTUP_H\n"
-        + f"#define CONFIG_BOOTUP_H\n\n"
-        + (("" if options.bootMode == "Play" else "// ") + "#define BOOT_TO_SCENE\n")
-        + (("" if options.newGameOnly else "// ") + "#define BOOT_TO_SCENE_NEW_GAME_ONLY\n")
-        + (("" if options.bootMode == "File Select" else "// ") + "#define BOOT_TO_FILE_SELECT\n")
-        + f"#define BOOT_ENTRANCE {entranceIndex}\n"
-        + f"#define BOOT_AGE {linkAge}\n"
-        + f"#define BOOT_TIME {timeOfDay}\n"
-        + f"#define BOOT_CUTSCENE {cutsceneIndex}\n"
-        + f"#define BOOT_PLAYER_NAME {saveFileNameData}\n\n"
-        + f"#endif\n"
+    writeBootupSettings(
+        exportPath,
+        options.bootMode,
+        options.newGameOnly,
+        entranceIndex,
+        linkAge,
+        timeOfDay,
+        cutsceneIndex,
+        saveFileNameData,
     )
-
-    writeFile(os.path.join(exportPath, "include/config/config_bootup.h"), data)
 
 
 def clearBootupScene(exportPath: str):
-
-    data = (
-        f"#ifndef CONFIG_BOOTUP_H\n"
-        + f"#define CONFIG_BOOTUP_H\n\n"
-        + f"// #define BOOT_TO_SCENE\n"
-        + f"// #define BOOT_TO_SCENE_NEW_GAME_ONLY\n"
-        + f"// #define BOOT_TO_FILE_SELECT\n"
-        + f"#define BOOT_ENTRANCE 0\n"
-        + f"#define BOOT_AGE LINK_AGE_CHILD\n"
-        + f"#define BOOT_TIME NEXT_TIME_NONE\n"
-        + f"#define BOOT_CUTSCENE 0xFFEF\n"
-        + f"#define BOOT_PLAYER_NAME 0x15, 0x12, 0x17, 0x14, 0x3E, 0x3E, 0x3E, 0x3E\n\n"
-        + f"#endif\n"
+    writeBootupSettings(
+        exportPath,
+        "",
+        False,
+        "0",
+        "LINK_AGE_CHILD",
+        "NEXT_TIME_NONE",
+        "0xFFEF",
+        "0x15, 0x12, 0x17, 0x14, 0x3E, 0x3E, 0x3E, 0x3E",
     )
 
-    writeFile(os.path.join(exportPath, "include/config/config_bootup.h"), data)
+
+def writeBootupSettings(
+    exportPath: str,
+    bootMode: str,
+    newGameOnly: bool,
+    entranceIndex: str,
+    linkAge: str,
+    timeOfDay: str,
+    cutsceneIndex: str,
+    saveFileNameData: str,
+):
+    configPath = os.path.join(exportPath, "include/config/config_debug.h")
+    originalData = readFile(configPath)
+    data = originalData
+
+    data = re.sub(
+        r"(//\s*)?#define\s*BOOT_TO_SCENE",
+        ("" if bootMode == "Play" else "// ") + "#define BOOT_TO_SCENE",
+        data,
+    )
+    data = re.sub(
+        r"(//\s*)?#define\s*BOOT_TO_SCENE_NEW_GAME_ONLY",
+        ("" if newGameOnly else "// ") + "#define BOOT_TO_SCENE_NEW_GAME_ONLY",
+        data,
+    )
+    data = re.sub(
+        r"(//\s*)?#define\s*BOOT_TO_FILE_SELECT",
+        ("" if bootMode == "File Select" else "// ") + "#define BOOT_TO_FILE_SELECT",
+        data,
+    )
+    data = re.sub(
+        r"(//\s*)?#define\s*BOOT_TO_MAP_SELECT",
+        ("" if bootMode == "Map Select" else "// ") + "#define BOOT_TO_MAP_SELECT",
+        data,
+    )
+    data = re.sub(r"#define\s*BOOT_ENTRANCE\s*[^\s]*", f"#define BOOT_ENTRANCE {entranceIndex}", data)
+    data = re.sub(r"#define\s*BOOT_AGE\s*[^\s]*", f"#define BOOT_AGE {linkAge}", data)
+    data = re.sub(r"#define\s*BOOT_TIME\s*[^\s]*", f"#define BOOT_TIME {timeOfDay}", data)
+    data = re.sub(r"#define\s*BOOT_CUTSCENE\s*[^\s]*", f"#define BOOT_CUTSCENE {cutsceneIndex}", data)
+    data = re.sub(r"#define\s*BOOT_PLAYER_NAME\s*[^\s]*", f"#define BOOT_PLAYER_NAME {saveFileNameData}", data)
+
+    if data != originalData:
+        writeFile(configPath, data)
 
 
 def getParamsFromOptions(options: Any) -> tuple[str, str]:
@@ -111,7 +144,11 @@ class OOT_ClearBootupScene(bpy.types.Operator):
         return {"FINISHED"}
 
 
-ootEnumBootMode = [("Play", "Play", "Play"), ("File Select", "File Select", "File Select")]
+ootEnumBootMode = [
+    ("Play", "Play", "Play"),
+    ("Map Select", "Map Select", "Map Select"),
+    ("File Select", "File Select", "File Select"),
+]
 
 
 class OOTBootupSceneOptions(bpy.types.PropertyGroup):
