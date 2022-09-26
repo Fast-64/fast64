@@ -1,9 +1,19 @@
-ootEnumMeshType = [
+ootEnumRoomShapeType = [
     # ("Custom", "Custom", "Custom"),
-    ("0", "Type 0 (Simple)", "Type 0 (Simple)"),
-    ("1", "Type 1 (Prerendered)", "Type 1 (Prerendered)"),
-    ("2", "Type 2 (Distance Culling)", "Type 2 (Distance Culling)"),
+    ("ROOM_SHAPE_TYPE_NORMAL", "Normal", "Normal"),
+    ("ROOM_SHAPE_TYPE_IMAGE", "Image", "Image"),
+    ("ROOM_SHAPE_TYPE_CULLABLE", "Cullable", "Cullable"),
 ]
+
+ootRoomShapeStructs = {
+   "ROOM_SHAPE_TYPE_NORMAL": "RoomShapeNormal",
+   "ROOM_SHAPE_TYPE_CULLABLE": "RoomShapeCullable",
+}
+
+ootRoomShapeEntryStructs = {
+    "ROOM_SHAPE_TYPE_NORMAL": "RoomShapeDListsEntry",
+    "ROOM_SHAPE_TYPE_CULLABLE": "RoomShapeCullableEntry",
+}
 
 ootEnumSceneMenu = [
     ("General", "General", "General"),
