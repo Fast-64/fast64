@@ -771,33 +771,6 @@ def ootProcessWaterBox(sceneObj, obj, transformMatrix, scene, roomIndex):
         )
     )
 
-
-class OOT_ImportScene(bpy.types.Operator):
-    bl_idname = "object.oot_import_level"
-    bl_label = "Import Scene"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
-
-    def execute(self, context):
-        try:
-            settings = context.scene.ootSceneImportSettings
-
-            parseScene(
-                context.scene.f3d_type,
-                context.scene.isHWv1,
-                settings,
-                bpy.context.scene.ootSceneOption,
-            )
-
-            self.report({"INFO"}, "Success!")
-            return {"FINISHED"}
-
-        except Exception as e:
-            if context.mode != "OBJECT":
-                bpy.ops.object.mode_set(mode="OBJECT")
-            raisePluginError(self, e)
-            return {"CANCELLED"}
-
-
 class OOT_ExportScene(bpy.types.Operator):
     bl_idname = "object.oot_export_level"
     bl_label = "Export Scene"

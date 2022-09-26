@@ -8,8 +8,32 @@ from .oot_scene_room import OOTSceneHeaderProperty
 from .c_writer.oot_scene_table_c import getDrawConfig
 from ..utility import yUpToZUp
 from collections import OrderedDict
-from os import listdir
-from os.path import isfile, join
+
+class OOT_ImportScene(bpy.types.Operator):
+    bl_idname = "object.oot_import_level"
+    bl_label = "Import Scene"
+    bl_options = {"REGISTER", "UNDO", "PRESET"}
+
+    def execute(self, context):
+        try:
+            settings = context.scene.ootSceneImportSettings
+
+            parseScene(
+                context.scene.f3d_type,
+                context.scene.isHWv1,
+                settings,
+                bpy.context.scene.ootSceneOption,
+            )
+
+            self.report({"INFO"}, "Success!")
+            return {"FINISHED"}
+
+        except Exception as e:
+            if context.mode != "OBJECT":
+                bpy.ops.object.mode_set(mode="OBJECT")
+            raisePluginError(self, e)
+            return {"CANCELLED"}
+
 
 headerNames = ["childDayHeader", "childNightHeader", "adultDayHeader", "adultNightHeader"]
 
