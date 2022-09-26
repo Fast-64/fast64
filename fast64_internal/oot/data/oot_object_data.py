@@ -1,3 +1,6 @@
+from .oot_getters import getRoot, getEnumList
+from os import path
+
 # Note: "object" in this context refers to an OoT Object file (like ``gameplay_keep``)
 
 
@@ -13,8 +16,6 @@ class OoT_ObjectData:
         name: str
 
     def __init__(self):
-        from .oot_data import OoT_Common
-
         # Path to the ``ObjectList.xml`` file
         self.objectXML: str
 
@@ -29,15 +30,10 @@ class OoT_ObjectData:
 
     def initObjectLists(self):
         """Reads the XML and make a list of the useful data to keep"""
-        from .oot_data import OoT_Common
-        from os import path
-
         self.objectXML = path.dirname(path.abspath(__file__)) + "/xml/ObjectList.xml"
-        for obj in OoT_Common.getters.getRoot(self.objectXML).iterfind("Object"):
+        for obj in getRoot(self.objectXML).iterfind("Object"):
             self.objectList.append(self.OoT_Object(obj.attrib["ID"], obj.attrib["Key"], obj.attrib["Name"]))
-        self.ootEnumObjectID, self.ootEnumObjectIDLegacy = OoT_Common.getters.getEnumList(
-            self.objectList, "Custom Object"
-        )
+        self.ootEnumObjectID, self.ootEnumObjectIDLegacy = getEnumList(self.objectList, "Custom Object")
 
     def upgradeObjectInit(self, obj, objectList):
         """Object upgrade logic"""

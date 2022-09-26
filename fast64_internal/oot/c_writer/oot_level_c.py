@@ -251,6 +251,8 @@ def cmdActorList(room, header, cmdCount):
 
 
 def ootObjectListToC(room, headerIndex):
+    from ..data.oot_getters import getIDFromKey
+
     data = CData()
     data.header = "extern s16 " + room.objectListName(headerIndex) + "[];\n"
     data.source = (
@@ -261,7 +263,7 @@ def ootObjectListToC(room, headerIndex):
         + "] = {\n"
     )
     for objectItem in room.objectList:
-        data.source += indent + ootData.commonData.getters.getIDFromKey(objectItem, ootData.objectData.objectList) + ",\n"
+        data.source += indent + getIDFromKey(objectItem, ootData.objectData.objectList) + ",\n"
     data.source += "};\n\n"
     return data
 
