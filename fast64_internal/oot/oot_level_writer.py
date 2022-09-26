@@ -742,7 +742,7 @@ class OOT_ExportScenePanel(OOT_Panel):
                     if bootOptions.headerOption == "Cutscene":
                         prop_split(col, bootOptions, "cutsceneIndex", "Cutscene Index")
             col.label(text="Note: Scene boot config changes aren't detected by the make process.", icon="ERROR")
-            col.operator(OOT_ClearBootupScene.bl_idname, text="Undo Boot To Scene (HackerOOT)")
+            col.operator(OOT_ClearBootupScene.bl_idname, text="Undo Boot To Scene (HackerOOT Repo)")
 
         col.prop(context.scene, "ootSceneSingleFile")
         col.prop(context.scene, "ootSceneCustomExport")

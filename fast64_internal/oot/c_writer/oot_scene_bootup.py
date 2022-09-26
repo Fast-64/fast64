@@ -152,7 +152,7 @@ class OOT_ClearBootupScene(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO", "PRESET"}
 
     def execute(self, context):
-        clearBootupScene(bpy.path.abspath(context.scene.ootDecompPath))
+        clearBootupScene(os.path.join(bpy.path.abspath(context.scene.ootDecompPath), "include/config/config_debug.h"))
         self.report({"INFO"}, "Success!")
         return {"FINISHED"}
 
@@ -169,7 +169,11 @@ class OOTBootupSceneOptions(bpy.types.PropertyGroup):
     overrideHeader: bpy.props.BoolProperty(default=False, name="Override Header")
     headerOption: bpy.props.EnumProperty(items=ootEnumHeaderMenuComplete, name="Header", default="Child Day")
     spawnIndex: bpy.props.IntProperty(name="Spawn", min=0)
-    newGameOnly: bpy.props.BoolProperty(default=False, name="Override Scene On New Game Only")
+    newGameOnly: bpy.props.BoolProperty(
+        default=False,
+        name="Override Scene On New Game Only",
+        description="Only use this starting scene after loading a new save file",
+    )
     newGameName: bpy.props.StringProperty(default="Link", name="New Game Name")
     bootMode: bpy.props.EnumProperty(default="Play", name="Boot Mode", items=ootEnumBootMode)
 
