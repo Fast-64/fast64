@@ -1465,12 +1465,12 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     texDimensions0 = None
     texDimensions1 = None
     nextTmem = 0
-    loadTextures = not (material.mat_ver > 3 and f3dMat.use_large_textures)
+    useLargeTextures = material.mat_ver > 3 and f3dMat.use_large_textures
     if useDict["Texture 0"] and f3dMat.tex0.tex_set:
         if f3dMat.tex0.tex is None and not f3dMat.tex0.use_tex_reference:
             raise PluginError('In material "' + material.name + '", a texture has not been set.')
 
-        fMaterial.useLargeTextures = not loadTextures
+        fMaterial.useLargeTextures = useLargeTextures
         fMaterial.texturesLoaded[0] = True
         texDimensions0, nextTmem = saveTextureIndex(
             material.name,
@@ -1484,7 +1484,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             None,
             convertTextureData,
             None,
-            loadTextures,
+            True,
             True,
         )
 
@@ -1498,7 +1498,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         if f3dMat.tex1.tex is None and not f3dMat.tex1.use_tex_reference:
             raise PluginError('In material "' + material.name + '", a texture has not been set.')
 
-        fMaterial.useLargeTextures = not loadTextures
+        fMaterial.useLargeTextures = useLargeTextures
         fMaterial.texturesLoaded[1] = True
         texDimensions1, nextTmem = saveTextureIndex(
             material.name,
@@ -1512,7 +1512,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             None,
             convertTextureData,
             None,
-            loadTextures,
+            True,
             True,
         )
 
@@ -1695,7 +1695,7 @@ def saveTextureIndex(
 
     nextTmem = tmem + getTmemWordUsage(texFormat, width, height)
 
-    if not bpy.context.scene.ignoreTextureRestrictions and loadTextures:
+    if not (bpy.context.scene.ignoreTextureRestrictions or fMaterial.useLargeTextures):
         if nextTmem > (512 if texFormat[:2] != "CI" else 256):
             raise PluginError(
                 'Error in "'
@@ -1703,8 +1703,8 @@ def saveTextureIndex(
                 + '": Textures are too big. Max TMEM size is 4k '
                 + "bytes, ex. 2 32x32 RGBA 16 bit textures.\nNote that texture width will be internally padded to 64 bit boundaries."
             )
-        if width > 1024 or height > 1024:
-            raise PluginError('Error in "' + propName + '": Any side of an image cannot be greater ' + "than 1024.")
+    if width > 1024 or height > 1024:
+        raise PluginError('Error in "' + propName + '": Any side of an image cannot be greater ' + "than 1024.")
 
     if tileSettings is None:
         clamp_S = texProp.S.clamp
@@ -2906,7 +2906,7 @@ class F3D_ExportDL(bpy.types.Operator):
             f3dType = context.scene.f3d_type
             isHWv1 = context.scene.isHWv1
             texDir = bpy.context.scene.DLTexDir
-            savePNG = bpy.context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions
+            savePNG = bpy.context.scene.saveTextures
             separateTexDef = bpy.context.scene.DLSeparateTextureDef
             DLName = bpy.context.scene.DLName
             matWriteMethod = getWriteMethodFromEnum(context.scene.matWriteMethod)
@@ -2962,10 +2962,9 @@ class F3D_ExportDLPanel(bpy.types.Panel):
         prop_split(col, context.scene, "matWriteMethod", "Material Write Method")
         col.prop(context.scene, "DLExportisStatic")
 
-        if not bpy.context.scene.ignoreTextureRestrictions:
-            if context.scene.saveTextures:
-                prop_split(col, context.scene, "DLTexDir", "Texture Include Path")
-                col.prop(context.scene, "DLSeparateTextureDef")
+        if context.scene.saveTextures:
+            prop_split(col, context.scene, "DLTexDir", "Texture Include Path")
+            col.prop(context.scene, "DLSeparateTextureDef")
 
 
 f3d_writer_classes = (

@@ -13,6 +13,37 @@ from .oot_model_classes import *
 from .oot_scene_room import *
 from .oot_texture_array import *
 
+
+class OOTDLExportSettings(bpy.types.PropertyGroup):
+    name: bpy.props.StringProperty(name="DL Name", default="gBoulderFragmentsDL")
+    folder: bpy.props.StringProperty(name="DL Folder", default="gameplay_keep")
+    customPath: bpy.props.StringProperty(name="Custom DL Path", subtype="FILE_PATH")
+    isCustom: bpy.props.BoolProperty(name="Use Custom Path")
+    removeVanillaData: bpy.props.BoolProperty(name="Replace Vanilla DLs")
+    drawLayer: bpy.props.EnumProperty(name="Draw Layer", items=ootEnumDrawLayers)
+    overlay: bpy.props.StringProperty(name="Overlay", default="")
+    is2DArray: bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
+    arrayIndex2D: bpy.props.IntProperty(name="Index if 2D Array", default=0, min=0)
+    customAssetIncludeDir: bpy.props.StringProperty(
+        name="Asset Include Directory",
+        default="assets/objects/gameplay_keep",
+        description="Used in #include for including image files",
+    )
+
+
+class OOTDLImportSettings(bpy.types.PropertyGroup):
+    name: bpy.props.StringProperty(name="DL Name", default="gBoulderFragmentsDL")
+    folder: bpy.props.StringProperty(name="DL Folder", default="gameplay_keep")
+    customPath: bpy.props.StringProperty(name="Custom DL Path", subtype="FILE_PATH")
+    isCustom: bpy.props.BoolProperty(name="Use Custom Path")
+    removeDoubles: bpy.props.BoolProperty(name="Remove Doubles", default=True)
+    importNormals: bpy.props.BoolProperty(name="Import Normals", default=True)
+    drawLayer: bpy.props.EnumProperty(name="Draw Layer", items=ootEnumDrawLayers)
+    overlay: bpy.props.StringProperty(name="Overlay", default="")
+    is2DArray: bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
+    arrayIndex2D: bpy.props.IntProperty(name="Index if 2D Array", default=0, min=0)
+
+
 # returns:
 # 	mesh,
 # 	anySkinnedFaces (to determine if skeleton should be flex)
@@ -27,9 +58,8 @@ def ootProcessVertexGroup(
     drawLayerOverride,
     convertTextureData,
     lastMaterialName,
+    optimize: bool,
 ):
-
-    optimize = bpy.context.scene.ootSkeletonExportOptimize
     if not optimize:
         lastMaterialName = None
 
@@ -173,22 +203,23 @@ ootEnumObjectMenu = [
 
 
 def ootConvertMeshToC(
-    originalObj,
-    finalTransform,
-    f3dType,
-    isHWv1,
-    name,
-    folderName,
-    DLFormat,
-    saveTextures,
-    exportPath,
-    isCustomExport,
-    drawLayer,
-    removeVanillaData,
-    overlayName: str,
-    arrayIndex2D: int,
+    originalObj: bpy.types.Object,
+    finalTransform: mathutils.Matrix,
+    f3dType: str,
+    isHWv1: bool,
+    DLFormat: DLFormat,
+    saveTextures: bool,
+    settings: OOTDLExportSettings,
 ):
-    name = toAlnum(name)
+    folderName = settings.folder
+    exportPath = bpy.path.abspath(settings.customPath)
+    isCustomExport = settings.isCustom
+    drawLayer = settings.drawLayer
+    removeVanillaData = settings.removeVanillaData
+    name = toAlnum(settings.name)
+    overlayName = settings.overlay
+    is2DArray = settings.is2DArray
+    arrayIndex2D = settings.arrayIndex2D if is2DArray else None
 
     try:
         obj, allObjs = ootDuplicateHierarchy(originalObj, None, False, OOTObjectCategorizer())
@@ -216,7 +247,11 @@ def ootConvertMeshToC(
     else:
         data.source += "\n"
 
-    exportData = fModel.to_c(TextureExportSettings(False, saveTextures, "test"), OOTGfxFormatter(ScrollMethod.Vertex))
+    path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, True)
+    includeDir = settings.customAssetIncludeDir if settings.isCustom else f"assets/objects/{folderName}"
+    exportData = fModel.to_c(
+        TextureExportSettings(False, saveTextures, includeDir, path), OOTGfxFormatter(ScrollMethod.Vertex)
+    )
 
     data.append(exportData.all())
 
@@ -401,18 +436,19 @@ class OOT_ImportDL(bpy.types.Operator):
             bpy.ops.object.mode_set(mode="OBJECT")
 
         try:
-            name = context.scene.ootDLImportName
-            folderName = context.scene.ootDLImportFolderName
-            importPath = bpy.path.abspath(context.scene.ootDLImportCustomPath)
-            isCustomImport = context.scene.ootDLImportUseCustomPath
+            settings: OOTDLImportSettings = context.scene.fast64.oot.DLImportSettings
+            name = settings.name
+            folderName = settings.folder
+            importPath = bpy.path.abspath(settings.customPath)
+            isCustomImport = settings.isCustom
             scale = context.scene.ootActorBlenderScale
             basePath = bpy.path.abspath(context.scene.ootDecompPath)
-            removeDoubles = context.scene.ootDLRemoveDoubles
-            importNormals = context.scene.ootDLImportNormals
-            drawLayer = bpy.context.scene.ootDLImportDrawLayer
-            overlayName = bpy.context.scene.ootDLImportOverlay
-            is2DArray = context.scene.ootDLImportIs2DArray
-            arrayIndex2D = context.scene.ootDLImportArrayIndex2D if is2DArray else None
+            removeDoubles = settings.removeDoubles
+            importNormals = settings.importNormals
+            drawLayer = settings.drawLayer
+            overlayName = settings.overlay
+            is2DArray = settings.is2DArray
+            arrayIndex2D = settings.arrayIndex2D if is2DArray else None
 
             paths = [ootGetObjectPath(isCustomImport, importPath, folderName)]
             data = getImportData(paths)
@@ -468,35 +504,19 @@ class OOT_ExportDL(bpy.types.Operator):
             # 	context.scene.geoExportPath, context.scene.geoLevelName,
             # 	context.scene.geoLevelOption)
 
-            saveTextures = bpy.context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions
+            saveTextures = bpy.context.scene.saveTextures
             isHWv1 = context.scene.isHWv1
             f3dType = context.scene.f3d_type
-
-            name = context.scene.ootDLExportName
-            folderName = context.scene.ootDLExportFolderName
-            exportPath = bpy.path.abspath(context.scene.ootDLExportCustomPath)
-            isCustomExport = context.scene.ootDLExportUseCustomPath
-            drawLayer = context.scene.ootDLExportDrawLayer
-            removeVanillaData = context.scene.ootDLRemoveVanillaData
-            overlayName = bpy.context.scene.ootDLExportOverlay
-            is2DArray = context.scene.ootDLExportIs2DArray
-            arrayIndex2D = context.scene.ootDLExportArrayIndex2D if is2DArray else None
+            exportSettings = context.scene.fast64.oot.DLExportSettings
 
             ootConvertMeshToC(
                 obj,
                 finalTransform,
                 f3dType,
                 isHWv1,
-                name,
-                folderName,
                 DLFormat.Static,
                 saveTextures,
-                exportPath,
-                isCustomExport,
-                drawLayer,
-                removeVanillaData,
-                overlayName,
-                arrayIndex2D,
+                exportSettings,
             )
 
             self.report({"INFO"}, "Success!")
@@ -517,38 +537,42 @@ class OOT_ExportDLPanel(OOT_Panel):
     def draw(self, context):
         col = self.layout.column()
         col.operator(OOT_ExportDL.bl_idname)
+        exportSettings: OOTDLExportSettings = context.scene.fast64.oot.DLExportSettings
 
-        prop_split(col, context.scene, "ootDLExportName", "DL")
-        if context.scene.ootDLExportUseCustomPath:
-            prop_split(col, context.scene, "ootDLExportCustomPath", "Folder")
+        prop_split(col, exportSettings, "name", "DL")
+        prop_split(col, exportSettings, "folder", "Object" if not exportSettings.isCustom else "Folder")
+        if exportSettings.isCustom:
+            prop_split(col, exportSettings, "customAssetIncludeDir", "Asset Include Path")
+            prop_split(col, exportSettings, "customPath", "Path")
         else:
-            prop_split(col, context.scene, "ootDLExportFolderName", "Object")
-            prop_split(col, context.scene, "ootDLExportOverlay", "Overlay (Optional)")
-            col.prop(context.scene, "ootDLExportIs2DArray")
-            if context.scene.ootDLExportIs2DArray:
+            prop_split(col, exportSettings, "overlay", "Overlay (Optional)")
+            col.prop(exportSettings, "is2DArray")
+            if exportSettings.is2DArray:
                 box = col.box().column()
-                prop_split(box, context.scene, "ootDLExportArrayIndex2D", "Flipbook Index")
-        prop_split(col, context.scene, "ootDLExportDrawLayer", "Export Draw Layer")
-        col.prop(context.scene, "ootDLExportUseCustomPath")
-        col.prop(context.scene, "ootDLRemoveVanillaData")
+                prop_split(box, exportSettings, "arrayIndex2D", "Flipbook Index")
+
+        prop_split(col, exportSettings, "drawLayer", "Export Draw Layer")
+        col.prop(exportSettings, "isCustom")
+        col.prop(exportSettings, "removeVanillaData")
 
         col.operator(OOT_ImportDL.bl_idname)
+        importSettings: OOTDLImportSettings = context.scene.fast64.oot.DLImportSettings
 
-        prop_split(col, context.scene, "ootDLImportName", "DL")
-        if context.scene.ootDLImportUseCustomPath:
-            prop_split(col, context.scene, "ootDLImportCustomPath", "File")
+        prop_split(col, importSettings, "name", "DL")
+        if importSettings.isCustom:
+            prop_split(col, importSettings, "customPath", "File")
         else:
-            prop_split(col, context.scene, "ootDLImportFolderName", "Object")
-            prop_split(col, context.scene, "ootDLImportOverlay", "Overlay (Optional)")
-            col.prop(context.scene, "ootDLImportIs2DArray")
-            if context.scene.ootDLImportIs2DArray:
+            prop_split(col, importSettings, "folder", "Object")
+            prop_split(col, importSettings, "overlay", "Overlay (Optional)")
+            col.prop(importSettings, "is2DArray")
+            if importSettings.is2DArray:
                 box = col.box().column()
-                prop_split(box, context.scene, "ootDLImportArrayIndex2D", "Flipbook Index")
-        prop_split(col, context.scene, "ootDLImportDrawLayer", "Import Draw Layer")
+                prop_split(box, importSettings, "arrayIndex2D", "Flipbook Index")
+        prop_split(col, importSettings, "drawLayer", "Import Draw Layer")
 
-        col.prop(context.scene, "ootDLImportUseCustomPath")
-        col.prop(context.scene, "ootDLRemoveDoubles")
-        col.prop(context.scene, "ootDLImportNormals")
+        col.prop(importSettings, "isCustom")
+        col.prop(importSettings, "removeDoubles")
+        col.prop(importSettings, "importNormals")
 
 
 class OOTDefaultRenderModesProperty(bpy.types.PropertyGroup):
@@ -685,6 +709,8 @@ oot_dl_writer_classes = (
     OOTDynamicTransformProperty,
     OOT_ExportDL,
     OOT_ImportDL,
+    OOTDLExportSettings,
+    OOTDLImportSettings,
 )
 
 oot_dl_writer_panel_classes = (
@@ -715,30 +741,6 @@ def oot_dl_writer_register():
     # Doesn't work since all static meshes are pre-transformed
     # bpy.types.Object.ootDynamicTransform = bpy.props.PointerProperty(type = OOTDynamicTransformProperty)
     bpy.types.World.ootDefaultRenderModes = bpy.props.PointerProperty(type=OOTDefaultRenderModesProperty)
-
-    bpy.types.Scene.ootDLExportName = bpy.props.StringProperty(name="DL Name", default="gBoulderFragmentsDL")
-    bpy.types.Scene.ootDLExportFolderName = bpy.props.StringProperty(name="DL Folder", default="gameplay_keep")
-    bpy.types.Scene.ootDLExportOverlay = bpy.props.StringProperty(name="Overlay", default="")
-    bpy.types.Scene.ootDLExportIs2DArray = bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
-    bpy.types.Scene.ootDLExportArrayIndex2D = bpy.props.IntProperty(name="Index if 2D Array", default=0, min=0)
-    bpy.types.Scene.ootDLExportCustomPath = bpy.props.StringProperty(name="Custom DL Path", subtype="FILE_PATH")
-    bpy.types.Scene.ootDLExportUseCustomPath = bpy.props.BoolProperty(name="Use Custom Path")
-    bpy.types.Scene.ootDLRemoveVanillaData = bpy.props.BoolProperty(name="Replace Vanilla DLs")
-
-    bpy.types.Scene.ootDLImportName = bpy.props.StringProperty(name="DL Name", default="gBoulderFragmentsDL")
-    bpy.types.Scene.ootDLImportFolderName = bpy.props.StringProperty(name="DL Folder", default="gameplay_keep")
-    bpy.types.Scene.ootDLImportOverlay = bpy.props.StringProperty(name="Overlay", default="")
-    bpy.types.Scene.ootDLImportIs2DArray = bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
-    bpy.types.Scene.ootDLImportArrayIndex2D = bpy.props.IntProperty(name="Index if 2D Array", default=0, min=0)
-    bpy.types.Scene.ootDLImportCustomPath = bpy.props.StringProperty(name="Custom DL Path", subtype="FILE_PATH")
-    bpy.types.Scene.ootDLImportUseCustomPath = bpy.props.BoolProperty(name="Use Custom Path")
-
-    bpy.types.Scene.ootDLRemoveDoubles = bpy.props.BoolProperty(name="Remove Doubles", default=True)
-    bpy.types.Scene.ootDLImportNormals = bpy.props.BoolProperty(name="Import Normals", default=True)
-    bpy.types.Scene.ootDLImportDrawLayer = bpy.props.EnumProperty(name="Draw Layer", items=ootEnumDrawLayers)
-
-    bpy.types.Scene.ootDLExportDrawLayer = bpy.props.EnumProperty(name="Draw Layer", items=ootEnumDrawLayers)
-
     bpy.types.Material.ootMaterial = bpy.props.PointerProperty(type=OOTDynamicMaterialProperty)
     bpy.types.Object.ootObjectMenu = bpy.props.EnumProperty(items=ootEnumObjectMenu)
 
@@ -746,29 +748,6 @@ def oot_dl_writer_register():
 def oot_dl_writer_unregister():
     for cls in reversed(oot_dl_writer_classes):
         unregister_class(cls)
-
-    del bpy.types.Scene.ootDLExportName
-    del bpy.types.Scene.ootDLExportFolderName
-    del bpy.types.Scene.ootDLExportOverlay
-    del bpy.types.Scene.ootDLExportIs2DArray
-    del bpy.types.Scene.ootDLExportArrayIndex2D
-    del bpy.types.Scene.ootDLExportCustomPath
-    del bpy.types.Scene.ootDLExportUseCustomPath
-    del bpy.types.Scene.ootDLRemoveVanillaData
-
-    del bpy.types.Scene.ootDLImportName
-    del bpy.types.Scene.ootDLImportFolderName
-    del bpy.types.Scene.ootDLImportOverlay
-    del bpy.types.Scene.ootDLImportIs2DArray
-    del bpy.types.Scene.ootDLImportArrayIndex2D
-    del bpy.types.Scene.ootDLImportCustomPath
-    del bpy.types.Scene.ootDLImportUseCustomPath
-
-    del bpy.types.Scene.ootDLRemoveDoubles
-    del bpy.types.Scene.ootDLImportNormals
-    del bpy.types.Scene.ootDLImportDrawLayer
-
-    del bpy.types.Scene.ootDLExportDrawLayer
 
     del bpy.types.Material.ootMaterial
     del bpy.types.Object.ootObjectMenu

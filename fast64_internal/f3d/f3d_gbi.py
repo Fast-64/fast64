@@ -1723,7 +1723,7 @@ class ExportCData:
 
 
 class TextureExportSettings:
-    def __init__(self, texCSeparate, savePNG, includeDir, exportPath=""):
+    def __init__(self, texCSeparate, savePNG, includeDir, exportPath):
         self.texCSeparate = texCSeparate
         self.savePNG = savePNG
         self.includeDir = includeDir
@@ -1804,7 +1804,7 @@ def mat_tile_scroll(
 
 
 class GfxFormatter:
-    def __init__(self, scrollMethod: ScrollMethod, texArrayBitSize):
+    def __init__(self, scrollMethod: ScrollMethod, texArrayBitSize: int):
         self.scrollMethod: ScrollMethod = scrollMethod
         self.texArrayBitSize = texArrayBitSize
         self.tileScrollFunc = None  # Used to add tile scroll func to headers
@@ -2517,7 +2517,7 @@ class FModel:
             data.append(self.materialRevert.to_c(self.f3d))
         return data
 
-    def to_c(self, textureExportSettings, gfxFormatter):
+    def to_c(self, textureExportSettings: TextureExportSettings, gfxFormatter: GfxFormatter):
         texCSeparate = textureExportSettings.texCSeparate
         savePNG = textureExportSettings.savePNG
         texDir = textureExportSettings.includeDir

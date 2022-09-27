@@ -643,7 +643,7 @@ class OOT_ExportScene(bpy.types.Operator):
                 context.scene.isHWv1,
                 levelName,
                 DLFormat.Static,
-                context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions,
+                context.scene.saveTextures,
                 exportInfo,
             )
 
