@@ -1243,12 +1243,14 @@ def link_if_none_exist(
     if len(fromOutput.links) == 0:
         material.node_tree.links.new(fromOutput, toInput)
 
+
 swaps_tex01 = {
     "TEXEL0": "TEXEL1",
     "TEXEL0_ALPHA": "TEXEL1_ALPHA",
     "TEXEL1": "TEXEL0",
     "TEXEL1_ALPHA": "TEXEL0_ALPHA",
 }
+
 
 def update_node_combiner(material, combinerInputs, cycleIndex):
     nodes = material.node_tree.nodes
@@ -1997,13 +1999,13 @@ def addColorAttributesToModel(obj: bpy.types.Object):
     if conv_col:
         convertColorAttribute(mesh, attr_name="Col")
     elif not has_col:
-        bpy.ops.geometry.color_attribute_add(name="Col", domain="CORNER", data_type="COLOR")
+        mesh.color_attributes.new("Col", "FLOAT_COLOR", "CORNER")
 
     conv_alpha, has_alpha = shouldConvOrCreateColorAttribute(mesh, attr_name="Alpha")
     if conv_alpha:
         convertColorAttribute(mesh, attr_name="Alpha")
     elif not has_alpha:
-        bpy.ops.geometry.color_attribute_add(name="Alpha", domain="CORNER", data_type="COLOR")
+        mesh.color_attributes.new("Alpha", "FLOAT_COLOR", "CORNER")
 
     if prevMode != "OBJECT":
         bpy.ops.object.mode_set(mode=get_mode_set_from_context_mode(prevMode))
@@ -3486,12 +3488,37 @@ class F3DRenderSettingsPanel(bpy.types.Panel):
                     gameSettingsBox.prop(renderSettings, "sm64Area")
 
                 case "OOT":
-                    # TODO: OOT scene preview options
-                    # if renderSettings.ootSceneObject is not None:
-                    #     gameSettingsBox.prop(renderSettings, 'useObjectRenderPreview', text="Use Scene for Preview")
-                    gameSettingsBox.label(text="Preview not yet available for OOT Scenes.")
+                    if renderSettings.ootSceneObject is not None:
+                        gameSettingsBox.prop(renderSettings, "useObjectRenderPreview", text="Use Scene for Preview")
 
-                    # gameSettingsBox.prop(renderSettings, 'ootSceneObject')
+                    gameSettingsBox.prop(renderSettings, "ootSceneObject")
+                    
+                    if renderSettings.ootSceneObject is not None:
+                        b = gameSettingsBox.column()
+                        r = b.row().split(factor=0.4)
+                        r.prop(renderSettings, "ootSceneHeader")
+                        header = ootGetSceneOrRoomHeader(
+                            renderSettings.ootSceneObject,
+                            renderSettings.ootSceneHeader,
+                            False,
+                        )
+                        if header is None:
+                            r.label(text = "Header does not exist.", icon="QUESTION")
+                        else:
+                            numLightsNeeded = 1
+                            if header.skyboxLighting == "Custom":
+                                r2 = b.row()
+                                r2.prop(renderSettings, "ootForceTimeOfDay")
+                                if renderSettings.ootForceTimeOfDay:
+                                    r2.label(text = "Light Index sets first of four lights.", icon="INFO")
+                                    numLightsNeeded = 4
+                            if header.skyboxLighting != "0x00":
+                                r.prop(renderSettings, "ootLightIdx")
+                                if renderSettings.ootLightIdx + numLightsNeeded > len(header.lightList):
+                                    b.label(text = "Light does not exist.", icon="QUESTION")
+                            if header.skyboxLighting == "0x00" or (
+                                header.skyboxLighting == "Custom" and renderSettings.ootForceTimeOfDay):
+                                r.prop(renderSettings, "ootTime")
                 case _:
                     pass
 

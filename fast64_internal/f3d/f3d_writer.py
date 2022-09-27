@@ -2480,43 +2480,13 @@ def saveLightsDefinition(fModel, fMaterial, material, lightsName):
 
 
 def addLightDefinition(mat, f3d_light, fLights):
+    lightObj = lightDataToObj(f3d_light)
     fLights.l.append(
         Light(
             exportColor(f3d_light.color),
-            getLightRotation(f3d_light),
+            normToSigned8Vector(getObjDirectionVec(lightObj, True)),
         )
     )
-
-
-def scaleToU8(val):
-    return min(int(round(val * 0xFF)), 255)
-
-
-def exportColor(lightColor):
-    return [scaleToU8(value) for value in gammaCorrect(lightColor)]
-
-
-def getLightRotation(lightData):
-    lightObj = None
-    for obj in bpy.context.scene.objects:
-        if obj.data == lightData:
-            lightObj = obj
-            break
-    if lightObj is None:
-        raise PluginError("A material is referencing a light that is no longer in the scene (i.e. has been deleted).")
-
-    return getObjDirection(lightObj)
-
-
-def getObjDirection(obj):
-    spaceRot = mathutils.Euler((-pi / 2, 0, 0)).to_quaternion()
-    rotation = spaceRot @ getObjectQuaternion(obj)
-    normal = (rotation @ mathutils.Vector((0, 0, 1))).normalized()
-    return normToSigned8Vector(normal)
-
-
-def normToSigned8Vector(normal):
-    return [int.from_bytes(int(value * 127).to_bytes(1, "big", signed=True), "big") for value in normal]
 
 
 def saveBitGeoF3DEX2(value, defaultValue, flagName, geo, matWriteMethod):
