@@ -10,7 +10,7 @@ from pathlib import Path
 from .fast64_internal import *
 from .fast64_internal.panels import SM64_Panel
 from .fast64_internal.oot.oot_level import OOT_ObjectProperties
-from .fast64_internal.utility_anim import utility_anim_register, utility_anim_unregister, ArmatureApplyWithMesh
+from .fast64_internal.utility_anim import utility_anim_register, utility_anim_unregister, ArmatureApplyWithMeshOperator
 from .fast64_internal.render_settings import (
     Fast64RenderSettings_Properties,
     resync_scene_props,
@@ -124,7 +124,7 @@ class SM64_ArmatureToolsPanel(SM64_Panel):
     # called every frame
     def draw(self, context):
         col = self.layout.column()
-        col.operator(ArmatureApplyWithMesh.bl_idname)
+        col.operator(ArmatureApplyWithMeshOperator.bl_idname)
         col.operator(AddBoneGroups.bl_idname)
         col.operator(CreateMetarig.bl_idname)
         col.operator(SM64_AddWaterBox.bl_idname)
@@ -153,7 +153,7 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
         col.prop(context.scene, "decomp_compatible", invert_checkbox=True, text="Homebrew Compatibility")
         col.prop(context.scene, "ignoreTextureRestrictions")
         if context.scene.ignoreTextureRestrictions:
-            col.box().label(text="Width/height must be < 1024. Must be RGBA32. Must be png format.")
+            col.box().label(text="Width/height must be < 1024. Must be png format.")
 
 
 class Fast64_GlobalObjectPanel(bpy.types.Panel):
@@ -208,7 +208,7 @@ class Fast64_GlobalToolsPanel(bpy.types.Panel):
     # called every frame
     def draw(self, context):
         col = self.layout.column()
-        col.operator(ArmatureApplyWithMesh.bl_idname)
+        col.operator(ArmatureApplyWithMeshOperator.bl_idname)
         # col.operator(CreateMetarig.bl_idname)
         addon_updater_ops.update_notice_box_ui(self, context)
 
@@ -438,9 +438,7 @@ def register():
     # ROM
 
     bpy.types.Scene.decomp_compatible = bpy.props.BoolProperty(name="Decomp Compatibility", default=True)
-    bpy.types.Scene.ignoreTextureRestrictions = bpy.props.BoolProperty(
-        name="Ignore Texture Restrictions (Breaks CI Textures)"
-    )
+    bpy.types.Scene.ignoreTextureRestrictions = bpy.props.BoolProperty(name="Ignore Texture Restrictions")
     bpy.types.Scene.fullTraceback = bpy.props.BoolProperty(name="Show Full Error Traceback", default=False)
     bpy.types.Scene.gameEditorMode = bpy.props.EnumProperty(name="Game", default="SM64", items=gameEditorEnum)
     bpy.types.Scene.saveTextures = bpy.props.BoolProperty(name="Save Textures As PNGs (Breaks CI Textures)")

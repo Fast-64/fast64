@@ -1,9 +1,6 @@
-from array import array
-from pprint import pprint
-from typing import Tuple, Callable
-import bpy, os, re
-from bpy.utils import register_class, unregister_class
-from ..utility import PluginError, hexOrDecInt
+from typing import Callable
+import os, re
+from ..utility import hexOrDecInt
 from .oot_model_classes import (
     OOTF3DContext,
     TextureFlipbook,
@@ -12,7 +9,6 @@ from .oot_model_classes import (
     ootGetIncludedAssetData,
     ootGetLinkData,
 )
-from ..f3d.f3d_parser import getImportData
 
 # Special cases:
 # z_en_xc: one texture is not stored in any array.
@@ -155,7 +151,7 @@ def getTextureArrays(actorData: str, arrayIndex2D: int) -> dict[str, TextureFlip
                 continue
 
             arrayName = texArray2DMatch.group(1).strip()
-            textureList = [item.strip() for item in arrayMatchData[arrayIndex2D].split(",")]
+            textureList = stripComments([item for item in arrayMatchData[arrayIndex2D].split(",")])
 
             # handle trailing comma
             if textureList[-1] == "":
@@ -166,7 +162,7 @@ def getTextureArrays(actorData: str, arrayIndex2D: int) -> dict[str, TextureFlip
             r"void\s*\*\s*([0-9a-zA-Z\_]*)\s*\[\s*\]\s*=\s*\{(((?!\}).)*)\}", actorData, flags=re.DOTALL
         ):
             arrayName = texArrayMatch.group(1).strip()
-            textureList = [item.strip() for item in texArrayMatch.group(2).split(",")]
+            textureList = stripComments([item for item in texArrayMatch.group(2).split(",")])
 
             # handle trailing comma
             if textureList[-1] == "":
@@ -174,6 +170,17 @@ def getTextureArrays(actorData: str, arrayIndex2D: int) -> dict[str, TextureFlip
             flipbookList[arrayName] = TextureFlipbook(arrayName, "Array", textureList)
 
     return flipbookList
+
+
+def stripComments(textureNameList: list[str]) -> list[str]:
+    for i in range(len(textureNameList)):
+        try:
+            commentIndex = textureNameList[i].index("//")
+        except ValueError:
+            textureNameList[i] = textureNameList[i].strip()
+        else:
+            textureNameList[i] = re.sub(r"//.*?\n", "", textureNameList[i]).strip()
+    return textureNameList
 
 
 def getSPSegmentCalls(actorData: str) -> list[tuple[tuple[int, str], str, re.Match]]:

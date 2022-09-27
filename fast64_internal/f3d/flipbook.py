@@ -6,7 +6,21 @@ from .f3d_material import all_combiner_uses, update_tex_values_manual, iter_tex_
 from ..utility import prop_split
 
 
-def flipbook_to_c(flipbook, isStatic):
+class TextureFlipbook:
+    def __init__(self, name: str, exportMode: str, textureNames: List[str]):
+        self.name = name
+        self.exportMode = exportMode
+        self.textureNames = textureNames
+
+
+def flipbook_data_to_c(flipbook: TextureFlipbook):
+    newArrayData = ""
+    for textureName in flipbook.textureNames:
+        newArrayData += textureName + ",\n"
+    return newArrayData
+
+
+def flipbook_to_c(flipbook: TextureFlipbook, isStatic: bool):
     newArrayData = "void* " if not isStatic else "static void* "
     newArrayData += f"{flipbook.name}[] = {{\n"
     newArrayData += flipbook_data_to_c(flipbook)
@@ -14,27 +28,13 @@ def flipbook_to_c(flipbook, isStatic):
     return newArrayData
 
 
-def flipbook_2d_to_c(flipbook, isStatic, count):
+def flipbook_2d_to_c(flipbook: TextureFlipbook, isStatic: bool, count: int):
     newArrayData = "void* " if not isStatic else "static void* "
-    newArrayData += f"{flipbook.name}[][{count}] = {{\n"
+    newArrayData += f"{flipbook.name}[][{len(flipbook.textureNames)}] = {{ "
     for i in range(count):
         newArrayData += "{ " + flipbook_data_to_c(flipbook) + " },\n"
     newArrayData += "};"
     return newArrayData
-
-
-def flipbook_data_to_c(flipbook):
-    newArrayData = ""
-    for textureName in flipbook.textureNames:
-        newArrayData += textureName + ",\n"
-    return newArrayData
-
-
-class TextureFlipbook:
-    def __init__(self, name: str, exportMode: str, textureNames: List[str]):
-        self.name = name
-        self.exportMode = exportMode
-        self.textureNames = textureNames
 
 
 def usesFlipbook(

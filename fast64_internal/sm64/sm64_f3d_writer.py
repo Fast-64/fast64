@@ -601,7 +601,7 @@ class SM64_ExportDL(bpy.types.Operator):
                     context.scene.f3d_type,
                     context.scene.isHWv1,
                     bpy.context.scene.DLTexDir,
-                    bpy.context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions,
+                    bpy.context.scene.saveTextures,
                     bpy.context.scene.DLSeparateTextureDef,
                     bpy.context.scene.DLincludeChildren,
                     bpy.context.scene.DLName,
@@ -612,18 +612,6 @@ class SM64_ExportDL(bpy.types.Operator):
                 )
 
                 starSelectWarning(self, fileStatus)
-                # cProfile.runctx('sm64ExportF3DtoC(exportPath, obj,' +\
-                # 	'DLFormat.Static if context.scene.DLExportisStatic else DLFormat.Dynamic, finalTransform,' +\
-                # 	'context.scene.f3d_type, context.scene.isHWv1,' +\
-                # 	'bpy.context.scene.DLTexDir,' +\
-                # 	'bpy.context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions,' +\
-                # 	'bpy.context.scene.DLSeparateTextureDef,' +\
-                # 	'bpy.context.scene.DLincludeChildren, bpy.context.scene.DLName, levelName, context.scene.DLGroupName,' +\
-                # 	'context.scene.DLCustomExport,' +\
-                # 	'context.scene.DLExportHeaderType)',
-                # 	globals(), locals(), "E:/blender.prof")
-                # p = pstats.Stats("E:/blender.prof")
-                # p.sort_stats("cumulative").print_stats(2000)
                 self.report({"INFO"}, "Success!")
 
             elif context.scene.fast64.sm64.exportType == "Insertable Binary":
@@ -738,7 +726,7 @@ class SM64_ExportDLPanel(SM64_Panel):
             if context.scene.DLCustomExport:
                 col.prop(context.scene, "DLExportPath")
                 prop_split(col, context.scene, "DLName", "Name")
-                if not bpy.context.scene.ignoreTextureRestrictions and context.scene.saveTextures:
+                if context.scene.saveTextures:
                     prop_split(col, context.scene, "DLTexDir", "Texture Include Path")
                     col.prop(context.scene, "DLSeparateTextureDef")
                 customExportWarning(col)
@@ -751,7 +739,7 @@ class SM64_ExportDLPanel(SM64_Panel):
                     prop_split(col, context.scene, "DLLevelOption", "Level")
                     if context.scene.DLLevelOption == "custom":
                         prop_split(col, context.scene, "DLLevelName", "Level Name")
-                if not bpy.context.scene.ignoreTextureRestrictions and context.scene.saveTextures:
+                if context.scene.saveTextures:
                     col.prop(context.scene, "DLSeparateTextureDef")
 
                 decompFolderMessage(col)
@@ -807,7 +795,7 @@ class ExportTexRectDraw(bpy.types.Operator):
                     context.scene.f3d_type,
                     context.scene.isHWv1,
                     "textures/segment2",
-                    context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions,
+                    context.scene.saveTextures,
                     context.scene.TexRectName,
                     not context.scene.TexRectCustomExport,
                     enumHUDPaths[context.scene.TexRectExportType],

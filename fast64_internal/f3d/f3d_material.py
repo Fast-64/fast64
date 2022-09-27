@@ -1547,9 +1547,15 @@ def update_tex_values_and_formats(self, context):
             return
 
         f3d_mat = context.material.f3d_mat
-        useLargeTextures = f3d_mat.use_large_textures
-        isMultiTexture = "multitexture" in f3d_mat.presetName.lower() or (f3d_mat.tex0.tex and f3d_mat.tex1.tex)
-        self.tex_format = getOptimalFormat(self.tex, useLargeTextures, isMultiTexture)
+        useDict = all_combiner_uses(f3d_mat)
+        isMultiTexture = (
+            useDict["Texture 0"]
+            and f3d_mat.tex0.tex is not None
+            and useDict["Texture 1"]
+            and f3d_mat.tex1.tex is not None
+        )
+        if self.tex is not None:
+            self.tex_format = getOptimalFormat(self.tex, self.tex_format, isMultiTexture)
 
         update_tex_values_manual(context.material, context)
 
@@ -1862,13 +1868,13 @@ def addColorAttributesToModel(obj: bpy.types.Object):
     if conv_col:
         convertColorAttribute(mesh, attr_name="Col")
     elif not has_col:
-        bpy.ops.geometry.color_attribute_add(name="Col", domain="CORNER", data_type="COLOR")
+        mesh.color_attributes.new("Col", "FLOAT_COLOR", "CORNER")
 
     conv_alpha, has_alpha = shouldConvOrCreateColorAttribute(mesh, attr_name="Alpha")
     if conv_alpha:
         convertColorAttribute(mesh, attr_name="Alpha")
     elif not has_alpha:
-        bpy.ops.geometry.color_attribute_add(name="Alpha", domain="CORNER", data_type="COLOR")
+        mesh.color_attributes.new("Alpha", "FLOAT_COLOR", "CORNER")
 
     if prevMode != "OBJECT":
         bpy.ops.object.mode_set(mode=get_mode_set_from_context_mode(prevMode))
@@ -2713,12 +2719,12 @@ class DefaultRDPSettingsPanel(bpy.types.Panel):
         ui_other(world.rdp_defaults, world, layout, True)
 
 
-def getOptimalFormat(tex, useLargeTextures, isMultitexture):
+def getOptimalFormat(tex, curFormat, isMultitexture):
     texFormat = "RGBA16"
-    if useLargeTextures:
-        return "RGBA16"
-    if bpy.context.scene.ignoreTextureRestrictions or tex.size[0] * tex.size[1] > 8192:  # Image too big
-        return "RGBA32"
+    if isMultitexture:
+        return curFormat
+    if (tex.size[0] * tex.size[1] > 8192):  # Image too big
+        return curFormat
 
     isGreyscale = True
     hasAlpha4bit = False
@@ -2753,8 +2759,6 @@ def getOptimalFormat(tex, useLargeTextures, isMultitexture):
                 texFormat = "I8"
             else:
                 texFormat = "IA8"
-    elif isMultitexture and tex.size[0] * tex.size[1] <= 1024:
-        texFormat = "RGBA16"
     else:
         if len(pixelValues) <= 16:
             texFormat = "CI4"
