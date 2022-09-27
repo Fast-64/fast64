@@ -8,7 +8,6 @@ from .oot_scene_room import OOTSceneHeaderProperty
 from .c_writer.oot_scene_table_c import getDrawConfig
 from ..utility import yUpToZUp
 from collections import OrderedDict
-import cProfile, pstats
 
 
 def run_ops_without_view_layer_update(func):
@@ -56,15 +55,6 @@ class OOT_ImportScene(bpy.types.Operator):
                 settings,
                 bpy.context.scene.ootSceneOption,
             )
-
-            # cProfile.runctx(
-            #    "run_ops_without_view_layer_update(parseSceneNoArgs)",
-            #    globals(),
-            #    locals(),
-            #    "F:/blender.prof",
-            # )
-            # p = pstats.Stats("F:/blender.prof")
-            # p.sort_stats("time").print_stats(200)
 
             self.report({"INFO"}, "Success!")
             return {"FINISHED"}
