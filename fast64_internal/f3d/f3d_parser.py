@@ -8,10 +8,12 @@ from .f3d_material import (
     all_combiner_uses,
     ootEnumDrawLayers,
     TextureProperty,
+    update_node_values_of_material,
 )
 from .f3d_writer import BufferVertex
 from ..utility import *
 import ast, operator
+from .f3d_material_helpers import F3DMaterial_UpdateLock
 
 colorCombinationCommands = [
     0x03,  # load lighting data
@@ -469,13 +471,14 @@ class F3DContext:
         self.vertexBuffer = [None] * f3d.vert_load_size
         self.basePath = basePath
         self.materialContext = materialContext
+        self.materialContext.f3d_update_flag = True
 
         self.clearMaterial()
         mat = self.mat()
         mat.set_combiner = False
 
         self.materials = []  # saved materials
-        # self.materialDict = {}  # key : material
+        self.materialDict = {}  # key : material
         self.triMatIndices = []  # material indices per triangle
         self.materialChanged = True
         self.lastMaterialIndex = None
@@ -734,23 +737,17 @@ class F3DContext:
             self.triMatIndices.append(self.lastMaterialIndex)
 
     def getMaterialIndex(self):
-        # We do this for now to update tile settings for S and T.
-        # Right now we don't handle those, so we need the auto-calculator to set it correctly.
-        overrideContext = bpy.context.copy()
-        overrideContext["material"] = self.materialContext
-        bpy.ops.material.update_f3d_nodes(overrideContext)
-
         # Custom equality operator may or may not be worse
-        for material in self.materials:
-            if propertyGroupEquals(self.materialContext.f3d_mat, material.f3d_mat):
-                # print(f"Found cached material: {material.name}")
-                return self.materials.index(material)
+        # for material in self.materials:
+        #    if propertyGroupEquals(self.materialContext.f3d_mat, material.f3d_mat):
+        #        # print(f"Found cached material: {material.name}")
+        #        return self.materials.index(material)
         # if self.materialContext.f3d_mat == material.f3d_mat:
         #    return self.materials.index(material)
 
-        # key = self.materialContext.f3d_mat.key()
-        # if key in self.materialDict:
-        #    return self.materialDict[key]
+        key = self.materialContext.f3d_mat.key()
+        if key in self.materialDict:
+            return self.materials.index(self.materialDict[key])
 
         self.addMaterial()
         return len(self.materials) - 1
@@ -827,12 +824,17 @@ class F3DContext:
         self.applyTLUTToIndex(0)
         self.applyTLUTToIndex(1)
 
-        material = self.materialContext.copy()
-        overrideContext = bpy.context.copy()
-        overrideContext["material"] = material
-        bpy.ops.material.update_f3d_nodes(overrideContext)
-        self.materials.append(material)
-        # self.materialDict[material.f3d_mat.key()] = material
+        materialCopy = self.materialContext.copy()
+
+        # disable flag so that we can lock it, then unlock after update
+        materialCopy.f3d_update_flag = False
+
+        with F3DMaterial_UpdateLock(materialCopy) as material:
+            update_node_values_of_material(material, bpy.context)
+            material.f3d_mat.presetName = "Custom"
+
+        self.materials.append(materialCopy)
+        self.materialDict[materialCopy.f3d_mat.key()] = materialCopy
         self.materialChanged = False
 
         self.postMaterialChanged()

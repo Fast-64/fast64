@@ -8,6 +8,35 @@ from .oot_scene_room import OOTSceneHeaderProperty
 from .c_writer.oot_scene_table_c import getDrawConfig
 from ..utility import yUpToZUp
 from collections import OrderedDict
+import cProfile, pstats
+
+
+def run_ops_without_view_layer_update(func):
+    from bpy.ops import _BPyOpsSubModOp
+
+    view_layer_update = _BPyOpsSubModOp._view_layer_update
+
+    def dummy_view_layer_update(context):
+        pass
+
+    try:
+        _BPyOpsSubModOp._view_layer_update = dummy_view_layer_update
+        func()
+
+    finally:
+        _BPyOpsSubModOp._view_layer_update = view_layer_update
+
+
+def parseSceneNoArgs():
+    context = bpy.context
+    settings = context.scene.ootSceneImportSettings
+    parseScene(
+        context.scene.f3d_type,
+        context.scene.isHWv1,
+        settings,
+        bpy.context.scene.ootSceneOption,
+    )
+
 
 class OOT_ImportScene(bpy.types.Operator):
     bl_idname = "object.oot_import_level"
@@ -16,14 +45,26 @@ class OOT_ImportScene(bpy.types.Operator):
 
     def execute(self, context):
         try:
+            if bpy.context.mode != "OBJECT":
+                bpy.ops.object.mode_set(mode="OBJECT")
+            bpy.ops.object.select_all(action="DESELECT")
             settings = context.scene.ootSceneImportSettings
 
-            parseScene(
-                context.scene.f3d_type,
-                context.scene.isHWv1,
-                settings,
-                bpy.context.scene.ootSceneOption,
+            # parseScene(
+            #    context.scene.f3d_type,
+            #    context.scene.isHWv1,
+            #    settings,
+            #    bpy.context.scene.ootSceneOption,
+            # )
+
+            cProfile.runctx(
+                "run_ops_without_view_layer_update(parseSceneNoArgs)",
+                globals(),
+                locals(),
+                "F:/blender.prof",
             )
+            p = pstats.Stats("F:/blender.prof")
+            p.sort_stats("time").print_stats(200)
 
             self.report({"INFO"}, "Success!")
             return {"FINISHED"}
@@ -360,8 +401,21 @@ def parseRoomList(
         if roomCommandsName not in roomData:
             roomCommandsName = f"{roomName}_header00"  # fast64 naming
 
+        # Assumption that any shared textures are stored after the CollisionHeader.
+        # This is done to avoid including large collision data in regex searches.
+        try:
+            collisionHeaderIndex = sceneData.index("CollisionHeader ")
+        except:
+            collisionHeaderIndex = 0
+        sharedRoomData = sceneData[collisionHeaderIndex:]
         roomObj = parseRoomCommands(
-            None, sceneData + roomData, roomCommandsName, index, f3dContext, sharedSceneData, headerIndex
+            None,
+            sharedRoomData + roomData,
+            roomCommandsName,
+            index,
+            f3dContext,
+            sharedSceneData,
+            headerIndex,
         )
         parentObject(sceneObj, roomObj)
         index += 1
