@@ -183,11 +183,10 @@ def exportAnimationC(armatureObj, loopAnim, dirPath, dirName, groupName,
 		tableFile.write('const struct Animation *const ' + \
 			animsName + '[] = {\n\tNULL,\n};\n')
 		tableFile.close()
-		
-	fileData = open(tableFilePath, 'r')
-	fileData.seek(0)
-	stringData = fileData.read()
-	fileData.close()
+	
+	stringData = ""
+	with open(tableFilePath, 'r') as f:
+		stringData = f.read()
 
 	# if animation header isn´t already in the table then add it.
 	if sm64_anim.header.name not in stringData:
@@ -208,9 +207,8 @@ def exportAnimationC(armatureObj, loopAnim, dirPath, dirName, groupName,
 
 		stringData = stringData[:footerIndex] + f'\t&{sm64_anim.header.name},\n' + stringData[footerIndex:]
 		
-		fileData = open(tableFilePath, 'w', newline = '\n')
-		fileData.write(stringData)
-		fileData.close()
+		with open(tableFilePath, 'w') as f:
+			f.write(stringData)
 
 	if not customExport:
 		if headerType == 'Actor':
