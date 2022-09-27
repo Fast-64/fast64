@@ -735,12 +735,13 @@ class OOT_ExportScenePanel(OOT_Panel):
                 prop_split(col, bootOptions, "bootMode", "Boot Mode")
                 if bootOptions.bootMode == "Play":
                     prop_split(col, bootOptions, "newGameName", "New Game Name")
-                prop_split(col, bootOptions, "spawnIndex", "Spawn")
-                col.prop(bootOptions, "overrideHeader")
-                if bootOptions.overrideHeader:
-                    prop_split(col, bootOptions, "headerOption", "Header Option")
-                    if bootOptions.headerOption == "Cutscene":
-                        prop_split(col, bootOptions, "cutsceneIndex", "Cutscene Index")
+                if bootOptions.bootMode != "Map Select":
+                    prop_split(col, bootOptions, "spawnIndex", "Spawn")
+                    col.prop(bootOptions, "overrideHeader")
+                    if bootOptions.overrideHeader:
+                        prop_split(col, bootOptions, "headerOption", "Header Option")
+                        if bootOptions.headerOption == "Cutscene":
+                            prop_split(col, bootOptions, "cutsceneIndex", "Cutscene Index")
             col.label(text="Note: Scene boot config changes aren't detected by the make process.", icon="ERROR")
             col.operator(OOT_ClearBootupScene.bl_idname, text="Undo Boot To Scene (HackerOOT Repo)")
 

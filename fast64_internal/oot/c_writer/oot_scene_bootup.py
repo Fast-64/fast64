@@ -11,17 +11,25 @@ def setBootupScene(configPath: str, entranceIndex: str, options: "OOTBootupScene
     linkAge = "LINK_AGE_CHILD"
     timeOfDay = "NEXT_TIME_NONE"
     cutsceneIndex = "0xFFEF"
-    saveFileNameData = ", ".join(["0x" + format(i, "02X") for i in stringToSaveNameBytes(options.newGameName)])
-    if options.overrideHeader:
-        timeOfDay, linkAge = getParamsFromOptions(options)
-        if options.headerOption == "Cutscene":
-            cutsceneIndex = "0xFFF" + format(options.cutsceneIndex - 4, "X")
+    newEntranceIndex = "0"
+    saveName = "LINK"
+
+    if options.bootMode != "Map Select":
+        newEntranceIndex = entranceIndex
+        saveName = options.newGameName
+
+        if options.overrideHeader:
+            timeOfDay, linkAge = getParamsFromOptions(options)
+            if options.headerOption == "Cutscene":
+                cutsceneIndex = "0xFFF" + format(options.cutsceneIndex - 4, "X")
+
+    saveFileNameData = ", ".join(["0x" + format(i, "02X") for i in stringToSaveNameBytes(saveName)])
 
     writeBootupSettings(
         configPath,
         options.bootMode,
         options.newGameOnly,
-        entranceIndex,
+        newEntranceIndex,
         linkAge,
         timeOfDay,
         cutsceneIndex,
@@ -93,7 +101,7 @@ def writeBootupSettings(
     data = re.sub(r"#define\s*BOOT_AGE\s*[^\s]*", f"#define BOOT_AGE {linkAge}", data)
     data = re.sub(r"#define\s*BOOT_TIME\s*[^\s]*", f"#define BOOT_TIME {timeOfDay}", data)
     data = re.sub(r"#define\s*BOOT_CUTSCENE\s*[^\s]*", f"#define BOOT_CUTSCENE {cutsceneIndex}", data)
-    data = re.sub(r"#define\s*BOOT_PLAYER_NAME\s*[^\s]*", f"#define BOOT_PLAYER_NAME {saveFileNameData}", data)
+    data = re.sub(r"#define\s*BOOT_PLAYER_NAME\s*[^\n]*", f"#define BOOT_PLAYER_NAME {saveFileNameData}", data)
 
     if data != originalData:
         writeFile(configPath, data)
