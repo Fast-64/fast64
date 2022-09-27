@@ -477,8 +477,8 @@ class F3DContext:
         mat = self.mat()
         mat.set_combiner = False
 
-        self.materials = []  # saved materials
-        self.materialDict = {}  # key : material
+        self.materials = []  # saved materials for current mesh
+        self.materialDict = {}  # key : material for all imports, not just current mesh
         self.triMatIndices = []  # material indices per triangle
         self.materialChanged = True
         self.lastMaterialIndex = None
@@ -540,6 +540,7 @@ class F3DContext:
         mat.set_combiner = False
         self.triMatIndices = []
         self.materialChanged = True
+        self.materials = []  # self.materialDict holds cached materials
         self.lastMaterialIndex = None
         self.vertexData = {}
         self.currentTextureName = None
@@ -747,7 +748,12 @@ class F3DContext:
 
         key = self.materialContext.f3d_mat.key()
         if key in self.materialDict:
-            return self.materials.index(self.materialDict[key])
+            material = self.materialDict[key]
+            if material in self.materials:
+                return self.materials.index(material)
+            else:
+                self.materials.append(material)
+                return len(self.materials) - 1
 
         self.addMaterial()
         return len(self.materials) - 1

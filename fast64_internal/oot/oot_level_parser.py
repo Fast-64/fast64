@@ -50,21 +50,21 @@ class OOT_ImportScene(bpy.types.Operator):
             bpy.ops.object.select_all(action="DESELECT")
             settings = context.scene.ootSceneImportSettings
 
-            # parseScene(
-            #    context.scene.f3d_type,
-            #    context.scene.isHWv1,
-            #    settings,
-            #    bpy.context.scene.ootSceneOption,
-            # )
-
-            cProfile.runctx(
-                "run_ops_without_view_layer_update(parseSceneNoArgs)",
-                globals(),
-                locals(),
-                "F:/blender.prof",
+            parseScene(
+                context.scene.f3d_type,
+                context.scene.isHWv1,
+                settings,
+                bpy.context.scene.ootSceneOption,
             )
-            p = pstats.Stats("F:/blender.prof")
-            p.sort_stats("time").print_stats(200)
+
+            # cProfile.runctx(
+            #    "run_ops_without_view_layer_update(parseSceneNoArgs)",
+            #    globals(),
+            #    locals(),
+            #    "F:/blender.prof",
+            # )
+            # p = pstats.Stats("F:/blender.prof")
+            # p.sort_stats("time").print_stats(200)
 
             self.report({"INFO"}, "Success!")
             return {"FINISHED"}

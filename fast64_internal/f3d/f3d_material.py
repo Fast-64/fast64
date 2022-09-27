@@ -2639,6 +2639,7 @@ class RDPSettings(bpy.types.PropertyGroup):
     def key(self):
         setRM = self.set_rendermode
         rmAdv = self.rendermode_advanced_enabled
+        prim = self.g_mdsft_zsrcsel == "G_ZS_PRIM"
         return (
             self.g_zbuffer,
             self.g_shade,
@@ -2663,7 +2664,7 @@ class RDPSettings(bpy.types.PropertyGroup):
             self.g_mdsft_pipeline,
             self.g_mdsft_alpha_compare,
             self.g_mdsft_zsrcsel,
-            self.prim_depth,
+            self.prim_depth.key() if prim else None,
             self.clip_ratio,
             self.set_rendermode,
             self.aa_en if setRM and rmAdv else None,

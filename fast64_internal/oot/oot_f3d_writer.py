@@ -15,15 +15,23 @@ from .oot_texture_array import *
 
 # Creates a semi-transparent solid color material (cached)
 def getColliderMat(name: str, color: tuple[float, float, float, float]) -> bpy.types.Material:
+    if "oot_collision_mat_base" not in bpy.data.materials:
+        baseMat = createF3DMat(None, preset="oot_shaded_texture_transparent", index=0)
+        with F3DMaterial_UpdateLock(baseMat) as lockedMat:
+            lockedMat.name = name
+            lockedMat.f3d_mat.combiner1.A = "0"
+            lockedMat.f3d_mat.combiner1.C = "0"
+            lockedMat.f3d_mat.combiner1.D = "SHADE"
+            lockedMat.f3d_mat.combiner1.D_alpha = "1"
+            lockedMat.f3d_mat.prim_color = color
+            update_preset_manual(lockedMat, bpy.context)
+
     if name not in bpy.data.materials:
-        newMat = createF3DMat(None, preset="oot_shaded_texture_transparent", index=0)
-        newMat.name = name
-        newMat.f3d_mat.combiner1.A = "0"
-        newMat.f3d_mat.combiner1.C = "0"
-        newMat.f3d_mat.combiner1.D = "SHADE"
-        newMat.f3d_mat.combiner1.D_alpha = "1"
+        baseMat = bpy.data.materials["oot_collision_mat_base"]
+        baseMat.f3d_update_flag = True
+        newMat = baseMat.copy()
+        baseMat.f3d_update_flag = False
         newMat.f3d_mat.prim_color = color
-        update_preset_manual(newMat, bpy.context)
         return newMat
     else:
         return bpy.data.materials[name]
