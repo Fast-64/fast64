@@ -209,7 +209,7 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
         col.prop(context.scene, "decomp_compatible", invert_checkbox=True, text="Homebrew Compatibility")
         col.prop(context.scene, "ignoreTextureRestrictions")
         if context.scene.ignoreTextureRestrictions:
-            col.box().label(text="Width/height must be < 1024. Must be RGBA32. Must be png format.")
+            col.box().label(text="Width/height must be < 1024. Must be png format.")
 
 
 class Fast64_GlobalObjectPanel(bpy.types.Panel):
@@ -500,9 +500,7 @@ def register():
     # ROM
 
     bpy.types.Scene.decomp_compatible = bpy.props.BoolProperty(name="Decomp Compatibility", default=True)
-    bpy.types.Scene.ignoreTextureRestrictions = bpy.props.BoolProperty(
-        name="Ignore Texture Restrictions (Breaks CI Textures)"
-    )
+    bpy.types.Scene.ignoreTextureRestrictions = bpy.props.BoolProperty(name="Ignore Texture Restrictions")
     bpy.types.Scene.fullTraceback = bpy.props.BoolProperty(name="Show Full Error Traceback", default=False)
     bpy.types.Scene.gameEditorMode = bpy.props.EnumProperty(
         name="Game", default="SM64", items=gameEditorEnum, update=gameEditorUpdate
