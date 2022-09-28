@@ -156,7 +156,7 @@ def getCameraObj(camera):
 
 def appendRevertToGeolayout(geolayoutGraph, fModel):
 	fModel.materialRevert = GfxList(fModel.name + "_" + 'material_revert_render_settings',
-		GfxListTag.MaterialRevert, fModel.DLFormat)
+		GfxListTag.MaterialRevert, fModel.dlFormat)
 	revertMatAndEndDraw(fModel.materialRevert,
 		[DPSetEnvColor(0xFF, 0xFF, 0xFF, 0xFF),
 		DPSetAlphaCompare("G_AC_NONE")])
@@ -1838,7 +1838,7 @@ def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, dr
 		overrideIndex = fMesh.drawMatOverrides[(material, specificMat, overrideType)].name[-1]
 	meshMatOverride = GfxList(
 		fMesh.name + '_mat_override_' + toAlnum(material.name) + \
-		'_' + overrideIndex, GfxListTag.Draw, fModel.DLFormat)
+		'_' + overrideIndex, GfxListTag.Draw, fModel.dlFormat)
 	fMesh.drawMatOverrides[(material, specificMat, overrideType)] = meshMatOverride
 	# Copy the DL from the original mesh into the material override mesh
 	for command in fMesh.draw.commands:
@@ -1918,14 +1918,14 @@ def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, dr
 						meshMatOverride.commands.insert(commandIdx + 1, newCommand)
 				# Check if the previous command was a revert we added, as a revert must be followed by a load for it to
 				# be valid. This command is confirmed to not be a material load, so remove the previous command if it is
-				# an added revert. 
+				# an added revert.
 				prevIndex = commandIdx - 1
 				if prevIndex > 0:
 					prevCommand = meshMatOverride.commands[prevIndex]
 					if prevCommand in addedReverts:
 						# Remove this added revert
 						removeCommands.add(prevCommand)
-					
+
 		commandIdx += 1
 	# Remove all commands tagged for removal
 	for command in removeCommands:
@@ -2016,12 +2016,12 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, meshName, skinnedMeshName, o
 			"connected faces will count more than once. Try " +\
 			"keeping UVs contiguous, and avoid using " +\
 			"split normals.")
-	
+
 	# TODO: Implement lastMaterialName optimization
 	lastMaterialName = None
 
 	# Load parent group vertices
-	fSkinnedMesh = FMesh(skinnedMeshName, fModel.DLFormat)
+	fSkinnedMesh = FMesh(skinnedMeshName, fModel.dlFormat)
 
 	# Load verts into buffer by material.
 	# It seems like material setup must be done BEFORE triangles are drawn.
@@ -2062,7 +2062,7 @@ def saveSkinnedMeshByMaterial(skinnedFaces, fModel, meshName, skinnedMeshName, o
 	# End skinned mesh vertices.
 	fSkinnedMesh.draw.commands.append(SPEndDisplayList())
 
-	fMesh = FMesh(meshName, fModel.DLFormat)
+	fMesh = FMesh(meshName, fModel.dlFormat)
 
 	# Load current group vertices, then draw commands by material
 	existingVertData, matRegionDict = \
@@ -2484,9 +2484,9 @@ class SM64_ExportGeolayoutPanel(SM64_Panel):
 		if context.scene.fast64.sm64.exportType == 'C':
 			if not bpy.context.scene.ignoreTextureRestrictions and context.scene.saveTextures:
 				if context.scene.geoCustomExport:
-					prop_split(col, context.scene, 'geoTexDir', 'Texture Include Path')	
+					prop_split(col, context.scene, 'geoTexDir', 'Texture Include Path')
 				col.prop(context.scene, 'geoSeparateTextureDef')
-			
+
 			col.prop(context.scene, 'geoCustomExport')
 			if context.scene.geoCustomExport:
 				col.prop(context.scene, 'geoExportPath')

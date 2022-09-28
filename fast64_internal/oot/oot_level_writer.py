@@ -301,8 +301,8 @@ def readRoomData(room, roomHeader, alternateRoomHeaders):
     room.disableSkybox = roomHeader.disableSkybox
     room.disableSunMoon = roomHeader.disableSunMoon
     room.echo = roomHeader.echo
-    room.objectList.extend([getCustomProperty(item, "objectID") for item in roomHeader.objectList])
-    if len(room.objectList) > 15:
+    room.objectIDList.extend([getCustomProperty(item, "objectID") for item in roomHeader.objectList])
+    if len(room.objectIDList) > 15:
         raise PluginError("Error: A scene can only have a maximum of 15 objects (OOT, not blender objects).")
 
     if alternateRoomHeaders is not None:
@@ -487,7 +487,7 @@ def ootProcessLOD(roomMesh, DLGroup, sceneObj, obj, transformMatrix, convertText
     index = 0
     for childObj in obj.children:
         # This group will not be converted to C directly, but its display lists will be converted through the FLODGroup.
-        childDLGroup = OOTDLGroup(name + str(index), roomMesh.model.DLFormat)
+        childDLGroup = OOTDLGroup(name + str(index), roomMesh.model.dlFormat)
         index += 1
 
         if childObj.data is None and childObj.ootEmptyType == "LOD":
@@ -533,7 +533,7 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
                     else (actorProp.rotOverrideX, actorProp.rotOverrideY, actorProp.rotOverrideZ),
                 ),
                 actorProp,
-                "actorList",
+                "actorIDList",
                 obj.name,
             )
         elif obj.ootEmptyType == "Transition Actor":

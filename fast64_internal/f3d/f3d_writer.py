@@ -335,7 +335,7 @@ def saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, drawLa
 		if tmem <= getTmemMax(otherTex.tex_format):
 			otherTexSingleLoad = True
 			#nextTmem = 0
-			#revertCommands = GfxList("temp", GfxListTag.Draw, fModel.DLFormat) # Unhandled?
+			#revertCommands = GfxList("temp", GfxListTag.Draw, fModel.dlFormat) # Unhandled?
 			#texDimensions, nextTmem = \
 			#	saveTextureIndex(material.name, fModel, fMaterial, triGroup.triList, revertCommands, otherTex, 0, nextTmem,
 			#		None, False, None, True, True)
@@ -345,7 +345,7 @@ def saveMeshWithLargeTexturesByFaces(material, faces, fModel, fMesh, obj, drawLa
 	#	exportVertexColors, fModel.f3d)
 	currentGroupIndex = None
 	for tileLoad, tileFaces in tileLoads:
-		revertCommands = GfxList("temp", GfxListTag.Draw, fModel.DLFormat)
+		revertCommands = GfxList("temp", GfxListTag.Draw, fModel.dlFormat)
 		nextTmem = 0
 		triGroup.triList.commands.append(DPPipeSync())
 		if fMaterial.texturesLoaded[0] and not (otherTextureIndex == 0 and otherTexSingleLoad):
@@ -504,7 +504,7 @@ def revertMatAndEndDraw(gfxList, otherCommands):
 		SPTexture(0xFFFF, 0xFFFF, 0, 0, 0)] +\
 		otherCommands)
 
-	if gfxList.DLFormat != DLFormat.Dynamic:
+	if gfxList.dlFormat != DLFormat.Dynamic:
 		gfxList.commands.append(SPEndDisplayList())
 
 def getCommonEdge(face1, face2, mesh):
@@ -1170,7 +1170,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 		if f3dMat.rdp_settings.set_rendermode and drawLayer is not None else '') +\
 		(('_area' + str(areaIndex)) if \
 			f3dMat.set_fog and f3dMat.use_global_fog and areaKey is not None else '')
-	fMaterial = FMaterial(materialName, fModel.DLFormat)
+	fMaterial = FMaterial(materialName, fModel.dlFormat)
 	fMaterial.material.commands.append(DPPipeSync())
 	fMaterial.revert.commands.append(DPPipeSync())
 
@@ -1389,12 +1389,12 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 
 	# End Display List
 	# For dynamic calls, materials will be called as functions and should not end the DL.
-	if fModel.DLFormat == DLFormat.Static:
+	if fModel.dlFormat == DLFormat.Static:
 		fMaterial.material.commands.append(SPEndDisplayList())
 
 	#revertMatAndEndDraw(fMaterial.revert)
 	if len(fMaterial.revert.commands) > 1: # 1 being the pipe sync
-		if fMaterial.DLFormat == DLFormat.Static:
+		if fMaterial.dlFormat == DLFormat.Static:
 			fMaterial.revert.commands.append(SPEndDisplayList())
 	else:
 		fMaterial.revert = None

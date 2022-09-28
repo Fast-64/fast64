@@ -210,9 +210,9 @@ class OOTScene:
         scene.cameraList = self.cameraList
         return scene
 
-    def sceneName(self) -> str:
+    def sceneName(self):
         """Returns the scene's name"""
-        return self.name + "_scene"
+        return f"{self.name}_scene"
 
     def sceneHeaderName(self, headerIndex: int):
         """Returns the scene's name with the current header index in it"""
@@ -288,7 +288,7 @@ class OOTScene:
     def addRoom(self, roomIndex: int, roomName: str, roomShape: str):
         """Adds a new room"""
         roomModel = self.model.addSubModel(
-            OOTModel(self.model.f3d.F3D_VER, self.model.f3d._HW_VERSION_1, f"{roomName}_dl", self.model.DLFormat, None)
+            OOTModel(self.model.f3d.F3D_VER, self.model.f3d._HW_VERSION_1, f"{roomName}_dl", self.model.dlFormat, None)
         )
         room = OOTRoom(roomIndex, roomName, roomModel, roomShape)
 
@@ -300,7 +300,7 @@ class OOTScene:
 
 
 class OOTRoomMesh:
-    def __init__(self, roomName, roomShape, model):
+    def __init__(self, roomName: str, roomShape: str, model: OOTModel):
         self.roomName = roomName
         self.roomShape = roomShape
         self.meshEntries = []
@@ -311,15 +311,14 @@ class OOTRoomMesh:
             entry.DLGroup.terminateDLs()
 
     def headerName(self):
-        return str(self.roomName) + "_shapeHeader"
+        return f"{self.roomName}_shapeHeader"
 
     def entriesName(self):
-        return str(self.roomName) + (
-            "_shapeDListEntry" if self.roomShape == "ROOM_SHAPE_TYPE_NORMAL" else "_shapeCullableEntry"
-        )
+        entryName = "shapeDListEntry" if self.roomShape == "ROOM_SHAPE_TYPE_NORMAL" else "shapeCullableEntry"
+        return f"{self.roomName}_{entryName}"
 
-    def addMeshGroup(self, cullGroup):
-        meshGroup = OOTRoomMeshGroup(cullGroup, self.model.DLFormat, self.roomName, len(self.meshEntries))
+    def addMeshGroup(self, cullGroup: CullGroup):
+        meshGroup = OOTRoomMeshGroup(cullGroup, self.model.dlFormat, self.roomName, len(self.meshEntries))
         self.meshEntries.append(meshGroup)
         return meshGroup
 
@@ -335,23 +334,23 @@ class OOTRoomMesh:
 
 
 class OOTDLGroup:
-    def __init__(self, name, DLFormat):
+    def __init__(self, name: str, dlFormat: DLFormat):
         self.opaque = None
         self.transparent = None
-        self.DLFormat = DLFormat
+        self.dlFormat = dlFormat
         self.name = toAlnum(name)
 
-    def addDLCall(self, displayList, drawLayer):
+    def addDLCall(self, displayList: GfxList, drawLayer: str):
         if drawLayer == "Opaque":
             if self.opaque is None:
-                self.opaque = GfxList(self.name + "_opaque", GfxListTag.Draw, self.DLFormat)
+                self.opaque = GfxList(self.name + "_opaque", GfxListTag.Draw, self.dlFormat)
             self.opaque.commands.append(SPDisplayList(displayList))
         elif drawLayer == "Transparent":
             if self.transparent is None:
-                self.transparent = GfxList(self.name + "_transparent", GfxListTag.Draw, self.DLFormat)
+                self.transparent = GfxList(self.name + "_transparent", GfxListTag.Draw, self.dlFormat)
             self.transparent.commands.append(SPDisplayList(displayList))
         else:
-            raise PluginError("Unhandled draw layer: " + str(drawLayer))
+            raise PluginError(f"Unhandled draw layer: {drawLayer}")
 
     def terminateDLs(self):
         if self.opaque is not None:
@@ -362,31 +361,30 @@ class OOTDLGroup:
 
     def createDLs(self):
         if self.opaque is None:
-            self.opaque = GfxList(self.name + "_opaque", GfxListTag.Draw, self.DLFormat)
+            self.opaque = GfxList(self.name + "_opaque", GfxListTag.Draw, self.dlFormat)
         if self.transparent is None:
-            self.transparent = GfxList(self.name + "_transparent", GfxListTag.Draw, self.DLFormat)
+            self.transparent = GfxList(self.name + "_transparent", GfxListTag.Draw, self.dlFormat)
 
     def isEmpty(self):
         return self.opaque is None and self.transparent is None
 
 
 class OOTRoomMeshGroup:
-    def __init__(self, cullGroup, DLFormat, roomName, entryIndex):
+    def __init__(self, cullGroup: CullGroup, dlFormat: DLFormat, roomName: str, entryIndex: int):
         self.cullGroup = cullGroup
         self.roomName = roomName
         self.entryIndex = entryIndex
 
-        self.DLGroup = OOTDLGroup(self.entryName(), DLFormat)
+        self.DLGroup = OOTDLGroup(self.entryName(), dlFormat)
 
     def entryName(self):
-        return self.roomName + "_entry_" + str(self.entryIndex)
+        return f"{self.roomName}_entry_{self.entryIndex}"
 
 
 class OOTRoom:
-    def __init__(self, index, name, model, roomShape):
+    def __init__(self, index: int, name: str, model: OOTModel, roomShape: str):
         self.ownerName = toAlnum(name)
         self.index = index
-        self.actorList = set()
         self.mesh = OOTRoomMesh(self.roomName(), roomShape, model)
 
         # Room behaviour
@@ -415,29 +413,38 @@ class OOTRoom:
         # Echo
         self.echo = 0x00
 
-        self.objectList = []
+        # Other
+        self.objectIDList = []
 
+        # @TODO: check if ``actorIDList`` really need to be a set
+        self.actorIDList = set()  # filled in ``add_actor()`` (called by ``ootProcessEmpties``)
+
+        # Other layers
         self.childNightHeader = None
         self.adultDayHeader = None
         self.adultNightHeader = None
         self.cutsceneHeaders = []
 
-    def getAlternateHeaderRoom(self, name):
+    def getAlternateHeaderRoom(self, name: str):
         room = OOTRoom(self.index, name, self.mesh.model, self.mesh.roomShape)
         room.mesh = self.mesh
         return room
 
     def roomName(self):
-        return self.ownerName + "_room_" + str(self.index)
+        return f"{self.ownerName}_room_{self.index}"
 
-    def objectListName(self, headerIndex):
-        return self.roomName() + "_header" + format(headerIndex, "02") + "_objectList"
+    def roomHeaderName(self, headerIndex: int):
+        """Returns the room's name with the current header index in it"""
+        return f"{self.roomName()}_header{headerIndex:02}"
 
-    def actorListName(self, headerIndex):
-        return self.roomName() + "_header" + format(headerIndex, "02") + "_actorList"
+    def objectListName(self, headerIndex: int):
+        return f"{self.roomHeaderName(headerIndex)}_objectList"
+
+    def actorListName(self, headerIndex: int):
+        return f"{self.roomHeaderName(headerIndex)}_actorList"
 
     def alternateHeadersName(self):
-        return self.roomName() + "_alternateHeaders"
+        return f"{self.roomName()}_alternateHeaders"
 
     def hasAlternateHeaders(self):
         return not (
