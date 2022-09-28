@@ -414,19 +414,15 @@ def ootAlternateRoomMainToC(scene: OOTScene, room: OOTRoom):
     altHeader.header = "extern SCmdBase* " + room.alternateHeadersName() + "[];\n"
     altHeader.source = "SCmdBase* " + room.alternateHeadersName() + "[] = {\n"
 
-    for headerIndex, headerName in enumerate(["childNightHeader", "adultDayHeader", "adultNightHeader"], 1):
-        # equivalent to ``room.childNightHeader`` if ``headerName`` is "childNightHeader"
-        curHeader = getattr(room, headerName)
+    for headerIndex, curHeader in enumerate([room.childNightHeader, room.adultDayHeader, room.adultNightHeader], 1):
         if curHeader is not None:
             altHeader.source += indent + f"{room.roomName()}_header{headerIndex:02},\n"
-            altData.source += ootGetHeaderDefines(curHeader, headerIndex)
             altData.append(ootRoomMainToC(scene, curHeader, headerIndex))
         else:
             altHeader.source += indent + "NULL,\n"
 
     for i in range(len(room.cutsceneHeaders)):
         altHeader.source += indent + room.roomName() + "_header" + format(i + 4, "02") + ",\n"
-        altData.source += ootGetHeaderDefines(room, i + 4)
         altData.append(ootRoomMainToC(scene, room.cutsceneHeaders[i], i + 4))
 
     altHeader.source += "};\n\n"
@@ -437,8 +433,7 @@ def ootAlternateRoomMainToC(scene: OOTScene, room: OOTRoom):
 def ootRoomMainToC(scene, room, headerIndex):
     roomMainC = CData()
 
-    if headerIndex == 0:
-        roomMainC.source += ootGetHeaderDefines(room, 0)
+    roomMainC.source += ootGetHeaderDefines(room, headerIndex)
 
     if room.hasAlternateHeaders():
         altHeader, altData = ootAlternateRoomMainToC(scene, room)
@@ -864,13 +859,13 @@ class OOTLevelC:
 
 
 def ootGetHeaderDefines(room: OOTRoom, headerIndex: int):
-    """Returns CData containing defines for actor and object lists lengths"""
+    """Returns a string containing defines for actor and object lists lengths"""
     data = CData()
 
     if len(room.objectIDList) > 0:
-        data.header += f"{room.getObjectLengthDefine(headerIndex)}\n"
+        data.header += f"#define {room.getObjectLengthDefineName(headerIndex)} {len(room.objectIDList)}\n"
 
     if len(room.actorList) > 0:
-        data.header += f"{room.getActorLengthDefine(headerIndex)}\n"
+        data.header += f"#define {room.getActorLengthDefineName(headerIndex)} {len(room.actorList)}\n"
 
     return data.header

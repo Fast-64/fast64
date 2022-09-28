@@ -87,10 +87,9 @@ def ootExportSceneToC(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneN
     roomObjects = [
         obj for obj in bpy.data.objects if ((obj.parent == originalSceneObj) and (obj.ootEmptyType == "Room"))
     ]
-    actorList = ootData.actorData.actorList
     for roomObj, room in zip(roomObjects, scene.rooms.values()):
-        ootData.objectData.addMissingObjectsToList(roomObj, room, actorList, 0, None)
-        ootData.objectData.addAltHeadersObjects(roomObj, room, actorList)
+        ootData.objectData.addMissingObjectsToList(roomObj, room, ootData.actorData, 0, None)
+        ootData.objectData.addAltHeadersObjects(roomObj, room, ootData.actorData)
     levelPath = ootGetPath(exportPath, isCustomExport, exportSubdir, sceneName, True, True)
     levelC = ootLevelToC(scene, TextureExportSettings(False, savePNG, exportSubdir + sceneName, levelPath))
 

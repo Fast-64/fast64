@@ -65,24 +65,25 @@ class OoT_ObjectData:
                 collection.move(len(collection) - 1, (headerIndex + 1))
                 collection[-1].objectKey = objectKey
 
-    def addMissingObjectsToList(self, roomObj, room, actorList, headerIndex, csHeaderIndex):
+    def addMissingObjectsToList(self, roomObj, room, actorData, headerIndex, csHeaderIndex):
         """Adds missing objects to the object list"""
         if len(room.actorList) > 0:
             for roomActor in room.actorList:
-                for actor in actorList:
-                    if actor.id == roomActor.actorID and not (actor.key == "player") and actor.tiedObjects is not None:
-                        for objKey in actor.tiedObjects.split(","):
+                actor = actorData.actorsByID.get(roomActor.actorID)
+                if not (actor.key == "player") and actor.tiedObjects is not None:
+                    for objKey in actor.tiedObjects.split(","):
+                        if not objKey in ["obj_gameplay", "obj_gameplay_dangeon_keep"]:
                             objID = self.objectsByKey.get(objKey).id
-                            if not (objID in room.objectIDList) and not (objKey.startswith("obj_gameplay")):
+                            if not (objID in room.objectIDList):
                                 room.objectIDList.append(objID)
                                 self.addMissingObjectToUI(roomObj, headerIndex, objKey, csHeaderIndex)
 
-    def addAltHeadersObjects(self, roomObj, room, actorList):
+    def addAltHeadersObjects(self, roomObj, room, actorData):
         """Adds missing objects for alternate room headers"""
         altHeaders = ["childNightHeader", "adultDayHeader", "adultNightHeader"]
         for i, header in enumerate(altHeaders, 1):
             curHeader = getattr(room, header)
             if curHeader is not None:
-                self.addMissingObjectsToList(roomObj, curHeader, actorList, i, None)
+                self.addMissingObjectsToList(roomObj, curHeader, actorData, i, None)
         for i in range(len(room.cutsceneHeaders)):
-            self.addMissingObjectsToList(roomObj, room.cutsceneHeaders[i], actorList, 4, i)
+            self.addMissingObjectsToList(roomObj, room.cutsceneHeaders[i], actorData, 4, i)

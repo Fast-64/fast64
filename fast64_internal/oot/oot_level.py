@@ -156,9 +156,11 @@ class OOT_ObjectProperties(bpy.types.PropertyGroup):
     @staticmethod
     def upgrade_changed_props():
         for obj in bpy.data.objects:
-            if obj.data is None and (obj.ootEmptyType == "Room"):
-                OOTObjectProperty.upgrade_object(obj)
-                obj.fast64.oot.version = obj.fast64.oot.cur_version
+            if obj.data is None:
+                if obj.ootEmptyType == "Room":
+                    OOTObjectProperty.upgrade_object(obj)
+                if obj.ootEmptyType != "None":
+                    obj.fast64.oot.version = obj.fast64.oot.cur_version
 
 
 oot_obj_classes = (
