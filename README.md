@@ -1,6 +1,6 @@
 # Fast64
 
-This requires Blender 2.82+.
+This requires Blender 3.2+.
 
 Forked from [kurethedead/fast64 on BitBucket](https://bitbucket.org/kurethedead/fast64/src).
 
