@@ -4,6 +4,12 @@ from ..oot_collision import *
 from ..oot_cutscene import *
 
 
+# Common Commands
+def cmdAltHeaders(altHeaderName: str):
+    altHeaderCmd = CData()
+    altHeaderCmd.source = indent + f"SCENE_CMD_ALTERNATE_HEADER_LIST({altHeaderName}),\n"
+    return altHeaderCmd
+
 def cmdEndMarker():
     """Returns the end marker command, common to scenes and rooms"""
     # ``SCENE_CMD_END`` defines the end of scene commands
@@ -144,12 +150,6 @@ def cmdCutsceneData(scene: OOTScene, headerIndex: int):
 
 
 # Room Commands
-def cmdAltHeaders(name, altName, header, cmdCount):
-    cmd = CData()
-    cmd.source = "\tSCENE_CMD_ALTERNATE_HEADER_LIST(" + altName + "),\n"
-    return cmd
-
-
 def cmdEchoSettings(room, header, cmdCount):
     cmd = CData()
     cmd.source = "\tSCENE_CMD_ECHO_SETTINGS(" + str(room.echo) + "),\n"
@@ -357,7 +357,7 @@ def ootRoomMeshToC(room, textureExportSettings):
 def ootRoomCommandsToC(room, headerIndex):
     commands = []
     if room.hasAlternateHeaders():
-        commands.append(cmdAltHeaders(room.roomName(), room.alternateHeadersName(), headerIndex, len(commands)))
+        commands.append(cmdAltHeaders(room.alternateHeadersName()))
     commands.append(cmdEchoSettings(room, headerIndex, len(commands)))
     commands.append(cmdRoomBehaviour(room, headerIndex, len(commands)))
     commands.append(cmdSkyboxDisables(room, headerIndex, len(commands)))
@@ -438,47 +438,53 @@ def ootRoomMainToC(scene, room, headerIndex):
 
 
 def ootSceneCommandsToC(scene: OOTScene, headerIndex: int):
-    commands = []
-    if scene.hasAlternateHeaders():
-        commands.append(cmdAltHeaders(scene.sceneName(), scene.alternateHeadersName(), headerIndex, len(commands)))
+    """
+    Converts every scene commands to C code.
+    Contains scene command defines (examples: ``SCENE_CMD_ROOM_LIST``, ``SCENE_CMD_CUTSCENE_DATA``)
+    """
+    # fill the commands list with the needed elements
+    sceneCmdList: list[CData] = []
 
-    commands.append(cmdSoundSettings(scene))
-    commands.append(cmdRoomList(scene))
+    if scene.hasAlternateHeaders():
+        sceneCmdList.append(cmdAltHeaders(scene.alternateHeadersName()))
+
+    sceneCmdList.append(cmdSoundSettings(scene))
+    sceneCmdList.append(cmdRoomList(scene))
 
     if len(scene.transitionActorList) > 0:
-        commands.append(cmdTransiActorList(scene, headerIndex))
+        sceneCmdList.append(cmdTransiActorList(scene, headerIndex))
 
-    commands.append(cmdMiscSettings(scene))
-    commands.append(cmdColHeader(scene))
-    commands.append(cmdEntranceList(scene, headerIndex))
-    commands.append(cmdSpecialFiles(scene))
+    sceneCmdList.append(cmdMiscSettings(scene))
+    sceneCmdList.append(cmdColHeader(scene))
+    sceneCmdList.append(cmdEntranceList(scene, headerIndex))
+    sceneCmdList.append(cmdSpecialFiles(scene))
 
     if len(scene.pathList) > 0:
-        commands.append(cmdPathList(scene))
+        sceneCmdList.append(cmdPathList(scene))
 
-    commands.append(cmdSpawnList(scene, headerIndex))
-    commands.append(cmdSkyboxSettings(scene))
+    sceneCmdList.append(cmdSpawnList(scene, headerIndex))
+    sceneCmdList.append(cmdSkyboxSettings(scene))
 
     if len(scene.exitList) > 0:
-        commands.append(cmdExitList(scene, headerIndex))
+        sceneCmdList.append(cmdExitList(scene, headerIndex))
 
-    commands.append(cmdLightSettingList(scene, headerIndex))
+    sceneCmdList.append(cmdLightSettingList(scene, headerIndex))
 
     if scene.writeCutscene:
-        commands.append(cmdCutsceneData(scene, headerIndex))
+        sceneCmdList.append(cmdCutsceneData(scene, headerIndex))
 
-    commands.append(cmdEndMarker())
+    sceneCmdList.append(cmdEndMarker())
 
-    data = CData()
+    # add the commands to the file data
+    sceneCmdData = CData()
+    sceneCmdData.header = f"extern SCmdBase {scene.sceneHeaderName(headerIndex)}[];\n"
+    sceneCmdData.source = (
+        f"SCmdBase {scene.sceneHeaderName(headerIndex)}[]" + " = {\n"
+        + "".join([sceneCmd.source for sceneCmd in sceneCmdList])
+        + "};\n\n"
+    )
 
-    # data.header = ''.join([command.header for command in commands]) +'\n'
-    data.header = "extern SCmdBase " + scene.sceneHeaderName(headerIndex) + "[];\n"
-
-    data.source = "SCmdBase " + scene.sceneHeaderName(headerIndex) + "[] = {\n"
-    data.source += "".join([command.source for command in commands])
-    data.source += "};\n\n"
-
-    return data
+    return sceneCmdData
 
 
 def ootStartPositionListToC(scene, headerIndex):
