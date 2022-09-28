@@ -1,21 +1,26 @@
-import math
 from ..oot_f3d_writer import *
 from ..oot_level_writer import *
 from ..oot_collision import *
 from ..oot_cutscene import *
 
 
-def cmdName(name, header, index):
-    return name + "_header" + format(header, "02") + "_cmd" + format(index, "02")
+def cmdEndMarker():
+    """Returns the end marker command, common to scenes and rooms"""
+    # ``SCENE_CMD_END`` defines the end of scene commands
+    endCmd = CData()
+    endCmd.source = indent + "SCENE_CMD_END(),\n"
+    return endCmd
 
 
 # Scene Commands
-def cmdSoundSettings(scene, header, cmdCount):
-    cmd = CData()
-    cmd.source = (
+def cmdSoundSettings(scene: OOTScene):
+    """Returns C-converted sound settings command"""
+    soundSettingsCmd = CData()
+    soundSettingsCmd.source = (
         "\tSCENE_CMD_SOUND_SETTINGS("
         + ", ".join(
             (
+                # @bug: ``OOTScene`` type in argument but it doesn't contain ``audioSessionPreset``
                 str(scene.audioSessionPreset),
                 str(scene.nightSeq),
                 str(scene.musicSeq),
@@ -23,123 +28,119 @@ def cmdSoundSettings(scene, header, cmdCount):
         )
         + "),\n"
     )
-    return cmd
+    return soundSettingsCmd
 
 
-def cmdRoomList(scene, header, cmdCount):
-    cmd = CData()
-    cmd.source = "\tSCENE_CMD_ROOM_LIST(" + str(len(scene.rooms)) + ", " + scene.roomListName() + "),\n"
-    return cmd
+def cmdRoomList(scene: OOTScene):
+    """Returns C-converted room list command"""
+    roomListCmd = CData()
+    roomListCmd.source = indent + f"SCENE_CMD_ROOM_LIST({len(scene.rooms)}, {scene.roomListName()}),\n"
+    return roomListCmd
 
 
-def cmdTransiActorList(scene, header, cmdCount):
-    cmd = CData()
-    cmd.source = (
-        "\tSCENE_CMD_TRANSITION_ACTOR_LIST("
-        + str(len(scene.transitionActorList))
-        + ", "
-        + scene.transitionActorListName(header)
-        + "),\n"
+def cmdTransiActorList(scene: OOTScene, headerIndex: int):
+    """Returns C-converted transition actors list command"""
+    transActorListCmd = CData()
+    transActorListCmd.source = (
+        indent
+        + f"SCENE_CMD_TRANSITION_ACTOR_LIST({len(scene.transitionActorList)}, {scene.transitionActorListName(headerIndex)}),\n"
     )
+    return transActorListCmd
+
+
+def cmdMiscSettings(scene: OOTScene):
+    """Returns C-converted misc settings command"""
+    cmd = CData()
+    cmd.source = indent + f"SCENE_CMD_MISC_SETTINGS({scene.cameraMode}, {scene.mapLocation}),\n"
     return cmd
 
 
-def cmdMiscSettings(scene, header, cmdCount):
-    cmd = CData()
-    cmd.source = "\tSCENE_CMD_MISC_SETTINGS(" + str(scene.cameraMode) + ", " + str(scene.mapLocation) + "),\n"
-    return cmd
+def cmdColHeader(scene: OOTScene):
+    """Returns C-converted collision header command"""
+    colHeaderCmd = CData()
+    colHeaderCmd.source = indent + f"SCENE_CMD_COL_HEADER(&{scene.collision.headerName()}),\n"
+    return colHeaderCmd
 
 
-def cmdColHeader(scene, header, cmdCount):
-    cmd = CData()
-    cmd.source = "\tSCENE_CMD_COL_HEADER(&" + scene.collision.headerName() + "),\n"
-    return cmd
+def cmdEntranceList(scene: OOTScene, headerIndex: int):
+    """Returns C-converted entrance list command"""
+    entranceListCmd = CData()
+
+    # ``NULL`` if there's no list since this command expects an address
+    entranceListName = scene.entranceListName(headerIndex) if len(scene.entranceList) > 0 else "NULL"
+
+    entranceListCmd.source = indent + f"SCENE_CMD_ENTRANCE_LIST({entranceListName}),\n"
+    return entranceListCmd
 
 
-def cmdEntranceList(scene, header, cmdCount):
-    cmd = CData()
-    cmd.source = (
-        "\tSCENE_CMD_ENTRANCE_LIST("
-        + (scene.entranceListName(header) if len(scene.entranceList) > 0 else "NULL")
-        + "),\n"
+def cmdSpecialFiles(scene: OOTScene):
+    """Returns C-converted special files command"""
+    # special files are the Navi hint mode and the scene's global object ID
+    specialFilesCmd = CData()
+    specialFilesCmd.source = indent + f"SCENE_CMD_SPECIAL_FILES({scene.naviCup}, {scene.globalObject})\n"
+    return specialFilesCmd
+
+
+def cmdPathList(scene: OOTScene):
+    """Returns C-converted paths list command"""
+    pathListCmd = CData()
+    pathListCmd.source = indent + f"SCENE_CMD_PATH_LIST({scene.pathListName()}),\n"
+    return pathListCmd
+
+
+def cmdSpawnList(scene: OOTScene, headerIndex: int):
+    """Returns C-converted spawns list command"""
+    spawnListCmd = CData()
+    startPosNumber = len(scene.startPositions)
+
+    # ``NULL`` if there's no list since this command expects an address
+    spawnPosName = scene.startPositionsName(headerIndex) if startPosNumber > 0 else "NULL"
+    spawnListCmd.source = indent + f"SCENE_CMD_SPAWN_LIST({startPosNumber}, {spawnPosName}),\n"
+    return spawnListCmd
+
+
+def cmdSkyboxSettings(scene: OOTScene):
+    """Returns C-converted spawns list command"""
+    skySettingsCmd = CData()
+    skySettingsCmd.source = (
+        indent + f"SCENE_CMD_SKYBOX_SETTINGS({scene.skyboxID}, {scene.skyboxCloudiness}, {scene.skyboxLighting}),\n"
     )
-    return cmd
+    return skySettingsCmd
 
 
-def cmdSpecialFiles(scene, header, cmdCount):
-    cmd = CData()
-    cmd.source = "\tSCENE_CMD_SPECIAL_FILES(" + str(scene.naviCup) + ", " + str(scene.globalObject) + "),\n"
-    return cmd
+def cmdExitList(scene: OOTScene, headerIndex: int):
+    """Returns C-converted exit list command"""
+    exitListCmd = CData()
+    exitListCmd.source = indent + f"SCENE_CMD_EXIT_LIST({scene.exitListName(headerIndex)}),\n"
+    return exitListCmd
 
 
-def cmdPathList(scene, header, cmdCount):
-    cmd = CData()
-    cmd.source = "\tSCENE_CMD_PATH_LIST(" + scene.pathListName() + "),\n"
-    return cmd
+def cmdLightSettingList(scene: OOTScene, headerIndex: int):
+    """Returns C-converted light settings list command"""
+    lightSettingListCmd = CData()
+    lightCount = len(scene.lights)
+    lightSettingsName = scene.lightListName(headerIndex) if lightCount > 0 else "NULL"
+
+    lightSettingListCmd.source = indent + f"SCENE_CMD_ENV_LIGHT_SETTINGS({lightCount}, {lightSettingsName}),\n"
+    return lightSettingListCmd
 
 
-def cmdSpawnList(scene, header, cmdCount):
-    cmd = CData()
-    cmd.source = (
-        "\tSCENE_CMD_SPAWN_LIST("
-        + str(len(scene.startPositions))
-        + ", "
-        + (scene.startPositionsName(header) if len(scene.startPositions) > 0 else "NULL")
-        + "),\n"
-    )
-    return cmd
+def cmdCutsceneData(scene: OOTScene, headerIndex: int):
+    """Returns C-converted cutscene data command"""
+    csDataCmd = CData()
 
-
-def cmdSkyboxSettings(scene, header, cmdCount):
-    cmd = CData()
-    cmd.source = (
-        "\tSCENE_CMD_SKYBOX_SETTINGS("
-        + ", ".join(
-            (
-                str(scene.skyboxID),
-                str(scene.skyboxCloudiness),
-                str(scene.skyboxLighting),
-            )
-        )
-        + "),\n"
-    )
-    return cmd
-
-
-def cmdExitList(scene, header, cmdCount):
-    cmd = CData()
-    cmd.source = "\tSCENE_CMD_EXIT_LIST(" + scene.exitListName(header) + "),\n"
-    return cmd
-
-
-def cmdLightSettingList(scene, header, cmdCount):
-    cmd = CData()
-    cmd.source = (
-        "\tSCENE_CMD_ENV_LIGHT_SETTINGS("
-        + str(len(scene.lights))
-        + ", "
-        + (scene.lightListName(header) if len(scene.lights) > 0 else "NULL")
-        + "),\n"
-    )
-    return cmd
-
-
-def cmdCutsceneData(scene, header, cmdCount):
-    cmd = CData()
     if scene.csWriteType == "Embedded":
-        csname = scene.cutsceneDataName(header)
+        csDataName = scene.cutsceneDataName(headerIndex)
     elif scene.csWriteType == "Object":
-        csname = scene.csWriteObject.name
+        if scene.csWriteObject is not None:
+            csDataName = scene.csWriteObject.name  # ``csWriteObject`` type: ``OOTCutscene``
+        else:
+            raise PluginError("OoT Level to C: ``scene.csWriteObject`` is None!")
     elif scene.csWriteType == "Custom":
-        csname = scene.csWriteCustom
-    cmd.source = "\tSCENE_CMD_CUTSCENE_DATA(" + csname + "),\n"
-    return cmd
+        csDataName = scene.csWriteCustom
 
-
-def cmdEndMarker(name, header, cmdCount):
-    cmd = CData()
-    cmd.source = "\tSCENE_CMD_END(),\n"
-    return cmd
+    csDataCmd.source = indent + f"SCENE_CMD_CUTSCENE_DATA({csDataName}),\n"
+    return csDataCmd
 
 
 # Room Commands
@@ -368,7 +369,7 @@ def ootRoomCommandsToC(room, headerIndex):
         commands.append(cmdObjectList(room, headerIndex, len(commands)))
     if len(room.actorList) > 0:
         commands.append(cmdActorList(room, headerIndex, len(commands)))
-    commands.append(cmdEndMarker(room.roomName(), headerIndex, len(commands)))
+    commands.append(cmdEndMarker())
 
     data = CData()
 
@@ -436,28 +437,37 @@ def ootRoomMainToC(scene, room, headerIndex):
     return roomMainC
 
 
-def ootSceneCommandsToC(scene, headerIndex):
+def ootSceneCommandsToC(scene: OOTScene, headerIndex: int):
     commands = []
     if scene.hasAlternateHeaders():
         commands.append(cmdAltHeaders(scene.sceneName(), scene.alternateHeadersName(), headerIndex, len(commands)))
-    commands.append(cmdSoundSettings(scene, headerIndex, len(commands)))
-    commands.append(cmdRoomList(scene, headerIndex, len(commands)))
+
+    commands.append(cmdSoundSettings(scene))
+    commands.append(cmdRoomList(scene))
+
     if len(scene.transitionActorList) > 0:
-        commands.append(cmdTransiActorList(scene, headerIndex, len(commands)))
-    commands.append(cmdMiscSettings(scene, headerIndex, len(commands)))
-    commands.append(cmdColHeader(scene, headerIndex, len(commands)))
-    commands.append(cmdEntranceList(scene, headerIndex, len(commands)))
-    commands.append(cmdSpecialFiles(scene, headerIndex, len(commands)))
+        commands.append(cmdTransiActorList(scene, headerIndex))
+
+    commands.append(cmdMiscSettings(scene))
+    commands.append(cmdColHeader(scene))
+    commands.append(cmdEntranceList(scene, headerIndex))
+    commands.append(cmdSpecialFiles(scene))
+
     if len(scene.pathList) > 0:
-        commands.append(cmdPathList(scene, headerIndex, len(commands)))
-    commands.append(cmdSpawnList(scene, headerIndex, len(commands)))
-    commands.append(cmdSkyboxSettings(scene, headerIndex, len(commands)))
+        commands.append(cmdPathList(scene))
+
+    commands.append(cmdSpawnList(scene, headerIndex))
+    commands.append(cmdSkyboxSettings(scene))
+
     if len(scene.exitList) > 0:
-        commands.append(cmdExitList(scene, headerIndex, len(commands)))
-    commands.append(cmdLightSettingList(scene, headerIndex, len(commands)))
+        commands.append(cmdExitList(scene, headerIndex))
+
+    commands.append(cmdLightSettingList(scene, headerIndex))
+
     if scene.writeCutscene:
-        commands.append(cmdCutsceneData(scene, headerIndex, len(commands)))
-    commands.append(cmdEndMarker(scene.sceneName(), headerIndex, len(commands)))
+        commands.append(cmdCutsceneData(scene, headerIndex))
+
+    commands.append(cmdEndMarker())
 
     data = CData()
 
