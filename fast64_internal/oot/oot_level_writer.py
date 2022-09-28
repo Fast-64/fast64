@@ -374,7 +374,7 @@ def ootConvertScene(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneNam
                 if roomIndex in processedRooms:
                     raise PluginError("Error: room index " + str(roomIndex) + " is used more than once.")
                 processedRooms.add(roomIndex)
-                room = scene.addRoom(roomIndex, sceneName, roomObj.ootRoomHeader.meshType)
+                room = scene.addRoom(roomIndex, sceneName, roomObj.ootRoomHeader.roomShape)
                 readRoomData(room, roomObj.ootRoomHeader, roomObj.ootAlternateRoomHeaders)
 
                 DLGroup = room.mesh.addMeshGroup(
