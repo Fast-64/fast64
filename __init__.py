@@ -398,6 +398,13 @@ def after_load(_a, _b):
     resync_scene_props()
 
 
+def gameEditorUpdate(self, context):
+    if self.gameEditorMode == "SM64":
+        self.f3d_type = "F3D"
+    elif self.gameEditorMode == "OOT":
+        self.f3d_type = "F3DEX2/LX2"
+
+
 # called on add-on enabling
 # register operators and panels here
 # append menu layout drawing function to an existing window
@@ -440,7 +447,9 @@ def register():
     bpy.types.Scene.decomp_compatible = bpy.props.BoolProperty(name="Decomp Compatibility", default=True)
     bpy.types.Scene.ignoreTextureRestrictions = bpy.props.BoolProperty(name="Ignore Texture Restrictions")
     bpy.types.Scene.fullTraceback = bpy.props.BoolProperty(name="Show Full Error Traceback", default=False)
-    bpy.types.Scene.gameEditorMode = bpy.props.EnumProperty(name="Game", default="SM64", items=gameEditorEnum)
+    bpy.types.Scene.gameEditorMode = bpy.props.EnumProperty(
+        name="Game", default="SM64", items=gameEditorEnum, update=gameEditorUpdate
+    )
     bpy.types.Scene.saveTextures = bpy.props.BoolProperty(name="Save Textures As PNGs (Breaks CI Textures)")
     bpy.types.Scene.generateF3DNodeGraph = bpy.props.BoolProperty(name="Generate F3D Node Graph", default=True)
     bpy.types.Scene.exportHiddenGeometry = bpy.props.BoolProperty(name="Export Hidden Geometry", default=True)
