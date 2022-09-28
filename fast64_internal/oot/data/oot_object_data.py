@@ -70,8 +70,8 @@ class OoT_ObjectData:
         if len(room.actorList) > 0:
             for roomActor in room.actorList:
                 actor = actorData.actorsByID.get(roomActor.actorID)
-                if not (actor.key == "player") and actor.tiedObjects is not None:
-                    for objKey in actor.tiedObjects.split(","):
+                if not (actor.key == "player") and len(actor.tiedObjects) > 0:
+                    for objKey in actor.tiedObjects:
                         if not objKey in ["obj_gameplay", "obj_gameplay_dangeon_keep"]:
                             objID = self.objectsByKey.get(objKey).id
                             if not (objID in room.objectIDList):

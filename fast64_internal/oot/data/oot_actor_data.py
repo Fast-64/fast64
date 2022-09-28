@@ -1,4 +1,3 @@
-from typing import Optional
 from os import path
 from dataclasses import dataclass
 from .oot_getters import getXMLRoot, getEnumList
@@ -8,7 +7,7 @@ from .oot_data import OoT_BaseElement
 @dataclass
 class OoT_ActorElement(OoT_BaseElement):
     category: str
-    tiedObjects: Optional[str]
+    tiedObjects: list[str]
 
 
 class OoT_ActorData:
@@ -27,7 +26,7 @@ class OoT_ActorData:
                     actor.attrib["Key"],
                     actor.attrib["Name"],
                     actor.attrib["Category"],
-                    actor.get("ObjectKey"),  # actors don't always use an object
+                    actor.get("ObjectKey").split(","),  # actors don't always use an object
                 )
             )
         self.actorsByKey = {actor.key: actor for actor in self.actorList}
