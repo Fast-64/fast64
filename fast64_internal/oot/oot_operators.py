@@ -102,6 +102,7 @@ class OOT_AddScene(bpy.types.Operator):
         parentObject(sceneObj, roomObj)
 
         bpy.context.scene.ootSceneExportObj = sceneObj
+        bpy.context.scene.fast64.renderSettings.ootSceneObject = sceneObj
 
         return {"FINISHED"}
 
@@ -160,6 +161,28 @@ class OOT_AddCutscene(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class OOT_AddPath(bpy.types.Operator):
+    bl_idname = "object.oot_add_path"
+    bl_label = "Add Path"
+    bl_options = {"REGISTER", "UNDO", "PRESET"}
+
+    def execute(self, context):
+        if context.mode != "OBJECT":
+            bpy.ops.object.mode_set(mode="OBJECT")
+        bpy.ops.object.select_all(action="DESELECT")
+
+        location = mathutils.Vector(bpy.context.scene.cursor.location)
+        bpy.ops.curve.primitive_nurbs_path_add(radius=1, align="WORLD", location=location[:])
+        pathObj = context.view_layer.objects.active
+        pathObj.name = "New Path"
+        pathObj.fast64.oot.version = pathObj.fast64.oot.cur_version
+
+        bpy.ops.object.select_all(action="DESELECT")
+        pathObj.select_set(True)
+        context.view_layer.objects.active = pathObj
+        return {"FINISHED"}
+
+
 class OOT_OperatorsPanel(OOT_Panel):
     bl_idname = "OOT_PT_operators"
     bl_label = "OOT Tools"
@@ -171,6 +194,7 @@ class OOT_OperatorsPanel(OOT_Panel):
         col.operator(OOT_AddWaterBox.bl_idname)
         col.operator(OOT_AddDoor.bl_idname)
         col.operator(OOT_AddCutscene.bl_idname)
+        col.operator(OOT_AddPath.bl_idname)
 
 
 oot_operator_classes = (
@@ -179,6 +203,7 @@ oot_operator_classes = (
     OOT_AddScene,
     OOT_AddRoom,
     OOT_AddCutscene,
+    OOT_AddPath,
 )
 
 oot_operator_panel_classes = (OOT_OperatorsPanel,)

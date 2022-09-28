@@ -1626,9 +1626,15 @@ def update_tex_values_and_formats(self, context):
             return
 
         f3d_mat = context.material.f3d_mat
-        useLargeTextures = f3d_mat.use_large_textures
-        isMultiTexture = "multitexture" in f3d_mat.presetName.lower() or (f3d_mat.tex0.tex and f3d_mat.tex1.tex)
-        self.tex_format = getOptimalFormat(self.tex, useLargeTextures, isMultiTexture)
+        useDict = all_combiner_uses(f3d_mat)
+        isMultiTexture = (
+            useDict["Texture 0"]
+            and f3d_mat.tex0.tex is not None
+            and useDict["Texture 1"]
+            and f3d_mat.tex1.tex is not None
+        )
+        if self.tex is not None:
+            self.tex_format = getOptimalFormat(self.tex, self.tex_format, isMultiTexture)
 
         update_tex_values_manual(context.material, context)
 
@@ -2588,12 +2594,12 @@ class DefaultRDPSettingsPanel(bpy.types.Panel):
         ui_other(world.rdp_defaults, world, layout, True)
 
 
-def getOptimalFormat(tex, useLargeTextures, isMultitexture):
+def getOptimalFormat(tex, curFormat, isMultitexture):
     texFormat = "RGBA16"
-    if useLargeTextures:
-        return "RGBA16"
-    if bpy.context.scene.ignoreTextureRestrictions or tex.size[0] * tex.size[1] > 8192:  # Image too big
-        return "RGBA32"
+    if isMultitexture:
+        return curFormat
+    if (tex.size[0] * tex.size[1] > 8192):  # Image too big
+        return curFormat
 
     isGreyscale = True
     hasAlpha4bit = False
@@ -2628,8 +2634,6 @@ def getOptimalFormat(tex, useLargeTextures, isMultitexture):
                 texFormat = "I8"
             else:
                 texFormat = "IA8"
-    elif isMultitexture and tex.size[0] * tex.size[1] <= 1024:
-        texFormat = "RGBA16"
     else:
         if len(pixelValues) <= 16:
             texFormat = "CI4"
@@ -3345,12 +3349,37 @@ class F3DRenderSettingsPanel(bpy.types.Panel):
                     gameSettingsBox.prop(renderSettings, "sm64Area")
 
                 case "OOT":
-                    # TODO: OOT scene preview options
-                    # if renderSettings.ootSceneObject is not None:
-                    #     gameSettingsBox.prop(renderSettings, 'useObjectRenderPreview', text="Use Scene for Preview")
-                    gameSettingsBox.label(text="Preview not yet available for OOT Scenes.")
+                    if renderSettings.ootSceneObject is not None:
+                        gameSettingsBox.prop(renderSettings, "useObjectRenderPreview", text="Use Scene for Preview")
 
-                    # gameSettingsBox.prop(renderSettings, 'ootSceneObject')
+                    gameSettingsBox.prop(renderSettings, "ootSceneObject")
+                    
+                    if renderSettings.ootSceneObject is not None:
+                        b = gameSettingsBox.column()
+                        r = b.row().split(factor=0.4)
+                        r.prop(renderSettings, "ootSceneHeader")
+                        header = ootGetSceneOrRoomHeader(
+                            renderSettings.ootSceneObject,
+                            renderSettings.ootSceneHeader,
+                            False,
+                        )
+                        if header is None:
+                            r.label(text = "Header does not exist.", icon="QUESTION")
+                        else:
+                            numLightsNeeded = 1
+                            if header.skyboxLighting == "Custom":
+                                r2 = b.row()
+                                r2.prop(renderSettings, "ootForceTimeOfDay")
+                                if renderSettings.ootForceTimeOfDay:
+                                    r2.label(text = "Light Index sets first of four lights.", icon="INFO")
+                                    numLightsNeeded = 4
+                            if header.skyboxLighting != "0x00":
+                                r.prop(renderSettings, "ootLightIdx")
+                                if renderSettings.ootLightIdx + numLightsNeeded > len(header.lightList):
+                                    b.label(text = "Light does not exist.", icon="QUESTION")
+                            if header.skyboxLighting == "0x00" or (
+                                header.skyboxLighting == "Custom" and renderSettings.ootForceTimeOfDay):
+                                r.prop(renderSettings, "ootTime")
                 case _:
                     pass
 

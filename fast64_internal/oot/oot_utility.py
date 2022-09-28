@@ -448,32 +448,8 @@ def getCutsceneName(obj):
 
 
 def getCollectionFromIndex(obj, prop, subIndex, isRoom):
-    if not isRoom:
-        header0 = obj.ootSceneHeader
-        header1 = obj.ootAlternateSceneHeaders.childNightHeader
-        header2 = obj.ootAlternateSceneHeaders.adultDayHeader
-        header3 = obj.ootAlternateSceneHeaders.adultNightHeader
-        cutsceneHeaders = obj.ootAlternateSceneHeaders.cutsceneHeaders
-    else:
-        header0 = obj.ootRoomHeader
-        header1 = obj.ootAlternateRoomHeaders.childNightHeader
-        header2 = obj.ootAlternateRoomHeaders.adultDayHeader
-        header3 = obj.ootAlternateRoomHeaders.adultNightHeader
-        cutsceneHeaders = obj.ootAlternateRoomHeaders.cutsceneHeaders
-
-    if subIndex < 0:
-        raise PluginError("Alternate scene header index too low: " + str(subIndex))
-    elif subIndex == 0:
-        collection = getattr(header0, prop)
-    elif subIndex == 1:
-        collection = getattr(header1, prop)
-    elif subIndex == 2:
-        collection = getattr(header2, prop)
-    elif subIndex == 3:
-        collection = getattr(header3, prop)
-    else:
-        collection = getattr(cutsceneHeaders[subIndex - 4], prop)
-    return collection
+    header = ootGetSceneOrRoomHeader(obj, subIndex, isRoom)
+    return getattr(header, prop)
 
 
 # Operators cannot store mutable references (?), so to reuse PropertyCollection modification code we do this.

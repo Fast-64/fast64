@@ -176,12 +176,39 @@ def exportAnimationC(armatureObj, loopAnim, dirPath, dirName, groupName,
 
 	# write to table.inc.c
 	tableFilePath = os.path.join(animDirPath, 'table.inc.c')
+
+	# if table doesn´t exist, create one
 	if not os.path.exists(tableFilePath):
 		tableFile = open(tableFilePath, 'w', newline='\n')
 		tableFile.write('const struct Animation *const ' + \
 			animsName + '[] = {\n\tNULL,\n};\n')
 		tableFile.close()
-	writeIfNotFound(tableFilePath, '\t&' + sm64_anim.header.name + ',\n', '\tNULL,\n};')
+	
+	stringData = ""
+	with open(tableFilePath, 'r') as f:
+		stringData = f.read()
+
+	# if animation header isn´t already in the table then add it.
+	if sm64_anim.header.name not in stringData:
+
+		# search for the NULL value which represents the end of the table 
+		# (this value is not present in vanilla animation tables)
+		footerIndex = stringData.rfind('\tNULL,\n')
+
+		# if the null value cant be found, look for the end of the array
+		if footerIndex == -1:
+			footerIndex = stringData.rfind('};')
+
+			# if that can´t be found then throw an error.
+			if footerIndex == -1:
+				raise PluginError("Animation table´s footer does not seem to exist.")
+			
+			stringData = stringData[:footerIndex] + '\tNULL,\n' + stringData[footerIndex:]
+
+		stringData = stringData[:footerIndex] + f'\t&{sm64_anim.header.name},\n' + stringData[footerIndex:]
+		
+		with open(tableFilePath, 'w') as f:
+			f.write(stringData)
 
 	if not customExport:
 		if headerType == 'Actor':

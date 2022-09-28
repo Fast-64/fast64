@@ -2735,7 +2735,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
             # Rotate all armatures 90 degrees
             applyRotation([obj], math.radians(90), "X")
 
-            saveTextures = bpy.context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions
+            saveTextures = bpy.context.scene.saveTextures
 
             if context.scene.fast64.sm64.exportType == "C":
                 exportPath, levelName = getPathAndLevel(
@@ -2953,7 +2953,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
                     context.scene.geoLevelOption,
                 )
 
-                saveTextures = bpy.context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions
+                saveTextures = bpy.context.scene.saveTextures
                 if not context.scene.geoCustomExport:
                     applyBasicTweaks(exportPath)
                 header, fileStatus = exportGeolayoutArmatureC(
@@ -3107,7 +3107,7 @@ class SM64_ExportGeolayoutPanel(SM64_Panel):
         propsGeoE = col.operator(SM64_ExportGeolayoutObject.bl_idname)
 
         if context.scene.fast64.sm64.exportType == "C":
-            if not bpy.context.scene.ignoreTextureRestrictions and context.scene.saveTextures:
+            if context.scene.saveTextures:
                 if context.scene.geoCustomExport:
                     prop_split(col, context.scene, "geoTexDir", "Texture Include Path")
                 col.prop(context.scene, "geoSeparateTextureDef")
