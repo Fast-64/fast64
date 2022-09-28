@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-import enum
 from os import path
 from .oot_getters import getXMLRoot, getEnumList
 from .oot_data import OoT_BaseElement
@@ -27,7 +26,8 @@ class OoT_ObjectData:
         objectXML = path.dirname(path.abspath(__file__)) + "/xml/ObjectList.xml"
 
         for obj in getXMLRoot(objectXML).iterfind("Object"):
-            self.objectList.append(OoT_ObjectElement(obj.attrib["ID"], obj.attrib["Key"], obj.attrib["Name"]))
+            objName = f"{obj.attrib['Name']} - {obj.attrib['ID'].replace('OBJECT_', '')}"
+            self.objectList.append(OoT_ObjectElement(obj.attrib["ID"], obj.attrib["Key"], objName))
 
         self.objectsByID = {obj.id: obj for obj in self.objectList}
         self.objectsByKey = {obj.key: obj for obj in self.objectList}

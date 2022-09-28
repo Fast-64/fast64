@@ -184,9 +184,15 @@ class OOTObjectProperty(bpy.types.PropertyGroup):
             ootData.objectData.upgradeAltHeaders(obj)
 
 
-def drawObjectProperty(layout, objectProp, headerIndex, index, objName):
+def drawObjectProperty(
+    layout: bpy.types.UILayout, objectProp: OOTObjectProperty, headerIndex: int, index: int, objName: str
+):
     objItemBox = layout.box()
+
     objectName = getEnumName(ootData.objectData.ootEnumObjectKey, objectProp.objectKey)
+    if objectProp.objectKey == "Custom":
+        objectName += f" - {objectProp.objectIDCustom}"
+
     objItemBox.prop(
         objectProp, "expandTab", text=objectName, icon="TRIA_DOWN" if objectProp.expandTab else "TRIA_RIGHT"
     )
