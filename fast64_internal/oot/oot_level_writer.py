@@ -276,24 +276,8 @@ def getExitData(exitProp):
 def getLightData(lightProp):
     light = OOTLight()
     light.ambient = exportColor(lightProp.ambient)
-    if lightProp.useCustomDiffuse0:
-        if lightProp.diffuse0Custom is None:
-            raise PluginError("Error: Diffuse 0 light object not set in a scene lighting property.")
-        light.diffuse0 = exportColor(lightProp.diffuse0Custom.color)
-        light.diffuseDir0 = getLightRotation(lightProp.diffuse0Custom)
-    else:
-        light.diffuse0 = exportColor(lightProp.diffuse0)
-        light.diffuseDir0 = [0x49, 0x49, 0x49] if not lightProp.zeroDiffuse0 else [0x00, 0x00, 0x00]
-
-    if lightProp.useCustomDiffuse1:
-        if lightProp.diffuse1Custom is None:
-            raise PluginError("Error: Diffuse 1 light object not set in a scene lighting property.")
-        light.diffuse1 = exportColor(lightProp.diffuse1Custom.color)
-        light.diffuseDir1 = getLightRotation(lightProp.diffuse1Custom)
-    else:
-        light.diffuse1 = exportColor(lightProp.diffuse1)
-        light.diffuseDir1 = [0xB7, 0xB7, 0xB7] if not lightProp.zeroDiffuse1 else [0x00, 0x00, 0x00]
-
+    light.diffuse0, light.diffuseDir0 = ootGetBaseOrCustomLight(lightProp, 0, True, True)
+    light.diffuse1, light.diffuseDir1 = ootGetBaseOrCustomLight(lightProp, 1, True, True)
     light.fogColor = exportColor(lightProp.fogColor)
     light.fogNear = lightProp.fogNear
     light.transitionSpeed = lightProp.transitionSpeed
@@ -770,6 +754,7 @@ def ootProcessWaterBox(sceneObj, obj, transformMatrix, scene, roomIndex):
             obj.empty_display_size,
         )
     )
+
 
 class OOT_ExportScene(bpy.types.Operator):
     bl_idname = "object.oot_export_level"

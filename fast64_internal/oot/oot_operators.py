@@ -102,6 +102,7 @@ class OOT_AddScene(bpy.types.Operator):
         parentObject(sceneObj, roomObj)
 
         bpy.context.scene.ootSceneExportObj = sceneObj
+        bpy.context.scene.fast64.renderSettings.ootSceneObject = sceneObj
 
         return {"FINISHED"}
 
