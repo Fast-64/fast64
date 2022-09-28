@@ -63,7 +63,7 @@ class OOT_SearchObjectEnumOperator(bpy.types.Operator):
     bl_property = "ootObjectID"
     bl_options = {"REGISTER", "UNDO"}
 
-    ootObjectID: bpy.props.EnumProperty(items=ootData.objectData.ootEnumObjectID, default="obj_human")
+    ootObjectID: bpy.props.EnumProperty(items=ootData.objectData.ootEnumObjectKey, default="obj_human")
     headerIndex: bpy.props.IntProperty(default=0, min=0)
     index: bpy.props.IntProperty(default=0, min=0)
     objName: bpy.props.StringProperty()
@@ -81,7 +81,7 @@ class OOT_SearchObjectEnumOperator(bpy.types.Operator):
         else:
             roomHeader = obj.ootAlternateRoomHeaders.cutsceneHeaders[self.headerIndex - 4]
 
-        roomHeader.objectList[self.index].objectID = self.ootObjectID
+        roomHeader.objectList[self.index].objectKey = self.ootObjectID
         bpy.context.region.tag_redraw()
         self.report({"INFO"}, "Selected: " + self.ootObjectID)
         return {"FINISHED"}
@@ -172,24 +172,21 @@ def drawExitProperty(layout, exitProp, index, headerIndex, objName):
 
 class OOTObjectProperty(bpy.types.PropertyGroup):
     expandTab: bpy.props.BoolProperty(name="Expand Tab")
-    objectID: bpy.props.EnumProperty(items=ootData.objectData.ootEnumObjectID, default="obj_human")
-    objectIDLegacy: bpy.props.EnumProperty(items=ootData.objectData.ootEnumObjectIDLegacy, default="OBJECT_HUMAN")
+    objectKey: bpy.props.EnumProperty(items=ootData.objectData.ootEnumObjectKey, default="obj_human")
+    objectID: bpy.props.EnumProperty(items=ootData.objectData.ootEnumObjectIDLegacy, default="OBJECT_HUMAN")
     objectIDCustom: bpy.props.StringProperty(default="OBJECT_CUSTOM")
 
     @staticmethod
     def upgrade_object(obj):
-        if obj.data is None:
-            if (obj.ootEmptyType == "Scene") or (obj.ootEmptyType == "Room"):
-                print(f"Processing '{obj.name}'...")
-                for child in obj.children:
-                    OOTObjectProperty.upgrade_object(child)
-            elif obj.fast64.oot.version < obj.fast64.oot.cur_version:
-                ootData.objectData.upgradeObjectInit(obj, ootData.objectData.objectList)
+        if obj.fast64.oot.version < 1:
+            print(f"Processing '{obj.name}'...")
+            ootData.objectData.upgradeObjectList(obj.ootRoomHeader.objectList)
+            ootData.objectData.upgradeAltHeaders(obj)
 
 
 def drawObjectProperty(layout, objectProp, headerIndex, index, objName):
     objItemBox = layout.box()
-    objectName = getEnumName(ootData.objectData.ootEnumObjectID, objectProp.objectID)
+    objectName = getEnumName(ootData.objectData.ootEnumObjectKey, objectProp.objectKey)
     objItemBox.prop(
         objectProp, "expandTab", text=objectName, icon="TRIA_DOWN" if objectProp.expandTab else "TRIA_RIGHT"
     )
@@ -199,8 +196,7 @@ def drawObjectProperty(layout, objectProp, headerIndex, index, objName):
         objSearch = objItemBox.operator(OOT_SearchObjectEnumOperator.bl_idname, icon="VIEWZOOM")
         objSearch.objName = objName
         objItemBox.column().label(text="ID: " + objectName)
-        # prop_split(objItemBox, objectProp, "objectID", name = "ID")
-        if objectProp.objectID == "Custom":
+        if objectProp.objectKey == "Custom":
             prop_split(objItemBox, objectProp, "objectIDCustom", "Object ID Custom")
         objSearch.headerIndex = headerIndex if headerIndex is not None else 0
         objSearch.index = index

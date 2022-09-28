@@ -88,7 +88,7 @@ def ootExportSceneToC(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneN
         obj for obj in bpy.data.objects if ((obj.parent == originalSceneObj) and (obj.ootEmptyType == "Room"))
     ]
     actorList = ootData.actorData.actorList
-    for roomObj, room in zip(roomObjects, scene.rooms):
+    for roomObj, room in zip(roomObjects, scene.rooms.values()):
         ootData.objectData.addMissingObjectsToList(roomObj, room, actorList, 0, None)
         ootData.objectData.addAltHeadersObjects(roomObj, room, actorList)
     levelPath = ootGetPath(exportPath, isCustomExport, exportSubdir, sceneName, True, True)
@@ -308,8 +308,8 @@ def readRoomData(room, roomHeader, alternateRoomHeaders):
     room.disableSkybox = roomHeader.disableSkybox
     room.disableSunMoon = roomHeader.disableSunMoon
     room.echo = roomHeader.echo
-    room.objectList.extend([getCustomProperty(item, "objectID") for item in roomHeader.objectList])
-    if len(room.objectList) > 15:
+    room.objectIDList.extend([room.getCustomIDFromKey(ootData.objectData.objectsByKey, obj, "objectKey", "objectID") for obj in roomHeader.objectList])
+    if len(room.objectIDList) > 15:
         raise PluginError("Error: A scene can only have a maximum of 15 objects (OOT, not blender objects).")
 
     if alternateRoomHeaders is not None:

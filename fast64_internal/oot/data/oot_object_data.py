@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import enum
 from os import path
 from .oot_getters import getXMLRoot, getEnumList
 from .oot_data import OoT_BaseElement
@@ -19,7 +20,7 @@ class OoT_ObjectData:
         self.objectList: list[OoT_ObjectElement] = []
 
         # list of tuples used by Blender's enum properties
-        self.ootEnumObjectID: list[tuple] = []
+        self.ootEnumObjectKey: list[tuple] = []
         self.ootEnumObjectIDLegacy: list[tuple] = []  # for old blends
 
         # Path to the ``ObjectList.xml`` file
@@ -28,24 +29,24 @@ class OoT_ObjectData:
         for obj in getXMLRoot(objectXML).iterfind("Object"):
             self.objectList.append(OoT_ObjectElement(obj.attrib["ID"], obj.attrib["Key"], obj.attrib["Name"]))
 
-        self.objectsByKey = {obj.key: obj.id for obj in self.objectList}
-        self.ootEnumObjectID, self.ootEnumObjectIDLegacy = getEnumList(self.objectList, "Custom Object")
+        self.objectsByID = {obj.id: obj for obj in self.objectList}
+        self.objectsByKey = {obj.key: obj for obj in self.objectList}
+        self.ootEnumObjectKey, self.ootEnumObjectIDLegacy = getEnumList(self.objectList, "Custom Object")
 
-    def upgradeObjectInit(self, obj, objectList):
-        """Object upgrade logic"""
-        if obj.data is None and obj.ootEmptyType == "Room":
-            for i in range(len(obj.objectList)):
-                obj.objectList[i].objectIDLegacy = obj.objectList[i].objectID
-                for object in objectList:
-                    if obj.objectList[i].objectIDLegacy == object.id:
-                        obj.objectList[i].objectID = object.key
+    def upgradeObjectList(self, objList):
+        for obj in objList:
+            obj.objectKey = self.objectsByID.get(obj.objectID).key
 
-            obj.fast64.oot.version = obj.fast64.oot.cur_version
+    def upgradeAltHeaders(self, roomObj):
+        altHeaders = roomObj.ootAlternateRoomHeaders
+        for header in ["childNightHeader", "adultDayHeader", "adultNightHeader"]:
+            curHeader = getattr(altHeaders, header)
+            if curHeader is not None:
+                self.upgradeObjectList(curHeader.objectList)
+        for i in range(len(altHeaders.cutsceneHeaders)):
+            self.upgradeObjectList(altHeaders.cutsceneHeaders[i].objectList)
 
-        for childObj in obj.children:
-            self.upgradeObjectInit(childObj, objectList)
-
-    def addMissingObjectToUI(self, roomObj, headerIndex, objectID, csHeaderIndex):
+    def addMissingObjectToUI(self, roomObj, headerIndex, objectKey, csHeaderIndex):
         """Add the missing object to the room empty object OoT object list"""
         if roomObj is not None:
             if headerIndex == 0:
@@ -62,7 +63,7 @@ class OoT_ObjectData:
                 collection = roomProp.objectList
                 collection.add()
                 collection.move(len(collection) - 1, (headerIndex + 1))
-                collection[-1].objectID = objectID
+                collection[-1].objectKey = objectKey
 
     def addMissingObjectsToList(self, roomObj, room, actorList, headerIndex, csHeaderIndex):
         """Adds missing objects to the object list"""
@@ -70,18 +71,18 @@ class OoT_ObjectData:
             for roomActor in room.actorList:
                 for actor in actorList:
                     if actor.id == roomActor.actorID and not (actor.key == "player") and actor.tiedObjects is not None:
-                        for obj in actor.tiedObjects.split(","):
-                            if not (obj in room.objectList) and not (obj.startswith("obj_gameplay")):
-                                room.objectList.append(obj)
-                                self.addMissingObjectToUI(roomObj, headerIndex, obj, csHeaderIndex)
+                        for objKey in actor.tiedObjects.split(","):
+                            objID = self.objectsByKey.get(objKey).id
+                            if not (objID in room.objectIDList) and not (objKey.startswith("obj_gameplay")):
+                                room.objectIDList.append(objID)
+                                self.addMissingObjectToUI(roomObj, headerIndex, objKey, csHeaderIndex)
 
     def addAltHeadersObjects(self, roomObj, room, actorList):
         """Adds missing objects for alternate room headers"""
-        if room.childNightHeader is not None:
-            self.addMissingObjectsToList(roomObj, room.childNightHeader, actorList, 1, None)
-        if room.adultDayHeader is not None:
-            self.addMissingObjectsToList(roomObj, room.adultDayHeader, actorList, 2, None)
-        if room.adultNightHeader is not None:
-            self.addMissingObjectsToList(roomObj, room.adultNightHeader, actorList, 3, None)
+        altHeaders = ["childNightHeader", "adultDayHeader", "adultNightHeader"]
+        for i, header in enumerate(altHeaders, 1):
+            curHeader = getattr(room, header)
+            if curHeader is not None:
+                self.addMissingObjectsToList(roomObj, curHeader, actorList, i, None)
         for i in range(len(room.cutsceneHeaders)):
             self.addMissingObjectsToList(roomObj, room.cutsceneHeaders[i], actorList, 4, i)

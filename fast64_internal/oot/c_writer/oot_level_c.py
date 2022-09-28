@@ -234,34 +234,34 @@ def cmdMesh(room, header, cmdCount):
     return cmd
 
 
-def cmdObjectList(room, header, cmdCount):
+def cmdObjectList(room: OOTRoom, headerIndex: int, cmdCount):
     cmd = CData()
     cmd.source = (
-        indent + "SCENE_CMD_OBJECT_LIST(" + str(len(room.objectList)) + ", " + str(room.objectListName(header)) + "),\n"
+        indent + "SCENE_CMD_OBJECT_LIST(" + room.getObjectLengthDefineName(headerIndex) + ", " + str(room.objectListName(headerIndex)) + "),\n"
     )
     return cmd
 
 
-def cmdActorList(room, header, cmdCount):
+def cmdActorList(room: OOTRoom, headerIndex: int, cmdCount):
     cmd = CData()
     cmd.source = (
-        indent + "SCENE_CMD_ACTOR_LIST(" + str(len(room.actorList)) + ", " + str(room.actorListName(header)) + "),\n"
+        indent + "SCENE_CMD_ACTOR_LIST(" + room.getActorLengthDefineName(headerIndex) + ", " + str(room.actorListName(headerIndex)) + "),\n"
     )
     return cmd
 
 
-def ootObjectListToC(room, headerIndex):
+def ootObjectListToC(room: OOTRoom, headerIndex: int):
     data = CData()
     data.header = "extern s16 " + room.objectListName(headerIndex) + "[];\n"
     data.source = (
         "s16 "
         + room.objectListName(headerIndex)
-        + "[LENGTH_"
-        + str(room.objectListName(headerIndex)).upper()
+        + "["
+        + room.getObjectLengthDefineName(headerIndex)
         + "] = {\n"
     )
-    for objectItem in room.objectList:
-        data.source += indent + ootData.objectData.objectsByKey.get(objectItem) + ",\n"
+    for objID in room.objectIDList:
+        data.source += indent + objID + ",\n"
     data.source += "};\n\n"
     return data
 
@@ -295,14 +295,14 @@ def ootActorToC(actor):
     )
 
 
-def ootActorListToC(room, headerIndex):
+def ootActorListToC(room: OOTRoom, headerIndex: int):
     data = CData()
     data.header = "extern ActorEntry " + room.actorListName(headerIndex) + "[];\n"
     data.source = (
         "ActorEntry "
         + room.actorListName(headerIndex)
-        + "[LENGTH_"
-        + str(room.actorListName(headerIndex)).upper()
+        + "["
+        + room.getActorLengthDefineName(headerIndex)
         + "] = {\n"
     )
     for actor in room.actorList:
@@ -389,7 +389,7 @@ def ootRoomCommandsToC(room, headerIndex):
     if room.setWind:
         commands.append(cmdWindSettings(room, headerIndex, len(commands)))
     commands.append(cmdMesh(room, headerIndex, len(commands)))
-    if len(room.objectList) > 0:
+    if len(room.objectIDList) > 0:
         commands.append(cmdObjectList(room, headerIndex, len(commands)))
     if len(room.actorList) > 0:
         commands.append(cmdActorList(room, headerIndex, len(commands)))
@@ -407,33 +407,22 @@ def ootRoomCommandsToC(room, headerIndex):
     return data
 
 
-def ootAlternateRoomMainToC(scene, room):
+def ootAlternateRoomMainToC(scene: OOTScene, room: OOTRoom):
     altHeader = CData()
     altData = CData()
 
     altHeader.header = "extern SCmdBase* " + room.alternateHeadersName() + "[];\n"
     altHeader.source = "SCmdBase* " + room.alternateHeadersName() + "[] = {\n"
 
-    if room.childNightHeader is not None:
-        altHeader.source += indent + room.roomName() + "_header" + format(1, "02") + ",\n"
-        altData.source += ootGetHeaderDefines(room, 1)
-        altData.append(ootRoomMainToC(scene, room.childNightHeader, 1))
-    else:
-        altHeader.source += indent + "0,\n"
-
-    if room.adultDayHeader is not None:
-        altHeader.source += indent + room.roomName() + "_header" + format(2, "02") + ",\n"
-        altData.source += ootGetHeaderDefines(room, 2)
-        altData.append(ootRoomMainToC(scene, room.adultDayHeader, 2))
-    else:
-        altHeader.source += indent + "0,\n"
-
-    if room.adultNightHeader is not None:
-        altHeader.source += indent + room.roomName() + "_header" + format(3, "02") + ",\n"
-        altData.source += ootGetHeaderDefines(room, 3)
-        altData.append(ootRoomMainToC(scene, room.adultNightHeader, 3))
-    else:
-        altHeader.source += indent + "0,\n"
+    for headerIndex, headerName in enumerate(["childNightHeader", "adultDayHeader", "adultNightHeader"], 1):
+        # equivalent to ``room.childNightHeader`` if ``headerName`` is "childNightHeader"
+        curHeader = getattr(room, headerName)
+        if curHeader is not None:
+            altHeader.source += indent + f"{room.roomName()}_header{headerIndex:02},\n"
+            altData.source += ootGetHeaderDefines(curHeader, headerIndex)
+            altData.append(ootRoomMainToC(scene, curHeader, headerIndex))
+        else:
+            altHeader.source += indent + "NULL,\n"
 
     for i in range(len(room.cutsceneHeaders)):
         altHeader.source += indent + room.roomName() + "_header" + format(i + 4, "02") + ",\n"
@@ -459,7 +448,7 @@ def ootRoomMainToC(scene, room, headerIndex):
 
     roomMainC.append(ootRoomCommandsToC(room, headerIndex))
     roomMainC.append(altHeader)
-    if len(room.objectList) > 0:
+    if len(room.objectIDList) > 0:
         roomMainC.append(ootObjectListToC(room, headerIndex))
     if len(room.actorList) > 0:
         roomMainC.append(ootActorListToC(room, headerIndex))
@@ -874,15 +863,14 @@ class OOTLevelC:
         self.roomMeshC = {}
 
 
-def ootGetHeaderDefines(room, headerIndex):
+def ootGetHeaderDefines(room: OOTRoom, headerIndex: int):
     """Returns CData containing defines for actor and object lists lengths"""
     data = CData()
 
-    if len(room.objectList) > 0:
-        data.header += room.getObjectLengthDefineName(headerIndex)
+    if len(room.objectIDList) > 0:
+        data.header += f"{room.getObjectLengthDefine(headerIndex)}\n"
+
     if len(room.actorList) > 0:
-        data.header += room.getActorLengthDefineName(headerIndex)
-    if data.header != "":
-        data.header += "\n"
+        data.header += f"{room.getActorLengthDefine(headerIndex)}\n"
 
     return data.header

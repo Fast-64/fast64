@@ -8,6 +8,7 @@ from .oot_constants import *
 from ..f3d.f3d_gbi import *
 from .oot_collision_classes import *
 from .oot_model_classes import *
+from .data.oot_object_data import OoT_ObjectData
 
 
 class OOTActor:
@@ -411,7 +412,7 @@ class OOTRoom:
         # Echo
         self.echo = 0x00
 
-        self.objectList = []
+        self.objectIDList = []
 
         self.childNightHeader = None
         self.adultDayHeader = None
@@ -444,10 +445,21 @@ class OOTRoom:
         )
 
     def getObjectLengthDefineName(self, headerIndex: int):
-        return f"#define LENGTH_{self.objectListName(headerIndex).upper()} {len(self.objectList)}\n"
+        return f"LENGTH_{self.objectListName(headerIndex).upper()}"
 
     def getActorLengthDefineName(self, headerIndex: int):
-        return f"#define LENGTH_{self.actorListName(headerIndex).upper()} {len(self.actorList)}\n"
+        return f"LENGTH_{self.actorListName(headerIndex).upper()}"
+
+    def getObjectLengthDefine(self, headerIndex: int):
+        return f"#define {self.getObjectLengthDefineName(headerIndex)} {len(self.objectIDList)}\n"
+
+    def getActorLengthDefine(self, headerIndex: int):
+        return f"#define {self.getActorLengthDefineName(headerIndex)} {len(self.actorList)}\n"
+
+    def getCustomIDFromKey(self, listDict: dict, data, keyField: str, customPrefix: str) -> str:
+        """Returns the custom ID if the key is 'Custom' value, else returns the ID from the key"""
+        key = getattr(data, keyField)
+        return listDict.get(key).id if key != "Custom" else getattr(data, f"{customPrefix}Custom")
 
 
 def addActor(owner, actor, actorProp, propName, actorObjName):
