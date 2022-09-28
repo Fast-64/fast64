@@ -13,32 +13,7 @@ from ..f3d.f3d_writer import *
 from ..f3d.f3d_material import TextureProperty, tmemUsageUI
 from .oot_f3d_writer import *
 from .oot_texture_array import ootReadTextureArrays
-
-from collections import OrderedDict
-
-# Link overlay will be "", since link texture array data is handled as a special case.
-class OOTSkeletonImportInfo:
-    def __init__(self, skeletonName: str, folderName: str, overlayName: str, arrayIndex2D: int | None):
-        self.skeletonName = skeletonName
-        self.folderName = folderName
-        self.overlayName = overlayName  # Note that overlayName = None will disable texture array reading.
-        self.arrayIndex2D = arrayIndex2D
-        self.isLink = skeletonName == "gLinkAdultSkel" or skeletonName == "gLinkChildSkel"
-
-
-ootSkeletonImportDict = OrderedDict(
-    {
-        "Adult Link": OOTSkeletonImportInfo("gLinkAdultSkel", "object_link_boy", "", 0),
-        "Child Link": OOTSkeletonImportInfo("gLinkChildSkel", "object_link_child", "", 1),
-    }
-)
-
-ootEnumSkeletonImportMode = [
-    ("Generic", "Generic", "Generic"),
-]
-
-for name, info in ootSkeletonImportDict.items():
-    ootEnumSkeletonImportMode.append((name, name, name))
+from .oot_skeleton_import_data import *
 
 
 class OOTSkeletonExportSettings(bpy.types.PropertyGroup):
@@ -66,6 +41,7 @@ class OOTSkeletonExportSettings(bpy.types.PropertyGroup):
 
 class OOTSkeletonImportSettings(bpy.types.PropertyGroup):
     mode: bpy.props.EnumProperty(name="Mode", items=ootEnumSkeletonImportMode)
+    applyRestPose: bpy.props.BoolProperty(name="Apply Friendly Rest Pose (If Available)", default=True)
     name: bpy.props.StringProperty(name="Skeleton Name", default="gGerudoRedSkel")
     folder: bpy.props.StringProperty(name="Skeleton Folder", default="object_geldb")
     customPath: bpy.props.StringProperty(name="Custom Skeleton Path", subtype="FILE_PATH")
@@ -775,6 +751,7 @@ def ootImportSkeletonC(actorScale: float, basePath: str, importSettings: OOTSkel
         is2DArray = importInfo.arrayIndex2D is not None
         arrayIndex2D = importInfo.arrayIndex2D
         isLink = importInfo.isLink
+        restPoseData = importInfo.restPoseData
     else:
         skeletonName = importSettings.name
         folderName = importSettings.folder
@@ -782,6 +759,7 @@ def ootImportSkeletonC(actorScale: float, basePath: str, importSettings: OOTSkel
         is2DArray = importSettings.is2DArray
         arrayIndex2D = importSettings.arrayIndex2D if is2DArray else None
         isLink = False
+        restPoseData = None
 
     filepaths = [ootGetObjectPath(isCustomImport, importPath, folderName)]
 
@@ -835,8 +813,14 @@ def ootImportSkeletonC(actorScale: float, basePath: str, importSettings: OOTSkel
             f3dContext,
         )
         armatureObj.ootFarLOD = LODArmatureObj
+        LODArmatureObj.location += mathutils.Vector((10, 0, 0))
 
     f3dContext.deleteMaterialContext()
+
+    if importSettings.applyRestPose and restPoseData is not None:
+        applySkeletonRestPose(restPoseData, armatureObj)
+        if isLOD:
+            applySkeletonRestPose(restPoseData, LODArmatureObj)
 
 
 def ootBuildSkeleton(
@@ -1205,8 +1189,8 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
                         text="This actor has a 2D texture array and will not import correctly unless the array is flattened.",
                         icon="ERROR",
                     )
-            elif exportSettings.mode == "Adult Link" or exportSettings.mode == "Child Link":
-                pass
+            else:
+                col.prop(importSettings, "applyRestPose")
 
 
 class OOT_SkeletonPanel(bpy.types.Panel):
@@ -1271,6 +1255,7 @@ oot_skeleton_classes = (
     OOT_ImportSkeleton,
     OOTSkeletonExportSettings,
     OOTSkeletonImportSettings,
+    OOT_SaveRestPose,
 )
 
 oot_skeleton_panels = (

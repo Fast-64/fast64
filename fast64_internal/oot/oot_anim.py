@@ -454,16 +454,6 @@ def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSetti
         if not settings.isCustom:
             addIncludeFiles(settings.folderName, path, ootAnim.name)
 
-
-def getNextBone(boneStack, armatureObj):
-    if len(boneStack) == 0:
-        raise PluginError("More bones in animation than on armature.")
-    bone = armatureObj.data.bones[boneStack[0]]
-    boneStack = boneStack[1:]
-    boneStack = getSortedChildren(armatureObj, bone) + boneStack
-    return bone, boneStack
-
-
 def ootImportAnimationC(
     armatureObj: bpy.types.Object,
     settings: OOTAnimImportSettingsProperty,

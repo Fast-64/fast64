@@ -382,6 +382,15 @@ def getStartBone(armatureObj):
     # return 'root'
 
 
+def getNextBone(boneStack: list[str], armatureObj: bpy.types.Object):
+    if len(boneStack) == 0:
+        raise PluginError("More bones in animation than on armature.")
+    bone = armatureObj.data.bones[boneStack[0]]
+    boneStack = boneStack[1:]
+    boneStack = getSortedChildren(armatureObj, bone) + boneStack
+    return bone, boneStack
+
+
 def checkForStartBone(armatureObj):
     pass
     # if "root" not in armatureObj.data.bones:
