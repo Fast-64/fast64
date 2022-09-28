@@ -472,9 +472,9 @@ def ootSceneCommandsToC(scene: OOTScene, headerIndex: int):
     data = CData()
 
     # data.header = ''.join([command.header for command in commands]) +'\n'
-    data.header = "extern SCmdBase " + scene.sceneName() + "_header" + format(headerIndex, "02") + "[];\n"
+    data.header = "extern SCmdBase " + scene.sceneHeaderName(headerIndex) + "[];\n"
 
-    data.source = "SCmdBase " + scene.sceneName() + "_header" + format(headerIndex, "02") + "[] = {\n"
+    data.source = "SCmdBase " + scene.sceneHeaderName(headerIndex) + "[] = {\n"
     data.source += "".join([command.source for command in commands])
     data.source += "};\n\n"
 

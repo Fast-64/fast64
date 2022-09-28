@@ -149,7 +149,8 @@ class OOTSceneTableEntry:
 
 
 class OOTScene:
-    def __init__(self, name, model):
+    def __init__(self, name: str, model: OOTModel):
+        """Initialises the class"""
         self.name = toAlnum(name)
         self.write_dummy_room_list = False
         self.rooms = {}
@@ -198,7 +199,8 @@ class OOTScene:
 
         self.sceneTableEntry = OOTSceneTableEntry()
 
-    def getAlternateHeaderScene(self, name):
+    def getAlternateHeaderScene(self, name: str):
+        """Returns a new ``OOTScene()`` for the wanted header"""
         scene = OOTScene(name, self.model)
         scene.write_dummy_room_list = self.write_dummy_room_list
         scene.rooms = self.rooms
@@ -208,26 +210,31 @@ class OOTScene:
         scene.cameraList = self.cameraList
         return scene
 
-    def sceneName(self):
+    def sceneName(self) -> str:
+        """Returns the scene's name"""
         return self.name + "_scene"
+
+    def sceneHeaderName(self, headerIndex: int):
+        """Returns the scene's name with the current header index in it"""
+        return f"{self.sceneName()}_header{headerIndex:02}"
 
     def roomListName(self):
         return self.sceneName() + "_roomList"
 
-    def entranceListName(self, headerIndex):
-        return self.sceneName() + "_header" + format(headerIndex, "02") + "_entranceList"
+    def entranceListName(self, headerIndex: int):
+        return f"{self.sceneHeaderName(headerIndex)}_entranceList"
 
-    def startPositionsName(self, headerIndex):
-        return self.sceneName() + "_header" + format(headerIndex, "02") + "_startPositionList"
+    def startPositionsName(self, headerIndex: int):
+        return f"{self.sceneHeaderName(headerIndex)}_startPositionList"
 
-    def exitListName(self, headerIndex):
-        return self.sceneName() + "_header" + format(headerIndex, "02") + "_exitList"
+    def exitListName(self, headerIndex: int):
+        return f"{self.sceneHeaderName(headerIndex)}_exitList"
 
-    def lightListName(self, headerIndex):
-        return self.sceneName() + "_header" + format(headerIndex, "02") + "_lightSettings"
+    def lightListName(self, headerIndex: int):
+        return f"{self.sceneHeaderName(headerIndex)}_lightSettings"
 
-    def transitionActorListName(self, headerIndex):
-        return self.sceneName() + "_header" + format(headerIndex, "02") + "_transitionActors"
+    def transitionActorListName(self, headerIndex: int):
+        return f"{self.sceneHeaderName(headerIndex)}_transitionActors"
 
     def pathListName(self):
         return self.sceneName() + "_pathway"
@@ -235,8 +242,8 @@ class OOTScene:
     def cameraListName(self):
         return self.sceneName() + "_cameraList"
 
-    def cutsceneDataName(self, headerIndex):
-        return self.sceneName() + "_header" + format(headerIndex, "02") + "_cutscene"
+    def cutsceneDataName(self, headerIndex: int):
+        return f"{self.sceneHeaderName(headerIndex)}_cutscene"
 
     def alternateHeadersName(self):
         return self.sceneName() + "_alternateHeaders"
@@ -250,47 +257,44 @@ class OOTScene:
         )
 
     def validateIndices(self):
-        self.collision.cameraData.validateCamPositions()
+        """Checks if the scene's indices are all correct"""
+        self.collision.cameraData.validateCamPositions() # ``collision.cameraData`` type: ``OOTCameraData``
         self.validateStartPositions()
         self.validateRoomIndices()
         self.validatePathIndices()
 
     def validateStartPositions(self):
-        count = 0
-        while count < len(self.startPositions):
-            if count not in self.startPositions:
+        for index in range(len(self.startPositions)):
+            if not (index in self.startPositions):
                 raise PluginError(
                     "Error: Entrances (start positions) do not have a consecutive list of indices. "
-                    + "Missing index: "
-                    + str(count)
+                    + f"Missing index: {index}"
                 )
-            count = count + 1
 
     def validateRoomIndices(self):
-        count = 0
-        while count < len(self.rooms):
-            if count not in self.rooms:
+        for index in range(len(self.rooms)):
+            if not (index in self.rooms):
                 raise PluginError(
-                    "Error: Room indices do not have a consecutive list of indices. " + "Missing index: " + str(count)
+                    f"Error: Room indices do not have a consecutive list of indices. Missing index: {index}"
                 )
-            count = count + 1
 
     def validatePathIndices(self):
-        count = 0
-        while count < len(self.pathList):
-            if count not in self.pathList:
+        for index in range(len(self.pathList)):
+            if not (index in self.pathList):
                 raise PluginError(
-                    "Error: Path list does not have a consecutive list of indices.\n" + "Missing index: " + str(count)
+                    f"Error: Path list does not have a consecutive list of indices. Missing index: {index}"
                 )
-            count = count + 1
 
-    def addRoom(self, roomIndex, roomName, roomShape):
+    def addRoom(self, roomIndex: int, roomName: str, roomShape: str):
+        """Adds a new room"""
         roomModel = self.model.addSubModel(
-            OOTModel(self.model.f3d.F3D_VER, self.model.f3d._HW_VERSION_1, roomName + "_dl", self.model.DLFormat, None)
+            OOTModel(self.model.f3d.F3D_VER, self.model.f3d._HW_VERSION_1, f"{roomName}_dl", self.model.DLFormat, None)
         )
         room = OOTRoom(roomIndex, roomName, roomModel, roomShape)
+
         if roomIndex in self.rooms:
-            raise PluginError("Repeat room index " + str(roomIndex) + " for " + str(roomName))
+            raise PluginError(f"Error: Repeated room index for room '{roomName}': {roomIndex}")
+
         self.rooms[roomIndex] = room
         return room
 
