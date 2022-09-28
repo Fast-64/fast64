@@ -237,7 +237,12 @@ def cmdMesh(room, header, cmdCount):
 def cmdObjectList(room: OOTRoom, headerIndex: int, cmdCount):
     cmd = CData()
     cmd.source = (
-        indent + "SCENE_CMD_OBJECT_LIST(" + room.getObjectLengthDefineName(headerIndex) + ", " + str(room.objectListName(headerIndex)) + "),\n"
+        indent
+        + "SCENE_CMD_OBJECT_LIST("
+        + room.getObjectLengthDefineName(headerIndex)
+        + ", "
+        + str(room.objectListName(headerIndex))
+        + "),\n"
     )
     return cmd
 
@@ -245,7 +250,12 @@ def cmdObjectList(room: OOTRoom, headerIndex: int, cmdCount):
 def cmdActorList(room: OOTRoom, headerIndex: int, cmdCount):
     cmd = CData()
     cmd.source = (
-        indent + "SCENE_CMD_ACTOR_LIST(" + room.getActorLengthDefineName(headerIndex) + ", " + str(room.actorListName(headerIndex)) + "),\n"
+        indent
+        + "SCENE_CMD_ACTOR_LIST("
+        + room.getActorLengthDefineName(headerIndex)
+        + ", "
+        + str(room.actorListName(headerIndex))
+        + "),\n"
     )
     return cmd
 
@@ -253,13 +263,7 @@ def cmdActorList(room: OOTRoom, headerIndex: int, cmdCount):
 def ootObjectListToC(room: OOTRoom, headerIndex: int):
     data = CData()
     data.header = "extern s16 " + room.objectListName(headerIndex) + "[];\n"
-    data.source = (
-        "s16 "
-        + room.objectListName(headerIndex)
-        + "["
-        + room.getObjectLengthDefineName(headerIndex)
-        + "] = {\n"
-    )
+    data.source = f"s16 {room.objectListName(headerIndex)}[{room.getObjectLengthDefineName(headerIndex)}]" + " = {\n"
     for objID in room.objectIDList:
         data.source += indent + objID + ",\n"
     data.source += "};\n\n"
@@ -299,11 +303,7 @@ def ootActorListToC(room: OOTRoom, headerIndex: int):
     data = CData()
     data.header = "extern ActorEntry " + room.actorListName(headerIndex) + "[];\n"
     data.source = (
-        "ActorEntry "
-        + room.actorListName(headerIndex)
-        + "["
-        + room.getActorLengthDefineName(headerIndex)
-        + "] = {\n"
+        f"ActorEntry {room.actorListName(headerIndex)}[{room.getActorLengthDefineName(headerIndex)}]" + " = {\n"
     )
     for actor in room.actorList:
         data.source += indent + ootActorToC(actor)
