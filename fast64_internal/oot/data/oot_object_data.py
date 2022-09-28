@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from os import path
+from ...utility import ootGetSceneOrRoomHeader
 from .oot_getters import getXMLRoot, getEnumList
 from .oot_data import OoT_BaseElement
 
@@ -53,16 +54,7 @@ class OoT_ObjectData:
     def addMissingObjectToProp(self, roomObj, headerIndex, objectKey, csHeaderIndex):
         """Add the missing object to the room empty object OoT object list"""
         if roomObj is not None:
-            if headerIndex == 0:
-                roomProp = roomObj.ootRoomHeader
-            elif headerIndex == 1:
-                roomProp = roomObj.ootAlternateRoomHeaders.childNightHeader
-            elif headerIndex == 2:
-                roomProp = roomObj.ootAlternateRoomHeaders.adultDayHeader
-            elif headerIndex == 3:
-                roomProp = roomObj.ootAlternateRoomHeaders.adultNightHeader
-            elif csHeaderIndex is not None:
-                roomProp = roomObj.ootAlternateRoomHeaders.cutsceneHeaders[csHeaderIndex]
+            roomProp = ootGetSceneOrRoomHeader(roomObj, headerIndex, True)
             if roomProp is not None:
                 collection = roomProp.objectList
                 collection.add()

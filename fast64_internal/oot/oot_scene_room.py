@@ -65,7 +65,7 @@ class OOT_SearchObjectEnumOperator(bpy.types.Operator):
 
     def execute(self, context):
         roomHeader = ootGetSceneOrRoomHeader(bpy.data.objects[self.objName], self.headerIndex, True)
-        roomHeader.objectList[self.index].objectID = self.ootObjectID
+        roomHeader.objectList[self.index].objectKey = self.objectKey
         bpy.context.region.tag_redraw()
         self.report({"INFO"}, "Selected: " + self.objectKey)
         return {"FINISHED"}
