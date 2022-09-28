@@ -26,7 +26,7 @@ class OoT_ObjectData:
         objectXML = path.dirname(path.abspath(__file__)) + "/xml/ObjectList.xml"
 
         for obj in getXMLRoot(objectXML).iterfind("Object"):
-            objName = f"{obj.attrib['Name']} - {obj.attrib['ID'].replace('OBJECT_', '')}"
+            objName = f"{obj.attrib['Name']} - {obj.attrib['ID'].removeprefix('OBJECT_')}"
             self.objectList.append(OoT_ObjectElement(obj.attrib["ID"], obj.attrib["Key"], objName))
 
         self.objectsByID = {obj.id: obj for obj in self.objectList}
@@ -35,18 +35,22 @@ class OoT_ObjectData:
 
     def upgradeObjectList(self, objList):
         for obj in objList:
-            obj.objectKey = self.objectsByID.get(obj.objectID).key
+            obj.objectKey = self.objectsByID[obj.objectID].key
 
-    def upgradeAltHeaders(self, roomObj):
+    def upgradeRoomHeaders(self, roomObj):
         altHeaders = roomObj.ootAlternateRoomHeaders
-        for header in ["childNightHeader", "adultDayHeader", "adultNightHeader"]:
-            curHeader = getattr(altHeaders, header)
-            if curHeader is not None:
-                self.upgradeObjectList(curHeader.objectList)
+        for sceneLayer in [
+            roomObj.ootRoomHeader,
+            altHeaders.childNightHeader,
+            altHeaders.adultDayHeader,
+            altHeaders.adultNightHeader,
+        ]:
+            if sceneLayer is not None:
+                self.upgradeObjectList(sceneLayer.objectList)
         for i in range(len(altHeaders.cutsceneHeaders)):
             self.upgradeObjectList(altHeaders.cutsceneHeaders[i].objectList)
 
-    def addMissingObjectToUI(self, roomObj, headerIndex, objectKey, csHeaderIndex):
+    def addMissingObjectToProp(self, roomObj, headerIndex, objectKey, csHeaderIndex):
         """Add the missing object to the room empty object OoT object list"""
         if roomObj is not None:
             if headerIndex == 0:
@@ -70,20 +74,19 @@ class OoT_ObjectData:
         if len(room.actorList) > 0:
             for roomActor in room.actorList:
                 actor = actorData.actorsByID.get(roomActor.actorID)
-                if not (actor.key == "player") and len(actor.tiedObjects) > 0:
+                if actor.key != "player" and actor.tiedObjects is not None:
                     for objKey in actor.tiedObjects:
-                        if not objKey in ["obj_gameplay", "obj_gameplay_dangeon_keep"]:
+                        if objKey not in ["obj_gameplay_keep", "obj_gameplay_field_keep", "obj_gameplay_dangeon_keep"]:
                             objID = self.objectsByKey.get(objKey).id
                             if not (objID in room.objectIDList):
                                 room.objectIDList.append(objID)
-                                self.addMissingObjectToUI(roomObj, headerIndex, objKey, csHeaderIndex)
+                                self.addMissingObjectToProp(roomObj, headerIndex, objKey, csHeaderIndex)
 
-    def addAltHeadersObjects(self, roomObj, room, actorData):
+    def addRoomHeadersObjects(self, roomObj, room, actorData):
         """Adds missing objects for alternate room headers"""
-        altHeaders = ["childNightHeader", "adultDayHeader", "adultNightHeader"]
-        for i, header in enumerate(altHeaders, 1):
-            curHeader = getattr(room, header)
-            if curHeader is not None:
-                self.addMissingObjectsToList(roomObj, curHeader, actorData, i, None)
+        sceneLayers = [room, room.childNightHeader, room.adultDayHeader, room.adultNightHeader]
+        for i, layer in enumerate(sceneLayers):
+            if layer is not None:
+                self.addMissingObjectsToList(roomObj, layer, actorData, i, None)
         for i in range(len(room.cutsceneHeaders)):
             self.addMissingObjectsToList(roomObj, room.cutsceneHeaders[i], actorData, 4, i)

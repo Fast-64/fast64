@@ -15,7 +15,7 @@ class OOT_SearchActorIDEnumOperator(bpy.types.Operator):
 	bl_property = "actorID"
 	bl_options = {'REGISTER', 'UNDO'}
 
-	actorID : bpy.props.EnumProperty(items = ootData.actorData.ootEnumActorIDLegacy, default = "ACTOR_PLAYER")
+	actorID : bpy.props.EnumProperty(items = ootData.actorData.ootEnumActorID, default = "ACTOR_PLAYER")
 	actorUser : bpy.props.StringProperty(default = "Actor")
 	objName : bpy.props.StringProperty()
 
@@ -99,7 +99,7 @@ def drawActorHeaderItemProperty(layout, propUser, headerItemProp, index, altProp
 			box.label(text = "Header does not exist.", icon = 'QUESTION')
 
 class OOTActorProperty(bpy.types.PropertyGroup):
-	actorID : bpy.props.EnumProperty(name = 'Actor', items = ootData.actorData.ootEnumActorIDLegacy, default = 'ACTOR_PLAYER')
+	actorID : bpy.props.EnumProperty(name = 'Actor', items = ootData.actorData.ootEnumActorID, default = 'ACTOR_PLAYER')
 	actorIDCustom : bpy.props.StringProperty(name = 'Actor ID', default = 'ACTOR_PLAYER')
 	actorParam : bpy.props.StringProperty(name = 'Actor Parameter', default = '0x0000')
 	rotOverride : bpy.props.BoolProperty(name = 'Override Rotation', default = False)
@@ -118,7 +118,7 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName):
 
 	split = actorIDBox.split(factor = 0.5)
 	split.label(text = "Actor ID")
-	split.label(text = getEnumName(ootData.actorData.ootEnumActorIDLegacy, actorProp.actorID))
+	split.label(text = getEnumName(ootData.actorData.ootEnumActorID, actorProp.actorID))
 
 	if actorProp.actorID == 'Custom':
 		#actorIDBox.prop(actorProp, 'actorIDCustom', text = 'Actor ID')
@@ -152,7 +152,7 @@ def drawTransitionActorProperty(layout, transActorProp, altSceneProp, roomObj, o
 
 	split = actorIDBox.split(factor = 0.5)
 	split.label(text = "Actor ID")
-	split.label(text = getEnumName(ootData.actorData.ootEnumActorIDLegacy, transActorProp.actor.actorID))
+	split.label(text = getEnumName(ootData.actorData.ootEnumActorID, transActorProp.actor.actorID))
 
 	if transActorProp.actor.actorID == 'Custom':
 		prop_split(actorIDBox, transActorProp.actor, 'actorIDCustom', '')

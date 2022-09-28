@@ -12,8 +12,6 @@
   <Object ID="OBJECT_FIRE" Key="obj_fire" Name="Dancing Flame"/>
   <Object ID="OBJECT_BUBBLE" Key="obj_bubble" Name="Shabom"/>
   <Object ID="OBJECT_NIW" Key="obj_niw" Name="Cucco"/>
-  <Object ID="OBJECT_LINK_BOY" Key="obj_link_boy" Name="Adult Link"/>
-  <Object ID="OBJECT_LINK_CHILD" Key="obj_link_child" Name="Child Link"/>
   <Object ID="OBJECT_TITE" Key="obj_tite" Name="Tektites"/>
   <Object ID="OBJECT_REEBA" Key="obj_reeba" Name="Leever"/>
   <Object ID="OBJECT_PEEHAT" Key="obj_peehat" Name="Peahat"/>

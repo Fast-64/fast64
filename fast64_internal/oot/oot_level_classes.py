@@ -450,11 +450,6 @@ class OOTRoom:
     def getActorLengthDefineName(self, headerIndex: int):
         return f"LENGTH_{self.actorListName(headerIndex).upper()}"
 
-    def getCustomIDFromKey(self, listDict: dict, data, keyField: str, customPrefix: str) -> str:
-        """Returns the custom ID if the key is 'Custom' value, else returns the ID from the key"""
-        key = getattr(data, keyField)
-        return listDict.get(key).id if key != "Custom" else getattr(data, f"{customPrefix}Custom")
-
 
 def addActor(owner, actor, actorProp, propName, actorObjName):
     sceneSetup = actorProp.headerSettings

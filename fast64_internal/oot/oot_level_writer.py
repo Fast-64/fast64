@@ -88,8 +88,7 @@ def ootExportSceneToC(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneN
         obj for obj in bpy.data.objects if ((obj.parent == originalSceneObj) and (obj.ootEmptyType == "Room"))
     ]
     for roomObj, room in zip(roomObjects, scene.rooms.values()):
-        ootData.objectData.addMissingObjectsToList(roomObj, room, ootData.actorData, 0, None)
-        ootData.objectData.addAltHeadersObjects(roomObj, room, ootData.actorData)
+        ootData.objectData.addRoomHeadersObjects(roomObj, room, ootData.actorData)
     levelPath = ootGetPath(exportPath, isCustomExport, exportSubdir, sceneName, True, True)
     levelC = ootLevelToC(scene, TextureExportSettings(False, savePNG, exportSubdir + sceneName, levelPath))
 
@@ -307,9 +306,10 @@ def readRoomData(room, roomHeader, alternateRoomHeaders):
     room.disableSkybox = roomHeader.disableSkybox
     room.disableSunMoon = roomHeader.disableSunMoon
     room.echo = roomHeader.echo
+    objectsByKey = ootData.objectData.objectsByKey
     room.objectIDList.extend(
         [
-            room.getCustomIDFromKey(ootData.objectData.objectsByKey, obj, "objectKey", "objectID")
+            objectsByKey.get(obj.objectKey).id if obj.objectKey != "Custom" else obj.objectIDCustom
             for obj in roomHeader.objectList
         ]
     )

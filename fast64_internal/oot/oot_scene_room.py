@@ -60,10 +60,10 @@ class OOT_SearchMusicSeqEnumOperator(bpy.types.Operator):
 class OOT_SearchObjectEnumOperator(bpy.types.Operator):
     bl_idname = "object.oot_search_object_enum_operator"
     bl_label = "Search Object ID"
-    bl_property = "ootObjectID"
+    bl_property = "objectKey"
     bl_options = {"REGISTER", "UNDO"}
 
-    ootObjectID: bpy.props.EnumProperty(items=ootData.objectData.ootEnumObjectKey, default="obj_human")
+    objectKey: bpy.props.EnumProperty(items=ootData.objectData.ootEnumObjectKey, default="obj_human")
     headerIndex: bpy.props.IntProperty(default=0, min=0)
     index: bpy.props.IntProperty(default=0, min=0)
     objName: bpy.props.StringProperty()
@@ -81,9 +81,9 @@ class OOT_SearchObjectEnumOperator(bpy.types.Operator):
         else:
             roomHeader = obj.ootAlternateRoomHeaders.cutsceneHeaders[self.headerIndex - 4]
 
-        roomHeader.objectList[self.index].objectKey = self.ootObjectID
+        roomHeader.objectList[self.index].objectKey = self.objectKey
         bpy.context.region.tag_redraw()
-        self.report({"INFO"}, "Selected: " + self.ootObjectID)
+        self.report({"INFO"}, "Selected: " + self.objectKey)
         return {"FINISHED"}
 
     def invoke(self, context, event):
@@ -173,15 +173,16 @@ def drawExitProperty(layout, exitProp, index, headerIndex, objName):
 class OOTObjectProperty(bpy.types.PropertyGroup):
     expandTab: bpy.props.BoolProperty(name="Expand Tab")
     objectKey: bpy.props.EnumProperty(items=ootData.objectData.ootEnumObjectKey, default="obj_human")
-    objectID: bpy.props.EnumProperty(items=ootData.objectData.ootEnumObjectIDLegacy, default="OBJECT_HUMAN")
     objectIDCustom: bpy.props.StringProperty(default="OBJECT_CUSTOM")
+
+    # this is needed for compatibility with older blends
+    objectID: bpy.props.EnumProperty(items=ootData.objectData.ootEnumObjectIDLegacy, default="OBJECT_HUMAN")
 
     @staticmethod
     def upgrade_object(obj):
         if obj.fast64.oot.version < 1:
             print(f"Processing '{obj.name}'...")
-            ootData.objectData.upgradeObjectList(obj.ootRoomHeader.objectList)
-            ootData.objectData.upgradeAltHeaders(obj)
+            ootData.objectData.upgradeRoomHeaders(obj)
 
 
 def drawObjectProperty(
