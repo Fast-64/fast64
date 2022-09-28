@@ -23,7 +23,7 @@ class OoT_ActorData:
             tiedObjects = []
             objKey = actor.get("ObjectKey")
             if objKey is not None:
-                tiedObjects = actor.get("ObjectKey").split(",")
+                tiedObjects = objKey.split(",")
             self.actorList.append(
                 OoT_ActorElement(
                     actor.attrib["ID"],
