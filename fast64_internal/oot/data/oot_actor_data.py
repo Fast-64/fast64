@@ -20,13 +20,17 @@ class OoT_ActorData:
         # Path to the ``ActorList.xml`` file
         actorXML = path.dirname(path.abspath(__file__)) + "/xml/ActorList.xml"
         for actor in getXMLRoot(actorXML).iterfind("Actor"):
+            tiedObjects = []
+            objKey = actor.get("ObjectKey")
+            if objKey is not None:
+                tiedObjects = actor.get("ObjectKey").split(",")
             self.actorList.append(
                 OoT_ActorElement(
                     actor.attrib["ID"],
                     actor.attrib["Key"],
                     actor.attrib["Name"],
                     actor.attrib["Category"],
-                    actor.get("ObjectKey").split(","),  # actors don't always use an object
+                    tiedObjects,  # actors don't always use an object
                 )
             )
         self.actorsByKey = {actor.key: actor for actor in self.actorList}
