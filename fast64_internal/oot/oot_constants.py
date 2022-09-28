@@ -23,6 +23,11 @@ ootEnumSceneMenu = [
     ("Alternate", "Alternate", "Alternate"),
 ]
 
+ootEnumRenderScene = [
+    ("General", "General", "General"),
+    ("Alternate", "Alternate", "Alternate"),
+]
+
 ootEnumSceneMenuAlternate = [
     ("General", "General", "General"),
     ("Lighting", "Lighting", "Lighting"),

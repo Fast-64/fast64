@@ -255,26 +255,10 @@ def getExitData(exitProp):
 
 def getLightData(lightProp):
     light = OOTLight()
-    light.ambient = getLightColor(lightProp.ambient)
-    if lightProp.useCustomDiffuse0:
-        if lightProp.diffuse0Custom is None:
-            raise PluginError("Error: Diffuse 0 light object not set in a scene lighting property.")
-        light.diffuse0 = getLightColor(lightProp.diffuse0Custom.color)
-        light.diffuseDir0 = getLightRotation(lightProp.diffuse0Custom)
-    else:
-        light.diffuse0 = getLightColor(lightProp.diffuse0)
-        light.diffuseDir0 = [0x49, 0x49, 0x49]
-
-    if lightProp.useCustomDiffuse1:
-        if lightProp.diffuse1Custom is None:
-            raise PluginError("Error: Diffuse 1 light object not set in a scene lighting property.")
-        light.diffuse1 = getLightColor(lightProp.diffuse1Custom.color)
-        light.diffuseDir1 = getLightRotation(lightProp.diffuse1Custom)
-    else:
-        light.diffuse1 = getLightColor(lightProp.diffuse1)
-        light.diffuseDir1 = [0xB7, 0xB7, 0xB7]
-
-    light.fogColor = getLightColor(lightProp.fogColor)
+    light.ambient = exportColor(lightProp.ambient)
+    light.diffuse0, light.diffuseDir0 = ootGetBaseOrCustomLight(lightProp, 0, True, True)
+    light.diffuse1, light.diffuseDir1 = ootGetBaseOrCustomLight(lightProp, 1, True, True)
+    light.fogColor = exportColor(lightProp.fogColor)
     light.fogNear = lightProp.fogNear
     light.transitionSpeed = lightProp.transitionSpeed
     light.fogFar = lightProp.fogFar
@@ -643,7 +627,7 @@ class OOT_ExportScene(bpy.types.Operator):
                 context.scene.isHWv1,
                 levelName,
                 DLFormat.Static,
-                context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions,
+                context.scene.saveTextures,
                 exportInfo,
             )
 
