@@ -24,7 +24,7 @@ from . import addon_updater_ops
 # info about add on
 bl_info = {
     "name": "Fast64",
-    "version": (1, 0, 1),
+    "version": (2, 0, 0),
     "author": "kurethedead",
     "location": "3DView",
     "description": "Plugin for exporting F3D display lists and other game data related to Super Mario 64.",
