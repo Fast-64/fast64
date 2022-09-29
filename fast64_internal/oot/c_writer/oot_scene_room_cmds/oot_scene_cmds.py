@@ -52,8 +52,8 @@ def cmdPathList(scene: OOTScene):
 def cmdSpawnList(scene: OOTScene, headerIndex: int):
     """Returns C-converted spawns list command"""
     # ``NULL`` if there's no list since this command expects an address
-    spawnPosName = scene.startPositionsName(headerIndex) if startPosNumber > 0 else "NULL"
     startPosNumber = len(scene.startPositions)
+    spawnPosName = scene.startPositionsName(headerIndex) if startPosNumber > 0 else "NULL"
     return f"SCENE_CMD_SPAWN_LIST({startPosNumber}, {spawnPosName})"
 
 

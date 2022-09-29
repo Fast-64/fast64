@@ -288,7 +288,7 @@ class OOTScene:
     def addRoom(self, roomIndex: int, roomName: str, roomShape: str):
         """Adds a new room"""
         roomModel = self.model.addSubModel(
-            OOTModel(self.model.f3d.F3D_VER, self.model.f3d._HW_VERSION_1, f"{roomName}_dl", self.model.dlFormat, None)
+            OOTModel(self.model.f3d.F3D_VER, self.model.f3d._HW_VERSION_1, f"{roomName}_dl", self.model.DLFormat, None)
         )
         room = OOTRoom(roomIndex, roomName, roomModel, roomShape)
 
@@ -318,7 +318,7 @@ class OOTRoomMesh:
         return f"{self.roomName}_{entryName}"
 
     def addMeshGroup(self, cullGroup: CullGroup):
-        meshGroup = OOTRoomMeshGroup(cullGroup, self.model.dlFormat, self.roomName, len(self.meshEntries))
+        meshGroup = OOTRoomMeshGroup(cullGroup, self.model.DLFormat, self.roomName, len(self.meshEntries))
         self.meshEntries.append(meshGroup)
         return meshGroup
 

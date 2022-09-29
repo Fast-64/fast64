@@ -6,4 +6,4 @@ def cmdAltHeaders(altHeaderName: str):
 def cmdEndMarker():
     """Returns the end marker command, common to scenes and rooms"""
     # ``SCENE_CMD_END`` defines the end of scene commands
-    return "SCENE_CMD_END()"
+    return "SCENE_CMD_END(),\n"

@@ -14,7 +14,7 @@ def ootObjectListToC(room: OOTRoom, headerIndex: int):
 
     # .c
     objListData.source = (
-        objListName + " = {\n" + ",\n".join([indent + objectID for objectID in room.objectIDList]) + "};\n\n"
+        objListName + " = {\n" + ",\n".join([indent + objectID for objectID in room.objectIDList]) + ",\n};\n\n"
     )
 
     return objListData

@@ -313,18 +313,22 @@ def ootSceneMeshToC(scene, textureExportSettings):
     return exportData.all()
 
 
-def ootSceneIncludes(scene):
-    data = CData()
-    data.source += '#include "ultra64.h"\n'
-    data.source += '#include "z64.h"\n'
-    data.source += '#include "macros.h"\n'
-    data.source += '#include "' + scene.sceneName() + '.h"\n\n'
-    data.source += '#include "segment_symbols.h"\n'
-    data.source += '#include "command_macros_base.h"\n'
-    data.source += '#include "z64cutscene_commands.h"\n'
-    data.source += '#include "variables.h"\n'
-    data.source += "\n"
-    return data
+def ootSceneIncludes(scene: OOTScene):
+    sceneIncludeData = CData()
+    includeFiles = [
+        "ultra64.h",
+        "z64.h",
+        "macros.h",
+        f"{scene.sceneName()}.h" "segment_symbols.h",
+        "command_macros_base.h",
+        "variables.h",
+    ]
+
+    if scene.writeCutscene:
+        includeFiles.append("z64cutscene_commands.h")
+
+    sceneIncludeData.source = "\n".join([f"#include {fileName}" for fileName in includeFiles]) + "\n\n"
+    return sceneIncludeData
 
 
 def ootAlternateSceneMainToC(scene):

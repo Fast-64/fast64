@@ -6,11 +6,11 @@ from ...oot_utility import indent
 def ootGetActorEntry(actor: OOTActor):
     """Returns a single actor entry"""
     # position data
-    actorPosData = "{ " + "".join([f"{round(pos)}" for pos in actor.position]) + " }"
+    actorPosData = ", { " + ", ".join([f"{round(pos)}" for pos in actor.position]) + " }, "
 
     # rotation data
     rotList = actor.rotOverride if actor.rotOverride is not None else actor.rotation
-    actorRotData = "{ " + "".join([f"{rot}" for rot in rotList]) + " }"
+    actorRotData = "{ " + ", ".join([f"{rot}" for rot in rotList]) + " }, "
 
     # actor entry
     return "{ " + actor.actorID + actorPosData + actorRotData + actor.actorParam + " },\n"
