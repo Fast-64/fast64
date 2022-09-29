@@ -65,7 +65,9 @@ def ootCombineSceneFiles(levelC):
     return sceneC
 
 
-def ootExportSceneToC(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneName, DLFormat, savePNG, exportInfo):
+def ootExportSceneToC(
+    originalSceneObj, transformMatrix, f3dType, isHWv1, sceneName, DLFormat, savePNG, exportInfo, bootToSceneOptions
+):
 
     checkObjectReference(originalSceneObj, "Scene object")
     isCustomExport = exportInfo.isCustomExportPath
@@ -140,6 +142,15 @@ def ootExportSceneToC(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneN
 
     if not isCustomExport:
         writeOtherSceneProperties(scene, exportInfo, levelC)
+
+    if bootToSceneOptions is not None and bootToSceneOptions.bootToScene:
+        setBootupScene(
+            os.path.join(exportPath, "include/config/config_debug.h")
+            if not isCustomExport
+            else os.path.join(levelPath, "config_bootup.h"),
+            "ENTR_" + sceneName.upper() + "_" + str(bootToSceneOptions.spawnIndex),
+            bootToSceneOptions,
+        )
 
 
 def writeOtherSceneProperties(scene, exportInfo, levelC):
@@ -255,26 +266,10 @@ def getExitData(exitProp):
 
 def getLightData(lightProp):
     light = OOTLight()
-    light.ambient = getLightColor(lightProp.ambient)
-    if lightProp.useCustomDiffuse0:
-        if lightProp.diffuse0Custom is None:
-            raise PluginError("Error: Diffuse 0 light object not set in a scene lighting property.")
-        light.diffuse0 = getLightColor(lightProp.diffuse0Custom.color)
-        light.diffuseDir0 = getLightRotation(lightProp.diffuse0Custom)
-    else:
-        light.diffuse0 = getLightColor(lightProp.diffuse0)
-        light.diffuseDir0 = [0x49, 0x49, 0x49]
-
-    if lightProp.useCustomDiffuse1:
-        if lightProp.diffuse1Custom is None:
-            raise PluginError("Error: Diffuse 1 light object not set in a scene lighting property.")
-        light.diffuse1 = getLightColor(lightProp.diffuse1Custom.color)
-        light.diffuseDir1 = getLightRotation(lightProp.diffuse1Custom)
-    else:
-        light.diffuse1 = getLightColor(lightProp.diffuse1)
-        light.diffuseDir1 = [0xB7, 0xB7, 0xB7]
-
-    light.fogColor = getLightColor(lightProp.fogColor)
+    light.ambient = exportColor(lightProp.ambient)
+    light.diffuse0, light.diffuseDir0 = ootGetBaseOrCustomLight(lightProp, 0, True, True)
+    light.diffuse1, light.diffuseDir1 = ootGetBaseOrCustomLight(lightProp, 1, True, True)
+    light.fogColor = exportColor(lightProp.fogColor)
     light.fogNear = lightProp.fogNear
     light.transitionSpeed = lightProp.transitionSpeed
     light.fogFar = lightProp.fogFar
@@ -636,6 +631,8 @@ class OOT_ExportScene(bpy.types.Operator):
                     subfolder = None
                 exportInfo = ExportInfo(False, bpy.path.abspath(context.scene.ootDecompPath), subfolder, levelName)
 
+            bootOptions = context.scene.fast64.oot.bootupSceneOptions
+            hackerFeaturesEnabled = context.scene.fast64.oot.hackerFeaturesEnabled
             ootExportSceneToC(
                 obj,
                 finalTransform,
@@ -643,8 +640,9 @@ class OOT_ExportScene(bpy.types.Operator):
                 context.scene.isHWv1,
                 levelName,
                 DLFormat.Static,
-                context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions,
+                context.scene.saveTextures,
                 exportInfo,
+                bootOptions if hackerFeaturesEnabled else None,
             )
 
             self.report({"INFO"}, "Success!")
@@ -673,8 +671,8 @@ def ootRemoveSceneC(exportInfo):
 
 class OOT_RemoveScene(bpy.types.Operator):
     bl_idname = "object.oot_remove_level"
-    bl_label = "Remove Scene"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
+    bl_label = "OOT Remove Scene"
+    bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
         levelName = context.scene.ootSceneName
@@ -694,6 +692,13 @@ class OOT_RemoveScene(bpy.types.Operator):
         self.report({"INFO"}, "Success!")
         return {"FINISHED"}
 
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self, width=300)
+
+    def draw(self, context):
+        layout = self.layout
+        layout.label(text="Are you sure you want to remove this scene?")
+
 
 class OOT_ExportScenePanel(OOT_Panel):
     bl_idname = "OOT_PT_export_level"
@@ -705,6 +710,25 @@ class OOT_ExportScenePanel(OOT_Panel):
         # if not bpy.context.scene.ignoreTextureRestrictions:
         # 	col.prop(context.scene, 'saveTextures')
         prop_split(col, context.scene, "ootSceneExportObj", "Scene Object")
+
+        if context.scene.fast64.oot.hackerFeaturesEnabled:
+            bootOptions = context.scene.fast64.oot.bootupSceneOptions
+            col.prop(bootOptions, "bootToScene", text="Boot To Scene (HackerOOT)")
+            if bootOptions.bootToScene:
+                col.prop(bootOptions, "newGameOnly")
+                prop_split(col, bootOptions, "bootMode", "Boot Mode")
+                if bootOptions.bootMode == "Play":
+                    prop_split(col, bootOptions, "newGameName", "New Game Name")
+                if bootOptions.bootMode != "Map Select":
+                    prop_split(col, bootOptions, "spawnIndex", "Spawn")
+                    col.prop(bootOptions, "overrideHeader")
+                    if bootOptions.overrideHeader:
+                        prop_split(col, bootOptions, "headerOption", "Header Option")
+                        if bootOptions.headerOption == "Cutscene":
+                            prop_split(col, bootOptions, "cutsceneIndex", "Cutscene Index")
+            col.label(text="Note: Scene boot config changes aren't detected by the make process.", icon="ERROR")
+            col.operator(OOT_ClearBootupScene.bl_idname, text="Undo Boot To Scene (HackerOOT Repo)")
+
         col.prop(context.scene, "ootSceneSingleFile")
         col.prop(context.scene, "ootSceneCustomExport")
         if context.scene.ootSceneCustomExport:
@@ -718,7 +742,7 @@ class OOT_ExportScenePanel(OOT_Panel):
             if context.scene.ootSceneOption == "Custom":
                 prop_split(col, context.scene, "ootSceneSubFolder", "Subfolder")
                 prop_split(col, context.scene, "ootSceneName", "Name")
-            col.operator(OOT_RemoveScene.bl_idname)
+            col.operator(OOT_RemoveScene.bl_idname, text="Remove Scene")
 
 
 def isSceneObj(self, obj):
@@ -747,6 +771,8 @@ def oot_level_register():
     for cls in oot_level_classes:
         register_class(cls)
 
+    ootSceneBootupRegister()
+
     bpy.types.Scene.ootSceneName = bpy.props.StringProperty(name="Name", default="spot03")
     bpy.types.Scene.ootSceneSubFolder = bpy.props.StringProperty(name="Subfolder", default="overworld")
     bpy.types.Scene.ootSceneOption = bpy.props.EnumProperty(name="Scene", items=ootEnumSceneID, default="SCENE_YDAN")
@@ -763,6 +789,8 @@ def oot_level_register():
 def oot_level_unregister():
     for cls in reversed(oot_level_classes):
         unregister_class(cls)
+
+    ootSceneBootupUnregister()
 
     del bpy.types.Scene.ootSceneName
     del bpy.types.Scene.ootSceneExportPath

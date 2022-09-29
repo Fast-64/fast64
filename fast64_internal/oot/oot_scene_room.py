@@ -11,6 +11,12 @@ from .oot_actor import *
 
 # from .oot_collision import *
 from .oot_cutscene import *
+from ..render_settings import on_update_oot_render_settings
+
+
+def onUpdateOoTLighting(self, context: bpy.types.Context):
+    on_update_oot_render_settings(self, context)
+
 
 
 class OOTSceneProperties(bpy.types.PropertyGroup):
@@ -35,18 +41,7 @@ class OOT_SearchMusicSeqEnumOperator(bpy.types.Operator):
     objName: bpy.props.StringProperty()
 
     def execute(self, context):
-        obj = bpy.data.objects[self.objName]
-        if self.headerIndex == 0:
-            sceneHeader = obj.ootSceneHeader
-        elif self.headerIndex == 1:
-            sceneHeader = obj.ootAlternateSceneHeaders.childNightHeader
-        elif self.headerIndex == 2:
-            sceneHeader = obj.ootAlternateSceneHeaders.adultDayHeader
-        elif self.headerIndex == 3:
-            sceneHeader = obj.ootAlternateSceneHeaders.adultNightHeader
-        else:
-            sceneHeader = obj.ootAlternateSceneHeaders.cutsceneHeaders[self.headerIndex - 4]
-
+        sceneHeader = ootGetSceneOrRoomHeader(bpy.data.objects[self.objName], self.headerIndex, False)
         sceneHeader.musicSeq = self.ootMusicSeq
         bpy.context.region.tag_redraw()
         self.report({"INFO"}, "Selected: " + self.ootMusicSeq)
@@ -69,18 +64,7 @@ class OOT_SearchObjectEnumOperator(bpy.types.Operator):
     objName: bpy.props.StringProperty()
 
     def execute(self, context):
-        obj = bpy.data.objects[self.objName]
-        if self.headerIndex == 0:
-            roomHeader = obj.ootRoomHeader
-        elif self.headerIndex == 1:
-            roomHeader = obj.ootAlternateRoomHeaders.childNightHeader
-        elif self.headerIndex == 2:
-            roomHeader = obj.ootAlternateRoomHeaders.adultDayHeader
-        elif self.headerIndex == 3:
-            roomHeader = obj.ootAlternateRoomHeaders.adultNightHeader
-        else:
-            roomHeader = obj.ootAlternateRoomHeaders.cutsceneHeaders[self.headerIndex - 4]
-
+        roomHeader = ootGetSceneOrRoomHeader(bpy.data.objects[self.objName], self.headerIndex, True)
         roomHeader.objectList[self.index].objectID = self.ootObjectID
         bpy.context.region.tag_redraw()
         self.report({"INFO"}, "Selected: " + self.ootObjectID)
@@ -197,24 +181,48 @@ def drawObjectProperty(layout, objectProp, headerIndex, index, objName):
 
 class OOTLightProperty(bpy.types.PropertyGroup):
     ambient: bpy.props.FloatVectorProperty(
-        name="Ambient Color", size=4, min=0, max=1, default=(70 / 255, 40 / 255, 57 / 255, 1), subtype="COLOR"
+        name="Ambient Color",
+        size=4,
+        min=0,
+        max=1,
+        default=(70 / 255, 40 / 255, 57 / 255, 1),
+        subtype="COLOR",
+        update=onUpdateOoTLighting,
     )
-    useCustomDiffuse0: bpy.props.BoolProperty(name="Use Custom Diffuse 0 Light Object")
-    useCustomDiffuse1: bpy.props.BoolProperty(name="Use Custom Diffuse 1 Light Object")
+    useCustomDiffuse0: bpy.props.BoolProperty(name="Use Custom Diffuse 0 Light Object", update=onUpdateOoTLighting)
+    useCustomDiffuse1: bpy.props.BoolProperty(name="Use Custom Diffuse 1 Light Object", update=onUpdateOoTLighting)
     diffuse0: bpy.props.FloatVectorProperty(
-        name="", size=4, min=0, max=1, default=(180 / 255, 154 / 255, 138 / 255, 1), subtype="COLOR"
+        name="",
+        size=4,
+        min=0,
+        max=1,
+        default=(180 / 255, 154 / 255, 138 / 255, 1),
+        subtype="COLOR",
+        update=onUpdateOoTLighting,
     )
     diffuse1: bpy.props.FloatVectorProperty(
-        name="", size=4, min=0, max=1, default=(20 / 255, 20 / 255, 60 / 255, 1), subtype="COLOR"
+        name="",
+        size=4,
+        min=0,
+        max=1,
+        default=(20 / 255, 20 / 255, 60 / 255, 1),
+        subtype="COLOR",
+        update=onUpdateOoTLighting,
     )
-    diffuse0Custom: bpy.props.PointerProperty(name="Diffuse 0", type=bpy.types.Light)
-    diffuse1Custom: bpy.props.PointerProperty(name="Diffuse 1", type=bpy.types.Light)
+    diffuse0Custom: bpy.props.PointerProperty(name="Diffuse 0", type=bpy.types.Light, update=onUpdateOoTLighting)
+    diffuse1Custom: bpy.props.PointerProperty(name="Diffuse 1", type=bpy.types.Light, update=onUpdateOoTLighting)
     fogColor: bpy.props.FloatVectorProperty(
-        name="", size=4, min=0, max=1, default=(140 / 255, 120 / 255, 110 / 255, 1), subtype="COLOR"
+        name="",
+        size=4,
+        min=0,
+        max=1,
+        default=(140 / 255, 120 / 255, 110 / 255, 1),
+        subtype="COLOR",
+        update=onUpdateOoTLighting,
     )
-    fogNear: bpy.props.IntProperty(name="", default=993, min=0, max=2**10 - 1)
-    transitionSpeed: bpy.props.IntProperty(name="", default=1, min=0, max=63)
-    fogFar: bpy.props.IntProperty(name="", default=0x3200, min=0, max=2**16 - 1)
+    fogNear: bpy.props.IntProperty(name="", default=993, min=0, max=2**10 - 1, update=onUpdateOoTLighting)
+    transitionSpeed: bpy.props.IntProperty(name="", default=1, min=0, max=63, update=onUpdateOoTLighting)
+    fogFar: bpy.props.IntProperty(name="", default=0x3200, min=0, max=2**16 - 1, update=onUpdateOoTLighting)
     expandTab: bpy.props.BoolProperty(name="Expand Tab")
 
 
@@ -298,8 +306,12 @@ class OOTSceneHeaderProperty(bpy.types.PropertyGroup):
     skyboxIDCustom: bpy.props.StringProperty(name="Skybox ID", default="0")
     skyboxCloudiness: bpy.props.EnumProperty(name="Cloudiness", items=ootEnumCloudiness, default="0x00")
     skyboxCloudinessCustom: bpy.props.StringProperty(name="Cloudiness ID", default="0x00")
-    skyboxLighting: bpy.props.EnumProperty(name="Skybox Lighting", items=ootEnumSkyboxLighting, default="0x00")
-    skyboxLightingCustom: bpy.props.StringProperty(name="Skybox Lighting Custom", default="0x00")
+    skyboxLighting: bpy.props.EnumProperty(
+        name="Skybox Lighting", items=ootEnumSkyboxLighting, default="0x00", update=onUpdateOoTLighting
+    )
+    skyboxLightingCustom: bpy.props.StringProperty(
+        name="Skybox Lighting Custom", default="0x00", update=onUpdateOoTLighting
+    )
 
     mapLocation: bpy.props.EnumProperty(name="Map Location", items=ootEnumMapLocation, default="0x00")
     mapLocationCustom: bpy.props.StringProperty(name="Skybox Lighting Custom", default="0x00")

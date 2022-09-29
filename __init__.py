@@ -6,9 +6,15 @@ import bpy
 import traceback
 import os
 from pathlib import Path
+
 from .fast64_internal import *
 from .fast64_internal.panels import SM64_Panel
 from .fast64_internal.oot.oot_level import OOT_ObjectProperties
+from .fast64_internal.render_settings import (
+    Fast64RenderSettings_Properties,
+    resync_scene_props,
+    on_update_render_settings,
+)
 
 import cProfile
 import pstats
@@ -18,12 +24,12 @@ from . import addon_updater_ops
 # info about add on
 bl_info = {
     "name": "Fast64",
-    "version": (1, 0, 0),
+    "version": (2, 0, 0),
     "author": "kurethedead",
     "location": "3DView",
     "description": "Plugin for exporting F3D display lists and other game data related to Super Mario 64.",
     "category": "Import-Export",
-    "blender": (2, 82, 0),
+    "blender": (3, 2, 0),
 }
 
 gameEditorEnum = (
@@ -203,7 +209,7 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
         col.prop(context.scene, "decomp_compatible", invert_checkbox=True, text="Homebrew Compatibility")
         col.prop(context.scene, "ignoreTextureRestrictions")
         if context.scene.ignoreTextureRestrictions:
-            col.box().label(text="Width/height must be < 1024. Must be RGBA32. Must be png format.")
+            col.box().label(text="Width/height must be < 1024. Must be png format.")
 
 
 class Fast64_GlobalObjectPanel(bpy.types.Panel):
@@ -306,6 +312,7 @@ class Fast64_Properties(bpy.types.PropertyGroup):
     sm64: bpy.props.PointerProperty(type=SM64_Properties, name="SM64 Properties")
     oot: bpy.props.PointerProperty(type=OOT_Properties, name="OOT Properties")
     settings: bpy.props.PointerProperty(type=Fast64Settings_Properties, name="Fast64 Settings")
+    renderSettings: bpy.props.PointerProperty(type=Fast64RenderSettings_Properties, name="Fast64 Render Settings")
 
 
 class Fast64_BoneProperties(bpy.types.PropertyGroup):
@@ -325,6 +332,63 @@ class Fast64_ObjectProperties(bpy.types.PropertyGroup):
 
     sm64: bpy.props.PointerProperty(type=SM64_ObjectProperties, name="SM64 Object Properties")
     oot: bpy.props.PointerProperty(type=OOT_ObjectProperties, name="OOT Object Properties")
+
+
+class UpgradeF3DMaterialsDialog(bpy.types.Operator):
+    bl_idname = "dialog.upgrade_f3d_materials"
+    bl_label = "Upgrade F3D Materials"
+    bl_options = {"REGISTER", "UNDO"}
+
+    done = False
+
+    def draw(self, context):
+        layout = self.layout
+        if self.done:
+            layout.label(text="Success!")
+            box = layout.box()
+            box.label(text="Materials were successfully upgraded.")
+            box.label(text="Please purge your remaining materials.")
+
+            purge_box = box.box()
+            purge_box.scale_y = 0.25
+            purge_box.separator(factor=0.5)
+            purge_box.label(text="How to purge:")
+            purge_box.separator(factor=0.5)
+            purge_box.label(text="Go to the outliner, change the display mode")
+            purge_box.label(text='to "Orphan Data" (broken heart icon)')
+            purge_box.separator(factor=0.25)
+            purge_box.label(text='Click "Purge" in the top right corner.')
+            purge_box.separator(factor=0.25)
+            purge_box.label(text="Purge multiple times until the node groups")
+            purge_box.label(text="are gone.")
+            layout.separator(factor=0.25)
+            layout.label(text="You may click anywhere to close this dialog.")
+            return
+        layout.alert = True
+        box = layout.box()
+        box.label(text="Your project contains F3D materials that need to be upgraded in order to continue!")
+        box.label(text="Before upgrading, make sure to create a duplicate (backup) of this blend file.")
+        box.separator()
+
+        col = box.column()
+        col.alignment = "CENTER"
+        col.alert = True
+        col.label(text="Upgrade F3D Materials?")
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self, width=600)
+
+    def execute(self, context: "bpy.types.Context"):
+        if context.mode != "OBJECT":
+            bpy.ops.object.mode_set(mode="OBJECT")
+
+        upgradeF3DVersionAll(
+            [obj for obj in bpy.data.objects if isinstance(obj.data, bpy.types.Mesh)],
+            list(bpy.data.armatures),
+            MatUpdateConvert.version,
+        )
+        self.done = True
+        return {"FINISHED"}
 
 
 # def updateGameEditor(scene, context):
@@ -354,6 +418,7 @@ class ExampleAddonPreferences(bpy.types.AddonPreferences, addon_updater_ops.Addo
 
 classes = (
     Fast64Settings_Properties,
+    Fast64RenderSettings_Properties,
     Fast64_Properties,
     Fast64_BoneProperties,
     Fast64_ObjectProperties,
@@ -366,6 +431,7 @@ classes = (
     Fast64_GlobalSettingsPanel,
     SM64_ArmatureToolsPanel,
     Fast64_GlobalToolsPanel,
+    UpgradeF3DMaterialsDialog,
 )
 
 
@@ -375,9 +441,25 @@ def upgrade_changed_props():
     SM64_ObjectProperties.upgrade_changed_props()
 
 
+def upgrade_scene_props_node():
+    """update f3d materials with SceneProperties node"""
+    has_old_f3d_mats = any(mat.is_f3d and mat.mat_ver < MatUpdateConvert.version for mat in bpy.data.materials)
+    if has_old_f3d_mats:
+        bpy.ops.dialog.upgrade_f3d_materials("INVOKE_DEFAULT")
+
+
 @bpy.app.handlers.persistent
 def after_load(_a, _b):
     upgrade_changed_props()
+    upgrade_scene_props_node()
+    resync_scene_props()
+
+
+def gameEditorUpdate(self, context):
+    if self.gameEditorMode == "SM64":
+        self.f3d_type = "F3D"
+    elif self.gameEditorMode == "OOT":
+        self.f3d_type = "F3DEX2/LX2"
 
 
 # called on add-on enabling
@@ -385,19 +467,17 @@ def after_load(_a, _b):
 # append menu layout drawing function to an existing window
 def register():
 
-    if bpy.app.version >= (3, 1, 0):
+    if bpy.app.version < (3, 2, 0):
         msg = "\n".join(
             (
-                "This version of Fast64 does not work properly in Blender 3.1.0 and later Blender versions.",
+                "This version of Fast64 does not support Blender 3.1.x and earlier Blender versions.",
                 "Your Blender version is: " + ".".join(str(i) for i in bpy.app.version),
-                "This is a known issue, the fix is not trivial and is in progress.",
-                "See the GitHub issue: https://github.com/Fast-64/fast64/issues/85",
-                "If it has been resolved, update Fast64.",
+                "Please upgrade Blender to 3.2.0 or above.",
             )
         )
         print(msg)
-        blender_3_1_0_and_later_unsupported = Exception("\n\n" + msg)
-        raise blender_3_1_0_and_later_unsupported
+        unsupported_exc = Exception("\n\n" + msg)
+        raise unsupported_exc
 
     # Register addon updater first,
     # this way if a broken version fails to register the user can still pick another version.
@@ -420,15 +500,17 @@ def register():
     # ROM
 
     bpy.types.Scene.decomp_compatible = bpy.props.BoolProperty(name="Decomp Compatibility", default=True)
-    bpy.types.Scene.ignoreTextureRestrictions = bpy.props.BoolProperty(
-        name="Ignore Texture Restrictions (Breaks CI Textures)"
-    )
+    bpy.types.Scene.ignoreTextureRestrictions = bpy.props.BoolProperty(name="Ignore Texture Restrictions")
     bpy.types.Scene.fullTraceback = bpy.props.BoolProperty(name="Show Full Error Traceback", default=False)
-    bpy.types.Scene.gameEditorMode = bpy.props.EnumProperty(name="Game", default="SM64", items=gameEditorEnum)
+    bpy.types.Scene.gameEditorMode = bpy.props.EnumProperty(
+        name="Game", default="SM64", items=gameEditorEnum, update=gameEditorUpdate
+    )
     bpy.types.Scene.saveTextures = bpy.props.BoolProperty(name="Save Textures As PNGs (Breaks CI Textures)")
     bpy.types.Scene.generateF3DNodeGraph = bpy.props.BoolProperty(name="Generate F3D Node Graph", default=True)
     bpy.types.Scene.exportHiddenGeometry = bpy.props.BoolProperty(name="Export Hidden Geometry", default=True)
-    bpy.types.Scene.blenderF3DScale = bpy.props.FloatProperty(name="F3D Blender Scale", default=100)
+    bpy.types.Scene.blenderF3DScale = bpy.props.FloatProperty(
+        name="F3D Blender Scale", default=100, update=on_update_render_settings
+    )
 
     bpy.types.Scene.fast64 = bpy.props.PointerProperty(type=Fast64_Properties, name="Fast64 Properties")
     bpy.types.Bone.fast64 = bpy.props.PointerProperty(type=Fast64_BoneProperties, name="Fast64 Bone Properties")
