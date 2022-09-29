@@ -241,7 +241,7 @@ def ootFlipbookAnimUpdate(self, armatureObj: bpy.types.Object, segment: str, ind
                 if usesFlipbook(material, flipbook, i, True, ootFlipbookReferenceIsValid):
                     match = re.search(f"0x0([0-9A-F])000000", texProp.tex_reference)
                     if match is None:
-                        return
+                        continue
                     if match.group(1) == segment:
                         # Remember that index 0 = auto, and keyframed values start at 1
                         flipbookIndex = min((index - 1 if index > 0 else 0), len(flipbook.textures) - 1)
