@@ -190,8 +190,6 @@ class FlipbookProperty(bpy.types.PropertyGroup):
     textures: bpy.props.CollectionProperty(type=FlipbookImagePointerProperty)
 
 
-# The reason these are separate is for the case when the user changes the material draw layer, but not the
-# dynamic material calls. This could cause crashes which would be hard to detect.
 class FlipbookGroupProperty(bpy.types.PropertyGroup):
     flipbook0: bpy.props.PointerProperty(type=FlipbookProperty)
     flipbook1: bpy.props.PointerProperty(type=FlipbookProperty)
