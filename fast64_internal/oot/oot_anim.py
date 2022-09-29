@@ -454,6 +454,7 @@ def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSetti
         if not settings.isCustom:
             addIncludeFiles(settings.folderName, path, ootAnim.name)
 
+
 def ootImportAnimationC(
     armatureObj: bpy.types.Object,
     settings: OOTAnimImportSettingsProperty,
@@ -562,9 +563,9 @@ def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale, isCu
                 rawRotation = mathutils.Euler((0, 0, 0), "XYZ")
                 for propertyIndex in range(3):
                     if jointIndex[propertyIndex] < staticIndexMax:
-                        value = ootRotationValue(frameData[jointIndex[propertyIndex]])
+                        value = binangToRadians(frameData[jointIndex[propertyIndex]])
                     else:
-                        value = ootRotationValue(frameData[jointIndex[propertyIndex] + frame])
+                        value = binangToRadians(frameData[jointIndex[propertyIndex] + frame])
 
                     rawRotation[propertyIndex] = value
 
@@ -676,7 +677,7 @@ def ootImportLinkAnimationC(
         for boneIndex in range(numLimbs):
             bone = boneList[boneIndex]
             rawRotation = mathutils.Euler(
-                [ootRotationValue(currentFrame[i + (boneIndex + 1) * 3]) for i in range(3)], "XYZ"
+                [binangToRadians(currentFrame[i + (boneIndex + 1) * 3]) for i in range(3)], "XYZ"
             )
             trueRotation = getRotationRelativeToRest(bone, rawRotation)
             for i in range(3):
@@ -701,7 +702,7 @@ def ootTranslationValue(value, actorScale):
     return value / actorScale
 
 
-def ootRotationValue(value):
+def binangToRadians(value):
     return math.radians(value * 360 / (2**16))
 
 
