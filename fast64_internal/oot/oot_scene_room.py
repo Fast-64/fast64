@@ -20,7 +20,6 @@ def onUpdateOoTLighting(self, context: bpy.types.Context):
     on_update_oot_render_settings(self, context)
 
 
-
 class OOTSceneProperties(bpy.types.PropertyGroup):
     write_dummy_room_list: bpy.props.BoolProperty(
         name="Dummy Room List",
