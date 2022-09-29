@@ -8,6 +8,7 @@ from . import oot_operators
 from . import oot_skeleton
 from . import oot_spline
 from . import oot_utility
+from .c_writer import OOTBootupSceneOptions
 
 from ..panels import OOT_Panel
 from ..utility import prop_split
@@ -30,12 +31,15 @@ class OOT_FileSettingsPanel(OOT_Panel):
         prop_split(col, context.scene, "ootActorBlenderScale", "OOT Actor Scale")
 
         prop_split(col, context.scene, "ootDecompPath", "Decomp Path")
+        col.prop(context.scene.fast64.oot, "hackerFeaturesEnabled")
 
 
 class OOT_Properties(bpy.types.PropertyGroup):
     """Global OOT Scene Properties found under scene.fast64.oot"""
 
     version: bpy.props.IntProperty(name="OOT_Properties Version", default=0)
+    hackerFeaturesEnabled: bpy.props.BoolProperty(name="Enable HackerOOT Features")
+    bootupSceneOptions: bpy.props.PointerProperty(type=OOTBootupSceneOptions)
     DLExportSettings: bpy.props.PointerProperty(type=oot_f3d_writer.OOTDLExportSettings)
     DLImportSettings: bpy.props.PointerProperty(type=oot_f3d_writer.OOTDLImportSettings)
     skeletonExportSettings: bpy.props.PointerProperty(type=oot_skeleton.OOTSkeletonExportSettings)
