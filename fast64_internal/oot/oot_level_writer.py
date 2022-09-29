@@ -18,6 +18,8 @@ from .oot_spline import *
 from .oot_cutscene import *
 from .c_writer import *
 
+from .oot_object import addRoomHeadersObjects
+
 
 def sceneNameFromID(sceneID):
     if sceneID in ootSceneIDToName:
@@ -88,7 +90,7 @@ def ootExportSceneToC(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneN
         obj for obj in bpy.data.objects if ((obj.parent == originalSceneObj) and (obj.ootEmptyType == "Room"))
     ]
     for roomObj, room in zip(roomObjects, scene.rooms.values()):
-        ootData.objectData.addRoomHeadersObjects(roomObj, room, ootData.actorData)
+        addRoomHeadersObjects(roomObj, room, ootData)
     levelPath = ootGetPath(exportPath, isCustomExport, exportSubdir, sceneName, True, True)
     levelC = ootLevelToC(scene, TextureExportSettings(False, savePNG, exportSubdir + sceneName, levelPath))
 

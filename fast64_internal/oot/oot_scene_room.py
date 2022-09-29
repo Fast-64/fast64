@@ -13,6 +13,8 @@ from .oot_actor import *
 from .oot_cutscene import *
 from ..render_settings import on_update_oot_render_settings
 
+from .oot_upgrade import upgradeRoomHeaders
+
 
 def onUpdateOoTLighting(self, context: bpy.types.Context):
     on_update_oot_render_settings(self, context)
@@ -166,7 +168,7 @@ class OOTObjectProperty(bpy.types.PropertyGroup):
     def upgrade_object(obj):
         if obj.fast64.oot.version < 1:
             print(f"Processing '{obj.name}'...")
-            ootData.objectData.upgradeRoomHeaders(obj)
+            upgradeRoomHeaders(obj, ootData.objectData)
 
 
 def drawObjectProperty(
