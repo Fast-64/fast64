@@ -2,7 +2,7 @@ from ...utility import CData, PluginError
 from ...f3d.f3d_gbi import ScrollMethod
 
 from ..oot_model_classes import OOTGfxFormatter
-from ..oot_level_classes import OOTScene, OOTTransitionActor
+from ..oot_level_classes import OOTScene
 from ..oot_constants import ootRoomShapeStructs, ootRoomShapeEntryStructs
 from ..oot_utility import indent
 from ..oot_collision import ootCollisionToC
@@ -10,8 +10,11 @@ from ..oot_cutscene import ootCutsceneDataToC
 
 from .oot_scene_room_cmds.oot_scene_cmds import ootSceneCommandsToC
 from .oot_scene_room_cmds.oot_room_cmds import ootRoomCommandsToC
+
 from .oot_room_writer.oot_object_to_c import ootObjectListToC
 from .oot_room_writer.oot_actor_to_c import ootActorListToC
+from .oot_room_writer.oot_room_list_to_c import ootRoomListHeaderToC
+
 from .oot_scene_writer.oot_path_to_c import ootPathListToC
 from .oot_scene_writer.oot_light_to_c import ootLightSettingsToC
 from .oot_scene_writer.oot_trans_actor_to_c import ootTransitionActorListToC
@@ -140,41 +143,6 @@ def ootRoomMainToC(scene, room, headerIndex):
     roomMainC.append(altData)
 
     return roomMainC
-
-
-def ootRoomExternToC(room):
-    return ("extern u8 _" + room.roomName() + "SegmentRomStart[];\n") + (
-        "extern u8 _" + room.roomName() + "SegmentRomEnd[];\n"
-    )
-
-
-def ootRoomListEntryToC(room):
-    return "{ (u32)_" + room.roomName() + "SegmentRomStart, (u32)_" + room.roomName() + "SegmentRomEnd },\n"
-
-
-def ootRoomListHeaderToC(scene):
-    data = CData()
-
-    data.header += "extern RomFile " + scene.roomListName() + "[];\n"
-
-    if scene.write_dummy_room_list:
-        data.source += "// Dummy room list\n"
-        data.source += "RomFile " + scene.roomListName() + "[] = {\n"
-        data.source += "\t{0, 0},\n" * len(scene.rooms)
-        data.source += "};\n\n"
-    else:
-        # Write externs for rom segments
-        for i in range(len(scene.rooms)):
-            data.source += ootRoomExternToC(scene.rooms[i])
-        data.source += "\n"
-
-        data.source += "RomFile " + scene.roomListName() + "[] = {\n"
-
-        for i in range(len(scene.rooms)):
-            data.source += "\t" + ootRoomListEntryToC(scene.rooms[i])
-        data.source += "};\n\n"
-
-    return data
 
 
 def ootSceneMeshToC(scene, textureExportSettings):

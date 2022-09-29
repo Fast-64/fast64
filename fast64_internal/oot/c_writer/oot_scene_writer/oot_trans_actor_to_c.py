@@ -27,7 +27,7 @@ def ootTransitionActorListToC(scene: OOTScene, headerIndex: int):
     )
 
     # .h
-    transActorListData.header = f"extern {transActorName}"
+    transActorListData.header = f"extern {transActorName};\n"
 
     # .c
     transActorListData.source = (
