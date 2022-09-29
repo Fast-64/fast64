@@ -330,4 +330,5 @@ def flipbook_unregister():
     for cls in reversed(flipbook_classes):
         unregister_class(cls)
 
+    bpy.app.handlers.frame_change_pre.remove(flipbookAnimHandler)
     del bpy.types.Material.flipbookGroup
