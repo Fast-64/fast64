@@ -682,7 +682,7 @@ def ootImportLinkAnimationC(
             for i in range(3):
                 boneCurvesRotation[boneIndex][i].keyframe_points.insert(frame, trueRotation[i])
 
-        # convert to unsigned byte representation
+        # convert to unsigned short representation
         texAnimValue = int.from_bytes(
             currentFrame[(numLimbs + 1) * 3].to_bytes(2, "big", signed=True), "big", signed=False
         )
