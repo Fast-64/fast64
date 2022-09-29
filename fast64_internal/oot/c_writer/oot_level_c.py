@@ -8,59 +8,10 @@ from ..oot_utility import indent
 from ..oot_collision import ootCollisionToC
 from ..oot_cutscene import ootCutsceneDataToC
 
-from .oot_scene_room_cmds.oot_scene_room_cmds import (
-    getRoomCommandsList,
-    getSceneCommandsList,
-)
-
-
-def ootObjectListToC(room, headerIndex):
-    data = CData()
-    data.header = "extern s16 " + room.objectListName(headerIndex) + "[" + str(len(room.objectIDList)) + "];\n"
-    data.source = "s16 " + room.objectListName(headerIndex) + "[" + str(len(room.objectIDList)) + "] = {\n"
-    for objectItem in room.objectIDList:
-        data.source += "\t" + objectItem + ",\n"
-    data.source += "};\n\n"
-    return data
-
-
-def ootActorToC(actor):
-    return (
-        "{ "
-        + ", ".join(
-            (
-                str(actor.actorID),
-                str(int(round(actor.position[0]))),
-                str(int(round(actor.position[1]))),
-                str(int(round(actor.position[2]))),
-                *(
-                    (
-                        actor.rotOverride[0],
-                        actor.rotOverride[1],
-                        actor.rotOverride[2],
-                    )
-                    if actor.rotOverride is not None
-                    else (
-                        str(int(round(actor.rotation[0]))),
-                        str(int(round(actor.rotation[1]))),
-                        str(int(round(actor.rotation[2]))),
-                    )
-                ),
-                str(actor.actorParam),
-            )
-        )
-        + " },\n"
-    )
-
-
-def ootActorListToC(room, headerIndex):
-    data = CData()
-    data.header = "extern ActorEntry " + room.actorListName(headerIndex) + "[" + str(len(room.actorIDList)) + "];\n"
-    data.source = "ActorEntry " + room.actorListName(headerIndex) + "[" + str(len(room.actorIDList)) + "] = {\n"
-    for actor in room.actorIDList:
-        data.source += "\t" + ootActorToC(actor)
-    data.source += "};\n\n"
-    return data
+from .oot_scene_room_cmds.oot_scene_cmds import ootSceneCommandsToC
+from .oot_scene_room_cmds.oot_room_cmds import ootRoomCommandsToC
+from .oot_room_to_c.oot_object_to_c import ootObjectListToC
+from .oot_room_to_c.oot_actor_to_c import ootActorListToC
 
 
 def ootMeshEntryToC(meshEntry, roomShape):
@@ -130,21 +81,6 @@ def ootRoomMeshToC(room, textureExportSettings):
     return meshHeader, meshData
 
 
-def ootRoomCommandsToC(room: OOTRoom, headerIndex: int):
-    roomCmdList = getRoomCommandsList(room, headerIndex)
-    roomCmdData = CData()
-
-    roomCmdData.header = f"extern SCmdBase {room.roomHeaderName(headerIndex)}[];\n"
-    roomCmdData.source = (
-        f"SCmdBase {room.roomHeaderName(headerIndex)}[]"
-        + " = {\n"
-        + "".join([roomCmd.source for roomCmd in roomCmdList])
-        + "};\n\n"
-    )
-
-    return roomCmdData
-
-
 def ootAlternateRoomMainToC(scene, room):
     altHeader = CData()
     altData = CData()
@@ -190,43 +126,16 @@ def ootRoomMainToC(scene, room, headerIndex):
 
     roomMainC.append(ootRoomCommandsToC(room, headerIndex))
     roomMainC.append(altHeader)
+
     if len(room.objectIDList) > 0:
         roomMainC.append(ootObjectListToC(room, headerIndex))
-    if len(room.actorIDList) > 0:
-        roomMainC.append(ootActorListToC(room, headerIndex))
+
+    if len(room.actorList) > 0:
+        roomMainC.append(ootActorListToC(None, room, headerIndex))
+
     roomMainC.append(altData)
 
     return roomMainC
-
-
-def ootSceneCommandsToC(scene: OOTScene, headerIndex: int):
-    """
-    Converts every scene commands to C code.
-    Contains scene command defines (examples: ``SCENE_CMD_ROOM_LIST``, ``SCENE_CMD_CUTSCENE_DATA``)
-    """
-    sceneCmdList = getSceneCommandsList(scene, headerIndex)
-
-    # add the commands to the file data
-    sceneCmdData = CData()
-    sceneCmdData.header = f"extern SCmdBase {scene.sceneHeaderName(headerIndex)}[];\n"
-    sceneCmdData.source = (
-        f"SCmdBase {scene.sceneHeaderName(headerIndex)}[]"
-        + " = {\n"
-        + "".join([sceneCmd.source for sceneCmd in sceneCmdList])
-        + "};\n\n"
-    )
-
-    return sceneCmdData
-
-
-def ootStartPositionListToC(scene, headerIndex):
-    data = CData()
-    data.header = "extern ActorEntry " + scene.startPositionsName(headerIndex) + "[];\n"
-    data.source = "ActorEntry " + scene.startPositionsName(headerIndex) + "[] = {\n"
-    for i in range(len(scene.startPositions)):
-        data.source += "\t" + ootActorToC(scene.startPositions[i])
-    data.source += "};\n\n"
-    return data
 
 
 def ootTransitionActorToC(transActor):
@@ -483,7 +392,7 @@ def ootSceneMainToC(scene, headerIndex):
 
     # Write the spawn position list data
     if len(scene.startPositions) > 0:
-        sceneMainC.append(ootStartPositionListToC(scene, headerIndex))
+        sceneMainC.append(ootActorListToC(scene, None, headerIndex))
 
     # Write the transition actor list data
     if len(scene.transitionActorList) > 0:

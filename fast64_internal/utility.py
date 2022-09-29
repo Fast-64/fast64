@@ -320,7 +320,7 @@ class CData:
         self.source = ""
         self.header = ""
 
-    def append(self, other):
+    def append(self, other: 'CData'):
         self.source += other.source
         self.header += other.header
 

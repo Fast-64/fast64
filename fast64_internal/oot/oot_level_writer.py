@@ -528,7 +528,7 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
                     else (actorProp.rotOverrideX, actorProp.rotOverrideY, actorProp.rotOverrideZ),
                 ),
                 actorProp,
-                "actorIDList",
+                "actorList",
                 obj.name,
             )
         elif obj.ootEmptyType == "Transition Actor":

@@ -416,8 +416,8 @@ class OOTRoom:
         # Other
         self.objectIDList = []
 
-        # @TODO: check if ``actorIDList`` really need to be a set
-        self.actorIDList = set()  # filled in ``add_actor()`` (called by ``ootProcessEmpties``)
+        # @TODO: check if ``actorList`` really need to be a set
+        self.actorList = set()  # filled in ``add_actor()`` (called by ``ootProcessEmpties``)
 
         # Other layers
         self.childNightHeader = None
