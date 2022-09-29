@@ -232,7 +232,9 @@ def ootFlipbookRequirementMessage(layout: bpy.types.UILayout):
 
 
 def ootFlipbookAnimUpdate(self, armatureObj: bpy.types.Object, segment: str, index: int):
-    for child in [child for child in armatureObj.children if isinstance(child.data, bpy.types.Mesh)]:
+    for child in armatureObj.children:
+        if not isinstance(child.data, bpy.types.Mesh):
+            continue
         for material in child.data.materials:
             for i in range(2):
                 flipbook = getattr(material.flipbookGroup, "flipbook" + str(i))
