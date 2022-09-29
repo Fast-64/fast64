@@ -483,7 +483,7 @@ class OOT_ImportDL(bpy.types.Operator):
             data = getImportData(paths)
             f3dContext = OOTF3DContext(F3D("F3DEX2/LX2", False), [name], basePath)
 
-            scale = settings.actorScale
+            scale = getOOTScale(settings.actorScale)
             if not isCustomImport:
                 data = ootGetIncludedAssetData(basePath, paths, data) + data
 

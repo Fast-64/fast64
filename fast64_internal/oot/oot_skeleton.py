@@ -800,7 +800,7 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
     if overlayName is not None and importSettings.autoDetectActorScale:
         actorScale = ootReadActorScale(basePath, overlayName, isLink)
     else:
-        actorScale = importSettings.actorScale
+        actorScale = getOOTScale(importSettings.actorScale)
 
     # print(limbList)
     isLOD, armatureObj = ootBuildSkeleton(
