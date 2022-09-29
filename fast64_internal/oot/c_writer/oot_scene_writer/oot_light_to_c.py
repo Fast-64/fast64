@@ -48,9 +48,7 @@ def ootLightSettingsToC(scene: OOTScene, headerIndex: int):
 
     # .c
     lightSettingsData.source = (
-        (f"LightSettings {lightName}" + " = {\n")
-        + "".join([ootLightToC(light) for light in scene.lights])
-        + "};\n\n"
+        (f"LightSettings {lightName}" + " = {\n") + "".join([ootLightToC(light) for light in scene.lights]) + "};\n\n"
     )
 
     return lightSettingsData
