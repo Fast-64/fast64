@@ -32,8 +32,7 @@ def flipbook_to_c(flipbook: TextureFlipbook, isStatic: bool):
 def flipbook_2d_to_c(flipbook: TextureFlipbook, isStatic: bool, count: int):
     newArrayData = "void* " if not isStatic else "static void* "
     newArrayData += f"{flipbook.name}[][{len(flipbook.textureNames)}] = {{ "
-    for i in range(count):
-        newArrayData += "{ " + flipbook_data_to_c(flipbook) + " },\n"
+    newArrayData += ("{ " + flipbook_data_to_c(flipbook) + " },\n") * count
     newArrayData += " };"
     return newArrayData
 
