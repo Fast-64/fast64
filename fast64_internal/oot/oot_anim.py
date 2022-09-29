@@ -889,7 +889,7 @@ oot_anim_classes = (
     OOTAnimImportSettingsProperty,
 )
 
-oot_anim_panels = (OOT_ExportAnimPanel, OOT_LinkAnimPanel)
+oot_anim_panels = (OOT_ExportAnimPanel, OOT_LinkAnimPanel,)
 
 
 def oot_anim_panel_register():
