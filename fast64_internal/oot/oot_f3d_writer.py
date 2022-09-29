@@ -23,7 +23,7 @@ class OOTDLExportSettings(bpy.types.PropertyGroup):
     drawLayer: bpy.props.EnumProperty(name="Draw Layer", items=ootEnumDrawLayers)
     overlay: bpy.props.StringProperty(name="Overlay", default="")
     flipbookUses2DArray: bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
-    arrayIndex2D: bpy.props.IntProperty(name="Index if 2D Array", default=0, min=0)
+    flipbookArrayIndex2D: bpy.props.IntProperty(name="Index if 2D Array", default=0, min=0)
     customAssetIncludeDir: bpy.props.StringProperty(
         name="Asset Include Directory",
         default="assets/objects/gameplay_keep",
@@ -41,7 +41,7 @@ class OOTDLImportSettings(bpy.types.PropertyGroup):
     drawLayer: bpy.props.EnumProperty(name="Draw Layer", items=ootEnumDrawLayers)
     overlay: bpy.props.StringProperty(name="Overlay", default="")
     flipbookUses2DArray: bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
-    arrayIndex2D: bpy.props.IntProperty(name="Index if 2D Array", default=0, min=0)
+    flipbookArrayIndex2D: bpy.props.IntProperty(name="Index if 2D Array", default=0, min=0)
     autoDetectActorScale: bpy.props.BoolProperty(name="Auto Detect Actor Scale", default=True)
     actorScale: bpy.props.FloatProperty(name="Actor Scale", min=0, default=100)
 
@@ -221,7 +221,7 @@ def ootConvertMeshToC(
     name = toAlnum(settings.name)
     overlayName = settings.overlay
     flipbookUses2DArray = settings.flipbookUses2DArray
-    arrayIndex2D = settings.arrayIndex2D if flipbookUses2DArray else None
+    flipbookArrayIndex2D = settings.flipbookArrayIndex2D if flipbookUses2DArray else None
 
     try:
         obj, allObjs = ootDuplicateHierarchy(originalObj, None, False, OOTObjectCategorizer())
@@ -258,14 +258,14 @@ def ootConvertMeshToC(
     data.append(exportData.all())
 
     if isCustomExport:
-        textureArrayData = writeTextureArraysNew(fModel, arrayIndex2D)
+        textureArrayData = writeTextureArraysNew(fModel, flipbookArrayIndex2D)
         data.append(textureArrayData)
 
     path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, False)
     writeCData(data, os.path.join(path, name + ".h"), os.path.join(path, name + ".c"))
 
     if not isCustomExport:
-        writeTextureArraysExisting(bpy.context.scene.ootDecompPath, overlayName, False, arrayIndex2D, fModel)
+        writeTextureArraysExisting(bpy.context.scene.ootDecompPath, overlayName, False, flipbookArrayIndex2D, fModel)
         addIncludeFiles(folderName, path, name)
         if removeVanillaData:
             headerPath = os.path.join(path, folderName + ".h")
@@ -297,7 +297,9 @@ def getActorFilepath(basePath: str, overlayName: str | None, isLink: bool, check
     return actorFilePath
 
 
-def writeTextureArraysExisting(exportPath: str, overlayName: str, isLink: bool, arrayIndex2D: int, fModel: OOTModel):
+def writeTextureArraysExisting(
+    exportPath: str, overlayName: str, isLink: bool, flipbookArrayIndex2D: int, fModel: OOTModel
+):
     actorFilePath = getActorFilepath(exportPath, overlayName, isLink, True)
 
     if not os.path.exists(actorFilePath):
@@ -309,10 +311,10 @@ def writeTextureArraysExisting(exportPath: str, overlayName: str, isLink: bool, 
 
     for flipbook in fModel.flipbooks:
         if flipbook.exportMode == "Array":
-            if arrayIndex2D is None:
+            if flipbookArrayIndex2D is None:
                 newData = writeTextureArraysExisting1D(newData, flipbook)
             else:
-                newData = writeTextureArraysExisting2D(newData, flipbook, arrayIndex2D)
+                newData = writeTextureArraysExisting2D(newData, flipbook, flipbookArrayIndex2D)
 
     if newData != actorData:
         writeFile(actorFilePath, newData)
@@ -347,7 +349,7 @@ def writeTextureArraysExisting1D(data: str, flipbook: TextureFlipbook) -> str:
 
 
 # for flipbook textures, we only replace one element of the 2D array.
-def writeTextureArraysExisting2D(data: str, flipbook: TextureFlipbook, arrayIndex2D: int) -> str:
+def writeTextureArraysExisting2D(data: str, flipbook: TextureFlipbook, flipbookArrayIndex2D: int) -> str:
     newData = data
 
     # for !AVOID_UB, Link has textures in 2D Arrays
@@ -369,18 +371,18 @@ def writeTextureArraysExisting2D(data: str, flipbook: TextureFlipbook, arrayInde
             arrayMatch.group(0) for arrayMatch in re.finditer(r"\{(.*?)\}", array2DMatch.group(2), flags=re.DOTALL)
         ]
 
-        if arrayIndex2D >= len(arrayMatchData):
-            while len(arrayMatchData) <= arrayIndex2D:
+        if flipbookArrayIndex2D >= len(arrayMatchData):
+            while len(arrayMatchData) <= flipbookArrayIndex2D:
                 arrayMatchData.append(newArrayData)
         else:
-            arrayMatchData[arrayIndex2D] = newArrayData
+            arrayMatchData[flipbookArrayIndex2D] = newArrayData
 
         newArray2DData = ",\n".join([item for item in arrayMatchData])
         newData = replaceMatchContent(newData, newArray2DData, array2DMatch, 2)
 
         # otherwise, add to end of asset includes
     else:
-        arrayMatchData = [newArrayData] * (arrayIndex2D + 1)
+        arrayMatchData = [newArrayData] * (flipbookArrayIndex2D + 1)
         newArray2DData = ",\n".join([item for item in arrayMatchData])
 
         # get last asset include
@@ -477,7 +479,7 @@ class OOT_ImportDL(bpy.types.Operator):
             drawLayer = settings.drawLayer
             overlayName = settings.overlay
             flipbookUses2DArray = settings.flipbookUses2DArray
-            arrayIndex2D = settings.arrayIndex2D if flipbookUses2DArray else None
+            flipbookArrayIndex2D = settings.flipbookArrayIndex2D if flipbookUses2DArray else None
 
             paths = [ootGetObjectPath(isCustomImport, importPath, folderName)]
             data = getImportData(paths)
@@ -488,7 +490,7 @@ class OOT_ImportDL(bpy.types.Operator):
                 data = ootGetIncludedAssetData(basePath, paths, data) + data
 
                 if overlayName is not None:
-                    ootReadTextureArrays(basePath, overlayName, name, f3dContext, False, arrayIndex2D)
+                    ootReadTextureArrays(basePath, overlayName, name, f3dContext, False, flipbookArrayIndex2D)
                 if settings.autoDetectActorScale:
                     scale = ootReadActorScale(basePath, overlayName, False)
 
@@ -583,7 +585,7 @@ class OOT_ExportDLPanel(OOT_Panel):
             col.prop(exportSettings, "flipbookUses2DArray")
             if exportSettings.flipbookUses2DArray:
                 box = col.box().column()
-                prop_split(box, exportSettings, "arrayIndex2D", "Flipbook Index")
+                prop_split(box, exportSettings, "flipbookArrayIndex2D", "Flipbook Index")
 
         prop_split(col, exportSettings, "drawLayer", "Export Draw Layer")
         col.prop(exportSettings, "isCustom")
@@ -604,7 +606,7 @@ class OOT_ExportDLPanel(OOT_Panel):
             col.prop(importSettings, "flipbookUses2DArray")
             if importSettings.flipbookUses2DArray:
                 box = col.box().column()
-                prop_split(box, importSettings, "arrayIndex2D", "Flipbook Index")
+                prop_split(box, importSettings, "flipbookArrayIndex2D", "Flipbook Index")
         prop_split(col, importSettings, "drawLayer", "Import Draw Layer")
 
         col.prop(importSettings, "isCustom")

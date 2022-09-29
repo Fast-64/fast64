@@ -91,13 +91,13 @@ class OOTSkeletonImportInfo:
         skeletonName: str,
         folderName: str,
         overlayName: str,
-        arrayIndex2D: int | None,
+        flipbookArrayIndex2D: int | None,
         restPoseData: list[tuple[float, float, float]] | None,
     ):
         self.skeletonName = skeletonName
         self.folderName = folderName
         self.overlayName = overlayName  # Note that overlayName = None will disable texture array reading.
-        self.arrayIndex2D = arrayIndex2D
+        self.flipbookArrayIndex2D = flipbookArrayIndex2D
         self.isLink = skeletonName == "gLinkAdultSkel" or skeletonName == "gLinkChildSkel"
         self.restPoseData = restPoseData
 

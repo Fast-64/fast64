@@ -25,7 +25,7 @@ class OOTSkeletonExportSettings(bpy.types.PropertyGroup):
     removeVanillaData: bpy.props.BoolProperty(name="Replace Vanilla Skeletons On Export", default=True)
     overlay: bpy.props.StringProperty(name="Overlay", default="ovl_En_GeldB")
     flipbookUses2DArray: bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
-    arrayIndex2D: bpy.props.IntProperty(name="Index if 2D Array", default=0, min=0)
+    flipbookArrayIndex2D: bpy.props.IntProperty(name="Index if 2D Array", default=0, min=0)
     customAssetIncludeDir: bpy.props.StringProperty(
         name="Asset Include Directory",
         default="assets/objects/object_geldb",
@@ -51,7 +51,7 @@ class OOTSkeletonImportSettings(bpy.types.PropertyGroup):
     drawLayer: bpy.props.EnumProperty(name="Import Draw Layer", items=ootEnumDrawLayers)
     overlay: bpy.props.StringProperty(name="Overlay", default="ovl_En_GeldB")
     flipbookUses2DArray: bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
-    arrayIndex2D: bpy.props.IntProperty(name="Index if 2D Array", default=0, min=0)
+    flipbookArrayIndex2D: bpy.props.IntProperty(name="Index if 2D Array", default=0, min=0)
     autoDetectActorScale: bpy.props.BoolProperty(name="Auto Detect Actor Scale", default=True)
     actorScale: bpy.props.FloatProperty(name="Actor Scale", min=0, default=100)
 
@@ -604,15 +604,15 @@ def ootConvertArmatureToC(
         skeletonName = importInfo.skeletonName
         folderName = importInfo.folderName
         overlayName = importInfo.overlayName
-        flipbookUses2DArray = importInfo.arrayIndex2D is not None
-        arrayIndex2D = importInfo.arrayIndex2D
+        flipbookUses2DArray = importInfo.flipbookArrayIndex2D is not None
+        flipbookArrayIndex2D = importInfo.flipbookArrayIndex2D
         isLink = importInfo.isLink
     else:
         skeletonName = toAlnum(settings.name)
         folderName = settings.folder
         overlayName = settings.overlay if not settings.isCustom else None
         flipbookUses2DArray = settings.flipbookUses2DArray
-        arrayIndex2D = settings.arrayIndex2D if flipbookUses2DArray else None
+        flipbookArrayIndex2D = settings.flipbookArrayIndex2D if flipbookUses2DArray else None
         isLink = False
 
     exportPath = bpy.path.abspath(settings.customPath)
@@ -673,14 +673,14 @@ def ootConvertArmatureToC(
     data.append(skeletonC)
 
     if isCustomExport:
-        textureArrayData = writeTextureArraysNew(fModel, arrayIndex2D)
+        textureArrayData = writeTextureArraysNew(fModel, flipbookArrayIndex2D)
         data.append(textureArrayData)
 
     path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, False)
     writeCData(data, os.path.join(path, skeletonName + ".h"), os.path.join(path, skeletonName + ".c"))
 
     if not isCustomExport:
-        writeTextureArraysExisting(bpy.context.scene.ootDecompPath, overlayName, isLink, arrayIndex2D, fModel)
+        writeTextureArraysExisting(bpy.context.scene.ootDecompPath, overlayName, isLink, flipbookArrayIndex2D, fModel)
         addIncludeFiles(folderName, path, skeletonName)
         if removeVanillaData:
             ootRemoveSkeleton(path, folderName, skeletonName)
@@ -764,8 +764,8 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
         skeletonName = importInfo.skeletonName
         folderName = importInfo.folderName
         overlayName = importInfo.overlayName
-        flipbookUses2DArray = importInfo.arrayIndex2D is not None
-        arrayIndex2D = importInfo.arrayIndex2D
+        flipbookUses2DArray = importInfo.flipbookArrayIndex2D is not None
+        flipbookArrayIndex2D = importInfo.flipbookArrayIndex2D
         isLink = importInfo.isLink
         restPoseData = importInfo.restPoseData
     else:
@@ -773,7 +773,7 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
         folderName = importSettings.folder
         overlayName = importSettings.overlay if not importSettings.isCustom else None
         flipbookUses2DArray = importSettings.flipbookUses2DArray
-        arrayIndex2D = importSettings.arrayIndex2D if flipbookUses2DArray else None
+        flipbookArrayIndex2D = importSettings.flipbookArrayIndex2D if flipbookUses2DArray else None
         isLink = False
         restPoseData = None
 
@@ -814,7 +814,7 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
         basePath,
         drawLayer,
         isLink,
-        arrayIndex2D,
+        flipbookArrayIndex2D,
         f3dContext,
     )
     if isLOD:
@@ -830,7 +830,7 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
             basePath,
             drawLayer,
             isLink,
-            arrayIndex2D,
+            flipbookArrayIndex2D,
             f3dContext,
         )
         armatureObj.ootSkeleton.LOD = LODArmatureObj
@@ -855,7 +855,7 @@ def ootBuildSkeleton(
     basePath,
     drawLayer,
     isLink,
-    arrayIndex2D: int,
+    flipbookArrayIndex2D: int,
     f3dContext: OOTF3DContext,
 ):
     lodString = "_lod" if useFarLOD else ""
@@ -879,7 +879,7 @@ def ootBuildSkeleton(
     f3dContext.mat().draw_layer.oot = armatureObj.ootDrawLayer
 
     if overlayName is not None:
-        ootReadTextureArrays(basePath, overlayName, skeletonName, f3dContext, isLink, arrayIndex2D)
+        ootReadTextureArrays(basePath, overlayName, skeletonName, f3dContext, isLink, flipbookArrayIndex2D)
 
     transformMatrix = mathutils.Matrix.Scale(1 / actorScale, 4)
     isLOD = ootAddLimbRecursively(0, skeletonData, obj, armatureObj, transformMatrix, None, f3dContext, useFarLOD)
@@ -1175,7 +1175,7 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
                 col.prop(exportSettings, "flipbookUses2DArray")
                 if exportSettings.flipbookUses2DArray:
                     box = col.box().column()
-                    prop_split(box, exportSettings, "arrayIndex2D", "Flipbook Index")
+                    prop_split(box, exportSettings, "flipbookArrayIndex2D", "Flipbook Index")
             elif exportSettings.mode == "Adult Link" or exportSettings.mode == "Child Link":
                 col.label(text="Requires enabling NON_MATCHING in Makefile.", icon="ERROR")
 
@@ -1201,7 +1201,7 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
                 col.prop(importSettings, "flipbookUses2DArray")
                 if importSettings.flipbookUses2DArray:
                     box = col.box().column()
-                    prop_split(box, importSettings, "arrayIndex2D", "Flipbook Index")
+                    prop_split(box, importSettings, "flipbookArrayIndex2D", "Flipbook Index")
                 if importSettings.overlay == "ovl_En_Wf":
                     col.box().column().label(
                         text="This actor has branching gSPSegment calls and will not import correctly unless one of the branches is deleted.",
