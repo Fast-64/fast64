@@ -6,6 +6,7 @@ def upgradeObjectList(objList, objData):
         else:
             obj.objectKey = objData.objectsByID[obj.objectID].key
 
+
 def upgradeRoomHeaders(roomObj, objData):
     """Main upgrade logic for room headers"""
     altHeaders = roomObj.ootAlternateRoomHeaders

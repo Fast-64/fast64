@@ -1,5 +1,6 @@
 from ..utility import ootGetSceneOrRoomHeader
 
+
 def addMissingObjectToProp(roomObj, headerIndex, objectKey):
     """Add the missing object to the room empty object OoT object list"""
     if roomObj is not None:
@@ -9,6 +10,7 @@ def addMissingObjectToProp(roomObj, headerIndex, objectKey):
             collection.add()
             collection.move(len(collection) - 1, (headerIndex + 1))
             collection[-1].objectKey = objectKey
+
 
 def addMissingObjectsToList(roomObj, room, ootData, headerIndex):
     """Adds missing objects to the object list"""
@@ -22,6 +24,7 @@ def addMissingObjectsToList(roomObj, room, ootData, headerIndex):
                         if not (objID in room.objectIDList):
                             room.objectIDList.append(objID)
                             addMissingObjectToProp(roomObj, headerIndex, objKey)
+
 
 def addRoomHeadersObjects(roomObj, room, ootData):
     """Adds missing objects for alternate room headers"""
