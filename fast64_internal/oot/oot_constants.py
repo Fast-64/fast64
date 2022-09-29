@@ -56,6 +56,14 @@ ootEnumHeaderMenu = [
     ("Cutscene", "Cutscene", "Cutscene"),
 ]
 
+ootEnumHeaderMenuComplete = [
+    ("Child Day", "Child Day", "Child Day"),
+    ("Child Night", "Child Night", "Child Night"),
+    ("Adult Day", "Adult Day", "Adult Day"),
+    ("Adult Night", "Adult Night", "Adult Night"),
+    ("Cutscene", "Cutscene", "Cutscene"),
+]
+
 ootEnumLightGroupMenu = [
     ("Dawn", "Dawn", "Dawn"),
     ("Day", "Day", "Day"),
