@@ -8,6 +8,7 @@ from .oot_constants import *
 from ..f3d.f3d_gbi import *
 from .oot_collision_classes import *
 from .oot_model_classes import *
+from .oot_spline import OOTPath
 
 
 class OOTActor:
@@ -182,7 +183,7 @@ class OOTScene:
         self.cutsceneHeaders = []
 
         self.exitList = []
-        self.pathList = {}
+        self.pathList: dict[int, OOTPath] = {}
         self.cameraList = []
 
         self.writeCutscene = False

@@ -10,8 +10,9 @@ from ..oot_cutscene import ootCutsceneDataToC
 
 from .oot_scene_room_cmds.oot_scene_cmds import ootSceneCommandsToC
 from .oot_scene_room_cmds.oot_room_cmds import ootRoomCommandsToC
-from .oot_room_to_c.oot_object_to_c import ootObjectListToC
-from .oot_room_to_c.oot_actor_to_c import ootActorListToC
+from .oot_room_writer.oot_object_to_c import ootObjectListToC
+from .oot_room_writer.oot_actor_to_c import ootActorListToC
+from .oot_scene_writer.oot_path_to_c import ootPathListToC
 
 
 def ootMeshEntryToC(meshEntry, roomShape):
@@ -274,40 +275,6 @@ def ootLightSettingsToC(scene, useIndoorLighting, headerIndex):
     return data
 
 
-def ootPathToC(path):
-    data = CData()
-    data.header = "extern Vec3s " + path.pathName() + "[];\n"
-    data.source = "Vec3s " + path.pathName() + "[] = {\n"
-    for point in path.points:
-        data.source += (
-            "\t"
-            + "{ "
-            + str(int(round(point[0])))
-            + ", "
-            + str(int(round(point[1])))
-            + ", "
-            + str(int(round(point[2])))
-            + " },\n"
-        )
-    data.source += "};\n\n"
-
-    return data
-
-
-def ootPathListToC(scene):
-    data = CData()
-    data.header = "extern Path " + scene.pathListName() + "[" + str(len(scene.pathList)) + "];\n"
-    data.source = "Path " + scene.pathListName() + "[" + str(len(scene.pathList)) + "] = {\n"
-    pathData = CData()
-    for i in range(len(scene.pathList)):
-        path = scene.pathList[i]
-        data.source += "\t" + "{ " + str(len(path.points)) + ", " + path.pathName() + " },\n"
-        pathData.append(ootPathToC(path))
-    data.source += "};\n\n"
-    pathData.append(data)
-    return pathData
-
-
 def ootSceneMeshToC(scene, textureExportSettings):
     exportData = scene.model.to_c(textureExportSettings, OOTGfxFormatter(ScrollMethod.Vertex))
     return exportData.all()
@@ -365,7 +332,7 @@ def ootAlternateSceneMainToC(scene):
     return altHeader, altData
 
 
-def ootSceneMainToC(scene, headerIndex):
+def ootSceneMainToC(scene: OOTScene, headerIndex: int):
     sceneMainC = CData()
 
     if headerIndex == 0:
