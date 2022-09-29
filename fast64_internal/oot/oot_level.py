@@ -54,43 +54,48 @@ class OOTObjectPanel(bpy.types.Panel):
         altSceneProp = sceneObj.ootAlternateSceneHeaders if sceneObj is not None else None
         altRoomProp = roomObj.ootAlternateRoomHeaders if roomObj is not None else None
 
-        if obj.ootEmptyType == "Actor":
-            drawActorProperty(box, obj.ootActorProperty, altRoomProp, objName)
+        if obj.fast64.oot.version > OOT_ObjectProperties.cur_version:
+            box = box.column().box()
+            box.label(text="This blend was made with newer Fast64.")
+            box.label(text="Upgrade now.")
+        elif obj.fast64.oot.version != OOT_ObjectProperties.cur_version:
+            box.column().box().label(text="Legacy data has not been upgraded!")
+            box.column().operator(OOT_ManualUpgrade.bl_idname, text="Upgrade Data Now!")
+        else:
+            if obj.ootEmptyType == "Actor":
+                drawActorProperty(box, obj.ootActorProperty, altRoomProp, objName)
 
-        elif obj.ootEmptyType == "Transition Actor":
-            drawTransitionActorProperty(box, obj.ootTransitionActorProperty, altSceneProp, roomObj, objName)
+            elif obj.ootEmptyType == "Transition Actor":
+                drawTransitionActorProperty(box, obj.ootTransitionActorProperty, altSceneProp, roomObj, objName)
 
-        elif obj.ootEmptyType == "Water Box":
-            drawWaterBoxProperty(box, obj.ootWaterBoxProperty)
+            elif obj.ootEmptyType == "Water Box":
+                drawWaterBoxProperty(box, obj.ootWaterBoxProperty)
 
-        elif obj.ootEmptyType == "Scene":
-            drawSceneHeaderProperty(box, obj.ootSceneHeader, None, None, objName)
-            if obj.ootSceneHeader.menuTab == "Alternate":
-                drawAlternateSceneHeaderProperty(box, obj.ootAlternateSceneHeaders, objName)
-            box.prop(obj.fast64.oot.scene, "write_dummy_room_list")
+            elif obj.ootEmptyType == "Scene":
+                drawSceneHeaderProperty(box, obj.ootSceneHeader, None, None, objName)
+                if obj.ootSceneHeader.menuTab == "Alternate":
+                    drawAlternateSceneHeaderProperty(box, obj.ootAlternateSceneHeaders, objName)
+                box.prop(obj.fast64.oot.scene, "write_dummy_room_list")
 
-        elif obj.ootEmptyType == "Room":
-            drawRoomHeaderProperty(box, obj.ootRoomHeader, None, None, objName)
-            if obj.ootRoomHeader.menuTab == "Alternate":
-                drawAlternateRoomHeaderProperty(box, obj.ootAlternateRoomHeaders, objName)
+            elif obj.ootEmptyType == "Room":
+                drawRoomHeaderProperty(box, obj.ootRoomHeader, None, None, objName)
+                if obj.ootRoomHeader.menuTab == "Alternate":
+                    drawAlternateRoomHeaderProperty(box, obj.ootAlternateRoomHeaders, objName)
 
-        elif obj.ootEmptyType == "Entrance":
-            drawEntranceProperty(box, obj, altSceneProp, objName)
+            elif obj.ootEmptyType == "Entrance":
+                drawEntranceProperty(box, obj, altSceneProp, objName)
 
-        elif obj.ootEmptyType == "Cull Group":
-            drawCullGroupProperty(box, obj)
+            elif obj.ootEmptyType == "Cull Group":
+                drawCullGroupProperty(box, obj)
 
-        elif obj.ootEmptyType == "LOD":
-            drawLODProperty(box, obj)
+            elif obj.ootEmptyType == "LOD":
+                drawLODProperty(box, obj)
 
-        elif obj.ootEmptyType == "Cutscene":
-            drawCutsceneProperty(box, obj)
+            elif obj.ootEmptyType == "Cutscene":
+                drawCutsceneProperty(box, obj)
 
-        elif obj.ootEmptyType == "None":
-            box.label(text="Geometry can be parented to this.")
-
-        # if obj.ootEmptyType != "Scene" and obj.ootEmptyType != "Room":
-        # 	drawParentSceneRoom(box, context.object)
+            elif obj.ootEmptyType == "None":
+                box.label(text="Geometry can be parented to this.")
 
 
 def drawLODProperty(box, obj):
@@ -147,6 +152,16 @@ def onUpdateOOTEmptyType(self, context):
             setLightPropertyValues(timeOfDayLights.night, [40, 70, 100], [20, 20, 35], [50, 50, 100], [0, 0, 30], 0x3E0)
 
 
+class OOT_ManualUpgrade(bpy.types.Operator):
+    bl_idname = "object.oot_manual_upgrade"
+    bl_label = "Upgrade Fast64 OoT Object Data"
+    bl_options = {"REGISTER", "UNDO", "PRESET"}
+
+    def execute(self, context):
+        OOT_ObjectProperties.upgrade_changed_props()
+        return {"FINISHED"}
+
+
 class OOT_ObjectProperties(bpy.types.PropertyGroup):
     version: bpy.props.IntProperty(name="OOT_ObjectProperties Version", default=0)
     cur_version = 1  # version after property migration
@@ -196,6 +211,7 @@ oot_obj_classes = (
     OOTAlternateSceneHeaderProperty,
     OOTRoomHeaderProperty,
     OOTAlternateRoomHeaderProperty,
+    OOT_ManualUpgrade,
 )
 
 oot_obj_panel_classes = (OOTObjectPanel,)
