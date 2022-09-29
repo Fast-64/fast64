@@ -840,19 +840,19 @@ class OOT_ExportAnimPanel(OOT_Panel):
 
 # The update callbacks are for manually setting texture with visualize operator.
 # They don't run from animation updates, see flipbookAnimHandler in flipbook.py
-def ootUpdateEyes(self, context):
+def ootUpdateLinkEyes(self, context):
     index = self.eyes
     ootFlipbookAnimUpdate(self, context.object, "8", index)
 
 
-def ootUpdateMouth(self, context):
+def ootUpdateLinkMouth(self, context):
     index = self.mouth
     ootFlipbookAnimUpdate(self, context.object, "9", index)
 
 
 class OOTLinkTextureAnimProperty(bpy.types.PropertyGroup):
-    eyes: bpy.props.IntProperty(min=0, max=15, default=0, name="Eyes", update=ootUpdateEyes)
-    mouth: bpy.props.IntProperty(min=0, max=15, default=0, name="Mouth", update=ootUpdateMouth)
+    eyes: bpy.props.IntProperty(min=0, max=15, default=0, name="Eyes", update=ootUpdateLinkEyes)
+    mouth: bpy.props.IntProperty(min=0, max=15, default=0, name="Mouth", update=ootUpdateLinkMouth)
 
 
 class OOT_LinkAnimPanel(bpy.types.Panel):
