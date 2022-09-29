@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from os import path
 from ...utility import PluginError
-from .oot_getters import getXMLRoot, getEnumList
+from .oot_getters import getXMLRoot
 from .oot_data import OoT_BaseElement
 
 # Note: "object" in this context refers to an OoT Object file (like ``gameplay_keep``)
@@ -20,8 +20,8 @@ class OoT_ObjectData:
         self.objectList: list[OoT_ObjectElement] = []
 
         # list of tuples used by Blender's enum properties
-        self.ootEnumObjectKey: list[tuple] = []
-        self.ootEnumObjectIDLegacy: list[tuple] = []  # for old blends
+        self.ootEnumObjectKey = [("Custom", "Custom Object", "Custom")]
+        self.ootEnumObjectIDLegacy = []  # for old blends
 
         # Path to the ``ObjectList.xml`` file
         objectXML = path.dirname(path.abspath(__file__)) + "/xml/ObjectList.xml"
@@ -35,7 +35,8 @@ class OoT_ObjectData:
 
         self.objectsByID = {obj.id: obj for obj in self.objectList}
         self.objectsByKey = {obj.key: obj for obj in self.objectList}
-        self.ootEnumObjectKey = getEnumList(self.objectList, "Custom Object")[0]
+        for obj in self.objectList:
+            self.ootEnumObjectKey.append((obj.key, obj.name, obj.id))
 
         # create the legacy object list
         lastIndex = self.objectsByKey["obj_timeblock"].index

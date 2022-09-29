@@ -18,7 +18,7 @@ from .oot_spline import *
 from .oot_cutscene import *
 from .c_writer import *
 
-from .oot_object import addRoomHeadersObjects
+from .oot_object import addMissingObjectsToAllRoomHeaders
 
 
 def sceneNameFromID(sceneID):
@@ -92,7 +92,7 @@ def ootExportSceneToC(
         obj for obj in bpy.data.objects if ((obj.parent == originalSceneObj) and (obj.ootEmptyType == "Room"))
     ]
     for roomObj, room in zip(roomObjects, scene.rooms.values()):
-        addRoomHeadersObjects(roomObj, room, ootData)
+        addMissingObjectsToAllRoomHeaders(roomObj, room, ootData)
     levelPath = ootGetPath(exportPath, isCustomExport, exportSubdir, sceneName, True, True)
     levelC = ootLevelToC(scene, TextureExportSettings(False, savePNG, exportSubdir + sceneName, levelPath))
 

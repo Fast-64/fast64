@@ -1,6 +1,6 @@
 from os import path
 from dataclasses import dataclass
-from .oot_getters import getXMLRoot, getEnumList
+from .oot_getters import getXMLRoot
 from .oot_data import OoT_BaseElement
 
 
@@ -22,7 +22,7 @@ class OoT_ActorData:
         for actor in getXMLRoot(actorXML).iterfind("Actor"):
             tiedObjects = []
             objKey = actor.get("ObjectKey")
-            if objKey is not None:
+            if objKey is not None: # actors don't always use an object
                 tiedObjects = objKey.split(",")
             self.actorList.append(
                 OoT_ActorElement(
@@ -30,10 +30,13 @@ class OoT_ActorData:
                     actor.attrib["Key"],
                     actor.attrib["Name"],
                     actor.attrib["Category"],
-                    tiedObjects,  # actors don't always use an object
+                    tiedObjects,
                 )
             )
         self.actorsByKey = {actor.key: actor for actor in self.actorList}
         self.actorsByID = {actor.id: actor for actor in self.actorList}
         # list of tuples used by Blender's enum properties
-        self.ootEnumActorID = getEnumList(self.actorList, "Custom Actor")[1]
+        self.ootEnumActorID = [("Custom", "Custom Actor", "Custom")]
+
+        for actor in self.actorList:
+            self.ootEnumActorID.append((actor.id, actor.name, actor.id))

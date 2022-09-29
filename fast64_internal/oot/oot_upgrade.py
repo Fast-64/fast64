@@ -3,7 +3,7 @@ from .data.oot_object_data import OoT_ObjectData
 
 
 def upgradeObjectList(objList: CollectionProperty, objData: OoT_ObjectData):
-    """Transition from the old object system to the new one"""
+    """Transition to the XML object system"""
     for obj in objList:
         if obj.objectID == "Custom":
             obj.objectKey = obj.objectID
