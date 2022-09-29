@@ -2,7 +2,7 @@ from ...utility import CData, PluginError
 from ...f3d.f3d_gbi import ScrollMethod
 
 from ..oot_model_classes import OOTGfxFormatter
-from ..oot_level_classes import OOTScene, OOTRoom
+from ..oot_level_classes import OOTScene, OOTRoom, OOTLight
 from ..oot_constants import ootRoomShapeStructs, ootRoomShapeEntryStructs
 from ..oot_utility import indent
 from ..oot_collision import ootCollisionToC
@@ -13,6 +13,7 @@ from .oot_scene_room_cmds.oot_room_cmds import ootRoomCommandsToC
 from .oot_room_writer.oot_object_to_c import ootObjectListToC
 from .oot_room_writer.oot_actor_to_c import ootActorListToC
 from .oot_scene_writer.oot_path_to_c import ootPathListToC
+from .oot_scene_writer.oot_light_to_c import ootLightSettingsToC
 
 
 def ootMeshEntryToC(meshEntry, roomShape):
@@ -241,40 +242,6 @@ def ootExitListToC(scene, headerIndex):
     return data
 
 
-def ootVectorToC(vector):
-    return "0x{:02X}, 0x{:02X}, 0x{:02X}".format(vector[0], vector[1], vector[2])
-
-
-def ootLightToC(light):
-    return (
-        "\t{ "
-        + ", ".join(
-            (
-                ootVectorToC(light.ambient),
-                ootVectorToC(light.diffuseDir0),
-                ootVectorToC(light.diffuse0),
-                ootVectorToC(light.diffuseDir1),
-                ootVectorToC(light.diffuse1),
-                ootVectorToC(light.fogColor),
-                light.getBlendFogShort(),
-                "0x{:04X}".format(light.fogFar),
-            )
-        )
-        + " },\n"
-    )
-
-
-def ootLightSettingsToC(scene, useIndoorLighting, headerIndex):
-    data = CData()
-    lightArraySize = len(scene.lights)
-    data.header = "extern LightSettings " + scene.lightListName(headerIndex) + "[" + str(lightArraySize) + "];\n"
-    data.source = "LightSettings " + scene.lightListName(headerIndex) + "[" + str(lightArraySize) + "] = {\n"
-    for light in scene.lights:
-        data.source += ootLightToC(light)
-    data.source += "};\n\n"
-    return data
-
-
 def ootSceneMeshToC(scene, textureExportSettings):
     exportData = scene.model.to_c(textureExportSettings, OOTGfxFormatter(ScrollMethod.Vertex))
     return exportData.all()
@@ -382,7 +349,7 @@ def ootSceneMainToC(scene: OOTScene, headerIndex: int):
 
     # Write the light data
     if len(scene.lights) > 0:
-        sceneMainC.append(ootLightSettingsToC(scene, scene.skyboxLighting == "0x01", headerIndex))
+        sceneMainC.append(ootLightSettingsToC(scene, headerIndex))
 
     # Write the path data, if used
     sceneMainC.append(pathData)
