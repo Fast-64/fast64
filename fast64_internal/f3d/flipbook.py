@@ -45,7 +45,7 @@ def usesFlipbook(
     checkEnable: bool,
     checkFlipbookReference: Callable[[str], bool],
 ) -> bool:
-    texProp = getattr(material.f3d_mat, "tex" + str(index))
+    texProp = getattr(material.f3d_mat, f"tex{index}")
     if all_combiner_uses(material.f3d_mat)["Texture " + str(index)] and texProp.use_tex_reference:
         return (
             checkFlipbookReference is not None
