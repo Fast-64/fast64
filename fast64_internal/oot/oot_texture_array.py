@@ -12,7 +12,7 @@ from .oot_model_classes import (
 
 # Special cases:
 # z_en_xc: one texture is not stored in any array.
-# skeletonName only used for en_ossan (shopkeepers) and demo_ec (end credits party), which have multiple actors in it
+# skeletonName only used for en_ossan (shopkeepers) and demo_ec (end credits party), which have multiple skeletons
 def ootReadTextureArrays(
     basePath: str,
     overlayName: str,
