@@ -756,7 +756,7 @@ class OOT_ExportAnim(bpy.types.Operator):
             return {"CANCELLED"}
 
         try:
-            settings = context.scene.ootAnimExportSettings
+            settings = context.scene.fast64.oot.animExportSettings
             exportAnimationC(armatureObj, settings)
             self.report({"INFO"}, "Success!")
 
@@ -798,7 +798,7 @@ class OOT_ImportAnim(bpy.types.Operator):
 
         try:
             actorScale = getOOTScale(armatureObj.ootActorScale)
-            settings = context.scene.ootAnimImportSettings
+            settings = context.scene.fast64.oot.animImportSettings
             ootImportAnimationC(armatureObj, settings, actorScale)
             self.report({"INFO"}, "Success!")
 
@@ -818,7 +818,7 @@ class OOT_ExportAnimPanel(OOT_Panel):
         col = self.layout.column()
 
         col.operator(OOT_ExportAnim.bl_idname)
-        exportSettings = context.scene.ootAnimExportSettings
+        exportSettings = context.scene.fast64.oot.animExportSettings
         prop_split(col, exportSettings, "skeletonName", "Anim Name Prefix")
         if exportSettings.isCustom:
             prop_split(col, exportSettings, "customPath", "Folder")
@@ -828,7 +828,7 @@ class OOT_ExportAnimPanel(OOT_Panel):
         col.prop(exportSettings, "isCustom")
 
         col.operator(OOT_ImportAnim.bl_idname)
-        importSettings = context.scene.ootAnimImportSettings
+        importSettings = context.scene.fast64.oot.animImportSettings
         prop_split(col, importSettings, "animName", "Anim Header Name")
         if importSettings.isCustom:
             prop_split(col, importSettings, "customPath", "File")
@@ -889,7 +889,10 @@ oot_anim_classes = (
     OOTAnimImportSettingsProperty,
 )
 
-oot_anim_panels = (OOT_ExportAnimPanel, OOT_LinkAnimPanel,)
+oot_anim_panels = (
+    OOT_ExportAnimPanel,
+    OOT_LinkAnimPanel,
+)
 
 
 def oot_anim_panel_register():
@@ -906,17 +909,11 @@ def oot_anim_register():
     for cls in oot_anim_classes:
         register_class(cls)
 
-    bpy.types.Scene.ootAnimExportSettings = bpy.props.PointerProperty(type=OOTAnimExportSettingsProperty)
-    bpy.types.Scene.ootAnimImportSettings = bpy.props.PointerProperty(type=OOTAnimImportSettingsProperty)
-
     bpy.types.Object.ootLinkTextureAnim = bpy.props.PointerProperty(type=OOTLinkTextureAnimProperty)
 
 
 def oot_anim_unregister():
     for cls in reversed(oot_anim_classes):
         unregister_class(cls)
-
-    del bpy.types.Scene.ootAnimExportSettings
-    del bpy.types.Scene.ootAnimImportSettings
 
     del bpy.types.Object.ootLinkTextureAnim

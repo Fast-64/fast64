@@ -39,6 +39,8 @@ class OOT_Properties(bpy.types.PropertyGroup):
     DLImportSettings: bpy.props.PointerProperty(type=oot_f3d_writer.OOTDLImportSettings)
     skeletonExportSettings: bpy.props.PointerProperty(type=oot_skeleton.OOTSkeletonExportSettings)
     skeletonImportSettings: bpy.props.PointerProperty(type=oot_skeleton.OOTSkeletonImportSettings)
+    animExportSettings: bpy.props.PointerProperty(type=oot_anim.OOTAnimExportSettingsProperty)
+    animImportSettings: bpy.props.PointerProperty(type=oot_anim.OOTAnimImportSettingsProperty)
 
 
 oot_classes = (
