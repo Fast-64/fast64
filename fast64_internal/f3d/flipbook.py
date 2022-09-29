@@ -1,5 +1,5 @@
 import bpy, re
-from typing import List, Any, Callable
+from typing import Any, Callable, Optional
 from bpy.utils import register_class, unregister_class
 from bpy.app.handlers import persistent
 from .f3d_material import all_combiner_uses, update_tex_values_manual, iter_tex_nodes, TextureProperty
@@ -43,7 +43,7 @@ def usesFlipbook(
     flipbookProperty: Any,
     index: int,
     checkEnable: bool,
-    checkFlipbookReference: Callable[[str], bool],
+    checkFlipbookReference: Optional[Callable[[str], bool]],
 ) -> bool:
     texProp = getattr(material.f3d_mat, f"tex{index}")
     if all_combiner_uses(material.f3d_mat)["Texture " + str(index)] and texProp.use_tex_reference:
