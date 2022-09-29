@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from os import path
-from ...utility import ootGetSceneOrRoomHeader, PluginError
+from ...utility import PluginError
 from .oot_getters import getXMLRoot, getEnumList
 from .oot_data import OoT_BaseElement
 

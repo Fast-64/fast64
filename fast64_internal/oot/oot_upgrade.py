@@ -1,4 +1,8 @@
-def upgradeObjectList(objList, objData):
+from bpy.types import Object, CollectionProperty
+from .data.oot_object_data import OoT_ObjectData
+
+
+def upgradeObjectList(objList: CollectionProperty, objData: OoT_ObjectData):
     """Transition from the old object system to the new one"""
     for obj in objList:
         if obj.objectID == "Custom":
@@ -7,7 +11,7 @@ def upgradeObjectList(objList, objData):
             obj.objectKey = objData.objectsByID[obj.objectID].key
 
 
-def upgradeRoomHeaders(roomObj, objData):
+def upgradeRoomHeaders(roomObj: Object, objData: OoT_ObjectData):
     """Main upgrade logic for room headers"""
     altHeaders = roomObj.ootAlternateRoomHeaders
     for sceneLayer in [

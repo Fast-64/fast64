@@ -1,7 +1,11 @@
 from ..utility import ootGetSceneOrRoomHeader
 
+from .data.oot_data import OoT_Data
+from .oot_scene_room import OOTRoom
+from bpy.types import Object
 
-def addMissingObjectToProp(roomObj, headerIndex, objectKey):
+
+def addMissingObjectToProp(roomObj: Object, headerIndex: int, objectKey: str):
     """Add the missing object to the room empty object OoT object list"""
     if roomObj is not None:
         roomProp = ootGetSceneOrRoomHeader(roomObj, headerIndex, True)
@@ -12,7 +16,7 @@ def addMissingObjectToProp(roomObj, headerIndex, objectKey):
             collection[-1].objectKey = objectKey
 
 
-def addMissingObjectsToList(roomObj, room, ootData, headerIndex):
+def addMissingObjectsToList(roomObj: Object, room: OOTRoom, ootData: OoT_Data, headerIndex: int):
     """Adds missing objects to the object list"""
     if len(room.actorList) > 0:
         for roomActor in room.actorList:
@@ -26,7 +30,7 @@ def addMissingObjectsToList(roomObj, room, ootData, headerIndex):
                             addMissingObjectToProp(roomObj, headerIndex, objKey)
 
 
-def addRoomHeadersObjects(roomObj, room, ootData):
+def addRoomHeadersObjects(roomObj: Object, room: OOTRoom, ootData: OoT_Data):
     """Adds missing objects for alternate room headers"""
     sceneLayers = [room, room.childNightHeader, room.adultDayHeader, room.adultNightHeader]
     for i, layer in enumerate(sceneLayers):
