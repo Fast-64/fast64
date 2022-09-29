@@ -636,7 +636,7 @@ Out-of-bounds Plane (typ.)</Notes>
       <Item Params="FFFF"> Default</Item>
     </Type>
   </Actor>
-  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_ZL2" Key="en_zl2" Name="Adult Zelda (Cutscene)" ObjectKey="object_zl2,object_zl2_anime1">
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_ZL2" Key="en_zl2" Name="Adult Zelda (Cutscene)" ObjectKey="obj_zl2,obj_zl2_anime1">
     <Type Index="1">
       <Item Params="0000"> Light Arrows CS</Item>
       <Item Params="0001"> Pre-Credits</Item>
@@ -818,7 +818,7 @@ Variable is first incremented by 1, then time until tile rises is calculated as 
 -0001 = 0x34 frames etc.
 </Notes>
   </Actor>
-  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_TOKI_SWD" Key="bg_toki_swd" Name="Master Sword" ObjectKey="object_toki_objects,object_efc_star_field,object_efc_tw">
+  <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_TOKI_SWD" Key="bg_toki_swd" Name="Master Sword" ObjectKey="obj_toki_objects,obj_efc_star_field,obj_efc_tw">
     <Notes>
 Use with actors 008C and 008B for the cutscene to work
 </Notes>
@@ -946,16 +946,16 @@ ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
   </Actor>
   <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_TK" Key="en_tk" Name="Dampe Grave Digging Game" ObjectKey="obj_tk">
   </Actor>
-  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_MORI_BIGST" Key="bg_mori_bigst" Name="Lowering Circular Platform" ObjectKey="object_mori_objects,object_mori_tex">
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_MORI_BIGST" Key="bg_mori_bigst" Name="Lowering Circular Platform" ObjectKey="obj_mori_objects,obj_mori_tex">
     <Flag Index="1" Mask="0x3F00" Name="Switch Flag to Lower" Type="Switch"/>
     <Notes>Lowers when a clear flag and the switch flag are set</Notes>
   </Actor>
-  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_MORI_ELEVATOR" Key="bg_mori_elevator" Name="Forest Temple Elevator" ObjectKey="object_mori_objects,object_mori_tex">
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_MORI_ELEVATOR" Key="bg_mori_elevator" Name="Forest Temple Elevator" ObjectKey="obj_mori_objects,obj_mori_tex">
     <Flag Index="1" Mask="0x003F" Type="Switch"/>
   </Actor>
-  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_MORI_KAITENKABE" Key="bg_mori_kaitenkabe" Name="Forest Temple Rotating Walls" ObjectKey="object_mori_objects,object_mori_tex">
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_MORI_KAITENKABE" Key="bg_mori_kaitenkabe" Name="Forest Temple Rotating Walls" ObjectKey="obj_mori_objects,obj_mori_tex">
   </Actor>
-  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_MORI_RAKKATENJO" Key="bg_mori_rakkatenjo" Name="Forest Temple Ceiling" ObjectKey="object_mori_objects,object_mori_tex">
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_MORI_RAKKATENJO" Key="bg_mori_rakkatenjo" Name="Forest Temple Ceiling" ObjectKey="obj_mori_objects,obj_mori_tex">
   </Actor>
   <Actor Category="ACTORCAT_ENEMY" ID="ACTOR_EN_VM" Key="en_vm" Name="Beamos" ObjectKey="obj_vm">
     <Type Index="1" Mask="0x00FF">
@@ -1144,7 +1144,7 @@ ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
   </Actor>
   <Actor Category="ACTORCAT_BOSS" ID="ACTOR_BOSS_FD" Key="boss_fd" Name="Flying Volvagia" ObjectKey="obj_fd">
   </Actor>
-  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_OBJECT_KANKYO" Key="object_kankyo" Name="Environmental effects">
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_OBJECT_KANKYO" Key="obj_kankyo" Name="Environmental effects">
     <Type Index="1">
       <Item Params="0000"> Flying Fairies, Dustmotes</Item>
       <Item Params="0002"> Lightning</Item>
@@ -1596,12 +1596,12 @@ ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
   </Actor>
   <Actor Category="ACTORCAT_ENEMY" ID="ACTOR_EN_ANUBICE_FIRE" Key="en_anubice_fire" Name="Anubis Fire Attack" ObjectKey="obj_anubice">
   </Actor>
-  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_MORI_HASHIGO" Key="bg_mori_hashigo" Name="Ladder with Clasp (Unused)" ObjectKey="object_mori_objects,object_mori_tex">
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_MORI_HASHIGO" Key="bg_mori_hashigo" Name="Ladder with Clasp (Unused)" ObjectKey="obj_mori_objects,obj_mori_tex">
     <Type Index="1">
       <Item Params="FFFF"> Default</Item>
     </Type>
   </Actor>
-  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_MORI_HASHIRA4" Key="bg_mori_hashira4" Name="Gates and Rotating Pillars" ObjectKey="object_mori_objects,object_mori_tex">
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_MORI_HASHIRA4" Key="bg_mori_hashira4" Name="Gates and Rotating Pillars" ObjectKey="obj_mori_objects,obj_mori_tex">
     <Type Index="1" Mask="0x00FF">
       <Item Params="0000"> Rotating platforms</Item>
       <Item Params="0001"> Metal Gate</Item>
@@ -1632,7 +1632,7 @@ ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
   </Actor>
   <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_MA1" Key="en_ma1" Name="Young Malon" ObjectKey="obj_ma1">
   </Actor>
-  <Actor Category="ACTORCAT_BOSS" ID="ACTOR_BOSS_GANON" Key="boss_ganon" Name="Boss Ganondorf" ObjectKey="object_ganon,object_ganon_anime1,object_ganon_anime2">
+  <Actor Category="ACTORCAT_BOSS" ID="ACTOR_BOSS_GANON" Key="boss_ganon" Name="Boss Ganondorf" ObjectKey="obj_ganon,obj_ganon_anime1,obj_ganon_anime2">
     <Type Index="1">
       <Item Params="FFFF"> Default</Item>
       <Item Params="0000"> Begins battle</Item>
@@ -2967,7 +2967,7 @@ ROTZ 0x0001 = Behavior after colliding with Link
   </Actor>
   <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_OCEFF_WIPE3" Key="oceff_wipe3" Name="Saria's Song Effect">
   </Actor>
-  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_NIW_GIRL" Key="en_niw_girl" Name="Child Chasing Cucco in Hyrule Market" ObjectKey="object_gr,object_niw">
+  <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_NIW_GIRL" Key="en_niw_girl" Name="Child Chasing Cucco in Hyrule Market" ObjectKey="obj_gr,obj_niw">
     <Property Index="1" Mask="0xFF00" Name="Path ID"/>
   </Actor>
   <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_DOG" Key="en_dog" Name="Dog" ObjectKey="obj_dog">
@@ -3074,12 +3074,12 @@ Z ROTATION +0x3F = Collectible Flag</Notes>
       <Item Params="0006"> Green Magic Core //Use with actor 00C9 (Cutscene Saria), var 0002</Item>
     </Type>
   </Actor>
-  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_SPOT08_BAKUDANKABE" Key="bg_spot08_bakudankabe" Name="Zora's Fountain Bombable Wall" ObjectKey="object_gameplay_field_keep,object_spot08_obj">
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_SPOT08_BAKUDANKABE" Key="bg_spot08_bakudankabe" Name="Zora's Fountain Bombable Wall" ObjectKey="obj_gameplay_field_keep,obj_spot08_obj">
     <Flag Index="1" Mask="0x003F" Type="Switch"/>
     <Notes>Graphics may glitch when it's destroyed, but will fix after it disappears
 +0x3F = Switch Flag</Notes>
   </Actor>
-  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_SPOT17_BAKUDANKABE" Key="bg_spot17_bakudankabe" Name="Death Mountain Crater Bombable Wall" ObjectKey="object_gameplay_field_keep,object_spot17_obj">
+  <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_SPOT17_BAKUDANKABE" Key="bg_spot17_bakudankabe" Name="Death Mountain Crater Bombable Wall" ObjectKey="obj_gameplay_field_keep,obj_spot17_obj">
     <Flag Index="1" Mask="0x003F" Type="Switch"/>
     <Notes>Graphics may glitch when it's destroyed, but will fix after it disappears</Notes>
   </Actor>
@@ -3396,7 +3396,7 @@ Z ROTATION +0x3F = Collectible Flag</Notes>
   </Actor>
   <Actor Category="ACTORCAT_NPC" ID="ACTOR_EN_GE3" Key="en_ge3" Name="Gerudo giving you Membership Card" ObjectKey="obj_geldb">
   </Actor>
-  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_OBJ_TIMEBLOCK" Key="obj_timeblock" Name="Time Block" ObjectKey="object_timeblock,object_efc_tw">
+  <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_OBJ_TIMEBLOCK" Key="obj_timeblock" Name="Time Block" ObjectKey="obj_timeblock,obj_efc_tw">
     <Type Index="1" Mask="0x8000">
       <Item Params="0000"> Child Visible </Item>
       <Item Params="8000"> Adult Visible </Item>
