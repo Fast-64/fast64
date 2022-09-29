@@ -253,7 +253,8 @@ def ootSceneIncludes(scene: OOTScene):
         "ultra64.h",
         "z64.h",
         "macros.h",
-        f"{scene.sceneName()}.h" "segment_symbols.h",
+        f"{scene.sceneName()}.h",
+        "segment_symbols.h",
         "command_macros_base.h",
         "variables.h",
     ]

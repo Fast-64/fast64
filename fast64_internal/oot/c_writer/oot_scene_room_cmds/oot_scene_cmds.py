@@ -41,7 +41,7 @@ def cmdEntranceList(scene: OOTScene, headerIndex: int):
 def cmdSpecialFiles(scene: OOTScene):
     """Returns C-converted special files command"""
     # special files are the Navi hint mode and the scene's global object ID
-    return f"SCENE_CMD_SPECIAL_FILES({scene.naviCup}, {scene.globalObject})\n"
+    return f"SCENE_CMD_SPECIAL_FILES({scene.naviCup}, {scene.globalObject})"
 
 
 def cmdPathList(scene: OOTScene):
