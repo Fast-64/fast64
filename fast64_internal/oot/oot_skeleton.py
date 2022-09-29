@@ -24,7 +24,7 @@ class OOTSkeletonExportSettings(bpy.types.PropertyGroup):
     isCustom: bpy.props.BoolProperty(name="Use Custom Path")
     removeVanillaData: bpy.props.BoolProperty(name="Replace Vanilla Skeletons On Export", default=True)
     overlay: bpy.props.StringProperty(name="Overlay", default="ovl_En_GeldB")
-    is2DArray: bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
+    flipbookUses2DArray: bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
     arrayIndex2D: bpy.props.IntProperty(name="Index if 2D Array", default=0, min=0)
     customAssetIncludeDir: bpy.props.StringProperty(
         name="Asset Include Directory",
@@ -50,7 +50,7 @@ class OOTSkeletonImportSettings(bpy.types.PropertyGroup):
     importNormals: bpy.props.BoolProperty(name="Import Normals", default=True)
     drawLayer: bpy.props.EnumProperty(name="Import Draw Layer", items=ootEnumDrawLayers)
     overlay: bpy.props.StringProperty(name="Overlay", default="ovl_En_GeldB")
-    is2DArray: bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
+    flipbookUses2DArray: bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
     arrayIndex2D: bpy.props.IntProperty(name="Index if 2D Array", default=0, min=0)
     autoDetectActorScale: bpy.props.BoolProperty(name="Auto Detect Actor Scale", default=True)
     actorScale: bpy.props.FloatProperty(name="Actor Scale", min=0, default=100)
@@ -604,15 +604,15 @@ def ootConvertArmatureToC(
         skeletonName = importInfo.skeletonName
         folderName = importInfo.folderName
         overlayName = importInfo.overlayName
-        is2DArray = importInfo.arrayIndex2D is not None
+        flipbookUses2DArray = importInfo.arrayIndex2D is not None
         arrayIndex2D = importInfo.arrayIndex2D
         isLink = importInfo.isLink
     else:
         skeletonName = toAlnum(settings.name)
         folderName = settings.folder
         overlayName = settings.overlay if not settings.isCustom else None
-        is2DArray = settings.is2DArray
-        arrayIndex2D = settings.arrayIndex2D if is2DArray else None
+        flipbookUses2DArray = settings.flipbookUses2DArray
+        arrayIndex2D = settings.arrayIndex2D if flipbookUses2DArray else None
         isLink = False
 
     exportPath = bpy.path.abspath(settings.customPath)
@@ -764,7 +764,7 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
         skeletonName = importInfo.skeletonName
         folderName = importInfo.folderName
         overlayName = importInfo.overlayName
-        is2DArray = importInfo.arrayIndex2D is not None
+        flipbookUses2DArray = importInfo.arrayIndex2D is not None
         arrayIndex2D = importInfo.arrayIndex2D
         isLink = importInfo.isLink
         restPoseData = importInfo.restPoseData
@@ -772,8 +772,8 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
         skeletonName = importSettings.name
         folderName = importSettings.folder
         overlayName = importSettings.overlay if not importSettings.isCustom else None
-        is2DArray = importSettings.is2DArray
-        arrayIndex2D = importSettings.arrayIndex2D if is2DArray else None
+        flipbookUses2DArray = importSettings.flipbookUses2DArray
+        arrayIndex2D = importSettings.arrayIndex2D if flipbookUses2DArray else None
         isLink = False
         restPoseData = None
 
@@ -1172,8 +1172,8 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
                 prop_split(col, exportSettings, "name", "Skeleton")
                 prop_split(col, exportSettings, "folder", "Object" if not exportSettings.isCustom else "Folder")
                 prop_split(col, exportSettings, "overlay", "Overlay")
-                col.prop(exportSettings, "is2DArray")
-                if exportSettings.is2DArray:
+                col.prop(exportSettings, "flipbookUses2DArray")
+                if exportSettings.flipbookUses2DArray:
                     box = col.box().column()
                     prop_split(box, exportSettings, "arrayIndex2D", "Flipbook Index")
             elif exportSettings.mode == "Adult Link" or exportSettings.mode == "Child Link":
@@ -1198,8 +1198,8 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
                 col.prop(importSettings, "autoDetectActorScale")
                 if not importSettings.autoDetectActorScale:
                     prop_split(col, importSettings, "actorScale", "Actor Scale")
-                col.prop(importSettings, "is2DArray")
-                if importSettings.is2DArray:
+                col.prop(importSettings, "flipbookUses2DArray")
+                if importSettings.flipbookUses2DArray:
                     box = col.box().column()
                     prop_split(box, importSettings, "arrayIndex2D", "Flipbook Index")
                 if importSettings.overlay == "ovl_En_Wf":

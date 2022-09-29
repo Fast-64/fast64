@@ -22,7 +22,7 @@ class OOTDLExportSettings(bpy.types.PropertyGroup):
     removeVanillaData: bpy.props.BoolProperty(name="Replace Vanilla DLs")
     drawLayer: bpy.props.EnumProperty(name="Draw Layer", items=ootEnumDrawLayers)
     overlay: bpy.props.StringProperty(name="Overlay", default="")
-    is2DArray: bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
+    flipbookUses2DArray: bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
     arrayIndex2D: bpy.props.IntProperty(name="Index if 2D Array", default=0, min=0)
     customAssetIncludeDir: bpy.props.StringProperty(
         name="Asset Include Directory",
@@ -40,7 +40,7 @@ class OOTDLImportSettings(bpy.types.PropertyGroup):
     importNormals: bpy.props.BoolProperty(name="Import Normals", default=True)
     drawLayer: bpy.props.EnumProperty(name="Draw Layer", items=ootEnumDrawLayers)
     overlay: bpy.props.StringProperty(name="Overlay", default="")
-    is2DArray: bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
+    flipbookUses2DArray: bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
     arrayIndex2D: bpy.props.IntProperty(name="Index if 2D Array", default=0, min=0)
     autoDetectActorScale: bpy.props.BoolProperty(name="Auto Detect Actor Scale", default=True)
     actorScale: bpy.props.FloatProperty(name="Actor Scale", min=0, default=100)
@@ -220,8 +220,8 @@ def ootConvertMeshToC(
     removeVanillaData = settings.removeVanillaData
     name = toAlnum(settings.name)
     overlayName = settings.overlay
-    is2DArray = settings.is2DArray
-    arrayIndex2D = settings.arrayIndex2D if is2DArray else None
+    flipbookUses2DArray = settings.flipbookUses2DArray
+    arrayIndex2D = settings.arrayIndex2D if flipbookUses2DArray else None
 
     try:
         obj, allObjs = ootDuplicateHierarchy(originalObj, None, False, OOTObjectCategorizer())
@@ -476,8 +476,8 @@ class OOT_ImportDL(bpy.types.Operator):
             importNormals = settings.importNormals
             drawLayer = settings.drawLayer
             overlayName = settings.overlay
-            is2DArray = settings.is2DArray
-            arrayIndex2D = settings.arrayIndex2D if is2DArray else None
+            flipbookUses2DArray = settings.flipbookUses2DArray
+            arrayIndex2D = settings.arrayIndex2D if flipbookUses2DArray else None
 
             paths = [ootGetObjectPath(isCustomImport, importPath, folderName)]
             data = getImportData(paths)
@@ -580,8 +580,8 @@ class OOT_ExportDLPanel(OOT_Panel):
             prop_split(col, exportSettings, "customPath", "Path")
         else:
             prop_split(col, exportSettings, "overlay", "Overlay (Optional)")
-            col.prop(exportSettings, "is2DArray")
-            if exportSettings.is2DArray:
+            col.prop(exportSettings, "flipbookUses2DArray")
+            if exportSettings.flipbookUses2DArray:
                 box = col.box().column()
                 prop_split(box, exportSettings, "arrayIndex2D", "Flipbook Index")
 
@@ -601,8 +601,8 @@ class OOT_ExportDLPanel(OOT_Panel):
             col.prop(importSettings, "autoDetectActorScale")
             if not importSettings.autoDetectActorScale:
                 prop_split(col, importSettings, "actorScale", "Actor Scale")
-            col.prop(importSettings, "is2DArray")
-            if importSettings.is2DArray:
+            col.prop(importSettings, "flipbookUses2DArray")
+            if importSettings.flipbookUses2DArray:
                 box = col.box().column()
                 prop_split(box, importSettings, "arrayIndex2D", "Flipbook Index")
         prop_split(col, importSettings, "drawLayer", "Import Draw Layer")
