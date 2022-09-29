@@ -581,8 +581,6 @@ def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale, isCu
 # filepath is gameplay_keep.c
 # animName is header name.
 # numLimbs = 21 for link.
-
-
 def ootImportLinkAnimationC(
     armatureObj: bpy.types.Object,
     animHeaderFilepath: str,
