@@ -209,11 +209,11 @@ def drawFlipbookGroupProperty(
     layout: bpy.types.UILayout,
     material: bpy.types.Material,
     checkFlipbookReference: Callable[[str], bool],
-    flipbookRequirementMessage: Callable[[bpy.types.UILayout], None],
+    drawFlipbookRequirementMessage: Callable[[bpy.types.UILayout], None],
 ):
     layout.box().column().label(text="Flipbook Properties")
-    if flipbookRequirementMessage is not None:
-        flipbookRequirementMessage(layout)
+    if drawFlipbookRequirementMessage is not None:
+        drawFlipbookRequirementMessage(layout)
     for i in range(2):
         flipbook = getattr(material.flipbookGroup, "flipbook" + str(i))
         if usesFlipbook(material, flipbook, i, False, checkFlipbookReference):
@@ -290,12 +290,12 @@ class Flipbook_MaterialPanel(bpy.types.Panel):
 
         if context.scene.gameEditorMode == "OOT":
             checkFlipbookReference = ootFlipbookReferenceIsValid
-            flipbookRequirementMessage = ootFlipbookRequirementMessage
+            drawFlipbookRequirementMessage = ootFlipbookRequirementMessage
         else:
             checkFlipbookReference = None
-            flipbookRequirementMessage = None
+            drawFlipbookRequirementMessage = None
 
-        drawFlipbookGroupProperty(col.box().column(), mat, checkFlipbookReference, flipbookRequirementMessage)
+        drawFlipbookGroupProperty(col.box().column(), mat, checkFlipbookReference, drawFlipbookRequirementMessage)
 
 
 def setTexNodeImage(material: bpy.types.Material, texIndex: int, flipbookIndex: int):
