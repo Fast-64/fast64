@@ -228,8 +228,8 @@ def ootFlipbookReferenceIsValid(texReference: str) -> bool:
 
 
 def ootFlipbookRequirementMessage(layout: bpy.types.UILayout):
-    layout.label(text="To use this, material must use a texture ")
-    layout.label(text="reference with name = 0x0?000000.")
+    layout.label(text="To use this, material must use a")
+    layout.label(text="texture reference with name = 0x0?000000.")
 
 
 def ootFlipbookAnimUpdate(self, armatureObj: bpy.types.Object, segment: str, index: int):
