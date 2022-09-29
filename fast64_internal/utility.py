@@ -2,7 +2,9 @@ import bpy, random, string, os, math, traceback, re, os, mathutils
 from math import pi, ceil, degrees, radians
 from mathutils import *
 from .utility_anim import *
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Any
+
+CollectionProperty = Any  # collection prop as defined by using bpy.props.CollectionProperty
 
 
 class PluginError(Exception):

@@ -3,7 +3,7 @@ from typing import Any, Callable, Optional
 from bpy.utils import register_class, unregister_class
 from bpy.app.handlers import persistent
 from .f3d_material import all_combiner_uses, update_tex_values_manual, iter_tex_nodes, TextureProperty
-from ..utility import prop_split
+from ..utility import prop_split, CollectionProperty
 from dataclasses import dataclass
 
 
@@ -60,9 +60,7 @@ class FlipbookImagePointerProperty(bpy.types.PropertyGroup):
     name: bpy.props.StringProperty(name="Name", default="gImage")
 
 
-def drawTextureArray(
-    layout: bpy.types.UILayout, textureArray: bpy.types.CollectionProperty, index: int, exportMode: str
-):
+def drawTextureArray(layout: bpy.types.UILayout, textureArray: CollectionProperty, index: int, exportMode: str):
     for i in range(len(textureArray)):
         drawTextureArrayProperty(layout, textureArray[i], i, index, exportMode)
 
