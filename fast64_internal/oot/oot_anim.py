@@ -657,7 +657,7 @@ def ootImportLinkAnimationC(
 
     # vec3 = 3x s16 values
     # padding = u8, tex anim = u8
-    # root trans vec3 + rot vec3 for each limb + (padding + anim index struct)
+    # root trans vec3 + rot vec3 for each limb + (s16 with eye/mouth indices)
     frameSize = 3 + 3 * numLimbs + 1
     for frame in range(frameCount):
         currentFrame = frameData[frame * frameSize : (frame + 1) * frameSize]
