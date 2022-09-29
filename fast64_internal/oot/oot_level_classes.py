@@ -9,6 +9,7 @@ from ..f3d.f3d_gbi import *
 from .oot_collision_classes import *
 from .oot_model_classes import *
 from .oot_spline import OOTPath
+from .oot_actor import OOTActorProperty
 
 
 class OOTActor:
@@ -155,7 +156,7 @@ class OOTScene:
         self.name = toAlnum(name)
         self.write_dummy_room_list = False
         self.rooms = {}
-        self.transitionActorList = set()
+        self.transitionActorList: set[OOTTransitionActor] = set()
         self.entranceList = set()
         self.startPositions = {}
         self.lights: list[OOTLight] = []
@@ -259,7 +260,7 @@ class OOTScene:
 
     def validateIndices(self):
         """Checks if the scene's indices are all correct"""
-        self.collision.cameraData.validateCamPositions() # ``collision.cameraData`` type: ``OOTCameraData``
+        self.collision.cameraData.validateCamPositions()  # ``collision.cameraData`` type: ``OOTCameraData``
         self.validateStartPositions()
         self.validateRoomIndices()
         self.validatePathIndices()
@@ -456,7 +457,9 @@ class OOTRoom:
         )
 
 
-def addActor(owner, actor, actorProp, propName, actorObjName):
+def addActor(
+    owner, actor: OOTActor | OOTTransitionActor, actorProp: OOTActorProperty, propName: str, actorObjName: str
+):
     sceneSetup = actorProp.headerSettings
     if (
         sceneSetup.sceneSetupPreset == "All Scene Setups"

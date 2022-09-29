@@ -2,7 +2,7 @@ from ...utility import CData, PluginError
 from ...f3d.f3d_gbi import ScrollMethod
 
 from ..oot_model_classes import OOTGfxFormatter
-from ..oot_level_classes import OOTScene, OOTRoom, OOTLight
+from ..oot_level_classes import OOTScene, OOTTransitionActor
 from ..oot_constants import ootRoomShapeStructs, ootRoomShapeEntryStructs
 from ..oot_utility import indent
 from ..oot_collision import ootCollisionToC
@@ -14,6 +14,7 @@ from .oot_room_writer.oot_object_to_c import ootObjectListToC
 from .oot_room_writer.oot_actor_to_c import ootActorListToC
 from .oot_scene_writer.oot_path_to_c import ootPathListToC
 from .oot_scene_writer.oot_light_to_c import ootLightSettingsToC
+from .oot_scene_writer.oot_trans_actor_to_c import ootTransitionActorListToC
 
 
 def ootMeshEntryToC(meshEntry, roomShape):
@@ -138,49 +139,6 @@ def ootRoomMainToC(scene, room, headerIndex):
     roomMainC.append(altData)
 
     return roomMainC
-
-
-def ootTransitionActorToC(transActor):
-    return (
-        "{ "
-        + ", ".join(
-            (
-                str(transActor.frontRoom),
-                str(transActor.frontCam),
-                str(transActor.backRoom),
-                str(transActor.backCam),
-                str(transActor.actorID),
-                str(int(round(transActor.position[0]))),
-                str(int(round(transActor.position[1]))),
-                str(int(round(transActor.position[2]))),
-                str(int(round(transActor.rotationY))),
-                str(transActor.actorParam),
-            )
-        )
-        + " },\n"
-    )
-
-
-def ootTransitionActorListToC(scene, headerIndex):
-    data = CData()
-    data.header = (
-        "extern TransitionActorEntry "
-        + scene.transitionActorListName(headerIndex)
-        + "["
-        + str(len(scene.transitionActorList))
-        + "];\n"
-    )
-    data.source = (
-        "TransitionActorEntry "
-        + scene.transitionActorListName(headerIndex)
-        + "["
-        + str(len(scene.transitionActorList))
-        + "] = {\n"
-    )
-    for transActor in scene.transitionActorList:
-        data.source += "\t" + ootTransitionActorToC(transActor)
-    data.source += "};\n\n"
-    return data
 
 
 def ootRoomExternToC(room):

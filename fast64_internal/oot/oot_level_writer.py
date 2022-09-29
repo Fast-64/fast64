@@ -510,7 +510,7 @@ def ootProcessLOD(roomMesh, DLGroup, sceneObj, obj, transformMatrix, convertText
     DLGroup.addDLCall(transparentLOD.draw, "Transparent")
 
 
-def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
+def ootProcessEmpties(scene: OOTScene, room: OOTRoom, sceneObj, obj, transformMatrix):
     translation, rotation, scale, orientedRotation = getConvertedTransform(transformMatrix, sceneObj, obj, True)
 
     if obj.data is None:
