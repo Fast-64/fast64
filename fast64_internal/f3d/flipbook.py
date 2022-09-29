@@ -4,13 +4,14 @@ from bpy.utils import register_class, unregister_class
 from bpy.app.handlers import persistent
 from .f3d_material import all_combiner_uses, update_tex_values_manual, iter_tex_nodes, TextureProperty
 from ..utility import prop_split
+from dataclasses import dataclass
 
 
+@dataclass
 class TextureFlipbook:
-    def __init__(self, name: str, exportMode: str, textureNames: List[str]):
-        self.name = name
-        self.exportMode = exportMode
-        self.textureNames = textureNames
+    name: str
+    exportMode: str
+    textureNames: list[str]
 
 
 def flipbook_data_to_c(flipbook: TextureFlipbook):
