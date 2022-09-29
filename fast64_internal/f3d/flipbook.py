@@ -32,8 +32,7 @@ def flipbook_to_c(flipbook: TextureFlipbook, isStatic: bool):
 def flipbook_2d_to_c(flipbook: TextureFlipbook, isStatic: bool, count: int):
     newArrayData = "void* " if not isStatic else "static void* "
     newArrayData += f"{flipbook.name}[][{len(flipbook.textureNames)}] = {{ "
-    for i in range(count):
-        newArrayData += "{ " + flipbook_data_to_c(flipbook) + " },\n"
+    newArrayData += ("{ " + flipbook_data_to_c(flipbook) + " },\n") * count
     newArrayData += " };"
     return newArrayData
 
@@ -228,12 +227,14 @@ def ootFlipbookReferenceIsValid(texReference: str) -> bool:
 
 
 def ootFlipbookRequirementMessage(layout: bpy.types.UILayout):
-    layout.label(text="To use this, material must use a texture ")
-    layout.label(text="reference with name = 0x0?000000.")
+    layout.label(text="To use this, material must use a")
+    layout.label(text="texture reference with name = 0x0?000000.")
 
 
 def ootFlipbookAnimUpdate(self, armatureObj: bpy.types.Object, segment: str, index: int):
-    for child in [child for child in armatureObj.children if isinstance(child.data, bpy.types.Mesh)]:
+    for child in armatureObj.children:
+        if not isinstance(child.data, bpy.types.Mesh):
+            continue
         for material in child.data.materials:
             for i in range(2):
                 flipbook = getattr(material.flipbookGroup, "flipbook" + str(i))
