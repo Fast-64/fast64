@@ -23,7 +23,7 @@ class OOTSkeletonExportSettings(bpy.types.PropertyGroup):
     customPath: bpy.props.StringProperty(name="Custom Skeleton Path", subtype="FILE_PATH")
     isCustom: bpy.props.BoolProperty(name="Use Custom Path")
     removeVanillaData: bpy.props.BoolProperty(name="Replace Vanilla Skeletons On Export", default=True)
-    overlay: bpy.props.StringProperty(name="Overlay", default="ovl_En_GeldB")
+    actorOverlayName: bpy.props.StringProperty(name="Overlay", default="ovl_En_GeldB")
     flipbookUses2DArray: bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
     flipbookArrayIndex2D: bpy.props.IntProperty(name="Index if 2D Array", default=0, min=0)
     customAssetIncludeDir: bpy.props.StringProperty(
@@ -49,7 +49,7 @@ class OOTSkeletonImportSettings(bpy.types.PropertyGroup):
     removeDoubles: bpy.props.BoolProperty(name="Remove Doubles On Import", default=True)
     importNormals: bpy.props.BoolProperty(name="Import Normals", default=True)
     drawLayer: bpy.props.EnumProperty(name="Import Draw Layer", items=ootEnumDrawLayers)
-    overlay: bpy.props.StringProperty(name="Overlay", default="ovl_En_GeldB")
+    actorOverlayName: bpy.props.StringProperty(name="Overlay", default="ovl_En_GeldB")
     flipbookUses2DArray: bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
     flipbookArrayIndex2D: bpy.props.IntProperty(name="Index if 2D Array", default=0, min=0)
     autoDetectActorScale: bpy.props.BoolProperty(name="Auto Detect Actor Scale", default=True)
@@ -603,14 +603,14 @@ def ootConvertArmatureToC(
         importInfo = ootSkeletonImportDict[settings.mode]
         skeletonName = importInfo.skeletonName
         folderName = importInfo.folderName
-        overlayName = importInfo.overlayName
+        overlayName = importInfo.actorOverlayName
         flipbookUses2DArray = importInfo.flipbookArrayIndex2D is not None
         flipbookArrayIndex2D = importInfo.flipbookArrayIndex2D
         isLink = importInfo.isLink
     else:
         skeletonName = toAlnum(settings.name)
         folderName = settings.folder
-        overlayName = settings.overlay if not settings.isCustom else None
+        overlayName = settings.actorOverlayName if not settings.isCustom else None
         flipbookUses2DArray = settings.flipbookUses2DArray
         flipbookArrayIndex2D = settings.flipbookArrayIndex2D if flipbookUses2DArray else None
         isLink = False
@@ -763,7 +763,7 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
         importInfo = ootSkeletonImportDict[importSettings.mode]
         skeletonName = importInfo.skeletonName
         folderName = importInfo.folderName
-        overlayName = importInfo.overlayName
+        overlayName = importInfo.actorOverlayName
         flipbookUses2DArray = importInfo.flipbookArrayIndex2D is not None
         flipbookArrayIndex2D = importInfo.flipbookArrayIndex2D
         isLink = importInfo.isLink
@@ -771,7 +771,7 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
     else:
         skeletonName = importSettings.name
         folderName = importSettings.folder
-        overlayName = importSettings.overlay if not importSettings.isCustom else None
+        overlayName = importSettings.actorOverlayName if not importSettings.isCustom else None
         flipbookUses2DArray = importSettings.flipbookUses2DArray
         flipbookArrayIndex2D = importSettings.flipbookArrayIndex2D if flipbookUses2DArray else None
         isLink = False
@@ -1202,12 +1202,12 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
                 if importSettings.flipbookUses2DArray:
                     box = col.box().column()
                     prop_split(box, importSettings, "flipbookArrayIndex2D", "Flipbook Index")
-                if importSettings.overlay == "ovl_En_Wf":
+                if importSettings.actorOverlayName == "ovl_En_Wf":
                     col.box().column().label(
                         text="This actor has branching gSPSegment calls and will not import correctly unless one of the branches is deleted.",
                         icon="ERROR",
                     )
-                elif importSettings.overlay == "ovl_Obj_Switch":
+                elif importSettings.actorOverlayName == "ovl_Obj_Switch":
                     col.box().column().label(
                         text="This actor has a 2D texture array and will not import correctly unless the array is flattened.",
                         icon="ERROR",

@@ -21,7 +21,7 @@ class OOTDLExportSettings(bpy.types.PropertyGroup):
     isCustom: bpy.props.BoolProperty(name="Use Custom Path")
     removeVanillaData: bpy.props.BoolProperty(name="Replace Vanilla DLs")
     drawLayer: bpy.props.EnumProperty(name="Draw Layer", items=ootEnumDrawLayers)
-    overlay: bpy.props.StringProperty(name="Overlay", default="")
+    actorOverlayName: bpy.props.StringProperty(name="Overlay", default="")
     flipbookUses2DArray: bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
     flipbookArrayIndex2D: bpy.props.IntProperty(name="Index if 2D Array", default=0, min=0)
     customAssetIncludeDir: bpy.props.StringProperty(
@@ -39,7 +39,7 @@ class OOTDLImportSettings(bpy.types.PropertyGroup):
     removeDoubles: bpy.props.BoolProperty(name="Remove Doubles", default=True)
     importNormals: bpy.props.BoolProperty(name="Import Normals", default=True)
     drawLayer: bpy.props.EnumProperty(name="Draw Layer", items=ootEnumDrawLayers)
-    overlay: bpy.props.StringProperty(name="Overlay", default="")
+    actorOverlayName: bpy.props.StringProperty(name="Overlay", default="")
     flipbookUses2DArray: bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
     flipbookArrayIndex2D: bpy.props.IntProperty(name="Index if 2D Array", default=0, min=0)
     autoDetectActorScale: bpy.props.BoolProperty(name="Auto Detect Actor Scale", default=True)
@@ -219,7 +219,7 @@ def ootConvertMeshToC(
     drawLayer = settings.drawLayer
     removeVanillaData = settings.removeVanillaData
     name = toAlnum(settings.name)
-    overlayName = settings.overlay
+    overlayName = settings.actorOverlayName
     flipbookUses2DArray = settings.flipbookUses2DArray
     flipbookArrayIndex2D = settings.flipbookArrayIndex2D if flipbookUses2DArray else None
 
@@ -477,7 +477,7 @@ class OOT_ImportDL(bpy.types.Operator):
             removeDoubles = settings.removeDoubles
             importNormals = settings.importNormals
             drawLayer = settings.drawLayer
-            overlayName = settings.overlay
+            overlayName = settings.actorOverlayName
             flipbookUses2DArray = settings.flipbookUses2DArray
             flipbookArrayIndex2D = settings.flipbookArrayIndex2D if flipbookUses2DArray else None
 
