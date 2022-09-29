@@ -157,7 +157,7 @@ class OOTScene:
         self.write_dummy_room_list = False
         self.rooms = {}
         self.transitionActorList: set[OOTTransitionActor] = set()
-        self.entranceList = set()
+        self.entranceList: set[OOTEntrance] = set()
         self.startPositions = {}
         self.lights: list[OOTLight] = []
         self.model = model
@@ -458,7 +458,7 @@ class OOTRoom:
 
 
 def addActor(
-    owner, actor: OOTActor | OOTTransitionActor, actorProp: OOTActorProperty, propName: str, actorObjName: str
+    owner, actor: OOTActor | OOTTransitionActor | OOTEntrance, actorProp: OOTActorProperty, propName: str, actorObjName: str
 ):
     sceneSetup = actorProp.headerSettings
     if (

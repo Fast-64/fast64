@@ -15,6 +15,7 @@ from .oot_room_writer.oot_actor_to_c import ootActorListToC
 from .oot_scene_writer.oot_path_to_c import ootPathListToC
 from .oot_scene_writer.oot_light_to_c import ootLightSettingsToC
 from .oot_scene_writer.oot_trans_actor_to_c import ootTransitionActorListToC
+from .oot_scene_writer.oot_entrance_exit_to_c import ootEntranceListToC, ootExitListToC
 
 
 def ootMeshEntryToC(meshEntry, roomShape):
@@ -173,30 +174,6 @@ def ootRoomListHeaderToC(scene):
             data.source += "\t" + ootRoomListEntryToC(scene.rooms[i])
         data.source += "};\n\n"
 
-    return data
-
-
-def ootEntranceToC(entrance):
-    return "{ " + str(entrance.startPositionIndex) + ", " + str(entrance.roomIndex) + " },\n"
-
-
-def ootEntranceListToC(scene, headerIndex):
-    data = CData()
-    data.header = "extern EntranceEntry " + scene.entranceListName(headerIndex) + "[];\n"
-    data.source = "EntranceEntry " + scene.entranceListName(headerIndex) + "[] = {\n"
-    for entrance in scene.entranceList:
-        data.source += "\t" + ootEntranceToC(entrance)
-    data.source += "};\n\n"
-    return data
-
-
-def ootExitListToC(scene, headerIndex):
-    data = CData()
-    data.header = "extern u16 " + scene.exitListName(headerIndex) + "[" + str(len(scene.exitList)) + "];\n"
-    data.source = "u16 " + scene.exitListName(headerIndex) + "[" + str(len(scene.exitList)) + "] = {\n"
-    for exitEntry in scene.exitList:
-        data.source += "\t" + str(exitEntry.index) + ",\n"
-    data.source += "};\n\n"
     return data
 
 

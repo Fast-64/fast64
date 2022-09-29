@@ -510,7 +510,7 @@ def ootProcessLOD(roomMesh, DLGroup, sceneObj, obj, transformMatrix, convertText
     DLGroup.addDLCall(transparentLOD.draw, "Transparent")
 
 
-def ootProcessEmpties(scene: OOTScene, room: OOTRoom, sceneObj, obj, transformMatrix):
+def ootProcessEmpties(scene, room: OOTRoomHeaderProperty, sceneObj, obj, transformMatrix):
     translation, rotation, scale, orientedRotation = getConvertedTransform(transformMatrix, sceneObj, obj, True)
 
     if obj.data is None:
@@ -550,8 +550,8 @@ def ootProcessEmpties(scene: OOTScene, room: OOTRoom, sceneObj, obj, transformMa
                 obj.name,
             )
         elif obj.ootEmptyType == "Entrance":
-            entranceProp = obj.ootEntranceProperty
-            spawnIndex = obj.ootEntranceProperty.spawnIndex
+            entranceProp: OOTEntranceProperty = obj.ootEntranceProperty
+            spawnIndex = entranceProp.spawnIndex
             addActor(scene, OOTEntrance(room.roomIndex, spawnIndex), entranceProp.actor, "entranceList", obj.name)
             addStartPosition(
                 scene,

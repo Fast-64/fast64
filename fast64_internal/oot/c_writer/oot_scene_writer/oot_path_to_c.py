@@ -8,7 +8,6 @@ def getPathPointsData(path: OOTPath):
     """Returns the points data of a path"""
     pointData = CData()
     pointName = f"Vec3s {path.pathName()}[]"
-    print(path.points)
     pointsData = " },\n".join(
         [indent + "{ " + ", ".join([f"{round(point[i])}" for i in range(len(point) - 1)]) for point in path.points]
     )
