@@ -260,7 +260,7 @@ def flipbookAnimHandler(dummy):
                 # we only want to update texture on keyframed armatures.
                 # this somewhat mitigates the issue of two skeletons using the same flipbook material.
                 if obj.animation_data is None or obj.animation_data.action is None:
-                    return
+                    continue
                 action = obj.animation_data.action
                 if not (
                     action.fcurves.find("ootLinkTextureAnim.eyes") is None
