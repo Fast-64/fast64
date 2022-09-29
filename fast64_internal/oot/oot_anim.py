@@ -838,7 +838,8 @@ class OOT_ExportAnimPanel(OOT_Panel):
         col.prop(importSettings, "isCustom")
 
 
-# We still want update callbacks for manually setting texture with visualize operator.
+# The update callbacks are for manually setting texture with visualize operator.
+# They don't run from animation updates, see flipbookAnimHandler in flipbook.py
 def ootUpdateEyes(self, context):
     index = self.eyes
     ootFlipbookAnimUpdate(self, context.object, "8", index)
