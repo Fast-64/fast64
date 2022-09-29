@@ -56,7 +56,7 @@ def usesFlipbook(
         return False
 
 
-class ImagePointerProperty(bpy.types.PropertyGroup):
+class FlipbookImagePointerProperty(bpy.types.PropertyGroup):
     image: bpy.props.PointerProperty(type=bpy.types.Image)
     name: bpy.props.StringProperty(name="Name", default="gImage")
 
@@ -73,7 +73,11 @@ def drawTextureArray(
 
 
 def drawTextureArrayProperty(
-    layout: bpy.types.UILayout, texturePointer: ImagePointerProperty, arrayIndex: int, texNum: int, exportMode: str
+    layout: bpy.types.UILayout,
+    texturePointer: FlipbookImagePointerProperty,
+    arrayIndex: int,
+    texNum: int,
+    exportMode: str,
 ):
     col = layout.column()
 
@@ -183,7 +187,7 @@ class FlipbookProperty(bpy.types.PropertyGroup):
     enable: bpy.props.BoolProperty()
     name: bpy.props.StringProperty(default="sFlipbookTextures")
     exportMode: bpy.props.EnumProperty(default="Array", items=enumFlipbookExportMode)
-    textures: bpy.props.CollectionProperty(type=ImagePointerProperty)
+    textures: bpy.props.CollectionProperty(type=FlipbookImagePointerProperty)
 
 
 # The reason these are separate is for the case when the user changes the material draw layer, but not the
@@ -304,7 +308,7 @@ def setTexNodeImage(material: bpy.types.Material, texIndex: int, flipbookIndex: 
 
 
 flipbook_classes = [
-    ImagePointerProperty,
+    FlipbookImagePointerProperty,
     AddFlipbookTexture,
     RemoveFlipbookTexture,
     MoveFlipbookTexture,
