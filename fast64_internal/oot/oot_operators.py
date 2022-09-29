@@ -51,6 +51,7 @@ class OOT_AddDoor(bpy.types.Operator):
         emptyObj.name = "Door Actor"
         emptyObj.ootTransitionActorProperty.actor.actorID = "ACTOR_DOOR_SHUTTER"
         emptyObj.ootTransitionActorProperty.actor.actorParam = "0x0000"
+        emptyObj.fast64.oot.version = emptyObj.fast64.oot.cur_version
 
         parentObject(cubeObj, emptyObj)
 
@@ -85,6 +86,7 @@ class OOT_AddScene(bpy.types.Operator):
         entranceObj.ootEmptyType = "Entrance"
         entranceObj.name = "Entrance"
         entranceObj.ootEntranceProperty.actor.actorParam = "0x0FFF"
+        entranceObj.fast64.oot.version = entranceObj.fast64.oot.cur_version
         parentObject(planeObj, entranceObj)
 
         location += mathutils.Vector([0, 0, 10])
@@ -92,6 +94,7 @@ class OOT_AddScene(bpy.types.Operator):
         roomObj = context.view_layer.objects.active
         roomObj.ootEmptyType = "Room"
         roomObj.name = "Room"
+        roomObj.fast64.oot.version = roomObj.fast64.oot.cur_version
         parentObject(roomObj, planeObj)
 
         location += mathutils.Vector([0, 0, 2])
@@ -99,6 +102,7 @@ class OOT_AddScene(bpy.types.Operator):
         sceneObj = context.view_layer.objects.active
         sceneObj.ootEmptyType = "Scene"
         sceneObj.name = "Scene"
+        sceneObj.fast64.oot.version = sceneObj.fast64.oot.cur_version
         parentObject(sceneObj, roomObj)
 
         bpy.context.scene.ootSceneExportObj = sceneObj
@@ -122,6 +126,7 @@ class OOT_AddRoom(bpy.types.Operator):
         roomObj = context.view_layer.objects.active
         roomObj.ootEmptyType = "Room"
         roomObj.name = "Room"
+        roomObj.fast64.oot.version = roomObj.fast64.oot.cur_version
         sceneObj = bpy.context.scene.ootSceneExportObj
         if sceneObj is not None:
             indices = []
@@ -154,6 +159,7 @@ class OOT_AddCutscene(bpy.types.Operator):
         csObj = context.view_layer.objects.active
         csObj.ootEmptyType = "Cutscene"
         csObj.name = "Cutscene.Something"
+        csObj.fast64.oot.version = csObj.fast64.oot.cur_version
 
         bpy.ops.object.select_all(action="DESELECT")
         csObj.select_set(True)
