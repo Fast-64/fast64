@@ -9,7 +9,7 @@ from .oot_data import OoT_BaseElement
 
 @dataclass
 class OoT_ObjectElement(OoT_BaseElement):
-    index: int
+    pass
 
 
 class OoT_ObjectData:
@@ -18,10 +18,6 @@ class OoT_ObjectData:
     def __init__(self):
         # general object list
         self.objectList: list[OoT_ObjectElement] = []
-
-        # list of tuples used by Blender's enum properties
-        self.ootEnumObjectKey = [("Custom", "Custom Object", "Custom")]
-        self.ootEnumObjectIDLegacy = []  # for old blends
 
         # Path to the ``ObjectList.xml`` file
         objectXML = path.dirname(path.abspath(__file__)) + "/xml/ObjectList.xml"
@@ -35,17 +31,26 @@ class OoT_ObjectData:
 
         self.objectsByID = {obj.id: obj for obj in self.objectList}
         self.objectsByKey = {obj.key: obj for obj in self.objectList}
-        for obj in self.objectList:
-            self.ootEnumObjectKey.append((obj.key, obj.name, obj.id))
 
-        # create the legacy object list
-        lastIndex = self.objectsByKey["obj_timeblock"].index
-        self.ootEnumObjectIDLegacy = [None] * lastIndex
-        self.ootEnumObjectIDLegacy.insert(0, ("Custom", "Custom Object", "Custom"))
-        for obj in self.objectList:
-            if obj.index < lastIndex + 1:
-                self.ootEnumObjectIDLegacy[obj.index] = (obj.id, obj.name, obj.id)
+        # list of tuples used by Blender's enum properties
+        self.customEntry = ("None", "(Deleted from the XML)", "None")
+        lastIndex = max(1, *(int(obj.attrib["Index"]) for obj in objectRoot.iterfind("Object")))
+        self.ootEnumObjectKey = self.getObjectIDList(lastIndex + 1, False)
+
+        # create the legacy object list for old blends
+        self.ootEnumObjectIDLegacy = self.getObjectIDList(self.objectsByKey["obj_timeblock"].index + 1, True)
+        print(self.ootEnumObjectIDLegacy)
 
         # validate the legacy list, if there's any None element then something's wrong
-        if None in self.ootEnumObjectIDLegacy:
+        if self.customEntry in self.ootEnumObjectIDLegacy:
             raise PluginError("ERROR: Legacy Object List doesn't match!")
+
+    def getObjectIDList(self, max: int, isLegacy: bool):
+        """Generates and returns the object list in the right order"""
+        objList = [self.customEntry] * max
+        for obj in self.objectList:
+            if obj.index < max:
+                identifier = obj.id if isLegacy else obj.key
+                objList[obj.index] = (identifier, obj.name, obj.id)
+        objList[0] = ("Custom", "Custom Object", "Custom")
+        return objList

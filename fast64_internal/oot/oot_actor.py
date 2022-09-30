@@ -117,7 +117,13 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName):
 	searchOp.objName = objName
 
 	split = actorIDBox.split(factor = 0.5)
+
+	if actorProp.actorID == "None":
+		actorIDBox.box().label(text="This Actor was deleted from the XML file.")
+		return
+
 	split.label(text = "Actor ID")
+
 	split.label(text = getEnumName(ootData.actorData.ootEnumActorID, actorProp.actorID))
 
 	if actorProp.actorID == 'Custom':

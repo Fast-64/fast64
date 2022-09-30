@@ -529,39 +529,41 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
     if obj.data is None:
         if obj.ootEmptyType == "Actor":
             actorProp = obj.ootActorProperty
-            addActor(
-                room,
-                OOTActor(
-                    getCustomProperty(actorProp, "actorID"),
-                    translation,
-                    rotation,
-                    actorProp.actorParam,
-                    None
-                    if not actorProp.rotOverride
-                    else (actorProp.rotOverrideX, actorProp.rotOverrideY, actorProp.rotOverrideZ),
-                ),
-                actorProp,
-                "actorList",
-                obj.name,
-            )
+            if actorProp.actorID != "None":
+                addActor(
+                    room,
+                    OOTActor(
+                        getCustomProperty(actorProp, "actorID"),
+                        translation,
+                        rotation,
+                        actorProp.actorParam,
+                        None
+                        if not actorProp.rotOverride
+                        else (actorProp.rotOverrideX, actorProp.rotOverrideY, actorProp.rotOverrideZ),
+                    ),
+                    actorProp,
+                    "actorList",
+                    obj.name,
+                )
         elif obj.ootEmptyType == "Transition Actor":
             transActorProp = obj.ootTransitionActorProperty
-            addActor(
-                scene,
-                OOTTransitionActor(
-                    getCustomProperty(transActorProp.actor, "actorID"),
-                    room.roomIndex,
-                    transActorProp.roomIndex,
-                    getCustomProperty(transActorProp, "cameraTransitionFront"),
-                    getCustomProperty(transActorProp, "cameraTransitionBack"),
-                    translation,
-                    rotation[1],  # TODO: Correct axis?
-                    transActorProp.actor.actorParam,
-                ),
-                transActorProp.actor,
-                "transitionActorList",
-                obj.name,
-            )
+            if transActorProp.actor.actorID != "None":
+                addActor(
+                    scene,
+                    OOTTransitionActor(
+                        getCustomProperty(transActorProp.actor, "actorID"),
+                        room.roomIndex,
+                        transActorProp.roomIndex,
+                        getCustomProperty(transActorProp, "cameraTransitionFront"),
+                        getCustomProperty(transActorProp, "cameraTransitionBack"),
+                        translation,
+                        rotation[1],  # TODO: Correct axis?
+                        transActorProp.actor.actorParam,
+                    ),
+                    transActorProp.actor,
+                    "transitionActorList",
+                    obj.name,
+                )
         elif obj.ootEmptyType == "Entrance":
             entranceProp = obj.ootEntranceProperty
             spawnIndex = obj.ootEntranceProperty.spawnIndex

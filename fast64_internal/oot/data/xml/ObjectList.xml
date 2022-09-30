@@ -5,7 +5,7 @@ Documentation on this file's format:
 - ID: can change, corresponds to the object ID inside decomp
 - Key: can't be changed, unique identifier
 - Name: display name
-- Index: corresponds to the index of the object in the old object list, used for compatibility with older blends
+- Index: corresponds to the index of the object in the old object list, used for compatibility with blends
 -->
   <Object Index="1" ID="OBJECT_HUMAN" Key="obj_human" Name="Aria"/>
   <Object Index="2" ID="OBJECT_OKUTA" Key="obj_okuta" Name="Octorok"/>

@@ -14,29 +14,36 @@ class OoT_ActorData:
     """Everything related to OoT Actors"""
 
     def __init__(self):
+        # Path to the ``ActorList.xml`` file
+        actorXML = path.dirname(path.abspath(__file__)) + "/xml/ActorList.xml"
+        actorRoot = getXMLRoot(actorXML)
+
         # general actor list
         self.actorList: list[OoT_ActorElement] = []
 
-        # Path to the ``ActorList.xml`` file
-        actorXML = path.dirname(path.abspath(__file__)) + "/xml/ActorList.xml"
-        for actor in getXMLRoot(actorXML).iterfind("Actor"):
+        for actor in actorRoot.iterfind("Actor"):
             tiedObjects = []
             objKey = actor.get("ObjectKey")
-            if objKey is not None: # actors don't always use an object
+            actorName = f"{actor.attrib['Name']} - {actor.attrib['ID'].removeprefix('ACTOR_')}"
+            if objKey is not None:  # actors don't always use an object
                 tiedObjects = objKey.split(",")
             self.actorList.append(
                 OoT_ActorElement(
                     actor.attrib["ID"],
                     actor.attrib["Key"],
-                    actor.attrib["Name"],
+                    actorName,
+                    int(actor.attrib["Index"]),
                     actor.attrib["Category"],
                     tiedObjects,
                 )
             )
         self.actorsByKey = {actor.key: actor for actor in self.actorList}
         self.actorsByID = {actor.id: actor for actor in self.actorList}
-        # list of tuples used by Blender's enum properties
-        self.ootEnumActorID = [("Custom", "Custom Actor", "Custom")]
 
+        # list of tuples used by Blender's enum properties
+        lastIndex = max(1, *(int(actor.attrib["Index"]) for actor in actorRoot.iterfind("Actor")))
+        self.ootEnumActorID = [("None", "(Deleted from the XML)", "None")] * lastIndex
+        self.ootEnumActorID.insert(0, ("Custom", "Custom Actor", "Custom"))
         for actor in self.actorList:
-            self.ootEnumActorID.append((actor.id, actor.name, actor.id))
+            if actor.index < lastIndex + 1:
+                self.ootEnumActorID[actor.index] = (actor.id, actor.name, actor.id)

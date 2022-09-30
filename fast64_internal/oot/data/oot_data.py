@@ -6,6 +6,7 @@ class OoT_BaseElement:
     id: str
     key: str
     name: str
+    index: int
 
 
 @dataclass

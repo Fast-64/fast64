@@ -10,10 +10,9 @@ def addMissingObjectToProp(roomObj: Object, headerIndex: int, objectKey: str):
     if roomObj is not None:
         roomProp = ootGetSceneOrRoomHeader(roomObj, headerIndex, True)
         if roomProp is not None:
-            collection = roomProp.objectList
-            collection.add()
-            collection.move(len(collection) - 1, (headerIndex + 1))
-            collection[-1].objectKey = objectKey
+            objectList = roomProp.objectList
+            objectList.add()
+            objectList[-1].objectKey = objectKey
 
 
 def addMissingObjectsToRoomHeader(roomObj: Object, room: OOTRoom, ootData: OoT_Data, headerIndex: int):
