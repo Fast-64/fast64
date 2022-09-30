@@ -459,7 +459,11 @@ class OOTRoom:
 
 
 def addActor(
-    owner, actor: OOTActor | OOTTransitionActor | OOTEntrance, actorProp: OOTActorProperty, propName: str, actorObjName: str
+    owner,
+    actor: OOTActor | OOTTransitionActor | OOTEntrance,
+    actorProp: OOTActorProperty,
+    propName: str,
+    actorObjName: str,
 ):
     sceneSetup = actorProp.headerSettings
     if (
