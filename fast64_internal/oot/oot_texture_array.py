@@ -212,7 +212,7 @@ def getSPSegmentCalls(actorData: str) -> list[tuple[tuple[int, str], str, re.Mat
 def getSPSegmentCallsDemoEc(actorData: str) -> list[tuple[tuple[int, str], str, re.Match]]:
     segmentCalls = getSPSegmentCalls(actorData)
     functionMatch = re.search(
-        r"DemoEc\_DrawSkeleton(CustomColor)?\s*\(.*?,.*?,(.*?),(.*?),", actorData, flags=re.DOTALL
+        r"DemoEc_DrawSkeleton(CustomColor)?\s*\(.*?,.*?,(.*?),(.*?),", actorData, flags=re.DOTALL
     )
     if functionMatch:
         isCustomColor = functionMatch.group(1) is not None
