@@ -13,14 +13,14 @@ def ootGetRoomShapeEntry(meshEntry: OOTRoomMeshGroup, roomShape: str):
     if roomShape == "ROOM_SHAPE_TYPE_CULLABLE":
         roomShapeEntry += (
             "{ "
-            + ", ".join([pos for pos in meshEntry.cullGroup.position])
+            + ", ".join([f"{pos}" for pos in meshEntry.cullGroup.position])
             + "}, "
             + f"{meshEntry.cullGroup.cullDepth}, "
         )
     elif roomShape == "ROOM_SHAPE_TYPE_IMAGE":
         raise PluginError("Pre-Rendered rooms not supported.")
 
-    roomShapeEntry += f"{opaqueName}, {transparentName}"
+    roomShapeEntry += f"{opaqueName}, {transparentName}" + " }\n"
     return roomShapeEntry
 
 
