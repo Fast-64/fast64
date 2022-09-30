@@ -2,7 +2,7 @@ from ....utility import CData
 from ...oot_level_classes import OOTRoom
 from ...oot_utility import indent
 
-from ..oot_scene_room_cmds.oot_room_cmds import ootRoomCommandsToC
+from .oot_room_cmds import ootRoomCommandsToC
 from .oot_object_to_c import ootObjectListToC
 from .oot_actor_to_c import ootActorListToC
 

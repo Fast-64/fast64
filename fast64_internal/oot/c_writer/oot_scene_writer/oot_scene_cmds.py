@@ -3,7 +3,7 @@ from ....utility import PluginError
 from ...oot_level_classes import OOTScene
 from ....utility import CData
 from ...oot_utility import indent
-from .oot_common_cmds import cmdAltHeaders, cmdEndMarker
+from ..oot_common_cmds import cmdAltHeaders, cmdEndMarker
 
 
 def cmdSoundSettings(scene: OOTScene):
