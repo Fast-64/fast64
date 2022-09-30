@@ -1341,7 +1341,7 @@ class F3DContext:
         self.setTile([0, 0, 0, 256, "G_TX_LOADTILE", 0, 0, 0, 0, 0, 0, 0], dlData)
         self.loadTLUT(["G_TX_LOADTILE", count], dlData)
 
-    # override this in a parent context to handle texture references.
+    # override this in a child context to handle texture references.
     # keep material parameter for use by parent.
     # ex. In OOT, you can call self.loadTexture() here based on texture arrays.
     def handleTextureReference(
