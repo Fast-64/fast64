@@ -1,5 +1,6 @@
 # Common Commands
 def cmdAltHeaders(altHeaderName: str):
+    """Returns the alternate scene layer command"""
     return f"SCENE_CMD_ALTERNATE_HEADER_LIST({altHeaderName})"
 
 
