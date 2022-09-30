@@ -2,9 +2,8 @@ from ...utility import CData
 from ...f3d.f3d_gbi import ScrollMethod, TextureExportSettings
 
 from ..oot_model_classes import OOTGfxFormatter
-from ..oot_level_classes import OOTScene
+from ..oot_level_classes import OOTScene, OOTRoom
 from ..oot_collision import ootCollisionToC
-from ..oot_cutscene import ootCutsceneDataToC
 
 from .oot_scene_room_cmds.oot_scene_cmds import ootSceneCommandsToC
 from .oot_scene_room_cmds.oot_room_cmds import ootRoomCommandsToC
@@ -18,9 +17,68 @@ from .oot_scene_writer.oot_path_to_c import ootPathListToC
 from .oot_scene_writer.oot_light_to_c import ootLightSettingsToC
 from .oot_scene_writer.oot_trans_actor_to_c import ootTransitionActorListToC
 from .oot_scene_writer.oot_entrance_exit_to_c import ootEntranceListToC, ootExitListToC
+from .oot_scene_writer.oot_cutscene_to_c import ootSceneCutscenesToC
 
 
-def ootAlternateRoomMainToC(scene, room):
+class OOTLevelC:
+    def sceneTexturesIsUsed(self):
+        return len(self.sceneTexturesC.source) > 0
+
+    def sceneCutscenesIsUsed(self):
+        return len(self.sceneCutscenesC) > 0
+
+    def __init__(self):
+        # Main header file for both the scene and room(s)
+        self.header = CData()
+        # Files for the scene segment
+        self.sceneMainC = CData()
+        self.sceneTexturesC = CData()
+        self.sceneCollisionC = CData()
+        self.sceneCutscenesC = []
+        # Files for room segments
+        self.roomMainC = {}
+        self.roomMeshInfoC = {}
+        self.roomMeshC = {}
+
+
+def ootLevelToC(scene: OOTScene, textureExportSettings: TextureExportSettings):
+    levelC = OOTLevelC()
+    textureData = scene.model.to_c(textureExportSettings, OOTGfxFormatter(ScrollMethod.Vertex)).all()
+
+    levelC.sceneMainC = ootSceneMainToC(scene, 0)
+    levelC.sceneTexturesC = textureData
+    levelC.sceneCollisionC = ootCollisionToC(scene.collision)
+    levelC.sceneCutscenesC = ootSceneCutscenesToC(scene)
+
+    for room in scene.rooms.values():
+        name = room.roomName()
+        levelC.roomMainC[name] = ootRoomMainToC(scene, room, 0)
+        levelC.roomMeshInfoC[name] = ootGetRoomShapeHeaderData(room.mesh)
+        levelC.roomMeshC[name] = ootRoomModelToC(room, textureExportSettings)
+
+    return levelC
+
+
+def ootSceneIncludes(scene: OOTScene):
+    sceneIncludeData = CData()
+    includeFiles = [
+        "ultra64.h",
+        "z64.h",
+        "macros.h",
+        f"{scene.sceneName()}.h",
+        "segment_symbols.h",
+        "command_macros_base.h",
+        "variables.h",
+    ]
+
+    if scene.writeCutscene:
+        includeFiles.append("z64cutscene_commands.h")
+
+    sceneIncludeData.source = "\n".join([f'#include "{fileName}"' for fileName in includeFiles]) + "\n\n"
+    return sceneIncludeData
+
+
+def ootAlternateRoomMainToC(scene: OOTScene, room: OOTRoom):
     altHeader = CData()
     altData = CData()
 
@@ -54,7 +112,7 @@ def ootAlternateRoomMainToC(scene, room):
     return altHeader, altData
 
 
-def ootRoomMainToC(scene, room, headerIndex):
+def ootRoomMainToC(scene: OOTScene, room: OOTRoom, headerIndex: int):
     roomMainC = CData()
 
     if room.hasAlternateHeaders():
@@ -77,31 +135,7 @@ def ootRoomMainToC(scene, room, headerIndex):
     return roomMainC
 
 
-def ootSceneMeshToC(scene, textureExportSettings):
-    exportData = scene.model.to_c(textureExportSettings, OOTGfxFormatter(ScrollMethod.Vertex))
-    return exportData.all()
-
-
-def ootSceneIncludes(scene: OOTScene):
-    sceneIncludeData = CData()
-    includeFiles = [
-        "ultra64.h",
-        "z64.h",
-        "macros.h",
-        f"{scene.sceneName()}.h",
-        "segment_symbols.h",
-        "command_macros_base.h",
-        "variables.h",
-    ]
-
-    if scene.writeCutscene:
-        includeFiles.append("z64cutscene_commands.h")
-
-    sceneIncludeData.source = "\n".join([f'#include "{fileName}"' for fileName in includeFiles]) + "\n\n"
-    return sceneIncludeData
-
-
-def ootAlternateSceneMainToC(scene):
+def ootAlternateSceneMainToC(scene: OOTScene):
     altHeader = CData()
     altData = CData()
 
@@ -194,80 +228,3 @@ def ootSceneMainToC(scene: OOTScene, headerIndex: int):
     sceneMainC.append(altData)
 
     return sceneMainC
-
-
-# Writes the textures and material setup displaylists that are shared between multiple rooms (is written to the scene)
-def ootSceneTexturesToC(scene, textureExportSettings):
-    sceneTextures = CData()
-    sceneTextures.append(ootSceneMeshToC(scene, textureExportSettings))
-    return sceneTextures
-
-
-# Writes the collision data for a scene
-def ootSceneCollisionToC(scene):
-    sceneCollisionC = CData()
-    sceneCollisionC.append(ootCollisionToC(scene.collision))
-    return sceneCollisionC
-
-
-# scene is either None or an OOTScene. This can either be the main scene itself,
-# or one of the alternate / cutscene headers.
-def ootGetCutsceneC(scene, headerIndex):
-    if scene is not None and scene.writeCutscene:
-        if scene.csWriteType == "Embedded":
-            return [ootCutsceneDataToC(scene, scene.cutsceneDataName(headerIndex))]
-        elif scene.csWriteType == "Object":
-            return [ootCutsceneDataToC(scene.csWriteObject, scene.csWriteObject.name)]
-    return []
-
-
-def ootSceneCutscenesToC(scene):
-    sceneCutscenes = ootGetCutsceneC(scene, 0)
-    sceneCutscenes.extend(ootGetCutsceneC(scene.childNightHeader, 1))
-    sceneCutscenes.extend(ootGetCutsceneC(scene.adultDayHeader, 2))
-    sceneCutscenes.extend(ootGetCutsceneC(scene.adultNightHeader, 3))
-
-    for i in range(len(scene.cutsceneHeaders)):
-        sceneCutscenes.extend(ootGetCutsceneC(scene.cutsceneHeaders[i], i + 4))
-    for ec in scene.extraCutscenes:
-        sceneCutscenes.append(ootCutsceneDataToC(ec, ec.name))
-
-    return sceneCutscenes
-
-
-def ootLevelToC(scene: OOTScene, textureExportSettings: TextureExportSettings):
-    levelC = OOTLevelC()
-
-    levelC.sceneMainC = ootSceneMainToC(scene, 0)
-    levelC.sceneTexturesC = ootSceneTexturesToC(scene, textureExportSettings)
-    levelC.sceneCollisionC = ootSceneCollisionToC(scene)
-    levelC.sceneCutscenesC = ootSceneCutscenesToC(scene)
-
-    for room in scene.rooms.values():
-        name = room.roomName()
-        levelC.roomMainC[name] = ootRoomMainToC(scene, room, 0)
-        levelC.roomMeshInfoC[name] = ootGetRoomShapeHeaderData(room.mesh)
-        levelC.roomMeshC[name] = ootRoomModelToC(room, textureExportSettings)
-
-    return levelC
-
-
-class OOTLevelC:
-    def sceneTexturesIsUsed(self):
-        return len(self.sceneTexturesC.source) > 0
-
-    def sceneCutscenesIsUsed(self):
-        return len(self.sceneCutscenesC) > 0
-
-    def __init__(self):
-        # Main header file for both the scene and room(s)
-        self.header = CData()
-        # Files for the scene segment
-        self.sceneMainC = CData()
-        self.sceneTexturesC = CData()
-        self.sceneCollisionC = CData()
-        self.sceneCutscenesC = []
-        # Files for room segments
-        self.roomMainC = {}
-        self.roomMeshInfoC = {}
-        self.roomMeshC = {}
