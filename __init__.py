@@ -27,7 +27,7 @@ bl_info = {
     "version": (2, 0, 0),
     "author": "kurethedead",
     "location": "3DView",
-    "description": "Plugin for exporting F3D display lists and other game data related to Super Mario 64.",
+    "description": "Plugin for exporting F3D display lists and other game data related to Nintendo 64 games.",
     "category": "Import-Export",
     "blender": (3, 2, 0),
 }
