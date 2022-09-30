@@ -1,10 +1,8 @@
-from ...utility import CData, PluginError
-from ...f3d.f3d_gbi import ScrollMethod
+from ...utility import CData
+from ...f3d.f3d_gbi import ScrollMethod, TextureExportSettings
 
 from ..oot_model_classes import OOTGfxFormatter
 from ..oot_level_classes import OOTScene
-from ..oot_constants import ootRoomShapeStructs, ootRoomShapeEntryStructs
-from ..oot_utility import indent
 from ..oot_collision import ootCollisionToC
 from ..oot_cutscene import ootCutsceneDataToC
 
@@ -14,78 +12,12 @@ from .oot_scene_room_cmds.oot_room_cmds import ootRoomCommandsToC
 from .oot_room_writer.oot_object_to_c import ootObjectListToC
 from .oot_room_writer.oot_actor_to_c import ootActorListToC
 from .oot_room_writer.oot_room_list_to_c import ootRoomListHeaderToC
+from .oot_room_writer.oot_room_shape_to_c import ootGetRoomShapeHeaderData, ootRoomModelToC
 
 from .oot_scene_writer.oot_path_to_c import ootPathListToC
 from .oot_scene_writer.oot_light_to_c import ootLightSettingsToC
 from .oot_scene_writer.oot_trans_actor_to_c import ootTransitionActorListToC
 from .oot_scene_writer.oot_entrance_exit_to_c import ootEntranceListToC, ootExitListToC
-
-
-def ootMeshEntryToC(meshEntry, roomShape):
-    opaqueName = meshEntry.DLGroup.opaque.name if meshEntry.DLGroup.opaque is not None else "0"
-    transparentName = meshEntry.DLGroup.transparent.name if meshEntry.DLGroup.transparent is not None else "0"
-    data = "{ "
-    if roomShape == "ROOM_SHAPE_TYPE_IMAGE":
-        raise PluginError("Pre-Rendered rooms not supported.")
-    elif roomShape == "ROOM_SHAPE_TYPE_CULLABLE":
-        data += (
-            "{ "
-            + f"{meshEntry.cullGroup.position[0]}, {meshEntry.cullGroup.position[1]}, {meshEntry.cullGroup.position[2]}"
-            + " }, "
-        )
-        data += str(meshEntry.cullGroup.cullDepth) + ", "
-    data += (
-        (opaqueName if opaqueName != "0" else "NULL")
-        + ", "
-        + (transparentName if transparentName != "0" else "NULL")
-        + " },\n"
-    )
-
-    return data
-
-
-def ootRoomMeshToC(room, textureExportSettings):
-    mesh = room.mesh
-    if len(mesh.meshEntries) == 0:
-        raise PluginError("Error: Room " + str(room.index) + " has no mesh children.")
-
-    meshHeader = CData()
-    meshHeader.header = f"extern {ootRoomShapeStructs[mesh.roomShape]} {mesh.headerName()};\n"
-    meshHeader.source = (
-        "\n".join(
-            (
-                ootRoomShapeStructs[mesh.roomShape] + " " + mesh.headerName() + " = {",
-                indent + mesh.roomShape + ",",
-                indent + "ARRAY_COUNT(" + mesh.entriesName() + ")" + ",",
-                indent + mesh.entriesName() + ",",
-                indent + mesh.entriesName() + " + ARRAY_COUNT(" + mesh.entriesName() + ")",
-                "};",
-            )
-        )
-        + "\n\n"
-    )
-
-    meshEntries = CData()
-    meshEntries.header = (
-        f"extern {ootRoomShapeEntryStructs[mesh.roomShape]} {mesh.entriesName()}[{str(len(mesh.meshEntries))}];\n"
-    )
-    meshEntries.source = (
-        f"{ootRoomShapeEntryStructs[mesh.roomShape]} {mesh.entriesName()}[{str(len(mesh.meshEntries))}] = " + "{\n"
-    )
-    meshData = CData()
-    for entry in mesh.meshEntries:
-        meshEntries.source += "\t" + ootMeshEntryToC(entry, mesh.roomShape)
-        if entry.DLGroup.opaque is not None:
-            meshData.append(entry.DLGroup.opaque.to_c(mesh.model.f3d))
-        if entry.DLGroup.transparent is not None:
-            meshData.append(entry.DLGroup.transparent.to_c(mesh.model.f3d))
-    meshEntries.source += "};\n\n"
-    exportData = mesh.model.to_c(textureExportSettings, OOTGfxFormatter(ScrollMethod.Vertex))
-
-    meshData.append(exportData.all())
-    meshHeader.append(meshEntries)
-
-    return meshHeader, meshData
 
 
 def ootAlternateRoomMainToC(scene, room):
@@ -165,7 +97,7 @@ def ootSceneIncludes(scene: OOTScene):
     if scene.writeCutscene:
         includeFiles.append("z64cutscene_commands.h")
 
-    sceneIncludeData.source = "\n".join([f"#include {fileName}" for fileName in includeFiles]) + "\n\n"
+    sceneIncludeData.source = "\n".join([f'#include "{fileName}"' for fileName in includeFiles]) + "\n\n"
     return sceneIncludeData
 
 
@@ -303,7 +235,7 @@ def ootSceneCutscenesToC(scene):
     return sceneCutscenes
 
 
-def ootLevelToC(scene, textureExportSettings):
+def ootLevelToC(scene: OOTScene, textureExportSettings: TextureExportSettings):
     levelC = OOTLevelC()
 
     levelC.sceneMainC = ootSceneMainToC(scene, 0)
@@ -311,11 +243,12 @@ def ootLevelToC(scene, textureExportSettings):
     levelC.sceneCollisionC = ootSceneCollisionToC(scene)
     levelC.sceneCutscenesC = ootSceneCutscenesToC(scene)
 
-    for i in range(len(scene.rooms)):
-        levelC.roomMainC[scene.rooms[i].roomName()] = ootRoomMainToC(scene, scene.rooms[i], 0)
-        meshHeader, meshData = ootRoomMeshToC(scene.rooms[i], textureExportSettings)
-        levelC.roomMeshInfoC[scene.rooms[i].roomName()] = meshHeader
-        levelC.roomMeshC[scene.rooms[i].roomName()] = meshData
+    for room in scene.rooms.values():
+        name = room.roomName()
+        levelC.roomMainC[name] = ootRoomMainToC(scene, room, 0)
+        levelC.roomMeshInfoC[name] = ootGetRoomShapeHeaderData(room.mesh)
+        levelC.roomMeshC[name] = ootRoomModelToC(room, textureExportSettings)
+
     return levelC
 
 

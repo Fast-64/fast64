@@ -5,16 +5,6 @@ ootEnumRoomShapeType = [
     ("ROOM_SHAPE_TYPE_CULLABLE", "Cullable", "Cullable"),
 ]
 
-ootRoomShapeStructs = {
-    "ROOM_SHAPE_TYPE_NORMAL": "RoomShapeNormal",
-    "ROOM_SHAPE_TYPE_CULLABLE": "RoomShapeCullable",
-}
-
-ootRoomShapeEntryStructs = {
-    "ROOM_SHAPE_TYPE_NORMAL": "RoomShapeDListsEntry",
-    "ROOM_SHAPE_TYPE_CULLABLE": "RoomShapeCullableEntry",
-}
-
 ootEnumSceneMenu = [
     ("General", "General", "General"),
     ("Lighting", "Lighting", "Lighting"),

@@ -404,8 +404,8 @@ def checkUniformScale(scale, obj):
 
 class CullGroup:
     def __init__(self, position, scale, emptyScale):
-        self.position = [int(round(field)) for field in position]
-        self.cullDepth = abs(int(round(scale[0] * emptyScale)))
+        self.position = [round(field) for field in position]
+        self.cullDepth = abs(round(scale[0] * emptyScale))
 
 
 def getCustomProperty(data, prop):

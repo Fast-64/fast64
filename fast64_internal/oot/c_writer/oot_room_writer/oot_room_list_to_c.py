@@ -31,9 +31,10 @@ def ootRoomListHeaderToC(scene: OOTScene):
             "// Dummy room list\n" + headerData.source + ((indent + "{ NULL, NULL },\n") * len(scene.rooms))
         )
     else:
-        headerData.source += " },\n".join(
-            [indent + "{ " + f"(u32){startName}, (u32){stopName}" for startName, stopName in segNames]
-        ) + " },\n"
+        headerData.source += (
+            " },\n".join([indent + "{ " + f"(u32){startName}, (u32){stopName}" for startName, stopName in segNames])
+            + " },\n"
+        )
 
     headerData.source += "};\n\n"
     return headerData

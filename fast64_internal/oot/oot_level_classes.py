@@ -305,7 +305,7 @@ class OOTRoomMesh:
     def __init__(self, roomName: str, roomShape: str, model: OOTModel):
         self.roomName = roomName
         self.roomShape = roomShape
-        self.meshEntries = []
+        self.meshEntries: list[OOTRoomMeshGroup] = []
         self.model = model
 
     def terminateDLs(self):
