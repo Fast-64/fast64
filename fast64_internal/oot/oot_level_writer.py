@@ -483,7 +483,7 @@ def ootProcessLOD(roomMesh, DLGroup, sceneObj, obj, transformMatrix, convertText
     index = 0
     for childObj in obj.children:
         # This group will not be converted to C directly, but its display lists will be converted through the FLODGroup.
-        childDLGroup = OOTDLGroup(name + str(index), roomMesh.model.dlFormat)
+        childDLGroup = OOTDLGroup(name + str(index), roomMesh.model.DLFormat)
         index += 1
 
         if childObj.data is None and childObj.ootEmptyType == "LOD":

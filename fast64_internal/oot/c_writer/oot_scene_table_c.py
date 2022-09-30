@@ -46,7 +46,7 @@ def getSceneIndex(sceneNameList, sceneName):
 def getOriginalIndex(sceneName):
     """
     Returns the index of a specific scene defined by which one the user chose
-        or by the ``sceneName`` parameter if it's not set to ``None``
+	or by the ``sceneName`` parameter if it's not set to ``None``
     """
     i = 0
 

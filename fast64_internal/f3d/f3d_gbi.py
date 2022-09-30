@@ -1390,7 +1390,7 @@ class F3D:
 
         """
 		MOVEMEM indices
-
+		
 		Each of these indexes an entry in a dmem table
 		which points to a 1-4 word block of dmem in
 		which to store a 1-4 word DMA.
@@ -1434,7 +1434,7 @@ class F3D:
 
         """
 		MOVEWORD indices
-
+		
 		Each of these indexes an entry in a dmem table
 		which points to a word in dmem in dmem where
 		an immediate word will be stored.
@@ -2193,6 +2193,7 @@ class FFogData:
 
     def requiresKey(self, material):
         return material.set_fog and material.use_global_fog
+
 
 class FAreaData:
     def __eq__(self, other):
@@ -4915,6 +4916,7 @@ class DPSetRenderMode:
 def gsSetImage(cmd, fmt, siz, width, i):
     words = _SHIFTL(cmd, 24, 8) | _SHIFTL(fmt, 21, 3) | _SHIFTL(siz, 19, 2) | _SHIFTL((width) - 1, 0, 12), i
     return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
+
 
 # DPSetColorImage
 # DPSetDepthImage

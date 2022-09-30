@@ -337,20 +337,20 @@ class OOTRoomMesh:
 
 
 class OOTDLGroup:
-    def __init__(self, name: str, dlFormat: DLFormat):
+    def __init__(self, name: str, DLFormat: DLFormat):
         self.opaque = None
         self.transparent = None
-        self.dlFormat = dlFormat
+        self.DLFormat = DLFormat
         self.name = toAlnum(name)
 
     def addDLCall(self, displayList: GfxList, drawLayer: str):
         if drawLayer == "Opaque":
             if self.opaque is None:
-                self.opaque = GfxList(self.name + "_opaque", GfxListTag.Draw, self.dlFormat)
+                self.opaque = GfxList(self.name + "_opaque", GfxListTag.Draw, self.DLFormat)
             self.opaque.commands.append(SPDisplayList(displayList))
         elif drawLayer == "Transparent":
             if self.transparent is None:
-                self.transparent = GfxList(self.name + "_transparent", GfxListTag.Draw, self.dlFormat)
+                self.transparent = GfxList(self.name + "_transparent", GfxListTag.Draw, self.DLFormat)
             self.transparent.commands.append(SPDisplayList(displayList))
         else:
             raise PluginError(f"Unhandled draw layer: {drawLayer}")
@@ -364,9 +364,9 @@ class OOTDLGroup:
 
     def createDLs(self):
         if self.opaque is None:
-            self.opaque = GfxList(self.name + "_opaque", GfxListTag.Draw, self.dlFormat)
+            self.opaque = GfxList(self.name + "_opaque", GfxListTag.Draw, self.DLFormat)
         if self.transparent is None:
-            self.transparent = GfxList(self.name + "_transparent", GfxListTag.Draw, self.dlFormat)
+            self.transparent = GfxList(self.name + "_transparent", GfxListTag.Draw, self.DLFormat)
 
     def isEmpty(self):
         return self.opaque is None and self.transparent is None

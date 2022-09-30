@@ -2799,7 +2799,7 @@ class F3D_ExportDL(bpy.types.Operator):
             exportF3DtoC(
                 exportPath,
                 obj,
-                DLFormat,
+                dlFormat,
                 finalTransform,
                 f3dType,
                 isHWv1,
