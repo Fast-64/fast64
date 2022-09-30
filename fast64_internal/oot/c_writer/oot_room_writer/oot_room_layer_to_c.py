@@ -1,5 +1,5 @@
 from ....utility import CData
-from ...oot_scene_room import OOTRoom
+from ...oot_level_classes import OOTRoom
 from ...oot_utility import indent
 
 from ..oot_scene_room_cmds.oot_room_cmds import ootRoomCommandsToC
@@ -9,7 +9,7 @@ from .oot_actor_to_c import ootActorListToC
 
 def ootGetRoomLayerData(room: OOTRoom, headerIndex: int):
     """Returns a room layer's data"""
-    layerData = ootRoomCommandsToC(room, headerIndex)
+    layerData = CData()
 
     if len(room.objectIDList) > 0:
         layerData.append(ootObjectListToC(room, headerIndex))
@@ -20,7 +20,7 @@ def ootGetRoomLayerData(room: OOTRoom, headerIndex: int):
     return layerData
 
 
-def ootGetAltHeaderEntries(roomLayers: list[OOTRoom]):
+def ootGetRoomAltHeaderEntries(roomLayers: list[OOTRoom]):
     """Returns the layers headers array names"""
     return "\n".join(
         [
@@ -31,20 +31,23 @@ def ootGetAltHeaderEntries(roomLayers: list[OOTRoom]):
 
 
 def ootRoomLayersToC(room: OOTRoom):
+    """Returns the rooms file data"""
     layerInfo = CData()  # array of pointers to invidual layers
     layerData = CData()  # the data of each layer
-    roomLayerName = f"SCmdBase* {room.alternateHeadersName()}[]"
+    altLayerName = f"SCmdBase* {room.alternateHeadersName()}[]"
     roomLayers = [room, room.childNightHeader, room.adultDayHeader, room.adultNightHeader]
     roomLayers.extend(room.cutsceneHeaders)
+    altLayerArray = altLayerName + " = {\n" + ootGetRoomAltHeaderEntries(roomLayers) + "\n};\n\n"
 
     # .h
-    layerInfo.header = f"extern {roomLayerName};\n"
+    layerInfo.header = f"extern {altLayerName};\n"
 
     # .c
-    layerInfo.source = roomLayerName + " = {\n" + ootGetAltHeaderEntries(roomLayers) + "\n};\n\n"
-
     for i, layer in enumerate(roomLayers):
         if layer is not None:
+            layerData.append(ootRoomCommandsToC(layer, i))
+            if i == 0:
+                layerData.source += altLayerArray
             layerData.append(ootGetRoomLayerData(layer, i))
 
     roomLayerData = layerInfo
