@@ -6,7 +6,8 @@ from ...oot_cutscene import ootCutsceneDataToC
 def ootSceneCutscenesToC(scene: OOTScene):
     """Returns the cutscene data"""
     csData: list[CData] = []
-    sceneLayers = [scene, scene.childNightHeader, scene.adultDayHeader, scene.adultNightHeader, scene.cutsceneHeaders]
+    sceneLayers = [scene, scene.childNightHeader, scene.adultDayHeader, scene.adultNightHeader]
+    sceneLayers.extend(scene.cutsceneHeaders)
 
     for i, layer in enumerate(sceneLayers):
         if layer is not None and layer.writeCutscene:

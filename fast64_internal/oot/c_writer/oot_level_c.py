@@ -6,12 +6,11 @@ from ..oot_level_classes import OOTScene, OOTRoom
 from ..oot_collision import ootCollisionToC
 
 from .oot_scene_room_cmds.oot_scene_cmds import ootSceneCommandsToC
-from .oot_scene_room_cmds.oot_room_cmds import ootRoomCommandsToC
 
-from .oot_room_writer.oot_object_to_c import ootObjectListToC
 from .oot_room_writer.oot_actor_to_c import ootActorListToC
 from .oot_room_writer.oot_room_list_to_c import ootRoomListHeaderToC
 from .oot_room_writer.oot_room_shape_to_c import ootGetRoomShapeHeaderData, ootRoomModelToC
+from .oot_room_writer.oot_room_layer_to_c import ootRoomLayersToC
 
 from .oot_scene_writer.oot_path_to_c import ootPathListToC
 from .oot_scene_writer.oot_light_to_c import ootLightSettingsToC
@@ -30,11 +29,13 @@ class OOTLevelC:
     def __init__(self):
         # Main header file for both the scene and room(s)
         self.header = CData()
+
         # Files for the scene segment
         self.sceneMainC = CData()
         self.sceneTexturesC = CData()
         self.sceneCollisionC = CData()
         self.sceneCutscenesC = []
+
         # Files for room segments
         self.roomMainC = {}
         self.roomMeshInfoC = {}
@@ -52,7 +53,7 @@ def ootLevelToC(scene: OOTScene, textureExportSettings: TextureExportSettings):
 
     for room in scene.rooms.values():
         name = room.roomName()
-        levelC.roomMainC[name] = ootRoomMainToC(scene, room, 0)
+        levelC.roomMainC[name] = ootRoomLayersToC(room)
         levelC.roomMeshInfoC[name] = ootGetRoomShapeHeaderData(room.mesh)
         levelC.roomMeshC[name] = ootRoomModelToC(room, textureExportSettings)
 
@@ -76,63 +77,6 @@ def ootSceneIncludes(scene: OOTScene):
 
     sceneIncludeData.source = "\n".join([f'#include "{fileName}"' for fileName in includeFiles]) + "\n\n"
     return sceneIncludeData
-
-
-def ootAlternateRoomMainToC(scene: OOTScene, room: OOTRoom):
-    altHeader = CData()
-    altData = CData()
-
-    altHeader.header = "extern SCmdBase* " + room.alternateHeadersName() + "[];\n"
-    altHeader.source = "SCmdBase* " + room.alternateHeadersName() + "[] = {\n"
-
-    if room.childNightHeader is not None:
-        altHeader.source += "\t" + room.roomName() + "_header" + format(1, "02") + ",\n"
-        altData.append(ootRoomMainToC(scene, room.childNightHeader, 1))
-    else:
-        altHeader.source += "\t0,\n"
-
-    if room.adultDayHeader is not None:
-        altHeader.source += "\t" + room.roomName() + "_header" + format(2, "02") + ",\n"
-        altData.append(ootRoomMainToC(scene, room.adultDayHeader, 2))
-    else:
-        altHeader.source += "\t0,\n"
-
-    if room.adultNightHeader is not None:
-        altHeader.source += "\t" + room.roomName() + "_header" + format(3, "02") + ",\n"
-        altData.append(ootRoomMainToC(scene, room.adultNightHeader, 3))
-    else:
-        altHeader.source += "\t0,\n"
-
-    for i in range(len(room.cutsceneHeaders)):
-        altHeader.source += "\t" + room.roomName() + "_header" + format(i + 4, "02") + ",\n"
-        altData.append(ootRoomMainToC(scene, room.cutsceneHeaders[i], i + 4))
-
-    altHeader.source += "};\n\n"
-
-    return altHeader, altData
-
-
-def ootRoomMainToC(scene: OOTScene, room: OOTRoom, headerIndex: int):
-    roomMainC = CData()
-
-    if room.hasAlternateHeaders():
-        altHeader, altData = ootAlternateRoomMainToC(scene, room)
-    else:
-        altHeader = CData()
-        altData = CData()
-
-    roomMainC.append(ootRoomCommandsToC(room, headerIndex))
-    roomMainC.append(altHeader)
-
-    if len(room.objectIDList) > 0:
-        roomMainC.append(ootObjectListToC(room, headerIndex))
-
-    if len(room.actorList) > 0:
-        roomMainC.append(ootActorListToC(None, room, headerIndex))
-
-    roomMainC.append(altData)
-
-    return roomMainC
 
 
 def ootAlternateSceneMainToC(scene: OOTScene):
