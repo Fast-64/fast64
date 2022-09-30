@@ -818,7 +818,6 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
         f3dContext,
     )
     if isLOD:
-        f3dContext.clearGeometry()
         isLOD, LODArmatureObj = ootBuildSkeleton(
             skeletonName,
             overlayName,
@@ -889,17 +888,16 @@ def ootBuildSkeleton(
         parseF3D(
             skeletonData,
             dlEntry.dlName,
-            obj,
             f3dContext.matrixData[limbName],
             limbName,
             boneName,
             "oot",
             drawLayer,
             f3dContext,
+            True,
         )
         if f3dContext.isBillboard:
             armatureObj.data.bones[boneName].ootBone.dynamicTransform.billboard = True
-        f3dContext.clearMaterial()  # THIS IS IMPORTANT
     f3dContext.createMesh(obj, removeDoubles, importNormals, False)
     armatureObj.location = bpy.context.scene.cursor.location
 
@@ -959,9 +957,15 @@ def ootAddBone(armatureObj, boneName, parentBoneName, currentTransform, loadDL):
 
 
 def ootAddLimbRecursively(
-    limbIndex, skeletonData, obj, armatureObj, parentTransform, parentBoneName, f3dContext, useFarLOD
+    limbIndex: int,
+    skeletonData: str,
+    obj: bpy.types.Object,
+    armatureObj: bpy.types.Object,
+    parentTransform: mathutils.Matrix,
+    parentBoneName: str,
+    f3dContext: OOTF3DContext,
+    useFarLOD: bool,
 ):
-
     limbName = f3dContext.getLimbName(limbIndex)
     boneName = f3dContext.getBoneName(limbIndex)
     matchResult = ootGetLimb(skeletonData, limbName, False)
@@ -1002,7 +1006,6 @@ def ootAddLimbRecursively(
     # Therefore were delay F3D parsing until after skeleton is processed.
     if loadDL:
         f3dContext.dlList.append(OOTDLEntry(dlName, limbIndex))
-        # parseF3D(skeletonData, dlName, obj, transformMatrix, boneName, f3dContext)
 
     if nextChildIndex != LIMB_DONE:
         isLOD |= ootAddLimbRecursively(
@@ -1171,7 +1174,7 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
             if exportSettings.mode == "Generic":
                 prop_split(col, exportSettings, "name", "Skeleton")
                 prop_split(col, exportSettings, "folder", "Object" if not exportSettings.isCustom else "Folder")
-                prop_split(col, exportSettings, "overlay", "Overlay")
+                prop_split(col, exportSettings, "actorOverlayName", "Overlay")
                 col.prop(exportSettings, "flipbookUses2DArray")
                 if exportSettings.flipbookUses2DArray:
                     box = col.box().column()
@@ -1194,7 +1197,7 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
             if importSettings.mode == "Generic":
                 prop_split(col, importSettings, "name", "Skeleton")
                 prop_split(col, importSettings, "folder", "Object")
-                prop_split(col, importSettings, "overlay", "Overlay")
+                prop_split(col, importSettings, "actorOverlayName", "Overlay")
                 col.prop(importSettings, "autoDetectActorScale")
                 if not importSettings.autoDetectActorScale:
                     prop_split(col, importSettings, "actorScale", "Actor Scale")

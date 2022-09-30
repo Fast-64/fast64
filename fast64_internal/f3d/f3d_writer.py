@@ -820,13 +820,50 @@ def getNewIndices(existingIndices, bufferStart):
     return newIndices
 
 
-class BufferVertex:
-    def __init__(self, f3dVert, groupIndex, materialIndex):
-        self.f3dVert = f3dVert
-        self.groupIndex = groupIndex
-        self.materialIndex = materialIndex
+# Color and normal are separate, since for parsing, the normal must be transformed into
+# bone/object space while the color should just be a regular conversion.
+class F3DVert:
+    def __init__(
+        self,
+        position: mathutils.Vector,
+        uv: mathutils.Vector,
+        color: mathutils.Vector | None,  # 4 components
+        normal: mathutils.Vector | None,  # 4 components
+    ):
+        self.position: mathutils.Vector = position
+        self.uv: mathutils.Vector = uv
+        self.color: mathutils.Vector | None = color
+        self.normal: mathutils.Vector | None = normal
 
     def __eq__(self, other):
+        if not isinstance(other, F3DVert):
+            return False
+        return (
+            self.position == other.position
+            and self.uv == other.uv
+            and self.color == other.color
+            and self.normal == other.normal
+        )
+
+    def getColorOrNormal(self):
+        if self.color is None and self.normal is None:
+            raise PluginError("An F3D vert has neither a color or a normal.")
+        elif self.color is not None:
+            return self.color
+        else:
+            return self.normal
+
+
+# groupIndex is either a vertex group (writing), or name of c variable identifying a transform group, like a limb (parsing)
+class BufferVertex:
+    def __init__(self, f3dVert: F3DVert, groupIndex: int | str, materialIndex: int):
+        self.f3dVert: F3DVert = f3dVert
+        self.groupIndex: int | str = groupIndex
+        self.materialIndex: int = materialIndex
+
+    def __eq__(self, other):
+        if not isinstance(other, BufferVertex):
+            return False
         return (
             self.f3dVert == other.f3dVert
             and self.groupIndex == other.groupIndex
@@ -873,12 +910,12 @@ class TriangleConverter:
     def __init__(
         self,
         triConverterInfo: TriangleConverterInfo,
-        texDimensions,
+        texDimensions: tuple[int, int],
         material: bpy.types.Material,
         currentGroupIndex,
         triList,
         vtxList,
-        existingVertexData,
+        existingVertexData: list[BufferVertex],
         existingVertexMaterialRegions,
     ):
         self.triConverterInfo = triConverterInfo
@@ -886,11 +923,9 @@ class TriangleConverter:
         self.originalGroupIndex = currentGroupIndex
 
         # Existing data assumed to be already loaded in.
+        self.vertBuffer: list[BufferVertex] = []
         if existingVertexData is not None:
-            # [(position, uv, colorOrNormal)]
-            self.vertBuffer = existingVertexData
-        else:
-            self.vertBuffer = []
+            self.vertBuffer: list[BufferVertex] = existingVertexData
         self.existingVertexMaterialRegions = existingVertexMaterialRegions
         self.bufferStart = len(self.vertBuffer)
         self.vertexBufferTriangles = []  # [(index0, index1, index2)]
@@ -918,8 +953,8 @@ class TriangleConverter:
 
             return bufferVert in self.vertBuffer[self.bufferStart :]
 
-    def getSortedBuffer(self):
-        limbVerts = {}
+    def getSortedBuffer(self) -> dict[int, list[BufferVertex]]:
+        limbVerts: dict[int, list[BufferVertex]] = {}
         for bufferVert in self.vertBuffer[self.bufferStart :]:
             if bufferVert.groupIndex not in limbVerts:
                 limbVerts[bufferVert.groupIndex] = []
@@ -947,9 +982,9 @@ class TriangleConverter:
                 self.vtxList.vertices.append(
                     convertVertexData(
                         self.triConverterInfo.mesh,
-                        bufferVert.f3dVert[0],
-                        bufferVert.f3dVert[1],
-                        bufferVert.f3dVert[2],
+                        bufferVert.f3dVert.position,
+                        bufferVert.f3dVert.uv,
+                        bufferVert.f3dVert.getColorOrNormal(),
                         self.texDimensions,
                         self.triConverterInfo.getTransformMatrix(bufferVert.groupIndex),
                         self.isPointSampled,
@@ -981,9 +1016,9 @@ class TriangleConverter:
                 self.vtxList.vertices.append(
                     convertVertexData(
                         self.triConverterInfo.mesh,
-                        bufferVert.f3dVert[0],
-                        bufferVert.f3dVert[1],
-                        bufferVert.f3dVert[2],
+                        bufferVert.f3dVert.position,
+                        bufferVert.f3dVert.uv,
+                        bufferVert.f3dVert.getColorOrNormal(),
                         self.texDimensions,
                         self.triConverterInfo.getTransformMatrix(bufferVert.groupIndex),
                         self.isPointSampled,
@@ -1048,11 +1083,11 @@ def getF3DVert(loop: bpy.types.MeshLoop, face, convertInfo: LoopConvertInfo, mes
     uv[:] = [field if not math.isnan(field) else 0 for field in uv]
     uv[1] = 1 - uv[1]
     uv = uv.freeze()
-    colorOrNormal = getLoopColorOrNormal(
+    color, normal = getLoopColorOrNormal(
         loop, face, convertInfo.obj.data, convertInfo.obj, convertInfo.exportVertexColors
     )
 
-    return (position, uv, colorOrNormal)
+    return F3DVert(position, uv, color, normal)
 
 
 def getLoopNormal(loop: bpy.types.MeshLoop, face, mesh, isFlatShaded):
@@ -1248,16 +1283,18 @@ def getLoopColor(loop: bpy.types.MeshLoop, mesh, mat_ver):
     else:
         normalizedA = 1
 
-    return (normalizedRGB[0], normalizedRGB[1], normalizedRGB[2], normalizedA)
+    return mathutils.Vector((normalizedRGB[0], normalizedRGB[1], normalizedRGB[2], normalizedA))
 
 
-def getLoopColorOrNormal(loop: bpy.types.MeshLoop, face, mesh, obj, exportVertexColors):
+def getLoopColorOrNormal(
+    loop: bpy.types.MeshLoop, face, mesh: bpy.types.Mesh, obj: bpy.types.Object, exportVertexColors: bool
+) -> tuple[mathutils.Vector | None, mathutils.Vector | None]:
     material = obj.material_slots[face.material_index].material
     isFlatShaded = checkIfFlatShaded(material)
     if exportVertexColors:
-        return getLoopColor(loop, mesh, material.mat_ver)
+        return getLoopColor(loop, mesh, material.mat_ver), None
     else:
-        return getLoopNormal(loop, face, mesh, isFlatShaded)
+        return None, getLoopNormal(loop, face, mesh, isFlatShaded)
 
 
 def createTriangleCommands(triangles, vertexBuffer, useSP2Triangle):

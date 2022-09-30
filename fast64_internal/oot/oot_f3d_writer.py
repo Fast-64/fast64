@@ -581,7 +581,7 @@ class OOT_ExportDLPanel(OOT_Panel):
             prop_split(col, exportSettings, "customAssetIncludeDir", "Asset Include Path")
             prop_split(col, exportSettings, "customPath", "Path")
         else:
-            prop_split(col, exportSettings, "overlay", "Overlay (Optional)")
+            prop_split(col, exportSettings, "actorOverlayName", "Overlay (Optional)")
             col.prop(exportSettings, "flipbookUses2DArray")
             if exportSettings.flipbookUses2DArray:
                 box = col.box().column()
@@ -599,7 +599,7 @@ class OOT_ExportDLPanel(OOT_Panel):
             prop_split(col, importSettings, "customPath", "File")
         else:
             prop_split(col, importSettings, "folder", "Object")
-            prop_split(col, importSettings, "overlay", "Overlay (Optional)")
+            prop_split(col, importSettings, "actorOverlayName", "Overlay (Optional)")
             col.prop(importSettings, "autoDetectActorScale")
             if not importSettings.autoDetectActorScale:
                 prop_split(col, importSettings, "actorScale", "Actor Scale")
