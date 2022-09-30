@@ -50,8 +50,12 @@ def ootGetSceneAltHeaderEntries(sceneLayers: list[OOTScene]):
     """Returns the layers headers array names"""
     return "\n".join(
         [
-            f"{indent + layer.sceneName()}_header{i:02}," if layer is not None else indent + "NULL," if i < 4 else ""
-            for i, layer in enumerate(sceneLayers)
+            f"{indent + sceneLayers[i].sceneName()}_header{i:02},"
+            if sceneLayers[i] is not None
+            else indent + "NULL,"
+            if i < 4
+            else ""
+            for i in range(1, len(sceneLayers))
         ]
     )
 
@@ -60,19 +64,21 @@ def ootSceneLayersToC(scene: OOTScene):
     """Returns the scene file data"""
     layerInfo = CData()  # array of pointers to invidual layers
     layerData = CData()  # the data of each layer
-    altLayerName = f"SCmdBase* {scene.alternateHeadersName()}[]"
     sceneLayers = [scene, scene.childNightHeader, scene.adultDayHeader, scene.adultNightHeader]
     sceneLayers.extend(scene.cutsceneHeaders)
-    altLayerArray = altLayerName + " = {\n" + ootGetSceneAltHeaderEntries(sceneLayers) + "\n};\n\n"
 
-    # .h
-    layerInfo.header = f"extern {altLayerName};\n"
+    if scene.hasAlternateHeaders():
+        altLayerName = f"SCmdBase* {scene.alternateHeadersName()}[]"
+        altLayerArray = altLayerName + " = {\n" + ootGetSceneAltHeaderEntries(sceneLayers) + "\n};\n\n"
+
+        # .h
+        layerInfo.header = f"extern {altLayerName};\n"
 
     # .c
     for i, layer in enumerate(sceneLayers):
         if layer is not None:
             layerData.append(ootSceneCommandsToC(layer, i))
-            if i == 0:
+            if i == 0 and scene.hasAlternateHeaders():
                 layerData.source += altLayerArray
             layerData.append(ootGetSceneLayerData(layer, i))
 

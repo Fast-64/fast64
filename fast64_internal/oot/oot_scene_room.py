@@ -18,10 +18,9 @@ def onUpdateOoTLighting(self, context: bpy.types.Context):
     on_update_oot_render_settings(self, context)
 
 
-
 class OOTSceneProperties(bpy.types.PropertyGroup):
     write_dummy_room_list: bpy.props.BoolProperty(
-        name="Dummy Room List",
+        name="Use Dummy Room List",
         default=False,
         description=(
             "When exporting the scene to C, use NULL for the pointers to room "

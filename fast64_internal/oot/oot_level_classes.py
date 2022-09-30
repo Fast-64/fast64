@@ -57,7 +57,7 @@ class OOTLight:
         self.transitionSpeed = 0
 
     def getBlendFogShort(self):
-        return f"0x{(self.transitionSpeed << 10) | self.fogNear:04X}"
+        return f"(({self.transitionSpeed} << 10) | {self.fogNear})"
 
 
 class OOTCSTextbox:
@@ -170,6 +170,7 @@ class OOTScene:
         self.skyboxID = None
         self.skyboxCloudiness = None
         self.skyboxLighting = None
+        self.lightMode = None
 
         # Camera
         self.mapLocation = None

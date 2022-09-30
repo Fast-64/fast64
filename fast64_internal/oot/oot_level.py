@@ -64,10 +64,14 @@ class OOTObjectPanel(bpy.types.Panel):
             drawWaterBoxProperty(box, obj.ootWaterBoxProperty)
 
         elif obj.ootEmptyType == "Scene":
+            menuTab = obj.ootSceneHeader.menuTab
             drawSceneHeaderProperty(box, obj.ootSceneHeader, None, None, objName)
-            if obj.ootSceneHeader.menuTab == "Alternate":
+            if menuTab == "Alternate":
                 drawAlternateSceneHeaderProperty(box, obj.ootAlternateSceneHeaders, objName)
-            box.prop(obj.fast64.oot.scene, "write_dummy_room_list")
+            elif menuTab == "General":
+                box.box().label(text="Write Dummy Room List")
+                box.label(text="Use ``NULL`` for room seg start/end offsets")
+                box.prop(obj.fast64.oot.scene, "write_dummy_room_list")
 
         elif obj.ootEmptyType == "Room":
             drawRoomHeaderProperty(box, obj.ootRoomHeader, None, None, objName)
