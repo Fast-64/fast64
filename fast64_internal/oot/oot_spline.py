@@ -1,16 +1,13 @@
-import math, os, bpy, bmesh, mathutils
+import bpy
 from bpy.utils import register_class, unregister_class
-
-from .oot_constants import *
-from .oot_utility import *
-from .oot_scene_room import *
+from ..utility import PluginError, toAlnum, prop_split
 
 class OOTPath:
 	def __init__(self, ownerName, splineIndex):
 		self.ownerName = toAlnum(ownerName)
 		self.splineIndex = splineIndex
 		self.points = []
-	
+
 	def pathName(self):
 		return self.ownerName + "_pathwayList_" + str(self.splineIndex)
 
@@ -22,7 +19,7 @@ def ootConvertPath(name, index, obj, transformMatrix):
 		position = transformMatrix @ point.co
 		path.points.append(position)
 		#path.speeds.append(int(round(point.radius)))
-	
+
 	return path
 
 def onSplineTypeSet(self, context):
@@ -34,7 +31,7 @@ class OOTSplinePanel(bpy.types.Panel):
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
 	bl_context = "object"
-	bl_options = {'HIDE_HEADER'} 
+	bl_options = {'HIDE_HEADER'}
 
 	@classmethod
 	def poll(cls, context):
@@ -49,7 +46,7 @@ class OOTSplinePanel(bpy.types.Panel):
 			box.label(text = 'Only NURBS curves are compatible.')
 		else:
 			prop_split(box, context.object.ootSplineProperty, "index", "Index")
-		
+
 		#drawParentSceneRoom(box, context.object)
 
 class OOTSplineProperty(bpy.types.PropertyGroup):
@@ -86,7 +83,7 @@ def oot_spline_panel_unregister():
 def oot_spline_register():
 	for cls in oot_spline_classes:
 		register_class(cls)
-	
+
 	bpy.types.Object.ootSplineProperty = bpy.props.PointerProperty(type = OOTSplineProperty)
 
 def oot_spline_unregister():

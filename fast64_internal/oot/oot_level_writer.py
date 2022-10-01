@@ -1,22 +1,71 @@
-import bpy, bmesh, os, math, re, shutil, mathutils
-from io import BytesIO
+import bpy, os, math, mathutils
 from bpy.utils import register_class, unregister_class
-
-from ..utility import *
-from .oot_utility import *
-from .oot_constants import *
 from ..panels import OOT_Panel
+from ..f3d.f3d_gbi import TextureExportSettings, DLFormat
+from ..f3d.f3d_writer import TriangleConverterInfo, saveStaticModel, getInfoDict
+from .c_writer.oot_level_c import ootSceneIncludes, ootLevelToC
+from .c_writer.oot_scene_table_c import modifySceneTable
+from .c_writer.oot_spec import modifySegmentDefinition
+from .c_writer.oot_scene_folder import modifySceneFiles, deleteSceneFiles
+from .oot_constants import ootSceneIDToName, ootEnumSceneID
+from .oot_scene_room import OOT_SearchSceneEnumOperator
+from .oot_cutscene import convertCutsceneObject, readCutsceneData
+from .oot_spline import assertCurveValid, ootConvertPath
+from .oot_model_classes import OOTModel
+from .oot_collision import OOTCameraData, exportCollisionCommon
+from .oot_collision_classes import OOTCameraPosData, OOTWaterBox, decomp_compat_map_CameraSType
 
-from ..f3d.f3d_gbi import *
-from ..f3d.f3d_writer import *
-from .oot_f3d_writer import *
+from ..utility import (
+    PluginError,
+    CData,
+    customExportWarning,
+    checkIdentityRotation,
+    hideObjsInList,
+    unhideAllAndGetHiddenList,
+    normToSigned8Vector,
+    raisePluginError,
+    ootGetBaseOrCustomLight,
+    exportColor,
+    prop_split,
+    toAlnum,
+    checkObjectReference,
+    writeCDataSourceOnly,
+    writeCDataHeaderOnly,
+)
 
-from .oot_level_classes import *
-from .oot_level import *
-from .oot_collision import *
-from .oot_spline import *
-from .oot_cutscene import *
-from .c_writer import *
+from .c_writer.oot_scene_bootup import (
+    OOT_ClearBootupScene,
+    setBootupScene,
+    ootSceneBootupRegister,
+    ootSceneBootupUnregister,
+)
+
+from .oot_utility import (
+    ExportInfo,
+    OOTObjectCategorizer,
+    CullGroup,
+    getEnumName,
+    checkUniformScale,
+    ootDuplicateHierarchy,
+    ootCleanupScene,
+    ootGetPath,
+    getCustomProperty,
+    ootConvertTranslation,
+    ootConvertRotation,
+    ootSceneDirs,
+)
+
+from .oot_level_classes import (
+    OOTLight,
+    OOTExit,
+    OOTScene,
+    OOTActor,
+    OOTTransitionActor,
+    OOTEntrance,
+    OOTDLGroup,
+    addActor,
+    addStartPosition,
+)
 
 
 def sceneNameFromID(sceneID):
@@ -677,7 +726,7 @@ class OOT_RemoveScene(bpy.types.Operator):
     def execute(self, context):
         levelName = context.scene.ootSceneName
         if context.scene.ootSceneCustomExport:
-            operator.report({"ERROR"}, "You can only remove scenes from your decomp path.")
+            self.report({"ERROR"}, "You can only remove scenes from your decomp path.")
             return {"FINISHED"}
 
         if context.scene.ootSceneOption == "Custom":
