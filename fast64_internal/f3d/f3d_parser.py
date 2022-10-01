@@ -1769,9 +1769,6 @@ class F3DContext:
             bpy.ops.mesh.remove_doubles()
             bpy.ops.object.mode_set(mode="OBJECT")
 
-        if callDeleteMaterialContext:
-            self.deleteMaterialContext()
-
         obj.location = bpy.context.scene.cursor.location
 
         i = 0
@@ -1780,6 +1777,9 @@ class F3DContext:
             i += 1
 
         self.clearGeometry()
+
+        if callDeleteMaterialContext:
+            self.deleteMaterialContext()
 
 
 class ParsedMacro:
@@ -1804,7 +1804,7 @@ def parseF3D(
     drawLayerPropName: str,
     drawLayer: str,
     f3dContext: F3DContext,
-    callDeleteMaterialContext: bool,
+    callClearMaterial: bool,
 ):
 
     f3dContext.matrixData[limbName] = transformMatrix
@@ -1820,7 +1820,7 @@ def parseF3D(
         dlCommands = parseDLData(dlData, processedDLName)
         f3dContext.processCommands(dlData, processedDLName, dlCommands)
 
-    if callDeleteMaterialContext:
+    if callClearMaterial:
         f3dContext.clearMaterial()
 
 
