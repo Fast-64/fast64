@@ -1,4 +1,6 @@
 from .sm64_constants import loadSegmentAddresses
+from ..utility import PluginError
+
 
 def ExtendBank0x04(romfile, segmentData, segment4):
 
