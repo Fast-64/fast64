@@ -9,10 +9,13 @@ from .f3d_material import (
     ootEnumDrawLayers,
     TextureProperty,
     F3DMaterialProperty,
+    update_node_values_of_material,
+    F3DMaterialHash,
 )
 from .f3d_writer import BufferVertex, F3DVert
 from ..utility import *
 import ast, operator
+from .f3d_material_helpers import F3DMaterial_UpdateLock
 
 colorCombinationCommands = [
     0x03,  # load lighting data
@@ -466,6 +469,7 @@ class F3DContext:
         self.f3d: F3D = f3d
         self.basePath: str = basePath
         self.materialContext: bpy.types.Material = materialContext
+        self.materialContext.f3d_update_flag = True  # Don't want visual updates while parsing
         self.initContext()
 
     # This is separate as we want to call __init__ in clearGeometry, but don't want same behaviour for child classes
@@ -475,7 +479,8 @@ class F3DContext:
         mat: F3DMaterialProperty = self.mat()
         mat.set_combiner = False
 
-        self.materials: list[bpy.types.Material] = []  # saved materials
+        self.materials: list[bpy.types.Material] = []  # current material list
+        self.materialDict: dict[F3DMaterialHash, bpy.types.Material] = {}  # cached materials for all imports
         self.triMatIndices: list[int] = []  # material indices per triangle
         self.materialChanged: bool = True
         self.lastMaterialIndex: bool = None
@@ -537,7 +542,7 @@ class F3DContext:
     """
 
     def clearGeometry(self):
-        savedMaterials = self.materials
+        savedMaterialDict = self.materialDict
         savedTextureData = self.textureData
         savedTlutAppliedTextures = self.tlutAppliedTextures
         savedImagesDontApplyTlut = self.imagesDontApplyTlut
@@ -545,7 +550,7 @@ class F3DContext:
 
         self.initContext()
 
-        self.materials = savedMaterials
+        self.materialDict = savedMaterialDict
         self.textureData = savedTextureData
         self.tlutAppliedTextures = savedTlutAppliedTextures
         self.imagesDontApplyTlut = savedImagesDontApplyTlut
@@ -562,15 +567,14 @@ class F3DContext:
         mat.set_key = False
         mat.set_k0_5 = False
 
-        mat.prim_color = [1, 1, 1, 1]
-        mat.env_color = [1, 1, 1, 1]
-        mat.blend_color = [1, 1, 1, 1]
         for i in range(1, 8):
             setattr(mat, "f3d_light" + str(i), None)
         mat.tex0.tex = None
         mat.tex1.tex = None
         mat.tex0.tex_set = False
         mat.tex1.tex_set = False
+        mat.tex0.autoprop = False
+        mat.tex1.autoprop = False
 
         mat.tex0.tex_format = "RGBA16"
         mat.tex1.tex_format = "RGBA16"
@@ -726,16 +730,20 @@ class F3DContext:
         for i in range(int(len(indices) / 3)):
             self.triMatIndices.append(self.lastMaterialIndex)
 
-    def getMaterialIndex(self):
-        # We do this for now to update tile settings for S and T.
-        # Right now we don't handle those, so we need the auto-calculator to set it correctly.
-        overrideContext = bpy.context.copy()
-        overrideContext["material"] = self.materialContext
-        bpy.ops.material.update_f3d_nodes(overrideContext)
+    # Add items to this tuple in child classes
+    def getMaterialKey(self, material: bpy.types.Material):
+        return material.f3d_mat.key()
 
-        for material in self.materials:
-            if propertyGroupEquals(self.materialContext.f3d_mat, material.f3d_mat):
+    def getMaterialIndex(self):
+
+        key = self.getMaterialKey(self.materialContext)
+        if key in self.materialDict:
+            material = self.materialDict[key]
+            if material in self.materials:
                 return self.materials.index(material)
+            else:
+                self.materials.append(material)
+                return len(self.materials) - 1
 
         self.addMaterial()
         return len(self.materials) - 1
@@ -812,11 +820,17 @@ class F3DContext:
         self.applyTLUTToIndex(0)
         self.applyTLUTToIndex(1)
 
-        material = self.materialContext.copy()
-        overrideContext = bpy.context.copy()
-        overrideContext["material"] = material
-        bpy.ops.material.update_f3d_nodes(overrideContext)
+        materialCopy = self.materialContext.copy()
+
+        # disable flag so that we can lock it, then unlock after update
+        materialCopy.f3d_update_flag = False
+
+        with F3DMaterial_UpdateLock(materialCopy) as material:
+            update_node_values_of_material(material, bpy.context)
+            material.f3d_mat.presetName = "Custom"
+
         self.materials.append(material)
+        self.materialDict[self.getMaterialKey(materialCopy)] = materialCopy
         self.materialChanged = False
 
         self.postMaterialChanged()
@@ -1391,11 +1405,6 @@ class F3DContext:
 
         # TODO: Handle low/high for image files?
         if texProp.use_tex_reference:
-            # texProp.autoprop = False
-            # texProp.S.low = round(tileSizeSettings.uls / (2 ** self.f3d.G_TEXTURE_IMAGE_FRAC), 3)
-            # texProp.T.low = round(tileSizeSettings.ult / (2 ** self.f3d.G_TEXTURE_IMAGE_FRAC), 3)
-            # texProp.S.high = round(tileSizeSettings.lrs / (2 ** self.f3d.G_TEXTURE_IMAGE_FRAC), 3)
-            # texProp.T.high = round(tileSizeSettings.lrt / (2 ** self.f3d.G_TEXTURE_IMAGE_FRAC), 3)
 
             # WARNING: Inferring texture size from tile size.
             texProp.tex_reference_size = [
@@ -1403,23 +1412,22 @@ class F3DContext:
                 int(round(tileSizeSettings.lrt / (2**self.f3d.G_TEXTURE_IMAGE_FRAC) + 1)),
             ]
 
-        # if texProp.S.low == 0 and texProp.T.low == 0 and \
-        # 	texProp.S.high == size[0] - 1 and \
-        # 	(texProp.use_tex_reference or texProp.T.high == size[1] - 1):
-        # 	texProp.autoProp = True
-        # else:
-        # 	print(str(texProp.S.low) + " " + str(texProp.T.low) + " " + str(texProp.S.high) + " " + str(texProp.T.high))
-        # 	print(str(size[0]-1) + " " + str(size[1]-1))
-
         texProp.tex_format = tileSettings.fmt[8:].replace("_", "") + tileSettings.siz[8:-1].replace("_", "")
 
         texProp.S.clamp = tileSettings.cms[0]
         texProp.S.mirror = tileSettings.cms[1]
+        texProp.S.mask = tileSettings.masks
+        texProp.S.shift = tileSettings.shifts
 
         texProp.T.clamp = tileSettings.cmt[0]
         texProp.T.mirror = tileSettings.cmt[1]
+        texProp.T.mask = tileSettings.maskt
+        texProp.T.shift = tileSettings.shiftt
 
-        # TODO: Handle S and T properties
+        texProp.S.low = round(tileSizeSettings.uls / (2**self.f3d.G_TEXTURE_IMAGE_FRAC), 3)
+        texProp.T.low = round(tileSizeSettings.ult / (2**self.f3d.G_TEXTURE_IMAGE_FRAC), 3)
+        texProp.S.high = round(tileSizeSettings.lrs / (2**self.f3d.G_TEXTURE_IMAGE_FRAC), 3)
+        texProp.T.high = round(tileSizeSettings.lrt / (2**self.f3d.G_TEXTURE_IMAGE_FRAC), 3)
 
     def loadTexture(self, data, name, region, tileSettings, isLUT):
         textureName = name

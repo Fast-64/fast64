@@ -424,6 +424,7 @@ class OOTF3DContext(F3DContext):
             if segment >= 0x08 and segment <= 0x0D:
                 setattr(self.materialContext.ootMaterial.opaque, "segment" + format(segment, "1X"), True)
                 setattr(self.materialContext.ootMaterial.transparent, "segment" + format(segment, "1X"), True)
+                self.materialChanged = True
             return None
         return name
 
@@ -436,6 +437,9 @@ class OOTF3DContext(F3DContext):
             return textureName
             # if (pointer >> 24) == 0x08:
             # 	print("Unhandled OOT pointer: " + textureName)
+
+    def getMaterialKey(self, material: bpy.types.Material):
+        return (material.ootMaterial.key(), material.f3d_mat.key())
 
     def clearGeometry(self):
         self.dlList = []
@@ -451,8 +455,7 @@ class OOTF3DContext(F3DContext):
         F3DContext.clearMaterial(self)
 
     def postMaterialChanged(self):
-        clearOOTMaterialDrawLayerProperty(self.materialContext.ootMaterial.opaque)
-        clearOOTMaterialDrawLayerProperty(self.materialContext.ootMaterial.transparent)
+        pass
 
     def handleTextureReference(
         self,

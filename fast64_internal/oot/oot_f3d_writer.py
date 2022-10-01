@@ -733,12 +733,27 @@ class OOTDynamicMaterialDrawLayerProperty(bpy.types.PropertyGroup):
     customCall1: bpy.props.BoolProperty()
     customCall1_seg: bpy.props.StringProperty(description="Segment address of a display list to call, e.g. 0x08000010")
 
+    def key(self):
+        return (
+            self.segment8,
+            self.segment9,
+            self.segmentA,
+            self.segmentB,
+            self.segmentC,
+            self.segmentD,
+            self.customCall0_seg if self.customCall0 else None,
+            self.customCall1_seg if self.customCall1 else None,
+        )
+
 
 # The reason these are separate is for the case when the user changes the material draw layer, but not the
 # dynamic material calls. This could cause crashes which would be hard to detect.
 class OOTDynamicMaterialProperty(bpy.types.PropertyGroup):
     opaque: bpy.props.PointerProperty(type=OOTDynamicMaterialDrawLayerProperty)
     transparent: bpy.props.PointerProperty(type=OOTDynamicMaterialDrawLayerProperty)
+
+    def key(self):
+        return (self.opaque.key(), self.transparent.key())
 
 
 oot_dl_writer_classes = (
