@@ -2,25 +2,22 @@ import bpy
 from bpy.utils import register_class, unregister_class
 from . import addon_updater_ops
 from .fast64_internal.operators import AddWaterBox
+from .fast64_internal.panels import SM64_Panel
 from .fast64_internal.utility import PluginError, raisePluginError, attemptModifierApply, prop_split
+
+from .fast64_internal.sm64 import SM64_Properties, sm64_register, sm64_unregister
+from .fast64_internal.sm64.sm64_geolayout_bone import SM64_BoneProperties
+from .fast64_internal.sm64.sm64_objects import SM64_ObjectProperties
 from .fast64_internal.sm64.sm64_geolayout_utility import createBoneGroups
 from .fast64_internal.sm64.sm64_geolayout_parser import generateMetarig
-from .fast64_internal.sm64.sm64_geolayout_bone import SM64_BoneProperties
-from .fast64_internal.sm64 import SM64_Properties, sm64_register, sm64_unregister
-from .fast64_internal.sm64.sm64_objects import SM64_ObjectProperties
+
 from .fast64_internal.oot import OOT_Properties, oot_register, oot_unregister
+from .fast64_internal.oot.oot_level import OOT_ObjectProperties
+
 from .fast64_internal.f3d.f3d_material import mat_register, mat_unregister
 from .fast64_internal.f3d.f3d_render_engine import render_engine_register, render_engine_unregister
 from .fast64_internal.f3d.f3d_writer import f3d_writer_register, f3d_writer_unregister
 from .fast64_internal.f3d.f3d_parser import f3d_parser_register, f3d_parser_unregister
-from .fast64_internal.panels import SM64_Panel
-from .fast64_internal.oot.oot_level import OOT_ObjectProperties
-
-from .fast64_internal.render_settings import (
-    Fast64RenderSettings_Properties,
-    resync_scene_props,
-    on_update_render_settings,
-)
 
 from .fast64_internal.f3d_material_converter import (
     MatUpdateConvert,
@@ -29,6 +26,12 @@ from .fast64_internal.f3d_material_converter import (
     bsdf_conv_unregister,
     bsdf_conv_panel_regsiter,
     bsdf_conv_panel_unregsiter,
+)
+
+from .fast64_internal.render_settings import (
+    Fast64RenderSettings_Properties,
+    resync_scene_props,
+    on_update_render_settings,
 )
 
 # info about add on
