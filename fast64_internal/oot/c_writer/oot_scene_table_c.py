@@ -1,6 +1,36 @@
 import os, bpy
 from ...utility import PluginError, writeFile
-from ..oot_constants import ootEnumSceneID, ootDrawConfigNames
+from ..oot_constants import ootEnumSceneID
+
+
+def getDrawConfigList(exportPath: str):
+    """Returns the list of available draw configs"""
+    configNames: list[str] = []
+    lines: list[str] = []
+
+    # get every lines until reaching the end of the draw config enum
+    try:
+        with open(os.path.join(exportPath, "include/z64scene.h")) as fileData:
+            for line in fileData:
+                if "SceneDrawConfig;" not in line:
+                    lines.append(line)
+                else:
+                    break
+    except:
+        raise PluginError("ERROR: Can't find z64scene.h!")
+
+    # keep the relevant lines
+    for line in reversed(lines):
+        if line != "\n":
+            if "MAX" not in line and "*/ " in line:
+                # split the string a first time to get rid of the comments
+                # then split the second element of the list to get rid of the index comment
+                # and only keep the config name
+                configNames.append(line.split(",")[0].split("*/ ")[1])
+        else:
+            break
+
+    return list(reversed(configNames))
 
 
 def getSceneTable(exportPath):
@@ -46,7 +76,7 @@ def getSceneIndex(sceneNameList, sceneName):
 def getOriginalIndex(sceneName):
     """
     Returns the index of a specific scene defined by which one the user chose
-	or by the ``sceneName`` parameter if it's not set to ``None``
+        or by the ``sceneName`` parameter if it's not set to ``None``
     """
     i = 0
 
@@ -147,11 +177,12 @@ def modifySceneTable(scene, exportInfo):
     # the list ``sceneNames`` needs to be synced with ``fileData``
     fileData, header, sceneNames = getSceneTable(exportPath)
     sceneName, sceneTitle, sceneID, sceneUnk10, sceneUnk12, sceneIndex = getSceneParams(scene, exportInfo, sceneNames)
+    drawConfigNames = getDrawConfigList(exportPath)
 
     if scene is None:
         sceneDrawConfig = None
-    elif scene.sceneTableEntry.drawConfig < len(ootDrawConfigNames):
-        sceneDrawConfig = ootDrawConfigNames[scene.sceneTableEntry.drawConfig]
+    elif scene.sceneTableEntry.drawConfig < len(drawConfigNames):
+        sceneDrawConfig = drawConfigNames[scene.sceneTableEntry.drawConfig]
     else:
         sceneDrawConfig = scene.sceneTableEntry.drawConfig
 
