@@ -3347,6 +3347,8 @@ class SPMatrix:
             header += "segmented_to_virtual(" + str(self.matrix) + ")"
         else:
             header += str(self.matrix)
+            if bpy.context.scene.fast64.oot.shipOfHarkinianCompatible:
+                header += ' | 1'
         return header + ", " + str(self.param) + ")"
 
     def to_sm64_decomp_s(self):
@@ -3452,7 +3454,10 @@ class SPDisplayList:
 
     def to_c(self, static=True):
         if static:
-            return "gsSPDisplayList(" + self.displayList.name + ")"
+            if bpy.context.scene.fast64.oot.shipOfHarkinianCompatible and self.displayList.name.startswith('0x'):
+                return "gsSPDisplayList(" + self.displayList.name + ' | 1)'
+            else:
+                return "gsSPDisplayList(" + self.displayList.name + ")"
         elif self.displayList.DLFormat == DLFormat.Static:
             header = "gSPDisplayList(glistp++, "
             if bpy.context.scene.decomp_compatible:
@@ -4944,7 +4949,10 @@ class DPSetTextureImage:
         if not static and bpy.context.scene.decomp_compatible:
             header += "segmented_to_virtual(" + self.image.name + "))"
         else:
-            header += self.image.name + ")"
+            if bpy.context.scene.fast64.oot.shipOfHarkinianCompatible and self.image.name.startswith('0x'):
+                header += self.image.name + " | 1)"
+            else:
+                header += self.image.name + ")"
         return header
 
     def to_sm64_decomp_s(self):
