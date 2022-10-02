@@ -2336,6 +2336,19 @@ def saveOrGetTextureDefinition(fMaterial, fModel, image: bpy.types.Image, imageN
     print("Finished converting.")
     fModel.addTexture((image, (texFormat, "NONE")), fImage, fMaterial)
 
+    if bpy.context.scene.fast64.oot.shipOfHarkinianCompatible:
+        temp_image_data = copy.deepcopy(fImage.data)
+
+        for i in range(0, len(fImage.data), 8):
+            fImage.data[i] = temp_image_data[i + 7]
+            fImage.data[i + 1] = temp_image_data[i + 6]
+            fImage.data[i + 2] = temp_image_data[i + 5]
+            fImage.data[i + 3] = temp_image_data[i + 4]
+            fImage.data[i + 4] = temp_image_data[i + 3]
+            fImage.data[i + 5] = temp_image_data[i + 2]
+            fImage.data[i + 6] = temp_image_data[i + 1]
+            fImage.data[i + 7] = temp_image_data[i]
+
     return fImage
 
 
