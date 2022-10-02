@@ -88,11 +88,13 @@ def ootExportSceneToC(
         if exportSubdir == "":
             raise PluginError("Scene folder " + sceneName + " cannot be found in the ootSceneDirs list.")
 
-    roomObjects = [
-        obj for obj in bpy.data.objects if ((obj.parent == originalSceneObj) and (obj.ootEmptyType == "Room"))
+    roomObjList = [
+        obj for obj in originalSceneObj.children_recursive if obj.data is None and obj.ootEmptyType == "Room"
     ]
-    for roomObj, room in zip(roomObjects, scene.rooms.values()):
+    for roomObj in roomObjList:
+        room = scene.rooms[roomObj.ootRoomHeader.roomIndex]
         addMissingObjectsToAllRoomHeaders(roomObj, room, ootData)
+
     levelPath = ootGetPath(exportPath, isCustomExport, exportSubdir, sceneName, True, True)
     levelC = ootLevelToC(scene, TextureExportSettings(False, savePNG, exportSubdir + sceneName, levelPath))
 
@@ -380,7 +382,7 @@ def ootConvertScene(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneNam
     if bpy.context.scene.exportHiddenGeometry:
         hideObjsInList(hiddenObjs)
 
-    roomObjs = [child for child in sceneObj.children if child.data is None and child.ootEmptyType == "Room"]
+    roomObjs = [child for child in sceneObj.children_recursive if child.data is None and child.ootEmptyType == "Room"]
     if len(roomObjs) == 0:
         raise PluginError("The scene has no child empties with the 'Room' empty type.")
 
@@ -389,7 +391,7 @@ def ootConvertScene(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneNam
         readSceneData(scene, sceneObj.fast64.oot.scene, sceneObj.ootSceneHeader, sceneObj.ootAlternateSceneHeaders)
         processedRooms = set()
 
-        for obj in sceneObj.children:
+        for obj in sceneObj.children_recursive:
             translation, rotation, scale, orientedRotation = getConvertedTransform(transformMatrix, sceneObj, obj, True)
 
             if obj.data is None and obj.ootEmptyType == "Room":

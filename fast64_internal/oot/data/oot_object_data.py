@@ -39,7 +39,6 @@ class OoT_ObjectData:
 
         # create the legacy object list for old blends
         self.ootEnumObjectIDLegacy = self.getObjectIDList(self.objectsByKey["obj_timeblock"].index + 1, True)
-        print(self.ootEnumObjectIDLegacy)
 
         # validate the legacy list, if there's any None element then something's wrong
         if self.customEntry in self.ootEnumObjectIDLegacy:
