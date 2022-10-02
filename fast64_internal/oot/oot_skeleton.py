@@ -1,45 +1,38 @@
-import shutil, copy, mathutils, bpy, math, os, re
+import mathutils, bpy, math, os, re
+from ..f3d.f3d_gbi import DLFormat, FMesh, TextureExportSettings, ScrollMethod, F3D
+from .oot_model_classes import OOTVertexGroupInfo, OOTModel, OOTGfxFormatter, OOTF3DContext, OOTDynamicTransformProperty
 from bpy.utils import register_class, unregister_class
+from ..f3d.f3d_writer import getInfoDict
+from ..f3d.f3d_parser import getImportData, parseF3D
+from .oot_f3d_writer import ootProcessVertexGroup
+from .panel.skeleton.classes import OOTSkeletonExportSettings, OOTSkeletonImportSettings
 
-from ..utility import *
-from .oot_utility import *
-from .oot_constants import *
-from .oot_model_classes import *
-from ..panels import OOT_Panel
+from ..utility import (
+    PluginError,
+    CData,
+    getDeclaration,
+    hexOrDecInt,
+    applyRotation,
+    prop_split,
+    getGroupIndexFromname,
+    writeFile,
+    readFile,
+    writeCData,
+    toAlnum,
+    setOrigin,
+    getGroupNameFromIndex,
+    attemptModifierApply,
+    cleanupDuplicatedObjects,
+)
 
-from ..f3d.f3d_parser import *
-from ..f3d.f3d_writer import *
-from ..f3d.f3d_material import TextureProperty, tmemUsageUI
-from .oot_f3d_writer import *
-
-
-class OOTSkeletonExportSettings(bpy.types.PropertyGroup):
-    name: bpy.props.StringProperty(name="Skeleton Name", default="gGerudoRedSkel")
-    folder: bpy.props.StringProperty(name="Skeleton Folder", default="object_geldb")
-    customPath: bpy.props.StringProperty(name="Custom Skeleton Path", subtype="FILE_PATH")
-    isCustom: bpy.props.BoolProperty(name="Use Custom Path")
-    removeVanillaData: bpy.props.BoolProperty(name="Replace Vanilla Skeletons On Export", default=True)
-    customAssetIncludeDir: bpy.props.StringProperty(
-        name="Asset Include Directory",
-        default="assets/objects/object_geldb",
-        description="Used in #include for including image files",
-    )
-    optimize: bpy.props.BoolProperty(
-        name="Optimize",
-        description="Applies various optimizations between the limbs in a skeleton. "
-        + "If enabled, the skeleton limbs must be drawn in their normal order, "
-        + "with nothing in between and no culling, otherwise the mesh will be corrupted.",
-    )
-
-
-class OOTSkeletonImportSettings(bpy.types.PropertyGroup):
-    name: bpy.props.StringProperty(name="Skeleton Name", default="gGerudoRedSkel")
-    folder: bpy.props.StringProperty(name="Skeleton Folder", default="object_geldb")
-    customPath: bpy.props.StringProperty(name="Custom Skeleton Path", subtype="FILE_PATH")
-    isCustom: bpy.props.BoolProperty(name="Use Custom Path")
-    removeDoubles: bpy.props.BoolProperty(name="Remove Doubles On Import", default=True)
-    importNormals: bpy.props.BoolProperty(name="Import Normals", default=True)
-    drawLayer: bpy.props.EnumProperty(name="Import Draw Layer", items=ootEnumDrawLayers)
+from .oot_utility import (
+    checkEmptyName,
+    checkForStartBone,
+    getStartBone,
+    getSortedChildren,
+    ootGetPath,
+    addIncludeFiles,
+)
 
 
 ootEnumBoneType = [
@@ -881,131 +874,6 @@ def ootRemoveSkeleton(filepath, objectName, skeletonName):
         writeFile(headerPath, skeletonDataH)
 
 
-class OOT_ImportSkeleton(bpy.types.Operator):
-    # set bl_ properties
-    bl_idname = "object.oot_import_skeleton"
-    bl_label = "Import Skeleton"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
-
-    # Called on demand (i.e. button press, menu item)
-    # Can also be called from operator search menu (Spacebar)
-    def execute(self, context):
-        armatureObj = None
-        if context.mode != "OBJECT":
-            bpy.ops.object.mode_set(mode="OBJECT")
-
-        try:
-            importSettings: OOTSkeletonImportSettings = context.scene.fast64.oot.skeletonImportSettings
-
-            importPath = bpy.path.abspath(importSettings.customPath)
-            isCustomImport = importSettings.isCustom
-            folderName = importSettings.folder
-            scale = context.scene.ootActorBlenderScale
-            decompPath = bpy.path.abspath(bpy.context.scene.ootDecompPath)
-
-            filepaths = [ootGetObjectPath(isCustomImport, importPath, folderName)]
-            if not isCustomImport:
-                filepaths.append(
-                    os.path.join(bpy.context.scene.ootDecompPath, "assets/objects/gameplay_keep/gameplay_keep.c")
-                )
-
-            ootImportSkeletonC(filepaths, scale, decompPath, importSettings)
-
-            self.report({"INFO"}, "Success!")
-            return {"FINISHED"}
-
-        except Exception as e:
-            if context.mode != "OBJECT":
-                bpy.ops.object.mode_set(mode="OBJECT")
-            raisePluginError(self, e)
-            return {"CANCELLED"}  # must return a set
-
-
-class OOT_ExportSkeleton(bpy.types.Operator):
-    # set bl_ properties
-    bl_idname = "object.oot_export_skeleton"
-    bl_label = "Export Skeleton"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
-
-    # Called on demand (i.e. button press, menu item)
-    # Can also be called from operator search menu (Spacebar)
-    def execute(self, context):
-        armatureObj = None
-        if context.mode != "OBJECT":
-            bpy.ops.object.mode_set(mode="OBJECT")
-        if len(context.selected_objects) == 0:
-            raise PluginError("Armature not selected.")
-        armatureObj = context.active_object
-        if type(armatureObj.data) is not bpy.types.Armature:
-            raise PluginError("Armature not selected.")
-
-        if len(armatureObj.children) == 0 or not isinstance(armatureObj.children[0].data, bpy.types.Mesh):
-            raise PluginError("Armature does not have any mesh children, or " + "has a non-mesh child.")
-
-        obj = armatureObj.children[0]
-        finalTransform = mathutils.Matrix.Scale(context.scene.ootActorBlenderScale, 4)
-
-        try:
-            exportSettings: OOTSkeletonExportSettings = context.scene.fast64.oot.skeletonExportSettings
-
-            saveTextures = bpy.context.scene.saveTextures
-            isHWv1 = context.scene.isHWv1
-            f3dType = context.scene.f3d_type
-            drawLayer = armatureObj.ootDrawLayer
-
-            ootConvertArmatureToC(
-                armatureObj, finalTransform, f3dType, isHWv1, DLFormat.Static, saveTextures, drawLayer, exportSettings
-            )
-
-            self.report({"INFO"}, "Success!")
-            return {"FINISHED"}
-
-        except Exception as e:
-            if context.mode != "OBJECT":
-                bpy.ops.object.mode_set(mode="OBJECT")
-            raisePluginError(self, e)
-            return {"CANCELLED"}  # must return a set
-
-
-class OOT_ExportSkeletonPanel(OOT_Panel):
-    bl_idname = "OOT_PT_export_skeleton"
-    bl_label = "OOT Skeleton Exporter"
-
-    # called every frame
-    def draw(self, context):
-        col = self.layout.column()
-        col.operator(OOT_ExportSkeleton.bl_idname)
-        exportSettings: OOTSkeletonExportSettings = context.scene.fast64.oot.skeletonExportSettings
-
-        prop_split(col, exportSettings, "name", "Skeleton")
-        prop_split(col, exportSettings, "folder", "Object" if not exportSettings.isCustom else "Folder")
-        if exportSettings.isCustom:
-            prop_split(col, exportSettings, "customAssetIncludeDir", "Asset Include Path")
-            prop_split(col, exportSettings, "customPath", "Path")
-
-        col.prop(exportSettings, "isCustom")
-        col.prop(exportSettings, "removeVanillaData")
-        col.prop(exportSettings, "optimize")
-        if exportSettings.optimize:
-            b = col.box().column()
-            b.label(icon="LIBRARY_DATA_BROKEN", text="Do not draw anything in SkelAnime")
-            b.label(text="callbacks or cull limbs, will be corrupted.")
-
-        col.operator(OOT_ImportSkeleton.bl_idname)
-        importSettings: OOTSkeletonImportSettings = context.scene.fast64.oot.skeletonImportSettings
-
-        prop_split(col, importSettings, "name", "Skeleton")
-        if importSettings.isCustom:
-            prop_split(col, importSettings, "customPath", "File")
-        else:
-            prop_split(col, importSettings, "folder", "Object")
-        prop_split(col, importSettings, "drawLayer", "Import Draw Layer")
-
-        col.prop(importSettings, "isCustom")
-        col.prop(importSettings, "removeDoubles")
-        col.prop(importSettings, "importNormals")
-
-
 class OOT_SkeletonPanel(bpy.types.Panel):
     bl_idname = "OOT_PT_skeleton"
     bl_label = "OOT Skeleton Properties"
@@ -1063,15 +931,7 @@ def pollArmature(self, obj):
     return isinstance(obj.data, bpy.types.Armature)
 
 
-oot_skeleton_classes = (
-    OOT_ExportSkeleton,
-    OOT_ImportSkeleton,
-    OOTSkeletonExportSettings,
-    OOTSkeletonImportSettings,
-)
-
 oot_skeleton_panels = (
-    OOT_ExportSkeletonPanel,
     OOT_SkeletonPanel,
     OOT_BonePanel,
 )
@@ -1088,9 +948,6 @@ def oot_skeleton_panel_unregister():
 
 
 def oot_skeleton_register():
-    for cls in oot_skeleton_classes:
-        register_class(cls)
-
     bpy.types.Object.ootFarLOD = bpy.props.PointerProperty(type=bpy.types.Object, poll=pollArmature)
 
     bpy.types.Bone.ootBoneType = bpy.props.EnumProperty(name="Bone Type", items=ootEnumBoneType)
@@ -1099,12 +956,8 @@ def oot_skeleton_register():
 
 
 def oot_skeleton_unregister():
-
     del bpy.types.Object.ootFarLOD
 
     del bpy.types.Bone.ootBoneType
     del bpy.types.Bone.ootDynamicTransform
     del bpy.types.Bone.ootCustomDLName
-
-    for cls in reversed(oot_skeleton_classes):
-        unregister_class(cls)

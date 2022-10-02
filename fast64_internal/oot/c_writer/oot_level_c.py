@@ -1,8 +1,8 @@
-import math
 from ..oot_f3d_writer import *
-from ..oot_level_writer import *
 from ..oot_collision import *
 from ..oot_cutscene import *
+from ..oot_constants import ootRoomShapeEntryStructs, ootRoomShapeStructs
+from ..oot_utility import indent
 
 
 def cmdName(name, header, index):

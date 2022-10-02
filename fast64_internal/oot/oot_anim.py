@@ -1,11 +1,23 @@
-import shutil, copy, math, mathutils, bpy, os, re
+import math, mathutils, bpy, os, re
+from .oot_skeleton import ootConvertArmatureToSkeletonWithoutMesh
+from ..utility import CData, PluginError, toAlnum, writeCData, readFile, hexOrDecInt
 
-from bpy.utils import register_class, unregister_class
-from .oot_constants import *
-from .oot_utility import *
-from .oot_skeleton import *
-from ..utility import *
-from ..panels import OOT_Panel
+from .oot_utility import (
+    checkForStartBone,
+    getStartBone,
+    getSortedChildren,
+    ootGetPath,
+    addIncludeFiles,
+    checkEmptyName,
+)
+
+from ..utility_anim import (
+    ValueFrameData,
+    saveTranslationFrame,
+    saveQuaternionFrame,
+    squashFramesIfAllSame,
+    getFrameInterval,
+)
 
 
 class OOTAnimation:
@@ -366,158 +378,3 @@ def getJointIndices(filepath, animData, jointIndicesName):
     ]
 
     return jointIndicesData
-
-
-class OOT_ExportAnim(bpy.types.Operator):
-    bl_idname = "object.oot_export_anim"
-    bl_label = "Export Animation"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
-
-    # Called on demand (i.e. button press, menu item)
-    # Can also be called from operator search menu (Spacebar)
-    def execute(self, context):
-        try:
-            if len(context.selected_objects) == 0 or not isinstance(
-                context.selected_objects[0].data, bpy.types.Armature
-            ):
-                raise PluginError("Armature not selected.")
-            if len(context.selected_objects) > 1:
-                raise PluginError("Multiple objects selected, make sure to select only one.")
-            armatureObj = context.selected_objects[0]
-            if context.mode != "OBJECT":
-                bpy.ops.object.mode_set(mode="OBJECT")
-        except Exception as e:
-            raisePluginError(self, e)
-            return {"CANCELLED"}
-
-        try:
-            isCustomExport = context.scene.ootAnimIsCustomExport
-            exportPath = bpy.path.abspath(context.scene.ootAnimExportCustomPath)
-            folderName = context.scene.ootAnimExportFolderName
-            skeletonName = context.scene.ootAnimSkeletonName
-
-            path = ootGetObjectPath(isCustomExport, exportPath, folderName)
-
-            exportAnimationC(armatureObj, path, isCustomExport, folderName, skeletonName)
-            self.report({"INFO"}, "Success!")
-
-        except Exception as e:
-            raisePluginError(self, e)
-            return {"CANCELLED"}  # must return a set
-
-        return {"FINISHED"}  # must return a set
-
-
-class OOT_ImportAnim(bpy.types.Operator):
-    bl_idname = "object.oot_import_anim"
-    bl_label = "Import Animation"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
-
-    # Called on demand (i.e. button press, menu item)
-    # Can also be called from operator search menu (Spacebar)
-    def execute(self, context):
-        try:
-            if len(context.selected_objects) == 0 or not isinstance(
-                context.selected_objects[0].data, bpy.types.Armature
-            ):
-                raise PluginError("Armature not selected.")
-            if len(context.selected_objects) > 1:
-                raise PluginError("Multiple objects selected, make sure to select only one.")
-            armatureObj = context.selected_objects[0]
-            if context.mode != "OBJECT":
-                bpy.ops.object.mode_set(mode="OBJECT")
-        except Exception as e:
-            raisePluginError(self, e)
-            return {"CANCELLED"}
-
-        try:
-            isCustomImport = context.scene.ootAnimIsCustomImport
-            folderName = context.scene.ootAnimImportFolderName
-            importPath = bpy.path.abspath(context.scene.ootAnimImportCustomPath)
-            animName = context.scene.ootAnimName
-            actorScale = context.scene.ootActorBlenderScale
-
-            path = ootGetObjectPath(isCustomImport, importPath, folderName)
-
-            ootImportAnimationC(armatureObj, path, animName, actorScale)
-            self.report({"INFO"}, "Success!")
-
-        except Exception as e:
-            raisePluginError(self, e)
-            return {"CANCELLED"}  # must return a set
-
-        return {"FINISHED"}  # must return a set
-
-
-class OOT_ExportAnimPanel(OOT_Panel):
-    bl_idname = "OOT_PT_export_anim"
-    bl_label = "OOT Animation Exporter"
-
-    # called every frame
-    def draw(self, context):
-        col = self.layout.column()
-
-        col.operator(OOT_ExportAnim.bl_idname)
-        prop_split(col, context.scene, "ootAnimSkeletonName", "Skeleton Name")
-        if context.scene.ootAnimIsCustomExport:
-            prop_split(col, context.scene, "ootAnimExportCustomPath", "Folder")
-        else:
-            prop_split(col, context.scene, "ootAnimExportFolderName", "Object")
-        col.prop(context.scene, "ootAnimIsCustomExport")
-
-        col.operator(OOT_ImportAnim.bl_idname)
-        prop_split(col, context.scene, "ootAnimName", "Anim Name")
-
-        if context.scene.ootAnimIsCustomImport:
-            prop_split(col, context.scene, "ootAnimImportCustomPath", "File")
-        else:
-            prop_split(col, context.scene, "ootAnimImportFolderName", "Object")
-        col.prop(context.scene, "ootAnimIsCustomImport")
-
-
-oot_anim_classes = (
-    OOT_ExportAnim,
-    OOT_ImportAnim,
-)
-
-oot_anim_panels = (OOT_ExportAnimPanel,)
-
-
-def oot_anim_panel_register():
-    for cls in oot_anim_panels:
-        register_class(cls)
-
-
-def oot_anim_panel_unregister():
-    for cls in oot_anim_panels:
-        unregister_class(cls)
-
-
-def oot_anim_register():
-    bpy.types.Scene.ootAnimIsCustomExport = bpy.props.BoolProperty(name="Use Custom Path")
-    bpy.types.Scene.ootAnimExportCustomPath = bpy.props.StringProperty(name="Folder", subtype="FILE_PATH")
-    bpy.types.Scene.ootAnimExportFolderName = bpy.props.StringProperty(name="Animation Folder", default="object_geldb")
-
-    bpy.types.Scene.ootAnimIsCustomImport = bpy.props.BoolProperty(name="Use Custom Path")
-    bpy.types.Scene.ootAnimImportCustomPath = bpy.props.StringProperty(name="Folder", subtype="FILE_PATH")
-    bpy.types.Scene.ootAnimImportFolderName = bpy.props.StringProperty(name="Animation Folder", default="object_geldb")
-
-    bpy.types.Scene.ootAnimSkeletonName = bpy.props.StringProperty(name="Skeleton Name", default="gGerudoRedSkel")
-    bpy.types.Scene.ootAnimName = bpy.props.StringProperty(name="Anim Name", default="gGerudoRedSpinAttackAnim")
-    for cls in oot_anim_classes:
-        register_class(cls)
-
-
-def oot_anim_unregister():
-    del bpy.types.Scene.ootAnimIsCustomExport
-    del bpy.types.Scene.ootAnimExportCustomPath
-    del bpy.types.Scene.ootAnimExportFolderName
-
-    del bpy.types.Scene.ootAnimIsCustomImport
-    del bpy.types.Scene.ootAnimImportCustomPath
-    del bpy.types.Scene.ootAnimImportFolderName
-
-    del bpy.types.Scene.ootAnimSkeletonName
-    del bpy.types.Scene.ootAnimName
-    for cls in reversed(oot_anim_classes):
-        unregister_class(cls)

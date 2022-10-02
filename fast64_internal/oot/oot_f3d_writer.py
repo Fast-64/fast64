@@ -1,39 +1,35 @@
-import shutil, copy, bpy, os
+import bpy, os, mathutils
 from bpy.utils import register_class, unregister_class
+from ..utility import CData, prop_split, writeCData, getGroupIndexFromname, toAlnum
+from ..f3d.f3d_parser import ootEnumDrawLayers
+from ..f3d.f3d_gbi import DLFormat, TextureExportSettings, ScrollMethod
+from .panel.display_list.classes import OOTDLExportSettings
 
-from .oot_utility import *
-from .oot_constants import *
-from ..f3d.f3d_writer import *
-from ..f3d.f3d_material import *
-from ..f3d.f3d_parser import *
-from ..panels import OOT_Panel
+from ..f3d.f3d_writer import (
+    TriangleConverterInfo,
+    removeDL,
+    saveStaticModel,
+    getInfoDict,
+    checkForF3dMaterialInFaces,
+    saveOrGetF3DMaterial,
+    saveMeshWithLargeTexturesByFaces,
+    saveMeshByFaces,
+)
 
-from .oot_model_classes import *
-from .oot_scene_room import *
+from .oot_utility import (
+    OOTObjectCategorizer,
+    ootDuplicateHierarchy,
+    ootCleanupScene,
+    ootGetPath,
+    addIncludeFiles,
+)
 
-
-class OOTDLExportSettings(bpy.types.PropertyGroup):
-    name: bpy.props.StringProperty(name="DL Name", default="gBoulderFragmentsDL")
-    folder: bpy.props.StringProperty(name="DL Folder", default="gameplay_keep")
-    customPath: bpy.props.StringProperty(name="Custom DL Path", subtype="FILE_PATH")
-    isCustom: bpy.props.BoolProperty(name="Use Custom Path")
-    removeVanillaData: bpy.props.BoolProperty(name="Replace Vanilla DLs")
-    drawLayer: bpy.props.EnumProperty(name="Draw Layer", items=ootEnumDrawLayers)
-    customAssetIncludeDir: bpy.props.StringProperty(
-        name="Asset Include Directory",
-        default="assets/objects/gameplay_keep",
-        description="Used in #include for including image files",
-    )
-
-
-class OOTDLImportSettings(bpy.types.PropertyGroup):
-    name: bpy.props.StringProperty(name="DL Name", default="gBoulderFragmentsDL")
-    folder: bpy.props.StringProperty(name="DL Folder", default="gameplay_keep")
-    customPath: bpy.props.StringProperty(name="Custom DL Path", subtype="FILE_PATH")
-    isCustom: bpy.props.BoolProperty(name="Use Custom Path")
-    removeDoubles: bpy.props.BoolProperty(name="Remove Doubles", default=True)
-    importNormals: bpy.props.BoolProperty(name="Import Normals", default=True)
-    drawLayer: bpy.props.EnumProperty(name="Draw Layer", items=ootEnumDrawLayers)
+from .oot_model_classes import (
+    OOTTriangleConverterInfo,
+    OOTModel,
+    OOTGfxFormatter,
+    OOTDynamicTransformProperty,
+)
 
 
 # returns:
@@ -280,144 +276,6 @@ class OOT_DisplayListPanel(bpy.types.Panel):
         # Doesn't work since all static meshes are pre-transformed
         # box.prop(obj.ootDynamicTransform, "billboard")
 
-        # drawParentSceneRoom(box, obj)
-
-
-class OOT_ImportDL(bpy.types.Operator):
-    # set bl_ properties
-    bl_idname = "object.oot_import_dl"
-    bl_label = "Import DL"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
-
-    # Called on demand (i.e. button press, menu item)
-    # Can also be called from operator search menu (Spacebar)
-    def execute(self, context):
-        obj = None
-        if context.mode != "OBJECT":
-            bpy.ops.object.mode_set(mode="OBJECT")
-
-        try:
-            settings: OOTDLImportSettings = context.scene.fast64.oot.DLImportSettings
-            name = settings.name
-            folderName = settings.folder
-            importPath = bpy.path.abspath(settings.customPath)
-            isCustomImport = settings.isCustom
-            scale = context.scene.ootActorBlenderScale
-            basePath = bpy.path.abspath(context.scene.ootDecompPath)
-            removeDoubles = settings.removeDoubles
-            importNormals = settings.importNormals
-            drawLayer = settings.drawLayer
-
-            filepaths = [ootGetObjectPath(isCustomImport, importPath, folderName)]
-            if not isCustomImport:
-                filepaths.append(
-                    os.path.join(bpy.context.scene.ootDecompPath, "assets/objects/gameplay_keep/gameplay_keep.c")
-                )
-
-            importMeshC(
-                filepaths,
-                name,
-                scale,
-                removeDoubles,
-                importNormals,
-                drawLayer,
-                OOTF3DContext(F3D("F3DEX2/LX2", False), [name], basePath),
-            )
-
-            self.report({"INFO"}, "Success!")
-            return {"FINISHED"}
-
-        except Exception as e:
-            if context.mode != "OBJECT":
-                bpy.ops.object.mode_set(mode="OBJECT")
-            raisePluginError(self, e)
-            return {"CANCELLED"}  # must return a set
-
-
-class OOT_ExportDL(bpy.types.Operator):
-    # set bl_ properties
-    bl_idname = "object.oot_export_dl"
-    bl_label = "Export DL"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
-
-    # Called on demand (i.e. button press, menu item)
-    # Can also be called from operator search menu (Spacebar)
-    def execute(self, context):
-        obj = None
-        if context.mode != "OBJECT":
-            bpy.ops.object.mode_set(mode="OBJECT")
-        if len(context.selected_objects) == 0:
-            raise PluginError("Mesh not selected.")
-        obj = context.active_object
-        if type(obj.data) is not bpy.types.Mesh:
-            raise PluginError("Mesh not selected.")
-
-        finalTransform = mathutils.Matrix.Scale(context.scene.ootActorBlenderScale, 4)
-
-        try:
-            # exportPath, levelName = getPathAndLevel(context.scene.geoCustomExport,
-            # 	context.scene.geoExportPath, context.scene.geoLevelName,
-            # 	context.scene.geoLevelOption)
-
-            saveTextures = bpy.context.scene.saveTextures
-            isHWv1 = context.scene.isHWv1
-            f3dType = context.scene.f3d_type
-            exportSettings = context.scene.fast64.oot.DLExportSettings
-
-            ootConvertMeshToC(
-                obj,
-                finalTransform,
-                f3dType,
-                isHWv1,
-                DLFormat.Static,
-                saveTextures,
-                exportSettings,
-            )
-
-            self.report({"INFO"}, "Success!")
-            return {"FINISHED"}
-
-        except Exception as e:
-            if context.mode != "OBJECT":
-                bpy.ops.object.mode_set(mode="OBJECT")
-            raisePluginError(self, e)
-            return {"CANCELLED"}  # must return a set
-
-
-class OOT_ExportDLPanel(OOT_Panel):
-    bl_idname = "OOT_PT_export_dl"
-    bl_label = "OOT DL Exporter"
-
-    # called every frame
-    def draw(self, context):
-        col = self.layout.column()
-        col.operator(OOT_ExportDL.bl_idname)
-        exportSettings: OOTDLExportSettings = context.scene.fast64.oot.DLExportSettings
-
-        prop_split(col, exportSettings, "name", "DL")
-        prop_split(col, exportSettings, "folder", "Object" if not exportSettings.isCustom else "Folder")
-        if exportSettings.isCustom:
-            prop_split(col, exportSettings, "customAssetIncludeDir", "Asset Include Path")
-            prop_split(col, exportSettings, "customPath", "Path")
-
-        prop_split(col, exportSettings, "drawLayer", "Export Draw Layer")
-        col.prop(exportSettings, "isCustom")
-        col.prop(exportSettings, "removeVanillaData")
-
-        col.operator(OOT_ImportDL.bl_idname)
-        importSettings: OOTDLImportSettings = context.scene.fast64.oot.DLImportSettings
-
-        prop_split(col, importSettings, "name", "DL")
-        if importSettings.isCustom:
-            prop_split(col, importSettings, "customPath", "File")
-        else:
-            prop_split(col, importSettings, "folder", "Object")
-        prop_split(col, importSettings, "drawLayer", "Import Draw Layer")
-
-        col.prop(importSettings, "isCustom")
-        col.prop(importSettings, "removeDoubles")
-        col.prop(importSettings, "importNormals")
-
 
 class OOTDefaultRenderModesProperty(bpy.types.PropertyGroup):
     expandTab: bpy.props.BoolProperty()
@@ -547,18 +405,12 @@ oot_dl_writer_classes = (
     OOTDynamicMaterialDrawLayerProperty,
     OOTDynamicMaterialProperty,
     OOTDynamicTransformProperty,
-    OOT_ExportDL,
-    OOT_ImportDL,
-    OOTDLExportSettings,
-    OOTDLImportSettings,
 )
 
 oot_dl_writer_panel_classes = (
-    # OOT_ExportDLPanel,
     OOT_DisplayListPanel,
     OOT_DrawLayersPanel,
     OOT_MaterialPanel,
-    OOT_ExportDLPanel,
 )
 
 
