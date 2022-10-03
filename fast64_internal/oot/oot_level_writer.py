@@ -281,7 +281,10 @@ def readRoomData(room, roomHeader, alternateRoomHeaders):
     room.roomBehaviour = getCustomProperty(roomHeader, "roomBehaviour")
     room.disableWarpSongs = roomHeader.disableWarpSongs
     room.showInvisibleActors = roomHeader.showInvisibleActors
-    room.linkIdleMode = getCustomProperty(roomHeader, "linkIdleMode")
+
+    # room heat behavior is active if the idle mode is 0x03
+    room.linkIdleMode = getCustomProperty(roomHeader, "linkIdleMode") if not roomHeader.roomIsHot else "0x03"
+
     room.linkIdleModeCustom = roomHeader.linkIdleModeCustom
     room.setWind = roomHeader.setWind
     room.windVector = normToSigned8Vector(mathutils.Vector(roomHeader.windVector).normalized())
