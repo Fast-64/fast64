@@ -103,7 +103,10 @@ For Link, the eyes/mouth materials use flipbook textures. For Link animations yo
 7. Once you've modified Link's mesh, go the OOT Skeleton Exporter window, go to the Export Skeleton section, select "Mode" and switch it to "Adult Link".
 8. Select Link's armature and then hit "Export Skeleton".
 9. If you're not using HackerOOT, make sure to set NON_MATCHING to 1 in the Makefile in the decomp repo.
-10. Most of Link's items are combined with his hand mesh. There are plans to simplify the process, but for now these models must be manually replaced using the display list importer/exporter.
+10. Most of Link's items are combined with his hand mesh. There are plans to simplify the process, but for now these models must be manually replaced using the display list importer/exporter. You'll also have to modify the DL arrays at the start of src/code/z_player_lib.c to include your own DLs if you're appending and not replacing.
+11. Common Issues:
+    - Corrupted mesh: Make sure the root, upper control, and lower control bones are the only bones set to non-deform.
+    - Incorrect waist DL: Go to src/code/z_player_lib.c and modify sPlayerWaistDLs to include your own waist DL.
 
 ### Custom Skeleton Mesh Process
 1. Import the character you want to modify.
