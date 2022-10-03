@@ -296,10 +296,18 @@ def getGroupIndexOfVert(vert, armatureObj, obj, rootGroupIndex):
                 nonBoneGroups.append(groupName)
 
     if len(actualGroups) == 0:
-        return rootGroupIndex
+        # return rootGroupIndex
         # highlightWeightErrors(obj, [vert], "VERT")
-        # raise VertexWeightError("All vertices must be part of a vertex group that corresponds to a bone in the armature.\n" +\
-        # 	"Groups of the bad vert that don't correspond to a bone: " + str(nonBoneGroups) + '. If a vert is supposed to belong to this group then either a bone is missing or you have the wrong group.')
+        if len(nonBoneGroups) > 0:
+            raise VertexWeightError(
+                "All vertices must be part of a vertex group "
+                + "that corresponds to a bone in the armature.\n"
+                + "Groups of the bad vert that don't correspond to a bone: "
+                + str(nonBoneGroups)
+                + ". If a vert is supposed to belong to this group then either a bone is missing or you have the wrong group."
+            )
+        else:
+            raise VertexWeightError("There are unweighted vertices in the mesh that must be weighted to a bone.")
 
     vertGroup = actualGroups[0]
     for group in actualGroups:
