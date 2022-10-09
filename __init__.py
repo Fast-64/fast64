@@ -35,7 +35,51 @@ bl_info = {
 gameEditorEnum = (
     ("SM64", "SM64", "Super Mario 64"),
     ("OOT", "OOT", "Ocarina Of Time"),
+    ("KCS", "KCS", "Kirby Crystal Shards"),
 )
+
+#support for reloading the module (@Dragorn421)
+def reload_all_modules(log=False):
+    global modules
+
+    import importlib
+
+    # the global variable "modules" is kept for the next reload
+    if "modules" not in globals():
+        if log:
+            print('"modules" not in globals()')
+
+        modules = dict()
+
+    addon_dir = Path(__file__).parent
+
+    if log:
+        print("__file__ =", __file__)
+        print("addon_dir =", addon_dir)
+
+    for py_path in addon_dir.glob("**/*.py"):
+        if py_path == Path(__file__):
+            continue
+        #skip asset generation files
+        if py_path.name in ["sceneDirectoryParser.py", "f3d_generate_presets.py"]:
+            continue
+
+        py_path = py_path.relative_to(addon_dir)
+        if py_path.name == "__init__.py":
+            n = "." + ".".join(py_path.parent.parts)
+        else:
+            n = "." + ".".join((*py_path.parent.parts, py_path.name.removesuffix(".py")))
+
+        if n in modules:
+            if log:
+                print(f"importlib.reload(modules[n={n!r}])")
+
+            importlib.reload(modules[n])
+        else:
+            if log:
+                print(f"modules[n={n!r}] = importlib.import_module(n={n!r}, __package__={__package__!r})")
+
+            modules[n] = importlib.import_module(n, __package__)
 
 
 class ArmatureApplyWithMesh(bpy.types.Operator):
@@ -460,6 +504,8 @@ def gameEditorUpdate(self, context):
         self.f3d_type = "F3D"
     elif self.gameEditorMode == "OOT":
         self.f3d_type = "F3DEX2/LX2"
+    elif self.gameEditorMode == "KCS":
+        self.f3d_type = "F3DEX2/LX2"
 
 
 # called on add-on enabling
@@ -478,6 +524,9 @@ def register():
         print(msg)
         unsupported_exc = Exception("\n\n" + msg)
         raise unsupported_exc
+    # reload_all_modules()
+    # blender reloads __init__ when the file has been touched, this forces it for debugging purposes
+    Path(__file__).touch()
 
     # Register addon updater first,
     # this way if a broken version fails to register the user can still pick another version.
@@ -489,6 +538,7 @@ def register():
     bsdf_conv_register()
     sm64_register(True)
     oot_register(True)
+    kcs_register()
 
     for cls in classes:
         register_class(cls)
@@ -521,10 +571,12 @@ def register():
 
 # called on add-on disabling
 def unregister():
+    Path(__file__).touch()  # see register()
     f3d_writer_unregister()
     f3d_parser_unregister()
     sm64_unregister(True)
     oot_unregister(True)
+    kcs_unregister()
     mat_unregister()
     bsdf_conv_unregister()
     bsdf_conv_panel_unregsiter()
