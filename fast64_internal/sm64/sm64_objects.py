@@ -6,9 +6,11 @@ from .sm64_constants import *
 from .sm64_function_map import func_map
 from .sm64_spline import *
 from .sm64_geolayout_classes import *
+from .sm64_utility import check_obj_is_room
 
 from ..utility import *
 from ..f3d.f3d_material import sm64EnumDrawLayers
+from ..util.collection_list_base import get_collection_classes
 
 enumTerrain = [
     ("Custom", "Custom", "Custom"),
@@ -1346,7 +1348,10 @@ class SM64ObjectPanel(bpy.types.Panel):
             self.draw_inline_obj(box, obj)
 
         elif obj.sm64_obj_type == "None":
-            box.box().label(text="This can be used as an empty transform node in a geolayout hierarchy.")
+            if not obj.fast64.sm64.room.draw(box.box(), context):
+                b2 = box.box()
+                b2.label(text="This can be used as an empty transform node in a geolayout hierarchy.")
+                b2.prop(obj, "ignore_render", text="Ignore heirarchy in geolayout.")
 
     def draw_acts(self, obj, layout):
         layout.label(text="Acts")
@@ -1794,6 +1799,126 @@ class SM64_GameObjectProperties(bpy.types.PropertyGroup):
         return self.bparams
 
 
+def check_parents_has_cond(obj: bpy.types.Object, cond_cb: Callable[[bpy.types.Object], bool]):
+    if not cond_cb(obj):
+        if obj.parent:
+            return check_parents_has_cond(obj.parent, cond_cb)
+        return False
+    return True
+
+
+def check_children_for_cond(obj: bpy.types.Object, cond_cb: Callable[[bpy.types.Object], bool]):
+    if cond_cb(obj):
+        return True
+    if len(obj.children):
+        for c in obj.children:
+            if check_children_for_cond(c, cond_cb):
+                return True
+    return False
+
+
+def poll_room_child(self: "SM64_RoomChildObject", obj: bpy.types.Object):
+    def check_object_is_area(inner_obj: bpy.types.Object):
+        # Should not be an area root
+        return inner_obj.sm64_obj_type == "Area Root"
+
+    def check_object_is_this_empty(inner_obj: bpy.types.Object):
+        # Should not have this room empty as a parent
+        return inner_obj is self.id_data
+
+    def check_object_has_mesh(inner_obj: bpy.types.Object):
+        # Should not be an area root OR should not be the room empty
+        return isinstance(inner_obj.data, bpy.types.Mesh)
+
+    if check_object_is_area(obj) or check_object_is_this_empty(obj) or not obj.parent or obj.sm64_obj_type != "None":
+        return False
+    return (
+        check_parents_has_cond(obj, check_object_is_area)
+        and not check_parents_has_cond(obj, check_object_is_this_empty)
+        and check_children_for_cond(obj, check_object_has_mesh)
+    )
+
+
+class SM64_RoomChildObject(bpy.types.PropertyGroup):
+    obj: bpy.props.PointerProperty(type=bpy.types.Object, name="Export object", poll=poll_room_child)
+
+    def draw(self, layout: bpy.types.UILayout, _data: "SM64_RoomObjectProperties", index: int):
+        row = layout.row(align=True).split(factor=0.15)
+        row.label(text=f" {index}:")
+        row.prop(self, "obj", text="")
+
+
+(
+    BeforeRoom_AddObj,
+    BeforeRoom_RemoveObj,
+    BeforeRoom_MoveObj,
+    BeforeRoom_DrawUIList,
+    draw_before_room_prop_list,
+) = get_collection_classes(
+    "beforeroomlist", ("object.fast64.sm64.room",), ("objects_render_before",), ("objects_render_before_active_index",)
+)
+
+(
+    AfterRoom_AddObj,
+    AfterRoom_RemoveObj,
+    AfterRoom_MoveObj,
+    AfterRoom_DrawUIList,
+    draw_after_room_prop_list,
+) = get_collection_classes(
+    "afterroomlist", ("object.fast64.sm64.room",), ("objects_render_after",), ("objects_render_after_active_index",)
+)
+
+
+class SM64_RoomObjectProperties(bpy.types.PropertyGroup):
+    # Objects that render before the room empties hirearchy
+    objects_render_before: bpy.props.CollectionProperty(type=SM64_RoomChildObject, name="Render Objects Before")
+    objects_render_before_active_index: bpy.props.IntProperty(default=0, name="Render Before Active Index")
+    # Objects that render after the room empties hirearchy
+    objects_render_after: bpy.props.CollectionProperty(type=SM64_RoomChildObject, name="Render Objects After")
+    objects_render_after_active_index: bpy.props.IntProperty(default=0, name="Render After Active Index")
+
+    def draw(self, layout: bpy.types.UILayout, context: bpy.types.Context):
+        this_object: bpy.types.Object = self.id_data
+        if this_object.sm64_obj_type != "None":
+            return False
+        parent: bpy.types.Object = this_object.parent
+        if not check_obj_is_room(this_object):
+            return False
+
+        layout.label(text="This is a room empty.")
+        room_index = 0
+        for i, c_obj in enumerate(parent.children):
+            if c_obj is this_object:
+                room_index = i
+                break
+        if room_index == 0:
+            layout.label(text="The children of this room will be visible in ALL rooms.")
+        else:
+            layout.label(text=f"Room #{room_index}")
+            layout.label(text="Select additional objects to render with this room.")
+        layout.separator(factor=1)
+        layout.label(text="Before hirearchy")
+        draw_before_room_prop_list(layout, context)
+        layout.separator(factor=1)
+        layout.label(text="After hirearchy")
+        draw_after_room_prop_list(layout, context)
+        return True
+
+
+SM64RoomClasses = (
+    SM64_RoomChildObject,
+    BeforeRoom_AddObj,
+    BeforeRoom_RemoveObj,
+    BeforeRoom_MoveObj,
+    BeforeRoom_DrawUIList,
+    AfterRoom_AddObj,
+    AfterRoom_RemoveObj,
+    AfterRoom_MoveObj,
+    AfterRoom_DrawUIList,
+    SM64_RoomObjectProperties,
+)
+
+
 class SM64_ObjectProperties(bpy.types.PropertyGroup):
     version: bpy.props.IntProperty(name="SM64_ObjectProperties Version", default=0)
     cur_version = 3  # version after property migration
@@ -1802,6 +1927,7 @@ class SM64_ObjectProperties(bpy.types.PropertyGroup):
     level: bpy.props.PointerProperty(type=SM64_LevelProperties)
     area: bpy.props.PointerProperty(type=SM64_AreaProperties)
     game_object: bpy.props.PointerProperty(type=SM64_GameObjectProperties)
+    room: bpy.props.PointerProperty(type=SM64_RoomObjectProperties)
 
     @staticmethod
     def upgrade_changed_props():
@@ -1814,6 +1940,7 @@ class SM64_ObjectProperties(bpy.types.PropertyGroup):
 
 
 sm64_obj_classes = (
+    *SM64RoomClasses,
     WarpNodeProperty,
     AddWarpNode,
     RemoveWarpNode,
