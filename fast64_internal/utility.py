@@ -816,7 +816,7 @@ def get_obj_temp_mesh(obj):
         if o.get("temp_export") and o.get("instanced_mesh_name") == obj.get("instanced_mesh_name"):
             return o
 
-def apply_objects_transformations(allObjs: Iterable[bpy.types.Object]):
+def apply_objects_modifiers_and_transformations(allObjs: Iterable[bpy.types.Object]):
     # first apply modifiers so that any objects that affect each other are taken into consideration
     for selectedObj in allObjs:
         bpy.ops.object.select_all(action="DESELECT")
@@ -847,7 +847,7 @@ def duplicateHierarchy(obj, ignoreAttr, includeEmpties, areaIndex):
 
         bpy.ops.object.make_single_user(obdata=True)
 
-        apply_objects_transformations(allObjs)
+        apply_objects_modifiers_and_transformations(allObjs)
 
         for selectedObj in allObjs:
             if ignoreAttr is not None and getattr(selectedObj, ignoreAttr):
@@ -966,7 +966,7 @@ def combineObjects(obj, includeChildren, ignoreAttr, areaIndex):
         allObjs = bpy.context.selected_objects
         bpy.ops.object.make_single_user(obdata=True)
 
-        apply_objects_transformations(allObjs)
+        apply_objects_modifiers_and_transformations(allObjs)
 
         bpy.ops.object.select_all(action="DESELECT")
 
