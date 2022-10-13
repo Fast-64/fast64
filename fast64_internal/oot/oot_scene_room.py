@@ -476,7 +476,7 @@ class OOTRoomHeaderProperty(bpy.types.PropertyGroup):
     linkIdleMode: bpy.props.EnumProperty(name="Link Idle Mode", items=ootEnumLinkIdle, default="0x00")
     linkIdleModeCustom: bpy.props.StringProperty(name="Link Idle Mode Custom", default="0x00")
     roomIsHot: bpy.props.BoolProperty(
-        name="Use Room Heat Behavior",
+        name="Use Hot Room Behavior",
         description="Use heat timer/screen effect, overrides Link Idle Mode",
         default=False,
     )
@@ -547,6 +547,8 @@ def drawRoomHeaderProperty(layout, roomProp, dropdownLabel, headerIndex, objName
         behaviourBox.prop(roomProp, "roomIsHot")
         if not roomProp.roomIsHot:
             drawEnumWithCustom(behaviourBox, roomProp, "linkIdleMode", "Link Idle Mode", "")
+        else:
+            behaviourBox.label(text="Link Idle Mode: Hot Room")
 
         behaviourBox.prop(roomProp, "disableWarpSongs", text="Disable Warp Songs")
         behaviourBox.prop(roomProp, "showInvisibleActors", text="Show Invisible Actors")
