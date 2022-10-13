@@ -307,10 +307,8 @@ def readRoomData(room, roomHeader, alternateRoomHeaders):
     room.echo = roomHeader.echo
     objectsByKey = ootData.objectData.objectsByKey
     room.objectIDList.extend(
-        [
-            objectsByKey.get(obj.objectKey).id if obj.objectKey != "Custom" else obj.objectIDCustom
-            for obj in roomHeader.objectList
-        ]
+        objectsByKey[obj.objectKey].id if obj.objectKey != "Custom" else obj.objectIDCustom
+        for obj in roomHeader.objectList
     )
     if len(room.objectIDList) > 15:
         raise PluginError("Error: A scene can only have a maximum of 15 objects (OOT, not blender objects).")

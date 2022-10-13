@@ -33,20 +33,20 @@ class OoT_ObjectData:
         self.objectsByKey = {obj.key: obj for obj in self.objectList}
 
         # list of tuples used by Blender's enum properties
-        self.customEntry = ("None", "(Deleted from the XML)", "None")
-        lastIndex = max(1, *(int(obj.attrib["Index"]) for obj in objectRoot.iterfind("Object")))
+        self.deletedEntry = ("None", "(Deleted from the XML)", "None")
+        lastIndex = max(1, *(obj.index for obj in self.objectList))
         self.ootEnumObjectKey = self.getObjectIDList(lastIndex + 1, False)
 
         # create the legacy object list for old blends
         self.ootEnumObjectIDLegacy = self.getObjectIDList(self.objectsByKey["obj_timeblock"].index + 1, True)
 
         # validate the legacy list, if there's any None element then something's wrong
-        if self.customEntry in self.ootEnumObjectIDLegacy:
+        if self.deletedEntry in self.ootEnumObjectIDLegacy:
             raise PluginError("ERROR: Legacy Object List doesn't match!")
 
     def getObjectIDList(self, max: int, isLegacy: bool):
         """Generates and returns the object list in the right order"""
-        objList = [self.customEntry] * max
+        objList = [self.deletedEntry] * max
         for obj in self.objectList:
             if obj.index < max:
                 identifier = obj.id if isLegacy else obj.key

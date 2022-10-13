@@ -41,9 +41,8 @@ class OoT_ActorData:
         self.actorsByID = {actor.id: actor for actor in self.actorList}
 
         # list of tuples used by Blender's enum properties
-        lastIndex = max(1, *(int(actor.attrib["Index"]) for actor in actorRoot.iterfind("Actor")))
-        self.ootEnumActorID = [("None", "(Deleted from the XML)", "None")] * lastIndex
+        lastIndex = max(1, *(actor.index for actor in self.actorList))
+        self.ootEnumActorID = [("None", f"{i} (Deleted from the XML)", "None") for i in range(lastIndex)]
         self.ootEnumActorID.insert(0, ("Custom", "Custom Actor", "Custom"))
         for actor in self.actorList:
-            if actor.index < lastIndex + 1:
-                self.ootEnumActorID[actor.index] = (actor.id, actor.name, actor.id)
+            self.ootEnumActorID[actor.index] = (actor.id, actor.name, actor.id)
