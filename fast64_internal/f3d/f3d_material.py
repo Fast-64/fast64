@@ -1581,12 +1581,20 @@ def set_texture_nodes_settings(
     node_3point_key = "3 Point Lerp" if texIndex == 0 else "3 Point Lerp.001"
     node_3point = node_tree.nodes.get(node_3point_key)
 
+    node_tex_color_conv_key = f"Tex{texIndex}_I"
+    node_tex_color_conv = node_tree.nodes.get(node_tex_color_conv_key)
+
     if texProperty.tex is None:
         for texNode in iter_tex_nodes(node_tree, texIndex):
             texNode.mute = True
         if node_3point and not node_3point.mute:
             node_3point.mute = True
+        if node_tex_color_conv and not node_tex_color_conv.mute:
+            node_tex_color_conv.mute = True
         return texSize
+
+    if node_tex_color_conv and node_tex_color_conv.mute:
+        node_tex_color_conv.mute = False
 
     mute_3point = f3dMat.rdp_settings.g_mdsft_text_filt != "G_TF_BILERP"
     if node_3point and node_3point.mute != mute_3point:
