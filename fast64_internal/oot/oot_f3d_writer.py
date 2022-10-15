@@ -1,15 +1,37 @@
-import shutil, copy, bpy, os
+import bpy, os, mathutils
 from bpy.utils import register_class, unregister_class
-
-from .oot_utility import *
-from .oot_constants import *
-from ..f3d.f3d_writer import *
-from ..f3d.f3d_material import *
-from ..f3d.f3d_parser import *
 from ..panels import OOT_Panel
+from ..utility import PluginError, CData, prop_split, writeCData, raisePluginError, getGroupIndexFromname, toAlnum
+from ..f3d.f3d_parser import importMeshC, ootEnumDrawLayers
+from ..f3d.f3d_gbi import DLFormat, TextureExportSettings, ScrollMethod, F3D
 
-from .oot_model_classes import *
-from .oot_scene_room import *
+from ..f3d.f3d_writer import (
+    TriangleConverterInfo,
+    removeDL,
+    saveStaticModel,
+    getInfoDict,
+    checkForF3dMaterialInFaces,
+    saveOrGetF3DMaterial,
+    saveMeshWithLargeTexturesByFaces,
+    saveMeshByFaces,
+)
+
+from .oot_utility import (
+    OOTObjectCategorizer,
+    ootGetObjectPath,
+    ootDuplicateHierarchy,
+    ootCleanupScene,
+    ootGetPath,
+    addIncludeFiles,
+)
+
+from .oot_model_classes import (
+    OOTF3DContext,
+    OOTTriangleConverterInfo,
+    OOTModel,
+    OOTGfxFormatter,
+    OOTDynamicTransformProperty,
+)
 
 
 class OOTDLExportSettings(bpy.types.PropertyGroup):

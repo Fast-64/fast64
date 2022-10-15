@@ -1,10 +1,6 @@
-import bpy, bmesh, os, math, re, shutil, mathutils
-from bpy.utils import register_class, unregister_class
-from io import BytesIO
-
-from ..utility import *
-from .oot_utility import *
-from .oot_constants import *
+import math
+from ..utility import PluginError
+from .oot_utility import BoxEmpty, convertIntTo2sComplement, getCustomProperty
 
 ootEnumConveyer = [
     ("None", "None", "None"),

@@ -1,19 +1,14 @@
+import bpy
+from .oot_constants import ootEnumActorID, ootEnumSceneSetupPreset, ootEnumCamTransition
+from ..utility import PluginError, prop_split, label_split
+from .oot_utility import getRoomObj, getEnumName, drawAddButton, drawCollectionOps, drawEnumWithCustom
 
-import math, os, bpy, bmesh, mathutils
-from bpy.utils import register_class, unregister_class
-from io import BytesIO
-
-from ..f3d.f3d_gbi import *
-from .oot_constants import *
-from .oot_utility import *
-
-from ..utility import *
 
 class OOT_SearchActorIDEnumOperator(bpy.types.Operator):
 	bl_idname = "object.oot_search_actor_id_enum_operator"
 	bl_label = "Select Actor ID"
 	bl_property = "actorID"
-	bl_options = {'REGISTER', 'UNDO'} 
+	bl_options = {'REGISTER', 'UNDO'}
 
 	actorID : bpy.props.EnumProperty(items = ootEnumActorID, default = "ACTOR_PLAYER")
 	actorUser : bpy.props.StringProperty(default = "Actor")
@@ -62,7 +57,7 @@ def drawActorHeaderProperty(layout, headerProp, propUser, altProp, objName):
 		if altProp is None or altProp.childNightHeader.usePreviousHeader:
 			# Draw previous header checkbox (so get previous state), but labeled
 			# as current one and grayed out
-			childNightRow.prop(headerProp, prevHeaderName, text = "Child Night") 
+			childNightRow.prop(headerProp, prevHeaderName, text = "Child Night")
 			childNightRow.enabled = False
 		else:
 			childNightRow.prop(headerProp, 'childNightHeader', text = "Child Night")
@@ -91,13 +86,13 @@ def drawActorHeaderItemProperty(layout, propUser, headerItemProp, index, altProp
 	box.prop(headerItemProp, 'expandTab', text = 'Header ' + \
 		str(headerItemProp.headerIndex), icon = 'TRIA_DOWN' if headerItemProp.expandTab else \
 		'TRIA_RIGHT')
-	
+
 	if headerItemProp.expandTab:
 		drawCollectionOps(box, index, propUser, None, objName)
 		prop_split(box, headerItemProp, 'headerIndex', 'Header Index')
 		if altProp is not None and headerItemProp.headerIndex >= len(altProp.cutsceneHeaders) + 4:
 			box.label(text = "Header does not exist.", icon = 'QUESTION')
-		
+
 class OOTActorProperty(bpy.types.PropertyGroup):
 	actorID : bpy.props.EnumProperty(name = 'Actor', items = ootEnumActorID, default = 'ACTOR_PLAYER')
 	actorIDCustom : bpy.props.StringProperty(name = 'Actor ID', default = 'ACTOR_PLAYER')
@@ -126,7 +121,7 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName):
 
 	#layout.box().label(text = 'Actor IDs defined in include/z64actors.h.')
 	prop_split(actorIDBox, actorProp, "actorParam", 'Actor Parameter')
-	
+
 	actorIDBox.prop(actorProp, 'rotOverride', text = 'Override Rotation (ignore Blender rot)')
 	if actorProp.rotOverride:
 		prop_split(actorIDBox, actorProp, 'rotOverrideX', 'Rot X')
@@ -141,7 +136,7 @@ class OOTTransitionActorProperty(bpy.types.PropertyGroup):
 	cameraTransitionFrontCustom : bpy.props.StringProperty(default = '0x00')
 	cameraTransitionBack : bpy.props.EnumProperty(items = ootEnumCamTransition, default = '0x00')
 	cameraTransitionBackCustom : bpy.props.StringProperty(default = '0x00')
-	
+
 	actor : bpy.props.PointerProperty(type = OOTActorProperty)
 
 def drawTransitionActorProperty(layout, transActorProp, altSceneProp, roomObj, objName):
@@ -173,7 +168,7 @@ def drawTransitionActorProperty(layout, transActorProp, altSceneProp, roomObj, o
 	drawEnumWithCustom(actorIDBox, transActorProp, "cameraTransitionBack", "Camera Transition Back", "")
 
 	drawActorHeaderProperty(actorIDBox, transActorProp.actor.headerSettings, "Transition Actor", altSceneProp, objName)
-	
+
 class OOTEntranceProperty(bpy.types.PropertyGroup):
 	# This is also used in entrance list, and roomIndex is obtained from the room this empty is parented to.
 	spawnIndex : bpy.props.IntProperty(min = 0)
@@ -197,5 +192,5 @@ def drawEntranceProperty(layout, obj, altSceneProp, objName):
 	box.prop(entranceProp, "customActor")
 	if entranceProp.customActor:
 		prop_split(box, entranceProp.actor, "actorIDCustom", "Actor ID Custom")
-	
+
 	drawActorHeaderProperty(box, entranceProp.actor.headerSettings, "Entrance", altSceneProp, objName)
