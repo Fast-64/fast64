@@ -1,4 +1,4 @@
-import bpy, math, os
+import bpy, math, os, re
 from bpy.utils import register_class, unregister_class
 from ..utility import (
     PluginError,
