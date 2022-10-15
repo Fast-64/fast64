@@ -1,5 +1,4 @@
 from xml.etree.ElementTree import parse as parseXML, Element
-from .oot_data import OoT_BaseElement
 
 
 def getXMLRoot(xmlPath: str) -> Element:

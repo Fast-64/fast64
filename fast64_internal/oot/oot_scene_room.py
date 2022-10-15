@@ -1,17 +1,35 @@
-import math, os, bpy, bmesh, mathutils
-from bpy.utils import register_class, unregister_class
-from io import BytesIO
-
-from ..utility import *
-from .oot_utility import *
-from .oot_constants import *
-from ..f3d.f3d_gbi import *
-
-from .oot_actor import *
-
-# from .oot_collision import *
-from .oot_cutscene import *
+import bpy
 from ..render_settings import on_update_oot_render_settings
+from ..utility import ootGetSceneOrRoomHeader, prop_split
+from .oot_utility import drawAddButton, drawCollectionOps, drawEnumWithCustom, getEnumName, getSceneObj, getRoomObj
+from .oot_cutscene import OOTCSListProperty, drawCSListProperty, drawCSAddButtons
+
+from .oot_constants import (
+    ootData,
+    ootEnumMusicSeq,
+    ootEnumSceneID,
+    ootEnumExitIndex,
+    ootEnumTransitionAnims,
+    ootEnumLightGroupMenu,
+    ootEnumGlobalObject,
+    ootEnumNaviHints,
+    ootEnumSkybox,
+    ootEnumCloudiness,
+    ootEnumSkyboxLighting,
+    ootEnumMapLocation,
+    ootEnumCameraMode,
+    ootEnumNightSeq,
+    ootEnumAudioSessionPreset,
+    ootEnumCSWriteType,
+    ootEnumSceneMenu,
+    ootEnumSceneMenuAlternate,
+    ootEnumRoomMenu,
+    ootEnumRoomMenuAlternate,
+    ootEnumRoomBehaviour,
+    ootEnumLinkIdle,
+    ootEnumRoomShapeType,
+    ootEnumHeaderMenu,
+)
 
 from .oot_upgrade import upgradeRoomHeaders
 
@@ -491,6 +509,11 @@ class OOTRoomHeaderProperty(bpy.types.PropertyGroup):
     showInvisibleActors: bpy.props.BoolProperty(name="Show Invisible Actors")
     linkIdleMode: bpy.props.EnumProperty(name="Link Idle Mode", items=ootEnumLinkIdle, default="0x00")
     linkIdleModeCustom: bpy.props.StringProperty(name="Link Idle Mode Custom", default="0x00")
+    roomIsHot: bpy.props.BoolProperty(
+        name="Use Hot Room Behavior",
+        description="Use heat timer/screen effect, overrides Link Idle Mode",
+        default=False,
+    )
 
     useCustomBehaviourX: bpy.props.BoolProperty(name="Use Custom Behaviour X")
     useCustomBehaviourY: bpy.props.BoolProperty(name="Use Custom Behaviour Y")
@@ -554,7 +577,13 @@ def drawRoomHeaderProperty(layout, roomProp, dropdownLabel, headerIndex, objName
         behaviourBox = layout.column()
         behaviourBox.box().label(text="Behaviour")
         drawEnumWithCustom(behaviourBox, roomProp, "roomBehaviour", "Room Behaviour", "")
-        drawEnumWithCustom(behaviourBox, roomProp, "linkIdleMode", "Link Idle Mode", "")
+
+        behaviourBox.prop(roomProp, "roomIsHot")
+        if not roomProp.roomIsHot:
+            drawEnumWithCustom(behaviourBox, roomProp, "linkIdleMode", "Link Idle Mode", "")
+        else:
+            behaviourBox.label(text="Link Idle Mode: Hot Room")
+
         behaviourBox.prop(roomProp, "disableWarpSongs", text="Disable Warp Songs")
         behaviourBox.prop(roomProp, "showInvisibleActors", text="Show Invisible Actors")
 

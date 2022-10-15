@@ -1,7 +1,7 @@
 from ..utility import ootGetSceneOrRoomHeader
 
 from .data.oot_data import OoT_Data
-from .oot_scene_room import OOTRoom
+from .oot_level_classes import OOTRoom
 from bpy.types import Object
 
 

@@ -1,9 +1,8 @@
-import bpy, mathutils, math
+import bpy, mathutils
 from bpy.utils import register_class, unregister_class
-from ..utility import *
-from ..f3d.f3d_material import *
-from ..operators import *
 from ..panels import OOT_Panel
+from ..operators import AddWaterBox, addMaterialByName
+from ..utility import parentObject, setOrigin
 
 
 class OOT_AddWaterBox(AddWaterBox):

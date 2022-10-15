@@ -1,14 +1,12 @@
-import math, os, bpy, bmesh, mathutils
-from bpy.utils import register_class, unregister_class
-from io import BytesIO
-
-from ..utility import *
-from .oot_utility import *
-from .oot_constants import *
-from ..f3d.f3d_gbi import *
-from .oot_collision_classes import *
-from .oot_model_classes import *
-from .data.oot_object_data import OoT_ObjectData
+from ..utility import PluginError, toAlnum
+from .oot_collision_classes import OOTCollision
+from .oot_model_classes import OOTModel
+from ..f3d.f3d_gbi import (
+    SPDisplayList,
+    SPEndDisplayList,
+    GfxListTag,
+    GfxList,
+)
 
 
 class OOTActor:

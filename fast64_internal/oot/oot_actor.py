@@ -1,13 +1,8 @@
+import bpy
+from .oot_constants import ootData, ootEnumSceneSetupPreset, ootEnumCamTransition
+from ..utility import PluginError, prop_split, label_split
+from .oot_utility import getRoomObj, getEnumName, drawAddButton, drawCollectionOps, drawEnumWithCustom
 
-import math, os, bpy, bmesh, mathutils
-from bpy.utils import register_class, unregister_class
-from io import BytesIO
-
-from ..f3d.f3d_gbi import *
-from .oot_constants import *
-from .oot_utility import *
-
-from ..utility import *
 
 class OOT_SearchActorIDEnumOperator(bpy.types.Operator):
 	bl_idname = "object.oot_search_actor_id_enum_operator"

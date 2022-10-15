@@ -1,11 +1,26 @@
-import shutil, copy, math, mathutils, bpy, os, re
-
-from bpy.utils import register_class, unregister_class
-from .oot_constants import *
-from .oot_utility import *
-from .oot_skeleton import *
-from ..utility import *
+import math, mathutils, bpy, os, re
 from ..panels import OOT_Panel
+from bpy.utils import register_class, unregister_class
+from .oot_skeleton import ootConvertArmatureToSkeletonWithoutMesh
+from ..utility import CData, PluginError, toAlnum, writeCData, readFile, hexOrDecInt, raisePluginError, prop_split
+
+from .oot_utility import (
+    checkForStartBone,
+    getStartBone,
+    getSortedChildren,
+    ootGetPath,
+    addIncludeFiles,
+    checkEmptyName,
+    ootGetObjectPath,
+)
+
+from ..utility_anim import (
+    ValueFrameData,
+    saveTranslationFrame,
+    saveQuaternionFrame,
+    squashFramesIfAllSame,
+    getFrameInterval,
+)
 
 
 class OOTAnimation:
