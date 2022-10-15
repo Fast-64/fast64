@@ -18,7 +18,6 @@ def onUpdateOoTLighting(self, context: bpy.types.Context):
     on_update_oot_render_settings(self, context)
 
 
-
 class OOTSceneProperties(bpy.types.PropertyGroup):
     write_dummy_room_list: bpy.props.BoolProperty(
         name="Dummy Room List",
@@ -476,6 +475,11 @@ class OOTRoomHeaderProperty(bpy.types.PropertyGroup):
     showInvisibleActors: bpy.props.BoolProperty(name="Show Invisible Actors")
     linkIdleMode: bpy.props.EnumProperty(name="Link Idle Mode", items=ootEnumLinkIdle, default="0x00")
     linkIdleModeCustom: bpy.props.StringProperty(name="Link Idle Mode Custom", default="0x00")
+    roomIsHot: bpy.props.BoolProperty(
+        name="Use Hot Room Behavior",
+        description="Use heat timer/screen effect, overrides Link Idle Mode",
+        default=False,
+    )
 
     useCustomBehaviourX: bpy.props.BoolProperty(name="Use Custom Behaviour X")
     useCustomBehaviourY: bpy.props.BoolProperty(name="Use Custom Behaviour Y")
@@ -539,7 +543,13 @@ def drawRoomHeaderProperty(layout, roomProp, dropdownLabel, headerIndex, objName
         behaviourBox = layout.column()
         behaviourBox.box().label(text="Behaviour")
         drawEnumWithCustom(behaviourBox, roomProp, "roomBehaviour", "Room Behaviour", "")
-        drawEnumWithCustom(behaviourBox, roomProp, "linkIdleMode", "Link Idle Mode", "")
+
+        behaviourBox.prop(roomProp, "roomIsHot")
+        if not roomProp.roomIsHot:
+            drawEnumWithCustom(behaviourBox, roomProp, "linkIdleMode", "Link Idle Mode", "")
+        else:
+            behaviourBox.label(text="Link Idle Mode: Hot Room")
+
         behaviourBox.prop(roomProp, "disableWarpSongs", text="Disable Warp Songs")
         behaviourBox.prop(roomProp, "showInvisibleActors", text="Show Invisible Actors")
 
