@@ -385,8 +385,8 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
             inputGroup.prop(settings, "g_clipping", text="Clipping")
 
 
-def ui_upper_mode(settings, dataHolder, layout, useDropdown):
-    inputGroup = layout.column()
+def ui_upper_mode(settings, dataHolder, layout: bpy.types.UILayout, useDropdown):
+    inputGroup: bpy.types.UILayout = layout.column()
     if useDropdown:
         inputGroup.prop(
             dataHolder,
@@ -404,6 +404,8 @@ def ui_upper_mode(settings, dataHolder, layout, useDropdown):
         prop_split(inputGroup, settings, "g_mdsft_textconv", "Texture Convert")
         prop_split(inputGroup, settings, "g_mdsft_text_filt", "Texture Filter")
         prop_split(inputGroup, settings, "g_mdsft_textlod", "Texture LOD")
+        if settings.g_mdsft_textlod == 'G_TL_LOD':
+            inputGroup.prop(settings, "lod_level", text="Texture LOD Level")
         prop_split(inputGroup, settings, "g_mdsft_textdetail", "Texture Detail")
         prop_split(inputGroup, settings, "g_mdsft_textpersp", "Texture Perspective Correction")
         prop_split(inputGroup, settings, "g_mdsft_cycletype", "Cycle Type")
@@ -2412,6 +2414,13 @@ class RDPSettings(bpy.types.PropertyGroup):
         items=enumTextLOD,
         default="G_TL_TILE",
         update=update_node_values_with_preset,
+    )
+    lod_level: bpy.props.IntProperty(
+        name="Texture LOD Level",
+        default=0,
+        min=0,
+        max=7,
+        description="LOD Level when Texture LOD set to `LOD`. First cycle combiner should be ((Tex1 - Tex0) * LOD Frac) + Tex0",
     )
     g_mdsft_textdetail: bpy.props.EnumProperty(
         name="Texture Detail",
