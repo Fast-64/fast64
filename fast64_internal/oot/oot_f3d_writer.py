@@ -1,17 +1,56 @@
-import shutil, copy, bpy, os
+import bpy, os, mathutils, re
 from bpy.utils import register_class, unregister_class
-
-from .oot_utility import *
-from .oot_constants import *
-from ..f3d.f3d_writer import *
-from ..f3d.f3d_material import *
-from ..f3d.f3d_parser import *
-from ..f3d.flipbook import *
 from ..panels import OOT_Panel
+from ..utility import (
+    PluginError,
+    CData,
+    prop_split,
+    writeCData,
+    raisePluginError,
+    getGroupIndexFromname,
+    toAlnum,
+    readFile,
+    writeFile,
+)
+from ..f3d.f3d_parser import importMeshC, ootEnumDrawLayers, getImportData
+from ..f3d.f3d_gbi import DLFormat, TextureExportSettings, ScrollMethod, F3D
 
-from .oot_model_classes import *
+from ..f3d.f3d_writer import (
+    TriangleConverterInfo,
+    removeDL,
+    saveStaticModel,
+    getInfoDict,
+    checkForF3dMaterialInFaces,
+    saveOrGetF3DMaterial,
+    saveMeshWithLargeTexturesByFaces,
+    saveMeshByFaces,
+)
+
+from .oot_utility import (
+    OOTObjectCategorizer,
+    ootGetObjectPath,
+    ootDuplicateHierarchy,
+    ootCleanupScene,
+    ootGetPath,
+    addIncludeFiles,
+    replaceMatchContent,
+    getOOTScale,
+)
+
+from .oot_model_classes import (
+    OOTF3DContext,
+    OOTTriangleConverterInfo,
+    OOTModel,
+    OOTGfxFormatter,
+    OOTDynamicTransformProperty,
+    ootGetActorData,
+    ootGetLinkData,
+    ootGetIncludedAssetData,
+)
+
 from .oot_scene_room import *
-from .oot_texture_array import *
+from .oot_texture_array import TextureFlipbook, ootReadTextureArrays
+from ..f3d.flipbook import flipbook_to_c, flipbook_2d_to_c, flipbook_data_to_c
 
 
 class OOTDLExportSettings(bpy.types.PropertyGroup):

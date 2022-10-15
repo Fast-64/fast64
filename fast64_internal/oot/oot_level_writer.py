@@ -1,22 +1,71 @@
-import bpy, bmesh, os, math, re, shutil, mathutils
-from io import BytesIO
+import bpy, os, math, mathutils
 from bpy.utils import register_class, unregister_class
-
-from ..utility import *
-from .oot_utility import *
-from .oot_constants import *
 from ..panels import OOT_Panel
+from ..f3d.f3d_gbi import TextureExportSettings, DLFormat
+from ..f3d.f3d_writer import TriangleConverterInfo, saveStaticModel, getInfoDict
+from .c_writer.oot_level_c import ootSceneIncludes, ootLevelToC
+from .c_writer.oot_scene_table_c import modifySceneTable
+from .c_writer.oot_spec import modifySegmentDefinition
+from .c_writer.oot_scene_folder import modifySceneFiles, deleteSceneFiles
+from .oot_constants import ootSceneIDToName, ootEnumSceneID
+from .oot_scene_room import OOT_SearchSceneEnumOperator
+from .oot_cutscene import convertCutsceneObject, readCutsceneData
+from .oot_spline import assertCurveValid, ootConvertPath
+from .oot_model_classes import OOTModel
+from .oot_collision import OOTCameraData, exportCollisionCommon
+from .oot_collision_classes import OOTCameraPosData, OOTWaterBox, decomp_compat_map_CameraSType
 
-from ..f3d.f3d_gbi import *
-from ..f3d.f3d_writer import *
-from .oot_f3d_writer import *
+from ..utility import (
+    PluginError,
+    CData,
+    customExportWarning,
+    checkIdentityRotation,
+    hideObjsInList,
+    unhideAllAndGetHiddenList,
+    normToSigned8Vector,
+    raisePluginError,
+    ootGetBaseOrCustomLight,
+    exportColor,
+    prop_split,
+    toAlnum,
+    checkObjectReference,
+    writeCDataSourceOnly,
+    writeCDataHeaderOnly,
+)
 
-from .oot_level_classes import *
-from .oot_level import *
-from .oot_collision import *
-from .oot_spline import *
-from .oot_cutscene import *
-from .c_writer import *
+from .c_writer.oot_scene_bootup import (
+    OOT_ClearBootupScene,
+    setBootupScene,
+    ootSceneBootupRegister,
+    ootSceneBootupUnregister,
+)
+
+from .oot_utility import (
+    ExportInfo,
+    OOTObjectCategorizer,
+    CullGroup,
+    getEnumName,
+    checkUniformScale,
+    ootDuplicateHierarchy,
+    ootCleanupScene,
+    ootGetPath,
+    getCustomProperty,
+    ootConvertTranslation,
+    ootConvertRotation,
+    ootSceneDirs,
+)
+
+from .oot_level_classes import (
+    OOTLight,
+    OOTExit,
+    OOTScene,
+    OOTActor,
+    OOTTransitionActor,
+    OOTEntrance,
+    OOTDLGroup,
+    addActor,
+    addStartPosition,
+)
 
 
 def sceneNameFromID(sceneID):
@@ -65,7 +114,9 @@ def ootCombineSceneFiles(levelC):
     return sceneC
 
 
-def ootExportSceneToC(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneName, DLFormat, savePNG, exportInfo):
+def ootExportSceneToC(
+    originalSceneObj, transformMatrix, f3dType, isHWv1, sceneName, DLFormat, savePNG, exportInfo, bootToSceneOptions
+):
 
     checkObjectReference(originalSceneObj, "Scene object")
     isCustomExport = exportInfo.isCustomExportPath
@@ -140,6 +191,15 @@ def ootExportSceneToC(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneN
 
     if not isCustomExport:
         writeOtherSceneProperties(scene, exportInfo, levelC)
+
+    if bootToSceneOptions is not None and bootToSceneOptions.bootToScene:
+        setBootupScene(
+            os.path.join(exportPath, "include/config/config_debug.h")
+            if not isCustomExport
+            else os.path.join(levelPath, "config_bootup.h"),
+            "ENTR_" + sceneName.upper() + "_" + str(bootToSceneOptions.spawnIndex),
+            bootToSceneOptions,
+        )
 
 
 def writeOtherSceneProperties(scene, exportInfo, levelC):
@@ -270,7 +330,10 @@ def readRoomData(room, roomHeader, alternateRoomHeaders):
     room.roomBehaviour = getCustomProperty(roomHeader, "roomBehaviour")
     room.disableWarpSongs = roomHeader.disableWarpSongs
     room.showInvisibleActors = roomHeader.showInvisibleActors
-    room.linkIdleMode = getCustomProperty(roomHeader, "linkIdleMode")
+
+    # room heat behavior is active if the idle mode is 0x03
+    room.linkIdleMode = getCustomProperty(roomHeader, "linkIdleMode") if not roomHeader.roomIsHot else "0x03"
+
     room.linkIdleModeCustom = roomHeader.linkIdleModeCustom
     room.setWind = roomHeader.setWind
     room.windVector = normToSigned8Vector(mathutils.Vector(roomHeader.windVector).normalized())
@@ -620,6 +683,8 @@ class OOT_ExportScene(bpy.types.Operator):
                     subfolder = None
                 exportInfo = ExportInfo(False, bpy.path.abspath(context.scene.ootDecompPath), subfolder, levelName)
 
+            bootOptions = context.scene.fast64.oot.bootupSceneOptions
+            hackerFeaturesEnabled = context.scene.fast64.oot.hackerFeaturesEnabled
             ootExportSceneToC(
                 obj,
                 finalTransform,
@@ -629,6 +694,7 @@ class OOT_ExportScene(bpy.types.Operator):
                 DLFormat.Static,
                 context.scene.saveTextures,
                 exportInfo,
+                bootOptions if hackerFeaturesEnabled else None,
             )
 
             self.report({"INFO"}, "Success!")
@@ -657,13 +723,13 @@ def ootRemoveSceneC(exportInfo):
 
 class OOT_RemoveScene(bpy.types.Operator):
     bl_idname = "object.oot_remove_level"
-    bl_label = "Remove Scene"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
+    bl_label = "OOT Remove Scene"
+    bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
         levelName = context.scene.ootSceneName
         if context.scene.ootSceneCustomExport:
-            operator.report({"ERROR"}, "You can only remove scenes from your decomp path.")
+            self.report({"ERROR"}, "You can only remove scenes from your decomp path.")
             return {"FINISHED"}
 
         if context.scene.ootSceneOption == "Custom":
@@ -678,6 +744,13 @@ class OOT_RemoveScene(bpy.types.Operator):
         self.report({"INFO"}, "Success!")
         return {"FINISHED"}
 
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self, width=300)
+
+    def draw(self, context):
+        layout = self.layout
+        layout.label(text="Are you sure you want to remove this scene?")
+
 
 class OOT_ExportScenePanel(OOT_Panel):
     bl_idname = "OOT_PT_export_level"
@@ -689,6 +762,25 @@ class OOT_ExportScenePanel(OOT_Panel):
         # if not bpy.context.scene.ignoreTextureRestrictions:
         # 	col.prop(context.scene, 'saveTextures')
         prop_split(col, context.scene, "ootSceneExportObj", "Scene Object")
+
+        if context.scene.fast64.oot.hackerFeaturesEnabled:
+            bootOptions = context.scene.fast64.oot.bootupSceneOptions
+            col.prop(bootOptions, "bootToScene", text="Boot To Scene (HackerOOT)")
+            if bootOptions.bootToScene:
+                col.prop(bootOptions, "newGameOnly")
+                prop_split(col, bootOptions, "bootMode", "Boot Mode")
+                if bootOptions.bootMode == "Play":
+                    prop_split(col, bootOptions, "newGameName", "New Game Name")
+                if bootOptions.bootMode != "Map Select":
+                    prop_split(col, bootOptions, "spawnIndex", "Spawn")
+                    col.prop(bootOptions, "overrideHeader")
+                    if bootOptions.overrideHeader:
+                        prop_split(col, bootOptions, "headerOption", "Header Option")
+                        if bootOptions.headerOption == "Cutscene":
+                            prop_split(col, bootOptions, "cutsceneIndex", "Cutscene Index")
+            col.label(text="Note: Scene boot config changes aren't detected by the make process.", icon="ERROR")
+            col.operator(OOT_ClearBootupScene.bl_idname, text="Undo Boot To Scene (HackerOOT Repo)")
+
         col.prop(context.scene, "ootSceneSingleFile")
         col.prop(context.scene, "ootSceneCustomExport")
         if context.scene.ootSceneCustomExport:
@@ -702,7 +794,7 @@ class OOT_ExportScenePanel(OOT_Panel):
             if context.scene.ootSceneOption == "Custom":
                 prop_split(col, context.scene, "ootSceneSubFolder", "Subfolder")
                 prop_split(col, context.scene, "ootSceneName", "Name")
-            col.operator(OOT_RemoveScene.bl_idname)
+            col.operator(OOT_RemoveScene.bl_idname, text="Remove Scene")
 
 
 def isSceneObj(self, obj):
@@ -731,6 +823,8 @@ def oot_level_register():
     for cls in oot_level_classes:
         register_class(cls)
 
+    ootSceneBootupRegister()
+
     bpy.types.Scene.ootSceneName = bpy.props.StringProperty(name="Name", default="spot03")
     bpy.types.Scene.ootSceneSubFolder = bpy.props.StringProperty(name="Subfolder", default="overworld")
     bpy.types.Scene.ootSceneOption = bpy.props.EnumProperty(name="Scene", items=ootEnumSceneID, default="SCENE_YDAN")
@@ -747,6 +841,8 @@ def oot_level_register():
 def oot_level_unregister():
     for cls in reversed(oot_level_classes):
         unregister_class(cls)
+
+    ootSceneBootupUnregister()
 
     del bpy.types.Scene.ootSceneName
     del bpy.types.Scene.ootSceneExportPath

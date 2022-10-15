@@ -1,19 +1,59 @@
-import shutil, copy, mathutils, bpy, math, os, re
-from bpy.utils import register_class, unregister_class
-
-from ..utility import *
-from ..utility_anim import armatureApplyWithMesh
-from .oot_utility import *
-from .oot_constants import *
-from .oot_model_classes import *
+import mathutils, bpy, math, os, re
 from ..panels import OOT_Panel
+from ..f3d.f3d_gbi import DLFormat, FMesh, TextureExportSettings, ScrollMethod, F3D
+from .oot_model_classes import (
+    OOTVertexGroupInfo,
+    OOTModel,
+    OOTGfxFormatter,
+    OOTF3DContext,
+    OOTDynamicTransformProperty,
+    ootGetIncludedAssetData,
+)
+from bpy.utils import register_class, unregister_class
+from ..f3d.f3d_writer import getInfoDict, GfxList
+from ..f3d.f3d_parser import getImportData, parseF3D
+from .oot_f3d_writer import ootProcessVertexGroup, writeTextureArraysNew, writeTextureArraysExisting, ootReadActorScale
+from ..f3d.f3d_material import ootEnumDrawLayers
 
-from ..f3d.f3d_parser import *
-from ..f3d.f3d_writer import *
-from ..f3d.f3d_material import TextureProperty, tmemUsageUI
-from .oot_f3d_writer import *
+from ..utility import (
+    PluginError,
+    CData,
+    getDeclaration,
+    hexOrDecInt,
+    applyRotation,
+    prop_split,
+    getGroupIndexFromname,
+    writeFile,
+    readFile,
+    raisePluginError,
+    writeCData,
+    toAlnum,
+    setOrigin,
+    getGroupNameFromIndex,
+    attemptModifierApply,
+    cleanupDuplicatedObjects,
+    VertexWeightError,
+)
+
+from .oot_utility import (
+    ootGetObjectPath,
+    checkEmptyName,
+    checkForStartBone,
+    getStartBone,
+    getSortedChildren,
+    ootGetPath,
+    addIncludeFiles,
+    getOOTScale,
+)
+
+from ..utility_anim import armatureApplyWithMesh
 from .oot_texture_array import ootReadTextureArrays
-from .oot_skeleton_import_data import *
+from .oot_skeleton_import_data import (
+    ootEnumSkeletonImportMode,
+    applySkeletonRestPose,
+    OOT_SaveRestPose,
+    ootSkeletonImportDict,
+)
 
 
 class OOTSkeletonExportSettings(bpy.types.PropertyGroup):

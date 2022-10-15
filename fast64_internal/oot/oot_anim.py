@@ -1,13 +1,36 @@
-import shutil, copy, math, mathutils, bpy, os, re
-
-from bpy.utils import register_class, unregister_class
-from .oot_constants import *
-from .oot_utility import *
-from .oot_skeleton import *
-from ..f3d.flipbook import usesFlipbook, ootFlipbookAnimUpdate
-from ..utility import *
+import math, mathutils, bpy, os, re
 from ..panels import OOT_Panel
+from bpy.utils import register_class, unregister_class
+from .oot_skeleton import ootConvertArmatureToSkeletonWithoutMesh
+from ..utility import CData, PluginError, toAlnum, writeCData, readFile, hexOrDecInt, raisePluginError, prop_split
+
+from .oot_utility import (
+    checkForStartBone,
+    getStartBone,
+    getNextBone,
+    getSortedChildren,
+    ootGetPath,
+    addIncludeFiles,
+    checkEmptyName,
+    ootGetObjectPath,
+    getOOTScale,
+)
+
+from ..utility_anim import (
+    ValueFrameData,
+    saveTranslationFrame,
+    saveQuaternionFrame,
+    squashFramesIfAllSame,
+    getFrameInterval,
+    getTranslationRelativeToRest,
+    getRotationRelativeToRest,
+)
+
 from ..f3d.f3d_material import iter_tex_nodes
+from ..f3d.flipbook import usesFlipbook, ootFlipbookAnimUpdate
+
+from .oot_model_classes import ootGetIncludedAssetData
+from ..f3d.f3d_parser import getImportData
 
 
 class OOTAnimExportSettingsProperty(bpy.types.PropertyGroup):
