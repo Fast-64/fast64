@@ -1,6 +1,6 @@
-import os, re
-from ...utility import *
-from ..oot_utility import *
+import os, re, bpy
+from ...utility import readFile, writeFile
+from ..oot_utility import getSceneDirFromLevelName, indent
 
 def getSegmentDefinitionEntryBySceneName(segmentDefinition, sceneName):
 	entries = []
@@ -74,7 +74,7 @@ def modifySegmentDefinition(scene, exportInfo, levelC):
 
 			for i in range(len(scene.rooms)):
 				roomSuffix = "_room_" + str(i)
-				segmentDefinitions.insert(firstIndex, 
+				segmentDefinitions.insert(firstIndex,
 					'\n' + indent + 'name "' + scene.name + roomSuffix + '"\n' +\
 					compressFlag +\
 					indent + "romalign 0x1000\n" +\
@@ -87,15 +87,15 @@ def modifySegmentDefinition(scene, exportInfo, levelC):
 				indent + "romalign 0x1000\n" +\
 				indent + 'include "' + includeDir + '_scene_main.o"\n' +\
 				indent + 'include "' + includeDir + '_scene_col.o"\n'
-			
+
 			if levelC is not None:
 				if (levelC.sceneTexturesIsUsed()):
 					sceneSegInclude += indent + 'include "' + includeDir + '_scene_tex.o"\n'
-				
+
 				if (levelC.sceneCutscenesIsUsed()):
 					for i in range(len(levelC.sceneCutscenesC)):
 						sceneSegInclude += indent + 'include "' + includeDir + '_cs_' + str(i) + '.o"\n'
-				
+
 			sceneSegInclude += indent + "number 2\n"
 
 			segmentDefinitions.insert(firstIndex, sceneSegInclude)
@@ -104,7 +104,7 @@ def modifySegmentDefinition(scene, exportInfo, levelC):
 
 			for i in range(len(scene.rooms)):
 				roomSuffix = "_room_" + str(i)
-				segmentDefinitions.insert(firstIndex, 
+				segmentDefinitions.insert(firstIndex,
 					'\n' + indent + 'name "' + scene.name + roomSuffix + '"\n' +\
 					compressFlag +\
 					indent + "romalign 0x1000\n" +\
