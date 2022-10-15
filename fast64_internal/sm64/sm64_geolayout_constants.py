@@ -1,3 +1,6 @@
+from ..utility import PluginError
+
+
 drawLayers = {
 	'Unused' 		: [0, 3],
 	'Solid'			: 1,
@@ -37,7 +40,7 @@ GEO_SCALE				= 0x1D
 GEO_START_W_RENDERAREA	= 0x20
 
 startCommands = [
-	GEO_START, 
+	GEO_START,
 	GEO_START_W_SHADOW,
 	GEO_START_W_RENDERAREA
 ]

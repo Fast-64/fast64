@@ -1,6 +1,5 @@
 import os, re, shutil
-from ...utility import *
-from ..oot_utility import *
+from ..oot_utility import getSceneDirFromLevelName
 
 
 def modifySceneFiles(scene, exportInfo):
