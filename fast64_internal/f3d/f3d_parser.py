@@ -1548,6 +1548,8 @@ class F3DContext:
                         math_eval(command.params[0], self.f3d) / (2**16),
                         math_eval(command.params[1], self.f3d) / (2**16),
                     ]
+                    # If this is not disabled, then tex_scale will auto-update on manual node update.
+                    mat.scale_autoprop = False
                 elif command.name == "gsSPSetGeometryMode":
                     self.setGeoFlags(command, True)
                 elif command.name == "gsSPClearGeometryMode":
