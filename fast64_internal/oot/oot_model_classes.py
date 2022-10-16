@@ -471,8 +471,8 @@ class OOTF3DContext(F3DContext):
 
     def clearMaterial(self):
         self.isBillboard = False
-        clearOOTMaterialDrawLayerProperty(self.materialContext.ootMaterial.opaque)
-        clearOOTMaterialDrawLayerProperty(self.materialContext.ootMaterial.transparent)
+
+        # Don't clear ootMaterial, some skeletons (Link) require dynamic material calls to be preserved between limbs
         clearOOTFlipbookProperty(self.materialContext.flipbookGroup.flipbook0)
         clearOOTFlipbookProperty(self.materialContext.flipbookGroup.flipbook1)
         F3DContext.clearMaterial(self)

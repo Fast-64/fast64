@@ -941,7 +941,7 @@ def ootBuildSkeleton(
             "oot",
             drawLayer,
             f3dContext,
-            False,
+            True,
         )
         if f3dContext.isBillboard:
             armatureObj.data.bones[boneName].ootBone.dynamicTransform.billboard = True
