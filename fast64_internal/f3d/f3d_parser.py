@@ -1155,7 +1155,7 @@ class F3DContext:
         allCombinerUses = all_combiner_uses(mat)
         if allCombinerUses["Shade"] and mat.rdp_settings.g_lighting and mat.set_lights:
             mat.use_default_lighting = False
-            mat.ambient_light_color = self.lights.a.color + ([1] if len(self.lights.a.color) == 3 else [])
+            mat.ambient_light_color = self.lights.a.color[:] + ((1,) if len(self.lights.a.color) == 3 else ())
 
             for i in range(self.numLights):
                 lightObj = self.getLightObj(self.lights.l[i])
@@ -1531,7 +1531,7 @@ class F3DContext:
                 if command.name == "gsSPClipRatio":
                     mat.clip_ratio = math_eval(command.params[0], self.f3d)
                 elif command.name == "gsSPNumLights":
-                    self.numLights = self.getLightCount(command.name[1])
+                    self.numLights = self.getLightCount(command.params[0])
                 elif command.name == "gsSPLight":
                     self.setLight(dlData, command)
                 elif command.name == "gsSPLightColor":

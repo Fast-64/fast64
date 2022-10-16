@@ -2983,14 +2983,17 @@ class Vp:
 
 
 class Light:
-    def __init__(self, color : mathutils.Vector, normal : mathutils.Vector):
-        self.color : mathutils.Vector = color
-        self.normal : mathutils.Vector = normal
+    def __init__(self, color: mathutils.Vector, normal: mathutils.Vector):
+        self.color: mathutils.Vector = color
+        self.normal: mathutils.Vector = normal
 
     def __eq__(self, other):
         if not isinstance(other, Light):
             return False
         return self.color == other.color and self.normal == other.normal
+
+    def __hash__(self):
+        return hash((self.color[:], self.normal[:]))
 
     def to_binary(self):
         return bytearray(self.color + [0x00] + self.color + [0x00] + self.normal + [0x00] + [0x00] * 4)
@@ -3038,13 +3041,16 @@ class Light:
 
 
 class Ambient:
-    def __init__(self, color : mathutils.Vector):
-        self.color : mathutils.Vector = color
+    def __init__(self, color: mathutils.Vector):
+        self.color: mathutils.Vector = color
 
     def __eq__(self, other):
         if not isinstance(other, Ambient):
             return False
         return self.color == other.color
+
+    def __hash__(self):
+        return hash(self.color[:])
 
     def to_binary(self):
         return bytearray(self.color + [0x00] + self.color + [0x00])
