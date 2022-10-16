@@ -1449,7 +1449,7 @@ class F3DContext:
                 if command.name == "gsSPClipRatio":
                     mat.clip_ratio = math_eval(command.params[0], self.f3d)
                 elif command.name == "gsSPNumLights":
-                    self.numLights = self.getLightCount(command.name[1])
+                    self.numLights = self.getLightCount(command.params[0])
                 elif command.name == "gsSPLight":
                     self.setLight(dlData, command)
                 elif command.name == "gsSPLightColor":
