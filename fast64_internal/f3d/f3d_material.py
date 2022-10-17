@@ -410,7 +410,7 @@ def ui_upper_mode(settings, dataHolder, layout: bpy.types.UILayout, useDropdown)
                 box = inputGroup.box()
                 box.alert = True
                 box.label(text="WARNING: Fast64 does not support setting more than two textures.", icon="LIBRARY_DATA_BROKEN")
-                box.label(text="Additional texture tiles will need to be set up manually")
+                box.label(text="Additional texture tiles will need to be set up manually.")
         prop_split(inputGroup, settings, "g_mdsft_textdetail", "Texture Detail")
         prop_split(inputGroup, settings, "g_mdsft_textpersp", "Texture Perspective Correction")
         prop_split(inputGroup, settings, "g_mdsft_cycletype", "Cycle Type")
