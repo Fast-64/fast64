@@ -1,15 +1,17 @@
-import math, os, bpy, bmesh, mathutils
-from bpy.utils import register_class, unregister_class
-from io import BytesIO
-
-from ..utility import *
-from .oot_utility import *
-from .oot_constants import *
-from ..f3d.f3d_gbi import *
-from .oot_collision_classes import *
-from .oot_model_classes import *
+from ..utility import PluginError, toAlnum
+from .oot_collision_classes import OOTCollision
+from .oot_model_classes import OOTModel
 from .oot_spline import OOTPath
+from .oot_utility import CullGroup
 from .oot_actor import OOTActorProperty
+
+from ..f3d.f3d_gbi import (
+    SPDisplayList,
+    SPEndDisplayList,
+    GfxListTag,
+    GfxList,
+    DLFormat,
+)
 
 
 class OOTActor:
@@ -531,7 +533,7 @@ def addStartPosition(scene, index, actor, actorProp, actorObjName):
                     actorObjName
                     + " uses a cutscene header index that is outside the range of the current number of cutscene headers."
                 )
-            addAtStartPosIndex(scene.cutsceneHeaders[cutsceneHeader.headerIndex - 4].startPositions, index, actor)
+            addStartPosAtIndex(scene.cutsceneHeaders[cutsceneHeader.headerIndex - 4].startPositions, index, actor)
     else:
         raise PluginError("Unhandled scene setup preset: " + str(sceneSetup.sceneSetupPreset))
 

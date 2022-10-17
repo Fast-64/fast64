@@ -1,5 +1,5 @@
 from ....utility import CData
-from ...oot_scene_room import OOTScene, OOTTransitionActor
+from ...oot_level_classes import OOTScene, OOTTransitionActor
 from ...oot_utility import indent
 
 

@@ -33,11 +33,11 @@ def parseCommonSegmentLoad(romfile):
 	for segment, pointer in loadSegmentAddresses.items():
 		romfile.seek(pointer)
 		command = romfile.read(12)
-		
+
 		segment = command[3]
 		segmentStart = int.from_bytes(command[4:8], 'big')
 		segmentEnd = int.from_bytes(command[8:12], 'big')
-	
+
 		segmentData[segment] = (segmentStart, segmentEnd)
 
 	return segmentData
@@ -48,7 +48,7 @@ def parseLevel(romfile, startAddress, segmentData):
 
 	romfile.seek(currentAddress)
 	currentCmd = romfile.read(2)
-	romfile.seek(currentAddress) # second seek is because reading moves read pointer forward	
+	romfile.seek(currentAddress) # second seek is because reading moves read pointer forward
 	currentCmd = romfile.read(currentCmd[1])
 	#currentAddress += currentCmd[1]
 
@@ -149,7 +149,7 @@ def parseLevel(romfile, startAddress, segmentData):
 			jetStream = SM64_Jet_Stream(currentCmd, currentAddress)
 			currentArea.jetStreams.append(jetStream)
 
-		else:	
+		else:
 			print("Unhandled command: " + hex(currentCmd[0]))
 
 		if currentCmd[0] != L_PUSH and currentCmd[0] != L_JUMP and currentCmd[0] != L_POP:
@@ -201,7 +201,7 @@ class SM64_Music_Screen:
 		command[0] = L_SET_MUSIC_SCREEN
 		command[1] = 8
 		command[2:5] = self.params
-		command[5] = seqNum
+		command[5] = self.seqNum
 
 		return command
 
@@ -217,7 +217,7 @@ class SM64_Music_Level:
 		command = bytearray(8)
 		command[0] = L_SET_MUSIC_LEVEL
 		command[1] = 4
-		command[3] = seqNum
+		command[3] = self.seqNum
 
 		return command
 
