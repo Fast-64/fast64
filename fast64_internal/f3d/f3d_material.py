@@ -403,9 +403,14 @@ def ui_upper_mode(settings, dataHolder, layout: bpy.types.UILayout, useDropdown)
         prop_split(inputGroup, settings, "g_mdsft_combkey", "Chroma Key")
         prop_split(inputGroup, settings, "g_mdsft_textconv", "Texture Convert")
         prop_split(inputGroup, settings, "g_mdsft_text_filt", "Texture Filter")
-        prop_split(inputGroup, settings, "g_mdsft_textlod", "Texture LOD")
+        prop_split(inputGroup, settings, "g_mdsft_textlod", "Texture LOD (Mipmapping)")
         if settings.g_mdsft_textlod == 'G_TL_LOD':
-            inputGroup.prop(settings, "lod_level", text="Texture LOD Level")
+            inputGroup.prop(settings, "num_textures_mipmapped", text="Number of Mipmaps")
+            if settings.num_textures_mipmapped > 2:
+                box = inputGroup.box()
+                box.alert = True
+                box.label(text="WARNING: Fast64 does not support setting more than two textures.", icon="LIBRARY_DATA_BROKEN")
+                box.label(text="Additional texture tiles will need to be set up manually")
         prop_split(inputGroup, settings, "g_mdsft_textdetail", "Texture Detail")
         prop_split(inputGroup, settings, "g_mdsft_textpersp", "Texture Perspective Correction")
         prop_split(inputGroup, settings, "g_mdsft_cycletype", "Cycle Type")
@@ -2415,12 +2420,12 @@ class RDPSettings(bpy.types.PropertyGroup):
         default="G_TL_TILE",
         update=update_node_values_with_preset,
     )
-    lod_level: bpy.props.IntProperty(
-        name="Texture LOD Level",
-        default=0,
-        min=0,
-        max=7,
-        description="LOD Level when Texture LOD set to `LOD`. First cycle combiner should be ((Tex1 - Tex0) * LOD Frac) + Tex0",
+    num_textures_mipmapped: bpy.props.IntProperty(
+        name="Number of Mipmaps",
+        default=2,
+        min=2,
+        max=8,
+        description="Number of mipmaps when Texture LOD set to `LOD`. First cycle combiner should be ((Tex1 - Tex0) * LOD Frac) + Tex0",
     )
     g_mdsft_textdetail: bpy.props.EnumProperty(
         name="Texture Detail",

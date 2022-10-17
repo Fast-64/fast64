@@ -1471,7 +1471,8 @@ class F3DContext:
                             math_eval(command.params[0], self.f3d) / (2**16),
                             math_eval(command.params[1], self.f3d) / (2**16),
                         ]
-                    mat.rdp_settings.lod_level = math_eval(command.params[2], self.f3d)
+                    # command.params[2] is "lod level", and for clarity we store this is the number of mipmapped textures (which is +1)
+                    mat.rdp_settings.num_textures_mipmapped = 1 + math_eval(command.params[2], self.f3d)
                 elif command.name == "gsSPSetGeometryMode":
                     self.setGeoFlags(command, True)
                 elif command.name == "gsSPClearGeometryMode":

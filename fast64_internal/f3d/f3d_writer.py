@@ -1458,7 +1458,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     s = int(min(round(f3dMat.tex_scale[0] * 0x10000), 0xFFFF))
     t = int(min(round(f3dMat.tex_scale[1] * 0x10000), 0xFFFF))
     if f3dMat.rdp_settings.g_mdsft_textlod == 'G_TL_LOD':
-        fMaterial.material.commands.append(SPTexture(s, t, f3dMat.rdp_settings.lod_level, fModel.f3d.G_TX_RENDERTILE, 1))
+        fMaterial.material.commands.append(SPTexture(s, t, f3dMat.rdp_settings.num_textures_mipmapped - 1, fModel.f3d.G_TX_RENDERTILE, 1))
     else:
         fMaterial.material.commands.append(SPTexture(s, t, 0, fModel.f3d.G_TX_RENDERTILE, 1))
 
