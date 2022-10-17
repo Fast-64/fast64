@@ -1755,14 +1755,14 @@ def getMaterialScrollDimensions(f3dMat):
     if texDimensions0 is not None:
         texDimensions0 = shift_dimensions(f3dMat.tex0, texDimensions0)
     else:
-        texDimensions0 = (4, 4)
+        texDimensions0 = (1, 1)
 
     if texDimensions1 is not None:
         texDimensions1 = shift_dimensions(f3dMat.tex1, texDimensions1)
     else:
-        texDimensions1 = (4, 4)
+        texDimensions1 = (1, 1)
 
-    return (max(texDimensions0[0], texDimensions1[0]), max(texDimensions0[1], texDimensions1[1]))
+    return (max(1, texDimensions0[0], texDimensions1[0]), max(1, texDimensions0[1], texDimensions1[1]))
 
 
 def update_preset_manual(material, context):
