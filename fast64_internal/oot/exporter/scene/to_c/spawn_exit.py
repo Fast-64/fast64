@@ -1,17 +1,17 @@
-from ....utility import CData
-from ...oot_utility import indent
-from ...oot_level_classes import OOTScene, OOTEntrance
+from .....utility import CData
+from ....oot_level_classes import OOTScene, OOTEntrance
+from ...data import indent
 
 
-def ootGetEntranceEntry(entrance: OOTEntrance):
+def getSpawnEntry(entrance: OOTEntrance):
     """Returns an entrance list entrance entry"""
     return "{ " + f"{entrance.startPositionIndex}, {entrance.roomIndex}" + " },\n"
 
 
-def ootEntranceListToC(scene: OOTScene, headerIndex: int):
+def convertSpawnList(scene: OOTScene, headerIndex: int):
     """Returns the entrance list array"""
     entranceListData = CData()
-    entranceName = f"EntranceEntry {scene.entranceListName(headerIndex)}[]"
+    entranceName = f"EntranceEntry {scene.getSpawnListName(headerIndex)}[]"
 
     # .h
     entranceListData.header = f"extern {entranceName};\n"
@@ -19,17 +19,17 @@ def ootEntranceListToC(scene: OOTScene, headerIndex: int):
     # .c
     entranceListData.source = (
         (entranceName + " = {\n")
-        + "".join([indent + f"{ootGetEntranceEntry(entrance)}" for entrance in scene.entranceList])
+        + "".join([indent + f"{getSpawnEntry(entrance)}" for entrance in scene.entranceList])
         + "};\n\n"
     )
 
     return entranceListData
 
 
-def ootExitListToC(scene: OOTScene, headerIndex: int):
+def convertExitList(scene: OOTScene, headerIndex: int):
     """Returns the exit list array"""
     exitListData = CData()
-    exitListName = f"u16 {scene.exitListName(headerIndex)}[{len(scene.exitList)}]"
+    exitListName = f"u16 {scene.getExitListName(headerIndex)}[{len(scene.exitList)}]"
 
     # .h
     exitListData.header = f"extern {exitListName};\n"

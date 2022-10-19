@@ -4,6 +4,7 @@ from .oot_model_classes import OOTModel
 from .oot_spline import OOTPath
 from .oot_utility import CullGroup
 from .oot_actor import OOTActorProperty
+from .exporter.classes.export import OOTCommonCommands
 
 from ..f3d.f3d_gbi import (
     SPDisplayList,
@@ -58,7 +59,7 @@ class OOTLight:
         self.fogFar = 0
         self.transitionSpeed = 0
 
-    def getBlendFogShort(self):
+    def getBlendFogNear(self):
         return f"(({self.transitionSpeed} << 10) | {self.fogNear})"
 
 
@@ -152,12 +153,12 @@ class OOTSceneTableEntry:
         self.drawConfig = 0
 
 
-class OOTScene:
+class OOTScene(OOTCommonCommands):
     def __init__(self, name: str, model: OOTModel):
         """Initialises the class"""
         self.name = toAlnum(name)
         self.write_dummy_room_list = False
-        self.rooms = {}
+        self.rooms: dict[int, OOTRoom] = {}
         self.transitionActorList: set[OOTTransitionActor] = set()
         self.entranceList: set[OOTEntrance] = set()
         self.startPositions = {}
@@ -219,41 +220,38 @@ class OOTScene:
         """Returns the scene's name"""
         return f"{self.name}_scene"
 
-    def sceneHeaderName(self, headerIndex: int):
+    def getSceneLayerName(self, headerIndex: int):
         """Returns the scene's name with the current header index in it"""
-        return f"{self.sceneName()}_header{headerIndex:02}"
+        return f"{self.sceneName()}_layer{headerIndex:02}"
 
-    def roomListName(self):
-        return self.sceneName() + "_roomList"
+    def getRoomListName(self):
+        return f"{self.sceneName()}_roomList"
 
-    def entranceListName(self, headerIndex: int):
-        return f"{self.sceneHeaderName(headerIndex)}_entranceList"
+    def getSpawnListName(self, headerIndex: int):
+        return f"{self.getSceneLayerName(headerIndex)}_spawnList"
 
-    def startPositionsName(self, headerIndex: int):
-        return f"{self.sceneHeaderName(headerIndex)}_startPositionList"
+    def getPlayerEntryListName(self, headerIndex: int):
+        return f"{self.getSceneLayerName(headerIndex)}_playerEntryList"
 
-    def exitListName(self, headerIndex: int):
-        return f"{self.sceneHeaderName(headerIndex)}_exitList"
+    def getExitListName(self, headerIndex: int):
+        return f"{self.getSceneLayerName(headerIndex)}_exitList"
 
-    def lightListName(self, headerIndex: int):
-        return f"{self.sceneHeaderName(headerIndex)}_lightSettings"
+    def getLightSettingsListName(self, headerIndex: int):
+        return f"{self.getSceneLayerName(headerIndex)}_lightSettings"
 
-    def transitionActorListName(self, headerIndex: int):
-        return f"{self.sceneHeaderName(headerIndex)}_transitionActors"
+    def getTransActorListName(self, headerIndex: int):
+        return f"{self.getSceneLayerName(headerIndex)}_transitionActors"
 
-    def pathListName(self):
-        return self.sceneName() + "_pathway"
+    def getPathListName(self, layerIndex: int):
+        return f"{self.getSceneLayerName(layerIndex)}_pathway"
 
-    def cameraListName(self):
-        return self.sceneName() + "_cameraList"
+    def getCutsceneDataName(self, headerIndex: int):
+        return f"{self.getSceneLayerName(headerIndex)}_cutscene"
 
-    def cutsceneDataName(self, headerIndex: int):
-        return f"{self.sceneHeaderName(headerIndex)}_cutscene"
+    def getAltLayersListName(self):
+        return f"{self.sceneName()}_alternateLayers"
 
-    def alternateHeadersName(self):
-        return self.sceneName() + "_alternateHeaders"
-
-    def hasAlternateHeaders(self):
+    def hasAltLayers(self):
         return not (
             self.childNightHeader == None
             and self.adultDayHeader == None
@@ -318,7 +316,7 @@ class OOTRoomMesh:
     def headerName(self):
         return f"{self.roomName}_shapeHeader"
 
-    def entriesName(self):
+    def getEntriesName(self):
         entryName = "shapeDListEntry" if self.roomShape == "ROOM_SHAPE_TYPE_NORMAL" else "shapeCullableEntry"
         return f"{self.roomName}_{entryName}"
 
@@ -326,9 +324,6 @@ class OOTRoomMesh:
         meshGroup = OOTRoomMeshGroup(cullGroup, self.model.DLFormat, self.roomName, len(self.meshEntries))
         self.meshEntries.append(meshGroup)
         return meshGroup
-
-    def currentMeshGroup(self):
-        return self.meshEntries[-1]
 
     def removeUnusedEntries(self):
         newList = []
@@ -380,13 +375,13 @@ class OOTRoomMeshGroup:
         self.roomName = roomName
         self.entryIndex = entryIndex
 
-        self.DLGroup = OOTDLGroup(self.entryName(), dlFormat)
+        self.DLGroup = OOTDLGroup(self.getEntryName(), dlFormat)
 
-    def entryName(self):
+    def getEntryName(self):
         return f"{self.roomName}_entry_{self.entryIndex}"
 
 
-class OOTRoom:
+class OOTRoom(OOTCommonCommands):
     def __init__(self, index: int, name: str, model: OOTModel, roomShape: str):
         self.ownerName = toAlnum(name)
         self.index = index
@@ -438,20 +433,20 @@ class OOTRoom:
     def roomName(self):
         return f"{self.ownerName}_room_{self.index}"
 
-    def roomHeaderName(self, headerIndex: int):
+    def getRoomLayerName(self, headerIndex: int):
         """Returns the room's name with the current header index in it"""
-        return f"{self.roomName()}_header{headerIndex:02}"
+        return f"{self.roomName()}_layer{headerIndex:02}"
 
-    def objectListName(self, headerIndex: int):
-        return f"{self.roomHeaderName(headerIndex)}_objectList"
+    def getObjectListName(self, headerIndex: int):
+        return f"{self.getRoomLayerName(headerIndex)}_objectList"
 
-    def actorListName(self, headerIndex: int):
-        return f"{self.roomHeaderName(headerIndex)}_actorList"
+    def getActorListName(self, headerIndex: int):
+        return f"{self.getRoomLayerName(headerIndex)}_actorList"
 
-    def alternateHeadersName(self):
-        return f"{self.roomName()}_alternateHeaders"
+    def getAltLayersListName(self):
+        return f"{self.roomName()}_alternateLayers"
 
-    def hasAlternateHeaders(self):
+    def hasAltLayers(self):
         return not (
             self.childNightHeader == None
             and self.adultDayHeader == None

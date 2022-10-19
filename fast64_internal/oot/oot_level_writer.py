@@ -1,12 +1,12 @@
-import bpy, os, math, mathutils
+import bpy, math, mathutils
 from bpy.utils import register_class, unregister_class
 from ..panels import OOT_Panel
-from ..f3d.f3d_gbi import TextureExportSettings, DLFormat
+from ..f3d.f3d_gbi import DLFormat
 from ..f3d.f3d_writer import TriangleConverterInfo, saveStaticModel, getInfoDict
-from .c_writer.oot_level_c import ootSceneIncludes, ootLevelToC
-from .c_writer.oot_scene_table_c import modifySceneTable
-from .c_writer.oot_spec import modifySegmentDefinition
-from .c_writer.oot_scene_folder import modifySceneFiles, deleteSceneFiles
+from .exporter import exportScene, ootSceneIncludes
+from .exporter.scene_table import modifySceneTable
+from .exporter.spec import modifySegmentDefinition
+from .exporter.scene_folder import modifySceneFiles, deleteSceneFiles
 from .oot_constants import ootSceneIDToName, ootEnumSceneID
 from .oot_scene_room import OOT_SearchSceneEnumOperator, OOTRoomHeaderProperty
 from .oot_cutscene import convertCutsceneObject, readCutsceneData
@@ -29,14 +29,10 @@ from ..utility import (
     exportColor,
     prop_split,
     toAlnum,
-    checkObjectReference,
-    writeCDataSourceOnly,
-    writeCDataHeaderOnly,
 )
 
-from .c_writer.oot_scene_bootup import (
+from .exporter.hackeroot.scene_bootup import (
     OOT_ClearBootupScene,
-    setBootupScene,
     ootSceneBootupRegister,
     ootSceneBootupUnregister,
 )
@@ -49,11 +45,9 @@ from .oot_utility import (
     checkUniformScale,
     ootDuplicateHierarchy,
     ootCleanupScene,
-    ootGetPath,
     getCustomProperty,
     ootConvertTranslation,
     ootConvertRotation,
-    ootSceneDirs,
 )
 
 from .oot_level_classes import (
@@ -113,94 +107,6 @@ def ootCombineSceneFiles(levelC):
         for i in range(len(levelC.sceneCutscenesC)):
             sceneC.append(levelC.sceneCutscenesC[i])
     return sceneC
-
-
-def ootExportSceneToC(
-    originalSceneObj, transformMatrix, f3dType, isHWv1, sceneName, DLFormat, savePNG, exportInfo, bootToSceneOptions
-):
-
-    checkObjectReference(originalSceneObj, "Scene object")
-    isCustomExport = exportInfo.isCustomExportPath
-    exportPath = exportInfo.exportPath
-
-    scene = ootConvertScene(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneName, DLFormat, not savePNG)
-
-    exportSubdir = ""
-    if exportInfo.customSubPath is not None:
-        exportSubdir = exportInfo.customSubPath
-    if not isCustomExport and exportInfo.customSubPath is None:
-        for sceneSubdir, sceneNames in ootSceneDirs.items():
-            if sceneName in sceneNames:
-                exportSubdir = sceneSubdir
-                break
-        if exportSubdir == "":
-            raise PluginError("Scene folder " + sceneName + " cannot be found in the ootSceneDirs list.")
-
-    levelPath = ootGetPath(exportPath, isCustomExport, exportSubdir, sceneName, True, True)
-    levelC = ootLevelToC(scene, TextureExportSettings(False, savePNG, exportSubdir + sceneName, levelPath))
-
-    if bpy.context.scene.ootSceneSingleFile:
-        writeCDataSourceOnly(
-            ootPreprendSceneIncludes(scene, ootCombineSceneFiles(levelC)),
-            os.path.join(levelPath, scene.sceneName() + ".c"),
-        )
-        for i in range(len(scene.rooms)):
-            roomC = CData()
-            roomC.append(levelC.roomMainC[scene.rooms[i].roomName()])
-            roomC.append(levelC.roomMeshInfoC[scene.rooms[i].roomName()])
-            roomC.append(levelC.roomMeshC[scene.rooms[i].roomName()])
-            writeCDataSourceOnly(
-                ootPreprendSceneIncludes(scene, roomC), os.path.join(levelPath, scene.rooms[i].roomName() + ".c")
-            )
-    else:
-        # Export the scene segment .c files
-        writeCDataSourceOnly(
-            ootPreprendSceneIncludes(scene, levelC.sceneMainC), os.path.join(levelPath, scene.sceneName() + "_main.c")
-        )
-        if levelC.sceneTexturesIsUsed():
-            writeCDataSourceOnly(
-                ootPreprendSceneIncludes(scene, levelC.sceneTexturesC),
-                os.path.join(levelPath, scene.sceneName() + "_tex.c"),
-            )
-        writeCDataSourceOnly(
-            ootPreprendSceneIncludes(scene, levelC.sceneCollisionC),
-            os.path.join(levelPath, scene.sceneName() + "_col.c"),
-        )
-        if levelC.sceneCutscenesIsUsed():
-            for i in range(len(levelC.sceneCutscenesC)):
-                writeCDataSourceOnly(
-                    ootPreprendSceneIncludes(scene, levelC.sceneCutscenesC[i]),
-                    os.path.join(levelPath, scene.sceneName() + "_cs_" + str(i) + ".c"),
-                )
-
-        # Export the room segment .c files
-        for roomName, roomMainC in levelC.roomMainC.items():
-            writeCDataSourceOnly(
-                ootPreprendSceneIncludes(scene, roomMainC), os.path.join(levelPath, roomName + "_main.c")
-            )
-        for roomName, roomMeshInfoC in levelC.roomMeshInfoC.items():
-            writeCDataSourceOnly(
-                ootPreprendSceneIncludes(scene, roomMeshInfoC), os.path.join(levelPath, roomName + "_model_info.c")
-            )
-        for roomName, roomMeshC in levelC.roomMeshC.items():
-            writeCDataSourceOnly(
-                ootPreprendSceneIncludes(scene, roomMeshC), os.path.join(levelPath, roomName + "_model.c")
-            )
-
-    # Export the scene .h file
-    writeCDataHeaderOnly(ootCreateSceneHeader(levelC), os.path.join(levelPath, scene.sceneName() + ".h"))
-
-    if not isCustomExport:
-        writeOtherSceneProperties(scene, exportInfo, levelC)
-
-    if bootToSceneOptions is not None and bootToSceneOptions.bootToScene:
-        setBootupScene(
-            os.path.join(exportPath, "include/config/config_debug.h")
-            if not isCustomExport
-            else os.path.join(levelPath, "config_bootup.h"),
-            "ENTR_" + sceneName.upper() + "_" + str(bootToSceneOptions.spawnIndex),
-            bootToSceneOptions,
-        )
 
 
 def writeOtherSceneProperties(scene, exportInfo, levelC):
@@ -687,7 +593,7 @@ class OOT_ExportScene(bpy.types.Operator):
 
             bootOptions = context.scene.fast64.oot.bootupSceneOptions
             hackerFeaturesEnabled = context.scene.fast64.oot.hackerFeaturesEnabled
-            ootExportSceneToC(
+            exportScene(
                 obj,
                 finalTransform,
                 context.scene.f3d_type,

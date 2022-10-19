@@ -9,8 +9,8 @@ class OOTPath:
         self.splineIndex = splineIndex
         self.points = []
 
-    def pathName(self):
-        return self.ownerName + "_pathwayList_" + str(self.splineIndex)
+    def pathName(self, layerIndex: int):
+        return f"{self.ownerName}_layer{layerIndex:02}_pathwayList_{self.splineIndex}"
 
 
 def ootConvertPath(name, index, obj, transformMatrix):
