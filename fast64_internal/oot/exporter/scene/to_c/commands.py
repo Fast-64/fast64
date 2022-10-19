@@ -105,8 +105,11 @@ def getSceneCommandsEntries(outScene: OOTScene, layerIndex: int):
     sceneCmdList.append(getSpawnListCmd(outScene, layerIndex))
     sceneCmdList.append(getSpecialFilesCmd(outScene))
 
-    if len(outScene.pathList) > 0:
-        sceneCmdList.append(getPathListCmd(outScene, layerIndex))
+    if layerIndex == 0:
+        # Note: this will be moved out of the if statement
+        # whenever Fast64 handles the different layers for paths
+        if len(outScene.pathList) > 0:
+            sceneCmdList.append(getPathListCmd(outScene, layerIndex))
 
     sceneCmdList.append(getPlayerEntryListCmd(outScene, layerIndex))
     sceneCmdList.append(getSkyboxSettingsCmd(outScene))

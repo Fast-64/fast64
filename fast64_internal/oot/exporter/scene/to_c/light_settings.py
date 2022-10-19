@@ -57,7 +57,7 @@ def convertLightSettings(outScene: OOTScene, headerIndex: int):
     # .c
     lightSettingsData.source = (
         (lightName + " = {\n")
-        + "".join([getLightSettingsEntry(light, outScene.lightMode, i) for i, light in enumerate(outScene.lights)])
+        + "".join([getLightSettingsEntry(light, outScene.skyboxLighting, i) for i, light in enumerate(outScene.lights)])
         + "};\n\n"
     )
 

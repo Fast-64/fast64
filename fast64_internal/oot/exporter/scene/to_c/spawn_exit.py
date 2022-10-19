@@ -38,8 +38,8 @@ def convertExitList(scene: OOTScene, headerIndex: int):
     exitListData.source = (
         (exitListName + " = {\n")
         # @TODO: use the enum name instead of the raw index
-        + "".join([indent + f"{exitEntry.index}" for exitEntry in scene.exitList])
-        + "};\n\n"
+        + ",\n".join([indent + f"{exitEntry.index}" for exitEntry in scene.exitList])
+        + "\n};\n\n"
     )
 
     return exitListData

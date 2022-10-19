@@ -173,7 +173,6 @@ class OOTScene(OOTCommonCommands):
         self.skyboxID = None
         self.skyboxCloudiness = None
         self.skyboxLighting = None
-        self.lightMode = None
 
         # Camera
         self.mapLocation = None

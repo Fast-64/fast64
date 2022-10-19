@@ -18,7 +18,7 @@ def getRoomShapeEntry(meshEntry: OOTRoomMeshGroup, roomShape: str):
     elif roomShape == "ROOM_SHAPE_TYPE_IMAGE":
         raise PluginError("ERROR: Pre-Rendered rooms not supported.")
 
-    return roomShapeEntry + f"{opaqueName}, {transparentName}" + " }\n"
+    return roomShapeEntry + f"{opaqueName}, {transparentName}" + " }"
 
 
 def getRoomShapeEntries(mesh: OOTRoomMesh):
@@ -36,8 +36,8 @@ def getRoomShapeEntries(mesh: OOTRoomMesh):
     # .c
     roomShapeEntryData.source = (
         (roomShapeEntryName + " = {\n")
-        + " },\n".join([indent + getRoomShapeEntry(entry, mesh.roomShape) for entry in mesh.meshEntries])
-        + "};\n\n"
+        + ",\n".join([indent + getRoomShapeEntry(entry, mesh.roomShape) for entry in mesh.meshEntries])
+        + "\n};\n\n"
     )
 
     return roomShapeEntryData

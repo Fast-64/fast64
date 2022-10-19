@@ -26,9 +26,12 @@ def getSceneLayerData(outScene: OOTScene, layerIndex: int):
     if layerIndex == 0:
         layerData.append(convertRoomList(outScene))
 
-    # Write the path list
-    if len(outScene.pathList) > 0:
-        layerData.append(convertPathList(outScene, layerIndex))
+        # Write the path list
+
+        # Note: this will be moved out of the if statement
+        # whenever Fast64 handles the different layers for paths
+        if len(outScene.pathList) > 0:
+            layerData.append(convertPathList(outScene, layerIndex))
 
     # Write the entrance list
     if len(outScene.entranceList) > 0:
