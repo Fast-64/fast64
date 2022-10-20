@@ -16,6 +16,8 @@ from .cutscene.to_c import convertCutsceneToC, getCutsceneIncludes
 from .scene_table import modifySceneTable
 from .classes import OOTSceneC
 from .hackeroot.scene_bootup import OOTBootupSceneOptions, setBootupScene
+from .scene_folder import modifySceneFiles
+from .spec import modifySegmentDefinition
 
 
 def generateC(outScene: OOTScene, textureExportSettings: TextureExportSettings):
@@ -103,27 +105,15 @@ def ootPreprendSceneIncludes(outScene: OOTScene, fileData: CData):
 
 def exportScene(
     inSceneObj: Object,
-    transformMatrix: Matrix,
-    f3dType: str,
-    isHWv1: bool,  # is hardware v1
+    outScene: OOTScene,
     sceneName: str,
-    dlFormat: DLFormat,
     savePNG: bool,
     exportInfo: ExportInfo,
     bootToSceneOptions: OOTBootupSceneOptions,
 ):
-    # circular import fix
-    from .scene_folder import modifySceneFiles
-    from .spec import modifySegmentDefinition
-    from ..oot_level_writer import ootConvertScene
-
     checkObjectReference(inSceneObj, "Scene object")
     isCustomExport = exportInfo.isCustomExportPath
     exportPath = exportInfo.exportPath
-
-    outScene: OOTScene = ootConvertScene(
-        inSceneObj, transformMatrix, f3dType, isHWv1, sceneName, dlFormat, not savePNG
-    )
 
     exportSubdir = ""
     if exportInfo.customSubPath is not None:

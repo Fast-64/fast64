@@ -594,11 +594,16 @@ class OOT_ExportScene(bpy.types.Operator):
             hackerFeaturesEnabled = context.scene.fast64.oot.hackerFeaturesEnabled
             exportScene(
                 obj,
-                finalTransform,
-                context.scene.f3d_type,
-                context.scene.isHWv1,
+                ootConvertScene(
+                    obj,
+                    finalTransform,
+                    context.scene.f3d_type,
+                    context.scene.isHWv1,
+                    levelName,
+                    DLFormat.Static,
+                    not context.scene.saveTextures
+                ),
                 levelName,
-                DLFormat.Static,
                 context.scene.saveTextures,
                 exportInfo,
                 bootOptions if hackerFeaturesEnabled else None,
