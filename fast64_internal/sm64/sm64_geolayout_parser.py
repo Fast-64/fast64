@@ -1,17 +1,58 @@
-import bpy, mathutils, math, copy
-from math import pi
+import bpy, mathutils, math, bmesh
 from bpy.utils import register_class, unregister_class
-
-from .sm64_level_parser import *
-from .sm64_geolayout_bone import enumShadowType
-from .sm64_geolayout_constants import *
-from .sm64_geolayout_utility import *
-from .sm64_constants import *
-
-from ..f3d.f3d_material import createF3DMat, update_preset_manual
-from ..f3d.f3d_parser import *
-from ..utility import *
+from ..f3d.f3d_parser import createBlankMaterial, parseF3DBinary
 from ..panels import SM64_Panel, sm64GoalImport
+from .sm64_level_parser import parseLevelAtPointer
+from .sm64_constants import level_pointers, level_enums
+from .sm64_geolayout_bone import enumShadowType
+from .sm64_geolayout_constants import getGeoLayoutCmdLength, nodeGroupCmds, GEO_BRANCH_STORE
+
+from ..utility import (
+	PluginError,
+	decodeSegmentedAddr,
+	raisePluginError,
+	bytesToHexClean,
+	bitMask,
+	readVectorFromShorts,
+	findStartBones,
+	readEulerVectorFromShorts,
+	readFloatFromShort,
+	checkExpanded,
+	doRotation,
+	prop_split,
+	sm64BoneUp,
+	geoNodeRotateOrder,
+)
+
+from .sm64_geolayout_utility import (
+	createBoneGroups,
+	createBoneLayerMask,
+	getBoneGroupIndex,
+	addBoneToGroup,
+	boneLayers,
+)
+
+from .sm64_geolayout_classes import (
+	GEO_NODE_CLOSE,
+	GEO_END,
+	GEO_BRANCH,
+	GEO_RETURN,
+	GEO_NODE_OPEN,
+	GEO_START,
+	GEO_SWITCH,
+	GEO_TRANSLATE_ROTATE,
+	GEO_TRANSLATE,
+	GEO_ROTATE,
+	GEO_LOAD_DL_W_OFFSET,
+	GEO_BILLBOARD,
+	GEO_START_W_SHADOW,
+	GEO_CALL_ASM,
+	GEO_HELD_OBJECT,
+	GEO_SCALE,
+	GEO_START_W_RENDERAREA,
+	GEO_LOAD_DL,
+)
+
 
 blender_modes = {'OBJECT', 'BONE'}
 
@@ -52,10 +93,10 @@ def parseGeoLayout(romfile, startAddress, scene, segmentData,
 	# Parse geolayout
 	# Pretend that command starts with an 0x04
 	currentAddress, armatureMeshGroups = parseNode(
-		romfile, startAddress, currentAddress - 4, [0x04, 0x00], 
-		[currentAddress], convertTransformMatrix.to_4x4(), 
+		romfile, startAddress, currentAddress - 4, [0x04, 0x00],
+		[currentAddress], convertTransformMatrix.to_4x4(),
 		bMesh, obj, armatureObj, None, ignoreSwitch, False, 0, 0,
-		[None] * 16 * 16, f3dType, isHWv1, 
+		[None] * 16 * 16, f3dType, isHWv1,
 		segmentData = segmentData)
 
 	armatureMeshGroups.insert(0, (armatureObj, bMesh, obj))
@@ -86,7 +127,7 @@ def parseGeoLayout(romfile, startAddress, scene, segmentData,
 		for i in range(len(armatureMeshGroups)):
 			obj = armatureMeshGroups[i][2]
 			switchArmatureObj = armatureMeshGroups[i][0]
-			# Apply mesh to armature.	
+			# Apply mesh to armature.
 			if bpy.context.mode != 'OBJECT':
 				bpy.ops.object.mode_set(mode = 'OBJECT')
 			bpy.ops.object.select_all(action = 'DESELECT')
@@ -97,17 +138,17 @@ def parseGeoLayout(romfile, startAddress, scene, segmentData,
 			switchArmatureObj.matrix_world = switchArmatureObj.matrix_world @ \
 				mathutils.Matrix.Translation(mathutils.Vector((3*i, 0 ,0)))
 
-		
+
 		# Make Mario face forward.
 		#bpy.ops.object.select_all(action = 'DESELECT')
 		#armatureObj.select_set(True)
 		#bpy.ops.transform.rotate(value = math.radians(-90), orient_axis = 'X')
 		#bpy.ops.object.transform_apply()
-		
+
 
 	if useArmature:
 		armatureObj.data.layers[1] = True
-	
+
 	'''
 	if useMetarig:
 		metaBones = [bone for bone in armatureObj.data.bones if \
@@ -122,7 +163,7 @@ def parseGeoLayout(romfile, startAddress, scene, segmentData,
 # Make sure to NOT create blender objects if the node is being ignored.
 def parseNode(romfile, geoStartAddress, currentAddress, currentCmd, jumps,
 	currentTransform, bMesh, obj, armatureObj, parentBoneName, ignoreSwitch, ignoreNode, switchLevel, switchCount,
-	vertexBuffer, f3dType, isHWv1, singleChild = False, 
+	vertexBuffer, f3dType, isHWv1, singleChild = False,
 	endCmd = GEO_NODE_CLOSE, segmentData = None):
 	print("NODE " + hex(currentAddress))
 	currentTransform = copy.deepcopy(currentTransform)
@@ -167,8 +208,8 @@ def parseNode(romfile, geoStartAddress, currentAddress, currentCmd, jumps,
 			if not ignoreNode:
 				parentBoneName, armatureMeshTuple, currentTransform, \
 					nextParentTransform = \
-					createSwitchOption(armatureObj, parentBoneName, 
-					format(nodeIndex[-1], '03') + '-switch_option', currentTransform, nextParentTransform, 
+					createSwitchOption(armatureObj, parentBoneName,
+					format(nodeIndex[-1], '03') + '-switch_option', currentTransform, nextParentTransform,
 					switchLevel, switchCount)
 				armatureMeshGroups.append(armatureMeshTuple)
 				obj = armatureMeshTuple[2]
@@ -198,8 +239,8 @@ def parseNode(romfile, geoStartAddress, currentAddress, currentCmd, jumps,
 			#print(str(switchCount) + " - " + str(localSwitchCount) + " - " + \
 			#	str(switchLevel))
 			currentAddress, newArmatureMeshGroups = \
-				parseNode(romfile, geoStartAddress, currentAddress, 
-				currentCmd, jumps, nextParentTransform, bMesh, obj, 
+				parseNode(romfile, geoStartAddress, currentAddress,
+				currentCmd, jumps, nextParentTransform, bMesh, obj,
 				armatureObj, nextParentBoneName, ignoreSwitch, ignoreNode,
 				switchLevel, switchCount,
 				vertexBuffer, f3dType, isHWv1,
@@ -207,43 +248,43 @@ def parseNode(romfile, geoStartAddress, currentAddress, currentCmd, jumps,
 			armatureMeshGroups.extend(newArmatureMeshGroups)
 			switchActive = False
 			nextParentTransform = copy.deepcopy(currentTransform)
-		
+
 		elif currentCmd[0] == GEO_START: # 0x0B
 			currentAddress, nextParentBoneName, nextParentTransform = \
-				parseStart(romfile, currentAddress, currentTransform, 
+				parseStart(romfile, currentAddress, currentTransform,
 				armatureObj, parentBoneName, ignoreNode, nodeIndex[-1],
 				segmentData)
 
 		elif currentCmd[0] == GEO_SWITCH: # 0x0E
 			currentAddress, nextParentBoneName = \
-				parseSwitch(romfile, currentAddress, 
-				currentTransform, armatureObj, parentBoneName, ignoreNode, 
+				parseSwitch(romfile, currentAddress,
+				currentTransform, armatureObj, parentBoneName, ignoreNode,
 				nodeIndex[-1], segmentData)
 			switchActive = True
-		
+
 		# We skip translate/rotate/scale nodes if before the first 0x13 node.
 		# This allows us to import model animations without having to transform keyframes.
 		elif currentCmd[0] == GEO_TRANSLATE_ROTATE: #0x10
 			currentAddress, nextParentBoneName, nextParentTransform = \
-				parseTranslateRotate(romfile, 
+				parseTranslateRotate(romfile,
 				currentAddress, currentCmd, currentTransform,
-				bMesh, obj, armatureObj, parentBoneName, ignoreNode, 
+				bMesh, obj, armatureObj, parentBoneName, ignoreNode,
 				nodeIndex[-1], segmentData, vertexBuffer,
 				f3dType, isHWv1)
-		
+
 		elif currentCmd[0] == GEO_TRANSLATE: #0x11
 			currentAddress, nextParentBoneName, nextParentTransform  = \
 				parseTranslate(romfile,
 				currentAddress, currentCmd, currentTransform,
-				bMesh, obj, armatureObj, parentBoneName, ignoreNode, 
+				bMesh, obj, armatureObj, parentBoneName, ignoreNode,
 				nodeIndex[-1],segmentData, vertexBuffer,
 				f3dType, isHWv1)
-			
+
 		elif currentCmd[0] == GEO_ROTATE: # 0x12
 			currentAddress, nextParentBoneName, nextParentTransform  = \
 				parseRotate(romfile,
 				currentAddress, currentCmd, currentTransform,
-				bMesh, obj, armatureObj, parentBoneName, ignoreNode, 
+				bMesh, obj, armatureObj, parentBoneName, ignoreNode,
 				nodeIndex[-1],segmentData, vertexBuffer,
 				f3dType, isHWv1)
 
@@ -257,24 +298,24 @@ def parseNode(romfile, geoStartAddress, currentAddress, currentCmd, jumps,
 
 		elif currentCmd[0] == GEO_BILLBOARD: # 0x14
 			currentAddress, nextParentBoneName, nextParentTransform = \
-				parseBillboard(romfile, currentAddress, 
-				currentCmd, currentTransform, bMesh, obj, 
-				armatureObj, parentBoneName, ignoreNode, nodeIndex[-1], 
+				parseBillboard(romfile, currentAddress,
+				currentCmd, currentTransform, bMesh, obj,
+				armatureObj, parentBoneName, ignoreNode, nodeIndex[-1],
 				segmentData, vertexBuffer,
 				f3dType, isHWv1)
-		
+
 		elif currentCmd[0] == GEO_LOAD_DL: # 0x15
-			currentAddress = parseDL(romfile, currentAddress, 
-				currentTransform, bMesh, obj, armatureObj, 
-				parentBoneName, ignoreNode, currentCmd, 
+			currentAddress = parseDL(romfile, currentAddress,
+				currentTransform, bMesh, obj, armatureObj,
+				parentBoneName, ignoreNode, currentCmd,
 				nodeIndex[-1], segmentData, vertexBuffer, f3dType, isHWv1)
-		
+
 		elif currentCmd[0] == GEO_START_W_SHADOW: # 0x16
 			currentAddress, nextParentBoneName, nextParentTransform = \
-				parseShadow(romfile, currentAddress, 
+				parseShadow(romfile, currentAddress,
 				currentTransform, armatureObj, parentBoneName, ignoreNode,
 				nodeIndex[-1], segmentData)
-		
+
 		elif currentCmd[0] == GEO_CALL_ASM: # 0x18
 			currentAddress = parseFunction(romfile, currentAddress,
 				currentTransform, armatureObj, parentBoneName, ignoreNode,
@@ -282,27 +323,27 @@ def parseNode(romfile, geoStartAddress, currentAddress, currentCmd, jumps,
 
 		elif currentCmd[0] == GEO_HELD_OBJECT: # 0x1C
 			currentAddress, nextParentTransform = \
-				parseHeldObject(romfile, currentAddress, 
+				parseHeldObject(romfile, currentAddress,
 				currentTransform,  armatureObj, parentBoneName, ignoreNode,
 				nodeIndex[-1], segmentData)
 
 		elif currentCmd[0] == GEO_SCALE: # 0x1D
 			currentAddress, nextParentBoneName, nextParentTransform = \
-				parseScale(romfile, 
-				currentAddress, currentCmd, currentTransform, 
+				parseScale(romfile,
+				currentAddress, currentCmd, currentTransform,
 				bMesh, obj, armatureObj, parentBoneName, ignoreNode, nodeIndex[-1], segmentData, vertexBuffer,
 				f3dType, isHWv1)
-		
+
 		elif currentCmd[0] == GEO_START_W_RENDERAREA: # 0x20
 			currentAddress, nextParentBoneName, nextParentTransform = \
-				parseStartWithRenderArea(romfile, currentAddress, 
+				parseStartWithRenderArea(romfile, currentAddress,
 				currentTransform, armatureObj, parentBoneName, ignoreNode,
 				nodeIndex[-1], segmentData)
 
 		else:
 			currentAddress += getGeoLayoutCmdLength(*currentCmd)
 			print("Unhandled command: " + hex(currentCmd[0]))
-		
+
 		nodeIndex[-1] += 1
 
 		romfile.seek(currentAddress)
@@ -416,7 +457,7 @@ def processBoneMeta(armatureObj, boneName, parentName):
 			else:
 				visualBone.use_connect = True
 			visualBone.parent  = parentVisualBone
-					
+
 		else:
 			print("Some children: " + str(visualBone.name) + " " + str([child.name for child in visualChildren]))
 			# If multiple children, make parent bone a "straight upward"
@@ -439,7 +480,7 @@ def processBoneMeta(armatureObj, boneName, parentName):
 def createConnectBone(armatureObj, childName, parentName):
 	child = armatureObj.data.edit_bones[childName]
 	parent = armatureObj.data.edit_bones[parentName]
-	
+
 	connectBone = armatureObj.data.edit_bones.new(
 		"connect_" + child.name)
 	connectBoneName = connectBone.name
@@ -480,9 +521,9 @@ def createBone(armatureObj, parentBoneName, boneName, currentTransform,
 	bone.tail = bone.head + (currentTransform.to_quaternion() @ \
 		mathutils.Vector((0,1,0))* \
 		(0.2 if boneGroup != 'DisplayList' else 0.1))
-	
+
 	# Connect bone to parent if it is possible without changing parent direction.
-	
+
 	if parentBoneName is not None:
 		nodeOffsetVector = mathutils.Vector(bone.head - bone.parent.head)
 		# set fallback to nonzero to avoid creating zero length bones
@@ -512,7 +553,7 @@ def createSwitchOption(armatureObj, switchBoneName, boneName, currentTransform,
 	#bpy.ops.object.mode_set(mode="EDIT")
 	#bone = armatureObj.data.edit_bones.new(boneName)
 	#bone.use_connect = False
-	
+
 	# calculate transform
 	translation = mathutils.Matrix.Translation(
 		mathutils.Vector((0,3 * (switchCount - switchLevel),0)))
@@ -541,7 +582,7 @@ def createSwitchOption(armatureObj, switchBoneName, boneName, currentTransform,
 	bone.head = finalTransform @ mathutils.Vector((0,0,0))
 	bone.tail = bone.head + currentTransform.to_quaternion() @ \
 		mathutils.Vector((0,1,0)) * 0.2
-	
+
 	boneName = bone.name
 	bpy.ops.object.mode_set(mode='OBJECT')
 	bone = switchArmature.data.bones[boneName]
@@ -569,13 +610,13 @@ def createSwitchOption(armatureObj, switchBoneName, boneName, currentTransform,
 
 	bMesh = bmesh.new()
 	bMesh.from_mesh(mesh)
-	
+
 	addBoneToGroup(switchArmature, boneName, 'SwitchOption')
 
 	return boneName, (switchArmature, bMesh, obj), finalTransform, \
 		finalNextParentTransform
 
-def parseSwitch(romfile, currentAddress, currentTransform, 
+def parseSwitch(romfile, currentAddress, currentTransform,
 	armatureObj, parentBoneName, ignoreNode, nodeIndex,
 	segmentData):
 	print("SWITCH " + hex(currentAddress))
@@ -590,7 +631,7 @@ def parseSwitch(romfile, currentAddress, currentTransform,
 
 		boneName = format(nodeIndex, '03') + "-switch"
 		if armatureObj is not None:
-			boneName = createBone(armatureObj, parentBoneName, boneName,		
+			boneName = createBone(armatureObj, parentBoneName, boneName,
 				currentTransform, 'Switch', False)
 			bone = armatureObj.data.bones[boneName]
 			bone.geo_func = switchFunc
@@ -601,7 +642,7 @@ def parseSwitch(romfile, currentAddress, currentTransform,
 	currentAddress += commandSize
 	return currentAddress, boneName
 
-def parseDL(romfile, currentAddress, currentTransform, bMesh, obj, armatureObj, 
+def parseDL(romfile, currentAddress, currentTransform, bMesh, obj, armatureObj,
 	parentBoneName, ignoreNode, currentCmd, nodeIndex, segmentData, vertexBuffer, f3dType, isHWv1):
 
 	drawLayer = bitMask(currentCmd[1], 0, 4)
@@ -620,9 +661,9 @@ def parseDL(romfile, currentAddress, currentTransform, bMesh, obj, armatureObj,
 			bone.draw_layer = str(drawLayer)
 
 	currentAddress += commandSize
-	return currentAddress	
+	return currentAddress
 
-def parseDLWithOffset(romfile, currentAddress, 
+def parseDLWithOffset(romfile, currentAddress,
 	currentTransform, bMesh, obj, armatureObj, parentBoneName, ignoreNode, nodeIndex, currentCmd, segmentData, vertexBuffer,
 	f3dType, isHWv1):
 	print("DL_OFFSET " + hex(currentAddress))
@@ -658,12 +699,12 @@ def parseDLWithOffset(romfile, currentAddress,
 
 		# load mesh data
 		if hasMeshData:
-			displayListStartAddress = decodeSegmentedAddr(segmentedAddr, 
+			displayListStartAddress = decodeSegmentedAddr(segmentedAddr,
 				segmentData = segmentData)
 			#print(displayListStartAddress)
-			parseF3DBinary(romfile, displayListStartAddress, bpy.context.scene, 
+			parseF3DBinary(romfile, displayListStartAddress, bpy.context.scene,
 			bMesh, obj, finalTransform, boneName, segmentData, vertexBuffer)
-	
+
 	# Handle child objects
 	# Validate that next command is 04 (open node)
 	currentAddress += getGeoLayoutCmdLength(*currentCmd)
@@ -706,7 +747,7 @@ def parseReturn(currentCmd, currentAddress, jumps):
 
 # Create bone and load geometry
 def handleNodeCommon(romfile, armatureObj, parentBoneName, finalTransform,
-	loadDL, command, segmentData, bMesh, obj, nodeIndex, 
+	loadDL, command, segmentData, bMesh, obj, nodeIndex,
 	boneGroupName, vertexBuffer,
 	f3dType, isHWv1):
 
@@ -714,7 +755,7 @@ def handleNodeCommon(romfile, armatureObj, parentBoneName, finalTransform,
 
 	if armatureObj is not None:
 		# Create bone
-		boneName = createBone(armatureObj, parentBoneName, boneName,		
+		boneName = createBone(armatureObj, parentBoneName, boneName,
 			finalTransform, boneGroupName, loadDL)
 
 	if loadDL:
@@ -722,14 +763,14 @@ def handleNodeCommon(romfile, armatureObj, parentBoneName, finalTransform,
 		hasMeshData = int.from_bytes(segmentedAddr, 'big') != 0
 		if hasMeshData:
 			startAddress = decodeSegmentedAddr(segmentedAddr, segmentData)
-			parseF3DBinary(romfile, startAddress, bpy.context.scene, bMesh, obj, 
+			parseF3DBinary(romfile, startAddress, bpy.context.scene, bMesh, obj,
 				finalTransform, boneName, segmentData, vertexBuffer)
 	elif armatureObj is not None:
 		armatureObj.data.bones[boneName].use_deform = False
 	return boneName
 
-def parseScale(romfile, currentAddress, currentCmd, currentTransform, 
-	bMesh, obj, armatureObj, parentBoneName, ignoreNode, nodeIndex, 
+def parseScale(romfile, currentAddress, currentCmd, currentTransform,
+	bMesh, obj, armatureObj, parentBoneName, ignoreNode, nodeIndex,
 	segmentData , vertexBuffer, f3dType, isHWv1):
 	print("SCALE " + hex(currentAddress))
 
@@ -747,7 +788,7 @@ def parseScale(romfile, currentAddress, currentCmd, currentTransform,
 	if not ignoreNode:
 		boneName = handleNodeCommon(romfile, armatureObj, parentBoneName,
 			finalTransform, loadDL, command, segmentData, bMesh, obj,
-			nodeIndex, 'Scale', vertexBuffer, 
+			nodeIndex, 'Scale', vertexBuffer,
 			f3dType, isHWv1)
 		if armatureObj is not None:
 			bone = armatureObj.data.bones[boneName]
@@ -757,10 +798,10 @@ def parseScale(romfile, currentAddress, currentCmd, currentTransform,
 		boneName = None
 
 	currentAddress += commandSize
-	return (currentAddress, boneName, finalTransform)		
+	return (currentAddress, boneName, finalTransform)
 
-def parseTranslateRotate(romfile, currentAddress, 
-	currentCmd, currentTransform, bMesh, obj, armatureObj, 
+def parseTranslateRotate(romfile, currentAddress,
+	currentCmd, currentTransform, bMesh, obj, armatureObj,
 	parentBoneName, ignoreNode, nodeIndex, segmentData , vertexBuffer, f3dType, isHWv1):
 	print("TRANSLATE_ROTATE " + hex(currentAddress))
 
@@ -788,7 +829,7 @@ def parseTranslateRotate(romfile, currentAddress,
 		translation = mathutils.Matrix.Translation(
 			mathutils.Vector(pos))
 		finalTransform = currentTransform @ translation @ rotation
-		
+
 	elif fieldLayout == 1:
 		pos = readVectorFromShorts(command, 2)
 		translation = mathutils.Matrix.Translation(
@@ -799,7 +840,7 @@ def parseTranslateRotate(romfile, currentAddress,
 		rot = readEulerVectorFromShorts(command, 2)
 		rotation = mathutils.Euler(rot, geoNodeRotateOrder).to_matrix().to_4x4()
 		finalTransform = currentTransform @ rotation
-	
+
 	else:
 		yRot = readFloatFromShort(command, 2)
 		rotation = mathutils.Euler((0, yRot, 0), geoNodeRotateOrder
@@ -826,8 +867,8 @@ def parseTranslateRotate(romfile, currentAddress,
 
 	return (currentAddress, boneName, finalTransform)
 
-def parseTranslate(romfile, currentAddress, 
-	currentCmd, currentTransform, bMesh, obj, armatureObj, parentBoneName, ignoreNode, nodeIndex, 
+def parseTranslate(romfile, currentAddress,
+	currentCmd, currentTransform, bMesh, obj, armatureObj, parentBoneName, ignoreNode, nodeIndex,
 	segmentData, vertexBuffer, f3dType, isHWv1):
 	print("TRANSLATE " + hex(currentAddress))
 
@@ -850,7 +891,7 @@ def parseTranslate(romfile, currentAddress,
 	if not ignoreNode:
 		boneName = handleNodeCommon(romfile, armatureObj, parentBoneName,
 			finalTransform, loadDL, command, segmentData, bMesh, obj,
-			nodeIndex, 'Translate', vertexBuffer, 
+			nodeIndex, 'Translate', vertexBuffer,
 			f3dType, isHWv1)
 		if armatureObj is not None:
 			bone = armatureObj.data.bones[boneName]
@@ -862,8 +903,8 @@ def parseTranslate(romfile, currentAddress,
 
 	return (currentAddress, boneName, finalTransform)
 
-def parseRotate(romfile, currentAddress, 
-	currentCmd, currentTransform, bMesh, obj, armatureObj, parentBoneName, ignoreNode, nodeIndex, 
+def parseRotate(romfile, currentAddress,
+	currentCmd, currentTransform, bMesh, obj, armatureObj, parentBoneName, ignoreNode, nodeIndex,
 	segmentData, vertexBuffer, f3dType, isHWv1):
 	print("ROTATE " + hex(currentAddress))
 
@@ -885,7 +926,7 @@ def parseRotate(romfile, currentAddress,
 	if not ignoreNode:
 		boneName = handleNodeCommon(romfile, armatureObj, parentBoneName,
 			finalTransform, loadDL, command, segmentData, bMesh, obj,
-			nodeIndex, 'Rotate', vertexBuffer, 
+			nodeIndex, 'Rotate', vertexBuffer,
 			f3dType, isHWv1)
 		if armatureObj is not None:
 			bone = armatureObj.data.bones[boneName]
@@ -896,7 +937,7 @@ def parseRotate(romfile, currentAddress,
 	currentAddress += commandSize
 	return (currentAddress, boneName, finalTransform)
 
-def parseBillboard(romfile, currentAddress, 
+def parseBillboard(romfile, currentAddress,
 	currentCmd, currentTransform, bMesh, obj, armatureObj, parentBoneName, ignoreNode, nodeIndex, segmentData, vertexBuffer,
 	f3dType, isHWv1):
 	print("BILLBOARD " + hex(currentAddress))
@@ -920,7 +961,7 @@ def parseBillboard(romfile, currentAddress,
 	if not ignoreNode:
 		boneName = handleNodeCommon(romfile, armatureObj, parentBoneName,
 			finalTransform, loadDL, command, segmentData, bMesh, obj,
-			nodeIndex, 'Billboard', vertexBuffer, 
+			nodeIndex, 'Billboard', vertexBuffer,
 			f3dType, isHWv1)
 		if armatureObj is not None:
 			bone = armatureObj.data.bones[boneName]
@@ -932,7 +973,7 @@ def parseBillboard(romfile, currentAddress,
 
 	return (currentAddress, boneName, finalTransform)
 
-def parseShadow(romfile, currentAddress, currentTransform, 
+def parseShadow(romfile, currentAddress, currentTransform,
 	armatureObj, parentBoneName, ignoreNode, nodeIndex,
 	segmentData):
 	print("SHADOW " + hex(currentAddress))
@@ -947,14 +988,14 @@ def parseShadow(romfile, currentAddress, currentTransform,
 		elif shadowType > 50 and shadowType < 99: # Rectangle Shadow
 			shadowType = 50
 		else: # Invalid shadow
-			shadowType = 0 
+			shadowType = 0
 	shadowSolidity = int.from_bytes(command[4:6], 'big')
 	shadowScale = int.from_bytes(command[6:8], 'big')
 
 	if not ignoreNode:
 		boneName = format(nodeIndex, '03') + "-shadow"
 		if armatureObj is not None:
-			boneName = createBone(armatureObj, parentBoneName, boneName,		
+			boneName = createBone(armatureObj, parentBoneName, boneName,
 				currentTransform, 'Shadow', False)
 			bone = armatureObj.data.bones[boneName]
 			bone.shadow_type = str(shadowType)
@@ -966,18 +1007,18 @@ def parseShadow(romfile, currentAddress, currentTransform,
 	currentAddress += commandSize
 	return currentAddress, boneName, copy.deepcopy(currentTransform)
 
-def parseStart(romfile, currentAddress, currentTransform, 
+def parseStart(romfile, currentAddress, currentTransform,
 	armatureObj, parentBoneName, ignoreNode, nodeIndex,
 	segmentData):
 	print("START " + hex(currentAddress))
-	
+
 	commandSize = 4
 	romfile.seek(currentAddress)
 
 	if not ignoreNode:
 		boneName = format(nodeIndex, '03') + "-start"
 		if armatureObj is not None:
-			boneName = createBone(armatureObj, parentBoneName, boneName,		
+			boneName = createBone(armatureObj, parentBoneName, boneName,
 				currentTransform, 'Start', False)
 	else:
 		boneName = None
@@ -985,11 +1026,11 @@ def parseStart(romfile, currentAddress, currentTransform,
 	currentAddress += commandSize
 	return currentAddress, boneName, copy.deepcopy(currentTransform)
 
-def parseStartWithRenderArea(romfile, currentAddress, currentTransform, 
+def parseStartWithRenderArea(romfile, currentAddress, currentTransform,
 	armatureObj, parentBoneName, ignoreNode, nodeIndex,
 	segmentData):
 	print("START W/ RENDER AREA" + hex(currentAddress))
-	
+
 	commandSize = 4
 	romfile.seek(currentAddress)
 	command = romfile.read(commandSize)
@@ -998,7 +1039,7 @@ def parseStartWithRenderArea(romfile, currentAddress, currentTransform,
 	if not ignoreNode:
 		boneName = format(nodeIndex, '03') + "-start_render_area"
 		if armatureObj is not None:
-			boneName = createBone(armatureObj, parentBoneName, boneName,		
+			boneName = createBone(armatureObj, parentBoneName, boneName,
 				currentTransform, 'StartRenderArea', False)
 			bone = armatureObj.data.bones[boneName]
 			bone.geo_cmd = 'StartRenderArea'
@@ -1009,7 +1050,7 @@ def parseStartWithRenderArea(romfile, currentAddress, currentTransform,
 	currentAddress += commandSize
 	return currentAddress, boneName, copy.deepcopy(currentTransform)
 
-def parseFunction(romfile, currentAddress, currentTransform, 
+def parseFunction(romfile, currentAddress, currentTransform,
 	armatureObj, parentBoneName, ignoreNode, nodeIndex,
 	segmentData):
 	print("Function " + hex(currentAddress))
@@ -1023,7 +1064,7 @@ def parseFunction(romfile, currentAddress, currentTransform,
 
 	boneName = format(nodeIndex, '03') + "-asm"
 	if armatureObj is not None and not ignoreNode:
-		boneName = createBone(armatureObj, parentBoneName, boneName,		
+		boneName = createBone(armatureObj, parentBoneName, boneName,
 			currentTransform, 'Function', False)
 		bone = armatureObj.data.bones[boneName]
 		bone.geo_func = asmFunc
@@ -1032,7 +1073,7 @@ def parseFunction(romfile, currentAddress, currentTransform,
 	currentAddress += commandSize
 	return currentAddress
 
-def parseHeldObject(romfile, currentAddress, currentTransform,	
+def parseHeldObject(romfile, currentAddress, currentTransform,
 	armatureObj, parentBoneName, ignoreNode, nodeIndex, segmentData):
 	print("HELD OBJECT " + hex(currentAddress))
 	commandSize = 12
@@ -1048,11 +1089,11 @@ def parseHeldObject(romfile, currentAddress, currentTransform,
 	if not ignoreNode:
 		boneName = format(nodeIndex, '03') + "-held_object"
 		if armatureObj is not None:
-			boneName = createBone(armatureObj, parentBoneName, boneName,		
+			boneName = createBone(armatureObj, parentBoneName, boneName,
 				finalTransform, 'HeldObject', False)
 			bone = armatureObj.data.bones[boneName]
 			bone.geo_func = asmFunc
-	
+
 	currentAddress += commandSize
 	return currentAddress, finalTransform
 
@@ -1063,7 +1104,7 @@ def getMarioBoneName(startRelativeAddr, armatureData, default = 'sm64_mesh'):
 	except Exception:
 		return default
 
-def assignMarioGeoMetadata(obj, commandAddress, geoStartAddress, 
+def assignMarioGeoMetadata(obj, commandAddress, geoStartAddress,
 	cmdType, armatureData, lastTransRotAddr = None):
 
 	# for geo_pointer reading offsets:
@@ -1077,13 +1118,13 @@ def assignMarioGeoMetadata(obj, commandAddress, geoStartAddress,
 		'geo_cmd_type'			: cmdType,
 		'geo_has_mesh'			: len(obj.data.loops) > 0,
 		'geo_top_overlap_ptr'	: None,
-		'geo_other_overlap_ptrs': [] 
+		'geo_other_overlap_ptrs': []
 	}
 
 	# actual value doesn't matter, just a flag
 	if lastTransRotAddr is not None:
 		sm64_geo_meta['geo_trans_ptr'] = lastTransRotAddr
-	
+
 	obj['sm64_geo_meta'] = sm64_geo_meta
 
 	if armatureData is not None:
@@ -1150,7 +1191,7 @@ class SM64_ImportGeolayout(bpy.types.Operator):
 			armatureObj = None
 
 			# Get segment data
-			levelParsed = parseLevelAtPointer(romfileSrc, 
+			levelParsed = parseLevelAtPointer(romfileSrc,
 				level_pointers[levelGeoImport])
 			segmentData = levelParsed.segmentData
 			geoStart = int(geoImportAddr, 16)
@@ -1159,11 +1200,11 @@ class SM64_ImportGeolayout(bpy.types.Operator):
 					geoStart.to_bytes(4, 'big'), segmentData)
 
 			# Armature mesh groups includes armatureObj.
-			armatureMeshGroups, armatureObj = parseGeoLayout(romfileSrc, 
+			armatureMeshGroups, armatureObj = parseGeoLayout(romfileSrc,
 				geoStart,
-			 	context.scene, segmentData, 
-				finalTransform, generateArmature, 
-				ignoreSwitch, True, context.scene.f3d_type, 
+			 	context.scene, segmentData,
+				finalTransform, generateArmature,
+				ignoreSwitch, True, context.scene.f3d_type,
 				context.scene.isHWv1)
 			romfileSrc.close()
 
@@ -1178,7 +1219,7 @@ class SM64_ImportGeolayout(bpy.types.Operator):
 					armatureMeshGroup[0].select_set(True)
 					bpy.context.view_layer.objects.active = armatureMeshGroup[0]
 					bpy.ops.object.make_single_user(obdata = True)
-					bpy.ops.object.transform_apply(location = False, 
+					bpy.ops.object.transform_apply(location = False,
 						rotation = True, scale = False, properties =  False)
 			else:
 				doRotation(math.radians(-90), 'X')
@@ -1191,7 +1232,7 @@ class SM64_ImportGeolayout(bpy.types.Operator):
 		except Exception as e:
 			if context.mode != 'OBJECT':
 				bpy.ops.object.mode_set(mode = 'OBJECT')
-			
+
 			if romfileSrc is not None:
 				romfileSrc.close()
 			raisePluginError(self, e)

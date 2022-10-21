@@ -1,13 +1,51 @@
-import bpy, mathutils, math, re, os, copy, shutil
-from .sm64_constants import *
+import bpy, os, copy, shutil
+from bpy.utils import register_class, unregister_class
+from mathutils import Matrix
+from math import radians
+from ..panels import SM64_Panel, sm64GoalImport
 from .sm64_level_parser import parseLevelAtPointer
 from .sm64_rom_tweaks import ExtendBank0x04
 from .sm64_geolayout_bone import animatableBoneTypes
-from math import pi
-from bpy.utils import register_class, unregister_class
 
-from ..utility import *
-from ..panels import SM64_Panel, sm64GoalImport
+from ..utility import (
+	CData,
+	PluginError,
+	ValueFrameData,
+	raisePluginError,
+	encodeSegmentedAddr,
+	decodeSegmentedAddr,
+	getExportDir,
+	toAlnum,
+	writeIfNotFound,
+	get64bitAlignedAddr,
+	writeInsertableFile,
+	getFrameInterval,
+	findStartBones,
+	saveTranslationFrame,
+	saveQuaternionFrame,
+	removeTrailingFrames,
+	applyRotation,
+	getPathAndLevel,
+	applyBasicTweaks,
+	checkExpanded,
+	tempName,
+	bytesToHex,
+	prop_split,
+	customExportWarning,
+	decompFolderMessage,
+	makeWriteInfoBox,
+	writeBoxExportType,
+	enumExportHeaderType,
+)
+
+from .sm64_constants import (
+	bank0Segment,
+	insertableBinaryTypes,
+	level_pointers,
+	defaultExtendSegment4,
+	level_enums,
+	enumLevelNames,
+)
 
 sm64_anim_types = {'ROTATE', 'TRANSLATE'}
 
@@ -17,7 +55,7 @@ class SM64_Animation:
 		self.header = None
 		self.indices = SM64_ShortArray(name + '_indices', False)
 		self.values = SM64_ShortArray(name + '_values', True)
-	
+
 	def get_ptr_offsets(self, isDMA):
 		return [12, 16] if not isDMA else []
 
@@ -25,7 +63,7 @@ class SM64_Animation:
 		return self.header.to_binary(segmentData, isDMA, startAddress) + \
 			self.indices.to_binary() + \
 			self.values.to_binary()
-	
+
 	def to_c(self):
 		data = CData()
 		data.header = "extern const struct Animation *const " + self.name + '[];\n'
@@ -39,14 +77,14 @@ class SM64_ShortArray:
 		self.name = name
 		self.shortData = []
 		self.signed = signed
-	
+
 	def to_binary(self):
 		data = bytearray(0)
 		for short in self.shortData:
 			# All euler values have been pre-converted to positive values, so don't care about signed.
 			data += short.to_bytes(2, 'big', signed = False)
 		return data
-	
+
 	def to_c(self):
 		data = 'static const ' + ('s' if self.signed else 'u') + \
 			'16 ' + self.name + '[] = {\n\t'
@@ -61,7 +99,7 @@ class SM64_ShortArray:
 		return data
 
 class SM64_AnimationHeader:
-	def __init__(self, name, repetitions, marioYOffset, frameInterval, 
+	def __init__(self, name, repetitions, marioYOffset, frameInterval,
 		nodeCount, transformValuesStart, transformIndicesStart, animSize):
 		self.name = name
 		self.repetitions = repetitions
@@ -71,7 +109,7 @@ class SM64_AnimationHeader:
 		self.transformValuesStart = transformValuesStart
 		self.transformIndicesStart = transformIndicesStart
 		self.animSize = animSize # DMA animations only
-		
+
 		self.transformIndices = []
 
 	# presence of segmentData indicates DMA.
@@ -139,7 +177,7 @@ def getLastKeyframeTime(keyframes):
 # add data/table files
 def exportAnimationC(armatureObj, loopAnim, dirPath, dirName, groupName,
 	customExport, headerType, levelName):
-	dirPath, texDir = getExportDir(customExport, dirPath, headerType, 
+	dirPath, texDir = getExportDir(customExport, dirPath, headerType,
 		levelName, '', dirName)
 
 	sm64_anim = exportAnimationCommon(armatureObj, loopAnim, dirName + "_anim")
@@ -183,7 +221,7 @@ def exportAnimationC(armatureObj, loopAnim, dirPath, dirName, groupName,
 		tableFile.write('const struct Animation *const ' + \
 			animsName + '[] = {\n\tNULL,\n};\n')
 		tableFile.close()
-	
+
 	stringData = ""
 	with open(tableFilePath, 'r') as f:
 		stringData = f.read()
@@ -191,7 +229,7 @@ def exportAnimationC(armatureObj, loopAnim, dirPath, dirName, groupName,
 	# if animation header isn´t already in the table then add it.
 	if sm64_anim.header.name not in stringData:
 
-		# search for the NULL value which represents the end of the table 
+		# search for the NULL value which represents the end of the table
 		# (this value is not present in vanilla animation tables)
 		footerIndex = stringData.rfind('\tNULL,\n')
 
@@ -202,11 +240,11 @@ def exportAnimationC(armatureObj, loopAnim, dirPath, dirName, groupName,
 			# if that can´t be found then throw an error.
 			if footerIndex == -1:
 				raise PluginError("Animation table´s footer does not seem to exist.")
-			
+
 			stringData = stringData[:footerIndex] + '\tNULL,\n' + stringData[footerIndex:]
 
 		stringData = stringData[:footerIndex] + f'\t&{sm64_anim.header.name},\n' + stringData[footerIndex:]
-		
+
 		with open(tableFilePath, 'w') as f:
 			f.write(stringData)
 
@@ -233,7 +271,7 @@ def exportAnimationBinary(romfile, exportRange, armatureObj, DMAAddresses,
 	sm64_anim = exportAnimationCommon(armatureObj, loopAnim, armatureObj.name)
 
 	animData = sm64_anim.to_binary(segmentData, isDMA, startAddress)
-	
+
 	if startAddress + len(animData) > exportRange[1]:
 		raise PluginError('Size too big: Data ends at ' + \
 			hex(startAddress + len(animData)) +\
@@ -264,15 +302,15 @@ def exportAnimationInsertableBinary(filepath, armatureObj, isDMA, loopAnim):
 	segmentData = copy.copy(bank0Segment)
 
 	animData = sm64_anim.to_binary(segmentData, isDMA, startAddress)
-	
+
 	if startAddress + len(animData) > 0xFFFFFF:
 		raise PluginError('Size too big: Data ends at ' + \
 			hex(startAddress + len(animData)) +\
 			', which is larger than the specified range.')
-	
+
 	writeInsertableFile(filepath, insertableBinaryTypes['Animation'],
 		sm64_anim.get_ptr_offsets(isDMA), startAddress, animData)
-	
+
 
 def exportAnimationCommon(armatureObj, loopAnim, name):
 	if armatureObj.animation_data is None or \
@@ -294,7 +332,7 @@ def exportAnimationCommon(armatureObj, loopAnim, name):
 
 	repetitions = 0 if loopAnim else 1
 	marioYOffset = 0x00 # ??? Seems to be this value for most animations
-	
+
 	transformValuesOffset = 0
 	headerSize = 0x1A
 	transformIndicesStart = headerSize #0x18 if including animSize?
@@ -302,7 +340,7 @@ def exportAnimationCommon(armatureObj, loopAnim, name):
 	# all node rotations + root translation
 	# *3 for each property (xyz) and *4 for entry size
 	# each keyframe stored as 2 bytes
-	# transformValuesStart = transformIndicesStart + (nodeCount + 1) * 3 * 4 
+	# transformValuesStart = transformIndicesStart + (nodeCount + 1) * 3 * 4
 	transformValuesStart = transformIndicesStart
 
 	for translationFrameProperty in translationData:
@@ -327,16 +365,16 @@ def exportAnimationCommon(armatureObj, loopAnim, name):
 			transformValuesStart += 4
 			for value in boneFrameDataProperty.frames:
 				sm64_anim.values.shortData.append(value)
-	
+
 	animSize = headerSize + len(sm64_anim.indices.shortData) * 2 + \
 		len(sm64_anim.values.shortData) * 2
-	
+
 	sm64_anim.header = SM64_AnimationHeader(sm64_anim.name, repetitions,
-		marioYOffset, [frame_start, frame_last + 1], nodeCount, transformValuesStart, 
+		marioYOffset, [frame_start, frame_last + 1], nodeCount, transformValuesStart,
 		transformIndicesStart, animSize)
-	
+
 	return sm64_anim
-	
+
 def convertAnimationData(anim, armatureObj, *, frame_start, frame_count):
 	bonesToProcess = findStartBones(armatureObj)
 	currentBone = armatureObj.data.bones[bonesToProcess[0]]
@@ -356,7 +394,7 @@ def convertAnimationData(anim, armatureObj, *, frame_start, frame_count):
 		# Traverse children in alphabetical order.
 		childrenNames = sorted([bone.name for bone in currentBone.children])
 		bonesToProcess = childrenNames + bonesToProcess
-	
+
 	# list of boneFrameData, which is [[x frames], [y frames], [z frames]]
 	translationData = [ValueFrameData(0, i, []) for i in range(3)]
 	armatureFrameData = [[
@@ -373,14 +411,14 @@ def convertAnimationData(anim, armatureObj, *, frame_start, frame_count):
 		# Hacky solution to handle Z-up to Y-up conversion
 		translation = \
 			(rootBone.matrix.to_4x4().inverted() @\
-			mathutils.Matrix.Scale(bpy.context.scene.blenderToSM64Scale, 4) @ rootPoseBone.matrix).decompose()[0]
+			Matrix.Scale(bpy.context.scene.blenderToSM64Scale, 4) @ rootPoseBone.matrix).decompose()[0]
 		saveTranslationFrame(translationData, translation)
 
 		for boneIndex in range(len(animBones)):
 			boneName = animBones[boneIndex]
 			currentBone = armatureObj.data.bones[boneName]
 			currentPoseBone = armatureObj.pose.bones[boneName]
-			
+
 			rotationValue = \
 				(currentBone.matrix.to_4x4().inverted() @ \
 				currentPoseBone.matrix).to_quaternion()
@@ -388,11 +426,11 @@ def convertAnimationData(anim, armatureObj, *, frame_start, frame_count):
 				rotationValue = (
 					currentBone.matrix.to_4x4().inverted() @ currentPoseBone.parent.matrix.inverted() @ \
 					currentPoseBone.matrix).to_quaternion()
-				
+
 				# rest pose local, compared to current pose local
-			
+
 			saveQuaternionFrame(armatureFrameData[boneIndex], rotationValue)
-	
+
 	bpy.context.scene.frame_set(currentFrame)
 	removeTrailingFrames(translationData)
 	for frameData in armatureFrameData:
@@ -414,7 +452,7 @@ def getNextBone(boneStack, armatureObj):
 		bone = armatureObj.data.bones[boneStack[0]]
 		boneStack = boneStack[1:]
 		boneStack = sorted([child.name for child in bone.children]) + boneStack
-	
+
 	return bone, boneStack
 
 def importAnimationToBlender(romfile, startAddress, armatureObj, segmentData, isDMA):
@@ -453,7 +491,7 @@ def importAnimationToBlender(romfile, startAddress, armatureObj, segmentData, is
 			bone, boneStack = getNextBone(boneStack, armatureObj)
 			for propertyIndex in range(3):
 				fcurve = anim.fcurves.new(
-					data_path = 'pose.bones["' + bone.name + '"].rotation_euler', 
+					data_path = 'pose.bones["' + bone.name + '"].rotation_euler',
 					index = propertyIndex,
 					action_group = bone.name)
 				for frame in range(len(boneFrameData[propertyIndex])):
@@ -462,10 +500,10 @@ def importAnimationToBlender(romfile, startAddress, armatureObj, segmentData, is
 	if armatureObj.animation_data is None:
 		armatureObj.animation_data_create()
 	armatureObj.animation_data.action = anim
-		
+
 def readAnimation(name, romfile, startAddress, segmentData, isDMA):
 	animationHeader = readAnimHeader(name, romfile, startAddress, segmentData, isDMA)
-	
+
 	print("Frames: " + str(animationHeader.frameInterval[1]) + " / Nodes: " + str(animationHeader.nodeCount))
 
 	animationHeader.transformIndices = readAnimIndices(
@@ -510,7 +548,7 @@ def getKeyFramesRotation(romfile, transformValuesStart, boneIndex):
 	for frame in range(boneIndex.numFrames):
 		romfile.seek(ptrToValue + frame * 2)
 		value = int.from_bytes(romfile.read(2), 'big') * 360 / (2**16)
-		keyframes.append(math.radians(value))
+		keyframes.append(radians(value))
 
 	return keyframes
 
@@ -546,7 +584,7 @@ def readAnimHeader(name, romfile, startAddress, segmentData, isDMA):
 
 	romfile.seek(startAddress + 0x0C)
 	transformValuesOffset = int.from_bytes(romfile.read(4), 'big')
-	if isDMA:	
+	if isDMA:
 		transformValuesStart = startAddress + transformValuesOffset
 	else:
 		transformValuesStart = decodeSegmentedAddr(
@@ -563,7 +601,7 @@ def readAnimHeader(name, romfile, startAddress, segmentData, isDMA):
 	romfile.seek(startAddress + 0x14)
 	animSize = int.from_bytes(romfile.read(4), 'big')
 
-	return SM64_AnimationHeader(name, numRepeats, marioYOffset, frameInterval, numNodes, 
+	return SM64_AnimationHeader(name, numRepeats, marioYOffset, frameInterval, numNodes,
 		transformValuesStart, transformIndicesStart, animSize)
 
 def readAnimIndices(romfile, ptrAddress, nodeCount):
@@ -628,16 +666,16 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 
 		try:
 			# Rotate all armatures 90 degrees
-			applyRotation([armatureObj], 
-				math.radians(90), 'X')
+			applyRotation([armatureObj],
+				radians(90), 'X')
 
 			if context.scene.fast64.sm64.exportType == 'C':
-				exportPath, levelName = getPathAndLevel(context.scene.animCustomExport, 
-					context.scene.animExportPath, context.scene.animLevelName, 
+				exportPath, levelName = getPathAndLevel(context.scene.animCustomExport,
+					context.scene.animExportPath, context.scene.animLevelName,
 					context.scene.animLevelOption)
 				if not context.scene.animCustomExport:
 					applyBasicTweaks(exportPath)
-				exportAnimationC(armatureObj, context.scene.loopAnimation, 
+				exportAnimationC(armatureObj, context.scene.loopAnimation,
 					exportPath, bpy.context.scene.animName,
 					bpy.context.scene.animGroupName,
 					context.scene.animCustomExport, context.scene.animExportHeaderType, levelName)
@@ -645,7 +683,7 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 			elif context.scene.fast64.sm64.exportType == 'Insertable Binary':
 				exportAnimationInsertableBinary(
 					bpy.path.abspath(context.scene.animInsertableBinaryPath),
-					armatureObj, context.scene.isDMAExport, 
+					armatureObj, context.scene.isDMAExport,
 					context.scene.loopAnimation)
 				self.report({'INFO'}, 'Success! Animation at ' +\
 					context.scene.animInsertableBinaryPath)
@@ -653,17 +691,17 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 				checkExpanded(bpy.path.abspath(context.scene.exportRom))
 				tempROM = tempName(context.scene.outputRom)
 				romfileExport = \
-					open(bpy.path.abspath(context.scene.exportRom), 'rb')	
-				shutil.copy(bpy.path.abspath(context.scene.exportRom), 
+					open(bpy.path.abspath(context.scene.exportRom), 'rb')
+				shutil.copy(bpy.path.abspath(context.scene.exportRom),
 					bpy.path.abspath(tempROM))
 				romfileExport.close()
 				romfileOutput = open(bpy.path.abspath(tempROM), 'rb+')
-			
+
 				# Note actual level doesn't matter for Mario, since he is in all of 	them
 				levelParsed = parseLevelAtPointer(romfileOutput, level_pointers		[context.scene.levelAnimExport])
 				segmentData = levelParsed.segmentData
 				if context.scene.extendBank4:
-					ExtendBank0x04(romfileOutput, segmentData, 
+					ExtendBank0x04(romfileOutput, segmentData,
 						defaultExtendSegment4)
 
 				DMAAddresses = None
@@ -675,7 +713,7 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 						int(context.scene.DMAEntryAddress, 16)
 
 				addrRange, nonDMAListPtr = exportAnimationBinary(
-					romfileOutput, [int(context.scene.animExportStart, 16), 
+					romfileOutput, [int(context.scene.animExportStart, 16),
 					int(context.scene.animExportEnd, 16)],
 					bpy.context.active_object,
 					DMAAddresses, segmentData, context.scene.isDMAExport,
@@ -694,13 +732,13 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 						romfileOutput.write(bytearray([context.scene.animListIndexExport]))
 				else:
 					segmentedPtr = None
-						
+
 				romfileOutput.close()
 				if os.path.exists(bpy.path.abspath(context.scene.outputRom)):
 					os.remove(bpy.path.abspath(context.scene.outputRom))
 				os.rename(bpy.path.abspath(tempROM),
 					bpy.path.abspath(context.scene.outputRom))
-	
+
 				if not context.scene.isDMAExport:
 					if context.scene.setAnimListIndex:
 						self.report({'INFO'}, 'Sucess! Animation table at ' + \
@@ -714,12 +752,12 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 				else:
 					self.report({'INFO'}, 'Success! Animation at (' + \
 						hex(addrRange[0]) + ', ' + hex(addrRange[1]) + ').')
-			
-			applyRotation([armatureObj], 
-				math.radians(-90), 'X')
+
+			applyRotation([armatureObj],
+				radians(-90), 'X')
 		except Exception as e:
-			applyRotation([armatureObj], 
-				math.radians(-90), 'X')
+			applyRotation([armatureObj],
+				radians(-90), 'X')
 
 			if romfileOutput is not None:
 				romfileOutput.close()
@@ -757,10 +795,10 @@ class SM64_ExportAnimPanel(SM64_Panel):
 					prop_split(col, context.scene, 'animLevelOption', 'Level')
 					if context.scene.animLevelOption == 'custom':
 						prop_split(col, context.scene, 'animLevelName', 'Level Name')
-				
+
 				decompFolderMessage(col)
 				writeBox = makeWriteInfoBox(col)
-				writeBoxExportType(writeBox, context.scene.animExportHeaderType, 
+				writeBoxExportType(writeBox, context.scene.animExportHeaderType,
 					context.scene.animName, context.scene.animLevelName,
 					context.scene.animLevelOption)
 
@@ -772,20 +810,20 @@ class SM64_ExportAnimPanel(SM64_Panel):
 			if context.scene.isDMAExport:
 				col.prop(context.scene, 'animOverwriteDMAEntry')
 				if context.scene.animOverwriteDMAEntry:
-					prop_split(col, context.scene, 'DMAStartAddress', 
+					prop_split(col, context.scene, 'DMAStartAddress',
 						'DMA Start Address')
-					prop_split(col, context.scene, 'DMAEntryAddress', 
+					prop_split(col, context.scene, 'DMAEntryAddress',
 						'DMA Entry Address')
 			else:
 				col.prop(context.scene, 'setAnimListIndex')
 				if context.scene.setAnimListIndex:
-					prop_split(col, context.scene, 'addr_0x27', 
+					prop_split(col, context.scene, 'addr_0x27',
 						'27 Command Address')
 					prop_split(col, context.scene, 'animListIndexExport',
 						'Anim List Index')
 					col.prop(context.scene, 'overwrite_0x28')
 					if context.scene.overwrite_0x28:
-						prop_split(col, context.scene, 'addr_0x28', 
+						prop_split(col, context.scene, 'addr_0x28',
 							'28 Command Address')
 				col.prop(context.scene, 'levelAnimExport')
 			col.separator()
@@ -808,7 +846,7 @@ class SM64_ImportAnimMario(bpy.types.Operator):
 			raisePluginError(self, e)
 			return {'CANCELLED'}
 		try:
-			levelParsed = parseLevelAtPointer(romfileSrc, 
+			levelParsed = parseLevelAtPointer(romfileSrc,
 				level_pointers[context.scene.levelAnimImport])
 			segmentData = levelParsed.segmentData
 
@@ -827,9 +865,9 @@ class SM64_ImportAnimMario(bpy.types.Operator):
 			armatureObj = context.active_object
 			if type(armatureObj.data) is not bpy.types.Armature:
 				raise PluginError("Armature not selected.")
-			
-			importAnimationToBlender(romfileSrc, 
-				animStart, armatureObj, 
+
+			importAnimationToBlender(romfileSrc,
+				animStart, armatureObj,
 				segmentData, context.scene.isDMAImport)
 			romfileSrc.close()
 			self.report({'INFO'}, 'Success!')
@@ -854,13 +892,13 @@ class SM64_ImportAnimPanel(SM64_Panel):
 		if not context.scene.isDMAImport:
 			col.prop(context.scene, 'animIsAnimList')
 			if context.scene.animIsAnimList:
-				prop_split(col, context.scene, 'animListIndexImport', 
+				prop_split(col, context.scene, 'animListIndexImport',
 					'Anim List Index')
 
 		prop_split(col, context.scene, 'animStartImport', 'Start Address')
 		col.prop(context.scene, 'animIsSegPtr')
 		col.prop(context.scene, 'levelAnimImport')
-	
+
 sm64_anim_classes = (
 	SM64_ExportAnimMario,
 	SM64_ImportAnimMario,
@@ -926,7 +964,7 @@ def sm64_anim_register():
 		name = 'Custom Export Path')
 	bpy.types.Scene.animExportHeaderType = bpy.props.EnumProperty(
 		items = enumExportHeaderType, name = 'Header Export', default = 'Actor')
-	bpy.types.Scene.animLevelName = bpy.props.StringProperty(name = 'Level', 
+	bpy.types.Scene.animLevelName = bpy.props.StringProperty(name = 'Level',
 		default = 'bob')
 	bpy.types.Scene.animLevelOption = bpy.props.EnumProperty(
 		items = enumLevelNames, name = 'Level', default = 'bob')

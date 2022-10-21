@@ -1,8 +1,21 @@
-import bpy
+from bpy.ops import object
+from bpy.types import Bone, Object, Panel, Operator, Armature, Mesh, Material, PropertyGroup
 from bpy.utils import register_class, unregister_class
+from ..utility import PluginError, prop_split, obj_scale_is_unified
+from ..f3d.f3d_material import sm64EnumDrawLayers
 from .sm64_geolayout_utility import createBoneGroups, addBoneToGroup
-from ..utility import prop_split, PluginError
-from ..f3d.f3d_material import *
+
+from bpy.props import (
+	StringProperty,
+	IntProperty,
+	FloatProperty,
+	BoolProperty,
+	PointerProperty,
+	CollectionProperty,
+	EnumProperty,
+	FloatVectorProperty,
+)
+
 
 enumBoneType = [
 	("Switch", "Switch (0x0E)", "Switch"),
@@ -27,7 +40,7 @@ enumBoneType = [
 animatableBoneTypes = {"DisplayListWithOffset", "CustomAnimated"}
 
 enumGeoStaticType = [
-	("Billboard", "Billboard (0x14)", "Billboard"), 
+	("Billboard", "Billboard (0x14)", "Billboard"),
 	("DisplayListWithOffset", "Animated Part (0x13)", "Animated Part (Animatable Bone)"),
 	("Optimal", "Optimal", "Optimal"),
 ]
@@ -36,7 +49,7 @@ enumFieldLayout = [
 	('0', 'Translate And Rotate', 'Translate And Rotate'),
 	('1', 'Translate', 'Translate'),
 	('2', 'Rotate', 'Rotate'),
-	#('3', 'Rotate Y', 'Rotate Y'), 
+	#('3', 'Rotate Y', 'Rotate Y'),
 	# Rotate Y complicates exporting code, so we treat it as Rotate.
 ]
 
@@ -62,8 +75,8 @@ enumMatOverrideOptions = [
 	("Specific", 'Specific', 'Only override instances of give material.'),
 ]
 
-def drawGeoInfo(panel: bpy.types.Panel, bone: bpy.types.Bone):
-	
+def drawGeoInfo(panel: Panel, bone: Bone):
+
 	panel.layout.box().label(text = 'Geolayout Inspector')
 	if bone is None:
 		panel.layout.label(text = 'Edit geolayout properties in Pose mode.')
@@ -73,16 +86,16 @@ def drawGeoInfo(panel: bpy.types.Panel, bone: bpy.types.Bone):
 
 	prop_split(col, bone, 'geo_cmd', 'Geolayout Command')
 
-	if bone.geo_cmd in ['TranslateRotate', 'Translate', 'Rotate', 
+	if bone.geo_cmd in ['TranslateRotate', 'Translate', 'Rotate',
 		'Billboard', 'DisplayList', 'Scale', 'DisplayListWithOffset', 'CustomAnimated']:
 		drawLayerWarningBox(col, bone, "draw_layer")
 
 	if bone.geo_cmd == 'Scale':
 		prop_split(col, bone, 'geo_scale', 'Scale')
-	
+
 	elif bone.geo_cmd == 'HeldObject':
 		prop_split(col, bone, 'geo_func', 'Function')
-	
+
 	elif bone.geo_cmd == 'Switch':
 		prop_split(col, bone, 'geo_func', 'Function')
 		prop_split(col, bone, 'func_param', 'Parameter')
@@ -97,7 +110,7 @@ def drawGeoInfo(panel: bpy.types.Panel, bone: bpy.types.Bone):
 		infoBox2 = col.box()
 		infoBox2.label(text = 'This affects the next sibling bone in ' +\
 			'alphabetical order.')
-	
+
 	elif bone.geo_cmd == 'TranslateRotate':
 		prop_split(col, bone, 'field_layout', 'Field Layout')
 
@@ -105,13 +118,13 @@ def drawGeoInfo(panel: bpy.types.Panel, bone: bpy.types.Bone):
 		prop_split(col, bone, 'shadow_type', 'Type')
 		prop_split(col, bone, 'shadow_solidity', 'Alpha')
 		prop_split(col, bone, 'shadow_scale', 'Scale')
-	
+
 	elif bone.geo_cmd == 'StartRenderArea':
 		infoBoxRenderArea = col.box()
 		infoBoxRenderArea.label(text = "WARNING: This command is deprecated for bones.")
 		infoBoxRenderArea.label(text = 'See the object properties window for the armature instead.')
 		prop_split(col, bone, 'culling_radius', 'Culling Radius')
-	
+
 	elif bone.geo_cmd in {'CustomAnimated', 'CustomNonAnimated'}:
 		prop_split(col, bone.fast64.sm64, 'custom_geo_cmd_macro', 'Geo Command Macro')
 		if bone.geo_cmd == 'CustomNonAnimated':
@@ -120,25 +133,25 @@ def drawGeoInfo(panel: bpy.types.Panel, bone: bpy.types.Bone):
 			infobox = col.box()
 			infobox.label(text = "Command's args will be filled with layer, translate, and rotate", icon = "INFO")
 			infobox.label(text = "e.g. `GEO_CUSTOM(layer, tX, tY, tZ, rX, rY, rZ, displayList)`")
-	
+
 	#if bone.geo_cmd == 'SwitchOption':
 	#	prop_split(col, bone, 'switch_bone', 'Switch Bone')
 
 	layerInfoBox = panel.layout.box()
-	layerInfoBox.label(text = 
+	layerInfoBox.label(text =
 		'Regular bones (0x13) are on armature layer 0.')
-	layerInfoBox.label(text = 
+	layerInfoBox.label(text =
 		'Other bones are on armature layer 1.')
-	layerInfoBox.label(text = 
+	layerInfoBox.label(text =
 		"'Ignore' bones are on any layer.")
 
-class GeolayoutBonePanel(bpy.types.Panel):
+class GeolayoutBonePanel(Panel):
 	bl_label = "Geolayout Inspector"
 	bl_idname = "BONE_PT_SM64_Geolayout_Inspector"
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
 	bl_context = "bone"
-	bl_options = {'HIDE_HEADER'} 
+	bl_options = {'HIDE_HEADER'}
 
 	@classmethod
 	def poll(cls, context):
@@ -147,18 +160,18 @@ class GeolayoutBonePanel(bpy.types.Panel):
 	def draw(self, context):
 		drawGeoInfo(self, context.bone)
 
-class GeolayoutArmaturePanel(bpy.types.Panel):
+class GeolayoutArmaturePanel(Panel):
 	bl_label = "Geolayout Armature Inspector"
 	bl_idname = "OBJECT_PT_SM64_Armature_Geolayout_Inspector"
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
 	bl_context = "object"
-	bl_options = {'HIDE_HEADER'} 
+	bl_options = {'HIDE_HEADER'}
 
 	@classmethod
 	def poll(cls, context):
 		return context.scene.gameEditorMode == "SM64" and context.object is not None and \
-			isinstance(context.object.data, bpy.types.Armature)
+			isinstance(context.object.data, Armature)
 
 	def draw(self, context):
 		obj = context.object
@@ -176,18 +189,18 @@ def drawLayerWarningBox(layout, prop, data):
 	warningBox.label(text = "This applies to v3 materials and down only.", icon = 'LOOP_FORWARDS')
 	warningBox.label(text = "This is moved to material settings in v4+.")
 
-class GeolayoutObjectPanel(bpy.types.Panel):
+class GeolayoutObjectPanel(Panel):
 	bl_label = "Object Geolayout Inspector"
 	bl_idname = "OBJECT_PT_SM64_Object_Geolayout_Inspector"
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
 	bl_context = "object"
-	bl_options = {'HIDE_HEADER'} 
+	bl_options = {'HIDE_HEADER'}
 
 	@classmethod
 	def poll(cls, context):
 		return context.scene.gameEditorMode == "SM64" and context.object is not None and \
-			isinstance(context.object.data, bpy.types.Mesh)
+			isinstance(context.object.data, Mesh)
 
 	def draw(self, context):
 		obj = context.object
@@ -224,25 +237,25 @@ class GeolayoutObjectPanel(bpy.types.Panel):
 			col.prop(obj, 'scaleFromGeolayout')
 		#prop_split(col, obj, 'room_num', 'Room')
 
-class MaterialPointerProperty(bpy.types.PropertyGroup):
-	material : bpy.props.PointerProperty(type = bpy.types.Material)
+class MaterialPointerProperty(PropertyGroup):
+	material : PointerProperty(type = Material)
 
-class SwitchOptionProperty(bpy.types.PropertyGroup):
-	switchType : bpy.props.EnumProperty(name = 'Option Type', 
+class SwitchOptionProperty(PropertyGroup):
+	switchType : EnumProperty(name = 'Option Type',
 		items = enumSwitchOptions)
-	optionArmature : bpy.props.PointerProperty(name = 'Option Armature', 
-		type = bpy.types.Object)
-	materialOverride : bpy.props.PointerProperty(type = bpy.types.Material,
+	optionArmature : PointerProperty(name = 'Option Armature',
+		type = Object)
+	materialOverride : PointerProperty(type = Material,
 		name = 'Material Override')
-	materialOverrideType : bpy.props.EnumProperty(name = 'Material Override Type', 
+	materialOverrideType : EnumProperty(name = 'Material Override Type',
 		items = enumMatOverrideOptions)
-	specificOverrideArray : bpy.props.CollectionProperty(type = MaterialPointerProperty,
+	specificOverrideArray : CollectionProperty(type = MaterialPointerProperty,
 		name = 'Specified Materials To Override')
-	specificIgnoreArray : bpy.props.CollectionProperty(type = MaterialPointerProperty,
+	specificIgnoreArray : CollectionProperty(type = MaterialPointerProperty,
 		name = 'Specified Materials To Ignore')
-	overrideDrawLayer : bpy.props.BoolProperty()
-	drawLayer : bpy.props.EnumProperty(items = sm64EnumDrawLayers, name = 'Draw Layer')
-	expand : bpy.props.BoolProperty()
+	overrideDrawLayer : BoolProperty()
+	drawLayer : EnumProperty(items = sm64EnumDrawLayers, name = 'Draw Layer')
+	expand : BoolProperty()
 
 def drawSwitchOptionProperty(layout, switchOption, index):
 	box = layout.box()
@@ -254,7 +267,7 @@ def drawSwitchOptionProperty(layout, switchOption, index):
 		prop_split(box, switchOption, 'switchType', 'Type')
 		if switchOption.switchType == 'Material':
 			prop_split(box, switchOption, 'materialOverride', 'Material')
-			prop_split(box, switchOption, 'materialOverrideType', 
+			prop_split(box, switchOption, 'materialOverrideType',
 				"Material Override Type")
 			if switchOption.materialOverrideType == 'Specific':
 				matArrayBox = box.box()
@@ -266,7 +279,7 @@ def drawSwitchOptionProperty(layout, switchOption, index):
 				matArrayBox.label(text = "Specified Materials To Ignore")
 				drawMatArray(matArrayBox, index, switchOption,
 					switchOption.specificIgnoreArray, False)
-			prop_split(box, switchOption, 'overrideDrawLayer', 
+			prop_split(box, switchOption, 'overrideDrawLayer',
 				"Override Draw Layer")
 			if switchOption.overrideDrawLayer:
 				prop_split(box, switchOption, 'drawLayer', 'Draw Layer')
@@ -277,15 +290,15 @@ def drawSwitchOptionProperty(layout, switchOption, index):
 		buttons = box.row(align = True)
 		buttons.operator(RemoveSwitchOption.bl_idname,
 			text = 'Remove Option').option = index
-		buttons.operator(AddSwitchOption.bl_idname, 
+		buttons.operator(AddSwitchOption.bl_idname,
 			text = 'Add Option').option = index + 1
-		
+
 		moveButtons = box.row(align = True)
-		moveUp = moveButtons.operator(MoveSwitchOption.bl_idname, 
+		moveUp = moveButtons.operator(MoveSwitchOption.bl_idname,
 			text = 'Move Up')
 		moveUp.option = index
 		moveUp.offset = -1
-		moveDown = moveButtons.operator(MoveSwitchOption.bl_idname, 
+		moveDown = moveButtons.operator(MoveSwitchOption.bl_idname,
 			text = 'Move Down')
 		moveDown.option = index
 		moveDown.offset = 1
@@ -306,12 +319,12 @@ def drawMatArrayProperty(layout, materialPointer, option, index, isSpecific):
 	removeOp.index = index
 	removeOp.isSpecific = isSpecific
 
-class AddSwitchOptionMat(bpy.types.Operator):
+class AddSwitchOptionMat(Operator):
 	bl_idname = 'bone.add_switch_option_mat'
 	bl_label = 'Add Switch Option Material'
-	bl_options = {'REGISTER', 'UNDO'} 
-	option : bpy.props.IntProperty()
-	isSpecific : bpy.props.BoolProperty()
+	bl_options = {'REGISTER', 'UNDO'}
+	option : IntProperty()
+	isSpecific : BoolProperty()
 	def execute(self, context):
 		bone = context.bone
 		if self.isSpecific:
@@ -319,59 +332,59 @@ class AddSwitchOptionMat(bpy.types.Operator):
 		else:
 			bone.switch_options[self.option].specificIgnoreArray.add()
 		self.report({'INFO'}, 'Success!')
-		return {'FINISHED'} 
+		return {'FINISHED'}
 
-class RemoveSwitchOptionMat(bpy.types.Operator):
+class RemoveSwitchOptionMat(Operator):
 	bl_idname = 'bone.remove_switch_option_mat'
 	bl_label = 'Remove Switch Option Material'
-	bl_options = {'REGISTER', 'UNDO'} 
-	option : bpy.props.IntProperty()
-	index : bpy.props.IntProperty()
-	isSpecific : bpy.props.BoolProperty()
+	bl_options = {'REGISTER', 'UNDO'}
+	option : IntProperty()
+	index : IntProperty()
+	isSpecific : BoolProperty()
 	def execute(self, context):
 		if self.isSpecific:
 			context.bone.switch_options[self.option].specificOverrideArray.remove(self.index)
 		else:
 			context.bone.switch_options[self.option].specificIgnoreArray.remove(self.index)
 		self.report({'INFO'}, 'Success!')
-		return {'FINISHED'} 
+		return {'FINISHED'}
 
-class AddSwitchOption(bpy.types.Operator):
+class AddSwitchOption(Operator):
 	bl_idname = 'bone.add_switch_option'
 	bl_label = 'Add Switch Option'
-	bl_options = {'REGISTER', 'UNDO'} 
-	option : bpy.props.IntProperty()
+	bl_options = {'REGISTER', 'UNDO'}
+	option : IntProperty()
 	def execute(self, context):
 		bone = context.bone
 		bone.switch_options.add()
 		bone.switch_options.move(len(bone.switch_options)-1, self.option)
 		self.report({'INFO'}, 'Success!')
-		return {'FINISHED'} 
+		return {'FINISHED'}
 
-class RemoveSwitchOption(bpy.types.Operator):
+class RemoveSwitchOption(Operator):
 	bl_idname = 'bone.remove_switch_option'
 	bl_label = 'Remove Switch Option'
-	bl_options = {'REGISTER', 'UNDO'} 
-	option : bpy.props.IntProperty()
+	bl_options = {'REGISTER', 'UNDO'}
+	option : IntProperty()
 	def execute(self, context):
 		context.bone.switch_options.remove(self.option)
 		self.report({'INFO'}, 'Success!')
-		return {'FINISHED'} 
+		return {'FINISHED'}
 
-class MoveSwitchOption(bpy.types.Operator):
+class MoveSwitchOption(Operator):
 	bl_idname = 'bone.move_switch_option'
 	bl_label = 'Move Switch Option'
-	bl_options = {'REGISTER', 'UNDO'} 
-	option : bpy.props.IntProperty()
-	offset : bpy.props.IntProperty()
+	bl_options = {'REGISTER', 'UNDO'}
+	option : IntProperty()
+	offset : IntProperty()
 	def execute(self, context):
 		bone = context.bone
 		bone.switch_options.move(self.option, self.option + self.offset)
 		self.report({'INFO'}, 'Success!')
-		return {'FINISHED'} 
+		return {'FINISHED'}
 
 '''
-class GeolayoutBoneSidePanel(bpy.types.Panel):
+class GeolayoutBoneSidePanel(Panel):
 	bl_idname = "SM64_Geolayout_Inspector_Side"
 	bl_label = "SM64 Geolayout Inspector"
 	bl_space_type = 'VIEW_3D'
@@ -410,16 +423,16 @@ def updateBone(self, context):
 	createBoneGroups(armatureObj)
 	if context.bone.geo_cmd not in animatableBoneTypes:
 		addBoneToGroup(armatureObj, context.bone.name, context.bone.geo_cmd)
-		bpy.ops.object.mode_set(mode="POSE")
+		object.mode_set(mode="POSE")
 	else:
 		addBoneToGroup(armatureObj, context.bone.name, None)
-		bpy.ops.object.mode_set(mode="POSE")
+		object.mode_set(mode="POSE")
 
-class SM64_BoneProperties(bpy.types.PropertyGroup):
-	version: bpy.props.IntProperty(name="SM64_BoneProperties Version", default=0)
+class SM64_BoneProperties(PropertyGroup):
+	version: IntProperty(name="SM64_BoneProperties Version", default=0)
 
-	custom_geo_cmd_macro: bpy.props.StringProperty(name="Geo Command Macro", default="GEO_BONE")
-	custom_geo_cmd_args: bpy.props.StringProperty(name="Geo Command Args", default="")
+	custom_geo_cmd_macro: StringProperty(name="Geo Command Macro", default="GEO_BONE")
+	custom_geo_cmd_args: StringProperty(name="Geo Command Args", default="")
 
 
 sm64_bone_classes = (
@@ -450,119 +463,119 @@ def sm64_bone_panel_unregister():
 def sm64_bone_register():
 	for cls in sm64_bone_classes:
 		register_class(cls)
-	
-	bpy.types.Bone.geo_cmd = bpy.props.EnumProperty(
-		name = 'Geolayout Command', items = enumBoneType, 
+
+	Bone.geo_cmd = EnumProperty(
+		name = 'Geolayout Command', items = enumBoneType,
 		default = 'DisplayListWithOffset', update = updateBone)
 
-	bpy.types.Bone.draw_layer = bpy.props.EnumProperty(
+	Bone.draw_layer = EnumProperty(
 		name = 'Draw Layer', items = sm64EnumDrawLayers, default = '1')
-	
+
 	# Scale
-	bpy.types.Bone.geo_scale = bpy.props.FloatProperty(
+	Bone.geo_scale = FloatProperty(
 		name = 'Scale', min = 2**(-16), max = 2**(16), default = 1)
 
 	# Function, HeldObject, Switch
-	# 8027795C for HeldObject 
-	bpy.types.Bone.geo_func = bpy.props.StringProperty(
-		name = 'Function', default = '', 
+	# 8027795C for HeldObject
+	Bone.geo_func = StringProperty(
+		name = 'Function', default = '',
 		description = 'Name of function for C, hex address for binary.')
-	
+
 	# Function
-	bpy.types.Bone.func_param = bpy.props.IntProperty(
+	Bone.func_param = IntProperty(
 		name = 'Function Parameter', min = -2**(15), max = 2**(15) - 1, default = 0)
 
 	# TranslateRotate
-	bpy.types.Bone.field_layout = bpy.props.EnumProperty(
+	Bone.field_layout = EnumProperty(
 		name = 'Field Layout', items = enumFieldLayout, default = '0')
 
 	# Shadow
-	bpy.types.Bone.shadow_type = bpy.props.EnumProperty(
+	Bone.shadow_type = EnumProperty(
 		name = 'Shadow Type', items = enumShadowType, default = '1')
-	
-	bpy.types.Bone.shadow_solidity = bpy.props.FloatProperty(
+
+	Bone.shadow_solidity = FloatProperty(
 		name = 'Shadow Alpha', min = 0, max = 1, default = 1)
-	
-	bpy.types.Bone.shadow_scale = bpy.props.IntProperty(
+
+	Bone.shadow_scale = IntProperty(
 		name = 'Shadow Scale', min = -2**(15), max = 2**(15) - 1, default = 100)
 
-	#bpy.types.Bone.switch_bone = bpy.props.StringProperty(
+	#Bone.switch_bone = StringProperty(
 	#	name = 'Switch Bone')
 
 	# StartRenderArea
-	bpy.types.Bone.culling_radius = bpy.props.FloatProperty(
+	Bone.culling_radius = FloatProperty(
 		name = 'Culling Radius', default = 10)
 
 
-	bpy.types.Bone.switch_options = bpy.props.CollectionProperty(
+	Bone.switch_options = CollectionProperty(
 		type = SwitchOptionProperty)
 
 	# Static Geolayout
-	bpy.types.Object.geo_cmd_static = bpy.props.EnumProperty(
+	Object.geo_cmd_static = EnumProperty(
 		name = 'Geolayout Command',
 		items = enumGeoStaticType, default = 'Optimal')
-	bpy.types.Object.draw_layer_static = bpy.props.EnumProperty(
+	Object.draw_layer_static = EnumProperty(
 		name = 'Draw Layer', items = sm64EnumDrawLayers, default = '1')
-	bpy.types.Object.use_render_area = bpy.props.BoolProperty(
+	Object.use_render_area = BoolProperty(
 		name = 'Use Render Area')
-	bpy.types.Object.culling_radius = bpy.props.FloatProperty(
+	Object.culling_radius = FloatProperty(
 		name = 'Culling Radius', default = 10)
 
-	bpy.types.Object.add_shadow = bpy.props.BoolProperty(
+	Object.add_shadow = BoolProperty(
 		name = 'Add Shadow')
-	bpy.types.Object.shadow_type = bpy.props.EnumProperty(
+	Object.shadow_type = EnumProperty(
 		name = 'Shadow Type', items = enumShadowType, default = '1')
-	
-	bpy.types.Object.shadow_solidity = bpy.props.FloatProperty(
+
+	Object.shadow_solidity = FloatProperty(
 		name = 'Shadow Alpha', min = 0, max = 1, default = 1)
-	
-	bpy.types.Object.shadow_scale = bpy.props.IntProperty(
+
+	Object.shadow_scale = IntProperty(
 		name = 'Shadow Scale', min = -2**(15), max = 2**(15) - 1, default = 100)
 
-	bpy.types.Object.add_func = bpy.props.BoolProperty(
+	Object.add_func = BoolProperty(
 		name = 'Add Function Node')
 
-	bpy.types.Object.use_render_range = bpy.props.BoolProperty(name = 'Use Render Range (LOD)')
-	bpy.types.Object.render_range = bpy.props.FloatVectorProperty(name = 'Render Range', 
+	Object.use_render_range = BoolProperty(name = 'Use Render Range (LOD)')
+	Object.render_range = FloatVectorProperty(name = 'Render Range',
 		size = 2, default = (0,100))
-	
-	bpy.types.Object.scaleFromGeolayout = bpy.props.BoolProperty(
+
+	Object.scaleFromGeolayout = BoolProperty(
 		name = 'Scale from Geolayout',
 		description = 'If scale is all a single value (e.g. 2, 2, 2), do not apply scale when exporting, and instead use GeoLayout to scale. Can be used to enhance precision by setting scaling values to a value less than 1.',
 		default = False
 	)
 
 	# Used during object duplication on export
-	bpy.types.Object.original_name = bpy.props.StringProperty()
+	Object.original_name = StringProperty()
 
 def sm64_bone_unregister():
 	for cls in reversed(sm64_bone_classes):
 		unregister_class(cls)
 
-	del bpy.types.Bone.geo_cmd
-	del bpy.types.Bone.draw_layer
-	del bpy.types.Bone.geo_scale
-	del bpy.types.Bone.geo_func
-	del bpy.types.Bone.func_param
-	del bpy.types.Bone.field_layout
-	del bpy.types.Bone.shadow_type
-	del bpy.types.Bone.shadow_solidity
-	del bpy.types.Bone.shadow_scale
-	del bpy.types.Bone.culling_radius
-	del bpy.types.Bone.switch_options
+	del Bone.geo_cmd
+	del Bone.draw_layer
+	del Bone.geo_scale
+	del Bone.geo_func
+	del Bone.func_param
+	del Bone.field_layout
+	del Bone.shadow_type
+	del Bone.shadow_solidity
+	del Bone.shadow_scale
+	del Bone.culling_radius
+	del Bone.switch_options
 
-	del bpy.types.Object.geo_cmd_static
-	del bpy.types.Object.draw_layer_static
-	del bpy.types.Object.use_render_area
-	del bpy.types.Object.culling_radius
+	del Object.geo_cmd_static
+	del Object.draw_layer_static
+	del Object.use_render_area
+	del Object.culling_radius
 
-	del bpy.types.Object.add_shadow
-	del bpy.types.Object.shadow_type
-	del bpy.types.Object.shadow_solidity
-	del bpy.types.Object.shadow_scale
-	del bpy.types.Object.add_func
+	del Object.add_shadow
+	del Object.shadow_type
+	del Object.shadow_solidity
+	del Object.shadow_scale
+	del Object.add_func
 
-	del bpy.types.Object.use_render_range
-	del bpy.types.Object.render_range
+	del Object.use_render_range
+	del Object.render_range
 
-	del bpy.types.Object.scaleFromGeolayout
+	del Object.scaleFromGeolayout

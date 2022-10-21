@@ -1,5 +1,6 @@
-from ..utility import PluginError
 import bpy
+from ..utility import PluginError
+
 
 def getBoneGroupByName(armatureObj, name):
 	for boneGroup in armatureObj.pose.bone_groups:

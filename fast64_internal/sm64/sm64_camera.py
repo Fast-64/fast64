@@ -1,8 +1,20 @@
-import bpy, math, mathutils
+import bpy
 from bpy.utils import register_class, unregister_class
-from .sm64_geolayout_constants import *
-from .sm64_geolayout_classes import *
-from ..utility import *
+from mathutils import Vector
+from ..utility import colorTo16bitRGBA, gammaCorrect
+
+from .sm64_geolayout_classes import (
+	TransformNode,
+	ScreenAreaNode,
+	ZBufferNode,
+	OrthoNode,
+	BackgroundNode,
+	FrustumNode,
+	CameraNode,
+	StartNode,
+	RenderObjNode,
+	FunctionNode,
+)
 
 enumBackgroundType = [
 	('OCEAN_SKY', 'Ocean Sky', 'Ocean Sky'),
@@ -60,8 +72,8 @@ class CameraSettingsPanel(bpy.types.Panel):
 		#if not camera.useDefaultScreenRect:
 		#	prop_split(layout, camera, 'screenPos', 'Screen Position')
 		#	prop_split(layout, camera, 'screenSize', 'Screen Size')
-		
-		
+
+
 		#prop_split(layout, camera, 'clipPlanes', 'Clip Planes')
 		#prop_split(layout, camera, 'camType', 'Camera Type')
 		#prop_split(layout, camera, 'envType', 'Environment Type')
@@ -71,7 +83,7 @@ def saveCameraSettingsToGeolayout(geolayoutGraph, areaObj, rootObj, meshGeolayou
 	screenAreaNode = TransformNode(ScreenAreaNode(
 		areaObj.useDefaultScreenRect, 0xA, areaObj.screenPos, areaObj.screenSize))
 	geolayout.nodes.insert(0, screenAreaNode)
-	
+
 	if not areaObj.fast64.sm64.area.disable_background:
 		zBufferDisable = TransformNode(ZBufferNode(False))
 		screenAreaNode.children.append(zBufferDisable)
@@ -105,8 +117,8 @@ def saveCameraSettingsToGeolayout(geolayoutGraph, areaObj, rootObj, meshGeolayou
 	#frustumNode = TransformNode(FrustumNode(
 	#	math.degrees(camera.angle), camera.clip_start, camera.clip_end))
 	frustumNode = TransformNode(FrustumNode(
-		areaObj.fov, 
-		areaObj.clipPlanes[0], 
+		areaObj.fov,
+		areaObj.clipPlanes[0],
 		areaObj.clipPlanes[1]))
 	zBufferEnable.children.append(frustumNode)
 
@@ -114,8 +126,8 @@ def saveCameraSettingsToGeolayout(geolayoutGraph, areaObj, rootObj, meshGeolayou
 	relativePosition = relativeTransform.decompose()[0]
 	relativeRotation = relativeTransform.decompose()[1]
 	cameraNode = TransformNode(CameraNode(
-		areaObj.camOption if areaObj.camOption != "Custom" else areaObj.camType, 
-		relativePosition, relativePosition + relativeRotation @ mathutils.Vector((0,0,-1))))
+		areaObj.camOption if areaObj.camOption != "Custom" else areaObj.camType,
+		relativePosition, relativePosition + relativeRotation @ Vector((0,0,-1))))
 	frustumNode.children.append(cameraNode)
 
 	startDLNode = TransformNode(StartNode())
@@ -164,21 +176,21 @@ def sm64_cam_register():
 	#	name = 'Background ID', default = 'BACKGROUND_OCEAN_SKY')
 	#
 	#bpy.types.Camera.backgroundColor = bpy.props.FloatVectorProperty(
-	#	name = 'Background Color', subtype='COLOR', size = 4, 
+	#	name = 'Background Color', subtype='COLOR', size = 4,
 	#	min = 0, max = 1, default = (0,0,0,1))
-	
+
 	#bpy.types.Camera.dynamicFOV = bpy.props.BoolProperty(
 	#	name = 'Dynamic FOV', default = True)
-	
+
 	# Moved to Area Root
 	#bpy.types.Camera.screenPos = bpy.props.IntVectorProperty(
-	#	name = 'Screen Position', size = 2, default = (160, 120), 
+	#	name = 'Screen Position', size = 2, default = (160, 120),
 	#	min = -2**15, max = 2**15 - 1)
 
 	#bpy.types.Camera.screenSize = bpy.props.IntVectorProperty(
-	#	name = 'Screen Size', size = 2, default = (160, 120), 
+	#	name = 'Screen Size', size = 2, default = (160, 120),
 	#	min = -2**15, max = 2**15 - 1)
-	
+
 	#bpy.types.Camera.camType = bpy.props.StringProperty(
 	#	name = 'Camera Type', default = '1')
 

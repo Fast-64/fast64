@@ -1,12 +1,41 @@
-from .sm64_constants import *
-from .sm64_objects import *
+import bpy, shutil, os, math
 from bpy.utils import register_class, unregister_class
+from io import BytesIO
+from mathutils import Matrix, Vector
+from .sm64_constants import level_enums, level_pointers, enumLevelNames, insertableBinaryTypes, defaultExtendSegment4
+from .sm64_objects import SM64_Area, start_process_sm64_objects
 from .sm64_level_parser import parseLevelAtPointer
 from .sm64_rom_tweaks import ExtendBank0x04
-import bpy, shutil, os, math
-from io import BytesIO
-from ..utility import *
 from ..panels import SM64_Panel
+
+from ..utility import (
+	PluginError,
+	CData,
+	toAlnum,
+	raisePluginError,
+	encodeSegmentedAddr,
+	get64bitAlignedAddr,
+	prop_split,
+	getExportDir,
+	writeIfNotFound,
+	deleteIfFound,
+	duplicateHierarchy,
+	cleanupDuplicatedObjects,
+	writeInsertableFile,
+	applyRotation,
+	getPathAndLevel,
+	applyBasicTweaks,
+	tempName,
+	checkExpanded,
+	bytesToHex,
+	applyRotation,
+	customExportWarning,
+	decompFolderMessage,
+	makeWriteInfoBox,
+	writeBoxExportType,
+	enumExportHeaderType,
+)
+
 
 class CollisionVertex:
 	def __init__(self, position):
@@ -20,7 +49,7 @@ class CollisionVertex:
 		for field in self.position:
 			data.extend(int(round(field)).to_bytes(2, 'big', signed = True))
 		return data
-	
+
 	def to_c(self):
 		return 'COL_VERTEX(' + \
 			str(int(round(self.position[0]))) + ', ' + \
@@ -32,7 +61,7 @@ class CollisionTriangle:
 		self.indices = indices
 		self.specialParam = specialParam
 		self.room = room
-	
+
 	def to_binary(self):
 		data = bytearray(0)
 		if len(self.indices) > 3:
@@ -43,7 +72,7 @@ class CollisionTriangle:
 		if self.specialParam is not None:
 			data.extend(int(self.specialParam, 16).to_bytes(2, 'big', signed=False))
 		return data
-	
+
 	def to_c(self):
 		if self.specialParam is None:
 			return 'COL_TRI(' + \
@@ -73,7 +102,7 @@ class Collision:
 		print('Collision ' + self.name + ': ' + str(startAddress) + \
 			', ' + str(self.size()))
 		return startAddress, startAddress + self.size()
-	
+
 	def save_binary(self, romfile):
 		romfile.seek(self.startAddress)
 		romfile.write(self.to_binary())
@@ -105,7 +134,7 @@ class Collision:
 				data.source += '\t' + waterBox.to_c()
 		data.source += '\tCOL_END()\n' + '};\n'
 		return data
-	
+
 	def rooms_name(self):
 		return self.name + '_rooms'
 
@@ -155,12 +184,12 @@ class SM64CollisionPanel(bpy.types.Panel):
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
 	bl_context = "material"
-	bl_options = {'HIDE_HEADER'} 
+	bl_options = {'HIDE_HEADER'}
 
 	@classmethod
 	def poll(cls, context):
 		return (context.scene.gameEditorMode == "SM64" and context.material is not None)
-	
+
 	def paramInfo(self, layout):
 		box = layout.box()
 		box.label(text = "Parameter is two bytes.")
@@ -173,19 +202,19 @@ class SM64CollisionPanel(bpy.types.Panel):
 		#box.label(text = 'Collision Inspector')
 		material = context.material
 		if not material.collision_all_options:
-			prop_split(box, material, 'collision_type_simple', 
+			prop_split(box, material, 'collision_type_simple',
 				'SM64 Collision Type')
 			if material.collision_type_simple == "Custom":
-				prop_split(box, material, 'collision_custom', 
+				prop_split(box, material, 'collision_custom',
 					'Collision Value')
 			#if material.collision_type_simple in specialSurfaces:
 			#	prop_split(box, material, 'collision_param', 'Parameter')
 			#	self.paramInfo(box)
 		else:
-			prop_split(box, material, 'collision_type', 
+			prop_split(box, material, 'collision_type',
 				'SM64 Collision Type All')
 			if material.collision_type == "Custom":
-				prop_split(box, material, 'collision_custom', 
+				prop_split(box, material, 'collision_custom',
 					'Collision Value')
 			#if material.collision_type in specialSurfaces:
 			#	prop_split(box, material, 'collision_param', 'Parameter')
@@ -199,7 +228,7 @@ class SM64CollisionPanel(bpy.types.Panel):
 		if material.use_collision_param:
 			prop_split(box, material, 'collision_param', 'Parameter')
 			self.paramInfo(box)
-				
+
 		#infoBox = box.box()
 		#infoBox.label(text = \
 		#	'For special params, make a vert color layer named "Collision."')
@@ -212,7 +241,7 @@ class SM64ObjectPanel(bpy.types.Panel):
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
 	bl_context = "object"
-	bl_options = {'HIDE_HEADER'} 
+	bl_options = {'HIDE_HEADER'}
 
 	@classmethod
 	def poll(cls, context):
@@ -240,11 +269,11 @@ def exportCollisionBinary(obj, transformMatrix, romfile, startAddress,
 	collision.save_binary(romfile)
 	return start, end
 
-def exportCollisionC(obj, transformMatrix, dirPath, includeSpecials, 
+def exportCollisionC(obj, transformMatrix, dirPath, includeSpecials,
 	includeChildren, name, customExport, writeRoomsFile, headerType,
 	groupName, levelName):
 
-	dirPath, texDir = getExportDir(customExport, dirPath, headerType, 
+	dirPath, texDir = getExportDir(customExport, dirPath, headerType,
 		levelName, '', name)
 
 	name = toAlnum(name)
@@ -291,7 +320,7 @@ def exportCollisionC(obj, transformMatrix, dirPath, includeSpecials,
 			else:
 				deleteIfFound(groupPathC, '\n#include "' + name + '/rooms.inc.c"')
 			writeIfNotFound(groupPathH, '\n#include "' + name + '/collision_header.h"', '\n#endif')
-		
+
 		elif headerType == 'Level':
 			groupPathC = os.path.join(dirPath, "leveldata.c")
 			groupPathH = os.path.join(dirPath, "header.h")
@@ -302,10 +331,10 @@ def exportCollisionC(obj, transformMatrix, dirPath, includeSpecials,
 			else:
 				deleteIfFound(groupPathC, '\n#include "levels/' + levelName + '/' + name + '/rooms.inc.c"')
 			writeIfNotFound(groupPathH, '\n#include "levels/' + levelName + '/' + name + '/collision_header.h"', '\n#endif')
-		
+
 	return cDefine
 
-def exportCollisionInsertableBinary(obj, transformMatrix, filepath, 
+def exportCollisionInsertableBinary(obj, transformMatrix, filepath,
 	includeSpecials, includeChildren):
 	collision = exportCollisionCommon(obj, transformMatrix, includeSpecials,
 		includeChildren, obj.name, None)
@@ -313,18 +342,18 @@ def exportCollisionInsertableBinary(obj, transformMatrix, filepath,
 	if end > 0xFFFFFF:
 		raise PluginError('Size too big: Data ends at ' + hex(end) +\
 			', which is larger than the specified range.')
-	
+
 	bytesIO = BytesIO()
 	collision.save_binary(bytesIO)
 	data = bytesIO.getvalue()[start:]
 	bytesIO.close()
 
-	writeInsertableFile(filepath, insertableBinaryTypes['Collision'], 
+	writeInsertableFile(filepath, insertableBinaryTypes['Collision'],
 		[], collision.startAddress, data)
 
 	return data
 
-def exportCollisionCommon(obj, transformMatrix, includeSpecials, includeChildren, 
+def exportCollisionCommon(obj, transformMatrix, includeSpecials, includeChildren,
 	name, areaIndex):
 	bpy.ops.object.select_all(action = 'DESELECT')
 	obj.select_set(True)
@@ -400,7 +429,7 @@ def addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix, 
 				(x1, y1, z1),
 				(x2, y2, z2),
 				(x3, y3, z3)), specialParam, obj.room_num))
-	
+
 	if includeChildren:
 		for child in obj.children:
 			addCollisionTriangles(child, collisionDict, includeChildren, transformMatrix @ child.matrix_local, areaIndex)
@@ -426,7 +455,7 @@ class CollisionSettings:
 		self.collision_all_options = False
 		self.use_collision_param = False
 		self.collision_param = "0x0000"
-	
+
 	def load(self, material):
 		self.collision_type = material.collision_type
 		self.collision_type_simple = material.collision_type_simple
@@ -461,7 +490,7 @@ class SM64_ExportCollision(bpy.types.Operator):
 			obj = context.active_object
 			#if type(obj.data) is not bpy.types.Mesh:
 			#	raise PluginError("Mesh not selected.")
-		
+
 			#T, R, S = obj.matrix_world.decompose()
 			#objTransform = R.to_matrix().to_4x4() @ \
 			#	mathutils.Matrix.Diagonal(S).to_4x4()
@@ -470,29 +499,29 @@ class SM64_ExportCollision(bpy.types.Operator):
 			#finalTransform = mathutils.Matrix.Identity(4)
 
 			scaleValue = bpy.context.scene.blenderToSM64Scale
-			finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((
+			finalTransform = Matrix.Diagonal(Vector((
 				scaleValue, scaleValue, scaleValue))).to_4x4()
 		except Exception as e:
 			raisePluginError(self, e)
 			return {"CANCELLED"}
-		
+
 		try:
 			applyRotation([obj], math.radians(90), 'X')
 			if context.scene.fast64.sm64.exportType == 'C':
-				exportPath, levelName = getPathAndLevel(context.scene.colCustomExport, 
-					context.scene.colExportPath, context.scene.colLevelName, 
+				exportPath, levelName = getPathAndLevel(context.scene.colCustomExport,
+					context.scene.colExportPath, context.scene.colLevelName,
 					context.scene.colLevelOption)
 				if not context.scene.colCustomExport:
 					applyBasicTweaks(exportPath)
 				exportCollisionC(obj, finalTransform,
 					exportPath, False,
-					context.scene.colIncludeChildren, 
+					context.scene.colIncludeChildren,
 					bpy.context.scene.colName, context.scene.colCustomExport, context.scene.colExportRooms,
 					context.scene.colExportHeaderType, context.scene.colGroupName, levelName)
 				self.report({'INFO'}, 'Success!')
 			elif context.scene.fast64.sm64.exportType == 'Insertable Binary':
-				exportCollisionInsertableBinary(obj, finalTransform, 
-					bpy.path.abspath(context.scene.colInsertableBinaryPath), 
+				exportCollisionInsertableBinary(obj, finalTransform,
+					bpy.path.abspath(context.scene.colInsertableBinaryPath),
 					False, context.scene.colIncludeChildren)
 				self.report({'INFO'}, 'Success! Collision at ' + \
 					context.scene.colInsertableBinaryPath)
@@ -500,23 +529,23 @@ class SM64_ExportCollision(bpy.types.Operator):
 				tempROM = tempName(context.scene.outputRom)
 				checkExpanded(bpy.path.abspath(context.scene.exportRom))
 				romfileExport = \
-					open(bpy.path.abspath(context.scene.exportRom), 'rb')	
-				shutil.copy(bpy.path.abspath(context.scene.exportRom), 
+					open(bpy.path.abspath(context.scene.exportRom), 'rb')
+				shutil.copy(bpy.path.abspath(context.scene.exportRom),
 					bpy.path.abspath(tempROM))
 				romfileExport.close()
 				romfileOutput = open(bpy.path.abspath(tempROM), 'rb+')
 
-				levelParsed = parseLevelAtPointer(romfileOutput, 
+				levelParsed = parseLevelAtPointer(romfileOutput,
 					level_pointers[context.scene.colExportLevel])
 				segmentData = levelParsed.segmentData
 
 				if context.scene.extendBank4:
-					ExtendBank0x04(romfileOutput, segmentData, 
+					ExtendBank0x04(romfileOutput, segmentData,
 						defaultExtendSegment4)
 
 				addrRange = \
-					exportCollisionBinary(obj, finalTransform, romfileOutput, 
-						int(context.scene.colStartAddr, 16), 
+					exportCollisionBinary(obj, finalTransform, romfileOutput,
+						int(context.scene.colStartAddr, 16),
 						int(context.scene.colEndAddr, 16),
 						False, context.scene.colIncludeChildren)
 
@@ -530,7 +559,7 @@ class SM64_ExportCollision(bpy.types.Operator):
 
 				if os.path.exists(bpy.path.abspath(context.scene.outputRom)):
 					os.remove(bpy.path.abspath(context.scene.outputRom))
-				os.rename(bpy.path.abspath(tempROM), 
+				os.rename(bpy.path.abspath(tempROM),
 					bpy.path.abspath(context.scene.outputRom))
 
 				self.report({'INFO'}, 'Success! Collision at (' + \
@@ -567,7 +596,7 @@ class SM64_ExportCollisionPanel(SM64_Panel):
 		propsColE = col.operator(SM64_ExportCollision.bl_idname)
 
 		col.prop(context.scene, 'colIncludeChildren')
-		
+
 		if context.scene.fast64.sm64.exportType == 'C':
 			col.prop(context.scene, 'colExportRooms')
 			col.prop(context.scene, 'colCustomExport')
@@ -584,22 +613,22 @@ class SM64_ExportCollisionPanel(SM64_Panel):
 					prop_split(col, context.scene, 'colLevelOption', 'Level')
 					if context.scene.colLevelOption == 'custom':
 						prop_split(col, context.scene, 'colLevelName', 'Level Name')
-				
+
 				decompFolderMessage(col)
 				writeBox = makeWriteInfoBox(col)
-				writeBoxExportType(writeBox, context.scene.colExportHeaderType, 
+				writeBoxExportType(writeBox, context.scene.colExportHeaderType,
 					context.scene.colName, context.scene.colLevelName, context.scene.colLevelOption)
-			
+
 		elif context.scene.fast64.sm64.exportType == 'Insertable Binary':
 			col.prop(context.scene, 'colInsertableBinaryPath')
 		else:
 			prop_split(col, context.scene, 'colStartAddr', 'Start Address')
 			prop_split(col, context.scene, 'colEndAddr', 'End Address')
-			prop_split(col, context.scene, 'colExportLevel', 
+			prop_split(col, context.scene, 'colExportLevel',
 				'Level Used By Collision')
 			col.prop(context.scene, 'set_addr_0x2A')
 			if context.scene.set_addr_0x2A:
-				prop_split(col, context.scene, 'addr_0x2A', 
+				prop_split(col, context.scene, 'addr_0x2A',
 					'0x2A Behaviour Command Address')
 
 
@@ -627,7 +656,7 @@ def sm64_col_register():
 	# Collision
 	bpy.types.Scene.colExportPath = bpy.props.StringProperty(
 		name = 'Directory', subtype = 'FILE_PATH')
-	bpy.types.Scene.colExportLevel = bpy.props.EnumProperty(items = level_enums, 
+	bpy.types.Scene.colExportLevel = bpy.props.EnumProperty(items = level_enums,
 		name = 'Level Used By Collision', default = 'WF')
 	bpy.types.Scene.addr_0x2A = bpy.props.StringProperty(
 		name = '0x2A Behaviour Command Address', default = '21A9CC')
@@ -649,18 +678,18 @@ def sm64_col_register():
 		name = 'Custom Export Path')
 	bpy.types.Scene.colExportHeaderType = bpy.props.EnumProperty(
 		items = enumExportHeaderType, name = 'Header Export', default = 'Actor')
-	bpy.types.Scene.colGroupName = bpy.props.StringProperty(name = 'Group Name', 
+	bpy.types.Scene.colGroupName = bpy.props.StringProperty(name = 'Group Name',
 		default = 'group0')
-	bpy.types.Scene.colLevelName = bpy.props.StringProperty(name = 'Level', 
+	bpy.types.Scene.colLevelName = bpy.props.StringProperty(name = 'Level',
 		default = 'bob')
 	bpy.types.Scene.colLevelOption = bpy.props.EnumProperty(
 		items = enumLevelNames, name = 'Level', default = 'bob')
-	
+
 	bpy.types.Material.collision_type = bpy.props.EnumProperty(
-		name = 'Collision Type', items = enumCollisionType, 
+		name = 'Collision Type', items = enumCollisionType,
 		default = 'SURFACE_DEFAULT')
 	bpy.types.Material.collision_type_simple = bpy.props.EnumProperty(
-		name = 'Collision Type', items = enumCollisionTypeSimple, 
+		name = 'Collision Type', items = enumCollisionTypeSimple,
 		default = 'SURFACE_DEFAULT')
 	bpy.types.Material.collision_custom = bpy.props.StringProperty(
 		name = 'Collision Value', default = 'SURFACE_DEFAULT')
@@ -673,7 +702,7 @@ def sm64_col_register():
 	bpy.types.Object.sm64_water_box = bpy.props.EnumProperty(
 		name = 'SM64 Water Box', items = enumWaterBoxType, default = 'Water')
 	bpy.types.Object.sm64_special_preset = bpy.props.EnumProperty(
-		name = 'SM64 Special', items = enumSpecialType, 
+		name = 'SM64 Special', items = enumSpecialType,
 		default = 'special_yellow_coin')
 	bpy.types.Object.room_num = bpy.props.IntProperty(
 		name = 'Room', default = 0, min = 0)
@@ -686,7 +715,7 @@ def sm64_col_unregister():
 	del bpy.types.Scene.set_addr_0x2A
 	del bpy.types.Scene.colStartAddr
 	del bpy.types.Scene.colEndAddr
-	del bpy.types.Scene.colInsertableBinaryPath	
+	del bpy.types.Scene.colInsertableBinaryPath
 	del bpy.types.Scene.colExportRooms
 	del bpy.types.Scene.colName
 	del bpy.types.Scene.colCustomExport
@@ -700,7 +729,7 @@ def sm64_col_unregister():
 	del bpy.types.Material.collision_all_options
 	del bpy.types.Material.collision_param
 	del bpy.types.Material.collision_custom
-	
+
 	del bpy.types.Object.sm64_water_box
 	del bpy.types.Object.sm64_special_preset
 
@@ -726,153 +755,153 @@ specialSurfaces = [
 
 class CollisionTypeDefinition:
 	def __init__(self):
-		self.SURFACE_DEFAULT                       = 0x0000 
-		self.SURFACE_BURNING                       = 0x0001 
-		self.SURFACE_0004                          = 0x0004 
-		self.SURFACE_HANGABLE                      = 0x0005 
-		self.SURFACE_SLOW                          = 0x0009 
-		self.SURFACE_DEATH_PLANE                   = 0x000A 
-		self.SURFACE_CLOSE_CAMERA                  = 0x000B 
-		self.SURFACE_WATER                         = 0x000D 
-		self.SURFACE_FLOWING_WATER                 = 0x000E 
-		self.SURFACE_INTANGIBLE                    = 0x0012 
-		self.SURFACE_VERY_SLIPPERY                 = 0x0013 
-		self.SURFACE_SLIPPERY                      = 0x0014 
-		self.SURFACE_NOT_SLIPPERY                  = 0x0015 
-		self.SURFACE_TTM_VINES                     = 0x0016 
-		self.SURFACE_MGR_MUSIC                     = 0x001A 
-		self.SURFACE_INSTANT_WARP_1B               = 0x001B 
-		self.SURFACE_INSTANT_WARP_1C               = 0x001C 
-		self.SURFACE_INSTANT_WARP_1D               = 0x001D 
-		self.SURFACE_INSTANT_WARP_1E               = 0x001E 
-		self.SURFACE_SHALLOW_QUICKSAND             = 0x0021 
-		self.SURFACE_DEEP_QUICKSAND                = 0x0022 
-		self.SURFACE_INSTANT_QUICKSAND             = 0x0023 
-		self.SURFACE_DEEP_MOVING_QUICKSAND         = 0x0024 
-		self.SURFACE_SHALLOW_MOVING_QUICKSAND      = 0x0025 
-		self.SURFACE_QUICKSAND                     = 0x0026 
-		self.SURFACE_MOVING_QUICKSAND              = 0x0027 
-		self.SURFACE_WALL_MISC                     = 0x0028 
-		self.SURFACE_NOISE_DEFAULT                 = 0x0029 
-		self.SURFACE_NOISE_SLIPPERY                = 0x002A 
-		self.SURFACE_HORIZONTAL_WIND               = 0x002C 
-		self.SURFACE_INSTANT_MOVING_QUICKSAND      = 0x002D 
-		self.SURFACE_ICE                           = 0x002E 
-		self.SURFACE_LOOK_UP_WARP                  = 0x002F 
-		self.SURFACE_HARD                          = 0x0030 
-		self.SURFACE_WARP                          = 0x0032 
-		self.SURFACE_TIMER_START                   = 0x0033 
-		self.SURFACE_TIMER_END                     = 0x0034 
-		self.SURFACE_HARD_SLIPPERY                 = 0x0035 
-		self.SURFACE_HARD_VERY_SLIPPERY            = 0x0036 
-		self.SURFACE_HARD_NOT_SLIPPERY             = 0x0037 
-		self.SURFACE_VERTICAL_WIND                 = 0x0038 
-		self.SURFACE_BOSS_FIGHT_CAMERA             = 0x0065 
-		self.SURFACE_CAMERA_FREE_ROAM              = 0x0066 
-		self.SURFACE_THI3_WALLKICK                 = 0x0068 
-		self.SURFACE_CAMERA_PLATFORM               = 0x0069 
-		self.SURFACE_CAMERA_MIDDLE                 = 0x006E 
-		self.SURFACE_CAMERA_ROTATE_RIGHT           = 0x006F 
-		self.SURFACE_CAMERA_ROTATE_LEFT            = 0x0070 
-		self.SURFACE_CAMERA_BOUNDARY               = 0x0072 
-		self.SURFACE_NOISE_VERY_SLIPPERY_73        = 0x0073 
-		self.SURFACE_NOISE_VERY_SLIPPERY_74        = 0x0074 
-		self.SURFACE_NOISE_VERY_SLIPPERY           = 0x0075 
-		self.SURFACE_NO_CAM_COLLISION              = 0x0076 
-		self.SURFACE_NO_CAM_COLLISION_77           = 0x0077 
-		self.SURFACE_NO_CAM_COL_VERY_SLIPPERY      = 0x0078 
-		self.SURFACE_NO_CAM_COL_SLIPPERY           = 0x0079 
-		self.SURFACE_SWITCH                        = 0x007A 
-		self.SURFACE_VANISH_CAP_WALLS              = 0x007B 
-		self.SURFACE_PAINTING_WOBBLE_A6            = 0x00A6 
-		self.SURFACE_PAINTING_WOBBLE_A7            = 0x00A7 
-		self.SURFACE_PAINTING_WOBBLE_A8            = 0x00A8 
-		self.SURFACE_PAINTING_WOBBLE_A9            = 0x00A9 
-		self.SURFACE_PAINTING_WOBBLE_AA            = 0x00AA 
-		self.SURFACE_PAINTING_WOBBLE_AB            = 0x00AB 
-		self.SURFACE_PAINTING_WOBBLE_AC            = 0x00AC 
-		self.SURFACE_PAINTING_WOBBLE_AD            = 0x00AD 
-		self.SURFACE_PAINTING_WOBBLE_AE            = 0x00AE 
-		self.SURFACE_PAINTING_WOBBLE_AF            = 0x00AF 
-		self.SURFACE_PAINTING_WOBBLE_B0            = 0x00B0 
-		self.SURFACE_PAINTING_WOBBLE_B1            = 0x00B1 
-		self.SURFACE_PAINTING_WOBBLE_B2            = 0x00B2 
-		self.SURFACE_PAINTING_WOBBLE_B3            = 0x00B3 
-		self.SURFACE_PAINTING_WOBBLE_B4            = 0x00B4 
-		self.SURFACE_PAINTING_WOBBLE_B5            = 0x00B5 
-		self.SURFACE_PAINTING_WOBBLE_B6            = 0x00B6 
-		self.SURFACE_PAINTING_WOBBLE_B7            = 0x00B7 
-		self.SURFACE_PAINTING_WOBBLE_B8            = 0x00B8 
-		self.SURFACE_PAINTING_WOBBLE_B9            = 0x00B9 
-		self.SURFACE_PAINTING_WOBBLE_BA            = 0x00BA 
-		self.SURFACE_PAINTING_WOBBLE_BB            = 0x00BB 
-		self.SURFACE_PAINTING_WOBBLE_BC            = 0x00BC 
-		self.SURFACE_PAINTING_WOBBLE_BD            = 0x00BD 
-		self.SURFACE_PAINTING_WOBBLE_BE            = 0x00BE 
-		self.SURFACE_PAINTING_WOBBLE_BF            = 0x00BF 
-		self.SURFACE_PAINTING_WOBBLE_C0            = 0x00C0 
-		self.SURFACE_PAINTING_WOBBLE_C1            = 0x00C1 
-		self.SURFACE_PAINTING_WOBBLE_C2            = 0x00C2 
-		self.SURFACE_PAINTING_WOBBLE_C3            = 0x00C3 
-		self.SURFACE_PAINTING_WOBBLE_C4            = 0x00C4 
-		self.SURFACE_PAINTING_WOBBLE_C5            = 0x00C5 
-		self.SURFACE_PAINTING_WOBBLE_C6            = 0x00C6 
-		self.SURFACE_PAINTING_WOBBLE_C7            = 0x00C7 
-		self.SURFACE_PAINTING_WOBBLE_C8            = 0x00C8 
-		self.SURFACE_PAINTING_WOBBLE_C9            = 0x00C9 
-		self.SURFACE_PAINTING_WOBBLE_CA            = 0x00CA 
-		self.SURFACE_PAINTING_WOBBLE_CB            = 0x00CB 
-		self.SURFACE_PAINTING_WOBBLE_CC            = 0x00CC 
-		self.SURFACE_PAINTING_WOBBLE_CD            = 0x00CD 
-		self.SURFACE_PAINTING_WOBBLE_CE            = 0x00CE 
-		self.SURFACE_PAINTING_WOBBLE_CF            = 0x00CF 
-		self.SURFACE_PAINTING_WOBBLE_D0            = 0x00D0 
-		self.SURFACE_PAINTING_WOBBLE_D1            = 0x00D1 
-		self.SURFACE_PAINTING_WOBBLE_D2            = 0x00D2 
-		self.SURFACE_PAINTING_WARP_D3              = 0x00D3 
-		self.SURFACE_PAINTING_WARP_D4              = 0x00D4 
-		self.SURFACE_PAINTING_WARP_D5              = 0x00D5 
-		self.SURFACE_PAINTING_WARP_D6              = 0x00D6 
-		self.SURFACE_PAINTING_WARP_D7              = 0x00D7 
-		self.SURFACE_PAINTING_WARP_D8              = 0x00D8 
-		self.SURFACE_PAINTING_WARP_D9              = 0x00D9 
-		self.SURFACE_PAINTING_WARP_DA              = 0x00DA 
-		self.SURFACE_PAINTING_WARP_DB              = 0x00DB 
-		self.SURFACE_PAINTING_WARP_DC              = 0x00DC 
-		self.SURFACE_PAINTING_WARP_DD              = 0x00DD 
-		self.SURFACE_PAINTING_WARP_DE              = 0x00DE 
-		self.SURFACE_PAINTING_WARP_DF              = 0x00DF 
-		self.SURFACE_PAINTING_WARP_E0              = 0x00E0 
-		self.SURFACE_PAINTING_WARP_E1              = 0x00E1 
-		self.SURFACE_PAINTING_WARP_E2              = 0x00E2 
-		self.SURFACE_PAINTING_WARP_E3              = 0x00E3 
-		self.SURFACE_PAINTING_WARP_E4              = 0x00E4 
-		self.SURFACE_PAINTING_WARP_E5              = 0x00E5 
-		self.SURFACE_PAINTING_WARP_E6              = 0x00E6 
-		self.SURFACE_PAINTING_WARP_E7              = 0x00E7 
-		self.SURFACE_PAINTING_WARP_E8              = 0x00E8 
-		self.SURFACE_PAINTING_WARP_E9              = 0x00E9 
-		self.SURFACE_PAINTING_WARP_EA              = 0x00EA 
-		self.SURFACE_PAINTING_WARP_EB              = 0x00EB 
-		self.SURFACE_PAINTING_WARP_EC              = 0x00EC 
-		self.SURFACE_PAINTING_WARP_ED              = 0x00ED 
-		self.SURFACE_PAINTING_WARP_EE              = 0x00EE 
-		self.SURFACE_PAINTING_WARP_EF              = 0x00EF 
-		self.SURFACE_PAINTING_WARP_F0              = 0x00F0 
-		self.SURFACE_PAINTING_WARP_F1              = 0x00F1 
-		self.SURFACE_PAINTING_WARP_F2              = 0x00F2 
-		self.SURFACE_PAINTING_WARP_F3              = 0x00F3 
-		self.SURFACE_TTC_PAINTING_1                = 0x00F4 
-		self.SURFACE_TTC_PAINTING_2                = 0x00F5 
-		self.SURFACE_TTC_PAINTING_3                = 0x00F6 
-		self.SURFACE_PAINTING_WARP_F7              = 0x00F7 
-		self.SURFACE_PAINTING_WARP_F8              = 0x00F8 
-		self.SURFACE_PAINTING_WARP_F9              = 0x00F9 
-		self.SURFACE_PAINTING_WARP_FA              = 0x00FA 
-		self.SURFACE_PAINTING_WARP_FB              = 0x00FB 
-		self.SURFACE_PAINTING_WARP_FC              = 0x00FC 
-		self.SURFACE_WOBBLING_WARP                 = 0x00FD 
-		self.SURFACE_TRAPDOOR                      = 0x00FF 
+		self.SURFACE_DEFAULT                       = 0x0000
+		self.SURFACE_BURNING                       = 0x0001
+		self.SURFACE_0004                          = 0x0004
+		self.SURFACE_HANGABLE                      = 0x0005
+		self.SURFACE_SLOW                          = 0x0009
+		self.SURFACE_DEATH_PLANE                   = 0x000A
+		self.SURFACE_CLOSE_CAMERA                  = 0x000B
+		self.SURFACE_WATER                         = 0x000D
+		self.SURFACE_FLOWING_WATER                 = 0x000E
+		self.SURFACE_INTANGIBLE                    = 0x0012
+		self.SURFACE_VERY_SLIPPERY                 = 0x0013
+		self.SURFACE_SLIPPERY                      = 0x0014
+		self.SURFACE_NOT_SLIPPERY                  = 0x0015
+		self.SURFACE_TTM_VINES                     = 0x0016
+		self.SURFACE_MGR_MUSIC                     = 0x001A
+		self.SURFACE_INSTANT_WARP_1B               = 0x001B
+		self.SURFACE_INSTANT_WARP_1C               = 0x001C
+		self.SURFACE_INSTANT_WARP_1D               = 0x001D
+		self.SURFACE_INSTANT_WARP_1E               = 0x001E
+		self.SURFACE_SHALLOW_QUICKSAND             = 0x0021
+		self.SURFACE_DEEP_QUICKSAND                = 0x0022
+		self.SURFACE_INSTANT_QUICKSAND             = 0x0023
+		self.SURFACE_DEEP_MOVING_QUICKSAND         = 0x0024
+		self.SURFACE_SHALLOW_MOVING_QUICKSAND      = 0x0025
+		self.SURFACE_QUICKSAND                     = 0x0026
+		self.SURFACE_MOVING_QUICKSAND              = 0x0027
+		self.SURFACE_WALL_MISC                     = 0x0028
+		self.SURFACE_NOISE_DEFAULT                 = 0x0029
+		self.SURFACE_NOISE_SLIPPERY                = 0x002A
+		self.SURFACE_HORIZONTAL_WIND               = 0x002C
+		self.SURFACE_INSTANT_MOVING_QUICKSAND      = 0x002D
+		self.SURFACE_ICE                           = 0x002E
+		self.SURFACE_LOOK_UP_WARP                  = 0x002F
+		self.SURFACE_HARD                          = 0x0030
+		self.SURFACE_WARP                          = 0x0032
+		self.SURFACE_TIMER_START                   = 0x0033
+		self.SURFACE_TIMER_END                     = 0x0034
+		self.SURFACE_HARD_SLIPPERY                 = 0x0035
+		self.SURFACE_HARD_VERY_SLIPPERY            = 0x0036
+		self.SURFACE_HARD_NOT_SLIPPERY             = 0x0037
+		self.SURFACE_VERTICAL_WIND                 = 0x0038
+		self.SURFACE_BOSS_FIGHT_CAMERA             = 0x0065
+		self.SURFACE_CAMERA_FREE_ROAM              = 0x0066
+		self.SURFACE_THI3_WALLKICK                 = 0x0068
+		self.SURFACE_CAMERA_PLATFORM               = 0x0069
+		self.SURFACE_CAMERA_MIDDLE                 = 0x006E
+		self.SURFACE_CAMERA_ROTATE_RIGHT           = 0x006F
+		self.SURFACE_CAMERA_ROTATE_LEFT            = 0x0070
+		self.SURFACE_CAMERA_BOUNDARY               = 0x0072
+		self.SURFACE_NOISE_VERY_SLIPPERY_73        = 0x0073
+		self.SURFACE_NOISE_VERY_SLIPPERY_74        = 0x0074
+		self.SURFACE_NOISE_VERY_SLIPPERY           = 0x0075
+		self.SURFACE_NO_CAM_COLLISION              = 0x0076
+		self.SURFACE_NO_CAM_COLLISION_77           = 0x0077
+		self.SURFACE_NO_CAM_COL_VERY_SLIPPERY      = 0x0078
+		self.SURFACE_NO_CAM_COL_SLIPPERY           = 0x0079
+		self.SURFACE_SWITCH                        = 0x007A
+		self.SURFACE_VANISH_CAP_WALLS              = 0x007B
+		self.SURFACE_PAINTING_WOBBLE_A6            = 0x00A6
+		self.SURFACE_PAINTING_WOBBLE_A7            = 0x00A7
+		self.SURFACE_PAINTING_WOBBLE_A8            = 0x00A8
+		self.SURFACE_PAINTING_WOBBLE_A9            = 0x00A9
+		self.SURFACE_PAINTING_WOBBLE_AA            = 0x00AA
+		self.SURFACE_PAINTING_WOBBLE_AB            = 0x00AB
+		self.SURFACE_PAINTING_WOBBLE_AC            = 0x00AC
+		self.SURFACE_PAINTING_WOBBLE_AD            = 0x00AD
+		self.SURFACE_PAINTING_WOBBLE_AE            = 0x00AE
+		self.SURFACE_PAINTING_WOBBLE_AF            = 0x00AF
+		self.SURFACE_PAINTING_WOBBLE_B0            = 0x00B0
+		self.SURFACE_PAINTING_WOBBLE_B1            = 0x00B1
+		self.SURFACE_PAINTING_WOBBLE_B2            = 0x00B2
+		self.SURFACE_PAINTING_WOBBLE_B3            = 0x00B3
+		self.SURFACE_PAINTING_WOBBLE_B4            = 0x00B4
+		self.SURFACE_PAINTING_WOBBLE_B5            = 0x00B5
+		self.SURFACE_PAINTING_WOBBLE_B6            = 0x00B6
+		self.SURFACE_PAINTING_WOBBLE_B7            = 0x00B7
+		self.SURFACE_PAINTING_WOBBLE_B8            = 0x00B8
+		self.SURFACE_PAINTING_WOBBLE_B9            = 0x00B9
+		self.SURFACE_PAINTING_WOBBLE_BA            = 0x00BA
+		self.SURFACE_PAINTING_WOBBLE_BB            = 0x00BB
+		self.SURFACE_PAINTING_WOBBLE_BC            = 0x00BC
+		self.SURFACE_PAINTING_WOBBLE_BD            = 0x00BD
+		self.SURFACE_PAINTING_WOBBLE_BE            = 0x00BE
+		self.SURFACE_PAINTING_WOBBLE_BF            = 0x00BF
+		self.SURFACE_PAINTING_WOBBLE_C0            = 0x00C0
+		self.SURFACE_PAINTING_WOBBLE_C1            = 0x00C1
+		self.SURFACE_PAINTING_WOBBLE_C2            = 0x00C2
+		self.SURFACE_PAINTING_WOBBLE_C3            = 0x00C3
+		self.SURFACE_PAINTING_WOBBLE_C4            = 0x00C4
+		self.SURFACE_PAINTING_WOBBLE_C5            = 0x00C5
+		self.SURFACE_PAINTING_WOBBLE_C6            = 0x00C6
+		self.SURFACE_PAINTING_WOBBLE_C7            = 0x00C7
+		self.SURFACE_PAINTING_WOBBLE_C8            = 0x00C8
+		self.SURFACE_PAINTING_WOBBLE_C9            = 0x00C9
+		self.SURFACE_PAINTING_WOBBLE_CA            = 0x00CA
+		self.SURFACE_PAINTING_WOBBLE_CB            = 0x00CB
+		self.SURFACE_PAINTING_WOBBLE_CC            = 0x00CC
+		self.SURFACE_PAINTING_WOBBLE_CD            = 0x00CD
+		self.SURFACE_PAINTING_WOBBLE_CE            = 0x00CE
+		self.SURFACE_PAINTING_WOBBLE_CF            = 0x00CF
+		self.SURFACE_PAINTING_WOBBLE_D0            = 0x00D0
+		self.SURFACE_PAINTING_WOBBLE_D1            = 0x00D1
+		self.SURFACE_PAINTING_WOBBLE_D2            = 0x00D2
+		self.SURFACE_PAINTING_WARP_D3              = 0x00D3
+		self.SURFACE_PAINTING_WARP_D4              = 0x00D4
+		self.SURFACE_PAINTING_WARP_D5              = 0x00D5
+		self.SURFACE_PAINTING_WARP_D6              = 0x00D6
+		self.SURFACE_PAINTING_WARP_D7              = 0x00D7
+		self.SURFACE_PAINTING_WARP_D8              = 0x00D8
+		self.SURFACE_PAINTING_WARP_D9              = 0x00D9
+		self.SURFACE_PAINTING_WARP_DA              = 0x00DA
+		self.SURFACE_PAINTING_WARP_DB              = 0x00DB
+		self.SURFACE_PAINTING_WARP_DC              = 0x00DC
+		self.SURFACE_PAINTING_WARP_DD              = 0x00DD
+		self.SURFACE_PAINTING_WARP_DE              = 0x00DE
+		self.SURFACE_PAINTING_WARP_DF              = 0x00DF
+		self.SURFACE_PAINTING_WARP_E0              = 0x00E0
+		self.SURFACE_PAINTING_WARP_E1              = 0x00E1
+		self.SURFACE_PAINTING_WARP_E2              = 0x00E2
+		self.SURFACE_PAINTING_WARP_E3              = 0x00E3
+		self.SURFACE_PAINTING_WARP_E4              = 0x00E4
+		self.SURFACE_PAINTING_WARP_E5              = 0x00E5
+		self.SURFACE_PAINTING_WARP_E6              = 0x00E6
+		self.SURFACE_PAINTING_WARP_E7              = 0x00E7
+		self.SURFACE_PAINTING_WARP_E8              = 0x00E8
+		self.SURFACE_PAINTING_WARP_E9              = 0x00E9
+		self.SURFACE_PAINTING_WARP_EA              = 0x00EA
+		self.SURFACE_PAINTING_WARP_EB              = 0x00EB
+		self.SURFACE_PAINTING_WARP_EC              = 0x00EC
+		self.SURFACE_PAINTING_WARP_ED              = 0x00ED
+		self.SURFACE_PAINTING_WARP_EE              = 0x00EE
+		self.SURFACE_PAINTING_WARP_EF              = 0x00EF
+		self.SURFACE_PAINTING_WARP_F0              = 0x00F0
+		self.SURFACE_PAINTING_WARP_F1              = 0x00F1
+		self.SURFACE_PAINTING_WARP_F2              = 0x00F2
+		self.SURFACE_PAINTING_WARP_F3              = 0x00F3
+		self.SURFACE_TTC_PAINTING_1                = 0x00F4
+		self.SURFACE_TTC_PAINTING_2                = 0x00F5
+		self.SURFACE_TTC_PAINTING_3                = 0x00F6
+		self.SURFACE_PAINTING_WARP_F7              = 0x00F7
+		self.SURFACE_PAINTING_WARP_F8              = 0x00F8
+		self.SURFACE_PAINTING_WARP_F9              = 0x00F9
+		self.SURFACE_PAINTING_WARP_FA              = 0x00FA
+		self.SURFACE_PAINTING_WARP_FB              = 0x00FB
+		self.SURFACE_PAINTING_WARP_FC              = 0x00FC
+		self.SURFACE_WOBBLING_WARP                 = 0x00FD
+		self.SURFACE_TRAPDOOR                      = 0x00FF
 
 		self.SURFACE_CLASS_DEFAULT       = 0x0000
 		self.SURFACE_CLASS_VERY_SLIPPERY = 0x0013
@@ -883,11 +912,11 @@ class CollisionTypeDefinition:
 		self.SURFACE_FLAG_NO_CAM_COLLISION  = (1 << 1)
 		self.SURFACE_FLAG_X_PROJECTION      = (1 << 3)
 
-		self.TERRAIN_LOAD_VERTICES     = 0x0040 
-		self.TERRAIN_LOAD_CONTINUE     = 0x0041 
-		self.TERRAIN_LOAD_END          = 0x0042 
-		self.TERRAIN_LOAD_OBJECTS      = 0x0043 
-		self.TERRAIN_LOAD_ENVIRONMENT  = 0x0044 
+		self.TERRAIN_LOAD_VERTICES     = 0x0040
+		self.TERRAIN_LOAD_CONTINUE     = 0x0041
+		self.TERRAIN_LOAD_END          = 0x0042
+		self.TERRAIN_LOAD_OBJECTS      = 0x0043
+		self.TERRAIN_LOAD_ENVIRONMENT  = 0x0044
 
 		self.TERRAIN_GRASS  = 0x0000
 		self.TERRAIN_STONE  = 0x0001
@@ -898,15 +927,15 @@ class CollisionTypeDefinition:
 		self.TERRAIN_SLIDE  = 0x0006
 		self.TERRAIN_MASK   = 0x0007
 
-	def SURFACE_IS_QUICKSAND(self, cmd):     
-		return (cmd >= 0x21 and cmd <= 0x28)   
-	def SURFACE_IS_NOT_HARD(self, cmd):      
+	def SURFACE_IS_QUICKSAND(self, cmd):
+		return (cmd >= 0x21 and cmd <= 0x28)
+	def SURFACE_IS_NOT_HARD(self, cmd):
 		return (cmd != self.SURFACE_HARD and not (cmd >= 0x35 and cmd <= 0x37))
-	def SURFACE_IS_PAINTING_WARP(self, cmd): 
+	def SURFACE_IS_PAINTING_WARP(self, cmd):
 		return (cmd >= 0xD3 and cmd < 0xFD)
-	def TERRAIN_LOAD_IS_SURFACE_TYPE_LOW(self, cmd) : 
+	def TERRAIN_LOAD_IS_SURFACE_TYPE_LOW(self, cmd) :
 		return  (cmd < 0x40)
-	def TERRAIN_LOAD_IS_SURFACE_TYPE_HIGH(self, cmd) : 
+	def TERRAIN_LOAD_IS_SURFACE_TYPE_HIGH(self, cmd) :
 		return (cmd >= 0x65)
 
 enumSpecialType = [
@@ -916,24 +945,24 @@ enumSpecialType = [
     ('special_unknown_3', 'Unknown 3', 'Unknown 3'),
     ('special_boo', 'Boo', 'Boo'),
     ('special_unknown_5', 'Unknown 5', 'Unknown 5'),
-    ('special_lll_moving_octagonal_mesh_platform', 
+    ('special_lll_moving_octagonal_mesh_platform',
 		'LLL Moving Octagonal Platform', 'LLL Moving Octagonal Platform'),
     ('special_snow_ball', 'Snow Ball', 'Snow Ball'),
-    ('special_lll_drawbridge_spawner', 'LLL Drawbridge Spawner', 
+    ('special_lll_drawbridge_spawner', 'LLL Drawbridge Spawner',
 		'LLL Drawbridge Spawner'),
     ('special_empty_9', 'Empty 9', 'Empty 9'),
-    ('special_lll_rotating_block_with_fire_bars', 
+    ('special_lll_rotating_block_with_fire_bars',
 		'LLL Rotating Block With Fire Bars', 'LLL Rotating Block With Fire Bars'),
-    ('special_lll_floating_wood_bridge', 
+    ('special_lll_floating_wood_bridge',
 		'LLL Floating Wood Bridge', 'LLL Floating Wood Bridge'),
     ('special_tumbling_platform', 'Tumbling Platform', 'Tumbling Platform'),
-    ('special_lll_rotating_hexagonal_ring', 'LLL Rotating Hexagonal Ring', 
+    ('special_lll_rotating_hexagonal_ring', 'LLL Rotating Hexagonal Ring',
 		'LLL Rotating Hexagonal Ring'),
     ('special_lll_sinking_rectangular_platform',
 		'LLL Sinking Rectangular Platform', 'LLL Sinking Rectangular Platform'),
-    ('special_lll_sinking_square_platforms', 'LLL Sinking Square Platforms', 
+    ('special_lll_sinking_square_platforms', 'LLL Sinking Square Platforms',
 		'LLL Sinking Square Platforms'),
-    ('special_lll_tilting_square_platform', 'LLL Tilting Square Platform', 
+    ('special_lll_tilting_square_platform', 'LLL Tilting Square Platform',
 		'LLL Tilting Square Platform'),
     ('special_lll_bowser_puzzle', 'LLL Bowser Puzzle', 'LLL Bowser Puzzle'),
     ('special_mr_i', 'Mr. I', 'Mr. I'),
@@ -952,11 +981,11 @@ enumSpecialType = [
     ('special_empty_31', 'Empty 31', 'Empty 31'),
     ('special_butterfly', 'Butterfly', 'Butterfly'),
     ('special_bowser', 'Bowser', 'Bowser'),
-    ('special_wf_rotating_wooden_platform', 'WF Rotating Wooden Platform', 
+    ('special_wf_rotating_wooden_platform', 'WF Rotating Wooden Platform',
 		'WF Rotating Wooden Platform'),
     ('special_small_bomp', 'Small Bomp', 'Small Bomp'),
     ('special_wf_sliding_platform', 'WF Sliding Platform', 'WF Sliding Platform'),
-    ('special_tower_platform_group', 'Tower Platform Group', 
+    ('special_tower_platform_group', 'Tower Platform Group',
 		'Tower Platform Group'),
     ('special_rotating_counter_clockwise', 'Rotating Counter Clockwise',
 		'Rotating Counter Clockwise'),

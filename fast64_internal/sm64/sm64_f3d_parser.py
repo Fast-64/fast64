@@ -1,12 +1,27 @@
-import bpy
-from ..panels import SM64_Panel, sm64GoalImport
-from ..utility import *
-from ..f3d.f3d_parser import *
+from mathutils import Matrix
+from math import radians
+from bpy.types import Operator, Scene
+from bpy.path import abspath
 from bpy.utils import register_class, unregister_class
+from bpy.ops import object
+from bpy.props import StringProperty, EnumProperty, BoolProperty
+from ..panels import SM64_Panel, sm64GoalImport
+from ..f3d.f3d_parser import F3DtoBlenderObject
 from .sm64_constants import level_enums, level_pointers
 from .sm64_level_parser import parseLevelAtPointer
 
-class SM64_ImportDL(bpy.types.Operator):
+from ..utility import (
+	PluginError,
+	applyRotation,
+	raisePluginError,
+	decodeSegmentedAddr,
+	applyRotation,
+	checkExpanded,
+	prop_split,
+)
+
+
+class SM64_ImportDL(Operator):
 	# set bl_ properties
 	bl_idname = 'object.sm64_import_dl'
 	bl_label = "Import Display List"
@@ -23,21 +38,21 @@ class SM64_ImportDL(bpy.types.Operator):
 			raisePluginError(self, e)
 			return {'CANCELLED'}
 		try:
-			checkExpanded(bpy.path.abspath(context.scene.importRom))
-			romfileSrc = open(bpy.path.abspath(context.scene.importRom), 'rb')
-			levelParsed = parseLevelAtPointer(romfileSrc, 
+			checkExpanded(abspath(context.scene.importRom))
+			romfileSrc = open(abspath(context.scene.importRom), 'rb')
+			levelParsed = parseLevelAtPointer(romfileSrc,
 				level_pointers[context.scene.levelDLImport])
 			segmentData = levelParsed.segmentData
 			start = decodeSegmentedAddr(
 				int(context.scene.DLImportStart, 16).to_bytes(4, 'big'),
 				segmentData) if context.scene.isSegmentedAddrDLImport else \
 				int(context.scene.DLImportStart, 16)
-			readObj = F3DtoBlenderObject(romfileSrc, start, 
-				context.scene, 'sm64_mesh', 
+			readObj = F3DtoBlenderObject(romfileSrc, start,
+				context.scene, 'sm64_mesh',
 				Matrix.Identity(4),
 				segmentData, True)
-			
-			applyRotation([readObj], math.radians(-90), 'X')
+
+			applyRotation([readObj], radians(-90), 'X')
 			romfileSrc.close()
 
 			self.report({'INFO'}, 'Generic import succeeded.')
@@ -45,7 +60,7 @@ class SM64_ImportDL(bpy.types.Operator):
 
 		except Exception as e:
 			if context.mode != 'OBJECT':
-				bpy.ops.object.mode_set(mode = 'OBJECT')
+				object.mode_set(mode = 'OBJECT')
 			if romfileSrc is not None:
 				romfileSrc.close()
 			raisePluginError(self, e)
@@ -86,17 +101,17 @@ def sm64_dl_parser_register():
 	for cls in sm64_dl_parser_classes:
 		register_class(cls)
 
-	bpy.types.Scene.DLImportStart = bpy.props.StringProperty(
+	Scene.DLImportStart = StringProperty(
 		name ='Start Address', default = 'A3BE1C')
-	bpy.types.Scene.levelDLImport = bpy.props.EnumProperty(items = level_enums, 
+	Scene.levelDLImport = EnumProperty(items = level_enums,
 		name = 'Level', default = 'CG')
-	bpy.types.Scene.isSegmentedAddrDLImport = bpy.props.BoolProperty(
+	Scene.isSegmentedAddrDLImport = BoolProperty(
 		name = 'Is Segmented Address', default = False)
 
 def sm64_dl_parser_unregister():
 	for cls in reversed(sm64_dl_parser_classes):
 		unregister_class(cls)
 
-	del bpy.types.Scene.levelDLImport
-	del bpy.types.Scene.DLImportStart
-	del bpy.types.Scene.isSegmentedAddrDLImport
+	del Scene.levelDLImport
+	del Scene.DLImportStart
+	del Scene.isSegmentedAddrDLImport

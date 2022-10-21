@@ -1,12 +1,69 @@
-import shutil, copy, bpy, cProfile, pstats
-
-from ..panels import SM64_Panel
-from ..f3d.f3d_writer import *
-from ..f3d.f3d_material import *
-from ..f3d.f3d_gbi import FMaterial
-from .sm64_texscroll import *
-from .sm64_utility import *
+import shutil, copy, bpy, re, os
+from io import BytesIO
+from math import ceil, log, radians
+from mathutils import Matrix, Vector
 from bpy.utils import register_class, unregister_class
+from ..panels import SM64_Panel
+from ..f3d.f3d_writer import saveTextureIndex, exportF3DCommon
+from ..f3d.f3d_material import TextureProperty, tmemUsageUI, all_combiner_uses, ui_procAnim
+from .sm64_texscroll import modifyTexScrollFiles, modifyTexScrollHeadersGroup
+from .sm64_utility import starSelectWarning
+from .sm64_level_parser import parseLevelAtPointer
+from .sm64_rom_tweaks import ExtendBank0x04
+
+from ..f3d.f3d_gbi import (
+    FMaterial,
+    FModel,
+    GfxFormatter,
+    GfxMatWriteMethod,
+    ScrollMethod,
+    DLFormat,
+    SPDisplayList,
+    GfxList,
+    GfxListTag,
+    FTexRect,
+    DPPipeSync,
+    DPSetCycleType,
+    DPSetTexturePersp,
+    DPSetAlphaCompare,
+    DPSetBlendColor,
+    DPSetRenderMode,
+    SPScisTextureRectangle,
+    SPTexture,
+    SPEndDisplayList,
+    TextureExportSettings,
+    GFX_SIZE,
+)
+
+from ..utility import (
+    CData,
+    PluginError,
+    raisePluginError,
+    prop_split,
+    encodeSegmentedAddr,
+    applyRotation,
+    toAlnum,
+    checkIfPathExists,
+    writeIfNotFound,
+    overwriteData,
+    getExportDir,
+    writeMaterialFiles,
+    writeMaterialHeaders,
+    get64bitAlignedAddr,
+    writeInsertableFile,
+    getPathAndLevel,
+    applyBasicTweaks,
+    checkExpanded,
+    tempName,
+    getAddressFromRAMAddress,
+    bytesToHex,
+    customExportWarning,
+    decompFolderMessage,
+    makeWriteInfoBox,
+    writeBoxExportType,
+    enumExportHeaderType,
+)
+
 from .sm64_constants import (
     level_enums,
     enumLevelNames,
@@ -15,8 +72,6 @@ from .sm64_constants import (
     bank0Segment,
     insertableBinaryTypes,
 )
-from .sm64_level_parser import parseLevelAtPointer
-from .sm64_rom_tweaks import ExtendBank0x04
 
 
 enumHUDExportLocation = [
@@ -277,12 +332,12 @@ def exportTexRectCommon(texProp, f3dType, isHWv1, name, convertTextureData):
 
     texProp.S.low = 0
     texProp.S.high = texProp.tex.size[0] - 1
-    texProp.S.mask = math.ceil(math.log(texProp.tex.size[0], 2) - 0.001)
+    texProp.S.mask = ceil(log(texProp.tex.size[0], 2) - 0.001)
     texProp.S.shift = 0
 
     texProp.T.low = 0
     texProp.T.high = texProp.tex.size[1] - 1
-    texProp.T.mask = math.ceil(math.log(texProp.tex.size[1], 2) - 0.001)
+    texProp.T.mask = ceil(log(texProp.tex.size[1], 2) - 0.001)
     texProp.T.shift = 0
 
     fTexRect = FTexRect(f3dType, isHWv1, toAlnum(name), GfxMatWriteMethod.WriteDifferingAndRevert)
@@ -570,20 +625,20 @@ class SM64_ExportDL(bpy.types.Operator):
 
             # T, R, S = obj.matrix_world.decompose()
             # objTransform = R.to_matrix().to_4x4() @ \
-            # 	mathutils.Matrix.Diagonal(S).to_4x4()
+            # 	Matrix.Diagonal(S).to_4x4()
 
             # finalTransform = (blenderToSM64Rotation * \
             # 	(bpy.context.scene.blenderToSM64Scale)).to_4x4()
-            # finalTransform = mathutils.Matrix.Identity(4)
+            # finalTransform = Matrix.Identity(4)
             scaleValue = bpy.context.scene.blenderToSM64Scale
-            finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((scaleValue, scaleValue, scaleValue))).to_4x4()
+            finalTransform = Matrix.Diagonal(Vector((scaleValue, scaleValue, scaleValue))).to_4x4()
 
         except Exception as e:
             raisePluginError(self, e)
             return {"CANCELLED"}
 
         try:
-            applyRotation([obj], math.radians(90), "X")
+            applyRotation([obj], radians(90), "X")
             if context.scene.fast64.sm64.exportType == "C":
                 exportPath, levelName = getPathAndLevel(
                     context.scene.DLCustomExport,
@@ -693,13 +748,13 @@ class SM64_ExportDL(bpy.types.Operator):
                         + ").",
                     )
 
-            applyRotation([obj], math.radians(-90), "X")
+            applyRotation([obj], radians(-90), "X")
             return {"FINISHED"}  # must return a set
 
         except Exception as e:
             if context.mode != "OBJECT":
                 bpy.ops.object.mode_set(mode="OBJECT")
-            applyRotation([obj], math.radians(-90), "X")
+            applyRotation([obj], radians(-90), "X")
             if context.scene.fast64.sm64.exportType == "Binary":
                 if romfileOutput is not None:
                     romfileOutput.close()
