@@ -5,6 +5,7 @@
 import bpy
 
 import os, struct, math, re
+from mathutils import Vector, Euler, Matrix
 
 from time import time
 from pathlib import Path
@@ -78,6 +79,114 @@ class BinProcess():
         file.write("\n};\n\n")
     def SortDict(self, dictionary):
         return {k:dictionary[k] for k in sorted(dictionary.keys())}
+
+#this class writes bin data out from within the class
+#taken from level splitting tools, staged to be rewritten for blender specifically
+class BinWrite():
+	#when writing a struct that had a ptr, write the loc
+	#do this by searching the class for ptr stored within the cls
+	def WriteLocComment(self, file, dat):
+		try:
+			for k, v in self.__dict__.items():
+				if v == dat:
+					name = k
+					break
+			if hasattr(self, "feature"):
+				#if it is a node cls, then add node num suffix
+				if self.feature == 'node':
+					name += f"_{self.index}"
+			#just let it fail if it wasn't found
+			for k, v in self.ptrs.items():
+				if v == name:
+					loc = k
+			file.write(f"//{name} - 0x{loc:X}\n")
+		except:
+			pass
+	#format arr data
+	def format_arr(self, vals):
+		#infer type from first item of each array
+		if type(vals[0]) == float:
+			return f"{', '.join( [f'{a:f}' for a in vals] )}"
+		#happens during recursion
+		elif type(vals[0]) == str:
+			return ',\n\t'.join(vals)
+		else:
+			return f"{', '.join( [hex(a) for a in vals] )}"
+	#format arr ptr data into string
+	def format_arr_ptr(self, arr, BI = None, ptr_format = "0x"):
+		vals = []
+		for a in arr:
+			if a == 0x99999999 or a == (0x9999, 0x9999):
+				vals.append( f"ARR_TERMINATOR" )
+			elif BI:
+				vals.append( "BANK_INDEX(0x{:X}, 0x{:X})".format(a.bank, a.index) )
+			elif a:
+				#ptrs have to be in bank 4 (really applied to entry pts)
+				if a & 0x04000000 == 0x04000000:
+					vals.append( f"{ptr_format}{a:X}" )
+				else:
+					vals.append( f"0x{a:X}" )
+			else:
+				vals.append( "NULL" )
+		return f"{', '.join( vals )}"
+	#given an array, create a recursive set of lines until no more
+	#iteration is possible
+	def format_iter(self, arr, func, **kwargs):
+		if hasattr(arr[0], "__iter__"):
+			arr = [f"{{{self.format_iter(a, func, **kwargs)}}}" for a in arr]
+		return func(arr, **kwargs)
+	#write generic array, use recursion to unroll all loops
+	def write_arr(self, file, name, arr, func, **kwargs):
+		file.write(f"{name}[] = {{\n\t")
+		#use array formatter func
+		file.write(self.format_iter(arr, func, **kwargs))
+		file.write("\n};\n\n")
+	#sort a dict by keys, useful for making sure DLs are in mem order
+	#instead of being in referenced order
+	def SortDict(self, dictionary):
+		return {k:dictionary[k] for k in sorted(dictionary.keys())}
+	#write a struct from a python dictionary
+	def WriteDictStruct(self, Data: list, Prototype_dict: dict, file: "filestream write", comment: str, name: str, symbols: dict = None):
+		self.WriteLocComment(file, Data)
+		file.write(f"struct {name} = {{\n")
+		for x, y, z in zip(Prototype_dict.values(), Data, Prototype_dict.keys()):
+			#x is (data type, string name, is arr/ptr etc.)
+			#y is the actual variable value
+			#z is the struct hex offset
+			try:
+				arr = 'arr' in x[2] and hasattr(y, "__iter__")
+			except:
+				arr = 0
+			#use symbols if given the flag and given a symbol dict
+			try:
+				ptrs = 'ptr' in x[2] and symbols
+			except:
+				ptrs = 0
+			if ptrs:
+				value = symbols.get(y)
+				if value == "NULL":
+					file.write(f"\t/* 0x{z:X} {x[1]}*/\t{value},\n")
+				elif value:
+					file.write(f"\t/* 0x{z:X} {x[1]}*/\t&{value},\n")
+				else:
+					if arr:
+						value = ', '.join([f"&{symbols.get(a)}" for a in y])
+						file.write(f"\t/* 0x{z:X} {x[1]}*/\t{{{value}}},\n")
+					else:
+						file.write(f"\t/* 0x{z:X} {x[1]}*/\t0x{y:X},\n")
+				continue
+			if "f32" in x[0] and arr:
+				value = ', '.join([f"{a:f}" for a in y])
+				file.write(f"\t/* 0x{z:X} {x[1]}*/\t{{{value}}},\n")
+				continue
+			if "f32" in x[0]:
+				file.write(f"\t/* 0x{z:X} {x[1]}*/\t{y:f},\n")
+			elif arr:
+				value = ', '.join([hex(a) for a in y])
+				file.write(f"\t/* 0x{z:X} {x[1]}*/\t{{{value}}},\n")
+			else:
+				file.write(f"\t/* 0x{z:X} {x[1]}*/\t0x{y:X},\n")
+		file.write("};\n\n")
 
 
 #singleton for breakable block, I don't think this actually works across sessions

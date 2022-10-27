@@ -10,6 +10,8 @@ from .kcs_operators import *
 # ------------------------------------------------------------------------
 
 classes = (
+    StageProp,
+    BankIndex,
     KCS_Scene_Props,
     NodeProp,
     CamProp,

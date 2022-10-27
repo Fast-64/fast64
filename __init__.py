@@ -357,6 +357,7 @@ class Fast64_Properties(bpy.types.PropertyGroup):
     oot: bpy.props.PointerProperty(type=OOT_Properties, name="OOT Properties")
     settings: bpy.props.PointerProperty(type=Fast64Settings_Properties, name="Fast64 Settings")
     renderSettings: bpy.props.PointerProperty(type=Fast64RenderSettings_Properties, name="Fast64 Render Settings")
+    _ptr_props = (SM64_Properties, OOT_Properties, Fast64Settings_Properties, Fast64RenderSettings_Properties)
 
 
 class Fast64_BoneProperties(bpy.types.PropertyGroup):
@@ -366,6 +367,7 @@ class Fast64_BoneProperties(bpy.types.PropertyGroup):
     """
 
     sm64: bpy.props.PointerProperty(type=SM64_BoneProperties, name="SM64 Properties")
+    _ptr_props = (SM64_BoneProperties,)
 
 
 class Fast64_ObjectProperties(bpy.types.PropertyGroup):
@@ -376,6 +378,7 @@ class Fast64_ObjectProperties(bpy.types.PropertyGroup):
 
     sm64: bpy.props.PointerProperty(type=SM64_ObjectProperties, name="SM64 Object Properties")
     oot: bpy.props.PointerProperty(type=OOT_ObjectProperties, name="OOT Object Properties")
+    _ptr_props = (SM64_ObjectProperties, OOT_ObjectProperties)
 
 
 class UpgradeF3DMaterialsDialog(bpy.types.Operator):
@@ -524,7 +527,7 @@ def register():
         print(msg)
         unsupported_exc = Exception("\n\n" + msg)
         raise unsupported_exc
-    # reload_all_modules()
+    reload_all_modules()
     # blender reloads __init__ when the file has been touched, this forces it for debugging purposes
     Path(__file__).touch()
 
@@ -541,6 +544,12 @@ def register():
     kcs_register()
 
     for cls in classes:
+        if hasattr(cls, "_ptr_props"):
+            for prop in cls._ptr_props:
+                try:
+                    register_class(prop)
+                except:
+                    pass
         register_class(cls)
 
     bsdf_conv_panel_regsiter()

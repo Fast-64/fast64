@@ -181,7 +181,7 @@ class level_bin(misc_bin):
         if self.de_tris:
             pops.sort(reverse=True)
             [self.triangles.pop(a) for a in pops]
-            
+
 #for object bins. unused for now
 class object_bin(misc_bin):
     feature = "obj"

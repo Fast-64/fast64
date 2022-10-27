@@ -44,6 +44,8 @@ class OOT_Properties(bpy.types.PropertyGroup):
     DLImportSettings: bpy.props.PointerProperty(type=oot_f3d_writer.OOTDLImportSettings)
     skeletonExportSettings: bpy.props.PointerProperty(type=oot_skeleton.OOTSkeletonExportSettings)
     skeletonImportSettings: bpy.props.PointerProperty(type=oot_skeleton.OOTSkeletonImportSettings)
+    _ptr_props = (OOTBootupSceneOptions, oot_f3d_writer.OOTDLExportSettings, oot_f3d_writer.OOTDLImportSettings,
+    oot_skeleton.OOTSkeletonExportSettings, oot_skeleton.OOTSkeletonImportSettings)
 
 
 oot_classes = (
@@ -89,6 +91,12 @@ def oot_register(registerPanels):
     oot_cutscene.oot_cutscene_register()
 
     for cls in oot_classes:
+        if hasattr(cls, "_ptr_props"):
+            for prop in cls._ptr_props:
+                try:
+                    register_class(prop)
+                except:
+                    pass
         register_class(cls)
 
     if registerPanels:

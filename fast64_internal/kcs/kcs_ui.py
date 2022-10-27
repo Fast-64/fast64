@@ -63,19 +63,18 @@ class KCS_IO_PT_Panel(Panel):
         scene = context.scene
         KCS_scene = scene.KCS_scene
         layout.label(text = "Export Selected Level")
+        KCS_scene.ExpStage.draw(layout)
         layout.operator("kcs.export_area")
         layout.label(text = "Export Selected Geo")
+        KCS_scene.ExpBankID.draw(layout)
         layout.operator("kcs.export_gfx")
         layout.separator()
         layout.label(text="Import Area")
-        layout.prop(KCS_scene, "ImpWorld")
-        layout.prop(KCS_scene, "ImpLevel")
-        layout.prop(KCS_scene, "ImpArea")
+        KCS_scene.ImpStage.draw(layout)
         layout.operator("kcs.import_stage")
         layout.separator()
         layout.label(text = "Import Bank Data")
-        layout.prop(KCS_scene, "ImpBank")
-        layout.prop(KCS_scene, "ImpID")
+        KCS_scene.ImpBankID.draw(layout)
         layout.operator("kcs.import_nld_gfx")
         layout.operator("kcs.import_col")
 
@@ -337,9 +336,6 @@ def draw_Lvl_empty(box,context):
     box.separator()
     box = box.box()
     box.label(text = 'KCS Level Properties')
-    box.prop(lvlprop, "World")
-    box.prop(lvlprop, "Level")
-    box.prop(lvlprop, "Area")
     box.prop(lvlprop, "Skybox_ID")
     box.prop(lvlprop, "Music_ID")
 
@@ -379,6 +375,7 @@ def draw_Gfx(box,context):
     box = box.box()
     box.label(text = 'KCS Gfx Mesh')
     box.label(text = 'Make mesh a child of level graphics empty, or child of another gfx mesh.')
+    box.label(text = 'Will act as empty transform for child meshes.')
 
 #check the proper game enum is selected
 #return True (aka exit) when not KCS

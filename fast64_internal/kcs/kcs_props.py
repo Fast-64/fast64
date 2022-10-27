@@ -32,7 +32,59 @@ def UpdateEnt(objprop,context):
 #    Scene Properties
 # ------------------------------------------------------------------------
 
-#importing
+#World
+class StageProp(PropertyGroup):
+    World: IntProperty(
+        name = "World",
+        description="World to place level in",
+        default = 1,
+        min = 1,
+        max = 7
+        )
+    Level: IntProperty(
+        name = "Level",
+        description="Which level in selected world to overwrite",
+        default = 1,
+        min = 1,
+        max = 5
+        )
+    Area: IntProperty(
+        name = "Area",
+        description = "Area",
+        default = 1,
+        min = 1,
+        max = 10
+        )
+    def draw(self, layout):
+        layout.prop(self, "World")
+        layout.prop(self, "Level")
+        layout.prop(self, "Area")
+    def stage(self):
+        return (self.World, self.Level, self.Area)
+
+#generic bank / ID for various ops
+class BankIndex(PropertyGroup):
+    Bank: IntProperty(
+        name = "Bank",
+        description="Bank for Data",
+        default = 0,
+        min = 0,
+        max = 7
+        )
+    ID: IntProperty(
+        name = "ID",
+        description = "ID for Data",
+        default = 1,
+        min = 1,
+        max = 1200
+        )
+    def draw(self, layout):
+        layout.prop(self, "Bank")
+        layout.prop(self, "ID")
+    def BankID(self):
+        return (self.Bank, self.ID)
+
+#importing / exporting
 class KCS_Scene_Props(PropertyGroup):
     Scale: FloatProperty(
         name = "Scale",
@@ -47,27 +99,14 @@ class KCS_Scene_Props(PropertyGroup):
         maxlen=1024,
         subtype='DIR_PATH'
         )
-    ImpWorld: IntProperty(
-        name = "World",
-        description="World to place level in",
-        default = 1,
-        min = 1,
-        max = 7
-        )
-    ImpLevel: IntProperty(
-        name = "Level",
-        description="Which level in selected world to overwrite",
-        default = 1,
-        min = 1,
-        max = 5
-        )
-    ImpArea: IntProperty(
-        name = "Area",
-        description = "Area",
-        default = 1,
-        min = 1,
-        max = 10
-        )
+    ExpStage: PointerProperty(
+        type = StageProp,
+        description = "Stage to export area into"
+    )
+    ImpStage: PointerProperty(
+        type = StageProp,
+        description = "Stage to import area into"
+    )
     ImpScale: FloatProperty(
         name = "Scale",
         description = "Level Scale",
@@ -75,19 +114,13 @@ class KCS_Scene_Props(PropertyGroup):
         min = 0.0001,
         max = 5000
         )
-    ImpBank: IntProperty(
-        name = "Bank",
-        description="Bank for Non Level Data",
-        default = 0,
-        min = 0,
-        max = 7
+    ExpBankID: PointerProperty(
+        type = BankIndex,
+        description="Bank/Index for Non Level Data",
         )
-    ImpID: IntProperty(
-        name = "ID",
-        description = "ID for Non Level Data",
-        default = 1,
-        min = 1,
-        max = 1200
+    ImpBankID: PointerProperty(
+        type = BankIndex,
+        description="Bank/Index for Non Level Data",
         )
     Format: EnumProperty(
         name = "Format",
@@ -419,28 +452,6 @@ class EntProp(PropertyGroup):
 
 #level base object properties (used for exporting/ID on import)
 class LvlProp(PropertyGroup):
-    World: IntProperty(
-        name = "World",
-        description = "World to place level in",
-        default = 1,
-        min = 1,
-        max = 7
-        )
-
-    Level: IntProperty(
-        name = "Level",
-        description = "Which level in selected world to overwrite",
-        default = 1,
-        min = 1,
-        max = 5
-        )
-    Area: IntProperty(
-        name = "Area",
-        description = "Area",
-        default = 1,
-        min = 1,
-        max = 10
-        )
     Skybox_ID: IntProperty(
         name = "Skybox_ID",
         description="ID of level's skybox",

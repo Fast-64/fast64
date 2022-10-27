@@ -8,7 +8,8 @@ from bpy.types import Operator
 from pathlib import Path
 
 from .kcs_utils import *
-from .kcs_col import AddNode
+from .kcs_gfx import ImportGeoBin, ExportGeoBin
+from .kcs_col import AddNode, ImportColBin
 
 # ------------------------------------------------------------------------
 #    IO Operators
@@ -21,17 +22,15 @@ class KCS_OT_Import_Col(Operator):
     
     def execute(self,context):
         scene = context.scene.KCS_scene
-        file = Path(scene.Decomp_path) / "assets" / "misc" / ("bank_%d"%scene.ImpBank) / ("%d"%scene.ImpID)
+        BankID = scene.ImpBankID.BankID()
+        file = Path(scene.Decomp_path) / "assets" / "misc" / ("bank_%d"%BankID[0]) / ("%d"%BankID[1])
         if scene.Format == "binary":
             name = file / "level.bin"
-            if name.exists():
-                ImportColBin(name, context, f"KCS Col {scene.ImpBank}-{scene.ImpID}")
-            else:
+            if not name.exists():
                 name = file / "misc.bin"
-                if name.exists():
-                    ImportColBin(name, context, f"KCS Col {scene.ImpBank}-{scene.ImpID}")
-                else:
-                    raise Exception(f"Could not find file {name}, misc Bank/ID selected is not a level")
+            if not name.exists():
+                raise Exception(f"Could not find file {name}, geo Bank/ID does not exist")
+            ImportColBin(name, context, "KCS Col {}-{}".format(*BankID))
         else:
             raise Exception("C importing is not supported yet")
         return {'FINISHED'}
@@ -43,17 +42,15 @@ class KCS_OT_Import_NLD_Gfx(Operator):
 
     def execute(self, context):
         scene = context.scene.KCS_scene
-        file = Path(scene.Decomp_path) / "assets" / "geo" / ("bank_%d"%scene.ImpBank) / ("%d"%scene.ImpID)
+        BankID = scene.ImpBankID.BankID()
+        file = Path(scene.Decomp_path) / "assets" / "geo" / ("bank_%d"%BankID[0]) / ("%d"%BankID[1])
         if scene.Format == "binary":
             name = file / "geo.bin"
-            if name.exists():
-                ImportGeoBin(name, context, f"KCS Gfx {scene.ImpBank}-{scene.ImpID}", Path(scene.Decomp_path) / "assets" / "image")
-            else:
+            if not name.exists():
                 name = file / "block.bin"
-                if name.exists():
-                    ImportGeoBin(name, context, f"KCS Gfx {scene.ImpBank}-{scene.ImpID}", Path(scene.Decomp_path) / "assets" / "image")
-                else:
-                    raise Exception(f"Could not find file {name}, geo Bank/ID does not exist")
+            if not name.exists():
+                raise Exception(f"Could not find file {name}, geo Bank/ID does not exist")
+            ImportGeoBin(name, context, "KCS Gfx {}-{}".format(*BankID), Path(scene.Decomp_path) / "assets" / "image")
         else:
             raise Exception("C importing is not supported yet")
         return {'FINISHED'}
@@ -65,30 +62,32 @@ class KCS_OT_Import_Stage(Operator):
     def execute(self, context):
         scene = context.scene.KCS_scene
         stage_table = Path(scene.Decomp_path) / "data" / "misc" / "kirby.066630.2.c" #this will probably change later
-        stage = ParseStageTable(scene.ImpWorld, scene.ImpLevel, scene.ImpArea, stage_table)
+        stage = ParseStageTable(*scene.ImpStage.stage(), stage_table)
+        print(stage)
         
         gfx_bank, gfx_ID = [eval(a) for a in stage['geo']]
         col_bank, col_ID = [eval(a) for a in stage['level_block']]
         
         file_gfx = Path(scene.Decomp_path) / "assets" / "geo" / ("bank_%d" % gfx_bank) / ("%d" % gfx_ID)
         file_col = Path(scene.Decomp_path) / "assets" / "misc" / ("bank_%d" % col_bank) / ("%d" % col_ID)
+        
+        BankID = scene
         if scene.Format == "binary":
             #import gfx
             name = file_gfx / "geo.bin"
-            if name.exists():
-                ImportGeoBin(name,context, f"KCS Level {scene.ImpWorld}-{scene.ImpLevel}-{scene.ImpArea}", Path(scene.Decomp_path) / "assets" / "image")
-            else:
+            if not name.exists():
+                name = file_gfx / "block.bin"
+            if not name.exists():
                 raise Exception(f"Could not find file {name}, geo Bank/ID does not exist")
+            ImportGeoBin(name, context, "KCS Level {}-{}-{}".format(*scene.ImpStage.stage()), Path(scene.Decomp_path) / "assets" / "image")
             #import collision
             name = file_col / "level.bin"
-            if name.exists():
-                ImportColBin(name, context, f"KCS Col {scene.ImpBank}-{scene.ImpID}")
-            else:
+            if not name.exists():
                 name = file_col / "misc.bin"
-                if name.exists():
-                    ImportColBin(name, context, f"KCS Col {scene.ImpBank}-{scene.ImpID}")
-                else:
-                    raise Exception(f"Could not find file {name}, misc Bank/ID selected is not a level")
+            if not name.exists():
+                raise Exception(f"Could not find file {name}, misc Bank/ID selected is not a level")
+            ImportColBin(name, context, "KCS Col {}-{}-{}".format(*scene.ImpStage.stage()))
+
         else:
             raise Exception("C importing is not supported yet")
         return {'FINISHED'}
@@ -105,6 +104,23 @@ class KCS_OT_Export_Gfx(Operator):
     bl_label = "Export Gfx"
     bl_idname = "kcs.export_gfx"
     def execute(self, context):
+        #need a KCS object
+        obj = context.selected_objects[0]
+        while(obj):
+            if not obj.KCS_obj.KCS_obj_type == "Graphics":
+                obj = obj.parent
+            else:
+                break
+        if not obj:
+            raise Exception("Obj is not Empty with type \"Graphics\"")
+        scene = context.scene.KCS_scene
+        BankID = scene.ExpBankID.BankID()
+        file = Path(scene.Decomp_path) / "assets" / "geo" / ("bank_%d"%BankID[0]) / ("%d"%BankID[1])
+        if scene.Format == "binary":
+            name = file / "geo.bin"
+            ExportGeoBin(name, obj, context)
+        else:
+            raise Exception("C importing is not supported yet")
         return {'FINISHED'}
 
 # ------------------------------------------------------------------------

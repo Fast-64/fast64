@@ -15,106 +15,16 @@ from copy import deepcopy
 
 from . import F3DEX2_gbi as f3dex2
 from .kcs_utils import *
+#fast64 imports
+
+from ..utility import (colorToLuminance,
+                    colorTo16bitRGBA)
 
 
-# ------------------------------------------------------------------------
-#    Decorators
-# ------------------------------------------------------------------------
-
-
-#change the render engine to cycles and disable the device so things run faster
-def DisableRender(context):
-    context.scene.render.engine = 'CYCLES'
-
-#time a function
-def time_func(func):
-    # This function shows the execution time of 
-    # the function object passed
-    def wrap_func(*args, **kwargs):
-        t1 = time()
-        result = func(*args, **kwargs)
-        t2 = time()
-        print(f'Function {func.__name__!r} executed in {(t2-t1):.4f}s')
-        return result
-    return wrap_func
 
 # ------------------------------------------------------------------------
 #    Classes
 # ------------------------------------------------------------------------
-
-#singleton for breakable block, I don't think this actually works across sessions
-class BreakableBlockDat():
-    _instance = None
-    _Gfx_mat = None
-    _Col_mat = None
-    _Col_Mesh = None
-    _Gfx_Mesh = None
-    _Verts = [
-    (-40.0, -40.0, -40.0),
-    (-40.0, -40.0, 40.0),
-    (-40.0, 40.0, -40.0),
-    (-40.0, 40.0, 40.0),
-    (40.0, -40.0, -40.0),
-    (40.0, -40.0, 40.0),
-    (40.0, 40.0, -40.0),
-    (40.0, 40.0, 40.0)]
-    _GfxTris = [
-    (1, 2, 0),
-    (3, 6, 2),
-    (7, 4, 6),
-    (5, 0, 4),
-    (6, 0, 2),
-    (3, 5, 7),
-    (1, 3, 2),
-    (3, 7, 6),
-    (7, 5, 4),
-    (5, 1, 0),
-    (6, 4, 0),
-    (3, 1, 5)]
-    _ColTris = [
-    (3, 6, 2),
-    (5, 0, 4),
-    (6, 0, 2),
-    (3, 5, 7),
-    (3, 7, 6),
-    (5, 1, 0),
-    (6, 4, 0),
-    (3, 1, 5)]
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = cls
-        return cls._instance
-    def Instance_Col(self):
-        if self._Col_Mesh:
-            return self._Col_Mesh
-        else:
-            self._Col_Mesh = bpy.data.meshes.new("KCS Block Col")
-            self._Col_Mesh.from_pydata(self._Verts,[],self._ColTris)
-            return self._Col_Mesh
-    def Instance_Gfx(self):
-        if self._Gfx_Mesh:
-            return self._Gfx_Mesh
-        else:
-            self._Gfx_Mesh = bpy.data.meshes.new("KCS Block Gfx")
-            self._Gfx_Mesh.from_pydata(self._Verts,[],self._GfxTris)
-            return self._Gfx_Mesh
-    def Instance_Mat_Gfx(self,obj):
-        if self._Gfx_mat:
-            return self._Gfx_mat
-        bpy.context.view_layer.objects.active = obj
-        bpy.ops.object.create_f3d_mat()
-        self._Gfx_mat = self._Gfx_Mesh.materials[-1]
-        self._Gfx_mat.f3d_mat.combiner1.D = 'TEXEL0'
-        self._Gfx_mat.f3d_mat.combiner1.D_alpha = '1'
-        return self._Gfx_mat
-    def Instance_Mat_Col(self,obj):
-        if self._Col_mat:
-            return self._Col_mat
-        bpy.context.view_layer.objects.active = obj
-        bpy.ops.object.create_f3d_mat()
-        self._Col_mat = self._Col_Mesh.materials[-1]
-        self._Col_mat.KCS_col.ColType = 9
-        return self._Col_mat
 
 #geo data
 
@@ -139,18 +49,27 @@ class Vertices():
     _Vec3 = namedtuple("Vec3", "x y z")
     _UV = namedtuple("UV", "s t")
     _color = namedtuple("rgba", "r g b a")
-    def __init__(self,scale):
+    def __init__(self, scale):
         self.UVs = []
         self.VCs = []
         self.Pos = []
         self.scale = scale
-    def _make(self,v):
+    def _make(self, v):
         self.Pos.append(self.ScaleVerts(self._Vec3._make(v[0:3])))
         self.UVs.append(self._UV._make(v[4:6]))
         self.VCs.append(self._color._make(v[6:10]))
     def ScaleVerts(self, pos):
         v = [a / self.scale for a in pos]
         return v
+    #make from blender verts
+    def bpy_make(self, vert, uv, col, alpha, loop):
+        #vert alpha should be luminance of color afaik
+        alpha = colorToLuminance(alpha.color)
+        rgba = colorTo16bitRGBA(col.color)
+        pos = [int(p) for p in vert.co]
+        norm = [int(p*127) for p in loop.normal] #norm vector has length of 127 on n64
+        uv = [int(p*32) for p in uv.uv] #uvs are fixed 10.5, so multiply by 32 to get n64 size
+        print(pos, uv, rgba, alpha, norm)
 
 #use for extraction,
 TextureScrollStruct = {
@@ -203,7 +122,6 @@ class tx_scroll():
     def __init__(self, *args):
         self.scroll = self._scroll._make(*args)
 
-
 #each texture scroll will start from an array of ptrs, and each ptr will reference
 #tex scroll data
 class Tex_Scroll(BinProcess):
@@ -252,7 +170,7 @@ class Tex_Scroll(BinProcess):
         #write header, separate func because these are at the end of the file
         self.write_arr(file, f"tx_scroll_hdr_{self.ptr:X}", self.scroll_ptrs, ptr_format = "&scroll_")
 
-
+#takes binary input and makes geo block data
 class geo_bin(BinProcess):
     _Vec3 = namedtuple("Vec3", "x y z")
     _texture = namedtuple("texture", "fmt siz bank_index")
@@ -471,13 +389,18 @@ class geo_bin(BinProcess):
             v = self.upt(i,">6h4B",16)
             self.vertices._make(v)
 
+#a data class that will hold various primitive geo classes and then write them out to files
+#population of the classes will be done by bpy_geo or geo_bin
+class geo_write():
+    pass
 
+#interim between bpy props and geo blocks
 class bpy_geo():
-    def __init__(self, rt, collection, scale):
+    def __init__(self, rt, scale):
         self.rt = rt
-        self.collection = collection
         self.scale = scale
-    def write_gfx(self, name, cls, tex_path):
+    #write gfx from geo bin cls to blender
+    def write_gfx(self, name, cls, tex_path, collection):
         #for now, do basic import, each layout is an object
         stack = [self.rt]
         self.LastMat = None
@@ -501,7 +424,7 @@ class bpy_geo():
                     #add model to dict
                     Models[layout.ptr] = (mesh, self.LastMat)
                 obj = bpy.data.objects.new(f"{name} {layout.depth&0xFF} {i}",mesh)
-                self.collection.objects.link(obj)
+                collection.objects.link(obj)
                 #set KCS props of obj
                 obj.KCS_mesh.MeshType = "Graphics"
                 #apply dat
@@ -519,7 +442,7 @@ class bpy_geo():
                     bpy.ops.object.mode_set(mode='OBJECT')
             #empty transform
             else:
-                obj = MakeEmpty(f"{name} {layout.depth} {i}",'PLAIN_AXES', self.collection)
+                obj = MakeEmpty(f"{name} {layout.depth} {i}",'PLAIN_AXES', collection)
                 #set KCS props of obj
                 obj.KCS_mesh.MeshType = "Graphics"
             #now that obj is created, parent and add transforms to it
@@ -538,6 +461,72 @@ class bpy_geo():
     @staticmethod
     def Vec3Trans(vec3):
         return (vec3.x, -vec3.z, vec3.y)
+    #create the geo out cls and populate it with layouts based on child objects
+    def init_geo(self):
+        cls = geo_write()
+        depth = 0
+        cls.layouts = []
+        obj = self.rt
+        #get all child layouts first
+        def loop_children(obj, cls, depth):
+            for child in obj.children:
+                if self.is_kcs_gfx(child):
+                    #clean up the mesh data, apply transforms and then give the copy to layout.ptr
+                    cls.layouts.append( self.create_layout(child, depth) )
+                    if child.children:
+                        loop_children(child, cls, depth + 1)
+        loop_children(obj, cls, 1)
+        #add the root as a layout, though if there are no children, set the render mode to 14
+        if not cls.layouts:
+            cls.render_mode = 0x14 #list of DLs (entry point)
+            cls.layouts.append( faux_LY(obj.data) )
+        else:
+            cls.render_mode = 0x17 #list of layouts
+            cls.layouts.insert(0, self.create_layout(obj, 0) )
+        return cls
+    #create a layout for an obj given its depth and the obj props
+    def create_layout(self, obj, depth):
+        loc = obj.location
+        rot = obj.rotation_euler
+        scale = obj.scale
+        ly = layout(0, depth, obj.data, loc, rot, scale)
+        ly.name = obj.name #for debug
+        return ly
+    #given an obj, eval if it is a kcs gfx export
+    def is_kcs_gfx(self, obj):
+        if obj.type == "MESH":
+            return obj.KCS_mesh.MeshType == "Graphics"
+        if obj.type == "EMPTY":
+            return obj.KCS_obj.KCS_obj_type == "Graphics"
+    #small container for mesh data needed by other mesh data to export, stuff that is self contextual like UV sizes
+    _mesh_desc = namedtuple("mesh_desc", "tri_list material")
+    #given a layout, create the export data such as verts, f3d cls, and mat classes
+    def create_mesh_dat(self, cls):
+        cls.vertices = [] #make a list so its easier to access each layouts verts
+        for ly in cls.layouts:
+            #should be mesh data
+            if mesh := ly.ptr:
+                cls.vertices.append( verts := Vertices(self.scale) )
+                try:
+                    mesh_verts = mesh.vertices
+                    uvs = mesh.uv_layers.active.data
+                    vcs = (mesh.color_attributes["Col"].data, mesh.color_attributes["Alpha"].data)
+                except:
+                    print(Exception)
+                    raise Exception(f"Obj {ly.name} without UV data or Color Attributes detected")
+                #I have to get mats first since other data will rely on the material
+                #populate with mat slots from obj data
+                mats = {m:self._mesh_desc(list(), Mat.from_bpy(m)) for m in mesh.materials}
+                #create material objects and place in dict
+                #put tris in dict of mat
+                mesh.calc_loop_triangles()
+                for tri in mesh.loop_triangles:
+                    mat = mesh.materials[tri.material_index]
+                    mat_tris[mat].append(tri)
+                #loops refers to the literal vertex and how it is referenced between the various data types
+                #since there can be multiple data types associated with each vertex, and not all of them coincide
+                #you must use loops to find the vertices, UV for that vertex, and vertex colors for that vertex
+                [verts.bpy_make(mesh_verts[l.vertex_index], uvs[l.index], vcs[0][l.index], vcs[1][l.index], l) for l in mesh.loops]
 
 #this will hold tile properties
 class Tile():
@@ -550,7 +539,6 @@ class Tile():
         self.Thigh = 32
         self.SMask = 5
         self.TMask = 5
-        
         self.Sflags = None
         self.Tflags = None
 
@@ -564,8 +552,8 @@ class Texture():
     Width: int = 0
     Height: int = 0
     Pal: tuple = None
- 
-#This is simply a data storage class
+
+#This is a data storage class and mat to f3dmat converting class
 class Mat():
     def __init__(self):
         self.TwoCycle = False
@@ -575,6 +563,96 @@ class Mat():
         self.tex0 = None
         self.tex1 = None
         self.tx_scr = None
+    #constructor to make a new MAT class given a bpy.dat
+    @staticmethod
+    def from_bpy(material):
+        #make a new class of Mat
+        cls = Mat.__new__(Mat)
+        cls.__init__()
+        f3dMat = material.f3d_mat
+        #two cycle
+        cls.TwoCycle = f3dMat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+        #combiner
+        cls.bpy_combiner(f3dMat, cls.TwoCycle)
+        #geo mode
+        cls.bpy_geo_mode(f3dMat)
+        #set upper and lower modes
+        cls.bpy_rdp_sets(f3dMat)
+        #now there will be conditional stuff like env, prim, blend etc.
+    #get rdp upper settings as individual props, but no render mode
+    def bpy_rdp_sets(self, f3dMat):
+        upper = [
+            'g_mdsft_alphadither',
+            'g_mdsft_rgbdither',
+            'g_mdsft_combkey',
+            'g_mdsft_textconv',
+            'g_mdsft_tcfilt',
+            'g_mdsft_textfilt',
+            'g_mdsft_bilerp',
+            'g_mdsft_textlut',
+            'g_mdsft_rgbalut',
+            'g_mdsft_textlod',
+            'g_mdsft_textdetail',
+            'g_mdsft_td_detail',
+            'g_mdsft_textpersp',
+            'g_mdsft_cycletype',
+            'g_mdsft_colordither',
+            'g_mdsft_pipeline',
+        ]
+        lower = [
+            "g_mdsft_alpha_compare",
+            "g_mdsft_zsrcsel"
+        ]
+        for lo in lower:
+            setattr(cls, up, f3dMat.getattr(f3dMat.rdp_settings, lo))
+        for up in upper:
+            setattr(cls, up, f3dMat.getattr(f3dMat.rdp_settings, up))
+    #turn geo into list of sets and clears
+    def bpy_geo_mode(self, f3dMat):
+        self.GeoSet, self.GeoClear = [], []
+        modes = [
+            'g_zbuffer',
+            'g_shade',
+            'g_cull_front',
+            'g_cull_back',
+            'g_fog',
+            'g_lighting',
+            'g_tex_gen',
+            'g_tex_gen_linear',
+            'g_shade_smooth',
+            'g_clipping',
+        ]
+        for g in modes:
+            geo = getattr(f3dMat.rdp_settings, g)
+            if geo:
+                self.GeoSet.append(g)
+            else:
+                self.GeoClear.append(g)
+    #turn combiner into a list of args
+    def bpy_combiner(self, f3dMat, TwoCycle):
+        self.Combiner = [
+            f3dMat.combiner1.A,
+            f3dMat.combiner1.B,
+            f3dMat.combiner1.C,
+            f3dMat.combiner1.D,
+            f3dMat.combiner1.A_alpha,
+            f3dMat.combiner1.B_alpha,
+            f3dMat.combiner1.C_alpha,
+            f3dMat.combiner1.D_alpha,
+        ]
+        if TwoCycle:
+            self.Combiner.extend(
+                f3dMat.combiner2.A,
+                f3dMat.combiner2.B,
+                f3dMat.combiner2.C,
+                f3dMat.combiner2.D,
+                f3dMat.combiner2.A_alpha,
+                f3dMat.combiner2.B_alpha,
+                f3dMat.combiner2.C_alpha,
+                f3dMat.combiner2.D_alpha,
+            )
+        else:
+            self.Combiner *= 2
     #calc the hash for an f3d mat and see if its equal to this mats hash
     def MatHashF3d(self, f3d):
         #texture,1 cycle combiner, render mode, geo modes, some other blender settings, tile size (very important in kirby64)
@@ -671,8 +749,6 @@ class Mat():
             f3d.prim_lod_min = int(prim[0])
             f3d.prim_lod_frac = int(prim[1])
             f3d.prim_color = self.ConvertColor(prim[-4:])
-            
-        
         #I set these but they aren't properly stored because they're reset by fast64 or something
         #its better to have defaults than random 2 cycles
         self.SetGeoMode(f3d.rdp_settings, mat)
@@ -685,7 +761,6 @@ class Mat():
         #make combiner custom
         f3d.presetName = "Custom"
         self.SetCombiner(f3d)
-        
         #add tex scroll objects
         if self.tx_scr:
             scr = self.tx_scr
@@ -694,12 +769,10 @@ class Mat():
                 [mat_scr.AddTex(t) for t in scr.textures]
             if hasattr(scr, "palettes"):
                 [mat_scr.AddPal(t) for t in scr.palettes]
-        
         #deal with custom render modes
         if hasattr(self, "RenderMode"):
             self.SetRenderMode(f3d)
         #g texture handle
-        
         if hasattr(self, "set_tex"):
             #not exactly the same but gets the point across maybe?
             f3d.tex0.tex_set = self.set_tex
@@ -795,7 +868,6 @@ class Mat():
             #print(f"set render modes with render mode {self.RenderMode}")
         except:
             print(f"could not set render modes with render mode {self.RenderMode}")
-        
     def SetGeoMode(self, rdp, mat):
         #texture gen has a different name than gbi
         for a in self.GeoSet:
@@ -1315,7 +1387,12 @@ class F3d():
 #    Exorter Functions
 # ------------------------------------------------------------------------
 
-
+@time_func
+def ExportGeoBin(name, obj, context):
+    scale = context.scene.KCS_scene.Scale
+    blend_geo = bpy_geo(obj, scale)
+    out_geo = blend_geo.init_geo() #create writer class
+    blend_geo.create_mesh_dat(out_geo)
 
 # ------------------------------------------------------------------------
 #    Importer
@@ -1329,5 +1406,5 @@ def ImportGeoBin(bin_file, context, name, path):
     rt = MakeEmpty(name,'PLAIN_AXES',collection)
     rt.KCS_obj.KCS_obj_type = 'Graphics'
     Geo_Block = geo_bin(Geo.read(), context.scene.KCS_scene.Scale)
-    write = bpy_geo(rt,collection, context.scene.KCS_scene.Scale)
-    write.write_gfx("geo", Geo_Block, path)
+    write = bpy_geo(rt, context.scene.KCS_scene.Scale)
+    write.write_gfx("geo", Geo_Block, path, collection)
