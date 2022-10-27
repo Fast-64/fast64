@@ -1,11 +1,20 @@
-import shutil, copy, bpy, os
-from bpy.utils import register_class, unregister_class
+import bpy
+from ..f3d.f3d_writer import VertexGroupInfo, TriangleConverterInfo
+from ..f3d.f3d_parser import F3DContext
+from ..f3d.f3d_material import createF3DMat
+from ..utility import CData, hexOrDecInt
 
-from .oot_utility import *
-from .oot_constants import *
-from ..f3d.f3d_writer import *
-from ..f3d.f3d_material import *
-from ..f3d.f3d_parser import *
+from ..f3d.f3d_gbi import (
+    FModel,
+    GfxMatWriteMethod,
+    SPDisplayList,
+    GfxList,
+    GfxListTag,
+    DLFormat,
+    SPMatrix,
+    GfxFormatter,
+    MTX_SIZE,
+)
 
 
 class OOTModel(FModel):

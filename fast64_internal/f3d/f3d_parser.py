@@ -1449,7 +1449,7 @@ class F3DContext:
                 if command.name == "gsSPClipRatio":
                     mat.clip_ratio = math_eval(command.params[0], self.f3d)
                 elif command.name == "gsSPNumLights":
-                    self.numLights = self.getLightCount(command.name[1])
+                    self.numLights = self.getLightCount(command.params[0])
                 elif command.name == "gsSPLight":
                     self.setLight(dlData, command)
                 elif command.name == "gsSPLightColor":
@@ -1462,10 +1462,17 @@ class F3DContext:
                     mat.fog_position = [math_eval(command.params[0], self.f3d), math_eval(command.params[1], self.f3d)]
                     mat.set_fog = True
                 elif command.name == "gsSPTexture" or command.name == "gsSPTextureL":
-                    mat.tex_scale = [
-                        math_eval(command.params[0], self.f3d) / (2**16),
-                        math_eval(command.params[1], self.f3d) / (2**16),
-                    ]
+                    if command.params[0] == 0xFFFF and command.params[1] == 0xFFFF:
+                        mat.scale_autoprop = True
+                        mat.tex_scale = (1, 1)
+                    else:
+                        mat.scale_autoprop = False
+                        mat.tex_scale = [
+                            math_eval(command.params[0], self.f3d) / (2**16),
+                            math_eval(command.params[1], self.f3d) / (2**16),
+                        ]
+                    # command.params[2] is "lod level", and for clarity we store this is the number of mipmapped textures (which is +1)
+                    mat.rdp_settings.num_textures_mipmapped = 1 + math_eval(command.params[2], self.f3d)
                 elif command.name == "gsSPSetGeometryMode":
                     self.setGeoFlags(command, True)
                 elif command.name == "gsSPClearGeometryMode":
