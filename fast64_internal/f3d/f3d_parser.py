@@ -1546,11 +1546,11 @@ class F3DContext:
                     mat.fog_position = [math_eval(command.params[0], self.f3d), math_eval(command.params[1], self.f3d)]
                     mat.set_fog = True
                 elif command.name == "gsSPTexture" or command.name == "gsSPTextureL":
+                    # scale_autoprop should always be false (set in init)
+                    # This prevents issues with material caching where updating nodes on a material causes its key to change
                     if command.params[0] == 0xFFFF and command.params[1] == 0xFFFF:
-                        mat.scale_autoprop = True
                         mat.tex_scale = (1, 1)
                     else:
-                        mat.scale_autoprop = False
                         mat.tex_scale = [
                             math_eval(command.params[0], self.f3d) / (2**16),
                             math_eval(command.params[1], self.f3d) / (2**16),
