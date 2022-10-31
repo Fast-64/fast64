@@ -3374,6 +3374,7 @@ class F3DMaterialProperty(bpy.types.PropertyGroup):
     use_large_textures: bpy.props.BoolProperty(name="Large Texture Mode")
 
     def key(self) -> F3DMaterialHash:
+        useDefaultLighting = self.set_lights and self.use_default_lighting
         return (
             self.scale_autoprop,
             self.uv_basis,
@@ -3392,7 +3393,7 @@ class F3DMaterialProperty(bpy.types.PropertyGroup):
             self.set_key,
             self.set_k0_5,
             self.set_combiner,
-            self.set_k0_5,
+            self.set_lights,
             self.set_fog,
             tuple([round(value, 4) for value in self.blend_color]) if self.set_blend else None,
             tuple([round(value, 4) for value in self.prim_color]) if self.set_prim else None,
@@ -3412,16 +3413,18 @@ class F3DMaterialProperty(bpy.types.PropertyGroup):
             self.combiner2.key() if self.set_combiner else None,
             tuple([round(value, 4) for value in self.fog_color]) if self.set_fog else None,
             tuple([round(value, 4) for value in self.fog_position]) if self.set_fog else None,
-            tuple([round(value, 4) for value in self.default_light_color]) if self.use_default_lighting else None,
-            self.set_ambient_from_light if self.use_default_lighting else None,
-            tuple([round(value, 4) for value in self.ambient_light_color]) if not self.set_ambient_from_light else None,
-            self.f3d_light1 if not self.use_default_lighting else None,
-            self.f3d_light2 if not self.use_default_lighting else None,
-            self.f3d_light3 if not self.use_default_lighting else None,
-            self.f3d_light4 if not self.use_default_lighting else None,
-            self.f3d_light5 if not self.use_default_lighting else None,
-            self.f3d_light6 if not self.use_default_lighting else None,
-            self.f3d_light7 if not self.use_default_lighting else None,
+            tuple([round(value, 4) for value in self.default_light_color]) if useDefaultLighting else None,
+            self.set_ambient_from_light if useDefaultLighting else None,
+            tuple([round(value, 4) for value in self.ambient_light_color])
+            if useDefaultLighting and not self.set_ambient_from_light
+            else None,
+            self.f3d_light1 if not useDefaultLighting else None,
+            self.f3d_light2 if not useDefaultLighting else None,
+            self.f3d_light3 if not useDefaultLighting else None,
+            self.f3d_light4 if not useDefaultLighting else None,
+            self.f3d_light5 if not useDefaultLighting else None,
+            self.f3d_light6 if not useDefaultLighting else None,
+            self.f3d_light7 if not useDefaultLighting else None,
         )
 
 
