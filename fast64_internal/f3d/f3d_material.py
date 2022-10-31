@@ -2112,7 +2112,7 @@ class TextureFieldProperty(bpy.types.PropertyGroup):
     )
 
     def key(self):
-        return (self.clamp, self.mirror, round(self.low, 3), round(self.high, 3), self.mask, self.shift)
+        return (self.clamp, self.mirror, round(self.low * 4), round(self.high * 4), self.mask, self.shift)
 
 
 class SetTileSizeScrollProperty(bpy.types.PropertyGroup):
