@@ -1157,7 +1157,7 @@ class F3DContext:
         allCombinerUses = all_combiner_uses(mat)
         if allCombinerUses["Shade"] and mat.rdp_settings.g_lighting and mat.set_lights:
             mat.use_default_lighting = False
-            mat.ambient_light_color = self.lights.a.color[:] + ((1,) if len(self.lights.a.color) == 3 else ())
+            mat.ambient_light_color = tuple(self.lights.a.color[:]) + ((1,) if len(self.lights.a.color) == 3 else ())
 
             for i in range(self.numLights):
                 lightObj = self.getLightObj(self.lights.l[i])
