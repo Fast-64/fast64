@@ -470,6 +470,8 @@ class F3DContext:
         self.basePath: str = basePath
         self.materialContext: bpy.types.Material = materialContext
         self.materialContext.f3d_update_flag = True  # Don't want visual updates while parsing
+        # If this is not disabled, then tex_scale will auto-update on manual node update.
+        self.materialContext.f3d_mat.scale_autoprop = False
         self.initContext()
 
     # This is separate as we want to call __init__ in clearGeometry, but don't want same behaviour for child classes
@@ -1548,8 +1550,6 @@ class F3DContext:
                         math_eval(command.params[0], self.f3d) / (2**16),
                         math_eval(command.params[1], self.f3d) / (2**16),
                     ]
-                    # If this is not disabled, then tex_scale will auto-update on manual node update.
-                    mat.scale_autoprop = False
                 elif command.name == "gsSPSetGeometryMode":
                     self.setGeoFlags(command, True)
                 elif command.name == "gsSPClearGeometryMode":

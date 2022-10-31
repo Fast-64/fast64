@@ -1235,7 +1235,11 @@ def convertVertexData(
     # However, Point samples from the corner.
     # Thus we add 0.5 to the UV only if bilinear filtering.
     # see section 13.7.5.3 in programming manual.
-    pixelOffset = (0, 0) if isPointSampled else (0.5 / tex_scale[0], 0.5 / tex_scale[1])
+    pixelOffset = (
+        (0, 0)
+        if (isPointSampled or tex_scale[0] == 0 or tex_scale[1] == 0)
+        else (0.5 / tex_scale[0], 0.5 / tex_scale[1])
+    )
 
     uv = [
         convertFloatToFixed16(loopUV[0] * texDimensions[0] - pixelOffset[0]),
