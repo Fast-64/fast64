@@ -329,39 +329,45 @@ def combiner_uses_alpha(material, checkList, is2Cycle):
 
     return display
 
+CombinerUses = dict[str, bool]
 
-def all_combiner_uses(material):
+def combiner_uses_tex0(f3d_mat: "F3DMaterialProperty"):
+    return combiner_uses(
+        f3d_mat, ["TEXEL0", "TEXEL0_ALPHA"], f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+    )
+
+def combiner_uses_tex1(f3d_mat: "F3DMaterialProperty"):
+    return combiner_uses(
+        f3d_mat, ["TEXEL1", "TEXEL1_ALPHA"], f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+    )
+
+def all_combiner_uses(f3d_mat: "F3DMaterialProperty") -> CombinerUses:
+    use_tex0 = combiner_uses_tex0(f3d_mat)
+    use_tex1 = combiner_uses_tex1(f3d_mat)
+
     useDict = {
-        "Texture": combiner_uses(
-            material,
-            ["TEXEL0", "TEXEL0_ALPHA", "TEXEL1", "TEXEL1_ALPHA"],
-            material.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE",
-        ),
-        "Texture 0": combiner_uses(
-            material, ["TEXEL0", "TEXEL0_ALPHA"], material.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
-        ),
-        "Texture 1": combiner_uses(
-            material, ["TEXEL1", "TEXEL1_ALPHA"], material.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
-        ),
+        "Texture": use_tex0 or use_tex1,
+        "Texture 0": use_tex0,
+        "Texture 1": use_tex1,
         "Primitive": combiner_uses(
-            material,
+            f3d_mat,
             ["PRIMITIVE", "PRIMITIVE_ALPHA", "PRIM_LOD_FRAC"],
-            material.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE",
+            f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE",
         ),
         "Environment": combiner_uses(
-            material, ["ENVIRONMENT", "ENV_ALPHA"], material.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+            f3d_mat, ["ENVIRONMENT", "ENV_ALPHA"], f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
         ),
         "Shade": combiner_uses(
-            material, ["SHADE", "SHADE_ALPHA"], material.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+            f3d_mat, ["SHADE", "SHADE_ALPHA"], f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
         ),
         "Shade Alpha": combiner_uses_alpha(
-            material, ["SHADE"], material.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+            f3d_mat, ["SHADE"], f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
         ),
-        "Key": combiner_uses(material, ["CENTER", "SCALE"], material.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"),
+        "Key": combiner_uses(f3d_mat, ["CENTER", "SCALE"], f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"),
         "LOD Fraction": combiner_uses(
-            material, ["LOD_FRACTION"], material.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+            f3d_mat, ["LOD_FRACTION"], f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
         ),
-        "Convert": combiner_uses(material, ["K4", "K5"], material.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"),
+        "Convert": combiner_uses(f3d_mat, ["K4", "K5"], f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"),
     }
     return useDict
 
@@ -389,8 +395,8 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
             inputGroup.prop(settings, "g_clipping", text="Clipping")
 
 
-def ui_upper_mode(settings, dataHolder, layout, useDropdown):
-    inputGroup = layout.column()
+def ui_upper_mode(settings, dataHolder, layout: bpy.types.UILayout, useDropdown):
+    inputGroup: bpy.types.UILayout = layout.column()
     if useDropdown:
         inputGroup.prop(
             dataHolder,
@@ -407,7 +413,14 @@ def ui_upper_mode(settings, dataHolder, layout, useDropdown):
         prop_split(inputGroup, settings, "g_mdsft_combkey", "Chroma Key")
         prop_split(inputGroup, settings, "g_mdsft_textconv", "Texture Convert")
         prop_split(inputGroup, settings, "g_mdsft_text_filt", "Texture Filter")
-        prop_split(inputGroup, settings, "g_mdsft_textlod", "Texture LOD")
+        prop_split(inputGroup, settings, "g_mdsft_textlod", "Texture LOD (Mipmapping)")
+        if settings.g_mdsft_textlod == 'G_TL_LOD':
+            inputGroup.prop(settings, "num_textures_mipmapped", text="Number of Mipmaps")
+            if settings.num_textures_mipmapped > 2:
+                box = inputGroup.box()
+                box.alert = True
+                box.label(text="WARNING: Fast64 does not support setting more than two textures.", icon="LIBRARY_DATA_BROKEN")
+                box.label(text="Additional texture tiles will need to be set up manually.")
         prop_split(inputGroup, settings, "g_mdsft_textdetail", "Texture Detail")
         prop_split(inputGroup, settings, "g_mdsft_textpersp", "Texture Perspective Correction")
         prop_split(inputGroup, settings, "g_mdsft_cycletype", "Cycle Type")
@@ -1570,18 +1583,52 @@ def iter_tex_nodes(node_tree: bpy.types.NodeTree, texIndex: int) -> Generator[bp
         if node_tree.nodes.get(nodeName):
             yield node_tree.nodes[nodeName]
 
+def toggle_texture_node_muting(
+    material: bpy.types.Material, texIndex: int, isUsed: bool
+):
+    node_tree = material.node_tree
+    f3dMat: "F3DMaterialProperty" = material.f3d_mat
+
+    # Enforce typing from generator
+    texNode: None | bpy.types.TextureNodeImage = None
+
+    node_3point_key = "3 Point Lerp" if texIndex == 0 else "3 Point Lerp.001"
+    node_3point = node_tree.nodes.get(node_3point_key)
+
+    node_tex_color_conv_key = f"Tex{texIndex}_I"
+    node_tex_color_conv = node_tree.nodes.get(node_tex_color_conv_key)
+    
+    # flip bool for clarity
+    shouldMute = not isUsed
+
+    for texNode in iter_tex_nodes(node_tree, texIndex):
+        if texNode.mute != shouldMute:
+            texNode.mute = shouldMute
+
+    if node_tex_color_conv and node_tex_color_conv.mute != shouldMute:
+        node_tex_color_conv.mute = shouldMute
+
+    mute_3point = shouldMute or f3dMat.rdp_settings.g_mdsft_text_filt != "G_TF_BILERP"
+    if node_3point and node_3point.mute != mute_3point:
+        node_3point.mute = mute_3point
+
 
 def set_texture_nodes_settings(
-    material: bpy.types.Material, texProperty: "TextureProperty", texIndex: int
+    material: bpy.types.Material, texProperty: "TextureProperty", texIndex: int, isUsed: bool
 ) -> (list[int] | None):
     node_tree = material.node_tree
     f3dMat: "F3DMaterialProperty" = material.f3d_mat
 
     # Return value
     texSize: Optional[list[int]] = None
+
+    toggle_texture_node_muting(material, texIndex, isUsed)
+
+    if not isUsed:
+        return texSize
+
     # Enforce typing from generator
     texNode: None | bpy.types.TextureNodeImage = None
-
     for texNode in iter_tex_nodes(node_tree, texIndex):
         if texNode.image is not texProperty.tex:
             texNode.image = texProperty.tex
@@ -1598,10 +1645,10 @@ def set_texture_nodes_settings(
     return texSize
 
 
-def update_tex_values_index(self: bpy.types.Material, *, texProperty: "TextureProperty", texIndex):
+def update_tex_values_index(self: bpy.types.Material, *, texProperty: "TextureProperty", texIndex: int, isUsed: bool):
     nodes = self.node_tree.nodes
 
-    tex_size = set_texture_nodes_settings(self, texProperty, texIndex)
+    tex_size = set_texture_nodes_settings(self, texProperty, texIndex, isUsed)
 
     if tex_size:  # only returns tex size if a texture is being set
         if tex_size[0] > 0 and tex_size[1] > 0:
@@ -1676,6 +1723,18 @@ def update_tex_values_manual(material: bpy.types.Material, context, prop_path=No
     nodes = material.node_tree.nodes
     texture_settings = nodes["TextureSettings"]
     texture_inputs: bpy.types.NodeInputs = texture_settings.inputs
+    useDict = all_combiner_uses(f3dMat)
+    
+    tex0_used = useDict['Texture 0'] and f3dMat.tex0.tex is not None
+    tex1_used = useDict['Texture 1'] and f3dMat.tex1.tex is not None
+
+    if not tex0_used and not tex1_used:
+        texture_settings.mute = True
+        set_texture_nodes_settings(material, f3dMat.tex0, 0, False)
+        set_texture_nodes_settings(material, f3dMat.tex1, 1, False)
+        return
+    elif texture_settings.mute:
+        texture_settings.mute = False
 
     isTexGen = f3dMat.rdp_settings.g_tex_gen  # linear requires tex gen to be enabled as well
 
@@ -1717,9 +1776,9 @@ def update_tex_values_manual(material: bpy.types.Material, context, prop_path=No
         uv_basis.inputs["T Scale"].default_value = node_uv_scale[1]
 
     if not prop_path or "tex0" in prop_path:
-        update_tex_values_index(material, texProperty=f3dMat.tex0, texIndex=0)
+        update_tex_values_index(material, texProperty=f3dMat.tex0, texIndex=0, isUsed=tex0_used)
     if not prop_path or "tex1" in prop_path:
-        update_tex_values_index(material, texProperty=f3dMat.tex1, texIndex=1)
+        update_tex_values_index(material, texProperty=f3dMat.tex1, texIndex=1, isUsed=tex1_used)
 
     texture_inputs["3 Point"].default_value = int(f3dMat.rdp_settings.g_mdsft_text_filt == "G_TF_BILERP")
     uv_basis.inputs["EnableOffset"].default_value = int(f3dMat.rdp_settings.g_mdsft_text_filt != "G_TF_POINT")
@@ -2226,12 +2285,16 @@ def update_combiner_connections_and_preset(self, context: bpy.types.Context):
         if not material:
             return
 
-        material.f3d_mat.presetName = "Custom"
+        f3d_mat: "F3DMaterialProperty" = material.f3d_mat
+        f3d_mat.presetName = "Custom"
 
         prop_path = self.path_from_id()
         combiner = 1 if "combiner1" in prop_path else 2
 
         update_combiner_connections(material, context, combiner=combiner)
+
+        toggle_texture_node_muting(material, 0, f3d_mat.tex0.tex and combiner_uses_tex0(material.f3d_mat))
+        toggle_texture_node_muting(material, 1, f3d_mat.tex1.tex and combiner_uses_tex1(material.f3d_mat))
 
 
 class CombinerProperty(bpy.types.PropertyGroup):
@@ -2480,6 +2543,13 @@ class RDPSettings(bpy.types.PropertyGroup):
         items=enumTextLOD,
         default="G_TL_TILE",
         update=update_node_values_with_preset,
+    )
+    num_textures_mipmapped: bpy.props.IntProperty(
+        name="Number of Mipmaps",
+        default=2,
+        min=2,
+        max=8,
+        description="Number of mipmaps when Texture LOD set to `LOD`. First cycle combiner should be ((Tex1 - Tex0) * LOD Frac) + Tex0",
     )
     g_mdsft_textdetail: bpy.props.EnumProperty(
         name="Texture Detail",
