@@ -1,4 +1,5 @@
 # Macros are all copied over from gbi.h
+from typing import Sequence
 import bpy, os, enum
 from ..utility import *
 
@@ -2983,9 +2984,9 @@ class Vp:
 
 
 class Light:
-    def __init__(self, color: mathutils.Vector, normal: mathutils.Vector):
-        self.color: mathutils.Vector = color
-        self.normal: mathutils.Vector = normal
+    def __init__(self, color: Sequence, normal: Sequence):
+        self.color: Sequence = color
+        self.normal: Sequence = normal
 
     def __eq__(self, other):
         if not isinstance(other, Light):
@@ -3041,8 +3042,8 @@ class Light:
 
 
 class Ambient:
-    def __init__(self, color: mathutils.Vector):
-        self.color: mathutils.Vector = color
+    def __init__(self, color: Sequence):
+        self.color: Sequence = color
 
     def __eq__(self, other):
         if not isinstance(other, Ambient):
