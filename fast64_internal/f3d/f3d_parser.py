@@ -538,7 +538,7 @@ class F3DContext:
 
     """
     Restarts context, but keeps cached materials/textures.
-    Warning: calls __init__, make sure to save/restore preserved fields 
+    Warning: calls initContext, make sure to save/restore preserved fields 
     """
 
     def clearGeometry(self):
