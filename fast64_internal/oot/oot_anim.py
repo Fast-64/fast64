@@ -247,7 +247,7 @@ def ootConvertNonLinkAnimationData(anim, armatureObj, convertTransformMatrix, *,
         bonesToProcess = childrenNames + bonesToProcess
 
     # list of boneFrameData, which is [[x frames], [y frames], [z frames]]
-    # boneIndex is index in animBones in ootConvertAnimationData.
+    # boneIndex is index in animBones.
     # since we are processing the bones in the same order as ootProcessBone,
     # they should be the same as the limb indices.
 
@@ -313,7 +313,7 @@ def ootConvertLinkAnimationData(anim, armatureObj, convertTransformMatrix, *, fr
         bonesToProcess = childrenNames + bonesToProcess
 
     # list of boneFrameData, which is [[x frames], [y frames], [z frames]]
-    # boneIndex is index in animBones in ootConvertAnimationData.
+    # boneIndex is index in animBones.
     # since we are processing the bones in the same order as ootProcessBone,
     # they should be the same as the limb indices.
 
@@ -351,9 +351,6 @@ def ootConvertLinkAnimationData(anim, armatureObj, convertTransformMatrix, *, fr
         frameData.append(textureAnimValue)
 
     bpy.context.scene.frame_set(currentFrame)
-
-    # need to deepcopy?
-
     return frameData
 
 
