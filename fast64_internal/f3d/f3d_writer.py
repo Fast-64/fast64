@@ -1288,7 +1288,7 @@ def getLoopColor(loop: bpy.types.MeshLoop, mesh, mat_ver):
 
 def getLoopColorOrNormal(
     loop: bpy.types.MeshLoop, face, mesh: bpy.types.Mesh, obj: bpy.types.Object, exportVertexColors: bool
-) -> tuple[mathutils.Vector | None, mathutils.Vector | None]:
+) -> tuple[mathutils.Vector, None] | tuple[None, mathutils.Vector]:
     material = obj.material_slots[face.material_index].material
     isFlatShaded = checkIfFlatShaded(material)
     if exportVertexColors:
