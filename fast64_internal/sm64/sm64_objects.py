@@ -1807,12 +1807,12 @@ def check_obj_or_any_parent_has_cond(obj: bpy.types.Object, cond_cb: Callable[[b
     return True
 
 
-def check_children_for_cond(obj: bpy.types.Object, cond_cb: Callable[[bpy.types.Object], bool]):
+def check_obj_or_any_child_has_cond(obj: bpy.types.Object, cond_cb: Callable[[bpy.types.Object], bool]):
     if cond_cb(obj):
         return True
     if len(obj.children):
         for c in obj.children:
-            if check_children_for_cond(c, cond_cb):
+            if check_obj_or_any_child_has_cond(c, cond_cb):
                 return True
     return False
 
@@ -1835,7 +1835,7 @@ def poll_room_child(self: "SM64_RoomChildObject", obj: bpy.types.Object):
     return (
         check_obj_or_any_parent_has_cond(obj, check_object_is_area)
         and not check_obj_or_any_parent_has_cond(obj, check_object_is_this_empty)
-        and check_children_for_cond(obj, check_object_has_mesh)
+        and check_obj_or_any_child_has_cond(obj, check_object_has_mesh)
     )
 
 
