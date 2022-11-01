@@ -1810,10 +1810,9 @@ def check_obj_or_any_parent_has_cond(obj: bpy.types.Object, cond_cb: Callable[[b
 def check_obj_or_any_child_has_cond(obj: bpy.types.Object, cond_cb: Callable[[bpy.types.Object], bool]):
     if cond_cb(obj):
         return True
-    if len(obj.children):
-        for c in obj.children:
-            if check_obj_or_any_child_has_cond(c, cond_cb):
-                return True
+    for c in obj.children:
+        if check_obj_or_any_child_has_cond(c, cond_cb):
+            return True
     return False
 
 
