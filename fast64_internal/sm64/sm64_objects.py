@@ -1799,10 +1799,10 @@ class SM64_GameObjectProperties(bpy.types.PropertyGroup):
         return self.bparams
 
 
-def check_parents_has_cond(obj: bpy.types.Object, cond_cb: Callable[[bpy.types.Object], bool]):
+def check_obj_or_any_parent_has_cond(obj: bpy.types.Object, cond_cb: Callable[[bpy.types.Object], bool]):
     if not cond_cb(obj):
         if obj.parent:
-            return check_parents_has_cond(obj.parent, cond_cb)
+            return check_obj_or_any_parent_has_cond(obj.parent, cond_cb)
         return False
     return True
 
@@ -1833,8 +1833,8 @@ def poll_room_child(self: "SM64_RoomChildObject", obj: bpy.types.Object):
     if check_object_is_area(obj) or check_object_is_this_empty(obj) or not obj.parent or obj.sm64_obj_type != "None":
         return False
     return (
-        check_parents_has_cond(obj, check_object_is_area)
-        and not check_parents_has_cond(obj, check_object_is_this_empty)
+        check_obj_or_any_parent_has_cond(obj, check_object_is_area)
+        and not check_obj_or_any_parent_has_cond(obj, check_object_is_this_empty)
         and check_children_for_cond(obj, check_object_has_mesh)
     )
 
