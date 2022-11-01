@@ -1468,7 +1468,7 @@ def processMesh(
         transformNode.parent = parentTransformNode
 
         alphabeticalChildren = sorted(obj.children, key=lambda childObj: childObj.original_name.lower())
-        if obj.parent and obj.parent.sm64_obj_type == "Area Root" and obj.parent.enableRoomSwitch:
+        if check_obj_is_room(obj):
             room_data = obj.fast64.sm64.room
             alphabeticalChildren = (
                 extract_room_objects([o.obj for o in room_data.objects_render_before if o.obj])
