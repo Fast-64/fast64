@@ -1185,11 +1185,13 @@ def processInlineGeoNode(
     return node, parentTransformNode
 
 
-def extract_room_objects(objects: list[bpy.types.Object]):
+def extract_rooms_render_objects(objects: list[bpy.types.Object]):
+    """Iterate through objects in room.objects_render_before or objects_render_after and group them together"""
     objs: list[bpy.types.Object] = []
     for obj in objects:
         if not obj:
             continue
+        # If any of those objects are rooms themselves, the children are extracted from the room.
         if check_obj_is_room(obj):
             objs.extend(sorted(obj.children, key=lambda childObj: childObj.original_name.lower()))
         else:
@@ -1471,9 +1473,9 @@ def processMesh(
         if check_obj_is_room(obj):
             room_data = obj.fast64.sm64.room
             alphabeticalChildren = (
-                extract_room_objects([o.obj for o in room_data.objects_render_before if o.obj])
+                extract_rooms_render_objects([o.obj for o in room_data.objects_render_before if o.obj])
                 + alphabeticalChildren
-                + extract_room_objects([o.obj for o in room_data.objects_render_after if o.obj])
+                + extract_rooms_render_objects([o.obj for o in room_data.objects_render_after if o.obj])
             )
 
         for childObj in alphabeticalChildren:
