@@ -1870,10 +1870,10 @@ class SM64_RoomChildObject(bpy.types.PropertyGroup):
 
 
 class SM64_RoomObjectProperties(bpy.types.PropertyGroup):
-    # Objects that render before the room empties hirearchy
+    # Objects that render before the room empties hierarchy
     objects_render_before: bpy.props.CollectionProperty(type=SM64_RoomChildObject, name="Render Objects Before")
     objects_render_before_active_index: bpy.props.IntProperty(default=0, name="Render Before Active Index")
-    # Objects that render after the room empties hirearchy
+    # Objects that render after the room empties hierarchy
     objects_render_after: bpy.props.CollectionProperty(type=SM64_RoomChildObject, name="Render Objects After")
     objects_render_after_active_index: bpy.props.IntProperty(default=0, name="Render After Active Index")
 
@@ -1897,10 +1897,10 @@ class SM64_RoomObjectProperties(bpy.types.PropertyGroup):
             layout.label(text=f"Room #{room_index}")
             layout.label(text="Select additional objects to render with this room.")
         layout.separator(factor=1)
-        layout.label(text="Before hirearchy")
+        layout.label(text="Before hierarchy")
         draw_before_room_prop_list(layout, context)
         layout.separator(factor=1)
-        layout.label(text="After hirearchy")
+        layout.label(text="After hierarchy")
         draw_after_room_prop_list(layout, context)
         return True
 
