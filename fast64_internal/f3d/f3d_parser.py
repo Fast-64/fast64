@@ -682,7 +682,7 @@ class F3DContext:
         if start + count > len(self.vertexBuffer):
             raise PluginError(
                 "Vertex buffer of size "
-                + len(self.vertexBuffer)
+                + str(len(self.vertexBuffer))
                 + " too small, attempting load into "
                 + str(start)
                 + ", "
