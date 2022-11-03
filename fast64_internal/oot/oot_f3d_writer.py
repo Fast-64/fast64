@@ -48,7 +48,6 @@ from .oot_model_classes import (
     ootGetIncludedAssetData,
 )
 
-from .oot_scene_room import *
 from .oot_texture_array import TextureFlipbook, ootReadTextureArrays
 from ..f3d.flipbook import flipbook_to_c, flipbook_2d_to_c, flipbook_data_to_c
 from ..f3d.f3d_material import createF3DMat, F3DMaterial_UpdateLock, update_preset_manual
