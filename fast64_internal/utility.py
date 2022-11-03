@@ -2,7 +2,9 @@ import bpy, random, string, os, math, traceback, re, os, mathutils
 from math import pi, ceil, degrees, radians
 from mathutils import *
 from .utility_anim import *
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Any
+
+CollectionProperty = Any  # collection prop as defined by using bpy.props.CollectionProperty
 
 
 class PluginError(Exception):
@@ -124,13 +126,6 @@ def parentObject(parent, child):
     parent.select_set(True)
     bpy.context.view_layer.objects.active = parent
     bpy.ops.object.parent_set(type="OBJECT", keep_transform=True)
-
-
-def attemptModifierApply(modifier):
-    try:
-        bpy.ops.object.modifier_apply(modifier=modifier.name)
-    except Exception as e:
-        print("Skipping modifier " + str(modifier.name))
 
 
 def getFMeshName(vertexGroup, namePrefix, drawLayer, isSkinned):

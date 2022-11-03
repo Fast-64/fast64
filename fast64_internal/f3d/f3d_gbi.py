@@ -1,4 +1,5 @@
 # Macros are all copied over from gbi.h
+from typing import Sequence
 import bpy, os, enum
 from ..utility import *
 
@@ -2265,7 +2266,7 @@ class FModel:
         self.texturesSavedLastExport = 0  # hacky
 
     # Called before SPEndDisplayList
-    def onMaterialCommandsBuilt(self, gfxList, revertList, material, drawLayer):
+    def onMaterialCommandsBuilt(self, fMaterial, material, drawLayer):
         return
 
     def getTextureSuffixFromFormat(self, texFmt):
@@ -2320,7 +2321,16 @@ class FModel:
         # Check if texture is in self
         if imageKey in self.textures:
             fImage = self.textures[imageKey]
-            fPalette = self.textures[fImage.paletteKey] if fImage.paletteKey is not None else None
+            if fImage.paletteKey is not None:
+                if fImage.paletteKey in self.textures:
+                    fPalette = self.textures[fImage.paletteKey]
+                else:
+                    print(f"Can't find {str(fImage.paletteKey)}")
+                    fPalette = None
+            else:
+                # print("Palette key is None")
+                fPalette = None
+
             return fImage, fPalette
 
         if self.parentModel is not None:
@@ -2974,9 +2984,17 @@ class Vp:
 
 
 class Light:
-    def __init__(self, color, normal):
-        self.color = color
-        self.normal = normal
+    def __init__(self, color: Sequence, normal: Sequence):
+        self.color: Sequence = color
+        self.normal: Sequence = normal
+
+    def __eq__(self, other):
+        if not isinstance(other, Light):
+            return False
+        return self.color == other.color and self.normal == other.normal
+
+    def __hash__(self):
+        return hash((self.color[:], self.normal[:]))
 
     def to_binary(self):
         return bytearray(self.color + [0x00] + self.color + [0x00] + self.normal + [0x00] + [0x00] * 4)
@@ -3024,8 +3042,16 @@ class Light:
 
 
 class Ambient:
-    def __init__(self, color):
-        self.color = color
+    def __init__(self, color: Sequence):
+        self.color: Sequence = color
+
+    def __eq__(self, other):
+        if not isinstance(other, Ambient):
+            return False
+        return self.color == other.color
+
+    def __hash__(self):
+        return hash(self.color[:])
 
     def to_binary(self):
         return bytearray(self.color + [0x00] + self.color + [0x00])

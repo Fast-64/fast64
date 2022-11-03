@@ -13,11 +13,13 @@ from .fast64_internal.sm64.sm64_geolayout_parser import generateMetarig
 
 from .fast64_internal.oot import OOT_Properties, oot_register, oot_unregister
 from .fast64_internal.oot.oot_level import OOT_ObjectProperties
+from .fast64_internal.utility_anim import utility_anim_register, utility_anim_unregister, ArmatureApplyWithMeshOperator
 
 from .fast64_internal.f3d.f3d_material import mat_register, mat_unregister
 from .fast64_internal.f3d.f3d_render_engine import render_engine_register, render_engine_unregister
 from .fast64_internal.f3d.f3d_writer import f3d_writer_register, f3d_writer_unregister
 from .fast64_internal.f3d.f3d_parser import f3d_parser_register, f3d_parser_unregister
+from .fast64_internal.f3d.flipbook import flipbook_register, flipbook_unregister
 
 from .fast64_internal.f3d_material_converter import (
     MatUpdateConvert,
@@ -49,63 +51,6 @@ gameEditorEnum = (
     ("SM64", "SM64", "Super Mario 64"),
     ("OOT", "OOT", "Ocarina Of Time"),
 )
-
-
-class ArmatureApplyWithMesh(bpy.types.Operator):
-    # set bl_ properties
-    bl_description = (
-        "Applies current pose as default pose. Useful for "
-        + "rigging an armature that is not in T/A pose. Note that when using "
-        + " with an SM64 armature, you must revert to the default pose after "
-        + "skinning."
-    )
-    bl_idname = "object.armature_apply_w_mesh"
-    bl_label = "Apply As Rest Pose"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
-
-    # Called on demand (i.e. button press, menu item)
-    # Can also be called from operator search menu (Spacebar)
-    def execute(self, context):
-        try:
-            if context.mode != "OBJECT":
-                bpy.ops.object.mode_set(mode="OBJECT")
-
-            if len(context.selected_objects) == 0:
-                raise PluginError("Armature not selected.")
-            elif type(context.selected_objects[0].data) is not bpy.types.Armature:
-                raise PluginError("Armature not selected.")
-
-            armatureObj = context.selected_objects[0]
-            for child in armatureObj.children:
-                if type(child.data) is not bpy.types.Mesh:
-                    continue
-                armatureModifier = None
-                for modifier in child.modifiers:
-                    if isinstance(modifier, bpy.types.ArmatureModifier):
-                        armatureModifier = modifier
-                if armatureModifier is None:
-                    continue
-                print(armatureModifier.name)
-                bpy.ops.object.select_all(action="DESELECT")
-                context.view_layer.objects.active = child
-                bpy.ops.object.modifier_copy(modifier=armatureModifier.name)
-                print(len(child.modifiers))
-                attemptModifierApply(armatureModifier)
-
-            bpy.ops.object.select_all(action="DESELECT")
-            context.view_layer.objects.active = armatureObj
-            bpy.ops.object.mode_set(mode="POSE")
-            bpy.ops.pose.armature_apply()
-            if context.mode != "OBJECT":
-                bpy.ops.object.mode_set(mode="OBJECT")
-        except Exception as e:
-            if context.mode != "OBJECT":
-                bpy.ops.object.mode_set(mode="OBJECT")
-            raisePluginError(self, e)
-            return {"CANCELLED"}
-
-        self.report({"INFO"}, "Applied armature with mesh.")
-        return {"FINISHED"}  # must return a set
 
 
 class AddBoneGroups(bpy.types.Operator):
@@ -193,7 +138,7 @@ class SM64_ArmatureToolsPanel(SM64_Panel):
     # called every frame
     def draw(self, context):
         col = self.layout.column()
-        col.operator(ArmatureApplyWithMesh.bl_idname)
+        col.operator(ArmatureApplyWithMeshOperator.bl_idname)
         col.operator(AddBoneGroups.bl_idname)
         col.operator(CreateMetarig.bl_idname)
         col.operator(SM64_AddWaterBox.bl_idname)
@@ -277,7 +222,7 @@ class Fast64_GlobalToolsPanel(bpy.types.Panel):
     # called every frame
     def draw(self, context):
         col = self.layout.column()
-        col.operator(ArmatureApplyWithMesh.bl_idname)
+        col.operator(ArmatureApplyWithMeshOperator.bl_idname)
         # col.operator(CreateMetarig.bl_idname)
         addon_updater_ops.update_notice_box_ui(self, context)
 
@@ -435,7 +380,6 @@ classes = (
     Fast64_Properties,
     Fast64_BoneProperties,
     Fast64_ObjectProperties,
-    ArmatureApplyWithMesh,
     AddBoneGroups,
     CreateMetarig,
     SM64_AddWaterBox,
@@ -497,6 +441,7 @@ def register():
     register_class(ExampleAddonPreferences)
     addon_updater_ops.register(bl_info)
 
+    utility_anim_register()
     mat_register()
     render_engine_register()
     bsdf_conv_register()
@@ -508,6 +453,7 @@ def register():
 
     bsdf_conv_panel_regsiter()
     f3d_writer_register()
+    flipbook_register()
     f3d_parser_register()
 
     # ROM
@@ -534,6 +480,8 @@ def register():
 
 # called on add-on disabling
 def unregister():
+    utility_anim_unregister()
+    flipbook_unregister()
     f3d_writer_unregister()
     f3d_parser_unregister()
     sm64_unregister(True)
