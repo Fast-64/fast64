@@ -374,7 +374,7 @@ def writeTextureArraysExisting(
     for flipbook in fModel.flipbooks:
         if flipbook.exportMode == "Array":
             if flipbookArrayIndex2D is None:
-                newData = writeTextureArraysExisting1D(newData, flipbook)
+                newData = writeTextureArraysExisting1D(newData, flipbook, "")
             else:
                 newData = writeTextureArraysExisting2D(newData, flipbook, flipbookArrayIndex2D)
 

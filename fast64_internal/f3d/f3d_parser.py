@@ -2212,8 +2212,6 @@ def importMeshC(
     applyRotation([obj], math.radians(-90), "X")
     return obj
 
-    return obj
-
 
 class F3D_ImportDL(bpy.types.Operator):
     # set bl_ properties
