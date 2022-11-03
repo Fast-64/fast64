@@ -2,7 +2,7 @@ import bpy
 from bpy.utils import register_class, unregister_class
 from ..utility import prop_split, gammaInverse
 from .oot_collision import OOTWaterBoxProperty, drawWaterBoxProperty
-from .oot_constants import ootEnumEmptyType
+from .oot_constants import ootEnumEmptyType, ootEnumSceneID
 from .oot_utility import getSceneObj, getRoomObj
 
 from .oot_actor import (
@@ -32,6 +32,7 @@ from .oot_scene_room import (
     OOTExitProperty,
     OOTSceneTableEntryProperty,
     OOTExtraCutsceneProperty,
+    OOTBGProperty,
     drawSceneHeaderProperty,
     drawAlternateSceneHeaderProperty,
     drawRoomHeaderProperty,

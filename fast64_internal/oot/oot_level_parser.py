@@ -5,9 +5,21 @@ from .oot_collision import *
 from .oot_cutscene import *
 from .oot_level import OOTImportSceneSettingsProperty
 from .oot_scene_room import OOTSceneHeaderProperty
+from .oot_actor import OOTActorProperty
+from .oot_utility import (
+    getHeaderSettings,
+    getSceneDirFromLevelName,
+    setCustomProperty,
+    ootParseRotation,
+    sceneNameFromID,
+)
+from .oot_constants import ootEnumCamTransition, ootEnumActorID
+from .oot_actor import OOTActorHeaderProperty
 from .c_writer.oot_scene_table_c import getDrawConfig
-from ..utility import yUpToZUp
+from ..utility import yUpToZUp, parentObject, hexOrDecInt, gammaInverse
+from ..f3d.f3d_parser import parseMatrices
 from collections import OrderedDict
+from .oot_collision_classes import ootEnumCameraCrawlspaceSType
 
 
 def run_ops_without_view_layer_update(func):
@@ -255,7 +267,7 @@ def parseScene(
             sceneObj.ootSceneHeader.sceneTableEntry, "drawConfig", getDrawConfig(sceneName), ootEnumDrawConfig
         )
 
-    if bpy.context.scene.ootHeaderTabAffectsVisibility:
+    if bpy.context.scene.fast64.oot.headerTabAffectsVisibility:
         setAllActorsVisibility(sceneObj, bpy.context)
 
 
@@ -1128,7 +1140,7 @@ def parseCollision(
     surfaceIndex = 0
     for (surface, polygonParams), triList in collisionDict.items():
         randomColor = mathutils.Color((1, 1, 1))
-        randomColor.hsv = (random.random(), 0.5, 0.5)
+        randomColor.hsv = (random(), 0.5, 0.5)
         collisionMat = getColliderMat(f"oot_collision_mat_{surfaceIndex}", randomColor[:] + (0.5,))
         collision = collisionMat.ootCollisionProperty
         parseSurfaceParams(surface, polygonParams, collision)
