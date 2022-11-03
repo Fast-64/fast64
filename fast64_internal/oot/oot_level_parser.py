@@ -1,9 +1,6 @@
 import math, os, re, bpy, mathutils
 from random import random
 
-# from .oot_f3d_writer import *
-# from .oot_collision import *
-# from .oot_cutscene import *
 from .oot_f3d_writer import getColliderMat
 from .oot_level import OOTImportSceneSettingsProperty
 from .oot_scene_room import OOTSceneHeaderProperty, OOTRoomHeaderProperty, OOTLightProperty
