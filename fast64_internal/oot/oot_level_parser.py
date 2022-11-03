@@ -69,7 +69,7 @@ def run_ops_without_view_layer_update(func):
         _BPyOpsSubModOp._view_layer_update = view_layer_update
 
 
-def parseSceneNoArgs():
+def parseSceneFunc():
     context = bpy.context
     settings = context.scene.ootSceneImportSettings
     parseScene(
@@ -90,14 +90,8 @@ class OOT_ImportScene(bpy.types.Operator):
             if bpy.context.mode != "OBJECT":
                 bpy.ops.object.mode_set(mode="OBJECT")
             bpy.ops.object.select_all(action="DESELECT")
-            settings = context.scene.ootSceneImportSettings
 
-            parseScene(
-                context.scene.f3d_type,
-                context.scene.isHWv1,
-                settings,
-                bpy.context.scene.ootSceneOption,
-            )
+            run_ops_without_view_layer_update(parseSceneFunc)
 
             self.report({"INFO"}, "Success!")
             return {"FINISHED"}
