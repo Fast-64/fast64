@@ -541,7 +541,7 @@ class OOT_ImportDL(bpy.types.Operator):
             folderName = settings.folder
             importPath = bpy.path.abspath(settings.customPath)
             isCustomImport = settings.isCustom
-            basePath = bpy.path.abspath(context.scene.ootDecompPath)
+            basePath = bpy.path.abspath(context.scene.ootDecompPath) if not isCustomImport else importPath
             removeDoubles = settings.removeDoubles
             importNormals = settings.importNormals
             drawLayer = settings.drawLayer

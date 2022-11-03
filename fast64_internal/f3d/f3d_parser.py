@@ -861,13 +861,23 @@ class F3DContext:
         if self.basePath is None:
             raise PluginError("Cannot load texture from " + path + " without any provided base path.")
 
-        imagePath = path[:-5] + "png"
-        return os.path.join(self.basePath, imagePath)
+        imagePathRelative = path[:-5] + "png"
+        imagePath = os.path.join(self.basePath, imagePathRelative)
+
+        # handle custom imports, where relative paths don't make sense
+        if not os.path.exists(imagePath):
+            imagePath = os.path.join(self.basePath, os.path.basename(imagePathRelative))
+        return imagePath
 
     def getVTXPathFromInclude(self, path):
         if self.basePath is None:
             raise PluginError("Cannot load VTX from " + path + " without any provided base path.")
-        return os.path.join(self.basePath, path)
+
+        vtxPath = os.path.join(self.basePath, path)
+        # handle custom imports, where relative paths don't make sense
+        if not os.path.exists(vtxPath):
+            vtxPath = os.path.join(self.basePath, os.path.basename(path))
+        return vtxPath
 
     def setGeoFlags(self, command, value):
         mat = self.mat()
@@ -1463,7 +1473,7 @@ class F3DContext:
         # TODO: Textures are sometimes loaded in with different dimensions than for rendering.
         # This means width is incorrect?
         image, loadedFromImageFile = parseTextureData(
-            data, textureName, self, tileSettings.fmt, siz, width, self.basePath, isLUT, self.f3d
+            data, textureName, self, tileSettings.fmt, siz, width, isLUT, self.f3d
         )
         if loadedFromImageFile:
             self.imagesDontApplyTlut.add(image)
@@ -1990,7 +2000,7 @@ def CI4toRGBA32(value):
     return [value / 255, value / 255, value / 255, 1]
 
 
-def parseTextureData(dlData, textureName, f3dContext, imageFormat, imageSize, width, basePath, isLUT, f3d):
+def parseTextureData(dlData, textureName, f3dContext, imageFormat, imageSize, width, isLUT, f3d):
 
     matchResult = re.search(
         r"([A-Za-z0-9\_]+)\s*" + re.escape(textureName) + r"\s*\[\s*[0-9a-fA-Fx]*\s*\]\s*=\s*\{([^\}]*)\s*\}\s*;\s*",
