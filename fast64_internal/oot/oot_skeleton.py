@@ -1228,6 +1228,7 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
                     prop_split(box, exportSettings, "flipbookArrayIndex2D", "Flipbook Index")
             elif exportSettings.mode == "Adult Link" or exportSettings.mode == "Child Link":
                 col.label(text="Requires enabling NON_MATCHING in Makefile.", icon="ERROR")
+                col.label(text="Preserve all bone deform toggles if modifying an imported skeleton.", icon="ERROR")
 
         col.operator(OOT_ImportSkeleton.bl_idname)
         importSettings: OOTSkeletonImportSettings = context.scene.fast64.oot.skeletonImportSettings
