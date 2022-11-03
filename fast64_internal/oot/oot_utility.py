@@ -1,4 +1,4 @@
-import bpy, math, os
+import bpy, math, os, re
 from bpy.utils import register_class, unregister_class
 from ..utility import (
     PluginError,
@@ -151,6 +151,14 @@ ootSceneDirs = {
     "assets/scenes/shops/": ootSceneShops,
     "assets/scenes/test_levels/": ootSceneTest_levels,
 }
+
+
+def getOOTScale(actorScale: float) -> float:
+    return bpy.context.scene.ootBlenderScale * actorScale
+
+
+def replaceMatchContent(data: str, newContent: str, match: re.Match, index: int) -> str:
+    return data[: match.start(index)] + newContent + data[match.end(index) :]
 
 
 def addIncludeFiles(objectName, objectPath, assetName):
@@ -372,20 +380,29 @@ def ootGetPath(exportPath, isCustomExport, subPath, folderName, makeIfNotExists,
 
 def getSortedChildren(armatureObj, bone):
     return sorted(
-        [child.name for child in bone.children if child.ootBoneType != "Ignore"],
+        [child.name for child in bone.children if child.ootBone.boneType != "Ignore"],
         key=lambda childName: childName.lower(),
     )
 
 
 def getStartBone(armatureObj):
     startBoneNames = [
-        bone.name for bone in armatureObj.data.bones if bone.parent is None and bone.ootBoneType != "Ignore"
+        bone.name for bone in armatureObj.data.bones if bone.parent is None and bone.ootBone.boneType != "Ignore"
     ]
     if len(startBoneNames) == 0:
         raise PluginError(armatureObj.name + ' does not have any root bones that are not of the "Ignore" type.')
     startBoneName = startBoneNames[0]
     return startBoneName
     # return 'root'
+
+
+def getNextBone(boneStack: list[str], armatureObj: bpy.types.Object):
+    if len(boneStack) == 0:
+        raise PluginError("More bones in animation than on armature.")
+    bone = armatureObj.data.bones[boneStack[0]]
+    boneStack = boneStack[1:]
+    boneStack = getSortedChildren(armatureObj, bone) + boneStack
+    return bone, boneStack
 
 
 def checkForStartBone(armatureObj):

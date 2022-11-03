@@ -1,3 +1,4 @@
+from typing import Union
 import functools
 import bpy, bmesh, mathutils, os, re, copy, math
 from math import pi, ceil
@@ -14,6 +15,7 @@ from .f3d_material import (
     bitSizeDict,
     texBitSizeOf,
     texFormatOf,
+    TextureProperty,
 )
 from .f3d_gbi import *
 from .f3d_gbi import _DPLoadTextureBlock
@@ -818,13 +820,50 @@ def getNewIndices(existingIndices, bufferStart):
     return newIndices
 
 
-class BufferVertex:
-    def __init__(self, f3dVert, groupIndex, materialIndex):
-        self.f3dVert = f3dVert
-        self.groupIndex = groupIndex
-        self.materialIndex = materialIndex
+# Color and normal are separate, since for parsing, the normal must be transformed into
+# bone/object space while the color should just be a regular conversion.
+class F3DVert:
+    def __init__(
+        self,
+        position: mathutils.Vector,
+        uv: mathutils.Vector,
+        color: mathutils.Vector | None,  # 4 components
+        normal: mathutils.Vector | None,  # 4 components
+    ):
+        self.position: mathutils.Vector = position
+        self.uv: mathutils.Vector = uv
+        self.color: mathutils.Vector | None = color
+        self.normal: mathutils.Vector | None = normal
 
     def __eq__(self, other):
+        if not isinstance(other, F3DVert):
+            return False
+        return (
+            self.position == other.position
+            and self.uv == other.uv
+            and self.color == other.color
+            and self.normal == other.normal
+        )
+
+    def getColorOrNormal(self):
+        if self.color is None and self.normal is None:
+            raise PluginError("An F3D vert has neither a color or a normal.")
+        elif self.color is not None:
+            return self.color
+        else:
+            return self.normal
+
+
+# groupIndex is either a vertex group (writing), or name of c variable identifying a transform group, like a limb (parsing)
+class BufferVertex:
+    def __init__(self, f3dVert: F3DVert, groupIndex: int | str, materialIndex: int):
+        self.f3dVert: F3DVert = f3dVert
+        self.groupIndex: int | str = groupIndex
+        self.materialIndex: int = materialIndex
+
+    def __eq__(self, other):
+        if not isinstance(other, BufferVertex):
+            return False
         return (
             self.f3dVert == other.f3dVert
             and self.groupIndex == other.groupIndex
@@ -871,12 +910,12 @@ class TriangleConverter:
     def __init__(
         self,
         triConverterInfo: TriangleConverterInfo,
-        texDimensions,
+        texDimensions: tuple[int, int],
         material: bpy.types.Material,
         currentGroupIndex,
         triList,
         vtxList,
-        existingVertexData,
+        existingVertexData: list[BufferVertex],
         existingVertexMaterialRegions,
     ):
         self.triConverterInfo = triConverterInfo
@@ -884,11 +923,9 @@ class TriangleConverter:
         self.originalGroupIndex = currentGroupIndex
 
         # Existing data assumed to be already loaded in.
+        self.vertBuffer: list[BufferVertex] = []
         if existingVertexData is not None:
-            # [(position, uv, colorOrNormal)]
-            self.vertBuffer = existingVertexData
-        else:
-            self.vertBuffer = []
+            self.vertBuffer: list[BufferVertex] = existingVertexData
         self.existingVertexMaterialRegions = existingVertexMaterialRegions
         self.bufferStart = len(self.vertBuffer)
         self.vertexBufferTriangles = []  # [(index0, index1, index2)]
@@ -916,8 +953,8 @@ class TriangleConverter:
 
             return bufferVert in self.vertBuffer[self.bufferStart :]
 
-    def getSortedBuffer(self):
-        limbVerts = {}
+    def getSortedBuffer(self) -> dict[int, list[BufferVertex]]:
+        limbVerts: dict[int, list[BufferVertex]] = {}
         for bufferVert in self.vertBuffer[self.bufferStart :]:
             if bufferVert.groupIndex not in limbVerts:
                 limbVerts[bufferVert.groupIndex] = []
@@ -945,9 +982,9 @@ class TriangleConverter:
                 self.vtxList.vertices.append(
                     convertVertexData(
                         self.triConverterInfo.mesh,
-                        bufferVert.f3dVert[0],
-                        bufferVert.f3dVert[1],
-                        bufferVert.f3dVert[2],
+                        bufferVert.f3dVert.position,
+                        bufferVert.f3dVert.uv,
+                        bufferVert.f3dVert.getColorOrNormal(),
                         self.texDimensions,
                         self.triConverterInfo.getTransformMatrix(bufferVert.groupIndex),
                         self.isPointSampled,
@@ -979,9 +1016,9 @@ class TriangleConverter:
                 self.vtxList.vertices.append(
                     convertVertexData(
                         self.triConverterInfo.mesh,
-                        bufferVert.f3dVert[0],
-                        bufferVert.f3dVert[1],
-                        bufferVert.f3dVert[2],
+                        bufferVert.f3dVert.position,
+                        bufferVert.f3dVert.uv,
+                        bufferVert.f3dVert.getColorOrNormal(),
                         self.texDimensions,
                         self.triConverterInfo.getTransformMatrix(bufferVert.groupIndex),
                         self.isPointSampled,
@@ -1046,11 +1083,11 @@ def getF3DVert(loop: bpy.types.MeshLoop, face, convertInfo: LoopConvertInfo, mes
     uv[:] = [field if not math.isnan(field) else 0 for field in uv]
     uv[1] = 1 - uv[1]
     uv = uv.freeze()
-    colorOrNormal = getLoopColorOrNormal(
+    color, normal = getLoopColorOrNormal(
         loop, face, convertInfo.obj.data, convertInfo.obj, convertInfo.exportVertexColors
     )
 
-    return (position, uv, colorOrNormal)
+    return F3DVert(position, uv, color, normal)
 
 
 def getLoopNormal(loop: bpy.types.MeshLoop, face, mesh, isFlatShaded):
@@ -1198,7 +1235,11 @@ def convertVertexData(
     # However, Point samples from the corner.
     # Thus we add 0.5 to the UV only if bilinear filtering.
     # see section 13.7.5.3 in programming manual.
-    pixelOffset = (0, 0) if isPointSampled else (0.5 / tex_scale[0], 0.5 / tex_scale[1])
+    pixelOffset = (
+        (0, 0)
+        if (isPointSampled or tex_scale[0] == 0 or tex_scale[1] == 0)
+        else (0.5 / tex_scale[0], 0.5 / tex_scale[1])
+    )
 
     uv = [
         convertFloatToFixed16(loopUV[0] * texDimensions[0] - pixelOffset[0]),
@@ -1246,16 +1287,18 @@ def getLoopColor(loop: bpy.types.MeshLoop, mesh, mat_ver):
     else:
         normalizedA = 1
 
-    return (normalizedRGB[0], normalizedRGB[1], normalizedRGB[2], normalizedA)
+    return mathutils.Vector((normalizedRGB[0], normalizedRGB[1], normalizedRGB[2], normalizedA))
 
 
-def getLoopColorOrNormal(loop: bpy.types.MeshLoop, face, mesh, obj, exportVertexColors):
+def getLoopColorOrNormal(
+    loop: bpy.types.MeshLoop, face, mesh: bpy.types.Mesh, obj: bpy.types.Object, exportVertexColors: bool
+) -> tuple[mathutils.Vector, None] | tuple[None, mathutils.Vector]:
     material = obj.material_slots[face.material_index].material
     isFlatShaded = checkIfFlatShaded(material)
     if exportVertexColors:
-        return getLoopColor(loop, mesh, material.mat_ver)
+        return getLoopColor(loop, mesh, material.mat_ver), None
     else:
-        return getLoopNormal(loop, face, mesh, isFlatShaded)
+        return None, getLoopNormal(loop, face, mesh, isFlatShaded)
 
 
 def createTriangleCommands(triangles, vertexBuffer, useSP2Triangle):
@@ -1593,7 +1636,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             ]
         )
 
-    fModel.onMaterialCommandsBuilt(fMaterial.material, fMaterial.revert, material, drawLayer)
+    fModel.onMaterialCommandsBuilt(fMaterial, material, drawLayer)
 
     # End Display List
     # For dynamic calls, materials will be called as functions and should not end the DL.
@@ -1615,6 +1658,33 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     fModel.materials[materialKey] = (fMaterial, texDimensions)
 
     return fMaterial, texDimensions
+
+
+def getTextureName(texProp: TextureProperty, fModelName: str, overrideName: str) -> str:
+    tex = texProp.tex
+    texFormat = texProp.tex_format
+    if not texProp.use_tex_reference:
+        if tex.filepath == "":
+            name = tex.name
+        else:
+            name = tex.filepath
+    else:
+        name = texProp.tex_reference
+    texName = (
+        fModelName
+        + "_"
+        + (getNameFromPath(name, True) + "_" + texFormat.lower() if overrideName is None else overrideName)
+    )
+
+    return texName
+
+
+def getTextureNameTexRef(texProp: TextureProperty, fModelName: str) -> str:
+    texFormat = texProp.tex_format
+    name = texProp.tex_reference
+    texName = fModelName + "_" + (getNameFromPath(name, True) + "_" + texFormat.lower())
+
+    return texName
 
 
 def saveTextureIndex(
@@ -1653,18 +1723,7 @@ def saveTextureIndex(
     isCITexture = texFormat[:2] == "CI"
     palFormat = texProp.ci_format if isCITexture else ""
 
-    if not texProp.use_tex_reference:
-        if tex.filepath == "":
-            name = tex.name
-        else:
-            name = tex.filepath
-    else:
-        name = texProp.tex_reference
-    texName = (
-        fModel.name
-        + "_"
-        + (getNameFromPath(name, True) + "_" + texFormat.lower() if overrideName is None else overrideName)
-    )
+    texName = getTextureName(texProp, fModel.name, overrideName)
 
     if tileSettingsOverride is not None:
         tileSettings = tileSettingsOverride[index]
@@ -1726,8 +1785,9 @@ def saveTextureIndex(
             fImage = FImage(texProp.tex_reference, None, None, width, height, None, False)
             fPalette = FImage(texProp.pal_reference, None, None, 1, texProp.pal_reference_size, None, False)
         else:
-            fImage, fPalette = saveOrGetPaletteDefinition(
-                fMaterial, fModel, tex, texName, texFormat, palFormat, convertTextureData
+            # fPalette should be an fImage here, since sharedPalette is None
+            fImage, fPalette, alreadyExists = saveOrGetPaletteAndImageDefinition(
+                fMaterial, fModel, tex, texName, texFormat, palFormat, convertTextureData, None
             )
 
         if loadPalettes:
@@ -1995,19 +2055,79 @@ def savePaletteLoading(loadTexGfx, revertTexGfx, fPalette, palFormat, pal, color
         )
 
 
-def saveOrGetPaletteDefinition(fMaterial, fModelOrTexRect, image, imageName, texFmt, palFmt, convertTextureData):
+class FSharedPalette:
+    def __init__(self, name):
+        self.name = name
+        self.palette = []
+
+
+def saveOrGetPaletteOnlyDefinition(
+    fMaterial: FMaterial,
+    fModel: FModel,
+    image: bpy.types.Image,
+    imageName: str,
+    texFmt: str,
+    palFmt: str,
+    convertTextureData: bool,
+    palette: list[int],
+) -> FImage:
+
+    palFormat = texFormatOf[palFmt]
+    paletteName = checkDuplicateTextureName(fModel, toAlnum(imageName) + "_pal_" + palFmt.lower())
+    paletteKey = (image, (palFmt, "PAL"))
+    paletteFilename = getNameFromPath(imageName, True) + "." + fModel.getTextureSuffixFromFormat(texFmt) + ".pal"
+
+    fPalette = FImage(
+        paletteName,
+        palFormat,
+        "G_IM_SIZ_16b",
+        1,
+        len(palette),
+        paletteFilename,
+        convertTextureData,
+    )
+
+    if fMaterial.useLargeTextures:
+        fPalette.isLargeTexture = True
+
+    if convertTextureData:
+        for color in palette:
+            fPalette.data.extend(color.to_bytes(2, "big"))
+
+    # print(f"Palette data: {paletteName} - length {len(fPalette.data)}")
+
+    fModel.addTexture(paletteKey, fPalette, fMaterial)
+    return fPalette
+
+
+def imageAlreadyExists(fModel: FModel, image: bpy.types.Image, texFmt: str, palFmt: str) -> bool:
     texFormat = texFormatOf[texFmt]
     palFormat = texFormatOf[palFmt]
     bitSize = texBitSizeOf[texFmt]
     # If image already loaded, return that data.
-    paletteName = toAlnum(imageName) + "_pal_" + palFmt.lower()
     imageKey = (image, (texFmt, palFmt))
-    paletteKey = (image, (palFmt, "PAL"))
+    fImage, fPalette = fModel.getTextureAndHandleShared(imageKey)
+    return fImage is not None
+
+
+def saveOrGetPaletteAndImageDefinition(
+    fMaterial, fModelOrTexRect, image, imageName, texFmt, palFmt, convertTextureData, sharedPalette: FSharedPalette
+) -> tuple[FImage, FImage, bool]:
+    texFormat = texFormatOf[texFmt]
+    palFormat = texFormatOf[palFmt]
+    bitSize = texBitSizeOf[texFmt]
+    # If image already loaded, return that data.
+    imageKey = (image, (texFmt, palFmt))
     fImage, fPalette = fModelOrTexRect.getTextureAndHandleShared(imageKey)
     if fImage is not None:
-        return fImage, fPalette
+        # print(f"Image already exists")
+        return fImage, fPalette, True
 
-    palette = []
+    # print(f"Size: {str(image.size[0])} x {str(image.size[1])}, Data: {str(len(image.pixels))}")
+    if sharedPalette is not None:
+        palette = sharedPalette.palette
+    else:
+        palette = []
     texture = []
     maxColors = 16 if bitSize == "G_IM_SIZ_4b" else 256
     if convertTextureData:
@@ -2028,7 +2148,13 @@ def saveOrGetPaletteDefinition(fMaterial, fModelOrTexRect, image, imageName, tex
                 if pixelColor not in palette:
                     palette.append(pixelColor)
                     if len(palette) > maxColors:
-                        raise PluginError("Texture " + imageName + " has more than " + str(maxColors) + " colors.")
+                        raise PluginError(
+                            "Texture "
+                            + imageName
+                            + " has more than "
+                            + str(maxColors)
+                            + " colors, or is part of a shared palette with too many colors."
+                        )
                 texture.append(palette.index(pixelColor))
 
     if image.filepath == "":
@@ -2036,7 +2162,7 @@ def saveOrGetPaletteDefinition(fMaterial, fModelOrTexRect, image, imageName, tex
     else:
         name = image.filepath
     filename = getNameFromPath(name, True) + "." + fModelOrTexRect.getTextureSuffixFromFormat(texFmt) + ".inc.c"
-    paletteFilename = getNameFromPath(name, True) + "." + fModelOrTexRect.getTextureSuffixFromFormat(texFmt) + ".pal"
+
     # paletteFilename = getNameFromPath(name, True) + '.' + \
     # 	fModelOrTexRect.getTextureSuffixFromFormat(palFmt) + '.inc.c'
     fImage = FImage(
@@ -2049,37 +2175,37 @@ def saveOrGetPaletteDefinition(fMaterial, fModelOrTexRect, image, imageName, tex
         convertTextureData,
     )
 
-    fPalette = FImage(
-        checkDuplicateTextureName(fModelOrTexRect, paletteName),
-        palFormat,
-        "G_IM_SIZ_16b",
-        1,
-        len(palette),
-        paletteFilename,
-        convertTextureData,
-    )
     if fMaterial.useLargeTextures:
         fImage.isLargeTexture = True
-        fPalette.isLargeTexture = True
-    fImage.paletteKey = paletteKey
 
     # paletteImage = bpy.data.images.new(paletteName, 1, len(palette))
     # paletteImage.pixels = palette
     # paletteImage.filepath = paletteFilename
 
     if convertTextureData:
-        for color in palette:
-            fPalette.data.extend(color.to_bytes(2, "big"))
-
         if bitSize == "G_IM_SIZ_4b":
             fImage.data = compactNibbleArray(texture, image.size[0], image.size[1])
         else:
             fImage.data = bytearray(texture)
 
     fModelOrTexRect.addTexture((image, (texFmt, palFmt)), fImage, fMaterial)
-    fModelOrTexRect.addTexture((image, (palFmt, "PAL")), fPalette, fMaterial)
 
-    return fImage, fPalette  # , paletteImage
+    # For shared palettes, paletteName should be the same for the same imageName until
+    # the next saveOrGetPaletteOnlyDefinition
+    # Make sure paletteName is read here before saveOrGetPaletteOnlyDefinition is called.
+    paletteName = checkDuplicateTextureName(fModelOrTexRect, toAlnum(imageName) + "_pal_" + palFmt.lower())
+
+    if sharedPalette is None:
+        fPalette = saveOrGetPaletteOnlyDefinition(
+            fMaterial, fModelOrTexRect, image, imageName, texFmt, palFmt, convertTextureData, palette
+        )
+        paletteKey = (image, (palFmt, "PAL"))
+        fImage.paletteKey = paletteKey
+    else:
+        fPalette = None
+        fImage.paletteKey = None
+
+    return fImage, fPalette, False  # , paletteImage
 
 
 def compactNibbleArray(texture, width, height):
