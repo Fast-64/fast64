@@ -6,14 +6,14 @@ from ..f3d.f3d_material import sm64EnumDrawLayers
 from .sm64_geolayout_utility import createBoneGroups, addBoneToGroup
 
 from bpy.props import (
-	StringProperty,
-	IntProperty,
-	FloatProperty,
-	BoolProperty,
-	PointerProperty,
-	CollectionProperty,
-	EnumProperty,
-	FloatVectorProperty,
+    StringProperty,
+    IntProperty,
+    FloatProperty,
+    BoolProperty,
+    PointerProperty,
+    CollectionProperty,
+    EnumProperty,
+    FloatVectorProperty,
 )
 
 
@@ -266,12 +266,8 @@ class SwitchOptionProperty(PropertyGroup):
     optionArmature: PointerProperty(name="Option Armature", type=Object)
     materialOverride: PointerProperty(type=Material, name="Material Override")
     materialOverrideType: EnumProperty(name="Material Override Type", items=enumMatOverrideOptions)
-    specificOverrideArray: CollectionProperty(
-        type=MaterialPointerProperty, name="Specified Materials To Override"
-    )
-    specificIgnoreArray: CollectionProperty(
-        type=MaterialPointerProperty, name="Specified Materials To Ignore"
-    )
+    specificOverrideArray: CollectionProperty(type=MaterialPointerProperty, name="Specified Materials To Override")
+    specificIgnoreArray: CollectionProperty(type=MaterialPointerProperty, name="Specified Materials To Ignore")
     overrideDrawLayer: BoolProperty()
     drawLayer: EnumProperty(items=sm64EnumDrawLayers, name="Draw Layer")
     expand: BoolProperty()
@@ -515,9 +511,7 @@ def sm64_bone_register():
     )
 
     # Function
-    Bone.func_param = IntProperty(
-        name="Function Parameter", min=-(2 ** (15)), max=2 ** (15) - 1, default=0
-    )
+    Bone.func_param = IntProperty(name="Function Parameter", min=-(2 ** (15)), max=2 ** (15) - 1, default=0)
 
     # TranslateRotate
     Bone.field_layout = EnumProperty(name="Field Layout", items=enumFieldLayout, default="0")
@@ -527,9 +521,7 @@ def sm64_bone_register():
 
     Bone.shadow_solidity = FloatProperty(name="Shadow Alpha", min=0, max=1, default=1)
 
-    Bone.shadow_scale = IntProperty(
-        name="Shadow Scale", min=-(2 ** (15)), max=2 ** (15) - 1, default=100
-    )
+    Bone.shadow_scale = IntProperty(name="Shadow Scale", min=-(2 ** (15)), max=2 ** (15) - 1, default=100)
 
     # Bone.switch_bone = StringProperty(
     # 	name = 'Switch Bone')
@@ -540,12 +532,8 @@ def sm64_bone_register():
     Bone.switch_options = CollectionProperty(type=SwitchOptionProperty)
 
     # Static Geolayout
-    Object.geo_cmd_static = EnumProperty(
-        name="Geolayout Command", items=enumGeoStaticType, default="Optimal"
-    )
-    Object.draw_layer_static = EnumProperty(
-        name="Draw Layer", items=sm64EnumDrawLayers, default="1"
-    )
+    Object.geo_cmd_static = EnumProperty(name="Geolayout Command", items=enumGeoStaticType, default="Optimal")
+    Object.draw_layer_static = EnumProperty(name="Draw Layer", items=sm64EnumDrawLayers, default="1")
     Object.use_render_area = BoolProperty(name="Use Render Area")
     Object.culling_radius = FloatProperty(name="Culling Radius", default=10)
 
@@ -554,9 +542,7 @@ def sm64_bone_register():
 
     Object.shadow_solidity = FloatProperty(name="Shadow Alpha", min=0, max=1, default=1)
 
-    Object.shadow_scale = IntProperty(
-        name="Shadow Scale", min=-(2 ** (15)), max=2 ** (15) - 1, default=100
-    )
+    Object.shadow_scale = IntProperty(name="Shadow Scale", min=-(2 ** (15)), max=2 ** (15) - 1, default=100)
 
     Object.add_func = BoolProperty(name="Add Function Node")
 

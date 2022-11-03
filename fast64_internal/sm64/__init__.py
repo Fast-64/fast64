@@ -335,9 +335,7 @@ def sm64_register(registerPanels):
     )
     Scene.decompPath = StringProperty(name="Decomp Folder", subtype="FILE_PATH")
 
-    Scene.compressionFormat = EnumProperty(
-        items=enumCompressionFormat, name="Compression", default="mio0"
-    )
+    Scene.compressionFormat = EnumProperty(items=enumCompressionFormat, name="Compression", default="mio0")
 
 
 def sm64_unregister(unregisterPanels):

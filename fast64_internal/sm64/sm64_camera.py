@@ -3,16 +3,16 @@ from bpy.utils import register_class, unregister_class
 from ..utility import colorTo16bitRGBA, gammaCorrect
 
 from .sm64_geolayout_classes import (
-	TransformNode,
-	ScreenAreaNode,
-	ZBufferNode,
-	OrthoNode,
-	BackgroundNode,
-	FrustumNode,
-	CameraNode,
-	StartNode,
-	RenderObjNode,
-	FunctionNode,
+    TransformNode,
+    ScreenAreaNode,
+    ZBufferNode,
+    OrthoNode,
+    BackgroundNode,
+    FrustumNode,
+    CameraNode,
+    StartNode,
+    RenderObjNode,
+    FunctionNode,
 )
 
 enumBackgroundType = [

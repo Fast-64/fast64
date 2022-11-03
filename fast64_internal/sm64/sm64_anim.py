@@ -6,43 +6,43 @@ from .sm64_rom_tweaks import ExtendBank0x04
 from .sm64_geolayout_bone import animatableBoneTypes
 
 from ..utility import (
-	CData,
-	PluginError,
-	ValueFrameData,
-	raisePluginError,
-	encodeSegmentedAddr,
-	decodeSegmentedAddr,
-	getExportDir,
-	toAlnum,
-	writeIfNotFound,
-	get64bitAlignedAddr,
-	writeInsertableFile,
-	getFrameInterval,
-	findStartBones,
-	saveTranslationFrame,
-	saveQuaternionFrame,
-	removeTrailingFrames,
-	applyRotation,
-	getPathAndLevel,
-	applyBasicTweaks,
-	checkExpanded,
-	tempName,
-	bytesToHex,
-	prop_split,
-	customExportWarning,
-	decompFolderMessage,
-	makeWriteInfoBox,
-	writeBoxExportType,
-	enumExportHeaderType,
+    CData,
+    PluginError,
+    ValueFrameData,
+    raisePluginError,
+    encodeSegmentedAddr,
+    decodeSegmentedAddr,
+    getExportDir,
+    toAlnum,
+    writeIfNotFound,
+    get64bitAlignedAddr,
+    writeInsertableFile,
+    getFrameInterval,
+    findStartBones,
+    saveTranslationFrame,
+    saveQuaternionFrame,
+    removeTrailingFrames,
+    applyRotation,
+    getPathAndLevel,
+    applyBasicTweaks,
+    checkExpanded,
+    tempName,
+    bytesToHex,
+    prop_split,
+    customExportWarning,
+    decompFolderMessage,
+    makeWriteInfoBox,
+    writeBoxExportType,
+    enumExportHeaderType,
 )
 
 from .sm64_constants import (
-	bank0Segment,
-	insertableBinaryTypes,
-	level_pointers,
-	defaultExtendSegment4,
-	level_enums,
-	enumLevelNames,
+    bank0Segment,
+    insertableBinaryTypes,
+    level_pointers,
+    defaultExtendSegment4,
+    level_enums,
+    enumLevelNames,
 )
 
 sm64_anim_types = {"ROTATE", "TRANSLATE"}
@@ -980,6 +980,7 @@ class SM64_ImportAnimPanel(SM64_Panel):
         prop_split(col, context.scene, "animStartImport", "Start Address")
         col.prop(context.scene, "animIsSegPtr")
         col.prop(context.scene, "levelAnimImport")
+
 
 sm64_anim_classes = (
     SM64_ExportAnimMario,
