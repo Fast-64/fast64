@@ -81,6 +81,33 @@ There may also be an issue where some meshes import completely black due to the 
 To import an animation, select the armature the animation belongs to then click "Import" on the animation importer.
 To export an animation, select an armature and click "Export", which will export the active animation of the armature.
 
+### Flipbook Textures
+Many actors in OOT will animate textures through code using a flipbook method, like with Link's eyes/mouth. A flipbook material will use a texture reference pointing to an address formatted as 0x0?000000. You can find the flipbook texture frames in the material properties tab underneath the dynamic material section. 
+![](/images/oot_flipbook.png)
+On import, Fast64 will try to read the provided actors code for flipbook textures. On export, Fast64 will try to modify texture arrays used for flipbook textures.
+
+For Link, the eyes/mouth materials use flipbook textures. For Link animations you can animate these flipbook indices in the Link Animation Inspector, located in the object properties tab for an armature object. Note that the 0 index is reserved for the "auto" setting, and that flipbook texture indices start at 1.
+![](/images/oot_link_texture_anim.png)
+
+### Custom Link Process
+1. In the OOT Skeleton Exporter window, go to the Import Skeleton section, select "Mode" and switch it to "Adult Link."
+2. Click "Import Skeleton" to import the skeleton from your decomp repo set up in the the "Getting Started" intro.
+3. Replace/modify the mesh.
+4. For any new materials, make sure to go to material properties -> OOT Dynamic Material Properties -> enable segment C. This handles rendering for Link's reflection.
+5. To add your own eye/mouth materials, create a new F3D material, then go to material properties -> F3D Material Inspector -> Sources -> Texture 0 Properties:
+    - Set "Use Texture Reference".
+    - Set the texture size to the size of your textures.
+    - Ignore palette reference/size, those will be auto-generated if using CI textures.
+    - Set the texture reference to 0x08000000 (eyes) or 0x09000000 (mouth)
+6. To add different eye/mouth texture frames, go to the material properties tab, then scroll down to the Flipbook Properties.
+7. Once you've modified Link's mesh, go the OOT Skeleton Exporter window, go to the Export Skeleton section, select "Mode" and switch it to "Adult Link".
+8. Select Link's armature and then hit "Export Skeleton".
+9. If you're not using HackerOOT, make sure to set NON_MATCHING to 1 in the Makefile in the decomp repo.
+10. Most of Link's items are combined with his hand mesh. There are plans to simplify the process, but for now these models must be manually replaced using the display list importer/exporter. You'll also have to modify the DL arrays at the start of src/code/z_player_lib.c to include your own DLs if you're appending and not replacing.
+11. Common Issues:
+    - Corrupted mesh: Make sure the root, upper control, and lower control bones are the only bones set to non-deform.
+    - Incorrect waist DL: Go to src/code/z_player_lib.c and modify sPlayerWaistDLs to include your own waist DL.
+
 ### Custom Skeleton Mesh Process
 1. Import the character you want to modify.
     - Skeleton: The name of the skeleton struct, of type FlexSkeletonHeader or SkeletonHeader. Usually found in the object files.
@@ -93,14 +120,6 @@ To export an animation, select an armature and click "Export", which will export
 5. If "Replace Vanilla Headers On Export" is enabled, then any reference conflicts should be removed.
 6. In the actor header file, (in src/overlays/actors/\<name\>/), set the joint/morph table sizes to be (number of bones + 1)
 7. In the actor source file, this value should also be used for the limbCount argument in SkelAnime_InitFlex().
-
-### Flipbook Textures
-Many actors in OOT will animate textures through code using a flipbook method, like with Link's eyes/mouth. A flipbook material will use a texture reference pointing to an address formatted as 0x0?000000. You can find the flipbook texture frames in the material properties tab underneath the dynamic material section. 
-![](/images/oot_flipbook.png)
-On import, Fast64 will try to read the provided actors code for flipbook textures. On export, Fast64 will try to modify texture arrays used for flipbook textures.
-
-For Link, the eyes/mouth materials use flipbook textures. For Link animations you can animate these flipbook indices in the Link Animation Inspector, located in the object properties tab for an armature object. Note that the 0 index is reserved for the "auto" setting, and that flipbook texture indices start at 1.
-![](/images/oot_link_texture_anim.png)
 
 ### Creating a Cutscene
 **Creating the cutscene itself:**

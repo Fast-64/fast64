@@ -17,6 +17,7 @@ ootRoomShapeEntryStructs = [
     "RoomShapeCullableEntry",
 ]
 
+
 ootEnumSceneMenu = [
     ("General", "General", "General"),
     ("Lighting", "Lighting", "Lighting"),
@@ -49,6 +50,14 @@ ootEnumRoomMenuAlternate = [
 ]
 
 ootEnumHeaderMenu = [
+    ("Child Night", "Child Night", "Child Night"),
+    ("Adult Day", "Adult Day", "Adult Day"),
+    ("Adult Night", "Adult Night", "Adult Night"),
+    ("Cutscene", "Cutscene", "Cutscene"),
+]
+
+ootEnumHeaderMenuComplete = [
+    ("Child Day", "Child Day", "Child Day"),
     ("Child Night", "Child Night", "Child Night"),
     ("Adult Day", "Adult Day", "Adult Day"),
     ("Adult Night", "Adult Night", "Adult Night"),
@@ -511,7 +520,6 @@ ootEnumLinkIdle = [
     ("0x00", "Default", "Default"),
     ("0x01", "Sneezing", "Sneezing"),
     ("0x02", "Wiping Forehead", "Wiping Forehead"),
-    ("0x03", "Too Hot", "Too Hot (Triggers Heat Timer)"),
     ("0x04", "Yawning", "Yawning"),
     ("0x07", "Gasping For Breath", "Gasping For Breath"),
     ("0x09", "Brandish Sword", "Brandish Sword"),
@@ -1413,12 +1421,12 @@ ootEnumCamTransition = [
 # see curRoom.unk_03
 ootEnumRoomBehaviour = [
     ("Custom", "Custom", "Custom"),
-    ("0x00", "None", "None"),
-    ("0x01", "Disable Sun Song Effect", "Disable Sun Song Effect"),
-    ("0x02", "Disable Action Button Jumping", "Disable Action Button Jumping"),
-    ("0x03", "(?) Disable Color Dither", "(?) Disable Color Dither"),
+    ("0x00", "Default", "Default"),
+    ("0x01", "Dungeon Behavior (Z-Target, Sun's Song)", "Dungeon Behavior (Z-Target, Sun's Song)"),
+    ("0x02", "Disable Backflips/Sidehops", "Disable Backflips/Sidehops"),
+    ("0x03", "Disable Color Dither", "Disable Color Dither"),
     ("0x04", "(?) Horse Camera Related", "(?) Horse Camera Related"),
-    ("0x05", "(?) Nayru's Love Light Dim", "(?) Nayru's Love Light Dim"),
+    ("0x05", "Disable Darker Screen Effect (NL/Spins)", "Disable Darker Screen Effect (NL/Spins)"),
 ]
 
 ootEnumExitIndex = [

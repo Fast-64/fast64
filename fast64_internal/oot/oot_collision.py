@@ -1,14 +1,48 @@
-import bpy, bmesh, os, math, re, shutil, mathutils
+import bpy, os, math, mathutils
 from bpy.utils import register_class, unregister_class
-from io import BytesIO
-
-from ..utility import *
-from .oot_utility import *
-from .oot_constants import *
 from ..panels import OOT_Panel
+from .oot_constants import ootEnumSceneID
 
-from .oot_collision_classes import *
-from .oot_scene_room import *
+from ..utility import (
+    PluginError,
+    CData,
+    prop_split,
+    unhideAllAndGetHiddenList,
+    hideObjsInList,
+    writeCData,
+    raisePluginError,
+)
+
+from .oot_collision_classes import (
+    OOTCollisionVertex,
+    OOTCollisionPolygon,
+    OOTCollision,
+    OOTCameraData,
+    OOTCameraPosData,
+    OOTCrawlspaceData,
+    getPolygonType,
+    ootEnumFloorSetting,
+    ootEnumWallSetting,
+    ootEnumFloorProperty,
+    ootEnumConveyer,
+    ootEnumConveyorSpeed,
+    ootEnumCollisionTerrain,
+    ootEnumCollisionSound,
+    ootEnumCameraSType,
+)
+
+from .oot_utility import (
+    OOTObjectCategorizer,
+    ootGetObjectPath,
+    convertIntTo2sComplement,
+    addIncludeFiles,
+    drawCollectionOps,
+    drawEnumWithCustom,
+    ootDuplicateHierarchy,
+    ootCleanupScene,
+    ootGetPath,
+    getOOTScale,
+)
 
 
 class OOTCameraPositionProperty(bpy.types.PropertyGroup):
@@ -367,6 +401,7 @@ def ootWaterBoxToC(waterBox):
 def ootCameraDataToC(camData):
     posC = CData()
     camC = CData()
+    exportPosData = False
     if len(camData.camPosDict) > 0:
 
         camDataName = "CamData " + camData.camDataName() + "[" + str(len(camData.camPosDict)) + "]"
@@ -399,8 +434,9 @@ def ootCameraDataToC(camData):
         else:
             posC = CData()
 
-    posC.append(camC)
-    return posC
+    if not exportPosData:
+        posC = None
+    return posC, camC
 
 
 def ootCameraPosToC(camPos):
@@ -453,7 +489,7 @@ def ootCrawlspaceEntryToC(camItem: OOTCrawlspaceData, camData: OOTCameraData, ca
             "{",
             camItem.camSType + ",",
             str((len(camItem.points) * 3)) + ",",
-            ("&" + camData.camPositionsName() + "[" + str(camPosIndex) + "]"),
+            (("&" + camData.camPositionsName() + "[" + str(camPosIndex) + "]") if len(camItem.points) > 0 else "NULL"),
             "}",
         )
     )
@@ -461,8 +497,11 @@ def ootCrawlspaceEntryToC(camItem: OOTCrawlspaceData, camData: OOTCameraData, ca
 
 def ootCollisionToC(collision):
     data = CData()
+    posC, camC = ootCameraDataToC(collision.cameraData)
 
-    data.append(ootCameraDataToC(collision.cameraData))
+    if posC is not None:
+        data.append(posC)
+    data.append(camC)
 
     if len(collision.polygonGroups) > 0:
         data.header += "extern SurfaceType " + collision.polygonTypesName() + "[];\n"
@@ -574,7 +613,7 @@ class OOT_ExportCollision(bpy.types.Operator):
         if type(obj.data) is not bpy.types.Mesh:
             raise PluginError("No mesh object selected.")
 
-        finalTransform = mathutils.Matrix.Scale(context.scene.ootActorBlenderScale, 4)
+        finalTransform = mathutils.Matrix.Scale(getOOTScale(obj.ootActorScale), 4)
 
         try:
             scaleValue = bpy.context.scene.ootBlenderScale

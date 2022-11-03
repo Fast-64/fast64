@@ -2,7 +2,9 @@ import bpy, random, string, os, math, traceback, re, os, mathutils
 from math import pi, ceil, degrees, radians
 from mathutils import *
 from .utility_anim import *
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Any
+
+CollectionProperty = Any  # collection prop as defined by using bpy.props.CollectionProperty
 
 
 class PluginError(Exception):
@@ -735,11 +737,6 @@ def copy_object_and_apply(obj: bpy.types.Object, apply_scale=False, apply_modifi
             obj["original_mtx"] = translation_rotation_from_mtx(mathutils.Matrix(obj["original_mtx"]))
 
     obj_copy = obj.copy()
-    obj_copy.parent = None
-    # reset transformations
-    obj_copy.location = mathutils.Vector([0.0, 0.0, 0.0])
-    obj_copy.scale = mathutils.Vector([1.0, 1.0, 1.0])
-    obj_copy.rotation_quaternion = mathutils.Quaternion([1, 0, 0, 0])
     obj_copy.data = obj_copy.data.copy()
 
     if apply_modifiers:
@@ -752,6 +749,12 @@ def copy_object_and_apply(obj: bpy.types.Object, apply_scale=False, apply_modifi
             attemptModifierApply(modifier)
 
         bpy.context.view_layer.objects.active = prev_active
+
+    obj_copy.parent = None
+    # reset transformations
+    obj_copy.location = mathutils.Vector([0.0, 0.0, 0.0])
+    obj_copy.scale = mathutils.Vector([1.0, 1.0, 1.0])
+    obj_copy.rotation_quaternion = mathutils.Quaternion([1, 0, 0, 0])
 
     mtx = transform_mtx_blender_to_n64()
     if apply_scale:
@@ -810,6 +813,23 @@ def get_obj_temp_mesh(obj):
         if o.get("temp_export") and o.get("instanced_mesh_name") == obj.get("instanced_mesh_name"):
             return o
 
+def apply_objects_modifiers_and_transformations(allObjs: Iterable[bpy.types.Object]):
+    # first apply modifiers so that any objects that affect each other are taken into consideration
+    for selectedObj in allObjs:
+        bpy.ops.object.select_all(action="DESELECT")
+        selectedObj.select_set(True)
+        bpy.context.view_layer.objects.active = selectedObj
+
+        for modifier in selectedObj.modifiers:
+            attemptModifierApply(modifier)
+
+    # apply transformations now that world space changes are applied
+    for selectedObj in allObjs:
+        bpy.ops.object.select_all(action="DESELECT")
+        selectedObj.select_set(True)
+        bpy.context.view_layer.objects.active = selectedObj
+
+        bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
 
 def duplicateHierarchy(obj, ignoreAttr, includeEmpties, areaIndex):
     # Duplicate objects to apply scale / modifiers / linked data
@@ -823,15 +843,9 @@ def duplicateHierarchy(obj, ignoreAttr, includeEmpties, areaIndex):
         allObjs = bpy.context.selected_objects
 
         bpy.ops.object.make_single_user(obdata=True)
-        bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
 
-        for selectedObj in allObjs:
-            bpy.ops.object.select_all(action="DESELECT")
-            selectedObj.select_set(True)
-            bpy.context.view_layer.objects.active = selectedObj
+        apply_objects_modifiers_and_transformations(allObjs)
 
-            for modifier in selectedObj.modifiers:
-                attemptModifierApply(modifier)
         for selectedObj in allObjs:
             if ignoreAttr is not None and getattr(selectedObj, ignoreAttr):
                 for child in selectedObj.children:
@@ -948,12 +962,8 @@ def combineObjects(obj, includeChildren, ignoreAttr, areaIndex):
         # duplicate obj and apply modifiers / make single user
         allObjs = bpy.context.selected_objects
         bpy.ops.object.make_single_user(obdata=True)
-        bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
-        for selectedObj in allObjs:
-            bpy.ops.object.select_all(action="DESELECT")
-            selectedObj.select_set(True)
-            for modifier in selectedObj.modifiers:
-                attemptModifierApply(modifier)
+
+        apply_objects_modifiers_and_transformations(allObjs)
 
         bpy.ops.object.select_all(action="DESELECT")
 

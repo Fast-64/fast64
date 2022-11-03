@@ -1,17 +1,38 @@
-import math, os, bpy, bmesh, mathutils
-from bpy.utils import register_class, unregister_class
-from io import BytesIO
-
-from ..utility import *
-from .oot_utility import *
-from .oot_constants import *
-from ..f3d.f3d_gbi import *
-
-from .oot_actor import *
-
-# from .oot_collision import *
-from .oot_cutscene import *
+import bpy
+from typing import Callable
 from ..render_settings import on_update_oot_render_settings
+from ..utility import ootGetSceneOrRoomHeader, prop_split
+from .oot_utility import drawAddButton, drawCollectionOps, drawEnumWithCustom, getEnumName, getSceneObj, getRoomObj
+from .oot_cutscene import OOTCSListProperty, drawCSListProperty, drawCSAddButtons
+from .oot_actor import setAllActorsVisibility
+
+from .oot_constants import (
+    ootEnumObjectID,
+    ootEnumMusicSeq,
+    ootEnumSceneID,
+    ootEnumExitIndex,
+    ootEnumTransitionAnims,
+    ootEnumLightGroupMenu,
+    ootEnumGlobalObject,
+    ootEnumNaviHints,
+    ootEnumSkybox,
+    ootEnumCloudiness,
+    ootEnumSkyboxLighting,
+    ootEnumMapLocation,
+    ootEnumCameraMode,
+    ootEnumNightSeq,
+    ootEnumAudioSessionPreset,
+    ootEnumCSWriteType,
+    ootEnumSceneMenu,
+    ootEnumSceneMenuAlternate,
+    ootEnumRoomMenu,
+    ootEnumRoomMenuAlternate,
+    ootEnumRoomBehaviour,
+    ootEnumLinkIdle,
+    ootEnumRoomShapeType,
+    ootEnumHeaderMenu,
+    ootEnumDrawConfig,
+)
 
 
 def onUpdateOoTLighting(self, context: bpy.types.Context):
@@ -46,6 +67,10 @@ class OOT_SearchMusicSeqEnumOperator(bpy.types.Operator):
         self.report({"INFO"}, "Selected: " + self.ootMusicSeq)
         return {"FINISHED"}
 
+    def invoke(self, context, event):
+        context.window_manager.invoke_search_popup(self)
+        return {"RUNNING_MODAL"}
+
 
 class OOT_SearchObjectEnumOperator(bpy.types.Operator):
     bl_idname = "object.oot_search_object_enum_operator"
@@ -64,6 +89,10 @@ class OOT_SearchObjectEnumOperator(bpy.types.Operator):
         bpy.context.region.tag_redraw()
         self.report({"INFO"}, "Selected: " + self.ootObjectID)
         return {"FINISHED"}
+
+    def invoke(self, context, event):
+        context.window_manager.invoke_search_popup(self)
+        return {"RUNNING_MODAL"}
 
 
 class OOT_SearchSceneEnumOperator(bpy.types.Operator):
@@ -260,22 +289,16 @@ def drawLightProperty(layout, lightProp, name, showExpandTab, index, sceneHeader
         if lightProp.useCustomDiffuse0:
             prop_split(box, lightProp, "diffuse0Custom", "Diffuse 0")
             box.label(text="Make sure light is not part of scene hierarchy.", icon="FILE_PARENT")
-            box.prop(lightProp, "useCustomDiffuse0")
         else:
             prop_split(box, lightProp, "diffuse0", "Diffuse 0")
-            row = box.row()
-            row.prop(lightProp, "useCustomDiffuse0")
-            row.prop(lightProp, "zeroDiffuse0")
+        box.prop(lightProp, "useCustomDiffuse0")
 
         if lightProp.useCustomDiffuse1:
             prop_split(box, lightProp, "diffuse1Custom", "Diffuse 1")
             box.label(text="Make sure light is not part of scene hierarchy.", icon="FILE_PARENT")
-            box.prop(lightProp, "useCustomDiffuse1")
         else:
             prop_split(box, lightProp, "diffuse1", "Diffuse 1")
-            row = box.row()
-            row.prop(lightProp, "useCustomDiffuse1")
-            row.prop(lightProp, "zeroDiffuse1")
+        box.prop(lightProp, "useCustomDiffuse1")
 
         prop_split(box, lightProp, "fogColor", "Fog Color")
         prop_split(box, lightProp, "fogNear", "Fog Near")
@@ -322,7 +345,7 @@ def onHeaderMenuTabChange(self, context: bpy.types.Context):
 
 
 def onHeaderPropertyChange(self, context: bpy.types.Context, callback: Callable[[any, bpy.types.Object], None]):
-    if not bpy.context.scene.ootHeaderTabAffectsVisibility or bpy.context.scene.ootActiveHeaderLock:
+    if not bpy.context.scene.fast64.oot.headerTabAffectsVisibility or bpy.context.scene.ootActiveHeaderLock:
         return
     bpy.context.scene.ootActiveHeaderLock = True
 
@@ -548,6 +571,11 @@ class OOTRoomHeaderProperty(bpy.types.PropertyGroup):
     showInvisibleActors: bpy.props.BoolProperty(name="Show Invisible Actors")
     linkIdleMode: bpy.props.EnumProperty(name="Link Idle Mode", items=ootEnumLinkIdle, default="0x00")
     linkIdleModeCustom: bpy.props.StringProperty(name="Link Idle Mode Custom", default="0x00")
+    roomIsHot: bpy.props.BoolProperty(
+        name="Use Hot Room Behavior",
+        description="Use heat timer/screen effect, overrides Link Idle Mode",
+        default=False,
+    )
 
     useCustomBehaviourX: bpy.props.BoolProperty(name="Use Custom Behaviour X")
     useCustomBehaviourY: bpy.props.BoolProperty(name="Use Custom Behaviour Y")

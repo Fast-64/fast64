@@ -1,30 +1,72 @@
-import shutil, copy, mathutils, bpy, math, os, re
-from bpy.utils import register_class, unregister_class
-
-from ..utility import *
-from ..utility_anim import armatureApplyWithMesh
-from .oot_utility import *
-from .oot_constants import *
-from .oot_model_classes import *
+import mathutils, bpy, math, os, re
 from ..panels import OOT_Panel
+from ..f3d.f3d_gbi import DLFormat, FMesh, TextureExportSettings, ScrollMethod, F3D
+from .oot_model_classes import (
+    OOTVertexGroupInfo,
+    OOTModel,
+    OOTGfxFormatter,
+    OOTF3DContext,
+    OOTDynamicTransformProperty,
+    ootGetIncludedAssetData,
+)
+from bpy.utils import register_class, unregister_class
+from ..f3d.f3d_writer import getInfoDict, GfxList
+from ..f3d.f3d_parser import getImportData, parseF3D
+from .oot_f3d_writer import ootProcessVertexGroup, writeTextureArraysNew, writeTextureArraysExisting, ootReadActorScale
+from ..f3d.f3d_material import ootEnumDrawLayers
 
-from ..f3d.f3d_parser import *
-from ..f3d.f3d_writer import *
-from ..f3d.f3d_material import TextureProperty, tmemUsageUI
-from .oot_f3d_writer import *
+from ..utility import (
+    PluginError,
+    CData,
+    getDeclaration,
+    hexOrDecInt,
+    applyRotation,
+    prop_split,
+    getGroupIndexFromname,
+    writeFile,
+    readFile,
+    raisePluginError,
+    writeCData,
+    toAlnum,
+    setOrigin,
+    getGroupNameFromIndex,
+    attemptModifierApply,
+    cleanupDuplicatedObjects,
+    VertexWeightError,
+    yUpToZUp,
+)
+
+from .oot_utility import (
+    ootGetObjectPath,
+    checkEmptyName,
+    checkForStartBone,
+    getStartBone,
+    getSortedChildren,
+    ootGetPath,
+    addIncludeFiles,
+    getOOTScale,
+)
+
+from ..utility_anim import armatureApplyWithMesh
 from .oot_texture_array import ootReadTextureArrays
+from .oot_skeleton_import_data import (
+    ootEnumSkeletonImportMode,
+    applySkeletonRestPose,
+    OOT_SaveRestPose,
+    ootSkeletonImportDict,
+)
 
 
 class OOTSkeletonExportSettings(bpy.types.PropertyGroup):
+    mode: bpy.props.EnumProperty(name="Mode", items=ootEnumSkeletonImportMode)
     name: bpy.props.StringProperty(name="Skeleton Name", default="gGerudoRedSkel")
     folder: bpy.props.StringProperty(name="Skeleton Folder", default="object_geldb")
     customPath: bpy.props.StringProperty(name="Custom Skeleton Path", subtype="FILE_PATH")
     isCustom: bpy.props.BoolProperty(name="Use Custom Path")
     removeVanillaData: bpy.props.BoolProperty(name="Replace Vanilla Skeletons On Export", default=True)
-    overlay: bpy.props.StringProperty(name="Overlay", default="ovl_En_GeldB")
-    isLink: bpy.props.BoolProperty(name="Is Link", default=False)
-    is2DArray: bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
-    arrayIndex2D: bpy.props.IntProperty(name="Index if 2D Array", default=0, min=0)
+    actorOverlayName: bpy.props.StringProperty(name="Overlay", default="ovl_En_GeldB")
+    flipbookUses2DArray: bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
+    flipbookArrayIndex2D: bpy.props.IntProperty(name="Index if 2D Array", default=0, min=0)
     customAssetIncludeDir: bpy.props.StringProperty(
         name="Asset Include Directory",
         default="assets/objects/object_geldb",
@@ -39,6 +81,8 @@ class OOTSkeletonExportSettings(bpy.types.PropertyGroup):
 
 
 class OOTSkeletonImportSettings(bpy.types.PropertyGroup):
+    mode: bpy.props.EnumProperty(name="Mode", items=ootEnumSkeletonImportMode)
+    applyRestPose: bpy.props.BoolProperty(name="Apply Friendly Rest Pose (If Available)", default=True)
     name: bpy.props.StringProperty(name="Skeleton Name", default="gGerudoRedSkel")
     folder: bpy.props.StringProperty(name="Skeleton Folder", default="object_geldb")
     customPath: bpy.props.StringProperty(name="Custom Skeleton Path", subtype="FILE_PATH")
@@ -46,10 +90,11 @@ class OOTSkeletonImportSettings(bpy.types.PropertyGroup):
     removeDoubles: bpy.props.BoolProperty(name="Remove Doubles On Import", default=True)
     importNormals: bpy.props.BoolProperty(name="Import Normals", default=True)
     drawLayer: bpy.props.EnumProperty(name="Import Draw Layer", items=ootEnumDrawLayers)
-    overlay: bpy.props.StringProperty(name="Overlay", default="ovl_En_GeldB")
-    isLink: bpy.props.BoolProperty(name="Is Link", default=False)
-    is2DArray: bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
-    arrayIndex2D: bpy.props.IntProperty(name="Index if 2D Array", default=0, min=0)
+    actorOverlayName: bpy.props.StringProperty(name="Overlay", default="ovl_En_GeldB")
+    flipbookUses2DArray: bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
+    flipbookArrayIndex2D: bpy.props.IntProperty(name="Index if 2D Array", default=0, min=0)
+    autoDetectActorScale: bpy.props.BoolProperty(name="Auto Detect Actor Scale", default=True)
+    actorScale: bpy.props.FloatProperty(name="Actor Scale", min=0, default=100)
 
 
 ootEnumBoneType = [
@@ -57,6 +102,20 @@ ootEnumBoneType = [
     ("Custom DL", "Custom DL", "Custom DL"),
     ("Ignore", "Ignore", "Ignore"),
 ]
+
+
+def pollArmature(self, obj):
+    return isinstance(obj.data, bpy.types.Armature)
+
+
+class OOTBoneProperty(bpy.types.PropertyGroup):
+    boneType: bpy.props.EnumProperty(name="Bone Type", items=ootEnumBoneType)
+    dynamicTransform: bpy.props.PointerProperty(type=OOTDynamicTransformProperty)
+    customDLName: bpy.props.StringProperty(name="Custom DL", default="gEmptyDL")
+
+
+class OOTSkeletonProperty(bpy.types.PropertyGroup):
+    LOD: bpy.props.PointerProperty(type=bpy.types.Object, poll=pollArmature)
 
 
 class OOTSkeleton:
@@ -278,10 +337,18 @@ def getGroupIndexOfVert(vert, armatureObj, obj, rootGroupIndex):
                 nonBoneGroups.append(groupName)
 
     if len(actualGroups) == 0:
-        return rootGroupIndex
+        # return rootGroupIndex
         # highlightWeightErrors(obj, [vert], "VERT")
-        # raise VertexWeightError("All vertices must be part of a vertex group that corresponds to a bone in the armature.\n" +\
-        # 	"Groups of the bad vert that don't correspond to a bone: " + str(nonBoneGroups) + '. If a vert is supposed to belong to this group then either a bone is missing or you have the wrong group.')
+        if len(nonBoneGroups) > 0:
+            raise VertexWeightError(
+                "All vertices must be part of a vertex group "
+                + "that corresponds to a bone in the armature.\n"
+                + "Groups of the bad vert that don't correspond to a bone: "
+                + str(nonBoneGroups)
+                + ". If a vert is supposed to belong to this group then either a bone is missing or you have the wrong group."
+            )
+        else:
+            raise VertexWeightError("There are unweighted vertices in the mesh that must be weighted to a bone.")
 
     vertGroup = actualGroups[0]
     for group in actualGroups:
@@ -507,7 +574,7 @@ def ootProcessBone(
             optimize,
         )
 
-    if bone.ootBoneType == "Custom DL":
+    if bone.ootBone.boneType == "Custom DL":
         if mesh is not None:
             raise PluginError(
                 bone.name
@@ -515,7 +582,7 @@ def ootProcessBone(
             )
         else:
             # Dummy data, only used so that name is set correctly
-            mesh = FMesh(bone.ootCustomDLName, DLFormat.Static)
+            mesh = FMesh(bone.ootBone.customDLName, DLFormat.Static)
 
     DL = None
     if mesh is not None:
@@ -579,25 +646,35 @@ def ootConvertArmatureToC(
     drawLayer: str,
     settings: OOTSkeletonExportSettings,
 ):
-    folderName = settings.folder
+    if settings.mode != "Generic" and not settings.isCustom:
+        importInfo = ootSkeletonImportDict[settings.mode]
+        skeletonName = importInfo.skeletonName
+        folderName = importInfo.folderName
+        overlayName = importInfo.actorOverlayName
+        flipbookUses2DArray = importInfo.flipbookArrayIndex2D is not None
+        flipbookArrayIndex2D = importInfo.flipbookArrayIndex2D
+        isLink = importInfo.isLink
+    else:
+        skeletonName = toAlnum(settings.name)
+        folderName = settings.folder
+        overlayName = settings.actorOverlayName if not settings.isCustom else None
+        flipbookUses2DArray = settings.flipbookUses2DArray
+        flipbookArrayIndex2D = settings.flipbookArrayIndex2D if flipbookUses2DArray else None
+        isLink = False
+
     exportPath = bpy.path.abspath(settings.customPath)
     isCustomExport = settings.isCustom
     removeVanillaData = settings.removeVanillaData
-    skeletonName = toAlnum(settings.name)
     optimize = settings.optimize
-    overlayName = settings.overlay if not settings.isCustom else None
-    isLink = settings.isLink
-    is2DArray = settings.is2DArray
-    arrayIndex2D = settings.arrayIndex2D if isLink or is2DArray else None
 
     fModel = OOTModel(f3dType, isHWv1, skeletonName, DLFormat, drawLayer)
     skeleton, fModel = ootConvertArmatureToSkeletonWithMesh(
         originalArmatureObj, convertTransformMatrix, fModel, skeletonName, not savePNG, drawLayer, optimize
     )
 
-    if originalArmatureObj.ootFarLOD is not None:
+    if originalArmatureObj.ootSkeleton.LOD is not None:
         lodSkeleton, fModel = ootConvertArmatureToSkeletonWithMesh(
-            originalArmatureObj.ootFarLOD,
+            originalArmatureObj.ootSkeleton.LOD,
             convertTransformMatrix,
             fModel,
             skeletonName + "_lod",
@@ -617,7 +694,7 @@ def ootConvertArmatureToC(
             raise PluginError(
                 originalArmatureObj.name
                 + " cannot use "
-                + originalArmatureObj.ootFarLOD.name
+                + originalArmatureObj.ootSkeleton.LOD.name
                 + "as LOD because they do not have the same bone structure."
             )
 
@@ -643,14 +720,13 @@ def ootConvertArmatureToC(
     data.append(skeletonC)
 
     if isCustomExport:
-        textureArrayData = writeTextureArraysNew(fModel, arrayIndex2D)
+        textureArrayData = writeTextureArraysNew(fModel, flipbookArrayIndex2D)
         data.append(textureArrayData)
 
-    path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, False)
     writeCData(data, os.path.join(path, skeletonName + ".h"), os.path.join(path, skeletonName + ".c"))
 
     if not isCustomExport:
-        writeTextureArraysExisting(bpy.context.scene.ootDecompPath, overlayName, isLink, arrayIndex2D, fModel)
+        writeTextureArraysExisting(bpy.context.scene.ootDecompPath, overlayName, isLink, flipbookArrayIndex2D, fModel)
         addIncludeFiles(folderName, path, skeletonName)
         if removeVanillaData:
             ootRemoveSkeleton(path, folderName, skeletonName)
@@ -725,17 +801,33 @@ def ootGetLimb(skeletonData, limbName, continueOnError):
     return matchResult
 
 
-def ootImportSkeletonC(
-    filepaths: list[str], actorScale: float, basePath: str, importSettings: OOTSkeletonImportSettings
-):
-    skeletonName = importSettings.name
+def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings):
+    importPath = bpy.path.abspath(importSettings.customPath)
+    isCustomImport = importSettings.isCustom
+
+    if importSettings.mode != "Generic" and not importSettings.isCustom:
+        importInfo = ootSkeletonImportDict[importSettings.mode]
+        skeletonName = importInfo.skeletonName
+        folderName = importInfo.folderName
+        overlayName = importInfo.actorOverlayName
+        flipbookUses2DArray = importInfo.flipbookArrayIndex2D is not None
+        flipbookArrayIndex2D = importInfo.flipbookArrayIndex2D
+        isLink = importInfo.isLink
+        restPoseData = importInfo.restPoseData
+    else:
+        skeletonName = importSettings.name
+        folderName = importSettings.folder
+        overlayName = importSettings.actorOverlayName if not importSettings.isCustom else None
+        flipbookUses2DArray = importSettings.flipbookUses2DArray
+        flipbookArrayIndex2D = importSettings.flipbookArrayIndex2D if flipbookUses2DArray else None
+        isLink = False
+        restPoseData = None
+
+    filepaths = [ootGetObjectPath(isCustomImport, importPath, folderName)]
+
     removeDoubles = importSettings.removeDoubles
     importNormals = importSettings.importNormals
     drawLayer = importSettings.drawLayer
-    overlayName = importSettings.overlay if not importSettings.isCustom else None
-    isLink = importSettings.isLink
-    is2DArray = importSettings.is2DArray
-    arrayIndex2D = importSettings.arrayIndex2D if isLink or is2DArray else None
 
     skeletonData = getImportData(filepaths)
     if overlayName is not None or isLink:
@@ -751,6 +843,11 @@ def ootImportSkeletonC(
     f3dContext = OOTF3DContext(F3D("F3DEX2/LX2", False), limbList, basePath)
     f3dContext.mat().draw_layer.oot = drawLayer
 
+    if overlayName is not None and importSettings.autoDetectActorScale:
+        actorScale = ootReadActorScale(basePath, overlayName, isLink)
+    else:
+        actorScale = getOOTScale(importSettings.actorScale)
+
     # print(limbList)
     isLOD, armatureObj = ootBuildSkeleton(
         skeletonName,
@@ -763,7 +860,7 @@ def ootImportSkeletonC(
         basePath,
         drawLayer,
         isLink,
-        arrayIndex2D,
+        flipbookArrayIndex2D,
         f3dContext,
     )
     if isLOD:
@@ -778,12 +875,18 @@ def ootImportSkeletonC(
             basePath,
             drawLayer,
             isLink,
-            arrayIndex2D,
+            flipbookArrayIndex2D,
             f3dContext,
         )
-        armatureObj.ootFarLOD = LODArmatureObj
+        armatureObj.ootSkeleton.LOD = LODArmatureObj
+        LODArmatureObj.location += mathutils.Vector((10, 0, 0))
 
     f3dContext.deleteMaterialContext()
+
+    if importSettings.applyRestPose and restPoseData is not None:
+        applySkeletonRestPose(restPoseData, armatureObj)
+        if isLOD:
+            applySkeletonRestPose(restPoseData, LODArmatureObj)
 
 
 def ootBuildSkeleton(
@@ -797,7 +900,7 @@ def ootBuildSkeleton(
     basePath,
     drawLayer,
     isLink,
-    arrayIndex2D: int,
+    flipbookArrayIndex2D: int,
     f3dContext: OOTF3DContext,
 ):
     lodString = "_lod" if useFarLOD else ""
@@ -821,7 +924,7 @@ def ootBuildSkeleton(
     f3dContext.mat().draw_layer.oot = armatureObj.ootDrawLayer
 
     if overlayName is not None:
-        ootReadTextureArrays(basePath, overlayName, skeletonName, f3dContext, isLink, arrayIndex2D)
+        ootReadTextureArrays(basePath, overlayName, skeletonName, f3dContext, isLink, flipbookArrayIndex2D)
 
     transformMatrix = mathutils.Matrix.Scale(1 / actorScale, 4)
     isLOD = ootAddLimbRecursively(0, skeletonData, obj, armatureObj, transformMatrix, None, f3dContext, useFarLOD)
@@ -831,16 +934,16 @@ def ootBuildSkeleton(
         parseF3D(
             skeletonData,
             dlEntry.dlName,
-            obj,
             f3dContext.matrixData[limbName],
             limbName,
             boneName,
             "oot",
             drawLayer,
             f3dContext,
+            True,
         )
         if f3dContext.isBillboard:
-            armatureObj.data.bones[boneName].ootDynamicTransform.billboard = True
+            armatureObj.data.bones[boneName].ootBone.dynamicTransform.billboard = True
     f3dContext.createMesh(obj, removeDoubles, importNormals, False)
     armatureObj.location = bpy.context.scene.cursor.location
 
@@ -862,6 +965,7 @@ def ootBuildSkeleton(
     bpy.ops.object.parent_set(type="ARMATURE")
 
     applyRotation([armatureObj], math.radians(-90), "X")
+    armatureObj.ootActorScale = actorScale / bpy.context.scene.ootBlenderScale
 
     return isLOD, armatureObj
 
@@ -899,9 +1003,15 @@ def ootAddBone(armatureObj, boneName, parentBoneName, currentTransform, loadDL):
 
 
 def ootAddLimbRecursively(
-    limbIndex, skeletonData, obj, armatureObj, parentTransform, parentBoneName, f3dContext, useFarLOD
+    limbIndex: int,
+    skeletonData: str,
+    obj: bpy.types.Object,
+    armatureObj: bpy.types.Object,
+    parentTransform: mathutils.Matrix,
+    parentBoneName: str,
+    f3dContext: OOTF3DContext,
+    useFarLOD: bool,
 ):
-
     limbName = f3dContext.getLimbName(limbIndex)
     boneName = f3dContext.getBoneName(limbIndex)
     matchResult = ootGetLimb(skeletonData, limbName, False)
@@ -942,7 +1052,6 @@ def ootAddLimbRecursively(
     # Therefore were delay F3D parsing until after skeleton is processed.
     if loadDL:
         f3dContext.dlList.append(OOTDLEntry(dlName, limbIndex))
-        # parseF3D(skeletonData, dlName, obj, transformMatrix, boneName, f3dContext)
 
     if nextChildIndex != LIMB_DONE:
         isLOD |= ootAddLimbRecursively(
@@ -1012,22 +1121,14 @@ class OOT_ImportSkeleton(bpy.types.Operator):
     # Called on demand (i.e. button press, menu item)
     # Can also be called from operator search menu (Spacebar)
     def execute(self, context):
-        armatureObj = None
         if context.mode != "OBJECT":
             bpy.ops.object.mode_set(mode="OBJECT")
 
         try:
             importSettings: OOTSkeletonImportSettings = context.scene.fast64.oot.skeletonImportSettings
-
-            importPath = bpy.path.abspath(importSettings.customPath)
-            isCustomImport = importSettings.isCustom
-            folderName = importSettings.folder
-            scale = context.scene.ootActorBlenderScale
             decompPath = bpy.path.abspath(bpy.context.scene.ootDecompPath)
 
-            filepaths = [ootGetObjectPath(isCustomImport, importPath, folderName)]
-
-            ootImportSkeletonC(filepaths, scale, decompPath, importSettings)
+            ootImportSkeletonC(decompPath, importSettings)
 
             self.report({"INFO"}, "Success!")
             return {"FINISHED"}
@@ -1061,7 +1162,7 @@ class OOT_ExportSkeleton(bpy.types.Operator):
             raise PluginError("Armature does not have any mesh children, or " + "has a non-mesh child.")
 
         obj = armatureObj.children[0]
-        finalTransform = mathutils.Matrix.Scale(context.scene.ootActorBlenderScale, 4)
+        finalTransform = mathutils.Matrix.Scale(getOOTScale(armatureObj.ootActorScale), 4)
 
         # Rotation must be applied before exporting skeleton.
         # For some reason this does not work if done on the duplicate generated later, so we have to do it before then.
@@ -1102,71 +1203,67 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
         col.operator(OOT_ExportSkeleton.bl_idname)
         exportSettings: OOTSkeletonExportSettings = context.scene.fast64.oot.skeletonExportSettings
 
-        prop_split(col, exportSettings, "name", "Skeleton")
-        prop_split(col, exportSettings, "folder", "Object" if not exportSettings.isCustom else "Folder")
-        if exportSettings.isCustom:
-            prop_split(col, exportSettings, "customAssetIncludeDir", "Asset Include Path")
-            prop_split(col, exportSettings, "customPath", "Path")
-        else:
-            if not exportSettings.isLink:
-                prop_split(col, exportSettings, "overlay", "Overlay")
-            col.prop(exportSettings, "isLink")
-            if not exportSettings.isLink:
-                col.prop(exportSettings, "is2DArray")
-            if exportSettings.isLink or exportSettings.is2DArray:
-                box = col.box().column()
-                prop_split(box, exportSettings, "arrayIndex2D", "Flipbook Index")
-                if exportSettings.isLink:
-                    if exportSettings.arrayIndex2D == 0:
-                        box.label(text="Adult Link", icon="OPTIONS")
-                    elif exportSettings.arrayIndex2D == 1:
-                        box.label(text="Child Link", icon="OPTIONS")
-                    box.label(text="Requires enabling NON_MATCHING in Makefile.", icon="ERROR")
-
-        col.prop(exportSettings, "isCustom")
         col.prop(exportSettings, "removeVanillaData")
         col.prop(exportSettings, "optimize")
         if exportSettings.optimize:
             b = col.box().column()
             b.label(icon="LIBRARY_DATA_BROKEN", text="Do not draw anything in SkelAnime")
             b.label(text="callbacks or cull limbs, will be corrupted.")
+        col.prop(exportSettings, "isCustom")
+        if exportSettings.isCustom:
+            prop_split(col, exportSettings, "name", "Skeleton")
+            prop_split(col, exportSettings, "folder", "Object" if not exportSettings.isCustom else "Folder")
+            prop_split(col, exportSettings, "customAssetIncludeDir", "Asset Include Path")
+            prop_split(col, exportSettings, "customPath", "Path")
+        else:
+            prop_split(col, exportSettings, "mode", "Mode")
+            if exportSettings.mode == "Generic":
+                prop_split(col, exportSettings, "name", "Skeleton")
+                prop_split(col, exportSettings, "folder", "Object" if not exportSettings.isCustom else "Folder")
+                prop_split(col, exportSettings, "actorOverlayName", "Overlay")
+                col.prop(exportSettings, "flipbookUses2DArray")
+                if exportSettings.flipbookUses2DArray:
+                    box = col.box().column()
+                    prop_split(box, exportSettings, "flipbookArrayIndex2D", "Flipbook Index")
+            elif exportSettings.mode == "Adult Link" or exportSettings.mode == "Child Link":
+                col.label(text="Requires enabling NON_MATCHING in Makefile.", icon="ERROR")
+                col.label(text="Preserve all bone deform toggles if modifying an imported skeleton.", icon="ERROR")
 
         col.operator(OOT_ImportSkeleton.bl_idname)
         importSettings: OOTSkeletonImportSettings = context.scene.fast64.oot.skeletonImportSettings
 
-        prop_split(col, importSettings, "name", "skeleton")
-        if importSettings.isCustom:
-            prop_split(col, importSettings, "customPath", "File")
-        else:
-            prop_split(col, importSettings, "folder", "Object")
-            if not importSettings.isLink:
-                prop_split(col, importSettings, "overlay", "Overlay")
-            col.prop(importSettings, "isLink")
-            if not importSettings.isLink:
-                col.prop(importSettings, "is2DArray")
-            if importSettings.isLink or importSettings.is2DArray:
-                box = col.box().column()
-                prop_split(box, importSettings, "arrayIndex2D", "Flipbook Index")
-                if importSettings.isLink:
-                    if importSettings.arrayIndex2D == 0:
-                        box.label(text="Adult Link", icon="OPTIONS")
-                    elif importSettings.arrayIndex2D == 1:
-                        box.label(text="Child Link", icon="OPTIONS")
-            if importSettings.overlay == "ovl_En_Wf":
-                col.box().column().label(
-                    text="This actor has branching gSPSegment calls and will not import correctly unless one of the branches is deleted.",
-                    icon="ERROR",
-                )
-            elif importSettings.overlay == "ovl_Obj_Switch":
-                col.box().column().label(
-                    text="This actor has a 2D texture array and will not import correctly unless the array is flattened.",
-                    icon="ERROR",
-                )
         prop_split(col, importSettings, "drawLayer", "Import Draw Layer")
-
-        col.prop(importSettings, "isCustom")
         col.prop(importSettings, "removeDoubles")
         col.prop(importSettings, "importNormals")
+        col.prop(importSettings, "isCustom")
+        if importSettings.isCustom:
+            prop_split(col, importSettings, "name", "Skeleton")
+            prop_split(col, importSettings, "customPath", "File")
+        else:
+            prop_split(col, importSettings, "mode", "Mode")
+            if importSettings.mode == "Generic":
+                prop_split(col, importSettings, "name", "Skeleton")
+                prop_split(col, importSettings, "folder", "Object")
+                prop_split(col, importSettings, "actorOverlayName", "Overlay")
+                col.prop(importSettings, "autoDetectActorScale")
+                if not importSettings.autoDetectActorScale:
+                    prop_split(col, importSettings, "actorScale", "Actor Scale")
+                col.prop(importSettings, "flipbookUses2DArray")
+                if importSettings.flipbookUses2DArray:
+                    box = col.box().column()
+                    prop_split(box, importSettings, "flipbookArrayIndex2D", "Flipbook Index")
+                if importSettings.actorOverlayName == "ovl_En_Wf":
+                    col.box().column().label(
+                        text="This actor has branching gSPSegment calls and will not import correctly unless one of the branches is deleted.",
+                        icon="ERROR",
+                    )
+                elif importSettings.actorOverlayName == "ovl_Obj_Switch":
+                    col.box().column().label(
+                        text="This actor has a 2D texture array and will not import correctly unless the array is flattened.",
+                        icon="ERROR",
+                    )
+            else:
+                col.prop(importSettings, "applyRestPose")
 
 
 class OOT_SkeletonPanel(bpy.types.Panel):
@@ -1191,9 +1288,10 @@ class OOT_SkeletonPanel(bpy.types.Panel):
         col = self.layout.box().column()
         col.box().label(text="OOT Skeleton Inspector")
         prop_split(col, context.object, "ootDrawLayer", "Draw Layer")
-        prop_split(col, context.object, "ootFarLOD", "LOD Skeleton")
-        if context.object.ootFarLOD is not None:
+        prop_split(col, context.object.ootSkeleton, "LOD", "LOD Skeleton")
+        if context.object.ootSkeleton.LOD is not None:
             col.label(text="Make sure LOD has same bone structure.", icon="BONE_DATA")
+        prop_split(col, context.object, "ootActorScale", "Actor Scale")
 
 
 class OOT_BonePanel(bpy.types.Panel):
@@ -1212,18 +1310,14 @@ class OOT_BonePanel(bpy.types.Panel):
     def draw(self, context):
         col = self.layout.box().column()
         col.box().label(text="OOT Bone Inspector")
-        prop_split(col, context.bone, "ootBoneType", "Bone Type")
-        if context.bone.ootBoneType == "Custom DL":
-            prop_split(col, context.bone, "ootCustomDLName", "DL Name")
-        if context.bone.ootBoneType == "Custom DL" or context.bone.ootBoneType == "Ignore":
+        prop_split(col, context.bone.ootBone, "boneType", "Bone Type")
+        if context.bone.ootBone.boneType == "Custom DL":
+            prop_split(col, context.bone.ootBone, "customDLName", "DL Name")
+        if context.bone.ootBone.boneType == "Custom DL" or context.bone.ootBone.boneType == "Ignore":
             col.label(text="Make sure no geometry is skinned to this bone.", icon="BONE_DATA")
 
-        if context.bone.ootBoneType != "Ignore":
-            col.prop(context.bone.ootDynamicTransform, "billboard")
-
-
-def pollArmature(self, obj):
-    return isinstance(obj.data, bpy.types.Armature)
+        if context.bone.ootBone.boneType != "Ignore":
+            col.prop(context.bone.ootBone.dynamicTransform, "billboard")
 
 
 oot_skeleton_classes = (
@@ -1231,6 +1325,9 @@ oot_skeleton_classes = (
     OOT_ImportSkeleton,
     OOTSkeletonExportSettings,
     OOTSkeletonImportSettings,
+    OOT_SaveRestPose,
+    OOTBoneProperty,
+    OOTSkeletonProperty,
 )
 
 oot_skeleton_panels = (
@@ -1254,20 +1351,16 @@ def oot_skeleton_register():
     for cls in oot_skeleton_classes:
         register_class(cls)
 
-    bpy.types.Object.ootFarLOD = bpy.props.PointerProperty(type=bpy.types.Object, poll=pollArmature)
-
-    bpy.types.Bone.ootBoneType = bpy.props.EnumProperty(name="Bone Type", items=ootEnumBoneType)
-    bpy.types.Bone.ootDynamicTransform = bpy.props.PointerProperty(type=OOTDynamicTransformProperty)
-    bpy.types.Bone.ootCustomDLName = bpy.props.StringProperty(name="Custom DL", default="gEmptyDL")
+    bpy.types.Object.ootActorScale = bpy.props.FloatProperty(min=0, default=100)
+    bpy.types.Object.ootSkeleton = bpy.props.PointerProperty(type=OOTSkeletonProperty)
+    bpy.types.Bone.ootBone = bpy.props.PointerProperty(type=OOTBoneProperty)
 
 
 def oot_skeleton_unregister():
 
-    del bpy.types.Object.ootFarLOD
-
-    del bpy.types.Bone.ootBoneType
-    del bpy.types.Bone.ootDynamicTransform
-    del bpy.types.Bone.ootCustomDLName
+    del bpy.types.Object.ootActorScale
+    del bpy.types.Bone.ootBone
+    del bpy.types.Object.ootSkeleton
 
     for cls in reversed(oot_skeleton_classes):
         unregister_class(cls)

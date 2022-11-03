@@ -1,12 +1,15 @@
-import math, os, bpy, bmesh, mathutils
-from bpy.utils import register_class, unregister_class
-from io import BytesIO
-
-from ..f3d.f3d_gbi import *
-from .oot_constants import *
-from .oot_utility import *
-
-from ..utility import *
+import bpy
+from .oot_constants import ootEnumActorID, ootEnumSceneSetupPreset, ootEnumCamTransition
+from ..utility import PluginError, prop_split, label_split
+from .oot_utility import (
+    getRoomObj,
+    getEnumName,
+    drawAddButton,
+    drawCollectionOps,
+    drawEnumWithCustom,
+    getHeaderSettings,
+    isPathObject,
+)
 
 
 def getActiveHeaderIndex() -> int:
@@ -245,7 +248,7 @@ class OOTTransitionActorProperty(bpy.types.PropertyGroup):
     cameraTransitionFrontCustom: bpy.props.StringProperty(default="0x00")
     cameraTransitionBack: bpy.props.EnumProperty(items=ootEnumCamTransition, default="0x00")
     cameraTransitionBackCustom: bpy.props.StringProperty(default="0x00")
-    dontTransition: bpy.props.BoolProperty(name="Don't Transition", default=False)
+    dontTransition: bpy.props.BoolProperty(default=False)
 
     actor: bpy.props.PointerProperty(type=OOTActorProperty)
 

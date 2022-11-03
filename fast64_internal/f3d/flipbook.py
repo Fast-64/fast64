@@ -1,16 +1,17 @@
 import bpy, re
-from typing import List, Any, Callable
+from typing import Any, Callable, Optional
 from bpy.utils import register_class, unregister_class
 from bpy.app.handlers import persistent
 from .f3d_material import all_combiner_uses, update_tex_values_manual, iter_tex_nodes, TextureProperty
-from ..utility import prop_split
+from ..utility import prop_split, CollectionProperty
+from dataclasses import dataclass
 
 
+@dataclass
 class TextureFlipbook:
-    def __init__(self, name: str, exportMode: str, textureNames: List[str]):
-        self.name = name
-        self.exportMode = exportMode
-        self.textureNames = textureNames
+    name: str
+    exportMode: str
+    textureNames: list[str]
 
 
 def flipbook_data_to_c(flipbook: TextureFlipbook):
@@ -22,7 +23,7 @@ def flipbook_data_to_c(flipbook: TextureFlipbook):
 
 def flipbook_to_c(flipbook: TextureFlipbook, isStatic: bool):
     newArrayData = "void* " if not isStatic else "static void* "
-    newArrayData += f"{flipbook.name}[] = {{\n"
+    newArrayData += f"{flipbook.name}[]" + " = { "
     newArrayData += flipbook_data_to_c(flipbook)
     newArrayData += "};"
     return newArrayData
@@ -31,9 +32,8 @@ def flipbook_to_c(flipbook: TextureFlipbook, isStatic: bool):
 def flipbook_2d_to_c(flipbook: TextureFlipbook, isStatic: bool, count: int):
     newArrayData = "void* " if not isStatic else "static void* "
     newArrayData += f"{flipbook.name}[][{len(flipbook.textureNames)}] = {{ "
-    for i in range(count):
-        newArrayData += "{ " + flipbook_data_to_c(flipbook) + " },\n"
-    newArrayData += "};"
+    newArrayData += ("{ " + flipbook_data_to_c(flipbook) + " },\n") * count
+    newArrayData += " };"
     return newArrayData
 
 
@@ -42,9 +42,9 @@ def usesFlipbook(
     flipbookProperty: Any,
     index: int,
     checkEnable: bool,
-    checkFlipbookReference: Callable[[str], bool],
+    checkFlipbookReference: Optional[Callable[[str], bool]],
 ) -> bool:
-    texProp = getattr(material.f3d_mat, "tex" + str(index))
+    texProp = getattr(material.f3d_mat, f"tex{index}")
     if all_combiner_uses(material.f3d_mat)["Texture " + str(index)] and texProp.use_tex_reference:
         return (
             checkFlipbookReference is not None
@@ -55,14 +55,12 @@ def usesFlipbook(
         return False
 
 
-class ImagePointerProperty(bpy.types.PropertyGroup):
+class FlipbookImagePointerProperty(bpy.types.PropertyGroup):
     image: bpy.props.PointerProperty(type=bpy.types.Image)
     name: bpy.props.StringProperty(name="Name", default="gImage")
 
 
-def drawTextureArray(
-    layout: bpy.types.UILayout, textureArray: bpy.types.CollectionProperty, index: int, exportMode: str
-):
+def drawTextureArray(layout: bpy.types.UILayout, textureArray: CollectionProperty, index: int, exportMode: str):
     for i in range(len(textureArray)):
         drawTextureArrayProperty(layout, textureArray[i], i, index, exportMode)
 
@@ -72,7 +70,11 @@ def drawTextureArray(
 
 
 def drawTextureArrayProperty(
-    layout: bpy.types.UILayout, texturePointer: ImagePointerProperty, arrayIndex: int, texNum: int, exportMode: str
+    layout: bpy.types.UILayout,
+    texturePointer: FlipbookImagePointerProperty,
+    arrayIndex: int,
+    texNum: int,
+    exportMode: str,
 ):
     col = layout.column()
 
@@ -182,11 +184,9 @@ class FlipbookProperty(bpy.types.PropertyGroup):
     enable: bpy.props.BoolProperty()
     name: bpy.props.StringProperty(default="sFlipbookTextures")
     exportMode: bpy.props.EnumProperty(default="Array", items=enumFlipbookExportMode)
-    textures: bpy.props.CollectionProperty(type=ImagePointerProperty)
+    textures: bpy.props.CollectionProperty(type=FlipbookImagePointerProperty)
 
 
-# The reason these are separate is for the case when the user changes the material draw layer, but not the
-# dynamic material calls. This could cause crashes which would be hard to detect.
 class FlipbookGroupProperty(bpy.types.PropertyGroup):
     flipbook0: bpy.props.PointerProperty(type=FlipbookProperty)
     flipbook1: bpy.props.PointerProperty(type=FlipbookProperty)
@@ -206,11 +206,11 @@ def drawFlipbookGroupProperty(
     layout: bpy.types.UILayout,
     material: bpy.types.Material,
     checkFlipbookReference: Callable[[str], bool],
-    flipbookRequirementMessage: Callable[[bpy.types.UILayout], None],
+    drawFlipbookRequirementMessage: Callable[[bpy.types.UILayout], None],
 ):
     layout.box().column().label(text="Flipbook Properties")
-    if flipbookRequirementMessage is not None:
-        flipbookRequirementMessage(layout)
+    if drawFlipbookRequirementMessage is not None:
+        drawFlipbookRequirementMessage(layout)
     for i in range(2):
         flipbook = getattr(material.flipbookGroup, "flipbook" + str(i))
         if usesFlipbook(material, flipbook, i, False, checkFlipbookReference):
@@ -225,12 +225,14 @@ def ootFlipbookReferenceIsValid(texReference: str) -> bool:
 
 
 def ootFlipbookRequirementMessage(layout: bpy.types.UILayout):
-    layout.label(text="To use this, material must use a texture ")
-    layout.label(text="reference with name = 0x0?000000.")
+    layout.label(text="To use this, material must use a")
+    layout.label(text="texture reference with name = 0x0?000000.")
 
 
 def ootFlipbookAnimUpdate(self, armatureObj: bpy.types.Object, segment: str, index: int):
-    for child in [child for child in armatureObj.children if isinstance(child.data, bpy.types.Mesh)]:
+    for child in armatureObj.children:
+        if not isinstance(child.data, bpy.types.Mesh):
+            continue
         for material in child.data.materials:
             for i in range(2):
                 flipbook = getattr(material.flipbookGroup, "flipbook" + str(i))
@@ -238,7 +240,7 @@ def ootFlipbookAnimUpdate(self, armatureObj: bpy.types.Object, segment: str, ind
                 if usesFlipbook(material, flipbook, i, True, ootFlipbookReferenceIsValid):
                     match = re.search(f"0x0([0-9A-F])000000", texProp.tex_reference)
                     if match is None:
-                        return
+                        continue
                     if match.group(1) == segment:
                         # Remember that index 0 = auto, and keyframed values start at 1
                         flipbookIndex = min((index - 1 if index > 0 else 0), len(flipbook.textures) - 1)
@@ -256,7 +258,7 @@ def flipbookAnimHandler(dummy):
                 # we only want to update texture on keyframed armatures.
                 # this somewhat mitigates the issue of two skeletons using the same flipbook material.
                 if obj.animation_data is None or obj.animation_data.action is None:
-                    return
+                    continue
                 action = obj.animation_data.action
                 if not (
                     action.fcurves.find("ootLinkTextureAnim.eyes") is None
@@ -287,12 +289,12 @@ class Flipbook_MaterialPanel(bpy.types.Panel):
 
         if context.scene.gameEditorMode == "OOT":
             checkFlipbookReference = ootFlipbookReferenceIsValid
-            flipbookRequirementMessage = ootFlipbookRequirementMessage
+            drawFlipbookRequirementMessage = ootFlipbookRequirementMessage
         else:
             checkFlipbookReference = None
-            flipbookRequirementMessage = None
+            drawFlipbookRequirementMessage = None
 
-        drawFlipbookGroupProperty(col.box().column(), mat, checkFlipbookReference, flipbookRequirementMessage)
+        drawFlipbookGroupProperty(col.box().column(), mat, checkFlipbookReference, drawFlipbookRequirementMessage)
 
 
 def setTexNodeImage(material: bpy.types.Material, texIndex: int, flipbookIndex: int):
@@ -303,7 +305,7 @@ def setTexNodeImage(material: bpy.types.Material, texIndex: int, flipbookIndex: 
 
 
 flipbook_classes = [
-    ImagePointerProperty,
+    FlipbookImagePointerProperty,
     AddFlipbookTexture,
     RemoveFlipbookTexture,
     MoveFlipbookTexture,
@@ -326,4 +328,5 @@ def flipbook_unregister():
     for cls in reversed(flipbook_classes):
         unregister_class(cls)
 
+    bpy.app.handlers.frame_change_pre.remove(flipbookAnimHandler)
     del bpy.types.Material.flipbookGroup

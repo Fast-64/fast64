@@ -1,5 +1,4 @@
-from ..utility import *
-import bpy, math, mathutils, os, re
+import bpy, math, os, re
 from bpy.utils import register_class, unregister_class
 from .oot_constants import ootSceneIDToName
 
@@ -7,6 +6,19 @@ from .oot_constants import ootSceneIDToName
 def isPathObject(obj: bpy.types.Object) -> bool:
     return obj.data is not None and isinstance(obj.data, bpy.types.Curve) and obj.ootSplineProperty.splineType == "Path"
 
+
+from ..utility import (
+    PluginError,
+    prop_split,
+    getDataFromFile,
+    saveDataToFile,
+    attemptModifierApply,
+    setOrigin,
+    applyRotation,
+    cleanupDuplicatedObjects,
+    ootGetSceneOrRoomHeader,
+    hexOrDecInt,
+)
 
 # default indentation to use when writing to decomp files
 indent = " " * 4
@@ -154,6 +166,10 @@ def sceneNameFromID(sceneID):
         return ootSceneIDToName[sceneID]
     else:
         raise PluginError("Cannot find scene ID " + str(sceneID))
+
+
+def getOOTScale(actorScale: float) -> float:
+    return bpy.context.scene.ootBlenderScale * actorScale
 
 
 def replaceMatchContent(data: str, newContent: str, match: re.Match, index: int) -> str:
@@ -369,7 +385,7 @@ def ootGetPath(exportPath, isCustomExport, subPath, folderName, makeIfNotExists,
         path = bpy.path.abspath(os.path.join(os.path.join(bpy.context.scene.ootDecompPath, subPath), folderName))
 
     if not os.path.exists(path):
-        if isCustomExport and makeIfNotExists:
+        if isCustomExport or makeIfNotExists:
             os.makedirs(path)
         else:
             raise PluginError(path + " does not exist.")
@@ -379,20 +395,29 @@ def ootGetPath(exportPath, isCustomExport, subPath, folderName, makeIfNotExists,
 
 def getSortedChildren(armatureObj, bone):
     return sorted(
-        [child.name for child in bone.children if child.ootBoneType != "Ignore"],
+        [child.name for child in bone.children if child.ootBone.boneType != "Ignore"],
         key=lambda childName: childName.lower(),
     )
 
 
 def getStartBone(armatureObj):
     startBoneNames = [
-        bone.name for bone in armatureObj.data.bones if bone.parent is None and bone.ootBoneType != "Ignore"
+        bone.name for bone in armatureObj.data.bones if bone.parent is None and bone.ootBone.boneType != "Ignore"
     ]
     if len(startBoneNames) == 0:
         raise PluginError(armatureObj.name + ' does not have any root bones that are not of the "Ignore" type.')
     startBoneName = startBoneNames[0]
     return startBoneName
     # return 'root'
+
+
+def getNextBone(boneStack: list[str], armatureObj: bpy.types.Object):
+    if len(boneStack) == 0:
+        raise PluginError("More bones in animation than on armature.")
+    bone = armatureObj.data.bones[boneStack[0]]
+    boneStack = boneStack[1:]
+    boneStack = getSortedChildren(armatureObj, bone) + boneStack
+    return bone, boneStack
 
 
 def checkForStartBone(armatureObj):

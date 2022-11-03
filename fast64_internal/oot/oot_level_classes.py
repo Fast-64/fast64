@@ -1,13 +1,13 @@
-import math, os, bpy, bmesh, mathutils
-from bpy.utils import register_class, unregister_class
-from io import BytesIO
-
-from ..utility import *
-from .oot_utility import *
-from .oot_constants import *
-from ..f3d.f3d_gbi import *
-from .oot_collision_classes import *
-from .oot_model_classes import *
+from ..utility import PluginError, toAlnum
+from .oot_collision_classes import OOTCollision
+from .oot_model_classes import OOTModel
+from ..f3d.f3d_gbi import (
+    SPDisplayList,
+    SPEndDisplayList,
+    GfxListTag,
+    GfxList,
+)
+import bpy, os, shutil
 
 
 class OOTActor:
@@ -271,6 +271,15 @@ class OOTScene:
             if count not in self.rooms:
                 raise PluginError(
                     "Error: Room indices do not have a consecutive list of indices. " + "Missing index: " + str(count)
+                )
+            count = count + 1
+
+    def validatePathIndices(self):
+        count = 0
+        while count < len(self.pathList):
+            if count not in self.pathList:
+                raise PluginError(
+                    "Error: Path list does not have a consecutive list of indices.\n" + "Missing index: " + str(count)
                 )
             count = count + 1
 

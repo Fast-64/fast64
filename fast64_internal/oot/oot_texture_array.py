@@ -12,9 +12,14 @@ from .oot_model_classes import (
 
 # Special cases:
 # z_en_xc: one texture is not stored in any array.
-# skeletonName only used for en_ossan (shopkeepers) and demo_ec (end credits party), which have multiple actors in it
+# skeletonName only used for en_ossan (shopkeepers) and demo_ec (end credits party), which have multiple skeletons
 def ootReadTextureArrays(
-    basePath: str, overlayName: str, skeletonName: str, f3dContext: OOTF3DContext, isLink: bool, arrayIndex2D: int
+    basePath: str,
+    overlayName: str,
+    skeletonName: str,
+    f3dContext: OOTF3DContext,
+    isLink: bool,
+    flipbookArrayIndex2D: int,
 ):
     if not isLink:
         actorData = ootGetActorData(basePath, overlayName)
@@ -26,17 +31,17 @@ def ootReadTextureArrays(
 
     # search for texture arrays
     # this is done first so that its easier to tell which gSPSegment calls refer to texture data.
-    flipbookList = getTextureArrays(actorData, arrayIndex2D)
+    flipbookList = getTextureArrays(actorData, flipbookArrayIndex2D)
 
     if not isLink and overlayName == "ovl_En_Ossan":
         # remove function declarations
         actorData = re.sub(r"void\s*EnOssan\_(((?!\{).)*)?\)\s*;", "", actorData)
         ootReadTextureArraysFromMultiple(
-            flipbookList, skeletonName, actorData, f3dContext, "EnOssan", getSPSegmentCalls, arrayIndex2D
+            flipbookList, skeletonName, actorData, f3dContext, "EnOssan", getSPSegmentCalls, flipbookArrayIndex2D
         )
     elif not isLink and overlayName == "ovl_Demo_Ec":
         ootReadTextureArraysFromMultiple(
-            flipbookList, skeletonName, actorData, f3dContext, "DemoEc", getSPSegmentCallsDemoEc, arrayIndex2D
+            flipbookList, skeletonName, actorData, f3dContext, "DemoEc", getSPSegmentCallsDemoEc, flipbookArrayIndex2D
         )
     else:
         ootReadTextureArraysGeneric(flipbookList, actorData, getSPSegmentCalls, f3dContext)
@@ -50,7 +55,7 @@ def ootReadTextureArraysFromMultiple(
     f3dContext: OOTF3DContext,
     functionPrefix: str,
     getSegmentCallsFunc: Callable[[str], None],
-    arrayIndex2D: int,
+    flipbookArrayIndex2D: int,
 ):
     # regex should ignore DemoEc_Init()
     # relies on formatting convention (tabs indicating bracket scope)
@@ -76,7 +81,7 @@ def ootReadTextureArraysFromMultiple(
         return
 
     drawData = drawMatch.group(1)
-    flipbookList = getTextureArrays(drawData, arrayIndex2D)
+    flipbookList = getTextureArrays(drawData, flipbookArrayIndex2D)
     ootReadTextureArraysGeneric(flipbookList, drawData, getSegmentCallsFunc, f3dContext)
 
 
@@ -133,10 +138,10 @@ def findSingleTextureReference(segmentParam: str) -> re.Match:
 
 # check for texture arrays in data.
 # void* ???[] = {a, b, c,}
-def getTextureArrays(actorData: str, arrayIndex2D: int) -> dict[str, TextureFlipbook]:
+def getTextureArrays(actorData: str, flipbookArrayIndex2D: int) -> dict[str, TextureFlipbook]:
     flipbookList = {}  # {array name : TextureFlipbook}
 
-    if arrayIndex2D is not None:
+    if flipbookArrayIndex2D is not None:
         for texArray2DMatch in re.finditer(
             r"void\s*\*\s*([0-9a-zA-Z\_]*)\s*\[\s*\]\s*\[[0-9a-fA-Fx]*\]\s*=\s*\{(.*?)\}\s*;",
             actorData,
@@ -147,11 +152,11 @@ def getTextureArrays(actorData: str, arrayIndex2D: int) -> dict[str, TextureFlip
                 for arrayMatch in re.finditer(r"\{(((?!\}).)*)\}", texArray2DMatch.group(2), flags=re.DOTALL)
             ]
 
-            if arrayIndex2D >= len(arrayMatchData):
+            if flipbookArrayIndex2D >= len(arrayMatchData):
                 continue
 
             arrayName = texArray2DMatch.group(1).strip()
-            textureList = stripComments([item for item in arrayMatchData[arrayIndex2D].split(",")])
+            textureList = stripComments([item for item in arrayMatchData[flipbookArrayIndex2D].split(",")])
 
             # handle trailing comma
             if textureList[-1] == "":
@@ -207,7 +212,7 @@ def getSPSegmentCalls(actorData: str) -> list[tuple[tuple[int, str], str, re.Mat
 def getSPSegmentCallsDemoEc(actorData: str) -> list[tuple[tuple[int, str], str, re.Match]]:
     segmentCalls = getSPSegmentCalls(actorData)
     functionMatch = re.search(
-        r"DemoEc\_DrawSkeleton(CustomColor)?\s*\(.*?,.*?,(.*?),(.*?),", actorData, flags=re.DOTALL
+        r"DemoEc_DrawSkeleton(CustomColor)?\s*\(.*?,.*?,(.*?),(.*?),", actorData, flags=re.DOTALL
     )
     if functionMatch:
         isCustomColor = functionMatch.group(1) is not None

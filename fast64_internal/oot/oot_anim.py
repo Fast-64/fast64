@@ -1,13 +1,36 @@
-import shutil, copy, math, mathutils, bpy, os, re
-
-from bpy.utils import register_class, unregister_class
-from .oot_constants import *
-from .oot_utility import *
-from .oot_skeleton import *
-from ..f3d.flipbook import usesFlipbook, ootFlipbookAnimUpdate
-from ..utility import *
+import math, mathutils, bpy, os, re
 from ..panels import OOT_Panel
+from bpy.utils import register_class, unregister_class
+from .oot_skeleton import ootConvertArmatureToSkeletonWithoutMesh
+from ..utility import CData, PluginError, toAlnum, writeCData, readFile, hexOrDecInt, raisePluginError, prop_split
+
+from .oot_utility import (
+    checkForStartBone,
+    getStartBone,
+    getNextBone,
+    getSortedChildren,
+    ootGetPath,
+    addIncludeFiles,
+    checkEmptyName,
+    ootGetObjectPath,
+    getOOTScale,
+)
+
+from ..utility_anim import (
+    ValueFrameData,
+    saveTranslationFrame,
+    saveQuaternionFrame,
+    squashFramesIfAllSame,
+    getFrameInterval,
+    getTranslationRelativeToRest,
+    getRotationRelativeToRest,
+)
+
 from ..f3d.f3d_material import iter_tex_nodes
+from ..f3d.flipbook import usesFlipbook, ootFlipbookAnimUpdate
+
+from .oot_model_classes import ootGetIncludedAssetData
+from ..f3d.f3d_parser import getImportData
 
 
 class OOTAnimExportSettingsProperty(bpy.types.PropertyGroup):
@@ -224,7 +247,7 @@ def ootConvertNonLinkAnimationData(anim, armatureObj, convertTransformMatrix, *,
         bonesToProcess = childrenNames + bonesToProcess
 
     # list of boneFrameData, which is [[x frames], [y frames], [z frames]]
-    # boneIndex is index in animBones in ootConvertAnimationData.
+    # boneIndex is index in animBones.
     # since we are processing the bones in the same order as ootProcessBone,
     # they should be the same as the limb indices.
 
@@ -290,7 +313,7 @@ def ootConvertLinkAnimationData(anim, armatureObj, convertTransformMatrix, *, fr
         bonesToProcess = childrenNames + bonesToProcess
 
     # list of boneFrameData, which is [[x frames], [y frames], [z frames]]
-    # boneIndex is index in animBones in ootConvertAnimationData.
+    # boneIndex is index in animBones.
     # since we are processing the bones in the same order as ootProcessBone,
     # they should be the same as the limb indices.
 
@@ -328,9 +351,6 @@ def ootConvertLinkAnimationData(anim, armatureObj, convertTransformMatrix, *, fr
         frameData.append(textureAnimValue)
 
     bpy.context.scene.frame_set(currentFrame)
-
-    # need to deepcopy?
-
     return frameData
 
 
@@ -408,7 +428,7 @@ def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSetti
     checkEmptyName(settings.folderName)
     checkEmptyName(settings.skeletonName)
     convertTransformMatrix = (
-        mathutils.Matrix.Scale(bpy.context.scene.ootActorBlenderScale, 4)
+        mathutils.Matrix.Scale(getOOTScale(armatureObj.ootActorScale), 4)
         @ mathutils.Matrix.Diagonal(armatureObj.scale).to_4x4()
     )
 
@@ -453,15 +473,6 @@ def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSetti
 
         if not settings.isCustom:
             addIncludeFiles(settings.folderName, path, ootAnim.name)
-
-
-def getNextBone(boneStack, armatureObj):
-    if len(boneStack) == 0:
-        raise PluginError("More bones in animation than on armature.")
-    bone = armatureObj.data.bones[boneStack[0]]
-    boneStack = boneStack[1:]
-    boneStack = getSortedChildren(armatureObj, bone) + boneStack
-    return bone, boneStack
 
 
 def ootImportAnimationC(
@@ -572,9 +583,9 @@ def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale, isCu
                 rawRotation = mathutils.Euler((0, 0, 0), "XYZ")
                 for propertyIndex in range(3):
                     if jointIndex[propertyIndex] < staticIndexMax:
-                        value = ootRotationValue(frameData[jointIndex[propertyIndex]])
+                        value = binangToRadians(frameData[jointIndex[propertyIndex]])
                     else:
-                        value = ootRotationValue(frameData[jointIndex[propertyIndex] + frame])
+                        value = binangToRadians(frameData[jointIndex[propertyIndex] + frame])
 
                     rawRotation[propertyIndex] = value
 
@@ -591,8 +602,6 @@ def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale, isCu
 # filepath is gameplay_keep.c
 # animName is header name.
 # numLimbs = 21 for link.
-
-
 def ootImportLinkAnimationC(
     armatureObj: bpy.types.Object,
     animHeaderFilepath: str,
@@ -669,7 +678,7 @@ def ootImportLinkAnimationC(
 
     # vec3 = 3x s16 values
     # padding = u8, tex anim = u8
-    # root trans vec3 + rot vec3 for each limb + (padding + anim index struct)
+    # root trans vec3 + rot vec3 for each limb + (s16 with eye/mouth indices)
     frameSize = 3 + 3 * numLimbs + 1
     for frame in range(frameCount):
         currentFrame = frameData[frame * frameSize : (frame + 1) * frameSize]
@@ -688,13 +697,13 @@ def ootImportLinkAnimationC(
         for boneIndex in range(numLimbs):
             bone = boneList[boneIndex]
             rawRotation = mathutils.Euler(
-                [ootRotationValue(currentFrame[i + (boneIndex + 1) * 3]) for i in range(3)], "XYZ"
+                [binangToRadians(currentFrame[i + (boneIndex + 1) * 3]) for i in range(3)], "XYZ"
             )
             trueRotation = getRotationRelativeToRest(bone, rawRotation)
             for i in range(3):
                 boneCurvesRotation[boneIndex][i].keyframe_points.insert(frame, trueRotation[i])
 
-        # convert to unsigned byte representation
+        # convert to unsigned short representation
         texAnimValue = int.from_bytes(
             currentFrame[(numLimbs + 1) * 3].to_bytes(2, "big", signed=True), "big", signed=False
         )
@@ -713,7 +722,7 @@ def ootTranslationValue(value, actorScale):
     return value / actorScale
 
 
-def ootRotationValue(value):
+def binangToRadians(value):
     return math.radians(value * 360 / (2**16))
 
 
@@ -767,7 +776,7 @@ class OOT_ExportAnim(bpy.types.Operator):
             return {"CANCELLED"}
 
         try:
-            settings = context.scene.ootAnimExportSettings
+            settings = context.scene.fast64.oot.animExportSettings
             exportAnimationC(armatureObj, settings)
             self.report({"INFO"}, "Success!")
 
@@ -808,8 +817,8 @@ class OOT_ImportAnim(bpy.types.Operator):
             return {"CANCELLED"}
 
         try:
-            actorScale = context.scene.ootActorBlenderScale
-            settings = context.scene.ootAnimImportSettings
+            actorScale = getOOTScale(armatureObj.ootActorScale)
+            settings = context.scene.fast64.oot.animImportSettings
             ootImportAnimationC(armatureObj, settings, actorScale)
             self.report({"INFO"}, "Success!")
 
@@ -829,7 +838,7 @@ class OOT_ExportAnimPanel(OOT_Panel):
         col = self.layout.column()
 
         col.operator(OOT_ExportAnim.bl_idname)
-        exportSettings = context.scene.ootAnimExportSettings
+        exportSettings = context.scene.fast64.oot.animExportSettings
         prop_split(col, exportSettings, "skeletonName", "Anim Name Prefix")
         if exportSettings.isCustom:
             prop_split(col, exportSettings, "customPath", "Folder")
@@ -839,7 +848,7 @@ class OOT_ExportAnimPanel(OOT_Panel):
         col.prop(exportSettings, "isCustom")
 
         col.operator(OOT_ImportAnim.bl_idname)
-        importSettings = context.scene.ootAnimImportSettings
+        importSettings = context.scene.fast64.oot.animImportSettings
         prop_split(col, importSettings, "animName", "Anim Header Name")
         if importSettings.isCustom:
             prop_split(col, importSettings, "customPath", "File")
@@ -849,20 +858,21 @@ class OOT_ExportAnimPanel(OOT_Panel):
         col.prop(importSettings, "isCustom")
 
 
-# We still want update callbacks for manually setting texture with visualize operator.
-def ootUpdateEyes(self, context):
+# The update callbacks are for manually setting texture with visualize operator.
+# They don't run from animation updates, see flipbookAnimHandler in flipbook.py
+def ootUpdateLinkEyes(self, context):
     index = self.eyes
     ootFlipbookAnimUpdate(self, context.object, "8", index)
 
 
-def ootUpdateMouth(self, context):
+def ootUpdateLinkMouth(self, context):
     index = self.mouth
     ootFlipbookAnimUpdate(self, context.object, "9", index)
 
 
 class OOTLinkTextureAnimProperty(bpy.types.PropertyGroup):
-    eyes: bpy.props.IntProperty(min=0, max=15, default=0, name="Eyes", update=ootUpdateEyes)
-    mouth: bpy.props.IntProperty(min=0, max=15, default=0, name="Mouth", update=ootUpdateMouth)
+    eyes: bpy.props.IntProperty(min=0, max=15, default=0, name="Eyes", update=ootUpdateLinkEyes)
+    mouth: bpy.props.IntProperty(min=0, max=15, default=0, name="Mouth", update=ootUpdateLinkMouth)
 
 
 class OOT_LinkAnimPanel(bpy.types.Panel):
@@ -899,7 +909,10 @@ oot_anim_classes = (
     OOTAnimImportSettingsProperty,
 )
 
-oot_anim_panels = (OOT_ExportAnimPanel, OOT_LinkAnimPanel)
+oot_anim_panels = (
+    OOT_ExportAnimPanel,
+    OOT_LinkAnimPanel,
+)
 
 
 def oot_anim_panel_register():
@@ -916,17 +929,11 @@ def oot_anim_register():
     for cls in oot_anim_classes:
         register_class(cls)
 
-    bpy.types.Scene.ootAnimExportSettings = bpy.props.PointerProperty(type=OOTAnimExportSettingsProperty)
-    bpy.types.Scene.ootAnimImportSettings = bpy.props.PointerProperty(type=OOTAnimImportSettingsProperty)
-
     bpy.types.Object.ootLinkTextureAnim = bpy.props.PointerProperty(type=OOTLinkTextureAnimProperty)
 
 
 def oot_anim_unregister():
     for cls in reversed(oot_anim_classes):
         unregister_class(cls)
-
-    del bpy.types.Scene.ootAnimExportSettings
-    del bpy.types.Scene.ootAnimImportSettings
 
     del bpy.types.Object.ootLinkTextureAnim

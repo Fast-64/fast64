@@ -2590,9 +2590,9 @@ def saveSkinnedMeshByMaterial(
             skinnedTriGroup.vertexList.vertices.append(
                 convertVertexData(
                     obj.data,
-                    bufferVert.f3dVert[0],
-                    bufferVert.f3dVert[1],
-                    bufferVert.f3dVert[2],
+                    bufferVert.f3dVert.position,
+                    bufferVert.f3dVert.uv,
+                    bufferVert.f3dVert.getColorOrNormal(),
                     texDimensions,
                     parentMatrix,
                     isPointSampled,

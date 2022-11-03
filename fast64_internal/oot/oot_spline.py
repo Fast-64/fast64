@@ -1,9 +1,9 @@
-import math, os, bpy, bmesh, mathutils
+import bpy
 from bpy.utils import register_class, unregister_class
-
-from .oot_constants import *
-from .oot_utility import *
-from .oot_scene_room import *
+from ..utility import PluginError, toAlnum, prop_split
+from .oot_utility import getSceneObj, drawEnumWithCustom
+from .oot_actor import drawActorHeaderProperty, OOTActorHeaderProperty
+from .oot_collision_classes import ootEnumCameraCrawlspaceSType
 
 
 class OOTPath:

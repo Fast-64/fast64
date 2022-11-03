@@ -1,44 +1,77 @@
-import shutil, copy, bpy, os
-from bpy.utils import register_class, unregister_class
-from typing import Dict, List, Any
+import bpy, os, re, mathutils
+from typing import Union
+from ..f3d.f3d_writer import (
+    VertexGroupInfo,
+    TriangleConverterInfo,
+    saveOrGetTextureDefinition,
+    saveOrGetPaletteAndImageDefinition,
+    getTextureNameTexRef,
+    saveOrGetPaletteOnlyDefinition,
+    FSharedPalette,
+    DPLoadTLUTCmd,
+    DPSetTextureLUT,
+    DPSetTile,
+    texFormatOf,
+)
+from ..f3d.f3d_parser import F3DContext, F3DTextureReference, getImportData
+from ..f3d.f3d_material import createF3DMat, TextureProperty
+from ..utility import CData, hexOrDecInt, PluginError
 
-from .oot_utility import *
-from .oot_constants import *
-from ..f3d.f3d_writer import *
-from ..f3d.f3d_material import *
-from ..f3d.f3d_parser import *
+from ..f3d.f3d_gbi import (
+    FModel,
+    FMaterial,
+    FImage,
+    GfxMatWriteMethod,
+    SPDisplayList,
+    GfxList,
+    GfxListTag,
+    DLFormat,
+    SPMatrix,
+    GfxFormatter,
+    MTX_SIZE,
+)
 from ..f3d.flipbook import TextureFlipbook, FlipbookProperty, usesFlipbook, ootFlipbookReferenceIsValid
 
 # read included asset data
 def ootGetIncludedAssetData(basePath: str, currentPaths: list[str], data: str) -> str:
     includeData = ""
+    searchedPaths = currentPaths[:]
 
     print("Included paths:")
 
     # search assets
     for includeMatch in re.finditer(r"\#include\s*\"(assets/objects/(.*?))\.h\"", data):
         path = os.path.join(basePath, includeMatch.group(1) + ".c")
+        if path in searchedPaths:
+            continue
+        searchedPaths.append(path)
         subIncludeData = getImportData([path]) + "\n"
         includeData += subIncludeData
         print(path)
 
         for subIncludeMatch in re.finditer(r"\#include\s*\"(((?![/\"]).)*)\.c\"", subIncludeData):
-            print(os.path.join(os.path.dirname(path), subIncludeMatch.group(1) + ".c"))
-            includeData += getImportData([os.path.join(os.path.dirname(path), subIncludeMatch.group(1) + ".c")]) + "\n"
+            subPath = os.path.join(os.path.dirname(path), subIncludeMatch.group(1) + ".c")
+            if subPath in searchedPaths:
+                continue
+            searchedPaths.append(subPath)
+            print(subPath)
+            includeData += getImportData([subPath]) + "\n"
 
     # search same directory c includes, both in current path and in included object files
     # these are usually fast64 exported files
     for includeMatch in re.finditer(r"\#include\s*\"(((?![/\"]).)*)\.c\"", data):
-        print(os.path.join(os.path.dirname(currentPaths[0]), includeMatch.group(1) + ".c"))
-        includeData += (
-            getImportData(
-                [
-                    os.path.join(os.path.dirname(currentPath), includeMatch.group(1) + ".c")
-                    for currentPath in currentPaths
-                ]
-            )
-            + "\n"
-        )
+        sameDirPaths = [
+            os.path.join(os.path.dirname(currentPath), includeMatch.group(1) + ".c") for currentPath in currentPaths
+        ]
+        sameDirPathsToSearch = []
+        for sameDirPath in sameDirPaths:
+            if sameDirPath not in searchedPaths:
+                sameDirPathsToSearch.append(sameDirPath)
+
+        for sameDirPath in sameDirPathsToSearch:
+            print(sameDirPath)
+
+        includeData += getImportData(sameDirPathsToSearch) + "\n"
     return includeData
 
 
@@ -65,7 +98,7 @@ def ootGetLinkData(basePath: str) -> str:
 class OOTModel(FModel):
     def __init__(self, f3dType, isHWv1, name, DLFormat, drawLayerOverride):
         self.drawLayerOverride = drawLayerOverride
-        self.flipbooks: list[OOTTextureFlipbook] = []
+        self.flipbooks: list[TextureFlipbook] = []
 
         # key: first flipbook image
         # value: list of flipbook textures in order
@@ -241,7 +274,7 @@ class OOTModel(FModel):
 
         model.modifyDLForCIFlipbook(fMaterial, fPalette, texProp)
 
-    def processFlipbookNonCI(self, fMaterial: FMaterial, flipbookProp: Any, texProp: TextureProperty):
+    def processFlipbookNonCI(self, fMaterial: FMaterial, flipbookProp: FlipbookProperty, texProp: TextureProperty):
         model = self.getFlipbookOwner()
         flipbook = TextureFlipbook(flipbookProp.name, flipbookProp.exportMode, [])
         for flipbookTexture in flipbookProp.textures:
@@ -381,7 +414,7 @@ class OOTF3DContext(F3DContext):
         self.limbList = limbList
         self.dlList = []  # in the order they are rendered
         self.isBillboard = False
-        self.flipbooks = {}  # {(segment, draw layer) : OOTTextureFlipbook}
+        self.flipbooks = {}  # {(segment, draw layer) : TextureFlipbook}
 
         materialContext = createF3DMat(None, preset="oot_shaded_solid")
         # materialContext.f3d_mat.rdp_settings.g_mdsft_cycletype = "G_CYC_1CYCLE"
@@ -440,6 +473,7 @@ class OOTF3DContext(F3DContext):
             if segment >= 0x08 and segment <= 0x0D:
                 setattr(self.materialContext.ootMaterial.opaque, "segment" + format(segment, "1X"), True)
                 setattr(self.materialContext.ootMaterial.transparent, "segment" + format(segment, "1X"), True)
+                self.materialChanged = True
             return None
         return name
 
@@ -453,6 +487,9 @@ class OOTF3DContext(F3DContext):
             # if (pointer >> 24) == 0x08:
             # 	print("Unhandled OOT pointer: " + textureName)
 
+    def getMaterialKey(self, material: bpy.types.Material):
+        return (material.ootMaterial.key(), material.f3d_mat.key())
+
     def clearGeometry(self):
         self.dlList = []
         self.isBillboard = False
@@ -460,15 +497,14 @@ class OOTF3DContext(F3DContext):
 
     def clearMaterial(self):
         self.isBillboard = False
-        clearOOTMaterialDrawLayerProperty(self.materialContext.ootMaterial.opaque)
-        clearOOTMaterialDrawLayerProperty(self.materialContext.ootMaterial.transparent)
+
+        # Don't clear ootMaterial, some skeletons (Link) require dynamic material calls to be preserved between limbs
         clearOOTFlipbookProperty(self.materialContext.flipbookGroup.flipbook0)
         clearOOTFlipbookProperty(self.materialContext.flipbookGroup.flipbook1)
         F3DContext.clearMaterial(self)
 
     def postMaterialChanged(self):
-        clearOOTMaterialDrawLayerProperty(self.materialContext.ootMaterial.opaque)
-        clearOOTMaterialDrawLayerProperty(self.materialContext.ootMaterial.transparent)
+        pass
 
     def handleTextureReference(
         self,

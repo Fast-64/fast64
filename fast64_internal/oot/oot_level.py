@@ -1,15 +1,57 @@
-import math, os, bpy, bmesh, mathutils
+import bpy
 from bpy.utils import register_class, unregister_class
-from io import BytesIO
+from ..utility import prop_split, gammaInverse
+from .oot_collision import OOTWaterBoxProperty, drawWaterBoxProperty
+from .oot_constants import ootEnumEmptyType
+from .oot_utility import getSceneObj, getRoomObj
 
-from ..f3d.f3d_gbi import *
-from .oot_constants import *
-from .oot_utility import *
-from .oot_scene_room import *
-from .oot_actor import *
-from .oot_collision import *
-from .oot_spline import *
-from ..utility import *
+from .oot_actor import (
+    OOTActorProperty,
+    OOTTransitionActorProperty,
+    OOTEntranceProperty,
+    OOT_SearchActorIDEnumOperator,
+    OOTActorHeaderItemProperty,
+    OOTActorHeaderProperty,
+    drawActorProperty,
+    drawTransitionActorProperty,
+    drawEntranceProperty,
+)
+
+from .oot_scene_room import (
+    OOTRoomHeaderProperty,
+    OOTSceneHeaderProperty,
+    OOTAlternateSceneHeaderProperty,
+    OOTAlternateRoomHeaderProperty,
+    OOTSceneProperties,
+    OOT_SearchMusicSeqEnumOperator,
+    OOT_SearchObjectEnumOperator,
+    OOT_SearchSceneEnumOperator,
+    OOTLightProperty,
+    OOTLightGroupProperty,
+    OOTObjectProperty,
+    OOTExitProperty,
+    OOTSceneTableEntryProperty,
+    OOTExtraCutsceneProperty,
+    drawSceneHeaderProperty,
+    drawAlternateSceneHeaderProperty,
+    drawRoomHeaderProperty,
+    drawAlternateRoomHeaderProperty,
+)
+
+from .oot_cutscene import (
+    OOTCutsceneProperty,
+    OOTCSTextboxProperty,
+    OOTCSTextboxAdd,
+    OOTCSLightingProperty,
+    OOTCSTimeProperty,
+    OOTCSBGMProperty,
+    OOTCSMiscProperty,
+    OOTCS0x09Property,
+    OOTCSUnkProperty,
+    OOTCSListProperty,
+    OOTCSListAdd,
+    drawCutsceneProperty,
+)
 
 
 def headerSettingsToIndices(headerSettings):
