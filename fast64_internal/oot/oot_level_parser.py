@@ -1,10 +1,12 @@
-import math, os
+import math, os, re, bpy, mathutils
 from random import random
-from .oot_f3d_writer import *
-from .oot_collision import *
-from .oot_cutscene import *
+
+# from .oot_f3d_writer import *
+# from .oot_collision import *
+# from .oot_cutscene import *
+from .oot_f3d_writer import getColliderMat
 from .oot_level import OOTImportSceneSettingsProperty
-from .oot_scene_room import OOTSceneHeaderProperty
+from .oot_scene_room import OOTSceneHeaderProperty, OOTRoomHeaderProperty, OOTLightProperty
 from .oot_actor import OOTActorProperty
 from .oot_utility import (
     getHeaderSettings,
@@ -12,14 +14,46 @@ from .oot_utility import (
     setCustomProperty,
     ootParseRotation,
     sceneNameFromID,
+    ootGetPath,
 )
-from .oot_constants import ootEnumCamTransition, ootEnumActorID
-from .oot_actor import OOTActorHeaderProperty
+from .oot_constants import (
+    ootEnumCamTransition,
+    ootEnumActorID,
+    ootEnumDrawConfig,
+    ootEnumCameraMode,
+    ootEnumAudioSessionPreset,
+    ootEnumNightSeq,
+    ootEnumMusicSeq,
+    ootEnumMapLocation,
+    ootEnumNaviHints,
+    ootEnumGlobalObject,
+    ootEnumSkybox,
+    ootEnumCloudiness,
+    ootEnumSkyboxLighting,
+    ootEnumRoomBehaviour,
+    ootEnumLinkIdle,
+    ootEnumRoomShapeType,
+    ootEnumObjectID,
+)
+from .oot_actor import OOTActorHeaderProperty, setAllActorsVisibility
 from .c_writer.oot_scene_table_c import getDrawConfig
 from ..utility import yUpToZUp, parentObject, hexOrDecInt, gammaInverse
-from ..f3d.f3d_parser import parseMatrices
+from ..f3d.f3d_parser import parseMatrices, importMeshC
 from collections import OrderedDict
-from .oot_collision_classes import ootEnumCameraCrawlspaceSType
+from .oot_collision import OOTMaterialCollisionProperty
+from .oot_collision_classes import (
+    ootEnumCameraCrawlspaceSType,
+    ootEnumFloorSetting,
+    ootEnumWallSetting,
+    ootEnumFloorProperty,
+    ootEnumCollisionTerrain,
+    ootEnumCollisionSound,
+    ootEnumCameraSType,
+)
+from ..utility import PluginError, raisePluginError, readFile
+from .oot_model_classes import OOTF3DContext
+from ..f3d.f3d_gbi import F3D
+from ..f3d.flipbook import TextureFlipbook
 
 
 def run_ops_without_view_layer_update(func):
