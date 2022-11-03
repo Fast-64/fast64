@@ -1,5 +1,5 @@
 import os, re, bpy
-from ..utility import *
+from ..utility import PluginError, writeIfNotFound, getDataFromFile, saveDataToFile
 from .c_templates.tile_scroll import tile_scroll_c, tile_scroll_h
 from .sm64_utility import getMemoryCFilePath
 
@@ -22,7 +22,7 @@ def readSegmentInfo(baseDir):
 		'(((?!\,).)*)\,\s*(((?!\,).)*)\,\s*(((?!\)).)*)\)', ldData):
 		segDict[matchResult.group(1).strip()] = \
 			('_' + matchResult.group(1) + "_" + compressionFmt + "SegmentRomStart",
-			int(matchResult.group(3).strip()[2:4], 16), 
+			int(matchResult.group(3).strip()[2:4], 16),
 			int(matchResult.group(5).strip()[2:4], 16))
 
 	levelPath = os.path.join(baseDir, 'levels/level_defines.h')
@@ -43,7 +43,7 @@ def readSegmentInfo(baseDir):
 		'(((?!\)).)*)\)',  # camera table
 		levelData):
 		segDict[matchResult.group(7).strip()] = \
-			('_' + matchResult.group(7) + '_segment_7SegmentRomStart', 7, None)	
+			('_' + matchResult.group(7) + '_segment_7SegmentRomStart', 7, None)
 	return segDict
 
 
@@ -54,25 +54,25 @@ def writeSegmentROMTable(baseDir):
 	memFile.close()
 
 	if 'uintptr_t sSegmentROMTable[32];' not in memData:
-		memData = re.sub('(?<!extern )uintptr\_t sSegmentTable\[32\]\;', 
+		memData = re.sub('(?<!extern )uintptr\_t sSegmentTable\[32\]\;',
 		'\nuintptr_t sSegmentTable[32];\nuintptr_t sSegmentROMTable[32];', memData, re.DOTALL)
 
-		memData = re.sub("set\_segment\_base\_addr\s*\((((?!\)).)*)\)\s*;", 
+		memData = re.sub("set\_segment\_base\_addr\s*\((((?!\)).)*)\)\s*;",
 			r'set_segment_base_addr(\1); sSegmentROMTable[segment] = (uintptr_t) srcStart;', memData, re.DOTALL)
-	
+
 		memFile = open( memPath, 'w', newline = '\n')
 		memFile.write(memData)
 		memFile.close()
 
 	# Add extern definition of segment table
-	writeIfNotFound(os.path.join(baseDir, 'src/game/memory.h'), 
+	writeIfNotFound(os.path.join(baseDir, 'src/game/memory.h'),
 		'\nextern uintptr_t sSegmentROMTable[32];', '#endif')
 
 def writeScrollTextureCall(path, include, callString):
 	data = getDataFromFile(path)
 	if include not in data:
 		data = include + '\n' + data
-	
+
 		callScrollIndex = data.index(callString)
 		if callScrollIndex != -1:
 			callScrollIndex += len(callString)
@@ -80,7 +80,7 @@ def writeScrollTextureCall(path, include, callString):
 				data[callScrollIndex:]
 		else:
 			raise PluginError("Cannot find " + callString + ' in ' + path)
-	
+
 		saveDataToFile(path, data)
 
 TILE_SCROLL_REL_PATH = 'src/game/tile_scroll'
@@ -113,7 +113,7 @@ def writeTexScrollBase(baseDir):
 			'#endif\n')
 
 		texscrollHFile.close()
-	
+
 	# Create texscroll.inc.c
 	texscrollCPath = os.path.join(baseDir, 'src/game/texscroll.c')
 	if not os.path.exists(texscrollCPath):
@@ -134,7 +134,7 @@ def writeTexScrollBase(baseDir):
 
 		texscrollCFile.write(scrollData)
 		texscrollCFile.close()
-	
+
 	texscrollCFile = open(texscrollCPath, 'r', newline = '\n')
 	scrollData = texscrollCFile.read()
 	texscrollCFile.close()
@@ -166,7 +166,7 @@ def writeTexScrollBase(baseDir):
 	if update_tex_scroll:
 		with open(texscrollCPath, 'w', newline='\n') as texscrollCFile:
 			texscrollCFile.write(scrollData)
-	
+
 	# Create texscroll folder for groups
 	texscrollDirPath = os.path.join(baseDir, 'src/game/texscroll')
 	if not os.path.exists(texscrollDirPath):
@@ -178,7 +178,7 @@ def writeTexScrollBase(baseDir):
 
 	writeScrollTextureCall(os.path.join(baseDir, 'src/game/level_update.c'),
 		'#include "texscroll.h"', 'changeLevel = play_mode_normal();')
-	
+
 	starSelectPath = os.path.join(baseDir, 'src/menu/star_select.c')
 	if os.path.exists(starSelectPath):
 		writeScrollTextureCall(starSelectPath,
@@ -188,7 +188,7 @@ def writeTexScrollBase(baseDir):
 	# Weird encoding error in this file?
 	#writeScrollTextureCall(os.path.join(baseDir, 'src/menu/file_select.c'),
 	#	'#include "src/game/texscroll.h"', 'area_update_objects();')
-	
+
 	#writeScrollTextureCall(os.path.join(baseDir, 'src/menu/level_select_menu.c'),
 	#	'#include "src/game/texscroll.h"', 's32 retVar;')
 
@@ -212,7 +212,7 @@ def createTexScrollHeadersGroup(exportDir, groupName, dataInclude):
 		groupDataH = 'extern void scroll_textures_' + groupName + "();\n"
 		groupFileH.write(groupDataH)
 		groupFileH.close()
-	
+
 	# Create group inc.c
 	groupPathC = os.path.join(exportDir, includeC)
 	if not os.path.exists(groupPathC):
@@ -239,7 +239,7 @@ def createTexScrollHeadersGroup(exportDir, groupName, dataInclude):
 
 		texscrollFileH = open(texscrollPathH, 'w', newline = '\n')
 		texscrollFileH.write(texscrollDataH)
-		texscrollFileH.close()	
+		texscrollFileH.close()
 
 	# Include group inc.c in texscroll.c
 	includeCText = '#include "' + includeC + '"'
@@ -265,19 +265,19 @@ def createTexScrollHeadersGroup(exportDir, groupName, dataInclude):
 	groupFunctionCall = "if(SCROLL_CONDITION(sSegmentROMTable[" + hex(segment) + \
 		"] == (uintptr_t)" + segmentRomStart + ")) {\n" +\
 		'\t\tscroll_textures_' + groupName + "();\n\t}\n"
-	
+
 	callWithoutMacro = "if(sSegmentROMTable[" + hex(segment) + \
 		"] == (uintptr_t)" + segmentRomStart + ") {\n" +\
 		'\t\tscroll_textures_' + groupName + "();\n\t}\n"
-	
+
 	matchResult = re.search('void\s*scroll\_textures'  +\
 		'\s*\(\)\s*\{\s*(.*)\n\}', texscrollDataC, re.DOTALL)
 	if matchResult:
 		functionCalls = matchResult.group(1)
-		
+
 		if groupFunctionCall not in functionCalls:
 			functionCalls += '\n\t' + groupFunctionCall
-		
+
 		# Handle case with old function calls
 		if callWithoutMacro in functionCalls:
 			functionCalls = functionCalls.replace(callWithoutMacro, '')
@@ -290,7 +290,7 @@ def createTexScrollHeadersGroup(exportDir, groupName, dataInclude):
 	if originalTexScrollC != texscrollDataC:
 		texscrollFileC = open(texscrollPathC, 'w', newline = '\n')
 		texscrollFileC.write(texscrollDataC)
-		texscrollFileC.close()	
+		texscrollFileC.close()
 
 	return fileStatus
 
@@ -299,11 +299,11 @@ def writeTexScrollHeadersLevel(exportDir, includeC, includeH, groupName, scrollD
 
 def modifyTexScrollHeadersGroup(exportDir, includeC, includeH, groupName, scrollDefines, dataInclude, hasScrolling):
 	if not bpy.context.scene.disableScroll and hasScrolling:
-		fileStatus = writeTexScrollHeadersGroup(exportDir, includeC, includeH, 
+		fileStatus = writeTexScrollHeadersGroup(exportDir, includeC, includeH,
 			groupName, scrollDefines, dataInclude)
 		return fileStatus
 	else:
-		removeTexScrollHeadersGroup(exportDir, includeC, includeH, 
+		removeTexScrollHeadersGroup(exportDir, includeC, includeH,
 			groupName, scrollDefines, dataInclude)
 		return None
 
@@ -311,13 +311,13 @@ def writeTexScrollHeadersGroup(exportDir, includeC, includeH, groupName, scrollD
 
 	# Create group scroll files
 	fileStatus = createTexScrollHeadersGroup(exportDir, groupName, dataInclude)
-	
+
 	# Write to group inc.h
 	groupPathH = os.path.join(exportDir, 'src/game/texscroll/' + groupName + '_texscroll.inc.h')
 	groupFileH = open(groupPathH, 'r', newline = '\n')
 	groupDataH = groupFileH.read()
 	groupFileH.close()
-	
+
 	if includeH not in groupDataH:
 		groupDataH = includeH + '\n' + groupDataH
 		groupFileH = open(groupPathH, 'w', newline = '\n')
@@ -337,7 +337,7 @@ def writeTexScrollHeadersGroup(exportDir, includeC, includeH, groupName, scrollD
 			groupDataC = groupDataC[:includeIndex] + includeC + '\n' + groupDataC[includeIndex:]
 	else:
 		raise PluginError("Could not find include string index.")
-	
+
 	# Call actor scroll functions in group scroll function
 	# The last function will be the one that calls all the others
 	scrollFunction = scrollDefines.split('extern void ')[-1]
@@ -360,7 +360,7 @@ def writeTexScrollHeadersGroup(exportDir, includeC, includeH, groupName, scrollD
 	return fileStatus
 
 def removeTexScrollHeadersGroup(exportDir, includeC, includeH, groupName, scrollDefines, dataInclude):
-	
+
 	includeH += '\n'
 	includeC += '\n'
 
@@ -388,7 +388,7 @@ def removeTexScrollHeadersGroup(exportDir, includeC, includeH, groupName, scroll
 
 		if includeC in groupDataC:
 			groupDataC = groupDataC.replace(includeC, '')
-		
+
 		scrollFunction = scrollDefines.split('extern void ')[-1]
 		matchResult = re.search('void\s*scroll\_textures\_' + re.escape(groupName) + \
 			'\s*\(\)\s*{\s*' + '(((?!\}).)*)\}', groupDataC, re.DOTALL)

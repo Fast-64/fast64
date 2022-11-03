@@ -1,7 +1,7 @@
-from .sm64_constants import *
+import bpy
 from bpy.utils import register_class, unregister_class
-import bpy, bmesh
-from ..utility import *
+from ..utility import PluginError, CData, toAlnum, prop_split
+
 
 enumSplineTypes = [
 	("Trajectory", "Trajectory", "Exports to Trajectory[]. Used for movement"),
@@ -15,7 +15,7 @@ class SM64Spline:
 		self.splineType = splineType
 		self.points = []
 		self.speeds = []
-	
+
 	def to_c(self):
 		data = CData()
 		if self.splineType == 'Trajectory':
@@ -74,7 +74,7 @@ def convertSplineObject(name, obj, transform):
 		position = transform @ point.co
 		sm64_spline.points.append(position)
 		sm64_spline.speeds.append(int(round(point.radius)))
-	
+
 	return sm64_spline
 
 def onSplineTypeSet(self, context):
@@ -86,7 +86,7 @@ def onSplineTypeSet(self, context):
 class SM64_ExportSpline(bpy.types.Operator):
 	bl_idname = "object.sm64_export_spline"
 	bl_label = "Export Spline"
-	bl_options = {'REGISTER', 'UNDO'} 
+	bl_options = {'REGISTER', 'UNDO'}
 
 	def execute(self, context):
 		context.object.sm64_special_enum = self.sm64_special_enum
@@ -100,7 +100,7 @@ class SM64SplinePanel(bpy.types.Panel):
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
 	bl_context = "object"
-	bl_options = {'HIDE_HEADER'} 
+	bl_options = {'HIDE_HEADER'}
 
 	@classmethod
 	def poll(cls, context):

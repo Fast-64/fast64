@@ -1,4 +1,4 @@
-import bpy, mathutils, math, bmesh
+import bpy, mathutils, math, bmesh, copy
 from bpy.utils import register_class, unregister_class
 from ..f3d.f3d_parser import createBlankMaterial, parseF3DBinary
 from ..panels import SM64_Panel, sm64GoalImport

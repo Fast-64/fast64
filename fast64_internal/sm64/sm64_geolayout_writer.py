@@ -1,23 +1,130 @@
-import bpy, mathutils, math, copy, os, shutil
+import bpy, mathutils, math, copy, os, shutil, re
 from bpy.utils import register_class, unregister_class
-
-from os.path import basename
 from io import BytesIO
 
-from .sm64_objects import InlineGeolayoutObjConfig, inlineGeoLayoutObjects
-from .sm64_geolayout_bone import getSwitchOptionBone, animatableBoneTypes
-from .sm64_geolayout_constants import *
-from .sm64_geolayout_utility import *
-from .sm64_constants import *
-from .sm64_camera import saveCameraSettingsToGeolayout
-from .sm64_geolayout_classes import *
-from .sm64_f3d_writer import *
-from .sm64_texscroll import *
-from .sm64_utility import *
-
-from ..utility import *
 from ..operators import ObjectDataExporter
 from ..panels import SM64_Panel
+from .sm64_objects import InlineGeolayoutObjConfig, inlineGeoLayoutObjects
+from .sm64_geolayout_bone import getSwitchOptionBone, animatableBoneTypes
+from .sm64_camera import saveCameraSettingsToGeolayout
+from .sm64_f3d_writer import SM64Model, SM64GfxFormatter
+from .sm64_texscroll import modifyTexScrollFiles, modifyTexScrollHeadersGroup
+from .sm64_level_parser import parseLevelAtPointer
+from .sm64_rom_tweaks import ExtendBank0x04
+from .sm64_utility import starSelectWarning
+
+from ..utility import (
+    PluginError,
+    VertexWeightError,
+    setOrigin,
+    raisePluginError,
+    findStartBones,
+    duplicateHierarchy,
+    cleanupDuplicatedObjects,
+    getExportDir,
+    toAlnum,
+    writeMaterialFiles,
+    writeIfNotFound,
+    get64bitAlignedAddr,
+    encodeSegmentedAddr,
+    writeMaterialHeaders,
+    writeInsertableFile,
+    bytesToHex,
+    checkSM64EmptyUsesGeoLayout,
+    convertEulerFloatToShort,
+    convertFloatToShort,
+    checkIsSM64InlineGeoLayout,
+    checkIsSM64PreInlineGeoLayout,
+    translate_blender_to_n64,
+    rotate_quat_blender_to_n64,
+    get_obj_temp_mesh,
+    getGroupNameFromIndex,
+    highlightWeightErrors,
+    getGroupIndexFromname,
+    getFMeshName,
+    checkUniqueBoneNames,
+    applyRotation,
+    getPathAndLevel,
+    applyBasicTweaks,
+    tempName,
+    checkExpanded,
+    getAddressFromRAMAddress,
+    prop_split,
+    customExportWarning,
+    decompFolderMessage,
+    makeWriteInfoBox,
+    writeBoxExportType,
+    enumExportHeaderType,
+    geoNodeRotateOrder,
+)
+
+from ..f3d.f3d_writer import (
+    TriangleConverterInfo,
+    LoopConvertInfo,
+    BufferVertex,
+    revertMatAndEndDraw,
+    getInfoDict,
+    saveStaticModel,
+    getTexDimensions,
+    checkForF3dMaterialInFaces,
+    saveOrGetF3DMaterial,
+    saveMeshWithLargeTexturesByFaces,
+    saveMeshByFaces,
+    isLightingDisabled,
+    getF3DVert,
+    isTexturePointSampled,
+    convertVertexData,
+)
+
+from ..f3d.f3d_gbi import (
+    GfxList,
+    GfxListTag,
+    DPSetAlphaCompare,
+    FModel,
+    FMesh,
+    SPVertex,
+    DPSetEnvColor,
+    FAreaData,
+    FFogData,
+    ScrollMethod,
+    TextureExportSettings,
+    DLFormat,
+    SPEndDisplayList,
+    SPDisplayList,
+)
+
+from .sm64_geolayout_classes import (
+    DisplayListNode,
+    TransformNode,
+    StartNode,
+    StartRenderAreaNode,
+    GeolayoutGraph,
+    JumpNode,
+    SwitchOverrideNode,
+    SwitchNode,
+    TranslateNode,
+    RotateNode,
+    TranslateRotateNode,
+    FunctionNode,
+    CustomNode,
+    BillboardNode,
+    ScaleNode,
+    RenderRangeNode,
+    ShadowNode,
+    DisplayListWithOffsetNode,
+    CustomAnimatedNode,
+    HeldObjectNode,
+    Geolayout,
+)
+
+from .sm64_constants import (
+    insertableBinaryTypes,
+    bank0Segment,
+    level_pointers,
+    defaultExtendSegment4,
+    level_enums,
+    enumLevelNames
+)
 
 
 def appendSecondaryGeolayout(geoDirPath, geoName1, geoName2, additionalNode=""):

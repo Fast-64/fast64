@@ -1,11 +1,46 @@
-import bpy, mathutils, copy
-from math import pi
+import copy
+from .sm64_constants import mainLevelLoadScriptSegment, loadSegmentAddresses
 
-from .sm64_level_constants import *
-from .sm64_geolayout_constants import *
-from .sm64_constants import *
+from ..utility import (
+	PluginError,
+	decodeSegmentedAddr,
+	writeVectorToShorts,
+	writeFloatToShort,
+	readVectorFromShorts,
+	readEulerVectorFromShorts,
+	writeEulerVectorToShorts,
+	readFloatFromShort,
+	readEulerFloatFromShort,
+	writeEulerFloatToShort,
+)
 
-from ..utility import *
+from .sm64_level_constants import (
+	L_END,
+	L_JUMP,
+	L_PUSH,
+	L_POP,
+	L_NOOP,
+	L_LOAD_ROM_SEG,
+	L_LOAD_MIO0_SEG,
+	L_LOAD_MIO0_TEX,
+	L_AREA_START,
+	L_AREA_END,
+	L_LOAD_POLY_WO_GEO,
+	L_LOAD_POLY_W_GEO,
+	L_PLACE_OBJECT,
+	L_WARP_CONNECT,
+	L_WARP_PAINTING,
+	L_WARP_AREA,
+	L_SET_DEFAULT_MARIO_POS,
+	L_LOAD_COLLISION,
+	L_SHOW_DIALOG,
+	L_SET_DEFAULT_TERRAIN,
+	L_NOOP2,
+	L_SET_MUSIC_SCREEN,
+	L_SET_MUSIC_LEVEL,
+	L_PLACE_MACRO_OBJECT,
+	L_JET_STREAM,
+)
 
 def parseLevelAtPointer(romfile, pointerAddress):
 	segmentData = parseCommonSegmentLoad(romfile)
