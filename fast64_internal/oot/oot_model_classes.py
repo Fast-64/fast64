@@ -12,6 +12,7 @@ from ..f3d.f3d_writer import (
     DPSetTextureLUT,
     DPSetTile,
     texFormatOf,
+    FImageKey,
 )
 from ..f3d.f3d_parser import F3DContext, F3DTextureReference, getImportData
 from ..f3d.f3d_material import createF3DMat, TextureProperty

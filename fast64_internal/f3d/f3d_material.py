@@ -752,9 +752,6 @@ class F3DPanel(bpy.types.Panel):
     def drawShadeAlphaNotice(self, layout):
         layout.box().column().label(text='There must be a vertex color layer called "Alpha".', icon="IMAGE_ALPHA")
 
-    def drawCIMultitextureNotice(self, layout):
-        layout.label(text="CI textures will break with multitexturing.", icon="LIBRARY_DATA_BROKEN")
-
     def draw_simple(self, f3dMat, material, layout, context):
         self.ui_uvCheck(layout, context)
 
@@ -767,9 +764,6 @@ class F3DPanel(bpy.types.Panel):
             self.drawShadeAlphaNotice(layout)
 
         useMultitexture = useDict["Texture 0"] and useDict["Texture 1"] and f3dMat.tex0.tex_set and f3dMat.tex1.tex_set
-
-        if useMultitexture and f3dMat.tex0.tex_format[:2] == "CI" or f3dMat.tex1.tex_format[:2] == "CI":
-            self.drawCIMultitextureNotice(inputCol)
 
         canUseLargeTextures = material.mat_ver > 3 and material.f3d_mat.use_large_textures
         if useDict["Texture 0"] and f3dMat.tex0.tex_set:
@@ -871,9 +865,6 @@ class F3DPanel(bpy.types.Panel):
             inputCol = layout.column()
 
             useMultitexture = useDict["Texture 0"] and useDict["Texture 1"]
-
-            if useMultitexture and f3dMat.tex0.tex_format[:2] == "CI" or f3dMat.tex1.tex_format[:2] == "CI":
-                self.drawCIMultitextureNotice(inputCol)
 
             canUseLargeTextures = material.mat_ver > 3 and material.f3d_mat.use_large_textures
             if useDict["Texture 0"]:
