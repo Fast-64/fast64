@@ -12,6 +12,7 @@ from ..render_settings import Fast64RenderSettings_Properties, update_scene_prop
 from .f3d_material_helpers import F3DMaterial_UpdateLock
 from bpy.app.handlers import persistent
 from typing import Generator, Optional, Tuple, Any
+from mathutils import Color
 
 F3DMaterialHash = Any  # giant tuple
 
@@ -329,17 +330,17 @@ def combiner_uses_alpha(material, checkList, is2Cycle):
 
     return display
 
+
 CombinerUses = dict[str, bool]
 
+
 def combiner_uses_tex0(f3d_mat: "F3DMaterialProperty"):
-    return combiner_uses(
-        f3d_mat, ["TEXEL0", "TEXEL0_ALPHA"], f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
-    )
+    return combiner_uses(f3d_mat, ["TEXEL0", "TEXEL0_ALPHA"], f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE")
+
 
 def combiner_uses_tex1(f3d_mat: "F3DMaterialProperty"):
-    return combiner_uses(
-        f3d_mat, ["TEXEL1", "TEXEL1_ALPHA"], f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
-    )
+    return combiner_uses(f3d_mat, ["TEXEL1", "TEXEL1_ALPHA"], f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE")
+
 
 def all_combiner_uses(f3d_mat: "F3DMaterialProperty") -> CombinerUses:
     use_tex0 = combiner_uses_tex0(f3d_mat)
@@ -414,12 +415,14 @@ def ui_upper_mode(settings, dataHolder, layout: bpy.types.UILayout, useDropdown)
         prop_split(inputGroup, settings, "g_mdsft_textconv", "Texture Convert")
         prop_split(inputGroup, settings, "g_mdsft_text_filt", "Texture Filter")
         prop_split(inputGroup, settings, "g_mdsft_textlod", "Texture LOD (Mipmapping)")
-        if settings.g_mdsft_textlod == 'G_TL_LOD':
+        if settings.g_mdsft_textlod == "G_TL_LOD":
             inputGroup.prop(settings, "num_textures_mipmapped", text="Number of Mipmaps")
             if settings.num_textures_mipmapped > 2:
                 box = inputGroup.box()
                 box.alert = True
-                box.label(text="WARNING: Fast64 does not support setting more than two textures.", icon="LIBRARY_DATA_BROKEN")
+                box.label(
+                    text="WARNING: Fast64 does not support setting more than two textures.", icon="LIBRARY_DATA_BROKEN"
+                )
                 box.label(text="Additional texture tiles will need to be set up manually.")
         prop_split(inputGroup, settings, "g_mdsft_textdetail", "Texture Detail")
         prop_split(inputGroup, settings, "g_mdsft_textpersp", "Texture Perspective Correction")
@@ -833,9 +836,6 @@ class F3DPanel(bpy.types.Panel):
     def drawShadeAlphaNotice(self, layout):
         layout.box().column().label(text='There must be a vertex color layer called "Alpha".', icon="IMAGE_ALPHA")
 
-    def drawCIMultitextureNotice(self, layout):
-        layout.label(text="CI textures will break with multitexturing.", icon="LIBRARY_DATA_BROKEN")
-
     def draw_simple(self, f3dMat, material, layout, context):
         self.ui_uvCheck(layout, context)
 
@@ -848,9 +848,6 @@ class F3DPanel(bpy.types.Panel):
             self.drawShadeAlphaNotice(layout)
 
         useMultitexture = useDict["Texture 0"] and useDict["Texture 1"] and f3dMat.tex0.tex_set and f3dMat.tex1.tex_set
-
-        if useMultitexture and f3dMat.tex0.tex_format[:2] == "CI" or f3dMat.tex1.tex_format[:2] == "CI":
-            self.drawCIMultitextureNotice(inputCol)
 
         if useDict["Texture 0"] and f3dMat.tex0.tex_set:
             self.ui_image(material, inputCol, f3dMat.tex0, "Texture 0", False)
@@ -951,9 +948,6 @@ class F3DPanel(bpy.types.Panel):
             inputCol = layout.column()
 
             useMultitexture = useDict["Texture 0"] and useDict["Texture 1"]
-
-            if useMultitexture and f3dMat.tex0.tex_format[:2] == "CI" or f3dMat.tex1.tex_format[:2] == "CI":
-                self.drawCIMultitextureNotice(inputCol)
 
             if useDict["Texture 0"]:
                 self.ui_image(material, inputCol, f3dMat.tex0, "Texture 0", True)
@@ -1583,9 +1577,8 @@ def iter_tex_nodes(node_tree: bpy.types.NodeTree, texIndex: int) -> Generator[bp
         if node_tree.nodes.get(nodeName):
             yield node_tree.nodes[nodeName]
 
-def toggle_texture_node_muting(
-    material: bpy.types.Material, texIndex: int, isUsed: bool
-):
+
+def toggle_texture_node_muting(material: bpy.types.Material, texIndex: int, isUsed: bool):
     node_tree = material.node_tree
     f3dMat: "F3DMaterialProperty" = material.f3d_mat
 
@@ -1597,7 +1590,7 @@ def toggle_texture_node_muting(
 
     node_tex_color_conv_key = f"Tex{texIndex}_I"
     node_tex_color_conv = node_tree.nodes.get(node_tex_color_conv_key)
-    
+
     # flip bool for clarity
     shouldMute = not isUsed
 
@@ -1724,9 +1717,9 @@ def update_tex_values_manual(material: bpy.types.Material, context, prop_path=No
     texture_settings = nodes["TextureSettings"]
     texture_inputs: bpy.types.NodeInputs = texture_settings.inputs
     useDict = all_combiner_uses(f3dMat)
-    
-    tex0_used = useDict['Texture 0'] and f3dMat.tex0.tex is not None
-    tex1_used = useDict['Texture 1'] and f3dMat.tex1.tex is not None
+
+    tex0_used = useDict["Texture 0"] and f3dMat.tex0.tex is not None
+    tex1_used = useDict["Texture 1"] and f3dMat.tex1.tex is not None
 
     if not tex0_used and not tex1_used:
         texture_settings.mute = True
