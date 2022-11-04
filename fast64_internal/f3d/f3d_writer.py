@@ -1578,7 +1578,8 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     texDimensions0 = None
     texDimensions1 = None
     nextTmem = 0
-    loadTextures = not (material.mat_ver > 3 and f3dMat.use_large_textures)
+
+    useLargeTextures = material.mat_ver > 3 and f3dMat.use_large_textures
 
     useTex0 = useDict["Texture 0"] and f3dMat.tex0.tex_set
     isTex0CI = f3dMat.tex0.tex_format[:2] == "CI"
