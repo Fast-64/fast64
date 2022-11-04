@@ -1,4 +1,5 @@
 import bpy
+from typing import Any
 
 
 class UnimplementedError(Exception):
@@ -9,6 +10,15 @@ def get_attr_from_dot_path(obj: object, path: str):
     for attribute in path.split("."):
         obj = getattr(obj, attribute)
     return obj
+
+
+def set_attr_from_dot_path(obj: object, path: str, value: Any):
+    paths = path.split(".")
+    for i, attribute in enumerate(paths):
+        if i < len(paths) - 1:
+            obj = getattr(obj, attribute)
+        else:
+            setattr(obj, attribute, value)
 
 
 def get_collection_props_from_context(
@@ -35,19 +45,19 @@ def get_collection_props_from_context(
 class CollectionOperator(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO", "PRESET"}
 
-    base_path: str = None  # path from context to the root of your prop, e.g. context.[scene.base_prop]
-    collection_name: tuple[str] = None  # from base path, collection prop
-    index_name: tuple[str] = None  # prop that tracks index
+    base_paths: str = None  # path from context to the root of your prop, e.g. context.[scene.base_prop]
+    collection_paths: tuple[str] = None  # from base path, collection prop
+    index_paths: tuple[str] = None  # prop that tracks index
 
     def get_collection(self) -> tuple[object, bpy.types.Collection, int]:
-        if self.base_path is None:
-            raise UnimplementedError("self.base_path not defined")
-        if self.collection_name is None:
-            raise UnimplementedError("self.collection_name not defined")
-        if self.index_name is None:
-            raise UnimplementedError("self.index_name not defined")
+        if self.base_paths is None:
+            raise UnimplementedError("self.base_paths not defined")
+        if self.collection_paths is None:
+            raise UnimplementedError("self.collection_paths not defined")
+        if self.index_paths is None:
+            raise UnimplementedError("self.index_paths not defined")
 
-        return get_collection_props_from_context(bpy.context, self.base_path, self.collection_name, self.index_name)
+        return get_collection_props_from_context(bpy.context, self.base_paths, self.collection_paths, self.index_paths)
 
 
 class AddNewToCollection(CollectionOperator):
@@ -79,7 +89,8 @@ class RemoveFromCollection(CollectionOperator):
     def execute(self, context):
         collection_base, collection, index = self.get_collection()
         collection.remove(index)
-        setattr(collection_base, self.index_name[-1], min(max(0, index - 1), len(collection)))
+        cur_index = min(max(0, index - 1), len(collection))
+        set_attr_from_dot_path(collection_base, self.index_paths[-1], cur_index)
 
         return {"FINISHED"}
 
@@ -101,12 +112,12 @@ class MoveItemInCollection(CollectionOperator):
         return f"{base_list_name}.move_item"
 
     def move_index(self):
-        """Move index of an item render queue while clamping it."""
+        """Move index of the selected item, clamp with min/max length of the collection its in."""
         collection_base, collection, index = self.get_collection()
 
-        list_length = len(collection) - 1  # (index starts at 0)
+        last_index = len(collection) - 1  # (index starts at 0)
         new_index = index + (-1 if self.direction == "UP" else 1)
-        setattr(collection_base, self.index_name[-1], max(0, min(new_index, list_length)))
+        set_attr_from_dot_path(collection_base, self.index_paths[-1], max(0, min(new_index, last_index)))
 
     def execute(self, context):
         _, collection, index = self.get_collection()
@@ -125,7 +136,7 @@ class DrawList(bpy.types.UIList):
     custom_icon = "OBJECT_DATAMODE"
     layout_type = "DEFAULT"
 
-    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+    def draw_item(self, context, layout: bpy.types.UILayout, data, item, icon, active_data, active_propname, index):
 
         # Make sure your code supports all 3 layout types
         if self.layout_type in {"DEFAULT", "COMPACT"}:
@@ -145,11 +156,11 @@ def get_collection_classes(
     # The following props are a list of tuples so you can have nested lists
     # path from context to the root of your prop, e.g. context.["scene.base_prop"]
     # You can supply dots in these paths to navigate through nested properties
-    base_path: tuple[str],
-    # from base_path, collection prop
-    collection_name: tuple[str],
+    base_paths: tuple[str],
+    # from base_paths, collection prop
+    collection_paths: tuple[str],
     # prop that tracks index
-    index_name: tuple[str],
+    index_paths: tuple[str],
 ):
     """
     This function returns new classes that aid in creation of UI lists.
@@ -196,7 +207,7 @@ def get_collection_classes(
     """
 
     def get_this_collection(cls, context):
-        _, collection, _ = get_collection_props_from_context(context, base_path, collection_name, index_name)
+        _, collection, _ = get_collection_props_from_context(context, base_paths, collection_paths, index_paths)
         return collection
 
     class col_add(AddNewToCollection):
@@ -214,9 +225,9 @@ def get_collection_classes(
 
     for cls in [col_add, col_remove, col_move]:
         setattr(cls, "bl_idname", cls.get_idname(base_list_name))
-        setattr(cls, "base_path", base_path)
-        setattr(cls, "collection_name", collection_name)
-        setattr(cls, "index_name", index_name)
+        setattr(cls, "base_paths", base_paths)
+        setattr(cls, "collection_paths", collection_paths)
+        setattr(cls, "index_paths", index_paths)
 
     class draw_item(DrawList):
         name = base_list_name
@@ -227,12 +238,12 @@ def get_collection_classes(
         context: bpy.types.Context,
     ):
         collection_base, _collection, _index = get_collection_props_from_context(
-            context, base_path, collection_name, index_name
+            context, base_paths, collection_paths, index_paths
         )
 
         row = layout.row()
         row.template_list(
-            draw_item.bl_idname, draw_item.name, collection_base, collection_name[-1], collection_base, index_name[-1]
+            draw_item.bl_idname, draw_item.name, collection_base, collection_paths[-1], collection_base, index_paths[-1]
         )
 
         column = row.column()
