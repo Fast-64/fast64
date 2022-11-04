@@ -13,19 +13,21 @@ def get_attr_from_dot_path(obj: object, path: str):
 
 def get_collection_props_from_context(
     context: bpy.types.Context | object,
-    base_path: tuple[str],  # path from context to the root of your prop, e.g. context.[scene.base_prop]
-    collection_name: tuple[str],  # from base path, collection prop
-    index_name: tuple[str],  # prop that tracks index
+    base_paths: tuple[str],  # paths from context to the root of your prop, e.g. context.[scene.base_prop]
+    collection_paths: tuple[str],  # from base path, this string represents the collection property (or nested properties)
+    index_paths: tuple[str],  # prop that tracks index throughout the layers of collections
 ) -> tuple[object, bpy.types.Collection, int]:
+    """Gets the base property, the collection property, and the index, from nested paths; so a collection group can be inside of another"""
     collection_base = context
 
-    for i in range(0, len(collection_name)):
+    # Iterate through the nested layers
+    for i in range(0, len(collection_paths)):
         if i > 0:
             collection_base = col_prop[index]
 
-        collection_base = get_attr_from_dot_path(collection_base, base_path[i])
-        col_prop = get_attr_from_dot_path(collection_base, collection_name[i])
-        index = get_attr_from_dot_path(collection_base, index_name[i])
+        collection_base = get_attr_from_dot_path(collection_base, base_paths[i])
+        col_prop = get_attr_from_dot_path(collection_base, collection_paths[i])
+        index = get_attr_from_dot_path(collection_base, index_paths[i])
 
     return collection_base, col_prop, index
 
