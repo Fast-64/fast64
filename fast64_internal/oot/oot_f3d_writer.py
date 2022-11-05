@@ -54,7 +54,6 @@ from ..f3d.flipbook import flipbook_to_c, flipbook_2d_to_c, flipbook_data_to_c
 
 
 class OOTDLExportSettings(bpy.types.PropertyGroup):
-    name: bpy.props.StringProperty(name="DL Name", default="gBoulderFragmentsDL")
     folder: bpy.props.StringProperty(name="DL Folder", default="gameplay_keep")
     customPath: bpy.props.StringProperty(name="Custom DL Path", subtype="FILE_PATH")
     isCustom: bpy.props.BoolProperty(name="Use Custom Path")
@@ -257,7 +256,7 @@ def ootConvertMeshToC(
     isCustomExport = settings.isCustom
     drawLayer = settings.drawLayer
     removeVanillaData = settings.removeVanillaData
-    name = toAlnum(settings.name)
+    name = toAlnum(originalObj.name)
     overlayName = settings.actorOverlayName
     flipbookUses2DArray = settings.flipbookUses2DArray
     flipbookArrayIndex2D = settings.flipbookArrayIndex2D if flipbookUses2DArray else None
@@ -614,7 +613,7 @@ class OOT_ExportDLPanel(OOT_Panel):
         col.operator(OOT_ExportDL.bl_idname)
         exportSettings: OOTDLExportSettings = context.scene.fast64.oot.DLExportSettings
 
-        prop_split(col, exportSettings, "name", "DL")
+        col.label(text="Object name used for export.", icon="INFO")
         prop_split(col, exportSettings, "folder", "Object" if not exportSettings.isCustom else "Folder")
         if exportSettings.isCustom:
             prop_split(col, exportSettings, "customAssetIncludeDir", "Asset Include Path")

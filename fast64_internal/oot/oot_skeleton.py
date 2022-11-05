@@ -58,7 +58,6 @@ from .oot_skeleton_import_data import (
 
 class OOTSkeletonExportSettings(bpy.types.PropertyGroup):
     mode: bpy.props.EnumProperty(name="Mode", items=ootEnumSkeletonImportMode)
-    name: bpy.props.StringProperty(name="Skeleton Name", default="gGerudoRedSkel")
     folder: bpy.props.StringProperty(name="Skeleton Folder", default="object_geldb")
     customPath: bpy.props.StringProperty(name="Custom Skeleton Path", subtype="FILE_PATH")
     isCustom: bpy.props.BoolProperty(name="Use Custom Path")
@@ -656,7 +655,7 @@ def ootConvertArmatureToC(
         flipbookArrayIndex2D = importInfo.flipbookArrayIndex2D
         isLink = importInfo.isLink
     else:
-        skeletonName = toAlnum(settings.name)
+        skeletonName = toAlnum(originalArmatureObj.name)
         folderName = settings.folder
         overlayName = settings.actorOverlayName if not settings.isCustom else None
         flipbookUses2DArray = settings.flipbookUses2DArray
@@ -1211,15 +1210,14 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
             b.label(icon="LIBRARY_DATA_BROKEN", text="Do not draw anything in SkelAnime")
             b.label(text="callbacks or cull limbs, will be corrupted.")
         col.prop(exportSettings, "isCustom")
+        col.label(text="Object name used for export.", icon="INFO")
         if exportSettings.isCustom:
-            prop_split(col, exportSettings, "name", "Skeleton")
             prop_split(col, exportSettings, "folder", "Object" if not exportSettings.isCustom else "Folder")
             prop_split(col, exportSettings, "customAssetIncludeDir", "Asset Include Path")
             prop_split(col, exportSettings, "customPath", "Path")
         else:
             prop_split(col, exportSettings, "mode", "Mode")
             if exportSettings.mode == "Generic":
-                prop_split(col, exportSettings, "name", "Skeleton")
                 prop_split(col, exportSettings, "folder", "Object" if not exportSettings.isCustom else "Folder")
                 prop_split(col, exportSettings, "actorOverlayName", "Overlay")
                 col.prop(exportSettings, "flipbookUses2DArray")

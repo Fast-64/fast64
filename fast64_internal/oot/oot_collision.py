@@ -11,6 +11,7 @@ from ..utility import (
     hideObjsInList,
     writeCData,
     raisePluginError,
+    toAlnum,
 )
 
 from .oot_collision_classes import (
@@ -47,7 +48,6 @@ class OOTCollisionExportSettings(bpy.types.PropertyGroup):
     exportPath: bpy.props.StringProperty(name="Directory", subtype="FILE_PATH")
     exportLevel: bpy.props.EnumProperty(items=ootEnumSceneID, name="Level Used By Collision", default="SCENE_YDAN")
     includeChildren: bpy.props.BoolProperty(name="Include child objects", default=True)
-    name: bpy.props.StringProperty(name="Name", default="collision")
     levelName: bpy.props.StringProperty(name="Name", default="SCENE_YDAN")
     customExport: bpy.props.BoolProperty(name="Custom Export Path")
     folder: bpy.props.StringProperty(name="Object Name", default="gameplay_keep")
@@ -275,8 +275,8 @@ def exportCollisionToC(originalObj, transformMatrix, includeChildren, name, isCu
 
     data.append(collisionC)
 
-    path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, False)
-    writeCData(data, os.path.join(path, name + ".h"), os.path.join(path, name + ".c"))
+    path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, True)
+    writeCData(data, os.path.join(path, f"{name}_collision.h"), os.path.join(path, f"{name}_collision.c"))
 
     if not isCustomExport:
         addIncludeFiles(folderName, path, name)
@@ -593,7 +593,7 @@ class OOT_ExportCollision(bpy.types.Operator):
         try:
             exportSettings: OOTCollisionExportSettings = context.scene.fast64.oot.collisionExportSettings
             includeChildren = exportSettings.includeChildren
-            name = exportSettings.name
+            name = toAlnum(obj.name)
             isCustomExport = exportSettings.customExport
             folderName = exportSettings.folder
             exportPath = bpy.path.abspath(exportSettings.exportPath)
@@ -621,11 +621,10 @@ class OOT_ExportCollisionPanel(OOT_Panel):
         col.operator(OOT_ExportCollision.bl_idname)
 
         exportSettings: OOTCollisionExportSettings = context.scene.fast64.oot.collisionExportSettings
-        prop_split(col, exportSettings, "name", "Name")
+        col.label(text="Object name used for export.", icon="INFO")
+        prop_split(col, exportSettings, "folder", "Object" if not exportSettings.customExport else "Folder")
         if exportSettings.customExport:
-            prop_split(col, exportSettings, "exportPath", "Custom Folder")
-        else:
-            prop_split(col, exportSettings, "folder", "Object")
+            prop_split(col, exportSettings, "exportPath", "Directory")
         col.prop(exportSettings, "customExport")
         col.prop(exportSettings, "includeChildren")
 

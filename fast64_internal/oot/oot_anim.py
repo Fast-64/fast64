@@ -38,7 +38,6 @@ class OOTAnimExportSettingsProperty(bpy.types.PropertyGroup):
     customPath: bpy.props.StringProperty(name="Folder", subtype="FILE_PATH")
     folderName: bpy.props.StringProperty(name="Animation Folder", default="object_geldb")
     isLink: bpy.props.BoolProperty(name="Is Link", default=False)
-    skeletonName: bpy.props.StringProperty(name="Skeleton Name", default="gGerudoRedSkel")
 
 
 class OOTAnimImportSettingsProperty(bpy.types.PropertyGroup):
@@ -426,7 +425,8 @@ def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSetti
     exportPath = ootGetObjectPath(settings.isCustom, path, settings.folderName)
 
     checkEmptyName(settings.folderName)
-    checkEmptyName(settings.skeletonName)
+    checkEmptyName(armatureObj.name)
+    name = toAlnum(armatureObj.name)
     convertTransformMatrix = (
         mathutils.Matrix.Scale(getOOTScale(armatureObj.ootActorScale), 4)
         @ mathutils.Matrix.Diagonal(armatureObj.scale).to_4x4()
@@ -465,7 +465,7 @@ def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSetti
             addIncludeFiles("gameplay_keep", headerPath, ootAnim.headerName)
 
     else:
-        ootAnim = ootExportNonLinkAnimation(armatureObj, convertTransformMatrix, settings.skeletonName)
+        ootAnim = ootExportNonLinkAnimation(armatureObj, convertTransformMatrix, name)
 
         ootAnimC = ootAnim.toC()
         path = ootGetPath(exportPath, settings.isCustom, "assets/objects/", settings.folderName, False, False)
@@ -839,7 +839,7 @@ class OOT_ExportAnimPanel(OOT_Panel):
 
         col.operator(OOT_ExportAnim.bl_idname)
         exportSettings = context.scene.fast64.oot.animExportSettings
-        prop_split(col, exportSettings, "skeletonName", "Anim Name Prefix")
+        col.label(text="Exports active animation on selected object.", icon="INFO")
         if exportSettings.isCustom:
             prop_split(col, exportSettings, "customPath", "Folder")
         elif not exportSettings.isLink:
