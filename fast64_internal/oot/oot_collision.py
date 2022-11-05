@@ -39,6 +39,7 @@ from .oot_utility import (
     ootDuplicateHierarchy,
     ootCleanupScene,
     ootGetPath,
+    getOOTScale,
 )
 
 
