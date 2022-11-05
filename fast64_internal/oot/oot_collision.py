@@ -616,9 +616,6 @@ class OOT_ExportCollision(bpy.types.Operator):
         finalTransform = mathutils.Matrix.Scale(getOOTScale(obj.ootActorScale), 4)
 
         try:
-            scaleValue = bpy.context.scene.ootBlenderScale
-            finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((scaleValue, scaleValue, scaleValue))).to_4x4()
-
             includeChildren = context.scene.ootColIncludeChildren
             name = context.scene.ootColName
             isCustomExport = context.scene.ootColCustomExport
