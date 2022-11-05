@@ -512,8 +512,9 @@ class OOT_DisplayListPanel(bpy.types.Panel):
         box.prop(obj, "ignore_collision")
 
         if not (obj.parent is not None and isinstance(obj.parent.data, bpy.types.Armature)):
-            prop_split(box, obj, "ootActorScale", "Actor Scale")
-            box.label(text="This applies to actor exports only.", icon="INFO")
+            actorScaleBox = box.box().column()
+            prop_split(actorScaleBox, obj, "ootActorScale", "Actor Scale")
+            actorScaleBox.label(text="This applies to actor exports only.", icon="INFO")
 
         # Doesn't work since all static meshes are pre-transformed
         # box.prop(obj.ootDynamicTransform, "billboard")
