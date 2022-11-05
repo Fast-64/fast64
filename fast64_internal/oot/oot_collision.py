@@ -43,6 +43,16 @@ from .oot_utility import (
 )
 
 
+class OOTCollisionExportSettings(bpy.types.PropertyGroup):
+    exportPath: bpy.props.StringProperty(name="Directory", subtype="FILE_PATH")
+    exportLevel: bpy.props.EnumProperty(items=ootEnumSceneID, name="Level Used By Collision", default="SCENE_YDAN")
+    includeChildren: bpy.props.BoolProperty(name="Include child objects", default=True)
+    name: bpy.props.StringProperty(name="Name", default="collision")
+    levelName: bpy.props.StringProperty(name="Name", default="SCENE_YDAN")
+    customExport: bpy.props.BoolProperty(name="Custom Export Path")
+    folder: bpy.props.StringProperty(name="Object Name", default="gameplay_keep")
+
+
 class OOTCameraPositionProperty(bpy.types.PropertyGroup):
     index: bpy.props.IntProperty(min=0)
     jfifID: bpy.props.StringProperty(default="-1")
@@ -581,14 +591,12 @@ class OOT_ExportCollision(bpy.types.Operator):
         finalTransform = mathutils.Matrix.Scale(getOOTScale(obj.ootActorScale), 4)
 
         try:
-            scaleValue = bpy.context.scene.ootBlenderScale
-            finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((scaleValue, scaleValue, scaleValue))).to_4x4()
-
-            includeChildren = context.scene.ootColIncludeChildren
-            name = context.scene.ootColName
-            isCustomExport = context.scene.ootColCustomExport
-            folderName = context.scene.ootColFolder
-            exportPath = bpy.path.abspath(context.scene.ootColExportPath)
+            exportSettings: OOTCollisionExportSettings = context.scene.fast64.oot.collisionExportSettings
+            includeChildren = exportSettings.includeChildren
+            name = exportSettings.name
+            isCustomExport = exportSettings.customExport
+            folderName = exportSettings.folder
+            exportPath = bpy.path.abspath(exportSettings.exportPath)
 
             filepath = ootGetObjectPath(isCustomExport, exportPath, folderName)
             exportCollisionToC(obj, finalTransform, includeChildren, name, isCustomExport, folderName, filepath)
@@ -612,13 +620,14 @@ class OOT_ExportCollisionPanel(OOT_Panel):
         col = self.layout.column()
         col.operator(OOT_ExportCollision.bl_idname)
 
-        prop_split(col, context.scene, "ootColName", "Name")
-        if context.scene.ootColCustomExport:
-            prop_split(col, context.scene, "ootColExportPath", "Custom Folder")
+        exportSettings: OOTCollisionExportSettings = context.scene.fast64.oot.collisionExportSettings
+        prop_split(col, exportSettings, "name", "Name")
+        if exportSettings.customExport:
+            prop_split(col, exportSettings, "exportPath", "Custom Folder")
         else:
-            prop_split(col, context.scene, "ootColFolder", "Object")
-        col.prop(context.scene, "ootColCustomExport")
-        col.prop(context.scene, "ootColIncludeChildren")
+            prop_split(col, exportSettings, "folder", "Object")
+        col.prop(exportSettings, "customExport")
+        col.prop(exportSettings, "includeChildren")
 
 
 oot_col_classes = (
@@ -627,6 +636,7 @@ oot_col_classes = (
     OOTCameraPositionPropertyRef,
     OOTCameraPositionProperty,
     OOTMaterialCollisionProperty,
+    OOTCollisionExportSettings,
 )
 
 oot_col_panel_classes = (
@@ -651,15 +661,6 @@ def oot_col_register():
         register_class(cls)
 
     # Collision
-    bpy.types.Scene.ootColExportPath = bpy.props.StringProperty(name="Directory", subtype="FILE_PATH")
-    bpy.types.Scene.ootColExportLevel = bpy.props.EnumProperty(
-        items=ootEnumSceneID, name="Level Used By Collision", default="SCENE_YDAN"
-    )
-    bpy.types.Scene.ootColIncludeChildren = bpy.props.BoolProperty(name="Include child objects", default=True)
-    bpy.types.Scene.ootColName = bpy.props.StringProperty(name="Name", default="collision")
-    bpy.types.Scene.ootColLevelName = bpy.props.StringProperty(name="Name", default="SCENE_YDAN")
-    bpy.types.Scene.ootColCustomExport = bpy.props.BoolProperty(name="Custom Export Path")
-    bpy.types.Scene.ootColFolder = bpy.props.StringProperty(name="Object Name", default="gameplay_keep")
 
     bpy.types.Object.ootCameraPositionProperty = bpy.props.PointerProperty(type=OOTCameraPositionProperty)
     bpy.types.Material.ootCollisionProperty = bpy.props.PointerProperty(type=OOTMaterialCollisionProperty)
