@@ -1,9 +1,8 @@
 import os, re, bpy
 from bpy.utils import register_class, unregister_class
-from ...utility import PluginError, writeFile, readFile
+from ...utility import PluginError, writeFile, readFile, register_recursive
 from ..oot_constants import ootEnumHeaderMenuComplete
 from typing import Any
-
 
 def setBootupScene(configPath: str, entranceIndex: str, options: "OOTBootupSceneOptions"):
 
@@ -189,8 +188,8 @@ class OOTBootupSceneOptions(bpy.types.PropertyGroup):
 
 
 def ootSceneBootupRegister():
-    register_class(OOTBootupSceneOptions)
-    register_class(OOT_ClearBootupScene)
+    register_recursive(OOTBootupSceneOptions)
+    register_recursive(OOT_ClearBootupScene)
 
 
 def ootSceneBootupUnregister():

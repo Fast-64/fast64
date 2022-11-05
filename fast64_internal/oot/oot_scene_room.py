@@ -369,6 +369,7 @@ class OOTSceneHeaderProperty(bpy.types.PropertyGroup):
 
     menuTab: bpy.props.EnumProperty(name="Menu", items=ootEnumSceneMenu)
     altMenuTab: bpy.props.EnumProperty(name="Menu", items=ootEnumSceneMenuAlternate)
+    _ptr_props = (OOTCSListProperty,)
 
 
 def drawSceneTableEntryProperty(layout, sceneTableEntryProp):

@@ -9,6 +9,7 @@ from mathutils import Vector, Euler, Matrix
 
 from time import time
 from pathlib import Path
+from ..utility import rotate_quat_blender_to_n64, apply_objects_modifiers_and_transformations
 
 # ------------------------------------------------------------------------
 #    Decorators
@@ -350,7 +351,7 @@ def BANK_INDEX(args):
 #    Helper Functions
 # ------------------------------------------------------------------------
 
-def RotateObj(deg, obj, world = 0):
+def RotateObj_n64_to_bpy(deg, obj, world = 0):
     deg = Euler((math.radians(-deg), 0, 0))
     deg = deg.to_quaternion().to_matrix().to_4x4()
     if world:
@@ -360,6 +361,10 @@ def RotateObj(deg, obj, world = 0):
         bpy.ops.object.transform_apply(rotation = True)
     else:
         obj.matrix_basis = obj.matrix_basis @ deg
+
+def ApplyRotation_n64_to_bpy(obj):
+    RotateObj(-90, obj)
+    apply_objects_modifiers_and_transformations([obj])
 
 def MakeEmpty(name,type,collection):
     Obj = bpy.data.objects.new(name,None)

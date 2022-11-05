@@ -1837,7 +1837,7 @@ sm64_obj_panel_classes = (SM64ObjectPanel,)
 
 def sm64_obj_panel_register():
     for cls in sm64_obj_panel_classes:
-        register_class(cls)
+        register_recursive(cls)
 
 
 def sm64_obj_panel_unregister():
@@ -1857,7 +1857,7 @@ def sm64_on_update_area_render_settings(self: bpy.types.Object, context: bpy.typ
 
 def sm64_obj_register():
     for cls in sm64_obj_classes:
-        register_class(cls)
+        register_recursive(cls)
 
     bpy.types.Object.puppycamProp = bpy.props.PointerProperty(type=PuppycamProperty)
 

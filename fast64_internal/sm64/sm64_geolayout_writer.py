@@ -3230,7 +3230,7 @@ sm64_geo_writer_panel_classes = (SM64_ExportGeolayoutPanel,)
 
 def sm64_geo_writer_panel_register():
     for cls in sm64_geo_writer_panel_classes:
-        register_class(cls)
+        register_recursive(cls)
 
 
 def sm64_geo_writer_panel_unregister():
@@ -3240,7 +3240,7 @@ def sm64_geo_writer_panel_unregister():
 
 def sm64_geo_writer_register():
     for cls in sm64_geo_writer_classes:
-        register_class(cls)
+        register_recursive(cls)
 
     bpy.types.Scene.levelGeoExport = bpy.props.EnumProperty(items=level_enums, name="Level", default="HMC")
     bpy.types.Scene.geoExportStart = bpy.props.StringProperty(name="Start", default="11D8930")

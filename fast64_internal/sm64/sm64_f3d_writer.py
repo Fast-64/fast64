@@ -4,6 +4,7 @@ from ..panels import SM64_Panel
 from ..f3d.f3d_writer import *
 from ..f3d.f3d_material import *
 from ..f3d.f3d_gbi import FMaterial
+from ..utility import register_recursive
 from .sm64_texscroll import *
 from .sm64_utility import *
 from bpy.utils import register_class, unregister_class
@@ -942,7 +943,7 @@ sm64_dl_writer_panel_classes = (
 
 def sm64_dl_writer_panel_register():
     for cls in sm64_dl_writer_panel_classes:
-        register_class(cls)
+        register_recursive(cls)
 
 
 def sm64_dl_writer_panel_unregister():

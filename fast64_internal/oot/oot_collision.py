@@ -2,6 +2,7 @@ import bpy, os, math, mathutils
 from bpy.utils import register_class, unregister_class
 from ..panels import OOT_Panel
 from .oot_constants import ootEnumSceneID
+from ..utility import register_recursive
 
 from ..utility import (
     PluginError,
@@ -637,7 +638,7 @@ oot_col_panel_classes = (
 
 def oot_col_panel_register():
     for cls in oot_col_panel_classes:
-        register_class(cls)
+        register_recursive(cls)
 
 
 def oot_col_panel_unregister():
@@ -647,7 +648,7 @@ def oot_col_panel_unregister():
 
 def oot_col_register():
     for cls in oot_col_classes:
-        register_class(cls)
+        register_recursive(cls)
 
     # Collision
     bpy.types.Scene.ootColExportPath = bpy.props.StringProperty(name="Directory", subtype="FILE_PATH")

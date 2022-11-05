@@ -4,6 +4,7 @@ from .kcs_utils import *
 from .kcs_ui import *
 from .kcs_props import *
 from .kcs_operators import *
+from ..utility import register_recursive
 
 # ------------------------------------------------------------------------
 #    Registration
@@ -44,9 +45,8 @@ classes = (
 )
 
 def kcs_register():
-    from bpy.utils import register_class
     for cls in classes:
-        register_class(cls)
+        register_recursive(cls)
 
     bpy.types.Scene.KCS_scene = PointerProperty(type = KCS_Scene_Props)
     bpy.types.Curve.KCS_node = PointerProperty(type = NodeProp)

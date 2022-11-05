@@ -350,7 +350,7 @@ bsdf_conv_panel_classes = (F3DMaterialConverterPanel,)
 
 def bsdf_conv_panel_regsiter():
     for cls in bsdf_conv_panel_classes:
-        register_class(cls)
+        register_recursive(cls)
 
 
 def bsdf_conv_panel_unregsiter():
@@ -360,7 +360,7 @@ def bsdf_conv_panel_unregsiter():
 
 def bsdf_conv_register():
     for cls in bsdf_conv_classes:
-        register_class(cls)
+        register_recursive(cls)
 
     # Moved to Level Root
     bpy.types.Scene.bsdf_conv_all = bpy.props.BoolProperty(name="Convert all objects", default=True)

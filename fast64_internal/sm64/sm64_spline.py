@@ -144,7 +144,7 @@ sm64_spline_panel_classes = (
 
 def sm64_spline_panel_register():
 	for cls in sm64_spline_panel_classes:
-		register_class(cls)
+		register_recursive(cls)
 
 def sm64_spline_panel_unregister():
 	for cls in sm64_spline_panel_classes:
@@ -153,7 +153,7 @@ def sm64_spline_panel_unregister():
 
 def sm64_spline_register():
 	for cls in sm64_spline_classes:
-		register_class(cls)
+		register_recursive(cls)
 
 	bpy.types.Curve.sm64_spline_type = bpy.props.EnumProperty(
 		name = 'Type', items = enumSplineTypes, update = onSplineTypeSet)

@@ -873,7 +873,7 @@ sm64_anim_panels = (
 
 def sm64_anim_panel_register():
 	for cls in sm64_anim_panels:
-		register_class(cls)
+		register_recursive(cls)
 
 def sm64_anim_panel_unregister():
 	for cls in sm64_anim_panels:
@@ -881,7 +881,7 @@ def sm64_anim_panel_unregister():
 
 def sm64_anim_register():
 	for cls in sm64_anim_classes:
-		register_class(cls)
+		register_recursive(cls)
 
 	bpy.types.Scene.animStartImport = bpy.props.StringProperty(
 		name ='Import Start', default = '4EC690')

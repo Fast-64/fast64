@@ -3,7 +3,7 @@ from math import pi, ceil, degrees, radians
 from mathutils import *
 from .utility_anim import *
 from typing import Callable, Iterable
-
+from bpy.utils import register_class
 
 class PluginError(Exception):
     pass
@@ -1483,3 +1483,26 @@ def ootGetBaseOrCustomLight(prop, idx, toExport: bool, errIfMissing: bool):
     if toExport:
         col, dir = exportColor(col), normToSigned8Vector(dir)
     return col, dir
+
+
+#blender has an issue with reloading properties, which causes it to error out
+#in properties that reference other properties, so I frontrun that behavior and make
+#sure that all pointers all valid props before registering the prop, should only
+#add time and cringe to the code
+def register_recursive(cls):
+    for k,v in cls.__annotations__.items():
+        if v.function == bpy.props.PointerProperty or v.function == bpy.props.CollectionProperty:
+            try:
+                register_class(v.keywords["type"])
+                print("this should never run, class registration has been dropped on reload", v.keywords["type"])
+            except:
+                pass
+    #when loading on third+ time, some classes remain registered due to recursion/cyclic references etc.
+    #even though this schema shouldn't cause classes to remain registered after unregistering, blender seems
+    #to error out when doing so.
+    try:
+        register_class(cls)
+    except Exception as e:
+        #only pass exceptions for things already registered
+        if "already registered" not in e.args[0]:
+            raise Exception(e)

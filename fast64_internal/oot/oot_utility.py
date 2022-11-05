@@ -10,6 +10,7 @@ from ..utility import (
     applyRotation,
     cleanupDuplicatedObjects,
     ootGetSceneOrRoomHeader,
+    register_recursive,
 )
 
 # default indentation to use when writing to decomp files
@@ -613,7 +614,7 @@ oot_utility_classes = (
 
 def oot_utility_register():
     for cls in oot_utility_classes:
-        register_class(cls)
+        register_recursive(cls)
 
 
 def oot_utility_unregister():

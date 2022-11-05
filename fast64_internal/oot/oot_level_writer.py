@@ -3,6 +3,7 @@ from bpy.utils import register_class, unregister_class
 from ..panels import OOT_Panel
 from ..f3d.f3d_gbi import TextureExportSettings, DLFormat
 from ..f3d.f3d_writer import TriangleConverterInfo, saveStaticModel, getInfoDict
+from ..utility import register_recursive
 from .c_writer.oot_level_c import ootSceneIncludes, ootLevelToC
 from .c_writer.oot_scene_table_c import modifySceneTable
 from .c_writer.oot_spec import modifySegmentDefinition
@@ -811,7 +812,7 @@ oot_level_panel_classes = (OOT_ExportScenePanel,)
 
 def oot_level_panel_register():
     for cls in oot_level_panel_classes:
-        register_class(cls)
+        register_recursive(cls)
 
 
 def oot_level_panel_unregister():
@@ -821,7 +822,7 @@ def oot_level_panel_unregister():
 
 def oot_level_register():
     for cls in oot_level_classes:
-        register_class(cls)
+        register_recursive(cls)
 
     ootSceneBootupRegister()
 

@@ -2,7 +2,7 @@ import bpy, mathutils
 from bpy.utils import register_class, unregister_class
 from ..panels import OOT_Panel
 from ..operators import AddWaterBox, addMaterialByName
-from ..utility import parentObject, setOrigin
+from ..utility import parentObject, setOrigin, register_recursive
 
 
 class OOT_AddWaterBox(AddWaterBox):
@@ -210,7 +210,7 @@ oot_operator_panel_classes = (OOT_OperatorsPanel,)
 
 def oot_operator_panel_register():
     for cls in oot_operator_panel_classes:
-        register_class(cls)
+        register_recursive(cls)
 
 
 def oot_operator_panel_unregister():
@@ -220,7 +220,7 @@ def oot_operator_panel_unregister():
 
 def oot_operator_register():
     for cls in oot_operator_classes:
-        register_class(cls)
+        register_recursive(cls)
 
 
 def oot_operator_unregister():

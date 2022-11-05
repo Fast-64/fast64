@@ -6,7 +6,7 @@ from .oot_level import oot_obj_panel_register, oot_obj_panel_unregister, oot_obj
 from .oot_anim import oot_anim_panel_register, oot_anim_panel_unregister, oot_anim_register, oot_anim_unregister
 from .oot_collision import oot_col_panel_register, oot_col_panel_unregister, oot_col_register, oot_col_unregister
 from .oot_utility import oot_utility_register, oot_utility_unregister
-from ..utility import prop_split
+from ..utility import prop_split, register_recursive
 from ..render_settings import on_update_render_settings
 
 from .oot_f3d_writer import (
@@ -80,8 +80,6 @@ class OOT_Properties(bpy.types.PropertyGroup):
     DLImportSettings: bpy.props.PointerProperty(type=OOTDLImportSettings)
     skeletonExportSettings: bpy.props.PointerProperty(type=oot_skeleton.OOTSkeletonExportSettings)
     skeletonImportSettings: bpy.props.PointerProperty(type=oot_skeleton.OOTSkeletonImportSettings)
-    _ptr_props = (OOTBootupSceneOptions, oot_f3d_writer.OOTDLExportSettings, oot_f3d_writer.OOTDLImportSettings,
-    oot_skeleton.OOTSkeletonExportSettings, oot_skeleton.OOTSkeletonImportSettings)
 
 
 oot_classes = (
@@ -127,13 +125,7 @@ def oot_register(registerPanels):
     oot_cutscene_register()
 
     for cls in oot_classes:
-        if hasattr(cls, "_ptr_props"):
-            for prop in cls._ptr_props:
-                try:
-                    register_class(prop)
-                except:
-                    pass
-        register_class(cls)
+        register_recursive(cls)
 
     if registerPanels:
         oot_panel_register()

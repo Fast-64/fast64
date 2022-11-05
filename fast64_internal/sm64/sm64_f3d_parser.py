@@ -76,7 +76,7 @@ sm64_dl_parser_panel_classes = (
 
 def sm64_dl_parser_panel_register():
 	for cls in sm64_dl_parser_panel_classes:
-		register_class(cls)
+		register_recursive(cls)
 
 def sm64_dl_parser_panel_unregister():
 	for cls in sm64_dl_parser_panel_classes:
@@ -84,7 +84,7 @@ def sm64_dl_parser_panel_unregister():
 
 def sm64_dl_parser_register():
 	for cls in sm64_dl_parser_classes:
-		register_class(cls)
+		register_recursive(cls)
 
 	bpy.types.Scene.DLImportStart = bpy.props.StringProperty(
 		name ='Start Address', default = 'A3BE1C')

@@ -1231,7 +1231,7 @@ sm64_geo_parser_panel_classes = (
 
 def sm64_geo_parser_panel_register():
 	for cls in sm64_geo_parser_panel_classes:
-		register_class(cls)
+		register_recursive(cls)
 
 def sm64_geo_parser_panel_unregister():
 	for cls in sm64_geo_parser_panel_classes:
@@ -1239,7 +1239,7 @@ def sm64_geo_parser_panel_unregister():
 
 def sm64_geo_parser_register():
 	for cls in sm64_geo_parser_classes:
-		register_class(cls)
+		register_recursive(cls)
 
 	bpy.types.Scene.geoImportAddr = bpy.props.StringProperty(
 		name ='Start Address', default = '1F1D60')

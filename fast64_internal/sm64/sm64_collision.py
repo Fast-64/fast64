@@ -614,7 +614,7 @@ sm64_col_panel_classes = (
 
 def sm64_col_panel_register():
 	for cls in sm64_col_panel_classes:
-		register_class(cls)
+		register_recursive(cls)
 
 def sm64_col_panel_unregister():
 	for cls in sm64_col_panel_classes:
@@ -622,7 +622,7 @@ def sm64_col_panel_unregister():
 
 def sm64_col_register():
 	for cls in sm64_col_classes:
-		register_class(cls)
+		register_recursive(cls)
 
 	# Collision
 	bpy.types.Scene.colExportPath = bpy.props.StringProperty(

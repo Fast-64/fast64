@@ -14,6 +14,7 @@ from .sm64_spline import *
 from .sm64_f3d_parser import *
 from ..panels import SM64_Panel, sm64GoalTypeEnum, sm64GoalImport
 from ..render_settings import on_update_render_settings
+from ..utility import register_recursive
 
 import bpy
 from bpy.utils import register_class, unregister_class
@@ -184,7 +185,7 @@ sm64_panel_classes = (
 
 def sm64_panel_register():
     for cls in sm64_panel_classes:
-        register_class(cls)
+        register_recursive(cls)
 
     sm64_col_panel_register()
     sm64_bone_panel_register()
@@ -218,7 +219,7 @@ def sm64_panel_unregister():
 
 def sm64_register(registerPanels):
     for cls in sm64_classes:
-        register_class(cls)
+        register_recursive(cls)
 
     sm64_col_register()  # register first, so panel goes above mat panel
     sm64_bone_register()

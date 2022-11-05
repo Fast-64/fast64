@@ -2,7 +2,7 @@ import math, mathutils, bpy, os, re
 from ..panels import OOT_Panel
 from bpy.utils import register_class, unregister_class
 from .oot_skeleton import ootConvertArmatureToSkeletonWithoutMesh
-from ..utility import CData, PluginError, toAlnum, writeCData, readFile, hexOrDecInt, raisePluginError, prop_split
+from ..utility import CData, PluginError, toAlnum, writeCData, readFile, hexOrDecInt, raisePluginError, prop_split, register_recursive
 
 from .oot_utility import (
     checkForStartBone,
@@ -500,7 +500,7 @@ oot_anim_panels = (OOT_ExportAnimPanel,)
 
 def oot_anim_panel_register():
     for cls in oot_anim_panels:
-        register_class(cls)
+        register_recursive(cls)
 
 
 def oot_anim_panel_unregister():
@@ -520,7 +520,7 @@ def oot_anim_register():
     bpy.types.Scene.ootAnimSkeletonName = bpy.props.StringProperty(name="Skeleton Name", default="gGerudoRedSkel")
     bpy.types.Scene.ootAnimName = bpy.props.StringProperty(name="Anim Name", default="gGerudoRedSpinAttackAnim")
     for cls in oot_anim_classes:
-        register_class(cls)
+        register_recursive(cls)
 
 
 def oot_anim_unregister():

@@ -2,6 +2,7 @@ import bpy, math, time
 from mathutils import * 
 from bgl import * 
 from bpy.utils import register_class, unregister_class
+from ..utility import register_recursive
 
 vertexShader = '''
 #version 330 core
@@ -392,7 +393,7 @@ render_engine_classes = [
 
 def render_engine_register() :
 	for cls in render_engine_classes:
-		register_class(cls)
+		register_recursive(cls)
 	
 	for panel in get_panels():
 		panel.COMPAT_ENGINES.add('CUSTOM')

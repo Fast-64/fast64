@@ -1,7 +1,7 @@
 import bpy
 from bpy.utils import register_class, unregister_class
 from .sm64_geolayout_utility import createBoneGroups, addBoneToGroup
-from ..utility import prop_split, PluginError
+from ..utility import prop_split, PluginError, register_recursive
 from ..f3d.f3d_material import *
 
 enumBoneType = [
@@ -441,7 +441,7 @@ sm64_bone_panel_classes = (
 
 def sm64_bone_panel_register():
 	for cls in sm64_bone_panel_classes:
-		register_class(cls)
+		register_recursive(cls)
 
 def sm64_bone_panel_unregister():
 	for cls in sm64_bone_panel_classes:
@@ -449,7 +449,7 @@ def sm64_bone_panel_unregister():
 
 def sm64_bone_register():
 	for cls in sm64_bone_classes:
-		register_class(cls)
+		register_recursive(cls)
 	
 	bpy.types.Bone.geo_cmd = bpy.props.EnumProperty(
 		name = 'Geolayout Command', items = enumBoneType, 

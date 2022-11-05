@@ -209,21 +209,22 @@ class bpy_collision():
             dyn_obj = MakeMeshObj("kcs dyn obj", dyn_mesh, collection)
             self.write_mats(dyn_obj, dynamic[geo][3])
             Parent(self.rt, dyn_obj,0)
-            RotateObj(-90, dyn_obj)
+            RotateObj_n64_to_bpy(-90, dyn_obj)
             dyn_obj.KCS_mesh.MeshType = 'Collision'
             dyn_obj.KCS_mesh.ColMeshType = 'Breakable'
         #make objs and link
         main_mesh = MakeMeshData('kcs level mesh', main[0:3])
         main_obj = MakeMeshObj("kcs level obj col", main_mesh, collection)
         Parent(self.rt, main_obj, 0) #get col rt from rt
-        RotateObj(-90, main_obj)
+        ApplyRotation_n64_to_bpy(main_obj)
         main_obj.KCS_mesh.MeshType = 'Collision'
         self.write_mats(main_obj, main[3])
         #format node data
         for num, node in cls.path_nodes.items():
             AddNode(self.rt, collection) #use my own operator so default settings are made
             path = self.rt.children[-1]
-            RotateObj(-90, path)
+            #paths cannot have rotations applied
+            RotateObj_n64_to_bpy(-90, path)
             cam = path.children[0]
             vol = cam.children[0]
             node.path_imp(path,scale)
@@ -241,6 +242,8 @@ class bpy_collision():
             rot = (e.rot[0], e.rot[1], e.rot[2]) #only rotate root since tree will inherit transform
             o.rotation_euler = rot
             loc = Vector(e.pos) / scale
+            #I add because I already have the parent inverse transform applied to the location
+            #because these are empties I cannot apply the transform because it has no data to apply to
             o.location += Vector([loc[0], loc[1], loc[2]])
             o.scale = e.scale
             

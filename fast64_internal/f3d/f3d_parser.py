@@ -2171,7 +2171,7 @@ f3d_parser_classes = (
 
 def f3d_parser_register():
     for cls in f3d_parser_classes:
-        register_class(cls)
+        register_recursive(cls)
 
     bpy.types.Scene.DLImportName = bpy.props.StringProperty(name="Name")
     bpy.types.Scene.DLImportPath = bpy.props.StringProperty(name="Directory", subtype="FILE_PATH")

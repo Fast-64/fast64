@@ -1,6 +1,6 @@
 import bpy
 from bpy.utils import register_class, unregister_class
-from ..utility import PluginError, toAlnum, prop_split
+from ..utility import PluginError, toAlnum, prop_split, register_recursive
 
 
 class OOTPath:
@@ -78,7 +78,7 @@ oot_spline_panel_classes = (OOTSplinePanel,)
 
 def oot_spline_panel_register():
     for cls in oot_spline_panel_classes:
-        register_class(cls)
+        register_recursive(cls)
 
 
 def oot_spline_panel_unregister():
@@ -88,7 +88,7 @@ def oot_spline_panel_unregister():
 
 def oot_spline_register():
     for cls in oot_spline_classes:
-        register_class(cls)
+        register_recursive(cls)
 
     bpy.types.Object.ootSplineProperty = bpy.props.PointerProperty(type=OOTSplineProperty)
 

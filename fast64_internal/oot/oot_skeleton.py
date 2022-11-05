@@ -7,6 +7,7 @@ from ..f3d.f3d_writer import getInfoDict
 from ..f3d.f3d_parser import getImportData, parseF3D
 from .oot_f3d_writer import ootProcessVertexGroup
 from ..f3d.f3d_material import ootEnumDrawLayers
+from ..utility import register_recursive
 
 from ..utility import (
     PluginError,
@@ -1104,7 +1105,7 @@ oot_skeleton_panels = (
 
 def oot_skeleton_panel_register():
     for cls in oot_skeleton_panels:
-        register_class(cls)
+        register_recursive(cls)
 
 
 def oot_skeleton_panel_unregister():
@@ -1114,11 +1115,15 @@ def oot_skeleton_panel_unregister():
 
 def oot_skeleton_register():
     for cls in oot_skeleton_classes:
-        register_class(cls)
+        register_recursive(cls)
 
     bpy.types.Object.ootFarLOD = bpy.props.PointerProperty(type=bpy.types.Object, poll=pollArmature)
 
     bpy.types.Bone.ootBoneType = bpy.props.EnumProperty(name="Bone Type", items=ootEnumBoneType)
+    try:
+        register_class(OOTDynamicTransformProperty)
+    except:
+        pass
     bpy.types.Bone.ootDynamicTransform = bpy.props.PointerProperty(type=OOTDynamicTransformProperty)
     bpy.types.Bone.ootCustomDLName = bpy.props.StringProperty(name="Custom DL", default="gEmptyDL")
 

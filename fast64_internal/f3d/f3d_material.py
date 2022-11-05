@@ -1728,7 +1728,7 @@ def update_tex_values_manual(material: bpy.types.Material, context, prop_path=No
     uv_basis.inputs["EnableOffset"].default_value = int(f3dMat.rdp_settings.g_mdsft_text_filt != "G_TF_POINT")
     set_texture_settings_node(material)
 
-
+#returns the size of the texture image, or 32,32 by default
 def getMaterialScrollDimensions(material):
     useDict = all_combiner_uses(material)
 
@@ -3460,7 +3460,7 @@ def savePresets():
 
 def mat_register():
     for cls in mat_classes:
-        register_class(cls)
+        register_recursive(cls)
 
     savePresets()
 

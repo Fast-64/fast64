@@ -1,7 +1,7 @@
 import bpy, os, mathutils
 from bpy.utils import register_class, unregister_class
 from ..panels import OOT_Panel
-from ..utility import PluginError, CData, prop_split, writeCData, raisePluginError, getGroupIndexFromname, toAlnum
+from ..utility import PluginError, CData, prop_split, writeCData, raisePluginError, getGroupIndexFromname, toAlnum, register_recursive
 from ..f3d.f3d_parser import importMeshC, ootEnumDrawLayers
 from ..f3d.f3d_gbi import DLFormat, TextureExportSettings, ScrollMethod, F3D
 
@@ -586,7 +586,7 @@ oot_dl_writer_panel_classes = (
 
 def oot_dl_writer_panel_register():
     for cls in oot_dl_writer_panel_classes:
-        register_class(cls)
+        register_recursive(cls)
 
 
 def oot_dl_writer_panel_unregister():
@@ -596,7 +596,7 @@ def oot_dl_writer_panel_unregister():
 
 def oot_dl_writer_register():
     for cls in oot_dl_writer_classes:
-        register_class(cls)
+        register_recursive(cls)
 
     bpy.types.Object.ootDrawLayer = bpy.props.EnumProperty(items=ootEnumDrawLayers, default="Opaque")
 

@@ -1,6 +1,6 @@
 import bpy
 from bpy.utils import register_class, unregister_class
-from ..utility import prop_split, gammaInverse
+from ..utility import prop_split, gammaInverse, register_recursive
 from .oot_collision import OOTWaterBoxProperty, drawWaterBoxProperty
 from .oot_constants import ootEnumEmptyType
 from .oot_utility import getSceneObj, getRoomObj
@@ -236,7 +236,7 @@ oot_obj_panel_classes = (OOTObjectPanel,)
 
 def oot_obj_panel_register():
     for cls in oot_obj_panel_classes:
-        register_class(cls)
+        register_recursive(cls)
 
 
 def oot_obj_panel_unregister():
@@ -246,7 +246,7 @@ def oot_obj_panel_unregister():
 
 def oot_obj_register():
     for cls in oot_obj_classes:
-        register_class(cls)
+        register_recursive(cls)
 
     bpy.types.Object.ootEmptyType = bpy.props.EnumProperty(
         name="OOT Object Type", items=ootEnumEmptyType, default="None", update=onUpdateOOTEmptyType

@@ -143,7 +143,7 @@ sm64_cam_panel_classes = (
 
 def sm64_cam_panel_register():
 	for cls in sm64_cam_panel_classes:
-		register_class(cls)
+		register_recursive(cls)
 
 def sm64_cam_panel_unregister():
 	for cls in sm64_cam_panel_classes:
@@ -154,7 +154,7 @@ def sm64_cam_panel_unregister():
 
 def sm64_cam_register():
 	for cls in sm64_cam_classes:
-		register_class(cls)
+		register_recursive(cls)
 
 	# Moved to Level Root
 	#bpy.types.Camera.useBackgroundColor = bpy.props.BoolProperty(

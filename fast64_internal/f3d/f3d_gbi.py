@@ -2,7 +2,6 @@
 import bpy, os, enum
 from ..utility import *
 
-
 class ScrollMethod(enum.Enum):
     Vertex = 1
     Tile = 2
@@ -2267,6 +2266,18 @@ class FModel:
     # Called before SPEndDisplayList
     def onMaterialCommandsBuilt(self, gfxList, revertList, material, drawLayer):
         return
+
+    # Called in the creation of fMaterial
+    #default is saveTextureIndex
+    def onTextureSave(self, *args):
+        #avoids ciruclar import, bad practice to defer import though
+        from ..f3d.f3d_writer import saveTextureIndex
+        return saveTextureIndex(*args)
+
+    #constructs an fMaterial, purpose is for override
+    #that is possibly needed in specific export types
+    def construct_fMaterial(self, name, DLformat):
+        return FMaterial(name, DLformat)
 
     def getTextureSuffixFromFormat(self, texFmt):
         return texFmt.lower()

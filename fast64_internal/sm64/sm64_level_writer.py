@@ -1189,7 +1189,7 @@ sm64_level_panel_classes = (SM64_ExportLevelPanel,)
 
 def sm64_level_panel_register():
     for cls in sm64_level_panel_classes:
-        register_class(cls)
+        register_recursive(cls)
 
 
 def sm64_level_panel_unregister():
@@ -1199,7 +1199,7 @@ def sm64_level_panel_unregister():
 
 def sm64_level_register():
     for cls in sm64_level_classes:
-        register_class(cls)
+        register_recursive(cls)
 
     bpy.types.Scene.levelName = bpy.props.StringProperty(name="Name", default="bob")
     bpy.types.Scene.levelOption = bpy.props.EnumProperty(name="Level", items=enumLevelNames, default="bob")

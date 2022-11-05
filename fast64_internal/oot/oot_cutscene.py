@@ -1,7 +1,7 @@
 import os, bpy
 from bpy.utils import register_class, unregister_class
 from ..panels import OOT_Panel
-from ..utility import PluginError, CData, prop_split, writeCData, raisePluginError
+from ..utility import PluginError, CData, prop_split, writeCData, raisePluginError, register_recursive
 from .oot_utility import OOTCollectionAdd, drawCollectionOps, getCollection, getCutsceneName, getCustomProperty
 
 from .oot_constants import (
@@ -199,6 +199,8 @@ class OOTCSListProperty(bpy.types.PropertyGroup):
     fxType: bpy.props.EnumProperty(items=ootEnumCSTransitionType)
     fxStartFrame: bpy.props.IntProperty(name="", default=0, min=0)
     fxEndFrame: bpy.props.IntProperty(name="", default=1, min=0)
+    _ptr_props = (OOTCSTextboxProperty, OOTCSLightingProperty, OOTCSTimeProperty,
+    OOTCSBGMProperty, OOTCSMiscProperty, OOTCS0x09Property, OOTCSUnkProperty)
 
 
 def drawCSListProperty(layout, listProp, listIndex, objName, collectionType):
@@ -667,7 +669,7 @@ oot_cutscene_panel_classes = (OOT_ExportCutscenePanel,)
 
 def oot_cutscene_panel_register():
     for cls in oot_cutscene_panel_classes:
-        register_class(cls)
+        register_recursive(cls)
 
 
 def oot_cutscene_panel_unregister():
@@ -677,7 +679,7 @@ def oot_cutscene_panel_unregister():
 
 def oot_cutscene_register():
     for cls in oot_cutscene_classes:
-        register_class(cls)
+        register_recursive(cls)
 
     bpy.types.Scene.ootCutsceneExportPath = bpy.props.StringProperty(name="File", subtype="FILE_PATH")
 

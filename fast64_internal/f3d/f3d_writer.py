@@ -1340,13 +1340,13 @@ def getTexDimensions(material):
         texDimensions = [32, 32]
     return texDimensions
 
-
 def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     if material.mat_ver > 3:
         f3dMat = material.f3d_mat
     else:
         f3dMat = material
 
+    #check if fMaterial is already used in this area and on this model
     areaKey = fModel.global_data.getCurrentAreaKey(f3dMat)
     areaIndex = fModel.global_data.current_area_index
 
@@ -1356,9 +1356,11 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         materialKey = (material, None, areaKey)
 
     materialItem = fModel.getMaterialAndHandleShared(materialKey)
+    #if fMaterial already was created by fModel, return that fMaterial
     if materialItem is not None:
         return materialItem
 
+    #create the new fMaterial
     if len(obj.data.materials) == 0:
         raise PluginError("Mesh must have at least one material.")
     materialName = (
@@ -1368,13 +1370,14 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         + (("_layer" + str(drawLayer)) if f3dMat.rdp_settings.set_rendermode and drawLayer is not None else "")
         + (("_area" + str(areaIndex)) if f3dMat.set_fog and f3dMat.use_global_fog and areaKey is not None else "")
     )
-    fMaterial = FMaterial(materialName, fModel.DLFormat)
+    fMaterial = fModel.construct_fMaterial(materialName, fModel.DLFormat) #DL format is static or dynamic
     fMaterial.material.commands.append(DPPipeSync())
     fMaterial.revert.commands.append(DPPipeSync())
 
     if not material.is_f3d:
         raise PluginError("Material named " + material.name + " is not an F3D material.")
 
+    
     fMaterial.getScrollData(material, getMaterialScrollDimensions(f3dMat))
 
     if f3dMat.set_combiner:
@@ -1421,6 +1424,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
                 )
             )
 
+    #checks for fog already set in the global data and in that area (sm64 terminology really)
     if f3dMat.set_fog:
         if f3dMat.use_global_fog and fModel.global_data.getCurrentAreaData() is not None:
             fogData = fModel.global_data.getCurrentAreaData().fog_data
@@ -1440,11 +1444,13 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 
     useDict = all_combiner_uses(f3dMat)
 
-    if drawLayer is not None:
-        defaultRM = fModel.getRenderMode(drawLayer)
-    else:
-        defaultRM = None
+    #default render modes by draw layer are deprecated, should use world default settings instead
+    # if drawLayer is not None:
+        # defaultRM = fModel.getRenderMode(drawLayer)
+    # else:
+    defaultRM = None
 
+    #set the geo/other mode flags based on world defaults and f3d version
     defaults = bpy.context.scene.world.rdp_defaults
     if fModel.f3d.F3DEX_GBI_2:
         saveGeoModeDefinitionF3DEX2(fMaterial, f3dMat.rdp_settings, defaults, fModel.matWriteMethod)
@@ -1473,7 +1479,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 
         fMaterial.useLargeTextures = useLargeTextures
         fMaterial.texturesLoaded[0] = True
-        texDimensions0, nextTmem = saveTextureIndex(
+        texDimensions0, nextTmem = fModel.onTextureSave(
             material.name,
             fModel,
             fMaterial,
@@ -1501,7 +1507,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 
         fMaterial.useLargeTextures = useLargeTextures
         fMaterial.texturesLoaded[1] = True
-        texDimensions1, nextTmem = saveTextureIndex(
+        texDimensions1, nextTmem = fModel.onTextureSave(
             material.name,
             fModel,
             fMaterial,
@@ -1593,6 +1599,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             ]
         )
 
+    #does nothing by default, only exists for override
     fModel.onMaterialCommandsBuilt(fMaterial.material, fMaterial.revert, material, drawLayer)
 
     # End Display List
@@ -1616,7 +1623,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 
     return fMaterial, texDimensions
 
-
+#gets the proper image props and type of image and sends it to constructor function
 def saveTextureIndex(
     propName,
     fModel,
@@ -2863,7 +2870,7 @@ f3d_writer_classes = (
 
 def f3d_writer_register():
     for cls in f3d_writer_classes:
-        register_class(cls)
+        register_recursive(cls)
 
     bpy.types.Scene.matWriteMethod = bpy.props.EnumProperty(items=enumMatWriteMethod)
 
