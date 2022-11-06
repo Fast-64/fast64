@@ -56,7 +56,6 @@ class Vertices():
         self.UVs = []
         self.VCs = []
         self.Pos = []
-        self.Norms = [] #only used when writing
         self.scale = scale
     def _make(self, v):
         self.Pos.append(self.ScaleVerts(self._Vec3._make(v[0:3])))
@@ -65,15 +64,6 @@ class Vertices():
     def ScaleVerts(self, pos):
         v = [a / self.scale for a in pos]
         return v
-    #make from blender verts
-    def bpy_make(self, vert, uv, col, alpha, loop, size = (32, 32), norm = True):
-        #vert alpha should be luminance of color afaik
-        alpha = colorToLuminance(alpha.color)
-        rgba = [int(c*255) for c in col.color[:3]]
-        self.Pos.extend( [int(p) for p in vert.co] )
-        self.UVs.extend( [int(p*32*s) for s, p in zip(size, uv.uv)] ) #uvs are fixed 10.5, so multiply by 32 to get n64 size, then also scale by texture size
-        self.Norms.extend( [int(p*127) for p in loop.normal] ) #norm vector has length of 127 on n64
-        self.VCs.extend( [*rgba, alpha] )
 
 #use for extraction,
 TextureScrollStruct = {
@@ -497,7 +487,7 @@ class bpy_geo():
         loc = self.Vec3Trans(obj.location)
         rot = obj.rotation_euler
         scale = obj.scale
-        ly = layout(0, depth, F3d_Obj(obj, obj.data), loc, rot, scale)
+        ly = layout(0, depth, F3d_Obj(obj, obj.data, self.scale), loc, rot, scale)
         ly.name = obj.name #for debug
         return ly
     #given an obj, eval if it is a kcs gfx export
@@ -524,20 +514,13 @@ class bpy_geo():
                     raise Exception(f"Obj {ly.name} without UV data or Color Attributes detected")
                 #I have to get mats first since other data will rely on the material
                 #populate with mat slots from obj data
-                ly.mat_tris = {m.f3d_mat:self._mesh_desc(list(),\
+                ly.mat_tris = {m:self._mesh_desc(list(),\
                 *saveOrGetF3DMaterial(m, ly.ptr, ly.ptr.obj, None, None)) for m in mesh.materials}
                 #put tris in dict of mat
                 mesh.calc_loop_triangles()
                 for tri in mesh.loop_triangles:
-                    f3dmat = mesh.materials[tri.material_index].f3d_mat
-                    #get settings needed when constructing my data
-                    size = ly.mat_tris[f3dmat].texDimensions
-                    #loops refers to the literal vertex and how it is referenced between the various data types
-                    #since there can be multiple data types associated with each vertex, and not all of them coincide
-                    #you must use loops to find the vertices, UV for that vertex, and vertex colors for that vertex
-                    loop = [mesh.loops[t] for t in tri.loops]
-                    ly.mat_tris[f3dmat][0].append(loop)
-                    [verts.bpy_make(mesh_verts[l.vertex_index], uvs[l.index], vcs[0][l.index], vcs[1][l.index], l, size = size) for l in loop]
+                    mat = mesh.materials[tri.material_index]
+                    ly.mat_tris[mat][0].append(tri)
     #now that all the verts are made, and the mats have the info they need, make the DLs
     def create_DLs(self, cls):
         for ly in cls.layouts:
@@ -545,9 +528,11 @@ class bpy_geo():
             if ly.ptr.mesh:
                 #independent mats are already created, now using f3d class bleed them together
                 fModel = ly.ptr
-                for key, (fMaterial, texDims) in fModel.materials.items():
-                    fMaterial.bleed(lastMat)
-                    lastMat = fMaterial
+                for j, (mat, (tri_list, fMaterial, texDims)) in enumerate(ly.mat_tris.items()):
+                    if tri_list:
+                        fMaterial.bleed(lastMat)
+                        fModel.save_tri_list(tri_list, fMaterial, texDims, mat, index = j)
+                        lastMat = fMaterial
                 #now clean up the obj
                 fModel.clean()
 
@@ -1347,21 +1332,23 @@ class F3d(DL):
 class fMat_KCS(FMaterial):
     def __init__(self, name, DLformat):
         super().__init__(name, DLformat)
-    def bleed(self, NewMat):
+    def bleed(self, LastMat):
         print(self.material.commands)
-        print(NewMat.material.commands)
+        if LastMat:
+            print(LastMat.material.commands)
 
 #overrides fModel used in exports for other games. Holds information needed to properly
 #create materials (basically world settings, material dict etc.)
 #will also hold in object and mesh info, such as a copy of the transformed mesh data, and
 #various export option flags
 class F3d_Obj(FModel):
-    def __init__(self, obj, mesh):
+    def __init__(self, obj, mesh, scale):
         if mesh:
             self.obj, self.mesh = obj, mesh
         else:
             self.mesh = None
             self.obj = obj
+        self.scale = scale
         super().__init__("F3DEX2/LX2", False, obj.name, DLFormat.Static, GfxMatWriteMethod.WriteAll)
     def clean(self):
         pass
@@ -1370,77 +1357,32 @@ class F3d_Obj(FModel):
     #needs to return tex dimension, and the next tMem address
     def onTextureSave(self, *args):
         return [32, 32], 256
-    #macro for loading a texture
-    def LoadTex(self, Tex, Tile):
-        dl = []
-        app = lambda *x: dl.append(self.CreateGfx(x))
-        app( "gsDPSetTextureImage", *Tex.SetImg() )
-        app( "gsDPSetTile", *Tile.LoadTile() )
-        app( "gsDPLoadSync" )
-        app( "gsDPLoadBlock", *Tex.LoadImg() )
-        app( "gsDPPipeSync" )
-        app( "gsDPSetTile", *Tile.RenderTile() )
-        app( "gsDPSetTileSize", *Tile.Bounds() )
-        return dl
-    #the methods past here will be used to create f3d
-    def f3d_add_tris(self, tri_list):
-        #method for checking tri buffer
-        def fill_buf(buf):
-            st = min(tri_buf)
-            end = max(tri_buf)
-            #look for interruptions between min and max
-            miss = tri_buf.difference(set(range(st, end+1, 1)))
-            if miss:
-                #return range from start to smallest missed
-                print(miss)
-                return (st, min(miss))
-            return (st, end)
-        tri_buf = set()
-        tri_buf_tmp = set()
-        dl = []
-        tri_grp = []
-        for tri_loop in tri_list:
-            #work by filling a buffer of tris until all 32 slots are full
-            #then add the vert load cmd, and all the tri draw cmds
-            loop = [l.index for l in tri_loop]
-            tri_buf_tmp.update(loop)
-            #I have exceeded the buffer
-            if len(tri_buf_tmp) > 32:
-                while(tri_buf):
-                    load = fill_buf(tri_buf)
-                    tri_buf = tri_buf.difference( set(range(load[0], load[1]+1, 1)) )
-                    #add load cmd
-                    dl.append(load)
-                #tri buffer has been emptied
-                dl.append( tri_grp )
-                tri_buf_tmp = set(loop)
-                tri_grp = []
-            else:
-                tri_buf.update(loop)
-                tri_grp.append( loop )
-        #fill in remaining tris
-        while(tri_buf):
-            load = fill_buf(tri_buf)
-            tri_buf = tri_buf.difference( set(range(load[0], load[1]+1, 1)) )
-            #add load cmd
-            dl.append(load)
-        #tri buffer has been emptied
-        dl.append( tri_grp )
-        return dl
-    def f3d_set_texture(self, f3dMat, mat):
-        if mat.TwoCycle:
-            tex1_present = "TEXEL0" in mat.Combiner[8:] or "TEXEL0_ALPHA" in mat.Combiner[8:] \
-                            or "TEXEL1" in mat.Combiner[:8] or "TEXEL1_ALPHA" in mat.Combiner[:8]
-        else:
-            tex1_present = 0
-        tex0_present = "TEXEL0" in mat.Combiner[:8] or "TEXEL0_ALPHA" in mat.Combiner[:8] \
-                        or "TEXEL1" in mat.Combiner[8:] or "TEXEL1_ALPHA" in mat.Combiner[8:]
-        dl = []
-        if f3dMat.tex0.tex_set and tex0_present and mat.tex0.Timg:
-            dl += self.LoadTex(mat.tex0, mat.tiles[0])
-        if f3dMat.tex1.tex_set and tex1_present and mat.tex1.Timg:
-            dl += self.LoadTex(mat.tex1, mat.tiles[1])
-        return dl
+    def save_tri_list(self, tri_list, fMaterial, texDims, mat, index = 0):
+        #make some objects used in the existing code base
+        #so I can export triangle. Has some extra functionality
+        #used for skinning etc. that I don't take advantage of
+        finalTransform = Matrix.Diagonal(Vector((self.scale, self.scale, self.scale))).to_4x4() #just use the blender scale, other obj transforms can be
+        #applied to the layout
+        triGroup = FTriGroup(self.obj.name, index, fMaterial)
+        triConverterInfo = TriangleConverterInfo(
+            self.obj,
+            None,
+            self.f3d,
+            finalTransform,
+            getInfoDict(self.obj)
+        )
+        triConverter = TriangleConverter(
+            triConverterInfo,
+            texDims,
+            mat,
+            None,
+            triGroup.triList,
+            triGroup.vertexList,
+            None,
+            None,
+        )
+        saveTriangleStrip( triConverter, tri_list, self.mesh, None)
+        fMaterial.triangle = triConverter
 
 # ------------------------------------------------------------------------
 #    Exorter Functions

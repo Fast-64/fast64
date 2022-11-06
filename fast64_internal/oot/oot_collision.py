@@ -40,6 +40,7 @@ from .oot_utility import (
     ootDuplicateHierarchy,
     ootCleanupScene,
     ootGetPath,
+    getOOTScale,
 )
 
 
@@ -578,7 +579,7 @@ class OOT_ExportCollision(bpy.types.Operator):
         if type(obj.data) is not bpy.types.Mesh:
             raise PluginError("No mesh object selected.")
 
-        finalTransform = mathutils.Matrix.Scale(context.scene.ootActorBlenderScale, 4)
+        finalTransform = mathutils.Matrix.Scale(getOOTScale(obj.ootActorScale), 4)
 
         try:
             scaleValue = bpy.context.scene.ootBlenderScale

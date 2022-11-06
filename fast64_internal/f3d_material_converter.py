@@ -158,6 +158,7 @@ def convertF3DtoNewVersion(obj: bpy.types.Object | bpy.types.Bone, index, materi
         newMat.f3d_mat.draw_layer.sm64 = material.f3d_mat.draw_layer.sm64
 
         copyPropertyGroup(material.ootMaterial, newMat.ootMaterial)
+        copyPropertyGroup(material.flipbookGroup, newMat.flipbookGroup)
         copyPropertyGroup(material.ootCollisionProperty, newMat.ootCollisionProperty)
 
         colSettings = CollisionSettings()
