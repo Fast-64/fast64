@@ -1986,10 +1986,7 @@ class Vtx:
 
     def to_c(self):
         spc = lambda x: ", ".join([hex(a) for a in x])
-        if bpy.context.scene.decomp_compatible:
-            return (f"{{{{ {{{spc(self.position)}}}, 0, {{{spc(self.uv)}}}, {{{spc(self.colorOrNormal}}} }}}},\n"))
-        else:
-            return (f"{{{{ {spc(self.position)}, 0, {spc(self.uv)}, {spc(self.colorOrNormal} }}}},\n"))
+        return (f"{{{{ {{{spc(self.position)}}}, 0, {{{spc(self.uv)}}}, {{{spc(self.colorOrNormal}}} }}}},\n"))
 
 
 class VtxList:
@@ -3144,7 +3141,7 @@ class GbiMacro:
     def getattr_virtual(self, field, static):
         if hasattr(field, "name"):
             if self._segptrs and not static and bpy.context.scene.decomp_compatible:
-                return "segmented_to_virtual(field.name)"
+                return f"segmented_to_virtual({field.name})"
             if self._ptr_amp:
                 return f"&{field.name}"
             else:
@@ -3174,14 +3171,6 @@ class SPMatrix(GbiMacro):
             return gsDma2p(f3d.G_MTX, matPtr, MTX_SIZE, self.param ^ f3d.G_MTX_PUSH, 0)
         else:
             return gsDma1p(f3d.G_MTX, matPtr, MTX_SIZE, self.param)
-
-    def to_c(self, static=True):
-        header = "gsSPMatrix(" if static else "gSPMatrix(glistp++, "
-        if not static and bpy.context.scene.decomp_compatible:
-            header += "segmented_to_virtual(" + str(self.matrix) + ")"
-        else:
-            header += str(self.matrix)
-        return header + ", " + str(self.param) + ")"
 
 
 # TODO: Divide vertlist into sections
