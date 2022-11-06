@@ -594,12 +594,6 @@ def ootProcessBone(
             )
         DL = mesh.draw
 
-    # Some skeletons will override the current drawn DL for a limb.
-    # If an override DL is not NULL but the non-override is NULL, then this causes issues.
-    # Thus for cases where we remove geometry, we need to have a dummy DL.
-    elif bone.use_deform:
-        DL = OOTDLReference("gEmptyDL")
-
     if isinstance(parentLimb, OOTSkeleton):
         skeleton = parentLimb
         limb = OOTLimb(skeleton.name, boneName, nextIndex, translate, DL, None)
