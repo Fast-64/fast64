@@ -533,6 +533,7 @@ class bpy_geo():
                         fMaterial.bleed(lastMat)
                         fModel.save_tri_list(tri_list, fMaterial, texDims, mat, index = j)
                         lastMat = fMaterial
+                        fMaterial.print_DL()
                 #now clean up the obj
                 fModel.clean()
 
@@ -1336,6 +1337,12 @@ class fMat_KCS(FMaterial):
         print(self.material.commands)
         if LastMat:
             print(LastMat.material.commands)
+    #debug print
+    def print_DL(self):
+        triConverter = self.triangle
+        print(self.material.commands)
+        print(triConverter.triList.commands)
+        print(triConverter.vtxList.vertices)
 
 #overrides fModel used in exports for other games. Holds information needed to properly
 #create materials (basically world settings, material dict etc.)
