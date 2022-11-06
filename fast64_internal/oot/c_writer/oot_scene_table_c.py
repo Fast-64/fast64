@@ -1,7 +1,7 @@
 import os, bpy
 from ...utility import PluginError, writeFile
 from ..oot_constants import ootEnumSceneID
-from ..oot_utility import getCustomProperty
+from ..oot_utility import getCustomProperty, ExportInfo
 
 
 def getSceneTable(exportPath):
@@ -153,7 +153,7 @@ def getDrawConfig(sceneName: str):
     raise PluginError(f"Scene name {sceneName} not found in scene table.")
 
 
-def modifySceneTable(scene, exportInfo):
+def modifySceneTable(scene, exportInfo: ExportInfo):
     """Edit the scene table with the new data"""
     exportPath = exportInfo.exportPath
     # the list ``sceneNames`` needs to be synced with ``fileData``
@@ -186,7 +186,7 @@ def modifySceneTable(scene, exportInfo):
         # if so, check if the custom scene already exists in the data
         # if it already exists set mode to NORMAL to consider it like a normal scene
         if mode == "CUSTOM":
-            exportName = bpy.context.scene.ootSceneName.lower()
+            exportName = exportInfo.name.lower()
             for i in range(len(fileData)):
                 if fileData[i][0] == exportName + "_scene":
                     sceneIndex = i

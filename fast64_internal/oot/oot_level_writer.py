@@ -980,8 +980,8 @@ class OOT_ExportScenePanel(OOT_Panel):
             col.box().column().label(text=getEnumName(ootEnumSceneID, context.scene.ootSceneOption))
             # col.prop(context.scene, 'ootSceneOption')
             if context.scene.ootSceneOption == "Custom":
-                prop_split(col, context.scene, "ootSceneSubFolder", "Subfolder")
-                prop_split(col, context.scene, "ootSceneName", "Name")
+                prop_split(col, settings, "subFolder", "Subfolder")
+                prop_split(col, settings, "name", "Name")
             col.operator(OOT_RemoveScene.bl_idname, text="Remove Scene")
 
         importSettings = context.scene.ootSceneImportSettings
