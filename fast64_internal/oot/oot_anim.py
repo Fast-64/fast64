@@ -34,6 +34,8 @@ from ..f3d.f3d_parser import getImportData
 
 
 class OOTAnimExportSettingsProperty(bpy.types.PropertyGroup):
+    isCustomFilename: bpy.props.BoolProperty(name="Use Custom Filename")
+    filename: bpy.props.StringProperty(name="Filename")
     isCustom: bpy.props.BoolProperty(name="Use Custom Path")
     customPath: bpy.props.StringProperty(name="Folder", subtype="FILE_PATH")
     folderName: bpy.props.StringProperty(name="Animation Folder", default="object_geldb")
@@ -427,13 +429,14 @@ def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSetti
     checkEmptyName(settings.folderName)
     checkEmptyName(armatureObj.name)
     name = toAlnum(armatureObj.name)
+    filename = settings.filename if settings.isCustomFilename else name
     convertTransformMatrix = (
         mathutils.Matrix.Scale(getOOTScale(armatureObj.ootActorScale), 4)
         @ mathutils.Matrix.Diagonal(armatureObj.scale).to_4x4()
     )
 
     if settings.isLink:
-        ootAnim = ootExportLinkAnimation(armatureObj, convertTransformMatrix, "gLink")
+        ootAnim = ootExportLinkAnimation(armatureObj, convertTransformMatrix, name)
         ootAnimC, ootAnimHeaderC = ootAnim.toC(settings.isCustom)
         path = ootGetPath(
             exportPath,
@@ -469,10 +472,10 @@ def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSetti
 
         ootAnimC = ootAnim.toC()
         path = ootGetPath(exportPath, settings.isCustom, "assets/objects/", settings.folderName, False, False)
-        writeCData(ootAnimC, os.path.join(path, ootAnim.name + ".h"), os.path.join(path, ootAnim.name + ".c"))
+        writeCData(ootAnimC, os.path.join(path, filename + ".h"), os.path.join(path, filename + ".c"))
 
         if not settings.isCustom:
-            addIncludeFiles(settings.folderName, path, ootAnim.name)
+            addIncludeFiles(settings.folderName, path, filename)
 
 
 def ootImportAnimationC(
@@ -840,6 +843,9 @@ class OOT_ExportAnimPanel(OOT_Panel):
         col.operator(OOT_ExportAnim.bl_idname)
         exportSettings = context.scene.fast64.oot.animExportSettings
         col.label(text="Exports active animation on selected object.", icon="INFO")
+        col.prop(exportSettings, "isCustomFilename")
+        if exportSettings.isCustomFilename:
+            prop_split(col, exportSettings, "filename", "Filename")
         if exportSettings.isCustom:
             prop_split(col, exportSettings, "customPath", "Folder")
         elif not exportSettings.isLink:

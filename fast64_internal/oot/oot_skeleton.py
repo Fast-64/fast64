@@ -57,6 +57,8 @@ from .oot_skeleton_import_data import (
 
 
 class OOTSkeletonExportSettings(bpy.types.PropertyGroup):
+    isCustomFilename: bpy.props.BoolProperty(name="Use Custom Filename")
+    filename: bpy.props.StringProperty(name="Filename")
     mode: bpy.props.EnumProperty(name="Mode", items=ootEnumSkeletonImportMode)
     folder: bpy.props.StringProperty(name="Skeleton Folder", default="object_geldb")
     customPath: bpy.props.StringProperty(name="Custom Skeleton Path", subtype="FILE_PATH")
@@ -649,6 +651,7 @@ def ootConvertArmatureToC(
     if settings.mode != "Generic" and not settings.isCustom:
         importInfo = ootSkeletonImportDict[settings.mode]
         skeletonName = importInfo.skeletonName
+        filename = skeletonName
         folderName = importInfo.folderName
         overlayName = importInfo.actorOverlayName
         flipbookUses2DArray = importInfo.flipbookArrayIndex2D is not None
@@ -656,6 +659,7 @@ def ootConvertArmatureToC(
         isLink = importInfo.isLink
     else:
         skeletonName = toAlnum(originalArmatureObj.name)
+        filename = settings.filename if settings.isCustomFilename else skeletonName
         folderName = settings.folder
         overlayName = settings.actorOverlayName if not settings.isCustom else None
         flipbookUses2DArray = settings.flipbookUses2DArray
@@ -723,11 +727,11 @@ def ootConvertArmatureToC(
         textureArrayData = writeTextureArraysNew(fModel, flipbookArrayIndex2D)
         data.append(textureArrayData)
 
-    writeCData(data, os.path.join(path, skeletonName + ".h"), os.path.join(path, skeletonName + ".c"))
+    writeCData(data, os.path.join(path, filename + ".h"), os.path.join(path, filename + ".c"))
 
     if not isCustomExport:
         writeTextureArraysExisting(bpy.context.scene.ootDecompPath, overlayName, isLink, flipbookArrayIndex2D, fModel)
-        addIncludeFiles(folderName, path, skeletonName)
+        addIncludeFiles(folderName, path, filename)
         if removeVanillaData:
             ootRemoveSkeleton(path, folderName, skeletonName)
 
@@ -1211,6 +1215,9 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
             b.label(text="callbacks or cull limbs, will be corrupted.")
         col.prop(exportSettings, "isCustom")
         col.label(text="Object name used for export.", icon="INFO")
+        col.prop(exportSettings, "isCustomFilename")
+        if exportSettings.isCustomFilename:
+            prop_split(col, exportSettings, "filename", "Filename")
         if exportSettings.isCustom:
             prop_split(col, exportSettings, "folder", "Object" if not exportSettings.isCustom else "Folder")
             prop_split(col, exportSettings, "customAssetIncludeDir", "Asset Include Path")

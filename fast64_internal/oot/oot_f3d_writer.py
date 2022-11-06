@@ -54,6 +54,8 @@ from ..f3d.flipbook import flipbook_to_c, flipbook_2d_to_c, flipbook_data_to_c
 
 
 class OOTDLExportSettings(bpy.types.PropertyGroup):
+    isCustomFilename: bpy.props.BoolProperty(name="Use Custom Filename")
+    filename: bpy.props.StringProperty(name="Filename")
     folder: bpy.props.StringProperty(name="DL Folder", default="gameplay_keep")
     customPath: bpy.props.StringProperty(name="Custom DL Path", subtype="FILE_PATH")
     isCustom: bpy.props.BoolProperty(name="Use Custom Path")
@@ -299,7 +301,8 @@ def ootConvertMeshToC(
         textureArrayData = writeTextureArraysNew(fModel, flipbookArrayIndex2D)
         data.append(textureArrayData)
 
-    writeCData(data, os.path.join(path, name + ".h"), os.path.join(path, name + ".c"))
+    filename = settings.filename if settings.isCustomFilename else name
+    writeCData(data, os.path.join(path, filename + ".h"), os.path.join(path, filename + ".c"))
 
     if not isCustomExport:
         writeTextureArraysExisting(bpy.context.scene.ootDecompPath, overlayName, False, flipbookArrayIndex2D, fModel)
@@ -614,6 +617,9 @@ class OOT_ExportDLPanel(OOT_Panel):
         exportSettings: OOTDLExportSettings = context.scene.fast64.oot.DLExportSettings
 
         col.label(text="Object name used for export.", icon="INFO")
+        col.prop(exportSettings, "isCustomFilename")
+        if exportSettings.isCustomFilename:
+            prop_split(col, exportSettings, "filename", "Filename")
         prop_split(col, exportSettings, "folder", "Object" if not exportSettings.isCustom else "Folder")
         if exportSettings.isCustom:
             prop_split(col, exportSettings, "customAssetIncludeDir", "Asset Include Path")

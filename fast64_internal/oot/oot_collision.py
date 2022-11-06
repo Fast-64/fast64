@@ -45,6 +45,8 @@ from .oot_utility import (
 
 
 class OOTCollisionExportSettings(bpy.types.PropertyGroup):
+    isCustomFilename: bpy.props.BoolProperty(name="Use Custom Filename")
+    filename: bpy.props.StringProperty(name="Filename")
     exportPath: bpy.props.StringProperty(name="Directory", subtype="FILE_PATH")
     exportLevel: bpy.props.EnumProperty(items=ootEnumSceneID, name="Level Used By Collision", default="SCENE_YDAN")
     includeChildren: bpy.props.BoolProperty(name="Include child objects", default=True)
@@ -244,7 +246,15 @@ def exportCollisionCommon(collision, obj, transformMatrix, includeChildren, name
             collision.polygonGroups[polygonType].append(OOTCollisionPolygon(indices, normal, distance))
 
 
-def exportCollisionToC(originalObj, transformMatrix, includeChildren, name, isCustomExport, folderName, exportPath):
+def exportCollisionToC(
+    originalObj: bpy.types.Object, transformMatrix: mathutils.Matrix, exportSettings: OOTCollisionExportSettings
+):
+    includeChildren = exportSettings.includeChildren
+    name = toAlnum(originalObj.name)
+    isCustomExport = exportSettings.customExport
+    folderName = exportSettings.folder
+    exportPath = ootGetObjectPath(isCustomExport, bpy.path.abspath(exportSettings.exportPath), folderName)
+
     collision = OOTCollision(name)
     collision.cameraData = OOTCameraData(name)
 
@@ -276,7 +286,8 @@ def exportCollisionToC(originalObj, transformMatrix, includeChildren, name, isCu
     data.append(collisionC)
 
     path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, True)
-    writeCData(data, os.path.join(path, f"{name}_collision.h"), os.path.join(path, f"{name}_collision.c"))
+    filename = exportSettings.filename if exportSettings.isCustomFilename else f"{name}_collision"
+    writeCData(data, os.path.join(path, f"{filename}.h"), os.path.join(path, f"{filename}.c"))
 
     if not isCustomExport:
         addIncludeFiles(folderName, path, name)
@@ -592,14 +603,7 @@ class OOT_ExportCollision(bpy.types.Operator):
 
         try:
             exportSettings: OOTCollisionExportSettings = context.scene.fast64.oot.collisionExportSettings
-            includeChildren = exportSettings.includeChildren
-            name = toAlnum(obj.name)
-            isCustomExport = exportSettings.customExport
-            folderName = exportSettings.folder
-            exportPath = bpy.path.abspath(exportSettings.exportPath)
-
-            filepath = ootGetObjectPath(isCustomExport, exportPath, folderName)
-            exportCollisionToC(obj, finalTransform, includeChildren, name, isCustomExport, folderName, filepath)
+            exportCollisionToC(obj, finalTransform, exportSettings)
 
             self.report({"INFO"}, "Success!")
             return {"FINISHED"}
@@ -622,6 +626,9 @@ class OOT_ExportCollisionPanel(OOT_Panel):
 
         exportSettings: OOTCollisionExportSettings = context.scene.fast64.oot.collisionExportSettings
         col.label(text="Object name used for export.", icon="INFO")
+        col.prop(exportSettings, "isCustomFilename")
+        if exportSettings.isCustomFilename:
+            prop_split(col, exportSettings, "filename", "Filename")
         prop_split(col, exportSettings, "folder", "Object" if not exportSettings.customExport else "Folder")
         if exportSettings.customExport:
             prop_split(col, exportSettings, "exportPath", "Directory")
