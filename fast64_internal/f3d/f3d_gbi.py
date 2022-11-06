@@ -1985,75 +1985,11 @@ class Vtx:
         )
 
     def to_c(self):
+        spc = lambda x: ", ".join([hex(a) for a in x])
         if bpy.context.scene.decomp_compatible:
-            return (
-                "{{"
-                + ", ".join(
-                    (
-                        (
-                            "{"
-                            + ", ".join(
-                                (
-                                    str(self.position[0]),
-                                    str(self.position[1]),
-                                    str(self.position[2]),
-                                )
-                            )
-                            + "}"
-                        ),
-                        "0",
-                        "{" + str(self.uv[0]) + ", " + str(self.uv[1]) + "}",
-                        (
-                            "{"
-                            + ", ".join(
-                                (
-                                    "0x" + format(self.colorOrNormal[0], "X"),
-                                    "0x" + format(self.colorOrNormal[1], "X"),
-                                    "0x" + format(self.colorOrNormal[2], "X"),
-                                    "0x" + format(self.colorOrNormal[3], "X"),
-                                )
-                            )
-                            + "}"
-                        ),
-                    )
-                )
-                + "}}"
-            )
+            return (f"{{{{ {{{spc(self.position)}}}, 0, {{{spc(self.uv)}}}, {{{spc(self.colorOrNormal}}} }}}},\n"))
         else:
-            return (
-                "{"
-                + ", ".join(
-                    (
-                        str(self.position[0]),
-                        str(self.position[1]),
-                        str(self.position[2]),
-                        "0",
-                        str(self.uv[0]),
-                        str(self.uv[1]),
-                        "0x" + format(self.colorOrNormal[0], "X"),
-                        "0x" + format(self.colorOrNormal[1], "X"),
-                        "0x" + format(self.colorOrNormal[2], "X"),
-                        "0x" + format(self.colorOrNormal[3], "X"),
-                    )
-                )
-                + "}"
-            )
-
-    def to_sm64_decomp_s(self):
-        return "vertex " + ", ".join(
-            (
-                str(self.position[0]),
-                str(self.position[1]),
-                str(self.position[2]),
-                "0",
-                "0x" + format(self.uv[0], "X"),
-                "0x" + format(self.uv[1], "X"),
-                "0x" + format(self.colorOrNormal[0], "X"),
-                "0x" + format(self.colorOrNormal[1], "X"),
-                "0x" + format(self.colorOrNormal[2], "X"),
-                "0x" + format(self.colorOrNormal[3], "X"),
-            )
-        )
+            return (f"{{{{ {spc(self.position)}, 0, {spc(self.uv)}, {spc(self.colorOrNormal} }}}},\n"))
 
 
 class VtxList:
@@ -2083,17 +2019,11 @@ class VtxList:
 
     def to_c(self):
         data = CData()
-        data.header = "extern Vtx " + self.name + "[" + str(len(self.vertices)) + "];\n"
-        data.source = "Vtx " + self.name + "[" + str(len(self.vertices)) + "] = {\n"
+        data.header = f"extern Vtx {self.name}[{str(len(self.vertices))}];\n"
+        data.source = f"Vtx {self.name}[{str(len(self.vertices))}] = {{\n"
         for vert in self.vertices:
             data.source += "\t" + vert.to_c() + ",\n"
         data.source += "};\n\n"
-        return data
-
-    def to_sm64_decomp_s(self):
-        data = self.name + ":\n"
-        for vert in self.vertices:
-            data += vert.to_sm64_decomp_s() + "\n"
         return data
 
 
@@ -2108,29 +2038,21 @@ class GfxList:
     def set_addr(self, startAddress, f3d):
         startAddress = get64bitAlignedAddr(startAddress)
         self.startAddress = startAddress
-        print("GfxList " + self.name + ": " + str(startAddress) + ", " + str(self.size(f3d)))
+        print(f"GfxList {self.name}: {str(startAddress)}, {str(self.size(f3d)})")
         return startAddress, startAddress + self.size(f3d)
 
     def save_binary(self, romfile, f3d, segments):
-        print("GfxList " + self.name + ": " + str(self.startAddress) + ", " + str(self.size(f3d)))
+        print(f"GfxList {self.name}: {str(startAddress)}, {str(self.size(f3d)})")
         romfile.seek(self.startAddress)
         romfile.write(self.to_binary(f3d, segments))
 
     def size(self, f3d):
-        size = 0
-        for command in self.commands:
-            size += command.size(f3d)
-        return size
+        return sum([command.size(f3d) for command in self.commands])
 
     # Size, including display lists called with SPDisplayList
     def size_total(self, f3d):
-        size = 0
-        for command in self.commands:
-            if isinstance(command, SPDisplayList) and command.displayList.DLFormat != DLFormat.Static:
-                size += command.displayList.size_total(f3d)
-            else:
-                size += command.size(f3d)
-        return size
+        siz_tot = lambda x: isinstance(command, SPDisplayList) and command.displayList.DLFormat != DLFormat.Static
+        return sum([command.size(f3d) if siz_tot(command) else command.displayList.size_total(f3d) for command in self.commands])
 
     def get_ptr_addresses(self, f3d):
         ptrs = []
@@ -2146,39 +2068,32 @@ class GfxList:
         data = bytearray(0)
         for command in self.commands:
             data.extend(command.to_binary(f3d, segments))
-
         return data
 
     def to_c_static(self):
-        data = "Gfx " + self.name + "[] = {\n"
+        data = f"Gfx {self.name}[] = {{\n"
         for command in self.commands:
-            data += "\t" + command.to_c(True) + ",\n"
+            data += f"\t{command.to_c(True)},\n"
         data += "};\n\n"
         return data
 
     def to_c_dynamic(self):
-        data = "Gfx* " + self.name + "(Gfx* glistp) {\n"
+        data = f"Gfx* {self.name}(Gfx* glistp) {{\n"
         for command in self.commands:
-            data += "\t" + command.to_c(False) + ";\n"
+            data += f"\t{command.to_c(False)};\n"
         data += "\treturn glistp;\n}\n\n"
         return data
 
     def to_c(self, f3d):
         data = CData()
         if self.DLFormat == DLFormat.Static:
-            data.header = "extern Gfx " + self.name + "[];\n"
+            data.header = f"extern Gfx {self.name}[];\n"
             data.source = self.to_c_static()
         elif self.DLFormat == DLFormat.Dynamic:
-            data.header = "Gfx* " + self.name + "(Gfx* glistp);\n"
+            data.header = f"Gfx* {self.name}(Gfx* glistp);\n"
             data.source = self.to_c_dynamic()
         else:
             raise PluginError("Invalid GfxList format: " + str(self.DLFormat))
-        return data
-
-    def to_sm64_decomp_s(self):
-        data = "glabel " + self.name + "\n"
-        for command in self.commands:
-            data += command.to_sm64_decomp_s() + "\n"
         return data
 
 
@@ -3001,45 +2916,7 @@ class Light:
         return bytearray(self.color + [0x00] + self.color + [0x00] + self.normal + [0x00] + [0x00] * 4)
 
     def to_c(self):
-        return ",".join(
-            (
-                "0x" + format(self.color[0], "X"),
-                "0x" + format(self.color[1], "X"),
-                "0x" + format(self.color[2], "X"),
-                "0x" + format(self.normal[0], "X"),
-                "0x" + format(self.normal[1], "X"),
-                "0x" + format(self.normal[2], "X"),
-            )
-        )
-
-    def to_sm64_decomp_s(self):
-        return (
-            ".byte "
-            + ", ".join(
-                (
-                    "0x" + format(self.color[0], "X"),
-                    "0x" + format(self.color[1], "X"),
-                    "0x" + format(self.color[2], "X"),
-                    "0x00",
-                    "0x" + format(self.color[0], "X"),
-                    "0x" + format(self.color[1], "X"),
-                    "0x" + format(self.color[2], "X"),
-                    "0x00",
-                )
-            )
-            + "\n"
-            + ".byte "
-            + ", ".join(
-                (
-                    "0x" + format(self.normal[0], "X"),
-                    "0x" + format(self.normal[1], "X"),
-                    "0x" + format(self.normal[2], "X"),
-                    "0x00",
-                    "0x00, 0x00, 0x00, 0x00",
-                )
-            )
-            + "\n"
-        )
+        return ', '.join(["0x{a:X}" for a in (*self.color, *self.normal)])
 
 
 class Ambient:
@@ -3058,31 +2935,7 @@ class Ambient:
         return bytearray(self.color + [0x00] + self.color + [0x00])
 
     def to_c(self):
-        return ", ".join(
-            (
-                "0x" + format(self.color[0], "X"),
-                "0x" + format(self.color[1], "X"),
-                "0x" + format(self.color[2], "X"),
-            )
-        )
-
-    def to_sm64_decomp_s(self):
-        return (
-            ".byte "
-            + ", ".join(
-                (
-                    "0x" + format(self.color[0], "X"),
-                    "0x" + format(self.color[1], "X"),
-                    "0x" + format(self.color[2], "X"),
-                    "0x00",
-                    "0x" + format(self.color[0], "X"),
-                    "0x" + format(self.color[1], "X"),
-                    "0x" + format(self.color[2], "X"),
-                    "0x00",
-                )
-            )
-            + "\n"
-        )
+        return ', '.join(["0x{a:X}" for a in self.color])
 
 
 class Hilite:
@@ -3093,44 +2946,14 @@ class Hilite:
         self.y1 = y1
         self.x2 = x2
         self.y2 = y2
+    def fields(self):
+        return self.x1, self.y1, self.x2, self.y2
 
     def to_binary(self):
-        return (
-            self.x1.to_bytes(4, "big")
-            + self.y1.to_bytes(4, "big")
-            + self.x2.to_bytes(4, "big")
-            + self.y2.to_bytes(4, "big")
-        )
+        return (a.to_bytes(4, "big") for a in self.fields)
 
     def to_c(self):
-        return (
-            "Hilite "
-            + self.name
-            + " = {"
-            + str(self.x1)
-            + ", "
-            + str(self.y1)
-            + ", "
-            + str(self.x2)
-            + ", "
-            + str(self.y2)
-            + "}"
-        )
-
-    def to_sm64_decomp_s(self):
-        return (
-            self.name
-            + ":\n"
-            + ".word "
-            + str(self.x1)
-            + ", "
-            + str(self.y1)
-            + ", "
-            + str(self.x2)
-            + ", "
-            + str(self.y2)
-            + "\n"
-        )
+        return (f"Hilite {self.name} = {{{', '.join(str(a) for a in self.fields)}}}")
 
 
 class Lights:
@@ -3143,7 +2966,7 @@ class Lights:
     def set_addr(self, startAddress):
         startAddress = get64bitAlignedAddr(startAddress)
         self.startAddress = startAddress
-        print("Lights " + self.name + ": " + str(startAddress) + ", " + str(self.size()))
+        print(f"Lights {self.name}: {str(startAddress)}, {str(self.size())}")
         return (startAddress, startAddress + self.size())
 
     def save_binary(self, romfile):
@@ -3170,22 +2993,12 @@ class Lights:
 
     def to_c(self):
         data = CData()
-        data.header = "extern Lights" + str(len(self.l)) + " " + self.name + ";\n"
-        data.source = "Lights" + str(len(self.l)) + " " + self.name + " = " + "gdSPDefLights" + str(len(self.l)) + "(\n"
+        data.header = f"extern Lights{str(len(self.l))} {self.name};\n"
+        data.source = f"Lights{str(len(self.l))} {self.name} = gdSPDefLights{str(len(self.l))}(\n"
         data.source += "\t" + self.a.to_c()
         for light in self.l:
             data.source += ",\n\t" + light.to_c()
         data.source += ");\n\n"
-        return data
-
-    def to_sm64_decomp_s(self):
-        data = ".balign 8\n" + self.name + ":\n"
-        data += self.name + "_a:\n" + self.a.to_sm64_decomp_s() + "\n"
-        if len(self.l) == 0:
-            data += self.name + "_l0:\n" + Light([0, 0, 0], [0, 0, 0]).to_sm64_decomp_s() + "\n"
-        else:
-            for i in range(len(self.l)):
-                data += self.name + "_l" + str(i) + ":\n" + self.l[i].to_sm64_decomp_s() + "\n"
         return data
 
 
@@ -3201,51 +3014,15 @@ class LookAt:
     def to_c(self):
         # {{}} => lookat, light array,
         # {{}} => light, light_t
+        spc = lambda x: ', '.join(str(c) for c in x
         return (
-            "LookAt "
-            + self.name
-            + " = {{"
-            + "{{"
-            + "{"
-            + str(self.l[0].color[0])
-            + ", "
-            + str(self.l[0].color[1])
-            + ", "
-            + str(self.l[0].color[2])
-            + "}, 0, "
-            + "{"
-            + str(self.l[0].normal[0])
-            + ", "
-            + str(self.l[0].normal[1])
-            + ", "
-            + str(self.l[0].normal[2])
-            + "}, 0"
-            + "}}"
-            + "{{"
-            + "{"
-            + str(self.l[1].color[0])
-            + ", "
-            + str(self.l[1].color[1])
-            + ", "
-            + str(self.l[1].color[2])
-            + "}, 0, "
-            + "{"
-            + str(self.l[1].normal[0])
-            + ", "
-            + str(self.l[1].normal[1])
-            + ", "
-            + str(self.l[1].normal[2])
-            + "}, 0"
-            + "}}"
+            f"LookAt {self.name} = {{{{"
+            + "{{{"+ spc(self.l[0].color) + "}, 0, "
+            + "{" + spc(self.l[0].normal) + "}, 0 }}"
+            + "{{{" + spc(self.l[1].color) + "}, 0, "
+            + "{" + spc(self.l[0].normal) + "}, 0}}"
             + "}}\n"
         )
-
-    def to_sm64_decomp_s(self):
-        data = ".balign 8\n" + self.name + ":\n"
-        data += self.name + ":\n"
-        data += self.l[0].to_sm64_decomp_s() + "\n"
-        data += self.l[1].to_sm64_decomp_s() + "\n"
-        return data
 
 
 # A palette is just a RGBA16 texture with width = 1.
@@ -3277,12 +3054,12 @@ class FImage:
 
     def to_c_helper(self, texData, bitsPerValue):
         code = CData()
-        code.header = "extern u" + str(bitsPerValue) + " " + self.name + "[];\n"
+        code.header = f"extern u{str(bitsPerValue)} {self.name}[];\n"
 
         # This is to force 8 byte alignment
         if bitsPerValue != 64:
-            code.source = "Gfx " + self.name + "_aligner[] = {gsSPEndDisplayList()};\n"
-        code.source += "u" + str(bitsPerValue) + " " + self.name + "[] = {\n\t"
+            code.source = f"Gfx {self.name}_aligner[] = {{gsSPEndDisplayList()}};\n"
+        code.source += f"u{str(bitsPerValue)} {self.name}[] = {{\n\t"
         code.source += texData
         code.source += "\n};\n\n"
         return code
@@ -3354,7 +3131,7 @@ def gsSPNoOp(f3d):
 
 #base class for gbi macros
 @dataclass
-class gbiMacro:
+class GbiMacro:
     _segptrs = False
     _ptr_amp = False
 
@@ -3382,15 +3159,12 @@ class gbiMacro:
         else:
             return f"g{'s'*static}{type(self).__name__}(glistp++, {', '.join( self.getargs(static) )})"
 
-    def to_sm64_decomp_s(self):
-        return f"gs{type(self).__name__} {','.join( self.getargs(self) )}"
-
     def size(self, f3d):
         return GFX_SIZE
 
 
 @dataclass
-class SPMatrix(gbiMacro):
+class SPMatrix(GbiMacro):
     matrix: int
     param: int
 
@@ -3414,7 +3188,7 @@ class SPMatrix(gbiMacro):
 # Divide mesh drawing by materials into separate gfx
 
 @dataclass
-class SPVertex(gbiMacro):
+class SPVertex(GbiMacro):
     # v = seg pointer, n = count, v0  = ?
     vertList: VtxList
     offset: int
@@ -3449,20 +3223,8 @@ class SPVertex(gbiMacro):
             header += self.vertList.name + " + " + str(self.offset)
         return header + ", " + str(self.count) + ", " + str(self.index) + ")"
 
-    def to_sm64_decomp_s(self):
-        return (
-            "gsSPVertex "
-            + self.vertList.name
-            + ", "
-            + str(self.offset)
-            + ", "
-            + str(self.count)
-            + ", "
-            + str(self.index)
-        )
-
 @dataclass
-class SPViewport(gbiMacro):
+class SPViewport(GbiMacro):
     # v = seg pointer, n = count, v0  = ?
     viewport: Vp
     _ptr_amp = True #add an ampersand to names
@@ -3477,7 +3239,7 @@ class SPViewport(gbiMacro):
 
 
 @dataclass
-class SPDisplayList(gbiMacro):
+class SPDisplayList(GbiMacro):
     displayList: GfxList
 
     def to_binary(self, f3d, segments):
@@ -3498,7 +3260,7 @@ class SPDisplayList(gbiMacro):
 
 
 @dataclass
-class SPBranchList(gbiMacro):
+class SPBranchList(GbiMacro):
     displayList: GfxList
     _ptr_amp = True #add an ampersand to names
 
@@ -3603,7 +3365,7 @@ def _gsSP1Quadrangle_w2f(v0, v1, v2, v3, flag):
 
 
 @dataclass
-class SP1Triangle(gbiMacro):
+class SP1Triangle(GbiMacro):
     v0: int
     v1: int
     v2: int
@@ -3619,7 +3381,7 @@ class SP1Triangle(gbiMacro):
 
 
 @dataclass
-class SPLine3D(gbiMacro):
+class SPLine3D(GbiMacro):
     v0: int
     v1: int
     flag: int
@@ -3633,7 +3395,7 @@ class SPLine3D(gbiMacro):
 
 
 @dataclass
-class SPLineW3D(gbiMacro):
+class SPLineW3D(GbiMacro):
     v0: int
     v1: int
     wd: int
@@ -3651,7 +3413,7 @@ class SPLineW3D(gbiMacro):
 
 
 @dataclass
-class SP2Triangles(gbiMacro):
+class SP2Triangles(GbiMacro):
     v00: int
     v01: int
     v02: int
@@ -3673,7 +3435,7 @@ class SP2Triangles(gbiMacro):
 
 
 @dataclass
-class SPCullDisplayList(gbiMacro):
+class SPCullDisplayList(GbiMacro):
     vstart: int
     vend: int
 
@@ -3686,7 +3448,7 @@ class SPCullDisplayList(gbiMacro):
 
 
 @dataclass
-class SPSegment(gbiMacro):
+class SPSegment(GbiMacro):
     segment: int
     base: int
 
@@ -3697,12 +3459,9 @@ class SPSegment(gbiMacro):
         header = "gsSPSegment(" if static else "gSPSegment(glistp++, "
         return header + str(self.segment) + ", " + "0x" + format(self.base, "X") + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsSPSegment " + str(self.segment) + ", 0x" + format(self.base, "X")
-
 
 @dataclass
-class SPClipRatio(gbiMacro):
+class SPClipRatio(GbiMacro):
     ratio: int
 
     def to_binary(self, f3d, segments):
@@ -3727,7 +3486,7 @@ class SPClipRatio(gbiMacro):
 
 
 @dataclass
-class SPModifyVertex(gbiMacro):
+class SPModifyVertex(GbiMacro):
     vtx: int
     where: int
     val: int
@@ -3748,7 +3507,7 @@ class SPModifyVertex(gbiMacro):
 
 
 @dataclass
-class SPBranchLessZraw(gbiMacro):
+class SPBranchLessZraw(GbiMacro):
     dl: GfxList
     vtx: int
     zval: int
@@ -3783,7 +3542,7 @@ class SPBranchLessZraw(gbiMacro):
 
 
 @dataclass
-class SPNumLights(gbiMacro):
+class SPNumLights(GbiMacro):
     # n is macro name (string)
     n: str
 
@@ -3792,7 +3551,7 @@ class SPNumLights(gbiMacro):
 
 
 @dataclass
-class SPLight(gbiMacro):
+class SPLight(GbiMacro):
     # n is macro name (string)
     light: int  # start address of light
     n: str
@@ -3808,7 +3567,7 @@ class SPLight(gbiMacro):
 
 
 @dataclass
-class SPLightColor(gbiMacro):
+class SPLightColor(GbiMacro):
     # n is macro name (string)
     n: str
     col: int
@@ -3822,12 +3581,9 @@ class SPLightColor(gbiMacro):
         header = "gsSPLightColor(" if static else "gSPLightColor(glistp++, "
         return header + str(self.n) + ", 0x" + format(self.col, "08X") + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsSPLightColor " + str(self.n) + ", 0x" + format(self.col, "08X")
-
 
 @dataclass
-class SPSetLights(gbiMacro):
+class SPSetLights(GbiMacro):
     lights: Lights
 
     def get_ptr_offsets(self, f3d):
@@ -3868,9 +3624,6 @@ class SPSetLights(gbiMacro):
             header += self.lights.name
         return header + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsSPSetLights " + self.lights.name
-
     def size(self, f3d):
         return GFX_SIZE * (2 + max(len(self.lights.l), 1))
 
@@ -3893,7 +3646,7 @@ def gsSPLookAtY(l, f3d):
 
 
 @dataclass
-class SPLookAt(gbiMacro):
+class SPLookAt(GbiMacro):
     la: LookAt
     _ptr_amp = True #add an ampersand to names
 
@@ -3903,7 +3656,7 @@ class SPLookAt(gbiMacro):
 
 
 @dataclass
-class DPSetHilite1Tile(gbiMacro):
+class DPSetHilite1Tile(GbiMacro):
     tile: int
     hilite: Hilite
     width: int
@@ -3921,7 +3674,7 @@ class DPSetHilite1Tile(gbiMacro):
 
 
 @dataclass
-class DPSetHilite2Tile(gbiMacro):
+class DPSetHilite2Tile(GbiMacro):
     tile: int
     hilite: Hilite
     width: int
@@ -3939,7 +3692,7 @@ class DPSetHilite2Tile(gbiMacro):
 
 
 @dataclass
-class SPFogFactor(gbiMacro):
+class SPFogFactor(GbiMacro):
     fm: int
     fo: int
 
@@ -3947,7 +3700,7 @@ class SPFogFactor(gbiMacro):
         return gsMoveWd(f3d.G_MW_FOG, f3d.G_MWO_FOG, (_SHIFTL(self.fm, 16, 16) | _SHIFTL(self.fo, 0, 16)), f3d)
 
 
-class SPFogPosition(gbiMacro):
+class SPFogPosition(GbiMacro):
     def __init__(self, minVal, maxVal):
         self.minVal = int(round(minVal))
         self.maxVal = int(round(maxVal))
@@ -3967,12 +3720,9 @@ class SPFogPosition(gbiMacro):
         header = "gsSPFogPosition(" if static else "gSPFogPosition(glistp++, "
         return header + str(self.minVal) + ", " + str(self.maxVal) + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsSPFogPosition " + str(self.minVal) + ", " + str(self.maxVal)
-
 
 @dataclass
-class SPTexture(gbiMacro):
+class SPTexture(GbiMacro):
     s: int
     t: int
     level: int
@@ -4004,7 +3754,7 @@ class SPTexture(gbiMacro):
 
 
 @dataclass
-class SPPerspNormalize(gbiMacro):
+class SPPerspNormalize(GbiMacro):
     s: int
 
     def to_binary(self, f3d, segments):
@@ -4016,7 +3766,7 @@ class SPPerspNormalize(gbiMacro):
 
 
 @dataclass
-class SPEndDisplayList(gbiMacro):
+class SPEndDisplayList(GbiMacro):
     def to_binary(self, f3d, segments):
         words = _SHIFTL(f3d.G_ENDDL, 24, 8), 0
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
@@ -4068,7 +3818,7 @@ def geoFlagListToWord(flagList, f3d):
 
 
 @dataclass
-class SPGeometryMode(gbiMacro):
+class SPGeometryMode(GbiMacro):
     clearFlagList: list
     setFlagList: list
 
@@ -4083,7 +3833,7 @@ class SPGeometryMode(gbiMacro):
 
 
 @dataclass
-class SPSetGeometryMode(gbiMacro):
+class SPSetGeometryMode(GbiMacro):
     flagList: list
 
     def to_binary(self, f3d, segments):
@@ -4096,7 +3846,7 @@ class SPSetGeometryMode(gbiMacro):
 
 
 @dataclass
-class SPClearGeometryMode(gbiMacro):
+class SPClearGeometryMode(GbiMacro):
     flagList: list
 
     def to_binary(self, f3d, segments):
@@ -4109,7 +3859,7 @@ class SPClearGeometryMode(gbiMacro):
 
 
 @dataclass
-class SPLoadGeometryMode(gbiMacro):
+class SPLoadGeometryMode(GbiMacro):
     flagList: list
 
     def to_binary(self, f3d, segments):
@@ -4129,7 +3879,7 @@ def gsSPSetOtherMode(cmd, sft, length, data, f3d):
 
 
 @dataclass
-class SPSetOtherMode(gbiMacro):
+class SPSetOtherMode(GbiMacro):
     cmd: str
     sft: int
     length: int
@@ -4145,7 +3895,7 @@ class SPSetOtherMode(gbiMacro):
 
 
 @dataclass
-class DPPipelineMode(gbiMacro):
+class DPPipelineMode(GbiMacro):
     # mode is a string
     mode: str
 
@@ -4158,7 +3908,7 @@ class DPPipelineMode(gbiMacro):
 
 
 @dataclass
-class DPSetCycleType(gbiMacro):
+class DPSetCycleType(GbiMacro):
     # mode is a string
     mode: str
 
@@ -4175,7 +3925,7 @@ class DPSetCycleType(gbiMacro):
 
 
 @dataclass
-class DPSetTexturePersp(gbiMacro):
+class DPSetTexturePersp(GbiMacro):
     # mode is a string
     mode: str
 
@@ -4188,7 +3938,7 @@ class DPSetTexturePersp(gbiMacro):
 
 
 @dataclass
-class DPSetTextureDetail(gbiMacro):
+class DPSetTextureDetail(GbiMacro):
     # mode is a string
     mode: str
 
@@ -4203,7 +3953,7 @@ class DPSetTextureDetail(gbiMacro):
 
 
 @dataclass
-class DPSetTextureLOD(gbiMacro):
+class DPSetTextureLOD(GbiMacro):
     # mode is a string
     mode: str
 
@@ -4216,7 +3966,7 @@ class DPSetTextureLOD(gbiMacro):
 
 
 @dataclass
-class DPSetTextureLUT(gbiMacro):
+class DPSetTextureLUT(GbiMacro):
     # mode is a string
     mode: str
 
@@ -4233,7 +3983,7 @@ class DPSetTextureLUT(gbiMacro):
 
 
 @dataclass
-class DPSetTextureFilter(gbiMacro):
+class DPSetTextureFilter(GbiMacro):
     # mode is a string
     mode: str
 
@@ -4248,7 +3998,7 @@ class DPSetTextureFilter(gbiMacro):
 
 
 @dataclass
-class DPSetTextureConvert(gbiMacro):
+class DPSetTextureConvert(GbiMacro):
     # mode is a string
     mode: str
 
@@ -4263,7 +4013,7 @@ class DPSetTextureConvert(gbiMacro):
 
 
 @dataclass
-class DPSetCombineKey(gbiMacro):
+class DPSetCombineKey(GbiMacro):
     # mode is a string
     mode: str
 
@@ -4276,7 +4026,7 @@ class DPSetCombineKey(gbiMacro):
 
 
 @dataclass
-class DPSetColorDither(gbiMacro):
+class DPSetColorDither(GbiMacro):
     # mode is a string
     mode: str
 
@@ -4302,7 +4052,7 @@ class DPSetColorDither(gbiMacro):
 
 
 @dataclass
-class DPSetAlphaDither(gbiMacro):
+class DPSetAlphaDither(GbiMacro):
     # mode is a string
     mode: str
 
@@ -4322,7 +4072,7 @@ class DPSetAlphaDither(gbiMacro):
 
 
 @dataclass
-class DPSetAlphaCompare(gbiMacro):
+class DPSetAlphaCompare(GbiMacro):
     # mask is a string
     mode: str
 
@@ -4337,7 +4087,7 @@ class DPSetAlphaCompare(gbiMacro):
 
 
 @dataclass
-class DPSetDepthSource(gbiMacro):
+class DPSetDepthSource(GbiMacro):
     # src is a string
     src: str
 
@@ -4366,7 +4116,7 @@ def GBL_c2(m1a, m1b, m2a, m2b):
 
 
 @dataclass
-class DPSetRenderMode(gbiMacro):
+class DPSetRenderMode(GbiMacro):
     # bl0-3 are string for each blender enum
     def __init__(self, flagList, blendList):
         self.flagList = flagList
@@ -4434,9 +4184,6 @@ class DPSetRenderMode(gbiMacro):
             data += self.flagList[0] + ", " + self.flagList[1] + ")"
             return data
 
-    def to_sm64_decomp_s(self):
-        raise PluginError("Cannot use DPSetRenderMode with gbi.inc.")
-
 
 def gsSetImage(cmd, fmt, siz, width, i):
     words = _SHIFTL(cmd, 24, 8) | _SHIFTL(fmt, 21, 3) | _SHIFTL(siz, 19, 2) | _SHIFTL((width) - 1, 0, 12), i
@@ -4448,7 +4195,7 @@ def gsSetImage(cmd, fmt, siz, width, i):
 
 
 @dataclass
-class DPSetTextureImage(gbiMacro):
+class DPSetTextureImage(GbiMacro):
     fmt: str
     siz: str
     width: int
@@ -4491,7 +4238,7 @@ def GCCc1w1(sbRGB1, saA1, mA1, aRGB1, sbA1, aA1):
 
 
 @dataclass
-class DPSetCombineMode(gbiMacro):
+class DPSetCombineMode(GbiMacro):
     # all strings
     a0: str
     b0: str
@@ -4533,9 +4280,6 @@ class DPSetCombineMode(gbiMacro):
         else:
             return f"gDPSetCombineLERP(glistp++, {','.join( self.getargs(static) )})"
 
-    def to_sm64_decomp_s(self):
-        return f"gsDPSetCombineLERP {','.join( self.getargs(self) )}"
-
 
 def gsDPSetColor(c, d):
     words = _SHIFTL(c, 24, 8), d
@@ -4547,7 +4291,7 @@ def sDPRGBColor(cmd, r, g, b, a):
 
 
 @dataclass
-class DPSetEnvColor(gbiMacro):
+class DPSetEnvColor(GbiMacro):
     r: int
     g: int
     b: int
@@ -4558,7 +4302,7 @@ class DPSetEnvColor(gbiMacro):
 
 
 @dataclass
-class DPSetBlendColor(gbiMacro):
+class DPSetBlendColor(GbiMacro):
     r: int
     g: int
     b: int
@@ -4569,7 +4313,7 @@ class DPSetBlendColor(gbiMacro):
 
 
 @dataclass
-class DPSetFogColor(gbiMacro):
+class DPSetFogColor(GbiMacro):
     r: int
     g: int
     b: int
@@ -4580,7 +4324,7 @@ class DPSetFogColor(gbiMacro):
 
 
 @dataclass
-class DPSetFillColor(gbiMacro):
+class DPSetFillColor(GbiMacro):
     d: int
 
     def to_binary(self, f3d, segments):
@@ -4588,7 +4332,7 @@ class DPSetFillColor(gbiMacro):
 
 
 @dataclass
-class DPSetPrimDepth(gbiMacro):
+class DPSetPrimDepth(GbiMacro):
     z: int = 0
     dz: int = 0
 
@@ -4597,7 +4341,7 @@ class DPSetPrimDepth(gbiMacro):
 
 
 @dataclass
-class DPSetPrimColor(gbiMacro):
+class DPSetPrimColor(GbiMacro):
     m: int
     l: int
     r: int
@@ -4613,7 +4357,7 @@ class DPSetPrimColor(gbiMacro):
 
 
 @dataclass
-class DPSetOtherMode(gbiMacro):
+class DPSetOtherMode(GbiMacro):
     mode0: list
     mode1: list
 
@@ -4630,7 +4374,7 @@ def gsDPLoadTileGeneric(c, tile, uls, ult, lrs, lrt):
 
 
 @dataclass
-class DPSetTileSize(gbiMacro):
+class DPSetTileSize(GbiMacro):
     t: int
     uls: int
     ult: int
@@ -4642,7 +4386,7 @@ class DPSetTileSize(gbiMacro):
 
 
 @dataclass
-class DPLoadTile(gbiMacro):
+class DPLoadTile(GbiMacro):
     t: int
     uls: int
     ult: int
@@ -4654,7 +4398,7 @@ class DPLoadTile(gbiMacro):
 
 
 @dataclass
-class DPSetTile(gbiMacro):
+class DPSetTile(GbiMacro):
     fmt: str
     siz: str
     line: int
@@ -4692,7 +4436,7 @@ class DPSetTile(gbiMacro):
 
 
 @dataclass
-class DPLoadBlock(gbiMacro):
+class DPLoadBlock(GbiMacro):
     tile: int
     uls: int
     ult: int
@@ -4710,7 +4454,7 @@ class DPLoadBlock(gbiMacro):
 
 
 @dataclass
-class DPLoadTLUTCmd(gbiMacro):
+class DPLoadTLUTCmd(GbiMacro):
     tile: int
     count: int
 
@@ -4720,7 +4464,7 @@ class DPLoadTLUTCmd(gbiMacro):
 
 
 @dataclass
-class DPLoadTextureBlock(gbiMacro):
+class DPLoadTextureBlock(GbiMacro):
     timg:FImage
     fmt: str
     siz: str
@@ -4793,7 +4537,7 @@ class DPLoadTextureBlock(gbiMacro):
 
 
 @dataclass
-class DPLoadTextureBlockYuv(gbiMacro):
+class DPLoadTextureBlockYuv(GbiMacro):
     timg:FImage
     fmt: str
     siz: str
@@ -4871,7 +4615,7 @@ class DPLoadTextureBlockYuv(gbiMacro):
 
 
 @dataclass
-class _DPLoadTextureBlock(gbiMacro):
+class _DPLoadTextureBlock(GbiMacro):
     timg:FImage
     tmem: int
     fmt: str
@@ -4950,7 +4694,7 @@ class _DPLoadTextureBlock(gbiMacro):
 
 
 @dataclass
-class DPLoadTextureBlock_4b(gbiMacro):
+class DPLoadTextureBlock_4b(GbiMacro):
     timg:FImage
     fmt: str
     siz: str
@@ -5021,7 +4765,7 @@ class DPLoadTextureBlock_4b(gbiMacro):
 
 
 @dataclass
-class DPLoadTextureTile(gbiMacro):
+class DPLoadTextureTile(GbiMacro):
     timg:FImage
     fmt: str
     siz: str
@@ -5097,7 +4841,7 @@ class DPLoadTextureTile(gbiMacro):
 
 
 @dataclass
-class DPLoadTextureTile_4b(gbiMacro):
+class DPLoadTextureTile_4b(GbiMacro):
     timg:FImage
     fmt: str
     siz: str
@@ -5173,7 +4917,7 @@ class DPLoadTextureTile_4b(gbiMacro):
 
 
 @dataclass
-class DPLoadTLUT_pal16(gbiMacro):
+class DPLoadTLUT_pal16(GbiMacro):
     pal: int
     dram: FImage # pallete object
     _ptr_amp = True #adds & to name of image
@@ -5215,7 +4959,7 @@ class DPLoadTLUT_pal16(gbiMacro):
 
 
 @dataclass
-class DPLoadTLUT_pal256(gbiMacro):
+class DPLoadTLUT_pal256(GbiMacro):
     dram: FImage # pallete object
     _ptr_amp = True #adds & to name of image
 
@@ -5254,7 +4998,7 @@ class DPLoadTLUT_pal256(gbiMacro):
 
 
 @dataclass
-class DPLoadTLUT(gbiMacro):
+class DPLoadTLUT(GbiMacro):
     count: int
     tmemaddr: int
     dram: FImage # pallete object
@@ -5301,7 +5045,7 @@ class DPLoadTLUT(gbiMacro):
 
 
 @dataclass
-class DPSetConvert(gbiMacro):
+class DPSetConvert(GbiMacro):
     k0: int
     k1: int
     k2: int
@@ -5317,7 +5061,7 @@ class DPSetConvert(gbiMacro):
 
 
 @dataclass
-class DPSetKeyR(gbiMacro):
+class DPSetKeyR(GbiMacro):
     cR: int
     sR: int
     wR: int
@@ -5330,7 +5074,7 @@ class DPSetKeyR(gbiMacro):
 
 
 @dataclass
-class DPSetKeyGB(gbiMacro):
+class DPSetKeyGB(GbiMacro):
     cG: int
     sG: int
     wG: int
@@ -5360,7 +5104,7 @@ def gsDPParam(cmd, param):
 
 
 @dataclass
-class SPTextureRectangle(gbiMacro):
+class SPTextureRectangle(GbiMacro):
     xl: int
     yl: int
     xh: int
@@ -5391,7 +5135,7 @@ class SPTextureRectangle(gbiMacro):
 
 
 @dataclass
-class SPScisTextureRectangle(gbiMacro):
+class SPScisTextureRectangle(GbiMacro):
     xl: int
     yl: int
     xh: int
@@ -5414,25 +5158,25 @@ class SPScisTextureRectangle(gbiMacro):
 
 
 @dataclass
-class DPFullSync(gbiMacro):
+class DPFullSync(GbiMacro):
     def to_binary(self, f3d, segments):
         return gsDPNoParam(f3d.G_RDPFULLSYNC)
 
 
 @dataclass
-class DPTileSync(gbiMacro):
+class DPTileSync(GbiMacro):
     def to_binary(self, f3d, segments):
         return gsDPNoParam(f3d.G_RDPTILESYNC)
 
 
 @dataclass
-class DPPipeSync(gbiMacro):
+class DPPipeSync(GbiMacro):
     def to_binary(self, f3d, segments):
         return gsDPNoParam(f3d.G_RDPPIPESYNC)
 
 
 @dataclass
-class DPLoadSync(gbiMacro):
+class DPLoadSync(GbiMacro):
     def to_binary(self, f3d, segments):
         return gsDPNoParam(f3d.G_RDPLOADSYNC)
 
