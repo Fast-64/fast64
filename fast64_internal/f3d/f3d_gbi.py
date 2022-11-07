@@ -1,6 +1,6 @@
 # Macros are all copied over from gbi.h
 from typing import Sequence
-from dataclasses import dataclass, astuple
+from dataclasses import dataclass, fields
 import bpy, os, enum
 from ..utility import *
 
@@ -1985,7 +1985,7 @@ class Vtx:
 
     def to_c(self):
         spc = lambda x: ", ".join([hex(a) for a in x])
-        return (f"{{{{ {{{spc(self.position)}}}, 0, {{{spc(self.uv)}}}, {{{spc(self.colorOrNormal}}} }}}},\n"))
+        return (f"{{{{ {{{spc(self.position)}}}, 0, {{{spc(self.uv)}}}, {{{spc(self.colorOrNormal)}}} }}}}")
 
 
 class VtxList:
@@ -2034,11 +2034,11 @@ class GfxList:
     def set_addr(self, startAddress, f3d):
         startAddress = get64bitAlignedAddr(startAddress)
         self.startAddress = startAddress
-        print(f"GfxList {self.name}: {str(startAddress)}, {str(self.size(f3d)})")
+        print(f"GfxList {self.name}: {str(startAddress)}, {str(self.size(f3d))}")
         return startAddress, startAddress + self.size(f3d)
 
     def save_binary(self, romfile, f3d, segments):
-        print(f"GfxList {self.name}: {str(startAddress)}, {str(self.size(f3d)})")
+        print(f"GfxList {self.name}: {str(startAddress)}, {str(self.size(f3d))}")
         romfile.seek(self.startAddress)
         romfile.write(self.to_binary(f3d, segments))
 
@@ -2180,13 +2180,6 @@ class FModel:
     # Called before SPEndDisplayList
     def onMaterialCommandsBuilt(self, fMaterial, material, drawLayer):
         return
-
-    # Called in the creation of fMaterial
-    #default is saveTextureIndex
-    def onTextureSave(self, *args):
-        #avoids ciruclar import, bad practice to defer import though
-        from ..f3d.f3d_writer import saveTextureIndex
-        return saveTextureIndex(*args)
 
     #constructs an fMaterial, purpose is for override
     #that is possibly needed in specific export types
@@ -2814,6 +2807,7 @@ def get_f3d_mat_from_version(material: bpy.types.Material):
 class FMaterial:
     def __init__(self, name, DLFormat):
         self.material = GfxList("mat_" + name, GfxListTag.Material, DLFormat)
+        self.textures = [self.material] * 8 #up to 8 textures loaded
         self.revert = GfxList("mat_revert_" + name, GfxListTag.MaterialRevert, DLFormat.Static)
         self.DLFormat = DLFormat
         self.scrollData = FScrollData()
@@ -2924,7 +2918,7 @@ class Light:
         return bytearray(self.color + [0x00] + self.color + [0x00] + self.normal + [0x00] + [0x00] * 4)
 
     def to_c(self):
-        return ', '.join(["0x{a:X}" for a in (*self.color, *self.normal)])
+        return ', '.join([f"0x{a:X}" for a in (*self.color, *self.normal)])
 
 
 class Ambient:
@@ -2943,7 +2937,7 @@ class Ambient:
         return bytearray(self.color + [0x00] + self.color + [0x00])
 
     def to_c(self):
-        return ', '.join(["0x{a:X}" for a in self.color])
+        return ', '.join([f"0x{a:X}" for a in self.color])
 
 
 class Hilite:
@@ -3022,7 +3016,7 @@ class LookAt:
     def to_c(self):
         # {{}} => lookat, light array,
         # {{}} => light, light_t
-        spc = lambda x: ', '.join(str(c) for c in x
+        spc = lambda x: ', '.join(str(c) for c in x)
         return (
             f"LookAt {self.name} = {{{{"
             + "{{{"+ spc(self.l[0].color) + "}, 0, "
@@ -3143,11 +3137,14 @@ class GbiMacro:
     _segptrs = False
     _ptr_amp = False
 
+    def bleed(self, GfxList: GfxList):
+        return True
+
     def get_ptr_offsets(self, f3d):
         return [4]
 
     def getargs(self, static):
-        return (self.getattr_virtual(field, static) for field in astuple(self))
+        return (self.getattr_virtual(getattr(self, field.name), static) for field in fields(self))
 
     def getattr_virtual(self, field, static):
         if hasattr(field, "name"):
@@ -3162,6 +3159,7 @@ class GbiMacro:
         return str(field)
 
     def to_c(self, static=True):
+        print(self)
         if static:
             return f"g{'s'*static}{type(self).__name__}({', '.join( self.getargs(static) )})"
         else:
@@ -3242,6 +3240,9 @@ class SPViewport(GbiMacro):
 class SPDisplayList(GbiMacro):
     displayList: GfxList
 
+    def bleed(self, GfxList: GfxList):
+        return False
+
     def to_binary(self, f3d, segments):
         dlPtr = int.from_bytes(encodeSegmentedAddr(self.displayList.startAddress, segments), "big")
         return gsDma1p(f3d.G_DL, dlPtr, 0, f3d.G_DL_PUSH)
@@ -3263,6 +3264,9 @@ class SPDisplayList(GbiMacro):
 class SPBranchList(GbiMacro):
     displayList: GfxList
     _ptr_amp = True #add an ampersand to names
+
+    def bleed(self, GfxList: GfxList):
+        return False
 
     def to_binary(self, f3d, segments):
         dlPtr = int.from_bytes(encodeSegmentedAddr(self.displayList.startAddress, segments), "big")
@@ -3439,6 +3443,9 @@ class SPCullDisplayList(GbiMacro):
     vstart: int
     vend: int
 
+    def bleed(self, GfxList: GfxList):
+        return False
+
     def to_binary(self, f3d, segments):
         if f3d.F3DLP_GBI or f3d.F3DEX_GBI:
             words = _SHIFTL(f3d.G_CULLDL, 24, 8) | _SHIFTL((self.vstart) * 2, 0, 16), _SHIFTL((self.vend) * 2, 0, 16)
@@ -3451,6 +3458,9 @@ class SPCullDisplayList(GbiMacro):
 class SPSegment(GbiMacro):
     segment: int
     base: int
+
+    def bleed(self, GfxList: GfxList):
+        return False
 
     def to_binary(self, f3d, segments):
         return gsMoveWd(f3d.G_MW_SEGMENT, (self.segment) * 4, self.base, f3d)
@@ -3465,7 +3475,6 @@ class SPClipRatio(GbiMacro):
     ratio: int
 
     def to_binary(self, f3d, segments):
-
         # These values are supposed to be flipped.
         shortRatioPos = int.from_bytes((-self.ratio).to_bytes(2, "big", signed=True), "big", signed=False)
         shortRatioNeg = int.from_bytes(self.ratio.to_bytes(2, "big", signed=True), "big", signed=False)
@@ -4276,9 +4285,9 @@ class DPSetCombineMode(GbiMacro):
 
     def to_c(self, static=True):
         if static:
-            return f"gsDPSetCombineLERP({','.join( self.getargs(static) )})"
+            return f"gsDPSetCombineLERP({', '.join( self.getargs(static) )})"
         else:
-            return f"gDPSetCombineLERP(glistp++, {','.join( self.getargs(static) )})"
+            return f"gDPSetCombineLERP(glistp++, {', '.join( self.getargs(static) )})"
 
 
 def gsDPSetColor(c, d):
@@ -4441,7 +4450,6 @@ class DPLoadBlock(GbiMacro):
     uls: int
     ult: int
     lrs: int
-    lrt: int
     dxt: int
 
     def to_binary(self, f3d, segments):
@@ -5162,11 +5170,17 @@ class DPFullSync(GbiMacro):
     def to_binary(self, f3d, segments):
         return gsDPNoParam(f3d.G_RDPFULLSYNC)
 
+    def bleed(self, GfxList: GfxList):
+        return False
+
 
 @dataclass
 class DPTileSync(GbiMacro):
     def to_binary(self, f3d, segments):
         return gsDPNoParam(f3d.G_RDPTILESYNC)
+
+    def bleed(self, GfxList: GfxList):
+        return False
 
 
 @dataclass
@@ -5174,12 +5188,17 @@ class DPPipeSync(GbiMacro):
     def to_binary(self, f3d, segments):
         return gsDPNoParam(f3d.G_RDPPIPESYNC)
 
+    def bleed(self, GfxList: GfxList):
+        return False
+
 
 @dataclass
 class DPLoadSync(GbiMacro):
     def to_binary(self, f3d, segments):
         return gsDPNoParam(f3d.G_RDPLOADSYNC)
 
+    def bleed(self, GfxList: GfxList):
+        return False
 
 F3DClassesWithPointers = [
     SPVertex,

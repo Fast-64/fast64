@@ -1522,11 +1522,11 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 
         fMaterial.useLargeTextures = useLargeTextures
         fMaterial.texturesLoaded[0] = True
-        texDimensions0, nextTmem = fModel.onTextureSave(
+        texDimensions0, nextTmem = saveTextureIndex(
             material.name,
             fModel,
             fMaterial,
-            fMaterial.material,
+            fMaterial.textures[0],
             fMaterial.revert,
             f3dMat.tex0,
             0,
@@ -1550,11 +1550,11 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 
         fMaterial.useLargeTextures = useLargeTextures
         fMaterial.texturesLoaded[1] = True
-        texDimensions1, nextTmem = fModel.onTextureSave(
+        texDimensions1, nextTmem = saveTextureIndex(
             material.name,
             fModel,
             fMaterial,
-            fMaterial.material,
+            fMaterial.textures[1],
             fMaterial.revert,
             f3dMat.tex1,
             1,
@@ -1811,6 +1811,7 @@ def saveTextureIndex(
     if setTLUTMode and not isCITexture:
         loadTexGfx.commands.append(DPSetTextureLUT("G_TT_NONE"))
     if loadTextures:
+        #puts the cmds for loading the texture into loadTexGfx
         saveTextureLoading(
             fMaterial,
             fImage,
