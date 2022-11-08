@@ -20,7 +20,11 @@ from .kcs_utils import *
 
 from ..utility import (colorToLuminance,
                     combineObjects,
-                    cleanupCombineObj)
+                    cleanupCombineObj,
+                    CData,
+                    writeCData,
+                    writeCDataSourceOnly,
+                    writeCDataHeaderOnly)
 from ..f3d.f3d_writer import *
 from ..f3d.f3d_gbi import *
 
@@ -383,42 +387,6 @@ class geo_bin(BinProcess):
             v = self.upt(i,">6h4B",16)
             self.vertices._make(v)
 
-#a data class that will hold various primitive geo classes and then write them out to files
-#population of the classes will be done by bpy_geo or geo_bin
-class geo_write(FModel):
-    def __init__(self, name = "Kirby"):
-        super().__init__("F3DEX2/LX2", False, name, DLFormat.Static, GfxMatWriteMethod.WriteAll)
-    def write_bin(self, file):
-        print(file)
-    def write_C(self, file):
-        pass
-    #given a layout, create the export data such as verts, f3d cls, and mat classes
-    def create_mesh_dat(self):
-        for ly in self.layouts:
-            #should be mesh data
-            if mesh := ly.ptr.mesh:
-                #Create mats and mat DLs
-                fMesh = ly.ptr
-                fMesh.mat_tris = {m:fMesh._mesh_desc(list(),\
-                *saveOrGetF3DMaterial(m, self, ly.ptr.obj, None, None), None, None) for m in mesh.materials}
-                #put tris in dict of mat
-                mesh.calc_loop_triangles()
-                for tri in mesh.loop_triangles:
-                    mat = mesh.materials[tri.material_index]
-                    ly.mat_tris[mat][0].append(tri)
-                #use tris to create tri groups
-                for j, (mat, desc) in enumerate(fMesh.mat_tris.items()):
-                    if tri_list:
-                        fMesh.save_tri_list(desc.tri_list, desc.fMaterial, desc.texDimensions, mat, index = j)
-    #now that all the verts are made, and the mats have the info they need, make the DLs
-    def create_DLs(self):
-        lastMat = None
-        for ly in self.layouts:
-            #independent mats are already created, now using f3d class bleed them together
-            fMesh = ly.ptr
-            lastMat = fMesh.bleed(lastMat)
-            #now clean up the obj
-            fMesh.clean()
 
 #interim between bpy props and geo blocks
 class bpy_geo():
@@ -495,27 +463,27 @@ class bpy_geo():
             for child in obj.children:
                 if self.is_kcs_gfx(child):
                     #clean up the mesh data, apply transforms and then give the copy to layout.ptr
-                    cls.layouts.append( self.create_layout(child, depth) )
+                    cls.layouts.append( self.create_layout(child, depth, cls.f3d) )
                     if child.children:
                         loop_children(child, cls, depth + 1)
         loop_children(obj, cls, 1)
         #add the root as a layout, though if there are no children, set the render mode to 14
         if not cls.layouts:
             cls.render_mode = 0x14 #list of DLs (entry point)
-            cls.layouts.append( faux_LY(obj.data) )
+            cls.layouts.append( faux_LY(F3d_Mesh(obj, obj.data, self.scale, cls.f3d)) )
         else:
             cls.render_mode = 0x17 #list of layouts
-            cls.layouts.insert(0, self.create_layout(obj, 0) )
+            cls.layouts.insert(0, self.create_layout(obj, 0, cls.f3d) )
         return cls
     #create a layout for an obj given its depth and the obj props
-    def create_layout(self, obj, depth):
+    def create_layout(self, obj, depth, f3d):
         #transform layout values to match N64 specs
         #only location needs to be transformed here, because rotation in the mesh data
         #will change the scale and rot
         loc = self.Vec3Trans(obj.location)
         rot = obj.rotation_euler
         scale = obj.scale
-        ly = layout(0, depth, F3d_Mesh(obj, obj.data, self.scale), loc, rot, scale)
+        ly = layout(0, depth, F3d_Mesh(obj, obj.data, self.scale, f3d), loc, rot, scale)
         ly.name = obj.name #for debug
         return ly
     #given an obj, eval if it is a kcs gfx export
@@ -1318,21 +1286,81 @@ class F3d(DL):
             bpy.ops.object.create_f3d_mat() #the newest mat should be in slot[-1] for the mesh materials
         return None
 
+
+#a data class that will hold various primitive geo classes and then write them out to files
+#population of the classes will be done by bpy_geo or geo_bin
+class geo_write(FModel):
+    def __init__(self, name = "Kirby"):
+        super().__init__("F3DEX2/LX2", False, name, DLFormat.Static, GfxMatWriteMethod.WriteAll)
+    def save_binary(self, file):
+        print(file)
+    def to_c(self, file):
+        pass
+    def to_c_inline(self, file):
+        for ly in self.layouts:
+            fMesh = ly.ptr
+            if fMesh.mesh:
+                GfxDat, VtxDat = fMesh.to_c_inline()
+                print(GfxDat.source)
+    def construct_fMaterial(self, name, DLformat):
+        return fMat_KCS(name, DLformat)
+    #given a layout, create the export data such as verts, f3d cls, and mat classes
+    def create_mesh_dat(self):
+        for ly in self.layouts:
+            #should be mesh data
+            if mesh := ly.ptr.mesh:
+                #Create mats and mat DLs
+                fMesh = ly.ptr
+                fMesh.mat_tris = {m:mesh_desc(list(),\
+                *saveOrGetF3DMaterial(m, self, fMesh.obj, None, None), None) for m in mesh.materials}
+                #put tris in dict of mat
+                mesh.calc_loop_triangles()
+                for tri in mesh.loop_triangles:
+                    mat = mesh.materials[tri.material_index]
+                    fMesh.mat_tris[mat].tri_list.append(tri)
+                #use tris to create tri groups
+                for j, (mat, desc) in enumerate(fMesh.mat_tris.items()):
+                    if desc.tri_list:
+                        fMesh.save_tri_list(desc.tri_list, desc.fMaterial, desc.texDimensions, mat, self.f3d, index = j)
+    #now that all the verts are made, and the mats have the info they need, make the DLs
+    def create_DLs(self):
+        lastMat = None
+        for ly in self.layouts:
+            #independent mats are already created, now using f3d class bleed them together
+            fMesh = ly.ptr
+            lastMat = fMesh.bleed(lastMat)
+            # fMesh.print_DLs()
+            #now clean up the obj
+            fMesh.clean()
+
+
 #overrdides fMaterial
 class fMat_KCS(FMaterial):
     def __init__(self, name, DLformat):
         super().__init__(name, DLformat)
         self.name = name
+        self.textures = [GfxList(f"tex_{i}_" + name, GfxListTag.Material, DLFormat.Static) for i in range(8)]
+        self.textureLoads = {}  # dict of {tex_offset : DPSetTextureImage}
 
-#overrides fModel used in exports for other games. Holds information needed to properly
-#create materials (basically world settings, material dict etc.)
-#will also hold in object and mesh info, such as a copy of the transformed mesh data, and
-#various export option flags
+#small containers for mesh data
+@dataclass
+class bleed_gfx:
+    bled_mats: list
+    bled_tex: list
+
+
+@dataclass
+class mesh_desc:
+    tri_list: list
+    fMaterial: fMat_KCS
+    texDimensions: tuple
+    bleed: bleed_gfx
+
+
+#Holds all the info needed for one mesh to export
+#bleeds mesh materials together
 class F3d_Mesh(FMesh):
-    #small container for mesh data needed by other mesh data to export, stuff that is self contextual like UV sizes
-    _mesh_desc = namedtuple("mesh_desc", "tri_list fMaterial texDimensions textures bleed")
-    _bleed_gfx = namedtuple("bleed_cmds", "bled_mats bled_tex")
-    def __init__(self, obj, mesh, scale):
+    def __init__(self, obj, mesh, scale, f3d):
         if mesh:
             self.obj, self.mesh = obj, mesh
         else:
@@ -1340,43 +1368,82 @@ class F3d_Mesh(FMesh):
             self.obj = obj
         self.scale = scale
         super().__init__(obj.name, DLFormat.Static)
+        self.f3d = f3d
     def clean(self):
         pass
-    def construct_fMaterial(self, name, DLformat):
-        return fMat_KCS(name, DLformat)
     def bleed(self, LastMat):
-        for mat, desc in self._mesh_desc.items():
-            #bleed mat
+        if not self.mesh: return
+        for mat, desc in self.mat_tris.items():
+            #bleed mat and tex
             if desc.fMaterial:
-                bleed_mat = bleed_mat(desc.fMaterial, LastMat)
+                bleed_mat = self.bleed_mat(desc.fMaterial, LastMat)
+                bleed_tex = self.bleed_textures(desc.fMaterial, LastMat)
             else:
                 bleed_mat = []
-            #bleed textures
-            if desc.textures:
-                bleed_tex = bleed_textures(desc.fMaterial, LastMat)
-            else:
                 bleed_tex = []
             #set bled props to _mesh_desc, update LastMat
             LastMat = desc.fMaterial
-            desc.bleed = self._bleed_gfx(bleed_mat, bleed_tex)
+            desc.bleed = bleed_gfx(bleed_mat, bleed_tex)
         return LastMat
-    def bleed_textures(self, LastMat):
-        pass
+    def bleed_textures(self, mat, LastMat):
+        if LastMat:
+            #bleed cmds if tiles are the same
+            #or pipe syncs as of now
+            bled_tex = []
+            for j, (LastTex, TexCmds) in enumerate(zip(LastMat.textures, mat.textures)):
+                print(f"tex {j} start bleed")
+                #deep copy breaks on Image objects so I will only copy the levels needed
+                commands_bled = copy.copy(TexCmds)
+                commands_bled.commands = copy.copy(TexCmds.commands) #copy the commands also
+                LastList = LastTex.commands
+                #eliminate set tex images
+                set_tex = (c for c in TexCmds.commands if type(c) == DPSetTextureImage)
+                removed_tex = [c for c in set_tex if c in LastList] #needs to be a list to check "in" multiple times
+                rm_load = None #flag to elim loads once
+                for j, cmd in enumerate(TexCmds.commands):
+                    #remove set tex explicitly
+                    if cmd in removed_tex:
+                        commands_bled.commands.remove(cmd)
+                        rm_load = True
+                        continue
+                    if rm_load and type(cmd) in (DPLoadTLUTCmd, DPLoadTile, DPLoadBlock):
+                        commands_bled.commands.remove(cmd)
+                        rm_load = None
+                        continue
+                #now eval as normal conditionals
+                iter_cmds = copy.copy(commands_bled.commands) #need extra list to iterate with
+                for j, cmd in enumerate(iter_cmds):
+                    print(cmd, cmd.to_c(), cmd in LastList)
+                    if cmd.bleed(LastList, commands_bled.commands, j):
+                        if cmd in LastList:
+                            commands_bled.commands.remove(cmd)
+                bled_tex.append(commands_bled)
+        else:
+            bled_tex = mat.textures
+        return bled_tex
     def bleed_mat(self, mat, LastMat):
         if LastMat:
             GfxList = mat.material
-            commands_bled = copy.deepcopy(GfxList.commands)
+            #deep copy breaks on Image objects so I will only copy the levels needed
+            commands_bled = copy.copy(GfxList)
+            commands_bled.commands = copy.copy(GfxList.commands) #copy the commands also
             LastList = LastMat.material.commands
             cnt = 0
             for j, cmd in enumerate(GfxList.commands):
-                if cmd.bleed(LastList):
+                if cmd.bleed(LastList, commands_bled.commands, j - cnt):
                     if cmd in LastList:
-                        GfxList.commands_bled.pop(j - cnt) #list gets smaller as I pop, so modify index by num popped
+                        commands_bled.commands.pop(j - cnt) #list gets smaller as I pop, so modify index by num popped
                         cnt += 1
+            #remove SPEndDisplayList
+            while(SPEndDisplayList() in commands_bled.commands):
+                commands_bled.commands.remove(SPEndDisplayList())
         else:
-            commands_bled = mat.material.commands
+            commands_bled = mat.material
+        #remove SPEndDisplayList
+        while(SPEndDisplayList() in commands_bled.commands):
+            commands_bled.commands.remove(SPEndDisplayList())
         return commands_bled
-    def save_tri_list(self, tri_list, fMaterial, texDims, mat, index = 0):
+    def save_tri_list(self, tri_list, fMaterial, texDims, mat, f3d, index = 0):
         #make some objects used in the existing code base
         #so I can export triangle. Has some extra functionality
         #used for skinning etc. that I don't take advantage of
@@ -1386,7 +1453,7 @@ class F3d_Mesh(FMesh):
         triConverterInfo = TriangleConverterInfo(
             self.obj,
             None,
-            self.f3d,
+            f3d,
             finalTransform,
             getInfoDict(self.obj)
         )
@@ -1401,16 +1468,45 @@ class F3d_Mesh(FMesh):
             None,
         )
         saveTriangleStrip( triConverter, tri_list, self.mesh, None)
-        self.mat_tris[mat].tri_list = triConverter
+        self.mat_tris[mat].tri_list = triGroup
+    #return Cdata object
+    def to_c_inline(self):
+        if not self.mesh: return None, None
+        GfxData = CData()
+        VtxData = CData()
+        GfxData.source = f"Gfx {self.name}_mesh[] = {{\n"
+        for mat, desc in self.mat_tris.items():
+            #add in vertex data
+            triGroup = desc.tri_list
+            if not triGroup:
+                continue
+            VtxData.append( triGroup.vertexList.to_c() )
+            #add mat, add tex data, then add tri data
+            if desc.bleed.bled_mats:
+                GfxData.append( desc.bleed.bled_mats.to_c_inline(self.f3d) )
+            for tex in desc.bleed.bled_tex:
+                if tex:
+                    GfxData.append( tex.to_c_inline(self.f3d) )
+            GfxData.append( triGroup.triList.to_c_inline(self.f3d) )
+        GfxData.source += f"\t{SPEndDisplayList().to_c()}\n}};\n" #end DL
+        #there may be tri groups floating around that aren't a part of the mesh_desc object
+        #these are from large textures, these will be also inlined, but not right now
+        return GfxData, VtxData
     #debug print
     def print_DLs(self):
-        for mat, desc in self._mesh_desc.items():
-            triConverter = desc.tri_list
+        if not self.mesh: return
+        for mat, desc in self.mat_tris.items():
+            triGroup = desc.tri_list
             print("\n\noriginal cmd list\n")
-            [print(c) for c in desc.fMaterial.commands]
+            [print(c) for c in desc.fMaterial.material.commands]
             try:
                 print("\n\nbled cmd list\n")
                 [print(c) for c in desc.bleed.bled_mats]
+                for i, (tex, bleed_tex) in enumerate(zip(desc.fMaterial.textures, desc.bleed.bled_tex)):
+                    print(f"\noriginal tex list {i}\n")
+                    [print(c) for c in tex.commands]
+                    print(f"\nbleed tex list {i}\n")
+                    [print(c) for c in bleed_tex]
             except:
                 print(f"no bleed on material {self.name}")
 
@@ -1426,7 +1522,8 @@ def ExportGeoBin(name, obj, context):
     out_geo.create_mesh_dat()
     out_geo.create_DLs()
     with open(name, 'wb') as file:
-        out_geo.write_bin(file)
+        out_geo.save_binary(file)
+        out_geo.to_c_inline(file)
 
 # ------------------------------------------------------------------------
 #    Importer

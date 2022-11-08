@@ -2018,7 +2018,7 @@ class VtxList:
         data.header = f"extern Vtx {self.name}[{str(len(self.vertices))}];\n"
         data.source = f"Vtx {self.name}[{str(len(self.vertices))}] = {{\n"
         for vert in self.vertices:
-            data.source += "\t" + vert.to_c() + ",\n"
+            data.source += f"\t{vert.to_c()},\n"
         data.source += "};\n\n"
         return data
 
@@ -2078,6 +2078,15 @@ class GfxList:
         for command in self.commands:
             data += f"\t{command.to_c(False)};\n"
         data += "\treturn glistp;\n}\n\n"
+        return data
+
+    #inline is implicitly static
+    def to_c_inline(self, f3d):
+        data = CData()
+        if not self.commands: return data
+        data.source = f"\t//Gfx {self.name} inline start\n"
+        for command in self.commands:
+            data.source += f"\t{command.to_c(True)},\n"
         return data
 
     def to_c(self, f3d):
@@ -2874,6 +2883,10 @@ class FMaterial:
             addresses.extend(self.revert.get_ptr_addresses(f3d))
         return addresses
 
+    # Called after self.textures list is built
+    def onTextureBuilt(self, fImage, texIndex):
+        pass
+
     def set_addr(self, startAddress, f3d):
         addrRange = self.material.set_addr(startAddress, f3d)
         startAddress = addrRange[0]
@@ -3137,7 +3150,7 @@ class GbiMacro:
     _segptrs = False
     _ptr_amp = False
 
-    def bleed(self, GfxList: GfxList):
+    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
         return True
 
     def get_ptr_offsets(self, f3d):
@@ -3159,7 +3172,6 @@ class GbiMacro:
         return str(field)
 
     def to_c(self, static=True):
-        print(self)
         if static:
             return f"g{'s'*static}{type(self).__name__}({', '.join( self.getargs(static) )})"
         else:
@@ -3240,7 +3252,7 @@ class SPViewport(GbiMacro):
 class SPDisplayList(GbiMacro):
     displayList: GfxList
 
-    def bleed(self, GfxList: GfxList):
+    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
         return False
 
     def to_binary(self, f3d, segments):
@@ -3265,7 +3277,7 @@ class SPBranchList(GbiMacro):
     displayList: GfxList
     _ptr_amp = True #add an ampersand to names
 
-    def bleed(self, GfxList: GfxList):
+    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
         return False
 
     def to_binary(self, f3d, segments):
@@ -3443,7 +3455,7 @@ class SPCullDisplayList(GbiMacro):
     vstart: int
     vend: int
 
-    def bleed(self, GfxList: GfxList):
+    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
         return False
 
     def to_binary(self, f3d, segments):
@@ -3459,7 +3471,7 @@ class SPSegment(GbiMacro):
     segment: int
     base: int
 
-    def bleed(self, GfxList: GfxList):
+    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
         return False
 
     def to_binary(self, f3d, segments):
@@ -3776,6 +3788,9 @@ class SPPerspNormalize(GbiMacro):
 
 @dataclass
 class SPEndDisplayList(GbiMacro):
+    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
+        return False
+
     def to_binary(self, f3d, segments):
         words = _SHIFTL(f3d.G_ENDDL, 24, 8), 0
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
@@ -4393,6 +4408,9 @@ class DPSetTileSize(GbiMacro):
     def to_binary(self, f3d, segments):
         return gsDPLoadTileGeneric(f3d.G_SETTILESIZE, self.t, self.uls, self.ult, self.lrs, self.lrt)
 
+    def is_LOADTILE(self):
+        return self.t == G_TX_LOADTILE
+
 
 @dataclass
 class DPLoadTile(GbiMacro):
@@ -4442,6 +4460,9 @@ class DPSetTile(GbiMacro):
             | _SHIFTL(self.shifts, 0, 4)
         )
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
+
+    def is_LOADTILE(self):
+        return self.tile == G_TX_LOADTILE
 
 
 @dataclass
@@ -5170,7 +5191,7 @@ class DPFullSync(GbiMacro):
     def to_binary(self, f3d, segments):
         return gsDPNoParam(f3d.G_RDPFULLSYNC)
 
-    def bleed(self, GfxList: GfxList):
+    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
         return False
 
 
@@ -5179,8 +5200,16 @@ class DPTileSync(GbiMacro):
     def to_binary(self, f3d, segments):
         return gsDPNoParam(f3d.G_RDPTILESYNC)
 
-    def bleed(self, GfxList: GfxList):
-        return False
+    #required after tile descriptor attributes changes, aka set tile, or set tile size or set tex img
+    #due to load/render tile scheme avoids requirement except for set tiles/set tile sizes
+    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
+        for cmd in CurList[curIndex-1:]:
+            if type(cmd) in (DPSetTile, DPSetTileSize):
+                if not cmd.is_LOADTILE():
+                    return False
+            if type(cmd) is DPTileSync:
+                return True
+        return True
 
 
 @dataclass
@@ -5188,7 +5217,12 @@ class DPPipeSync(GbiMacro):
     def to_binary(self, f3d, segments):
         return gsDPNoParam(f3d.G_RDPPIPESYNC)
 
-    def bleed(self, GfxList: GfxList):
+    #required before rdp attribute change after rendering rdp primitive
+    #it is assumed that any material GfxList or Tex GfxList is after a primitive load
+    #pipesync is not required for setprim color or set primdepth
+    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
+        if self in CurList[:curIndex]:
+            return True
         return False
 
 
@@ -5197,8 +5231,15 @@ class DPLoadSync(GbiMacro):
     def to_binary(self, f3d, segments):
         return gsDPNoParam(f3d.G_RDPLOADSYNC)
 
-    def bleed(self, GfxList: GfxList):
-        return False
+    #required before loading, aka load block, loadTLUT or load tile
+    #should only be placed immediately before load
+    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
+        for cmd in CurList[curIndex-2:curIndex+2]:
+            if type(cmd) in (DPLoadTLUTCmd, DPLoadTile, DPLoadBlock):
+                return False
+            if type(cmd) is DPLoadSync and cmd is not self:
+                return True
+        return True
 
 F3DClassesWithPointers = [
     SPVertex,
