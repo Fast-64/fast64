@@ -1984,7 +1984,7 @@ class Vtx:
         )
 
     def to_c(self):
-        spc = lambda x: ", ".join([hex(a) for a in x])
+        spc = lambda x: ", ".join([str(a) for a in x])
         return (f"{{{{ {{{spc(self.position)}}}, 0, {{{spc(self.uv)}}}, {{{spc(self.colorOrNormal)}}} }}}}")
 
 

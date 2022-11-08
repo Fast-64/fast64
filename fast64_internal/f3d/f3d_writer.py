@@ -1487,11 +1487,10 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 
     useDict = all_combiner_uses(f3dMat)
 
-    #default render modes by draw layer are deprecated, should use world default settings instead
-    # if drawLayer is not None:
-        # defaultRM = fModel.getRenderMode(drawLayer)
-    # else:
-    defaultRM = None
+    if drawLayer is not None:
+        defaultRM = fModel.getRenderMode(drawLayer)
+    else:
+        defaultRM = None
 
     #set the geo/other mode flags based on world defaults and f3d version
     defaults = bpy.context.scene.world.rdp_defaults
