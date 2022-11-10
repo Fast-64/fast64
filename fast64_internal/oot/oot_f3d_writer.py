@@ -3,7 +3,7 @@ from bpy.utils import register_class, unregister_class
 from ..utility import CData, prop_split, writeCData, getGroupIndexFromname, toAlnum
 from ..f3d.f3d_parser import ootEnumDrawLayers
 from ..f3d.f3d_gbi import DLFormat, TextureExportSettings, ScrollMethod
-from .panel.display_list.classes import OOTDLExportSettings
+from .other.panel.viewport.display_list import OOTDLExportSettings
 
 from ..f3d.f3d_writer import (
     TriangleConverterInfo,

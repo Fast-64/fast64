@@ -5,7 +5,7 @@ from bpy.utils import register_class, unregister_class
 from ..f3d.f3d_writer import getInfoDict
 from ..f3d.f3d_parser import getImportData, parseF3D
 from .oot_f3d_writer import ootProcessVertexGroup
-from .panel.skeleton.classes import OOTSkeletonExportSettings, OOTSkeletonImportSettings
+from .skeleton.panel.viewport import OOTSkeletonExportSettings, OOTSkeletonImportSettings
 
 from ..utility import (
     PluginError,
