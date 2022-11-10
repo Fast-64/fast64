@@ -37,10 +37,17 @@ from .scene.panel.viewport import (
 )
 
 from .animation.panel.viewport import (
-    oot_anim_panel_register,
-    oot_anim_panel_unregister,
-    oot_anim_register,
-    oot_anim_unregister,
+    anim_viewport_panel_register,
+    anim_viewport_panel_unregister,
+    anim_viewport_classes_register,
+    anim_viewport_classes_unregister,
+)
+
+from .animation.panel.properties import (
+    anim_props_panel_register,
+    anim_props_panel_unregister,
+    anim_props_classes_register,
+    anim_props_classes_unregister,
 )
 
 from .other.panel.viewport.tools import (
@@ -106,12 +113,13 @@ def oot_panel_register():
     oot_obj_panel_register()
     oot_level_panel_register()
     oot_spline_panel_register()
-    oot_anim_panel_register()
+    anim_viewport_panel_register()
     oot_skeleton_panel_register()
     oot_cutscene_panel_register()
     skeletonPanelRegister()
     collision_panel_register()
     dl_writer_panel_register()
+    anim_props_panel_register()
 
 
 
@@ -122,12 +130,13 @@ def oot_panel_unregister():
     oot_level_panel_unregister()
     oot_spline_panel_unregister()
     oot_dl_writer_panel_unregister()
-    oot_anim_panel_unregister()
+    anim_viewport_panel_unregister()
     oot_skeleton_panel_unregister()
     oot_cutscene_panel_unregister()
     skeletonPanelUnregister()
     collision_panel_unregister()
     dl_writer_panel_unregister()
+    anim_props_panel_unregister()
 
 
 def oot_register(registerPanels):
@@ -138,13 +147,14 @@ def oot_register(registerPanels):
     oot_level_register()
     oot_spline_register()
     oot_dl_writer_register()
-    oot_anim_register()
+    anim_viewport_classes_register()
     oot_skeleton_register()
     oot_cutscene_register()
     skeletonRegister()
     collision_register()
     dl_writer_register()
     file_register()
+    anim_props_classes_register()
 
     for cls in oot_classes:
         register_class(cls)
@@ -164,13 +174,14 @@ def oot_unregister(unregisterPanels):
     oot_level_unregister()
     oot_spline_unregister()
     oot_dl_writer_unregister()
-    oot_anim_unregister()
+    anim_viewport_classes_unregister()
     oot_skeleton_unregister()
     oot_cutscene_unregister()
     skeletonUnregister()
     collision_unregister()
     dl_writer_unregister()
     file_unregister()
+    anim_props_classes_unregister()
 
     if unregisterPanels:
         oot_panel_unregister()

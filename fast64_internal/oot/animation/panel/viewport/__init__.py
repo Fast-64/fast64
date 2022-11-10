@@ -1,1 +1,1 @@
-from .panel import oot_anim_register, oot_anim_panel_register, oot_anim_unregister, oot_anim_panel_unregister
+from .panel import anim_viewport_classes_register, anim_viewport_panel_register, anim_viewport_classes_unregister, anim_viewport_panel_unregister

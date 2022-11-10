@@ -47,17 +47,17 @@ oot_anim_classes = (
 oot_anim_panels = (OOT_ExportAnimPanel,)
 
 
-def oot_anim_panel_register():
+def anim_viewport_panel_register():
     for cls in oot_anim_panels:
         register_class(cls)
 
 
-def oot_anim_panel_unregister():
+def anim_viewport_panel_unregister():
     for cls in oot_anim_panels:
         unregister_class(cls)
 
 
-def oot_anim_register():
+def anim_viewport_classes_register():
     Scene.ootAnimIsCustomExport = BoolProperty(name="Use Custom Path")
     Scene.ootAnimExportCustomPath = StringProperty(name="Folder", subtype="FILE_PATH")
     Scene.ootAnimExportFolderName = StringProperty(name="Animation Folder", default="object_geldb")
@@ -72,7 +72,7 @@ def oot_anim_register():
         register_class(cls)
 
 
-def oot_anim_unregister():
+def anim_viewport_classes_unregister():
     del Scene.ootAnimIsCustomExport
     del Scene.ootAnimExportCustomPath
     del Scene.ootAnimExportFolderName

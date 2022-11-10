@@ -1,7 +1,6 @@
 import math, mathutils, bpy, os, re
-from bpy.utils import register_class, unregister_class
 from .oot_skeleton import ootConvertArmatureToSkeletonWithoutMesh
-from ..utility import CData, PluginError, toAlnum, writeCData, hexOrDecInt, prop_split
+from ..utility import CData, PluginError, toAlnum, writeCData, hexOrDecInt
 
 from .oot_utility import (
     checkForStartBone,
@@ -25,26 +24,9 @@ from ..utility_anim import (
     getRotationRelativeToRest,
 )
 
-from ..f3d.flipbook import ootFlipbookAnimUpdate
-
 from .oot_model_classes import ootGetIncludedAssetData
 from ..f3d.f3d_parser import getImportData
-
-
-class OOTAnimExportSettingsProperty(bpy.types.PropertyGroup):
-    isCustom: bpy.props.BoolProperty(name="Use Custom Path")
-    customPath: bpy.props.StringProperty(name="Folder", subtype="FILE_PATH")
-    folderName: bpy.props.StringProperty(name="Animation Folder", default="object_geldb")
-    isLink: bpy.props.BoolProperty(name="Is Link", default=False)
-    skeletonName: bpy.props.StringProperty(name="Skeleton Name", default="gGerudoRedSkel")
-
-
-class OOTAnimImportSettingsProperty(bpy.types.PropertyGroup):
-    isCustom: bpy.props.BoolProperty(name="Use Custom Path")
-    customPath: bpy.props.StringProperty(name="Folder", subtype="FILE_PATH")
-    folderName: bpy.props.StringProperty(name="Animation Folder", default="object_geldb")
-    isLink: bpy.props.BoolProperty(name="Is Link", default=False)
-    animName: bpy.props.StringProperty(name="Anim Name", default="gGerudoRedSpinAttackAnim")
+from .animation.panel.properties import OOTAnimExportSettingsProperty, OOTAnimImportSettingsProperty
 
 
 def convertToUnsignedShort(value: int) -> int:
@@ -749,81 +731,3 @@ def getJointIndices(filepath, animData, jointIndicesName):
     ]
 
     return jointIndicesData
-
-
-# The update callbacks are for manually setting texture with visualize operator.
-# They don't run from animation updates, see flipbookAnimHandler in flipbook.py
-def ootUpdateLinkEyes(self, context):
-    index = self.eyes
-    ootFlipbookAnimUpdate(self, context.object, "8", index)
-
-
-def ootUpdateLinkMouth(self, context):
-    index = self.mouth
-    ootFlipbookAnimUpdate(self, context.object, "9", index)
-
-
-class OOTLinkTextureAnimProperty(bpy.types.PropertyGroup):
-    eyes: bpy.props.IntProperty(min=0, max=15, default=0, name="Eyes", update=ootUpdateLinkEyes)
-    mouth: bpy.props.IntProperty(min=0, max=15, default=0, name="Mouth", update=ootUpdateLinkMouth)
-
-
-class OOT_LinkAnimPanel(bpy.types.Panel):
-    bl_idname = "OOT_PT_link_anim"
-    bl_label = "OOT Link Animation Properties"
-    bl_space_type = "PROPERTIES"
-    bl_region_type = "WINDOW"
-    bl_context = "object"
-    bl_options = {"HIDE_HEADER"}
-
-    @classmethod
-    def poll(cls, context):
-        return (
-            context.scene.gameEditorMode == "OOT"
-            and hasattr(context, "object")
-            and context.object is not None
-            and isinstance(context.object.data, bpy.types.Armature)
-        )
-
-    # called every frame
-    def draw(self, context):
-        col = self.layout.box().column()
-        col.box().label(text="OOT Link Animation Inspector")
-        prop_split(col, context.object.ootLinkTextureAnim, "eyes", "Eyes")
-        prop_split(col, context.object.ootLinkTextureAnim, "mouth", "Mouth")
-        col.label(text="Index 0 is for auto, flipbook starts at index 1.", icon="INFO")
-
-
-oot_anim_classes = (
-    OOTLinkTextureAnimProperty,
-    OOTAnimExportSettingsProperty,
-    OOTAnimImportSettingsProperty,
-)
-
-oot_anim_panels = (
-    OOT_LinkAnimPanel,
-)
-
-
-def oot_anim_panel_register():
-    for cls in oot_anim_panels:
-        register_class(cls)
-
-
-def oot_anim_panel_unregister():
-    for cls in oot_anim_panels:
-        unregister_class(cls)
-
-
-def oot_anim_register():
-    for cls in oot_anim_classes:
-        register_class(cls)
-
-    bpy.types.Object.ootLinkTextureAnim = bpy.props.PointerProperty(type=OOTLinkTextureAnimProperty)
-
-
-def oot_anim_unregister():
-    for cls in reversed(oot_anim_classes):
-        unregister_class(cls)
-
-    del bpy.types.Object.ootLinkTextureAnim
