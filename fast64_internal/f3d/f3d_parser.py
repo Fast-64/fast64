@@ -702,6 +702,12 @@ class F3DContext:
                 + ", "
                 + str(start + count)
             )
+        if vertexDataOffset + count > len(vertexData):
+            raise PluginError(
+                f"Attempted to read vertex data out of bounds.\n"
+                f"{vertexDataName} is of size {len(vertexData)}, "
+                f"attemped read from ({vertexDataOffset}, {vertexDataOffset + count})"
+            )
         for i in range(count):
             self.vertexBuffer[start + i] = BufferVertex(vertexData[vertexDataOffset + i], self.currentTransformName, 0)
 
