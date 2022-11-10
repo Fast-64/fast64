@@ -286,7 +286,7 @@ def parseScene(
         settings.includePaths,
         settings.includeWaterBoxes,
     )
-    sceneObj = parseSceneCommands(None, None, sceneCommandsName, sceneData, f3dContext, 0, sharedSceneData)
+    sceneObj = parseSceneCommands(sceneName, None, None, sceneCommandsName, sceneData, f3dContext, 0, sharedSceneData)
     bpy.context.scene.ootSceneExportObj = sceneObj
 
     if not settings.isCustomDest:
@@ -299,6 +299,7 @@ def parseScene(
 
 
 def parseSceneCommands(
+    sceneName: str | None,
     sceneObj: bpy.types.Object | None,
     roomObjs: list[bpy.types.Object] | None,
     sceneCommandsName: str,
@@ -312,7 +313,7 @@ def parseSceneCommands(
         bpy.context.scene.collection.objects.link(sceneObj)
         sceneObj.empty_display_type = "SPHERE"
         sceneObj.ootEmptyType = "Scene"
-        sceneObj.name = sceneCommandsName
+        sceneObj.name = sceneName
 
     if headerIndex == 0:
         sceneHeader = sceneObj.ootSceneHeader
@@ -438,6 +439,7 @@ def parseRoomList(
             collisionHeaderIndex = 0
         sharedRoomData = sceneData[collisionHeaderIndex:]
         roomObj = parseRoomCommands(
+            roomName,
             None,
             sharedRoomData + roomData,
             roomCommandsName,
@@ -454,6 +456,7 @@ def parseRoomList(
 
 
 def parseRoomCommands(
+    roomName: str | None,
     roomObj: bpy.types.Object | None,
     sceneData: str,
     roomCommandsName: str,
@@ -463,13 +466,14 @@ def parseRoomCommands(
     headerIndex: int,
 ):
     if roomObj is None:
+        # Name set in parseRoomList()
         roomObj = bpy.data.objects.new(roomCommandsName, None)
         bpy.context.scene.collection.objects.link(roomObj)
         roomObj.empty_display_type = "SPHERE"
         roomObj.location = [0, 0, (roomIndex + 1) * -2]
         roomObj.ootEmptyType = "Room"
-        roomObj.name = roomCommandsName
         roomObj.ootRoomHeader.roomIndex = roomIndex
+        roomObj.name = roomName
 
     if headerIndex == 0:
         roomHeader = roomObj.ootRoomHeader
@@ -901,7 +905,9 @@ def parseAlternateSceneHeaders(
 
     for i in range(len(altHeadersList)):
         if not (altHeadersList[i] == "NULL" or altHeadersList[i] == "0"):
-            parseSceneCommands(sceneObj, roomObjs, altHeadersList[i], sceneData, f3dContext, i + 1, sharedSceneData)
+            parseSceneCommands(
+                sceneObj.name, sceneObj, roomObjs, altHeadersList[i], sceneData, f3dContext, i + 1, sharedSceneData
+            )
 
 
 def parseAlternateRoomHeaders(
@@ -917,7 +923,9 @@ def parseAlternateRoomHeaders(
 
     for i in range(len(altHeadersList)):
         if not (altHeadersList[i] == "NULL" or altHeadersList[i] == "0"):
-            parseRoomCommands(roomObj, sceneData, altHeadersList[i], roomIndex, f3dContext, sharedSceneData, i + 1)
+            parseRoomCommands(
+                roomObj.name, roomObj, sceneData, altHeadersList[i], roomIndex, f3dContext, sharedSceneData, i + 1
+            )
 
 
 def parsePathList(
@@ -1157,8 +1165,9 @@ def parseCollision(
 
         collisionDict[key].append((vertIndices, normal))
 
-    mesh = bpy.data.meshes.new(polygonListName)
-    obj = bpy.data.objects.new(polygonListName, mesh)
+    collisionName = f"{sceneObj.name}_collision"
+    mesh = bpy.data.meshes.new(collisionName)
+    obj = bpy.data.objects.new(collisionName, mesh)
     bpy.context.scene.collection.objects.link(obj)
 
     triData = []
@@ -1290,7 +1299,7 @@ def parseCamDataList(sceneObj: bpy.types.Object, camDataListName: str, sceneData
         setting, count, posDataName = [value.strip() for value in camEntry.split(",")]
         index = None
 
-        objName = f"{camDataListName}_{format(orderIndex, '03')}"
+        objName = f"{sceneObj.name}_camPos_{format(orderIndex, '03')}"
 
         if posDataName != "NULL" and posDataName != "0":
             index = hexOrDecInt(posDataName[posDataName.index("[") + 1 : -1])
@@ -1390,7 +1399,7 @@ def parseWaterBoxes(
     # orderIndex used for naming cameras in alphabetical order
     orderIndex = 0
     for waterBoxData in waterBoxList:
-        objName = f"{waterBoxListName}_{format(orderIndex, '03')}"
+        objName = f"{sceneObj.name}_waterBox_{format(orderIndex, '03')}"
         params = [value.strip() for value in waterBoxData.split(",")]
         topCorner = yUpToZUp @ mathutils.Vector(
             [hexOrDecInt(value) / bpy.context.scene.ootBlenderScale for value in params[0:3]]
