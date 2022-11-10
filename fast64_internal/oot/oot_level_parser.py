@@ -160,6 +160,14 @@ def getDataMatch(
     return match.group(1)
 
 
+def stripName(name: str):
+    if "&" in name:
+        name = name[name.index("&") + 1 :].strip()
+    if name[0] == "(" and name[-1] == ")":
+        name = name[1:-1].strip()
+    return name
+
+
 class SharedSceneData:
     def __init__(
         self,
@@ -341,12 +349,12 @@ def parseSceneCommands(
             if headerIndex == 0:
                 if roomObjs is not None:
                     raise PluginError("Attempting to parse a room list while room objs already loaded.")
-                roomListName = args[1]
+                roomListName = stripName(args[1])
                 roomObjs = parseRoomList(sceneObj, sceneData, roomListName, f3dContext, sharedSceneData, headerIndex)
 
         # This must be handled after rooms, so that room objs can be referenced
         elif command == "SCENE_CMD_TRANSITION_ACTOR_LIST" and sharedSceneData.includeActors:
-            transActorListName = args[1]
+            transActorListName = stripName(args[1])
             parseTransActorList(roomObjs, sceneData, transActorListName, sharedSceneData, headerIndex)
 
         elif command == "SCENE_CMD_MISC_SETTINGS":
@@ -359,19 +367,19 @@ def parseSceneCommands(
                 parseCollisionHeader(sceneObj, roomObjs, sceneData, collisionHeaderName, sharedSceneData)
         elif command == "SCENE_CMD_ENTRANCE_LIST" and sharedSceneData.includeActors:
             if not (args[0] == "NULL" or args[0] == "0" or args[0] == "0x00"):
-                entranceListName = args[0]
+                entranceListName = stripName(args[0])
                 entranceList = parseEntranceList(sceneHeader, roomObjs, sceneData, entranceListName)
         elif command == "SCENE_CMD_SPECIAL_FILES":
             setCustomProperty(sceneHeader, "naviCup", args[0], ootEnumNaviHints)
             setCustomProperty(sceneHeader, "globalObject", args[1], ootEnumGlobalObject)
         elif command == "SCENE_CMD_PATH_LIST" and sharedSceneData.includePaths:
-            pathListName = args[0]
+            pathListName = stripName(args[0])
             parsePathList(sceneObj, sceneData, pathListName, headerIndex, sharedSceneData)
 
         # This must be handled after entrance list, so that entrance list can be referenced
         elif command == "SCENE_CMD_SPAWN_LIST" and sharedSceneData.includeActors:
             if not (args[1] == "NULL" or args[1] == "0" or args[1] == "0x00"):
-                spawnListName = args[1]
+                spawnListName = stripName(args[1])
                 parseSpawnList(roomObjs, sceneData, spawnListName, entranceList, sharedSceneData, headerIndex)
 
                 # Clear entrance list
@@ -382,18 +390,18 @@ def parseSceneCommands(
             setCustomProperty(sceneHeader, "skyboxCloudiness", args[1], ootEnumCloudiness)
             setCustomProperty(sceneHeader, "skyboxLighting", args[2], ootEnumSkyboxLighting)
         elif command == "SCENE_CMD_EXIT_LIST":
-            exitListName = args[0]
+            exitListName = stripName(args[0])
             parseExitList(sceneHeader, sceneData, exitListName)
         elif command == "SCENE_CMD_ENV_LIGHT_SETTINGS" and sharedSceneData.includeLights:
             if not (args[1] == "NULL" or args[1] == "0" or args[1] == "0x00"):
-                lightsListName = args[1]
+                lightsListName = stripName(args[1])
                 parseLightList(sceneObj, sceneHeader, sceneData, lightsListName, headerIndex)
         elif command == "SCENE_CMD_CUTSCENE_DATA":
             cutsceneName = args[0]
             print("Cutscene command parsing not implemented.")
         elif command == "SCENE_CMD_ALTERNATE_HEADER_LIST":
             # Delay until after rooms are parsed
-            altHeadersListName = args[0]
+            altHeadersListName = stripName(args[0])
 
     if altHeadersListName is not None:
         parseAlternateSceneHeaders(sceneObj, roomObjs, sceneData, altHeadersListName, f3dContext, sharedSceneData)
@@ -491,7 +499,7 @@ def parseRoomCommands(
         command = commandMatch.group(1)
         args = [arg.strip() for arg in commandMatch.group(2).split(",")]
         if command == "SCENE_CMD_ALTERNATE_HEADER_LIST":
-            altHeadersListName = args[0]
+            altHeadersListName = stripName(args[0])
             parseAlternateRoomHeaders(roomObj, roomIndex, sharedSceneData, sceneData, altHeadersListName, f3dContext)
         elif command == "SCENE_CMD_ECHO_SETTINGS":
             roomHeader.echo = args[0]
@@ -531,10 +539,10 @@ def parseRoomCommands(
                 meshHeaderName = args[0][1:]  # remove '&'
                 parseMeshHeader(roomObj, sceneData, meshHeaderName, f3dContext, sharedSceneData)
         elif command == "SCENE_CMD_OBJECT_LIST":
-            objectListName = args[1]
+            objectListName = stripName(args[1])
             parseObjectList(roomHeader, sceneData, objectListName)
         elif command == "SCENE_CMD_ACTOR_LIST" and sharedSceneData.includeActors:
-            actorListName = args[1]
+            actorListName = stripName(args[1])
             parseActorList(roomObj, sceneData, actorListName, sharedSceneData, headerIndex)
 
     return roomObj
@@ -562,14 +570,14 @@ def parseMeshHeader(
     isType1 = roomShapeIndex == 1
     isMulti = meshParams[1] == "2" or meshParams[1] == "ROOM_SHAPE_IMAGE_AMOUNT_MULTI"
 
-    meshListName = meshParams[2][1 if isType1 else 0 :]  # remove &
+    meshListName = stripName(meshParams[2])
     parseMeshList(roomObj, sceneData, meshListName, roomShapeIndex, f3dContext, sharedSceneData)
 
     if isType1:
         if not isMulti:
             parseBGImage(roomHeader, meshParams, sharedSceneData)
         else:
-            bgListName = f"{meshParams[4]}"
+            bgListName = stripName(f"{meshParams[4]}")
             parseBGImageList(roomHeader, sceneData, bgListName, sharedSceneData)
 
 
@@ -1109,28 +1117,24 @@ def parseCollisionHeader(
             sceneData,
             flags=re.DOTALL,
         )
+        if not match:
+            raise PluginError(f"Could not find collision header {collisionHeaderName}.")
+
         params = [value.strip() for value in match.group(1).split(",")]
         minBounds = [hexOrDecInt(value.strip()) for value in params[0:3]]
         maxBounds = [hexOrDecInt(value.strip()) for value in params[3:6]]
         otherParams = [value.strip() for value in params[6:]]
 
-        if not match:
-            raise PluginError(f"Could not find collision header {collisionHeaderName}.")
     else:
         minBounds = [hexOrDecInt(value.strip()) for value in match.group(1).split(",")]
         maxBounds = [hexOrDecInt(value.strip()) for value in match.group(2).split(",")]
         otherParams = [value.strip() for value in match.group(3).split(",")]
 
-    vertexListName = otherParams[1]
-    polygonListName = otherParams[3]
-    surfaceTypeListName = otherParams[4]
-    camDataListName = otherParams[5]
-    waterBoxListName = otherParams[7]
-
-    if camDataListName[0] == "&":
-        camDataListName = camDataListName[1:]
-    if waterBoxListName[0] == "&":
-        waterBoxListName = waterBoxListName[1:]
+    vertexListName = stripName(otherParams[1])
+    polygonListName = stripName(otherParams[3])
+    surfaceTypeListName = stripName(otherParams[4])
+    camDataListName = stripName(otherParams[5])
+    waterBoxListName = stripName(otherParams[7])
 
     if sharedSceneData.includeCollision:
         parseCollision(sceneObj, vertexListName, polygonListName, surfaceTypeListName, sceneData)
