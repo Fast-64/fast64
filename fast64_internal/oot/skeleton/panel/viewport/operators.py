@@ -1,11 +1,10 @@
 from bpy.types import Operator, Armature, Mesh
 from bpy.ops import object
 from bpy.path import abspath
-from os import path
 from mathutils import Matrix
 from .....utility import PluginError, raisePluginError
 from .....f3d.f3d_gbi import DLFormat
-from ....oot_utility import ootGetObjectPath
+from ....oot_utility import getOOTScale
 from ....oot_skeleton import ootImportSkeletonC, ootConvertArmatureToC
 from .classes import OOTSkeletonImportSettings, OOTSkeletonExportSettings
 
@@ -19,24 +18,14 @@ class OOT_ImportSkeleton(Operator):
     # Called on demand (i.e. button press, menu item)
     # Can also be called from operator search menu (Spacebar)
     def execute(self, context):
-        armatureObj = None
         if context.mode != "OBJECT":
             object.mode_set(mode="OBJECT")
 
         try:
             importSettings: OOTSkeletonImportSettings = context.scene.fast64.oot.skeletonImportSettings
-
-            importPath = abspath(importSettings.customPath)
-            isCustomImport = importSettings.isCustom
-            folderName = importSettings.folder
-            scale = context.scene.ootActorBlenderScale
             decompPath = abspath(context.scene.ootDecompPath)
 
-            filepaths = [ootGetObjectPath(isCustomImport, importPath, folderName)]
-            if not isCustomImport:
-                filepaths.append(path.join(context.scene.ootDecompPath, "assets/objects/gameplay_keep/gameplay_keep.c"))
-
-            ootImportSkeletonC(filepaths, scale, decompPath, importSettings)
+            ootImportSkeletonC(decompPath, importSettings)
 
             self.report({"INFO"}, "Success!")
             return {"FINISHED"}
@@ -70,7 +59,14 @@ class OOT_ExportSkeleton(Operator):
             raise PluginError("Armature does not have any mesh children, or " + "has a non-mesh child.")
 
         obj = armatureObj.children[0]
-        finalTransform = Matrix.Scale(context.scene.ootActorBlenderScale, 4)
+        finalTransform = Matrix.Scale(getOOTScale(armatureObj.ootActorScale), 4)
+
+        # Rotation must be applied before exporting skeleton.
+        # For some reason this does not work if done on the duplicate generated later, so we have to do it before then.
+        object.select_all(action="DESELECT")
+        armatureObj.select_set(True)
+        object.transform_apply(location=False, rotation=True, scale=True, properties=False)
+        object.select_all(action="DESELECT")
 
         try:
             exportSettings: OOTSkeletonExportSettings = context.scene.fast64.oot.skeletonExportSettings

@@ -15,21 +15,28 @@ class OOT_ExportAnimPanel(OOT_Panel):
         col = self.layout.column()
 
         col.operator(OOT_ExportAnim.bl_idname)
-        prop_split(col, context.scene, "ootAnimSkeletonName", "Skeleton Name")
-        if context.scene.ootAnimIsCustomExport:
-            prop_split(col, context.scene, "ootAnimExportCustomPath", "Folder")
-        else:
-            prop_split(col, context.scene, "ootAnimExportFolderName", "Object")
-        col.prop(context.scene, "ootAnimIsCustomExport")
+        exportSettings = context.scene.fast64.oot.animExportSettings
+        prop_split(col, exportSettings, "skeletonName", "Anim Name Prefix")
+
+        if exportSettings.isCustom:
+            prop_split(col, exportSettings, "customPath", "Folder")
+        elif not exportSettings.isLink:
+            prop_split(col, exportSettings, "folderName", "Object")
+
+        col.prop(exportSettings, "isLink")
+        col.prop(exportSettings, "isCustom")
 
         col.operator(OOT_ImportAnim.bl_idname)
-        prop_split(col, context.scene, "ootAnimName", "Anim Name")
+        importSettings = context.scene.fast64.oot.animImportSettings
+        prop_split(col, importSettings, "animName", "Anim Header Name")
 
-        if context.scene.ootAnimIsCustomImport:
-            prop_split(col, context.scene, "ootAnimImportCustomPath", "File")
-        else:
-            prop_split(col, context.scene, "ootAnimImportFolderName", "Object")
-        col.prop(context.scene, "ootAnimIsCustomImport")
+        if importSettings.isCustom:
+            prop_split(col, importSettings, "customPath", "File")
+        elif not importSettings.isLink:
+            prop_split(col, importSettings, "folderName", "Object")
+
+        col.prop(importSettings, "isLink")
+        col.prop(importSettings, "isCustom")
 
 
 oot_anim_classes = (

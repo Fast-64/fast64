@@ -3,7 +3,7 @@ from bpy.path import abspath
 from bpy.ops import object
 from mathutils import Matrix, Vector
 from .....utility import PluginError, raisePluginError
-from ....oot_utility import ootGetObjectPath
+from ....oot_utility import ootGetObjectPath, getOOTScale
 from ....oot_collision import exportCollisionToC
 
 
@@ -23,7 +23,7 @@ class OOT_ExportCollision(Operator):
         if type(obj.data) is not Mesh:
             raise PluginError("No mesh object selected.")
 
-        finalTransform = Matrix.Scale(context.scene.ootActorBlenderScale, 4)
+        finalTransform = Matrix.Scale(getOOTScale(obj.ootActorScale), 4)
 
         try:
             scaleValue = context.scene.ootBlenderScale

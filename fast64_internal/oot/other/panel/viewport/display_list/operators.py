@@ -4,10 +4,11 @@ from bpy.path import abspath
 from mathutils import Matrix
 from os import path
 from ......utility import PluginError, raisePluginError
-from ......f3d.f3d_parser import importMeshC
+from ......f3d.f3d_parser import importMeshC, getImportData
 from ......f3d.f3d_gbi import DLFormat, F3D
-from .....oot_utility import ootGetObjectPath
-from .....oot_model_classes import OOTF3DContext
+from .....oot_utility import ootGetObjectPath, getOOTScale
+from .....oot_model_classes import OOTF3DContext, ootGetIncludedAssetData
+from .....oot_texture_array import ootReadTextureArrays
 from .classes import OOTDLImportSettings
 
 
@@ -20,6 +21,9 @@ class OOT_ImportDL(Operator):
     # Called on demand (i.e. button press, menu item)
     # Can also be called from operator search menu (Spacebar)
     def execute(self, context):
+        from .....oot_f3d_writer import ootReadActorScale  # temp circular import fix
+
+
         obj = None
         if context.mode != "OBJECT":
             object.mode_set(mode="OBJECT")
@@ -30,25 +34,37 @@ class OOT_ImportDL(Operator):
             folderName = settings.folder
             importPath = abspath(settings.customPath)
             isCustomImport = settings.isCustom
-            scale = context.scene.ootActorBlenderScale
             basePath = abspath(context.scene.ootDecompPath)
             removeDoubles = settings.removeDoubles
             importNormals = settings.importNormals
             drawLayer = settings.drawLayer
+            overlayName = settings.actorOverlayName
+            flipbookUses2DArray = settings.flipbookUses2DArray
+            flipbookArrayIndex2D = settings.flipbookArrayIndex2D if flipbookUses2DArray else None
 
-            filepaths = [ootGetObjectPath(isCustomImport, importPath, folderName)]
+            paths = [ootGetObjectPath(isCustomImport, importPath, folderName)]
+            data = getImportData(paths)
+            f3dContext = OOTF3DContext(F3D("F3DEX2/LX2", False), [name], basePath)
+
+            scale = getOOTScale(settings.actorScale)
             if not isCustomImport:
-                filepaths.append(path.join(context.scene.ootDecompPath, "assets/objects/gameplay_keep/gameplay_keep.c"))
+                data = ootGetIncludedAssetData(basePath, paths, data) + data
 
-            importMeshC(
-                filepaths,
+                if overlayName is not None:
+                    ootReadTextureArrays(basePath, overlayName, name, f3dContext, False, flipbookArrayIndex2D)
+                if settings.autoDetectActorScale:
+                    scale = ootReadActorScale(basePath, overlayName, False)
+
+            obj = importMeshC(
+                data,
                 name,
                 scale,
                 removeDoubles,
                 importNormals,
                 drawLayer,
-                OOTF3DContext(F3D("F3DEX2/LX2", False), [name], basePath),
+                f3dContext,
             )
+            obj.ootActorScale = scale / context.scene.ootBlenderScale
 
             self.report({"INFO"}, "Success!")
             return {"FINISHED"}
@@ -69,7 +85,8 @@ class OOT_ExportDL(Operator):
     # Called on demand (i.e. button press, menu item)
     # Can also be called from operator search menu (Spacebar)
     def execute(self, context):
-        from .....oot_f3d_writer import ootConvertMeshToC  # calling it here avoids a circular import
+        from .....oot_f3d_writer import ootConvertMeshToC  # temp circular import fix
+
 
         obj = None
         if context.mode != "OBJECT":
@@ -80,9 +97,13 @@ class OOT_ExportDL(Operator):
         if type(obj.data) is not Mesh:
             raise PluginError("Mesh not selected.")
 
-        finalTransform = Matrix.Scale(context.scene.ootActorBlenderScale, 4)
+        finalTransform = Matrix.Scale(getOOTScale(obj.ootActorScale), 4)
 
         try:
+            # exportPath, levelName = getPathAndLevel(context.scene.geoCustomExport,
+            # 	context.scene.geoExportPath, context.scene.geoLevelName,
+            # 	context.scene.geoLevelOption)
+
             saveTextures = context.scene.saveTextures
             isHWv1 = context.scene.isHWv1
             f3dType = context.scene.f3d_type

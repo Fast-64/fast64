@@ -1,8 +1,10 @@
-from ..oot_f3d_writer import *
-from ..oot_collision import *
-from ..oot_cutscene import *
-from ..oot_constants import ootRoomShapeEntryStructs, ootRoomShapeStructs
+from ...utility import CData, PluginError
+from ...f3d.f3d_gbi import ScrollMethod
+from ..oot_f3d_writer import OOTGfxFormatter
+from ..oot_collision import ootCollisionToC
+from ..oot_cutscene import ootCutsceneDataToC
 from ..oot_utility import indent
+from ..oot_constants import ootRoomShapeStructs, ootRoomShapeEntryStructs
 
 
 def cmdName(name, header, index):

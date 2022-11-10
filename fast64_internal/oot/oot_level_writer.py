@@ -5,25 +5,13 @@ from .c_writer.oot_level_c import ootSceneIncludes, ootLevelToC
 from .c_writer.oot_scene_table_c import modifySceneTable
 from .c_writer.oot_spec import modifySegmentDefinition
 from .c_writer.oot_scene_folder import modifySceneFiles
+from .c_writer.oot_scene_bootup import setBootupScene
 from .oot_constants import ootSceneIDToName
 from .oot_cutscene import convertCutsceneObject, readCutsceneData
 from .oot_spline import assertCurveValid, ootConvertPath
 from .oot_model_classes import OOTModel
 from .oot_collision import OOTCameraData, exportCollisionCommon
 from .oot_collision_classes import OOTCameraPosData, OOTWaterBox, decomp_compat_map_CameraSType
-from .c_writer.oot_scene_bootup import setBootupScene
-
-from .oot_level_classes import (
-    OOTScene,
-    OOTExit,
-    OOTLight,
-    OOTDLGroup,
-    OOTActor,
-    OOTTransitionActor,
-    OOTEntrance,
-    addActor,
-    addStartPosition,
-)
 
 from ..utility import (
     PluginError,
@@ -40,6 +28,7 @@ from ..utility import (
     writeCDataHeaderOnly,
 )
 
+
 from .oot_utility import (
     OOTObjectCategorizer,
     CullGroup,
@@ -51,6 +40,18 @@ from .oot_utility import (
     ootConvertTranslation,
     ootConvertRotation,
     ootSceneDirs,
+)
+
+from .oot_level_classes import (
+    OOTLight,
+    OOTExit,
+    OOTScene,
+    OOTActor,
+    OOTTransitionActor,
+    OOTEntrance,
+    OOTDLGroup,
+    addActor,
+    addStartPosition,
 )
 
 
@@ -316,7 +317,10 @@ def readRoomData(room, roomHeader, alternateRoomHeaders):
     room.roomBehaviour = getCustomProperty(roomHeader, "roomBehaviour")
     room.disableWarpSongs = roomHeader.disableWarpSongs
     room.showInvisibleActors = roomHeader.showInvisibleActors
-    room.linkIdleMode = getCustomProperty(roomHeader, "linkIdleMode")
+
+    # room heat behavior is active if the idle mode is 0x03
+    room.linkIdleMode = getCustomProperty(roomHeader, "linkIdleMode") if not roomHeader.roomIsHot else "0x03"
+
     room.linkIdleModeCustom = roomHeader.linkIdleModeCustom
     room.setWind = roomHeader.setWind
     room.windVector = normToSigned8Vector(mathutils.Vector(roomHeader.windVector).normalized())

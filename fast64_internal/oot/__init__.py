@@ -6,6 +6,7 @@ from .oot_collision import oot_col_panel_register, oot_col_panel_unregister, oot
 from .oot_utility import oot_utility_register, oot_utility_unregister
 from .other.panel.viewport.display_list import OOTDLExportSettings, OOTDLImportSettings
 from .other.panel.viewport.file_settings import file_register, file_unregister
+from .oot_anim import OOTAnimExportSettingsProperty, OOTAnimImportSettingsProperty
 
 from .oot_f3d_writer import (
     oot_dl_writer_panel_register,
@@ -89,6 +90,8 @@ class OOT_Properties(bpy.types.PropertyGroup):
     DLImportSettings: bpy.props.PointerProperty(type=OOTDLImportSettings)
     skeletonExportSettings: bpy.props.PointerProperty(type=OOTSkeletonExportSettings)
     skeletonImportSettings: bpy.props.PointerProperty(type=OOTSkeletonImportSettings)
+    animExportSettings: bpy.props.PointerProperty(type=OOTAnimExportSettingsProperty)
+    animImportSettings: bpy.props.PointerProperty(type=OOTAnimImportSettingsProperty)
 
 
 oot_classes = (
