@@ -830,9 +830,12 @@ def ootProcessWaterBox(sceneObj, obj, transformMatrix, scene, roomIndex):
 
 
 class OOT_ExportScene(bpy.types.Operator):
+    """Export an OOT scene."""
+
     bl_idname = "object.oot_export_level"
     bl_label = "Export Scene"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
+    sceneOption: bpy.props.EnumProperty(items=ootEnumSceneID, default="SCENE_YDAN")
 
     def execute(self, context):
         activeObj = None
@@ -906,9 +909,12 @@ def ootRemoveSceneC(exportInfo):
 
 
 class OOT_RemoveScene(bpy.types.Operator):
+    """Remove an OOT scene from an existing decomp directory."""
+
     bl_idname = "object.oot_remove_level"
     bl_label = "OOT Remove Scene"
     bl_options = {"REGISTER", "UNDO"}
+    sceneOption: bpy.props.EnumProperty(items=ootEnumSceneID, default="SCENE_YDAN")
 
     def execute(self, context):
         settings = context.scene.ootSceneExportSettings
@@ -943,12 +949,28 @@ class OOT_ExportScenePanel(OOT_Panel):
     bl_idname = "OOT_PT_export_level"
     bl_label = "OOT Scene Exporter"
 
+    def drawSceneSearchOp(self, layout, context, enumValue):
+        searchBox = layout.box().row()
+        searchBox.operator(OOT_SearchSceneEnumOperator.bl_idname, icon="VIEWZOOM", text="")
+        searchBox.label(text=getEnumName(ootEnumSceneID, enumValue))
+
     def draw(self, context):
         col = self.layout.column()
-        col.operator(OOT_ExportScene.bl_idname)
+        exportOp: OOT_ExportScene = col.operator(OOT_ExportScene.bl_idname)
         # if not bpy.context.scene.ignoreTextureRestrictions:
         # 	col.prop(context.scene, 'saveTextures')
         settings: OOTExportSceneSettingsProperty = context.scene.ootSceneExportSettings
+        if settings.customExport:
+            prop_split(col, settings, "exportPath", "Directory")
+            prop_split(col, settings, "name", "Name")
+            customExportWarning(col)
+        else:
+            self.drawSceneSearchOp(col, context, context.scene.ootSceneOption)
+            # col.prop(context.scene, 'ootSceneOption')
+            if context.scene.ootSceneOption == "Custom":
+                prop_split(col, settings, "subFolder", "Subfolder")
+                prop_split(col, settings, "name", "Name")
+
         prop_split(col, context.scene, "ootSceneExportObj", "Scene Object")
 
         if context.scene.fast64.oot.hackerFeaturesEnabled:
@@ -971,33 +993,14 @@ class OOT_ExportScenePanel(OOT_Panel):
 
         col.prop(settings, "singleFile")
         col.prop(settings, "customExport")
-        if settings.customExport:
-            prop_split(col, settings, "exportPath", "Directory")
-            prop_split(col, settings, "name", "Name")
-            customExportWarning(col)
-        else:
-            col.operator(OOT_SearchSceneEnumOperator.bl_idname, icon="VIEWZOOM")
-            col.box().column().label(text=getEnumName(ootEnumSceneID, context.scene.ootSceneOption))
-            # col.prop(context.scene, 'ootSceneOption')
-            if context.scene.ootSceneOption == "Custom":
-                prop_split(col, settings, "subFolder", "Subfolder")
-                prop_split(col, settings, "name", "Name")
-            col.operator(OOT_RemoveScene.bl_idname, text="Remove Scene")
 
-        importSettings = context.scene.ootSceneImportSettings
-        col.operator(OOT_ImportScene.bl_idname)
-        importSettings.draw(col)
-        col.label(text="Cutscenes won't be imported.")
+        importSettings: OOTImportSceneSettingsProperty = context.scene.ootSceneImportSettings
+        importOp: OOT_ImportScene = col.operator(OOT_ImportScene.bl_idname)
+        self.drawSceneSearchOp(col, context, context.scene.ootSceneOption)
+        importSettings.draw(col, context.scene.ootSceneOption)
 
-        col.operator(OOT_SearchSceneEnumOperator.bl_idname, icon="VIEWZOOM")
-        col.box().column().label(text=getEnumName(ootEnumSceneID, context.scene.ootSceneOption))
-        if "SCENE_BDAN" in context.scene.ootSceneOption:
-            col.label(text="Pulsing wall effect won't be imported.", icon="ERROR")
-        # col.prop(settings, 'option')
-        if context.scene.ootSceneOption == "Custom":
-            prop_split(col, settings, "subFolder", "Subfolder")
-            prop_split(col, settings, "name", "Name")
-        col.operator(OOT_RemoveScene.bl_idname)
+        removeOp: OOT_RemoveScene = col.operator(OOT_RemoveScene.bl_idname, text="Remove Scene")
+        self.drawSceneSearchOp(col, context, context.scene.ootSceneOption)
 
 
 oot_level_classes = (

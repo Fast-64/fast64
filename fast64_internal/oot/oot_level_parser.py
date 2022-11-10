@@ -81,6 +81,8 @@ def parseSceneFunc():
 
 
 class OOT_ImportScene(bpy.types.Operator):
+    """Import an OOT scene from C."""
+
     bl_idname = "object.oot_import_level"
     bl_label = "Import Scene"
     bl_options = {"REGISTER", "UNDO", "PRESET"}

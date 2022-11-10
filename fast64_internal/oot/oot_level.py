@@ -222,7 +222,7 @@ class OOTImportSceneSettingsProperty(bpy.types.PropertyGroup):
     includePaths: bpy.props.BoolProperty(name="Paths", default=True)
     includeWaterBoxes: bpy.props.BoolProperty(name="Water Boxes", default=True)
 
-    def draw(self, layout: bpy.types.UILayout):
+    def draw(self, layout: bpy.types.UILayout, sceneOption: str):
         col = layout.column()
         includeButtons1 = col.row(align=True)
         includeButtons1.prop(self, "includeMesh", toggle=1)
@@ -245,6 +245,11 @@ class OOTImportSceneSettingsProperty(bpy.types.PropertyGroup):
             if bpy.context.scene.ootSceneOption == "Custom":
                 prop_split(col, self, "subFolder", "Subfolder")
                 prop_split(col, self, "name", "Name")
+
+        col.label(text="Cutscenes won't be imported.")
+
+        if "SCENE_BDAN" in sceneOption:
+            col.label(text="Pulsing wall effect won't be imported.", icon="ERROR")
 
 
 class OOTCullGroupProperty(bpy.types.PropertyGroup):
