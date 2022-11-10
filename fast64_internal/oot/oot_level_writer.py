@@ -75,7 +75,7 @@ from .oot_level_classes import (
     addStartPosition,
 )
 
-from .oot_level import OOTExportSceneSettingsProperty, OOTImportSceneSettingsProperty
+from .oot_level import OOTExportSceneSettingsProperty, OOTImportSceneSettingsProperty, OOTRemoveSceneSettingsProperty
 from .oot_f3d_writer import writeTextureArraysNew, writeTextureArraysExisting1D
 
 
@@ -835,7 +835,6 @@ class OOT_ExportScene(bpy.types.Operator):
     bl_idname = "object.oot_export_level"
     bl_label = "Export Scene"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
-    sceneOption: bpy.props.EnumProperty(items=ootEnumSceneID, default="SCENE_YDAN")
 
     def execute(self, context):
         activeObj = None
@@ -859,7 +858,7 @@ class OOT_ExportScene(bpy.types.Operator):
         try:
             settings = context.scene.ootSceneExportSettings
             levelName = settings.name
-            option = context.scene.ootSceneOption
+            option = settings.option
             if settings.customExport:
                 exportInfo = ExportInfo(True, bpy.path.abspath(settings.exportPath), None, levelName)
             else:
@@ -914,12 +913,11 @@ class OOT_RemoveScene(bpy.types.Operator):
     bl_idname = "object.oot_remove_level"
     bl_label = "OOT Remove Scene"
     bl_options = {"REGISTER", "UNDO"}
-    sceneOption: bpy.props.EnumProperty(items=ootEnumSceneID, default="SCENE_YDAN")
 
     def execute(self, context):
-        settings = context.scene.ootSceneExportSettings
+        settings: OOTRemoveSceneSettingsProperty = context.scene.ootSceneRemoveSettings
         levelName = settings.name
-        option = context.scene.ootSceneOption
+        option = settings.option
 
         if settings.customExport:
             self.report({"ERROR"}, "You can only remove scenes from your decomp path.")
@@ -949,9 +947,9 @@ class OOT_ExportScenePanel(OOT_Panel):
     bl_idname = "OOT_PT_export_level"
     bl_label = "OOT Scene Exporter"
 
-    def drawSceneSearchOp(self, layout, context, enumValue):
+    def drawSceneSearchOp(self, layout, context, enumValue, opName):
         searchBox = layout.box().row()
-        searchBox.operator(OOT_SearchSceneEnumOperator.bl_idname, icon="VIEWZOOM", text="")
+        searchBox.operator(OOT_SearchSceneEnumOperator.bl_idname, icon="VIEWZOOM", text="").opName = opName
         searchBox.label(text=getEnumName(ootEnumSceneID, enumValue))
 
     def draw(self, context):
@@ -965,9 +963,8 @@ class OOT_ExportScenePanel(OOT_Panel):
             prop_split(col, settings, "name", "Name")
             customExportWarning(col)
         else:
-            self.drawSceneSearchOp(col, context, context.scene.ootSceneOption)
-            # col.prop(context.scene, 'ootSceneOption')
-            if context.scene.ootSceneOption == "Custom":
+            self.drawSceneSearchOp(col, context, settings.option, "Export")
+            if settings.option == "Custom":
                 prop_split(col, settings, "subFolder", "Subfolder")
                 prop_split(col, settings, "name", "Name")
 
@@ -996,11 +993,12 @@ class OOT_ExportScenePanel(OOT_Panel):
 
         importSettings: OOTImportSceneSettingsProperty = context.scene.ootSceneImportSettings
         importOp: OOT_ImportScene = col.operator(OOT_ImportScene.bl_idname)
-        self.drawSceneSearchOp(col, context, context.scene.ootSceneOption)
-        importSettings.draw(col, context.scene.ootSceneOption)
+        self.drawSceneSearchOp(col, context, importSettings.option, "Import")
+        importSettings.draw(col, importSettings.option)
 
+        removeSettings: OOTRemoveSceneSettingsProperty = context.scene.ootSceneRemoveSettings
         removeOp: OOT_RemoveScene = col.operator(OOT_RemoveScene.bl_idname, text="Remove Scene")
-        self.drawSceneSearchOp(col, context, context.scene.ootSceneOption)
+        self.drawSceneSearchOp(col, context, removeSettings.option, "Remove")
 
 
 oot_level_classes = (

@@ -76,7 +76,7 @@ def parseSceneFunc():
         context.scene.f3d_type,
         context.scene.isHWv1,
         settings,
-        bpy.context.scene.ootSceneOption,
+        settings.option,
     )
 
 

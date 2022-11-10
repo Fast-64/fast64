@@ -102,9 +102,18 @@ class OOT_SearchSceneEnumOperator(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     ootSceneID: bpy.props.EnumProperty(items=ootEnumSceneID, default="SCENE_YDAN")
+    opName: bpy.props.StringProperty(default="Export")
 
     def execute(self, context):
-        context.scene.ootSceneOption = self.ootSceneID
+        if self.opName == "Export":
+            context.scene.ootSceneExportSettings.option = self.ootSceneID
+        elif self.opName == "Import":
+            context.scene.ootSceneImportSettings.option = self.ootSceneID
+        elif self.opName == "Remove":
+            context.scene.ootSceneRemoveSettings.option = self.ootSceneID
+        else:
+            raise Exception(f'Invalid OOT scene search operator name: "{self.opName}"')
+
         bpy.context.region.tag_redraw()
         self.report({"INFO"}, "Selected: " + self.ootSceneID)
         return {"FINISHED"}

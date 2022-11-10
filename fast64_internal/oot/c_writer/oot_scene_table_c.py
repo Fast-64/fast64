@@ -82,7 +82,11 @@ def getInsertionIndex(sceneNames, sceneName, index, mode):
                 return i + 1
             # return an index to insert a comment
             elif mode == "EXPORT":
-                return i if not sceneName in sceneNames and sceneName != bpy.context.scene.ootSceneOption else i + 1
+                return (
+                    i
+                    if not sceneName in sceneNames and sceneName != bpy.context.scene.ootSceneExportSettings.option
+                    else i + 1
+                )
             # same but don't check for chosen scene
             elif mode == "REMOVE":
                 return i if not sceneName in sceneNames else i + 1
@@ -97,7 +101,7 @@ def getSceneParams(scene, exportInfo, sceneNames):
     """Returns the parameters that needs to be set in ``DEFINE_SCENE()``"""
     # in order to replace the values of ``unk10``, ``unk12`` and basically every parameters from ``DEFINE_SCENE``,
     # you just have to make it return something other than None, not necessarily a string
-    sceneIndex = getSceneIndex(sceneNames, bpy.context.scene.ootSceneOption)
+    sceneIndex = getSceneIndex(sceneNames, bpy.context.scene.ootSceneExportSettings.option)
     sceneName = sceneTitle = sceneID = sceneUnk10 = sceneUnk12 = None
 
     # if the index is None then this is a custom scene
@@ -173,7 +177,7 @@ def modifySceneTable(scene, exportInfo: ExportInfo):
     # that means the selected scene has been removed from the table
     # however if the scene variable is not None
     # set it to "INSERT" because we need to insert the scene in the right place
-    if sceneIndex is None and bpy.context.scene.ootSceneOption == "Custom":
+    if sceneIndex is None and bpy.context.scene.ootSceneExportSettings.option == "Custom":
         mode = "CUSTOM"
     elif sceneIndex is None and scene is not None:
         mode = "INSERT"

@@ -196,6 +196,13 @@ class OOT_ObjectProperties(bpy.types.PropertyGroup):
     scene: bpy.props.PointerProperty(type=OOTSceneProperties)
 
 
+class OOTRemoveSceneSettingsProperty(bpy.types.PropertyGroup):
+    name: bpy.props.StringProperty(name="Name", default="spot03")
+    subFolder: bpy.props.StringProperty(name="Subfolder", default="overworld")
+    customExport: bpy.props.BoolProperty(name="Custom Export Path")
+    option: bpy.props.EnumProperty(items=ootEnumSceneID, default="SCENE_YDAN")
+
+
 class OOTExportSceneSettingsProperty(bpy.types.PropertyGroup):
     name: bpy.props.StringProperty(name="Name", default="spot03")
     subFolder: bpy.props.StringProperty(name="Subfolder", default="overworld")
@@ -206,6 +213,7 @@ class OOTExportSceneSettingsProperty(bpy.types.PropertyGroup):
         default=False,
         description="Does not split the scene and rooms into multiple files.",
     )
+    option: bpy.props.EnumProperty(items=ootEnumSceneID, default="SCENE_YDAN")
 
 
 class OOTImportSceneSettingsProperty(bpy.types.PropertyGroup):
@@ -221,6 +229,7 @@ class OOTImportSceneSettingsProperty(bpy.types.PropertyGroup):
     includeCameras: bpy.props.BoolProperty(name="Cameras", default=True)
     includePaths: bpy.props.BoolProperty(name="Paths", default=True)
     includeWaterBoxes: bpy.props.BoolProperty(name="Water Boxes", default=True)
+    option: bpy.props.EnumProperty(items=ootEnumSceneID, default="SCENE_YDAN")
 
     def draw(self, layout: bpy.types.UILayout, sceneOption: str):
         col = layout.column()
@@ -242,7 +251,7 @@ class OOTImportSceneSettingsProperty(bpy.types.PropertyGroup):
             prop_split(col, self, "destPath", "Directory")
             prop_split(col, self, "name", "Name")
         else:
-            if bpy.context.scene.ootSceneOption == "Custom":
+            if self.option == "Custom":
                 prop_split(col, self, "subFolder", "Subfolder")
                 prop_split(col, self, "name", "Name")
 
@@ -303,6 +312,7 @@ oot_obj_classes = (
     OOTAlternateRoomHeaderProperty,
     OOTImportSceneSettingsProperty,
     OOTExportSceneSettingsProperty,
+    OOTRemoveSceneSettingsProperty,
     OOTCullGroupProperty,
 )
 
@@ -333,8 +343,8 @@ def oot_obj_register():
 
     bpy.types.Scene.ootSceneExportSettings = bpy.props.PointerProperty(type=OOTExportSceneSettingsProperty)
     bpy.types.Scene.ootSceneImportSettings = bpy.props.PointerProperty(type=OOTImportSceneSettingsProperty)
+    bpy.types.Scene.ootSceneRemoveSettings = bpy.props.PointerProperty(type=OOTRemoveSceneSettingsProperty)
     bpy.types.Scene.ootSceneExportObj = bpy.props.PointerProperty(type=bpy.types.Object, poll=isSceneObj)
-    bpy.types.Scene.ootSceneOption = bpy.props.EnumProperty(name="Scene", items=ootEnumSceneID, default="SCENE_YDAN")
     bpy.types.Scene.ootActiveHeaderLock = bpy.props.BoolProperty(default=False)
 
     bpy.types.Object.ootActorProperty = bpy.props.PointerProperty(type=OOTActorProperty)
@@ -353,8 +363,8 @@ def oot_obj_unregister():
 
     del bpy.types.Scene.ootSceneExportSettings
     del bpy.types.Scene.ootSceneImportSettings
+    del bpy.types.Scene.ootSceneRemoveSettings
     del bpy.types.Scene.ootSceneExportObj
-    del bpy.types.Scene.ootSceneOption
     del bpy.types.Scene.ootActiveHeaderLock
 
     del bpy.types.Object.ootEmptyType
