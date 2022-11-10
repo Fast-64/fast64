@@ -993,7 +993,8 @@ class OOT_ExportScenePanel(OOT_Panel):
 
         importSettings: OOTImportSceneSettingsProperty = context.scene.ootSceneImportSettings
         importOp: OOT_ImportScene = col.operator(OOT_ImportScene.bl_idname)
-        self.drawSceneSearchOp(col, context, importSettings.option, "Import")
+        if not importSettings.isCustomDest:
+            self.drawSceneSearchOp(col, context, importSettings.option, "Import")
         importSettings.draw(col, importSettings.option)
 
         removeSettings: OOTRemoveSceneSettingsProperty = context.scene.ootSceneRemoveSettings
