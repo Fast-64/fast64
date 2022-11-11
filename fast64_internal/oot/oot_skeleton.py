@@ -33,6 +33,7 @@ from ..utility import (
     attemptModifierApply,
     cleanupDuplicatedObjects,
     VertexWeightError,
+    yUpToZUp,
 )
 
 from .oot_utility import (
@@ -448,8 +449,6 @@ def ootRemoveRotationsFromArmature(armatureObj: bpy.types.Object) -> None:
 def ootRemoveRotationsFromBone(armatureObj: bpy.types.Object, bone: bpy.types.Bone):
     for childBone in bone.children:
         ootRemoveRotationsFromBone(armatureObj, childBone)
-
-    yUpToZUp = mathutils.Quaternion((1, 0, 0), math.radians(90.0)).to_matrix().to_4x4()
 
     if bone.parent is not None:
         transform = bone.parent.matrix_local.inverted() @ bone.matrix_local

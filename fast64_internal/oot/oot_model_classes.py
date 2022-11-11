@@ -1,4 +1,4 @@
-import bpy, os, re
+import bpy, os, re, mathutils
 from typing import Union
 from ..f3d.f3d_writer import (
     VertexGroupInfo,
@@ -12,6 +12,7 @@ from ..f3d.f3d_writer import (
     DPSetTextureLUT,
     DPSetTile,
     texFormatOf,
+    FImageKey,
 )
 from ..f3d.f3d_parser import F3DContext, F3DTextureReference, getImportData
 from ..f3d.f3d_material import createF3DMat, TextureProperty
@@ -105,6 +106,15 @@ class OOTModel(FModel):
         self.processedFlipbooks: dict[bpy.types.Image, list[bpy.types.Image]] = {}
         FModel.__init__(self, f3dType, isHWv1, name, DLFormat, GfxMatWriteMethod.WriteAll)
 
+    # Since dynamic textures are handled by scene draw config, flipbooks should only belong to scene model.
+    # Thus we have this function.
+    def getFlipbookOwner(self):
+        if self.parentModel is not None:
+            model = self.parentModel
+        else:
+            model = self
+        return model
+
     def getDrawLayerV3(self, obj):
         return obj.ootDrawLayer
 
@@ -148,7 +158,8 @@ class OOTModel(FModel):
             raise PluginError(f"Can not find TLUT command in material {fMaterial.name}")
 
     def addFlipbookWithRepeatCheck(self, flipbook: TextureFlipbook):
-        for existingFlipbook in self.flipbooks:
+        model = self.getFlipbookOwner()
+        for existingFlipbook in model.flipbooks:
             if existingFlipbook.name == flipbook.name:
                 if len(existingFlipbook.textureNames) != len(flipbook.textureNames):
                     raise PluginError(
@@ -161,7 +172,7 @@ class OOTModel(FModel):
                             f"There are two flipbooks with differing elements trying to write to the same texture array name: {flipbook.name}."
                             + f"\nMake sure that this flipbook name is unique, or that repeated uses of this name use the same textures is the same order/format."
                         )
-        self.flipbooks.append(flipbook)
+        model.flipbooks.append(flipbook)
 
     def validateCIFlipbook(
         self, existingFPalette: FImage, alreadyExists: bool, fPalette: FImage, flipbookImage: bpy.types.Image
@@ -198,8 +209,9 @@ class OOTModel(FModel):
 
     def processFlipbookCI(self, fMaterial: FMaterial, flipbookProp: FlipbookProperty, texProp: TextureProperty):
         # print("Processing flipbook...")
+        model = self.getFlipbookOwner()
         flipbook = TextureFlipbook(flipbookProp.name, flipbookProp.exportMode, [])
-        sharedPalette = FSharedPalette(self.name + "_" + flipbookProp.textures[0].image.name + "_pal")
+        sharedPalette = FSharedPalette(model.name + "_" + flipbookProp.textures[0].image.name + "_pal")
         existingFPalette = None
         fImages = []
         for flipbookTexture in flipbookProp.textures:
@@ -209,40 +221,48 @@ class OOTModel(FModel):
             name = (
                 flipbookTexture.name
                 if flipbookProp.exportMode == "Individual"
-                else self.name + "_" + flipbookTexture.image.name + "_" + texProp.tex_format.lower()
+                else model.name + "_" + flipbookTexture.image.name + "_" + texProp.tex_format.lower()
             )
 
-            texName = getTextureNameTexRef(texProp, self.name)
+            texName = getTextureNameTexRef(texProp, model.name)
             # fPalette should be None here, since sharedPalette is not None
             fImage, fPalette, alreadyExists = saveOrGetPaletteAndImageDefinition(
                 fMaterial,
-                self,
+                model,
                 flipbookTexture.image,
                 name,
                 texProp.tex_format,
                 texProp.ci_format,
                 True,
                 sharedPalette,
+                FImageKey(
+                    flipbookTexture.image,
+                    texProp.tex_format,
+                    texProp.ci_format,
+                    [flipbookTexture.image for flipbookTexture in flipbookProp.textures],
+                ),
             )
-            existingFPalette = self.validateCIFlipbook(existingFPalette, alreadyExists, fPalette, flipbookTexture.image)
+            existingFPalette = model.validateCIFlipbook(
+                existingFPalette, alreadyExists, fPalette, flipbookTexture.image
+            )
             fImages.append(fImage)
 
             # do this here to check for modified names due to repeats
             flipbook.textureNames.append(fImage.name)
 
-        self.addFlipbookWithRepeatCheck(flipbook)
+        model.addFlipbookWithRepeatCheck(flipbook)
 
         # print(f"Palette length for {sharedPalette.name}: {len(sharedPalette.palette)}")
         firstImage = flipbookProp.textures[0].image
-        self.processedFlipbooks[firstImage] = [flipbookTex.image for flipbookTex in flipbookProp.textures]
+        model.processedFlipbooks[firstImage] = [flipbookTex.image for flipbookTex in flipbookProp.textures]
 
         if existingFPalette == False:
 
             palFormat = texProp.ci_format
-            fPalette = saveOrGetPaletteOnlyDefinition(
+            fPalette, paletteKey = saveOrGetPaletteOnlyDefinition(
                 fMaterial,
-                self,
-                firstImage,
+                model,
+                [tex.image for tex in flipbookProp.textures],
                 sharedPalette.name,
                 texProp.tex_format,
                 palFormat,
@@ -253,15 +273,15 @@ class OOTModel(FModel):
             # using the first image for the key, apply paletteKey to all images
             # while this is not ideal, its better to us an image for the key as
             # names are modified when duplicates are found
-            paletteKey = (firstImage, (palFormat, "PAL"))
             for fImage in fImages:
                 fImage.paletteKey = paletteKey
         else:
             fPalette = existingFPalette
 
-        self.modifyDLForCIFlipbook(fMaterial, fPalette, texProp)
+        model.modifyDLForCIFlipbook(fMaterial, fPalette, texProp)
 
     def processFlipbookNonCI(self, fMaterial: FMaterial, flipbookProp: FlipbookProperty, texProp: TextureProperty):
+        model = self.getFlipbookOwner()
         flipbook = TextureFlipbook(flipbookProp.name, flipbookProp.exportMode, [])
         for flipbookTexture in flipbookProp.textures:
             if flipbookTexture.image is None:
@@ -270,11 +290,11 @@ class OOTModel(FModel):
             name = (
                 flipbookTexture.name
                 if flipbookProp.exportMode == "Individual"
-                else self.name + "_" + flipbookTexture.image.name + "_" + texProp.tex_format.lower()
+                else model.name + "_" + flipbookTexture.image.name + "_" + texProp.tex_format.lower()
             )
             fImage = saveOrGetTextureDefinition(
                 fMaterial,
-                self,
+                model,
                 flipbookTexture.image,
                 name,
                 texProp.tex_format,
@@ -420,14 +440,26 @@ class OOTF3DContext(F3DContext):
             return F3DContext.vertexFormatPatterns(self, data)
 
     # For game specific instance, override this to be able to identify which verts belong to which bone.
-    def setCurrentTransform(self, name):
+    def setCurrentTransform(self, name, flagList="G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW"):
         if name[:4].lower() == "0x0d":
-            self.currentTransformName = self.getLimbName(self.dlList[int(int(name[4:], 16) / MTX_SIZE)].limbIndex)
+            # This code is for skeletons
+            index = int(int(name[4:], 16) / MTX_SIZE)
+            if index < len(self.dlList):
+                transformName = self.getLimbName(self.dlList[index].limbIndex)
+
+            # This code is for jabu jabu level, requires not adding to self.dlList?
+            else:
+                transformName = name
+                self.matrixData[name] = mathutils.Matrix.Identity(4)
+                print(f"Matrix {name} has not been processed from dlList, substituting identity matrix.")
+
+            F3DContext.setCurrentTransform(self, transformName, flagList)
+
         else:
             try:
                 pointer = hexOrDecInt(name)
             except:
-                self.currentTransformName = name
+                F3DContext.setCurrentTransform(self, name, flagList)
             else:
                 if pointer >> 24 == 0x01:
                     self.isBillboard = True
@@ -512,7 +544,9 @@ class OOTF3DContext(F3DContext):
                     image = self.loadTexture(data, textureName, None, tileSettings, False)
                     if not isinstance(image, bpy.types.Image):
                         raise PluginError(
-                            f'Could not find texture "{textureName}", so it can not be used in a flipbook texture.'
+                            f'Could not find texture "{textureName}", so it can not be used in a flipbook texture.\n'
+                            f"For OOT scenes this may be because the scene's draw config references textures not stored in its scene/room files.\n"
+                            f"In this case, draw configs that use flipbook textures should only be used for one scene.\n"
                         )
                     flipbookProp.textures.add()
                     flipbookProp.textures[-1].image = image

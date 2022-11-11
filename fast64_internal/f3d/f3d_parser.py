@@ -428,7 +428,10 @@ def getTileMask(value, f3d):
 
 def getTileShift(value, f3d):
     data = math_eval(value, f3d)
-    return data
+    if data > 10:
+        return data - 16
+    else:
+        return data
 
 
 def renderModeMask(rendermode, cycle, blendOnly):
@@ -627,9 +630,20 @@ class F3DContext:
             + "\}",
         ]
 
+    def addMatrix(self, name, matrix):
+        self.matrixData[name] = matrix
+        self.limbToBoneName[name] = name
+
     # For game specific instance, override this to be able to identify which verts belong to which bone.
-    def setCurrentTransform(self, name):
-        self.currentTransformName = name
+    def setCurrentTransform(self, name, flagList="G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW"):
+        flags = [value.strip() for value in flagList.split("|")]
+        if "G_MTX_MUL" in flags:
+            tempName = name + "_x_" + str(self.currentTransformName)
+            self.addMatrix(tempName, self.matrixData[name] @ self.matrixData[self.currentTransformName])
+            self.limbToBoneName[tempName] = tempName
+            self.currentTransformName = tempName
+        else:
+            self.currentTransformName = name
 
     def getTransformedVertex(self, index: int):
         bufferVert = self.vertexBuffer[index]
@@ -687,6 +701,12 @@ class F3DContext:
                 + str(start)
                 + ", "
                 + str(start + count)
+            )
+        if vertexDataOffset + count > len(vertexData):
+            raise PluginError(
+                f"Attempted to read vertex data out of bounds.\n"
+                f"{vertexDataName} is of size {len(vertexData)}, "
+                f"attemped read from ({vertexDataOffset}, {vertexDataOffset + count})"
             )
         for i in range(count):
             self.vertexBuffer[start + i] = BufferVertex(vertexData[vertexDataOffset + i], self.currentTransformName, 0)
@@ -847,13 +867,23 @@ class F3DContext:
         if self.basePath is None:
             raise PluginError("Cannot load texture from " + path + " without any provided base path.")
 
-        imagePath = path[:-5] + "png"
-        return os.path.join(self.basePath, imagePath)
+        imagePathRelative = path[:-5] + "png"
+        imagePath = os.path.join(self.basePath, imagePathRelative)
+
+        # handle custom imports, where relative paths don't make sense
+        if not os.path.exists(imagePath):
+            imagePath = os.path.join(self.basePath, os.path.basename(imagePathRelative))
+        return imagePath
 
     def getVTXPathFromInclude(self, path):
         if self.basePath is None:
             raise PluginError("Cannot load VTX from " + path + " without any provided base path.")
-        return os.path.join(self.basePath, path)
+
+        vtxPath = os.path.join(self.basePath, path)
+        # handle custom imports, where relative paths don't make sense
+        if not os.path.exists(vtxPath):
+            vtxPath = os.path.join(self.basePath, os.path.basename(path))
+        return vtxPath
 
     def setGeoFlags(self, command, value):
         mat = self.mat()
@@ -1290,7 +1320,7 @@ class F3DContext:
         tileSettings.palette = math_eval(params[5], self.f3d)
         tileSettings.cmt = getTileClampMirror(params[6], self.f3d)
         tileSettings.maskt = getTileMask(params[7], self.f3d)
-        tileSettings.shifts = getTileShift(params[8], self.f3d)
+        tileSettings.shiftt = getTileShift(params[8], self.f3d)
         tileSettings.cms = getTileClampMirror(params[9], self.f3d)
         tileSettings.masks = getTileMask(params[10], self.f3d)
         tileSettings.shifts = getTileShift(params[11], self.f3d)
@@ -1405,9 +1435,7 @@ class F3DContext:
             self.handleTextureValue(self.materialContext, image, index)
         texProp.tex_set = True
 
-        # TODO: Handle low/high for image files?
         if texProp.use_tex_reference:
-
             # WARNING: Inferring texture size from tile size.
             texProp.tex_reference_size = [
                 int(round(tileSizeSettings.lrs / (2**self.f3d.G_TEXTURE_IMAGE_FRAC) + 1)),
@@ -1451,7 +1479,7 @@ class F3DContext:
         # TODO: Textures are sometimes loaded in with different dimensions than for rendering.
         # This means width is incorrect?
         image, loadedFromImageFile = parseTextureData(
-            data, textureName, self, tileSettings.fmt, siz, width, self.basePath, isLUT, self.f3d
+            data, textureName, self, tileSettings.fmt, siz, width, isLUT, self.f3d
         )
         if loadedFromImageFile:
             self.imagesDontApplyTlut.add(image)
@@ -1499,7 +1527,7 @@ class F3DContext:
                 parseVertexData(dlData, vertexDataName, self)
                 self.addVertices(command.params[1], command.params[2], vertexDataName, vertexDataOffset)
             elif command.name == "gsSPMatrix":
-                self.setCurrentTransform(command.params[0])
+                self.setCurrentTransform(command.params[0], command.params[1])
             elif command.name == "gsSPPopMatrix":
                 print("gsSPPopMatrix not handled.")
             elif command.name == "gsSP1Triangle":
@@ -1520,16 +1548,17 @@ class F3DContext:
             elif command.name == "gsSPEndDisplayList":
                 callStack = callStack[:-1]
 
-            # Material Specific Commands
-            prevMaterialChangedStatus = self.materialChanged
-            self.materialChanged = True
-
             # Should we parse commands into f3d_gbi classes?
             # No, because some parsing involves reading C files, which is separate.
 
             # Assumes macros use variable names instead of values
             mat = self.mat()
             try:
+                # Material Specific Commands
+                # materialChanged status will be reverted if none of these material changing commands are processed
+                prevMaterialChangedStatus = self.materialChanged
+                self.materialChanged = True
+
                 if command.name == "gsSPClipRatio":
                     mat.clip_ratio = math_eval(command.params[0], self.f3d)
                 elif command.name == "gsSPNumLights":
@@ -1746,8 +1775,8 @@ class F3DContext:
         mesh.from_pydata(vertices=verts, edges=[], faces=faces)
         uv_layer = mesh.uv_layers.new().data
         # if self.materialContext.f3d_mat.rdp_settings.g_lighting:
-        color_layer = mesh.vertex_colors.new(name="Col").data
         alpha_layer = mesh.vertex_colors.new(name="Alpha").data
+        color_layer = mesh.vertex_colors.new(name="Col").data
         # else:
 
         if importNormals:
@@ -1977,7 +2006,7 @@ def CI4toRGBA32(value):
     return [value / 255, value / 255, value / 255, 1]
 
 
-def parseTextureData(dlData, textureName, f3dContext, imageFormat, imageSize, width, basePath, isLUT, f3d):
+def parseTextureData(dlData, textureName, f3dContext, imageFormat, imageSize, width, isLUT, f3d):
 
     matchResult = re.search(
         r"([A-Za-z0-9\_]+)\s*" + re.escape(textureName) + r"\s*\[\s*[0-9a-fA-Fx]*\s*\]\s*=\s*\{([^\}]*)\s*\}\s*;\s*",
@@ -1992,7 +2021,7 @@ def parseTextureData(dlData, textureName, f3dContext, imageFormat, imageSize, wi
 
     loadedFromImageFile = False
 
-    pathMatch = re.search('\#include\s*"([^"]*)"', data, re.DOTALL)
+    pathMatch = re.search(r'\#include\s*"(.*?)"', data, re.DOTALL)
     if pathMatch is not None:
         path = pathMatch.group(1)
         originalImage = bpy.data.images.load(f3dContext.getImagePathFromInclude(path))
@@ -2151,20 +2180,50 @@ def getImportData(filepaths):
     return data
 
 
+def parseMatrices(sceneData: str, f3dContext: F3DContext, importScale: float = 1):
+    for match in re.finditer(rf"Mtx\s*([a-zA-Z0-9\_]+)\s*=\s*\{{(.*?)\}}\s*;", sceneData, flags=re.DOTALL):
+        name = "&" + match.group(1)
+        values = [hexOrDecInt(value.strip()) for value in match.group(2).split(",") if value.strip() != ""]
+        trueValues = []
+        for n in range(8):
+            valueInt = int.from_bytes(values[n].to_bytes(4, "big", signed=True), "big", signed=False)
+            valueFrac = int.from_bytes(values[n + 8].to_bytes(4, "big", signed=True), "big", signed=False)
+            int1 = values[n] >> 16
+            int2 = int.from_bytes((valueInt & (2**16 - 1)).to_bytes(2, "big", signed=False), "big", signed=True)
+            frac1 = valueFrac >> 16
+            frac2 = valueFrac & (2**16 - 1)
+            trueValues.append(int1 + (frac1 / (2**16)))
+            trueValues.append(int2 + (frac2 / (2**16)))
+
+        matrix = mathutils.Matrix()
+        for i in range(4):
+            for j in range(4):
+                matrix[j][i] = trueValues[i * 4 + j]
+
+        f3dContext.addMatrix(name, mathutils.Matrix.Scale(importScale, 4) @ matrix)
+
+
 def importMeshC(
-    data: str, name: str, scale: float, removeDoubles: bool, importNormals: bool, drawLayer: str, f3dContext: F3DContext
+    data: str,
+    name: str,
+    scale: float,
+    removeDoubles: bool,
+    importNormals: bool,
+    drawLayer: str,
+    f3dContext: F3DContext,
+    callClearMaterial: bool = True,
 ) -> bpy.types.Object:
 
     # Create new skinned mesh
     mesh = bpy.data.meshes.new(name + "_mesh")
     obj = bpy.data.objects.new(name + "_mesh", mesh)
-    bpy.context.scene.collection.objects.link(obj)
+    bpy.context.collection.objects.link(obj)
 
     f3dContext.mat().draw_layer.oot = drawLayer
     transformMatrix = mathutils.Matrix.Scale(1 / scale, 4)
 
     parseF3D(data, name, transformMatrix, name, name, "oot", drawLayer, f3dContext, True)
-    f3dContext.createMesh(obj, removeDoubles, importNormals, True)
+    f3dContext.createMesh(obj, removeDoubles, importNormals, callClearMaterial)
 
     applyRotation([obj], math.radians(-90), "X")
     return obj

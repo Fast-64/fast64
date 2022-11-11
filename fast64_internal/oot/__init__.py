@@ -1,3 +1,4 @@
+from .oot_actor import setAllActorsVisibility
 import bpy
 from .c_writer import OOTBootupSceneOptions
 from ..panels import OOT_Panel
@@ -66,6 +67,7 @@ class OOT_FileSettingsPanel(OOT_Panel):
         prop_split(col, context.scene, "ootBlenderScale", "OOT Scene Scale")
 
         prop_split(col, context.scene, "ootDecompPath", "Decomp Path")
+        col.prop(context.scene.fast64.oot, "headerTabAffectsVisibility")
         col.prop(context.scene.fast64.oot, "hackerFeaturesEnabled")
 
 
@@ -74,6 +76,9 @@ class OOT_Properties(bpy.types.PropertyGroup):
 
     version: bpy.props.IntProperty(name="OOT_Properties Version", default=0)
     hackerFeaturesEnabled: bpy.props.BoolProperty(name="Enable HackerOOT Features")
+    headerTabAffectsVisibility: bpy.props.BoolProperty(
+        default=False, name="Header Sets Actor Visibility", update=setAllActorsVisibility
+    )
     bootupSceneOptions: bpy.props.PointerProperty(type=OOTBootupSceneOptions)
     DLExportSettings: bpy.props.PointerProperty(type=OOTDLExportSettings)
     DLImportSettings: bpy.props.PointerProperty(type=OOTDLImportSettings)

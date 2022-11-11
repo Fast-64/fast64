@@ -5,15 +5,18 @@ ootEnumRoomShapeType = [
     ("ROOM_SHAPE_TYPE_CULLABLE", "Cullable", "Cullable"),
 ]
 
-ootRoomShapeStructs = {
-    "ROOM_SHAPE_TYPE_NORMAL": "RoomShapeNormal",
-    "ROOM_SHAPE_TYPE_CULLABLE": "RoomShapeCullable",
-}
+ootRoomShapeStructs = [
+    "RoomShapeNormal",
+    "RoomShapeImage",
+    "RoomShapeCullable",
+]
 
-ootRoomShapeEntryStructs = {
-    "ROOM_SHAPE_TYPE_NORMAL": "RoomShapeDListsEntry",
-    "ROOM_SHAPE_TYPE_CULLABLE": "RoomShapeCullableEntry",
-}
+ootRoomShapeEntryStructs = [
+    "RoomShapeDListsEntry",
+    "RoomShapeDListsEntry",
+    "RoomShapeCullableEntry",
+]
+
 
 ootEnumSceneMenu = [
     ("General", "General", "General"),
@@ -32,6 +35,7 @@ ootEnumSceneMenuAlternate = [
     ("General", "General", "General"),
     ("Lighting", "Lighting", "Lighting"),
     ("Cutscene", "Cutscene", "Cutscene"),
+    ("Exits", "Exits", "Exits"),
 ]
 
 ootEnumRoomMenu = [
@@ -532,7 +536,7 @@ ootEnumEmptyType = [
     ("Transition Actor", "Transition Actor", "Transition Actor"),
     ("Entrance", "Entrance", "Entrance"),
     ("Water Box", "Water Box", "Water Box"),
-    ("Cull Group", "Cull Group", "Cull Group"),
+    ("Cull Group", "Custom Cull Group", "Cull Group"),
     ("LOD", "LOD Group", "LOD Group"),
     ("Cutscene", "Cutscene", "Cutscene"),
     # ('Camera Volume', 'Camera Volume', 'Camera Volume'),
@@ -614,8 +618,8 @@ ootEnumSkybox = [
 
 ootEnumSkyboxLighting = [
     ("Custom", "Custom", "Custom"),
-    ("0x00", "Time Of Day", "Time Of Day"),
-    ("0x01", "Indoor", "Indoor"),
+    ("false", "Time Of Day", "Time Of Day"),
+    ("true", "Indoor", "Indoor"),
 ]
 
 ootEnumAudioSessionPreset = [
@@ -1151,9 +1155,9 @@ ootEnumObjectID = [
 
 ootEnumGlobalObject = [
     ("Custom", "Custom", "Custom"),
-    ("0x0000", "None", "None"),
-    ("0x0002", "Overworld", "gameplay_field_keep"),
-    ("0x0003", "Dungeon", "gameplay_dangeon_keep"),
+    ("OBJECT_INVALID", "None", "None"),
+    ("OBJECT_GAMEPLAY_FIELD_KEEP", "Overworld", "gameplay_field_keep"),
+    ("OBJECT_GAMEPLAY_DANGEON_KEEP", "Dungeon", "gameplay_dangeon_keep"),
 ]
 
 ootEnumNaviHints = [
@@ -1520,58 +1524,59 @@ ootEnumCSTransitionType = [
     ("13", "From Dim", "Alpha 100>255"),
 ]
 
-ootDrawConfigNames = [
-    "SDC_DEFAULT",
-    "SDC_SPOT00",
-    "SDC_SPOT01",
-    "SDC_SPOT03",
-    "SDC_SPOT04",
-    "SDC_SPOT06",
-    "SDC_SPOT07",
-    "SDC_SPOT08",
-    "SDC_SPOT09",
-    "SDC_SPOT10",
-    "SDC_SPOT11",
-    "SDC_SPOT12",
-    "SDC_SPOT13",
-    "SDC_SPOT15",
-    "SDC_SPOT16",
-    "SDC_SPOT17",
-    "SDC_SPOT18",
-    "SDC_SPOT20",
-    "SDC_HIDAN",
-    "SDC_YDAN",
-    "SDC_DDAN",
-    "SDC_BDAN",
-    "SDC_BMORI1",
-    "SDC_MIZUSIN",
-    "SDC_HAKADAN",
-    "SDC_JYASINZOU",
-    "SDC_GANONTIKA",
-    "SDC_MEN",
-    "SDC_YDAN_BOSS",
-    "SDC_MIZUSIN_BS",
-    "SDC_TOKINOMA",
-    "SDC_KAKUSIANA",
-    "SDC_KENJYANOMA",
-    "SDC_GREAT_FAIRY_FOUNTAIN",
-    "SDC_SYATEKIJYOU",
-    "SDC_HAIRAL_NIWA",
-    "SDC_GANON_CASTLE_EXTERIOR",
-    "SDC_ICE_DOUKUTO",
-    "SDC_GANON_FINAL",
-    "SDC_FAIRY_FOUNTAIN",
-    "SDC_GERUDOWAY",
-    "SDC_BOWLING",
-    "SDC_HAKAANA_OUKE",
-    "SDC_HYLIA_LABO",
-    "SDC_SOUKO",
-    "SDC_MIHARIGOYA",
-    "SDC_MAHOUYA",
-    "SDC_CALM_WATER",
-    "SDC_GRAVE_EXIT_LIGHT_SHINING",
-    "SDC_BESITU",
-    "SDC_TURIBORI",
-    "SDC_GANON_SONOGO",
-    "SDC_GANONTIKA_SONOGO",
+ootEnumDrawConfig = [
+    ("Custom", "Custom", "Custom"),
+    ("SDC_DEFAULT", "Default", "Default"),
+    ("SDC_SPOT00", "Hyrule Field (Spot00)", "Spot00"),
+    ("SDC_SPOT01", "Kakariko Village (Spot01)", "Spot01"),
+    ("SDC_SPOT03", "Zora's River (Spot03)", "Spot03"),
+    ("SDC_SPOT04", "Kokiri Forest (Spot04)", "Spot04"),
+    ("SDC_SPOT06", "Lake Hylia (Spot06)", "Spot06"),
+    ("SDC_SPOT07", "Zora's Domain (Spot07)", "Spot07"),
+    ("SDC_SPOT08", "Zora's Fountain (Spot08)", "Spot08"),
+    ("SDC_SPOT09", "Gerudo Valley (Spot09)", "Spot09"),
+    ("SDC_SPOT10", "Lost Woods (Spot10)", "Spot10"),
+    ("SDC_SPOT11", "Desert Colossus (Spot11)", "Spot11"),
+    ("SDC_SPOT12", "Gerudo's Fortress (Spot12)", "Spot12"),
+    ("SDC_SPOT13", "Haunted Wasteland (Spot13)", "Spot13"),
+    ("SDC_SPOT15", "Hyrule Castle (Spot15)", "Spot15"),
+    ("SDC_SPOT16", "Death Mountain Trail (Spot16)", "Spot16"),
+    ("SDC_SPOT17", "Death Mountain Crater (Spot17)", "Spot17"),
+    ("SDC_SPOT18", "Goron City (Spot18)", "Spot18"),
+    ("SDC_SPOT20", "Lon Lon Ranch (Spot20)", "Spot20"),
+    ("SDC_HIDAN", "Fire Temple (Hidan)", "Hidan"),
+    ("SDC_YDAN", "Inside the Deku Tree (Ydan)", "Ydan"),
+    ("SDC_DDAN", "Dodongo's Cavern (Ddan)", "Ddan"),
+    ("SDC_BDAN", "Inside Jabu Jabu's Belly (Bdan)", "Bdan"),
+    ("SDC_BMORI1", "Forest Temple (Bmori1)", "Bmori1"),
+    ("SDC_MIZUSIN", "Water Temple (Mizusin)", "Mizusin"),
+    ("SDC_HAKADAN", "Shadow Temple (Hakadan)", "Hakadan"),
+    ("SDC_JYASINZOU", "Spirit Temple (Jyasinzou)", "Jyasinzou"),
+    ("SDC_GANONTIKA", "Inside Ganon's Castle (Ganontika)", "Ganontika"),
+    ("SDC_MEN", "Gerudo Training Ground (Men)", "Men"),
+    ("SDC_YDAN_BOSS", "Gohma's Lair (Ydan Boss)", "Ydan Boss"),
+    ("SDC_MIZUSIN_BS", "Morpha's Lair (Mizusin Bs)", "Mizusin Bs"),
+    ("SDC_TOKINOMA", "Temple of Time (Tokinoma)", "Tokinoma"),
+    ("SDC_KAKUSIANA", "Grottos (Kakusiana)", "Kakusiana"),
+    ("SDC_KENJYANOMA", "Chamber of the Sages (Kenjyanoma)", "Kenjyanoma"),
+    ("SDC_GREAT_FAIRY_FOUNTAIN", "Great Fairy Fountain", "Great Fairy Fountain"),
+    ("SDC_SYATEKIJYOU", "Shooting Gallery (Syatekijyou)", "Syatekijyou"),
+    ("SDC_HAIRAL_NIWA", "Castle Hedge Maze (Day) (Hairal Niwa)", "Hairal Niwa"),
+    ("SDC_GANON_CASTLE_EXTERIOR", "Ganon's Castle Exterior (Ganon Tou)", "Ganon Tou"),
+    ("SDC_ICE_DOUKUTO", "Ice Cavern (Ice Doukuto)", "Ice Doukuto"),
+    ("SDC_GANON_FINAL", "Ganondorf's Death Scene (Tower Escape Exterior) (Ganon Final)", "Ganon Final"),
+    ("SDC_FAIRY_FOUNTAIN", "Fairy Fountain", "Fairy Fountain"),
+    ("SDC_GERUDOWAY", "Thieves' Hideout (Gerudoway)", "Gerudoway"),
+    ("SDC_BOWLING", "Bombchu Bowling Alley (Bowling)", "Bowling"),
+    ("SDC_HAKAANA_OUKE", "Royal Family's Tomb (Hakaana Ouke)", "Hakaana Ouke"),
+    ("SDC_HYLIA_LABO", "Lakeside Laboratory (Hylia Labo)", "Hylia Labo"),
+    ("SDC_SOUKO", "Lon Lon Ranch House & Tower (Souko)", "Souko"),
+    ("SDC_MIHARIGOYA", "Guard House (Miharigoya)", "Miharigoya"),
+    ("SDC_MAHOUYA", "Granny's Potion Shop (Mahouya)", "Mahouya"),
+    ("SDC_CALM_WATER", "Calm Water", "Calm Water"),
+    ("SDC_GRAVE_EXIT_LIGHT_SHINING", "Grave Exit Light Shining", "Grave Exit Light Shining"),
+    ("SDC_BESITU", "Ganondorf Test Room (Besitu)", "Besitu"),
+    ("SDC_TURIBORI", "Fishing Pond (Turibori)", "Turibori"),
+    ("SDC_GANON_SONOGO", "Ganon's Tower (Collapsing) (Ganon Sonogo)", "Ganon Sonogo"),
+    ("SDC_GANONTIKA_SONOGO", "Inside Ganon's Castle (Collapsing) (Ganontika Sonogo)", "Ganontika Sonogo"),
 ]

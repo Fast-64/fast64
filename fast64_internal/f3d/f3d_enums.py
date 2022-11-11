@@ -288,6 +288,7 @@ enumRenderModesCycle1 = [
     ("G_RM_ZB_XLU_DECAL", "Transparent Decal (No AA)", "G_RM_ZB_XLU_DECAL"),
     ("G_RM_OPA_SURF", "Opaque (No AA, No ZBuf)", "G_RM_OPA_SURF"),
     ("G_RM_ZB_CLD_SURF", "Cloud (No AA)", "G_RM_ZB_CLD_SURF"),
+    ("G_RM_AA_ZB_TEX_TERR", "Terrain", "G_RM_AA_ZB_TEX_TERR"),
 ]
 
 enumRenderModesCycle2 = [
@@ -307,6 +308,8 @@ enumRenderModesCycle2 = [
     ("G_RM_ZB_XLU_SURF2", "Transparent (No AA)", "G_RM_ZB_XLU_SURF2"),
     ("G_RM_ZB_XLU_DECAL2", "Transparent Decal (No AA)", "G_RM_ZB_XLU_DECAL2"),
     ("G_RM_ZB_CLD_SURF2", "Cloud (No AA)", "G_RM_ZB_CLD_SURF2"),
+    ("G_RM_ZB_OVL_SURF2", "Overlay (No AA)", "G_RM_ZB_OVL_SURF2"),
+    ("G_RM_AA_ZB_TEX_TERR2", "Terrain", "G_RM_AA_ZB_TEX_TERR2"),
 ]
 
 enumTexFormat = [
