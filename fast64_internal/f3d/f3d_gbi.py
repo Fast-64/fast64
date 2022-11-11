@@ -1,7 +1,7 @@
 # Macros are all copied over from gbi.h
 from typing import Sequence
 from dataclasses import dataclass, fields
-import bpy, os, enum
+import bpy, os, enum, copy
 from ..utility import *
 
 class ScrollMethod(enum.Enum):
@@ -2182,7 +2182,12 @@ class FModel:
         # dict of name : FLODGroup
         self.LODGroups = {}
         self.DLFormat = DLFormat
-        self.matWriteMethod = matWriteMethod
+        
+        #this needs to be overridden for this option to work
+        if bpy.context.scene.exportInlineF3D:
+            self.matWriteMethod = GfxMatWriteMethod.WriteAll
+        else:
+            self.matWriteMethod = matWriteMethod
         self.global_data = FGlobalData()
         self.texturesSavedLastExport = 0  # hacky
 
@@ -2463,7 +2468,8 @@ class FModel:
         else:
             staticData.source += texData.source
 
-        dynamicData.append(self.to_c_materials(gfxFormatter))
+        if not bpy.context.scene.exportInlineF3D:
+            dynamicData.append(self.to_c_materials(gfxFormatter))
 
         for name, lod in self.LODGroups.items():
             lodStatic, lodDynamic = lod.to_c(self.f3d, gfxFormatter)
@@ -2471,11 +2477,16 @@ class FModel:
             dynamicData.append(lodDynamic)
 
         for name, mesh in self.meshes.items():
-            meshStatic, meshDynamic = mesh.to_c(self.f3d, gfxFormatter)
+            if bpy.context.scene.exportInlineF3D:
+                meshStatic, meshDynamic = mesh.to_c_inline(self.f3d, gfxFormatter)
+            else:
+                meshStatic, meshDynamic = mesh.to_c(self.f3d, gfxFormatter)
             staticData.append(meshStatic)
-            dynamicData.append(meshDynamic)
+            if not bpy.context.scene.exportInlineF3D:
+                dynamicData.append(meshDynamic)
 
-        dynamicData.append(self.to_c_material_revert(gfxFormatter))
+        if not bpy.context.scene.exportInlineF3D:
+            dynamicData.append(self.to_c_material_revert(gfxFormatter))
 
         if savePNG:
             self.texturesSavedLastExport = self.save_textures(textureExportSettings.exportPath)
@@ -2663,6 +2674,8 @@ class FMesh:
         self.triangleGroups: list[FTriGroup] = []
         # VtxList
         self.cullVertexList = None
+        # dict of mat: mesh_desc used for inline Gfx only
+        self.MatGroups = dict()
         # dict of (override Material, specified Material to override,
         # overrideType, draw layer) : GfxList
         self.drawMatOverrides = {}
@@ -2698,6 +2711,81 @@ class FMesh:
         self.triangleGroups.append(triGroup)
         return triGroup
 
+    def bleed(self, LastMat):
+        if not self.MatGroups: return
+        for mat, desc in self.MatGroups.items():
+            #bleed mat and tex
+            if desc.fMaterial:
+                bleed_mat = self.bleed_mat(desc.fMaterial, LastMat)
+                bleed_tex = self.bleed_textures(desc.fMaterial, LastMat)
+            else:
+                bleed_mat = []
+                bleed_tex = []
+            #set bled props to _mesh_desc, update LastMat
+            LastMat = desc.fMaterial
+            desc.bleed = bleed_gfx(bleed_mat, bleed_tex)
+        return LastMat
+
+    def bleed_textures(self, mat, LastMat):
+        if LastMat:
+            #bleed cmds if tiles are the same
+            #or pipe syncs as of now
+            bled_tex = []
+            for j, (LastTex, TexCmds) in enumerate(zip(LastMat.textures, mat.textures)):
+                print(f"tex {j} start bleed")
+                #deep copy breaks on Image objects so I will only copy the levels needed
+                commands_bled = copy.copy(TexCmds)
+                commands_bled.commands = copy.copy(TexCmds.commands) #copy the commands also
+                LastList = LastTex.commands
+                #eliminate set tex images
+                set_tex = (c for c in TexCmds.commands if type(c) == DPSetTextureImage)
+                removed_tex = [c for c in set_tex if c in LastList] #needs to be a list to check "in" multiple times
+                rm_load = None #flag to elim loads once
+                for j, cmd in enumerate(TexCmds.commands):
+                    #remove set tex explicitly
+                    if cmd in removed_tex:
+                        commands_bled.commands.remove(cmd)
+                        rm_load = True
+                        continue
+                    if rm_load and type(cmd) in (DPLoadTLUTCmd, DPLoadTile, DPLoadBlock):
+                        commands_bled.commands.remove(cmd)
+                        rm_load = None
+                        continue
+                #now eval as normal conditionals
+                iter_cmds = copy.copy(commands_bled.commands) #need extra list to iterate with
+                for j, cmd in enumerate(iter_cmds):
+                    print(cmd, cmd.to_c(), cmd in LastList)
+                    if cmd.bleed(LastList, commands_bled.commands, j):
+                        if cmd in LastList:
+                            commands_bled.commands.remove(cmd)
+                bled_tex.append(commands_bled)
+        else:
+            bled_tex = mat.textures
+        return bled_tex
+
+    def bleed_mat(self, mat, LastMat):
+        if LastMat:
+            GfxList = mat.material
+            #deep copy breaks on Image objects so I will only copy the levels needed
+            commands_bled = copy.copy(GfxList)
+            commands_bled.commands = copy.copy(GfxList.commands) #copy the commands also
+            LastList = LastMat.material.commands
+            cnt = 0
+            for j, cmd in enumerate(GfxList.commands):
+                if cmd.bleed(LastList, commands_bled.commands, j - cnt):
+                    if cmd in LastList:
+                        commands_bled.commands.pop(j - cnt) #list gets smaller as I pop, so modify index by num popped
+                        cnt += 1
+            #remove SPEndDisplayList
+            while(SPEndDisplayList() in commands_bled.commands):
+                commands_bled.commands.remove(SPEndDisplayList())
+        else:
+            commands_bled = mat.material
+        #remove SPEndDisplayList
+        while(SPEndDisplayList() in commands_bled.commands):
+            commands_bled.commands.remove(SPEndDisplayList())
+        return commands_bled
+
     def set_addr(self, startAddress, f3d):
         addrRange = self.draw.set_addr(startAddress, f3d)
         startAddress = addrRange[0]
@@ -2717,6 +2805,35 @@ class FMesh:
             self.cullVertexList.save_binary(romfile)
         for materialTuple, drawOverride in self.drawMatOverrides.items():
             drawOverride.save_binary(romfile, f3d, segments)
+
+    def to_c_inline(self, f3d, gfxFormatter):
+        if not self.MatGroups: return self.to_c(self, f3d, gfxFormatter)
+        GfxData = CData()
+        staticData = CData()
+        GfxData.header = f"extern Gfx {self.name}[];\n"
+        GfxData.source = f"Gfx {self.name}[] = {{\n"
+        for mat, desc in self.MatGroups.items():
+            #add in vertex data
+            triGroup = desc.tri_list
+            if not triGroup:
+                continue
+            staticData.append( triGroup.vertexList.to_c() )
+            
+            #add mat, add tex data, then add tri data
+            if desc.bleed.bled_mats:
+                GfxData.append( desc.bleed.bled_mats.to_c_inline(f3d) )
+            for tex in desc.bleed.bled_tex:
+                if tex:
+                    GfxData.append( tex.to_c_inline(f3d) )
+            GfxData.append( triGroup.triList.to_c_inline(f3d) )
+            print(triGroup.triList.commands)
+        GfxData.source += f"\t{SPEndDisplayList().to_c()}\n}};\n" #end DL
+        staticData.append( GfxData )
+        #dynamic data is the same in inline
+        dynamicData = gfxFormatter.drawToC(f3d, self.draw)
+        for materialTuple, drawOverride in self.drawMatOverrides.items():
+            dynamicData.append(drawOverride.to_c(f3d))
+        return staticData, dynamicData
 
     def to_c(self, f3d, gfxFormatter):
         staticData = CData()
@@ -2816,7 +2933,10 @@ def get_f3d_mat_from_version(material: bpy.types.Material):
 class FMaterial:
     def __init__(self, name, DLFormat):
         self.material = GfxList("mat_" + name, GfxListTag.Material, DLFormat)
-        self.textures = [self.material] * 8 #up to 8 textures loaded
+        if bpy.context.scene.exportInlineF3D:
+            self.textures = [GfxList(f"tex_{i}_" + name, GfxListTag.Material, DLFormat.Static) for i in range(8)]
+        else:
+            self.textures = [self.material] * 8 #up to 8 textures loaded
         self.revert = GfxList("mat_revert_" + name, GfxListTag.MaterialRevert, DLFormat.Static)
         self.DLFormat = DLFormat
         self.scrollData = FScrollData()
@@ -2905,6 +3025,21 @@ class FMaterial:
         if self.revert is not None:
             data.append(self.revert.to_c(f3d))
         return data
+
+
+#small containers for mesh data
+@dataclass
+class bleed_gfx:
+    bled_mats: GfxList
+    bled_tex: GfxList
+
+
+@dataclass
+class mesh_desc:
+    tri_list: FTriGroup #or just a list
+    fMaterial: FMaterial
+    texDimensions: tuple
+    bleed: bleed_gfx
 
 
 # viewport
@@ -4472,6 +4607,10 @@ class DPLoadBlock(GbiMacro):
     ult: int
     lrs: int
     dxt: int
+    
+    #load blocks shouldn't be culled via a bleed check
+    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
+        return False
 
     def to_binary(self, f3d, segments):
         words = (_SHIFTL(f3d.G_LOADBLOCK, 24, 8) | _SHIFTL(self.uls, 12, 12) | _SHIFTL(self.ult, 0, 12)), (
@@ -5201,7 +5340,7 @@ class DPTileSync(GbiMacro):
         return gsDPNoParam(f3d.G_RDPTILESYNC)
 
     #required after tile descriptor attributes changes, aka set tile, or set tile size or set tex img
-    #due to load/render tile scheme avoids requirement except for set tiles/set tile sizes
+    #since pipe syncs already are inserted into DLs this is probably never used
     def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
         for cmd in CurList[curIndex-1:]:
             if type(cmd) in (DPSetTile, DPSetTileSize):
@@ -5232,7 +5371,7 @@ class DPLoadSync(GbiMacro):
         return gsDPNoParam(f3d.G_RDPLOADSYNC)
 
     #required before loading, aka load block, loadTLUT or load tile
-    #should only be placed immediately before load
+    #since pipe syncs already are inserted into DLs this is probably never used
     def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
         for cmd in CurList[curIndex-2:curIndex+2]:
             if type(cmd) in (DPLoadTLUTCmd, DPLoadTile, DPLoadBlock):

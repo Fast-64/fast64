@@ -211,6 +211,7 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
         col.prop(context.scene, "saveTextures")
         col.prop(context.scene, "f3d_simple", text="Simple Material UI")
         col.prop(context.scene, "generateF3DNodeGraph", text="Generate F3D Node Graph For Materials")
+        col.prop(context.scene, "exportInlineF3D", text="Export Mesh F3D as single DL")
         col.prop(context.scene, "decomp_compatible", invert_checkbox=True, text="Homebrew Compatibility")
         col.prop(context.scene, "ignoreTextureRestrictions")
         if context.scene.ignoreTextureRestrictions:
@@ -520,6 +521,9 @@ def register():
     bpy.types.Scene.saveTextures = bpy.props.BoolProperty(name="Save Textures As PNGs (Breaks CI Textures)")
     bpy.types.Scene.generateF3DNodeGraph = bpy.props.BoolProperty(name="Generate F3D Node Graph", default=True)
     bpy.types.Scene.exportHiddenGeometry = bpy.props.BoolProperty(name="Export Hidden Geometry", default=True)
+    bpy.types.Scene.exportInlineF3D = bpy.props.BoolProperty(name="Export Inline F3D", \
+    description = "F3D for each mesh will be one Gfx list instead of having different Gfx lists for each component of the mesh.\n\
+This will cause repeated F3D cmds.", default=False)
     bpy.types.Scene.blenderF3DScale = bpy.props.FloatProperty(
         name="F3D Blender Scale", default=100, update=on_update_render_settings
     )

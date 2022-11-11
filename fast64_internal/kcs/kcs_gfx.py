@@ -1342,20 +1342,6 @@ class fMat_KCS(FMaterial):
         self.textures = [GfxList(f"tex_{i}_" + name, GfxListTag.Material, DLFormat.Static) for i in range(8)]
         self.textureLoads = {}  # dict of {tex_offset : DPSetTextureImage}
 
-#small containers for mesh data
-@dataclass
-class bleed_gfx:
-    bled_mats: list
-    bled_tex: list
-
-
-@dataclass
-class mesh_desc:
-    tri_list: list
-    fMaterial: fMat_KCS
-    texDimensions: tuple
-    bleed: bleed_gfx
-
 
 #Holds all the info needed for one mesh to export
 #bleeds mesh materials together

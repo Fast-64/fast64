@@ -510,12 +510,15 @@ def saveStaticModel(
                 None,
             )
 
+    LastMat = None
     for drawLayer, fMesh in fMeshes.items():
         if revertMatAtEnd:
             fModel.onEndDraw(fMesh, obj)
             revertMatAndEndDraw(fMesh.draw, [])
         else:
             fModel.endDraw(fMesh, obj)
+        if bpy.context.scene.exportInlineF3D:
+            LastMat = fMesh.bleed(LastMat)
     return fMeshes
 
 
@@ -777,6 +780,12 @@ def saveMeshByFaces(
     )
 
     currentGroupIndex = saveTriangleStrip(triConverter, faces, obj.data, True)
+    #to save inline, we need a dict of materials and their corresponding tri groups
+    if bpy.context.scene.exportInlineF3D:
+        fMesh.MatGroups[material] = mesh_desc(triGroup, fMaterial, texDimensions, None)
+        #remove SPEndDisplayList from triGroup
+        while(SPEndDisplayList() in triGroup.triList.commands):
+            triGroup.triList.commands.remove(SPEndDisplayList())
 
     if fMaterial.revert is not None:
         fMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
@@ -1918,7 +1927,6 @@ def saveTextureLoading(
                         masks,
                         shifts,
                     ),
-                    DPLoadSync(),
                     DPLoadBlock(
                         f3d.G_TX_LOADTILE - texIndex, 0, 0, (((fImage.width) * (fImage.height) + 3) >> 2) - 1, dxt
                     ),
@@ -1942,7 +1950,6 @@ def saveTextureLoading(
                         masks,
                         shifts,
                     ),
-                    DPLoadSync(),
                     DPLoadTile(f3d.G_TX_LOADTILE - texIndex, sl2, tl, sh2, th),
                 ]
             )
@@ -1971,7 +1978,6 @@ def saveTextureLoading(
                         masks,
                         shifts,
                     ),
-                    DPLoadSync(),
                     DPLoadBlock(
                         f3d.G_TX_LOADTILE - texIndex,
                         0,
@@ -1993,7 +1999,6 @@ def saveTextureLoading(
                     DPSetTile(
                         fmt, siz, line, tmem, f3d.G_TX_LOADTILE - texIndex, 0, cmt, maskt, shiftt, cms, masks, shifts
                     ),
-                    DPLoadSync(),
                     DPLoadTile(f3d.G_TX_LOADTILE - texIndex, sl, tl, sh, th),
                 ]
             )  # added in
@@ -2031,7 +2036,6 @@ def savePaletteLoading(loadTexGfx, revertTexGfx, fPalette, palFormat, pal, color
             [
                 DPSetTextureImage(palFmt, "G_IM_SIZ_16b", 1, fPalette),
                 DPSetTile("0", "0", 0, (256 + (((pal) & 0xF) * 16)), f3d.G_TX_LOADTILE, 0, cmt, 0, 0, cms, 0, 0),
-                DPLoadSync(),
                 DPLoadTLUTCmd(f3d.G_TX_LOADTILE, colorCount - 1),
             ]
         )
