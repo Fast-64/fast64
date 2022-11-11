@@ -1,4 +1,3 @@
-from email.mime import image
 from typing import Union
 import functools
 import bpy, bmesh, mathutils, os, re, copy, math
