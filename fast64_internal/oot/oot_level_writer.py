@@ -252,7 +252,11 @@ def readSceneData(scene, scene_properties, sceneHeader, alternateSceneHeaders):
     scene.audioSessionPreset = getCustomProperty(sceneHeader, "audioSessionPreset")
     scene.appendNullEntrance = sceneHeader.appendNullEntrance
 
-    if sceneHeader.skyboxLighting == "0x00":  # Time of Day
+    if (
+        sceneHeader.skyboxLighting == "0x00"
+        or sceneHeader.skyboxLighting == "0"
+        or sceneHeader.skyboxLighting == "false"
+    ):  # Time of Day
         scene.lights.append(getLightData(sceneHeader.timeOfDayLights.dawn))
         scene.lights.append(getLightData(sceneHeader.timeOfDayLights.day))
         scene.lights.append(getLightData(sceneHeader.timeOfDayLights.dusk))

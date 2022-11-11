@@ -401,7 +401,6 @@ def ootWaterBoxToC(waterBox):
 def ootCameraDataToC(camData):
     posC = CData()
     camC = CData()
-    exportPosData = False
     if len(camData.camPosDict) > 0:
 
         camDataName = "CamData " + camData.camDataName() + "[" + str(len(camData.camPosDict)) + "]"
@@ -434,8 +433,6 @@ def ootCameraDataToC(camData):
         else:
             posC = CData()
 
-    if not exportPosData:
-        posC = None
     return posC, camC
 
 
@@ -499,8 +496,7 @@ def ootCollisionToC(collision):
     data = CData()
     posC, camC = ootCameraDataToC(collision.cameraData)
 
-    if posC is not None:
-        data.append(posC)
+    data.append(posC)
     data.append(camC)
 
     if len(collision.polygonGroups) > 0:

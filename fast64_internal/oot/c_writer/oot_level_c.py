@@ -731,8 +731,10 @@ def ootSceneIncludes(scene):
     data.source += '#include "z64.h"\n'
     data.source += '#include "macros.h"\n'
     data.source += '#include "' + scene.sceneName() + '.h"\n'
-    for i in range(len(scene.rooms)):
-        data.source += f'#include "{scene.rooms[i].roomName()}.h"\n'
+
+    # Not used if all header declarations are in scene.h
+    # for i in range(len(scene.rooms)):
+    #    data.source += f'#include "{scene.rooms[i].roomName()}.h"\n'
 
     data.source += '#include "segment_symbols.h"\n'
     data.source += '#include "command_macros_base.h"\n'
