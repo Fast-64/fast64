@@ -316,7 +316,7 @@ def drawLightProperty(layout, lightProp, name, showExpandTab, index, sceneHeader
 
 
 class OOTSceneTableEntryProperty(bpy.types.PropertyGroup):
-    drawConfig: bpy.props.EnumProperty(items=ootEnumDrawConfig, name="Scene Draw Config")
+    drawConfig: bpy.props.EnumProperty(items=ootEnumDrawConfig, name="Scene Draw Config", default="SDC_DEFAULT")
     drawConfigCustom: bpy.props.StringProperty(name="Scene Draw Config Custom")
     hasTitle: bpy.props.BoolProperty(default=True)
 
