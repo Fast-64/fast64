@@ -7,11 +7,19 @@ from ....c_writer.oot_scene_table_c import modifySceneTable
 from ....c_writer.oot_spec import modifySegmentDefinition
 from ....c_writer.oot_scene_folder import deleteSceneFiles
 from .....utility import PluginError, raisePluginError
-from ....oot_utility import ExportInfo
-from ....oot_level_writer import sceneNameFromID, ootExportSceneToC
+from ....oot_utility import ExportInfo, sceneNameFromID
+from ....oot_level_writer import ootExportSceneToC
+from ....oot_level import OOTRemoveSceneSettingsProperty
 
+
+def ootRemoveSceneC(exportInfo):
+    modifySceneTable(None, exportInfo)
+    modifySegmentDefinition(None, exportInfo, None)
+    deleteSceneFiles(exportInfo)
 
 class OOT_ExportScene(Operator):
+    """Export an OOT scene."""
+
     bl_idname = "object.oot_export_level"
     bl_label = "Export Scene"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
@@ -36,14 +44,16 @@ class OOT_ExportScene(Operator):
             raisePluginError(self, e)
             return {"CANCELLED"}
         try:
-            levelName = context.scene.ootSceneName
-            if context.scene.ootSceneCustomExport:
-                exportInfo = ExportInfo(True, abspath(context.scene.ootSceneExportPath), None, levelName)
+            settings = context.scene.ootSceneExportSettings
+            levelName = settings.name
+            option = settings.option
+            if settings.customExport:
+                exportInfo = ExportInfo(True, abspath(settings.exportPath), None, levelName)
             else:
-                if context.scene.ootSceneOption == "Custom":
-                    subfolder = "assets/scenes/" + context.scene.ootSceneSubFolder + "/"
+                if option == "Custom":
+                    subfolder = "assets/scenes/" + settings.subFolder + "/"
                 else:
-                    levelName = sceneNameFromID(context.scene.ootSceneOption)
+                    levelName = sceneNameFromID(option)
                     subfolder = None
                 exportInfo = ExportInfo(False, abspath(context.scene.ootDecompPath), subfolder, levelName)
 
@@ -78,29 +88,30 @@ class OOT_ExportScene(Operator):
             raisePluginError(self, e)
             return {"CANCELLED"}
 
-
 class OOT_RemoveScene(Operator):
+    """Remove an OOT scene from an existing decomp directory."""
+
     bl_idname = "object.oot_remove_level"
     bl_label = "OOT Remove Scene"
     bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
-        levelName = context.scene.ootSceneName
-        if context.scene.ootSceneCustomExport:
+        settings: OOTRemoveSceneSettingsProperty = context.scene.ootSceneRemoveSettings
+        levelName = settings.name
+        option = settings.option
+
+        if settings.customExport:
             self.report({"ERROR"}, "You can only remove scenes from your decomp path.")
             return {"FINISHED"}
 
-        if context.scene.ootSceneOption == "Custom":
-            subfolder = "assets/scenes/" + context.scene.ootSceneSubFolder + "/"
+        if option == "Custom":
+            subfolder = "assets/scenes/" + settings.subFolder + "/"
         else:
-            levelName = sceneNameFromID(context.scene.ootSceneOption)
+            levelName = sceneNameFromID(option)
             subfolder = None
         exportInfo = ExportInfo(False, abspath(context.scene.ootDecompPath), subfolder, levelName)
 
-        # removal logic
-        modifySceneTable(None, exportInfo)
-        modifySegmentDefinition(None, exportInfo, None)
-        deleteSceneFiles(exportInfo)
+        ootRemoveSceneC(exportInfo)
 
         self.report({"INFO"}, "Success!")
         return {"FINISHED"}

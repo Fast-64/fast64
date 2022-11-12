@@ -1,20 +1,23 @@
 import bpy
 from bpy.utils import register_class, unregister_class
 from ..utility import PluginError, toAlnum, prop_split
+from .oot_utility import getSceneObj, drawEnumWithCustom
+from .oot_actor import drawActorHeaderProperty, OOTActorHeaderProperty
+from .oot_collision_classes import ootEnumCameraCrawlspaceSType
 
 
 class OOTPath:
-    def __init__(self, ownerName, splineIndex):
+    def __init__(self, ownerName, objName: str):
         self.ownerName = toAlnum(ownerName)
-        self.splineIndex = splineIndex
+        self.objName = objName
         self.points = []
 
-    def pathName(self):
-        return self.ownerName + "_pathwayList_" + str(self.splineIndex)
+    def pathName(self, headerIndex, index):
+        return self.ownerName + "_pathwayList" + str(headerIndex) + "_" + str(index)
 
 
-def ootConvertPath(name, index, obj, transformMatrix):
-    path = OOTPath(name, index)
+def ootConvertPath(name, obj, transformMatrix):
+    path = OOTPath(name, obj.name)
 
     spline = obj.data.splines[0]
     for point in spline.points:
@@ -44,19 +47,36 @@ class OOTSplinePanel(bpy.types.Panel):
         )
 
     def draw(self, context):
-        box = self.layout.box()
+        box = self.layout.box().column()
         box.box().label(text="OOT Spline Inspector")
         curve = context.object.data
         if curve.splines[0].type != "NURBS":
             box.label(text="Only NURBS curves are compatible.")
         else:
-            prop_split(box, context.object.ootSplineProperty, "index", "Index")
+            sceneObj = getSceneObj(context.object)
+            altSceneProp = sceneObj.ootAlternateSceneHeaders if sceneObj is not None else None
+            splineProp = context.object.ootSplineProperty
+
+            prop_split(box, splineProp, "splineType", "Type")
+            if splineProp.splineType == "Path":
+                drawActorHeaderProperty(box, splineProp.headerSettings, "Curve", altSceneProp, context.object.name)
+            elif splineProp.splineType == "Crawlspace":
+                box.label(text="This counts as a camera for index purposes.", icon="INFO")
+                prop_split(box, splineProp, "index", "Index")
+                drawEnumWithCustom(box, splineProp, "camSType", "Camera S Type", "")
 
         # drawParentSceneRoom(box, context.object)
 
 
+ootSplineEnum = [("Path", "Path", "Path"), ("Crawlspace", "Crawlspace", "Crawlspace")]
+
+
 class OOTSplineProperty(bpy.types.PropertyGroup):
-    index: bpy.props.IntProperty(default=0, min=0)
+    splineType: bpy.props.EnumProperty(items=ootSplineEnum, default="Path")
+    index: bpy.props.IntProperty(min=0)  # only used for crawlspace, not path
+    headerSettings: bpy.props.PointerProperty(type=OOTActorHeaderProperty)
+    camSType: bpy.props.EnumProperty(items=ootEnumCameraCrawlspaceSType, default="CAM_SET_CRAWLSPACE")
+    camSTypeCustom: bpy.props.StringProperty(default="CAM_SET_CRAWLSPACE")
 
 
 def assertCurveValid(obj):

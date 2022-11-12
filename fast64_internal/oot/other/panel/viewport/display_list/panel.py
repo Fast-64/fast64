@@ -41,16 +41,12 @@ class OOT_ExportDLPanel(OOT_Panel):
             prop_split(col, importSettings, "folder", "Object")
             prop_split(col, importSettings, "actorOverlayName", "Overlay (Optional)")
             col.prop(importSettings, "autoDetectActorScale")
-            
             if not importSettings.autoDetectActorScale:
                 prop_split(col, importSettings, "actorScale", "Actor Scale")
-
             col.prop(importSettings, "flipbookUses2DArray")
-
             if importSettings.flipbookUses2DArray:
                 box = col.box().column()
                 prop_split(box, importSettings, "flipbookArrayIndex2D", "Flipbook Index")
-
         prop_split(col, importSettings, "drawLayer", "Import Draw Layer")
 
         col.prop(importSettings, "isCustom")

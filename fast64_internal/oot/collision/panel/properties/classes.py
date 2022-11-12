@@ -16,7 +16,7 @@ from ....oot_collision_classes import (
 
 class OOTCameraPositionProperty(PropertyGroup):
     index: IntProperty(min=0)
-    jfifID: StringProperty(default="-1")
+    bgImageOverrideIndex: IntProperty(default=-1, min=-1)
     camSType: EnumProperty(items=ootEnumCameraSType, default="CAM_SET_NONE")
     camSTypeCustom: StringProperty(default="CAM_SET_NONE")
     hasPositionData: BoolProperty(default=True, name="Has Position Data")
@@ -61,3 +61,4 @@ class OOTMaterialCollisionProperty(PropertyGroup):
 class OOTWaterBoxProperty(PropertyGroup):
     lighting: IntProperty(name="Lighting", min=0)
     camera: IntProperty(name="Camera", min=0)
+    flag19: BoolProperty(name="Flag 19", default=False)

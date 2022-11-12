@@ -1,5 +1,12 @@
 import bpy, math, os, re
 from bpy.utils import register_class, unregister_class
+from .oot_constants import ootSceneIDToName
+
+
+def isPathObject(obj: bpy.types.Object) -> bool:
+    return obj.data is not None and isinstance(obj.data, bpy.types.Curve) and obj.ootSplineProperty.splineType == "Path"
+
+
 from ..utility import (
     PluginError,
     prop_split,
@@ -10,6 +17,7 @@ from ..utility import (
     applyRotation,
     cleanupDuplicatedObjects,
     ootGetSceneOrRoomHeader,
+    hexOrDecInt,
 )
 
 # default indentation to use when writing to decomp files
@@ -151,6 +159,13 @@ ootSceneDirs = {
     "assets/scenes/shops/": ootSceneShops,
     "assets/scenes/test_levels/": ootSceneTest_levels,
 }
+
+
+def sceneNameFromID(sceneID):
+    if sceneID in ootSceneIDToName:
+        return ootSceneIDToName[sceneID]
+    else:
+        raise PluginError("Cannot find scene ID " + str(sceneID))
 
 
 def getOOTScale(actorScale: float) -> float:
@@ -367,7 +382,7 @@ def ootGetPath(exportPath, isCustomExport, subPath, folderName, makeIfNotExists,
     else:
         if bpy.context.scene.ootDecompPath == "":
             raise PluginError("Decomp base path is empty.")
-        path = bpy.path.abspath(os.path.join(bpy.context.scene.ootDecompPath, subPath + folderName))
+        path = bpy.path.abspath(os.path.join(os.path.join(bpy.context.scene.ootDecompPath, subPath), folderName))
 
     if not os.path.exists(path):
         if isCustomExport or makeIfNotExists:
@@ -435,6 +450,25 @@ class CullGroup:
         self.cullDepth = abs(int(round(scale[0] * emptyScale)))
 
 
+def setCustomProperty(data: any, prop: str, value: str, enumList: list[tuple[str, str, str]] | None):
+    if enumList is not None:
+        if value in [enumItem[0] for enumItem in enumList]:
+            setattr(data, prop, value)
+            return
+        else:
+            try:
+                numberValue = hexOrDecInt(value)
+                hexValue = f'0x{format(numberValue, "02X")}'
+                if hexValue in [enumItem[0] for enumItem in enumList]:
+                    setattr(data, prop, hexValue)
+                    return
+            except ValueError:
+                pass
+
+    setattr(data, prop, "Custom")
+    setattr(data, prop + str("Custom"), value)
+
+
 def getCustomProperty(data, prop):
     value = getattr(data, prop)
     return value if value != "Custom" else getattr(data, prop + str("Custom"))
@@ -464,6 +498,16 @@ def ootConvertTranslation(translation):
 def ootConvertRotation(rotation):
     # see BINANG_TO_DEGF
     return [int(round((math.degrees(value) % 360) / 360 * (2**16))) % (2**16) for value in rotation.to_euler()]
+
+
+# parse rotaion in Vec3s format
+def ootParseRotation(values):
+    return [
+        math.radians(
+            (int.from_bytes(value.to_bytes(2, "big", signed=value < 0x8000), "big", signed=False) / 2**16) * 360
+        )
+        for value in values
+    ]
 
 
 def getCutsceneName(obj):
@@ -500,6 +544,8 @@ def getCollection(objName, collectionType, subIndex):
         collection = getCollectionFromIndex(obj, "exitList", subIndex, False)
     elif collectionType == "Object":
         collection = getCollectionFromIndex(obj, "objectList", subIndex, True)
+    elif collectionType == "Curve":
+        collection = obj.ootSplineProperty.headerSettings.cutsceneHeaders
     elif collectionType.startswith("CSHdr."):
         # CSHdr.HeaderNumber[.ListType]
         # Specifying ListType means uses subIndex
@@ -519,6 +565,8 @@ def getCollection(objName, collectionType, subIndex):
         collection = obj.ootCutsceneProperty.csLists
     elif collectionType == "extraCutscenes":
         collection = obj.ootSceneHeader.extraCutscenes
+    elif collectionType == "BgImage":
+        collection = obj.ootRoomHeader.bgImageList
     else:
         raise PluginError("Invalid collection type: " + collectionType)
 
@@ -535,33 +583,36 @@ def drawAddButton(layout, index, collectionType, subIndex, objName):
     addOp.objName = objName
 
 
-def drawCollectionOps(layout, index, collectionType, subIndex, objName, allowAdd=True):
+def drawCollectionOps(layout, index, collectionType, subIndex, objName, allowAdd=True, compact=False):
     if subIndex is None:
         subIndex = 0
 
-    buttons = layout.row(align=True)
+    if not compact:
+        buttons = layout.row(align=True)
+    else:
+        buttons = layout
 
     if allowAdd:
-        addOp = buttons.operator(OOTCollectionAdd.bl_idname, text="Add", icon="ADD")
+        addOp = buttons.operator(OOTCollectionAdd.bl_idname, text="Add" if not compact else "", icon="ADD")
         addOp.option = index + 1
         addOp.collectionType = collectionType
         addOp.subIndex = subIndex
         addOp.objName = objName
 
-    removeOp = buttons.operator(OOTCollectionRemove.bl_idname, text="Delete", icon="REMOVE")
+    removeOp = buttons.operator(OOTCollectionRemove.bl_idname, text="Delete" if not compact else "", icon="REMOVE")
     removeOp.option = index
     removeOp.collectionType = collectionType
     removeOp.subIndex = subIndex
     removeOp.objName = objName
 
-    moveUp = buttons.operator(OOTCollectionMove.bl_idname, text="Up", icon="TRIA_UP")
+    moveUp = buttons.operator(OOTCollectionMove.bl_idname, text="Up" if not compact else "", icon="TRIA_UP")
     moveUp.option = index
     moveUp.offset = -1
     moveUp.collectionType = collectionType
     moveUp.subIndex = subIndex
     moveUp.objName = objName
 
-    moveDown = buttons.operator(OOTCollectionMove.bl_idname, text="Down", icon="TRIA_DOWN")
+    moveDown = buttons.operator(OOTCollectionMove.bl_idname, text="Down" if not compact else "", icon="TRIA_DOWN")
     moveDown.option = index
     moveDown.offset = 1
     moveDown.collectionType = collectionType
@@ -619,6 +670,25 @@ class OOTCollectionMove(bpy.types.Operator):
         collection = getCollection(self.objName, self.collectionType, self.subIndex)
         collection.move(self.option, self.option + self.offset)
         return {"FINISHED"}
+
+
+def getHeaderSettings(actorObj: bpy.types.Object):
+    itemType = actorObj.ootEmptyType
+    if actorObj.data is None:
+        if itemType == "Actor":
+            headerSettings = actorObj.ootActorProperty.headerSettings
+        elif itemType == "Entrance":
+            headerSettings = actorObj.ootEntranceProperty.actor.headerSettings
+        elif itemType == "Transition Actor":
+            headerSettings = actorObj.ootTransitionActorProperty.actor.headerSettings
+        else:
+            headerSettings = None
+    elif actorObj.data is not None and isPathObject(actorObj):
+        headerSettings = actorObj.ootSplineProperty.headerSettings
+    else:
+        headerSettings = None
+
+    return headerSettings
 
 
 oot_utility_classes = (

@@ -6,12 +6,12 @@ from .c_writer.oot_scene_table_c import modifySceneTable
 from .c_writer.oot_spec import modifySegmentDefinition
 from .c_writer.oot_scene_folder import modifySceneFiles
 from .c_writer.oot_scene_bootup import setBootupScene
-from .oot_constants import ootSceneIDToName
+from .oot_scene_room import OOTRoomHeaderProperty, OOTAlternateRoomHeaderProperty
 from .oot_cutscene import convertCutsceneObject, readCutsceneData
 from .oot_spline import assertCurveValid, ootConvertPath
 from .oot_model_classes import OOTModel
 from .oot_collision import OOTCameraData, exportCollisionCommon
-from .oot_collision_classes import OOTCameraPosData, OOTWaterBox, decomp_compat_map_CameraSType
+from .oot_collision_classes import OOTCameraPosData, OOTWaterBox, OOTCrawlspaceData, decomp_compat_map_CameraSType
 
 from ..utility import (
     PluginError,
@@ -19,15 +19,15 @@ from ..utility import (
     checkIdentityRotation,
     hideObjsInList,
     unhideAllAndGetHiddenList,
-    normToSigned8Vector,
     ootGetBaseOrCustomLight,
     exportColor,
     toAlnum,
     checkObjectReference,
     writeCDataSourceOnly,
     writeCDataHeaderOnly,
+    readFile,
+    writeFile,
 )
-
 
 from .oot_utility import (
     OOTObjectCategorizer,
@@ -39,27 +39,25 @@ from .oot_utility import (
     getCustomProperty,
     ootConvertTranslation,
     ootConvertRotation,
-    ootSceneDirs,
+    getSceneDirFromLevelName,
+    isPathObject,
 )
 
 from .oot_level_classes import (
     OOTLight,
     OOTExit,
     OOTScene,
+    OOTRoom,
     OOTActor,
     OOTTransitionActor,
     OOTEntrance,
     OOTDLGroup,
+    OOTBGImage,
     addActor,
     addStartPosition,
 )
 
-
-def sceneNameFromID(sceneID):
-    if sceneID in ootSceneIDToName:
-        return ootSceneIDToName[sceneID]
-    else:
-        raise PluginError("Cannot find scene ID " + str(sceneID))
+from .oot_f3d_writer import writeTextureArraysNew, writeTextureArraysExisting1D
 
 
 def ootPreprendSceneIncludes(scene, file):
@@ -115,17 +113,19 @@ def ootExportSceneToC(
     if exportInfo.customSubPath is not None:
         exportSubdir = exportInfo.customSubPath
     if not isCustomExport and exportInfo.customSubPath is None:
-        for sceneSubdir, sceneNames in ootSceneDirs.items():
-            if sceneName in sceneNames:
-                exportSubdir = sceneSubdir
-                break
-        if exportSubdir == "":
-            raise PluginError("Scene folder " + sceneName + " cannot be found in the ootSceneDirs list.")
+        exportSubdir = os.path.dirname(getSceneDirFromLevelName(sceneName))
 
+    sceneInclude = exportSubdir + "/" + sceneName + "/"
     levelPath = ootGetPath(exportPath, isCustomExport, exportSubdir, sceneName, True, True)
-    levelC = ootLevelToC(scene, TextureExportSettings(False, savePNG, exportSubdir + sceneName, levelPath))
+    levelC = ootLevelToC(scene, TextureExportSettings(False, savePNG, sceneInclude, levelPath))
 
-    if bpy.context.scene.ootSceneSingleFile:
+    if not isCustomExport:
+        writeTextureArraysExistingScene(scene.model, exportPath, sceneInclude + sceneName + "_scene.h")
+    else:
+        textureArrayData = writeTextureArraysNew(scene.model, None)
+        levelC.sceneTexturesC.append(textureArrayData)
+
+    if bpy.context.scene.ootSceneExportSettings.singleFile:
         writeCDataSourceOnly(
             ootPreprendSceneIncludes(scene, ootCombineSceneFiles(levelC)),
             os.path.join(levelPath, scene.sceneName() + ".c"),
@@ -176,6 +176,9 @@ def ootExportSceneToC(
     # Export the scene .h file
     writeCDataHeaderOnly(ootCreateSceneHeader(levelC), os.path.join(levelPath, scene.sceneName() + ".h"))
 
+    # Copy bg images
+    scene.copyBgImages(levelPath)
+
     if not isCustomExport:
         writeOtherSceneProperties(scene, exportInfo, levelC)
 
@@ -189,6 +192,26 @@ def ootExportSceneToC(
         )
 
 
+def writeTextureArraysExistingScene(fModel: OOTModel, exportPath: str, sceneInclude: str):
+    drawConfigPath = os.path.join(exportPath, "src/code/z_scene_table.c")
+    drawConfigData = readFile(drawConfigPath)
+    newData = drawConfigData
+
+    if f'#include "{sceneInclude}"' not in newData:
+        additionalIncludes = f'#include "{sceneInclude}"\n'
+    else:
+        additionalIncludes = ""
+
+    for flipbook in fModel.flipbooks:
+        if flipbook.exportMode == "Array":
+            newData = writeTextureArraysExisting1D(newData, flipbook, additionalIncludes)
+        else:
+            raise PluginError("Scenes can only use array flipbooks.")
+
+    if newData != drawConfigData:
+        writeFile(drawConfigPath, newData)
+
+
 def writeOtherSceneProperties(scene, exportInfo, levelC):
     modifySceneTable(scene, exportInfo)
     modifySegmentDefinition(scene, exportInfo, levelC)
@@ -197,7 +220,7 @@ def writeOtherSceneProperties(scene, exportInfo, levelC):
 
 def readSceneData(scene, scene_properties, sceneHeader, alternateSceneHeaders):
     scene.write_dummy_room_list = scene_properties.write_dummy_room_list
-    scene.sceneTableEntry.drawConfig = sceneHeader.sceneTableEntry.drawConfig
+    scene.sceneTableEntry.drawConfig = getCustomProperty(sceneHeader.sceneTableEntry, "drawConfig")
     scene.globalObject = getCustomProperty(sceneHeader, "globalObject")
     scene.naviCup = getCustomProperty(sceneHeader, "naviCup")
     scene.skyboxID = getCustomProperty(sceneHeader, "skyboxID")
@@ -208,8 +231,13 @@ def readSceneData(scene, scene_properties, sceneHeader, alternateSceneHeaders):
     scene.musicSeq = getCustomProperty(sceneHeader, "musicSeq")
     scene.nightSeq = getCustomProperty(sceneHeader, "nightSeq")
     scene.audioSessionPreset = getCustomProperty(sceneHeader, "audioSessionPreset")
+    scene.appendNullEntrance = sceneHeader.appendNullEntrance
 
-    if sceneHeader.skyboxLighting == "0x00":  # Time of Day
+    if (
+        sceneHeader.skyboxLighting == "0x00"
+        or sceneHeader.skyboxLighting == "0"
+        or sceneHeader.skyboxLighting == "false"
+    ):  # Time of Day
         scene.lights.append(getLightData(sceneHeader.timeOfDayLights.dawn))
         scene.lights.append(getLightData(sceneHeader.timeOfDayLights.day))
         scene.lights.append(getLightData(sceneHeader.timeOfDayLights.dusk))
@@ -312,7 +340,12 @@ def getLightData(lightProp):
     return light
 
 
-def readRoomData(room, roomHeader, alternateRoomHeaders):
+def readRoomData(
+    sceneName: str,
+    room: OOTRoom,
+    roomHeader: OOTRoomHeaderProperty,
+    alternateRoomHeaders: OOTAlternateRoomHeaderProperty,
+):
     room.roomIndex = roomHeader.roomIndex
     room.roomBehaviour = getCustomProperty(roomHeader, "roomBehaviour")
     room.disableWarpSongs = roomHeader.disableWarpSongs
@@ -323,8 +356,8 @@ def readRoomData(room, roomHeader, alternateRoomHeaders):
 
     room.linkIdleModeCustom = roomHeader.linkIdleModeCustom
     room.setWind = roomHeader.setWind
-    room.windVector = normToSigned8Vector(mathutils.Vector(roomHeader.windVector).normalized())
-    room.windStrength = int(0xFF * max(mathutils.Vector(roomHeader.windVector).length, 1))
+    room.windVector = roomHeader.windVector[:]
+    room.windStrength = roomHeader.windStrength
     if roomHeader.leaveTimeUnchanged:
         room.timeHours = "0xFF"
         room.timeMinutes = "0xFF"
@@ -342,21 +375,35 @@ def readRoomData(room, roomHeader, alternateRoomHeaders):
     if alternateRoomHeaders is not None:
         if not alternateRoomHeaders.childNightHeader.usePreviousHeader:
             room.childNightHeader = room.getAlternateHeaderRoom(room.ownerName)
-            readRoomData(room.childNightHeader, alternateRoomHeaders.childNightHeader, None)
+            readRoomData(sceneName, room.childNightHeader, alternateRoomHeaders.childNightHeader, None)
 
         if not alternateRoomHeaders.adultDayHeader.usePreviousHeader:
             room.adultDayHeader = room.getAlternateHeaderRoom(room.ownerName)
-            readRoomData(room.adultDayHeader, alternateRoomHeaders.adultDayHeader, None)
+            readRoomData(sceneName, room.adultDayHeader, alternateRoomHeaders.adultDayHeader, None)
 
         if not alternateRoomHeaders.adultNightHeader.usePreviousHeader:
             room.adultNightHeader = room.getAlternateHeaderRoom(room.ownerName)
-            readRoomData(room.adultNightHeader, alternateRoomHeaders.adultNightHeader, None)
+            readRoomData(sceneName, room.adultNightHeader, alternateRoomHeaders.adultNightHeader, None)
 
         for i in range(len(alternateRoomHeaders.cutsceneHeaders)):
             cutsceneHeaderProp = alternateRoomHeaders.cutsceneHeaders[i]
             cutsceneHeader = room.getAlternateHeaderRoom(room.ownerName)
-            readRoomData(cutsceneHeader, cutsceneHeaderProp, None)
+            readRoomData(sceneName, cutsceneHeader, cutsceneHeaderProp, None)
             room.cutsceneHeaders.append(cutsceneHeader)
+
+    if roomHeader.roomShape == "ROOM_SHAPE_TYPE_IMAGE":
+        for bgImage in roomHeader.bgImageList:
+            if bgImage.image is None:
+                raise PluginError(
+                    'A room is has room shape "Image" but does not have an image set in one of its BG images.'
+                )
+            room.mesh.bgImages.append(
+                OOTBGImage(
+                    toAlnum(sceneName + "_bg_" + bgImage.image.name),
+                    bgImage.image,
+                    bgImage.otherModeFlags,
+                )
+            )
 
 
 def readCamPos(camPosProp, obj, scene, sceneObj, transformMatrix):
@@ -369,27 +416,54 @@ def readCamPos(camPosProp, obj, scene, sceneObj, transformMatrix):
     index = camPosProp.index
     # TODO: FOV conversion?
     if index in scene.collision.cameraData.camPosDict:
-        raise PluginError("Error: Repeated camera position index: " + str(index))
+        raise PluginError(f"Error: Repeated camera position index: {index} for {obj.name}")
     if camPosProp.camSType == "Custom":
         camSType = camPosProp.camSTypeCustom
     else:
         camSType = decomp_compat_map_CameraSType.get(camPosProp.camSType, camPosProp.camSType)
+
+    fov = math.degrees(obj.data.angle)
+    if fov > 3.6:
+        fov *= 100  # see CAM_DATA_SCALED() macro
+
     scene.collision.cameraData.camPosDict[index] = OOTCameraPosData(
         camSType,
         camPosProp.hasPositionData,
         translation,
         rotation,
-        int(round(math.degrees(obj.data.angle))),
-        camPosProp.jfifID,
+        round(fov),
+        camPosProp.bgImageOverrideIndex,
     )
+
+
+def readCrawlspace(obj, scene, transformMatrix):
+
+    splineProp = obj.ootSplineProperty
+    index = splineProp.index
+
+    if index in scene.collision.cameraData.camPosDict:
+        raise PluginError(f"Error: Repeated camera position index: {index} for {obj.name}")
+
+    if splineProp.camSType == "Custom":
+        camSType = splineProp.camSTypeCustom
+    else:
+        camSType = decomp_compat_map_CameraSType.get(splineProp.camSType, splineProp.camSType)
+
+    crawlspace = OOTCrawlspaceData(camSType)
+    spline = obj.data.splines[0]
+    for point in spline.points:
+        position = [round(value) for value in transformMatrix @ obj.matrix_world @ point.co]
+        crawlspace.points.append(position)
+
+    scene.collision.cameraData.camPosDict[index] = crawlspace
 
 
 def readPathProp(pathProp, obj, scene, sceneObj, sceneName, transformMatrix):
     relativeTransform = transformMatrix @ sceneObj.matrix_world.inverted() @ obj.matrix_world
-    index = obj.ootSplineProperty.index
-    if index in scene.pathList:
-        raise PluginError("Error: " + obj.name + "has a repeated spline index: " + str(index))
-    scene.pathList[index] = ootConvertPath(sceneName, index, obj, relativeTransform)
+    # scene.pathList[obj.name] = ootConvertPath(sceneName, obj, relativeTransform)
+
+    # actorProp should be an actor, but its purpose is to access headerSettings so this also works.
+    addActor(scene, ootConvertPath(sceneName, obj, relativeTransform), obj.ootSplineProperty, "pathList", obj.name)
 
 
 def ootConvertScene(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneName, DLFormat, convertTextureData):
@@ -420,30 +494,46 @@ def ootConvertScene(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneNam
 
             if obj.data is None and obj.ootEmptyType == "Room":
                 roomObj = obj
-                roomIndex = roomObj.ootRoomHeader.roomIndex
+                roomHeader = roomObj.ootRoomHeader
+                roomIndex = roomHeader.roomIndex
                 if roomIndex in processedRooms:
                     raise PluginError("Error: room index " + str(roomIndex) + " is used more than once.")
                 processedRooms.add(roomIndex)
-                room = scene.addRoom(roomIndex, sceneName, roomObj.ootRoomHeader.roomShape)
-                readRoomData(room, roomObj.ootRoomHeader, roomObj.ootAlternateRoomHeaders)
+                room = scene.addRoom(roomIndex, sceneName, roomHeader.roomShape)
+                readRoomData(sceneName, room, roomHeader, roomObj.ootAlternateRoomHeaders)
 
-                DLGroup = room.mesh.addMeshGroup(
-                    CullGroup(translation, scale, obj.ootRoomHeader.defaultCullDistance)
-                ).DLGroup
-                ootProcessMesh(room.mesh, DLGroup, sceneObj, roomObj, transformMatrix, convertTextureData, None)
+                if roomHeader.roomShape == "ROOM_SHAPE_TYPE_IMAGE" and len(roomHeader.bgImageList) < 1:
+                    raise PluginError(f'Room {roomObj.name} uses room shape "Image" but doesn\'t have any BG images.')
+                if roomHeader.roomShape == "ROOM_SHAPE_TYPE_IMAGE" and len(processedRooms) > 1:
+                    raise PluginError(f'Room shape "Image" can only have one room in the scene.')
+
+                cullGroup = CullGroup(translation, scale, obj.ootRoomHeader.defaultCullDistance)
+                DLGroup = room.mesh.addMeshGroup(cullGroup).DLGroup
+                boundingBox = BoundingBox()
+                ootProcessMesh(
+                    room.mesh, DLGroup, sceneObj, roomObj, transformMatrix, convertTextureData, None, boundingBox
+                )
+                centroid, radius = boundingBox.getEnclosingSphere()
+                cullGroup.position = centroid
+                cullGroup.cullDepth = radius
+
                 room.mesh.terminateDLs()
                 room.mesh.removeUnusedEntries()
                 ootProcessEmpties(scene, room, sceneObj, roomObj, transformMatrix)
             elif obj.data is None and obj.ootEmptyType == "Water Box":
+                # 0x3F = -1 in 6bit value
                 ootProcessWaterBox(sceneObj, obj, transformMatrix, scene, 0x3F)
             elif isinstance(obj.data, bpy.types.Camera):
                 camPosProp = obj.ootCameraPositionProperty
                 readCamPos(camPosProp, obj, scene, sceneObj, transformMatrix)
             elif isinstance(obj.data, bpy.types.Curve) and assertCurveValid(obj):
-                readPathProp(obj.ootSplineProperty, obj, scene, sceneObj, sceneName, transformMatrix)
+                if isPathObject(obj):
+                    readPathProp(obj.ootSplineProperty, obj, scene, sceneObj, sceneName, transformMatrix)
+                else:
+                    readCrawlspace(obj, scene, transformMatrix)
 
         scene.validateIndices()
-        scene.entranceList = sorted(scene.entranceList, key=lambda x: x.startPositionIndex)
+        scene.sortEntrances()
         exportCollisionCommon(scene.collision, sceneObj, transformMatrix, True, sceneName)
 
         ootCleanupScene(originalSceneObj, allObjs)
@@ -455,10 +545,53 @@ def ootConvertScene(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneNam
     return scene
 
 
+class BoundingBox:
+    def __init__(self):
+        self.minPoint = None
+        self.maxPoint = None
+        self.points = []
+
+    def addPoint(self, point: tuple[float, float, float]):
+        if self.minPoint is None:
+            self.minPoint = list(point[:])
+        else:
+            for i in range(3):
+                if point[i] < self.minPoint[i]:
+                    self.minPoint[i] = point[i]
+        if self.maxPoint is None:
+            self.maxPoint = list(point[:])
+        else:
+            for i in range(3):
+                if point[i] > self.maxPoint[i]:
+                    self.maxPoint[i] = point[i]
+        self.points.append(point)
+
+    def addMeshObj(self, obj: bpy.types.Object, transform: mathutils.Matrix):
+        mesh = obj.data
+        for vertex in mesh.vertices:
+            self.addPoint(transform @ vertex.co)
+
+    def getEnclosingSphere(self) -> tuple[float, float]:
+        centroid = (mathutils.Vector(self.minPoint) + mathutils.Vector(self.maxPoint)) / 2
+        radius = 0
+        for point in self.points:
+            distance = (mathutils.Vector(point) - centroid).length
+            if distance > radius:
+                radius = distance
+
+        # print(f"Radius: {radius}, Centroid: {centroid}")
+
+        transformedCentroid = [round(value) for value in centroid]
+        transformedRadius = round(radius)
+        return transformedCentroid, transformedRadius
+
+
 # This function should be called on a copy of an object
 # The copy will have modifiers / scale applied and will be made single user
 # When we duplicated obj hierarchy we stripped all ignore_renders from hierarchy.
-def ootProcessMesh(roomMesh, DLGroup, sceneObj, obj, transformMatrix, convertTextureData, LODHierarchyObject):
+def ootProcessMesh(
+    roomMesh, DLGroup, sceneObj, obj, transformMatrix, convertTextureData, LODHierarchyObject, boundingBox: BoundingBox
+):
 
     relativeTransform = transformMatrix @ sceneObj.matrix_world.inverted() @ obj.matrix_world
     translation, rotation, scale = relativeTransform.decompose()
@@ -472,9 +605,14 @@ def ootProcessMesh(roomMesh, DLGroup, sceneObj, obj, transformMatrix, convertTex
                 + LODHierarchyObject.name
             )
 
+        cullProp = obj.ootCullGroupProperty
         checkUniformScale(scale, obj)
         DLGroup = roomMesh.addMeshGroup(
-            CullGroup(ootConvertTranslation(translation), scale, obj.empty_display_size)
+            CullGroup(
+                ootConvertTranslation(translation),
+                scale if cullProp.sizeControlsCull else [cullProp.manualRadius],
+                obj.empty_display_size if cullProp.sizeControlsCull else 1,
+            )
         ).DLGroup
 
     elif isinstance(obj.data, bpy.types.Mesh) and not obj.ignore_render:
@@ -493,19 +631,37 @@ def ootProcessMesh(roomMesh, DLGroup, sceneObj, obj, transformMatrix, convertTex
             for drawLayer, fMesh in fMeshes.items():
                 DLGroup.addDLCall(fMesh.draw, drawLayer)
 
+        boundingBox.addMeshObj(obj, relativeTransform)
+
     alphabeticalChildren = sorted(obj.children, key=lambda childObj: childObj.original_name.lower())
     for childObj in alphabeticalChildren:
         if childObj.data is None and childObj.ootEmptyType == "LOD":
             ootProcessLOD(
-                roomMesh, DLGroup, sceneObj, childObj, transformMatrix, convertTextureData, LODHierarchyObject
+                roomMesh,
+                DLGroup,
+                sceneObj,
+                childObj,
+                transformMatrix,
+                convertTextureData,
+                LODHierarchyObject,
+                boundingBox,
             )
         else:
             ootProcessMesh(
-                roomMesh, DLGroup, sceneObj, childObj, transformMatrix, convertTextureData, LODHierarchyObject
+                roomMesh,
+                DLGroup,
+                sceneObj,
+                childObj,
+                transformMatrix,
+                convertTextureData,
+                LODHierarchyObject,
+                boundingBox,
             )
 
 
-def ootProcessLOD(roomMesh, DLGroup, sceneObj, obj, transformMatrix, convertTextureData, LODHierarchyObject):
+def ootProcessLOD(
+    roomMesh, DLGroup, sceneObj, obj, transformMatrix, convertTextureData, LODHierarchyObject, boundingBox: BoundingBox
+):
 
     relativeTransform = transformMatrix @ sceneObj.matrix_world.inverted() @ obj.matrix_world
     translation, rotation, scale = relativeTransform.decompose()
@@ -526,11 +682,25 @@ def ootProcessLOD(roomMesh, DLGroup, sceneObj, obj, transformMatrix, convertText
 
         if childObj.data is None and childObj.ootEmptyType == "LOD":
             ootProcessLOD(
-                roomMesh, childDLGroup, sceneObj, childObj, transformMatrix, convertTextureData, LODHierarchyObject
+                roomMesh,
+                childDLGroup,
+                sceneObj,
+                childObj,
+                transformMatrix,
+                convertTextureData,
+                LODHierarchyObject,
+                boundingBox,
             )
         else:
             ootProcessMesh(
-                roomMesh, childDLGroup, sceneObj, childObj, transformMatrix, convertTextureData, LODHierarchyObject
+                roomMesh,
+                childDLGroup,
+                sceneObj,
+                childObj,
+                transformMatrix,
+                convertTextureData,
+                LODHierarchyObject,
+                boundingBox,
             )
 
         # We handle case with no geometry, for the cases where we have "gaps" in the LOD hierarchy.
@@ -572,14 +742,20 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
             )
         elif obj.ootEmptyType == "Transition Actor":
             transActorProp = obj.ootTransitionActorProperty
+            if transActorProp.dontTransition:
+                front = (255, getCustomProperty(transActorProp, "cameraTransitionBack"))
+                back = (room.roomIndex, getCustomProperty(transActorProp, "cameraTransitionFront"))
+            else:
+                front = (room.roomIndex, getCustomProperty(transActorProp, "cameraTransitionFront"))
+                back = (transActorProp.roomIndex, getCustomProperty(transActorProp, "cameraTransitionBack"))
             addActor(
                 scene,
                 OOTTransitionActor(
                     getCustomProperty(transActorProp.actor, "actorID"),
-                    room.roomIndex,
-                    transActorProp.roomIndex,
-                    getCustomProperty(transActorProp, "cameraTransitionFront"),
-                    getCustomProperty(transActorProp, "cameraTransitionBack"),
+                    front[0],
+                    back[0],
+                    front[1],
+                    back[1],
                     translation,
                     rotation[1],  # TODO: Correct axis?
                     transActorProp.actor.actorParam,
@@ -611,7 +787,10 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
         camPosProp = obj.ootCameraPositionProperty
         readCamPos(camPosProp, obj, scene, sceneObj, transformMatrix)
     elif isinstance(obj.data, bpy.types.Curve) and assertCurveValid(obj):
-        readPathProp(obj.ootSplineProperty, obj, scene, sceneObj, scene.name, transformMatrix)
+        if isPathObject(obj):
+            readPathProp(obj.ootSplineProperty, obj, scene, sceneObj, scene.name, transformMatrix)
+        else:
+            readCrawlspace(obj, scene, transformMatrix)
 
     for childObj in obj.children:
         ootProcessEmpties(scene, room, sceneObj, childObj, transformMatrix)
@@ -627,6 +806,7 @@ def ootProcessWaterBox(sceneObj, obj, transformMatrix, scene, roomIndex):
             roomIndex,
             getCustomProperty(waterBoxProp, "lighting"),
             getCustomProperty(waterBoxProp, "camera"),
+            waterBoxProp.flag19,
             translation,
             scale,
             obj.empty_display_size,

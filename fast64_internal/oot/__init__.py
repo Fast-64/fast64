@@ -1,3 +1,4 @@
+from .oot_actor import setAllActorsVisibility
 import bpy
 from bpy.utils import register_class, unregister_class
 from .oot_level import oot_obj_panel_register, oot_obj_panel_unregister, oot_obj_register, oot_obj_unregister
@@ -97,6 +98,9 @@ class OOT_Properties(bpy.types.PropertyGroup):
     """Global OOT Scene Properties found under scene.fast64.oot"""
     version: bpy.props.IntProperty(name="OOT_Properties Version", default=0)
     hackerFeaturesEnabled: bpy.props.BoolProperty(name="Enable HackerOOT Features")
+    headerTabAffectsVisibility: bpy.props.BoolProperty(
+        default=False, name="Header Sets Actor Visibility", update=setAllActorsVisibility
+    )
     bootupSceneOptions: bpy.props.PointerProperty(type=OOTBootupSceneOptions)
     DLExportSettings: bpy.props.PointerProperty(type=OOTDLExportSettings)
     DLImportSettings: bpy.props.PointerProperty(type=OOTDLImportSettings)

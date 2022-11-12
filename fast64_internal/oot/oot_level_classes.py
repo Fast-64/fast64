@@ -7,6 +7,7 @@ from ..f3d.f3d_gbi import (
     GfxListTag,
     GfxList,
 )
+import bpy, os, shutil
 
 
 class OOTActor:
@@ -180,7 +181,7 @@ class OOTScene:
         self.cutsceneHeaders = []
 
         self.exitList = []
-        self.pathList = {}
+        self.pathList = set()
         self.cameraList = []
 
         self.writeCutscene = False
@@ -202,8 +203,8 @@ class OOTScene:
         scene.write_dummy_room_list = self.write_dummy_room_list
         scene.rooms = self.rooms
         scene.collision = self.collision
-        scene.exitList = self.exitList
-        scene.pathList = self.pathList
+        scene.exitList = []
+        scene.pathList = set()
         scene.cameraList = self.cameraList
         return scene
 
@@ -228,8 +229,8 @@ class OOTScene:
     def transitionActorListName(self, headerIndex):
         return self.sceneName() + "_header" + format(headerIndex, "02") + "_transitionActors"
 
-    def pathListName(self):
-        return self.sceneName() + "_pathway"
+    def pathListName(self, headerIndex: int):
+        return self.sceneName() + "_pathway" + str(headerIndex)
 
     def cameraListName(self):
         return self.sceneName() + "_cameraList"
@@ -252,7 +253,6 @@ class OOTScene:
         self.collision.cameraData.validateCamPositions()
         self.validateStartPositions()
         self.validateRoomIndices()
-        self.validatePathIndices()
 
     def validateStartPositions(self):
         count = 0
@@ -293,6 +293,49 @@ class OOTScene:
         self.rooms[roomIndex] = room
         return room
 
+    def sortEntrances(self):
+        self.entranceList = sorted(self.entranceList, key=lambda x: x.startPositionIndex)
+        if self.appendNullEntrance:
+            self.entranceList.append(OOTEntrance(0, 0))
+
+        if self.childNightHeader is not None:
+            self.childNightHeader.sortEntrances()
+        if self.adultDayHeader is not None:
+            self.adultDayHeader.sortEntrances()
+        if self.adultNightHeader is not None:
+            self.adultNightHeader.sortEntrances()
+        for header in self.cutsceneHeaders:
+            header.sortEntrances()
+
+    def copyBgImages(self, exportPath: str):
+        for i in range(len(self.rooms)):
+            self.rooms[i].mesh.copyBgImages(exportPath)
+
+
+class OOTBGImage:
+    def __init__(self, name: str, image: bpy.types.Image, otherModeFlags: str):
+        self.name = name
+        self.image = image
+        self.otherModeFlags = otherModeFlags
+
+    def getFilename(self) -> str:
+        return f"{self.name}.jpg"
+
+    def singlePropertiesC(self, tabDepth: int) -> str:
+        code = ""
+        code += "\t" * tabDepth + f"{self.name},\n"
+        code += "\t" * tabDepth + f"0x00000000, 0x00000000,\n"
+        code += "\t" * tabDepth + f"{self.image.size[0]}, {self.image.size[1]},\n"
+        code += "\t" * tabDepth + f"0, 2,\n"  # RGBA16
+        code += "\t" * tabDepth + f"{self.otherModeFlags}, 0x0000,\n"
+        return code
+
+    def multiPropertiesC(self, tabDepth: int, cameraIndex: int) -> str:
+        code = ""
+        code += "\t" * tabDepth + f"0x0082, {cameraIndex},\n"
+        code += self.singlePropertiesC(tabDepth)
+        return code
+
 
 class OOTRoomMesh:
     def __init__(self, roomName, roomShape, model):
@@ -300,6 +343,7 @@ class OOTRoomMesh:
         self.roomShape = roomShape
         self.meshEntries = []
         self.model = model
+        self.bgImages = []
 
     def terminateDLs(self):
         for entry in self.meshEntries:
@@ -327,6 +371,36 @@ class OOTRoomMesh:
             if not meshEntry.DLGroup.isEmpty():
                 newList.append(meshEntry)
         self.meshEntries = newList
+
+    def copyBgImages(self, exportPath: str):
+        jpegCompatibility = False  # maybe delete some code later if jpeg compatibility improves
+        for bgImage in self.bgImages:
+            image = bgImage.image
+            imageFileName = bgImage.getFilename()
+            if jpegCompatibility:
+                isPacked = image.packed_file is not None
+                if not isPacked:
+                    image.pack()
+                oldpath = image.filepath
+                oldFormat = image.file_format
+                try:
+                    image.filepath = bpy.path.abspath(os.path.join(exportPath, imageFileName))
+                    image.file_format = "JPEG"
+                    image.save()
+                    if not isPacked:
+                        image.unpack()
+                    image.filepath = oldpath
+                    image.file_format = oldFormat
+                except Exception as e:
+                    image.filepath = oldpath
+                    image.file_format = oldFormat
+                    raise Exception(str(e))
+            else:
+                filepath = bpy.path.abspath(os.path.join(exportPath, imageFileName))
+                shutil.copy(bpy.path.abspath(image.filepath), filepath)
+
+    def getMultiBgStructName(self):
+        return self.roomName + "BgImage"
 
 
 class OOTDLGroup:
@@ -416,6 +490,8 @@ class OOTRoom:
         self.adultDayHeader = None
         self.adultNightHeader = None
         self.cutsceneHeaders = []
+
+        self.appendNullEntrance = False
 
     def getAlternateHeaderRoom(self, name):
         room = OOTRoom(self.index, name, self.mesh.model, self.mesh.roomShape)
@@ -510,7 +586,7 @@ def addStartPosition(scene, index, actor, actorProp, actorObjName):
                     actorObjName
                     + " uses a cutscene header index that is outside the range of the current number of cutscene headers."
                 )
-            addAtStartPosIndex(scene.cutsceneHeaders[cutsceneHeader.headerIndex - 4].startPositions, index, actor)
+            addStartPosAtIndex(scene.cutsceneHeaders[cutsceneHeader.headerIndex - 4].startPositions, index, actor)
     else:
         raise PluginError("Unhandled scene setup preset: " + str(sceneSetup.sceneSetupPreset))
 

@@ -14,6 +14,8 @@ from .oot_collision_classes import (
     OOTCollisionPolygon,
     OOTCollision,
     OOTCameraData,
+    OOTCameraPosData,
+    OOTCrawlspaceData,
     getPolygonType,
 )
 
@@ -33,12 +35,13 @@ def drawWaterBoxProperty(layout, waterBoxProp):
     # box.box().label(text = "Properties")
     prop_split(box, waterBoxProp, "lighting", "Lighting")
     prop_split(box, waterBoxProp, "camera", "Camera")
+    box.prop(waterBoxProp, "flag19")
     box.label(text="Defined by top face of box empty.")
     box.label(text="No rotation allowed.")
 
 
 def drawCameraPosProperty(layout, cameraRefProp, index, headerIndex, objName):
-    camBox = layout.box()
+    camBox = layout.box().column()
     prop_split(camBox, cameraRefProp, "camera", "Camera " + str(index))
     drawCollectionOps(camBox, index, "Camera Position", headerIndex, objName)
 
@@ -256,7 +259,6 @@ def ootWaterBoxToC(waterBox):
 def ootCameraDataToC(camData):
     posC = CData()
     camC = CData()
-    exportPosData = False
     if len(camData.camPosDict) > 0:
 
         camDataName = "CamData " + camData.camDataName() + "[" + str(len(camData.camPosDict)) + "]"
@@ -265,21 +267,30 @@ def ootCameraDataToC(camData):
         camC.header = "extern " + camDataName + ";\n"
 
         camPosIndex = 0
+
         for i in range(len(camData.camPosDict)):
-            camC.source += "\t" + ootCameraEntryToC(camData.camPosDict[i], camData, camPosIndex) + ",\n"
-            if camData.camPosDict[i].hasPositionData:
-                posC.source += ootCameraPosToC(camData.camPosDict[i])
-                camPosIndex += 3
-                exportPosData = True
+            camItem = camData.camPosDict[i]
+            if isinstance(camItem, OOTCameraPosData):
+                camC.source += "\t" + ootCameraEntryToC(camItem, camData, camPosIndex) + ",\n"
+                if camItem.hasPositionData:
+                    posC.source += ootCameraPosToC(camItem)
+                    camPosIndex += 3
+            elif isinstance(camItem, OOTCrawlspaceData):
+                camC.source += "\t" + ootCrawlspaceEntryToC(camItem, camData, camPosIndex) + ",\n"
+                posC.source += ootCrawlspaceToC(camItem)
+                camPosIndex += len(camItem.points) * 3
+            else:
+                raise PluginError(f"Invalid object type in camera position dict: {type(camItem)}")
         posC.source += "};\n\n"
         camC.source += "};\n\n"
 
-        posDataName = "Vec3s " + camData.camPositionsName() + "[" + str(camPosIndex) + "]"
-        posC.header = "extern " + posDataName + ";\n"
-        posC.source = posDataName + " = {\n" + posC.source
+        if camPosIndex > 0:
+            posDataName = "Vec3s " + camData.camPositionsName() + "[" + str(camPosIndex) + "]"
+            posC.header = "extern " + posDataName + ";\n"
+            posC.source = posDataName + " = {\n" + posC.source
+        else:
+            posC = CData()
 
-    if not exportPosData:
-        posC = None
     return posC, camC
 
 
@@ -300,7 +311,7 @@ def ootCameraPosToC(camPos):
         + " },\n\t{ "
         + str(camPos.fov)
         + ", "
-        + str(camPos.jfifID)
+        + str(camPos.bgImageOverrideIndex)
         + ", "
         + str(camPos.unknown)
         + " },\n"
@@ -313,7 +324,27 @@ def ootCameraEntryToC(camPos, camData, camPosIndex):
             "{",
             camPos.camSType + ",",
             ("3" if camPos.hasPositionData else "0") + ",",
-            (("&" + camData.camPositionsName() + "[" + str(camPosIndex) + "]") if camPos.hasPositionData else "NULL"),
+            ("&" + camData.camPositionsName() + "[" + str(camPosIndex) + "]" if camPos.hasPositionData else "NULL"),
+            "}",
+        )
+    )
+
+
+def ootCrawlspaceToC(camItem: OOTCrawlspaceData):
+    data = ""
+    for point in camItem.points:
+        data += f"\t{{{point[0]}, {point[1]}, {point[2]}}},\n" * 3
+
+    return data
+
+
+def ootCrawlspaceEntryToC(camItem: OOTCrawlspaceData, camData: OOTCameraData, camPosIndex: int):
+    return " ".join(
+        (
+            "{",
+            camItem.camSType + ",",
+            str((len(camItem.points) * 3)) + ",",
+            (("&" + camData.camPositionsName() + "[" + str(camPosIndex) + "]") if len(camItem.points) > 0 else "NULL"),
             "}",
         )
     )
@@ -323,8 +354,7 @@ def ootCollisionToC(collision):
     data = CData()
     posC, camC = ootCameraDataToC(collision.cameraData)
 
-    if posC is not None:
-        data.append(posC)
+    data.append(posC)
     data.append(camC)
 
     if len(collision.polygonGroups) > 0:
@@ -376,7 +406,7 @@ def ootCollisionToC(collision):
         waterBoxesName = "0"
 
     if len(collision.cameraData.camPosDict) > 0:
-        camDataName = "&" + collision.camDataName()
+        camDataName = collision.camDataName()
     else:
         camDataName = "0"
 

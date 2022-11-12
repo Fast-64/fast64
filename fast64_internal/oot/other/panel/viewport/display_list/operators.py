@@ -2,7 +2,6 @@ from bpy.types import Operator, Mesh
 from bpy.ops import object
 from bpy.path import abspath
 from mathutils import Matrix
-from os import path
 from ......utility import PluginError, raisePluginError
 from ......f3d.f3d_parser import importMeshC, getImportData
 from ......f3d.f3d_gbi import DLFormat, F3D
@@ -21,7 +20,7 @@ class OOT_ImportDL(Operator):
     # Called on demand (i.e. button press, menu item)
     # Can also be called from operator search menu (Spacebar)
     def execute(self, context):
-        from .....oot_f3d_writer import ootReadActorScale  # temp circular import fix
+        from .....oot_f3d_writer import ootReadActorScale  # todo: better fix for circular import
 
 
         obj = None
@@ -34,7 +33,7 @@ class OOT_ImportDL(Operator):
             folderName = settings.folder
             importPath = abspath(settings.customPath)
             isCustomImport = settings.isCustom
-            basePath = abspath(context.scene.ootDecompPath)
+            basePath = abspath(context.scene.ootDecompPath) if not isCustomImport else importPath
             removeDoubles = settings.removeDoubles
             importNormals = settings.importNormals
             drawLayer = settings.drawLayer
@@ -85,7 +84,7 @@ class OOT_ExportDL(Operator):
     # Called on demand (i.e. button press, menu item)
     # Can also be called from operator search menu (Spacebar)
     def execute(self, context):
-        from .....oot_f3d_writer import ootConvertMeshToC  # temp circular import fix
+        from .....oot_f3d_writer import ootConvertMeshToC  # todo: better fix for circular import
 
 
         obj = None

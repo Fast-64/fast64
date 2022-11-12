@@ -1,4 +1,4 @@
-import bpy
+from bpy.props import StringProperty, PointerProperty
 from bpy.types import Panel, Camera, Scene, Object, Material
 from bpy.utils import register_class, unregister_class
 from .....utility import prop_split
@@ -25,16 +25,18 @@ class OOT_CameraPosPanel(Panel):
         return context.scene.gameEditorMode == "OOT" and isinstance(context.object.data, Camera)
 
     def draw(self, context):
-        box = self.layout.box()
+        box = self.layout.box().column()
         obj = context.object
 
         box.box().label(text="Camera Data")
         drawEnumWithCustom(box, obj.ootCameraPositionProperty, "camSType", "Camera S Type", "")
         prop_split(box, obj.ootCameraPositionProperty, "index", "Camera Index")
+        box.prop(obj.ootCameraPositionProperty, "hasPositionData")
         if obj.ootCameraPositionProperty.hasPositionData:
             prop_split(box, obj.data, "angle", "Field Of View")
-            prop_split(box, obj.ootCameraPositionProperty, "jfifID", "JFIF ID")
-        box.prop(obj.ootCameraPositionProperty, "hasPositionData")
+            prop_split(box, obj.ootCameraPositionProperty, "bgImageOverrideIndex", "BG Index Override")
+
+        # drawParentSceneRoom(box, context.object)
 
 
 class OOT_CollisionPanel(Panel):
@@ -115,9 +117,9 @@ def collision_props_classes_register():
         register_class(cls)
 
     # Collision
-    Scene.ootColLevelName = bpy.props.StringProperty(name="Name", default="SCENE_YDAN")
-    Object.ootCameraPositionProperty = bpy.props.PointerProperty(type=OOTCameraPositionProperty)
-    Material.ootCollisionProperty = bpy.props.PointerProperty(type=OOTMaterialCollisionProperty)
+    Scene.ootColLevelName = StringProperty(name="Name", default="SCENE_YDAN")
+    Object.ootCameraPositionProperty = PointerProperty(type=OOTCameraPositionProperty)
+    Material.ootCollisionProperty = PointerProperty(type=OOTMaterialCollisionProperty)
 
 
 def collision_props_classes_unregister():

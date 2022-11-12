@@ -1,4 +1,4 @@
-from .classes import OOTWaterBoxProperty
+from .classes import OOTWaterBoxProperty, OOTMaterialCollisionProperty
 
 from .panel import (
     collision_props_panel_register,
