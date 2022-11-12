@@ -77,9 +77,7 @@ classes = (
     OOTAnimImportSettingsProperty,
 )
 
-panels = (
-    OOT_LinkAnimPanel,
-)
+panels = (OOT_LinkAnimPanel,)
 
 
 def anim_props_panel_register():

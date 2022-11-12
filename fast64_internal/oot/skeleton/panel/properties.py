@@ -12,6 +12,7 @@ ootEnumBoneType = [
     ("Ignore", "Ignore", "Ignore"),
 ]
 
+
 def pollArmature(self, obj):
     return isinstance(obj.data, Armature)
 

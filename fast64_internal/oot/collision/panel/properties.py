@@ -29,6 +29,7 @@ class OOTCameraPositionProperty(PropertyGroup):
 class OOTCameraPositionPropertyRef(PropertyGroup):
     camera: PointerProperty(type=Camera)
 
+
 class OOTMaterialCollisionProperty(PropertyGroup):
     expandTab: BoolProperty()
 

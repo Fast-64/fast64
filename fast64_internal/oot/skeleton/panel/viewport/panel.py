@@ -77,6 +77,7 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
             else:
                 col.prop(importSettings, "applyRestPose")
 
+
 oot_skeleton_panels = [
     OOT_ExportSkeletonPanel,
 ]

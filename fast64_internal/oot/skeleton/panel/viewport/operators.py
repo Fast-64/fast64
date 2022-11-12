@@ -19,7 +19,6 @@ class OOT_ImportSkeleton(Operator):
     def execute(self, context):
         from ....oot_skeleton import ootImportSkeletonC  # todo: better fix for ciruclar import
 
-
         if context.mode != "OBJECT":
             object.mode_set(mode="OBJECT")
 

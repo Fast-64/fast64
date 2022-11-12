@@ -20,9 +20,7 @@ class OOT_ExportAnim(Operator):
     # Can also be called from operator search menu (Spacebar)
     def execute(self, context):
         try:
-            if len(context.selected_objects) == 0 or not isinstance(
-                context.selected_objects[0].data, Armature
-            ):
+            if len(context.selected_objects) == 0 or not isinstance(context.selected_objects[0].data, Armature):
                 raise PluginError("Armature not selected.")
             if len(context.selected_objects) > 1:
                 raise PluginError("Multiple objects selected, make sure to select only one.")
@@ -54,9 +52,7 @@ class OOT_ImportAnim(Operator):
     # Can also be called from operator search menu (Spacebar)
     def execute(self, context):
         try:
-            if len(context.selected_objects) == 0 or not isinstance(
-                context.selected_objects[0].data, Armature
-            ):
+            if len(context.selected_objects) == 0 or not isinstance(context.selected_objects[0].data, Armature):
                 raise PluginError("Armature not selected.")
             if len(context.selected_objects) > 1:
                 raise PluginError("Multiple objects selected, make sure to select only one.")

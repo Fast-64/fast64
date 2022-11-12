@@ -17,6 +17,7 @@ def ootRemoveSceneC(exportInfo):
     modifySegmentDefinition(None, exportInfo, None)
     deleteSceneFiles(exportInfo)
 
+
 class OOT_ExportScene(Operator):
     """Export an OOT scene."""
 
@@ -87,6 +88,7 @@ class OOT_ExportScene(Operator):
                 activeObj.select_set(True)
             raisePluginError(self, e)
             return {"CANCELLED"}
+
 
 class OOT_RemoveScene(Operator):
     """Remove an OOT scene from an existing decomp directory."""

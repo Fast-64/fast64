@@ -22,7 +22,6 @@ class OOT_ImportDL(Operator):
     def execute(self, context):
         from .....oot_f3d_writer import ootReadActorScale  # todo: better fix for circular import
 
-
         obj = None
         if context.mode != "OBJECT":
             object.mode_set(mode="OBJECT")
@@ -85,7 +84,6 @@ class OOT_ExportDL(Operator):
     # Can also be called from operator search menu (Spacebar)
     def execute(self, context):
         from .....oot_f3d_writer import ootConvertMeshToC  # todo: better fix for circular import
-
 
         obj = None
         if context.mode != "OBJECT":
