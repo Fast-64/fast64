@@ -5,14 +5,11 @@ from .oot_model_classes import (
     OOTModel,
     OOTGfxFormatter,
     OOTF3DContext,
-    OOTDynamicTransformProperty,
     ootGetIncludedAssetData,
 )
-from bpy.utils import register_class, unregister_class
 from ..f3d.f3d_writer import getInfoDict, GfxList
 from ..f3d.f3d_parser import getImportData, parseF3D
 from .oot_f3d_writer import ootProcessVertexGroup, writeTextureArraysNew, writeTextureArraysExisting, ootReadActorScale
-from ..f3d.f3d_material import ootEnumDrawLayers
 
 from ..utility import (
     PluginError,
@@ -20,7 +17,6 @@ from ..utility import (
     getDeclaration,
     hexOrDecInt,
     applyRotation,
-    prop_split,
     getGroupIndexFromname,
     writeFile,
     readFile,
@@ -46,73 +42,8 @@ from .oot_utility import (
 
 from ..utility_anim import armatureApplyWithMesh
 from .oot_texture_array import ootReadTextureArrays
-from .oot_skeleton_import_data import (
-    ootEnumSkeletonImportMode,
-    applySkeletonRestPose,
-    OOT_SaveRestPose,
-    ootSkeletonImportDict,
-)
-
-
-class OOTSkeletonExportSettings(bpy.types.PropertyGroup):
-    mode: bpy.props.EnumProperty(name="Mode", items=ootEnumSkeletonImportMode)
-    name: bpy.props.StringProperty(name="Skeleton Name", default="gGerudoRedSkel")
-    folder: bpy.props.StringProperty(name="Skeleton Folder", default="object_geldb")
-    customPath: bpy.props.StringProperty(name="Custom Skeleton Path", subtype="FILE_PATH")
-    isCustom: bpy.props.BoolProperty(name="Use Custom Path")
-    removeVanillaData: bpy.props.BoolProperty(name="Replace Vanilla Skeletons On Export", default=True)
-    actorOverlayName: bpy.props.StringProperty(name="Overlay", default="ovl_En_GeldB")
-    flipbookUses2DArray: bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
-    flipbookArrayIndex2D: bpy.props.IntProperty(name="Index if 2D Array", default=0, min=0)
-    customAssetIncludeDir: bpy.props.StringProperty(
-        name="Asset Include Directory",
-        default="assets/objects/object_geldb",
-        description="Used in #include for including image files",
-    )
-    optimize: bpy.props.BoolProperty(
-        name="Optimize",
-        description="Applies various optimizations between the limbs in a skeleton. "
-        + "If enabled, the skeleton limbs must be drawn in their normal order, "
-        + "with nothing in between and no culling, otherwise the mesh will be corrupted.",
-    )
-
-
-class OOTSkeletonImportSettings(bpy.types.PropertyGroup):
-    mode: bpy.props.EnumProperty(name="Mode", items=ootEnumSkeletonImportMode)
-    applyRestPose: bpy.props.BoolProperty(name="Apply Friendly Rest Pose (If Available)", default=True)
-    name: bpy.props.StringProperty(name="Skeleton Name", default="gGerudoRedSkel")
-    folder: bpy.props.StringProperty(name="Skeleton Folder", default="object_geldb")
-    customPath: bpy.props.StringProperty(name="Custom Skeleton Path", subtype="FILE_PATH")
-    isCustom: bpy.props.BoolProperty(name="Use Custom Path")
-    removeDoubles: bpy.props.BoolProperty(name="Remove Doubles On Import", default=True)
-    importNormals: bpy.props.BoolProperty(name="Import Normals", default=True)
-    drawLayer: bpy.props.EnumProperty(name="Import Draw Layer", items=ootEnumDrawLayers)
-    actorOverlayName: bpy.props.StringProperty(name="Overlay", default="ovl_En_GeldB")
-    flipbookUses2DArray: bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
-    flipbookArrayIndex2D: bpy.props.IntProperty(name="Index if 2D Array", default=0, min=0)
-    autoDetectActorScale: bpy.props.BoolProperty(name="Auto Detect Actor Scale", default=True)
-    actorScale: bpy.props.FloatProperty(name="Actor Scale", min=0, default=100)
-
-
-ootEnumBoneType = [
-    ("Default", "Default", "Default"),
-    ("Custom DL", "Custom DL", "Custom DL"),
-    ("Ignore", "Ignore", "Ignore"),
-]
-
-
-def pollArmature(self, obj):
-    return isinstance(obj.data, bpy.types.Armature)
-
-
-class OOTBoneProperty(bpy.types.PropertyGroup):
-    boneType: bpy.props.EnumProperty(name="Bone Type", items=ootEnumBoneType)
-    dynamicTransform: bpy.props.PointerProperty(type=OOTDynamicTransformProperty)
-    customDLName: bpy.props.StringProperty(name="Custom DL", default="gEmptyDL")
-
-
-class OOTSkeletonProperty(bpy.types.PropertyGroup):
-    LOD: bpy.props.PointerProperty(type=bpy.types.Object, poll=pollArmature)
+from .oot_skeleton_import_data import applySkeletonRestPose, ootSkeletonImportDict
+from .skeleton.panel.viewport import OOTSkeletonExportSettings, OOTSkeletonImportSettings
 
 
 class OOTSkeleton:
@@ -1103,100 +1034,3 @@ def ootRemoveSkeleton(filepath, objectName, skeletonName):
 
     if skeletonDataH != originalDataH:
         writeFile(headerPath, skeletonDataH)
-
-
-class OOT_SkeletonPanel(bpy.types.Panel):
-    bl_idname = "OOT_PT_skeleton"
-    bl_label = "OOT Skeleton Properties"
-    bl_space_type = "PROPERTIES"
-    bl_region_type = "WINDOW"
-    bl_context = "object"
-    bl_options = {"HIDE_HEADER"}
-
-    @classmethod
-    def poll(cls, context):
-        return (
-            context.scene.gameEditorMode == "OOT"
-            and hasattr(context, "object")
-            and context.object is not None
-            and isinstance(context.object.data, bpy.types.Armature)
-        )
-
-    # called every frame
-    def draw(self, context):
-        col = self.layout.box().column()
-        col.box().label(text="OOT Skeleton Inspector")
-        prop_split(col, context.object, "ootDrawLayer", "Draw Layer")
-        prop_split(col, context.object.ootSkeleton, "LOD", "LOD Skeleton")
-        if context.object.ootSkeleton.LOD is not None:
-            col.label(text="Make sure LOD has same bone structure.", icon="BONE_DATA")
-        prop_split(col, context.object, "ootActorScale", "Actor Scale")
-
-
-class OOT_BonePanel(bpy.types.Panel):
-    bl_idname = "OOT_PT_bone"
-    bl_label = "OOT Bone Properties"
-    bl_space_type = "PROPERTIES"
-    bl_region_type = "WINDOW"
-    bl_context = "bone"
-    bl_options = {"HIDE_HEADER"}
-
-    @classmethod
-    def poll(cls, context):
-        return context.scene.gameEditorMode == "OOT" and context.bone is not None
-
-    # called every frame
-    def draw(self, context):
-        col = self.layout.box().column()
-        col.box().label(text="OOT Bone Inspector")
-        prop_split(col, context.bone.ootBone, "boneType", "Bone Type")
-        if context.bone.ootBone.boneType == "Custom DL":
-            prop_split(col, context.bone.ootBone, "customDLName", "DL Name")
-        if context.bone.ootBone.boneType == "Custom DL" or context.bone.ootBone.boneType == "Ignore":
-            col.label(text="Make sure no geometry is skinned to this bone.", icon="BONE_DATA")
-
-        if context.bone.ootBone.boneType != "Ignore":
-            col.prop(context.bone.ootBone.dynamicTransform, "billboard")
-
-
-oot_skeleton_classes = (
-    OOTSkeletonExportSettings,
-    OOTSkeletonImportSettings,
-    OOT_SaveRestPose,
-    OOTBoneProperty,
-    OOTSkeletonProperty,
-)
-
-oot_skeleton_panels = (
-    OOT_SkeletonPanel,
-    OOT_BonePanel,
-)
-
-
-def oot_skeleton_panel_register():
-    for cls in oot_skeleton_panels:
-        register_class(cls)
-
-
-def oot_skeleton_panel_unregister():
-    for cls in oot_skeleton_panels:
-        unregister_class(cls)
-
-
-def oot_skeleton_register():
-    for cls in oot_skeleton_classes:
-        register_class(cls)
-
-    bpy.types.Object.ootActorScale = bpy.props.FloatProperty(min=0, default=100)
-    bpy.types.Object.ootSkeleton = bpy.props.PointerProperty(type=OOTSkeletonProperty)
-    bpy.types.Bone.ootBone = bpy.props.PointerProperty(type=OOTBoneProperty)
-
-
-def oot_skeleton_unregister():
-
-    del bpy.types.Object.ootActorScale
-    del bpy.types.Bone.ootBone
-    del bpy.types.Object.ootSkeleton
-
-    for cls in reversed(oot_skeleton_classes):
-        unregister_class(cls)

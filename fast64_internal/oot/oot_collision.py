@@ -1,5 +1,4 @@
-import bpy, os, math, mathutils
-from bpy.utils import register_class, unregister_class
+import bpy, os, mathutils
 
 from ..utility import (
     PluginError,
@@ -16,14 +15,6 @@ from .oot_collision_classes import (
     OOTCollision,
     OOTCameraData,
     getPolygonType,
-    ootEnumFloorSetting,
-    ootEnumWallSetting,
-    ootEnumFloorProperty,
-    ootEnumConveyer,
-    ootEnumConveyorSpeed,
-    ootEnumCollisionTerrain,
-    ootEnumCollisionSound,
-    ootEnumCameraSType,
 )
 
 from .oot_utility import (
@@ -31,60 +22,10 @@ from .oot_utility import (
     convertIntTo2sComplement,
     addIncludeFiles,
     drawCollectionOps,
-    drawEnumWithCustom,
     ootDuplicateHierarchy,
     ootCleanupScene,
     ootGetPath,
 )
-
-
-class OOTCameraPositionProperty(bpy.types.PropertyGroup):
-    index: bpy.props.IntProperty(min=0)
-    jfifID: bpy.props.StringProperty(default="-1")
-    camSType: bpy.props.EnumProperty(items=ootEnumCameraSType, default="CAM_SET_NONE")
-    camSTypeCustom: bpy.props.StringProperty(default="CAM_SET_NONE")
-    hasPositionData: bpy.props.BoolProperty(default=True, name="Has Position Data")
-
-
-class OOTCameraPositionPropertyRef(bpy.types.PropertyGroup):
-    camera: bpy.props.PointerProperty(type=bpy.types.Camera)
-
-
-class OOTMaterialCollisionProperty(bpy.types.PropertyGroup):
-    expandTab: bpy.props.BoolProperty()
-
-    ignoreCameraCollision: bpy.props.BoolProperty()
-    ignoreActorCollision: bpy.props.BoolProperty()
-    ignoreProjectileCollision: bpy.props.BoolProperty()
-
-    eponaBlock: bpy.props.BoolProperty()
-    decreaseHeight: bpy.props.BoolProperty()
-    floorSettingCustom: bpy.props.StringProperty(default="0x00")
-    floorSetting: bpy.props.EnumProperty(items=ootEnumFloorSetting, default="0x00")
-    wallSettingCustom: bpy.props.StringProperty(default="0x00")
-    wallSetting: bpy.props.EnumProperty(items=ootEnumWallSetting, default="0x00")
-    floorPropertyCustom: bpy.props.StringProperty(default="0x00")
-    floorProperty: bpy.props.EnumProperty(items=ootEnumFloorProperty, default="0x00")
-    exitID: bpy.props.IntProperty(default=0, min=0)
-    cameraID: bpy.props.IntProperty(default=0, min=0)
-    isWallDamage: bpy.props.BoolProperty()
-    conveyorOption: bpy.props.EnumProperty(items=ootEnumConveyer)
-    conveyorRotation: bpy.props.FloatProperty(min=0, max=2 * math.pi, subtype="ANGLE")
-    conveyorSpeed: bpy.props.EnumProperty(items=ootEnumConveyorSpeed, default="0x00")
-    conveyorSpeedCustom: bpy.props.StringProperty(default="0x00")
-    conveyorKeepMomentum: bpy.props.BoolProperty()
-    hookshotable: bpy.props.BoolProperty()
-    echo: bpy.props.StringProperty(default="0x00")
-    lightingSetting: bpy.props.IntProperty(default=0, min=0)
-    terrainCustom: bpy.props.StringProperty(default="0x00")
-    terrain: bpy.props.EnumProperty(items=ootEnumCollisionTerrain, default="0x00")
-    soundCustom: bpy.props.StringProperty(default="0x00")
-    sound: bpy.props.EnumProperty(items=ootEnumCollisionSound, default="0x00")
-
-
-class OOTWaterBoxProperty(bpy.types.PropertyGroup):
-    lighting: bpy.props.IntProperty(name="Lighting", min=0)
-    camera: bpy.props.IntProperty(name="Camera", min=0)
 
 
 def drawWaterBoxProperty(layout, waterBoxProp):
@@ -100,81 +41,6 @@ def drawCameraPosProperty(layout, cameraRefProp, index, headerIndex, objName):
     camBox = layout.box()
     prop_split(camBox, cameraRefProp, "camera", "Camera " + str(index))
     drawCollectionOps(camBox, index, "Camera Position", headerIndex, objName)
-
-
-class OOT_CameraPosPanel(bpy.types.Panel):
-    bl_label = "Camera Position Inspector"
-    bl_idname = "OBJECT_PT_OOT_Camera_Position_Inspector"
-    bl_space_type = "PROPERTIES"
-    bl_region_type = "WINDOW"
-    bl_context = "object"
-    bl_options = {"HIDE_HEADER"}
-
-    @classmethod
-    def poll(cls, context):
-        return context.scene.gameEditorMode == "OOT" and isinstance(context.object.data, bpy.types.Camera)
-
-    def draw(self, context):
-        box = self.layout.box()
-        obj = context.object
-
-        box.box().label(text="Camera Data")
-        drawEnumWithCustom(box, obj.ootCameraPositionProperty, "camSType", "Camera S Type", "")
-        prop_split(box, obj.ootCameraPositionProperty, "index", "Camera Index")
-        if obj.ootCameraPositionProperty.hasPositionData:
-            prop_split(box, obj.data, "angle", "Field Of View")
-            prop_split(box, obj.ootCameraPositionProperty, "jfifID", "JFIF ID")
-        box.prop(obj.ootCameraPositionProperty, "hasPositionData")
-
-
-class OOT_CollisionPanel(bpy.types.Panel):
-    bl_label = "Collision Inspector"
-    bl_idname = "MATERIAL_PT_OOT_Collision_Inspector"
-    bl_space_type = "PROPERTIES"
-    bl_region_type = "WINDOW"
-    bl_context = "material"
-    bl_options = {"HIDE_HEADER"}
-
-    @classmethod
-    def poll(cls, context):
-        return context.scene.gameEditorMode == "OOT" and context.material is not None
-
-    def draw(self, context):
-        box = self.layout.box().column()
-        collisionProp = context.material.ootCollisionProperty
-
-        box.prop(
-            collisionProp,
-            "expandTab",
-            text="OOT Collision Properties",
-            icon="TRIA_DOWN" if collisionProp.expandTab else "TRIA_RIGHT",
-        )
-        if collisionProp.expandTab:
-            prop_split(box, collisionProp, "exitID", "Exit ID")
-            prop_split(box, collisionProp, "cameraID", "Camera ID")
-            prop_split(box, collisionProp, "echo", "Echo")
-            prop_split(box, collisionProp, "lightingSetting", "Lighting")
-            drawEnumWithCustom(box, collisionProp, "terrain", "Terrain", "")
-            drawEnumWithCustom(box, collisionProp, "sound", "Sound", "")
-
-            box.prop(collisionProp, "eponaBlock", text="Blocks Epona")
-            box.prop(collisionProp, "decreaseHeight", text="Decrease Height 1 Unit")
-            box.prop(collisionProp, "isWallDamage", text="Is Wall Damage")
-            box.prop(collisionProp, "hookshotable", text="Hookshotable")
-
-            drawEnumWithCustom(box, collisionProp, "floorSetting", "Floor Setting", "")
-            drawEnumWithCustom(box, collisionProp, "wallSetting", "Wall Setting", "")
-            drawEnumWithCustom(box, collisionProp, "floorProperty", "Floor Property", "")
-
-            box.prop(collisionProp, "ignoreCameraCollision", text="Ignore Camera Collision")
-            box.prop(collisionProp, "ignoreActorCollision", text="Ignore Actor Collision")
-            box.prop(collisionProp, "ignoreProjectileCollision", text="Ignore Projectile Collision")
-            prop_split(box, collisionProp, "conveyorOption", "Conveyor Option")
-            if collisionProp.conveyorOption != "None":
-                prop_split(box, collisionProp, "conveyorRotation", "Conveyor Rotation")
-                drawEnumWithCustom(box, collisionProp, "conveyorSpeed", "Conveyor Speed", "")
-                if collisionProp.conveyorSpeed != "Custom":
-                    box.prop(collisionProp, "conveyorKeepMomentum", text="Keep Momentum")
 
 
 # water boxes handled by level writer
@@ -553,44 +419,3 @@ def ootCollisionToC(collision):
     )
 
     return data
-
-
-oot_col_classes = (
-    OOTWaterBoxProperty,
-    OOTCameraPositionPropertyRef,
-    OOTCameraPositionProperty,
-    OOTMaterialCollisionProperty,
-)
-
-oot_col_panel_classes = (
-    OOT_CollisionPanel,
-    OOT_CameraPosPanel,
-)
-
-
-def oot_col_panel_register():
-    for cls in oot_col_panel_classes:
-        register_class(cls)
-
-
-def oot_col_panel_unregister():
-    for cls in oot_col_panel_classes:
-        unregister_class(cls)
-
-
-def oot_col_register():
-    for cls in oot_col_classes:
-        register_class(cls)
-
-    # Collision
-    bpy.types.Scene.ootColLevelName = bpy.props.StringProperty(name="Name", default="SCENE_YDAN")
-    bpy.types.Object.ootCameraPositionProperty = bpy.props.PointerProperty(type=OOTCameraPositionProperty)
-    bpy.types.Material.ootCollisionProperty = bpy.props.PointerProperty(type=OOTMaterialCollisionProperty)
-
-
-def oot_col_unregister():
-    # Collision
-    del bpy.types.Scene.ootColLevelName
-
-    for cls in reversed(oot_col_classes):
-        unregister_class(cls)

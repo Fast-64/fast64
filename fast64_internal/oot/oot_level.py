@@ -1,7 +1,8 @@
 import bpy
 from bpy.utils import register_class, unregister_class
 from ..utility import prop_split, gammaInverse
-from .oot_collision import OOTWaterBoxProperty, drawWaterBoxProperty
+from .collision.panel.properties import OOTWaterBoxProperty
+from .oot_collision import drawWaterBoxProperty
 from .oot_constants import ootEnumEmptyType
 from .oot_utility import getSceneObj, getRoomObj
 

@@ -2,11 +2,11 @@ import bpy
 from bpy.utils import register_class, unregister_class
 from .oot_level import oot_obj_panel_register, oot_obj_panel_unregister, oot_obj_register, oot_obj_unregister
 from .skeleton.panel.viewport import OOTSkeletonImportSettings, OOTSkeletonExportSettings
-from .oot_collision import oot_col_panel_register, oot_col_panel_unregister, oot_col_register, oot_col_unregister
 from .oot_utility import oot_utility_register, oot_utility_unregister
 from .other.panel.viewport.display_list import OOTDLExportSettings, OOTDLImportSettings
 from .other.panel.viewport.file_settings import file_register, file_unregister
 from .oot_anim import OOTAnimExportSettingsProperty, OOTAnimImportSettingsProperty
+from .c_writer import OOTBootupSceneOptions
 
 from .oot_f3d_writer import (
     oot_dl_writer_panel_register,
@@ -23,10 +23,17 @@ from .other.panel.viewport.display_list import (
 )
 
 from .collision.panel.viewport import (
-    collision_panel_register,
-    collision_panel_unregister,
-    collision_register,
-    collision_unregister,
+    collision_viewport_panel_register,
+    collision_viewport_panel_unregister,
+    collision_viewport_classes_register,
+    collision_viewport_classes_unregister,
+)
+
+from .collision.panel.properties import (
+    collision_props_panel_register,
+    collision_props_panel_unregister,
+    collision_props_classes_register,
+    collision_props_classes_unregister,
 )
 
 from .scene.panel.viewport import (
@@ -71,11 +78,11 @@ from .skeleton.panel.viewport import (
     skeletonUnregister,
 )
 
-from .oot_skeleton import (
-    oot_skeleton_panel_register,
-    oot_skeleton_panel_unregister,
-    oot_skeleton_register,
-    oot_skeleton_unregister,
+from .skeleton.panel.properties import (
+    skeleton_props_panel_register,
+    skeleton_props_panel_unregister,
+    skeleton_props_classes_register,
+    skeleton_props_classes_unregister,
 )
 
 from .oot_spline import (
@@ -88,8 +95,6 @@ from .oot_spline import (
 
 class OOT_Properties(bpy.types.PropertyGroup):
     """Global OOT Scene Properties found under scene.fast64.oot"""
-    from .c_writer import OOTBootupSceneOptions  # calling this here to avoid a circular import
-
     version: bpy.props.IntProperty(name="OOT_Properties Version", default=0)
     hackerFeaturesEnabled: bpy.props.BoolProperty(name="Enable HackerOOT Features")
     bootupSceneOptions: bpy.props.PointerProperty(type=OOTBootupSceneOptions)
@@ -109,15 +114,15 @@ oot_classes = (
 def oot_panel_register():
     oot_operator_panel_register()
     oot_dl_writer_panel_register()
-    oot_col_panel_register()
+    collision_viewport_panel_register()
+    collision_props_panel_register()
     oot_obj_panel_register()
     oot_level_panel_register()
     oot_spline_panel_register()
     anim_viewport_panel_register()
-    oot_skeleton_panel_register()
+    skeleton_props_panel_register()
     oot_cutscene_panel_register()
     skeletonPanelRegister()
-    collision_panel_register()
     dl_writer_panel_register()
     anim_props_panel_register()
 
@@ -125,16 +130,16 @@ def oot_panel_register():
 
 def oot_panel_unregister():
     oot_operator_panel_unregister()
-    oot_col_panel_unregister()
+    collision_viewport_panel_unregister()
+    collision_props_panel_unregister()
     oot_obj_panel_unregister()
     oot_level_panel_unregister()
     oot_spline_panel_unregister()
     oot_dl_writer_panel_unregister()
     anim_viewport_panel_unregister()
-    oot_skeleton_panel_unregister()
+    skeleton_props_panel_unregister()
     oot_cutscene_panel_unregister()
     skeletonPanelUnregister()
-    collision_panel_unregister()
     dl_writer_panel_unregister()
     anim_props_panel_unregister()
 
@@ -142,16 +147,16 @@ def oot_panel_unregister():
 def oot_register(registerPanels):
     oot_operator_register()
     oot_utility_register()
-    oot_col_register()  # register first, so panel goes above mat panel
+    collision_viewport_classes_register()  # register first, so panel goes above mat panel
+    collision_props_classes_register()
     oot_obj_register()
     oot_level_register()
     oot_spline_register()
     oot_dl_writer_register()
     anim_viewport_classes_register()
-    oot_skeleton_register()
+    skeleton_props_classes_register()
     oot_cutscene_register()
     skeletonRegister()
-    collision_register()
     dl_writer_register()
     file_register()
     anim_props_classes_register()
@@ -169,16 +174,16 @@ def oot_unregister(unregisterPanels):
 
     oot_operator_unregister()
     oot_utility_unregister()
-    oot_col_unregister()  # register first, so panel goes above mat panel
+    collision_viewport_classes_unregister()  # register first, so panel goes above mat panel
+    collision_props_classes_unregister()
     oot_obj_unregister()
     oot_level_unregister()
     oot_spline_unregister()
     oot_dl_writer_unregister()
     anim_viewport_classes_unregister()
-    oot_skeleton_unregister()
+    skeleton_props_classes_unregister()
     oot_cutscene_unregister()
     skeletonUnregister()
-    collision_unregister()
     dl_writer_unregister()
     file_unregister()
     anim_props_classes_unregister()

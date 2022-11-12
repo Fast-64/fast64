@@ -1,1 +1,1 @@
-from .panel import collision_register, collision_panel_register, collision_unregister, collision_panel_unregister
+from .panel import collision_viewport_classes_register, collision_viewport_panel_register, collision_viewport_classes_unregister, collision_viewport_panel_unregister

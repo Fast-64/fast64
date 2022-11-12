@@ -16,7 +16,6 @@ class OOT_FileSettingsPanel(OOT_Panel):
         col = self.layout.column()
         col.scale_y = 1.1  # extra padding, makes it easier to see these main settings
         prop_split(col, context.scene, "ootBlenderScale", "OOT Scene Scale")
-        prop_split(col, context.scene, "ootActorBlenderScale", "OOT Actor Scale")
 
         prop_split(col, context.scene, "ootDecompPath", "Decomp Path")
         col.prop(context.scene.fast64.oot, "hackerFeaturesEnabled")

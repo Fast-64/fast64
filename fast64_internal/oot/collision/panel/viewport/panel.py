@@ -29,17 +29,17 @@ oot_col_classes = (OOT_ExportCollision,)
 oot_col_panel_classes = (OOT_ExportCollisionPanel,)
 
 
-def collision_panel_register():
+def collision_viewport_panel_register():
     for cls in oot_col_panel_classes:
         register_class(cls)
 
 
-def collision_panel_unregister():
+def collision_viewport_panel_unregister():
     for cls in oot_col_panel_classes:
         unregister_class(cls)
 
 
-def collision_register():
+def collision_viewport_classes_register():
     for cls in oot_col_classes:
         register_class(cls)
 
@@ -51,7 +51,7 @@ def collision_register():
     Scene.ootColFolder = StringProperty(name="Object Name", default="gameplay_keep")
 
 
-def collision_unregister():
+def collision_viewport_classes_unregister():
     # Collision
     del Scene.ootColExportPath
     del Scene.ootColName
