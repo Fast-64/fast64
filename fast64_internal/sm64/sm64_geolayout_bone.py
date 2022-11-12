@@ -485,10 +485,7 @@ def sm64_bone_register():
     for cls in sm64_bone_classes:
         register_recursive(cls)
     
-    bpy.types.Bone.geo_cmd = bpy.props.EnumProperty(
-        name = 'Geolayout Command', items = enumBoneType, 
-        default = 'DisplayListWithOffset', update = updateBone)
-
+    
     bpy.types.Bone.geo_cmd = bpy.props.EnumProperty(
         name="Geolayout Command", items=enumBoneType, default="DisplayListWithOffset", update=updateBone
     )
