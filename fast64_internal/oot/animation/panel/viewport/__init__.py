@@ -1,1 +1,0 @@
-from .panel import anim_viewport_classes_register, anim_viewport_panel_register, anim_viewport_classes_unregister, anim_viewport_panel_unregister

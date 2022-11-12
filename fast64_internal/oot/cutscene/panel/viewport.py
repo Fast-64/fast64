@@ -1,11 +1,17 @@
 import os
 from bpy.path import abspath
 from bpy.ops import object
-from bpy.types import Operator, Context
-from .....utility import PluginError, writeCData, raisePluginError
-from ....oot_cutscene import ootCutsceneIncludes, ootCutsceneDataToC, convertCutsceneObject
+from bpy.props import StringProperty
+from bpy.types import Scene, Operator, Context
+from bpy.utils import register_class, unregister_class
+from ....utility import PluginError, writeCData, raisePluginError, prop_split
+from ....panels import OOT_Panel
+from ...oot_cutscene import ootCutsceneIncludes, ootCutsceneDataToC, convertCutsceneObject
 
 
+#############
+# Operators #
+#############
 def checkGetFilePaths(context: Context):
     cpath = abspath(context.scene.ootCutsceneExportPath)
 
@@ -77,3 +83,54 @@ class OOT_ExportAllCutscenes(Operator):
         except Exception as e:
             raisePluginError(self, e)
             return {"CANCELLED"}
+
+
+#############
+#   Panel   #
+#############
+class OOT_CutscenePanel(OOT_Panel):
+    bl_idname = "OOT_PT_export_cutscene"
+    bl_label = "OOT Cutscene Exporter"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "OOT"
+
+    def draw(self, context):
+        col = self.layout.column()
+        col.operator(OOT_ExportCutscene.bl_idname)
+        col.operator(OOT_ExportAllCutscenes.bl_idname)
+        prop_split(col, context.scene, "ootCutsceneExportPath", "File")
+
+
+oot_cutscene_panel_classes = [
+    OOT_CutscenePanel,
+]
+
+oot_cutscene_classes = [
+    OOT_ExportCutscene,
+    OOT_ExportAllCutscenes,
+]
+
+
+def oot_cutscene_panel_register():
+    for cls in oot_cutscene_panel_classes:
+        register_class(cls)
+
+
+def oot_cutscene_panel_unregister():
+    for cls in oot_cutscene_panel_classes:
+        unregister_class(cls)
+
+
+def oot_cutscene_register():
+    for cls in oot_cutscene_classes:
+        register_class(cls)
+
+    Scene.ootCutsceneExportPath = StringProperty(name="File", subtype="FILE_PATH")
+
+
+def oot_cutscene_unregister():
+    for cls in reversed(oot_cutscene_classes):
+        unregister_class(cls)
+
+    del Scene.ootCutsceneExportPath
