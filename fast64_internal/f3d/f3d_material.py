@@ -1,5 +1,6 @@
 import logging
 import bpy, math, os
+from re import findall
 from bpy.types import Operator, Menu
 from bl_operators.presets import AddPresetBase
 from bpy.utils import register_class, unregister_class
@@ -415,12 +416,9 @@ def ui_upper_mode(settings, dataHolder, layout: bpy.types.UILayout, useDropdown)
         prop_split(inputGroup, settings, "g_mdsft_text_filt", "Texture Filter")
         prop_split(inputGroup, settings, "g_mdsft_textlod", "Texture LOD (Mipmapping)")
         if settings.g_mdsft_textlod == 'G_TL_LOD':
-            inputGroup.prop(settings, "num_textures_mipmapped", text="Number of Mipmaps")
-            if settings.num_textures_mipmapped > 2:
-                box = inputGroup.box()
-                box.alert = True
-                box.label(text="WARNING: Fast64 does not support setting more than two textures.", icon="LIBRARY_DATA_BROKEN")
-                box.label(text="Additional texture tiles will need to be set up manually.")
+            row = inputGroup.row()
+            row.prop(settings, "num_textures_mipmapped", text="Number of Mipmaps")
+            row.prop(settings, "base_tile", text="Base tile")
         prop_split(inputGroup, settings, "g_mdsft_textdetail", "Texture Detail")
         prop_split(inputGroup, settings, "g_mdsft_textpersp", "Texture Perspective Correction")
         prop_split(inputGroup, settings, "g_mdsft_cycletype", "Cycle Type")
@@ -502,44 +500,48 @@ class F3DPanel(bpy.types.Panel):
         if textureProp.menu:
             tex = textureProp.tex
             prop_input_name = inputGroup.column()
-            prop_input = inputGroup.column()
+            prop_input_set = inputGroup.column()
+            prop_input_load = inputGroup.column()
 
             if showCheckBox:
-                prop_input_name.prop(textureProp, "tex_set", text="Set Texture")
+                row = prop_input_name.row()
+                row.prop(textureProp, "tex_set", text="Set Texture")
+                row.prop(textureProp, "load_tex", text="Load Texture")
             else:
                 prop_input_name.label(text=name)
             texIndex = name[-1]
 
-            prop_input.prop(textureProp, "use_tex_reference")
+            prop_input_set.prop(textureProp, "use_tex_reference")
             if textureProp.use_tex_reference:
-                prop_split(prop_input, textureProp, "tex_reference", "Texture Reference")
-                prop_split(prop_input, textureProp, "tex_reference_size", "Texture Size")
+                prop_split(prop_input_set, textureProp, "tex_reference", "Texture Reference")
+                prop_split(prop_input_set, textureProp, "tex_reference_size", "Texture Size")
                 if textureProp.tex_format[:2] == "CI":
-                    prop_split(prop_input, textureProp, "pal_reference", "Palette Reference")
-                    prop_split(prop_input, textureProp, "pal_reference_size", "Palette Size")
+                    prop_split(prop_input_set, textureProp, "pal_reference", "Palette Reference")
+                    prop_split(prop_input_set, textureProp, "pal_reference_size", "Palette Size")
 
             else:
-                prop_input.template_ID(
+                prop_input_set.template_ID(
                     textureProp, "tex", new="image.new", open="image.open", unlink="image.tex" + texIndex + "_unlink"
                 )
-                prop_input.enabled = textureProp.tex_set
+                prop_input_set.enabled = textureProp.load_tex
+                prop_input_load.enabled = textureProp.tex_set
 
                 if tex is not None:
-                    prop_input.label(text="Size: " + str(tex.size[0]) + " x " + str(tex.size[1]))
+                    prop_input_set.label(text="Size: " + str(tex.size[0]) + " x " + str(tex.size[1]))
 
             if material.mat_ver > 3 and material.f3d_mat.use_large_textures:
-                prop_input.label(text="Large texture mode enabled.")
-                prop_input.label(text="Each triangle must fit in a single tile load.")
-                prop_input.label(text="UVs must be in the [0, 1024] pixel range.")
+                prop_input_set.label(text="Large texture mode enabled.")
+                prop_input_set.label(text="Each triangle must fit in a single tile load.")
+                prop_input_set.label(text="UVs must be in the [0, 1024] pixel range.")
             else:
-                tmemUsageUI(prop_input, textureProp)
+                tmemUsageUI(prop_input_set, textureProp)
 
-            prop_split(prop_input, textureProp, "tex_format", name="Format")
+            prop_split(prop_input_load, textureProp, "tex_format", name="Format")
             if textureProp.tex_format[:2] == "CI":
-                prop_split(prop_input, textureProp, "ci_format", name="CI Format")
+                prop_split(prop_input_load, textureProp, "ci_format", name="CI Format")
 
             if not (material.mat_ver > 3 and material.f3d_mat.use_large_textures):
-                texFieldSettings = prop_input.column()
+                texFieldSettings = prop_input_load.column()
                 clampSettings = texFieldSettings.row()
                 clampSettings.prop(textureProp.S, "clamp", text="Clamp S")
                 clampSettings.prop(textureProp.T, "clamp", text="Clamp T")
@@ -548,22 +550,22 @@ class F3DPanel(bpy.types.Panel):
                 mirrorSettings.prop(textureProp.S, "mirror", text="Mirror S")
                 mirrorSettings.prop(textureProp.T, "mirror", text="Mirror T")
 
-                prop_input.prop(textureProp, "autoprop", text="Auto Set Other Properties")
+                prop_input_load.prop(textureProp, "autoprop", text="Auto Set Other Properties")
 
                 if not textureProp.autoprop:
-                    mask = prop_input.row()
+                    mask = prop_input_load.row()
                     mask.prop(textureProp.S, "mask", text="Mask S")
                     mask.prop(textureProp.T, "mask", text="Mask T")
 
-                    shift = prop_input.row()
+                    shift = prop_input_load.row()
                     shift.prop(textureProp.S, "shift", text="Shift S")
                     shift.prop(textureProp.T, "shift", text="Shift T")
 
-                    low = prop_input.row()
+                    low = prop_input_load.row()
                     low.prop(textureProp.S, "low", text="S Low")
                     low.prop(textureProp.T, "low", text="T Low")
 
-                    high = prop_input.row()
+                    high = prop_input_load.row()
                     high.prop(textureProp.S, "high", text="S High")
                     high.prop(textureProp.T, "high", text="T High")
 
@@ -960,6 +962,12 @@ class F3DPanel(bpy.types.Panel):
 
             if useDict["Texture 1"]:
                 self.ui_image(material, inputCol, f3dMat.tex1, "Texture 1", True)
+                
+            if f3dMat.rdp_settings.g_mdsft_textlod == "G_TL_LOD":
+                for i in range(1, f3dMat.rdp_settings.num_textures_mipmapped):
+                    if i == 1 and useDict["Texture 1"]:
+                        continue
+                    self.ui_image(material, inputCol, getattr(f3dMat, f"tex{i}"), f"Texture {i}", True)
 
             if useMultitexture:
                 inputCol.prop(f3dMat, "uv_basis", text="UV Basis")
@@ -1775,10 +1783,9 @@ def update_tex_values_manual(material: bpy.types.Material, context, prop_path=No
         uv_basis.inputs["S Scale"].default_value = node_uv_scale[0]
         uv_basis.inputs["T Scale"].default_value = node_uv_scale[1]
 
-    if not prop_path or "tex0" in prop_path:
-        update_tex_values_index(material, texProperty=f3dMat.tex0, texIndex=0, isUsed=tex0_used)
-    if not prop_path or "tex1" in prop_path:
-        update_tex_values_index(material, texProperty=f3dMat.tex1, texIndex=1, isUsed=tex1_used)
+    for i in range(8):
+        if not prop_path or f"tex{i}" in prop_path:
+            update_tex_values_index(material, texProperty=getattr(f3dMat,f"tex{i}"), texIndex=i, isUsed=True)
 
     texture_inputs["3 Point"].default_value = int(f3dMat.rdp_settings.g_mdsft_text_filt == "G_TF_BILERP")
     uv_basis.inputs["EnableOffset"].default_value = int(f3dMat.rdp_settings.g_mdsft_text_filt != "G_TF_POINT")
@@ -2094,9 +2101,8 @@ class ReloadDefaultF3DPresets(bpy.types.Operator):
 
 
 def get_tex_prop_from_path(material: bpy.types.Material, path: str) -> Tuple["TextureProperty", int]:
-    if "tex0" in path:
-        return material.f3d_mat.tex0, 0
-    return material.f3d_mat.tex1, 1
+    index = findall("\d+", path[6:])[0]
+    return getattr(material.f3d_mat, f"tex{index}"), index
 
 
 def already_updating_material(material: bpy.types.Material | None):
@@ -2233,6 +2239,10 @@ class TextureProperty(bpy.types.PropertyGroup):
 
     menu: bpy.props.BoolProperty()
     tex_set: bpy.props.BoolProperty(
+        default=True,
+        update=update_node_values_with_preset,
+    )
+    load_tex: bpy.props.BoolProperty(
         default=True,
         update=update_node_values_with_preset,
     )
@@ -2546,10 +2556,17 @@ class RDPSettings(bpy.types.PropertyGroup):
     )
     num_textures_mipmapped: bpy.props.IntProperty(
         name="Number of Mipmaps",
-        default=2,
-        min=2,
+        default=1,
+        min=1,
         max=8,
         description="Number of mipmaps when Texture LOD set to `LOD`. First cycle combiner should be ((Tex1 - Tex0) * LOD Frac) + Tex0",
+    )
+    base_tile: bpy.props.IntProperty(
+        name="Number of Mipmaps",
+        default=0,
+        min=0,
+        max=7,
+        description="Base tile used when Texture LOD set to `LOD`.",
     )
     g_mdsft_textdetail: bpy.props.EnumProperty(
         name="Texture Detail",
@@ -2579,7 +2596,7 @@ class RDPSettings(bpy.types.PropertyGroup):
     g_mdsft_pipeline: bpy.props.EnumProperty(
         name="Pipeline Span Buffer Coherency",
         items=enumPipelineMode,
-        default="G_PM_1PRIMITIVE",
+        default="G_PM_NPRIMITIVE",
         update=update_node_values_with_preset,
     )
 
@@ -3232,6 +3249,13 @@ class F3DMaterialProperty(bpy.types.PropertyGroup):
     )
     tex0: bpy.props.PointerProperty(type=TextureProperty, name="tex0")
     tex1: bpy.props.PointerProperty(type=TextureProperty, name="tex1")
+    #only used during LoD
+    tex2: bpy.props.PointerProperty(type=TextureProperty, name="tex2")
+    tex3: bpy.props.PointerProperty(type=TextureProperty, name="tex3")
+    tex4: bpy.props.PointerProperty(type=TextureProperty, name="tex4")
+    tex5: bpy.props.PointerProperty(type=TextureProperty, name="tex5")
+    tex6: bpy.props.PointerProperty(type=TextureProperty, name="tex6")
+    tex7: bpy.props.PointerProperty(type=TextureProperty, name="tex7")
 
     # Should Set?
 

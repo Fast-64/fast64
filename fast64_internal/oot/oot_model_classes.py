@@ -103,7 +103,7 @@ class OOTModel(FModel):
         # key: first flipbook image
         # value: list of flipbook textures in order
         self.processedFlipbooks: dict[bpy.types.Image, list[bpy.types.Image]] = {}
-        FModel.__init__(self, f3dType, isHWv1, name, DLFormat, GfxMatWriteMethod.WriteAll)
+        FModel.__init__(self, f3dType, isHWv1, name, DLFormat, GfxMatWriteMethod.WriteAll, inline = bpy.context.scene.exportInlineF3D)
 
     def getDrawLayerV3(self, obj):
         return obj.ootDrawLayer

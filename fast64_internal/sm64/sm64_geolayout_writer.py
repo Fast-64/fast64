@@ -219,7 +219,6 @@ def getCameraObj(camera):
 
 
 def appendRevertToGeolayout(geolayoutGraph, fModel):
-    if bpy.context.scene.exportInlineF3D: return
     fModel.materialRevert = GfxList(
         fModel.name + "_" + "material_revert_render_settings", GfxListTag.MaterialRevert, fModel.DLFormat
     )

@@ -2161,7 +2161,7 @@ class FGlobalData:
 
 
 class FModel:
-    def __init__(self, f3dType, isHWv1, name, DLFormat, matWriteMethod):
+    def __init__(self, f3dType, isHWv1, name, DLFormat, matWriteMethod, inline = False):
         self.name = name  # used for texture prefixing
         # dict of light name : Lights
         self.lights = {}
@@ -2184,10 +2184,8 @@ class FModel:
         self.DLFormat = DLFormat
         
         #this needs to be overridden for this option to work
-        if bpy.context.scene.exportInlineF3D:
-            self.matWriteMethod = GfxMatWriteMethod.WriteAll
-        else:
-            self.matWriteMethod = matWriteMethod
+        self.matWriteMethod = matWriteMethod if not inline else GfxMatWriteMethod.WriteAll
+        self.inline = inline
         self.global_data = FGlobalData()
         self.texturesSavedLastExport = 0  # hacky
 
@@ -2246,6 +2244,8 @@ class FModel:
         fMesh.draw.commands.append(SPEndDisplayList())
 
     def onEndDraw(self, fMesh, contextObj):
+        if bpy.context.scene.exportInlineF3D:
+            fMesh.bleed()
         return
 
     def getTextureAndHandleShared(self, imageKey):
@@ -2468,7 +2468,7 @@ class FModel:
         else:
             staticData.source += texData.source
 
-        if not bpy.context.scene.exportInlineF3D:
+        if not self.inline:
             dynamicData.append(self.to_c_materials(gfxFormatter))
 
         for name, lod in self.LODGroups.items():
@@ -2477,16 +2477,14 @@ class FModel:
             dynamicData.append(lodDynamic)
 
         for name, mesh in self.meshes.items():
-            if bpy.context.scene.exportInlineF3D:
+            if self.inline:
                 meshStatic, meshDynamic = mesh.to_c_inline(self.f3d, gfxFormatter)
             else:
                 meshStatic, meshDynamic = mesh.to_c(self.f3d, gfxFormatter)
             staticData.append(meshStatic)
-            if not bpy.context.scene.exportInlineF3D:
-                dynamicData.append(meshDynamic)
+            dynamicData.append(meshDynamic)
 
-        if not bpy.context.scene.exportInlineF3D:
-            dynamicData.append(self.to_c_material_revert(gfxFormatter))
+        dynamicData.append(self.to_c_material_revert(gfxFormatter))
 
         if savePNG:
             self.texturesSavedLastExport = self.save_textures(textureExportSettings.exportPath)
@@ -2711,7 +2709,7 @@ class FMesh:
         self.triangleGroups.append(triGroup)
         return triGroup
 
-    def bleed(self, LastMat):
+    def bleed(self, LastMat = None):
         if not self.MatGroups: return
         for mat, desc in self.MatGroups.items():
             #bleed mat and tex
@@ -2732,7 +2730,6 @@ class FMesh:
             #or pipe syncs as of now
             bled_tex = []
             for j, (LastTex, TexCmds) in enumerate(zip(LastMat.textures, mat.textures)):
-                print(f"tex {j} start bleed")
                 #deep copy breaks on Image objects so I will only copy the levels needed
                 commands_bled = copy.copy(TexCmds)
                 commands_bled.commands = copy.copy(TexCmds.commands) #copy the commands also
@@ -2754,7 +2751,6 @@ class FMesh:
                 #now eval as normal conditionals
                 iter_cmds = copy.copy(commands_bled.commands) #need extra list to iterate with
                 for j, cmd in enumerate(iter_cmds):
-                    print(cmd, cmd.to_c(), cmd in LastList)
                     if cmd.bleed(LastList, commands_bled.commands, j):
                         if cmd in LastList:
                             commands_bled.commands.remove(cmd)
@@ -2786,6 +2782,16 @@ class FMesh:
             commands_bled.commands.remove(SPEndDisplayList())
         return commands_bled
 
+    def bleed_mesh_defaults(self, desc):
+        Gfx = GfxList(
+        f"{self.name}_revert_render_settings", GfxListTag.MaterialRevert, DLFormat.Static
+        )
+        Gfx.commands.extend((
+            DPSetRenderMode(desc.defaultRenderMode, None),
+            DPSetCycleType("G_CYC_1CYCLE"),
+            ))
+        return Gfx
+
     def set_addr(self, startAddress, f3d):
         addrRange = self.draw.set_addr(startAddress, f3d)
         startAddress = addrRange[0]
@@ -2810,6 +2816,7 @@ class FMesh:
         if not self.MatGroups: return self.to_c(self, f3d, gfxFormatter)
         GfxData = CData()
         staticData = CData()
+        dynamicData = CData()
         GfxData.header = f"extern Gfx {self.name}[];\n"
         GfxData.source = f"Gfx {self.name}[] = {{\n"
         for mat, desc in self.MatGroups.items():
@@ -2818,7 +2825,6 @@ class FMesh:
             if not triGroup:
                 continue
             staticData.append( triGroup.vertexList.to_c() )
-            
             #add mat, add tex data, then add tri data
             if desc.bleed.bled_mats:
                 GfxData.append( desc.bleed.bled_mats.to_c_inline(f3d) )
@@ -2826,13 +2832,11 @@ class FMesh:
                 if tex:
                     GfxData.append( tex.to_c_inline(f3d) )
             GfxData.append( triGroup.triList.to_c_inline(f3d) )
-            print(triGroup.triList.commands)
+            GfxData.source += f"\t{DPPipeSync().to_c()},\n" #pipe sync is required after rendering
+        GfxData.append( self.bleed_mesh_defaults(desc).to_c_inline(f3d) ) #revert mesh DL
         GfxData.source += f"\t{SPEndDisplayList().to_c()}\n}};\n" #end DL
         staticData.append( GfxData )
-        #dynamic data is the same in inline
-        dynamicData = gfxFormatter.drawToC(f3d, self.draw)
-        for materialTuple, drawOverride in self.drawMatOverrides.items():
-            dynamicData.append(drawOverride.to_c(f3d))
+        #dynamic data is not used in bleeds
         return staticData, dynamicData
 
     def to_c(self, f3d, gfxFormatter):
@@ -2949,7 +2953,7 @@ class FMaterial:
 
         self.useLargeTextures = False
         self.largeTextureIndex = None
-        self.texturesLoaded = [False, False]
+        self.texturesLoaded = [False]*8
 
     def getScrollData(self, material, dimensions):
         self.getScrollDataField(material, 0, 0)
@@ -3038,7 +3042,7 @@ class bleed_gfx:
 class mesh_desc:
     tri_list: FTriGroup #or just a list
     fMaterial: FMaterial
-    texDimensions: tuple
+    defaultRenderMode: tuple
     bleed: bleed_gfx
 
 
