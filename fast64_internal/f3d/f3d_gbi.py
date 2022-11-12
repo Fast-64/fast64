@@ -2183,7 +2183,7 @@ class FModel:
         self.LODGroups = {}
         self.DLFormat = DLFormat
         
-        #this needs to be overridden for this option to work
+        #this needs to be overridden for inline to work
         self.matWriteMethod = matWriteMethod if not inline else GfxMatWriteMethod.WriteAll
         self.inline = inline
         self.global_data = FGlobalData()

@@ -525,6 +525,7 @@ class F3DPanel(bpy.types.Panel):
                 )
                 prop_input_set.enabled = textureProp.load_tex
                 prop_input_load.enabled = textureProp.tex_set
+                
 
                 if tex is not None:
                     prop_input_set.label(text="Size: " + str(tex.size[0]) + " x " + str(tex.size[1]))
@@ -536,6 +537,9 @@ class F3DPanel(bpy.types.Panel):
             else:
                 tmemUsageUI(prop_input_set, textureProp)
 
+            if not textureProp.load_tex:
+                prop_split(prop_input_load, textureProp, "tmem", "TMEM value of tile")
+            
             prop_split(prop_input_load, textureProp, "tex_format", name="Format")
             if textureProp.tex_format[:2] == "CI":
                 prop_split(prop_input_load, textureProp, "ci_format", name="CI Format")
@@ -2245,6 +2249,12 @@ class TextureProperty(bpy.types.PropertyGroup):
     load_tex: bpy.props.BoolProperty(
         default=True,
         update=update_node_values_with_preset,
+    )
+    tmem: bpy.props.IntProperty(
+        default=0,
+        min=0,
+        max=512,
+        description = "tmem for a loaded texture is the tmem value divided by 64"
     )
     autoprop: bpy.props.BoolProperty(
         name="Autoprop",

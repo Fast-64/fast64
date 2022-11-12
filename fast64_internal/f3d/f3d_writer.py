@@ -778,11 +778,15 @@ def saveMeshByFaces(
 
     currentGroupIndex = saveTriangleStrip(triConverter, faces, obj.data, True)
     #to save inline, we need a dict of materials and their corresponding tri groups
-    if bpy.context.scene.exportInlineF3D:
+    if fModel.inline:
         fMesh.MatGroups[material] = mesh_desc(triGroup, fMaterial, fModel.getRenderMode(drawLayer), None)
         #remove SPEndDisplayList from triGroup
         while(SPEndDisplayList() in triGroup.triList.commands):
             triGroup.triList.commands.remove(SPEndDisplayList())
+    #when using tile 6 or 7 on a material, a tile sync is required AFTER triangles are rendered
+    if fModel.matWriteMethod == GfxMatWriteMethod.WriteAll:
+        if any(fMaterial.texturesLoaded[6:]):
+            triGroup.triList.commands.append(DPTileSync())
 
     if fMaterial.revert is not None:
         fMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
@@ -1421,6 +1425,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         + (("_area" + str(areaIndex)) if f3dMat.set_fog and f3dMat.use_global_fog and areaKey is not None else "")
     )
     fMaterial = fModel.construct_fMaterial(materialName, fModel.DLFormat) #DL format is static or dynamic
+    fMaterial.material.commands.append(DPPipeSync())
     fMaterial.revert.commands.append(DPPipeSync())
 
     if not material.is_f3d:
@@ -1520,7 +1525,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     useDict = all_combiner_uses(f3dMat)
     texDimensions = [None]*9 #9 to prevent out of bounds array
     nextTmem = 0
-    loaded_tex = set()
+    loaded_tex = set() #set of textures
     useLargeTextures = material.mat_ver > 3 and f3dMat.use_large_textures
     if useDict.get(f"Texture 0", None) or useDict.get(f"Texture 1", None):
         for i in range(8):
@@ -1990,6 +1995,8 @@ def saveTextureLoading(
                     ]
                 )  # added in
 
+    else:
+        tmem = texProp.tmem
     base_tile = getattr(fMaterial, "base_tile", f3d.G_TX_RENDERTILE)
     tileSizeCommand = DPSetTileSize(base_tile + texIndex, sl, tl, sh, th)
     loadTexGfx.commands.extend(
