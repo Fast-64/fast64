@@ -1,11 +1,11 @@
 from ...utility import CData, PluginError
-from ...f3d.f3d_gbi import ScrollMethod
+from ...f3d.f3d_gbi import ScrollMethod, TextureExportSettings
 from ..oot_f3d_writer import OOTGfxFormatter
 from ..oot_collision import ootCollisionToC
 from ..oot_cutscene import ootCutsceneDataToC
 from ..oot_utility import indent
-from ..oot_constants import ootRoomShapeStructs, ootRoomShapeEntryStructs
-from ..oot_level_classes import OOTScene, OOTRoom
+from ..oot_constants import ootRoomShapeStructs, ootRoomShapeEntryStructs, ootEnumRoomShapeType
+from ..oot_level_classes import OOTScene, OOTRoom, OOTRoomMeshGroup, OOTRoomMesh
 
 
 def cmdName(name, header, index):
@@ -80,7 +80,7 @@ def cmdSpecialFiles(scene, header, cmdCount):
 
 def cmdPathList(scene, header, cmdCount):
     cmd = CData()
-    cmd.source = indent + "SCENE_CMD_PATH_LIST(" + scene.pathListName() + "),\n"
+    cmd.source = indent + "SCENE_CMD_PATH_LIST(" + scene.pathListName(header) + "),\n"
     return cmd
 
 
@@ -313,13 +313,11 @@ def ootActorListToC(room: OOTRoom, headerIndex: int):
     return data
 
 
-def ootMeshEntryToC(meshEntry, roomShape):
+def ootMeshEntryToC(meshEntry: OOTRoomMeshGroup, roomShape: str):
     opaqueName = meshEntry.DLGroup.opaque.name if meshEntry.DLGroup.opaque is not None else "0"
     transparentName = meshEntry.DLGroup.transparent.name if meshEntry.DLGroup.transparent is not None else "0"
     data = "{ "
-    if roomShape == "ROOM_SHAPE_TYPE_IMAGE":
-        raise PluginError("Pre-Rendered rooms not supported.")
-    elif roomShape == "ROOM_SHAPE_TYPE_CULLABLE":
+    if roomShape == "ROOM_SHAPE_TYPE_CULLABLE":
         data += (
             "{ "
             + f"{meshEntry.cullGroup.position[0]}, {meshEntry.cullGroup.position[1]}, {meshEntry.cullGroup.position[2]}"
@@ -336,45 +334,110 @@ def ootMeshEntryToC(meshEntry, roomShape):
     return data
 
 
-def ootRoomMeshToC(room, textureExportSettings):
+# Texture files must be saved separately.
+def ootBgImagesToC(roomMesh: OOTRoomMesh, textureSettings: TextureExportSettings):
+    code = CData()
+
+    if len(roomMesh.bgImages) > 1:
+        code.header += f"extern BgImage {roomMesh.getMultiBgStructName()}[];\n"
+        code.source += f"BgImage {roomMesh.getMultiBgStructName()}[] = {{"
+        for i in range(len(roomMesh.bgImages)):
+            bgImage = roomMesh.bgImages[i]
+            code.source += f"\t{{\n"
+            code.source += bgImage.multiPropertiesC(2, i)
+            code.source += f"\t}},\n"
+        code.source += f"}};\n\n"
+
+    bitsPerValue = 64
+    for bgImage in roomMesh.bgImages:
+        code.header += "extern u" + str(bitsPerValue) + " " + bgImage.name + "[];\n"
+
+        # This is to force 8 byte alignment
+        if bitsPerValue != 64:
+            code.source += "Gfx " + bgImage.name + "_aligner[] = {gsSPEndDisplayList()};\n"
+        code.source += "u" + str(bitsPerValue) + " " + bgImage.name + "[SCREEN_WIDTH * SCREEN_HEIGHT / 4] = {\n\t"
+        code.source += '#include "' + textureSettings.includeDir + bgImage.getFilename() + '.inc.c"'
+        code.source += "\n};\n\n"
+    return code
+
+
+def ootRoomMeshToC(room: OOTRoom, textureExportSettings: TextureExportSettings):
     mesh = room.mesh
     if len(mesh.meshEntries) == 0:
         raise PluginError("Error: Room " + str(room.index) + " has no mesh children.")
 
     meshHeader = CData()
-    meshHeader.header = f"extern {ootRoomShapeStructs[mesh.roomShape]} {mesh.headerName()};\n"
-    meshHeader.source = (
-        "\n".join(
-            (
-                ootRoomShapeStructs[mesh.roomShape] + " " + mesh.headerName() + " = {",
-                indent + mesh.roomShape + ",",
-                indent + "ARRAY_COUNT(" + mesh.entriesName() + ")" + ",",
-                indent + mesh.entriesName() + ",",
-                indent + mesh.entriesName() + " + ARRAY_COUNT(" + mesh.entriesName() + ")",
-                "};",
-            )
-        )
-        + "\n\n"
-    )
-
     meshEntries = CData()
-    meshEntries.header = (
-        f"extern {ootRoomShapeEntryStructs[mesh.roomShape]} {mesh.entriesName()}[{str(len(mesh.meshEntries))}];\n"
-    )
-    meshEntries.source = (
-        f"{ootRoomShapeEntryStructs[mesh.roomShape]} {mesh.entriesName()}[{str(len(mesh.meshEntries))}] = " + "{\n"
-    )
     meshData = CData()
-    for entry in mesh.meshEntries:
-        meshEntries.source += indent + ootMeshEntryToC(entry, mesh.roomShape)
+
+    shapeTypeIdx = [value[0] for value in ootEnumRoomShapeType].index(mesh.roomShape)
+    meshEntryType = ootRoomShapeEntryStructs[shapeTypeIdx]
+    structName = ootRoomShapeStructs[shapeTypeIdx]
+    roomShapeImageFormat = "Multi" if len(mesh.bgImages) > 1 else "Single"
+    if mesh.roomShape == "ROOM_SHAPE_TYPE_IMAGE":
+        structName += roomShapeImageFormat
+    meshHeader.header = f"extern {structName} {mesh.headerName()};\n"
+
+    if mesh.roomShape != "ROOM_SHAPE_TYPE_IMAGE":
+        meshHeader.source = (
+            "\n".join(
+                (
+                    f"{structName} {mesh.headerName()} = {{",
+                    indent + mesh.roomShape + ",",
+                    indent + "ARRAY_COUNT(" + mesh.entriesName() + ")" + ",",
+                    indent + mesh.entriesName() + ",",
+                    indent + mesh.entriesName() + " + ARRAY_COUNT(" + mesh.entriesName() + ")",
+                    "};",
+                )
+            )
+            + "\n\n"
+        )
+
+        meshData = CData()
+        meshEntries = CData()
+
+        arrayText = "[" + str(len(mesh.meshEntries)) + "]"
+        meshEntries.header = f"extern {meshEntryType} {mesh.entriesName()}{arrayText};\n"
+        meshEntries.source = f"{meshEntryType} {mesh.entriesName()}{arrayText} = {{\n"
+
+        for entry in mesh.meshEntries:
+            meshEntries.source += indent + ootMeshEntryToC(entry, mesh.roomShape)
+            if entry.DLGroup.opaque is not None:
+                meshData.append(entry.DLGroup.opaque.to_c(mesh.model.f3d))
+            if entry.DLGroup.transparent is not None:
+                meshData.append(entry.DLGroup.transparent.to_c(mesh.model.f3d))
+
+        meshEntries.source += "};\n\n"
+
+    else:
+        # type 1 only allows 1 room
+        entry = mesh.meshEntries[0]
+        roomShapeImageFormatValue = (
+            "ROOM_SHAPE_IMAGE_AMOUNT_SINGLE" if roomShapeImageFormat == "Single" else "ROOM_SHAPE_IMAGE_AMOUNT_MULTI"
+        )
+
+        meshHeader.source += f"{structName} {mesh.headerName()} = {{\n"
+        meshHeader.source += f"\t{{1, {roomShapeImageFormatValue}, &{mesh.entriesName()},}},\n"
+
+        if roomShapeImageFormat == "Single":
+            meshHeader.source += mesh.bgImages[0].singlePropertiesC(1) + "\n};\n\n"
+        else:
+            meshHeader.source += f"\t{len(mesh.bgImages)}, {mesh.getMultiBgStructName()},\n}};\n\n"
+
+        meshEntries.header = f"extern {meshEntryType} {mesh.entriesName()};\n"
+        meshEntries.source = (
+            f"{meshEntryType} {mesh.entriesName()} = {ootMeshEntryToC(entry, mesh.roomShape)[:-2]};\n\n"
+        )
+
         if entry.DLGroup.opaque is not None:
             meshData.append(entry.DLGroup.opaque.to_c(mesh.model.f3d))
         if entry.DLGroup.transparent is not None:
             meshData.append(entry.DLGroup.transparent.to_c(mesh.model.f3d))
-    meshEntries.source += "};\n\n"
+
     exportData = mesh.model.to_c(textureExportSettings, OOTGfxFormatter(ScrollMethod.Vertex))
 
     meshData.append(exportData.all())
+    meshData.append(ootBgImagesToC(room.mesh, textureExportSettings))
     meshHeader.append(meshEntries)
 
     return meshHeader, meshData
@@ -400,9 +463,9 @@ def ootRoomCommandsToC(room, headerIndex):
     data = CData()
 
     # data.header = ''.join([command.header for command in commands]) +'\n'
-    data.header = "extern SCmdBase " + room.roomName() + "_header" + format(headerIndex, "02") + "[];\n"
+    data.header = "extern SceneCmd " + room.roomName() + "_header" + format(headerIndex, "02") + "[];\n"
 
-    data.source = "SCmdBase " + room.roomName() + "_header" + format(headerIndex, "02") + "[] = {\n"
+    data.source = "SceneCmd " + room.roomName() + "_header" + format(headerIndex, "02") + "[] = {\n"
     data.source += "".join([command.source for command in commands])
     data.source += "};\n\n"
 
@@ -413,8 +476,8 @@ def ootAlternateRoomMainToC(scene: OOTScene, room: OOTRoom):
     altHeader = CData()
     altData = CData()
 
-    altHeader.header = "extern SCmdBase* " + room.alternateHeadersName() + "[];\n"
-    altHeader.source = "SCmdBase* " + room.alternateHeadersName() + "[] = {\n"
+    altHeader.header = "extern SceneCmd* " + room.alternateHeadersName() + "[];\n"
+    altHeader.source = "SceneCmd* " + room.alternateHeadersName() + "[] = {\n"
 
     for headerIndex, curHeader in enumerate([room.childNightHeader, room.adultDayHeader, room.adultNightHeader], 1):
         if curHeader is not None:
@@ -480,9 +543,9 @@ def ootSceneCommandsToC(scene, headerIndex):
     data = CData()
 
     # data.header = ''.join([command.header for command in commands]) +'\n'
-    data.header = "extern SCmdBase " + scene.sceneName() + "_header" + format(headerIndex, "02") + "[];\n"
+    data.header = "extern SceneCmd " + scene.sceneName() + "_header" + format(headerIndex, "02") + "[];\n"
 
-    data.source = "SCmdBase " + scene.sceneName() + "_header" + format(headerIndex, "02") + "[] = {\n"
+    data.source = "SceneCmd " + scene.sceneName() + "_header" + format(headerIndex, "02") + "[] = {\n"
     data.source += "".join([command.source for command in commands])
     data.source += "};\n\n"
 
@@ -636,10 +699,10 @@ def ootLightSettingsToC(scene, useIndoorLighting, headerIndex):
     return data
 
 
-def ootPathToC(path):
+def ootPathToC(path, headerIndex: int, index: int):
     data = CData()
-    data.header = "extern Vec3s " + path.pathName() + "[];\n"
-    data.source = "Vec3s " + path.pathName() + "[] = {\n"
+    data.header = "extern Vec3s " + path.pathName(headerIndex, index) + "[];\n"
+    data.source = "Vec3s " + path.pathName(headerIndex, index) + "[] = {\n"
     for point in path.points:
         data.source += (
             indent
@@ -656,21 +719,24 @@ def ootPathToC(path):
     return data
 
 
-def ootPathListToC(scene):
+def ootPathListToC(scene, headerIndex: int):
     data = CData()
-    data.header = "extern Path " + scene.pathListName() + "[" + str(len(scene.pathList)) + "];\n"
-    data.source = "Path " + scene.pathListName() + "[" + str(len(scene.pathList)) + "] = {\n"
+    data.header = "extern Path " + scene.pathListName(headerIndex) + "[" + str(len(scene.pathList)) + "];\n"
+    data.source = "Path " + scene.pathListName(headerIndex) + "[" + str(len(scene.pathList)) + "] = {\n"
     pathData = CData()
-    for i in range(len(scene.pathList)):
-        path = scene.pathList[i]
-        data.source += indent + "{ " + str(len(path.points)) + ", " + path.pathName() + " },\n"
-        pathData.append(ootPathToC(path))
+
+    # Parse in alphabetical order of names
+    sortedPathList = sorted(scene.pathList, key=lambda x: x.objName.lower())
+    for i in range(len(sortedPathList)):
+        path = sortedPathList[i]
+        data.source += indent + "{ " + str(len(path.points)) + ", " + path.pathName(headerIndex, i) + " },\n"
+        pathData.append(ootPathToC(path, headerIndex, i))
     data.source += "};\n\n"
     pathData.append(data)
     return pathData
 
 
-def ootSceneMeshToC(scene, textureExportSettings):
+def ootSceneMeshToC(scene, textureExportSettings: TextureExportSettings):
     exportData = scene.model.to_c(textureExportSettings, OOTGfxFormatter(ScrollMethod.Vertex))
     return exportData.all()
 
@@ -680,7 +746,12 @@ def ootSceneIncludes(scene):
     data.source += '#include "ultra64.h"\n'
     data.source += '#include "z64.h"\n'
     data.source += '#include "macros.h"\n'
-    data.source += '#include "' + scene.sceneName() + '.h"\n\n'
+    data.source += '#include "' + scene.sceneName() + '.h"\n'
+
+    # Not used if all header declarations are in scene.h
+    # for i in range(len(scene.rooms)):
+    #    data.source += f'#include "{scene.rooms[i].roomName()}.h"\n'
+
     data.source += '#include "segment_symbols.h"\n'
     data.source += '#include "command_macros_base.h"\n'
     data.source += '#include "z64cutscene_commands.h"\n'
@@ -693,8 +764,8 @@ def ootAlternateSceneMainToC(scene):
     altHeader = CData()
     altData = CData()
 
-    altHeader.header = "extern SCmdBase* " + scene.alternateHeadersName() + "[];\n"
-    altHeader.source = "SCmdBase* " + scene.alternateHeadersName() + "[] = {\n"
+    altHeader.header = "extern SceneCmd* " + scene.alternateHeadersName() + "[];\n"
+    altHeader.source = "SceneCmd* " + scene.alternateHeadersName() + "[] = {\n"
 
     if scene.childNightHeader is not None:
         altHeader.source += indent + scene.sceneName() + "_header" + format(1, "02") + ",\n"
@@ -729,13 +800,13 @@ def ootSceneMainToC(scene, headerIndex):
     if headerIndex == 0:
         # Check if this is the first time the function is being called, we do not want to write this data multiple times
         roomHeaderData = ootRoomListHeaderToC(scene)
-        if len(scene.pathList) > 0:
-            pathData = ootPathListToC(scene)
-        else:
-            pathData = CData()
     else:
         # The function has already been called (and is being called for another scene header), so we can make this data be a blank string
         roomHeaderData = CData()
+
+    if len(scene.pathList) > 0:
+        pathData = ootPathListToC(scene, headerIndex)
+    else:
         pathData = CData()
 
     if scene.hasAlternateHeaders():
@@ -773,7 +844,7 @@ def ootSceneMainToC(scene, headerIndex):
 
     # Write the light data
     if len(scene.lights) > 0:
-        sceneMainC.append(ootLightSettingsToC(scene, scene.skyboxLighting == "0x01", headerIndex))
+        sceneMainC.append(ootLightSettingsToC(scene, scene.skyboxLighting == "true", headerIndex))
 
     # Write the path data, if used
     sceneMainC.append(pathData)
@@ -785,7 +856,7 @@ def ootSceneMainToC(scene, headerIndex):
 
 
 # Writes the textures and material setup displaylists that are shared between multiple rooms (is written to the scene)
-def ootSceneTexturesToC(scene, textureExportSettings):
+def ootSceneTexturesToC(scene, textureExportSettings: TextureExportSettings):
     sceneTextures = CData()
     sceneTextures.append(ootSceneMeshToC(scene, textureExportSettings))
     return sceneTextures
@@ -823,7 +894,7 @@ def ootSceneCutscenesToC(scene):
     return sceneCutscenes
 
 
-def ootLevelToC(scene, textureExportSettings):
+def ootLevelToC(scene, textureExportSettings: TextureExportSettings):
     levelC = OOTLevelC()
 
     levelC.sceneMainC = ootSceneMainToC(scene, 0)

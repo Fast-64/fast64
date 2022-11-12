@@ -2,7 +2,9 @@ import bpy, random, string, os, math, traceback, re, os, mathutils
 from math import pi, ceil, degrees, radians
 from mathutils import *
 from .utility_anim import *
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Any
+
+CollectionProperty = Any  # collection prop as defined by using bpy.props.CollectionProperty
 
 
 class PluginError(Exception):
@@ -17,6 +19,8 @@ geoNodeRotateOrder = "ZXY"
 sm64BoneUp = Vector([1, 0, 0])
 
 transform_mtx_blender_to_n64 = lambda: Matrix(((1, 0, 0, 0), (0, 0, 1, 0), (0, -1, 0, 0), (0, 0, 0, 1)))
+
+yUpToZUp = mathutils.Quaternion((1, 0, 0), math.radians(90.0)).to_matrix().to_4x4()
 
 axis_enums = [
     ("X", "X", "X"),
@@ -61,7 +65,7 @@ def hexOrDecInt(value):
     elif ">>" in value:
         i = value.index(">>")
         return hexOrDecInt(value[:i]) >> hexOrDecInt(value[i + 2 :])
-    elif "x" in value:
+    elif "x" in value or "X" in value:
         return int(value, 16)
     else:
         return int(value)
@@ -124,13 +128,6 @@ def parentObject(parent, child):
     parent.select_set(True)
     bpy.context.view_layer.objects.active = parent
     bpy.ops.object.parent_set(type="OBJECT", keep_transform=True)
-
-
-def attemptModifierApply(modifier):
-    try:
-        bpy.ops.object.modifier_apply(modifier=modifier.name)
-    except Exception as e:
-        print("Skipping modifier " + str(modifier.name))
 
 
 def getFMeshName(vertexGroup, namePrefix, drawLayer, isSkinned):
@@ -276,7 +273,7 @@ def propertyGroupEquals(oldProp, newProp):
             equivalent &= propertyGroupEquals(sub_value, getattr(newProp, sub_value_attr))
         elif type(sub_value).__name__ == "bpy_prop_collection_idprop":
             newCollection = getattr(newProp, sub_value_attr)
-            copyPropertyCollection(sub_value, newCollection)
+            equivalent &= propertyCollectionEquals(sub_value, newCollection)
         else:
             newValue = getattr(newProp, sub_value_attr)
             try:

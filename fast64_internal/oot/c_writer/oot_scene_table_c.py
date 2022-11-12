@@ -1,6 +1,7 @@
 import os, bpy
 from ...utility import PluginError, writeFile
-from ..oot_constants import ootEnumSceneID, ootDrawConfigNames
+from ..oot_constants import ootEnumSceneID
+from ..oot_utility import getCustomProperty, ExportInfo
 
 
 def getSceneTable(exportPath):
@@ -81,7 +82,11 @@ def getInsertionIndex(sceneNames, sceneName, index, mode):
                 return i + 1
             # return an index to insert a comment
             elif mode == "EXPORT":
-                return i if not sceneName in sceneNames and sceneName != bpy.context.scene.ootSceneOption else i + 1
+                return (
+                    i
+                    if not sceneName in sceneNames and sceneName != bpy.context.scene.ootSceneExportSettings.option
+                    else i + 1
+                )
             # same but don't check for chosen scene
             elif mode == "REMOVE":
                 return i if not sceneName in sceneNames else i + 1
@@ -96,7 +101,7 @@ def getSceneParams(scene, exportInfo, sceneNames):
     """Returns the parameters that needs to be set in ``DEFINE_SCENE()``"""
     # in order to replace the values of ``unk10``, ``unk12`` and basically every parameters from ``DEFINE_SCENE``,
     # you just have to make it return something other than None, not necessarily a string
-    sceneIndex = getSceneIndex(sceneNames, bpy.context.scene.ootSceneOption)
+    sceneIndex = getSceneIndex(sceneNames, bpy.context.scene.ootSceneExportSettings.option)
     sceneName = sceneTitle = sceneID = sceneUnk10 = sceneUnk12 = None
 
     # if the index is None then this is a custom scene
@@ -141,7 +146,18 @@ def sceneTableToC(data, header, sceneNames, scene):
     return fileData
 
 
-def modifySceneTable(scene, exportInfo):
+def getDrawConfig(sceneName: str):
+    """Read draw config from scene table"""
+    fileData, header, sceneNames = getSceneTable(bpy.path.abspath(bpy.context.scene.ootDecompPath))
+
+    for sceneEntry in fileData:
+        if sceneEntry[0] == f"{sceneName}_scene":
+            return sceneEntry[3]
+
+    raise PluginError(f"Scene name {sceneName} not found in scene table.")
+
+
+def modifySceneTable(scene, exportInfo: ExportInfo):
     """Edit the scene table with the new data"""
     exportPath = exportInfo.exportPath
     # the list ``sceneNames`` needs to be synced with ``fileData``
@@ -150,10 +166,8 @@ def modifySceneTable(scene, exportInfo):
 
     if scene is None:
         sceneDrawConfig = None
-    elif scene.sceneTableEntry.drawConfig < len(ootDrawConfigNames):
-        sceneDrawConfig = ootDrawConfigNames[scene.sceneTableEntry.drawConfig]
     else:
-        sceneDrawConfig = scene.sceneTableEntry.drawConfig
+        sceneDrawConfig = getCustomProperty(scene.sceneTableEntry, "drawConfig")
 
     # ``DEFINE_SCENE()`` parameters
     sceneParams = [sceneName, sceneTitle, sceneID, sceneDrawConfig, sceneUnk10, sceneUnk12]
@@ -163,7 +177,7 @@ def modifySceneTable(scene, exportInfo):
     # that means the selected scene has been removed from the table
     # however if the scene variable is not None
     # set it to "INSERT" because we need to insert the scene in the right place
-    if sceneIndex is None and bpy.context.scene.ootSceneOption == "Custom":
+    if sceneIndex is None and bpy.context.scene.ootSceneExportSettings.option == "Custom":
         mode = "CUSTOM"
     elif sceneIndex is None and scene is not None:
         mode = "INSERT"
@@ -176,7 +190,7 @@ def modifySceneTable(scene, exportInfo):
         # if so, check if the custom scene already exists in the data
         # if it already exists set mode to NORMAL to consider it like a normal scene
         if mode == "CUSTOM":
-            exportName = bpy.context.scene.ootSceneName.lower()
+            exportName = exportInfo.name.lower()
             for i in range(len(fileData)):
                 if fileData[i][0] == exportName + "_scene":
                     sceneIndex = i
