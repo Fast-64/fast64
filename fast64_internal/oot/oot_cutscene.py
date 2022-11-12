@@ -199,8 +199,6 @@ class OOTCSListProperty(bpy.types.PropertyGroup):
     fxType: bpy.props.EnumProperty(items=ootEnumCSTransitionType)
     fxStartFrame: bpy.props.IntProperty(name="", default=0, min=0)
     fxEndFrame: bpy.props.IntProperty(name="", default=1, min=0)
-    _ptr_props = (OOTCSTextboxProperty, OOTCSLightingProperty, OOTCSTimeProperty,
-    OOTCSBGMProperty, OOTCSMiscProperty, OOTCS0x09Property, OOTCSUnkProperty)
 
 
 def drawCSListProperty(layout, listProp, listIndex, objName, collectionType):
