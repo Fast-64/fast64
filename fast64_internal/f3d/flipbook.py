@@ -25,7 +25,7 @@ def flipbook_to_c(flipbook: TextureFlipbook, isStatic: bool):
     newArrayData = "void* " if not isStatic else "static void* "
     newArrayData += f"{flipbook.name}[]" + " = { "
     newArrayData += flipbook_data_to_c(flipbook)
-    newArrayData += " };"
+    newArrayData += "};"
     return newArrayData
 
 

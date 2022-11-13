@@ -1,8 +1,10 @@
 import bpy
+from typing import Callable
 from ..render_settings import on_update_oot_render_settings
 from ..utility import ootGetSceneOrRoomHeader, prop_split
 from .oot_utility import drawAddButton, drawCollectionOps, drawEnumWithCustom, getEnumName, getSceneObj, getRoomObj
 from .oot_cutscene import OOTCSListProperty, drawCSListProperty, drawCSAddButtons
+from .oot_actor import setAllActorsVisibility
 
 from .oot_constants import (
     ootEnumObjectID,
@@ -29,6 +31,7 @@ from .oot_constants import (
     ootEnumLinkIdle,
     ootEnumRoomShapeType,
     ootEnumHeaderMenu,
+    ootEnumDrawConfig,
 )
 
 
@@ -99,9 +102,18 @@ class OOT_SearchSceneEnumOperator(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     ootSceneID: bpy.props.EnumProperty(items=ootEnumSceneID, default="SCENE_YDAN")
+    opName: bpy.props.StringProperty(default="Export")
 
     def execute(self, context):
-        context.scene.ootSceneOption = self.ootSceneID
+        if self.opName == "Export":
+            context.scene.ootSceneExportSettings.option = self.ootSceneID
+        elif self.opName == "Import":
+            context.scene.ootSceneImportSettings.option = self.ootSceneID
+        elif self.opName == "Remove":
+            context.scene.ootSceneRemoveSettings.option = self.ootSceneID
+        else:
+            raise Exception(f'Invalid OOT scene search operator name: "{self.opName}"')
+
         bpy.context.region.tag_redraw()
         self.report({"INFO"}, "Selected: " + self.ootSceneID)
         return {"FINISHED"}
@@ -178,22 +190,24 @@ class OOTObjectProperty(bpy.types.PropertyGroup):
 
 
 def drawObjectProperty(layout, objectProp, headerIndex, index, objName):
-    objItemBox = layout.box()
+    objItemBox = layout.column()
     objectName = getEnumName(ootEnumObjectID, objectProp.objectID)
-    objItemBox.prop(
-        objectProp, "expandTab", text=objectName, icon="TRIA_DOWN" if objectProp.expandTab else "TRIA_RIGHT"
-    )
-    if objectProp.expandTab:
-        drawCollectionOps(objItemBox, index, "Object", headerIndex, objName)
-
-        objSearch = objItemBox.operator(OOT_SearchObjectEnumOperator.bl_idname, icon="VIEWZOOM")
-        objSearch.objName = objName
-        objItemBox.column().label(text="ID: " + objectName)
-        # prop_split(objItemBox, objectProp, "objectID", name = "ID")
-        if objectProp.objectID == "Custom":
-            prop_split(objItemBox, objectProp, "objectIDCustom", "Object ID Custom")
-        objSearch.headerIndex = headerIndex if headerIndex is not None else 0
-        objSearch.index = index
+    # objItemBox.prop(
+    #    objectProp, "expandTab", text=objectName, icon="TRIA_DOWN" if objectProp.expandTab else "TRIA_RIGHT"
+    # )
+    # if objectProp.expandTab:
+    row = objItemBox.row()
+    row.label(text=f"{objectName}")
+    buttons = row.row(align=True)
+    objSearch = buttons.operator(OOT_SearchObjectEnumOperator.bl_idname, icon="VIEWZOOM", text="Select")
+    drawCollectionOps(buttons, index, "Object", headerIndex, objName, compact=True)
+    objSearch.objName = objName
+    objSearch.headerIndex = headerIndex if headerIndex is not None else 0
+    objSearch.index = index
+    # objItemBox.column().label(text="ID: " + objectName)
+    # prop_split(objItemBox, objectProp, "objectID", name = "ID")
+    if objectProp.objectID == "Custom":
+        prop_split(objItemBox, objectProp, "objectIDCustom", "Object ID Custom")
 
 
 class OOTLightProperty(bpy.types.PropertyGroup):
@@ -302,7 +316,8 @@ def drawLightProperty(layout, lightProp, name, showExpandTab, index, sceneHeader
 
 
 class OOTSceneTableEntryProperty(bpy.types.PropertyGroup):
-    drawConfig: bpy.props.IntProperty(name="Scene Draw Config", min=0)
+    drawConfig: bpy.props.EnumProperty(items=ootEnumDrawConfig, name="Scene Draw Config", default="SDC_DEFAULT")
+    drawConfigCustom: bpy.props.StringProperty(name="Scene Draw Config Custom")
     hasTitle: bpy.props.BoolProperty(default=True)
 
 
@@ -310,11 +325,62 @@ class OOTExtraCutsceneProperty(bpy.types.PropertyGroup):
     csObject: bpy.props.PointerProperty(name="Cutscene Object", type=bpy.types.Object)
 
 
+def onMenuTabChange(self, context: bpy.types.Context):
+    def callback(thisHeader, otherObj: bpy.types.Object):
+        if otherObj.ootEmptyType == "Scene":
+            header = otherObj.ootSceneHeader
+        else:
+            header = otherObj.ootRoomHeader
+
+        if thisHeader.menuTab != "Alternate" and header.menuTab == "Alternate":
+            header.menuTab = "General"
+        if thisHeader.menuTab == "Alternate" and header.menuTab != "Alternate":
+            header.menuTab = "Alternate"
+
+    onHeaderPropertyChange(self, context, callback)
+
+
+def onHeaderMenuTabChange(self, context: bpy.types.Context):
+    def callback(thisHeader, otherObj: bpy.types.Object):
+        if otherObj.ootEmptyType == "Scene":
+            header = otherObj.ootAlternateSceneHeaders
+        else:
+            header = otherObj.ootAlternateRoomHeaders
+
+        header.headerMenuTab = thisHeader.headerMenuTab
+        header.currentCutsceneIndex = thisHeader.currentCutsceneIndex
+
+    onHeaderPropertyChange(self, context, callback)
+
+
+def onHeaderPropertyChange(self, context: bpy.types.Context, callback: Callable[[any, bpy.types.Object], None]):
+    if not bpy.context.scene.fast64.oot.headerTabAffectsVisibility or bpy.context.scene.ootActiveHeaderLock:
+        return
+    bpy.context.scene.ootActiveHeaderLock = True
+
+    thisHeader = self
+    thisObj = context.object
+    otherObjs = [
+        obj
+        for obj in bpy.data.objects
+        if (obj.ootEmptyType == "Scene" or obj.ootEmptyType == "Room") and obj != thisObj
+    ]
+
+    for otherObj in otherObjs:
+        callback(thisHeader, otherObj)
+
+    setAllActorsVisibility(self, context)
+
+    bpy.context.scene.ootActiveHeaderLock = False
+
+
 class OOTSceneHeaderProperty(bpy.types.PropertyGroup):
     expandTab: bpy.props.BoolProperty(name="Expand Tab")
     usePreviousHeader: bpy.props.BoolProperty(name="Use Previous Header", default=True)
 
-    globalObject: bpy.props.EnumProperty(name="Global Object", default="0x0002", items=ootEnumGlobalObject)
+    globalObject: bpy.props.EnumProperty(
+        name="Global Object", default="OBJECT_GAMEPLAY_DANGEON_KEEP", items=ootEnumGlobalObject
+    )
     globalObjectCustom: bpy.props.StringProperty(name="Global Object Custom", default="0x00")
     naviCup: bpy.props.EnumProperty(name="Navi Hints", default="0x00", items=ootEnumNaviHints)
     naviCupCustom: bpy.props.StringProperty(name="Navi Hints Custom", default="0x00")
@@ -324,7 +390,7 @@ class OOTSceneHeaderProperty(bpy.types.PropertyGroup):
     skyboxCloudiness: bpy.props.EnumProperty(name="Cloudiness", items=ootEnumCloudiness, default="0x00")
     skyboxCloudinessCustom: bpy.props.StringProperty(name="Cloudiness ID", default="0x00")
     skyboxLighting: bpy.props.EnumProperty(
-        name="Skybox Lighting", items=ootEnumSkyboxLighting, default="0x00", update=onUpdateOoTLighting
+        name="Skybox Lighting", items=ootEnumSkyboxLighting, default="false", update=onUpdateOoTLighting
     )
     skyboxLightingCustom: bpy.props.StringProperty(
         name="Skybox Lighting Custom", default="0x00", update=onUpdateOoTLighting
@@ -367,12 +433,18 @@ class OOTSceneHeaderProperty(bpy.types.PropertyGroup):
 
     sceneTableEntry: bpy.props.PointerProperty(type=OOTSceneTableEntryProperty)
 
-    menuTab: bpy.props.EnumProperty(name="Menu", items=ootEnumSceneMenu)
+    menuTab: bpy.props.EnumProperty(name="Menu", items=ootEnumSceneMenu, update=onMenuTabChange)
     altMenuTab: bpy.props.EnumProperty(name="Menu", items=ootEnumSceneMenuAlternate)
+
+    appendNullEntrance: bpy.props.BoolProperty(
+        name="Append Null Entrance",
+        description="Add an additional {0, 0} to the end of the EntranceEntry list.",
+        default=False,
+    )
 
 
 def drawSceneTableEntryProperty(layout, sceneTableEntryProp):
-    prop_split(layout, sceneTableEntryProp, "drawConfig", "Draw Config")
+    drawEnumWithCustom(layout, sceneTableEntryProp, "drawConfig", "Draw Config", "")
 
 
 def drawSceneHeaderProperty(layout, sceneProp, dropdownLabel, headerIndex, objName):
@@ -400,10 +472,11 @@ def drawSceneHeaderProperty(layout, sceneProp, dropdownLabel, headerIndex, objNa
     if menuTab == "General":
         general = layout.column()
         general.box().label(text="General")
-        if headerIndex is None or headerIndex == 0:
-            drawSceneTableEntryProperty(layout, sceneProp.sceneTableEntry)
         drawEnumWithCustom(general, sceneProp, "globalObject", "Global Object", "")
         drawEnumWithCustom(general, sceneProp, "naviCup", "Navi Hints", "")
+        if headerIndex is None or headerIndex == 0:
+            drawSceneTableEntryProperty(general, sceneProp.sceneTableEntry)
+        general.prop(sceneProp, "appendNullEntrance")
 
         skyboxAndSound = layout.column()
         skyboxAndSound.box().label(text="Skybox And Sound")
@@ -425,7 +498,7 @@ def drawSceneHeaderProperty(layout, sceneProp, dropdownLabel, headerIndex, objNa
         lighting = layout.column()
         lighting.box().label(text="Lighting List")
         drawEnumWithCustom(lighting, sceneProp, "skyboxLighting", "Lighting Mode", "")
-        if sceneProp.skyboxLighting == "0x00":  # Time of Day
+        if sceneProp.skyboxLighting == "false":  # Time of Day
             drawLightGroupProperty(lighting, sceneProp.timeOfDayLights)
         else:
             for i in range(len(sceneProp.lightList)):
@@ -469,20 +542,34 @@ def drawSceneHeaderProperty(layout, sceneProp, dropdownLabel, headerIndex, objNa
                 drawAddButton(cutscene, 0, "extraCutscenes", 0, objName)
 
     elif menuTab == "Exits":
-        if headerIndex is None or headerIndex == 0:
-            exitBox = layout.column()
-            exitBox.box().label(text="Exit List")
-            for i in range(len(sceneProp.exitList)):
-                drawExitProperty(exitBox, sceneProp.exitList[i], i, headerIndex, objName)
+        exitBox = layout.column()
+        exitBox.box().label(text="Exit List")
+        for i in range(len(sceneProp.exitList)):
+            drawExitProperty(exitBox, sceneProp.exitList[i], i, headerIndex, objName)
 
-            drawAddButton(exitBox, len(sceneProp.exitList), "Exit", headerIndex, objName)
-        else:
-            layout.label(text="Exits are edited in main header.")
+        drawAddButton(exitBox, len(sceneProp.exitList), "Exit", headerIndex, objName)
+
+
+class OOTBGProperty(bpy.types.PropertyGroup):
+    image: bpy.props.PointerProperty(type=bpy.types.Image)
+    # camera: bpy.props.IntProperty(name="Camera Index", min=0)
+    otherModeFlags: bpy.props.StringProperty(
+        name="DPSetOtherMode Flags", default="0x0000", description="See src/code/z_room.c:func_8009638C()"
+    )
+
+    def draw(self, layout: bpy.types.UILayout, index: int, objName: str, isMulti: bool):
+        box = layout.box().column()
+
+        box.template_ID(self, "image", new="image.new", open="image.open")
+        # if isMulti:
+        #    prop_split(box, self, "camera", "Camera")
+        prop_split(box, self, "otherModeFlags", "Other Mode Flags")
+        drawCollectionOps(box, index, "BgImage", None, objName)
 
 
 class OOTRoomHeaderProperty(bpy.types.PropertyGroup):
     expandTab: bpy.props.BoolProperty(name="Expand Tab")
-    menuTab: bpy.props.EnumProperty(items=ootEnumRoomMenu)
+    menuTab: bpy.props.EnumProperty(items=ootEnumRoomMenu, update=onMenuTabChange)
     altMenuTab: bpy.props.EnumProperty(items=ootEnumRoomMenuAlternate)
     usePreviousHeader: bpy.props.BoolProperty(name="Use Previous Header", default=True)
 
@@ -507,7 +594,8 @@ class OOTRoomHeaderProperty(bpy.types.PropertyGroup):
     customBehaviourY: bpy.props.StringProperty(name="Custom Behaviour Y", default="0x00")
 
     setWind: bpy.props.BoolProperty(name="Set Wind")
-    windVector: bpy.props.FloatVectorProperty(name="Wind Vector", size=3)
+    windVector: bpy.props.IntVectorProperty(name="Wind Vector", size=3, min=-127, max=127)
+    windStrength: bpy.props.IntProperty(name="Wind Strength", min=0, max=255)
 
     leaveTimeUnchanged: bpy.props.BoolProperty(name="Leave Time Unchanged", default=True)
     timeHours: bpy.props.IntProperty(name="Hours", default=0, min=0, max=23)  # 0xFFFE
@@ -523,6 +611,25 @@ class OOTRoomHeaderProperty(bpy.types.PropertyGroup):
 
     roomShape: bpy.props.EnumProperty(items=ootEnumRoomShapeType, default="ROOM_SHAPE_TYPE_NORMAL")
     defaultCullDistance: bpy.props.IntProperty(name="Default Cull Distance", min=1, default=100)
+    bgImageList: bpy.props.CollectionProperty(type=OOTBGProperty)
+    bgImageTab: bpy.props.BoolProperty(name="BG Images")
+
+
+def drawBGImageList(layout: bpy.types.UILayout, roomHeader: OOTRoomHeaderProperty, objName: str):
+    box = layout.column()
+    box.label(text="BG images do not work currently.", icon="ERROR")
+    box.prop(roomHeader, "bgImageTab", text="BG Images", icon="TRIA_DOWN" if roomHeader.bgImageTab else "TRIA_RIGHT")
+    if roomHeader.bgImageTab:
+        box.label(text="Only one room allowed per scene.", icon="INFO")
+        box.label(text="Must be framebuffer sized (320x240).", icon="INFO")
+        box.label(text="Must be jpg file with file marker.", icon="INFO")
+        box.label(text="Ex. MsPaint compatible, Photoshop not.")
+        box.label(text="Can't use files generated in Blender.")
+        imageCount = len(roomHeader.bgImageList)
+        for i in range(imageCount):
+            roomHeader.bgImageList[i].draw(box, i, objName, imageCount > 1)
+
+        drawAddButton(box, len(roomHeader.bgImageList), "BgImage", None, objName)
 
 
 def drawRoomHeaderProperty(layout, roomProp, dropdownLabel, headerIndex, objName):
@@ -551,23 +658,17 @@ def drawRoomHeaderProperty(layout, roomProp, dropdownLabel, headerIndex, objName
             general = layout.column()
             general.box().label(text="General")
             prop_split(general, roomProp, "roomIndex", "Room Index")
-            prop_split(general, roomProp, "roomShape", "Mesh Type")
+            prop_split(general, roomProp, "roomShape", "Room Shape")
             if roomProp.roomShape == "ROOM_SHAPE_TYPE_IMAGE":
-                general.box().label(text="Image Room Shape not supported at this time.")
+                drawBGImageList(general, roomProp, objName)
             if roomProp.roomShape == "ROOM_SHAPE_TYPE_CULLABLE":
+                general.label(text="Cull regions are generated automatically.", icon="INFO")
                 prop_split(general, roomProp, "defaultCullDistance", "Default Cull (Blender Units)")
-
         # Behaviour
         behaviourBox = layout.column()
         behaviourBox.box().label(text="Behaviour")
         drawEnumWithCustom(behaviourBox, roomProp, "roomBehaviour", "Room Behaviour", "")
-
-        behaviourBox.prop(roomProp, "roomIsHot")
-        if not roomProp.roomIsHot:
-            drawEnumWithCustom(behaviourBox, roomProp, "linkIdleMode", "Link Idle Mode", "")
-        else:
-            behaviourBox.label(text="Link Idle Mode: Hot Room")
-
+        drawEnumWithCustom(behaviourBox, roomProp, "linkIdleMode", "Link Idle Mode", "")
         behaviourBox.prop(roomProp, "disableWarpSongs", text="Disable Warp Songs")
         behaviourBox.prop(roomProp, "showInvisibleActors", text="Show Invisible Actors")
 
@@ -595,7 +696,9 @@ def drawRoomHeaderProperty(layout, roomProp, dropdownLabel, headerIndex, objName
         windBox.box().label(text="Wind")
         windBox.prop(roomProp, "setWind", text="Set Wind")
         if roomProp.setWind:
-            windBox.row().prop(roomProp, "windVector", text="")
+            windBoxRow = windBox.row()
+            windBoxRow.prop(roomProp, "windVector", text="")
+            windBox.prop(roomProp, "windStrength", text="Strength")
             # prop_split(windBox, roomProp, "windVector", "Wind Vector")
 
     elif menuTab == "Objects":
@@ -612,8 +715,8 @@ class OOTAlternateSceneHeaderProperty(bpy.types.PropertyGroup):
     adultNightHeader: bpy.props.PointerProperty(name="Adult Night Header", type=OOTSceneHeaderProperty)
     cutsceneHeaders: bpy.props.CollectionProperty(type=OOTSceneHeaderProperty)
 
-    headerMenuTab: bpy.props.EnumProperty(name="Header Menu", items=ootEnumHeaderMenu)
-    currentCutsceneIndex: bpy.props.IntProperty(min=4, default=4)
+    headerMenuTab: bpy.props.EnumProperty(name="Header Menu", items=ootEnumHeaderMenu, update=onHeaderMenuTabChange)
+    currentCutsceneIndex: bpy.props.IntProperty(min=4, default=4, update=onHeaderMenuTabChange)
 
 
 def drawAlternateSceneHeaderProperty(layout, headerProp, objName):
@@ -644,8 +747,8 @@ class OOTAlternateRoomHeaderProperty(bpy.types.PropertyGroup):
     adultNightHeader: bpy.props.PointerProperty(name="Adult Night Header", type=OOTRoomHeaderProperty)
     cutsceneHeaders: bpy.props.CollectionProperty(type=OOTRoomHeaderProperty)
 
-    headerMenuTab: bpy.props.EnumProperty(name="Header Menu", items=ootEnumHeaderMenu)
-    currentCutsceneIndex: bpy.props.IntProperty(min=4, default=4)
+    headerMenuTab: bpy.props.EnumProperty(name="Header Menu", items=ootEnumHeaderMenu, update=onHeaderMenuTabChange)
+    currentCutsceneIndex: bpy.props.IntProperty(min=4, default=4, update=onHeaderMenuTabChange)
 
 
 def drawParentSceneRoom(box, obj):

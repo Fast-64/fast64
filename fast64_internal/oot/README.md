@@ -92,7 +92,7 @@ For Link, the eyes/mouth materials use flipbook textures. For Link animations yo
 ### Custom Link Process
 1. In the OOT Skeleton Exporter window, go to the Import Skeleton section, select "Mode" and switch it to "Adult Link."
 2. Click "Import Skeleton" to import the skeleton from your decomp repo set up in the the "Getting Started" intro.
-3. Replace/modify the mesh.
+3. Replace/modify the mesh. When applying weights, make sure there is geometry weighted to every bone that is set to "deformable". Otherwise Link's skeleton may break in game, due to the way Link's actor handles some of its drawing code.
 4. For any new materials, make sure to go to material properties -> OOT Dynamic Material Properties -> enable segment C. This handles rendering for Link's reflection.
 5. To add your own eye/mouth materials, create a new F3D material, then go to material properties -> F3D Material Inspector -> Sources -> Texture 0 Properties:
     - Set "Use Texture Reference".
@@ -107,6 +107,9 @@ For Link, the eyes/mouth materials use flipbook textures. For Link animations yo
 11. Common Issues:
     - Corrupted mesh: Make sure the root, upper control, and lower control bones are the only bones set to non-deform.
     - Incorrect waist DL: Go to src/code/z_player_lib.c and modify sPlayerWaistDLs to include your own waist DL.
+    
+Note on Link's bone-weighting requirements in depth:
+Heavy modifications of Links model can cause his matrices array to shift from what many display lists in the game expect. Changing the amount of display lists Link's skeleton has can cause some references to matrices in segment 0xD to break, and those display lists must be updated to reflect your changes.
 
 ### Custom Skeleton Mesh Process
 1. Import the character you want to modify.
