@@ -1986,8 +1986,9 @@ class Vtx:
 
     def to_c(self):
         def spc(x):
-            return ", ".join([str(a) for a in x])
-        return f"{{{{ {{{spc(self.position)}}}, 0, {{{spc(self.uv)}}}, {{{spc(self.colorOrNormal)}}} }}}}"
+            return "{" + ", ".join([str(a) for a in x]) + "}"
+
+        return "{{ " + f"{spc(self.position)}, 0, {spc(self.uv)}, {spc(self.colorOrNormal)}" + " }}"
 
 
 class VtxList:
@@ -2051,6 +2052,7 @@ class GfxList:
     def size_total(self, f3d):
         def use_siz_tot(command):
             return isinstance(command, SPDisplayList) and command.displayList.DLFormat != DLFormat.Static
+
         return sum(
             [
                 command.displayList.size_total(f3d) if use_siz_tot(command) else command.size(f3d)
@@ -3022,6 +3024,7 @@ class LookAt:
         # {{}} => light, light_t
         def spc(x):
             return ", ".join(str(c) for c in x)
+
         return (
             f"LookAt {self.name} = {{{{"
             + "{{{"
