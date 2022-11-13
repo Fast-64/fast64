@@ -21,22 +21,6 @@ from .oot_scene_room import (
 )
 
 
-def headerSettingsToIndices(headerSettings):  # unused?
-    headers = set()
-    if headerSettings.childDayHeader:
-        headers.add(0)
-    if headerSettings.childNightHeader:
-        headers.add(1)
-    if headerSettings.adultDayHeader:
-        headers.add(2)
-    if headerSettings.adultNightHeader:
-        headers.add(3)
-    for cutsceneHeader in headerSettings.cutsceneHeaders:
-        headers.add(cutsceneHeader.headerIndex)
-
-    return headers
-
-
 def drawSceneHeader(box: bpy.types.UILayout, obj: bpy.types.Object):
     objName = obj.name
     drawSceneHeaderProperty(box, obj.ootSceneHeader, None, None, objName)
