@@ -763,6 +763,12 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
     if obj.data is None:
         if obj.ootEmptyType == "Actor":
             actorProp = obj.ootActorProperty
+
+            # The Actor list is filled with ``("None", f"{i} (Deleted from the XML)", "None")`` for
+            # the total number of actors defined in the XML. If the user deletes one, this will prevent
+            # any data loss as Blender saves the index of the element in the Actor list used for the EnumProperty
+            # and not the identifier as defined by the first element of the tuple. Therefore, we need to check if
+            # the current Actor has the ID `None` to avoid export issues.
             if actorProp.actorID != "None":
                 addActor(
                     room,
