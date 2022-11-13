@@ -3,7 +3,7 @@ from bpy.utils import register_class, unregister_class
 from ..utility import prop_split, gammaInverse
 from .collision.panel.properties import OOTWaterBoxProperty
 from .oot_collision import drawWaterBoxProperty
-from .oot_constants import ootEnumEmptyType, ootEnumSceneID
+from .oot_constants import ootEnumEmptyType
 from .oot_utility import getSceneObj, getRoomObj
 from .oot_cutscene import drawCutsceneProperty
 
@@ -19,46 +19,14 @@ from .oot_actor import (
     drawEntranceProperty,
 )
 
-from .scene.panel.properties import (
-    OOTSceneHeaderProperty,
-    OOTAlternateSceneHeaderProperty,
-    OOTSceneProperties,
-    OOT_SearchMusicSeqEnumOperator,
-    OOT_SearchSceneEnumOperator,
-    OOTLightProperty,
-    OOTLightGroupProperty,
-    OOTExitProperty,
-    OOTSceneTableEntryProperty,
-    OOTExtraCutsceneProperty,
-)
+from .scene.panel.properties import OOTSceneProperties
 
-from .room.panel.properties import (
-    OOTRoomHeaderProperty,
-    OOTAlternateRoomHeaderProperty,
-    OOT_SearchObjectEnumOperator,
-    OOTObjectProperty,
-    OOTBGProperty,
-)
 
 from .oot_scene_room import (
     drawSceneHeaderProperty,
     drawAlternateSceneHeaderProperty,
     drawRoomHeaderProperty,
     drawAlternateRoomHeaderProperty,
-)
-
-from .cutscene.panel.properties import (
-    OOTCutsceneProperty,
-    OOTCSTextboxProperty,
-    OOTCSLightingProperty,
-    OOTCSTimeProperty,
-    OOTCSBGMProperty,
-    OOTCSMiscProperty,
-    OOTCS0x09Property,
-    OOTCSUnkProperty,
-    OOTCSListProperty,
-    OOTCSTextboxAdd,
-    OOTCSListAdd,
 )
 
 
@@ -203,71 +171,6 @@ class OOT_ObjectProperties(bpy.types.PropertyGroup):
     scene: bpy.props.PointerProperty(type=OOTSceneProperties)
 
 
-class OOTRemoveSceneSettingsProperty(bpy.types.PropertyGroup):
-    name: bpy.props.StringProperty(name="Name", default="spot03")
-    subFolder: bpy.props.StringProperty(name="Subfolder", default="overworld")
-    customExport: bpy.props.BoolProperty(name="Custom Export Path")
-    option: bpy.props.EnumProperty(items=ootEnumSceneID, default="SCENE_YDAN")
-
-
-class OOTExportSceneSettingsProperty(bpy.types.PropertyGroup):
-    name: bpy.props.StringProperty(name="Name", default="spot03")
-    subFolder: bpy.props.StringProperty(name="Subfolder", default="overworld")
-    exportPath: bpy.props.StringProperty(name="Directory", subtype="FILE_PATH")
-    customExport: bpy.props.BoolProperty(name="Custom Export Path")
-    singleFile: bpy.props.BoolProperty(
-        name="Export as Single File",
-        default=False,
-        description="Does not split the scene and rooms into multiple files.",
-    )
-    option: bpy.props.EnumProperty(items=ootEnumSceneID, default="SCENE_YDAN")
-
-
-class OOTImportSceneSettingsProperty(bpy.types.PropertyGroup):
-    name: bpy.props.StringProperty(name="Name", default="spot03")
-    subFolder: bpy.props.StringProperty(name="Subfolder", default="overworld")
-    destPath: bpy.props.StringProperty(name="Directory", subtype="FILE_PATH")
-    isCustomDest: bpy.props.BoolProperty(name="Custom Path")
-    includeMesh: bpy.props.BoolProperty(name="Mesh", default=True)
-    includeCollision: bpy.props.BoolProperty(name="Collision", default=True)
-    includeActors: bpy.props.BoolProperty(name="Actors", default=True)
-    includeCullGroups: bpy.props.BoolProperty(name="Cull Groups", default=True)
-    includeLights: bpy.props.BoolProperty(name="Lights", default=True)
-    includeCameras: bpy.props.BoolProperty(name="Cameras", default=True)
-    includePaths: bpy.props.BoolProperty(name="Paths", default=True)
-    includeWaterBoxes: bpy.props.BoolProperty(name="Water Boxes", default=True)
-    option: bpy.props.EnumProperty(items=ootEnumSceneID, default="SCENE_YDAN")
-
-    def draw(self, layout: bpy.types.UILayout, sceneOption: str):
-        col = layout.column()
-        includeButtons1 = col.row(align=True)
-        includeButtons1.prop(self, "includeMesh", toggle=1)
-        includeButtons1.prop(self, "includeCollision", toggle=1)
-
-        includeButtons2 = col.row(align=True)
-        includeButtons2.prop(self, "includeActors", toggle=1)
-        includeButtons2.prop(self, "includeCullGroups", toggle=1)
-        includeButtons2.prop(self, "includeLights", toggle=1)
-
-        includeButtons3 = col.row(align=True)
-        includeButtons3.prop(self, "includeCameras", toggle=1)
-        includeButtons3.prop(self, "includePaths", toggle=1)
-        includeButtons3.prop(self, "includeWaterBoxes", toggle=1)
-        col.prop(self, "isCustomDest")
-        if self.isCustomDest:
-            prop_split(col, self, "destPath", "Directory")
-            prop_split(col, self, "name", "Name")
-        else:
-            if self.option == "Custom":
-                prop_split(col, self, "subFolder", "Subfolder")
-                prop_split(col, self, "name", "Name")
-
-        col.label(text="Cutscenes won't be imported.")
-
-        if "SCENE_BDAN" in sceneOption:
-            col.label(text="Pulsing wall effect won't be imported.", icon="ERROR")
-
-
 class OOTCullGroupProperty(bpy.types.PropertyGroup):
     sizeControlsCull: bpy.props.BoolProperty(default=True, name="Empty Size Controls Cull Depth")
     manualRadius: bpy.props.IntProperty(min=0)
@@ -286,40 +189,14 @@ class OOTCullGroupProperty(bpy.types.PropertyGroup):
 oot_obj_classes = (
     OOTSceneProperties,
     OOT_ObjectProperties,
+
     OOT_SearchActorIDEnumOperator,
-    OOT_SearchMusicSeqEnumOperator,
-    OOT_SearchObjectEnumOperator,
-    OOT_SearchSceneEnumOperator,
-    OOTLightProperty,
-    OOTLightGroupProperty,
-    OOTObjectProperty,
-    OOTExitProperty,
-    OOTSceneTableEntryProperty,
-    OOTCSTextboxProperty,
-    OOTCSTextboxAdd,
-    OOTCSLightingProperty,
-    OOTCSTimeProperty,
-    OOTCSBGMProperty,
-    OOTCSMiscProperty,
-    OOTCS0x09Property,
-    OOTCSUnkProperty,
-    OOTCSListProperty,
-    OOTCSListAdd,
-    OOTCutsceneProperty,
-    OOTExtraCutsceneProperty,
     OOTActorHeaderItemProperty,
     OOTActorHeaderProperty,
     OOTActorProperty,
     OOTTransitionActorProperty,
     OOTEntranceProperty,
-    OOTSceneHeaderProperty,
-    OOTAlternateSceneHeaderProperty,
-    OOTBGProperty,
-    OOTRoomHeaderProperty,
-    OOTAlternateRoomHeaderProperty,
-    OOTImportSceneSettingsProperty,
-    OOTExportSceneSettingsProperty,
-    OOTRemoveSceneSettingsProperty,
+
     OOTCullGroupProperty,
 )
 
@@ -348,29 +225,18 @@ def oot_obj_register():
         name="OOT Object Type", items=ootEnumEmptyType, default="None", update=onUpdateOOTEmptyType
     )
 
-    bpy.types.Scene.ootSceneExportSettings = bpy.props.PointerProperty(type=OOTExportSceneSettingsProperty)
-    bpy.types.Scene.ootSceneImportSettings = bpy.props.PointerProperty(type=OOTImportSceneSettingsProperty)
-    bpy.types.Scene.ootSceneRemoveSettings = bpy.props.PointerProperty(type=OOTRemoveSceneSettingsProperty)
     bpy.types.Scene.ootSceneExportObj = bpy.props.PointerProperty(type=bpy.types.Object, poll=isSceneObj)
     bpy.types.Scene.ootActiveHeaderLock = bpy.props.BoolProperty(default=False)
 
     bpy.types.Object.ootActorProperty = bpy.props.PointerProperty(type=OOTActorProperty)
     bpy.types.Object.ootTransitionActorProperty = bpy.props.PointerProperty(type=OOTTransitionActorProperty)
     bpy.types.Object.ootWaterBoxProperty = bpy.props.PointerProperty(type=OOTWaterBoxProperty)
-    bpy.types.Object.ootRoomHeader = bpy.props.PointerProperty(type=OOTRoomHeaderProperty)
-    bpy.types.Object.ootSceneHeader = bpy.props.PointerProperty(type=OOTSceneHeaderProperty)
-    bpy.types.Object.ootAlternateSceneHeaders = bpy.props.PointerProperty(type=OOTAlternateSceneHeaderProperty)
-    bpy.types.Object.ootAlternateRoomHeaders = bpy.props.PointerProperty(type=OOTAlternateRoomHeaderProperty)
     bpy.types.Object.ootEntranceProperty = bpy.props.PointerProperty(type=OOTEntranceProperty)
-    bpy.types.Object.ootCutsceneProperty = bpy.props.PointerProperty(type=OOTCutsceneProperty)
+
     bpy.types.Object.ootCullGroupProperty = bpy.props.PointerProperty(type=OOTCullGroupProperty)
 
 
 def oot_obj_unregister():
-
-    del bpy.types.Scene.ootSceneExportSettings
-    del bpy.types.Scene.ootSceneImportSettings
-    del bpy.types.Scene.ootSceneRemoveSettings
     del bpy.types.Scene.ootSceneExportObj
     del bpy.types.Scene.ootActiveHeaderLock
 
@@ -379,12 +245,7 @@ def oot_obj_unregister():
     del bpy.types.Object.ootActorProperty
     del bpy.types.Object.ootTransitionActorProperty
     del bpy.types.Object.ootWaterBoxProperty
-    del bpy.types.Object.ootRoomHeader
-    del bpy.types.Object.ootSceneHeader
-    del bpy.types.Object.ootAlternateSceneHeaders
-    del bpy.types.Object.ootAlternateRoomHeaders
     del bpy.types.Object.ootEntranceProperty
-    del bpy.types.Object.ootCutsceneProperty
 
     for cls in reversed(oot_obj_classes):
         unregister_class(cls)

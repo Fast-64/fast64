@@ -8,6 +8,10 @@ from .other.panel.viewport.file_settings import file_register, file_unregister
 from .oot_anim import OOTAnimExportSettingsProperty, OOTAnimImportSettingsProperty
 from .c_writer import OOTBootupSceneOptions
 
+from .scene.panel.properties import scene_props_classes_register, scene_props_classes_unregister
+from .cutscene.panel.properties import cutscene_props_classes_register, cutscene_props_classes_unregister
+from .room.panel.properties import room_props_classes_register, room_props_classes_unregister
+
 from .oot_f3d_writer import (
     oot_dl_writer_panel_register,
     oot_dl_writer_panel_unregister,
@@ -152,8 +156,11 @@ def oot_register(registerPanels):
     oot_utility_register()
     collision_viewport_classes_register()  # register first, so panel goes above mat panel
     collision_props_classes_register()
-    oot_obj_register()
     oot_level_register()
+    cutscene_props_classes_register()
+    scene_props_classes_register()
+    room_props_classes_register()
+    oot_obj_register()
     spline_props_classes_register()
     oot_dl_writer_register()
     anim_viewport_classes_register()
@@ -181,6 +188,9 @@ def oot_unregister(unregisterPanels):
     collision_props_classes_unregister()
     oot_obj_unregister()
     oot_level_unregister()
+    cutscene_props_classes_unregister()
+    scene_props_classes_unregister()
+    room_props_classes_unregister()
     spline_props_classes_unregister()
     oot_dl_writer_unregister()
     anim_viewport_classes_unregister()

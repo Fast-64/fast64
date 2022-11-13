@@ -1,5 +1,6 @@
-from bpy.types import PropertyGroup, Operator
-from bpy.props import StringProperty, EnumProperty, IntProperty, BoolProperty, CollectionProperty
+from bpy.types import PropertyGroup, Operator, Object
+from bpy.props import StringProperty, EnumProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
+from bpy.utils import register_class, unregister_class
 from ....utility import PluginError, prop_split
 from ...oot_constants import ootEnumCSTextboxType, ootEnumCSListType, ootEnumCSTransitionType
 from ...oot_utility import drawCollectionOps, getCollection
@@ -204,3 +205,33 @@ class OOTCutsceneProperty(PropertyGroup):
     csTermStart: IntProperty(name="Start Frm", min=0, default=99)
     csTermEnd: IntProperty(name="End Frm", min=0, default=100)
     csLists: CollectionProperty(type=OOTCSListProperty, name="Cutscene Lists")
+
+
+classes = (
+    OOTCSTextboxAdd,
+    OOTCSListAdd,
+
+    OOTCSTextboxProperty,
+    OOTCSLightingProperty,
+    OOTCSTimeProperty,
+    OOTCSBGMProperty,
+    OOTCSMiscProperty,
+    OOTCS0x09Property,
+    OOTCSUnkProperty,
+    OOTCSListProperty,
+    OOTCutsceneProperty,
+)
+
+
+def cutscene_props_classes_register():
+    for cls in classes:
+        register_class(cls)
+
+    Object.ootCutsceneProperty = PointerProperty(type=OOTCutsceneProperty)
+
+
+def cutscene_props_classes_unregister():
+    del Object.ootCutsceneProperty
+
+    for cls in reversed(classes):
+        unregister_class(cls)

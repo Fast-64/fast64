@@ -9,3 +9,4 @@ from .classes import (
     OOTSceneTableEntryProperty,
     OOTExtraCutsceneProperty,
 )
+from .panel import scene_props_classes_register, scene_props_classes_unregister

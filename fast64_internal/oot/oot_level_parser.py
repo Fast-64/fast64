@@ -2,7 +2,7 @@ import math, os, re, bpy, mathutils
 from random import random
 
 from .oot_f3d_writer import getColliderMat
-from .oot_level import OOTImportSceneSettingsProperty
+from .scene.panel.viewport import OOTImportSceneSettingsProperty
 from .scene.panel.properties import OOTSceneHeaderProperty, OOTLightProperty
 from .room.panel.properties import OOTRoomHeaderProperty
 from .oot_actor import OOTActorProperty

@@ -1,5 +1,6 @@
 import bpy
-from bpy.types import PropertyGroup, Operator, UILayout, Image
+from bpy.types import PropertyGroup, Operator, UILayout, Image, Object
+from bpy.utils import register_class, unregister_class
 from bpy.props import EnumProperty, IntProperty, StringProperty, FloatProperty, CollectionProperty, PointerProperty, BoolProperty, IntVectorProperty
 from ....utility import ootGetSceneOrRoomHeader, prop_split
 from ...oot_utility import drawCollectionOps, onMenuTabChange, onHeaderMenuTabChange
@@ -116,3 +117,30 @@ class OOTAlternateRoomHeaderProperty(PropertyGroup):
 
     headerMenuTab: EnumProperty(name="Header Menu", items=ootEnumHeaderMenu, update=onHeaderMenuTabChange)
     currentCutsceneIndex: IntProperty(min=4, default=4, update=onHeaderMenuTabChange)
+
+
+classes = (
+    OOT_SearchObjectEnumOperator,
+
+    OOTObjectProperty,
+    OOTBGProperty,
+    OOTRoomHeaderProperty,
+    OOTAlternateRoomHeaderProperty,
+)
+
+
+def room_props_classes_register():
+    for cls in classes:
+        register_class(cls)
+
+    Object.ootRoomHeader = PointerProperty(type=OOTRoomHeaderProperty)
+    Object.ootAlternateRoomHeaders = PointerProperty(type=OOTAlternateRoomHeaderProperty)
+
+
+def room_props_classes_unregister():
+    del bpy.types.Object.ootRoomHeader
+    del bpy.types.Object.ootAlternateRoomHeaders
+
+    for cls in reversed(classes):
+        unregister_class(cls)
+

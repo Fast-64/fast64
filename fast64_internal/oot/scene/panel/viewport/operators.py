@@ -10,8 +10,7 @@ from ....c_writer.oot_scene_folder import deleteSceneFiles
 from .....utility import PluginError, raisePluginError
 from ....oot_utility import ExportInfo, sceneNameFromID
 from ....oot_level_writer import ootExportSceneToC
-from ....oot_level_parser import parseScene
-from ....oot_level import OOTRemoveSceneSettingsProperty
+from .classes import OOTRemoveSceneSettingsProperty
 
 
 def ootRemoveSceneC(exportInfo):
@@ -37,6 +36,8 @@ def run_ops_without_view_layer_update(func):
 
 
 def parseSceneFunc():
+    from ....oot_level_parser import parseScene  # todo: better fix for circular import
+
     context = bpy.context
     settings = context.scene.ootSceneImportSettings
     parseScene(

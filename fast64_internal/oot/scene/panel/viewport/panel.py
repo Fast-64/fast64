@@ -1,11 +1,13 @@
 from bpy.utils import register_class, unregister_class
+from bpy.types import Scene
+from bpy.props import PointerProperty
 from .....utility import customExportWarning, prop_split
 from .....panels import OOT_Panel
 from ....c_writer.oot_scene_bootup import OOT_ClearBootupScene, ootSceneBootupRegister, ootSceneBootupUnregister
 from ....oot_constants import ootEnumSceneID
 from ....oot_utility import getEnumName
-from ....oot_level import OOTExportSceneSettingsProperty, OOTImportSceneSettingsProperty, OOTRemoveSceneSettingsProperty
 from ..properties import OOT_SearchSceneEnumOperator
+from .classes import OOTExportSceneSettingsProperty, OOTImportSceneSettingsProperty, OOTRemoveSceneSettingsProperty
 from .operators import OOT_ImportScene, OOT_ExportScene, OOT_RemoveScene
 
 
@@ -72,6 +74,9 @@ oot_level_classes = (
     OOT_ExportScene,
     OOT_ImportScene,
     OOT_RemoveScene,
+    OOTImportSceneSettingsProperty,
+    OOTExportSceneSettingsProperty,
+    OOTRemoveSceneSettingsProperty,
 )
 
 oot_level_panel_classes = (OOT_ExportScenePanel,)
@@ -93,9 +98,17 @@ def oot_level_register():
 
     ootSceneBootupRegister()
 
+    Scene.ootSceneExportSettings = PointerProperty(type=OOTExportSceneSettingsProperty)
+    Scene.ootSceneImportSettings = PointerProperty(type=OOTImportSceneSettingsProperty)
+    Scene.ootSceneRemoveSettings = PointerProperty(type=OOTRemoveSceneSettingsProperty)
+
 
 def oot_level_unregister():
     for cls in reversed(oot_level_classes):
         unregister_class(cls)
 
     ootSceneBootupUnregister()
+
+    del Scene.ootSceneExportSettings
+    del Scene.ootSceneImportSettings
+    del Scene.ootSceneRemoveSettings
