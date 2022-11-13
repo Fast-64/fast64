@@ -16,7 +16,6 @@ from .classes import (
 classes = (
     OOT_SearchMusicSeqEnumOperator,
     OOT_SearchSceneEnumOperator,
-
     OOTExitProperty,
     OOTLightProperty,
     OOTLightGroupProperty,

@@ -116,6 +116,7 @@ class OOTCSTextboxProperty(OOTCSProperty, PropertyGroup):
         else:
             raise PluginError("Invalid property name for OOTCSTextboxProperty")
 
+
 class OOTCSLightingProperty(OOTCSProperty, PropertyGroup):
     propName = "Lighting"
     attrName = "lighting"
@@ -210,7 +211,6 @@ class OOTCutsceneProperty(PropertyGroup):
 classes = (
     OOTCSTextboxAdd,
     OOTCSListAdd,
-
     OOTCSTextboxProperty,
     OOTCSLightingProperty,
     OOTCSTimeProperty,

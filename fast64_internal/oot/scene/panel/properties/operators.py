@@ -7,6 +7,7 @@ from ....oot_constants import (
     ootEnumSceneID,
 )
 
+
 class OOT_SearchSceneEnumOperator(Operator):
     bl_idname = "object.oot_search_scene_enum_operator"
     bl_label = "Choose Scene"

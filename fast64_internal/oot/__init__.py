@@ -100,6 +100,7 @@ from .spline.panel.properties import (
 
 class OOT_Properties(bpy.types.PropertyGroup):
     """Global OOT Scene Properties found under scene.fast64.oot"""
+
     version: bpy.props.IntProperty(name="OOT_Properties Version", default=0)
     hackerFeaturesEnabled: bpy.props.BoolProperty(name="Enable HackerOOT Features")
     headerTabAffectsVisibility: bpy.props.BoolProperty(
@@ -114,9 +115,7 @@ class OOT_Properties(bpy.types.PropertyGroup):
     animImportSettings: bpy.props.PointerProperty(type=OOTAnimImportSettingsProperty)
 
 
-oot_classes = (
-    OOT_Properties,
-)
+oot_classes = (OOT_Properties,)
 
 
 def oot_panel_register():
@@ -133,7 +132,6 @@ def oot_panel_register():
     skeletonPanelRegister()
     dl_writer_panel_register()
     anim_props_panel_register()
-
 
 
 def oot_panel_unregister():

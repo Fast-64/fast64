@@ -1,7 +1,16 @@
 import bpy
 from bpy.types import PropertyGroup, Operator, UILayout, Image, Object
 from bpy.utils import register_class, unregister_class
-from bpy.props import EnumProperty, IntProperty, StringProperty, FloatProperty, CollectionProperty, PointerProperty, BoolProperty, IntVectorProperty
+from bpy.props import (
+    EnumProperty,
+    IntProperty,
+    StringProperty,
+    FloatProperty,
+    CollectionProperty,
+    PointerProperty,
+    BoolProperty,
+    IntVectorProperty,
+)
 from ....utility import ootGetSceneOrRoomHeader, prop_split
 from ...oot_utility import drawCollectionOps, onMenuTabChange, onHeaderMenuTabChange
 
@@ -14,6 +23,7 @@ from ...oot_constants import (
     ootEnumRoomShapeType,
     ootEnumHeaderMenu,
 )
+
 
 class OOT_SearchObjectEnumOperator(Operator):
     bl_idname = "object.oot_search_object_enum_operator"
@@ -121,7 +131,6 @@ class OOTAlternateRoomHeaderProperty(PropertyGroup):
 
 classes = (
     OOT_SearchObjectEnumOperator,
-
     OOTObjectProperty,
     OOTBGProperty,
     OOTRoomHeaderProperty,

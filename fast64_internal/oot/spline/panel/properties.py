@@ -13,6 +13,7 @@ from ...actor.panel.properties import OOTActorHeaderProperty
 ##############
 ootSplineEnum = [("Path", "Path", "Path"), ("Crawlspace", "Crawlspace", "Crawlspace")]
 
+
 class OOTSplineProperty(PropertyGroup):
     splineType: EnumProperty(items=ootSplineEnum, default="Path")
     index: IntProperty(min=0)  # only used for crawlspace, not path

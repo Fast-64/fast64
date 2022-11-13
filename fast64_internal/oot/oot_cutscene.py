@@ -28,6 +28,7 @@ from .oot_level_classes import (
 # Properties
 ################################################################################
 
+
 def drawCSListProperty(layout, listProp, listIndex, objName, collectionType):
     layout.prop(
         listProp,

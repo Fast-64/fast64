@@ -5,8 +5,6 @@ from ....utility import prop_split
 from ....f3d.flipbook import ootFlipbookAnimUpdate
 
 
-
-
 # The update callbacks are for manually setting texture with visualize operator.
 # They don't run from animation updates, see flipbookAnimHandler in flipbook.py
 def ootUpdateLinkEyes(self, context):

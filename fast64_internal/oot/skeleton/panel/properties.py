@@ -133,7 +133,6 @@ class OOT_BonePanel(Panel):
 
 oot_skeleton_classes = (
     OOT_SaveRestPose,
-
     OOTDynamicTransformProperty,
     OOTBoneProperty,
     OOTSkeletonProperty,

@@ -1,5 +1,13 @@
 from bpy.types import PropertyGroup, Object, Light
-from bpy.props import EnumProperty, IntProperty, StringProperty, CollectionProperty, PointerProperty, BoolProperty, FloatVectorProperty
+from bpy.props import (
+    EnumProperty,
+    IntProperty,
+    StringProperty,
+    CollectionProperty,
+    PointerProperty,
+    BoolProperty,
+    FloatVectorProperty,
+)
 from .....render_settings import on_update_oot_render_settings
 from ....cutscene.panel.properties import OOTCSListProperty
 from ....oot_utility import onMenuTabChange, onHeaderMenuTabChange
@@ -128,9 +136,7 @@ class OOTSceneHeaderProperty(PropertyGroup):
     expandTab: BoolProperty(name="Expand Tab")
     usePreviousHeader: BoolProperty(name="Use Previous Header", default=True)
 
-    globalObject: EnumProperty(
-        name="Global Object", default="OBJECT_GAMEPLAY_DANGEON_KEEP", items=ootEnumGlobalObject
-    )
+    globalObject: EnumProperty(name="Global Object", default="OBJECT_GAMEPLAY_DANGEON_KEEP", items=ootEnumGlobalObject)
     globalObjectCustom: StringProperty(name="Global Object Custom", default="0x00")
     naviCup: EnumProperty(name="Navi Hints", default="0x00", items=ootEnumNaviHints)
     naviCupCustom: StringProperty(name="Navi Hints Custom", default="0x00")
@@ -155,9 +161,7 @@ class OOTSceneHeaderProperty(PropertyGroup):
     musicSeqCustom: StringProperty(name="Music Sequence ID", default="0x00")
     nightSeq: EnumProperty(name="Nighttime SFX", items=ootEnumNightSeq, default="0x00")
     nightSeqCustom: StringProperty(name="Nighttime SFX ID", default="0x00")
-    audioSessionPreset: EnumProperty(
-        name="Audio Session Preset", items=ootEnumAudioSessionPreset, default="0x00"
-    )
+    audioSessionPreset: EnumProperty(name="Audio Session Preset", items=ootEnumAudioSessionPreset, default="0x00")
     audioSessionPresetCustom: StringProperty(name="Audio Session Preset", default="0x00")
 
     timeOfDayLights: PointerProperty(type=OOTLightGroupProperty, name="Time Of Day Lighting")
@@ -191,6 +195,7 @@ class OOTSceneHeaderProperty(PropertyGroup):
         description="Add an additional {0, 0} to the end of the EntranceEntry list.",
         default=False,
     )
+
 
 class OOTAlternateSceneHeaderProperty(PropertyGroup):
     childNightHeader: PointerProperty(name="Child Night Header", type=OOTSceneHeaderProperty)
