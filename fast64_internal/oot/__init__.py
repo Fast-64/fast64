@@ -85,11 +85,11 @@ from .skeleton.panel.properties import (
     skeleton_props_classes_unregister,
 )
 
-from .oot_spline import (
-    oot_spline_panel_register,
-    oot_spline_panel_unregister,
-    oot_spline_register,
-    oot_spline_unregister,
+from .spline.panel.properties import (
+    spline_props_panel_register,
+    spline_props_panel_unregister,
+    spline_props_classes_register,
+    spline_props_classes_unregister,
 )
 
 
@@ -121,7 +121,7 @@ def oot_panel_register():
     collision_props_panel_register()
     oot_obj_panel_register()
     oot_level_panel_register()
-    oot_spline_panel_register()
+    spline_props_panel_register()
     anim_viewport_panel_register()
     skeleton_props_panel_register()
     oot_cutscene_panel_register()
@@ -137,7 +137,7 @@ def oot_panel_unregister():
     collision_props_panel_unregister()
     oot_obj_panel_unregister()
     oot_level_panel_unregister()
-    oot_spline_panel_unregister()
+    spline_props_panel_unregister()
     oot_dl_writer_panel_unregister()
     anim_viewport_panel_unregister()
     skeleton_props_panel_unregister()
@@ -154,7 +154,7 @@ def oot_register(registerPanels):
     collision_props_classes_register()
     oot_obj_register()
     oot_level_register()
-    oot_spline_register()
+    spline_props_classes_register()
     oot_dl_writer_register()
     anim_viewport_classes_register()
     skeleton_props_classes_register()
@@ -181,7 +181,7 @@ def oot_unregister(unregisterPanels):
     collision_props_classes_unregister()
     oot_obj_unregister()
     oot_level_unregister()
-    oot_spline_unregister()
+    spline_props_classes_unregister()
     oot_dl_writer_unregister()
     anim_viewport_classes_unregister()
     skeleton_props_classes_unregister()

@@ -38,52 +38,6 @@ def applySkeletonRestPose(boneData: list[tuple[float, float, float]], armatureOb
     bpy.ops.object.armature_apply_w_mesh()
 
 
-# Copy data from console into python file
-class OOT_SaveRestPose(bpy.types.Operator):
-    # set bl_ properties
-    bl_idname = "object.oot_save_rest_pose"
-    bl_label = "Save Rest Pose"
-    bl_options = {"REGISTER", "UNDO"}
-
-    # path: bpy.props.StringProperty(name="Path", subtype="FILE_PATH")
-    def execute(self, context):
-        if context.mode != "OBJECT":
-            bpy.ops.object.mode_set(mode="OBJECT")
-
-        if len(context.selected_objects) == 0:
-            raise PluginError("Armature not selected.")
-        armatureObj = context.active_object
-        if type(armatureObj.data) is not bpy.types.Armature:
-            raise PluginError("Armature not selected.")
-
-        try:
-            data = "restPoseData = [\n"
-            startBoneName = getStartBone(armatureObj)
-            boneStack = [startBoneName]
-
-            firstBone = True
-            while len(boneStack) > 0:
-                bone, boneStack = getNextBone(boneStack, armatureObj)
-                poseBone = armatureObj.pose.bones[bone.name]
-                if firstBone:
-                    data += str(poseBone.matrix_basis.decompose()[0][:]) + ", "
-                    firstBone = False
-                data += str((poseBone.matrix_basis.decompose()[1]).to_euler()[:]) + ", "
-
-            data += "\n]"
-
-            print(data)
-
-            self.report({"INFO"}, "Success!")
-            return {"FINISHED"}
-
-        except Exception as e:
-            if context.mode != "OBJECT":
-                bpy.ops.object.mode_set(mode="OBJECT")
-            raisePluginError(self, e)
-            return {"CANCELLED"}  # must return a set
-
-
 # Link overlay will be "", since link texture array data is handled as a special case.
 class OOTSkeletonImportInfo:
     def __init__(

@@ -1,8 +1,9 @@
-from bpy.types import Armature, PropertyGroup, Object, Bone, Panel
+from bpy.types import Armature, PropertyGroup, Object, Bone, Panel, Operator
+from bpy.ops import object
 from bpy.props import EnumProperty, PointerProperty, StringProperty, FloatProperty
 from bpy.utils import register_class, unregister_class
-from ....utility import prop_split
-from ...oot_skeleton_import_data import OOT_SaveRestPose
+from ....utility import PluginError, raisePluginError, prop_split
+from ...oot_utility import getStartBone, getNextBone
 from ...oot_model_classes import OOTDynamicTransformProperty
 
 
@@ -15,6 +16,52 @@ ootEnumBoneType = [
 
 def pollArmature(self, obj):
     return isinstance(obj.data, Armature)
+
+
+# Copy data from console into python file
+class OOT_SaveRestPose(Operator):
+    # set bl_ properties
+    bl_idname = "object.oot_save_rest_pose"
+    bl_label = "Save Rest Pose"
+    bl_options = {"REGISTER", "UNDO"}
+
+    # path: bpy.props.StringProperty(name="Path", subtype="FILE_PATH")
+    def execute(self, context):
+        if context.mode != "OBJECT":
+            object.mode_set(mode="OBJECT")
+
+        if len(context.selected_objects) == 0:
+            raise PluginError("Armature not selected.")
+        armatureObj = context.active_object
+        if type(armatureObj.data) is not Armature:
+            raise PluginError("Armature not selected.")
+
+        try:
+            data = "restPoseData = [\n"
+            startBoneName = getStartBone(armatureObj)
+            boneStack = [startBoneName]
+
+            firstBone = True
+            while len(boneStack) > 0:
+                bone, boneStack = getNextBone(boneStack, armatureObj)
+                poseBone = armatureObj.pose.bones[bone.name]
+                if firstBone:
+                    data += str(poseBone.matrix_basis.decompose()[0][:]) + ", "
+                    firstBone = False
+                data += str((poseBone.matrix_basis.decompose()[1]).to_euler()[:]) + ", "
+
+            data += "\n]"
+
+            print(data)
+
+            self.report({"INFO"}, "Success!")
+            return {"FINISHED"}
+
+        except Exception as e:
+            if context.mode != "OBJECT":
+                object.mode_set(mode="OBJECT")
+            raisePluginError(self, e)
+            return {"CANCELLED"}  # must return a set
 
 
 class OOTBoneProperty(PropertyGroup):
