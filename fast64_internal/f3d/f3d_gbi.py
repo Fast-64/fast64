@@ -1743,6 +1743,9 @@ class FSetTileSizeScrollField:
 def tile_func(direction: str, speed: int, cmd_num: int):
     if speed == 0 or speed is None:
         return None
+    if cmd_num == -1:
+        # put some warning here or something?
+        return None
 
     func = f"shift_{direction}"
 
@@ -1787,7 +1790,9 @@ def get_tex_sts_code(tex: FSetTileSizeScrollField, tex_num: int, cmd_num: int):
 def mat_tile_scroll(
     mat: str, tex0: FSetTileSizeScrollField, tex1: FSetTileSizeScrollField, cmd_num0: int, cmd_num1: int
 ):
-    func = f"void scroll_sts_{mat}()"
+    # remove any offsets from mat name
+    func_name = mat.split("+")[0].strip()
+    func = f"void scroll_sts_{func_name}()"
     lines = [func + " {"]
 
     tex0_variables, tex0_lines = get_tex_sts_code(tex0, 0, cmd_num0)
@@ -1942,7 +1947,7 @@ class GfxFormatter:
         # Find index of SetTileSize commands
         for i, c in enumerate(fMaterial.material.commands):
             if isinstance(c, DPSetTileSize):
-                if setTileSizeIndex0 >= 0:
+                if c.t == 1:
                     setTileSizeIndex1 = i
                     break
                 else:
@@ -1951,14 +1956,16 @@ class GfxFormatter:
 
         tile_scroll_tex0 = fMaterial.scrollData.tile_scroll_tex0
         tile_scroll_tex1 = fMaterial.scrollData.tile_scroll_tex1
-        if fMaterial.scrollData.tile_scroll_exported:
+        set_tex = any(fMaterial.texturesLoaded)  # make warning if not set somehow?
+        if fMaterial.scrollData.tile_scroll_exported and not bpy.context.scene.exportInlineF3D:
             return None
-        if tile_scroll_tex0.s or tile_scroll_tex0.t or tile_scroll_tex1.s or tile_scroll_tex1.t:
+        if (tile_scroll_tex0.s or tile_scroll_tex0.t or tile_scroll_tex1.s or tile_scroll_tex1.t) and set_tex:
             func, data = mat_tile_scroll(
                 mat_name, tile_scroll_tex0, tile_scroll_tex1, setTileSizeIndex0, setTileSizeIndex1
             )
             self.tileScrollFunc = f"extern {func};"  # save for later
             fMaterial.scrollData.tile_scroll_exported = True
+
             return data
 
         return None
@@ -2742,16 +2749,23 @@ class FMesh:
             # bleed mat and tex
             if desc.fMaterial:
                 bleed_mat = self.bleed_mat(desc.fMaterial, LastMat)
-                bleed_tex = self.bleed_textures(desc.fMaterial, LastMat)
+                bleed_tex, bleed_scr = self.bleed_textures(desc.fMaterial, LastMat)
             else:
                 bleed_mat = []
                 bleed_tex = []
             # set bled props to _mesh_desc, update LastMat
             LastMat = desc.fMaterial
-            desc.bleed = bleed_gfx(bleed_mat, bleed_tex)
+            desc.bleed = bleed_gfx(bleed_mat, bleed_tex, bleed_scr)
         return LastMat
 
     def bleed_textures(self, mat, LastMat):
+        # check if material is scrolling
+        tile_scroll_tex0 = mat.scrollData.tile_scroll_tex0
+        tile_scroll_tex1 = mat.scrollData.tile_scroll_tex1
+        if tile_scroll_tex0.s or tile_scroll_tex0.t or tile_scroll_tex1.s or tile_scroll_tex1.t:
+            bleed_scroll = True
+        else:
+            bleed_scroll = False
         if LastMat:
             # bleed cmds if tiles are the same
             # or pipe syncs as of now
@@ -2765,6 +2779,8 @@ class FMesh:
                 set_tex = (c for c in TexCmds.commands if type(c) == DPSetTextureImage)
                 removed_tex = [c for c in set_tex if c in LastList]  # needs to be a list to check "in" multiple times
                 rm_load = None  # flag to elim loads once
+                # set tile size cmds need to be removed and placed in dynamic data if there is a scroll
+                tile_size = [c for c in TexCmds.commands if type(c) == DPSetTileSize]
                 for j, cmd in enumerate(TexCmds.commands):
                     # remove set tex explicitly
                     if cmd in removed_tex:
@@ -2775,6 +2791,10 @@ class FMesh:
                         commands_bled.commands.remove(cmd)
                         rm_load = None
                         continue
+                    # remove scrolls if they exist and put them in a new gfx list in the material
+                    # if cmd in tile_size:
+                    # if not bleed_scroll:
+                    # cmd._bleed = True #allow tile size bleed
                 # now eval as normal conditionals
                 iter_cmds = copy.copy(commands_bled.commands)  # need extra list to iterate with
                 for j, cmd in enumerate(iter_cmds):
@@ -2784,7 +2804,7 @@ class FMesh:
                 bled_tex.append(commands_bled)
         else:
             bled_tex = mat.textures
-        return bled_tex
+        return bled_tex, bleed_scroll
 
     def bleed_mat(self, mat, LastMat):
         if LastMat:
@@ -2827,6 +2847,7 @@ class FMesh:
         dynamicData = CData()
         GfxData.header = f"extern Gfx {self.name}[];\n"
         GfxData.source = f"Gfx {self.name}[] = {{\n"
+        size = 0
         for mat, desc in self.MatGroups.items():
             # add in vertex data
             triGroup = desc.tri_list
@@ -2836,10 +2857,26 @@ class FMesh:
             # add mat, add tex data, then add tri data
             if desc.bleed.bled_mats:
                 GfxData.append(desc.bleed.bled_mats.to_c_inline(f3d))
+                size += desc.bleed.bled_mats.size(f3d)
+            tex_size = 0
             for tex in desc.bleed.bled_tex:
                 if tex:
                     GfxData.append(tex.to_c_inline(f3d))
+                    tex_size += tex.size(f3d)
+            # if there is a scroll, change the TriGroup FMaterial to be a new one for scrolling
+            if desc.bleed.bleed_tile_scroll:
+                scr_mat = FMaterial("scr", DLFormat.Static)
+                for GfxList in desc.bleed.bled_tex:
+                    scr_mat.material.commands.extend(GfxList.commands)
+                scr_mat.material.name = f"{self.name} + {size // 8}"
+                scr_mat.name = f"{self.name} + {size // 8}"
+                scr_mat.scrollData = desc.fMaterial.scrollData
+                scr_mat.texturesLoaded = desc.fMaterial.texturesLoaded
+                triGroup.fMaterial = scr_mat
+
+            size += tex_size
             GfxData.append(triGroup.triList.to_c_inline(f3d))
+            size += triGroup.triList.size(f3d)
             GfxData.source += f"\t{DPPipeSync().to_c()},\n"  # pipe sync is required after rendering
         GfxData.append(self.bleed_mesh_defaults(desc).to_c_inline(f3d))  # revert mesh DL
         GfxData.source += f"\t{SPEndDisplayList().to_c()}\n}};\n"  # end DL
@@ -3041,7 +3078,8 @@ class FMaterial:
 @dataclass
 class bleed_gfx:
     bled_mats: GfxList
-    bled_tex: GfxList
+    bled_tex: list[GfxList]  # list of GfxList
+    bleed_tile_scroll: bool
 
 
 @dataclass
@@ -4585,12 +4623,17 @@ class DPSetTileSize(GbiMacro):
     ult: int
     lrs: int
     lrt: int
+    _bleed = False
 
     def to_binary(self, f3d, segments):
         return gsDPLoadTileGeneric(f3d.G_SETTILESIZE, self.t, self.uls, self.ult, self.lrs, self.lrt)
 
     def is_LOADTILE(self, f3d):
         return self.t == f3d.G_TX_LOADTILE
+
+    # due to tile scrolls, bleed must be done by other checks
+    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
+        return self._bleed
 
 
 @dataclass
