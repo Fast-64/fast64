@@ -1,11 +1,10 @@
-import bpy
 from ..utility import PluginError, CData, prop_split
-from .oot_utility import OOTCollectionAdd, drawCollectionOps, getCollection, getCutsceneName, getCustomProperty
+from .oot_utility import OOTCollectionAdd, drawCollectionOps, getCutsceneName, getCustomProperty
+from .cutscene.panel.properties import OOTCSTextboxAdd, OOTCSListAdd
 
 from .oot_constants import (
     ootEnumCSTextboxType,
     ootEnumCSListType,
-    ootEnumCSTransitionType,
     ootEnumCSTextboxTypeIcons,
     ootEnumCSListTypeIcons,
     ootEnumCSListTypeListC,
@@ -28,176 +27,6 @@ from .oot_level_classes import (
 ################################################################################
 # Properties
 ################################################################################
-
-# Perhaps this should have been called something like OOTCSParentPropertyType,
-# but now it needs to keep the same name to not break existing scenes which use
-# the cutscene system.
-class OOTCSProperty:
-    propName = None
-    attrName = None
-    subprops = ["startFrame", "endFrame"]
-    expandTab: bpy.props.BoolProperty(default=True)
-    startFrame: bpy.props.IntProperty(name="", default=0, min=0)
-    endFrame: bpy.props.IntProperty(name="", default=1, min=0)
-
-    def getName(self):
-        return self.propName
-
-    def filterProp(self, name, listProp):
-        return True
-
-    def filterName(self, name, listProp):
-        return name
-
-    def draw(self, layout, listProp, listIndex, cmdIndex, objName, collectionType):
-        layout.prop(
-            self,
-            "expandTab",
-            text=self.getName() + " " + str(cmdIndex),
-            icon="TRIA_DOWN" if self.expandTab else "TRIA_RIGHT",
-        )
-        if not self.expandTab:
-            return
-        box = layout.box().column()
-        drawCollectionOps(box, cmdIndex, collectionType + "." + self.attrName, listIndex, objName)
-        for p in self.subprops:
-            if self.filterProp(p, listProp):
-                prop_split(box, self, p, self.filterName(p, listProp))
-
-
-class OOTCSTextboxProperty(OOTCSProperty, bpy.types.PropertyGroup):
-    propName = "Textbox"
-    attrName = "textbox"
-    subprops = [
-        "messageId",
-        "ocarinaSongAction",
-        "startFrame",
-        "endFrame",
-        "type",
-        "topOptionBranch",
-        "bottomOptionBranch",
-        "ocarinaMessageId",
-    ]
-    textboxType: bpy.props.EnumProperty(items=ootEnumCSTextboxType)
-    messageId: bpy.props.StringProperty(name="", default="0x0000")
-    ocarinaSongAction: bpy.props.StringProperty(name="", default="0x0000")
-    type: bpy.props.StringProperty(name="", default="0x0000")
-    topOptionBranch: bpy.props.StringProperty(name="", default="0x0000")
-    bottomOptionBranch: bpy.props.StringProperty(name="", default="0x0000")
-    ocarinaMessageId: bpy.props.StringProperty(name="", default="0x0000")
-
-    def getName(self):
-        return self.textboxType
-
-    def filterProp(self, name, listProp):
-        if self.textboxType == "Text":
-            return name not in ["ocarinaSongAction", "ocarinaMessageId"]
-        elif self.textboxType == "None":
-            return name in ["startFrame", "endFrame"]
-        elif self.textboxType == "LearnSong":
-            return name in ["ocarinaSongAction", "startFrame", "endFrame", "ocarinaMessageId"]
-        else:
-            raise PluginError("Invalid property name for OOTCSTextboxProperty")
-
-
-class OOTCSTextboxAdd(bpy.types.Operator):
-    bl_idname = "object.oot_cstextbox_add"
-    bl_label = "Add CS Textbox"
-    bl_options = {"REGISTER", "UNDO"}
-
-    collectionType: bpy.props.StringProperty()
-    textboxType: bpy.props.EnumProperty(items=ootEnumCSTextboxType)
-    listIndex: bpy.props.IntProperty()
-    objName: bpy.props.StringProperty()
-
-    def execute(self, context):
-        collection = getCollection(self.objName, self.collectionType, self.listIndex)
-        newTextboxElement = collection.add()
-        newTextboxElement.textboxType = self.textboxType
-        return {"FINISHED"}
-
-
-class OOTCSLightingProperty(OOTCSProperty, bpy.types.PropertyGroup):
-    propName = "Lighting"
-    attrName = "lighting"
-    subprops = ["index", "startFrame"]
-    index: bpy.props.IntProperty(name="", default=1, min=1)
-
-
-class OOTCSTimeProperty(OOTCSProperty, bpy.types.PropertyGroup):
-    propName = "Time"
-    attrName = "time"
-    subprops = ["startFrame", "hour", "minute"]
-    hour: bpy.props.IntProperty(name="", default=23, min=0, max=23)
-    minute: bpy.props.IntProperty(name="", default=59, min=0, max=59)
-
-
-class OOTCSBGMProperty(OOTCSProperty, bpy.types.PropertyGroup):
-    propName = "BGM"
-    attrName = "bgm"
-    subprops = ["value", "startFrame", "endFrame"]
-    value: bpy.props.StringProperty(name="", default="0x0000")
-
-    def filterProp(self, name, listProp):
-        return name != "endFrame" or listProp.listType == "FadeBGM"
-
-    def filterName(self, name, listProp):
-        if name == "value":
-            return "Fade Type" if listProp.listType == "FadeBGM" else "Sequence"
-        return name
-
-
-class OOTCSMiscProperty(OOTCSProperty, bpy.types.PropertyGroup):
-    propName = "Misc"
-    attrName = "misc"
-    subprops = ["operation", "startFrame", "endFrame"]
-    operation: bpy.props.IntProperty(name="", default=1, min=1, max=35)
-
-
-class OOTCS0x09Property(OOTCSProperty, bpy.types.PropertyGroup):
-    propName = "0x09"
-    attrName = "nine"
-    subprops = ["startFrame", "unk2", "unk3", "unk4"]
-    unk2: bpy.props.StringProperty(name="", default="0x00")
-    unk3: bpy.props.StringProperty(name="", default="0x00")
-    unk4: bpy.props.StringProperty(name="", default="0x00")
-
-
-class OOTCSUnkProperty(OOTCSProperty, bpy.types.PropertyGroup):
-    propName = "Unk"
-    attrName = "unk"
-    subprops = ["unk1", "unk2", "unk3", "unk4", "unk5", "unk6", "unk7", "unk8", "unk9", "unk10", "unk11", "unk12"]
-    unk1: bpy.props.StringProperty(name="", default="0x00000000")
-    unk2: bpy.props.StringProperty(name="", default="0x00000000")
-    unk3: bpy.props.StringProperty(name="", default="0x00000000")
-    unk4: bpy.props.StringProperty(name="", default="0x00000000")
-    unk5: bpy.props.StringProperty(name="", default="0x00000000")
-    unk6: bpy.props.StringProperty(name="", default="0x00000000")
-    unk7: bpy.props.StringProperty(name="", default="0x00000000")
-    unk8: bpy.props.StringProperty(name="", default="0x00000000")
-    unk9: bpy.props.StringProperty(name="", default="0x00000000")
-    unk10: bpy.props.StringProperty(name="", default="0x00000000")
-    unk11: bpy.props.StringProperty(name="", default="0x00000000")
-    unk12: bpy.props.StringProperty(name="", default="0x00000000")
-
-
-class OOTCSListProperty(bpy.types.PropertyGroup):
-    expandTab: bpy.props.BoolProperty(default=True)
-
-    listType: bpy.props.EnumProperty(items=ootEnumCSListType)
-    textbox: bpy.props.CollectionProperty(type=OOTCSTextboxProperty)
-    lighting: bpy.props.CollectionProperty(type=OOTCSLightingProperty)
-    time: bpy.props.CollectionProperty(type=OOTCSTimeProperty)
-    bgm: bpy.props.CollectionProperty(type=OOTCSBGMProperty)
-    misc: bpy.props.CollectionProperty(type=OOTCSMiscProperty)
-    nine: bpy.props.CollectionProperty(type=OOTCS0x09Property)
-    unk: bpy.props.CollectionProperty(type=OOTCSUnkProperty)
-
-    unkType: bpy.props.StringProperty(name="", default="0x0001")
-    fxType: bpy.props.EnumProperty(items=ootEnumCSTransitionType)
-    fxStartFrame: bpy.props.IntProperty(name="", default=0, min=0)
-    fxEndFrame: bpy.props.IntProperty(name="", default=1, min=0)
-
 
 def drawCSListProperty(layout, listProp, listIndex, objName, collectionType):
     layout.prop(
@@ -257,22 +86,6 @@ def drawCSListProperty(layout, listProp, listIndex, objName, collectionType):
         addOp.objName = objName
 
 
-class OOTCSListAdd(bpy.types.Operator):
-    bl_idname = "object.oot_cslist_add"
-    bl_label = "Add CS List"
-    bl_options = {"REGISTER", "UNDO"}
-
-    collectionType: bpy.props.StringProperty()
-    listType: bpy.props.EnumProperty(items=ootEnumCSListType)
-    objName: bpy.props.StringProperty()
-
-    def execute(self, context):
-        collection = getCollection(self.objName, self.collectionType, None)
-        newList = collection.add()
-        newList.listType = self.listType
-        return {"FINISHED"}
-
-
 def drawCSAddButtons(layout, objName, collectionType):
     def addButton(row):
         nonlocal l
@@ -292,15 +105,6 @@ def drawCSAddButtons(layout, objName, collectionType):
         for _ in range(3):
             addButton(row)
     box.label(text="Install zcamedit for camera/actor motion.")
-
-
-class OOTCutsceneProperty(bpy.types.PropertyGroup):
-    csEndFrame: bpy.props.IntProperty(name="End Frame", min=0, default=100)
-    csWriteTerminator: bpy.props.BoolProperty(name="Write Terminator (Code Execution)")
-    csTermIdx: bpy.props.IntProperty(name="Index", min=0)
-    csTermStart: bpy.props.IntProperty(name="Start Frm", min=0, default=99)
-    csTermEnd: bpy.props.IntProperty(name="End Frm", min=0, default=100)
-    csLists: bpy.props.CollectionProperty(type=OOTCSListProperty, name="Cutscene Lists")
 
 
 def drawCutsceneProperty(box, obj):

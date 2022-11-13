@@ -5,6 +5,7 @@ from .collision.panel.properties import OOTWaterBoxProperty
 from .oot_collision import drawWaterBoxProperty
 from .oot_constants import ootEnumEmptyType, ootEnumSceneID
 from .oot_utility import getSceneObj, getRoomObj
+from .oot_cutscene import drawCutsceneProperty
 
 from .oot_actor import (
     OOTActorProperty,
@@ -40,10 +41,9 @@ from .oot_scene_room import (
     drawAlternateRoomHeaderProperty,
 )
 
-from .oot_cutscene import (
+from .cutscene.panel.properties import (
     OOTCutsceneProperty,
     OOTCSTextboxProperty,
-    OOTCSTextboxAdd,
     OOTCSLightingProperty,
     OOTCSTimeProperty,
     OOTCSBGMProperty,
@@ -51,8 +51,8 @@ from .oot_cutscene import (
     OOTCS0x09Property,
     OOTCSUnkProperty,
     OOTCSListProperty,
+    OOTCSTextboxAdd,
     OOTCSListAdd,
-    drawCutsceneProperty,
 )
 
 
