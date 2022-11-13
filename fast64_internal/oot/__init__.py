@@ -1,6 +1,6 @@
 import bpy
 from bpy.utils import register_class, unregister_class
-from .oot_level import oot_obj_panel_register, oot_obj_panel_unregister, oot_obj_register, oot_obj_unregister
+from .props_panel_main import oot_obj_panel_register, oot_obj_panel_unregister, oot_obj_register, oot_obj_unregister
 from .skeleton.panel.viewport import OOTSkeletonImportSettings, OOTSkeletonExportSettings
 from .oot_utility import oot_utility_register, oot_utility_unregister, setAllActorsVisibility
 from .other.panel.viewport.display_list import OOTDLExportSettings, OOTDLImportSettings
