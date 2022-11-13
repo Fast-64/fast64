@@ -1985,7 +1985,8 @@ class Vtx:
         )
 
     def to_c(self):
-        spc = lambda x: ", ".join([str(a) for a in x])
+        def spc(x):
+            return ", ".join([str(a) for a in x])
         return f"{{{{ {{{spc(self.position)}}}, 0, {{{spc(self.uv)}}}, {{{spc(self.colorOrNormal)}}} }}}}"
 
 
@@ -2016,8 +2017,8 @@ class VtxList:
 
     def to_c(self):
         data = CData()
-        data.header = f"extern Vtx {self.name}[{str(len(self.vertices))}];\n"
-        data.source = f"Vtx {self.name}[{str(len(self.vertices))}] = {{\n"
+        data.header = f"extern Vtx {self.name}[{len(self.vertices)}];\n"
+        data.source = f"Vtx {self.name}[{len(self.vertices)}] = {{\n"
         for vert in self.vertices:
             data.source += f"\t{vert.to_c()},\n"
         data.source += "};\n\n"
@@ -2039,7 +2040,7 @@ class GfxList:
         return startAddress, startAddress + self.size(f3d)
 
     def save_binary(self, romfile, f3d, segments):
-        print(f"GfxList {self.name}: {str(startAddress)}, {str(self.size(f3d))}")
+        print(f"GfxList {self.name}: {str(self.startAddress)}, {str(self.size(f3d))}")
         romfile.seek(self.startAddress)
         romfile.write(self.to_binary(f3d, segments))
 
@@ -2048,7 +2049,8 @@ class GfxList:
 
     # Size, including display lists called with SPDisplayList
     def size_total(self, f3d):
-        use_siz_tot = lambda x: isinstance(command, SPDisplayList) and command.displayList.DLFormat != DLFormat.Static
+        def use_siz_tot(command):
+            return isinstance(command, SPDisplayList) and command.displayList.DLFormat != DLFormat.Static
         return sum(
             [
                 command.displayList.size_total(f3d) if use_siz_tot(command) else command.size(f3d)
@@ -2949,6 +2951,7 @@ class Hilite:
         self.x2 = x2
         self.y2 = y2
 
+    @property
     def fields(self):
         return self.x1, self.y1, self.x2, self.y2
 
@@ -3017,7 +3020,8 @@ class LookAt:
     def to_c(self):
         # {{}} => lookat, light array,
         # {{}} => light, light_t
-        spc = lambda x: ", ".join(str(c) for c in x)
+        def spc(x):
+            return ", ".join(str(c) for c in x)
         return (
             f"LookAt {self.name} = {{{{"
             + "{{{"
@@ -4389,8 +4393,8 @@ class DPSetTileSize(GbiMacro):
     def to_binary(self, f3d, segments):
         return gsDPLoadTileGeneric(f3d.G_SETTILESIZE, self.t, self.uls, self.ult, self.lrs, self.lrt)
 
-    def is_LOADTILE(self):
-        return self.t == G_TX_LOADTILE
+    def is_LOADTILE(self, f3d):
+        return self.t == f3d.G_TX_LOADTILE
 
 
 @dataclass
@@ -4442,8 +4446,8 @@ class DPSetTile(GbiMacro):
         )
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
-    def is_LOADTILE(self):
-        return self.tile == G_TX_LOADTILE
+    def is_LOADTILE(self, f3d):
+        return self.tile == f3d.G_TX_LOADTILE
 
 
 @dataclass
