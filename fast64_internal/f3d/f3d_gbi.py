@@ -1988,7 +1988,7 @@ class Vtx:
         def spc(x):
             return "{" + ", ".join([str(a) for a in x]) + "}"
 
-        return "{{ " + f"{spc(self.position)}, 0, {spc(self.uv)}, {spc(self.colorOrNormal)}" + " }}"
+        return "{{ " + ", ".join([spc(self.position), "0", spc(self.uv), spc(self.colorOrNormal)]) + " }}"
 
 
 class VtxList:
