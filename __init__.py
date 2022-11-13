@@ -51,7 +51,6 @@ bl_info = {
 gameEditorEnum = (
     ("SM64", "SM64", "Super Mario 64"),
     ("OOT", "OOT", "Ocarina Of Time"),
-    ("KCS", "KCS", "Kirby Crystal Shards"),
 )
 
 #support for reloading the module (@Dragorn421)

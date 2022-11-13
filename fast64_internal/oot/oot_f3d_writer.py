@@ -49,9 +49,32 @@ from .oot_model_classes import (
     ootGetIncludedAssetData,
 )
 
-from .oot_scene_room import *
 from .oot_texture_array import TextureFlipbook, ootReadTextureArrays
 from ..f3d.flipbook import flipbook_to_c, flipbook_2d_to_c, flipbook_data_to_c
+from ..f3d.f3d_material import createF3DMat, F3DMaterial_UpdateLock, update_preset_manual
+
+# Creates a semi-transparent solid color material (cached)
+def getColliderMat(name: str, color: tuple[float, float, float, float]) -> bpy.types.Material:
+    if "oot_collision_mat_base" not in bpy.data.materials:
+        baseMat = createF3DMat(None, preset="oot_shaded_texture_transparent", index=0)
+        with F3DMaterial_UpdateLock(baseMat) as lockedMat:
+            lockedMat.name = name
+            lockedMat.f3d_mat.combiner1.A = "0"
+            lockedMat.f3d_mat.combiner1.C = "0"
+            lockedMat.f3d_mat.combiner1.D = "SHADE"
+            lockedMat.f3d_mat.combiner1.D_alpha = "1"
+            lockedMat.f3d_mat.prim_color = color
+            update_preset_manual(lockedMat, bpy.context)
+
+    if name not in bpy.data.materials:
+        baseMat = bpy.data.materials["oot_collision_mat_base"]
+        baseMat.f3d_update_flag = True
+        newMat = baseMat.copy()
+        baseMat.f3d_update_flag = False
+        newMat.f3d_mat.prim_color = color
+        return newMat
+    else:
+        return bpy.data.materials[name]
 
 
 class OOTDLExportSettings(bpy.types.PropertyGroup):
@@ -351,7 +374,7 @@ def writeTextureArraysExisting(
     for flipbook in fModel.flipbooks:
         if flipbook.exportMode == "Array":
             if flipbookArrayIndex2D is None:
-                newData = writeTextureArraysExisting1D(newData, flipbook)
+                newData = writeTextureArraysExisting1D(newData, flipbook, "")
             else:
                 newData = writeTextureArraysExisting2D(newData, flipbook, flipbookArrayIndex2D)
 
@@ -359,7 +382,7 @@ def writeTextureArraysExisting(
         writeFile(actorFilePath, newData)
 
 
-def writeTextureArraysExisting1D(data: str, flipbook: TextureFlipbook) -> str:
+def writeTextureArraysExisting1D(data: str, flipbook: TextureFlipbook, additionalIncludes: str) -> str:
     newData = data
     arrayMatch = re.search(
         r"(static\s*)?void\s*\*\s*" + re.escape(flipbook.name) + r"\s*\[\s*\]\s*=\s*\{(((?!\}).)*)\}\s*;",
@@ -375,14 +398,20 @@ def writeTextureArraysExisting1D(data: str, flipbook: TextureFlipbook) -> str:
         # otherwise, add to end of asset includes
     else:
         newArrayData = flipbook_to_c(flipbook, True)
-        # get last asset include
-        includeMatch = None
-        for includeMatchItem in re.finditer(r"\#include\s*\"assets/.*?\"\s*?\n", newData, flags=re.DOTALL):
-            includeMatch = includeMatchItem
-        if includeMatch:
-            newData = newData[: includeMatch.end(0)] + newArrayData + "\n" + newData[includeMatch.end(0) :]
-        else:
-            newData += newArrayData + "\n"
+
+    # get last asset include
+    includeMatch = None
+    for includeMatchItem in re.finditer(r"\#include\s*\"assets/.*?\"\s*?\n", newData, flags=re.DOTALL):
+        includeMatch = includeMatchItem
+    if includeMatch:
+        newData = (
+            newData[: includeMatch.end(0)]
+            + additionalIncludes
+            + ((newArrayData + "\n") if not arrayMatch else "")
+            + newData[includeMatch.end(0) :]
+        )
+    else:
+        newData = (additionalIncludes + newData + newArrayData + "\n") if not arrayMatch else newData
 
     return newData
 
@@ -475,7 +504,7 @@ class OOT_DisplayListPanel(bpy.types.Panel):
         )
 
     def draw(self, context):
-        box = self.layout.box()
+        box = self.layout.box().column()
         box.box().label(text="OOT DL Inspector")
         obj = context.object
 
@@ -513,7 +542,7 @@ class OOT_ImportDL(bpy.types.Operator):
             folderName = settings.folder
             importPath = bpy.path.abspath(settings.customPath)
             isCustomImport = settings.isCustom
-            basePath = bpy.path.abspath(context.scene.ootDecompPath)
+            basePath = bpy.path.abspath(context.scene.ootDecompPath) if not isCustomImport else importPath
             removeDoubles = settings.removeDoubles
             importNormals = settings.importNormals
             drawLayer = settings.drawLayer

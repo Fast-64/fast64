@@ -21,6 +21,8 @@ sm64BoneUp = Vector([1, 0, 0])
 
 transform_mtx_blender_to_n64 = lambda: Matrix(((1, 0, 0, 0), (0, 0, 1, 0), (0, -1, 0, 0), (0, 0, 0, 1)))
 
+yUpToZUp = mathutils.Quaternion((1, 0, 0), math.radians(90.0)).to_matrix().to_4x4()
+
 axis_enums = [
     ("X", "X", "X"),
     ("Y", "Y", "Y"),
@@ -64,7 +66,7 @@ def hexOrDecInt(value):
     elif ">>" in value:
         i = value.index(">>")
         return hexOrDecInt(value[:i]) >> hexOrDecInt(value[i + 2 :])
-    elif "x" in value:
+    elif "x" in value or "X" in value:
         return int(value, 16)
     else:
         return int(value)
@@ -272,7 +274,7 @@ def propertyGroupEquals(oldProp, newProp):
             equivalent &= propertyGroupEquals(sub_value, getattr(newProp, sub_value_attr))
         elif type(sub_value).__name__ == "bpy_prop_collection_idprop":
             newCollection = getattr(newProp, sub_value_attr)
-            copyPropertyCollection(sub_value, newCollection)
+            equivalent &= propertyCollectionEquals(sub_value, newCollection)
         else:
             newValue = getattr(newProp, sub_value_attr)
             try:
