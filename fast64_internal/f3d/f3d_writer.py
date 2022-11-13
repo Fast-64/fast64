@@ -2053,7 +2053,6 @@ def saveTextureLoading(
         if useLoadBlock:
             loadTexGfx.commands.extend(
                 [
-                    DPTileSync(),  # added in
                     DPSetTextureImage(fmt, "G_IM_SIZ_16b", 1, fImage),
                     DPSetTile(
                         fmt,
@@ -2069,7 +2068,6 @@ def saveTextureLoading(
                         masks,
                         shifts,
                     ),
-                    DPLoadSync(),
                     DPLoadBlock(
                         f3d.G_TX_LOADTILE - texIndex, 0, 0, (((fImage.width) * (fImage.height) + 3) >> 2) - 1, dxt
                     ),
@@ -2078,7 +2076,6 @@ def saveTextureLoading(
         else:
             loadTexGfx.commands.extend(
                 [
-                    DPTileSync(),  # added in
                     DPSetTextureImage(fmt, "G_IM_SIZ_8b", fImage.width >> 1, fImage),
                     DPSetTile(
                         fmt,
@@ -2094,7 +2091,6 @@ def saveTextureLoading(
                         masks,
                         shifts,
                     ),
-                    DPLoadSync(),
                     DPLoadTile(f3d.G_TX_LOADTILE - texIndex, sl2, tl, sh2, th),
                 ]
             )
@@ -2107,7 +2103,6 @@ def saveTextureLoading(
         if useLoadBlock:
             loadTexGfx.commands.extend(
                 [
-                    DPTileSync(),  # added in
                     # Load Block version
                     DPSetTextureImage(fmt, siz + "_LOAD_BLOCK", 1, fImage),
                     DPSetTile(
@@ -2124,7 +2119,6 @@ def saveTextureLoading(
                         masks,
                         shifts,
                     ),
-                    DPLoadSync(),
                     DPLoadBlock(
                         f3d.G_TX_LOADTILE - texIndex,
                         0,
@@ -2141,13 +2135,11 @@ def saveTextureLoading(
         else:
             loadTexGfx.commands.extend(
                 [
-                    DPTileSync(),  # added in
                     # Load Tile version
                     DPSetTextureImage(fmt, siz, fImage.width, fImage),
                     DPSetTile(
                         fmt, siz, line, tmem, f3d.G_TX_LOADTILE - texIndex, 0, cmt, maskt, shiftt, cms, masks, shifts
                     ),
-                    DPLoadSync(),
                     DPLoadTile(f3d.G_TX_LOADTILE - texIndex, sl, tl, sh, th),
                 ]
             )  # added in
@@ -2155,7 +2147,6 @@ def saveTextureLoading(
     tileSizeCommand = DPSetTileSize(f3d.G_TX_RENDERTILE + texIndex, sl, tl, sh, th)
     loadTexGfx.commands.extend(
         [
-            DPPipeSync(),
             DPSetTile(
                 fmt, siz, line, tmem, f3d.G_TX_RENDERTILE + texIndex, pal, cmt, maskt, shiftt, cms, masks, shifts
             ),
@@ -2183,11 +2174,8 @@ def savePaletteLoading(loadTexGfx, revertTexGfx, fPalette, palFormat, pal, color
         loadTexGfx.commands.extend(
             [
                 DPSetTextureImage(palFmt, "G_IM_SIZ_16b", 1, fPalette),
-                DPTileSync(),
                 DPSetTile("0", "0", 0, (256 + (((pal) & 0xF) * 16)), f3d.G_TX_LOADTILE, 0, cmt, 0, 0, cms, 0, 0),
-                DPLoadSync(),
                 DPLoadTLUTCmd(f3d.G_TX_LOADTILE, colorCount - 1),
-                DPPipeSync(),
             ]
         )
     else:

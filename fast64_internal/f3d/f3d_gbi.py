@@ -4697,7 +4697,6 @@ class DPLoadBlock(gbiMacro):
     uls: int
     ult: int
     lrs: int
-    lrt: int
     dxt: int
 
     def to_binary(self, f3d, segments):
