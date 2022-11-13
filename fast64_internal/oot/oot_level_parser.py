@@ -1,11 +1,11 @@
 import math, os, re, bpy, mathutils
 from random import random
-
 from .oot_f3d_writer import getColliderMat
 from .scene.panel.viewport import OOTImportSceneSettingsProperty
 from .scene.panel.properties import OOTSceneHeaderProperty, OOTLightProperty
 from .room.panel.properties import OOTRoomHeaderProperty
 from .actor.panel.properties import OOTActorProperty, OOTActorHeaderProperty
+
 from .oot_utility import (
     getHeaderSettings,
     getSceneDirFromLevelName,
@@ -15,6 +15,7 @@ from .oot_utility import (
     ootGetPath,
     setAllActorsVisibility,
 )
+
 from .oot_constants import (
     ootEnumCamTransition,
     ootEnumActorID,
@@ -34,11 +35,13 @@ from .oot_constants import (
     ootEnumRoomShapeType,
     ootEnumObjectID,
 )
+
 from .c_writer.oot_scene_table_c import getDrawConfig
-from ..utility import yUpToZUp, parentObject, hexOrDecInt, gammaInverse
+from ..utility import PluginError, readFile, parentObject, hexOrDecInt, gammaInverse, yUpToZUp
 from ..f3d.f3d_parser import parseMatrices, importMeshC
 from collections import OrderedDict
 from .collision.panel.properties import OOTMaterialCollisionProperty
+
 from .oot_collision_classes import (
     ootEnumCameraCrawlspaceSType,
     ootEnumFloorSetting,
@@ -48,7 +51,7 @@ from .oot_collision_classes import (
     ootEnumCollisionSound,
     ootEnumCameraSType,
 )
-from ..utility import PluginError, raisePluginError, readFile
+
 from .oot_model_classes import OOTF3DContext
 from ..f3d.f3d_gbi import F3D
 from ..f3d.flipbook import TextureFlipbook
