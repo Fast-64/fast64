@@ -1,9 +1,7 @@
 import bpy, os, mathutils, re
-from bpy.utils import register_class, unregister_class
-from ..utility import CData, prop_split, writeCData, getGroupIndexFromname, toAlnum, readFile, writeFile
-from ..f3d.f3d_parser import ootEnumDrawLayers
+from ..utility import CData, writeCData, getGroupIndexFromname, toAlnum, readFile, writeFile
 from ..f3d.f3d_gbi import DLFormat, TextureExportSettings, ScrollMethod
-from .other.panel.viewport.display_list import OOTDLExportSettings
+from .f3d.panel.viewport.display_list import OOTDLExportSettings
 
 from ..f3d.f3d_writer import (
     TriangleConverterInfo,
@@ -30,7 +28,6 @@ from .oot_model_classes import (
     OOTTriangleConverterInfo,
     OOTModel,
     OOTGfxFormatter,
-    OOTDynamicTransformProperty,
     ootGetActorData,
     ootGetLinkData,
 )
@@ -61,9 +58,6 @@ def getColliderMat(name: str, color: tuple[float, float, float, float]) -> bpy.t
         return newMat
     else:
         return bpy.data.materials[name]
-
-
-
 
 
 # returns:
@@ -216,12 +210,6 @@ def ootProcessVertexGroup(
     fModel.endDraw(fMesh, bone)
 
     return fMesh, hasSkinnedFaces, lastMaterialName
-
-
-ootEnumObjectMenu = [
-    ("Scene", "Parent Scene Settings", "Scene"),
-    ("Room", "Parent Room Settings", "Room"),
-]
 
 
 def ootConvertMeshToC(
@@ -446,113 +434,6 @@ def ootReadActorScale(basePath: str, overlayName: str, isLink: bool) -> float:
     return getOOTScale(100)
 
 
-class OOT_DisplayListPanel(bpy.types.Panel):
-    bl_label = "Display List Inspector"
-    bl_idname = "OBJECT_PT_OOT_DL_Inspector"
-    bl_space_type = "PROPERTIES"
-    bl_region_type = "WINDOW"
-    bl_context = "object"
-    bl_options = {"HIDE_HEADER"}
-
-    @classmethod
-    def poll(cls, context):
-        return context.scene.gameEditorMode == "OOT" and (
-            context.object is not None and isinstance(context.object.data, bpy.types.Mesh)
-        )
-
-    def draw(self, context):
-        box = self.layout.box().column()
-        box.box().label(text="OOT DL Inspector")
-        obj = context.object
-
-        # prop_split(box, obj, "ootDrawLayer", "Draw Layer")
-        box.prop(obj, "ignore_render")
-        box.prop(obj, "ignore_collision")
-
-        if not (obj.parent is not None and isinstance(obj.parent.data, bpy.types.Armature)):
-            actorScaleBox = box.box().column()
-            prop_split(actorScaleBox, obj, "ootActorScale", "Actor Scale")
-            actorScaleBox.label(text="This applies to actor exports only.", icon="INFO")
-
-        # Doesn't work since all static meshes are pre-transformed
-        # box.prop(obj.ootDynamicTransform, "billboard")
-        # drawParentSceneRoom(box, obj)
-
-
-class OOTDefaultRenderModesProperty(bpy.types.PropertyGroup):
-    expandTab: bpy.props.BoolProperty()
-    opaqueCycle1: bpy.props.StringProperty(default="G_RM_AA_ZB_OPA_SURF")
-    opaqueCycle2: bpy.props.StringProperty(default="G_RM_AA_ZB_OPA_SURF2")
-    transparentCycle1: bpy.props.StringProperty(default="G_RM_AA_ZB_XLU_SURF")
-    transparentCycle2: bpy.props.StringProperty(default="G_RM_AA_ZB_XLU_SURF2")
-    overlayCycle1: bpy.props.StringProperty(default="G_RM_AA_ZB_OPA_SURF")
-    overlayCycle2: bpy.props.StringProperty(default="G_RM_AA_ZB_OPA_SURF2")
-
-
-class OOT_DrawLayersPanel(bpy.types.Panel):
-    bl_label = "OOT Draw Layers"
-    bl_idname = "WORLD_PT_OOT_Draw_Layers_Panel"
-    bl_space_type = "PROPERTIES"
-    bl_region_type = "WINDOW"
-    bl_context = "world"
-    bl_options = {"HIDE_HEADER"}
-
-    @classmethod
-    def poll(cls, context):
-        return context.scene.gameEditorMode == "OOT"
-
-    def draw(self, context):
-        ootDefaultRenderModeProp = context.scene.world.ootDefaultRenderModes
-        layout = self.layout
-
-        inputGroup = layout.column()
-        inputGroup.prop(
-            ootDefaultRenderModeProp,
-            "expandTab",
-            text="Default Render Modes",
-            icon="TRIA_DOWN" if ootDefaultRenderModeProp.expandTab else "TRIA_RIGHT",
-        )
-        if ootDefaultRenderModeProp.expandTab:
-            prop_split(inputGroup, ootDefaultRenderModeProp, "opaqueCycle1", "Opaque Cycle 1")
-            prop_split(inputGroup, ootDefaultRenderModeProp, "opaqueCycle2", "Opaque Cycle 2")
-            prop_split(inputGroup, ootDefaultRenderModeProp, "transparentCycle1", "Transparent Cycle 1")
-            prop_split(inputGroup, ootDefaultRenderModeProp, "transparentCycle2", "Transparent Cycle 2")
-            prop_split(inputGroup, ootDefaultRenderModeProp, "overlayCycle1", "Overlay Cycle 1")
-            prop_split(inputGroup, ootDefaultRenderModeProp, "overlayCycle2", "Overlay Cycle 2")
-
-
-class OOT_MaterialPanel(bpy.types.Panel):
-    bl_label = "OOT Material"
-    bl_idname = "MATERIAL_PT_OOT_Material_Inspector"
-    bl_space_type = "PROPERTIES"
-    bl_region_type = "WINDOW"
-    bl_context = "material"
-    bl_options = {"HIDE_HEADER"}
-
-    @classmethod
-    def poll(cls, context):
-        return context.material is not None and context.scene.gameEditorMode == "OOT"
-
-    def draw(self, context):
-        layout = self.layout
-        mat = context.material
-        col = layout.column()
-
-        if (
-            hasattr(context, "object")
-            and context.object is not None
-            and context.object.parent is not None
-            and isinstance(context.object.parent.data, bpy.types.Armature)
-        ):
-            drawLayer = context.object.parent.ootDrawLayer
-            if drawLayer != mat.f3d_mat.draw_layer.oot:
-                col.label(text="Draw layer is being overriden by skeleton.", icon="OUTLINER_DATA_ARMATURE")
-        else:
-            drawLayer = mat.f3d_mat.draw_layer.oot
-
-        drawOOTMaterialProperty(col.box().column(), mat, drawLayer)
-
-
 def drawOOTMaterialDrawLayerProperty(layout, matDrawLayerProp, suffix):
     # layout.box().row().label(text = title)
     row = layout.row()
@@ -584,83 +465,3 @@ def drawOOTMaterialProperty(layout, mat, drawLayer):
     if not mat.is_f3d:
         return
     f3d_mat = mat.f3d_mat
-
-
-class OOTDynamicMaterialDrawLayerProperty(bpy.types.PropertyGroup):
-    segment8: bpy.props.BoolProperty()
-    segment9: bpy.props.BoolProperty()
-    segmentA: bpy.props.BoolProperty()
-    segmentB: bpy.props.BoolProperty()
-    segmentC: bpy.props.BoolProperty()
-    segmentD: bpy.props.BoolProperty()
-    customCall0: bpy.props.BoolProperty()
-    customCall0_seg: bpy.props.StringProperty(description="Segment address of a display list to call, e.g. 0x08000010")
-    customCall1: bpy.props.BoolProperty()
-    customCall1_seg: bpy.props.StringProperty(description="Segment address of a display list to call, e.g. 0x08000010")
-
-    def key(self):
-        return (
-            self.segment8,
-            self.segment9,
-            self.segmentA,
-            self.segmentB,
-            self.segmentC,
-            self.segmentD,
-            self.customCall0_seg if self.customCall0 else None,
-            self.customCall1_seg if self.customCall1 else None,
-        )
-
-
-# The reason these are separate is for the case when the user changes the material draw layer, but not the
-# dynamic material calls. This could cause crashes which would be hard to detect.
-class OOTDynamicMaterialProperty(bpy.types.PropertyGroup):
-    opaque: bpy.props.PointerProperty(type=OOTDynamicMaterialDrawLayerProperty)
-    transparent: bpy.props.PointerProperty(type=OOTDynamicMaterialDrawLayerProperty)
-
-    def key(self):
-        return (self.opaque.key(), self.transparent.key())
-
-
-oot_dl_writer_classes = (
-    OOTDefaultRenderModesProperty,
-    OOTDynamicMaterialDrawLayerProperty,
-    OOTDynamicMaterialProperty,
-    OOTDynamicTransformProperty,
-)
-
-oot_dl_writer_panel_classes = (
-    OOT_DisplayListPanel,
-    OOT_DrawLayersPanel,
-    OOT_MaterialPanel,
-)
-
-
-def oot_dl_writer_panel_register():
-    for cls in oot_dl_writer_panel_classes:
-        register_class(cls)
-
-
-def oot_dl_writer_panel_unregister():
-    for cls in oot_dl_writer_panel_classes:
-        unregister_class(cls)
-
-
-def oot_dl_writer_register():
-    for cls in oot_dl_writer_classes:
-        register_class(cls)
-
-    bpy.types.Object.ootDrawLayer = bpy.props.EnumProperty(items=ootEnumDrawLayers, default="Opaque")
-
-    # Doesn't work since all static meshes are pre-transformed
-    # bpy.types.Object.ootDynamicTransform = bpy.props.PointerProperty(type = OOTDynamicTransformProperty)
-    bpy.types.World.ootDefaultRenderModes = bpy.props.PointerProperty(type=OOTDefaultRenderModesProperty)
-    bpy.types.Material.ootMaterial = bpy.props.PointerProperty(type=OOTDynamicMaterialProperty)
-    bpy.types.Object.ootObjectMenu = bpy.props.EnumProperty(items=ootEnumObjectMenu)
-
-
-def oot_dl_writer_unregister():
-    for cls in reversed(oot_dl_writer_classes):
-        unregister_class(cls)
-
-    del bpy.types.Material.ootMaterial
-    del bpy.types.Object.ootObjectMenu

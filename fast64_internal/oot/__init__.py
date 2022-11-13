@@ -3,24 +3,24 @@ from bpy.utils import register_class, unregister_class
 from .props_panel_main import oot_obj_panel_register, oot_obj_panel_unregister, oot_obj_register, oot_obj_unregister
 from .skeleton.panel.viewport import OOTSkeletonImportSettings, OOTSkeletonExportSettings
 from .oot_utility import oot_utility_register, oot_utility_unregister, setAllActorsVisibility
-from .other.panel.viewport.display_list import OOTDLExportSettings, OOTDLImportSettings
 from .other.panel.viewport.file_settings import file_register, file_unregister
 from .oot_anim import OOTAnimExportSettingsProperty, OOTAnimImportSettingsProperty
 from .c_writer import OOTBootupSceneOptions
-
 from .scene.panel.properties import scene_props_classes_register, scene_props_classes_unregister
 from .cutscene.panel.properties import cutscene_props_classes_register, cutscene_props_classes_unregister
 from .room.panel.properties import room_props_classes_register, room_props_classes_unregister
 from .actor.panel.properties import actor_props_classes_register, actor_props_classes_unregister
 
-from .oot_f3d_writer import (
-    oot_dl_writer_panel_register,
-    oot_dl_writer_panel_unregister,
-    oot_dl_writer_register,
-    oot_dl_writer_unregister,
+from .f3d.panel.properties import (
+    f3d_props_panel_register,
+    f3d_props_panel_unregister,
+    f3d_props_classes_register,
+    f3d_props_classes_unregister,
 )
 
-from .other.panel.viewport.display_list import (
+from .f3d.panel.viewport.display_list import (
+    OOTDLExportSettings,
+    OOTDLImportSettings,
     dl_writer_panel_register,
     dl_writer_panel_unregister,
     dl_writer_register,
@@ -121,7 +121,7 @@ oot_classes = (
 
 def oot_panel_register():
     oot_operator_panel_register()
-    oot_dl_writer_panel_register()
+    f3d_props_panel_register()
     collision_viewport_panel_register()
     collision_props_panel_register()
     oot_obj_panel_register()
@@ -143,7 +143,7 @@ def oot_panel_unregister():
     oot_obj_panel_unregister()
     oot_level_panel_unregister()
     spline_props_panel_unregister()
-    oot_dl_writer_panel_unregister()
+    f3d_props_panel_unregister()
     anim_viewport_panel_unregister()
     skeleton_props_panel_unregister()
     oot_cutscene_panel_unregister()
@@ -164,7 +164,7 @@ def oot_register(registerPanels):
     actor_props_classes_register()
     oot_obj_register()
     spline_props_classes_register()
-    oot_dl_writer_register()
+    f3d_props_classes_register()
     anim_viewport_classes_register()
     skeleton_props_classes_register()
     oot_cutscene_register()
@@ -195,7 +195,7 @@ def oot_unregister(unregisterPanels):
     room_props_classes_unregister()
     actor_props_classes_unregister()
     spline_props_classes_unregister()
-    oot_dl_writer_unregister()
+    f3d_props_classes_unregister()
     anim_viewport_classes_unregister()
     skeleton_props_classes_unregister()
     oot_cutscene_unregister()
