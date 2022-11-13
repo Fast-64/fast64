@@ -1995,7 +1995,7 @@ class Vtx:
         def spc(x):
             return "{" + ", ".join([str(a) for a in x]) + "}"
 
-        return "{{ " + f"{spc(self.position)}, 0, {spc(self.uv)}, {spc(self.colorOrNormal)}" + " }}"
+        return "{{ " + ", ".join([spc(self.position), "0", spc(self.uv), spc(self.colorOrNormal)]) + " }}"
 
 
 class VtxList:
@@ -3150,7 +3150,7 @@ class Hilite:
         return self.x1, self.y1, self.x2, self.y2
 
     def to_binary(self):
-        return (a.to_bytes(4, "big") for a in self.fields)
+        return b"".join(a.to_bytes(4, "big") for a in self.fields)
 
     def to_c(self):
         return f"Hilite {self.name} = {{{', '.join(str(a) for a in self.fields)}}}"
