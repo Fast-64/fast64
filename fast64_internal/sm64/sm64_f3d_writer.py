@@ -33,7 +33,7 @@ enumHUDPaths = {
 
 class SM64Model(FModel):
     def __init__(self, f3dType, isHWv1, name, DLFormat):
-        FModel.__init__(self, f3dType, isHWv1, name, DLFormat, GfxMatWriteMethod.WriteDifferingAndRevert)
+        FModel.__init__(self, f3dType, isHWv1, name, DLFormat, GfxMatWriteMethod.WriteDifferingAndRevert, inline = bpy.context.scene.exportInlineF3D)
 
     def getDrawLayerV3(self, obj):
         return int(obj.draw_layer_static)

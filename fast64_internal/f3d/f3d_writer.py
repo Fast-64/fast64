@@ -821,6 +821,13 @@ def saveMeshByFaces(
 
     currentGroupIndex = saveTriangleStrip(triConverter, faces, obj.data, True)
 
+    #to save inline, we need a dict of materials and their corresponding tri groups
+    if fModel.inline:
+        fMesh.MatGroups[material] = mesh_desc(triGroup, fMaterial, fModel.getRenderMode(drawLayer), None)
+        #remove SPEndDisplayList from triGroup
+        while(SPEndDisplayList() in triGroup.triList.commands):
+            triGroup.triList.commands.remove(SPEndDisplayList())
+    
     if fMaterial.revert is not None:
         fMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
 
@@ -1602,11 +1609,11 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         sharedPalette = FSharedPalette(getSharedPaletteName(f3dMat))
 
         # dummy lists to be appended in later
-        loadGfx = GfxList(None, None, fModel.DLFormat)
+        loadGfx = [GfxList(None, None, fModel.DLFormat), GfxList(None, None, fModel.DLFormat)]
         revertGfx = GfxList(None, None, fModel.DLFormat)
     else:
         sharedPalette = None
-        loadGfx = fMaterial.material
+        loadGfx = [fMaterial.textures[0], fMaterial.textures[1]]
         revertGfx = fMaterial.revert
 
     imageKey0, imageKey1 = getImageKeys(f3dMat, useSharedCIPalette)
@@ -1621,7 +1628,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             material.name,
             fModel,
             fMaterial,
-            loadGfx,
+            loadGfx[0],
             revertGfx,
             f3dMat.tex0,
             0,
@@ -1651,7 +1658,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             material.name,
             fModel,
             fMaterial,
-            loadGfx,
+            loadGfx[1],
             revertGfx,
             f3dMat.tex1,
             1,
@@ -1691,7 +1698,8 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         )
 
         # Append these commands after palette loading commands
-        fMaterial.material.commands.extend(loadGfx.commands)
+        fMaterial.textures[0].commands.extend(loadGfx[0].commands)
+        fMaterial.textures[1].commands.extend(loadGfx[1].commands)
         fMaterial.revert.commands.extend(revertGfx.commands)
 
         fImage0.paletteKey = paletteKey
@@ -2962,7 +2970,7 @@ def exportF3DtoC(
     dirPath, obj, DLFormat, transformMatrix, f3dType, isHWv1, texDir, savePNG, texSeparate, name, matWriteMethod
 ):
 
-    fModel = FModel(f3dType, isHWv1, name, DLFormat, matWriteMethod)
+    fModel = FModel(f3dType, isHWv1, name, DLFormat, matWriteMethod, inline = bpy.context.scene.exportInlineF3D)
     fMesh = exportF3DCommon(obj, fModel, transformMatrix, True, name, DLFormat, not savePNG)
 
     modelDirPath = os.path.join(dirPath, toAlnum(name))
