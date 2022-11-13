@@ -3,7 +3,6 @@ from bpy.props import PointerProperty, StringProperty, BoolProperty, EnumPropert
 from bpy.utils import register_class, unregister_class
 from ....utility import prop_split
 from ....f3d.f3d_parser import ootEnumDrawLayers
-from ...oot_model_classes import OOTDynamicTransformProperty
 from ...oot_f3d_writer import drawOOTMaterialProperty
 
 
@@ -162,7 +161,6 @@ oot_dl_writer_classes = (
     OOTDefaultRenderModesProperty,
     OOTDynamicMaterialDrawLayerProperty,
     OOTDynamicMaterialProperty,
-    OOTDynamicTransformProperty,
 )
 
 oot_dl_writer_panel_classes = (

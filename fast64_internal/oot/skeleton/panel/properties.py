@@ -1,10 +1,9 @@
 from bpy.types import Armature, PropertyGroup, Object, Bone, Panel, Operator
 from bpy.ops import object
-from bpy.props import EnumProperty, PointerProperty, StringProperty, FloatProperty
+from bpy.props import EnumProperty, PointerProperty, StringProperty, FloatProperty, BoolProperty
 from bpy.utils import register_class, unregister_class
 from ....utility import PluginError, raisePluginError, prop_split
 from ...oot_utility import getStartBone, getNextBone
-from ...oot_model_classes import OOTDynamicTransformProperty
 
 
 ootEnumBoneType = [
@@ -62,6 +61,10 @@ class OOT_SaveRestPose(Operator):
                 object.mode_set(mode="OBJECT")
             raisePluginError(self, e)
             return {"CANCELLED"}  # must return a set
+
+
+class OOTDynamicTransformProperty(PropertyGroup):
+    billboard: BoolProperty(name="Billboard")
 
 
 class OOTBoneProperty(PropertyGroup):
@@ -130,6 +133,8 @@ class OOT_BonePanel(Panel):
 
 oot_skeleton_classes = (
     OOT_SaveRestPose,
+
+    OOTDynamicTransformProperty,
     OOTBoneProperty,
     OOTSkeletonProperty,
 )
