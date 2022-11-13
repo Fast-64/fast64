@@ -1,6 +1,7 @@
 import bpy, math, os, re
 from bpy.utils import register_class, unregister_class
 from .oot_constants import ootSceneIDToName
+from typing import Callable
 
 
 def isPathObject(obj: bpy.types.Object) -> bool:
@@ -706,3 +707,119 @@ def oot_utility_register():
 def oot_utility_unregister():
     for cls in reversed(oot_utility_classes):
         unregister_class(cls)
+
+
+def getActiveHeaderIndex() -> int:
+    # All scenes/rooms should have synchronized tabs from property callbacks
+    headerObjs = [obj for obj in bpy.data.objects if obj.ootEmptyType == "Scene" or obj.ootEmptyType == "Room"]
+    if len(headerObjs) == 0:
+        return 0
+
+    headerObj = headerObjs[0]
+    if headerObj.ootEmptyType == "Scene":
+        header = headerObj.ootSceneHeader
+        altHeader = headerObj.ootAlternateSceneHeaders
+    else:
+        header = headerObj.ootRoomHeader
+        altHeader = headerObj.ootAlternateRoomHeaders
+
+    if header.menuTab != "Alternate":
+        headerIndex = 0
+    else:
+        if altHeader.headerMenuTab == "Child Night":
+            headerIndex = 1
+        elif altHeader.headerMenuTab == "Adult Day":
+            headerIndex = 2
+        elif altHeader.headerMenuTab == "Adult Night":
+            headerIndex = 3
+        else:
+            headerIndex = altHeader.currentCutsceneIndex
+
+    return (
+        headerIndex,
+        altHeader.childNightHeader.usePreviousHeader,
+        altHeader.adultDayHeader.usePreviousHeader,
+        altHeader.adultNightHeader.usePreviousHeader,
+    )
+
+
+def setAllActorsVisibility(self, context: bpy.types.Context):
+    activeHeaderInfo = getActiveHeaderIndex()
+
+    actorObjs = [
+        obj
+        for obj in bpy.data.objects
+        if obj.ootEmptyType in ["Actor", "Transition Actor", "Entrance"] or isPathObject(obj)
+    ]
+
+    for actorObj in actorObjs:
+        setActorVisibility(actorObj, activeHeaderInfo)
+
+
+def setActorVisibility(actorObj: bpy.types.Object, activeHeaderInfo: tuple[int, bool, bool, bool]):
+    headerIndex, childNightHeader, adultDayHeader, adultNightHeader = activeHeaderInfo
+    usePreviousHeader = [False, childNightHeader, adultDayHeader, adultNightHeader]
+    if headerIndex < 4:
+        while usePreviousHeader[headerIndex]:
+            headerIndex -= 1
+
+    headerSettings = getHeaderSettings(actorObj)
+    if headerSettings is None:
+        return
+    if headerSettings.sceneSetupPreset == "All Scene Setups":
+        actorObj.hide_set(False)
+    elif headerSettings.sceneSetupPreset == "All Non-Cutscene Scene Setups":
+        actorObj.hide_set(headerIndex >= 4)
+    elif headerSettings.sceneSetupPreset == "Custom":
+        actorObj.hide_set(not headerSettings.checkHeader(headerIndex))
+    else:
+        print("Error: unhandled header case")
+
+
+def onMenuTabChange(self, context: bpy.types.Context):
+    def callback(thisHeader, otherObj: bpy.types.Object):
+        if otherObj.ootEmptyType == "Scene":
+            header = otherObj.ootSceneHeader
+        else:
+            header = otherObj.ootRoomHeader
+
+        if thisHeader.menuTab != "Alternate" and header.menuTab == "Alternate":
+            header.menuTab = "General"
+        if thisHeader.menuTab == "Alternate" and header.menuTab != "Alternate":
+            header.menuTab = "Alternate"
+
+    onHeaderPropertyChange(self, context, callback)
+
+
+def onHeaderMenuTabChange(self, context: bpy.types.Context):
+    def callback(thisHeader, otherObj: bpy.types.Object):
+        if otherObj.ootEmptyType == "Scene":
+            header = otherObj.ootAlternateSceneHeaders
+        else:
+            header = otherObj.ootAlternateRoomHeaders
+
+        header.headerMenuTab = thisHeader.headerMenuTab
+        header.currentCutsceneIndex = thisHeader.currentCutsceneIndex
+
+    onHeaderPropertyChange(self, context, callback)
+
+
+def onHeaderPropertyChange(self, context: bpy.types.Context, callback: Callable[[any, bpy.types.Object], None]):
+    if not bpy.context.scene.fast64.oot.headerTabAffectsVisibility or bpy.context.scene.ootActiveHeaderLock:
+        return
+    bpy.context.scene.ootActiveHeaderLock = True
+
+    thisHeader = self
+    thisObj = context.object
+    otherObjs = [
+        obj
+        for obj in bpy.data.objects
+        if (obj.ootEmptyType == "Scene" or obj.ootEmptyType == "Room") and obj != thisObj
+    ]
+
+    for otherObj in otherObjs:
+        callback(thisHeader, otherObj)
+
+    setAllActorsVisibility(self, context)
+
+    bpy.context.scene.ootActiveHeaderLock = False

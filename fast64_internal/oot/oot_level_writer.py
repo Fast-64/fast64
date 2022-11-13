@@ -6,7 +6,7 @@ from .c_writer.oot_scene_table_c import modifySceneTable
 from .c_writer.oot_spec import modifySegmentDefinition
 from .c_writer.oot_scene_folder import modifySceneFiles
 from .c_writer.oot_scene_bootup import setBootupScene
-from .oot_scene_room import OOTRoomHeaderProperty, OOTAlternateRoomHeaderProperty
+from .room.panel.properties import OOTRoomHeaderProperty, OOTAlternateRoomHeaderProperty
 from .oot_cutscene import convertCutsceneObject, readCutsceneData
 from .oot_spline import assertCurveValid, ootConvertPath
 from .oot_model_classes import OOTModel

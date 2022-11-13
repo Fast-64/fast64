@@ -3,7 +3,8 @@ from random import random
 
 from .oot_f3d_writer import getColliderMat
 from .oot_level import OOTImportSceneSettingsProperty
-from .oot_scene_room import OOTSceneHeaderProperty, OOTRoomHeaderProperty, OOTLightProperty
+from .scene.panel.properties import OOTSceneHeaderProperty, OOTLightProperty
+from .room.panel.properties import OOTRoomHeaderProperty
 from .oot_actor import OOTActorProperty
 from .oot_utility import (
     getHeaderSettings,
@@ -12,6 +13,7 @@ from .oot_utility import (
     ootParseRotation,
     sceneNameFromID,
     ootGetPath,
+    setAllActorsVisibility,
 )
 from .oot_constants import (
     ootEnumCamTransition,
@@ -32,7 +34,7 @@ from .oot_constants import (
     ootEnumRoomShapeType,
     ootEnumObjectID,
 )
-from .oot_actor import OOTActorHeaderProperty, setAllActorsVisibility
+from .oot_actor import OOTActorHeaderProperty
 from .c_writer.oot_scene_table_c import getDrawConfig
 from ..utility import yUpToZUp, parentObject, hexOrDecInt, gammaInverse
 from ..f3d.f3d_parser import parseMatrices, importMeshC

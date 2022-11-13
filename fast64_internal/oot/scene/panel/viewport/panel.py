@@ -1,11 +1,11 @@
 from bpy.utils import register_class, unregister_class
 from .....utility import customExportWarning, prop_split
-from ....c_writer.oot_scene_bootup import OOT_ClearBootupScene, ootSceneBootupRegister, ootSceneBootupUnregister
 from .....panels import OOT_Panel
+from ....c_writer.oot_scene_bootup import OOT_ClearBootupScene, ootSceneBootupRegister, ootSceneBootupUnregister
 from ....oot_constants import ootEnumSceneID
-from ....oot_scene_room import OOT_SearchSceneEnumOperator
 from ....oot_utility import getEnumName
 from ....oot_level import OOTExportSceneSettingsProperty, OOTImportSceneSettingsProperty, OOTRemoveSceneSettingsProperty
+from ..properties import OOT_SearchSceneEnumOperator
 from .operators import OOT_ImportScene, OOT_ExportScene, OOT_RemoveScene
 
 

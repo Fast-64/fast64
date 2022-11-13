@@ -19,22 +19,28 @@ from .oot_actor import (
     drawEntranceProperty,
 )
 
-from .oot_scene_room import (
-    OOTRoomHeaderProperty,
+from .scene.panel.properties import (
     OOTSceneHeaderProperty,
     OOTAlternateSceneHeaderProperty,
-    OOTAlternateRoomHeaderProperty,
     OOTSceneProperties,
     OOT_SearchMusicSeqEnumOperator,
-    OOT_SearchObjectEnumOperator,
     OOT_SearchSceneEnumOperator,
     OOTLightProperty,
     OOTLightGroupProperty,
-    OOTObjectProperty,
     OOTExitProperty,
     OOTSceneTableEntryProperty,
     OOTExtraCutsceneProperty,
+)
+
+from .room.panel.properties import (
+    OOTRoomHeaderProperty,
+    OOTAlternateRoomHeaderProperty,
+    OOT_SearchObjectEnumOperator,
+    OOTObjectProperty,
     OOTBGProperty,
+)
+
+from .oot_scene_room import (
     drawSceneHeaderProperty,
     drawAlternateSceneHeaderProperty,
     drawRoomHeaderProperty,
