@@ -143,4 +143,3 @@ def room_props_classes_unregister():
 
     for cls in reversed(classes):
         unregister_class(cls)
-

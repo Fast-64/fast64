@@ -179,11 +179,13 @@ def collision_props_classes_register():
     Scene.ootColLevelName = StringProperty(name="Name", default="SCENE_YDAN")
     Object.ootCameraPositionProperty = PointerProperty(type=OOTCameraPositionProperty)
     Material.ootCollisionProperty = PointerProperty(type=OOTMaterialCollisionProperty)
+    Object.ootWaterBoxProperty = PointerProperty(type=OOTWaterBoxProperty)
 
 
 def collision_props_classes_unregister():
     # Collision
     del Scene.ootColLevelName
+    del Object.ootWaterBoxProperty
 
     for cls in reversed(oot_col_classes):
         unregister_class(cls)

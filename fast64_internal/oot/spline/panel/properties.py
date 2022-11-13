@@ -3,8 +3,9 @@ from bpy.props import EnumProperty, PointerProperty, StringProperty, IntProperty
 from bpy.utils import register_class, unregister_class
 from ....utility import prop_split
 from ...oot_utility import getSceneObj, drawEnumWithCustom
-from ...oot_actor import drawActorHeaderProperty, OOTActorHeaderProperty
+from ...oot_actor import drawActorHeaderProperty
 from ...oot_collision_classes import ootEnumCameraCrawlspaceSType
+from ...actor.panel.properties import OOTActorHeaderProperty
 
 
 ##############
@@ -20,9 +21,9 @@ class OOTSplineProperty(PropertyGroup):
     camSTypeCustom: StringProperty(default="CAM_SET_CRAWLSPACE")
 
 
-##############
-#    Panel   #
-##############
+#############
+#   Panel   #
+#############
 class OOTSplinePanel(Panel):
     bl_label = "Spline Inspector"
     bl_idname = "OBJECT_PT_OOT_Spline_Inspector"

@@ -11,6 +11,7 @@ from .c_writer import OOTBootupSceneOptions
 from .scene.panel.properties import scene_props_classes_register, scene_props_classes_unregister
 from .cutscene.panel.properties import cutscene_props_classes_register, cutscene_props_classes_unregister
 from .room.panel.properties import room_props_classes_register, room_props_classes_unregister
+from .actor.panel.properties import actor_props_classes_register, actor_props_classes_unregister
 
 from .oot_f3d_writer import (
     oot_dl_writer_panel_register,
@@ -160,6 +161,7 @@ def oot_register(registerPanels):
     cutscene_props_classes_register()
     scene_props_classes_register()
     room_props_classes_register()
+    actor_props_classes_register()
     oot_obj_register()
     spline_props_classes_register()
     oot_dl_writer_register()
@@ -191,6 +193,7 @@ def oot_unregister(unregisterPanels):
     cutscene_props_classes_unregister()
     scene_props_classes_unregister()
     room_props_classes_unregister()
+    actor_props_classes_unregister()
     spline_props_classes_unregister()
     oot_dl_writer_unregister()
     anim_viewport_classes_unregister()

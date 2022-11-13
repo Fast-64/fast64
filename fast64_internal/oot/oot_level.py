@@ -1,26 +1,17 @@
 import bpy
 from bpy.utils import register_class, unregister_class
 from ..utility import prop_split, gammaInverse
-from .collision.panel.properties import OOTWaterBoxProperty
 from .oot_collision import drawWaterBoxProperty
 from .oot_constants import ootEnumEmptyType
 from .oot_utility import getSceneObj, getRoomObj
 from .oot_cutscene import drawCutsceneProperty
+from .scene.panel.properties import OOTSceneProperties
 
 from .oot_actor import (
-    OOTActorProperty,
-    OOTTransitionActorProperty,
-    OOTEntranceProperty,
-    OOT_SearchActorIDEnumOperator,
-    OOTActorHeaderItemProperty,
-    OOTActorHeaderProperty,
     drawActorProperty,
     drawTransitionActorProperty,
     drawEntranceProperty,
 )
-
-from .scene.panel.properties import OOTSceneProperties
-
 
 from .oot_scene_room import (
     drawSceneHeaderProperty,
@@ -30,7 +21,7 @@ from .oot_scene_room import (
 )
 
 
-def headerSettingsToIndices(headerSettings):
+def headerSettingsToIndices(headerSettings):  # unused?
     headers = set()
     if headerSettings.childDayHeader:
         headers.add(0)
@@ -44,6 +35,62 @@ def headerSettingsToIndices(headerSettings):
         headers.add(cutsceneHeader.headerIndex)
 
     return headers
+
+
+def drawSceneHeader(box: bpy.types.UILayout, obj: bpy.types.Object):
+    objName = obj.name
+    drawSceneHeaderProperty(box, obj.ootSceneHeader, None, None, objName)
+    if obj.ootSceneHeader.menuTab == "Alternate":
+        drawAlternateSceneHeaderProperty(box, obj.ootAlternateSceneHeaders, objName)
+    box.prop(obj.fast64.oot.scene, "write_dummy_room_list")
+
+
+def drawLODProperty(box, obj):
+    col = box.column()
+    col.box().label(text="LOD Settings (Blender Units)")
+    for otherObj in obj.children:
+        if bpy.context.scene.exportHiddenGeometry or not otherObj.hide_get():
+            prop_split(col, otherObj, "f3d_lod_z", otherObj.name)
+    col.prop(obj, "f3d_lod_always_render_farthest")
+
+
+def setLightPropertyValues(lightProp, ambient, diffuse0, diffuse1, fogColor, fogNear):
+    lightProp.ambient = gammaInverse([value / 255 for value in ambient]) + [1]
+    lightProp.diffuse0 = gammaInverse([value / 255 for value in diffuse0]) + [1]
+    lightProp.diffuse1 = gammaInverse([value / 255 for value in diffuse1]) + [1]
+    lightProp.fogColor = gammaInverse([value / 255 for value in fogColor]) + [1]
+    lightProp.fogNear = fogNear
+
+
+def onUpdateOOTEmptyType(self, context):
+    isNoneEmpty = self.ootEmptyType == "None"
+    isBoxEmpty = self.ootEmptyType == "Water Box"
+    isSphereEmpty = self.ootEmptyType == "Cull Group"
+    self.show_name = not (isBoxEmpty or isNoneEmpty or isSphereEmpty)
+    self.show_axis = not (isBoxEmpty or isNoneEmpty or isSphereEmpty)
+
+    if isBoxEmpty:
+        self.empty_display_type = "CUBE"
+
+    if isSphereEmpty:
+        self.empty_display_type = "SPHERE"
+
+    if self.ootEmptyType == "Scene":
+        if len(self.ootSceneHeader.lightList) == 0:
+            light = self.ootSceneHeader.lightList.add()
+        if not self.ootSceneHeader.timeOfDayLights.defaultsSet:
+            self.ootSceneHeader.timeOfDayLights.defaultsSet = True
+            timeOfDayLights = self.ootSceneHeader.timeOfDayLights
+            setLightPropertyValues(
+                timeOfDayLights.dawn, [70, 45, 57], [180, 154, 138], [20, 20, 60], [140, 120, 100], 0x3E1
+            )
+            setLightPropertyValues(
+                timeOfDayLights.day, [105, 90, 90], [255, 255, 240], [50, 50, 90], [100, 100, 120], 0x3E4
+            )
+            setLightPropertyValues(
+                timeOfDayLights.dusk, [120, 90, 0], [250, 135, 50], [30, 30, 60], [120, 70, 50], 0x3E3
+            )
+            setLightPropertyValues(timeOfDayLights.night, [40, 70, 100], [20, 20, 35], [50, 50, 100], [0, 0, 30], 0x3E0)
 
 
 class OOTObjectPanel(bpy.types.Panel):
@@ -104,65 +151,6 @@ class OOTObjectPanel(bpy.types.Panel):
         elif obj.ootEmptyType == "None":
             box.label(text="Geometry can be parented to this.")
 
-        # if obj.ootEmptyType != "Scene" and obj.ootEmptyType != "Room":
-        # 	drawParentSceneRoom(box, context.object)
-
-
-def drawSceneHeader(box: bpy.types.UILayout, obj: bpy.types.Object):
-    objName = obj.name
-    drawSceneHeaderProperty(box, obj.ootSceneHeader, None, None, objName)
-    if obj.ootSceneHeader.menuTab == "Alternate":
-        drawAlternateSceneHeaderProperty(box, obj.ootAlternateSceneHeaders, objName)
-    box.prop(obj.fast64.oot.scene, "write_dummy_room_list")
-
-
-def drawLODProperty(box, obj):
-    col = box.column()
-    col.box().label(text="LOD Settings (Blender Units)")
-    for otherObj in obj.children:
-        if bpy.context.scene.exportHiddenGeometry or not otherObj.hide_get():
-            prop_split(col, otherObj, "f3d_lod_z", otherObj.name)
-    col.prop(obj, "f3d_lod_always_render_farthest")
-
-
-def setLightPropertyValues(lightProp, ambient, diffuse0, diffuse1, fogColor, fogNear):
-    lightProp.ambient = gammaInverse([value / 255 for value in ambient]) + [1]
-    lightProp.diffuse0 = gammaInverse([value / 255 for value in diffuse0]) + [1]
-    lightProp.diffuse1 = gammaInverse([value / 255 for value in diffuse1]) + [1]
-    lightProp.fogColor = gammaInverse([value / 255 for value in fogColor]) + [1]
-    lightProp.fogNear = fogNear
-
-
-def onUpdateOOTEmptyType(self, context):
-    isNoneEmpty = self.ootEmptyType == "None"
-    isBoxEmpty = self.ootEmptyType == "Water Box"
-    isSphereEmpty = self.ootEmptyType == "Cull Group"
-    self.show_name = not (isBoxEmpty or isNoneEmpty or isSphereEmpty)
-    self.show_axis = not (isBoxEmpty or isNoneEmpty or isSphereEmpty)
-
-    if isBoxEmpty:
-        self.empty_display_type = "CUBE"
-
-    if isSphereEmpty:
-        self.empty_display_type = "SPHERE"
-
-    if self.ootEmptyType == "Scene":
-        if len(self.ootSceneHeader.lightList) == 0:
-            light = self.ootSceneHeader.lightList.add()
-        if not self.ootSceneHeader.timeOfDayLights.defaultsSet:
-            self.ootSceneHeader.timeOfDayLights.defaultsSet = True
-            timeOfDayLights = self.ootSceneHeader.timeOfDayLights
-            setLightPropertyValues(
-                timeOfDayLights.dawn, [70, 45, 57], [180, 154, 138], [20, 20, 60], [140, 120, 100], 0x3E1
-            )
-            setLightPropertyValues(
-                timeOfDayLights.day, [105, 90, 90], [255, 255, 240], [50, 50, 90], [100, 100, 120], 0x3E4
-            )
-            setLightPropertyValues(
-                timeOfDayLights.dusk, [120, 90, 0], [250, 135, 50], [30, 30, 60], [120, 70, 50], 0x3E3
-            )
-            setLightPropertyValues(timeOfDayLights.night, [40, 70, 100], [20, 20, 35], [50, 50, 100], [0, 0, 30], 0x3E0)
-
 
 class OOT_ObjectProperties(bpy.types.PropertyGroup):
     version: bpy.props.IntProperty(name="OOT_ObjectProperties Version", default=0)
@@ -189,14 +177,6 @@ class OOTCullGroupProperty(bpy.types.PropertyGroup):
 oot_obj_classes = (
     OOTSceneProperties,
     OOT_ObjectProperties,
-
-    OOT_SearchActorIDEnumOperator,
-    OOTActorHeaderItemProperty,
-    OOTActorHeaderProperty,
-    OOTActorProperty,
-    OOTTransitionActorProperty,
-    OOTEntranceProperty,
-
     OOTCullGroupProperty,
 )
 
@@ -213,10 +193,6 @@ def oot_obj_panel_unregister():
         unregister_class(cls)
 
 
-def isSceneObj(self, obj):
-    return obj.data is None and obj.ootEmptyType == "Scene"
-
-
 def oot_obj_register():
     for cls in oot_obj_classes:
         register_class(cls)
@@ -225,27 +201,14 @@ def oot_obj_register():
         name="OOT Object Type", items=ootEnumEmptyType, default="None", update=onUpdateOOTEmptyType
     )
 
-    bpy.types.Scene.ootSceneExportObj = bpy.props.PointerProperty(type=bpy.types.Object, poll=isSceneObj)
     bpy.types.Scene.ootActiveHeaderLock = bpy.props.BoolProperty(default=False)
-
-    bpy.types.Object.ootActorProperty = bpy.props.PointerProperty(type=OOTActorProperty)
-    bpy.types.Object.ootTransitionActorProperty = bpy.props.PointerProperty(type=OOTTransitionActorProperty)
-    bpy.types.Object.ootWaterBoxProperty = bpy.props.PointerProperty(type=OOTWaterBoxProperty)
-    bpy.types.Object.ootEntranceProperty = bpy.props.PointerProperty(type=OOTEntranceProperty)
-
     bpy.types.Object.ootCullGroupProperty = bpy.props.PointerProperty(type=OOTCullGroupProperty)
 
 
 def oot_obj_unregister():
-    del bpy.types.Scene.ootSceneExportObj
     del bpy.types.Scene.ootActiveHeaderLock
-
     del bpy.types.Object.ootEmptyType
-
-    del bpy.types.Object.ootActorProperty
-    del bpy.types.Object.ootTransitionActorProperty
-    del bpy.types.Object.ootWaterBoxProperty
-    del bpy.types.Object.ootEntranceProperty
+    del bpy.types.Object.ootCullGroupProperty
 
     for cls in reversed(oot_obj_classes):
         unregister_class(cls)

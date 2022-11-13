@@ -1,5 +1,5 @@
 from bpy.utils import register_class, unregister_class
-from bpy.types import Scene
+from bpy.types import Scene, Object
 from bpy.props import PointerProperty
 from .....utility import customExportWarning, prop_split
 from .....panels import OOT_Panel
@@ -82,6 +82,10 @@ oot_level_classes = (
 oot_level_panel_classes = (OOT_ExportScenePanel,)
 
 
+def isSceneObj(self, obj):
+    return obj.data is None and obj.ootEmptyType == "Scene"
+
+
 def oot_level_panel_register():
     for cls in oot_level_panel_classes:
         register_class(cls)
@@ -98,17 +102,19 @@ def oot_level_register():
 
     ootSceneBootupRegister()
 
+    Scene.ootSceneExportObj = PointerProperty(type=Object, poll=isSceneObj)
     Scene.ootSceneExportSettings = PointerProperty(type=OOTExportSceneSettingsProperty)
     Scene.ootSceneImportSettings = PointerProperty(type=OOTImportSceneSettingsProperty)
     Scene.ootSceneRemoveSettings = PointerProperty(type=OOTRemoveSceneSettingsProperty)
 
 
 def oot_level_unregister():
+    del Scene.ootSceneExportObj
+    del Scene.ootSceneExportSettings
+    del Scene.ootSceneImportSettings
+    del Scene.ootSceneRemoveSettings
+
     for cls in reversed(oot_level_classes):
         unregister_class(cls)
 
     ootSceneBootupUnregister()
-
-    del Scene.ootSceneExportSettings
-    del Scene.ootSceneImportSettings
-    del Scene.ootSceneRemoveSettings
