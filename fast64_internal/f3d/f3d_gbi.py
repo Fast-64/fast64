@@ -1743,8 +1743,8 @@ class FSetTileSizeScrollField:
 def tile_func(direction: str, speed: int, cmd_num: int):
     if speed == 0 or speed is None:
         return None
+
     if cmd_num == -1:
-        # put some warning here or something?
         return None
 
     func = f"shift_{direction}"
@@ -1956,7 +1956,7 @@ class GfxFormatter:
 
         tile_scroll_tex0 = fMaterial.scrollData.tile_scroll_tex0
         tile_scroll_tex1 = fMaterial.scrollData.tile_scroll_tex1
-        set_tex = any(fMaterial.texturesLoaded)  # make warning if not set somehow?
+        set_tex = any(fMaterial.texturesLoaded)
         if fMaterial.scrollData.tile_scroll_exported and not bpy.context.scene.exportInlineF3D:
             return None
         if (tile_scroll_tex0.s or tile_scroll_tex0.t or tile_scroll_tex1.s or tile_scroll_tex1.t) and set_tex:
