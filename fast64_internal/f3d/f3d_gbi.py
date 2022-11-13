@@ -2958,7 +2958,7 @@ class Hilite:
         return self.x1, self.y1, self.x2, self.y2
 
     def to_binary(self):
-        return (a.to_bytes(4, "big") for a in self.fields)
+        return b"".join(a.to_bytes(4, "big") for a in self.fields)
 
     def to_c(self):
         return f"Hilite {self.name} = {{{', '.join(str(a) for a in self.fields)}}}"
