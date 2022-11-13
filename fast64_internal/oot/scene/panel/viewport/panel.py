@@ -6,8 +6,7 @@ from ....oot_constants import ootEnumSceneID
 from ....oot_scene_room import OOT_SearchSceneEnumOperator
 from ....oot_utility import getEnumName
 from ....oot_level import OOTExportSceneSettingsProperty, OOTImportSceneSettingsProperty, OOTRemoveSceneSettingsProperty
-from ....oot_level_parser import OOT_ImportScene
-from .operators import OOT_ExportScene, OOT_RemoveScene
+from .operators import OOT_ImportScene, OOT_ExportScene, OOT_RemoveScene
 
 
 class OOT_ExportScenePanel(OOT_Panel):

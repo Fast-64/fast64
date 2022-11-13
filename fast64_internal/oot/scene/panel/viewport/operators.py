@@ -1,3 +1,4 @@
+import bpy
 from bpy.types import Operator
 from bpy.ops import object
 from bpy.path import abspath
@@ -9,6 +10,7 @@ from ....c_writer.oot_scene_folder import deleteSceneFiles
 from .....utility import PluginError, raisePluginError
 from ....oot_utility import ExportInfo, sceneNameFromID
 from ....oot_level_writer import ootExportSceneToC
+from ....oot_level_parser import parseScene
 from ....oot_level import OOTRemoveSceneSettingsProperty
 
 
@@ -16,6 +18,58 @@ def ootRemoveSceneC(exportInfo):
     modifySceneTable(None, exportInfo)
     modifySegmentDefinition(None, exportInfo, None)
     deleteSceneFiles(exportInfo)
+
+
+def run_ops_without_view_layer_update(func):
+    from bpy.ops import _BPyOpsSubModOp
+
+    view_layer_update = _BPyOpsSubModOp._view_layer_update
+
+    def dummy_view_layer_update(context):
+        pass
+
+    try:
+        _BPyOpsSubModOp._view_layer_update = dummy_view_layer_update
+        func()
+
+    finally:
+        _BPyOpsSubModOp._view_layer_update = view_layer_update
+
+
+def parseSceneFunc():
+    context = bpy.context
+    settings = context.scene.ootSceneImportSettings
+    parseScene(
+        context.scene.f3d_type,
+        context.scene.isHWv1,
+        settings,
+        settings.option,
+    )
+
+
+class OOT_ImportScene(bpy.types.Operator):
+    """Import an OOT scene from C."""
+
+    bl_idname = "object.oot_import_level"
+    bl_label = "Import Scene"
+    bl_options = {"REGISTER", "UNDO", "PRESET"}
+
+    def execute(self, context):
+        try:
+            if context.mode != "OBJECT":
+                object.mode_set(mode="OBJECT")
+            object.select_all(action="DESELECT")
+
+            run_ops_without_view_layer_update(parseSceneFunc)
+
+            self.report({"INFO"}, "Success!")
+            return {"FINISHED"}
+
+        except Exception as e:
+            if context.mode != "OBJECT":
+                object.mode_set(mode="OBJECT")
+            raisePluginError(self, e)
+            return {"CANCELLED"}
 
 
 class OOT_ExportScene(Operator):
