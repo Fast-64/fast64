@@ -4,6 +4,7 @@ from dataclasses import dataclass, fields
 import bpy, os, enum, copy
 from ..utility import *
 
+
 class ScrollMethod(enum.Enum):
     Vertex = 1
     Tile = 2
@@ -1985,7 +1986,7 @@ class Vtx:
 
     def to_c(self):
         spc = lambda x: ", ".join([str(a) for a in x])
-        return (f"{{{{ {{{spc(self.position)}}}, 0, {{{spc(self.uv)}}}, {{{spc(self.colorOrNormal)}}} }}}}")
+        return f"{{{{ {{{spc(self.position)}}}, 0, {{{spc(self.uv)}}}, {{{spc(self.colorOrNormal)}}} }}}}"
 
 
 class VtxList:
@@ -2047,8 +2048,13 @@ class GfxList:
 
     # Size, including display lists called with SPDisplayList
     def size_total(self, f3d):
-        siz_tot = lambda x: isinstance(command, SPDisplayList) and command.displayList.DLFormat != DLFormat.Static
-        return sum([command.size(f3d) if siz_tot(command) else command.displayList.size_total(f3d) for command in self.commands])
+        use_siz_tot = lambda x: isinstance(command, SPDisplayList) and command.displayList.DLFormat != DLFormat.Static
+        return sum(
+            [
+                command.displayList.size_total(f3d) if use_siz_tot(command) else command.size(f3d)
+                for command in self.commands
+            ]
+        )
 
     def get_ptr_addresses(self, f3d):
         ptrs = []
@@ -2649,8 +2655,6 @@ class FMesh:
         self.triangleGroups: list[FTriGroup] = []
         # VtxList
         self.cullVertexList = None
-        # dict of mat: mesh_desc used for inline Gfx only
-        self.MatGroups = dict()
         # dict of (override Material, specified Material to override,
         # overrideType, draw layer) : GfxList
         self.drawMatOverrides = {}
@@ -2800,6 +2804,7 @@ class FScrollData:
 def get_f3d_mat_from_version(material: bpy.types.Material):
     return material.f3d_mat if material.mat_ver > 3 else material
 
+
 class FMaterial:
     def __init__(self, name, DLFormat):
         self.material = GfxList("mat_" + name, GfxListTag.Material, DLFormat)
@@ -2815,7 +2820,7 @@ class FMaterial:
 
         self.useLargeTextures = False
         self.largeTextureIndex = None
-        self.texturesLoaded = [False]*8#up to 8 textures loaded
+        self.texturesLoaded = [False, False]
 
     def getScrollData(self, material, dimensions):
         self.getScrollDataField(material, 0, 0)
@@ -2869,10 +2874,6 @@ class FMaterial:
             addresses.extend(self.revert.get_ptr_addresses(f3d))
         return addresses
 
-    # Called after self.textures list is built
-    def onTextureBuilt(self, fImage, texIndex):
-        pass
-
     def set_addr(self, startAddress, f3d):
         addrRange = self.material.set_addr(startAddress, f3d)
         startAddress = addrRange[0]
@@ -2891,12 +2892,6 @@ class FMaterial:
         if self.revert is not None:
             data.append(self.revert.to_c(f3d))
         return data
-
-
-    tri_list: FTriGroup #or just a list
-    fMaterial: FMaterial
-    defaultRenderMode: tuple
-    bleed: bleed_gfx
 
 
 # viewport
@@ -2923,7 +2918,7 @@ class Light:
         return bytearray(self.color + [0x00] + self.color + [0x00] + self.normal + [0x00] + [0x00] * 4)
 
     def to_c(self):
-        return ', '.join([f"0x{a:X}" for a in (*self.color, *self.normal)])
+        return ", ".join([f"0x{a:X}" for a in (*self.color, *self.normal)])
 
 
 class Ambient:
@@ -2942,7 +2937,7 @@ class Ambient:
         return bytearray(self.color + [0x00] + self.color + [0x00])
 
     def to_c(self):
-        return ', '.join([f"0x{a:X}" for a in self.color])
+        return ", ".join([f"0x{a:X}" for a in self.color])
 
 
 class Hilite:
@@ -2953,6 +2948,7 @@ class Hilite:
         self.y1 = y1
         self.x2 = x2
         self.y2 = y2
+
     def fields(self):
         return self.x1, self.y1, self.x2, self.y2
 
@@ -2960,7 +2956,7 @@ class Hilite:
         return (a.to_bytes(4, "big") for a in self.fields)
 
     def to_c(self):
-        return (f"Hilite {self.name} = {{{', '.join(str(a) for a in self.fields)}}}")
+        return f"Hilite {self.name} = {{{', '.join(str(a) for a in self.fields)}}}"
 
 
 class Lights:
@@ -3021,13 +3017,21 @@ class LookAt:
     def to_c(self):
         # {{}} => lookat, light array,
         # {{}} => light, light_t
-        spc = lambda x: ', '.join(str(c) for c in x)
+        spc = lambda x: ", ".join(str(c) for c in x)
         return (
             f"LookAt {self.name} = {{{{"
-            + "{{{"+ spc(self.l[0].color) + "}, 0, "
-            + "{" + spc(self.l[0].normal) + "}, 0 }}"
-            + "{{{" + spc(self.l[1].color) + "}, 0, "
-            + "{" + spc(self.l[0].normal) + "}, 0}}"
+            + "{{{"
+            + spc(self.l[0].color)
+            + "}, 0, "
+            + "{"
+            + spc(self.l[0].normal)
+            + "}, 0 }}"
+            + "{{{"
+            + spc(self.l[1].color)
+            + "}, 0, "
+            + "{"
+            + spc(self.l[0].normal)
+            + "}, 0}}"
             + "}}\n"
         )
 
@@ -3136,7 +3140,8 @@ def gsDma2p(c, adrs, length, idx, ofs):
 def gsSPNoOp(f3d):
     return gsDma0p(f3d.G_SPNOOP, 0, 0)
 
-#base class for gbi macros
+
+# base class for gbi macros
 @dataclass
 class GbiMacro:
     _segptrs = False
@@ -3186,6 +3191,7 @@ class SPMatrix(GbiMacro):
 # TODO: Divide vertlist into sections
 # Divide mesh drawing by materials into separate gfx
 
+
 @dataclass
 class SPVertex(GbiMacro):
     # v = seg pointer, n = count, v0  = ?
@@ -3193,7 +3199,7 @@ class SPVertex(GbiMacro):
     offset: int
     count: int
     index: int
-    _segptrs = True #call segmented_to_virtual in to_c method
+    _segptrs = True  # call segmented_to_virtual in to_c method
 
     def to_binary(self, f3d, segments):
         vertPtr = int.from_bytes(
@@ -3222,11 +3228,12 @@ class SPVertex(GbiMacro):
             header += self.vertList.name + " + " + str(self.offset)
         return header + ", " + str(self.count) + ", " + str(self.index) + ")"
 
+
 @dataclass
 class SPViewport(GbiMacro):
     # v = seg pointer, n = count, v0  = ?
     viewport: Vp
-    _ptr_amp = True #add an ampersand to names
+    _ptr_amp = True  # add an ampersand to names
 
     def to_binary(self, f3d, segments):
         vpPtr = int.from_bytes(encodeSegmentedAddr(self.viewport.startAddress, segments), "big")
@@ -3261,7 +3268,7 @@ class SPDisplayList(GbiMacro):
 @dataclass
 class SPBranchList(GbiMacro):
     displayList: GfxList
-    _ptr_amp = True #add an ampersand to names
+    _ptr_amp = True  # add an ampersand to names
 
     def to_binary(self, f3d, segments):
         dlPtr = int.from_bytes(encodeSegmentedAddr(self.displayList.startAddress, segments), "big")
@@ -3553,7 +3560,7 @@ class SPLight(GbiMacro):
     # n is macro name (string)
     light: int  # start address of light
     n: str
-    _segptrs = True #call segmented_to_virtual in to_c method
+    _segptrs = True  # call segmented_to_virtual in to_c method
 
     def to_binary(self, f3d, segments):
         lightPtr = int.from_bytes(encodeSegmentedAddr(self.light, segments), "big")
@@ -3646,7 +3653,7 @@ def gsSPLookAtY(l, f3d):
 @dataclass
 class SPLookAt(GbiMacro):
     la: LookAt
-    _ptr_amp = True #add an ampersand to names
+    _ptr_amp = True  # add an ampersand to names
 
     def to_binary(self, f3d, segments):
         light0Ptr = int.from_bytes(encodeSegmentedAddr(self.la.startAddress, segments), "big")
@@ -3659,7 +3666,7 @@ class DPSetHilite1Tile(GbiMacro):
     hilite: Hilite
     width: int
     height: int
-    _ptr_amp = True #add an ampersand to names
+    _ptr_amp = True  # add an ampersand to names
 
     def to_binary(self, f3d, segments):
         return DPSetTileSize(
@@ -3677,7 +3684,7 @@ class DPSetHilite2Tile(GbiMacro):
     hilite: Hilite
     width: int
     height: int
-    _ptr_amp = True #add an ampersand to names
+    _ptr_amp = True  # add an ampersand to names
 
     def to_binary(self, f3d, segments):
         return DPSetTileSize(
@@ -4198,7 +4205,7 @@ class DPSetTextureImage(GbiMacro):
     siz: str
     width: int
     image: FImage
-    _segptrs = True #calls segmented_to_virtualon name when needed
+    _segptrs = True  # calls segmented_to_virtualon name when needed
 
     def to_binary(self, f3d, segments):
         fmt = f3d.G_IM_FMT_VARS[self.fmt]
@@ -4468,7 +4475,7 @@ class DPLoadTLUTCmd(GbiMacro):
 
 @dataclass
 class DPLoadTextureBlock(GbiMacro):
-    timg:FImage
+    timg: FImage
     fmt: str
     siz: str
     width: int
@@ -4480,7 +4487,7 @@ class DPLoadTextureBlock(GbiMacro):
     maskt: int
     shifts: int
     shiftt: int
-    _ptr_amp = True #adds & to name of image
+    _ptr_amp = True  # adds & to name of image
 
     def to_binary(self, f3d, segments):
         return (
@@ -4541,7 +4548,7 @@ class DPLoadTextureBlock(GbiMacro):
 
 @dataclass
 class DPLoadTextureBlockYuv(GbiMacro):
-    timg:FImage
+    timg: FImage
     fmt: str
     siz: str
     width: int
@@ -4553,7 +4560,7 @@ class DPLoadTextureBlockYuv(GbiMacro):
     maskt: int
     shifts: int
     shiftt: int
-    _ptr_amp = True #adds & to name of image
+    _ptr_amp = True  # adds & to name of image
 
     def to_binary(self, f3d, segments):
         return (
@@ -4619,7 +4626,7 @@ class DPLoadTextureBlockYuv(GbiMacro):
 
 @dataclass
 class _DPLoadTextureBlock(GbiMacro):
-    timg:FImage
+    timg: FImage
     tmem: int
     fmt: str
     siz: str
@@ -4632,7 +4639,7 @@ class _DPLoadTextureBlock(GbiMacro):
     maskt: int
     shifts: int
     shiftt: int
-    _ptr_amp = True #adds & to name of image
+    _ptr_amp = True  # adds & to name of image
 
     def to_binary(self, f3d, segments):
         return (
@@ -4698,7 +4705,7 @@ class _DPLoadTextureBlock(GbiMacro):
 
 @dataclass
 class DPLoadTextureBlock_4b(GbiMacro):
-    timg:FImage
+    timg: FImage
     fmt: str
     siz: str
     width: int
@@ -4710,7 +4717,7 @@ class DPLoadTextureBlock_4b(GbiMacro):
     maskt: int
     shifts: int
     shiftt: int
-    _ptr_amp = True #adds & to name of image
+    _ptr_amp = True  # adds & to name of image
 
     def to_binary(self, f3d, segments):
         return (
@@ -4769,7 +4776,7 @@ class DPLoadTextureBlock_4b(GbiMacro):
 
 @dataclass
 class DPLoadTextureTile(GbiMacro):
-    timg:FImage
+    timg: FImage
     fmt: str
     siz: str
     width: int
@@ -4785,7 +4792,7 @@ class DPLoadTextureTile(GbiMacro):
     maskt: int
     shifts: int
     shiftt: int
-    _ptr_amp = True #adds & to name of image
+    _ptr_amp = True  # adds & to name of image
 
     def to_binary(self, f3d, segments):
         return (
@@ -4845,7 +4852,7 @@ class DPLoadTextureTile(GbiMacro):
 
 @dataclass
 class DPLoadTextureTile_4b(GbiMacro):
-    timg:FImage
+    timg: FImage
     fmt: str
     siz: str
     width: int
@@ -4861,7 +4868,7 @@ class DPLoadTextureTile_4b(GbiMacro):
     maskt: int
     shifts: int
     shiftt: int
-    _ptr_amp = True #adds & to name of image
+    _ptr_amp = True  # adds & to name of image
 
     def to_binary(self, f3d, segments):
         return (
@@ -4922,8 +4929,8 @@ class DPLoadTextureTile_4b(GbiMacro):
 @dataclass
 class DPLoadTLUT_pal16(GbiMacro):
     pal: int
-    dram: FImage # pallete object
-    _ptr_amp = True #adds & to name of image
+    dram: FImage  # pallete object
+    _ptr_amp = True  # adds & to name of image
 
     def to_binary(self, f3d, segments):
         if not f3d._HW_VERSION_1:
@@ -4963,8 +4970,8 @@ class DPLoadTLUT_pal16(GbiMacro):
 
 @dataclass
 class DPLoadTLUT_pal256(GbiMacro):
-    dram: FImage # pallete object
-    _ptr_amp = True #adds & to name of image
+    dram: FImage  # pallete object
+    _ptr_amp = True  # adds & to name of image
 
     def to_binary(self, f3d, segments):
         if not f3d._HW_VERSION_1:
@@ -5004,8 +5011,8 @@ class DPLoadTLUT_pal256(GbiMacro):
 class DPLoadTLUT(GbiMacro):
     count: int
     tmemaddr: int
-    dram: FImage # pallete object
-    _ptr_amp = True #adds & to name of image
+    dram: FImage  # pallete object
+    _ptr_amp = True  # adds & to name of image
 
     def to_binary(self, f3d, segments):
         if not f3d._HW_VERSION_1:
@@ -5182,6 +5189,7 @@ class DPPipeSync(GbiMacro):
 class DPLoadSync(GbiMacro):
     def to_binary(self, f3d, segments):
         return gsDPNoParam(f3d.G_RDPLOADSYNC)
+
 
 F3DClassesWithPointers = [
     SPVertex,
