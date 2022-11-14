@@ -2186,6 +2186,7 @@ def savePaletteLoading(loadTexGfx, revertTexGfx, fPalette, palFormat, pal, color
                 DPSetTextureImage(palFmt, "G_IM_SIZ_16b", 1, fPalette),
                 DPSetTile("0", "0", 0, (256 + (((pal) & 0xF) * 16)), f3d.G_TX_LOADTILE, 0, cmt, 0, 0, cms, 0, 0),
                 DPLoadTLUTCmd(f3d.G_TX_LOADTILE, colorCount - 1),
+                DPLoadSync(),
             ]
         )
     else:
