@@ -806,7 +806,8 @@ def saveMeshByFaces(
     if material.name != lastMaterialName:
         fMesh.add_material_call(fMaterial)
     triGroup = fMesh.tri_group_new(fMaterial)
-    fMesh.draw.commands.append(SPDisplayList(triGroup.triList))
+    if not fMesh.inline:
+        fMesh.draw.commands.append(SPDisplayList(triGroup.triList))
 
     triConverter = TriangleConverter(
         triConverterInfo,
@@ -821,14 +822,15 @@ def saveMeshByFaces(
 
     currentGroupIndex = saveTriangleStrip(triConverter, faces, obj.data, True)
 
-    #to save inline, we need a dict of materials and their corresponding tri groups
+    #inline requires the mesh to revert only a few cmds for safety
     if fModel.inline:
-        fMesh.MatGroups[material] = mesh_desc(triGroup, fMaterial, fModel.getRenderMode(drawLayer), None)
+        if not fMesh.draw.commands:
+            revertMatAndEndDraw(fMesh.draw, [DPSetRenderMode(fModel.getRenderMode(drawLayer), None), DPSetCycleType("G_CYC_1CYCLE"), DPSetTextureLUT("G_TT_NONE")])
         #remove SPEndDisplayList from triGroup
         while(SPEndDisplayList() in triGroup.triList.commands):
             triGroup.triList.commands.remove(SPEndDisplayList())
     
-    if fMaterial.revert is not None:
+    elif fMaterial.revert is not None:
         fMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
 
     return currentGroupIndex

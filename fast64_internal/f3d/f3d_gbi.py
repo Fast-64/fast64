@@ -2243,7 +2243,7 @@ class FModel:
     def addMesh(self, name, namePrefix, drawLayer, isSkinned, contextObj):
         meshName = getFMeshName(name, namePrefix, drawLayer, isSkinned)
         checkUniqueBoneNames(self, meshName, name)
-        self.meshes[meshName] = FMesh(meshName, self.DLFormat)
+        self.meshes[meshName] = FMesh(meshName, self.DLFormat, inline = self.inline)
 
         self.onAddMesh(self.meshes[meshName], contextObj)
 
@@ -2253,7 +2253,8 @@ class FModel:
         return
 
     def endDraw(self, fMesh, contextObj):
-        fMesh.draw.commands.append(SPEndDisplayList())
+        if not fMesh.inline:
+            fMesh.draw.commands.append(SPEndDisplayList())
         self.onEndDraw(fMesh, contextObj)
 
     def onEndDraw(self, fMesh, contextObj):
@@ -2677,16 +2678,15 @@ class FLODGroup:
 
 
 class FMesh:
-    def __init__(self, name, DLFormat):
+    def __init__(self, name, DLFormat, inline = False):
         self.name = name
+        self.inline = inline
         # GfxList
         self.draw = GfxList(name, GfxListTag.Draw, DLFormat)
         # list of FTriGroup
         self.triangleGroups: list[FTriGroup] = []
         # VtxList
         self.cullVertexList = None
-        # dict of mat: mesh_desc used for inline Gfx only
-        self.MatGroups = dict()
         # dict of (override Material, specified Material to override,
         # overrideType, draw layer) : GfxList
         self.drawMatOverrides = {}
@@ -2696,6 +2696,7 @@ class FMesh:
         self.currentFMaterial = None
 
     def add_material_call(self, fMaterial):
+        if self.inline: return
         sameMaterial = self.currentFMaterial is fMaterial
         if not sameMaterial:
             self.currentFMaterial = fMaterial
@@ -2743,19 +2744,17 @@ class FMesh:
             drawOverride.save_binary(romfile, f3d, segments)
 
     def bleed(self, LastMat=None):
-        if not self.MatGroups:
-            return
-        for mat, desc in self.MatGroups.items():
+        for triGroup in self.triangleGroups:
             # bleed mat and tex
-            if desc.fMaterial:
-                bleed_mat = self.bleed_mat(desc.fMaterial, LastMat)
-                bleed_tex, bleed_scr = self.bleed_textures(desc.fMaterial, LastMat)
+            if triGroup.fMaterial:
+                bleed_mat = self.bleed_mat(triGroup.fMaterial, LastMat)
+                bleed_tex, bleed_scr = self.bleed_textures(triGroup.fMaterial, LastMat)
             else:
                 bleed_mat = []
                 bleed_tex = []
             # set bled props to _mesh_desc, update LastMat
-            LastMat = desc.fMaterial
-            desc.bleed = bleed_gfx(bleed_mat, bleed_tex, bleed_scr)
+            LastMat = triGroup.fMaterial
+            triGroup.bleed = bleed_gfx(bleed_mat, bleed_tex, bleed_scr)
         return LastMat
 
     def bleed_textures(self, mat, LastMat):
@@ -2829,57 +2828,49 @@ class FMesh:
             commands_bled.commands.remove(SPEndDisplayList())
         return commands_bled
 
-    def bleed_mesh_defaults(self, desc):
-        Gfx = GfxList(f"{self.name}_revert_render_settings", GfxListTag.MaterialRevert, DLFormat.Static)
-        Gfx.commands.extend(
-            (
-                DPSetRenderMode(desc.defaultRenderMode, None),
-                DPSetCycleType("G_CYC_1CYCLE"),
-            )
-        )
-        return Gfx
+    def bleed_mesh_defaults(self):
+        self.draw.name = f"{self.name}_revert_render_settings"
+        # remove DPPipeSync
+        while DPPipeSync() in self.draw.commands:
+            self.draw.commands.remove(DPPipeSync())
+        return self.draw
 
     def to_c_inline(self, f3d, gfxFormatter):
-        if not self.MatGroups:
-            return self.to_c(self, f3d, gfxFormatter)
         GfxData = CData()
         staticData = CData()
         dynamicData = CData()
         GfxData.header = f"extern Gfx {self.name}[];\n"
         GfxData.source = f"Gfx {self.name}[] = {{\n"
         size = 0
-        for mat, desc in self.MatGroups.items():
+        for triGroup in self.triangleGroups:
             # add in vertex data
-            triGroup = desc.tri_list
-            if not triGroup:
-                continue
             staticData.append(triGroup.vertexList.to_c())
             # add mat, add tex data, then add tri data
-            if desc.bleed.bled_mats:
-                GfxData.append(desc.bleed.bled_mats.to_c_inline(f3d))
-                size += desc.bleed.bled_mats.size(f3d)
+            if triGroup.bleed.bled_mats:
+                GfxData.append(triGroup.bleed.bled_mats.to_c_inline(f3d))
+                size += triGroup.bleed.bled_mats.size(f3d)
             tex_size = 0
-            for tex in desc.bleed.bled_tex:
+            for tex in triGroup.bleed.bled_tex:
                 if tex:
                     GfxData.append(tex.to_c_inline(f3d))
                     tex_size += tex.size(f3d)
             # if there is a scroll, change the TriGroup FMaterial to be a new one for scrolling
-            if desc.bleed.bleed_tile_scroll:
+            if triGroup.bleed.bleed_tile_scroll:
                 scr_mat = FMaterial("scr", DLFormat.Static)
-                for GfxList in desc.bleed.bled_tex:
+                for GfxList in triGroup.bleed.bled_tex:
                     scr_mat.material.commands.extend(GfxList.commands)
                 scr_mat.material.name = f"{self.name} + {size // 8}"
                 scr_mat.name = f"{self.name} + {size // 8}"
-                scr_mat.scrollData = desc.fMaterial.scrollData
-                scr_mat.texturesLoaded = desc.fMaterial.texturesLoaded
+                scr_mat.scrollData = triGroup.fMaterial.scrollData
+                scr_mat.texturesLoaded = triGroup.fMaterial.texturesLoaded
                 triGroup.fMaterial = scr_mat
 
             size += tex_size
             GfxData.append(triGroup.triList.to_c_inline(f3d))
             size += triGroup.triList.size(f3d)
             GfxData.source += f"\t{DPPipeSync().to_c()},\n"  # pipe sync is required after rendering
-        GfxData.append(self.bleed_mesh_defaults(desc).to_c_inline(f3d))  # revert mesh DL
-        GfxData.source += f"\t{SPEndDisplayList().to_c()}\n}};\n"  # end DL
+        GfxData.append(self.bleed_mesh_defaults().to_c_inline(f3d))  # revert mesh DL, also adds end DL
+        GfxData.source += "};\n\n"  # end DL
         staticData.append(GfxData)
         # dynamic data is not used in bleeds
         return staticData, dynamicData
@@ -3080,14 +3071,6 @@ class bleed_gfx:
     bled_mats: GfxList
     bled_tex: list[GfxList]  # list of GfxList
     bleed_tile_scroll: bool
-
-
-@dataclass
-class mesh_desc:
-    tri_list: FTriGroup  # or just a list
-    fMaterial: FMaterial
-    defaultRenderMode: tuple
-    bleed: bleed_gfx
 
 
 # viewport
@@ -4688,6 +4671,14 @@ class DPSetTile(GbiMacro):
     def is_LOADTILE(self, f3d):
         return self.tile == f3d.G_TX_LOADTILE
 
+    # should only be removed if there is no other set tile in this list
+    # that is on the same tile, and has different settings
+    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
+        for cmd in CurList:
+            if type(cmd) is DPSetTile and cmd is not self:
+                if cmd != self:
+                    return False
+        return True
 
 @dataclass
 class DPLoadBlock(GbiMacro):
