@@ -369,8 +369,11 @@ def readRoomData(
     room.disableSunMoon = roomHeader.disableSunMoon
     room.echo = roomHeader.echo
     room.objectList.extend([getCustomProperty(item, "objectID") for item in roomHeader.objectList])
-    if len(room.objectList) > 15:
-        raise PluginError("Error: A scene can only have a maximum of 15 objects (OOT, not blender objects).")
+
+    if len(room.objectList) > 16:
+        print(
+            "Warning: A room can only have a maximum of 16 objects in its object list, unless more memory is allocated in code.",
+        )
 
     if alternateRoomHeaders is not None:
         if not alternateRoomHeaders.childNightHeader.usePreviousHeader:

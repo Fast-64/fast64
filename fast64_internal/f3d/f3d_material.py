@@ -1696,39 +1696,47 @@ def update_tex_values_manual(material: bpy.types.Material, context, prop_path=No
     set_texture_settings_node(material)
 
 
-def getMaterialScrollDimensions(material):
-    useDict = all_combiner_uses(material)
+def shift_num(num: int, amt: int):
+    if amt < 0:
+        return num >> -amt
+    return num << amt
 
-    if (
-        useDict["Texture 0"]
-        and material.tex0.tex is not None
-        and useDict["Texture 1"]
-        and material.tex1.tex is not None
-        and material.tex0.tex.size[0] > 0
-        and material.tex0.tex.size[1] > 0
-        and material.tex1.tex.size[0] > 0
-        and material.tex1.tex.size[1] > 0
-    ):
-        if material.uv_basis == "TEXEL0":
-            return material.tex0.tex.size
-        else:
-            return material.tex1.tex.size
-    elif (
-        useDict["Texture 1"]
-        and material.tex1.tex is not None
-        and material.tex1.tex.size[0] > 0
-        and material.tex1.tex.size[1] > 0
-    ):
-        return material.tex1.tex.size
-    elif (
-        useDict["Texture 0"]
-        and material.tex0.tex is not None
-        and material.tex0.tex.size[0] > 0
-        and material.tex0.tex.size[1] > 0
-    ):
-        return material.tex0.tex.size
+
+def shift_dimensions(tex_prop: "TextureProperty", dimensions: tuple[int, int]):
+    shifted = (shift_num(dimensions[0], tex_prop.S.shift), shift_num(dimensions[1], tex_prop.T.shift))
+    s_mirror_scale = 2 if tex_prop.S.mirror else 1
+    t_mirror_scale = 2 if tex_prop.T.mirror else 1
+    return (shifted[0] * s_mirror_scale, shifted[1] * t_mirror_scale)
+
+
+def getMaterialScrollDimensions(f3dMat):
+    texDimensions0 = None
+    texDimensions1 = None
+    useDict = all_combiner_uses(f3dMat)
+
+    if useDict["Texture 0"] and f3dMat.tex0.tex_set:
+        if f3dMat.tex0.use_tex_reference:
+            texDimensions0 = f3dMat.tex0.tex_reference_size
+        elif f3dMat.tex0.tex:
+            texDimensions0 = (f3dMat.tex0.tex.size[0], f3dMat.tex0.tex.size[1])
+
+    if useDict["Texture 1"] and f3dMat.tex1.tex_set:
+        if f3dMat.tex1.use_tex_reference:
+            texDimensions1 = f3dMat.tex1.tex_reference_size
+        elif f3dMat.tex0.tex:
+            texDimensions1 = (f3dMat.tex1.tex.size[0], f3dMat.tex1.tex.size[1])
+
+    if texDimensions0 is not None:
+        texDimensions0 = shift_dimensions(f3dMat.tex0, texDimensions0)
     else:
-        return [32, 32]
+        texDimensions0 = (1, 1)
+
+    if texDimensions1 is not None:
+        texDimensions1 = shift_dimensions(f3dMat.tex1, texDimensions1)
+    else:
+        texDimensions1 = (1, 1)
+
+    return (max(1, texDimensions0[0], texDimensions1[0]), max(1, texDimensions0[1], texDimensions1[1]))
 
 
 def update_preset_manual(material, context):
