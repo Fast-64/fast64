@@ -704,6 +704,9 @@ def drawRoomHeaderProperty(layout, roomProp, dropdownLabel, headerIndex, objName
     elif menuTab == "Objects":
         objBox = layout.column()
         objBox.box().label(text="Objects")
+        if len(roomProp.objectList) > 16:
+            objBox.label(text="You are over the 16 object limit.", icon="ERROR")
+            objBox.label(text="You must allocate more memory in code.")
         for i in range(len(roomProp.objectList)):
             drawObjectProperty(objBox, roomProp.objectList[i], headerIndex, i, objName)
         drawAddButton(objBox, len(roomProp.objectList), "Object", headerIndex, objName)
