@@ -1222,8 +1222,11 @@ class SM64ObjectPanel(bpy.types.Panel):
                     )
                 box.prop(obj, "useBackgroundColor")
                 # box.box().label(text = 'Background IDs defined in include/geo_commands.h.')
-            box.prop(obj, "actSelectorIgnore")
-            box.prop(obj, "setAsStartLevel")
+            grid = box.grid_flow(columns=2)
+            grid.prop(obj, "actSelectorIgnore")
+            grid.prop(obj, "setAsStartLevel")
+            prop_split(grid, obj, "sm64_lvl_group_load_5", "Segment 5 Group")
+            prop_split(grid, obj, "sm64_lvl_group_load_6", "Segment 6 Group")
             prop_split(box, obj, "acousticReach", "Acoustic Reach")
             obj.starGetCutscenes.draw(box)
 
@@ -1903,6 +1906,14 @@ def sm64_obj_register():
     bpy.types.Object.sm64_obj_use_act4 = bpy.props.BoolProperty(name="Act 4", default=True)
     bpy.types.Object.sm64_obj_use_act5 = bpy.props.BoolProperty(name="Act 5", default=True)
     bpy.types.Object.sm64_obj_use_act6 = bpy.props.BoolProperty(name="Act 6", default=True)
+
+    # write to level script out
+    bpy.types.Object.sm64_lvl_group_load_5 = bpy.props.EnumProperty(
+        name="Seg 5 Group", default="Do Not Write", items=groupsSeg5
+    )
+    bpy.types.Object.sm64_lvl_group_load_6 = bpy.props.EnumProperty(
+        name="Seg 6 Group", default="Do Not Write", items=groupsSeg6
+    )
 
     bpy.types.Object.sm64_obj_set_bparam = bpy.props.BoolProperty(name="Set Behaviour Parameter", default=True)
 

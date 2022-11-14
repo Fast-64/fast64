@@ -1768,3 +1768,30 @@ enumMacrosNames = [
     ("macro_yellow_coin", "Yellow Coin", "Yellow Coin"),
     ("macro_yellow_coin_2", "Yellow Coin 2", "Yellow Coin 2"),
 ]
+
+# groups you can select for levels
+groupsSeg5 = [
+    ("group1", "group1", "group1"),
+    ("group2", "group2", "group2"),
+    ("group3", "group3", "group3"),
+    ("group4", "group4", "group4"),
+    ("group5", "group5", "group5"),
+    ("group6", "group6", "group6"),
+    ("group7", "group7", "group7"),
+    ("group8", "group8", "group8"),
+    ("group9", "group9", "group9"),
+    ("group10", "group10", "group10"),
+    ("group11", "group11", "group11"),
+    ("Do Not Write", "Do Not Write", "Do Not Write"),
+]
+
+
+groupsSeg6 = [
+    ("group12", "group12", "group12"),
+    ("group13", "group13", "group13"),
+    ("group14", "group14", "group14"),
+    ("group15", "group15", "group15"),
+    ("group16", "group16", "group16"),
+    ("group17", "group17", "group17"),
+    ("Do Not Write", "Do Not Write", "Do Not Write"),
+]
