@@ -5,6 +5,7 @@ from .commands import ootRoomCommandsToC
 
 # Object List
 
+
 def ootObjectListToC(room, headerIndex):
     data = CData()
     data.header = "extern s16 " + room.objectListName(headerIndex) + "[" + str(len(room.objectList)) + "];\n"
@@ -14,7 +15,9 @@ def ootObjectListToC(room, headerIndex):
     data.source += "};\n\n"
     return data
 
+
 # Room Header
+
 
 def ootAlternateRoomMainToC(scene, room):
     altHeader = CData()

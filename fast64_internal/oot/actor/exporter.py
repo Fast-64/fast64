@@ -7,6 +7,7 @@ from ...utility import CData
 
 # Actor List
 
+
 def ootActorToC(actor):
     return (
         "{ "
@@ -52,6 +53,7 @@ def ootActorListToC(room, headerIndex):
 
 # Transition Actor List
 
+
 def ootTransitionActorToC(transActor):
     return (
         "{ "
@@ -94,7 +96,9 @@ def ootTransitionActorListToC(scene, headerIndex):
     data.source += "};\n\n"
     return data
 
+
 # Entrance List
+
 
 def ootStartPositionListToC(scene, headerIndex):
     data = CData()
