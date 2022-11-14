@@ -33,7 +33,7 @@ from .oot_constants import (
     ootEnumObjectID,
 )
 from .oot_actor import OOTActorHeaderProperty, setAllActorsVisibility
-from .c_writer.oot_scene_table_c import getDrawConfig
+from .exporter.oot_scene_table_c import getDrawConfig
 from ..utility import yUpToZUp, parentObject, hexOrDecInt, gammaInverse
 from ..f3d.f3d_parser import parseMatrices, importMeshC
 from collections import OrderedDict
