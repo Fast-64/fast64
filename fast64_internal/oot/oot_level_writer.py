@@ -3,10 +3,10 @@ from bpy.utils import register_class, unregister_class
 from ..panels import OOT_Panel
 from ..f3d.f3d_gbi import TextureExportSettings, DLFormat
 from ..f3d.f3d_writer import TriangleConverterInfo, saveStaticModel, getInfoDict
-from .exporter.oot_level_c import ootSceneIncludes, ootLevelToC
-from .exporter.oot_scene_table_c import modifySceneTable
-from .exporter.oot_spec import modifySegmentDefinition
-from .exporter.oot_scene_folder import modifySceneFiles, deleteSceneFiles
+from .exporter.level_c import ootSceneIncludes, ootLevelToC
+from .exporter.scene_table_c import modifySceneTable
+from .exporter.spec import modifySegmentDefinition
+from .exporter.scene_folder import modifySceneFiles, deleteSceneFiles
 from .oot_constants import ootSceneIDToName, ootEnumSceneID
 from .oot_scene_room import OOT_SearchSceneEnumOperator, OOTRoomHeaderProperty, OOTAlternateRoomHeaderProperty
 from .oot_cutscene import convertCutsceneObject, readCutsceneData
@@ -36,7 +36,7 @@ from ..utility import (
     writeFile,
 )
 
-from .exporter.oot_scene_bootup import (
+from .exporter.scene_bootup import (
     OOT_ClearBootupScene,
     setBootupScene,
     ootSceneBootupRegister,
