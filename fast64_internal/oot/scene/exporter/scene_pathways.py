@@ -1,4 +1,4 @@
-from ...utility import CData
+from ....utility import CData
 
 
 def ootPathToC(path, headerIndex: int, index: int):

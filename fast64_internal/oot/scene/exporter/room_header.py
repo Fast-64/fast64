@@ -1,6 +1,6 @@
 from ....utility import CData
-from ...actor.exporter import ootActorListToC
-from .commands import ootRoomCommandsToC
+from .actor import ootActorListToC
+from .room_commands import ootRoomCommandsToC
 
 
 # Object List

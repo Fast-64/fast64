@@ -1,6 +1,6 @@
 from .oot_actor import setAllActorsVisibility
 import bpy
-from .exporter import OOTBootupSceneOptions
+from .scene.exporter import OOTBootupSceneOptions
 from ..panels import OOT_Panel
 from bpy.utils import register_class, unregister_class
 from .oot_level import oot_obj_panel_register, oot_obj_panel_unregister, oot_obj_register, oot_obj_unregister

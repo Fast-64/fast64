@@ -1,4 +1,4 @@
-from ..oot_cutscene import ootCutsceneDataToC
+from ...oot_cutscene import ootCutsceneDataToC
 
 
 # scene is either None or an OOTScene. This can either be the main scene itself,
