@@ -431,14 +431,13 @@ def replaceScriptLoads(levelscript, obj):
             newFuncs.append(jumpLink)
             continue
         if scriptNum < 13:
-            newNum = obj.sm64_lvl_group_load_5
+            newNum = obj.sm64_segment_loads.group5
         else:
-            newNum = obj.sm64_lvl_group_load_6
+            newNum = obj.sm64_segment_loads.group6
         if newNum == "Do Not Write":
             newFuncs.append(jumpLink)
             continue
-        newNum = int(re.findall("\d+", newNum)[-1]) + 1
-        newFuncs.append(["JUMP_LINK", [f"script_func_global_{newNum}"], jumpLink[2]])
+        newFuncs.append(["JUMP_LINK", [newNum], jumpLink[2]])
     levelscript.levelFunctions = newFuncs
 
 
@@ -822,16 +821,16 @@ def exportLevelC(
 
         replaceSegmentLoad(prevLevelScript, f"_{segment}_{compressionFmt}", f"LOAD_{compressionFmt.upper()}", 0x0A)
     # actor groups
-    if obj.sm64_lvl_group_load_5 != "Do Not Write":
+    if obj.sm64_segment_loads.group5_enum != "Do Not Write":
         replaceSegmentLoad(
-            prevLevelScript, f"_{obj.sm64_lvl_group_load_5}_{compressionFmt}", f"LOAD_{compressionFmt.upper()}", 0x05
+            prevLevelScript, f"_{obj.sm64_segment_loads.seg5}_{compressionFmt}", f"LOAD_{compressionFmt.upper()}", 0x05
         )
-        replaceSegmentLoad(prevLevelScript, f"_{obj.sm64_lvl_group_load_5}_geo", "LOAD_RAW", 0x0C)
-    if obj.sm64_lvl_group_load_6 != "Do Not Write":
+        replaceSegmentLoad(prevLevelScript, f"_{obj.sm64_segment_loads.seg5}_geo", "LOAD_RAW", 0x0C)
+    if obj.sm64_segment_loads.group6_enum != "Do Not Write":
         replaceSegmentLoad(
-            prevLevelScript, f"_{obj.sm64_lvl_group_load_6}_{compressionFmt}", f"LOAD_{compressionFmt.upper()}", 0x06
+            prevLevelScript, f"_{obj.sm64_segment_loads.seg6}_{compressionFmt}", f"LOAD_{compressionFmt.upper()}", 0x06
         )
-        replaceSegmentLoad(prevLevelScript, f"_{obj.sm64_lvl_group_load_6}_geo", "LOAD_RAW", 0x0D)
+        replaceSegmentLoad(prevLevelScript, f"_{obj.sm64_segment_loads.seg6}_geo", "LOAD_RAW", 0x0D)
     replaceScriptLoads(prevLevelScript, obj)
     levelscriptString = prevLevelScript.to_c(areaString)
 

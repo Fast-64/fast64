@@ -1,6 +1,7 @@
 import math, os, bpy, bmesh, mathutils
 from bpy.utils import register_class, unregister_class
 from io import BytesIO
+from re import findall
 
 from .sm64_constants import *
 from .sm64_function_map import func_map
@@ -1222,11 +1223,10 @@ class SM64ObjectPanel(bpy.types.Panel):
                     )
                 box.prop(obj, "useBackgroundColor")
                 # box.box().label(text = 'Background IDs defined in include/geo_commands.h.')
+            box.prop(obj, "actSelectorIgnore")
+            box.prop(obj, "setAsStartLevel")
             grid = box.grid_flow(columns=2)
-            grid.prop(obj, "actSelectorIgnore")
-            grid.prop(obj, "setAsStartLevel")
-            prop_split(grid, obj, "sm64_lvl_group_load_5", "Segment 5 Group")
-            prop_split(grid, obj, "sm64_lvl_group_load_6", "Segment 6 Group")
+            obj.sm64_segment_loads.draw(grid)
             prop_split(box, obj, "acousticReach", "Acoustic Reach")
             obj.starGetCutscenes.draw(box)
 
@@ -1816,6 +1816,59 @@ class SM64_ObjectProperties(bpy.types.PropertyGroup):
             obj.fast64.sm64.version = SM64_ObjectProperties.cur_version
 
 
+class SM64_SegmentProperties(bpy.types.PropertyGroup):
+    group5_seg_str: bpy.props.StringProperty(name="Segment 5 Seg")
+    group5_str: bpy.props.StringProperty(name="Segment 5 Group")
+    group6_seg_str: bpy.props.StringProperty(name="Segment 6 Seg")
+    group6_str: bpy.props.StringProperty(name="Segment 6 Group")
+    group5_enum: bpy.props.EnumProperty(name="Segment 5 Group", default="Do Not Write", items=groupsSeg5)
+    group6_enum: bpy.props.EnumProperty(name="Segment 6 Group", default="Do Not Write", items=groupsSeg6)
+
+    def draw(self, layout):
+        col = layout.column()
+        prop_split(col, self, "group5_enum", "Segment 5 Select")
+        if self.group5_enum == "Custom":
+            prop_split(col, self, "group5_seg_str", "Segment 5 Seg")
+            prop_split(col, self, "group5_str", "Segment 5 Group")
+        col = layout.column()
+        prop_split(col, self, "group6_enum", "Segment 6 Select")
+        if self.group6_enum == "Custom":
+            prop_split(col, self, "group6_seg_str", "Segment 6 Seg")
+            prop_split(col, self, "group6_str", "Segment 6 Group")
+
+    def convert_group(self, grp):
+        num = int(re.findall("\d+", grp)[-1]) + 1
+        return f"script_func_global_{num}"
+
+    @property
+    def seg5(self):
+        if self.group5_enum == "Custom":
+            return self.group5_seg_str
+        else:
+            return self.group5_enum
+
+    @property
+    def seg6(self):
+        if self.group6_enum == "Custom":
+            return self.group6_seg_str
+        else:
+            return self.group6_enum
+
+    @property
+    def group5(self):
+        if self.group5_enum == "Custom":
+            return self.group5_str
+        else:
+            return self.convert_group(self.group5_enum)
+
+    @property
+    def group6(self):
+        if self.group6_enum == "Custom":
+            return self.group6_str
+        else:
+            return self.convert_group(self.group6_enum)
+
+
 sm64_obj_classes = (
     WarpNodeProperty,
     AddWarpNode,
@@ -1832,6 +1885,7 @@ sm64_obj_classes = (
     SM64_AreaProperties,
     SM64_GameObjectProperties,
     SM64_ObjectProperties,
+    SM64_SegmentProperties,
 )
 
 
@@ -1908,12 +1962,7 @@ def sm64_obj_register():
     bpy.types.Object.sm64_obj_use_act6 = bpy.props.BoolProperty(name="Act 6", default=True)
 
     # write to level script out
-    bpy.types.Object.sm64_lvl_group_load_5 = bpy.props.EnumProperty(
-        name="Seg 5 Group", default="Do Not Write", items=groupsSeg5
-    )
-    bpy.types.Object.sm64_lvl_group_load_6 = bpy.props.EnumProperty(
-        name="Seg 6 Group", default="Do Not Write", items=groupsSeg6
-    )
+    bpy.types.Object.sm64_segment_loads = bpy.props.PointerProperty(type=SM64_SegmentProperties)
 
     bpy.types.Object.sm64_obj_set_bparam = bpy.props.BoolProperty(name="Set Behaviour Parameter", default=True)
 

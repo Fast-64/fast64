@@ -1783,6 +1783,7 @@ groupsSeg5 = [
     ("group10", "group10", "group10"),
     ("group11", "group11", "group11"),
     ("Do Not Write", "Do Not Write", "Do Not Write"),
+    ("Custom", "Custom", "Custom"),
 ]
 
 
@@ -1794,4 +1795,5 @@ groupsSeg6 = [
     ("group16", "group16", "group16"),
     ("group17", "group17", "group17"),
     ("Do Not Write", "Do Not Write", "Do Not Write"),
+    ("Custom", "Custom", "Custom"),
 ]
