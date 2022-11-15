@@ -1,5 +1,5 @@
-from ....utility import CData
-from ....f3d.f3d_gbi import TextureExportSettings
+from .....utility import CData
+from .....f3d.f3d_gbi import TextureExportSettings
 from .scene_header import ootSceneMainToC, ootSceneTexturesToC
 from .scene_collision import ootSceneCollisionToC
 from .scene_cutscene import ootSceneCutscenesToC

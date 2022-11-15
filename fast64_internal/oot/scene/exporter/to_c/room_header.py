@@ -1,4 +1,4 @@
-from ....utility import CData
+from .....utility import CData
 from .actor import ootActorListToC
 from .room_commands import ootRoomCommandsToC
 

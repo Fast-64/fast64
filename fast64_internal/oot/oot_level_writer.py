@@ -32,7 +32,7 @@ from ..utility import (
     writeFile,
 )
 
-from .scene.exporter import (
+from .scene.exporter.to_c import (
     OOT_ClearBootupScene,
     setBootupScene,
     ootSceneBootupRegister,

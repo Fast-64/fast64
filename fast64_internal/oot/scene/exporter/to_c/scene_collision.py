@@ -1,5 +1,5 @@
-from ....utility import CData
-from ...oot_collision import ootCollisionToC
+from .....utility import CData
+from ....oot_collision import ootCollisionToC
 
 
 # Writes the collision data for a scene
