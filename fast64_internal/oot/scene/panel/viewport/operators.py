@@ -4,9 +4,7 @@ from bpy.ops import object
 from bpy.path import abspath
 from mathutils import Matrix, Vector
 from .....f3d.f3d_gbi import DLFormat
-from ....c_writer.oot_scene_table_c import modifySceneTable
-from ....c_writer.oot_spec import modifySegmentDefinition
-from ....c_writer.oot_scene_folder import deleteSceneFiles
+from ....scene.exporter.to_c import modifySceneTable, modifySegmentDefinition, deleteSceneFiles
 from .....utility import PluginError, raisePluginError
 from ....oot_utility import ExportInfo, sceneNameFromID
 from ....oot_level_writer import ootExportSceneToC

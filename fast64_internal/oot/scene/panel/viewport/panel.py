@@ -3,7 +3,7 @@ from bpy.types import Scene, Object
 from bpy.props import PointerProperty
 from .....utility import customExportWarning, prop_split
 from .....panels import OOT_Panel
-from ....c_writer.oot_scene_bootup import OOT_ClearBootupScene, ootSceneBootupRegister, ootSceneBootupUnregister
+from ....scene.exporter.to_c import OOT_ClearBootupScene, ootSceneBootupRegister, ootSceneBootupUnregister
 from ....oot_constants import ootEnumSceneID
 from ....oot_utility import getEnumName
 from ..properties import OOT_SearchSceneEnumOperator

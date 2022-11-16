@@ -1,11 +1,6 @@
 import bpy, os, math, mathutils
 from ..f3d.f3d_gbi import TextureExportSettings
 from ..f3d.f3d_writer import TriangleConverterInfo, saveStaticModel, getInfoDict
-from .c_writer.oot_level_c import ootSceneIncludes, ootLevelToC
-from .c_writer.oot_scene_table_c import modifySceneTable
-from .c_writer.oot_spec import modifySegmentDefinition
-from .c_writer.oot_scene_folder import modifySceneFiles
-from .c_writer.oot_scene_bootup import setBootupScene
 from .room.panel.properties import OOTRoomHeaderProperty, OOTAlternateRoomHeaderProperty
 from .oot_cutscene import convertCutsceneObject, readCutsceneData
 from .oot_spline import assertCurveValid, ootConvertPath
@@ -27,6 +22,15 @@ from ..utility import (
     writeCDataHeaderOnly,
     readFile,
     writeFile,
+)
+
+from .scene.exporter.to_c import (
+    setBootupScene,
+    ootSceneIncludes,
+    ootLevelToC,
+    modifySceneTable,
+    modifySegmentDefinition,
+    modifySceneFiles,
 )
 
 from .oot_utility import (

@@ -36,7 +36,7 @@ from .oot_constants import (
     ootEnumObjectID,
 )
 
-from .c_writer.oot_scene_table_c import getDrawConfig
+from .scene.exporter.to_c import getDrawConfig
 from ..utility import PluginError, readFile, parentObject, hexOrDecInt, gammaInverse, yUpToZUp
 from ..f3d.f3d_parser import parseMatrices, importMeshC
 from collections import OrderedDict

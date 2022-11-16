@@ -1,4 +1,4 @@
-from ..utility import PluginError, toAlnum
+from ..utility import PluginError, CData, toAlnum
 from .oot_collision_classes import OOTCollision
 from .oot_model_classes import OOTModel
 from ..f3d.f3d_gbi import (
@@ -8,6 +8,18 @@ from ..f3d.f3d_gbi import (
     GfxList,
 )
 import bpy, os, shutil
+
+
+class OOTCommonCommands:
+    def cmdAltHeaders(self, name, altName, header, cmdCount):
+        cmd = CData()
+        cmd.source = "\tSCENE_CMD_ALTERNATE_HEADER_LIST(" + altName + "),\n"
+        return cmd
+
+    def cmdEndMarker(self, name, header, cmdCount):
+        cmd = CData()
+        cmd.source = "\tSCENE_CMD_END(),\n"
+        return cmd
 
 
 class OOTActor:
@@ -148,7 +160,7 @@ class OOTSceneTableEntry:
         self.drawConfig = 0
 
 
-class OOTScene:
+class OOTScene(OOTCommonCommands):
     def __init__(self, name, model):
         self.name = toAlnum(name)
         self.write_dummy_room_list = False
@@ -451,7 +463,7 @@ class OOTRoomMeshGroup:
         return self.roomName + "_entry_" + str(self.entryIndex)
 
 
-class OOTRoom:
+class OOTRoom(OOTCommonCommands):
     def __init__(self, index, name, model, roomShape):
         self.ownerName = toAlnum(name)
         self.index = index
