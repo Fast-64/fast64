@@ -97,45 +97,37 @@ class OOTObjectPanel(bpy.types.Panel):
         altSceneProp = sceneObj.ootAlternateSceneHeaders if sceneObj is not None else None
         altRoomProp = roomObj.ootAlternateRoomHeaders if roomObj is not None else None
 
-        if obj.fast64.oot.version > OOT_ObjectProperties.cur_version:
-            box = box.column().box()
-            box.label(text="This blend was made with newer Fast64.")
-            box.label(text="Upgrade now.")
-        elif obj.fast64.oot.version != OOT_ObjectProperties.cur_version:
-            box.column().box().label(text="Legacy data has not been upgraded!")
-            box.column().operator(OOT_ManualUpgrade.bl_idname, text="Upgrade Data Now!")
-        else:
-            if obj.ootEmptyType == "Actor":
-                drawActorProperty(box, obj.ootActorProperty, altRoomProp, objName)
+        if obj.ootEmptyType == "Actor":
+            drawActorProperty(box, obj.ootActorProperty, altRoomProp, objName)
 
-            elif obj.ootEmptyType == "Transition Actor":
-                drawTransitionActorProperty(box, obj.ootTransitionActorProperty, altSceneProp, roomObj, objName)
+        elif obj.ootEmptyType == "Transition Actor":
+            drawTransitionActorProperty(box, obj.ootTransitionActorProperty, altSceneProp, roomObj, objName)
 
-            elif obj.ootEmptyType == "Water Box":
-                drawWaterBoxProperty(box, obj.ootWaterBoxProperty)
+        elif obj.ootEmptyType == "Water Box":
+            drawWaterBoxProperty(box, obj.ootWaterBoxProperty)
 
-            elif obj.ootEmptyType == "Scene":
-                drawSceneHeader(box, obj)
+        elif obj.ootEmptyType == "Scene":
+            drawSceneHeader(box, obj)
 
-            elif obj.ootEmptyType == "Room":
-                drawRoomHeaderProperty(box, obj.ootRoomHeader, None, None, objName)
-                if obj.ootRoomHeader.menuTab == "Alternate":
-                    drawAlternateRoomHeaderProperty(box, obj.ootAlternateRoomHeaders, objName)
+        elif obj.ootEmptyType == "Room":
+            drawRoomHeaderProperty(box, obj.ootRoomHeader, None, None, objName)
+            if obj.ootRoomHeader.menuTab == "Alternate":
+                drawAlternateRoomHeaderProperty(box, obj.ootAlternateRoomHeaders, objName)
 
-            elif obj.ootEmptyType == "Entrance":
-                drawEntranceProperty(box, obj, altSceneProp, objName)
+        elif obj.ootEmptyType == "Entrance":
+            drawEntranceProperty(box, obj, altSceneProp, objName)
 
-            elif obj.ootEmptyType == "Cull Group":
-                obj.ootCullGroupProperty.draw(box)
+        elif obj.ootEmptyType == "Cull Group":
+            obj.ootCullGroupProperty.draw(box)
 
-            elif obj.ootEmptyType == "LOD":
-                drawLODProperty(box, obj)
+        elif obj.ootEmptyType == "LOD":
+            drawLODProperty(box, obj)
 
-            elif obj.ootEmptyType == "Cutscene":
-                drawCutsceneProperty(box, obj)
+        elif obj.ootEmptyType == "Cutscene":
+            drawCutsceneProperty(box, obj)
 
-            elif obj.ootEmptyType == "None":
-                box.label(text="Geometry can be parented to this.")
+        elif obj.ootEmptyType == "None":
+            box.label(text="Geometry can be parented to this.")
 
 
 def drawSceneHeader(box: bpy.types.UILayout, obj: bpy.types.Object):
@@ -205,9 +197,6 @@ class OOT_ManualUpgrade(bpy.types.Operator):
 
 
 class OOT_ObjectProperties(bpy.types.PropertyGroup):
-    version: bpy.props.IntProperty(name="OOT_ObjectProperties Version", default=0)
-    cur_version = 1  # version after property migration
-
     scene: bpy.props.PointerProperty(type=OOTSceneProperties)
 
     @staticmethod
@@ -216,8 +205,6 @@ class OOT_ObjectProperties(bpy.types.PropertyGroup):
             if obj.data is None:
                 if obj.ootEmptyType == "Room":
                     OOTObjectProperty.upgrade_object(obj)
-                if obj.ootEmptyType != "None":
-                    obj.fast64.oot.version = obj.fast64.oot.cur_version
 
 
 class OOTRemoveSceneSettingsProperty(bpy.types.PropertyGroup):

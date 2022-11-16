@@ -413,12 +413,19 @@ def readRoomData(
     room.disableSunMoon = roomHeader.disableSunMoon
     room.echo = roomHeader.echo
 
-    objectsByKey = ootData.objectData.objectsByKey
+    for obj in roomHeader.objectList:
+        # export using the key if the legacy prop isn't present
+        if "objectID" not in obj:
+            if obj.objectKey != "Custom":
+                objectID = ootData.objectData.objectsByKey[obj.objectKey].id
+            else:
+                objectID = obj.objectIDCustom
+        else:
+            objectID = ootData.objectData.ootEnumObjectIDLegacy[obj["objectID"]][0]
+            if objectID == "Custom":
+                objectID = obj.objectIDCustom
 
-    room.objectIDList.extend(
-        objectsByKey[obj.objectKey].id if obj.objectKey != "Custom" else obj.objectIDCustom
-        for obj in roomHeader.objectList
-    )
+        room.objectIDList.append(objectID)
 
     if len(room.objectIDList) > 16:
         print(
