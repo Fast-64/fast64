@@ -1,7 +1,7 @@
 import os, re, bpy
 from bpy.utils import register_class, unregister_class
-from ...utility import PluginError, writeFile, readFile
-from ..oot_constants import ootEnumHeaderMenuComplete
+from .....utility import PluginError, writeFile, readFile
+from ....oot_constants import ootEnumHeaderMenuComplete
 from typing import Any
 
 
