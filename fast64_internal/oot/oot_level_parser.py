@@ -859,7 +859,12 @@ def parseObjectList(roomHeader: OOTRoomHeaderProperty, sceneData: str, objectLis
 
     for object in objects:
         objectProp = roomHeader.objectList.add()
-        setCustomProperty(objectProp, "objectID", object, ootData.objectData.ootEnumObjectIDLegacy)
+        objByID = ootData.objectData.objectsByID.get(object)
+
+        if objByID is not None:
+            objectProp.objectKey = objByID.key
+        else:
+            objectProp.objectIDCustom = object
 
 
 def getActorRegex(actorList: list[str]):
