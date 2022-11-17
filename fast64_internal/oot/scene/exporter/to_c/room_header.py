@@ -4,75 +4,69 @@ from .actor import getActorList
 from .room_commands import getRoomCommandList
 
 
-def ootGetHeaderDefines(room: OOTRoom, headerIndex: int):
+def getHeaderDefines(outRoom: OOTRoom, headerIndex: int):
     """Returns a string containing defines for actor and object lists lengths"""
-    data = CData()
+    headerDefines = ""
 
-    if len(room.objectIDList) > 0:
-        data.header += f"#define {room.getObjectLengthDefineName(headerIndex)} {len(room.objectIDList)}\n"
+    if len(outRoom.objectIDList) > 0:
+        headerDefines += f"#define {outRoom.getObjectLengthDefineName(headerIndex)} {len(outRoom.objectIDList)}\n"
 
-    if len(room.actorList) > 0:
-        data.header += f"#define {room.getActorLengthDefineName(headerIndex)} {len(room.actorList)}\n"
+    if len(outRoom.actorList) > 0:
+        headerDefines += f"#define {outRoom.getActorLengthDefineName(headerIndex)} {len(outRoom.actorList)}\n"
 
-    return data.header
+    return headerDefines
 
 
 # Object List
+def getObjectList(outRoom: OOTRoom, headerIndex: int):
+    objectList = CData()
+    listName = f"s16 {outRoom.objectListName(headerIndex)}"
 
+    # .h
+    objectList.header = f"extern {listName}[];\n"
 
-def ootObjectListToC(room: OOTRoom, headerIndex: int):
-    data = CData()
-    data.header = "extern s16 " + room.objectListName(headerIndex) + "[];\n"
-    data.source = f"s16 {room.objectListName(headerIndex)}[{room.getObjectLengthDefineName(headerIndex)}]" + " = {\n"
-    for objID in room.objectIDList:
-        data.source += indent + objID + ",\n"
-    data.source += "};\n\n"
-    return data
+    # .c
+    objectList.source = (
+        (f"{listName}[{outRoom.getObjectLengthDefineName(headerIndex)}]" + " = {\n")
+        + ",\n".join(indent + objectID for objectID in outRoom.objectIDList)
+        + ",\n};\n\n"
+    )
+
+    return objectList
 
 
 # Room Header
+def getRoomData(outRoom: OOTRoom):
+    roomData = CData()
+    roomHeaders = [outRoom.childNightHeader, outRoom.adultDayHeader, outRoom.adultNightHeader]
+    roomHeaders.extend(outRoom.cutsceneHeaders)
+    altHeaderPtrListName = f"SceneCmd* {outRoom.alternateHeadersName()}"
 
+    # .h
+    roomData.header = f"extern {altHeaderPtrListName}[];\n"
 
-def ootAlternateRoomMainToC(scene: OOTScene, room: OOTRoom):
-    altHeader = CData()
-    altData = CData()
-
-    altHeader.header = "extern SceneCmd* " + room.alternateHeadersName() + "[];\n"
-    altHeader.source = "SceneCmd* " + room.alternateHeadersName() + "[] = {\n"
-
-    for headerIndex, curHeader in enumerate([room.childNightHeader, room.adultDayHeader, room.adultNightHeader], 1):
+    # .c
+    altHeaderPtrList = f"{altHeaderPtrListName}[]" + " = {\n"
+    for i, curHeader in enumerate(roomHeaders, 1):
         if curHeader is not None:
-            altHeader.source += indent + f"{room.roomName()}_header{headerIndex:02},\n"
-            altData.append(ootRoomMainToC(scene, curHeader, headerIndex))
-        else:
-            altHeader.source += indent + "NULL,\n"
+            altHeaderPtrList += indent + f"{curHeader.roomName()}_header{i:02},\n"
+        elif i < 4:
+            altHeaderPtrList += indent + "NULL,\n"
+    altHeaderPtrList += "};\n\n"
 
-    for i in range(len(room.cutsceneHeaders)):
-        altHeader.source += indent + room.roomName() + "_header" + format(i + 4, "02") + ",\n"
-        altData.append(ootRoomMainToC(scene, room.cutsceneHeaders[i], i + 4))
+    roomHeaders.insert(0, outRoom)
+    for i, curHeader in enumerate(roomHeaders):
+        if curHeader is not None:
+            roomData.source += getHeaderDefines(curHeader, i)
+            roomData.append(getRoomCommandList(curHeader, i))
 
-    altHeader.source += "};\n\n"
+            if i == 0:
+                roomData.source += altHeaderPtrList
 
-    return altHeader, altData
+            if len(curHeader.objectIDList) > 0:
+                roomData.append(getObjectList(curHeader, i))
 
+            if len(curHeader.actorList) > 0:
+                roomData.append(getActorList(curHeader, i))
 
-def ootRoomMainToC(scene, room, headerIndex):
-    roomMainC = CData()
-
-    roomMainC.source += ootGetHeaderDefines(room, headerIndex)
-
-    if room.hasAlternateHeaders():
-        altHeader, altData = ootAlternateRoomMainToC(scene, room)
-    else:
-        altHeader = CData()
-        altData = CData()
-
-    roomMainC.append(getRoomCommandList(room, headerIndex))
-    roomMainC.append(altHeader)
-    if len(room.objectIDList) > 0:
-        roomMainC.append(ootObjectListToC(room, headerIndex))
-    if len(room.actorList) > 0:
-        roomMainC.append(getActorList(room, headerIndex))
-    roomMainC.append(altData)
-
-    return roomMainC
+    return roomData

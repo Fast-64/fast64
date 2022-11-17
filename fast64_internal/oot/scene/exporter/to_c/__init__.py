@@ -10,5 +10,4 @@ from .scene_bootup import (
     ootSceneBootupRegister,
     ootSceneBootupUnregister,
 )
-from .room_header import ootRoomMainToC
 from .room_shape import ootRoomMeshToC

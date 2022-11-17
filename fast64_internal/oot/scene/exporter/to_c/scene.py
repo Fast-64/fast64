@@ -4,7 +4,7 @@ from ....oot_level_classes import OOTScene
 from .scene_header import ootSceneMainToC, ootSceneTexturesToC
 from .scene_collision import ootSceneCollisionToC
 from .scene_cutscene import ootSceneCutscenesToC
-from .room_header import ootRoomMainToC
+from .room_header import getRoomData
 from .room_shape import ootRoomMeshToC
 
 
@@ -44,7 +44,7 @@ def getSceneC(outScene: OOTScene, textureExportSettings: TextureExportSettings):
         outRoomName = outRoom.roomName()
         roomShapeInfo, roomModel = ootRoomMeshToC(outRoom, textureExportSettings)
 
-        sceneC.roomMainC[outRoomName] = ootRoomMainToC(outScene, outRoom, 0)
+        sceneC.roomMainC[outRoomName] = getRoomData(outRoom)
         sceneC.roomShapeInfoC[outRoomName] = roomShapeInfo
         sceneC.roomModelC[outRoomName] = roomModel
 
