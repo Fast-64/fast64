@@ -1,5 +1,4 @@
-from .....utility import CData
-from ....oot_utility import indent
+from .....utility import CData, indent
 
 
 def ootPathToC(path, headerIndex: int, index: int):

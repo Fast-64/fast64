@@ -1,7 +1,6 @@
-from .....utility import CData
+from .....utility import CData, indent
 from .....f3d.f3d_gbi import ScrollMethod, TextureExportSettings
 from ....oot_f3d_writer import OOTGfxFormatter
-from ....oot_utility import indent
 from .scene_pathways import ootPathListToC
 from .actor import ootTransitionActorListToC, ootStartPositionListToC, ootEntranceListToC
 from .scene_commands import ootSceneCommandsToC
