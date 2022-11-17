@@ -15,7 +15,6 @@ from .oot_utility import (
 )
 from .oot_constants import (
     ootEnumCamTransition,
-    ootEnumActorID,
     ootEnumDrawConfig,
     ootEnumCameraMode,
     ootEnumAudioSessionPreset,
@@ -30,7 +29,7 @@ from .oot_constants import (
     ootEnumRoomBehaviour,
     ootEnumLinkIdle,
     ootEnumRoomShapeType,
-    ootEnumObjectID,
+    ootData,
 )
 from .oot_actor import OOTActorHeaderProperty, setAllActorsVisibility
 from .scene.exporter.to_c import getDrawConfig
@@ -751,7 +750,7 @@ def parseTransActorList(
             setCustomProperty(transActorProp, "cameraTransitionBack", camBack, ootEnumCamTransition)
 
             actorProp = transActorProp.actor
-            setCustomProperty(actorProp, "actorID", actorID, ootEnumActorID)
+            setCustomProperty(actorProp, "actorID", actorID, ootData.actorData.ootEnumActorID)
             actorProp.actorParam = actorParam
             handleActorWithRotAsParam(actorProp, actorID, rotation)
             unsetAllHeadersExceptSpecified(actorProp.headerSettings, headerIndex)
@@ -832,7 +831,7 @@ def parseSpawnList(
             spawnProp.spawnIndex = spawnIndex
             spawnProp.customActor = actorID != "ACTOR_PLAYER"
             actorProp = spawnProp.actor
-            setCustomProperty(actorProp, "actorID", actorID, ootEnumActorID)
+            setCustomProperty(actorProp, "actorID", actorID, ootData.actorData.ootEnumActorID)
             actorProp.actorParam = actorParam
             handleActorWithRotAsParam(actorProp, actorID, rotation)
             unsetAllHeadersExceptSpecified(actorProp.headerSettings, headerIndex)
@@ -860,7 +859,12 @@ def parseObjectList(roomHeader: OOTRoomHeaderProperty, sceneData: str, objectLis
 
     for object in objects:
         objectProp = roomHeader.objectList.add()
-        setCustomProperty(objectProp, "objectID", object, ootEnumObjectID)
+        objByID = ootData.objectData.objectsByID.get(object)
+
+        if objByID is not None:
+            objectProp.objectKey = objByID.key
+        else:
+            objectProp.objectIDCustom = object
 
 
 def getActorRegex(actorList: list[str]):
@@ -890,7 +894,7 @@ def parseActorList(
             actorObj.name = getDisplayNameFromActorID(actorID)
             actorProp = actorObj.ootActorProperty
 
-            setCustomProperty(actorProp, "actorID", actorID, ootEnumActorID)
+            setCustomProperty(actorProp, "actorID", actorID, ootData.actorData.ootEnumActorID)
             actorProp.actorParam = actorParam
             handleActorWithRotAsParam(actorProp, actorID, rotation)
             unsetAllHeadersExceptSpecified(actorProp.headerSettings, headerIndex)

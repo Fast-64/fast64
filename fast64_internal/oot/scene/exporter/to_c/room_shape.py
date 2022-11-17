@@ -93,7 +93,7 @@ def ootRoomMeshToC(room: OOTRoom, textureExportSettings: TextureExportSettings):
         meshEntries.source = f"{meshEntryType} {mesh.entriesName()}{arrayText} = {{\n"
 
         for entry in mesh.meshEntries:
-            meshEntries.source += "\t" + ootMeshEntryToC(entry, mesh.roomShape)
+            meshEntries.source += indent + ootMeshEntryToC(entry, mesh.roomShape)
             if entry.DLGroup.opaque is not None:
                 meshData.append(entry.DLGroup.opaque.to_c(mesh.model.f3d))
             if entry.DLGroup.transparent is not None:

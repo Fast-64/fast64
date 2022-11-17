@@ -1,4 +1,6 @@
 from .....utility import CData
+from ....oot_utility import indent
+from ....oot_level_classes import OOTRoom
 
 
 ###################
@@ -37,12 +39,14 @@ def ootActorToC(actor):
     )
 
 
-def ootActorListToC(room, headerIndex):
+def ootActorListToC(room: OOTRoom, headerIndex: int):
     data = CData()
-    data.header = "extern ActorEntry " + room.actorListName(headerIndex) + "[" + str(len(room.actorList)) + "];\n"
-    data.source = "ActorEntry " + room.actorListName(headerIndex) + "[" + str(len(room.actorList)) + "] = {\n"
+    data.header = "extern ActorEntry " + room.actorListName(headerIndex) + "[];\n"
+    data.source = (
+        f"ActorEntry {room.actorListName(headerIndex)}[{room.getActorLengthDefineName(headerIndex)}]" + " = {\n"
+    )
     for actor in room.actorList:
-        data.source += "\t" + ootActorToC(actor)
+        data.source += indent + ootActorToC(actor)
     data.source += "};\n\n"
     return data
 
@@ -92,7 +96,7 @@ def ootTransitionActorListToC(scene, headerIndex):
         + "] = {\n"
     )
     for transActor in scene.transitionActorList:
-        data.source += "\t" + ootTransitionActorToC(transActor)
+        data.source += indent + ootTransitionActorToC(transActor)
     data.source += "};\n\n"
     return data
 
@@ -105,7 +109,7 @@ def ootStartPositionListToC(scene, headerIndex):
     data.header = "extern ActorEntry " + scene.startPositionsName(headerIndex) + "[];\n"
     data.source = "ActorEntry " + scene.startPositionsName(headerIndex) + "[] = {\n"
     for i in range(len(scene.startPositions)):
-        data.source += "\t" + ootActorToC(scene.startPositions[i])
+        data.source += indent + ootActorToC(scene.startPositions[i])
     data.source += "};\n\n"
     return data
 
@@ -119,6 +123,6 @@ def ootEntranceListToC(scene, headerIndex):
     data.header = "extern EntranceEntry " + scene.entranceListName(headerIndex) + "[];\n"
     data.source = "EntranceEntry " + scene.entranceListName(headerIndex) + "[] = {\n"
     for entrance in scene.entranceList:
-        data.source += "\t" + ootEntranceToC(entrance)
+        data.source += indent + ootEntranceToC(entrance)
     data.source += "};\n\n"
     return data
