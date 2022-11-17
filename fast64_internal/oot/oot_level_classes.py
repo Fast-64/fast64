@@ -12,15 +12,11 @@ from .oot_utility import indent
 
 
 class OOTCommonCommands:
-    def cmdAltHeaders(self, name, altName, header, cmdCount):
-        cmd = CData()
-        cmd.source = indent + "SCENE_CMD_ALTERNATE_HEADER_LIST(" + altName + "),\n"
-        return cmd
+    def getAltHeaderListCmd(self, altName):
+        return indent + f"SCENE_CMD_ALTERNATE_HEADER_LIST({altName}),\n"
 
-    def cmdEndMarker(self, name, header, cmdCount):
-        cmd = CData()
-        cmd.source = indent + "SCENE_CMD_END(),\n"
-        return cmd
+    def getEndCmd(self):
+        return indent + "SCENE_CMD_END(),\n"
 
 
 class OOTActor:

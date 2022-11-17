@@ -50,11 +50,7 @@ def getTransitionActorEntry(transActor: OOTTransitionActor):
     posData = "{ " + ", ".join(f"{round(pos)}" for pos in transActor.position) + " }"
     rotData = f"DEG_TO_BINANG({(transActor.rotationY * (180 / 0x8000)):.1f})"
 
-    return (
-        "{ "
-        + ", ".join([roomData, transActor.actorID, posData, rotData, transActor.actorParam])
-        + " },\n"
-    )
+    return "{ " + ", ".join([roomData, transActor.actorID, posData, rotData, transActor.actorParam]) + " },\n"
 
 
 def getTransitionActorList(outScene: OOTScene, headerIndex: int):

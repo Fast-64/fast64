@@ -4,7 +4,7 @@ from ....oot_f3d_writer import OOTGfxFormatter
 from ....oot_utility import indent
 from .scene_pathways import ootPathListToC
 from .actor import getTransitionActorList, getSpawnActorList, getSpawnList
-from .scene_commands import ootSceneCommandsToC
+from .scene_commands import getSceneCommandList
 
 
 ##################
@@ -172,7 +172,7 @@ def ootSceneMainToC(scene, headerIndex):
         altData = CData()
 
     # Write the scene header
-    sceneMainC.append(ootSceneCommandsToC(scene, headerIndex))
+    sceneMainC.append(getSceneCommandList(scene, headerIndex))
 
     # Write alternate scene headers
     sceneMainC.append(altHeader)

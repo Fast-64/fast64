@@ -2,7 +2,7 @@ from .....utility import CData
 from ....oot_utility import indent
 from ....oot_level_classes import OOTRoom, OOTScene
 from .actor import getActorList
-from .room_commands import ootRoomCommandsToC
+from .room_commands import getRoomCommandList
 
 
 def ootGetHeaderDefines(room: OOTRoom, headerIndex: int):
@@ -68,7 +68,7 @@ def ootRoomMainToC(scene, room, headerIndex):
         altHeader = CData()
         altData = CData()
 
-    roomMainC.append(ootRoomCommandsToC(room, headerIndex))
+    roomMainC.append(getRoomCommandList(room, headerIndex))
     roomMainC.append(altHeader)
     if len(room.objectIDList) > 0:
         roomMainC.append(ootObjectListToC(room, headerIndex))
