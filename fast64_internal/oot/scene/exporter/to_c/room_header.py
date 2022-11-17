@@ -1,5 +1,4 @@
-from .....utility import CData
-from ....oot_utility import indent
+from .....utility import CData, indent
 from ....oot_level_classes import OOTRoom, OOTScene
 from .actor import getActorList
 from .room_commands import getRoomCommandList

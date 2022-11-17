@@ -1,5 +1,5 @@
 import bpy, os, shutil
-from ..utility import PluginError, CData, toAlnum
+from ..utility import PluginError, CData, toAlnum, indent
 from .oot_collision_classes import OOTCollision
 from .oot_model_classes import OOTModel
 from ..f3d.f3d_gbi import (
@@ -8,7 +8,6 @@ from ..f3d.f3d_gbi import (
     GfxListTag,
     GfxList,
 )
-from .oot_utility import indent
 
 
 class OOTCommonCommands:
