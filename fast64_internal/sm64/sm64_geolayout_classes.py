@@ -139,7 +139,7 @@ class GeolayoutGraph:
                         raise PluginError("Circular geolayout dependency." + str(callOrder))
                 else:
                     geolayoutList.insert(geolayoutList.index(geolayout), calledGeolayout)
-                    callOrder = copy.copy(callOrder)
+                    callOrder = copy(callOrder)
                     callOrder.append(calledGeolayout)
                     self.sortGeolayouts(geolayoutList, calledGeolayout, callOrder)
         return geolayoutList
