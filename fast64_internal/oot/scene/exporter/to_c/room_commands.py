@@ -65,8 +65,8 @@ def getRoomCommandList(outRoom: OOTRoom, headerIndex: int):
     roomCmdData = (
         (outRoom.getAltHeaderListCmd(outRoom.alternateHeadersName()) if outRoom.hasAlternateHeaders() else "")
         + (",\n".join(indent + getCmd(outRoom) for getCmd in getCmdFuncList) + ",\n")
-        + getObjectListCmd(outRoom, headerIndex)
-        + getActorListCmd(outRoom, headerIndex)
+        + (getObjectListCmd(outRoom, headerIndex) if len(outRoom.objectIDList) > 0 else "")
+        + (getActorListCmd(outRoom, headerIndex) if len(outRoom.actorList) > 0 else "")
         + outRoom.getEndCmd()
     )
 
