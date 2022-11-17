@@ -137,7 +137,9 @@ def cmdCutsceneData(scene, header, cmdCount):
 def ootSceneCommandsToC(scene, headerIndex):
     commands = []
     if scene.hasAlternateHeaders():
-        commands.append(scene.cmdAltHeaders(scene.sceneName(), scene.alternateHeadersName(), headerIndex, len(commands)))
+        commands.append(
+            scene.cmdAltHeaders(scene.sceneName(), scene.alternateHeadersName(), headerIndex, len(commands))
+        )
     commands.append(cmdSoundSettings(scene, headerIndex, len(commands)))
     commands.append(cmdRoomList(scene, headerIndex, len(commands)))
     if len(scene.transitionActorList) > 0:
