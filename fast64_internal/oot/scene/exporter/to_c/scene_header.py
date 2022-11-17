@@ -3,7 +3,7 @@ from .....f3d.f3d_gbi import ScrollMethod, TextureExportSettings
 from ....oot_f3d_writer import OOTGfxFormatter
 from ....oot_utility import indent
 from .scene_pathways import ootPathListToC
-from .actor import ootTransitionActorListToC, ootStartPositionListToC, ootEntranceListToC
+from .actor import getTransitionActorList, getSpawnActorList, getSpawnList
 from .scene_commands import ootSceneCommandsToC
 
 
@@ -179,18 +179,18 @@ def ootSceneMainToC(scene, headerIndex):
 
     # Write the spawn position list data
     if len(scene.startPositions) > 0:
-        sceneMainC.append(ootStartPositionListToC(scene, headerIndex))
+        sceneMainC.append(getSpawnActorList(scene, headerIndex))
 
     # Write the transition actor list data
     if len(scene.transitionActorList) > 0:
-        sceneMainC.append(ootTransitionActorListToC(scene, headerIndex))
+        sceneMainC.append(getTransitionActorList(scene, headerIndex))
 
     # Write the room segment list
     sceneMainC.append(roomHeaderData)
 
     # Write the entrance list
     if len(scene.entranceList) > 0:
-        sceneMainC.append(ootEntranceListToC(scene, headerIndex))
+        sceneMainC.append(getSpawnList(scene, headerIndex))
 
     # Write the exit list
     if len(scene.exitList) > 0:

@@ -1,7 +1,7 @@
 from .....utility import CData
 from ....oot_utility import indent
 from ....oot_level_classes import OOTRoom, OOTScene
-from .actor import ootActorListToC
+from .actor import getActorList
 from .room_commands import ootRoomCommandsToC
 
 
@@ -73,7 +73,7 @@ def ootRoomMainToC(scene, room, headerIndex):
     if len(room.objectIDList) > 0:
         roomMainC.append(ootObjectListToC(room, headerIndex))
     if len(room.actorList) > 0:
-        roomMainC.append(ootActorListToC(room, headerIndex))
+        roomMainC.append(getActorList(room, headerIndex))
     roomMainC.append(altData)
 
     return roomMainC

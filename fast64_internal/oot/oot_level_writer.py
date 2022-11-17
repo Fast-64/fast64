@@ -792,16 +792,18 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
             # and not the identifier as defined by the first element of the tuple. Therefore, we need to check if
             # the current Actor has the ID `None` to avoid export issues.
             if actorProp.actorID != "None":
+                if actorProp.rotOverride:
+                    actorRot = ", ".join([actorProp.rotOverrideX, actorProp.rotOverrideY, actorProp.rotOverrideZ])
+                else:
+                    actorRot = ", ".join(f"DEG_TO_BINANG({(rot * (180 / 0x8000)):.1f})" for rot in rotation)
+
                 addActor(
                     room,
                     OOTActor(
                         getCustomProperty(actorProp, "actorID"),
                         translation,
-                        rotation,
+                        actorRot,
                         actorProp.actorParam,
-                        None
-                        if not actorProp.rotOverride
-                        else (actorProp.rotOverrideX, actorProp.rotOverrideY, actorProp.rotOverrideZ),
                     ),
                     actorProp,
                     "actorList",
@@ -842,9 +844,8 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
                 OOTActor(
                     "ACTOR_PLAYER" if not entranceProp.customActor else entranceProp.actor.actorIDCustom,
                     translation,
-                    rotation,
+                    ", ".join(f"DEG_TO_BINANG({(rot * (180 / 0x8000)):.1f})" for rot in rotation),
                     entranceProp.actor.actorParam,
-                    None,
                 ),
                 entranceProp.actor,
                 obj.name,

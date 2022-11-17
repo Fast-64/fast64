@@ -24,10 +24,9 @@ class OOTCommonCommands:
 
 
 class OOTActor:
-    def __init__(self, actorID, position, rotation, actorParam, rotOverride):
+    def __init__(self, actorID, position, rotation, actorParam):
         self.actorID = actorID
         self.actorParam = actorParam
-        self.rotOverride = rotOverride
         self.position = position
         self.rotation = rotation
 
@@ -231,7 +230,7 @@ class OOTScene(OOTCommonCommands):
         return self.sceneName() + "_header" + format(headerIndex, "02") + "_entranceList"
 
     def startPositionsName(self, headerIndex):
-        return self.sceneName() + "_header" + format(headerIndex, "02") + "_startPositionList"
+        return f"{self.sceneName()}_header{headerIndex:02}_playerEntryList"
 
     def exitListName(self, headerIndex):
         return self.sceneName() + "_header" + format(headerIndex, "02") + "_exitList"
