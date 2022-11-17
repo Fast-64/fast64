@@ -1,6 +1,6 @@
 import os, re, bpy
-from .....utility import readFile, writeFile
-from ....oot_utility import getSceneDirFromLevelName, indent
+from .....utility import readFile, writeFile, indent
+from ....oot_utility import getSceneDirFromLevelName
 
 
 def getSegmentDefinitionEntryBySceneName(segmentDefinition, sceneName):

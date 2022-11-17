@@ -1,6 +1,5 @@
-from .....utility import CData
+from .....utility import CData, indent
 from ....oot_level_classes import OOTRoom
-from ....oot_utility import indent
 
 
 def cmdEchoSettings(room, header, cmdCount):
