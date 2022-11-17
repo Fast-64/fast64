@@ -1,5 +1,5 @@
 from .scene_header import ootSceneMainToC, ootSceneTexturesToC
-from .level_c import ootSceneIncludes, ootLevelToC
+from .scene import getIncludes, getSceneC
 from .scene_table_c import modifySceneTable, getDrawConfig
 from .spec import modifySegmentDefinition
 from .scene_folder import modifySceneFiles, deleteSceneFiles

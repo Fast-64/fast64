@@ -4,8 +4,8 @@ from ..panels import OOT_Panel
 from ..f3d.f3d_gbi import TextureExportSettings, DLFormat
 from ..f3d.f3d_writer import TriangleConverterInfo, saveStaticModel, getInfoDict
 from .scene.exporter.to_c import (
-    ootSceneIncludes,
-    ootLevelToC,
+    getIncludes,
+    getSceneC,
     modifySceneTable,
     modifySegmentDefinition,
     modifySceneFiles,
@@ -45,8 +45,8 @@ from .scene.exporter.to_c import (
     setBootupScene,
     ootSceneBootupRegister,
     ootSceneBootupUnregister,
-    ootSceneIncludes,
-    ootLevelToC,
+    getIncludes,
+    getSceneC,
     modifySceneTable,
     modifySegmentDefinition,
     modifySceneFiles,
@@ -98,7 +98,7 @@ def sceneNameFromID(sceneID):
 
 
 def ootPreprendSceneIncludes(scene, file):
-    exportFile = ootSceneIncludes(scene)
+    exportFile = getIncludes(scene)
     exportFile.append(file)
     return exportFile
 
@@ -115,10 +115,10 @@ def ootCreateSceneHeader(levelC):
             sceneHeader.append(levelC.sceneCutscenesC[i])
     for roomName, roomMainC in levelC.roomMainC.items():
         sceneHeader.append(roomMainC)
-    for roomName, roomMeshInfoC in levelC.roomMeshInfoC.items():
-        sceneHeader.append(roomMeshInfoC)
-    for roomName, roomMeshC in levelC.roomMeshC.items():
-        sceneHeader.append(roomMeshC)
+    for roomName, roomShapeInfoC in levelC.roomShapeInfoC.items():
+        sceneHeader.append(roomShapeInfoC)
+    for roomName, roomModelC in levelC.roomModelC.items():
+        sceneHeader.append(roomModelC)
 
     return sceneHeader
 
@@ -161,7 +161,7 @@ def ootExportSceneToC(
 
     sceneInclude = exportSubdir + "/" + sceneName + "/"
     levelPath = ootGetPath(exportPath, isCustomExport, exportSubdir, sceneName, True, True)
-    levelC = ootLevelToC(scene, TextureExportSettings(False, savePNG, sceneInclude, levelPath))
+    levelC = getSceneC(scene, TextureExportSettings(False, savePNG, sceneInclude, levelPath))
 
     if not isCustomExport:
         writeTextureArraysExistingScene(scene.model, exportPath, sceneInclude + sceneName + "_scene.h")
@@ -177,8 +177,8 @@ def ootExportSceneToC(
         for i in range(len(scene.rooms)):
             roomC = CData()
             roomC.append(levelC.roomMainC[scene.rooms[i].roomName()])
-            roomC.append(levelC.roomMeshInfoC[scene.rooms[i].roomName()])
-            roomC.append(levelC.roomMeshC[scene.rooms[i].roomName()])
+            roomC.append(levelC.roomShapeInfoC[scene.rooms[i].roomName()])
+            roomC.append(levelC.roomModelC[scene.rooms[i].roomName()])
             writeCDataSourceOnly(
                 ootPreprendSceneIncludes(scene, roomC), os.path.join(levelPath, scene.rooms[i].roomName() + ".c")
             )
@@ -208,13 +208,13 @@ def ootExportSceneToC(
             writeCDataSourceOnly(
                 ootPreprendSceneIncludes(scene, roomMainC), os.path.join(levelPath, roomName + "_main.c")
             )
-        for roomName, roomMeshInfoC in levelC.roomMeshInfoC.items():
+        for roomName, roomShapeInfoC in levelC.roomShapeInfoC.items():
             writeCDataSourceOnly(
-                ootPreprendSceneIncludes(scene, roomMeshInfoC), os.path.join(levelPath, roomName + "_model_info.c")
+                ootPreprendSceneIncludes(scene, roomShapeInfoC), os.path.join(levelPath, roomName + "_model_info.c")
             )
-        for roomName, roomMeshC in levelC.roomMeshC.items():
+        for roomName, roomModelC in levelC.roomModelC.items():
             writeCDataSourceOnly(
-                ootPreprendSceneIncludes(scene, roomMeshC), os.path.join(levelPath, roomName + "_model.c")
+                ootPreprendSceneIncludes(scene, roomModelC), os.path.join(levelPath, roomName + "_model.c")
             )
 
     # Export the scene .h file
