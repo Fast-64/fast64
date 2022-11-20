@@ -3,7 +3,7 @@ from .....f3d.f3d_gbi import TextureExportSettings
 from ....oot_level_classes import OOTScene
 from .scene_header import ootSceneMainToC, ootSceneTexturesToC
 from .scene_collision import getSceneCollision
-from .scene_cutscene import ootSceneCutscenesToC
+from .scene_cutscene import getSceneCutscenes
 from .room_header import getRoomData
 from .room_shape import getRoomModel, getRoomShape
 
@@ -38,7 +38,7 @@ def getSceneC(outScene: OOTScene, textureExportSettings: TextureExportSettings):
     sceneC.sceneMainC = ootSceneMainToC(outScene, 0)
     sceneC.sceneTexturesC = ootSceneTexturesToC(outScene, textureExportSettings)
     sceneC.sceneCollisionC = getSceneCollision(outScene)
-    sceneC.sceneCutscenesC = ootSceneCutscenesToC(outScene)
+    sceneC.sceneCutscenesC = getSceneCutscenes(outScene)
 
     for outRoom in outScene.rooms.values():
         outRoomName = outRoom.roomName()
