@@ -60,7 +60,7 @@ def getRoomData(outRoom: OOTRoom):
             roomData.source += getHeaderDefines(curHeader, i)
             roomData.append(getRoomCommandList(curHeader, i))
 
-            if outRoom.hasAlternateHeaders():
+            if i == 0 and outRoom.hasAlternateHeaders():
                 roomData.source += altHeaderPtrList
 
             if len(curHeader.objectIDList) > 0:
