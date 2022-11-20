@@ -1,52 +1,11 @@
-import os, re, bpy
+import os, re
+from bpy.types import Operator, PropertyGroup
+from bpy.path import abspath
+from bpy.props import BoolProperty, EnumProperty, IntProperty, StringProperty
 from bpy.utils import register_class, unregister_class
+from typing import Any
 from .....utility import PluginError, writeFile, readFile
 from ....oot_constants import ootEnumHeaderMenuComplete
-from typing import Any
-
-
-def setBootupScene(configPath: str, entranceIndex: str, options: "OOTBootupSceneOptions"):
-
-    linkAge = "LINK_AGE_CHILD"
-    timeOfDay = "NEXT_TIME_NONE"
-    cutsceneIndex = "0xFFEF"
-    newEntranceIndex = "0"
-    saveName = "LINK"
-
-    if options.bootMode != "Map Select":
-        newEntranceIndex = entranceIndex
-        saveName = options.newGameName
-
-        if options.overrideHeader:
-            timeOfDay, linkAge = getParamsFromOptions(options)
-            if options.headerOption == "Cutscene":
-                cutsceneIndex = "0xFFF" + format(options.cutsceneIndex - 4, "X")
-
-    saveFileNameData = ", ".join(["0x" + format(i, "02X") for i in stringToSaveNameBytes(saveName)])
-
-    writeBootupSettings(
-        configPath,
-        options.bootMode,
-        options.newGameOnly,
-        newEntranceIndex,
-        linkAge,
-        timeOfDay,
-        cutsceneIndex,
-        saveFileNameData,
-    )
-
-
-def clearBootupScene(configPath: str):
-    writeBootupSettings(
-        configPath,
-        "",
-        False,
-        "0",
-        "LINK_AGE_CHILD",
-        "NEXT_TIME_NONE",
-        "0xFFEF",
-        "0x15, 0x12, 0x17, 0x14, 0x3E, 0x3E, 0x3E, 0x3E",
-    )
 
 
 def writeBootupSettings(
@@ -106,6 +65,49 @@ def writeBootupSettings(
         writeFile(configPath, data)
 
 
+def setBootupScene(configPath: str, entranceIndex: str, options: "OOTBootupSceneOptions"):
+    linkAge = "LINK_AGE_CHILD"
+    timeOfDay = "NEXT_TIME_NONE"
+    cutsceneIndex = "0xFFEF"
+    newEntranceIndex = "0"
+    saveName = "LINK"
+
+    if options.bootMode != "Map Select":
+        newEntranceIndex = entranceIndex
+        saveName = options.newGameName
+
+        if options.overrideHeader:
+            timeOfDay, linkAge = getParamsFromOptions(options)
+            if options.headerOption == "Cutscene":
+                cutsceneIndex = "0xFFF" + format(options.cutsceneIndex - 4, "X")
+
+    saveFileNameData = ", ".join(["0x" + format(i, "02X") for i in stringToSaveNameBytes(saveName)])
+
+    writeBootupSettings(
+        configPath,
+        options.bootMode,
+        options.newGameOnly,
+        newEntranceIndex,
+        linkAge,
+        timeOfDay,
+        cutsceneIndex,
+        saveFileNameData,
+    )
+
+
+def clearBootupScene(configPath: str):
+    writeBootupSettings(
+        configPath,
+        "",
+        False,
+        "0",
+        "LINK_AGE_CHILD",
+        "NEXT_TIME_NONE",
+        "0xFFEF",
+        "0x15, 0x12, 0x17, 0x14, 0x3E, 0x3E, 0x3E, 0x3E",
+    )
+
+
 def getParamsFromOptions(options: Any) -> tuple[str, str]:
     timeOfDay = (
         "NEXT_TIME_DAY"
@@ -153,13 +155,13 @@ def stringToSaveNameBytes(name: str) -> bytearray:
     return result
 
 
-class OOT_ClearBootupScene(bpy.types.Operator):
+class OOT_ClearBootupScene(Operator):
     bl_idname = "object.oot_clear_bootup_scene"
     bl_label = "Undo Boot To Scene"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
 
     def execute(self, context):
-        clearBootupScene(os.path.join(bpy.path.abspath(context.scene.ootDecompPath), "include/config/config_debug.h"))
+        clearBootupScene(os.path.join(abspath(context.scene.ootDecompPath), "include/config/config_debug.h"))
         self.report({"INFO"}, "Success!")
         return {"FINISHED"}
 
@@ -171,21 +173,21 @@ ootEnumBootMode = [
 ]
 
 
-class OOTBootupSceneOptions(bpy.types.PropertyGroup):
-    bootToScene: bpy.props.BoolProperty(default=False, name="Boot To Scene")
-    overrideHeader: bpy.props.BoolProperty(default=False, name="Override Header")
-    headerOption: bpy.props.EnumProperty(items=ootEnumHeaderMenuComplete, name="Header", default="Child Day")
-    spawnIndex: bpy.props.IntProperty(name="Spawn", min=0)
-    newGameOnly: bpy.props.BoolProperty(
+class OOTBootupSceneOptions(PropertyGroup):
+    bootToScene: BoolProperty(default=False, name="Boot To Scene")
+    overrideHeader: BoolProperty(default=False, name="Override Header")
+    headerOption: EnumProperty(items=ootEnumHeaderMenuComplete, name="Header", default="Child Day")
+    spawnIndex: IntProperty(name="Spawn", min=0)
+    newGameOnly: BoolProperty(
         default=False,
         name="Override Scene On New Game Only",
         description="Only use this starting scene after loading a new save file",
     )
-    newGameName: bpy.props.StringProperty(default="Link", name="New Game Name")
-    bootMode: bpy.props.EnumProperty(default="Play", name="Boot Mode", items=ootEnumBootMode)
+    newGameName: StringProperty(default="Link", name="New Game Name")
+    bootMode: EnumProperty(default="Play", name="Boot Mode", items=ootEnumBootMode)
 
     # see src/code/z_play.c:Play_Init() - can't access more than 16 cutscenes?
-    cutsceneIndex: bpy.props.IntProperty(min=4, max=19, default=4, name="Cutscene Index")
+    cutsceneIndex: IntProperty(min=4, max=19, default=4, name="Cutscene Index")
 
 
 def ootSceneBootupRegister():
