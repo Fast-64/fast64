@@ -10,6 +10,7 @@ from .fast64_internal.sm64.sm64_geolayout_bone import SM64_BoneProperties
 from .fast64_internal.sm64.sm64_objects import SM64_ObjectProperties
 from .fast64_internal.sm64.sm64_geolayout_utility import createBoneGroups
 from .fast64_internal.sm64.sm64_geolayout_parser import generateMetarig
+from .fast64_internal.sm64.sm64_level_importer import sm64_import_register, sm64_import_unregister
 
 from .fast64_internal.oot import OOT_Properties, oot_register, oot_unregister
 from .fast64_internal.oot.oot_level import OOT_ObjectProperties
@@ -447,6 +448,7 @@ def register():
     bsdf_conv_register()
     sm64_register(True)
     oot_register(True)
+    sm64_import_register()
 
     for cls in classes:
         register_class(cls)
@@ -486,6 +488,7 @@ def unregister():
     f3d_parser_unregister()
     sm64_unregister(True)
     oot_unregister(True)
+    sm64_import_unregister()
     mat_unregister()
     bsdf_conv_unregister()
     bsdf_conv_panel_unregsiter()
