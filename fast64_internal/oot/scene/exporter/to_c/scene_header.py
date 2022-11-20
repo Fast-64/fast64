@@ -1,7 +1,7 @@
 from .....utility import CData, indent
 from .....f3d.f3d_gbi import ScrollMethod, TextureExportSettings
 from ....oot_f3d_writer import OOTGfxFormatter
-from .scene_pathways import ootPathListToC
+from .scene_pathways import getPathData
 from .actor import getTransitionActorList, getSpawnActorList, getSpawnList
 from .scene_commands import getSceneCommandList
 
@@ -158,7 +158,7 @@ def ootSceneMainToC(scene, headerIndex):
         roomHeaderData = CData()
 
     if len(scene.pathList) > 0:
-        pathData = ootPathListToC(scene, headerIndex)
+        pathData = getPathData(scene, headerIndex)
     else:
         pathData = CData()
 

@@ -13,7 +13,7 @@ class OOTPath:
         self.points = []
 
     def pathName(self, headerIndex, index):
-        return self.ownerName + "_pathwayList" + str(headerIndex) + "_" + str(index)
+        return f"{self.ownerName}_pathwayList{index}_header{headerIndex}"
 
 
 def ootConvertPath(name, obj, transformMatrix):
