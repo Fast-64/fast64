@@ -1,5 +1,5 @@
 import bpy, os, shutil
-from ..utility import PluginError, CData, toAlnum, indent
+from ..utility import PluginError, toAlnum, indent
 from .oot_collision_classes import OOTCollision
 from .oot_model_classes import OOTModel
 from ..f3d.f3d_gbi import (
@@ -329,19 +329,19 @@ class OOTBGImage:
         return f"{self.name}.jpg"
 
     def singlePropertiesC(self, tabDepth: int) -> str:
-        code = ""
-        code += "\t" * tabDepth + f"{self.name},\n"
-        code += "\t" * tabDepth + f"0x00000000, 0x00000000,\n"
-        code += "\t" * tabDepth + f"{self.image.size[0]}, {self.image.size[1]},\n"
-        code += "\t" * tabDepth + f"0, 2,\n"  # RGBA16
-        code += "\t" * tabDepth + f"{self.otherModeFlags}, 0x0000,\n"
-        return code
+        return (indent * tabDepth) + (indent * tabDepth).join(
+            (
+                f"{self.name},\n",
+                f"0x00000000,\n",  # (``unk_0C`` in decomp)
+                "NULL,\n",
+                f"{self.image.size[0]}, {self.image.size[1]},\n",
+                f"G_IM_FMT_RGBA, G_IM_SIZ_16b,\n",  # RGBA16
+                f"{self.otherModeFlags}, 0x0000",
+            )
+        )
 
     def multiPropertiesC(self, tabDepth: int, cameraIndex: int) -> str:
-        code = ""
-        code += "\t" * tabDepth + f"0x0082, {cameraIndex},\n"
-        code += self.singlePropertiesC(tabDepth)
-        return code
+        return (indent * tabDepth) + f"0x0082, {cameraIndex},\n" + self.singlePropertiesC(tabDepth) + "\n"
 
 
 class OOTRoomMesh:
@@ -361,7 +361,7 @@ class OOTRoomMesh:
 
     def entriesName(self):
         return str(self.roomName) + (
-            "_shapeDListEntry" if self.roomShape == "ROOM_SHAPE_TYPE_NORMAL" else "_shapeCullableEntry"
+            "_shapeDListEntry" if self.roomShape != "ROOM_SHAPE_TYPE_CULLABLE" else "_shapeCullableEntry"
         )
 
     def addMeshGroup(self, cullGroup):

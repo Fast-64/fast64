@@ -1,11 +1,11 @@
-from .....utility import CData
+from .....utility import CData, PluginError
 from .....f3d.f3d_gbi import TextureExportSettings
 from ....oot_level_classes import OOTScene
 from .scene_header import ootSceneMainToC, ootSceneTexturesToC
 from .scene_collision import ootSceneCollisionToC
 from .scene_cutscene import ootSceneCutscenesToC
 from .room_header import getRoomData
-from .room_shape import ootRoomMeshToC
+from .room_shape import getRoomModel, getRoomShape
 
 
 class OOTSceneC:
@@ -42,7 +42,12 @@ def getSceneC(outScene: OOTScene, textureExportSettings: TextureExportSettings):
 
     for outRoom in outScene.rooms.values():
         outRoomName = outRoom.roomName()
-        roomShapeInfo, roomModel = ootRoomMeshToC(outRoom, textureExportSettings)
+
+        if len(outRoom.mesh.meshEntries) > 0:
+            roomShapeInfo = getRoomShape(outRoom)
+            roomModel = getRoomModel(outRoom, textureExportSettings)
+        else:
+            raise PluginError(f"Error: Room {outRoom.index} has no mesh children.")
 
         sceneC.roomMainC[outRoomName] = getRoomData(outRoom)
         sceneC.roomShapeInfoC[outRoomName] = roomShapeInfo
