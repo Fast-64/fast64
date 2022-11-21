@@ -1,13 +1,49 @@
-import bpy, mathutils, math, re, os, copy, shutil
-from .sm64_constants import *
+import bpy, os, copy, shutil, mathutils, math
+from bpy.utils import register_class, unregister_class
+from ..panels import SM64_Panel, sm64GoalImport
 from .sm64_level_parser import parseLevelAtPointer
 from .sm64_rom_tweaks import ExtendBank0x04
 from .sm64_geolayout_bone import animatableBoneTypes
-from math import pi
-from bpy.utils import register_class, unregister_class
 
-from ..utility import *
-from ..panels import SM64_Panel, sm64GoalImport
+from ..utility import (
+    CData,
+    PluginError,
+    ValueFrameData,
+    raisePluginError,
+    encodeSegmentedAddr,
+    decodeSegmentedAddr,
+    getExportDir,
+    toAlnum,
+    writeIfNotFound,
+    get64bitAlignedAddr,
+    writeInsertableFile,
+    getFrameInterval,
+    findStartBones,
+    saveTranslationFrame,
+    saveQuaternionFrame,
+    removeTrailingFrames,
+    applyRotation,
+    getPathAndLevel,
+    applyBasicTweaks,
+    checkExpanded,
+    tempName,
+    bytesToHex,
+    prop_split,
+    customExportWarning,
+    decompFolderMessage,
+    makeWriteInfoBox,
+    writeBoxExportType,
+    enumExportHeaderType,
+)
+
+from .sm64_constants import (
+    bank0Segment,
+    insertableBinaryTypes,
+    level_pointers,
+    defaultExtendSegment4,
+    level_enums,
+    enumLevelNames,
+)
 
 sm64_anim_types = {"ROTATE", "TRANSLATE"}
 
