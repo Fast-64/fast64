@@ -1,5 +1,5 @@
 import bpy
-from .oot_constants import ootEnumActorID, ootEnumSceneSetupPreset, ootEnumCamTransition
+from .oot_constants import ootData, ootEnumSceneSetupPreset, ootEnumCamTransition
 from ..utility import PluginError, prop_split, label_split
 from .oot_utility import (
     getRoomObj,
@@ -97,9 +97,9 @@ class OOT_SearchActorIDEnumOperator(bpy.types.Operator):
     bl_property = "actorID"
     bl_options = {"REGISTER", "UNDO"}
 
-    actorID: bpy.props.EnumProperty(items=ootEnumActorID, default="ACTOR_PLAYER")
-    actorUser: bpy.props.StringProperty(default="Actor")
-    objName: bpy.props.StringProperty()
+    actorID : bpy.props.EnumProperty(items = ootData.actorData.ootEnumActorID, default = "ACTOR_PLAYER")
+    actorUser : bpy.props.StringProperty(default = "Actor")
+    objName : bpy.props.StringProperty()
 
     def execute(self, context):
         obj = bpy.data.objects[self.objName]
@@ -204,7 +204,7 @@ def drawActorHeaderItemProperty(layout, propUser, headerItemProp, index, altProp
 
 
 class OOTActorProperty(bpy.types.PropertyGroup):
-    actorID: bpy.props.EnumProperty(name="Actor", items=ootEnumActorID, default="ACTOR_PLAYER")
+    actorID: bpy.props.EnumProperty(name="Actor", items=ootData.actorData.ootEnumActorID, default="ACTOR_PLAYER")
     actorIDCustom: bpy.props.StringProperty(name="Actor ID", default="ACTOR_PLAYER")
     actorParam: bpy.props.StringProperty(name="Actor Parameter", default="0x0000")
     rotOverride: bpy.props.BoolProperty(name="Override Rotation", default=False)
@@ -222,9 +222,14 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName):
     searchOp.actorUser = "Actor"
     searchOp.objName = objName
 
-    split = actorIDBox.split(factor=0.5)
-    split.label(text="Actor ID")
-    split.label(text=getEnumName(ootEnumActorID, actorProp.actorID))
+    split = actorIDBox.split(factor = 0.5)
+
+    if actorProp.actorID == "None":
+        actorIDBox.box().label(text="This Actor was deleted from the XML file.")
+        return
+
+    split.label(text = "Actor ID")
+    split.label(text = getEnumName(ootData.actorData.ootEnumActorID, actorProp.actorID))
 
     if actorProp.actorID == "Custom":
         # actorIDBox.prop(actorProp, 'actorIDCustom', text = 'Actor ID')
@@ -255,16 +260,13 @@ class OOTTransitionActorProperty(bpy.types.PropertyGroup):
 
 def drawTransitionActorProperty(layout, transActorProp, altSceneProp, roomObj, objName):
     actorIDBox = layout.column()
-    # actorIDBox.box().label(text = "Properties")
-    # prop_split(actorIDBox, transActorProp, 'actorID', 'Actor')
-    # actorIDBox.box().label(text = "Actor ID: " + getEnumName(ootEnumActorID, transActorProp.actor.actorID))
-    searchOp = actorIDBox.operator(OOT_SearchActorIDEnumOperator.bl_idname, icon="VIEWZOOM")
+    searchOp = actorIDBox.operator(OOT_SearchActorIDEnumOperator.bl_idname, icon = 'VIEWZOOM')
     searchOp.actorUser = "Transition Actor"
     searchOp.objName = objName
-
-    split = actorIDBox.split(factor=0.5)
-    split.label(text="Actor ID")
-    split.label(text=getEnumName(ootEnumActorID, transActorProp.actor.actorID))
+    
+    split = actorIDBox.split(factor = 0.5)
+    split.label(text = "Actor ID")
+    split.label(text = getEnumName(ootData.actorData.ootEnumActorID, transActorProp.actor.actorID))
 
     if transActorProp.actor.actorID == "Custom":
         prop_split(actorIDBox, transActorProp.actor, "actorIDCustom", "")

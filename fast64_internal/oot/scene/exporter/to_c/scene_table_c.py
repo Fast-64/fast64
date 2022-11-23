@@ -1,7 +1,7 @@
 import os, bpy
-from ...utility import PluginError, writeFile
-from ..oot_constants import ootEnumSceneID
-from ..oot_utility import getCustomProperty, ExportInfo
+from .....utility import PluginError, writeFile
+from ....oot_constants import ootEnumSceneID
+from ....oot_utility import getCustomProperty, ExportInfo
 
 
 def getSceneTable(exportPath):

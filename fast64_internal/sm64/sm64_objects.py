@@ -1,15 +1,49 @@
-import math, os, bpy, bmesh, mathutils
+import math, bpy, mathutils
 from bpy.utils import register_class, unregister_class
-from io import BytesIO
 from re import findall
-
-from .sm64_constants import *
 from .sm64_function_map import func_map
-from .sm64_spline import *
-from .sm64_geolayout_classes import *
 
-from ..utility import *
-from ..f3d.f3d_material import sm64EnumDrawLayers
+from ..utility import (
+    PluginError,
+    CData,
+    Vector,
+    toAlnum,
+    convertRadiansToS16,
+    checkIdentityRotation,
+    obj_scale_is_unified,
+    all_values_equal_x,
+    checkIsSM64PreInlineGeoLayout,
+    prop_split,
+)
+
+from .sm64_constants import (
+    levelIDNames,
+    enumLevelNames,
+    enumModelIDs,
+    enumMacrosNames,
+    enumSpecialsNames,
+    enumBehaviourPresets,
+    groupsSeg5,
+    groupsSeg6
+)
+
+from .sm64_spline import (
+    assertCurveValid,
+    convertSplineObject,
+)
+
+from .sm64_geolayout_classes import (
+    DisplayListNode,
+    JumpNode,
+    TranslateNode,
+    RotateNode,
+    TranslateRotateNode,
+    FunctionNode,
+    CustomNode,
+    BillboardNode,
+    ScaleNode,
+)
+
 
 enumTerrain = [
     ("Custom", "Custom", "Custom"),

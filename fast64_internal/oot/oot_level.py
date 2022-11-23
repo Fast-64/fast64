@@ -129,9 +129,6 @@ class OOTObjectPanel(bpy.types.Panel):
         elif obj.ootEmptyType == "None":
             box.label(text="Geometry can be parented to this.")
 
-        # if obj.ootEmptyType != "Scene" and obj.ootEmptyType != "Room":
-        # 	drawParentSceneRoom(box, context.object)
-
 
 def drawSceneHeader(box: bpy.types.UILayout, obj: bpy.types.Object):
     objName = obj.name
@@ -189,11 +186,25 @@ def onUpdateOOTEmptyType(self, context):
             setLightPropertyValues(timeOfDayLights.night, [40, 70, 100], [20, 20, 35], [50, 50, 100], [0, 0, 30], 0x3E0)
 
 
-class OOT_ObjectProperties(bpy.types.PropertyGroup):
-    version: bpy.props.IntProperty(name="OOT_ObjectProperties Version", default=0)
-    cur_version = 0  # version after property migration
+class OOT_ManualUpgrade(bpy.types.Operator):
+    bl_idname = "object.oot_manual_upgrade"
+    bl_label = "Upgrade Fast64 OoT Object Data"
+    bl_options = {"REGISTER", "UNDO", "PRESET"}
 
+    def execute(self, context):
+        OOT_ObjectProperties.upgrade_changed_props()
+        return {"FINISHED"}
+
+
+class OOT_ObjectProperties(bpy.types.PropertyGroup):
     scene: bpy.props.PointerProperty(type=OOTSceneProperties)
+
+    @staticmethod
+    def upgrade_changed_props():
+        for obj in bpy.data.objects:
+            if obj.data is None:
+                if obj.ootEmptyType == "Room":
+                    OOTObjectProperty.upgrade_object(obj)
 
 
 class OOTRemoveSceneSettingsProperty(bpy.types.PropertyGroup):
@@ -310,6 +321,7 @@ oot_obj_classes = (
     OOTBGProperty,
     OOTRoomHeaderProperty,
     OOTAlternateRoomHeaderProperty,
+    OOT_ManualUpgrade,
     OOTImportSceneSettingsProperty,
     OOTExportSceneSettingsProperty,
     OOTRemoveSceneSettingsProperty,

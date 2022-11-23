@@ -1,5 +1,5 @@
 import os, re, bpy
-from ..utility import *
+from ..utility import PluginError, writeIfNotFound, getDataFromFile, saveDataToFile
 from .c_templates.tile_scroll import tile_scroll_c, tile_scroll_h
 from .sm64_utility import getMemoryCFilePath
 

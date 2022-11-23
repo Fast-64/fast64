@@ -1,4 +1,5 @@
 import bpy
+from bpy.types import UILayout
 from typing import Callable
 from ..render_settings import on_update_oot_render_settings
 from ..utility import ootGetSceneOrRoomHeader, prop_split
@@ -7,7 +8,7 @@ from .oot_cutscene import OOTCSListProperty, drawCSListProperty, drawCSAddButton
 from .oot_actor import setAllActorsVisibility
 
 from .oot_constants import (
-    ootEnumObjectID,
+    ootData,
     ootEnumMusicSeq,
     ootEnumSceneID,
     ootEnumExitIndex,
@@ -33,6 +34,8 @@ from .oot_constants import (
     ootEnumHeaderMenu,
     ootEnumDrawConfig,
 )
+
+from .oot_upgrade import upgradeRoomHeaders
 
 
 def onUpdateOoTLighting(self, context: bpy.types.Context):
@@ -75,19 +78,19 @@ class OOT_SearchMusicSeqEnumOperator(bpy.types.Operator):
 class OOT_SearchObjectEnumOperator(bpy.types.Operator):
     bl_idname = "object.oot_search_object_enum_operator"
     bl_label = "Search Object ID"
-    bl_property = "ootObjectID"
+    bl_property = "objectKey"
     bl_options = {"REGISTER", "UNDO"}
 
-    ootObjectID: bpy.props.EnumProperty(items=ootEnumObjectID, default="OBJECT_HUMAN")
+    objectKey: bpy.props.EnumProperty(items=ootData.objectData.ootEnumObjectKey, default="obj_human")
     headerIndex: bpy.props.IntProperty(default=0, min=0)
     index: bpy.props.IntProperty(default=0, min=0)
     objName: bpy.props.StringProperty()
 
     def execute(self, context):
         roomHeader = ootGetSceneOrRoomHeader(bpy.data.objects[self.objName], self.headerIndex, True)
-        roomHeader.objectList[self.index].objectID = self.ootObjectID
+        roomHeader.objectList[self.index].objectKey = self.objectKey
         bpy.context.region.tag_redraw()
-        self.report({"INFO"}, "Selected: " + self.ootObjectID)
+        self.report({"INFO"}, "Selected: " + self.objectKey)
         return {"FINISHED"}
 
     def invoke(self, context, event):
@@ -185,17 +188,26 @@ def drawExitProperty(layout, exitProp, index, headerIndex, objName):
 
 class OOTObjectProperty(bpy.types.PropertyGroup):
     expandTab: bpy.props.BoolProperty(name="Expand Tab")
-    objectID: bpy.props.EnumProperty(items=ootEnumObjectID, default="OBJECT_HUMAN")
-    objectIDCustom: bpy.props.StringProperty(default="OBJECT_HUMAN")
+    objectKey: bpy.props.EnumProperty(items=ootData.objectData.ootEnumObjectKey, default="obj_human")
+    objectIDCustom: bpy.props.StringProperty(default="OBJECT_CUSTOM")
+
+    @staticmethod
+    def upgrade_object(obj):
+        print(f"Processing '{obj.name}'...")
+        upgradeRoomHeaders(obj, ootData.objectData)
 
 
-def drawObjectProperty(layout, objectProp, headerIndex, index, objName):
+def drawObjectProperty(
+    layout: bpy.types.UILayout, objectProp: OOTObjectProperty, headerIndex: int, index: int, objName: str
+):
+    isLegacy = True if "objectID" in objectProp else False
+
+    if isLegacy:
+        objectName = ootData.objectData.ootEnumObjectIDLegacy[objectProp["objectID"]][1]
+    else:
+        objectName = ootData.objectData.objectsByKey[objectProp.objectKey].name
+
     objItemBox = layout.column()
-    objectName = getEnumName(ootEnumObjectID, objectProp.objectID)
-    # objItemBox.prop(
-    #    objectProp, "expandTab", text=objectName, icon="TRIA_DOWN" if objectProp.expandTab else "TRIA_RIGHT"
-    # )
-    # if objectProp.expandTab:
     row = objItemBox.row()
     row.label(text=f"{objectName}")
     buttons = row.row(align=True)
@@ -204,9 +216,8 @@ def drawObjectProperty(layout, objectProp, headerIndex, index, objName):
     objSearch.objName = objName
     objSearch.headerIndex = headerIndex if headerIndex is not None else 0
     objSearch.index = index
-    # objItemBox.column().label(text="ID: " + objectName)
-    # prop_split(objItemBox, objectProp, "objectID", name = "ID")
-    if objectProp.objectID == "Custom":
+
+    if objectProp.objectKey == "Custom":
         prop_split(objItemBox, objectProp, "objectIDCustom", "Object ID Custom")
 
 
@@ -632,7 +643,8 @@ def drawBGImageList(layout: bpy.types.UILayout, roomHeader: OOTRoomHeaderPropert
         drawAddButton(box, len(roomHeader.bgImageList), "BgImage", None, objName)
 
 
-def drawRoomHeaderProperty(layout, roomProp, dropdownLabel, headerIndex, objName):
+def drawRoomHeaderProperty(layout: UILayout, roomProp, dropdownLabel, headerIndex, objName):
+    from .oot_level import OOT_ManualUpgrade
 
     if dropdownLabel is not None:
         layout.prop(roomProp, "expandTab", text=dropdownLabel, icon="TRIA_DOWN" if roomProp.expandTab else "TRIA_RIGHT")
@@ -702,10 +714,26 @@ def drawRoomHeaderProperty(layout, roomProp, dropdownLabel, headerIndex, objName
             # prop_split(windBox, roomProp, "windVector", "Wind Vector")
 
     elif menuTab == "Objects":
+        upgradeLayout = layout.column()
         objBox = layout.column()
         objBox.box().label(text="Objects")
-        for i in range(len(roomProp.objectList)):
-            drawObjectProperty(objBox, roomProp.objectList[i], headerIndex, i, objName)
+
+        if len(roomProp.objectList) > 16:
+            objBox.label(text="You are over the 16 object limit.", icon="ERROR")
+            objBox.label(text="You must allocate more memory in code.")
+
+        isLegacy = False
+        for i, objProp in enumerate(roomProp.objectList):
+            drawObjectProperty(objBox, objProp, headerIndex, i, objName)
+
+            if "objectID" in objProp:
+                isLegacy = True
+
+        if isLegacy:
+            upgradeLayout.label(text="Legacy data has not been upgraded!")
+            upgradeLayout.operator(OOT_ManualUpgrade.bl_idname, text="Upgrade Data Now!")
+        objBox.enabled = False if isLegacy else True
+
         drawAddButton(objBox, len(roomProp.objectList), "Object", headerIndex, objName)
 
 
