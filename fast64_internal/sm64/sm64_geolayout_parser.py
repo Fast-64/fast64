@@ -1,17 +1,58 @@
-import bpy, mathutils, math, copy
-from math import pi
+import bpy, mathutils, math, bmesh, copy
 from bpy.utils import register_class, unregister_class
-
-from .sm64_level_parser import *
-from .sm64_geolayout_bone import enumShadowType
-from .sm64_geolayout_constants import *
-from .sm64_geolayout_utility import *
-from .sm64_constants import *
-
-from ..f3d.f3d_material import createF3DMat, update_preset_manual
-from ..f3d.f3d_parser import *
-from ..utility import *
+from ..f3d.f3d_parser import createBlankMaterial, parseF3DBinary
 from ..panels import SM64_Panel, sm64GoalImport
+from .sm64_level_parser import parseLevelAtPointer
+from .sm64_constants import level_pointers, level_enums
+from .sm64_geolayout_bone import enumShadowType
+from .sm64_geolayout_constants import getGeoLayoutCmdLength, nodeGroupCmds, GEO_BRANCH_STORE
+
+from ..utility import (
+    PluginError,
+    decodeSegmentedAddr,
+    raisePluginError,
+    bytesToHexClean,
+    bitMask,
+    readVectorFromShorts,
+    findStartBones,
+    readEulerVectorFromShorts,
+    readFloatFromShort,
+    checkExpanded,
+    doRotation,
+    prop_split,
+    sm64BoneUp,
+    geoNodeRotateOrder,
+)
+
+from .sm64_geolayout_utility import (
+    createBoneGroups,
+    createBoneLayerMask,
+    getBoneGroupIndex,
+    addBoneToGroup,
+    boneLayers,
+)
+
+from .sm64_geolayout_classes import (
+    GEO_NODE_CLOSE,
+    GEO_END,
+    GEO_BRANCH,
+    GEO_RETURN,
+    GEO_NODE_OPEN,
+    GEO_START,
+    GEO_SWITCH,
+    GEO_TRANSLATE_ROTATE,
+    GEO_TRANSLATE,
+    GEO_ROTATE,
+    GEO_LOAD_DL_W_OFFSET,
+    GEO_BILLBOARD,
+    GEO_START_W_SHADOW,
+    GEO_CALL_ASM,
+    GEO_HELD_OBJECT,
+    GEO_SCALE,
+    GEO_START_W_RENDERAREA,
+    GEO_LOAD_DL,
+)
+
 
 blender_modes = {"OBJECT", "BONE"}
 

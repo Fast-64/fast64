@@ -15,6 +15,9 @@ class VertexWeightError(PluginError):
     pass
 
 
+# default indentation to use when writing to decomp files
+indent = " " * 4
+
 geoNodeRotateOrder = "ZXY"
 sm64BoneUp = Vector([1, 0, 0])
 
