@@ -1,6 +1,7 @@
 # Macros are all copied over from gbi.h
 from typing import Sequence
-import bpy, os, enum
+from dataclasses import dataclass, fields
+import bpy, os, enum, copy
 from ..utility import *
 
 
@@ -1981,75 +1982,10 @@ class Vtx:
         )
 
     def to_c(self):
-        if bpy.context.scene.decomp_compatible:
-            return (
-                "{{"
-                + ", ".join(
-                    (
-                        (
-                            "{"
-                            + ", ".join(
-                                (
-                                    str(self.position[0]),
-                                    str(self.position[1]),
-                                    str(self.position[2]),
-                                )
-                            )
-                            + "}"
-                        ),
-                        "0",
-                        "{" + str(self.uv[0]) + ", " + str(self.uv[1]) + "}",
-                        (
-                            "{"
-                            + ", ".join(
-                                (
-                                    "0x" + format(self.colorOrNormal[0], "X"),
-                                    "0x" + format(self.colorOrNormal[1], "X"),
-                                    "0x" + format(self.colorOrNormal[2], "X"),
-                                    "0x" + format(self.colorOrNormal[3], "X"),
-                                )
-                            )
-                            + "}"
-                        ),
-                    )
-                )
-                + "}}"
-            )
-        else:
-            return (
-                "{"
-                + ", ".join(
-                    (
-                        str(self.position[0]),
-                        str(self.position[1]),
-                        str(self.position[2]),
-                        "0",
-                        str(self.uv[0]),
-                        str(self.uv[1]),
-                        "0x" + format(self.colorOrNormal[0], "X"),
-                        "0x" + format(self.colorOrNormal[1], "X"),
-                        "0x" + format(self.colorOrNormal[2], "X"),
-                        "0x" + format(self.colorOrNormal[3], "X"),
-                    )
-                )
-                + "}"
-            )
+        def spc(x):
+            return "{" + ", ".join([str(a) for a in x]) + "}"
 
-    def to_sm64_decomp_s(self):
-        return "vertex " + ", ".join(
-            (
-                str(self.position[0]),
-                str(self.position[1]),
-                str(self.position[2]),
-                "0",
-                "0x" + format(self.uv[0], "X"),
-                "0x" + format(self.uv[1], "X"),
-                "0x" + format(self.colorOrNormal[0], "X"),
-                "0x" + format(self.colorOrNormal[1], "X"),
-                "0x" + format(self.colorOrNormal[2], "X"),
-                "0x" + format(self.colorOrNormal[3], "X"),
-            )
-        )
+        return "{{ " + ", ".join([spc(self.position), "0", spc(self.uv), spc(self.colorOrNormal)]) + " }}"
 
 
 class VtxList:
@@ -2079,17 +2015,11 @@ class VtxList:
 
     def to_c(self):
         data = CData()
-        data.header = "extern Vtx " + self.name + "[" + str(len(self.vertices)) + "];\n"
-        data.source = "Vtx " + self.name + "[" + str(len(self.vertices)) + "] = {\n"
+        data.header = f"extern Vtx {self.name}[{len(self.vertices)}];\n"
+        data.source = f"Vtx {self.name}[{len(self.vertices)}] = {{\n"
         for vert in self.vertices:
-            data.source += "\t" + vert.to_c() + ",\n"
+            data.source += f"\t{vert.to_c()},\n"
         data.source += "};\n\n"
-        return data
-
-    def to_sm64_decomp_s(self):
-        data = self.name + ":\n"
-        for vert in self.vertices:
-            data += vert.to_sm64_decomp_s() + "\n"
         return data
 
 
@@ -2104,29 +2034,28 @@ class GfxList:
     def set_addr(self, startAddress, f3d):
         startAddress = get64bitAlignedAddr(startAddress)
         self.startAddress = startAddress
-        print("GfxList " + self.name + ": " + str(startAddress) + ", " + str(self.size(f3d)))
+        print(f"GfxList {self.name}: {str(startAddress)}, {str(self.size(f3d))}")
         return startAddress, startAddress + self.size(f3d)
 
     def save_binary(self, romfile, f3d, segments):
-        print("GfxList " + self.name + ": " + str(self.startAddress) + ", " + str(self.size(f3d)))
+        print(f"GfxList {self.name}: {str(self.startAddress)}, {str(self.size(f3d))}")
         romfile.seek(self.startAddress)
         romfile.write(self.to_binary(f3d, segments))
 
     def size(self, f3d):
-        size = 0
-        for command in self.commands:
-            size += command.size(f3d)
-        return size
+        return sum([command.size(f3d) for command in self.commands])
 
     # Size, including display lists called with SPDisplayList
     def size_total(self, f3d):
-        size = 0
-        for command in self.commands:
-            if isinstance(command, SPDisplayList) and command.displayList.DLFormat != DLFormat.Static:
-                size += command.displayList.size_total(f3d)
-            else:
-                size += command.size(f3d)
-        return size
+        def use_siz_tot(command):
+            return isinstance(command, SPDisplayList) and command.displayList.DLFormat != DLFormat.Static
+
+        return sum(
+            [
+                command.displayList.size_total(f3d) if use_siz_tot(command) else command.size(f3d)
+                for command in self.commands
+            ]
+        )
 
     def get_ptr_addresses(self, f3d):
         ptrs = []
@@ -2142,39 +2071,32 @@ class GfxList:
         data = bytearray(0)
         for command in self.commands:
             data.extend(command.to_binary(f3d, segments))
-
         return data
 
     def to_c_static(self):
-        data = "Gfx " + self.name + "[] = {\n"
+        data = f"Gfx {self.name}[] = {{\n"
         for command in self.commands:
-            data += "\t" + command.to_c(True) + ",\n"
+            data += f"\t{command.to_c(True)},\n"
         data += "};\n\n"
         return data
 
     def to_c_dynamic(self):
-        data = "Gfx* " + self.name + "(Gfx* glistp) {\n"
+        data = f"Gfx* {self.name}(Gfx* glistp) {{\n"
         for command in self.commands:
-            data += "\t" + command.to_c(False) + ";\n"
+            data += f"\t{command.to_c(False)};\n"
         data += "\treturn glistp;\n}\n\n"
         return data
 
     def to_c(self, f3d):
         data = CData()
         if self.DLFormat == DLFormat.Static:
-            data.header = "extern Gfx " + self.name + "[];\n"
+            data.header = f"extern Gfx {self.name}[];\n"
             data.source = self.to_c_static()
         elif self.DLFormat == DLFormat.Dynamic:
-            data.header = "Gfx* " + self.name + "(Gfx* glistp);\n"
+            data.header = f"Gfx* {self.name}(Gfx* glistp);\n"
             data.source = self.to_c_dynamic()
         else:
             raise PluginError("Invalid GfxList format: " + str(self.DLFormat))
-        return data
-
-    def to_sm64_decomp_s(self):
-        data = "glabel " + self.name + "\n"
-        for command in self.commands:
-            data += command.to_sm64_decomp_s() + "\n"
         return data
 
 
@@ -2997,45 +2919,7 @@ class Light:
         return bytearray(self.color + [0x00] + self.color + [0x00] + self.normal + [0x00] + [0x00] * 4)
 
     def to_c(self):
-        return ",".join(
-            (
-                "0x" + format(self.color[0], "X"),
-                "0x" + format(self.color[1], "X"),
-                "0x" + format(self.color[2], "X"),
-                "0x" + format(self.normal[0], "X"),
-                "0x" + format(self.normal[1], "X"),
-                "0x" + format(self.normal[2], "X"),
-            )
-        )
-
-    def to_sm64_decomp_s(self):
-        return (
-            ".byte "
-            + ", ".join(
-                (
-                    "0x" + format(self.color[0], "X"),
-                    "0x" + format(self.color[1], "X"),
-                    "0x" + format(self.color[2], "X"),
-                    "0x00",
-                    "0x" + format(self.color[0], "X"),
-                    "0x" + format(self.color[1], "X"),
-                    "0x" + format(self.color[2], "X"),
-                    "0x00",
-                )
-            )
-            + "\n"
-            + ".byte "
-            + ", ".join(
-                (
-                    "0x" + format(self.normal[0], "X"),
-                    "0x" + format(self.normal[1], "X"),
-                    "0x" + format(self.normal[2], "X"),
-                    "0x00",
-                    "0x00, 0x00, 0x00, 0x00",
-                )
-            )
-            + "\n"
-        )
+        return ", ".join([f"0x{a:X}" for a in (*self.color, *self.normal)])
 
 
 class Ambient:
@@ -3054,31 +2938,7 @@ class Ambient:
         return bytearray(self.color + [0x00] + self.color + [0x00])
 
     def to_c(self):
-        return ", ".join(
-            (
-                "0x" + format(self.color[0], "X"),
-                "0x" + format(self.color[1], "X"),
-                "0x" + format(self.color[2], "X"),
-            )
-        )
-
-    def to_sm64_decomp_s(self):
-        return (
-            ".byte "
-            + ", ".join(
-                (
-                    "0x" + format(self.color[0], "X"),
-                    "0x" + format(self.color[1], "X"),
-                    "0x" + format(self.color[2], "X"),
-                    "0x00",
-                    "0x" + format(self.color[0], "X"),
-                    "0x" + format(self.color[1], "X"),
-                    "0x" + format(self.color[2], "X"),
-                    "0x00",
-                )
-            )
-            + "\n"
-        )
+        return ", ".join([f"0x{a:X}" for a in self.color])
 
 
 class Hilite:
@@ -3090,43 +2950,15 @@ class Hilite:
         self.x2 = x2
         self.y2 = y2
 
+    @property
+    def fields(self):
+        return self.x1, self.y1, self.x2, self.y2
+
     def to_binary(self):
-        return (
-            self.x1.to_bytes(4, "big")
-            + self.y1.to_bytes(4, "big")
-            + self.x2.to_bytes(4, "big")
-            + self.y2.to_bytes(4, "big")
-        )
+        return b"".join(a.to_bytes(4, "big") for a in self.fields)
 
     def to_c(self):
-        return (
-            "Hilite "
-            + self.name
-            + " = {"
-            + str(self.x1)
-            + ", "
-            + str(self.y1)
-            + ", "
-            + str(self.x2)
-            + ", "
-            + str(self.y2)
-            + "}"
-        )
-
-    def to_sm64_decomp_s(self):
-        return (
-            self.name
-            + ":\n"
-            + ".word "
-            + str(self.x1)
-            + ", "
-            + str(self.y1)
-            + ", "
-            + str(self.x2)
-            + ", "
-            + str(self.y2)
-            + "\n"
-        )
+        return f"Hilite {self.name} = {{{', '.join(str(a) for a in self.fields)}}}"
 
 
 class Lights:
@@ -3139,7 +2971,7 @@ class Lights:
     def set_addr(self, startAddress):
         startAddress = get64bitAlignedAddr(startAddress)
         self.startAddress = startAddress
-        print("Lights " + self.name + ": " + str(startAddress) + ", " + str(self.size()))
+        print(f"Lights {self.name}: {str(startAddress)}, {str(self.size())}")
         return (startAddress, startAddress + self.size())
 
     def save_binary(self, romfile):
@@ -3166,22 +2998,12 @@ class Lights:
 
     def to_c(self):
         data = CData()
-        data.header = "extern Lights" + str(len(self.l)) + " " + self.name + ";\n"
-        data.source = "Lights" + str(len(self.l)) + " " + self.name + " = " + "gdSPDefLights" + str(len(self.l)) + "(\n"
+        data.header = f"extern Lights{str(len(self.l))} {self.name};\n"
+        data.source = f"Lights{str(len(self.l))} {self.name} = gdSPDefLights{str(len(self.l))}(\n"
         data.source += "\t" + self.a.to_c()
         for light in self.l:
             data.source += ",\n\t" + light.to_c()
         data.source += ");\n\n"
-        return data
-
-    def to_sm64_decomp_s(self):
-        data = ".balign 8\n" + self.name + ":\n"
-        data += self.name + "_a:\n" + self.a.to_sm64_decomp_s() + "\n"
-        if len(self.l) == 0:
-            data += self.name + "_l0:\n" + Light([0, 0, 0], [0, 0, 0]).to_sm64_decomp_s() + "\n"
-        else:
-            for i in range(len(self.l)):
-                data += self.name + "_l" + str(i) + ":\n" + self.l[i].to_sm64_decomp_s() + "\n"
         return data
 
 
@@ -3197,51 +3019,25 @@ class LookAt:
     def to_c(self):
         # {{}} => lookat, light array,
         # {{}} => light, light_t
+        def spc(x):
+            return ", ".join(str(c) for c in x)
+
         return (
-            "LookAt "
-            + self.name
-            + " = {{"
-            + "{{"
-            + "{"
-            + str(self.l[0].color[0])
-            + ", "
-            + str(self.l[0].color[1])
-            + ", "
-            + str(self.l[0].color[2])
+            f"LookAt {self.name} = {{{{"
+            + "{{{"
+            + spc(self.l[0].color)
             + "}, 0, "
             + "{"
-            + str(self.l[0].normal[0])
-            + ", "
-            + str(self.l[0].normal[1])
-            + ", "
-            + str(self.l[0].normal[2])
-            + "}, 0"
-            + "}}"
-            + "{{"
-            + "{"
-            + str(self.l[1].color[0])
-            + ", "
-            + str(self.l[1].color[1])
-            + ", "
-            + str(self.l[1].color[2])
+            + spc(self.l[0].normal)
+            + "}, 0 }}"
+            + "{{{"
+            + spc(self.l[1].color)
             + "}, 0, "
             + "{"
-            + str(self.l[1].normal[0])
-            + ", "
-            + str(self.l[1].normal[1])
-            + ", "
-            + str(self.l[1].normal[2])
-            + "}, 0"
-            + "}}"
+            + spc(self.l[0].normal)
+            + "}, 0}}"
             + "}}\n"
         )
-
-    def to_sm64_decomp_s(self):
-        data = ".balign 8\n" + self.name + ":\n"
-        data += self.name + ":\n"
-        data += self.l[0].to_sm64_decomp_s() + "\n"
-        data += self.l[1].to_sm64_decomp_s() + "\n"
-        return data
 
 
 # A palette is just a RGBA16 texture with width = 1.
@@ -3273,12 +3069,12 @@ class FImage:
 
     def to_c_helper(self, texData, bitsPerValue):
         code = CData()
-        code.header = "extern u" + str(bitsPerValue) + " " + self.name + "[];\n"
+        code.header = f"extern u{str(bitsPerValue)} {self.name}[];\n"
 
         # This is to force 8 byte alignment
         if bitsPerValue != 64:
-            code.source = "Gfx " + self.name + "_aligner[] = {gsSPEndDisplayList()};\n"
-        code.source += "u" + str(bitsPerValue) + " " + self.name + "[] = {\n\t"
+            code.source = f"Gfx {self.name}_aligner[] = {{gsSPEndDisplayList()}};\n"
+        code.source += f"u{str(bitsPerValue)} {self.name}[] = {{\n\t"
         code.source += texData
         code.source += "\n};\n\n"
         return code
@@ -3349,13 +3145,44 @@ def gsSPNoOp(f3d):
     return gsDma0p(f3d.G_SPNOOP, 0, 0)
 
 
-class SPMatrix:
-    def __init__(self, matrix, param):
-        self.matrix = matrix
-        self.param = param
+# base class for gbi macros
+@dataclass
+class GbiMacro:
+    _segptrs = False
+    _ptr_amp = False
 
     def get_ptr_offsets(self, f3d):
         return [4]
+
+    def getargs(self, static):
+        return (self.getattr_virtual(getattr(self, field.name), static) for field in fields(self))
+
+    def getattr_virtual(self, field, static):
+        if hasattr(field, "name"):
+            if self._segptrs and not static and bpy.context.scene.decomp_compatible:
+                return f"segmented_to_virtual({field.name})"
+            if self._ptr_amp:
+                return f"&{field.name}"
+            else:
+                return field.name
+        if hasattr(field, "__iter__") and type(field) is not str:
+            return " | ".join(field) if len(field) else "0"
+        return str(field)
+
+    def to_c(self, static=True):
+        if static:
+            return f"g{'s'*static}{type(self).__name__}({', '.join( self.getargs(static) )})"
+        else:
+            return f"g{'s'*static}{type(self).__name__}(glistp++, {', '.join( self.getargs(static) )})"
+
+    def size(self, f3d):
+        return GFX_SIZE
+
+
+@dataclass
+class SPMatrix(GbiMacro):
+    matrix: int
+    param: int
 
     def to_binary(self, f3d, segments):
         matPtr = int(self.matrix, 16)
@@ -3364,33 +3191,19 @@ class SPMatrix:
         else:
             return gsDma1p(f3d.G_MTX, matPtr, MTX_SIZE, self.param)
 
-    def to_c(self, static=True):
-        header = "gsSPMatrix(" if static else "gSPMatrix(glistp++, "
-        if not static and bpy.context.scene.decomp_compatible:
-            header += "segmented_to_virtual(" + str(self.matrix) + ")"
-        else:
-            header += str(self.matrix)
-        return header + ", " + str(self.param) + ")"
-
-    def to_sm64_decomp_s(self):
-        return "gsSPMatrix " + str(self.matrix) + ", " + str(self.param)
-
-    def size(self, f3d):
-        return GFX_SIZE
-
 
 # TODO: Divide vertlist into sections
 # Divide mesh drawing by materials into separate gfx
-class SPVertex:
-    # v = seg pointer, n = count, v0  = ?
-    def __init__(self, vertList, offset, count, index):
-        self.vertList = vertList
-        self.offset = offset
-        self.count = count
-        self.index = index
 
-    def get_ptr_offsets(self, f3d):
-        return [4]
+
+@dataclass
+class SPVertex(GbiMacro):
+    # v = seg pointer, n = count, v0  = ?
+    vertList: VtxList
+    offset: int
+    count: int
+    index: int
+    _segptrs = True  # call segmented_to_virtual in to_c method
 
     def to_binary(self, f3d, segments):
         vertPtr = int.from_bytes(
@@ -3419,29 +3232,12 @@ class SPVertex:
             header += self.vertList.name + " + " + str(self.offset)
         return header + ", " + str(self.count) + ", " + str(self.index) + ")"
 
-    def to_sm64_decomp_s(self):
-        return (
-            "gsSPVertex "
-            + self.vertList.name
-            + ", "
-            + str(self.offset)
-            + ", "
-            + str(self.count)
-            + ", "
-            + str(self.index)
-        )
 
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class SPViewport:
+@dataclass
+class SPViewport(GbiMacro):
     # v = seg pointer, n = count, v0  = ?
-    def __init__(self, viewport):
-        self.viewport = viewport
-
-    def get_ptr_offsets(self, f3d):
-        return [4]
+    viewport: Vp
+    _ptr_amp = True  # add an ampersand to names
 
     def to_binary(self, f3d, segments):
         vpPtr = int.from_bytes(encodeSegmentedAddr(self.viewport.startAddress, segments), "big")
@@ -3451,23 +3247,10 @@ class SPViewport:
         else:
             return gsDma1p(f3d.G_MOVEMEM, vpPtr, VP_SIZE, f3d.G_MV_VIEWPORT)
 
-    def to_c(self, static=True):
-        header = "gsSPViewport(" if static else "gSPViewport(glistp++, "
-        return header + "&" + self.viewport.name + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsSPViewport " + self.viewport.name
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class SPDisplayList:
-    def __init__(self, displayList):
-        self.displayList = displayList
-
-    def get_ptr_offsets(self, f3d):
-        return [4]
+@dataclass
+class SPDisplayList(GbiMacro):
+    displayList: GfxList
 
     def to_binary(self, f3d, segments):
         dlPtr = int.from_bytes(encodeSegmentedAddr(self.displayList.startAddress, segments), "big")
@@ -3485,33 +3268,15 @@ class SPDisplayList:
         else:
             return "glistp = " + self.displayList.name + "(glistp)"
 
-    def to_sm64_decomp_s(self):
-        return "gsSPDisplayList " + self.displayList.name
 
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class SPBranchList:
-    def __init__(self, displayList):
-        self.displayList = displayList
-
-    def get_ptr_offsets(self, f3d):
-        return [4]
+@dataclass
+class SPBranchList(GbiMacro):
+    displayList: GfxList
+    _ptr_amp = True  # add an ampersand to names
 
     def to_binary(self, f3d, segments):
         dlPtr = int.from_bytes(encodeSegmentedAddr(self.displayList.startAddress, segments), "big")
         return gsDma1p(f3d.G_DL, dlPtr, 0, f3d.G_DL_NOPUSH)
-
-    def to_c(self, static=True):
-        header = "gsSPBranchList(" if static else "gSPBranchList(glistp++, "
-        return header + "&" + self.displayList.name + ")"
-
-    def to_sm64_decomp_s(self):
-        return "gsSPBranchList " + self.displayList.name
-
-    def size(self, f3d):
-        return GFX_SIZE
 
 
 # SPSprite2DBase
@@ -3609,12 +3374,12 @@ def _gsSP1Quadrangle_w2f(v0, v1, v2, v3, flag):
         return _gsSP1Triangle_w1(v3, v1, v2)
 
 
-class SP1Triangle:
-    def __init__(self, v0, v1, v2, flag):
-        self.v0 = v0
-        self.v1 = v1
-        self.v2 = v2
-        self.flag = flag
+@dataclass
+class SP1Triangle(GbiMacro):
+    v0: int
+    v1: int
+    v2: int
+    flag: int
 
     def to_binary(self, f3d, segments):
         if f3d.F3DEX_GBI_2:
@@ -3624,22 +3389,12 @@ class SP1Triangle:
 
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
-    def to_c(self, static=True):
-        header = "gsSP1Triangle(" if static else "gSP1Triangle(glistp++, "
-        return header + str(self.v0) + ", " + str(self.v1) + ", " + str(self.v2) + ", " + str(self.flag) + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsSP1Triangle " + str(self.v0) + ", " + str(self.v1) + ", " + str(self.v2) + ", " + str(self.flag)
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class SPLine3D:
-    def __init__(self, v0, v1, flag):
-        self.v0 = v0
-        self.v1 = v1
-        self.flag = flag
+@dataclass
+class SPLine3D(GbiMacro):
+    v0: int
+    v1: int
+    flag: int
 
     def to_binary(self, f3d, segments):
         if f3d.F3DEX_GBI_2:
@@ -3648,23 +3403,13 @@ class SPLine3D:
             words = _SHIFTL(f3d.G_LINE3D, 24, 8), _gsSPLine3D_w1f(self.v0, self.v1, 0, self.flag, f3d)
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
-    def to_c(self, static=True):
-        header = "gsSPLine3D(" if static else "gSPLine3D(glistp++, "
-        return header + str(self.v0) + ", " + str(self.v1) + ", " + str(self.flag) + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsSPLine3D " + str(self.v0) + ", " + str(self.v1) + ", " + str(self.flag)
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class SPLineW3D:
-    def __init__(self, v0, v1, wd, flag):
-        self.v0 = v0
-        self.v1 = v1
-        self.wd = wd
-        self.flag = flag
+@dataclass
+class SPLineW3D(GbiMacro):
+    v0: int
+    v1: int
+    wd: int
+    flag: int
 
     def to_binary(self, f3d, segments):
         if f3d.F3DEX_GBI_2:
@@ -3673,30 +3418,20 @@ class SPLineW3D:
             words = _SHIFTL(f3d.G_LINE3D, 24, 8), _gsSPLine3D_w1f(self.v0, self.v1, self.wd, self.flag, f3d)
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
-    def to_c(self, static=True):
-        header = "gsSPLineW3D(" if static else "gSPLineW3D(glistp++, "
-        return header + str(self.v0) + ", " + str(self.v1) + ", " + str(self.wd) + ", " + str(self.flag) + ")"
-
-    def to_sm64_decomp_s(self):
-        return "gsSPLineW3D " + str(self.v0) + ", " + str(self.v1) + ", " + str(self.wd) + ", " + str(self.flag)
-
-    def size(self, f3d):
-        return GFX_SIZE
-
 
 # SP1Quadrangle
 
 
-class SP2Triangles:
-    def __init__(self, v00, v01, v02, flag0, v10, v11, v12, flag1):
-        self.v00 = v00
-        self.v01 = v01
-        self.v02 = v02
-        self.flag0 = flag0
-        self.v10 = v10
-        self.v11 = v11
-        self.v12 = v12
-        self.flag1 = flag1
+@dataclass
+class SP2Triangles(GbiMacro):
+    v00: int
+    v01: int
+    v02: int
+    flag0: int
+    v10: int
+    v11: int
+    v12: int
+    flag1: int
 
     def to_binary(self, f3d, segments):
         if f3d.F3DLP_GBI or f3d.F3DEX_GBI:
@@ -3708,56 +3443,11 @@ class SP2Triangles:
 
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
-    def to_c(self, static=True):
-        header = "gsSP2Triangles(" if static else "gSP2Triangles(glistp++, "
-        return (
-            header
-            + str(self.v00)
-            + ", "
-            + str(self.v01)
-            + ", "
-            + str(self.v02)
-            + ", "
-            + str(self.flag0)
-            + ", "
-            + str(self.v10)
-            + ", "
-            + str(self.v11)
-            + ", "
-            + str(self.v12)
-            + ", "
-            + str(self.flag1)
-            + ")"
-        )
 
-    def to_sm64_decomp_s(self):
-        return (
-            "gsSP2Triangles "
-            + str(self.v00)
-            + ", "
-            + str(self.v01)
-            + ", "
-            + str(self.v02)
-            + ", "
-            + str(self.flag0)
-            + ", "
-            + str(self.v10)
-            + ", "
-            + str(self.v11)
-            + ", "
-            + str(self.v12)
-            + ", "
-            + str(self.flag1)
-        )
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class SPCullDisplayList:
-    def __init__(self, vstart, vend):
-        self.vstart = vstart
-        self.vend = vend
+@dataclass
+class SPCullDisplayList(GbiMacro):
+    vstart: int
+    vend: int
 
     def to_binary(self, f3d, segments):
         if f3d.F3DLP_GBI or f3d.F3DEX_GBI:
@@ -3766,21 +3456,11 @@ class SPCullDisplayList:
             words = _SHIFTL(f3d.G_CULLDL, 24, 8) | ((0x0F & (self.vstart)) * 40), ((0x0F & ((self.vend) + 1)) * 40)
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
-    def to_c(self, static=True):
-        header = "gsSPCullDisplayList(" if static else "gSPCullDisplayList(glistp++, "
-        return header + str(self.vstart) + ", " + str(self.vend) + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsSPCullDisplayList " + str(self.vstart) + ", " + str(self.vend)
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class SPSegment:
-    def __init__(self, segment, base):
-        self.segment = segment
-        self.base = base
+@dataclass
+class SPSegment(GbiMacro):
+    segment: int
+    base: int
 
     def to_binary(self, f3d, segments):
         return gsMoveWd(f3d.G_MW_SEGMENT, (self.segment) * 4, self.base, f3d)
@@ -3789,19 +3469,12 @@ class SPSegment:
         header = "gsSPSegment(" if static else "gSPSegment(glistp++, "
         return header + str(self.segment) + ", " + "0x" + format(self.base, "X") + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsSPSegment " + str(self.segment) + ", 0x" + format(self.base, "X")
 
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class SPClipRatio:
-    def __init__(self, ratio):
-        self.ratio = ratio
+@dataclass
+class SPClipRatio(GbiMacro):
+    ratio: int
 
     def to_binary(self, f3d, segments):
-
         # These values are supposed to be flipped.
         shortRatioPos = int.from_bytes((-self.ratio).to_bytes(2, "big", signed=True), "big", signed=False)
         shortRatioNeg = int.from_bytes(self.ratio.to_bytes(2, "big", signed=True), "big", signed=False)
@@ -3813,13 +3486,6 @@ class SPClipRatio:
             + gsMoveWd(f3d.G_MW_CLIP, f3d.G_MWO_CLIP_RPY, shortRatioPos, f3d)
         )
 
-    def to_c(self, static=True):
-        header = "gsSPClipRatio(" if static else "gSPClipRatio(glistp++, "
-        return header + str(self.ratio) + ")"
-
-    def to_sm64_decomp_s(self):
-        return "gsSPClipRatio " + str(self.ratio)
-
     def size(self, f3d):
         return GFX_SIZE * 4
 
@@ -3828,11 +3494,11 @@ class SPClipRatio:
 # SPForceMatrix
 
 
-class SPModifyVertex:
-    def __init__(self, vtx, where, val):
-        self.vtx = vtx
-        self.where = where
-        self.val = val
+@dataclass
+class SPModifyVertex(GbiMacro):
+    vtx: int
+    where: int
+    val: int
 
     def to_binary(self, f3d, segments):
         if f3d.F3DLP_GBI or f3d.F3DEX_GBI:
@@ -3844,26 +3510,16 @@ class SPModifyVertex:
         else:
             return gsMoveWd(f3d.G_MW_POINTS, (self.vtx) * 40 + (self.where), self.val, f3d)
 
-    def to_c(self, static=True):
-        header = "gsSPModifyVertex(" if static else "gSPModifyVertex(glistp++, "
-        return header + str(self.vtx) + ", " + str(self.where) + ", " + str(self.val) + ")"
-
-    def to_sm64_decomp_s(self):
-        return "gsSPModifyVertex " + str(self.vtx) + ", " + str(self.where) + ", " + str(self.val)
-
-    def size(self, f3d):
-        return GFX_SIZE
-
 
 # LOD commands?
 # SPBranchLessZ
 
 
-class SPBranchLessZraw:
-    def __init__(self, dl, vtx, zval):
-        self.dl = dl
-        self.vtx = vtx
-        self.zval = zval
+@dataclass
+class SPBranchLessZraw(GbiMacro):
+    dl: GfxList
+    vtx: int
+    zval: int
 
     def to_binary(self, f3d, segments):
         dlPtr = int.from_bytes(encodeSegmentedAddr(self.dl.startAddress, segments), "big")
@@ -3881,15 +3537,6 @@ class SPBranchLessZraw:
             + words1[1].to_bytes(4, "big")
         )
 
-    def to_c(self, static=True):
-        dlName = self.dl.name
-        header = "gsSPBranchLessZraw(" if static else "gSPBranchLessZraw(glistp++, "
-        return header + dlName + ", " + str(self.vtx) + ", " + str(self.zval) + ")"
-
-    def to_sm64_decomp_s(self):
-        dlName = self.dl.name
-        return "gsSPBranchLessZraw " + dlName + ", " + str(self.vtx) + ", " + str(self.zval)
-
     def size(self, f3d):
         return GFX_SIZE * 2
 
@@ -3903,33 +3550,21 @@ class SPBranchLessZraw:
 # SPDmaWrite
 
 
-class SPNumLights:
+@dataclass
+class SPNumLights(GbiMacro):
     # n is macro name (string)
-    def __init__(self, n):
-        self.n = n
+    n: str
 
     def to_binary(self, f3d, segments):
         return gsMoveWd(f3d.G_MW_NUMLIGHT, f3d.G_MWO_NUMLIGHT, f3d.NUML(self.n), f3d)
 
-    def to_c(self, static=True):
-        header = "gsSPNumLights(" if static else "gSPNumLights(glistp++, "
-        return header + str(self.n) + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsSPNumLights " + str(self.n)
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class SPLight:
+@dataclass
+class SPLight(GbiMacro):
     # n is macro name (string)
-    def __init__(self, light, n):
-        self.light = light  # start address of light
-        self.n = n
-
-    def get_ptr_offsets(self, f3d):
-        return [4]
+    light: int  # start address of light
+    n: str
+    _segptrs = True  # call segmented_to_virtual in to_c method
 
     def to_binary(self, f3d, segments):
         lightPtr = int.from_bytes(encodeSegmentedAddr(self.light, segments), "big")
@@ -3939,26 +3574,12 @@ class SPLight:
             data = gsDma1p(f3d.G_MOVEMEM, lightPtr, LIGHT_SIZE, (lightIndex[self.n] - 1) * 2 + f3d.G_MV_L0)
         return data
 
-    def to_c(self, static=True):
-        header = "gsSPLight(" if static else "gSPLight(glistp++, "
-        if not static and bpy.context.scene.decomp_compatible:
-            header += "segmented_to_virtual(" + self.light.name + ")"
-        else:
-            header += self.light.name
-        return header + ", " + str(self.n) + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsSPLight " + self.light.name + ", " + str(self.n)
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class SPLightColor:
+@dataclass
+class SPLightColor(GbiMacro):
     # n is macro name (string)
-    def __init__(self, n, col):
-        self.n = n
-        self.col = col
+    n: str
+    col: int
 
     def to_binary(self, f3d, segments):
         return gsMoveWd(f3d.G_MW_LIGHTCOL, f3d.getLightMWO_a(self.n), self.col, f3d), +gsMoveWd(
@@ -3969,16 +3590,10 @@ class SPLightColor:
         header = "gsSPLightColor(" if static else "gSPLightColor(glistp++, "
         return header + str(self.n) + ", 0x" + format(self.col, "08X") + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsSPLightColor " + str(self.n) + ", 0x" + format(self.col, "08X")
 
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class SPSetLights:
-    def __init__(self, lights):
-        self.lights = lights
+@dataclass
+class SPSetLights(GbiMacro):
+    lights: Lights
 
     def get_ptr_offsets(self, f3d):
         offsets = []
@@ -4018,9 +3633,6 @@ class SPSetLights:
             header += self.lights.name
         return header + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsSPSetLights " + self.lights.name
-
     def size(self, f3d):
         return GFX_SIZE * (2 + max(len(self.lights.l), 1))
 
@@ -4042,34 +3654,23 @@ def gsSPLookAtY(l, f3d):
         return gsDma1p(f3d.G_MOVEMEM, l, LIGHT_SIZE, f3d.G_MV_LOOKATY)
 
 
-class SPLookAt:
-    def __init__(self, la):
-        self.la = la
-
-    def get_ptr_offsets(self, f3d):
-        return [4]
+@dataclass
+class SPLookAt(GbiMacro):
+    la: LookAt
+    _ptr_amp = True  # add an ampersand to names
 
     def to_binary(self, f3d, segments):
         light0Ptr = int.from_bytes(encodeSegmentedAddr(self.la.startAddress, segments), "big")
         return gsSPLookAtX(light0Ptr, f3d) + gsSPLookAtY(light0Ptr + 16, f3d)
 
-    def to_c(self, static=True):
-        header = "gsSPLookAt(" if static else "gSPLookAt(glistp++, "
-        return header + "&" + self.la.name + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsSPLookAt " + self.la.name
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class DPSetHilite1Tile:
-    def __init__(self, tile, hilite, width, height):
-        self.tile = tile
-        self.hilite = hilite
-        self.width = width
-        self.height = height
+@dataclass
+class DPSetHilite1Tile(GbiMacro):
+    tile: int
+    hilite: Hilite
+    width: int
+    height: int
+    _ptr_amp = True  # add an ampersand to names
 
     def to_binary(self, f3d, segments):
         return DPSetTileSize(
@@ -4080,42 +3681,14 @@ class DPSetHilite1Tile:
             ((self.height - 1) * 4 + self.hilite.y1) & 0xFFF,
         ).to_binary(f3d, segments)
 
-    def to_c(self, static=True):
-        header = "gsDPSetHilite1Tile(" if static else "gDPSetHilite1Tile(glistp++, "
-        return (
-            header
-            + str(self.tile)
-            + ", "
-            + ("&" + self.hilite.name)
-            + ", "
-            + str(self.width)
-            + ", "
-            + str(self.height)
-            + ")"
-        )
 
-    def to_sm64_decomp_s(self):
-        return (
-            "gsDPSetHilite1Tile "
-            + str(self.tile)
-            + ", "
-            + self.hilite.name
-            + ", "
-            + str(self.width)
-            + ", "
-            + str(self.height)
-        )
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class DPSetHilite2Tile:
-    def __init__(self, tile, hilite, width, height):
-        self.tile = tile
-        self.hilite = hilite
-        self.width = width
-        self.height = height
+@dataclass
+class DPSetHilite2Tile(GbiMacro):
+    tile: int
+    hilite: Hilite
+    width: int
+    height: int
+    _ptr_amp = True  # add an ampersand to names
 
     def to_binary(self, f3d, segments):
         return DPSetTileSize(
@@ -4126,56 +3699,17 @@ class DPSetHilite2Tile:
             ((self.height - 1) * 4 + self.hilite.y2) & 0xFFF,
         ).to_binary(f3d, segments)
 
-    def to_c(self, static=True):
-        header = "gsDPSetHilite2Tile(" if static else "gDPSetHilite2Tile(glistp++, "
-        return (
-            header
-            + str(self.tile)
-            + ", "
-            + ("&" + self.hilite.name)
-            + ", "
-            + str(self.width)
-            + ", "
-            + str(self.height)
-            + ")"
-        )
 
-    def to_sm64_decomp_s(self):
-        return (
-            "gsDPSetHilite2Tile "
-            + str(self.tile)
-            + ", "
-            + self.hilite.name
-            + ", "
-            + str(self.width)
-            + ", "
-            + str(self.height)
-        )
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class SPFogFactor:
-    def __init__(self, fm, fo):
-        self.fm = fm
-        self.fo = fo
+@dataclass
+class SPFogFactor(GbiMacro):
+    fm: int
+    fo: int
 
     def to_binary(self, f3d, segments):
         return gsMoveWd(f3d.G_MW_FOG, f3d.G_MWO_FOG, (_SHIFTL(self.fm, 16, 16) | _SHIFTL(self.fo, 0, 16)), f3d)
 
-    def to_c(self, static=True):
-        header = "gsSPFogFactor(" if static else "gSPFogFactor(glistp++, "
-        return header + str(self.fm) + ", " + str(self.fo) + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsSPFogFactor " + str(self.fm) + ", " + str(self.fo)
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class SPFogPosition:
+class SPFogPosition(GbiMacro):
     def __init__(self, minVal, maxVal):
         self.minVal = int(round(minVal))
         self.maxVal = int(round(maxVal))
@@ -4195,20 +3729,14 @@ class SPFogPosition:
         header = "gsSPFogPosition(" if static else "gSPFogPosition(glistp++, "
         return header + str(self.minVal) + ", " + str(self.maxVal) + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsSPFogPosition " + str(self.minVal) + ", " + str(self.maxVal)
 
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class SPTexture:
-    def __init__(self, s, t, level, tile, on):
-        self.s = s
-        self.t = t
-        self.level = level
-        self.tile = tile
-        self.on = on
+@dataclass
+class SPTexture(GbiMacro):
+    s: int
+    t: int
+    level: int
+    tile: int
+    on: int
 
     def to_binary(self, f3d, segments):
         if f3d.F3DEX_GBI_2:
@@ -4230,81 +3758,27 @@ class SPTexture:
 
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
-    def to_c(self, static=True):
-        header = "gsSPTexture(" if static else "gSPTexture(glistp++, "
-        return (
-            header
-            + str(self.s)
-            + ", "
-            + str(self.t)
-            + ", "
-            + str(self.level)
-            + ", "
-            + str(self.tile)
-            + ", "
-            + str(self.on)
-            + ")"
-        )
-
-    def to_sm64_decomp_s(self):
-        return (
-            "gsSPTexture "
-            + str(self.s)
-            + ", "
-            + str(self.t)
-            + ", "
-            + str(self.level)
-            + ", "
-            + str(self.tile)
-            + ", "
-            + str(self.on)
-        )
-
-    def size(self, f3d):
-        return GFX_SIZE
-
 
 # SPTextureL
 
 
-class SPPerspNormalize:
-    def __init__(self, s):
-        self.s = s
+@dataclass
+class SPPerspNormalize(GbiMacro):
+    s: int
 
     def to_binary(self, f3d, segments):
         return gsMoveWd(f3d.G_MW_PERSPNORM, 0, (self.s), f3d)
-
-    def to_c(self, static=True):
-        header = "gsSPPerspNormalize(" if static else "gSPPerspNormalize(glistp++, "
-        return header + str(self.s) + ")"
-
-    def to_sm64_decomp_s(self):
-        return "gsSPPerspNormalize " + str(self.s)
-
-    def size(self, f3d):
-        return GFX_SIZE
 
 
 # SPPopMatrixN
 # SPPopMatrix
 
 
-class SPEndDisplayList:
-    def __init__(self):
-        pass
-
+@dataclass
+class SPEndDisplayList(GbiMacro):
     def to_binary(self, f3d, segments):
         words = _SHIFTL(f3d.G_ENDDL, 24, 8), 0
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
-
-    def to_c(self, static=True):
-        return "gsSPEndDisplayList()" if static else "gSPEndDisplayList(glistp++)"
-
-    def to_sm64_decomp_s(self):
-        return "gsSPEndDisplayList"
-
-    def size(self, f3d):
-        return GFX_SIZE
 
 
 def gsSPGeometryMode_F3DEX_GBI_2(c, s, f3d):
@@ -4352,10 +3826,10 @@ def geoFlagListToWord(flagList, f3d):
     return word
 
 
-class SPGeometryMode:
-    def __init__(self, clearFlagList, setFlagList):
-        self.clearFlagList = clearFlagList
-        self.setFlagList = setFlagList
+@dataclass
+class SPGeometryMode(GbiMacro):
+    clearFlagList: list
+    setFlagList: list
 
     def to_binary(self, f3d, segments):
         if f3d.F3DEX_GBI_2:
@@ -4366,28 +3840,10 @@ class SPGeometryMode:
         else:
             raise PluginError("GeometryMode only available in F3DEX_GBI_2.")
 
-    def to_c(self, static=True):
-        data = "gsSPGeometryMode(" if static else "gSPGeometryMode(glistp++, "
-        data += ((" | ".join(self.clearFlagList)) if len(self.clearFlagList) > 0 else "0") + ", "
-        data += ((" | ".join(self.setFlagList)) if len(self.setFlagList) > 0 else "0") + ")"
-        return data
 
-    def to_sm64_decomp_s(self):
-        data = "gsSPGeometryMode "
-        for flag in self.clearFlagList:
-            data += flag + " | "
-        data = data[:-3] + ", "
-        for flag in self.setFlagList:
-            data += flag + " | "
-        return data[:-3]
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class SPSetGeometryMode:
-    def __init__(self, flagList):
-        self.flagList = flagList
+@dataclass
+class SPSetGeometryMode(GbiMacro):
+    flagList: list
 
     def to_binary(self, f3d, segments):
         word = geoFlagListToWord(self.flagList, f3d)
@@ -4397,25 +3853,10 @@ class SPSetGeometryMode:
             words = _SHIFTL(f3d.G_SETGEOMETRYMODE, 24, 8), word
             return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
-    def to_c(self, static=True):
-        data = "gsSPSetGeometryMode(" if static else "gSPSetGeometryMode(glistp++, "
-        for flag in self.flagList:
-            data += flag + " | "
-        return data[:-3] + ")"
 
-    def to_sm64_decomp_s(self):
-        data = "gsSPSetGeometryMode "
-        for flag in self.flagList:
-            data += flag + " | "
-        return data[:-3]
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class SPClearGeometryMode:
-    def __init__(self, flagList):
-        self.flagList = flagList
+@dataclass
+class SPClearGeometryMode(GbiMacro):
+    flagList: list
 
     def to_binary(self, f3d, segments):
         word = geoFlagListToWord(self.flagList, f3d)
@@ -4425,25 +3866,10 @@ class SPClearGeometryMode:
             words = _SHIFTL(f3d.G_CLEARGEOMETRYMODE, 24, 8), word
             return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
-    def to_c(self, static=True):
-        data = "gsSPClearGeometryMode(" if static else "gSPClearGeometryMode(glistp++, "
-        for flag in self.flagList:
-            data += flag + " | "
-        return data[:-3] + ")"
 
-    def to_sm64_decomp_s(self):
-        data = "gsSPClearGeometryMode "
-        for flag in self.flagList:
-            data += flag + " | "
-        return data[:-3]
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class SPLoadGeometryMode:
-    def __init__(self, flagList):
-        self.flagList = flagList
+@dataclass
+class SPLoadGeometryMode(GbiMacro):
+    flagList: list
 
     def to_binary(self, f3d, segments):
         word = geoFlagListToWord(self.flagList, f3d)
@@ -4451,21 +3877,6 @@ class SPLoadGeometryMode:
             return gsSPGeometryMode_F3DEX_GBI_2(-1, word, f3d)
         else:
             raise PluginError("LoadGeometryMode only available in F3DEX_GBI_2.")
-
-    def to_c(self, static=True):
-        data = "gsSPLoadGeometryMode(" if static else "gSPLoadGeometryMode(glistp++, "
-        for flag in self.flagList:
-            data += flag + " | "
-        return data[:-3] + ")"
-
-    def to_sm64_decomp_s(self):
-        data = "gsSPLoadGeometryMode "
-        for flag in self.flagList:
-            data += flag + " | "
-        return data[:-3]
-
-    def size(self, f3d):
-        return GFX_SIZE
 
 
 def gsSPSetOtherMode(cmd, sft, length, data, f3d):
@@ -4476,12 +3887,12 @@ def gsSPSetOtherMode(cmd, sft, length, data, f3d):
     return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
-class SPSetOtherMode:
-    def __init__(self, cmd, sft, length, flagList):
-        self.cmd = cmd
-        self.sft = sft
-        self.length = length
-        self.flagList = []
+@dataclass
+class SPSetOtherMode(GbiMacro):
+    cmd: str
+    sft: int
+    length: int
+    flagList: list
 
     def to_binary(self, f3d, segments):
         data = 0
@@ -4491,29 +3902,11 @@ class SPSetOtherMode:
         sft = getattr(f3d, self.sft) if hasattr(f3d, str(self.sft)) else self.sft
         return gsSPSetOtherMode(cmd, sft, self.length, data, f3d)
 
-    def to_c(self, static=True):
-        data = ""
-        for flag in self.flagList:
-            data += flag + " | "
-        data = data[:-3]
-        header = "gsSPSetOtherMode(" if static else "gSPSetOtherMode(glistp++, "
-        return header + str(self.cmd) + ", " + str(self.sft) + ", " + str(self.length) + ", " + data + ")"
 
-    def to_sm64_decomp_s(self):
-        data = ""
-        for flag in self.flagList:
-            data += flag + " | "
-        data = data[:-3]
-        return "gsSPSetOtherMode " + str(self.cmd) + ", " + str(self.sft) + ", " + str(self.length) + ", " + data
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class DPPipelineMode:
+@dataclass
+class DPPipelineMode(GbiMacro):
     # mode is a string
-    def __init__(self, mode):
-        self.mode = mode
+    mode: str
 
     def to_binary(self, f3d, segments):
         if self.mode == "G_PM_1PRIMITIVE":
@@ -4522,21 +3915,11 @@ class DPPipelineMode:
             modeVal = f3d.G_PM_NPRIMITIVE
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_PIPELINE, 1, modeVal, f3d)
 
-    def to_c(self, static=True):
-        header = "gsDPPipelineMode(" if static else "gDPPipelineMode(glistp++, "
-        return header + self.mode + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsDPPipelineMode " + self.mode
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class DPSetCycleType:
+@dataclass
+class DPSetCycleType(GbiMacro):
     # mode is a string
-    def __init__(self, mode):
-        self.mode = mode
+    mode: str
 
     def to_binary(self, f3d, segments):
         if self.mode == "G_CYC_1CYCLE":
@@ -4549,21 +3932,11 @@ class DPSetCycleType:
             modeVal = f3d.G_CYC_FILL
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_CYCLETYPE, 2, modeVal, f3d)
 
-    def to_c(self, static=True):
-        header = "gsDPSetCycleType(" if static else "gDPSetCycleType(glistp++, "
-        return header + self.mode + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsDPSetCycleType " + self.mode
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class DPSetTexturePersp:
+@dataclass
+class DPSetTexturePersp(GbiMacro):
     # mode is a string
-    def __init__(self, mode):
-        self.mode = mode
+    mode: str
 
     def to_binary(self, f3d, segments):
         if self.mode == "G_TP_NONE":
@@ -4572,21 +3945,11 @@ class DPSetTexturePersp:
             modeVal = f3d.G_TP_PERSP
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_TEXTPERSP, 1, modeVal, f3d)
 
-    def to_c(self, static=True):
-        header = "gsDPSetTexturePersp(" if static else "gDPSetTexturePersp(glistp++, "
-        return header + self.mode + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsDPSetTexturePersp " + self.mode
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class DPSetTextureDetail:
+@dataclass
+class DPSetTextureDetail(GbiMacro):
     # mode is a string
-    def __init__(self, mode):
-        self.mode = mode
+    mode: str
 
     def to_binary(self, f3d, segments):
         if self.mode == "G_TD_CLAMP":
@@ -4597,21 +3960,11 @@ class DPSetTextureDetail:
             modeVal = f3d.G_TD_DETAIL
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_TEXTDETAIL, 2, modeVal, f3d)
 
-    def to_c(self, static=True):
-        header = "gsDPSetTextureDetail(" if static else "gDPSetTextureDetail(glistp++, "
-        return header + self.mode + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsDPSetTextureDetail " + self.mode
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class DPSetTextureLOD:
+@dataclass
+class DPSetTextureLOD(GbiMacro):
     # mode is a string
-    def __init__(self, mode):
-        self.mode = mode
+    mode: str
 
     def to_binary(self, f3d, segments):
         if self.mode == "G_TL_TILE":
@@ -4620,21 +3973,11 @@ class DPSetTextureLOD:
             modeVal = f3d.G_TL_LOD
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_TEXTLOD, 1, modeVal, f3d)
 
-    def to_c(self, static=True):
-        header = "gsDPSetTextureLOD(" if static else "gDPSetTextureLOD(glistp++, "
-        return header + self.mode + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsDPSetTextureLOD " + self.mode
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class DPSetTextureLUT:
+@dataclass
+class DPSetTextureLUT(GbiMacro):
     # mode is a string
-    def __init__(self, mode):
-        self.mode = mode
+    mode: str
 
     def to_binary(self, f3d, segments):
         if self.mode == "G_TT_NONE":
@@ -4647,21 +3990,11 @@ class DPSetTextureLUT:
             print("Invalid LUT mode " + str(self.mode))
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_TEXTLUT, 2, modeVal, f3d)
 
-    def to_c(self, static=True):
-        header = "gsDPSetTextureLUT(" if static else "gDPSetTextureLUT(glistp++, "
-        return header + self.mode + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsDPSetTextureLUT " + self.mode
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class DPSetTextureFilter:
+@dataclass
+class DPSetTextureFilter(GbiMacro):
     # mode is a string
-    def __init__(self, mode):
-        self.mode = mode
+    mode: str
 
     def to_binary(self, f3d, segments):
         if self.mode == "G_TF_POINT":
@@ -4672,21 +4005,11 @@ class DPSetTextureFilter:
             modeVal = f3d.G_TF_BILERP
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_TEXTFILT, 2, modeVal, f3d)
 
-    def to_c(self, static=True):
-        header = "gsDPSetTextureFilter(" if static else "gDPSetTextureFilter(glistp++, "
-        return header + self.mode + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsDPSetTextureFilter " + self.mode
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class DPSetTextureConvert:
+@dataclass
+class DPSetTextureConvert(GbiMacro):
     # mode is a string
-    def __init__(self, mode):
-        self.mode = mode
+    mode: str
 
     def to_binary(self, f3d, segments):
         if self.mode == "G_TC_CONV":
@@ -4697,21 +4020,11 @@ class DPSetTextureConvert:
             modeVal = f3d.G_TC_FILT
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_TEXTCONV, 3, modeVal, f3d)
 
-    def to_c(self, static=True):
-        header = "gsDPSetTextureConvert(" if static else "gDPSetTextureConvert(glistp++, "
-        return header + self.mode + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsDPSetTextureConvert " + self.mode
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class DPSetCombineKey:
+@dataclass
+class DPSetCombineKey(GbiMacro):
     # mode is a string
-    def __init__(self, mode):
-        self.mode = mode
+    mode: str
 
     def to_binary(self, f3d, segments):
         if self.mode == "G_CK_NONE":
@@ -4720,21 +4033,11 @@ class DPSetCombineKey:
             modeVal = f3d.G_CK_KEY
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_COMBKEY, 1, modeVal, f3d)
 
-    def to_c(self, static=True):
-        header = "gsDPSetCombineKey(" if static else "gDPSetCombineKey(glistp++, "
-        return header + self.mode + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsDPSetCombineKey " + self.mode
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class DPSetColorDither:
+@dataclass
+class DPSetColorDither(GbiMacro):
     # mode is a string
-    def __init__(self, mode):
-        self.mode = mode
+    mode: str
 
     def to_binary(self, f3d, segments):
         if not f3d._HW_VERSION_1:
@@ -4756,21 +4059,11 @@ class DPSetColorDither:
                 modeVal = f3d.G_CD_DISABLE
             return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_COLORDITHER, 1, modeVal, f3d)
 
-    def to_c(self, static=True):
-        header = "gsDPSetColorDither(" if static else "gDPSetColorDither(glistp++, "
-        return header + self.mode + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsDPSetColorDither " + self.mode
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class DPSetAlphaDither:
+@dataclass
+class DPSetAlphaDither(GbiMacro):
     # mode is a string
-    def __init__(self, mode):
-        self.mode = mode
+    mode: str
 
     def to_binary(self, f3d, segments):
         if not f3d._HW_VERSION_1:
@@ -4786,21 +4079,11 @@ class DPSetAlphaDither:
         else:
             raise PluginError("SetAlphaDither not available in HW v1.")
 
-    def to_c(self, static=True):
-        header = "gsDPSetAlphaDither(" if static else "gDPSetAlphaDither(glistp++, "
-        return header + self.mode + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsDPSetAlphaDither " + self.mode
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class DPSetAlphaCompare:
+@dataclass
+class DPSetAlphaCompare(GbiMacro):
     # mask is a string
-    def __init__(self, mask):
-        self.mask = mask
+    mode: str
 
     def to_binary(self, f3d, segments):
         if self.mask == "G_AC_NONE":
@@ -4811,21 +4094,11 @@ class DPSetAlphaCompare:
             maskVal = f3d.G_AC_DITHER
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_L, f3d.G_MDSFT_ALPHACOMPARE, 2, maskVal, f3d)
 
-    def to_c(self, static=True):
-        header = "gsDPSetAlphaCompare(" if static else "gDPSetAlphaCompare(glistp++, "
-        return header + self.mask + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsDPSetAlphaCompare " + self.mask
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class DPSetDepthSource:
+@dataclass
+class DPSetDepthSource(GbiMacro):
     # src is a string
-    def __init__(self, src):
-        self.src = src
+    src: str
 
     def to_binary(self, f3d, segments):
         if self.src == "G_ZS_PIXEL":
@@ -4833,16 +4106,6 @@ class DPSetDepthSource:
         elif self.src == "G_ZS_PRIM":
             srcVal = f3d.G_ZS_PRIM
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_L, f3d.G_MDSFT_ZSRCSEL, 1, srcVal, f3d)
-
-    def to_c(self, static=True):
-        header = "gsDPSetDepthSource(" if static else "gDPSetDepthSource(glistp++, "
-        return header + self.src + ")"
-
-    def to_sm64_decomp_s(self):
-        return "gsDPSetDepthSource " + self.src
-
-    def size(self, f3d):
-        return GFX_SIZE
 
 
 def renderFlagListToWord(flagList, f3d):
@@ -4861,7 +4124,8 @@ def GBL_c2(m1a, m1b, m2a, m2b):
     return (m1a) << 28 | (m1b) << 24 | (m2a) << 20 | (m2b) << 16
 
 
-class DPSetRenderMode:
+@dataclass
+class DPSetRenderMode(GbiMacro):
     # bl0-3 are string for each blender enum
     def __init__(self, flagList, blendList):
         self.flagList = flagList
@@ -4929,12 +4193,6 @@ class DPSetRenderMode:
             data += self.flagList[0] + ", " + self.flagList[1] + ")"
             return data
 
-    def to_sm64_decomp_s(self):
-        raise PluginError("Cannot use DPSetRenderMode with gbi.inc.")
-
-    def size(self, f3d):
-        return GFX_SIZE
-
 
 def gsSetImage(cmd, fmt, siz, width, i):
     words = _SHIFTL(cmd, 24, 8) | _SHIFTL(fmt, 21, 3) | _SHIFTL(siz, 19, 2) | _SHIFTL((width) - 1, 0, 12), i
@@ -4945,36 +4203,19 @@ def gsSetImage(cmd, fmt, siz, width, i):
 # DPSetDepthImage
 
 
-class DPSetTextureImage:
-    def __init__(self, fmt, siz, width, img):
-        self.fmt = fmt  # string
-        self.siz = siz  # string
-        self.width = width
-        self.image = img
-
-    def get_ptr_offsets(self, f3d):
-        return [4]
+@dataclass
+class DPSetTextureImage(GbiMacro):
+    fmt: str
+    siz: str
+    width: int
+    image: FImage
+    _segptrs = True  # calls segmented_to_virtualon name when needed
 
     def to_binary(self, f3d, segments):
         fmt = f3d.G_IM_FMT_VARS[self.fmt]
         siz = f3d.G_IM_SIZ_VARS[self.siz]
         imagePtr = int.from_bytes(encodeSegmentedAddr(self.image.startAddress, segments), "big")
         return gsSetImage(f3d.G_SETTIMG, fmt, siz, self.width, imagePtr)
-
-    def to_c(self, static=True):
-        header = "gsDPSetTextureImage(" if static else "gDPSetTextureImage(glistp++, "
-        header += self.fmt + ", " + self.siz + ", " + str(self.width) + ", "
-        if not static and bpy.context.scene.decomp_compatible:
-            header += "segmented_to_virtual(" + self.image.name + "))"
-        else:
-            header += self.image.name + ")"
-        return header
-
-    def to_sm64_decomp_s(self):
-        return "gsDPSetTextureImage " + self.fmt + ", " + self.siz + ", " + str(self.width) + ", " + self.image.name
-
-    def size(self, f3d):
-        return GFX_SIZE
 
 
 def gsDPSetCombine(muxs0, muxs1, f3d):
@@ -5005,26 +4246,26 @@ def GCCc1w1(sbRGB1, saA1, mA1, aRGB1, sbA1, aA1):
     )
 
 
-class DPSetCombineMode:
+@dataclass
+class DPSetCombineMode(GbiMacro):
     # all strings
-    def __init__(self, a0, b0, c0, d0, Aa0, Ab0, Ac0, Ad0, a1, b1, c1, d1, Aa1, Ab1, Ac1, Ad1):
-        self.a0 = a0
-        self.b0 = b0
-        self.c0 = c0
-        self.d0 = d0
-        self.Aa0 = Aa0
-        self.Ab0 = Ab0
-        self.Ac0 = Ac0
-        self.Ad0 = Ad0
+    a0: str
+    b0: str
+    c0: str
+    d0: str
+    Aa0: str
+    Ab0: str
+    Ac0: str
+    Ad0: str
 
-        self.a1 = a1
-        self.b1 = b1
-        self.c1 = c1
-        self.d1 = d1
-        self.Aa1 = Aa1
-        self.Ab1 = Ab1
-        self.Ac1 = Ac1
-        self.Ad1 = Ad1
+    a1: str
+    b1: str
+    c1: str
+    d1: str
+    Aa1: str
+    Ab1: str
+    Ac1: str
+    Ad1: str
 
     def to_binary(self, f3d, segments):
         words = _SHIFTL(f3d.G_SETCOMBINE, 24, 8) | _SHIFTL(
@@ -5043,102 +4284,10 @@ class DPSetCombineMode:
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
     def to_c(self, static=True):
-        a0 = self.a0  # 'G_CCMUX_' + self.a0
-        b0 = self.b0  # 'G_CCMUX_' + self.b0
-        c0 = self.c0  # 'G_CCMUX_' + self.c0
-        d0 = self.d0  # 'G_CCMUX_' + self.d0
-
-        Aa0 = self.Aa0  # 'G_ACMUX_' + self.Aa0
-        Ab0 = self.Ab0  # 'G_ACMUX_' + self.Ab0
-        Ac0 = self.Ac0  # 'G_ACMUX_' + self.Ac0
-        Ad0 = self.Ad0  # 'G_ACMUX_' + self.Ad0
-
-        a1 = self.a1  # 'G_CCMUX_' + self.a1
-        b1 = self.b1  # 'G_CCMUX_' + self.b1
-        c1 = self.c1  # 'G_CCMUX_' + self.c1
-        d1 = self.d1  # 'G_CCMUX_' + self.d1
-
-        Aa1 = self.Aa1  # 'G_ACMUX_' + self.Aa1
-        Ab1 = self.Ab1  # 'G_ACMUX_' + self.Ab1
-        Ac1 = self.Ac1  # 'G_ACMUX_' + self.Ac1
-        Ad1 = self.Ad1  # 'G_ACMUX_' + self.Ad1
-
-        # No tabs/line breaks, breaks macros
-        header = "gsDPSetCombineLERP(" if static else "gDPSetCombineLERP(glistp++, "
-        return (
-            header
-            + a0
-            + ", "
-            + b0
-            + ", "
-            + c0
-            + ", "
-            + d0
-            + ", "
-            + Aa0
-            + ", "
-            + Ab0
-            + ", "
-            + Ac0
-            + ", "
-            + Ad0
-            + ", "
-            + a1
-            + ", "
-            + b1
-            + ", "
-            + c1
-            + ", "
-            + d1
-            + ", "
-            + Aa1
-            + ", "
-            + Ab1
-            + ", "
-            + Ac1
-            + ", "
-            + Ad1
-            + ")"
-        )
-
-    def to_sm64_decomp_s(self):
-        return (
-            "gsDPSetCombineLERP "
-            + self.a0
-            + ", "
-            + self.b0
-            + ", "
-            + self.c0
-            + ", "
-            + self.d0
-            + ", "
-            + self.Aa0
-            + ", "
-            + self.Ab0
-            + ", "
-            + self.Ac0
-            + ", "
-            + self.Ad0
-            + ", "
-            + self.a1
-            + ", "
-            + self.b1
-            + ", "
-            + self.c1
-            + ", "
-            + self.d1
-            + ", "
-            + self.Aa1
-            + ", "
-            + self.Ab1
-            + ", "
-            + self.Ac1
-            + ", "
-            + self.Ad1
-        )
-
-    def size(self, f3d):
-        return GFX_SIZE
+        if static:
+            return f"gsDPSetCombineLERP({', '.join( self.getargs(static) )})"
+        else:
+            return f"gDPSetCombineLERP(glistp++, {', '.join( self.getargs(static) )})"
 
 
 def gsDPSetColor(c, d):
@@ -5150,114 +4299,64 @@ def sDPRGBColor(cmd, r, g, b, a):
     return gsDPSetColor(cmd, (_SHIFTL(r, 24, 8) | _SHIFTL(g, 16, 8) | _SHIFTL(b, 8, 8) | _SHIFTL(a, 0, 8)))
 
 
-class DPSetEnvColor:
-    def __init__(self, r, g, b, a):
-        self.r = r
-        self.g = g
-        self.b = b
-        self.a = a
+@dataclass
+class DPSetEnvColor(GbiMacro):
+    r: int
+    g: int
+    b: int
+    a: int
 
     def to_binary(self, f3d, segments):
         return sDPRGBColor(f3d.G_SETENVCOLOR, self.r, self.g, self.b, self.a)
 
-    def to_c(self, static=True):
-        header = "gsDPSetEnvColor(" if static else "gDPSetEnvColor(glistp++, "
-        return header + str(self.r) + ", " + str(self.g) + ", " + str(self.b) + ", " + str(self.a) + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsDPSetEnvColor " + str(self.r) + ", " + str(self.g) + ", " + str(self.b) + ", " + str(self.a)
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class DPSetBlendColor:
-    def __init__(self, r, g, b, a):
-        self.r = r
-        self.g = g
-        self.b = b
-        self.a = a
+@dataclass
+class DPSetBlendColor(GbiMacro):
+    r: int
+    g: int
+    b: int
+    a: int
 
     def to_binary(self, f3d, segments):
         return sDPRGBColor(f3d.G_SETBLENDCOLOR, self.r, self.g, self.b, self.a)
 
-    def to_c(self, static=True):
-        header = "gsDPSetBlendColor(" if static else "gDPSetBlendColor(glistp++, "
-        return header + str(self.r) + ", " + str(self.g) + ", " + str(self.b) + ", " + str(self.a) + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsDPSetBlendColor " + str(self.r) + ", " + str(self.g) + ", " + str(self.b) + ", " + str(self.a)
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class DPSetFogColor:
-    def __init__(self, r, g, b, a):
-        self.r = r
-        self.g = g
-        self.b = b
-        self.a = a
+@dataclass
+class DPSetFogColor(GbiMacro):
+    r: int
+    g: int
+    b: int
+    a: int
 
     def to_binary(self, f3d, segments):
         return sDPRGBColor(f3d.G_SETFOGCOLOR, self.r, self.g, self.b, self.a)
 
-    def to_c(self, static=True):
-        header = "gsDPSetFogColor(" if static else "gDPSetFogColor(glistp++, "
-        return header + str(self.r) + ", " + str(self.g) + ", " + str(self.b) + ", " + str(self.a) + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsDPSetFogColor " + str(self.r) + ", " + str(self.g) + ", " + str(self.b) + ", " + str(self.a)
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class DPSetFillColor:
-    def __init__(self, d):
-        self.d = d
+@dataclass
+class DPSetFillColor(GbiMacro):
+    d: int
 
     def to_binary(self, f3d, segments):
         return gsDPSetColor(f3d.G_SETFILLCOLOR, self.d)
 
-    def to_c(self, static=True):
-        header = "gsDPSetFillColor(" if static else "gDPSetFillColor(glistp++, "
-        return header + str(self.d) + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsDPSetFillColor " + str(self.d)
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class DPSetPrimDepth:
-    def __init__(self, z=0, dz=0):
-        self.z = z
-        self.dz = dz
+@dataclass
+class DPSetPrimDepth(GbiMacro):
+    z: int = 0
+    dz: int = 0
 
     def to_binary(self, f3d, segments):
         return gsDPSetColor(f3d.G_SETPRIMDEPTH, _SHIFTL(self.z, 16, 16) | _SHIFTL(self.dz, 0, 16))
 
-    def to_c(self, static=True):
-        header = "gsDPSetPrimDepth(" if static else "gDPSetPrimDepth(glistp++, "
-        return header + str(self.z) + ", " + str(self.dz) + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsDPSetPrimDepth " + str(self.z) + ", " + str(self.dz)
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class DPSetPrimColor:
-    def __init__(self, m, l, r, g, b, a):
-        self.m = m
-        self.l = l
-        self.r = r
-        self.g = g
-        self.b = b
-        self.a = a
+@dataclass
+class DPSetPrimColor(GbiMacro):
+    m: int
+    l: int
+    r: int
+    g: int
+    b: int
+    a: int
 
     def to_binary(self, f3d, segments):
         words = (_SHIFTL(f3d.G_SETPRIMCOLOR, 24, 8) | _SHIFTL(self.m, 8, 8) | _SHIFTL(self.l, 0, 8)), (
@@ -5265,73 +4364,15 @@ class DPSetPrimColor:
         )
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
-    def to_c(self, static=True):
-        header = "gsDPSetPrimColor(" if static else "gDPSetPrimColor(glistp++, "
-        return (
-            header
-            + str(self.m)
-            + ", "
-            + str(self.l)
-            + ", "
-            + str(self.r)
-            + ", "
-            + str(self.g)
-            + ", "
-            + str(self.b)
-            + ", "
-            + str(self.a)
-            + ")"
-        )
 
-    def to_sm64_decomp_s(self):
-        return (
-            "gsDPSetPrimColor "
-            + str(self.m)
-            + ", "
-            + str(self.l)
-            + ", "
-            + str(self.r)
-            + ", "
-            + str(self.g)
-            + ", "
-            + str(self.b)
-            + ", "
-            + str(self.a)
-        )
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class DPSetOtherMode:
-    def __init__(self, mode0, mode1):
-        self.mode0 = mode0
-        self.mode1 = mode1
+@dataclass
+class DPSetOtherMode(GbiMacro):
+    mode0: list
+    mode1: list
 
     def to_binary(self, f3d, segments):
         words = _SHIFTL(f3d.G_RDPSETOTHERMODE, 24, 8) | _SHIFTL(self.mode0, 0, 24), self.mode1
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
-
-    def to_c(self, static=True):
-        header = "gsDPSetOtherMode(" if static else "gDPSetOtherMode(glistp++, "
-
-        mode0String = ""
-        for item in self.mode0:
-            mode0String += item + " | "
-        mode0String = mode0String[:-3]
-
-        mode1String = ""
-        for item in self.mode1:
-            mode1String += item + " | "
-        mode1String = mode1String[:-3]
-
-        return header + mode0String + ", " + mode1String + ")"
-
-    def to_sm64_decomp_s(self):
-        return "gsDPSetOtherMode " + str(self.mode0) + ", " + str(self.mode1)
-
-    def size(self, f3d):
-        return GFX_SIZE
 
 
 def gsDPLoadTileGeneric(c, tile, uls, ult, lrs, lrt):
@@ -5341,110 +4382,47 @@ def gsDPLoadTileGeneric(c, tile, uls, ult, lrs, lrt):
     return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
-class DPSetTileSize:
-    def __init__(self, t, uls, ult, lrs, lrt):
-        self.t = t
-        self.uls = uls
-        self.ult = ult
-        self.lrs = lrs
-        self.lrt = lrt
+@dataclass
+class DPSetTileSize(GbiMacro):
+    t: int
+    uls: int
+    ult: int
+    lrs: int
+    lrt: int
 
     def to_binary(self, f3d, segments):
         return gsDPLoadTileGeneric(f3d.G_SETTILESIZE, self.t, self.uls, self.ult, self.lrs, self.lrt)
 
-    def to_c(self, static=True):
-        header = "gsDPSetTileSize(" if static else "gDPSetTileSize(glistp++, "
-        return (
-            header
-            + str(self.t)
-            + ", "
-            + str(self.uls)
-            + ", "
-            + str(self.ult)
-            + ", "
-            + str(self.lrs)
-            + ", "
-            + str(self.lrt)
-            + ")"
-        )
-
-    def to_sm64_decomp_s(self):
-        return (
-            "gsDPSetTileSize "
-            + str(self.t)
-            + ", "
-            + str(self.uls)
-            + ", "
-            + str(self.ult)
-            + ", "
-            + str(self.lrs)
-            + ", "
-            + str(self.lrt)
-        )
-
-    def size(self, f3d):
-        return GFX_SIZE
+    def is_LOADTILE(self, f3d):
+        return self.t == f3d.G_TX_LOADTILE
 
 
-class DPLoadTile:
-    def __init__(self, t, uls, ult, lrs, lrt):
-        self.t = t
-        self.uls = uls
-        self.ult = ult
-        self.lrs = lrs
-        self.lrt = lrt
+@dataclass
+class DPLoadTile(GbiMacro):
+    t: int
+    uls: int
+    ult: int
+    lrs: int
+    lrt: int
 
     def to_binary(self, f3d, segments):
         return gsDPLoadTileGeneric(f3d.G_LOADTILE, self.t, self.uls, self.ult, self.lrs, self.lrt)
 
-    def to_c(self, static=True):
-        header = "gsDPLoadTile(" if static else "gDPLoadTile(glistp++, "
-        return (
-            header
-            + str(self.t)
-            + ", "
-            + str(self.uls)
-            + ", "
-            + str(self.ult)
-            + ", "
-            + str(self.lrs)
-            + ", "
-            + str(self.lrt)
-            + ")"
-        )
 
-    def to_sm64_decomp_s(self):
-        return (
-            "gsDPLoadTile "
-            + str(self.t)
-            + ", "
-            + str(self.uls)
-            + ", "
-            + str(self.ult)
-            + ", "
-            + str(self.lrs)
-            + ", "
-            + str(self.lrt)
-        )
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class DPSetTile:
-    def __init__(self, fmt, siz, line, tmem, tile, palette, cmt, maskt, shiftt, cms, masks, shifts):
-        self.fmt = fmt  # is a string
-        self.siz = siz  # is a string
-        self.line = line
-        self.tmem = tmem
-        self.tile = tile
-        self.palette = palette
-        self.cmt = cmt  # list of two strings
-        self.maskt = maskt
-        self.shiftt = shiftt
-        self.cms = cms  # list of two strings
-        self.masks = masks
-        self.shifts = shifts
+@dataclass
+class DPSetTile(GbiMacro):
+    fmt: str
+    siz: str
+    line: int
+    tmem: int
+    tile: int
+    palette: int
+    cmt: list
+    maskt: int
+    shiftt: int
+    cms: list
+    masks: int
+    shifts: int
 
     def to_binary(self, f3d, segments):
         cms = f3d.G_TX_VARS[self.cms[0]] + f3d.G_TX_VARS[self.cms[1]]
@@ -5468,76 +4446,17 @@ class DPSetTile:
         )
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
-    def to_c(self, static=True):
-        # no tabs/line breaks, breaks macros
-        header = "gsDPSetTile(" if static else "gDPSetTile(glistp++, "
-        return (
-            header
-            + self.fmt
-            + ", "
-            + self.siz
-            + ", "
-            + str(self.line)
-            + ", "
-            + str(self.tmem)
-            + ", "
-            + str(self.tile)
-            + ", "
-            + str(self.palette)
-            + ", "
-            + (self.cmt[0] + " | " + self.cmt[1])
-            + ", "
-            + str(self.maskt)
-            + ", "
-            + str(self.shiftt)
-            + ", "
-            + (self.cms[0] + " | " + self.cms[1])
-            + ", "
-            + str(self.masks)
-            + ", "
-            + str(self.shifts)
-            + ")"
-        )
-
-    def to_sm64_decomp_s(self):
-        return (
-            "gsDPSetTile "
-            + self.fmt
-            + ", "
-            + self.siz
-            + ", "
-            + str(self.line)
-            + ", "
-            + str(self.tmem)
-            + ", "
-            + str(self.tile)
-            + ", "
-            + str(self.palette)
-            + ", "
-            + (self.cmt[0] + " | " + self.cmt[1])
-            + ", "
-            + str(self.maskt)
-            + ", "
-            + str(self.shiftt)
-            + ", "
-            + (self.cms[0] + " | " + self.cms[1])
-            + ", "
-            + str(self.masks)
-            + ", "
-            + str(self.shifts)
-        )
-
-    def size(self, f3d):
-        return GFX_SIZE
+    def is_LOADTILE(self, f3d):
+        return self.tile == f3d.G_TX_LOADTILE
 
 
-class DPLoadBlock:
-    def __init__(self, tile, uls, ult, lrs, dxt):
-        self.tile = tile
-        self.uls = uls
-        self.ult = ult
-        self.lrs = lrs
-        self.dxt = dxt
+@dataclass
+class DPLoadBlock(GbiMacro):
+    tile: int
+    uls: int
+    ult: int
+    lrs: int
+    dxt: int
 
     def to_binary(self, f3d, segments):
         words = (_SHIFTL(f3d.G_LOADBLOCK, 24, 8) | _SHIFTL(self.uls, 12, 12) | _SHIFTL(self.ult, 0, 12)), (
@@ -5547,77 +4466,32 @@ class DPLoadBlock:
         )
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
-    def to_c(self, static=True):
-        header = "gsDPLoadBlock(" if static else "gDPLoadBlock(glistp++, "
-        return (
-            header
-            + str(self.tile)
-            + ", "
-            + str(self.uls)
-            + ", "
-            + str(self.ult)
-            + ", "
-            + str(self.lrs)
-            + ", "
-            + str(self.dxt)
-            + ")"
-        )
 
-    def to_sm64_decomp_s(self):
-        return (
-            "gsDPLoadBlock "
-            + str(self.tile)
-            + ", "
-            + str(self.uls)
-            + ", "
-            + str(self.ult)
-            + ", "
-            + str(self.lrs)
-            + ", "
-            + str(self.dxt)
-        )
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class DPLoadTLUTCmd:
-    def __init__(self, tile, count):
-        self.tile = tile
-        self.count = count
+@dataclass
+class DPLoadTLUTCmd(GbiMacro):
+    tile: int
+    count: int
 
     def to_binary(self, f3d, segments):
         words = _SHIFTL(f3d.G_LOADTLUT, 24, 8), _SHIFTL((self.tile), 24, 3) | _SHIFTL((self.count), 14, 10)
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
-    def to_c(self, static=True):
-        header = "gsDPLoadTLUTCmd(" if static else "gDPLoadTLUTCmd(glistp++, "
-        return header + str(self.tile) + ", " + str(self.count) + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsDPLoadTLUTCmd " + str(self.tile) + ", " + str(self.count)
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class DPLoadTextureBlock:
-    def __init__(self, timg, fmt, siz, width, height, pal, cms, cmt, masks, maskt, shifts, shiftt):
-        self.timg = timg  # FImage object
-        self.fmt = fmt  # string
-        self.siz = siz  # string
-        self.width = width
-        self.height = height
-        self.pal = pal
-        self.cms = cms  # list of two strings
-        self.cmt = cmt  # list of two strings
-        self.masks = masks
-        self.maskt = maskt
-        self.shifts = shifts
-        self.shiftt = shiftt
-
-    def get_ptr_offsets(self, f3d):
-        return [4]
+@dataclass
+class DPLoadTextureBlock(GbiMacro):
+    timg: FImage
+    fmt: str
+    siz: str
+    width: int
+    height: int
+    pal: int
+    cms: list
+    cmt: list
+    masks: int
+    maskt: int
+    shifts: int
+    shiftt: int
+    _ptr_amp = True  # adds & to name of image
 
     def to_binary(self, f3d, segments):
         return (
@@ -5672,85 +4546,25 @@ class DPLoadTextureBlock:
             ).to_binary(f3d, segments)
         )
 
-    def to_c(self, static=True):
-        header = "gsDPLoadTextureBlock(" if static else "gDPLoadTextureBlock(glistp++, "
-        return (
-            header
-            + ("&" + self.timg.name)
-            + ", "
-            + self.fmt
-            + ", "
-            + self.siz
-            + ", "
-            + str(self.width)
-            + ", "
-            + str(self.height)
-            + ", "
-            + str(self.pal)
-            + ", "
-            + (self.cms[0] + " | " + self.cms[1])
-            + ", "
-            + (self.cmt[0] + " | " + self.cmt[1])
-            + ", "
-            + str(self.masks)
-            + ", "
-            + str(self.maskt)
-            + ", "
-            + str(self.shifts)
-            + ", "
-            + str(self.shiftt)
-            + ")"
-        )
-
-    def to_sm64_decomp_s(self):
-        return (
-            "gsDPLoadTextureBlock "
-            + self.timg.name
-            + ", "
-            + self.fmt
-            + ", "
-            + self.siz
-            + ", "
-            + str(self.width)
-            + ", "
-            + str(self.height)
-            + ", "
-            + str(self.pal)
-            + ", "
-            + str(self.cms)
-            + ", "
-            + str(self.cmt)
-            + ", "
-            + str(self.masks)
-            + ", "
-            + str(self.maskt)
-            + ", "
-            + str(self.shifts)
-            + ", "
-            + str(self.shiftt)
-        )
-
     def size(self, f3d):
         return GFX_SIZE * 7
 
 
-class DPLoadTextureBlockYuv:
-    def __init__(self, timg, fmt, siz, width, height, pal, cms, cmt, masks, maskt, shifts, shiftt):
-        self.timg = timg  # FImage object
-        self.fmt = fmt  # string
-        self.siz = siz  # string
-        self.width = width
-        self.height = height
-        self.pal = pal
-        self.cms = cms
-        self.cmt = cmt
-        self.masks = masks
-        self.maskt = maskt
-        self.shifts = shifts
-        self.shiftt = shiftt
-
-    def get_ptr_offsets(self, f3d):
-        return [4]
+@dataclass
+class DPLoadTextureBlockYuv(GbiMacro):
+    timg: FImage
+    fmt: str
+    siz: str
+    width: int
+    height: int
+    pal: int
+    cms: list
+    cmt: list
+    masks: int
+    maskt: int
+    shifts: int
+    shiftt: int
+    _ptr_amp = True  # adds & to name of image
 
     def to_binary(self, f3d, segments):
         return (
@@ -5805,64 +4619,6 @@ class DPLoadTextureBlockYuv:
             ).to_binary(f3d, segments)
         )
 
-    def to_c(self, static=True):
-        header = "gsDPLoadTextureBlockYuv(" if static else "gDPLoadTextureBlockYuv(glistp++, "
-        return (
-            header
-            + ("&" + self.timg.name)
-            + ", "
-            + self.fmt
-            + ", "
-            + self.siz
-            + ", "
-            + str(self.width)
-            + ", "
-            + str(self.height)
-            + ", "
-            + str(self.pal)
-            + ", "
-            + (self.cms[0] + " | " + self.cms[1])
-            + ", "
-            + (self.cmt[0] + " | " + self.cmt[1])
-            + ", "
-            + str(self.masks)
-            + ", "
-            + str(self.maskt)
-            + ", "
-            + str(self.shifts)
-            + ", "
-            + str(self.shiftt)
-            + ")"
-        )
-
-    def to_sm64_decomp_s(self):
-        return (
-            "gsDPLoadTextureBlockYuv "
-            + self.timg.name
-            + ", "
-            + self.fmt
-            + ", "
-            + self.siz
-            + ", "
-            + str(self.width)
-            + ", "
-            + str(self.height)
-            + ", "
-            + str(self.pal)
-            + ", "
-            + str(self.cms)
-            + ", "
-            + str(self.cmt)
-            + ", "
-            + str(self.masks)
-            + ", "
-            + str(self.maskt)
-            + ", "
-            + str(self.shifts)
-            + ", "
-            + str(self.shiftt)
-        )
-
     def size(self, f3d):
         return GFX_SIZE * 7
 
@@ -5872,24 +4628,22 @@ class DPLoadTextureBlockYuv:
 # gsDPLoadTextureBlockYuvS
 
 
-class _DPLoadTextureBlock:
-    def __init__(self, timg, tmem, fmt, siz, width, height, pal, cms, cmt, masks, maskt, shifts, shiftt):
-        self.timg = timg  # FImage object
-        self.tmem = tmem
-        self.fmt = fmt  # string
-        self.siz = siz  # string
-        self.width = width
-        self.height = height
-        self.pal = pal
-        self.cms = cms
-        self.cmt = cmt
-        self.masks = masks
-        self.maskt = maskt
-        self.shifts = shifts
-        self.shiftt = shiftt
-
-    def get_ptr_offsets(self, f3d):
-        return [4]
+@dataclass
+class _DPLoadTextureBlock(GbiMacro):
+    timg: FImage
+    tmem: int
+    fmt: str
+    siz: str
+    width: int
+    height: int
+    pal: int
+    cms: list
+    cmt: list
+    masks: int
+    maskt: int
+    shifts: int
+    shiftt: int
+    _ptr_amp = True  # adds & to name of image
 
     def to_binary(self, f3d, segments):
         return (
@@ -5944,68 +4698,6 @@ class _DPLoadTextureBlock:
             ).to_binary(f3d, segments)
         )
 
-    def to_c(self, static=True):
-        header = "_gsDPLoadTextureBlock(" if static else "_gDPLoadTextureBlock(glistp++, "
-        return (
-            header
-            + ("&" + self.timg.name)
-            + ", "
-            + str(self.tmem)
-            + ", "
-            + self.fmt
-            + ", "
-            + self.siz
-            + ", "
-            + str(self.width)
-            + ", "
-            + str(self.height)
-            + ", "
-            + str(self.pal)
-            + ", "
-            + (self.cms[0] + " | " + self.cms[1])
-            + ", "
-            + (self.cmt[0] + " | " + self.cmt[1])
-            + ", "
-            + str(self.masks)
-            + ", "
-            + str(self.maskt)
-            + ", "
-            + str(self.shifts)
-            + ", "
-            + str(self.shiftt)
-            + ")"
-        )
-
-    def to_sm64_decomp_s(self):
-        return (
-            "_gsDPLoadTextureBlock "
-            + self.timg.name
-            + ", "
-            + str(self.tmem)
-            + ", "
-            + self.fmt
-            + ", "
-            + self.siz
-            + ", "
-            + str(self.width)
-            + ", "
-            + str(self.height)
-            + ", "
-            + str(self.pal)
-            + ", "
-            + str(self.cms)
-            + ", "
-            + str(self.cmt)
-            + ", "
-            + str(self.masks)
-            + ", "
-            + str(self.maskt)
-            + ", "
-            + str(self.shifts)
-            + ", "
-            + str(self.shiftt)
-        )
-
     def size(self, f3d):
         return GFX_SIZE * 7
 
@@ -6015,22 +4707,21 @@ class _DPLoadTextureBlock:
 # gsDPLoadMultiBlockS
 
 
-class DPLoadTextureBlock_4b:
-    def __init__(self, timg, fmt, width, height, pal, cms, cmt, masks, maskt, shifts, shiftt):
-        self.timg = timg  # FImage object
-        self.fmt = fmt  # string
-        self.width = width
-        self.height = height
-        self.pal = pal
-        self.cms = cms
-        self.cmt = cmt
-        self.masks = masks
-        self.maskt = maskt
-        self.shifts = shifts
-        self.shiftt = shiftt
-
-    def get_ptr_offsets(self, f3d):
-        return [4]
+@dataclass
+class DPLoadTextureBlock_4b(GbiMacro):
+    timg: FImage
+    fmt: str
+    siz: str
+    width: int
+    height: int
+    pal: int
+    cms: list
+    cmt: list
+    masks: int
+    maskt: int
+    shifts: int
+    shiftt: int
+    _ptr_amp = True  # adds & to name of image
 
     def to_binary(self, f3d, segments):
         return (
@@ -6077,60 +4768,6 @@ class DPLoadTextureBlock_4b:
             ).to_binary(f3d, segments)
         )
 
-    def to_c(self, static=True):
-        header = "gsDPLoadTextureBlock_4b(" if static else "gDPLoadTextureBlock_4b(glistp++, "
-        return (
-            header
-            + ("&" + self.timg.name)
-            + ", "
-            + self.fmt
-            + ", "
-            + str(self.width)
-            + ", "
-            + str(self.height)
-            + ", "
-            + str(self.pal)
-            + ", "
-            + (self.cms[0] + " | " + self.cms[1])
-            + ", "
-            + (self.cmt[0] + " | " + self.cmt[1])
-            + ", "
-            + str(self.masks)
-            + ", "
-            + str(self.maskt)
-            + ", "
-            + str(self.shifts)
-            + ", "
-            + str(self.shiftt)
-            + ")"
-        )
-
-    def to_sm64_decomp_s(self):
-        return (
-            "gsDPLoadTextureBlock_4b "
-            + self.timg.name
-            + ", "
-            + self.fmt
-            + ", "
-            + str(self.width)
-            + ", "
-            + str(self.height)
-            + ", "
-            + str(self.pal)
-            + ", "
-            + str(self.cms)
-            + ", "
-            + str(self.cmt)
-            + ", "
-            + str(self.masks)
-            + ", "
-            + str(self.maskt)
-            + ", "
-            + str(self.shifts)
-            + ", "
-            + str(self.shiftt)
-        )
-
     def size(self, f3d):
         return GFX_SIZE * 7
 
@@ -6141,27 +4778,25 @@ class DPLoadTextureBlock_4b:
 # _gsDPLoadTextureBlock_4b
 
 
-class DPLoadTextureTile:
-    def __init__(self, timg, fmt, siz, width, height, uls, ult, lrs, lrt, pal, cms, cmt, masks, maskt, shifts, shiftt):
-        self.timg = timg  # FImage object
-        self.fmt = fmt  # string
-        self.siz = siz  # string
-        self.width = width
-        self.height = height
-        self.uls = uls
-        self.ult = ult
-        self.lrs = lrs
-        self.lrt = lrt
-        self.pal = pal
-        self.cms = cms
-        self.cmt = cmt
-        self.masks = masks
-        self.maskt = maskt
-        self.shifts = shifts
-        self.shiftt = shiftt
-
-    def get_ptr_offsets(self, f3d):
-        return [4]
+@dataclass
+class DPLoadTextureTile(GbiMacro):
+    timg: FImage
+    fmt: str
+    siz: str
+    width: int
+    height: int
+    uls: int
+    ult: int
+    lrs: int
+    lrt: int
+    pal: int
+    cms: list
+    cmt: list
+    masks: int
+    maskt: int
+    shifts: int
+    shiftt: int
+    _ptr_amp = True  # adds & to name of image
 
     def to_binary(self, f3d, segments):
         return (
@@ -6212,78 +4847,6 @@ class DPLoadTextureTile:
             ).to_binary(f3d, segments)
         )
 
-    def to_c(self, static=True):
-        header = "gsDPLoadTextureTile(" if static else "gDPLoadTextureTile(glistp++, "
-        return (
-            header
-            + ("&" + self.timg.name)
-            + ", "
-            + self.fmt
-            + ", "
-            + self.siz
-            + ", "
-            + str(self.width)
-            + ", "
-            + str(self.height)
-            + ", "
-            + self.uls
-            + ", "
-            + str(self.ult)
-            + ", "
-            + str(self.lrs)
-            + ", "
-            + (str(self.lrt) + str(self.pal))
-            + ", "
-            + (self.cms[0] + " | " + self.cms[1])
-            + ", "
-            + (self.cmt[0] + " | " + self.cmt[1])
-            + ", "
-            + str(self.masks)
-            + ", "
-            + str(self.maskt)
-            + ", "
-            + str(self.shifts)
-            + ", "
-            + str(self.shiftt)
-            + ")"
-        )
-
-    def to_sm64_decomp_s(self):
-        return (
-            "gsDPLoadTextureTile "
-            + self.timg.name
-            + ", "
-            + self.fmt
-            + ", "
-            + self.siz
-            + ", "
-            + str(self.width)
-            + ", "
-            + str(self.height)
-            + ", "
-            + self.uls
-            + ", "
-            + str(self.ult)
-            + ", "
-            + str(self.lrs)
-            + ", "
-            + str(self.lrt)
-            + ", "
-            + str(self.pal)
-            + ", "
-            + str(self.cms)
-            + ", "
-            + str(self.cmt)
-            + ", "
-            + str(self.masks)
-            + ", "
-            + str(self.maskt)
-            + ", "
-            + str(self.shifts)
-            + ", "
-            + str(self.shiftt)
-        )
-
     def size(self, f3d):
         return GFX_SIZE * 7
 
@@ -6291,26 +4854,25 @@ class DPLoadTextureTile:
 # gsDPLoadMultiTile
 
 
-class DPLoadTextureTile_4b:
-    def __init__(self, timg, fmt, width, height, uls, ult, lrs, lrt, pal, cms, cmt, masks, maskt, shifts, shiftt):
-        self.timg = timg  # FImage object
-        self.fmt = fmt  # string
-        self.width = width
-        self.height = height
-        self.uls = uls
-        self.ult = ult
-        self.lrs = lrs
-        self.lrt = lrt
-        self.pal = pal
-        self.cms = cms
-        self.cmt = cmt
-        self.masks = masks
-        self.maskt = maskt
-        self.shifts = shifts
-        self.shiftt = shiftt
-
-    def get_ptr_offsets(self, f3d):
-        return [4]
+@dataclass
+class DPLoadTextureTile_4b(GbiMacro):
+    timg: FImage
+    fmt: str
+    siz: str
+    width: int
+    height: int
+    uls: int
+    ult: int
+    lrs: int
+    lrt: int
+    pal: int
+    cms: list
+    cmt: list
+    masks: int
+    maskt: int
+    shifts: int
+    shiftt: int
+    _ptr_amp = True  # adds & to name of image
 
     def to_binary(self, f3d, segments):
         return (
@@ -6361,74 +4923,6 @@ class DPLoadTextureTile_4b:
             ).to_binary(f3d, segments)
         )
 
-    def to_c(self, static=True):
-        header = "gsDPLoadTextureTile_4b(" if static else "gDPLoadTextureTile_4b(glistp++, "
-        return (
-            header
-            + ("&" + self.timg.name)
-            + ", "
-            + self.fmt
-            + ", "
-            + str(self.width)
-            + ", "
-            + str(self.height)
-            + ", "
-            + self.uls
-            + ", "
-            + str(self.ult)
-            + ", "
-            + str(self.lrs)
-            + ", "
-            + (str(self.lrt) + str(self.pal))
-            + ", "
-            + (self.cms[0] + " | " + self.cms[1])
-            + ", "
-            + (self.cmt[0] + " | " + self.cmt[1])
-            + ", "
-            + str(self.masks)
-            + ", "
-            + str(self.maskt)
-            + ", "
-            + str(self.shifts)
-            + ", "
-            + str(self.shiftt)
-            + ")"
-        )
-
-    def to_sm64_decomp_s(self):
-        return (
-            "gsDPLoadTextureTile_4b "
-            + self.timg.name
-            + ", "
-            + self.fmt
-            + ", "
-            + str(self.width)
-            + ", "
-            + str(self.height)
-            + ", "
-            + self.uls
-            + ", "
-            + str(self.ult)
-            + ", "
-            + str(self.lrs)
-            + ", "
-            + str(self.lrt)
-            + ", "
-            + str(self.pal)
-            + ", "
-            + str(self.cms)
-            + ", "
-            + str(self.cmt)
-            + ", "
-            + str(self.masks)
-            + ", "
-            + str(self.maskt)
-            + ", "
-            + str(self.shifts)
-            + ", "
-            + str(self.shiftt)
-        )
-
     def size(self, f3d):
         return GFX_SIZE * 7
 
@@ -6436,13 +4930,11 @@ class DPLoadTextureTile_4b:
 # gsDPLoadMultiTile_4b
 
 
-class DPLoadTLUT_pal16:
-    def __init__(self, pal, dram):
-        self.pal = pal
-        self.dram = dram  # pallete object
-
-    def get_ptr_offsets(self, f3d):
-        return [4]
+@dataclass
+class DPLoadTLUT_pal16(GbiMacro):
+    pal: int
+    dram: FImage  # pallete object
+    _ptr_amp = True  # adds & to name of image
 
     def to_binary(self, f3d, segments):
         if not f3d._HW_VERSION_1:
@@ -6473,13 +4965,6 @@ class DPLoadTLUT_pal16:
                 0,
             ).to_binary(f3d, segments)
 
-    def to_c(self, static=True):
-        header = "gsDPLoadTLUT_pal16(" if static else "gDPLoadTLUT_pal16(glistp++, "
-        return header + str(self.pal) + ", " + "&" + self.dram.name + ")"
-
-    def to_sm64_decomp_s(self):
-        return "gsDPLoadTLUT_pal16 " + str(self.pal) + ", " + self.dram.name
-
     def size(self, f3d):
         if not f3d._HW_VERSION_1:
             return GFX_SIZE * 6
@@ -6487,12 +4972,10 @@ class DPLoadTLUT_pal16:
             return GFX_SIZE * 7
 
 
-class DPLoadTLUT_pal256:
-    def __init__(self, dram):
-        self.dram = dram  # pallete object
-
-    def get_ptr_offsets(self, f3d):
-        return [4]
+@dataclass
+class DPLoadTLUT_pal256(GbiMacro):
+    dram: FImage  # pallete object
+    _ptr_amp = True  # adds & to name of image
 
     def to_binary(self, f3d, segments):
         if not f3d._HW_VERSION_1:
@@ -6521,13 +5004,6 @@ class DPLoadTLUT_pal256:
                 0,
             ).to_binary(f3d, segments)
 
-    def to_c(self, static=True):
-        header = "gsDPLoadTLUT_pal256(" if static else "gDPLoadTLUT_pal256(glistp++, "
-        return header + "&" + self.dram.name + ")"
-
-    def to_sm64_decomp_s(self):
-        return "gsDPLoadTLUT_pal256 " + self.dram.name
-
     def size(self, f3d):
         if not f3d._HW_VERSION_1:
             return GFX_SIZE * 6
@@ -6535,14 +5011,12 @@ class DPLoadTLUT_pal256:
             return GFX_SIZE * 7
 
 
-class DPLoadTLUT:
-    def __init__(self, count, tmemaddr, dram):
-        self.count = count
-        self.tmemaddr = tmemaddr
-        self.dram = dram  # pallete object
-
-    def get_ptr_offsets(self, f3d):
-        return [4]
+@dataclass
+class DPLoadTLUT(GbiMacro):
+    count: int
+    tmemaddr: int
+    dram: FImage  # pallete object
+    _ptr_amp = True  # adds & to name of image
 
     def to_binary(self, f3d, segments):
         if not f3d._HW_VERSION_1:
@@ -6571,13 +5045,6 @@ class DPLoadTLUT:
                 0,
             ).to_binary(f3d, segments)
 
-    def to_c(self, static=True):
-        header = "gsDPLoadTLUT(" if static else "gDPLoadTLUT(glistp++, "
-        return header + str(self.count) + ", " + str(self.tmemaddr) + ", " + "&" + self.dram.name + ")"
-
-    def to_sm64_decomp_s(self):
-        return "gsDPLoadTLUT " + str(self.count) + ", " + str(self.tmemaddr) + ", " + self.dram.name
-
     def size(self, f3d):
         if not f3d._HW_VERSION_1:
             return GFX_SIZE * 6
@@ -6591,14 +5058,14 @@ class DPLoadTLUT:
 # gsDPFillRectangle
 
 
-class DPSetConvert:
-    def __init__(self, k0, k1, k2, k3, k4, k5):
-        self.k0 = k0
-        self.k1 = k1
-        self.k2 = k2
-        self.k3 = k3
-        self.k4 = k4
-        self.k5 = k5
+@dataclass
+class DPSetConvert(GbiMacro):
+    k0: int
+    k1: int
+    k2: int
+    k3: int
+    k4: int
+    k5: int
 
     def to_binary(self, f3d, segments):
         words = (
@@ -6606,49 +5073,12 @@ class DPSetConvert:
         ), (_SHIFTL(self.k2, 27, 5) | _SHIFTL(self.k3, 18, 9) | _SHIFTL(self.k4, 9, 9) | _SHIFTL(self.k5, 0, 9))
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
-    def to_c(self, static=True):
-        header = "gsDPSetConvert(" if static else "gDPSetConvert(glistp++, "
-        return (
-            header
-            + str(self.k0)
-            + ", "
-            + str(self.k1)
-            + ", "
-            + str(self.k2)
-            + ", "
-            + str(self.k3)
-            + ", "
-            + str(self.k4)
-            + ", "
-            + str(self.k5)
-            + ")"
-        )
 
-    def to_sm64_decomp_s(self):
-        return (
-            "gsDPSetConvert "
-            + str(self.k0)
-            + ", "
-            + str(self.k1)
-            + ", "
-            + str(self.k2)
-            + ", "
-            + str(self.k3)
-            + ", "
-            + str(self.k4)
-            + ", "
-            + str(self.k5)
-        )
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class DPSetKeyR:
-    def __init__(self, cR, sR, wR):
-        self.cR = cR
-        self.sR = sR
-        self.wR = wR
+@dataclass
+class DPSetKeyR(GbiMacro):
+    cR: int
+    sR: int
+    wR: int
 
     def to_binary(self, f3d, segments):
         words = _SHIFTL(f3d.G_SETKEYR, 24, 8), _SHIFTL(self.wR, 16, 12) | _SHIFTL(self.cR, 8, 8) | _SHIFTL(
@@ -6656,68 +5086,21 @@ class DPSetKeyR:
         )
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
-    def to_c(self, static=True):
-        header = "gsDPSetKeyR(" if static else "gDPSetKeyR(glistp++, "
-        return header + str(self.cR) + ", " + str(self.sR) + ", " + str(self.wR) + ")"
 
-    def to_sm64_decomp_s(self):
-        return "gsDPSetKeyR " + str(self.cR) + ", " + str(self.sR) + ", " + str(self.wR)
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class DPSetKeyGB:
-    def __init__(self, cG, sG, wG, cB, sB, wB):
-        self.cG = cG
-        self.sG = sG
-        self.wG = wG
-        self.cB = cB
-        self.sB = sB
-        self.wB = wB
+@dataclass
+class DPSetKeyGB(GbiMacro):
+    cG: int
+    sG: int
+    wG: int
+    cB: int
+    sB: int
+    wB: int
 
     def to_binary(self, f3d, segments):
         words = (_SHIFTL(f3d.G_SETKEYGB, 24, 8) | _SHIFTL(self.wG, 12, 12) | _SHIFTL(self.wB, 0, 12)), (
             _SHIFTL(self.cG, 24, 8) | _SHIFTL(self.sG, 16, 8) | _SHIFTL(self.cB, 8, 8) | _SHIFTL(self.sB, 0, 8)
         )
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
-
-    def to_c(self, static=True):
-        header = "gsDPSetKeyGB(" if static else "gDPSetKeyGB(glistp++, "
-        return (
-            header
-            + str(self.cG)
-            + ", "
-            + str(self.sG)
-            + ", "
-            + str(self.wG)
-            + ", "
-            + str(self.cB)
-            + ", "
-            + str(self.sB)
-            + ", "
-            + str(self.wB)
-            + ")"
-        )
-
-    def to_sm64_decomp_s(self):
-        return (
-            "gsDPSetKeyGB "
-            + str(self.cG)
-            + ", "
-            + str(self.sG)
-            + ", "
-            + str(self.wG)
-            + ", "
-            + str(self.cB)
-            + ", "
-            + str(self.sB)
-            + ", "
-            + str(self.wB)
-        )
-
-    def size(self, f3d):
-        return GFX_SIZE
 
 
 def gsDPNoParam(cmd):
@@ -6734,17 +5117,17 @@ def gsDPParam(cmd, param):
 # gsDPTextureRectangleFlip
 
 
-class SPTextureRectangle:
-    def __init__(self, xl, yl, xh, yh, tile, s, t, dsdx=4 << 10, dtdy=1 << 10):
-        self.xl = xl
-        self.yl = yl
-        self.xh = xh
-        self.yh = yh
-        self.tile = tile
-        self.s = s
-        self.t = t
-        self.dsdx = dsdx
-        self.dtdy = dtdy
+@dataclass
+class SPTextureRectangle(GbiMacro):
+    xl: int
+    yl: int
+    xh: int
+    yh: int
+    tile: int
+    s: int
+    t: int
+    dsdx: int = 4 << 10
+    dtdy: int = 1 << 10
 
     def to_binary(self, f3d, segments):
         words = (
@@ -6761,118 +5144,24 @@ class SPTextureRectangle:
             + words[3].to_bytes(4, "big")
         )
 
-    def to_c(self, static=True):
-        header = "gsSPTextureRectangle(" if static else "gSPTextureRectangle(glistp++, "
-        return (
-            header
-            + str(self.xl)
-            + ", "
-            + str(self.yl)
-            + ", "
-            + str(self.xh)
-            + ", "
-            + str(self.yh)
-            + ", "
-            + str(self.tile)
-            + ", "
-            + str(self.s)
-            + ", "
-            + str(self.t)
-            + ", "
-            + str(self.dsdx)
-            + ", "
-            + str(self.dtdy)
-            + ")"
-        )
-
-    def to_sm64_decomp_s(self):
-        return (
-            "gsSPTextureRectangle "
-            + str(self.xl)
-            + ", "
-            + str(self.yl)
-            + ", "
-            + str(self.xh)
-            + ", "
-            + str(self.yh)
-            + ", "
-            + str(self.tile)
-            + ", "
-            + str(self.s)
-            + ", "
-            + str(self.t)
-            + ", "
-            + str(self.dsdx)
-            + ", "
-            + str(self.dtdy)
-        )
-
     def size(self, f3d):
         return GFX_SIZE * 2
 
 
-class SPScisTextureRectangle:
-    def __init__(self, xl, yl, xh, yh, tile, s, t, dsdx=4 << 10, dtdy=1 << 10):
-        self.xl = xl
-        self.yl = yl
-        self.xh = xh
-        self.yh = yh
-        self.tile = tile
-        self.s = s
-        self.t = t
-        self.dsdx = dsdx
-        self.dtdy = dtdy
+@dataclass
+class SPScisTextureRectangle(GbiMacro):
+    xl: int
+    yl: int
+    xh: int
+    yh: int
+    tile: int
+    s: int
+    t: int
+    dsdx: int = 4 << 10
+    dtdy: int = 1 << 10
 
     def to_binary(self, f3d, segments):
         raise PluginError("SPScisTextureRectangle not implemented for binary.")
-
-    def to_c(self, static=True):
-        if static:
-            raise PluginError("SPScisTextureRectangle is dynamic only.")
-        header = "gSPScisTextureRectangle(glistp++, "
-        return (
-            header
-            + str(self.xl)
-            + ", "
-            + str(self.yl)
-            + ", "
-            + str(self.xh)
-            + ", "
-            + str(self.yh)
-            + ", "
-            + str(self.tile)
-            + ", "
-            + str(self.s)
-            + ", "
-            + str(self.t)
-            + ", "
-            + str(self.dsdx)
-            + ", "
-            + str(self.dtdy)
-            + ")"
-        )
-
-    def to_sm64_decomp_s(self):
-        return (
-            "gsSPScisTextureRectangle "
-            + str(self.xl)
-            + ", "
-            + str(self.yl)
-            + ", "
-            + str(self.xh)
-            + ", "
-            + str(self.yh)
-            + ", "
-            + str(self.tile)
-            + ", "
-            + str(self.s)
-            + ", "
-            + str(self.t)
-            + ", "
-            + str(self.dsdx)
-            + ", "
-            + str(self.dtdy)
-        )
 
     def size(self, f3d):
         return GFX_SIZE * 2
@@ -6882,72 +5171,28 @@ class SPScisTextureRectangle:
 # gsDPWord
 
 
-class DPFullSync:
-    def __init__(self):
-        pass
-
+@dataclass
+class DPFullSync(GbiMacro):
     def to_binary(self, f3d, segments):
         return gsDPNoParam(f3d.G_RDPFULLSYNC)
 
-    def to_c(self, static=True):
-        return "gsDPFullSync()" if static else "gDPFullSync(glistp++)"
 
-    def to_sm64_decomp_s(self):
-        return "gsDPFullSync"
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class DPTileSync:
-    def __init__(self):
-        pass
-
+@dataclass
+class DPTileSync(GbiMacro):
     def to_binary(self, f3d, segments):
         return gsDPNoParam(f3d.G_RDPTILESYNC)
 
-    def to_c(self, static=True):
-        return "gsDPTileSync()" if static else "gDPTileSync(glistp++)"
 
-    def to_sm64_decomp_s(self):
-        return "gsDPTileSync"
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class DPPipeSync:
-    def __init__(self):
-        pass
-
+@dataclass
+class DPPipeSync(GbiMacro):
     def to_binary(self, f3d, segments):
         return gsDPNoParam(f3d.G_RDPPIPESYNC)
 
-    def to_c(self, static=True):
-        return "gsDPPipeSync()" if static else "gDPPipeSync(glistp++)"
 
-    def to_sm64_decomp_s(self):
-        return "gsDPPipeSync"
-
-    def size(self, f3d):
-        return GFX_SIZE
-
-
-class DPLoadSync:
-    def __init__(self):
-        pass
-
+@dataclass
+class DPLoadSync(GbiMacro):
     def to_binary(self, f3d, segments):
         return gsDPNoParam(f3d.G_RDPLOADSYNC)
-
-    def to_c(self, static=True):
-        return "gsDPLoadSync()" if static else "gDPLoadSync(glistp++)"
-
-    def to_sm64_decomp_s(self):
-        return "gsDPLoadSync"
-
-    def size(self, f3d):
-        return GFX_SIZE
 
 
 F3DClassesWithPointers = [
