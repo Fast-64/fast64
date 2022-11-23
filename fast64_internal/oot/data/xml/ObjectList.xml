@@ -1,0 +1,389 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Table KeyType="System.UInt16" ValueType="System.String">
+<!--
+Documentation on this file's format:
+- ID: can change, corresponds to the object ID inside decomp
+- Key: can't be changed, unique identifier
+- Name: display name
+- Index: corresponds to the index of the object in the old object list, used for compatibility with blends
+-->
+  <Object Index="1" ID="OBJECT_HUMAN" Key="obj_human" Name="Aria"/>
+  <Object Index="2" ID="OBJECT_OKUTA" Key="obj_okuta" Name="Octorok"/>
+  <Object Index="3" ID="OBJECT_CROW" Key="obj_crow" Name="Guay"/>
+  <Object Index="4" ID="OBJECT_POH" Key="obj_poh" Name="Poe"/>
+  <Object Index="5" ID="OBJECT_DY_OBJ" Key="obj_dy_obj" Name="Great Fairy"/>
+  <Object Index="6" ID="OBJECT_WALLMASTER" Key="obj_wallmaster" Name="Floormaster and Wallmaster"/>
+  <Object Index="7" ID="OBJECT_DODONGO" Key="obj_dodongo" Name="Dodongo"/>
+  <Object Index="8" ID="OBJECT_FIREFLY" Key="obj_firefly" Name="Keese"/>
+  <Object Index="9" ID="OBJECT_BOX" Key="obj_box" Name="Treasure Chest"/>
+  <Object Index="10" ID="OBJECT_FIRE" Key="obj_fire" Name="Dancing Flame"/>
+  <Object Index="11" ID="OBJECT_BUBBLE" Key="obj_bubble" Name="Shabom"/>
+  <Object Index="12" ID="OBJECT_NIW" Key="obj_niw" Name="Cucco"/>
+  <Object Index="377" ID="OBJECT_LINK_BOY" Key="obj_link_boy" Name="Adult Link"/>
+  <Object Index="378" ID="OBJECT_LINK_CHILD" Key="obj_link_child" Name="Child Link"/>
+  <Object Index="13" ID="OBJECT_TITE" Key="obj_tite" Name="Tektites"/>
+  <Object Index="14" ID="OBJECT_REEBA" Key="obj_reeba" Name="Leever"/>
+  <Object Index="15" ID="OBJECT_PEEHAT" Key="obj_peehat" Name="Peahat"/>
+  <Object Index="16" ID="OBJECT_KINGDODONGO" Key="obj_kingdodongo" Name="King Dodongo"/>
+  <Object Index="17" ID="OBJECT_HORSE" Key="obj_horse" Name="Epona"/>
+  <Object Index="18" ID="OBJECT_ZF" Key="obj_zf" Name="Lizalfos and Dinolfos"/>
+  <Object Index="19" ID="OBJECT_GOMA" Key="obj_goma" Name="Gohma"/>
+  <Object Index="20" ID="OBJECT_ZL1" Key="obj_zl1" Name="Child Zelda"/>
+  <Object Index="21" ID="OBJECT_GOL" Key="obj_gol" Name="Gohma Larva"/>
+  <Object Index="22" ID="OBJECT_DODOJR" Key="obj_dodojr" Name="Baby Dodongo"/>
+  <Object Index="23" ID="OBJECT_TORCH2" Key="obj_torch2" Name="Dark Link"/>
+  <Object Index="24" ID="OBJECT_BL" Key="obj_bl" Name="Biri"/>
+  <Object Index="25" ID="OBJECT_TP" Key="obj_tp" Name="Tailpasaran"/>
+  <Object Index="26" ID="OBJECT_OA1" Key="obj_oa1" Name="Kakariko Rooftop Man"/>
+  <Object Index="27" ID="OBJECT_ST" Key="obj_st" Name="Skulltulas"/>
+  <Object Index="28" ID="OBJECT_BW" Key="obj_bw" Name="Torch Slug"/>
+  <Object Index="29" ID="OBJECT_EI" Key="obj_ei" Name="Stingers"/>
+  <Object Index="30" ID="OBJECT_HORSE_NORMAL" Key="obj_horse_normal" Name="Generic Horse"/>
+  <Object Index="31" ID="OBJECT_OB1" Key="obj_ob1" Name="Bazaar Proprietor"/>
+  <Object Index="32" ID="OBJECT_O_ANIME" Key="obj_o_anime" Name="NPC Animations I"/>
+  <Object Index="33" ID="OBJECT_SPOT04_OBJECTS" Key="obj_spot04_objects" Name="Kokiri Forest Objects"/>
+  <Object Index="34" ID="OBJECT_DDAN_OBJECTS" Key="obj_ddan_objects" Name="Dodongo's Cavern Objects"/>
+  <Object Index="35" ID="OBJECT_HIDAN_OBJECTS" Key="obj_hidan_objects" Name="Fire Temple Objects"/>
+  <Object Index="36" ID="OBJECT_HORSE_GANON" Key="obj_horse_ganon" Name="Ganondorf's Horse"/>
+  <Object Index="37" ID="OBJECT_OA2" Key="obj_oa2" Name="Zora [Early]"/>
+  <Object Index="38" ID="OBJECT_SPOT00_OBJECTS" Key="obj_spot00_objects" Name="Hyrule Field Objects (Child)"/>
+  <Object Index="39" ID="OBJECT_MB" Key="obj_mb" Name="Moblins"/>
+  <Object Index="40" ID="OBJECT_BOMBF" Key="obj_bombf" Name="Bomb Flower"/>
+  <Object Index="41" ID="OBJECT_SK2" Key="obj_sk2" Name="Stalfos"/>
+  <Object Index="42" ID="OBJECT_OE1" Key="obj_oe1" Name="Mido I [Early]"/>
+  <Object Index="43" ID="OBJECT_OE_ANIME" Key="obj_oe_anime" Name="NPC Animations II"/>
+  <Object Index="44" ID="OBJECT_OE2" Key="obj_oe2" Name="Red-Haired Kokiri Girl [Early]"/>
+  <Object Index="45" ID="OBJECT_YDAN_OBJECTS" Key="obj_ydan_objects" Name="Inside the Deku Tree Objects"/>
+  <Object Index="46" ID="OBJECT_GND" Key="obj_gnd" Name="Phantom Ganon"/>
+  <Object Index="47" ID="OBJECT_AM" Key="obj_am" Name="Armos"/>
+  <Object Index="48" ID="OBJECT_DEKUBABA" Key="obj_dekubaba" Name="Deku Babas"/>
+  <Object Index="49" ID="OBJECT_OA3" Key="obj_oa3" Name="Impa's Masked Head [Early]"/>
+  <Object Index="50" ID="OBJECT_OA4" Key="obj_oa4" Name="Laughing Man [Early]"/>
+  <Object Index="51" ID="OBJECT_OA5" Key="obj_oa5" Name="Hylian Woman in Purple Dress"/>
+  <Object Index="52" ID="OBJECT_OA6" Key="obj_oa6" Name="Hylian Man in Blue Shirt and Orange Pants"/>
+  <Object Index="53" ID="OBJECT_OA7" Key="obj_oa7" Name="Hylian Woman in White Shirt and Orange Pants"/>
+  <Object Index="54" ID="OBJECT_JJ" Key="obj_jj" Name="Jabu-Jabu"/>
+  <Object Index="55" ID="OBJECT_OA8" Key="obj_oa8" Name="Old Hylian Man [Early]"/>
+  <Object Index="56" ID="OBJECT_OA9" Key="obj_oa9" Name="Old Hylian Man's Head [Early]"/>
+  <Object Index="57" ID="OBJECT_OB2" Key="obj_ob2" Name="Hylian Man in Purple Shirt and Green Pants"/>
+  <Object Index="58" ID="OBJECT_OB3" Key="obj_ob3" Name="Carpenter Boss's Wife [Early]"/>
+  <Object Index="59" ID="OBJECT_OB4" Key="obj_ob4" Name="Hylian Woman in Blue Shirt and White Dress"/>
+  <Object Index="60" ID="OBJECT_HORSE_ZELDA" Key="obj_horse_zelda" Name="Zelda's Horse"/>
+  <Object Index="61" ID="OBJECT_OPENING_DEMO1" Key="obj_opening_demo1" Name="Opening Cutscene Animations"/>
+  <Object Index="62" ID="OBJECT_WARP1" Key="obj_warp1" Name="Warp Circle and Rupee Prism"/>
+  <Object Index="63" ID="OBJECT_B_HEART" Key="obj_b_heart" Name="Heart Container [Early]"/>
+  <Object Index="64" ID="OBJECT_DEKUNUTS" Key="obj_dekunuts" Name="Mad Scrub"/>
+  <Object Index="65" ID="OBJECT_OE3" Key="obj_oe3" Name="Saria [Early]"/>
+  <Object Index="66" ID="OBJECT_OE4" Key="obj_oe4" Name="Red-Haired Kokiri Boy I [Early]"/>
+  <Object Index="67" ID="OBJECT_MENKURI_OBJECTS" Key="obj_menkuri_objects" Name="Gerudo Training Ground Objects"/>
+  <Object Index="68" ID="OBJECT_OE5" Key="obj_oe5" Name="Fado [Early]"/>
+  <Object Index="69" ID="OBJECT_OE6" Key="obj_oe6" Name="Kokiri Girl in Brown Band's Head"/>
+  <Object Index="70" ID="OBJECT_OE7" Key="obj_oe7" Name="Kokiri Boy in Green Cap's Head"/>
+  <Object Index="71" ID="OBJECT_OE8" Key="obj_oe8" Name="Kokiri Girl in Green Band's Head"/>
+  <Object Index="72" ID="OBJECT_OE9" Key="obj_oe9" Name="Kokiri Boy in Mint Cap's Head"/>
+  <Object Index="73" ID="OBJECT_OE10" Key="obj_oe10" Name="Kokiri Shop Proprietor's Head [Early]"/>
+  <Object Index="74" ID="OBJECT_OE11" Key="obj_oe11" Name="Kokiri Girl in Green Cap's Head"/>
+  <Object Index="75" ID="OBJECT_OE12" Key="obj_oe12" Name="Fado's Head [Early]"/>
+  <Object Index="76" ID="OBJECT_VALI" Key="obj_vali" Name="Bari"/>
+  <Object Index="77" ID="OBJECT_OA10" Key="obj_oa10" Name="Soldier [Early]"/>
+  <Object Index="78" ID="OBJECT_OA11" Key="obj_oa11" Name="Soldier (Courtyard) [Early]"/>
+  <Object Index="79" ID="OBJECT_MIZU_OBJECTS" Key="obj_mizu_objects" Name="Water Temple Objects"/>
+  <Object Index="80" ID="OBJECT_FHG" Key="obj_fhg" Name="Phantom Ganon's Horse and Objects"/>
+  <Object Index="81" ID="OBJECT_OSSAN" Key="obj_ossan" Name="Shooting Gallery and Bazaar Proprietors"/>
+  <Object Index="82" ID="OBJECT_MORI_HINERI1" Key="obj_mori_hineri1" Name="Forest Temple Room 13 (Twisted)"/>
+  <Object Index="83" ID="OBJECT_BB" Key="obj_bb" Name="Bubbles"/>
+  <Object Index="84" ID="OBJECT_TOKI_OBJECTS" Key="obj_toki_objects" Name="Temple of Time Objects"/>
+  <Object Index="85" ID="OBJECT_YUKABYUN" Key="obj_yukabyun" Name="Flying Floor Tile"/>
+  <Object Index="86" ID="OBJECT_ZL2" Key="obj_zl2" Name="Adult Zelda"/>
+  <Object Index="87" ID="OBJECT_MJIN" Key="obj_mjin" Name="Warp Pad Base"/>
+  <Object Index="88" ID="OBJECT_MJIN_FLASH" Key="obj_mjin_flash" Name="Light Warp Pad"/>
+  <Object Index="89" ID="OBJECT_MJIN_DARK" Key="obj_mjin_dark" Name="Shadow Warp Pad"/>
+  <Object Index="90" ID="OBJECT_MJIN_FLAME" Key="obj_mjin_flame" Name="Fire Warp Pad"/>
+  <Object Index="91" ID="OBJECT_MJIN_ICE" Key="obj_mjin_ice" Name="Water Warp Pad"/>
+  <Object Index="92" ID="OBJECT_MJIN_SOUL" Key="obj_mjin_soul" Name="Spirit Warp Pad"/>
+  <Object Index="93" ID="OBJECT_MJIN_WIND" Key="obj_mjin_wind" Name="Forest Warp Pad"/>
+  <Object Index="94" ID="OBJECT_MJIN_OKA" Key="obj_mjin_oka" Name="Ocarina Pedestal"/>
+  <Object Index="95" ID="OBJECT_HAKA_OBJECTS" Key="obj_haka_objects" Name="Shadow Temple Objects"/>
+  <Object Index="96" ID="OBJECT_SPOT06_OBJECTS" Key="obj_spot06_objects" Name="Lake Hylia Objects"/>
+  <Object Index="97" ID="OBJECT_ICE_OBJECTS" Key="obj_ice_objects" Name="Ice Cavern Objects"/>
+  <Object Index="98" ID="OBJECT_RELAY_OBJECTS" Key="obj_relay_objects" Name="Dampé's Relay Race Objects"/>
+  <Object Index="99" ID="OBJECT_PO_FIELD" Key="obj_po_field" Name="Big Poe and Poe Guide"/>
+  <Object Index="100" ID="OBJECT_PO_COMPOSER" Key="obj_po_composer" Name="Sharp and Flat"/>
+  <Object Index="101" ID="OBJECT_MORI_HINERI1A" Key="obj_mori_hineri1a" Name="Forest Temple Room 13 (Straight)"/>
+  <Object Index="102" ID="OBJECT_MORI_HINERI2" Key="obj_mori_hineri2" Name="Forest Temple Room 14 (Straight)"/>
+  <Object Index="103" ID="OBJECT_MORI_HINERI2A" Key="obj_mori_hineri2a" Name="Forest Temple Room 14 (Twisted)"/>
+  <Object Index="104" ID="OBJECT_MORI_OBJECTS" Key="obj_mori_objects" Name="Forest Temple Objects"/>
+  <Object Index="105" ID="OBJECT_MORI_TEX" Key="obj_mori_tex" Name="Forest Temple Textures"/>
+  <Object Index="106" ID="OBJECT_SPOT08_OBJ" Key="obj_spot08_obj" Name="Zora's Fountain Objects"/>
+  <Object Index="107" ID="OBJECT_WARP2" Key="obj_warp2" Name="[Blank]"/>
+  <Object Index="108" ID="OBJECT_HATA" Key="obj_hata" Name="Flagpole"/>
+  <Object Index="109" ID="OBJECT_BIRD" Key="obj_bird" Name="Brown Bird"/>
+  <Object Index="110" ID="OBJECT_WOOD02" Key="obj_wood02" Name="Bushes and Trees"/>
+  <Object Index="111" ID="OBJECT_LIGHTBOX" Key="obj_lightbox" Name="Rectangular Stone Blocks (Light Grey)"/>
+  <Object Index="112" ID="OBJECT_PU_BOX" Key="obj_pu_box" Name="Rectangular Stone Blocks (Dark Grey)"/>
+  <Object Index="113" ID="OBJECT_TRAP" Key="obj_trap" Name="Blade Trap"/>
+  <Object Index="114" ID="OBJECT_VASE" Key="obj_vase" Name="Orange Pot"/>
+  <Object Index="115" ID="OBJECT_IM" Key="obj_im" Name="Impa"/>
+  <Object Index="116" ID="OBJECT_TA" Key="obj_ta" Name="Talon"/>
+  <Object Index="117" ID="OBJECT_TK" Key="obj_tk" Name="Dampé and Ghost"/>
+  <Object Index="118" ID="OBJECT_XC" Key="obj_xc" Name="Sheik"/>
+  <Object Index="119" ID="OBJECT_VM" Key="obj_vm" Name="Beamos"/>
+  <Object Index="120" ID="OBJECT_BV" Key="obj_bv" Name="Barinade"/>
+  <Object Index="121" ID="OBJECT_HAKACH_OBJECTS" Key="obj_hakach_objects" Name="Bottom of the Well Objects"/>
+  <Object Index="122" ID="OBJECT_EFC_CRYSTAL_LIGHT" Key="obj_efc_crystal_light" Name="[?]"/>
+  <Object Index="123" ID="OBJECT_EFC_FIRE_BALL" Key="obj_efc_fire_ball" Name="Goddesses' Flame of Creation"/>
+  <Object Index="124" ID="OBJECT_EFC_FLASH" Key="obj_efc_flash" Name="[Blank]"/>
+  <Object Index="125" ID="OBJECT_EFC_LGT_SHOWER" Key="obj_efc_lgt_shower" Name="Goddess Light Dome"/>
+  <Object Index="126" ID="OBJECT_EFC_STAR_FIELD" Key="obj_efc_star_field" Name="Light Beam and Rubble"/>
+  <Object Index="127" ID="OBJECT_GOD_LGT" Key="obj_god_lgt" Name="Golden Goddesses"/>
+  <Object Index="128" ID="OBJECT_LIGHT_RING" Key="obj_light_ring" Name="Jagged-Edged Light Ring"/>
+  <Object Index="129" ID="OBJECT_TRIFORCE_SPOT" Key="obj_triforce_spot" Name="Triforce and Beam of Light"/>
+  <Object Index="130" ID="OBJECT_BDAN_OBJECTS" Key="obj_bdan_objects" Name="Inside Jabu-Jabu's Belly Objects"/>
+  <Object Index="131" ID="OBJECT_SD" Key="obj_sd" Name="Soldiers"/>
+  <Object Index="132" ID="OBJECT_RD" Key="obj_rd" Name="Redead and Gibdo"/>
+  <Object Index="133" ID="OBJECT_PO_SISTERS" Key="obj_po_sisters" Name="Poe Sisters and Objects"/>
+  <Object Index="134" ID="OBJECT_HEAVY_OBJECT" Key="obj_heavy_object" Name="Golden Gauntlets Boulder"/>
+  <Object Index="135" ID="OBJECT_GNDD" Key="obj_gndd" Name="Ganondorf (Cutscenes)"/>
+  <Object Index="136" ID="OBJECT_FD" Key="obj_fd" Name="Volvagia (Flying)"/>
+  <Object Index="137" ID="OBJECT_DU" Key="obj_du" Name="Darunia"/>
+  <Object Index="138" ID="OBJECT_FW" Key="obj_fw" Name="Flare Dancer"/>
+  <Object Index="139" ID="OBJECT_MEDAL" Key="obj_medal" Name="Medallions [Early]"/>
+  <Object Index="140" ID="OBJECT_HORSE_LINK_CHILD" Key="obj_horse_link_child" Name="Child Epona"/>
+  <Object Index="141" ID="OBJECT_SPOT02_OBJECTS" Key="obj_spot02_objects" Name="Graveyard Objects"/>
+  <Object Index="142" ID="OBJECT_HAKA" Key="obj_haka" Name="Gravestone"/>
+  <Object Index="143" ID="OBJECT_RU1" Key="obj_ru1" Name="Child Ruto"/>
+  <Object Index="144" ID="OBJECT_SYOKUDAI" Key="obj_syokudai" Name="Torches"/>
+  <Object Index="145" ID="OBJECT_FD2" Key="obj_fd2" Name="Volvagia (Whack-a-Mole)"/>
+  <Object Index="146" ID="OBJECT_DH" Key="obj_dh" Name="Dead Hand and Hands"/>
+  <Object Index="147" ID="OBJECT_RL" Key="obj_rl" Name="Rauru"/>
+  <Object Index="148" ID="OBJECT_EFC_TW" Key="obj_efc_tw" Name="Time Block Disappearance Effect"/>
+  <Object Index="149" ID="OBJECT_DEMO_TRE_LGT" Key="obj_demo_tre_lgt" Name="[Blank]"/>
+  <Object Index="150" ID="OBJECT_GI_KEY" Key="obj_gi_key" Name="Item Model - Small Key"/>
+  <Object Index="151" ID="OBJECT_MIR_RAY" Key="obj_mir_ray" Name="Mirror Shield's Light Reflection"/>
+  <Object Index="152" ID="OBJECT_BROB" Key="obj_brob" Name="Jelly Platform"/>
+  <Object Index="153" ID="OBJECT_GI_JEWEL" Key="obj_gi_jewel" Name="Item Model - Spiritual Stones"/>
+  <Object Index="154" ID="OBJECT_SPOT09_OBJ" Key="obj_spot09_obj" Name="Gerudo Valley Objects"/>
+  <Object Index="155" ID="OBJECT_SPOT18_OBJ" Key="obj_spot18_obj" Name="Goron City Objects"/>
+  <Object Index="156" ID="OBJECT_BDOOR" Key="obj_bdoor" Name="Boss Doors"/>
+  <Object Index="157" ID="OBJECT_SPOT17_OBJ" Key="obj_spot17_obj" Name="Death Mountain Crater Objects"/>
+  <Object Index="158" ID="OBJECT_SHOP_DUNGEN" Key="obj_shop_dungen" Name="Shop Shelves"/>
+  <Object Index="159" ID="OBJECT_NB" Key="obj_nb" Name="Nabooru"/>
+  <Object Index="160" ID="OBJECT_MO" Key="obj_mo" Name="Morpha"/>
+  <Object Index="161" ID="OBJECT_SB" Key="obj_sb" Name="Shellblade"/>
+  <Object Index="162" ID="OBJECT_GI_MELODY" Key="obj_gi_melody" Name="Item Model - Music Notes"/>
+  <Object Index="163" ID="OBJECT_GI_HEART" Key="obj_gi_heart" Name="Item Model - Recovery Heart"/>
+  <Object Index="164" ID="OBJECT_GI_COMPASS" Key="obj_gi_compass" Name="Item Model - Compass"/>
+  <Object Index="165" ID="OBJECT_GI_BOSSKEY" Key="obj_gi_bosskey" Name="Item Model - Big Key"/>
+  <Object Index="166" ID="OBJECT_GI_MEDAL" Key="obj_gi_medal" Name="Item Model - Medallions"/>
+  <Object Index="167" ID="OBJECT_GI_NUTS" Key="obj_gi_nuts" Name="Item Model - Deku Nut"/>
+  <Object Index="168" ID="OBJECT_SA" Key="obj_sa" Name="Saria"/>
+  <Object Index="169" ID="OBJECT_GI_HEARTS" Key="obj_gi_hearts" Name="Item Model - Heart Container and Piece of Heart"/>
+  <Object Index="170" ID="OBJECT_GI_ARROWCASE" Key="obj_gi_arrowcase" Name="Item Model - Quivers"/>
+  <Object Index="171" ID="OBJECT_GI_BOMBPOUCH" Key="obj_gi_bombpouch" Name="Item Model - Bomb Bags"/>
+  <Object Index="172" ID="OBJECT_IN" Key="obj_in" Name="Ingo"/>
+  <Object Index="173" ID="OBJECT_TR" Key="obj_tr" Name="Kotake and Koume"/>
+  <Object Index="174" ID="OBJECT_SPOT16_OBJ" Key="obj_spot16_obj" Name="Death Mountain Trail Objects"/>
+  <Object Index="175" ID="OBJECT_OE1S" Key="obj_oe1s" Name="Mido II [Early]"/>
+  <Object Index="176" ID="OBJECT_OE4S" Key="obj_oe4s" Name="Red-Haired Kokiri Boy II [Early]"/>
+  <Object Index="177" ID="OBJECT_OS_ANIME" Key="obj_os_anime" Name="NPC Animations III"/>
+  <Object Index="178" ID="OBJECT_GI_BOTTLE" Key="obj_gi_bottle" Name="Item Model - Empty Bottle"/>
+  <Object Index="179" ID="OBJECT_GI_STICK" Key="obj_gi_stick" Name="Item Model - Deku Stick"/>
+  <Object Index="180" ID="OBJECT_GI_MAP" Key="obj_gi_map" Name="Item Model - Dungeon Map and Stone of Agony"/>
+  <Object Index="181" ID="OBJECT_OF1D_MAP" Key="obj_of1d_map" Name="Goron, Medigoron, Biggoron"/>
+  <Object Index="182" ID="OBJECT_RU2" Key="obj_ru2" Name="Adult Ruto"/>
+  <Object Index="183" ID="OBJECT_GI_SHIELD_1" Key="obj_gi_shield_1" Name="Item Model - Deku Shield"/>
+  <Object Index="184" ID="OBJECT_DEKUJR" Key="obj_dekujr" Name="Deku Tree Sprout"/>
+  <Object Index="185" ID="OBJECT_GI_MAGICPOT" Key="obj_gi_magicpot" Name="Item Model - Magic Jars"/>
+  <Object Index="186" ID="OBJECT_GI_BOMB_1" Key="obj_gi_bomb_1" Name="Item Model - Bomb"/>
+  <Object Index="187" ID="OBJECT_OF1S" Key="obj_of1s" Name="Goron [Early]"/>
+  <Object Index="188" ID="OBJECT_MA2" Key="obj_ma2" Name="Adult Malon"/>
+  <Object Index="189" ID="OBJECT_GI_PURSE" Key="obj_gi_purse" Name="Item Model - Wallets"/>
+  <Object Index="190" ID="OBJECT_HNI" Key="obj_hni" Name="Ingo's Horse and Archery Range Horse"/>
+  <Object Index="191" ID="OBJECT_TW" Key="obj_tw" Name="Twinrova"/>
+  <Object Index="192" ID="OBJECT_RR" Key="obj_rr" Name="Like Like"/>
+  <Object Index="193" ID="OBJECT_BXA" Key="obj_bxa" Name="Parasitic Tentacle and Tentacle Obstruction"/>
+  <Object Index="194" ID="OBJECT_ANUBICE" Key="obj_anubice" Name="Anubis and Fire Trap"/>
+  <Object Index="195" ID="OBJECT_GI_GERUDO" Key="obj_gi_gerudo" Name="Item Model - Gerudo Card"/>
+  <Object Index="196" ID="OBJECT_GI_ARROW" Key="obj_gi_arrow" Name="Item Model - Arrows"/>
+  <Object Index="197" ID="OBJECT_GI_BOMB_2" Key="obj_gi_bomb_2" Name="Item Model - Bombchu"/>
+  <Object Index="198" ID="OBJECT_GI_EGG" Key="obj_gi_egg" Name="Item Model - Pocket and Weird Eggs"/>
+  <Object Index="199" ID="OBJECT_GI_SCALE" Key="obj_gi_scale" Name="Item Model - Silver and Golden Scales"/>
+  <Object Index="200" ID="OBJECT_GI_SHIELD_2" Key="obj_gi_shield_2" Name="Item Model - Hylian Shield"/>
+  <Object Index="201" ID="OBJECT_GI_HOOKSHOT" Key="obj_gi_hookshot" Name="Item Model - Hookshot and Longshot"/>
+  <Object Index="202" ID="OBJECT_GI_OCARINA" Key="obj_gi_ocarina" Name="Item Model - Ocarina of Time"/>
+  <Object Index="203" ID="OBJECT_GI_MILK" Key="obj_gi_milk" Name="Item Model - Lon Lon Milk"/>
+  <Object Index="204" ID="OBJECT_MA1" Key="obj_ma1" Name="Child Malon"/>
+  <Object Index="205" ID="OBJECT_GANON" Key="obj_ganon" Name="Ganondorf (Boss)"/>
+  <Object Index="206" ID="OBJECT_SST" Key="obj_sst" Name="Bongo Bongo"/>
+  <Object Index="207" ID="OBJECT_NY_UNUSED" Key="obj_ny_unused" Name="Spike Trap [Duplicate]"/>
+  <Object Index="208" ID="OBJECT_NY" Key="obj_ny" Name="Spike Trap"/>
+  <Object Index="209" ID="OBJECT_FR" Key="obj_fr" Name="Frog"/>
+  <Object Index="210" ID="OBJECT_GI_PACHINKO" Key="obj_gi_pachinko" Name="Item Model - Fairy Slingshot"/>
+  <Object Index="211" ID="OBJECT_GI_BOOMERANG" Key="obj_gi_boomerang" Name="Item Model - Boomerang"/>
+  <Object Index="212" ID="OBJECT_GI_BOW" Key="obj_gi_bow" Name="Item Model - Fairy Bow"/>
+  <Object Index="213" ID="OBJECT_GI_GLASSES" Key="obj_gi_glasses" Name="Item Model - Lens of Truth"/>
+  <Object Index="214" ID="OBJECT_GI_LIQUID" Key="obj_gi_liquid" Name="Item Model - Potions"/>
+  <Object Index="215" ID="OBJECT_ANI" Key="obj_ani" Name="Kakariko Rooftop Man"/>
+  <Object Index="216" ID="OBJECT_DEMO_6K" Key="obj_demo_6k" Name="Chamber of the Sages Cutscene Objects"/>
+  <Object Index="217" ID="OBJECT_GI_SHIELD_3" Key="obj_gi_shield_3" Name="Item Model - Mirror Shield"/>
+  <Object Index="218" ID="OBJECT_GI_LETTER" Key="obj_gi_letter" Name="Item Model - Zelda's Letter"/>
+  <Object Index="219" ID="OBJECT_SPOT15_OBJ" Key="obj_spot15_obj" Name="Hyrule Castle Objects"/>
+  <Object Index="220" ID="OBJECT_JYA_OBJ" Key="obj_jya_obj" Name="Spirit Temple Objects"/>
+  <Object Index="221" ID="OBJECT_GI_CLOTHES" Key="obj_gi_clothes" Name="Item Model - Tunics"/>
+  <Object Index="222" ID="OBJECT_GI_BEAN" Key="obj_gi_bean" Name="Item Model - Magic Bean"/>
+  <Object Index="223" ID="OBJECT_GI_FISH" Key="obj_gi_fish" Name="Item Model - Fish"/>
+  <Object Index="224" ID="OBJECT_GI_SAW" Key="obj_gi_saw" Name="Item Model - Poacher's Saw"/>
+  <Object Index="225" ID="OBJECT_GI_HAMMER" Key="obj_gi_hammer" Name="Item Model - Megaton Hammer"/>
+  <Object Index="226" ID="OBJECT_GI_GRASS" Key="obj_gi_grass" Name="Item Model - Reed Whistle"/>
+  <Object Index="227" ID="OBJECT_GI_LONGSWORD" Key="obj_gi_longsword" Name="Item Model - Giant's Knife and Biggoron's Sword"/>
+  <Object Index="228" ID="OBJECT_SPOT01_OBJECTS" Key="obj_spot01_objects" Name="Kakariko Village Objects (Shared)"/>
+  <Object Index="229" ID="OBJECT_MD_UNUSED" Key="obj_md_unused" Name="Mido [Duplicate]"/>
+  <Object Index="230" ID="OBJECT_MD" Key="obj_md" Name="Mido"/>
+  <Object Index="231" ID="OBJECT_KM1" Key="obj_km1" Name="Red-Haired Kokiri Boy"/>
+  <Object Index="232" ID="OBJECT_KW1" Key="obj_kw1" Name="Red-Haired Kokiri Girl"/>
+  <Object Index="233" ID="OBJECT_ZO" Key="obj_zo" Name="Zora"/>
+  <Object Index="234" ID="OBJECT_KZ" Key="obj_kz" Name="King Zora"/>
+  <Object Index="235" ID="OBJECT_UMAJUMP" Key="obj_umajump" Name="Horse-Jumping Fence"/>
+  <Object Index="236" ID="OBJECT_MASTERKOKIRI" Key="obj_masterkokiri" Name="Kokiri Shop Proprietor Animations"/>
+  <Object Index="237" ID="OBJECT_MASTERKOKIRIHEAD" Key="obj_masterkokirihead" Name="Kokiri Shop Proprietor's Head"/>
+  <Object Index="238" ID="OBJECT_MASTERGOLON" Key="obj_mastergolon" Name="Goron Shop Proprietor Animations"/>
+  <Object Index="239" ID="OBJECT_MASTERZOORA" Key="obj_masterzoora" Name="Zora Shop Proprietor Animations"/>
+  <Object Index="240" ID="OBJECT_AOB" Key="obj_aob" Name="Dog Lady"/>
+  <Object Index="241" ID="OBJECT_IK" Key="obj_ik" Name="Iron Knuckle"/>
+  <Object Index="242" ID="OBJECT_AHG" Key="obj_ahg" Name="Hylian Men I"/>
+  <Object Index="243" ID="OBJECT_CNE" Key="obj_cne" Name="Young Hylian Women"/>
+  <Object Index="244" ID="OBJECT_GI_NIWATORI" Key="obj_gi_niwatori" Name="Item Model - Cuccos"/>
+  <Object Index="245" ID="OBJECT_SKJ" Key="obj_skj" Name="Skull Kid"/>
+  <Object Index="246" ID="OBJECT_GI_BOTTLE_LETTER" Key="obj_gi_bottle_letter" Name="Item Model - Ruto's Letter"/>
+  <Object Index="247" ID="OBJECT_BJI" Key="obj_bji" Name="Old Hylian Men"/>
+  <Object Index="248" ID="OBJECT_BBA" Key="obj_bba" Name="Old Hylian Woman"/>
+  <Object Index="249" ID="OBJECT_GI_OCARINA_0" Key="obj_gi_ocarina_0" Name="Item Model - Fairy Ocarina"/>
+  <Object Index="250" ID="OBJECT_DS" Key="obj_ds" Name="Potion Shop Granny"/>
+  <Object Index="251" ID="OBJECT_ANE" Key="obj_ane" Name="Cucco Lady"/>
+  <Object Index="252" ID="OBJECT_BOJ" Key="obj_boj" Name="Hylian Men II"/>
+  <Object Index="253" ID="OBJECT_SPOT03_OBJECT" Key="obj_spot03_object" Name="Zora's River Objects"/>
+  <Object Index="254" ID="OBJECT_SPOT07_OBJECT" Key="obj_spot07_object" Name="Zora's Domain Objects"/>
+  <Object Index="255" ID="OBJECT_FZ" Key="obj_fz" Name="Freezard"/>
+  <Object Index="256" ID="OBJECT_BOB" Key="obj_bob" Name="Carpenter Boss's Wife"/>
+  <Object Index="257" ID="OBJECT_GE1" Key="obj_ge1" Name="Gerudo in White"/>
+  <Object Index="258" ID="OBJECT_YABUSAME_POINT" Key="obj_yabusame_point" Name="Minigame Points"/>
+  <Object Index="259" ID="OBJECT_GI_BOOTS_2" Key="obj_gi_boots_2" Name="Item Model - Iron Boots"/>
+  <Object Index="260" ID="OBJECT_GI_SEED" Key="obj_gi_seed" Name="Item Model - Deku Seeds"/>
+  <Object Index="261" ID="OBJECT_GND_MAGIC" Key="obj_gnd_magic" Name="Ganondorf's Magic Blast"/>
+  <Object Index="262" ID="OBJECT_D_ELEVATOR" Key="obj_d_elevator" Name="Stone Elevator Pillar"/>
+  <Object Index="263" ID="OBJECT_D_HSBLOCK" Key="obj_d_hsblock" Name="Hookshot Pillar and Wall Target"/>
+  <Object Index="264" ID="OBJECT_D_LIFT" Key="obj_d_lift" Name="Stone Moving Deku Tree Platform"/>
+  <Object Index="265" ID="OBJECT_MAMENOKI" Key="obj_mamenoki" Name="Magic Bean Objects"/>
+  <Object Index="266" ID="OBJECT_GOROIWA" Key="obj_goroiwa" Name="Rolling Boulder"/>
+  <Object Index="267" ID="OBJECT_TORYO" Key="obj_toryo" Name="Carpenter Boss"/>
+  <Object Index="268" ID="OBJECT_DAIKU" Key="obj_daiku" Name="Carpenters"/>
+  <Object Index="269" ID="OBJECT_NWC" Key="obj_nwc" Name="Cucco Chick"/>
+  <Object Index="270" ID="OBJECT_BLKOBJ" Key="obj_blkobj" Name="Dark Link's Illusion Room"/>
+  <Object Index="271" ID="OBJECT_GM" Key="obj_gm" Name="Medigoron Animations"/>
+  <Object Index="272" ID="OBJECT_MS" Key="obj_ms" Name="Magic Bean Seller"/>
+  <Object Index="273" ID="OBJECT_HS" Key="obj_hs" Name="Carpenter Boss's Son"/>
+  <Object Index="274" ID="OBJECT_INGATE" Key="obj_ingate" Name="Ingo's Ranch Gate"/>
+  <Object Index="275" ID="OBJECT_LIGHTSWITCH" Key="obj_lightswitch" Name="Sun Switch"/>
+  <Object Index="276" ID="OBJECT_KUSA" Key="obj_kusa" Name="Grass"/>
+  <Object Index="277" ID="OBJECT_TSUBO" Key="obj_tsubo" Name="Pot"/>
+  <Object Index="278" ID="OBJECT_GI_GLOVES" Key="obj_gi_gloves" Name="Item Model - Silver and Golden Gauntlets"/>
+  <Object Index="279" ID="OBJECT_GI_COIN" Key="obj_gi_coin" Name="Item Model - N Coins"/>
+  <Object Index="280" ID="OBJECT_KANBAN" Key="obj_kanban" Name="Square Signpost"/>
+  <Object Index="281" ID="OBJECT_GJYO_OBJECTS" Key="obj_gjyo_objects" Name="Ganon's Castle Exterior Objects"/>
+  <Object Index="282" ID="OBJECT_OWL" Key="obj_owl" Name="Kaepora Gaebora"/>
+  <Object Index="283" ID="OBJECT_MK" Key="obj_mk" Name="Lake Scientist"/>
+  <Object Index="284" ID="OBJECT_FU" Key="obj_fu" Name="Windmill Man"/>
+  <Object Index="285" ID="OBJECT_GI_KI_TAN_MASK" Key="obj_gi_ki_tan_mask" Name="Item Model - Keaton Mask"/>
+  <Object Index="286" ID="OBJECT_GI_REDEAD_MASK" Key="obj_gi_redead_mask" Name="Item Model - Redead Mask"/>
+  <Object Index="287" ID="OBJECT_GI_SKJ_MASK" Key="obj_gi_skj_mask" Name="Item Model - Spooky Mask"/>
+  <Object Index="288" ID="OBJECT_GI_RABIT_MASK" Key="obj_gi_rabit_mask" Name="Item Model - Bunny Hood"/>
+  <Object Index="289" ID="OBJECT_GI_TRUTH_MASK" Key="obj_gi_truth_mask" Name="Item Model - Mask of Truth"/>
+  <Object Index="290" ID="OBJECT_GANON_OBJECTS" Key="obj_ganon_objects" Name="Ganon's Tower Objects"/>
+  <Object Index="291" ID="OBJECT_SIOFUKI" Key="obj_siofuki" Name="Water Spout (Small)"/>
+  <Object Index="292" ID="OBJECT_STREAM" Key="obj_stream" Name="Water Spout (Large)"/>
+  <Object Index="293" ID="OBJECT_MM" Key="obj_mm" Name="Running Man"/>
+  <Object Index="294" ID="OBJECT_FA" Key="obj_fa" Name="Fado"/>
+  <Object Index="295" ID="OBJECT_OS" Key="obj_os" Name="Happy Mask Salesman"/>
+  <Object Index="296" ID="OBJECT_GI_EYE_LOTION" Key="obj_gi_eye_lotion" Name="Item Model - Eyedrops"/>
+  <Object Index="297" ID="OBJECT_GI_POWDER" Key="obj_gi_powder" Name="Item Model - Odd Potion"/>
+  <Object Index="298" ID="OBJECT_GI_MUSHROOM" Key="obj_gi_mushroom" Name="Item Model - Odd Mushroom"/>
+  <Object Index="299" ID="OBJECT_GI_TICKETSTONE" Key="obj_gi_ticketstone" Name="Item Model - Claim Check"/>
+  <Object Index="300" ID="OBJECT_GI_BROKENSWORD" Key="obj_gi_brokensword" Name="Item Model - Broken Goron's Sword and Giant's Knife"/>
+  <Object Index="301" ID="OBJECT_JS" Key="obj_js" Name="Carpet Merchant"/>
+  <Object Index="302" ID="OBJECT_CS" Key="obj_cs" Name="Graveyard Boy"/>
+  <Object Index="303" ID="OBJECT_GI_PRESCRIPTION" Key="obj_gi_prescription" Name="Item Model - Prescription"/>
+  <Object Index="304" ID="OBJECT_GI_BRACELET" Key="obj_gi_bracelet" Name="Item Model - Goron Bracelet"/>
+  <Object Index="305" ID="OBJECT_GI_SOLDOUT" Key="obj_gi_soldout" Name="Item Model - SOLD OUT"/>
+  <Object Index="306" ID="OBJECT_GI_FROG" Key="obj_gi_frog" Name="Item Model - Eyeball Frog"/>
+  <Object Index="307" ID="OBJECT_MAG" Key="obj_mag" Name="Title Logo"/>
+  <Object Index="308" ID="OBJECT_DOOR_GERUDO" Key="obj_door_gerudo" Name="Thieves' Hideout Cell Door"/>
+  <Object Index="309" ID="OBJECT_GT" Key="obj_gt" Name="Ganon's Tower Exterior (Collapsing) Objects"/>
+  <Object Index="310" ID="OBJECT_EFC_ERUPC" Key="obj_efc_erupc" Name="Death Mountain Eruption Effects"/>
+  <Object Index="311" ID="OBJECT_ZL2_ANIME1" Key="obj_zl2_anime1" Name="Adult Zelda Animations I"/>
+  <Object Index="312" ID="OBJECT_ZL2_ANIME2" Key="obj_zl2_anime2" Name="Adult Zelda Animations II"/>
+  <Object Index="313" ID="OBJECT_GI_GOLONMASK" Key="obj_gi_golonmask" Name="Item Model - Goron Mask"/>
+  <Object Index="314" ID="OBJECT_GI_ZORAMASK" Key="obj_gi_zoramask" Name="Item Model - Zora Mask"/>
+  <Object Index="315" ID="OBJECT_GI_GERUDOMASK" Key="obj_gi_gerudomask" Name="Item Model - Gerudo Mask"/>
+  <Object Index="316" ID="OBJECT_GANON2" Key="obj_ganon2" Name="Ganon"/>
+  <Object Index="317" ID="OBJECT_KA" Key="obj_ka" Name="Pierre and Bonooru"/>
+  <Object Index="318" ID="OBJECT_TS" Key="obj_ts" Name="Treasure Chest Shop Proprietor"/>
+  <Object Index="319" ID="OBJECT_ZG" Key="obj_zg" Name="Ganon's Tower Door Bars"/>
+  <Object Index="320" ID="OBJECT_GI_HOVERBOOTS" Key="obj_gi_hoverboots" Name="Item Model - Hover Boots"/>
+  <Object Index="321" ID="OBJECT_GI_M_ARROW" Key="obj_gi_m_arrow" Name="Item Model - Magic Arrows"/>
+  <Object Index="322" ID="OBJECT_DS2" Key="obj_ds2" Name="Potion Shop Proprietor"/>
+  <Object Index="323" ID="OBJECT_EC" Key="obj_ec" Name="Ending Cutscene Animations"/>
+  <Object Index="324" ID="OBJECT_FISH" Key="obj_fish" Name="Fishing Pond Objects"/>
+  <Object Index="325" ID="OBJECT_GI_SUTARU" Key="obj_gi_sutaru" Name="Item Model - Gold Skulltula Token"/>
+  <Object Index="326" ID="OBJECT_GI_GODDESS" Key="obj_gi_goddess" Name="Item Model - Goddess Spells"/>
+  <Object Index="327" ID="OBJECT_SSH" Key="obj_ssh" Name="Skulltula House Residents"/>
+  <Object Index="328" ID="OBJECT_BIGOKUTA" Key="obj_bigokuta" Name="Big Octo"/>
+  <Object Index="329" ID="OBJECT_BG" Key="obj_bg" Name="Bombchu Bowling Employee"/>
+  <Object Index="330" ID="OBJECT_SPOT05_OBJECTS" Key="obj_spot05_objects" Name="Sacred Forest Meadow Objects"/>
+  <Object Index="331" ID="OBJECT_SPOT12_OBJ" Key="obj_spot12_obj" Name="Gerudo's Fortress Objects"/>
+  <Object Index="332" ID="OBJECT_BOMBIWA" Key="obj_bombiwa" Name="Bombable Boulder"/>
+  <Object Index="333" ID="OBJECT_HINTNUTS" Key="obj_hintnuts" Name="Hint-Giving Deku Scrub"/>
+  <Object Index="334" ID="OBJECT_RS" Key="obj_rs" Name="Bombchu Shop Proprietor"/>
+  <Object Index="335" ID="OBJECT_SPOT00_BREAK" Key="obj_spot00_break" Name="Hyrule Field Objects (Adult)"/>
+  <Object Index="336" ID="OBJECT_GLA" Key="obj_gla" Name="Gerudo in Purple"/>
+  <Object Index="337" ID="OBJECT_SHOPNUTS" Key="obj_shopnuts" Name="Business Scrub"/>
+  <Object Index="338" ID="OBJECT_GELDB" Key="obj_geldb" Name="Gerudo Fighter and Second-in-Command"/>
+  <Object Index="339" ID="OBJECT_GR" Key="obj_gr" Name="Cucco-Chasing Girl"/>
+  <Object Index="340" ID="OBJECT_DOG" Key="obj_dog" Name="Dog"/>
+  <Object Index="341" ID="OBJECT_JYA_IRON" Key="obj_jya_iron" Name="Destructable Iron Knuckle Objects"/>
+  <Object Index="342" ID="OBJECT_JYA_DOOR" Key="obj_jya_door" Name="Spirit Temple Door and Iron Bars"/>
+  <Object Index="343" ID="OBJECT_SPOT11_OBJ" Key="obj_spot11_obj" Name="Desert Colossus Objects"/>
+  <Object Index="344" ID="OBJECT_KIBAKO2" Key="obj_kibako2" Name="Large Wooden Crate"/>
+  <Object Index="345" ID="OBJECT_DNS" Key="obj_dns" Name="Forest Stage Judge"/>
+  <Object Index="346" ID="OBJECT_DNK" Key="obj_dnk" Name="Forest Stage Patron"/>
+  <Object Index="347" ID="OBJECT_GI_FIRE" Key="obj_gi_fire" Name="Item Model - Blue Fire"/>
+  <Object Index="348" ID="OBJECT_GI_INSECT" Key="obj_gi_insect" Name="Item Model - Bug"/>
+  <Object Index="349" ID="OBJECT_GI_BUTTERFLY" Key="obj_gi_butterfly" Name="Item Model - Butterfly"/>
+  <Object Index="350" ID="OBJECT_GI_GHOST" Key="obj_gi_ghost" Name="Item Model - Poe Soul"/>
+  <Object Index="351" ID="OBJECT_GI_SOUL" Key="obj_gi_soul" Name="Item Model - Fairy's Spirit"/>
+  <Object Index="352" ID="OBJECT_BOWL" Key="obj_bowl" Name="Bombchu Bowling Alley Barriers"/>
+  <Object Index="353" ID="OBJECT_DEMO_KEKKAI" Key="obj_demo_kekkai" Name="Inside Ganon's Castle Objects"/>
+  <Object Index="354" ID="OBJECT_EFC_DOUGHNUT" Key="obj_efc_doughnut" Name="Death Mountain Cloud Rings"/>
+  <Object Index="355" ID="OBJECT_GI_DEKUPOUCH" Key="obj_gi_dekupouch" Name="Item Model - Bullet Bags"/>
+  <Object Index="356" ID="OBJECT_GANON_ANIME1" Key="obj_ganon_anime1" Name="Ganondorf Animations I"/>
+  <Object Index="357" ID="OBJECT_GANON_ANIME2" Key="obj_ganon_anime2" Name="Ganondorf Animations II"/>
+  <Object Index="358" ID="OBJECT_GANON_ANIME3" Key="obj_ganon_anime3" Name="Ganondorf Animations III"/>
+  <Object Index="359" ID="OBJECT_GI_RUPY" Key="obj_gi_rupy" Name="Item Model - Rupees"/>
+  <Object Index="360" ID="OBJECT_SPOT01_MATOYA" Key="obj_spot01_matoya" Name="Kakariko Village Objects (Adult)"/>
+  <Object Index="361" ID="OBJECT_SPOT01_MATOYAB" Key="obj_spot01_matoyab" Name="Kakariko Village Objects (Child)"/>
+  <Object Index="362" ID="OBJECT_MU" Key="obj_mu" Name="Honey and Darling, Haggling Townspeople"/>
+  <Object Index="363" ID="OBJECT_WF" Key="obj_wf" Name="Wolfos"/>
+  <Object Index="364" ID="OBJECT_SKB" Key="obj_skb" Name="Stalchild"/>
+  <Object Index="365" ID="OBJECT_GJ" Key="obj_gj" Name="Ganon's Lair Destructable Rubble"/>
+  <Object Index="366" ID="OBJECT_GEFF" Key="obj_geff" Name="Ganon's Lair Destructable Rubble Fragment"/>
+  <Object Index="367" ID="OBJECT_HAKA_DOOR" Key="obj_haka_door" Name="Shadow Temple Door and Shutter"/>
+  <Object Index="368" ID="OBJECT_GS" Key="obj_gs" Name="Gossip Stone"/>
+  <Object Index="369" ID="OBJECT_PS" Key="obj_ps" Name="Poe Collector"/>
+  <Object Index="370" ID="OBJECT_BWALL" Key="obj_bwall" Name="Dodongo's Cavern Bombable Wall"/>
+  <Object Index="371" ID="OBJECT_COW" Key="obj_cow" Name="Cow"/>
+  <Object Index="372" ID="OBJECT_COB" Key="obj_cob" Name="Fat Woman in Blue and Yellow Vest"/>
+  <Object Index="373" ID="OBJECT_GI_SWORD_1" Key="obj_gi_sword_1" Name="Item Model - Kokiri Sword"/>
+  <Object Index="374" ID="OBJECT_DOOR_KILLER" Key="obj_door_killer" Name="Door Mimic"/>
+  <Object Index="375" ID="OBJECT_OUKE_HAKA" Key="obj_ouke_haka" Name="Royal Family's Tomb Door"/>
+  <Object Index="376" ID="OBJECT_TIMEBLOCK" Key="obj_timeblock" Name="Time Block"/>
+  <Object Index="379" ID="OBJECT_ZL4" Key="obj_zl4" Name="Child Zelda"/>
+</Table>

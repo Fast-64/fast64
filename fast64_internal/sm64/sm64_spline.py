@@ -1,7 +1,7 @@
-from .sm64_constants import *
+import bpy
 from bpy.utils import register_class, unregister_class
-import bpy, bmesh
-from ..utility import *
+from ..utility import PluginError, CData, toAlnum, prop_split
+
 
 enumSplineTypes = [
     ("Trajectory", "Trajectory", "Exports to Trajectory[]. Used for movement"),

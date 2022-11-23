@@ -1,12 +1,39 @@
-from .sm64_constants import *
-from .sm64_objects import *
+import bpy, shutil, os, math, mathutils
 from bpy.utils import register_class, unregister_class
+from io import BytesIO
+from .sm64_constants import level_enums, level_pointers, enumLevelNames, insertableBinaryTypes, defaultExtendSegment4
+from .sm64_objects import SM64_Area, start_process_sm64_objects
 from .sm64_level_parser import parseLevelAtPointer
 from .sm64_rom_tweaks import ExtendBank0x04
-import bpy, shutil, os, math
-from io import BytesIO
-from ..utility import *
 from ..panels import SM64_Panel
+
+from ..utility import (
+    PluginError,
+    CData,
+    toAlnum,
+    raisePluginError,
+    encodeSegmentedAddr,
+    get64bitAlignedAddr,
+    prop_split,
+    getExportDir,
+    writeIfNotFound,
+    deleteIfFound,
+    duplicateHierarchy,
+    cleanupDuplicatedObjects,
+    writeInsertableFile,
+    applyRotation,
+    getPathAndLevel,
+    applyBasicTweaks,
+    tempName,
+    checkExpanded,
+    bytesToHex,
+    applyRotation,
+    customExportWarning,
+    decompFolderMessage,
+    makeWriteInfoBox,
+    writeBoxExportType,
+    enumExportHeaderType,
+)
 
 
 class CollisionVertex:
@@ -228,7 +255,7 @@ class SM64ObjectPanel(bpy.types.Panel):
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
 	bl_context = "object"
-	bl_options = {'HIDE_HEADER'} 
+	bl_options = {'HIDE_HEADER'}
 
 	@classmethod
 	def poll(cls, context):

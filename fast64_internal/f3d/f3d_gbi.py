@@ -1823,15 +1823,11 @@ class GfxFormatter:
         if scrollDataFields[0].animType == "None" and scrollDataFields[1].animType == "None":
             return ""
 
-        data = "\n".join(
-            (
-                "void scroll_" + name + "() {",
-                "\tint i = 0;",
-                f"\tint count = {count};",
-                f"\tint width = {fScrollData.dimensions[0]} * 0x20;",
-                f"\tint height = {fScrollData.dimensions[1]} * 0x20;",
-            )
-        )
+        data = [
+            "void scroll_" + name + "() {",
+            "\tint i = 0;",
+            f"\tint count = {count};",
+        ]
 
         variables = ""
         currentVars = ""
@@ -1843,6 +1839,7 @@ class GfxFormatter:
             field = "XYZ"[i]
             axis = ["width", "height"][i]
             if scrollDataFields[i].animType != "None":
+                data.append(f"\tint {axis} = {fScrollData.dimensions[i]} * 0x20;")
                 currentVars += "\tstatic int current" + field + " = 0;\n\tint delta" + field + ";\n"
                 checkOverflow += "\n".join(
                     (
@@ -1911,7 +1908,7 @@ class GfxFormatter:
 
         return "\n".join(
             (
-                data,
+                "\n".join(data),
                 variables,
                 currentVars + "\tVtx *vertices = " + segToVirtualFunc + "(" + name + ");",
                 "",
