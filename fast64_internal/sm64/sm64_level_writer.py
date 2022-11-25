@@ -448,19 +448,19 @@ def replaceSegmentLoad(levelscript, segmentName, command, changedSegment):
 def replaceScriptLoads(levelscript, obj):
     newFuncs = []
     for jumpLink in levelscript.levelFunctions:
-        target = jumpLink[1][0]  # format is [macro, list[args], commnent]
+        target = jumpLink[1][0]  # format is [macro, list[args], comment]
         if "script_func_global_" not in target:
             newFuncs.append(jumpLink)
             continue
-        scriptNum = int(re.findall("\d+", target)[-1])
+        scriptNum = int(re.findall(r"\d+", target)[-1])
         # this is common0
         if scriptNum == 1:
             newFuncs.append(jumpLink)
             continue
         if scriptNum < 13:
-            newNum = obj.sm64_segment_loads.group5
+            newNum = obj.fast64.sm64.sm64_segment_loads.group5
         else:
-            newNum = obj.sm64_segment_loads.group6
+            newNum = obj.fast64.sm64.sm64_segment_loads.group6
         if newNum == "Do Not Write":
             newFuncs.append(jumpLink)
             continue
@@ -848,16 +848,22 @@ def exportLevelC(
 
         replaceSegmentLoad(prevLevelScript, f"_{segment}_{compressionFmt}", f"LOAD_{compressionFmt.upper()}", 0x0A)
     # actor groups
-    if obj.sm64_segment_loads.group5_enum != "Do Not Write":
+    if obj.fast64.sm64.sm64_segment_loads.seg5_enum != "Do Not Write":
         replaceSegmentLoad(
-            prevLevelScript, f"_{obj.sm64_segment_loads.seg5}_{compressionFmt}", f"LOAD_{compressionFmt.upper()}", 0x05
+            prevLevelScript,
+            f"_{obj.fast64.sm64.sm64_segment_loads.seg5}_{compressionFmt}",
+            f"LOAD_{compressionFmt.upper()}",
+            0x05,
         )
-        replaceSegmentLoad(prevLevelScript, f"_{obj.sm64_segment_loads.seg5}_geo", "LOAD_RAW", 0x0C)
-    if obj.sm64_segment_loads.group6_enum != "Do Not Write":
+        replaceSegmentLoad(prevLevelScript, f"_{obj.fast64.sm64.sm64_segment_loads.seg5}_geo", "LOAD_RAW", 0x0C)
+    if obj.fast64.sm64.sm64_segment_loads.seg6_enum != "Do Not Write":
         replaceSegmentLoad(
-            prevLevelScript, f"_{obj.sm64_segment_loads.seg6}_{compressionFmt}", f"LOAD_{compressionFmt.upper()}", 0x06
+            prevLevelScript,
+            f"_{obj.fast64.sm64.sm64_segment_loads.seg6}_{compressionFmt}",
+            f"LOAD_{compressionFmt.upper()}",
+            0x06,
         )
-        replaceSegmentLoad(prevLevelScript, f"_{obj.sm64_segment_loads.seg6}_geo", "LOAD_RAW", 0x0D)
+        replaceSegmentLoad(prevLevelScript, f"_{obj.fast64.sm64.sm64_segment_loads.seg6}_geo", "LOAD_RAW", 0x0D)
     replaceScriptLoads(prevLevelScript, obj)
     levelscriptString = prevLevelScript.to_c(areaString)
 

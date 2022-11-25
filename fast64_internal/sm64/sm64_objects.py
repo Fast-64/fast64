@@ -24,7 +24,7 @@ from .sm64_constants import (
     enumSpecialsNames,
     enumBehaviourPresets,
     groupsSeg5,
-    groupsSeg6
+    groupsSeg6,
 )
 
 from .sm64_spline import (
@@ -1260,7 +1260,7 @@ class SM64ObjectPanel(bpy.types.Panel):
             box.prop(obj, "actSelectorIgnore")
             box.prop(obj, "setAsStartLevel")
             grid = box.grid_flow(columns=2)
-            obj.sm64_segment_loads.draw(grid)
+            obj.fast64.sm64.sm64_segment_loads.draw(grid)
             prop_split(box, obj, "acousticReach", "Acoustic Reach")
             obj.starGetCutscenes.draw(box)
 
@@ -1831,6 +1831,61 @@ class SM64_GameObjectProperties(bpy.types.PropertyGroup):
         return self.bparams
 
 
+class SM64_SegmentProperties(bpy.types.PropertyGroup):
+    seg5_load_custom: bpy.props.StringProperty(name="Segment 5 Seg")
+    seg5_group_custom: bpy.props.StringProperty(name="Segment 5 Group")
+    seg6_load_custom: bpy.props.StringProperty(name="Segment 6 Seg")
+    seg6_group_custom: bpy.props.StringProperty(name="Segment 6 Group")
+    seg5_enum: bpy.props.EnumProperty(name="Segment 5 Group", default="Do Not Write", items=groupsSeg5)
+    seg6_enum: bpy.props.EnumProperty(name="Segment 6 Group", default="Do Not Write", items=groupsSeg6)
+
+    def draw(self, layout):
+        col = layout.column()
+        prop_split(col, self, "seg5_enum", "Segment 5 Select")
+        if self.seg5_enum == "Custom":
+            prop_split(col, self, "seg5_load_custom", "Segment 5 Seg")
+            prop_split(col, self, "seg5_group_custom", "Segment 5 Group")
+        col = layout.column()
+        prop_split(col, self, "seg6_enum", "Segment 6 Select")
+        if self.seg6_enum == "Custom":
+            prop_split(col, self, "seg6_load_custom", "Segment 6 Seg")
+            prop_split(col, self, "seg6_group_custom", "Segment 6 Group")
+
+    def jump_link_from_enum(self, grp):
+        if grp == "Do Not Write":
+            return grp
+        num = int(grp.removeprefix("group")) + 1
+        return f"script_func_global_{num}"
+
+    @property
+    def seg5(self):
+        if self.seg5_enum == "Custom":
+            return self.seg5_load_custom
+        else:
+            return self.seg5_enum
+
+    @property
+    def seg6(self):
+        if self.seg6_enum == "Custom":
+            return self.seg6_load_custom
+        else:
+            return self.seg6_enum
+
+    @property
+    def group5(self):
+        if self.seg5_enum == "Custom":
+            return self.seg5_group_custom
+        else:
+            return self.jump_link_from_enum(self.seg5_enum)
+
+    @property
+    def group6(self):
+        if self.seg6_enum == "Custom":
+            return self.seg6_group_custom
+        else:
+            return self.jump_link_from_enum(self.seg6_enum)
+
+
 class SM64_ObjectProperties(bpy.types.PropertyGroup):
     version: bpy.props.IntProperty(name="SM64_ObjectProperties Version", default=0)
     cur_version = 3  # version after property migration
@@ -1839,6 +1894,8 @@ class SM64_ObjectProperties(bpy.types.PropertyGroup):
     level: bpy.props.PointerProperty(type=SM64_LevelProperties)
     area: bpy.props.PointerProperty(type=SM64_AreaProperties)
     game_object: bpy.props.PointerProperty(type=SM64_GameObjectProperties)
+    # write to level script out
+    sm64_segment_loads: bpy.props.PointerProperty(type=SM64_SegmentProperties)
 
     @staticmethod
     def upgrade_changed_props():
@@ -1848,59 +1905,6 @@ class SM64_ObjectProperties(bpy.types.PropertyGroup):
             if obj.fast64.sm64.version < 3:
                 SM64_GameObjectProperties.upgrade_object(obj)
             obj.fast64.sm64.version = SM64_ObjectProperties.cur_version
-
-
-class SM64_SegmentProperties(bpy.types.PropertyGroup):
-    group5_seg_str: bpy.props.StringProperty(name="Segment 5 Seg")
-    group5_str: bpy.props.StringProperty(name="Segment 5 Group")
-    group6_seg_str: bpy.props.StringProperty(name="Segment 6 Seg")
-    group6_str: bpy.props.StringProperty(name="Segment 6 Group")
-    group5_enum: bpy.props.EnumProperty(name="Segment 5 Group", default="Do Not Write", items=groupsSeg5)
-    group6_enum: bpy.props.EnumProperty(name="Segment 6 Group", default="Do Not Write", items=groupsSeg6)
-
-    def draw(self, layout):
-        col = layout.column()
-        prop_split(col, self, "group5_enum", "Segment 5 Select")
-        if self.group5_enum == "Custom":
-            prop_split(col, self, "group5_seg_str", "Segment 5 Seg")
-            prop_split(col, self, "group5_str", "Segment 5 Group")
-        col = layout.column()
-        prop_split(col, self, "group6_enum", "Segment 6 Select")
-        if self.group6_enum == "Custom":
-            prop_split(col, self, "group6_seg_str", "Segment 6 Seg")
-            prop_split(col, self, "group6_str", "Segment 6 Group")
-
-    def convert_group(self, grp):
-        num = int(re.findall("\d+", grp)[-1]) + 1
-        return f"script_func_global_{num}"
-
-    @property
-    def seg5(self):
-        if self.group5_enum == "Custom":
-            return self.group5_seg_str
-        else:
-            return self.group5_enum
-
-    @property
-    def seg6(self):
-        if self.group6_enum == "Custom":
-            return self.group6_seg_str
-        else:
-            return self.group6_enum
-
-    @property
-    def group5(self):
-        if self.group5_enum == "Custom":
-            return self.group5_str
-        else:
-            return self.convert_group(self.group5_enum)
-
-    @property
-    def group6(self):
-        if self.group6_enum == "Custom":
-            return self.group6_str
-        else:
-            return self.convert_group(self.group6_enum)
 
 
 sm64_obj_classes = (
@@ -1918,8 +1922,8 @@ sm64_obj_classes = (
     SM64_LevelProperties,
     SM64_AreaProperties,
     SM64_GameObjectProperties,
-    SM64_ObjectProperties,
     SM64_SegmentProperties,
+    SM64_ObjectProperties,
 )
 
 
@@ -1994,9 +1998,6 @@ def sm64_obj_register():
     bpy.types.Object.sm64_obj_use_act4 = bpy.props.BoolProperty(name="Act 4", default=True)
     bpy.types.Object.sm64_obj_use_act5 = bpy.props.BoolProperty(name="Act 5", default=True)
     bpy.types.Object.sm64_obj_use_act6 = bpy.props.BoolProperty(name="Act 6", default=True)
-
-    # write to level script out
-    bpy.types.Object.sm64_segment_loads = bpy.props.PointerProperty(type=SM64_SegmentProperties)
 
     bpy.types.Object.sm64_obj_set_bparam = bpy.props.BoolProperty(name="Set Behaviour Parameter", default=True)
 
