@@ -14,8 +14,10 @@ from ..utility import (
     hexOrDecInt,
 )
 
+
 def isPathObject(obj: bpy.types.Object) -> bool:
     return obj.data is not None and isinstance(obj.data, bpy.types.Curve) and obj.ootSplineProperty.splineType == "Path"
+
 
 ootSceneDungeons = [
     "bdan",
