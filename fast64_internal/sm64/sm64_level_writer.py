@@ -458,9 +458,9 @@ def replaceScriptLoads(levelscript, obj):
             newFuncs.append(jumpLink)
             continue
         if scriptNum < 13:
-            newNum = obj.fast64.sm64.sm64_segment_loads.group5
+            newNum = obj.fast64.sm64.segment_loads.group5
         else:
-            newNum = obj.fast64.sm64.sm64_segment_loads.group6
+            newNum = obj.fast64.sm64.segment_loads.group6
         if newNum == "Do Not Write":
             newFuncs.append(jumpLink)
             continue
@@ -848,22 +848,22 @@ def exportLevelC(
 
         replaceSegmentLoad(prevLevelScript, f"_{segment}_{compressionFmt}", f"LOAD_{compressionFmt.upper()}", 0x0A)
     # actor groups
-    if obj.fast64.sm64.sm64_segment_loads.seg5_enum != "Do Not Write":
+    if obj.fast64.sm64.segment_loads.seg5_enum != "Do Not Write":
         replaceSegmentLoad(
             prevLevelScript,
-            f"_{obj.fast64.sm64.sm64_segment_loads.seg5}_{compressionFmt}",
+            f"_{obj.fast64.sm64.segment_loads.seg5}_{compressionFmt}",
             f"LOAD_{compressionFmt.upper()}",
             0x05,
         )
-        replaceSegmentLoad(prevLevelScript, f"_{obj.fast64.sm64.sm64_segment_loads.seg5}_geo", "LOAD_RAW", 0x0C)
-    if obj.fast64.sm64.sm64_segment_loads.seg6_enum != "Do Not Write":
+        replaceSegmentLoad(prevLevelScript, f"_{obj.fast64.sm64.segment_loads.seg5}_geo", "LOAD_RAW", 0x0C)
+    if obj.fast64.sm64.segment_loads.seg6_enum != "Do Not Write":
         replaceSegmentLoad(
             prevLevelScript,
-            f"_{obj.fast64.sm64.sm64_segment_loads.seg6}_{compressionFmt}",
+            f"_{obj.fast64.sm64.segment_loads.seg6}_{compressionFmt}",
             f"LOAD_{compressionFmt.upper()}",
             0x06,
         )
-        replaceSegmentLoad(prevLevelScript, f"_{obj.fast64.sm64.sm64_segment_loads.seg6}_geo", "LOAD_RAW", 0x0D)
+        replaceSegmentLoad(prevLevelScript, f"_{obj.fast64.sm64.segment_loads.seg6}_geo", "LOAD_RAW", 0x0D)
     replaceScriptLoads(prevLevelScript, obj)
     levelscriptString = prevLevelScript.to_c(areaString)
 

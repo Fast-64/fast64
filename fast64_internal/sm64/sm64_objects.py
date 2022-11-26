@@ -1260,7 +1260,7 @@ class SM64ObjectPanel(bpy.types.Panel):
             box.prop(obj, "actSelectorIgnore")
             box.prop(obj, "setAsStartLevel")
             grid = box.grid_flow(columns=2)
-            obj.fast64.sm64.sm64_segment_loads.draw(grid)
+            obj.fast64.sm64.segment_loads.draw(grid)
             prop_split(box, obj, "acousticReach", "Acoustic Reach")
             obj.starGetCutscenes.draw(box)
 
@@ -1894,8 +1894,7 @@ class SM64_ObjectProperties(bpy.types.PropertyGroup):
     level: bpy.props.PointerProperty(type=SM64_LevelProperties)
     area: bpy.props.PointerProperty(type=SM64_AreaProperties)
     game_object: bpy.props.PointerProperty(type=SM64_GameObjectProperties)
-    # write to level script out
-    sm64_segment_loads: bpy.props.PointerProperty(type=SM64_SegmentProperties)
+    segment_loads: bpy.props.PointerProperty(type=SM64_SegmentProperties)
 
     @staticmethod
     def upgrade_changed_props():
