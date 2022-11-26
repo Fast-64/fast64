@@ -14,9 +14,9 @@ def getSegmentDefinitionEntryBySceneName(segmentDefinition, sceneName):
 
 def readSegmentDefinition(exportPath):
     fileData = readFile(os.path.join(exportPath, "spec"))
-    segmentDefinition, compressFlag = parseSegmentDefinitionData(fileData)
+    segmentDefinition, compressFlag, includes = parseSegmentDefinitionData(fileData)
 
-    return segmentDefinition, fileData, compressFlag
+    return segmentDefinition, fileData, compressFlag, includes
 
 
 def parseSegmentDefinitionData(data):
@@ -31,11 +31,19 @@ def parseSegmentDefinitionData(data):
         if "compress" in segData:
             compressFlag = indent + "compress\n"
 
-    return table, compressFlag
+    includes = []
+    for match in re.finditer("(#include.*)", data):
+        includes.append(match.group(0))
+
+    return table, compressFlag, includes
 
 
-def segmentDefinitionToString(segmentDefinitions):
+def segmentDefinitionToString(segmentDefinitions, includes):
     data = "/*\n * ROM spec file\n */\n\n"
+    data += "\n".join(includes)
+    if len(includes) != 0:
+        data += "\n\n"
+    
     for entry in segmentDefinitions:
         data += "beginseg" + entry + "endseg\n\n"
 
@@ -43,8 +51,8 @@ def segmentDefinitionToString(segmentDefinitions):
     return data[:-1]
 
 
-def writeSegmentDefinition(segmentDefinition, fileData, exportPath):
-    newFileData = segmentDefinitionToString(segmentDefinition)
+def writeSegmentDefinition(segmentDefinition, fileData, includes, exportPath):
+    newFileData = segmentDefinitionToString(segmentDefinition, includes)
 
     if newFileData != fileData:
         writeFile(os.path.join(exportPath, "spec"), newFileData)
@@ -52,7 +60,7 @@ def writeSegmentDefinition(segmentDefinition, fileData, exportPath):
 
 def modifySegmentDefinition(scene, exportInfo, levelC):
     exportPath = exportInfo.exportPath
-    segmentDefinitions, fileData, compressFlag = readSegmentDefinition(exportPath)
+    segmentDefinitions, fileData, compressFlag, includes = readSegmentDefinition(exportPath)
     sceneName = scene.name if scene is not None else exportInfo.name
     entries = getSegmentDefinitionEntryBySceneName(segmentDefinitions, sceneName)
 
@@ -178,4 +186,4 @@ def modifySegmentDefinition(scene, exportInfo, levelC):
                 )
                 firstIndex += 1
 
-    writeSegmentDefinition(segmentDefinitions, fileData, exportPath)
+    writeSegmentDefinition(segmentDefinitions, fileData, includes, exportPath)
