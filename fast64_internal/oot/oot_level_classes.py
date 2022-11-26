@@ -22,7 +22,6 @@ class OOTCommonCommands:
         return cmd
 
 
-
 class OOTActor:
     def __init__(self, actorID, position, rotation, actorParam, rotOverride):
         self.actorID = actorID
