@@ -822,7 +822,7 @@ def saveMeshByFaces(
 
     currentGroupIndex = saveTriangleStrip(triConverter, faces, obj.data, True)
 
-    #inline requires the mesh to revert only a few cmds for safety
+    #inline requires the mesh to revert a few cmds for safety
     if fModel.inline:
         if not fMesh.draw.commands:
             revertMatAndEndDraw(fMesh.draw, [DPSetRenderMode(fModel.getRenderMode(drawLayer), None), DPSetCycleType("G_CYC_1CYCLE"), DPSetTextureLUT("G_TT_NONE")])
@@ -1486,7 +1486,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         + (("_layer" + str(drawLayer)) if f3dMat.rdp_settings.set_rendermode and drawLayer is not None else "")
         + (("_area" + str(areaIndex)) if f3dMat.set_fog and f3dMat.use_global_fog and areaKey is not None else "")
     )
-    fMaterial = FMaterial(materialName, fModel.DLFormat)
+    fMaterial = fModel.addMaterial(materialName)
     fMaterial.material.commands.append(DPPipeSync())
     fMaterial.revert.commands.append(DPPipeSync())
 

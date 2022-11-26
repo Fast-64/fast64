@@ -2249,13 +2249,21 @@ class FModel:
     def onAddMesh(self, fMesh, contextObj):
         return
 
+    def addMaterial(self, materialName):
+        fMaterial = FMaterial(materialName, self.DLFormat, inline = self.inline)
+        self.onMaterialAdd(fMaterial)
+        return fMaterial
+
+    def onMaterialAdd(self, fMaterial):
+        return
+
     def endDraw(self, fMesh, contextObj):
         if not fMesh.inline:
             fMesh.draw.commands.append(SPEndDisplayList())
         self.onEndDraw(fMesh, contextObj)
 
     def onEndDraw(self, fMesh, contextObj):
-        if self.inline:
+        if fMesh.inline:
             fMesh.bleed()
         return
 
@@ -2479,6 +2487,7 @@ class FModel:
         else:
             staticData.source += texData.source
 
+        # materials are written inside FMesh gfxlist in inline mode
         if not self.inline:
             dynamicData.append(self.to_c_materials(gfxFormatter))
 
@@ -2693,7 +2702,9 @@ class FMesh:
         self.currentFMaterial = None
 
     def add_material_call(self, fMaterial):
-        if self.inline: return
+        # inline materials are post processed raw during bleed, leave them as is
+        if self.inline:
+            return
         sameMaterial = self.currentFMaterial is fMaterial
         if not sameMaterial:
             self.currentFMaterial = fMaterial
@@ -2763,8 +2774,7 @@ class FMesh:
         else:
             bleed_scroll = False
         if LastMat:
-            # bleed cmds if tiles are the same
-            # or pipe syncs as of now
+            # bleed cmds if matching tile has duplicate cmds
             bled_tex = []
             for j, (LastTex, TexCmds) in enumerate(zip(LastMat.textures, mat.textures)):
                 # deep copy breaks on Image objects so I will only copy the levels needed
@@ -2787,10 +2797,6 @@ class FMesh:
                         commands_bled.commands.remove(cmd)
                         rm_load = None
                         continue
-                    # remove scrolls if they exist and put them in a new gfx list in the material
-                    # if cmd in tile_size:
-                    # if not bleed_scroll:
-                    # cmd._bleed = True #allow tile size bleed
                 # now eval as normal conditionals
                 iter_cmds = copy.copy(commands_bled.commands)  # need extra list to iterate with
                 for j, cmd in enumerate(iter_cmds):
@@ -2861,7 +2867,6 @@ class FMesh:
                 scr_mat.scrollData = triGroup.fMaterial.scrollData
                 scr_mat.texturesLoaded = triGroup.fMaterial.texturesLoaded
                 triGroup.fMaterial = scr_mat
-
             size += tex_size
             GfxData.append(triGroup.triList.to_c_inline(f3d))
             size += triGroup.triList.size(f3d)
@@ -2968,14 +2973,15 @@ def get_f3d_mat_from_version(material: bpy.types.Material):
 
 
 class FMaterial:
-    def __init__(self, name, DLFormat):
+    def __init__(self, name, DLFormat, inline = False):
         self.material = GfxList("mat_" + name, GfxListTag.Material, DLFormat)
         # when not inline, appending to the textures list will append to the material list due
         # to the list being mutable. separating the lists allow individual textures to be bled
-        if bpy.context.scene.exportInlineF3D:
+        if inline:
             self.textures = [GfxList(f"tex_{i}_" + name, GfxListTag.Material, DLFormat.Static) for i in range(2)]
         else:
             self.textures = [self.material] * 2
+        self.inline = inline
         self.revert = GfxList("mat_revert_" + name, GfxListTag.MaterialRevert, DLFormat.Static)
         self.DLFormat = DLFormat
         self.scrollData = FScrollData()
