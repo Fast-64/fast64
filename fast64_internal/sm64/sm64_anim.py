@@ -985,8 +985,8 @@ class SM64_ImportAllMarioAnims(bpy.types.Operator):
             if type(armatureObj.data) is not bpy.types.Armature:
                 raise PluginError("Armature not selected.")
 
-            for animName, adress in marioAnimations:
-                importAnimationToBlender(romfileSrc, adress, armatureObj, segmentData, context.scene.isDMAImport, animName)
+            for adress, animName in marioAnimations:
+                importAnimationToBlender(romfileSrc, adress, armatureObj, {}, context.scene.isDMAImport, animName)
                 
             romfileSrc.close()
             self.report({"INFO"}, "Success!")
