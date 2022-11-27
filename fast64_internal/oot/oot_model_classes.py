@@ -135,6 +135,7 @@ class OOTModel(FModel):
             return texFmt.lower()
 
     def modifyDLForCIFlipbook(self, fMaterial: FMaterial, fPalette: FMaterial, texProp: TextureProperty):
+        raise PluginError("TODO: modifyDLForCIFlipbook has been broken by sync and DPSetTextureLUT changes")
         # Modfiy DL to use new palette texture
         tlutCmdIndex = 0
         gfxList = fMaterial.material

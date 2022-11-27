@@ -1549,6 +1549,33 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 
     useDict = all_combiner_uses(f3dMat)
 
+    # Get tlut info for othermode
+    useTex0 = useDict["Texture 0"] and f3dMat.tex0.tex_set
+    useTex1 = useDict["Texture 1"] and f3dMat.tex1.tex_set
+    isTex0CI = f3dMat.tex0.tex_format[:2] == "CI"
+    isTex1CI = f3dMat.tex1.tex_format[:2] == "CI"
+    tex0CIFmt = f3dMat.tex0.ci_format
+    tex1CIFmt = f3dMat.tex1.ci_format
+
+    if useTex0 and useTex1:
+        if isTex0CI != isTex1CI:
+            raise PluginError(
+                "In material "
+                + material.name
+                + ": N64 does not support CI + non-CI texture. "
+                + "Must be both CI or neither CI."
+            )
+        if tex0CIFmt != tex1CIFmt:
+            raise PluginError(
+                "In material "
+                + material.name
+                + ": Both CI textures must use the same CI format."
+            )
+    
+    isCI = (useTex0 and isTex0CI) or (useTex1 and isTex1CI)
+    ci_format = tex0CIFmt if useTex0 else tex1CIFmt
+    tlut = "G_TT_NONE" if not isCI else ("G_TT_" + ci_format)
+
     if drawLayer is not None:
         defaultRM = fModel.getRenderMode(drawLayer)
     else:
@@ -1559,7 +1586,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         saveGeoModeDefinitionF3DEX2(fMaterial, f3dMat.rdp_settings, defaults, fModel.matWriteMethod)
     else:
         saveGeoModeDefinition(fMaterial, f3dMat.rdp_settings, defaults, fModel.matWriteMethod)
-    saveOtherModeHDefinition(fMaterial, f3dMat.rdp_settings, defaults, fModel.f3d._HW_VERSION_1, fModel.matWriteMethod)
+    saveOtherModeHDefinition(fMaterial, f3dMat.rdp_settings, tlut, defaults, fModel.f3d._HW_VERSION_1, fModel.matWriteMethod)
     saveOtherModeLDefinition(fMaterial, f3dMat.rdp_settings, defaults, defaultRM, fModel.matWriteMethod)
     saveOtherDefinition(fMaterial, f3dMat, defaults)
 
@@ -1579,21 +1606,12 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     nextTmem = 0
 
     useLargeTextures = material.mat_ver > 3 and f3dMat.use_large_textures
-
-    useTex0 = useDict["Texture 0"] and f3dMat.tex0.tex_set
-    isTex0CI = f3dMat.tex0.tex_format[:2] == "CI"
-    useTex1 = useDict["Texture 1"] and f3dMat.tex1.tex_set
-    isTex1CI = f3dMat.tex1.tex_format[:2] == "CI"
-
     useSharedCIPalette = (
         useTex0
         and useTex1
-        and isTex0CI
-        and isTex1CI
+        and isCI
         and not f3dMat.tex0.use_tex_reference
         and not f3dMat.tex1.use_tex_reference
-        and f3dMat.tex0.tex_format == f3dMat.tex1.tex_format
-        and f3dMat.tex0.ci_format == f3dMat.tex1.ci_format
     )
 
     # Without shared palette: (load pal0 -> load tex0) or (load pal1 -> load tex1)
@@ -1877,14 +1895,12 @@ def saveTextureIndex(
     if tileSettingsOverride is not None:
         tileSettings = tileSettingsOverride[index]
         width, height = tileSettings.getDimensions()
-        setTLUTMode = False
     else:
         tileSettings = None
         if texProp.use_tex_reference:
             width, height = texProp.tex_reference_size
         else:
             width, height = tex.size
-        setTLUTMode = fModel.matWriteMethod == GfxMatWriteMethod.WriteAll
 
     nextTmem = tmem + getTmemWordUsage(texFormat, width, height)
 
@@ -1957,8 +1973,6 @@ def saveTextureIndex(
         else:
             fImage = saveOrGetTextureDefinition(fMaterial, fModel, tex, texName, texFormat, convertTextureData)
 
-    if setTLUTMode and not isCITexture:
-        loadTexGfx.commands.append(DPSetTextureLUT("G_TT_NONE"))
     if loadTextures:
         saveTextureLoading(
             fMaterial,
@@ -2165,10 +2179,6 @@ def savePaletteLoading(loadTexGfx, revertTexGfx, fPalette, palFormat, pal, color
     palFmt = texFormatOf[palFormat]
     cms = ["G_TX_WRAP", "G_TX_NOMIRROR"]
     cmt = ["G_TX_WRAP", "G_TX_NOMIRROR"]
-
-    loadTexGfx.commands.append(DPSetTextureLUT("G_TT_RGBA16" if palFmt == "G_IM_FMT_RGBA" else "G_TT_IA16"))
-    if matWriteMethod == GfxMatWriteMethod.WriteDifferingAndRevert:
-        revertTexGfx.commands.append(DPSetTextureLUT("G_TT_NONE"))
 
     if not f3d._HW_VERSION_1:
         loadTexGfx.commands.extend(
@@ -2730,16 +2740,16 @@ def saveModeSetting(fMaterial, value, defaultValue, cmdClass):
         fMaterial.revert.commands.append(cmdClass(defaultValue))
 
 
-def saveOtherModeHDefinition(fMaterial, settings, defaults, isHWv1, matWriteMethod):
+def saveOtherModeHDefinition(fMaterial, settings, tlut, defaults, isHWv1, matWriteMethod):
     if matWriteMethod == GfxMatWriteMethod.WriteAll:
-        saveOtherModeHDefinitionAll(fMaterial, settings, defaults, isHWv1)
+        saveOtherModeHDefinitionAll(fMaterial, settings, tlut, defaults, isHWv1)
     elif matWriteMethod == GfxMatWriteMethod.WriteDifferingAndRevert:
-        saveOtherModeHDefinitionIndividual(fMaterial, settings, defaults, isHWv1)
+        saveOtherModeHDefinitionIndividual(fMaterial, settings, tlut, defaults, isHWv1)
     else:
         raise PluginError("Unhandled material write method: " + str(matWriteMethod))
 
 
-def saveOtherModeHDefinitionAll(fMaterial, settings, defaults, isHWv1):
+def saveOtherModeHDefinitionAll(fMaterial, settings, tlut, defaults, isHWv1):
     cmd = SPSetOtherMode("G_SETOTHERMODE_H", 4, 20, [])
     cmd.flagList.append(settings.g_mdsft_alpha_dither)
     if not isHWv1:
@@ -2747,6 +2757,7 @@ def saveOtherModeHDefinitionAll(fMaterial, settings, defaults, isHWv1):
         cmd.flagList.append(settings.g_mdsft_combkey)
     cmd.flagList.append(settings.g_mdsft_textconv)
     cmd.flagList.append(settings.g_mdsft_text_filt)
+    cmd.flagList.append(tlut)
     cmd.flagList.append(settings.g_mdsft_textlod)
     cmd.flagList.append(settings.g_mdsft_textdetail)
     cmd.flagList.append(settings.g_mdsft_textpersp)
@@ -2758,7 +2769,7 @@ def saveOtherModeHDefinitionAll(fMaterial, settings, defaults, isHWv1):
     fMaterial.material.commands.append(cmd)
 
 
-def saveOtherModeHDefinitionIndividual(fMaterial, settings, defaults, isHWv1):
+def saveOtherModeHDefinitionIndividual(fMaterial, settings, tlut, defaults, isHWv1):
     saveModeSetting(fMaterial, settings.g_mdsft_alpha_dither, defaults.g_mdsft_alpha_dither, DPSetAlphaDither)
 
     if not isHWv1:
@@ -2770,8 +2781,7 @@ def saveOtherModeHDefinitionIndividual(fMaterial, settings, defaults, isHWv1):
 
     saveModeSetting(fMaterial, settings.g_mdsft_text_filt, defaults.g_mdsft_text_filt, DPSetTextureFilter)
 
-    # saveModeSetting(fMaterial, settings.g_mdsft_textlut,
-    # 	defaults.g_mdsft_textlut, DPSetTextureLUT)
+    saveModeSetting(fMaterial, tlut, "G_TT_NONE", DPSetTextureLUT)
 
     saveModeSetting(fMaterial, settings.g_mdsft_textlod, defaults.g_mdsft_textlod, DPSetTextureLOD)
 

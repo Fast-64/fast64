@@ -752,6 +752,18 @@ class F3DPanel(bpy.types.Panel):
     def drawShadeAlphaNotice(self, layout):
         layout.box().column().label(text='There must be a vertex color layer called "Alpha".', icon="IMAGE_ALPHA")
 
+    def checkDrawMixedCIWarning(self, layout, useDict, f3dMat):
+        useTex0 = useDict["Texture 0"] and f3dMat.tex0.tex_set
+        useTex1 = useDict["Texture 1"] and f3dMat.tex1.tex_set
+        if not useTex0 or not useTex1:
+            return
+        isTex0CI = f3dMat.tex0.tex_format[:2] == "CI"
+        isTex1CI = f3dMat.tex1.tex_format[:2] == "CI"
+        if isTex0CI != isTex1CI:
+            layout.box().column().label(text="Can't have one CI tex and one non-CI.", icon="ERROR")
+        if isTex0CI and isTex1CI and (f3dMat.tex0.ci_format != f3dMat.tex1.ci_format):
+            layout.box().column().label(text="Two CI textures must use the same CI format.", icon="ERROR")
+
     def draw_simple(self, f3dMat, material, layout, context):
         self.ui_uvCheck(layout, context)
 
@@ -765,6 +777,7 @@ class F3DPanel(bpy.types.Panel):
 
         useMultitexture = useDict["Texture 0"] and useDict["Texture 1"] and f3dMat.tex0.tex_set and f3dMat.tex1.tex_set
 
+        self.checkDrawMixedCIWarning(inputCol, useDict, f3dMat)
         canUseLargeTextures = material.mat_ver > 3 and material.f3d_mat.use_large_textures
         if useDict["Texture 0"] and f3dMat.tex0.tex_set:
             ui_image(canUseLargeTextures, inputCol, f3dMat.tex0, "Texture 0", False)
@@ -866,6 +879,7 @@ class F3DPanel(bpy.types.Panel):
 
             useMultitexture = useDict["Texture 0"] and useDict["Texture 1"]
 
+            self.checkDrawMixedCIWarning(inputCol, useDict, f3dMat)
             canUseLargeTextures = material.mat_ver > 3 and material.f3d_mat.use_large_textures
             if useDict["Texture 0"]:
                 ui_image(canUseLargeTextures, inputCol, f3dMat.tex0, "Texture 0", True)

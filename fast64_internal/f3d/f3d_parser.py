@@ -1011,17 +1011,21 @@ class F3DContext:
 
         self.setCombineLerp(lerp0, lerp1)
 
-    def setTLUTMode(self, index, value):
+    def setTLUTMode(self, flags):
         mat = self.mat()
-        texProp = getattr(mat, "tex" + str(index))
-        bitData = math_eval(value, self.f3d)
-        if value == self.f3d.G_TT_NONE:
-            if texProp.tex_format[:2] == "CI":
-                texProp.tex_format = "RGBA16"
-        elif value == self.f3d.G_TT_IA16:
-            texProp.ci_format = "IA16"
+        if not isinstance(flags, int):
+            flags = math_eval(flags, self.f3d)
         else:
-            texProp.ci_format = "RGBA16"
+            flags &= 3 << self.f3d.G_MDSFT_TEXTLUT
+        for index in range(2):
+            texProp = getattr(mat, "tex" + str(index))
+            if flags == self.f3d.G_TT_IA16:
+                texProp.ci_format = "IA16"
+            elif flags == self.f3d.G_TT_RGBA16:
+                texProp.ci_format = "RGBA16"
+            else: # self.f3d.G_TT_NONE or the unsupported value of 1
+                if texProp.tex_format[:2] == "CI":
+                    texProp.tex_format = "RGBA16"
 
     def setOtherModeFlags(self, command):
         mat = self.mat()
@@ -1031,11 +1035,25 @@ class F3DContext:
         else:
             self.setOtherModeFlagsL(command)
 
-    def setOtherModeFlagsH(self, command):
+    def setFlagsAttrs(self, command, database):
+        mat = self.mat()
+        flags = math_eval(command.params[3], self.f3d)
+        shift = math_eval(command.params[1], self.f3d)
+        mask = math_eval(command.params[2], self.f3d)
 
+        for field, fieldData in database.items():
+            fieldShift = getattr(self.f3d, field)
+            if fieldShift >= shift and fieldShift < shift + mask:
+                if isinstance(fieldData, list):
+                    value = (flags >> fieldShift) & ((1 << int(ceil(math.log(len(fieldData), 2)))) - 1)
+                    setattr(mat.rdp_settings, field.lower(), fieldData[value])
+                else:
+                    fieldData(flags)
+
+    def setOtherModeFlagsH(self, command):
         otherModeH = {
             "G_MDSFT_ALPHADITHER": ["G_AD_PATTERN", "G_AD_NOTPATTERN", "G_AD_NOISE", "G_AD_DISABLE"],
-            "G_MDSFT_RGBDITHER": ["G_CD_MAGICSQ", "G_CD_BAYER", "NOISE"],
+            "G_MDSFT_RGBDITHER": ["G_CD_MAGICSQ", "G_CD_BAYER", "G_CD_NOISE", "G_CD_DISABLE"],
             "G_MDSFT_COMBKEY": ["G_CK_NONE", "G_CK_KEY"],
             "G_MDSFT_TEXTCONV": [
                 "G_TC_CONV",
@@ -1047,26 +1065,15 @@ class F3DContext:
                 "G_TC_FILT",
             ],
             "G_MDSFT_TEXTFILT": ["G_TF_POINT", "G_TF_POINT", "G_TF_BILERP", "G_TF_AVERAGE"],
+            "G_MDSFT_TEXTLUT": self.setTLUTMode,
             "G_MDSFT_TEXTLOD": ["G_TL_TILE", "G_TL_LOD"],
             "G_MDSFT_TEXTDETAIL": ["G_TD_CLAMP", "G_TD_SHARPEN", "G_TD_DETAIL"],
             "G_MDSFT_TEXTPERSP": ["G_TP_NONE", "G_TP_PERSP"],
             "G_MDSFT_CYCLETYPE": ["G_CYC_1CYCLE", "G_CYC_2CYCLE", "G_CYC_COPY", "G_CYC_FILL"],
-            "G_MDSFT_COLORDITHER": ["G_CD_MAGICSQ", "G_CD_BAYER", "G_CD_NOISE"],
+            "G_MDSFT_COLORDITHER": ["G_CD_DISABLE", "G_CD_ENABLE"],
             "G_MDSFT_PIPELINE": ["G_PM_NPRIMITIVE", "G_PM_1PRIMITIVE"],
         }
-        mat = self.mat()
-        flags = math_eval(command.params[3], self.f3d)
-        shift = math_eval(command.params[1], self.f3d)
-        mask = math_eval(command.params[2], self.f3d)
-
-        for field, fieldData in otherModeH.items():
-            fieldShift = getattr(self.f3d, field)
-            if fieldShift >= shift and fieldShift < shift + mask:
-                setattr(
-                    mat.rdp_settings,
-                    field.lower(),
-                    fieldData[(flags >> fieldShift) & ((1 << int(ceil(math.log(len(fieldData), 2)))) - 1)],
-                )
+        self.setFlagsAttrs(command, otherModeH)
 
     # This only handles commonly used render mode presets (with macros),
     # and no render modes at all with raw bit data.
@@ -1074,24 +1081,9 @@ class F3DContext:
         otherModeL = {
             "G_MDSFT_ALPHACOMPARE": ["G_AC_NONE", "G_AC_THRESHOLD", "G_AC_THRESHOLD", "G_AC_DITHER"],
             "G_MDSFT_ZSRCSEL": ["G_ZS_PIXEL", "G_ZS_PRIM"],
+            "G_MDSFT_RENDERMODE": self.setRenderMode,
         }
-
-        mat = self.mat()
-        flags = math_eval(command.params[3], self.f3d)
-        shift = math_eval(command.params[1], self.f3d)
-        mask = math_eval(command.params[2], self.f3d)
-
-        for field, fieldData in otherModeL.items():
-            fieldShift = getattr(self.f3d, field)
-            if fieldShift >= shift and fieldShift < shift + mask:
-                setattr(
-                    mat.rdp_settings,
-                    field.lower(),
-                    fieldData[(flags >> fieldShift) & ((1 << int(ceil(math.log(len(fieldData), 2)))) - 1)],
-                )
-
-        if self.f3d.G_MDSFT_RENDERMODE >= shift and self.f3d.G_MDSFT_RENDERMODE < shift + mask:
-            self.setRenderMode(flags)
+        self.setFlagsAttrs(command, otherModeL)
 
     def setRenderMode(self, flags):
         mat = self.mat()
@@ -1605,8 +1597,7 @@ class F3DContext:
                 elif command.name == "gsDPSetTextureLOD":
                     mat.rdp_settings.g_mdsft_textlod = command.params[0]
                 elif command.name == "gsDPSetTextureLUT":
-                    self.setTLUTMode(0, command.params[0])
-                    self.setTLUTMode(1, command.params[0])
+                    self.setTLUTMode(command.params[0])
                 elif command.name == "gsDPSetTextureFilter":
                     mat.rdp_settings.g_mdsft_text_filt = command.params[0]
                 elif command.name == "gsDPSetTextureConvert":
