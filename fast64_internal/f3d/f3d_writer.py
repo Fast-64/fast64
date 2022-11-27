@@ -1459,7 +1459,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     areaKey = fModel.global_data.getCurrentAreaKey(f3dMat)
     areaIndex = fModel.global_data.current_area_index
 
-    if f3dMat.rdp_settings.set_rendermode:
+    if f3dMat.rdp_settings.render_mode.set_rendermode:
         materialKey = (material, drawLayer, areaKey)
     else:
         materialKey = (material, None, areaKey)
@@ -1474,7 +1474,11 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         fModel.name
         + "_"
         + toAlnum(material.name)
-        + (("_layer" + str(drawLayer)) if f3dMat.rdp_settings.set_rendermode and drawLayer is not None else "")
+        + (
+            ("_layer" + str(drawLayer))
+            if f3dMat.rdp_settings.render_mode.set_rendermode and drawLayer is not None
+            else ""
+        )
         + (("_area" + str(areaIndex)) if f3dMat.set_fog and f3dMat.use_global_fog and areaKey is not None else "")
     )
     fMaterial = FMaterial(materialName, fModel.DLFormat)
@@ -1789,7 +1793,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 
     materialKey = (
         material,
-        (drawLayer if f3dMat.rdp_settings.set_rendermode else None),
+        (drawLayer if f3dMat.rdp_settings.render_mode.set_rendermode else None),
         fModel.global_data.getCurrentAreaKey(f3dMat),
     )
     fModel.materials[materialKey] = (fMaterial, texDimensions)
@@ -2797,7 +2801,8 @@ def saveOtherModeLDefinition(fMaterial, settings, defaults, defaultRenderMode, m
 
 
 def saveOtherModeLDefinitionAll(fMaterial: FMaterial, settings, defaults, defaultRenderMode):
-    if not settings.set_rendermode and defaultRenderMode is None:
+    render_mode = settings.render_mode
+    if not render_mode.set_rendermode and defaultRenderMode is None:
         cmd = SPSetOtherMode("G_SETOTHERMODE_L", 0, 3, [])
         cmd.flagList.append(settings.g_mdsft_alpha_compare)
         cmd.flagList.append(settings.g_mdsft_zsrcsel)
@@ -2807,7 +2812,7 @@ def saveOtherModeLDefinitionAll(fMaterial: FMaterial, settings, defaults, defaul
         cmd.flagList.append(settings.g_mdsft_alpha_compare)
         cmd.flagList.append(settings.g_mdsft_zsrcsel)
 
-        if settings.set_rendermode:
+        if render_mode.set_rendermode:
             flagList, blendList = getRenderModeFlagList(settings, fMaterial)
             cmd.flagList.extend(flagList)
             if blendList is not None:
@@ -2852,7 +2857,7 @@ def saveOtherModeLDefinitionIndividual(fMaterial, settings, defaults, defaultRen
         fMaterial.material.commands.append(DPSetPrimDepth(z=settings.prim_depth.z, dz=settings.prim_depth.dz))
         fMaterial.revert.commands.append(DPSetPrimDepth())
 
-    if settings.set_rendermode:
+    if settings.render_mode.set_rendermode:
         flagList, blendList = getRenderModeFlagList(settings, fMaterial)
         renderModeSet = DPSetRenderMode(flagList, blendList)
 
@@ -2864,64 +2869,59 @@ def saveOtherModeLDefinitionIndividual(fMaterial, settings, defaults, defaultRen
 def getRenderModeFlagList(settings, fMaterial):
     flagList = []
     blendList = None
+    render_mode = settings.render_mode
     # cycle independent
 
-    if not settings.rendermode_advanced_enabled:
+    if not render_mode.rendermode_advanced_enabled:
         fMaterial.renderModeUseDrawLayer = [
-            settings.rendermode_preset_cycle_1 == "Use Draw Layer",
-            settings.rendermode_preset_cycle_2 == "Use Draw Layer",
+            render_mode.rendermode_preset_cycle_1 == "Use Draw Layer",
+            render_mode.rendermode_preset_cycle_2 == "Use Draw Layer",
         ]
 
-        if settings.g_mdsft_cycletype == "G_CYC_2CYCLE":
-            flagList = [settings.rendermode_preset_cycle_1, settings.rendermode_preset_cycle_2]
-        else:
-            cycle2 = settings.rendermode_preset_cycle_1 + "2"
-            if cycle2 not in [value[0] for value in enumRenderModesCycle2]:
-                cycle2 = "G_RM_NOOP"
-            flagList = [settings.rendermode_preset_cycle_1, cycle2]
+        flagList = render_mode.get_render_mode(settings)
     else:
         if settings.g_mdsft_cycletype == "G_CYC_2CYCLE":
             blendList = [
-                settings.blend_p1,
-                settings.blend_a1,
-                settings.blend_m1,
-                settings.blend_b1,
-                settings.blend_p2,
-                settings.blend_a2,
-                settings.blend_m2,
-                settings.blend_b2,
+                render_mode.blend_p1,
+                render_mode.blend_a1,
+                render_mode.blend_m1,
+                render_mode.blend_b1,
+                render_mode.blend_p2,
+                render_mode.blend_a2,
+                render_mode.blend_m2,
+                render_mode.blend_b2,
             ]
         else:
             blendList = [
-                settings.blend_p1,
-                settings.blend_a1,
-                settings.blend_m1,
-                settings.blend_b1,
-                settings.blend_p1,
-                settings.blend_a1,
-                settings.blend_m1,
-                settings.blend_b1,
+                render_mode.blend_p1,
+                render_mode.blend_a1,
+                render_mode.blend_m1,
+                render_mode.blend_b1,
+                render_mode.blend_p1,
+                render_mode.blend_a1,
+                render_mode.blend_m1,
+                render_mode.blend_b1,
             ]
 
-        if settings.aa_en:
+        if render_mode.aa_en:
             flagList.append("AA_EN")
-        if settings.z_cmp:
+        if render_mode.z_cmp:
             flagList.append("Z_CMP")
-        if settings.z_upd:
+        if render_mode.z_upd:
             flagList.append("Z_UPD")
-        if settings.im_rd:
+        if render_mode.im_rd:
             flagList.append("IM_RD")
-        if settings.clr_on_cvg:
+        if render_mode.clr_on_cvg:
             flagList.append("CLR_ON_CVG")
 
-        flagList.append(settings.cvg_dst)
-        flagList.append(settings.zmode)
+        flagList.append(render_mode.cvg_dst)
+        flagList.append(render_mode.zmode)
 
-        if settings.cvg_x_alpha:
+        if render_mode.cvg_x_alpha:
             flagList.append("CVG_X_ALPHA")
-        if settings.alpha_cvg_sel:
+        if render_mode.alpha_cvg_sel:
             flagList.append("ALPHA_CVG_SEL")
-        if settings.force_bl:
+        if render_mode.force_bl:
             flagList.append("FORCE_BL")
 
     return flagList, blendList

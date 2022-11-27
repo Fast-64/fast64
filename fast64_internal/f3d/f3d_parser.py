@@ -564,7 +564,7 @@ class F3DContext:
     def clearMaterial(self):
         mat = self.mat()
 
-        mat.rdp_settings.sets_rendermode = False
+        mat.rdp_settings.render_mode.sets_rendermode = False
         mat.set_prim = False
         mat.set_lights = False
         mat.set_env = False
@@ -1119,34 +1119,35 @@ class F3DContext:
             if rendermodeName1 is not None and rendermodeName2 is not None:
                 break
 
-        mat.rdp_settings.sets_rendermode = True
+        render_mode = mat.rdp_settings.render_mode
+        render_mode.sets_rendermode = True
         if rendermodeName1 is not None and rendermodeName2 is not None:
-            mat.rdp_settings.rendermode_advanced_enabled = False
-            mat.rdp_settings.rendermode_preset_cycle_1 = rendermodeName1
-            mat.rdp_settings.rendermode_preset_cycle_2 = rendermodeName2
+            render_mode.rendermode_advanced_enabled = False
+            render_mode.rendermode_preset_cycle_1 = rendermodeName1
+            render_mode.rendermode_preset_cycle_2 = rendermodeName2
         else:
-            mat.rdp_settings.rendermode_advanced_enabled = True
+            render_mode.rendermode_advanced_enabled = True
 
-        mat.rdp_settings.aa_en = rendermode1 & self.f3d.AA_EN != 0
-        mat.rdp_settings.z_cmp = rendermode1 & self.f3d.Z_CMP != 0
-        mat.rdp_settings.z_upd = rendermode1 & self.f3d.Z_UPD != 0
-        mat.rdp_settings.im_rd = rendermode1 & self.f3d.IM_RD != 0
-        mat.rdp_settings.clr_on_cvg = rendermode1 & self.f3d.CLR_ON_CVG != 0
-        mat.rdp_settings.cvg_dst = self.f3d.cvgDstDict[rendermode1 & self.f3d.CVG_DST_SAVE]
-        mat.rdp_settings.zmode = self.f3d.zmodeDict[rendermode1 & self.f3d.ZMODE_DEC]
-        mat.rdp_settings.cvg_x_alpha = rendermode1 & self.f3d.CVG_X_ALPHA != 0
-        mat.rdp_settings.alpha_cvg_sel = rendermode1 & self.f3d.ALPHA_CVG_SEL != 0
-        mat.rdp_settings.force_bl = rendermode1 & self.f3d.FORCE_BL != 0
+        render_mode.aa_en = rendermode1 & self.f3d.AA_EN != 0
+        render_mode.z_cmp = rendermode1 & self.f3d.Z_CMP != 0
+        render_mode.z_upd = rendermode1 & self.f3d.Z_UPD != 0
+        render_mode.im_rd = rendermode1 & self.f3d.IM_RD != 0
+        render_mode.clr_on_cvg = rendermode1 & self.f3d.CLR_ON_CVG != 0
+        render_mode.cvg_dst = self.f3d.cvgDstDict[rendermode1 & self.f3d.CVG_DST_SAVE]
+        render_mode.zmode = self.f3d.zmodeDict[rendermode1 & self.f3d.ZMODE_DEC]
+        render_mode.cvg_x_alpha = rendermode1 & self.f3d.CVG_X_ALPHA != 0
+        render_mode.alpha_cvg_sel = rendermode1 & self.f3d.ALPHA_CVG_SEL != 0
+        render_mode.force_bl = rendermode1 & self.f3d.FORCE_BL != 0
 
-        mat.rdp_settings.blend_p1 = self.f3d.blendColorDict[rendermode1 >> 30 & 3]
-        mat.rdp_settings.blend_a1 = self.f3d.blendAlphaDict[rendermode1 >> 26 & 3]
-        mat.rdp_settings.blend_m1 = self.f3d.blendColorDict[rendermode1 >> 22 & 3]
-        mat.rdp_settings.blend_b1 = self.f3d.blendMixDict[rendermode1 >> 18 & 3]
+        render_mode.blend_p1 = self.f3d.blendColorDict[rendermode1 >> 30 & 3]
+        render_mode.blend_a1 = self.f3d.blendAlphaDict[rendermode1 >> 26 & 3]
+        render_mode.blend_m1 = self.f3d.blendColorDict[rendermode1 >> 22 & 3]
+        render_mode.blend_b1 = self.f3d.blendMixDict[rendermode1 >> 18 & 3]
 
-        mat.rdp_settings.blend_p2 = self.f3d.blendColorDict[rendermode2 >> 28 & 3]
-        mat.rdp_settings.blend_a2 = self.f3d.blendAlphaDict[rendermode2 >> 24 & 3]
-        mat.rdp_settings.blend_m2 = self.f3d.blendColorDict[rendermode2 >> 20 & 3]
-        mat.rdp_settings.blend_b2 = self.f3d.blendMixDict[rendermode2 >> 16 & 3]
+        render_mode.blend_p2 = self.f3d.blendColorDict[rendermode2 >> 28 & 3]
+        render_mode.blend_a2 = self.f3d.blendAlphaDict[rendermode2 >> 24 & 3]
+        render_mode.blend_m2 = self.f3d.blendColorDict[rendermode2 >> 20 & 3]
+        render_mode.blend_b2 = self.f3d.blendMixDict[rendermode2 >> 16 & 3]
 
     def gammaInverseParam(self, color):
         return [gammaInverseValue(math_eval(value, self.f3d) / 255) for value in color[:3]] + [
