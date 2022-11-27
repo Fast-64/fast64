@@ -407,11 +407,6 @@ def saveMeshWithLargeTexturesByFaces(
         tmem = getTmemWordUsage(otherTex.tex_format, otherTex.tex.size[0], otherTex.tex.size[1]) * 8
         if tmem <= getTmemMax(otherTex.tex_format):
             otherTexSingleLoad = True
-            # nextTmem = 0
-            # revertCommands = GfxList("temp", GfxListTag.Draw, fModel.DLFormat) # Unhandled?
-            # texDimensions, nextTmem = \
-            # 	saveTextureIndex(material.name, fModel, fMaterial, triGroup.triList, revertCommands, otherTex, 0, nextTmem,
-            # 		None, False, None, True, True)
 
     # saveGeometry(obj, triList, fMesh.vertexList, bFaces,
     # 	bMesh, texDimensions, transformMatrix, isPointSampled, isFlatShaded,
@@ -1604,8 +1599,11 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     texDimensions0 = None
     texDimensions1 = None
     nextTmem = 0
-
     useLargeTextures = material.mat_ver > 3 and f3dMat.use_large_textures
+
+    if useTex0 and useTex1 and isCI:
+        pass # TODO
+
     useSharedCIPalette = (
         useTex0
         and useTex1
@@ -1655,9 +1653,10 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 
     # If the texture in both texels is the same then it can be rewritten to the same location in tmem
     # This allows for a texture that fills tmem to still be used for both texel0 and texel1
-    if f3dMat.tex0.tex == f3dMat.tex1.tex:
-        if nextTmem >= (512 if f3dMat.tex0.tex_format[:2] != "CI" else 256):
-            nextTmem = 0
+    tex1ActuallyLoad = True
+    if useTex0 and useTex1 and f3dMat.tex0.tex == f3dMat.tex1.tex:
+        nextTmem = 0
+        tex1ActuallyLoad = False
 
     if useTex1:
         if f3dMat.tex1.tex is None and not f3dMat.tex1.use_tex_reference:
@@ -1677,7 +1676,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             None,
             convertTextureData,
             None,
-            True,
+            tex1ActuallyLoad,
             True,
             sharedPalette,
             imageKey1,
@@ -1864,8 +1863,8 @@ def saveTextureIndex(
     overrideName: str,
     convertTextureData: bool,
     tileSettingsOverride,
-    loadTextures: bool,
-    loadPalettes: bool,
+    loadTexture: bool,
+    loadPalette: bool,
     sharedPalette: FSharedPalette,
     imageKey: FImageKey,
 ) -> tuple[list[int], int, FImage]:
@@ -1905,7 +1904,7 @@ def saveTextureIndex(
     nextTmem = tmem + getTmemWordUsage(texFormat, width, height)
 
     if not (bpy.context.scene.ignoreTextureRestrictions or fMaterial.useLargeTextures):
-        if nextTmem > (512 if texFormat[:2] != "CI" else 256):
+        if nextTmem > (512 if not isCITexture else 256):
             raise PluginError(
                 'Error in "'
                 + propName
@@ -1963,7 +1962,7 @@ def saveTextureIndex(
                 imageKey,
             )
 
-        if loadPalettes and sharedPalette is None:
+        if loadPalette and sharedPalette is None:
             savePaletteLoading(
                 loadTexGfx, revertTexGfx, fPalette, palFormat, 0, fPalette.height, fModel.f3d, fModel.matWriteMethod
             )
@@ -1973,28 +1972,28 @@ def saveTextureIndex(
         else:
             fImage = saveOrGetTextureDefinition(fMaterial, fModel, tex, texName, texFormat, convertTextureData)
 
-    if loadTextures:
-        saveTextureLoading(
-            fMaterial,
-            fImage,
-            loadTexGfx,
-            clamp_S,
-            mirror_S,
-            clamp_T,
-            mirror_T,
-            mask_S,
-            mask_T,
-            shift_S,
-            shift_T,
-            tex_SL,
-            tex_TL,
-            tex_SH,
-            tex_TH,
-            texFormat,
-            index,
-            fModel.f3d,
-            tmem,
-        )
+    saveTextureLoading(
+        fMaterial,
+        fImage,
+        loadTexGfx,
+        clamp_S,
+        mirror_S,
+        clamp_T,
+        mirror_T,
+        mask_S,
+        mask_T,
+        shift_S,
+        shift_T,
+        tex_SL,
+        tex_TL,
+        tex_SH,
+        tex_TH,
+        texFormat,
+        index,
+        fModel.f3d,
+        tmem,
+        loadTexture,
+    )
     texDimensions = fImage.width, fImage.height
     # fImage = saveTextureDefinition(fModel, tex, texName,
     # 	texFormatOf[texFormat], texBitSizeOf[texFormat])
@@ -2024,6 +2023,7 @@ def saveTextureLoading(
     texIndex,
     f3d: F3D,
     tmem,
+    loadTexture: bool,
 ):
     cms = [("G_TX_CLAMP" if clamp_S else "G_TX_WRAP"), ("G_TX_MIRROR" if mirror_S else "G_TX_NOMIRROR")]
     cmt = [("G_TX_CLAMP" if clamp_T else "G_TX_WRAP"), ("G_TX_MIRROR" if mirror_T else "G_TX_NOMIRROR")]
@@ -2057,106 +2057,107 @@ def saveTextureLoading(
         # TODO: Use width of block to load
         base_width = int(SH - SL)
 
-    if siz == "G_IM_SIZ_4b":
-        sl2 = int(SL * (2 ** (f3d.G_TEXTURE_IMAGE_FRAC - 1)))
-        sh2 = int(SH * (2 ** (f3d.G_TEXTURE_IMAGE_FRAC - 1)))
+    if loadTexture:
+        if siz == "G_IM_SIZ_4b":
+            sl2 = int(SL * (2 ** (f3d.G_TEXTURE_IMAGE_FRAC - 1)))
+            sh2 = int(SH * (2 ** (f3d.G_TEXTURE_IMAGE_FRAC - 1)))
 
-        dxt = f3d.CALC_DXT_4b(fImage.width)
-        line = (((base_width + 1) >> 1) + 7) >> 3
+            dxt = f3d.CALC_DXT_4b(fImage.width)
+            line = (((base_width + 1) >> 1) + 7) >> 3
 
-        if useLoadBlock:
-            loadTexGfx.commands.extend(
-                [
-                    DPSetTextureImage(fmt, "G_IM_SIZ_16b", 1, fImage),
-                    DPSetTile(
-                        fmt,
-                        "G_IM_SIZ_16b",
-                        0,
-                        tmem,
-                        f3d.G_TX_LOADTILE - texIndex,
-                        0,
-                        cmt,
-                        maskt,
-                        shiftt,
-                        cms,
-                        masks,
-                        shifts,
-                    ),
-                    DPLoadBlock(
-                        f3d.G_TX_LOADTILE - texIndex, 0, 0, (((fImage.width) * (fImage.height) + 3) >> 2) - 1, dxt
-                    ),
-                ]
-            )
+            if useLoadBlock:
+                loadTexGfx.commands.extend(
+                    [
+                        DPSetTextureImage(fmt, "G_IM_SIZ_16b", 1, fImage),
+                        DPSetTile(
+                            fmt,
+                            "G_IM_SIZ_16b",
+                            0,
+                            tmem,
+                            f3d.G_TX_LOADTILE - texIndex,
+                            0,
+                            cmt,
+                            maskt,
+                            shiftt,
+                            cms,
+                            masks,
+                            shifts,
+                        ),
+                        DPLoadBlock(
+                            f3d.G_TX_LOADTILE - texIndex, 0, 0, (((fImage.width) * (fImage.height) + 3) >> 2) - 1, dxt
+                        ),
+                    ]
+                )
+            else:
+                loadTexGfx.commands.extend(
+                    [
+                        DPSetTextureImage(fmt, "G_IM_SIZ_8b", fImage.width >> 1, fImage),
+                        DPSetTile(
+                            fmt,
+                            "G_IM_SIZ_8b",
+                            line,
+                            tmem,
+                            f3d.G_TX_LOADTILE - texIndex,
+                            0,
+                            cmt,
+                            maskt,
+                            shiftt,
+                            cms,
+                            masks,
+                            shifts,
+                        ),
+                        DPLoadTile(f3d.G_TX_LOADTILE - texIndex, sl2, tl, sh2, th),
+                    ]
+                )
+
         else:
-            loadTexGfx.commands.extend(
-                [
-                    DPSetTextureImage(fmt, "G_IM_SIZ_8b", fImage.width >> 1, fImage),
-                    DPSetTile(
-                        fmt,
-                        "G_IM_SIZ_8b",
-                        line,
-                        tmem,
-                        f3d.G_TX_LOADTILE - texIndex,
-                        0,
-                        cmt,
-                        maskt,
-                        shiftt,
-                        cms,
-                        masks,
-                        shifts,
-                    ),
-                    DPLoadTile(f3d.G_TX_LOADTILE - texIndex, sl2, tl, sh2, th),
-                ]
-            )
+            dxt = f3d.CALC_DXT(fImage.width, f3d.G_IM_SIZ_VARS[siz + "_BYTES"])
+            # Note that _LINE_BYTES and _TILE_BYTES variables are the same.
+            line = int((base_width * f3d.G_IM_SIZ_VARS[siz + "_LINE_BYTES"]) + 7) >> 3
 
-    else:
-        dxt = f3d.CALC_DXT(fImage.width, f3d.G_IM_SIZ_VARS[siz + "_BYTES"])
-        # Note that _LINE_BYTES and _TILE_BYTES variables are the same.
-        line = int((base_width * f3d.G_IM_SIZ_VARS[siz + "_LINE_BYTES"]) + 7) >> 3
-
-        if useLoadBlock:
-            loadTexGfx.commands.extend(
-                [
-                    # Load Block version
-                    DPSetTextureImage(fmt, siz + "_LOAD_BLOCK", 1, fImage),
-                    DPSetTile(
-                        fmt,
-                        siz + "_LOAD_BLOCK",
-                        0,
-                        tmem,
-                        f3d.G_TX_LOADTILE - texIndex,
-                        0,
-                        cmt,
-                        maskt,
-                        shiftt,
-                        cms,
-                        masks,
-                        shifts,
-                    ),
-                    DPLoadBlock(
-                        f3d.G_TX_LOADTILE - texIndex,
-                        0,
-                        0,
-                        (
-                            ((fImage.width) * (fImage.height) + f3d.G_IM_SIZ_VARS[siz + "_INCR"])
-                            >> f3d.G_IM_SIZ_VARS[siz + "_SHIFT"]
-                        )
-                        - 1,
-                        dxt,
-                    ),
-                ]
-            )
-        else:
-            loadTexGfx.commands.extend(
-                [
-                    # Load Tile version
-                    DPSetTextureImage(fmt, siz, fImage.width, fImage),
-                    DPSetTile(
-                        fmt, siz, line, tmem, f3d.G_TX_LOADTILE - texIndex, 0, cmt, maskt, shiftt, cms, masks, shifts
-                    ),
-                    DPLoadTile(f3d.G_TX_LOADTILE - texIndex, sl, tl, sh, th),
-                ]
-            )  # added in
+            if useLoadBlock:
+                loadTexGfx.commands.extend(
+                    [
+                        # Load Block version
+                        DPSetTextureImage(fmt, siz + "_LOAD_BLOCK", 1, fImage),
+                        DPSetTile(
+                            fmt,
+                            siz + "_LOAD_BLOCK",
+                            0,
+                            tmem,
+                            f3d.G_TX_LOADTILE - texIndex,
+                            0,
+                            cmt,
+                            maskt,
+                            shiftt,
+                            cms,
+                            masks,
+                            shifts,
+                        ),
+                        DPLoadBlock(
+                            f3d.G_TX_LOADTILE - texIndex,
+                            0,
+                            0,
+                            (
+                                ((fImage.width) * (fImage.height) + f3d.G_IM_SIZ_VARS[siz + "_INCR"])
+                                >> f3d.G_IM_SIZ_VARS[siz + "_SHIFT"]
+                            )
+                            - 1,
+                            dxt,
+                        ),
+                    ]
+                )
+            else:
+                loadTexGfx.commands.extend(
+                    [
+                        # Load Tile version
+                        DPSetTextureImage(fmt, siz, fImage.width, fImage),
+                        DPSetTile(
+                            fmt, siz, line, tmem, f3d.G_TX_LOADTILE - texIndex, 0, cmt, maskt, shiftt, cms, masks, shifts
+                        ),
+                        DPLoadTile(f3d.G_TX_LOADTILE - texIndex, sl, tl, sh, th),
+                    ]
+                )  # added in
 
     tileSizeCommand = DPSetTileSize(f3d.G_TX_RENDERTILE + texIndex, sl, tl, sh, th)
     loadTexGfx.commands.extend(
