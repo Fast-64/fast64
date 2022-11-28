@@ -1031,7 +1031,7 @@ class OOT_ExportScenePanel(OOT_Panel):
         col.prop(settings, "customExport")
 
         if context.scene.fast64.oot.hackerFeaturesEnabled:
-            hackerOoTBox = col.box()
+            hackerOoTBox = col.box().column()
             hackerOoTBox.label(text="HackerOoT Options")
 
             bootOptions = context.scene.fast64.oot.bootupSceneOptions
@@ -1095,7 +1095,7 @@ class OOT_RemoveScenePanel(OOT_Panel):
 
         if removeSettings.option == "Custom" and not os.path.exists(exportPath):
             removeRow.enabled = False
-            col.label(text="This path doesn't exists.")
+            col.label(text="This path doesn't exist.")
         else:
             removeRow.enabled = True
 
