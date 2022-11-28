@@ -27,7 +27,6 @@ from ..utility import (
     checkIdentityRotation,
     hideObjsInList,
     unhideAllAndGetHiddenList,
-    normToSigned8Vector,
     raisePluginError,
     ootGetBaseOrCustomLight,
     exportColor,
@@ -57,7 +56,6 @@ from .oot_utility import (
     ExportInfo,
     OOTObjectCategorizer,
     CullGroup,
-    getEnumName,
     checkUniformScale,
     ootDuplicateHierarchy,
     ootCleanupScene,
@@ -65,10 +63,10 @@ from .oot_utility import (
     getCustomProperty,
     ootConvertTranslation,
     ootConvertRotation,
-    ootSceneDirs,
     getSceneDirFromLevelName,
     isPathObject,
     sceneNameFromID,
+    getEnumName,
 )
 
 from .oot_level_classes import (
@@ -1003,63 +1001,102 @@ class OOT_RemoveScene(bpy.types.Operator):
         layout.label(text="Are you sure you want to remove this scene?")
 
 
+def drawSceneSearchOp(layout, enumValue, opName):
+    searchBox = layout.box().row()
+    searchBox.operator(OOT_SearchSceneEnumOperator.bl_idname, icon="VIEWZOOM", text="").opName = opName
+    searchBox.label(text=getEnumName(ootEnumSceneID, enumValue))
+
+
 class OOT_ExportScenePanel(OOT_Panel):
     bl_idname = "OOT_PT_export_level"
     bl_label = "OOT Scene Exporter"
 
-    def drawSceneSearchOp(self, layout, context, enumValue, opName):
-        searchBox = layout.box().row()
-        searchBox.operator(OOT_SearchSceneEnumOperator.bl_idname, icon="VIEWZOOM", text="").opName = opName
-        searchBox.label(text=getEnumName(ootEnumSceneID, enumValue))
-
     def draw(self, context):
         col = self.layout.column()
-        exportOp: OOT_ExportScene = col.operator(OOT_ExportScene.bl_idname)
-        # if not bpy.context.scene.ignoreTextureRestrictions:
-        # 	col.prop(context.scene, 'saveTextures')
+
         settings: OOTExportSceneSettingsProperty = context.scene.ootSceneExportSettings
         if settings.customExport:
             prop_split(col, settings, "exportPath", "Directory")
             prop_split(col, settings, "name", "Name")
             customExportWarning(col)
         else:
-            self.drawSceneSearchOp(col, context, settings.option, "Export")
+            drawSceneSearchOp(col, settings.option, "Export")
             if settings.option == "Custom":
                 prop_split(col, settings, "subFolder", "Subfolder")
                 prop_split(col, settings, "name", "Name")
 
         prop_split(col, context.scene, "ootSceneExportObj", "Scene Object")
 
-        if context.scene.fast64.oot.hackerFeaturesEnabled:
-            bootOptions = context.scene.fast64.oot.bootupSceneOptions
-            col.prop(bootOptions, "bootToScene", text="Boot To Scene (HackerOOT)")
-            if bootOptions.bootToScene:
-                col.prop(bootOptions, "newGameOnly")
-                prop_split(col, bootOptions, "bootMode", "Boot Mode")
-                if bootOptions.bootMode == "Play":
-                    prop_split(col, bootOptions, "newGameName", "New Game Name")
-                if bootOptions.bootMode != "Map Select":
-                    prop_split(col, bootOptions, "spawnIndex", "Spawn")
-                    col.prop(bootOptions, "overrideHeader")
-                    if bootOptions.overrideHeader:
-                        prop_split(col, bootOptions, "headerOption", "Header Option")
-                        if bootOptions.headerOption == "Cutscene":
-                            prop_split(col, bootOptions, "cutsceneIndex", "Cutscene Index")
-            col.label(text="Note: Scene boot config changes aren't detected by the make process.", icon="ERROR")
-            col.operator(OOT_ClearBootupScene.bl_idname, text="Undo Boot To Scene (HackerOOT Repo)")
 
         col.prop(settings, "singleFile")
         col.prop(settings, "customExport")
 
+        if context.scene.fast64.oot.hackerFeaturesEnabled:
+            hackerOoTBox = col.box()
+            hackerOoTBox.label(text="HackerOoT Options")
+
+            bootOptions = context.scene.fast64.oot.bootupSceneOptions
+            hackerOoTBox.prop(bootOptions, "bootToScene", text="Boot To Scene (HackerOOT)")
+            if bootOptions.bootToScene:
+                hackerOoTBox.prop(bootOptions, "newGameOnly")
+                prop_split(hackerOoTBox, bootOptions, "bootMode", "Boot Mode")
+                if bootOptions.bootMode == "Play":
+                    prop_split(hackerOoTBox, bootOptions, "newGameName", "New Game Name")
+                if bootOptions.bootMode != "Map Select":
+                    prop_split(hackerOoTBox, bootOptions, "spawnIndex", "Spawn")
+                    hackerOoTBox.prop(bootOptions, "overrideHeader")
+                    if bootOptions.overrideHeader:
+                        prop_split(hackerOoTBox, bootOptions, "headerOption", "Header Option")
+                        if bootOptions.headerOption == "Cutscene":
+                            prop_split(hackerOoTBox, bootOptions, "cutsceneIndex", "Cutscene Index")
+            hackerOoTBox.label(text="Note: Scene boot config changes aren't detected by the make process.", icon="ERROR")
+            hackerOoTBox.operator(OOT_ClearBootupScene.bl_idname, text="Undo Boot To Scene (HackerOOT Repo)")
+
+        col.operator(OOT_ExportScene.bl_idname)
+
+
+class OOT_ImportScenePanel(OOT_Panel):
+    bl_idname = "OOT_PT_import_level"
+    bl_label = "OOT Scene Importer"
+
+    def draw(self, context):
+        col = self.layout.column()
+
         importSettings: OOTImportSceneSettingsProperty = context.scene.ootSceneImportSettings
-        importOp: OOT_ImportScene = col.operator(OOT_ImportScene.bl_idname)
+
         if not importSettings.isCustomDest:
-            self.drawSceneSearchOp(col, context, importSettings.option, "Import")
+            drawSceneSearchOp(col, importSettings.option, "Import")
+
         importSettings.draw(col, importSettings.option)
+        col.operator(OOT_ImportScene.bl_idname)
+
+
+class OOT_RemoveScenePanel(OOT_Panel):
+    bl_idname = "OOT_PT_remove_level"
+    bl_label = "OOT Remove Scene"
+
+    def draw(self, context):
+        col = self.layout.column()
 
         removeSettings: OOTRemoveSceneSettingsProperty = context.scene.ootSceneRemoveSettings
-        removeOp: OOT_RemoveScene = col.operator(OOT_RemoveScene.bl_idname, text="Remove Scene")
-        self.drawSceneSearchOp(col, context, removeSettings.option, "Remove")
+        drawSceneSearchOp(col, removeSettings.option, "Remove")
+
+        if removeSettings.option == "Custom":
+            prop_split(col, removeSettings, "subFolder", "Subfolder")
+            prop_split(col, removeSettings, "name", "Name")
+
+            exportPath = (
+                context.scene.ootDecompPath + f"assets/scenes/{removeSettings.subFolder}/{removeSettings.name}/"
+            )
+
+        removeRow = col.row()
+        removeRow.operator(OOT_RemoveScene.bl_idname, text="Remove Scene")
+
+        if removeSettings.option == "Custom" and not os.path.exists(exportPath):
+            removeRow.enabled = False
+            col.label(text="This path doesn't exists.")
+        else:
+            removeRow.enabled = True
 
 
 oot_level_classes = (
@@ -1068,7 +1105,11 @@ oot_level_classes = (
     OOT_RemoveScene,
 )
 
-oot_level_panel_classes = (OOT_ExportScenePanel,)
+oot_level_panel_classes = (
+    OOT_ExportScenePanel,
+    OOT_ImportScenePanel,
+    OOT_RemoveScenePanel,
+)
 
 
 def oot_level_panel_register():
