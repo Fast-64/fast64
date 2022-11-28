@@ -656,6 +656,10 @@ class F3DPanel(bpy.types.Panel):
         return inputGroup
 
     def ui_lower_render_mode(self, material, layout, useDropdown):
+        # don't render if the render mode isn't use by the material, aka copy/fill mode
+        if material.rdp_settings.g_mdsft_cycletype in ["G_CYC_COPY", "G_CYC_FILL"]:
+            layout.label(text=f"Render Modes are not used in cycle mode {material.rdp_settings.g_mdsft_cycletype.replace('G_CYC_', '')}", icon="HELP")
+            return
         # cycle independent
         inputGroup = layout.column()
         if useDropdown:
@@ -672,11 +676,13 @@ class F3DPanel(bpy.types.Panel):
             renderGroup = inputGroup.column()
             renderGroup.prop(render_mode, "rendermode_advanced_enabled", text="Show Advanced Settings")
             if not render_mode.rendermode_advanced_enabled:
-                prop_split(renderGroup, render_mode, "rendermode_preset_cycle_1", "Render Mode")
+                box = renderGroup.box()
+                box.label(text="Render Mode Presets")
+                prop_split(box, render_mode, "rendermode_preset_cycle_1", "Render Mode")
                 if material.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE":
-                    prop_split(renderGroup, render_mode, "rendermode_preset_cycle_2", "Render Mode Cycle 2")
-                if render_mode.render_custom:
-                    render_mode.draw_UI_combinatoric(renderGroup, material.rdp_settings)
+                    prop_split(box, render_mode, "rendermode_preset_cycle_2", "Render Mode Cycle 2")
+                renderGroup.separator()
+                render_mode.draw_UI_combinatoric(renderGroup, material.rdp_settings)
             else:
                 render_mode.draw_UI_adv_set(renderGroup)
 
@@ -2452,6 +2458,65 @@ class PrimDepthSettings(bpy.types.PropertyGroup):
 
 
 class RenderModeProperty(bpy.types.PropertyGroup):
+    def update_combinatoric_from_enum(self, context):
+        self.prop_lock = True
+        self.missing_RM = False
+        # if cycle1 and cycle2 mismatch, prioritize the 1 cycle value
+        # this is because UI wise, cycle1 is more likely to be the intended choice
+        cycle1 = self.rendermode_preset_cycle_1
+        cycle2 = self.rendermode_preset_cycle_2
+        if cycle1 == "Custom":
+           for enum in enumRenderModesCycle1:
+                if cycle2[:-1] in enum[0]:
+                    self.rendermode_preset_cycle_1 = enum[0]
+        if cycle2 == "Custom":
+            for enum in enumRenderModesCycle2:
+                if cycle1 in enum[0]:
+                    self.rendermode_preset_cycle_2 = enum[0]
+        self.ZB = "ZB" in cycle1 or "ZB" in cycle2
+        # check if one cycle is one of the differing enums, and if it is
+        # use 2nd cycle to find macro flags
+        one_cyc_bhv = [cyc_1[0] for cyc_1 in enum1cycleOpt if cyc_1[0] in cycle1]
+        if not one_cyc_bhv:
+            search_cyc = cycle1
+            self.cycle_mismatch = True
+        else:
+            search_cyc = cycle2
+            self.cycle_1_options = one_cyc_bhv[0]
+            self.cycle_mismatch = False
+        surf_type_enum = [surf[0] for surf in enumSurfType if surf[0] in search_cyc]
+        # this means the user likely chose a mode like G_RM_ADD and there is no equiv in combinatoric options
+        if surf_type_enum:
+            self.surf_type_enum = surf_type_enum[0]
+            self.Z_type_enum = [z_mode[0] for z_mode in enumZType if z_mode[0] in search_cyc][0]
+            aa_enum = [AA_mode[0] for AA_mode in enumAAType if AA_mode[0] in search_cyc]
+            if not aa_enum:
+                self.aa_enum = "None"
+            else:
+                self.aa_enum = [AA_mode[0] for AA_mode in enumAAType if AA_mode[0] in search_cyc][0]
+        self.set_flags_from_macro()
+        update_node_values_with_preset(self, context)
+        self.prop_lock = False
+
+    def update_enum_from_combinatoric(self, context):
+        if self.prop_lock:
+            return
+        self.prop_lock = True
+        self.cycle_mismatch = False
+        self.rendermode_preset_cycle_1 = "Custom"
+        self.rendermode_preset_cycle_2 = "Custom"
+        self.missing_RM = not self.set_flags_from_macro()  # set adv flags and give warning if needed
+        update_node_values_with_preset(self, context)
+        self.prop_lock = False
+    
+    def set_preset_enum_1(self, context):
+        if self.rendermode_preset_cycle_1 != "Custom" and not self.prop_lock:
+            self.update_combinatoric_from_enum(context)
+    
+    def set_preset_enum_2(self, context):
+        if self.rendermode_preset_cycle_2 != "Custom" and not self.prop_lock:
+            self.update_combinatoric_from_enum(context)
+
     # cycle independent
     set_rendermode: bpy.props.BoolProperty(
         default=False,
@@ -2465,13 +2530,13 @@ class RenderModeProperty(bpy.types.PropertyGroup):
         items=enumRenderModesCycle1,
         default="G_RM_AA_ZB_OPA_SURF",
         name="Render Mode Cycle 1",
-        update=update_node_values_with_preset,
+        update=set_preset_enum_1,
     )
     rendermode_preset_cycle_2: bpy.props.EnumProperty(
         items=enumRenderModesCycle2,
         default="G_RM_AA_ZB_OPA_SURF2",
         name="Render Mode Cycle 2",
-        update=update_node_values_with_preset,
+        update=set_preset_enum_2,
     )
     aa_en: bpy.props.BoolProperty(
         update=update_node_values_with_preset,
@@ -2512,28 +2577,28 @@ class RenderModeProperty(bpy.types.PropertyGroup):
         items=enumSurfType,
         default="SURF",
         name="Surface Type",
-        update=update_node_values_with_preset,
+        update=update_enum_from_combinatoric,
     )
     aa_enum: bpy.props.EnumProperty(
         items=enumAAType,
         default="AA",
         name="AA Type",
-        update=update_node_values_with_preset,
+        update=update_enum_from_combinatoric,
     )
     Z_type_enum: bpy.props.EnumProperty(
         items=enumZType,
         default="OPA",
         name="AA Type",
-        update=update_node_values_with_preset,
+        update=update_enum_from_combinatoric,
     )
     ZB: bpy.props.BoolProperty(
-        update=update_node_values_with_preset,
+        update=update_enum_from_combinatoric,
     )
     cycle_1_options: bpy.props.EnumProperty(
         items=enum1cycleOpt,
-        default="Copy",
+        default="PASS",
         name="1 Cycle Option",
-        update=update_node_values_with_preset,
+        update=update_enum_from_combinatoric,
     )
 
     # cycle dependent - (P * A + M - B) / (A + B)
@@ -2577,20 +2642,38 @@ class RenderModeProperty(bpy.types.PropertyGroup):
         items=enumBlendMix,
         update=update_node_values_with_preset,
     )
-    
+    # internal flags on whether to display warnings
+    cycle_mismatch: bpy.props.BoolProperty(
+        default = False
+    )
+    missing_RM: bpy.props.BoolProperty(
+        default = False
+    )
+    two_cycle: bpy.props.BoolProperty(
+        default = False
+    )
+    # flag used for optimization of prop callbacks to prevent repeated updates
+    prop_lock: bpy.props.BoolProperty(
+        default = False
+    )
+
     @property
     def render_custom(self):
         return self.rendermode_preset_cycle_1 == "Custom" or self.rendermode_preset_cycle_2 == "Custom"
-    
-    def get_render_mode(self, rdp_settings):
-        if rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE":
+
+    def get_render_mode(self, rdp_settings = None):
+        if rdp_settings:
+            G_CYC_2CYCLE = rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+        else:
+            G_CYC_2CYCLE = self.two_cycle
+        if G_CYC_2CYCLE:
             if self.render_custom:
-                return (self.get_combinatoric_render_mode_1_cycle, self.get_combinatoric_render_mode + "2")
+                return (self.get_combinatoric_render_mode_1_cycle(), self.get_combinatoric_render_mode() + "2")
             else:
                 return (self.rendermode_preset_cycle_1, self.rendermode_preset_cycle_2)
         else:
             if self.render_custom:
-                return (self.get_combinatoric_render_mode, self.get_combinatoric_render_mode + "2")
+                return (self.get_combinatoric_render_mode(), self.get_combinatoric_render_mode() + "2")
             else:
                 cycle2 = self.rendermode_preset_cycle_1 + "2"
                 if cycle2 not in [value[0] for value in enumRenderModesCycle2]:
@@ -2598,16 +2681,13 @@ class RenderModeProperty(bpy.types.PropertyGroup):
                 return (self.rendermode_preset_cycle_1, cycle2)
 
     def get_combinatoric_render_mode_1_cycle(self):
-        if self.cycle_1_options == "Copy":
-            return self.get_combinatoric_render_mode()
-        else:
-            Modes = {
-                "Fog_Shade": "G_RM_FOG_SHADE_A",
-                "Fog_Prim": "G_RM_FOG_PRIM_A",
-                "Pass": "G_RM_PASS",
-                "Noop": "G_RM_NOOP"
-            }
-            return Modes.get(self.cycle_1_options)
+        Modes = {
+            "FOG_SHADE": "G_RM_FOG_SHADE_A",
+            "FOG_PRIM": "G_RM_FOG_PRIM_A",
+            "PASS": "G_RM_PASS",
+            "NOOP": "G_RM_NOOP"
+        }
+        return Modes.get(self.cycle_1_options)
 
     def get_combinatoric_render_mode(self):
         if self.aa_enum != "None":
@@ -2618,33 +2698,110 @@ class RenderModeProperty(bpy.types.PropertyGroup):
             surf_type = "EDGE"
         else:
             surf_type = self.surf_type_enum
-        return f"G_RM_{'ZB_'*self.ZB}{aa_type}{self.Z_type_enum}_{surf_type}"
+        return f"G_RM_{aa_type}{'ZB_'*self.ZB}{self.Z_type_enum}_{surf_type}"
+    
+    def get_flags_from_macro(self)-> dict:
+        f3d = get_F3D_GBI()
+        render_mode = self.get_render_mode()
+        flags1 = getattr(f3d, render_mode[0], None)
+        flags2 = getattr(f3d, render_mode[1], None)
+        if flags1 == None or flags2 == None:
+            # uh oh stinky
+            return None
+        bit_flags = dict()
+        for flag_set, shifts, blend_fields in ((flags1, (30, 26, 22, 18), self.bend_fields_1()), (flags2, (28, 24, 20, 16), self.bend_fields_2())):
+            if flag_set:
+               bit_flags.update( {prop:self.get_flag_from_macro(f3d, flag_set, prop) for prop in self.fields()} )
+               bit_flags.update( {prop:self.get_flag_from_macro(f3d, flag_set, prop, shift = shift) for shift, prop in zip(shifts, blend_fields)} )
+        return bit_flags
+
+    def get_flag_from_macro(self, f3d, macro: int, prop_path: str, shift: int = 0):
+        enums = propertyGroupGetEnums(self, prop_path)
+        if enums:
+            enums = {getattr(f3d, enum, None):enum for enum in enums}
+            for enum_val, name in enums.items():
+                if macro & (enum_val << shift) != 0:
+                    return name
+            return enums[0]
+        # path resolves to bool prop
+        prop_val = getattr(f3d, prop_path.upper(), None)
+        if prop_val:
+            return macro & (prop_val << shift) != 0
+
+    def set_flags_from_macro(self):
+        flags = self.get_flags_from_macro()
+        if flags:
+            f3d = get_F3D_GBI()
+            for prop_path, value in flags.items():
+                setattr(self, prop_path, value)
+            return True
     
     def draw_UI_combinatoric(self, layout, rdp_settings):
+        comb_sel = layout.box()
+        comb_sel.label(text= "Render Mode Combinatorics")
+        layout.separator()
         curRM = layout.box()
+        curRM.label(text = "Result = ({}, {})".format(*self.get_render_mode()))
         if rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE":
-            curRM.label(text = self.get_combinatoric_render_mode_1_cycle())
-            curRM.label(text = self.get_combinatoric_render_mode() + "2")
-            prop_split(layout, self, "cycle_1_options", "1 Cycle Options")
-        else:
-            curRM.label(text = self.get_combinatoric_render_mode())
-        prop_split(layout, self, "ZB", "Use Zbuffer")
-        prop_split(layout, self, "aa_enum", "Anti Alias Type")
-        prop_split(layout, self, "Z_type_enum", "Z Type")
-        prop_split(layout, self, "surf_type_enum", "Surf Type")
-    
+            if self.cycle_mismatch:
+                curRM.alert = True
+                curRM.label(text="WARNING: 2 Cycle Render Mode chosen and common 1 cycle enum is not used, high potential for invalid graphics.", icon="LIBRARY_DATA_BROKEN")
+                curRM.alert = False
+                curRM.label(text="Choose Fog Shade, Pass or No Op on 1 cycle for proper 2 cycle behavior.", icon="HELP")
+            prop_split(comb_sel, self, "cycle_1_options", "1 Cycle Options")
+        if self.missing_RM:
+                curRM.alert = True
+                curRM.label(text="WARNING: Chosen Render Mode does not exist in default GBI enums. Potential for compilation errors.", icon="LIBRARY_DATA_BROKEN")
+                curRM.alert = False
+                curRM.label(text="Devs strongly recommend you choose 'Show Advanced Settings' to manually set render mode flags.", icon="HELP")
+        # prop_split(layout, self, "prop_lock", "Lock")  # delete this after dev is done
+        prop_split(comb_sel, self, "ZB", "Use Zbuffer")
+        prop_split(comb_sel, self, "aa_enum", "Anti Alias Type")
+        prop_split(comb_sel, self, "Z_type_enum", "Z Type")
+        prop_split(comb_sel, self, "surf_type_enum", "Surf Type")
+
     def draw_UI_adv_set(self, layout):
         prop_split(layout, self, "aa_en", "Antialiasing")
         prop_split(layout, self, "z_cmp", "Z Testing")
         prop_split(layout, self, "z_upd", "Z Writing")
-        prop_split(layout, self, "im_rd", "Color Image Read")
+        prop_split(layout, self, "im_rd", "Framebuffer Read")
         prop_split(layout, self, "clr_on_cvg", "Color On Coverage")
         prop_split(layout, self, "cvg_dst", "Coverage Destination")
         prop_split(layout, self, "zmode", "Z Mode")
         prop_split(layout, self, "cvg_x_alpha", "Multiply Coverage And Alpha")
         prop_split(layout, self, "alpha_cvg_sel", "Use Coverage For Alpha")
         prop_split(layout, self, "force_bl", "Force Blending")
+
+    def fields(self):
+        return (
+            "aa_en",
+            "z_cmp",
+            "z_upd",
+            "im_rd",
+            "clr_on_cvg",
+            "cvg_dst",
+            "zmode",
+            "cvg_x_alpha",
+            "alpha_cvg_sel",
+            "force_bl",
+            )
     
+    def bend_fields_1(self):
+        return (
+            "blend_p1",
+            "blend_a1",
+            "blend_m1",
+            "blend_b1",
+            )
+    
+    def bend_fields_2(self):
+        return (
+            "blend_p2",
+            "blend_a2",
+            "blend_m2",
+            "blend_b2",
+            )
+
     def key(self):
         setRM = self.set_rendermode
         rmAdv = self.rendermode_advanced_enabled
@@ -2673,7 +2830,12 @@ class RenderModeProperty(bpy.types.PropertyGroup):
             self.rendermode_preset_cycle_2 if setRM and not rmAdv else None,
         )
 
+
 class RDPSettings(bpy.types.PropertyGroup):
+    def update_cycle_type(self, context):
+        self.render_mode.two_cycle = self.g_mdsft_cycletype == "G_CYC_2CYCLE"
+        update_node_values_with_preset(self, context)
+
     g_zbuffer: bpy.props.BoolProperty(
         name="Z Buffer",
         default=True,
@@ -2791,7 +2953,7 @@ class RDPSettings(bpy.types.PropertyGroup):
         name="Cycle Type",
         items=enumCycleType,
         default="G_CYC_1CYCLE",
-        update=update_node_values_with_preset,
+        update=update_cycle_type,
     )
     # v1 only
     g_mdsft_color_dither: bpy.props.EnumProperty(

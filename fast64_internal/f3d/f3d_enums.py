@@ -341,11 +341,10 @@ enumAAType = [
 
 
 enum1cycleOpt = [
-    ("Copy", "Copy", "Copy"),
-    ("Pass", "Pass", "Pass"),
-    ("Noop", "Noop", "Noop"),
-    ("Fog_Shade", "Fog Shade", "Fog Shade"),
-    ("Fog_Prim", "Fog Prim", "Fog Prim"),
+    ("PASS", "Pass", "Pass"),
+    ("NOOP", "Noop", "Noop"),
+    ("FOG_SHADE", "Fog Shade", "Fog Shade"),
+    ("FOG_PRIM", "Fog Prim", "Fog Prim"),
 ]
 
 

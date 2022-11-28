@@ -293,6 +293,15 @@ def propertyGroupEquals(oldProp, newProp):
     return equivalent
 
 
+def propertyGroupGetEnums(prop, enum):
+    """Take a blender property, its enumprop name, and then return a list of the allowed enums"""
+    enumProp = prop.bl_rna.properties.get(enum)
+    if enumProp:
+        if type(enumProp) != bpy.types.EnumProperty:
+            return []
+        return [item.identifier for item in enumProp.enum_items]
+
+
 def writeCData(data, headerPath, sourcePath):
     sourceFile = open(sourcePath, "w", newline="\n", encoding="utf-8")
     sourceFile.write(data.source)
