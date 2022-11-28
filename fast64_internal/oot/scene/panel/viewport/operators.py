@@ -46,7 +46,7 @@ def parseSceneFunc():
     )
 
 
-class OOT_ImportScene(bpy.types.Operator):
+class OOT_ImportScene(Operator):
     """Import an OOT scene from C."""
 
     bl_idname = "object.oot_import_level"
@@ -102,14 +102,14 @@ class OOT_ExportScene(Operator):
             levelName = settings.name
             option = settings.option
             if settings.customExport:
-                exportInfo = ExportInfo(True, abspath(settings.exportPath), None, levelName)
+                exportInfo = ExportInfo(True, bpy.path.abspath(settings.exportPath), None, levelName)
             else:
                 if option == "Custom":
                     subfolder = "assets/scenes/" + settings.subFolder + "/"
                 else:
                     levelName = sceneNameFromID(option)
                     subfolder = None
-                exportInfo = ExportInfo(False, abspath(context.scene.ootDecompPath), subfolder, levelName)
+                exportInfo = ExportInfo(False, bpy.path.abspath(context.scene.ootDecompPath), subfolder, levelName)
 
             bootOptions = context.scene.fast64.oot.bootupSceneOptions
             hackerFeaturesEnabled = context.scene.fast64.oot.hackerFeaturesEnabled
@@ -127,6 +127,10 @@ class OOT_ExportScene(Operator):
 
             self.report({"INFO"}, "Success!")
 
+            # don't select the scene
+            for elem in context.selectable_objects:
+                elem.select_set(False)
+
             context.view_layer.objects.active = activeObj
             if activeObj is not None:
                 activeObj.select_set(True)
@@ -136,6 +140,9 @@ class OOT_ExportScene(Operator):
         except Exception as e:
             if context.mode != "OBJECT":
                 object.mode_set(mode="OBJECT")
+            # don't select the scene
+            for elem in context.selectable_objects:
+                elem.select_set(False)
             context.view_layer.objects.active = activeObj
             if activeObj is not None:
                 activeObj.select_set(True)

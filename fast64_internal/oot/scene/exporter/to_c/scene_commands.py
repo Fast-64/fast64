@@ -1,10 +1,11 @@
-from .....utility import CData
+from .....utility import CData, indent
 
 
 def cmdSoundSettings(scene, header, cmdCount):
     cmd = CData()
     cmd.source = (
-        "\tSCENE_CMD_SOUND_SETTINGS("
+        indent
+        + "SCENE_CMD_SOUND_SETTINGS("
         + ", ".join(
             (
                 str(scene.audioSessionPreset),
@@ -19,14 +20,15 @@ def cmdSoundSettings(scene, header, cmdCount):
 
 def cmdRoomList(scene, header, cmdCount):
     cmd = CData()
-    cmd.source = "\tSCENE_CMD_ROOM_LIST(" + str(len(scene.rooms)) + ", " + scene.roomListName() + "),\n"
+    cmd.source = indent + "SCENE_CMD_ROOM_LIST(" + str(len(scene.rooms)) + ", " + scene.roomListName() + "),\n"
     return cmd
 
 
 def cmdTransiActorList(scene, header, cmdCount):
     cmd = CData()
     cmd.source = (
-        "\tSCENE_CMD_TRANSITION_ACTOR_LIST("
+        indent
+        + "SCENE_CMD_TRANSITION_ACTOR_LIST("
         + str(len(scene.transitionActorList))
         + ", "
         + scene.transitionActorListName(header)
@@ -37,20 +39,21 @@ def cmdTransiActorList(scene, header, cmdCount):
 
 def cmdMiscSettings(scene, header, cmdCount):
     cmd = CData()
-    cmd.source = "\tSCENE_CMD_MISC_SETTINGS(" + str(scene.cameraMode) + ", " + str(scene.mapLocation) + "),\n"
+    cmd.source = indent + "SCENE_CMD_MISC_SETTINGS(" + str(scene.cameraMode) + ", " + str(scene.mapLocation) + "),\n"
     return cmd
 
 
 def cmdColHeader(scene, header, cmdCount):
     cmd = CData()
-    cmd.source = "\tSCENE_CMD_COL_HEADER(&" + scene.collision.headerName() + "),\n"
+    cmd.source = indent + "SCENE_CMD_COL_HEADER(&" + scene.collision.headerName() + "),\n"
     return cmd
 
 
 def cmdEntranceList(scene, header, cmdCount):
     cmd = CData()
     cmd.source = (
-        "\tSCENE_CMD_ENTRANCE_LIST("
+        indent
+        + "SCENE_CMD_ENTRANCE_LIST("
         + (scene.entranceListName(header) if len(scene.entranceList) > 0 else "NULL")
         + "),\n"
     )
@@ -59,20 +62,21 @@ def cmdEntranceList(scene, header, cmdCount):
 
 def cmdSpecialFiles(scene, header, cmdCount):
     cmd = CData()
-    cmd.source = "\tSCENE_CMD_SPECIAL_FILES(" + str(scene.naviCup) + ", " + str(scene.globalObject) + "),\n"
+    cmd.source = indent + "SCENE_CMD_SPECIAL_FILES(" + str(scene.naviCup) + ", " + str(scene.globalObject) + "),\n"
     return cmd
 
 
 def cmdPathList(scene, header, cmdCount):
     cmd = CData()
-    cmd.source = "\tSCENE_CMD_PATH_LIST(" + scene.pathListName(header) + "),\n"
+    cmd.source = indent + "SCENE_CMD_PATH_LIST(" + scene.pathListName(header) + "),\n"
     return cmd
 
 
 def cmdSpawnList(scene, header, cmdCount):
     cmd = CData()
     cmd.source = (
-        "\tSCENE_CMD_SPAWN_LIST("
+        indent
+        + "SCENE_CMD_SPAWN_LIST("
         + str(len(scene.startPositions))
         + ", "
         + (scene.startPositionsName(header) if len(scene.startPositions) > 0 else "NULL")
@@ -84,7 +88,8 @@ def cmdSpawnList(scene, header, cmdCount):
 def cmdSkyboxSettings(scene, header, cmdCount):
     cmd = CData()
     cmd.source = (
-        "\tSCENE_CMD_SKYBOX_SETTINGS("
+        indent
+        + "SCENE_CMD_SKYBOX_SETTINGS("
         + ", ".join(
             (
                 str(scene.skyboxID),
@@ -99,14 +104,15 @@ def cmdSkyboxSettings(scene, header, cmdCount):
 
 def cmdExitList(scene, header, cmdCount):
     cmd = CData()
-    cmd.source = "\tSCENE_CMD_EXIT_LIST(" + scene.exitListName(header) + "),\n"
+    cmd.source = indent + "SCENE_CMD_EXIT_LIST(" + scene.exitListName(header) + "),\n"
     return cmd
 
 
 def cmdLightSettingList(scene, header, cmdCount):
     cmd = CData()
     cmd.source = (
-        "\tSCENE_CMD_ENV_LIGHT_SETTINGS("
+        indent
+        + "SCENE_CMD_ENV_LIGHT_SETTINGS("
         + str(len(scene.lights))
         + ", "
         + (scene.lightListName(header) if len(scene.lights) > 0 else "NULL")
@@ -123,7 +129,7 @@ def cmdCutsceneData(scene, header, cmdCount):
         csname = scene.csWriteObject.name
     elif scene.csWriteType == "Custom":
         csname = scene.csWriteCustom
-    cmd.source = "\tSCENE_CMD_CUTSCENE_DATA(" + csname + "),\n"
+    cmd.source = indent + "SCENE_CMD_CUTSCENE_DATA(" + csname + "),\n"
     return cmd
 
 

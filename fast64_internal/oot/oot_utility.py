@@ -3,11 +3,6 @@ from bpy.utils import register_class, unregister_class
 from .oot_constants import ootSceneIDToName
 from typing import Callable
 
-
-def isPathObject(obj: bpy.types.Object) -> bool:
-    return obj.data is not None and isinstance(obj.data, bpy.types.Curve) and obj.ootSplineProperty.splineType == "Path"
-
-
 from ..utility import (
     PluginError,
     prop_split,
@@ -21,8 +16,10 @@ from ..utility import (
     hexOrDecInt,
 )
 
-# default indentation to use when writing to decomp files
-indent = " " * 4
+
+def isPathObject(obj: bpy.types.Object) -> bool:
+    return obj.data is not None and isinstance(obj.data, bpy.types.Curve) and obj.ootSplineProperty.splineType == "Path"
+
 
 ootSceneDungeons = [
     "bdan",

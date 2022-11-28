@@ -2,11 +2,14 @@ import bpy, os, math, mathutils
 from ..f3d.f3d_gbi import TextureExportSettings
 from ..f3d.f3d_writer import TriangleConverterInfo, saveStaticModel, getInfoDict
 from .room.panel.properties import OOTRoomHeaderProperty, OOTAlternateRoomHeaderProperty
+from .oot_constants import ootSceneIDToName, ootData
 from .oot_cutscene import convertCutsceneObject, readCutsceneData
 from .oot_spline import assertCurveValid, ootConvertPath
 from .oot_model_classes import OOTModel
 from .oot_collision import OOTCameraData, exportCollisionCommon
 from .oot_collision_classes import OOTCameraPosData, OOTWaterBox, OOTCrawlspaceData, decomp_compat_map_CameraSType
+from .oot_object import addMissingObjectsToAllRoomHeaders
+from .oot_f3d_writer import writeTextureArraysNew, writeTextureArraysExisting1D
 
 from ..utility import (
     PluginError,
@@ -61,7 +64,12 @@ from .oot_level_classes import (
     addStartPosition,
 )
 
-from .oot_f3d_writer import writeTextureArraysNew, writeTextureArraysExisting1D
+
+def sceneNameFromID(sceneID):
+    if sceneID in ootSceneIDToName:
+        return ootSceneIDToName[sceneID]
+    else:
+        raise PluginError("Cannot find scene ID " + str(sceneID))
 
 
 def ootPreprendSceneIncludes(scene, file):
@@ -118,6 +126,13 @@ def ootExportSceneToC(
         exportSubdir = exportInfo.customSubPath
     if not isCustomExport and exportInfo.customSubPath is None:
         exportSubdir = os.path.dirname(getSceneDirFromLevelName(sceneName))
+
+    roomObjList = [
+        obj for obj in originalSceneObj.children_recursive if obj.data is None and obj.ootEmptyType == "Room"
+    ]
+    for roomObj in roomObjList:
+        room = scene.rooms[roomObj.ootRoomHeader.roomIndex]
+        addMissingObjectsToAllRoomHeaders(roomObj, room, ootData)
 
     sceneInclude = exportSubdir + "/" + sceneName + "/"
     levelPath = ootGetPath(exportPath, isCustomExport, exportSubdir, sceneName, True, True)
@@ -372,9 +387,22 @@ def readRoomData(
     room.disableSkybox = roomHeader.disableSkybox
     room.disableSunMoon = roomHeader.disableSunMoon
     room.echo = roomHeader.echo
-    room.objectList.extend([getCustomProperty(item, "objectID") for item in roomHeader.objectList])
 
-    if len(room.objectList) > 16:
+    for obj in roomHeader.objectList:
+        # export using the key if the legacy prop isn't present
+        if "objectID" not in obj:
+            if obj.objectKey != "Custom":
+                objectID = ootData.objectData.objectsByKey[obj.objectKey].id
+            else:
+                objectID = obj.objectIDCustom
+        else:
+            objectID = ootData.objectData.ootEnumObjectIDLegacy[obj["objectID"]][0]
+            if objectID == "Custom":
+                objectID = obj.objectIDCustom
+
+        room.objectIDList.append(objectID)
+
+    if len(room.objectIDList) > 16:
         print(
             "Warning: A room can only have a maximum of 16 objects in its object list, unless more memory is allocated in code.",
         )
@@ -487,7 +515,7 @@ def ootConvertScene(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneNam
     if bpy.context.scene.exportHiddenGeometry:
         hideObjsInList(hiddenObjs)
 
-    roomObjs = [child for child in sceneObj.children if child.data is None and child.ootEmptyType == "Room"]
+    roomObjs = [child for child in sceneObj.children_recursive if child.data is None and child.ootEmptyType == "Room"]
     if len(roomObjs) == 0:
         raise PluginError("The scene has no child empties with the 'Room' empty type.")
 
@@ -496,7 +524,7 @@ def ootConvertScene(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneNam
         readSceneData(scene, sceneObj.fast64.oot.scene, sceneObj.ootSceneHeader, sceneObj.ootAlternateSceneHeaders)
         processedRooms = set()
 
-        for obj in sceneObj.children:
+        for obj in sceneObj.children_recursive:
             translation, rotation, scale, orientedRotation = getConvertedTransform(transformMatrix, sceneObj, obj, True)
 
             if obj.data is None and obj.ootEmptyType == "Room":
@@ -732,45 +760,53 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
     if obj.data is None:
         if obj.ootEmptyType == "Actor":
             actorProp = obj.ootActorProperty
-            addActor(
-                room,
-                OOTActor(
-                    getCustomProperty(actorProp, "actorID"),
-                    translation,
-                    rotation,
-                    actorProp.actorParam,
-                    None
-                    if not actorProp.rotOverride
-                    else (actorProp.rotOverrideX, actorProp.rotOverrideY, actorProp.rotOverrideZ),
-                ),
-                actorProp,
-                "actorList",
-                obj.name,
-            )
+
+            # The Actor list is filled with ``("None", f"{i} (Deleted from the XML)", "None")`` for
+            # the total number of actors defined in the XML. If the user deletes one, this will prevent
+            # any data loss as Blender saves the index of the element in the Actor list used for the EnumProperty
+            # and not the identifier as defined by the first element of the tuple. Therefore, we need to check if
+            # the current Actor has the ID `None` to avoid export issues.
+            if actorProp.actorID != "None":
+                addActor(
+                    room,
+                    OOTActor(
+                        getCustomProperty(actorProp, "actorID"),
+                        translation,
+                        rotation,
+                        actorProp.actorParam,
+                        None
+                        if not actorProp.rotOverride
+                        else (actorProp.rotOverrideX, actorProp.rotOverrideY, actorProp.rotOverrideZ),
+                    ),
+                    actorProp,
+                    "actorList",
+                    obj.name,
+                )
         elif obj.ootEmptyType == "Transition Actor":
             transActorProp = obj.ootTransitionActorProperty
-            if transActorProp.dontTransition:
-                front = (255, getCustomProperty(transActorProp, "cameraTransitionBack"))
-                back = (room.roomIndex, getCustomProperty(transActorProp, "cameraTransitionFront"))
-            else:
-                front = (room.roomIndex, getCustomProperty(transActorProp, "cameraTransitionFront"))
-                back = (transActorProp.roomIndex, getCustomProperty(transActorProp, "cameraTransitionBack"))
-            addActor(
-                scene,
-                OOTTransitionActor(
-                    getCustomProperty(transActorProp.actor, "actorID"),
-                    front[0],
-                    back[0],
-                    front[1],
-                    back[1],
-                    translation,
-                    rotation[1],  # TODO: Correct axis?
-                    transActorProp.actor.actorParam,
-                ),
-                transActorProp.actor,
-                "transitionActorList",
-                obj.name,
-            )
+            if transActorProp.actor.actorID != "None":
+                if transActorProp.dontTransition:
+                    front = (255, getCustomProperty(transActorProp, "cameraTransitionBack"))
+                    back = (room.roomIndex, getCustomProperty(transActorProp, "cameraTransitionFront"))
+                else:
+                    front = (room.roomIndex, getCustomProperty(transActorProp, "cameraTransitionFront"))
+                    back = (transActorProp.roomIndex, getCustomProperty(transActorProp, "cameraTransitionBack"))
+                addActor(
+                    scene,
+                    OOTTransitionActor(
+                        getCustomProperty(transActorProp.actor, "actorID"),
+                        front[0],
+                        back[0],
+                        front[1],
+                        back[1],
+                        translation,
+                        rotation[1],  # TODO: Correct axis?
+                        transActorProp.actor.actorParam,
+                    ),
+                    transActorProp.actor,
+                    "transitionActorList",
+                    obj.name,
+                )
         elif obj.ootEmptyType == "Entrance":
             entranceProp = obj.ootEntranceProperty
             spawnIndex = obj.ootEntranceProperty.spawnIndex

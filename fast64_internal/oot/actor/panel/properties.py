@@ -3,7 +3,7 @@ from bpy.types import Operator, Object, PropertyGroup
 from bpy.utils import register_class, unregister_class
 from bpy.props import EnumProperty, StringProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
 from ....utility import PluginError
-from ...oot_constants import ootEnumActorID, ootEnumSceneSetupPreset, ootEnumCamTransition
+from ...oot_constants import ootData, ootEnumSceneSetupPreset, ootEnumCamTransition
 
 
 class OOT_SearchActorIDEnumOperator(Operator):
@@ -12,7 +12,7 @@ class OOT_SearchActorIDEnumOperator(Operator):
     bl_property = "actorID"
     bl_options = {"REGISTER", "UNDO"}
 
-    actorID: EnumProperty(items=ootEnumActorID, default="ACTOR_PLAYER")
+    actorID: EnumProperty(items=ootData.actorData.ootEnumActorID, default="ACTOR_PLAYER")
     actorUser: StringProperty(default="Actor")
     objName: StringProperty()
 
@@ -42,7 +42,9 @@ class OOTActorHeaderItemProperty(PropertyGroup):
 
 
 class OOTActorHeaderProperty(PropertyGroup):
-    sceneSetupPreset: EnumProperty(name="Scene Setup Preset", items=ootEnumSceneSetupPreset, default="All Scene Setups")
+    sceneSetupPreset: EnumProperty(
+        name="Scene Setup Preset", items=ootEnumSceneSetupPreset, default="All Scene Setups"
+    )
     childDayHeader: BoolProperty(name="Child Day Header", default=True)
     childNightHeader: BoolProperty(name="Child Night Header", default=True)
     adultDayHeader: BoolProperty(name="Adult Day Header", default=True)
@@ -63,7 +65,7 @@ class OOTActorHeaderProperty(PropertyGroup):
 
 
 class OOTActorProperty(PropertyGroup):
-    actorID: EnumProperty(name="Actor", items=ootEnumActorID, default="ACTOR_PLAYER")
+    actorID: EnumProperty(name="Actor", items=ootData.actorData.ootEnumActorID, default="ACTOR_PLAYER")
     actorIDCustom: StringProperty(name="Actor ID", default="ACTOR_PLAYER")
     actorParam: StringProperty(name="Actor Parameter", default="0x0000")
     rotOverride: BoolProperty(name="Override Rotation", default=False)
@@ -111,9 +113,9 @@ def actor_props_classes_register():
 
 
 def actor_props_classes_unregister():
-    del bpy.types.Object.ootActorProperty
-    del bpy.types.Object.ootTransitionActorProperty
-    del bpy.types.Object.ootEntranceProperty
+    del Object.ootActorProperty
+    del Object.ootTransitionActorProperty
+    del Object.ootEntranceProperty
 
     for cls in reversed(classes):
         unregister_class(cls)

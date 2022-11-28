@@ -1,6 +1,6 @@
-from .oot_constants import ootEnumActorID
 from ..utility import prop_split, label_split
 from .actor.panel.properties import OOT_SearchActorIDEnumOperator
+from .oot_constants import ootData
 
 from .oot_utility import (
     getRoomObj,
@@ -74,8 +74,13 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName):
     searchOp.objName = objName
 
     split = actorIDBox.split(factor=0.5)
+
+    if actorProp.actorID == "None":
+        actorIDBox.box().label(text="This Actor was deleted from the XML file.")
+        return
+
     split.label(text="Actor ID")
-    split.label(text=getEnumName(ootEnumActorID, actorProp.actorID))
+    split.label(text=getEnumName(ootData.actorData.ootEnumActorID, actorProp.actorID))
 
     if actorProp.actorID == "Custom":
         # actorIDBox.prop(actorProp, 'actorIDCustom', text = 'Actor ID')
@@ -95,16 +100,13 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName):
 
 def drawTransitionActorProperty(layout, transActorProp, altSceneProp, roomObj, objName):
     actorIDBox = layout.column()
-    # actorIDBox.box().label(text = "Properties")
-    # prop_split(actorIDBox, transActorProp, 'actorID', 'Actor')
-    # actorIDBox.box().label(text = "Actor ID: " + getEnumName(ootEnumActorID, transActorProp.actor.actorID))
     searchOp = actorIDBox.operator(OOT_SearchActorIDEnumOperator.bl_idname, icon="VIEWZOOM")
     searchOp.actorUser = "Transition Actor"
     searchOp.objName = objName
 
     split = actorIDBox.split(factor=0.5)
     split.label(text="Actor ID")
-    split.label(text=getEnumName(ootEnumActorID, transActorProp.actor.actorID))
+    split.label(text=getEnumName(ootData.actorData.ootEnumActorID, transActorProp.actor.actorID))
 
     if transActorProp.actor.actorID == "Custom":
         prop_split(actorIDBox, transActorProp.actor, "actorIDCustom", "")

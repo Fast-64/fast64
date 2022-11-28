@@ -1,4 +1,5 @@
-from ..utility import PluginError, CData, toAlnum
+import bpy, os, shutil
+from ..utility import PluginError, CData, toAlnum, indent
 from .oot_collision_classes import OOTCollision
 from .oot_model_classes import OOTModel
 from ..f3d.f3d_gbi import (
@@ -7,18 +8,17 @@ from ..f3d.f3d_gbi import (
     GfxListTag,
     GfxList,
 )
-import bpy, os, shutil
 
 
 class OOTCommonCommands:
     def cmdAltHeaders(self, name, altName, header, cmdCount):
         cmd = CData()
-        cmd.source = "\tSCENE_CMD_ALTERNATE_HEADER_LIST(" + altName + "),\n"
+        cmd.source = indent + "SCENE_CMD_ALTERNATE_HEADER_LIST(" + altName + "),\n"
         return cmd
 
     def cmdEndMarker(self, name, header, cmdCount):
         cmd = CData()
-        cmd.source = "\tSCENE_CMD_END(),\n"
+        cmd.source = indent + "SCENE_CMD_END(),\n"
         return cmd
 
 
@@ -496,7 +496,7 @@ class OOTRoom(OOTCommonCommands):
         # Echo
         self.echo = 0x00
 
-        self.objectList = []
+        self.objectIDList = []
 
         self.childNightHeader = None
         self.adultDayHeader = None
@@ -529,6 +529,12 @@ class OOTRoom(OOTCommonCommands):
             and self.adultNightHeader == None
             and len(self.cutsceneHeaders) == 0
         )
+
+    def getObjectLengthDefineName(self, headerIndex: int):
+        return f"LENGTH_{self.objectListName(headerIndex).upper()}"
+
+    def getActorLengthDefineName(self, headerIndex: int):
+        return f"LENGTH_{self.actorListName(headerIndex).upper()}"
 
 
 def addActor(owner, actor, actorProp, propName, actorObjName):

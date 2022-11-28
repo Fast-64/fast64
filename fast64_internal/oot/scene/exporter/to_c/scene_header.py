@@ -1,4 +1,4 @@
-from .....utility import CData
+from .....utility import CData, indent
 from .....f3d.f3d_gbi import ScrollMethod, TextureExportSettings
 from ....oot_f3d_writer import OOTGfxFormatter
 from .scene_pathways import ootPathListToC
@@ -10,12 +10,13 @@ from .scene_commands import ootSceneCommandsToC
 # Light Settings #
 ##################
 def ootVectorToC(vector):
-    return "0x{:02X}, 0x{:02X}, 0x{:02X}".format(vector[0], vector[1], vector[2])
+    return f"0x{vector[0]:02X}, 0x{vector[1]:02X}, 0x{vector[2]:02X}"
 
 
 def ootLightToC(light):
     return (
-        "\t{ "
+        indent
+        + "{ "
         + ", ".join(
             (
                 ootVectorToC(light.ambient),
@@ -25,7 +26,7 @@ def ootLightToC(light):
                 ootVectorToC(light.diffuse1),
                 ootVectorToC(light.fogColor),
                 light.getBlendFogShort(),
-                "0x{:04X}".format(light.fogFar),
+                f"0x{light.fogFar:04X}",
             )
         )
         + " },\n"
@@ -66,7 +67,7 @@ def ootExitListToC(scene, headerIndex):
     data.header = "extern u16 " + scene.exitListName(headerIndex) + "[" + str(len(scene.exitList)) + "];\n"
     data.source = "u16 " + scene.exitListName(headerIndex) + "[" + str(len(scene.exitList)) + "] = {\n"
     for exitEntry in scene.exitList:
-        data.source += "\t" + str(exitEntry.index) + ",\n"
+        data.source += indent + str(exitEntry.index) + ",\n"
     data.source += "};\n\n"
     return data
 
@@ -92,7 +93,7 @@ def ootRoomListHeaderToC(scene):
     if scene.write_dummy_room_list:
         data.source += "// Dummy room list\n"
         data.source += "RomFile " + scene.roomListName() + "[] = {\n"
-        data.source += "\t{0, 0},\n" * len(scene.rooms)
+        data.source += indent + "{0, 0},\n" * len(scene.rooms)
         data.source += "};\n\n"
     else:
         # Write externs for rom segments
@@ -103,7 +104,7 @@ def ootRoomListHeaderToC(scene):
         data.source += "RomFile " + scene.roomListName() + "[] = {\n"
 
         for i in range(len(scene.rooms)):
-            data.source += "\t" + ootRoomListEntryToC(scene.rooms[i])
+            data.source += indent + ootRoomListEntryToC(scene.rooms[i])
         data.source += "};\n\n"
 
     return data
@@ -120,25 +121,25 @@ def ootAlternateSceneMainToC(scene):
     altHeader.source = "SceneCmd* " + scene.alternateHeadersName() + "[] = {\n"
 
     if scene.childNightHeader is not None:
-        altHeader.source += "\t" + scene.sceneName() + "_header" + format(1, "02") + ",\n"
+        altHeader.source += indent + scene.sceneName() + "_header" + format(1, "02") + ",\n"
         altData.append(ootSceneMainToC(scene.childNightHeader, 1))
     else:
-        altHeader.source += "\t0,\n"
+        altHeader.source += indent + "0,\n"
 
     if scene.adultDayHeader is not None:
-        altHeader.source += "\t" + scene.sceneName() + "_header" + format(2, "02") + ",\n"
+        altHeader.source += indent + scene.sceneName() + "_header" + format(2, "02") + ",\n"
         altData.append(ootSceneMainToC(scene.adultDayHeader, 2))
     else:
-        altHeader.source += "\t0,\n"
+        altHeader.source += indent + "0,\n"
 
     if scene.adultNightHeader is not None:
-        altHeader.source += "\t" + scene.sceneName() + "_header" + format(3, "02") + ",\n"
+        altHeader.source += indent + scene.sceneName() + "_header" + format(3, "02") + ",\n"
         altData.append(ootSceneMainToC(scene.adultNightHeader, 3))
     else:
-        altHeader.source += "\t0,\n"
+        altHeader.source += indent + "0,\n"
 
     for i in range(len(scene.cutsceneHeaders)):
-        altHeader.source += "\t" + scene.sceneName() + "_header" + format(i + 4, "02") + ",\n"
+        altHeader.source += indent + scene.sceneName() + "_header" + format(i + 4, "02") + ",\n"
         altData.append(ootSceneMainToC(scene.cutsceneHeaders[i], i + 4))
 
     altHeader.source += "};\n\n"

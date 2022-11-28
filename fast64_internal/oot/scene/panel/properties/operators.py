@@ -27,7 +27,7 @@ class OOT_SearchSceneEnumOperator(Operator):
         else:
             raise Exception(f'Invalid OOT scene search operator name: "{self.opName}"')
 
-        bpy.context.region.tag_redraw()
+        context.region.tag_redraw()
         self.report({"INFO"}, "Selected: " + self.ootSceneID)
         return {"FINISHED"}
 
@@ -49,7 +49,7 @@ class OOT_SearchMusicSeqEnumOperator(Operator):
     def execute(self, context):
         sceneHeader = ootGetSceneOrRoomHeader(bpy.data.objects[self.objName], self.headerIndex, False)
         sceneHeader.musicSeq = self.ootMusicSeq
-        bpy.context.region.tag_redraw()
+        context.region.tag_redraw()
         self.report({"INFO"}, "Selected: " + self.ootMusicSeq)
         return {"FINISHED"}
 

@@ -1,4 +1,4 @@
-from .....utility import CData
+from .....utility import CData, indent
 
 
 def ootPathToC(path, headerIndex: int, index: int):
@@ -7,7 +7,7 @@ def ootPathToC(path, headerIndex: int, index: int):
     data.source = "Vec3s " + path.pathName(headerIndex, index) + "[] = {\n"
     for point in path.points:
         data.source += (
-            "\t"
+            indent
             + "{ "
             + str(int(round(point[0])))
             + ", "
@@ -31,7 +31,7 @@ def ootPathListToC(scene, headerIndex: int):
     sortedPathList = sorted(scene.pathList, key=lambda x: x.objName.lower())
     for i in range(len(sortedPathList)):
         path = sortedPathList[i]
-        data.source += "\t" + "{ " + str(len(path.points)) + ", " + path.pathName(headerIndex, i) + " },\n"
+        data.source += indent + "{ " + str(len(path.points)) + ", " + path.pathName(headerIndex, i) + " },\n"
         pathData.append(ootPathToC(path, headerIndex, i))
     data.source += "};\n\n"
     pathData.append(data)

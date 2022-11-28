@@ -1,16 +1,18 @@
-from .....utility import CData
+from .....utility import CData, indent
+from ....oot_level_classes import OOTRoom
 
 
 def cmdEchoSettings(room, header, cmdCount):
     cmd = CData()
-    cmd.source = "\tSCENE_CMD_ECHO_SETTINGS(" + str(room.echo) + "),\n"
+    cmd.source = indent + "SCENE_CMD_ECHO_SETTINGS(" + str(room.echo) + "),\n"
     return cmd
 
 
 def cmdRoomBehaviour(room, header, cmdCount):
     cmd = CData()
     cmd.source = (
-        "\tSCENE_CMD_ROOM_BEHAVIOR("
+        indent
+        + "SCENE_CMD_ROOM_BEHAVIOR("
         + ", ".join(
             (
                 str(room.roomBehaviour),
@@ -27,7 +29,8 @@ def cmdRoomBehaviour(room, header, cmdCount):
 def cmdSkyboxDisables(room, header, cmdCount):
     cmd = CData()
     cmd.source = (
-        "\tSCENE_CMD_SKYBOX_DISABLES("
+        indent
+        + "SCENE_CMD_SKYBOX_DISABLES("
         + ("true" if room.disableSkybox else "false")
         + ", "
         + ("true" if room.disableSunMoon else "false")
@@ -39,7 +42,8 @@ def cmdSkyboxDisables(room, header, cmdCount):
 def cmdTimeSettings(room, header, cmdCount):
     cmd = CData()
     cmd.source = (
-        "\tSCENE_CMD_TIME_SETTINGS("
+        indent
+        + "SCENE_CMD_TIME_SETTINGS("
         + ", ".join(
             (
                 str(room.timeHours),
@@ -55,7 +59,8 @@ def cmdTimeSettings(room, header, cmdCount):
 def cmdWindSettings(room, header, cmdCount):
     cmd = CData()
     cmd.source = (
-        "\tSCENE_CMD_WIND_SETTINGS("
+        indent
+        + "SCENE_CMD_WIND_SETTINGS("
         + ", ".join(
             (
                 str(room.windVector[0]),
@@ -71,21 +76,33 @@ def cmdWindSettings(room, header, cmdCount):
 
 def cmdMesh(room, header, cmdCount):
     cmd = CData()
-    cmd.source = "\tSCENE_CMD_ROOM_SHAPE(&" + room.mesh.headerName() + "),\n"
+    cmd.source = indent + "SCENE_CMD_ROOM_SHAPE(&" + room.mesh.headerName() + "),\n"
     return cmd
 
 
-def cmdObjectList(room, header, cmdCount):
+def cmdObjectList(room: OOTRoom, headerIndex: int, cmdCount):
     cmd = CData()
     cmd.source = (
-        "\tSCENE_CMD_OBJECT_LIST(" + str(len(room.objectList)) + ", " + str(room.objectListName(header)) + "),\n"
+        indent
+        + "SCENE_CMD_OBJECT_LIST("
+        + room.getObjectLengthDefineName(headerIndex)
+        + ", "
+        + str(room.objectListName(headerIndex))
+        + "),\n"
     )
     return cmd
 
 
-def cmdActorList(room, header, cmdCount):
+def cmdActorList(room: OOTRoom, headerIndex: int, cmdCount):
     cmd = CData()
-    cmd.source = "\tSCENE_CMD_ACTOR_LIST(" + str(len(room.actorList)) + ", " + str(room.actorListName(header)) + "),\n"
+    cmd.source = (
+        indent
+        + "SCENE_CMD_ACTOR_LIST("
+        + room.getActorLengthDefineName(headerIndex)
+        + ", "
+        + str(room.actorListName(headerIndex))
+        + "),\n"
+    )
     return cmd
 
 
@@ -100,7 +117,7 @@ def ootRoomCommandsToC(room, headerIndex):
     if room.setWind:
         commands.append(cmdWindSettings(room, headerIndex, len(commands)))
     commands.append(cmdMesh(room, headerIndex, len(commands)))
-    if len(room.objectList) > 0:
+    if len(room.objectIDList) > 0:
         commands.append(cmdObjectList(room, headerIndex, len(commands)))
     if len(room.actorList) > 0:
         commands.append(cmdActorList(room, headerIndex, len(commands)))

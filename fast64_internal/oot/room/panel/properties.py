@@ -1,6 +1,10 @@
 import bpy
 from bpy.types import PropertyGroup, Operator, UILayout, Image, Object
 from bpy.utils import register_class, unregister_class
+from ....utility import ootGetSceneOrRoomHeader, prop_split
+from ...oot_utility import drawCollectionOps, onMenuTabChange, onHeaderMenuTabChange
+from ...oot_upgrade import upgradeRoomHeaders
+
 from bpy.props import (
     EnumProperty,
     IntProperty,
@@ -11,11 +15,9 @@ from bpy.props import (
     BoolProperty,
     IntVectorProperty,
 )
-from ....utility import ootGetSceneOrRoomHeader, prop_split
-from ...oot_utility import drawCollectionOps, onMenuTabChange, onHeaderMenuTabChange
 
 from ...oot_constants import (
-    ootEnumObjectID,
+    ootData,
     ootEnumRoomMenu,
     ootEnumRoomMenuAlternate,
     ootEnumRoomBehaviour,
@@ -28,19 +30,19 @@ from ...oot_constants import (
 class OOT_SearchObjectEnumOperator(Operator):
     bl_idname = "object.oot_search_object_enum_operator"
     bl_label = "Search Object ID"
-    bl_property = "ootObjectID"
+    bl_property = "objectKey"
     bl_options = {"REGISTER", "UNDO"}
 
-    ootObjectID: EnumProperty(items=ootEnumObjectID, default="OBJECT_HUMAN")
+    objectKey: EnumProperty(items=ootData.objectData.ootEnumObjectKey, default="obj_human")
     headerIndex: IntProperty(default=0, min=0)
     index: IntProperty(default=0, min=0)
     objName: StringProperty()
 
     def execute(self, context):
         roomHeader = ootGetSceneOrRoomHeader(bpy.data.objects[self.objName], self.headerIndex, True)
-        roomHeader.objectList[self.index].objectID = self.ootObjectID
-        bpy.context.region.tag_redraw()
-        self.report({"INFO"}, "Selected: " + self.ootObjectID)
+        roomHeader.objectList[self.index].objectKey = self.objectKey
+        context.region.tag_redraw()
+        self.report({"INFO"}, "Selected: " + self.objectKey)
         return {"FINISHED"}
 
     def invoke(self, context, event):
@@ -50,8 +52,13 @@ class OOT_SearchObjectEnumOperator(Operator):
 
 class OOTObjectProperty(PropertyGroup):
     expandTab: BoolProperty(name="Expand Tab")
-    objectID: EnumProperty(items=ootEnumObjectID, default="OBJECT_HUMAN")
-    objectIDCustom: StringProperty(default="OBJECT_HUMAN")
+    objectKey: EnumProperty(items=ootData.objectData.ootEnumObjectKey, default="obj_human")
+    objectIDCustom: StringProperty(default="OBJECT_CUSTOM")
+
+    @staticmethod
+    def upgrade_object(obj):
+        print(f"Processing '{obj.name}'...")
+        upgradeRoomHeaders(obj, ootData.objectData)
 
 
 class OOTBGProperty(PropertyGroup):

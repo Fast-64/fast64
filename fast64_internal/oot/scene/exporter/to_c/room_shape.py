@@ -1,7 +1,6 @@
-from .....utility import CData, PluginError
+from .....utility import CData, PluginError, indent
 from .....f3d.f3d_gbi import ScrollMethod, TextureExportSettings
 from ....oot_f3d_writer import OOTGfxFormatter
-from ....oot_utility import indent
 from ....oot_constants import ootRoomShapeStructs, ootRoomShapeEntryStructs, ootEnumRoomShapeType
 from ....oot_level_classes import OOTRoom, OOTRoomMeshGroup, OOTRoomMesh
 
@@ -94,7 +93,7 @@ def ootRoomMeshToC(room: OOTRoom, textureExportSettings: TextureExportSettings):
         meshEntries.source = f"{meshEntryType} {mesh.entriesName()}{arrayText} = {{\n"
 
         for entry in mesh.meshEntries:
-            meshEntries.source += "\t" + ootMeshEntryToC(entry, mesh.roomShape)
+            meshEntries.source += indent + ootMeshEntryToC(entry, mesh.roomShape)
             if entry.DLGroup.opaque is not None:
                 meshData.append(entry.DLGroup.opaque.to_c(mesh.model.f3d))
             if entry.DLGroup.transparent is not None:

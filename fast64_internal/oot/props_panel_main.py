@@ -6,6 +6,7 @@ from .oot_constants import ootEnumEmptyType
 from .oot_utility import getSceneObj, getRoomObj
 from .oot_cutscene import drawCutsceneProperty
 from .scene.panel.properties import OOTSceneProperties
+from .room.panel.properties import OOTObjectProperty
 
 from .oot_actor import (
     drawActorProperty,
@@ -77,6 +78,16 @@ def onUpdateOOTEmptyType(self, context):
             setLightPropertyValues(timeOfDayLights.night, [40, 70, 100], [20, 20, 35], [50, 50, 100], [0, 0, 30], 0x3E0)
 
 
+class OOT_ManualUpgrade(bpy.types.Operator):
+    bl_idname = "object.oot_manual_upgrade"
+    bl_label = "Upgrade Fast64 OoT Object Data"
+    bl_options = {"REGISTER", "UNDO", "PRESET"}
+
+    def execute(self, context):
+        OOT_ObjectProperties.upgrade_changed_props()
+        return {"FINISHED"}
+
+
 class OOTObjectPanel(bpy.types.Panel):
     bl_label = "Object Inspector"
     bl_idname = "OBJECT_PT_OOT_Object_Inspector"
@@ -137,10 +148,14 @@ class OOTObjectPanel(bpy.types.Panel):
 
 
 class OOT_ObjectProperties(bpy.types.PropertyGroup):
-    version: bpy.props.IntProperty(name="OOT_ObjectProperties Version", default=0)
-    cur_version = 0  # version after property migration
-
     scene: bpy.props.PointerProperty(type=OOTSceneProperties)
+
+    @staticmethod
+    def upgrade_changed_props():
+        for obj in bpy.data.objects:
+            if obj.data is None:
+                if obj.ootEmptyType == "Room":
+                    OOTObjectProperty.upgrade_object(obj)
 
 
 class OOTCullGroupProperty(bpy.types.PropertyGroup):
@@ -162,6 +177,7 @@ oot_obj_classes = (
     OOTSceneProperties,
     OOT_ObjectProperties,
     OOTCullGroupProperty,
+    OOT_ManualUpgrade,
 )
 
 oot_obj_panel_classes = (OOTObjectPanel,)

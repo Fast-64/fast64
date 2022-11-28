@@ -175,7 +175,6 @@ class OOT_AddPath(Operator):
         curve.primitive_nurbs_path_add(radius=1, align="WORLD", location=location[:])
         pathObj = context.view_layer.objects.active
         pathObj.name = "New Path"
-        pathObj.fast64.oot.version = pathObj.fast64.oot.cur_version
 
         object.select_all(action="DESELECT")
         pathObj.select_set(True)
