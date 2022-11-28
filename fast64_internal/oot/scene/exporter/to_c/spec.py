@@ -118,9 +118,7 @@ def editSpecFile(scene: OOTScene, exportInfo: ExportInfo, sceneC: OOTSceneC):
                 firstIndex += 1
 
     # Write the file data
-    newFileData = "/*\n * ROM spec file\n */\n\n" + "\n".join(
-        "beginseg" + entry + "endseg\n" for entry in specEntries
-    )
+    newFileData = "/*\n * ROM spec file\n */\n\n" + "\n".join("beginseg" + entry + "endseg\n" for entry in specEntries)
 
     if newFileData != fileData:
         writeFile(os.path.join(exportPath, "spec"), newFileData)
