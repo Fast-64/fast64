@@ -1,4 +1,4 @@
-from .data.oot_data import OoT_Data
+from .data import OoT_Data
 
 ootData = OoT_Data()
 

@@ -2,7 +2,7 @@ import bpy
 from bpy.utils import register_class, unregister_class
 from ..utility import PluginError, toAlnum, prop_split
 from .oot_utility import getSceneObj, drawEnumWithCustom
-from .oot_actor import drawActorHeaderProperty, OOTActorHeaderProperty
+from .oot_actor import OOTActorHeaderProperty, drawActorHeaderProperty
 from .oot_collision_classes import ootEnumCameraCrawlspaceSType
 
 

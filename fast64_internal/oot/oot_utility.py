@@ -1,6 +1,7 @@
 import bpy, math, os, re
 from bpy.utils import register_class, unregister_class
 from .oot_constants import ootSceneIDToName
+
 from ..utility import (
     PluginError,
     prop_split,

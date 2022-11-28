@@ -3,9 +3,10 @@ from bpy.types import UILayout
 from typing import Callable
 from ..render_settings import on_update_oot_render_settings
 from ..utility import ootGetSceneOrRoomHeader, prop_split
-from .oot_utility import drawAddButton, drawCollectionOps, drawEnumWithCustom, getEnumName, getSceneObj, getRoomObj
+from .oot_utility import drawAddButton, drawCollectionOps, drawEnumWithCustom, getSceneObj, getRoomObj
 from .oot_cutscene import OOTCSListProperty, drawCSListProperty, drawCSAddButtons
 from .oot_actor import setAllActorsVisibility
+from .oot_upgrade import upgradeRoomHeaders
 
 from .oot_constants import (
     ootData,
@@ -34,8 +35,6 @@ from .oot_constants import (
     ootEnumHeaderMenu,
     ootEnumDrawConfig,
 )
-
-from .oot_upgrade import upgradeRoomHeaders
 
 
 def onUpdateOoTLighting(self, context: bpy.types.Context):

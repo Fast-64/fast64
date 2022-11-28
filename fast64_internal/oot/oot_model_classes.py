@@ -1,22 +1,24 @@
 import bpy, os, re, mathutils
 from typing import Union
+from ..f3d.f3d_parser import F3DContext, F3DTextureReference, getImportData
+from ..f3d.f3d_material import TextureProperty, createF3DMat
+from ..utility import PluginError, CData, hexOrDecInt
+from ..f3d.flipbook import TextureFlipbook, FlipbookProperty, usesFlipbook, ootFlipbookReferenceIsValid
+
 from ..f3d.f3d_writer import (
     VertexGroupInfo,
     TriangleConverterInfo,
-    saveOrGetTextureDefinition,
-    saveOrGetPaletteAndImageDefinition,
-    getTextureNameTexRef,
-    saveOrGetPaletteOnlyDefinition,
     FSharedPalette,
     DPLoadTLUTCmd,
     DPSetTextureLUT,
     DPSetTile,
-    texFormatOf,
     FImageKey,
+    saveOrGetTextureDefinition,
+    saveOrGetPaletteAndImageDefinition,
+    getTextureNameTexRef,
+    saveOrGetPaletteOnlyDefinition,
+    texFormatOf,
 )
-from ..f3d.f3d_parser import F3DContext, F3DTextureReference, getImportData
-from ..f3d.f3d_material import createF3DMat, TextureProperty
-from ..utility import CData, hexOrDecInt, PluginError
 
 from ..f3d.f3d_gbi import (
     FModel,
@@ -31,7 +33,7 @@ from ..f3d.f3d_gbi import (
     GfxFormatter,
     MTX_SIZE,
 )
-from ..f3d.flipbook import TextureFlipbook, FlipbookProperty, usesFlipbook, ootFlipbookReferenceIsValid
+
 
 # read included asset data
 def ootGetIncludedAssetData(basePath: str, currentPaths: list[str], data: str) -> str:

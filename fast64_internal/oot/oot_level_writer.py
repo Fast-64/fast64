@@ -3,14 +3,9 @@ from bpy.utils import register_class, unregister_class
 from ..panels import OOT_Panel
 from ..f3d.f3d_gbi import TextureExportSettings, DLFormat
 from ..f3d.f3d_writer import TriangleConverterInfo, saveStaticModel, getInfoDict
-from .scene.exporter.to_c import (
-    getIncludes,
-    getSceneC,
-    modifySceneTable,
-    editSpecFile,
-    modifySceneFiles,
-    deleteSceneFiles,
-)
+from .oot_object import addMissingObjectsToAllRoomHeaders
+from .oot_level import OOTExportSceneSettingsProperty, OOTImportSceneSettingsProperty, OOTRemoveSceneSettingsProperty
+from .oot_f3d_writer import writeTextureArraysNew, writeTextureArraysExisting1D
 from .oot_constants import ootSceneIDToName, ootEnumSceneID, ootData
 from .oot_scene_room import OOT_SearchSceneEnumOperator, OOTRoomHeaderProperty, OOTAlternateRoomHeaderProperty
 from .oot_cutscene import convertCutsceneObject, readCutsceneData
@@ -27,7 +22,6 @@ from ..utility import (
     checkIdentityRotation,
     hideObjsInList,
     unhideAllAndGetHiddenList,
-    normToSigned8Vector,
     raisePluginError,
     ootGetBaseOrCustomLight,
     exportColor,
@@ -65,7 +59,6 @@ from .oot_utility import (
     getCustomProperty,
     ootConvertTranslation,
     ootConvertRotation,
-    ootSceneDirs,
     getSceneDirFromLevelName,
     isPathObject,
     sceneNameFromID,
@@ -84,10 +77,6 @@ from .oot_level_classes import (
     addActor,
     addStartPosition,
 )
-
-from .oot_object import addMissingObjectsToAllRoomHeaders
-from .oot_level import OOTExportSceneSettingsProperty, OOTImportSceneSettingsProperty, OOTRemoveSceneSettingsProperty
-from .oot_f3d_writer import writeTextureArraysNew, writeTextureArraysExisting1D
 
 
 def sceneNameFromID(sceneID):
