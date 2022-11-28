@@ -35,7 +35,7 @@ def getSceneC(outScene: OOTScene, textureExportSettings: TextureExportSettings):
     """Generates C code for each scene element and returns the data"""
     sceneC = OOTSceneC()
 
-    sceneC.sceneMainC = ootSceneMainToC(outScene, 0)
+    sceneC.sceneMainC = ootSceneMainToC(outScene)
     sceneC.sceneTexturesC = ootSceneTexturesToC(outScene, textureExportSettings)
     sceneC.sceneCollisionC = getSceneCollision(outScene)
     sceneC.sceneCutscenesC = getSceneCutscenes(outScene)

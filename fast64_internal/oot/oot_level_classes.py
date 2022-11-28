@@ -61,8 +61,8 @@ class OOTLight:
         self.fogFar = 0
         self.transitionSpeed = 0
 
-    def getBlendFogShort(self):
-        return "0x{:04X}".format((self.transitionSpeed << 10) | self.fogNear)
+    def getBlendFogNear(self):
+        return f"(({self.transitionSpeed} << 10) | {self.fogNear})"
 
 
 class OOTCSTextbox:
@@ -164,6 +164,7 @@ class OOTScene(OOTCommonCommands):
         self.entranceList = set()
         self.startPositions = {}
         self.lights = []
+        self.lightMode = str()
         self.model = model
         self.collision = OOTCollision(self.name)
 
@@ -182,10 +183,10 @@ class OOTScene(OOTCommonCommands):
         self.musicSeq = None
         self.nightSeq = None
 
-        self.childNightHeader = None
-        self.adultDayHeader = None
-        self.adultNightHeader = None
-        self.cutsceneHeaders = []
+        self.childNightHeader: "OOTScene" = None
+        self.adultDayHeader: "OOTScene" = None
+        self.adultNightHeader: "OOTScene" = None
+        self.cutsceneHeaders: list["OOTScene"] = []
 
         self.exitList = []
         self.pathList = set()
