@@ -182,7 +182,10 @@ def getSceneData(outScene: OOTScene):
 
     altHeaderPtrs = "\n".join(
         indent + f"{curHeader.sceneName()}_header{i:02},"
-        if curHeader is not None else indent + "NULL," if i < 4 else ""
+        if curHeader is not None
+        else indent + "NULL,"
+        if i < 4
+        else ""
         for i, (curHeader, headerDesc) in enumerate(headers, 1)
     )
 

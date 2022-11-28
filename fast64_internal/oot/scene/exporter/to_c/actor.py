@@ -19,9 +19,8 @@ def getActorEntry(actor: OOTActor):
 
     return (
         (f"// {actor.actorName}\n" + indent if actor.actorName != "" else "")
-        + "{\n" + ",\n".join(
-            (indent * 2) + f"/* {desc:10} */ {info}" for desc, info in zip(infoDescs, actorInfos)
-        )
+        + "{\n"
+        + ",\n".join((indent * 2) + f"/* {desc:10} */ {info}" for desc, info in zip(infoDescs, actorInfos))
         + ("\n" + indent + "},\n")
     )
 
@@ -63,9 +62,8 @@ def getTransitionActorEntry(transActor: OOTTransitionActor):
 
     return (
         (f"// {transActor.actorName}\n" + indent if transActor.actorName != "" else "")
-        + "{\n" + ",\n".join(
-            (indent * 2) + f"/* {desc:30} */ {info}" for desc, info in zip(infoDescs, actorInfos)
-        )
+        + "{\n"
+        + ",\n".join((indent * 2) + f"/* {desc:30} */ {info}" for desc, info in zip(infoDescs, actorInfos))
         + ("\n" + indent + "},\n")
     )
 
