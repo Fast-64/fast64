@@ -1,22 +1,100 @@
-from .sm64_f3d_writer import *
-from .sm64_geolayout_writer import *
-from .sm64_geolayout_parser import *
-from .sm64_level_parser import *
-from .sm64_constants import *
-from .sm64_rom_tweaks import *
-from .sm64_anim import *
-from .sm64_geolayout_bone import *
-from .sm64_collision import *
-from .sm64_camera import *
-from .sm64_objects import *
-from .sm64_level_writer import *
-from .sm64_spline import *
-from .sm64_f3d_parser import *
+import bpy
+from bpy.types import Operator, PropertyGroup, Scene
+from bpy.props import BoolProperty, StringProperty, EnumProperty, IntProperty, FloatProperty
+from bpy.utils import register_class, unregister_class
+from bpy.path import abspath
 from ..panels import SM64_Panel, sm64GoalTypeEnum, sm64GoalImport
 from ..render_settings import on_update_render_settings
+from .sm64_level_parser import parseLevelAtPointer
+from .sm64_constants import level_enums, level_pointers, defaultExtendSegment4
 
-import bpy
-from bpy.utils import register_class, unregister_class
+from ..utility import (
+    prop_split,
+    checkExpanded,
+    decodeSegmentedAddr,
+    encodeSegmentedAddr,
+    raisePluginError,
+    enumExportType,
+    enumCompressionFormat,
+)
+
+from .sm64_collision import (
+    sm64_col_panel_register,
+    sm64_col_panel_unregister,
+    sm64_col_register,
+    sm64_col_unregister,
+)
+
+from .sm64_geolayout_bone import (
+    sm64_bone_panel_register,
+    sm64_bone_panel_unregister,
+    sm64_bone_register,
+    sm64_bone_unregister,
+)
+
+from .sm64_camera import (
+    sm64_cam_panel_register,
+    sm64_cam_panel_unregister,
+    sm64_cam_register,
+    sm64_cam_unregister,
+)
+
+from .sm64_objects import (
+    sm64_obj_panel_register,
+    sm64_obj_panel_unregister,
+    sm64_obj_register,
+    sm64_obj_unregister,
+)
+
+from .sm64_geolayout_parser import (
+    sm64_geo_parser_panel_register,
+    sm64_geo_parser_panel_unregister,
+    sm64_geo_parser_register,
+    sm64_geo_parser_unregister,
+)
+
+from .sm64_geolayout_writer import (
+    sm64_geo_writer_panel_register,
+    sm64_geo_writer_panel_unregister,
+    sm64_geo_writer_register,
+    sm64_geo_writer_unregister,
+)
+
+from .sm64_level_writer import (
+    sm64_level_panel_register,
+    sm64_level_panel_unregister,
+    sm64_level_register,
+    sm64_level_unregister,
+)
+
+from .sm64_spline import (
+    sm64_spline_panel_register,
+    sm64_spline_panel_unregister,
+    sm64_spline_register,
+    sm64_spline_unregister,
+)
+
+from .sm64_f3d_parser import (
+    sm64_dl_parser_panel_register,
+    sm64_dl_parser_panel_unregister,
+    sm64_dl_parser_register,
+    sm64_dl_parser_unregister,
+)
+
+from .sm64_f3d_writer import (
+    sm64_dl_writer_panel_register,
+    sm64_dl_writer_panel_unregister,
+    sm64_dl_writer_register,
+    sm64_dl_writer_unregister,
+)
+
+from .sm64_anim import (
+    sm64_anim_panel_register,
+    sm64_anim_panel_unregister,
+    sm64_anim_register,
+    sm64_anim_unregister,
+)
+
 
 enumRefreshVer = [
     ("Refresh 3", "Refresh 3", "Refresh 3"),
@@ -32,21 +110,21 @@ enumRefreshVer = [
 ]
 
 
-class SM64_AddrConv(bpy.types.Operator):
+class SM64_AddrConv(Operator):
     # set bl_ properties
     bl_idname = "object.addr_conv"
     bl_label = "Convert Address"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
 
-    segToVirt: bpy.props.BoolProperty()
+    segToVirt: BoolProperty()
 
     def execute(self, context):
         romfileSrc = None
         try:
             address = int(context.scene.convertibleAddr, 16)
             importRom = context.scene.importRom
-            romfileSrc = open(bpy.path.abspath(importRom), "rb")
-            checkExpanded(bpy.path.abspath(importRom))
+            romfileSrc = open(abspath(importRom), "rb")
+            checkExpanded(abspath(importRom))
             levelParsed = parseLevelAtPointer(romfileSrc, level_pointers[context.scene.levelConvert])
             segmentData = levelParsed.segmentData
             if self.segToVirt:
@@ -133,35 +211,35 @@ def get_legacy_export_type():
     return "C"
 
 
-class SM64_Properties(bpy.types.PropertyGroup):
+class SM64_Properties(PropertyGroup):
     """Global SM64 Scene Properties found under scene.fast64.sm64"""
 
-    version: bpy.props.IntProperty(name="SM64_Properties Version", default=0)
+    version: IntProperty(name="SM64_Properties Version", default=0)
     cur_version = 1  # version after property migration
 
     # UI Selection
-    showImportingMenus: bpy.props.BoolProperty(name="Show Importing Menus", default=False)
-    exportType: bpy.props.EnumProperty(items=enumExportType, name="Export Type", default="C")
-    goal: bpy.props.EnumProperty(items=sm64GoalTypeEnum, name="Export Goal", default="All")
+    showImportingMenus: BoolProperty(name="Show Importing Menus", default=False)
+    exportType: EnumProperty(items=enumExportType, name="Export Type", default="C")
+    goal: EnumProperty(items=sm64GoalTypeEnum, name="Export Goal", default="All")
 
     # TODO: Utilize these across all exports
     # C exporting
-    # useCustomExportLocation = bpy.props.BoolProperty(name = 'Use Custom Export Path')
-    # customExportPath: bpy.props.StringProperty(name = 'Custom Export Path', subtype = 'FILE_PATH')
-    # exportLocation: bpy.props.EnumProperty(items = enumExportHeaderType, name = 'Export Location', default = 'Actor')
-    # useSelectedObjectName = bpy.props.BoolProperty(name = 'Use Name From Selected Object', default=False)
-    # exportName: bpy.props.StringProperty(name='Name', default='mario')
-    # exportGeolayoutName: bpy.props.StringProperty(name='Name', default='mario_geo')
+    # useCustomExportLocation = BoolProperty(name = 'Use Custom Export Path')
+    # customExportPath: StringProperty(name = 'Custom Export Path', subtype = 'FILE_PATH')
+    # exportLocation: EnumProperty(items = enumExportHeaderType, name = 'Export Location', default = 'Actor')
+    # useSelectedObjectName = BoolProperty(name = 'Use Name From Selected Object', default=False)
+    # exportName: StringProperty(name='Name', default='mario')
+    # exportGeolayoutName: StringProperty(name='Name', default='mario_geo')
 
     # Actor exports
-    # exportGroup: bpy.props.StringProperty(name='Group', default='group0')
+    # exportGroup: StringProperty(name='Group', default='group0')
 
     # Level exports
-    # exportLevelName: bpy.props.StringProperty(name = 'Level', default = 'bob')
-    # exportLevelOption: bpy.props.EnumProperty(items = enumLevelNames, name = 'Level', default = 'bob')
+    # exportLevelName: StringProperty(name = 'Level', default = 'bob')
+    # exportLevelOption: EnumProperty(items = enumLevelNames, name = 'Level', default = 'bob')
 
     # Insertable Binary
-    # exportInsertableBinaryPath: bpy.props.StringProperty(name = 'Filepath', subtype = 'FILE_PATH')
+    # exportInsertableBinaryPath: StringProperty(name = 'Filepath', subtype = 'FILE_PATH')
 
     @staticmethod
     def upgrade_changed_props():
@@ -235,10 +313,10 @@ def sm64_register(registerPanels):
     if registerPanels:
         sm64_panel_register()
 
-    bpy.types.Scene.importRom = bpy.props.StringProperty(name="Import ROM", subtype="FILE_PATH")
-    bpy.types.Scene.exportRom = bpy.props.StringProperty(name="Export ROM", subtype="FILE_PATH")
-    bpy.types.Scene.outputRom = bpy.props.StringProperty(name="Output ROM", subtype="FILE_PATH")
-    bpy.types.Scene.extendBank4 = bpy.props.BoolProperty(
+    Scene.importRom = StringProperty(name="Import ROM", subtype="FILE_PATH")
+    Scene.exportRom = StringProperty(name="Export ROM", subtype="FILE_PATH")
+    Scene.outputRom = StringProperty(name="Output ROM", subtype="FILE_PATH")
+    Scene.extendBank4 = BoolProperty(
         name="Extend Bank 4 on Export?",
         default=True,
         description="Sets bank 4 range to ("
@@ -247,19 +325,17 @@ def sm64_register(registerPanels):
         + hex(defaultExtendSegment4[1])
         + ") and copies data from old bank",
     )
-    bpy.types.Scene.convertibleAddr = bpy.props.StringProperty(name="Address")
-    bpy.types.Scene.levelConvert = bpy.props.EnumProperty(items=level_enums, name="Level", default="IC")
-    bpy.types.Scene.refreshVer = bpy.props.EnumProperty(items=enumRefreshVer, name="Refresh", default="Refresh 13")
-    bpy.types.Scene.disableScroll = bpy.props.BoolProperty(name="Disable Scrolling Textures")
+    Scene.convertibleAddr = StringProperty(name="Address")
+    Scene.levelConvert = EnumProperty(items=level_enums, name="Level", default="IC")
+    Scene.refreshVer = EnumProperty(items=enumRefreshVer, name="Refresh", default="Refresh 13")
+    Scene.disableScroll = BoolProperty(name="Disable Scrolling Textures")
 
-    bpy.types.Scene.blenderToSM64Scale = bpy.props.FloatProperty(
+    Scene.blenderToSM64Scale = FloatProperty(
         name="Blender To SM64 Scale", default=100, update=on_update_render_settings
     )
-    bpy.types.Scene.decompPath = bpy.props.StringProperty(name="Decomp Folder", subtype="FILE_PATH")
+    Scene.decompPath = StringProperty(name="Decomp Folder", subtype="FILE_PATH")
 
-    bpy.types.Scene.compressionFormat = bpy.props.EnumProperty(
-        items=enumCompressionFormat, name="Compression", default="mio0"
-    )
+    Scene.compressionFormat = EnumProperty(items=enumCompressionFormat, name="Compression", default="mio0")
 
 
 def sm64_unregister(unregisterPanels):
@@ -281,17 +357,17 @@ def sm64_unregister(unregisterPanels):
     if unregisterPanels:
         sm64_panel_unregister()
 
-    del bpy.types.Scene.importRom
-    del bpy.types.Scene.exportRom
-    del bpy.types.Scene.outputRom
-    del bpy.types.Scene.extendBank4
+    del Scene.importRom
+    del Scene.exportRom
+    del Scene.outputRom
+    del Scene.extendBank4
 
-    del bpy.types.Scene.convertibleAddr
-    del bpy.types.Scene.levelConvert
-    del bpy.types.Scene.refreshVer
+    del Scene.convertibleAddr
+    del Scene.levelConvert
+    del Scene.refreshVer
 
-    del bpy.types.Scene.disableScroll
+    del Scene.disableScroll
 
-    del bpy.types.Scene.blenderToSM64Scale
-    del bpy.types.Scene.decompPath
-    del bpy.types.Scene.compressionFormat
+    del Scene.blenderToSM64Scale
+    del Scene.decompPath
+    del Scene.compressionFormat

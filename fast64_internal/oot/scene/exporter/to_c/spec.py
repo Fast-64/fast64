@@ -31,7 +31,11 @@ def getSpecEntries(fileData: str):
         if "compress" in segData:
             compressFlag = indent + "compress\n"
 
-    return entries, compressFlag
+    includes = []
+    for match in re.finditer("(#include.*)", fileData):
+        includes.append(match.group(0))
+
+    return entries, compressFlag, includes
 
 
 def editSpecFile(scene: OOTScene, exportInfo: ExportInfo, sceneC: OOTSceneC):
@@ -40,7 +44,7 @@ def editSpecFile(scene: OOTScene, exportInfo: ExportInfo, sceneC: OOTSceneC):
     sceneName = scene.name if scene is not None else exportInfo.name
     fileData = readFile(os.path.join(exportPath, "spec"))
 
-    specEntries, compressFlag = getSpecEntries(fileData)
+    specEntries, compressFlag, includes = getSpecEntries(fileData)
     sceneSpecEntries = getSceneSpecEntries(specEntries, sceneName)
 
     if exportInfo.customSubPath is not None:
@@ -118,7 +122,11 @@ def editSpecFile(scene: OOTScene, exportInfo: ExportInfo, sceneC: OOTSceneC):
                 firstIndex += 1
 
     # Write the file data
-    newFileData = "/*\n * ROM spec file\n */\n\n" + "\n".join("beginseg" + entry + "endseg\n" for entry in specEntries)
+    newFileData = (
+        "/*\n * ROM spec file\n */\n\n"
+        + ("\n".join(includes) + "\n\n" if len(includes) > 0 else "")
+        + "\n".join("beginseg" + entry + "endseg\n" for entry in specEntries)
+    )
 
     if newFileData != fileData:
         writeFile(os.path.join(exportPath, "spec"), newFileData)

@@ -203,8 +203,10 @@ def drawObjectProperty(
 
     if isLegacy:
         objectName = ootData.objectData.ootEnumObjectIDLegacy[objectProp["objectID"]][1]
-    else:
+    elif objectProp.objectKey != "Custom":
         objectName = ootData.objectData.objectsByKey[objectProp.objectKey].name
+    else:
+        objectName = objectProp.objectIDCustom
 
     objItemBox = layout.column()
     row = objItemBox.row()
