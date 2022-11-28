@@ -11,18 +11,14 @@ from .scene_commands import getSceneCommandList
 # Light Settings #
 ##################
 def getColorValues(vector: tuple[int, int, int]):
-    """Returns a string from 3 integers"""
-    return ", ".join(f"{v}" for v in vector)
+    return ", ".join(f"{v:5}" for v in vector)
 
 
 def getDirectionValues(vector: tuple[int, int, int]):
-    """Returns a string from 3 integers but apply signed int behavior"""
-    return ", ".join(f"{v - 0x100 if v > 0x7F else v}" for v in vector)
+    return ", ".join(f"{v - 0x100 if v > 0x7F else v:5}" for v in vector)
 
 
 def ootLightToC(light: OOTLight, lightMode: str, index: int):
-    print("light mode: ", lightMode)
-
     vectors = [
         (light.ambient, "Ambient Color", getColorValues),
         (light.diffuseDir0, "Diffuse0 Direction", getDirectionValues),
@@ -46,8 +42,8 @@ def ootLightToC(light: OOTLight, lightMode: str, index: int):
     lightData = (
         (indent + lightDesc)
         + (indent + "{\n")
-        + "".join(indent * 2 + f"{'{ ' + vecToC(vector) + ' },':21} // {desc}\n" for vector, desc, vecToC in vectors)
-        + "".join(indent * 2 + f"{fogValue + ',':21} // {fogDesc}\n" for fogValue, fogDesc in fogData)
+        + "".join(indent * 2 + f"{'{ ' + vecToC(vector) + ' },':26} // {desc}\n" for vector, desc, vecToC in vectors)
+        + "".join(indent * 2 + f"{fogValue + ',':26} // {fogDesc}\n" for fogValue, fogDesc in fogData)
         + (indent + "},\n")
     )
 
@@ -175,17 +171,25 @@ def getHeaderData(header: OOTScene, headerIndex: int):
 def ootSceneMainToC(outScene: OOTScene):
     sceneC = CData()
 
-    headers = [outScene.childNightHeader, outScene.adultDayHeader, outScene.adultNightHeader]
-    headers.extend(outScene.cutsceneHeaders)
+    headers = [
+        (outScene.childNightHeader, "Child Night"),
+        (outScene.adultDayHeader, "Adult Day"),
+        (outScene.adultNightHeader, "Adult Night"),
+    ]
+
+    for i, csHeader in enumerate(outScene.cutsceneHeaders):
+        headers.append((csHeader, f"Cutscene n°{i + 1}"))
 
     altHeaderPtrs = "\n".join(
         indent + f"{curHeader.sceneName()}_header{i:02},"
-        if curHeader is not None else indent + "NULL," if i < 4 else "" for i, curHeader in enumerate(headers, 1)
+        if curHeader is not None else indent + "NULL," if i < 4 else ""
+        for i, (curHeader, headerDesc) in enumerate(headers, 1)
     )
 
-    headers.insert(0, outScene)
-    for i, curHeader in enumerate(headers):
+    headers.insert(0, (outScene, "Child Day (Default)"))
+    for i, (curHeader, headerDesc) in enumerate(headers):
         if curHeader is not None:
+            sceneC.source += "/**\n * " + f"Header {headerDesc}\n" + "*/\n"
             sceneC.append(getSceneCommandList(curHeader, i))
 
             if outScene.hasAlternateHeaders() and i == 0:

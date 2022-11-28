@@ -796,11 +796,14 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
                 if actorProp.rotOverride:
                     actorRot = ", ".join([actorProp.rotOverrideX, actorProp.rotOverrideY, actorProp.rotOverrideZ])
                 else:
-                    actorRot = ", ".join(f"DEG_TO_BINANG({(rot * (180 / 0x8000)):.1f})" for rot in rotation)
+                    actorRot = ", ".join(f"DEG_TO_BINANG({(rot * (180 / 0x8000)):.3f})" for rot in rotation)
 
                 addActor(
                     room,
                     OOTActor(
+                        ootData.actorData.actorsByID[actorProp.actorID].name.replace(
+                            f" - {actorProp.actorID.removeprefix('ACTOR_')}", ""
+                        ),
                         getCustomProperty(actorProp, "actorID"),
                         translation,
                         actorRot,
@@ -822,6 +825,9 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
                 addActor(
                     scene,
                     OOTTransitionActor(
+                        ootData.actorData.actorsByID[transActorProp.actor.actorID].name.replace(
+                            f" - {transActorProp.actor.actorID.removeprefix('ACTOR_')}", ""
+                        ),
                         getCustomProperty(transActorProp.actor, "actorID"),
                         front[0],
                         back[0],
@@ -843,9 +849,10 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
                 scene,
                 spawnIndex,
                 OOTActor(
+                    "",
                     "ACTOR_PLAYER" if not entranceProp.customActor else entranceProp.actor.actorIDCustom,
                     translation,
-                    ", ".join(f"DEG_TO_BINANG({(rot * (180 / 0x8000)):.1f})" for rot in rotation),
+                    ", ".join(f"DEG_TO_BINANG({(rot * (180 / 0x8000)):.3f})" for rot in rotation),
                     entranceProp.actor.actorParam,
                 ),
                 entranceProp.actor,

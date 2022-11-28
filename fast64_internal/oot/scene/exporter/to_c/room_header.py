@@ -37,36 +37,47 @@ def getObjectList(outRoom: OOTRoom, headerIndex: int):
 
 # Room Header
 def getRoomData(outRoom: OOTRoom):
-    roomData = CData()
-    roomHeaders = [outRoom.childNightHeader, outRoom.adultDayHeader, outRoom.adultNightHeader]
-    roomHeaders.extend(outRoom.cutsceneHeaders)
+    roomC = CData()
+
+    roomHeaders = [
+        (outRoom.childNightHeader, "Child Night"),
+        (outRoom.adultDayHeader, "Adult Day"),
+        (outRoom.adultNightHeader, "Adult Night"),
+    ]
+
+    for i, csHeader in enumerate(outRoom.cutsceneHeaders):
+        roomHeaders.append((csHeader, f"Cutscene n°{i + 1}"))
+
     altHeaderPtrListName = f"SceneCmd* {outRoom.alternateHeadersName()}"
 
     # .h
-    roomData.header = f"extern {altHeaderPtrListName}[];\n"
+    roomC.header = f"extern {altHeaderPtrListName}[];\n"
 
     # .c
-    altHeaderPtrList = f"{altHeaderPtrListName}[]" + " = {\n"
-    for i, curHeader in enumerate(roomHeaders, 1):
-        if curHeader is not None:
-            altHeaderPtrList += indent + f"{curHeader.roomName()}_header{i:02},\n"
-        elif i < 4:
-            altHeaderPtrList += indent + "NULL,\n"
-    altHeaderPtrList += "};\n\n"
+    altHeaderPtrList = (
+        f"{altHeaderPtrListName}[]" + " = {\n"
+        + "\n".join(
+            indent + f"{curHeader.roomName()}_header{i:02},"
+            if curHeader is not None else indent + "NULL," if i < 4 else ""
+            for i, (curHeader, headerDesc) in enumerate(roomHeaders, 1)
+        )
+        + "\n};\n\n"
+    )
 
-    roomHeaders.insert(0, outRoom)
-    for i, curHeader in enumerate(roomHeaders):
+    roomHeaders.insert(0, (outRoom, "Child Day (Default)"))
+    for i, (curHeader, headerDesc) in enumerate(roomHeaders):
         if curHeader is not None:
-            roomData.source += getHeaderDefines(curHeader, i)
-            roomData.append(getRoomCommandList(curHeader, i))
+            roomC.source += "/**\n * " + f"Header {headerDesc}\n" + "*/\n"
+            roomC.source += getHeaderDefines(curHeader, i)
+            roomC.append(getRoomCommandList(curHeader, i))
 
             if i == 0 and outRoom.hasAlternateHeaders():
-                roomData.source += altHeaderPtrList
+                roomC.source += altHeaderPtrList
 
             if len(curHeader.objectIDList) > 0:
-                roomData.append(getObjectList(curHeader, i))
+                roomC.append(getObjectList(curHeader, i))
 
             if len(curHeader.actorList) > 0:
-                roomData.append(getActorList(curHeader, i))
+                roomC.append(getActorList(curHeader, i))
 
-    return roomData
+    return roomC

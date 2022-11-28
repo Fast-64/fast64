@@ -19,7 +19,8 @@ class OOTCommonCommands:
 
 
 class OOTActor:
-    def __init__(self, actorID, position, rotation, actorParam):
+    def __init__(self, actorName, actorID, position, rotation, actorParam):
+        self.actorName = actorName
         self.actorID = actorID
         self.actorParam = actorParam
         self.position = position
@@ -27,7 +28,8 @@ class OOTActor:
 
 
 class OOTTransitionActor:
-    def __init__(self, actorID, frontRoom, backRoom, frontCam, backCam, position, rotationY, actorParam):
+    def __init__(self, actorName, actorID, frontRoom, backRoom, frontCam, backCam, position, rotationY, actorParam):
+        self.actorName = actorName
         self.actorID = actorID
         self.actorParam = actorParam
         self.frontRoom = frontRoom
