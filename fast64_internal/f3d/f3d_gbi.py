@@ -2034,6 +2034,7 @@ class GfxList:
     def __init__(self, name, tag, DLFormat):
         self.commands = []
         self.name = name
+        self.comment_name = name  # used as a comment for inline
         self.startAddress = 0
         self.tag = tag
         self.DLFormat = DLFormat
@@ -2099,7 +2100,7 @@ class GfxList:
         data = CData()
         if not self.commands:
             return data
-        data.source = f"\t//Gfx {self.name} inline start\n"
+        data.source = f"\t//Gfx {self.comment_name} inline start\n"
         for command in self.commands:
             data.source += f"\t{command.to_c(True)},\n"
         return data
@@ -2832,7 +2833,8 @@ class FMesh:
         return commands_bled
 
     def bleed_mesh_defaults(self):
-        self.draw.name = f"{self.name}_revert_render_settings"
+        # draw.name is used for geo layouts, but I want a separate name for the bleed revert, so I will use this new prop
+        self.draw.comment_name = f"{self.name}_revert_render_settings"
         # remove DPPipeSync
         while DPPipeSync() in self.draw.commands:
             self.draw.commands.remove(DPPipeSync())
