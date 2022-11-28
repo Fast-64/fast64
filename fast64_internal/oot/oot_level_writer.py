@@ -7,7 +7,7 @@ from .scene.exporter.to_c import (
     getIncludes,
     getSceneC,
     modifySceneTable,
-    modifySegmentDefinition,
+    editSpecFile,
     modifySceneFiles,
     deleteSceneFiles,
 )
@@ -48,7 +48,7 @@ from .scene.exporter.to_c import (
     getIncludes,
     getSceneC,
     modifySceneTable,
-    modifySegmentDefinition,
+    editSpecFile,
     modifySceneFiles,
     deleteSceneFiles,
 )
@@ -258,7 +258,7 @@ def writeTextureArraysExistingScene(fModel: OOTModel, exportPath: str, sceneIncl
 
 def writeOtherSceneProperties(scene, exportInfo, levelC):
     modifySceneTable(scene, exportInfo)
-    modifySegmentDefinition(scene, exportInfo, levelC)
+    editSpecFile(scene, exportInfo, levelC)
     modifySceneFiles(scene, exportInfo)
 
 
@@ -972,7 +972,7 @@ class OOT_ExportScene(bpy.types.Operator):
 
 def ootRemoveSceneC(exportInfo):
     modifySceneTable(None, exportInfo)
-    modifySegmentDefinition(None, exportInfo, None)
+    editSpecFile(None, exportInfo, None)
     deleteSceneFiles(exportInfo)
 
 
