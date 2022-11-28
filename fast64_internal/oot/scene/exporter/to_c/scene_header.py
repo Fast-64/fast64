@@ -18,7 +18,7 @@ def getDirectionValues(vector: tuple[int, int, int]):
     return ", ".join(f"{v - 0x100 if v > 0x7F else v:5}" for v in vector)
 
 
-def ootLightToC(light: OOTLight, lightMode: str, index: int):
+def getLightSettingsEntry(light: OOTLight, lightMode: str, index: int):
     vectors = [
         (light.ambient, "Ambient Color", getColorValues),
         (light.diffuseDir0, "Diffuse0 Direction", getDirectionValues),
@@ -50,7 +50,7 @@ def ootLightToC(light: OOTLight, lightMode: str, index: int):
     return lightData
 
 
-def ootLightSettingsToC(outScene: OOTScene, headerIndex: int):
+def getLightSettings(outScene: OOTScene, headerIndex: int):
     lightSettingsData = CData()
     lightName = f"LightSettings {outScene.lightListName(headerIndex)}[{len(outScene.lights)}]"
 
@@ -60,7 +60,7 @@ def ootLightSettingsToC(outScene: OOTScene, headerIndex: int):
     # .c
     lightSettingsData.source = (
         (lightName + " = {\n")
-        + "".join(ootLightToC(light, outScene.lightMode, i) for i, light in enumerate(outScene.lights))
+        + "".join(getLightSettingsEntry(light, outScene.lightMode, i) for i, light in enumerate(outScene.lights))
         + "};\n\n"
     )
 
@@ -71,14 +71,14 @@ def ootLightSettingsToC(outScene: OOTScene, headerIndex: int):
 # Mesh #
 ########
 # Writes the textures and material setup displaylists that are shared between multiple rooms (is written to the scene)
-def ootSceneTexturesToC(outScene: OOTScene, textureExportSettings: TextureExportSettings) -> CData:
+def getSceneModel(outScene: OOTScene, textureExportSettings: TextureExportSettings) -> CData:
     return outScene.model.to_c(textureExportSettings, OOTGfxFormatter(ScrollMethod.Vertex)).all()
 
 
 #############
 # Exit List #
 #############
-def ootExitListToC(outScene: OOTScene, headerIndex: int):
+def getExitList(outScene: OOTScene, headerIndex: int):
     exitList = CData()
     listName = f"u16 {outScene.exitListName(headerIndex)}[{len(outScene.exitList)}]"
 
@@ -99,7 +99,7 @@ def ootExitListToC(outScene: OOTScene, headerIndex: int):
 #############
 # Room List #
 #############
-def ootRoomListHeaderToC(outScene: OOTScene):
+def getRoomList(outScene: OOTScene):
     roomList = CData()
     listName = f"RomFile {outScene.roomListName()}[]"
 
@@ -155,11 +155,11 @@ def getHeaderData(header: OOTScene, headerIndex: int):
 
     # Write the exit list
     if len(header.exitList) > 0:
-        headerData.append(ootExitListToC(header, headerIndex))
+        headerData.append(getExitList(header, headerIndex))
 
     # Write the light data
     if len(header.lights) > 0:
-        headerData.append(ootLightSettingsToC(header, headerIndex))
+        headerData.append(getLightSettings(header, headerIndex))
 
     # Write the path data, if used
     if len(header.pathList) > 0:
@@ -168,7 +168,7 @@ def getHeaderData(header: OOTScene, headerIndex: int):
     return headerData
 
 
-def ootSceneMainToC(outScene: OOTScene):
+def getSceneData(outScene: OOTScene):
     sceneC = CData()
 
     headers = [
@@ -198,7 +198,7 @@ def ootSceneMainToC(outScene: OOTScene):
                 sceneC.source += altHeaderListName + " = {\n" + altHeaderPtrs + "\n};\n\n"
 
                 # Write the room segment list
-                sceneC.append(ootRoomListHeaderToC(outScene))
+                sceneC.append(getRoomList(outScene))
 
             sceneC.append(getHeaderData(curHeader, i))
 

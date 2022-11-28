@@ -1,7 +1,7 @@
 from .....utility import CData, PluginError
 from .....f3d.f3d_gbi import TextureExportSettings
 from ....oot_level_classes import OOTScene
-from .scene_header import ootSceneMainToC, ootSceneTexturesToC
+from .scene_header import getSceneData, getSceneModel
 from .scene_collision import getSceneCollision
 from .scene_cutscene import getSceneCutscenes
 from .room_header import getRoomData
@@ -35,8 +35,8 @@ def getSceneC(outScene: OOTScene, textureExportSettings: TextureExportSettings):
     """Generates C code for each scene element and returns the data"""
     sceneC = OOTSceneC()
 
-    sceneC.sceneMainC = ootSceneMainToC(outScene)
-    sceneC.sceneTexturesC = ootSceneTexturesToC(outScene, textureExportSettings)
+    sceneC.sceneMainC = getSceneData(outScene)
+    sceneC.sceneTexturesC = getSceneModel(outScene, textureExportSettings)
     sceneC.sceneCollisionC = getSceneCollision(outScene)
     sceneC.sceneCutscenesC = getSceneCutscenes(outScene)
 
