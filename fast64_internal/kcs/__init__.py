@@ -5,6 +5,7 @@ from .kcs_ui import *
 from .kcs_props import *
 from .kcs_operators import *
 from bpy.utils import register_class, unregister_class
+
 # ------------------------------------------------------------------------
 #    Registration
 # ------------------------------------------------------------------------
@@ -43,8 +44,9 @@ kcs_panel_classes = (
     NODE_PT_Panel,
     CAM_PT_Panel,
     COL_PT_Panel,
-    SCROLL_PT_Panel
+    SCROLL_PT_Panel,
 )
+
 
 def kcs_register(registerPanels):
     for cls in kcs_classes:
@@ -52,17 +54,17 @@ def kcs_register(registerPanels):
     if registerPanels:
         for cls in kcs_panel_classes:
             register_class(cls)
-    
 
-    bpy.types.Scene.KCS_scene = PointerProperty(type = KCS_Scene_Props)
-    bpy.types.Curve.KCS_node = PointerProperty(type = NodeProp)
-    bpy.types.Camera.KCS_cam = PointerProperty(type = CamProp)
-    bpy.types.Object.KCS_lvl = PointerProperty(type = LvlProp)
-    bpy.types.Object.KCS_ent = PointerProperty(type = EntProp)
-    bpy.types.Object.KCS_obj = PointerProperty(type = ObjProp)
-    bpy.types.Object.KCS_mesh = PointerProperty(type = MeshProp)
-    bpy.types.Material.KCS_col = PointerProperty(type = ColProp)
-    bpy.types.Material.KCS_tx_scroll = PointerProperty(type = TexScrollProp)
+    bpy.types.Scene.KCS_scene = PointerProperty(type=KCS_Scene_Props)
+    bpy.types.Curve.KCS_node = PointerProperty(type=NodeProp)
+    bpy.types.Camera.KCS_cam = PointerProperty(type=CamProp)
+    bpy.types.Object.KCS_lvl = PointerProperty(type=LvlProp)
+    bpy.types.Object.KCS_ent = PointerProperty(type=EntProp)
+    bpy.types.Object.KCS_obj = PointerProperty(type=ObjProp)
+    bpy.types.Object.KCS_mesh = PointerProperty(type=MeshProp)
+    bpy.types.Material.KCS_col = PointerProperty(type=ColProp)
+    bpy.types.Material.KCS_tx_scroll = PointerProperty(type=TexScrollProp)
+
 
 def kcs_unregister(unregisterPanels):
     for cls in reversed(kcs_classes):
@@ -70,8 +72,7 @@ def kcs_unregister(unregisterPanels):
     if unregisterPanels:
         for cls in reversed(kcs_panel_classes):
             unregister_class(cls)
-    
-    
+
     del bpy.types.Scene.KCS_scene
     del bpy.types.Curve.KCS_node
     del bpy.types.Camera.KCS_cam
