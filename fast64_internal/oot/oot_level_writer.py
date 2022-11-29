@@ -788,7 +788,7 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 
                 actorName = ootData.actorData.actorsByID[actorProp.actorID].name.replace(
                     f" - {actorProp.actorID.removeprefix('ACTOR_')}", ""
-                ) if actorProp.actorID != "Custom" else actorProp.actorID
+                ) if actorProp.actorID != "Custom" else "Custom Actor"
 
                 addActor(
                     room,
@@ -815,7 +815,7 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
 
                 transActorName = ootData.actorData.actorsByID[transActorProp.actor.actorID].name.replace(
                     f" - {transActorProp.actor.actorID.removeprefix('ACTOR_')}", ""
-                ) if transActorProp.actor.actorID != "Custom" else transActorProp.actor.actorID
+                ) if transActorProp.actor.actorID != "Custom" else "Custom Actor"
 
                 addActor(
                     scene,
