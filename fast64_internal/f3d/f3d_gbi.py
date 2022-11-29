@@ -2184,6 +2184,15 @@ class FModel:
         self.global_data = FGlobalData()
         self.texturesSavedLastExport = 0  # hacky
 
+    def processTexRefNonCITextures(
+        self, fMaterial: "FMaterial", material: bpy.types.Material, index: int
+    ):
+        return
+
+    def processTexRefCITextures(self, fMaterial: "FMaterial", material: bpy.types.Material, index: int) -> "FImage":
+        texProp = getattr(material.f3dMat, f"tex{index}")
+        return FImage(texProp.pal_reference, None, None, 1, texProp.pal_reference_size, None, False)
+
     # Called before SPEndDisplayList
     def onMaterialCommandsBuilt(self, fMaterial, material, drawLayer):
         return
