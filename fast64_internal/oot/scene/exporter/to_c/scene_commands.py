@@ -50,8 +50,7 @@ def getSpawnActorListCmd(outScene: OOTScene, headerIndex: int):
 
 
 def getSkyboxSettingsCmd(outScene: OOTScene):
-    skyboxLighting = getCustomProperty(outScene, "skyboxLighting")
-    return f"SCENE_CMD_SKYBOX_SETTINGS({outScene.skyboxID}, {outScene.skyboxCloudiness}, {skyboxLighting})"
+    return f"SCENE_CMD_SKYBOX_SETTINGS({outScene.skyboxID}, {outScene.skyboxCloudiness}, {outScene.skyboxLighting})"
 
 
 def getExitListCmd(outScene: OOTScene, headerIndex: int):

@@ -258,8 +258,8 @@ def readSceneData(scene, scene_properties, sceneHeader, alternateSceneHeaders):
     scene.naviCup = getCustomProperty(sceneHeader, "naviCup")
     scene.skyboxID = getCustomProperty(sceneHeader, "skyboxID")
     scene.skyboxCloudiness = getCustomProperty(sceneHeader, "skyboxCloudiness")
-    scene.skyboxLighting = sceneHeader.skyboxLighting
-    scene.skyboxLightingCustom = sceneHeader.skyboxLightingCustom
+    scene.skyboxLighting = getCustomProperty(sceneHeader, "skyboxLighting")
+    scene.isSkyboxLightingCustom = sceneHeader.skyboxLighting == "Custom"
     scene.mapLocation = getCustomProperty(sceneHeader, "mapLocation")
     scene.cameraMode = getCustomProperty(sceneHeader, "cameraMode")
     scene.musicSeq = getCustomProperty(sceneHeader, "musicSeq")

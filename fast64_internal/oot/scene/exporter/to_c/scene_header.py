@@ -18,7 +18,7 @@ def getDirectionValues(vector: tuple[int, int, int]):
     return ", ".join(f"{v - 0x100 if v > 0x7F else v:5}" for v in vector)
 
 
-def getLightSettingsEntry(light: OOTLight, lightMode: str, index: int):
+def getLightSettingsEntry(light: OOTLight, lightMode: str, isLightingCustom: bool, index: int):
     vectors = [
         (light.ambient, "Ambient Color", getColorValues),
         (light.diffuseDir0, "Diffuse0 Direction", getDirectionValues),
@@ -34,11 +34,13 @@ def getLightSettingsEntry(light: OOTLight, lightMode: str, index: int):
     ]
 
     lightDescs = ["Dawn", "Day", "Dusk", "Night"]
-    print(lightMode)
-    if lightMode == "false":
+
+    if not isLightingCustom and lightMode == "false":
         lightDesc = f"// {lightDescs[index]} Lighting\n"
     else:
-        lightDesc = f"// {'Indoor' if lightMode == 'true' else 'Custom'} n°{index + 1} Lighting\n"
+        lightDesc = (
+            f"// {'Indoor' if not isLightingCustom and lightMode == 'true' else 'Custom'} n°{index + 1} Lighting\n"
+        )
 
     lightData = (
         (indent + lightDesc)
@@ -61,7 +63,10 @@ def getLightSettings(outScene: OOTScene, headerIndex: int):
     # .c
     lightSettingsData.source = (
         (lightName + " = {\n")
-        + "".join(getLightSettingsEntry(light, outScene.skyboxLighting, i) for i, light in enumerate(outScene.lights))
+        + "".join(
+            getLightSettingsEntry(light, outScene.skyboxLighting, outScene.isSkyboxLightingCustom, i)
+            for i, light in enumerate(outScene.lights)
+        )
         + "};\n\n"
     )
 
