@@ -45,13 +45,13 @@ from .oot_utility import (
 
 
 class OOTCollisionExportSettings(bpy.types.PropertyGroup):
-    isCustomFilename: bpy.props.BoolProperty(name="Use Custom Filename")
+    isCustomFilename: bpy.props.BoolProperty(name="Use Custom Filename", description="Override filename instead of basing it off of the Blender name")
     filename: bpy.props.StringProperty(name="Filename")
     exportPath: bpy.props.StringProperty(name="Directory", subtype="FILE_PATH")
     exportLevel: bpy.props.EnumProperty(items=ootEnumSceneID, name="Level Used By Collision", default="SCENE_YDAN")
     includeChildren: bpy.props.BoolProperty(name="Include child objects", default=True)
     levelName: bpy.props.StringProperty(name="Name", default="SCENE_YDAN")
-    customExport: bpy.props.BoolProperty(name="Custom Export Path")
+    customExport: bpy.props.BoolProperty(name="Custom Export Path", description="Determines whether or not to export to an explicitly specified folder")
     folder: bpy.props.StringProperty(name="Object Name", default="gameplay_keep")
 
 

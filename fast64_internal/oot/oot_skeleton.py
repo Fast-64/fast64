@@ -57,12 +57,12 @@ from .oot_skeleton_import_data import (
 
 
 class OOTSkeletonExportSettings(bpy.types.PropertyGroup):
-    isCustomFilename: bpy.props.BoolProperty(name="Use Custom Filename")
+    isCustomFilename: bpy.props.BoolProperty(name="Use Custom Filename", description="Override filename instead of basing it off of the Blender name")
     filename: bpy.props.StringProperty(name="Filename")
     mode: bpy.props.EnumProperty(name="Mode", items=ootEnumSkeletonImportMode)
     folder: bpy.props.StringProperty(name="Skeleton Folder", default="object_geldb")
     customPath: bpy.props.StringProperty(name="Custom Skeleton Path", subtype="FILE_PATH")
-    isCustom: bpy.props.BoolProperty(name="Use Custom Path")
+    isCustom: bpy.props.BoolProperty(name="Use Custom Path", description="Determines whether or not to export to an explicitly specified folder")
     removeVanillaData: bpy.props.BoolProperty(name="Replace Vanilla Skeletons On Export", default=True)
     actorOverlayName: bpy.props.StringProperty(name="Overlay", default="ovl_En_GeldB")
     flipbookUses2DArray: bpy.props.BoolProperty(name="Has 2D Flipbook Array", default=False)
