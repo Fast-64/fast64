@@ -65,13 +65,6 @@ from .oot_level_classes import (
 )
 
 
-def sceneNameFromID(sceneID):
-    if sceneID in ootSceneIDToName:
-        return ootSceneIDToName[sceneID]
-    else:
-        raise PluginError("Cannot find scene ID " + str(sceneID))
-
-
 def ootPreprendSceneIncludes(scene, file):
     exportFile = ootSceneIncludes(scene)
     exportFile.append(file)

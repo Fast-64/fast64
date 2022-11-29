@@ -42,9 +42,7 @@ class OOTActorHeaderItemProperty(PropertyGroup):
 
 
 class OOTActorHeaderProperty(PropertyGroup):
-    sceneSetupPreset: EnumProperty(
-        name="Scene Setup Preset", items=ootEnumSceneSetupPreset, default="All Scene Setups"
-    )
+    sceneSetupPreset: EnumProperty(name="Scene Setup Preset", items=ootEnumSceneSetupPreset, default="All Scene Setups")
     childDayHeader: BoolProperty(name="Child Day Header", default=True)
     childNightHeader: BoolProperty(name="Child Night Header", default=True)
     adultDayHeader: BoolProperty(name="Adult Day Header", default=True)

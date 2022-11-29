@@ -43,7 +43,7 @@ def segmentDefinitionToString(segmentDefinitions, includes):
     data += "\n".join(includes)
     if len(includes) != 0:
         data += "\n\n"
-    
+
     for entry in segmentDefinitions:
         data += "beginseg" + entry + "endseg\n\n"
 

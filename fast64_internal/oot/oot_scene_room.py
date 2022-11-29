@@ -49,9 +49,7 @@ def drawExitProperty(layout, exitProp, index, headerIndex, objName):
             drawEnumWithCustom(exitGroup, exitProp, "fadeOutAnim", "Fade Out Animation", "")
 
 
-def drawObjectProperty(
-    layout: UILayout, objectProp: OOTObjectProperty, headerIndex: int, index: int, objName: str
-):
+def drawObjectProperty(layout: UILayout, objectProp: OOTObjectProperty, headerIndex: int, index: int, objName: str):
     isLegacy = True if "objectID" in objectProp else False
 
     if isLegacy:
