@@ -1014,24 +1014,28 @@ class OOT_ExportScenePanel(OOT_Panel):
     def draw(self, context):
         col = self.layout.column()
 
+        # Scene Exporter
+        exportBox = col.box().column()
+        exportBox.label(text="Scene Exporter")
+
         settings: OOTExportSceneSettingsProperty = context.scene.ootSceneExportSettings
         if settings.customExport:
-            prop_split(col, settings, "exportPath", "Directory")
-            prop_split(col, settings, "name", "Name")
-            customExportWarning(col)
+            prop_split(exportBox, settings, "exportPath", "Directory")
+            prop_split(exportBox, settings, "name", "Name")
+            customExportWarning(exportBox)
         else:
-            drawSceneSearchOp(col, settings.option, "Export")
+            drawSceneSearchOp(exportBox, settings.option, "Export")
             if settings.option == "Custom":
-                prop_split(col, settings, "subFolder", "Subfolder")
-                prop_split(col, settings, "name", "Name")
+                prop_split(exportBox, settings, "subFolder", "Subfolder")
+                prop_split(exportBox, settings, "name", "Name")
 
-        prop_split(col, context.scene, "ootSceneExportObj", "Scene Object")
+        prop_split(exportBox, context.scene, "ootSceneExportObj", "Scene Object")
 
-        col.prop(settings, "singleFile")
-        col.prop(settings, "customExport")
+        exportBox.prop(settings, "singleFile")
+        exportBox.prop(settings, "customExport")
 
         if context.scene.fast64.oot.hackerFeaturesEnabled:
-            hackerOoTBox = col.box().column()
+            hackerOoTBox = exportBox.box().column()
             hackerOoTBox.label(text="HackerOoT Options")
 
             bootOptions = context.scene.fast64.oot.bootupSceneOptions
@@ -1053,49 +1057,41 @@ class OOT_ExportScenePanel(OOT_Panel):
             )
             hackerOoTBox.operator(OOT_ClearBootupScene.bl_idname, text="Undo Boot To Scene (HackerOOT Repo)")
 
-        col.operator(OOT_ExportScene.bl_idname)
+        exportBox.operator(OOT_ExportScene.bl_idname)
 
-
-class OOT_ImportScenePanel(OOT_Panel):
-    bl_idname = "OOT_PT_import_level"
-    bl_label = "OOT Scene Importer"
-
-    def draw(self, context):
-        col = self.layout.column()
+        # Scene Importer
+        importBox = col.box().column()
+        importBox.label(text="Scene Importer")
 
         importSettings: OOTImportSceneSettingsProperty = context.scene.ootSceneImportSettings
 
         if not importSettings.isCustomDest:
-            drawSceneSearchOp(col, importSettings.option, "Import")
+            drawSceneSearchOp(importBox, importSettings.option, "Import")
 
-        importSettings.draw(col, importSettings.option)
-        col.operator(OOT_ImportScene.bl_idname)
+        importSettings.draw(importBox, importSettings.option)
+        importBox.operator(OOT_ImportScene.bl_idname)
 
-
-class OOT_RemoveScenePanel(OOT_Panel):
-    bl_idname = "OOT_PT_remove_level"
-    bl_label = "OOT Remove Scene"
-
-    def draw(self, context):
-        col = self.layout.column()
+        # Remove Scene
+        removeBox = col.box().column()
+        removeBox.label(text="Remove Scene")
 
         removeSettings: OOTRemoveSceneSettingsProperty = context.scene.ootSceneRemoveSettings
-        drawSceneSearchOp(col, removeSettings.option, "Remove")
+        drawSceneSearchOp(removeBox, removeSettings.option, "Remove")
 
         if removeSettings.option == "Custom":
-            prop_split(col, removeSettings, "subFolder", "Subfolder")
-            prop_split(col, removeSettings, "name", "Name")
+            prop_split(removeBox, removeSettings, "subFolder", "Subfolder")
+            prop_split(removeBox, removeSettings, "name", "Name")
 
             exportPath = (
                 context.scene.ootDecompPath + f"assets/scenes/{removeSettings.subFolder}/{removeSettings.name}/"
             )
 
-        removeRow = col.row()
+        removeRow = removeBox.row()
         removeRow.operator(OOT_RemoveScene.bl_idname, text="Remove Scene")
 
         if removeSettings.option == "Custom" and not os.path.exists(exportPath):
             removeRow.enabled = False
-            col.label(text="This path doesn't exist.")
+            removeBox.label(text="This path doesn't exist.")
         else:
             removeRow.enabled = True
 
@@ -1106,11 +1102,7 @@ oot_level_classes = (
     OOT_RemoveScene,
 )
 
-oot_level_panel_classes = (
-    OOT_ExportScenePanel,
-    OOT_ImportScenePanel,
-    OOT_RemoveScenePanel,
-)
+oot_level_panel_classes = (OOT_ExportScenePanel,)
 
 
 def oot_level_panel_register():
