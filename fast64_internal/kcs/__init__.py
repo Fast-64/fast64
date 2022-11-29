@@ -4,13 +4,12 @@ from .kcs_utils import *
 from .kcs_ui import *
 from .kcs_props import *
 from .kcs_operators import *
-from ..utility import register_recursive
-
+from bpy.utils import register_class, unregister_class
 # ------------------------------------------------------------------------
 #    Registration
 # ------------------------------------------------------------------------
 
-classes = (
+kcs_classes = (
     StageProp,
     BankIndex,
     KCS_Scene_Props,
@@ -34,6 +33,9 @@ classes = (
     KCS_OT_Import_Col,
     KCS_OT_Add_Tex,
     KCS_OT_Add_Pal,
+)
+
+kcs_panel_classes = (
     KCS_PROP_PT_Panel,
     KCS_IO_PT_Panel,
     OBJ_PT_Panel,
@@ -44,9 +46,13 @@ classes = (
     SCROLL_PT_Panel
 )
 
-def kcs_register():
-    for cls in classes:
-        register_recursive(cls)
+def kcs_register(registerPanels):
+    for cls in kcs_classes:
+        register_class(cls)
+    if registerPanels:
+        for cls in kcs_panel_classes:
+            register_class(cls)
+    
 
     bpy.types.Scene.KCS_scene = PointerProperty(type = KCS_Scene_Props)
     bpy.types.Curve.KCS_node = PointerProperty(type = NodeProp)
@@ -58,10 +64,13 @@ def kcs_register():
     bpy.types.Material.KCS_col = PointerProperty(type = ColProp)
     bpy.types.Material.KCS_tx_scroll = PointerProperty(type = TexScrollProp)
 
-def kcs_unregister():
-    from bpy.utils import unregister_class
-    for cls in reversed(classes):
+def kcs_unregister(unregisterPanels):
+    for cls in reversed(kcs_classes):
         unregister_class(cls)
+    if unregisterPanels:
+        for cls in reversed(kcs_panel_classes):
+            unregister_class(cls)
+    
     
     del bpy.types.Scene.KCS_scene
     del bpy.types.Curve.KCS_node

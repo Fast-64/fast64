@@ -19,6 +19,7 @@ from .kcs_utils import *
 #fast64 imports
 
 from ..utility import (colorToLuminance,
+                    propertyGroupGetEnums,
                     combineObjects,
                     cleanupCombineObj,
                     CData,
@@ -1224,7 +1225,7 @@ class F3d(DL):
         new = -1
         UVmap = obj.data.uv_layers.new(name = 'UVMap')
         #I can get the available enums for color attrs with this func
-        vcol_enums = GetEnums(bpy.types.FloatColorAttribute, 'data_type')
+        vcol_enums = propertyGroupGetEnums(bpy.types.FloatColorAttribute, 'data_type')
         #enums were changed in a blender version, this should future proof it a little
         if "FLOAT_COLOR" in vcol_enums:
             e = "FLOAT_COLOR"
@@ -1302,6 +1303,7 @@ class geo_write(FModel):
             if fMesh.mesh:
                 GfxDat, VtxDat = fMesh.to_c_inline()
                 print(GfxDat.source)
+                print(file)
     def construct_fMaterial(self, name, DLformat):
         return fMat_KCS(name, DLformat)
     #given a layout, create the export data such as verts, f3d cls, and mat classes
