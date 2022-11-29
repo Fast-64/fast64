@@ -2,7 +2,7 @@ import bpy, random, string, os, math, traceback, re, os, mathutils, ast, operato
 from math import pi, ceil, degrees, radians, copysign
 from mathutils import *
 from .utility_anim import *
-from typing import Callable, Iterable, Any, Tuple, Optional
+from typing import Callable, Iterable, Any, Tuple, Optional, Literal
 from bpy.types import UILayout
 
 CollectionProperty = Any  # collection prop as defined by using bpy.props.CollectionProperty
@@ -1131,33 +1131,30 @@ def colorTo16bitRGBA(color):
     return (r << 11) | (g << 6) | (b << 1) | a
 
 
-# On 2.83/2.91 the rotate operator rotates in the opposite direction (???)
-def getDirectionGivenAppVersion():
-    if bpy.app.version[1] == 83 or bpy.app.version[1] == 91:
-        return -1
-    else:
-        return 1
-
-
-def applyRotation(objList, angle, axis):
-    bpy.context.scene.tool_settings.use_transform_data_origin = False
-    bpy.context.scene.tool_settings.use_transform_pivot_point_align = False
-    bpy.context.scene.tool_settings.use_transform_skip_children = False
-
-    bpy.ops.object.select_all(action="DESELECT")
+def applyRotation(objList: list[bpy.types.Object], angle: float, axis: Literal["X", "Y", "Z"]):
     for obj in objList:
-        obj.select_set(True)
-    bpy.context.view_layer.objects.active = objList[0]
+        doRotation(obj, angle, axis)
 
-    direction = getDirectionGivenAppVersion()
+        override_context = bpy.context.copy()
+        override_context["object"] = obj
+        override_context["active_object"] = obj
+        override_context["selected_objects"] = [obj]
 
-    bpy.ops.transform.rotate(value=direction * angle, orient_axis=axis, orient_type="GLOBAL")
-    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
+        bpy.ops.object.transform_apply(override_context, location=False, rotation=True, scale=True, properties=False)
 
 
-def doRotation(angle, axis):
-    direction = getDirectionGivenAppVersion()
-    bpy.ops.transform.rotate(value=direction * angle, orient_axis=axis, orient_type="GLOBAL")
+def doRotation(obj: bpy.types.Object, angle: float, axis: Literal["X", "Y", "Z"]):
+
+    # Historically in fast64 the angle passed as argument wraps around -axis instead of +axis
+    # Transform the desired angle into one that wraps around +axis
+    angle = -angle
+
+    prev_rotation_mode = obj.rotation_mode
+    try:
+        obj.rotation_mode = "QUATERNION"
+        obj.rotation_quaternion = mathutils.Matrix.Rotation(angle, 3, axis).to_quaternion() @ obj.rotation_quaternion
+    finally:
+        obj.rotation_mode = prev_rotation_mode
 
 
 def getAddressFromRAMAddress(RAMAddress):
