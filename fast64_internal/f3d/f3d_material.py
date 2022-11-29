@@ -159,38 +159,39 @@ def get_blend_method(material):
     blend_method = drawLayerSM64Alpha[drawLayer.sm64]
 
     is_one_cycle = f3dMat.rdp_settings.g_mdsft_cycletype == "G_CYC_1CYCLE"
+    render_mode = f3dMat.rdp_settings.render_mode
 
-    if f3dMat.rdp_settings.set_rendermode:
-        if f3dMat.rdp_settings.rendermode_advanced_enabled:
-            if f3dMat.rdp_settings.cvg_x_alpha:
+    if render_mode.set_rendermode:
+        if render_mode.rendermode_advanced_enabled:
+            if render_mode.cvg_x_alpha:
                 blend_method = "CLIP"
             elif (
                 is_one_cycle
-                and f3dMat.rdp_settings.force_bl
-                and f3dMat.rdp_settings.blend_p1 == "G_BL_CLR_IN"
-                and f3dMat.rdp_settings.blend_a1 == "G_BL_A_IN"
-                and f3dMat.rdp_settings.blend_m1 == "G_BL_CLR_MEM"
-                and f3dMat.rdp_settings.blend_b1 == "G_BL_1MA"
+                and render_mode.force_bl
+                and render_mode.blend_p1 == "G_BL_CLR_IN"
+                and render_mode.blend_a1 == "G_BL_A_IN"
+                and render_mode.blend_m1 == "G_BL_CLR_MEM"
+                and render_mode.blend_b1 == "G_BL_1MA"
             ):
                 blend_method = "BLEND"
             elif (
                 not is_one_cycle
-                and f3dMat.rdp_settings.force_bl
-                and f3dMat.rdp_settings.blend_p2 == "G_BL_CLR_IN"
-                and f3dMat.rdp_settings.blend_a2 == "G_BL_A_IN"
-                and f3dMat.rdp_settings.blend_m2 == "G_BL_CLR_MEM"
-                and f3dMat.rdp_settings.blend_b2 == "G_BL_1MA"
+                and render_mode.force_bl
+                and render_mode.blend_p2 == "G_BL_CLR_IN"
+                and render_mode.blend_a2 == "G_BL_A_IN"
+                and render_mode.blend_m2 == "G_BL_CLR_MEM"
+                and render_mode.blend_b2 == "G_BL_1MA"
             ):
                 blend_method = "BLEND"
             else:
                 blend_method = "OPAQUE"
         else:
-            rendermode = f3dMat.rdp_settings.rendermode_preset_cycle_1
+            rendermode_enum = render_mode.rendermode_preset_cycle_1
             if not is_one_cycle:
-                rendermode = f3dMat.rdp_settings.rendermode_preset_cycle_2
+                rendermode_enum = render_mode.rendermode_preset_cycle_2
 
             f3d = get_F3D_GBI()
-            r_mode = getattr(f3d, rendermode, f3d.G_RM_AA_ZB_OPA_SURF)
+            r_mode = getattr(f3d, rendermode_enum, f3d.G_RM_AA_ZB_OPA_SURF)
             if r_mode & f3d.CVG_X_ALPHA:
                 blend_method = "CLIP"
             else:
@@ -655,6 +656,10 @@ class F3DPanel(bpy.types.Panel):
         return inputGroup
 
     def ui_lower_render_mode(self, material, layout, useDropdown):
+        # don't render if the render mode isn't use by the material, aka copy/fill mode
+        if material.rdp_settings.g_mdsft_cycletype in ["G_CYC_COPY", "G_CYC_FILL"]:
+            layout.label(text=f"Render Modes are not used in cycle mode {material.rdp_settings.g_mdsft_cycletype.replace('G_CYC_', '')}", icon="HELP")
+            return
         # cycle independent
         inputGroup = layout.column()
         if useDropdown:
@@ -664,26 +669,22 @@ class F3DPanel(bpy.types.Panel):
                 text="Render Settings",
                 icon="TRIA_DOWN" if material.menu_lower_render else "TRIA_RIGHT",
             )
+        render_mode = material.rdp_settings.render_mode
         if not useDropdown or material.menu_lower_render:
-            inputGroup.prop(material.rdp_settings, "set_rendermode", text="Set Render Mode?")
+            inputGroup.prop(render_mode, "set_rendermode", text="Set Render Mode?")
 
             renderGroup = inputGroup.column()
-            renderGroup.prop(material.rdp_settings, "rendermode_advanced_enabled", text="Show Advanced Settings")
-            if not material.rdp_settings.rendermode_advanced_enabled:
-                prop_split(renderGroup, material.rdp_settings, "rendermode_preset_cycle_1", "Render Mode")
+            renderGroup.prop(render_mode, "rendermode_advanced_enabled", text="Show Advanced Settings")
+            if not render_mode.rendermode_advanced_enabled:
+                box = renderGroup.box()
+                box.label(text="Render Mode Presets")
+                prop_split(box, render_mode, "rendermode_preset_cycle_1", "Render Mode")
                 if material.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE":
-                    prop_split(renderGroup, material.rdp_settings, "rendermode_preset_cycle_2", "Render Mode Cycle 2")
+                    prop_split(box, render_mode, "rendermode_preset_cycle_2", "Render Mode Cycle 2")
+                renderGroup.separator()
+                render_mode.draw_UI_combinatoric(renderGroup, material.rdp_settings)
             else:
-                prop_split(renderGroup, material.rdp_settings, "aa_en", "Antialiasing")
-                prop_split(renderGroup, material.rdp_settings, "z_cmp", "Z Testing")
-                prop_split(renderGroup, material.rdp_settings, "z_upd", "Z Writing")
-                prop_split(renderGroup, material.rdp_settings, "im_rd", "IM_RD (?)")
-                prop_split(renderGroup, material.rdp_settings, "clr_on_cvg", "Color On Coverage")
-                prop_split(renderGroup, material.rdp_settings, "cvg_dst", "Coverage Destination")
-                prop_split(renderGroup, material.rdp_settings, "zmode", "Z Mode")
-                prop_split(renderGroup, material.rdp_settings, "cvg_x_alpha", "Multiply Coverage And Alpha")
-                prop_split(renderGroup, material.rdp_settings, "alpha_cvg_sel", "Use Coverage For Alpha")
-                prop_split(renderGroup, material.rdp_settings, "force_bl", "Force Blending")
+                render_mode.draw_UI_adv_set(renderGroup)
 
                 # cycle dependent - (P * A + M - B) / (A + B)
                 combinerBox = renderGroup.box()
@@ -691,10 +692,10 @@ class F3DPanel(bpy.types.Panel):
                 combinerCol = combinerBox.row()
                 rowColor = combinerCol.column()
                 rowAlpha = combinerCol.column()
-                rowColor.prop(material.rdp_settings, "blend_p1", text="P")
-                rowColor.prop(material.rdp_settings, "blend_m1", text="M")
-                rowAlpha.prop(material.rdp_settings, "blend_a1", text="A")
-                rowAlpha.prop(material.rdp_settings, "blend_b1", text="B")
+                rowColor.prop(render_mode, "blend_p1", text="P")
+                rowColor.prop(render_mode, "blend_m1", text="M")
+                rowAlpha.prop(render_mode, "blend_a1", text="A")
+                rowAlpha.prop(render_mode, "blend_b1", text="B")
 
                 if material.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE":
                     combinerBox2 = renderGroup.box()
@@ -702,12 +703,12 @@ class F3DPanel(bpy.types.Panel):
                     combinerCol2 = combinerBox2.row()
                     rowColor2 = combinerCol2.column()
                     rowAlpha2 = combinerCol2.column()
-                    rowColor2.prop(material.rdp_settings, "blend_p2", text="P")
-                    rowColor2.prop(material.rdp_settings, "blend_m2", text="M")
-                    rowAlpha2.prop(material.rdp_settings, "blend_a2", text="A")
-                    rowAlpha2.prop(material.rdp_settings, "blend_b2", text="B")
+                    rowColor2.prop(render_mode, "blend_p2", text="P")
+                    rowColor2.prop(render_mode, "blend_m2", text="M")
+                    rowAlpha2.prop(render_mode, "blend_a2", text="A")
+                    rowAlpha2.prop(render_mode, "blend_b2", text="B")
 
-            renderGroup.enabled = material.rdp_settings.set_rendermode
+            renderGroup.enabled = render_mode.set_rendermode
 
     def ui_uvCheck(self, layout, context):
         if (
@@ -1172,16 +1173,17 @@ def check_fog_settings(material: bpy.types.Material):
     fog_rendermode_enabled: bool = fog_enabled
 
     is_one_cycle = f3dMat.rdp_settings.g_mdsft_cycletype == "G_CYC_1CYCLE"
+    render_mode = f3dMat.rdp_settings.render_mode
 
     if is_one_cycle or fog_enabled == False:
         fog_rendermode_enabled = False
-    elif f3dMat.rdp_settings.set_rendermode:
-        if f3dMat.rdp_settings.rendermode_advanced_enabled:
-            if f3dMat.rdp_settings.blend_p1 == "G_BL_CLR_FOG" and f3dMat.rdp_settings.blend_a1 == "G_BL_A_SHADE":
+    elif render_mode.set_rendermode:
+        if render_mode.rendermode_advanced_enabled:
+            if render_mode.blend_p1 == "G_BL_CLR_FOG" and render_mode.blend_a1 == "G_BL_A_SHADE":
                 fog_rendermode_enabled = True
         else:
             f3d = get_F3D_GBI()
-            r_mode = getattr(f3d, f3dMat.rdp_settings.rendermode_preset_cycle_1, f3d.G_RM_PASS)
+            r_mode = getattr(f3d, render_mode.rendermode_preset_cycle_1, f3d.G_RM_PASS)
 
             # Note: GBL_c1 uses (m1a) << 30 | (m1b) << 26 | (m2a) << 22 | (m2b) << 18
             # This checks if m1a is G_BL_CLR_FOG and m1b is G_BL_A_SHADE
@@ -2455,7 +2457,385 @@ class PrimDepthSettings(bpy.types.PropertyGroup):
         return (self.z, self.dz)
 
 
+class RenderModeProperty(bpy.types.PropertyGroup):
+    def update_combinatoric_from_enum(self, context):
+        self.prop_lock = True
+        self.missing_RM = False
+        # if cycle1 and cycle2 mismatch, prioritize the 1 cycle value
+        # this is because UI wise, cycle1 is more likely to be the intended choice
+        cycle1 = self.rendermode_preset_cycle_1
+        cycle2 = self.rendermode_preset_cycle_2
+        if cycle1 == "Custom":
+           for enum in enumRenderModesCycle1:
+                if cycle2[:-1] in enum[0]:
+                    self.rendermode_preset_cycle_1 = enum[0]
+        if cycle2 == "Custom":
+            for enum in enumRenderModesCycle2:
+                if cycle1 in enum[0]:
+                    self.rendermode_preset_cycle_2 = enum[0]
+        self.ZB = "ZB" in cycle1 or "ZB" in cycle2
+        # check if one cycle is one of the differing enums, and if it is
+        # use 2nd cycle to find macro flags
+        one_cyc_bhv = [cyc_1[0] for cyc_1 in enum1cycleOpt if cyc_1[0] in cycle1]
+        if not one_cyc_bhv:
+            search_cyc = cycle1
+            self.cycle_mismatch = True
+        else:
+            search_cyc = cycle2
+            self.cycle_1_options = one_cyc_bhv[0]
+            self.cycle_mismatch = False
+        surf_type_enum = [surf[0] for surf in enumSurfType if surf[0] in search_cyc]
+        # this means the user likely chose a mode like G_RM_ADD and there is no equiv in combinatoric options
+        if surf_type_enum:
+            self.surf_type_enum = surf_type_enum[0]
+            self.Z_type_enum = [z_mode[0] for z_mode in enumZType if z_mode[0] in search_cyc][0]
+            aa_enum = [AA_mode[0] for AA_mode in enumAAType if AA_mode[0] in search_cyc]
+            if not aa_enum:
+                self.aa_enum = "None"
+            else:
+                self.aa_enum = [AA_mode[0] for AA_mode in enumAAType if AA_mode[0] in search_cyc][0]
+        self.set_flags_from_macro()
+        update_node_values_with_preset(self, context)
+        self.prop_lock = False
+
+    def update_enum_from_combinatoric(self, context):
+        if self.prop_lock:
+            return
+        self.prop_lock = True
+        self.cycle_mismatch = False
+        self.rendermode_preset_cycle_1 = "Custom"
+        self.rendermode_preset_cycle_2 = "Custom"
+        self.missing_RM = not self.set_flags_from_macro()  # set adv flags and give warning if needed
+        update_node_values_with_preset(self, context)
+        self.prop_lock = False
+    
+    def set_preset_enum_1(self, context):
+        if self.rendermode_preset_cycle_1 != "Custom" and not self.prop_lock:
+            self.update_combinatoric_from_enum(context)
+    
+    def set_preset_enum_2(self, context):
+        if self.rendermode_preset_cycle_2 != "Custom" and not self.prop_lock:
+            self.update_combinatoric_from_enum(context)
+
+    # cycle independent
+    set_rendermode: bpy.props.BoolProperty(
+        default=False,
+        update=update_node_values_with_preset,
+    )
+    rendermode_advanced_enabled: bpy.props.BoolProperty(
+        default=False,
+        update=update_node_values_with_preset,
+    )
+    rendermode_preset_cycle_1: bpy.props.EnumProperty(
+        items=enumRenderModesCycle1,
+        default="G_RM_AA_ZB_OPA_SURF",
+        name="Render Mode Cycle 1",
+        update=set_preset_enum_1,
+    )
+    rendermode_preset_cycle_2: bpy.props.EnumProperty(
+        items=enumRenderModesCycle2,
+        default="G_RM_AA_ZB_OPA_SURF2",
+        name="Render Mode Cycle 2",
+        update=set_preset_enum_2,
+    )
+    aa_en: bpy.props.BoolProperty(
+        update=update_node_values_with_preset,
+    )
+    z_cmp: bpy.props.BoolProperty(
+        update=update_node_values_with_preset,
+    )
+    z_upd: bpy.props.BoolProperty(
+        update=update_node_values_with_preset,
+    )
+    im_rd: bpy.props.BoolProperty(
+        update=update_node_values_with_preset,
+    )
+    clr_on_cvg: bpy.props.BoolProperty(
+        update=update_node_values_with_preset,
+    )
+    cvg_dst: bpy.props.EnumProperty(
+        name="Coverage Destination",
+        items=enumCoverage,
+        update=update_node_values_with_preset,
+    )
+    zmode: bpy.props.EnumProperty(
+        name="Z Mode",
+        items=enumZMode,
+        update=update_node_values_with_preset,
+    )
+    cvg_x_alpha: bpy.props.BoolProperty(
+        update=update_node_values_with_preset,
+    )
+    alpha_cvg_sel: bpy.props.BoolProperty(
+        update=update_node_values_with_preset,
+    )
+    force_bl: bpy.props.BoolProperty(
+        update=update_node_values_with_preset,
+    )
+    # cycle independent RM selection based on combinatorics of possible settings
+    surf_type_enum: bpy.props.EnumProperty(
+        items=enumSurfType,
+        default="SURF",
+        name="Surface Type",
+        update=update_enum_from_combinatoric,
+    )
+    aa_enum: bpy.props.EnumProperty(
+        items=enumAAType,
+        default="AA",
+        name="AA Type",
+        update=update_enum_from_combinatoric,
+    )
+    Z_type_enum: bpy.props.EnumProperty(
+        items=enumZType,
+        default="OPA",
+        name="AA Type",
+        update=update_enum_from_combinatoric,
+    )
+    ZB: bpy.props.BoolProperty(
+        update=update_enum_from_combinatoric,
+    )
+    cycle_1_options: bpy.props.EnumProperty(
+        items=enum1cycleOpt,
+        default="PASS",
+        name="1 Cycle Option",
+        update=update_enum_from_combinatoric,
+    )
+
+    # cycle dependent - (P * A + M - B) / (A + B)
+    blend_p1: bpy.props.EnumProperty(
+        name="Color Source 1",
+        items=enumBlendColor,
+        update=update_node_values_with_preset,
+    )
+    blend_p2: bpy.props.EnumProperty(
+        name="Color Source 1",
+        items=enumBlendColor,
+        update=update_node_values_with_preset,
+    )
+    blend_m1: bpy.props.EnumProperty(
+        name="Color Source 2",
+        items=enumBlendColor,
+        update=update_node_values_with_preset,
+    )
+    blend_m2: bpy.props.EnumProperty(
+        name="Color Source 2",
+        items=enumBlendColor,
+        update=update_node_values_with_preset,
+    )
+    blend_a1: bpy.props.EnumProperty(
+        name="Alpha Source",
+        items=enumBlendAlpha,
+        update=update_node_values_with_preset,
+    )
+    blend_a2: bpy.props.EnumProperty(
+        name="Alpha Source",
+        items=enumBlendAlpha,
+        update=update_node_values_with_preset,
+    )
+    blend_b1: bpy.props.EnumProperty(
+        name="Alpha Mix",
+        items=enumBlendMix,
+        update=update_node_values_with_preset,
+    )
+    blend_b2: bpy.props.EnumProperty(
+        name="Alpha Mix",
+        items=enumBlendMix,
+        update=update_node_values_with_preset,
+    )
+    # internal flags on whether to display warnings
+    cycle_mismatch: bpy.props.BoolProperty(
+        default = False
+    )
+    missing_RM: bpy.props.BoolProperty(
+        default = False
+    )
+    two_cycle: bpy.props.BoolProperty(
+        default = False
+    )
+    # flag used for optimization of prop callbacks to prevent repeated updates
+    prop_lock: bpy.props.BoolProperty(
+        default = False
+    )
+
+    @property
+    def render_custom(self):
+        return self.rendermode_preset_cycle_1 == "Custom" or self.rendermode_preset_cycle_2 == "Custom"
+
+    def get_render_mode(self, rdp_settings = None):
+        if rdp_settings:
+            G_CYC_2CYCLE = rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+        else:
+            G_CYC_2CYCLE = self.two_cycle
+        if G_CYC_2CYCLE:
+            if self.render_custom:
+                return (self.get_combinatoric_render_mode_1_cycle(), self.get_combinatoric_render_mode() + "2")
+            else:
+                return (self.rendermode_preset_cycle_1, self.rendermode_preset_cycle_2)
+        else:
+            if self.render_custom:
+                return (self.get_combinatoric_render_mode(), self.get_combinatoric_render_mode() + "2")
+            else:
+                cycle2 = self.rendermode_preset_cycle_1 + "2"
+                if cycle2 not in [value[0] for value in enumRenderModesCycle2]:
+                    cycle2 = "G_RM_NOOP"
+                return (self.rendermode_preset_cycle_1, cycle2)
+
+    def get_combinatoric_render_mode_1_cycle(self):
+        Modes = {
+            "FOG_SHADE": "G_RM_FOG_SHADE_A",
+            "FOG_PRIM": "G_RM_FOG_PRIM_A",
+            "PASS": "G_RM_PASS",
+            "NOOP": "G_RM_NOOP"
+        }
+        return Modes.get(self.cycle_1_options)
+
+    def get_combinatoric_render_mode(self):
+        if self.aa_enum != "None":
+            aa_type = self.aa_enum + "_"
+        else:
+            aa_type = ""
+        if self.Z_type_enum == "TEX" and self.surf_type_enum == "SURF":
+            surf_type = "EDGE"
+        else:
+            surf_type = self.surf_type_enum
+        return f"G_RM_{aa_type}{'ZB_'*self.ZB}{self.Z_type_enum}_{surf_type}"
+    
+    def get_flags_from_macro(self)-> dict:
+        f3d = get_F3D_GBI()
+        render_mode = self.get_render_mode()
+        flags1 = getattr(f3d, render_mode[0], None)
+        flags2 = getattr(f3d, render_mode[1], None)
+        if flags1 == None or flags2 == None:
+            # uh oh stinky
+            return None
+        bit_flags = dict()
+        for flag_set, shifts, blend_fields in ((flags1, (30, 26, 22, 18), self.bend_fields_1()), (flags2, (28, 24, 20, 16), self.bend_fields_2())):
+            if flag_set:
+               bit_flags.update( {prop:self.get_flag_from_macro(f3d, flag_set, prop) for prop in self.fields()} )
+               bit_flags.update( {prop:self.get_flag_from_macro(f3d, flag_set, prop, shift = shift) for shift, prop in zip(shifts, blend_fields)} )
+        return bit_flags
+
+    def get_flag_from_macro(self, f3d, macro: int, prop_path: str, shift: int = 0):
+        enums = propertyGroupGetEnums(self, prop_path)
+        if enums:
+            enums = {getattr(f3d, enum, None):enum for enum in enums}
+            for enum_val, name in enums.items():
+                if macro & (enum_val << shift) != 0:
+                    return name
+            return enums[0]
+        # path resolves to bool prop
+        prop_val = getattr(f3d, prop_path.upper(), None)
+        if prop_val:
+            return macro & (prop_val << shift) != 0
+
+    def set_flags_from_macro(self):
+        flags = self.get_flags_from_macro()
+        if flags:
+            f3d = get_F3D_GBI()
+            for prop_path, value in flags.items():
+                setattr(self, prop_path, value)
+            return True
+    
+    def draw_UI_combinatoric(self, layout, rdp_settings):
+        comb_sel = layout.box()
+        comb_sel.label(text= "Render Mode Combinatorics")
+        layout.separator()
+        curRM = layout.box()
+        curRM.label(text = "Result = ({}, {})".format(*self.get_render_mode()))
+        if rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE":
+            if self.cycle_mismatch:
+                curRM.alert = True
+                curRM.label(text="WARNING: 2 Cycle Render Mode chosen and common 1 cycle enum is not used, high potential for invalid graphics.", icon="LIBRARY_DATA_BROKEN")
+                curRM.alert = False
+                curRM.label(text="Choose Fog Shade, Pass or No Op on 1 cycle for proper 2 cycle behavior.", icon="HELP")
+            prop_split(comb_sel, self, "cycle_1_options", "1 Cycle Options")
+        if self.missing_RM:
+                curRM.alert = True
+                curRM.label(text="WARNING: Chosen Render Mode does not exist in default GBI enums. Potential for compilation errors.", icon="LIBRARY_DATA_BROKEN")
+                curRM.alert = False
+                curRM.label(text="Devs strongly recommend you choose 'Show Advanced Settings' to manually set render mode flags.", icon="HELP")
+        # prop_split(layout, self, "prop_lock", "Lock")  # delete this after dev is done
+        prop_split(comb_sel, self, "ZB", "Use Zbuffer")
+        prop_split(comb_sel, self, "aa_enum", "Anti Alias Type")
+        prop_split(comb_sel, self, "Z_type_enum", "Z Type")
+        prop_split(comb_sel, self, "surf_type_enum", "Surf Type")
+
+    def draw_UI_adv_set(self, layout):
+        prop_split(layout, self, "aa_en", "Antialiasing")
+        prop_split(layout, self, "z_cmp", "Z Testing")
+        prop_split(layout, self, "z_upd", "Z Writing")
+        prop_split(layout, self, "im_rd", "Framebuffer Read")
+        prop_split(layout, self, "clr_on_cvg", "Color On Coverage")
+        prop_split(layout, self, "cvg_dst", "Coverage Destination")
+        prop_split(layout, self, "zmode", "Z Mode")
+        prop_split(layout, self, "cvg_x_alpha", "Multiply Coverage And Alpha")
+        prop_split(layout, self, "alpha_cvg_sel", "Use Coverage For Alpha")
+        prop_split(layout, self, "force_bl", "Force Blending")
+
+    def fields(self):
+        return (
+            "aa_en",
+            "z_cmp",
+            "z_upd",
+            "im_rd",
+            "clr_on_cvg",
+            "cvg_dst",
+            "zmode",
+            "cvg_x_alpha",
+            "alpha_cvg_sel",
+            "force_bl",
+            )
+    
+    def bend_fields_1(self):
+        return (
+            "blend_p1",
+            "blend_a1",
+            "blend_m1",
+            "blend_b1",
+            )
+    
+    def bend_fields_2(self):
+        return (
+            "blend_p2",
+            "blend_a2",
+            "blend_m2",
+            "blend_b2",
+            )
+
+    def key(self):
+        setRM = self.set_rendermode
+        rmAdv = self.rendermode_advanced_enabled
+        prim = self.g_mdsft_zsrcsel == "G_ZS_PRIM"
+        return (
+            self.set_rendermode,
+            self.aa_en if setRM and rmAdv else None,
+            self.z_cmp if setRM and rmAdv else None,
+            self.z_upd if setRM and rmAdv else None,
+            self.im_rd if setRM and rmAdv else None,
+            self.clr_on_cvg if setRM and rmAdv else None,
+            self.cvg_dst if setRM and rmAdv else None,
+            self.zmode if setRM and rmAdv else None,
+            self.cvg_x_alpha if setRM and rmAdv else None,
+            self.alpha_cvg_sel if setRM and rmAdv else None,
+            self.force_bl if setRM and rmAdv else None,
+            self.blend_p1 if setRM and rmAdv else None,
+            self.blend_p2 if setRM and rmAdv else None,
+            self.blend_m1 if setRM and rmAdv else None,
+            self.blend_m2 if setRM and rmAdv else None,
+            self.blend_a1 if setRM and rmAdv else None,
+            self.blend_a2 if setRM and rmAdv else None,
+            self.blend_b1 if setRM and rmAdv else None,
+            self.blend_b2 if setRM and rmAdv else None,
+            self.rendermode_preset_cycle_1 if setRM and not rmAdv else None,
+            self.rendermode_preset_cycle_2 if setRM and not rmAdv else None,
+        )
+
+
 class RDPSettings(bpy.types.PropertyGroup):
+    def update_cycle_type(self, context):
+        self.render_mode.two_cycle = self.g_mdsft_cycletype == "G_CYC_2CYCLE"
+        update_node_values_with_preset(self, context)
+
     g_zbuffer: bpy.props.BoolProperty(
         name="Z Buffer",
         default=True,
@@ -2573,7 +2953,7 @@ class RDPSettings(bpy.types.PropertyGroup):
         name="Cycle Type",
         items=enumCycleType,
         default="G_CYC_1CYCLE",
-        update=update_node_values_with_preset,
+        update=update_cycle_type,
     )
     # v1 only
     g_mdsft_color_dither: bpy.props.EnumProperty(
@@ -2616,104 +2996,10 @@ class RDPSettings(bpy.types.PropertyGroup):
         update=update_node_values_with_preset,
     )
 
-    # cycle independent
-    set_rendermode: bpy.props.BoolProperty(
-        default=False,
-        update=update_node_values_with_preset,
+    # render mode settings
+    render_mode: bpy.props.PointerProperty(
+        type = RenderModeProperty
     )
-    rendermode_advanced_enabled: bpy.props.BoolProperty(
-        default=False,
-        update=update_node_values_with_preset,
-    )
-    rendermode_preset_cycle_1: bpy.props.EnumProperty(
-        items=enumRenderModesCycle1,
-        default="G_RM_AA_ZB_OPA_SURF",
-        name="Render Mode Cycle 1",
-        update=update_node_values_with_preset,
-    )
-    rendermode_preset_cycle_2: bpy.props.EnumProperty(
-        items=enumRenderModesCycle2,
-        default="G_RM_AA_ZB_OPA_SURF2",
-        name="Render Mode Cycle 2",
-        update=update_node_values_with_preset,
-    )
-    aa_en: bpy.props.BoolProperty(
-        update=update_node_values_with_preset,
-    )
-    z_cmp: bpy.props.BoolProperty(
-        update=update_node_values_with_preset,
-    )
-    z_upd: bpy.props.BoolProperty(
-        update=update_node_values_with_preset,
-    )
-    im_rd: bpy.props.BoolProperty(
-        update=update_node_values_with_preset,
-    )
-    clr_on_cvg: bpy.props.BoolProperty(
-        update=update_node_values_with_preset,
-    )
-    cvg_dst: bpy.props.EnumProperty(
-        name="Coverage Destination",
-        items=enumCoverage,
-        update=update_node_values_with_preset,
-    )
-    zmode: bpy.props.EnumProperty(
-        name="Z Mode",
-        items=enumZMode,
-        update=update_node_values_with_preset,
-    )
-    cvg_x_alpha: bpy.props.BoolProperty(
-        update=update_node_values_with_preset,
-    )
-    alpha_cvg_sel: bpy.props.BoolProperty(
-        update=update_node_values_with_preset,
-    )
-    force_bl: bpy.props.BoolProperty(
-        update=update_node_values_with_preset,
-    )
-
-    # cycle dependent - (P * A + M - B) / (A + B)
-    blend_p1: bpy.props.EnumProperty(
-        name="Color Source 1",
-        items=enumBlendColor,
-        update=update_node_values_with_preset,
-    )
-    blend_p2: bpy.props.EnumProperty(
-        name="Color Source 1",
-        items=enumBlendColor,
-        update=update_node_values_with_preset,
-    )
-    blend_m1: bpy.props.EnumProperty(
-        name="Color Source 2",
-        items=enumBlendColor,
-        update=update_node_values_with_preset,
-    )
-    blend_m2: bpy.props.EnumProperty(
-        name="Color Source 2",
-        items=enumBlendColor,
-        update=update_node_values_with_preset,
-    )
-    blend_a1: bpy.props.EnumProperty(
-        name="Alpha Source",
-        items=enumBlendAlpha,
-        update=update_node_values_with_preset,
-    )
-    blend_a2: bpy.props.EnumProperty(
-        name="Alpha Source",
-        items=enumBlendAlpha,
-        update=update_node_values_with_preset,
-    )
-    blend_b1: bpy.props.EnumProperty(
-        name="Alpha Mix",
-        items=enumBlendMix,
-        update=update_node_values_with_preset,
-    )
-    blend_b2: bpy.props.EnumProperty(
-        name="Alpha Mix",
-        items=enumBlendMix,
-        update=update_node_values_with_preset,
-    )
-
     def key(self):
         setRM = self.set_rendermode
         rmAdv = self.rendermode_advanced_enabled
@@ -2744,27 +3030,7 @@ class RDPSettings(bpy.types.PropertyGroup):
             self.g_mdsft_zsrcsel,
             self.prim_depth.key() if prim else None,
             self.clip_ratio,
-            self.set_rendermode,
-            self.aa_en if setRM and rmAdv else None,
-            self.z_cmp if setRM and rmAdv else None,
-            self.z_upd if setRM and rmAdv else None,
-            self.im_rd if setRM and rmAdv else None,
-            self.clr_on_cvg if setRM and rmAdv else None,
-            self.cvg_dst if setRM and rmAdv else None,
-            self.zmode if setRM and rmAdv else None,
-            self.cvg_x_alpha if setRM and rmAdv else None,
-            self.alpha_cvg_sel if setRM and rmAdv else None,
-            self.force_bl if setRM and rmAdv else None,
-            self.blend_p1 if setRM and rmAdv else None,
-            self.blend_p2 if setRM and rmAdv else None,
-            self.blend_m1 if setRM and rmAdv else None,
-            self.blend_m2 if setRM and rmAdv else None,
-            self.blend_a1 if setRM and rmAdv else None,
-            self.blend_a2 if setRM and rmAdv else None,
-            self.blend_b1 if setRM and rmAdv else None,
-            self.blend_b2 if setRM and rmAdv else None,
-            self.rendermode_preset_cycle_1 if setRM and not rmAdv else None,
-            self.rendermode_preset_cycle_2 if setRM and not rmAdv else None,
+            *self.render_mode.key()
         )
 
 
@@ -3656,6 +3922,7 @@ mat_classes = (
     ProceduralAnimProperty,
     ProcAnimVectorProperty,
     PrimDepthSettings,
+    RenderModeProperty,
     RDPSettings,
     DefaultRDPSettingsPanel,
     F3DMaterialProperty,

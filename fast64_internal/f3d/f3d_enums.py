@@ -289,6 +289,7 @@ enumRenderModesCycle1 = [
     ("G_RM_OPA_SURF", "Opaque (No AA, No ZBuf)", "G_RM_OPA_SURF"),
     ("G_RM_ZB_CLD_SURF", "Cloud (No AA)", "G_RM_ZB_CLD_SURF"),
     ("G_RM_AA_ZB_TEX_TERR", "Terrain", "G_RM_AA_ZB_TEX_TERR"),
+    ("Custom", "Custom", "Custom"),
 ]
 
 enumRenderModesCycle2 = [
@@ -310,7 +311,42 @@ enumRenderModesCycle2 = [
     ("G_RM_ZB_CLD_SURF2", "Cloud (No AA)", "G_RM_ZB_CLD_SURF2"),
     ("G_RM_ZB_OVL_SURF2", "Overlay (No AA)", "G_RM_ZB_OVL_SURF2"),
     ("G_RM_AA_ZB_TEX_TERR2", "Terrain", "G_RM_AA_ZB_TEX_TERR2"),
+    ("Custom", "Custom", "Custom"),
 ]
+
+enumSurfType = [
+    ("SURF", "Surface", "Surface"),
+    ("TERR", "Terrain", "Terrain"),
+    ("INTER", "Intersecting", "Intersecting"),
+    ("DECAL", "Decal", "Decal"),
+    ("LINE", "Line", "Line"),
+]
+
+enumZType = [
+    ("OPA", "Opaque", "Opaque"),
+    ("TEX", "Tex-Edge", "Tex-Edge"),
+    ("XLU", "Translucent", "Translucent"),
+    ("SUB", "Sub-Surface", "Sub-Surface"),
+    ("PCL", "Particle", "Particle"),
+    ("CLD", "Cloud", "Cloud"),
+    ("OVL", "Overlay", "Overlay"),
+]
+
+
+enumAAType = [
+    ("AA", "Anti-Alias", "Anti-Alias"),
+    ("RA", "Reduced-AA", "Reduced-AA"),
+    ("None", "None", "None"),
+]
+
+
+enum1cycleOpt = [
+    ("PASS", "Pass", "Pass"),
+    ("NOOP", "Noop", "Noop"),
+    ("FOG_SHADE", "Fog Shade", "Fog Shade"),
+    ("FOG_PRIM", "Fog Prim", "Fog Prim"),
+]
+
 
 enumTexFormat = [
     ("I4", "Intensity 4-bit", "Intensity 4-bit"),
