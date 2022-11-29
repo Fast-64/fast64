@@ -806,7 +806,8 @@ def saveMeshByFaces(
     if material.name != lastMaterialName:
         fMesh.add_material_call(fMaterial)
     triGroup = fMesh.tri_group_new(fMaterial)
-    fMesh.draw.commands.append(SPDisplayList(triGroup.triList))
+    if not fMesh.inline:
+        fMesh.draw.commands.append(SPDisplayList(triGroup.triList))
 
     triConverter = TriangleConverter(
         triConverterInfo,
@@ -821,7 +822,15 @@ def saveMeshByFaces(
 
     currentGroupIndex = saveTriangleStrip(triConverter, faces, obj.data, True)
 
-    if fMaterial.revert is not None:
+    #inline requires the mesh to revert a few cmds for safety
+    if fModel.inline:
+        if not fMesh.draw.commands:
+            revertMatAndEndDraw(fMesh.draw, [DPSetRenderMode(fModel.getRenderMode(drawLayer), None), DPSetCycleType("G_CYC_1CYCLE"), DPSetTextureLUT("G_TT_NONE")])
+        #remove SPEndDisplayList from triGroup
+        while(SPEndDisplayList() in triGroup.triList.commands):
+            triGroup.triList.commands.remove(SPEndDisplayList())
+    
+    elif fMaterial.revert is not None:
         fMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
 
     return currentGroupIndex
@@ -1481,7 +1490,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         )
         + (("_area" + str(areaIndex)) if f3dMat.set_fog and f3dMat.use_global_fog and areaKey is not None else "")
     )
-    fMaterial = FMaterial(materialName, fModel.DLFormat)
+    fMaterial = fModel.addMaterial(materialName)
     fMaterial.material.commands.append(DPPipeSync())
     fMaterial.revert.commands.append(DPPipeSync())
 
@@ -1606,11 +1615,11 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         sharedPalette = FSharedPalette(getSharedPaletteName(f3dMat))
 
         # dummy lists to be appended in later
-        loadGfx = GfxList(None, None, fModel.DLFormat)
+        loadGfx = [GfxList(None, None, fModel.DLFormat), GfxList(None, None, fModel.DLFormat)]
         revertGfx = GfxList(None, None, fModel.DLFormat)
     else:
         sharedPalette = None
-        loadGfx = fMaterial.material
+        loadGfx = [fMaterial.textures[0], fMaterial.textures[1]]
         revertGfx = fMaterial.revert
 
     imageKey0, imageKey1 = getImageKeys(f3dMat, useSharedCIPalette)
@@ -1625,7 +1634,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             material.name,
             fModel,
             fMaterial,
-            loadGfx,
+            loadGfx[0],
             revertGfx,
             f3dMat.tex0,
             0,
@@ -1655,7 +1664,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             material.name,
             fModel,
             fMaterial,
-            loadGfx,
+            loadGfx[1],
             revertGfx,
             f3dMat.tex1,
             1,
@@ -1695,7 +1704,8 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         )
 
         # Append these commands after palette loading commands
-        fMaterial.material.commands.extend(loadGfx.commands)
+        fMaterial.textures[0].commands.extend(loadGfx[0].commands)
+        fMaterial.textures[1].commands.extend(loadGfx[1].commands)
         fMaterial.revert.commands.extend(revertGfx.commands)
 
         fImage0.paletteKey = paletteKey
@@ -2963,7 +2973,7 @@ def exportF3DtoC(
     dirPath, obj, DLFormat, transformMatrix, f3dType, isHWv1, texDir, savePNG, texSeparate, name, matWriteMethod
 ):
 
-    fModel = FModel(f3dType, isHWv1, name, DLFormat, matWriteMethod)
+    fModel = FModel(f3dType, isHWv1, name, DLFormat, matWriteMethod, inline = bpy.context.scene.exportInlineF3D)
     fMesh = exportF3DCommon(obj, fModel, transformMatrix, True, name, DLFormat, not savePNG)
 
     modelDirPath = os.path.join(dirPath, toAlnum(name))
