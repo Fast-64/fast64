@@ -2187,7 +2187,10 @@ class FModel:
     def processTexRefNonCITextures(
         self, fMaterial: "FMaterial", material: bpy.types.Material, index: int
     ):
-        """For non CI textures that use a texture reference, process additional textures that will possibly be loaded here."""
+        """
+        For non CI textures that use a texture reference, process additional textures that will possibly be loaded here.
+        This doesn't return anything.
+        """
         pass
 
     def processTexRefCITextures(self, fMaterial: "FMaterial", material: bpy.types.Material, index: int) -> "FImage":
