@@ -2159,7 +2159,7 @@ class TextureProperty(bpy.types.PropertyGroup):
         default="0x08000000",
     )
     pal_reference_size: bpy.props.IntProperty(
-        name="Texture Reference Size",
+        name="Palette Reference Size",
         min=1,
         default=16,
     )
