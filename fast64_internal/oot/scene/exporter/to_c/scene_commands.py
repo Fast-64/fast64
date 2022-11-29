@@ -1,5 +1,6 @@
 from .....utility import CData, indent
 from ....oot_level_classes import OOTScene
+from ....oot_utility import getCustomProperty
 
 
 def getSoundSettingsCmd(outScene: OOTScene):
@@ -49,7 +50,8 @@ def getSpawnActorListCmd(outScene: OOTScene, headerIndex: int):
 
 
 def getSkyboxSettingsCmd(outScene: OOTScene):
-    return f"SCENE_CMD_SKYBOX_SETTINGS({outScene.skyboxID}, {outScene.skyboxCloudiness}, {outScene.skyboxLighting})"
+    skyboxLighting = getCustomProperty(outScene, "skyboxLighting")
+    return f"SCENE_CMD_SKYBOX_SETTINGS({outScene.skyboxID}, {outScene.skyboxCloudiness}, {skyboxLighting})"
 
 
 def getExitListCmd(outScene: OOTScene, headerIndex: int):

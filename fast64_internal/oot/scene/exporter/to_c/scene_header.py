@@ -34,6 +34,7 @@ def getLightSettingsEntry(light: OOTLight, lightMode: str, index: int):
     ]
 
     lightDescs = ["Dawn", "Day", "Dusk", "Night"]
+    print(lightMode)
     if lightMode == "false":
         lightDesc = f"// {lightDescs[index]} Lighting\n"
     else:

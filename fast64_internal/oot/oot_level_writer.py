@@ -258,7 +258,8 @@ def readSceneData(scene, scene_properties, sceneHeader, alternateSceneHeaders):
     scene.naviCup = getCustomProperty(sceneHeader, "naviCup")
     scene.skyboxID = getCustomProperty(sceneHeader, "skyboxID")
     scene.skyboxCloudiness = getCustomProperty(sceneHeader, "skyboxCloudiness")
-    scene.skyboxLighting = getCustomProperty(sceneHeader, "skyboxLighting")
+    scene.skyboxLighting = sceneHeader.skyboxLighting
+    scene.skyboxLightingCustom = sceneHeader.skyboxLightingCustom
     scene.mapLocation = getCustomProperty(sceneHeader, "mapLocation")
     scene.cameraMode = getCustomProperty(sceneHeader, "cameraMode")
     scene.musicSeq = getCustomProperty(sceneHeader, "musicSeq")
@@ -786,9 +787,13 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
                 else:
                     actorRot = ", ".join(f"DEG_TO_BINANG({(rot * (180 / 0x8000)):.3f})" for rot in rotation)
 
-                actorName = ootData.actorData.actorsByID[actorProp.actorID].name.replace(
-                    f" - {actorProp.actorID.removeprefix('ACTOR_')}", ""
-                ) if actorProp.actorID != "Custom" else "Custom Actor"
+                actorName = (
+                    ootData.actorData.actorsByID[actorProp.actorID].name.replace(
+                        f" - {actorProp.actorID.removeprefix('ACTOR_')}", ""
+                    )
+                    if actorProp.actorID != "Custom"
+                    else "Custom Actor"
+                )
 
                 addActor(
                     room,
@@ -813,9 +818,13 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
                     front = (room.roomIndex, getCustomProperty(transActorProp, "cameraTransitionFront"))
                     back = (transActorProp.roomIndex, getCustomProperty(transActorProp, "cameraTransitionBack"))
 
-                transActorName = ootData.actorData.actorsByID[transActorProp.actor.actorID].name.replace(
-                    f" - {transActorProp.actor.actorID.removeprefix('ACTOR_')}", ""
-                ) if transActorProp.actor.actorID != "Custom" else "Custom Actor"
+                transActorName = (
+                    ootData.actorData.actorsByID[transActorProp.actor.actorID].name.replace(
+                        f" - {transActorProp.actor.actorID.removeprefix('ACTOR_')}", ""
+                    )
+                    if transActorProp.actor.actorID != "Custom"
+                    else "Custom Actor"
+                )
 
                 addActor(
                     scene,

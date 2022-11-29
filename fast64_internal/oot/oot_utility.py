@@ -14,7 +14,7 @@ from ..utility import (
     cleanupDuplicatedObjects,
     ootGetSceneOrRoomHeader,
     hexOrDecInt,
-    binOps
+    binOps,
 )
 
 

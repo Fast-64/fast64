@@ -3,7 +3,7 @@ from random import random
 from collections import OrderedDict
 from ..f3d.f3d_gbi import F3D
 from ..f3d.flipbook import TextureFlipbook
-from ..utility import PluginError, raisePluginError, readFile, parentObject, hexOrDecInt, gammaInverse, yUpToZUp, indent
+from ..utility import PluginError, raisePluginError, readFile, parentObject, hexOrDecInt, gammaInverse, yUpToZUp
 from ..f3d.f3d_parser import parseMatrices, importMeshC
 from .oot_f3d_writer import getColliderMat
 from .oot_level import OOTImportSceneSettingsProperty
@@ -799,7 +799,11 @@ def parseActorInfo(actorMatch: re.Match, nestedBrackets: bool) -> tuple[str, lis
             [hexOrDecInt(value.strip()) for value in actorMatch.group(2).split(",") if value.strip() != ""]
         )
         rotation = tuple(
-            [hexOrDecInt(getEvalParams(value.strip())) for value in actorMatch.group(3).split(",") if value.strip() != ""]
+            [
+                hexOrDecInt(getEvalParams(value.strip()))
+                for value in actorMatch.group(3).split(",")
+                if value.strip() != ""
+            ]
         )
         actorParam = actorMatch.group(4).strip()
     else:
@@ -1080,7 +1084,8 @@ def parseLightList(
 
     lightList = [
         value.replace("{", "").replace("\n", "").replace(" ", "")
-        for value in lightData.split("},") if value.strip() != ""
+        for value in lightData.split("},")
+        if value.strip() != ""
     ]
 
     index = 0

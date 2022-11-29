@@ -17,6 +17,7 @@ class OOTCommonCommands:
     def getEndCmd(self):
         return indent + "SCENE_CMD_END(),\n"
 
+
 class OOTActor:
     def __init__(self, actorName, actorID, position, rotation, actorParam):
         self.actorName = actorName
@@ -175,6 +176,7 @@ class OOTScene(OOTCommonCommands):
         self.skyboxID = None
         self.skyboxCloudiness = None
         self.skyboxLighting = None
+        self.skyboxLightingCustom = None
 
         # Camera
         self.mapLocation = None
