@@ -123,7 +123,7 @@ def getSpawnList(outScene: OOTScene, headerIndex: int):
     # .c
     spawnList.source = (
         (f"{listName}[]" + " = {\n")
-        + "// { Spawn Actor List Index, Room Index }\n"
+        + (indent + "// { Spawn Actor List Index, Room Index }\n")
         + "".join(indent + getSpawnEntry(entrance) for entrance in outScene.entranceList)
         + "};\n\n"
     )

@@ -165,7 +165,6 @@ class OOTScene(OOTCommonCommands):
         self.entranceList = set()
         self.startPositions = {}
         self.lights = []
-        self.lightMode = str()
         self.model = model
         self.collision = OOTCollision(self.name)
 

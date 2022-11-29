@@ -57,13 +57,13 @@ def getRoomCommandList(outRoom: OOTRoom, headerIndex: int):
         getRoomBehaviourCmd,
         getSkyboxDisablesCmd,
         getTimeSettingsCmd,
-        getWindSettingsCmd,
         getRoomShapeCmd,
     ]
 
     roomCmdData = (
         (outRoom.getAltHeaderListCmd(outRoom.alternateHeadersName()) if outRoom.hasAlternateHeaders() else "")
         + (",\n".join(indent + getCmd(outRoom) for getCmd in getCmdFuncList) + ",\n")
+        + (getWindSettingsCmd(outRoom) if outRoom.setWind else "")
         + (getObjectListCmd(outRoom, headerIndex) if len(outRoom.objectIDList) > 0 else "")
         + (getActorListCmd(outRoom, headerIndex) if len(outRoom.actorList) > 0 else "")
         + outRoom.getEndCmd()

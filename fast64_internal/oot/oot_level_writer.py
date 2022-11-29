@@ -259,7 +259,6 @@ def readSceneData(scene, scene_properties, sceneHeader, alternateSceneHeaders):
     scene.skyboxID = getCustomProperty(sceneHeader, "skyboxID")
     scene.skyboxCloudiness = getCustomProperty(sceneHeader, "skyboxCloudiness")
     scene.skyboxLighting = getCustomProperty(sceneHeader, "skyboxLighting")
-    scene.lightMode = sceneHeader.skyboxLighting
     scene.mapLocation = getCustomProperty(sceneHeader, "mapLocation")
     scene.cameraMode = getCustomProperty(sceneHeader, "cameraMode")
     scene.musicSeq = getCustomProperty(sceneHeader, "musicSeq")
@@ -787,12 +786,14 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
                 else:
                     actorRot = ", ".join(f"DEG_TO_BINANG({(rot * (180 / 0x8000)):.3f})" for rot in rotation)
 
+                actorName = ootData.actorData.actorsByID[actorProp.actorID].name.replace(
+                    f" - {actorProp.actorID.removeprefix('ACTOR_')}", ""
+                ) if actorProp.actorID != "Custom" else actorProp.actorID
+
                 addActor(
                     room,
                     OOTActor(
-                        ootData.actorData.actorsByID[actorProp.actorID].name.replace(
-                            f" - {actorProp.actorID.removeprefix('ACTOR_')}", ""
-                        ),
+                        actorName,
                         getCustomProperty(actorProp, "actorID"),
                         translation,
                         actorRot,
@@ -811,12 +812,15 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
                 else:
                     front = (room.roomIndex, getCustomProperty(transActorProp, "cameraTransitionFront"))
                     back = (transActorProp.roomIndex, getCustomProperty(transActorProp, "cameraTransitionBack"))
+
+                transActorName = ootData.actorData.actorsByID[transActorProp.actor.actorID].name.replace(
+                    f" - {transActorProp.actor.actorID.removeprefix('ACTOR_')}", ""
+                ) if transActorProp.actor.actorID != "Custom" else transActorProp.actor.actorID
+
                 addActor(
                     scene,
                     OOTTransitionActor(
-                        ootData.actorData.actorsByID[transActorProp.actor.actorID].name.replace(
-                            f" - {transActorProp.actor.actorID.removeprefix('ACTOR_')}", ""
-                        ),
+                        transActorName,
                         getCustomProperty(transActorProp.actor, "actorID"),
                         front[0],
                         back[0],
