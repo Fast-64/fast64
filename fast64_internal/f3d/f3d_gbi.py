@@ -2187,9 +2187,14 @@ class FModel:
     def processTexRefNonCITextures(
         self, fMaterial: "FMaterial", material: bpy.types.Material, index: int
     ):
-        return
+        """For non CI textures that use a texture reference, process additional textures that will possibly be loaded here."""
+        pass
 
     def processTexRefCITextures(self, fMaterial: "FMaterial", material: bpy.types.Material, index: int) -> "FImage":
+        """
+        For CI textures that use a texture reference, process additional textures that will possibly be loaded here.
+        This returns a palette FImage that is shared between all processed textures.
+        """
         texProp = getattr(material.f3dMat, f"tex{index}")
         return FImage(texProp.pal_reference, None, None, 1, texProp.pal_reference_size, None, False)
 
