@@ -35,7 +35,7 @@ def getLightSettingsEntry(light: OOTLight, lightMode: str, isLightingCustom: boo
 
     lightDescs = ["Dawn", "Day", "Dusk", "Night"]
 
-    if not isLightingCustom and lightMode == "false":
+    if not isLightingCustom and lightMode == "LIGHT_MODE_TIME":
         # @TODO: Improve the lighting system.
         # Currently Fast64 assumes there's only 4 possible settings for "Time of Day" lighting.
         # This is not accurate and more complicated,
@@ -43,9 +43,8 @@ def getLightSettingsEntry(light: OOTLight, lightMode: str, isLightingCustom: boo
         # but this will need to be changed the day the lighting system is updated.
         lightDesc = f"// {lightDescs[index % 4]} Lighting\n"
     else:
-        lightDesc = (
-            f"// {'Indoor' if not isLightingCustom and lightMode == 'true' else 'Custom'} No. {index + 1} Lighting\n"
-        )
+        isIndoor = not isLightingCustom and lightMode == "LIGHT_MODE_SETTINGS"
+        lightDesc = f"// {'Indoor' if isIndoor else 'Custom'} No. {index + 1} Lighting\n"
 
     lightData = (
         (indent + lightDesc)
