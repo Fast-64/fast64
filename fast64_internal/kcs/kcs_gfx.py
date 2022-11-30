@@ -16,6 +16,11 @@ from re import findall
 
 from . import F3DEX2_gbi as f3dex2
 from .kcs_utils import *
+from .kcs_data import (
+    Geo_Header,
+    Layout,
+    TextureScrollStruct,
+)
 
 # fast64 imports
 
@@ -24,10 +29,6 @@ from ..utility import (
     checkUniqueBoneNames,
     duplicateHierarchy,
     cleanupDuplicatedObjects,
-    CData,
-    writeCData,
-    writeCDataSourceOnly,
-    writeCDataHeaderOnly,
 )
 from ..f3d.f3d_writer import *
 from ..f3d.f3d_gbi import *
@@ -40,7 +41,7 @@ from ..f3d.f3d_gbi import *
 # geo data
 
 @dataclass
-class layout(BinProcess):
+class layout(BinProcess, BinWrite):
     flag: int
     depth: int
     ptr: int
@@ -49,12 +50,31 @@ class layout(BinProcess):
     scale: Vector
     index: int = 0
 
+    def __post_init__(self):
+        self.symbol_init()
+
+    def to_c(self):
+        dat = [
+            self.flag,
+            self.depth,
+            self.ptr,
+            self.translation,
+            self.rotation,
+            self.scale,
+        ]
+        CData = kcs_Cdata()
+        self.WriteDictStruct(
+            dat, Layout, CData, "", f"Layout Geo_LY_{self.index}", self.ptrs
+        )
+        return CData
 
 # fake storage class that mirrors methods of layout
 @dataclass
 class faux_LY:
     ptr: int
     index: int = 0
+    def to_c(self):
+        return kcs_Cdata()
 
 
 class Vertices:
@@ -78,51 +98,6 @@ class Vertices:
         return v
 
 
-# use for extraction,
-TextureScrollStruct = {
-    0x00: [">H", "field_0x0", 2],
-    0x02: [">B", "fmt1", 1],
-    0x03: [">B", "siz1", 1],
-    0x04: [">L", "textures", 4],
-    0x08: [">H", "stretch", 2],
-    0x0A: [">H", "sharedOffset", 2],
-    0x0C: [">H", "t0_w", 2],
-    0x0E: [">H", "t0_h", 2],
-    0x10: [">L", "halve", 4],
-    0x14: [">f", "t0_xShift", 4],
-    0x18: [">f", "t0_yShift", 4],
-    0x1C: [">f", "xScale", 4],
-    0x20: [">f", "yScale", 4],
-    0x24: [">f", "field_0x24", 4],
-    0x28: [">f", "field_0x28", 4],
-    0x2C: [">L", "palettes", 4],
-    0x30: [">H", "flags", 2],
-    0x32: [">B", "fmt2", 1],
-    0x33: [">B", "siz2", 1],
-    0x34: [">H", "w2", 2],
-    0x36: [">H", "h2", 2],
-    0x38: [">H", "t1_w", 2],
-    0x3A: [">H", "t1_h", 2],
-    0x3C: [">f", "t1_xShift", 4],
-    0x40: [">f", "t1_yShift", 4],
-    0x44: [">f", "field_0x44", 4],
-    0x48: [">f", "field_0x48", 4],
-    0x4C: [">L", "field_0x4c", 4],
-    0x50: [">4B", "prim_col", 4, "arr"],
-    0x54: [">B", "primLODFrac", 1],
-    0x55: [">B", "field_0x55", 1],
-    0x56: [">B", "field_0x56", 1],
-    0x57: [">B", "field_0x57", 1],
-    0x58: [">4B", "env_col", 4, "arr"],
-    0x5C: [">4B", "blend_col", 4, "arr"],
-    0x60: [">4B", "light1_col", 4, "arr"],
-    0x64: [">4B", "light2_col", 4, "arr"],
-    0x68: [">L", "field_0x68", 4],
-    0x6C: [">L", "field_0x6c", 4],
-    0x70: [">L", "field_0x70", 4],
-    0x74: [">L", "field_0x74", 4],
-}
-
 # this is the class that holds the actual individual scroll struct and textures
 class tx_scroll:
     _scroll = namedtuple("texture_scroll", " ".join([x[1] for x in TextureScrollStruct.values()]))
@@ -133,7 +108,7 @@ class tx_scroll:
 
 # each texture scroll will start from an array of ptrs, and each ptr will reference
 # tex scroll data
-class Tex_Scroll(BinProcess):
+class Tex_Scroll(BinProcess, BinWrite):
     def extract_dict(self, start, dict):
         a = []
         for k, v in dict.items():
@@ -1541,6 +1516,16 @@ class KCS_fModel(FModel):
     # process the layouts after the KCS_fMesh objects have been added, with their tri and mat info
     def process_layouts(self):
         pass
+        self.main_header = (
+            0, # *layout[]
+            0, # *tex_scroll[]
+            self.render_mode,
+            0, # *img_refs[]
+            0, # *vtx_refs[]
+            0, # Num_Anims
+            0, # *Anims[]
+            0, #  
+        )
     
     # output methods
     def save_binary(self, file):
@@ -1550,12 +1535,22 @@ class KCS_fModel(FModel):
         pass
 
     def to_c_inline(self, file):
+        VertexData = kcs_Cdata()
+        GraphicsData = kcs_Cdata()
+        LayoutData = kcs_Cdata()
         for ly in self.layouts:
             fMeshes = ly.ptr
             for fMesh in fMeshes:
                 GfxDat, VtxDat = fMesh.to_c_inline(self.f3d, None)
-                print(GfxDat.source)
-        print(file)
+                GraphicsData.append(GfxDat)
+                VertexData.append(VtxDat)
+            LayoutData.append(ly.to_c())
+        self.WriteDictStruct(
+            self.main_header, Geo_Header, file, "", "Geo_Header Header"
+        )
+        file.write(VertexData.source)
+        file.write(GraphicsData.source)
+        file.write(LayoutData.source)
 
 
 # overrdides fMaterial

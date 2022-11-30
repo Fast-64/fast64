@@ -9,7 +9,7 @@ from mathutils import Vector, Euler, Matrix
 
 from time import time
 from pathlib import Path
-from ..utility import rotate_quat_blender_to_n64, apply_objects_modifiers_and_transformations
+from ..utility import rotate_quat_blender_to_n64, apply_objects_modifiers_and_transformations, CData
 
 # ------------------------------------------------------------------------
 #    Decorators
@@ -32,6 +32,16 @@ def time_func(func):
 # ------------------------------------------------------------------------
 #    Classes
 # ------------------------------------------------------------------------
+
+
+# maintain duality with file objects, and CData objects
+class kcs_Cdata(CData):
+    def __init__(self):
+        super().__init__()
+    
+    def write(self, content):
+        self.source += content
+
 
 # just a base class that holds some binary processing
 class BinProcess:
@@ -92,9 +102,30 @@ class BinProcess:
 # this class writes bin data out from within the class
 # taken from level splitting tools, staged to be rewritten for blender specifically
 class BinWrite:
+    # if a ptr is passed, then auto add it to ptr dict
+    def __setattr__(self, name, value, ptr = None):
+        self.__dict__[name] = value
+        if ptr:
+            self.AddPtr(name, ptr)
+
+    # adds a symbol to a dict of ptrs, when writing via dict, if ptr arg is passed will search for name from void *ptr; value
+    def AddPtr(self, name, ptr):
+        self.ptrs[ptr] = name
+
+    def symbol_init(self):
+        self.ptrs = dict()
+        # this will guarantee that this class's implementation of setattr is always used
+        # instead of the defuault classes implementation
+        self.__setattr__ = super(BinWrite, self).__setattr__
+
+    # add a struct to an iterable container, and then give it a unique pointer
+    def app_struct(self, container, struct, name):
+        container.append(struct)
+        self.AddPtr(name, struct)
+
     # when writing a struct that had a ptr, write the loc
     # do this by searching the class for ptr stored within the cls
-    def WriteLocComment(self, file, dat):
+    def WriteLocComment(self, file: kcs_Cdata, dat):
         try:
             for k, v in self.__dict__.items():
                 if v == dat:
@@ -149,7 +180,7 @@ class BinWrite:
         return func(arr, **kwargs)
 
     # write generic array, use recursion to unroll all loops
-    def write_arr(self, file, name, arr, func, **kwargs):
+    def write_arr(self, file: kcs_Cdata, name, arr, func, **kwargs):
         file.write(f"{name}[] = {{\n\t")
         # use array formatter func
         file.write(self.format_iter(arr, func, **kwargs))
@@ -162,7 +193,7 @@ class BinWrite:
 
     # write a struct from a python dictionary
     def WriteDictStruct(
-        self, Data: list, Prototype_dict: dict, file: "filestream write", comment: str, name: str, symbols: dict = None
+        self, Data: list, Prototype_dict: dict, file: kcs_Cdata, comment: str, name: str, symbols: dict = None
     ):
         self.WriteLocComment(file, Data)
         file.write(f"struct {name} = {{\n")
