@@ -36,10 +36,15 @@ def getLightSettingsEntry(light: OOTLight, lightMode: str, isLightingCustom: boo
     lightDescs = ["Dawn", "Day", "Dusk", "Night"]
 
     if not isLightingCustom and lightMode == "false":
-        lightDesc = f"// {lightDescs[index]} Lighting\n"
+        # @TODO: Improve the lighting system.
+        # Currently Fast64 assumes there's only 4 possible settings for "Time of Day" lighting.
+        # This is not accurate and more complicated,
+        # for now we are doing ``index % 4`` to avoid having an OoB read in the list
+        # but this will need to be changed the day the lighting system is updated.
+        lightDesc = f"// {lightDescs[index % 4]} Lighting\n"
     else:
         lightDesc = (
-            f"// {'Indoor' if not isLightingCustom and lightMode == 'true' else 'Custom'} n°{index + 1} Lighting\n"
+            f"// {'Indoor' if not isLightingCustom and lightMode == 'true' else 'Custom'} No. {index + 1} Lighting\n"
         )
 
     lightData = (
@@ -184,7 +189,7 @@ def getSceneData(outScene: OOTScene):
     ]
 
     for i, csHeader in enumerate(outScene.cutsceneHeaders):
-        headers.append((csHeader, f"Cutscene n°{i + 1}"))
+        headers.append((csHeader, f"Cutscene No. {i + 1}"))
 
     altHeaderPtrs = "\n".join(
         indent + f"{curHeader.sceneName()}_header{i:02},"
