@@ -201,10 +201,11 @@ def getSceneData(outScene: OOTScene):
             sceneC.source += "/**\n * " + f"Header {headerDesc}\n" + "*/\n"
             sceneC.append(getSceneCommandList(curHeader, i))
 
-            if outScene.hasAlternateHeaders() and i == 0:
-                altHeaderListName = f"SceneCmd* {outScene.alternateHeadersName()}[]"
-                sceneC.header += f"extern {altHeaderListName};\n"
-                sceneC.source += altHeaderListName + " = {\n" + altHeaderPtrs + "\n};\n\n"
+            if i == 0:
+                if outScene.hasAlternateHeaders():
+                    altHeaderListName = f"SceneCmd* {outScene.alternateHeadersName()}[]"
+                    sceneC.header += f"extern {altHeaderListName};\n"
+                    sceneC.source += altHeaderListName + " = {\n" + altHeaderPtrs + "\n};\n\n"
 
                 # Write the room segment list
                 sceneC.append(getRoomList(outScene))
