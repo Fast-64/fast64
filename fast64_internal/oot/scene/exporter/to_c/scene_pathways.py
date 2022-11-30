@@ -15,8 +15,7 @@ def getPathPointData(path: OOTPath, headerIndex: int, pathIndex: int):
         f"{pathName}[]"
         + " = {\n"
         + "\n".join(
-            indent + "{ " + ", ".join(f"{round(curPoint):5}" for curPoint in point) + " },"
-            for point in path.points
+            indent + "{ " + ", ".join(f"{round(curPoint):5}" for curPoint in point) + " }," for point in path.points
         )
         + "\n};\n\n"
     )

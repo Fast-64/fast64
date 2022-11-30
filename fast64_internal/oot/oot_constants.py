@@ -177,9 +177,10 @@ ootEnumSkybox = [
 ]
 
 ootEnumSkyboxLighting = [
+    # see ``LightMode`` enum in ``z64environment.h``
     ("Custom", "Custom", "Custom"),
-    ("false", "Time Of Day", "Time Of Day"),
-    ("true", "Indoor", "Indoor"),
+    ("LIGHT_MODE_TIME", "Time Of Day", "Time Of Day"),
+    ("LIGHT_MODE_SETTINGS", "Indoor", "Indoor"),
 ]
 
 ootEnumAudioSessionPreset = [

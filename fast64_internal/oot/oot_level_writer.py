@@ -270,7 +270,7 @@ def readSceneData(scene, scene_properties, sceneHeader, alternateSceneHeaders):
     if (
         sceneHeader.skyboxLighting == "0x00"
         or sceneHeader.skyboxLighting == "0"
-        or sceneHeader.skyboxLighting == "false"
+        or sceneHeader.skyboxLighting == "LIGHT_MODE_TIME"
     ):  # Time of Day
         scene.lights.append(getLightData(sceneHeader.timeOfDayLights.dawn))
         scene.lights.append(getLightData(sceneHeader.timeOfDayLights.day))

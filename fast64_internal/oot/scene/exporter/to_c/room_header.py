@@ -58,9 +58,7 @@ def getRoomData(outRoom: OOTRoom):
         f"{altHeaderPtrListName}[]"
         + " = {\n"
         + "\n".join(
-            indent + f"{curHeader.roomName()}_header{i:02},"
-            if curHeader is not None
-            else indent + "NULL,"
+            indent + f"{curHeader.roomName()}_header{i:02}," if curHeader is not None else indent + "NULL,"
             for i, (curHeader, headerDesc) in enumerate(roomHeaders, 1)
         )
         + "\n};\n\n"
