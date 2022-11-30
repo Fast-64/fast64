@@ -140,6 +140,21 @@ def getBits(value: int, index: int, size: int) -> int:
     return ((1 << size) - 1) & (value >> index)
 
 
+def removeComments(text: str):
+    # https://stackoverflow.com/a/241506
+
+    def replacer(match: re.Match[str]):
+        s = match.group(0)
+        if s.startswith("/"):
+            return " "  # note: a space and not an empty string
+        else:
+            return s
+
+    pattern = re.compile(r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"', re.DOTALL | re.MULTILINE)
+
+    return re.sub(pattern, replacer, text)
+
+
 def getDataMatch(
     sceneData: str, name: str, dataType: str | list[str], errorMessageID: str, isArray: bool = True
 ) -> str:
@@ -158,14 +173,8 @@ def getDataMatch(
     if not match:
         raise PluginError(f"Could not find {errorMessageID} {name}.")
 
-    # remove comments
-    data = match.group(1)
-    regex = r"//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|'(?:\\.|[^\\'])*'"
-
-    for match in re.findall(regex, data, flags=re.DOTALL | re.MULTILINE):
-        data = data.replace(match, "")
-
-    return data
+    # return the match with comments removed
+    return removeComments(match.group(1))
 
 
 def stripName(name: str):

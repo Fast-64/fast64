@@ -712,13 +712,11 @@ def getEvalParams(input: str):
 
     # degrees to binary angle conversion
     if "DEG_TO_BINANG(" in input:
-        return f"0x{int(float(input.replace('DEG_TO_BINANG(', '')[:-1].strip()) * (0x8000 / 180)):X}"
+        input = input.strip().removeprefix("DEG_TO_BINANG(").removesuffix(")").strip()
+        return f"0x{round(float(input) * (0x8000 / 180)):X}"
 
     if input is None or "None" in input:
         return "0x0"
-
-    if "0X" not in input and "0x" not in input and not ("<<" in input or "&" in input):
-        input = f"0x{input}"
 
     # remove spaces
     input = input.strip()

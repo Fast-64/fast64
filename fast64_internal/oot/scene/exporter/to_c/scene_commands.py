@@ -4,64 +4,64 @@ from ....oot_utility import getCustomProperty
 
 
 def getSoundSettingsCmd(outScene: OOTScene):
-    return f"SCENE_CMD_SOUND_SETTINGS({outScene.audioSessionPreset}, {outScene.nightSeq}, {outScene.musicSeq})"
+    return indent + f"SCENE_CMD_SOUND_SETTINGS({outScene.audioSessionPreset}, {outScene.nightSeq}, {outScene.musicSeq})"
 
 
 def getRoomListCmd(outScene: OOTScene):
-    return f"SCENE_CMD_ROOM_LIST({len(outScene.rooms)}, {outScene.roomListName()})"
+    return indent + f"SCENE_CMD_ROOM_LIST({len(outScene.rooms)}, {outScene.roomListName()})"
 
 
 def getTransActorListCmd(outScene: OOTScene, headerIndex: int):
     return (
-        "SCENE_CMD_TRANSITION_ACTOR_LIST("
-        + f"{len(outScene.transitionActorList)}, {outScene.transitionActorListName(headerIndex)})"
-    )
+        indent + "SCENE_CMD_TRANSITION_ACTOR_LIST("
+    ) + f"{len(outScene.transitionActorList)}, {outScene.transitionActorListName(headerIndex)})"
 
 
 def getMiscSettingsCmd(outScene: OOTScene):
-    return f"SCENE_CMD_MISC_SETTINGS({outScene.cameraMode}, {outScene.mapLocation})"
+    return indent + f"SCENE_CMD_MISC_SETTINGS({outScene.cameraMode}, {outScene.mapLocation})"
 
 
 def getColHeaderCmd(outScene: OOTScene):
-    return f"SCENE_CMD_COL_HEADER(&{outScene.collision.headerName()})"
+    return indent + f"SCENE_CMD_COL_HEADER(&{outScene.collision.headerName()})"
 
 
 def getSpawnListCmd(outScene: OOTScene, headerIndex: int):
     return (
-        "SCENE_CMD_ENTRANCE_LIST("
-        + f"{outScene.entranceListName(headerIndex) if len(outScene.entranceList) > 0 else 'NULL'})"
-    )
+        indent + "SCENE_CMD_ENTRANCE_LIST("
+    ) + f"{outScene.entranceListName(headerIndex) if len(outScene.entranceList) > 0 else 'NULL'})"
 
 
 def getSpecialFilesCmd(outScene: OOTScene):
-    return f"SCENE_CMD_SPECIAL_FILES({outScene.naviCup}, {outScene.globalObject})"
+    return indent + f"SCENE_CMD_SPECIAL_FILES({outScene.naviCup}, {outScene.globalObject})"
 
 
 def getPathListCmd(outScene: OOTScene, headerIndex: int):
-    return f"SCENE_CMD_PATH_LIST({outScene.pathListName(headerIndex)})"
+    return indent + f"SCENE_CMD_PATH_LIST({outScene.pathListName(headerIndex)})"
 
 
 def getSpawnActorListCmd(outScene: OOTScene, headerIndex: int):
     return (
-        "SCENE_CMD_SPAWN_LIST("
+        (indent + "SCENE_CMD_SPAWN_LIST(")
         + f"{len(outScene.startPositions)}, "
         + f"{outScene.startPositionsName(headerIndex) if len(outScene.startPositions) > 0 else 'NULL'})"
     )
 
 
 def getSkyboxSettingsCmd(outScene: OOTScene):
-    return f"SCENE_CMD_SKYBOX_SETTINGS({outScene.skyboxID}, {outScene.skyboxCloudiness}, {outScene.skyboxLighting})"
+    return (
+        indent
+        + f"SCENE_CMD_SKYBOX_SETTINGS({outScene.skyboxID}, {outScene.skyboxCloudiness}, {outScene.skyboxLighting})"
+    )
 
 
 def getExitListCmd(outScene: OOTScene, headerIndex: int):
-    return f"SCENE_CMD_EXIT_LIST({outScene.exitListName(headerIndex)})"
+    return indent + f"SCENE_CMD_EXIT_LIST({outScene.exitListName(headerIndex)})"
 
 
 def getLightSettingsCmd(outScene: OOTScene, headerIndex: int):
     return (
-        "SCENE_CMD_ENV_LIGHT_SETTINGS("
-        + f"{len(outScene.lights)}, {outScene.lightListName(headerIndex) if len(outScene.lights) > 0 else 'NULL'})"
-    )
+        indent + "SCENE_CMD_ENV_LIGHT_SETTINGS("
+    ) + f"{len(outScene.lights)}, {outScene.lightListName(headerIndex) if len(outScene.lights) > 0 else 'NULL'})"
 
 
 def getCutsceneDataCmd(outScene: OOTScene, headerIndex: int):
@@ -105,8 +105,8 @@ def getSceneCommandList(outScene: OOTScene, headerIndex: int):
 
     sceneCmdData = (
         (outScene.getAltHeaderListCmd(outScene.alternateHeadersName()) if outScene.hasAlternateHeaders() else "")
-        + (",\n".join(indent + getCmd(outScene) for getCmd in getCmdFunc1ArgList) + ",\n")
-        + (",\n".join(indent + getCmd(outScene, headerIndex) for getCmd in getCmdFunc2ArgList) + ",\n")
+        + (",\n".join(getCmd(outScene) for getCmd in getCmdFunc1ArgList) + ",\n")
+        + (",\n".join(getCmd(outScene, headerIndex) for getCmd in getCmdFunc2ArgList) + ",\n")
         + outScene.getEndCmd()
     )
 

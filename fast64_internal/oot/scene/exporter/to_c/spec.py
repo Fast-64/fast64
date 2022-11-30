@@ -8,7 +8,7 @@ from .scene import OOTSceneC
 def getSceneSpecEntries(segmentDefinition: list[str], sceneName: str):
     """Returns the existing spec entries for the selected scene"""
     entries = []
-    matchText = f'\s*name\s*"{sceneName}\_'
+    matchText = rf'\s*name\s*"{sceneName}\_'
 
     for entry in segmentDefinition:
         if re.match(matchText + 'scene"', entry) or re.match(matchText + 'room\_\d+"', entry):

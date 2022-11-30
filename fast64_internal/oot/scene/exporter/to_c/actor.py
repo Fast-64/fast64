@@ -11,14 +11,15 @@ from ....oot_level_classes import OOTScene, OOTRoom, OOTActor, OOTTransitionActo
 
 def getActorEntry(actor: OOTActor):
     """Returns a single actor entry"""
-    posData = "{ " + ", ".join([f"{round(pos)}" for pos in actor.position]) + " }"
-    rotData = "{ " + "".join(rot for rot in actor.rotation) + " }"
+    posData = "{ " + ", ".join(f"{round(pos)}" for pos in actor.position) + " }"
+    rotData = "{ " + "".join(actor.rotation) + " }"
 
     actorInfos = [actor.actorID, posData, rotData, actor.actorParam]
     infoDescs = ["Actor ID", "Position", "Rotation", "Parameters"]
 
     return (
-        (f"// {actor.actorName}\n" + indent if actor.actorName != "" else "")
+        indent
+        + (f"// {actor.actorName}\n" + indent if actor.actorName != "" else "")
         + "{\n"
         + ",\n".join((indent * 2) + f"/* {desc:10} */ {info}" for desc, info in zip(infoDescs, actorInfos))
         + ("\n" + indent + "},\n")
@@ -36,7 +37,7 @@ def getActorList(outRoom: OOTRoom, headerIndex: int):
     # .c
     actorList.source = (
         (f"{listName}[{outRoom.getActorLengthDefineName(headerIndex)}]" + " = {\n")
-        + "\n".join(indent + getActorEntry(actor) for actor in outRoom.actorList)
+        + "\n".join(getActorEntry(actor) for actor in outRoom.actorList)
         + "};\n\n"
     )
 
@@ -61,7 +62,7 @@ def getTransitionActorEntry(transActor: OOTTransitionActor):
     infoDescs = ["Room & Cam Index (Front, Back)", "Actor ID", "Position", "Rotation Y", "Parameters"]
 
     return (
-        (f"// {transActor.actorName}\n" + indent if transActor.actorName != "" else "")
+        (indent + f"// {transActor.actorName}\n" + indent if transActor.actorName != "" else "")
         + "{\n"
         + ",\n".join((indent * 2) + f"/* {desc:30} */ {info}" for desc, info in zip(infoDescs, actorInfos))
         + ("\n" + indent + "},\n")
@@ -79,7 +80,7 @@ def getTransitionActorList(outScene: OOTScene, headerIndex: int):
     # .c
     transActorList.source = (
         (f"{listName}[]" + " = {\n")
-        + "\n".join(indent + getTransitionActorEntry(transActor) for transActor in outScene.transitionActorList)
+        + "\n".join(getTransitionActorEntry(transActor) for transActor in outScene.transitionActorList)
         + "};\n\n"
     )
 
@@ -100,7 +101,7 @@ def getSpawnActorList(outScene: OOTScene, headerIndex: int):
     # .c
     spawnActorList.source = (
         (f"{listName}[]" + " = {\n")
-        + "".join(indent + getActorEntry(spawnActor) for spawnActor in outScene.startPositions.values())
+        + "".join(getActorEntry(spawnActor) for spawnActor in outScene.startPositions.values())
         + "};\n\n"
     )
 
@@ -109,7 +110,7 @@ def getSpawnActorList(outScene: OOTScene, headerIndex: int):
 
 def getSpawnEntry(entrance: OOTEntrance):
     """Returns a single spawn entry"""
-    return "{ " + f"{entrance.startPositionIndex}, {entrance.roomIndex}" + " },\n"
+    return indent + "{ " + f"{entrance.startPositionIndex}, {entrance.roomIndex}" + " },\n"
 
 
 def getSpawnList(outScene: OOTScene, headerIndex: int):
@@ -124,7 +125,7 @@ def getSpawnList(outScene: OOTScene, headerIndex: int):
     spawnList.source = (
         (f"{listName}[]" + " = {\n")
         + (indent + "// { Spawn Actor List Index, Room Index }\n")
-        + "".join(indent + getSpawnEntry(entrance) for entrance in outScene.entranceList)
+        + "".join(getSpawnEntry(entrance) for entrance in outScene.entranceList)
         + "};\n\n"
     )
 

@@ -1,4 +1,5 @@
 import bpy, os, shutil
+from typing import Optional
 from ..utility import PluginError, toAlnum, indent
 from .oot_collision_classes import OOTCollision
 from .oot_model_classes import OOTModel
@@ -185,9 +186,9 @@ class OOTScene(OOTCommonCommands):
         self.musicSeq = None
         self.nightSeq = None
 
-        self.childNightHeader: "OOTScene" = None
-        self.adultDayHeader: "OOTScene" = None
-        self.adultNightHeader: "OOTScene" = None
+        self.childNightHeader: Optional[OOTScene] = None
+        self.adultDayHeader: Optional[OOTScene] = None
+        self.adultNightHeader: Optional[OOTScene] = None
         self.cutsceneHeaders: list["OOTScene"] = []
 
         self.exitList = []

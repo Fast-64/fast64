@@ -46,7 +46,7 @@ def getRoomData(outRoom: OOTRoom):
     ]
 
     for i, csHeader in enumerate(outRoom.cutsceneHeaders):
-        roomHeaders.append((csHeader, f"Cutscene n°{i + 1}"))
+        roomHeaders.append((csHeader, f"Cutscene No. {i + 1}"))
 
     altHeaderPtrListName = f"SceneCmd* {outRoom.alternateHeadersName()}"
 
@@ -61,8 +61,6 @@ def getRoomData(outRoom: OOTRoom):
             indent + f"{curHeader.roomName()}_header{i:02},"
             if curHeader is not None
             else indent + "NULL,"
-            if i < 4
-            else ""
             for i, (curHeader, headerDesc) in enumerate(roomHeaders, 1)
         )
         + "\n};\n\n"

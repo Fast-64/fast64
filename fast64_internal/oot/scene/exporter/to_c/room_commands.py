@@ -3,7 +3,7 @@ from ....oot_level_classes import OOTRoom
 
 
 def getEchoSettingsCmd(outRoom: OOTRoom):
-    return f"SCENE_CMD_ECHO_SETTINGS({outRoom.echo})"
+    return indent + f"SCENE_CMD_ECHO_SETTINGS({outRoom.echo})"
 
 
 def getRoomBehaviourCmd(outRoom: OOTRoom):
@@ -11,7 +11,7 @@ def getRoomBehaviourCmd(outRoom: OOTRoom):
     disableWarpSongs = "true" if outRoom.disableWarpSongs else "false"
 
     return (
-        "SCENE_CMD_ROOM_BEHAVIOR("
+        (indent + "SCENE_CMD_ROOM_BEHAVIOR(")
         + ", ".join([outRoom.roomBehaviour, outRoom.linkIdleMode, showInvisibleActors, disableWarpSongs])
         + ")"
     )
@@ -21,19 +21,21 @@ def getSkyboxDisablesCmd(outRoom: OOTRoom):
     disableSkybox = "true" if outRoom.disableSkybox else "false"
     disableSunMoon = "true" if outRoom.disableSunMoon else "false"
 
-    return f"SCENE_CMD_SKYBOX_DISABLES({disableSkybox}, {disableSunMoon})"
+    return indent + f"SCENE_CMD_SKYBOX_DISABLES({disableSkybox}, {disableSunMoon})"
 
 
 def getTimeSettingsCmd(outRoom: OOTRoom):
-    return f"SCENE_CMD_TIME_SETTINGS({outRoom.timeHours}, {outRoom.timeMinutes}, {outRoom.timeSpeed})"
+    return indent + f"SCENE_CMD_TIME_SETTINGS({outRoom.timeHours}, {outRoom.timeMinutes}, {outRoom.timeSpeed})"
 
 
 def getWindSettingsCmd(outRoom: OOTRoom):
-    return f"SCENE_CMD_WIND_SETTINGS({', '.join(f'{dir}' for dir in outRoom.windVector)}, {outRoom.windStrength})"
+    return (
+        indent + f"SCENE_CMD_WIND_SETTINGS({', '.join(f'{dir}' for dir in outRoom.windVector)}, {outRoom.windStrength})"
+    )
 
 
 def getRoomShapeCmd(outRoom: OOTRoom):
-    return f"SCENE_CMD_ROOM_SHAPE(&{outRoom.mesh.headerName()})"
+    return indent + f"SCENE_CMD_ROOM_SHAPE(&{outRoom.mesh.headerName()})"
 
 
 def getObjectListCmd(outRoom: OOTRoom, headerIndex: int):
@@ -62,7 +64,7 @@ def getRoomCommandList(outRoom: OOTRoom, headerIndex: int):
 
     roomCmdData = (
         (outRoom.getAltHeaderListCmd(outRoom.alternateHeadersName()) if outRoom.hasAlternateHeaders() else "")
-        + (",\n".join(indent + getCmd(outRoom) for getCmd in getCmdFuncList) + ",\n")
+        + (",\n".join(getCmd(outRoom) for getCmd in getCmdFuncList) + ",\n")
         + (getWindSettingsCmd(outRoom) if outRoom.setWind else "")
         + (getObjectListCmd(outRoom, headerIndex) if len(outRoom.objectIDList) > 0 else "")
         + (getActorListCmd(outRoom, headerIndex) if len(outRoom.actorList) > 0 else "")
