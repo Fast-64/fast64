@@ -21,9 +21,8 @@ def ootConvertPath(name, obj, transformMatrix):
 
     spline = obj.data.splines[0]
     for point in spline.points:
-        position = transformMatrix @ point.co
+        position = transformMatrix @ point.co.xyz
         path.points.append(position)
-        # path.speeds.append(int(round(point.radius)))
 
     return path
 
