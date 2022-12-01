@@ -398,7 +398,8 @@ def saveMeshWithLargeTexturesByFaces(
     if material.name != lastMaterialName:
         fMesh.add_material_call(fMaterial)
     triGroup = fMesh.tri_group_new(fMaterial)
-    fMesh.draw.commands.append(SPDisplayList(triGroup.triList))
+    if not fMesh.inline:
+        fMesh.draw.commands.append(SPDisplayList(triGroup.triList))
 
     # For materials with tex0 and tex1, if the other texture can fit into a single tile load,
     # we load it once at the beginning only.
@@ -472,12 +473,12 @@ def saveMeshWithLargeTexturesByFaces(
 
         currentGroupIndex = saveTriangleStrip(triConverter, tileFaces, obj.data, False)
 
-        if len(revertCommands.commands) > 0:
+        if len(revertCommands.commands) > 0 and not fMesh.inline:
             fMesh.draw.commands.extend(revertCommands.commands)
 
     triGroup.triList.commands.append(SPEndDisplayList())
-
-    if fMaterial.revert is not None:
+   
+    if fMaterial.revert is not None and not fMesh.inline:
         fMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
 
     return currentGroupIndex
@@ -554,7 +555,16 @@ def saveStaticModel(
             )
 
     for drawLayer, fMesh in fMeshes.items():
-        if revertMatAtEnd:
+        #inline requires the mesh to revert a few cmds for safety
+        if fMesh.inline:
+            # basic revert adds one too many syncs for inline
+            revertMatAndEndDraw(tmpList := GfxList("", GfxListTag.Draw, DLFormat.Static), [DPSetRenderMode(fModel.getRenderMode(drawLayer), None), DPSetCycleType("G_CYC_1CYCLE"), DPSetTextureLUT("G_TT_NONE")])
+            tmpList.commands.remove(DPPipeSync())
+            
+            fModel.endDraw(fMesh, obj)
+            # add revert list without sync
+            fMesh.draw.commands.extend(tmpList.commands)
+        elif revertMatAtEnd:
             fModel.onEndDraw(fMesh, obj)
             revertMatAndEndDraw(fMesh.draw, [])
         else:
@@ -595,6 +605,7 @@ def addCullCommand(obj, fMesh, transformMatrix, matWriteMethod):
         cullCommands = [
             SPClearGeometryMode(["G_LIGHTING"]),
             SPVertex(fMesh.cullVertexList, 0, 8, 0),
+            SPSetGeometryMode(["G_LIGHTING"]),
             SPCullDisplayList(0, 7),
         ]
     else:
@@ -822,15 +833,7 @@ def saveMeshByFaces(
 
     currentGroupIndex = saveTriangleStrip(triConverter, faces, obj.data, True)
 
-    #inline requires the mesh to revert a few cmds for safety
-    if fModel.inline:
-        if not fMesh.draw.commands:
-            revertMatAndEndDraw(fMesh.draw, [DPSetRenderMode(fModel.getRenderMode(drawLayer), None), DPSetCycleType("G_CYC_1CYCLE"), DPSetTextureLUT("G_TT_NONE")])
-        #remove SPEndDisplayList from triGroup
-        while(SPEndDisplayList() in triGroup.triList.commands):
-            triGroup.triList.commands.remove(SPEndDisplayList())
-    
-    elif fMaterial.revert is not None:
+    if fMaterial.revert is not None and not fMesh.inline:
         fMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
 
     return currentGroupIndex
@@ -1615,7 +1618,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         revertGfx = GfxList(None, None, fModel.DLFormat)
     else:
         sharedPalette = None
-        loadGfx = [fMaterial.textures[0], fMaterial.textures[1]]
+        loadGfx = [fMaterial.textureDLs[0], fMaterial.textureDLs[1]]
         revertGfx = fMaterial.revert
 
     imageKey0, imageKey1 = getImageKeys(f3dMat, useSharedCIPalette)
@@ -1700,8 +1703,8 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         )
 
         # Append these commands after palette loading commands
-        fMaterial.textures[0].commands.extend(loadGfx[0].commands)
-        fMaterial.textures[1].commands.extend(loadGfx[1].commands)
+        fMaterial.textureDLs[0].commands.extend(loadGfx[0].commands)
+        fMaterial.textureDLs[1].commands.extend(loadGfx[1].commands)
         fMaterial.revert.commands.extend(revertGfx.commands)
 
         fImage0.paletteKey = paletteKey

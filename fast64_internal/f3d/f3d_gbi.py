@@ -1788,10 +1788,8 @@ def get_tex_sts_code(tex: FSetTileSizeScrollField, tex_num: int, cmd_num: int):
 
 
 def mat_tile_scroll(
-    mat: str, tex0: FSetTileSizeScrollField, tex1: FSetTileSizeScrollField, cmd_num0: int, cmd_num1: int
+    mat: str, tex0: FSetTileSizeScrollField, tex1: FSetTileSizeScrollField, cmd_num0: int, cmd_num1: int, func_name: str
 ):
-    # remove any offsets from mat name
-    func_name = mat.split("+")[0].strip()
     func = f"void scroll_sts_{func_name}()"
     lines = [func + " {"]
 
@@ -1942,26 +1940,52 @@ class GfxFormatter:
         setTileSizeIndex1 = -1
 
         # Find index of SetTileSize commands
-        for i, c in enumerate(fMaterial.material.commands):
-            if isinstance(c, DPSetTileSize):
-                if c.t == 1:
-                    setTileSizeIndex1 = i
+        for index, gfxCommand in enumerate(fMaterial.material.commands):
+            if isinstance(gfxCommand, DPSetTileSize):
+                if gfxCommand.t == 1:
+                    setTileSizeIndex1 = index
                     break
                 else:
-                    setTileSizeIndex0 = i
+                    setTileSizeIndex0 = index
         mat_name = fMaterial.material.name
 
         tile_scroll_tex0 = fMaterial.scrollData.tile_scroll_tex0
         tile_scroll_tex1 = fMaterial.scrollData.tile_scroll_tex1
         set_tex = any(fMaterial.texturesLoaded)
-        if fMaterial.scrollData.tile_scroll_exported and not bpy.context.scene.exportInlineF3D:
+        if fMaterial.scrollData.tile_scroll_exported:
             return None
         if (tile_scroll_tex0.s or tile_scroll_tex0.t or tile_scroll_tex1.s or tile_scroll_tex1.t) and set_tex:
             func, data = mat_tile_scroll(
-                mat_name, tile_scroll_tex0, tile_scroll_tex1, setTileSizeIndex0, setTileSizeIndex1
+                mat_name, tile_scroll_tex0, tile_scroll_tex1, setTileSizeIndex0, setTileSizeIndex1, mat_name
             )
             self.tileScrollFunc = f"extern {func};"  # save for later
             fMaterial.scrollData.tile_scroll_exported = True
+
+            return data
+
+        return None
+    
+    # Modify static material using tile texture scrolling with inline materials
+    def tileScrollInlineMaterialToC(self, fTriGroup):
+        setTileSizeIndices = [-1]*2
+
+        # Find index of SetTileSize commands
+        for tile, texGfx in enumerate(fTriGroup.bleed.bled_tex):
+            for index, gfxCommand in enumerate(texGfx.commands):
+                if isinstance(gfxCommand, DPSetTileSize):
+                    setTileSizeIndices[tile] = index + fTriGroup.bleed.bleed_tile_scroll[tile]
+        mat_name = fTriGroup.name
+        func_name = f"{fTriGroup.name}_{fTriGroup.fMaterial.material.name}"
+
+        tile_scroll_tex0 = fTriGroup.fMaterial.scrollData.tile_scroll_tex0
+        tile_scroll_tex1 = fTriGroup.fMaterial.scrollData.tile_scroll_tex1
+        set_tex = any(fTriGroup.fMaterial.texturesLoaded)
+
+        if (tile_scroll_tex0.s or tile_scroll_tex0.t or tile_scroll_tex1.s or tile_scroll_tex1.t) and set_tex:
+            func, data = mat_tile_scroll(
+                mat_name, tile_scroll_tex0, tile_scroll_tex1, *setTileSizeIndices, func_name
+            )
+            self.tileScrollFunc = f"extern {func};"  # save for later
 
             return data
 
@@ -2034,7 +2058,6 @@ class GfxList:
     def __init__(self, name, tag, DLFormat):
         self.commands = []
         self.name = name
-        self.comment_name = name  # used as a comment for inline
         self.startAddress = 0
         self.tag = tag
         self.DLFormat = DLFormat
@@ -2093,16 +2116,6 @@ class GfxList:
         for command in self.commands:
             data += f"\t{command.to_c(False)};\n"
         data += "\treturn glistp;\n}\n\n"
-        return data
-
-    # inline is implicitly static
-    def to_c_inline(self, f3d):
-        data = CData()
-        if not self.commands:
-            return data
-        data.source = f"\t//Gfx {self.comment_name} inline start\n"
-        for command in self.commands:
-            data.source += f"\t{command.to_c(True)},\n"
         return data
 
     def to_c(self, f3d):
@@ -2261,11 +2274,11 @@ class FModel:
     def endDraw(self, fMesh, contextObj):
         if not fMesh.inline:
             fMesh.draw.commands.append(SPEndDisplayList())
+        else:
+            fMesh.bleed(self.f3d)
         self.onEndDraw(fMesh, contextObj)
 
     def onEndDraw(self, fMesh, contextObj):
-        if fMesh.inline:
-            fMesh.bleed()
         return
 
     def getTextureAndHandleShared(self, imageKey):
@@ -2752,42 +2765,45 @@ class FMesh:
         for materialTuple, drawOverride in self.drawMatOverrides.items():
             drawOverride.save_binary(romfile, f3d, segments)
 
-    def bleed(self, LastMat=None):
+    def bleed(self, f3d, lastMat=None):
         for triGroup in self.triangleGroups:
             # bleed mat and tex
             if triGroup.fMaterial:
-                bleed_mat = self.bleed_mat(triGroup.fMaterial, LastMat)
-                bleed_tex, bleed_scr = self.bleed_textures(triGroup.fMaterial, LastMat)
+                bleed_mat = self.bleed_mat(triGroup.fMaterial, lastMat)
+                bleed_tex, bleed_scr = self.bleed_textures(triGroup.fMaterial, lastMat)
             else:
                 bleed_mat = []
                 bleed_tex = []
-            # set bled props to _mesh_desc, update LastMat
-            LastMat = triGroup.fMaterial
+                bleed_tex = None
+            # set bled props to _mesh_desc, update lastMat
+            lastMat = triGroup.fMaterial
             triGroup.bleed = bleed_gfx(bleed_mat, bleed_tex, bleed_scr)
-        return LastMat
+            #remove SPEndDisplayList from triGroup
+            while(SPEndDisplayList() in triGroup.triList.commands):
+                triGroup.triList.commands.remove(SPEndDisplayList())
+            self.bleed_triGroup(f3d, triGroup)
+        return lastMat
 
-    def bleed_textures(self, mat, LastMat):
+    def bleed_textures(self, mat, lastMat):
         # check if material is scrolling
         tile_scroll_tex0 = mat.scrollData.tile_scroll_tex0
         tile_scroll_tex1 = mat.scrollData.tile_scroll_tex1
         if tile_scroll_tex0.s or tile_scroll_tex0.t or tile_scroll_tex1.s or tile_scroll_tex1.t:
-            bleed_scroll = True
+            bleed_scroll = dict()
         else:
-            bleed_scroll = False
-        if LastMat:
+            bleed_scroll = None
+        if lastMat:
             # bleed cmds if matching tile has duplicate cmds
             bled_tex = []
-            for j, (LastTex, TexCmds) in enumerate(zip(LastMat.textures, mat.textures)):
+            for j, (LastTex, TexCmds) in enumerate(zip(lastMat.textureDLs, mat.textureDLs)):
                 # deep copy breaks on Image objects so I will only copy the levels needed
                 commands_bled = copy.copy(TexCmds)
                 commands_bled.commands = copy.copy(TexCmds.commands)  # copy the commands also
-                LastList = LastTex.commands
+                lastList = LastTex.commands
                 # eliminate set tex images
                 set_tex = (c for c in TexCmds.commands if type(c) == DPSetTextureImage)
-                removed_tex = [c for c in set_tex if c in LastList]  # needs to be a list to check "in" multiple times
+                removed_tex = [c for c in set_tex if c in lastList]  # needs to be a list to check "in" multiple times
                 rm_load = None  # flag to elim loads once
-                # set tile size cmds need to be removed and placed in dynamic data if there is a scroll
-                tile_size = [c for c in TexCmds.commands if type(c) == DPSetTileSize]
                 for j, cmd in enumerate(TexCmds.commands):
                     # remove set tex explicitly
                     if cmd in removed_tex:
@@ -2801,30 +2817,27 @@ class FMesh:
                 # now eval as normal conditionals
                 iter_cmds = copy.copy(commands_bled.commands)  # need extra list to iterate with
                 for j, cmd in enumerate(iter_cmds):
-                    if cmd.bleed(LastList, commands_bled.commands, j):
-                        if cmd in LastList:
+                    if cmd in lastList:
+                        if cmd.bleed(lastList, commands_bled.commands, j):
                             commands_bled.commands.remove(cmd)
                 bled_tex.append(commands_bled)
         else:
-            bled_tex = mat.textures
+            bled_tex = mat.textureDLs
         return bled_tex, bleed_scroll
 
-    def bleed_mat(self, mat, LastMat):
-        if LastMat:
-            GfxList = mat.material
+    def bleed_mat(self, mat, lastMat):
+        if lastMat:
+            gfx = mat.material
             # deep copy breaks on Image objects so I will only copy the levels needed
-            commands_bled = copy.copy(GfxList)
-            commands_bled.commands = copy.copy(GfxList.commands)  # copy the commands also
-            LastList = LastMat.material.commands
+            commands_bled = copy.copy(gfx)
+            commands_bled.commands = copy.copy(gfx.commands)  # copy the commands also
+            LastList = lastMat.material.commands
             cnt = 0
-            for j, cmd in enumerate(GfxList.commands):
+            for j, cmd in enumerate(gfx.commands):
                 if cmd.bleed(LastList, commands_bled.commands, j - cnt):
                     if cmd in LastList:
                         commands_bled.commands.pop(j - cnt)  # list gets smaller as I pop, so modify index by num popped
                         cnt += 1
-            # remove SPEndDisplayList
-            while SPEndDisplayList() in commands_bled.commands:
-                commands_bled.commands.remove(SPEndDisplayList())
         else:
             commands_bled = mat.material
         # remove SPEndDisplayList
@@ -2832,50 +2845,30 @@ class FMesh:
             commands_bled.commands.remove(SPEndDisplayList())
         return commands_bled
 
-    def bleed_mesh_defaults(self):
-        # draw.name is used for geo layouts, but I want a separate name for the bleed revert, so I will use this new prop
-        self.draw.comment_name = f"{self.name}_revert_render_settings"
-        # remove DPPipeSync
-        while DPPipeSync() in self.draw.commands:
-            self.draw.commands.remove(DPPipeSync())
-        return self.draw
+    # Put triGroup bleed gfx in the FMesh.draw object
+    def bleed_triGroup(self, f3d, triGroup):
+        # add material
+        self.draw.commands.extend(triGroup.bleed.bled_mats.commands)
+        # add textures
+        for tile, texGfx in enumerate(triGroup.bleed.bled_tex):
+            # update bleed_tile_scroll to be dict[tile]: GfxList size
+            if triGroup.bleed.bleed_tile_scroll is not None:
+                triGroup.bleed.bleed_tile_scroll[tile] = self.draw.size(f3d) // 8
+            self.draw.commands.extend(texGfx.commands)
+        # add in triangles
+        self.draw.commands.extend(triGroup.triList.commands)
+        # add in pipe sync
+        self.draw.commands.append(DPPipeSync())
 
     def to_c_inline(self, f3d, gfxFormatter):
-        GfxData = CData()
         staticData = CData()
         dynamicData = CData()
-        GfxData.header = f"extern Gfx {self.name}[];\n"
-        GfxData.source = f"Gfx {self.name}[] = {{\n"
-        size = 0
+        if self.cullVertexList is not None:
+            staticData.append(self.cullVertexList.to_c())
         for triGroup in self.triangleGroups:
             # add in vertex data
             staticData.append(triGroup.vertexList.to_c())
-            # add mat, add tex data, then add tri data
-            if triGroup.bleed.bled_mats:
-                GfxData.append(triGroup.bleed.bled_mats.to_c_inline(f3d))
-                size += triGroup.bleed.bled_mats.size(f3d)
-            tex_size = 0
-            for tex in triGroup.bleed.bled_tex:
-                if tex:
-                    GfxData.append(tex.to_c_inline(f3d))
-                    tex_size += tex.size(f3d)
-            # if there is a scroll, change the TriGroup FMaterial to be a new one for scrolling
-            if triGroup.bleed.bleed_tile_scroll:
-                scr_mat = FMaterial("scr", DLFormat.Static)
-                for GfxList in triGroup.bleed.bled_tex:
-                    scr_mat.material.commands.extend(GfxList.commands)
-                scr_mat.material.name = f"{self.name} + {size // 8}"
-                scr_mat.name = f"{self.name} + {size // 8}"
-                scr_mat.scrollData = triGroup.fMaterial.scrollData
-                scr_mat.texturesLoaded = triGroup.fMaterial.texturesLoaded
-                triGroup.fMaterial = scr_mat
-            size += tex_size
-            GfxData.append(triGroup.triList.to_c_inline(f3d))
-            size += triGroup.triList.size(f3d)
-            GfxData.source += f"\t{DPPipeSync().to_c()},\n"  # pipe sync is required after rendering
-        GfxData.append(self.bleed_mesh_defaults().to_c_inline(f3d))  # revert mesh DL, also adds end DL
-        GfxData.source += "};\n\n"  # end DL
-        staticData.append(GfxData)
+        staticData.append(gfxFormatter.drawToC(f3d, self.draw))
         # dynamic data is not used in bleeds
         return staticData, dynamicData
 
@@ -2923,6 +2916,8 @@ class FTriGroup:
         self.fMaterial = fMaterial
         self.vertexList = VtxList(name + "_vtx_" + str(index))
         self.triList = GfxList(name + "_tri_" + str(index), GfxListTag.Geometry, DLFormat.Static)
+        self.bleed = None
+        self.name = name
 
     def get_ptr_addresses(self, f3d):
         return self.triList.get_ptr_addresses(f3d)
@@ -2944,7 +2939,11 @@ class FTriGroup:
 
     def to_c_vertex_scroll(self, gfxFormatter: GfxFormatter):
         if self.fMaterial.scrollData is not None:
-            return gfxFormatter.vertexScrollToC(self.fMaterial, self.vertexList.name, len(self.vertexList.vertices))
+            data, sts_data = gfxFormatter.vertexScrollToC(self.fMaterial, self.vertexList.name, len(self.vertexList.vertices))
+            if self.bleed:
+                if self.bleed.bleed_tile_scroll:
+                    sts_data = gfxFormatter.inlineTileScrollToC(self)
+            return data, sts_data
         else:
             return CData(), CData()
 
@@ -2980,9 +2979,9 @@ class FMaterial:
         # when not inline, appending to the textures list will append to the material list due
         # to the list being mutable. separating the lists allow individual textures to be bled
         if inline:
-            self.textures = [GfxList(f"tex_{i}_" + name, GfxListTag.Material, DLFormat.Static) for i in range(2)]
+            self.textureDLs = [GfxList(f"tex_{i}_" + name, GfxListTag.Material, DLFormat.Static) for i in range(2)]
         else:
-            self.textures = [self.material] * 2
+            self.textureDLs = [self.material] * 2
         self.inline = inline
         self.revert = GfxList("mat_revert_" + name, GfxListTag.MaterialRevert, DLFormat.Static)
         self.DLFormat = DLFormat
@@ -3075,7 +3074,7 @@ class FMaterial:
 class bleed_gfx:
     bled_mats: GfxList
     bled_tex: list[GfxList]  # list of GfxList
-    bleed_tile_scroll: bool
+    bleed_tile_scroll: dict
 
 
 # viewport
@@ -3361,7 +3360,7 @@ class GbiMacro:
     def size(self, f3d):
         return GFX_SIZE
 
-    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
+    def bleed(self, lastGfxList: GfxList, curList: GfxList, curIndex: int):
         return True
 
 
@@ -3377,7 +3376,7 @@ class SPMatrix(GbiMacro):
         else:
             return gsDma1p(f3d.G_MTX, matPtr, MTX_SIZE, self.param)
 
-    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
+    def bleed(self, lastGfxList: GfxList, curList: GfxList, curIndex: int):
         return False
 
 
@@ -3421,7 +3420,7 @@ class SPVertex(GbiMacro):
             header += self.vertList.name + " + " + str(self.offset)
         return header + ", " + str(self.count) + ", " + str(self.index) + ")"
 
-    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
+    def bleed(self, lastGfxList: GfxList, curList: GfxList, curIndex: int):
         return False
 
 
@@ -3439,7 +3438,7 @@ class SPViewport(GbiMacro):
         else:
             return gsDma1p(f3d.G_MOVEMEM, vpPtr, VP_SIZE, f3d.G_MV_VIEWPORT)
 
-    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
+    def bleed(self, lastGfxList: GfxList, curList: GfxList, curIndex: int):
         return False
 
 
@@ -3463,7 +3462,7 @@ class SPDisplayList(GbiMacro):
         else:
             return "glistp = " + self.displayList.name + "(glistp)"
 
-    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
+    def bleed(self, lastGfxList: GfxList, curList: GfxList, curIndex: int):
         return False
 
 
@@ -3476,7 +3475,7 @@ class SPBranchList(GbiMacro):
         dlPtr = int.from_bytes(encodeSegmentedAddr(self.displayList.startAddress, segments), "big")
         return gsDma1p(f3d.G_DL, dlPtr, 0, f3d.G_DL_NOPUSH)
 
-    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
+    def bleed(self, lastGfxList: GfxList, curList: GfxList, curIndex: int):
         return False
 
 
@@ -3590,7 +3589,7 @@ class SP1Triangle(GbiMacro):
 
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
-    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
+    def bleed(self, lastGfxList: GfxList, curList: GfxList, curIndex: int):
         return False
 
 
@@ -3607,7 +3606,7 @@ class SPLine3D(GbiMacro):
             words = _SHIFTL(f3d.G_LINE3D, 24, 8), _gsSPLine3D_w1f(self.v0, self.v1, 0, self.flag, f3d)
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
-    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
+    def bleed(self, lastGfxList: GfxList, curList: GfxList, curIndex: int):
         return False
 
 
@@ -3625,7 +3624,7 @@ class SPLineW3D(GbiMacro):
             words = _SHIFTL(f3d.G_LINE3D, 24, 8), _gsSPLine3D_w1f(self.v0, self.v1, self.wd, self.flag, f3d)
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
-    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
+    def bleed(self, lastGfxList: GfxList, curList: GfxList, curIndex: int):
         return False
 
 
@@ -3653,7 +3652,7 @@ class SP2Triangles(GbiMacro):
 
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
-    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
+    def bleed(self, lastGfxList: GfxList, curList: GfxList, curIndex: int):
         return False
 
 
@@ -3669,7 +3668,7 @@ class SPCullDisplayList(GbiMacro):
             words = _SHIFTL(f3d.G_CULLDL, 24, 8) | ((0x0F & (self.vstart)) * 40), ((0x0F & ((self.vend) + 1)) * 40)
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
-    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
+    def bleed(self, lastGfxList: GfxList, curList: GfxList, curIndex: int):
         return False
 
 
@@ -3685,7 +3684,7 @@ class SPSegment(GbiMacro):
         header = "gsSPSegment(" if static else "gSPSegment(glistp++, "
         return header + str(self.segment) + ", " + "0x" + format(self.base, "X") + ")"
 
-    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
+    def bleed(self, lastGfxList: GfxList, curList: GfxList, curIndex: int):
         return False
 
 
@@ -3999,7 +3998,7 @@ class SPEndDisplayList(GbiMacro):
         words = _SHIFTL(f3d.G_ENDDL, 24, 8), 0
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
-    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
+    def bleed(self, lastGfxList: GfxList, curList: GfxList, curIndex: int):
         return False
 
 
@@ -4620,7 +4619,7 @@ class DPSetTileSize(GbiMacro):
         return self.t == f3d.G_TX_LOADTILE
 
     # due to tile scrolls, bleed must be done by other checks
-    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
+    def bleed(self, lastGfxList: GfxList, curList: GfxList, curIndex: int):
         return self._bleed
 
 
@@ -4678,8 +4677,8 @@ class DPSetTile(GbiMacro):
 
     # should only be removed if there is no other set tile in this list
     # that is on the same tile, and has different settings
-    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
-        for cmd in CurList:
+    def bleed(self, lastGfxList: GfxList, curList: GfxList, curIndex: int):
+        for cmd in curList:
             if type(cmd) is DPSetTile and cmd is not self:
                 if cmd != self:
                     return False
@@ -4702,7 +4701,7 @@ class DPLoadBlock(GbiMacro):
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
     # load blocks shouldn't be culled via a bleed check
-    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
+    def bleed(self, lastGfxList: GfxList, curList: GfxList, curIndex: int):
         return False
 
 
@@ -4716,7 +4715,7 @@ class DPLoadTLUTCmd(GbiMacro):
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
     # load TLUTs shouldn't be culled via a bleed check
-    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
+    def bleed(self, lastGfxList: GfxList, curList: GfxList, curIndex: int):
         return False
 
 
@@ -5419,7 +5418,7 @@ class DPFullSync(GbiMacro):
     def to_binary(self, f3d, segments):
         return gsDPNoParam(f3d.G_RDPFULLSYNC)
 
-    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
+    def bleed(self, lastGfxList: GfxList, curList: GfxList, curIndex: int):
         return False
 
 
@@ -5429,9 +5428,9 @@ class DPTileSync(GbiMacro):
         return gsDPNoParam(f3d.G_RDPTILESYNC)
 
     # will be bled if there are two of these syncs, at most only one pipesync
-    # is ever required after rendering triangles, and subsequent cmds rdp attr changes
-    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
-        for cmd in CurList:
+    # is ever required after rendering triangles, and before subsequent cmds rdp attr changes
+    def bleed(self, lastGfxList: GfxList, curList: GfxList, curIndex: int):
+        for cmd in curList:
             if type(cmd) is DPTileSync and cmd is not self:
                 return True
         return True
@@ -5443,9 +5442,9 @@ class DPPipeSync(GbiMacro):
         return gsDPNoParam(f3d.G_RDPPIPESYNC)
 
     # will be bled if there are two of these syncs, at most only one pipesync
-    # is ever required after rendering triangles, and subsequent cmds rdp attr changes
-    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
-        for cmd in CurList:
+    # is ever required after rendering triangles, and before subsequent cmds rdp attr changes
+    def bleed(self, lastGfxList: GfxList, curList: GfxList, curIndex: int):
+        for cmd in curList:
             if type(cmd) is DPPipeSync and cmd is not self:
                 return True
         return True
@@ -5457,9 +5456,9 @@ class DPLoadSync(GbiMacro):
         return gsDPNoParam(f3d.G_RDPLOADSYNC)
 
     # will be bled if there are two of these syncs, at most only one loadsync
-    # is ever required after rendering triangles, and subsequent cmds are a load
-    def bleed(self, LastGfxList: GfxList, CurList: GfxList, curIndex: int):
-        for cmd in CurList:
+    # is ever required after rendering triangles, and before subsequent cmds are a load
+    def bleed(self, lastGfxList: GfxList, curList: GfxList, curIndex: int):
+        for cmd in curList:
             if type(cmd) is DPLoadSync and cmd is not self:
                 return True
         return True

@@ -104,7 +104,7 @@ class SM64GfxFormatter(GfxFormatter):
         self.functionNodeDraw = False
         GfxFormatter.__init__(self, scrollMethod, 8)
 
-    def vertexScrollToC(self, fMaterial: FMaterial, name: str, count: int):
+    def vertexScrollToC(self, fMaterial: FMaterial, name: str, count: int, inline: bool = False):
         fScrollData = fMaterial.scrollData
         data = CData()
         sts_data = CData()
@@ -120,7 +120,8 @@ class SM64GfxFormatter(GfxFormatter):
             "random_sign",
             "segmented_to_virtual",
         )
-        sts_data.source = self.tileScrollStaticMaterialToC(fMaterial)
+        if not inline:
+            sts_data.source = self.tileScrollStaticMaterialToC(fMaterial)
 
         scrollDataFields = fScrollData.fields[0]
         if not ((scrollDataFields[0].animType == "None") and (scrollDataFields[1].animType == "None")):
@@ -133,6 +134,17 @@ class SM64GfxFormatter(GfxFormatter):
             sts_data = None
 
         return data, sts_data
+    
+    def inlineTileScrollToC(self, fTriGroup: "FTriGroup"):
+        sts_data = CData()
+        sts_data.source = self.tileScrollInlineMaterialToC(fTriGroup)
+        
+        # self.tileScrollFunc is set in GfxFormatter.tileScrollStaticMaterialToC
+        if self.tileScrollFunc is not None:
+            sts_data.header = f"{self.tileScrollFunc}\n"
+        else:
+            sts_data = None
+        return sts_data
 
     # This code is not functional, only used for an example
     def drawToC(self, f3d, gfxList):
