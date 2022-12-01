@@ -23,6 +23,8 @@ class SM64_Panel(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         sm64Props = bpy.context.scene.fast64.sm64
+        if bpy.context.scene.f3d_type == "Turbo3D":
+            return False
         if context.scene.gameEditorMode != 'SM64':
             return False
         elif not cls.goal:
@@ -44,4 +46,6 @@ class OOT_Panel(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
+        if bpy.context.scene.f3d_type == "Turbo3D":
+            return False
         return context.scene.gameEditorMode == 'OOT'

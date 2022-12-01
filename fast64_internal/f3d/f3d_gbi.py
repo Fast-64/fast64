@@ -55,6 +55,7 @@ lightIndex = {
 # tuple of max buffer size, max load count.
 vertexBufferSize = {
     "F3D": (16, 16),
+    "Turbo3D": (64, 64),
     "F3DEX/LX": (32, 32),
     "F3DLX.Rej": (64, 32),
     "F3DLP.Rej": (80, 32),
