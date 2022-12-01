@@ -146,7 +146,7 @@ class OOTSceneHeaderProperty(PropertyGroup):
     skyboxCloudiness: EnumProperty(name="Cloudiness", items=ootEnumCloudiness, default="0x00")
     skyboxCloudinessCustom: StringProperty(name="Cloudiness ID", default="0x00")
     skyboxLighting: EnumProperty(
-        name="Skybox Lighting", items=ootEnumSkyboxLighting, default="false", update=on_update_oot_render_settings
+        name="Skybox Lighting", items=ootEnumSkyboxLighting, default="LIGHT_MODE_TIME", update=on_update_oot_render_settings
     )
     skyboxLightingCustom: StringProperty(
         name="Skybox Lighting Custom", default="0x00", update=on_update_oot_render_settings

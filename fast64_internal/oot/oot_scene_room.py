@@ -1,4 +1,3 @@
-# import bpy
 from bpy.types import UILayout
 from ..utility import prop_split
 from .oot_utility import drawAddButton, drawCollectionOps, drawEnumWithCustom, getSceneObj, getRoomObj
@@ -176,7 +175,7 @@ def drawSceneHeaderProperty(layout, sceneProp, dropdownLabel, headerIndex, objNa
         lighting = layout.column()
         lighting.box().label(text="Lighting List")
         drawEnumWithCustom(lighting, sceneProp, "skyboxLighting", "Lighting Mode", "")
-        if sceneProp.skyboxLighting == "false":  # Time of Day
+        if sceneProp.skyboxLighting == "LIGHT_MODE_TIME":  # Time of Day
             drawLightGroupProperty(lighting, sceneProp.timeOfDayLights)
         else:
             for i in range(len(sceneProp.lightList)):
@@ -246,7 +245,7 @@ def drawBGImageList(layout: UILayout, roomHeader: OOTRoomHeaderProperty, objName
 
 
 def drawRoomHeaderProperty(layout: UILayout, roomProp, dropdownLabel, headerIndex, objName):
-    from .oot_level import OOT_ManualUpgrade
+    from .props_panel_main import OOT_ManualUpgrade
 
     if dropdownLabel is not None:
         layout.prop(roomProp, "expandTab", text=dropdownLabel, icon="TRIA_DOWN" if roomProp.expandTab else "TRIA_RIGHT")

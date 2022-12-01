@@ -29,10 +29,12 @@ from ..utility import (
 
 from .scene.exporter.to_c import (
     setBootupScene,
-    ootSceneIncludes,
-    ootLevelToC,
+    ootSceneBootupRegister,
+    ootSceneBootupUnregister,
+    getIncludes,
+    getSceneC,
     modifySceneTable,
-    modifySegmentDefinition,
+    editSpecFile,
     modifySceneFiles,
 )
 
@@ -66,7 +68,7 @@ from .oot_level_classes import (
 
 
 def ootPreprendSceneIncludes(scene, file):
-    exportFile = ootSceneIncludes(scene)
+    exportFile = getIncludes(scene)
     exportFile.append(file)
     return exportFile
 
@@ -83,10 +85,10 @@ def ootCreateSceneHeader(levelC):
             sceneHeader.append(levelC.sceneCutscenesC[i])
     for roomName, roomMainC in levelC.roomMainC.items():
         sceneHeader.append(roomMainC)
-    for roomName, roomMeshInfoC in levelC.roomMeshInfoC.items():
-        sceneHeader.append(roomMeshInfoC)
-    for roomName, roomMeshC in levelC.roomMeshC.items():
-        sceneHeader.append(roomMeshC)
+    for roomName, roomShapeInfoC in levelC.roomShapeInfoC.items():
+        sceneHeader.append(roomShapeInfoC)
+    for roomName, roomModelC in levelC.roomModelC.items():
+        sceneHeader.append(roomModelC)
 
     return sceneHeader
 
@@ -129,7 +131,7 @@ def ootExportSceneToC(
 
     sceneInclude = exportSubdir + "/" + sceneName + "/"
     levelPath = ootGetPath(exportPath, isCustomExport, exportSubdir, sceneName, True, True)
-    levelC = ootLevelToC(scene, TextureExportSettings(False, savePNG, sceneInclude, levelPath))
+    levelC = getSceneC(scene, TextureExportSettings(False, savePNG, sceneInclude, levelPath))
 
     if not isCustomExport:
         writeTextureArraysExistingScene(scene.model, exportPath, sceneInclude + sceneName + "_scene.h")
@@ -145,8 +147,8 @@ def ootExportSceneToC(
         for i in range(len(scene.rooms)):
             roomC = CData()
             roomC.append(levelC.roomMainC[scene.rooms[i].roomName()])
-            roomC.append(levelC.roomMeshInfoC[scene.rooms[i].roomName()])
-            roomC.append(levelC.roomMeshC[scene.rooms[i].roomName()])
+            roomC.append(levelC.roomShapeInfoC[scene.rooms[i].roomName()])
+            roomC.append(levelC.roomModelC[scene.rooms[i].roomName()])
             writeCDataSourceOnly(
                 ootPreprendSceneIncludes(scene, roomC), os.path.join(levelPath, scene.rooms[i].roomName() + ".c")
             )
@@ -176,13 +178,13 @@ def ootExportSceneToC(
             writeCDataSourceOnly(
                 ootPreprendSceneIncludes(scene, roomMainC), os.path.join(levelPath, roomName + "_main.c")
             )
-        for roomName, roomMeshInfoC in levelC.roomMeshInfoC.items():
+        for roomName, roomShapeInfoC in levelC.roomShapeInfoC.items():
             writeCDataSourceOnly(
-                ootPreprendSceneIncludes(scene, roomMeshInfoC), os.path.join(levelPath, roomName + "_model_info.c")
+                ootPreprendSceneIncludes(scene, roomShapeInfoC), os.path.join(levelPath, roomName + "_model_info.c")
             )
-        for roomName, roomMeshC in levelC.roomMeshC.items():
+        for roomName, roomModelC in levelC.roomModelC.items():
             writeCDataSourceOnly(
-                ootPreprendSceneIncludes(scene, roomMeshC), os.path.join(levelPath, roomName + "_model.c")
+                ootPreprendSceneIncludes(scene, roomModelC), os.path.join(levelPath, roomName + "_model.c")
             )
 
     # Export the scene .h file
@@ -226,7 +228,7 @@ def writeTextureArraysExistingScene(fModel: OOTModel, exportPath: str, sceneIncl
 
 def writeOtherSceneProperties(scene, exportInfo, levelC):
     modifySceneTable(scene, exportInfo)
-    modifySegmentDefinition(scene, exportInfo, levelC)
+    editSpecFile(scene, exportInfo, levelC)
     modifySceneFiles(scene, exportInfo)
 
 
@@ -238,6 +240,7 @@ def readSceneData(scene, scene_properties, sceneHeader, alternateSceneHeaders):
     scene.skyboxID = getCustomProperty(sceneHeader, "skyboxID")
     scene.skyboxCloudiness = getCustomProperty(sceneHeader, "skyboxCloudiness")
     scene.skyboxLighting = getCustomProperty(sceneHeader, "skyboxLighting")
+    scene.isSkyboxLightingCustom = sceneHeader.skyboxLighting == "Custom"
     scene.mapLocation = getCustomProperty(sceneHeader, "mapLocation")
     scene.cameraMode = getCustomProperty(sceneHeader, "cameraMode")
     scene.musicSeq = getCustomProperty(sceneHeader, "musicSeq")
@@ -248,7 +251,7 @@ def readSceneData(scene, scene_properties, sceneHeader, alternateSceneHeaders):
     if (
         sceneHeader.skyboxLighting == "0x00"
         or sceneHeader.skyboxLighting == "0"
-        or sceneHeader.skyboxLighting == "false"
+        or sceneHeader.skyboxLighting == "LIGHT_MODE_TIME"
     ):  # Time of Day
         scene.lights.append(getLightData(sceneHeader.timeOfDayLights.dawn))
         scene.lights.append(getLightData(sceneHeader.timeOfDayLights.day))
@@ -760,16 +763,27 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
             # and not the identifier as defined by the first element of the tuple. Therefore, we need to check if
             # the current Actor has the ID `None` to avoid export issues.
             if actorProp.actorID != "None":
+                if actorProp.rotOverride:
+                    actorRot = ", ".join([actorProp.rotOverrideX, actorProp.rotOverrideY, actorProp.rotOverrideZ])
+                else:
+                    actorRot = ", ".join(f"DEG_TO_BINANG({(rot * (180 / 0x8000)):.3f})" for rot in rotation)
+
+                actorName = (
+                    ootData.actorData.actorsByID[actorProp.actorID].name.replace(
+                        f" - {actorProp.actorID.removeprefix('ACTOR_')}", ""
+                    )
+                    if actorProp.actorID != "Custom"
+                    else "Custom Actor"
+                )
+
                 addActor(
                     room,
                     OOTActor(
+                        actorName,
                         getCustomProperty(actorProp, "actorID"),
                         translation,
-                        rotation,
+                        actorRot,
                         actorProp.actorParam,
-                        None
-                        if not actorProp.rotOverride
-                        else (actorProp.rotOverrideX, actorProp.rotOverrideY, actorProp.rotOverrideZ),
                     ),
                     actorProp,
                     "actorList",
@@ -784,9 +798,19 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
                 else:
                     front = (room.roomIndex, getCustomProperty(transActorProp, "cameraTransitionFront"))
                     back = (transActorProp.roomIndex, getCustomProperty(transActorProp, "cameraTransitionBack"))
+
+                transActorName = (
+                    ootData.actorData.actorsByID[transActorProp.actor.actorID].name.replace(
+                        f" - {transActorProp.actor.actorID.removeprefix('ACTOR_')}", ""
+                    )
+                    if transActorProp.actor.actorID != "Custom"
+                    else "Custom Actor"
+                )
+
                 addActor(
                     scene,
                     OOTTransitionActor(
+                        transActorName,
                         getCustomProperty(transActorProp.actor, "actorID"),
                         front[0],
                         back[0],
@@ -808,11 +832,11 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
                 scene,
                 spawnIndex,
                 OOTActor(
+                    "",
                     "ACTOR_PLAYER" if not entranceProp.customActor else entranceProp.actor.actorIDCustom,
                     translation,
-                    rotation,
+                    ", ".join(f"DEG_TO_BINANG({(rot * (180 / 0x8000)):.3f})" for rot in rotation),
                     entranceProp.actor.actorParam,
-                    None,
                 ),
                 entranceProp.actor,
                 obj.name,

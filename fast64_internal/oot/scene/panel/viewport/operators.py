@@ -4,7 +4,7 @@ from bpy.ops import object
 from bpy.path import abspath
 from mathutils import Matrix, Vector
 from .....f3d.f3d_gbi import DLFormat
-from ....scene.exporter.to_c import modifySceneTable, modifySegmentDefinition, deleteSceneFiles
+from ....scene.exporter.to_c import modifySceneTable, editSpecFile, deleteSceneFiles
 from .....utility import PluginError, raisePluginError
 from ....oot_utility import ExportInfo, sceneNameFromID
 from ....oot_level_writer import ootExportSceneToC
@@ -13,7 +13,7 @@ from .classes import OOTRemoveSceneSettingsProperty
 
 def ootRemoveSceneC(exportInfo):
     modifySceneTable(None, exportInfo)
-    modifySegmentDefinition(None, exportInfo, None)
+    editSpecFile(None, exportInfo, None)
     deleteSceneFiles(exportInfo)
 
 

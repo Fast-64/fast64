@@ -1,7 +1,8 @@
 import bpy, math, os, re
+from ast import parse, Expression, Num, UnaryOp, USub, Invert, BinOp
 from bpy.utils import register_class, unregister_class
-from .oot_constants import ootSceneIDToName
 from typing import Callable
+from .oot_constants import ootSceneIDToName
 
 from ..utility import (
     PluginError,
@@ -14,6 +15,7 @@ from ..utility import (
     cleanupDuplicatedObjects,
     ootGetSceneOrRoomHeader,
     hexOrDecInt,
+    binOps,
 )
 
 
@@ -820,3 +822,42 @@ def onHeaderPropertyChange(self, context: bpy.types.Context, callback: Callable[
     setAllActorsVisibility(self, context)
 
     bpy.context.scene.ootActiveHeaderLock = False
+
+
+def getEvalParams(input: str):
+    """Evaluates a string to an hexadecimal number"""
+
+    # degrees to binary angle conversion
+    if "DEG_TO_BINANG(" in input:
+        input = input.strip().removeprefix("DEG_TO_BINANG(").removesuffix(")").strip()
+        return f"0x{round(float(input) * (0x8000 / 180)):X}"
+
+    if input is None or "None" in input:
+        return "0x0"
+
+    # remove spaces
+    input = input.strip()
+
+    try:
+        node = parse(input, mode="eval")
+    except Exception as e:
+        raise ValueError(f"Could not parse {input} as an AST.") from e
+
+    def _eval(node):
+        if isinstance(node, Expression):
+            return _eval(node.body)
+        elif isinstance(node, Num):
+            return node.n
+        elif isinstance(node, UnaryOp):
+            if isinstance(node.op, USub):
+                return -_eval(node.operand)
+            elif isinstance(node.op, Invert):
+                return ~_eval(node.operand)
+            else:
+                raise ValueError(f"Unsupported unary operator {node.op}")
+        elif isinstance(node, BinOp):
+            return binOps[type(node.op)](_eval(node.left), _eval(node.right))
+        else:
+            raise ValueError(f"Unsupported AST node {node}")
+
+    return f"0x{_eval(node.body):X}"
