@@ -1529,7 +1529,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 
     useDict = all_combiner_uses(f3dMat)
 
-    # Get texture info, needed for othermode
+    # Get texture info, needed for othermode; also check some texture props
     (
         useTex0,
         isTex0Ref,
@@ -1637,8 +1637,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     else:
         fMaterial.material.commands.append(SPTexture(s, t, 0, fModel.f3d.G_TX_RENDERTILE, 1))
 
-    # Handle combinations of CI textures
-    TODO(convertTextureData)
+    # Determine how to arrange / load palette entries into upper half of tmem
     tex0PaletteIndex = 0
     tex1PaletteIndex = 0
     loadPal0 = False
@@ -1651,7 +1650,18 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             loadPal0 = True
         elif not useTex0:
             loadPal1 = True
-        else: # Two CI textures
+        elif not convertTextureData:
+            if tex0Fmt == "CI8" or tex1Fmt == "CI8":
+                raise PluginError(
+                    "In material "
+                    + material.name
+                    + ": When using export as PNGs mode, can't have multitexture with one or more CI8 textures."
+                    + " Only single CI texture or two CI4 textures."
+                )
+            loadPal0 = loadPal1 = True
+            tex1PaletteIndex = 1
+            pal1Addr = 16
+        else: # Two CI textures, normal mode
             if tex0Fmt == "CI8" and tex1Fmt == "CI8":
                 if isTex0Ref != isTex0Ref:
                     raise PluginError(
@@ -1779,34 +1789,28 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     imUse1 = ([f3dMat.tex0.tex] if useSharedCIPalette else []) + [f3dMat.tex1.tex]
     fImage0 = fImage1 = fPalette0 = fPalette1 = None
     if useTex0:
-        imageKey0 = getImageKey(f3dMat.tex0, imUse0)
-        fImage0, fPalette0 = saveOrGetTextureDefinition(
-            fMaterial, fModel, f3dMat.tex0.tex, tex0Name, tex0Fmt, imageKey0)
+        imageKey0, fImage0, fPalette0 = saveOrGetTextureDefinition(
+            fMaterial, fModel, f3dMat.tex0, imUse0, tex0Name)
     if loadPal0:
         if fPalette0 is not None:
             paletteKey0 = fImage0.paletteKey
         else:
-            fPalette0, paletteKey0 = saveOrGetPaletteDefinition(
-                fMaterial, fModel, imUse0, tex0Name, tex0Fmt, pal0Fmt)
+            paletteKey0, fPalette0 = saveOrGetPaletteDefinition(
+                fMaterial, fModel, f3dMat.tex0, imUse0, tex0Name, pal0Len)
             fImage0.paletteKey = paletteKey0
     if useTex1:
-        imageKey1 = getImageKey(f3dMat.tex1, imUse1)
-        fImage1, fPalette1 = saveOrGetTextureDefinition(
-            fMaterial, fModel, f3dMat.tex1.tex, tex1Name, tex1Fmt, imageKey1)
+        imageKey1, fImage1, fPalette1 = saveOrGetTextureDefinition(
+            fMaterial, fModel, f3dMat.tex1, imUse1, tex1Name)
         if useSharedCIPalette:
             fImage1.paletteKey = paletteKey0
     if loadPal1:
         if fPalette1 is not None:
             paletteKey1 = fImage1.paletteKey
         else:
-            fPalette1, paletteKey1 = saveOrGetPaletteDefinition(
-                fMaterial, fModel, imUse1, tex1Name, tex1Fmt, pal1Fmt)
+            paletteKey1, fPalette1 = saveOrGetPaletteDefinition(
+                fMaterial, fModel, f3dMat.tex1, imUse1, tex1Name, pal1Len)
             fImage1.paletteKey = paletteKey1
     
-    # Write texture and palette data. This will be unset for exporting as PNGs.
-    if convertTextureData:
-        TODO()
-        
     # Write DL entries to load textures and palettes
     loadGfx = fMaterial.material
     if loadPal0:
@@ -1822,7 +1826,26 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             saveTextureLoadOnly(fImage1, loadGfx, f3dMat.tex1, None, 6, tex1Addr, fModel.f3d)
         saveTextureTile(
             fImage1, fMaterial, loadGfx, f3dMat.tex1, None, 1, tex1Addr, tex1PaletteIndex, fModel.f3d)
-    
+
+    # Write texture and palette data, unless exporting textures as PNGs.
+    if convertTextureData:
+        if not isTex0Ref:
+            if loadPal0:
+                writePaletteData(fPalette0, pal0)
+            if useTex0:
+                if isCI:
+                    writeCITextureData(f3dMat.tex0.tex, fImage0, pal0, pal0Fmt, tex0Fmt)
+                else:
+                    writeNonCITextureData(f3dMat.tex0.tex, fImage0, tex0Fmt)
+        if not isTex1Ref:
+            if loadPal1:
+                writePaletteData(fPalette1, pal1)
+            if useTex1:
+                if isCI:
+                    writeCITextureData(f3dMat.tex1.tex, fImage0, pal1, pal1Fmt, tex1Fmt)
+                else:
+                    writeNonCITextureData(f3dMat.tex1.tex, fImage1, tex1Fmt)
+        
     # Used so we know how to convert normalized UVs when saving verts.
     if imageDims0 is not None and imageDims1 is not None:
         if f3dMat.uv_basis == "TEXEL0":
@@ -1921,6 +1944,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 
     return fMaterial, texDimensions
 
+# Functions for texture and palette definitions
 
 def getTextureName(texProp: TextureProperty, fModelName: str, overrideName: str) -> str:
     tex = texProp.tex
@@ -1959,50 +1983,101 @@ def getTextureNameTexRef(texProp: TextureProperty, fModelName: str) -> str:
     return texName
 
 
-def extractConvertCIPixel(image, pixels, i, j, palFormat):
-    color = [1, 1, 1, 1]
-    for field in range(image.channels):
-        color[field] = pixels[(j * image.size[0] + i) * image.channels + field]
-    if palFormat == "RGBA16":
-        pixelColor = getRGBA16Tuple(color)
-    elif palFormat == "IA16":
-        pixelColor = getIA16Tuple(color)
-    else:
-        raise PluginError("Internal error with palette format")
-    return pixelColor
+def checkDuplicateTextureName(fModelOrTexRect, name):
+    names = []
+    for info, texture in fModelOrTexRect.textures.items():
+        names.append(texture.name)
+    while name in names:
+        name = name + "_copy"
+    return name
 
 
-def getColorsUsedInImage(image, palFormat):
-    palette = []
-    # N64 is -Y, Blender is +Y
-    pixels = image.pixels[:]
-    for j in reversed(range(image.size[1])):
-        for i in range(image.size[0]):
-            pixelColor = extractConvertCIPixel(image, pixels, i, j, palFormat)
-            if pixelColor not in palette:
-                palette.append(pixelColor)
-    return palette
+def saveOrGetPaletteDefinition(
+    fMaterial: FMaterial,
+    fModel: FModel,
+    texProp: TextureProperty,
+    images: list[bpy.types.Image],
+    imageName: str,
+    palLen: int,
+) -> tuple[FPaletteKey, FImage]:
+
+    texFmt = texProp.tex_format
+    palFmt = texProp.ci_format
+    palFormat = texFormatOf[palFmt]
+    paletteKey = FPaletteKey(palFmt, images)
+
+    # If palette already loaded, return that data.
+    fPalette, _ = fModel.getTextureAndHandleShared(paletteKey)
+    if fPalette is not None:
+        # print(f"Palette already exists")
+        return paletteKey, fPalette
+
+    if texProp.use_tex_reference:
+        fPalette = FImage(texProp.pal_reference, None, None, 1, palLen, None, False)
+        return paletteKey, fPalette
+
+    paletteName = checkDuplicateTextureName(fModel, toAlnum(imageName) + "_pal_" + palFmt.lower())
+    paletteFilename = getNameFromPath(imageName, True) + "." + fModel.getTextureSuffixFromFormat(texFmt) + ".pal"
+
+    fPalette = FImage(
+        paletteName,
+        palFormat,
+        "G_IM_SIZ_16b",
+        1,
+        palLen,
+        paletteFilename,
+        False,
+    )
+
+    fModel.addTexture(paletteKey, fPalette, fMaterial)
+    return paletteKey, fPalette
 
 
-def mergePalettes(pal0, pal1):
-    palette = [c for c in pal0]
-    for c in pal1:
-        if c not in palette:
-            palette.append(c)
-    return palette
-
-
-def getColorIndicesOfTexture(image, palette, palFormat):
-    texture = []
-    # N64 is -Y, Blender is +Y
-    pixels = image.pixels[:]
-    for j in reversed(range(image.size[1])):
-        for i in range(image.size[0]):
-            pixelColor = extractConvertCIPixel(image, pixels, i, j, palFormat)
-            texture.append(palette.index(pixelColor))
-    return texture
-
+def saveOrGetTextureDefinition(
+    fMaterial: FMaterial,
+    fModel: FModel,
+    texProp: TextureProperty,
+    images: list[bpy.types.Image],
+    imageName: str,
+) -> tuple[FImageKey, FImage, FImage]:
     
+    image = texProp.tex
+    texFmt = texProp.tex_format
+    texFormat = texFormatOf[texFmt]
+    bitSize = texBitSizeOf[texFmt]
+    imageKey = getImageKey(texProp, imUse0)
+    
+    # If image already loaded, return that data.
+    fImage, fPalette = fModel.getTextureAndHandleShared(imageKey)
+    if fImage is not None:
+        # print(f"Image already exists")
+        return imageKey, fImage, fPalette
+
+    if texProp.use_tex_reference:
+        width, height = texProp.tex_reference_size
+        fImage = FImage(texProp.tex_reference, None, None, width, height, None, False)
+        return imageKey, fImage, None
+    
+    name = image.name if image.filepath == "" else image.filepath
+    filename = getNameFromPath(name, True) + "." + fModel.getTextureSuffixFromFormat(texFmt) + ".inc.c"
+
+    fImage = FImage(
+        checkDuplicateTextureName(fModel, toAlnum(imageName)),
+        texFormat,
+        bitSize,
+        image.size[0],
+        image.size[1],
+        filename,
+        False,
+    )
+
+    if fMaterial.useLargeTextures:
+        fImage.isLargeTexture = True
+
+    fModel.addTexture(imageKey, fImage, fMaterial)
+    return imageKey, fImage, None
+
+
 def getAndCheckTexInfo(
     propName: str,
     fModel: FModel,
@@ -2081,8 +2156,9 @@ def getAndCheckTexInfo(
         pal,
         palLen
     )
-    
-    
+
+# Functions for writing texture and palette DLs
+
 def getTileSizeSettings(texProp: TextureProperty, tileSettings, f3d: F3D):
     if tileSettings is not None:
         SL = tileSettings.sl
@@ -2272,183 +2348,50 @@ def savePaletteLoad(
             ]
         )
 
+# Functions for converting and writing texture and palette data
 
-def todo():
-    if isCITexture:
-        if texProp.use_tex_reference:
-            fImage = FImage(texProp.tex_reference, None, None, width, height, None, False)
-            fPalette = FImage(texProp.pal_reference, None, None, 1, texProp.pal_reference_size, None, False)
-        
+def extractConvertCIPixel(image, pixels, i, j, palFormat):
+    color = [1, 1, 1, 1]
+    for field in range(image.channels):
+        color[field] = pixels[(j * image.size[0] + i) * image.channels + field]
+    if palFormat == "RGBA16":
+        pixelColor = getRGBA16Tuple(color)
+    elif palFormat == "IA16":
+        pixelColor = getIA16Tuple(color)
     else:
-        if texProp.use_tex_reference:
-            fImage = FImage(texProp.tex_reference, None, None, width, height, None, False)
-    
+        raise PluginError("Internal error with palette format")
+    return pixelColor
 
 
-def saveOrGetPaletteDefinition(
-    fMaterial: FMaterial,
-    fModel: FModel,
-    images: list[bpy.types.Image],
-    imageName: str,
-    texFmt: str,
-    palFmt: str,
-) -> tuple[FImage, tuple[bpy.types.Image, tuple[str, str]]]:
-
-    palFormat = texFormatOf[palFmt]
-    paletteName = checkDuplicateTextureName(fModel, toAlnum(imageName) + "_pal_" + palFmt.lower())
-    paletteKey = FPaletteKey(palFmt, images)
-    paletteFilename = getNameFromPath(imageName, True) + "." + fModel.getTextureSuffixFromFormat(texFmt) + ".pal"
-
-    fPalette = FImage(
-        paletteName,
-        palFormat,
-        "G_IM_SIZ_16b",
-        1,
-        len(palette),
-        paletteFilename,
-        False,
-    )
-
-    fModel.addTexture(paletteKey, fPalette, fMaterial)
-    return fPalette, paletteKey
+def getColorsUsedInImage(image, palFormat):
+    palette = []
+    # N64 is -Y, Blender is +Y
+    pixels = image.pixels[:]
+    for j in reversed(range(image.size[1])):
+        for i in range(image.size[0]):
+            pixelColor = extractConvertCIPixel(image, pixels, i, j, palFormat)
+            if pixelColor not in palette:
+                palette.append(pixelColor)
+    return palette
 
 
-def saveOrGetTextureDefinition(
-    fMaterial: FMaterial,
-    fModel: FModel,
-    image: bpy.types.Image,
-    imageName: str,
-    texFmt: str,
-    imageKey: FImageKey,
-) -> tuple[FImage, FImage, bool]:
-    
-    texFormat = texFormatOf[texFmt]
-    bitSize = texBitSizeOf[texFmt]
-    
-    # If image already loaded, return that data.
-    fImage, fPalette = fModel.getTextureAndHandleShared(imageKey)
-    if fImage is not None:
-        # print(f"Image already exists")
-        return fImage, fPalette
-
-    name = image.name if image.filepath == "" else image.filepath
-    filename = getNameFromPath(name, True) + "." + fModel.getTextureSuffixFromFormat(texFmt) + ".inc.c"
-
-    fImage = FImage(
-        checkDuplicateTextureName(fModel, toAlnum(imageName)),
-        texFormat,
-        bitSize,
-        image.size[0],
-        image.size[1],
-        filename,
-        False,
-    )
-
-    if fMaterial.useLargeTextures:
-        fImage.isLargeTexture = True
-
-    fModel.addTexture(imageKey, fImage, fMaterial)
-
-    return fImage, None
+def mergePalettes(pal0, pal1):
+    palette = [c for c in pal0]
+    for c in pal1:
+        if c not in palette:
+            palette.append(c)
+    return palette
 
 
-def writePaletteData(
-    TODO,
-    palette: list[int],
-):
-    for color in palette:
-        fPalette.data.extend(color.to_bytes(2, "big"))
-    fPalette.converted = True
-
-
-
-def saveOrGetPaletteAndImageDefinition(
-    fMaterial,
-    fModelOrTexRect,
-    image,
-    imageName,
-    texFmt,
-    palFmt,
-    convertTextureData,
-    sharedPalette: FSharedPalette,
-    imageKey: FImageKey,
-) -> tuple[FImage, FImage, bool]:
-    texFormat = texFormatOf[texFmt]
-    palFormat = texFormatOf[palFmt]
-    bitSize = texBitSizeOf[texFmt]
-    # If image already loaded, return that data.
-    fImage, fPalette = fModelOrTexRect.getTextureAndHandleShared(imageKey)
-    if fImage is not None:
-        # print(f"Image already exists")
-        return fImage, fPalette, True
-
-    # print(f"Size: {str(image.size[0])} x {str(image.size[1])}, Data: {str(len(image.pixels))}")
-    if sharedPalette is not None:
-        palette = sharedPalette.palette
-    else:
-        palette = []
+def getColorIndicesOfTexture(image, palette, palFormat):
     texture = []
-    maxColors = 16 if bitSize == "G_IM_SIZ_4b" else 256
-    if convertTextureData:
-        palette.extend(getColorsUsedInImage(image, palFmt))
-        if len(palette) > maxColors:
-            raise PluginError(
-                "Texture "
-                + imageName
-                + " has more than "
-                + str(maxColors)
-                + " colors, or is part of a shared palette with too many colors."
-            )
-        texture = getColorIndicesOfTexture(image, palette, palFmt)
-    
-    if image.filepath == "":
-        name = image.name
-    else:
-        name = image.filepath
-    filename = getNameFromPath(name, True) + "." + fModelOrTexRect.getTextureSuffixFromFormat(texFmt) + ".inc.c"
-
-    # paletteFilename = getNameFromPath(name, True) + '.' + \
-    # 	fModelOrTexRect.getTextureSuffixFromFormat(palFmt) + '.inc.c'
-    fImage = FImage(
-        checkDuplicateTextureName(fModelOrTexRect, toAlnum(imageName)),
-        texFormat,
-        bitSize,
-        image.size[0],
-        image.size[1],
-        filename,
-        convertTextureData,
-    )
-
-    if fMaterial.useLargeTextures:
-        fImage.isLargeTexture = True
-
-    # paletteImage = bpy.data.images.new(paletteName, 1, len(palette))
-    # paletteImage.pixels = palette
-    # paletteImage.filepath = paletteFilename
-
-    if convertTextureData:
-        if bitSize == "G_IM_SIZ_4b":
-            fImage.data = compactNibbleArray(texture, image.size[0], image.size[1])
-        else:
-            fImage.data = bytearray(texture)
-
-    fModelOrTexRect.addTexture(imageKey, fImage, fMaterial)
-
-    # For shared palettes, paletteName should be the same for the same imageName until
-    # the next saveOrGetPaletteOnlyDefinition
-    # Make sure paletteName is read here before saveOrGetPaletteOnlyDefinition is called.
-    paletteName = checkDuplicateTextureName(fModelOrTexRect, toAlnum(imageName) + "_pal_" + palFmt.lower())
-
-    if sharedPalette is None:
-        fPalette, paletteKey = saveOrGetPaletteOnlyDefinition(
-            fMaterial, fModelOrTexRect, [image], imageName, texFmt, palFmt, convertTextureData, palette
-        )
-        fImage.paletteKey = paletteKey
-    else:
-        fPalette = None
-        fImage.paletteKey = None
-
-    return fImage, fPalette, False  # , paletteImage
+    # N64 is -Y, Blender is +Y
+    pixels = image.pixels[:]
+    for j in reversed(range(image.size[1])):
+        for i in range(image.size[0]):
+            pixelColor = extractConvertCIPixel(image, pixels, i, j, palFormat)
+            texture.append(palette.index(pixelColor))
+    return texture
 
 
 def compactNibbleArray(texture, width, height):
@@ -2463,223 +2406,231 @@ def compactNibbleArray(texture, width, height):
     return bytearray(nibbleData)
 
 
-def checkDuplicateTextureName(fModelOrTexRect, name):
-    names = []
-    for info, texture in fModelOrTexRect.textures.items():
-        names.append(texture.name)
-    while name in names:
-        name = name + "_copy"
-    return name
+def writePaletteData(fPalette: FPalette, palette: list[int]):
+    for color in palette:
+        fPalette.data.extend(color.to_bytes(2, "big"))
+    fPalette.converted = True
 
 
-def TODO_saveTextureData(fMaterial, fModel, image: bpy.types.Image, imageName, texFormat, convertTextureData):
-    fmt = texFormatOf[texFormat]
-    bitSize = texBitSizeOf[texFormat]
+def writeCITextureData(
+    image: bpy.types.Image,
+    fImage: FImage,
+    palette: list[int],
+    palFmt: str,
+    texFmt: str,
+):
+    palFormat = texFormatOf[palFmt]
+    bitSize = texBitSizeOf[texFmt]
+    
+    texture = getColorIndicesOfTexture(image, palette, palFormat)
+    
+    if bitSize == "G_IM_SIZ_4b":
+        fImage.data = compactNibbleArray(texture, image.size[0], image.size[1])
+    else:
+        fImage.data = bytearray(texture)
+    fImage.converted = True
 
-        pixels = image.pixels[:]
-        # print(f"Converting texture data for {filename}")
-        if fmt == "G_IM_FMT_RGBA":
-            if bitSize == "G_IM_SIZ_16b":
-                # fImage.data = bytearray([byteVal for doubleByte in [
-                # 	(((int(image.pixels[(j * image.size[0] + i) * image.channels + 0] * 0x1F) & 0x1F) << 11) | \
-                # 	((int(image.pixels[(j * image.size[0] + i) * image.channels + 1] * 0x1F) & 0x1F) << 6) | \
-                # 	((int(image.pixels[(j * image.size[0] + i) * image.channels + 2] * 0x1F) & 0x1F) << 1) | \
-                # 	(1 if image.pixels[(j * image.size[0] + i) * image.channels + 3] > 0.5 else 0)
-                # 	).to_bytes(2, 'big')
-                # 	for j in reversed(range(image.size[1])) for i in range(image.size[0])] for byteVal in doubleByte])
 
-                fImage.data = bytearray(
-                    [
-                        byteVal
-                        for doubleByte in [
-                            (
-                                (
-                                    (
-                                        (int(round(pixels[(j * image.size[0] + i) * image.channels + 0] * 0x1F)) & 0x1F)
-                                        << 3
-                                    )
-                                    | (
-                                        (int(round(pixels[(j * image.size[0] + i) * image.channels + 1] * 0x1F)) & 0x1F)
-                                        >> 2
-                                    )
-                                ),
-                                (
-                                    (
-                                        (int(round(pixels[(j * image.size[0] + i) * image.channels + 1] * 0x1F)) & 0x03)
-                                        << 6
-                                    )
-                                    | (
-                                        (int(round(pixels[(j * image.size[0] + i) * image.channels + 2] * 0x1F)) & 0x1F)
-                                        << 1
-                                    )
-                                    | (1 if pixels[(j * image.size[0] + i) * image.channels + 3] > 0.5 else 0)
-                                ),
-                            )
-                            for j in reversed(range(image.size[1]))
-                            for i in range(image.size[0])
-                        ]
-                        for byteVal in doubleByte
-                    ]
-                )
-            elif bitSize == "G_IM_SIZ_32b":
-                fImage.data = bytearray(
-                    [
-                        int(round(pixels[(j * image.size[0] + i) * image.channels + field] * 0xFF)) & 0xFF
-                        for j in reversed(range(image.size[1]))
-                        for i in range(image.size[0])
-                        for field in range(image.channels)
-                    ]
-                )
-            else:
-                raise PluginError("Invalid combo: " + fmt + ", " + bitSize)
+def writeNonCITextureData(image: bpy.types.Image, fImage: FImage, texFmt: str):
+    fmt = texFormatOf[texFmt]
+    bitSize = texBitSizeOf[texFmt]
 
-        elif fmt == "G_IM_FMT_YUV":
-            raise PluginError("YUV not yet implemented.")
-            if bitSize == "G_IM_SIZ_16b":
-                pass
-            else:
-                raise PluginError("Invalid combo: " + fmt + ", " + bitSize)
-
-        elif fmt == "G_IM_FMT_CI":
-            raise PluginError("CI not yet implemented.")
-
-        elif fmt == "G_IM_FMT_IA":
-            if bitSize == "G_IM_SIZ_4b":
-                fImage.data = bytearray(
-                    [
+    pixels = image.pixels[:]
+    if fmt == "G_IM_FMT_RGBA":
+        if bitSize == "G_IM_SIZ_16b":
+            fImage.data = bytearray(
+                [
+                    byteVal
+                    for doubleByte in [
                         (
                             (
-                                int(
-                                    round(
-                                        colorToLuminance(
-                                            pixels[
-                                                (j * image.size[0] + i)
-                                                * image.channels : (j * image.size[0] + i)
-                                                * image.channels
-                                                + 3
-                                            ]
-                                        )
-                                        * 0x7
-                                    )
+                                (
+                                    (int(round(pixels[(j * image.size[0] + i) * image.channels + 0] * 0x1F)) & 0x1F)
+                                    << 3
                                 )
-                                & 0x7
-                            )
-                            << 1
-                        )
-                        | (1 if pixels[(j * image.size[0] + i) * image.channels + 3] > 0.5 else 0)
-                        for j in reversed(range(image.size[1]))
-                        for i in range(image.size[0])
-                    ]
-                )
-            elif bitSize == "G_IM_SIZ_8b":
-                fImage.data = bytearray(
-                    [
-                        (
+                                | (
+                                    (int(round(pixels[(j * image.size[0] + i) * image.channels + 1] * 0x1F)) & 0x1F)
+                                    >> 2
+                                )
+                            ),
                             (
-                                int(
-                                    round(
-                                        colorToLuminance(
-                                            pixels[
-                                                (j * image.size[0] + i)
-                                                * image.channels : (j * image.size[0] + i)
-                                                * image.channels
-                                                + 3
-                                            ]
-                                        )
-                                        * 0xF
-                                    )
+                                (
+                                    (int(round(pixels[(j * image.size[0] + i) * image.channels + 1] * 0x1F)) & 0x03)
+                                    << 6
                                 )
-                                & 0xF
-                            )
-                            << 4
+                                | (
+                                    (int(round(pixels[(j * image.size[0] + i) * image.channels + 2] * 0x1F)) & 0x1F)
+                                    << 1
+                                )
+                                | (1 if pixels[(j * image.size[0] + i) * image.channels + 3] > 0.5 else 0)
+                            ),
                         )
-                        | (int(round(pixels[(j * image.size[0] + i) * image.channels + 3] * 0xF)) & 0xF)
                         for j in reversed(range(image.size[1]))
                         for i in range(image.size[0])
                     ]
-                )
-            elif bitSize == "G_IM_SIZ_16b":
-                fImage.data = bytearray(
-                    [
-                        byteVal
-                        for doubleByte in [
-                            (
-                                int(
-                                    round(
-                                        colorToLuminance(
-                                            pixels[
-                                                (j * image.size[0] + i)
-                                                * image.channels : (j * image.size[0] + i)
-                                                * image.channels
-                                                + 3
-                                            ]
-                                        )
-                                        * 0xFF
-                                    )
-                                )
-                                & 0xFF,
-                                int(round(pixels[(j * image.size[0] + i) * image.channels + 3] * 0xFF)) & 0xFF,
-                            )
-                            for j in reversed(range(image.size[1]))
-                            for i in range(image.size[0])
-                        ]
-                        for byteVal in doubleByte
-                    ]
-                )
-            else:
-                raise PluginError("Invalid combo: " + fmt + ", " + bitSize)
-        elif fmt == "G_IM_FMT_I":
-            if bitSize == "G_IM_SIZ_4b":
-                fImage.data = bytearray(
-                    [
-                        int(
-                            round(
-                                colorToLuminance(
-                                    pixels[
-                                        (j * image.size[0] + i)
-                                        * image.channels : (j * image.size[0] + i)
-                                        * image.channels
-                                        + 3
-                                    ]
-                                )
-                                * 0xF
-                            )
-                        )
-                        & 0xF
-                        for j in reversed(range(image.size[1]))
-                        for i in range(image.size[0])
-                    ]
-                )
-            elif bitSize == "G_IM_SIZ_8b":
-                fImage.data = bytearray(
-                    [
-                        int(
-                            round(
-                                colorToLuminance(
-                                    pixels[
-                                        (j * image.size[0] + i)
-                                        * image.channels : (j * image.size[0] + i)
-                                        * image.channels
-                                        + 3
-                                    ]
-                                )
-                                * 0xFF
-                            )
-                        )
-                        & 0xFF
-                        for j in reversed(range(image.size[1]))
-                        for i in range(image.size[0])
-                    ]
-                )
-            else:
-                raise PluginError("Invalid combo: " + fmt + ", " + bitSize)
+                    for byteVal in doubleByte
+                ]
+            )
+        elif bitSize == "G_IM_SIZ_32b":
+            fImage.data = bytearray(
+                [
+                    int(round(pixels[(j * image.size[0] + i) * image.channels + field] * 0xFF)) & 0xFF
+                    for j in reversed(range(image.size[1]))
+                    for i in range(image.size[0])
+                    for field in range(image.channels)
+                ]
+            )
         else:
-            raise PluginError("Invalid image format " + fmt)
+            raise PluginError("Invalid combo: " + fmt + ", " + bitSize)
 
-        # We stored 4bit values in byte arrays, now to convert
+    elif fmt == "G_IM_FMT_YUV":
+        raise PluginError("YUV not yet implemented.")
+        if bitSize == "G_IM_SIZ_16b":
+            pass
+        else:
+            raise PluginError("Invalid combo: " + fmt + ", " + bitSize)
+
+    elif fmt == "G_IM_FMT_CI":
+        raise PluginError("CI not yet implemented.")
+
+    elif fmt == "G_IM_FMT_IA":
         if bitSize == "G_IM_SIZ_4b":
-            fImage.data = compactNibbleArray(fImage.data, image.size[0], image.size[1])
+            fImage.data = bytearray(
+                [
+                    (
+                        (
+                            int(
+                                round(
+                                    colorToLuminance(
+                                        pixels[
+                                            (j * image.size[0] + i)
+                                            * image.channels : (j * image.size[0] + i)
+                                            * image.channels
+                                            + 3
+                                        ]
+                                    )
+                                    * 0x7
+                                )
+                            )
+                            & 0x7
+                        )
+                        << 1
+                    )
+                    | (1 if pixels[(j * image.size[0] + i) * image.channels + 3] > 0.5 else 0)
+                    for j in reversed(range(image.size[1]))
+                    for i in range(image.size[0])
+                ]
+            )
+        elif bitSize == "G_IM_SIZ_8b":
+            fImage.data = bytearray(
+                [
+                    (
+                        (
+                            int(
+                                round(
+                                    colorToLuminance(
+                                        pixels[
+                                            (j * image.size[0] + i)
+                                            * image.channels : (j * image.size[0] + i)
+                                            * image.channels
+                                            + 3
+                                        ]
+                                    )
+                                    * 0xF
+                                )
+                            )
+                            & 0xF
+                        )
+                        << 4
+                    )
+                    | (int(round(pixels[(j * image.size[0] + i) * image.channels + 3] * 0xF)) & 0xF)
+                    for j in reversed(range(image.size[1]))
+                    for i in range(image.size[0])
+                ]
+            )
+        elif bitSize == "G_IM_SIZ_16b":
+            fImage.data = bytearray(
+                [
+                    byteVal
+                    for doubleByte in [
+                        (
+                            int(
+                                round(
+                                    colorToLuminance(
+                                        pixels[
+                                            (j * image.size[0] + i)
+                                            * image.channels : (j * image.size[0] + i)
+                                            * image.channels
+                                            + 3
+                                        ]
+                                    )
+                                    * 0xFF
+                                )
+                            )
+                            & 0xFF,
+                            int(round(pixels[(j * image.size[0] + i) * image.channels + 3] * 0xFF)) & 0xFF,
+                        )
+                        for j in reversed(range(image.size[1]))
+                        for i in range(image.size[0])
+                    ]
+                    for byteVal in doubleByte
+                ]
+            )
+        else:
+            raise PluginError("Invalid combo: " + fmt + ", " + bitSize)
+    elif fmt == "G_IM_FMT_I":
+        if bitSize == "G_IM_SIZ_4b":
+            fImage.data = bytearray(
+                [
+                    int(
+                        round(
+                            colorToLuminance(
+                                pixels[
+                                    (j * image.size[0] + i)
+                                    * image.channels : (j * image.size[0] + i)
+                                    * image.channels
+                                    + 3
+                                ]
+                            )
+                            * 0xF
+                        )
+                    )
+                    & 0xF
+                    for j in reversed(range(image.size[1]))
+                    for i in range(image.size[0])
+                ]
+            )
+        elif bitSize == "G_IM_SIZ_8b":
+            fImage.data = bytearray(
+                [
+                    int(
+                        round(
+                            colorToLuminance(
+                                pixels[
+                                    (j * image.size[0] + i)
+                                    * image.channels : (j * image.size[0] + i)
+                                    * image.channels
+                                    + 3
+                                ]
+                            )
+                            * 0xFF
+                        )
+                    )
+                    & 0xFF
+                    for j in reversed(range(image.size[1]))
+                    for i in range(image.size[0])
+                ]
+            )
+        else:
+            raise PluginError("Invalid combo: " + fmt + ", " + bitSize)
+    else:
+        raise PluginError("Invalid image format " + fmt)
 
+    # We stored 4bit values in byte arrays, now to convert
+    if bitSize == "G_IM_SIZ_4b":
+        fImage.data = compactNibbleArray(fImage.data, image.size[0], image.size[1])
+    
+    fImage.converted = True
 
 
 def saveLightsDefinition(fModel, fMaterial, material, lightsName):
