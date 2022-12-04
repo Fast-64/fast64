@@ -424,6 +424,7 @@ def saveMeshWithLargeTexturesByFaces(
         triGroup.triList.commands.append(DPPipeSync())
         if fMaterial.texturesLoaded[0] and not (otherTextureIndex == 0 and otherTexSingleLoad):
             texDimensions0, nextTmem, fImage0 = saveTextureIndex(
+                material,
                 material.name,
                 fModel,
                 fMaterial,
@@ -442,6 +443,7 @@ def saveMeshWithLargeTexturesByFaces(
             )
         if fMaterial.texturesLoaded[1] and not (otherTextureIndex == 1 and otherTexSingleLoad):
             texDimensions1, nextTmem, fImage1 = saveTextureIndex(
+                material,
                 material.name,
                 fModel,
                 fMaterial,
@@ -1622,6 +1624,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         fMaterial.useLargeTextures = useLargeTextures
         fMaterial.texturesLoaded[0] = True
         texDimensions0, nextTmem, fImage0 = saveTextureIndex(
+            material,
             material.name,
             fModel,
             fMaterial,
@@ -1652,6 +1655,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         fMaterial.useLargeTextures = useLargeTextures
         fMaterial.texturesLoaded[1] = True
         texDimensions1, nextTmem, fImage1 = saveTextureIndex(
+            material,
             material.name,
             fModel,
             fMaterial,
@@ -1839,6 +1843,7 @@ def getTextureNameTexRef(texProp: TextureProperty, fModelName: str) -> str:
 
 
 def saveTextureIndex(
+    material: bpy.types.Material,
     propName: str,
     fModel: FModel,
     fMaterial: FMaterial,
@@ -1936,7 +1941,7 @@ def saveTextureIndex(
     if isCITexture:
         if texProp.use_tex_reference:
             fImage = FImage(texProp.tex_reference, None, None, width, height, None, False)
-            fPalette = FImage(texProp.pal_reference, None, None, 1, texProp.pal_reference_size, None, False)
+            fPalette = fModel.processTexRefCITextures(fMaterial, material, index)
         else:
             # fPalette should be an fImage here, since sharedPalette is None
             fImage, fPalette, alreadyExists = saveOrGetPaletteAndImageDefinition(
@@ -1958,6 +1963,7 @@ def saveTextureIndex(
     else:
         if texProp.use_tex_reference:
             fImage = FImage(texProp.tex_reference, None, None, width, height, None, False)
+            fModel.processTexRefNonCITextures(fMaterial, material, index)
         else:
             fImage = saveOrGetTextureDefinition(fMaterial, fModel, tex, texName, texFormat, convertTextureData)
 

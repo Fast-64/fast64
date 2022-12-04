@@ -1,5 +1,5 @@
 from bpy.types import Object, CollectionProperty
-from .data.oot_object_data import OoT_ObjectData
+from .data import OoT_ObjectData
 
 
 def upgradeObjectList(objList: CollectionProperty, objData: OoT_ObjectData):

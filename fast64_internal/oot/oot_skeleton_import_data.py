@@ -1,7 +1,7 @@
-from collections import OrderedDict
 import bpy, mathutils
+from collections import OrderedDict
 from ..utility import PluginError, raisePluginError
-from .oot_utility import getSortedChildren, getStartBone, getNextBone
+from .oot_utility import getStartBone, getNextBone
 
 # Adding new rest pose entry:
 # 1. Import a generic skeleton

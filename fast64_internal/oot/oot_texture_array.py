@@ -1,6 +1,7 @@
-from typing import Callable
 import os, re
+from typing import Callable
 from ..utility import hexOrDecInt
+
 from .oot_model_classes import (
     OOTF3DContext,
     TextureFlipbook,

@@ -1,8 +1,7 @@
-from ..utility import ootGetSceneOrRoomHeader
-
-from .data.oot_data import OoT_Data
-from .oot_level_classes import OOTRoom
 from bpy.types import Object
+from ..utility import ootGetSceneOrRoomHeader
+from .data import OoT_Data
+from .oot_level_classes import OOTRoom
 
 
 def addMissingObjectToProp(roomObj: Object, headerIndex: int, objectKey: str):
