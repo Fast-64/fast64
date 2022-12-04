@@ -847,7 +847,8 @@ def exportLevelC(
     dynamicData = exportData.dynamicData
     texC = exportData.textureData
 
-    scrollData, hasScrolling = fModel.to_c_vertex_scroll(levelName, gfxFormatter)
+    scrollData = fModel.to_c_scroll(levelName, gfxFormatter)
+    hasScrolling = scrollData is not None
     scroll_data = scrollData.source
     headerScroll = scrollData.header
 
