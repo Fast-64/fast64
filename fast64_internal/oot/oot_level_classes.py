@@ -296,7 +296,7 @@ class OOTScene(OOTCommonCommands):
 
     def addRoom(self, roomIndex, roomName, roomShape):
         roomModel = self.model.addSubModel(
-            OOTModel(self.model.f3d.F3D_VER, self.model.f3d._HW_VERSION_1, roomName + "_dl", self.model.DLFormat, None)
+            OOTModel(self.model.f3d.F3D_VER, self.model.f3d._HW_VERSION_1, roomName + "_dl", self.model.DLFormat, None, inline = bpy.context.scene.exportInlineF3D)
         )
         room = OOTRoom(roomIndex, roomName, roomModel, roomShape)
         if roomIndex in self.rooms:

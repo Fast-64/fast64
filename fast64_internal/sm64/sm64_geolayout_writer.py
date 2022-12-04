@@ -412,7 +412,7 @@ def convertObjectToGeolayout(
 ):
 
     if fModel is None:
-        fModel = SM64Model(f3dType, isHWv1, name, DLFormat)
+        fModel = SM64Model(f3dType, isHWv1, name, DLFormat, inline = bpy.context.scene.exportInlineF3D)
 
     # convertTransformMatrix = convertTransformMatrix @ \
     # 	mathutils.Matrix.Diagonal(obj.scale).to_4x4()

@@ -476,7 +476,7 @@ def register():
     bpy.types.Scene.exportHiddenGeometry = bpy.props.BoolProperty(name="Export Hidden Geometry", default=True)
     bpy.types.Scene.exportInlineF3D = bpy.props.BoolProperty(name="Export Inline F3D", \
     description = "F3D for each mesh will be one Gfx list instead of having different Gfx lists for each component of the mesh.\n\
-This will cause repeated F3D cmds.", default=False)
+This will cause repeated F3D cmds. This option does not work on armature exports.", default=False)
     bpy.types.Scene.blenderF3DScale = bpy.props.FloatProperty(
         name="F3D Blender Scale", default=100, update=on_update_render_settings
     )

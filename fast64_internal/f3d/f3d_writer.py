@@ -474,11 +474,11 @@ def saveMeshWithLargeTexturesByFaces(
 
         currentGroupIndex = saveTriangleStrip(triConverter, tileFaces, obj.data, False)
 
-        if len(revertCommands.commands) > 0:
+        if len(revertCommands.commands) > 0 and not fMesh.inline:
             fMesh.draw.commands.extend(revertCommands.commands)
 
     triGroup.triList.commands.append(SPEndDisplayList())
-
+   
     if fMaterial.revert is not None:
         fMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
 
@@ -557,10 +557,10 @@ def saveStaticModel(
 
     for drawLayer, fMesh in fMeshes.items():
         if revertMatAtEnd:
-            fModel.onEndDraw(fMesh, obj)
+            fModel.onEndDraw(fMesh, obj, drawLayer)
             revertMatAndEndDraw(fMesh.draw, [])
         else:
-            fModel.endDraw(fMesh, obj)
+            fModel.endDraw(fMesh, obj, drawLayer)
     return fMeshes
 
 
@@ -597,6 +597,7 @@ def addCullCommand(obj, fMesh, transformMatrix, matWriteMethod):
         cullCommands = [
             SPClearGeometryMode(["G_LIGHTING"]),
             SPVertex(fMesh.cullVertexList, 0, 8, 0),
+            SPSetGeometryMode(["G_LIGHTING"]),
             SPCullDisplayList(0, 7),
         ]
     else:
@@ -808,8 +809,7 @@ def saveMeshByFaces(
     if material.name != lastMaterialName:
         fMesh.add_material_call(fMaterial)
     triGroup = fMesh.tri_group_new(fMaterial)
-    if not fMesh.inline:
-        fMesh.draw.commands.append(SPDisplayList(triGroup.triList))
+    fMesh.draw.commands.append(SPDisplayList(triGroup.triList))
 
     triConverter = TriangleConverter(
         triConverterInfo,
@@ -824,15 +824,7 @@ def saveMeshByFaces(
 
     currentGroupIndex = saveTriangleStrip(triConverter, faces, obj.data, True)
 
-    #inline requires the mesh to revert a few cmds for safety
-    if fModel.inline:
-        if not fMesh.draw.commands:
-            revertMatAndEndDraw(fMesh.draw, [DPSetRenderMode(fModel.getRenderMode(drawLayer), None), DPSetCycleType("G_CYC_1CYCLE"), DPSetTextureLUT("G_TT_NONE")])
-        #remove SPEndDisplayList from triGroup
-        while(SPEndDisplayList() in triGroup.triList.commands):
-            triGroup.triList.commands.remove(SPEndDisplayList())
-    
-    elif fMaterial.revert is not None:
+    if fMaterial.revert is not None:
         fMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
 
     return currentGroupIndex
@@ -1621,7 +1613,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         revertGfx = GfxList(None, None, fModel.DLFormat)
     else:
         sharedPalette = None
-        loadGfx = [fMaterial.textures[0], fMaterial.textures[1]]
+        loadGfx = [fMaterial.getTexturesGfxList(0), fMaterial.getTexturesGfxList(1)]
         revertGfx = fMaterial.revert
 
     imageKey0, imageKey1 = getImageKeys(f3dMat, useSharedCIPalette)
@@ -1708,8 +1700,8 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         )
 
         # Append these commands after palette loading commands
-        fMaterial.textures[0].commands.extend(loadGfx[0].commands)
-        fMaterial.textures[1].commands.extend(loadGfx[1].commands)
+        fMaterial.getTexturesGfxList(0).commands.extend(loadGfx[0].commands)
+        fMaterial.getTexturesGfxList(1).commands.extend(loadGfx[1].commands)
         fMaterial.revert.commands.extend(revertGfx.commands)
 
         fImage0.paletteKey = paletteKey
