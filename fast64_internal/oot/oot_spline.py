@@ -2,7 +2,7 @@ import bpy
 from bpy.utils import register_class, unregister_class
 from ..utility import PluginError, toAlnum, prop_split
 from .oot_utility import getSceneObj, drawEnumWithCustom
-from .oot_actor import drawActorHeaderProperty, OOTActorHeaderProperty
+from .oot_actor import OOTActorHeaderProperty, drawActorHeaderProperty
 from .oot_collision_classes import ootEnumCameraCrawlspaceSType
 
 
@@ -13,7 +13,7 @@ class OOTPath:
         self.points = []
 
     def pathName(self, headerIndex, index):
-        return self.ownerName + "_pathwayList" + str(headerIndex) + "_" + str(index)
+        return f"{self.ownerName}_pathwayList{index}_header{headerIndex}"
 
 
 def ootConvertPath(name, obj, transformMatrix):
@@ -21,9 +21,8 @@ def ootConvertPath(name, obj, transformMatrix):
 
     spline = obj.data.splines[0]
     for point in spline.points:
-        position = transformMatrix @ point.co
+        position = transformMatrix @ point.co.xyz
         path.points.append(position)
-        # path.speeds.append(int(round(point.radius)))
 
     return path
 

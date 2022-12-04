@@ -1,6 +1,7 @@
-from typing import Callable
 import os, re
+from typing import Callable
 from ..utility import hexOrDecInt
+
 from .oot_model_classes import (
     OOTF3DContext,
     TextureFlipbook,
@@ -211,9 +212,7 @@ def getSPSegmentCalls(actorData: str) -> list[tuple[tuple[int, str], str, re.Mat
 # assumes DemoEc_DrawSkeleton()/DemoEc_DrawSkeletonCustomColor() is unmodified
 def getSPSegmentCallsDemoEc(actorData: str) -> list[tuple[tuple[int, str], str, re.Match]]:
     segmentCalls = getSPSegmentCalls(actorData)
-    functionMatch = re.search(
-        r"DemoEc_DrawSkeleton(CustomColor)?\s*\(.*?,.*?,(.*?),(.*?),", actorData, flags=re.DOTALL
-    )
+    functionMatch = re.search(r"DemoEc_DrawSkeleton(CustomColor)?\s*\(.*?,.*?,(.*?),(.*?),", actorData, flags=re.DOTALL)
     if functionMatch:
         isCustomColor = functionMatch.group(1) is not None
         param1 = functionMatch.group(2).strip()

@@ -2,134 +2,79 @@ from .....utility import CData, indent
 from ....oot_level_classes import OOTRoom
 
 
-def cmdEchoSettings(room, header, cmdCount):
-    cmd = CData()
-    cmd.source = indent + "SCENE_CMD_ECHO_SETTINGS(" + str(room.echo) + "),\n"
-    return cmd
+def getEchoSettingsCmd(outRoom: OOTRoom):
+    return indent + f"SCENE_CMD_ECHO_SETTINGS({outRoom.echo})"
 
 
-def cmdRoomBehaviour(room, header, cmdCount):
-    cmd = CData()
-    cmd.source = (
-        indent
-        + "SCENE_CMD_ROOM_BEHAVIOR("
-        + ", ".join(
-            (
-                str(room.roomBehaviour),
-                str(room.linkIdleMode),
-                ("true" if room.showInvisibleActors else "false"),
-                ("true" if room.disableWarpSongs else "false"),
-            )
-        )
-        + "),\n"
+def getRoomBehaviourCmd(outRoom: OOTRoom):
+    showInvisibleActors = "true" if outRoom.showInvisibleActors else "false"
+    disableWarpSongs = "true" if outRoom.disableWarpSongs else "false"
+
+    return (
+        (indent + "SCENE_CMD_ROOM_BEHAVIOR(")
+        + ", ".join([outRoom.roomBehaviour, outRoom.linkIdleMode, showInvisibleActors, disableWarpSongs])
+        + ")"
     )
-    return cmd
 
 
-def cmdSkyboxDisables(room, header, cmdCount):
-    cmd = CData()
-    cmd.source = (
-        indent
-        + "SCENE_CMD_SKYBOX_DISABLES("
-        + ("true" if room.disableSkybox else "false")
-        + ", "
-        + ("true" if room.disableSunMoon else "false")
-        + "),\n"
+def getSkyboxDisablesCmd(outRoom: OOTRoom):
+    disableSkybox = "true" if outRoom.disableSkybox else "false"
+    disableSunMoon = "true" if outRoom.disableSunMoon else "false"
+
+    return indent + f"SCENE_CMD_SKYBOX_DISABLES({disableSkybox}, {disableSunMoon})"
+
+
+def getTimeSettingsCmd(outRoom: OOTRoom):
+    return indent + f"SCENE_CMD_TIME_SETTINGS({outRoom.timeHours}, {outRoom.timeMinutes}, {outRoom.timeSpeed})"
+
+
+def getWindSettingsCmd(outRoom: OOTRoom):
+    return (
+        indent + f"SCENE_CMD_WIND_SETTINGS({', '.join(f'{dir}' for dir in outRoom.windVector)}, {outRoom.windStrength})"
     )
-    return cmd
 
 
-def cmdTimeSettings(room, header, cmdCount):
-    cmd = CData()
-    cmd.source = (
-        indent
-        + "SCENE_CMD_TIME_SETTINGS("
-        + ", ".join(
-            (
-                str(room.timeHours),
-                str(room.timeMinutes),
-                str(room.timeSpeed),
-            )
-        )
-        + "),\n"
+def getRoomShapeCmd(outRoom: OOTRoom):
+    return indent + f"SCENE_CMD_ROOM_SHAPE(&{outRoom.mesh.headerName()})"
+
+
+def getObjectListCmd(outRoom: OOTRoom, headerIndex: int):
+    return (
+        indent + "SCENE_CMD_OBJECT_LIST("
+    ) + f"{outRoom.getObjectLengthDefineName(headerIndex)}, {outRoom.objectListName(headerIndex)}),\n"
+
+
+def getActorListCmd(outRoom: OOTRoom, headerIndex: int):
+    return (
+        indent + "SCENE_CMD_ACTOR_LIST("
+    ) + f"{outRoom.getActorLengthDefineName(headerIndex)}, {outRoom.actorListName(headerIndex)}),\n"
+
+
+def getRoomCommandList(outRoom: OOTRoom, headerIndex: int):
+    cmdListData = CData()
+    listName = f"SceneCmd {outRoom.roomName()}_header{headerIndex:02}"
+
+    getCmdFuncList = [
+        getEchoSettingsCmd,
+        getRoomBehaviourCmd,
+        getSkyboxDisablesCmd,
+        getTimeSettingsCmd,
+        getRoomShapeCmd,
+    ]
+
+    roomCmdData = (
+        (outRoom.getAltHeaderListCmd(outRoom.alternateHeadersName()) if outRoom.hasAlternateHeaders() else "")
+        + (",\n".join(getCmd(outRoom) for getCmd in getCmdFuncList) + ",\n")
+        + (getWindSettingsCmd(outRoom) if outRoom.setWind else "")
+        + (getObjectListCmd(outRoom, headerIndex) if len(outRoom.objectIDList) > 0 else "")
+        + (getActorListCmd(outRoom, headerIndex) if len(outRoom.actorList) > 0 else "")
+        + outRoom.getEndCmd()
     )
-    return cmd
 
+    # .h
+    cmdListData.header = f"extern {listName}[];\n"
 
-def cmdWindSettings(room, header, cmdCount):
-    cmd = CData()
-    cmd.source = (
-        indent
-        + "SCENE_CMD_WIND_SETTINGS("
-        + ", ".join(
-            (
-                str(room.windVector[0]),
-                str(room.windVector[1]),
-                str(room.windVector[2]),
-                str(room.windStrength),
-            )
-        )
-        + "),\n"
-    )
-    return cmd
+    # .c
+    cmdListData.source = f"{listName}[]" + " = {\n" + roomCmdData + "};\n\n"
 
-
-def cmdMesh(room, header, cmdCount):
-    cmd = CData()
-    cmd.source = indent + "SCENE_CMD_ROOM_SHAPE(&" + room.mesh.headerName() + "),\n"
-    return cmd
-
-
-def cmdObjectList(room: OOTRoom, headerIndex: int, cmdCount):
-    cmd = CData()
-    cmd.source = (
-        indent
-        + "SCENE_CMD_OBJECT_LIST("
-        + room.getObjectLengthDefineName(headerIndex)
-        + ", "
-        + str(room.objectListName(headerIndex))
-        + "),\n"
-    )
-    return cmd
-
-
-def cmdActorList(room: OOTRoom, headerIndex: int, cmdCount):
-    cmd = CData()
-    cmd.source = (
-        indent
-        + "SCENE_CMD_ACTOR_LIST("
-        + room.getActorLengthDefineName(headerIndex)
-        + ", "
-        + str(room.actorListName(headerIndex))
-        + "),\n"
-    )
-    return cmd
-
-
-def ootRoomCommandsToC(room, headerIndex):
-    commands = []
-    if room.hasAlternateHeaders():
-        commands.append(room.cmdAltHeaders(room.roomName(), room.alternateHeadersName(), headerIndex, len(commands)))
-    commands.append(cmdEchoSettings(room, headerIndex, len(commands)))
-    commands.append(cmdRoomBehaviour(room, headerIndex, len(commands)))
-    commands.append(cmdSkyboxDisables(room, headerIndex, len(commands)))
-    commands.append(cmdTimeSettings(room, headerIndex, len(commands)))
-    if room.setWind:
-        commands.append(cmdWindSettings(room, headerIndex, len(commands)))
-    commands.append(cmdMesh(room, headerIndex, len(commands)))
-    if len(room.objectIDList) > 0:
-        commands.append(cmdObjectList(room, headerIndex, len(commands)))
-    if len(room.actorList) > 0:
-        commands.append(cmdActorList(room, headerIndex, len(commands)))
-    commands.append(room.cmdEndMarker(room.roomName(), headerIndex, len(commands)))
-
-    data = CData()
-
-    # data.header = ''.join([command.header for command in commands]) +'\n'
-    data.header = "extern SceneCmd " + room.roomName() + "_header" + format(headerIndex, "02") + "[];\n"
-
-    data.source = "SceneCmd " + room.roomName() + "_header" + format(headerIndex, "02") + "[] = {\n"
-    data.source += "".join([command.source for command in commands])
-    data.source += "};\n\n"
-
-    return data
+    return cmdListData
