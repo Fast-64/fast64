@@ -3,9 +3,10 @@ from bpy.types import UILayout
 from typing import Callable
 from ..render_settings import on_update_oot_render_settings
 from ..utility import ootGetSceneOrRoomHeader, prop_split
-from .oot_utility import drawAddButton, drawCollectionOps, drawEnumWithCustom, getEnumName, getSceneObj, getRoomObj
+from .oot_utility import drawAddButton, drawCollectionOps, drawEnumWithCustom, getSceneObj, getRoomObj
 from .oot_cutscene import OOTCSListProperty, drawCSListProperty, drawCSAddButtons
 from .oot_actor import setAllActorsVisibility
+from .oot_upgrade import upgradeRoomHeaders
 
 from .oot_constants import (
     ootData,
@@ -34,8 +35,6 @@ from .oot_constants import (
     ootEnumHeaderMenu,
     ootEnumDrawConfig,
 )
-
-from .oot_upgrade import upgradeRoomHeaders
 
 
 def onUpdateOoTLighting(self, context: bpy.types.Context):
@@ -204,8 +203,10 @@ def drawObjectProperty(
 
     if isLegacy:
         objectName = ootData.objectData.ootEnumObjectIDLegacy[objectProp["objectID"]][1]
-    else:
+    elif objectProp.objectKey != "Custom":
         objectName = ootData.objectData.objectsByKey[objectProp.objectKey].name
+    else:
+        objectName = objectProp.objectIDCustom
 
     objItemBox = layout.column()
     row = objItemBox.row()
@@ -401,7 +402,7 @@ class OOTSceneHeaderProperty(bpy.types.PropertyGroup):
     skyboxCloudiness: bpy.props.EnumProperty(name="Cloudiness", items=ootEnumCloudiness, default="0x00")
     skyboxCloudinessCustom: bpy.props.StringProperty(name="Cloudiness ID", default="0x00")
     skyboxLighting: bpy.props.EnumProperty(
-        name="Skybox Lighting", items=ootEnumSkyboxLighting, default="false", update=onUpdateOoTLighting
+        name="Skybox Lighting", items=ootEnumSkyboxLighting, default="LIGHT_MODE_TIME", update=onUpdateOoTLighting
     )
     skyboxLightingCustom: bpy.props.StringProperty(
         name="Skybox Lighting Custom", default="0x00", update=onUpdateOoTLighting
@@ -509,7 +510,7 @@ def drawSceneHeaderProperty(layout, sceneProp, dropdownLabel, headerIndex, objNa
         lighting = layout.column()
         lighting.box().label(text="Lighting List")
         drawEnumWithCustom(lighting, sceneProp, "skyboxLighting", "Lighting Mode", "")
-        if sceneProp.skyboxLighting == "false":  # Time of Day
+        if sceneProp.skyboxLighting == "LIGHT_MODE_TIME":  # Time of Day
             drawLightGroupProperty(lighting, sceneProp.timeOfDayLights)
         else:
             for i in range(len(sceneProp.lightList)):

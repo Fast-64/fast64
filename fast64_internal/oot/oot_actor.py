@@ -97,9 +97,9 @@ class OOT_SearchActorIDEnumOperator(bpy.types.Operator):
     bl_property = "actorID"
     bl_options = {"REGISTER", "UNDO"}
 
-    actorID : bpy.props.EnumProperty(items = ootData.actorData.ootEnumActorID, default = "ACTOR_PLAYER")
-    actorUser : bpy.props.StringProperty(default = "Actor")
-    objName : bpy.props.StringProperty()
+    actorID: bpy.props.EnumProperty(items=ootData.actorData.ootEnumActorID, default="ACTOR_PLAYER")
+    actorUser: bpy.props.StringProperty(default="Actor")
+    objName: bpy.props.StringProperty()
 
     def execute(self, context):
         obj = bpy.data.objects[self.objName]
@@ -222,14 +222,14 @@ def drawActorProperty(layout, actorProp, altRoomProp, objName):
     searchOp.actorUser = "Actor"
     searchOp.objName = objName
 
-    split = actorIDBox.split(factor = 0.5)
+    split = actorIDBox.split(factor=0.5)
 
     if actorProp.actorID == "None":
         actorIDBox.box().label(text="This Actor was deleted from the XML file.")
         return
 
-    split.label(text = "Actor ID")
-    split.label(text = getEnumName(ootData.actorData.ootEnumActorID, actorProp.actorID))
+    split.label(text="Actor ID")
+    split.label(text=getEnumName(ootData.actorData.ootEnumActorID, actorProp.actorID))
 
     if actorProp.actorID == "Custom":
         # actorIDBox.prop(actorProp, 'actorIDCustom', text = 'Actor ID')
@@ -260,13 +260,13 @@ class OOTTransitionActorProperty(bpy.types.PropertyGroup):
 
 def drawTransitionActorProperty(layout, transActorProp, altSceneProp, roomObj, objName):
     actorIDBox = layout.column()
-    searchOp = actorIDBox.operator(OOT_SearchActorIDEnumOperator.bl_idname, icon = 'VIEWZOOM')
+    searchOp = actorIDBox.operator(OOT_SearchActorIDEnumOperator.bl_idname, icon="VIEWZOOM")
     searchOp.actorUser = "Transition Actor"
     searchOp.objName = objName
-    
-    split = actorIDBox.split(factor = 0.5)
-    split.label(text = "Actor ID")
-    split.label(text = getEnumName(ootData.actorData.ootEnumActorID, transActorProp.actor.actorID))
+
+    split = actorIDBox.split(factor=0.5)
+    split.label(text="Actor ID")
+    split.label(text=getEnumName(ootData.actorData.ootEnumActorID, transActorProp.actor.actorID))
 
     if transActorProp.actor.actorID == "Custom":
         prop_split(actorIDBox, transActorProp.actor, "actorIDCustom", "")

@@ -1,5 +1,5 @@
 from .....utility import CData, indent
-from ....oot_level_classes import OOTRoom
+from ....oot_level_classes import OOTScene, OOTRoom, OOTActor, OOTTransitionActor, OOTEntrance
 
 
 ###################
@@ -9,45 +9,39 @@ from ....oot_level_classes import OOTRoom
 # Actor List
 
 
-def ootActorToC(actor):
+def getActorEntry(actor: OOTActor):
+    """Returns a single actor entry"""
+    posData = "{ " + ", ".join(f"{round(pos)}" for pos in actor.position) + " }"
+    rotData = "{ " + "".join(actor.rotation) + " }"
+
+    actorInfos = [actor.actorID, posData, rotData, actor.actorParam]
+    infoDescs = ["Actor ID", "Position", "Rotation", "Parameters"]
+
     return (
-        "{ "
-        + ", ".join(
-            (
-                str(actor.actorID),
-                str(int(round(actor.position[0]))),
-                str(int(round(actor.position[1]))),
-                str(int(round(actor.position[2]))),
-                *(
-                    (
-                        actor.rotOverride[0],
-                        actor.rotOverride[1],
-                        actor.rotOverride[2],
-                    )
-                    if actor.rotOverride is not None
-                    else (
-                        str(int(round(actor.rotation[0]))),
-                        str(int(round(actor.rotation[1]))),
-                        str(int(round(actor.rotation[2]))),
-                    )
-                ),
-                str(actor.actorParam),
-            )
-        )
-        + " },\n"
+        indent
+        + (f"// {actor.actorName}\n" + indent if actor.actorName != "" else "")
+        + "{\n"
+        + ",\n".join((indent * 2) + f"/* {desc:10} */ {info}" for desc, info in zip(infoDescs, actorInfos))
+        + ("\n" + indent + "},\n")
     )
 
 
-def ootActorListToC(room: OOTRoom, headerIndex: int):
-    data = CData()
-    data.header = "extern ActorEntry " + room.actorListName(headerIndex) + "[];\n"
-    data.source = (
-        f"ActorEntry {room.actorListName(headerIndex)}[{room.getActorLengthDefineName(headerIndex)}]" + " = {\n"
+def getActorList(outRoom: OOTRoom, headerIndex: int):
+    """Returns the actor list for the current header"""
+    actorList = CData()
+    listName = f"ActorEntry {outRoom.actorListName(headerIndex)}"
+
+    # .h
+    actorList.header = f"extern {listName}[];\n"
+
+    # .c
+    actorList.source = (
+        (f"{listName}[{outRoom.getActorLengthDefineName(headerIndex)}]" + " = {\n")
+        + "\n".join(getActorEntry(actor) for actor in outRoom.actorList)
+        + "};\n\n"
     )
-    for actor in room.actorList:
-        data.source += indent + ootActorToC(actor)
-    data.source += "};\n\n"
-    return data
+
+    return actorList
 
 
 ####################
@@ -57,71 +51,82 @@ def ootActorListToC(room: OOTRoom, headerIndex: int):
 # Transition Actor List
 
 
-def ootTransitionActorToC(transActor):
+def getTransitionActorEntry(transActor: OOTTransitionActor):
+    """Returns a single transition actor entry"""
+    sides = [(transActor.frontRoom, transActor.frontCam), (transActor.backRoom, transActor.backCam)]
+    roomData = "{ " + ", ".join(f"{room}, {cam}" for room, cam in sides) + " }"
+    posData = "{ " + ", ".join(f"{round(pos)}" for pos in transActor.position) + " }"
+    rotData = f"DEG_TO_BINANG({(transActor.rotationY * (180 / 0x8000)):.3f})"
+
+    actorInfos = [roomData, transActor.actorID, posData, rotData, transActor.actorParam]
+    infoDescs = ["Room & Cam Index (Front, Back)", "Actor ID", "Position", "Rotation Y", "Parameters"]
+
     return (
-        "{ "
-        + ", ".join(
-            (
-                str(transActor.frontRoom),
-                str(transActor.frontCam),
-                str(transActor.backRoom),
-                str(transActor.backCam),
-                str(transActor.actorID),
-                str(int(round(transActor.position[0]))),
-                str(int(round(transActor.position[1]))),
-                str(int(round(transActor.position[2]))),
-                str(int(round(transActor.rotationY))),
-                str(transActor.actorParam),
-            )
-        )
-        + " },\n"
+        (indent + f"// {transActor.actorName}\n" + indent if transActor.actorName != "" else "")
+        + "{\n"
+        + ",\n".join((indent * 2) + f"/* {desc:30} */ {info}" for desc, info in zip(infoDescs, actorInfos))
+        + ("\n" + indent + "},\n")
     )
 
 
-def ootTransitionActorListToC(scene, headerIndex):
-    data = CData()
-    data.header = (
-        "extern TransitionActorEntry "
-        + scene.transitionActorListName(headerIndex)
-        + "["
-        + str(len(scene.transitionActorList))
-        + "];\n"
+def getTransitionActorList(outScene: OOTScene, headerIndex: int):
+    """Returns the transition actor list for the current header"""
+    transActorList = CData()
+    listName = f"TransitionActorEntry {outScene.transitionActorListName(headerIndex)}"
+
+    # .h
+    transActorList.header = f"extern {listName}[];\n"
+
+    # .c
+    transActorList.source = (
+        (f"{listName}[]" + " = {\n")
+        + "\n".join(getTransitionActorEntry(transActor) for transActor in outScene.transitionActorList)
+        + "};\n\n"
     )
-    data.source = (
-        "TransitionActorEntry "
-        + scene.transitionActorListName(headerIndex)
-        + "["
-        + str(len(scene.transitionActorList))
-        + "] = {\n"
-    )
-    for transActor in scene.transitionActorList:
-        data.source += indent + ootTransitionActorToC(transActor)
-    data.source += "};\n\n"
-    return data
+
+    return transActorList
 
 
 # Entrance List
 
 
-def ootStartPositionListToC(scene, headerIndex):
-    data = CData()
-    data.header = "extern ActorEntry " + scene.startPositionsName(headerIndex) + "[];\n"
-    data.source = "ActorEntry " + scene.startPositionsName(headerIndex) + "[] = {\n"
-    for i in range(len(scene.startPositions)):
-        data.source += indent + ootActorToC(scene.startPositions[i])
-    data.source += "};\n\n"
-    return data
+def getSpawnActorList(outScene: OOTScene, headerIndex: int):
+    """Returns the spawn actor list for the current header"""
+    spawnActorList = CData()
+    listName = f"ActorEntry {outScene.startPositionsName(headerIndex)}"
+
+    # .h
+    spawnActorList.header = f"extern {listName}[];\n"
+
+    # .c
+    spawnActorList.source = (
+        (f"{listName}[]" + " = {\n")
+        + "".join(getActorEntry(spawnActor) for spawnActor in outScene.startPositions.values())
+        + "};\n\n"
+    )
+
+    return spawnActorList
 
 
-def ootEntranceToC(entrance):
-    return "{ " + str(entrance.startPositionIndex) + ", " + str(entrance.roomIndex) + " },\n"
+def getSpawnEntry(entrance: OOTEntrance):
+    """Returns a single spawn entry"""
+    return indent + "{ " + f"{entrance.startPositionIndex}, {entrance.roomIndex}" + " },\n"
 
 
-def ootEntranceListToC(scene, headerIndex):
-    data = CData()
-    data.header = "extern EntranceEntry " + scene.entranceListName(headerIndex) + "[];\n"
-    data.source = "EntranceEntry " + scene.entranceListName(headerIndex) + "[] = {\n"
-    for entrance in scene.entranceList:
-        data.source += indent + ootEntranceToC(entrance)
-    data.source += "};\n\n"
-    return data
+def getSpawnList(outScene: OOTScene, headerIndex: int):
+    """Returns the spawn list for the current header"""
+    spawnList = CData()
+    listName = f"Spawn {outScene.entranceListName(headerIndex)}"
+
+    # .h
+    spawnList.header = f"extern {listName}[];\n"
+
+    # .c
+    spawnList.source = (
+        (f"{listName}[]" + " = {\n")
+        + (indent + "// { Spawn Actor List Index, Room Index }\n")
+        + "".join(getSpawnEntry(entrance) for entrance in outScene.entranceList)
+        + "};\n\n"
+    )
+
+    return spawnList
