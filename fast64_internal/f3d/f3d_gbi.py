@@ -1811,28 +1811,6 @@ def get_tile_scroll_code(scrollData: "FScrollData", textureIndex: int, commandIn
     else:
         return "", ""
 
-
-def mat_tile_scroll(
-    mat: str, tex0: FSetTileSizeScrollField, tex1: FSetTileSizeScrollField, cmd_num0: int, cmd_num1: int
-):
-    func = f"void scroll_sts_{mat}()"
-    lines = [func + " {"]
-
-    tex0_variables, tex0_lines = get_tex_sts_code(tex0, 0, cmd_num0)
-    tex1_variables, tex1_lines = get_tex_sts_code(tex1, 1, cmd_num1)
-    static_variables = [*tex0_variables, *tex1_variables]
-
-    for variable, val in static_variables:
-        lines.append(f"\tstatic int {variable} = {val};")
-
-    lines.append(f"\tGfx *mat = segmented_to_virtual({mat});")
-    lines.extend(tex0_lines)
-    lines.extend(tex1_lines)
-    lines.append("};\n\n")
-
-    return func, "\n".join([line for line in lines if line])
-
-
 def vertexScrollTemplate(
     fScrollData, name, count, absFunc, signFunc, cosFunc, randomFloatFunc, randomSignFunc, segToVirtualFunc
 ):
