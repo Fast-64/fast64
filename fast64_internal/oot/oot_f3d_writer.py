@@ -288,7 +288,7 @@ def ootConvertMeshToC(
     try:
         obj, allObjs = ootDuplicateHierarchy(originalObj, None, False, OOTObjectCategorizer())
 
-        fModel = OOTModel(f3dType, isHWv1, name, DLFormat, drawLayer)
+        fModel = OOTModel(f3dType, isHWv1, name, DLFormat, drawLayer, inline = bpy.context.scene.exportInlineF3D)
         triConverterInfo = TriangleConverterInfo(obj, None, fModel.f3d, finalTransform, getInfoDict(obj))
         fMeshes = saveStaticModel(
             triConverterInfo, fModel, obj, finalTransform, fModel.name, not saveTextures, False, "oot"

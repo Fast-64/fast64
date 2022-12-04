@@ -700,7 +700,7 @@ def exportLevelC(
     cameraVolumeString = "struct CameraTrigger " + levelCameraVolumeName + "[] = {\n"
     puppycamVolumeString = ""
 
-    fModel = SM64Model(f3dType, isHWv1, levelName + "_dl", DLFormat)
+    fModel = SM64Model(f3dType, isHWv1, levelName + "_dl", DLFormat, inline = bpy.context.scene.exportInlineF3D)
     childAreas = [child for child in obj.children if child.data is None and child.sm64_obj_type == "Area Root"]
     if len(childAreas) == 0:
         raise PluginError("The level root has no child empties with the 'Area Root' object type.")
