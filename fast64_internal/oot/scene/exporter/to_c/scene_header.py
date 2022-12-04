@@ -1,208 +1,219 @@
 from .....utility import CData, indent
 from .....f3d.f3d_gbi import ScrollMethod, TextureExportSettings
 from ....oot_f3d_writer import OOTGfxFormatter
-from .scene_pathways import ootPathListToC
-from .actor import ootTransitionActorListToC, ootStartPositionListToC, ootEntranceListToC
-from .scene_commands import ootSceneCommandsToC
+from ....oot_level_classes import OOTScene, OOTLight
+from .scene_pathways import getPathData
+from .actor import getTransitionActorList, getSpawnActorList, getSpawnList
+from .scene_commands import getSceneCommandList
 
 
 ##################
 # Light Settings #
 ##################
-def ootVectorToC(vector):
-    return f"0x{vector[0]:02X}, 0x{vector[1]:02X}, 0x{vector[2]:02X}"
+def getColorValues(vector: tuple[int, int, int]):
+    return ", ".join(f"{v:5}" for v in vector)
 
 
-def ootLightToC(light):
-    return (
-        indent
-        + "{ "
-        + ", ".join(
-            (
-                ootVectorToC(light.ambient),
-                ootVectorToC(light.diffuseDir0),
-                ootVectorToC(light.diffuse0),
-                ootVectorToC(light.diffuseDir1),
-                ootVectorToC(light.diffuse1),
-                ootVectorToC(light.fogColor),
-                light.getBlendFogShort(),
-                f"0x{light.fogFar:04X}",
-            )
-        )
-        + " },\n"
+def getDirectionValues(vector: tuple[int, int, int]):
+    return ", ".join(f"{v - 0x100 if v > 0x7F else v:5}" for v in vector)
+
+
+def getLightSettingsEntry(light: OOTLight, lightMode: str, isLightingCustom: bool, index: int):
+    vectors = [
+        (light.ambient, "Ambient Color", getColorValues),
+        (light.diffuseDir0, "Diffuse0 Direction", getDirectionValues),
+        (light.diffuse0, "Diffuse0 Color", getColorValues),
+        (light.diffuseDir1, "Diffuse1 Direction", getDirectionValues),
+        (light.diffuse1, "Diffuse1 Color", getColorValues),
+        (light.fogColor, "Fog Color", getColorValues),
+    ]
+
+    fogData = [
+        (light.getBlendFogNear(), "Blend Rate & Fog Near"),
+        (f"{light.fogFar}", "Fog Far"),
+    ]
+
+    lightDescs = ["Dawn", "Day", "Dusk", "Night"]
+
+    if not isLightingCustom and lightMode == "LIGHT_MODE_TIME":
+        # @TODO: Improve the lighting system.
+        # Currently Fast64 assumes there's only 4 possible settings for "Time of Day" lighting.
+        # This is not accurate and more complicated,
+        # for now we are doing ``index % 4`` to avoid having an OoB read in the list
+        # but this will need to be changed the day the lighting system is updated.
+        lightDesc = f"// {lightDescs[index % 4]} Lighting\n"
+    else:
+        isIndoor = not isLightingCustom and lightMode == "LIGHT_MODE_SETTINGS"
+        lightDesc = f"// {'Indoor' if isIndoor else 'Custom'} No. {index + 1} Lighting\n"
+
+    lightData = (
+        (indent + lightDesc)
+        + (indent + "{\n")
+        + "".join(indent * 2 + f"{'{ ' + vecToC(vector) + ' },':26} // {desc}\n" for vector, desc, vecToC in vectors)
+        + "".join(indent * 2 + f"{fogValue + ',':26} // {fogDesc}\n" for fogValue, fogDesc in fogData)
+        + (indent + "},\n")
     )
 
+    return lightData
 
-def ootLightSettingsToC(scene, useIndoorLighting, headerIndex):
-    data = CData()
-    lightArraySize = len(scene.lights)
-    data.header = "extern LightSettings " + scene.lightListName(headerIndex) + "[" + str(lightArraySize) + "];\n"
-    data.source = "LightSettings " + scene.lightListName(headerIndex) + "[" + str(lightArraySize) + "] = {\n"
-    for light in scene.lights:
-        data.source += ootLightToC(light)
-    data.source += "};\n\n"
-    return data
+
+def getLightSettings(outScene: OOTScene, headerIndex: int):
+    lightSettingsData = CData()
+    lightName = f"LightSettings {outScene.lightListName(headerIndex)}[{len(outScene.lights)}]"
+
+    # .h
+    lightSettingsData.header = f"extern {lightName};\n"
+
+    # .c
+    lightSettingsData.source = (
+        (lightName + " = {\n")
+        + "".join(
+            getLightSettingsEntry(light, outScene.skyboxLighting, outScene.isSkyboxLightingCustom, i)
+            for i, light in enumerate(outScene.lights)
+        )
+        + "};\n\n"
+    )
+
+    return lightSettingsData
 
 
 ########
 # Mesh #
 ########
-def ootSceneMeshToC(scene, textureExportSettings: TextureExportSettings):
-    exportData = scene.model.to_c(textureExportSettings, OOTGfxFormatter(ScrollMethod.Vertex))
-    return exportData.all()
-
-
 # Writes the textures and material setup displaylists that are shared between multiple rooms (is written to the scene)
-def ootSceneTexturesToC(scene, textureExportSettings: TextureExportSettings):
-    sceneTextures = CData()
-    sceneTextures.append(ootSceneMeshToC(scene, textureExportSettings))
-    return sceneTextures
+def getSceneModel(outScene: OOTScene, textureExportSettings: TextureExportSettings) -> CData:
+    return outScene.model.to_c(textureExportSettings, OOTGfxFormatter(ScrollMethod.Vertex)).all()
 
 
 #############
 # Exit List #
 #############
-def ootExitListToC(scene, headerIndex):
-    data = CData()
-    data.header = "extern u16 " + scene.exitListName(headerIndex) + "[" + str(len(scene.exitList)) + "];\n"
-    data.source = "u16 " + scene.exitListName(headerIndex) + "[" + str(len(scene.exitList)) + "] = {\n"
-    for exitEntry in scene.exitList:
-        data.source += indent + str(exitEntry.index) + ",\n"
-    data.source += "};\n\n"
-    return data
+def getExitList(outScene: OOTScene, headerIndex: int):
+    exitList = CData()
+    listName = f"u16 {outScene.exitListName(headerIndex)}[{len(outScene.exitList)}]"
+
+    # .h
+    exitList.header = f"extern {listName};\n"
+
+    # .c
+    exitList.source = (
+        (listName + " = {\n")
+        # @TODO: use the enum name instead of the raw index
+        + "\n".join(indent + f"{exitEntry.index}," for exitEntry in outScene.exitList)
+        + "\n};\n\n"
+    )
+
+    return exitList
 
 
 #############
 # Room List #
 #############
-def ootRoomExternToC(room):
-    return ("extern u8 _" + room.roomName() + "SegmentRomStart[];\n") + (
-        "extern u8 _" + room.roomName() + "SegmentRomEnd[];\n"
-    )
+def getRoomList(outScene: OOTScene):
+    roomList = CData()
+    listName = f"RomFile {outScene.roomListName()}[]"
 
+    # generating segment rom names for every room
+    segNames = []
+    for i in range(len(outScene.rooms)):
+        roomName = outScene.rooms[i].roomName()
+        segNames.append((f"_{roomName}SegmentRomStart", f"_{roomName}SegmentRomEnd"))
 
-def ootRoomListEntryToC(room):
-    return "{ (u32)_" + room.roomName() + "SegmentRomStart, (u32)_" + room.roomName() + "SegmentRomEnd },\n"
+    # .h
+    roomList.header += f"extern {listName};\n"
 
-
-def ootRoomListHeaderToC(scene):
-    data = CData()
-
-    data.header += "extern RomFile " + scene.roomListName() + "[];\n"
-
-    if scene.write_dummy_room_list:
-        data.source += "// Dummy room list\n"
-        data.source += "RomFile " + scene.roomListName() + "[] = {\n"
-        data.source += indent + "{0, 0},\n" * len(scene.rooms)
-        data.source += "};\n\n"
-    else:
+    if not outScene.write_dummy_room_list:
         # Write externs for rom segments
-        for i in range(len(scene.rooms)):
-            data.source += ootRoomExternToC(scene.rooms[i])
-        data.source += "\n"
+        roomList.header += "".join(
+            f"extern u8 {startName}[];\n" + f"extern u8 {stopName}[];\n" for startName, stopName in segNames
+        )
 
-        data.source += "RomFile " + scene.roomListName() + "[] = {\n"
+    # .c
+    roomList.source = listName + " = {\n"
 
-        for i in range(len(scene.rooms)):
-            data.source += indent + ootRoomListEntryToC(scene.rooms[i])
-        data.source += "};\n\n"
+    if outScene.write_dummy_room_list:
+        roomList.source = (
+            "// Dummy room list\n" + roomList.source + ((indent + "{ NULL, NULL },\n") * len(outScene.rooms))
+        )
+    else:
+        roomList.source += (
+            " },\n".join(indent + "{ " + f"(u32){startName}, (u32){stopName}" for startName, stopName in segNames)
+            + " },\n"
+        )
 
-    return data
+    roomList.source += "};\n\n"
+    return roomList
 
 
 ################
 # Scene Header #
 ################
-def ootAlternateSceneMainToC(scene):
-    altHeader = CData()
-    altData = CData()
-
-    altHeader.header = "extern SceneCmd* " + scene.alternateHeadersName() + "[];\n"
-    altHeader.source = "SceneCmd* " + scene.alternateHeadersName() + "[] = {\n"
-
-    if scene.childNightHeader is not None:
-        altHeader.source += indent + scene.sceneName() + "_header" + format(1, "02") + ",\n"
-        altData.append(ootSceneMainToC(scene.childNightHeader, 1))
-    else:
-        altHeader.source += indent + "0,\n"
-
-    if scene.adultDayHeader is not None:
-        altHeader.source += indent + scene.sceneName() + "_header" + format(2, "02") + ",\n"
-        altData.append(ootSceneMainToC(scene.adultDayHeader, 2))
-    else:
-        altHeader.source += indent + "0,\n"
-
-    if scene.adultNightHeader is not None:
-        altHeader.source += indent + scene.sceneName() + "_header" + format(3, "02") + ",\n"
-        altData.append(ootSceneMainToC(scene.adultNightHeader, 3))
-    else:
-        altHeader.source += indent + "0,\n"
-
-    for i in range(len(scene.cutsceneHeaders)):
-        altHeader.source += indent + scene.sceneName() + "_header" + format(i + 4, "02") + ",\n"
-        altData.append(ootSceneMainToC(scene.cutsceneHeaders[i], i + 4))
-
-    altHeader.source += "};\n\n"
-
-    return altHeader, altData
-
-
-def ootSceneMainToC(scene, headerIndex):
-    sceneMainC = CData()
-
-    if headerIndex == 0:
-        # Check if this is the first time the function is being called, we do not want to write this data multiple times
-        roomHeaderData = ootRoomListHeaderToC(scene)
-    else:
-        # The function has already been called (and is being called for another scene header), so we can make this data be a blank string
-        roomHeaderData = CData()
-
-    if len(scene.pathList) > 0:
-        pathData = ootPathListToC(scene, headerIndex)
-    else:
-        pathData = CData()
-
-    if scene.hasAlternateHeaders():
-        # Gets the alternate data for the scene's main c file
-        altHeader, altData = ootAlternateSceneMainToC(scene)
-    else:
-        # Since the scene does not use alternate headers, this data can just be a blank string
-        altHeader = CData()
-        altData = CData()
-
-    # Write the scene header
-    sceneMainC.append(ootSceneCommandsToC(scene, headerIndex))
-
-    # Write alternate scene headers
-    sceneMainC.append(altHeader)
+def getHeaderData(header: OOTScene, headerIndex: int):
+    headerData = CData()
 
     # Write the spawn position list data
-    if len(scene.startPositions) > 0:
-        sceneMainC.append(ootStartPositionListToC(scene, headerIndex))
+    if len(header.startPositions) > 0:
+        headerData.append(getSpawnActorList(header, headerIndex))
 
     # Write the transition actor list data
-    if len(scene.transitionActorList) > 0:
-        sceneMainC.append(ootTransitionActorListToC(scene, headerIndex))
-
-    # Write the room segment list
-    sceneMainC.append(roomHeaderData)
+    if len(header.transitionActorList) > 0:
+        headerData.append(getTransitionActorList(header, headerIndex))
 
     # Write the entrance list
-    if len(scene.entranceList) > 0:
-        sceneMainC.append(ootEntranceListToC(scene, headerIndex))
+    if len(header.entranceList) > 0:
+        headerData.append(getSpawnList(header, headerIndex))
 
     # Write the exit list
-    if len(scene.exitList) > 0:
-        sceneMainC.append(ootExitListToC(scene, headerIndex))
+    if len(header.exitList) > 0:
+        headerData.append(getExitList(header, headerIndex))
 
     # Write the light data
-    if len(scene.lights) > 0:
-        sceneMainC.append(ootLightSettingsToC(scene, scene.skyboxLighting == "true", headerIndex))
+    if len(header.lights) > 0:
+        headerData.append(getLightSettings(header, headerIndex))
 
     # Write the path data, if used
-    sceneMainC.append(pathData)
+    if len(header.pathList) > 0:
+        headerData.append(getPathData(header, headerIndex))
 
-    # Write the data from alternate headers
-    sceneMainC.append(altData)
+    return headerData
 
-    return sceneMainC
+
+def getSceneData(outScene: OOTScene):
+    sceneC = CData()
+
+    headers = [
+        (outScene.childNightHeader, "Child Night"),
+        (outScene.adultDayHeader, "Adult Day"),
+        (outScene.adultNightHeader, "Adult Night"),
+    ]
+
+    for i, csHeader in enumerate(outScene.cutsceneHeaders):
+        headers.append((csHeader, f"Cutscene No. {i + 1}"))
+
+    altHeaderPtrs = "\n".join(
+        indent + f"{curHeader.sceneName()}_header{i:02},"
+        if curHeader is not None
+        else indent + "NULL,"
+        if i < 4
+        else ""
+        for i, (curHeader, headerDesc) in enumerate(headers, 1)
+    )
+
+    headers.insert(0, (outScene, "Child Day (Default)"))
+    for i, (curHeader, headerDesc) in enumerate(headers):
+        if curHeader is not None:
+            sceneC.source += "/**\n * " + f"Header {headerDesc}\n" + "*/\n"
+            sceneC.append(getSceneCommandList(curHeader, i))
+
+            if i == 0:
+                if outScene.hasAlternateHeaders():
+                    altHeaderListName = f"SceneCmd* {outScene.alternateHeadersName()}[]"
+                    sceneC.header += f"extern {altHeaderListName};\n"
+                    sceneC.source += altHeaderListName + " = {\n" + altHeaderPtrs + "\n};\n\n"
+
+                # Write the room segment list
+                sceneC.append(getRoomList(outScene))
+
+            sceneC.append(getHeaderData(curHeader, i))
+
+    return sceneC

@@ -1,22 +1,24 @@
 import bpy, os, re, mathutils
 from typing import Union
+from ..f3d.f3d_parser import F3DContext, F3DTextureReference, getImportData
+from ..f3d.f3d_material import TextureProperty, createF3DMat
+from ..utility import PluginError, CData, hexOrDecInt
+from ..f3d.flipbook import TextureFlipbook, FlipbookProperty, usesFlipbook, ootFlipbookReferenceIsValid
+
 from ..f3d.f3d_writer import (
     VertexGroupInfo,
     TriangleConverterInfo,
-    saveOrGetTextureDefinition,
-    saveOrGetPaletteAndImageDefinition,
-    getTextureNameTexRef,
-    saveOrGetPaletteOnlyDefinition,
     FSharedPalette,
     DPLoadTLUTCmd,
     DPSetTextureLUT,
     DPSetTile,
-    texFormatOf,
     FImageKey,
+    saveOrGetTextureDefinition,
+    saveOrGetPaletteAndImageDefinition,
+    getTextureNameTexRef,
+    saveOrGetPaletteOnlyDefinition,
+    texFormatOf,
 )
-from ..f3d.f3d_parser import F3DContext, F3DTextureReference, getImportData
-from ..f3d.f3d_material import createF3DMat, TextureProperty
-from ..utility import CData, hexOrDecInt, PluginError
 
 from ..f3d.f3d_gbi import (
     FModel,
@@ -31,7 +33,7 @@ from ..f3d.f3d_gbi import (
     GfxFormatter,
     MTX_SIZE,
 )
-from ..f3d.flipbook import TextureFlipbook, FlipbookProperty, usesFlipbook, ootFlipbookReferenceIsValid
+
 
 # read included asset data
 def ootGetIncludedAssetData(basePath: str, currentPaths: list[str], data: str) -> str:
@@ -134,29 +136,6 @@ class OOTModel(FModel):
         else:
             return texFmt.lower()
 
-    def modifyDLForCIFlipbook(self, fMaterial: FMaterial, fPalette: FMaterial, texProp: TextureProperty):
-        # Modfiy DL to use new palette texture
-        tlutCmdIndex = 0
-        gfxList = fMaterial.material
-        while tlutCmdIndex < len(gfxList.commands):
-            if isinstance(gfxList.commands[tlutCmdIndex], DPLoadTLUTCmd):
-                loadTlutCmd = gfxList.commands[tlutCmdIndex]
-                loadTlutCmd.count = int(round(len(fPalette.data) / 2)) - 1
-
-                setTLUTCmd = gfxList.commands[tlutCmdIndex - 5]
-                setTImageCmd = gfxList.commands[tlutCmdIndex - 4]
-                if tlutCmdIndex < 5 or not isinstance(setTLUTCmd, DPSetTextureLUT):
-                    raise PluginError("Error when processing flipbook CI textures: unexpected display list format.")
-                setTImageCmd.fmt = texFormatOf[texProp.ci_format]
-                setTImageCmd.image = fPalette
-                setTLUTCmd.mode = "G_TT_RGBA16" if setTImageCmd.fmt == "G_IM_FMT_RGBA" else "G_TT_IA16"
-                break
-
-            else:
-                tlutCmdIndex += 1
-        if tlutCmdIndex == len(gfxList.commands):
-            raise PluginError(f"Can not find TLUT command in material {fMaterial.name}")
-
     def addFlipbookWithRepeatCheck(self, flipbook: TextureFlipbook):
         model = self.getFlipbookOwner()
         for existingFlipbook in model.flipbooks:
@@ -207,9 +186,16 @@ class OOTModel(FModel):
                 )
             return existingFPalette
 
-    def processFlipbookCI(self, fMaterial: FMaterial, flipbookProp: FlipbookProperty, texProp: TextureProperty):
+    def processTexRefCITextures(self, fMaterial: FMaterial, material: bpy.types.Material, index: int) -> FImage:
         # print("Processing flipbook...")
         model = self.getFlipbookOwner()
+        flipbookProp = getattr(material.flipbookGroup, f"flipbook{index}")
+        texProp = getattr(material.f3d_mat, f"tex{index}")
+        if not usesFlipbook(material, flipbookProp, index, True, ootFlipbookReferenceIsValid):
+            return FModel.processTexRefCITextures(fMaterial, material, index)
+
+        if len(flipbookProp.textures) == 0:
+            raise PluginError(f"{str(material)} cannot have a flipbook material with no flipbook textures.")
         flipbook = TextureFlipbook(flipbookProp.name, flipbookProp.exportMode, [])
         sharedPalette = FSharedPalette(model.name + "_" + flipbookProp.textures[0].image.name + "_pal")
         existingFPalette = None
@@ -278,10 +264,17 @@ class OOTModel(FModel):
         else:
             fPalette = existingFPalette
 
-        model.modifyDLForCIFlipbook(fMaterial, fPalette, texProp)
+        return fPalette
 
-    def processFlipbookNonCI(self, fMaterial: FMaterial, flipbookProp: FlipbookProperty, texProp: TextureProperty):
+    def processTexRefNonCITextures(self, fMaterial: FMaterial, material: bpy.types.Material, index: int):
         model = self.getFlipbookOwner()
+        flipbookProp = getattr(material.flipbookGroup, f"flipbook{index}")
+        texProp = getattr(material.f3d_mat, f"tex{index}")
+        if not usesFlipbook(material, flipbookProp, index, True, ootFlipbookReferenceIsValid):
+            return FModel.processTexRefNonCITextures(self, fMaterial, material, index)
+        if len(flipbookProp.textures) == 0:
+            raise PluginError(f"{str(material)} cannot have a flipbook material with no flipbook textures.")
+
         flipbook = TextureFlipbook(flipbookProp.name, flipbookProp.exportMode, [])
         for flipbookTexture in flipbookProp.textures:
             if flipbookTexture.image is None:
@@ -320,27 +313,6 @@ class OOTModel(FModel):
                 gfxList.commands.append(
                     SPDisplayList(GfxList(getattr(matDrawLayer, p + "_seg"), GfxListTag.Material, DLFormat.Static))
                 )
-
-        # save flipbook textures
-        for i in range(2):
-            flipbookProp = getattr(material.flipbookGroup, "flipbook" + str(i))
-            texProp = getattr(material.f3d_mat, "tex" + str(i))
-            if usesFlipbook(material, flipbookProp, i, True, ootFlipbookReferenceIsValid):
-                if len(flipbookProp.textures) == 0:
-                    raise PluginError(f"{str(material)} cannot have a flipbook material with no flipbook textures.")
-
-                if texProp.tex_format[:2] == "CI":
-                    self.processFlipbookCI(
-                        fMaterial,
-                        flipbookProp,
-                        texProp,
-                    )
-                else:
-                    self.processFlipbookNonCI(
-                        fMaterial,
-                        flipbookProp,
-                        texProp,
-                    )
 
     def onAddMesh(self, fMesh, contextObj):
         if contextObj is not None and hasattr(contextObj, "ootDynamicTransform"):

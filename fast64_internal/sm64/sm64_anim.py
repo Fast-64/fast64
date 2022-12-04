@@ -43,6 +43,7 @@ from .sm64_constants import (
     defaultExtendSegment4,
     level_enums,
     enumLevelNames,
+    marioAnimations,
 )
 
 sm64_anim_types = {"ROTATE", "TRANSLATE"}
@@ -498,7 +499,7 @@ def getNextBone(boneStack, armatureObj):
     return bone, boneStack
 
 
-def importAnimationToBlender(romfile, startAddress, armatureObj, segmentData, isDMA):
+def importAnimationToBlender(romfile, startAddress, armatureObj, segmentData, isDMA, animName):
     boneStack = findStartBones(armatureObj)
     startBoneName = boneStack[0]
     if armatureObj.data.bones[startBoneName].geo_cmd not in animatableBoneTypes:
@@ -506,14 +507,14 @@ def importAnimationToBlender(romfile, startAddress, armatureObj, segmentData, is
         startBoneName = startBone.name
         boneStack = [startBoneName] + boneStack
 
-    animationHeader, armatureFrameData = readAnimation("sm64_anim", romfile, startAddress, segmentData, isDMA)
+    animationHeader, armatureFrameData = readAnimation(animName, romfile, startAddress, segmentData, isDMA)
 
     if len(armatureFrameData) > len(armatureObj.data.bones) + 1:
         raise PluginError("More bones in animation than on armature.")
 
     # bpy.context.scene.render.fps = 30
     bpy.context.scene.frame_end = animationHeader.frameInterval[1]
-    anim = bpy.data.actions.new("sm64_anim")
+    anim = bpy.data.actions.new(animName)
 
     isRootTranslation = True
     # boneFrameData = [[x keyframes], [y keyframes], [z keyframes]]
@@ -691,7 +692,7 @@ def readValueIndex(romfile, startAddress):
 
     # multiply 2 because value is the index in array of shorts (???)
     startOffset = int.from_bytes(romfile.read(2), "big") * 2
-    print(str(hex(startAddress)) + ": " + str(numFrames) + " " + str(startOffset))
+    #print(str(hex(startAddress)) + ": " + str(numFrames) + " " + str(startOffset))
     return SM64_AnimIndex(numFrames, startOffset)
 
 
@@ -950,7 +951,43 @@ class SM64_ImportAnimMario(bpy.types.Operator):
             if type(armatureObj.data) is not bpy.types.Armature:
                 raise PluginError("Armature not selected.")
 
-            importAnimationToBlender(romfileSrc, animStart, armatureObj, segmentData, context.scene.isDMAImport)
+            importAnimationToBlender(romfileSrc, animStart, armatureObj, segmentData, context.scene.isDMAImport, "sm64_anim")
+            romfileSrc.close()
+            self.report({"INFO"}, "Success!")
+        except Exception as e:
+            if romfileSrc is not None:
+                romfileSrc.close()
+            raisePluginError(self, e)
+            return {"CANCELLED"}  # must return a set
+
+        return {"FINISHED"}  # must return a set
+
+
+class SM64_ImportAllMarioAnims(bpy.types.Operator):
+    bl_idname = "object.sm64_import_mario_anims"
+    bl_label = "Import All Mario Animations"
+    bl_options = {"REGISTER", "UNDO", "PRESET"}
+
+    # Called on demand (i.e. button press, menu item)
+    # Can also be called from operator search menu (Spacebar)
+    def execute(self, context):
+        romfileSrc = None
+        try:
+            checkExpanded(bpy.path.abspath(context.scene.importRom))
+            romfileSrc = open(bpy.path.abspath(context.scene.importRom), "rb")
+        except Exception as e:
+            raisePluginError(self, e)
+            return {"CANCELLED"}
+        try:
+            if len(context.selected_objects) == 0:
+                raise PluginError("Armature not selected.")
+            armatureObj = context.active_object
+            if type(armatureObj.data) is not bpy.types.Armature:
+                raise PluginError("Armature not selected.")
+
+            for adress, animName in marioAnimations:
+                importAnimationToBlender(romfileSrc, adress, armatureObj, {}, context.scene.isDMAImport, animName)
+                
             romfileSrc.close()
             self.report({"INFO"}, "Success!")
         except Exception as e:
@@ -970,7 +1007,9 @@ class SM64_ImportAnimPanel(SM64_Panel):
     # called every frame
     def draw(self, context):
         col = self.layout.column()
-        propsAnimImport = col.operator(SM64_ImportAnimMario.bl_idname)
+        propsAnimImport = col.operator(SM64_ImportAnimMario.bl_idname)  
+        propsMarioAnimsImport = col.operator(SM64_ImportAllMarioAnims.bl_idname)  
+
         col.prop(context.scene, "isDMAImport")
         if not context.scene.isDMAImport:
             col.prop(context.scene, "animIsAnimList")
@@ -985,6 +1024,7 @@ class SM64_ImportAnimPanel(SM64_Panel):
 sm64_anim_classes = (
     SM64_ExportAnimMario,
     SM64_ImportAnimMario,
+    SM64_ImportAllMarioAnims,
 )
 
 sm64_anim_panels = (

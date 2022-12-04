@@ -14,7 +14,7 @@ from .f3d_material import (
 )
 from .f3d_writer import BufferVertex, F3DVert
 from ..utility import *
-import ast, operator
+import ast
 from .f3d_material_helpers import F3DMaterial_UpdateLock
 
 colorCombinationCommands = [
@@ -349,21 +349,6 @@ def createNewTextureMaterial(romfile, textureStart, textureSize, texelCount, col
             newImg.pixels[n : n + 4] = read16bitRGBA(int.from_bytes(oldPixel, "big"))
 
 
-binOps = {
-    ast.Add: operator.add,
-    ast.Sub: operator.sub,
-    ast.Mult: operator.mul,
-    ast.Div: operator.truediv,
-    ast.Mod: operator.mod,
-    ast.LShift: operator.lshift,
-    ast.RShift: operator.rshift,
-    ast.RShift: operator.rshift,
-    ast.BitOr: operator.or_,
-    ast.BitAnd: operator.and_,
-    ast.BitXor: operator.xor,
-}
-
-
 def math_eval(s, f3d):
     if isinstance(s, int):
         return s
@@ -543,7 +528,7 @@ class F3DContext:
 
     """
     Restarts context, but keeps cached materials/textures.
-    Warning: calls initContext, make sure to save/restore preserved fields 
+    Warning: calls initContext, make sure to save/restore preserved fields
     """
 
     def clearGeometry(self):
