@@ -1942,7 +1942,7 @@ class GfxFormatter:
         self.texArrayBitSize = texArrayBitSize
         self.seg2virtFuncName = seg2virtFuncName
 
-    def gfxScrollToC(self, gfxList: "GfxList") -> CScrollData:
+    def gfxScrollToC(self, gfxList: "GfxList", f3d : F3D) -> CScrollData:
         """
         Handles writing code that executes static Gfx scrolling (ex. tile scrolling.)
         If you want a game-specific formatter that ignores all static gfx scrolling,
@@ -1960,10 +1960,14 @@ class GfxFormatter:
 
         variables = ""
         code = ""
-        for index, command in enumerate(gfxList.commands):
-            gfxVariables, gfxCode = self.processGfxScrollCommand(index, command, gfxList.name)
+        dataIndex = 0
+
+        # Since some commands are actually multiple commands in one, we have to use the command size and divide by GFX_SIZE.
+        for command in gfxList.commands:
+            gfxVariables, gfxCode = self.processGfxScrollCommand(dataIndex // GFX_SIZE, command, gfxList.name)
             variables += gfxVariables
             code += gfxCode
+            dataIndex += command.size(f3d)
         gfxScrollCode = variables + code
 
         if gfxScrollCode == "":
@@ -2067,11 +2071,11 @@ class VtxList:
 
 class GfxList:
     def __init__(self, name, tag, DLFormat):
-        self.commands = []
-        self.name = name
-        self.startAddress = 0
-        self.tag = tag
-        self.DLFormat = DLFormat
+        self.commands : list[GbiMacro] = []
+        self.name : str = name
+        self.startAddress : int = 0
+        self.tag : GfxListTag = tag
+        self.DLFormat : "DLFormat" = DLFormat
 
     def set_addr(self, startAddress, f3d):
         startAddress = get64bitAlignedAddr(startAddress)
@@ -2602,11 +2606,11 @@ class FModel:
         if not self.inline:
             for _, (fMaterial, _) in self.materials.items():
                 fMaterial: FMaterial
-                data.append(gfxFormatter.gfxScrollToC(fMaterial.material))
+                data.append(gfxFormatter.gfxScrollToC(fMaterial.material, self.f3d))
         else:
             for _, fMesh in self.meshes.items():
                 fMesh: FMesh
-                data.append(gfxFormatter.gfxScrollToC(fMesh.draw))
+                data.append(gfxFormatter.gfxScrollToC(fMesh.draw, self.f3d))
         return data
 
     def save_textures(self, exportPath):
