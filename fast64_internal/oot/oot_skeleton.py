@@ -1,23 +1,18 @@
 import mathutils, bpy, math, os, re
-from ..panels import OOT_Panel
-from ..f3d.f3d_gbi import DLFormat, FMesh, TextureExportSettings, ScrollMethod, F3D
-from .oot_model_classes import (
-    OOTVertexGroupInfo,
-    OOTModel,
-    OOTGfxFormatter,
-    OOTF3DContext,
-    OOTDynamicTransformProperty,
-    ootGetIncludedAssetData,
-)
 from bpy.utils import register_class, unregister_class
-from ..f3d.f3d_writer import getInfoDict, GfxList
+from ..f3d.f3d_writer import GfxList, getInfoDict
 from ..f3d.f3d_parser import getImportData, parseF3D
-from .oot_f3d_writer import ootProcessVertexGroup, writeTextureArraysNew, writeTextureArraysExisting, ootReadActorScale
 from ..f3d.f3d_material import ootEnumDrawLayers
+from ..f3d.f3d_gbi import DLFormat, FMesh, TextureExportSettings, ScrollMethod, F3D
+from ..panels import OOT_Panel
+from ..utility_anim import armatureApplyWithMesh
+from .oot_f3d_writer import ootProcessVertexGroup, writeTextureArraysNew, writeTextureArraysExisting, ootReadActorScale
+from .oot_texture_array import ootReadTextureArrays
 
 from ..utility import (
     PluginError,
     CData,
+    VertexWeightError,
     getDeclaration,
     hexOrDecInt,
     applyRotation,
@@ -32,8 +27,16 @@ from ..utility import (
     getGroupNameFromIndex,
     attemptModifierApply,
     cleanupDuplicatedObjects,
-    VertexWeightError,
     yUpToZUp,
+)
+
+from .oot_model_classes import (
+    OOTVertexGroupInfo,
+    OOTModel,
+    OOTGfxFormatter,
+    OOTF3DContext,
+    OOTDynamicTransformProperty,
+    ootGetIncludedAssetData,
 )
 
 from .oot_utility import (
@@ -47,12 +50,10 @@ from .oot_utility import (
     getOOTScale,
 )
 
-from ..utility_anim import armatureApplyWithMesh
-from .oot_texture_array import ootReadTextureArrays
 from .oot_skeleton_import_data import (
-    ootEnumSkeletonImportMode,
-    applySkeletonRestPose,
     OOT_SaveRestPose,
+    applySkeletonRestPose,
+    ootEnumSkeletonImportMode,
     ootSkeletonImportDict,
 )
 
