@@ -65,7 +65,7 @@ def getInsertionIndex(sceneNames, sceneName, index, mode):
     """Returns the index to know where to insert data"""
     # special case where the scene is "Inside the Great Deku Tree"
     # since it's the first scene simply return 0
-    if sceneName == "SCENE_YDAN":
+    if sceneName == "SCENE_DEKU_TREE":
         return 0
 
     # if index is None this means this is looking for ``original_scene_index - 1``
@@ -123,7 +123,7 @@ def sceneTableToC(data, header, sceneNames, scene):
     mode = "EXPORT" if scene is not None else "REMOVE"
 
     # get the index of the last non-debug scene
-    lastNonDebugSceneIdx = getInsertionIndex(sceneNames, "SCENE_GANON_TOU", None, mode)
+    lastNonDebugSceneIdx = getInsertionIndex(sceneNames, "SCENE_OUTSIDE_GANONS_CASTLE", None, mode)
     lastSceneIdx = getInsertionIndex(sceneNames, "SCENE_TESTROOM", None, mode)
 
     # add the actual lines with the same formatting

@@ -103,7 +103,7 @@ class OOT_SearchSceneEnumOperator(bpy.types.Operator):
     bl_property = "ootSceneID"
     bl_options = {"REGISTER", "UNDO"}
 
-    ootSceneID: bpy.props.EnumProperty(items=ootEnumSceneID, default="SCENE_YDAN")
+    ootSceneID: bpy.props.EnumProperty(items=ootEnumSceneID, default="SCENE_DEKU_TREE")
     opName: bpy.props.StringProperty(default="Export")
 
     def execute(self, context):
@@ -154,8 +154,8 @@ class OOTExitProperty(bpy.types.PropertyGroup):
     exitIndexCustom: bpy.props.StringProperty(default="0x0000")
 
     # These are used when adding an entry to gEntranceTable
-    scene: bpy.props.EnumProperty(items=ootEnumSceneID, default="SCENE_YDAN")
-    sceneCustom: bpy.props.StringProperty(default="SCENE_YDAN")
+    scene: bpy.props.EnumProperty(items=ootEnumSceneID, default="SCENE_DEKU_TREE")
+    sceneCustom: bpy.props.StringProperty(default="SCENE_DEKU_TREE")
 
     # These are used when adding an entry to gEntranceTable
     continueBGM: bpy.props.BoolProperty(default=False)
