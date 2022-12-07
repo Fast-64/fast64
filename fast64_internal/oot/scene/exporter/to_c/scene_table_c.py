@@ -1,6 +1,6 @@
 import os, bpy
 from .....utility import PluginError, writeFile
-from ....oot_constants import ootEnumSceneID, ootSceneNameToDebugName
+from ....oot_constants import ootEnumSceneID, ootSceneNameToID
 from ....oot_utility import getCustomProperty, ExportInfo
 
 
@@ -104,13 +104,12 @@ def getSceneParams(scene, exportInfo, sceneNames):
     sceneIndex = getSceneIndex(sceneNames, bpy.context.scene.ootSceneExportSettings.option)
     sceneName = sceneTitle = sceneID = sceneUnk10 = sceneUnk12 = None
     name = scene.name if scene is not None else exportInfo.name
-    debugName = ootSceneNameToDebugName.get(name, name)
 
     # if the index is None then this is a custom scene
     if sceneIndex is None and scene is not None:
         sceneName = scene.name.lower() + "_scene"
         sceneTitle = "none"
-        sceneID = f"SCENE_{debugName.upper()}"
+        sceneID = ootSceneNameToID.get(name, f"SCENE_{name.upper()}")
         sceneUnk10 = sceneUnk12 = 0
 
     return sceneName, sceneTitle, sceneID, sceneUnk10, sceneUnk12, sceneIndex
