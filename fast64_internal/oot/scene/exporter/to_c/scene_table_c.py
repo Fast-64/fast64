@@ -1,6 +1,6 @@
 import os, bpy
 from .....utility import PluginError, writeFile
-from ....oot_constants import ootEnumSceneID, ootSceneNameToID
+from ....oot_constants import ootEnumSceneID, ootSceneNameToID, ootSceneIDToName
 from ....oot_utility import getCustomProperty, ExportInfo
 
 
@@ -97,26 +97,36 @@ def getInsertionIndex(sceneNames, sceneName, index, mode):
     return getInsertionIndex(sceneNames, sceneName, currentIndex - 1, mode)
 
 
-def getSceneParams(scene, exportInfo, sceneNames):
+def getSceneParams(scene, exportInfo, sceneNames, mode: str):
     """Returns the parameters that needs to be set in ``DEFINE_SCENE()``"""
     # in order to replace the values of ``unk10``, ``unk12`` and basically every parameters from ``DEFINE_SCENE``,
     # you just have to make it return something other than None, not necessarily a string
     sceneIndex = getSceneIndex(sceneNames, bpy.context.scene.ootSceneExportSettings.option)
     sceneName = sceneTitle = sceneID = sceneUnk10 = sceneUnk12 = None
     name = scene.name if scene is not None else exportInfo.name
+    overrideMode = False
+
+    if mode == "EXPORT":
+        isCustom = bpy.context.scene.ootSceneExportSettings.option == "Custom"
+    elif mode == "REMOVE":
+        isCustom = bpy.context.scene.ootSceneRemoveSettings.option == "Custom"
 
     # if the index is None then this is a custom scene
     if sceneIndex is None and scene is not None:
-        sceneName = scene.name.lower() + "_scene"
+        sceneID = f"SCENE_{name.upper()}" if isCustom else ootSceneNameToID[name]
+        sceneName = f"{ootSceneIDToName.get(sceneID, scene.name.lower()) if isCustom else scene.name.lower()}_scene"
         sceneTitle = "none"
-        sceneID = ootSceneNameToID.get(name)
-
-        if sceneID is None and bpy.context.scene.ootSceneExportSettings.option == "Custom":
-            sceneID = f"SCENE_{name.upper()}"
-
         sceneUnk10 = sceneUnk12 = 0
 
-    return sceneName, sceneTitle, sceneID, sceneUnk10, sceneUnk12, sceneIndex
+    if isCustom:
+        if mode == "EXPORT" and ootSceneIDToName.get(sceneID) is not None:
+            overrideMode = True
+            sceneIndex = getSceneIndex(sceneNames, sceneID)
+        elif mode == "REMOVE":
+            overrideMode = True
+            sceneIndex = getSceneIndex(sceneNames, f"SCENE_{name.upper()}")
+
+    return sceneName, sceneTitle, sceneID, sceneUnk10, sceneUnk12, sceneIndex, overrideMode
 
 
 def sceneTableToC(data, header, sceneNames, scene):
@@ -162,12 +172,12 @@ def getDrawConfig(sceneName: str):
     raise PluginError(f"Scene name {sceneName} not found in scene table.")
 
 
-def modifySceneTable(scene, exportInfo: ExportInfo):
+def modifySceneTable(scene, exportInfo: ExportInfo, exportMode: str):
     """Edit the scene table with the new data"""
     exportPath = exportInfo.exportPath
     # the list ``sceneNames`` needs to be synced with ``fileData``
     fileData, header, sceneNames = getSceneTable(exportPath)
-    sceneName, sceneTitle, sceneID, sceneUnk10, sceneUnk12, sceneIndex = getSceneParams(scene, exportInfo, sceneNames)
+    sceneName, sceneTitle, sceneID, sceneUnk10, sceneUnk12, sceneIndex, overrideMode = getSceneParams(scene, exportInfo, sceneNames, exportMode)
 
     if scene is None:
         sceneDrawConfig = None
@@ -177,19 +187,28 @@ def modifySceneTable(scene, exportInfo: ExportInfo):
     # ``DEFINE_SCENE()`` parameters
     sceneParams = [sceneName, sceneTitle, sceneID, sceneDrawConfig, sceneUnk10, sceneUnk12]
 
-    # check if it's a custom scene name
-    # sceneIndex can be None and ootSceneOption not "Custom",
-    # that means the selected scene has been removed from the table
-    # however if the scene variable is not None
-    # set it to "INSERT" because we need to insert the scene in the right place
-    if sceneIndex is None and bpy.context.scene.ootSceneExportSettings.option == "Custom":
-        mode = "CUSTOM"
-    elif sceneIndex is None and scene is not None:
-        mode = "INSERT"
-    elif sceneIndex is not None:
-        mode = "NORMAL"
+    if overrideMode:
+        if sceneIndex is None and scene is not None:
+            mode = "INSERT"
+        elif sceneIndex is not None:
+            mode = "NORMAL"
+
+        if exportMode == "REMOVE":
+            mode = scene = None
     else:
-        mode = None
+        # check if it's a custom scene name
+        # sceneIndex can be None and ootSceneOption not "Custom",
+        # that means the selected scene has been removed from the table
+        # however if the scene variable is not None
+        # set it to "INSERT" because we need to insert the scene in the right place
+        if sceneIndex is None and bpy.context.scene.ootSceneExportSettings.option == "Custom":
+            mode = "CUSTOM"
+        elif sceneIndex is None and scene is not None:
+            mode = "INSERT"
+        elif sceneIndex is not None:
+            mode = "NORMAL"
+        else:
+            mode = None
 
     if mode is not None:
         # if so, check if the custom scene already exists in the data
