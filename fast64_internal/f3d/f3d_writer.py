@@ -260,16 +260,15 @@ def findUVBounds(polygon, uv_data):
 
 
 class TileLoad:
-    def __init__(self, texFormat, twoTextures, texDimensions):
+    def __init__(self, texFormat, tmemWordsAvail, texDimensions):
         self.sl = None
         self.sh = None
         self.tl = None
         self.th = None
 
         self.texFormat = texFormat
-        self.twoTextures = twoTextures
+        self.tmemWordsAvail = tmemWordsAvail
         self.texDimensions = texDimensions
-        self.tmemMax = getTmemMax(texFormat)
 
     def getLow(self, value):
         return int(max(math.floor(value), 0))
@@ -291,9 +290,9 @@ class TileLoad:
         newWidth = abs(new_sl - new_sh) + 1
         newHeight = abs(new_tl - new_th) + 1
 
-        tmemUsage = getTmemWordUsage(self.texFormat, newWidth, newHeight) * 8 * (2 if self.twoTextures else 1)
+        tmemUsage = getTmemWordUsage(self.texFormat, newWidth, newHeight)
 
-        if tmemUsage > self.tmemMax:
+        if tmemUsage > self.tmemWordsAvail:
             return False
         else:
             self.sl = new_sl
@@ -362,22 +361,17 @@ def saveMeshWithLargeTexturesByFaces(
     uv_data = obj.data.uv_layers["UVMap"].data
     convertInfo = LoopConvertInfo(uv_data, obj, exportVertexColors)
 
-    if fMaterial.largeTextureIndex == 0:
-        texFormat = f3dMat.tex0.tex_format
-        otherTex = f3dMat.tex1
-        otherTextureIndex = 1
-    else:
-        texFormat = f3dMat.tex1.tex_format
-        otherTex = f3dMat.tex0
-        otherTextureIndex = 0
+    if fMaterial.imageKey[0] is not None:
+        fImage0, _ = fModel.getTextureAndHandleShared(fMaterial.imageKey[0])
+    if fMaterial.imageKey[1] is not None:
+        fImage1, _ = fModel.getTextureAndHandleShared(fMaterial.imageKey[1])
 
-    twoTextures = fMaterial.texturesLoaded[0] and fMaterial.texturesLoaded[1]
     tileLoads = {}
     faceTileLoads = {}
     for face in faces:
         uvs = [UVtoST(obj, loopIndex, uv_data, texDimensions, isPointSampled) for loopIndex in face.loops]
 
-        faceTileLoad = TileLoad(texFormat, twoTextures, texDimensions)
+        faceTileLoad = TileLoad(fMaterial.largeTexFmt, fMaterial.largeTexWords, texDimensions)
         faceTileLoads[face] = faceTileLoad
         if not faceTileLoad.tryAdd(uvs):
             raise PluginError(
@@ -402,60 +396,49 @@ def saveMeshWithLargeTexturesByFaces(
     triGroup = fMesh.tri_group_new(fMaterial)
     fMesh.draw.commands.append(SPDisplayList(triGroup.triList))
 
-    # For materials with tex0 and tex1, if the other texture can fit into a single tile load,
-    # we load it once at the beginning only.
-    otherTexSingleLoad = False
-    if fMaterial.texturesLoaded[otherTextureIndex]:
-        tmem = getTmemWordUsage(otherTex.tex_format, otherTex.tex.size[0], otherTex.tex.size[1]) * 8
-        if tmem <= getTmemMax(otherTex.tex_format):
-            otherTexSingleLoad = True
-
-    # saveGeometry(obj, triList, fMesh.vertexList, bFaces,
-    # 	bMesh, texDimensions, transformMatrix, isPointSampled, isFlatShaded,
-    # 	exportVertexColors, fModel.f3d)
     currentGroupIndex = None
-    imageKey0, imageKey1 = getImageKeys(f3dMat, False)
     for tileLoad, tileFaces in tileLoads:
         revertCommands = GfxList("temp", GfxListTag.Draw, fModel.DLFormat)
-        nextTmem = 0
         triGroup.triList.commands.append(DPPipeSync())
-        if fMaterial.texturesLoaded[0] and not (otherTextureIndex == 0 and otherTexSingleLoad):
-            texDimensions0, nextTmem, fImage0 = saveTextureIndex(
-                material.name,
-                fModel,
-                fMaterial,
+        if fMaterial.isTexLarge[0]:
+            saveTextureLoadOnly(
+                fImage0,
                 triGroup.triList,
-                revertCommands,
                 f3dMat.tex0,
-                0,
-                nextTmem,
-                None,
-                False,
-                [tileLoad, None],
-                True,
-                False,
-                None,
-                imageKey0,
-            )
-        if fMaterial.texturesLoaded[1] and not (otherTextureIndex == 1 and otherTexSingleLoad):
-            texDimensions1, nextTmem, fImage1 = saveTextureIndex(
-                material.name,
-                fModel,
+                tileLoad,
+                7,
+                fMaterial.largeTexAddr[0],
+                fModel.f3d)
+            saveTextureTile(
+                fImage0,
                 fMaterial,
                 triGroup.triList,
-                revertCommands,
+                f3dMat.tex0,
+                tileLoad,
+                0,
+                fMaterial.largeTexAddr[0],
+                fMaterial.texPaletteIndex[0],
+                fModel.f3d)
+        if fMaterial.isTexLarge[1]:
+            saveTextureLoadOnly(
+                fImage1,
+                triGroup.triList,
                 f3dMat.tex1,
+                tileLoad,
+                6,
+                fMaterial.largeTexAddr[1],
+                fModel.f3d)
+            saveTextureTile(
+                fImage1,
+                fMaterial,
+                triGroup.triList,
+                f3dMat.tex1,
+                tileLoad,
                 1,
-                nextTmem,
-                None,
-                False,
-                [None, tileLoad],
-                True,
-                False,
-                None,
-                imageKey1,
-            )
-
+                fMaterial.largeTexAddr[1],
+                fMaterial.texPaletteIndex[1],
+                fModel.f3d)
+        
         triConverter = TriangleConverter(
             triConverterInfo,
             texDimensions,
@@ -519,7 +502,7 @@ def saveStaticModel(
         checkForF3dMaterialInFaces(obj, material)
         fMaterial, texDimensions = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
 
-        if fMaterial.useLargeTextures:
+        if fMaterial.isTexLarge[0] or fMaterial.isTexLarge[1]:
             saveMeshWithLargeTexturesByFaces(
                 material,
                 faces,
@@ -1751,46 +1734,125 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
                             pal0Len = len(pal0)
                             tex0PaletteIndex = 1
     useSharedCIPalette = isCI and useTex0 and useTex1 and not loadPal1
+    fMaterial.texPaletteIndex = [tex0PaletteIndex, tex1PaletteIndex]
     
-    # Handle same texture in both slots (only load once)
-    tex1ActuallyLoad = True
-    tex1Addr = tex0Tmem
-    tmemOccupied = tex0Tmem + tex1Tmem
-    if (
-        useTex0 and useTex1 and (
-            (
-                not isTex0Ref and not isTex1Ref and f3dMat.tex0.tex == f3dMat.tex1.tex
-            ) or (
-                isTex0Ref
-                and isTex1Ref
-                and f3dMat.tex0.tex_reference == f3dMat.tex1.tex_reference
-            )
+    # Assign TMEM addresses
+    sameTextures = useTex0 and useTex1 and (
+        (
+            not isTex0Ref and not isTex1Ref and f3dMat.tex0.tex == f3dMat.tex1.tex
+        ) or (
+            isTex0Ref
+            and isTex1Ref
+            and f3dMat.tex0.tex_reference == f3dMat.tex1.tex_reference
         )
-    ):
-        assert tex0Tmem == tex1Tmem
-        tex1ActuallyLoad = False
-        tmemOccupied = tex0Tmem
-    
+    )
     useLargeTextures = material.mat_ver > 3 and f3dMat.use_large_textures
-    fMaterial.useLargeTextures = useLargeTextures and (useTex0 or useTex1)
-    fMaterial.texturesLoaded[0] = useTex0
-    fMaterial.texturesLoaded[1] = useTex1
-    if not (bpy.context.scene.ignoreTextureRestrictions or useLargeTextures):
-        if tex0Tmem + tex1Tmem > (512 if not isCI else 256):
+    tmemSize = 256 if isCI else 512
+    doTex0Load = doTex0Tile = doTex1Load = doTex1Tile = True
+    tex1Addr = None # must be set whenever tex 1 used (and loaded or tiled)
+    tmemOccupied = texDimensions = None # must be set on all codepaths
+    if sameTextures:
+        assert tex0Tmem == tex1Tmem
+        tmemOccupied = tex0Tmem
+        doTex1Load = False
+        tex1Addr = 0
+        texDimensions = imageDims0
+        fMaterial.largeTexFmt = tex0Fmt
+    elif not useLargeTextures or tex0Tmem + tex1Tmem <= tmemSize:
+        tex1Addr = tex0Tmem
+        tmemOccupied = tex0Tmem + tex1Tmem
+        if not useTex0 and not useTex1:
+            texDimensions = [32, 32]
+            fMaterial.largeTexFmt = "RGBA16"
+        elif not useTex1 or f3dMat.uv_basis == "TEXEL0":
+            texDimensions = imageDims0
+            fMaterial.largeTexFmt = tex0Fmt
+        else:
+            texDimensions = imageDims1
+            fMaterial.largeTexFmt = tex1Fmt
+    else: # useLargeTextures
+        if useTex0 and useTex1:
+            tmemOccupied = tmemSize
+            # TODO: Could change this in the future to do the face tile assigments
+            # first, to see how large a tile the large texture(s) needed, instead
+            # of arbitrarily assigning half of TMEM to each of the two textures.
+            if tex0Tmem <= tmemSize // 2:
+                # Tex 0 normal, tex 1 large
+                texDimensions = imageDims1
+                fMaterial.largeTexFmt = tex1Fmt
+                fMaterial.isTexLarge[1] = True
+                fMaterial.largeTexAddr[1] = tex0Tmem
+                fMaterial.largeTexWords = tmemSize - tex0Tmem
+                doTex1Load = doTex1Tile = False
+            elif tex1Tmem <= tmemSize // 2:
+                # Tex 0 large, tex 1 normal
+                texDimensions = imageDims0
+                fMaterial.largeTexFmt = tex0Fmt
+                fMaterial.isTexLarge[0] = True
+                fMaterial.largeTexAddr[0] = 0
+                fMaterial.largeTexWords = tmemSize - tex1Tmem
+                doTex0Load = doTex0Tile = False
+                tex1Addr = tmemSize - tex1Tmem
+            else:
+                # Both textures large
+                if f3dMat.uv_basis == "TEXEL0":
+                    texDimensions = imageDims0
+                    fMaterial.largeTexFmt = tex0Fmt
+                else:
+                    texDimensions = imageDims1
+                    fMaterial.largeTexFmt = tex1Fmt
+                fMaterial.isTexLarge[0] = True
+                fMaterial.isTexLarge[1] = True
+                fMaterial.largeTexAddr[0] = 0
+                fMaterial.largeTexAddr[1] = tmemSize // 2
+                fMaterial.largeTexWords = tmemSize // 2
+                doTex0Load = doTex0Tile = doTex1Load = doTex1Tile = False
+        elif useTex0:
+            texDimensions = imageDims0
+            fMaterial.largeTexFmt = tex0Fmt
+            if tex0Tmem > tmemSize:
+                fMaterial.isTexLarge[0] = True
+                fMaterial.largeTexAddr[0] = 0
+                fMaterial.largeTexWords = tmemSize
+                doTex0Load = doTex0Tile = False
+                tmemOccupied = tmemSize
+            else:
+                tmemOccupied = tex0Tmem
+        elif useTex1:
+            tex1Addr = 0
+            texDimensions = imageDims1
+            fMaterial.largeTexFmt = tex1Fmt
+            if tex1Tmem > tmemSize:
+                fMaterial.isTexLarge[1] = True
+                fMaterial.largeTexAddr[1] = 0
+                fMaterial.largeTexWords = tmemSize
+                doTex1Load = doTex1Tile = False
+                tmemOccupied = tmemSize
+            else:
+                tmemOccupied = tex1Tmem
+    if tmemOccupied > tmemSize:
+        if sameTextures and useLargeTextures:
+            raise PluginError(
+                'Error in "'
+                + material.name
+                + '": Using the same texture for Tex0 and Tex1 is not compatible with large textures.'
+            )
+        elif not bpy.context.scene.ignoreTextureRestrictions:
             raise PluginError(
                 'Error in "'
                 + material.name
                 + '": Textures are too big. Max TMEM size is 4k '
                 + "bytes, ex. 2 32x32 RGBA 16 bit textures.\nNote that texture width will be internally padded to 64 bit boundaries."
             )
-
+    
     # Get texture and palette definitions
     imUse0 = [f3dMat.tex0.tex] + ([f3dMat.tex1.tex] if useSharedCIPalette else [])
     imUse1 = ([f3dMat.tex0.tex] if useSharedCIPalette else []) + [f3dMat.tex1.tex]
     fImage0 = fImage1 = fPalette0 = fPalette1 = None
     if useTex0:
         imageKey0, fImage0, fPalette0 = saveOrGetTextureDefinition(
-            fMaterial, fModel, f3dMat.tex0, imUse0, tex0Name)
+            fMaterial, fModel, f3dMat.tex0, imUse0, tex0Name, fMaterial.isTexLarge[0])
+        fMaterial.imageKey[0] = imageKey0
     if loadPal0:
         if fPalette0 is not None:
             paletteKey0 = fImage0.paletteKey
@@ -1800,7 +1862,8 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             fImage0.paletteKey = paletteKey0
     if useTex1:
         imageKey1, fImage1, fPalette1 = saveOrGetTextureDefinition(
-            fMaterial, fModel, f3dMat.tex1, imUse1, tex1Name)
+            fMaterial, fModel, f3dMat.tex1, imUse1, tex1Name, fMaterial.isTexLarge[1])
+        fMaterial.imageKey[1] = imageKey1
         if useSharedCIPalette:
             fImage1.paletteKey = paletteKey0
     if loadPal1:
@@ -1815,15 +1878,16 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     loadGfx = fMaterial.material
     if loadPal0:
         savePaletteLoad(loadGfx, fPalette0, pal0Fmt, pal0Addr, pal0Len, 5, fModel.f3d)
-    if useTex0:
+    if useTex0 and doTex0Load:
         saveTextureLoadOnly(fImage0, loadGfx, f3dMat.tex0, None, 7, 0, fModel.f3d)
+    if useTex0 and doTex0Tile:
         saveTextureTile(
             fImage0, fMaterial, loadGfx, f3dMat.tex0, None, 0, 0, tex0PaletteIndex, fModel.f3d)
     if loadPal1:
         savePaletteLoad(loadGfx, fPalette1, pal1Fmt, pal1Addr, pal1Len, 4, fModel.f3d)
-    if useTex1:
-        if tex1ActuallyLoad:
-            saveTextureLoadOnly(fImage1, loadGfx, f3dMat.tex1, None, 6, tex1Addr, fModel.f3d)
+    if useTex1 and doTex1Load:
+        saveTextureLoadOnly(fImage1, loadGfx, f3dMat.tex1, None, 6, tex1Addr, fModel.f3d)
+    if useTex1 and doTex1Tile:
         saveTextureTile(
             fImage1, fMaterial, loadGfx, f3dMat.tex1, None, 1, tex1Addr, tex1PaletteIndex, fModel.f3d)
 
@@ -1847,21 +1911,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
                     writeNonCITextureData(f3dMat.tex1.tex, fImage1, tex1Fmt)
         
     # Used so we know how to convert normalized UVs when saving verts.
-    if imageDims0 is not None and imageDims1 is not None:
-        if f3dMat.uv_basis == "TEXEL0":
-            texDimensions = imageDims0
-            fMaterial.largeTextureIndex = 0
-        else:
-            texDimensions = imageDims1
-            fMaterial.largeTextureIndex = 1
-    elif texDimensions0 is not None:
-        texDimensions = imageDims0
-        fMaterial.largeTextureIndex = 0
-    elif texDimensions1 is not None:
-        texDimensions = imageDims1
-        fMaterial.largeTextureIndex = 1
-    else:
-        texDimensions = [32, 32]
+    
 
     nodes = material.node_tree.nodes
     if useDict["Primitive"] and f3dMat.set_prim:
@@ -2039,6 +2089,7 @@ def saveOrGetTextureDefinition(
     texProp: TextureProperty,
     images: list[bpy.types.Image],
     imageName: str,
+    isLarge: bool,
 ) -> tuple[FImageKey, FImage, FImage]:
     
     image = texProp.tex
@@ -2070,9 +2121,7 @@ def saveOrGetTextureDefinition(
         filename,
         False,
     )
-
-    if fMaterial.useLargeTextures:
-        fImage.isLargeTexture = True
+    fImage.isLargeTexture = isLarge
 
     fModel.addTexture(imageKey, fImage, fMaterial)
     return imageKey, fImage, None

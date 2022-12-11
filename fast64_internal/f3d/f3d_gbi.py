@@ -2819,9 +2819,13 @@ class FMaterial:
         # Used for tile scrolling
         self.tileSizeCommands = {}  # dict of {texIndex : DPSetTileSize}
 
-        self.useLargeTextures = False
-        self.largeTextureIndex = None
-        self.texturesLoaded = [False, False]
+        # For saveMeshWithLargeTexturesByFaces
+        self.largeTexFmt = None
+        self.isTexLarge = [False, False]
+        self.largeTexAddr = [0, 0]
+        self.largeTexWords = 0
+        self.imageKey = [None, None]
+        self.texPaletteIndex = [0, 0]
 
     def getScrollData(self, material, dimensions):
         self.getScrollDataField(material, 0, 0)
