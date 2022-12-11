@@ -2188,9 +2188,6 @@ class FModel:
     def onMaterialCommandsBuilt(self, fMaterial, material, drawLayer):
         return
 
-    def getTextureSuffixFromFormat(self, texFmt):
-        return texFmt.lower()
-
     def getDrawLayerV3(self, obj):
         return None
 

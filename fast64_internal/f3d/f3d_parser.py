@@ -1023,7 +1023,7 @@ class F3DContext:
                 texProp.ci_format = "IA16"
             elif flags == self.f3d.G_TT_RGBA16:
                 texProp.ci_format = "RGBA16"
-            else: # self.f3d.G_TT_NONE or the unsupported value of 1
+            else:  # self.f3d.G_TT_NONE or the unsupported value of 1
                 if texProp.tex_format[:2] == "CI":
                     texProp.tex_format = "RGBA16"
 

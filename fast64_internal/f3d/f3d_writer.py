@@ -46,8 +46,10 @@ class FImageKey:
             and self.imagesSharingPalette == __o.imagesSharingPalette
         )
 
+
 def getImageKey(texProp: TextureProperty, useList) -> FImageKey:
     return FImageKey(texProp.tex, texProp.tex_format, texProp.ci_format, useList)
+
 
 class FPaletteKey:
     def __init__(self, palFormat: str, imagesSharingPalette: list[bpy.types.Image] = []):
@@ -402,13 +404,8 @@ def saveMeshWithLargeTexturesByFaces(
         triGroup.triList.commands.append(DPPipeSync())
         if fMaterial.isTexLarge[0]:
             saveTextureLoadOnly(
-                fImage0,
-                triGroup.triList,
-                f3dMat.tex0,
-                tileLoad,
-                7,
-                fMaterial.largeTexAddr[0],
-                fModel.f3d)
+                fImage0, triGroup.triList, f3dMat.tex0, tileLoad, 7, fMaterial.largeTexAddr[0], fModel.f3d
+            )
             saveTextureTile(
                 fImage0,
                 fMaterial,
@@ -418,16 +415,12 @@ def saveMeshWithLargeTexturesByFaces(
                 0,
                 fMaterial.largeTexAddr[0],
                 fMaterial.texPaletteIndex[0],
-                fModel.f3d)
+                fModel.f3d,
+            )
         if fMaterial.isTexLarge[1]:
             saveTextureLoadOnly(
-                fImage1,
-                triGroup.triList,
-                f3dMat.tex1,
-                tileLoad,
-                6,
-                fMaterial.largeTexAddr[1],
-                fModel.f3d)
+                fImage1, triGroup.triList, f3dMat.tex1, tileLoad, 6, fMaterial.largeTexAddr[1], fModel.f3d
+            )
             saveTextureTile(
                 fImage1,
                 fMaterial,
@@ -437,8 +430,9 @@ def saveMeshWithLargeTexturesByFaces(
                 1,
                 fMaterial.largeTexAddr[1],
                 fMaterial.texPaletteIndex[1],
-                fModel.f3d)
-        
+                fModel.f3d,
+            )
+
         triConverter = TriangleConverter(
             triConverterInfo,
             texDimensions,
@@ -1521,18 +1515,10 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         pal0Fmt,
         tex0Name,
         imageDims0,
-        tileDims0,
         tex0Tmem,
         pal0,
         pal0Len,
-    ) = getAndCheckTexInfo(
-        material.name,
-        fModel,
-        f3dMat.tex0,
-        None,
-        None,
-        useDict["Texture 0"]
-    )
+    ) = getAndCheckTexInfo(material.name, f3dMat.tex0, useDict["Texture 0"])
     (
         useTex1,
         isTex1Ref,
@@ -1540,19 +1526,11 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         tex1Fmt,
         pal1Fmt,
         imageDims1,
-        tileDims1,
         tex1Tmem,
         pal1,
         pal1Len,
-    ) = getAndCheckTexInfo(
-        material.name,
-        fModel,
-        f3dMat.tex1,
-        None,
-        None,
-        useDict["Texture 1"]
-    )
-    
+    ) = getAndCheckTexInfo(material.name, f3dMat.tex1, useDict["Texture 1"])
+
     if useTex0 and useTex1:
         if isTex0CI != isTex1CI:
             raise PluginError(
@@ -1568,9 +1546,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             and f3dMat.tex0.tex_reference_size != f3dMat.tex1.tex_reference_size
         ):
             raise PluginError(
-                "In material "
-                + material.name
-                + ": Two textures with the same reference must have the same size."
+                "In material " + material.name + ": Two textures with the same reference must have the same size."
             )
         if isCI:
             if pal0Fmt != pal1Fmt:
@@ -1590,7 +1566,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
                     + material.name
                     + ": Two textures with the same palette reference must have the same palette size."
                 )
-    
+
     isCI = (useTex0 and isTex0CI) or (useTex1 and isTex1CI)
     palFormat = pal0Fmt if useTex0 else pal1Fmt
     g_tt = "G_TT_NONE" if not isCI else ("G_TT_" + palFormat)
@@ -1606,7 +1582,9 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         saveGeoModeDefinitionF3DEX2(fMaterial, f3dMat.rdp_settings, defaults, fModel.matWriteMethod)
     else:
         saveGeoModeDefinition(fMaterial, f3dMat.rdp_settings, defaults, fModel.matWriteMethod)
-    saveOtherModeHDefinition(fMaterial, f3dMat.rdp_settings, g_tt, defaults, fModel.f3d._HW_VERSION_1, fModel.matWriteMethod)
+    saveOtherModeHDefinition(
+        fMaterial, f3dMat.rdp_settings, g_tt, defaults, fModel.f3d._HW_VERSION_1, fModel.matWriteMethod
+    )
     saveOtherModeLDefinition(fMaterial, f3dMat.rdp_settings, defaults, defaultRM, fModel.matWriteMethod)
     saveOtherDefinition(fMaterial, f3dMat, defaults)
 
@@ -1644,7 +1622,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             loadPal0 = loadPal1 = True
             tex1PaletteIndex = 1
             pal1Addr = 16
-        else: # Two CI textures, normal mode
+        else:  # Two CI textures, normal mode
             if tex0Fmt == "CI8" and tex1Fmt == "CI8":
                 if isTex0Ref != isTex0Ref:
                     raise PluginError(
@@ -1671,7 +1649,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
                             + str(pal0Len)
                             + " colors, which can't fit in a CI8 palette (256)."
                         )
-            elif tex0Fmt != tex1Fmt: # One CI8, one CI4
+            elif tex0Fmt != tex1Fmt:  # One CI8, one CI4
                 ci8Pal, ci4Pal = pal0, pal1 if tex0Fmt == "CI8" else pal1, pal0
                 ci8PalLen, ci4PalLen = pal0Len, pal1Len if tex0Fmt == "CI8" else pal1Len, pal0Len
                 if isTex0Ref or isTex1Ref:
@@ -1703,7 +1681,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
                             + " The CI8 texture must contain up to 240 unique colors,"
                             + " plus the same up to 16 colors used in the CI4 texture."
                         )
-            else: # both CI4 textures
+            else:  # both CI4 textures
                 if isTex0Ref and isTex1Ref and f3dMat.tex0.pal_reference == f3dMat.tex1.pal_reference:
                     loadPal0 = True
                 elif isTex0Ref or isTex1Ref:
@@ -1735,22 +1713,21 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
                             tex0PaletteIndex = 1
     useSharedCIPalette = isCI and useTex0 and useTex1 and not loadPal1
     fMaterial.texPaletteIndex = [tex0PaletteIndex, tex1PaletteIndex]
-    
+
     # Assign TMEM addresses
-    sameTextures = useTex0 and useTex1 and (
-        (
-            not isTex0Ref and not isTex1Ref and f3dMat.tex0.tex == f3dMat.tex1.tex
-        ) or (
-            isTex0Ref
-            and isTex1Ref
-            and f3dMat.tex0.tex_reference == f3dMat.tex1.tex_reference
+    sameTextures = (
+        useTex0
+        and useTex1
+        and (
+            (not isTex0Ref and not isTex1Ref and f3dMat.tex0.tex == f3dMat.tex1.tex)
+            or (isTex0Ref and isTex1Ref and f3dMat.tex0.tex_reference == f3dMat.tex1.tex_reference)
         )
     )
     useLargeTextures = material.mat_ver > 3 and f3dMat.use_large_textures
     tmemSize = 256 if isCI else 512
     doTex0Load = doTex0Tile = doTex1Load = doTex1Tile = True
-    tex1Addr = None # must be set whenever tex 1 used (and loaded or tiled)
-    tmemOccupied = texDimensions = None # must be set on all codepaths
+    tex1Addr = None  # must be set whenever tex 1 used (and loaded or tiled)
+    tmemOccupied = texDimensions = None  # must be set on all codepaths
     if sameTextures:
         assert tex0Tmem == tex1Tmem
         tmemOccupied = tex0Tmem
@@ -1770,7 +1747,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         else:
             texDimensions = imageDims1
             fMaterial.largeTexFmt = tex1Fmt
-    else: # useLargeTextures
+    else:  # useLargeTextures
         if useTex0 and useTex1:
             tmemOccupied = tmemSize
             # TODO: Could change this in the future to do the face tile assigments
@@ -1844,25 +1821,28 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
                 + '": Textures are too big. Max TMEM size is 4k '
                 + "bytes, ex. 2 32x32 RGBA 16 bit textures.\nNote that texture width will be internally padded to 64 bit boundaries."
             )
-    
+
     # Get texture and palette definitions
     imUse0 = [f3dMat.tex0.tex] + ([f3dMat.tex1.tex] if useSharedCIPalette else [])
     imUse1 = ([f3dMat.tex0.tex] if useSharedCIPalette else []) + [f3dMat.tex1.tex]
     fImage0 = fImage1 = fPalette0 = fPalette1 = None
     if useTex0:
         imageKey0, fImage0, fPalette0 = saveOrGetTextureDefinition(
-            fMaterial, fModel, f3dMat.tex0, imUse0, tex0Name, fMaterial.isTexLarge[0])
+            fMaterial, fModel, f3dMat.tex0, imUse0, tex0Name, fMaterial.isTexLarge[0]
+        )
         fMaterial.imageKey[0] = imageKey0
     if loadPal0:
         if fPalette0 is not None:
             paletteKey0 = fImage0.paletteKey
         else:
             paletteKey0, fPalette0 = saveOrGetPaletteDefinition(
-                fMaterial, fModel, f3dMat.tex0, imUse0, tex0Name, pal0Len)
+                fMaterial, fModel, f3dMat.tex0, imUse0, tex0Name, pal0Len
+            )
             fImage0.paletteKey = paletteKey0
     if useTex1:
         imageKey1, fImage1, fPalette1 = saveOrGetTextureDefinition(
-            fMaterial, fModel, f3dMat.tex1, imUse1, tex1Name, fMaterial.isTexLarge[1])
+            fMaterial, fModel, f3dMat.tex1, imUse1, tex1Name, fMaterial.isTexLarge[1]
+        )
         fMaterial.imageKey[1] = imageKey1
         if useSharedCIPalette:
             fImage1.paletteKey = paletteKey0
@@ -1871,9 +1851,10 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             paletteKey1 = fImage1.paletteKey
         else:
             paletteKey1, fPalette1 = saveOrGetPaletteDefinition(
-                fMaterial, fModel, f3dMat.tex1, imUse1, tex1Name, pal1Len)
+                fMaterial, fModel, f3dMat.tex1, imUse1, tex1Name, pal1Len
+            )
             fImage1.paletteKey = paletteKey1
-    
+
     # Write DL entries to load textures and palettes
     loadGfx = fMaterial.material
     if loadPal0:
@@ -1881,15 +1862,13 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     if useTex0 and doTex0Load:
         saveTextureLoadOnly(fImage0, loadGfx, f3dMat.tex0, None, 7, 0, fModel.f3d)
     if useTex0 and doTex0Tile:
-        saveTextureTile(
-            fImage0, fMaterial, loadGfx, f3dMat.tex0, None, 0, 0, tex0PaletteIndex, fModel.f3d)
+        saveTextureTile(fImage0, fMaterial, loadGfx, f3dMat.tex0, None, 0, 0, tex0PaletteIndex, fModel.f3d)
     if loadPal1:
         savePaletteLoad(loadGfx, fPalette1, pal1Fmt, pal1Addr, pal1Len, 4, fModel.f3d)
     if useTex1 and doTex1Load:
         saveTextureLoadOnly(fImage1, loadGfx, f3dMat.tex1, None, 6, tex1Addr, fModel.f3d)
     if useTex1 and doTex1Tile:
-        saveTextureTile(
-            fImage1, fMaterial, loadGfx, f3dMat.tex1, None, 1, tex1Addr, tex1PaletteIndex, fModel.f3d)
+        saveTextureTile(fImage1, fMaterial, loadGfx, f3dMat.tex1, None, 1, tex1Addr, tex1PaletteIndex, fModel.f3d)
 
     # Write texture and palette data, unless exporting textures as PNGs.
     if convertTextureData:
@@ -1909,9 +1888,6 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
                     writeCITextureData(f3dMat.tex1.tex, fImage0, pal1, pal1Fmt, tex1Fmt)
                 else:
                     writeNonCITextureData(f3dMat.tex1.tex, fImage1, tex1Fmt)
-        
-    # Used so we know how to convert normalized UVs when saving verts.
-    
 
     nodes = material.node_tree.nodes
     if useDict["Primitive"] and f3dMat.set_prim:
@@ -1994,7 +1970,9 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 
     return fMaterial, texDimensions
 
+
 # Functions for texture and palette definitions
+
 
 def getTextureName(texProp: TextureProperty, fModelName: str, overrideName: str) -> str:
     tex = texProp.tex
@@ -2033,9 +2011,9 @@ def getTextureNameTexRef(texProp: TextureProperty, fModelName: str) -> str:
     return texName
 
 
-def checkDuplicateTextureName(fModelOrTexRect, name):
+def checkDuplicateTextureName(parent: Union[FModel, FTexRect], name):
     names = []
-    for info, texture in fModelOrTexRect.textures.items():
+    for info, texture in parent.textures.items():
         names.append(texture.name)
     while name in names:
         name = name + "_copy"
@@ -2044,7 +2022,7 @@ def checkDuplicateTextureName(fModelOrTexRect, name):
 
 def saveOrGetPaletteDefinition(
     fMaterial: FMaterial,
-    fModel: FModel,
+    parent: Union[FModel, FTexRect],
     texProp: TextureProperty,
     images: list[bpy.types.Image],
     imageName: str,
@@ -2057,7 +2035,7 @@ def saveOrGetPaletteDefinition(
     paletteKey = FPaletteKey(palFmt, images)
 
     # If palette already loaded, return that data.
-    fPalette, _ = fModel.getTextureAndHandleShared(paletteKey)
+    fPalette, _ = parent.getTextureAndHandleShared(paletteKey)
     if fPalette is not None:
         # print(f"Palette already exists")
         return paletteKey, fPalette
@@ -2066,8 +2044,8 @@ def saveOrGetPaletteDefinition(
         fPalette = FImage(texProp.pal_reference, None, None, 1, palLen, None, False)
         return paletteKey, fPalette
 
-    paletteName = checkDuplicateTextureName(fModel, toAlnum(imageName) + "_pal_" + palFmt.lower())
-    paletteFilename = getNameFromPath(imageName, True) + "." + fModel.getTextureSuffixFromFormat(texFmt) + ".pal"
+    paletteName = checkDuplicateTextureName(parent, toAlnum(imageName) + "_pal_" + palFmt.lower())
+    paletteFilename = getNameFromPath(imageName, True) + "." + getTextureSuffixFromFormat(texFmt) + ".pal"
 
     fPalette = FImage(
         paletteName,
@@ -2079,27 +2057,27 @@ def saveOrGetPaletteDefinition(
         False,
     )
 
-    fModel.addTexture(paletteKey, fPalette, fMaterial)
+    parent.addTexture(paletteKey, fPalette, fMaterial)
     return paletteKey, fPalette
 
 
 def saveOrGetTextureDefinition(
     fMaterial: FMaterial,
-    fModel: FModel,
+    parent: Union[FModel, FTexRect],
     texProp: TextureProperty,
     images: list[bpy.types.Image],
     imageName: str,
     isLarge: bool,
 ) -> tuple[FImageKey, FImage, FImage]:
-    
+
     image = texProp.tex
     texFmt = texProp.tex_format
     texFormat = texFormatOf[texFmt]
     bitSize = texBitSizeOf[texFmt]
     imageKey = getImageKey(texProp, imUse0)
-    
+
     # If image already loaded, return that data.
-    fImage, fPalette = fModel.getTextureAndHandleShared(imageKey)
+    fImage, fPalette = parent.getTextureAndHandleShared(imageKey)
     if fImage is not None:
         # print(f"Image already exists")
         return imageKey, fImage, fPalette
@@ -2108,12 +2086,12 @@ def saveOrGetTextureDefinition(
         width, height = texProp.tex_reference_size
         fImage = FImage(texProp.tex_reference, None, None, width, height, None, False)
         return imageKey, fImage, None
-    
+
     name = image.name if image.filepath == "" else image.filepath
-    filename = getNameFromPath(name, True) + "." + fModel.getTextureSuffixFromFormat(texFmt) + ".inc.c"
+    filename = getNameFromPath(name, True) + "." + getTextureSuffixFromFormat(texFmt) + ".inc.c"
 
     fImage = FImage(
-        checkDuplicateTextureName(fModel, toAlnum(imageName)),
+        checkDuplicateTextureName(parent, toAlnum(imageName)),
         texFormat,
         bitSize,
         image.size[0],
@@ -2123,21 +2101,18 @@ def saveOrGetTextureDefinition(
     )
     fImage.isLargeTexture = isLarge
 
-    fModel.addTexture(imageKey, fImage, fMaterial)
+    parent.addTexture(imageKey, fImage, fMaterial)
     return imageKey, fImage, None
 
 
 def getAndCheckTexInfo(
     propName: str,
-    fModel: FModel,
     texProp: TextureProperty,
-    overrideName: str,
-    tileSettings,
     useDictEntry,
 ):
     if not useDictEntry or not texProp.tex_set:
-        return False, False, False, "", "", (0, 0), (0, 0), 0, None, 0
-    
+        return False, False, False, "", "", (0, 0), 0, None, 0
+
     tex = texProp.tex
     isTexRef = texProp.use_tex_reference
     texFormat = texProp.tex_format
@@ -2163,15 +2138,10 @@ def getAndCheckTexInfo(
         imageWidth, imageHeight = texProp.tex_reference_size
     else:
         imageWidth, imageHeight = tex.size
-    
-    if tileSettings is not None:
-        tileWidth, tileHeight = tileSettings.getDimensions()
-    else:
-        tileWidth, tileHeight = imageWidth, imageHeight
 
-    tmemSize = getTmemWordUsage(texFormat, tileWidth, tileHeight)
+    tmemSize = getTmemWordUsage(texFormat, imageWidth, imageHeight)
 
-    if tileWidth > 1024 or tileHeight > 1024:
+    if imageWidth > 1024 or imageHeight > 1024:
         raise PluginError('Error in "' + propName + '": Any side of an image cannot be greater ' + "than 1024.")
 
     pal = None
@@ -2192,7 +2162,7 @@ def getAndCheckTexInfo(
                 + texFormat
                 + "."
             )
-    
+
     return (
         True,
         isTexRef,
@@ -2200,13 +2170,14 @@ def getAndCheckTexInfo(
         texFormat,
         palFormat,
         (imageWidth, imageHeight),
-        (tileWidth, tileHeight),
         tmemSize,
         pal,
-        palLen
+        palLen,
     )
 
+
 # Functions for writing texture and palette DLs
+
 
 def getTileSizeSettings(texProp: TextureProperty, tileSettings, f3d: F3D):
     if tileSettings is not None:
@@ -2278,8 +2249,10 @@ def saveTextureLoadOnly(
             )
     else:
         if useLoadBlock:
-            dxs = (((fImage.width) * (fImage.height) + f3d.G_IM_SIZ_VARS[siz + "_INCR"])
-                >> f3d.G_IM_SIZ_VARS[siz + "_SHIFT"]) - 1
+            dxs = (
+                ((fImage.width) * (fImage.height) + f3d.G_IM_SIZ_VARS[siz + "_INCR"])
+                >> f3d.G_IM_SIZ_VARS[siz + "_SHIFT"]
+            ) - 1
             dxt = f3d.CALC_DXT(fImage.width, f3d.G_IM_SIZ_VARS[siz + "_BYTES"])
             gfxOut.commands.extend(
                 [
@@ -2341,9 +2314,7 @@ def saveTextureTile(
     tileSizeCommand = DPSetTileSize(rendertile, sl, tl, sh, th)
     gfxOut.commands.extend(
         [
-            DPSetTile(
-                fmt, siz, line, tmem, rendertile, pal, cmt, maskt, shiftt, cms, masks, shifts
-            ),
+            DPSetTile(fmt, siz, line, tmem, rendertile, pal, cmt, maskt, shiftt, cms, masks, shifts),
             tileSizeCommand,
         ]
     )  # added in)
@@ -2357,7 +2328,7 @@ def saveTextureTile(
 # palLen is the number of colors
 def savePaletteLoad(
     gfxOut: GfxList,
-    fPalette: FPalette,
+    fPalette: FImage,
     palFormat: str,
     palAddr: int,
     palLen: int,
@@ -2397,7 +2368,9 @@ def savePaletteLoad(
             ]
         )
 
+
 # Functions for converting and writing texture and palette data
+
 
 def extractConvertCIPixel(image, pixels, i, j, palFormat):
     color = [1, 1, 1, 1]
@@ -2455,7 +2428,7 @@ def compactNibbleArray(texture, width, height):
     return bytearray(nibbleData)
 
 
-def writePaletteData(fPalette: FPalette, palette: list[int]):
+def writePaletteData(fPalette: FImage, palette: list[int]):
     for color in palette:
         fPalette.data.extend(color.to_bytes(2, "big"))
     fPalette.converted = True
@@ -2470,9 +2443,9 @@ def writeCITextureData(
 ):
     palFormat = texFormatOf[palFmt]
     bitSize = texBitSizeOf[texFmt]
-    
+
     texture = getColorIndicesOfTexture(image, palette, palFormat)
-    
+
     if bitSize == "G_IM_SIZ_4b":
         fImage.data = compactNibbleArray(texture, image.size[0], image.size[1])
     else:
@@ -2493,20 +2466,14 @@ def writeNonCITextureData(image: bpy.types.Image, fImage: FImage, texFmt: str):
                     for doubleByte in [
                         (
                             (
-                                (
-                                    (int(round(pixels[(j * image.size[0] + i) * image.channels + 0] * 0x1F)) & 0x1F)
-                                    << 3
-                                )
+                                ((int(round(pixels[(j * image.size[0] + i) * image.channels + 0] * 0x1F)) & 0x1F) << 3)
                                 | (
                                     (int(round(pixels[(j * image.size[0] + i) * image.channels + 1] * 0x1F)) & 0x1F)
                                     >> 2
                                 )
                             ),
                             (
-                                (
-                                    (int(round(pixels[(j * image.size[0] + i) * image.channels + 1] * 0x1F)) & 0x03)
-                                    << 6
-                                )
+                                ((int(round(pixels[(j * image.size[0] + i) * image.channels + 1] * 0x1F)) & 0x03) << 6)
                                 | (
                                     (int(round(pixels[(j * image.size[0] + i) * image.channels + 2] * 0x1F)) & 0x1F)
                                     << 1
@@ -2635,9 +2602,7 @@ def writeNonCITextureData(image: bpy.types.Image, fImage: FImage, texFmt: str):
                         round(
                             colorToLuminance(
                                 pixels[
-                                    (j * image.size[0] + i)
-                                    * image.channels : (j * image.size[0] + i)
-                                    * image.channels
+                                    (j * image.size[0] + i) * image.channels : (j * image.size[0] + i) * image.channels
                                     + 3
                                 ]
                             )
@@ -2656,9 +2621,7 @@ def writeNonCITextureData(image: bpy.types.Image, fImage: FImage, texFmt: str):
                         round(
                             colorToLuminance(
                                 pixels[
-                                    (j * image.size[0] + i)
-                                    * image.channels : (j * image.size[0] + i)
-                                    * image.channels
+                                    (j * image.size[0] + i) * image.channels : (j * image.size[0] + i) * image.channels
                                     + 3
                                 ]
                             )
@@ -2678,7 +2641,7 @@ def writeNonCITextureData(image: bpy.types.Image, fImage: FImage, texFmt: str):
     # We stored 4bit values in byte arrays, now to convert
     if bitSize == "G_IM_SIZ_4b":
         fImage.data = compactNibbleArray(fImage.data, image.size[0], image.size[1])
-    
+
     fImage.converted = True
 
 

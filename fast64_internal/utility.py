@@ -1483,3 +1483,9 @@ def ootGetBaseOrCustomLight(prop, idx, toExport: bool, errIfMissing: bool):
     if toExport:
         col, dir = exportColor(col), normToSigned8Vector(dir)
     return col, dir
+
+
+def getTextureSuffixFromFormat(texFmt):
+    # if texFmt == "RGBA16":
+    #     return "rgb5a1"
+    return texFmt.lower()
