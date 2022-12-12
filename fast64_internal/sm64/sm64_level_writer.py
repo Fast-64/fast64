@@ -16,8 +16,8 @@ from ..utility import (
     writeIfNotFound,
     getDataFromFile,
     saveDataToFile,
-    unhideAllAndGetHiddenList,
-    hideObjsInList,
+    unhideAllAndGetHiddenState,
+    restoreHiddenState,
     overwriteData,
     selectSingleObject,
     deleteIfFound,
@@ -710,7 +710,7 @@ def exportLevelC(
     zoomFlags = [False, False, False, False]
 
     if bpy.context.scene.exportHiddenGeometry:
-        hiddenObjs = unhideAllAndGetHiddenList(bpy.context.scene)
+        hiddenState = unhideAllAndGetHiddenState(bpy.context.scene)
 
     for child in childAreas:
         if len(child.children) == 0:
@@ -829,7 +829,7 @@ def exportLevelC(
     levelscriptString = prevLevelScript.to_c(areaString)
 
     if bpy.context.scene.exportHiddenGeometry:
-        hideObjsInList(hiddenObjs)
+        restoreHiddenState(hiddenState)
 
     # Remove old areas.
     for f in os.listdir(levelDir):

@@ -7,8 +7,8 @@ from ..utility import (
     PluginError,
     CData,
     prop_split,
-    unhideAllAndGetHiddenList,
-    hideObjsInList,
+    unhideAllAndGetHiddenState,
+    restoreHiddenState,
     writeCData,
     raisePluginError,
     toAlnum,
@@ -267,13 +267,13 @@ def exportCollisionToC(
     collision.cameraData = OOTCameraData(name)
 
     if bpy.context.scene.exportHiddenGeometry:
-        hiddenObjs = unhideAllAndGetHiddenList(bpy.context.scene)
+        hiddenState = unhideAllAndGetHiddenState(bpy.context.scene)
 
     # Don't remove ignore_render, as we want to resuse this for collision
     obj, allObjs = ootDuplicateHierarchy(originalObj, None, True, OOTObjectCategorizer())
 
     if bpy.context.scene.exportHiddenGeometry:
-        hideObjsInList(hiddenObjs)
+        restoreHiddenState(hiddenState)
 
     try:
         exportCollisionCommon(collision, obj, transformMatrix, includeChildren, name)
