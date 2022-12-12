@@ -1,4 +1,5 @@
 import bpy, os, mathutils
+from .collision.panel.properties import OOTCollisionExportSettings
 
 from ..utility import (
     PluginError,
@@ -7,6 +8,7 @@ from ..utility import (
     unhideAllAndGetHiddenList,
     hideObjsInList,
     writeCData,
+    toAlnum,
 )
 
 from .oot_collision_classes import (
@@ -27,6 +29,7 @@ from .oot_utility import (
     ootDuplicateHierarchy,
     ootCleanupScene,
     ootGetPath,
+    ootGetObjectPath,
 )
 
 
@@ -96,7 +99,15 @@ def exportCollisionCommon(collision, obj, transformMatrix, includeChildren, name
             collision.polygonGroups[polygonType].append(OOTCollisionPolygon(indices, normal, distance))
 
 
-def exportCollisionToC(originalObj, transformMatrix, includeChildren, name, isCustomExport, folderName, exportPath):
+def exportCollisionToC(
+    originalObj: bpy.types.Object, transformMatrix: mathutils.Matrix, exportSettings: OOTCollisionExportSettings
+):
+    includeChildren = exportSettings.includeChildren
+    name = toAlnum(originalObj.name)
+    isCustomExport = exportSettings.customExport
+    folderName = exportSettings.folder
+    exportPath = ootGetObjectPath(isCustomExport, bpy.path.abspath(exportSettings.exportPath), folderName)
+
     collision = OOTCollision(name)
     collision.cameraData = OOTCameraData(name)
 
@@ -127,8 +138,9 @@ def exportCollisionToC(originalObj, transformMatrix, includeChildren, name, isCu
 
     data.append(collisionC)
 
-    path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, False)
-    writeCData(data, os.path.join(path, name + ".h"), os.path.join(path, name + ".c"))
+    path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, True)
+    filename = exportSettings.filename if exportSettings.isCustomFilename else f"{name}_collision"
+    writeCData(data, os.path.join(path, f"{filename}.h"), os.path.join(path, f"{filename}.c"))
 
     if not isCustomExport:
         addIncludeFiles(folderName, path, name)

@@ -4,6 +4,7 @@ from bpy.types import PropertyGroup, Panel, Camera, Scene, Object, Material
 from bpy.utils import register_class, unregister_class
 from ....utility import prop_split
 from ...oot_utility import drawEnumWithCustom
+from ...oot_constants import ootEnumSceneID
 from ...oot_collision_classes import (
     ootEnumFloorSetting,
     ootEnumWallSetting,
@@ -18,6 +19,17 @@ from ...oot_collision_classes import (
 ##############
 # Properties #
 ##############
+class OOTCollisionExportSettings(PropertyGroup):
+    isCustomFilename: BoolProperty(name="Use Custom Filename", description="Override filename instead of basing it off of the Blender name")
+    filename: StringProperty(name="Filename")
+    exportPath: StringProperty(name="Directory", subtype="FILE_PATH")
+    exportLevel: EnumProperty(items=ootEnumSceneID, name="Level Used By Collision", default="SCENE_YDAN")
+    includeChildren: BoolProperty(name="Include child objects", default=True)
+    levelName: StringProperty(name="Name", default="SCENE_YDAN")
+    customExport: BoolProperty(name="Custom Export Path", description="Determines whether or not to export to an explicitly specified folder")
+    folder: StringProperty(name="Object Name", default="gameplay_keep")
+
+
 class OOTCameraPositionProperty(PropertyGroup):
     index: IntProperty(min=0)
     bgImageOverrideIndex: IntProperty(default=-1, min=-1)
@@ -153,6 +165,7 @@ oot_col_classes = (
     OOTCameraPositionPropertyRef,
     OOTCameraPositionProperty,
     OOTMaterialCollisionProperty,
+    OOTCollisionExportSettings,
 )
 
 oot_col_panel_classes = (
@@ -176,7 +189,6 @@ def collision_props_classes_register():
         register_class(cls)
 
     # Collision
-    Scene.ootColLevelName = StringProperty(name="Name", default="SCENE_YDAN")
     Object.ootCameraPositionProperty = PointerProperty(type=OOTCameraPositionProperty)
     Material.ootCollisionProperty = PointerProperty(type=OOTMaterialCollisionProperty)
     Object.ootWaterBoxProperty = PointerProperty(type=OOTWaterBoxProperty)
@@ -184,7 +196,8 @@ def collision_props_classes_register():
 
 def collision_props_classes_unregister():
     # Collision
-    del Scene.ootColLevelName
+    del Object.ootCameraPositionProperty
+    del Material.ootCollisionProperty
     del Object.ootWaterBoxProperty
 
     for cls in reversed(oot_col_classes):

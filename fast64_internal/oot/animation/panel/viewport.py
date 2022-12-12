@@ -20,7 +20,9 @@ class OOT_ExportAnim(Operator):
     # Can also be called from operator search menu (Spacebar)
     def execute(self, context):
         try:
-            if len(context.selected_objects) == 0 or not isinstance(context.selected_objects[0].data, Armature):
+            if len(context.selected_objects) == 0 or not isinstance(
+                context.selected_objects[0].data, Armature
+            ):
                 raise PluginError("Armature not selected.")
             if len(context.selected_objects) > 1:
                 raise PluginError("Multiple objects selected, make sure to select only one.")
@@ -52,7 +54,9 @@ class OOT_ImportAnim(Operator):
     # Can also be called from operator search menu (Spacebar)
     def execute(self, context):
         try:
-            if len(context.selected_objects) == 0 or not isinstance(context.selected_objects[0].data, Armature):
+            if len(context.selected_objects) == 0 or not isinstance(
+                context.selected_objects[0].data, Armature
+            ):
                 raise PluginError("Armature not selected.")
             if len(context.selected_objects) > 1:
                 raise PluginError("Multiple objects selected, make sure to select only one.")
@@ -96,25 +100,24 @@ class OOT_ExportAnimPanel(OOT_Panel):
 
         col.operator(OOT_ExportAnim.bl_idname)
         exportSettings = context.scene.fast64.oot.animExportSettings
-        prop_split(col, exportSettings, "skeletonName", "Anim Name Prefix")
-
+        col.label(text="Exports active animation on selected object.", icon="INFO")
+        col.prop(exportSettings, "isCustomFilename")
+        if exportSettings.isCustomFilename:
+            prop_split(col, exportSettings, "filename", "Filename")
         if exportSettings.isCustom:
             prop_split(col, exportSettings, "customPath", "Folder")
         elif not exportSettings.isLink:
             prop_split(col, exportSettings, "folderName", "Object")
-
         col.prop(exportSettings, "isLink")
         col.prop(exportSettings, "isCustom")
 
         col.operator(OOT_ImportAnim.bl_idname)
         importSettings = context.scene.fast64.oot.animImportSettings
         prop_split(col, importSettings, "animName", "Anim Header Name")
-
         if importSettings.isCustom:
             prop_split(col, importSettings, "customPath", "File")
         elif not importSettings.isLink:
             prop_split(col, importSettings, "folderName", "Object")
-
         col.prop(importSettings, "isLink")
         col.prop(importSettings, "isCustom")
 

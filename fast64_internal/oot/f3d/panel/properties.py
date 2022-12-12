@@ -39,6 +39,7 @@ class OOT_DisplayListPanel(Panel):
 
         # Doesn't work since all static meshes are pre-transformed
         # box.prop(obj.ootDynamicTransform, "billboard")
+
         # drawParentSceneRoom(box, obj)
 
 

@@ -22,15 +22,17 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
             b.label(icon="LIBRARY_DATA_BROKEN", text="Do not draw anything in SkelAnime")
             b.label(text="callbacks or cull limbs, will be corrupted.")
         col.prop(exportSettings, "isCustom")
+        col.label(text="Object name used for export.", icon="INFO")
+        col.prop(exportSettings, "isCustomFilename")
+        if exportSettings.isCustomFilename:
+            prop_split(col, exportSettings, "filename", "Filename")
         if exportSettings.isCustom:
-            prop_split(col, exportSettings, "name", "Skeleton")
             prop_split(col, exportSettings, "folder", "Object" if not exportSettings.isCustom else "Folder")
             prop_split(col, exportSettings, "customAssetIncludeDir", "Asset Include Path")
             prop_split(col, exportSettings, "customPath", "Path")
         else:
             prop_split(col, exportSettings, "mode", "Mode")
             if exportSettings.mode == "Generic":
-                prop_split(col, exportSettings, "name", "Skeleton")
                 prop_split(col, exportSettings, "folder", "Object" if not exportSettings.isCustom else "Folder")
                 prop_split(col, exportSettings, "actorOverlayName", "Overlay")
                 col.prop(exportSettings, "flipbookUses2DArray")
@@ -76,7 +78,7 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
                     )
             else:
                 col.prop(importSettings, "applyRestPose")
-
+                
 
 oot_skeleton_panels = [
     OOT_ExportSkeletonPanel,

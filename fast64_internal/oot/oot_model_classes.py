@@ -271,7 +271,7 @@ class OOTModel(FModel):
         flipbookProp = getattr(material.flipbookGroup, f"flipbook{index}")
         texProp = getattr(material.f3d_mat, f"tex{index}")
         if not usesFlipbook(material, flipbookProp, index, True, ootFlipbookReferenceIsValid):
-            return FModel.processTexRefNonCITextures(fMaterial, material, index)
+            return FModel.processTexRefNonCITextures(self, fMaterial, material, index)
         if len(flipbookProp.textures) == 0:
             raise PluginError(f"{str(material)} cannot have a flipbook material with no flipbook textures.")
 

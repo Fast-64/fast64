@@ -573,13 +573,15 @@ def ootConvertArmatureToC(
     if settings.mode != "Generic" and not settings.isCustom:
         importInfo = ootSkeletonImportDict[settings.mode]
         skeletonName = importInfo.skeletonName
+        filename = skeletonName
         folderName = importInfo.folderName
         overlayName = importInfo.actorOverlayName
         flipbookUses2DArray = importInfo.flipbookArrayIndex2D is not None
         flipbookArrayIndex2D = importInfo.flipbookArrayIndex2D
         isLink = importInfo.isLink
     else:
-        skeletonName = toAlnum(settings.name)
+        skeletonName = toAlnum(originalArmatureObj.name)
+        filename = settings.filename if settings.isCustomFilename else skeletonName
         folderName = settings.folder
         overlayName = settings.actorOverlayName if not settings.isCustom else None
         flipbookUses2DArray = settings.flipbookUses2DArray
@@ -647,11 +649,11 @@ def ootConvertArmatureToC(
         textureArrayData = writeTextureArraysNew(fModel, flipbookArrayIndex2D)
         data.append(textureArrayData)
 
-    writeCData(data, os.path.join(path, skeletonName + ".h"), os.path.join(path, skeletonName + ".c"))
+    writeCData(data, os.path.join(path, filename + ".h"), os.path.join(path, filename + ".c"))
 
     if not isCustomExport:
         writeTextureArraysExisting(bpy.context.scene.ootDecompPath, overlayName, isLink, flipbookArrayIndex2D, fModel)
-        addIncludeFiles(folderName, path, skeletonName)
+        addIncludeFiles(folderName, path, filename)
         if removeVanillaData:
             ootRemoveSkeleton(path, folderName, skeletonName)
 

@@ -5,6 +5,7 @@ from .skeleton.panel.viewport import OOTSkeletonImportSettings, OOTSkeletonExpor
 from .oot_utility import oot_utility_register, oot_utility_unregister, setAllActorsVisibility
 from .other.panel.viewport.file_settings import file_register, file_unregister
 from .oot_anim import OOTAnimExportSettingsProperty, OOTAnimImportSettingsProperty
+from .collision.panel.properties import OOTCollisionExportSettings
 from .scene.exporter.to_c import OOTBootupSceneOptions
 from .scene.panel.properties import scene_props_classes_register, scene_props_classes_unregister
 from .cutscene.panel.properties import cutscene_props_classes_register, cutscene_props_classes_unregister
@@ -113,6 +114,7 @@ class OOT_Properties(bpy.types.PropertyGroup):
     skeletonImportSettings: bpy.props.PointerProperty(type=OOTSkeletonImportSettings)
     animExportSettings: bpy.props.PointerProperty(type=OOTAnimExportSettingsProperty)
     animImportSettings: bpy.props.PointerProperty(type=OOTAnimImportSettingsProperty)
+    collisionExportSettings: bpy.props.PointerProperty(type=OOTCollisionExportSettings)
 
 
 oot_classes = (OOT_Properties,)

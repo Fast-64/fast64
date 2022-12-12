@@ -15,7 +15,10 @@ class OOT_ExportDLPanel(OOT_Panel):
         col.operator(OOT_ExportDL.bl_idname)
         exportSettings: OOTDLExportSettings = context.scene.fast64.oot.DLExportSettings
 
-        prop_split(col, exportSettings, "name", "DL")
+        col.label(text="Object name used for export.", icon="INFO")
+        col.prop(exportSettings, "isCustomFilename")
+        if exportSettings.isCustomFilename:
+            prop_split(col, exportSettings, "filename", "Filename")
         prop_split(col, exportSettings, "folder", "Object" if not exportSettings.isCustom else "Folder")
         if exportSettings.isCustom:
             prop_split(col, exportSettings, "customAssetIncludeDir", "Asset Include Path")

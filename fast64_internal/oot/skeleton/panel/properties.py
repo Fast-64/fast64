@@ -24,7 +24,7 @@ class OOT_SaveRestPose(Operator):
     bl_label = "Save Rest Pose"
     bl_options = {"REGISTER", "UNDO"}
 
-    # path: bpy.props.StringProperty(name="Path", subtype="FILE_PATH")
+    # path: StringProperty(name="Path", subtype="FILE_PATH")
     def execute(self, context):
         if context.mode != "OBJECT":
             object.mode_set(mode="OBJECT")

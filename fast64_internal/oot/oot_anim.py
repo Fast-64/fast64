@@ -406,14 +406,16 @@ def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSetti
     exportPath = ootGetObjectPath(settings.isCustom, path, settings.folderName)
 
     checkEmptyName(settings.folderName)
-    checkEmptyName(settings.skeletonName)
+    checkEmptyName(armatureObj.name)
+    name = toAlnum(armatureObj.name)
+    filename = settings.filename if settings.isCustomFilename else name
     convertTransformMatrix = (
         mathutils.Matrix.Scale(getOOTScale(armatureObj.ootActorScale), 4)
         @ mathutils.Matrix.Diagonal(armatureObj.scale).to_4x4()
     )
 
     if settings.isLink:
-        ootAnim = ootExportLinkAnimation(armatureObj, convertTransformMatrix, "gLink")
+        ootAnim = ootExportLinkAnimation(armatureObj, convertTransformMatrix, name)
         ootAnimC, ootAnimHeaderC = ootAnim.toC(settings.isCustom)
         path = ootGetPath(
             exportPath,
@@ -445,14 +447,14 @@ def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSetti
             addIncludeFiles("gameplay_keep", headerPath, ootAnim.headerName)
 
     else:
-        ootAnim = ootExportNonLinkAnimation(armatureObj, convertTransformMatrix, settings.skeletonName)
+        ootAnim = ootExportNonLinkAnimation(armatureObj, convertTransformMatrix, name)
 
         ootAnimC = ootAnim.toC()
         path = ootGetPath(exportPath, settings.isCustom, "assets/objects/", settings.folderName, False, False)
-        writeCData(ootAnimC, os.path.join(path, ootAnim.name + ".h"), os.path.join(path, ootAnim.name + ".c"))
+        writeCData(ootAnimC, os.path.join(path, filename + ".h"), os.path.join(path, filename + ".c"))
 
         if not settings.isCustom:
-            addIncludeFiles(settings.folderName, path, ootAnim.name)
+            addIncludeFiles(settings.folderName, path, filename)
 
 
 def ootImportAnimationC(

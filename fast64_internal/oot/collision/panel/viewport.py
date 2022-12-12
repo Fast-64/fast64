@@ -8,6 +8,7 @@ from ....panels import OOT_Panel
 from ....utility import PluginError, raisePluginError, prop_split
 from ...oot_utility import ootGetObjectPath, getOOTScale
 from ...oot_collision import exportCollisionToC
+from .properties import OOTCollisionExportSettings
 
 
 #############
@@ -32,17 +33,8 @@ class OOT_ExportCollision(Operator):
         finalTransform = Matrix.Scale(getOOTScale(obj.ootActorScale), 4)
 
         try:
-            scaleValue = context.scene.ootBlenderScale
-            finalTransform = Matrix.Diagonal(Vector((scaleValue, scaleValue, scaleValue))).to_4x4()
-
-            includeChildren = context.scene.ootColIncludeChildren
-            name = context.scene.ootColName
-            isCustomExport = context.scene.ootColCustomExport
-            folderName = context.scene.ootColFolder
-            exportPath = abspath(context.scene.ootColExportPath)
-
-            filepath = ootGetObjectPath(isCustomExport, exportPath, folderName)
-            exportCollisionToC(obj, finalTransform, includeChildren, name, isCustomExport, folderName, filepath)
+            exportSettings: OOTCollisionExportSettings = context.scene.fast64.oot.collisionExportSettings
+            exportCollisionToC(obj, finalTransform, exportSettings)
 
             self.report({"INFO"}, "Success!")
             return {"FINISHED"}
@@ -66,13 +58,16 @@ class OOT_ExportCollisionPanel(OOT_Panel):
         col = self.layout.column()
         col.operator(OOT_ExportCollision.bl_idname)
 
-        prop_split(col, context.scene, "ootColName", "Name")
-        if context.scene.ootColCustomExport:
-            prop_split(col, context.scene, "ootColExportPath", "Custom Folder")
-        else:
-            prop_split(col, context.scene, "ootColFolder", "Object")
-        col.prop(context.scene, "ootColCustomExport")
-        col.prop(context.scene, "ootColIncludeChildren")
+        exportSettings: OOTCollisionExportSettings = context.scene.fast64.oot.collisionExportSettings
+        col.label(text="Object name used for export.", icon="INFO")
+        col.prop(exportSettings, "isCustomFilename")
+        if exportSettings.isCustomFilename:
+            prop_split(col, exportSettings, "filename", "Filename")
+        prop_split(col, exportSettings, "folder", "Object" if not exportSettings.customExport else "Folder")
+        if exportSettings.customExport:
+            prop_split(col, exportSettings, "exportPath", "Directory")
+        col.prop(exportSettings, "customExport")
+        col.prop(exportSettings, "includeChildren")
 
 
 oot_col_classes = (OOT_ExportCollision,)
@@ -94,21 +89,7 @@ def collision_viewport_classes_register():
     for cls in oot_col_classes:
         register_class(cls)
 
-    # Collision
-    Scene.ootColExportPath = StringProperty(name="Directory", subtype="FILE_PATH")
-    Scene.ootColIncludeChildren = BoolProperty(name="Include child objects", default=True)
-    Scene.ootColName = StringProperty(name="Name", default="collision")
-    Scene.ootColCustomExport = BoolProperty(name="Custom Export Path")
-    Scene.ootColFolder = StringProperty(name="Object Name", default="gameplay_keep")
-
 
 def collision_viewport_classes_unregister():
-    # Collision
-    del Scene.ootColExportPath
-    del Scene.ootColName
-    del Scene.ootColIncludeChildren
-    del Scene.ootColCustomExport
-    del Scene.ootColFolder
-
     for cls in reversed(oot_col_classes):
         unregister_class(cls)

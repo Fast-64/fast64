@@ -18,11 +18,12 @@ def ootUpdateLinkMouth(self, context):
 
 
 class OOTAnimExportSettingsProperty(PropertyGroup):
-    isCustom: BoolProperty(name="Use Custom Path")
+    isCustomFilename: BoolProperty(name="Use Custom Filename", description="Override filename instead of basing it off of the Blender name")
+    filename: StringProperty(name="Filename")
+    isCustom: BoolProperty(name="Use Custom Path", description="Determines whether or not to export to an explicitly specified folder")
     customPath: StringProperty(name="Folder", subtype="FILE_PATH")
     folderName: StringProperty(name="Animation Folder", default="object_geldb")
     isLink: BoolProperty(name="Is Link", default=False)
-    skeletonName: StringProperty(name="Skeleton Name", default="gGerudoRedSkel")
 
 
 class OOTAnimImportSettingsProperty(PropertyGroup):

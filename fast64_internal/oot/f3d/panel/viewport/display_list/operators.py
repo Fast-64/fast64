@@ -20,7 +20,7 @@ class OOT_ImportDL(Operator):
     # Called on demand (i.e. button press, menu item)
     # Can also be called from operator search menu (Spacebar)
     def execute(self, context):
-        from .....oot_f3d_writer import ootReadActorScale  # todo: better fix for circular import
+        from .....oot_f3d_writer import ootReadActorScale  # temp circular import fix
 
         obj = None
         if context.mode != "OBJECT":
@@ -83,7 +83,8 @@ class OOT_ExportDL(Operator):
     # Called on demand (i.e. button press, menu item)
     # Can also be called from operator search menu (Spacebar)
     def execute(self, context):
-        from .....oot_f3d_writer import ootConvertMeshToC  # todo: better fix for circular import
+        from .....oot_f3d_writer import ootConvertMeshToC  # temp circular import fix
+
 
         obj = None
         if context.mode != "OBJECT":

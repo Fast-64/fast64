@@ -17,7 +17,8 @@ class OOT_ImportSkeleton(Operator):
     # Called on demand (i.e. button press, menu item)
     # Can also be called from operator search menu (Spacebar)
     def execute(self, context):
-        from ....oot_skeleton import ootImportSkeletonC  # todo: better fix for ciruclar import
+        from ....oot_skeleton import ootImportSkeletonC  # temp circular import fix
+
 
         if context.mode != "OBJECT":
             object.mode_set(mode="OBJECT")
@@ -47,7 +48,8 @@ class OOT_ExportSkeleton(Operator):
     # Called on demand (i.e. button press, menu item)
     # Can also be called from operator search menu (Spacebar)
     def execute(self, context):
-        from ....oot_skeleton import ootConvertArmatureToC  # todo: better fix for ciruclar import
+        from ....oot_skeleton import ootConvertArmatureToC  # temp circular import fix
+
 
         armatureObj = None
         if context.mode != "OBJECT":
