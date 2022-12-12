@@ -1,11 +1,58 @@
-from bpy.types import Operator, Armature, Mesh
+from bpy.types import Armature, Operator, Mesh
 from bpy.ops import object
+from bpy.utils import register_class, unregister_class
 from bpy.path import abspath
 from mathutils import Matrix
-from .....utility import PluginError, raisePluginError
-from .....f3d.f3d_gbi import DLFormat
-from ....oot_utility import getOOTScale
-from .classes import OOTSkeletonImportSettings, OOTSkeletonExportSettings
+from ...f3d.f3d_gbi import DLFormat
+from ...utility import PluginError, raisePluginError
+from ..oot_utility import getStartBone, getNextBone, getOOTScale
+from .properties import OOTSkeletonImportSettings, OOTSkeletonExportSettings
+
+
+# Copy data from console into python file
+class OOT_SaveRestPose(Operator):
+    # set bl_ properties
+    bl_idname = "object.oot_save_rest_pose"
+    bl_label = "Save Rest Pose"
+    bl_options = {"REGISTER", "UNDO"}
+
+    # path: StringProperty(name="Path", subtype="FILE_PATH")
+    def execute(self, context):
+        if context.mode != "OBJECT":
+            object.mode_set(mode="OBJECT")
+
+        if len(context.selected_objects) == 0:
+            raise PluginError("Armature not selected.")
+        armatureObj = context.active_object
+        if type(armatureObj.data) is not Armature:
+            raise PluginError("Armature not selected.")
+
+        try:
+            data = "restPoseData = [\n"
+            startBoneName = getStartBone(armatureObj)
+            boneStack = [startBoneName]
+
+            firstBone = True
+            while len(boneStack) > 0:
+                bone, boneStack = getNextBone(boneStack, armatureObj)
+                poseBone = armatureObj.pose.bones[bone.name]
+                if firstBone:
+                    data += str(poseBone.matrix_basis.decompose()[0][:]) + ", "
+                    firstBone = False
+                data += str((poseBone.matrix_basis.decompose()[1]).to_euler()[:]) + ", "
+
+            data += "\n]"
+
+            print(data)
+
+            self.report({"INFO"}, "Success!")
+            return {"FINISHED"}
+
+        except Exception as e:
+            if context.mode != "OBJECT":
+                object.mode_set(mode="OBJECT")
+            raisePluginError(self, e)
+            return {"CANCELLED"}  # must return a set
 
 
 class OOT_ImportSkeleton(Operator):
@@ -17,7 +64,7 @@ class OOT_ImportSkeleton(Operator):
     # Called on demand (i.e. button press, menu item)
     # Can also be called from operator search menu (Spacebar)
     def execute(self, context):
-        from ....oot_skeleton import ootImportSkeletonC  # temp circular import fix
+        from ..oot_skeleton import ootImportSkeletonC  # temp circular import fix
 
 
         if context.mode != "OBJECT":
@@ -48,7 +95,7 @@ class OOT_ExportSkeleton(Operator):
     # Called on demand (i.e. button press, menu item)
     # Can also be called from operator search menu (Spacebar)
     def execute(self, context):
-        from ....oot_skeleton import ootConvertArmatureToC  # temp circular import fix
+        from ..oot_skeleton import ootConvertArmatureToC  # temp circular import fix
 
 
         armatureObj = None
@@ -93,3 +140,20 @@ class OOT_ExportSkeleton(Operator):
                 object.mode_set(mode="OBJECT")
             raisePluginError(self, e)
             return {"CANCELLED"}  # must return a set
+
+
+oot_skeleton_classes = (
+    OOT_SaveRestPose,
+    OOT_ImportSkeleton,
+    OOT_ExportSkeleton,
+)
+
+
+def skeleton_ops_register():
+    for cls in oot_skeleton_classes:
+        register_class(cls)
+
+
+def skeleton_ops_unregister():
+    for cls in reversed(oot_skeleton_classes):
+        unregister_class(cls)

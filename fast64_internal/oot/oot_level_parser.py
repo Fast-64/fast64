@@ -9,9 +9,8 @@ from .collision.properties import OOTMaterialCollisionProperty
 from .oot_model_classes import OOTF3DContext
 from .oot_f3d_writer import getColliderMat
 from .scene.exporter.to_c import getDrawConfig
-from .scene.panel.viewport import OOTImportSceneSettingsProperty
-from .scene.panel.properties import OOTSceneHeaderProperty, OOTLightProperty
-from .room.panel.properties import OOTRoomHeaderProperty
+from .scene.properties import OOTSceneHeaderProperty, OOTLightProperty, OOTImportSceneSettingsProperty
+from .room.properties import OOTRoomHeaderProperty
 from .actor.properties import OOTActorProperty, OOTActorHeaderProperty
 
 from .oot_utility import (

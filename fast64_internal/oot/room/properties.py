@@ -1,9 +1,9 @@
 import bpy
-from bpy.types import PropertyGroup, Operator, UILayout, Image, Object
+from bpy.types import PropertyGroup, UILayout, Image, Object
 from bpy.utils import register_class, unregister_class
-from ....utility import ootGetSceneOrRoomHeader, prop_split
-from ...oot_utility import drawCollectionOps, onMenuTabChange, onHeaderMenuTabChange
-from ...oot_upgrade import upgradeRoomHeaders
+from ...utility import prop_split
+from ..oot_utility import drawCollectionOps, onMenuTabChange, onHeaderMenuTabChange
+from ..oot_upgrade import upgradeRoomHeaders
 
 from bpy.props import (
     EnumProperty,
@@ -16,7 +16,7 @@ from bpy.props import (
     IntVectorProperty,
 )
 
-from ...oot_constants import (
+from ..oot_constants import (
     ootData,
     ootEnumRoomMenu,
     ootEnumRoomMenuAlternate,
@@ -25,29 +25,6 @@ from ...oot_constants import (
     ootEnumRoomShapeType,
     ootEnumHeaderMenu,
 )
-
-
-class OOT_SearchObjectEnumOperator(Operator):
-    bl_idname = "object.oot_search_object_enum_operator"
-    bl_label = "Search Object ID"
-    bl_property = "objectKey"
-    bl_options = {"REGISTER", "UNDO"}
-
-    objectKey: EnumProperty(items=ootData.objectData.ootEnumObjectKey, default="obj_human")
-    headerIndex: IntProperty(default=0, min=0)
-    index: IntProperty(default=0, min=0)
-    objName: StringProperty()
-
-    def execute(self, context):
-        roomHeader = ootGetSceneOrRoomHeader(bpy.data.objects[self.objName], self.headerIndex, True)
-        roomHeader.objectList[self.index].objectKey = self.objectKey
-        context.region.tag_redraw()
-        self.report({"INFO"}, "Selected: " + self.objectKey)
-        return {"FINISHED"}
-
-    def invoke(self, context, event):
-        context.window_manager.invoke_search_popup(self)
-        return {"RUNNING_MODAL"}
 
 
 class OOTObjectProperty(PropertyGroup):
@@ -137,7 +114,6 @@ class OOTAlternateRoomHeaderProperty(PropertyGroup):
 
 
 classes = (
-    OOT_SearchObjectEnumOperator,
     OOTObjectProperty,
     OOTBGProperty,
     OOTRoomHeaderProperty,
@@ -145,7 +121,7 @@ classes = (
 )
 
 
-def room_props_classes_register():
+def room_props_register():
     for cls in classes:
         register_class(cls)
 
@@ -153,7 +129,7 @@ def room_props_classes_register():
     Object.ootAlternateRoomHeaders = PointerProperty(type=OOTAlternateRoomHeaderProperty)
 
 
-def room_props_classes_unregister():
+def room_props_unregister():
     del bpy.types.Object.ootRoomHeader
     del bpy.types.Object.ootAlternateRoomHeaders
 

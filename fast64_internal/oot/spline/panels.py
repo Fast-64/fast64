@@ -1,30 +1,10 @@
-from bpy.types import Panel, PropertyGroup, Curve, Object
-from bpy.props import EnumProperty, PointerProperty, StringProperty, IntProperty
+from bpy.types import Panel, Curve
 from bpy.utils import register_class, unregister_class
-from ....utility import prop_split
-from ...oot_utility import getSceneObj, drawEnumWithCustom
-from ...oot_actor import drawActorHeaderProperty
-from ...oot_collision_classes import ootEnumCameraCrawlspaceSType
-from ...actor.properties import OOTActorHeaderProperty
+from ...utility import prop_split
+from ..oot_utility import getSceneObj, drawEnumWithCustom
+from ..oot_actor import drawActorHeaderProperty
 
 
-##############
-# Properties #
-##############
-ootSplineEnum = [("Path", "Path", "Path"), ("Crawlspace", "Crawlspace", "Crawlspace")]
-
-
-class OOTSplineProperty(PropertyGroup):
-    splineType: EnumProperty(items=ootSplineEnum, default="Path")
-    index: IntProperty(min=0)  # only used for crawlspace, not path
-    headerSettings: PointerProperty(type=OOTActorHeaderProperty)
-    camSType: EnumProperty(items=ootEnumCameraCrawlspaceSType, default="CAM_SET_CRAWLSPACE")
-    camSTypeCustom: StringProperty(default="CAM_SET_CRAWLSPACE")
-
-
-#############
-#   Panel   #
-#############
 class OOTSplinePanel(Panel):
     bl_label = "Spline Inspector"
     bl_idname = "OBJECT_PT_OOT_Spline_Inspector"
@@ -59,32 +39,14 @@ class OOTSplinePanel(Panel):
                 drawEnumWithCustom(box, splineProp, "camSType", "Camera S Type", "")
 
 
-oot_spline_classes = (OOTSplineProperty,)
-
-
 oot_spline_panel_classes = (OOTSplinePanel,)
 
 
-def spline_props_panel_register():
+def spline_panels_register():
     for cls in oot_spline_panel_classes:
         register_class(cls)
 
 
-def spline_props_panel_unregister():
+def spline_panels_unregister():
     for cls in oot_spline_panel_classes:
         unregister_class(cls)
-
-
-def spline_props_classes_register():
-    for cls in oot_spline_classes:
-        register_class(cls)
-
-    Object.ootSplineProperty = PointerProperty(type=OOTSplineProperty)
-
-
-def spline_props_classes_unregister():
-
-    for cls in reversed(oot_spline_classes):
-        unregister_class(cls)
-
-    del Object.ootSplineProperty

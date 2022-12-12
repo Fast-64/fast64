@@ -1,4 +1,4 @@
-from bpy.types import PropertyGroup, Object, Light
+from bpy.types import PropertyGroup, Object, Light, UILayout, Scene
 from bpy.props import (
     EnumProperty,
     IntProperty,
@@ -8,11 +8,13 @@ from bpy.props import (
     BoolProperty,
     FloatVectorProperty,
 )
-from .....render_settings import on_update_oot_render_settings
-from ....cutscene.properties import OOTCSListProperty
-from ....oot_utility import onMenuTabChange, onHeaderMenuTabChange
+from bpy.utils import register_class, unregister_class
+from ...render_settings import on_update_oot_render_settings
+from ...utility import prop_split
+from ..cutscene.properties import OOTCSListProperty
+from ..oot_utility import onMenuTabChange, onHeaderMenuTabChange
 
-from ....oot_constants import (
+from ..oot_constants import (
     ootEnumMusicSeq,
     ootEnumSceneID,
     ootEnumExitIndex,
@@ -32,7 +34,18 @@ from ....oot_constants import (
     ootEnumSceneMenuAlternate,
     ootEnumHeaderMenu,
     ootEnumDrawConfig,
+    ootEnumHeaderMenuComplete,
 )
+
+
+ootEnumBootMode = [
+    ("Play", "Play", "Play"),
+    ("Map Select", "Map Select", "Map Select"),
+    ("File Select", "File Select", "File Select"),
+]
+
+def isSceneObj(self, obj):
+    return obj.data is None and obj.ootEmptyType == "Scene"
 
 
 class OOTSceneProperties(PropertyGroup):
@@ -205,3 +218,124 @@ class OOTAlternateSceneHeaderProperty(PropertyGroup):
 
     headerMenuTab: EnumProperty(name="Header Menu", items=ootEnumHeaderMenu, update=onHeaderMenuTabChange)
     currentCutsceneIndex: IntProperty(min=4, default=4, update=onHeaderMenuTabChange)
+
+
+class OOTBootupSceneOptions(PropertyGroup):
+    bootToScene: BoolProperty(default=False, name="Boot To Scene")
+    overrideHeader: BoolProperty(default=False, name="Override Header")
+    headerOption: EnumProperty(items=ootEnumHeaderMenuComplete, name="Header", default="Child Day")
+    spawnIndex: IntProperty(name="Spawn", min=0)
+    newGameOnly: BoolProperty(
+        default=False,
+        name="Override Scene On New Game Only",
+        description="Only use this starting scene after loading a new save file",
+    )
+    newGameName: StringProperty(default="Link", name="New Game Name")
+    bootMode: EnumProperty(default="Play", name="Boot Mode", items=ootEnumBootMode)
+
+    # see src/code/z_play.c:Play_Init() - can't access more than 16 cutscenes?
+    cutsceneIndex: IntProperty(min=4, max=19, default=4, name="Cutscene Index")
+
+
+class OOTRemoveSceneSettingsProperty(PropertyGroup):
+    name: StringProperty(name="Name", default="spot03")
+    subFolder: StringProperty(name="Subfolder", default="overworld")
+    customExport: BoolProperty(name="Custom Export Path")
+    option: EnumProperty(items=ootEnumSceneID, default="SCENE_DEKU_TREE")
+
+
+class OOTExportSceneSettingsProperty(PropertyGroup):
+    name: StringProperty(name="Name", default="spot03")
+    subFolder: StringProperty(name="Subfolder", default="overworld")
+    exportPath: StringProperty(name="Directory", subtype="FILE_PATH")
+    customExport: BoolProperty(name="Custom Export Path")
+    singleFile: BoolProperty(
+        name="Export as Single File",
+        default=False,
+        description="Does not split the scene and rooms into multiple files.",
+    )
+    option: EnumProperty(items=ootEnumSceneID, default="SCENE_DEKU_TREE")
+
+
+class OOTImportSceneSettingsProperty(PropertyGroup):
+    name: StringProperty(name="Name", default="spot03")
+    subFolder: StringProperty(name="Subfolder", default="overworld")
+    destPath: StringProperty(name="Directory", subtype="FILE_PATH")
+    isCustomDest: BoolProperty(name="Custom Path")
+    includeMesh: BoolProperty(name="Mesh", default=True)
+    includeCollision: BoolProperty(name="Collision", default=True)
+    includeActors: BoolProperty(name="Actors", default=True)
+    includeCullGroups: BoolProperty(name="Cull Groups", default=True)
+    includeLights: BoolProperty(name="Lights", default=True)
+    includeCameras: BoolProperty(name="Cameras", default=True)
+    includePaths: BoolProperty(name="Paths", default=True)
+    includeWaterBoxes: BoolProperty(name="Water Boxes", default=True)
+    option: EnumProperty(items=ootEnumSceneID, default="SCENE_DEKU_TREE")
+
+    def draw(self, layout: UILayout, sceneOption: str):
+        col = layout.column()
+        includeButtons1 = col.row(align=True)
+        includeButtons1.prop(self, "includeMesh", toggle=1)
+        includeButtons1.prop(self, "includeCollision", toggle=1)
+
+        includeButtons2 = col.row(align=True)
+        includeButtons2.prop(self, "includeActors", toggle=1)
+        includeButtons2.prop(self, "includeCullGroups", toggle=1)
+        includeButtons2.prop(self, "includeLights", toggle=1)
+
+        includeButtons3 = col.row(align=True)
+        includeButtons3.prop(self, "includeCameras", toggle=1)
+        includeButtons3.prop(self, "includePaths", toggle=1)
+        includeButtons3.prop(self, "includeWaterBoxes", toggle=1)
+        col.prop(self, "isCustomDest")
+        if self.isCustomDest:
+            prop_split(col, self, "destPath", "Directory")
+            prop_split(col, self, "name", "Name")
+        else:
+            if self.option == "Custom":
+                prop_split(col, self, "subFolder", "Subfolder")
+                prop_split(col, self, "name", "Name")
+
+        col.label(text="Cutscenes won't be imported.")
+
+        if "SCENE_JABU_JABU" in sceneOption:
+            col.label(text="Pulsing wall effect won't be imported.", icon="ERROR")
+
+
+classes = (
+    OOTExitProperty,
+    OOTLightProperty,
+    OOTLightGroupProperty,
+    OOTSceneTableEntryProperty,
+    OOTExtraCutsceneProperty,
+    OOTSceneHeaderProperty,
+    OOTAlternateSceneHeaderProperty,
+    OOTBootupSceneOptions,
+    OOTRemoveSceneSettingsProperty,
+    OOTExportSceneSettingsProperty,
+    OOTImportSceneSettingsProperty,
+)
+
+
+def scene_props_register():
+    for cls in classes:
+        register_class(cls)
+
+    Object.ootSceneHeader = PointerProperty(type=OOTSceneHeaderProperty)
+    Object.ootAlternateSceneHeaders = PointerProperty(type=OOTAlternateSceneHeaderProperty)
+    Scene.ootSceneExportObj = PointerProperty(type=Object, poll=isSceneObj)
+    Scene.ootSceneExportSettings = PointerProperty(type=OOTExportSceneSettingsProperty)
+    Scene.ootSceneImportSettings = PointerProperty(type=OOTImportSceneSettingsProperty)
+    Scene.ootSceneRemoveSettings = PointerProperty(type=OOTRemoveSceneSettingsProperty)
+
+
+def scene_props_unregister():
+    del Object.ootSceneHeader
+    del Object.ootAlternateSceneHeaders
+    del Scene.ootSceneExportObj
+    del Scene.ootSceneExportSettings
+    del Scene.ootSceneImportSettings
+    del Scene.ootSceneRemoveSettings
+
+    for cls in reversed(classes):
+        unregister_class(cls)

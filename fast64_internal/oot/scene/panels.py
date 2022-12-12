@@ -1,15 +1,18 @@
 import os
 from bpy.utils import register_class, unregister_class
-from bpy.types import Scene, Object
-from bpy.props import PointerProperty
-from .....utility import customExportWarning, prop_split
-from .....panels import OOT_Panel
-from ....scene.exporter.to_c import OOT_ClearBootupScene, ootSceneBootupRegister, ootSceneBootupUnregister
-from ....oot_constants import ootEnumSceneID
-from ....oot_utility import getEnumName
-from ..properties import OOT_SearchSceneEnumOperator
-from .classes import OOTExportSceneSettingsProperty, OOTImportSceneSettingsProperty, OOTRemoveSceneSettingsProperty
-from .operators import OOT_ImportScene, OOT_ExportScene, OOT_RemoveScene
+from ...utility import customExportWarning, prop_split
+from ...panels import OOT_Panel
+from ..oot_constants import ootEnumSceneID
+from ..oot_utility import getEnumName
+from .properties import OOTExportSceneSettingsProperty, OOTImportSceneSettingsProperty, OOTRemoveSceneSettingsProperty
+
+from .operators import (
+    OOT_ImportScene,
+    OOT_ExportScene,
+    OOT_RemoveScene,
+    OOT_SearchSceneEnumOperator,
+    OOT_ClearBootupScene,
+)
 
 
 class OOT_ExportScenePanel(OOT_Panel):
@@ -106,51 +109,16 @@ class OOT_ExportScenePanel(OOT_Panel):
             removeRow.enabled = True
 
 
-oot_level_classes = (
-    OOT_ExportScene,
-    OOT_ImportScene,
-    OOT_RemoveScene,
-    OOTImportSceneSettingsProperty,
-    OOTExportSceneSettingsProperty,
-    OOTRemoveSceneSettingsProperty,
+classes = (
+    OOT_ExportScenePanel,
 )
 
-oot_level_panel_classes = (OOT_ExportScenePanel,)
 
-
-def isSceneObj(self, obj):
-    return obj.data is None and obj.ootEmptyType == "Scene"
-
-
-def oot_level_panel_register():
-    for cls in oot_level_panel_classes:
+def scene_panels_register():
+    for cls in classes:
         register_class(cls)
 
 
-def oot_level_panel_unregister():
-    for cls in oot_level_panel_classes:
+def scene_panels_unregister():
+    for cls in classes:
         unregister_class(cls)
-
-
-def oot_level_register():
-    for cls in oot_level_classes:
-        register_class(cls)
-
-    ootSceneBootupRegister()
-
-    Scene.ootSceneExportObj = PointerProperty(type=Object, poll=isSceneObj)
-    Scene.ootSceneExportSettings = PointerProperty(type=OOTExportSceneSettingsProperty)
-    Scene.ootSceneImportSettings = PointerProperty(type=OOTImportSceneSettingsProperty)
-    Scene.ootSceneRemoveSettings = PointerProperty(type=OOTRemoveSceneSettingsProperty)
-
-
-def oot_level_unregister():
-    del Scene.ootSceneExportObj
-    del Scene.ootSceneExportSettings
-    del Scene.ootSceneImportSettings
-    del Scene.ootSceneRemoveSettings
-
-    for cls in reversed(oot_level_classes):
-        unregister_class(cls)
-
-    ootSceneBootupUnregister()

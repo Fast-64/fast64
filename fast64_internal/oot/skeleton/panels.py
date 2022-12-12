@@ -1,8 +1,63 @@
+from bpy.types import Armature, Panel
 from bpy.utils import register_class, unregister_class
-from .....utility import prop_split
-from .....panels import OOT_Panel
-from .classes import OOTSkeletonImportSettings, OOTSkeletonExportSettings
+from ...utility import prop_split
+from ...panels import OOT_Panel
+from .properties import OOTSkeletonImportSettings, OOTSkeletonExportSettings
 from .operators import OOT_ImportSkeleton, OOT_ExportSkeleton
+
+
+class OOT_SkeletonPanel(Panel):
+    bl_idname = "OOT_PT_skeleton"
+    bl_label = "OOT Skeleton Properties"
+    bl_space_type = "PROPERTIES"
+    bl_region_type = "WINDOW"
+    bl_context = "object"
+    bl_options = {"HIDE_HEADER"}
+
+    @classmethod
+    def poll(cls, context):
+        return (
+            context.scene.gameEditorMode == "OOT"
+            and hasattr(context, "object")
+            and context.object is not None
+            and isinstance(context.object.data, Armature)
+        )
+
+    # called every frame
+    def draw(self, context):
+        col = self.layout.box().column()
+        col.box().label(text="OOT Skeleton Inspector")
+        prop_split(col, context.object, "ootDrawLayer", "Draw Layer")
+        prop_split(col, context.object.ootSkeleton, "LOD", "LOD Skeleton")
+        if context.object.ootSkeleton.LOD is not None:
+            col.label(text="Make sure LOD has same bone structure.", icon="BONE_DATA")
+        prop_split(col, context.object, "ootActorScale", "Actor Scale")
+
+
+class OOT_BonePanel(Panel):
+    bl_idname = "OOT_PT_bone"
+    bl_label = "OOT Bone Properties"
+    bl_space_type = "PROPERTIES"
+    bl_region_type = "WINDOW"
+    bl_context = "bone"
+    bl_options = {"HIDE_HEADER"}
+
+    @classmethod
+    def poll(cls, context):
+        return context.scene.gameEditorMode == "OOT" and context.bone is not None
+
+    # called every frame
+    def draw(self, context):
+        col = self.layout.box().column()
+        col.box().label(text="OOT Bone Inspector")
+        prop_split(col, context.bone.ootBone, "boneType", "Bone Type")
+        if context.bone.ootBone.boneType == "Custom DL":
+            prop_split(col, context.bone.ootBone, "customDLName", "DL Name")
+        if context.bone.ootBone.boneType == "Custom DL" or context.bone.ootBone.boneType == "Ignore":
+            col.label(text="Make sure no geometry is skinned to this bone.", icon="BONE_DATA")
+
+        if context.bone.ootBone.boneType != "Ignore":
+            col.prop(context.bone.ootBone.dynamicTransform, "billboard")
 
 
 class OOT_ExportSkeletonPanel(OOT_Panel):
@@ -78,35 +133,20 @@ class OOT_ExportSkeletonPanel(OOT_Panel):
                     )
             else:
                 col.prop(importSettings, "applyRestPose")
-                
 
-oot_skeleton_panels = [
+
+oot_skeleton_panels = (
+    OOT_SkeletonPanel,
+    OOT_BonePanel,
     OOT_ExportSkeletonPanel,
-]
-
-oot_skeleton_classes = [
-    OOT_ExportSkeleton,
-    OOT_ImportSkeleton,
-    OOTSkeletonExportSettings,
-    OOTSkeletonImportSettings,
-]
+)
 
 
-def skeletonPanelRegister():
+def skeleton_panels_register():
     for cls in oot_skeleton_panels:
         register_class(cls)
 
 
-def skeletonPanelUnregister():
+def skeleton_panels_unregister():
     for cls in oot_skeleton_panels:
-        unregister_class(cls)
-
-
-def skeletonRegister():
-    for cls in oot_skeleton_classes:
-        register_class(cls)
-
-
-def skeletonUnregister():
-    for cls in reversed(oot_skeleton_classes):
         unregister_class(cls)

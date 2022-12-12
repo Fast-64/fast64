@@ -4,8 +4,6 @@ from .spec import editSpecFile
 from .scene_folder import modifySceneFiles, deleteSceneFiles
 from .scene_bootup import (
     OOTBootupSceneOptions,
-    OOT_ClearBootupScene,
     setBootupScene,
-    ootSceneBootupRegister,
-    ootSceneBootupUnregister,
+    clearBootupScene
 )

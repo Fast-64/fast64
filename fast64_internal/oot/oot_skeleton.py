@@ -45,7 +45,7 @@ from .oot_utility import (
 from ..utility_anim import armatureApplyWithMesh
 from .oot_texture_array import ootReadTextureArrays
 from .oot_skeleton_import_data import applySkeletonRestPose, ootSkeletonImportDict
-from .skeleton.panel.viewport import OOTSkeletonExportSettings, OOTSkeletonImportSettings
+from .skeleton.properties import OOTSkeletonExportSettings, OOTSkeletonImportSettings
 
 
 class OOTSkeleton:

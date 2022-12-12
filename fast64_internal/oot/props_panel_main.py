@@ -5,8 +5,8 @@ from .oot_collision import drawWaterBoxProperty
 from .oot_constants import ootEnumEmptyType
 from .oot_utility import getSceneObj, getRoomObj
 from .oot_cutscene import drawCutsceneProperty
-from .scene.panel.properties import OOTSceneProperties
-from .room.panel.properties import OOTObjectProperty
+from .scene.properties import OOTSceneProperties
+from .room.properties import OOTObjectProperty
 
 from .oot_actor import (
     drawActorProperty,

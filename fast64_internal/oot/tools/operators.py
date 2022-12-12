@@ -2,8 +2,8 @@ from mathutils import Vector
 from bpy.ops import mesh, object, curve
 from bpy.types import Operator
 from bpy.props import FloatProperty, StringProperty
-from ......operators import AddWaterBox, addMaterialByName
-from ......utility import parentObject, setOrigin
+from ...operators import AddWaterBox, addMaterialByName
+from ...utility import parentObject, setOrigin
 
 
 class OOT_AddWaterBox(AddWaterBox):

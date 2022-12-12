@@ -1,9 +1,9 @@
 from bpy.utils import register_class, unregister_class
 from bpy.props import StringProperty, FloatProperty
 from bpy.types import Scene
-from .....utility import prop_split
-from .....render_settings import on_update_render_settings
-from .....panels import OOT_Panel
+from ..utility import prop_split
+from ..render_settings import on_update_render_settings
+from ..panels import OOT_Panel
 
 
 class OOT_FileSettingsPanel(OOT_Panel):

@@ -1,7 +1,7 @@
 import bpy, os, math, mathutils
 from ..f3d.f3d_gbi import TextureExportSettings
 from ..f3d.f3d_writer import TriangleConverterInfo, saveStaticModel, getInfoDict
-from .room.panel.properties import OOTRoomHeaderProperty, OOTAlternateRoomHeaderProperty
+from .room.properties import OOTRoomHeaderProperty, OOTAlternateRoomHeaderProperty
 from .oot_constants import ootData
 from .oot_cutscene import convertCutsceneObject, readCutsceneData
 from .oot_spline import assertCurveValid, ootConvertPath

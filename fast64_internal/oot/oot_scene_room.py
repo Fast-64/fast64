@@ -3,8 +3,9 @@ from ..utility import prop_split
 from .oot_utility import drawAddButton, drawCollectionOps, drawEnumWithCustom, getSceneObj, getRoomObj
 from .oot_cutscene import drawCSListProperty, drawCSAddButtons
 from .oot_constants import ootData
-from .scene.panel.properties import OOT_SearchMusicSeqEnumOperator
-from .room.panel.properties import OOTObjectProperty, OOT_SearchObjectEnumOperator, OOTRoomHeaderProperty
+from .scene.operators import OOT_SearchMusicSeqEnumOperator
+from .room.properties import OOTObjectProperty, OOTRoomHeaderProperty
+from .room.operators import OOT_SearchObjectEnumOperator
 
 
 def drawAlternateRoomHeaderProperty(layout, headerProp, objName):

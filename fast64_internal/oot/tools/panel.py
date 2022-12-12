@@ -1,5 +1,5 @@
 from bpy.utils import register_class, unregister_class
-from ......panels import OOT_Panel
+from ...panels import OOT_Panel
 from .operators import (
     OOT_AddWaterBox,
     OOT_AddDoor,

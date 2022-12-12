@@ -1,7 +1,33 @@
-from bpy.props import StringProperty, BoolProperty, EnumProperty, IntProperty, FloatProperty
-from bpy.types import PropertyGroup
-from .....f3d.f3d_material import ootEnumDrawLayers
-from ....oot_skeleton_import_data import ootEnumSkeletonImportMode
+from bpy.types import Armature, PropertyGroup, Object, Bone
+from bpy.props import EnumProperty, PointerProperty, StringProperty, FloatProperty, BoolProperty, IntProperty
+from bpy.utils import register_class, unregister_class
+from ...f3d.f3d_material import ootEnumDrawLayers
+from ..oot_skeleton_import_data import ootEnumSkeletonImportMode
+
+
+ootEnumBoneType = [
+    ("Default", "Default", "Default"),
+    ("Custom DL", "Custom DL", "Custom DL"),
+    ("Ignore", "Ignore", "Ignore"),
+]
+
+
+def pollArmature(self, obj):
+    return isinstance(obj.data, Armature)
+
+
+class OOTDynamicTransformProperty(PropertyGroup):
+    billboard: BoolProperty(name="Billboard")
+
+
+class OOTBoneProperty(PropertyGroup):
+    boneType: EnumProperty(name="Bone Type", items=ootEnumBoneType)
+    dynamicTransform: PointerProperty(type=OOTDynamicTransformProperty)
+    customDLName: StringProperty(name="Custom DL", default="gEmptyDL")
+
+
+class OOTSkeletonProperty(PropertyGroup):
+    LOD: PointerProperty(type=Object, poll=pollArmature)
 
 
 class OOTSkeletonExportSettings(PropertyGroup):
@@ -43,3 +69,30 @@ class OOTSkeletonImportSettings(PropertyGroup):
     flipbookArrayIndex2D: IntProperty(name="Index if 2D Array", default=0, min=0)
     autoDetectActorScale: BoolProperty(name="Auto Detect Actor Scale", default=True)
     actorScale: FloatProperty(name="Actor Scale", min=0, default=100)
+
+
+oot_skeleton_classes = (
+    OOTDynamicTransformProperty,
+    OOTBoneProperty,
+    OOTSkeletonProperty,
+    OOTSkeletonExportSettings,
+    OOTSkeletonImportSettings,
+)
+
+
+def skeleton_props_register():
+    for cls in oot_skeleton_classes:
+        register_class(cls)
+
+    Object.ootActorScale = FloatProperty(min=0, default=100)
+    Object.ootSkeleton = PointerProperty(type=OOTSkeletonProperty)
+    Bone.ootBone = PointerProperty(type=OOTBoneProperty)
+
+
+def skeleton_props_unregister():
+    del Object.ootActorScale
+    del Bone.ootBone
+    del Object.ootSkeleton
+
+    for cls in reversed(oot_skeleton_classes):
+        unregister_class(cls)

@@ -1,11 +1,7 @@
 import os, re
-from bpy.types import Operator, PropertyGroup
-from bpy.path import abspath
-from bpy.props import BoolProperty, EnumProperty, IntProperty, StringProperty
-from bpy.utils import register_class, unregister_class
 from typing import Any
 from .....utility import PluginError, writeFile, readFile
-from ....oot_constants import ootEnumHeaderMenuComplete
+from ...properties import OOTBootupSceneOptions
 
 
 def writeBootupSettings(
@@ -65,7 +61,7 @@ def writeBootupSettings(
         writeFile(configPath, data)
 
 
-def setBootupScene(configPath: str, entranceIndex: str, options: "OOTBootupSceneOptions"):
+def setBootupScene(configPath: str, entranceIndex: str, options: OOTBootupSceneOptions):
     linkAge = "LINK_AGE_CHILD"
     timeOfDay = "NEXT_TIME_NONE"
     cutsceneIndex = "0xFFEF"
@@ -153,48 +149,3 @@ def stringToSaveNameBytes(name: str) -> bytearray:
             )
 
     return result
-
-
-class OOT_ClearBootupScene(Operator):
-    bl_idname = "object.oot_clear_bootup_scene"
-    bl_label = "Undo Boot To Scene"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
-
-    def execute(self, context):
-        clearBootupScene(os.path.join(abspath(context.scene.ootDecompPath), "include/config/config_debug.h"))
-        self.report({"INFO"}, "Success!")
-        return {"FINISHED"}
-
-
-ootEnumBootMode = [
-    ("Play", "Play", "Play"),
-    ("Map Select", "Map Select", "Map Select"),
-    ("File Select", "File Select", "File Select"),
-]
-
-
-class OOTBootupSceneOptions(PropertyGroup):
-    bootToScene: BoolProperty(default=False, name="Boot To Scene")
-    overrideHeader: BoolProperty(default=False, name="Override Header")
-    headerOption: EnumProperty(items=ootEnumHeaderMenuComplete, name="Header", default="Child Day")
-    spawnIndex: IntProperty(name="Spawn", min=0)
-    newGameOnly: BoolProperty(
-        default=False,
-        name="Override Scene On New Game Only",
-        description="Only use this starting scene after loading a new save file",
-    )
-    newGameName: StringProperty(default="Link", name="New Game Name")
-    bootMode: EnumProperty(default="Play", name="Boot Mode", items=ootEnumBootMode)
-
-    # see src/code/z_play.c:Play_Init() - can't access more than 16 cutscenes?
-    cutsceneIndex: IntProperty(min=4, max=19, default=4, name="Cutscene Index")
-
-
-def ootSceneBootupRegister():
-    register_class(OOTBootupSceneOptions)
-    register_class(OOT_ClearBootupScene)
-
-
-def ootSceneBootupUnregister():
-    unregister_class(OOTBootupSceneOptions)
-    unregister_class(OOT_ClearBootupScene)

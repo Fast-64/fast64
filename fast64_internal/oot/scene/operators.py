@@ -1,14 +1,17 @@
-import bpy
-from bpy.types import Operator
-from bpy.ops import object
+import bpy, os
 from bpy.path import abspath
+from bpy.types import Operator
+from bpy.props import EnumProperty, IntProperty, StringProperty
+from bpy.utils import register_class, unregister_class
+from bpy.ops import object
 from mathutils import Matrix, Vector
-from .....f3d.f3d_gbi import DLFormat
-from ....scene.exporter.to_c import modifySceneTable, editSpecFile, deleteSceneFiles
-from .....utility import PluginError, raisePluginError
-from ....oot_utility import ExportInfo, sceneNameFromID
-from ....oot_level_writer import ootExportSceneToC
-from .classes import OOTRemoveSceneSettingsProperty
+from ...f3d.f3d_gbi import DLFormat
+from ...utility import PluginError, raisePluginError, ootGetSceneOrRoomHeader
+from ..oot_utility import ExportInfo, sceneNameFromID
+from ..oot_level_writer import ootExportSceneToC
+from ..oot_constants import ootEnumMusicSeq, ootEnumSceneID
+from .exporter.to_c import clearBootupScene, modifySceneTable, editSpecFile, deleteSceneFiles
+from .properties import OOTRemoveSceneSettingsProperty
 
 
 def ootRemoveSceneC(exportInfo):
@@ -34,7 +37,7 @@ def run_ops_without_view_layer_update(func):
 
 
 def parseSceneFunc():
-    from ....oot_level_parser import parseScene  # todo: better fix for circular import
+    from ..oot_level_parser import parseScene  # todo: better fix for circular import
 
     context = bpy.context
     settings = context.scene.ootSceneImportSettings
@@ -44,6 +47,67 @@ def parseSceneFunc():
         settings,
         settings.option,
     )
+
+
+class OOT_SearchSceneEnumOperator(Operator):
+    bl_idname = "object.oot_search_scene_enum_operator"
+    bl_label = "Choose Scene"
+    bl_property = "ootSceneID"
+    bl_options = {"REGISTER", "UNDO"}
+
+    ootSceneID: EnumProperty(items=ootEnumSceneID, default="SCENE_DEKU_TREE")
+    opName: StringProperty(default="Export")
+
+    def execute(self, context):
+        if self.opName == "Export":
+            context.scene.ootSceneExportSettings.option = self.ootSceneID
+        elif self.opName == "Import":
+            context.scene.ootSceneImportSettings.option = self.ootSceneID
+        elif self.opName == "Remove":
+            context.scene.ootSceneRemoveSettings.option = self.ootSceneID
+        else:
+            raise Exception(f'Invalid OOT scene search operator name: "{self.opName}"')
+
+        context.region.tag_redraw()
+        self.report({"INFO"}, "Selected: " + self.ootSceneID)
+        return {"FINISHED"}
+
+    def invoke(self, context, event):
+        context.window_manager.invoke_search_popup(self)
+        return {"RUNNING_MODAL"}
+
+
+class OOT_SearchMusicSeqEnumOperator(Operator):
+    bl_idname = "object.oot_search_music_seq_enum_operator"
+    bl_label = "Search Music Sequence"
+    bl_property = "ootMusicSeq"
+    bl_options = {"REGISTER", "UNDO"}
+
+    ootMusicSeq: EnumProperty(items=ootEnumMusicSeq, default="0x02")
+    headerIndex: IntProperty(default=0, min=0)
+    objName: StringProperty()
+
+    def execute(self, context):
+        sceneHeader = ootGetSceneOrRoomHeader(bpy.data.objects[self.objName], self.headerIndex, False)
+        sceneHeader.musicSeq = self.ootMusicSeq
+        context.region.tag_redraw()
+        self.report({"INFO"}, "Selected: " + self.ootMusicSeq)
+        return {"FINISHED"}
+
+    def invoke(self, context, event):
+        context.window_manager.invoke_search_popup(self)
+        return {"RUNNING_MODAL"}
+
+
+class OOT_ClearBootupScene(Operator):
+    bl_idname = "object.oot_clear_bootup_scene"
+    bl_label = "Undo Boot To Scene"
+    bl_options = {"REGISTER", "UNDO", "PRESET"}
+
+    def execute(self, context):
+        clearBootupScene(os.path.join(abspath(context.scene.ootDecompPath), "include/config/config_debug.h"))
+        self.report({"INFO"}, "Success!")
+        return {"FINISHED"}
 
 
 class OOT_ImportScene(Operator):
@@ -184,3 +248,22 @@ class OOT_RemoveScene(Operator):
     def draw(self, context):
         layout = self.layout
         layout.label(text="Are you sure you want to remove this scene?")
+
+
+classes = (
+    OOT_SearchMusicSeqEnumOperator,
+    OOT_SearchSceneEnumOperator,
+    OOT_ClearBootupScene,
+    OOT_ImportScene,
+    OOT_ExportScene,
+    OOT_RemoveScene,
+)
+
+
+def scene_ops_register():
+    for cls in classes:
+        register_class(cls)
+
+def scene_ops_unregister():
+    for cls in reversed(classes):
+        unregister_class(cls)
