@@ -396,6 +396,8 @@ def parseRoomList(
         roomName = roomMatch.group(1).strip().replace("SegmentRomStart", "")
         if "(u32)" in roomName:
             roomName = roomName[5:].strip()[1:]  # includes leading underscore
+        elif "(uintptr_t)" in roomName:
+            roomName = roomName[11:].strip()[1:]
         else:
             roomName = roomName[1:]
 
@@ -1015,7 +1017,7 @@ def parseLightList(
     lightListName: str,
     headerIndex: int,
 ):
-    lightData = getDataMatch(sceneData, lightListName, "LightSettings", "light list")
+    lightData = getDataMatch(sceneData, lightListName, ["LightSettings", "EnvLightSettings"], "light list")
 
     # I currently don't understand the light list format in respect to this lighting flag.
     # So we'll set it to custom instead.
@@ -1301,7 +1303,7 @@ def parsePolygon(polygonData: str):
 
 
 def parseCamDataList(sceneObj: bpy.types.Object, camDataListName: str, sceneData: str):
-    camMatchData = getDataMatch(sceneData, camDataListName, "CamData", "camera data list")
+    camMatchData = getDataMatch(sceneData, camDataListName, ["CamData", "BgCamInfo"], "camera data list")
     camDataList = [value.replace("{", "").strip() for value in camMatchData.split("},") if value.strip() != ""]
 
     # orderIndex used for naming cameras in alphabetical order

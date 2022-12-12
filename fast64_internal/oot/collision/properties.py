@@ -16,13 +16,17 @@ from ..oot_collision_classes import (
 
 
 class OOTCollisionExportSettings(PropertyGroup):
-    isCustomFilename: BoolProperty(name="Use Custom Filename", description="Override filename instead of basing it off of the Blender name")
+    isCustomFilename: BoolProperty(
+        name="Use Custom Filename", description="Override filename instead of basing it off of the Blender name"
+    )
     filename: StringProperty(name="Filename")
     exportPath: StringProperty(name="Directory", subtype="FILE_PATH")
-    exportLevel: EnumProperty(items=ootEnumSceneID, name="Level Used By Collision", default="SCENE_YDAN")
+    exportLevel: EnumProperty(items=ootEnumSceneID, name="Level Used By Collision", default="SCENE_DEKU_TREE")
     includeChildren: BoolProperty(name="Include child objects", default=True)
-    levelName: StringProperty(name="Name", default="SCENE_YDAN")
-    customExport: BoolProperty(name="Custom Export Path", description="Determines whether or not to export to an explicitly specified folder")
+    levelName: StringProperty(name="Name", default="SCENE_DEKU_TREE")
+    customExport: BoolProperty(
+        name="Custom Export Path", description="Determines whether or not to export to an explicitly specified folder"
+    )
     folder: StringProperty(name="Object Name", default="gameplay_keep")
 
 

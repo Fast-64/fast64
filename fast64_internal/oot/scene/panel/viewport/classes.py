@@ -8,7 +8,7 @@ class OOTRemoveSceneSettingsProperty(PropertyGroup):
     name: StringProperty(name="Name", default="spot03")
     subFolder: StringProperty(name="Subfolder", default="overworld")
     customExport: BoolProperty(name="Custom Export Path")
-    option: EnumProperty(items=ootEnumSceneID, default="SCENE_YDAN")
+    option: EnumProperty(items=ootEnumSceneID, default="SCENE_DEKU_TREE")
 
 
 class OOTExportSceneSettingsProperty(PropertyGroup):
@@ -21,7 +21,7 @@ class OOTExportSceneSettingsProperty(PropertyGroup):
         default=False,
         description="Does not split the scene and rooms into multiple files.",
     )
-    option: EnumProperty(items=ootEnumSceneID, default="SCENE_YDAN")
+    option: EnumProperty(items=ootEnumSceneID, default="SCENE_DEKU_TREE")
 
 
 class OOTImportSceneSettingsProperty(PropertyGroup):
@@ -37,7 +37,7 @@ class OOTImportSceneSettingsProperty(PropertyGroup):
     includeCameras: BoolProperty(name="Cameras", default=True)
     includePaths: BoolProperty(name="Paths", default=True)
     includeWaterBoxes: BoolProperty(name="Water Boxes", default=True)
-    option: EnumProperty(items=ootEnumSceneID, default="SCENE_YDAN")
+    option: EnumProperty(items=ootEnumSceneID, default="SCENE_DEKU_TREE")
 
     def draw(self, layout: UILayout, sceneOption: str):
         col = layout.column()
@@ -65,5 +65,5 @@ class OOTImportSceneSettingsProperty(PropertyGroup):
 
         col.label(text="Cutscenes won't be imported.")
 
-        if "SCENE_BDAN" in sceneOption:
+        if "SCENE_JABU_JABU" in sceneOption:
             col.label(text="Pulsing wall effect won't be imported.", icon="ERROR")

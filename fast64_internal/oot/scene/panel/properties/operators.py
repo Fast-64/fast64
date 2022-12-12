@@ -14,7 +14,7 @@ class OOT_SearchSceneEnumOperator(Operator):
     bl_property = "ootSceneID"
     bl_options = {"REGISTER", "UNDO"}
 
-    ootSceneID: EnumProperty(items=ootEnumSceneID, default="SCENE_YDAN")
+    ootSceneID: EnumProperty(items=ootEnumSceneID, default="SCENE_DEKU_TREE")
     opName: StringProperty(default="Export")
 
     def execute(self, context):

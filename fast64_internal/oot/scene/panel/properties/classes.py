@@ -53,8 +53,8 @@ class OOTExitProperty(PropertyGroup):
     exitIndexCustom: StringProperty(default="0x0000")
 
     # These are used when adding an entry to gEntranceTable
-    scene: EnumProperty(items=ootEnumSceneID, default="SCENE_YDAN")
-    sceneCustom: StringProperty(default="SCENE_YDAN")
+    scene: EnumProperty(items=ootEnumSceneID, default="SCENE_DEKU_TREE")
+    sceneCustom: StringProperty(default="SCENE_DEKU_TREE")
 
     # These are used when adding an entry to gEntranceTable
     continueBGM: BoolProperty(default=False)
