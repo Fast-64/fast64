@@ -177,7 +177,9 @@ def modifySceneTable(scene, exportInfo: ExportInfo, exportMode: str):
     exportPath = exportInfo.exportPath
     # the list ``sceneNames`` needs to be synced with ``fileData``
     fileData, header, sceneNames = getSceneTable(exportPath)
-    sceneName, sceneTitle, sceneID, sceneUnk10, sceneUnk12, sceneIndex, overrideMode = getSceneParams(scene, exportInfo, sceneNames, exportMode)
+    sceneName, sceneTitle, sceneID, sceneUnk10, sceneUnk12, sceneIndex, overrideMode = getSceneParams(
+        scene, exportInfo, sceneNames, exportMode
+    )
 
     if scene is None:
         sceneDrawConfig = None

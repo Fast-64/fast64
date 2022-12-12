@@ -77,11 +77,15 @@ def getColliderMat(name: str, color: tuple[float, float, float, float]) -> bpy.t
 
 
 class OOTDLExportSettings(bpy.types.PropertyGroup):
-    isCustomFilename: bpy.props.BoolProperty(name="Use Custom Filename", description="Override filename instead of basing it off of the Blender name")
+    isCustomFilename: bpy.props.BoolProperty(
+        name="Use Custom Filename", description="Override filename instead of basing it off of the Blender name"
+    )
     filename: bpy.props.StringProperty(name="Filename")
     folder: bpy.props.StringProperty(name="DL Folder", default="gameplay_keep")
     customPath: bpy.props.StringProperty(name="Custom DL Path", subtype="FILE_PATH")
-    isCustom: bpy.props.BoolProperty(name="Use Custom Path", description="Determines whether or not to export to an explicitly specified folder")
+    isCustom: bpy.props.BoolProperty(
+        name="Use Custom Path", description="Determines whether or not to export to an explicitly specified folder"
+    )
     removeVanillaData: bpy.props.BoolProperty(name="Replace Vanilla DLs")
     drawLayer: bpy.props.EnumProperty(name="Draw Layer", items=ootEnumDrawLayers)
     actorOverlayName: bpy.props.StringProperty(name="Overlay", default="")
