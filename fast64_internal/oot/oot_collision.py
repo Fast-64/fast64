@@ -705,8 +705,6 @@ def oot_col_register():
 
 def oot_col_unregister():
     # Collision
-    del bpy.types.Scene.ootColExportPath
-    del bpy.types.Scene.ootColExportLevel
     del bpy.types.Scene.ootColName
     del bpy.types.Scene.ootColLevelName
     del bpy.types.Scene.ootColIncludeChildren
