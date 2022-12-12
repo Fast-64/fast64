@@ -2076,7 +2076,7 @@ def saveOrGetTextureDefinition(
     texFmt = texProp.tex_format
     texFormat = texFormatOf[texFmt]
     bitSize = texBitSizeOf[texFmt]
-    imageKey = getImageKey(texProp, imUse0)
+    imageKey = getImageKey(texProp, images)
 
     # If image already loaded, return that data.
     fImage, fPalette = parent.getTextureAndHandleShared(imageKey)

@@ -279,13 +279,13 @@ class OOTModel(FModel):
                 if flipbookProp.exportMode == "Individual"
                 else model.name + "_" + flipbookTexture.image.name + "_" + texProp.tex_format.lower()
             )
-            fImage = saveOrGetTextureDefinition(
+            _, fImage, _ = saveOrGetTextureDefinition(
                 fMaterial,
                 model,
-                flipbookTexture.image,
+                texProp,
+                [flipbookTexture.image],
                 name,
-                texProp.tex_format,
-                True,
+                False,
             )
 
             # do this here to check for modified names due to repeats
