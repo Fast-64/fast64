@@ -705,11 +705,6 @@ def oot_col_register():
 
 def oot_col_unregister():
     # Collision
-    del bpy.types.Scene.ootColName
-    del bpy.types.Scene.ootColLevelName
-    del bpy.types.Scene.ootColIncludeChildren
-    del bpy.types.Scene.ootColCustomExport
-    del bpy.types.Scene.ootColFolder
 
     for cls in reversed(oot_col_classes):
         unregister_class(cls)
