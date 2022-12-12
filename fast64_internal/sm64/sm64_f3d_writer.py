@@ -364,7 +364,7 @@ def exportTexRectCommon(texProp, f3dType, isHWv1, name, convertTextureData):
 
     drawEndCommands = GfxList("temp", GfxListTag.Draw, DLFormat.Dynamic)
 
-    useTex, isTexRef, isTexCI, texFmt, _, texName, imageDims, texTmem, _, _ = getAndCheckTexInfo(name, texProp, True)
+    useTex, isTexRef, isTexCI, texFmt, _, texName, imageDims, texTmem, _, _ = getAndCheckTexInfo(0, name, texProp, True)
     if not useTex:
         raise PluginError("In " + name + ": texture disabled.")
     if isTexCI:

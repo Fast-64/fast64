@@ -12,6 +12,7 @@ class TextureFlipbook:
     name: str
     exportMode: str
     textureNames: list[str]
+    images: list[tuple[bpy.types.Image, FImage]]
 
 
 def flipbook_data_to_c(flipbook: TextureFlipbook):

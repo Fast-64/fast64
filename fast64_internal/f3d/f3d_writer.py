@@ -1518,7 +1518,8 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         tex0Tmem,
         pal0,
         pal0Len,
-    ) = getAndCheckTexInfo(material.name, f3dMat.tex0, useDict["Texture 0"])
+        tex0Flipbook,
+    ) = getAndCheckTexInfo(0, fModel, fMaterial, material, f3dMat.tex0, useDict["Texture 0"])
     (
         useTex1,
         isTex1Ref,
@@ -1529,7 +1530,8 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         tex1Tmem,
         pal1,
         pal1Len,
-    ) = getAndCheckTexInfo(material.name, f3dMat.tex1, useDict["Texture 1"])
+        tex1Flipbook,
+    ) = getAndCheckTexInfo(1, fModel, fMaterial, material, f3dMat.tex1, useDict["Texture 1"])
 
     if useTex0 and useTex1:
         if isTex0CI != isTex1CI:
@@ -1598,10 +1600,6 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     else:
         fMaterial.material.commands.append(SPTexture(s, t, 0, fModel.f3d.G_TX_RENDERTILE, 1))
 
-    TODO()
-    fPalette = fModel.processTexRefCITextures(fMaterial, material, index)
-    fModel.processTexRefNonCITextures(fMaterial, material, index)
-
     # Determine how to arrange / load palette entries into upper half of tmem
     tex0PaletteIndex = 0
     tex1PaletteIndex = 0
@@ -1628,14 +1626,15 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             pal1Addr = 16
         else:  # Two CI textures, normal mode
             if tex0Fmt == "CI8" and tex1Fmt == "CI8":
-                if isTex0Ref != isTex0Ref:
+                if (pal0 is None) != (pal1 is None):
                     raise PluginError(
                         "In material "
                         + material.name
-                        + ": can't have two CI8 textures where only one is a reference; no way to assign the palette."
+                        + ": can't have two CI8 textures where only one is a non-flipbook reference; "
+                        + "no way to assign the palette."
                     )
                 loadPal0 = True
-                if isTex0Ref:
+                if pal0 is None:
                     if f3dMat.tex0.pal_reference != f3dMat.tex1.pal_reference:
                         raise PluginError(
                             "In material "
@@ -1656,7 +1655,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             elif tex0Fmt != tex1Fmt:  # One CI8, one CI4
                 ci8Pal, ci4Pal = pal0, pal1 if tex0Fmt == "CI8" else pal1, pal0
                 ci8PalLen, ci4PalLen = pal0Len, pal1Len if tex0Fmt == "CI8" else pal1Len, pal0Len
-                if isTex0Ref or isTex1Ref:
+                if pal0 is None or pal1 is None:
                     if ci8PalLen > 256 - 16:
                         raise PluginError(
                             "In material "
@@ -1686,9 +1685,9 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
                             + " plus the same up to 16 colors used in the CI4 texture."
                         )
             else:  # both CI4 textures
-                if isTex0Ref and isTex1Ref and f3dMat.tex0.pal_reference == f3dMat.tex1.pal_reference:
+                if pal0 is None and pal1 is None and f3dMat.tex0.pal_reference == f3dMat.tex1.pal_reference:
                     loadPal0 = True
-                elif isTex0Ref or isTex1Ref:
+                elif pal0 is None or pal1 is None:
                     loadPal0 = loadPal1 = True
                     tex1PaletteIndex = 1
                     pal1Addr = 16
@@ -1827,6 +1826,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             )
 
     # Get texture and palette definitions
+    TODO() # Get the full list of textures from the flipbook
     imUse0 = [f3dMat.tex0.tex] + ([f3dMat.tex1.tex] if useSharedCIPalette else [])
     imUse1 = ([f3dMat.tex0.tex] if useSharedCIPalette else []) + [f3dMat.tex1.tex]
     fImage0 = fImage1 = fPalette0 = fPalette1 = None
@@ -2108,12 +2108,15 @@ def saveOrGetTextureDefinition(
 
 
 def getAndCheckTexInfo(
-    propName: str,
+    index: int,
+    fModel: FModel,
+    fMaterial: FMaterial,
+    material: bpy.types.Material,
     texProp: TextureProperty,
     useDictEntry,
 ):
     if not useDictEntry or not texProp.tex_set:
-        return False, False, False, "", "", (0, 0), 0, None, 0
+        return False, False, False, "", "", "", (0, 0), 0, None, 0, None
 
     tex = texProp.tex
     isTexRef = texProp.use_tex_reference
@@ -2128,14 +2131,14 @@ def getAndCheckTexInfo(
 
     if not isTexRef:
         if tex is None:
-            raise PluginError("In " + propName + ", no texture is selected.")
+            raise PluginError(f"In {material.name}, no texture is selected.")
         elif len(tex.pixels) == 0:
             raise PluginError(
                 "Could not load missing texture: "
                 + tex.name
                 + ". Make sure this texture has not been deleted or moved on disk."
             )
-
+            
     if isTexRef:
         imageWidth, imageHeight = texProp.tex_reference_size
     else:
@@ -2144,14 +2147,22 @@ def getAndCheckTexInfo(
     tmemSize = getTmemWordUsage(texFormat, imageWidth, imageHeight)
 
     if imageWidth > 1024 or imageHeight > 1024:
-        raise PluginError('Error in "' + propName + '": Any side of an image cannot be greater ' + "than 1024.")
+        raise PluginError(f'Error in "{material.name}": Any side of an image cannot be greater ' + "than 1024.")
+
+    texName = TODO() # tex.name?
 
     pal = None
     palLen = 0
     if isCITexture:
+        flipbook, pal, palName = fModel.processTexRefCITextures(fMaterial, material, index)
         if isTexRef:
-            palLen = texProp.pal_reference_size
+            if flipbook is not None:
+                palLen = len(pal)
+                texName = palName
+            else:
+                palLen = texProp.pal_reference_size
         else:
+            assert flipbook is None
             pal = getColorsUsedInImage(tex, palFormat)
             palLen = len(pal0)
         if palLen > (16 if texFormat == "CI4" else 256):
@@ -2159,11 +2170,14 @@ def getAndCheckTexInfo(
                 "In "
                 + propName
                 + ", texture "
-                + tex.name
+                + texName
+                + (" (all flipbook textures)" if flipbook is not None else "")
                 + " uses too many unique colors to fit in format"
                 + texFormat
                 + "."
             )
+    else:
+        flipbook = fModel.processTexRefNonCITextures(fMaterial, material, index)
 
     return (
         True,
@@ -2171,10 +2185,12 @@ def getAndCheckTexInfo(
         isCITexture,
         texFormat,
         palFormat,
+        texName,
         (imageWidth, imageHeight),
         tmemSize,
         pal,
         palLen,
+        flipbook,
     )
 
 
@@ -2431,6 +2447,8 @@ def compactNibbleArray(texture, width, height):
 
 
 def writePaletteData(fPalette: FImage, palette: list[int]):
+    if fPalette.converted:
+        return
     for color in palette:
         fPalette.data.extend(color.to_bytes(2, "big"))
     fPalette.converted = True
@@ -2443,6 +2461,8 @@ def writeCITextureData(
     palFmt: str,
     texFmt: str,
 ):
+    if fImage.converted:
+        return
     palFormat = texFormatOf[palFmt]
     bitSize = texBitSizeOf[texFmt]
 
@@ -2456,6 +2476,8 @@ def writeCITextureData(
 
 
 def writeNonCITextureData(image: bpy.types.Image, fImage: FImage, texFmt: str):
+    if fImage.converted:
+        return
     fmt = texFormatOf[texFmt]
     bitSize = texBitSizeOf[texFmt]
 

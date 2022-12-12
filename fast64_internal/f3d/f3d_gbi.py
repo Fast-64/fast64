@@ -2189,17 +2189,38 @@ class FModel:
     ):
         """
         For non CI textures that use a texture reference, process additional textures that will possibly be loaded here.
-        This doesn't return anything.
+        Returns an object containing info about the additional textures, or None.
+        """
+        return None
+        
+    def writeTexRefNonCITextures(self, obj, texFmt: str):
+        """
+        Write data for non-CI textures which were previously processed.
         """
         pass
 
     def processTexRefCITextures(self, fMaterial: "FMaterial", material: bpy.types.Material, index: int) -> "FImage":
         """
         For CI textures that use a texture reference, process additional textures that will possibly be loaded here.
-        This returns a palette FImage that is shared between all processed textures.
+        Returns:
+            - an object containing info about the additional textures, or None
+            - the palette to use (or None)
+            - the palette name (or None)
         """
-        texProp = getattr(material.f3dMat, f"tex{index}")
-        return FImage(texProp.pal_reference, None, None, 1, texProp.pal_reference_size, None, False)
+        return None, None, None
+    
+    def writeTexRefCITextures(
+        self,
+        obj,
+        paletteKey: FPaletteKey,
+        pal: list[int],
+        texFmt: str,
+        palFmt: str,
+    ):
+        """
+        Write data for CI textures which were previously processed.
+        """
+        pass
 
     # Called before SPEndDisplayList
     def onMaterialCommandsBuilt(self, fMaterial, material, drawLayer):
