@@ -109,11 +109,7 @@ def getSceneParams(scene, exportInfo, sceneNames):
     if sceneIndex is None and scene is not None:
         sceneName = scene.name.lower() + "_scene"
         sceneTitle = "none"
-
-        sceneID = ootSceneNameToID.get(name)
-        if sceneID is None and bpy.context.scene.ootSceneExportSettings.option == "Custom":
-            sceneID = f"SCENE_{name.upper()}"
-
+        sceneID = ootSceneNameToID.get(name, f"SCENE_{name.upper()}")
         sceneUnk10 = sceneUnk12 = 0
 
     return sceneName, sceneTitle, sceneID, sceneUnk10, sceneUnk12, sceneIndex
