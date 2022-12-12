@@ -438,8 +438,8 @@ def ootCutsceneIncludes(headerfilename):
 def ootCutsceneDataToC(csParent, csName):
     # csParent can be OOTCutscene or OOTScene
     data = CData()
-    data.header = "extern s32 " + csName + "[];\n"
-    data.source = "s32 " + csName + "[] = {\n"
+    data.header = "extern CutsceneData " + csName + "[];\n"
+    data.source = "CutsceneData " + csName + "[] = {\n"
     nentries = len(csParent.csLists) + (1 if csParent.csWriteTerminator else 0)
     data.source += "\tCS_BEGIN_CUTSCENE(" + str(nentries) + ", " + str(csParent.csEndFrame) + "),\n"
     if csParent.csWriteTerminator:
