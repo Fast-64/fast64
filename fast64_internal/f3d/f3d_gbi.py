@@ -1811,6 +1811,7 @@ def get_tile_scroll_code(scrollData: "FScrollData", textureIndex: int, commandIn
     else:
         return "", ""
 
+
 def vertexScrollTemplate(
     fScrollData, name, count, absFunc, signFunc, cosFunc, randomFloatFunc, randomSignFunc, segToVirtualFunc
 ):
@@ -1920,7 +1921,7 @@ class GfxFormatter:
         self.texArrayBitSize = texArrayBitSize
         self.seg2virtFuncName = seg2virtFuncName
 
-    def gfxScrollToC(self, gfxList: "GfxList", f3d : F3D) -> CScrollData:
+    def gfxScrollToC(self, gfxList: "GfxList", f3d: F3D) -> CScrollData:
         """
         Handles writing code that executes static Gfx scrolling (ex. tile scrolling.)
         If you want a game-specific formatter that ignores all static gfx scrolling,
@@ -2049,11 +2050,11 @@ class VtxList:
 
 class GfxList:
     def __init__(self, name, tag, DLFormat):
-        self.commands : list[GbiMacro] = []
-        self.name : str = name
-        self.startAddress : int = 0
-        self.tag : GfxListTag = tag
-        self.DLFormat : "DLFormat" = DLFormat
+        self.commands: list[GbiMacro] = []
+        self.name: str = name
+        self.startAddress: int = 0
+        self.tag: GfxListTag = tag
+        self.DLFormat: "DLFormat" = DLFormat
 
     def set_addr(self, startAddress, f3d):
         startAddress = get64bitAlignedAddr(startAddress)
@@ -3209,19 +3210,23 @@ def gsSPNoOp(f3d):
 
 
 # base class for gbi macros
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class GbiMacro:
     _segptrs = False
     _ptr_amp = False
 
     tag = GfxTag.NoTag
-    """Type: GfxTag. The tag's current use is to determine how to write gfx scrolling code for this given command."""
+    """
+    Type: GfxTag. The tag's current use is to determine how to write gfx scrolling code for this given command.
+    This is unannotated and will not be considered when calculating the hash.
+    """
 
     fMaterial = None
     """
     Type: FMaterial. The material that contains scroll info for this command. This member exists in case a material command is moved out of its original display list.
     That would cause an issue for scrolling that modifies static DLs, which requires the command's index into its current display list.
     For example, inling material commands.
+    This is unannotated and will not be considered when calculating the hash.
     """
 
     def get_ptr_offsets(self, f3d):
@@ -3252,7 +3257,7 @@ class GbiMacro:
         return GFX_SIZE
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class SPMatrix(GbiMacro):
     matrix: int
     param: int
@@ -3269,7 +3274,7 @@ class SPMatrix(GbiMacro):
 # Divide mesh drawing by materials into separate gfx
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class SPVertex(GbiMacro):
     # v = seg pointer, n = count, v0  = ?
     vertList: VtxList
@@ -3306,7 +3311,7 @@ class SPVertex(GbiMacro):
         return header + ", " + str(self.count) + ", " + str(self.index) + ")"
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class SPViewport(GbiMacro):
     # v = seg pointer, n = count, v0  = ?
     viewport: Vp
@@ -3321,7 +3326,7 @@ class SPViewport(GbiMacro):
             return gsDma1p(f3d.G_MOVEMEM, vpPtr, VP_SIZE, f3d.G_MV_VIEWPORT)
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class SPDisplayList(GbiMacro):
     displayList: GfxList
 
@@ -3342,7 +3347,7 @@ class SPDisplayList(GbiMacro):
             return "glistp = " + self.displayList.name + "(glistp)"
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class SPBranchList(GbiMacro):
     displayList: GfxList
     _ptr_amp = True  # add an ampersand to names
@@ -3447,7 +3452,7 @@ def _gsSP1Quadrangle_w2f(v0, v1, v2, v3, flag):
         return _gsSP1Triangle_w1(v3, v1, v2)
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class SP1Triangle(GbiMacro):
     v0: int
     v1: int
@@ -3463,7 +3468,7 @@ class SP1Triangle(GbiMacro):
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class SPLine3D(GbiMacro):
     v0: int
     v1: int
@@ -3477,7 +3482,7 @@ class SPLine3D(GbiMacro):
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class SPLineW3D(GbiMacro):
     v0: int
     v1: int
@@ -3495,7 +3500,7 @@ class SPLineW3D(GbiMacro):
 # SP1Quadrangle
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class SP2Triangles(GbiMacro):
     v00: int
     v01: int
@@ -3517,7 +3522,7 @@ class SP2Triangles(GbiMacro):
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class SPCullDisplayList(GbiMacro):
     vstart: int
     vend: int
@@ -3530,7 +3535,7 @@ class SPCullDisplayList(GbiMacro):
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class SPSegment(GbiMacro):
     segment: int
     base: int
@@ -3543,7 +3548,7 @@ class SPSegment(GbiMacro):
         return header + str(self.segment) + ", " + "0x" + format(self.base, "X") + ")"
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class SPClipRatio(GbiMacro):
     ratio: int
 
@@ -3567,7 +3572,7 @@ class SPClipRatio(GbiMacro):
 # SPForceMatrix
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class SPModifyVertex(GbiMacro):
     vtx: int
     where: int
@@ -3588,7 +3593,7 @@ class SPModifyVertex(GbiMacro):
 # SPBranchLessZ
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class SPBranchLessZraw(GbiMacro):
     dl: GfxList
     vtx: int
@@ -3623,7 +3628,7 @@ class SPBranchLessZraw(GbiMacro):
 # SPDmaWrite
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class SPNumLights(GbiMacro):
     # n is macro name (string)
     n: str
@@ -3632,7 +3637,7 @@ class SPNumLights(GbiMacro):
         return gsMoveWd(f3d.G_MW_NUMLIGHT, f3d.G_MWO_NUMLIGHT, f3d.NUML(self.n), f3d)
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class SPLight(GbiMacro):
     # n is macro name (string)
     light: int  # start address of light
@@ -3648,7 +3653,7 @@ class SPLight(GbiMacro):
         return data
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class SPLightColor(GbiMacro):
     # n is macro name (string)
     n: str
@@ -3664,7 +3669,7 @@ class SPLightColor(GbiMacro):
         return header + str(self.n) + ", 0x" + format(self.col, "08X") + ")"
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class SPSetLights(GbiMacro):
     lights: Lights
 
@@ -3727,7 +3732,7 @@ def gsSPLookAtY(l, f3d):
         return gsDma1p(f3d.G_MOVEMEM, l, LIGHT_SIZE, f3d.G_MV_LOOKATY)
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class SPLookAt(GbiMacro):
     la: LookAt
     _ptr_amp = True  # add an ampersand to names
@@ -3737,7 +3742,7 @@ class SPLookAt(GbiMacro):
         return gsSPLookAtX(light0Ptr, f3d) + gsSPLookAtY(light0Ptr + 16, f3d)
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPSetHilite1Tile(GbiMacro):
     tile: int
     hilite: Hilite
@@ -3755,7 +3760,7 @@ class DPSetHilite1Tile(GbiMacro):
         ).to_binary(f3d, segments)
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPSetHilite2Tile(GbiMacro):
     tile: int
     hilite: Hilite
@@ -3773,7 +3778,7 @@ class DPSetHilite2Tile(GbiMacro):
         ).to_binary(f3d, segments)
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class SPFogFactor(GbiMacro):
     fm: int
     fo: int
@@ -3803,7 +3808,7 @@ class SPFogPosition(GbiMacro):
         return header + str(self.minVal) + ", " + str(self.maxVal) + ")"
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class SPTexture(GbiMacro):
     s: int
     t: int
@@ -3835,7 +3840,7 @@ class SPTexture(GbiMacro):
 # SPTextureL
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class SPPerspNormalize(GbiMacro):
     s: int
 
@@ -3847,7 +3852,7 @@ class SPPerspNormalize(GbiMacro):
 # SPPopMatrix
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class SPEndDisplayList(GbiMacro):
     def to_binary(self, f3d, segments):
         words = _SHIFTL(f3d.G_ENDDL, 24, 8), 0
@@ -3899,7 +3904,7 @@ def geoFlagListToWord(flagList, f3d):
     return word
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class SPGeometryMode(GbiMacro):
     clearFlagList: list
     setFlagList: list
@@ -3914,7 +3919,7 @@ class SPGeometryMode(GbiMacro):
             raise PluginError("GeometryMode only available in F3DEX_GBI_2.")
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class SPSetGeometryMode(GbiMacro):
     flagList: list
 
@@ -3927,7 +3932,7 @@ class SPSetGeometryMode(GbiMacro):
             return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class SPClearGeometryMode(GbiMacro):
     flagList: list
 
@@ -3940,7 +3945,7 @@ class SPClearGeometryMode(GbiMacro):
             return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class SPLoadGeometryMode(GbiMacro):
     flagList: list
 
@@ -3960,7 +3965,7 @@ def gsSPSetOtherMode(cmd, sft, length, data, f3d):
     return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class SPSetOtherMode(GbiMacro):
     cmd: str
     sft: int
@@ -3976,7 +3981,7 @@ class SPSetOtherMode(GbiMacro):
         return gsSPSetOtherMode(cmd, sft, self.length, data, f3d)
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPPipelineMode(GbiMacro):
     # mode is a string
     mode: str
@@ -3989,7 +3994,7 @@ class DPPipelineMode(GbiMacro):
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_PIPELINE, 1, modeVal, f3d)
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPSetCycleType(GbiMacro):
     # mode is a string
     mode: str
@@ -4006,7 +4011,7 @@ class DPSetCycleType(GbiMacro):
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_CYCLETYPE, 2, modeVal, f3d)
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPSetTexturePersp(GbiMacro):
     # mode is a string
     mode: str
@@ -4019,7 +4024,7 @@ class DPSetTexturePersp(GbiMacro):
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_TEXTPERSP, 1, modeVal, f3d)
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPSetTextureDetail(GbiMacro):
     # mode is a string
     mode: str
@@ -4034,7 +4039,7 @@ class DPSetTextureDetail(GbiMacro):
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_TEXTDETAIL, 2, modeVal, f3d)
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPSetTextureLOD(GbiMacro):
     # mode is a string
     mode: str
@@ -4047,7 +4052,7 @@ class DPSetTextureLOD(GbiMacro):
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_TEXTLOD, 1, modeVal, f3d)
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPSetTextureLUT(GbiMacro):
     # mode is a string
     mode: str
@@ -4064,7 +4069,7 @@ class DPSetTextureLUT(GbiMacro):
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_TEXTLUT, 2, modeVal, f3d)
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPSetTextureFilter(GbiMacro):
     # mode is a string
     mode: str
@@ -4079,7 +4084,7 @@ class DPSetTextureFilter(GbiMacro):
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_TEXTFILT, 2, modeVal, f3d)
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPSetTextureConvert(GbiMacro):
     # mode is a string
     mode: str
@@ -4094,7 +4099,7 @@ class DPSetTextureConvert(GbiMacro):
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_TEXTCONV, 3, modeVal, f3d)
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPSetCombineKey(GbiMacro):
     # mode is a string
     mode: str
@@ -4107,7 +4112,7 @@ class DPSetCombineKey(GbiMacro):
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_COMBKEY, 1, modeVal, f3d)
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPSetColorDither(GbiMacro):
     # mode is a string
     mode: str
@@ -4133,7 +4138,7 @@ class DPSetColorDither(GbiMacro):
             return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_COLORDITHER, 1, modeVal, f3d)
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPSetAlphaDither(GbiMacro):
     # mode is a string
     mode: str
@@ -4153,7 +4158,7 @@ class DPSetAlphaDither(GbiMacro):
             raise PluginError("SetAlphaDither not available in HW v1.")
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPSetAlphaCompare(GbiMacro):
     # mask is a string
     mode: str
@@ -4168,7 +4173,7 @@ class DPSetAlphaCompare(GbiMacro):
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_L, f3d.G_MDSFT_ALPHACOMPARE, 2, maskVal, f3d)
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPSetDepthSource(GbiMacro):
     # src is a string
     src: str
@@ -4197,7 +4202,7 @@ def GBL_c2(m1a, m1b, m2a, m2b):
     return (m1a) << 28 | (m1b) << 24 | (m2a) << 20 | (m2b) << 16
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPSetRenderMode(GbiMacro):
     # bl0-3 are string for each blender enum
     def __init__(self, flagList, blendList):
@@ -4276,7 +4281,7 @@ def gsSetImage(cmd, fmt, siz, width, i):
 # DPSetDepthImage
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPSetTextureImage(GbiMacro):
     fmt: str
     siz: str
@@ -4319,7 +4324,7 @@ def GCCc1w1(sbRGB1, saA1, mA1, aRGB1, sbA1, aA1):
     )
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPSetCombineMode(GbiMacro):
     # all strings
     a0: str
@@ -4372,7 +4377,7 @@ def sDPRGBColor(cmd, r, g, b, a):
     return gsDPSetColor(cmd, (_SHIFTL(r, 24, 8) | _SHIFTL(g, 16, 8) | _SHIFTL(b, 8, 8) | _SHIFTL(a, 0, 8)))
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPSetEnvColor(GbiMacro):
     r: int
     g: int
@@ -4383,7 +4388,7 @@ class DPSetEnvColor(GbiMacro):
         return sDPRGBColor(f3d.G_SETENVCOLOR, self.r, self.g, self.b, self.a)
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPSetBlendColor(GbiMacro):
     r: int
     g: int
@@ -4394,7 +4399,7 @@ class DPSetBlendColor(GbiMacro):
         return sDPRGBColor(f3d.G_SETBLENDCOLOR, self.r, self.g, self.b, self.a)
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPSetFogColor(GbiMacro):
     r: int
     g: int
@@ -4405,7 +4410,7 @@ class DPSetFogColor(GbiMacro):
         return sDPRGBColor(f3d.G_SETFOGCOLOR, self.r, self.g, self.b, self.a)
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPSetFillColor(GbiMacro):
     d: int
 
@@ -4413,7 +4418,7 @@ class DPSetFillColor(GbiMacro):
         return gsDPSetColor(f3d.G_SETFILLCOLOR, self.d)
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPSetPrimDepth(GbiMacro):
     z: int = 0
     dz: int = 0
@@ -4422,7 +4427,7 @@ class DPSetPrimDepth(GbiMacro):
         return gsDPSetColor(f3d.G_SETPRIMDEPTH, _SHIFTL(self.z, 16, 16) | _SHIFTL(self.dz, 0, 16))
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPSetPrimColor(GbiMacro):
     m: int
     l: int
@@ -4438,7 +4443,7 @@ class DPSetPrimColor(GbiMacro):
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPSetOtherMode(GbiMacro):
     mode0: list
     mode1: list
@@ -4455,7 +4460,7 @@ def gsDPLoadTileGeneric(c, tile, uls, ult, lrs, lrt):
     return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPSetTileSize(GbiMacro):
     t: int
     uls: int
@@ -4470,7 +4475,7 @@ class DPSetTileSize(GbiMacro):
         return self.t == f3d.G_TX_LOADTILE
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPLoadTile(GbiMacro):
     t: int
     uls: int
@@ -4482,7 +4487,7 @@ class DPLoadTile(GbiMacro):
         return gsDPLoadTileGeneric(f3d.G_LOADTILE, self.t, self.uls, self.ult, self.lrs, self.lrt)
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPSetTile(GbiMacro):
     fmt: str
     siz: str
@@ -4523,7 +4528,7 @@ class DPSetTile(GbiMacro):
         return self.tile == f3d.G_TX_LOADTILE
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPLoadBlock(GbiMacro):
     tile: int
     uls: int
@@ -4540,7 +4545,7 @@ class DPLoadBlock(GbiMacro):
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPLoadTLUTCmd(GbiMacro):
     tile: int
     count: int
@@ -4550,7 +4555,7 @@ class DPLoadTLUTCmd(GbiMacro):
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPLoadTextureBlock(GbiMacro):
     timg: FImage
     fmt: str
@@ -4623,7 +4628,7 @@ class DPLoadTextureBlock(GbiMacro):
         return GFX_SIZE * 7
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPLoadTextureBlockYuv(GbiMacro):
     timg: FImage
     fmt: str
@@ -4701,7 +4706,7 @@ class DPLoadTextureBlockYuv(GbiMacro):
 # gsDPLoadTextureBlockYuvS
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class _DPLoadTextureBlock(GbiMacro):
     timg: FImage
     tmem: int
@@ -4780,7 +4785,7 @@ class _DPLoadTextureBlock(GbiMacro):
 # gsDPLoadMultiBlockS
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPLoadTextureBlock_4b(GbiMacro):
     timg: FImage
     fmt: str
@@ -4851,7 +4856,7 @@ class DPLoadTextureBlock_4b(GbiMacro):
 # _gsDPLoadTextureBlock_4b
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPLoadTextureTile(GbiMacro):
     timg: FImage
     fmt: str
@@ -4927,7 +4932,7 @@ class DPLoadTextureTile(GbiMacro):
 # gsDPLoadMultiTile
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPLoadTextureTile_4b(GbiMacro):
     timg: FImage
     fmt: str
@@ -5003,7 +5008,7 @@ class DPLoadTextureTile_4b(GbiMacro):
 # gsDPLoadMultiTile_4b
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPLoadTLUT_pal16(GbiMacro):
     pal: int
     dram: FImage  # pallete object
@@ -5045,7 +5050,7 @@ class DPLoadTLUT_pal16(GbiMacro):
             return GFX_SIZE * 7
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPLoadTLUT_pal256(GbiMacro):
     dram: FImage  # pallete object
     _ptr_amp = True  # adds & to name of image
@@ -5084,7 +5089,7 @@ class DPLoadTLUT_pal256(GbiMacro):
             return GFX_SIZE * 7
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPLoadTLUT(GbiMacro):
     count: int
     tmemaddr: int
@@ -5131,7 +5136,7 @@ class DPLoadTLUT(GbiMacro):
 # gsDPFillRectangle
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPSetConvert(GbiMacro):
     k0: int
     k1: int
@@ -5147,7 +5152,7 @@ class DPSetConvert(GbiMacro):
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPSetKeyR(GbiMacro):
     cR: int
     sR: int
@@ -5160,7 +5165,7 @@ class DPSetKeyR(GbiMacro):
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPSetKeyGB(GbiMacro):
     cG: int
     sG: int
@@ -5190,7 +5195,7 @@ def gsDPParam(cmd, param):
 # gsDPTextureRectangleFlip
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class SPTextureRectangle(GbiMacro):
     xl: int
     yl: int
@@ -5221,7 +5226,7 @@ class SPTextureRectangle(GbiMacro):
         return GFX_SIZE * 2
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class SPScisTextureRectangle(GbiMacro):
     xl: int
     yl: int
@@ -5244,25 +5249,25 @@ class SPScisTextureRectangle(GbiMacro):
 # gsDPWord
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPFullSync(GbiMacro):
     def to_binary(self, f3d, segments):
         return gsDPNoParam(f3d.G_RDPFULLSYNC)
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPTileSync(GbiMacro):
     def to_binary(self, f3d, segments):
         return gsDPNoParam(f3d.G_RDPTILESYNC)
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPPipeSync(GbiMacro):
     def to_binary(self, f3d, segments):
         return gsDPNoParam(f3d.G_RDPPIPESYNC)
 
 
-@dataclass(unsafe_hash = True)
+@dataclass(unsafe_hash=True)
 class DPLoadSync(GbiMacro):
     def to_binary(self, f3d, segments):
         return gsDPNoParam(f3d.G_RDPLOADSYNC)
