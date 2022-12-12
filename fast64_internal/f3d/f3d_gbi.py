@@ -24,7 +24,6 @@ class GfxListTag(enum.Enum):
 
 
 class GfxTag(enum.Flag):
-    NoTag = enum.auto()
     TileScroll0 = enum.auto()
     TileScroll1 = enum.auto()
 
@@ -3215,10 +3214,10 @@ class GbiMacro:
     _segptrs = False
     _ptr_amp = False
 
-    tags = GfxTag.NoTag
+    tags = GfxTag(0)
     """
     Type: GfxTag. The tags' current use is to determine how to write gfx scrolling code for this given command.
-    This is an enum flag, so it can be composed of multiple tag values.
+    This is an enum flag, so it can be composed of multiple tag values. Use "|=" when adding flags.
     This is unannotated and will not be considered when calculating the hash.
     """
 

@@ -116,7 +116,7 @@ class SM64GfxFormatter(GfxFormatter):
         tags: GfxTag = command.tags
         fMaterial: FMaterial = command.fMaterial
 
-        if tags & GfxTag.NoTag:
+        if not tags:
             return "", ""
         elif tags & (GfxTag.TileScroll0 | GfxTag.TileScroll1):
             textureIndex = 0 if tags & GfxTag.TileScroll0 else 1
