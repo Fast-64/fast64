@@ -1,14 +1,12 @@
-from bpy.types import Panel, PropertyGroup, Object, World, Material, Armature, Mesh
-from bpy.props import PointerProperty, StringProperty, BoolProperty, EnumProperty
+from bpy.types import Panel, Mesh, Armature
 from bpy.utils import register_class, unregister_class
-from ....utility import prop_split
-from ....f3d.f3d_parser import ootEnumDrawLayers
-from ...oot_f3d_writer import drawOOTMaterialProperty
+from ...panels import OOT_Panel
+from ...utility import prop_split
+from ..oot_f3d_writer import drawOOTMaterialProperty
+from .properties import OOTDLExportSettings, OOTDLImportSettings
+from .operators import OOT_ImportDL, OOT_ExportDL
 
 
-################
-# DL Inspector #
-################
 class OOT_DisplayListPanel(Panel):
     bl_label = "Display List Inspector"
     bl_idname = "OBJECT_PT_OOT_DL_Inspector"
@@ -43,44 +41,6 @@ class OOT_DisplayListPanel(Panel):
         # drawParentSceneRoom(box, obj)
 
 
-######################
-# Material Inspector #
-######################
-class OOTDynamicMaterialDrawLayerProperty(PropertyGroup):
-    segment8: BoolProperty()
-    segment9: BoolProperty()
-    segmentA: BoolProperty()
-    segmentB: BoolProperty()
-    segmentC: BoolProperty()
-    segmentD: BoolProperty()
-    customCall0: BoolProperty()
-    customCall0_seg: StringProperty(description="Segment address of a display list to call, e.g. 0x08000010")
-    customCall1: BoolProperty()
-    customCall1_seg: StringProperty(description="Segment address of a display list to call, e.g. 0x08000010")
-
-    def key(self):
-        return (
-            self.segment8,
-            self.segment9,
-            self.segmentA,
-            self.segmentB,
-            self.segmentC,
-            self.segmentD,
-            self.customCall0_seg if self.customCall0 else None,
-            self.customCall1_seg if self.customCall1 else None,
-        )
-
-
-# The reason these are separate is for the case when the user changes the material draw layer, but not the
-# dynamic material calls. This could cause crashes which would be hard to detect.
-class OOTDynamicMaterialProperty(PropertyGroup):
-    opaque: PointerProperty(type=OOTDynamicMaterialDrawLayerProperty)
-    transparent: PointerProperty(type=OOTDynamicMaterialDrawLayerProperty)
-
-    def key(self):
-        return (self.opaque.key(), self.transparent.key())
-
-
 class OOT_MaterialPanel(Panel):
     bl_label = "OOT Material"
     bl_idname = "MATERIAL_PT_OOT_Material_Inspector"
@@ -111,19 +71,6 @@ class OOT_MaterialPanel(Panel):
             drawLayer = mat.f3d_mat.draw_layer.oot
 
         drawOOTMaterialProperty(col.box().column(), mat, drawLayer)
-
-
-###############
-# Draw Layers #
-###############
-class OOTDefaultRenderModesProperty(PropertyGroup):
-    expandTab: BoolProperty()
-    opaqueCycle1: StringProperty(default="G_RM_AA_ZB_OPA_SURF")
-    opaqueCycle2: StringProperty(default="G_RM_AA_ZB_OPA_SURF2")
-    transparentCycle1: StringProperty(default="G_RM_AA_ZB_XLU_SURF")
-    transparentCycle2: StringProperty(default="G_RM_AA_ZB_XLU_SURF2")
-    overlayCycle1: StringProperty(default="G_RM_AA_ZB_OPA_SURF")
-    overlayCycle2: StringProperty(default="G_RM_AA_ZB_OPA_SURF2")
 
 
 class OOT_DrawLayersPanel(Panel):
@@ -158,50 +105,70 @@ class OOT_DrawLayersPanel(Panel):
             prop_split(inputGroup, ootDefaultRenderModeProp, "overlayCycle2", "Overlay Cycle 2")
 
 
-oot_dl_writer_classes = (
-    OOTDefaultRenderModesProperty,
-    OOTDynamicMaterialDrawLayerProperty,
-    OOTDynamicMaterialProperty,
-)
+class OOT_ExportDLPanel(OOT_Panel):
+    bl_idname = "OOT_PT_export_dl"
+    bl_label = "OOT DL Exporter"
+
+    # called every frame
+    def draw(self, context):
+        col = self.layout.column()
+        col.operator(OOT_ExportDL.bl_idname)
+        exportSettings: OOTDLExportSettings = context.scene.fast64.oot.DLExportSettings
+
+        col.label(text="Object name used for export.", icon="INFO")
+        col.prop(exportSettings, "isCustomFilename")
+        if exportSettings.isCustomFilename:
+            prop_split(col, exportSettings, "filename", "Filename")
+        prop_split(col, exportSettings, "folder", "Object" if not exportSettings.isCustom else "Folder")
+        if exportSettings.isCustom:
+            prop_split(col, exportSettings, "customAssetIncludeDir", "Asset Include Path")
+            prop_split(col, exportSettings, "customPath", "Path")
+        else:
+            prop_split(col, exportSettings, "actorOverlayName", "Overlay (Optional)")
+            col.prop(exportSettings, "flipbookUses2DArray")
+            if exportSettings.flipbookUses2DArray:
+                box = col.box().column()
+                prop_split(box, exportSettings, "flipbookArrayIndex2D", "Flipbook Index")
+
+        prop_split(col, exportSettings, "drawLayer", "Export Draw Layer")
+        col.prop(exportSettings, "isCustom")
+        col.prop(exportSettings, "removeVanillaData")
+
+        col.operator(OOT_ImportDL.bl_idname)
+        importSettings: OOTDLImportSettings = context.scene.fast64.oot.DLImportSettings
+
+        prop_split(col, importSettings, "name", "DL")
+        if importSettings.isCustom:
+            prop_split(col, importSettings, "customPath", "File")
+        else:
+            prop_split(col, importSettings, "folder", "Object")
+            prop_split(col, importSettings, "actorOverlayName", "Overlay (Optional)")
+            col.prop(importSettings, "autoDetectActorScale")
+            if not importSettings.autoDetectActorScale:
+                prop_split(col, importSettings, "actorScale", "Actor Scale")
+            col.prop(importSettings, "flipbookUses2DArray")
+            if importSettings.flipbookUses2DArray:
+                box = col.box().column()
+                prop_split(box, importSettings, "flipbookArrayIndex2D", "Flipbook Index")
+        prop_split(col, importSettings, "drawLayer", "Import Draw Layer")
+
+        col.prop(importSettings, "isCustom")
+        col.prop(importSettings, "removeDoubles")
+        col.prop(importSettings, "importNormals")
+
 
 oot_dl_writer_panel_classes = (
     OOT_DisplayListPanel,
-    OOT_DrawLayersPanel,
     OOT_MaterialPanel,
+    OOT_DrawLayersPanel,
+    OOT_ExportDLPanel,
 )
 
-
-def f3d_props_panel_register():
+def f3d_panels_register():
     for cls in oot_dl_writer_panel_classes:
         register_class(cls)
 
 
-def f3d_props_panel_unregister():
+def f3d_panels_unregister():
     for cls in oot_dl_writer_panel_classes:
         unregister_class(cls)
-
-
-def f3d_props_classes_register():
-    ootEnumObjectMenu = [
-        ("Scene", "Parent Scene Settings", "Scene"),
-        ("Room", "Parent Room Settings", "Room"),
-    ]
-
-    for cls in oot_dl_writer_classes:
-        register_class(cls)
-
-    Object.ootDrawLayer = EnumProperty(items=ootEnumDrawLayers, default="Opaque")
-
-    # Doesn't work since all static meshes are pre-transformed
-    # Object.ootDynamicTransform = PointerProperty(type = OOTDynamicTransformProperty)
-    World.ootDefaultRenderModes = PointerProperty(type=OOTDefaultRenderModesProperty)
-    Material.ootMaterial = PointerProperty(type=OOTDynamicMaterialProperty)
-    Object.ootObjectMenu = EnumProperty(items=ootEnumObjectMenu)
-
-
-def f3d_props_classes_unregister():
-    for cls in reversed(oot_dl_writer_classes):
-        unregister_class(cls)
-
-    del Material.ootMaterial
-    del Object.ootObjectMenu

@@ -1,17 +1,14 @@
 import os
 from bpy.path import abspath
 from bpy.ops import object
-from bpy.props import StringProperty
+from bpy.props import StringProperty, EnumProperty, IntProperty
 from bpy.types import Scene, Operator, Context
 from bpy.utils import register_class, unregister_class
-from ....utility import PluginError, writeCData, raisePluginError, prop_split
-from ....panels import OOT_Panel
-from ...oot_cutscene import ootCutsceneIncludes, ootCutsceneDataToC, convertCutsceneObject
+from ...utility import CData, PluginError, writeCData, raisePluginError
+from ..oot_constants import ootEnumCSTextboxType, ootEnumCSListType
+from ..oot_utility import getCollection
 
 
-#############
-# Operators #
-#############
 def checkGetFilePaths(context: Context):
     cpath = abspath(context.scene.ootCutsceneExportPath)
 
@@ -24,12 +21,62 @@ def checkGetFilePaths(context: Context):
     return cpath, hpath, headerfilename
 
 
+def ootCutsceneIncludes(headerfilename):
+    ret = CData()
+    ret.source = (
+        '#include "ultra64.h"\n'
+        + '#include "z64.h"\n'
+        + '#include "macros.h"\n'
+        + '#include "command_macros_base.h"\n'
+        + '#include "z64cutscene_commands.h"\n\n'
+        + '#include "'
+        + headerfilename
+        + '"\n\n'
+    )
+    return ret
+
+
+class OOTCSTextboxAdd(Operator):
+    bl_idname = "object.oot_cstextbox_add"
+    bl_label = "Add CS Textbox"
+    bl_options = {"REGISTER", "UNDO"}
+
+    collectionType: StringProperty()
+    textboxType: EnumProperty(items=ootEnumCSTextboxType)
+    listIndex: IntProperty()
+    objName: StringProperty()
+
+    def execute(self, context):
+        collection = getCollection(self.objName, self.collectionType, self.listIndex)
+        newTextboxElement = collection.add()
+        newTextboxElement.textboxType = self.textboxType
+        return {"FINISHED"}
+
+
+class OOTCSListAdd(Operator):
+    bl_idname = "object.oot_cslist_add"
+    bl_label = "Add CS List"
+    bl_options = {"REGISTER", "UNDO"}
+
+    collectionType: StringProperty()
+    listType: EnumProperty(items=ootEnumCSListType)
+    objName: StringProperty()
+
+    def execute(self, context):
+        collection = getCollection(self.objName, self.collectionType, None)
+        newList = collection.add()
+        newList.listType = self.listType
+        return {"FINISHED"}
+
+
 class OOT_ExportCutscene(Operator):
     bl_idname = "object.oot_export_cutscene"
     bl_label = "Export Cutscene"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
 
     def execute(self, context):
+        from ..oot_cutscene import ootCutsceneDataToC, convertCutsceneObject  # temp circular import fix
+
         try:
             if context.mode != "OBJECT":
                 object.mode_set(mode="OBJECT")
@@ -61,6 +108,8 @@ class OOT_ExportAllCutscenes(Operator):
     bl_options = {"REGISTER", "UNDO", "PRESET"}
 
     def execute(self, context):
+        from ..oot_cutscene import ootCutsceneDataToC, convertCutsceneObject  # temp circular import fix
+        
         try:
             if context.mode != "OBJECT":
                 object.mode_set(mode="OBJECT")
@@ -85,51 +134,22 @@ class OOT_ExportAllCutscenes(Operator):
             return {"CANCELLED"}
 
 
-#############
-#   Panel   #
-#############
-class OOT_CutscenePanel(OOT_Panel):
-    bl_idname = "OOT_PT_export_cutscene"
-    bl_label = "OOT Cutscene Exporter"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "OOT"
-
-    def draw(self, context):
-        col = self.layout.column()
-        col.operator(OOT_ExportCutscene.bl_idname)
-        col.operator(OOT_ExportAllCutscenes.bl_idname)
-        prop_split(col, context.scene, "ootCutsceneExportPath", "File")
-
-
-oot_cutscene_panel_classes = [
-    OOT_CutscenePanel,
-]
-
-oot_cutscene_classes = [
+oot_cutscene_classes = (
+    OOTCSTextboxAdd,
+    OOTCSListAdd,
     OOT_ExportCutscene,
     OOT_ExportAllCutscenes,
-]
+)
 
 
-def oot_cutscene_panel_register():
-    for cls in oot_cutscene_panel_classes:
-        register_class(cls)
-
-
-def oot_cutscene_panel_unregister():
-    for cls in oot_cutscene_panel_classes:
-        unregister_class(cls)
-
-
-def oot_cutscene_register():
+def cutscene_ops_register():
     for cls in oot_cutscene_classes:
         register_class(cls)
 
     Scene.ootCutsceneExportPath = StringProperty(name="File", subtype="FILE_PATH")
 
 
-def oot_cutscene_unregister():
+def cutscene_ops_unregister():
     for cls in reversed(oot_cutscene_classes):
         unregister_class(cls)
 

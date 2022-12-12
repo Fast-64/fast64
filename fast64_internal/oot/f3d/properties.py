@@ -1,0 +1,117 @@
+from bpy.types import PropertyGroup, Object, World, Material
+from bpy.props import PointerProperty, StringProperty, BoolProperty, EnumProperty, IntProperty, FloatProperty
+from bpy.utils import register_class, unregister_class
+from ...f3d.f3d_parser import ootEnumDrawLayers
+
+
+class OOTDLExportSettings(PropertyGroup):
+    isCustomFilename: BoolProperty(name="Use Custom Filename", description="Override filename instead of basing it off of the Blender name")
+    filename: StringProperty(name="Filename")
+    folder: StringProperty(name="DL Folder", default="gameplay_keep")
+    customPath: StringProperty(name="Custom DL Path", subtype="FILE_PATH")
+    isCustom: BoolProperty(name="Use Custom Path", description="Determines whether or not to export to an explicitly specified folder")
+    removeVanillaData: BoolProperty(name="Replace Vanilla DLs")
+    drawLayer: EnumProperty(name="Draw Layer", items=ootEnumDrawLayers)
+    actorOverlayName: StringProperty(name="Overlay", default="")
+    flipbookUses2DArray: BoolProperty(name="Has 2D Flipbook Array", default=False)
+    flipbookArrayIndex2D: IntProperty(name="Index if 2D Array", default=0, min=0)
+    customAssetIncludeDir: StringProperty(
+        name="Asset Include Directory",
+        default="assets/objects/gameplay_keep",
+        description="Used in #include for including image files",
+    )
+
+
+class OOTDLImportSettings(PropertyGroup):
+    name: StringProperty(name="DL Name", default="gBoulderFragmentsDL")
+    folder: StringProperty(name="DL Folder", default="gameplay_keep")
+    customPath: StringProperty(name="Custom DL Path", subtype="FILE_PATH")
+    isCustom: BoolProperty(name="Use Custom Path")
+    removeDoubles: BoolProperty(name="Remove Doubles", default=True)
+    importNormals: BoolProperty(name="Import Normals", default=True)
+    drawLayer: EnumProperty(name="Draw Layer", items=ootEnumDrawLayers)
+    actorOverlayName: StringProperty(name="Overlay", default="")
+    flipbookUses2DArray: BoolProperty(name="Has 2D Flipbook Array", default=False)
+    flipbookArrayIndex2D: IntProperty(name="Index if 2D Array", default=0, min=0)
+    autoDetectActorScale: BoolProperty(name="Auto Detect Actor Scale", default=True)
+    actorScale: FloatProperty(name="Actor Scale", min=0, default=100)
+
+
+class OOTDynamicMaterialDrawLayerProperty(PropertyGroup):
+    segment8: BoolProperty()
+    segment9: BoolProperty()
+    segmentA: BoolProperty()
+    segmentB: BoolProperty()
+    segmentC: BoolProperty()
+    segmentD: BoolProperty()
+    customCall0: BoolProperty()
+    customCall0_seg: StringProperty(description="Segment address of a display list to call, e.g. 0x08000010")
+    customCall1: BoolProperty()
+    customCall1_seg: StringProperty(description="Segment address of a display list to call, e.g. 0x08000010")
+
+    def key(self):
+        return (
+            self.segment8,
+            self.segment9,
+            self.segmentA,
+            self.segmentB,
+            self.segmentC,
+            self.segmentD,
+            self.customCall0_seg if self.customCall0 else None,
+            self.customCall1_seg if self.customCall1 else None,
+        )
+
+
+# The reason these are separate is for the case when the user changes the material draw layer, but not the
+# dynamic material calls. This could cause crashes which would be hard to detect.
+class OOTDynamicMaterialProperty(PropertyGroup):
+    opaque: PointerProperty(type=OOTDynamicMaterialDrawLayerProperty)
+    transparent: PointerProperty(type=OOTDynamicMaterialDrawLayerProperty)
+
+    def key(self):
+        return (self.opaque.key(), self.transparent.key())
+
+
+class OOTDefaultRenderModesProperty(PropertyGroup):
+    expandTab: BoolProperty()
+    opaqueCycle1: StringProperty(default="G_RM_AA_ZB_OPA_SURF")
+    opaqueCycle2: StringProperty(default="G_RM_AA_ZB_OPA_SURF2")
+    transparentCycle1: StringProperty(default="G_RM_AA_ZB_XLU_SURF")
+    transparentCycle2: StringProperty(default="G_RM_AA_ZB_XLU_SURF2")
+    overlayCycle1: StringProperty(default="G_RM_AA_ZB_OPA_SURF")
+    overlayCycle2: StringProperty(default="G_RM_AA_ZB_OPA_SURF2")
+
+
+oot_dl_writer_classes = (
+    OOTDLExportSettings,
+    OOTDLImportSettings,
+    OOTDynamicMaterialDrawLayerProperty,
+    OOTDynamicMaterialProperty,
+    OOTDefaultRenderModesProperty,
+)
+
+
+def f3d_props_register():
+    ootEnumObjectMenu = [
+        ("Scene", "Parent Scene Settings", "Scene"),
+        ("Room", "Parent Room Settings", "Room"),
+    ]
+
+    for cls in oot_dl_writer_classes:
+        register_class(cls)
+
+    Object.ootDrawLayer = EnumProperty(items=ootEnumDrawLayers, default="Opaque")
+
+    # Doesn't work since all static meshes are pre-transformed
+    # Object.ootDynamicTransform = PointerProperty(type = OOTDynamicTransformProperty)
+    World.ootDefaultRenderModes = PointerProperty(type=OOTDefaultRenderModesProperty)
+    Material.ootMaterial = PointerProperty(type=OOTDynamicMaterialProperty)
+    Object.ootObjectMenu = EnumProperty(items=ootEnumObjectMenu)
+
+
+def f3d_props_unregister():
+    for cls in reversed(oot_dl_writer_classes):
+        unregister_class(cls)
+
+    del Material.ootMaterial
+    del Object.ootObjectMenu

@@ -5,7 +5,7 @@ from ....utility import prop_split
 from ...oot_utility import getSceneObj, drawEnumWithCustom
 from ...oot_actor import drawActorHeaderProperty
 from ...oot_collision_classes import ootEnumCameraCrawlspaceSType
-from ...actor.panel.properties import OOTActorHeaderProperty
+from ...actor.properties import OOTActorHeaderProperty
 
 
 ##############

@@ -1,6 +1,6 @@
 from ..utility import PluginError, CData, prop_split
 from .oot_utility import OOTCollectionAdd, drawCollectionOps, getCutsceneName, getCustomProperty
-from .cutscene.panel.properties import OOTCSTextboxAdd, OOTCSListAdd
+from .cutscene.operators import OOTCSTextboxAdd, OOTCSListAdd
 
 from .oot_constants import (
     ootEnumCSTextboxType,
@@ -221,22 +221,6 @@ def convertCutsceneObject(obj):
 ################################################################################
 # Level classes to C
 ################################################################################
-
-
-def ootCutsceneIncludes(headerfilename):
-    ret = CData()
-    ret.source = (
-        '#include "ultra64.h"\n'
-        + '#include "z64.h"\n'
-        + '#include "macros.h"\n'
-        + '#include "command_macros_base.h"\n'
-        + '#include "z64cutscene_commands.h"\n\n'
-        + '#include "'
-        + headerfilename
-        + '"\n\n'
-    )
-    return ret
-
 
 def ootCutsceneDataToC(csParent, csName):
     # csParent can be OOTCutscene or OOTScene

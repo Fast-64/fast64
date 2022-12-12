@@ -1,14 +1,97 @@
+import bpy, os, mathutils
 from bpy.types import Operator, Mesh
 from bpy.ops import object
 from bpy.path import abspath
+from bpy.utils import register_class, unregister_class
 from mathutils import Matrix
-from ......utility import PluginError, raisePluginError
-from ......f3d.f3d_parser import importMeshC, getImportData
-from ......f3d.f3d_gbi import DLFormat, F3D
-from .....oot_utility import ootGetObjectPath, getOOTScale
-from .....oot_model_classes import OOTF3DContext, ootGetIncludedAssetData
-from .....oot_texture_array import ootReadTextureArrays
-from .classes import OOTDLImportSettings
+from ...utility import CData, PluginError, raisePluginError, writeCData, toAlnum
+from ...f3d.f3d_parser import importMeshC, getImportData
+from ...f3d.f3d_gbi import DLFormat, F3D, TextureExportSettings, ScrollMethod
+from ...f3d.f3d_writer import TriangleConverterInfo, removeDL, saveStaticModel, getInfoDict
+from ..oot_utility import ootGetObjectPath, getOOTScale
+from ..oot_model_classes import OOTF3DContext, ootGetIncludedAssetData
+from ..oot_texture_array import ootReadTextureArrays
+from ..oot_model_classes import OOTModel, OOTGfxFormatter
+from ..oot_f3d_writer import writeTextureArraysNew, writeTextureArraysExisting
+from .properties import OOTDLImportSettings, OOTDLExportSettings
+
+from ..oot_utility import (
+    OOTObjectCategorizer,
+    ootDuplicateHierarchy,
+    ootCleanupScene,
+    ootGetPath,
+    addIncludeFiles,
+    getOOTScale,
+)
+
+
+def ootConvertMeshToC(
+    originalObj: bpy.types.Object,
+    finalTransform: mathutils.Matrix,
+    f3dType: str,
+    isHWv1: bool,
+    DLFormat: DLFormat,
+    saveTextures: bool,
+    settings: OOTDLExportSettings,
+):
+    folderName = settings.folder
+    exportPath = bpy.path.abspath(settings.customPath)
+    isCustomExport = settings.isCustom
+    drawLayer = settings.drawLayer
+    removeVanillaData = settings.removeVanillaData
+    name = toAlnum(originalObj.name)
+    overlayName = settings.actorOverlayName
+    flipbookUses2DArray = settings.flipbookUses2DArray
+    flipbookArrayIndex2D = settings.flipbookArrayIndex2D if flipbookUses2DArray else None
+
+    try:
+        obj, allObjs = ootDuplicateHierarchy(originalObj, None, False, OOTObjectCategorizer())
+
+        fModel = OOTModel(f3dType, isHWv1, name, DLFormat, drawLayer)
+        triConverterInfo = TriangleConverterInfo(obj, None, fModel.f3d, finalTransform, getInfoDict(obj))
+        fMeshes = saveStaticModel(
+            triConverterInfo, fModel, obj, finalTransform, fModel.name, not saveTextures, False, "oot"
+        )
+
+        # Since we provide a draw layer override, there should only be one fMesh.
+        for drawLayer, fMesh in fMeshes.items():
+            fMesh.draw.name = name
+
+        ootCleanupScene(originalObj, allObjs)
+
+    except Exception as e:
+        ootCleanupScene(originalObj, allObjs)
+        raise Exception(str(e))
+
+    data = CData()
+    data.source += '#include "ultra64.h"\n#include "global.h"\n'
+    if not isCustomExport:
+        data.source += '#include "' + folderName + '.h"\n\n'
+    else:
+        data.source += "\n"
+
+    path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, True)
+    includeDir = settings.customAssetIncludeDir if settings.isCustom else f"assets/objects/{folderName}"
+    exportData = fModel.to_c(
+        TextureExportSettings(False, saveTextures, includeDir, path), OOTGfxFormatter(ScrollMethod.Vertex)
+    )
+
+    data.append(exportData.all())
+
+    if isCustomExport:
+        textureArrayData = writeTextureArraysNew(fModel, flipbookArrayIndex2D)
+        data.append(textureArrayData)
+
+    filename = settings.filename if settings.isCustomFilename else name
+    writeCData(data, os.path.join(path, filename + ".h"), os.path.join(path, filename + ".c"))
+
+    if not isCustomExport:
+        writeTextureArraysExisting(bpy.context.scene.ootDecompPath, overlayName, False, flipbookArrayIndex2D, fModel)
+        addIncludeFiles(folderName, path, name)
+        if removeVanillaData:
+            headerPath = os.path.join(path, folderName + ".h")
+            sourcePath = os.path.join(path, folderName + ".c")
+            removeDL(sourcePath, headerPath, name)
 
 
 class OOT_ImportDL(Operator):
@@ -20,7 +103,7 @@ class OOT_ImportDL(Operator):
     # Called on demand (i.e. button press, menu item)
     # Can also be called from operator search menu (Spacebar)
     def execute(self, context):
-        from .....oot_f3d_writer import ootReadActorScale  # temp circular import fix
+        from ..oot_f3d_writer import ootReadActorScale  # temp circular import fix
 
         obj = None
         if context.mode != "OBJECT":
@@ -83,9 +166,6 @@ class OOT_ExportDL(Operator):
     # Called on demand (i.e. button press, menu item)
     # Can also be called from operator search menu (Spacebar)
     def execute(self, context):
-        from .....oot_f3d_writer import ootConvertMeshToC  # temp circular import fix
-
-
         obj = None
         if context.mode != "OBJECT":
             object.mode_set(mode="OBJECT")
@@ -125,3 +205,18 @@ class OOT_ExportDL(Operator):
                 object.mode_set(mode="OBJECT")
             raisePluginError(self, e)
             return {"CANCELLED"}  # must return a set
+
+
+oot_dl_writer_classes = (
+    OOT_ImportDL,
+    OOT_ExportDL,
+)
+
+def f3d_ops_register():
+    for cls in oot_dl_writer_classes:
+        register_class(cls)
+
+
+def f3d_ops_unregister():
+    for cls in reversed(oot_dl_writer_classes):
+        unregister_class(cls)

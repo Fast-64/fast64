@@ -1,50 +1,10 @@
-from bpy.types import PropertyGroup, Operator, Object
+from bpy.types import PropertyGroup, Object
 from bpy.props import StringProperty, EnumProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
 from bpy.utils import register_class, unregister_class
-from ....utility import PluginError, prop_split
-from ...oot_constants import ootEnumCSTextboxType, ootEnumCSListType, ootEnumCSTransitionType
-from ...oot_utility import drawCollectionOps, getCollection
+from ...utility import PluginError, prop_split
+from ..oot_constants import ootEnumCSTextboxType, ootEnumCSListType, ootEnumCSTransitionType
+from ..oot_utility import drawCollectionOps
 
-
-#############
-# Operators #
-#############
-class OOTCSTextboxAdd(Operator):
-    bl_idname = "object.oot_cstextbox_add"
-    bl_label = "Add CS Textbox"
-    bl_options = {"REGISTER", "UNDO"}
-
-    collectionType: StringProperty()
-    textboxType: EnumProperty(items=ootEnumCSTextboxType)
-    listIndex: IntProperty()
-    objName: StringProperty()
-
-    def execute(self, context):
-        collection = getCollection(self.objName, self.collectionType, self.listIndex)
-        newTextboxElement = collection.add()
-        newTextboxElement.textboxType = self.textboxType
-        return {"FINISHED"}
-
-
-class OOTCSListAdd(Operator):
-    bl_idname = "object.oot_cslist_add"
-    bl_label = "Add CS List"
-    bl_options = {"REGISTER", "UNDO"}
-
-    collectionType: StringProperty()
-    listType: EnumProperty(items=ootEnumCSListType)
-    objName: StringProperty()
-
-    def execute(self, context):
-        collection = getCollection(self.objName, self.collectionType, None)
-        newList = collection.add()
-        newList.listType = self.listType
-        return {"FINISHED"}
-
-
-##############
-# Properties #
-##############
 
 # Perhaps this should have been called something like OOTCSParentPropertyType,
 # but now it needs to keep the same name to not break existing scenes which use
@@ -209,8 +169,6 @@ class OOTCutsceneProperty(PropertyGroup):
 
 
 classes = (
-    OOTCSTextboxAdd,
-    OOTCSListAdd,
     OOTCSTextboxProperty,
     OOTCSLightingProperty,
     OOTCSTimeProperty,
@@ -223,14 +181,14 @@ classes = (
 )
 
 
-def cutscene_props_classes_register():
+def cutscene_props_register():
     for cls in classes:
         register_class(cls)
 
     Object.ootCutsceneProperty = PointerProperty(type=OOTCutsceneProperty)
 
 
-def cutscene_props_classes_unregister():
+def cutscene_props_unregister():
     del Object.ootCutsceneProperty
 
     for cls in reversed(classes):

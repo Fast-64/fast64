@@ -1,5 +1,5 @@
 from ..utility import prop_split, label_split
-from .actor.panel.properties import OOT_SearchActorIDEnumOperator
+from .actor.operators import OOT_SearchActorIDEnumOperator
 from .oot_constants import ootData
 
 from .oot_utility import (

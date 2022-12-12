@@ -1,6 +1,5 @@
 from .....utility import CData, indent
 from ....oot_level_classes import OOTScene
-from ....oot_utility import getCustomProperty
 
 
 def getSoundSettingsCmd(outScene: OOTScene):

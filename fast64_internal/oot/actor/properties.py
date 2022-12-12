@@ -1,39 +1,7 @@
-import bpy
-from bpy.types import Operator, Object, PropertyGroup
+from bpy.types import Object, PropertyGroup
 from bpy.utils import register_class, unregister_class
 from bpy.props import EnumProperty, StringProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
-from ....utility import PluginError
-from ...oot_constants import ootData, ootEnumSceneSetupPreset, ootEnumCamTransition
-
-
-class OOT_SearchActorIDEnumOperator(Operator):
-    bl_idname = "object.oot_search_actor_id_enum_operator"
-    bl_label = "Select Actor ID"
-    bl_property = "actorID"
-    bl_options = {"REGISTER", "UNDO"}
-
-    actorID: EnumProperty(items=ootData.actorData.ootEnumActorID, default="ACTOR_PLAYER")
-    actorUser: StringProperty(default="Actor")
-    objName: StringProperty()
-
-    def execute(self, context):
-        obj = bpy.data.objects[self.objName]
-        if self.actorUser == "Transition Actor":
-            obj.ootTransitionActorProperty.actor.actorID = self.actorID
-        elif self.actorUser == "Actor":
-            obj.ootActorProperty.actorID = self.actorID
-        elif self.actorUser == "Entrance":
-            obj.ootEntranceProperty.actor.actorID = self.actorID
-        else:
-            raise PluginError("Invalid actor user for search: " + str(self.actorUser))
-
-        context.region.tag_redraw()
-        self.report({"INFO"}, "Selected: " + self.actorID)
-        return {"FINISHED"}
-
-    def invoke(self, context, event):
-        context.window_manager.invoke_search_popup(self)
-        return {"RUNNING_MODAL"}
+from ..oot_constants import ootData, ootEnumSceneSetupPreset, ootEnumCamTransition
 
 
 class OOTActorHeaderItemProperty(PropertyGroup):
@@ -92,7 +60,6 @@ class OOTEntranceProperty(PropertyGroup):
 
 
 classes = (
-    OOT_SearchActorIDEnumOperator,
     OOTActorHeaderItemProperty,
     OOTActorHeaderProperty,
     OOTActorProperty,
@@ -101,7 +68,7 @@ classes = (
 )
 
 
-def actor_props_classes_register():
+def actor_props_register():
     for cls in classes:
         register_class(cls)
 
@@ -110,7 +77,7 @@ def actor_props_classes_register():
     Object.ootEntranceProperty = PointerProperty(type=OOTEntranceProperty)
 
 
-def actor_props_classes_unregister():
+def actor_props_unregister():
     del Object.ootActorProperty
     del Object.ootTransitionActorProperty
     del Object.ootEntranceProperty

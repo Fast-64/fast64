@@ -9,7 +9,7 @@ from bpy.props import (
     FloatVectorProperty,
 )
 from .....render_settings import on_update_oot_render_settings
-from ....cutscene.panel.properties import OOTCSListProperty
+from ....cutscene.properties import OOTCSListProperty
 from ....oot_utility import onMenuTabChange, onHeaderMenuTabChange
 
 from ....oot_constants import (

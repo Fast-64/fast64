@@ -1,20 +1,14 @@
-import bpy, os, mathutils
-from .collision.panel.properties import OOTCollisionExportSettings
+import bpy, mathutils
 
 from ..utility import (
     PluginError,
     CData,
     prop_split,
-    unhideAllAndGetHiddenList,
-    hideObjsInList,
-    writeCData,
-    toAlnum,
 )
 
 from .oot_collision_classes import (
     OOTCollisionVertex,
     OOTCollisionPolygon,
-    OOTCollision,
     OOTCameraData,
     OOTCameraPosData,
     OOTCrawlspaceData,
@@ -22,14 +16,8 @@ from .oot_collision_classes import (
 )
 
 from .oot_utility import (
-    OOTObjectCategorizer,
     convertIntTo2sComplement,
-    addIncludeFiles,
     drawCollectionOps,
-    ootDuplicateHierarchy,
-    ootCleanupScene,
-    ootGetPath,
-    ootGetObjectPath,
 )
 
 
@@ -97,53 +85,6 @@ def exportCollisionCommon(collision, obj, transformMatrix, includeChildren, name
                 indices[1], indices[2] = indices[2], indices[1]
 
             collision.polygonGroups[polygonType].append(OOTCollisionPolygon(indices, normal, distance))
-
-
-def exportCollisionToC(
-    originalObj: bpy.types.Object, transformMatrix: mathutils.Matrix, exportSettings: OOTCollisionExportSettings
-):
-    includeChildren = exportSettings.includeChildren
-    name = toAlnum(originalObj.name)
-    isCustomExport = exportSettings.customExport
-    folderName = exportSettings.folder
-    exportPath = ootGetObjectPath(isCustomExport, bpy.path.abspath(exportSettings.exportPath), folderName)
-
-    collision = OOTCollision(name)
-    collision.cameraData = OOTCameraData(name)
-
-    if bpy.context.scene.exportHiddenGeometry:
-        hiddenObjs = unhideAllAndGetHiddenList(bpy.context.scene)
-
-    # Don't remove ignore_render, as we want to resuse this for collision
-    obj, allObjs = ootDuplicateHierarchy(originalObj, None, True, OOTObjectCategorizer())
-
-    if bpy.context.scene.exportHiddenGeometry:
-        hideObjsInList(hiddenObjs)
-
-    try:
-        exportCollisionCommon(collision, obj, transformMatrix, includeChildren, name)
-        ootCleanupScene(originalObj, allObjs)
-    except Exception as e:
-        ootCleanupScene(originalObj, allObjs)
-        raise Exception(str(e))
-
-    collisionC = ootCollisionToC(collision)
-
-    data = CData()
-    data.source += '#include "ultra64.h"\n#include "z64.h"\n#include "macros.h"\n'
-    if not isCustomExport:
-        data.source += '#include "' + folderName + '.h"\n\n'
-    else:
-        data.source += "\n"
-
-    data.append(collisionC)
-
-    path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, True)
-    filename = exportSettings.filename if exportSettings.isCustomFilename else f"{name}_collision"
-    writeCData(data, os.path.join(path, f"{filename}.h"), os.path.join(path, f"{filename}.c"))
-
-    if not isCustomExport:
-        addIncludeFiles(folderName, path, name)
 
 
 def updateBounds(position, bounds):

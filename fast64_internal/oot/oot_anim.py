@@ -1,18 +1,8 @@
-import math, mathutils, bpy, os, re
+import math, mathutils, bpy, re
+from ..utility import CData, PluginError, toAlnum, hexOrDecInt
+from ..f3d.f3d_parser import getImportData
 from .oot_skeleton import ootConvertArmatureToSkeletonWithoutMesh
-from ..utility import CData, PluginError, toAlnum, writeCData, hexOrDecInt
-
-from .oot_utility import (
-    checkForStartBone,
-    getStartBone,
-    getNextBone,
-    getSortedChildren,
-    ootGetPath,
-    addIncludeFiles,
-    checkEmptyName,
-    ootGetObjectPath,
-    getOOTScale,
-)
+from .oot_model_classes import ootGetIncludedAssetData
 
 from ..utility_anim import (
     ValueFrameData,
@@ -24,9 +14,12 @@ from ..utility_anim import (
     getRotationRelativeToRest,
 )
 
-from .oot_model_classes import ootGetIncludedAssetData
-from ..f3d.f3d_parser import getImportData
-from .animation.panel.properties import OOTAnimExportSettingsProperty, OOTAnimImportSettingsProperty
+from .oot_utility import (
+    checkForStartBone,
+    getStartBone,
+    getNextBone,
+    getSortedChildren,
+)
 
 
 def convertToUnsignedShort(value: int) -> int:
@@ -399,91 +392,6 @@ def ootExportLinkAnimation(armatureObj, convertTransformMatrix, skeletonName):
     )
 
     return ootAnim
-
-
-def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSettingsProperty):
-    path = bpy.path.abspath(settings.customPath)
-    exportPath = ootGetObjectPath(settings.isCustom, path, settings.folderName)
-
-    checkEmptyName(settings.folderName)
-    checkEmptyName(armatureObj.name)
-    name = toAlnum(armatureObj.name)
-    filename = settings.filename if settings.isCustomFilename else name
-    convertTransformMatrix = (
-        mathutils.Matrix.Scale(getOOTScale(armatureObj.ootActorScale), 4)
-        @ mathutils.Matrix.Diagonal(armatureObj.scale).to_4x4()
-    )
-
-    if settings.isLink:
-        ootAnim = ootExportLinkAnimation(armatureObj, convertTransformMatrix, name)
-        ootAnimC, ootAnimHeaderC = ootAnim.toC(settings.isCustom)
-        path = ootGetPath(
-            exportPath,
-            settings.isCustom,
-            "assets/misc/link_animetion",
-            settings.folderName if settings.isCustom else "",
-            False,
-            False,
-        )
-        headerPath = ootGetPath(
-            exportPath,
-            settings.isCustom,
-            "assets/objects/gameplay_keep",
-            settings.folderName if settings.isCustom else "",
-            False,
-            False,
-        )
-        writeCData(
-            ootAnimC, os.path.join(path, ootAnim.dataName() + ".h"), os.path.join(path, ootAnim.dataName() + ".c")
-        )
-        writeCData(
-            ootAnimHeaderC,
-            os.path.join(headerPath, ootAnim.headerName + ".h"),
-            os.path.join(headerPath, ootAnim.headerName + ".c"),
-        )
-
-        if not settings.isCustom:
-            addIncludeFiles("link_animetion", path, ootAnim.dataName())
-            addIncludeFiles("gameplay_keep", headerPath, ootAnim.headerName)
-
-    else:
-        ootAnim = ootExportNonLinkAnimation(armatureObj, convertTransformMatrix, name)
-
-        ootAnimC = ootAnim.toC()
-        path = ootGetPath(exportPath, settings.isCustom, "assets/objects/", settings.folderName, False, False)
-        writeCData(ootAnimC, os.path.join(path, filename + ".h"), os.path.join(path, filename + ".c"))
-
-        if not settings.isCustom:
-            addIncludeFiles(settings.folderName, path, filename)
-
-
-def ootImportAnimationC(
-    armatureObj: bpy.types.Object,
-    settings: OOTAnimImportSettingsProperty,
-    actorScale: float,
-):
-    importPath = bpy.path.abspath(settings.customPath)
-    filepath = ootGetObjectPath(settings.isCustom, importPath, settings.folderName)
-    if settings.isLink:
-        numLimbs = 21
-        if not settings.isCustom:
-            basePath = bpy.path.abspath(bpy.context.scene.ootDecompPath)
-            animFilepath = os.path.join(basePath, "assets/misc/link_animetion/link_animetion.c")
-            animHeaderFilepath = os.path.join(basePath, "assets/objects/gameplay_keep/gameplay_keep.c")
-        else:
-            animFilepath = filepath
-            animHeaderFilepath = filepath
-        ootImportLinkAnimationC(
-            armatureObj,
-            animHeaderFilepath,
-            animFilepath,
-            settings.animName,
-            actorScale,
-            numLimbs,
-            settings.isCustom,
-        )
-    else:
-        ootImportNonLinkAnimationC(armatureObj, filepath, settings.animName, actorScale, settings.isCustom)
 
 
 def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale, isCustomImport: bool):
