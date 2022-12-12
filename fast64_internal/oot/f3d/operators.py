@@ -12,7 +12,7 @@ from ..oot_utility import ootGetObjectPath, getOOTScale
 from ..oot_model_classes import OOTF3DContext, ootGetIncludedAssetData
 from ..oot_texture_array import ootReadTextureArrays
 from ..oot_model_classes import OOTModel, OOTGfxFormatter
-from ..oot_f3d_writer import writeTextureArraysNew, writeTextureArraysExisting
+from ..oot_f3d_writer import ootReadActorScale, writeTextureArraysNew, writeTextureArraysExisting
 from .properties import OOTDLImportSettings, OOTDLExportSettings
 
 from ..oot_utility import (
@@ -103,8 +103,6 @@ class OOT_ImportDL(Operator):
     # Called on demand (i.e. button press, menu item)
     # Can also be called from operator search menu (Spacebar)
     def execute(self, context):
-        from ..oot_f3d_writer import ootReadActorScale  # temp circular import fix
-
         obj = None
         if context.mode != "OBJECT":
             object.mode_set(mode="OBJECT")

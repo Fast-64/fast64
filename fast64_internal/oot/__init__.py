@@ -41,15 +41,15 @@ from .skeleton.operators import skeleton_ops_register, skeleton_ops_unregister
 from .skeleton.properties import skeleton_props_register, skeleton_props_unregister
 from .skeleton.panels import skeleton_panels_register, skeleton_panels_unregister
 
-from .other.panel.viewport.tools import (
+from .spline.properties import spline_props_register,  spline_props_unregister
+from .spline.panels import spline_panels_register, spline_panels_unregister
+
+from .tools import (
     oot_operator_panel_register,
     oot_operator_panel_unregister,
     oot_operator_register,
     oot_operator_unregister,
 )
-
-from .spline.properties import spline_props_register,  spline_props_unregister
-from .spline.panels import spline_panels_register, spline_panels_unregister
 
 
 class OOT_Properties(bpy.types.PropertyGroup):
