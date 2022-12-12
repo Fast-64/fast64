@@ -1,4 +1,4 @@
-import bpy, random, string, os, math, traceback, re, os, mathutils
+import bpy, random, string, os, math, traceback, re, os, mathutils, ast, operator
 from math import pi, ceil, degrees, radians
 from mathutils import *
 from .utility_anim import *
@@ -1489,3 +1489,18 @@ def getTextureSuffixFromFormat(texFmt):
     # if texFmt == "RGBA16":
     #     return "rgb5a1"
     return texFmt.lower()
+
+
+binOps = {
+    ast.Add: operator.add,
+    ast.Sub: operator.sub,
+    ast.Mult: operator.mul,
+    ast.Div: operator.truediv,
+    ast.Mod: operator.mod,
+    ast.LShift: operator.lshift,
+    ast.RShift: operator.rshift,
+    ast.RShift: operator.rshift,
+    ast.BitOr: operator.or_,
+    ast.BitAnd: operator.and_,
+    ast.BitXor: operator.xor,
+}

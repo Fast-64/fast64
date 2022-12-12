@@ -1598,6 +1598,10 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     else:
         fMaterial.material.commands.append(SPTexture(s, t, 0, fModel.f3d.G_TX_RENDERTILE, 1))
 
+    TODO()
+    fPalette = fModel.processTexRefCITextures(fMaterial, material, index)
+    fModel.processTexRefNonCITextures(fMaterial, material, index)
+
     # Determine how to arrange / load palette entries into upper half of tmem
     tex0PaletteIndex = 0
     tex1PaletteIndex = 0
@@ -1999,7 +2003,6 @@ def getSharedPaletteName(f3dMat: F3DMaterialProperty):
     texFormat = f3dMat.tex0.tex_format.lower()
     tex0Name = getNameFromPath(image0.filepath if image0.filepath != "" else image0.name, True)
     tex1Name = getNameFromPath(image1.filepath if image1.filepath != "" else image1.name, True)
-
     return f"{tex0Name}_x_{tex1Name}_{texFormat}_pal"
 
 
@@ -2007,7 +2010,6 @@ def getTextureNameTexRef(texProp: TextureProperty, fModelName: str) -> str:
     texFormat = texProp.tex_format
     name = texProp.tex_reference
     texName = fModelName + "_" + (getNameFromPath(name, True) + "_" + texFormat.lower())
-
     return texName
 
 
