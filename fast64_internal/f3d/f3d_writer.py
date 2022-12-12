@@ -2115,7 +2115,7 @@ def saveTextureLoading(
 
     # Tag tile size command for tile scrolling
     tileSizeCommand = DPSetTileSize(f3d.G_TX_RENDERTILE + texIndex, sl, tl, sh, th)
-    tileSizeCommand.tag = GfxTag.TileScroll0 if texIndex == 0 else GfxTag.TileScroll1
+    tileSizeCommand.tags = GfxTag.TileScroll0 if texIndex == 0 else GfxTag.TileScroll1
     tileSizeCommand.fMaterial = fMaterial
 
     loadTexGfx.commands.extend(

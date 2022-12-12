@@ -113,13 +113,13 @@ class SM64GfxFormatter(GfxFormatter):
         GfxFormatter.__init__(self, scrollMethod, 8, "segmented_to_virtual")
 
     def processGfxScrollCommand(self, commandIndex: int, command: GbiMacro, gfxListName: str) -> Tuple[str, str]:
-        tag: GfxTag = command.tag
+        tags: GfxTag = command.tags
         fMaterial: FMaterial = command.fMaterial
 
-        if tag == GfxTag.NoTag:
+        if tags & GfxTag.NoTag:
             return "", ""
-        elif tag == GfxTag.TileScroll0 or tag == GfxTag.TileScroll1:
-            textureIndex = 0 if tag == GfxTag.TileScroll0 else 1
+        elif tags & (GfxTag.TileScroll0 | GfxTag.TileScroll1):
+            textureIndex = 0 if tags & GfxTag.TileScroll0 else 1
             return get_tile_scroll_code(fMaterial.scrollData, textureIndex, commandIndex)
         else:
             return "", ""

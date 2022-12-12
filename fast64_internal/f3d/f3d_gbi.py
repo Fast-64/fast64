@@ -1,5 +1,5 @@
 # Macros are all copied over from gbi.h
-from typing import Sequence, Union, Tuple, TypedDict
+from typing import Sequence, Union, Tuple
 from dataclasses import dataclass, fields
 import bpy, os, enum, copy
 from ..utility import *
@@ -23,10 +23,10 @@ class GfxListTag(enum.Enum):
     Draw = 3
 
 
-class GfxTag(enum.Enum):
-    NoTag = 0
-    TileScroll0 = 1
-    TileScroll1 = 2
+class GfxTag(enum.Flag):
+    NoTag = enum.auto()
+    TileScroll0 = enum.auto()
+    TileScroll1 = enum.auto()
 
 
 class GfxMatWriteMethod(enum.Enum):
@@ -1968,7 +1968,7 @@ class GfxFormatter:
         Note that the display list pointer to reference is named "mat", as seen in GfxFormatter.gfxScrollToC().
         This is because the segmented_to_virtual() function is called on the actual DL pointer, as defined in self.seg2virtFuncName.
         """
-        tag: GfxTag = command.tag
+        tags: GfxTag = command.tags
         fMaterial: FMaterial = command.fMaterial
         return "", ""
 
@@ -2224,13 +2224,13 @@ class FModel:
     def __init__(self, f3dType: F3D, isHWv1: bool, name: str, DLFormat: "DLFormat", matWriteMethod: GfxMatWriteMethod):
         self.name = name  # used for texture prefixing
         # dict of light name : Lights
-        self.lights: TypedDict[str, Lights] = {}
+        self.lights: dict[str, Lights] = {}
         # dict of (texture, (texture format, palette format)) : FImage
-        self.textures: TypedDict[Union[FImageKey, FPaletteKey] : FImage] = {}
+        self.textures: dict[Union[FImageKey, FPaletteKey], FImage] = {}
         # dict of (material, drawLayer, FAreaData): (FMaterial, (width, height))
-        self.materials: TypedDict[Tuple[bpy.types.Material, str, FAreaData], Tuple[FMaterial, Tuple[int, int]]] = {}
+        self.materials: dict[Tuple[bpy.types.Material, str, FAreaData], Tuple[FMaterial, Tuple[int, int]]] = {}
         # dict of body part name : FMesh
-        self.meshes: TypedDict[str, FMesh] = {}
+        self.meshes: dict[str, FMesh] = {}
         # GfxList
         self.materialRevert: Union[GfxList, None] = None
         # F3D library
@@ -2240,7 +2240,7 @@ class FModel:
         self.parentModel: Union[FModel, None] = None
 
         # dict of name : FLODGroup
-        self.LODGroups: TypedDict[str, FLODGroup] = {}
+        self.LODGroups: dict[str, FLODGroup] = {}
         self.DLFormat: "DLFormat" = DLFormat
         self.matWriteMethod: GfxMatWriteMethod = matWriteMethod
         self.global_data: FGlobalData = FGlobalData()
@@ -3215,9 +3215,10 @@ class GbiMacro:
     _segptrs = False
     _ptr_amp = False
 
-    tag = GfxTag.NoTag
+    tags = GfxTag.NoTag
     """
-    Type: GfxTag. The tag's current use is to determine how to write gfx scrolling code for this given command.
+    Type: GfxTag. The tags' current use is to determine how to write gfx scrolling code for this given command.
+    This is an enum flag, so it can be composed of multiple tag values.
     This is unannotated and will not be considered when calculating the hash.
     """
 
