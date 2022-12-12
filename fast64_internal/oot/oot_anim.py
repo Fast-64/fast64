@@ -32,9 +32,13 @@ from ..f3d.f3d_parser import getImportData
 
 
 class OOTAnimExportSettingsProperty(bpy.types.PropertyGroup):
-    isCustomFilename: bpy.props.BoolProperty(name="Use Custom Filename", description="Override filename instead of basing it off of the Blender name")
+    isCustomFilename: bpy.props.BoolProperty(
+        name="Use Custom Filename", description="Override filename instead of basing it off of the Blender name"
+    )
     filename: bpy.props.StringProperty(name="Filename")
-    isCustom: bpy.props.BoolProperty(name="Use Custom Path", description="Determines whether or not to export to an explicitly specified folder")
+    isCustom: bpy.props.BoolProperty(
+        name="Use Custom Path", description="Determines whether or not to export to an explicitly specified folder"
+    )
     customPath: bpy.props.StringProperty(name="Folder", subtype="FILE_PATH")
     folderName: bpy.props.StringProperty(name="Animation Folder", default="object_geldb")
     isLink: bpy.props.BoolProperty(name="Is Link", default=False)
