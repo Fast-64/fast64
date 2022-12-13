@@ -36,9 +36,7 @@ class OOT_SearchActorIDEnumOperator(Operator):
         return {"RUNNING_MODAL"}
 
 
-classes = (
-    OOT_SearchActorIDEnumOperator,
-)
+classes = (OOT_SearchActorIDEnumOperator,)
 
 
 def actor_ops_register():

@@ -90,9 +90,7 @@ class OOTExitProperty(PropertyGroup):
 
     def draw_props(self, layout: UILayout, index: int, headerIndex: int, objName: str):
         box = layout.box()
-        box.prop(
-            self, "expandTab", text="Exit " + str(index + 1), icon="TRIA_DOWN" if self.expandTab else "TRIA_RIGHT"
-        )
+        box.prop(self, "expandTab", text="Exit " + str(index + 1), icon="TRIA_DOWN" if self.expandTab else "TRIA_RIGHT")
         if self.expandTab:
             drawCollectionOps(box, index, "Exit", headerIndex, objName)
             drawEnumWithCustom(box, self, "exitIndex", "Exit Index", "")
@@ -153,7 +151,9 @@ class OOTLightProperty(PropertyGroup):
     fogFar: IntProperty(name="", default=0x3200, min=0, max=2**16 - 1, update=on_update_oot_render_settings)
     expandTab: BoolProperty(name="Expand Tab")
 
-    def draw_props(self, layout: UILayout, name: str, showExpandTab: bool, index: int, sceneHeaderIndex: int, objName: str):
+    def draw_props(
+        self, layout: UILayout, name: str, showExpandTab: bool, index: int, sceneHeaderIndex: int, objName: str
+    ):
         if showExpandTab:
             box = layout.box().column()
             box.prop(self, "expandTab", text=name, icon="TRIA_DOWN" if self.expandTab else "TRIA_RIGHT")
@@ -236,7 +236,10 @@ class OOTSceneHeaderProperty(PropertyGroup):
     skyboxCloudiness: EnumProperty(name="Cloudiness", items=ootEnumCloudiness, default="0x00")
     skyboxCloudinessCustom: StringProperty(name="Cloudiness ID", default="0x00")
     skyboxLighting: EnumProperty(
-        name="Skybox Lighting", items=ootEnumSkyboxLighting, default="LIGHT_MODE_TIME", update=on_update_oot_render_settings
+        name="Skybox Lighting",
+        items=ootEnumSkyboxLighting,
+        default="LIGHT_MODE_TIME",
+        update=on_update_oot_render_settings,
     )
     skyboxLightingCustom: StringProperty(
         name="Skybox Lighting Custom", default="0x00", update=on_update_oot_render_settings
@@ -290,9 +293,7 @@ class OOTSceneHeaderProperty(PropertyGroup):
         from .operators import OOT_SearchMusicSeqEnumOperator  # temp circular import fix
 
         if dropdownLabel is not None:
-            layout.prop(
-                self, "expandTab", text=dropdownLabel, icon="TRIA_DOWN" if self.expandTab else "TRIA_RIGHT"
-            )
+            layout.prop(self, "expandTab", text=dropdownLabel, icon="TRIA_DOWN" if self.expandTab else "TRIA_RIGHT")
             if not self.expandTab:
                 return
         if headerIndex is not None and headerIndex > 3:

@@ -146,6 +146,7 @@ oot_col_classes = (
     OOTWaterBoxProperty,
 )
 
+
 def collision_props_register():
     for cls in oot_col_classes:
         register_class(cls)

@@ -18,9 +18,8 @@ class OOT_CutscenePanel(OOT_Panel):
         prop_split(col, context.scene, "ootCutsceneExportPath", "File")
 
 
-oot_cutscene_panel_classes = (
-    OOT_CutscenePanel,
-)
+oot_cutscene_panel_classes = (OOT_CutscenePanel,)
+
 
 def cutscene_panels_register():
     for cls in oot_cutscene_panel_classes:

@@ -20,7 +20,14 @@ class OOTActorHeaderItemProperty(PropertyGroup):
     headerIndex: IntProperty(name="Scene Setup", min=4, default=4)
     expandTab: BoolProperty(name="Expand Tab")
 
-    def draw_props(self, layout: UILayout, propUser: str, index: int, altProp: OOTAlternateSceneHeaderProperty | OOTAlternateRoomHeaderProperty, objName: str):
+    def draw_props(
+        self,
+        layout: UILayout,
+        propUser: str,
+        index: int,
+        altProp: OOTAlternateSceneHeaderProperty | OOTAlternateRoomHeaderProperty,
+        objName: str,
+    ):
         box = layout.column()
         row = box.row()
         row.prop(self, "headerIndex", text="")
@@ -49,8 +56,13 @@ class OOTActorHeaderProperty(PropertyGroup):
         else:
             return index in [value.headerIndex for value in self.cutsceneHeaders]
 
-
-    def draw_props(self, layout: UILayout, propUser: str, altProp: OOTAlternateSceneHeaderProperty | OOTAlternateRoomHeaderProperty, objName: str):
+    def draw_props(
+        self,
+        layout: UILayout,
+        propUser: str,
+        altProp: OOTAlternateSceneHeaderProperty | OOTAlternateRoomHeaderProperty,
+        objName: str,
+    ):
         headerSetup = layout.column()
         # headerSetup.box().label(text = "Alternate Headers")
         prop_split(headerSetup, self, "sceneSetupPreset", "Scene Setup Preset")
@@ -142,7 +154,9 @@ class OOTTransitionActorProperty(PropertyGroup):
 
     actor: PointerProperty(type=OOTActorProperty)
 
-    def draw_props(self, layout: UILayout, altSceneProp: OOTAlternateSceneHeaderProperty, roomObj: Object, objName: str):
+    def draw_props(
+        self, layout: UILayout, altSceneProp: OOTAlternateSceneHeaderProperty, roomObj: Object, objName: str
+    ):
         actorIDBox = layout.column()
         searchOp = actorIDBox.operator(OOT_SearchActorIDEnumOperator.bl_idname, icon="VIEWZOOM")
         searchOp.actorUser = "Transition Actor"
@@ -196,7 +210,6 @@ class OOTEntranceProperty(PropertyGroup):
         box.prop(entranceProp, "customActor")
         if entranceProp.customActor:
             prop_split(box, entranceProp.actor, "actorIDCustom", "Actor ID Custom")
-
 
         headerProps: OOTActorHeaderProperty = entranceProp.actor.headerSettings
         headerProps.draw_props(box, "Entrance", altSceneProp, objName)

@@ -262,6 +262,7 @@ def scene_ops_register():
     for cls in classes:
         register_class(cls)
 
+
 def scene_ops_unregister():
     for cls in reversed(classes):
         unregister_class(cls)

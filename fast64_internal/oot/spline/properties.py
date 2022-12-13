@@ -29,9 +29,7 @@ class OOTSplineProperty(PropertyGroup):
             drawEnumWithCustom(layout, self, "camSType", "Camera S Type", "")
 
 
-oot_spline_classes = (
-    OOTSplineProperty,
-)
+oot_spline_classes = (OOTSplineProperty,)
 
 
 def spline_props_register():

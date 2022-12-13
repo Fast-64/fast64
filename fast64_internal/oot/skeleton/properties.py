@@ -50,12 +50,16 @@ class OOTSkeletonProperty(PropertyGroup):
 
 
 class OOTSkeletonExportSettings(PropertyGroup):
-    isCustomFilename: BoolProperty(name="Use Custom Filename", description="Override filename instead of basing it off of the Blender name")
+    isCustomFilename: BoolProperty(
+        name="Use Custom Filename", description="Override filename instead of basing it off of the Blender name"
+    )
     filename: StringProperty(name="Filename")
     mode: EnumProperty(name="Mode", items=ootEnumSkeletonImportMode)
     folder: StringProperty(name="Skeleton Folder", default="object_geldb")
     customPath: StringProperty(name="Custom Skeleton Path", subtype="FILE_PATH")
-    isCustom: BoolProperty(name="Use Custom Path", description="Determines whether or not to export to an explicitly specified folder")
+    isCustom: BoolProperty(
+        name="Use Custom Path", description="Determines whether or not to export to an explicitly specified folder"
+    )
     removeVanillaData: BoolProperty(name="Replace Vanilla Skeletons On Export", default=True)
     actorOverlayName: StringProperty(name="Overlay", default="ovl_En_GeldB")
     flipbookUses2DArray: BoolProperty(name="Has 2D Flipbook Array", default=False)

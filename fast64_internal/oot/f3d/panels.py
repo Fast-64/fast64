@@ -110,13 +110,13 @@ class OOT_ExportDLPanel(OOT_Panel):
         importSettings.draw_props(col)
 
 
-
 oot_dl_writer_panel_classes = (
     OOT_DisplayListPanel,
     OOT_MaterialPanel,
     OOT_DrawLayersPanel,
     OOT_ExportDLPanel,
 )
+
 
 def f3d_panels_register():
     for cls in oot_dl_writer_panel_classes:

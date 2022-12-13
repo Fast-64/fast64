@@ -42,10 +42,9 @@ class OOT_CollisionPanel(Panel):
 
     def draw(self, context):
         box = self.layout.box().column()
-        
+
         collisionProp: OOTMaterialCollisionProperty = context.material.ootCollisionProperty
         collisionProp.draw_props(box)
-
 
 
 class OOT_ExportCollisionPanel(OOT_Panel):
@@ -66,6 +65,7 @@ oot_col_panel_classes = (
     OOT_CollisionPanel,
     OOT_ExportCollisionPanel,
 )
+
 
 def collision_panels_register():
     for cls in oot_col_panel_classes:

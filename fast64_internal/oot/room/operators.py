@@ -29,9 +29,8 @@ class OOT_SearchObjectEnumOperator(Operator):
         return {"RUNNING_MODAL"}
 
 
-classes = (
-    OOT_SearchObjectEnumOperator,
-)
+classes = (OOT_SearchObjectEnumOperator,)
+
 
 def room_ops_register():
     for cls in classes:

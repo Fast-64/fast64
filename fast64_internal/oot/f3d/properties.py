@@ -6,11 +6,15 @@ from ...utility import prop_split
 
 
 class OOTDLExportSettings(PropertyGroup):
-    isCustomFilename: BoolProperty(name="Use Custom Filename", description="Override filename instead of basing it off of the Blender name")
+    isCustomFilename: BoolProperty(
+        name="Use Custom Filename", description="Override filename instead of basing it off of the Blender name"
+    )
     filename: StringProperty(name="Filename")
     folder: StringProperty(name="DL Folder", default="gameplay_keep")
     customPath: StringProperty(name="Custom DL Path", subtype="FILE_PATH")
-    isCustom: BoolProperty(name="Use Custom Path", description="Determines whether or not to export to an explicitly specified folder")
+    isCustom: BoolProperty(
+        name="Use Custom Path", description="Determines whether or not to export to an explicitly specified folder"
+    )
     removeVanillaData: BoolProperty(name="Replace Vanilla DLs")
     drawLayer: EnumProperty(name="Draw Layer", items=ootEnumDrawLayers)
     actorOverlayName: StringProperty(name="Overlay", default="")

@@ -37,24 +37,24 @@ def ootCutsceneIncludes(headerfilename):
 
 
 def drawCSListAddOp(layout: UILayout, objName: str, collectionType):
-        def addButton(row):
-            nonlocal l
-            op = row.operator(OOTCSListAdd.bl_idname, text=ootEnumCSListType[l][1], icon=ootEnumCSListTypeIcons[l])
-            op.collectionType = collectionType
-            op.listType = ootEnumCSListType[l][0]
-            op.objName = objName
-            l += 1
+    def addButton(row):
+        nonlocal l
+        op = row.operator(OOTCSListAdd.bl_idname, text=ootEnumCSListType[l][1], icon=ootEnumCSListTypeIcons[l])
+        op.collectionType = collectionType
+        op.listType = ootEnumCSListType[l][0]
+        op.objName = objName
+        l += 1
 
-        box = layout.column(align=True)
-        l = 0
+    box = layout.column(align=True)
+    l = 0
+    row = box.row(align=True)
+    row.label(text="Add:")
+    addButton(row)
+    for _ in range(3):
         row = box.row(align=True)
-        row.label(text="Add:")
-        addButton(row)
         for _ in range(3):
-            row = box.row(align=True)
-            for _ in range(3):
-                addButton(row)
-        box.label(text="Install zcamedit for camera/actor motion.")
+            addButton(row)
+    box.label(text="Install zcamedit for camera/actor motion.")
 
 
 class OOTCSTextboxAdd(Operator):

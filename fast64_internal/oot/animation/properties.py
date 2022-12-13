@@ -18,9 +18,13 @@ def ootUpdateLinkMouth(self, context: Context):
 
 
 class OOTAnimExportSettingsProperty(PropertyGroup):
-    isCustomFilename: BoolProperty(name="Use Custom Filename", description="Override filename instead of basing it off of the Blender name")
+    isCustomFilename: BoolProperty(
+        name="Use Custom Filename", description="Override filename instead of basing it off of the Blender name"
+    )
     filename: StringProperty(name="Filename")
-    isCustom: BoolProperty(name="Use Custom Path", description="Determines whether or not to export to an explicitly specified folder")
+    isCustom: BoolProperty(
+        name="Use Custom Path", description="Determines whether or not to export to an explicitly specified folder"
+    )
     customPath: StringProperty(name="Folder", subtype="FILE_PATH")
     folderName: StringProperty(name="Animation Folder", default="object_geldb")
     isLink: BoolProperty(name="Is Link", default=False)
@@ -62,6 +66,7 @@ class OOTLinkTextureAnimProperty(PropertyGroup):
     def draw_props(self, layout: UILayout):
         prop_split(layout, self, "eyes", "Eyes")
         prop_split(layout, self, "mouth", "Mouth")
+
 
 classes = (
     OOTAnimExportSettingsProperty,

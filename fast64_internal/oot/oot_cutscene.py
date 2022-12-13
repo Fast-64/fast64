@@ -119,6 +119,7 @@ def convertCutsceneObject(obj):
 # Level classes to C
 ################################################################################
 
+
 def ootCutsceneDataToC(csParent, csName):
     # csParent can be OOTCutscene or OOTScene
     data = CData()

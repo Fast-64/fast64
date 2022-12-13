@@ -18,7 +18,7 @@ from .operators import (
     OOT_ExportScene,
     OOT_RemoveScene,
     OOT_ClearBootupScene,
-    OOT_SearchSceneEnumOperator
+    OOT_SearchSceneEnumOperator,
 )
 
 
@@ -92,9 +92,7 @@ class OOT_ExportScenePanel(OOT_Panel):
                 removeRow.enabled = True
 
 
-classes = (
-    OOT_ExportScenePanel,
-)
+classes = (OOT_ExportScenePanel,)
 
 
 def scene_panels_register():

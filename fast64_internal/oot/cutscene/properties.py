@@ -203,7 +203,9 @@ class OOTCSListProperty(PropertyGroup):
             row = box.row(align=True)
             for l in range(3):
                 addOp = row.operator(
-                    OOTCSTextboxAdd.bl_idname, text="Add " + ootEnumCSTextboxType[l][1], icon=ootEnumCSTextboxTypeIcons[l]
+                    OOTCSTextboxAdd.bl_idname,
+                    text="Add " + ootEnumCSTextboxType[l][1],
+                    icon=ootEnumCSTextboxTypeIcons[l],
                 )
                 addOp.collectionType = collectionType + ".textbox"
                 addOp.textboxType = ootEnumCSTextboxType[l][0]
