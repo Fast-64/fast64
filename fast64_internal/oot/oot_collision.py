@@ -21,16 +21,6 @@ from .oot_utility import (
 )
 
 
-def drawWaterBoxProperty(layout, waterBoxProp):
-    box = layout.column()
-    # box.box().label(text = "Properties")
-    prop_split(box, waterBoxProp, "lighting", "Lighting")
-    prop_split(box, waterBoxProp, "camera", "Camera")
-    box.prop(waterBoxProp, "flag19")
-    box.label(text="Defined by top face of box empty.")
-    box.label(text="No rotation allowed.")
-
-
 def drawCameraPosProperty(layout, cameraRefProp, index, headerIndex, objName):
     camBox = layout.box().column()
     prop_split(camBox, cameraRefProp, "camera", "Camera " + str(index))

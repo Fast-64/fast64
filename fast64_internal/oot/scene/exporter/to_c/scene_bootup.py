@@ -1,7 +1,6 @@
 import os, re
 from typing import Any
 from .....utility import PluginError, writeFile, readFile
-from ...properties import OOTBootupSceneOptions
 
 
 def writeBootupSettings(
@@ -61,7 +60,8 @@ def writeBootupSettings(
         writeFile(configPath, data)
 
 
-def setBootupScene(configPath: str, entranceIndex: str, options: OOTBootupSceneOptions):
+def setBootupScene(configPath: str, entranceIndex: str, options):
+    # ``options`` argument type: OOTBootupSceneOptions
     linkAge = "LINK_AGE_CHILD"
     timeOfDay = "NEXT_TIME_NONE"
     cutsceneIndex = "0xFFEF"

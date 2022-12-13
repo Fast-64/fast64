@@ -3,6 +3,7 @@ from bpy.utils import register_class, unregister_class
 from ...utility import prop_split
 from ...panels import OOT_Panel
 from .operators import OOT_ExportAnim, OOT_ImportAnim
+from .properties import OOTAnimExportSettingsProperty, OOTAnimImportSettingsProperty, OOTLinkTextureAnimProperty
 
 
 class OOT_LinkAnimPanel(Panel):
@@ -26,8 +27,8 @@ class OOT_LinkAnimPanel(Panel):
     def draw(self, context):
         col = self.layout.box().column()
         col.box().label(text="OOT Link Animation Inspector")
-        prop_split(col, context.object.ootLinkTextureAnim, "eyes", "Eyes")
-        prop_split(col, context.object.ootLinkTextureAnim, "mouth", "Mouth")
+        linkTextureAnim: OOTLinkTextureAnimProperty = context.object.ootLinkTextureAnim
+        linkTextureAnim.draw_props(col)
         col.label(text="Index 0 is for auto, flipbook starts at index 1.", icon="INFO")
 
 
@@ -40,27 +41,12 @@ class OOT_ExportAnimPanel(OOT_Panel):
         col = self.layout.column()
 
         col.operator(OOT_ExportAnim.bl_idname)
-        exportSettings = context.scene.fast64.oot.animExportSettings
-        col.label(text="Exports active animation on selected object.", icon="INFO")
-        col.prop(exportSettings, "isCustomFilename")
-        if exportSettings.isCustomFilename:
-            prop_split(col, exportSettings, "filename", "Filename")
-        if exportSettings.isCustom:
-            prop_split(col, exportSettings, "customPath", "Folder")
-        elif not exportSettings.isLink:
-            prop_split(col, exportSettings, "folderName", "Object")
-        col.prop(exportSettings, "isLink")
-        col.prop(exportSettings, "isCustom")
+        exportSettings: OOTAnimExportSettingsProperty = context.scene.fast64.oot.animExportSettings
+        exportSettings.draw_props(col)
 
         col.operator(OOT_ImportAnim.bl_idname)
-        importSettings = context.scene.fast64.oot.animImportSettings
-        prop_split(col, importSettings, "animName", "Anim Header Name")
-        if importSettings.isCustom:
-            prop_split(col, importSettings, "customPath", "File")
-        elif not importSettings.isLink:
-            prop_split(col, importSettings, "folderName", "Object")
-        col.prop(importSettings, "isLink")
-        col.prop(importSettings, "isCustom")
+        importSettings: OOTAnimImportSettingsProperty = context.scene.fast64.oot.animImportSettings
+        importSettings.draw_props(col)
 
 
 panels = (

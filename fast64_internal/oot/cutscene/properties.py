@@ -1,9 +1,10 @@
-from bpy.types import PropertyGroup, Object
+from bpy.types import PropertyGroup, Object, UILayout
 from bpy.props import StringProperty, EnumProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
 from bpy.utils import register_class, unregister_class
 from ...utility import PluginError, prop_split
-from ..oot_constants import ootEnumCSTextboxType, ootEnumCSListType, ootEnumCSTransitionType
-from ..oot_utility import drawCollectionOps
+from ..oot_constants import ootEnumCSTextboxType, ootEnumCSListType, ootEnumCSTransitionType, ootEnumCSTextboxTypeIcons
+from ..oot_utility import OOTCollectionAdd, drawCollectionOps
+from .operators import OOTCSTextboxAdd, drawCSListAddOp
 
 
 # Perhaps this should have been called something like OOTCSParentPropertyType,
@@ -158,6 +159,63 @@ class OOTCSListProperty(PropertyGroup):
     fxStartFrame: IntProperty(name="", default=0, min=0)
     fxEndFrame: IntProperty(name="", default=1, min=0)
 
+    def draw_props(self, layout: UILayout, listIndex: int, objName: str, collectionType: str):
+        layout.prop(
+            self,
+            "expandTab",
+            text=self.listType + " List" if self.listType != "FX" else "Scene Trans FX",
+            icon="TRIA_DOWN" if self.expandTab else "TRIA_RIGHT",
+        )
+        if not self.expandTab:
+            return
+        box = layout.box().column()
+        drawCollectionOps(box, listIndex, collectionType, None, objName, False)
+
+        if self.listType == "Textbox":
+            attrName = "textbox"
+        elif self.listType == "FX":
+            prop_split(box, self, "fxType", "Transition")
+            prop_split(box, self, "fxStartFrame", "Start Frame")
+            prop_split(box, self, "fxEndFrame", "End Frame")
+            return
+        elif self.listType == "Lighting":
+            attrName = "lighting"
+        elif self.listType == "Time":
+            attrName = "time"
+        elif self.listType in ["PlayBGM", "StopBGM", "FadeBGM"]:
+            attrName = "bgm"
+        elif self.listType == "Misc":
+            attrName = "misc"
+        elif self.listType == "0x09":
+            attrName = "nine"
+        elif self.listType == "Unk":
+            prop_split(box, self, "unkType", "Unk List Type")
+            attrName = "unk"
+        else:
+            raise PluginError("Internal error: invalid listType " + self.listType)
+
+        dat = getattr(self, attrName)
+        for i, p in enumerate(dat):
+            p.draw(box, self, listIndex, i, objName, collectionType)
+        if len(dat) == 0:
+            box.label(text="No items in " + self.listType + " List.")
+        if self.listType == "Textbox":
+            row = box.row(align=True)
+            for l in range(3):
+                addOp = row.operator(
+                    OOTCSTextboxAdd.bl_idname, text="Add " + ootEnumCSTextboxType[l][1], icon=ootEnumCSTextboxTypeIcons[l]
+                )
+                addOp.collectionType = collectionType + ".textbox"
+                addOp.textboxType = ootEnumCSTextboxType[l][0]
+                addOp.listIndex = listIndex
+                addOp.objName = objName
+        else:
+            addOp = box.operator(OOTCollectionAdd.bl_idname, text="Add item to " + self.listType + " List")
+            addOp.option = len(dat)
+            addOp.collectionType = collectionType + "." + attrName
+            addOp.subIndex = listIndex
+            addOp.objName = objName
+
 
 class OOTCutsceneProperty(PropertyGroup):
     csEndFrame: IntProperty(name="End Frame", min=0, default=100)
@@ -166,6 +224,19 @@ class OOTCutsceneProperty(PropertyGroup):
     csTermStart: IntProperty(name="Start Frm", min=0, default=99)
     csTermEnd: IntProperty(name="End Frm", min=0, default=100)
     csLists: CollectionProperty(type=OOTCSListProperty, name="Cutscene Lists")
+
+    def draw_props(self, layout: UILayout, obj: Object):
+        layout.prop(self, "csEndFrame")
+        layout.prop(self, "csWriteTerminator")
+        if self.csWriteTerminator:
+            r = layout.row()
+            r.prop(self, "csTermIdx")
+            r.prop(self, "csTermStart")
+            r.prop(self, "csTermEnd")
+        for i, p in enumerate(self.csLists):
+            p.draw_props(layout, p, i, obj.name, "Cutscene")
+
+        drawCSListAddOp(layout, obj.name, "Cutscene")
 
 
 classes = (

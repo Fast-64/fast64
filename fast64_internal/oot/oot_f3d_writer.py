@@ -348,36 +348,3 @@ def ootReadActorScale(basePath: str, overlayName: str, isLink: bool) -> float:
         return getOOTScale(1 / float(scale))
 
     return getOOTScale(100)
-
-
-def drawOOTMaterialDrawLayerProperty(layout, matDrawLayerProp, suffix):
-    # layout.box().row().label(text = title)
-    row = layout.row()
-    for colIndex in range(2):
-        col = row.column()
-        for rowIndex in range(3):
-            i = 8 + colIndex * 3 + rowIndex
-            name = "Segment " + format(i, "X") + " " + suffix
-            col.prop(matDrawLayerProp, "segment" + format(i, "X"), text=name)
-        name = "Custom call (" + str(colIndex + 1) + ") " + suffix
-        p = "customCall" + str(colIndex)
-        col.prop(matDrawLayerProp, p, text=name)
-        if getattr(matDrawLayerProp, p):
-            col.prop(matDrawLayerProp, p + "_seg", text="")
-
-
-drawLayerSuffix = {"Opaque": "OPA", "Transparent": "XLU", "Overlay": "OVL"}
-
-
-def drawOOTMaterialProperty(layout, mat, drawLayer):
-    if drawLayer == "Overlay":
-        return
-    matProp = mat.ootMaterial
-    suffix = "(" + drawLayerSuffix[drawLayer] + ")"
-    layout.box().column().label(text="OOT Dynamic Material Properties " + suffix)
-    layout.label(text="See gSPSegment calls in z_scene_table.c.")
-    layout.label(text="Based off draw config index in gSceneTable.")
-    drawOOTMaterialDrawLayerProperty(layout.column(), getattr(matProp, drawLayer.lower()), suffix)
-    if not mat.is_f3d:
-        return
-    f3d_mat = mat.f3d_mat

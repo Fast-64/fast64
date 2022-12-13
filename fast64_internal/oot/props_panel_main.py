@@ -1,32 +1,25 @@
 import bpy
 from bpy.utils import register_class, unregister_class
 from ..utility import prop_split, gammaInverse
-from .oot_collision import drawWaterBoxProperty
 from .oot_constants import ootEnumEmptyType
 from .oot_utility import getSceneObj, getRoomObj
-from .oot_cutscene import drawCutsceneProperty
 from .scene.properties import OOTSceneProperties
-from .room.properties import OOTObjectProperty
+from .room.properties import OOTObjectProperty, OOTRoomHeaderProperty, OOTAlternateRoomHeaderProperty
+from .collision.properties import OOTWaterBoxProperty
+from .cutscene.properties import OOTCutsceneProperty
 
-from .oot_actor import (
-    drawActorProperty,
-    drawTransitionActorProperty,
-    drawEntranceProperty,
-)
-
-from .oot_scene_room import (
-    drawSceneHeaderProperty,
-    drawAlternateSceneHeaderProperty,
-    drawRoomHeaderProperty,
-    drawAlternateRoomHeaderProperty,
+from .actor.properties import (
+    OOTActorProperty,
+    OOTTransitionActorProperty,
+    OOTEntranceProperty,
 )
 
 
 def drawSceneHeader(box: bpy.types.UILayout, obj: bpy.types.Object):
     objName = obj.name
-    drawSceneHeaderProperty(box, obj.ootSceneHeader, None, None, objName)
+    obj.ootSceneHeader.draw_props(box, None, None, objName)
     if obj.ootSceneHeader.menuTab == "Alternate":
-        drawAlternateSceneHeaderProperty(box, obj.ootAlternateSceneHeaders, objName)
+        obj.ootAlternateSceneHeaders.draw_props(box, objName)
     box.prop(obj.fast64.oot.scene, "write_dummy_room_list")
 
 
@@ -115,33 +108,41 @@ class OOTObjectPanel(bpy.types.Panel):
         altRoomProp = roomObj.ootAlternateRoomHeaders if roomObj is not None else None
 
         if obj.ootEmptyType == "Actor":
-            drawActorProperty(box, obj.ootActorProperty, altRoomProp, objName)
+            actorProp: OOTActorProperty = obj.ootActorProperty
+            actorProp.draw_props(box, altRoomProp, objName)
 
         elif obj.ootEmptyType == "Transition Actor":
-            drawTransitionActorProperty(box, obj.ootTransitionActorProperty, altSceneProp, roomObj, objName)
+            transActorProp: OOTTransitionActorProperty = obj.ootTransitionActorProperty
+            transActorProp.draw_props(box, altSceneProp, roomObj, objName)
 
         elif obj.ootEmptyType == "Water Box":
-            drawWaterBoxProperty(box, obj.ootWaterBoxProperty)
+            waterBoxProps: OOTWaterBoxProperty = obj.ootWaterBoxProperty
+            waterBoxProps.draw_props(box)
 
         elif obj.ootEmptyType == "Scene":
             drawSceneHeader(box, obj)
 
         elif obj.ootEmptyType == "Room":
-            drawRoomHeaderProperty(box, obj.ootRoomHeader, None, None, objName)
+            roomProp: OOTRoomHeaderProperty = obj.ootRoomHeader
+            roomProp.draw_props(box, None, None, objName)
             if obj.ootRoomHeader.menuTab == "Alternate":
-                drawAlternateRoomHeaderProperty(box, obj.ootAlternateRoomHeaders, objName)
+                roomAltProp: OOTAlternateRoomHeaderProperty = obj.ootAlternateRoomHeaders
+                roomAltProp.draw_props(box, objName)
 
         elif obj.ootEmptyType == "Entrance":
-            drawEntranceProperty(box, obj, altSceneProp, objName)
+            entranceProp: OOTEntranceProperty = obj.ootEntranceProperty
+            entranceProp.draw_props(box, obj, altSceneProp, objName)
 
         elif obj.ootEmptyType == "Cull Group":
-            obj.ootCullGroupProperty.draw(box)
+            cullGroupProp: OOTCullGroupProperty = obj.ootCullGroupProperty
+            cullGroupProp.draw_props(box)
 
         elif obj.ootEmptyType == "LOD":
             drawLODProperty(box, obj)
 
         elif obj.ootEmptyType == "Cutscene":
-            drawCutsceneProperty(box, obj)
+            csProp: OOTCutsceneProperty = obj.ootCutsceneProperty
+            csProp.draw_props(box, obj)
 
         elif obj.ootEmptyType == "None":
             box.label(text="Geometry can be parented to this.")
@@ -162,7 +163,7 @@ class OOTCullGroupProperty(bpy.types.PropertyGroup):
     sizeControlsCull: bpy.props.BoolProperty(default=True, name="Empty Size Controls Cull Depth")
     manualRadius: bpy.props.IntProperty(min=0)
 
-    def draw(self, layout: bpy.types.UILayout):
+    def draw_props(self, layout: bpy.types.UILayout):
         col = layout.column()
         col.prop(self, "sizeControlsCull")
         if not self.sizeControlsCull:

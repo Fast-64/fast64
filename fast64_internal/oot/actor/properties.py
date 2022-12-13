@@ -1,12 +1,32 @@
-from bpy.types import Object, PropertyGroup
+from bpy.types import Object, PropertyGroup, UILayout
 from bpy.utils import register_class, unregister_class
 from bpy.props import EnumProperty, StringProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
+from ...utility import prop_split, label_split
 from ..oot_constants import ootData, ootEnumSceneSetupPreset, ootEnumCamTransition
+from ..scene.properties import OOTAlternateSceneHeaderProperty
+from ..room.properties import OOTAlternateRoomHeaderProperty
+from .operators import OOT_SearchActorIDEnumOperator
+
+from ..oot_utility import (
+    getRoomObj,
+    getEnumName,
+    drawAddButton,
+    drawCollectionOps,
+    drawEnumWithCustom,
+)
 
 
 class OOTActorHeaderItemProperty(PropertyGroup):
     headerIndex: IntProperty(name="Scene Setup", min=4, default=4)
     expandTab: BoolProperty(name="Expand Tab")
+
+    def draw_props(self, layout: UILayout, propUser: str, index: int, altProp: OOTAlternateSceneHeaderProperty | OOTAlternateRoomHeaderProperty, objName: str):
+        box = layout.column()
+        row = box.row()
+        row.prop(self, "headerIndex", text="")
+        drawCollectionOps(row.row(align=True), index, propUser, None, objName, compact=True)
+        if altProp is not None and self.headerIndex >= len(altProp.cutsceneHeaders) + 4:
+            box.label(text="Above header does not exist.", icon="QUESTION")
 
 
 class OOTActorHeaderProperty(PropertyGroup):
@@ -30,6 +50,44 @@ class OOTActorHeaderProperty(PropertyGroup):
             return index in [value.headerIndex for value in self.cutsceneHeaders]
 
 
+    def draw_props(self, layout: UILayout, propUser: str, altProp: OOTAlternateSceneHeaderProperty | OOTAlternateRoomHeaderProperty, objName: str):
+        headerSetup = layout.column()
+        # headerSetup.box().label(text = "Alternate Headers")
+        prop_split(headerSetup, self, "sceneSetupPreset", "Scene Setup Preset")
+        if self.sceneSetupPreset == "Custom":
+            headerSetupBox = headerSetup.column()
+            headerSetupBox.prop(self, "childDayHeader", text="Child Day")
+            prevHeaderName = "childDayHeader"
+            childNightRow = headerSetupBox.row()
+            if altProp is None or altProp.childNightHeader.usePreviousHeader:
+                # Draw previous header checkbox (so get previous state), but labeled
+                # as current one and grayed out
+                childNightRow.prop(self, prevHeaderName, text="Child Night")
+                childNightRow.enabled = False
+            else:
+                childNightRow.prop(self, "childNightHeader", text="Child Night")
+                prevHeaderName = "childNightHeader"
+            adultDayRow = headerSetupBox.row()
+            if altProp is None or altProp.adultDayHeader.usePreviousHeader:
+                adultDayRow.prop(self, prevHeaderName, text="Adult Day")
+                adultDayRow.enabled = False
+            else:
+                adultDayRow.prop(self, "adultDayHeader", text="Adult Day")
+                prevHeaderName = "adultDayHeader"
+            adultNightRow = headerSetupBox.row()
+            if altProp is None or altProp.adultNightHeader.usePreviousHeader:
+                adultNightRow.prop(self, prevHeaderName, text="Adult Night")
+                adultNightRow.enabled = False
+            else:
+                adultNightRow.prop(self, "adultNightHeader", text="Adult Night")
+
+            headerSetupBox.row().label(text="Cutscene headers to include this actor in:")
+            for i in range(len(self.cutsceneHeaders)):
+                headerItemProps: OOTActorHeaderItemProperty = self.cutsceneHeaders[i]
+                headerItemProps.draw_props(headerSetup, propUser, i, altProp, objName)
+            drawAddButton(headerSetup, len(self.cutsceneHeaders), propUser, None, objName)
+
+
 class OOTActorProperty(PropertyGroup):
     actorID: EnumProperty(name="Actor", items=ootData.actorData.ootEnumActorID, default="ACTOR_PLAYER")
     actorIDCustom: StringProperty(name="Actor ID", default="ACTOR_PLAYER")
@@ -39,6 +97,39 @@ class OOTActorProperty(PropertyGroup):
     rotOverrideY: StringProperty(name="Rot Y", default="0")
     rotOverrideZ: StringProperty(name="Rot Z", default="0")
     headerSettings: PointerProperty(type=OOTActorHeaderProperty)
+
+    def draw_props(self, layout: UILayout, altRoomProp: OOTAlternateRoomHeaderProperty, objName: str):
+        # prop_split(layout, actorProp, 'actorID', 'Actor')
+        actorIDBox = layout.column()
+        # actorIDBox.box().label(text = "Settings")
+        searchOp = actorIDBox.operator(OOT_SearchActorIDEnumOperator.bl_idname, icon="VIEWZOOM")
+        searchOp.actorUser = "Actor"
+        searchOp.objName = objName
+
+        split = actorIDBox.split(factor=0.5)
+
+        if self.actorID == "None":
+            actorIDBox.box().label(text="This Actor was deleted from the XML file.")
+            return
+
+        split.label(text="Actor ID")
+        split.label(text=getEnumName(ootData.actorData.ootEnumActorID, self.actorID))
+
+        if self.actorID == "Custom":
+            # actorIDBox.prop(actorProp, 'actorIDCustom', text = 'Actor ID')
+            prop_split(actorIDBox, self, "actorIDCustom", "")
+
+        # layout.box().label(text = 'Actor IDs defined in include/z64actors.h.')
+        prop_split(actorIDBox, self, "actorParam", "Actor Parameter")
+
+        actorIDBox.prop(self, "rotOverride", text="Override Rotation (ignore Blender rot)")
+        if self.rotOverride:
+            prop_split(actorIDBox, self, "rotOverrideX", "Rot X")
+            prop_split(actorIDBox, self, "rotOverrideY", "Rot Y")
+            prop_split(actorIDBox, self, "rotOverrideZ", "Rot Z")
+
+        headerProp: OOTActorHeaderProperty = self.headerSettings
+        headerProp.draw_props(actorIDBox, "Actor", altRoomProp, objName)
 
 
 class OOTTransitionActorProperty(PropertyGroup):
@@ -51,12 +142,64 @@ class OOTTransitionActorProperty(PropertyGroup):
 
     actor: PointerProperty(type=OOTActorProperty)
 
+    def draw_props(self, layout: UILayout, altSceneProp: OOTAlternateSceneHeaderProperty, roomObj: Object, objName: str):
+        actorIDBox = layout.column()
+        searchOp = actorIDBox.operator(OOT_SearchActorIDEnumOperator.bl_idname, icon="VIEWZOOM")
+        searchOp.actorUser = "Transition Actor"
+        searchOp.objName = objName
+
+        split = actorIDBox.split(factor=0.5)
+        split.label(text="Actor ID")
+        split.label(text=getEnumName(ootData.actorData.ootEnumActorID, self.actor.actorID))
+
+        if self.actor.actorID == "Custom":
+            prop_split(actorIDBox, self.actor, "actorIDCustom", "")
+
+        # layout.box().label(text = 'Actor IDs defined in include/z64actors.h.')
+        prop_split(actorIDBox, self.actor, "actorParam", "Actor Parameter")
+
+        if roomObj is None:
+            actorIDBox.label(text="This must be part of a Room empty's hierarchy.", icon="OUTLINER")
+        else:
+            actorIDBox.prop(self, "dontTransition")
+            if not self.dontTransition:
+                label_split(actorIDBox, "Room To Transition From", str(roomObj.ootRoomHeader.roomIndex))
+                prop_split(actorIDBox, self, "roomIndex", "Room To Transition To")
+        actorIDBox.label(text='Y+ side of door faces toward the "from" room.', icon="ORIENTATION_NORMAL")
+        drawEnumWithCustom(actorIDBox, self, "cameraTransitionFront", "Camera Transition Front", "")
+        drawEnumWithCustom(actorIDBox, self, "cameraTransitionBack", "Camera Transition Back", "")
+
+        headerProps: OOTActorHeaderProperty = self.actor.headerSettings
+        headerProps.draw_props(actorIDBox, "Transition Actor", altSceneProp, objName)
+
 
 class OOTEntranceProperty(PropertyGroup):
     # This is also used in entrance list, and roomIndex is obtained from the room this empty is parented to.
     spawnIndex: IntProperty(min=0)
     customActor: BoolProperty(name="Use Custom Actor")
     actor: PointerProperty(type=OOTActorProperty)
+
+    def draw_props(self, layout: UILayout, obj: Object, altSceneProp: OOTAlternateSceneHeaderProperty, objName: str):
+        box = layout.column()
+        # box.box().label(text = "Properties")
+        roomObj = getRoomObj(obj)
+        if roomObj is not None:
+            split = box.split(factor=0.5)
+            split.label(text="Room Index")
+            split.label(text=str(roomObj.ootRoomHeader.roomIndex))
+        else:
+            box.label(text="This must be part of a Room empty's hierarchy.", icon="OUTLINER")
+
+        entranceProp = obj.ootEntranceProperty
+        prop_split(box, entranceProp, "spawnIndex", "Spawn Index")
+        prop_split(box, entranceProp.actor, "actorParam", "Actor Param")
+        box.prop(entranceProp, "customActor")
+        if entranceProp.customActor:
+            prop_split(box, entranceProp.actor, "actorIDCustom", "Actor ID Custom")
+
+
+        headerProps: OOTActorHeaderProperty = entranceProp.actor.headerSettings
+        headerProps.draw_props(box, "Entrance", altSceneProp, objName)
 
 
 classes = (

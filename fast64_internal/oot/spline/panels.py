@@ -2,7 +2,8 @@ from bpy.types import Panel, Curve
 from bpy.utils import register_class, unregister_class
 from ...utility import prop_split
 from ..oot_utility import getSceneObj, drawEnumWithCustom
-from ..oot_actor import drawActorHeaderProperty
+from ..actor.properties import OOTActorHeaderProperty
+from .properties import OOTSplineProperty
 
 
 class OOTSplinePanel(Panel):
@@ -28,15 +29,8 @@ class OOTSplinePanel(Panel):
         else:
             sceneObj = getSceneObj(context.object)
             altSceneProp = sceneObj.ootAlternateSceneHeaders if sceneObj is not None else None
-            splineProp = context.object.ootSplineProperty
-
-            prop_split(box, splineProp, "splineType", "Type")
-            if splineProp.splineType == "Path":
-                drawActorHeaderProperty(box, splineProp.headerSettings, "Curve", altSceneProp, context.object.name)
-            elif splineProp.splineType == "Crawlspace":
-                box.label(text="This counts as a camera for index purposes.", icon="INFO")
-                prop_split(box, splineProp, "index", "Index")
-                drawEnumWithCustom(box, splineProp, "camSType", "Camera S Type", "")
+            splineProp: OOTSplineProperty = context.object.ootSplineProperty
+            splineProp.draw_props(box, altSceneProp, context.object.name)
 
 
 oot_spline_panel_classes = (OOTSplinePanel,)

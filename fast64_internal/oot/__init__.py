@@ -1,14 +1,15 @@
 import bpy
 from bpy.utils import register_class, unregister_class
+
+from .scene.operators import scene_ops_register, scene_ops_unregister
+from .scene.properties import OOTBootupSceneOptions, scene_props_register, scene_props_unregister
+from .scene.panels import scene_panels_register, scene_panels_unregister
+
 from .props_panel_main import oot_obj_panel_register, oot_obj_panel_unregister, oot_obj_register, oot_obj_unregister
 from .skeleton.properties import OOTSkeletonImportSettings, OOTSkeletonExportSettings
 from .oot_utility import oot_utility_register, oot_utility_unregister, setAllActorsVisibility
 from .file_settings import file_register, file_unregister
 from .collision.properties import OOTCollisionExportSettings
-
-from .scene.operators import scene_ops_register, scene_ops_unregister
-from .scene.properties import OOTBootupSceneOptions, scene_props_register, scene_props_unregister
-from .scene.panels import scene_panels_register, scene_panels_unregister
 
 from .room.operators import room_ops_register, room_ops_unregister
 from .room.properties import room_props_register, room_props_unregister

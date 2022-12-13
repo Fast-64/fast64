@@ -2,9 +2,13 @@ from bpy.types import Panel, Mesh, Armature
 from bpy.utils import register_class, unregister_class
 from ...panels import OOT_Panel
 from ...utility import prop_split
-from ..oot_f3d_writer import drawOOTMaterialProperty
-from .properties import OOTDLExportSettings, OOTDLImportSettings
 from .operators import OOT_ImportDL, OOT_ExportDL
+from .properties import (
+    OOTDLExportSettings,
+    OOTDLImportSettings,
+    OOTDynamicMaterialProperty,
+    OOTDefaultRenderModesProperty,
+)
 
 
 class OOT_DisplayListPanel(Panel):
@@ -38,8 +42,6 @@ class OOT_DisplayListPanel(Panel):
         # Doesn't work since all static meshes are pre-transformed
         # box.prop(obj.ootDynamicTransform, "billboard")
 
-        # drawParentSceneRoom(box, obj)
-
 
 class OOT_MaterialPanel(Panel):
     bl_label = "OOT Material"
@@ -70,7 +72,8 @@ class OOT_MaterialPanel(Panel):
         else:
             drawLayer = mat.f3d_mat.draw_layer.oot
 
-        drawOOTMaterialProperty(col.box().column(), mat, drawLayer)
+        dynMatProps: OOTDynamicMaterialProperty = mat.ootMaterial
+        dynMatProps.draw_props(col.box().column(), mat, drawLayer)
 
 
 class OOT_DrawLayersPanel(Panel):
@@ -86,23 +89,8 @@ class OOT_DrawLayersPanel(Panel):
         return context.scene.gameEditorMode == "OOT"
 
     def draw(self, context):
-        ootDefaultRenderModeProp = context.scene.world.ootDefaultRenderModes
-        layout = self.layout
-
-        inputGroup = layout.column()
-        inputGroup.prop(
-            ootDefaultRenderModeProp,
-            "expandTab",
-            text="Default Render Modes",
-            icon="TRIA_DOWN" if ootDefaultRenderModeProp.expandTab else "TRIA_RIGHT",
-        )
-        if ootDefaultRenderModeProp.expandTab:
-            prop_split(inputGroup, ootDefaultRenderModeProp, "opaqueCycle1", "Opaque Cycle 1")
-            prop_split(inputGroup, ootDefaultRenderModeProp, "opaqueCycle2", "Opaque Cycle 2")
-            prop_split(inputGroup, ootDefaultRenderModeProp, "transparentCycle1", "Transparent Cycle 1")
-            prop_split(inputGroup, ootDefaultRenderModeProp, "transparentCycle2", "Transparent Cycle 2")
-            prop_split(inputGroup, ootDefaultRenderModeProp, "overlayCycle1", "Overlay Cycle 1")
-            prop_split(inputGroup, ootDefaultRenderModeProp, "overlayCycle2", "Overlay Cycle 2")
+        ootDefaultRenderModeProp: OOTDefaultRenderModesProperty = context.scene.world.ootDefaultRenderModes
+        ootDefaultRenderModeProp.draw_props(self.layout)
 
 
 class OOT_ExportDLPanel(OOT_Panel):
@@ -112,49 +100,15 @@ class OOT_ExportDLPanel(OOT_Panel):
     # called every frame
     def draw(self, context):
         col = self.layout.column()
+
         col.operator(OOT_ExportDL.bl_idname)
         exportSettings: OOTDLExportSettings = context.scene.fast64.oot.DLExportSettings
-
-        col.label(text="Object name used for export.", icon="INFO")
-        col.prop(exportSettings, "isCustomFilename")
-        if exportSettings.isCustomFilename:
-            prop_split(col, exportSettings, "filename", "Filename")
-        prop_split(col, exportSettings, "folder", "Object" if not exportSettings.isCustom else "Folder")
-        if exportSettings.isCustom:
-            prop_split(col, exportSettings, "customAssetIncludeDir", "Asset Include Path")
-            prop_split(col, exportSettings, "customPath", "Path")
-        else:
-            prop_split(col, exportSettings, "actorOverlayName", "Overlay (Optional)")
-            col.prop(exportSettings, "flipbookUses2DArray")
-            if exportSettings.flipbookUses2DArray:
-                box = col.box().column()
-                prop_split(box, exportSettings, "flipbookArrayIndex2D", "Flipbook Index")
-
-        prop_split(col, exportSettings, "drawLayer", "Export Draw Layer")
-        col.prop(exportSettings, "isCustom")
-        col.prop(exportSettings, "removeVanillaData")
+        exportSettings.draw_props(col)
 
         col.operator(OOT_ImportDL.bl_idname)
         importSettings: OOTDLImportSettings = context.scene.fast64.oot.DLImportSettings
+        importSettings.draw_props(col)
 
-        prop_split(col, importSettings, "name", "DL")
-        if importSettings.isCustom:
-            prop_split(col, importSettings, "customPath", "File")
-        else:
-            prop_split(col, importSettings, "folder", "Object")
-            prop_split(col, importSettings, "actorOverlayName", "Overlay (Optional)")
-            col.prop(importSettings, "autoDetectActorScale")
-            if not importSettings.autoDetectActorScale:
-                prop_split(col, importSettings, "actorScale", "Actor Scale")
-            col.prop(importSettings, "flipbookUses2DArray")
-            if importSettings.flipbookUses2DArray:
-                box = col.box().column()
-                prop_split(box, importSettings, "flipbookArrayIndex2D", "Flipbook Index")
-        prop_split(col, importSettings, "drawLayer", "Import Draw Layer")
-
-        col.prop(importSettings, "isCustom")
-        col.prop(importSettings, "removeDoubles")
-        col.prop(importSettings, "importNormals")
 
 
 oot_dl_writer_panel_classes = (

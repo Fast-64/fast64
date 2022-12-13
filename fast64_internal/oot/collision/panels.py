@@ -3,7 +3,7 @@ from bpy.utils import register_class, unregister_class
 from ...utility import prop_split
 from ...panels import OOT_Panel
 from ..oot_utility import drawEnumWithCustom
-from .properties import OOTCollisionExportSettings
+from .properties import OOTCollisionExportSettings, OOTCameraPositionProperty, OOTMaterialCollisionProperty
 from .operators import OOT_ExportCollision
 
 
@@ -24,14 +24,8 @@ class OOT_CameraPosPanel(Panel):
         obj = context.object
 
         box.box().label(text="Camera Data")
-        drawEnumWithCustom(box, obj.ootCameraPositionProperty, "camSType", "Camera S Type", "")
-        prop_split(box, obj.ootCameraPositionProperty, "index", "Camera Index")
-        box.prop(obj.ootCameraPositionProperty, "hasPositionData")
-        if obj.ootCameraPositionProperty.hasPositionData:
-            prop_split(box, obj.data, "angle", "Field Of View")
-            prop_split(box, obj.ootCameraPositionProperty, "bgImageOverrideIndex", "BG Index Override")
-
-        # drawParentSceneRoom(box, context.object)
+        camPosProps: OOTCameraPositionProperty = obj.ootCameraPositionProperty
+        camPosProps.draw_props(box, obj)
 
 
 class OOT_CollisionPanel(Panel):
@@ -48,40 +42,10 @@ class OOT_CollisionPanel(Panel):
 
     def draw(self, context):
         box = self.layout.box().column()
-        collisionProp = context.material.ootCollisionProperty
+        
+        collisionProp: OOTMaterialCollisionProperty = context.material.ootCollisionProperty
+        collisionProp.draw_props(box)
 
-        box.prop(
-            collisionProp,
-            "expandTab",
-            text="OOT Collision Properties",
-            icon="TRIA_DOWN" if collisionProp.expandTab else "TRIA_RIGHT",
-        )
-        if collisionProp.expandTab:
-            prop_split(box, collisionProp, "exitID", "Exit ID")
-            prop_split(box, collisionProp, "cameraID", "Camera ID")
-            prop_split(box, collisionProp, "echo", "Echo")
-            prop_split(box, collisionProp, "lightingSetting", "Lighting")
-            drawEnumWithCustom(box, collisionProp, "terrain", "Terrain", "")
-            drawEnumWithCustom(box, collisionProp, "sound", "Sound", "")
-
-            box.prop(collisionProp, "eponaBlock", text="Blocks Epona")
-            box.prop(collisionProp, "decreaseHeight", text="Decrease Height 1 Unit")
-            box.prop(collisionProp, "isWallDamage", text="Is Wall Damage")
-            box.prop(collisionProp, "hookshotable", text="Hookshotable")
-
-            drawEnumWithCustom(box, collisionProp, "floorSetting", "Floor Setting", "")
-            drawEnumWithCustom(box, collisionProp, "wallSetting", "Wall Setting", "")
-            drawEnumWithCustom(box, collisionProp, "floorProperty", "Floor Property", "")
-
-            box.prop(collisionProp, "ignoreCameraCollision", text="Ignore Camera Collision")
-            box.prop(collisionProp, "ignoreActorCollision", text="Ignore Actor Collision")
-            box.prop(collisionProp, "ignoreProjectileCollision", text="Ignore Projectile Collision")
-            prop_split(box, collisionProp, "conveyorOption", "Conveyor Option")
-            if collisionProp.conveyorOption != "None":
-                prop_split(box, collisionProp, "conveyorRotation", "Conveyor Rotation")
-                drawEnumWithCustom(box, collisionProp, "conveyorSpeed", "Conveyor Speed", "")
-                if collisionProp.conveyorSpeed != "Custom":
-                    box.prop(collisionProp, "conveyorKeepMomentum", text="Keep Momentum")
 
 
 class OOT_ExportCollisionPanel(OOT_Panel):
@@ -94,15 +58,7 @@ class OOT_ExportCollisionPanel(OOT_Panel):
         col.operator(OOT_ExportCollision.bl_idname)
 
         exportSettings: OOTCollisionExportSettings = context.scene.fast64.oot.collisionExportSettings
-        col.label(text="Object name used for export.", icon="INFO")
-        col.prop(exportSettings, "isCustomFilename")
-        if exportSettings.isCustomFilename:
-            prop_split(col, exportSettings, "filename", "Filename")
-        prop_split(col, exportSettings, "folder", "Object" if not exportSettings.customExport else "Folder")
-        if exportSettings.customExport:
-            prop_split(col, exportSettings, "exportPath", "Directory")
-        col.prop(exportSettings, "customExport")
-        col.prop(exportSettings, "includeChildren")
+        exportSettings.draw_props(col)
 
 
 oot_col_panel_classes = (

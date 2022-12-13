@@ -1,12 +1,7 @@
-from ..utility import PluginError, CData, prop_split
-from .oot_utility import OOTCollectionAdd, drawCollectionOps, getCutsceneName, getCustomProperty
-from .cutscene.operators import OOTCSTextboxAdd, OOTCSListAdd
+from ..utility import PluginError, CData
+from .oot_utility import getCutsceneName, getCustomProperty
 
 from .oot_constants import (
-    ootEnumCSTextboxType,
-    ootEnumCSListType,
-    ootEnumCSTextboxTypeIcons,
-    ootEnumCSListTypeIcons,
     ootEnumCSListTypeListC,
     ootEnumCSTextboxTypeEntryC,
     ootEnumCSListTypeEntryC,
@@ -23,104 +18,6 @@ from .oot_level_classes import (
     OOTCSUnk,
     OOTCutscene,
 )
-
-################################################################################
-# Properties
-################################################################################
-
-
-def drawCSListProperty(layout, listProp, listIndex, objName, collectionType):
-    layout.prop(
-        listProp,
-        "expandTab",
-        text=listProp.listType + " List" if listProp.listType != "FX" else "Scene Trans FX",
-        icon="TRIA_DOWN" if listProp.expandTab else "TRIA_RIGHT",
-    )
-    if not listProp.expandTab:
-        return
-    box = layout.box().column()
-    drawCollectionOps(box, listIndex, collectionType, None, objName, False)
-
-    if listProp.listType == "Textbox":
-        attrName = "textbox"
-    elif listProp.listType == "FX":
-        prop_split(box, listProp, "fxType", "Transition")
-        prop_split(box, listProp, "fxStartFrame", "Start Frame")
-        prop_split(box, listProp, "fxEndFrame", "End Frame")
-        return
-    elif listProp.listType == "Lighting":
-        attrName = "lighting"
-    elif listProp.listType == "Time":
-        attrName = "time"
-    elif listProp.listType in ["PlayBGM", "StopBGM", "FadeBGM"]:
-        attrName = "bgm"
-    elif listProp.listType == "Misc":
-        attrName = "misc"
-    elif listProp.listType == "0x09":
-        attrName = "nine"
-    elif listProp.listType == "Unk":
-        prop_split(box, listProp, "unkType", "Unk List Type")
-        attrName = "unk"
-    else:
-        raise PluginError("Internal error: invalid listType " + listProp.listType)
-
-    dat = getattr(listProp, attrName)
-    for i, p in enumerate(dat):
-        p.draw(box, listProp, listIndex, i, objName, collectionType)
-    if len(dat) == 0:
-        box.label(text="No items in " + listProp.listType + " List.")
-    if listProp.listType == "Textbox":
-        row = box.row(align=True)
-        for l in range(3):
-            addOp = row.operator(
-                OOTCSTextboxAdd.bl_idname, text="Add " + ootEnumCSTextboxType[l][1], icon=ootEnumCSTextboxTypeIcons[l]
-            )
-            addOp.collectionType = collectionType + ".textbox"
-            addOp.textboxType = ootEnumCSTextboxType[l][0]
-            addOp.listIndex = listIndex
-            addOp.objName = objName
-    else:
-        addOp = box.operator(OOTCollectionAdd.bl_idname, text="Add item to " + listProp.listType + " List")
-        addOp.option = len(dat)
-        addOp.collectionType = collectionType + "." + attrName
-        addOp.subIndex = listIndex
-        addOp.objName = objName
-
-
-def drawCSAddButtons(layout, objName, collectionType):
-    def addButton(row):
-        nonlocal l
-        op = row.operator(OOTCSListAdd.bl_idname, text=ootEnumCSListType[l][1], icon=ootEnumCSListTypeIcons[l])
-        op.collectionType = collectionType
-        op.listType = ootEnumCSListType[l][0]
-        op.objName = objName
-        l += 1
-
-    box = layout.column(align=True)
-    l = 0
-    row = box.row(align=True)
-    row.label(text="Add:")
-    addButton(row)
-    for _ in range(3):
-        row = box.row(align=True)
-        for _ in range(3):
-            addButton(row)
-    box.label(text="Install zcamedit for camera/actor motion.")
-
-
-def drawCutsceneProperty(box, obj):
-    prop = obj.ootCutsceneProperty
-    box.prop(prop, "csEndFrame")
-    box.prop(prop, "csWriteTerminator")
-    if prop.csWriteTerminator:
-        r = box.row()
-        r.prop(prop, "csTermIdx")
-        r.prop(prop, "csTermStart")
-        r.prop(prop, "csTermEnd")
-    for i, p in enumerate(prop.csLists):
-        drawCSListProperty(box, p, i, obj.name, "Cutscene")
-    drawCSAddButtons(box, obj.name, "Cutscene")
-
 
 ################################################################################
 # Properties to level classes

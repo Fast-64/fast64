@@ -1,17 +1,24 @@
 import os
+from bpy.types import UILayout
 from bpy.utils import register_class, unregister_class
 from ...utility import customExportWarning, prop_split
 from ...panels import OOT_Panel
 from ..oot_constants import ootEnumSceneID
 from ..oot_utility import getEnumName
-from .properties import OOTExportSceneSettingsProperty, OOTImportSceneSettingsProperty, OOTRemoveSceneSettingsProperty
+from .properties import (
+    OOTExportSceneSettingsProperty,
+    OOTImportSceneSettingsProperty,
+    OOTRemoveSceneSettingsProperty,
+    OOTBootupSceneOptions,
+    OOTSceneCommon,
+)
 
 from .operators import (
     OOT_ImportScene,
     OOT_ExportScene,
     OOT_RemoveScene,
-    OOT_SearchSceneEnumOperator,
     OOT_ClearBootupScene,
+    OOT_SearchSceneEnumOperator
 )
 
 
@@ -19,7 +26,7 @@ class OOT_ExportScenePanel(OOT_Panel):
     bl_idname = "OOT_PT_export_level"
     bl_label = "OOT Scene Exporter"
 
-    def drawSceneSearchOp(self, layout, enumValue, opName):
+    def drawSceneSearchOp(self, layout: UILayout, enumValue: str, opName: str):
         searchBox = layout.box().row()
         searchBox.operator(OOT_SearchSceneEnumOperator.bl_idname, icon="VIEWZOOM", text="").opName = opName
         searchBox.label(text=getEnumName(ootEnumSceneID, enumValue))
@@ -32,39 +39,17 @@ class OOT_ExportScenePanel(OOT_Panel):
         exportBox.label(text="Scene Exporter")
 
         settings: OOTExportSceneSettingsProperty = context.scene.ootSceneExportSettings
-        if settings.customExport:
-            prop_split(exportBox, settings, "exportPath", "Directory")
-            prop_split(exportBox, settings, "name", "Name")
-            customExportWarning(exportBox)
-        else:
+        if not settings.customExport:
             self.drawSceneSearchOp(exportBox, settings.option, "Export")
-            if settings.option == "Custom":
-                prop_split(exportBox, settings, "subFolder", "Subfolder")
-                prop_split(exportBox, settings, "name", "Name")
-
-        prop_split(exportBox, context.scene, "ootSceneExportObj", "Scene Object")
-
-        exportBox.prop(settings, "singleFile")
-        exportBox.prop(settings, "customExport")
+        settings.draw_props(exportBox)
 
         if context.scene.fast64.oot.hackerFeaturesEnabled:
             hackerOoTBox = exportBox.box().column()
             hackerOoTBox.label(text="HackerOoT Options")
 
-            bootOptions = context.scene.fast64.oot.bootupSceneOptions
-            hackerOoTBox.prop(bootOptions, "bootToScene", text="Boot To Scene (HackerOOT)")
-            if bootOptions.bootToScene:
-                hackerOoTBox.prop(bootOptions, "newGameOnly")
-                prop_split(hackerOoTBox, bootOptions, "bootMode", "Boot Mode")
-                if bootOptions.bootMode == "Play":
-                    prop_split(hackerOoTBox, bootOptions, "newGameName", "New Game Name")
-                if bootOptions.bootMode != "Map Select":
-                    prop_split(hackerOoTBox, bootOptions, "spawnIndex", "Spawn")
-                    hackerOoTBox.prop(bootOptions, "overrideHeader")
-                    if bootOptions.overrideHeader:
-                        prop_split(hackerOoTBox, bootOptions, "headerOption", "Header Option")
-                        if bootOptions.headerOption == "Cutscene":
-                            prop_split(hackerOoTBox, bootOptions, "cutsceneIndex", "Cutscene Index")
+            bootOptions: OOTBootupSceneOptions = context.scene.fast64.oot.bootupSceneOptions
+            bootOptions.draw_props(hackerOoTBox)
+
             hackerOoTBox.label(
                 text="Note: Scene boot config changes aren't detected by the make process.", icon="ERROR"
             )
@@ -81,7 +66,7 @@ class OOT_ExportScenePanel(OOT_Panel):
         if not importSettings.isCustomDest:
             self.drawSceneSearchOp(importBox, importSettings.option, "Import")
 
-        importSettings.draw(importBox, importSettings.option)
+        importSettings.draw_props(importBox, importSettings.option)
         importBox.operator(OOT_ImportScene.bl_idname)
 
         # Remove Scene
@@ -90,23 +75,21 @@ class OOT_ExportScenePanel(OOT_Panel):
 
         removeSettings: OOTRemoveSceneSettingsProperty = context.scene.ootSceneRemoveSettings
         self.drawSceneSearchOp(removeBox, removeSettings.option, "Remove")
-
-        if removeSettings.option == "Custom":
-            prop_split(removeBox, removeSettings, "subFolder", "Subfolder")
-            prop_split(removeBox, removeSettings, "name", "Name")
-
-            exportPath = (
-                context.scene.ootDecompPath + f"assets/scenes/{removeSettings.subFolder}/{removeSettings.name}/"
-            )
+        removeSettings.draw_props(removeBox)
 
         removeRow = removeBox.row()
         removeRow.operator(OOT_RemoveScene.bl_idname, text="Remove Scene")
 
-        if removeSettings.option == "Custom" and not os.path.exists(exportPath):
-            removeRow.enabled = False
-            removeBox.label(text="This path doesn't exist.")
-        else:
-            removeRow.enabled = True
+        if removeSettings.option == "Custom":
+            exportPath = (
+                context.scene.ootDecompPath + f"assets/scenes/{removeSettings.subFolder}/{removeSettings.name}/"
+            )
+
+            if not os.path.exists(exportPath):
+                removeRow.enabled = False
+                removeBox.label(text="This path doesn't exist.")
+            else:
+                removeRow.enabled = True
 
 
 classes = (

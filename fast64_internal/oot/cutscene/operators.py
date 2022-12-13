@@ -2,10 +2,10 @@ import os
 from bpy.path import abspath
 from bpy.ops import object
 from bpy.props import StringProperty, EnumProperty, IntProperty
-from bpy.types import Scene, Operator, Context
+from bpy.types import Scene, Operator, Context, UILayout
 from bpy.utils import register_class, unregister_class
 from ...utility import CData, PluginError, writeCData, raisePluginError
-from ..oot_constants import ootEnumCSTextboxType, ootEnumCSListType
+from ..oot_constants import ootEnumCSTextboxType, ootEnumCSListType, ootEnumCSListTypeIcons
 from ..oot_utility import getCollection
 
 
@@ -34,6 +34,27 @@ def ootCutsceneIncludes(headerfilename):
         + '"\n\n'
     )
     return ret
+
+
+def drawCSListAddOp(layout: UILayout, objName: str, collectionType):
+        def addButton(row):
+            nonlocal l
+            op = row.operator(OOTCSListAdd.bl_idname, text=ootEnumCSListType[l][1], icon=ootEnumCSListTypeIcons[l])
+            op.collectionType = collectionType
+            op.listType = ootEnumCSListType[l][0]
+            op.objName = objName
+            l += 1
+
+        box = layout.column(align=True)
+        l = 0
+        row = box.row(align=True)
+        row.label(text="Add:")
+        addButton(row)
+        for _ in range(3):
+            row = box.row(align=True)
+            for _ in range(3):
+                addButton(row)
+        box.label(text="Install zcamedit for camera/actor motion.")
 
 
 class OOTCSTextboxAdd(Operator):
@@ -109,7 +130,7 @@ class OOT_ExportAllCutscenes(Operator):
 
     def execute(self, context):
         from ..oot_cutscene import ootCutsceneDataToC, convertCutsceneObject  # temp circular import fix
-        
+
         try:
             if context.mode != "OBJECT":
                 object.mode_set(mode="OBJECT")

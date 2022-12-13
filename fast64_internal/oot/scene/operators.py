@@ -1,18 +1,17 @@
 import bpy, os
 from bpy.path import abspath
-from bpy.types import Operator
+from bpy.types import Operator, UILayout
 from bpy.props import EnumProperty, IntProperty, StringProperty
 from bpy.utils import register_class, unregister_class
 from bpy.ops import object
 from mathutils import Matrix, Vector
 from ...f3d.f3d_gbi import DLFormat
 from ...utility import PluginError, raisePluginError, ootGetSceneOrRoomHeader
-from ..oot_utility import ExportInfo, sceneNameFromID
+from ..oot_utility import ExportInfo, sceneNameFromID, getEnumName
 from ..oot_level_writer import ootExportSceneToC
 from ..oot_constants import ootEnumMusicSeq, ootEnumSceneID
 from ..oot_level_parser import parseScene
 from .exporter.to_c import clearBootupScene, modifySceneTable, editSpecFile, deleteSceneFiles
-from .properties import OOTRemoveSceneSettingsProperty
 
 
 def ootRemoveSceneC(exportInfo):
@@ -221,7 +220,7 @@ class OOT_RemoveScene(Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
-        settings: OOTRemoveSceneSettingsProperty = context.scene.ootSceneRemoveSettings
+        settings = context.scene.ootSceneRemoveSettings  # Type: OOTRemoveSceneSettingsProperty
         levelName = settings.name
         option = settings.option
 
