@@ -332,12 +332,18 @@ class CScrollData(CData):
         self.functionCalls: list[str] = []
         """These function names are all called in one top level scroll function."""
 
+        self.topLevelScrollFunc: str = ""
+        """This function is the final one that calls all the others."""
+
         CData.__init__(self)
 
     def append(self, other):
         if isinstance(other, CScrollData):
             self.functionCalls.extend(other.functionCalls)
         CData.append(self, other)
+
+    def hasScrolling(self):
+        return len(self.functionCalls) > 0
 
 
 def getObjectFromData(data):

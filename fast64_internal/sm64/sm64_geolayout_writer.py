@@ -123,7 +123,7 @@ from .sm64_constants import (
     level_pointers,
     defaultExtendSegment4,
     level_enums,
-    enumLevelNames
+    enumLevelNames,
 )
 
 
@@ -587,9 +587,7 @@ def saveGeolayoutC(
     dynamicData = exportData.dynamicData
     texC = exportData.textureData
 
-    scrollData, hasScrolling = fModel.to_c_vertex_scroll(scrollName, gfxFormatter)
-    scroll_data = scrollData.source
-    cDefineScroll = scrollData.header
+    scrollData = fModel.to_c_scroll(scrollName, gfxFormatter)
     geolayoutGraph.startGeolayout.name = geoName
 
     # Handle cases where geolayout name != folder name + _geo
@@ -642,7 +640,7 @@ def saveGeolayoutC(
         matHInclude = '#include "levels/' + levelName + "/" + dirName + '/material.inc.h"'
         headerInclude = '#include "levels/' + levelName + "/" + dirName + '/geo_header.h"'
 
-    modifyTexScrollFiles(exportDir, geoDirPath, cDefineScroll, scroll_data, hasScrolling)
+    modifyTexScrollFiles(exportDir, geoDirPath, scrollData)
 
     if DLFormat == DLFormat.Static:
         staticData.source += "\n" + dynamicData.source
@@ -771,9 +769,9 @@ def saveGeolayoutC(
             texscrollIncludeC,
             texscrollIncludeH,
             texscrollGroup,
-            cDefineScroll,
+            scrollData.topLevelScrollFunc,
             texscrollGroupInclude,
-            hasScrolling,
+            scrollData.hasScrolling(),
         )
 
         if DLFormat != DLFormat.Static:  # Change this

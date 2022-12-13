@@ -2548,7 +2548,7 @@ class FModel:
         self.freePalettes()
         return ExportCData(staticData, dynamicData, texC)
 
-    def to_c_scroll(self, funcName: str, gfxFormatter: GfxFormatter) -> Union[CData, None]:
+    def to_c_scroll(self, funcName: str, gfxFormatter: GfxFormatter) -> CScrollData:
         data = CScrollData()
         vertexScrollData = self.to_c_vertex_scroll(gfxFormatter)
         if len(vertexScrollData.functionCalls) > 0:
@@ -2558,13 +2558,14 @@ class FModel:
         if len(gfxScrollData.functionCalls) > 0:
             data.append(gfxScrollData)
 
-        data.source += f"void scroll_{funcName}() {{\n"
+        data.topLevelScrollFunc = f"scroll_{funcName}"
+        data.source += f"void {data.topLevelScrollFunc}() {{\n"
         for scrollFunc in data.functionCalls:
             data.source += f"\t{scrollFunc}();\n"
         data.source += f"}};\n"
 
-        data.header += "extern void scroll_" + funcName + "();\n"
-        return data if len(data.functionCalls) > 0 else None
+        data.header += f"extern void {data.topLevelScrollFunc}();\n"
+        return data
 
     def to_c_vertex_scroll(self, gfxFormatter: GfxFormatter) -> CScrollData:
         data = CScrollData()

@@ -380,12 +380,7 @@ def sm64ExportF3DtoC(
     texC = exportData.textureData
 
     scrollData = fModel.to_c_scroll(scrollName, gfxFormatter)
-    hasScrolling = scrollData is not None
-
-    scroll_data = scrollData.source
-    cDefineScroll = scrollData.header
-
-    modifyTexScrollFiles(basePath, modelDirPath, cDefineScroll, scroll_data, hasScrolling)
+    modifyTexScrollFiles(basePath, modelDirPath, scrollData)
 
     if DLFormat == DLFormat.Static:
         staticData.append(dynamicData)
@@ -467,9 +462,9 @@ def sm64ExportF3DtoC(
             texscrollIncludeC,
             texscrollIncludeH,
             texscrollGroup,
-            cDefineScroll,
+            scrollData.topLevelScrollFunc,
             texscrollGroupInclude,
-            hasScrolling,
+            scrollData.hasScrolling(),
         )
 
     if bpy.context.mode != "OBJECT":
