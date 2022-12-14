@@ -1521,6 +1521,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         isTex1CI,
         tex1Fmt,
         pal1Fmt,
+        tex1Name,
         imageDims1,
         tex1Tmem,
         pal1,
@@ -1528,6 +1529,8 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         imUse1,
         tex1Flipbook,
     ) = getAndCheckTexInfo(1, fModel, fMaterial, material, f3dMat.tex1, useDict["Texture 1"])
+
+    isCI = (useTex0 and isTex0CI) or (useTex1 and isTex1CI)
 
     if useTex0 and useTex1:
         if isTex0CI != isTex1CI:
@@ -1565,7 +1568,6 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
                     + ": Two textures with the same palette reference must have the same palette size."
                 )
 
-    isCI = (useTex0 and isTex0CI) or (useTex1 and isTex1CI)
     palFormat = pal0Fmt if useTex0 else pal1Fmt
     g_tt = "G_TT_NONE" if not isCI else ("G_TT_" + palFormat)
 
@@ -1873,28 +1875,38 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 
     # Write texture and palette data, unless exporting textures as PNGs.
     if convertTextureData:
-        if not isTex0Ref:
-            if loadPal0:
-                writePaletteData(fPalette0, pal0)
-            if useTex0:
+        if loadPal0 and ((not isTex0Ref) or (tex0Flipbook is not None)):
+            writePaletteData(fPalette0, pal0)
+        if useTex0:
+            if isTex0Ref:
+                if isCI:
+                    fModel.writeTexRefCITextures(tex0Flipbook, paletteKey0, pal0, tex0Fmt, pal0Fmt)
+                else:
+                    fModel.writeTexRefNonCITextures(tex0Flipbook, tex0Fmt)
+            else:
                 if isCI:
                     writeCITextureData(f3dMat.tex0.tex, fImage0, pal0, pal0Fmt, tex0Fmt)
                 else:
                     writeNonCITextureData(f3dMat.tex0.tex, fImage0, tex0Fmt)
-        if not isTex1Ref:
-            if loadPal1:
-                writePaletteData(fPalette1, pal1)
-            if useTex1:
+        if loadPal1 and ((not isTex1Ref) or (tex1Flipbook is not None and not useSharedCIPalette)):
+            writePaletteData(fPalette1, pal1)
+        if useTex1:
+            if isTex1Ref:
                 if isCI:
-                    writeCITextureData(f3dMat.tex1.tex, fImage0, pal1, pal1Fmt, tex1Fmt)
+                    fModel.writeTexRefCITextures(
+                        tex1Flipbook,
+                        paletteKey0 if useSharedCIPalette else paletteKey1,
+                        pal0 if useSharedCIPalette else pal1,
+                        tex1Fmt,
+                        pal1Fmt,
+                    )
+                else:
+                    fModel.writeTexRefNonCITextures(tex1Flipbook, tex1Fmt)
+            else:
+                if isCI:
+                    writeCITextureData(f3dMat.tex1.tex, fImage1, pal1, pal1Fmt, tex1Fmt)
                 else:
                     writeNonCITextureData(f3dMat.tex1.tex, fImage1, tex1Fmt)
-        if isCI:
-            fModel.writeTexRefCITextures(tex0Flipbook, paletteKey0, pal0, tex0Fmt, pal0Fmt)
-            fModel.writeTexRefCITextures(tex1Flipbook, paletteKey1, pal1, tex1Fmt, pal1Fmt)
-        else:
-            fModel.writeTexRefNonCITextures(tex0Flipbook, tex0Fmt)
-            fModel.writeTexRefNonCITextures(tex1Flipbook, tex1Fmt)
 
     nodes = material.node_tree.nodes
     if useDict["Primitive"] and f3dMat.set_prim:
@@ -2159,7 +2171,7 @@ def getAndCheckTexInfo(
         else:
             assert flipbook is None
             pal = getColorsUsedInImage(tex, palFormat)
-            palLen = len(pal0)
+            palLen = len(pal)
         if palLen > (16 if texFormat == "CI4" else 256):
             raise PluginError(
                 "In "
@@ -2354,7 +2366,7 @@ def savePaletteLoad(
     nocm = ["G_TX_WRAP", "G_TX_NOMIRROR"]
 
     if not f3d._HW_VERSION_1:
-        loadTexGfx.commands.extend(
+        gfxOut.commands.extend(
             [
                 DPSetTextureImage(palFmt, "G_IM_SIZ_16b", 1, fPalette),
                 DPSetTile("0", "0", 0, 256 + palAddr, loadtile, 0, nocm, 0, 0, nocm, 0, 0),
@@ -2362,7 +2374,7 @@ def savePaletteLoad(
             ]
         )
     else:
-        loadTexGfx.commands.extend(
+        gfxOut.commands.extend(
             [
                 _DPLoadTextureBlock(
                     fPalette,
@@ -2395,7 +2407,7 @@ def extractConvertCIPixel(image, pixels, i, j, palFormat):
     elif palFormat == "IA16":
         pixelColor = getIA16Tuple(color)
     else:
-        raise PluginError("Internal error with palette format")
+        raise PluginError("Internal error, palette format is " + palFormat)
     return pixelColor
 
 
@@ -2459,12 +2471,10 @@ def writeCITextureData(
 ):
     if fImage.converted:
         return
-    palFormat = texFormatOf[palFmt]
-    bitSize = texBitSizeOf[texFmt]
 
-    texture = getColorIndicesOfTexture(image, palette, palFormat)
+    texture = getColorIndicesOfTexture(image, palette, palFmt)
 
-    if bitSize == "G_IM_SIZ_4b":
+    if texFmt == "CI4":
         fImage.data = compactNibbleArray(texture, image.size[0], image.size[1])
     else:
         fImage.data = bytearray(texture)

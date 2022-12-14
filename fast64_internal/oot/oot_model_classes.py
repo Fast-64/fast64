@@ -12,6 +12,7 @@ from ..f3d.f3d_writer import (
     DPSetTextureLUT,
     DPSetTile,
     FImageKey,
+    FPaletteKey,
     mergePalettes,
     saveOrGetTextureDefinition,
     writeCITextureData,
@@ -188,7 +189,7 @@ class OOTModel(FModel):
         flipbookProp = getattr(material.flipbookGroup, f"flipbook{index}")
         texProp = getattr(material.f3d_mat, f"tex{index}")
         if not usesFlipbook(material, flipbookProp, index, True, ootFlipbookReferenceIsValid):
-            return FModel.processTexRefCITextures(fMaterial, material, index)
+            return super().processTexRefCITextures(fMaterial, material, index)
         if len(flipbookProp.textures) == 0:
             raise PluginError(f"{str(material)} cannot have a flipbook material with no flipbook textures.")
 
@@ -239,7 +240,8 @@ class OOTModel(FModel):
         palFmt: str,
     ):
         if flipbook is None:
-            return
+            return super().writeTexRefCITextures(None, paletteKey, pal, texFmt, palFmt)
+        assert paletteKey is not None
         for image, fImage in flipbook.images:
             fImage.paletteKey = paletteKey
             writeCITextureData(image, fImage, pal, texFmt, palFmt)
@@ -249,7 +251,7 @@ class OOTModel(FModel):
         flipbookProp = getattr(material.flipbookGroup, f"flipbook{index}")
         texProp = getattr(material.f3d_mat, f"tex{index}")
         if not usesFlipbook(material, flipbookProp, index, True, ootFlipbookReferenceIsValid):
-            return FModel.processTexRefNonCITextures(self, fMaterial, material, index)
+            return super().processTexRefNonCITextures(fMaterial, material, index)
         if len(flipbookProp.textures) == 0:
             raise PluginError(f"{str(material)} cannot have a flipbook material with no flipbook textures.")
 
@@ -280,7 +282,7 @@ class OOTModel(FModel):
 
     def writeTexRefNonCITextures(self, flipbook: Union[TextureFlipbook, None], texFmt: str):
         if flipbook is None:
-            return
+            return super().writeTexRefNonCITextures(flipbook, texFmt)
         for image, fImage in flipbook.images:
             writeNonCITextureData(image, fImage, texFmt)
 

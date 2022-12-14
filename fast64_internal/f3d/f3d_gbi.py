@@ -2220,7 +2220,7 @@ class FModel:
     def writeTexRefCITextures(
         self,
         obj,
-        paletteKey: FPaletteKey,
+        paletteKey,
         pal: list[int],
         texFmt: str,
         palFmt: str,
