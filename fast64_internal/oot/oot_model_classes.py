@@ -8,16 +8,14 @@ from ..f3d.flipbook import TextureFlipbook, FlipbookProperty, usesFlipbook, ootF
 from ..f3d.f3d_writer import (
     VertexGroupInfo,
     TriangleConverterInfo,
-    FSharedPalette,
     DPLoadTLUTCmd,
     DPSetTextureLUT,
     DPSetTile,
     FImageKey,
+    mergePalettes,
     saveOrGetTextureDefinition,
-    saveOrGetPaletteAndImageDefinition,
-    getTextureNameTexRef,
-    saveOrGetPaletteOnlyDefinition,
-    texFormatOf,
+    writeCITextureData,
+    writeNonCITextureData,
 )
 
 from ..f3d.f3d_gbi import (
@@ -152,8 +150,8 @@ class OOTModel(FModel):
     ) -> Union[FImage, bool]:
         # TODO: Not sure what all the logic is here. Handling repeated textures
         # in the same flipbook should be trivial, and repeats of textures between
-        # different flipbooks should be handled separately because of the set of
-        # textures used in the image key.
+        # different flipbooks should be automatically handled separately because
+        # of the set of textures used in the image key.
         if existingFPalette is None:
             if alreadyExists:
                 if fPalette:
@@ -232,16 +230,18 @@ class OOTModel(FModel):
         firstImage = flipbookProp.textures[0].image
         model.processedFlipbooks[firstImage] = allImages
 
-        return flipbook, pal, palName
+        return allImages, flipbook, pal, palName
 
     def writeTexRefCITextures(
         self,
-        flipbook: TextureFlipbook,
+        flipbook: Union[TextureFlipbook, None],
         paletteKey: FPaletteKey,
         pal: list[int],
         texFmt: str,
         palFmt: str,
     ):
+        if flipbook is None:
+            return
         for image, fImage in flipbook.images:
             fImage.paletteKey = paletteKey
             writeCITextureData(image, fImage, pal, texFmt, palFmt)
@@ -256,6 +256,7 @@ class OOTModel(FModel):
             raise PluginError(f"{str(material)} cannot have a flipbook material with no flipbook textures.")
 
         flipbook = TextureFlipbook(flipbookProp.name, flipbookProp.exportMode, [], [])
+        allImages = [flipbookTexture.image for flipbookTexture in flipbookProp.textures]
         for flipbookTexture in flipbookProp.textures:
             if flipbookTexture.image is None:
                 raise PluginError(f"Flipbook for {fMaterial.name} has a texture array item that has not been set.")
@@ -272,9 +273,11 @@ class OOTModel(FModel):
             flipbook.images.append((flipbookTexture.image, fImage))
             
         self.addFlipbookWithRepeatCheck(flipbook)
-        return flipbook
+        return allImages, flipbook
     
-    def writeTexRefNonCITextures(self, flipbook: TextureFlipbook, texFmt: str):
+    def writeTexRefNonCITextures(self, flipbook: Union[TextureFlipbook, None], texFmt: str):
+        if flipbook is None:
+            return
         for image, fImage in flipbook.images:
             writeNonCITextureData(image, fImage, texFmt)
 

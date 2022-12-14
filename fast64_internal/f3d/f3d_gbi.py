@@ -2189,13 +2189,19 @@ class FModel:
     ):
         """
         For non CI textures that use a texture reference, process additional textures that will possibly be loaded here.
-        Returns an object containing info about the additional textures, or None.
+        Returns:
+            - a list of images which are referenced (normally just the texture
+              image), for creating image / palette keys
+            - an object containing info about the additional textures, or None
         """
-        return None
+        texProp = getattr(material.f3d_mat, f"tex{index}")
+        imUse = [] if texProp.tex is None else [texProp.tex]
+        return imUse, None
         
     def writeTexRefNonCITextures(self, obj, texFmt: str):
         """
         Write data for non-CI textures which were previously processed.
+        obj is the object returned by processTexRefNonCITextures.
         """
         pass
 
@@ -2203,11 +2209,15 @@ class FModel:
         """
         For CI textures that use a texture reference, process additional textures that will possibly be loaded here.
         Returns:
+            - a list of images which are referenced (normally just the texture
+              image), for creating image / palette keys
             - an object containing info about the additional textures, or None
             - the palette to use (or None)
             - the palette name (or None)
         """
-        return None, None, None
+        texProp = getattr(material.f3d_mat, f"tex{index}")
+        imUse = [] if texProp.tex is None else [texProp.tex]
+        return imUse, None, None, None
     
     def writeTexRefCITextures(
         self,
@@ -2219,6 +2229,7 @@ class FModel:
     ):
         """
         Write data for CI textures which were previously processed.
+        obj is the object returned by processTexRefCITextures.
         """
         pass
 

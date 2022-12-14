@@ -1401,12 +1401,6 @@ def getTexDimensions(material):
     return texDimensions
 
 
-class FSharedPalette:
-    def __init__(self, name):
-        self.name = name
-        self.palette = []
-
-
 def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     if material.mat_ver > 3:
         f3dMat = material.f3d_mat
@@ -1518,6 +1512,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         tex0Tmem,
         pal0,
         pal0Len,
+        imUse0,
         tex0Flipbook,
     ) = getAndCheckTexInfo(0, fModel, fMaterial, material, f3dMat.tex0, useDict["Texture 0"])
     (
@@ -1530,6 +1525,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         tex1Tmem,
         pal1,
         pal1Len,
+        imUse1,
         tex1Flipbook,
     ) = getAndCheckTexInfo(1, fModel, fMaterial, material, f3dMat.tex1, useDict["Texture 1"])
 
@@ -1714,8 +1710,12 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
                             pal0 = pal1 + pal0
                             pal0Len = len(pal0)
                             tex0PaletteIndex = 1
-    useSharedCIPalette = isCI and useTex0 and useTex1 and not loadPal1
     fMaterial.texPaletteIndex = [tex0PaletteIndex, tex1PaletteIndex]
+    useSharedCIPalette = isCI and useTex0 and useTex1 and not loadPal1
+    pal0Name, pal1Name = tex0Name, tex1Name
+    if useSharedCIPalette:
+        imUse0 = imUse1 = imUse0 + imUse1
+        pal0Name = getSharedPaletteName(f3dMat)
 
     # Assign TMEM addresses
     sameTextures = (
@@ -1826,9 +1826,6 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             )
 
     # Get texture and palette definitions
-    TODO() # Get the full list of textures from the flipbook
-    imUse0 = [f3dMat.tex0.tex] + ([f3dMat.tex1.tex] if useSharedCIPalette else [])
-    imUse1 = ([f3dMat.tex0.tex] if useSharedCIPalette else []) + [f3dMat.tex1.tex]
     fImage0 = fImage1 = fPalette0 = fPalette1 = None
     if useTex0:
         imageKey0, fImage0, fPalette0 = saveOrGetTextureDefinition(
@@ -1840,7 +1837,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             paletteKey0 = fImage0.paletteKey
         else:
             paletteKey0, fPalette0 = saveOrGetPaletteDefinition(
-                fMaterial, fModel, f3dMat.tex0, imUse0, tex0Name, pal0Len
+                fMaterial, fModel, f3dMat.tex0, imUse0, pal0Name, pal0Len
             )
             fImage0.paletteKey = paletteKey0
     if useTex1:
@@ -1855,7 +1852,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             paletteKey1 = fImage1.paletteKey
         else:
             paletteKey1, fPalette1 = saveOrGetPaletteDefinition(
-                fMaterial, fModel, f3dMat.tex1, imUse1, tex1Name, pal1Len
+                fMaterial, fModel, f3dMat.tex1, imUse1, pal1Name, pal1Len
             )
             fImage1.paletteKey = paletteKey1
 
@@ -1892,6 +1889,12 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
                     writeCITextureData(f3dMat.tex1.tex, fImage0, pal1, pal1Fmt, tex1Fmt)
                 else:
                     writeNonCITextureData(f3dMat.tex1.tex, fImage1, tex1Fmt)
+        if isCI:
+            fModel.writeTexRefCITextures(tex0Flipbook, paletteKey0, pal0, tex0Fmt, pal0Fmt)
+            fModel.writeTexRefCITextures(tex1Flipbook, paletteKey1, pal1, tex1Fmt, pal1Fmt)
+        else:
+            fModel.writeTexRefNonCITextures(tex0Flipbook, tex0Fmt)
+            fModel.writeTexRefNonCITextures(tex1Flipbook, tex1Fmt)
 
     nodes = material.node_tree.nodes
     if useDict["Primitive"] and f3dMat.set_prim:
@@ -2003,14 +2006,7 @@ def getSharedPaletteName(f3dMat: F3DMaterialProperty):
     texFormat = f3dMat.tex0.tex_format.lower()
     tex0Name = getNameFromPath(image0.filepath if image0.filepath != "" else image0.name, True)
     tex1Name = getNameFromPath(image1.filepath if image1.filepath != "" else image1.name, True)
-    return f"{tex0Name}_x_{tex1Name}_{texFormat}_pal"
-
-
-def getTextureNameTexRef(texProp: TextureProperty, fModelName: str) -> str:
-    texFormat = texProp.tex_format
-    name = texProp.tex_reference
-    texName = fModelName + "_" + (getNameFromPath(name, True) + "_" + texFormat.lower())
-    return texName
+    return f"{tex0Name}_x_{tex1Name}_{texFormat}"
 
 
 def checkDuplicateTextureName(parent: Union[FModel, FTexRect], name):
@@ -2116,13 +2112,14 @@ def getAndCheckTexInfo(
     useDictEntry,
 ):
     if not useDictEntry or not texProp.tex_set:
-        return False, False, False, "", "", "", (0, 0), 0, None, 0, None
+        return False, False, False, "", "", "", (0, 0), 0, None, 0, None, None
 
     tex = texProp.tex
     isTexRef = texProp.use_tex_reference
     texFormat = texProp.tex_format
     isCITexture = texFormat[:2] == "CI"
     palFormat = texProp.ci_format if isCITexture else ""
+    texName = getTextureName(texProp, fModel.name, None)
 
     if tex is not None and (tex.size[0] == 0 or tex.size[1] == 0):
         raise PluginError(
@@ -2149,12 +2146,10 @@ def getAndCheckTexInfo(
     if imageWidth > 1024 or imageHeight > 1024:
         raise PluginError(f'Error in "{material.name}": Any side of an image cannot be greater ' + "than 1024.")
 
-    texName = TODO() # tex.name?
-
     pal = None
     palLen = 0
     if isCITexture:
-        flipbook, pal, palName = fModel.processTexRefCITextures(fMaterial, material, index)
+        imUse, flipbook, pal, palName = fModel.processTexRefCITextures(fMaterial, material, index)
         if isTexRef:
             if flipbook is not None:
                 palLen = len(pal)
@@ -2177,7 +2172,7 @@ def getAndCheckTexInfo(
                 + "."
             )
     else:
-        flipbook = fModel.processTexRefNonCITextures(fMaterial, material, index)
+        imUse, flipbook = fModel.processTexRefNonCITextures(fMaterial, material, index)
 
     return (
         True,
@@ -2190,6 +2185,7 @@ def getAndCheckTexInfo(
         tmemSize,
         pal,
         palLen,
+        imUse,
         flipbook,
     )
 
