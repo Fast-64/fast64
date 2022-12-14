@@ -4,10 +4,10 @@
 
 import bpy
 from bpy.types import Operator
+from bpy.utils import register_class, unregister_class
 
 from pathlib import Path
 
-from .kcs_utils import *
 from .kcs_gfx import ImportGeoBin, ExportGeoBin
 from .kcs_col import AddNode, ImportColBin
 
@@ -269,3 +269,33 @@ class KCS_OT_Add_Pal(Operator):
         scr = mat.KCS_tx_scroll
         scr.Palettes.add()
         return {"FINISHED"}
+
+
+# ------------------------------------------------------------------------
+#    Registration
+# ------------------------------------------------------------------------
+
+
+kcs_operators = (
+    KCS_OT_Export,
+    KCS_OT_Export_Gfx,
+    KCS_OT_Import_Stage,
+    KCS_OT_Add_Level,
+    KCS_OT_Add_Block,
+    KCS_OT_Add_Ent,
+    KCS_OT_Add_Node,
+    KCS_OT_Import_NLD_Gfx,
+    KCS_OT_Import_Col,
+    KCS_OT_Add_Tex,
+    KCS_OT_Add_Pal,
+)
+
+
+def kcs_operator_register():
+    for cls in kcs_operators:
+        register_class(cls)
+
+
+def kcs_operator_unregister():
+    for cls in reversed(kcs_operators):
+        unregister_class(cls)

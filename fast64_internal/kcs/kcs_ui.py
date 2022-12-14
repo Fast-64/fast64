@@ -6,6 +6,7 @@
 # the panels and UI which people will be interacting with
 
 import bpy
+from bpy.utils import register_class, unregister_class
 from bpy.types import (
     Panel,
     Menu,
@@ -13,9 +14,6 @@ from bpy.types import (
 
 from pathlib import Path
 
-from .kcs_gfx import *
-from .kcs_col import *
-from .kcs_utils import *
 from .kcs_props import *
 from .kcs_operators import *
 
@@ -411,3 +409,30 @@ def GameCheck(context):
     if context.scene.gameEditorMode != "KCS":
         return True
     return None
+
+
+# ------------------------------------------------------------------------
+#    Registration
+# ------------------------------------------------------------------------
+
+
+kcs_panel_classes = (
+    KCS_PROP_PT_Panel,
+    KCS_IO_PT_Panel,
+    OBJ_PT_Panel,
+    MESH_PT_Panel,
+    NODE_PT_Panel,
+    CAM_PT_Panel,
+    COL_PT_Panel,
+    SCROLL_PT_Panel,
+)
+
+
+def kcs_panel_register():
+    for cls in kcs_panel_classes:
+        register_class(cls)
+
+
+def kcs_panel_unregister():
+    for cls in reversed(kcs_panel_classes):
+        unregister_class(cls)

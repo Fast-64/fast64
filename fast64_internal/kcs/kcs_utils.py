@@ -38,9 +38,69 @@ def time_func(func):
 class kcs_Cdata(CData):
     def __init__(self):
         super().__init__()
-    
+
+    def tell(self):
+        return 0
+
     def write(self, content):
         self.source += content
+
+
+# there can only be one of these per fModel object
+# this object will manage pointers throughout data
+class PointerManager:
+    ptr_targets = dict()
+    memoize = None
+
+    def __init__(self):
+        PointerManager.memoize = self
+
+    def resolve_obj_id(self, obj, multi):
+        if multi:
+            return hash((obj, multi))
+        else:
+            return id(obj)
+
+    # add a pointer target obj to self.ptr_targets, and then return a placeholder object which is filled in after first pass writing
+    def add_target(self, obj, multi=None):
+        # you can have multiple targets to the same object, so check before making a new Pointer obj
+        # though you can also write something multiple times, and only want a pointer to one of those locations
+        # so an optional argument is added to bind the specific call to the multi use owner (usually a gfxList)
+        ptr = self.ptr_targets.get(self.resolve_obj_id(obj, multi), None)
+        if not ptr or multi:
+            ptr = Pointer(obj)
+            self.ptr_targets[self.resolve_obj_id(obj, multi)] = ptr
+        return ptr
+
+    def ptr_obj(self, obj, file, label, multi=None):
+        try:
+            ptr = self.ptr_targets.get(self.resolve_obj_id(obj, multi), None)
+        except Exception as e:
+            print(f"failed to find ptr with Expection: {Exception(str(e))}")
+            return obj
+        if ptr:
+            if file:
+                ptr.location = file.tell()
+            ptr.symbol = label
+        return obj
+
+
+# generic container for structs
+class StructContainer:
+    def __init__(self, data):
+        self.dat = data
+
+
+# Placeholder pointer values
+class Pointer:
+    def __init__(self, obj):
+        self.obj = obj
+        self.value = 0
+        self.location = 0
+        self.symbol = "NULL_ptr"
+
+    def __str__(self):
+        return f"Pointer_Type.{id(self)}"
 
 
 # just a base class that holds some binary processing
@@ -102,62 +162,41 @@ class BinProcess:
 # this class writes bin data out from within the class
 # taken from level splitting tools, staged to be rewritten for blender specifically
 class BinWrite:
-    # if a ptr is passed, then auto add it to ptr dict
-    def __setattr__(self, name, value, ptr = None):
-        self.__dict__[name] = value
-        if ptr:
-            self.AddPtr(name, ptr)
-
-    # adds a symbol to a dict of ptrs, when writing via dict, if ptr arg is passed will search for name from void *ptr; value
-    def AddPtr(self, name, ptr):
-        self.ptrs[ptr] = name
-
     def symbol_init(self):
-        self.ptrs = dict()
-        # this will guarantee that this class's implementation of setattr is always used
-        # instead of the defuault classes implementation
-        self.__setattr__ = super(BinWrite, self).__setattr__
+        if not hasattr(self, "ptrManager"):
+            self.ptrManager = PointerManager()
+        else:
+            self.ptrManager = PointerManager.memoize
+        # pass through methods
+        self.add_target = self.ptrManager.add_target
+        self.ptr_obj = self.ptrManager.ptr_obj
 
-    # add a struct to an iterable container, and then give it a unique pointer
-    def app_struct(self, container, struct, name):
-        container.append(struct)
-        self.AddPtr(name, struct)
-
-    # when writing a struct that had a ptr, write the loc
-    # do this by searching the class for ptr stored within the cls
-    def WriteLocComment(self, file: kcs_Cdata, dat):
-        try:
-            for k, v in self.__dict__.items():
-                if v == dat:
-                    name = k
-                    break
-            if hasattr(self, "feature"):
-                # if it is a node cls, then add node num suffix
-                if self.feature == "node":
-                    name += f"_{self.index}"
-            # just let it fail if it wasn't found
-            for k, v in self.ptrs.items():
-                if v == name:
-                    loc = k
-            file.write(f"//{name} - 0x{loc:X}\n")
-        except:
-            pass
+    # now that things are written, find the replacement data for all the pointers
+    def resolve_ptrs_c(self, file: kcs_Cdata):
+        for obj, ptr in self.ptrManager.ptr_targets.items():
+            print(f"object {ptr.obj} resolves to: {ptr.symbol}")
+            file.source = file.source.replace(str(ptr), ptr.symbol)
 
     # format arr data
-    def format_arr(self, vals):
+    def format_arr(self, vals, name, file):
         # infer type from first item of each array
         if type(vals[0]) == float:
-            return f"{', '.join( [f'{a:f}' for a in vals] )}"
+            return f"""{", ".join( [f"{self.ptr_obj(a, file, f'&{name}[{j}]'):f}" for j, a in enumerate(vals)] )}"""
         # happens during recursion
         elif type(vals[0]) == str:
             return ",\n\t".join(vals)
+        # ptr or other objects
+        elif type(vals[0]) != int:
+            return f"""{", ".join( [str(self.ptr_obj(a, file, f"&{name}[{j}]")) for j, a in enumerate(vals)] )}"""
         else:
-            return f"{', '.join( [hex(a) for a in vals] )}"
+            return f"""{", ".join( [hex(self.ptr_obj(a, file, f"&{name}[{j}]")) for j, a in enumerate(vals)] )}"""
 
     # format arr ptr data into string
-    def format_arr_ptr(self, arr, BI=None, ptr_format="0x"):
+    def format_arr_ptr(self, arr, name, file, BI=None, ptr_format="0x"):
         vals = []
-        for a in arr:
+        for j, a in enumerate(arr):
+            # set symbol if obj is a ptr target
+            self.ptr_obj(arr, file, f"{name} + j")
             if a == 0x99999999 or a == (0x9999, 0x9999):
                 vals.append(f"ARR_TERMINATOR")
             elif BI:
@@ -174,16 +213,18 @@ class BinWrite:
 
     # given an array, create a recursive set of lines until no more
     # iteration is possible
-    def format_iter(self, arr, func, **kwargs):
+    def format_iter(self, arr, func, name, file, **kwargs):
         if hasattr(arr[0], "__iter__"):
-            arr = [f"{{{self.format_iter(a, func, **kwargs)}}}" for a in arr]
-        return func(arr, **kwargs)
+            arr = [f"{{{self.format_iter(a, func, name, file, **kwargs)}}}" for a in arr]
+        return func(arr, name, file, **kwargs)
 
     # write generic array, use recursion to unroll all loops
     def write_arr(self, file: kcs_Cdata, name, arr, func, **kwargs):
-        file.write(f"{name}[] = {{\n\t")
+        # set symbol if obj is a ptr target
+        self.ptr_obj(arr, file, name)
+        file.write(f"{name}[{len(arr)}] = {{\n\t")
         # use array formatter func
-        file.write(self.format_iter(arr, func, **kwargs))
+        file.write(self.format_iter(arr, func, name, file, **kwargs))
         file.write("\n};\n\n")
 
     # sort a dict by keys, useful for making sure DLs are in mem order
@@ -192,12 +233,11 @@ class BinWrite:
         return {k: dictionary[k] for k in sorted(dictionary.keys())}
 
     # write a struct from a python dictionary
-    def WriteDictStruct(
-        self, Data: list, Prototype_dict: dict, file: kcs_Cdata, comment: str, name: str, symbols: dict = None
-    ):
-        self.WriteLocComment(file, Data)
-        file.write(f"struct {name} = {{\n")
-        for x, y, z in zip(Prototype_dict.values(), Data, Prototype_dict.keys()):
+    def WriteDictStruct(self, structDat: object, Prototype_dict: dict, file: kcs_Cdata, protype: str, name: str):
+        # set symbol if obj is a ptr target
+        self.ptr_obj(structDat, file, f"&{name}")
+        file.write(f"struct {protype} {name} = {{\n")
+        for x, y, z in zip(Prototype_dict.values(), structDat.dat, Prototype_dict.keys()):
             # x is (data type, string name, is arr/ptr etc.)
             # y is the actual variable value
             # z is the struct hex offset
@@ -205,30 +245,14 @@ class BinWrite:
                 arr = "arr" in x[2] and hasattr(y, "__iter__")
             except:
                 arr = 0
-            # use symbols if given the flag and given a symbol dict
-            try:
-                ptrs = "ptr" in x[2] and symbols
-            except:
-                ptrs = 0
-            if ptrs:
-                value = symbols.get(y)
-                if value == "NULL":
-                    file.write(f"\t/* 0x{z:X} {x[1]}*/\t{value},\n")
-                elif value:
-                    file.write(f"\t/* 0x{z:X} {x[1]}*/\t&{value},\n")
-                else:
-                    if arr:
-                        value = ", ".join([f"&{symbols.get(a)}" for a in y])
-                        file.write(f"\t/* 0x{z:X} {x[1]}*/\t{{{value}}},\n")
-                    else:
-                        file.write(f"\t/* 0x{z:X} {x[1]}*/\t0x{y:X},\n")
-                continue
             if "f32" in x[0] and arr:
                 value = ", ".join([f"{a:f}" for a in y])
                 file.write(f"\t/* 0x{z:X} {x[1]}*/\t{{{value}}},\n")
                 continue
             if "f32" in x[0]:
                 file.write(f"\t/* 0x{z:X} {x[1]}*/\t{y:f},\n")
+            if "ptr" in x[2]:
+                file.write(f"\t/* 0x{z:X} {x[1]}*/\t{y},\n")
             elif arr:
                 value = ", ".join([hex(a) for a in y])
                 file.write(f"\t/* 0x{z:X} {x[1]}*/\t{{{value}}},\n")

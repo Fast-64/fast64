@@ -17,6 +17,7 @@ from bpy.props import (
 )
 
 from bpy.types import PropertyGroup
+from bpy.utils import register_class, unregister_class
 
 # ------------------------------------------------------------------------
 #    UI Callbacks
@@ -418,3 +419,54 @@ class TexScrollProp(PropertyGroup):
         self.Palettes.add()
         tex = self.Palettes[-1]
         tex.Source = tex
+
+
+# ------------------------------------------------------------------------
+#    Registration
+# ------------------------------------------------------------------------
+
+
+kcs_properties = (
+    StageProp,
+    BankIndex,
+    KCS_Scene_Props,
+    NodeProp,
+    CamProp,
+    ObjProp,
+    LvlProp,
+    EntProp,
+    MeshProp,
+    ColProp,
+    TextureProp,
+    TexScrollProp,
+)
+
+
+def kcs_property_register():
+    for cls in kcs_properties:
+        register_class(cls)
+
+    bpy.types.Scene.KCS_scene = PointerProperty(type=KCS_Scene_Props)
+    bpy.types.Curve.KCS_node = PointerProperty(type=NodeProp)
+    bpy.types.Camera.KCS_cam = PointerProperty(type=CamProp)
+    bpy.types.Object.KCS_lvl = PointerProperty(type=LvlProp)
+    bpy.types.Object.KCS_ent = PointerProperty(type=EntProp)
+    bpy.types.Object.KCS_obj = PointerProperty(type=ObjProp)
+    bpy.types.Object.KCS_mesh = PointerProperty(type=MeshProp)
+    bpy.types.Material.KCS_col = PointerProperty(type=ColProp)
+    bpy.types.Material.KCS_tx_scroll = PointerProperty(type=TexScrollProp)
+
+
+def kcs_property_unregister():
+    for cls in reversed(kcs_properties):
+        unregister_class(cls)
+
+    del bpy.types.Scene.KCS_scene
+    del bpy.types.Curve.KCS_node
+    del bpy.types.Camera.KCS_cam
+    del bpy.types.Object.KCS_lvl
+    del bpy.types.Object.KCS_ent
+    del bpy.types.Object.KCS_obj
+    del bpy.types.Object.KCS_mesh
+    del bpy.types.Material.KCS_col
+    del bpy.types.Material.KCS_tx_scroll

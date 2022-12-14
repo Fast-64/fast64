@@ -4,7 +4,7 @@
 
 import bpy
 
-import os, struct, math
+import os, struct, math, enum
 
 from functools import lru_cache
 from pathlib import Path
@@ -29,9 +29,26 @@ from ..utility import (
     checkUniqueBoneNames,
     duplicateHierarchy,
     cleanupDuplicatedObjects,
+    getFMeshName,
 )
-from ..f3d.f3d_writer import *
-from ..f3d.f3d_gbi import *
+
+from ..f3d.f3d_writer import (
+    getInfoDict,
+    saveStaticModel,
+    TriangleConverterInfo,
+)
+
+from ..f3d.f3d_gbi import (
+    DLFormat,
+    GfxListTag,
+    GfxMatWriteMethod,
+    GfxFormatter,
+    GfxList,
+    FModel,
+    FMesh,
+    FMaterial,
+    DPSetTextureImage,
+)
 
 
 # ------------------------------------------------------------------------
@@ -40,41 +57,7 @@ from ..f3d.f3d_gbi import *
 
 # geo data
 
-@dataclass
-class layout(BinProcess, BinWrite):
-    flag: int
-    depth: int
-    ptr: int
-    translation: Vector
-    rotation: Vector
-    scale: Vector
-    index: int = 0
-
-    def __post_init__(self):
-        self.symbol_init()
-
-    def to_c(self):
-        dat = [
-            self.flag,
-            self.depth,
-            self.ptr,
-            self.translation,
-            self.rotation,
-            self.scale,
-        ]
-        CData = kcs_Cdata()
-        self.WriteDictStruct(
-            dat, Layout, CData, "", f"Layout Geo_LY_{self.index}", self.ptrs
-        )
-        return CData
-
-# fake storage class that mirrors methods of layout
-@dataclass
-class faux_LY:
-    ptr: int
-    index: int = 0
-    def to_c(self):
-        return kcs_Cdata()
+# import only classes
 
 
 class Vertices:
@@ -156,406 +139,6 @@ class Tex_Scroll(BinProcess, BinWrite):
     def WriteHeader(self, file):
         # write header, separate func because these are at the end of the file
         self.write_arr(file, f"tx_scroll_hdr_{self.ptr:X}", self.scroll_ptrs, ptr_format="&scroll_")
-
-
-# takes binary input and makes geo block data
-class geo_bin(BinProcess):
-    _Vec3 = namedtuple("Vec3", "x y z")
-    _texture = namedtuple("texture", "fmt siz bank_index")
-
-    def __init__(self, file, scale):
-        self.file = file
-        self.main_header = self.upt(0, ">8L", 32)
-        self.scale = scale
-        self.get_tex_scrolls()
-        self.DLs = (
-            dict()
-        )  # this is also in layouts, but I want it raw here to print in RAM order, and in layouts to analyze in the processed order
-        self.render_mode = self.main_header[2]
-        self._render_mode_map[self.render_mode](self)
-        # get vtx and img refs null terminated arrays
-        self.get_refs()
-        self.get_anims()
-
-    def get_tex_scrolls(self):
-        if self.main_header[1]:
-            start = self.main_header[1]
-            # get header of POINTERS
-            self.tex_header = self.get_referece_list(start, stop=0x99999999)
-            self.tex_scrolls = {}
-            for p in self.tex_header:
-                if p and p != 0x99999999:
-                    self.tex_scrolls[p] = Tex_Scroll(self.get_referece_list(p, stop=0x99999999), self.file, p)
-            # sort scrolls
-            self.tex_scrolls = self.SortDict(self.tex_scrolls)
-
-    # anims are bank indices
-    def get_anims(self):
-        num = self.main_header[5]
-        start = self.seg2phys(self.main_header[6])
-        self.anims = self.get_BI_pairs(start, num=num)
-
-    # both types of refs are null terminated lists
-    def get_refs(self):
-        self.img_refs = self.get_referece_list(self.main_header[3])
-        self.vtx_refs = self.get_referece_list(self.main_header[4])
-
-    # no layout, just a single DL
-    def decode_layout_13(self):
-        L = faux_LY(self.seg2phys(self.main_header[0]))
-        L.dl_ptrs = [L.ptr]
-        self.layouts = [L]
-        self.decode_f3d_bin(L)
-        Vert_End = L.ptr[0]
-        self.decode_vertices(32, Vert_End)
-
-    # no layouts, just an entry point
-    def decode_layout_14(self):
-        L = faux_LY(self.seg2phys(self.main_header[0]))
-        self.decode_entry(L)
-        self.layouts = [L]
-        self.decode_f3d_bin(L)
-        Vert_End = L.ptr[0]
-        self.decode_vertices(32, Vert_End)
-
-    # layouts point to DL
-    def decode_layout_17(self):
-        self.layouts = [
-            self.decode_layout(self.main_header[0] + 0x2C * i, index=i) for i in range(self.main_header[-1])
-        ]
-        starts = []
-        for l in self.layouts:
-            if l.ptr:
-                l.dl_ptrs = [l.ptr]
-                starts.extend(self.decode_f3d_bin(l))
-        if starts:
-            Vert_End = min(starts)
-            self.decode_vertices(32, Vert_End)
-
-    # layouts point to entry point
-    def decode_layout_18(self):
-        self.layouts = [
-            self.decode_layout(self.main_header[0] + 0x2C * i, index=i) for i in range(self.main_header[-1])
-        ]
-        starts = []
-        for l in self.layouts:
-            if l.ptr:
-                self.decode_entry(l)
-                starts.extend(self.decode_f3d_bin(l))
-        if starts:
-            Vert_End = min(starts)
-            self.decode_vertices(32, Vert_End)
-
-    # layout points to pair of DLs
-    def decode_layout_1B(self):
-        self.layouts = [
-            self.decode_layout(self.main_header[0] + 0x2C * i, index=i) for i in range(self.main_header[-1])
-        ]
-        starts = []
-        for l in self.layouts:
-            if l.ptr:
-                self.decode_DL_pair(l)
-                starts.extend(self.decode_f3d_bin(l))
-        if starts:
-            Vert_End = min(starts)
-            self.decode_vertices(32, Vert_End)
-
-    # layout points to entry point with pair of DL
-    def decode_layout_1C(self):
-        self.layouts = [
-            self.decode_layout(self.main_header[0] + 0x2C * i, index=i) for i in range(self.main_header[-1])
-        ]
-        starts = []
-        for l in self.layouts:
-            if l.ptr:
-                self.decode_entry_dbl(l)
-                starts.extend(self.decode_f3d_bin(l))
-        if starts:
-            Vert_End = min(starts)
-            self.decode_vertices(32, Vert_End)
-
-    def decode_layout(self, start, index=None):
-        start = self.seg2phys(start)
-        LY = self.upt(start, ">2HL9f", 0x2C)
-        v = self._Vec3._make
-        return layout(*LY[0:3], v(LY[3:6]), v(LY[6:9]), v(LY[9:12]), index=index)
-
-    # has to be after func declarations
-    _render_mode_map = {
-        0x13: decode_layout_13,
-        0x14: decode_layout_14,
-        0x17: decode_layout_17,
-        0x18: decode_layout_18,
-        0x1B: decode_layout_1B,
-        0x1C: decode_layout_1C,
-    }
-
-    def decode_DL_pair(self, ly: layout):
-        ly.dl_ptrs = []  # just a literal list of ptrs
-        ptrs = self.upt(self.seg2phys(ly.ptr), ">2L", 8)
-        for ptr in ptrs:
-            if ptr:
-                ly.dl_ptrs.append(ptr)
-        ly.DL_Pair = ptrs
-
-    def decode_entry_dbl(self, ly: layout):
-        x = 0
-        start = self.seg2phys(ly.ptr)
-        ly.entry_dbls = []
-        ly.dl_ptrs = []  # just a literal list of ptrs
-        while True:
-            mark, *ptrs = self.upt(start + x, ">3L", 12)
-            ly.entry_dbls.append((mark, ptrs))
-            if mark == 4:
-                return
-            else:
-                for ptr in ptrs:
-                    if ptr:
-                        ly.dl_ptrs.append(ptr)
-            x += 12
-            # shouldn't execute
-            if x > 120:
-                print("your while loop is broken in geo_bin.decode_entry")
-                break
-
-    def decode_entry(self, ly: layout):
-        x = 0
-        start = self.seg2phys(ly.ptr)
-        ly.entry_pts = []  # the actual entry pt raw data
-        ly.dl_ptrs = []  # just a literal list of ptrs
-        while True:
-            mark, ptr = self.upt(start + x, ">2L", 8)
-            ly.entry_pts.append((mark, ptr))
-            if mark == 4:
-                return
-            if ptr == 0:
-                continue
-            else:
-                ly.dl_ptrs.append(ptr)
-            x += 8
-            # shouldn't execute
-            if x > 80:
-                print("your while loop is broken in geo_bin.decode_entry")
-                break
-
-    # gonna use a module for this
-    def decode_f3d_bin(self, layout):
-        DLs = {}
-        self.vertices = []
-        starts = []
-        layout.entry = layout.dl_ptrs[
-            :
-        ]  # create shallow copy, use this for analyzing DL, while DL ptrs will be a dict including jumped to DLs
-        for dl in layout.dl_ptrs:
-            start = self.seg2phys(dl)
-            starts.append(start)
-            f3d = self.decode_dl_bin(start, layout)
-            self.DLs[dl] = f3d
-            DLs[dl] = f3d
-        layout.DLs = DLs
-        return starts
-
-    def DL_ptr(self, num):
-        if num >> 24 == 0xE:
-            return None
-        else:
-            return num
-
-    def decode_dl_bin(self, start, layout):
-        DL = []
-        x = 0
-        while True:
-            cmd = self.Getf3dCmd(self.file[start + x : start + x + 8])
-            x += 8
-            if not cmd:
-                continue
-            name, args = self.split_args(cmd)
-            if name == "gsSPEndDisplayList":
-                break
-            elif name == "gsSPDisplayList":
-                ptr = self.DL_ptr(int(args[0]))
-                if ptr:
-                    layout.dl_ptrs.append(ptr)
-                DL.append((name, args))
-                continue
-            # this LoD info will probably just stay destroyed for now
-            elif name == "gsSPBranchLessZ":
-                ptr = self.DL_ptr(int(args[0]))
-                if ptr:
-                    layout.dl_ptrs.append(ptr)
-                DL.append((name, args))
-                continue
-            elif name == "gsSPBranchList":
-                ptr = self.DL_ptr(int(args[0]))
-                if ptr:
-                    layout.dl_ptrs.append(ptr)
-                DL.append((name, args))
-                break
-            DL.append((name, args))
-        DL.append((name, args))
-        return DL
-
-    @lru_cache(maxsize=32)  # will save lots of time with repeats of tri calls
-    def Getf3dCmd(self, bin):
-        return f3dex2.Ex2String(bin)
-
-    def split_args(self, cmd):
-        filt = "\(.*\)"
-        a = re.search(filt, cmd)
-        return cmd[: a.span()[0]], cmd[a.span()[0] + 1 : a.span()[1] - 1].split(",")
-
-    def decode_vertices(self, start, end):
-        self.vertices = Vertices(self.scale)
-        for i in range(start, end, 16):
-            v = self.upt(i, ">6h4B", 16)
-            self.vertices._make(v)
-
-
-# interim between bpy props and geo blocks
-class bpy_geo:
-    def __init__(self, rt, scale):
-        self.rt = rt
-        self.scale = scale
-
-    def write_bpy_gfx_from_geo(self, name, cls, tex_path, collection):
-        # for now, do basic import, each layout is an object
-        stack = [self.rt]
-        self.LastMat = None
-        # create dict of models so I can reuse model dat as needed (usually for blocks)
-        Models = dict()
-        for i, layout in enumerate(cls.layouts):
-            if (layout.depth & 0xFF) == 0x12:
-                break
-            # mesh object
-            if layout.ptr:
-                prev = Models.get(layout.ptr)
-                # model was already imported, reuse data block with new obj
-                if prev:
-                    mesh, self.LastMat = prev
-                else:
-                    ModelDat = F3d(lastmat=self.LastMat)
-                    (layout.vertices, layout.Triangles) = ModelDat.GetDataFromDL(cls, layout)
-                    self.LastMat = ModelDat.LastMat
-                    mesh = bpy.data.meshes.new(f"{name} {layout.depth&0xFF} {i}")
-                    mesh.from_pydata(layout.vertices, [], layout.Triangles)
-                    # add model to dict
-                    Models[layout.ptr] = (mesh, self.LastMat)
-                obj = bpy.data.objects.new(f"{name} {layout.depth&0xFF} {i}", mesh)
-                collection.objects.link(obj)
-                # set KCS props of obj
-                obj.KCS_mesh.MeshType = "Graphics"
-                # apply dat
-                ModelDat.ApplyDat(obj, mesh, tex_path)
-                # cleanup
-                mesh.validate()
-                mesh.update(calc_edges=True)
-                if bpy.context.scene.KCS_scene.CleanUp:
-                    # shade smooth
-                    obj.select_set(True)
-                    bpy.context.view_layer.objects.active = obj
-                    bpy.ops.object.shade_smooth()
-                    bpy.ops.object.mode_set(mode="EDIT")
-                    bpy.ops.mesh.remove_doubles()
-                    bpy.ops.object.mode_set(mode="OBJECT")
-            # empty transform
-            else:
-                obj = MakeEmpty(f"{name} {layout.depth} {i}", "PLAIN_AXES", collection)
-                # set KCS props of obj
-                obj.KCS_mesh.MeshType = "Graphics"
-            # now that obj is created, parent and add transforms to it
-            if (layout.depth & 0xFF) < len(stack) - 1:
-                stack = stack[: (layout.depth & 0xFF) + 1]
-            Parent(stack[-1], obj, 0)
-            if (layout.depth & 0xFF) + 1 > len(stack) - 1:
-                stack.append(obj)
-            loc = layout.translation
-            obj.location += Vector(loc) / self.scale
-            obj.scale = Vector([1 / a for a in layout.scale])
-            ApplyRotation_n64_to_bpy(obj)
-
-    @staticmethod
-    def Vec3Trans(vec3):
-        return (vec3.x, -vec3.z, vec3.y)
-
-    # create the fModel cls and populate it with layouts based on child objects
-    def init_fModel_from_bpy(self):
-        fModel = KCS_fModel(self.rt)
-        depth = 0
-        fModel.layouts = []
-        # create duplicate objects to work on
-        fModel.tempObj, fModel.allObjs = duplicateHierarchy(self.rt, None, True, 0)
-        # get all child layouts first
-        def loop_children(obj, fModel, depth):
-            for child in obj.children:
-                if self.is_kcs_gfx(child):
-                    # each layout contains fMesh data, which holds triangle, and material info
-                    fModel.layouts.append(self.create_layout(child, depth, fModel))
-                    if child.children:
-                        loop_children(child, fModel, depth + 1)
-
-        loop_children(fModel.tempObj, fModel, 1)
-        # add the root as a layout, though if there are no children, set the render mode to 14
-        if not fModel.layouts:
-            fModel.render_mode = 0x14  # list of DLs (entry point)
-            fModel.layouts.append(
-                faux_LY(
-                    self.exportF3D(fModel.tempObj, fModel, Matrix.Identity)
-                )
-            )
-        else:
-            fModel.render_mode = 0x17  # list of layouts
-            fModel.layouts.insert(0, self.create_layout(fModel.tempObj, 0, fModel))
-        return fModel
-
-    def cleanup_fModel(self, fModel):
-        cleanupDuplicatedObjects(fModel.allObjs)
-        self.rt.select_set(True)
-        bpy.context.view_layer.objects.active = fModel.rt
-
-    # create a layout for an obj given its depth and the obj props
-    def create_layout(self, obj, depth, fModel):
-        # transform layout values to match N64 specs
-        # only location needs to be transformed here, because rotation in the mesh data
-        # will change the scale and rot
-        loc = self.Vec3Trans(obj.location)
-        rot = obj.rotation_euler
-        scale = obj.scale
-        finalTransform = Matrix.Diagonal(
-            Vector((self.scale, self.scale, self.scale))
-        ).to_4x4()  # just use the blender scale, other obj transforms can be
-        ly = layout(
-            0,
-            depth,
-            self.exportF3D(obj, fModel, finalTransform),
-            loc,
-            rot,
-            scale,
-        )
-        ly.name = obj.name  # for debug
-        return ly
-    
-    # creates a list of KCS_fMesh objects with their bpy data processed and stored
-    def exportF3D(self, tempObj, fModel, transformMatrix):
-        if tempObj.type == "MESH":
-            try:
-                infoDict = getInfoDict(tempObj)
-                triConverterInfo = TriangleConverterInfo(tempObj, None, fModel.f3d, transformMatrix, infoDict)
-                fMeshes = saveStaticModel(
-                    triConverterInfo, fModel, tempObj, transformMatrix, fModel.name, False, True, None
-                )
-            except Exception as e:
-                self.cleanup_fModel(fModel)
-                raise Exception(str(e))
-            return list(fMeshes.values())
-        else:
-            return [faux_fMesh()]
-
-    # given an obj, eval if it is a kcs gfx export
-    def is_kcs_gfx(self, obj):
-        if obj.type == "MESH":
-            return obj.KCS_mesh.MeshType == "Graphics"
-        if obj.type == "EMPTY":
-            return obj.KCS_obj.KCS_obj_type == "Graphics"
 
 
 # this will hold tile properties
@@ -1494,12 +1077,509 @@ class F3d(DL):
         return None
 
 
+@dataclass
+class layout(BinProcess, BinWrite):
+    flag: int
+    depth: int
+    ptr: int
+    translation: Vector
+    rotation: Vector
+    scale: Vector
+    index: int = 0
+
+    def __post_init__(self):
+        self.symbol_init()
+
+    def __hash__(self):
+        return id(self)
+
+    @property
+    def dat(self):
+        return [
+            self.flag,
+            self.depth,
+            self.ptr,
+            self.translation,
+            self.rotation,
+            self.scale,
+        ]
+
+    def to_c(self):
+        CData = kcs_Cdata()
+        self.WriteDictStruct(self, Layout, CData, "Layout", f"Geo_LY_{self.index}")
+        return CData
+
+
+# fake storage class that mirrors methods of layout
+@dataclass
+class faux_LY:
+    ptr: int
+    index: int = 0
+
+    def __hash__(self):
+        return id(self)
+
+    def to_c(self):
+        return kcs_Cdata()
+
+
+# takes binary input and makes geo block data
+class geo_bin(BinProcess):
+    _Vec3 = namedtuple("Vec3", "x y z")
+    _texture = namedtuple("texture", "fmt siz bank_index")
+
+    def __init__(self, file, scale):
+        self.file = file
+        self.main_header = self.upt(0, ">8L", 32)
+        self.scale = scale
+        self.get_tex_scrolls()
+        self.DLs = (
+            dict()
+        )  # this is also in layouts, but I want it raw here to print in RAM order, and in layouts to analyze in the processed order
+        self.render_mode = self.main_header[2]
+        self._render_mode_map[self.render_mode](self)
+        # get vtx and img refs null terminated arrays
+        self.get_refs()
+        self.get_anims()
+
+    def get_tex_scrolls(self):
+        if self.main_header[1]:
+            start = self.main_header[1]
+            # get header of POINTERS
+            self.tex_header = self.get_referece_list(start, stop=0x99999999)
+            self.tex_scrolls = {}
+            for p in self.tex_header:
+                if p and p != 0x99999999:
+                    self.tex_scrolls[p] = Tex_Scroll(self.get_referece_list(p, stop=0x99999999), self.file, p)
+            # sort scrolls
+            self.tex_scrolls = self.SortDict(self.tex_scrolls)
+
+    # anims are bank indices
+    def get_anims(self):
+        num = self.main_header[5]
+        start = self.seg2phys(self.main_header[6])
+        self.anims = self.get_BI_pairs(start, num=num)
+
+    # both types of refs are null terminated lists
+    def get_refs(self):
+        self.img_refs = self.get_referece_list(self.main_header[3])
+        self.vtx_refs = self.get_referece_list(self.main_header[4])
+
+    # no layout, just a single DL
+    def decode_layout_13(self):
+        L = faux_LY(self.seg2phys(self.main_header[0]))
+        L.dl_ptrs = [L.ptr]
+        self.layouts = [L]
+        self.decode_f3d_bin(L)
+        Vert_End = L.ptr[0]
+        self.decode_vertices(32, Vert_End)
+
+    # no layouts, just an entry point
+    def decode_layout_14(self):
+        L = faux_LY(self.seg2phys(self.main_header[0]))
+        self.decode_entry(L)
+        self.layouts = [L]
+        self.decode_f3d_bin(L)
+        Vert_End = L.ptr[0]
+        self.decode_vertices(32, Vert_End)
+
+    # layouts point to DL
+    def decode_layout_17(self):
+        self.layouts = [
+            self.decode_layout(self.main_header[0] + 0x2C * i, index=i) for i in range(self.main_header[-1])
+        ]
+        starts = []
+        for l in self.layouts:
+            if l.ptr:
+                l.dl_ptrs = [l.ptr]
+                starts.extend(self.decode_f3d_bin(l))
+        if starts:
+            Vert_End = min(starts)
+            self.decode_vertices(32, Vert_End)
+
+    # layouts point to entry point
+    def decode_layout_18(self):
+        self.layouts = [
+            self.decode_layout(self.main_header[0] + 0x2C * i, index=i) for i in range(self.main_header[-1])
+        ]
+        starts = []
+        for l in self.layouts:
+            if l.ptr:
+                self.decode_entry(l)
+                starts.extend(self.decode_f3d_bin(l))
+        if starts:
+            Vert_End = min(starts)
+            self.decode_vertices(32, Vert_End)
+
+    # layout points to pair of DLs
+    def decode_layout_1B(self):
+        self.layouts = [
+            self.decode_layout(self.main_header[0] + 0x2C * i, index=i) for i in range(self.main_header[-1])
+        ]
+        starts = []
+        for l in self.layouts:
+            if l.ptr:
+                self.decode_DL_pair(l)
+                starts.extend(self.decode_f3d_bin(l))
+        if starts:
+            Vert_End = min(starts)
+            self.decode_vertices(32, Vert_End)
+
+    # layout points to entry point with pair of DL
+    def decode_layout_1C(self):
+        self.layouts = [
+            self.decode_layout(self.main_header[0] + 0x2C * i, index=i) for i in range(self.main_header[-1])
+        ]
+        starts = []
+        for l in self.layouts:
+            if l.ptr:
+                self.decode_entry_dbl(l)
+                starts.extend(self.decode_f3d_bin(l))
+        if starts:
+            Vert_End = min(starts)
+            self.decode_vertices(32, Vert_End)
+
+    def decode_layout(self, start, index=None):
+        start = self.seg2phys(start)
+        LY = self.upt(start, ">2HL9f", 0x2C)
+        v = self._Vec3._make
+        return layout(*LY[0:3], v(LY[3:6]), v(LY[6:9]), v(LY[9:12]), index=index)
+
+    # has to be after func declarations
+    _render_mode_map = {
+        0x13: decode_layout_13,
+        0x14: decode_layout_14,
+        0x17: decode_layout_17,
+        0x18: decode_layout_18,
+        0x1B: decode_layout_1B,
+        0x1C: decode_layout_1C,
+    }
+
+    def decode_DL_pair(self, ly: layout):
+        ly.dl_ptrs = []  # just a literal list of ptrs
+        ptrs = self.upt(self.seg2phys(ly.ptr), ">2L", 8)
+        for ptr in ptrs:
+            if ptr:
+                ly.dl_ptrs.append(ptr)
+        ly.DL_Pair = ptrs
+
+    def decode_entry_dbl(self, ly: layout):
+        x = 0
+        start = self.seg2phys(ly.ptr)
+        ly.entry_dbls = []
+        ly.dl_ptrs = []  # just a literal list of ptrs
+        while True:
+            mark, *ptrs = self.upt(start + x, ">3L", 12)
+            ly.entry_dbls.append((mark, ptrs))
+            if mark == 4:
+                return
+            else:
+                for ptr in ptrs:
+                    if ptr:
+                        ly.dl_ptrs.append(ptr)
+            x += 12
+            # shouldn't execute
+            if x > 120:
+                print("your while loop is broken in geo_bin.decode_entry")
+                break
+
+    def decode_entry(self, ly: layout):
+        x = 0
+        start = self.seg2phys(ly.ptr)
+        ly.entry_pts = []  # the actual entry pt raw data
+        ly.dl_ptrs = []  # just a literal list of ptrs
+        while True:
+            mark, ptr = self.upt(start + x, ">2L", 8)
+            ly.entry_pts.append((mark, ptr))
+            if mark == 4:
+                return
+            if ptr == 0:
+                continue
+            else:
+                ly.dl_ptrs.append(ptr)
+            x += 8
+            # shouldn't execute
+            if x > 80:
+                print("your while loop is broken in geo_bin.decode_entry")
+                break
+
+    # gonna use a module for this
+    def decode_f3d_bin(self, layout):
+        DLs = {}
+        self.vertices = []
+        starts = []
+        layout.entry = layout.dl_ptrs[
+            :
+        ]  # create shallow copy, use this for analyzing DL, while DL ptrs will be a dict including jumped to DLs
+        for dl in layout.dl_ptrs:
+            start = self.seg2phys(dl)
+            starts.append(start)
+            f3d = self.decode_dl_bin(start, layout)
+            self.DLs[dl] = f3d
+            DLs[dl] = f3d
+        layout.DLs = DLs
+        return starts
+
+    def DL_ptr(self, num):
+        if num >> 24 == 0xE:
+            return None
+        else:
+            return num
+
+    def decode_dl_bin(self, start, layout):
+        DL = []
+        x = 0
+        while True:
+            cmd = self.Getf3dCmd(self.file[start + x : start + x + 8])
+            x += 8
+            if not cmd:
+                continue
+            name, args = self.split_args(cmd)
+            if name == "gsSPEndDisplayList":
+                break
+            elif name == "gsSPDisplayList":
+                ptr = self.DL_ptr(int(args[0]))
+                if ptr:
+                    layout.dl_ptrs.append(ptr)
+                DL.append((name, args))
+                continue
+            # this LoD info will probably just stay destroyed for now
+            elif name == "gsSPBranchLessZ":
+                ptr = self.DL_ptr(int(args[0]))
+                if ptr:
+                    layout.dl_ptrs.append(ptr)
+                DL.append((name, args))
+                continue
+            elif name == "gsSPBranchList":
+                ptr = self.DL_ptr(int(args[0]))
+                if ptr:
+                    layout.dl_ptrs.append(ptr)
+                DL.append((name, args))
+                break
+            DL.append((name, args))
+        DL.append((name, args))
+        return DL
+
+    @lru_cache(maxsize=32)  # will save lots of time with repeats of tri calls
+    def Getf3dCmd(self, bin):
+        return f3dex2.Ex2String(bin)
+
+    def split_args(self, cmd):
+        filt = "\(.*\)"
+        a = re.search(filt, cmd)
+        return cmd[: a.span()[0]], cmd[a.span()[0] + 1 : a.span()[1] - 1].split(",")
+
+    def decode_vertices(self, start, end):
+        self.vertices = Vertices(self.scale)
+        for i in range(start, end, 16):
+            v = self.upt(i, ">6h4B", 16)
+            self.vertices._make(v)
+
+
+# interim between bpy props and geo blocks, used for importing and exporting
+class bpy_geo:
+    def __init__(self, rt, scale):
+        self.rt = rt
+        self.scale = scale
+
+    def write_bpy_gfx_from_geo(self, name, cls, tex_path, collection):
+        # for now, do basic import, each layout is an object
+        stack = [self.rt]
+        self.LastMat = None
+        # create dict of models so I can reuse model dat as needed (usually for blocks)
+        Models = dict()
+        for i, layout in enumerate(cls.layouts):
+            if (layout.depth & 0xFF) == 0x12:
+                break
+            # mesh object
+            if layout.ptr:
+                prev = Models.get(layout.ptr)
+                # model was already imported, reuse data block with new obj
+                if prev:
+                    mesh, self.LastMat = prev
+                else:
+                    ModelDat = F3d(lastmat=self.LastMat)
+                    (layout.vertices, layout.Triangles) = ModelDat.GetDataFromDL(cls, layout)
+                    self.LastMat = ModelDat.LastMat
+                    mesh = bpy.data.meshes.new(f"{name} {layout.depth&0xFF} {i}")
+                    mesh.from_pydata(layout.vertices, [], layout.Triangles)
+                    # add model to dict
+                    Models[layout.ptr] = (mesh, self.LastMat)
+                obj = bpy.data.objects.new(f"{name} {layout.depth&0xFF} {i}", mesh)
+                collection.objects.link(obj)
+                # set KCS props of obj
+                obj.KCS_mesh.MeshType = "Graphics"
+                # apply dat
+                ModelDat.ApplyDat(obj, mesh, tex_path)
+                # cleanup
+                mesh.validate()
+                mesh.update(calc_edges=True)
+                if bpy.context.scene.KCS_scene.CleanUp:
+                    # shade smooth
+                    obj.select_set(True)
+                    bpy.context.view_layer.objects.active = obj
+                    bpy.ops.object.shade_smooth()
+                    bpy.ops.object.mode_set(mode="EDIT")
+                    bpy.ops.mesh.remove_doubles()
+                    bpy.ops.object.mode_set(mode="OBJECT")
+            # empty transform
+            else:
+                obj = MakeEmpty(f"{name} {layout.depth} {i}", "PLAIN_AXES", collection)
+                # set KCS props of obj
+                obj.KCS_mesh.MeshType = "Graphics"
+            # now that obj is created, parent and add transforms to it
+            if (layout.depth & 0xFF) < len(stack) - 1:
+                stack = stack[: (layout.depth & 0xFF) + 1]
+            Parent(stack[-1], obj, 0)
+            if (layout.depth & 0xFF) + 1 > len(stack) - 1:
+                stack.append(obj)
+            loc = layout.translation
+            obj.location += Vector(loc) / self.scale
+            obj.scale = Vector([1 / a for a in layout.scale])
+            ApplyRotation_n64_to_bpy(obj)
+
+    @staticmethod
+    def Vec3Trans(vec3):
+        return (vec3.x, -vec3.z, vec3.y)
+
+    # create the fModel cls and populate it with layouts based on child objects
+    def init_fModel_from_bpy(self):
+        fModel = KCS_fModel(self.rt)
+        depth = 0
+        fModel.layouts = []
+        # create duplicate objects to work on
+        fModel.tempObj, fModel.allObjs = duplicateHierarchy(self.rt, None, True, 0)
+        # get all child layouts first
+        def loop_children(obj, fModel, depth):
+            for child in obj.children:
+                if self.is_kcs_gfx(child):
+                    # each layout contains fMesh data, which holds triangle, and material info
+                    fModel.layouts.append(self.create_layout(child, depth, fModel))
+                    if child.children:
+                        loop_children(child, fModel, depth + 1)
+
+        loop_children(fModel.tempObj, fModel, 1)
+        # add the root as a layout, though if there are no children, set the render mode to 14
+        if not fModel.layouts:
+            fModel.render_mode = 0x14  # list of DLs (entry point)
+            fModel.layouts.append(faux_LY(self.exportF3D(fModel.tempObj, fModel, Matrix.Identity)))
+        else:
+            fModel.render_mode = 0x17  # list of layouts
+            fModel.layouts.insert(0, self.create_layout(fModel.tempObj, 0, fModel))
+        return fModel
+
+    def cleanup_fModel(self, fModel):
+        cleanupDuplicatedObjects(fModel.allObjs)
+        self.rt.select_set(True)
+        bpy.context.view_layer.objects.active = fModel.rt
+
+    # create a layout for an obj given its depth and the obj props
+    def create_layout(self, obj, depth, fModel):
+        # transform layout values to match N64 specs
+        # only location needs to be transformed here, because rotation in the mesh data
+        # will change the scale and rot
+        loc = self.Vec3Trans(obj.location)
+        rot = tuple(obj.rotation_euler)
+        scale = tuple(obj.scale)
+        finalTransform = Matrix.Diagonal(
+            Vector((self.scale, self.scale, self.scale))
+        ).to_4x4()  # just use the blender scale, other obj transforms can be
+        ly = layout(
+            0,
+            depth,
+            self.exportF3D(obj, fModel, finalTransform),
+            loc,
+            rot,
+            scale,
+        )
+        ly.name = obj.name  # for debug
+        return ly
+
+    # creates a list of KCS_fMesh objects with their bpy data processed and stored
+    def exportF3D(self, tempObj, fModel, transformMatrix):
+        if tempObj.type == "MESH":
+            try:
+                infoDict = getInfoDict(tempObj)
+                triConverterInfo = TriangleConverterInfo(tempObj, None, fModel.f3d, transformMatrix, infoDict)
+                fMeshes = saveStaticModel(
+                    triConverterInfo, fModel, tempObj, transformMatrix, fModel.name, False, False, None
+                )
+            except Exception as e:
+                self.cleanup_fModel(fModel)
+                raise Exception(str(e))
+            return list(fMeshes.values())
+        else:
+            return 0
+
+    # given an obj, eval if it is a kcs gfx export
+    def is_kcs_gfx(self, obj):
+        if obj.type == "MESH":
+            return obj.KCS_mesh.MeshType == "Graphics"
+        if obj.type == "EMPTY":
+            return obj.KCS_obj.KCS_obj_type == "Graphics"
+
+
+# export only classes
+
+
+class EntryEnums(enum.Enum):
+    Start = 0
+    Continue = 1
+    End = 4
+
+    def __str__(self):
+        return f"{self.value}"
+
+
+# holds a list of DL ptrs
+class EntryPoint(BinWrite):
+    def __init__(self, fMeshes: list):
+        self.fMeshes = fMeshes
+        self.targets = []
+        self.symbol_init()
+        self.index = 0
+        for fMesh in fMeshes:
+            if fMesh.draw:
+                # first member is enumerated 0, others are enumerated 1
+                self.targets.append(
+                    [EntryEnums.Continue if self.targets else EntryEnums.Start, self.add_target(fMesh.draw)]
+                )
+        if self.targets:
+            self.targets.append([EntryEnums.End, 0])
+
+    def to_c(self):
+        CData = kcs_Cdata()
+        self.write_arr(CData, f"EntryPoint_{self.index}", self.targets, self.format_arr)
+        # add pointers
+        self.ptr_obj(self, CData, f"&EntryPoint_{self.index}")
+        return CData
+
+
+# subclassed to manage pointers when writing
+class KCS_GFXList(GfxList, BinWrite):
+    def __init__(self, name, tag, DLFormat):
+        super().__init__(name, tag, DLFormat)
+        self.symbol_init()
+
+    def to_c_static(self):
+        # set symbol if obj is a ptr target
+        self.ptr_obj(self, None, f"{self.name}")
+        data = f"Gfx {self.name}[] = {{\n"
+        for j, command in enumerate(self.commands):
+            self.ptr_obj(command, None, f"&{self.name}[{j}]", multi=self)
+            data += f"\t{command.to_c(True)},\n"
+        data += "};\n\n"
+        return data
+
+
 # a data class that will hold various primitive geo classes and then write them out to files
 # population of the classes will be done by bpy_geo or geo_bin
-class KCS_fModel(FModel):
+class KCS_fModel(FModel, BinWrite):
     def __init__(self, rt: bpy.types.Object, name="Kirby"):
         super().__init__("F3DEX2/LX2", False, name, DLFormat.Static, GfxMatWriteMethod.WriteAll, inline=True)
         self.rt = rt
+        self.gfxFormatter = GfxFormatter(None, 2)
+        self.ptrManager = PointerManager()
 
     # overrides of base class
     def addMesh(self, name, namePrefix, drawLayer, isSkinned, contextObj):
@@ -1515,83 +1595,98 @@ class KCS_fModel(FModel):
     # KCS specific methods
     # process the layouts after the KCS_fMesh objects have been added, with their tri and mat info
     def process_layouts(self):
-        pass
-        self.main_header = (
-            0, # *layout[]
-            0, # *tex_scroll[]
-            self.render_mode,
-            0, # *img_refs[]
-            0, # *vtx_refs[]
-            0, # Num_Anims
-            0, # *Anims[]
-            0, #  
+        self.symbol_init()
+        self.main_header = StructContainer(
+            (
+                self.add_target(self.layouts[0]),  # *layout[]
+                0,  # *tex_scroll[]
+                self.render_mode,
+                0,  # *img_refs[]
+                0,  # *vtx_refs[]
+                0,  # Num_Anims
+                0,  # *Anims[]
+                len(self.layouts),  # num layouts
+            )
         )
-    
+        for ly in self.layouts:
+            if not ly.ptr:
+                continue
+            ly.entry = EntryPoint(ly.ptr)
+            ly.ptr = ly.add_target(ly.entry)
+
     # output methods
     def save_binary(self, file):
         print(file)
 
     def to_c(self, file):
-        pass
-
-    def to_c_inline(self, file):
-        VertexData = kcs_Cdata()
-        GraphicsData = kcs_Cdata()
-        LayoutData = kcs_Cdata()
+        structData = kcs_Cdata()
+        vertexData = kcs_Cdata()
+        graphicsData = kcs_Cdata()
+        layoutData = kcs_Cdata()
+        entryPointData = kcs_Cdata()
+        # img ref data is inside each individual fMesh
+        imgRefData = kcs_Cdata()
+        imgRefs = []
         for ly in self.layouts:
-            fMeshes = ly.ptr
-            for fMesh in fMeshes:
-                GfxDat, VtxDat = fMesh.to_c_inline(self.f3d, None)
-                GraphicsData.append(GfxDat)
-                VertexData.append(VtxDat)
-            LayoutData.append(ly.to_c())
-        self.WriteDictStruct(
-            self.main_header, Geo_Header, file, "", "Geo_Header Header"
-        )
-        file.write(VertexData.source)
-        file.write(GraphicsData.source)
-        file.write(LayoutData.source)
+            if ly.ptr:
+                entryPoint = ly.entry
+                for fMesh in entryPoint.fMeshes:
+                    GfxDat, VtxDat = fMesh.to_c(self.f3d, self.gfxFormatter)
+                    graphicsData.append(GfxDat)
+                    vertexData.append(VtxDat)
+                    imgRefs.extend(fMesh.img_refs)
+
+                entryPointData.append(entryPoint.to_c())
+            layoutData.append(ly.to_c())
+        self.WriteDictStruct(self.main_header, Geo_Header, structData, "", "Geo_Header Header")
+        self.write_arr(imgRefData, f"void *img_refs", imgRefs, self.format_arr)
+        # combine cDatas into one
+        cData = (vertexData, graphicsData, imgRefData, entryPointData, layoutData)
+        for data in cData:
+            structData.append(data)
+        # replace plcaeholder pointers in file with real symbols
+        self.resolve_ptrs_c(structData)
+        # write all out to file
+        file.write(structData.source)
 
 
-# overrdides fMaterial
+# subclassed to manage pointers when writing, and for dynamic DLs with scrolls
+class KCS_fMesh(FMesh, BinWrite):
+    def __init__(self, name, DLFormat, inline=False):
+        self.name = name
+        self.inline = inline
+        # GfxList
+        self.draw = KCS_GFXList(name, GfxListTag.Draw, DLFormat)
+        # list of FTriGroup
+        self.triangleGroups: list["FTriGroup"] = []
+        # VtxList
+        self.cullVertexList = None
+        # dict of (override Material, specified Material to override,
+        # overrideType, draw layer) : GfxList
+        self.drawMatOverrides = {}
+        self.DLFormat = DLFormat
+
+        # Used to avoid consecutive calls to the same material if unnecessary
+        self.currentFMaterial = None
+
+        # Props used for KCS specifically
+        self.img_refs = []
+        self.symbol_init()
+
+    # after each triGroup is added to fMesh.draw, add the DPSetTextureImage as pointer targets, and add the pointer objects to img refs
+    def onTriGroupBleedEnd(self, f3d: "F3D", triGroup: "FTriGroup", lastMat: "FMaterial", bleed: "BleedGfx"):
+        for tile, texGfx in enumerate(bleed.bled_tex):
+            set_tex = (c for c in texGfx.commands if type(c) == DPSetTextureImage)
+            for set_img in set_tex:
+                self.img_refs.append(self.add_target(set_img, multi=self.draw))
+
+
+# subclassed to manage pointers when writing, and for dynamic DLs with scrolls
 class KCS_fMaterial(FMaterial):
     def __init__(self, name, DLFormat):
         super().__init__(name, DLFormat, inline=True)
         self.name = name
-        self.textures = [GfxList(f"tex_{i}_" + name, GfxListTag.Material, DLFormat) for i in range(8)]
-        self.textureLoads = {}  # dict of {tex_offset : DPSetTextureImage}
 
-
-# Holds all the info needed for one mesh on one layer to export
-class KCS_fMesh(FMesh):
-    def __init__(self, name, DLFormat, inline=False):
-        super().__init__(name, DLFormat.Static, inline=inline)
-
-    # debug print
-    def print_DLs(self):
-        if not self.mesh:
-            return
-        for mat, desc in self.mat_tris.items():
-            triGroup = desc.tri_list
-            print("\n\noriginal cmd list\n")
-            [print(c) for c in desc.fMaterial.material.commands]
-            try:
-                print("\n\nbled cmd list\n")
-                [print(c) for c in desc.bleed.bled_mats]
-                for i, (tex, bleed_tex) in enumerate(zip(desc.fMaterial.textures, desc.bleed.bled_tex)):
-                    print(f"\noriginal tex list {i}\n")
-                    [print(c) for c in tex.commands]
-                    print(f"\nbleed tex list {i}\n")
-                    [print(c) for c in bleed_tex]
-            except:
-                print(f"no bleed on material {self.name}")
-
-
-# empty transform, this exists so I don't need to code in if/else statements
-# for different mesh stuff
-class faux_fMesh():
-    def to_c_inline(self, *args):
-        return CData(), CData()
 
 # ------------------------------------------------------------------------
 #    Exorter Functions
@@ -1603,14 +1698,24 @@ def ExportGeoBin(name, obj, context):
     scale = context.scene.KCS_scene.Scale
     blend_geo = bpy_geo(obj, scale)
     # create writer class using blender data, with layouts that have fMesh data
-    fModel = (
-        blend_geo.init_fModel_from_bpy()
-    )
-    blend_geo.cleanup_fModel(fModel) # processing of bpy data is done
+    fModel = blend_geo.init_fModel_from_bpy()
+    blend_geo.cleanup_fModel(fModel)  # processing of bpy data is done
     fModel.process_layouts()
-    with open(name, "wb") as file:
+    with open(name, "w") as file:
         fModel.save_binary(file)
-        fModel.to_c_inline(file)
+        fModel.to_c(file)
+
+
+@time_func
+def ExportGeoC(name, obj, context):
+    scale = context.scene.KCS_scene.Scale
+    blend_geo = bpy_geo(obj, scale)
+    # create writer class using blender data, with layouts that have fMesh data
+    fModel = blend_geo.init_fModel_from_bpy()
+    blend_geo.cleanup_fModel(fModel)  # processing of bpy data is done
+    fModel.process_layouts()
+    with open(name, "w") as file:
+        fModel.to_c(file)
 
 
 # ------------------------------------------------------------------------
