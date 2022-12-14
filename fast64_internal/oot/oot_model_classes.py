@@ -207,9 +207,7 @@ class OOTModel(FModel):
                 else model.name + "_" + flipbookTexture.image.name + "_" + texProp.tex_format.lower()
             )
 
-            imageKey = FImageKey(
-                flipbookTexture.image, texProp.tex_format, texProp.ci_format, allImages
-            )
+            imageKey = FImageKey(flipbookTexture.image, texProp.tex_format, texProp.ci_format, allImages)
             fImage, fPalette = parent.getTextureAndHandleShared(imageKey)
             alreadyExists = fImage is not None
             if not alreadyExists:
@@ -220,12 +218,12 @@ class OOTModel(FModel):
             )
 
             pal = mergePalettes(pal, getColorsUsedInImage(flipbookTexture.image, texProp.ci_format))
-            
+
             flipbook.textureNames.append(fImage.name)
             flipbook.images.append((flipbookTexture.image, fImage))
 
         # print(f"Palette length for {palName}: {len(pal)}") # Checked in getAndCheckTexInfo
-        
+
         model.addFlipbookWithRepeatCheck(flipbook)
         firstImage = flipbookProp.textures[0].image
         model.processedFlipbooks[firstImage] = allImages
@@ -267,14 +265,19 @@ class OOTModel(FModel):
                 else model.name + "_" + flipbookTexture.image.name + "_" + texProp.tex_format.lower()
             )
             _, fImage, _ = saveOrGetTextureDefinition(
-                fMaterial, model, texProp, [flipbookTexture.image], name, False,
+                fMaterial,
+                model,
+                texProp,
+                [flipbookTexture.image],
+                name,
+                False,
             )
             flipbook.textureNames.append(fImage.name)
             flipbook.images.append((flipbookTexture.image, fImage))
-            
+
         self.addFlipbookWithRepeatCheck(flipbook)
         return allImages, flipbook
-    
+
     def writeTexRefNonCITextures(self, flipbook: Union[TextureFlipbook, None], texFmt: str):
         if flipbook is None:
             return

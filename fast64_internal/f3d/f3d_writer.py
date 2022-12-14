@@ -2135,7 +2135,7 @@ def getAndCheckTexInfo(
                 + tex.name
                 + ". Make sure this texture has not been deleted or moved on disk."
             )
-            
+
     if isTexRef:
         imageWidth, imageHeight = texProp.tex_reference_size
     else:

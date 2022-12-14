@@ -2184,9 +2184,7 @@ class FModel:
         self.global_data = FGlobalData()
         self.texturesSavedLastExport = 0  # hacky
 
-    def processTexRefNonCITextures(
-        self, fMaterial: "FMaterial", material: bpy.types.Material, index: int
-    ):
+    def processTexRefNonCITextures(self, fMaterial: "FMaterial", material: bpy.types.Material, index: int):
         """
         For non CI textures that use a texture reference, process additional textures that will possibly be loaded here.
         Returns:
@@ -2197,7 +2195,7 @@ class FModel:
         texProp = getattr(material.f3d_mat, f"tex{index}")
         imUse = [] if texProp.tex is None else [texProp.tex]
         return imUse, None
-        
+
     def writeTexRefNonCITextures(self, obj, texFmt: str):
         """
         Write data for non-CI textures which were previously processed.
@@ -2218,7 +2216,7 @@ class FModel:
         texProp = getattr(material.f3d_mat, f"tex{index}")
         imUse = [] if texProp.tex is None else [texProp.tex]
         return imUse, None, None, None
-    
+
     def writeTexRefCITextures(
         self,
         obj,
