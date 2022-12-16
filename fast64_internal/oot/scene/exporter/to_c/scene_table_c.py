@@ -9,25 +9,39 @@ def getSceneTable(exportPath):
     dataList = []
     sceneNames = []
     fileHeader = ""
+    isHackerOoT = False
 
     # read the scene table
     try:
         with open(os.path.join(exportPath, "include/tables/scene_table.h")) as fileData:
             # keep the relevant data and do some formatting
             for i, line in enumerate(fileData):
-                if not line.startswith("// "):
-                    if not (line.startswith("/**") or line.startswith(" *")):
-                        dataList.append(line[(line.find("(") + 1) :].rstrip(")\n").replace(" ", "").split(","))
-                    else:
-                        fileHeader += line
-                if line.startswith("/* 0x"):
-                    startIndex = line.find("SCENE_")
-                    sceneNames.append(line[startIndex : line.find(",", startIndex)])
+                # exclude elements present in HackerOoT's codebase
+                if (
+                    line != "\n"
+                    and '#include "config.h"\n' not in line
+                    and "#ifdef INCLUDE_TEST_SCENES" not in line
+                    and "#endif" not in line
+                ):
+                    if not line.startswith("// "):
+                        if not (line.startswith("/**") or line.startswith(" *")):
+                            dataList.append(line[(line.find("(") + 1) :].rstrip(")\n").replace(" ", "").split(","))
+                        else:
+                            fileHeader += line
+                    if line.startswith("/* 0x"):
+                        startIndex = line.find("SCENE_")
+                        sceneNames.append(line[startIndex : line.find(",", startIndex)])
+                else:
+                    isHackerOoT = True
     except FileNotFoundError:
         raise PluginError("ERROR: Can't find scene_table.h!")
 
+    # if the repo is HackerOoT add the includein the file header
+    if isHackerOoT:
+        fileHeader = '#include "config.h"\n\n' + fileHeader
+
     # return the parsed data, the header comment and the comment mentionning debug scenes
-    return dataList, fileHeader, sceneNames
+    return dataList, fileHeader, sceneNames, isHackerOoT
 
 
 def getSceneIndex(sceneNameList, sceneName):
@@ -115,7 +129,7 @@ def getSceneParams(scene, exportInfo, sceneNames):
     return sceneName, sceneTitle, sceneID, sceneUnk10, sceneUnk12, sceneIndex
 
 
-def sceneTableToC(data, header, sceneNames, scene):
+def sceneTableToC(data, header, sceneNames, scene, isHackerOoT: bool):
     """Converts the Scene Table to C code"""
     # start the data with the header comment explaining the format of the file
     fileData = header
@@ -128,20 +142,27 @@ def sceneTableToC(data, header, sceneNames, scene):
     lastSceneIdx = getInsertionIndex(sceneNames, "SCENE_TESTROOM", None, mode)
 
     # add the actual lines with the same formatting
+    # add the ifdef if this is HackerOoT
     for i in range(len(data)):
         # adds the "// Debug-only scenes"
         # if both lastScene indexes are the same values this means there's no debug scene
         if ((i - 1) == lastNonDebugSceneIdx) and (lastSceneIdx != lastNonDebugSceneIdx):
+            if isHackerOoT:
+                fileData += "\n#ifdef INCLUDE_TEST_SCENES\n"
+
             fileData += "// Debug-only scenes\n"
 
         # add a comment to show when it's new scenes
         if (i - 1) == lastSceneIdx:
-            fileData += "// Added scenes\n"
+            fileData += "\n// Added scenes\n"
 
         fileData += f"/* 0x{i:02X} */ DEFINE_SCENE("
         fileData += ", ".join(str(d) for d in data[i])
 
         fileData += ")\n"
+
+        if isHackerOoT and i == lastSceneIdx:
+            fileData += "#endif\n"
 
     # return the string containing the file data to write
     return fileData
@@ -149,7 +170,7 @@ def sceneTableToC(data, header, sceneNames, scene):
 
 def getDrawConfig(sceneName: str):
     """Read draw config from scene table"""
-    fileData, header, sceneNames = getSceneTable(bpy.path.abspath(bpy.context.scene.ootDecompPath))
+    fileData, header, sceneNames, isHackerOoT = getSceneTable(bpy.path.abspath(bpy.context.scene.ootDecompPath))
 
     for sceneEntry in fileData:
         if sceneEntry[0] == f"{sceneName}_scene":
@@ -162,7 +183,7 @@ def modifySceneTable(scene, exportInfo: ExportInfo):
     """Edit the scene table with the new data"""
     exportPath = exportInfo.exportPath
     # the list ``sceneNames`` needs to be synced with ``fileData``
-    fileData, header, sceneNames = getSceneTable(exportPath)
+    fileData, header, sceneNames, isHackerOoT = getSceneTable(exportPath)
     sceneName, sceneTitle, sceneID, sceneUnk10, sceneUnk12, sceneIndex = getSceneParams(scene, exportInfo, sceneNames)
 
     if scene is None:
@@ -227,5 +248,5 @@ def modifySceneTable(scene, exportInfo: ExportInfo):
 
     # write the file with the final data
     writeFile(
-        os.path.join(exportPath, "include/tables/scene_table.h"), sceneTableToC(fileData, header, sceneNames, scene)
+        os.path.join(exportPath, "include/tables/scene_table.h"), sceneTableToC(fileData, header, sceneNames, scene, isHackerOoT)
     )
