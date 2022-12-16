@@ -248,5 +248,6 @@ def modifySceneTable(scene, exportInfo: ExportInfo):
 
     # write the file with the final data
     writeFile(
-        os.path.join(exportPath, "include/tables/scene_table.h"), sceneTableToC(fileData, header, sceneNames, scene, isHackerOoT)
+        os.path.join(exportPath, "include/tables/scene_table.h"),
+        sceneTableToC(fileData, header, sceneNames, scene, isHackerOoT),
     )
