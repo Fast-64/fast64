@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from copy import deepcopy
 from re import findall
 
-from . import F3DEX2_gbi as f3dex2
+from . import f3dex2
 from .kcs_utils import *
 from .kcs_data import (
     Geo_Header,
