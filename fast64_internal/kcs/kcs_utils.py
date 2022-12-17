@@ -35,7 +35,7 @@ def time_func(func):
 
 
 # maintain duality with file objects, and CData objects
-class kcs_Cdata(CData):
+class KCS_Cdata(CData):
     def __init__(self):
         super().__init__()
 
@@ -155,7 +155,7 @@ class BinProcess:
         file.write(", ".join(vals))
         file.write("\n};\n\n")
 
-    def SortDict(self, dictionary):
+    def sort_dict(self, dictionary):
         return {k: dictionary[k] for k in sorted(dictionary.keys())}
 
 
@@ -172,7 +172,7 @@ class BinWrite:
         self.ptr_obj = self.ptrManager.ptr_obj
 
     # now that things are written, find the replacement data for all the pointers
-    def resolve_ptrs_c(self, file: kcs_Cdata):
+    def resolve_ptrs_c(self, file: KCS_Cdata):
         for obj, ptr in self.ptrManager.ptr_targets.items():
             print(f"object {ptr.obj} resolves to: {ptr.symbol}")
             file.source = file.source.replace(str(ptr), ptr.symbol)
@@ -219,7 +219,7 @@ class BinWrite:
         return func(arr, name, file, **kwargs)
 
     # write generic array, use recursion to unroll all loops
-    def write_arr(self, file: kcs_Cdata, name, arr, func, **kwargs):
+    def write_arr(self, file: KCS_Cdata, name, arr, func, **kwargs):
         # set symbol if obj is a ptr target
         self.ptr_obj(arr, file, name)
         file.write(f"{name}[{len(arr)}] = {{\n\t")
@@ -227,13 +227,8 @@ class BinWrite:
         file.write(self.format_iter(arr, func, name, file, **kwargs))
         file.write("\n};\n\n")
 
-    # sort a dict by keys, useful for making sure DLs are in mem order
-    # instead of being in referenced order
-    def SortDict(self, dictionary):
-        return {k: dictionary[k] for k in sorted(dictionary.keys())}
-
     # write a struct from a python dictionary
-    def WriteDictStruct(self, structDat: object, Prototype_dict: dict, file: kcs_Cdata, protype: str, name: str):
+    def write_dict_struct(self, structDat: object, Prototype_dict: dict, file: KCS_Cdata, protype: str, name: str):
         # set symbol if obj is a ptr target
         self.ptr_obj(structDat, file, f"&{name}")
         file.write(f"struct {protype} {name} = {{\n")
@@ -341,10 +336,10 @@ class BreakableBlockDat:
 # ------------------------------------------------------------------------
 
 
-def ParseStageTable(world, level, area, path):
+def parse_stage_table(world, level, area, path):
     f = open(path, "r")
     lines = f.readlines()
-    StageArea = PreProcessC(lines, "StageArea", ["{", "}"])  # data type StageArea, delimiter {}
+    StageArea = pre_process_c(lines, "StageArea", ["{", "}"])  # data type StageArea, delimiter {}
 
     # There should a ptr to stages, and then a list of stages in the same file
     levels = None
@@ -401,7 +396,7 @@ def ParseStageTable(world, level, area, path):
         "dust_image": tuple,
         "name": None,
     }
-    area = ProcessStruct(stage_dict, macros, area[area.find("{") + 1 : area.rfind("}")])
+    area = process_struct(stage_dict, macros, area[area.find("{") + 1 : area.rfind("}")])
     return area
 
 
@@ -410,11 +405,11 @@ def ParseStageTable(world, level, area, path):
 # ------------------------------------------------------------------------
 
 
-def CurlyBraceRegX():
+def CURLYBRACE_REGX():
     return "\{[0-9,a-fx ]+\}"
 
 
-def ParenRegX():
+def PAREN_REGX():
     return "\([0-9,a-fx ]+\)"
 
 
@@ -439,25 +434,25 @@ def RotateObj_n64_to_bpy(deg, obj, world=0):
         obj.matrix_basis = obj.matrix_basis @ deg
 
 
-def ApplyRotation_n64_to_bpy(obj):
-    RotateObj(-90, obj)
+def apply_rotation_n64_to_bpy(obj):
+    RotateObj_n64_to_bpy(-90, obj)
     apply_objects_modifiers_and_transformations([obj])
 
 
-def MakeEmpty(name, type, collection):
+def make_empty(name, type, collection):
     Obj = bpy.data.objects.new(name, None)
     Obj.empty_display_type = type
     collection.objects.link(Obj)
     return Obj
 
 
-def MakeMeshObj(name, data, collection):
+def make_mesh_obj(name, data, collection):
     Obj = bpy.data.objects.new(name, data)
     collection.objects.link(Obj)
     return Obj
 
 
-def MakeMeshData(name, data):
+def make_mesh_data(name, data):
     dat = bpy.data.meshes.new(name)
     dat.from_pydata(*data)
     dat.validate()
@@ -488,11 +483,11 @@ def GetEnums(prop, enum):
 # this will only do one value, use list comp for an array of structs
 
 # struct dict will contain names of the args, and values tell me the delims via regex, recursion using dicts
-def ProcessStruct(struct_dict, macros, value):
+def process_struct(struct_dict, macros, value):
     # first unroll macros as they have internal commas
     for k, v in macros.items():
         if k in value:
-            value = ProcessMacro(value, k, v)
+            value = process_macro(value, k, v)
     res = {}
     for k, v in struct_dict.items():
         # if None take the rest of the string as the end
@@ -504,7 +499,7 @@ def ProcessStruct(struct_dict, macros, value):
             # not supported for now, but a sub strcut will be found by getting the string between equal number of curly braces
             continue
         if v == tuple:
-            regX = f"{CurlyBraceRegX()}\s*,"
+            regX = f"{CURLYBRACE_REGX()}\s*,"
         if v == int or v == float or v == str:
             regX = ","
         # search through the line until I hit the delim
@@ -525,9 +520,9 @@ def ProcessStruct(struct_dict, macros, value):
 
 # processes a macro and returns its value, not recursive
 # line is line, macro is str of macro, process is a function equiv of macro
-def ProcessMacro(line, macro, process):
-    regX = f"{macro}{ParenRegX()}"
-    args = ParenRegX()
+def process_macro(line, macro, process):
+    regX = f"{macro}{PAREN_REGX()}"
+    args = PAREN_REGX()
     while True:
         m = re.search(regX, line, flags=re.IGNORECASE)
         if not m:
@@ -537,7 +532,7 @@ def ProcessMacro(line, macro, process):
 
 
 # if there are macros, look for scene defs on macros, currently none, so skip them all
-def EvalMacro(line):
+def eval_macro(line):
     scene = bpy.context.scene
     #    if scene.LevelImp.Version in line:
     #        return False
@@ -550,7 +545,7 @@ def EvalMacro(line):
 # chars are the container for types value, () for macros, {} for structs, None for int arrays
 
 # splits data into array using chars, does not recursively do it, only the top level is split
-def PreProcessC(lines, data_type, chars):
+def pre_process_c(lines, data_type, chars):
     # Get a dictionary made up with keys=level script names
     # and values as an array of all the cmds inside.
     Vars = {}
@@ -564,9 +559,9 @@ def PreProcessC(lines, data_type, chars):
             l = l[:comment]
         # check for macro
         if "#ifdef" in l:
-            skip = EvalMacro(l)
+            skip = eval_macro(l)
         if "#elif" in l:
-            skip = EvalMacro(l)
+            skip = eval_macro(l)
         if "#else" in l:
             skip = 0
             continue
@@ -594,11 +589,11 @@ def PreProcessC(lines, data_type, chars):
             # Add line to dict
             else:
                 Vars[dat_name] += l
-    return ProcessLine(Vars, chars)
+    return process_macro_dict_into_lines(Vars, chars)
 
 
 # given a dict of lines, turns it into a dict with arrays for value of isolated data members
-def ProcessLine(Vars, chars):
+def process_macro_dict_into_lines(Vars, chars):
     for k, v in Vars.items():
         v = v.replace("\n", "")
         arr = []

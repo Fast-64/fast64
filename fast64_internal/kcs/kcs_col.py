@@ -234,18 +234,18 @@ class bpy_collision:
         for geo, dyn in cls.de_tris.items():
             dynamic[geo] = self.create_pydata(cls, dyn, scale)
             # make objs but no parenting
-            dyn_mesh = MakeMeshData("kcd_dyn_mesh", dynamic[geo][0:3])
-            dyn_obj = MakeMeshObj("kcs dyn obj", dyn_mesh, collection)
+            dyn_mesh = make_mesh_data("kcd_dyn_mesh", dynamic[geo][0:3])
+            dyn_obj = make_mesh_obj("kcs dyn obj", dyn_mesh, collection)
             self.write_mats(dyn_obj, dynamic[geo][3])
             Parent(self.rt, dyn_obj, 0)
             RotateObj_n64_to_bpy(-90, dyn_obj)
             dyn_obj.KCS_mesh.MeshType = "Collision"
             dyn_obj.KCS_mesh.ColMeshType = "Breakable"
         # make objs and link
-        main_mesh = MakeMeshData("kcs level mesh", main[0:3])
-        main_obj = MakeMeshObj("kcs level obj col", main_mesh, collection)
+        main_mesh = make_mesh_data("kcs level mesh", main[0:3])
+        main_obj = make_mesh_obj("kcs level obj col", main_mesh, collection)
         Parent(self.rt, main_obj, 0)  # get col rt from rt
-        ApplyRotation_n64_to_bpy(main_obj)
+        apply_rotation_n64_to_bpy(main_obj)
         main_obj.KCS_mesh.MeshType = "Collision"
         self.write_mats(main_obj, main[3])
         # format node data
@@ -263,7 +263,7 @@ class bpy_collision:
         bpy.context.view_layer.update()
         # write entities
         for e in cls.entities:
-            o = MakeEmpty("KCS entity", "ARROWS", collection)
+            o = make_empty("KCS entity", "ARROWS", collection)
             o.KCS_obj.KCS_obj_type = "Entity"
             ent = o.KCS_ent
             path = cls.path_nodes[e.node].bpy_path
@@ -345,7 +345,7 @@ def ImportColBin(bin_file, context, name):
     LS = bin_file
     LS = open(LS, "rb")
     collection = context.scene.collection
-    rt = MakeEmpty(name, "PLAIN_AXES", collection)
+    rt = make_empty(name, "PLAIN_AXES", collection)
     rt.KCS_obj.KCS_obj_type = "Collision"
     LS_Block = misc_bin(LS.read())
     write = bpy_collision(rt, collection)
@@ -368,7 +368,7 @@ def AddNode(Rt, collection):
     collection.objects.link(CamObj)
     Parent(Node, CamObj, 0)
     # Make Camera Volume
-    Vol = MakeEmpty("KCS Cam Volume", "CUBE", collection)
+    Vol = make_empty("KCS Cam Volume", "CUBE", collection)
     Vol.KCS_obj.KCS_obj_type = "Camera Volume"
     Parent(CamObj, Vol, 0)
     Rt.select_set(True)

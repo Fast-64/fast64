@@ -8,7 +8,7 @@ from bpy.utils import register_class, unregister_class
 
 from pathlib import Path
 
-from .kcs_gfx import ImportGeoBin, ExportGeoBin
+from .kcs_gfx import import_geo_bin, export_geo_bin
 from .kcs_col import AddNode, ImportColBin
 
 # ------------------------------------------------------------------------
@@ -51,7 +51,7 @@ class KCS_OT_Import_NLD_Gfx(Operator):
                 name = file / "block.bin"
             if not name.exists():
                 raise Exception(f"Could not find file {name}, geo Bank/ID does not exist")
-            ImportGeoBin(name, context, "KCS Gfx {}-{}".format(*BankID), Path(scene.Decomp_path) / "assets" / "image")
+            import_geo_bin(name, context, "KCS Gfx {}-{}".format(*BankID), Path(scene.Decomp_path) / "assets" / "image")
         else:
             raise Exception("C importing is not supported yet")
         return {"FINISHED"}
@@ -65,8 +65,7 @@ class KCS_OT_Import_Stage(Operator):
     def execute(self, context):
         scene = context.scene.KCS_scene
         stage_table = Path(scene.Decomp_path) / "data" / "misc" / "kirby.066630.2.c"  # this will probably change later
-        stage = ParseStageTable(*scene.ImpStage.stage(), stage_table)
-        print(stage)
+        stage = parse_stage_table(*scene.ImpStage.stage(), stage_table)
 
         gfx_bank, gfx_ID = [eval(a) for a in stage["geo"]]
         col_bank, col_ID = [eval(a) for a in stage["level_block"]]
@@ -82,7 +81,7 @@ class KCS_OT_Import_Stage(Operator):
                 name = file_gfx / "block.bin"
             if not name.exists():
                 raise Exception(f"Could not find file {name}, geo Bank/ID does not exist")
-            ImportGeoBin(
+            import_geo_bin(
                 name,
                 context,
                 "KCS Level {}-{}-{}".format(*scene.ImpStage.stage()),
@@ -130,7 +129,7 @@ class KCS_OT_Export_Gfx(Operator):
         file = Path(scene.Decomp_path) / "assets" / "geo" / ("bank_%d" % BankID[0]) / ("%d" % BankID[1])
         if scene.Format == "binary":
             name = file / "geo.bin"
-            ExportGeoBin(name, obj, context)
+            export_geo_bin(name, obj, context)
         else:
             raise Exception("C importing is not supported yet")
         return {"FINISHED"}
@@ -189,12 +188,12 @@ class KCS_OT_Add_Level(Operator):
 
     def execute(self, context):
         collection = bpy.context.scene.collection
-        Lvl = MakeEmpty("KCS Level Rt", "PLAIN_AXES", collection)
+        Lvl = make_empty("KCS Level Rt", "PLAIN_AXES", collection)
         Lvl.KCS_obj.KCS_obj_type = "Level"
-        Col = MakeEmpty("KCS Level Col", "PLAIN_AXES", collection)
+        Col = make_empty("KCS Level Col", "PLAIN_AXES", collection)
         Col.KCS_obj.KCS_obj_type = "Collision"
         Parent(Lvl, Col, 0)
-        Gfx = MakeEmpty("KCS Level Gfx", "PLAIN_AXES", collection)
+        Gfx = make_empty("KCS Level Gfx", "PLAIN_AXES", collection)
         Gfx.KCS_obj.KCS_obj_type = "Graphics"
         Parent(Lvl, Gfx, 0)
         # Make Node
@@ -212,7 +211,7 @@ class KCS_OT_Add_Level(Operator):
         collection.objects.link(CamObj)
         Parent(Node, CamObj, 0)
         # Make Camera Volume
-        Vol = MakeEmpty("KCS Cam Volume", "CUBE", collection)
+        Vol = make_empty("KCS Cam Volume", "CUBE", collection)
         Vol.KCS_obj.KCS_obj_type = "Camera Volume"
         Parent(CamObj, Vol, 0)
         Lvl.select_set(True)
