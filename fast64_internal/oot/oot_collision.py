@@ -11,6 +11,7 @@ from ..utility import (
     hideObjsInList,
     writeCData,
     raisePluginError,
+    toAlnum,
 )
 
 from .oot_collision_classes import (
@@ -43,6 +44,21 @@ from .oot_utility import (
     ootGetPath,
     getOOTScale,
 )
+
+
+class OOTCollisionExportSettings(bpy.types.PropertyGroup):
+    isCustomFilename: bpy.props.BoolProperty(
+        name="Use Custom Filename", description="Override filename instead of basing it off of the Blender name"
+    )
+    filename: bpy.props.StringProperty(name="Filename")
+    exportPath: bpy.props.StringProperty(name="Directory", subtype="FILE_PATH")
+    exportLevel: bpy.props.EnumProperty(items=ootEnumSceneID, name="Level Used By Collision", default="SCENE_DEKU_TREE")
+    includeChildren: bpy.props.BoolProperty(name="Include child objects", default=True)
+    levelName: bpy.props.StringProperty(name="Name", default="SCENE_DEKU_TREE")
+    customExport: bpy.props.BoolProperty(
+        name="Custom Export Path", description="Determines whether or not to export to an explicitly specified folder"
+    )
+    folder: bpy.props.StringProperty(name="Object Name", default="gameplay_keep")
 
 
 class OOTCameraPositionProperty(bpy.types.PropertyGroup):
@@ -238,7 +254,15 @@ def exportCollisionCommon(collision, obj, transformMatrix, includeChildren, name
             collision.polygonGroups[polygonType].append(OOTCollisionPolygon(indices, normal, distance))
 
 
-def exportCollisionToC(originalObj, transformMatrix, includeChildren, name, isCustomExport, folderName, exportPath):
+def exportCollisionToC(
+    originalObj: bpy.types.Object, transformMatrix: mathutils.Matrix, exportSettings: OOTCollisionExportSettings
+):
+    includeChildren = exportSettings.includeChildren
+    name = toAlnum(originalObj.name)
+    isCustomExport = exportSettings.customExport
+    folderName = exportSettings.folder
+    exportPath = ootGetObjectPath(isCustomExport, bpy.path.abspath(exportSettings.exportPath), folderName)
+
     collision = OOTCollision(name)
     collision.cameraData = OOTCameraData(name)
 
@@ -269,8 +293,9 @@ def exportCollisionToC(originalObj, transformMatrix, includeChildren, name, isCu
 
     data.append(collisionC)
 
-    path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, False)
-    writeCData(data, os.path.join(path, name + ".h"), os.path.join(path, name + ".c"))
+    path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, True)
+    filename = exportSettings.filename if exportSettings.isCustomFilename else f"{name}_collision"
+    writeCData(data, os.path.join(path, f"{filename}.h"), os.path.join(path, f"{filename}.c"))
 
     if not isCustomExport:
         addIncludeFiles(folderName, path, name)
@@ -612,14 +637,8 @@ class OOT_ExportCollision(bpy.types.Operator):
         finalTransform = mathutils.Matrix.Scale(getOOTScale(obj.ootActorScale), 4)
 
         try:
-            includeChildren = context.scene.ootColIncludeChildren
-            name = context.scene.ootColName
-            isCustomExport = context.scene.ootColCustomExport
-            folderName = context.scene.ootColFolder
-            exportPath = bpy.path.abspath(context.scene.ootColExportPath)
-
-            filepath = ootGetObjectPath(isCustomExport, exportPath, folderName)
-            exportCollisionToC(obj, finalTransform, includeChildren, name, isCustomExport, folderName, filepath)
+            exportSettings: OOTCollisionExportSettings = context.scene.fast64.oot.collisionExportSettings
+            exportCollisionToC(obj, finalTransform, exportSettings)
 
             self.report({"INFO"}, "Success!")
             return {"FINISHED"}
@@ -640,13 +659,16 @@ class OOT_ExportCollisionPanel(OOT_Panel):
         col = self.layout.column()
         col.operator(OOT_ExportCollision.bl_idname)
 
-        prop_split(col, context.scene, "ootColName", "Name")
-        if context.scene.ootColCustomExport:
-            prop_split(col, context.scene, "ootColExportPath", "Custom Folder")
-        else:
-            prop_split(col, context.scene, "ootColFolder", "Object")
-        col.prop(context.scene, "ootColCustomExport")
-        col.prop(context.scene, "ootColIncludeChildren")
+        exportSettings: OOTCollisionExportSettings = context.scene.fast64.oot.collisionExportSettings
+        col.label(text="Object name used for export.", icon="INFO")
+        col.prop(exportSettings, "isCustomFilename")
+        if exportSettings.isCustomFilename:
+            prop_split(col, exportSettings, "filename", "Filename")
+        prop_split(col, exportSettings, "folder", "Object" if not exportSettings.customExport else "Folder")
+        if exportSettings.customExport:
+            prop_split(col, exportSettings, "exportPath", "Directory")
+        col.prop(exportSettings, "customExport")
+        col.prop(exportSettings, "includeChildren")
 
 
 oot_col_classes = (
@@ -655,6 +677,7 @@ oot_col_classes = (
     OOTCameraPositionPropertyRef,
     OOTCameraPositionProperty,
     OOTMaterialCollisionProperty,
+    OOTCollisionExportSettings,
 )
 
 oot_col_panel_classes = (
@@ -679,15 +702,6 @@ def oot_col_register():
         register_class(cls)
 
     # Collision
-    bpy.types.Scene.ootColExportPath = bpy.props.StringProperty(name="Directory", subtype="FILE_PATH")
-    bpy.types.Scene.ootColExportLevel = bpy.props.EnumProperty(
-        items=ootEnumSceneID, name="Level Used By Collision", default="SCENE_YDAN"
-    )
-    bpy.types.Scene.ootColIncludeChildren = bpy.props.BoolProperty(name="Include child objects", default=True)
-    bpy.types.Scene.ootColName = bpy.props.StringProperty(name="Name", default="collision")
-    bpy.types.Scene.ootColLevelName = bpy.props.StringProperty(name="Name", default="SCENE_YDAN")
-    bpy.types.Scene.ootColCustomExport = bpy.props.BoolProperty(name="Custom Export Path")
-    bpy.types.Scene.ootColFolder = bpy.props.StringProperty(name="Object Name", default="gameplay_keep")
 
     bpy.types.Object.ootCameraPositionProperty = bpy.props.PointerProperty(type=OOTCameraPositionProperty)
     bpy.types.Material.ootCollisionProperty = bpy.props.PointerProperty(type=OOTMaterialCollisionProperty)

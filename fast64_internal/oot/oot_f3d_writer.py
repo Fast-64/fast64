@@ -77,10 +77,15 @@ def getColliderMat(name: str, color: tuple[float, float, float, float]) -> bpy.t
 
 
 class OOTDLExportSettings(bpy.types.PropertyGroup):
-    name: bpy.props.StringProperty(name="DL Name", default="gBoulderFragmentsDL")
+    isCustomFilename: bpy.props.BoolProperty(
+        name="Use Custom Filename", description="Override filename instead of basing it off of the Blender name"
+    )
+    filename: bpy.props.StringProperty(name="Filename")
     folder: bpy.props.StringProperty(name="DL Folder", default="gameplay_keep")
     customPath: bpy.props.StringProperty(name="Custom DL Path", subtype="FILE_PATH")
-    isCustom: bpy.props.BoolProperty(name="Use Custom Path")
+    isCustom: bpy.props.BoolProperty(
+        name="Use Custom Path", description="Determines whether or not to export to an explicitly specified folder"
+    )
     removeVanillaData: bpy.props.BoolProperty(name="Replace Vanilla DLs")
     drawLayer: bpy.props.EnumProperty(name="Draw Layer", items=ootEnumDrawLayers)
     actorOverlayName: bpy.props.StringProperty(name="Overlay", default="")
@@ -280,7 +285,7 @@ def ootConvertMeshToC(
     isCustomExport = settings.isCustom
     drawLayer = settings.drawLayer
     removeVanillaData = settings.removeVanillaData
-    name = toAlnum(settings.name)
+    name = toAlnum(originalObj.name)
     overlayName = settings.actorOverlayName
     flipbookUses2DArray = settings.flipbookUses2DArray
     flipbookArrayIndex2D = settings.flipbookArrayIndex2D if flipbookUses2DArray else None
@@ -323,7 +328,8 @@ def ootConvertMeshToC(
         textureArrayData = writeTextureArraysNew(fModel, flipbookArrayIndex2D)
         data.append(textureArrayData)
 
-    writeCData(data, os.path.join(path, name + ".h"), os.path.join(path, name + ".c"))
+    filename = settings.filename if settings.isCustomFilename else name
+    writeCData(data, os.path.join(path, filename + ".h"), os.path.join(path, filename + ".c"))
 
     if not isCustomExport:
         writeTextureArraysExisting(bpy.context.scene.ootDecompPath, overlayName, False, flipbookArrayIndex2D, fModel)
@@ -643,7 +649,10 @@ class OOT_ExportDLPanel(OOT_Panel):
         col.operator(OOT_ExportDL.bl_idname)
         exportSettings: OOTDLExportSettings = context.scene.fast64.oot.DLExportSettings
 
-        prop_split(col, exportSettings, "name", "DL")
+        col.label(text="Object name used for export.", icon="INFO")
+        col.prop(exportSettings, "isCustomFilename")
+        if exportSettings.isCustomFilename:
+            prop_split(col, exportSettings, "filename", "Filename")
         prop_split(col, exportSettings, "folder", "Object" if not exportSettings.isCustom else "Folder")
         if exportSettings.isCustom:
             prop_split(col, exportSettings, "customAssetIncludeDir", "Asset Include Path")
