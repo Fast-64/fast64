@@ -1,6 +1,6 @@
 from .....utility import CData, indent
 from .....f3d.f3d_gbi import ScrollMethod, TextureExportSettings
-from ....oot_f3d_writer import OOTGfxFormatter
+from ....oot_model_classes import OOTGfxFormatter
 from ....oot_constants import ootRoomShapeStructs, ootRoomShapeEntryStructs, ootEnumRoomShapeType
 from ....oot_level_classes import OOTRoom, OOTRoomMeshGroup, OOTRoomMesh
 
