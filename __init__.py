@@ -12,7 +12,7 @@ from .fast64_internal.sm64.sm64_geolayout_utility import createBoneGroups
 from .fast64_internal.sm64.sm64_geolayout_parser import generateMetarig
 
 from .fast64_internal.oot import OOT_Properties, oot_register, oot_unregister
-from .fast64_internal.oot.oot_level import OOT_ObjectProperties
+from .fast64_internal.oot.props_panel_main import OOT_ObjectProperties
 from .fast64_internal.utility_anim import utility_anim_register, utility_anim_unregister, ArmatureApplyWithMeshOperator
 
 from .fast64_internal.f3d.f3d_material import mat_register, mat_unregister
