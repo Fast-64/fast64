@@ -124,13 +124,19 @@ def selectSingleObject(obj: bpy.types.Object):
     bpy.context.view_layer.objects.active = obj
 
 
-def parentObject(parent, child):
-    bpy.ops.object.select_all(action="DESELECT")
+def parentObject(parent, child, keep=0):
+    if not keep:
+        child.parent = parent
+        child.matrix_local = child.matrix_parent_inverse
+    else:
+        bpy.ops.object.select_all(action="DESELECT")
 
-    child.select_set(True)
-    parent.select_set(True)
-    bpy.context.view_layer.objects.active = parent
-    bpy.ops.object.parent_set(type="OBJECT", keep_transform=True)
+        child.select_set(True)
+        parent.select_set(True)
+        bpy.context.view_layer.objects.active = parent
+        bpy.ops.object.parent_set(type="OBJECT", keep_transform=True)
+        parent.select_set(False)
+        child.select_set(False)
 
 
 def getFMeshName(vertexGroup, namePrefix, drawLayer, isSkinned):
@@ -1409,6 +1415,18 @@ def translate_blender_to_n64(translate: mathutils.Vector):
 def rotate_quat_blender_to_n64(rotation: mathutils.Quaternion):
     new_rot = transform_mtx_blender_to_n64() @ rotation.to_matrix().to_4x4() @ transform_mtx_blender_to_n64().inverted()
     return new_rot.to_quaternion()
+
+
+def rotate_quat_n64_to_blender(rotation: mathutils.Quaternion):
+    new_rot = transform_mtx_blender_to_n64().inverted() @ rotation.to_matrix().to_4x4() @ transform_mtx_blender_to_n64()
+    return new_rot.to_quaternion()
+
+
+# this will take a blender property, its enumprop name, and then return a list of the allowed enums
+def get_enums_from_prop(prop, enum):
+    enumProp = prop.bl_rna.properties.get(enum)
+    if enumProp:
+        return [item.identifier for item in enumProp.enum_items]
 
 
 def all_values_equal_x(vals: Iterable, test):

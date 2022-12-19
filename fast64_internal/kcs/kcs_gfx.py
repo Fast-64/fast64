@@ -6,7 +6,6 @@ from __future__ import annotations
 import bpy
 
 import os, struct, math, enum
-
 from functools import lru_cache
 from pathlib import Path
 from mathutils import Vector, Euler, Matrix
@@ -19,12 +18,11 @@ from typing import BinaryIO, TextIO
 from . import f3dex2
 from .kcs_utils import *
 from .kcs_data import (
-    Geo_Header,
-    Layout,
-    TextureScrollStruct,
+    geo_block_includes,
+    geo_block_header_struct,
+    layout_struct,
+    texture_scroll_struct,
 )
-
-# fast64 imports
 
 from ..utility import (
     propertyGroupGetEnums,
@@ -32,14 +30,15 @@ from ..utility import (
     duplicateHierarchy,
     cleanupDuplicatedObjects,
     getFMeshName,
+    parentObject,
+    PluginError,
 )
-
+from ..f3d.f3d_import import Tile, Texture, Mat, DL
 from ..f3d.f3d_writer import (
     getInfoDict,
     saveStaticModel,
     TriangleConverterInfo,
 )
-
 from ..f3d.f3d_gbi import (
     DLFormat,
     GfxListTag,
@@ -85,7 +84,7 @@ class Vertices:
 
 # this is the class that holds the actual individual scroll struct and textures
 class tx_scroll:
-    _scroll = namedtuple("texture_scroll", " ".join([x[1] for x in TextureScrollStruct.values()]))
+    _scroll = namedtuple("texture_scroll", " ".join([x[1] for x in texture_scroll_struct.values()]))
 
     def __init__(self, *args: tuple):
         self.scroll = self._scroll._make(*args)
@@ -112,7 +111,7 @@ class Tex_Scroll(BinProcess, BinWrite):
         for p in scrollPtrs:
             if p != 0x99999999 and p:
                 # get struct
-                scr = tx_scroll(self.extract_dict(self.seg2phys(p), TextureScrollStruct))
+                scr = tx_scroll(self.extract_dict(self.seg2phys(p), texture_scroll_struct))
                 self.scrolls[p] = scr
                 # search for palletes
                 if scr.scroll.palettes:
@@ -126,638 +125,8 @@ class Tex_Scroll(BinProcess, BinWrite):
                     scr.textures = self.get_BI_pairs(start, stop=(0x9999, 0x9999))
 
 
-# this will hold tile properties
-class Tile:
-    def __init__(self):
-        self.Fmt = "RGBA"
-        self.Siz = "16"
-        self.Slow = 32
-        self.Tlow = 32
-        self.Shigh = 32
-        self.Thigh = 32
-        self.SMask = 5
-        self.TMask = 5
-        self.SShift = 0
-        self.TShift = 0
-        self.Sflags = None
-        self.Tflags = None
-
-    def bounds(self):
-        return (self.Slow << 2, self.Tlow << 2, self.Shigh << 2, self.Thigh << 2)
-
-    def load_tile(self, tmem=0, num=0, pal_num=0):
-        return (
-            self.Fmt,
-            self.Siz,
-            "n rows",
-            tmem,
-            "G_TX_LOADTILE",
-            0,
-            self.Tflags,
-            self.TMask,
-            self.TShift,
-            self.Sflags,
-            self.SMask,
-            self.SShift,
-        )
-
-    def render_tile(self, tmem=0, num=0, pal_num=0):
-        return (
-            self.Fmt,
-            self.Siz,
-            "n rows",
-            tmem,
-            num,
-            pal_num,
-            self.Tflags,
-            self.TMask,
-            self.TShift,
-            self.Sflags,
-            self.SMask,
-            self.SShift,
-        )
-
-
-# this will hold texture properties, dataclass props
-# are created in order for me to make comparisons in a set
-@dataclass(init=True, eq=True, unsafe_hash=True)
-class Texture:
-    Timg: tuple
-    Fmt: str
-    Siz: int
-    Width: int = 0
-    Height: int = 0
-    Pal: tuple = None
-
-    def set_img(self):
-        return (self.Fmt, self.Siz, 1, self.Timg)
-
-    def load_img(self):
-        return ("G_TX_LOADTILE", 0, 0, "math", "dxt")
-
-    def size(self):
-        return self.Width, self.Height
-
-
-# This is a data storage class and mat to f3dmat converting class
-# used when importing for kirby
-class Mat:
-    def __init__(self):
-        self.TwoCycle = False
-        self.GeoSet = []
-        self.GeoClear = []
-        self.tiles = [Tile() for a in range(8)]
-        self.tex0 = None
-        self.tex1 = None
-        self.tx_scr = None
-
-    # calc the hash for an f3d mat and see if its equal to this mats hash
-    def math_hash_f3d(self, f3d):
-        # texture,1 cycle combiner, render mode, geo modes, some other blender settings, tile size (very important in kirby64)
-        rdp = f3d.rdp_settings
-        if f3d.tex0.tex:
-            T = f3d.tex0.tex_reference
-        else:
-            T = ""
-        F3Dprops = (
-            T,
-            f3d.combiner1.A,
-            f3d.combiner1.B,
-            f3d.combiner1.C,
-            f3d.combiner1.D,
-            f3d.combiner1.A_alpha,
-            f3d.combiner1.B_alpha,
-            f3d.combiner1.C_alpha,
-            f3d.combiner1.D_alpha,
-            f3d.rdp_settings.render_mode.rendermode_preset_cycle_1,
-            f3d.rdp_settings.render_mode.rendermode_preset_cycle_2,
-            f3d.rdp_settings.g_lighting,
-            f3d.rdp_settings.g_shade,
-            f3d.rdp_settings.g_shade_smooth,
-            f3d.rdp_settings.g_zbuffer,
-            f3d.rdp_settings.g_mdsft_alpha_compare,
-            f3d.rdp_settings.g_mdsft_zsrcsel,
-            f3d.rdp_settings.g_mdsft_alpha_dither,
-            f3d.tex0.S.high,
-            f3d.tex0.T.high,
-            f3d.tex0.S.low,
-            f3d.tex0.T.low,
-        )
-        if hasattr(self, "Combiner"):
-            MyT = ""
-            if hasattr(self.tex0, "Timg"):
-                MyT = str(self.tex0.Timg)
-            else:
-                pass
-
-            def EvalGeo(self, mode):
-                for a in self.GeoSet:
-                    if mode in a.lower():
-                        return True
-                for a in self.GeoClear:
-                    if mode in a.lower():
-                        return False
-                else:
-                    return True
-
-            chkT = lambda x, y, d: x.__dict__.get(y, d)
-            rendermode = getattr(self, "RenderMode", ["G_RM_AA_ZB_OPA_SURF", "G_RM_AA_ZB_OPA_SURF2"])
-            MyProps = (
-                MyT,
-                *self.Combiner[0:8],
-                *rendermode,
-                EvalGeo(self, "g_lighting"),
-                EvalGeo(self, "g_shade"),
-                EvalGeo(self, "g_shade_smooth"),
-                EvalGeo(self, "g_zbuffer"),
-                chkT(self, "g_mdsft_alpha_compare", "G_AC_NONE"),
-                chkT(self, "g_mdsft_zsrcsel", "G_ZS_PIXEL"),
-                chkT(self, "g_mdsft_alpha_dither", "G_AD_NOISE"),
-                self.tiles[0].Shigh,
-                self.tiles[0].Thigh,
-                self.tiles[0].Slow,
-                self.tiles[0].Tlow,
-            )
-            dupe = hash(MyProps) == hash(F3Dprops)
-            return dupe
-        return False
-
-    def mat_hash(self, mat):
-        return False
-
-    def convert_color(self, color):
-        return [int(a) / 255 for a in color]
-
-    def load_texture(self, ForceNewTex, path, tex):
-        png = path / f"bank_{tex.Timg[0]}" / f"{tex.Timg[1]}"
-        png = (*png.glob("*.png"),)
-        if png:
-            i = bpy.data.images.get(str(png[0]))
-            if not i or ForceNewTex:
-                return bpy.data.images.load(filepath=str(png[0]))
-            else:
-                return i
-
-    def apply_PBSDF_mat(self, mat):
-        nt = mat.node_tree
-        nodes = nt.nodes
-        links = nt.links
-        pbsdf = nodes.get("Principled BSDF")
-        tex = nodes.new("ShaderNodeTexImage")
-        links.new(pbsdf.inputs[0], tex.outputs[0])
-        links.new(pbsdf.inputs[19], tex.outputs[1])
-        i = self.load_texture(0, path)
-        if i:
-            tex.image = i
-
-    def apply_mat_settings(self, mat, tex_path):
-        #        if bpy.context.scene.LevelImp.AsObj:
-        #            return self.apply_PBSDF_mat(mat, textures, path, layer)
-
-        f3d = mat.f3d_mat  # This is kure's custom property class for materials
-
-        # set color registers if they exist
-        if hasattr(self, "fog_position"):
-            f3d.set_fog = True
-            f3d.use_global_fog = False
-            f3d.fog_position[0] = eval(self.fog_pos[0])
-            f3d.fog_position[1] = eval(self.fog_pos[1])
-        if hasattr(self, "fog_color"):
-            f3d.set_fog = True
-            f3d.use_global_fog = False
-            f3d.fog_color = self.convert_color(self.fog_color)
-        if hasattr(self, "light_col"):
-            # this is a dict but I'll only use the first color for now
-            f3d.set_lights = True
-            if self.light_col.get(1):
-                f3d.default_light_color = self.convert_color(eval(self.light_col[1]).to_bytes(4, "big"))
-        if hasattr(self, "env_color"):
-            f3d.set_env = True
-            f3d.env_color = self.convert_color(self.env_color[-4:])
-        if hasattr(self, "prim_color"):
-            prim = self.prim_color
-            f3d.set_prim = True
-            f3d.prim_lod_min = int(prim[0])
-            f3d.prim_lod_frac = int(prim[1])
-            f3d.prim_color = self.convert_color(prim[-4:])
-        # I set these but they aren't properly stored because they're reset by fast64 or something
-        # its better to have defaults than random 2 cycles
-        self.set_geo_mode(f3d.rdp_settings, mat)
-
-        if self.TwoCycle:
-            f3d.rdp_settings.g_mdsft_cycletype = "G_CYC_2CYCLE"
-        else:
-            f3d.rdp_settings.g_mdsft_cycletype = "G_CYC_1CYCLE"
-
-        # make combiner custom
-        f3d.presetName = "Custom"
-        self.set_combiner(f3d)
-        # add tex scroll objects
-        if self.tx_scr:
-            scr = self.tx_scr
-            mat_scr = mat.KCS_tx_scroll
-            if hasattr(scr, "textures"):
-                [mat_scr.AddTex(t) for t in scr.textures]
-            if hasattr(scr, "palettes"):
-                [mat_scr.AddPal(t) for t in scr.palettes]
-        # deal with custom render modes
-        if hasattr(self, "RenderMode"):
-            self.set_render_mode(f3d)
-        # g texture handle
-        if hasattr(self, "set_tex"):
-            # not exactly the same but gets the point across maybe?
-            f3d.tex0.tex_set = self.set_tex
-            f3d.tex1.tex_set = self.set_tex
-            # tex scale gets set to 0 when textures are disabled which is automatically done
-            # often to save processing power between mats or something, or just adhoc bhv
-            if f3d.rdp_settings.g_tex_gen or any([a < 1 and a > 0 for a in self.tex_scale]):
-                f3d.scale_autoprop = False
-                f3d.tex_scale = self.tex_scale
-                print(self.tex_scale)
-            if not self.set_tex:
-                # Update node values
-                override = bpy.context.copy()
-                override["material"] = mat
-                bpy.ops.material.update_f3d_nodes(override)
-                del override
-                return
-        # texture 0 then texture 1
-        if self.tex0:
-            i = self.load_texture(0, tex_path, self.tex0)
-            tex0 = f3d.tex0
-            tex0.tex_reference = str(self.tex0.Timg)  # setting prop for hash purposes
-            tex0.tex_set = True
-            tex0.tex = i
-            tex0.tex_format = self.eval_tile_fmt(self.tiles[0])
-            tex0.autoprop = False
-            Sflags = self.eval_tile_flags(self.tiles[0].Sflags)
-            for f in Sflags:
-                setattr(tex0.S, f, True)
-            Tflags = self.eval_tile_flags(self.tiles[0].Tflags)
-            for f in Sflags:
-                setattr(tex0.T, f, True)
-            tex0.S.low = self.tiles[0].Slow
-            tex0.T.low = self.tiles[0].Tlow
-            tex0.S.high = self.tiles[0].Shigh
-            tex0.T.high = self.tiles[0].Thigh
-
-            tex0.S.mask = self.tiles[0].SMask
-            tex0.T.mask = self.tiles[0].TMask
-        if self.tex1:
-            i = self.load_texture(0, tex_path, self.tex1)
-            tex1 = f3d.tex1
-            tex1.tex_reference = str(self.tex1.Timg)  # setting prop for hash purposes
-            tex1.tex_set = True
-            tex1.tex = i
-            tex1.tex_format = self.eval_tile_fmt(self.tiles[1])
-            Sflags = self.eval_tile_flags(self.tiles[1].Sflags)
-            for f in Sflags:
-                setattr(tex1.S, f, True)
-            Tflags = self.eval_tile_flags(self.tiles[1].Tflags)
-            for f in Sflags:
-                setattr(tex1.T, f, True)
-            tex1.S.low = self.tiles[1].Slow
-            tex1.T.low = self.tiles[1].Tlow
-            tex1.S.high = self.tiles[1].Shigh
-            tex1.T.high = self.tiles[1].Thigh
-
-            tex1.S.mask = self.tiles[0].SMask
-            tex1.T.mask = self.tiles[0].TMask
-        # Update node values
-        override = bpy.context.copy()
-        override["material"] = mat
-        bpy.ops.material.update_f3d_nodes(override)
-        del override
-
-    def eval_tile_flags(self, flags):
-        if not flags:
-            return []
-        GBIflags = {
-            "G_TX_NOMIRROR": None,
-            "G_TX_WRAP": None,
-            "G_TX_MIRROR": ("mirror"),
-            "G_TX_CLAMP": ("clamp"),
-            "0": None,
-            "1": ("mirror"),
-            "2": ("clamp"),
-            "3": ("clamp", "mirror"),
-        }
-        x = []
-        fsplit = flags.split("|")
-        for f in fsplit:
-            z = GBIflags.get(f.strip(), 0)
-            if z:
-                x.append(z)
-        return x
-
-    # only work with macros I can recognize for now
-    def set_render_mode(self, f3d):
-        rdp = f3d.rdp_settings
-        rdp.set_rendermode = True
-        # if the enum isn't there, then just print an error for now
-        try:
-            rdp.rendermode_preset_cycle_1 = self.RenderMode[0]
-            rdp.rendermode_preset_cycle_2 = self.RenderMode[1]
-            # print(f"set render modes with render mode {self.RenderMode}")
-        except:
-            print(f"could not set render modes with render mode {self.RenderMode}")
-
-    def set_geo_mode(self, rdp, mat):
-        # texture gen has a different name than gbi
-        for a in self.GeoSet:
-            setattr(rdp, a.replace("G_TEXTURE_GEN", "G_TEX_GEN").lower().strip(), True)
-        for a in self.GeoClear:
-            setattr(rdp, a.replace("G_TEXTURE_GEN", "G_TEX_GEN").lower().strip(), False)
-
-    # Very lazy for now
-    def set_combiner(self, f3d):
-        if not hasattr(self, "Combiner"):
-            f3d.combiner1.A = "TEXEL0"
-            f3d.combiner1.A_alpha = "0"
-            f3d.combiner1.C = "SHADE"
-            f3d.combiner1.C_alpha = "0"
-            f3d.combiner1.D = "0"
-            f3d.combiner1.D_alpha = "1"
-        else:
-            f3d.combiner1.A = self.Combiner[0]
-            f3d.combiner1.B = self.Combiner[1]
-            f3d.combiner1.C = self.Combiner[2]
-            f3d.combiner1.D = self.Combiner[3]
-            f3d.combiner1.A_alpha = self.Combiner[4]
-            f3d.combiner1.B_alpha = self.Combiner[5]
-            f3d.combiner1.C_alpha = self.Combiner[6]
-            f3d.combiner1.D_alpha = self.Combiner[7]
-            f3d.combiner2.A = self.Combiner[8]
-            f3d.combiner2.B = self.Combiner[9]
-            f3d.combiner2.C = self.Combiner[10]
-            f3d.combiner2.D = self.Combiner[11]
-            f3d.combiner2.A_alpha = self.Combiner[12]
-            f3d.combiner2.B_alpha = self.Combiner[13]
-            f3d.combiner2.C_alpha = self.Combiner[14]
-            f3d.combiner2.D_alpha = self.Combiner[15]
-
-    def eval_tile_fmt(self, tex):
-        GBIfmts = {
-            "G_IM_FMT_RGBA": "RGBA",
-            "RGBA": "RGBA",
-            "G_IM_FMT_CI": "CI",
-            "CI": "CI",
-            "G_IM_FMT_IA": "IA",
-            "IA": "IA",
-            "G_IM_FMT_I": "I",
-            "I": "I",
-            "0": "RGBA",
-            "2": "CI",
-            "3": "IA",
-            "4": "I",
-        }
-        GBIsiz = {
-            "G_IM_SIZ_4b": "4",
-            "G_IM_SIZ_8b": "8",
-            "G_IM_SIZ_16b": "16",
-            "G_IM_SIZ_32b": "32",
-            "0": "4",
-            "1": "8",
-            "2": "16",
-            "3": "32",
-        }
-        return GBIfmts.get(tex.Fmt, "RGBA") + GBIsiz.get(str(tex.Siz), "16")
-
-
-# handles DL import processing, specifically built to process each cmd into the mat class
-# should be inherited into a larger F3d class which wraps DL processing
-# does not deal with flow control or gathering the data containers (VB, Geo cls etc.)
-class DL:
-    # the min needed for this class to work for importing
-    def __init__(self, lastmat=None):
-        self.VB = {}
-        self.Gfx = {}
-        self.diff = {}
-        self.amb = {}
-        self.Lights = {}
-        if not lastmat:
-            self.LastMat = Mat()
-            self.LastMat.name = 0
-        else:
-            self.LastMat = lastmat
-
-    # DL cmds that control the flow of a DL cannot be handled within a independent	#class method without larger context of the total DL
-    # def gsSPEndDisplayList():
-    # return
-    # def gsSPBranchList():
-    # break
-    # def gsSPDisplayList():
-    # continue
-    # Vertices are one big list for kirby64, all buffers are combined in pre process
-    def gsSPVertex(self, args, Geo):
-        # fill virtual buffer
-        args = [int(a) for a in args]
-        addr = Geo.seg2phys(args[0]) - 32
-        start = int(addr // 16)
-        for i in range(args[2], args[2] + args[1], 1):
-            self.VertBuff[i] = len(self.Verts) + i - args[2]
-        # verts are pre processed
-        self.Verts.extend(Geo.vertices.Pos[start : start + args[1]])
-        self.UVs.extend(Geo.vertices.UVs[start : start + args[1]])
-        self.VCs.extend(Geo.vertices.VCs[start : start + args[1]])
-
-    # Triangles
-    def gsSP2Triangles(self, args, Geo):
-        self.make_new_mat()
-        args = [int(a) for a in args]
-        Tri1 = self.parse_tri(args[:3])
-        Tri2 = self.parse_tri(args[4:7])
-        self.Tris.append(Tri1)
-        self.Tris.append(Tri2)
-
-    def gsSP1Triangle(self, args, Geo):
-        self.make_new_mat()
-        args = [int(a) for a in args]
-        Tri = self.parse_tri(args[:3])
-        self.Tris.append(Tri)
-
-    # materials
-    # Mats will be placed sequentially. The first item of the list is the triangle number
-    # The second is the material class
-    def gsDPset_render_mode(self, args, Geo):
-        self.NewMat = 1
-        self.LastMat.RenderMode = [a.strip() for a in args]
-
-    def gsDPSetFogColor(self, args, Geo):
-        self.NewMat = 1
-        self.LastMat.fog_color = args
-
-    def gsSPFogPosition(self, args, Geo):
-        self.NewMat = 1
-        self.LastMat.fog_pos = args
-
-    def gsSPLightColor(self, args, Geo):
-        self.NewMat = 1
-        if not hasattr(self.LastMat, "light_col"):
-            self.LastMat.light_col = {}
-        num = re.search("_\d", args[0]).group()[1]
-        self.LastMat.light_col[num] = args[-1]
-
-    def gsDPSetPrimColor(self, args, Geo):
-        self.NewMat = 1
-        self.LastMat.prim_color = args
-
-    def gsDPSetEnvColor(self, args, Geo):
-        self.NewMat = 1
-        self.LastMat.env_color = args
-
-    # multiple geo modes can happen in a row that contradict each other
-    # this is mostly due to culling wanting diff geo modes than drawing
-    # but sometimes using the same vertices
-    def gsSPClearGeometryMode(self, args, Geo):
-        self.NewMat = 1
-        args = [a.strip() for a in args[0].split("|")]
-        for a in args:
-            if a in self.LastMat.GeoSet:
-                self.LastMat.GeoSet.remove(a)
-        self.LastMat.GeoClear.extend(args)
-
-    def gsSPSetGeometryMode(self, args, Geo):
-        self.NewMat = 1
-        args = [a.strip() for a in args[0].split("|")]
-        for a in args:
-            if a in self.LastMat.GeoClear:
-                self.LastMat.GeoClear.remove(a)
-        self.LastMat.GeoSet.extend(args)
-
-    def gsSPGeometryMode(self, args, Geo):
-        self.NewMat = 1
-        argsC = [a.strip() for a in args[0].split("|")]
-        argsS = [a.strip() for a in args[1].split("|")]
-        for a in argsC:
-            if a in self.LastMat.GeoSet:
-                self.LastMat.GeoSet.remove(a)
-        for a in argsS:
-            if a in self.LastMat.GeoClear:
-                self.LastMat.GeoClear.remove(a)
-        self.LastMat.GeoClear.extend(argsC)
-        self.LastMat.GeoSet.extend(argsS)
-
-    def gsDPSetCycleType(self, args, Geo):
-        if "G_CYC_1CYCLE" in args[0]:
-            self.LastMat.TwoCycle = False
-        if "G_CYC_2CYCLE" in args[0]:
-            self.LastMat.TwoCycle = True
-
-    def gsDPSetCombineMode(self, args, Geo):
-        self.NewMat = 1
-        self.LastMat.Combiner = args
-
-    def gsDPSetCombineLERP(self, args, Geo):
-        self.NewMat = 1
-        self.LastMat.Combiner = [a.strip() for a in args]
-
-    # root tile, scale and set tex
-    def gsSPTexture(self, args, Geo):
-        self.NewMat = 1
-        self.LastMat.set_tex = int(args[-1].strip()) == 2
-        self.LastMat.tex_scale = [
-            ((0x10000 * (int(a) < 0)) + int(a)) / 0xFFFF for a in args[0:2]
-        ]  # signed half to unsigned half
-        self.LastMat.tile_root = int(args[-2])  # I don't think I'll actually use this
-
-    # last tex is a palette
-    def gsDPLoadTLUT(self, args, Geo):
-        try:
-            tex = self.LastMat.loadtex
-            self.LastMat.pal = tex
-        except:
-            print(
-                "**--Load block before set t img, DL is partial and missing context"
-                "likely static file meant to be used as a piece of a realtime system.\n"
-                "No interpretation on file possible**--"
-            )
-            return None
-
-    # tells us what tile the last loaded mat goes into
-    def gsDPLoadBlock(self, args, Geo):
-        try:
-            tex = self.LastMat.loadtex
-            # these values can be used to calc texture size
-            tex.dxt = eval(args[4])
-            tex.texels = eval(args[3])
-            tile = self.eval_tile_index(args[0])
-            tex.tile = tile
-            if tile == 7:
-                self.LastMat.tex0 = tex
-            elif tile == 6:
-                self.LastMat.tex1 = tex
-        except:
-            print(
-                "**--Load block before set t img, DL is partial and missing context"
-                "likely static file meant to be used as a piece of a realtime system.\n"
-                "No interpretation on file possible**--"
-            )
-            return None
-
-    def gsDPSetTextureImage(self, args, Geo):
-        self.NewMat = 1
-        Timg = (eval(args[3].strip()) >> 16, eval(args[3].strip()) & 0xFFFF)
-        Fmt = args[1].strip()
-        Siz = args[2].strip()
-        loadtex = Texture(Timg, Fmt, Siz)
-        self.LastMat.loadtex = loadtex
-
-    # catch tile size
-    def gsDPSetTileSize(self, args, Geo):
-        self.NewMat = 1
-        tile = self.LastMat.tiles[self.eval_tile_index(args[0])]
-        tile.Slow = self.eval_tile_im_frac(args[1].strip())
-        tile.Tlow = self.eval_tile_im_frac(args[2].strip())
-        tile.Shigh = self.eval_tile_im_frac(args[3].strip())
-        tile.Thigh = self.eval_tile_im_frac(args[4].strip())
-
-    def gsDPSetTile(self, args, Geo):
-        self.NewMat = 1
-        tile = self.LastMat.tiles[self.eval_tile_index(args[4])]
-        tile.Fmt = args[0].strip()
-        tile.Siz = args[1].strip()
-        tile.Tflags = args[6].strip()
-        tile.TMask = int(args[7].strip())
-        tile.TShift = int(args[8].strip())
-        tile.Sflags = args[9].strip()
-        tile.SMask = int(args[10].strip())
-        tile.SShift = int(args[11].strip())
-
-    def make_new_mat(self):
-        if self.NewMat:
-            self.NewMat = 0
-            self.Mats.append([len(self.Tris) - 1, self.LastMat])
-            self.LastMat = deepcopy(self.LastMat)  # for safety
-            self.LastMat.name = self.num + 1
-            if self.LastMat.tx_scr:
-                # I'm clearing here because I did some illegal stuff a bit before, temporary (maybe)
-                self.LastMat.tx_scr = None
-            self.num += 1
-
-    def parse_tri(self, Tri):
-        return [self.VertBuff[a] for a in Tri]
-
-    def eval_tile_im_frac(self, arg):
-        if type(arg) == int:
-            return arg
-        arg2 = arg.replace("G_TEXTURE_IMAGE_FRAC", "2")
-        return eval(arg2)
-
-    def eval_tile_index(self, arg):
-        # only 0 and 7 have enums, other stuff just uses int (afaik)
-        Tiles = {
-            "G_TX_LOADTILE": 7,
-            "G_TX_RENDERTILE": 0,
-        }
-        t = Tiles.get(arg)
-        if t == None:
-            t = int(arg)
-        return t
-
-
 # used to parse imports with specific kirby information, works on entire layouts
-class F3d(DL):
+class KCS_F3d(DL):
     def __init__(self, lastmat=None):
         super().__init__()
         self.num = self.LastMat.name  # for debug
@@ -851,10 +220,30 @@ class F3d(DL):
                     scr_num = (eval(args[0]) & 0xFFFF) // 8
                     self.insert_scroll_dyn_dl(Geo, layout, scr_num)
                 continue
+            # Vertices are one big list for kirby64, all buffers are combined in pre process
+            if LsW("gsSPVertex"):
+                # fill virtual buffer
+                args = [int(a) for a in args]
+                addr = Geo.seg2phys(args[0]) - 32
+                start = int(addr // 16)
+                for i in range(args[2], args[2] + args[1], 1):
+                    self.VertBuff[i] = len(self.Verts) + i - args[2]
+                # verts are pre processed
+                self.Verts.extend(Geo.vertices.Pos[start : start + args[1]])
+                self.UVs.extend(Geo.vertices.UVs[start : start + args[1]])
+                self.VCs.extend(Geo.vertices.VCs[start : start + args[1]])
             # tri and mat DL cmds will be called via parent class
             func = getattr(self, cmd, None)
             if func:
-                func(args, Geo)
+                func(args)
+
+    def gsDPSetTextureImage(self, args):
+        self.NewMat = 1
+        Timg = (eval(args[3].strip()) >> 16, eval(args[3].strip()) & 0xFFFF)
+        Fmt = args[1].strip()
+        Siz = args[2].strip()
+        loadtex = Texture(Timg, Fmt, Siz)
+        self.LastMat.loadtex = loadtex
 
     def eval_combiner(self, arg):
         # two args
@@ -1063,7 +452,7 @@ class F3d(DL):
 
 
 @dataclass
-class layout(BinProcess, BinWrite):
+class Layout(BinProcess, BinWrite):
     flag: int
     depth: int
     ptr: int
@@ -1091,13 +480,13 @@ class layout(BinProcess, BinWrite):
 
     def to_c(self):
         CData = KCS_Cdata()
-        self.write_dict_struct(self, Layout, CData, "Layout", f"Geo_LY_{self.index}")
+        self.write_dict_struct(self, layout_struct, CData, "Layout", f"Geo_LY_{self.index}")
         return CData
 
 
 # fake storage class that mirrors methods of layout
 @dataclass
-class faux_LY:
+class FauxLayout:
     ptr: int
     index: int = 0
 
@@ -1109,7 +498,7 @@ class faux_LY:
 
 
 # takes binary input and makes geo block data
-class geo_bin(BinProcess):
+class GeoBinary(BinProcess):
     _Vec3 = namedtuple("Vec3", "x y z")
     _texture = namedtuple("texture", "fmt siz bank_index")
 
@@ -1152,7 +541,7 @@ class geo_bin(BinProcess):
 
     # no layout, just a single DL
     def decode_layout_13(self):
-        L = faux_LY(self.seg2phys(self.main_header[0]))
+        L = FauxLayout(self.seg2phys(self.main_header[0]))
         L.eval_dl_segptrs = [L.ptr]
         self.layouts = [L]
         self.decode_f3d_bin(L)
@@ -1161,7 +550,7 @@ class geo_bin(BinProcess):
 
     # no layouts, just an entry point
     def decode_layout_14(self):
-        L = faux_LY(self.seg2phys(self.main_header[0]))
+        L = FauxLayout(self.seg2phys(self.main_header[0]))
         self.decode_entry(L)
         self.layouts = [L]
         self.decode_f3d_bin(L)
@@ -1228,7 +617,7 @@ class geo_bin(BinProcess):
         start = self.seg2phys(start)
         LY = self.upt(start, ">2HL9f", 0x2C)
         v = self._Vec3._make
-        return layout(*LY[0:3], v(LY[3:6]), v(LY[6:9]), v(LY[9:12]), index=index)
+        return Layout(*LY[0:3], v(LY[3:6]), v(LY[6:9]), v(LY[9:12]), index=index)
 
     # has to be after func declarations
     _render_mode_map = {
@@ -1240,7 +629,7 @@ class geo_bin(BinProcess):
         0x1C: decode_layout_1C,
     }
 
-    def decode_dl_pair(self, ly: layout):
+    def decode_dl_pair(self, ly: Layout):
         ly.eval_dl_segptrs = []  # just a literal list of ptrs
         ptrs = self.upt(self.seg2phys(ly.ptr), ">2L", 8)
         for ptr in ptrs:
@@ -1248,7 +637,7 @@ class geo_bin(BinProcess):
                 ly.eval_dl_segptrs.append(ptr)
         ly.DL_Pair = ptrs
 
-    def decode_entry_dbl(self, ly: layout):
+    def decode_entry_dbl(self, ly: Layout):
         x = 0
         start = self.seg2phys(ly.ptr)
         ly.entry_dbls = []
@@ -1265,10 +654,10 @@ class geo_bin(BinProcess):
             x += 12
             # shouldn't execute
             if x > 120:
-                print("your while loop is broken in geo_bin.decode_entry")
+                print("your while loop is broken in GeoBinary.decode_entry")
                 break
 
-    def decode_entry(self, ly: layout):
+    def decode_entry(self, ly: Layout):
         x = 0
         start = self.seg2phys(ly.ptr)
         ly.entry_pts = []  # the actual entry pt raw data
@@ -1285,24 +674,24 @@ class geo_bin(BinProcess):
             x += 8
             # shouldn't execute
             if x > 80:
-                print("your while loop is broken in geo_bin.decode_entry")
+                print("your while loop is broken in GeoBinary.decode_entry")
                 break
 
     # gonna use a module for this
-    def decode_f3d_bin(self, layout):
+    def decode_f3d_bin(self, ly: Layout):
         DLs = {}
         self.vertices = []
         starts = []
-        layout.entry = layout.eval_dl_segptrs[
+        ly.entry = ly.eval_dl_segptrs[
             :
         ]  # create shallow copy, use this for analyzing DL, while DL ptrs will be a dict including jumped to DLs
-        for dl in layout.eval_dl_segptrs:
+        for dl in ly.eval_dl_segptrs:
             start = self.seg2phys(dl)
             starts.append(start)
-            f3d = self.decode_dl_bin(start, layout)
+            f3d = self.decode_dl_bin(start, ly)
             self.DLs[dl] = f3d
             DLs[dl] = f3d
-        layout.DLs = DLs
+        ly.DLs = DLs
         return starts
 
     def eval_dl_segptr(self, num):
@@ -1311,7 +700,7 @@ class geo_bin(BinProcess):
         else:
             return num
 
-    def decode_dl_bin(self, start, layout):
+    def decode_dl_bin(self, start, ly: Layout):
         DL = []
         x = 0
         while True:
@@ -1325,20 +714,20 @@ class geo_bin(BinProcess):
             elif name == "gsSPDisplayList":
                 ptr = self.eval_dl_segptr(int(args[0]))
                 if ptr:
-                    layout.eval_dl_segptrs.append(ptr)
+                    ly.eval_dl_segptrs.append(ptr)
                 DL.append((name, args))
                 continue
             # this LoD info will probably just stay destroyed for now
             elif name == "gsSPBranchLessZ":
                 ptr = self.eval_dl_segptr(int(args[0]))
                 if ptr:
-                    layout.eval_dl_segptrs.append(ptr)
+                    ly.eval_dl_segptrs.append(ptr)
                 DL.append((name, args))
                 continue
             elif name == "gsSPBranchList":
                 ptr = self.eval_dl_segptr(int(args[0]))
                 if ptr:
-                    layout.eval_dl_segptrs.append(ptr)
+                    ly.eval_dl_segptrs.append(ptr)
                 DL.append((name, args))
                 break
             DL.append((name, args))
@@ -1362,7 +751,7 @@ class geo_bin(BinProcess):
 
 
 # interim between bpy props and geo blocks, used for importing and exporting
-class bpy_geo:
+class BpyGeo:
     def __init__(self, rt, scale):
         self.rt = rt
         self.scale = scale
@@ -1383,7 +772,7 @@ class bpy_geo:
                 if prev:
                     mesh, self.LastMat = prev
                 else:
-                    ModelDat = F3d(lastmat=self.LastMat)
+                    ModelDat = KCS_F3d(lastmat=self.LastMat)
                     (layout.vertices, layout.Triangles) = ModelDat.get_data_from_dl(cls, layout)
                     self.LastMat = ModelDat.LastMat
                     mesh = bpy.data.meshes.new(f"{name} {layout.depth&0xFF} {i}")
@@ -1415,7 +804,7 @@ class bpy_geo:
             # now that obj is created, parent and add transforms to it
             if (layout.depth & 0xFF) < len(stack) - 1:
                 stack = stack[: (layout.depth & 0xFF) + 1]
-            Parent(stack[-1], obj, 0)
+            parentObject(stack[-1], obj, 0)
             if (layout.depth & 0xFF) + 1 > len(stack) - 1:
                 stack.append(obj)
             loc = layout.translation
@@ -1447,7 +836,7 @@ class bpy_geo:
         # add the root as a layout, though if there are no children, set the render mode to 14
         if not fModel.layouts:
             fModel.render_mode = 0x14  # list of DLs (entry point)
-            fModel.layouts.append(faux_LY(self.export_f3d_from_obj(fModel.tempObj, fModel, Matrix.Identity)))
+            fModel.layouts.append(FauxLayout(self.export_f3d_from_obj(fModel.tempObj, fModel, Matrix.Identity)))
         else:
             fModel.render_mode = 0x17  # list of layouts
             fModel.layouts.insert(0, self.create_layout(fModel.tempObj, 0, fModel))
@@ -1469,7 +858,7 @@ class bpy_geo:
         finalTransform = Matrix.Diagonal(
             Vector((self.scale, self.scale, self.scale))
         ).to_4x4()  # just use the blender scale, other obj transforms can be
-        ly = layout(
+        ly = Layout(
             0,
             depth,
             self.export_f3d_from_obj(obj, fModel, finalTransform),
@@ -1491,7 +880,7 @@ class bpy_geo:
                 )
             except Exception as e:
                 self.cleanup_fModel(fModel)
-                raise Exception(str(e))
+                raise PluginError(str(e))
             return list(fMeshes.values())
         else:
             return 0
@@ -1534,7 +923,7 @@ class EntryPoint(BinWrite):
 
     def to_c(self):
         CData = KCS_Cdata()
-        self.write_arr(CData, f"EntryPoint_{self.index}", self.targets, self.format_arr)
+        self.write_arr(CData, "struct EntryPoint", f"EntryPoint_{self.index}", self.targets, self.format_arr)
         # add pointers
         self.ptr_obj(self, CData, f"&EntryPoint_{self.index}")
         return CData
@@ -1558,13 +947,14 @@ class KCS_GFXList(GfxList, BinWrite):
 
 
 # a data class that will hold various primitive geo classes and then write them out to files
-# population of the classes will be done by bpy_geo or geo_bin
+# population of the classes will be done by BpyGeo or GeoBinary
 class KCS_fModel(FModel, BinWrite):
     def __init__(self, rt: bpy.types.Object, name="Kirby"):
         super().__init__("F3DEX2/LX2", False, name, DLFormat.Static, GfxMatWriteMethod.WriteAll, inline=True)
         self.rt = rt
         self.gfxFormatter = GfxFormatter(None, 2)
         self.ptrManager = PointerManager()
+        self.img_refs = []
 
     # overrides of base class
     def addMesh(self, name, namePrefix, drawLayer, isSkinned, contextObj):
@@ -1586,7 +976,7 @@ class KCS_fModel(FModel, BinWrite):
                 self.add_target(self.layouts[0]),  # *layout[]
                 0,  # *tex_scroll[]
                 self.render_mode,
-                0,  # *img_refs[]
+                self.add_target(self.img_refs),  # *img_refs[]
                 0,  # *vtx_refs[]
                 0,  # Num_Anims
                 0,  # *Anims[]
@@ -1603,7 +993,7 @@ class KCS_fModel(FModel, BinWrite):
     def save_binary(self, file: BinaryIO):
         print(file)
 
-    def to_c(self, file: TextIO):
+    def to_c(self):
         structData = KCS_Cdata()
         vertexData = KCS_Cdata()
         graphicsData = KCS_Cdata()
@@ -1611,7 +1001,6 @@ class KCS_fModel(FModel, BinWrite):
         entryPointData = KCS_Cdata()
         # img ref data is inside each individual fMesh
         imgRefData = KCS_Cdata()
-        imgRefs = []
         for ly in self.layouts:
             if ly.ptr:
                 entryPoint = ly.entry
@@ -1619,20 +1008,20 @@ class KCS_fModel(FModel, BinWrite):
                     GfxDat, VtxDat = fMesh.to_c(self.f3d, self.gfxFormatter)
                     graphicsData.append(GfxDat)
                     vertexData.append(VtxDat)
-                    imgRefs.extend(fMesh.img_refs)
+                    self.img_refs.extend(fMesh.img_refs)
 
                 entryPointData.append(entryPoint.to_c())
             layoutData.append(ly.to_c())
-        self.write_dict_struct(self.main_header, Geo_Header, structData, "", "Geo_Header Header")
-        self.write_arr(imgRefData, f"void *img_refs", imgRefs, self.format_arr)
+        structData.source += geo_block_includes
+        self.write_dict_struct(self.main_header, geo_block_header_struct, structData, "GeoBlockHeader", "Geo_Header Header")
+        self.write_arr(imgRefData, "Gfx *", f"img_refs", self.img_refs, self.format_arr)
         # combine cDatas into one
         cData = (vertexData, graphicsData, imgRefData, entryPointData, layoutData)
         for data in cData:
             structData.append(data)
         # replace plcaeholder pointers in file with real symbols
         self.resolve_ptrs_c(structData)
-        # write all out to file
-        file.write(structData.source)
+        return structData
 
 
 # subclassed to manage pointers when writing, and for dynamic DLs with scrolls
@@ -1681,26 +1070,27 @@ class KCS_fMaterial(FMaterial):
 @time_func
 def export_geo_bin(name: str, obj: bpy.types.Object, context: bpy.types.Context):
     scale = context.scene.KCS_scene.Scale
-    blend_geo = bpy_geo(obj, scale)
+    blend_geo = BpyGeo(obj, scale)
     # create writer class using blender data, with layouts that have fMesh data
     fModel = blend_geo.init_fModel_from_bpy()
     blend_geo.cleanup_fModel(fModel)  # processing of bpy data is done
     fModel.process_layouts()
-    with open(name, "w") as file:
+    with open(f"{name}.bin", "w") as file:
         fModel.save_binary(file)
-        fModel.to_c(file)
-
 
 @time_func
 def export_geo_c(name: str, obj: bpy.types.Object, context: bpy.types.Context):
     scale = context.scene.KCS_scene.Scale
-    blend_geo = bpy_geo(obj, scale)
+    blend_geo = BpyGeo(obj, scale)
     # create writer class using blender data, with layouts that have fMesh data
     fModel = blend_geo.init_fModel_from_bpy()
     blend_geo.cleanup_fModel(fModel)  # processing of bpy data is done
     fModel.process_layouts()
-    with open(name, "w") as file:
-        fModel.to_c(file)
+    cData = fModel.to_c()
+    with open(f"{name}.c", "w") as file:
+        file.write(cData.source)
+    with open(f"{name}.h", "w") as file:
+        file.write(cData.header)
 
 
 # ------------------------------------------------------------------------
@@ -1715,6 +1105,6 @@ def import_geo_bin(bin_file: BinaryIO, context: bpy.types.Context, name: str, pa
     collection = context.scene.collection
     rt = make_empty(name, "PLAIN_AXES", collection)
     rt.KCS_obj.KCS_obj_type = "Graphics"
-    Geo_Block = geo_bin(Geo.read(), context.scene.KCS_scene.Scale)
-    write = bpy_geo(rt, context.scene.KCS_scene.Scale)
+    Geo_Block = GeoBinary(Geo.read(), context.scene.KCS_scene.Scale)
+    write = BpyGeo(rt, context.scene.KCS_scene.Scale)
     write.write_bpy_gfx_from_geo("geo", Geo_Block, path, collection)

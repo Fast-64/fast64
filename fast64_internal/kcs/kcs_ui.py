@@ -31,12 +31,12 @@ class KCS_PROP_PT_Panel(Panel):
     bl_context = "objectmode"
 
     @classmethod
-    def poll(self, context):
+    def poll(self, context: bpy.types.Context):
         if GameCheck(context):
             return None
         return context.scene is not None
 
-    def draw(self, context):
+    def draw(self, context: bpy.types.Context):
         layout = self.layout
         KCS_scene = context.scene.KCS_scene
         layout.prop(KCS_scene, "Scale")
@@ -59,12 +59,12 @@ class KCS_IO_PT_Panel(Panel):
     bl_context = "objectmode"
 
     @classmethod
-    def poll(self, context):
+    def poll(self, context: bpy.types.Context):
         if GameCheck(context):
             return None
         return context.scene is not None
 
-    def draw(self, context):
+    def draw(self, context: bpy.types.Context):
         layout = self.layout
         scene = context.scene
         KCS_scene = scene.KCS_scene
@@ -95,12 +95,12 @@ class SCROLL_PT_Panel(Panel):
     bl_options = {"HIDE_HEADER"}
 
     @classmethod
-    def poll(self, context):
+    def poll(self, context: bpy.types.Context):
         if context.object.type != "MESH" or GameCheck(context):
             return None
         return context.material is not None
 
-    def draw(self, context):
+    def draw(self, context: bpy.types.Context):
         KCSmesh = context.object.KCS_mesh
         if KCSmesh.MeshType == "Graphics":
             layout = self.layout
@@ -128,12 +128,12 @@ class COL_PT_Panel(Panel):
     bl_options = {"HIDE_HEADER"}
 
     @classmethod
-    def poll(self, context):
+    def poll(self, context: bpy.types.Context):
         if context.object.type != "MESH" or GameCheck(context):
             return None
         return context.material is not None
 
-    def draw(self, context):
+    def draw(self, context: bpy.types.Context):
         KCSmesh = context.object.KCS_mesh
         if KCSmesh.MeshType == "Collision":
             layout = self.layout
@@ -159,12 +159,12 @@ class NODE_PT_Panel(Panel):
     bl_options = {"HIDE_HEADER"}
 
     @classmethod
-    def poll(self, context):
+    def poll(self, context: bpy.types.Context):
         if context.object.type != "CURVE" or GameCheck(context):
             return None
         return context.object.data is not None
 
-    def draw(self, context):
+    def draw(self, context: bpy.types.Context):
         layout = self.layout
         obj = context.object.data
         nodeprop = obj.KCS_node
@@ -213,12 +213,12 @@ class CAM_PT_Panel(Panel):
     bl_options = {"HIDE_HEADER"}
 
     @classmethod
-    def poll(self, context):
+    def poll(self, context: bpy.types.Context):
         if context.object.type != "CAMERA" or GameCheck(context):
             return None
         return context.object.data is not None
 
-    def draw(self, context):
+    def draw(self, context: bpy.types.Context):
         layout = self.layout
         obj = context.object.data
         camprop = obj.KCS_cam
@@ -262,12 +262,12 @@ class OBJ_PT_Panel(Panel):
     bl_options = {"HIDE_HEADER"}
 
     @classmethod
-    def poll(self, context):
+    def poll(self, context: bpy.types.Context):
         if context.object.type != "EMPTY" or GameCheck(context):
             return None
         return context.object is not None
 
-    def draw(self, context):
+    def draw(self, context: bpy.types.Context):
         layout = self.layout
         obj = context.object
         objprop = obj.KCS_obj
@@ -305,12 +305,12 @@ class MESH_PT_Panel(Panel):
     bl_options = {"HIDE_HEADER"}
 
     @classmethod
-    def poll(self, context):
+    def poll(self, context: bpy.types.Context):
         if context.object.type != "MESH" or GameCheck(context):
             return None
         return context.object is not None
 
-    def draw(self, context):
+    def draw(self, context: bpy.types.Context):
         layout = self.layout
         obj = context.object
         meshprop = obj.KCS_mesh
@@ -330,7 +330,7 @@ class MESH_PT_Panel(Panel):
 # ------------------------------------------------------------------------
 
 
-def draw_Ent_empty(box, context):
+def draw_Ent_empty(box: bpy.types.UILayout, context: bpy.types.Context):
     obj = context.object
     entprop = obj.KCS_ent
     box.separator()
@@ -351,7 +351,7 @@ def draw_Ent_empty(box, context):
     row.prop(entprop, "Eep")
 
 
-def draw_Lvl_empty(box, context):
+def draw_Lvl_empty(box: bpy.types.UILayout, context: bpy.types.Context):
     obj = context.object
     lvlprop = obj.KCS_lvl
     box.separator()
@@ -361,7 +361,7 @@ def draw_Lvl_empty(box, context):
     box.prop(lvlprop, "Music_ID")
 
 
-def draw_Gfx_empty(box, context):
+def draw_Gfx_empty(box: bpy.types.UILayout, context: bpy.types.Context):
     box = box.box()
     box.label(text="KCS Level Gfx Container")
     box.label(text="Make this object the child of the level empty.")
@@ -369,7 +369,7 @@ def draw_Gfx_empty(box, context):
     box.operator("kcs.add_kcsblock")
 
 
-def draw_Col_empty(box, context):
+def draw_Col_empty(box: bpy.types.UILayout, context: bpy.types.Context):
     box = box.box()
     box.label(text="KCS Level Col Container")
     box.label(text="Make this object the child of the level empty.")
@@ -377,7 +377,7 @@ def draw_Col_empty(box, context):
     box.operator("kcs.add_kcsnode")
 
 
-def draw_Col(box, context):
+def draw_Col(box: bpy.types.UILayout, context: bpy.types.Context):
     obj = context.object
     colprop = obj.KCS_mesh
     box.separator()
@@ -396,7 +396,7 @@ def draw_Col(box, context):
         box.label(text="Must use only one material with collision type breakable.")
 
 
-def draw_Gfx(box, context):
+def draw_Gfx(box: bpy.types.UILayout, context: bpy.types.Context):
     box = box.box()
     box.label(text="KCS Gfx Mesh")
     box.label(text="Make mesh a child of level graphics empty, or child of another gfx mesh.")
@@ -405,7 +405,7 @@ def draw_Gfx(box, context):
 
 # check the proper game enum is selected
 # return True (aka exit) when not KCS
-def GameCheck(context):
+def GameCheck(context: bpy.types.Context):
     if context.scene.gameEditorMode != "KCS":
         return True
     return None

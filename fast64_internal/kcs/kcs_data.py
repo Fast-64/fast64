@@ -11,8 +11,14 @@ HS = 0x80057DB0
 # Geometry Block Structs/Data
 # -------------------------------------------------------------------------------
 
+geo_block_includes = """#include <ultra64.h>
+#include "geo_block_header.h"
+#include "stages.h"
+#include "geo.h"
 
-Geo_Header = {
+"""
+
+geo_block_header_struct = {
     0x00: ("struct Layout", "*layout[]", "ptr"),
     0x04: ("struct TextureScroll", "*tex_scroll[]", "ptr"),
     0x08: ("u32", "rendering_mode", ""),
@@ -24,7 +30,7 @@ Geo_Header = {
 }
 
 
-Layout = {
+layout_struct = {
     0x00: ("u16", "Flag", ""),
     0x02: ("u16", "Command", ""),
     0x04: ("struct Entry_Point", "Entry Points", "ptr"),
@@ -35,7 +41,7 @@ Layout = {
 
 
 # use for extraction,
-TextureScrollStruct = {
+texture_scroll_struct = {
     0x00: [">H", "field_0x0", 2],
     0x02: [">B", "fmt1", 1],
     0x03: [">B", "siz1", 1],

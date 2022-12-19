@@ -1,6 +1,7 @@
 # ------------------------------------------------------------------------
 #    Header
 # ------------------------------------------------------------------------
+from __future__ import annotations
 
 import bpy
 from bpy.props import (
@@ -15,7 +16,6 @@ from bpy.props import (
     BoolVectorProperty,
     CollectionProperty,
 )
-
 from bpy.types import PropertyGroup
 from bpy.utils import register_class, unregister_class
 
@@ -27,7 +27,7 @@ from bpy.utils import register_class, unregister_class
 # belond here
 
 
-def UpdateEnt(objprop, context):
+def UpdateEnt(objprop: EntProp, context: bpy.types.Context):
     id = objprop.Entity.split(",")
     objprop.BankNum = int(id[0])
 
@@ -42,7 +42,7 @@ class StageProp(PropertyGroup):
     Level: IntProperty(name="Level", description="Which level in selected world to overwrite", default=1, min=1, max=5)
     Area: IntProperty(name="Area", description="Area", default=1, min=1, max=10)
 
-    def draw(self, layout):
+    def draw(self, layout: bpy.types.UILayout):
         layout.prop(self, "World")
         layout.prop(self, "Level")
         layout.prop(self, "Area")
@@ -56,7 +56,7 @@ class BankIndex(PropertyGroup):
     Bank: IntProperty(name="Bank", description="Bank for Data", default=0, min=0, max=7)
     ID: IntProperty(name="ID", description="ID for Data", default=1, min=1, max=1200)
 
-    def draw(self, layout):
+    def draw(self, layout: bpy.types.UILayout):
         layout.prop(self, "Bank")
         layout.prop(self, "ID")
 
@@ -399,7 +399,7 @@ class TextureProp(PropertyGroup):
     Bank: IntProperty(name="Bank", description="Bank of texture", default=0, min=0, max=7)
     Index: IntProperty(name="Index", description="Index of texture", default=1, min=1, max=1500)
 
-    def draw(self, layout):
+    def draw(self, layout: bpy.types.UILayout):
         box = layout.box()
         row = box.row()
         row.prop(self, "Bank")
@@ -410,12 +410,12 @@ class TexScrollProp(PropertyGroup):
     Textures: CollectionProperty(name="Textures", type=TextureProp)
     Palettes: CollectionProperty(name="Palettes", type=TextureProp)
 
-    def AddTex(self, tex):
+    def add_texture(self, tex):
         self.Textures.add()
         tex = self.Textures[-1]
         tex.Source = tex
 
-    def AddPal(self, tex):
+    def add_palette(self, tex):
         self.Palettes.add()
         tex = self.Palettes[-1]
         tex.Source = tex

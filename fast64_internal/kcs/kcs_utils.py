@@ -1,22 +1,30 @@
 # ------------------------------------------------------------------------
 #    Header
 # ------------------------------------------------------------------------
+from __future__ import annotations
 
 import bpy
 
 import os, struct, math, re
 from mathutils import Vector, Euler, Matrix
-
 from time import time
 from pathlib import Path
-from ..utility import rotate_quat_blender_to_n64, apply_objects_modifiers_and_transformations, CData
+from typing import TextIO, BinaryIO, Sequence
+
+from ..utility import (
+    rotate_quat_blender_to_n64,
+    rotate_quat_n64_to_blender,
+    apply_objects_modifiers_and_transformations,
+    CData,
+    PluginError,
+)
 
 # ------------------------------------------------------------------------
 #    Decorators
 # ------------------------------------------------------------------------
 
-# time a function
-def time_func(func):
+# time a function, use as a decorator
+def time_func(func: callable):
     # This function shows the execution time of
     # the function object passed
     def wrap_func(*args, **kwargs):
@@ -42,7 +50,7 @@ class KCS_Cdata(CData):
     def tell(self):
         return 0
 
-    def write(self, content):
+    def write(self, content: str):
         self.source += content
 
 
@@ -55,14 +63,14 @@ class PointerManager:
     def __init__(self):
         PointerManager.memoize = self
 
-    def resolve_obj_id(self, obj, multi):
+    def resolve_obj_id(self, obj: object, multi: object):
         if multi:
             return hash((obj, multi))
         else:
             return id(obj)
 
     # add a pointer target obj to self.ptr_targets, and then return a placeholder object which is filled in after first pass writing
-    def add_target(self, obj, multi=None):
+    def add_target(self, obj: object, multi: object = None):
         # you can have multiple targets to the same object, so check before making a new Pointer obj
         # though you can also write something multiple times, and only want a pointer to one of those locations
         # so an optional argument is added to bind the specific call to the multi use owner (usually a gfxList)
@@ -72,7 +80,7 @@ class PointerManager:
             self.ptr_targets[self.resolve_obj_id(obj, multi)] = ptr
         return ptr
 
-    def ptr_obj(self, obj, file, label, multi=None):
+    def ptr_obj(self, obj: object, file: KCS_Cdata, label: str, multi: object = None):
         try:
             ptr = self.ptr_targets.get(self.resolve_obj_id(obj, multi), None)
         except Exception as e:
@@ -93,7 +101,7 @@ class StructContainer:
 
 # Placeholder pointer values
 class Pointer:
-    def __init__(self, obj):
+    def __init__(self, obj: object):
         self.obj = obj
         self.value = 0
         self.location = 0
@@ -105,17 +113,17 @@ class Pointer:
 
 # just a base class that holds some binary processing
 class BinProcess:
-    def upt(self, offset, type, len):
-        return struct.unpack(type, self.file[offset : offset + len])
+    def upt(self, offset: int, typeString: str, length: int):
+        return struct.unpack(typeString, self.file[offset : offset + length])
 
     @staticmethod
-    def seg2phys(num):
+    def seg2phys(num: int):
         if num >> 24 == 4:
             return num & 0xFFFFFF
         else:
             return num
 
-    def get_BI_pairs(self, start, num=9999, stop=(0, 0)):
+    def get_BI_pairs(self, start: int, num: int = 9999, stop: tuple = (0, 0)):
         pairs = []
         for i in range(num):
             BI = self.upt(start + 4 * i, ">HH", 4)
@@ -124,7 +132,7 @@ class BinProcess:
                 break
         return pairs
 
-    def get_referece_list(self, start, stop=0):
+    def get_referece_list(self, start: int, stop: int = 0):
         x = 0
         start = self.seg2phys(start)
         ref = []
@@ -136,26 +144,7 @@ class BinProcess:
         ref.append(r)
         return ref
 
-    def write_arr(self, file, name, arr, BI=None, ptr_format="0x"):
-        file.write(f"void *{name}[] = {{\n\t")
-        vals = []
-        for a in arr:
-            if a == 0x99999999 or a == (0x9999, 0x9999):
-                vals.append(f"ARR_TERMINATOR")
-            elif BI:
-                vals.append("BANK_INDEX(0x{:X}, 0x{:X})".format(*a))
-            elif a:
-                # ptrs have to be in bank 4 (really applied to entry pts)
-                if a & 0x04000000 == 0x04000000:
-                    vals.append(f"{ptr_format}{a:X}")
-                else:
-                    vals.append(f"0x{a:X}")
-            else:
-                vals.append("NULL")
-        file.write(", ".join(vals))
-        file.write("\n};\n\n")
-
-    def sort_dict(self, dictionary):
+    def sort_dict(self, dictionary: dict):
         return {k: dictionary[k] for k in sorted(dictionary.keys())}
 
 
@@ -174,11 +163,14 @@ class BinWrite:
     # now that things are written, find the replacement data for all the pointers
     def resolve_ptrs_c(self, file: KCS_Cdata):
         for obj, ptr in self.ptrManager.ptr_targets.items():
-            print(f"object {ptr.obj} resolves to: {ptr.symbol}")
             file.source = file.source.replace(str(ptr), ptr.symbol)
-
+    
+    # given a symbol with a data type, make an extern and add it 
+    def add_header(self, file: KCS_Cdata, datType: str, label: str):
+        file.header += f"extern {datType} {label};\n"
+    
     # format arr data
-    def format_arr(self, vals, name, file):
+    def format_arr(self, vals: Union[Sequence, Str], name: str, file: KCS_Cdata):
         # infer type from first item of each array
         if type(vals[0]) == float:
             return f"""{", ".join( [f"{self.ptr_obj(a, file, f'&{name}[{j}]'):f}" for j, a in enumerate(vals)] )}"""
@@ -192,7 +184,7 @@ class BinWrite:
             return f"""{", ".join( [hex(self.ptr_obj(a, file, f"&{name}[{j}]")) for j, a in enumerate(vals)] )}"""
 
     # format arr ptr data into string
-    def format_arr_ptr(self, arr, name, file, BI=None, ptr_format="0x"):
+    def format_arr_ptr(self, arr: Sequence, name: str, file: KCS_Cdata, BI: bool = None, ptr_format: str = "0x"):
         vals = []
         for j, a in enumerate(arr):
             # set symbol if obj is a ptr target
@@ -213,26 +205,28 @@ class BinWrite:
 
     # given an array, create a recursive set of lines until no more
     # iteration is possible
-    def format_iter(self, arr, func, name, file, **kwargs):
+    def format_iter(self, arr: Sequence, func: callable, name: str, file: KCS_Cdata, **kwargs):
         if hasattr(arr[0], "__iter__"):
             arr = [f"{{{self.format_iter(a, func, name, file, **kwargs)}}}" for a in arr]
         return func(arr, name, file, **kwargs)
 
     # write generic array, use recursion to unroll all loops
-    def write_arr(self, file: KCS_Cdata, name, arr, func, **kwargs):
+    def write_arr(self, file: KCS_Cdata, arrFormat: str, name: str, arr: Sequence, func: callable, **kwargs):
         # set symbol if obj is a ptr target
         self.ptr_obj(arr, file, name)
-        file.write(f"{name}[{len(arr)}] = {{\n\t")
+        self.add_header(file, arrFormat, f"{name}[{len(arr)}]")
+        file.write(f"{arrFormat} {name}[{len(arr)}] = {{\n\t")
         # use array formatter func
         file.write(self.format_iter(arr, func, name, file, **kwargs))
         file.write("\n};\n\n")
 
     # write a struct from a python dictionary
-    def write_dict_struct(self, structDat: object, Prototype_dict: dict, file: KCS_Cdata, protype: str, name: str):
+    def write_dict_struct(self, structDat: object, structFormat: dict, file: KCS_Cdata, prototype: str, name: str):
         # set symbol if obj is a ptr target
         self.ptr_obj(structDat, file, f"&{name}")
-        file.write(f"struct {protype} {name} = {{\n")
-        for x, y, z in zip(Prototype_dict.values(), structDat.dat, Prototype_dict.keys()):
+        self.add_header(file, f"struct {prototype}", name)
+        file.write(f"struct {prototype} {name} = {{\n")
+        for x, y, z in zip(structFormat.values(), structDat.dat, structFormat.keys()):
             # x is (data type, string name, is arr/ptr etc.)
             # y is the actual variable value
             # z is the struct hex offset
@@ -311,7 +305,7 @@ class BreakableBlockDat:
             self._Gfx_Mesh.from_pydata(self._Verts, [], self._GfxTris)
             return self._Gfx_Mesh
 
-    def Instance_Mat_Gfx(self, obj):
+    def Instance_Mat_Gfx(self, obj: bpy.types.Object):
         if self._Gfx_mat:
             return self._Gfx_mat
         bpy.context.view_layer.objects.active = obj
@@ -321,7 +315,7 @@ class BreakableBlockDat:
         self._Gfx_mat.f3d_mat.combiner1.D_alpha = "1"
         return self._Gfx_mat
 
-    def Instance_Mat_Col(self, obj):
+    def Instance_Mat_Col(self, obj: bpy.types.Object):
         if self._Col_mat:
             return self._Col_mat
         bpy.context.view_layer.objects.active = obj
@@ -336,7 +330,7 @@ class BreakableBlockDat:
 # ------------------------------------------------------------------------
 
 
-def parse_stage_table(world, level, area, path):
+def parse_stage_table(world: int, level: int, area: int, path: Path):
     f = open(path, "r")
     lines = f.readlines()
     StageArea = pre_process_c(lines, "StageArea", ["{", "}"])  # data type StageArea, delimiter {}
@@ -349,7 +343,7 @@ def parse_stage_table(world, level, area, path):
             StageArea.pop(k)
             break
     else:
-        raise Exception("Could not find level stage table")
+        raise PluginError("Could not find level stage table")
     for a, w in enumerate(levels):
         levels = w.split(",")
         if a != world - 1:
@@ -364,7 +358,7 @@ def parse_stage_table(world, level, area, path):
                 if cnt == level:
                     break
         else:
-            raise Exception("could not find level selected")
+            raise PluginError("could not find level selected")
         break
     # ptr is now going to tell me what var I need
     index = int(ptr[ptr.find("[") + 1 : ptr.find("]")]) + area - 1
@@ -379,7 +373,7 @@ def parse_stage_table(world, level, area, path):
     try:
         area = StageArea[ptr][int(index)]
     except:
-        raise Exception("Could not find area within levels")
+        raise PluginError("Could not find area within levels")
 
     # process the area
     macros = {"LIST_INDEX": BANK_INDEX, "BANK_INDEX": BANK_INDEX}
@@ -413,7 +407,7 @@ def PAREN_REGX():
     return "\([0-9,a-fx ]+\)"
 
 
-def BANK_INDEX(args):
+def BANK_INDEX(args: any):
     return f"{{ {args} }}"
 
 
@@ -422,68 +416,40 @@ def BANK_INDEX(args):
 # ------------------------------------------------------------------------
 
 
-def RotateObj_n64_to_bpy(deg, obj, world=0):
-    deg = Euler((math.radians(-deg), 0, 0))
-    deg = deg.to_quaternion().to_matrix().to_4x4()
-    if world:
-        obj.matrix_world = obj.matrix_world @ deg
-        obj.select_set(True)
-        bpy.context.view_layer.objects.active = obj
-        bpy.ops.object.transform_apply(rotation=True)
-    else:
-        obj.matrix_basis = obj.matrix_basis @ deg
-
-
-def apply_rotation_n64_to_bpy(obj):
-    RotateObj_n64_to_bpy(-90, obj)
+def apply_rotation_n64_to_bpy(obj: bpy.types.Object):
+    rot = obj.rotation_euler
+    rot[0] += math.radians(90)
+    obj.rotation_euler = rotate_quat_n64_to_blender(rot.to_quaternion()).to_euler("XYZ")
     apply_objects_modifiers_and_transformations([obj])
 
 
-def make_empty(name, type, collection):
+def make_empty(name: str, displayEnum: str, collection: bpy.types.Collection):
     Obj = bpy.data.objects.new(name, None)
-    Obj.empty_display_type = type
+    Obj.empty_display_type = displayEnum
     collection.objects.link(Obj)
     return Obj
 
 
-def make_mesh_obj(name, data, collection):
+def make_mesh_obj(name: str, data: bpy.types.Mesh, collection: bpy.types.Collection):
     Obj = bpy.data.objects.new(name, data)
     collection.objects.link(Obj)
     return Obj
 
 
-def make_mesh_data(name, data):
+def make_mesh_data(name: str, data: tuple("vertices", "edges", "triangles")):
     dat = bpy.data.meshes.new(name)
     dat.from_pydata(*data)
     dat.validate()
     return dat
 
 
-# if keep, then it doesn't inherit parent trasnform
-def Parent(parent, child, keep=0):
-    if not keep:
-        child.parent = parent
-        child.matrix_local = child.matrix_parent_inverse
-    else:
-        # idk this is fucked
-        child.parent = parent
-        child.matrix_world = parent.matrix_world.inverted() * 0.5
-
-
-# this will take a blender property, its enumprop name, and then return a list of the allowed enums
-def GetEnums(prop, enum):
-    enumProp = prop.bl_rna.properties.get(enum)
-    if enumProp:
-        return [item.identifier for item in enumProp.enum_items]
-
-
 # a struct may have various data types inside of it, so this is here to split it when provided a struct dict
 # also has support for macros, so it will unroll them given a list of macro defs, otherwise will return as is
 
-# this will only do one value, use list comp for an array of structs
+# this will only do one value, which is a string representation of the struct, use list comp for an array of structs
 
-# struct dict will contain names of the args, and values tell me the delims via regex, recursion using dicts
-def process_struct(struct_dict, macros, value):
+# struct dict will contain names of the args, and values of this dict will tell me the delims via regex, recursion using dicts
+def process_struct(struct_dict: dict[str, type], macros: dict[str, callable], value: str):
     # first unroll macros as they have internal commas
     for k, v in macros.items():
         if k in value:
@@ -496,7 +462,7 @@ def process_struct(struct_dict, macros, value):
             break
         # get the appropriate regex using the type
         if v == dict:
-            # not supported for now, but a sub strcut will be found by getting the string between equal number of curly braces
+            # not supported for now, but a sub struct will be found by getting the string between equal number of curly braces
             continue
         if v == tuple:
             regX = f"{CURLYBRACE_REGX()}\s*,"
@@ -514,13 +480,13 @@ def process_struct(struct_dict, macros, value):
                 res[k] = eval(a[: a.find(",")])
             value = value[m.span()[1] :].strip()
         else:
-            raise Exception(f"struct parsing failed {value}, attempt {res}")
+            raise PluginError(f"struct parsing failed {value}, attempt {res}")
     return res
 
 
 # processes a macro and returns its value, not recursive
-# line is line, macro is str of macro, process is a function equiv of macro
-def process_macro(line, macro, process):
+# line is a line in the file, macro is str of macro, process is a function equiv of macro
+def process_macro(line: str, macro: str, process: callable):
     regX = f"{macro}{PAREN_REGX()}"
     args = PAREN_REGX()
     while True:
@@ -532,7 +498,7 @@ def process_macro(line, macro, process):
 
 
 # if there are macros, look for scene defs on macros, currently none, so skip them all
-def eval_macro(line):
+def eval_macro(line: str):
     scene = bpy.context.scene
     #    if scene.LevelImp.Version in line:
     #        return False
@@ -541,11 +507,11 @@ def eval_macro(line):
     return False
 
 
-# Given a file of lines, returns a dict of all vars of type 'data_type', and the values are arrays
+# Given a file of lines, returns a dict of all vars of type 'typeName', and the values are arrays
 # chars are the container for types value, () for macros, {} for structs, None for int arrays
 
 # splits data into array using chars, does not recursively do it, only the top level is split
-def pre_process_c(lines, data_type, chars):
+def pre_process_c(lines: list[str], typeName: str, delims: list[str]):
     # Get a dictionary made up with keys=level script names
     # and values as an array of all the cmds inside.
     Vars = {}
@@ -568,10 +534,10 @@ def pre_process_c(lines, data_type, chars):
         # Now Check for var starts
         regX = "\[[0-9a-fx]*\]"
         match = re.search(regX, l, flags=re.IGNORECASE)
-        if data_type in l and re.search(regX, l.lower()) and not skip:
+        if typeName in l and re.search(regX, l.lower()) and not skip:
             b = match.span()[0]
-            a = l.find(data_type)
-            var = l[a + len(data_type) : b].strip()
+            a = l.find(typeName)
+            var = l[a + len(typeName) : b].strip()
             Vars[var] = ""
             dat_name = var
             continue
@@ -589,12 +555,12 @@ def pre_process_c(lines, data_type, chars):
             # Add line to dict
             else:
                 Vars[dat_name] += l
-    return process_macro_dict_into_lines(Vars, chars)
+    return process_macro_dict_into_lines(Vars, delims)
 
 
 # given a dict of lines, turns it into a dict with arrays for value of isolated data members
-def process_macro_dict_into_lines(Vars, chars):
-    for k, v in Vars.items():
+def process_macro_dict_into_lines(varStrings: dict[str, str], delims: list[str]):
+    for k, v in varStrings.items():
         v = v.replace("\n", "")
         arr = []
         x = 0
@@ -603,10 +569,10 @@ def process_macro_dict_into_lines(Vars, chars):
         app = 0
         while x < len(v):
             char = v[x]
-            if char == chars[0]:
+            if char == delims[0]:
                 stack += 1
                 app = 1
-            if char == chars[1]:
+            if char == delims[1]:
                 stack -= 1
             if app == 1 and stack == 0:
                 app = 0
@@ -620,5 +586,5 @@ def process_macro_dict_into_lines(Vars, chars):
         # for when the control flow characters are nothing
         if buf:
             arr.append(buf)
-        Vars[k] = arr
-    return Vars
+        varStrings[k] = arr
+    return varStrings

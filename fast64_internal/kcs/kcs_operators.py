@@ -1,26 +1,28 @@
 # ------------------------------------------------------------------------
 #    Header
 # ------------------------------------------------------------------------
-
 import bpy
 from bpy.types import Operator
 from bpy.utils import register_class, unregister_class
 
 from pathlib import Path
 
-from .kcs_gfx import import_geo_bin, export_geo_bin
-from .kcs_col import AddNode, ImportColBin
+from .kcs_gfx import import_geo_bin, export_geo_bin, export_geo_c
+from .kcs_col import add_node, import_col_bin
+from .kcs_utils import parse_stage_table
+
+from ..utility import PluginError
 
 # ------------------------------------------------------------------------
 #    IO Operators
 # ------------------------------------------------------------------------
 
 # import a collision file / level block file
-class KCS_OT_Import_Col(Operator):
+class KCS_Import_Col(Operator):
     bl_label = "Import Col Data"
     bl_idname = "kcs.import_col"
 
-    def execute(self, context):
+    def execute(self, context: bpy.types.Context):
         scene = context.scene.KCS_scene
         BankID = scene.ImpBankID.BankID()
         file = Path(scene.Decomp_path) / "assets" / "misc" / ("bank_%d" % BankID[0]) / ("%d" % BankID[1])
@@ -29,19 +31,19 @@ class KCS_OT_Import_Col(Operator):
             if not name.exists():
                 name = file / "misc.bin"
             if not name.exists():
-                raise Exception(f"Could not find file {name}, geo Bank/ID does not exist")
-            ImportColBin(name, context, "KCS Col {}-{}".format(*BankID))
+                raise PluginError(f"Could not find file {name}, geo Bank/ID does not exist")
+            import_col_bin(name, context, "KCS Col {}-{}".format(*BankID))
         else:
-            raise Exception("C importing is not supported yet")
+            raise PluginError("C importing is not supported yet")
         return {"FINISHED"}
 
 
 # import one gfx file
-class KCS_OT_Import_NLD_Gfx(Operator):
+class KCS_Import_NLD_Gfx(Operator):
     bl_label = "Import Gfx Data"
     bl_idname = "kcs.import_nld_gfx"
 
-    def execute(self, context):
+    def execute(self, context: bpy.types.Context):
         scene = context.scene.KCS_scene
         BankID = scene.ImpBankID.BankID()
         file = Path(scene.Decomp_path) / "assets" / "geo" / ("bank_%d" % BankID[0]) / ("%d" % BankID[1])
@@ -50,19 +52,19 @@ class KCS_OT_Import_NLD_Gfx(Operator):
             if not name.exists():
                 name = file / "block.bin"
             if not name.exists():
-                raise Exception(f"Could not find file {name}, geo Bank/ID does not exist")
+                raise PluginError(f"Could not find file {name}, geo Bank/ID does not exist")
             import_geo_bin(name, context, "KCS Gfx {}-{}".format(*BankID), Path(scene.Decomp_path) / "assets" / "image")
         else:
-            raise Exception("C importing is not supported yet")
+            raise PluginError("C importing is not supported yet")
         return {"FINISHED"}
 
 
 # import an entire stage (gfx, level block)
-class KCS_OT_Import_Stage(Operator):
+class KCS_Import_Stage(Operator):
     bl_label = "Import Stage"
     bl_idname = "kcs.import_stage"
 
-    def execute(self, context):
+    def execute(self, context: bpy.types.Context):
         scene = context.scene.KCS_scene
         stage_table = Path(scene.Decomp_path) / "data" / "misc" / "kirby.066630.2.c"  # this will probably change later
         stage = parse_stage_table(*scene.ImpStage.stage(), stage_table)
@@ -80,7 +82,7 @@ class KCS_OT_Import_Stage(Operator):
             if not name.exists():
                 name = file_gfx / "block.bin"
             if not name.exists():
-                raise Exception(f"Could not find file {name}, geo Bank/ID does not exist")
+                raise PluginError(f"Could not find file {name}, geo Bank/ID does not exist")
             import_geo_bin(
                 name,
                 context,
@@ -92,29 +94,29 @@ class KCS_OT_Import_Stage(Operator):
             if not name.exists():
                 name = file_col / "misc.bin"
             if not name.exists():
-                raise Exception(f"Could not find file {name}, misc Bank/ID selected is not a level")
-            ImportColBin(name, context, "KCS Col {}-{}-{}".format(*scene.ImpStage.stage()))
+                raise PluginError(f"Could not find file {name}, misc Bank/ID selected is not a level")
+            import_col_bin(name, context, "KCS Col {}-{}-{}".format(*scene.ImpStage.stage()))
 
         else:
-            raise Exception("C importing is not supported yet")
+            raise PluginError("C importing is not supported yet")
         return {"FINISHED"}
 
 
 # export an area
-class KCS_OT_Export(Operator):
+class KCS_Export(Operator):
     bl_label = "Export Area"
     bl_idname = "kcs.export_area"
 
-    def execute(self, context):
+    def execute(self, context: bpy.types.Context):
         return {"FINISHED"}
 
 
 # export a gfx file
-class KCS_OT_Export_Gfx(Operator):
+class KCS_Export_Gfx(Operator):
     bl_label = "Export Gfx"
     bl_idname = "kcs.export_gfx"
 
-    def execute(self, context):
+    def execute(self, context: bpy.types.Context):
         # need a KCS object
         obj = context.selected_objects[0]
         while obj:
@@ -123,15 +125,16 @@ class KCS_OT_Export_Gfx(Operator):
             else:
                 break
         if not obj:
-            raise Exception('Obj is not Empty with type "Graphics"')
+            raise PluginError('Obj is not Empty with type "Graphics"')
         scene = context.scene.KCS_scene
         BankID = scene.ExpBankID.BankID()
         file = Path(scene.Decomp_path) / "assets" / "geo" / ("bank_%d" % BankID[0]) / ("%d" % BankID[1])
         if scene.Format == "binary":
-            name = file / "geo.bin"
+            name = file / "geo"
             export_geo_bin(name, obj, context)
-        else:
-            raise Exception("C importing is not supported yet")
+        elif scene.Format == "C":
+            name = file / "geo"
+            export_geo_c(name, obj, context)
         return {"FINISHED"}
 
 
@@ -144,11 +147,11 @@ class KCS_OT_Export_Gfx(Operator):
 
 # add a star block object and link it to the context object
 # cube has side length of 40
-class KCS_OT_Add_Block(Operator):
+class KCS_Add_Block(Operator):
     bl_label = "Add Breakable Block"
     bl_idname = "kcs.add_kcsblock"
 
-    def execute(self, context):
+    def execute(self, context: bpy.types.Context):
         # context vars
         scale = bpy.context.scene.KCS_scene.Scale
         Rt = context.object
@@ -182,11 +185,11 @@ class KCS_OT_Add_Block(Operator):
 
 
 # adds a level empty with the hierarchy setup needed to have one basic node
-class KCS_OT_Add_Level(Operator):
+class KCS_Add_Level(Operator):
     bl_label = "Add Level Empty"
     bl_idname = "kcs.add_kcslevel"
 
-    def execute(self, context):
+    def execute(self, context: bpy.types.Context):
         collection = bpy.context.scene.collection
         Lvl = make_empty("KCS Level Rt", "PLAIN_AXES", collection)
         Lvl.KCS_obj.KCS_obj_type = "Level"
@@ -219,11 +222,11 @@ class KCS_OT_Add_Level(Operator):
 
 
 # adds a node to the collision parent
-class KCS_OT_Add_Node(Operator):
+class KCS_Add_Node(Operator):
     bl_label = "Add Node"
     bl_idname = "kcs.add_kcsnode"
 
-    def execute(self, context):
+    def execute(self, context: bpy.types.Context):
         Rt = context.object
         collection = context.object.users_collection[0]
         AddNode(Rt, collection)
@@ -231,11 +234,11 @@ class KCS_OT_Add_Node(Operator):
 
 
 # adds an entity to the collision parent
-class KCS_OT_Add_Ent(Operator):
+class KCS_Add_Ent(Operator):
     bl_label = "Add Entity"
     bl_idname = "kcs.add_kcsent"
 
-    def execute(self, context):
+    def execute(self, context: bpy.types.Context):
         node = context.object.data.KCS_node
         obj = bpy.data.objects.new("Entity %d" % node.NodeNum, None)
         collection = context.object.users_collection[0]
@@ -247,11 +250,11 @@ class KCS_OT_Add_Ent(Operator):
 
 
 # adds a texture to the current texture scroll
-class KCS_OT_Add_Tex(Operator):
+class KCS_Add_Tex(Operator):
     bl_label = "Add Texture"
     bl_idname = "kcs.add_tex"
 
-    def execute(self, context):
+    def execute(self, context: bpy.types.Context):
         mat = context.material
         scr = mat.KCS_tx_scroll
         scr.Textures.add()
@@ -259,11 +262,11 @@ class KCS_OT_Add_Tex(Operator):
 
 
 # adds a palette to the current texture scroll
-class KCS_OT_Add_Pal(Operator):
+class KCS_Add_Pal(Operator):
     bl_label = "Add Palette"
     bl_idname = "kcs.add_pal"
 
-    def execute(self, context):
+    def execute(self, context: bpy.types.Context):
         mat = context.material
         scr = mat.KCS_tx_scroll
         scr.Palettes.add()
@@ -276,17 +279,17 @@ class KCS_OT_Add_Pal(Operator):
 
 
 kcs_operators = (
-    KCS_OT_Export,
-    KCS_OT_Export_Gfx,
-    KCS_OT_Import_Stage,
-    KCS_OT_Add_Level,
-    KCS_OT_Add_Block,
-    KCS_OT_Add_Ent,
-    KCS_OT_Add_Node,
-    KCS_OT_Import_NLD_Gfx,
-    KCS_OT_Import_Col,
-    KCS_OT_Add_Tex,
-    KCS_OT_Add_Pal,
+    KCS_Export,
+    KCS_Export_Gfx,
+    KCS_Import_Stage,
+    KCS_Add_Level,
+    KCS_Add_Block,
+    KCS_Add_Ent,
+    KCS_Add_Node,
+    KCS_Import_NLD_Gfx,
+    KCS_Import_Col,
+    KCS_Add_Tex,
+    KCS_Add_Pal,
 )
 
 
