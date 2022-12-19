@@ -1,17 +1,17 @@
 import math, os, re, bpy, mathutils
 from random import random
 from collections import OrderedDict
+from ..utility import PluginError, readFile, parentObject, hexOrDecInt, gammaInverse, yUpToZUp
+from ..f3d.f3d_parser import parseMatrices, importMeshC
 from ..f3d.f3d_gbi import F3D
 from ..f3d.flipbook import TextureFlipbook
-from ..utility import PluginError, raisePluginError, readFile, parentObject, hexOrDecInt, gammaInverse, yUpToZUp
-from ..f3d.f3d_parser import parseMatrices, importMeshC
-from .oot_f3d_writer import getColliderMat
-from .oot_level import OOTImportSceneSettingsProperty
-from .oot_scene_room import OOTSceneHeaderProperty, OOTRoomHeaderProperty, OOTLightProperty
-from .oot_actor import OOTActorProperty, OOTActorHeaderProperty, setAllActorsVisibility
-from .scene.exporter.to_c import getDrawConfig
-from .oot_collision import OOTMaterialCollisionProperty
+from .collision.properties import OOTMaterialCollisionProperty
 from .oot_model_classes import OOTF3DContext
+from .oot_f3d_writer import getColliderMat
+from .scene.exporter.to_c import getDrawConfig
+from .scene.properties import OOTSceneHeaderProperty, OOTLightProperty, OOTImportSceneSettingsProperty
+from .room.properties import OOTRoomHeaderProperty
+from .actor.properties import OOTActorProperty, OOTActorHeaderProperty
 
 from .oot_utility import (
     getHeaderSettings,
@@ -20,6 +20,7 @@ from .oot_utility import (
     ootParseRotation,
     sceneNameFromID,
     ootGetPath,
+    setAllActorsVisibility,
     getEvalParams,
 )
 
@@ -42,6 +43,7 @@ from .oot_constants import (
     ootData,
 )
 
+
 from .oot_collision_classes import (
     ootEnumCameraCrawlspaceSType,
     ootEnumFloorSetting,
@@ -51,58 +53,6 @@ from .oot_collision_classes import (
     ootEnumCollisionSound,
     ootEnumCameraSType,
 )
-
-
-def run_ops_without_view_layer_update(func):
-    from bpy.ops import _BPyOpsSubModOp
-
-    view_layer_update = _BPyOpsSubModOp._view_layer_update
-
-    def dummy_view_layer_update(context):
-        pass
-
-    try:
-        _BPyOpsSubModOp._view_layer_update = dummy_view_layer_update
-        func()
-
-    finally:
-        _BPyOpsSubModOp._view_layer_update = view_layer_update
-
-
-def parseSceneFunc():
-    context = bpy.context
-    settings = context.scene.ootSceneImportSettings
-    parseScene(
-        context.scene.f3d_type,
-        context.scene.isHWv1,
-        settings,
-        settings.option,
-    )
-
-
-class OOT_ImportScene(bpy.types.Operator):
-    """Import an OOT scene from C."""
-
-    bl_idname = "object.oot_import_level"
-    bl_label = "Import Scene"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
-
-    def execute(self, context):
-        try:
-            if bpy.context.mode != "OBJECT":
-                bpy.ops.object.mode_set(mode="OBJECT")
-            bpy.ops.object.select_all(action="DESELECT")
-
-            run_ops_without_view_layer_update(parseSceneFunc)
-
-            self.report({"INFO"}, "Success!")
-            return {"FINISHED"}
-
-        except Exception as e:
-            if context.mode != "OBJECT":
-                bpy.ops.object.mode_set(mode="OBJECT")
-            raisePluginError(self, e)
-            return {"CANCELLED"}
 
 
 headerNames = ["childDayHeader", "childNightHeader", "adultDayHeader", "adultNightHeader"]
