@@ -5,10 +5,10 @@ from bpy.props import StringProperty, EnumProperty, IntProperty
 from bpy.types import Scene, Operator, Context, UILayout
 from bpy.utils import register_class, unregister_class
 from ...utility import CData, PluginError, writeCData, raisePluginError
-from ..oot_constants import ootEnumCSTextboxType, ootEnumCSListType, ootEnumCSListTypeIcons
 from ..oot_utility import getCollection
 from ..scene.exporter.to_c import ootCutsceneDataToC
 from .exporter import convertCutsceneObject
+from .constants import ootEnumCSTextboxType, ootEnumCSListType, ootEnumCSListTypeIcons
 
 
 def checkGetFilePaths(context: Context):
