@@ -555,7 +555,7 @@ def saveStaticModel(
 
     for drawLayer, fMesh in fMeshes.items():
         if revertMatAtEnd:
-            fModel.onEndDraw(fMesh, obj, drawLayer)
+            fModel.bleed(fMesh, obj, drawLayer)
             revertMatAndEndDraw(fMesh.draw, [])
         else:
             fModel.endDraw(fMesh, obj, drawLayer)

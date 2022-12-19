@@ -2270,18 +2270,15 @@ class FModel:
         return
 
     def endDraw(self, fMesh, contextObj, drawLayer = None):
-        if not fMesh.inline:
-            fMesh.draw.commands.append(SPEndDisplayList())
-        else:
-            fMesh.bleed(self.f3d)
-            defaultRM = self.getRenderMode(drawLayer)
-            if defaultRM:
-                fMesh.draw.commands.append(DPSetRenderMode(defaultRM, None))
-            fMesh.draw.commands.append(SPEndDisplayList())
-        self.onEndDraw(fMesh, contextObj, drawLayer)
-
-    def onEndDraw(self, fMesh, contextObj, drawLayer = None):
-        return
+        if fMesh.inline:
+            self.bleed(fMesh, contextObj, drawLayer)
+        fMesh.draw.commands.append(SPEndDisplayList())
+    
+    def bleed(self, fMesh, contextObj, drawLayer = None):
+        fMesh.bleed(self.f3d)
+        defaultRM = self.getRenderMode(drawLayer)
+        if defaultRM:
+            fMesh.draw.commands.append(DPSetRenderMode(defaultRM, None))
 
     def getTextureAndHandleShared(self, imageKey):
         # Check if texture is in self
