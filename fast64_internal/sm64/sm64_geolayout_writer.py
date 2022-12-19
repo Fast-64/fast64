@@ -2548,7 +2548,7 @@ def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, dr
                 # This is needed to ensure that override materials that need a revert get them.
                 # Reverts are only needed if the next command is a different material load
                 if fMaterial.revert is None and fOverrideMat.revert is not None:
-                    nextCommand = prevCommand = meshMatOverride.commands[commandIdx + 1]
+                    nextCommand = meshMatOverride.commands[commandIdx + 1]
                     if isinstance(nextCommand, SPDisplayList) and nextCommand.displayList.tag == GfxListTag.Material and nextCommand.displayList != prevMaterial.material:
                         # Insert the new command
                         meshMatOverride.commands.insert(commandIdx + 1, SPDisplayList(fOverrideMat.revert))
