@@ -192,14 +192,16 @@ class GeolayoutArmaturePanel(Panel):
         col = self.layout.column().box()
         col.box().label(text="Armature Geolayout Inspector")
 
+        if obj.use_render_area or obj.add_shadow:
+            col.box().label(text="This is in blender units.")
+
         col.prop(obj, "use_render_area")
         if obj.use_render_area:
-            col.box().label(text="This is in blender units.")
             prop_split(col, obj, "culling_radius", "Culling Radius")
 
         col.prop(obj, "add_shadow")
         if obj.add_shadow:
-            col.box().label(text="This is not in blender units.")
+
             prop_split(col, obj, "shadow_type", "Type")
             prop_split(col, obj, "shadow_solidity", "Alpha")
             prop_split(col, obj, "shadow_scale", "Scale")
@@ -235,31 +237,38 @@ class GeolayoutObjectPanel(Panel):
 
         prop_split(col, obj, "geo_cmd_static", "Geolayout Command")
         drawLayerWarningBox(col, obj, "draw_layer_static")
-        col.prop(obj, "use_render_area")
+
+        renderAndShadowBox = col.box()
+        if obj.use_render_range or obj.add_shadow or obj.use_render_area:
+            renderAndShadowBox.label(text="These values are in blender units.")
+            renderAndShadowBox.label(text="These propreties are only applied if they are the root object of an object geolayout.")
+
+        if obj.add_shadow or obj.use_render_area:
+            renderAndShadowBox.label(text="For armature geolayouts, see the armature's object properties instead.")
+
+        renderAreaBox = renderAndShadowBox.box()
+        renderAreaBox.prop(obj, "use_render_area")
         if obj.use_render_area:
-            renderAreaBox = col.box()
-            renderAreaBox.label(text="This is in blender units.")
-            renderAreaBox.label(text="This only applies if this is the root object of an object geolayout.")
-            renderAreaBox.label(text="For armature geolayouts, see the armature's object properties instead.")
-            prop_split(col, obj, "culling_radius", "Culling Radius")
-        col.prop(obj, "use_render_range")
+            prop_split(renderAreaBox, obj, "culling_radius", "Culling Radius")
+
+        renderRengeBox = renderAndShadowBox.box()
+        renderRengeBox.prop(obj, "use_render_range")
         if obj.use_render_range:
-            col.box().label(text="This is in blender units.")
-            prop_split(col, obj, "render_range", "Render Range")
-        col.prop(obj, "add_shadow")
+            prop_split(renderRengeBox, obj, "render_range", "Render Range")
+
+        shadowBox = renderAndShadowBox.box()
+        shadowBox.prop(obj, "add_shadow")
         if obj.add_shadow:
-            shadowBox = col.box()
-            shadowBox.label(text="This is not in blender units.")
-            shadowBox.label(text="This only applies if this is the root object of an object geolayout.")
-            shadowBox.label(text="For armature geolayouts, see the armature's object properties instead.")
-            prop_split(col, obj, "shadow_type", "Type")
-            prop_split(col, obj, "shadow_solidity", "Alpha")
-            prop_split(col, obj, "shadow_scale", "Scale")
+            prop_split(shadowBox, obj, "shadow_type", "Type")
+            prop_split(shadowBox, obj, "shadow_solidity", "Alpha")
+            prop_split(shadowBox, obj, "shadow_scale", "Scale")
+
         col.prop(obj, "add_func")
         if obj.add_func:
             geo_asm = obj.fast64.sm64.geo_asm
             prop_split(col, geo_asm, "func", "Function")
             prop_split(col, geo_asm, "param", "Parameter")
+
         col.prop(obj, "ignore_render")
         col.prop(obj, "ignore_collision")
         col.prop(obj, "use_f3d_culling")
@@ -532,7 +541,7 @@ def sm64_bone_register():
 
     Bone.shadow_solidity = FloatProperty(name="Shadow Alpha", min=0, max=1, default=1)
 
-    Bone.shadow_scale = IntProperty(name="Shadow Scale", min=-(2 ** (15)), max=2 ** (15) - 1, default=100)
+    Bone.shadow_scale = FloatProperty(name="Shadow Scale", default=1)
 
     # Bone.switch_bone = StringProperty(
     # 	name = 'Switch Bone')
@@ -553,7 +562,7 @@ def sm64_bone_register():
 
     Object.shadow_solidity = FloatProperty(name="Shadow Alpha", min=0, max=1, default=1)
 
-    Object.shadow_scale = IntProperty(name="Shadow Scale", min=-(2 ** (15)), max=2 ** (15) - 1, default=100)
+    Object.shadow_scale = FloatProperty(name="Shadow Scale", default=1)
 
     Object.add_func = BoolProperty(name="Add Function Node")
 

@@ -762,7 +762,7 @@ def exportLevelC(
         # Needs to be done BEFORE collision parsing
         setRooms(child)
 
-        geolayoutGraph, fModel = convertObjectToGeolayout(
+        geolayoutGraph, fModel = (
             obj,
             transformMatrix,
             f3dType,

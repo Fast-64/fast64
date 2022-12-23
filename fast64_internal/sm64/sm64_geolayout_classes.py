@@ -832,12 +832,12 @@ class ShadowNode:
         command = bytearray([GEO_START_W_SHADOW, 0x00])
         command.extend(self.shadowType.to_bytes(2, "big"))
         command.extend(self.shadowSolidity.to_bytes(2, "big"))
-        command.extend(self.shadowScale.to_bytes(2, "big"))
+        command.extend(convertFloatToShort(self.shadowScale).to_bytes(2, "big"))
         return command
 
     def to_c(self):
         return (
-            "GEO_SHADOW(" + str(self.shadowType) + ", " + str(self.shadowSolidity) + ", " + str(self.shadowScale) + "),"
+            "GEO_SHADOW(" + str(self.shadowType) + ", " + str(self.shadowSolidity) + ", " + str(convertFloatToShort(self.shadowScale)) + "),"
         )
 
 

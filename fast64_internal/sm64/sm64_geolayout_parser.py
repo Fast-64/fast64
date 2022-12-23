@@ -1354,7 +1354,7 @@ def parseShadow(
             bone = armatureObj.data.bones[boneName]
             bone.shadow_type = str(shadowType)
             bone.shadow_solidity = shadowSolidity / 0xFF
-            bone.shadow_scale = shadowScale
+            bone.shadow_scale = shadowScale / bpy.context.scene.blenderToSM64Scale
     else:
         boneName = None
 
