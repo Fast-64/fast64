@@ -5,10 +5,17 @@ from ..panels import OOT_Panel
 from bpy.utils import register_class, unregister_class
 from .oot_level import oot_obj_panel_register, oot_obj_panel_unregister, oot_obj_register, oot_obj_unregister
 from .oot_anim import oot_anim_panel_register, oot_anim_panel_unregister, oot_anim_register, oot_anim_unregister
-from .oot_collision import oot_col_panel_register, oot_col_panel_unregister, oot_col_register, oot_col_unregister
 from .oot_utility import oot_utility_register, oot_utility_unregister
 from ..utility import prop_split
 from ..render_settings import on_update_render_settings
+
+from .oot_collision import (
+    oot_col_panel_register,
+    oot_col_panel_unregister,
+    oot_col_register,
+    oot_col_unregister,
+    OOTCollisionExportSettings,
+)
 
 from .oot_f3d_writer import (
     OOTDLExportSettings,
@@ -86,6 +93,7 @@ class OOT_Properties(bpy.types.PropertyGroup):
     skeletonImportSettings: bpy.props.PointerProperty(type=oot_skeleton.OOTSkeletonImportSettings)
     animExportSettings: bpy.props.PointerProperty(type=oot_anim.OOTAnimExportSettingsProperty)
     animImportSettings: bpy.props.PointerProperty(type=oot_anim.OOTAnimImportSettingsProperty)
+    collisionExportSettings: bpy.props.PointerProperty(type=OOTCollisionExportSettings)
 
 
 oot_classes = (

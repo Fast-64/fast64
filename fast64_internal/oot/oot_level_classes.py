@@ -1,5 +1,6 @@
 import bpy, os, shutil
-from ..utility import PluginError, CData, toAlnum, indent
+from typing import Optional
+from ..utility import PluginError, toAlnum, indent
 from .oot_collision_classes import OOTCollision
 from .oot_model_classes import OOTModel
 from ..f3d.f3d_gbi import (
@@ -11,28 +12,25 @@ from ..f3d.f3d_gbi import (
 
 
 class OOTCommonCommands:
-    def cmdAltHeaders(self, name, altName, header, cmdCount):
-        cmd = CData()
-        cmd.source = indent + "SCENE_CMD_ALTERNATE_HEADER_LIST(" + altName + "),\n"
-        return cmd
+    def getAltHeaderListCmd(self, altName):
+        return indent + f"SCENE_CMD_ALTERNATE_HEADER_LIST({altName}),\n"
 
-    def cmdEndMarker(self, name, header, cmdCount):
-        cmd = CData()
-        cmd.source = indent + "SCENE_CMD_END(),\n"
-        return cmd
+    def getEndCmd(self):
+        return indent + "SCENE_CMD_END(),\n"
 
 
 class OOTActor:
-    def __init__(self, actorID, position, rotation, actorParam, rotOverride):
+    def __init__(self, actorName, actorID, position, rotation, actorParam):
+        self.actorName = actorName
         self.actorID = actorID
         self.actorParam = actorParam
-        self.rotOverride = rotOverride
         self.position = position
         self.rotation = rotation
 
 
 class OOTTransitionActor:
-    def __init__(self, actorID, frontRoom, backRoom, frontCam, backCam, position, rotationY, actorParam):
+    def __init__(self, actorName, actorID, frontRoom, backRoom, frontCam, backCam, position, rotationY, actorParam):
+        self.actorName = actorName
         self.actorID = actorID
         self.actorParam = actorParam
         self.frontRoom = frontRoom
@@ -66,8 +64,8 @@ class OOTLight:
         self.fogFar = 0
         self.transitionSpeed = 0
 
-    def getBlendFogShort(self):
-        return "0x{:04X}".format((self.transitionSpeed << 10) | self.fogNear)
+    def getBlendFogNear(self):
+        return f"(({self.transitionSpeed} << 10) | {self.fogNear})"
 
 
 class OOTCSTextbox:
@@ -179,6 +177,7 @@ class OOTScene(OOTCommonCommands):
         self.skyboxID = None
         self.skyboxCloudiness = None
         self.skyboxLighting = None
+        self.isSkyboxLightingCustom = False
 
         # Camera
         self.mapLocation = None
@@ -187,10 +186,10 @@ class OOTScene(OOTCommonCommands):
         self.musicSeq = None
         self.nightSeq = None
 
-        self.childNightHeader = None
-        self.adultDayHeader = None
-        self.adultNightHeader = None
-        self.cutsceneHeaders = []
+        self.childNightHeader: Optional[OOTScene] = None
+        self.adultDayHeader: Optional[OOTScene] = None
+        self.adultNightHeader: Optional[OOTScene] = None
+        self.cutsceneHeaders: list["OOTScene"] = []
 
         self.exitList = []
         self.pathList = set()
@@ -230,7 +229,7 @@ class OOTScene(OOTCommonCommands):
         return self.sceneName() + "_header" + format(headerIndex, "02") + "_entranceList"
 
     def startPositionsName(self, headerIndex):
-        return self.sceneName() + "_header" + format(headerIndex, "02") + "_startPositionList"
+        return f"{self.sceneName()}_header{headerIndex:02}_playerEntryList"
 
     def exitListName(self, headerIndex):
         return self.sceneName() + "_header" + format(headerIndex, "02") + "_exitList"
@@ -334,19 +333,19 @@ class OOTBGImage:
         return f"{self.name}.jpg"
 
     def singlePropertiesC(self, tabDepth: int) -> str:
-        code = ""
-        code += "\t" * tabDepth + f"{self.name},\n"
-        code += "\t" * tabDepth + f"0x00000000, 0x00000000,\n"
-        code += "\t" * tabDepth + f"{self.image.size[0]}, {self.image.size[1]},\n"
-        code += "\t" * tabDepth + f"0, 2,\n"  # RGBA16
-        code += "\t" * tabDepth + f"{self.otherModeFlags}, 0x0000,\n"
-        return code
+        return (indent * tabDepth) + (indent * tabDepth).join(
+            (
+                f"{self.name},\n",
+                f"0x00000000,\n",  # (``unk_0C`` in decomp)
+                "NULL,\n",
+                f"{self.image.size[0]}, {self.image.size[1]},\n",
+                f"G_IM_FMT_RGBA, G_IM_SIZ_16b,\n",  # RGBA16
+                f"{self.otherModeFlags}, 0x0000",
+            )
+        )
 
     def multiPropertiesC(self, tabDepth: int, cameraIndex: int) -> str:
-        code = ""
-        code += "\t" * tabDepth + f"0x0082, {cameraIndex},\n"
-        code += self.singlePropertiesC(tabDepth)
-        return code
+        return (indent * tabDepth) + f"0x0082, {cameraIndex},\n" + self.singlePropertiesC(tabDepth) + "\n"
 
 
 class OOTRoomMesh:
@@ -366,7 +365,7 @@ class OOTRoomMesh:
 
     def entriesName(self):
         return str(self.roomName) + (
-            "_shapeDListEntry" if self.roomShape == "ROOM_SHAPE_TYPE_NORMAL" else "_shapeCullableEntry"
+            "_shapeDListEntry" if self.roomShape != "ROOM_SHAPE_TYPE_CULLABLE" else "_shapeCullableEntry"
         )
 
     def addMeshGroup(self, cullGroup):

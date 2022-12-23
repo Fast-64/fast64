@@ -2,7 +2,7 @@ import math, mathutils, bpy, os, re
 from ..panels import OOT_Panel
 from bpy.utils import register_class, unregister_class
 from .oot_skeleton import ootConvertArmatureToSkeletonWithoutMesh
-from ..utility import CData, PluginError, toAlnum, writeCData, readFile, hexOrDecInt, raisePluginError, prop_split
+from ..utility import CData, PluginError, toAlnum, writeCData, hexOrDecInt, raisePluginError, prop_split
 
 from .oot_utility import (
     checkForStartBone,
@@ -26,19 +26,22 @@ from ..utility_anim import (
     getRotationRelativeToRest,
 )
 
-from ..f3d.f3d_material import iter_tex_nodes
-from ..f3d.flipbook import usesFlipbook, ootFlipbookAnimUpdate
-
+from ..f3d.flipbook import ootFlipbookAnimUpdate
 from .oot_model_classes import ootGetIncludedAssetData
 from ..f3d.f3d_parser import getImportData
 
 
 class OOTAnimExportSettingsProperty(bpy.types.PropertyGroup):
-    isCustom: bpy.props.BoolProperty(name="Use Custom Path")
+    isCustomFilename: bpy.props.BoolProperty(
+        name="Use Custom Filename", description="Override filename instead of basing it off of the Blender name"
+    )
+    filename: bpy.props.StringProperty(name="Filename")
+    isCustom: bpy.props.BoolProperty(
+        name="Use Custom Path", description="Determines whether or not to export to an explicitly specified folder"
+    )
     customPath: bpy.props.StringProperty(name="Folder", subtype="FILE_PATH")
     folderName: bpy.props.StringProperty(name="Animation Folder", default="object_geldb")
     isLink: bpy.props.BoolProperty(name="Is Link", default=False)
-    skeletonName: bpy.props.StringProperty(name="Skeleton Name", default="gGerudoRedSkel")
 
 
 class OOTAnimImportSettingsProperty(bpy.types.PropertyGroup):
@@ -426,14 +429,16 @@ def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSetti
     exportPath = ootGetObjectPath(settings.isCustom, path, settings.folderName)
 
     checkEmptyName(settings.folderName)
-    checkEmptyName(settings.skeletonName)
+    checkEmptyName(armatureObj.name)
+    name = toAlnum(armatureObj.name)
+    filename = settings.filename if settings.isCustomFilename else name
     convertTransformMatrix = (
         mathutils.Matrix.Scale(getOOTScale(armatureObj.ootActorScale), 4)
         @ mathutils.Matrix.Diagonal(armatureObj.scale).to_4x4()
     )
 
     if settings.isLink:
-        ootAnim = ootExportLinkAnimation(armatureObj, convertTransformMatrix, "gLink")
+        ootAnim = ootExportLinkAnimation(armatureObj, convertTransformMatrix, name)
         ootAnimC, ootAnimHeaderC = ootAnim.toC(settings.isCustom)
         path = ootGetPath(
             exportPath,
@@ -465,14 +470,14 @@ def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSetti
             addIncludeFiles("gameplay_keep", headerPath, ootAnim.headerName)
 
     else:
-        ootAnim = ootExportNonLinkAnimation(armatureObj, convertTransformMatrix, settings.skeletonName)
+        ootAnim = ootExportNonLinkAnimation(armatureObj, convertTransformMatrix, name)
 
         ootAnimC = ootAnim.toC()
         path = ootGetPath(exportPath, settings.isCustom, "assets/objects/", settings.folderName, False, False)
-        writeCData(ootAnimC, os.path.join(path, ootAnim.name + ".h"), os.path.join(path, ootAnim.name + ".c"))
+        writeCData(ootAnimC, os.path.join(path, filename + ".h"), os.path.join(path, filename + ".c"))
 
         if not settings.isCustom:
-            addIncludeFiles(settings.folderName, path, ootAnim.name)
+            addIncludeFiles(settings.folderName, path, filename)
 
 
 def ootImportAnimationC(
@@ -839,7 +844,10 @@ class OOT_ExportAnimPanel(OOT_Panel):
 
         col.operator(OOT_ExportAnim.bl_idname)
         exportSettings = context.scene.fast64.oot.animExportSettings
-        prop_split(col, exportSettings, "skeletonName", "Anim Name Prefix")
+        col.label(text="Exports active animation on selected object.", icon="INFO")
+        col.prop(exportSettings, "isCustomFilename")
+        if exportSettings.isCustomFilename:
+            prop_split(col, exportSettings, "filename", "Filename")
         if exportSettings.isCustom:
             prop_split(col, exportSettings, "customPath", "Folder")
         elif not exportSettings.isLink:

@@ -1,10 +1,18 @@
 import math, os, re, bpy, mathutils
 from random import random
-
+from collections import OrderedDict
+from ..f3d.f3d_gbi import F3D
+from ..f3d.flipbook import TextureFlipbook
+from ..utility import PluginError, raisePluginError, readFile, parentObject, hexOrDecInt, gammaInverse, yUpToZUp
+from ..f3d.f3d_parser import parseMatrices, importMeshC
 from .oot_f3d_writer import getColliderMat
 from .oot_level import OOTImportSceneSettingsProperty
 from .oot_scene_room import OOTSceneHeaderProperty, OOTRoomHeaderProperty, OOTLightProperty
-from .oot_actor import OOTActorProperty
+from .oot_actor import OOTActorProperty, OOTActorHeaderProperty, setAllActorsVisibility
+from .scene.exporter.to_c import getDrawConfig
+from .oot_collision import OOTMaterialCollisionProperty
+from .oot_model_classes import OOTF3DContext
+
 from .oot_utility import (
     getHeaderSettings,
     getSceneDirFromLevelName,
@@ -12,7 +20,9 @@ from .oot_utility import (
     ootParseRotation,
     sceneNameFromID,
     ootGetPath,
+    getEvalParams,
 )
+
 from .oot_constants import (
     ootEnumCamTransition,
     ootEnumDrawConfig,
@@ -31,12 +41,7 @@ from .oot_constants import (
     ootEnumRoomShapeType,
     ootData,
 )
-from .oot_actor import OOTActorHeaderProperty, setAllActorsVisibility
-from .scene.exporter.to_c import getDrawConfig
-from ..utility import yUpToZUp, parentObject, hexOrDecInt, gammaInverse
-from ..f3d.f3d_parser import parseMatrices, importMeshC
-from collections import OrderedDict
-from .oot_collision import OOTMaterialCollisionProperty
+
 from .oot_collision_classes import (
     ootEnumCameraCrawlspaceSType,
     ootEnumFloorSetting,
@@ -46,10 +51,6 @@ from .oot_collision_classes import (
     ootEnumCollisionSound,
     ootEnumCameraSType,
 )
-from ..utility import PluginError, raisePluginError, readFile
-from .oot_model_classes import OOTF3DContext
-from ..f3d.f3d_gbi import F3D
-from ..f3d.flipbook import TextureFlipbook
 
 
 def run_ops_without_view_layer_update(func):
@@ -139,10 +140,25 @@ def getBits(value: int, index: int, size: int) -> int:
     return ((1 << size) - 1) & (value >> index)
 
 
+def removeComments(text: str):
+    # https://stackoverflow.com/a/241506
+
+    def replacer(match: re.Match[str]):
+        s = match.group(0)
+        if s.startswith("/"):
+            return " "  # note: a space and not an empty string
+        else:
+            return s
+
+    pattern = re.compile(r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"', re.DOTALL | re.MULTILINE)
+
+    return re.sub(pattern, replacer, text)
+
+
 def getDataMatch(
     sceneData: str, name: str, dataType: str | list[str], errorMessageID: str, isArray: bool = True
 ) -> str:
-    arrayText = rf"\[[\s0-9A-Fa-fx]*\]\s*" if isArray else ""
+    arrayText = rf"\[[\s0-9A-Za-z_]*\]\s*" if isArray else ""
 
     if isinstance(dataType, list):
         dataTypeRegex = "(?:"
@@ -153,10 +169,12 @@ def getDataMatch(
         dataTypeRegex = re.escape(dataType)
     regex = rf"{dataTypeRegex}\s*{re.escape(name)}\s*{arrayText}=\s*\{{(.*?)\}}\s*;"
     match = re.search(regex, sceneData, flags=re.DOTALL)
+
     if not match:
         raise PluginError(f"Could not find {errorMessageID} {name}.")
 
-    return match.group(1)
+    # return the match with comments removed
+    return removeComments(match.group(1))
 
 
 def stripName(name: str):
@@ -427,6 +445,8 @@ def parseRoomList(
         roomName = roomMatch.group(1).strip().replace("SegmentRomStart", "")
         if "(u32)" in roomName:
             roomName = roomName[5:].strip()[1:]  # includes leading underscore
+        elif "(uintptr_t)" in roomName:
+            roomName = roomName[11:].strip()[1:]
         else:
             roomName = roomName[1:]
 
@@ -708,11 +728,17 @@ def parseTransActorList(
     headerIndex: int,
 ):
     transitionActorList = getDataMatch(sceneData, transActorListName, "TransitionActorEntry", "transition actor list")
-    for actorMatch in re.finditer(rf"\{{(.*?)\}}\s*,", transitionActorList, flags=re.DOTALL):
-        params = [value.strip() for value in actorMatch.group(1).split(",") if value.strip() != ""]
+
+    regex = r"(?:\{(.*?)\}\s*,)|(?:\{([a-zA-Z0-9\-_.,{}\s]*[^{]*)\},)"
+    for actorMatch in re.finditer(regex, transitionActorList):
+        actorMatch = actorMatch.group(0).replace(" ", "").replace("\n", "").replace("{", "").replace("}", "")
+
+        params = [value.strip() for value in actorMatch.split(",") if value.strip() != ""]
 
         position = tuple([hexOrDecInt(value) for value in params[5:8]])
-        rotation = tuple([0, hexOrDecInt(params[8]), 0])
+
+        rotY = getEvalParams(params[8]) if "DEG_TO_BINANG" in params[8] else params[8]
+        rotation = tuple([0, hexOrDecInt(rotY), 0])
 
         roomIndexFront = hexOrDecInt(params[0])
         camFront = params[1]
@@ -759,7 +785,7 @@ def parseTransActorList(
 def parseEntranceList(
     sceneHeader: OOTSceneHeaderProperty, roomObjs: list[bpy.types.Object], sceneData: str, entranceListName: str
 ):
-    entranceList = getDataMatch(sceneData, entranceListName, "EntranceEntry", "entrance List")
+    entranceList = getDataMatch(sceneData, entranceListName, ["EntranceEntry", "Spawn"], "entrance List")
 
     # see also start position list
     entrances = []
@@ -784,11 +810,15 @@ def parseActorInfo(actorMatch: re.Match, nestedBrackets: bool) -> tuple[str, lis
             [hexOrDecInt(value.strip()) for value in actorMatch.group(2).split(",") if value.strip() != ""]
         )
         rotation = tuple(
-            [hexOrDecInt(value.strip()) for value in actorMatch.group(3).split(",") if value.strip() != ""]
+            [
+                hexOrDecInt(getEvalParams(value.strip()))
+                for value in actorMatch.group(3).split(",")
+                if value.strip() != ""
+            ]
         )
         actorParam = actorMatch.group(4).strip()
     else:
-        params = [value.strip() for value in actorMatch.group(1).split(",")]
+        params = [getEvalParams(value.strip()) for value in actorMatch.group(1).split(",")]
         actorID = params[0]
         position = tuple([hexOrDecInt(value) for value in params[1:4]])
         rotation = tuple([hexOrDecInt(value) for value in params[4:7]])
@@ -1036,7 +1066,7 @@ def parseLightList(
     lightListName: str,
     headerIndex: int,
 ):
-    lightData = getDataMatch(sceneData, lightListName, "LightSettings", "light list")
+    lightData = getDataMatch(sceneData, lightListName, ["LightSettings", "EnvLightSettings"], "light list")
 
     # I currently don't understand the light list format in respect to this lighting flag.
     # So we'll set it to custom instead.
@@ -1045,10 +1075,34 @@ def parseLightList(
         sceneHeader.skyboxLighting = "Custom"
     sceneHeader.lightList.clear()
 
-    lightList = [value.replace("{", "").strip() for value in lightData.split("},") if value.strip() != ""]
+    # convert string to ZAPD format if using new Fast64 output
+    if "// Ambient Color" in sceneData:
+        i = 0
+        lightData = lightData.replace("{", "").replace("}", "").replace("\n", "").replace(" ", "").replace(",,", ",")
+        data = "{ "
+        for part in lightData.split(","):
+            if i < 20:
+                if i == 18:
+                    part = getEvalParams(part)
+                data += part + ", "
+                if i == 19:
+                    data = data[:-2]
+            else:
+                data += "},\n{ " + part + ", "
+                i = 0
+            i += 1
+        lightData = data[:-4]
+
+    lightList = [
+        value.replace("{", "").replace("\n", "").replace(" ", "")
+        for value in lightData.split("},")
+        if value.strip() != ""
+    ]
+
     index = 0
     for lightEntry in lightList:
         lightParams = [value.strip() for value in lightEntry.split(",")]
+
         ambientColor = parseColor(lightParams[0:3])
         diffuseDir0 = parseDirection(0, lightParams[3:6])
         diffuseColor0 = parseColor(lightParams[6:9])
@@ -1298,7 +1352,7 @@ def parsePolygon(polygonData: str):
 
 
 def parseCamDataList(sceneObj: bpy.types.Object, camDataListName: str, sceneData: str):
-    camMatchData = getDataMatch(sceneData, camDataListName, "CamData", "camera data list")
+    camMatchData = getDataMatch(sceneData, camDataListName, ["CamData", "BgCamInfo"], "camera data list")
     camDataList = [value.replace("{", "").strip() for value in camMatchData.split("},") if value.strip() != ""]
 
     # orderIndex used for naming cameras in alphabetical order
