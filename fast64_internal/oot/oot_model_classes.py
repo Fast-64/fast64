@@ -570,7 +570,3 @@ def clearOOTFlipbookProperty(flipbookProp):
 def clearOOTMaterialDrawLayerProperty(matDrawLayerProp):
     for i in range(0x08, 0x0E):
         setattr(matDrawLayerProp, "segment" + format(i, "X"), False)
-
-
-class OOTDynamicTransformProperty(bpy.types.PropertyGroup):
-    billboard: bpy.props.BoolProperty(name="Billboard")

@@ -445,6 +445,29 @@ def replaceSegmentLoad(levelscript, segmentName, command, changedSegment):
     changedLoad[1][2] = segmentName + "SegmentRomEnd"
 
 
+def replaceScriptLoads(levelscript, obj):
+    newFuncs = []
+    for jumpLink in levelscript.levelFunctions:
+        target = jumpLink[1][0]  # format is [macro, list[args], comment]
+        if "script_func_global_" not in target:
+            newFuncs.append(jumpLink)
+            continue
+        scriptNum = int(re.findall(r"\d+", target)[-1])
+        # this is common0
+        if scriptNum == 1:
+            newFuncs.append(jumpLink)
+            continue
+        if scriptNum < 13:
+            newNum = obj.fast64.sm64.segment_loads.group5
+        else:
+            newNum = obj.fast64.sm64.segment_loads.group6
+        if newNum == "Do Not Write":
+            newFuncs.append(jumpLink)
+            continue
+        newFuncs.append(["JUMP_LINK", [newNum], jumpLink[2]])
+    levelscript.levelFunctions = newFuncs
+
+
 def stringToMacros(data):
     macroData = []
     for matchResult in re.finditer("(\w*)\((((?!\)).)*)\),?(((?!\n)\s)*\/\/((?!\n).)*)?", data):
@@ -813,9 +836,9 @@ def exportLevelC(
 
     # Generate levelscript string
     compressionFmt = bpy.context.scene.compressionFormat
-    replaceSegmentLoad(prevLevelScript, "_" + levelName + "_segment_7", "LOAD_" + compressionFmt.upper(), 0x07)
+    replaceSegmentLoad(prevLevelScript, f"_{levelName}_segment_7", f"LOAD_{compressionFmt.upper()}", 0x07)
     if usesEnvFX:
-        replaceSegmentLoad(prevLevelScript, "_effect_" + compressionFmt, "LOAD_" + compressionFmt.upper(), 0x0B)
+        replaceSegmentLoad(prevLevelScript, f"_effect_{compressionFmt}", f"LOAD_{compressionFmt.upper()}", 0x0B)
     if not obj.useBackgroundColor:
         segment = ""
         if obj.background == "CUSTOM":
@@ -823,9 +846,25 @@ def exportLevelC(
         else:
             segment = backgroundSegments[obj.background] + "_skybox"
 
+        replaceSegmentLoad(prevLevelScript, f"_{segment}_{compressionFmt}", f"LOAD_{compressionFmt.upper()}", 0x0A)
+    # actor groups
+    if obj.fast64.sm64.segment_loads.seg5_enum != "Do Not Write":
         replaceSegmentLoad(
-            prevLevelScript, "_" + segment + "_" + compressionFmt, "LOAD_" + compressionFmt.upper(), 0x0A
+            prevLevelScript,
+            f"_{obj.fast64.sm64.segment_loads.seg5}_{compressionFmt}",
+            f"LOAD_{compressionFmt.upper()}",
+            0x05,
         )
+        replaceSegmentLoad(prevLevelScript, f"_{obj.fast64.sm64.segment_loads.seg5}_geo", "LOAD_RAW", 0x0C)
+    if obj.fast64.sm64.segment_loads.seg6_enum != "Do Not Write":
+        replaceSegmentLoad(
+            prevLevelScript,
+            f"_{obj.fast64.sm64.segment_loads.seg6}_{compressionFmt}",
+            f"LOAD_{compressionFmt.upper()}",
+            0x06,
+        )
+        replaceSegmentLoad(prevLevelScript, f"_{obj.fast64.sm64.segment_loads.seg6}_geo", "LOAD_RAW", 0x0D)
+    replaceScriptLoads(prevLevelScript, obj)
     levelscriptString = prevLevelScript.to_c(areaString)
 
     if bpy.context.scene.exportHiddenGeometry:
