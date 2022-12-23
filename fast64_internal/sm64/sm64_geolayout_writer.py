@@ -370,11 +370,29 @@ def convertArmatureToGeolayout(
         meshGeolayout = saveCameraSettingsToGeolayout(geolayoutGraph, cameraObj, armatureObj, name + "_geo")
     else:
         geolayoutGraph = GeolayoutGraph(name + "_geo")
+
+        # If this armature uses a render area add it first.
         if armatureObj.use_render_area:
-            rootNode = TransformNode(StartRenderAreaNode(armatureObj.culling_radius))
-        else:
-            rootNode = TransformNode(StartNode())
-        geolayoutGraph.startGeolayout.nodes.append(rootNode)
+            renderAreaNode = TransformNode(StartRenderAreaNode(armatureObj.culling_radius))
+            geolayoutGraph.startGeolayout.nodes.append(renderAreaNode)
+
+        # If this armature uses a shadow add it first, but if it also uses a render area add it after it.
+        if armatureObj.add_shadow:
+            shadowType = int(armatureObj.shadow_type)
+            shadowSolidity = armatureObj.shadow_solidity
+            shadowScale = armatureObj.shadow_scale
+
+            shadowNode = TransformNode(ShadowNode(shadowType, shadowSolidity, shadowScale))
+            if armatureObj.use_render_area:
+                geolayoutGraph.startGeolayout.nodes[0].children.append(shadowNode)
+            else:
+                geolayoutGraph.startGeolayout.nodes.append(shadowNode)
+
+        # If this armature uses neither a render area or shadow, then it requires a start bone. 
+        if not (armatureObj.use_render_area or armatureObj.add_shadow):
+            startNode = TransformNode(StartNode())
+            geolayoutGraph.startGeolayout.nodes.append(startNode)
+
         meshGeolayout = geolayoutGraph.startGeolayout
 
     for i in range(len(startBoneNames)):

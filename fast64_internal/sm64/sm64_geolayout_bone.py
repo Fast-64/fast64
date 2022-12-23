@@ -197,6 +197,13 @@ class GeolayoutArmaturePanel(Panel):
             col.box().label(text="This is in blender units.")
             prop_split(col, obj, "culling_radius", "Culling Radius")
 
+        col.prop(obj, "add_shadow")
+        if obj.add_shadow:
+            col.box().label(text="This is not in blender units.")
+            prop_split(col, obj, "shadow_type", "Type")
+            prop_split(col, obj, "shadow_solidity", "Alpha")
+            prop_split(col, obj, "shadow_scale", "Scale")
+
 
 def drawLayerWarningBox(layout, prop, data):
     warningBox = layout.box().column()
@@ -241,6 +248,10 @@ class GeolayoutObjectPanel(Panel):
             prop_split(col, obj, "render_range", "Render Range")
         col.prop(obj, "add_shadow")
         if obj.add_shadow:
+            shadowBox = col.box()
+            shadowBox.label(text="This is not in blender units.")
+            shadowBox.label(text="This only applies if this is the root object of an object geolayout.")
+            shadowBox.label(text="For armature geolayouts, see the armature's object properties instead.")
             prop_split(col, obj, "shadow_type", "Type")
             prop_split(col, obj, "shadow_solidity", "Alpha")
             prop_split(col, obj, "shadow_scale", "Scale")
