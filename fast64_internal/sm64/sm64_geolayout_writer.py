@@ -2471,13 +2471,6 @@ def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, dr
     # Use a while instead of a for to be able to insert into the list during iteration
     commandIdx = 0
     
-    #remove by checking the object ID, not equality
-    def remove_by_id(iterator, rmObject):
-        for index, val in enumerate(iterator):
-            if rmObject is val:
-                iterator.pop(index)
-                break
-    
     while commandIdx < len(meshMatOverride.commands):
         # Get the command at the current index
         command = meshMatOverride.commands[commandIdx]
@@ -2502,7 +2495,7 @@ def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, dr
                     # Check if this material is the same as the prevous loaded material in the DL
                     if prevMaterial == curMaterial:
                         # If so, remove this material load
-                        remove_by_id(meshMatOverride.commands, command)
+                        meshMatOverride.commands.pop(commandIdx)
                         commandIdx -= 1
                         # Scan backwards for any reverts
                         prevIndex = commandIdx - 1
@@ -2510,7 +2503,7 @@ def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, dr
                             prevCommand = meshMatOverride.commands[prevIndex]
                             # If the previous command is a revert for this material, remove that revert as well
                             if isinstance(prevCommand, SPDisplayList) and prevCommand.displayList == curMaterial.revert:
-                                remove_by_id(meshMatOverride.commands, prevCommand)
+                                meshMatOverride.commands.pop(prevIndex)
                                 prevIndex -= 1
                                 commandIdx -= 1
                             else:
@@ -2528,8 +2521,8 @@ def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, dr
                             # If it does, then replace the displaylist for this revert
                             command.displayList = fOverrideMat.revert
                         else:
-                            # Otherwise, tag this revert for removal
-                            remove_by_id(meshMatOverride.commands, command)
+                            # Otherwise, remove this revert
+                            meshMatOverride.commands.pop(commandIdx)
                             commandIdx -= 1
                     # We found what this current command is, so we can skip checking other materials
                     break
@@ -2541,7 +2534,7 @@ def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, dr
                     prevCommand = meshMatOverride.commands[prevIndex]
                     if isinstance(prevCommand, SPDisplayList) and prevCommand.displayList == fOverrideMat.revert:
                         # Remove this added revert
-                        remove_by_id(meshMatOverride.commands, prevCommand)
+                        meshMatOverride.commands.pop(prevIndex)
                         commandIdx -= 1
                 # At this point, the current command is confirmed to be neither a material load nor a material revert.
                 # If the override material has a revert and the original material didn't, insert a revert after this command.
