@@ -40,6 +40,7 @@ from .sm64_camera import (
 )
 
 from .sm64_objects import (
+    SM64_CombinedObjectProperties,
     sm64_obj_panel_register,
     sm64_obj_panel_unregister,
     sm64_obj_register,
@@ -94,7 +95,6 @@ from .sm64_anim import (
     sm64_anim_register,
     sm64_anim_unregister,
 )
-
 
 enumRefreshVer = [
     ("Refresh 3", "Refresh 3", "Refresh 3"),
@@ -221,6 +221,8 @@ class SM64_Properties(PropertyGroup):
     showImportingMenus: BoolProperty(name="Show Importing Menus", default=False)
     exportType: EnumProperty(items=enumExportType, name="Export Type", default="C")
     goal: EnumProperty(items=sm64GoalTypeEnum, name="Export Goal", default="All")
+    
+    combined_object_export: bpy.props.PointerProperty(type=SM64_CombinedObjectProperties)
 
     # TODO: Utilize these across all exports
     # C exporting
@@ -295,9 +297,6 @@ def sm64_panel_unregister():
 
 
 def sm64_register(registerPanels):
-    for cls in sm64_classes:
-        register_class(cls)
-
     sm64_col_register()  # register first, so panel goes above mat panel
     sm64_bone_register()
     sm64_cam_register()
@@ -309,7 +308,10 @@ def sm64_register(registerPanels):
     sm64_dl_writer_register()
     sm64_dl_parser_register()
     sm64_anim_register()
-
+    
+    for cls in sm64_classes:
+        register_class(cls)
+        
     if registerPanels:
         sm64_panel_register()
 
@@ -339,9 +341,6 @@ def sm64_register(registerPanels):
 
 
 def sm64_unregister(unregisterPanels):
-    for cls in reversed(sm64_classes):
-        unregister_class(cls)
-
     sm64_col_unregister()  # register first, so panel goes above mat panel
     sm64_bone_unregister()
     sm64_cam_unregister()
@@ -353,7 +352,10 @@ def sm64_unregister(unregisterPanels):
     sm64_dl_writer_unregister()
     sm64_dl_parser_unregister()
     sm64_anim_unregister()
-
+    
+    for cls in reversed(sm64_classes):
+        unregister_class(cls)
+    
     if unregisterPanels:
         sm64_panel_unregister()
 

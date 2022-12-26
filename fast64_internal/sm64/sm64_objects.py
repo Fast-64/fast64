@@ -1,7 +1,10 @@
 import math, bpy, mathutils
 from bpy.utils import register_class, unregister_class
 from re import findall
+from pathlib import Path
 from .sm64_function_map import func_map
+from ..panels import SM64_Panel
+from ..operators import ObjectDataExporter
 
 from ..utility import (
     PluginError,
@@ -14,6 +17,19 @@ from ..utility import (
     all_values_equal_x,
     checkIsSM64PreInlineGeoLayout,
     prop_split,
+    applyRotation,
+    applyBasicTweaks,
+    getPathAndLevel,
+    raisePluginError,
+    enumExportHeaderType,
+)
+
+# from .sm64_collision import (
+# exportCollisionC,
+# )
+
+from ..f3d.f3d_gbi import (
+    DLFormat,
 )
 
 from .sm64_constants import (
@@ -23,6 +39,8 @@ from .sm64_constants import (
     enumMacrosNames,
     enumSpecialsNames,
     enumBehaviourPresets,
+    enumBehaviorMacros,
+    behaviorMacroArguments,
     groupsSeg5,
     groupsSeg6,
 )
@@ -1401,6 +1419,434 @@ class SM64ObjectPanel(bpy.types.Panel):
         layout.prop(obj, "sm64_obj_use_act" + str(value), text="")
 
 
+class AddBehavior(bpy.types.Operator):
+    bl_idname = "bone.add_behavior_script"
+    bl_label = "Add Behavior Script"
+    option: bpy.props.IntProperty()
+
+    def execute(self, context):
+        prop = context.scene.fast64.sm64.combined_object_export
+        prop.behavior_script.add()
+        prop.behavior_script.move(len(prop.behavior_script) - 1, self.option)
+        self.report({"INFO"}, "Success!")
+        return {"FINISHED"}
+
+
+class RemoveBehavior(bpy.types.Operator):
+    bl_idname = "bone.remove_behavior_script"
+    bl_label = "Remove Behavior Script"
+    option: bpy.props.IntProperty()
+
+    def execute(self, context):
+        prop = context.scene.fast64.sm64.combined_object_export
+        prop.behavior_script.remove(self.option)
+        self.report({"INFO"}, "Success!")
+        return {"FINISHED"}
+
+
+class BehaviorScriptProperty(bpy.types.PropertyGroup):
+    expand: bpy.props.BoolProperty(name="Expand")
+    macro: bpy.props.EnumProperty(items=enumBehaviorMacros, name="Behavior Macro", default="BEGIN")
+    # there are anywhere from 0 to 3 arguments for a bhv, rather than make a new prop
+    # group and collection prop, I'll just have static props and choose to use
+    # arguments as needed
+    arg_1: bpy.props.StringProperty(name="Argument 1")
+    arg_2: bpy.props.StringProperty(name="Argument 2")
+    arg_3: bpy.props.StringProperty(name="Argument 3")
+    # for gravity, 8 args are used, but everything else only uses a max of 3
+    arg_4: bpy.props.StringProperty(name="Argument 4")
+    arg_5: bpy.props.StringProperty(name="Argument 5")
+    arg_6: bpy.props.StringProperty(name="Argument 6")
+    arg_7: bpy.props.StringProperty(name="Argument 7")
+    arg_8: bpy.props.StringProperty(name="Argument 8")
+
+    @property
+    def bhv_args(self):
+        args = behaviorMacroArguments.get(self.macro)
+        if args:
+            return args
+
+    @property
+    def arg_fields(self):
+        return ("arg_1", "arg_2", "arg_3", "arg_4", "arg_5", "arg_6", "arg_7", "arg_8")
+
+    @property
+    def macro_args(self):
+        if self.bhv_args:
+            return [getattr(self, field) for field, arg_name in zip(self.arg_fields, self.bhv_args)]
+
+    def draw(self, layout, index):
+        box = layout.box()
+        box.prop(
+            self,
+            "expand",
+            text=f"Bhv Cmd:   {self.macro}",
+            icon="TRIA_DOWN" if self.expand else "TRIA_RIGHT",
+        )
+        if self.expand:
+            prop_split(box, self, "macro", "Behavior Macro")
+            if self.bhv_args:
+                for field, arg_name in zip(self.arg_fields, self.bhv_args):
+                    prop_split(box, self, field, arg_name)
+            row = box.row()
+            row.operator("bone.add_behavior_script", text="Add Bhv Cmd").option = index + 1
+            row.operator("bone.remove_behavior_script", text="Remove Bhv Cmd").option = index
+
+
+class SM64_ExportCombinedObject(ObjectDataExporter):
+    bl_idname = "object.sm64_export_combined_object"
+    bl_label = "SM64 Combined Object"
+
+    # export collision, copied from SM64_ExportCollision
+    def export_collision(self, context, obj, props, finalTransform):
+        # avoid circular import, temp fix
+        from .sm64_collision import exportCollisionC
+
+        applyRotation([obj], math.radians(90), "X")
+        exportPath, levelName = getPathAndLevel(
+            props.use_custom_path,
+            props.custom_export_path,
+            props.custom_level_name,
+            props.level_name,
+        )
+        if not props.use_custom_path:
+            applyBasicTweaks(exportPath)
+        exportCollisionC(
+            obj,
+            finalTransform,
+            exportPath,
+            False,
+            props.include_children,
+            props.object_name,
+            props.use_custom_path,
+            props.export_rooms,
+            props.export_header_type,
+            props.group_name,
+            levelName,
+        )
+        applyRotation([obj], math.radians(-90), "X")
+
+    # export geo layout, copied from SM64_ExportGeolayoutObject
+    def export_geo_layout(self, context, obj, props, finalTransform):
+        # avoid circular import, temp fix
+        from .sm64_geolayout_writer import exportGeolayoutObjectC
+
+        self.store_object_data()
+        applyRotation([obj], math.radians(90), "X")
+        saveTextures = bpy.context.scene.saveTextures
+        exportPath, levelName = getPathAndLevel(
+            props.use_custom_path,
+            props.custom_export_path,
+            props.custom_level_name,
+            props.level_name,
+        )
+        exportGeolayoutObjectC(
+            obj,
+            finalTransform,
+            context.scene.f3d_type,
+            context.scene.isHWv1,
+            exportPath,
+            bpy.context.scene.geoTexDir,
+            saveTextures,
+            saveTextures and bpy.context.scene.geoSeparateTextureDef,
+            None,
+            props.group_name,
+            props.export_header_type,
+            props.object_name,
+            f"{toAlnum(props.object_name)}_geo",
+            levelName,
+            props.use_custom_path,
+            DLFormat.Static,
+        )
+        applyRotation([obj], math.radians(-90), "X")
+
+    def write_file_lines(self, path, file_lines):
+        with open(path, "w") as file:
+            [file.write(line) for line in file_lines]
+
+    # export the model ID to /include/model_ids.h
+    def export_model_id(self, context, props):
+        # check if model_ids.h exists
+        decomp_path = Path(bpy.path.abspath(bpy.context.scene.decompPath))
+        model_ids = decomp_path / "include" / "model_ids.h"
+        if not model_ids.exists():
+            PluginError("could not find model_ids.h")
+        model_id_lines = open(model_ids, "r").readlines()
+        # if model ID is already in the file, replace it, else add it in predictable location
+        export_model_id = f"#define {props.model_id: <34}{toAlnum(props.object_name)}_geo\n"
+        model_none = ["#define MODEL_NONE", 0]
+        fast64_sig = ["// fast64 object exports get inserted here", 0]
+        for j, line in enumerate(model_id_lines):
+            # replace line and end func
+            if props.model_id in line:
+                model_id_lines[j] = export_model_id
+                self.write_file_lines(model_ids, model_id_lines)
+                return
+            # mark preferred writing locations
+            if fast64_sig[0] in line:
+                fast64_sig[1] = j
+                continue
+            if model_none[0] in line:
+                model_none[1] = j
+                continue
+        export_line = fast64_sig[1]
+        # add under #define MODEL_NONE if no fast64_sig, if both are gone, add at end of file
+        if not exportLine:
+            export_line = model_none[1] + 1 if model_none[1] else len(model_id_lines)
+            model_id_lines.insert(export_line, f"\n{fast64_sig[0]}\n")
+        model_id_lines.insert(export_line + 1, export_model_id)
+        self.write_file_lines(model_ids, model_id_lines)
+
+    def export_behavior_header(self, context, props):
+        # check if behavior_header.h exists
+        decomp_path = Path(bpy.path.abspath(bpy.context.scene.decompPath))
+        behavior_header = decomp_path / "include" / "behavior_data.h"
+        if not behavior_header.exists():
+            PluginError("could not find behavior_data.h")
+        bhv_header_lines = open(behavior_header, "r").readlines()
+        # writing the behavior header extern
+        # if extern is already written, overwrite file, otherwise find and add to file
+        export_bhv_include = f"extern const BehaviorScript {props.bhv_name}[];\n"
+        header_top = ['#include "types.h"', 0]
+        fast64_sig = ["// fast64 object exports get inserted here", 0]
+        for j, line in enumerate(bhv_header_lines):
+            # replace line and end func
+            if props.bhv_name in line:
+                bhv_header_lines[j] = export_bhv_include
+                self.write_file_lines(behavior_header, bhv_header_lines)
+                break
+            # mark preferred writing locations
+            if fast64_sig[0] in line:
+                fast64_sig[1] = j
+                continue
+            if header_top[0] in line:
+                header_top[1] = j
+                continue
+        # for loop was not broken, file was not written to
+        else:
+            export_line = fast64_sig[1]
+            # add under #include "types.h" if no fast64_sig, if both are gone, add at end of file
+            if not export_line:
+                export_line = header_top[1] + 1 if header_top[1] else len(bhv_header_lines)
+                bhv_header_lines.insert(export_line, f"\n{fast64_sig[0]}\n")
+            bhv_header_lines.insert(export_line + 1, export_bhv_include)
+            self.write_file_lines(behavior_header, bhv_header_lines)
+
+    # export the behavior script, edits /data/behaviour_data.c and /include/behaviour_data.h
+    def export_behavior_script(self, context, props):
+        # exporting bhv header
+        self.export_behavior_header(context, props)
+        # export the behavior script itself
+        decomp_path = Path(bpy.path.abspath(bpy.context.scene.decompPath))
+        behavior_data = decomp_path / "data" / "behavior_data.c"
+        if not behavior_data.exists():
+            PluginError("could not find behavior_data.c")
+        bhv_data_lines = open(behavior_data, "r").readlines()
+        export_bhv_name = f"const BehaviorScript {props.bhv_name}[] = {{\n"
+        # add at top of bhvs, 3 lines after this is found
+        last_bhv_define = ["#define SPAWN_WATER_DROPLET(dropletParams)", 0]
+        fast64_sig = ["// fast64 object exports get inserted here", 0]
+        existing_bhv_name = [props.bhv_name, 0]
+        for j, line in enumerate(bhv_data_lines):
+            if existing_bhv_name[0] in line:
+                existing_bhv_name[1] = j
+                continue
+            # mark preferred writing locations
+            if fast64_sig[0] in line:
+                fast64_sig[1] = j
+                continue
+            if last_bhv_define[0] in line:
+                last_bhv_define[1] = j + 3
+                continue
+        # if the macro already exists, find the end line "};" and remove those lines
+        if existing_bhv_name[1]:
+            for j, line in enumerate(bhv_data_lines[existing_bhv_name[1] :]):
+                if "};" in line:
+                    bhv_data_lines = (
+                        bhv_data_lines[: existing_bhv_name[1]] + bhv_data_lines[j + existing_bhv_name[1] + 1 :]
+                    )
+                    break
+        # now write the new lines
+        export_line = fast64_sig[1]
+        # add under #include "types.h" if no fast64_sig, if both are gone, add at end of file
+        if not export_line:
+            export_line = last_bhv_define[1] if last_bhv_define[1] else len(bhv_data_lines)
+            bhv_data_lines.insert(export_line, f"\n{fast64_sig[0]}\n")
+        bhv_data_lines.insert(export_line + 1, export_bhv_name)
+        for j, bhv_cmd in enumerate(props.behavior_script):
+            if bhv_cmd.macro_args:
+                args = ", ".join(bhv_cmd.macro_args)
+            else:
+                args = ""
+            bhv_macro = f"    {bhv_cmd.macro}({args}),\n"
+            bhv_data_lines.insert(export_line + 2 + j, bhv_macro)
+        bhv_data_lines.insert(export_line + 3 + j, "};\n")
+        self.write_file_lines(behavior_data, bhv_data_lines)
+
+    # verify you can run this operator
+    def verify_context(self, context):
+        props = context.scene.fast64.sm64.combined_object_export
+        if context.scene.fast64.sm64.exportType != "C":
+            raise PluginError("Combined Object Export only supports C exporting")
+        if not props.collision_object or not props.graphics_object:
+            raise PluginError("Collision Object or Graphics Object not selected")
+
+        gfxObj = props.graphics_object
+        if type(gfxObj.data) is not bpy.types.Mesh and not (
+            gfxObj.data is None and (gfxObj.sm64_obj_type == "None" or gfxObj.sm64_obj_type == "Switch")
+        ):
+            raise PluginError('Selected object must be a mesh or an empty with the "None" or "Switch" type.')
+
+    def execute(self, context):
+        try:
+            self.verify_context(context)
+        except Exception as e:
+            raisePluginError(self, e)
+            return {"CANCELLED"}  # must return a set
+
+        props = context.scene.fast64.sm64.combined_object_export
+        scaleValue = bpy.context.scene.blenderToSM64Scale
+        finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((scaleValue, scaleValue, scaleValue))).to_4x4()
+        # col export
+        try:
+            # writes collision.inc.c file, collision_header.h
+            # writes include into aggregate file in export location (leveldata.c/<group>.c)
+            # writes name to header in aggregate file location (actor/level)
+            # var name is: const Collision <props.object_name>_collision[]
+            obj = props.collision_object
+            self.export_collision(context, obj, props, finalTransform)
+        except Exception as e:
+            if context.mode != "OBJECT":
+                bpy.ops.object.mode_set(mode="OBJECT")
+            applyRotation([obj], math.radians(-90), "X")
+            obj.select_set(True)
+            context.view_layer.objects.active = obj
+            raisePluginError(self, e)
+            return {"CANCELLED"}
+
+        # geo layout export
+        try:
+            # writes model.inc.c, geo.inc.c file, geo_header.h
+            # writes include into aggregate file (leveldata.c/<group>.c & geo.c)
+            # writes name to header in aggregate file (header.h/<group>.h)
+            # var name is: const GeoLayout <props.object_name>_geo[]
+            obj = props.graphics_object
+            self.export_geo_layout(context, obj, props, finalTransform)
+        except Exception as e:
+            if context.mode != "OBJECT":
+                bpy.ops.object.mode_set(mode="OBJECT")
+            self.cleanup_temp_object_data()
+            applyRotation([obj], math.radians(-90), "X")
+            raisePluginError(self, e)
+            return {"CANCELLED"}
+        # write model ID, behavior, and level script load
+        self.export_model_id(context, props)
+        self.export_behavior_script(context, props)
+        # you've done it!~
+        self.report({"INFO"}, "Success!")
+        return {"FINISHED"}
+
+
+class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
+    # choose export opt
+    export_header_type: bpy.props.EnumProperty(name="Header Export", items=enumExportHeaderType, default="Actor")
+    # level export opts
+    level_name: bpy.props.EnumProperty(items=enumLevelNames, name="Level", default="bob")
+    custom_level_name: bpy.props.StringProperty(name="Custom Level")
+    # actor export opts
+    group_name: bpy.props.StringProperty(name="Group Name", default="common0")
+
+    # common export opts
+    object_name: bpy.props.StringProperty(name="Actor Name", default="test_box")
+    use_custom_path: bpy.props.BoolProperty(name="Use Custom Path")
+    custom_export_path: bpy.props.StringProperty(name="Custom Path", subtype="FILE_PATH")
+
+    # collision export options
+    include_children: bpy.props.BoolProperty(name="Include Children", default=True)
+    export_rooms: bpy.props.BoolProperty(name="Export Rooms")
+
+    # behavior export options
+    export_bhv: bpy.props.BoolProperty(name="Export Behavior", default=True)
+
+    # actual behavior
+    behavior_script: bpy.props.CollectionProperty(type=BehaviorScriptProperty)
+
+    collision_object: bpy.props.PointerProperty(type=bpy.types.Object)
+    graphics_object: bpy.props.PointerProperty(type=bpy.types.Object)
+
+    @property
+    def bhv_name(self):
+        return "bhv" + "".join([word.title() for word in toAlnum(self.object_name).split("_")])
+
+    @property
+    def model_id(self):
+        return f"MODEL_{toAlnum(self.object_name)}".upper()
+
+    def draw(self, layout):
+        col = layout.column()
+        col.operator("object.sm64_export_combined_object", text="Export Object")
+
+        # general options
+        col.prop(self, "include_children")
+        col.prop(self, "export_rooms")
+        col.prop(self, "export_bhv")
+
+        # pathing
+        col.prop(self, "use_custom_path")
+        if self.use_custom_path:
+            prop_split(col, self, "custom_export_path", "Custom Path")
+        else:
+            prop_split(col, self, "export_header_type", "Export Type")
+            if self.export_header_type == "Level":
+                prop_split(col, self, "level_name", "Level")
+                if self.level_name == "custom":
+                    prop_split(col, self, "custom_level_name", "Level Name")
+            if self.export_header_type == "Actor":
+                prop_split(col, self, "group_name", "Group Name")
+        prop_split(col, self, "object_name", "Object Name")
+        # object linking
+        prop_split(col, self, "collision_object", "Collision Obj")
+        prop_split(col, self, "graphics_object", "Geo Layout Obj")
+
+        # behavior options
+        if self.export_bhv:
+            col.operator("bone.add_behavior_script", text="Add Behavior Cmd").option = len(self.behavior_script)
+            for index, bhv in enumerate(self.behavior_script):
+                bhv.draw(col, index)
+
+        # info
+        if self.use_custom_path:
+            export_path = f"{toAlnum(self.custom_export_path)}/{toAlnum(self.object_name)}"
+        elif self.export_header_type == "Level":
+            export_path = f"/levels/{toAlnum(self.level_name)}/{toAlnum(self.object_name)}"
+        elif self.export_header_type == "Actor":
+            export_path = f"/actors/{toAlnum(self.object_name)}/"
+        infoBox = col.box()
+        infoBox.label(text=f"Export location is: {export_path}")
+        if self.export_header_type == "Actor":
+            infoBox.label(text=f"This will also export to /actors/{toAlnum(self.group_name)}(.c, .h, _geo.c)")
+
+        infoBox.label(text=f"Collision name will be: {toAlnum(self.object_name)}_collision")
+        infoBox.label(text=f"Geo Layout name will be: {toAlnum(self.object_name)}_geo")
+        infoBox.label(text=f"Behavior name will be: {self.model_id}")
+        infoBox.label(text=f"Model ID will be: {self.bhv_name}")
+
+        infoBox = col.box()
+        infoBox.label(text="If a geolayout file contains multiple actors,")
+        infoBox.label(text="all other actors must also be replaced (with unique folder names)")
+        infoBox.label(text="to prevent compilation errors.")
+
+
+class SM64_CombinedObjectPanel(SM64_Panel):
+    bl_idname = "SM64_PT_export_combined_object"
+    bl_label = "SM64 Combined Object Exporter"
+    goal = "Export Object/Actor/Anim"
+
+    def draw(self, context):
+        col = self.layout.column()
+        context.scene.fast64.sm64.combined_object_export.draw(col)
+
+
 enumStarGetCutscene = [
     ("Custom", "Custom", "Custom"),
     ("0", "Lakitu Flies Away", "Lakitu Flies Away"),
@@ -1907,6 +2353,9 @@ class SM64_ObjectProperties(bpy.types.PropertyGroup):
 
 
 sm64_obj_classes = (
+    BehaviorScriptProperty,
+    AddBehavior,
+    RemoveBehavior,
     WarpNodeProperty,
     AddWarpNode,
     RemoveWarpNode,
@@ -1917,6 +2366,8 @@ sm64_obj_classes = (
     StarGetCutscenesProperty,
     PuppycamProperty,
     PuppycamSetupCamera,
+    SM64_CombinedObjectProperties,
+    SM64_ExportCombinedObject,
     SM64_GeoASMProperties,
     SM64_LevelProperties,
     SM64_AreaProperties,
@@ -1926,7 +2377,7 @@ sm64_obj_classes = (
 )
 
 
-sm64_obj_panel_classes = (SM64ObjectPanel,)
+sm64_obj_panel_classes = (SM64ObjectPanel, SM64_CombinedObjectPanel)
 
 
 def sm64_obj_panel_register():
