@@ -364,9 +364,9 @@ def saveMeshWithLargeTexturesByFaces(
     convertInfo = LoopConvertInfo(uv_data, obj, exportVertexColors)
 
     if fMaterial.imageKey[0] is not None:
-        fImage0, _ = fModel.getTextureAndHandleShared(fMaterial.imageKey[0])
+        fImage0 = fModel.getTextureAndHandleShared(fMaterial.imageKey[0])
     if fMaterial.imageKey[1] is not None:
-        fImage1, _ = fModel.getTextureAndHandleShared(fMaterial.imageKey[1])
+        fImage1 = fModel.getTextureAndHandleShared(fMaterial.imageKey[1])
 
     tileLoads = {}
     faceTileLoads = {}
@@ -1512,7 +1512,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         tex0Tmem,
         pal0,
         pal0Len,
-        imUse0,
+        im0Use,
         tex0Flipbook,
     ) = getAndCheckTexInfo(0, fModel, fMaterial, material, f3dMat.tex0, useDict["Texture 0"])
     (
@@ -1526,7 +1526,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         tex1Tmem,
         pal1,
         pal1Len,
-        imUse1,
+        im1Use,
         tex1Flipbook,
     ) = getAndCheckTexInfo(1, fModel, fMaterial, material, f3dMat.tex1, useDict["Texture 1"])
 
@@ -1605,6 +1605,8 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     loadPal1 = False
     pal0Addr = 0
     pal1Addr = 0
+    pal0Use = im0Use
+    pal1Use = im1Use
     if isCI:
         assert useTex0 or useTex1
         if not useTex1:
@@ -1650,9 +1652,12 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
                             + str(pal0Len)
                             + " colors, which can't fit in a CI8 palette (256)."
                         )
+                    # im0Use remains what it was; the CIs in im0 are the same as they
+                    # would be if im0 was alone. But im1 and pal0 depend on both.
+                    im1Use = pal0Use = im0Use + im1Use
             elif tex0Fmt != tex1Fmt:  # One CI8, one CI4
-                ci8Pal, ci4Pal = pal0, pal1 if tex0Fmt == "CI8" else pal1, pal0
-                ci8PalLen, ci4PalLen = pal0Len, pal1Len if tex0Fmt == "CI8" else pal1Len, pal0Len
+                ci8Pal, ci4Pal = (pal0, pal1) if tex0Fmt == "CI8" else (pal1, pal0)
+                ci8PalLen, ci4PalLen = (pal0Len, pal1Len) if tex0Fmt == "CI8" else (pal1Len, pal0Len)
                 if pal0 is None or pal1 is None:
                     if ci8PalLen > 256 - 16:
                         raise PluginError(
@@ -1682,6 +1687,13 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
                             + " The CI8 texture must contain up to 240 unique colors,"
                             + " plus the same up to 16 colors used in the CI4 texture."
                         )
+                    # The use for the CI4 texture remains what it was; its CIs are the
+                    # same as if it was alone. But both the palette and the CI8 CIs are affected.
+                    pal0Use = im0Use + im1Use
+                    if tex0Fmt == "CI8":
+                        im0Use = pal0Use
+                    else:
+                        im1Use = pal0Use
             else:  # both CI4 textures
                 if pal0 is None and pal1 is None and f3dMat.tex0.pal_reference == f3dMat.tex1.pal_reference:
                     loadPal0 = True
@@ -1698,6 +1710,9 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
                         # Share palette 0
                         pal0 = tempPal
                         pal0Len = tempPalLen
+                        # im0Use remains what it was; the CIs in im0 are the same as they
+                        # would be if im0 was alone. But im1 and pal0 depend on both.
+                        im1Use = pal0Use = im0Use + im1Use
                     else:
                         # Load one palette across 0-1. Put the longer in slot 0
                         if pal0Len >= pal1Len:
@@ -1712,12 +1727,18 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
                             pal0 = pal1 + pal0
                             pal0Len = len(pal0)
                             tex0PaletteIndex = 1
+                        # The up-to-32 entries in pal0 depend on both images. But the
+                        # CIs in both im0 and im1 are the same as if there was no shared palette.
+                        pal0Use = im0Use + im1Use
     fMaterial.texPaletteIndex = [tex0PaletteIndex, tex1PaletteIndex]
-    useSharedCIPalette = isCI and useTex0 and useTex1 and not loadPal1
     pal0Name, pal1Name = tex0Name, tex1Name
-    if useSharedCIPalette:
-        imUse0 = imUse1 = imUse0 + imUse1
+    if isCI and useTex0 and useTex1 and not loadPal1:
+        if tex0Flipbook is not None or tex1Flipbook is not None:
+            raise PluginError("TODO: getSharedPaletteName is not correct for flipbooks")
         pal0Name = getSharedPaletteName(f3dMat)
+        pal1 = pal0
+    writePal0 = loadPal0 and ((not isTex0Ref) or (tex0Flipbook is not None))
+    writePal1 = loadPal1 and ((not isTex1Ref) or (tex1Flipbook is not None))
 
     # Assign TMEM addresses
     sameTextures = (
@@ -1830,33 +1851,19 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     # Get texture and palette definitions
     fImage0 = fImage1 = fPalette0 = fPalette1 = None
     if useTex0:
-        imageKey0, fImage0, fPalette0 = saveOrGetTextureDefinition(
-            fMaterial, fModel, f3dMat.tex0, imUse0, tex0Name, fMaterial.isTexLarge[0]
+        imageKey0, fImage0 = saveOrGetTextureDefinition(
+            fMaterial, fModel, f3dMat.tex0, im0Use, tex0Name, fMaterial.isTexLarge[0]
         )
         fMaterial.imageKey[0] = imageKey0
     if loadPal0:
-        if fPalette0 is not None:
-            paletteKey0 = fImage0.paletteKey
-        else:
-            paletteKey0, fPalette0 = saveOrGetPaletteDefinition(
-                fMaterial, fModel, f3dMat.tex0, imUse0, pal0Name, pal0Len
-            )
-            fImage0.paletteKey = paletteKey0
+        paletteKey0, fPalette0 = saveOrGetPaletteDefinition(fMaterial, fModel, f3dMat.tex0, pal0Use, pal0Name, pal0Len)
     if useTex1:
-        imageKey1, fImage1, fPalette1 = saveOrGetTextureDefinition(
-            fMaterial, fModel, f3dMat.tex1, imUse1, tex1Name, fMaterial.isTexLarge[1]
+        imageKey1, fImage1 = saveOrGetTextureDefinition(
+            fMaterial, fModel, f3dMat.tex1, im1Use, tex1Name, fMaterial.isTexLarge[1]
         )
         fMaterial.imageKey[1] = imageKey1
-        if useSharedCIPalette:
-            fImage1.paletteKey = paletteKey0
     if loadPal1:
-        if fPalette1 is not None:
-            paletteKey1 = fImage1.paletteKey
-        else:
-            paletteKey1, fPalette1 = saveOrGetPaletteDefinition(
-                fMaterial, fModel, f3dMat.tex1, imUse1, pal1Name, pal1Len
-            )
-            fImage1.paletteKey = paletteKey1
+        paletteKey1, fPalette1 = saveOrGetPaletteDefinition(fMaterial, fModel, f3dMat.tex1, pal1Use, pal1Name, pal1Len)
 
     # Write DL entries to load textures and palettes
     loadGfx = fMaterial.material
@@ -1875,12 +1882,12 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 
     # Write texture and palette data, unless exporting textures as PNGs.
     if convertTextureData:
-        if loadPal0 and ((not isTex0Ref) or (tex0Flipbook is not None)):
+        if writePal0:
             writePaletteData(fPalette0, pal0)
         if useTex0:
             if isTex0Ref:
                 if isCI:
-                    fModel.writeTexRefCITextures(tex0Flipbook, paletteKey0, pal0, tex0Fmt, pal0Fmt)
+                    fModel.writeTexRefCITextures(tex0Flipbook, fMaterial, im0Use, pal0, tex0Fmt, pal0Fmt)
                 else:
                     fModel.writeTexRefNonCITextures(tex0Flipbook, tex0Fmt)
             else:
@@ -1888,18 +1895,12 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
                     writeCITextureData(f3dMat.tex0.tex, fImage0, pal0, pal0Fmt, tex0Fmt)
                 else:
                     writeNonCITextureData(f3dMat.tex0.tex, fImage0, tex0Fmt)
-        if loadPal1 and ((not isTex1Ref) or (tex1Flipbook is not None and not useSharedCIPalette)):
+        if writePal1:
             writePaletteData(fPalette1, pal1)
         if useTex1:
             if isTex1Ref:
                 if isCI:
-                    fModel.writeTexRefCITextures(
-                        tex1Flipbook,
-                        paletteKey0 if useSharedCIPalette else paletteKey1,
-                        pal0 if useSharedCIPalette else pal1,
-                        tex1Fmt,
-                        pal1Fmt,
-                    )
+                    fModel.writeTexRefCITextures(tex1Flipbook, fMaterial, im1Use, pal1, tex1Fmt, pal1Fmt)
                 else:
                     fModel.writeTexRefNonCITextures(tex1Flipbook, tex1Fmt)
             else:
@@ -2045,13 +2046,13 @@ def saveOrGetPaletteDefinition(
     paletteKey = FPaletteKey(palFmt, images)
 
     # If palette already loaded, return that data.
-    fPalette, _ = parent.getTextureAndHandleShared(paletteKey)
+    fPalette = parent.getTextureAndHandleShared(paletteKey)
     if fPalette is not None:
         # print(f"Palette already exists")
         return paletteKey, fPalette
 
     if texProp.use_tex_reference:
-        fPalette = FImage(texProp.pal_reference, None, None, 1, palLen, None, False)
+        fPalette = FImage(texProp.pal_reference, None, None, 1, palLen, None)
         return paletteKey, fPalette
 
     paletteName = checkDuplicateTextureName(parent, toAlnum(imageName) + "_pal_" + palFmt.lower())
@@ -2064,7 +2065,6 @@ def saveOrGetPaletteDefinition(
         1,
         palLen,
         paletteFilename,
-        False,
     )
 
     parent.addTexture(paletteKey, fPalette, fMaterial)
@@ -2087,15 +2087,15 @@ def saveOrGetTextureDefinition(
     imageKey = getImageKey(texProp, images)
 
     # If image already loaded, return that data.
-    fImage, fPalette = parent.getTextureAndHandleShared(imageKey)
+    fImage = parent.getTextureAndHandleShared(imageKey)
     if fImage is not None:
         # print(f"Image already exists")
-        return imageKey, fImage, fPalette
+        return imageKey, fImage
 
     if texProp.use_tex_reference:
         width, height = texProp.tex_reference_size
-        fImage = FImage(texProp.tex_reference, None, None, width, height, None, False)
-        return imageKey, fImage, None
+        fImage = FImage(texProp.tex_reference, None, None, width, height, None)
+        return imageKey, fImage
 
     name = image.name if image.filepath == "" else image.filepath
     filename = getNameFromPath(name, True) + "." + getTextureSuffixFromFormat(texFmt) + ".inc.c"
@@ -2107,12 +2107,11 @@ def saveOrGetTextureDefinition(
         image.size[0],
         image.size[1],
         filename,
-        False,
     )
     fImage.isLargeTexture = isLarge
 
     parent.addTexture(imageKey, fImage, fMaterial)
-    return imageKey, fImage, None
+    return imageKey, fImage
 
 
 def getAndCheckTexInfo(
