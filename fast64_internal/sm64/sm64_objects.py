@@ -40,7 +40,9 @@ from .sm64_constants import (
     enumSpecialsNames,
     enumBehaviourPresets,
     enumBehaviorMacros,
+    enumPresetBehaviors,
     behaviorMacroArguments,
+    behaviorPresetContents,
     groupsSeg5,
     groupsSeg6,
 )
@@ -1459,6 +1461,21 @@ class BehaviorScriptProperty(bpy.types.PropertyGroup):
     arg_6: bpy.props.StringProperty(name="Argument 6")
     arg_7: bpy.props.StringProperty(name="Argument 7")
     arg_8: bpy.props.StringProperty(name="Argument 8")
+    
+    # some objects have cmds that make sense to dynamically inherit it from export properties
+    # load collision,  or set model ID are easy examples
+    inherit_from_export: bpy.props.BoolProperty(name="Inherit From Export")
+    
+    _inheritable_macros = [
+        "LOAD_COLLISION_DATA",
+        "SET_HITBOX_WITH_OFFSET",
+        "SET_HITBOX",
+        "SET_MODEL",
+        "SET_HURTBOX",
+    ]
+    
+    # custom cmd variables
+    num_args: bpy.props.IntProperty(name="Num Arguments", min = 0, max = 8)
 
     @property
     def bhv_args(self):
@@ -1474,7 +1491,15 @@ class BehaviorScriptProperty(bpy.types.PropertyGroup):
     def macro_args(self):
         if self.bhv_args:
             return [getattr(self, field) for field, arg_name in zip(self.arg_fields, self.bhv_args)]
-
+    
+    def get_inherit_args(self, context, props):
+        if self.macro not in self._inheritable_macros:
+            return self.macro_args
+        if self.macro == "LOAD_COLLISION_DATA":
+            return props.collision_name
+        # for now, just return args, I will make this a working feature later
+        return self.macro_args
+    
     def draw(self, layout, index):
         box = layout.box()
         box.prop(
@@ -1485,7 +1510,13 @@ class BehaviorScriptProperty(bpy.types.PropertyGroup):
         )
         if self.expand:
             prop_split(box, self, "macro", "Behavior Macro")
-            if self.bhv_args:
+            if self.macro in self._inheritable_macros:
+                box.prop(self, "inherit_from_export")
+            if self.macro == "Custom":
+                prop_split(box, self, "num_args", "Num Arguments")
+                for j in range(self.num_args):
+                    prop_split(box, self, f"arg_{j + 1}", f"arg_{j + 1}")
+            elif self.bhv_args and not self.inherit_from_export:
                 for field, arg_name in zip(self.arg_fields, self.bhv_args):
                     prop_split(box, self, field, arg_name)
             row = box.row()
@@ -1553,7 +1584,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
             props.group_name,
             props.export_header_type,
             props.object_name,
-            f"{toAlnum(props.object_name)}_geo",
+            props.geo_name,
             levelName,
             props.use_custom_path,
             DLFormat.Static,
@@ -1596,6 +1627,19 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
             model_id_lines.insert(export_line, f"\n{fast64_sig[0]}\n")
         model_id_lines.insert(export_line + 1, export_model_id)
         self.write_file_lines(model_ids, model_id_lines)
+
+    # exports the model ID load into the appropriate script location
+    def export_script_load(self, context, props):
+        # check if model_ids.h exists
+        decomp_path = Path(bpy.path.abspath(bpy.context.scene.decompPath))
+        props.export_header_type.lower() == "Level":
+            script_path = decomp_path / "levels" / f"{props.export_level_name}" / "script.c"
+        else:
+            script_path = decomp_path / "levels" /  "scripts.c"
+        if not script_path.exists():
+            PluginError("could not find {script_path.stem}")
+        script_lines = open(script_path, "r").readlines()
+        # if model is already loaded in the file, replace it, else add it in predictable location
 
     def export_behavior_header(self, context, props):
         # check if behavior_header.h exists
@@ -1674,7 +1718,9 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
             bhv_data_lines.insert(export_line, f"\n{fast64_sig[0]}\n")
         bhv_data_lines.insert(export_line + 1, export_bhv_name)
         for j, bhv_cmd in enumerate(props.behavior_script):
-            if bhv_cmd.macro_args:
+            if bhv_cmd.inherit_from_export:
+                args = bhv_cmd.get_inherit_args(context, props)
+            elif bhv_cmd.macro_args:
                 args = ", ".join(bhv_cmd.macro_args)
             else:
                 args = ""
@@ -1741,13 +1787,31 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
             return {"CANCELLED"}
         # write model ID, behavior, and level script load
         self.export_model_id(context, props)
-        self.export_behavior_script(context, props)
+        if props.export_bhv:
+            self.export_behavior_script(context, props)
         # you've done it!~
         self.report({"INFO"}, "Success!")
         return {"FINISHED"}
 
 
 class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
+    # callbacks must be defined before they are referenced
+    def update_preset_behavior(self, context):
+        
+        def update_or_inherit(new_cmd, index, val):
+            if val == "inherit":
+                new_cmd.ineherit_from_export = True
+            else:
+                setattr(new_cmd, f"arg_{index + 1}", val)
+        
+        self.behavior_script.clear()
+        bhv_preset = behaviorPresetContents.get(self.preset_behavior_script)
+        if bhv_preset:
+            for cmd in bhv_preset:
+                new_cmd = self.behavior_script.add()
+                new_cmd.macro = cmd[0]
+                [update_or_inherit(new_cmd, j, val) for j, val in enumerate(cmd[1])]
+    
     # choose export opt
     export_header_type: bpy.props.EnumProperty(name="Header Export", items=enumExportHeaderType, default="Actor")
     # level export opts
@@ -1767,9 +1831,10 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
 
     # behavior export options
     export_bhv: bpy.props.BoolProperty(name="Export Behavior", default=True)
-
+    
     # actual behavior
     behavior_script: bpy.props.CollectionProperty(type=BehaviorScriptProperty)
+    preset_behavior_script: bpy.props.EnumProperty(items=enumPresetBehaviors, default = "Custom", update = update_preset_behavior)
 
     collision_object: bpy.props.PointerProperty(type=bpy.types.Object)
     graphics_object: bpy.props.PointerProperty(type=bpy.types.Object)
@@ -1779,8 +1844,22 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         return "bhv" + "".join([word.title() for word in toAlnum(self.object_name).split("_")])
 
     @property
+    def geo_name(self):
+        return f"{toAlnum(self.object_name)}_geo"
+
+    @property
+    def collision_name(self):
+        return f"{toAlnum(self.object_name)}_collision"
+        
+    @property
     def model_id(self):
         return f"MODEL_{toAlnum(self.object_name)}".upper()
+        
+    @property
+    def export_level_name(self):
+        if self.level_name == "custom":
+            return self.custom_level_name
+        return self.level_name
 
     def draw(self, layout):
         col = layout.column()
@@ -1810,6 +1889,7 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
 
         # behavior options
         if self.export_bhv:
+            prop_split(col, self, "preset_behavior_script", "Preset Behavior Script")
             col.operator("bone.add_behavior_script", text="Add Behavior Cmd").option = len(self.behavior_script)
             for index, bhv in enumerate(self.behavior_script):
                 bhv.draw(col, index)
@@ -1826,10 +1906,10 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         if self.export_header_type == "Actor":
             infoBox.label(text=f"This will also export to /actors/{toAlnum(self.group_name)}(.c, .h, _geo.c)")
 
-        infoBox.label(text=f"Collision name will be: {toAlnum(self.object_name)}_collision")
-        infoBox.label(text=f"Geo Layout name will be: {toAlnum(self.object_name)}_geo")
-        infoBox.label(text=f"Behavior name will be: {self.model_id}")
-        infoBox.label(text=f"Model ID will be: {self.bhv_name}")
+        infoBox.label(text=f"Collision name will be: {self.collision_name}")
+        infoBox.label(text=f"Geo Layout name will be: {self.geo_name}")
+        infoBox.label(text=f"Behavior name will be: {self.bhv_name}")
+        infoBox.label(text=f"Model ID will be: {self.model_id}")
 
         infoBox = col.box()
         infoBox.label(text="If a geolayout file contains multiple actors,")

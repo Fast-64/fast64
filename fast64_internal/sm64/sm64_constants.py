@@ -1818,6 +1818,7 @@ enumBehaviorMacros = [
         "Spawns object with model ID, behavior and bparam, sets spawn parent to this obj",
     ),
     ("LOAD_COLLISION_DATA", "LOAD_COLLISION_DATA", "Loads collision data"),
+    ("SET_HITBOX_WITH_OFFSET", "SET_HITBOX_WITH_OFFSET", "Sets a hitbox with a negative vertical offset"),
     ("SPAWN_OBJ", "SPAWN_OBJ", "Spawn object with model ID and behavior, sets spawn parent to this obj"),
     ("SET_HOME", "SET_HOME", "Sets objects home"),
     ("SET_HURTBOX", "SET_HURTBOX", "Sets a cyliner hurtbox"),
@@ -1895,6 +1896,78 @@ behaviorMacroArguments = {
     "DISABLE_RENDERING": (),
     "SPAWN_WATER_DROPLET": ("Droplet Params",),
     "Custom": (),
+}
+
+enumPresetBehaviors = [
+    ("Custom", "Custom", ""),
+    ("Static Solid Object", "Static Solid Object", "A static solid object"),
+    ("Rotating Solid Object", "Rotating Solid Object", "A rotating solid object"),
+    ("Moving Solid Object", "Moving Solid Object", "A solid object that moves up and down"),
+    ("Pole-like", "Pole-like", "A pole like object"),
+    ("Flame-like", "Flame-like", "An animated object with burning interaction"),
+    ("Talking NPC", "Talking NPC", "A NPC you can speak to, not animated by default"),
+]
+
+behaviorPresetContents = {
+    'Static Solid Object': (
+        ("BEGIN", ("OBJ_LIST_SURFACE",)),
+        ("OR_INT", ("oFlags", "OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE",)),
+        ("LOAD_COLLISION_DATA", ("inherit",)),
+        ("BEGIN_LOOP", ()),
+            ("CALL_NATIVE", ("load_object_collision_model",)),
+        ("END_LOOP", ("")),
+    ),
+    'Rotating Solid Object': (
+        ("BEGIN", ("OBJ_LIST_SURFACE",)),
+        ("OR_INT", ("oFlags", "OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE",)),
+        ("LOAD_COLLISION_DATA", ("inherit",)),
+        ("BEGIN_LOOP", ()),
+            ("ADD_INT", ("oFaceAngleYaw", "200")),
+            ("CALL_NATIVE", ("load_object_collision_model",)),
+        ("END_LOOP", ("")),
+    ),
+    'Moving Solid Object': (
+        ("BEGIN", ("OBJ_LIST_SURFACE",)),
+        ("OR_INT", ("oFlags", "OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE",)),
+        ("LOAD_COLLISION_DATA", ("inherit",)),
+        ("BEGIN_LOOP", ()),
+            ("CALL_NATIVE", ("bhv_ssl_moving_pyramid_wall_loop",)),
+        ("END_LOOP", ("")),
+    ),
+    'Pole-like': (
+        ("BEGIN", ("OBJ_LIST_POLELIKE",)),
+        ("OR_INT", ("oFlags", "OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE",)),
+        ("SET_INTERACT_TYPE", ("INTERACT_POLE",)),
+        ("SET_HITBOX", ("inherit", "inherit")),
+        ("CALL_NATIVE", ("bhv_pole_init",)),
+        ("SET_INT", ("oIntangibleTimer", "0")),
+        ("BEGIN_LOOP", ()),
+            ("CALL_NATIVE", ("bhv_pole_base_loop",)),
+        ("END_LOOP", ("")),
+    ),
+    'Flame-like': (
+        ("BEGIN", ("OBJ_LIST_LEVEL",)),
+        ("BILLBOARD", ()),
+        ("OR_INT", ("oFlags", "OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE",)),
+        ("SET_INTERACT_TYPE", ("INTERACT_FLAME",)),
+        ("SET_HITBOX", ("inherit", "inherit")),
+        ("SET_INT", ("oIntangibleTimer", "0")),
+        ("BEGIN_LOOP", ()),
+            ("SET_INT", ("oInteractStatus", "0")),
+            ("ANIMATE_TEXTURE", ("oAnimState", "2")),
+        ("END_LOOP", ("")),
+    ),
+    'Talking NPC': (
+        ("BEGIN", ("OBJ_LIST_GENACTOR",)),
+        ("OR_INT", ("oFlags", "OBJ_FLAG_COMPUTE_ANGLE_TO_MARIO | OBJ_FLAG_COMPUTE_DIST_TO_MARIO | OBJ_FLAG_SET_FACE_YAW_TO_MOVE_YAW | OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE")),
+        ("SET_INTERACT_TYPE", ("INTERACT_TEXT",)),
+        ("SET_HITBOX", ("inherit", "inherit")),
+        ("SET_INT", ("oInteractionSubtype", "INT_SUBTYPE_SIGN")),
+        ("BEGIN_LOOP", ()),
+            ("SET_INT", ("oIntangibleTimer", "0")),
+            ("SET_INT", ("oInteractStatus", "0")),
+        ("END_LOOP", ("")),
+    ),
 }
 
 # groups you can select for levels
