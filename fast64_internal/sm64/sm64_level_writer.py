@@ -699,7 +699,7 @@ class SM64OptionalFileStatus:
 def exportLevelC(
     obj, transformMatrix, f3dType, isHWv1, levelName, exportDir, savePNG, customExport, levelCameraVolumeName, DLFormat
 ):
-
+    
     fileStatus = SM64OptionalFileStatus()
 
     if customExport:
@@ -761,8 +761,8 @@ def exportLevelC(
 
         # Needs to be done BEFORE collision parsing
         setRooms(child)
-
-        geolayoutGraph, fModel = (
+        
+        geolayoutGraph, fModel =  convertObjectToGeolayout(
             obj,
             transformMatrix,
             f3dType,
@@ -774,8 +774,9 @@ def exportLevelC(
             DLFormat,
             not savePNG,
         )
-        geolayoutGraphC = geolayoutGraph.to_c()
 
+        geolayoutGraphC = geolayoutGraph.to_c()
+        
         # Write geolayout
         geoFile = open(os.path.join(areaDir, "geo.inc.c"), "w", newline="\n")
         geoFile.write(geolayoutGraphC.source)
@@ -1129,7 +1130,7 @@ class SM64_ExportLevel(ObjectDataExporter):
     bl_idname = "object.sm64_export_level"
     bl_label = "Export Level"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
-
+    
     def execute(self, context):
         if context.mode != "OBJECT":
             raise PluginError("Operator can only be used in object mode.")
@@ -1160,6 +1161,7 @@ class SM64_ExportLevel(ObjectDataExporter):
         except Exception as e:
             raisePluginError(self, e)
             return {"CANCELLED"}  # must return a set
+        
         try:
             self.store_object_data()
 
@@ -1176,8 +1178,10 @@ class SM64_ExportLevel(ObjectDataExporter):
                 else:
                     levelName = context.scene.levelOption
                     triggerName = cameraTriggerNames[context.scene.levelOption]
+
             if not context.scene.levelCustomExport:
                 applyBasicTweaks(exportPath)
+
             fileStatus = exportLevelC(
                 obj,
                 finalTransform,
