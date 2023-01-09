@@ -39,7 +39,7 @@ from .fast64_internal.render_settings import (
 # info about add on
 bl_info = {
     "name": "Fast64",
-    "version": (2, 0, 0),
+    "version": (2, 1, 0),
     "author": "kurethedead",
     "location": "3DView",
     "description": "Plugin for exporting F3D display lists and other game data related to Nintendo 64 games.",
