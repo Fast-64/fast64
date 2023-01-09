@@ -1,1 +1,1 @@
-from .skeleton import ootImportSkeletonC
+from .functions import ootImportSkeletonC

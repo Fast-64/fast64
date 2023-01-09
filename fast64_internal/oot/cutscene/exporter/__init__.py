@@ -1,4 +1,4 @@
-from .cutscene import convertCutsceneObject, readCutsceneData
+from .functions import convertCutsceneObject, readCutsceneData
 
 from .classes import (
     OOTCSList,
