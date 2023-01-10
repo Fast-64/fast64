@@ -5,6 +5,7 @@ from ...panels import OOT_Panel
 from ..oot_utility import drawEnumWithCustom
 from .properties import OOTCollisionExportSettings, OOTCameraPositionProperty, OOTMaterialCollisionProperty
 from .operators import OOT_ExportCollision
+from ..actor_collider import isActorCollider
 
 
 class OOT_CameraPosPanel(Panel):
@@ -38,7 +39,7 @@ class OOT_CollisionPanel(Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.scene.gameEditorMode == "OOT" and context.material is not None
+        return context.scene.gameEditorMode == "OOT" and context.material is not None and not isActorCollider(context)
 
     def draw(self, context):
         box = self.layout.box().column()

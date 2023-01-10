@@ -27,6 +27,14 @@ class OOT_ActorColliderPanel(bpy.types.Panel):
             obj.ootActorColliderItem.draw(obj, box)
 
 
+def isActorCollider(context: bpy.types.Context) -> bool:
+    return (
+        (context.object is not None and isinstance(context.object.data, bpy.types.Mesh))
+        and context.object.ootGeometryType == "Actor Collider"
+        and context.material is not None
+    )
+
+
 class OOT_ActorColliderMaterialPanel(bpy.types.Panel):
     bl_label = "OOT Actor Collider Material Inspector"
     bl_idname = "OBJECT_PT_OOT_Actor_Collider_Material_Inspector"
@@ -37,12 +45,7 @@ class OOT_ActorColliderMaterialPanel(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context: bpy.types.Context):
-        return (
-            context.scene.gameEditorMode == "OOT"
-            and (context.object is not None and isinstance(context.object.data, bpy.types.Mesh))
-            and context.object.ootGeometryType == "Actor Collider"
-            and context.material is not None
-        )
+        return context.scene.gameEditorMode == "OOT" and isActorCollider(context)
 
     def draw(self, context: bpy.types.Context):
         material = context.material

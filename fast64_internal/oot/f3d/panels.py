@@ -9,6 +9,7 @@ from .properties import (
     OOTDynamicMaterialProperty,
     OOTDefaultRenderModesProperty,
 )
+from ..actor_collider import isActorCollider
 
 
 class OOT_DisplayListPanel(Panel):
@@ -55,7 +56,7 @@ class OOT_MaterialPanel(Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.material is not None and context.scene.gameEditorMode == "OOT"
+        return context.material is not None and context.scene.gameEditorMode == "OOT" and not isActorCollider(context)
 
     def draw(self, context):
         layout = self.layout

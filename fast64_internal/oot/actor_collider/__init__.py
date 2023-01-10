@@ -13,6 +13,7 @@ from .operators import (
 from .panels import (
     actor_collider_panel_register,
     actor_collider_panel_unregister,
+    isActorCollider,
 )
 
 from .importer import parseColliderData
