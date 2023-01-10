@@ -54,7 +54,6 @@ class OOTCSProperty:
 
         drawCollectionOps(box, cmdIndex, collectionType + "." + self.attrName, listIndex, objName)
 
-        print(self.subprops)
         for p in self.subprops:
             if self.filterProp(p, listProp):
                 name = self.filterName(p, listProp)
