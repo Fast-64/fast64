@@ -2156,15 +2156,6 @@ def parseMacroArgs(data):
     return params
 
 
-def getImportData(filepaths):
-    data = ""
-    for path in filepaths:
-        if os.path.exists(path):
-            data += readFile(path)
-
-    return data
-
-
 def parseMatrices(sceneData: str, f3dContext: F3DContext, importScale: float = 1):
     for match in re.finditer(rf"Mtx\s*([a-zA-Z0-9\_]+)\s*=\s*\{{(.*?)\}}\s*;", sceneData, flags=re.DOTALL):
         name = "&" + match.group(1)

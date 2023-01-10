@@ -1,7 +1,7 @@
 from typing import Callable
 import bpy, mathutils, os, re, math
 from ...utility import PluginError, hexOrDecInt
-from ..oot_model_classes import ootGetActorData, ootGetIncludedAssetData, ootGetActorDataPaths, ootGetLinkData
+from ..file_reading import ootGetActorData, ootGetIncludedAssetData, ootGetActorDataPaths, ootGetLinkColliderData
 from .properties import (
     OOTActorColliderItemProperty,
     OOTActorColliderProperty,
@@ -203,7 +203,7 @@ def parseColliderData(
         actorData = ootGetActorData(basePath, overlayName)
         currentPaths = ootGetActorDataPaths(basePath, overlayName)
     else:
-        actorData = ootGetLinkData(basePath)
+        actorData = ootGetLinkColliderData(basePath)
         currentPaths = [os.path.join(basePath, f"src/code/z_player_lib.c")]
     actorData = ootGetIncludedAssetData(basePath, currentPaths, actorData) + actorData
 

@@ -17,7 +17,3 @@ from .panels import (
 
 from .importer import parseColliderData
 from .exporter import getColliderData, removeExistingColliderData, writeColliderData
-
-# TODO:
-# test getActorFilepath changes on export
-# fix Link collider import

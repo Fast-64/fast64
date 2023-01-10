@@ -9,7 +9,8 @@ from ...f3d.f3d_parser import importMeshC, getImportData
 from ...f3d.f3d_gbi import DLFormat, F3D, TextureExportSettings, ScrollMethod
 from ...f3d.f3d_writer import TriangleConverterInfo, removeDL, saveStaticModel, getInfoDict
 from ..oot_utility import ootGetObjectPath, getOOTScale
-from ..oot_model_classes import OOTF3DContext, ootGetIncludedAssetData
+from ..oot_model_classes import OOTF3DContext
+from ..file_reading import ootGetIncludedAssetData
 from ..oot_texture_array import ootReadTextureArrays
 from ..oot_model_classes import OOTModel, OOTGfxFormatter
 from ..oot_f3d_writer import ootReadActorScale, writeTextureArraysNew, writeTextureArraysExisting

@@ -50,6 +50,15 @@ enumCompressionFormat = [
 ]
 
 
+def getImportData(filepaths: list[str]) -> str:
+    data = ""
+    for path in filepaths:
+        if os.path.exists(path):
+            data += readFile(path)
+
+    return data
+
+
 def isPowerOf2(n):
     return (n & (n - 1) == 0) and n != 0
 

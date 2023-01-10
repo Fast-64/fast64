@@ -1,11 +1,14 @@
 import bpy, mathutils, os, re, math
 from ...utility import CData, PluginError, readFile, writeFile
 from ..oot_utility import getOrderedBoneList, getOOTScale
-from ..oot_f3d_writer import getActorFilepath
+from ..file_reading import getNonLinkActorFilepath, getLinkColliderFilepath
 
 
 def removeExistingColliderData(exportPath: str, overlayName: str, isLink: bool, newColliderData: str) -> str:
-    actorPath = getActorFilepath(exportPath, overlayName, isLink)
+    if not isLink:
+        actorPath = getNonLinkActorFilepath(exportPath, overlayName)
+    else:
+        actorPath = getLinkColliderFilepath(exportPath)
 
     data = readFile(actorPath)
     newActorData = data
@@ -25,7 +28,11 @@ def removeExistingColliderData(exportPath: str, overlayName: str, isLink: bool, 
 
 
 def writeColliderData(obj: bpy.types.Object, exportPath: str, overlayName: str, isLink: bool) -> str:
-    actorFilePath = getActorFilepath(exportPath, overlayName, isLink)
+    if not isLink:
+        actorFilePath = getNonLinkActorFilepath(exportPath, overlayName)
+    else:
+        actorFilePath = getLinkColliderFilepath(exportPath)
+
     actor = os.path.basename(actorFilePath)[:-2]
     colliderData = getColliderData(obj)
 
