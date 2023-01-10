@@ -108,11 +108,11 @@ class OOTCSTextboxProperty(OOTCSProperty, PropertyGroup):
 
     def filterProp(self, name, listProp):
         if self.textboxType == "Text":
-            return name not in ["ocarinaSongAction", "ocarinaMessageId"]
+            return name not in ["ocarinaAction", "ocarinaMessageId"]
         elif self.textboxType == "None":
             return name in ["startFrame", "endFrame"]
         elif self.textboxType == "LearnSong":
-            return name in ["ocarinaSongAction", "startFrame", "endFrame", "ocarinaMessageId"]
+            return name in ["ocarinaAction", "startFrame", "endFrame", "ocarinaMessageId"]
         else:
             raise PluginError("Invalid property name for OOTCSTextboxProperty")
 

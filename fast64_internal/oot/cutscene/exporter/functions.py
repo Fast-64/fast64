@@ -34,7 +34,7 @@ def readCutsceneData(csParentOut, csParentIn):
                 entryOut.ocarinaSongAction = getCustomProperty(entryIn, "ocarinaAction")
                 entryOut.startFrame = entryIn.startFrame
                 entryOut.endFrame = entryIn.endFrame
-                entryOut.type = entryIn.csTextType
+                entryOut.type = getCustomProperty(entryIn, "csTextType")
                 entryOut.topOptionBranch = entryIn.topOptionBranch
                 entryOut.bottomOptionBranch = entryIn.bottomOptionBranch
                 entryOut.ocarinaMessageId = entryIn.ocarinaMessageId
