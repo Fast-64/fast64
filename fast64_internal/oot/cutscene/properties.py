@@ -69,7 +69,6 @@ class OOTCSProperty:
                 customValues = [
                     "csMiscType",
                     "csTextType",
-                    "csDestination",
                     "ocarinaAction",
                     "csSeqID",
                     "csSeqPlayer",
@@ -277,10 +276,13 @@ class OOTCutsceneProperty(PropertyGroup):
         if self.csWriteTerminator:
             r = csDestLayout.row()
 
-            searchBox = r.box().row()
-            searchOp = searchBox.operator(OOT_SearchCSDestinationEnumOperator.bl_idname, icon="VIEWZOOM", text="")
+            searchBox = r.box()
+            boxRow = searchBox.row()
+            searchOp = boxRow.operator(OOT_SearchCSDestinationEnumOperator.bl_idname, icon="VIEWZOOM", text="")
             searchOp.objName = obj.name
-            searchBox.label(text=getEnumName(ootEnumCSDestinationType, self.csDestination))
+            boxRow.label(text=getEnumName(ootEnumCSDestinationType, self.csDestination))
+            if self.csDestination == "Custom":
+                prop_split(searchBox.column(), self, "csDestinationCustom", "Cutscene Destination Custom")
 
             r = csDestLayout.row()
             r.prop(self, "csTermStart")
