@@ -420,6 +420,18 @@ def getNextBone(boneStack: list[str], armatureObj: bpy.types.Object):
     return bone, boneStack
 
 
+def getOrderedBoneList(armatureObj: bpy.types.Object):
+    startBoneName = getStartBone(armatureObj)
+    boneList = []
+    boneStack = [startBoneName]
+
+    while len(boneStack) > 0:
+        bone, boneStack = getNextBone(boneStack, armatureObj)
+        boneList.append(bone)
+
+    return boneList
+
+
 def checkForStartBone(armatureObj):
     pass
     # if "root" not in armatureObj.data.bones:

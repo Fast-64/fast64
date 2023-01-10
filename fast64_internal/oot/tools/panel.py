@@ -9,6 +9,9 @@ from .operators import (
     OOT_AddPath,
 )
 
+from ..actor_collider import OOT_AddActorCollider, OOT_CopyColliderProperties, drawColliderVisibilityOperators
+from ...utility_anim import ArmatureApplyWithMeshOperator
+
 
 class OoT_ToolsPanel(OOT_Panel):
     bl_idname = "OOT_PT_tools"
@@ -22,6 +25,29 @@ class OoT_ToolsPanel(OOT_Panel):
         col.operator(OOT_AddRoom.bl_idname)
         col.operator(OOT_AddCutscene.bl_idname)
         col.operator(OOT_AddPath.bl_idname)
+
+        col.label(text="")
+        col.label(text="Armatures")
+        col.operator(ArmatureApplyWithMeshOperator.bl_idname)
+
+        col.label(text="")
+        col.label(text="Actor Colliders")
+        col.label(text="Do not scale armatures with joint sphere colliders.", icon="ERROR")
+        col.label(text="Applying scale will mess up joint sphere translations.")
+        addOp = col.operator(OOT_AddActorCollider.bl_idname, text="Add Joint Sphere Collider (Bones)")
+        addOp.shape = "COLSHAPE_JNTSPH"
+        addOp.parentToBone = True
+
+        col.operator(
+            OOT_AddActorCollider.bl_idname, text="Add Joint Sphere Collider (Object)"
+        ).shape = "COLSHAPE_JNTSPH"
+        col.operator(OOT_AddActorCollider.bl_idname, text="Add Cylinder Collider").shape = "COLSHAPE_CYLINDER"
+        col.operator(OOT_AddActorCollider.bl_idname, text="Add Mesh Collider").shape = "COLSHAPE_TRIS"
+        col.operator(OOT_AddActorCollider.bl_idname, text="Add Quad Collider (Properties Only)").shape = "COLSHAPE_QUAD"
+
+        drawColliderVisibilityOperators(col)
+
+        col.operator(OOT_CopyColliderProperties.bl_idname, text="Copy Collider Properties (From Active To Selected)")
 
 
 oot_operator_panel_classes = [

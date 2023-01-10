@@ -4,6 +4,11 @@ from bpy.utils import register_class, unregister_class
 from ...f3d.f3d_parser import ootEnumDrawLayers
 from ...utility import prop_split
 
+ootEnumGeometryType = [
+    ("Regular", "Regular", "Regular"),
+    ("Actor Collider", "Actor Collider", "Actor Collider"),
+]
+
 
 class OOTDLExportSettings(PropertyGroup):
     isCustomFilename: BoolProperty(
@@ -198,6 +203,7 @@ def f3d_props_register():
     World.ootDefaultRenderModes = PointerProperty(type=OOTDefaultRenderModesProperty)
     Material.ootMaterial = PointerProperty(type=OOTDynamicMaterialProperty)
     Object.ootObjectMenu = EnumProperty(items=ootEnumObjectMenu)
+    Object.ootGeometryType = EnumProperty(items=ootEnumGeometryType, name="Geometry Type")
 
 
 def f3d_props_unregister():
@@ -206,3 +212,4 @@ def f3d_props_unregister():
 
     del Material.ootMaterial
     del Object.ootObjectMenu
+    del Object.ootGeometryType

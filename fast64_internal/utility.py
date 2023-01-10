@@ -124,13 +124,13 @@ def selectSingleObject(obj: bpy.types.Object):
     bpy.context.view_layer.objects.active = obj
 
 
-def parentObject(parent, child):
+def parentObject(parent, child, type="OBJECT"):
     bpy.ops.object.select_all(action="DESELECT")
 
     child.select_set(True)
     parent.select_set(True)
     bpy.context.view_layer.objects.active = parent
-    bpy.ops.object.parent_set(type="OBJECT", keep_transform=True)
+    bpy.ops.object.parent_set(type=type, keep_transform=True)
 
 
 def getFMeshName(vertexGroup, namePrefix, drawLayer, isSkinned):
@@ -816,6 +816,7 @@ def get_obj_temp_mesh(obj):
         if o.get("temp_export") and o.get("instanced_mesh_name") == obj.get("instanced_mesh_name"):
             return o
 
+
 def apply_objects_modifiers_and_transformations(allObjs: Iterable[bpy.types.Object]):
     # first apply modifiers so that any objects that affect each other are taken into consideration
     for selectedObj in allObjs:
@@ -833,6 +834,7 @@ def apply_objects_modifiers_and_transformations(allObjs: Iterable[bpy.types.Obje
         bpy.context.view_layer.objects.active = selectedObj
 
         bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
+
 
 def duplicateHierarchy(obj, ignoreAttr, includeEmpties, areaIndex):
     # Duplicate objects to apply scale / modifiers / linked data

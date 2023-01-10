@@ -52,6 +52,15 @@ from .tools import (
     oot_operator_unregister,
 )
 
+from .actor_collider import (
+    actor_collider_props_register,
+    actor_collider_props_unregister,
+    actor_collider_ops_register,
+    actor_collider_ops_unregister,
+    actor_collider_panel_register,
+    actor_collider_panel_unregister,
+)
+
 
 class OOT_Properties(bpy.types.PropertyGroup):
     """Global OOT Scene Properties found under scene.fast64.oot"""
@@ -84,6 +93,7 @@ def oot_panel_register():
     anim_panels_register()
     skeleton_panels_register()
     cutscene_panels_register()
+    actor_collider_panel_register(),
 
 
 def oot_panel_unregister():
@@ -96,6 +106,7 @@ def oot_panel_unregister():
     anim_panels_unregister()
     skeleton_panels_unregister()
     cutscene_panels_unregister()
+    actor_collider_panel_unregister(),
 
 
 def oot_register(registerPanels):
@@ -120,6 +131,8 @@ def oot_register(registerPanels):
     f3d_ops_register()
     file_register()
     anim_props_register()
+    actor_collider_props_register(),
+    actor_collider_ops_register(),
 
     for cls in oot_classes:
         register_class(cls)
@@ -153,6 +166,8 @@ def oot_unregister(unregisterPanels):
     f3d_ops_unregister()
     file_unregister()
     anim_props_unregister()
+    actor_collider_props_unregister(),
+    actor_collider_ops_unregister(),
 
     if unregisterPanels:
         oot_panel_unregister()

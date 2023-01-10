@@ -22,7 +22,9 @@ class OOT_DisplayListPanel(Panel):
     @classmethod
     def poll(cls, context):
         return context.scene.gameEditorMode == "OOT" and (
-            context.object is not None and isinstance(context.object.data, Mesh)
+            context.object is not None
+            and isinstance(context.object.data, Mesh)
+            and not context.object.ootGeometryType == "Actor Collider"
         )
 
     def draw(self, context):
