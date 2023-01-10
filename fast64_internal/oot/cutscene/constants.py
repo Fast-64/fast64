@@ -19,7 +19,7 @@ ootEnumCSListTypeListC = {
 ootEnumCSListTypeEntryC = {
     "Textbox": None,  # special case
     "FX": None,  # no list entries
-    "Lighting": "CS_LIGHTING",
+    "Lighting": "CS_LIGHT_SETTING",
     "Time": "CS_TIME",
     "PlayBGM": "CS_START_SEQ",
     "StopBGM": "CS_STOP_SEQ",
@@ -63,22 +63,26 @@ ootEnumCSTextboxType = [("Text", "Text", "Text"), ("None", "None", "None"), ("Le
 ootEnumCSTextboxTypeIcons = ["FILE_TEXT", "HIDE_ON", "FILE_SOUND"]
 
 ootEnumCSTransitionType = [
-    ("1", "To White +", "Also plays whiteout sound for certain scenes/entrances"),
-    ("2", "To Blue", "To Blue"),
-    ("3", "From Red", "From Red"),
-    ("4", "From Green", "From Green"),
-    ("5", "From White", "From White"),
-    ("6", "From Blue", "From Blue"),
-    ("7", "To Red", "To Red"),
-    ("8", "To Green", "To Green"),
-    ("9", "Set Unk", "gSaveContext.unk_1410 = 1, works with scene xn 11/17"),
-    ("10", "From Black", "From Black"),
-    ("11", "To Black", "To Black"),
-    ("12", "To Dim Unk", "Fade gSaveContext.unk_1410 255>100, works with scene xn 11/17"),
-    ("13", "From Dim", "Alpha 100>255"),
+    # see https://github.com/zeldaret/oot/blob/b4c97ce17eb35329b4a7e3d98d7f06d558683f6d/include/z64cutscene.h#L219-L233
+    ("Custom", "Custom", "Custom"),
+    ("CS_TRANS_GRAY_FILL_IN", "Gray Fill In", "Gray Fill In"),
+    ("CS_TRANS_BLUE_FILL_IN", "Blue Fill In", "Blue Fill In"),
+    ("CS_TRANS_RED_FILL_OUT", "Red Fill Out", "Red Fill Out"),
+    ("CS_TRANS_GREEN_FILL_OUT", "Green Fill Out", "Green Fill Out"),
+    ("CS_TRANS_GRAY_FILL_OUT", "Gray Fill Out", "Gray Fill Out"),
+    ("CS_TRANS_BLUE_FILL_OUT", "Blue Fill Out", "Blue Fill Out"),
+    ("CS_TRANS_RED_FILL_IN", "Red Fill In", "Red Fill In"),
+    ("CS_TRANS_GREEN_FILL_IN", "Green Fill In", "Green Fill In"),
+    ("CS_TRANS_TRIGGER_INSTANCE", "Trigger Instance", "Trigger Instance"),
+    ("CS_TRANS_BLACK_FILL_OUT", "Black Fill Out", "Black Fill Out"),
+    ("CS_TRANS_BLACK_FILL_IN", "Black Fill In", "Black Fill In"),
+    ("CS_TRANS_BLACK_FILL_OUT_TO_HALF", "Black Fill Out To Half", "Black Fill Out To Half"),
+    ("CS_TRANS_BLACK_FILL_IN_FROM_HALF", "Black Fill In From Half", "Black Fill In From Half"),
 ]
 
 ootEnumCSMiscType = [
+    # see https://github.com/zeldaret/oot/blob/b4c97ce17eb35329b4a7e3d98d7f06d558683f6d/include/z64cutscene.h#L167-L204
+    ("Custom", "Custom", "Custom"),
     ("CS_MISC_SET_LOCKED_VIEWPOINT", "Set Locked Viewpoint", "Set Locked Viewpoint"),
     ("CS_MISC_SHOW_TITLE_CARD", "Show Area Title Card", "Show Area Title Card"),
     ("CS_MISC_RAIN", "Rain", "Rain"),
@@ -115,6 +119,8 @@ ootEnumCSMiscType = [
 ]
 
 ootEnumCSDestinationType = [
+    # see https://github.com/zeldaret/oot/blob/b4c97ce17eb35329b4a7e3d98d7f06d558683f6d/include/z64cutscene.h#L235-L356
+    ("Custom", "Custom", "Custom"),
     ("CS_DEST_CUTSCENE_MAP_GANON_HORSE", "Cutscene Map Ganon Horse", "Cutscene Map Ganon Horse"),
     ("CS_DEST_CUTSCENE_MAP_THREE_GODDESSES", "Cutscene Map Three Goddesses", "Cutscene Map Three Goddesses"),
     ("CS_DEST_GERUDO_VALLEY_DIN_PART_1", "Gerudo Valley Din Part 1", "Gerudo Valley Din Part 1"),
@@ -233,11 +239,49 @@ ootEnumCSDestinationType = [
 ]
 
 ootEnumTextType = [
+    ("Custom", "Custom", "Custom"),
     ("CS_TEXT_NORMAL", "Normal Text", "Normal Text"),
     ("CS_TEXT_CHOICE", "Choice", "Choice"),
     ("CS_TEXT_OCARINA_ACTION", "Ocarina Action", "Ocarina Action"),
     ("CS_TEXT_GORON_RUBY", "Goron Ruby (use alt text)", "Goron Ruby (use alt text)"),
     ("CS_TEXT_ZORA_SAPPHIRE", "Zora Sapphire (use alt text)", "Zora Sapphire (use alt text)"),
+]
+
+ootEnumOcarinaAction = [
+    # see https://github.com/zeldaret/oot/blob/b4c97ce17eb35329b4a7e3d98d7f06d558683f6d/include/z64ocarina.h#L25-L76
+    # note: "teach" and "playback" are the only types used in cutscenes but in theory every ones could be used
+    ("Custom", "Custom", "Custom"),
+    ("OCARINA_ACTION_TEACH_MINUET", "Teach Minuet", "Teach Minuet"),
+    ("OCARINA_ACTION_TEACH_BOLERO", "Teach Bolero", "Teach Bolero"),
+    ("OCARINA_ACTION_TEACH_SERENADE", "Teach Serenade", "Teach Serenade"),
+    ("OCARINA_ACTION_TEACH_REQUIEM", "Teach Requiem", "Teach Requiem"),
+    ("OCARINA_ACTION_TEACH_NOCTURNE", "Teach Nocturne", "Teach Nocturne"),
+    ("OCARINA_ACTION_TEACH_PRELUDE", "Teach Prelude", "Teach Prelude"),
+    ("OCARINA_ACTION_TEACH_SARIA", "Teach Saria", "Teach Saria"),
+    ("OCARINA_ACTION_TEACH_EPONA", "Teach Epona", "Teach Epona"),
+    ("OCARINA_ACTION_TEACH_LULLABY", "Teach Lullaby", "Teach Lullaby"),
+    ("OCARINA_ACTION_TEACH_SUNS", "Teach Suns", "Teach Suns"),
+    ("OCARINA_ACTION_TEACH_TIME", "Teach Time", "Teach Time"),
+    ("OCARINA_ACTION_TEACH_STORMS", "Teach Storms", "Teach Storms"),
+    ("OCARINA_ACTION_PLAYBACK_MINUET", "Play back Minuet", "Play back Minuet"),
+    ("OCARINA_ACTION_PLAYBACK_BOLERO", "Play back Bolero", "Play back Bolero"),
+    ("OCARINA_ACTION_PLAYBACK_SERENADE", "Play back Serenade", "Play back Serenade"),
+    ("OCARINA_ACTION_PLAYBACK_REQUIEM", "Play back Requiem", "Play back Requiem"),
+    ("OCARINA_ACTION_PLAYBACK_NOCTURNE", "Play back Nocturne", "Play back Nocturne"),
+    ("OCARINA_ACTION_PLAYBACK_PRELUDE", "Play back Prelude", "Play back Prelude"),
+    ("OCARINA_ACTION_PLAYBACK_SARIA", "Play back Saria", "Play back Saria"),
+    ("OCARINA_ACTION_PLAYBACK_EPONA", "Play back Epona", "Play back Epona"),
+    ("OCARINA_ACTION_PLAYBACK_LULLABY", "Play back Lullaby", "Play back Lullaby"),
+    ("OCARINA_ACTION_PLAYBACK_SUNS", "Play back Suns", "Play back Suns"),
+    ("OCARINA_ACTION_PLAYBACK_TIME", "Play back Time", "Play back Time"),
+    ("OCARINA_ACTION_PLAYBACK_STORMS", "Play back Storms", "Play back Storms"),
+]
+
+ootEnumSeqPlayer = [
+    # see https://github.com/zeldaret/oot/blob/b4c97ce17eb35329b4a7e3d98d7f06d558683f6d/include/z64cutscene.h#L214-L217
+    ("Custom", "Custom", "Custom"),
+    ("CS_FADE_OUT_FANFARE", "Fanfare", "Fanfare"),
+    ("CS_FADE_OUT_BGM_MAIN", "BGM Main", "BGM Main"),
 ]
 
 ootCSSubPropToName = {
@@ -246,7 +290,7 @@ ootCSSubPropToName = {
 
     # TextBox
     "messageId": "Text ID",
-    "ocarinaSongAction": "Ocarina Action",
+    "ocarinaAction": "Ocarina Action",
     "csTextType": "Text Type",
     "topOptionBranch": "Text ID for Top Option",
     "bottomOptionBranch": "Text ID for Bottom Option",
@@ -261,6 +305,7 @@ ootCSSubPropToName = {
 
     # BGM
     "csSeqID": "BGM ID",
+    "csSeqPlayer": "Seq Player Type",
 
     # Misc
     "csMiscType": "Misc Type",

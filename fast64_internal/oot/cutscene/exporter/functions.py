@@ -17,22 +17,24 @@ def readCutsceneData(csParentOut, csParentIn):
     for listIn in csParentIn.csLists:
         listOut = OOTCSList()
         listOut.listType = listIn.listType
+
         listOut.unkType, listOut.fxType, listOut.fxStartFrame, listOut.fxEndFrame = (
             listIn.unkType,
-            listIn.fxType,
+            getCustomProperty(listIn, "fxType"),
             listIn.fxStartFrame,
             listIn.fxEndFrame,
         )
+
         listData = []
         if listOut.listType == "Textbox":
             for entryIn in listIn.textbox:
                 entryOut = OOTCSTextbox()
                 entryOut.textboxType = entryIn.textboxType
                 entryOut.messageId = entryIn.messageId
-                entryOut.ocarinaSongAction = entryIn.ocarinaSongAction
+                entryOut.ocarinaSongAction = getCustomProperty(entryIn, "ocarinaAction")
                 entryOut.startFrame = entryIn.startFrame
                 entryOut.endFrame = entryIn.endFrame
-                entryOut.type = entryIn.type
+                entryOut.type = entryIn.csTextType
                 entryOut.topOptionBranch = entryIn.topOptionBranch
                 entryOut.bottomOptionBranch = entryIn.bottomOptionBranch
                 entryOut.ocarinaMessageId = entryIn.ocarinaMessageId
@@ -53,14 +55,15 @@ def readCutsceneData(csParentOut, csParentIn):
         elif listOut.listType in {"PlayBGM", "StopBGM", "FadeBGM"}:
             for entryIn in listIn.bgm:
                 entryOut = OOTCSBGM()
-                entryOut.value = entryIn.value
+                csSeqPropSuffix = "ID" if listOut.listType != "FadeBGM" else "Player"
+                entryOut.value = getCustomProperty(entryIn, f"csSeq{csSeqPropSuffix}")
                 entryOut.startFrame = entryIn.startFrame
                 entryOut.endFrame = entryIn.endFrame
                 listOut.entries.append(entryOut)
         elif listOut.listType == "Misc":
             for entryIn in listIn.misc:
                 entryOut = OOTCSMisc()
-                entryOut.operation = entryIn.operation
+                entryOut.operation = getCustomProperty(entryIn, "csMiscType")
                 entryOut.startFrame = entryIn.startFrame
                 entryOut.endFrame = entryIn.endFrame
                 listOut.entries.append(entryOut)
@@ -77,12 +80,14 @@ def readCutsceneData(csParentOut, csParentIn):
 
 def convertCutsceneObject(obj):
     cs = OOTCutscene()
+
     cs.name = getCutsceneName(obj)
     csprop = obj.ootCutsceneProperty
     cs.csEndFrame = getCustomProperty(csprop, "csEndFrame")
     cs.csWriteTerminator = getCustomProperty(csprop, "csWriteTerminator")
-    cs.csTermIdx = getCustomProperty(csprop, "csTermIdx")
+    cs.csTermIdx = getCustomProperty(csprop, "csDestination")
     cs.csTermStart = getCustomProperty(csprop, "csTermStart")
     cs.csTermEnd = getCustomProperty(csprop, "csTermEnd")
     readCutsceneData(cs, csprop)
+
     return cs

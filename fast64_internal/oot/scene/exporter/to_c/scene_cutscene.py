@@ -1,116 +1,87 @@
-from .....utility import CData, PluginError
+from .....utility import CData, PluginError, indent
 from ....oot_level_classes import OOTScene
 from ....cutscene.constants import ootEnumCSTextboxTypeEntryC, ootEnumCSListTypeListC, ootEnumCSListTypeEntryC
+from ....cutscene.exporter import OOTCutscene
 
 
-def ootCutsceneDataToC(csParent, csName):
-    # csParent can be OOTCutscene or OOTScene
-    data = CData()
-    data.header = "extern CutsceneData " + csName + "[];\n"
-    data.source = "CutsceneData " + csName + "[] = {\n"
+def ootCutsceneDataToC(csParent: OOTCutscene | OOTScene, csName: str):
+    csData = CData()
+    arrayName = f"CutsceneData {csName}[]"
     nentries = len(csParent.csLists) + (1 if csParent.csWriteTerminator else 0)
-    data.source += "\tCS_BEGIN_CUTSCENE(" + str(nentries) + ", " + str(csParent.csEndFrame) + "),\n"
-    if csParent.csWriteTerminator:
-        data.source += (
-            "\tCS_TERMINATOR("
-            + str(csParent.csTermIdx)
-            + ", "
-            + str(csParent.csTermStart)
-            + ", "
-            + str(csParent.csTermEnd)
+
+    # .h
+    csData.header = f"extern {arrayName};\n"
+
+    # .c
+    csData.source = (
+        arrayName + " = {\n"
+        + (indent + f"CS_BEGIN_CUTSCENE({nentries}, {csParent.csEndFrame}),\n")
+        + (
+            (indent * 2) + f"CS_DESTINATION({csParent.csTermIdx}, {csParent.csTermStart}, {csParent.csTermEnd}),\n"
+            if csParent.csWriteTerminator else ""
+        )
+    )
+
+    for list in csParent.csLists:
+        # CS "XXXX List" Command
+        csData.source += (
+            (indent * 2) + ootEnumCSListTypeListC[list.listType] + "("
+            + (
+                f"{list.fxType}, {list.fxStartFrame}, {list.fxEndFrame}"
+                if list.listType == "FX" else str(len(list.entries))
+            )
             + "),\n"
         )
-    for list in csParent.csLists:
-        data.source += "\t" + ootEnumCSListTypeListC[list.listType] + "("
-        if list.listType == "FX":
-            data.source += list.fxType + ", " + str(list.fxStartFrame) + ", " + str(list.fxEndFrame)
-        else:
-            data.source += str(len(list.entries))
-        data.source += "),\n"
+
         for e in list.entries:
-            data.source += "\t\t"
-            if list.listType == "Textbox":
-                data.source += ootEnumCSTextboxTypeEntryC[e.textboxType]
-            else:
-                data.source += ootEnumCSListTypeEntryC[list.listType]
-            data.source += "("
+            csData.source += (
+                indent * 3
+                + (
+                    ootEnumCSTextboxTypeEntryC[e.textboxType]
+                    if list.listType == "Textbox" else ootEnumCSListTypeEntryC[list.listType]
+                )
+                + "("
+            )
+
             if list.listType == "Textbox":
                 if e.textboxType == "Text":
-                    data.source += (
-                        e.messageId
-                        + ", "
-                        + str(e.startFrame)
-                        + ", "
-                        + str(e.endFrame)
-                        + ", "
-                        + e.type
-                        + ", "
-                        + e.topOptionBranch
-                        + ", "
-                        + e.bottomOptionBranch
+                    csData.source += (
+                        f"{e.messageId}, {e.startFrame}, {e.endFrame}, {e.type}, {e.topOptionBranch}, {e.bottomOptionBranch}"
                     )
+
                 elif e.textboxType == "None":
-                    data.source += str(e.startFrame) + ", " + str(e.endFrame)
+                    csData.source += f"{e.startFrame}, {e.endFrame}"
+
                 elif e.textboxType == "LearnSong":
-                    data.source += (
-                        e.ocarinaSongAction
-                        + ", "
-                        + str(e.startFrame)
-                        + ", "
-                        + str(e.endFrame)
-                        + ", "
-                        + e.ocarinaMessageId
-                    )
+                    csData.source += f"{e.ocarinaSongAction}, {e.startFrame}, {e.endFrame}, {e.ocarinaMessageId}"
+
             elif list.listType == "Lighting":
-                data.source += (
-                    str(e.index) + ", " + str(e.startFrame) + ", " + str(e.startFrame + 1) + ", 0, 0, 0, 0, 0, 0, 0, 0"
-                )
+                # the endFrame variable is not used in the implementation of the commend
+                # so the value doesn't matter
+                csData.source += f"{e.index}, {e.startFrame}" + (", 0" * 9)
+
             elif list.listType == "Time":
-                data.source += (
-                    "1, "
-                    + str(e.startFrame)
-                    + ", "
-                    + str(e.startFrame + 1)
-                    + ", "
-                    + str(e.hour)
-                    + ", "
-                    + str(e.minute)
-                    + ", 0"
-                )
+                # same as above
+                csData.source += f"0, {e.startFrame}, 0, {e.hour}, {e.minute}"
+
+            elif list.listType == "0x09": # rumble command
+                # same as above
+                csData.source += f"0, {e.startFrame}, 0, {e.unk2}, {e.unk3}, {e.unk4}, 0, 0"
+
             elif list.listType in ["PlayBGM", "StopBGM", "FadeBGM"]:
-                data.source += e.value
-                if list.listType != "FadeBGM":
-                    data.source += " + 1"  # Game subtracts 1 to get actual seq
-                data.source += ", " + str(e.startFrame) + ", " + str(e.endFrame) + ", 0, 0, 0, 0, 0, 0, 0, 0"
+                endFrame = e.endFrame if list.listType == "FadeBGM" else "0"
+                csData.source += f"{e.value}, {e.startFrame}, {endFrame}" + (", 0" * 8)
+
             elif list.listType == "Misc":
-                data.source += (
-                    str(e.operation)
-                    + ", "
-                    + str(e.startFrame)
-                    + ", "
-                    + str(e.endFrame)
-                    + ", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0"
-                )
-            elif list.listType == "0x09":
-                data.source += (
-                    "0, "
-                    + str(e.startFrame)
-                    + ", "
-                    + str(e.startFrame + 1)
-                    + ", "
-                    + e.unk2
-                    + ", "
-                    + e.unk3
-                    + ", "
-                    + e.unk4
-                    + ", 0, 0"
-                )
+                csData.source += f"{e.operation}, {e.startFrame}, {e.endFrame}" + (", 0" * 11)
+
             else:
                 raise PluginError("Internal error: invalid cutscene list type " + list.listType)
-            data.source += "),\n"
-    data.source += "\tCS_END(),\n"
-    data.source += "};\n\n"
-    return data
+
+            csData.source += "),\n"
+
+    csData.source += indent + "CS_END(),\n};\n\n"
+    return csData
 
 
 def getSceneCutscenes(outScene: OOTScene):

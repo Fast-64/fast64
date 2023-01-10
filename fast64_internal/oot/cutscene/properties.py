@@ -14,6 +14,8 @@ from .constants import (
     ootEnumCSMiscType,
     ootEnumTextType,
     ootCSSubPropToName,
+    ootEnumOcarinaAction,
+    ootEnumSeqPlayer,
 )
 
 
@@ -52,9 +54,28 @@ class OOTCSProperty:
 
         drawCollectionOps(box, cmdIndex, collectionType + "." + self.attrName, listIndex, objName)
 
+        print(self.subprops)
         for p in self.subprops:
             if self.filterProp(p, listProp):
-                prop_split(box, self, p, ootCSSubPropToName[self.filterName(p, listProp)])
+                name = self.filterName(p, listProp)
+                displayName = ootCSSubPropToName[name]
+
+                if name == "csSeqPlayer":
+                    # change the property name to draw the other enum for fade seq command
+                    p = name
+
+                prop_split(box, self, p, displayName)
+
+                customValues = [
+                    "csMiscType",
+                    "csTextType",
+                    "csDestination",
+                    "ocarinaAction",
+                    "csSeqID",
+                    "csSeqPlayer",
+                ]
+                if name in customValues and getattr(self, p) == "Custom":
+                    prop_split(box, self, f"{name}Custom", f"{displayName} Custom")
 
 
 class OOTCSTextboxProperty(OOTCSProperty, PropertyGroup):
@@ -62,7 +83,7 @@ class OOTCSTextboxProperty(OOTCSProperty, PropertyGroup):
     attrName = "textbox"
     subprops = [
         "messageId",
-        "ocarinaSongAction",
+        "ocarinaAction",
         "startFrame",
         "endFrame",
         "csTextType",
@@ -73,12 +94,15 @@ class OOTCSTextboxProperty(OOTCSProperty, PropertyGroup):
     textboxType: EnumProperty(items=ootEnumCSTextboxType)
     messageId: StringProperty(name="", default="0x0000")
     ocarinaSongAction: StringProperty(name="", default="0x0000")
+    ocarinaAction: EnumProperty(name="Ocarina Action", items=ootEnumOcarinaAction, default="OCARINA_ACTION_TEACH_MINUET")
+    ocarinaActionCustom: StringProperty(default="OCARINA_ACTION_CUSTOM")
     type: StringProperty(name="", default="0x0000")
     topOptionBranch: StringProperty(name="", default="0x0000")
     bottomOptionBranch: StringProperty(name="", default="0x0000")
     ocarinaMessageId: StringProperty(name="", default="0x0000")
 
     csTextType: EnumProperty(name="Text Type", items=ootEnumTextType, default="CS_TEXT_NORMAL")
+    csTextTypeCustom: StringProperty(default="CS_TEXT_CUSTOM")
 
     def getName(self):
         return self.textboxType
@@ -115,13 +139,16 @@ class OOTCSBGMProperty(OOTCSProperty, PropertyGroup):
     subprops = ["csSeqID", "startFrame", "endFrame"]
     value: StringProperty(name="", default="0x0000")
     csSeqID: EnumProperty(name="Seq ID", items=ootEnumMusicSeq, default="NA_BGM_GENERAL_SFX")
+    csSeqIDCustom: StringProperty(default="NA_BGM_CUSTOM")
+    csSeqPlayer: EnumProperty(name="Seq Player", items=ootEnumSeqPlayer, default="CS_FADE_OUT_BGM_MAIN")
+    csSeqPlayerCustom: StringProperty(default="NA_BGM_CUSTOM")
 
     def filterProp(self, name, listProp):
         return name != "endFrame" or listProp.listType == "FadeBGM"
 
     def filterName(self, name, listProp):
-        if name == "value":
-            return "Fade Type" if listProp.listType == "FadeBGM" else "Sequence"
+        if name == "csSeqID" and listProp.listType == "FadeBGM":
+            return "csSeqPlayer"
         return name
 
 
@@ -131,6 +158,7 @@ class OOTCSMiscProperty(OOTCSProperty, PropertyGroup):
     subprops = ["csMiscType", "startFrame", "endFrame"]
     operation: IntProperty(name="", default=1, min=1, max=35)
     csMiscType: EnumProperty(name="Type", items=ootEnumCSMiscType, default="CS_MISC_SET_LOCKED_VIEWPOINT")
+    csMiscTypeCustom: StringProperty(default="CS_MISC_CUSTOM")
 
 
 class OOTCS0x09Property(OOTCSProperty, PropertyGroup):
@@ -155,6 +183,7 @@ class OOTCSListProperty(PropertyGroup):
 
     unkType: StringProperty(name="", default="0x0001")
     fxType: EnumProperty(items=ootEnumCSTransitionType)
+    fxTypeCustom: StringProperty(default="CS_TRANS_CUSTOM")
     fxStartFrame: IntProperty(name="", default=0, min=0)
     fxEndFrame: IntProperty(name="", default=1, min=0)
 
@@ -179,6 +208,9 @@ class OOTCSListProperty(PropertyGroup):
             attrName = "textbox"
         elif self.listType == "FX":
             prop_split(box, self, "fxType", "Transition Type")
+            if self.fxType == "Custom":
+                prop_split(box, self, "fxTypeCustom", "Transition Type Custom")
+
             prop_split(box, self, "fxStartFrame", "Start Frame")
             prop_split(box, self, "fxEndFrame", "End Frame")
             return
@@ -230,7 +262,8 @@ class OOTCSListProperty(PropertyGroup):
 class OOTCutsceneProperty(PropertyGroup):
     csEndFrame: IntProperty(name="End Frame", min=0, default=100)
     csWriteTerminator: BoolProperty(name="Cutscene Destination (Scene Change)")
-    csDestination: EnumProperty(name="Destination", items=ootEnumCSDestinationType)
+    csDestination: EnumProperty(name="Destination", items=ootEnumCSDestinationType, default="CS_DEST_CUTSCENE_MAP_GANON_HORSE")
+    csDestinationCustom: StringProperty(default="CS_DEST_CUSTOM")
     csTermIdx: IntProperty(name="Index", min=0)
     csTermStart: IntProperty(name="Start Frame", min=0, default=99)
     csTermEnd: IntProperty(name="End Frame", min=0, default=100)
