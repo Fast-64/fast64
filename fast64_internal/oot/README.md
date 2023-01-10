@@ -124,6 +124,21 @@ Heavy modifications of Links model can cause his matrices array to shift from wh
 6. In the actor header file, (in src/overlays/actors/\<name\>/), set the joint/morph table sizes to be (number of bones + 1)
 7. In the actor source file, this value should also be used for the limbCount argument in SkelAnime_InitFlex().
 
+### Actor Colliders
+You can add actor colliders to an armature or display list using the operators in the OOT Tools menu. The collider properties will be shown under the object properties tab, except for mesh collider which will store part of the collider properties in the material properties tab. The struct name is also stored in the object properties, which is what determines what the export collider name will be. You can also toggle collider visibility by type in the OOT Tools menu.
+
+- For quad colliders, the actual shape is ignored and only the properties are relevant.
+- For joint sphere colliders, the armature specific section is shared among all joint spheres on the armature. This means that an armature can only have one joint sphere collider collection.
+
+The scale of the collider objects determines their sizes, so don't worry if they have unapplied scales.
+
+### Actor Collider Importing
+Actor collider importing is a bit finicky.
+1. Some actors will modify their collider data, so that the actual data is not representative of in game shape. For example, most shield/sword collider vertices are modified by actors. Quad colliders seem to exclusively fall under this case, so the actual shape is ignored when importing/exporting.
+2. While skeletons are transformed by Actor_SetScale(), colliders are not. Therefore, having the correct actor scale is important to matching collider sizes. Currently fast64 tries to find the first instance of CHAIN_VEC3F_DIV1000(scale, ....) or Actor_SetScale(), but sometimes this is not correct. Make sure to check the actor file and manually set an actor scale for importing colliders if things are scaled weirdly.
+3. Some actor files contain multiple "parts", which means multiple skeletons and multiple colliders. You may want to manually specify which colliders to import in the import settings. Only Bongo Bongo and Barinade imports handle these cases automatically currently.
+4. Ganon2 has two sphere joint colliders, which is not supported by fast64 currently. Ganon2's joint sphere colliders also seem to not follow the same rules as other sphere joint colliders.
+
 ### Creating a Cutscene
 **Creating the cutscene itself:**
 
