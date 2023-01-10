@@ -81,7 +81,7 @@ class OOT_SearchMusicSeqEnumOperator(Operator):
     bl_property = "ootMusicSeq"
     bl_options = {"REGISTER", "UNDO"}
 
-    ootMusicSeq: EnumProperty(items=ootEnumMusicSeq, default="0x02")
+    ootMusicSeq: EnumProperty(items=ootEnumMusicSeq, default="NA_BGM_FIELD_LOGIC")
     headerIndex: IntProperty(default=0, min=0)
     objName: StringProperty()
 

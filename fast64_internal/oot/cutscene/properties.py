@@ -2,9 +2,19 @@ from bpy.types import PropertyGroup, Object, UILayout
 from bpy.props import StringProperty, EnumProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
 from bpy.utils import register_class, unregister_class
 from ...utility import PluginError, prop_split
-from ..oot_utility import OOTCollectionAdd, drawCollectionOps
-from .operators import OOTCSTextboxAdd, drawCSListAddOp
-from .constants import ootEnumCSTextboxType, ootEnumCSListType, ootEnumCSTransitionType, ootEnumCSTextboxTypeIcons
+from ..oot_utility import OOTCollectionAdd, drawCollectionOps, getEnumName
+from ..oot_constants import ootEnumMusicSeq
+from .operators import OOTCSTextboxAdd, OOT_SearchCSDestinationEnumOperator, drawCSListAddOp
+from .constants import (
+    ootEnumCSTextboxType,
+    ootEnumCSListType,
+    ootEnumCSTransitionType,
+    ootEnumCSTextboxTypeIcons,
+    ootEnumCSDestinationType,
+    ootEnumCSMiscType,
+    ootEnumTextType,
+    ootCSSubPropToName,
+)
 
 
 # Perhaps this should have been called something like OOTCSParentPropertyType,
@@ -27,8 +37,11 @@ class OOTCSProperty:
     def filterName(self, name, listProp):
         return name
 
-    def draw(self, layout, listProp, listIndex, cmdIndex, objName, collectionType):
-        layout.prop(
+    def draw(self, layout: UILayout, listProp: "OOTCSListProperty", listIndex: int, cmdIndex: int, objName: str, collectionType: str):
+        # Draws list elements
+        box = layout.box().column()
+
+        box.prop(
             self,
             "expandTab",
             text=self.getName() + " " + str(cmdIndex),
@@ -36,11 +49,12 @@ class OOTCSProperty:
         )
         if not self.expandTab:
             return
-        box = layout.box().column()
+
         drawCollectionOps(box, cmdIndex, collectionType + "." + self.attrName, listIndex, objName)
+
         for p in self.subprops:
             if self.filterProp(p, listProp):
-                prop_split(box, self, p, self.filterName(p, listProp))
+                prop_split(box, self, p, ootCSSubPropToName[self.filterName(p, listProp)])
 
 
 class OOTCSTextboxProperty(OOTCSProperty, PropertyGroup):
@@ -51,7 +65,7 @@ class OOTCSTextboxProperty(OOTCSProperty, PropertyGroup):
         "ocarinaSongAction",
         "startFrame",
         "endFrame",
-        "type",
+        "csTextType",
         "topOptionBranch",
         "bottomOptionBranch",
         "ocarinaMessageId",
@@ -63,6 +77,8 @@ class OOTCSTextboxProperty(OOTCSProperty, PropertyGroup):
     topOptionBranch: StringProperty(name="", default="0x0000")
     bottomOptionBranch: StringProperty(name="", default="0x0000")
     ocarinaMessageId: StringProperty(name="", default="0x0000")
+
+    csTextType: EnumProperty(name="Text Type", items=ootEnumTextType, default="CS_TEXT_NORMAL")
 
     def getName(self):
         return self.textboxType
@@ -96,8 +112,9 @@ class OOTCSTimeProperty(OOTCSProperty, PropertyGroup):
 class OOTCSBGMProperty(OOTCSProperty, PropertyGroup):
     propName = "BGM"
     attrName = "bgm"
-    subprops = ["value", "startFrame", "endFrame"]
+    subprops = ["csSeqID", "startFrame", "endFrame"]
     value: StringProperty(name="", default="0x0000")
+    csSeqID: EnumProperty(name="Seq ID", items=ootEnumMusicSeq, default="NA_BGM_GENERAL_SFX")
 
     def filterProp(self, name, listProp):
         return name != "endFrame" or listProp.listType == "FadeBGM"
@@ -111,8 +128,9 @@ class OOTCSBGMProperty(OOTCSProperty, PropertyGroup):
 class OOTCSMiscProperty(OOTCSProperty, PropertyGroup):
     propName = "Misc"
     attrName = "misc"
-    subprops = ["operation", "startFrame", "endFrame"]
+    subprops = ["csMiscType", "startFrame", "endFrame"]
     operation: IntProperty(name="", default=1, min=1, max=35)
+    csMiscType: EnumProperty(name="Type", items=ootEnumCSMiscType, default="CS_MISC_SET_LOCKED_VIEWPOINT")
 
 
 class OOTCS0x09Property(OOTCSProperty, PropertyGroup):
@@ -122,24 +140,6 @@ class OOTCS0x09Property(OOTCSProperty, PropertyGroup):
     unk2: StringProperty(name="", default="0x00")
     unk3: StringProperty(name="", default="0x00")
     unk4: StringProperty(name="", default="0x00")
-
-
-class OOTCSUnkProperty(OOTCSProperty, PropertyGroup):
-    propName = "Unk"
-    attrName = "unk"
-    subprops = ["unk1", "unk2", "unk3", "unk4", "unk5", "unk6", "unk7", "unk8", "unk9", "unk10", "unk11", "unk12"]
-    unk1: StringProperty(name="", default="0x00000000")
-    unk2: StringProperty(name="", default="0x00000000")
-    unk3: StringProperty(name="", default="0x00000000")
-    unk4: StringProperty(name="", default="0x00000000")
-    unk5: StringProperty(name="", default="0x00000000")
-    unk6: StringProperty(name="", default="0x00000000")
-    unk7: StringProperty(name="", default="0x00000000")
-    unk8: StringProperty(name="", default="0x00000000")
-    unk9: StringProperty(name="", default="0x00000000")
-    unk10: StringProperty(name="", default="0x00000000")
-    unk11: StringProperty(name="", default="0x00000000")
-    unk12: StringProperty(name="", default="0x00000000")
 
 
 class OOTCSListProperty(PropertyGroup):
@@ -152,7 +152,6 @@ class OOTCSListProperty(PropertyGroup):
     bgm: CollectionProperty(type=OOTCSBGMProperty)
     misc: CollectionProperty(type=OOTCSMiscProperty)
     nine: CollectionProperty(type=OOTCS0x09Property)
-    unk: CollectionProperty(type=OOTCSUnkProperty)
 
     unkType: StringProperty(name="", default="0x0001")
     fxType: EnumProperty(items=ootEnumCSTransitionType)
@@ -160,21 +159,26 @@ class OOTCSListProperty(PropertyGroup):
     fxEndFrame: IntProperty(name="", default=1, min=0)
 
     def draw_props(self, layout: UILayout, listIndex: int, objName: str, collectionType: str):
-        layout.prop(
+        box = layout.box().column()
+
+        # Draw current command tab
+        box.prop(
             self,
             "expandTab",
-            text=self.listType + " List" if self.listType != "FX" else "Scene Trans FX",
+            text=self.listType + " List" if self.listType != "FX" else "Transition",
             icon="TRIA_DOWN" if self.expandTab else "TRIA_RIGHT",
         )
+
         if not self.expandTab:
             return
-        box = layout.box().column()
+
         drawCollectionOps(box, listIndex, collectionType, None, objName, False)
 
+        # Draw current command content
         if self.listType == "Textbox":
             attrName = "textbox"
         elif self.listType == "FX":
-            prop_split(box, self, "fxType", "Transition")
+            prop_split(box, self, "fxType", "Transition Type")
             prop_split(box, self, "fxStartFrame", "Start Frame")
             prop_split(box, self, "fxEndFrame", "End Frame")
             return
@@ -188,25 +192,23 @@ class OOTCSListProperty(PropertyGroup):
             attrName = "misc"
         elif self.listType == "0x09":
             attrName = "nine"
-        elif self.listType == "Unk":
-            prop_split(box, self, "unkType", "Unk List Type")
-            attrName = "unk"
         else:
             raise PluginError("Internal error: invalid listType " + self.listType)
 
         dat = getattr(self, attrName)
-        for i, p in enumerate(dat):
-            p.draw(box, self, listIndex, i, objName, collectionType)
-        if len(dat) == 0:
-            box.label(text="No items in " + self.listType + " List.")
+
         if self.listType == "Textbox":
-            row = box.row(align=True)
+            subBox = box.box()
+            subBox.label(text="TextBox Commands")
+            row = subBox.row(align=True)
+
             for l in range(3):
                 addOp = row.operator(
                     OOTCSTextboxAdd.bl_idname,
                     text="Add " + ootEnumCSTextboxType[l][1],
                     icon=ootEnumCSTextboxTypeIcons[l],
                 )
+
                 addOp.collectionType = collectionType + ".textbox"
                 addOp.textboxType = ootEnumCSTextboxType[l][0]
                 addOp.listIndex = listIndex
@@ -218,27 +220,43 @@ class OOTCSListProperty(PropertyGroup):
             addOp.subIndex = listIndex
             addOp.objName = objName
 
+        for i, p in enumerate(dat):
+            p.draw(box, self, listIndex, i, objName, collectionType)
+
+        if len(dat) == 0:
+            box.label(text="No items in " + self.listType + " List.")
+
 
 class OOTCutsceneProperty(PropertyGroup):
     csEndFrame: IntProperty(name="End Frame", min=0, default=100)
-    csWriteTerminator: BoolProperty(name="Write Terminator (Code Execution)")
+    csWriteTerminator: BoolProperty(name="Cutscene Destination (Scene Change)")
+    csDestination: EnumProperty(name="Destination", items=ootEnumCSDestinationType)
     csTermIdx: IntProperty(name="Index", min=0)
-    csTermStart: IntProperty(name="Start Frm", min=0, default=99)
-    csTermEnd: IntProperty(name="End Frm", min=0, default=100)
+    csTermStart: IntProperty(name="Start Frame", min=0, default=99)
+    csTermEnd: IntProperty(name="End Frame", min=0, default=100)
     csLists: CollectionProperty(type=OOTCSListProperty, name="Cutscene Lists")
 
     def draw_props(self, layout: UILayout, obj: Object):
         layout.prop(self, "csEndFrame")
-        layout.prop(self, "csWriteTerminator")
+
+        csDestLayout = layout.box()
+        csDestLayout.prop(self, "csWriteTerminator")
         if self.csWriteTerminator:
-            r = layout.row()
-            r.prop(self, "csTermIdx")
+            r = csDestLayout.row()
+
+            searchBox = r.box().row()
+            searchOp = searchBox.operator(OOT_SearchCSDestinationEnumOperator.bl_idname, icon="VIEWZOOM", text="")
+            searchOp.objName = obj.name
+            searchBox.label(text=getEnumName(ootEnumCSDestinationType, self.csDestination))
+
+            r = csDestLayout.row()
             r.prop(self, "csTermStart")
             r.prop(self, "csTermEnd")
-        for i, p in enumerate(self.csLists):
-            p.draw_props(layout, p, i, obj.name, "Cutscene")
 
         drawCSListAddOp(layout, obj.name, "Cutscene")
+
+        for i, p in enumerate(self.csLists):
+            p.draw_props(layout, i, obj.name, "Cutscene")
 
 
 classes = (
@@ -248,7 +266,6 @@ classes = (
     OOTCSBGMProperty,
     OOTCSMiscProperty,
     OOTCS0x09Property,
-    OOTCSUnkProperty,
     OOTCSListProperty,
     OOTCutsceneProperty,
 )

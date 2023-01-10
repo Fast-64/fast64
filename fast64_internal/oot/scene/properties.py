@@ -250,7 +250,7 @@ class OOTSceneHeaderProperty(PropertyGroup):
     cameraMode: EnumProperty(name="Camera Mode", items=ootEnumCameraMode, default="0x00")
     cameraModeCustom: StringProperty(name="Camera Mode Custom", default="0x00")
 
-    musicSeq: EnumProperty(name="Music Sequence", items=ootEnumMusicSeq, default="0x02")
+    musicSeq: EnumProperty(name="Music Sequence", items=ootEnumMusicSeq, default="NA_BGM_FIELD_LOGIC")
     musicSeqCustom: StringProperty(name="Music Sequence ID", default="0x00")
     nightSeq: EnumProperty(name="Nighttime SFX", items=ootEnumNightSeq, default="0x00")
     nightSeqCustom: StringProperty(name="Nighttime SFX ID", default="0x00")
@@ -371,9 +371,12 @@ class OOTSceneHeaderProperty(PropertyGroup):
                         r.prop(self, "csTermStart", text="Start Frm")
                         r.prop(self, "csTermEnd", text="End Frm")
                     collectionType = "CSHdr." + str(0 if headerIndex is None else headerIndex)
+
+                    drawCSListAddOp(cutscene, objName, collectionType)
+
                     for i, p in enumerate(self.csLists):
                         p.draw_props(cutscene, i, objName, collectionType)
-                    drawCSListAddOp(cutscene, objName, collectionType)
+
             if headerIndex is None or headerIndex == 0:
                 cutscene.label(text="Extra cutscenes (not in any header):")
                 for i in range(len(self.extraCutscenes)):

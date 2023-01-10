@@ -72,22 +72,6 @@ def readCutsceneData(csParentOut, csParentIn):
                 entryOut.unk3 = entryIn.unk3
                 entryOut.unk4 = entryIn.unk4
                 listOut.entries.append(entryOut)
-        elif listOut.listType == "Unk":
-            for entryIn in listIn.unk:
-                entryOut = OOTCSUnk()
-                entryOut.unk1 = entryIn.unk1
-                entryOut.unk2 = entryIn.unk2
-                entryOut.unk3 = entryIn.unk3
-                entryOut.unk4 = entryIn.unk4
-                entryOut.unk5 = entryIn.unk5
-                entryOut.unk6 = entryIn.unk6
-                entryOut.unk7 = entryIn.unk7
-                entryOut.unk8 = entryIn.unk8
-                entryOut.unk9 = entryIn.unk9
-                entryOut.unk10 = entryIn.unk10
-                entryOut.unk11 = entryIn.unk11
-                entryOut.unk12 = entryIn.unk12
-                listOut.entries.append(entryOut)
         csParentOut.csLists.append(listOut)
 
 

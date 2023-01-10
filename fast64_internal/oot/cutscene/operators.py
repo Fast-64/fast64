@@ -1,4 +1,4 @@
-import os
+import os, bpy
 from bpy.path import abspath
 from bpy.ops import object
 from bpy.props import StringProperty, EnumProperty, IntProperty
@@ -8,7 +8,7 @@ from ...utility import CData, PluginError, writeCData, raisePluginError
 from ..oot_utility import getCollection
 from ..scene.exporter.to_c import ootCutsceneDataToC
 from .exporter import convertCutsceneObject
-from .constants import ootEnumCSTextboxType, ootEnumCSListType, ootEnumCSListTypeIcons
+from .constants import ootEnumCSTextboxType, ootEnumCSListType, ootEnumCSListTypeIcons, ootEnumCSDestinationType
 
 
 def checkGetFilePaths(context: Context):
@@ -38,7 +38,7 @@ def ootCutsceneIncludes(headerfilename):
     return ret
 
 
-def drawCSListAddOp(layout: UILayout, objName: str, collectionType):
+def drawCSListAddOp(layout: UILayout, objName: str, collectionType: str):
     def addButton(row):
         nonlocal l
         op = row.operator(OOTCSListAdd.bl_idname, text=ootEnumCSListType[l][1], icon=ootEnumCSListTypeIcons[l])
@@ -47,11 +47,10 @@ def drawCSListAddOp(layout: UILayout, objName: str, collectionType):
         op.objName = objName
         l += 1
 
-    box = layout.column(align=True)
+    box = layout.box()
     l = 0
     row = box.row(align=True)
-    row.label(text="Add:")
-    addButton(row)
+    row.label(text="Cutscene Commands")
     for _ in range(3):
         row = box.row(align=True)
         for _ in range(3):
@@ -153,11 +152,34 @@ class OOT_ExportAllCutscenes(Operator):
             return {"CANCELLED"}
 
 
+class OOT_SearchCSDestinationEnumOperator(Operator):
+    bl_idname = "object.oot_search_cs_dest_enum_operator"
+    bl_label = "Choose Destination"
+    bl_property = "csDestination"
+    bl_options = {"REGISTER", "UNDO"}
+
+    csDestination: EnumProperty(items=ootEnumCSDestinationType, default="CS_DEST_CUTSCENE_MAP_GANON_HORSE")
+    objName: StringProperty()
+
+    def execute(self, context):
+        obj = bpy.data.objects[self.objName]
+        obj.ootCutsceneProperty.csDestination = self.csDestination
+
+        context.region.tag_redraw()
+        self.report({"INFO"}, "Selected: " + self.csDestination)
+        return {"FINISHED"}
+
+    def invoke(self, context, event):
+        context.window_manager.invoke_search_popup(self)
+        return {"RUNNING_MODAL"}
+
+
 oot_cutscene_classes = (
     OOTCSTextboxAdd,
     OOTCSListAdd,
     OOT_ExportCutscene,
     OOT_ExportAllCutscenes,
+    OOT_SearchCSDestinationEnumOperator,
 )
 
 

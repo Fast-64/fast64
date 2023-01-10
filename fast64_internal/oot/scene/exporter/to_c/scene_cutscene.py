@@ -22,8 +22,6 @@ def ootCutsceneDataToC(csParent, csName):
         )
     for list in csParent.csLists:
         data.source += "\t" + ootEnumCSListTypeListC[list.listType] + "("
-        if list.listType == "Unk":
-            data.source += list.unkType + ", "
         if list.listType == "FX":
             data.source += list.fxType + ", " + str(list.fxStartFrame) + ", " + str(list.fxEndFrame)
         else:
@@ -106,32 +104,6 @@ def ootCutsceneDataToC(csParent, csName):
                     + ", "
                     + e.unk4
                     + ", 0, 0"
-                )
-            elif list.listType == "Unk":
-                data.source += (
-                    e.unk1
-                    + ", "
-                    + e.unk2
-                    + ", "
-                    + e.unk3
-                    + ", "
-                    + e.unk4
-                    + ", "
-                    + e.unk5
-                    + ", "
-                    + e.unk6
-                    + ", "
-                    + e.unk7
-                    + ", "
-                    + e.unk8
-                    + ", "
-                    + e.unk9
-                    + ", "
-                    + e.unk10
-                    + ", "
-                    + e.unk11
-                    + ", "
-                    + e.unk12
                 )
             else:
                 raise PluginError("Internal error: invalid cutscene list type " + list.listType)
