@@ -123,6 +123,8 @@ def oot_register(registerPanels):
     actor_props_register()
     oot_obj_register()
     spline_props_register()
+    actor_collider_props_register(),  # register before f3d
+    actor_collider_ops_register(),
     f3d_props_register()
     anim_ops_register()
     skeleton_ops_register()
@@ -131,8 +133,6 @@ def oot_register(registerPanels):
     f3d_ops_register()
     file_register()
     anim_props_register()
-    actor_collider_props_register(),
-    actor_collider_ops_register(),
 
     for cls in oot_classes:
         register_class(cls)
@@ -159,6 +159,8 @@ def oot_unregister(unregisterPanels):
     actor_props_unregister()
     spline_props_unregister()
     f3d_props_unregister()
+    actor_collider_props_unregister(),
+    actor_collider_ops_unregister(),
     anim_ops_unregister()
     skeleton_ops_unregister()
     skeleton_props_unregister()
@@ -166,8 +168,6 @@ def oot_unregister(unregisterPanels):
     f3d_ops_unregister()
     file_unregister()
     anim_props_unregister()
-    actor_collider_props_unregister(),
-    actor_collider_ops_unregister(),
 
     if unregisterPanels:
         oot_panel_unregister()

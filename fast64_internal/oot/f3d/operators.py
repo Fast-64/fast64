@@ -15,6 +15,13 @@ from ..oot_model_classes import OOTModel, OOTGfxFormatter
 from ..oot_f3d_writer import ootReadActorScale, writeTextureArraysNew, writeTextureArraysExisting
 from .properties import OOTDLImportSettings, OOTDLExportSettings
 
+from ..actor_collider import (
+    parseColliderData,
+    getColliderData,
+    removeExistingColliderData,
+    writeColliderData,
+)
+
 from ..oot_utility import (
     OOTObjectCategorizer,
     ootDuplicateHierarchy,
@@ -82,6 +89,10 @@ def ootConvertMeshToC(
         textureArrayData = writeTextureArraysNew(fModel, flipbookArrayIndex2D)
         data.append(textureArrayData)
 
+        if settings.handleColliders.enable:
+            colliderData = getColliderData(originalObj)
+            data.append(colliderData)
+
     filename = settings.filename if settings.isCustomFilename else name
     writeCData(data, os.path.join(path, filename + ".h"), os.path.join(path, filename + ".c"))
 
@@ -92,6 +103,12 @@ def ootConvertMeshToC(
             headerPath = os.path.join(path, folderName + ".h")
             sourcePath = os.path.join(path, folderName + ".c")
             removeDL(sourcePath, headerPath, name)
+
+            if settings.handleColliders.enable:
+                removeExistingColliderData(
+                    bpy.context.scene.ootDecompPath, settings.actorOverlayName, False, colliderData.source
+                )
+                writeColliderData(originalObj, bpy.context.scene.ootDecompPath, settings.actorOverlayName, False)
 
 
 class OOT_ImportDL(Operator):
@@ -144,6 +161,11 @@ class OOT_ImportDL(Operator):
                 f3dContext,
             )
             obj.ootActorScale = scale / context.scene.ootBlenderScale
+
+            if settings.handleColliders.enable:
+                parseColliderData(
+                    settings.name, basePath, settings.actorOverlayName, False, obj, settings.handleColliders
+                )
 
             self.report({"INFO"}, "Success!")
             return {"FINISHED"}

@@ -18,9 +18,6 @@ from .panels import (
 from .importer import parseColliderData
 from .exporter import getColliderData, removeExistingColliderData, writeColliderData
 
-# TODO: Code in other files
-# oot_operators (operators)
-# oot_f3d_writer, oot_skeleton (properties, functions)
-
-# getActorFilepath in exporter?
-# movement of some functions?
+# TODO:
+# test getActorFilepath changes on export
+# fix Link collider import

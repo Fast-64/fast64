@@ -614,6 +614,7 @@ actor_collider_props_classes = (
     OOTActorColliderProperty,
     OOTActorColliderItemProperty,
     OOTColliderVisibilitySettings,
+    OOTActorColliderImportExportSettings,
 )
 
 

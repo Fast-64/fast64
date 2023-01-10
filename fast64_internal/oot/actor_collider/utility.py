@@ -1,5 +1,5 @@
 from ...utility import PluginError, parentObject
-from ...f3d.f3d_material import createF3DMat, update_preset_manual
+from ..oot_f3d_writer import getColliderMat
 import bpy, math, mathutils
 
 ootEnumColliderShape = [
@@ -126,22 +126,6 @@ def applyColliderGeoNodes(obj: bpy.types.Object, material: bpy.types.Material, s
         modifier = obj.modifiers["Collider Shape"]
     modifier.node_group = getGeometryNodes(shapeName)
     modifier["Input_1"] = material
-
-
-# Creates a semi-transparent solid color material (cached)
-def getColliderMat(name: str, color: tuple[float, float, float, float]) -> bpy.types.Material:
-    if name not in bpy.data.materials:
-        newMat = createF3DMat(None, preset="oot_shaded_texture_transparent", index=0)
-        newMat.name = name
-        newMat.f3d_mat.combiner1.A = "0"
-        newMat.f3d_mat.combiner1.C = "0"
-        newMat.f3d_mat.combiner1.D = "SHADE"
-        newMat.f3d_mat.combiner1.D_alpha = "1"
-        newMat.f3d_mat.prim_color = color
-        update_preset_manual(newMat, bpy.context)
-        return newMat
-    else:
-        return bpy.data.materials[name]
 
 
 # Update collider callback for collider type property

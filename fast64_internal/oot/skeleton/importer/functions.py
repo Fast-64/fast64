@@ -9,6 +9,7 @@ from ...oot_texture_array import ootReadTextureArrays
 from ..constants import ootSkeletonImportDict
 from ..properties import OOTSkeletonImportSettings
 from ..utility import ootGetLimb, ootGetLimbs, ootGetSkeleton, applySkeletonRestPose
+from ...actor_collider import parseColliderData
 
 
 class OOTDLEntry:
@@ -275,6 +276,16 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
         LODArmatureObj.location += mathutils.Vector((10, 0, 0))
 
     f3dContext.deleteMaterialContext()
+
+    if importSettings.handleColliders.enable:
+        parseColliderData(
+            importSettings.name,
+            basePath,
+            overlayName,
+            isLink,
+            armatureObj,
+            importSettings.handleColliders,
+        )
 
     if importSettings.applyRestPose and restPoseData is not None:
         applySkeletonRestPose(restPoseData, armatureObj)
