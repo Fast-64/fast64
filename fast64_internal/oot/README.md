@@ -137,7 +137,8 @@ Actor collider importing is a bit finicky.
 1. Some actors will modify their collider data, so that the actual data is not representative of in game shape. For example, most shield/sword collider vertices are modified by actors. Quad colliders seem to exclusively fall under this case, so the actual shape is ignored when importing/exporting.
 2. While skeletons are transformed by Actor_SetScale(), colliders are not. Therefore, having the correct actor scale is important to matching collider sizes. Currently fast64 tries to find the first instance of CHAIN_VEC3F_DIV1000(scale, ....) or Actor_SetScale(), but sometimes this is not correct. Make sure to check the actor file and manually set an actor scale for importing colliders if things are scaled weirdly.
 3. Some actor files contain multiple "parts", which means multiple skeletons and multiple colliders. You may want to manually specify which colliders to import in the import settings. Only Bongo Bongo and Barinade imports handle these cases automatically currently.
-4. Ganon2 has two sphere joint colliders, which is not supported by fast64 currently. Ganon2's joint sphere colliders also seem to not follow the same rules as other sphere joint colliders.
+4. Some actors like Ganon2 have multiple joint sphere collider "groups", which is not supported by fast64. Only the first group will be imported, so if a different one is needed then the name will have to be manually set in the import settings.
+5. Some actors with joint sphere colliders do not use the joint index field as an actual joint index, so when importing the parenting hierarchy won't make sense. Uncheck "parent joint spheres to bones" to do object parenting instead.
 
 ### Creating a Cutscene
 **Creating the cutscene itself:**
