@@ -1,4 +1,5 @@
-import bmesh, bpy, mathutils, pprint, re, math, traceback
+from typing import Union
+import bmesh, bpy, mathutils, re, math, traceback
 from bpy.utils import register_class, unregister_class
 from .f3d_gbi import *
 from .f3d_material import (
@@ -6,10 +7,15 @@ from .f3d_material import (
     update_preset_manual,
     all_combiner_uses,
     ootEnumDrawLayers,
+    TextureProperty,
+    F3DMaterialProperty,
+    update_node_values_of_material,
+    F3DMaterialHash,
 )
-from .f3d_writer import BufferVertex
+from .f3d_writer import BufferVertex, F3DVert
 from ..utility import *
-import ast, operator
+import ast
+from .f3d_material_helpers import F3DMaterial_UpdateLock
 
 colorCombinationCommands = [
     0x03,  # load lighting data
@@ -343,21 +349,6 @@ def createNewTextureMaterial(romfile, textureStart, textureSize, texelCount, col
             newImg.pixels[n : n + 4] = read16bitRGBA(int.from_bytes(oldPixel, "big"))
 
 
-binOps = {
-    ast.Add: operator.add,
-    ast.Sub: operator.sub,
-    ast.Mult: operator.mul,
-    ast.Div: operator.truediv,
-    ast.Mod: operator.mod,
-    ast.LShift: operator.lshift,
-    ast.RShift: operator.rshift,
-    ast.RShift: operator.rshift,
-    ast.BitOr: operator.or_,
-    ast.BitAnd: operator.and_,
-    ast.BitXor: operator.xor,
-}
-
-
 def math_eval(s, f3d):
     if isinstance(s, int):
         return s
@@ -397,7 +388,7 @@ def math_eval(s, f3d):
 
 
 def bytesToNormal(normal):
-    return [int.from_bytes([value], "big", signed=True) / 128 if value > 0 else value / 128 for value in normal]
+    return [int.from_bytes([round(value)], "big", signed=True) / 128 if value > 0 else value / 128 for value in normal]
 
 
 def getTileFormat(value, f3d):
@@ -422,7 +413,10 @@ def getTileMask(value, f3d):
 
 def getTileShift(value, f3d):
     data = math_eval(value, f3d)
-    return data
+    if data > 10:
+        return data - 16
+    else:
+        return data
 
 
 def renderModeMask(rendermode, cycle, blendOnly):
@@ -435,11 +429,17 @@ def renderModeMask(rendermode, cycle, blendOnly):
 
 def convertF3DUV(value, maxSize):
     try:
-        valueBytes = int.to_bytes(value, 2, "big", signed=True)
+        valueBytes = int.to_bytes(round(value), 2, "big", signed=True)
     except OverflowError:
-        valueBytes = int.to_bytes(value, 2, "big", signed=False)
+        valueBytes = int.to_bytes(round(value), 2, "big", signed=False)
 
     return ((int.from_bytes(valueBytes, "big", signed=True) / 32) + 0.5) / (maxSize if maxSize > 0 else 1)
+
+
+class F3DTextureReference:
+    def __init__(self, name, width):
+        self.name = name
+        self.width = width
 
 
 class F3DParsedCommands:
@@ -453,27 +453,34 @@ class F3DParsedCommands:
 
 
 class F3DContext:
-    def __init__(self, f3d, basePath, materialContext):
-        self.f3d = f3d
-        self.vertexBuffer = [None] * f3d.vert_load_size
-        self.basePath = basePath
-        self.materialContext = materialContext
+    def __init__(self, f3d: F3D, basePath: str, materialContext: bpy.types.Material):
+        self.f3d: F3D = f3d
+        self.basePath: str = basePath
+        self.materialContext: bpy.types.Material = materialContext
+        self.materialContext.f3d_update_flag = True  # Don't want visual updates while parsing
+        # If this is not disabled, then tex_scale will auto-update on manual node update.
+        self.materialContext.f3d_mat.scale_autoprop = False
+        self.initContext()
 
+    # This is separate as we want to call __init__ in clearGeometry, but don't want same behaviour for child classes
+    def initContext(self):
+        self.vertexBuffer: list[None | BufferVertex] = [None] * self.f3d.vert_load_size
         self.clearMaterial()
-        mat = self.mat()
+        mat: F3DMaterialProperty = self.mat()
         mat.set_combiner = False
 
-        self.materials = []  # saved materials
-        self.triMatIndices = []  # material indices per triangle
-        self.materialChanged = True
-        self.lastMaterialIndex = None
+        self.materials: list[bpy.types.Material] = []  # current material list
+        self.materialDict: dict[F3DMaterialHash, bpy.types.Material] = {}  # cached materials for all imports
+        self.triMatIndices: list[int] = []  # material indices per triangle
+        self.materialChanged: bool = True
+        self.lastMaterialIndex: bool = None
 
-        self.vertexData = {}  # c name : parsed data
-        self.textureData = {}  # c name : blender texture
+        self.vertexData: dict[str, list[F3DVert]] = {}  # c name : parsed data
+        self.textureData: dict[str, bpy.types.Image] = {}  # c name : blender texture
 
-        self.tlutAppliedTextures = []  # c name
-        self.currentTextureName = None
-        self.imagesDontApplyTlut = set()  # image
+        self.tlutAppliedTextures: str = []  # c name
+        self.currentTextureName: str | None = None
+        self.imagesDontApplyTlut: set[bpy.types.Image] = set()  # image
 
         # Determines if images in CI formats loaded from png files,
         # should have the TLUT set by the dlist applied on top of them (False),
@@ -481,29 +488,31 @@ class F3DContext:
         # OoT64 and SM64 stores CI images as pngs in actual colors (with the TLUT accounted for),
         # So for now this can be always True.
         # In the future this could be an option if for example pngs for CI images were grayscale to represent the palette index.
-        self.ciImageFilesStoredAsFullColor = True  # determines whether to apply tlut to file or import as is
+        self.ciImageFilesStoredAsFullColor: bool = True  # determines whether to apply tlut to file or import as is
 
         # This macro has all the tile setting properties, so we reuse it
-        self.tileSettings = [
+        self.tileSettings: list[DPSetTile] = [
             DPSetTile("G_IM_FMT_RGBA", "G_IM_SIZ_16b", 5, 0, i, 0, [False, False], 0, 0, [False, False], 0, 0)
             for i in range(8)
         ]
-        self.tileSizes = [DPSetTileSize(i, 0, 0, 32, 32) for i in range(8)]
+        self.tileSizes: list[DPSetTileSize] = [DPSetTileSize(i, 0, 0, 32, 32) for i in range(8)]
 
-        # When a tile is loaded, store dict of tmem : texture
-        self.tmemDict = {}
+        # When a tile is loaded, store dict of tmem : texture name
+        self.tmemDict: dict[int, str] = {}
 
         # This should be modified before parsing f3d
-        self.matrixData = {}  # bone name : matrix
-        self.currentTransformName = None
-        self.limbToBoneName = {}  # limb name (c variable) : bone name (blender vertex group)
+        self.matrixData: dict[str, mathutils.Matrix] = {}  # bone name : matrix
+        self.currentTransformName: str | None = None
+        self.limbToBoneName: dict[str, str] = {}  # limb name (c variable) : bone name (blender vertex group)
 
         # data for Mesh.from_pydata, list of BufferVertex tuples
         # use BufferVertex to also form uvs / normals / colors
-        self.verts = []
-        self.limbGroups = {}  # dict of groupName : vertex indices
+        self.verts: list[F3DVert] = []
+        self.limbGroups: dict[str : list[int]] = {}  # dict of groupName : vertex indices
 
-        self.lights = Lights("lights_context")
+        self.lights: Lights = Lights("lights_context")
+
+        # Here these are ints, but when parsing the values will be normalized.
         self.lights.l = [
             Light([0, 0, 0], [0x28, 0x28, 0x28]),
             Light([0, 0, 0], [0x28, 0x28, 0x28]),
@@ -514,10 +523,29 @@ class F3DContext:
             Light([0, 0, 0], [0x28, 0x28, 0x28]),
         ]
         self.lights.a = Ambient([0, 0, 0])
-        self.numLights = 0
-        self.lightData = {}  # (color, normal) : list of blender light objects
+        self.numLights: int = 0
+        self.lightData: dict[Light, bpy.types.Object] = {}  # Light : blender light object
 
-    # MAKE SURE TO CALL THIS BETWEEN parseF3D() CALLS
+    """
+    Restarts context, but keeps cached materials/textures.
+    Warning: calls initContext, make sure to save/restore preserved fields
+    """
+
+    def clearGeometry(self):
+        savedMaterialDict = self.materialDict
+        savedTextureData = self.textureData
+        savedTlutAppliedTextures = self.tlutAppliedTextures
+        savedImagesDontApplyTlut = self.imagesDontApplyTlut
+        savedLightData = self.lightData
+
+        self.initContext()
+
+        self.materialDict = savedMaterialDict
+        self.textureData = savedTextureData
+        self.tlutAppliedTextures = savedTlutAppliedTextures
+        self.imagesDontApplyTlut = savedImagesDontApplyTlut
+        self.lightData = savedLightData
+
     def clearMaterial(self):
         mat = self.mat()
 
@@ -529,15 +557,14 @@ class F3DContext:
         mat.set_key = False
         mat.set_k0_5 = False
 
-        mat.prim_color = [1, 1, 1, 1]
-        mat.env_color = [1, 1, 1, 1]
-        mat.blend_color = [1, 1, 1, 1]
         for i in range(1, 8):
             setattr(mat, "f3d_light" + str(i), None)
         mat.tex0.tex = None
         mat.tex1.tex = None
         mat.tex0.tex_set = False
         mat.tex1.tex_set = False
+        mat.tex0.autoprop = False
+        mat.tex1.autoprop = False
 
         mat.tex0.tex_format = "RGBA16"
         mat.tex1.tex_format = "RGBA16"
@@ -566,7 +593,7 @@ class F3DContext:
 
         mat.presetName = "Custom"
 
-    def mat(self):
+    def mat(self) -> F3DMaterialProperty:
         return self.materialContext.f3d_mat
 
     def vertexFormatPatterns(self, data):
@@ -588,11 +615,22 @@ class F3DContext:
             + "\}",
         ]
 
-    # For game specific instance, override this to be able to identify which verts belong to which bone.
-    def setCurrentTransform(self, name):
-        self.currentTransformName = name
+    def addMatrix(self, name, matrix):
+        self.matrixData[name] = matrix
+        self.limbToBoneName[name] = name
 
-    def getTransformedVertex(self, index):
+    # For game specific instance, override this to be able to identify which verts belong to which bone.
+    def setCurrentTransform(self, name, flagList="G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW"):
+        flags = [value.strip() for value in flagList.split("|")]
+        if "G_MTX_MUL" in flags:
+            tempName = name + "_x_" + str(self.currentTransformName)
+            self.addMatrix(tempName, self.matrixData[name] @ self.matrixData[self.currentTransformName])
+            self.limbToBoneName[tempName] = tempName
+            self.currentTransformName = tempName
+        else:
+            self.currentTransformName = name
+
+    def getTransformedVertex(self, index: int):
         bufferVert = self.vertexBuffer[index]
 
         # NOTE: The groupIndex here does NOT correspond to a vertex group, but to the name of the limb (c variable)
@@ -605,30 +643,33 @@ class F3DContext:
 
         mat = self.mat()
         f3dVert = bufferVert.f3dVert
-        position = transform @ mathutils.Vector(f3dVert[0])
+        position = transform @ mathutils.Vector(f3dVert.position)
         if mat.tex0.tex is not None:
-            uv = [convertF3DUV(f3dVert[1][i], mat.tex0.tex.size[i]) for i in range(2)]
-            # uv = [1 - (f3dVert[1][i] / (self.materialContext.f3d_mat.tex0.tex.size[i] * 32)) for i in range(2)]
-            # uv = [((f3dVert[1][i] / 32) + 0.5) / mat.tex0.tex.size[i] for i in range(2)]
+            texDimensions = mat.tex0.tex.size
+        elif mat.tex0.use_tex_reference:
+            texDimensions = mat.tex0.tex_reference_size
+        elif mat.tex1.tex is not None:
+            texDimensions = mat.tex1.tex.size
+        elif mat.tex1.use_tex_reference:
+            texDimensions = mat.tex1.tex_reference_size
         else:
-            uv = [convertF3DUV(f3dVert[1][i], 32) for i in range(2)]
-            # uv = [1 - (f3dVert[1][i] / (32 * 32)) for i in range(2)]
-            # uv = [((f3dVert[1][i] / 32) + 0.5) / 32 for i in range(2)]
+            texDimensions = [32, 32]
+
+        uv = [convertF3DUV(f3dVert.uv[i], texDimensions[i]) for i in range(2)]
         uv[1] = 1 - uv[1]
 
         color = [
             value / 256
             if value > 0
-            else int.from_bytes(value.to_bytes(1, "big", signed=True), "big", signed=False) / 256
-            for value in f3dVert[2]
+            else int.from_bytes(round(value).to_bytes(1, "big", signed=True), "big", signed=False) / 256
+            for value in f3dVert.getColorOrNormal()
         ]
 
-        normal = bytesToNormal(f3dVert[2][:3]) + [0]
+        normal = bytesToNormal(f3dVert.getColorOrNormal()[:3]) + [0]
         normal = (transform.inverted().transposed() @ mathutils.Vector(normal)).normalized()[:3]
 
-        # This is not usual format of f3dVert, but we need separate color/normal data.
         # NOTE: The groupIndex here does NOT correspond to a vertex group, but to the name of the limb (c variable)
-        return BufferVertex([position, uv, color, normal], bufferVert.groupIndex, bufferVert.materialIndex)
+        return BufferVertex(F3DVert(position, uv, color, normal), bufferVert.groupIndex, bufferVert.materialIndex)
 
     def addVertices(self, num, start, vertexDataName, vertexDataOffset):
         vertexData = self.vertexData[vertexDataName]
@@ -640,11 +681,17 @@ class F3DContext:
         if start + count > len(self.vertexBuffer):
             raise PluginError(
                 "Vertex buffer of size "
-                + len(self.vertexBuffer)
+                + str(len(self.vertexBuffer))
                 + " too small, attempting load into "
                 + str(start)
                 + ", "
                 + str(start + count)
+            )
+        if vertexDataOffset + count > len(vertexData):
+            raise PluginError(
+                f"Attempted to read vertex data out of bounds.\n"
+                f"{vertexDataName} is of size {len(vertexData)}, "
+                f"attemped read from ({vertexDataOffset}, {vertexDataOffset + count})"
             )
         for i in range(count):
             self.vertexBuffer[start + i] = BufferVertex(vertexData[vertexDataOffset + i], self.currentTransformName, 0)
@@ -659,14 +706,14 @@ class F3DContext:
             if tileSettings.tmem in self.tmemDict:
                 textureName = self.tmemDict[tileSettings.tmem]
                 self.loadTexture(dlData, textureName, region, tileSettings, False)
-                self.applyTileToMaterial(0, tileSettings, tileSizeSettings)
+                self.applyTileToMaterial(0, tileSettings, tileSizeSettings, dlData)
 
             tileSettings = self.tileSettings[1]
             tileSizeSettings = self.tileSizes[1]
             if tileSettings.tmem in self.tmemDict:
                 textureName = self.tmemDict[tileSettings.tmem]
                 self.loadTexture(dlData, textureName, region, tileSettings, False)
-                self.applyTileToMaterial(1, tileSettings, tileSizeSettings)
+                self.applyTileToMaterial(1, tileSettings, tileSizeSettings, dlData)
 
             self.applyLights()
 
@@ -690,16 +737,20 @@ class F3DContext:
         for i in range(int(len(indices) / 3)):
             self.triMatIndices.append(self.lastMaterialIndex)
 
-    def getMaterialIndex(self):
-        # We do this for now to update tile settings for S and T.
-        # Right now we don't handle those, so we need the auto-calculator to set it correctly.
-        overrideContext = bpy.context.copy()
-        overrideContext["material"] = self.materialContext
-        bpy.ops.material.update_f3d_nodes(overrideContext)
+    # Add items to this tuple in child classes
+    def getMaterialKey(self, material: bpy.types.Material):
+        return material.f3d_mat.key()
 
-        for material in self.materials:
-            if propertyGroupEquals(self.materialContext.f3d_mat, material.f3d_mat):
+    def getMaterialIndex(self):
+
+        key = self.getMaterialKey(self.materialContext)
+        if key in self.materialDict:
+            material = self.materialDict[key]
+            if material in self.materials:
                 return self.materials.index(material)
+            else:
+                self.materials.append(material)
+                return len(self.materials) - 1
 
         self.addMaterial()
         return len(self.materials) - 1
@@ -710,25 +761,31 @@ class F3DContext:
                 return name
         return None
 
+    # override this to handle applying tlut to other texture
+    # ex. in oot, apply to flipbook textures
+    def handleApplyTLUT(
+        self,
+        material: bpy.types.Material,
+        texProp: TextureProperty,
+        tlut: bpy.types.Image,
+        index: int,
+    ):
+        self.applyTLUT(texProp.tex, tlut)
+        self.tlutAppliedTextures.append(texProp.tex)
+
+    # we only want to apply tlut to an existing image under specific conditions.
+    # however we always want to record the changing tlut for texture references.
     def applyTLUTToIndex(self, index):
         mat = self.mat()
         texProp = getattr(mat, "tex" + str(index))
         combinerUses = all_combiner_uses(mat)
-        if (
-            combinerUses["Texture " + str(index)]
-            and (texProp.tex is not None or texProp.use_tex_reference)
-            and texProp.tex_set
-            and texProp.tex_format[:2] == "CI"
-            and (texProp.tex not in self.tlutAppliedTextures or texProp.use_tex_reference)
-            and (
-                texProp.tex not in self.imagesDontApplyTlut or not self.ciImageFilesStoredAsFullColor
-            )  # oot currently stores CI textures in full color pngs
-        ):
 
+        if texProp.tex_format[:2] == "CI":
             # Only handles TLUT at 256
             tlutName = self.tmemDict[256]
             if 256 in self.tmemDict and tlutName is not None:
                 tlut = self.textureData[tlutName]
+                # print(f"TLUT: {tlutName}, {isinstance(tlut, F3DTextureReference)}")
                 if isinstance(tlut, F3DTextureReference) or texProp.use_tex_reference:
                     if not texProp.use_tex_reference:
                         texProp.use_tex_reference = True
@@ -745,9 +802,19 @@ class F3DContext:
                         texProp.pal_reference = tlutName
                         texProp.pal_reference_size = min(tlut.size[0] * tlut.size[1], 256)
 
-                else:
-                    self.applyTLUT(texProp.tex, tlut)
-                    self.tlutAppliedTextures.append(texProp.tex)
+                if (
+                    not isinstance(tlut, F3DTextureReference)
+                    and combinerUses["Texture " + str(index)]
+                    and (texProp.tex is not None)
+                    and texProp.tex_set
+                    and (texProp.tex not in self.tlutAppliedTextures or texProp.use_tex_reference)
+                    and (
+                        texProp.tex not in self.imagesDontApplyTlut or not self.ciImageFilesStoredAsFullColor
+                    )  # oot currently stores CI textures in full color pngs
+                ):
+                    # print(f"Apply tlut {tlutName} ({str(tlut)}) to {self.getImageName(texProp.tex)}")
+                    # print(f"Size: {str(tlut.size[0])} x {str(tlut.size[1])}, Data: {str(len(tlut.pixels))}")
+                    self.handleApplyTLUT(self.materialContext, texProp, tlut, index)
             else:
                 print("Ignoring TLUT.")
 
@@ -760,11 +827,17 @@ class F3DContext:
         self.applyTLUTToIndex(0)
         self.applyTLUTToIndex(1)
 
-        material = self.materialContext.copy()
-        overrideContext = bpy.context.copy()
-        overrideContext["material"] = material
-        bpy.ops.material.update_f3d_nodes(overrideContext)
+        materialCopy = self.materialContext.copy()
+
+        # disable flag so that we can lock it, then unlock after update
+        materialCopy.f3d_update_flag = False
+
+        with F3DMaterial_UpdateLock(materialCopy) as material:
+            update_node_values_of_material(material, bpy.context)
+            material.f3d_mat.presetName = "Custom"
+
         self.materials.append(material)
+        self.materialDict[self.getMaterialKey(materialCopy)] = materialCopy
         self.materialChanged = False
 
         self.postMaterialChanged()
@@ -779,13 +852,23 @@ class F3DContext:
         if self.basePath is None:
             raise PluginError("Cannot load texture from " + path + " without any provided base path.")
 
-        imagePath = path[:-5] + "png"
-        return os.path.join(self.basePath, imagePath)
+        imagePathRelative = path[:-5] + "png"
+        imagePath = os.path.join(self.basePath, imagePathRelative)
+
+        # handle custom imports, where relative paths don't make sense
+        if not os.path.exists(imagePath):
+            imagePath = os.path.join(self.basePath, os.path.basename(imagePathRelative))
+        return imagePath
 
     def getVTXPathFromInclude(self, path):
         if self.basePath is None:
             raise PluginError("Cannot load VTX from " + path + " without any provided base path.")
-        return os.path.join(self.basePath, path)
+
+        vtxPath = os.path.join(self.basePath, path)
+        # handle custom imports, where relative paths don't make sense
+        if not os.path.exists(vtxPath):
+            vtxPath = os.path.join(self.basePath, os.path.basename(path))
+        return vtxPath
 
     def setGeoFlags(self, command, value):
         mat = self.mat()
@@ -1065,9 +1148,8 @@ class F3DContext:
             else int(lightCountString[-1:])
         )
 
-    def getLightObj(self, light):
-        lightKey = (tuple(light.color), tuple(light.normal))
-        if lightKey not in self.lightData:
+    def getLightObj(self, light: Light):
+        if light not in self.lightData:
             lightName = "Light"
             bLight = bpy.data.lights.new(lightName, "SUN")
             lightObj = bpy.data.objects.new(lightName, bLight)
@@ -1082,15 +1164,15 @@ class F3DContext:
             bLight.color = light.color
 
             bpy.context.scene.collection.objects.link(lightObj)
-            self.lightData[lightKey] = lightObj
-        return self.lightData[lightKey]
+            self.lightData[light] = lightObj
+        return self.lightData[light]
 
     def applyLights(self):
         mat = self.mat()
         allCombinerUses = all_combiner_uses(mat)
         if allCombinerUses["Shade"] and mat.rdp_settings.g_lighting and mat.set_lights:
             mat.use_default_lighting = False
-            mat.ambient_light_color = self.lights.a.color + ([1] if len(self.lights.a.color) == 3 else [])
+            mat.ambient_light_color = tuple(self.lights.a.color[:]) + ((1,) if len(self.lights.a.color) == 3 else ())
 
             for i in range(self.numLights):
                 lightObj = self.getLightObj(self.lights.l[i])
@@ -1100,7 +1182,9 @@ class F3DContext:
         self.mat().set_lights = True
         lightIndex = self.getLightIndex(command.params[0])
         colorData = math_eval(command.params[1], self.f3d)
-        color = [((colorData >> 24) & 0xFF) / 0xFF, ((colorData >> 16) & 0xFF) / 0xFF, ((colorData >> 8) & 0xFF) / 0xFF]
+        color = mathutils.Vector(
+            [((colorData >> 24) & 0xFF) / 0xFF, ((colorData >> 16) & 0xFF) / 0xFF, ((colorData >> 8) & 0xFF) / 0xFF]
+        )
 
         if lightIndex != self.numLights + 1:
             self.lights.l[lightIndex - 1].color = color
@@ -1156,17 +1240,17 @@ class F3DContext:
 
     def createLights(self, data, lightsName):
         numLights, lightValues = parseLightsData(data, lightsName, self)
-        ambientColor = gammaInverse([value / 255 for value in lightValues[0:3]])
+        ambientColor = mathutils.Vector(gammaInverse([value / 255 for value in lightValues[0:3]]))
 
         lightList = []
 
         for i in range(numLights):
-            color = gammaInverse([value / 255 for value in lightValues[3 + 6 * i : 3 + 6 * i + 3]])
-            direction = bytesToNormal(lightValues[3 + 6 * i + 3 : 3 + 6 * i + 6])
+            color = mathutils.Vector(gammaInverse([value / 255 for value in lightValues[3 + 6 * i : 3 + 6 * i + 3]]))
+            direction = mathutils.Vector(bytesToNormal(lightValues[3 + 6 * i + 3 : 3 + 6 * i + 6]))
             lightList.append(Light(color, direction))
 
         while len(lightList) < 7:
-            lightList.append(Light([0, 0, 0], [0x28, 0x28, 0x28]))
+            lightList.append(Light(mathutils.Vector([0, 0, 0]), mathutils.Vector([0x28, 0x28, 0x28])))
 
         # normally a and l are Ambient and Light objects,
         # but here they will be a color and blender light object array.
@@ -1221,7 +1305,7 @@ class F3DContext:
         tileSettings.palette = math_eval(params[5], self.f3d)
         tileSettings.cmt = getTileClampMirror(params[6], self.f3d)
         tileSettings.maskt = getTileMask(params[7], self.f3d)
-        tileSettings.shifts = getTileShift(params[8], self.f3d)
+        tileSettings.shiftt = getTileShift(params[8], self.f3d)
         tileSettings.cms = getTileClampMirror(params[9], self.f3d)
         tileSettings.masks = getTileMask(params[10], self.f3d)
         tileSettings.shifts = getTileShift(params[11], self.f3d)
@@ -1298,7 +1382,32 @@ class F3DContext:
         self.setTile([0, 0, 0, 256, "G_TX_LOADTILE", 0, 0, 0, 0, 0, 0, 0], dlData)
         self.loadTLUT(["G_TX_LOADTILE", count], dlData)
 
-    def applyTileToMaterial(self, index, tileSettings, tileSizeSettings):
+    # override this in a child context to handle texture references.
+    # keep material parameter for use by parent.
+    # ex. In OOT, you can call self.loadTexture() here based on texture arrays.
+    def handleTextureReference(
+        self,
+        name: str,
+        image: F3DTextureReference,
+        material: bpy.types.Material,
+        index: int,
+        tileSettings: DPSetTile,
+        data: str,
+    ):
+        texProp = getattr(material.f3d_mat, "tex" + str(index))
+        texProp.tex = None
+        texProp.use_tex_reference = True
+        texProp.tex_reference = name
+        size = texProp.tex_reference_size
+
+    # add to this by overriding in a parent context, to handle clearing settings related to previous texture references.
+    def handleTextureValue(self, material: bpy.types.Material, image: bpy.types.Image, index: int):
+        texProp = getattr(material.f3d_mat, "tex" + str(index))
+        texProp.tex = image
+        texProp.use_tex_reference = False
+        size = texProp.tex.size
+
+    def applyTileToMaterial(self, index, tileSettings, tileSizeSettings, dlData: str):
         mat = self.mat()
 
         texProp = getattr(mat, "tex" + str(index))
@@ -1306,54 +1415,37 @@ class F3DContext:
         name = self.tmemDict[tileSettings.tmem]
         image = self.textureData[name]
         if isinstance(image, F3DTextureReference):
-            texProp.tex = None
-            texProp.use_tex_reference = True
-            texProp.tex_reference = name
-            size = texProp.tex_reference_size
+            self.handleTextureReference(name, image, self.materialContext, index, tileSettings, dlData)
         else:
-            texProp.tex = image
-            texProp.use_tex_reference = False
-            size = texProp.tex.size
+            self.handleTextureValue(self.materialContext, image, index)
         texProp.tex_set = True
 
-        # TODO: Handle low/high for image files?
         if texProp.use_tex_reference:
-            # texProp.autoprop = False
-            # texProp.S.low = round(tileSizeSettings.uls / (2 ** self.f3d.G_TEXTURE_IMAGE_FRAC), 3)
-            # texProp.T.low = round(tileSizeSettings.ult / (2 ** self.f3d.G_TEXTURE_IMAGE_FRAC), 3)
-            # texProp.S.high = round(tileSizeSettings.lrs / (2 ** self.f3d.G_TEXTURE_IMAGE_FRAC), 3)
-            # texProp.T.high = round(tileSizeSettings.lrt / (2 ** self.f3d.G_TEXTURE_IMAGE_FRAC), 3)
-
             # WARNING: Inferring texture size from tile size.
             texProp.tex_reference_size = [
                 int(round(tileSizeSettings.lrs / (2**self.f3d.G_TEXTURE_IMAGE_FRAC) + 1)),
                 int(round(tileSizeSettings.lrt / (2**self.f3d.G_TEXTURE_IMAGE_FRAC) + 1)),
             ]
 
-        # if texProp.S.low == 0 and texProp.T.low == 0 and \
-        # 	texProp.S.high == size[0] - 1 and \
-        # 	(texProp.use_tex_reference or texProp.T.high == size[1] - 1):
-        # 	texProp.autoProp = True
-        # else:
-        # 	print(str(texProp.S.low) + " " + str(texProp.T.low) + " " + str(texProp.S.high) + " " + str(texProp.T.high))
-        # 	print(str(size[0]-1) + " " + str(size[1]-1))
-
         texProp.tex_format = tileSettings.fmt[8:].replace("_", "") + tileSettings.siz[8:-1].replace("_", "")
 
         texProp.S.clamp = tileSettings.cms[0]
         texProp.S.mirror = tileSettings.cms[1]
+        texProp.S.mask = tileSettings.masks
+        texProp.S.shift = tileSettings.shifts
 
         texProp.T.clamp = tileSettings.cmt[0]
         texProp.T.mirror = tileSettings.cmt[1]
+        texProp.T.mask = tileSettings.maskt
+        texProp.T.shift = tileSettings.shiftt
 
-        # TODO: Handle S and T properties
-
-    # Override this to handle game specific references.
-    def handleTextureName(self, textureName):
-        return textureName
+        texProp.S.low = round(tileSizeSettings.uls / (2**self.f3d.G_TEXTURE_IMAGE_FRAC), 3)
+        texProp.T.low = round(tileSizeSettings.ult / (2**self.f3d.G_TEXTURE_IMAGE_FRAC), 3)
+        texProp.S.high = round(tileSizeSettings.lrs / (2**self.f3d.G_TEXTURE_IMAGE_FRAC), 3)
+        texProp.T.high = round(tileSizeSettings.lrt / (2**self.f3d.G_TEXTURE_IMAGE_FRAC), 3)
 
     def loadTexture(self, data, name, region, tileSettings, isLUT):
-        textureName = self.handleTextureName(name)
+        textureName = name
 
         if textureName in self.textureData:
             return self.textureData[textureName]
@@ -1372,7 +1464,7 @@ class F3DContext:
         # TODO: Textures are sometimes loaded in with different dimensions than for rendering.
         # This means width is incorrect?
         image, loadedFromImageFile = parseTextureData(
-            data, textureName, self, tileSettings.fmt, siz, width, self.basePath, isLUT, self.f3d
+            data, textureName, self, tileSettings.fmt, siz, width, isLUT, self.f3d
         )
         if loadedFromImageFile:
             self.imagesDontApplyTlut.add(image)
@@ -1383,20 +1475,25 @@ class F3DContext:
     def loadTLUT(self, params, dlData):
         tileSettings = self.getTileSettings(params[0])
         name = self.currentTextureName
-        textureName = self.handleTextureName(name)
+        textureName = name
         self.tmemDict[tileSettings.tmem] = textureName
 
         tlut = self.loadTexture(dlData, textureName, [0, 0, 16, 16], tileSettings, True)
         self.materialChanged = True
 
     def applyTLUT(self, image, tlut):
+        invalidIndicesDetected = False
         for i in range(int(len(image.pixels) / 4)):
             lutIndex = int(round(image.pixels[4 * i] * 255))
             newValues = tlut.pixels[4 * lutIndex : 4 * (lutIndex + 1)]
             if len(newValues) < 4:
-                print("Invalid lutIndex " + str(lutIndex))
+                # print("Invalid LUT Index " + str(lutIndex))
+                invalidIndicesDetected = True
             else:
                 image.pixels[4 * i : 4 * (i + 1)] = newValues
+
+        if invalidIndicesDetected:
+            print("Invalid LUT Indices detected.")
 
     def processCommands(self, dlData, dlName, dlCommands):
         callStack = [F3DParsedCommands(dlName, dlCommands, 0)]
@@ -1415,7 +1512,7 @@ class F3DContext:
                 parseVertexData(dlData, vertexDataName, self)
                 self.addVertices(command.params[1], command.params[2], vertexDataName, vertexDataOffset)
             elif command.name == "gsSPMatrix":
-                self.setCurrentTransform(command.params[0])
+                self.setCurrentTransform(command.params[0], command.params[1])
             elif command.name == "gsSPPopMatrix":
                 print("gsSPPopMatrix not handled.")
             elif command.name == "gsSP1Triangle":
@@ -1436,20 +1533,21 @@ class F3DContext:
             elif command.name == "gsSPEndDisplayList":
                 callStack = callStack[:-1]
 
-            # Material Specific Commands
-            prevMaterialChangedStatus = self.materialChanged
-            self.materialChanged = True
-
             # Should we parse commands into f3d_gbi classes?
             # No, because some parsing involves reading C files, which is separate.
 
             # Assumes macros use variable names instead of values
             mat = self.mat()
             try:
+                # Material Specific Commands
+                # materialChanged status will be reverted if none of these material changing commands are processed
+                prevMaterialChangedStatus = self.materialChanged
+                self.materialChanged = True
+
                 if command.name == "gsSPClipRatio":
                     mat.clip_ratio = math_eval(command.params[0], self.f3d)
                 elif command.name == "gsSPNumLights":
-                    self.numLights = self.getLightCount(command.name[1])
+                    self.numLights = self.getLightCount(command.params[0])
                 elif command.name == "gsSPLight":
                     self.setLight(dlData, command)
                 elif command.name == "gsSPLightColor":
@@ -1462,10 +1560,17 @@ class F3DContext:
                     mat.fog_position = [math_eval(command.params[0], self.f3d), math_eval(command.params[1], self.f3d)]
                     mat.set_fog = True
                 elif command.name == "gsSPTexture" or command.name == "gsSPTextureL":
-                    mat.tex_scale = [
-                        math_eval(command.params[0], self.f3d) / (2**16),
-                        math_eval(command.params[1], self.f3d) / (2**16),
-                    ]
+                    # scale_autoprop should always be false (set in init)
+                    # This prevents issues with material caching where updating nodes on a material causes its key to change
+                    if command.params[0] == 0xFFFF and command.params[1] == 0xFFFF:
+                        mat.tex_scale = (1, 1)
+                    else:
+                        mat.tex_scale = [
+                            math_eval(command.params[0], self.f3d) / (2**16),
+                            math_eval(command.params[1], self.f3d) / (2**16),
+                        ]
+                    # command.params[2] is "lod level", and for clarity we store this is the number of mipmapped textures (which is +1)
+                    mat.rdp_settings.num_textures_mipmapped = 1 + math_eval(command.params[2], self.f3d)
                 elif command.name == "gsSPSetGeometryMode":
                     self.setGeoFlags(command, True)
                 elif command.name == "gsSPClearGeometryMode":
@@ -1634,27 +1739,34 @@ class F3DContext:
     def processDLName(self, name):
         return name
 
-    def createMesh(self, obj, removeDoubles, importNormals):
+    def deleteMaterialContext(self):
+        if self.materialContext is not None:
+            bpy.data.materials.remove(self.materialContext)
+        else:
+            raise PluginError("Attempting to delete material context that is None.")
+
+    # if deleteMaterialContext is False, then manually call self.deleteMaterialContext() later.
+    def createMesh(self, obj, removeDoubles, importNormals, callDeleteMaterialContext: bool):
         mesh = obj.data
         if len(self.verts) % 3 != 0:
             print(len(self.verts))
             raise PluginError("Number of verts in mesh not divisible by 3, currently " + str(len(self.verts)))
 
         triangleCount = int(len(self.verts) / 3)
-        verts = [f3dVert[0] for f3dVert in self.verts]
+        verts = [f3dVert.position for f3dVert in self.verts]
         faces = [[3 * i + j for j in range(3)] for i in range(triangleCount)]
         print("Vertices: " + str(len(self.verts)) + ", Triangles: " + str(triangleCount))
 
         mesh.from_pydata(vertices=verts, edges=[], faces=faces)
         uv_layer = mesh.uv_layers.new().data
         # if self.materialContext.f3d_mat.rdp_settings.g_lighting:
-        color_layer = mesh.vertex_colors.new(name="Col").data
         alpha_layer = mesh.vertex_colors.new(name="Alpha").data
+        color_layer = mesh.vertex_colors.new(name="Col").data
         # else:
 
         if importNormals:
             mesh.use_auto_smooth = True
-            mesh.normals_split_custom_set([f3dVert[3] for f3dVert in self.verts])
+            mesh.normals_split_custom_set([f3dVert.normal for f3dVert in self.verts])
 
         for groupName, indices in self.limbGroups.items():
             group = obj.vertex_groups.new(name=self.limbToBoneName[groupName])
@@ -1666,11 +1778,11 @@ class F3DContext:
         for i in range(len(mesh.loops)):
             # This should be okay, since we aren't trying to optimize vertices
             # There will be one loop for every vertex
-            uv_layer[i].uv = self.verts[i][1]
+            uv_layer[i].uv = self.verts[i].uv
 
             # if self.materialContext.f3d_mat.rdp_settings.g_lighting:
-            color_layer[i].color = self.verts[i][2]
-            alpha_layer[i].color = [self.verts[i][2][3]] * 3 + [1]
+            color_layer[i].color = self.verts[i].color
+            alpha_layer[i].color = [self.verts[i].color[3]] * 3 + [1]
 
         if bpy.context.mode != "OBJECT":
             bpy.ops.object.mode_set(mode="OBJECT")
@@ -1688,14 +1800,17 @@ class F3DContext:
             bpy.ops.mesh.remove_doubles()
             bpy.ops.object.mode_set(mode="OBJECT")
 
-        bpy.data.materials.remove(self.materialContext)
-
         obj.location = bpy.context.scene.cursor.location
 
         i = 0
         for key, lightObj in self.lightData.items():
             lightObj.location = bpy.context.scene.cursor.location + mathutils.Vector((i, 0, 0))
             i += 1
+
+        self.clearGeometry()
+
+        if callDeleteMaterialContext:
+            self.deleteMaterialContext()
 
 
 class ParsedMacro:
@@ -1711,7 +1826,17 @@ class ParsedMacro:
 # we distinguish these because there is no guarantee of bone order in blender,
 # so we usually rely on alphabetical naming.
 # This means changing the c variable names.
-def parseF3D(dlData, dlName, obj, transformMatrix, limbName, boneName, drawLayerPropName, drawLayer, f3dContext):
+def parseF3D(
+    dlData: str,
+    dlName: str,
+    transformMatrix: mathutils.Matrix,
+    limbName: str,
+    boneName: str,
+    drawLayerPropName: str,
+    drawLayer: str,
+    f3dContext: F3DContext,
+    callClearMaterial: bool,
+):
 
     f3dContext.matrixData[limbName] = transformMatrix
     f3dContext.setCurrentTransform(limbName)
@@ -1721,8 +1846,13 @@ def parseF3D(dlData, dlName, obj, transformMatrix, limbName, boneName, drawLayer
     # vertexGroup = getOrMakeVertexGroup(obj, boneName)
     # groupIndex = vertexGroup.index
 
-    dlCommands = parseDLData(dlData, dlName)
-    f3dContext.processCommands(dlData, dlName, dlCommands)
+    processedDLName = f3dContext.processDLName(dlName)
+    if processedDLName is not None:
+        dlCommands = parseDLData(dlData, processedDLName)
+        f3dContext.processCommands(dlData, processedDLName, dlCommands)
+
+    if callClearMaterial:
+        f3dContext.clearMaterial()
 
 
 def parseDLData(dlData, dlName):
@@ -1754,7 +1884,7 @@ def getVertexDataStart(vertexDataParam, f3d):
     return matchResult.group(1), offset
 
 
-def parseVertexData(dlData, vertexDataName, f3dContext):
+def parseVertexData(dlData: str, vertexDataName: str, f3dContext: F3DContext):
     if vertexDataName in f3dContext.vertexData:
         return f3dContext.vertexData[vertexDataName]
 
@@ -1774,16 +1904,26 @@ def parseVertexData(dlData, vertexDataName, f3dContext):
     patterns = f3dContext.vertexFormatPatterns(data)
     vertexData = []
     for pattern in patterns:
+        # Note that color is None here, as we are just parsing vertex data.
+        # The same values should be used for color and normal, but getColorOrNormal() will be used later
+        # which returns whichever value is not None between the two.
+
+        # When loaded into the vertex buffer and transformed, the actual normal/color will be calculated.
         vertexData = [
-            (
-                [math_eval(match.group(1), f3d), math_eval(match.group(2), f3d), math_eval(match.group(3), f3d)],
-                [math_eval(match.group(4), f3d), math_eval(match.group(5), f3d)],
-                [
-                    math_eval(match.group(6), f3d),
-                    math_eval(match.group(7), f3d),
-                    math_eval(match.group(8), f3d),
-                    math_eval(match.group(9), f3d),
-                ],
+            F3DVert(
+                mathutils.Vector(
+                    [math_eval(match.group(1), f3d), math_eval(match.group(2), f3d), math_eval(match.group(3), f3d)]
+                ),
+                mathutils.Vector([math_eval(match.group(4), f3d), math_eval(match.group(5), f3d)]),
+                None,
+                mathutils.Vector(
+                    [
+                        math_eval(match.group(6), f3d),
+                        math_eval(match.group(7), f3d),
+                        math_eval(match.group(8), f3d),
+                        math_eval(match.group(9), f3d),
+                    ]
+                ),
             )
             for match in re.finditer(pattern, data, re.DOTALL)
         ]
@@ -1851,16 +1991,10 @@ def CI4toRGBA32(value):
     return [value / 255, value / 255, value / 255, 1]
 
 
-class F3DTextureReference:
-    def __init__(self, name, width):
-        self.name = name
-        self.width = width
-
-
-def parseTextureData(dlData, textureName, f3dContext, imageFormat, imageSize, width, basePath, isLUT, f3d):
+def parseTextureData(dlData, textureName, f3dContext, imageFormat, imageSize, width, isLUT, f3d):
 
     matchResult = re.search(
-        "([A-Za-z0-9\_]+)\s*" + re.escape(textureName) + "\s*\[\s*[0-9x]*\s*\]\s*=\s*\{([^\}]*)\s\}\s*;\s*",
+        r"([A-Za-z0-9\_]+)\s*" + re.escape(textureName) + r"\s*\[\s*[0-9a-fA-Fx]*\s*\]\s*=\s*\{([^\}]*)\s*\}\s*;\s*",
         dlData,
         re.DOTALL,
     )
@@ -1872,7 +2006,7 @@ def parseTextureData(dlData, textureName, f3dContext, imageFormat, imageSize, wi
 
     loadedFromImageFile = False
 
-    pathMatch = re.search('\#include\s*"([^"]*)"', data, re.DOTALL)
+    pathMatch = re.search(r'\#include\s*"(.*?)"', data, re.DOTALL)
     if pathMatch is not None:
         path = pathMatch.group(1)
         originalImage = bpy.data.images.load(f3dContext.getImagePathFromInclude(path))
@@ -2031,23 +2165,53 @@ def getImportData(filepaths):
     return data
 
 
-def importMeshC(filepaths, name, scale, removeDoubles, importNormals, drawLayer, f3dContext):
-    data = getImportData(filepaths)
+def parseMatrices(sceneData: str, f3dContext: F3DContext, importScale: float = 1):
+    for match in re.finditer(rf"Mtx\s*([a-zA-Z0-9\_]+)\s*=\s*\{{(.*?)\}}\s*;", sceneData, flags=re.DOTALL):
+        name = "&" + match.group(1)
+        values = [hexOrDecInt(value.strip()) for value in match.group(2).split(",") if value.strip() != ""]
+        trueValues = []
+        for n in range(8):
+            valueInt = int.from_bytes(values[n].to_bytes(4, "big", signed=True), "big", signed=False)
+            valueFrac = int.from_bytes(values[n + 8].to_bytes(4, "big", signed=True), "big", signed=False)
+            int1 = values[n] >> 16
+            int2 = int.from_bytes((valueInt & (2**16 - 1)).to_bytes(2, "big", signed=False), "big", signed=True)
+            frac1 = valueFrac >> 16
+            frac2 = valueFrac & (2**16 - 1)
+            trueValues.append(int1 + (frac1 / (2**16)))
+            trueValues.append(int2 + (frac2 / (2**16)))
+
+        matrix = mathutils.Matrix()
+        for i in range(4):
+            for j in range(4):
+                matrix[j][i] = trueValues[i * 4 + j]
+
+        f3dContext.addMatrix(name, mathutils.Matrix.Scale(importScale, 4) @ matrix)
+
+
+def importMeshC(
+    data: str,
+    name: str,
+    scale: float,
+    removeDoubles: bool,
+    importNormals: bool,
+    drawLayer: str,
+    f3dContext: F3DContext,
+    callClearMaterial: bool = True,
+) -> bpy.types.Object:
 
     # Create new skinned mesh
     mesh = bpy.data.meshes.new(name + "_mesh")
     obj = bpy.data.objects.new(name + "_mesh", mesh)
-    bpy.context.scene.collection.objects.link(obj)
+    bpy.context.collection.objects.link(obj)
 
     f3dContext.mat().draw_layer.oot = drawLayer
     transformMatrix = mathutils.Matrix.Scale(1 / scale, 4)
 
-    parseF3D(data, name, obj, transformMatrix, name, name, "oot", drawLayer, f3dContext)
-
-    f3dContext.clearMaterial()
-    f3dContext.createMesh(obj, removeDoubles, importNormals)
+    parseF3D(data, name, transformMatrix, name, name, "oot", drawLayer, f3dContext, True)
+    f3dContext.createMesh(obj, removeDoubles, importNormals, callClearMaterial)
 
     applyRotation([obj], math.radians(-90), "X")
+    return obj
 
 
 class F3D_ImportDL(bpy.types.Operator):
@@ -2075,10 +2239,10 @@ class F3D_ImportDL(bpy.types.Operator):
             f3dType = context.scene.f3d_type
             isHWv1 = context.scene.isHWv1
 
-            importPaths = [importPath]
+            data = getImportData([importPath])
 
             importMeshC(
-                importPaths,
+                data,
                 name,
                 scaleValue,
                 removeDoubles,

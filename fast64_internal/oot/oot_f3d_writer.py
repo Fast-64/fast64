@@ -1,39 +1,47 @@
-import shutil, copy, bpy, os
-from bpy.utils import register_class, unregister_class
+import bpy, os, re
+from ..utility import CData, getGroupIndexFromname, readFile, writeFile
+from ..f3d.flipbook import flipbook_to_c, flipbook_2d_to_c, flipbook_data_to_c
+from ..f3d.f3d_material import createF3DMat, F3DMaterial_UpdateLock, update_preset_manual
+from .oot_utility import replaceMatchContent, getOOTScale
+from .oot_texture_array import TextureFlipbook
 
-from .oot_utility import *
-from .oot_constants import *
-from ..f3d.f3d_writer import *
-from ..f3d.f3d_material import *
-from ..f3d.f3d_parser import *
-from ..panels import OOT_Panel
+from ..f3d.f3d_writer import (
+    checkForF3dMaterialInFaces,
+    saveOrGetF3DMaterial,
+    saveMeshWithLargeTexturesByFaces,
+    saveMeshByFaces,
+)
 
-from .oot_model_classes import *
-from .oot_scene_room import *
-
-
-class OOTDLExportSettings(bpy.types.PropertyGroup):
-    name: bpy.props.StringProperty(name="DL Name", default="gBoulderFragmentsDL")
-    folder: bpy.props.StringProperty(name="DL Folder", default="gameplay_keep")
-    customPath: bpy.props.StringProperty(name="Custom DL Path", subtype="FILE_PATH")
-    isCustom: bpy.props.BoolProperty(name="Use Custom Path")
-    removeVanillaData: bpy.props.BoolProperty(name="Replace Vanilla DLs")
-    drawLayer: bpy.props.EnumProperty(name="Draw Layer", items=ootEnumDrawLayers)
-    customAssetIncludeDir: bpy.props.StringProperty(
-        name="Asset Include Directory",
-        default="assets/objects/gameplay_keep",
-        description="Used in #include for including image files",
-    )
+from .oot_model_classes import (
+    OOTTriangleConverterInfo,
+    OOTModel,
+    ootGetActorData,
+    ootGetLinkData,
+)
 
 
-class OOTDLImportSettings(bpy.types.PropertyGroup):
-    name: bpy.props.StringProperty(name="DL Name", default="gBoulderFragmentsDL")
-    folder: bpy.props.StringProperty(name="DL Folder", default="gameplay_keep")
-    customPath: bpy.props.StringProperty(name="Custom DL Path", subtype="FILE_PATH")
-    isCustom: bpy.props.BoolProperty(name="Use Custom Path")
-    removeDoubles: bpy.props.BoolProperty(name="Remove Doubles", default=True)
-    importNormals: bpy.props.BoolProperty(name="Import Normals", default=True)
-    drawLayer: bpy.props.EnumProperty(name="Draw Layer", items=ootEnumDrawLayers)
+# Creates a semi-transparent solid color material (cached)
+def getColliderMat(name: str, color: tuple[float, float, float, float]) -> bpy.types.Material:
+    if "oot_collision_mat_base" not in bpy.data.materials:
+        baseMat = createF3DMat(None, preset="oot_shaded_texture_transparent", index=0)
+        with F3DMaterial_UpdateLock(baseMat) as lockedMat:
+            lockedMat.name = name
+            lockedMat.f3d_mat.combiner1.A = "0"
+            lockedMat.f3d_mat.combiner1.C = "0"
+            lockedMat.f3d_mat.combiner1.D = "SHADE"
+            lockedMat.f3d_mat.combiner1.D_alpha = "1"
+            lockedMat.f3d_mat.prim_color = color
+            update_preset_manual(lockedMat, bpy.context)
+
+    if name not in bpy.data.materials:
+        baseMat = bpy.data.materials["oot_collision_mat_base"]
+        baseMat.f3d_update_flag = True
+        newMat = baseMat.copy()
+        baseMat.f3d_update_flag = False
+        newMat.f3d_mat.prim_color = color
+        return newMat
+    else:
+        return bpy.data.materials[name]
 
 
 # returns:
@@ -188,406 +196,155 @@ def ootProcessVertexGroup(
     return fMesh, hasSkinnedFaces, lastMaterialName
 
 
-ootEnumObjectMenu = [
-    ("Scene", "Parent Scene Settings", "Scene"),
-    ("Room", "Parent Room Settings", "Room"),
-]
+def writeTextureArraysNew(fModel: OOTModel, arrayIndex: int):
+    textureArrayData = CData()
+    for flipbook in fModel.flipbooks:
+        if flipbook.exportMode == "Array":
+            if arrayIndex is not None:
+                textureArrayData.source += flipbook_2d_to_c(flipbook, True, arrayIndex + 1) + "\n"
+            else:
+                textureArrayData.source += flipbook_to_c(flipbook, True) + "\n"
+    return textureArrayData
 
 
-def ootConvertMeshToC(
-    originalObj: bpy.types.Object,
-    finalTransform: mathutils.Matrix,
-    f3dType: str,
-    isHWv1: bool,
-    DLFormat: DLFormat,
-    saveTextures: bool,
-    settings: OOTDLExportSettings,
-):
-    folderName = settings.folder
-    exportPath = bpy.path.abspath(settings.customPath)
-    isCustomExport = settings.isCustom
-    drawLayer = settings.drawLayer
-    removeVanillaData = settings.removeVanillaData
-    name = toAlnum(settings.name)
-
-    try:
-        obj, allObjs = ootDuplicateHierarchy(originalObj, None, False, OOTObjectCategorizer())
-
-        fModel = OOTModel(f3dType, isHWv1, name, DLFormat, drawLayer)
-        triConverterInfo = TriangleConverterInfo(obj, None, fModel.f3d, finalTransform, getInfoDict(obj))
-        fMeshes = saveStaticModel(
-            triConverterInfo, fModel, obj, finalTransform, fModel.name, not saveTextures, False, "oot"
-        )
-
-        # Since we provide a draw layer override, there should only be one fMesh.
-        for drawLayer, fMesh in fMeshes.items():
-            fMesh.draw.name = name
-
-        ootCleanupScene(originalObj, allObjs)
-
-    except Exception as e:
-        ootCleanupScene(originalObj, allObjs)
-        raise Exception(str(e))
-
-    data = CData()
-    data.source += '#include "ultra64.h"\n#include "global.h"\n'
-    if not isCustomExport:
-        data.source += '#include "' + folderName + '.h"\n\n'
+def getActorFilepath(basePath: str, overlayName: str | None, isLink: bool, checkDataPath: bool = False):
+    if isLink:
+        actorFilePath = os.path.join(basePath, f"src/code/z_player_lib.c")
     else:
-        data.source += "\n"
+        actorFilePath = os.path.join(basePath, f"src/overlays/actors/{overlayName}/z_{overlayName[4:].lower()}.c")
+        actorFileDataPath = f"{actorFilePath[:-2]}_data.c"  # some bosses store texture arrays here
 
-    path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, True)
-    includeDir = settings.customAssetIncludeDir if settings.isCustom else f"assets/objects/{folderName}"
-    exportData = fModel.to_c(
-        TextureExportSettings(False, saveTextures, includeDir, path), OOTGfxFormatter(ScrollMethod.Vertex)
+        if checkDataPath and os.path.exists(actorFileDataPath):
+            actorFilePath = actorFileDataPath
+
+    return actorFilePath
+
+
+def writeTextureArraysExisting(
+    exportPath: str, overlayName: str, isLink: bool, flipbookArrayIndex2D: int, fModel: OOTModel
+):
+    actorFilePath = getActorFilepath(exportPath, overlayName, isLink, True)
+
+    if not os.path.exists(actorFilePath):
+        print(f"{actorFilePath} not found, ignoring texture array writing.")
+        return
+
+    actorData = readFile(actorFilePath)
+    newData = actorData
+
+    for flipbook in fModel.flipbooks:
+        if flipbook.exportMode == "Array":
+            if flipbookArrayIndex2D is None:
+                newData = writeTextureArraysExisting1D(newData, flipbook, "")
+            else:
+                newData = writeTextureArraysExisting2D(newData, flipbook, flipbookArrayIndex2D)
+
+    if newData != actorData:
+        writeFile(actorFilePath, newData)
+
+
+def writeTextureArraysExisting1D(data: str, flipbook: TextureFlipbook, additionalIncludes: str) -> str:
+    newData = data
+    arrayMatch = re.search(
+        r"(static\s*)?void\s*\*\s*" + re.escape(flipbook.name) + r"\s*\[\s*\]\s*=\s*\{(((?!\}).)*)\}\s*;",
+        newData,
+        flags=re.DOTALL,
     )
 
-    data.append(exportData.all())
+    # replace array if found
+    if arrayMatch:
+        newArrayData = flipbook_to_c(flipbook, arrayMatch.group(1))
+        newData = newData[: arrayMatch.start(0)] + newArrayData + newData[arrayMatch.end(0) :]
 
-    writeCData(data, os.path.join(path, name + ".h"), os.path.join(path, name + ".c"))
+        # otherwise, add to end of asset includes
+    else:
+        newArrayData = flipbook_to_c(flipbook, True)
 
-    if not isCustomExport:
-        addIncludeFiles(folderName, path, name)
-        if removeVanillaData:
-            headerPath = os.path.join(path, folderName + ".h")
-            sourcePath = os.path.join(path, folderName + ".c")
-            removeDL(sourcePath, headerPath, name)
-
-
-class OOT_DisplayListPanel(bpy.types.Panel):
-    bl_label = "Display List Inspector"
-    bl_idname = "OBJECT_PT_OOT_DL_Inspector"
-    bl_space_type = "PROPERTIES"
-    bl_region_type = "WINDOW"
-    bl_context = "object"
-    bl_options = {"HIDE_HEADER"}
-
-    @classmethod
-    def poll(cls, context):
-        return context.scene.gameEditorMode == "OOT" and (
-            context.object is not None and isinstance(context.object.data, bpy.types.Mesh)
+    # get last asset include
+    includeMatch = None
+    for includeMatchItem in re.finditer(r"\#include\s*\"assets/.*?\"\s*?\n", newData, flags=re.DOTALL):
+        includeMatch = includeMatchItem
+    if includeMatch:
+        newData = (
+            newData[: includeMatch.end(0)]
+            + additionalIncludes
+            + ((newArrayData + "\n") if not arrayMatch else "")
+            + newData[includeMatch.end(0) :]
         )
+    else:
+        newData = (additionalIncludes + newData + newArrayData + "\n") if not arrayMatch else newData
 
-    def draw(self, context):
-        box = self.layout.box()
-        box.box().label(text="OOT DL Inspector")
-        obj = context.object
-
-        # prop_split(box, obj, "ootDrawLayer", "Draw Layer")
-        box.prop(obj, "ignore_render")
-        box.prop(obj, "ignore_collision")
-
-        # Doesn't work since all static meshes are pre-transformed
-        # box.prop(obj.ootDynamicTransform, "billboard")
-
-        # drawParentSceneRoom(box, obj)
+    return newData
 
 
-class OOT_ImportDL(bpy.types.Operator):
-    # set bl_ properties
-    bl_idname = "object.oot_import_dl"
-    bl_label = "Import DL"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
+# for flipbook textures, we only replace one element of the 2D array.
+def writeTextureArraysExisting2D(data: str, flipbook: TextureFlipbook, flipbookArrayIndex2D: int) -> str:
+    newData = data
 
-    # Called on demand (i.e. button press, menu item)
-    # Can also be called from operator search menu (Spacebar)
-    def execute(self, context):
-        obj = None
-        if context.mode != "OBJECT":
-            bpy.ops.object.mode_set(mode="OBJECT")
+    # for !AVOID_UB, Link has textures in 2D Arrays
+    array2DMatch = re.search(
+        r"(static\s*)?void\s*\*\s*"
+        + re.escape(flipbook.name)
+        + r"\s*\[\s*\]\s*\[\s*[0-9a-fA-Fx]*\s*\]\s*=\s*\{(.*?)\}\s*;",
+        newData,
+        flags=re.DOTALL,
+    )
 
-        try:
-            settings: OOTDLImportSettings = context.scene.fast64.oot.DLImportSettings
-            name = settings.name
-            folderName = settings.folder
-            importPath = bpy.path.abspath(settings.customPath)
-            isCustomImport = settings.isCustom
-            scale = context.scene.ootActorBlenderScale
-            basePath = bpy.path.abspath(context.scene.ootDecompPath)
-            removeDoubles = settings.removeDoubles
-            importNormals = settings.importNormals
-            drawLayer = settings.drawLayer
+    newArrayData = "{ " + flipbook_data_to_c(flipbook) + " }"
 
-            filepaths = [ootGetObjectPath(isCustomImport, importPath, folderName)]
-            if not isCustomImport:
-                filepaths.append(
-                    os.path.join(bpy.context.scene.ootDecompPath, "assets/objects/gameplay_keep/gameplay_keep.c")
-                )
+    # build a list of arrays here
+    # replace existing element if list is large enough
+    # otherwise, pad list with repeated arrays
+    if array2DMatch:
+        arrayMatchData = [
+            arrayMatch.group(0) for arrayMatch in re.finditer(r"\{(.*?)\}", array2DMatch.group(2), flags=re.DOTALL)
+        ]
 
-            importMeshC(
-                filepaths,
-                name,
-                scale,
-                removeDoubles,
-                importNormals,
-                drawLayer,
-                OOTF3DContext(F3D("F3DEX2/LX2", False), [name], basePath),
-            )
-
-            self.report({"INFO"}, "Success!")
-            return {"FINISHED"}
-
-        except Exception as e:
-            if context.mode != "OBJECT":
-                bpy.ops.object.mode_set(mode="OBJECT")
-            raisePluginError(self, e)
-            return {"CANCELLED"}  # must return a set
-
-
-class OOT_ExportDL(bpy.types.Operator):
-    # set bl_ properties
-    bl_idname = "object.oot_export_dl"
-    bl_label = "Export DL"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
-
-    # Called on demand (i.e. button press, menu item)
-    # Can also be called from operator search menu (Spacebar)
-    def execute(self, context):
-        obj = None
-        if context.mode != "OBJECT":
-            bpy.ops.object.mode_set(mode="OBJECT")
-        if len(context.selected_objects) == 0:
-            raise PluginError("Mesh not selected.")
-        obj = context.active_object
-        if type(obj.data) is not bpy.types.Mesh:
-            raise PluginError("Mesh not selected.")
-
-        finalTransform = mathutils.Matrix.Scale(context.scene.ootActorBlenderScale, 4)
-
-        try:
-            # exportPath, levelName = getPathAndLevel(context.scene.geoCustomExport,
-            # 	context.scene.geoExportPath, context.scene.geoLevelName,
-            # 	context.scene.geoLevelOption)
-
-            saveTextures = bpy.context.scene.saveTextures
-            isHWv1 = context.scene.isHWv1
-            f3dType = context.scene.f3d_type
-            exportSettings = context.scene.fast64.oot.DLExportSettings
-
-            ootConvertMeshToC(
-                obj,
-                finalTransform,
-                f3dType,
-                isHWv1,
-                DLFormat.Static,
-                saveTextures,
-                exportSettings,
-            )
-
-            self.report({"INFO"}, "Success!")
-            return {"FINISHED"}
-
-        except Exception as e:
-            if context.mode != "OBJECT":
-                bpy.ops.object.mode_set(mode="OBJECT")
-            raisePluginError(self, e)
-            return {"CANCELLED"}  # must return a set
-
-
-class OOT_ExportDLPanel(OOT_Panel):
-    bl_idname = "OOT_PT_export_dl"
-    bl_label = "OOT DL Exporter"
-
-    # called every frame
-    def draw(self, context):
-        col = self.layout.column()
-        col.operator(OOT_ExportDL.bl_idname)
-        exportSettings: OOTDLExportSettings = context.scene.fast64.oot.DLExportSettings
-
-        prop_split(col, exportSettings, "name", "DL")
-        prop_split(col, exportSettings, "folder", "Object" if not exportSettings.isCustom else "Folder")
-        if exportSettings.isCustom:
-            prop_split(col, exportSettings, "customAssetIncludeDir", "Asset Include Path")
-            prop_split(col, exportSettings, "customPath", "Path")
-
-        prop_split(col, exportSettings, "drawLayer", "Export Draw Layer")
-        col.prop(exportSettings, "isCustom")
-        col.prop(exportSettings, "removeVanillaData")
-
-        col.operator(OOT_ImportDL.bl_idname)
-        importSettings: OOTDLImportSettings = context.scene.fast64.oot.DLImportSettings
-
-        prop_split(col, importSettings, "name", "DL")
-        if importSettings.isCustom:
-            prop_split(col, importSettings, "customPath", "File")
+        if flipbookArrayIndex2D >= len(arrayMatchData):
+            while len(arrayMatchData) <= flipbookArrayIndex2D:
+                arrayMatchData.append(newArrayData)
         else:
-            prop_split(col, importSettings, "folder", "Object")
-        prop_split(col, importSettings, "drawLayer", "Import Draw Layer")
+            arrayMatchData[flipbookArrayIndex2D] = newArrayData
 
-        col.prop(importSettings, "isCustom")
-        col.prop(importSettings, "removeDoubles")
-        col.prop(importSettings, "importNormals")
+        newArray2DData = ",\n".join([item for item in arrayMatchData])
+        newData = replaceMatchContent(newData, newArray2DData, array2DMatch, 2)
 
+        # otherwise, add to end of asset includes
+    else:
+        arrayMatchData = [newArrayData] * (flipbookArrayIndex2D + 1)
+        newArray2DData = ",\n".join([item for item in arrayMatchData])
 
-class OOTDefaultRenderModesProperty(bpy.types.PropertyGroup):
-    expandTab: bpy.props.BoolProperty()
-    opaqueCycle1: bpy.props.StringProperty(default="G_RM_AA_ZB_OPA_SURF")
-    opaqueCycle2: bpy.props.StringProperty(default="G_RM_AA_ZB_OPA_SURF2")
-    transparentCycle1: bpy.props.StringProperty(default="G_RM_AA_ZB_XLU_SURF")
-    transparentCycle2: bpy.props.StringProperty(default="G_RM_AA_ZB_XLU_SURF2")
-    overlayCycle1: bpy.props.StringProperty(default="G_RM_AA_ZB_OPA_SURF")
-    overlayCycle2: bpy.props.StringProperty(default="G_RM_AA_ZB_OPA_SURF2")
-
-
-class OOT_DrawLayersPanel(bpy.types.Panel):
-    bl_label = "OOT Draw Layers"
-    bl_idname = "WORLD_PT_OOT_Draw_Layers_Panel"
-    bl_space_type = "PROPERTIES"
-    bl_region_type = "WINDOW"
-    bl_context = "world"
-    bl_options = {"HIDE_HEADER"}
-
-    @classmethod
-    def poll(cls, context):
-        return context.scene.gameEditorMode == "OOT"
-
-    def draw(self, context):
-        ootDefaultRenderModeProp = context.scene.world.ootDefaultRenderModes
-        layout = self.layout
-
-        inputGroup = layout.column()
-        inputGroup.prop(
-            ootDefaultRenderModeProp,
-            "expandTab",
-            text="Default Render Modes",
-            icon="TRIA_DOWN" if ootDefaultRenderModeProp.expandTab else "TRIA_RIGHT",
-        )
-        if ootDefaultRenderModeProp.expandTab:
-            prop_split(inputGroup, ootDefaultRenderModeProp, "opaqueCycle1", "Opaque Cycle 1")
-            prop_split(inputGroup, ootDefaultRenderModeProp, "opaqueCycle2", "Opaque Cycle 2")
-            prop_split(inputGroup, ootDefaultRenderModeProp, "transparentCycle1", "Transparent Cycle 1")
-            prop_split(inputGroup, ootDefaultRenderModeProp, "transparentCycle2", "Transparent Cycle 2")
-            prop_split(inputGroup, ootDefaultRenderModeProp, "overlayCycle1", "Overlay Cycle 1")
-            prop_split(inputGroup, ootDefaultRenderModeProp, "overlayCycle2", "Overlay Cycle 2")
-
-
-class OOT_MaterialPanel(bpy.types.Panel):
-    bl_label = "OOT Material"
-    bl_idname = "MATERIAL_PT_OOT_Material_Inspector"
-    bl_space_type = "PROPERTIES"
-    bl_region_type = "WINDOW"
-    bl_context = "material"
-    bl_options = {"HIDE_HEADER"}
-
-    @classmethod
-    def poll(cls, context):
-        return context.material is not None and context.scene.gameEditorMode == "OOT"
-
-    def draw(self, context):
-        layout = self.layout
-        mat = context.material
-        col = layout.column()
-
-        if (
-            hasattr(context, "object")
-            and context.object is not None
-            and context.object.parent is not None
-            and isinstance(context.object.parent.data, bpy.types.Armature)
-        ):
-            drawLayer = context.object.parent.ootDrawLayer
-            if drawLayer != mat.f3d_mat.draw_layer.oot:
-                col.label(text="Draw layer is being overriden by skeleton.", icon="OUTLINER_DATA_ARMATURE")
+        # get last asset include
+        includeMatch = None
+        for includeMatchItem in re.finditer(r"\#include\s*\"assets/.*?\"\s*?\n", newData, flags=re.DOTALL):
+            includeMatch = includeMatchItem
+        if includeMatch:
+            newData = newData[: includeMatch.end(0)] + newArray2DData + "\n" + newData[includeMatch.end(0) :]
         else:
-            drawLayer = mat.f3d_mat.draw_layer.oot
+            newData += newArray2DData + "\n"
 
-        drawOOTMaterialProperty(col.box().column(), mat.ootMaterial, drawLayer)
-
-
-def drawOOTMaterialDrawLayerProperty(layout, matDrawLayerProp, suffix):
-    # layout.box().row().label(text = title)
-    row = layout.row()
-    for colIndex in range(2):
-        col = row.column()
-        for rowIndex in range(3):
-            i = 8 + colIndex * 3 + rowIndex
-            name = "Segment " + format(i, "X") + " " + suffix
-            col.prop(matDrawLayerProp, "segment" + format(i, "X"), text=name)
-        name = "Custom call (" + str(colIndex + 1) + ") " + suffix
-        p = "customCall" + str(colIndex)
-        col.prop(matDrawLayerProp, p, text=name)
-        if getattr(matDrawLayerProp, p):
-            col.prop(matDrawLayerProp, p + "_seg", text="")
+    return newData
 
 
-drawLayerSuffix = {"Opaque": "OPA", "Transparent": "XLU", "Overlay": "OVL"}
+# Note this does not work well with actors containing multiple "parts". (z_en_honotrap)
+def ootReadActorScale(basePath: str, overlayName: str, isLink: bool) -> float:
+    if not isLink:
+        actorData = ootGetActorData(basePath, overlayName)
+    else:
+        actorData = ootGetLinkData(basePath)
 
+    chainInitMatch = re.search(r"CHAIN_VEC3F_DIV1000\s*\(\s*scale\s*,\s*(.*?)\s*,", actorData, re.DOTALL)
+    if chainInitMatch is not None:
+        scale = chainInitMatch.group(1).strip()
+        if scale[-1] == "f":
+            scale = scale[:-1]
+        return getOOTScale(1 / (float(scale) / 1000))
 
-def drawOOTMaterialProperty(layout, matProp, drawLayer):
-    if drawLayer == "Overlay":
-        return
-    suffix = "(" + drawLayerSuffix[drawLayer] + ")"
-    layout.box().column().label(text="OOT Dynamic Material Properties " + suffix)
-    layout.label(text="See gSPSegment calls in z_scene_table.c.")
-    layout.label(text="Based off draw config index in gSceneTable.")
-    drawOOTMaterialDrawLayerProperty(layout.column(), getattr(matProp, drawLayer.lower()), suffix)
+    actorScaleMatch = re.search(r"Actor\_SetScale\s*\(.*?,\s*(.*?)\s*\)", actorData, re.DOTALL)
+    if actorScaleMatch is not None:
+        scale = actorScaleMatch.group(1).strip()
+        if scale[-1] == "f":
+            scale = scale[:-1]
+        return getOOTScale(1 / float(scale))
 
-
-class OOTDynamicMaterialDrawLayerProperty(bpy.types.PropertyGroup):
-    segment8: bpy.props.BoolProperty()
-    segment9: bpy.props.BoolProperty()
-    segmentA: bpy.props.BoolProperty()
-    segmentB: bpy.props.BoolProperty()
-    segmentC: bpy.props.BoolProperty()
-    segmentD: bpy.props.BoolProperty()
-    customCall0: bpy.props.BoolProperty()
-    customCall0_seg: bpy.props.StringProperty(description="Segment address of a display list to call, e.g. 0x08000010")
-    customCall1: bpy.props.BoolProperty()
-    customCall1_seg: bpy.props.StringProperty(description="Segment address of a display list to call, e.g. 0x08000010")
-
-
-# The reason these are separate is for the case when the user changes the material draw layer, but not the
-# dynamic material calls. This could cause crashes which would be hard to detect.
-class OOTDynamicMaterialProperty(bpy.types.PropertyGroup):
-    opaque: bpy.props.PointerProperty(type=OOTDynamicMaterialDrawLayerProperty)
-    transparent: bpy.props.PointerProperty(type=OOTDynamicMaterialDrawLayerProperty)
-
-
-oot_dl_writer_classes = (
-    OOTDefaultRenderModesProperty,
-    OOTDynamicMaterialDrawLayerProperty,
-    OOTDynamicMaterialProperty,
-    OOTDynamicTransformProperty,
-    OOT_ExportDL,
-    OOT_ImportDL,
-    OOTDLExportSettings,
-    OOTDLImportSettings,
-)
-
-oot_dl_writer_panel_classes = (
-    # OOT_ExportDLPanel,
-    OOT_DisplayListPanel,
-    OOT_DrawLayersPanel,
-    OOT_MaterialPanel,
-    OOT_ExportDLPanel,
-)
-
-
-def oot_dl_writer_panel_register():
-    for cls in oot_dl_writer_panel_classes:
-        register_class(cls)
-
-
-def oot_dl_writer_panel_unregister():
-    for cls in oot_dl_writer_panel_classes:
-        unregister_class(cls)
-
-
-def oot_dl_writer_register():
-    for cls in oot_dl_writer_classes:
-        register_class(cls)
-
-    bpy.types.Object.ootDrawLayer = bpy.props.EnumProperty(items=ootEnumDrawLayers, default="Opaque")
-
-    # Doesn't work since all static meshes are pre-transformed
-    # bpy.types.Object.ootDynamicTransform = bpy.props.PointerProperty(type = OOTDynamicTransformProperty)
-    bpy.types.World.ootDefaultRenderModes = bpy.props.PointerProperty(type=OOTDefaultRenderModesProperty)
-    bpy.types.Material.ootMaterial = bpy.props.PointerProperty(type=OOTDynamicMaterialProperty)
-    bpy.types.Object.ootObjectMenu = bpy.props.EnumProperty(items=ootEnumObjectMenu)
-
-
-def oot_dl_writer_unregister():
-    for cls in reversed(oot_dl_writer_classes):
-        unregister_class(cls)
-
-    del bpy.types.Material.ootMaterial
-    del bpy.types.Object.ootObjectMenu
+    return getOOTScale(100)

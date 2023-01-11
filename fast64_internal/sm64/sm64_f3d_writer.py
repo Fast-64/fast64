@@ -1,12 +1,77 @@
-import shutil, copy, bpy, cProfile, pstats
-
-from ..panels import SM64_Panel
-from ..f3d.f3d_writer import *
-from ..f3d.f3d_material import *
-from ..f3d.f3d_gbi import FMaterial
-from .sm64_texscroll import *
-from .sm64_utility import *
+import shutil, copy, bpy, re, os
+from io import BytesIO
+from math import ceil, log, radians
+from mathutils import Matrix, Vector
 from bpy.utils import register_class, unregister_class
+from ..panels import SM64_Panel
+from ..f3d.f3d_writer import saveTextureIndex, exportF3DCommon
+from ..f3d.f3d_material import TextureProperty, tmemUsageUI, all_combiner_uses, ui_procAnim
+from .sm64_texscroll import modifyTexScrollFiles, modifyTexScrollHeadersGroup
+from .sm64_utility import starSelectWarning
+from .sm64_level_parser import parseLevelAtPointer
+from .sm64_rom_tweaks import ExtendBank0x04
+from typing import Tuple, Union, Iterable
+
+from ..f3d.f3d_gbi import (
+    GbiMacro,
+    GfxTag,
+    FMaterial,
+    FModel,
+    GfxFormatter,
+    GfxMatWriteMethod,
+    ScrollMethod,
+    DLFormat,
+    SPDisplayList,
+    GfxList,
+    GfxListTag,
+    FTexRect,
+    DPPipeSync,
+    DPSetCycleType,
+    DPSetTexturePersp,
+    DPSetAlphaCompare,
+    DPSetBlendColor,
+    DPSetRenderMode,
+    SPScisTextureRectangle,
+    SPTexture,
+    SPEndDisplayList,
+    TextureExportSettings,
+    FSetTileSizeScrollField,
+    FImageKey,
+    vertexScrollTemplate,
+    get_tile_scroll_code,
+    GFX_SIZE,
+)
+
+from ..utility import (
+    CData,
+    CScrollData,
+    PluginError,
+    raisePluginError,
+    prop_split,
+    encodeSegmentedAddr,
+    applyRotation,
+    toAlnum,
+    checkIfPathExists,
+    writeIfNotFound,
+    overwriteData,
+    getExportDir,
+    writeMaterialFiles,
+    writeMaterialHeaders,
+    get64bitAlignedAddr,
+    writeInsertableFile,
+    getPathAndLevel,
+    applyBasicTweaks,
+    checkExpanded,
+    tempName,
+    getAddressFromRAMAddress,
+    bytesToHex,
+    customExportWarning,
+    decompFolderMessage,
+    makeWriteInfoBox,
+    writeBoxExportType,
+    enumExportHeaderType,
+)
+
 from .sm64_constants import (
     level_enums,
     enumLevelNames,
@@ -15,8 +80,6 @@ from .sm64_constants import (
     bank0Segment,
     insertableBinaryTypes,
 )
-from .sm64_level_parser import parseLevelAtPointer
-from .sm64_rom_tweaks import ExtendBank0x04
 
 
 enumHUDExportLocation = [
@@ -47,17 +110,30 @@ class SM64Model(FModel):
 class SM64GfxFormatter(GfxFormatter):
     def __init__(self, scrollMethod: ScrollMethod):
         self.functionNodeDraw = False
-        GfxFormatter.__init__(self, scrollMethod, 8)
+        GfxFormatter.__init__(self, scrollMethod, 8, "segmented_to_virtual")
 
-    def vertexScrollToC(self, fMaterial: FMaterial, name: str, count: int):
+    def processGfxScrollCommand(self, commandIndex: int, command: GbiMacro, gfxListName: str) -> Tuple[str, str]:
+        tags: GfxTag = command.tags
+        fMaterial: FMaterial = command.fMaterial
+
+        if not tags:
+            return "", ""
+        elif tags & (GfxTag.TileScroll0 | GfxTag.TileScroll1):
+            textureIndex = 0 if tags & GfxTag.TileScroll0 else 1
+            return get_tile_scroll_code(fMaterial.scrollData, textureIndex, commandIndex)
+        else:
+            return "", ""
+
+    def vertexScrollToC(self, fMaterial: FMaterial, vtxListName: str, vtxCount: int) -> CScrollData:
+        data = CScrollData()
         fScrollData = fMaterial.scrollData
-        data = CData()
-        sts_data = CData()
+        if fScrollData is None:
+            return data
 
-        data.source = self.vertexScrollTemplate(
+        data.source = vertexScrollTemplate(
             fScrollData,
-            name,
-            count,
+            vtxListName,
+            vtxCount,
             "absi",
             "signum_positive",
             "coss",
@@ -65,91 +141,13 @@ class SM64GfxFormatter(GfxFormatter):
             "random_sign",
             "segmented_to_virtual",
         )
-        sts_data.source = self.tileScrollStaticMaterialToC(fMaterial)
 
         scrollDataFields = fScrollData.fields[0]
         if not ((scrollDataFields[0].animType == "None") and (scrollDataFields[1].animType == "None")):
-            data.header = "extern void scroll_" + name + "();\n"
+            funcName = f"scroll_{vtxListName}"
+            data.header = f"extern void {funcName}();\n"
+            data.functionCalls.append(funcName)
 
-        # self.tileScrollFunc is set in GfxFormatter.tileScrollStaticMaterialToC
-        if self.tileScrollFunc is not None:
-            sts_data.header = f"{self.tileScrollFunc}\n"
-        else:
-            sts_data = None
-
-        return data, sts_data
-
-    # This code is not functional, only used for an example
-    def drawToC(self, f3d, gfxList):
-        data = CData()
-        if self.functionNodeDraw:
-            data.header = (
-                "Gfx* " + self.name + "(s32 renderContext, struct GraphNode* node, struct AllocOnlyPool *a2);\n"
-            )
-            data.source = (
-                "Gfx* "
-                + self.name
-                + "(s32 renderContext, struct GraphNode* node, struct AllocOnlyPool *a2) {\n"
-                + "\tGfx* startCmd = NULL;\n"
-                + "\tGfx* glistp = NULL;\n"
-                + "\tstruct GraphNodeGenerated *generatedNode;\n"
-                + "\tif(renderContext == GEO_CONTEXT_RENDER) {\n"
-                + "\t\tgeneratedNode = (struct GraphNodeGenerated *) node;\n"
-                + "\t\tgeneratedNode->fnNode.node.flags = (generatedNode->fnNode.node.flags & 0xFF) | (generatedNode->parameter << 8);\n"
-                + "\t\tstartCmd = glistp = alloc_display_list(sizeof(Gfx) * "
-                + str(int(round(self.size_total(f3d) / GFX_SIZE)))
-                + ");\n"
-                + "\t\tif(startCmd == NULL) return NULL;\n"
-            )
-
-            for command in self.commands:
-                if isinstance(command, SPDisplayList) and command.displayList.tag == GfxListTag.Material:
-                    data.source += (
-                        "\t"
-                        + "glistp = "
-                        + command.displayList.name
-                        + "(glistp, gAreaUpdateCounter, gAreaUpdateCounter);\n"
-                    )
-                else:
-                    data.source += "\t" + command.to_c(False) + ";\n"
-
-            data.source += "\t}\n\treturn startCmd;\n}"
-            return data
-        else:
-            return gfxList.to_c(f3d)
-
-    # This code is not functional, only used for an example
-    def tileScrollMaterialToC(self, f3d, fMaterial: FMaterial):
-        data = CData()
-
-        materialGfx = fMaterial.material
-        scrollDataFields = fMaterial.scrollData.fields
-
-        data.header = "Gfx* " + fMaterial.material.name + "(Gfx* glistp, int s, int t);\n"
-
-        # Set tile scrolling
-        for texIndex in range(2):  # for each texture
-            for axisIndex in range(2):  # for each axis
-                scrollField = scrollDataFields[texIndex][axisIndex]
-                if scrollField.animType != "None":
-                    if scrollField.animType == "Linear":
-                        if axisIndex == 0:
-                            fMaterial.tileSizeCommands[texIndex].uls = (
-                                str(fMaterial.tileSizeCommands[0].uls) + " + s * " + str(scrollField.speed)
-                            )
-                        else:
-                            fMaterial.tileSizeCommands[texIndex].ult = (
-                                str(fMaterial.tileSizeCommands[0].ult) + " + s * " + str(scrollField.speed)
-                            )
-
-        # Build commands
-        data.source = "Gfx* " + materialGfx.name + "(Gfx* glistp, int s, int t) {\n"
-        for command in materialGfx.commands:
-            data.source += "\t" + command.to_c(False) + ";\n"
-        data.source += "\treturn glistp;\n}" + "\n\n"
-
-        if fMaterial.revert is not None:
-            data.append(fMaterial.revert.to_c(f3d))
         return data
 
 
@@ -277,12 +275,12 @@ def exportTexRectCommon(texProp, f3dType, isHWv1, name, convertTextureData):
 
     texProp.S.low = 0
     texProp.S.high = texProp.tex.size[0] - 1
-    texProp.S.mask = math.ceil(math.log(texProp.tex.size[0], 2) - 0.001)
+    texProp.S.mask = ceil(log(texProp.tex.size[0], 2) - 0.001)
     texProp.S.shift = 0
 
     texProp.T.low = 0
     texProp.T.high = texProp.tex.size[1] - 1
-    texProp.T.mask = math.ceil(math.log(texProp.tex.size[1], 2) - 0.001)
+    texProp.T.mask = ceil(log(texProp.tex.size[1], 2) - 0.001)
     texProp.T.shift = 0
 
     fTexRect = FTexRect(f3dType, isHWv1, toAlnum(name), GfxMatWriteMethod.WriteDifferingAndRevert)
@@ -302,7 +300,8 @@ def exportTexRectCommon(texProp, f3dType, isHWv1, name, convertTextureData):
 
     drawEndCommands = GfxList("temp", GfxListTag.Draw, DLFormat.Dynamic)
 
-    texDimensions, nextTmem = saveTextureIndex(
+    texDimensions, nextTmem, fImage = saveTextureIndex(
+        None,
         texProp.tex.name,
         fTexRect,
         fMaterial,
@@ -316,6 +315,8 @@ def exportTexRectCommon(texProp, f3dType, isHWv1, name, convertTextureData):
         None,
         True,
         True,
+        None,
+        FImageKey(texProp.tex, texProp.tex_format, texProp.ci_format, [texProp.tex]),
     )
 
     fTexRect.draw.commands.append(
@@ -378,12 +379,8 @@ def sm64ExportF3DtoC(
     dynamicData = exportData.dynamicData
     texC = exportData.textureData
 
-    scrollData, hasScrolling = fModel.to_c_vertex_scroll(scrollName, gfxFormatter)
-
-    scroll_data = scrollData.source
-    cDefineScroll = scrollData.header
-
-    modifyTexScrollFiles(basePath, modelDirPath, cDefineScroll, scroll_data, hasScrolling)
+    scrollData = fModel.to_c_scroll(scrollName, gfxFormatter)
+    modifyTexScrollFiles(basePath, modelDirPath, scrollData)
 
     if DLFormat == DLFormat.Static:
         staticData.append(dynamicData)
@@ -465,9 +462,9 @@ def sm64ExportF3DtoC(
             texscrollIncludeC,
             texscrollIncludeH,
             texscrollGroup,
-            cDefineScroll,
+            scrollData.topLevelScrollFunc,
             texscrollGroupInclude,
-            hasScrolling,
+            scrollData.hasScrolling(),
         )
 
     if bpy.context.mode != "OBJECT":
@@ -570,20 +567,20 @@ class SM64_ExportDL(bpy.types.Operator):
 
             # T, R, S = obj.matrix_world.decompose()
             # objTransform = R.to_matrix().to_4x4() @ \
-            # 	mathutils.Matrix.Diagonal(S).to_4x4()
+            # 	Matrix.Diagonal(S).to_4x4()
 
             # finalTransform = (blenderToSM64Rotation * \
             # 	(bpy.context.scene.blenderToSM64Scale)).to_4x4()
-            # finalTransform = mathutils.Matrix.Identity(4)
+            # finalTransform = Matrix.Identity(4)
             scaleValue = bpy.context.scene.blenderToSM64Scale
-            finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((scaleValue, scaleValue, scaleValue))).to_4x4()
+            finalTransform = Matrix.Diagonal(Vector((scaleValue, scaleValue, scaleValue))).to_4x4()
 
         except Exception as e:
             raisePluginError(self, e)
             return {"CANCELLED"}
 
         try:
-            applyRotation([obj], math.radians(90), "X")
+            applyRotation([obj], radians(90), "X")
             if context.scene.fast64.sm64.exportType == "C":
                 exportPath, levelName = getPathAndLevel(
                     context.scene.DLCustomExport,
@@ -693,13 +690,13 @@ class SM64_ExportDL(bpy.types.Operator):
                         + ").",
                     )
 
-            applyRotation([obj], math.radians(-90), "X")
+            applyRotation([obj], radians(-90), "X")
             return {"FINISHED"}  # must return a set
 
         except Exception as e:
             if context.mode != "OBJECT":
                 bpy.ops.object.mode_set(mode="OBJECT")
-            applyRotation([obj], math.radians(-90), "X")
+            applyRotation([obj], radians(-90), "X")
             if context.scene.fast64.sm64.exportType == "Binary":
                 if romfileOutput is not None:
                     romfileOutput.close()

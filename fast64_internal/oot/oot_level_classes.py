@@ -1,26 +1,36 @@
-import math, os, bpy, bmesh, mathutils
-from bpy.utils import register_class, unregister_class
-from io import BytesIO
+import bpy, os, shutil
+from typing import Optional
+from ..utility import PluginError, toAlnum, indent
+from .oot_collision_classes import OOTCollision
+from .oot_model_classes import OOTModel
+from ..f3d.f3d_gbi import (
+    SPDisplayList,
+    SPEndDisplayList,
+    GfxListTag,
+    GfxList,
+)
 
-from ..utility import *
-from .oot_utility import *
-from .oot_constants import *
-from ..f3d.f3d_gbi import *
-from .oot_collision_classes import *
-from .oot_model_classes import *
+
+class OOTCommonCommands:
+    def getAltHeaderListCmd(self, altName):
+        return indent + f"SCENE_CMD_ALTERNATE_HEADER_LIST({altName}),\n"
+
+    def getEndCmd(self):
+        return indent + "SCENE_CMD_END(),\n"
 
 
 class OOTActor:
-    def __init__(self, actorID, position, rotation, actorParam, rotOverride):
+    def __init__(self, actorName, actorID, position, rotation, actorParam):
+        self.actorName = actorName
         self.actorID = actorID
         self.actorParam = actorParam
-        self.rotOverride = rotOverride
         self.position = position
         self.rotation = rotation
 
 
 class OOTTransitionActor:
-    def __init__(self, actorID, frontRoom, backRoom, frontCam, backCam, position, rotationY, actorParam):
+    def __init__(self, actorName, actorID, frontRoom, backRoom, frontCam, backCam, position, rotationY, actorParam):
+        self.actorName = actorName
         self.actorID = actorID
         self.actorParam = actorParam
         self.frontRoom = frontRoom
@@ -54,93 +64,8 @@ class OOTLight:
         self.fogFar = 0
         self.transitionSpeed = 0
 
-    def getBlendFogShort(self):
-        return "0x{:04X}".format((self.transitionSpeed << 10) | self.fogNear)
-
-
-class OOTCSTextbox:
-    def __init__(self):
-        self.textboxType = None
-        self.messageId = "0x0000"
-        self.ocarinaSongAction = "0x0000"
-        self.startFrame = 0
-        self.endFrame = 1
-        self.type = "0x0000"
-        self.topOptionBranch = "0x0000"
-        self.bottomOptionBranch = "0x0000"
-        self.ocarinaMessageId = "0x0000"
-
-
-class OOTCSLighting:
-    def __init__(self):
-        self.index = 1
-        self.startFrame = 0
-
-
-class OOTCSTime:
-    def __init__(self):
-        self.startFrame = 0
-        self.hour = 23
-        self.minute = 59
-
-
-class OOTCSBGM:
-    def __init__(self):
-        self.value = "0x0000"
-        self.startFrame = 0
-        self.endFrame = 1
-
-
-class OOTCSMisc:
-    def __init__(self):
-        self.operation = 1
-        self.startFrame = 0
-        self.endFrame = 1
-
-
-class OOTCS0x09:
-    def __init__(self):
-        self.startFrame = 0
-        self.unk2 = "0x00"
-        self.unk3 = "0x00"
-        self.unk4 = "0x00"
-
-
-class OOTCSUnk:
-    def __unk__(self):
-        self.unk1 = "0x00000000"
-        self.unk2 = "0x00000000"
-        self.unk3 = "0x00000000"
-        self.unk4 = "0x00000000"
-        self.unk5 = "0x00000000"
-        self.unk6 = "0x00000000"
-        self.unk7 = "0x00000000"
-        self.unk8 = "0x00000000"
-        self.unk9 = "0x00000000"
-        self.unk10 = "0x00000000"
-        self.unk11 = "0x00000000"
-        self.unk12 = "0x00000000"
-
-
-class OOTCSList:
-    def __init__(self):
-        self.listType = None
-        self.entries = []
-        self.unkType = "0x0001"
-        self.fxType = "1"
-        self.fxStartFrame = 0
-        self.fxEndFrame = 0
-
-
-class OOTCutscene:
-    def __init__(self):
-        self.name = ""
-        self.csEndFrame = 100
-        self.csWriteTerminator = False
-        self.csTermIdx = 0
-        self.csTermStart = 99
-        self.csTermEnd = 100
-        self.csLists = []
+    def getBlendFogNear(self):
+        return f"(({self.transitionSpeed} << 10) | {self.fogNear})"
 
 
 class OOTSceneTableEntry:
@@ -148,7 +73,7 @@ class OOTSceneTableEntry:
         self.drawConfig = 0
 
 
-class OOTScene:
+class OOTScene(OOTCommonCommands):
     def __init__(self, name, model):
         self.name = toAlnum(name)
         self.write_dummy_room_list = False
@@ -167,6 +92,7 @@ class OOTScene:
         self.skyboxID = None
         self.skyboxCloudiness = None
         self.skyboxLighting = None
+        self.isSkyboxLightingCustom = False
 
         # Camera
         self.mapLocation = None
@@ -175,13 +101,13 @@ class OOTScene:
         self.musicSeq = None
         self.nightSeq = None
 
-        self.childNightHeader = None
-        self.adultDayHeader = None
-        self.adultNightHeader = None
-        self.cutsceneHeaders = []
+        self.childNightHeader: Optional[OOTScene] = None
+        self.adultDayHeader: Optional[OOTScene] = None
+        self.adultNightHeader: Optional[OOTScene] = None
+        self.cutsceneHeaders: list["OOTScene"] = []
 
         self.exitList = []
-        self.pathList = {}
+        self.pathList = set()
         self.cameraList = []
 
         self.writeCutscene = False
@@ -203,8 +129,8 @@ class OOTScene:
         scene.write_dummy_room_list = self.write_dummy_room_list
         scene.rooms = self.rooms
         scene.collision = self.collision
-        scene.exitList = self.exitList
-        scene.pathList = self.pathList
+        scene.exitList = []
+        scene.pathList = set()
         scene.cameraList = self.cameraList
         return scene
 
@@ -218,7 +144,7 @@ class OOTScene:
         return self.sceneName() + "_header" + format(headerIndex, "02") + "_entranceList"
 
     def startPositionsName(self, headerIndex):
-        return self.sceneName() + "_header" + format(headerIndex, "02") + "_startPositionList"
+        return f"{self.sceneName()}_header{headerIndex:02}_playerEntryList"
 
     def exitListName(self, headerIndex):
         return self.sceneName() + "_header" + format(headerIndex, "02") + "_exitList"
@@ -229,8 +155,8 @@ class OOTScene:
     def transitionActorListName(self, headerIndex):
         return self.sceneName() + "_header" + format(headerIndex, "02") + "_transitionActors"
 
-    def pathListName(self):
-        return self.sceneName() + "_pathway"
+    def pathListName(self, headerIndex: int):
+        return self.sceneName() + "_pathway" + str(headerIndex)
 
     def cameraListName(self):
         return self.sceneName() + "_cameraList"
@@ -253,7 +179,6 @@ class OOTScene:
         self.collision.cameraData.validateCamPositions()
         self.validateStartPositions()
         self.validateRoomIndices()
-        self.validatePathIndices()
 
     def validateStartPositions(self):
         count = 0
@@ -294,6 +219,49 @@ class OOTScene:
         self.rooms[roomIndex] = room
         return room
 
+    def sortEntrances(self):
+        self.entranceList = sorted(self.entranceList, key=lambda x: x.startPositionIndex)
+        if self.appendNullEntrance:
+            self.entranceList.append(OOTEntrance(0, 0))
+
+        if self.childNightHeader is not None:
+            self.childNightHeader.sortEntrances()
+        if self.adultDayHeader is not None:
+            self.adultDayHeader.sortEntrances()
+        if self.adultNightHeader is not None:
+            self.adultNightHeader.sortEntrances()
+        for header in self.cutsceneHeaders:
+            header.sortEntrances()
+
+    def copyBgImages(self, exportPath: str):
+        for i in range(len(self.rooms)):
+            self.rooms[i].mesh.copyBgImages(exportPath)
+
+
+class OOTBGImage:
+    def __init__(self, name: str, image: bpy.types.Image, otherModeFlags: str):
+        self.name = name
+        self.image = image
+        self.otherModeFlags = otherModeFlags
+
+    def getFilename(self) -> str:
+        return f"{self.name}.jpg"
+
+    def singlePropertiesC(self, tabDepth: int) -> str:
+        return (indent * tabDepth) + (indent * tabDepth).join(
+            (
+                f"{self.name},\n",
+                f"0x00000000,\n",  # (``unk_0C`` in decomp)
+                "NULL,\n",
+                f"{self.image.size[0]}, {self.image.size[1]},\n",
+                f"G_IM_FMT_RGBA, G_IM_SIZ_16b,\n",  # RGBA16
+                f"{self.otherModeFlags}, 0x0000",
+            )
+        )
+
+    def multiPropertiesC(self, tabDepth: int, cameraIndex: int) -> str:
+        return (indent * tabDepth) + f"0x0082, {cameraIndex},\n" + self.singlePropertiesC(tabDepth) + "\n"
+
 
 class OOTRoomMesh:
     def __init__(self, roomName, roomShape, model):
@@ -301,6 +269,7 @@ class OOTRoomMesh:
         self.roomShape = roomShape
         self.meshEntries = []
         self.model = model
+        self.bgImages = []
 
     def terminateDLs(self):
         for entry in self.meshEntries:
@@ -311,7 +280,7 @@ class OOTRoomMesh:
 
     def entriesName(self):
         return str(self.roomName) + (
-            "_shapeDListEntry" if self.roomShape == "ROOM_SHAPE_TYPE_NORMAL" else "_shapeCullableEntry"
+            "_shapeDListEntry" if self.roomShape != "ROOM_SHAPE_TYPE_CULLABLE" else "_shapeCullableEntry"
         )
 
     def addMeshGroup(self, cullGroup):
@@ -328,6 +297,36 @@ class OOTRoomMesh:
             if not meshEntry.DLGroup.isEmpty():
                 newList.append(meshEntry)
         self.meshEntries = newList
+
+    def copyBgImages(self, exportPath: str):
+        jpegCompatibility = False  # maybe delete some code later if jpeg compatibility improves
+        for bgImage in self.bgImages:
+            image = bgImage.image
+            imageFileName = bgImage.getFilename()
+            if jpegCompatibility:
+                isPacked = image.packed_file is not None
+                if not isPacked:
+                    image.pack()
+                oldpath = image.filepath
+                oldFormat = image.file_format
+                try:
+                    image.filepath = bpy.path.abspath(os.path.join(exportPath, imageFileName))
+                    image.file_format = "JPEG"
+                    image.save()
+                    if not isPacked:
+                        image.unpack()
+                    image.filepath = oldpath
+                    image.file_format = oldFormat
+                except Exception as e:
+                    image.filepath = oldpath
+                    image.file_format = oldFormat
+                    raise Exception(str(e))
+            else:
+                filepath = bpy.path.abspath(os.path.join(exportPath, imageFileName))
+                shutil.copy(bpy.path.abspath(image.filepath), filepath)
+
+    def getMultiBgStructName(self):
+        return self.roomName + "BgImage"
 
 
 class OOTDLGroup:
@@ -378,7 +377,7 @@ class OOTRoomMeshGroup:
         return self.roomName + "_entry_" + str(self.entryIndex)
 
 
-class OOTRoom:
+class OOTRoom(OOTCommonCommands):
     def __init__(self, index, name, model, roomShape):
         self.ownerName = toAlnum(name)
         self.index = index
@@ -411,12 +410,14 @@ class OOTRoom:
         # Echo
         self.echo = 0x00
 
-        self.objectList = []
+        self.objectIDList = []
 
         self.childNightHeader = None
         self.adultDayHeader = None
         self.adultNightHeader = None
         self.cutsceneHeaders = []
+
+        self.appendNullEntrance = False
 
     def getAlternateHeaderRoom(self, name):
         room = OOTRoom(self.index, name, self.mesh.model, self.mesh.roomShape)
@@ -442,6 +443,12 @@ class OOTRoom:
             and self.adultNightHeader == None
             and len(self.cutsceneHeaders) == 0
         )
+
+    def getObjectLengthDefineName(self, headerIndex: int):
+        return f"LENGTH_{self.objectListName(headerIndex).upper()}"
+
+    def getActorLengthDefineName(self, headerIndex: int):
+        return f"LENGTH_{self.actorListName(headerIndex).upper()}"
 
 
 def addActor(owner, actor, actorProp, propName, actorObjName):
@@ -511,7 +518,7 @@ def addStartPosition(scene, index, actor, actorProp, actorObjName):
                     actorObjName
                     + " uses a cutscene header index that is outside the range of the current number of cutscene headers."
                 )
-            addAtStartPosIndex(scene.cutsceneHeaders[cutsceneHeader.headerIndex - 4].startPositions, index, actor)
+            addStartPosAtIndex(scene.cutsceneHeaders[cutsceneHeader.headerIndex - 4].startPositions, index, actor)
     else:
         raise PluginError("Unhandled scene setup preset: " + str(sceneSetup.sceneSetupPreset))
 

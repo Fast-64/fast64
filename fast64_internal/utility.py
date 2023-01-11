@@ -1,8 +1,10 @@
-import bpy, random, string, os, math, traceback, re, os, mathutils
+import bpy, random, string, os, math, traceback, re, os, mathutils, ast, operator
 from math import pi, ceil, degrees, radians
 from mathutils import *
 from .utility_anim import *
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Any
+
+CollectionProperty = Any  # collection prop as defined by using bpy.props.CollectionProperty
 
 
 class PluginError(Exception):
@@ -13,10 +15,15 @@ class VertexWeightError(PluginError):
     pass
 
 
+# default indentation to use when writing to decomp files
+indent = " " * 4
+
 geoNodeRotateOrder = "ZXY"
 sm64BoneUp = Vector([1, 0, 0])
 
 transform_mtx_blender_to_n64 = lambda: Matrix(((1, 0, 0, 0), (0, 0, 1, 0), (0, -1, 0, 0), (0, 0, 0, 1)))
+
+yUpToZUp = mathutils.Quaternion((1, 0, 0), math.radians(90.0)).to_matrix().to_4x4()
 
 axis_enums = [
     ("X", "X", "X"),
@@ -61,7 +68,7 @@ def hexOrDecInt(value):
     elif ">>" in value:
         i = value.index(">>")
         return hexOrDecInt(value[:i]) >> hexOrDecInt(value[i + 2 :])
-    elif "x" in value:
+    elif "x" in value or "X" in value:
         return int(value, 16)
     else:
         return int(value)
@@ -124,13 +131,6 @@ def parentObject(parent, child):
     parent.select_set(True)
     bpy.context.view_layer.objects.active = parent
     bpy.ops.object.parent_set(type="OBJECT", keep_transform=True)
-
-
-def attemptModifierApply(modifier):
-    try:
-        bpy.ops.object.modifier_apply(modifier=modifier.name)
-    except Exception as e:
-        print("Skipping modifier " + str(modifier.name))
 
 
 def getFMeshName(vertexGroup, namePrefix, drawLayer, isSkinned):
@@ -276,7 +276,7 @@ def propertyGroupEquals(oldProp, newProp):
             equivalent &= propertyGroupEquals(sub_value, getattr(newProp, sub_value_attr))
         elif type(sub_value).__name__ == "bpy_prop_collection_idprop":
             newCollection = getattr(newProp, sub_value_attr)
-            copyPropertyCollection(sub_value, newCollection)
+            equivalent &= propertyCollectionEquals(sub_value, newCollection)
         else:
             newValue = getattr(newProp, sub_value_attr)
             try:
@@ -323,6 +323,27 @@ class CData:
     def append(self, other):
         self.source += other.source
         self.header += other.header
+
+
+class CScrollData(CData):
+    """This class contains a list of function names, so that the top level scroll function can call all of them."""
+
+    def __init__(self):
+        self.functionCalls: list[str] = []
+        """These function names are all called in one top level scroll function."""
+
+        self.topLevelScrollFunc: str = ""
+        """This function is the final one that calls all the others."""
+
+        CData.__init__(self)
+
+    def append(self, other):
+        if isinstance(other, CScrollData):
+            self.functionCalls.extend(other.functionCalls)
+        CData.append(self, other)
+
+    def hasScrolling(self):
+        return len(self.functionCalls) > 0
 
 
 def getObjectFromData(data):
@@ -740,11 +761,6 @@ def copy_object_and_apply(obj: bpy.types.Object, apply_scale=False, apply_modifi
             obj["original_mtx"] = translation_rotation_from_mtx(mathutils.Matrix(obj["original_mtx"]))
 
     obj_copy = obj.copy()
-    obj_copy.parent = None
-    # reset transformations
-    obj_copy.location = mathutils.Vector([0.0, 0.0, 0.0])
-    obj_copy.scale = mathutils.Vector([1.0, 1.0, 1.0])
-    obj_copy.rotation_quaternion = mathutils.Quaternion([1, 0, 0, 0])
     obj_copy.data = obj_copy.data.copy()
 
     if apply_modifiers:
@@ -757,6 +773,12 @@ def copy_object_and_apply(obj: bpy.types.Object, apply_scale=False, apply_modifi
             attemptModifierApply(modifier)
 
         bpy.context.view_layer.objects.active = prev_active
+
+    obj_copy.parent = None
+    # reset transformations
+    obj_copy.location = mathutils.Vector([0.0, 0.0, 0.0])
+    obj_copy.scale = mathutils.Vector([1.0, 1.0, 1.0])
+    obj_copy.rotation_quaternion = mathutils.Quaternion([1, 0, 0, 0])
 
     mtx = transform_mtx_blender_to_n64()
     if apply_scale:
@@ -816,6 +838,25 @@ def get_obj_temp_mesh(obj):
             return o
 
 
+def apply_objects_modifiers_and_transformations(allObjs: Iterable[bpy.types.Object]):
+    # first apply modifiers so that any objects that affect each other are taken into consideration
+    for selectedObj in allObjs:
+        bpy.ops.object.select_all(action="DESELECT")
+        selectedObj.select_set(True)
+        bpy.context.view_layer.objects.active = selectedObj
+
+        for modifier in selectedObj.modifiers:
+            attemptModifierApply(modifier)
+
+    # apply transformations now that world space changes are applied
+    for selectedObj in allObjs:
+        bpy.ops.object.select_all(action="DESELECT")
+        selectedObj.select_set(True)
+        bpy.context.view_layer.objects.active = selectedObj
+
+        bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
+
+
 def duplicateHierarchy(obj, ignoreAttr, includeEmpties, areaIndex):
     # Duplicate objects to apply scale / modifiers / linked data
     bpy.ops.object.select_all(action="DESELECT")
@@ -828,15 +869,9 @@ def duplicateHierarchy(obj, ignoreAttr, includeEmpties, areaIndex):
         allObjs = bpy.context.selected_objects
 
         bpy.ops.object.make_single_user(obdata=True)
-        bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
 
-        for selectedObj in allObjs:
-            bpy.ops.object.select_all(action="DESELECT")
-            selectedObj.select_set(True)
-            bpy.context.view_layer.objects.active = selectedObj
+        apply_objects_modifiers_and_transformations(allObjs)
 
-            for modifier in selectedObj.modifiers:
-                attemptModifierApply(modifier)
         for selectedObj in allObjs:
             if ignoreAttr is not None and getattr(selectedObj, ignoreAttr):
                 for child in selectedObj.children:
@@ -953,12 +988,8 @@ def combineObjects(obj, includeChildren, ignoreAttr, areaIndex):
         # duplicate obj and apply modifiers / make single user
         allObjs = bpy.context.selected_objects
         bpy.ops.object.make_single_user(obdata=True)
-        bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
-        for selectedObj in allObjs:
-            bpy.ops.object.select_all(action="DESELECT")
-            selectedObj.select_set(True)
-            for modifier in selectedObj.modifiers:
-                attemptModifierApply(modifier)
+
+        apply_objects_modifiers_and_transformations(allObjs)
 
         bpy.ops.object.select_all(action="DESELECT")
 
@@ -1475,3 +1506,18 @@ def ootGetBaseOrCustomLight(prop, idx, toExport: bool, errIfMissing: bool):
     if toExport:
         col, dir = exportColor(col), normToSigned8Vector(dir)
     return col, dir
+
+
+binOps = {
+    ast.Add: operator.add,
+    ast.Sub: operator.sub,
+    ast.Mult: operator.mul,
+    ast.Div: operator.truediv,
+    ast.Mod: operator.mod,
+    ast.LShift: operator.lshift,
+    ast.RShift: operator.rshift,
+    ast.RShift: operator.rshift,
+    ast.BitOr: operator.or_,
+    ast.BitAnd: operator.and_,
+    ast.BitXor: operator.xor,
+}
