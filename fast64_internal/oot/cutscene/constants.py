@@ -290,15 +290,15 @@ ootCSSubPropToName = {
     "endFrame": "End Frame",
 
     # TextBox
-    "messageId": "Text ID",
+    "textID": "Text ID",
     "ocarinaAction": "Ocarina Action",
     "csTextType": "Text Type",
-    "topOptionBranch": "Text ID for Top Option",
-    "bottomOptionBranch": "Text ID for Bottom Option",
+    "topOptionTextID": "Text ID for Top Option",
+    "bottomOptionTextID": "Text ID for Bottom Option",
     "ocarinaMessageId": "Ocarina Message ID",
 
     # Lighting
-    "index": "Light Settings Index",
+    "lightSettingsIndex": "Light Settings Index",
 
     # Time
     "hour": "Hour",
@@ -312,7 +312,7 @@ ootCSSubPropToName = {
     "csMiscType": "Misc Type",
 
     # Rumble
-    "unk2": "Source Strength",
-    "unk3": "Duration",
-    "unk4": "Decrease Rate",
+    "rumbleSourceStrength": "Source Strength",
+    "rumbleDuration": "Duration",
+    "rumbleDecreaseRate": "Decrease Rate",
 }

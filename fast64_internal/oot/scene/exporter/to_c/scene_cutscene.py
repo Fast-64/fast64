@@ -46,19 +46,19 @@ def ootCutsceneDataToC(csParent: OOTCutscene | OOTScene, csName: str):
             if list.listType == "Textbox":
                 if e.textboxType == "Text":
                     csData.source += (
-                        f"{e.messageId}, {e.startFrame}, {e.endFrame}, {e.type}, {e.topOptionBranch}, {e.bottomOptionBranch}"
+                        f"{e.textID}, {e.startFrame}, {e.endFrame}, {e.textboxType}, {e.topOptionTextID}, {e.bottomOptionTextID}"
                     )
 
                 elif e.textboxType == "None":
                     csData.source += f"{e.startFrame}, {e.endFrame}"
 
                 elif e.textboxType == "LearnSong":
-                    csData.source += f"{e.ocarinaSongAction}, {e.startFrame}, {e.endFrame}, {e.ocarinaMessageId}"
+                    csData.source += f"{e.ocarinaAction}, {e.startFrame}, {e.endFrame}, {e.ocarinaMessageId}"
 
             elif list.listType == "Lighting":
                 # the endFrame variable is not used in the implementation of the commend
                 # so the value doesn't matter
-                csData.source += f"{e.index}, {e.startFrame}" + (", 0" * 9)
+                csData.source += f"{e.lightSettingsIndex}, {e.startFrame}" + (", 0" * 9)
 
             elif list.listType == "Time":
                 # same as above
@@ -66,14 +66,14 @@ def ootCutsceneDataToC(csParent: OOTCutscene | OOTScene, csName: str):
 
             elif list.listType == "0x09": # rumble command
                 # same as above
-                csData.source += f"0, {e.startFrame}, 0, {e.unk2}, {e.unk3}, {e.unk4}, 0, 0"
+                csData.source += f"0, {e.startFrame}, 0, {e.rumbleSourceStrength}, {e.rumbleDuration}, {e.rumbleDecreaseRate}, 0, 0"
 
             elif list.listType in ["PlayBGM", "StopBGM", "FadeBGM"]:
                 endFrame = e.endFrame if list.listType == "FadeBGM" else "0"
-                csData.source += f"{e.value}, {e.startFrame}, {endFrame}" + (", 0" * 8)
+                csData.source += f"{e.csSeqID}, {e.startFrame}, {endFrame}" + (", 0" * 8)
 
             elif list.listType == "Misc":
-                csData.source += f"{e.operation}, {e.startFrame}, {e.endFrame}" + (", 0" * 11)
+                csData.source += f"{e.csMiscType}, {e.startFrame}, {e.endFrame}" + (", 0" * 11)
 
             else:
                 raise PluginError("Internal error: invalid cutscene list type " + list.listType)

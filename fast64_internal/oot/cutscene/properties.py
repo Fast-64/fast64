@@ -80,23 +80,21 @@ class OOTCSTextboxProperty(OOTCSProperty, PropertyGroup):
     propName = "Textbox"
     attrName = "textbox"
     subprops = [
-        "messageId",
+        "textID",
         "ocarinaAction",
         "startFrame",
         "endFrame",
         "csTextType",
-        "topOptionBranch",
-        "bottomOptionBranch",
+        "topOptionTextID",
+        "bottomOptionTextID",
         "ocarinaMessageId",
     ]
     textboxType: EnumProperty(items=ootEnumCSTextboxType)
-    messageId: StringProperty(name="", default="0x0000")
-    ocarinaSongAction: StringProperty(name="", default="0x0000")
+    textID: StringProperty(name="", default="0x0000")
     ocarinaAction: EnumProperty(name="Ocarina Action", items=ootEnumOcarinaAction, default="OCARINA_ACTION_TEACH_MINUET")
     ocarinaActionCustom: StringProperty(default="OCARINA_ACTION_CUSTOM")
-    type: StringProperty(name="", default="0x0000")
-    topOptionBranch: StringProperty(name="", default="0x0000")
-    bottomOptionBranch: StringProperty(name="", default="0x0000")
+    topOptionTextID: StringProperty(name="", default="0x0000")
+    bottomOptionTextID: StringProperty(name="", default="0x0000")
     ocarinaMessageId: StringProperty(name="", default="0x0000")
 
     csTextType: EnumProperty(name="Text Type", items=ootEnumTextType, default="CS_TEXT_NORMAL")
@@ -119,8 +117,8 @@ class OOTCSTextboxProperty(OOTCSProperty, PropertyGroup):
 class OOTCSLightingProperty(OOTCSProperty, PropertyGroup):
     propName = "Lighting"
     attrName = "lighting"
-    subprops = ["index", "startFrame"]
-    index: IntProperty(name="", default=1, min=1)
+    subprops = ["lightSettingsIndex", "startFrame"]
+    lightSettingsIndex: IntProperty(name="", default=1, min=1)
 
 
 class OOTCSTimeProperty(OOTCSProperty, PropertyGroup):
@@ -135,7 +133,6 @@ class OOTCSBGMProperty(OOTCSProperty, PropertyGroup):
     propName = "BGM"
     attrName = "bgm"
     subprops = ["csSeqID", "startFrame", "endFrame"]
-    value: StringProperty(name="", default="0x0000")
     csSeqID: EnumProperty(name="Seq ID", items=ootEnumMusicSeq, default="NA_BGM_GENERAL_SFX")
     csSeqIDCustom: StringProperty(default="NA_BGM_CUSTOM")
     csSeqPlayer: EnumProperty(name="Seq Player", items=ootEnumSeqPlayer, default="CS_FADE_OUT_BGM_MAIN")
@@ -154,19 +151,20 @@ class OOTCSMiscProperty(OOTCSProperty, PropertyGroup):
     propName = "Misc"
     attrName = "misc"
     subprops = ["csMiscType", "startFrame", "endFrame"]
-    operation: IntProperty(name="", default=1, min=1, max=35)
     csMiscType: EnumProperty(name="Type", items=ootEnumCSMiscType, default="CS_MISC_SET_LOCKED_VIEWPOINT")
     csMiscTypeCustom: StringProperty(default="CS_MISC_CUSTOM")
 
 
-class OOTCS0x09Property(OOTCSProperty, PropertyGroup):
-    # see https://github.com/zeldaret/oot/blob/542012efa68d110d6b631f9d149f6e5f4e68cc8e/src/code/z_rumble.c#L58-L77
+class OOTCSRumbleProperty(OOTCSProperty, PropertyGroup):
     propName = "0x09"
     attrName = "nine"
-    subprops = ["startFrame", "unk2", "unk3", "unk4"]
-    unk2: StringProperty(name="", default="0x00")
-    unk3: StringProperty(name="", default="0x00")
-    unk4: StringProperty(name="", default="0x00")
+    subprops = ["startFrame", "rumbleSourceStrength", "rumbleDuration", "rumbleDecreaseRate"]
+
+    # those variables are unsigned chars in decomp
+    # see https://github.com/zeldaret/oot/blob/542012efa68d110d6b631f9d149f6e5f4e68cc8e/src/code/z_rumble.c#L58-L77
+    rumbleSourceStrength: IntProperty(name="", default=0, min=0, max=255)
+    rumbleDuration: IntProperty(name="", default=0, min=0, max=255)
+    rumbleDecreaseRate: IntProperty(name="", default=0, min=0, max=255)
 
 
 class OOTCSListProperty(PropertyGroup):
@@ -178,9 +176,8 @@ class OOTCSListProperty(PropertyGroup):
     time: CollectionProperty(type=OOTCSTimeProperty)
     bgm: CollectionProperty(type=OOTCSBGMProperty)
     misc: CollectionProperty(type=OOTCSMiscProperty)
-    nine: CollectionProperty(type=OOTCS0x09Property)
+    nine: CollectionProperty(type=OOTCSRumbleProperty)
 
-    unkType: StringProperty(name="", default="0x0001")
     fxType: EnumProperty(items=ootEnumCSTransitionType)
     fxTypeCustom: StringProperty(default="CS_TRANS_CUSTOM")
     fxStartFrame: IntProperty(name="", default=0, min=0)
@@ -300,7 +297,7 @@ classes = (
     OOTCSTimeProperty,
     OOTCSBGMProperty,
     OOTCSMiscProperty,
-    OOTCS0x09Property,
+    OOTCSRumbleProperty,
     OOTCSListProperty,
     OOTCutsceneProperty,
 )

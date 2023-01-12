@@ -64,8 +64,8 @@ def upgradeCutsceneProperties(csObj: Object):
 
     differentPropsData = [
         # TextBox
-        ("ocarinaSongAction", "ocarinaAction", ootEnumOcarinaAction)
-        ("type", "textboxType", ootEnumCSTextboxType)
+        ("ocarinaSongAction", "ocarinaAction", ootEnumOcarinaAction),
+        ("type", "textboxType", ootEnumCSTextboxType),
 
         # BGM
         ("value", "csSeqID", ootEnumMusicSeq),
@@ -77,9 +77,15 @@ def upgradeCutsceneProperties(csObj: Object):
 
     # conversion to the same prop type
     # simply transfer the old data to the new one
+    # special case for rumble props where it's a string to int conversion
     for oldName, newName in oldNamesToNewNames.items():
         if oldName in csObj:
-            csObj[newName] = csObj[oldName]
+            value = csObj[oldName]
+
+            if newName in ["rumbleSourceStrength", "rumbleDuration", "rumbleDecreaseRate"]:
+                value = int(getEvalParams(csObj[oldName]), base=16)
+
+            csObj[newName] = value
 
             del csObj[oldName]
 
