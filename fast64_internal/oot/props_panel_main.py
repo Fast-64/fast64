@@ -154,9 +154,19 @@ class OOT_ObjectProperties(bpy.types.PropertyGroup):
     @staticmethod
     def upgrade_changed_props():
         for obj in bpy.data.objects:
-            if obj.data is None:
+            if obj.type == "EMPTY":
                 if obj.ootEmptyType == "Room":
                     OOTObjectProperty.upgrade_object(obj)
+
+                if obj.ootEmptyType == "Cutscene":
+                    print(f"Processing '{obj.name}'...")
+                    csListsNames = ["textbox", "lighting", "time", "bgm", "misc", "nine"]
+
+                    for csList in obj.ootCutsceneProperty.csLists:
+                        for listName in csListsNames:
+                            for csListProp in getattr(csList, listName):
+                                # print(type(elem))
+                                OOTCutsceneProperty.upgrade_object(csListProp)
 
 
 class OOTCullGroupProperty(bpy.types.PropertyGroup):

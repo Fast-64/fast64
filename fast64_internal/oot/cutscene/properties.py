@@ -4,6 +4,7 @@ from bpy.utils import register_class, unregister_class
 from ...utility import PluginError, prop_split
 from ..oot_utility import OOTCollectionAdd, drawCollectionOps, getEnumName
 from ..oot_constants import ootEnumMusicSeq
+from ..oot_upgrade import upgradeCutsceneProperties
 from .operators import OOTCSTextboxAdd, OOT_SearchCSDestinationEnumOperator, drawCSListAddOp
 from .constants import (
     ootEnumCSTextboxType,
@@ -90,13 +91,14 @@ class OOTCSTextboxProperty(OOTCSProperty, PropertyGroup):
         "ocarinaMessageId",
     ]
     textboxType: EnumProperty(items=ootEnumCSTextboxType)
+
+    # subprops
     textID: StringProperty(name="", default="0x0000")
     ocarinaAction: EnumProperty(name="Ocarina Action", items=ootEnumOcarinaAction, default="OCARINA_ACTION_TEACH_MINUET")
     ocarinaActionCustom: StringProperty(default="OCARINA_ACTION_CUSTOM")
     topOptionTextID: StringProperty(name="", default="0x0000")
     bottomOptionTextID: StringProperty(name="", default="0x0000")
     ocarinaMessageId: StringProperty(name="", default="0x0000")
-
     csTextType: EnumProperty(name="Text Type", items=ootEnumTextType, default="CS_TEXT_NORMAL")
     csTextTypeCustom: StringProperty(default="CS_TEXT_CUSTOM")
 
@@ -264,6 +266,10 @@ class OOTCutsceneProperty(PropertyGroup):
     csTermStart: IntProperty(name="Start Frame", min=0, default=99)
     csTermEnd: IntProperty(name="End Frame", min=0, default=100)
     csLists: CollectionProperty(type=OOTCSListProperty, name="Cutscene Lists")
+
+    @staticmethod
+    def upgrade_object(csListProp: OOTCSTextboxProperty | OOTCSBGMProperty | OOTCSMiscProperty | OOTCSRumbleProperty):
+        upgradeCutsceneProperties(csListProp)
 
     def draw_props(self, layout: UILayout, obj: Object):
         layout.prop(self, "csEndFrame")

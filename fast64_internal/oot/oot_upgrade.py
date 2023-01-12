@@ -3,7 +3,7 @@ from .data import OoT_ObjectData
 from .oot_utility import getEvalParams
 from .oot_constants import ootEnumMusicSeq
 from .cutscene.constants import (
-    ootEnumCSTextboxType,
+    ootEnumTextType,
     ootEnumCSMiscType,
     ootEnumOcarinaAction,
 )
@@ -44,7 +44,8 @@ def upgradeRoomHeaders(roomObj: Object, objData: OoT_ObjectData):
         upgradeObjectList(altHeaders.cutsceneHeaders[i].objectList, objData)
 
 
-def upgradeCutsceneProperties(csObj: Object):
+def upgradeCutsceneProperties(csListProp):
+    # ``csListProp`` types: OOTCSTextboxProperty | OOTCSBGMProperty | OOTCSMiscProperty | OOTCSRumbleProperty
     # based on ``upgradeObjectList``
 
     oldNamesToNewNames = {
@@ -65,7 +66,7 @@ def upgradeCutsceneProperties(csObj: Object):
     differentPropsData = [
         # TextBox
         ("ocarinaSongAction", "ocarinaAction", ootEnumOcarinaAction),
-        ("type", "textboxType", ootEnumCSTextboxType),
+        ("type", "csTextType", ootEnumTextType),
 
         # BGM
         ("value", "csSeqID", ootEnumMusicSeq),
@@ -79,35 +80,63 @@ def upgradeCutsceneProperties(csObj: Object):
     # simply transfer the old data to the new one
     # special case for rumble props where it's a string to int conversion
     for oldName, newName in oldNamesToNewNames.items():
-        if oldName in csObj:
-            value = csObj[oldName]
+        if oldName in csListProp:
+            value = csListProp[oldName]
 
             if newName in ["rumbleSourceStrength", "rumbleDuration", "rumbleDecreaseRate"]:
-                value = int(getEvalParams(csObj[oldName]), base=16)
+                value = int(getEvalParams(csListProp[oldName]), base=16)
 
-            csObj[newName] = value
+            csListProp[newName] = value
 
-            del csObj[oldName]
+            del csListProp[oldName]
 
     # conversion to another prop type
     for (oldName, newName, enumList) in differentPropsData:
-        if oldName in csObj:
+        if oldName in csListProp:
             # get the old data
-            oldData = csObj[oldName]
+            oldData = csListProp[oldName]
 
             # if anything goes wrong there set the value to custom to avoid any data loss
             try:
-                # get the value, doing an eval for strings
-                value = int(getEvalParams(oldData), base=16)
+                if isinstance(oldData, str):
+                    # get the value, doing an eval for strings
+                    # account for custom elements in the enums by adding 1
+                    value = int(getEvalParams(oldData), base=16) + 1
+
+                    # special cases for ocarina action enum
+                    # since we don't have everything the value need to be shifted
+                    if newName == "ocarinaAction":
+                        if value in [0x00, 0x01, 0x0E] or value > 0x1A:
+                            raise IndexError
+
+                        if value > 0x0E:
+                            value -= 1
+
+                        value -= 2
+                elif isinstance(oldData, int):
+                    # account for custom elements in the enums by adding 1
+                    value = oldData + 1
+
+                    # another special case, this time for the misc enum
+                    if newName == "csMiscType":
+                        if value in [0x00, 0x04, 0x05]:
+                            raise IndexError
+
+                        if value > 0x05:
+                            value -= 2
+
+                        value -= 1
+                else:
+                    raise NotImplementedError
 
                 # if the value is in the list find the identifier
                 if value < len(enumList):
-                    setattr(csObj, newName, enumList[value][0])
+                    setattr(csListProp, newName, enumList[value][0])
                 else:
                     # else raise an error to default to custom
                     raise IndexError
             except:
-                setattr(csObj, newName, "Custom")
-                setattr(csObj, f"{newName}Custom", oldData)
+                setattr(csListProp, newName, "Custom")
+                setattr(csListProp, f"{newName}Custom", str(oldData))
 
-            del csObj[oldName]
+            del csListProp[oldName]
