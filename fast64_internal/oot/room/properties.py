@@ -3,7 +3,7 @@ from bpy.types import PropertyGroup, UILayout, Image, Object
 from bpy.utils import register_class, unregister_class
 from ...utility import prop_split
 from ..oot_utility import drawCollectionOps, onMenuTabChange, onHeaderMenuTabChange, drawEnumWithCustom, drawAddButton
-from ..oot_upgrade import upgradeRoomHeaders
+from ..oot_upgrade import upgradeRoomHeaders, upgradeCutsceneProperties
 from .operators import OOT_SearchObjectEnumOperator
 
 from bpy.props import (
@@ -37,6 +37,9 @@ class OOTObjectProperty(PropertyGroup):
     def upgrade_object(obj):
         print(f"Processing '{obj.name}'...")
         upgradeRoomHeaders(obj, ootData.objectData)
+
+        # if obj.type == "EMPTY" and obj.ootEmptyType == "Cutscene":
+        #     upgradeCutsceneProperties(obj)
 
     def draw_props(self, layout: UILayout, headerIndex: int, index: int, objName: str):
         isLegacy = True if "objectID" in self else False

@@ -239,6 +239,7 @@ ootEnumCSDestinationType = [
 ]
 
 ootEnumTextType = [
+    # see https://github.com/zeldaret/oot/blob/542012efa68d110d6b631f9d149f6e5f4e68cc8e/include/z64cutscene.h#L206-L212
     ("Custom", "Custom", "Custom"),
     ("CS_TEXT_NORMAL", "Normal Text", "Normal Text"),
     ("CS_TEXT_CHOICE", "Choice", "Choice"),

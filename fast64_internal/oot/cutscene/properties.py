@@ -160,6 +160,7 @@ class OOTCSMiscProperty(OOTCSProperty, PropertyGroup):
 
 
 class OOTCS0x09Property(OOTCSProperty, PropertyGroup):
+    # see https://github.com/zeldaret/oot/blob/542012efa68d110d6b631f9d149f6e5f4e68cc8e/src/code/z_rumble.c#L58-L77
     propName = "0x09"
     attrName = "nine"
     subprops = ["startFrame", "unk2", "unk3", "unk4"]
