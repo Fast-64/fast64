@@ -66,7 +66,6 @@ class OOTCutsceneCommon:
                 displayName = ootCSSubPropToName[name]
                 value = getattr(self, p)
 
-
                 if name == "csSeqPlayer":
                     # change the property name to draw the other enum for fade seq command
                     p = name
