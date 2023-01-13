@@ -33,8 +33,11 @@ def readCutsceneData(csParentOut, csParentIn):
                 entryOut.startFrame = entryIn.startFrame
                 entryOut.endFrame = entryIn.endFrame
                 entryOut.textType = getCustomProperty(entryIn, "csTextType")
-                entryOut.topOptionTextID = entryIn.topOptionTextID
-                entryOut.bottomOptionTextID = entryIn.bottomOptionTextID
+
+                if entryOut.textType == "CS_TEXT_CHOICE":
+                    entryOut.topOptionTextID = entryIn.topOptionTextID
+                    entryOut.bottomOptionTextID = entryIn.bottomOptionTextID
+
                 entryOut.ocarinaMessageId = entryIn.ocarinaMessageId
                 listOut.entries.append(entryOut)
         elif listOut.listType == "LightSettingsList":
@@ -71,7 +74,12 @@ def readCutsceneData(csParentOut, csParentIn):
                 entryOut = OOTCSRumble()
                 entryOut.startFrame = entryIn.startFrame
                 entryOut.rumbleSourceStrength = entryIn.rumbleSourceStrength
-                entryOut.rumbleDuration = entryIn.rumbleDuration
+
+                # the duration's unit are vertical retraces, this happens 3 times per frame
+                # so we're multiplying the value by 3 to get a frame unit on the UI
+                # to keep consistency between start frame and duration
+                entryOut.rumbleDuration = entryIn.rumbleDuration * 3
+
                 entryOut.rumbleDecreaseRate = entryIn.rumbleDecreaseRate
                 listOut.entries.append(entryOut)
         csParentOut.csLists.append(listOut)

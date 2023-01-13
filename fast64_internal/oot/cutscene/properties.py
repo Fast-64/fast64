@@ -64,6 +64,8 @@ class OOTCutsceneCommon:
             if self.filterProp(p, listProp):
                 name = self.filterName(p, listProp)
                 displayName = ootCSSubPropToName[name]
+                value = getattr(self, p)
+
 
                 if name == "csSeqPlayer":
                     # change the property name to draw the other enum for fade seq command
@@ -78,8 +80,11 @@ class OOTCutsceneCommon:
                     "csSeqID",
                     "csSeqPlayer",
                 ]
-                if name in customValues and getattr(self, p) == "Custom":
+                if name in customValues and value == "Custom":
                     prop_split(box, self, f"{name}Custom", f"{displayName} Custom")
+
+                if name == "csTextType" and value != "CS_TEXT_CHOICE":
+                    break
 
 
 class OOTCSTextProperty(OOTCutsceneCommon, PropertyGroup):
