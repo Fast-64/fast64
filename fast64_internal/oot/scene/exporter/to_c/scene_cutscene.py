@@ -7,7 +7,7 @@ from ....cutscene.exporter import OOTCutscene
 def ootCutsceneDataToC(csParent: OOTCutscene | OOTScene, csName: str):
     csData = CData()
     arrayName = f"CutsceneData {csName}[]"
-    nentries = len(csParent.csLists) + (1 if csParent.csWriteTerminator else 0)
+    nentries = len(csParent.csLists) + (1 if csParent.csUseDestination else 0)
 
     # .h
     csData.header = f"extern {arrayName};\n"
@@ -18,8 +18,8 @@ def ootCutsceneDataToC(csParent: OOTCutscene | OOTScene, csName: str):
         + " = {\n"
         + (indent + f"CS_BEGIN_CUTSCENE({nentries}, {csParent.csEndFrame}),\n")
         + (
-            (indent * 2) + f"CS_DESTINATION({csParent.csTermIdx}, {csParent.csTermStart}, {csParent.csTermEnd}),\n"
-            if csParent.csWriteTerminator
+            (indent * 2) + f"CS_DESTINATION({csParent.csDestination}, {csParent.csDestinationStartFrame}, 0),\n"
+            if csParent.csUseDestination
             else ""
         )
     )

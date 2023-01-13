@@ -83,10 +83,9 @@ def convertCutsceneObject(obj):
     cs.name = getCutsceneName(obj)
     csprop = obj.ootCutsceneProperty
     cs.csEndFrame = getCustomProperty(csprop, "csEndFrame")
-    cs.csWriteTerminator = getCustomProperty(csprop, "csWriteTerminator")
-    cs.csTermIdx = getCustomProperty(csprop, "csDestination")
-    cs.csTermStart = getCustomProperty(csprop, "csTermStart")
-    cs.csTermEnd = getCustomProperty(csprop, "csTermEnd")
+    cs.csUseDestination = getCustomProperty(csprop, "csUseDestination")
+    cs.csDestination = getCustomProperty(csprop, "csDestination")
+    cs.csDestinationStartFrame = getCustomProperty(csprop, "csDestinationStartFrame")
     readCutsceneData(cs, csprop)
 
     return cs

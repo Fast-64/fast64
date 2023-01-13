@@ -60,8 +60,7 @@ class OOTCutscene:
     def __init__(self):
         self.name = ""
         self.csEndFrame = 100
-        self.csWriteTerminator = False
-        self.csTermIdx = 0
-        self.csTermStart = 99
-        self.csTermEnd = 100
+        self.csUseDestination = False
+        self.csDestination = 0
+        self.csDestinationStartFrame = 99
         self.csLists = []

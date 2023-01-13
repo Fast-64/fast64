@@ -4,7 +4,7 @@ from bpy.utils import register_class, unregister_class
 from ...utility import PluginError, prop_split
 from ..oot_utility import OOTCollectionAdd, drawCollectionOps, getEnumName
 from ..oot_constants import ootEnumMusicSeq
-from ..oot_upgrade import upgradeCutsceneSubProps, upgradeCSListProps
+from ..oot_upgrade import upgradeCutsceneSubProps, upgradeCSListProps, upgradeCutsceneProperty
 from .operators import OOTCSTextAdd, OOT_SearchCSDestinationEnumOperator, drawCSListAddOp
 from .constants import (
     ootEnumCSTextboxType,
@@ -266,14 +266,12 @@ class OOTCSListProperty(PropertyGroup):
 
 class OOTCutsceneProperty(PropertyGroup):
     csEndFrame: IntProperty(name="End Frame", min=0, default=100)
-    csWriteTerminator: BoolProperty(name="Cutscene Destination (Scene Change)")
+    csUseDestination: BoolProperty(name="Cutscene Destination (Scene Change)")
     csDestination: EnumProperty(
         name="Destination", items=ootEnumCSDestinationType, default="CS_DEST_CUTSCENE_MAP_GANON_HORSE"
     )
     csDestinationCustom: StringProperty(default="CS_DEST_CUSTOM")
-    csTermIdx: IntProperty(name="Index", min=0)
-    csTermStart: IntProperty(name="Start Frame", min=0, default=99)
-    csTermEnd: IntProperty(name="End Frame", min=0, default=100)
+    csDestinationStartFrame: IntProperty(name="Start Frame", min=0, default=99)
     csLists: CollectionProperty(type=OOTCSListProperty, name="Cutscene Lists")
 
     @staticmethod
@@ -283,7 +281,10 @@ class OOTCutsceneProperty(PropertyGroup):
         # using the new names since the old ones will be deleted before this is used
         csListsNames = ["textList", "lightSettingsList", "timeList", "seqList", "miscList", "rumbleList"]
 
-        for csListProp in obj.ootCutsceneProperty.csLists:
+        csProp: "OOTCutsceneProperty" = obj.ootCutsceneProperty
+        upgradeCutsceneProperty(csProp)
+
+        for csListProp in csProp.csLists:
             upgradeCSListProps(csListProp)
 
             for listName in csListsNames:
@@ -294,8 +295,8 @@ class OOTCutsceneProperty(PropertyGroup):
         layout.prop(self, "csEndFrame")
 
         csDestLayout = layout.box()
-        csDestLayout.prop(self, "csWriteTerminator")
-        if self.csWriteTerminator:
+        csDestLayout.prop(self, "csUseDestination")
+        if self.csUseDestination:
             r = csDestLayout.row()
 
             searchBox = r.box()
@@ -307,8 +308,7 @@ class OOTCutsceneProperty(PropertyGroup):
                 prop_split(searchBox.column(), self, "csDestinationCustom", "Cutscene Destination Custom")
 
             r = csDestLayout.row()
-            r.prop(self, "csTermStart")
-            r.prop(self, "csTermEnd")
+            r.prop(self, "csDestinationStartFrame")
 
         drawCSListAddOp(layout, obj.name, "Cutscene")
 

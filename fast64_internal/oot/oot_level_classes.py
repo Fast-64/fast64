@@ -115,10 +115,8 @@ class OOTScene(OOTCommonCommands):
         self.csWriteCustom = ""
         self.csWriteObject = None
         self.csEndFrame = 100
-        self.csWriteTerminator = False
-        self.csTermIdx = 0
-        self.csTermStart = 99
-        self.csTermEnd = 100
+        self.csUseDestination = False
+        self.csDestinationStartFrame = 99
         self.csLists = []
         self.extraCutscenes = []
 

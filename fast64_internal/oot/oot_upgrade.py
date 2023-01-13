@@ -7,9 +7,13 @@ from .cutscene.constants import (
     ootEnumCSMiscType,
     ootEnumOcarinaAction,
     ootEnumCSTransitionType,
+    ootEnumCSDestinationType,
 )
 
 
+#####################################
+# Room Header
+#####################################
 def upgradeObjectList(objList: CollectionProperty, objData: OoT_ObjectData):
     """Transition to the XML object system"""
     for obj in objList:
@@ -45,18 +49,22 @@ def upgradeRoomHeaders(roomObj: Object, objData: OoT_ObjectData):
         upgradeObjectList(altHeaders.cutsceneHeaders[i].objectList, objData)
 
 
+#####################################
+# Cutscene
+#####################################
 def transferOldDataToNew(data, oldDataToNewData: dict):
     # conversion to the same prop type
     # simply transfer the old data to the new one
     # special case for rumble subprops where it's a string to int conversion
     for oldName, newName in oldDataToNewData.items():
         if oldName in data:
-            value = data[oldName]
+            if newName is not None:
+                value = data[oldName]
 
-            if newName in ["rumbleSourceStrength", "rumbleDuration", "rumbleDecreaseRate"]:
-                value = int(getEvalParams(data[oldName]), base=16)
+                if newName in ["rumbleSourceStrength", "rumbleDuration", "rumbleDecreaseRate"]:
+                    value = int(getEvalParams(data[oldName]), base=16)
 
-            data[newName] = value
+                data[newName] = value
 
             del data[oldName]
 
@@ -141,6 +149,21 @@ def upgradeCutsceneSubProps(csListSubProp):
         "unk2": "rumbleSourceStrength",
         "unk3": "rumbleDuration",
         "unk4": "rumbleDecreaseRate",
+        # Unk (Deprecated)
+        "unk": None,
+        "unkType": None,
+        "unk1": None,
+        "unk2": None,
+        "unk3": None,
+        "unk4": None,
+        "unk5": None,
+        "unk6": None,
+        "unk7": None,
+        "unk8": None,
+        "unk9": None,
+        "unk10": None,
+        "unk11": None,
+        "unk12": None,
     }
 
     subPropsToEnum = [
@@ -175,3 +198,16 @@ def upgradeCSListProps(csListProp):
 
     # both are enums but the item list is different (the old one doesn't have a "custom" entry)
     convertOldDataToEnumData(csListProp, [("fxType", "transitionType", ootEnumCSTransitionType)])
+
+
+def upgradeCutsceneProperty(csProp):
+    # ``csProp`` type: ``OOTCutsceneProperty``
+
+    csPropOldToNew = {
+        "csWriteTerminator": "csUseDestination",
+        "csTermStart": "csDestinationStartFrame",
+        "csTermEnd": None,
+    }
+
+    transferOldDataToNew(csProp, csPropOldToNew)
+    convertOldDataToEnumData(csProp, [("csTermIdx", "csDestination", ootEnumCSDestinationType)])

@@ -274,10 +274,8 @@ def readSceneData(
 
         if scene.csWriteType == "Embedded":
             scene.csEndFrame = getCustomProperty(sceneHeader, "csEndFrame")
-            scene.csWriteTerminator = getCustomProperty(sceneHeader, "csWriteTerminator")
-            scene.csTermIdx = getCustomProperty(sceneHeader, "csTermIdx")
-            scene.csTermStart = getCustomProperty(sceneHeader, "csTermStart")
-            scene.csTermEnd = getCustomProperty(sceneHeader, "csTermEnd")
+            scene.csUseDestination = getCustomProperty(sceneHeader, "csUseDestination")
+            scene.csDestinationStartFrame = getCustomProperty(sceneHeader, "csDestinationStartFrame")
             readCutsceneData(scene, sceneHeader)
 
         elif scene.csWriteType == "Custom":
