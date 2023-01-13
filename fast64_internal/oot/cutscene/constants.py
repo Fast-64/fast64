@@ -58,7 +58,11 @@ ootEnumCSListTypeIcons = [
     "OUTLINER_OB_FORCE_FIELD",
 ]
 
-ootEnumCSTextboxType = [("Text", "Text", "Text"), ("None", "None", "None"), ("OcarinaAction", "Ocarina Action", "Learn Song")]
+ootEnumCSTextboxType = [
+    ("Text", "Text", "Text"),
+    ("None", "None", "None"),
+    ("OcarinaAction", "Ocarina Action", "Learn Song"),
+]
 
 ootEnumCSTextboxTypeIcons = ["FILE_TEXT", "HIDE_ON", "FILE_SOUND"]
 
@@ -127,33 +131,101 @@ ootEnumCSDestinationType = [
     ("CS_DEST_DEATH_MOUNTAIN_TRAIL_NAYRU", "Death Mountain Trail Nayru", "Death Mountain Trail Nayru"),
     ("CS_DEST_KOKIRI_FOREST_FARORE", "Kokiri Forest Farore", "Kokiri Forest Farore"),
     ("CS_DEST_CUTSCENE_MAP_TRIFORCE_CREATION", "Cutscene Map Triforce Creation", "Cutscene Map Triforce Creation"),
-    ("CS_DEST_KOKIRI_FOREST_RECEIVE_KOKIRI_EMERALD", "Kokiri Forest Receive Kokiri Emerald", "Kokiri Forest Receive Kokiri Emerald"),
-    ("CS_DEST_TEMPLE_OF_TIME_FROM_MASTER_SWORD", "Temple Of Time From Master Sword", "Temple Of Time From Master Sword"),
+    (
+        "CS_DEST_KOKIRI_FOREST_RECEIVE_KOKIRI_EMERALD",
+        "Kokiri Forest Receive Kokiri Emerald",
+        "Kokiri Forest Receive Kokiri Emerald",
+    ),
+    (
+        "CS_DEST_TEMPLE_OF_TIME_FROM_MASTER_SWORD",
+        "Temple Of Time From Master Sword",
+        "Temple Of Time From Master Sword",
+    ),
     ("CS_DEST_GERUDO_VALLEY_DIN_PART_2", "Gerudo Valley Din Part 2", "Gerudo Valley Din Part 2"),
     ("CS_DEST_LINKS_HOUSE_INTRO", "Links House Intro", "Links House Intro"),
     ("CS_DEST_KOKIRI_FOREST_INTRO", "Kokiri Forest Intro", "Kokiri Forest Intro"),
-    ("CS_DEST_DEATH_MOUNTAIN_TRAIL_FROM_GORON_RUBY", "Death Mountain Trail From Goron Ruby", "Death Mountain Trail From Goron Ruby"),
-    ("CS_DEST_ZORAS_FOUNTAIN_FROM_ZORAS_SAPPHIRE", "Zoras Fountain From Zoras Sapphire", "Zoras Fountain From Zoras Sapphire"),
-    ("CS_DEST_KOKIRI_FOREST_FROM_KOKIRI_EMERALD", "Kokiri Forest From Kokiri Emerald", "Kokiri Forest From Kokiri Emerald"),
-    ("CS_DEST_TEMPLE_OF_TIME_KOKIRI_EMERALD_RESTORED", "Temple Of Time Kokiri Emerald Restored", "Temple Of Time Kokiri Emerald Restored"),
-    ("CS_DEST_TEMPLE_OF_TIME_GORON_RUBY_RESTORED", "Temple Of Time Goron Ruby Restored", "Temple Of Time Goron Ruby Restored"),
-    ("CS_DEST_TEMPLE_OF_TIME_ZORAS_SAPPHIRE_RESTORED", "Temple Of Time Zoras Sapphire Restored", "Temple Of Time Zoras Sapphire Restored"),
-    ("CS_DEST_TEMPLE_OF_TIME_AFTER_LIGHT_MEDALLION", "Temple Of Time After Light Medallion", "Temple Of Time After Light Medallion"),
+    (
+        "CS_DEST_DEATH_MOUNTAIN_TRAIL_FROM_GORON_RUBY",
+        "Death Mountain Trail From Goron Ruby",
+        "Death Mountain Trail From Goron Ruby",
+    ),
+    (
+        "CS_DEST_ZORAS_FOUNTAIN_FROM_ZORAS_SAPPHIRE",
+        "Zoras Fountain From Zoras Sapphire",
+        "Zoras Fountain From Zoras Sapphire",
+    ),
+    (
+        "CS_DEST_KOKIRI_FOREST_FROM_KOKIRI_EMERALD",
+        "Kokiri Forest From Kokiri Emerald",
+        "Kokiri Forest From Kokiri Emerald",
+    ),
+    (
+        "CS_DEST_TEMPLE_OF_TIME_KOKIRI_EMERALD_RESTORED",
+        "Temple Of Time Kokiri Emerald Restored",
+        "Temple Of Time Kokiri Emerald Restored",
+    ),
+    (
+        "CS_DEST_TEMPLE_OF_TIME_GORON_RUBY_RESTORED",
+        "Temple Of Time Goron Ruby Restored",
+        "Temple Of Time Goron Ruby Restored",
+    ),
+    (
+        "CS_DEST_TEMPLE_OF_TIME_ZORAS_SAPPHIRE_RESTORED",
+        "Temple Of Time Zoras Sapphire Restored",
+        "Temple Of Time Zoras Sapphire Restored",
+    ),
+    (
+        "CS_DEST_TEMPLE_OF_TIME_AFTER_LIGHT_MEDALLION",
+        "Temple Of Time After Light Medallion",
+        "Temple Of Time After Light Medallion",
+    ),
     ("CS_DEST_DEATH_MOUNTAIN_TRAIL", "Death Mountain Trail", "Death Mountain Trail"),
     ("CS_DEST_LAKE_HYLIA_WATER_RESTORED", "Lake Hylia Water Restored", "Lake Hylia Water Restored"),
     ("CS_DEST_DESERT_COLOSSUS_REQUIEM", "Desert Colossus Requiem", "Desert Colossus Requiem"),
-    ("CS_DEST_CUTSCENE_MAP_GANONDORF_DEFEATED_CREDITS", "Cutscene Map Ganondorf Defeated Credits", "Cutscene Map Ganondorf Defeated Credits"),
+    (
+        "CS_DEST_CUTSCENE_MAP_GANONDORF_DEFEATED_CREDITS",
+        "Cutscene Map Ganondorf Defeated Credits",
+        "Cutscene Map Ganondorf Defeated Credits",
+    ),
     ("CS_DEST_JABU_JABU", "Jabu Jabu", "Jabu Jabu"),
-    ("CS_DEST_CHAMBER_OF_SAGES_LIGHT_MEDALLION", "Chamber Of Sages Light Medallion", "Chamber Of Sages Light Medallion"),
-    ("CS_DEST_TEMPLE_OF_TIME_KOKIRI_EMERALD_RESTORED_2", "Temple Of Time Kokiri Emerald Restored 2", "Temple Of Time Kokiri Emerald Restored 2"),
-    ("CS_DEST_TEMPLE_OF_TIME_GORON_RUBY_RESTORED_2", "Temple Of Time Goron Ruby Restored 2", "Temple Of Time Goron Ruby Restored 2"),
-    ("CS_DEST_TEMPLE_OF_TIME_ZORAS_SAPPHIRE_RESTORED_2", "Temple Of Time Zoras Sapphire Restored 2", "Temple Of Time Zoras Sapphire Restored 2"),
-    ("CS_DEST_CHAMBER_OF_SAGES_FOREST_MEDALLION", "Chamber Of Sages Forest Medallion", "Chamber Of Sages Forest Medallion"),
+    (
+        "CS_DEST_CHAMBER_OF_SAGES_LIGHT_MEDALLION",
+        "Chamber Of Sages Light Medallion",
+        "Chamber Of Sages Light Medallion",
+    ),
+    (
+        "CS_DEST_TEMPLE_OF_TIME_KOKIRI_EMERALD_RESTORED_2",
+        "Temple Of Time Kokiri Emerald Restored 2",
+        "Temple Of Time Kokiri Emerald Restored 2",
+    ),
+    (
+        "CS_DEST_TEMPLE_OF_TIME_GORON_RUBY_RESTORED_2",
+        "Temple Of Time Goron Ruby Restored 2",
+        "Temple Of Time Goron Ruby Restored 2",
+    ),
+    (
+        "CS_DEST_TEMPLE_OF_TIME_ZORAS_SAPPHIRE_RESTORED_2",
+        "Temple Of Time Zoras Sapphire Restored 2",
+        "Temple Of Time Zoras Sapphire Restored 2",
+    ),
+    (
+        "CS_DEST_CHAMBER_OF_SAGES_FOREST_MEDALLION",
+        "Chamber Of Sages Forest Medallion",
+        "Chamber Of Sages Forest Medallion",
+    ),
     ("CS_DEST_CHAMBER_OF_SAGES_FIRE_MEDALLION", "Chamber Of Sages Fire Medallion", "Chamber Of Sages Fire Medallion"),
-    ("CS_DEST_CHAMBER_OF_SAGES_WATER_MEDALLION", "Chamber Of Sages Water Medallion", "Chamber Of Sages Water Medallion"),
+    (
+        "CS_DEST_CHAMBER_OF_SAGES_WATER_MEDALLION",
+        "Chamber Of Sages Water Medallion",
+        "Chamber Of Sages Water Medallion",
+    ),
     ("CS_DEST_HYRULE_FIELD_FLASHBACK", "Hyrule Field Flashback", "Hyrule Field Flashback"),
     ("CS_DEST_HYRULE_FIELD_FROM_ZELDA_ESCAPE", "Hyrule Field From Zelda Escape", "Hyrule Field From Zelda Escape"),
-    ("CS_DEST_CUTSCENE_MAP_GANONDORF_FROM_MASTER_SWORD", "Cutscene Map Ganondorf From Master Sword", "Cutscene Map Ganondorf From Master Sword"),
+    (
+        "CS_DEST_CUTSCENE_MAP_GANONDORF_FROM_MASTER_SWORD",
+        "Cutscene Map Ganondorf From Master Sword",
+        "Cutscene Map Ganondorf From Master Sword",
+    ),
     ("CS_DEST_HYRULE_FIELD_INTRO_DREAM", "Hyrule Field Intro Dream", "Hyrule Field Intro Dream"),
     ("CS_DEST_CUTSCENE_MAP_SHEIKAH_LEGEND", "Cutscene Map Sheikah Legend", "Cutscene Map Sheikah Legend"),
     ("CS_DEST_TEMPLE_OF_TIME_ZELDA_REVEAL", "Temple Of Time Zelda Reveal", "Temple Of Time Zelda Reveal"),
@@ -161,19 +233,43 @@ ootEnumCSDestinationType = [
     ("CS_DEST_LAKE_HYLIA_FROM_LAKE_RESTORED", "Lake Hylia From Lake Restored", "Lake Hylia From Lake Restored"),
     ("CS_DEST_KAKARIKO_VILLAGE_DRAIN_WELL", "Kakariko Village Drain Well", "Kakariko Village Drain Well"),
     ("CS_DEST_WINDMILL_FROM_WELL_DRAINED", "Windmill From Well Drained", "Windmill From Well Drained"),
-    ("CS_DEST_TEMPLE_OF_TIME_FROM_ALL_STONES_RESTORED", "Temple Of Time From All Stones Restored", "Temple Of Time From All Stones Restored"),
-    ("CS_DEST_TEMPLE_OF_TIME_AFTER_LIGHT_MEDALLION_ALT", "Temple Of Time After Light Medallion Alt", "Temple Of Time After Light Medallion Alt"),
-    ("CS_DEST_KAKARIKO_VILLAGE_NOCTURNE_PART_2", "Kakariko Village Nocturne Part 2", "Kakariko Village Nocturne Part 2"),
+    (
+        "CS_DEST_TEMPLE_OF_TIME_FROM_ALL_STONES_RESTORED",
+        "Temple Of Time From All Stones Restored",
+        "Temple Of Time From All Stones Restored",
+    ),
+    (
+        "CS_DEST_TEMPLE_OF_TIME_AFTER_LIGHT_MEDALLION_ALT",
+        "Temple Of Time After Light Medallion Alt",
+        "Temple Of Time After Light Medallion Alt",
+    ),
+    (
+        "CS_DEST_KAKARIKO_VILLAGE_NOCTURNE_PART_2",
+        "Kakariko Village Nocturne Part 2",
+        "Kakariko Village Nocturne Part 2",
+    ),
     ("CS_DEST_DESERT_COLOSSUS_FROM_REQUIEM", "Desert Colossus From Requiem", "Desert Colossus From Requiem"),
-    ("CS_DEST_TEMPLE_OF_TIME_FROM_LIGHT_ARROWS", "Temple Of Time From Light Arrows", "Temple Of Time From Light Arrows"),
+    (
+        "CS_DEST_TEMPLE_OF_TIME_FROM_LIGHT_ARROWS",
+        "Temple Of Time From Light Arrows",
+        "Temple Of Time From Light Arrows",
+    ),
     ("CS_DEST_KAKARIKO_VILLAGE_FROM_NOCTURNE", "Kakariko Village From Nocturne", "Kakariko Village From Nocturne"),
-    ("CS_DEST_HYRULE_FIELD_FROM_ZELDAS_COURTYARD", "Hyrule Field From Zeldas Courtyard", "Hyrule Field From Zeldas Courtyard"),
+    (
+        "CS_DEST_HYRULE_FIELD_FROM_ZELDAS_COURTYARD",
+        "Hyrule Field From Zeldas Courtyard",
+        "Hyrule Field From Zeldas Courtyard",
+    ),
     ("CS_DEST_TEMPLE_OF_TIME_SONG_OF_TIME", "Temple Of Time Song Of Time", "Temple Of Time Song Of Time"),
     ("CS_DEST_HYRULE_FIELD_FROM_SONG_OF_TIME", "Hyrule Field From Song Of Time", "Hyrule Field From Song Of Time"),
     ("CS_DEST_GERUDO_VALLEY_CREDITS", "Gerudo Valley Credits", "Gerudo Valley Credits"),
     ("CS_DEST_GERUDO_FORTRESS_CREDITS", "Gerudo Fortress Credits", "Gerudo Fortress Credits"),
     ("CS_DEST_KAKARIKO_VILLAGE_CREDITS", "Kakariko Village Credits", "Kakariko Village Credits"),
-    ("CS_DEST_DEATH_MOUNTAIN_TRAIL_CREDITS_PART_1", "Death Mountain Trail Credits Part 1", "Death Mountain Trail Credits Part 1"),
+    (
+        "CS_DEST_DEATH_MOUNTAIN_TRAIL_CREDITS_PART_1",
+        "Death Mountain Trail Credits Part 1",
+        "Death Mountain Trail Credits Part 1",
+    ),
     ("CS_DEST_GORON_CITY_CREDITS", "Goron City Credits", "Goron City Credits"),
     ("CS_DEST_LAKE_HYLIA_CREDITS", "Lake Hylia Credits", "Lake Hylia Credits"),
     ("CS_DEST_ZORAS_FOUNTAIN_CREDITS", "Zoras Fountain Credits", "Zoras Fountain Credits"),
@@ -181,12 +277,28 @@ ootEnumCSDestinationType = [
     ("CS_DEST_KOKIRI_FOREST_CREDITS_PART_1", "Kokiri Forest Credits Part 1", "Kokiri Forest Credits Part 1"),
     ("CS_DEST_KOKIRI_FOREST_CREDITS_PART_2", "Kokiri Forest Credits Part 2", "Kokiri Forest Credits Part 2"),
     ("CS_DEST_HYRULE_FIELD_CREDITS", "Hyrule Field Credits", "Hyrule Field Credits"),
-    ("CS_DEST_LON_LON_RANCH_CREDITS_PART_1_ALT", "Lon Lon Ranch Credits Part 1 Alt", "Lon Lon Ranch Credits Part 1 Alt"),
+    (
+        "CS_DEST_LON_LON_RANCH_CREDITS_PART_1_ALT",
+        "Lon Lon Ranch Credits Part 1 Alt",
+        "Lon Lon Ranch Credits Part 1 Alt",
+    ),
     ("CS_DEST_KAKARIKO_VILLAGE_FROM_TRAIL_OWL", "Kakariko Village From Trail Owl", "Kakariko Village From Trail Owl"),
-    ("CS_DEST_HYRULE_FIELD_FROM_LAKE_HYLIA_OWL", "Hyrule Field From Lake Hylia Owl", "Hyrule Field From Lake Hylia Owl"),
+    (
+        "CS_DEST_HYRULE_FIELD_FROM_LAKE_HYLIA_OWL",
+        "Hyrule Field From Lake Hylia Owl",
+        "Hyrule Field From Lake Hylia Owl",
+    ),
     ("CS_DEST_CUTSCENE_MAP_DEKU_SPROUT_PART_2", "Cutscene Map Deku Sprout Part 2", "Cutscene Map Deku Sprout Part 2"),
-    ("CS_DEST_KOKIRI_FOREST_DEKU_SPROUT_PART_3", "Kokiri Forest Deku Sprout Part 3", "Kokiri Forest Deku Sprout Part 3"),
-    ("CS_DEST_DEATH_MOUNTAIN_TRAIL_CREDITS_PART_2", "Death Mountain Trail Credits Part 2", "Death Mountain Trail Credits Part 2"),
+    (
+        "CS_DEST_KOKIRI_FOREST_DEKU_SPROUT_PART_3",
+        "Kokiri Forest Deku Sprout Part 3",
+        "Kokiri Forest Deku Sprout Part 3",
+    ),
+    (
+        "CS_DEST_DEATH_MOUNTAIN_TRAIL_CREDITS_PART_2",
+        "Death Mountain Trail Credits Part 2",
+        "Death Mountain Trail Credits Part 2",
+    ),
     ("CS_DEST_TEMPLE_OF_TIME_CREDITS", "Temple Of Time Credits", "Temple Of Time Credits"),
     ("CS_DEST_ZELDAS_COURTYARD_CREDITS", "Zeldas Courtyard Credits", "Zeldas Courtyard Credits"),
     ("CS_DEST_LON_LON_RANCH_CREDITS_PART_1", "Lon Lon Ranch Credits Part 1", "Lon Lon Ranch Credits Part 1"),
@@ -212,27 +324,71 @@ ootEnumCSDestinationType = [
     ("CS_DEST_LON_LON_RANCH_15", "Lon Lon Ranch 15", "Lon Lon Ranch 15"),
     ("CS_DEST_LON_LON_RANCH_FROM_EPONAS_SONG", "Lon Lon Ranch From Eponas Song", "Lon Lon Ranch From Eponas Song"),
     ("CS_DEST_STONES_RESTORED_CONDITIONAL", "Stones Restored Conditional", "Stones Restored Conditional"),
-    ("CS_DEST_DESERT_COLOSSUS_FROM_CHAMBER_OF_SAGES", "Desert Colossus From Chamber Of Sages", "Desert Colossus From Chamber Of Sages"),
+    (
+        "CS_DEST_DESERT_COLOSSUS_FROM_CHAMBER_OF_SAGES",
+        "Desert Colossus From Chamber Of Sages",
+        "Desert Colossus From Chamber Of Sages",
+    ),
     ("CS_DEST_GRAVEYARD_FROM_CHAMBER_OF_SAGES", "Graveyard From Chamber Of Sages", "Graveyard From Chamber Of Sages"),
-    ("CS_DEST_DEATH_MOUNTAIN_CRATER_FROM_CHAMBER_OF_SAGES", "Death Mountain Crater From Chamber Of Sages", "Death Mountain Crater From Chamber Of Sages"),
+    (
+        "CS_DEST_DEATH_MOUNTAIN_CRATER_FROM_CHAMBER_OF_SAGES",
+        "Death Mountain Crater From Chamber Of Sages",
+        "Death Mountain Crater From Chamber Of Sages",
+    ),
     ("CS_DEST_SACRED_FOREST_MEADOW_WARP_PAD", "Sacred Forest Meadow Warp Pad", "Sacred Forest Meadow Warp Pad"),
-    ("CS_DEST_KOKIRI_FOREST_FROM_CHAMBER_OF_SAGES", "Kokiri Forest From Chamber Of Sages", "Kokiri Forest From Chamber Of Sages"),
-    ("CS_DEST_DESERT_COLOSSUS_FROM_NABOORU_CAPTURE", "Desert Colossus From Nabooru Capture", "Desert Colossus From Nabooru Capture"),
-    ("CS_DEST_TEMPLE_OF_TIME_FRONT_OF_PEDESTAL", "Temple Of Time Front Of Pedestal", "Temple Of Time Front Of Pedestal"),
+    (
+        "CS_DEST_KOKIRI_FOREST_FROM_CHAMBER_OF_SAGES",
+        "Kokiri Forest From Chamber Of Sages",
+        "Kokiri Forest From Chamber Of Sages",
+    ),
+    (
+        "CS_DEST_DESERT_COLOSSUS_FROM_NABOORU_CAPTURE",
+        "Desert Colossus From Nabooru Capture",
+        "Desert Colossus From Nabooru Capture",
+    ),
+    (
+        "CS_DEST_TEMPLE_OF_TIME_FRONT_OF_PEDESTAL",
+        "Temple Of Time Front Of Pedestal",
+        "Temple Of Time Front Of Pedestal",
+    ),
     ("CS_DEST_HYRULE_FIELD_TITLE_SCREEN", "Hyrule Field Title Screen", "Hyrule Field Title Screen"),
     ("CS_DEST_TITLE_SCREEN_DEMO", "Title Screen Demo", "Title Screen Demo"),
     ("CS_DEST_GRAVEYARD_SUNS_SONG_PART_2", "Graveyard Suns Song Part 2", "Graveyard Suns Song Part 2"),
-    ("CS_DEST_ROYAL_FAMILYS_TOMB_SUNS_SONG_PART_3", "Royal Familys Tomb Suns Song Part 3", "Royal Familys Tomb Suns Song Part 3"),
-    ("CS_DEST_GANONS_CASTLE_DISPEL_FOREST_BEAM", "Ganons Castle Dispel Forest Beam", "Ganons Castle Dispel Forest Beam"),
+    (
+        "CS_DEST_ROYAL_FAMILYS_TOMB_SUNS_SONG_PART_3",
+        "Royal Familys Tomb Suns Song Part 3",
+        "Royal Familys Tomb Suns Song Part 3",
+    ),
+    (
+        "CS_DEST_GANONS_CASTLE_DISPEL_FOREST_BEAM",
+        "Ganons Castle Dispel Forest Beam",
+        "Ganons Castle Dispel Forest Beam",
+    ),
     ("CS_DEST_GANONS_CASTLE_DISPEL_WATER_BEAM", "Ganons Castle Dispel Water Beam", "Ganons Castle Dispel Water Beam"),
-    ("CS_DEST_GANONS_CASTLE_DISPEL_SHADOW_BEAM", "Ganons Castle Dispel Shadow Beam", "Ganons Castle Dispel Shadow Beam"),
+    (
+        "CS_DEST_GANONS_CASTLE_DISPEL_SHADOW_BEAM",
+        "Ganons Castle Dispel Shadow Beam",
+        "Ganons Castle Dispel Shadow Beam",
+    ),
     ("CS_DEST_GANONS_CASTLE_DISPEL_FIRE_BEAM", "Ganons Castle Dispel Fire Beam", "Ganons Castle Dispel Fire Beam"),
     ("CS_DEST_GANONS_CASTLE_DISPEL_LIGHT_BEAM", "Ganons Castle Dispel Light Beam", "Ganons Castle Dispel Light Beam"),
-    ("CS_DEST_GANONS_CASTLE_DISPEL_SPIRIT_BEAM", "Ganons Castle Dispel Spirit Beam", "Ganons Castle Dispel Spirit Beam"),
-    ("CS_DEST_GANONS_CASTLE_DISPEL_BARRIER_CONDITONAL", "Ganons Castle Dispel Barrier Conditonal", "Ganons Castle Dispel Barrier Conditonal"),
+    (
+        "CS_DEST_GANONS_CASTLE_DISPEL_SPIRIT_BEAM",
+        "Ganons Castle Dispel Spirit Beam",
+        "Ganons Castle Dispel Spirit Beam",
+    ),
+    (
+        "CS_DEST_GANONS_CASTLE_DISPEL_BARRIER_CONDITONAL",
+        "Ganons Castle Dispel Barrier Conditonal",
+        "Ganons Castle Dispel Barrier Conditonal",
+    ),
     ("CS_DEST_HYRULE_FIELD_FROM_FAIRY_OCARINA", "Hyrule Field From Fairy Ocarina", "Hyrule Field From Fairy Ocarina"),
     ("CS_DEST_HYRULE_FIELD_FROM_IMPA_ESCORT", "Hyrule Field From Impa Escort", "Hyrule Field From Impa Escort"),
-    ("CS_DEST_FROM_RAURU_FINAL_MESSAGE_CONDITIONAL", "From Rauru Final Message Conditional", "From Rauru Final Message Conditional"),
+    (
+        "CS_DEST_FROM_RAURU_FINAL_MESSAGE_CONDITIONAL",
+        "From Rauru Final Message Conditional",
+        "From Rauru Final Message Conditional",
+    ),
     ("CS_DEST_HYRULE_FIELD_CREDITS_SKY", "Hyrule Field Credits Sky", "Hyrule Field Credits Sky"),
     ("CS_DEST_GANON_BATTLE_TOWER_COLLAPSE", "Ganon Battle Tower Collapse", "Ganon Battle Tower Collapse"),
     ("CS_DEST_ZELDAS_COURTYARD_RECEIVE_LETTER", "Zeldas Courtyard Receive Letter", "Zeldas Courtyard Receive Letter"),
@@ -288,7 +444,6 @@ ootEnumSeqPlayer = [
 ootCSSubPropToName = {
     "startFrame": "Start Frame",
     "endFrame": "End Frame",
-
     # TextBox
     "textID": "Text ID",
     "ocarinaAction": "Ocarina Action",
@@ -296,21 +451,16 @@ ootCSSubPropToName = {
     "topOptionTextID": "Text ID for Top Option",
     "bottomOptionTextID": "Text ID for Bottom Option",
     "ocarinaMessageId": "Ocarina Message ID",
-
     # Lighting
     "lightSettingsIndex": "Light Settings Index",
-
     # Time
     "hour": "Hour",
     "minute": "Minute",
-
     # Seq
     "csSeqID": "Seq ID",
     "csSeqPlayer": "Seq Player Type",
-
     # Misc
     "csMiscType": "Misc Type",
-
     # Rumble
     "rumbleSourceStrength": "Source Strength",
     "rumbleDuration": "Duration",

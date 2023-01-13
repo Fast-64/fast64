@@ -135,10 +135,8 @@ def upgradeCutsceneSubProps(csListSubProp):
         "messageId": "textID",
         "topOptionBranch": "topOptionTextID",
         "bottomOptionBranch": "bottomOptionTextID",
-
         # Lighting
         "index": "lightSettingsIndex",
-
         # Rumble
         "unk2": "rumbleSourceStrength",
         "unk3": "rumbleDuration",
@@ -149,10 +147,8 @@ def upgradeCutsceneSubProps(csListSubProp):
         # TextBox
         ("ocarinaSongAction", "ocarinaAction", ootEnumOcarinaAction),
         ("type", "csTextType", ootEnumTextType),
-
         # Seq
         ("value", "csSeqID", ootEnumMusicSeq),
-
         # Misc
         ("operation", "csMiscType", ootEnumCSMiscType),
     ]

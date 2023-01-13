@@ -235,7 +235,7 @@ def readSceneData(
     scene: OOTScene,
     scene_properties: OOTSceneProperties,
     sceneHeader: OOTSceneHeaderProperty,
-    alternateSceneHeaders: OOTAlternateSceneHeaderProperty
+    alternateSceneHeaders: OOTAlternateSceneHeaderProperty,
 ):
     scene.write_dummy_room_list = scene_properties.write_dummy_room_list
     scene.sceneTableEntry.drawConfig = getCustomProperty(sceneHeader.sceneTableEntry, "drawConfig")
@@ -282,7 +282,7 @@ def readSceneData(
 
         elif scene.csWriteType == "Custom":
             scene.csWriteCustom = getCustomProperty(sceneHeader, "csWriteCustom")
-            
+
         elif scene.csWriteType == "Object":
             if sceneHeader.csWriteObject is None:
                 raise PluginError("No object selected for cutscene reference")

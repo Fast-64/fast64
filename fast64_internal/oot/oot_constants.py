@@ -193,7 +193,11 @@ ootEnumMusicSeq = [
     ("NA_BGM_GENERAL_SFX", "General Sound Effects", "General Sound Effects"),
     ("NA_BGM_NATURE_AMBIENCE", "Nature Ambiance", "Nature Ambiance"),
     ("NA_BGM_FIELD_LOGIC", "Hyrule Field", "Hyrule Field"),
-    ("NA_BGM_FIELD_INIT", "Hyrule Field (Initial Segment From Loading Area)", "Hyrule Field (Initial Segment From Loading Area)"),
+    (
+        "NA_BGM_FIELD_INIT",
+        "Hyrule Field (Initial Segment From Loading Area)",
+        "Hyrule Field (Initial Segment From Loading Area)",
+    ),
     ("NA_BGM_FIELD_DEFAULT_1", "Hyrule Field (Moving Segment 1)", "Hyrule Field (Moving Segment 1)"),
     ("NA_BGM_FIELD_DEFAULT_2", "Hyrule Field (Moving Segment 2)", "Hyrule Field (Moving Segment 2)"),
     ("NA_BGM_FIELD_DEFAULT_3", "Hyrule Field (Moving Segment 3)", "Hyrule Field (Moving Segment 3)"),

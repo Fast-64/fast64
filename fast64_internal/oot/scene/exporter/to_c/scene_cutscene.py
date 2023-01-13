@@ -14,21 +14,26 @@ def ootCutsceneDataToC(csParent: OOTCutscene | OOTScene, csName: str):
 
     # .c
     csData.source = (
-        arrayName + " = {\n"
+        arrayName
+        + " = {\n"
         + (indent + f"CS_BEGIN_CUTSCENE({nentries}, {csParent.csEndFrame}),\n")
         + (
             (indent * 2) + f"CS_DESTINATION({csParent.csTermIdx}, {csParent.csTermStart}, {csParent.csTermEnd}),\n"
-            if csParent.csWriteTerminator else ""
+            if csParent.csWriteTerminator
+            else ""
         )
     )
 
     for list in csParent.csLists:
         # CS "XXXX List" Command
         csData.source += (
-            (indent * 2) + ootEnumCSListTypeListC[list.listType] + "("
+            (indent * 2)
+            + ootEnumCSListTypeListC[list.listType]
+            + "("
             + (
                 f"{list.transitionType}, {list.transitionStartFrame}, {list.transitionEndFrame}"
-                if list.listType == "Transition" else str(len(list.entries))
+                if list.listType == "Transition"
+                else str(len(list.entries))
             )
             + "),\n"
         )
@@ -39,16 +44,15 @@ def ootCutsceneDataToC(csParent: OOTCutscene | OOTScene, csName: str):
                 + (
                     ootEnumCSTextboxTypeEntryC[e.textboxType]
                     # @TODO make a separate variable for ``ootEnumCSListTypeEntryC``
-                    if list.listType == "TextList" else ootEnumCSListTypeEntryC[list.listType.replace("List", "")]
+                    if list.listType == "TextList"
+                    else ootEnumCSListTypeEntryC[list.listType.replace("List", "")]
                 )
                 + "("
             )
 
             if list.listType == "TextList":
                 if e.textboxType == "Text":
-                    csData.source += (
-                        f"{e.textID}, {e.startFrame}, {e.endFrame}, {e.textType}, {e.topOptionTextID}, {e.bottomOptionTextID}"
-                    )
+                    csData.source += f"{e.textID}, {e.startFrame}, {e.endFrame}, {e.textType}, {e.topOptionTextID}, {e.bottomOptionTextID}"
 
                 elif e.textboxType == "None":
                     csData.source += f"{e.startFrame}, {e.endFrame}"
@@ -67,7 +71,9 @@ def ootCutsceneDataToC(csParent: OOTCutscene | OOTScene, csName: str):
 
             elif list.listType == "RumbleList":
                 # same as above
-                csData.source += f"0, {e.startFrame}, 0, {e.rumbleSourceStrength}, {e.rumbleDuration}, {e.rumbleDecreaseRate}, 0, 0"
+                csData.source += (
+                    f"0, {e.startFrame}, 0, {e.rumbleSourceStrength}, {e.rumbleDuration}, {e.rumbleDecreaseRate}, 0, 0"
+                )
 
             elif list.listType in ["StartSeqList", "StopSeqList", "FadeOutSeqList"]:
                 endFrame = e.endFrame if list.listType == "FadeOutSeqList" else "0"

@@ -98,7 +98,9 @@ class OOTCSTextProperty(OOTCutsceneCommon, PropertyGroup):
 
     # subprops
     textID: StringProperty(name="", default="0x0000")
-    ocarinaAction: EnumProperty(name="Ocarina Action", items=ootEnumOcarinaAction, default="OCARINA_ACTION_TEACH_MINUET")
+    ocarinaAction: EnumProperty(
+        name="Ocarina Action", items=ootEnumOcarinaAction, default="OCARINA_ACTION_TEACH_MINUET"
+    )
     ocarinaActionCustom: StringProperty(default="OCARINA_ACTION_CUSTOM")
     topOptionTextID: StringProperty(name="", default="0x0000")
     bottomOptionTextID: StringProperty(name="", default="0x0000")
@@ -244,7 +246,9 @@ class OOTCSListProperty(PropertyGroup):
                 addOp.listIndex = listIndex
                 addOp.objName = objName
         else:
-            addOp = box.operator(OOTCollectionAdd.bl_idname, text="Add item to " + getEnumName(ootEnumCSListType, self.listType))
+            addOp = box.operator(
+                OOTCollectionAdd.bl_idname, text="Add item to " + getEnumName(ootEnumCSListType, self.listType)
+            )
             addOp.option = len(dat)
             addOp.collectionType = collectionType + "." + attrName
             addOp.subIndex = listIndex
@@ -263,7 +267,9 @@ class OOTCSListProperty(PropertyGroup):
 class OOTCutsceneProperty(PropertyGroup):
     csEndFrame: IntProperty(name="End Frame", min=0, default=100)
     csWriteTerminator: BoolProperty(name="Cutscene Destination (Scene Change)")
-    csDestination: EnumProperty(name="Destination", items=ootEnumCSDestinationType, default="CS_DEST_CUTSCENE_MAP_GANON_HORSE")
+    csDestination: EnumProperty(
+        name="Destination", items=ootEnumCSDestinationType, default="CS_DEST_CUTSCENE_MAP_GANON_HORSE"
+    )
     csDestinationCustom: StringProperty(default="CS_DEST_CUSTOM")
     csTermIdx: IntProperty(name="Index", min=0)
     csTermStart: IntProperty(name="Start Frame", min=0, default=99)
@@ -283,7 +289,6 @@ class OOTCutsceneProperty(PropertyGroup):
             for listName in csListsNames:
                 for csListSubProp in getattr(csListProp, listName):
                     upgradeCutsceneSubProps(csListSubProp)
-
 
     def draw_props(self, layout: UILayout, obj: Object):
         layout.prop(self, "csEndFrame")
