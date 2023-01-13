@@ -57,20 +57,20 @@ ootEnumCollisionTerrain = [
 
 ootEnumCollisionSound = [
     ("Custom", "Custom", "Custom"),
-    ("0x00", "Earth", "Earth"),
+    ("0x00", "Dirt", "Dirt (aka Earth)"),
     ("0x01", "Sand", "Sand"),
     ("0x02", "Stone", "Stone"),
-    ("0x03", "Wet Stone", "Wet Stone"),
+    ("0x03", "Jabu", "Jabu-Jabu flesh (aka Wet Stone)"),
     ("0x04", "Shallow Water", "Shallow Water"),
-    ("0x05", "Water", "Water"),
-    ("0x06", "Grass", "Grass"),
-    ("0x07", "Lava/Goo", "Lava/Goo"),
-    ("0x08", "Earth", "Earth"),
-    ("0x09", "Wooden Plank", "Wooden Plank"),
-    ("0x0A", "Packed Earth/Wood", "Packed Earth/Wood"),
-    ("0x0B", "Earth", "Earth"),
-    ("0x0C", "Ceramic/Ice", "Ceramic/Ice"),
-    ("0x0D", "Loose Earth", "Loose Earth"),
+    ("0x05", "Deep Water", "Deep Water"),
+    ("0x06", "Tall Grass", "Tall Grass"),
+    ("0x07", "Lava", "Lava (aka Goo)"),
+    ("0x08", "Grass", "Grass (aka Earth 2)"),
+    ("0x09", "Bridge", "Bridge (aka Wooden Plank)"),
+    ("0x0A", "Wood", "Wood (aka Packed Earth)"),
+    ("0x0B", "Soft Dirt", "Soft Dirt (aka Earth 3)"),
+    ("0x0C", "Ice", "Ice (aka Ceramic)"),
+    ("0x0D", "Carpet", "Carpet (aka Loose Earth)"),
 ]
 
 ootEnumConveyorSpeed = [
