@@ -4,6 +4,13 @@ from ....oot_constants import ootEnumSceneID, ootSceneNameToID
 from ....oot_utility import getCustomProperty, ExportInfo
 
 
+def getSceneSettingsOption(scene):
+    if scene is not None:
+        return bpy.context.scene.ootSceneExportSettings.option
+    else:
+        return bpy.context.scene.ootSceneRemoveSettings.option
+
+
 def getSceneTable(exportPath):
     """Read and remove unwanted stuff from ``scene_table.h``"""
     dataList = []
@@ -67,7 +74,7 @@ def getOriginalIndex(sceneName):
     raise PluginError("ERROR: Scene Index not found!")
 
 
-def getInsertionIndex(sceneNames, sceneName, index, mode):
+def getInsertionIndex(scene, sceneNames, sceneName, index, mode):
     """Returns the index to know where to insert data"""
     # special case where the scene is "Inside the Great Deku Tree"
     # since it's the first scene simply return 0
@@ -90,7 +97,7 @@ def getInsertionIndex(sceneNames, sceneName, index, mode):
             elif mode == "EXPORT":
                 return (
                     i
-                    if not sceneName in sceneNames and sceneName != bpy.context.scene.ootSceneExportSettings.option
+                    if not sceneName in sceneNames and sceneName != getSceneSettingsOption(scene)
                     else i + 1
                 )
             # same but don't check for chosen scene
@@ -100,14 +107,14 @@ def getInsertionIndex(sceneNames, sceneName, index, mode):
                 raise NotImplementedError
 
     # if the index hasn't been found yet, do it again but decrement the index
-    return getInsertionIndex(sceneNames, sceneName, currentIndex - 1, mode)
+    return getInsertionIndex(scene, sceneNames, sceneName, currentIndex - 1, mode)
 
 
 def getSceneParams(scene, exportInfo, sceneNames):
     """Returns the parameters that needs to be set in ``DEFINE_SCENE()``"""
     # in order to replace the values of ``unk10``, ``unk12`` and basically every parameters from ``DEFINE_SCENE``,
     # you just have to make it return something other than None, not necessarily a string
-    sceneIndex = getSceneIndex(sceneNames, bpy.context.scene.ootSceneExportSettings.option)
+    sceneIndex = getSceneIndex(sceneNames, getSceneSettingsOption(scene))
     sceneName = sceneTitle = sceneID = sceneUnk10 = sceneUnk12 = None
     name = scene.name if scene is not None else exportInfo.name
 
@@ -130,8 +137,8 @@ def sceneTableToC(data, header, sceneNames, scene):
     mode = "EXPORT" if scene is not None else "REMOVE"
 
     # get the index of the last non-debug scene
-    lastNonDebugSceneIdx = getInsertionIndex(sceneNames, "SCENE_OUTSIDE_GANONS_CASTLE", None, mode)
-    lastSceneIdx = getInsertionIndex(sceneNames, "SCENE_TESTROOM", None, mode)
+    lastNonDebugSceneIdx = getInsertionIndex(scene, sceneNames, "SCENE_OUTSIDE_GANONS_CASTLE", None, mode)
+    lastSceneIdx = getInsertionIndex(scene, sceneNames, "SCENE_TESTROOM", None, mode)
 
     # add the actual lines with the same formatting
     for i in range(len(data)):
@@ -203,7 +210,7 @@ def modifySceneTable(scene, exportInfo: ExportInfo):
     # that means the selected scene has been removed from the table
     # however if the scene variable is not None
     # set it to "INSERT" because we need to insert the scene in the right place
-    if sceneIndex is None and bpy.context.scene.ootSceneExportSettings.option == "Custom":
+    if sceneIndex is None and getSceneSettingsOption(scene) == "Custom":
         mode = "CUSTOM"
     elif sceneIndex is None and scene is not None:
         mode = "INSERT"
@@ -238,7 +245,7 @@ def modifySceneTable(scene, exportInfo: ExportInfo):
             # if this the user chose a vanilla scene, removed it and want to export
             # insert the data in the normal location
             # shifted index = vanilla index - (vanilla last scene index - new last scene index)
-            index = getInsertionIndex(sceneNames, sceneID, None, mode)
+            index = getInsertionIndex(scene, sceneNames, sceneID, None, mode)
             sceneNames.insert(index, sceneParams[2])
             fileData.insert(index, sceneParams)
 
