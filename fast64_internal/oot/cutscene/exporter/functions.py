@@ -66,7 +66,7 @@ def readCutsceneData(csParentOut, csParentIn):
                 entryOut.startFrame = entryIn.startFrame
                 entryOut.endFrame = entryIn.endFrame
                 listOut.entries.append(entryOut)
-        elif listOut.listType == "0x09":
+        elif listOut.listType == "Rumble":
             for entryIn in listIn.nine:
                 entryOut = OOTCS0x09()
                 entryOut.startFrame = entryIn.startFrame

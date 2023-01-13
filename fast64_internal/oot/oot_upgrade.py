@@ -6,6 +6,7 @@ from .cutscene.constants import (
     ootEnumTextType,
     ootEnumCSMiscType,
     ootEnumOcarinaAction,
+    ootEnumCSTransitionType,
 )
 
 
@@ -44,57 +45,28 @@ def upgradeRoomHeaders(roomObj: Object, objData: OoT_ObjectData):
         upgradeObjectList(altHeaders.cutsceneHeaders[i].objectList, objData)
 
 
-def upgradeCutsceneProperties(csListProp):
-    # ``csListProp`` types: OOTCSTextboxProperty | OOTCSBGMProperty | OOTCSMiscProperty | OOTCSRumbleProperty
-    # based on ``upgradeObjectList``
-
-    oldNamesToNewNames = {
-        # TextBox
-        "messageId": "textID",
-        "topOptionBranch": "topOptionTextID",
-        "bottomOptionBranch": "bottomOptionTextID",
-
-        # Lighting
-        "index": "lightSettingsIndex",
-
-        # Rumble
-        "unk2": "rumbleSourceStrength",
-        "unk3": "rumbleDuration",
-        "unk4": "rumbleDecreaseRate",
-    }
-
-    differentPropsData = [
-        # TextBox
-        ("ocarinaSongAction", "ocarinaAction", ootEnumOcarinaAction),
-        ("type", "csTextType", ootEnumTextType),
-
-        # BGM
-        ("value", "csSeqID", ootEnumMusicSeq),
-
-        # Misc
-        ("operation", "csMiscType", ootEnumCSMiscType),
-    ]
-
-
+def transferOldDataToNew(data, oldDataToNewData: dict):
     # conversion to the same prop type
     # simply transfer the old data to the new one
-    # special case for rumble props where it's a string to int conversion
-    for oldName, newName in oldNamesToNewNames.items():
-        if oldName in csListProp:
-            value = csListProp[oldName]
+    # special case for rumble subprops where it's a string to int conversion
+    for oldName, newName in oldDataToNewData.items():
+        if oldName in data:
+            value = data[oldName]
 
             if newName in ["rumbleSourceStrength", "rumbleDuration", "rumbleDecreaseRate"]:
-                value = int(getEvalParams(csListProp[oldName]), base=16)
+                value = int(getEvalParams(data[oldName]), base=16)
 
-            csListProp[newName] = value
+            data[newName] = value
 
-            del csListProp[oldName]
+            del data[oldName]
 
+
+def convertOldDataToEnumData(data, oldDataToEnumData: list[tuple[str, str, list[tuple[str, str, str]]]]):
     # conversion to another prop type
-    for (oldName, newName, enumList) in differentPropsData:
-        if oldName in csListProp:
+    for (oldName, newName, enumList) in oldDataToEnumData:
+        if oldName in data:
             # get the old data
-            oldData = csListProp[oldName]
+            oldData = data[oldName]
 
             # if anything goes wrong there set the value to custom to avoid any data loss
             try:
@@ -113,6 +85,13 @@ def upgradeCutsceneProperties(csListProp):
                             value -= 1
 
                         value -= 2
+
+                    if newName == "csSeqID":
+                        # the old fade out value is wrong, it assumes it's a seq id
+                        # but it's not, it's a seq player id,
+                        # hence why we raise an error so it defaults to "custom" to avoid any data loss
+                        # @TODO: find a way to check properly which seq command it is
+                        raise NotImplementedError
                 elif isinstance(oldData, int):
                     # account for custom elements in the enums by adding 1
                     value = oldData + 1
@@ -131,12 +110,72 @@ def upgradeCutsceneProperties(csListProp):
 
                 # if the value is in the list find the identifier
                 if value < len(enumList):
-                    setattr(csListProp, newName, enumList[value][0])
+                    setattr(data, newName, enumList[value][0])
                 else:
                     # else raise an error to default to custom
                     raise IndexError
             except:
-                setattr(csListProp, newName, "Custom")
-                setattr(csListProp, f"{newName}Custom", str(oldData))
+                setattr(data, newName, "Custom")
+                setattr(data, f"{newName}Custom", str(oldData))
 
-            del csListProp[oldName]
+                # @TODO: find a way to check properly which seq command it is
+                if newName == "csSeqID":
+                    setattr(data, "csSeqPlayer", "Custom")
+                    setattr(data, "csSeqPlayerCustom", str(oldData))
+
+            del data[oldName]
+
+
+def upgradeCutsceneSubProps(csListSubProp):
+    # ``csListSubProp`` types: OOTCSTextProperty | OOTCSSeqProperty | OOTCSMiscProperty | OOTCSRumbleProperty
+    # based on ``upgradeObjectList``
+
+    subPropsOldToNew = {
+        # TextBox
+        "messageId": "textID",
+        "topOptionBranch": "topOptionTextID",
+        "bottomOptionBranch": "bottomOptionTextID",
+
+        # Lighting
+        "index": "lightSettingsIndex",
+
+        # Rumble
+        "unk2": "rumbleSourceStrength",
+        "unk3": "rumbleDuration",
+        "unk4": "rumbleDecreaseRate",
+    }
+
+    subPropsToEnum = [
+        # TextBox
+        ("ocarinaSongAction", "ocarinaAction", ootEnumOcarinaAction),
+        ("type", "csTextType", ootEnumTextType),
+
+        # Seq
+        ("value", "csSeqID", ootEnumMusicSeq),
+
+        # Misc
+        ("operation", "csMiscType", ootEnumCSMiscType),
+    ]
+
+    transferOldDataToNew(csListSubProp, subPropsOldToNew)
+    convertOldDataToEnumData(csListSubProp, subPropsToEnum)
+
+
+def upgradeCSListProps(csListProp):
+    # ``csListProp`` type: ``OOTCSListProperty``
+
+    csListPropOldToNew = {
+        "textbox": "textList",
+        "lighting": "lightSettingsList",
+        "time": "timeList",
+        "bgm": "seqList",
+        "misc": "miscList",
+        "nine": "rumbleList",
+        "fxStartFrame": "transitionStartFrame",
+        "fxEndFrame": "transitionEndFrame",
+    }
+
+    transferOldDataToNew(csListProp, csListPropOldToNew)
+
+    # both are enums but the item list is different (the old one doesn't have a "custom" entry)
+    convertOldDataToEnumData(csListProp, [("fxType", "transitionType", ootEnumCSTransitionType)])

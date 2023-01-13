@@ -28,7 +28,7 @@ def ootCutsceneDataToC(csParent: OOTCutscene | OOTScene, csName: str):
             (indent * 2) + ootEnumCSListTypeListC[list.listType] + "("
             + (
                 f"{list.fxType}, {list.fxStartFrame}, {list.fxEndFrame}"
-                if list.listType == "FX" else str(len(list.entries))
+                if list.listType == "Transition" else str(len(list.entries))
             )
             + "),\n"
         )
@@ -38,12 +38,13 @@ def ootCutsceneDataToC(csParent: OOTCutscene | OOTScene, csName: str):
                 indent * 3
                 + (
                     ootEnumCSTextboxTypeEntryC[e.textboxType]
-                    if list.listType == "Textbox" else ootEnumCSListTypeEntryC[list.listType]
+                    # @TODO make a separate variable for ``ootEnumCSListTypeEntryC``
+                    if list.listType == "TextList" else ootEnumCSListTypeEntryC[list.listType.replace("List", "")]
                 )
                 + "("
             )
 
-            if list.listType == "Textbox":
+            if list.listType == "TextList":
                 if e.textboxType == "Text":
                     csData.source += (
                         f"{e.textID}, {e.startFrame}, {e.endFrame}, {e.textboxType}, {e.topOptionTextID}, {e.bottomOptionTextID}"
@@ -52,27 +53,27 @@ def ootCutsceneDataToC(csParent: OOTCutscene | OOTScene, csName: str):
                 elif e.textboxType == "None":
                     csData.source += f"{e.startFrame}, {e.endFrame}"
 
-                elif e.textboxType == "LearnSong":
+                elif e.textboxType == "OcarinaAction":
                     csData.source += f"{e.ocarinaAction}, {e.startFrame}, {e.endFrame}, {e.ocarinaMessageId}"
 
-            elif list.listType == "Lighting":
+            elif list.listType == "LightSettingsList":
                 # the endFrame variable is not used in the implementation of the commend
                 # so the value doesn't matter
                 csData.source += f"{e.lightSettingsIndex}, {e.startFrame}" + (", 0" * 9)
 
-            elif list.listType == "Time":
+            elif list.listType == "TimeList":
                 # same as above
                 csData.source += f"0, {e.startFrame}, 0, {e.hour}, {e.minute}"
 
-            elif list.listType == "0x09": # rumble command
+            elif list.listType == "RumbleList":
                 # same as above
                 csData.source += f"0, {e.startFrame}, 0, {e.rumbleSourceStrength}, {e.rumbleDuration}, {e.rumbleDecreaseRate}, 0, 0"
 
-            elif list.listType in ["PlayBGM", "StopBGM", "FadeBGM"]:
-                endFrame = e.endFrame if list.listType == "FadeBGM" else "0"
+            elif list.listType in ["StartSeqList", "StopSeqList", "FadeOutSeqList"]:
+                endFrame = e.endFrame if list.listType == "FadeOutSeqList" else "0"
                 csData.source += f"{e.csSeqID}, {e.startFrame}, {endFrame}" + (", 0" * 8)
 
-            elif list.listType == "Misc":
+            elif list.listType == "MiscList":
                 csData.source += f"{e.csMiscType}, {e.startFrame}, {e.endFrame}" + (", 0" * 11)
 
             else:

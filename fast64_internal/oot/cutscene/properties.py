@@ -4,7 +4,7 @@ from bpy.utils import register_class, unregister_class
 from ...utility import PluginError, prop_split
 from ..oot_utility import OOTCollectionAdd, drawCollectionOps, getEnumName
 from ..oot_constants import ootEnumMusicSeq
-from ..oot_upgrade import upgradeCutsceneProperties
+from ..oot_upgrade import upgradeCutsceneSubProps, upgradeCSListProps
 from .operators import OOTCSTextboxAdd, OOT_SearchCSDestinationEnumOperator, drawCSListAddOp
 from .constants import (
     ootEnumCSTextboxType,
@@ -20,11 +20,7 @@ from .constants import (
 )
 
 
-# Perhaps this should have been called something like OOTCSParentPropertyType,
-# but now it needs to keep the same name to not break existing scenes which use
-# the cutscene system.
-class OOTCSProperty:
-    propName = None
+class OOTCutsceneCommon:
     attrName = None
     subprops = ["startFrame", "endFrame"]
     expandTab: BoolProperty(default=True)
@@ -32,7 +28,7 @@ class OOTCSProperty:
     endFrame: IntProperty(name="", default=1, min=0)
 
     def getName(self):
-        return self.propName
+        pass
 
     def filterProp(self, name, listProp):
         return True
@@ -40,14 +36,23 @@ class OOTCSProperty:
     def filterName(self, name, listProp):
         return name
 
-    def draw(self, layout: UILayout, listProp: "OOTCSListProperty", listIndex: int, cmdIndex: int, objName: str, collectionType: str):
+    def draw_props(
+        self,
+        layout: UILayout,
+        listProp: "OOTCSListProperty",
+        listIndex: int,
+        cmdIndex: int,
+        objName: str,
+        collectionType: str,
+        tabName: str,
+    ):
         # Draws list elements
         box = layout.box().column()
 
         box.prop(
             self,
             "expandTab",
-            text=self.getName() + " " + str(cmdIndex),
+            text=f"{tabName if tabName != 'Text' else self.getName()} No. {cmdIndex}",
             icon="TRIA_DOWN" if self.expandTab else "TRIA_RIGHT",
         )
         if not self.expandTab:
@@ -77,9 +82,8 @@ class OOTCSProperty:
                     prop_split(box, self, f"{name}Custom", f"{displayName} Custom")
 
 
-class OOTCSTextboxProperty(OOTCSProperty, PropertyGroup):
-    propName = "Textbox"
-    attrName = "textbox"
+class OOTCSTextProperty(OOTCutsceneCommon, PropertyGroup):
+    attrName = "textList"
     subprops = [
         "textID",
         "ocarinaAction",
@@ -103,63 +107,58 @@ class OOTCSTextboxProperty(OOTCSProperty, PropertyGroup):
     csTextTypeCustom: StringProperty(default="CS_TEXT_CUSTOM")
 
     def getName(self):
-        return self.textboxType
+        return getEnumName(ootEnumCSTextboxType, self.textboxType)
 
     def filterProp(self, name, listProp):
         if self.textboxType == "Text":
             return name not in ["ocarinaAction", "ocarinaMessageId"]
         elif self.textboxType == "None":
             return name in ["startFrame", "endFrame"]
-        elif self.textboxType == "LearnSong":
+        elif self.textboxType == "OcarinaAction":
             return name in ["ocarinaAction", "startFrame", "endFrame", "ocarinaMessageId"]
         else:
-            raise PluginError("Invalid property name for OOTCSTextboxProperty")
+            raise PluginError("Invalid property name for OOTCSTextProperty")
 
 
-class OOTCSLightingProperty(OOTCSProperty, PropertyGroup):
-    propName = "Lighting"
-    attrName = "lighting"
+class OOTCSLightSettingsProperty(OOTCutsceneCommon, PropertyGroup):
+    attrName = "lightSettingsList"
     subprops = ["lightSettingsIndex", "startFrame"]
     lightSettingsIndex: IntProperty(name="", default=1, min=1)
 
 
-class OOTCSTimeProperty(OOTCSProperty, PropertyGroup):
-    propName = "Time"
-    attrName = "time"
+class OOTCSTimeProperty(OOTCutsceneCommon, PropertyGroup):
+    attrName = "timeList"
     subprops = ["startFrame", "hour", "minute"]
     hour: IntProperty(name="", default=23, min=0, max=23)
     minute: IntProperty(name="", default=59, min=0, max=59)
 
 
-class OOTCSBGMProperty(OOTCSProperty, PropertyGroup):
-    propName = "BGM"
-    attrName = "bgm"
+class OOTCSSeqProperty(OOTCutsceneCommon, PropertyGroup):
+    attrName = "seqList"
     subprops = ["csSeqID", "startFrame", "endFrame"]
     csSeqID: EnumProperty(name="Seq ID", items=ootEnumMusicSeq, default="NA_BGM_GENERAL_SFX")
     csSeqIDCustom: StringProperty(default="NA_BGM_CUSTOM")
     csSeqPlayer: EnumProperty(name="Seq Player", items=ootEnumSeqPlayer, default="CS_FADE_OUT_BGM_MAIN")
-    csSeqPlayerCustom: StringProperty(default="NA_BGM_CUSTOM")
+    csSeqPlayerCustom: StringProperty(default="CS_FADE_OUT_CUSTOM")
 
     def filterProp(self, name, listProp):
-        return name != "endFrame" or listProp.listType == "FadeBGM"
+        return name != "endFrame" or listProp.listType == "FadeOutSeqList"
 
     def filterName(self, name, listProp):
-        if name == "csSeqID" and listProp.listType == "FadeBGM":
+        if name == "csSeqID" and listProp.listType == "FadeOutSeqList":
             return "csSeqPlayer"
         return name
 
 
-class OOTCSMiscProperty(OOTCSProperty, PropertyGroup):
-    propName = "Misc"
-    attrName = "misc"
+class OOTCSMiscProperty(OOTCutsceneCommon, PropertyGroup):
+    attrName = "miscList"
     subprops = ["csMiscType", "startFrame", "endFrame"]
     csMiscType: EnumProperty(name="Type", items=ootEnumCSMiscType, default="CS_MISC_SET_LOCKED_VIEWPOINT")
     csMiscTypeCustom: StringProperty(default="CS_MISC_CUSTOM")
 
 
-class OOTCSRumbleProperty(OOTCSProperty, PropertyGroup):
-    propName = "0x09"
-    attrName = "nine"
+class OOTCSRumbleProperty(OOTCutsceneCommon, PropertyGroup):
+    attrName = "rumbleList"
     subprops = ["startFrame", "rumbleSourceStrength", "rumbleDuration", "rumbleDecreaseRate"]
 
     # those variables are unsigned chars in decomp
@@ -173,26 +172,27 @@ class OOTCSListProperty(PropertyGroup):
     expandTab: BoolProperty(default=True)
 
     listType: EnumProperty(items=ootEnumCSListType)
-    textbox: CollectionProperty(type=OOTCSTextboxProperty)
-    lighting: CollectionProperty(type=OOTCSLightingProperty)
-    time: CollectionProperty(type=OOTCSTimeProperty)
-    bgm: CollectionProperty(type=OOTCSBGMProperty)
-    misc: CollectionProperty(type=OOTCSMiscProperty)
-    nine: CollectionProperty(type=OOTCSRumbleProperty)
+    textList: CollectionProperty(type=OOTCSTextProperty)
+    lightSettingsList: CollectionProperty(type=OOTCSLightSettingsProperty)
+    timeList: CollectionProperty(type=OOTCSTimeProperty)
+    seqList: CollectionProperty(type=OOTCSSeqProperty)
+    miscList: CollectionProperty(type=OOTCSMiscProperty)
+    rumbleList: CollectionProperty(type=OOTCSRumbleProperty)
 
-    fxType: EnumProperty(items=ootEnumCSTransitionType)
-    fxTypeCustom: StringProperty(default="CS_TRANS_CUSTOM")
-    fxStartFrame: IntProperty(name="", default=0, min=0)
-    fxEndFrame: IntProperty(name="", default=1, min=0)
+    transitionType: EnumProperty(items=ootEnumCSTransitionType)
+    transitionTypeCustom: StringProperty(default="CS_TRANS_CUSTOM")
+    transitionStartFrame: IntProperty(name="", default=0, min=0)
+    transitionEndFrame: IntProperty(name="", default=1, min=0)
 
     def draw_props(self, layout: UILayout, listIndex: int, objName: str, collectionType: str):
         box = layout.box().column()
+        enumName = getEnumName(ootEnumCSListType, self.listType)
 
         # Draw current command tab
         box.prop(
             self,
             "expandTab",
-            text=self.listType + " List" if self.listType != "FX" else "Transition",
+            text=enumName,
             icon="TRIA_DOWN" if self.expandTab else "TRIA_RIGHT",
         )
 
@@ -202,32 +202,32 @@ class OOTCSListProperty(PropertyGroup):
         drawCollectionOps(box, listIndex, collectionType, None, objName, False)
 
         # Draw current command content
-        if self.listType == "Textbox":
-            attrName = "textbox"
-        elif self.listType == "FX":
-            prop_split(box, self, "fxType", "Transition Type")
-            if self.fxType == "Custom":
-                prop_split(box, self, "fxTypeCustom", "Transition Type Custom")
+        if self.listType == "TextList":
+            attrName = "textList"
+        elif self.listType == "Transition":
+            prop_split(box, self, "transitionType", "Transition Type")
+            if self.transitionType == "Custom":
+                prop_split(box, self, "transitionTypeCustom", "Transition Type Custom")
 
-            prop_split(box, self, "fxStartFrame", "Start Frame")
-            prop_split(box, self, "fxEndFrame", "End Frame")
+            prop_split(box, self, "transitionStartFrame", "Start Frame")
+            prop_split(box, self, "transitionEndFrame", "End Frame")
             return
-        elif self.listType == "Lighting":
-            attrName = "lighting"
-        elif self.listType == "Time":
-            attrName = "time"
-        elif self.listType in ["PlayBGM", "StopBGM", "FadeBGM"]:
-            attrName = "bgm"
-        elif self.listType == "Misc":
-            attrName = "misc"
-        elif self.listType == "0x09":
-            attrName = "nine"
+        elif self.listType == "LightSettingsList":
+            attrName = "lightSettingsList"
+        elif self.listType == "TimeList":
+            attrName = "timeList"
+        elif self.listType in ["StartSeqList", "StopSeqList", "FadeOutSeqList"]:
+            attrName = "seqList"
+        elif self.listType == "MiscList":
+            attrName = "miscList"
+        elif self.listType == "RumbleList":
+            attrName = "rumbleList"
         else:
             raise PluginError("Internal error: invalid listType " + self.listType)
 
         dat = getattr(self, attrName)
 
-        if self.listType == "Textbox":
+        if self.listType == "TextList":
             subBox = box.box()
             subBox.label(text="TextBox Commands")
             row = subBox.row(align=True)
@@ -239,22 +239,25 @@ class OOTCSListProperty(PropertyGroup):
                     icon=ootEnumCSTextboxTypeIcons[l],
                 )
 
-                addOp.collectionType = collectionType + ".textbox"
+                addOp.collectionType = collectionType + ".textList"
                 addOp.textboxType = ootEnumCSTextboxType[l][0]
                 addOp.listIndex = listIndex
                 addOp.objName = objName
         else:
-            addOp = box.operator(OOTCollectionAdd.bl_idname, text="Add item to " + self.listType + " List")
+            addOp = box.operator(OOTCollectionAdd.bl_idname, text="Add item to " + getEnumName(ootEnumCSListType, self.listType))
             addOp.option = len(dat)
             addOp.collectionType = collectionType + "." + attrName
             addOp.subIndex = listIndex
             addOp.objName = objName
 
         for i, p in enumerate(dat):
-            p.draw(box, self, listIndex, i, objName, collectionType)
+            # ``p`` type:
+            # OOTCSTextProperty | OOTCSLightSettingsProperty | OOTCSTimeProperty |
+            # OOTCSSeqProperty | OOTCSMiscProperty | OOTCSRumbleProperty
+            p.draw_props(box, self, listIndex, i, objName, collectionType, enumName.removesuffix(" List"))
 
         if len(dat) == 0:
-            box.label(text="No items in " + self.listType + " List.")
+            box.label(text="No items in " + getEnumName(ootEnumCSListType, self.listType))
 
 
 class OOTCutsceneProperty(PropertyGroup):
@@ -268,8 +271,19 @@ class OOTCutsceneProperty(PropertyGroup):
     csLists: CollectionProperty(type=OOTCSListProperty, name="Cutscene Lists")
 
     @staticmethod
-    def upgrade_object(csListProp: OOTCSTextboxProperty | OOTCSBGMProperty | OOTCSMiscProperty | OOTCSRumbleProperty):
-        upgradeCutsceneProperties(csListProp)
+    def upgrade_object(obj):
+        print(f"Processing '{obj.name}'...")
+
+        # using the new names since the old ones will be deleted before this is used
+        csListsNames = ["textList", "lightSettingsList", "timeList", "seqList", "miscList", "rumbleList"]
+
+        for csListProp in obj.ootCutsceneProperty.csLists:
+            upgradeCSListProps(csListProp)
+
+            for listName in csListsNames:
+                for csListSubProp in getattr(csListProp, listName):
+                    upgradeCutsceneSubProps(csListSubProp)
+
 
     def draw_props(self, layout: UILayout, obj: Object):
         layout.prop(self, "csEndFrame")
@@ -293,15 +307,16 @@ class OOTCutsceneProperty(PropertyGroup):
 
         drawCSListAddOp(layout, obj.name, "Cutscene")
 
-        for i, p in enumerate(self.csLists):
-            p.draw_props(layout, i, obj.name, "Cutscene")
+        for i, csListProp in enumerate(self.csLists):
+            # ``csListProp`` type: OOTCSListProperty
+            csListProp.draw_props(layout, i, obj.name, "Cutscene")
 
 
 classes = (
-    OOTCSTextboxProperty,
-    OOTCSLightingProperty,
+    OOTCSTextProperty,
+    OOTCSLightSettingsProperty,
     OOTCSTimeProperty,
-    OOTCSBGMProperty,
+    OOTCSSeqProperty,
     OOTCSMiscProperty,
     OOTCSRumbleProperty,
     OOTCSListProperty,

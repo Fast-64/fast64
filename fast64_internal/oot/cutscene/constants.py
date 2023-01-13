@@ -1,49 +1,49 @@
 ootEnumCSTextboxTypeEntryC = {
     "Text": "CS_TEXT",
     "None": "CS_TEXT_NONE",
-    "LearnSong": "CS_TEXT_OCARINA_ACTION",
+    "OcarinaAction": "CS_TEXT_OCARINA_ACTION",
 }
 
 ootEnumCSListTypeListC = {
-    "Textbox": "CS_TEXT_LIST",
-    "FX": "CS_TRANSITION",
-    "Lighting": "CS_LIGHT_SETTING_LIST",
-    "Time": "CS_TIME_LIST",
-    "PlayBGM": "CS_START_SEQ_LIST",
-    "StopBGM": "CS_STOP_SEQ_LIST",
-    "FadeBGM": "CS_FADE_OUT_SEQ_LIST",
-    "Misc": "CS_MISC_LIST",
-    "0x09": "CS_RUMBLE_CONTROLLER_LIST",
+    "TextList": "CS_TEXT_LIST",
+    "Transition": "CS_TRANSITION",
+    "LightSettingsList": "CS_LIGHT_SETTING_LIST",
+    "TimeList": "CS_TIME_LIST",
+    "StartSeqList": "CS_START_SEQ_LIST",
+    "StopSeqList": "CS_STOP_SEQ_LIST",
+    "FadeOutSeqList": "CS_FADE_OUT_SEQ_LIST",
+    "MiscList": "CS_MISC_LIST",
+    "RumbleList": "CS_RUMBLE_CONTROLLER_LIST",
 }
 
 ootEnumCSListTypeEntryC = {
-    "Textbox": None,  # special case
-    "FX": None,  # no list entries
-    "Lighting": "CS_LIGHT_SETTING",
+    "Text": None,  # special case
+    "Transition": None,  # no list entries
+    "LightSettings": "CS_LIGHT_SETTING",
     "Time": "CS_TIME",
-    "PlayBGM": "CS_START_SEQ",
-    "StopBGM": "CS_STOP_SEQ",
-    "FadeBGM": "CS_FADE_OUT_SEQ",
+    "StartSeq": "CS_START_SEQ",
+    "StopSeq": "CS_STOP_SEQ",
+    "FadeOutSeq": "CS_FADE_OUT_SEQ",
     "Misc": "CS_MISC",
-    "0x09": "CS_RUMBLE_CONTROLLER",
+    "Rumble": "CS_RUMBLE_CONTROLLER",
 }
 
 ootEnumCSWriteType = [
     ("Custom", "Custom", "Provide the name of a cutscene header variable"),
-    ("Embedded", "Embedded", "Cutscene data is within scene header (deprecated)"),
+    ("Embedded", "(Deprecated) Embedded", "Cutscene data is within scene header"),
     ("Object", "Object", "Reference to Blender object representing cutscene"),
 ]
 
 ootEnumCSListType = [
-    ("Textbox", "Textbox", "Textbox"),
-    ("FX", "Transition", "Transition"),
-    ("Lighting", "Lighting", "Lighting"),
-    ("Time", "Time", "Time"),
-    ("PlayBGM", "Play BGM", "Play BGM"),
-    ("StopBGM", "Stop BGM", "Stop BGM"),
-    ("FadeBGM", "Fade BGM", "Fade BGM"),
-    ("Misc", "Misc", "Misc"),
-    ("0x09", "Rumble Controller", "Rumble Controller"),
+    ("TextList", "Text List", "Textbox"),
+    ("Transition", "Transition", "Transition"),
+    ("LightSettingsList", "Light Settings List", "Lighting"),
+    ("TimeList", "Time List", "Time"),
+    ("StartSeqList", "Start Seq List", "Play BGM"),
+    ("StopSeqList", "Stop Seq List", "Stop BGM"),
+    ("FadeOutSeqList", "Fade-Out Seq List", "Fade BGM"),
+    ("MiscList", "Misc List", "Misc"),
+    ("RumbleList", "Rumble List", "Rumble Controller"),
 ]
 
 ootEnumCSListTypeIcons = [
@@ -58,7 +58,7 @@ ootEnumCSListTypeIcons = [
     "OUTLINER_OB_FORCE_FIELD",
 ]
 
-ootEnumCSTextboxType = [("Text", "Text", "Text"), ("None", "None", "None"), ("LearnSong", "Learn Song", "Learn Song")]
+ootEnumCSTextboxType = [("Text", "Text", "Text"), ("None", "None", "None"), ("OcarinaAction", "Ocarina Action", "Learn Song")]
 
 ootEnumCSTextboxTypeIcons = ["FILE_TEXT", "HIDE_ON", "FILE_SOUND"]
 
@@ -304,8 +304,8 @@ ootCSSubPropToName = {
     "hour": "Hour",
     "minute": "Minute",
 
-    # BGM
-    "csSeqID": "BGM ID",
+    # Seq
+    "csSeqID": "Seq ID",
     "csSeqPlayer": "Seq Player Type",
 
     # Misc

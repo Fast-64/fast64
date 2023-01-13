@@ -159,14 +159,7 @@ class OOT_ObjectProperties(bpy.types.PropertyGroup):
                     OOTObjectProperty.upgrade_object(obj)
 
                 if obj.ootEmptyType == "Cutscene":
-                    print(f"Processing '{obj.name}'...")
-                    csListsNames = ["textbox", "lighting", "time", "bgm", "misc", "nine"]
-
-                    for csList in obj.ootCutsceneProperty.csLists:
-                        for listName in csListsNames:
-                            for csListProp in getattr(csList, listName):
-                                # print(type(elem))
-                                OOTCutsceneProperty.upgrade_object(csListProp)
+                    OOTCutsceneProperty.upgrade_object(obj)
 
 
 class OOTCullGroupProperty(bpy.types.PropertyGroup):
