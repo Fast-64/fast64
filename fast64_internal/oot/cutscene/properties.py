@@ -5,7 +5,7 @@ from ...utility import PluginError, prop_split
 from ..oot_utility import OOTCollectionAdd, drawCollectionOps, getEnumName
 from ..oot_constants import ootEnumMusicSeq
 from ..oot_upgrade import upgradeCutsceneSubProps, upgradeCSListProps
-from .operators import OOTCSTextboxAdd, OOT_SearchCSDestinationEnumOperator, drawCSListAddOp
+from .operators import OOTCSTextAdd, OOT_SearchCSDestinationEnumOperator, drawCSListAddOp
 from .constants import (
     ootEnumCSTextboxType,
     ootEnumCSListType,
@@ -234,7 +234,7 @@ class OOTCSListProperty(PropertyGroup):
 
             for l in range(3):
                 addOp = row.operator(
-                    OOTCSTextboxAdd.bl_idname,
+                    OOTCSTextAdd.bl_idname,
                     text="Add " + ootEnumCSTextboxType[l][1],
                     icon=ootEnumCSTextboxTypeIcons[l],
                 )

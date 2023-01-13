@@ -58,7 +58,7 @@ def drawCSListAddOp(layout: UILayout, objName: str, collectionType: str):
     box.label(text="Install zcamedit for camera/actor motion.")
 
 
-class OOTCSTextboxAdd(Operator):
+class OOTCSTextAdd(Operator):
     bl_idname = "object.oot_cstextbox_add"
     bl_label = "Add CS Textbox"
     bl_options = {"REGISTER", "UNDO"}
@@ -175,7 +175,7 @@ class OOT_SearchCSDestinationEnumOperator(Operator):
 
 
 oot_cutscene_classes = (
-    OOTCSTextboxAdd,
+    OOTCSTextAdd,
     OOTCSListAdd,
     OOT_ExportCutscene,
     OOT_ExportAllCutscenes,

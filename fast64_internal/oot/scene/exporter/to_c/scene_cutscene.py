@@ -27,7 +27,7 @@ def ootCutsceneDataToC(csParent: OOTCutscene | OOTScene, csName: str):
         csData.source += (
             (indent * 2) + ootEnumCSListTypeListC[list.listType] + "("
             + (
-                f"{list.fxType}, {list.fxStartFrame}, {list.fxEndFrame}"
+                f"{list.transitionType}, {list.transitionStartFrame}, {list.transitionEndFrame}"
                 if list.listType == "Transition" else str(len(list.entries))
             )
             + "),\n"
@@ -47,7 +47,7 @@ def ootCutsceneDataToC(csParent: OOTCutscene | OOTScene, csName: str):
             if list.listType == "TextList":
                 if e.textboxType == "Text":
                     csData.source += (
-                        f"{e.textID}, {e.startFrame}, {e.endFrame}, {e.textboxType}, {e.topOptionTextID}, {e.bottomOptionTextID}"
+                        f"{e.textID}, {e.startFrame}, {e.endFrame}, {e.textType}, {e.topOptionTextID}, {e.bottomOptionTextID}"
                     )
 
                 elif e.textboxType == "None":
@@ -71,7 +71,8 @@ def ootCutsceneDataToC(csParent: OOTCutscene | OOTScene, csName: str):
 
             elif list.listType in ["StartSeqList", "StopSeqList", "FadeOutSeqList"]:
                 endFrame = e.endFrame if list.listType == "FadeOutSeqList" else "0"
-                csData.source += f"{e.csSeqID}, {e.startFrame}, {endFrame}" + (", 0" * 8)
+                firstArg = e.csSeqPlayer if list.listType == "FadeOutSeqList" else e.csSeqID
+                csData.source += f"{firstArg}, {e.startFrame}, {endFrame}" + (", 0" * 8)
 
             elif list.listType == "MiscList":
                 csData.source += f"{e.csMiscType}, {e.startFrame}, {e.endFrame}" + (", 0" * 11)

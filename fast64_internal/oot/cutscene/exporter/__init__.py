@@ -2,12 +2,11 @@ from .functions import convertCutsceneObject, readCutsceneData
 
 from .classes import (
     OOTCSList,
-    OOTCSTextbox,
-    OOTCSLighting,
+    OOTCSText,
+    OOTCSLightSettings,
     OOTCSTime,
-    OOTCSBGM,
+    OOTCSSeq,
     OOTCSMisc,
-    OOTCS0x09,
-    OOTCSUnk,
+    OOTCSRumble,
     OOTCutscene,
 )

@@ -2,13 +2,12 @@ from ...oot_utility import getCutsceneName, getCustomProperty
 
 from .classes import (
     OOTCSList,
-    OOTCSTextbox,
-    OOTCSLighting,
+    OOTCSText,
+    OOTCSLightSettings,
     OOTCSTime,
-    OOTCSBGM,
+    OOTCSSeq,
     OOTCSMisc,
-    OOTCS0x09,
-    OOTCSUnk,
+    OOTCSRumble,
     OOTCutscene,
 )
 
@@ -18,57 +17,58 @@ def readCutsceneData(csParentOut, csParentIn):
         listOut = OOTCSList()
         listOut.listType = listIn.listType
 
-        listOut.fxType, listOut.fxStartFrame, listOut.fxEndFrame = (
-            getCustomProperty(listIn, "fxType"),
-            listIn.fxStartFrame,
-            listIn.fxEndFrame,
+        listOut.transitionType, listOut.transitionStartFrame, listOut.transitionEndFrame = (
+            getCustomProperty(listIn, "transitionType"),
+            listIn.transitionStartFrame,
+            listIn.transitionEndFrame,
         )
 
         listData = []
-        if listOut.listType == "Textbox":
-            for entryIn in listIn.textbox:
-                entryOut = OOTCSTextbox()
+        if listOut.listType == "TextList":
+            for entryIn in listIn.textList:
+                entryOut = OOTCSText()
                 entryOut.textboxType = entryIn.textboxType
                 entryOut.textID = entryIn.textID
                 entryOut.ocarinaAction = getCustomProperty(entryIn, "ocarinaAction")
                 entryOut.startFrame = entryIn.startFrame
                 entryOut.endFrame = entryIn.endFrame
-                entryOut.textboxType = getCustomProperty(entryIn, "csTextType")
+                entryOut.textType = getCustomProperty(entryIn, "csTextType")
                 entryOut.topOptionTextID = entryIn.topOptionTextID
                 entryOut.bottomOptionTextID = entryIn.bottomOptionTextID
                 entryOut.ocarinaMessageId = entryIn.ocarinaMessageId
                 listOut.entries.append(entryOut)
-        elif listOut.listType == "Lighting":
-            for entryIn in listIn.lighting:
-                entryOut = OOTCSLighting()
+        elif listOut.listType == "LightSettingsList":
+            for entryIn in listIn.lightSettingsList:
+                entryOut = OOTCSLightSettings()
                 entryOut.lightSettingsIndex = entryIn.lightSettingsIndex
                 entryOut.startFrame = entryIn.startFrame
                 listOut.entries.append(entryOut)
-        elif listOut.listType == "Time":
-            for entryIn in listIn.time:
+        elif listOut.listType == "TimeList":
+            for entryIn in listIn.timeList:
                 entryOut = OOTCSTime()
                 entryOut.startFrame = entryIn.startFrame
                 entryOut.hour = entryIn.hour
                 entryOut.minute = entryIn.minute
                 listOut.entries.append(entryOut)
-        elif listOut.listType in {"PlayBGM", "StopBGM", "FadeBGM"}:
-            for entryIn in listIn.bgm:
-                entryOut = OOTCSBGM()
-                csSeqPropSuffix = "ID" if listOut.listType != "FadeBGM" else "Player"
-                entryOut.csSeqID = getCustomProperty(entryIn, f"csSeq{csSeqPropSuffix}")
+        elif listOut.listType in {"StartSeqList", "StopSeqList", "FadeOutSeqList"}:
+            for entryIn in listIn.seqList:
+                entryOut = OOTCSSeq()
+                entryOut.csSeqID = getCustomProperty(entryIn, "csSeqID")
+                entryOut.csSeqPlayer = getCustomProperty(entryIn, "csSeqPlayer")
+                print(entryOut.csSeqPlayer)
                 entryOut.startFrame = entryIn.startFrame
                 entryOut.endFrame = entryIn.endFrame
                 listOut.entries.append(entryOut)
-        elif listOut.listType == "Misc":
-            for entryIn in listIn.misc:
+        elif listOut.listType == "MiscList":
+            for entryIn in listIn.miscList:
                 entryOut = OOTCSMisc()
                 entryOut.csMiscType = getCustomProperty(entryIn, "csMiscType")
                 entryOut.startFrame = entryIn.startFrame
                 entryOut.endFrame = entryIn.endFrame
                 listOut.entries.append(entryOut)
-        elif listOut.listType == "Rumble":
-            for entryIn in listIn.nine:
-                entryOut = OOTCS0x09()
+        elif listOut.listType == "RumbleList":
+            for entryIn in listIn.rumbleList:
+                entryOut = OOTCSRumble()
                 entryOut.startFrame = entryIn.startFrame
                 entryOut.rumbleSourceStrength = entryIn.rumbleSourceStrength
                 entryOut.rumbleDuration = entryIn.rumbleDuration
