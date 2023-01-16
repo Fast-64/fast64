@@ -262,35 +262,52 @@ def findUVBounds(polygon, uv_data):
 
 
 class TileLoad:
-    def __init__(self, texFormat, tmemWordsAvail, texDimensions):
-        self.sl = None
-        self.sh = None
-        self.tl = None
-        self.th = None
+    def __init__(self, texFormat, tmemWordsAvail, texDimensions, materialName, isPointSampled):
+        self.sl = self.tl = 1000000 # above any actual value
+        self.sh = self.th = -1 # below any actual value
 
         self.texFormat = texFormat
+        self.is4bit = texBitSizeOf[texFormat] == "G_IM_SIZ_4b"
         self.tmemWordsAvail = tmemWordsAvail
         self.texDimensions = texDimensions
+        self.materialName = materialName
+        self.isPointSampled = isPointSampled
 
+    def getDimensions(self):
+        assert self.sl <= self.sh and self.tl <= self.th
+        return [self.sl - self.sh + 1, self.tl - self.th + 1]
+        
     def getLow(self, value):
-        return int(max(math.floor(value), 0))
+        if value < 0.0:
+            raise PluginError(
+                f"In large texture material {self.materialName}, some UVs are negative, "
+                + f"make sure all UVs are positive in both dimensions."
+            )
+        value = int(math.floor(value))
+        if self.is4bit and (value & 1) != 0:
+            # Must start on an even texel
+            value -= 1
+        return value
 
     def getHigh(self, value, field):
-        # 1024 wraps around to 0
-        # -1 is because the high value is (max value - 1)
-        # ex. 32 pixel width -> high = 31
-        return int(min(math.ceil(value), min(self.texDimensions[field], 1024)) - 1)
+        #return int(min(math.ceil(value), min(self.texDimensions[field], 1024)) - 1)
+        value = int(math.ceil(value)) - (1 if self.isPointSampled else 0)
+        if self.is4bit and (value & 1) == 0:
+            # Must end on an odd texel
+            value += 1
+        return value
 
-    def tryAppend(self, other):
-        return self.appendTile(other.sl, other.sh, other.tl, other.th)
+    def expandCoverLoad(self, other):
+        return self.expandCoverRegion(other.sl, other.sh, other.tl, other.th)
 
-    def appendTile(self, sl, sh, tl, th):
+    def expandCoverRegion(self, sl, sh, tl, th):
         new_sl = min(sl, self.sl)
         new_sh = max(sh, self.sh)
         new_tl = min(tl, self.tl)
         new_th = max(th, self.th)
-        newWidth = abs(new_sl - new_sh) + 1
-        newHeight = abs(new_tl - new_th) + 1
+        assert new_sl <= new_sh and new_tl <= new_th
+        newWidth = new_sh - new_sl + 1
+        newHeight = new_th - new_tl + 1
 
         tmemUsage = getTmemWordUsage(self.texFormat, newWidth, newHeight)
 
@@ -303,31 +320,86 @@ class TileLoad:
             self.th = new_th
             return True
 
-    def tryAdd(self, points):
+    def expandCoverPoints(self, points):
         if len(points) == 0:
             return True
 
-        sl = self.getLow(points[0][0])
-        sh = self.getHigh(points[0][0], 0)
-        tl = self.getLow(points[0][1])
-        th = self.getHigh(points[0][1], 1)
-
-        if self.sl is None:
-            self.sl = sl
-            self.sh = sh
-            self.tl = tl
-            self.th = th
-
+        sl = tl = 1000000 # above any actual value
+        sh = th = -1 # below any actual value
         for point in points:
             sl = min(self.getLow(point[0]), sl)
             sh = max(self.getHigh(point[0], 0), sh)
             tl = min(self.getLow(point[1]), tl)
             th = max(self.getHigh(point[1], 1), th)
 
-        return self.appendTile(sl, sh, tl, th)
+        if not self.expandCoverRegion(sl, sh, tl, th):
+            raise PluginError(
+                f"Large texture material {self.materialName}"
+                + f" has a triangle that needs to cover texels {sl}-{sh} x {tl}-{th}"
+                + f" ({sh-sl+1} x {th-tl+1} texels) in format {self.texFormat}"
+                + f", which can't fit in TMEM."
+            )
+    
+    def wrapToOffset(self):
+        assert 0 <= self.sl <= self.sh and 0 <= self.tl <= self.th
+        soffset = (self.sl // self.texDimensions[0]) * self.texDimensions[0]
+        toffset = (self.tl // self.texDimensions[1]) * self.texDimensions[1]
+        self.sl -= soffset
+        self.sh -= soffset
+        self.tl -= toffset
+        self.th -= toffset
+        if self.sh >= 1024 or self.th >= 1024:
+            raise PluginError(
+                f"In large texture material {self.materialName}:"
+                + f" a triangle needs to cover texels {sl}-{sh} x {tl}-{th}"
+                + f" (image dims are {self.texDimensions}), but image space"
+                + f" only goes up to 1024 so this cannot be represented."
+            )
+        return (soffset, toffset)
 
-    def getDimensions(self):
-        return [abs(self.sl - self.sh) + 1, abs(self.tl - self.th) + 1]
+
+def maybeSaveSingleLargeTextureSetup(
+    i: int,
+    fMaterial: FMaterial,
+    fModel: FModel,
+    fImage: FImage,
+    gfxOut: GfxList,
+    texProp: TextureProperty,
+    tileSettings: TileLoad,
+    curImgSet: Union[None, int],
+    curTileLines: list[int]
+):
+    if fMaterial.isTexLarge[i]:
+        line = getTileLine(
+            fImage, tileSettings.sl, tileSettings.sh, texBitSizeOf[texProp.tex_format], fModel.f3d)
+        print(f"Tile: {tileSettings.sl}-{tileSettings.sh} x {tileSettings.tl}-{tileSettings.th}")
+        saveTextureLoadOnly(
+            fImage,
+            gfxOut,
+            texProp,
+            tileSettings,
+            7 - i,
+            fMaterial.largeTexAddr[i],
+            fModel.f3d,
+            curImgSet == i,
+            line == curTileLines[7 - i],
+        )
+        curImgSet = i
+        curTileLines[7 - i] = line
+        saveTextureTile(
+            fImage,
+            fMaterial,
+            gfxOut,
+            texProp,
+            tileSettings,
+            i,
+            fMaterial.largeTexAddr[i],
+            fMaterial.texPaletteIndex[i],
+            fModel.f3d,
+            line == curTileLines[i],
+        )
+        curTileLines[i] = line
+    return curImgSet
 
 
 def saveMeshWithLargeTexturesByFaces(
@@ -363,32 +435,25 @@ def saveMeshWithLargeTexturesByFaces(
     uv_data = obj.data.uv_layers["UVMap"].data
     convertInfo = LoopConvertInfo(uv_data, obj, exportVertexColors)
 
+    fImage0 = fImage1 = None
     if fMaterial.imageKey[0] is not None:
         fImage0 = fModel.getTextureAndHandleShared(fMaterial.imageKey[0])
     if fMaterial.imageKey[1] is not None:
         fImage1 = fModel.getTextureAndHandleShared(fMaterial.imageKey[1])
 
     tileLoads = {}
-    faceTileLoads = {}
     for face in faces:
         uvs = [UVtoST(obj, loopIndex, uv_data, texDimensions, isPointSampled) for loopIndex in face.loops]
 
-        faceTileLoad = TileLoad(fMaterial.largeTexFmt, fMaterial.largeTexWords, texDimensions)
-        faceTileLoads[face] = faceTileLoad
-        if not faceTileLoad.tryAdd(uvs):
-            raise PluginError(
-                "Large texture material "
-                + str(material.name)
-                + " has a triangle that is too large to fit in a single tile load."
-            )
+        faceTileLoad = TileLoad(
+            fMaterial.largeTexFmt, fMaterial.largeTexWords, texDimensions, material.name, isPointSampled)
+        faceTileLoad.expandCoverPoints(uvs)
 
-        added = False
         for tileLoad, sortedFaces in tileLoads.items():
-            if tileLoad.tryAppend(faceTileLoad):
+            if tileLoad.expandCoverLoad(faceTileLoad):
                 sortedFaces.append(face)
-                added = True
                 break
-        if not added:
+        else:
             tileLoads[faceTileLoad] = [face]
 
     tileLoads = list(tileLoads.items())
@@ -399,43 +464,26 @@ def saveMeshWithLargeTexturesByFaces(
     fMesh.draw.commands.append(SPDisplayList(triGroup.triList))
 
     currentGroupIndex = None
+    curImgSet = None
+    curTileLines = [0 for _ in range(8)]
     for tileLoad, tileFaces in tileLoads:
+        stOffset = tileLoad.wrapToOffset()
         revertCommands = GfxList("temp", GfxListTag.Draw, fModel.DLFormat)
-        triGroup.triList.commands.append(DPPipeSync())
-        if fMaterial.isTexLarge[0]:
-            saveTextureLoadOnly(
-                fImage0, triGroup.triList, f3dMat.tex0, tileLoad, 7, fMaterial.largeTexAddr[0], fModel.f3d
-            )
-            saveTextureTile(
-                fImage0,
-                fMaterial,
-                triGroup.triList,
-                f3dMat.tex0,
-                tileLoad,
-                0,
-                fMaterial.largeTexAddr[0],
-                fMaterial.texPaletteIndex[0],
-                fModel.f3d,
-            )
-        if fMaterial.isTexLarge[1]:
-            saveTextureLoadOnly(
-                fImage1, triGroup.triList, f3dMat.tex1, tileLoad, 6, fMaterial.largeTexAddr[1], fModel.f3d
-            )
-            saveTextureTile(
-                fImage1,
-                fMaterial,
-                triGroup.triList,
-                f3dMat.tex1,
-                tileLoad,
-                1,
-                fMaterial.largeTexAddr[1],
-                fMaterial.texPaletteIndex[1],
-                fModel.f3d,
-            )
+        # Need load sync because if some tris are not drawn by the RSP due to being
+        # off screen, can run directly from one load tile into another with no sync,
+        # potentially corrupting TMEM
+        triGroup.triList.commands.append(DPLoadSync())
+        curImgSet = maybeSaveSingleLargeTextureSetup(
+            0, fMaterial, fModel, fImage0, triGroup.triList, f3dMat.tex0, tileLoad, curImgSet, curTileLines
+        )
+        curImgSet = maybeSaveSingleLargeTextureSetup(
+            1, fMaterial, fModel, fImage1, triGroup.triList, f3dMat.tex1, tileLoad, curImgSet, curTileLines
+        )
 
         triConverter = TriangleConverter(
             triConverterInfo,
             texDimensions,
+            stOffset,
             material,
             currentGroupIndex,
             triGroup.triList,
@@ -448,6 +496,8 @@ def saveMeshWithLargeTexturesByFaces(
 
         if len(revertCommands.commands) > 0:
             fMesh.draw.commands.extend(revertCommands.commands)
+        
+        firstFace = False
 
     triGroup.triList.commands.append(SPEndDisplayList())
 
@@ -548,6 +598,7 @@ def addCullCommand(obj, fMesh, transformMatrix, matWriteMethod):
                 [0, 0],
                 mathutils.Vector([0, 0, 0, 0]),
                 [32, 32],
+                None,
                 transformMatrix,
                 False,
                 False,
@@ -785,6 +836,7 @@ def saveMeshByFaces(
     triConverter = TriangleConverter(
         triConverterInfo,
         texDimensions,
+        None,
         material,
         currentGroupIndex,
         triGroup.triList,
@@ -928,6 +980,7 @@ class TriangleConverter:
         self,
         triConverterInfo: TriangleConverterInfo,
         texDimensions: tuple[int, int],
+        stOffset: Union[None, tuple[int, int]],
         material: bpy.types.Material,
         currentGroupIndex,
         triList,
@@ -955,6 +1008,7 @@ class TriangleConverter:
         uv_data = triConverterInfo.obj.data.uv_layers["UVMap"].data
         self.convertInfo = LoopConvertInfo(uv_data, triConverterInfo.obj, exportVertexColors)
         self.texDimensions = texDimensions
+        self.stOffset = stOffset
         self.isPointSampled = isPointSampled
         self.exportVertexColors = exportVertexColors
         self.tex_scale = material.f3d_mat.tex_scale
@@ -1003,6 +1057,7 @@ class TriangleConverter:
                         bufferVert.f3dVert.uv,
                         bufferVert.f3dVert.getColorOrNormal(),
                         self.texDimensions,
+                        self.stOffset,
                         self.triConverterInfo.getTransformMatrix(bufferVert.groupIndex),
                         self.isPointSampled,
                         self.exportVertexColors,
@@ -1037,6 +1092,7 @@ class TriangleConverter:
                         bufferVert.f3dVert.uv,
                         bufferVert.f3dVert.getColorOrNormal(),
                         self.texDimensions,
+                        self.stOffset,
                         self.triConverterInfo.getTransformMatrix(bufferVert.groupIndex),
                         self.isPointSampled,
                         self.exportVertexColors,
@@ -1226,7 +1282,7 @@ def UVtoST(obj, loopIndex, uv_data, texDimensions, isPointSampled):
     uv[1] = 1 - uv[1]
     loopUV = uv.freeze()
 
-    pixelOffset = 0 if isPointSampled else 0.5
+    pixelOffset = 0 #if isPointSampled else 0.5
     return [
         convertFloatToFixed16(loopUV[0] * texDimensions[0] - pixelOffset) / 32,
         convertFloatToFixed16(loopUV[1] * texDimensions[1] - pixelOffset) / 32,
@@ -1239,6 +1295,7 @@ def convertVertexData(
     loopUV,
     loopColorOrNormal,
     texDimensions,
+    stOffset,
     transformMatrix,
     isPointSampled,
     exportVertexColors,
@@ -1257,6 +1314,7 @@ def convertVertexData(
         if (isPointSampled or tex_scale[0] == 0 or tex_scale[1] == 0)
         else (0.5 / tex_scale[0], 0.5 / tex_scale[1])
     )
+    pixelOffset = stOffset if stOffset is not None else pixelOffset
 
     uv = [
         convertFloatToFixed16(loopUV[0] * texDimensions[0] - pixelOffset[0]),
@@ -2155,7 +2213,7 @@ def getAndCheckTexInfo(
     tmemSize = getTmemWordUsage(texFormat, imageWidth, imageHeight)
 
     if imageWidth > 1024 or imageHeight > 1024:
-        raise PluginError(f'Error in "{material.name}": Any side of an image cannot be greater ' + "than 1024.")
+        raise PluginError(f'Error in "{material.name}": Image size (even with large textures) limited to 1024 in either dimension.')
 
     pal = None
     palLen = 0
@@ -2204,7 +2262,7 @@ def getAndCheckTexInfo(
 # Functions for writing texture and palette DLs
 
 
-def getTileSizeSettings(texProp: TextureProperty, tileSettings, f3d: F3D):
+def getTileSizeSettings(texProp: TextureProperty, tileSettings: Union[None, TileLoad], f3d: F3D):
     if tileSettings is not None:
         SL = tileSettings.sl
         TL = tileSettings.tl
@@ -2236,42 +2294,36 @@ def saveTextureLoadOnly(
     fImage: FImage,
     gfxOut: GfxList,
     texProp: TextureProperty,
-    tileSettings,
+    tileSettings: Union[None, TileLoad],
     loadtile: int,
     tmem: int,
     f3d: F3D,
+    omitSetTextureImage = False,
+    omitSetTile = False,
 ):
     fmt = texFormatOf[texProp.tex_format]
     siz = texBitSizeOf[texProp.tex_format]
     nocm = ["G_TX_WRAP", "G_TX_NOMIRROR"]
     SL, TL, SH, TH, sl, tl, sh, th = getTileSizeSettings(texProp, tileSettings, f3d)
-    line = getTileLine(fImage, SL, SH, siz, f3d)
 
     # LoadTile will pad rows to 64 bit word alignment, while
     # LoadBlock assumes this is already done.
     useLoadBlock = not fImage.isLargeTexture and isPowerOf2(fImage.width)
+    line = 0 if useLoadBlock else getTileLine(fImage, SL, SH, siz, f3d)
+    wid = 1 if useLoadBlock else fImage.width
 
     if siz == "G_IM_SIZ_4b":
         if useLoadBlock:
             dxs = (((fImage.width) * (fImage.height) + 3) >> 2) - 1
             dxt = f3d.CALC_DXT_4b(fImage.width)
-            gfxOut.commands.extend(
-                [
-                    DPSetTextureImage(fmt, "G_IM_SIZ_16b", 1, fImage),
-                    DPSetTile(fmt, "G_IM_SIZ_16b", 0, tmem, loadtile, 0, nocm, 0, 0, nocm, 0, 0),
-                    DPLoadBlock(loadtile, 0, 0, dxs, dxt),
-                ]
-            )
+            siz = "G_IM_SIZ_16b"
+            loadCommand = DPLoadBlock(loadtile, 0, 0, dxs, dxt)
         else:
             sl2 = int(SL * (2 ** (f3d.G_TEXTURE_IMAGE_FRAC - 1)))
             sh2 = int(SH * (2 ** (f3d.G_TEXTURE_IMAGE_FRAC - 1)))
-            gfxOut.commands.extend(
-                [
-                    DPSetTextureImage(fmt, "G_IM_SIZ_8b", fImage.width >> 1, fImage),
-                    DPSetTile(fmt, "G_IM_SIZ_8b", line, tmem, loadtile, 0, nocm, 0, 0, nocm, 0, 0),
-                    DPLoadTile(loadtile, sl2, tl, sh2, th),
-                ]
-            )
+            siz = "G_IM_SIZ_8b"
+            wid >>= 1
+            loadCommand = DPLoadTile(loadtile, sl2, tl, sh2, th)
     else:
         if useLoadBlock:
             dxs = (
@@ -2279,21 +2331,17 @@ def saveTextureLoadOnly(
                 >> f3d.G_IM_SIZ_VARS[siz + "_SHIFT"]
             ) - 1
             dxt = f3d.CALC_DXT(fImage.width, f3d.G_IM_SIZ_VARS[siz + "_BYTES"])
-            gfxOut.commands.extend(
-                [
-                    DPSetTextureImage(fmt, siz + "_LOAD_BLOCK", 1, fImage),
-                    DPSetTile(fmt, siz + "_LOAD_BLOCK", 0, tmem, loadtile, 0, nocm, 0, 0, nocm, 0, 0),
-                    DPLoadBlock(loadtile, 0, 0, dxs, dxt),
-                ]
-            )
+            siz += "_LOAD_BLOCK"
+            loadCommand = DPLoadBlock(loadtile, 0, 0, dxs, dxt)
         else:
-            gfxOut.commands.extend(
-                [
-                    DPSetTextureImage(fmt, siz, fImage.width, fImage),
-                    DPSetTile(fmt, siz, line, tmem, loadtile, 0, nocm, 0, 0, nocm, 0, 0),
-                    DPLoadTile(loadtile, sl, tl, sh, th),
-                ]
-            )
+            loadCommand = DPLoadTile(loadtile, sl, tl, sh, th)
+    
+    if not omitSetTextureImage:
+        gfxOut.commands.append(DPSetTextureImage(fmt, siz, wid, fImage))
+    if not omitSetTile:
+        gfxOut.commands.append(DPSetTile(
+            fmt, siz, line, tmem, loadtile, 0, nocm, 0, 0, nocm, 0, 0))
+    gfxOut.commands.append(loadCommand)
 
 
 def saveTextureTile(
@@ -2306,6 +2354,7 @@ def saveTextureTile(
     tmem: int,
     pal: int,
     f3d: F3D,
+    omitSetTile = False,
 ):
     if tileSettings is not None:
         clamp_S = True
@@ -2336,13 +2385,11 @@ def saveTextureTile(
     SL, _, SH, _, sl, tl, sh, th = getTileSizeSettings(texProp, tileSettings, f3d)
     line = getTileLine(fImage, SL, SH, siz, f3d)
 
+    tileCommand = DPSetTile(fmt, siz, line, tmem, rendertile, pal, cmt, maskt, shiftt, cms, masks, shifts)
     tileSizeCommand = DPSetTileSize(rendertile, sl, tl, sh, th)
-    gfxOut.commands.extend(
-        [
-            DPSetTile(fmt, siz, line, tmem, rendertile, pal, cmt, maskt, shiftt, cms, masks, shifts),
-            tileSizeCommand,
-        ]
-    )  # added in)
+    if not omitSetTile:
+        gfxOut.commands.append(tileCommand)
+    gfxOut.commands.append(tileSizeCommand)
 
     # hasattr check for FTexRect
     if hasattr(fMaterial, "tileSizeCommands"):

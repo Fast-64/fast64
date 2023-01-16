@@ -2771,7 +2771,7 @@ def saveSkinnedMeshByMaterial(
     # 		fMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
     #
     # 	convertInfo = LoopConvertInfo(uv_data, obj, exportVertexColors)
-    # 	triConverter = TriangleConverter(triConverterInfo, texDimensions, material,
+    # 	triConverter = TriangleConverter(triConverterInfo, texDimensions, None, material,
     # 		None, triGroup.triList, triGroup.vertexList, copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict))
     # 	saveTriangleStrip(triConverter, [skinnedFace.bFace for skinnedFace in skinnedFaceArray], obj.data, True)
     # 	saveTriangleStrip(triConverterClass,
