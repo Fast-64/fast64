@@ -335,7 +335,7 @@ enumTexUV = [
     ("TEXEL1", "Texture 1", "Texture 1"),
 ]
 
-texBitSize = {
+texBitSizeInt = {
     "I4": 4,
     "IA4": 4,
     "CI4": 4,
@@ -363,4 +363,9 @@ enumF3D = [
     ("F3DLP.Rej", "F3DLP.Rej", "F3DLP.Rej"),
     ("F3DEX2/LX2", "F3DEX2/LX2", "F3DEX2/LX2"),
     ("F3DEX2.Rej/LX2.Rej", "F3DEX2.Rej/LX2.Rej", "F3DEX2.Rej/LX2.Rej"),
+]
+
+enumLargeEdges = [
+    ("Clamp", "Clamp", "Clamp outside image bounds"),
+    ("Wrap", "Wrap", "Wrap outside image bounds (more expensive)"),
 ]

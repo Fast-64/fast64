@@ -12,8 +12,7 @@ from .f3d_material import (
     getMaterialScrollDimensions,
     getTmemWordUsage,
     getTmemMax,
-    bitSizeDict,
-    texBitSizeOf,
+    texBitSizeF3D,
     texFormatOf,
     TextureProperty,
     F3DMaterialProperty,
@@ -262,100 +261,121 @@ def findUVBounds(polygon, uv_data):
 
 
 class TileLoad:
-    def __init__(self, texFormat, tmemWordsAvail, texDimensions, materialName, isPointSampled):
+    def __init__(self, material, fMaterial, texDimensions):
         self.sl = self.tl = 1000000 # above any actual value
         self.sh = self.th = -1 # below any actual value
 
-        self.texFormat = texFormat
-        self.is4bit = texBitSizeOf[texFormat] == "G_IM_SIZ_4b"
-        self.tmemWordsAvail = tmemWordsAvail
+        self.texFormat = fMaterial.largeTexFmt
+        self.is4bit = texBitSizeInt[self.texFormat] == 4
+        self.tmemWordsAvail = fMaterial.largeTexWords
         self.texDimensions = texDimensions
-        self.materialName = materialName
-        self.isPointSampled = isPointSampled
-
-    def getDimensions(self):
-        assert self.sl <= self.sh and self.tl <= self.th
-        return [self.sl - self.sh + 1, self.tl - self.th + 1]
+        self.materialName = material.name
+        self.isPointSampled = isTexturePointSampled(material)
+        self.largeEdges = material.large_edges
         
+        self.faces = []
+        self.offsets = []
+
     def getLow(self, value):
-        if value < 0.0:
-            raise PluginError(
-                f"In large texture material {self.materialName}, some UVs are negative, "
-                + f"make sure all UVs are positive in both dimensions."
-            )
         value = int(math.floor(value))
+        if self.largeEdges == "Clamp":
+            value = max(value, 0)
         if self.is4bit and (value & 1) != 0:
             # Must start on an even texel
             value -= 1
         return value
 
     def getHigh(self, value, field):
-        #return int(min(math.ceil(value), min(self.texDimensions[field], 1024)) - 1)
         value = int(math.ceil(value)) - (1 if self.isPointSampled else 0)
+        if self.largeEdges == "Clamp":
+            value = min(value, self.texDimensions[field] - 1)
         if self.is4bit and (value & 1) == 0:
             # Must end on an odd texel
             value += 1
         return value
 
-    def expandCoverLoad(self, other):
-        return self.expandCoverRegion(other.sl, other.sh, other.tl, other.th)
-
-    def expandCoverRegion(self, sl, sh, tl, th):
-        new_sl = min(sl, self.sl)
-        new_sh = max(sh, self.sh)
-        new_tl = min(tl, self.tl)
-        new_th = max(th, self.th)
-        assert new_sl <= new_sh and new_tl <= new_th
+    def fixRegion(self, sl, sh, tl, th):
+        assert sl <= sh and tl <= th
+        soffset = int(floor(sl / self.texDimensions[0])) * self.texDimensions[0]
+        toffset = int(floor(tl / self.texDimensions[1])) * self.texDimensions[1]
+        sl -= soffset
+        sh -= soffset
+        tl -= toffset
+        th -= toffset
+        assert sl >= 0 and tl >= 0
+        ret = True
+        if sh >= 1024 or th >= 1024:
+            ret = False
+        if sh >= self.texDimensions[0]:
+            # Load wraps. Load must start a multiple of a TMEM line from the end
+            # of the texture, in order for the second load (beginning of image)
+            # to start at a whole line.
+            texelsPerLine = 64 / texBitSizeInt[self.texFormat]
+            if texelsPerLine < self.texDimensions[0]:
+                raise PluginError(
+                    f"In large texture material {self.materialName}:"
+                    + f" large texture must be at least {texelsPerLine} wide."
+                )
+            sl -= self.texDimensions[0]
+            sl = int(floor(sl / texelsPerLine)) * texelsPerLine
+            sl += self.texDimensions[0]
         newWidth = new_sh - new_sl + 1
         newHeight = new_th - new_tl + 1
-
         tmemUsage = getTmemWordUsage(self.texFormat, newWidth, newHeight)
-
         if tmemUsage > self.tmemWordsAvail:
+            ret = False
+        return ret, sl, sh, tl, th, soffset, toffset
+
+    def initWithFace(self, obj, face):
+        uv_data = obj.data.uv_layers["UVMap"].data
+        faceUVs = [UVtoSTLarge(obj, loopIndex, uv_data, self.texDimensions)
+            for loopIndex in face.loops]
+        if len(faceUVs) == 0:
+            return True
+
+        for point in faceUVs:
+            self.sl = min(self.sl, self.getLow(point[0]))
+            self.sh = max(self.sh, self.getHigh(point[0], 0))
+            self.tl = min(self.tl, self.getLow(point[1]))
+            self.th = max(self.th, self.getHigh(point[1], 1))
+            
+        ret, self.sl, self.sh, self.tl, self.th, soffset, toffset = self.fixRegion(
+            self.sl, self.sh, self.tl, self.th)
+        if not ret:
+            if self.sh >= 1024 or self.th >= 1024:
+                raise PluginError(
+                    f"Large texture material {self.materialName} has a face that needs"
+                    + f" to cover texels {self.sl}-{self.sh} x {self.tl}-{self.th}"
+                    + f" (image dims are {self.texDimensions}), but image space"
+                    + f" only goes up to 1024 so this cannot be represented."
+                )
+            else:
+                raise PluginError(
+                    f"Large texture material {self.materialName} has a face that needs"
+                    + f" to cover texels {self.sl}-{self.sh} x {self.tl}-{self.th}"
+                    + f" ({self.sh-self.sl+1} x {self.th-self.tl+1} texels) "
+                    + f"in format {self.texFormat}, which can't fit in TMEM."
+                )
+        self.faces.append(face)
+        self.offsets.append((soffset, toffset))
+
+    def trySubsume(self, other):
+        # Could do fancier logic checking across borders, for example if we have
+        # one loading 60-68 (size 64) and another 0-8, that could be merged to
+        # one load 60-72. But this is likely to be uncommon and won't be generated
+        # by the operator.
+        new_sl = min(self.sl, other.sl)
+        new_sh = max(self.sh, other.sh)
+        new_tl = min(self.tl, other.tl)
+        new_th = max(self.th, other.th)
+        ret, new_sl, new_sh, new_tl, new_th, soffset, toffset = fixRegion(
+            new_sl, new_sh, new_tl, new_th)
+        if not ret:
             return False
-        else:
-            self.sl = new_sl
-            self.sh = new_sh
-            self.tl = new_tl
-            self.th = new_th
-            return True
-
-    def expandCoverPoints(self, points):
-        if len(points) == 0:
-            return True
-
-        sl = tl = 1000000 # above any actual value
-        sh = th = -1 # below any actual value
-        for point in points:
-            sl = min(self.getLow(point[0]), sl)
-            sh = max(self.getHigh(point[0], 0), sh)
-            tl = min(self.getLow(point[1]), tl)
-            th = max(self.getHigh(point[1], 1), th)
-
-        if not self.expandCoverRegion(sl, sh, tl, th):
-            raise PluginError(
-                f"Large texture material {self.materialName}"
-                + f" has a triangle that needs to cover texels {sl}-{sh} x {tl}-{th}"
-                + f" ({sh-sl+1} x {th-tl+1} texels) in format {self.texFormat}"
-                + f", which can't fit in TMEM."
-            )
-    
-    def wrapToOffset(self):
-        assert 0 <= self.sl <= self.sh and 0 <= self.tl <= self.th
-        soffset = (self.sl // self.texDimensions[0]) * self.texDimensions[0]
-        toffset = (self.tl // self.texDimensions[1]) * self.texDimensions[1]
-        self.sl -= soffset
-        self.sh -= soffset
-        self.tl -= toffset
-        self.th -= toffset
-        if self.sh >= 1024 or self.th >= 1024:
-            raise PluginError(
-                f"In large texture material {self.materialName}:"
-                + f" a triangle needs to cover texels {sl}-{sh} x {tl}-{th}"
-                + f" (image dims are {self.texDimensions}), but image space"
-                + f" only goes up to 1024 so this cannot be represented."
-            )
-        return (soffset, toffset)
+        self.sl, self.sh, self.tl, self.th = new_sl, new_sh, new_tl, new_th
+        self.faces.extend(other.faces)
+        self.offsets.extend(other.offsets)
+        return True
 
 
 def maybeSaveSingleLargeTextureSetup(
@@ -371,7 +391,7 @@ def maybeSaveSingleLargeTextureSetup(
 ):
     if fMaterial.isTexLarge[i]:
         line = getTileLine(
-            fImage, tileSettings.sl, tileSettings.sh, texBitSizeOf[texProp.tex_format], fModel.f3d)
+            fImage, tileSettings.sl, tileSettings.sh, texBitSizeF3D[texProp.tex_format], fModel.f3d)
         print(f"Tile: {tileSettings.sl}-{tileSettings.sh} x {tileSettings.tl}-{tileSettings.th}")
         saveTextureLoadOnly(
             fImage,
@@ -430,10 +450,6 @@ def saveMeshWithLargeTexturesByFaces(
         f3dMat = material
 
     fMaterial, texDimensions = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
-    isPointSampled = isTexturePointSampled(material)
-    exportVertexColors = isLightingDisabled(material)
-    uv_data = obj.data.uv_layers["UVMap"].data
-    convertInfo = LoopConvertInfo(uv_data, obj, exportVertexColors)
 
     fImage0 = fImage1 = None
     if fMaterial.imageKey[0] is not None:
@@ -441,22 +457,16 @@ def saveMeshWithLargeTexturesByFaces(
     if fMaterial.imageKey[1] is not None:
         fImage1 = fModel.getTextureAndHandleShared(fMaterial.imageKey[1])
 
-    tileLoads = {}
+    tileLoads = []
     for face in faces:
-        uvs = [UVtoST(obj, loopIndex, uv_data, texDimensions, isPointSampled) for loopIndex in face.loops]
+        faceTileLoad = TileLoad(material, fMaterial, texDimensions)
+        faceTileLoad.initWithFace(obj, face)
 
-        faceTileLoad = TileLoad(
-            fMaterial.largeTexFmt, fMaterial.largeTexWords, texDimensions, material.name, isPointSampled)
-        faceTileLoad.expandCoverPoints(uvs)
-
-        for tileLoad, sortedFaces in tileLoads.items():
-            if tileLoad.expandCoverLoad(faceTileLoad):
-                sortedFaces.append(face)
+        for tileLoad in tileLoads:
+            if tileLoad.trySubsume(faceTileLoad):
                 break
         else:
-            tileLoads[faceTileLoad] = [face]
-
-    tileLoads = list(tileLoads.items())
+            tileLoads.append(faceTileLoad)
 
     if material.name != lastMaterialName:
         fMesh.add_material_call(fMaterial)
@@ -466,8 +476,7 @@ def saveMeshWithLargeTexturesByFaces(
     currentGroupIndex = None
     curImgSet = None
     curTileLines = [0 for _ in range(8)]
-    for tileLoad, tileFaces in tileLoads:
-        stOffset = tileLoad.wrapToOffset()
+    for tileLoad in tileLoads:
         revertCommands = GfxList("temp", GfxListTag.Draw, fModel.DLFormat)
         # Need load sync because if some tris are not drawn by the RSP due to being
         # off screen, can run directly from one load tile into another with no sync,
@@ -483,7 +492,7 @@ def saveMeshWithLargeTexturesByFaces(
         triConverter = TriangleConverter(
             triConverterInfo,
             texDimensions,
-            stOffset,
+            tileLoad.offsets, # TODO
             material,
             currentGroupIndex,
             triGroup.triList,
@@ -492,7 +501,7 @@ def saveMeshWithLargeTexturesByFaces(
             copy.deepcopy(matRegionDict),
         )
 
-        currentGroupIndex = saveTriangleStrip(triConverter, tileFaces, obj.data, False)
+        currentGroupIndex = saveTriangleStrip(triConverter, tileLoad.faces, obj.data, False)
 
         if len(revertCommands.commands) > 0:
             fMesh.draw.commands.extend(revertCommands.commands)
@@ -714,7 +723,6 @@ def getLowestUnvisitedNeighborCountFace(unvisitedFaces, infoDict):
 
 
 def getNextNeighborFace(faces, face, lastEdgeKey, visitedFaces, possibleFaces, infoDict):
-
     if lastEdgeKey is not None:
         handledEdgeKeys = [lastEdgeKey]
         nextEdgeKey = face.edge_keys[(face.edge_keys.index(lastEdgeKey) + 1) % 3]
@@ -823,10 +831,6 @@ def saveMeshByFaces(
         print("0 Faces Provided.")
         return
     fMaterial, texDimensions = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
-    isPointSampled = isTexturePointSampled(material)
-    exportVertexColors = isLightingDisabled(material)
-    uv_data = obj.data.uv_layers["UVMap"].data
-    convertInfo = LoopConvertInfo(uv_data, obj, exportVertexColors)
 
     if material.name != lastMaterialName:
         fMesh.add_material_call(fMaterial)
@@ -1003,13 +1007,12 @@ class TriangleConverter:
         self.triList = triList
         self.vtxList = vtxList
 
-        isPointSampled = isTexturePointSampled(material)
         exportVertexColors = isLightingDisabled(material)
         uv_data = triConverterInfo.obj.data.uv_layers["UVMap"].data
         self.convertInfo = LoopConvertInfo(uv_data, triConverterInfo.obj, exportVertexColors)
         self.texDimensions = texDimensions
         self.stOffset = stOffset
-        self.isPointSampled = isPointSampled
+        self.isPointSampled = isTexturePointSampled(material)
         self.exportVertexColors = exportVertexColors
         self.tex_scale = material.f3d_mat.tex_scale
 
@@ -1277,12 +1280,14 @@ def getHighestFaceWeight(faceWeights):
 """
 
 
-def UVtoST(obj, loopIndex, uv_data, texDimensions, isPointSampled):
+def UVtoSTLarge(obj, loopIndex, uv_data, texDimensions):
     uv = uv_data[loopIndex].uv.copy()
     uv[1] = 1 - uv[1]
     loopUV = uv.freeze()
 
-    pixelOffset = 0 #if isPointSampled else 0.5
+    # Represent the -0.5 texel offset in the UVs themselves in clamping mode
+    # if desired, rather than here at export
+    pixelOffset = 0
     return [
         convertFloatToFixed16(loopUV[0] * texDimensions[0] - pixelOffset) / 32,
         convertFloatToFixed16(loopUV[1] * texDimensions[1] - pixelOffset) / 32,
@@ -2141,7 +2146,7 @@ def saveOrGetTextureDefinition(
     image = texProp.tex
     texFmt = texProp.tex_format
     texFormat = texFormatOf[texFmt]
-    bitSize = texBitSizeOf[texFmt]
+    bitSize = texBitSizeF3D[texFmt]
     imageKey = getImageKey(texProp, images)
 
     # If image already loaded, return that data.
@@ -2214,6 +2219,9 @@ def getAndCheckTexInfo(
 
     if imageWidth > 1024 or imageHeight > 1024:
         raise PluginError(f'Error in "{material.name}": Image size (even with large textures) limited to 1024 in either dimension.')
+    
+    if texBitSizeInt[texFmt] == 4 and (imageWidth & 1) != 0:
+        raise PluginError(f'Error in "{material.name}": A 4-bit image must have a width which is even.')
 
     pal = None
     palLen = 0
@@ -2302,7 +2310,7 @@ def saveTextureLoadOnly(
     omitSetTile = False,
 ):
     fmt = texFormatOf[texProp.tex_format]
-    siz = texBitSizeOf[texProp.tex_format]
+    siz = texBitSizeF3D[texProp.tex_format]
     nocm = ["G_TX_WRAP", "G_TX_NOMIRROR"]
     SL, TL, SH, TH, sl, tl, sh, th = getTileSizeSettings(texProp, tileSettings, f3d)
 
@@ -2381,7 +2389,7 @@ def saveTextureTile(
     shifts = shift_S if shift_S >= 0 else (shift_S + 16)
     shiftt = shift_T if shift_T >= 0 else (shift_T + 16)
     fmt = texFormatOf[texProp.tex_format]
-    siz = texBitSizeOf[texProp.tex_format]
+    siz = texBitSizeF3D[texProp.tex_format]
     SL, _, SH, _, sl, tl, sh, th = getTileSizeSettings(texProp, tileSettings, f3d)
     line = getTileLine(fImage, SL, SH, siz, f3d)
 
@@ -2531,7 +2539,7 @@ def writeNonCITextureData(image: bpy.types.Image, fImage: FImage, texFmt: str):
     if fImage.converted:
         return
     fmt = texFormatOf[texFmt]
-    bitSize = texBitSizeOf[texFmt]
+    bitSize = texBitSizeF3D[texFmt]
 
     pixels = image.pixels[:]
     if fmt == "G_IM_FMT_RGBA":

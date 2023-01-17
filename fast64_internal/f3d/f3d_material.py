@@ -26,7 +26,7 @@ bitSizeDict = {
     "G_IM_SIZ_32b": 32,
 }
 
-texBitSizeOf = {
+texBitSizeF3D = {
     "I4": "G_IM_SIZ_4b",
     "IA4": "G_IM_SIZ_4b",
     "CI4": "G_IM_SIZ_4b",
@@ -219,7 +219,7 @@ class DrawLayerProperty(bpy.types.PropertyGroup):
 
 
 def getTmemWordUsage(texFormat, width, height):
-    texelsPerLine = 64 / bitSizeDict[texBitSizeOf[texFormat]]
+    texelsPerLine = 64 / texBitSizeInt[texFormat]
     return math.ceil(width / texelsPerLine) * height
 
 
@@ -518,6 +518,13 @@ class F3DPanel(bpy.types.Panel):
         prop_input.enabled = setProp
         return inputGroup
 
+    def ui_large(self, material, layout):
+        layout.prop(material, "use_large_textures")
+        if material.use_large_textures:
+            inputGroup = layout.row().split(factor=0.5)
+            inputGroup.label(text="Large texture edges:")
+            inputGroup.prop(material, "large_edges", text="")
+
     def ui_scale(self, material, layout):
         inputGroup = layout.row().split(factor=0.5)
         prop_input = inputGroup.column()
@@ -789,7 +796,7 @@ class F3DPanel(bpy.types.Panel):
             inputCol.prop(f3dMat, "uv_basis", text="UV Basis")
 
         if useDict["Texture"]:
-            inputCol.prop(f3dMat, "use_large_textures")
+            self.ui_large(f3dMat, inputCol)
             self.ui_scale(f3dMat, inputCol)
 
         if useDict["Primitive"] and f3dMat.set_prim:
@@ -891,7 +898,7 @@ class F3DPanel(bpy.types.Panel):
                 inputCol.prop(f3dMat, "uv_basis", text="UV Basis")
 
             if useDict["Texture"]:
-                inputCol.prop(f3dMat, "use_large_textures")
+                self.ui_large(f3dMat, inputCol)
                 self.ui_scale(f3dMat, inputCol)
 
             if useDict["Primitive"]:
@@ -2267,9 +2274,8 @@ def ui_image(
                 prop_input.label(text="Size: " + str(tex.size[0]) + " x " + str(tex.size[1]))
 
         if canUseLargeTextures:
-            prop_input.label(text="Large texture mode enabled.")
-            prop_input.label(text="Each triangle must fit in a single tile load.")
-            prop_input.label(text="UVs must be in the [0, 1024] pixel range.")
+            prop_input.row().label(text="Large texture mode enabled.")
+            prop_input.row().label(text="Recommend using Create Large Texture Mesh tool.")
         else:
             tmemUsageUI(prop_input, textureProp)
 
@@ -3462,6 +3468,7 @@ class F3DMaterialProperty(bpy.types.PropertyGroup):
 
     draw_layer: bpy.props.PointerProperty(type=DrawLayerProperty)
     use_large_textures: bpy.props.BoolProperty(name="Large Texture Mode")
+    large_edges: bpy.props.EnumProperty(items=enumLargeEdges, default="Clamp")
 
     def key(self) -> F3DMaterialHash:
         useDefaultLighting = self.set_lights and self.use_default_lighting

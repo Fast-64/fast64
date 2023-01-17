@@ -183,7 +183,7 @@ class OOTModel(FModel):
             fImage_temp = FImage(
                 checkDuplicateTextureName(model, toAlnum(imageName)),
                 texFormatOf[texProp.tex_format],
-                texBitSizeOf[texProp.tex_format],
+                texBitSizeF3D[texProp.tex_format],
                 texProp.tex_reference_size[0],
                 texProp.tex_reference_size[1],
                 filename,
