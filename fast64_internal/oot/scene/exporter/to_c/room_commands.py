@@ -31,7 +31,7 @@ def getTimeSettingsCmd(outRoom: OOTRoom):
 def getWindSettingsCmd(outRoom: OOTRoom):
     return (
         indent
-        + f"SCENE_CMD_WIND_SETTINGS({', '.join(f'{dir}' for dir in outRoom.windVector)}, {outRoom.windStrength})\n"
+        + f"SCENE_CMD_WIND_SETTINGS({', '.join(f'{dir}' for dir in outRoom.windVector)}, {outRoom.windStrength}),\n"
     )
 
 
