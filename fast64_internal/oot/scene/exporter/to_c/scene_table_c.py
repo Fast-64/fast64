@@ -11,6 +11,16 @@ def getSceneNameSettings(scene):
         return bpy.context.scene.ootSceneRemoveSettings.option
 
 
+def getHackerOoTCheck(line: str):
+    return (
+        line != "\n"
+        and '#include "config.h"\n' not in line
+        and "#ifdef INCLUDE_TEST_SCENES" not in line
+        and "#endif" not in line
+        and not line.startswith("// ")
+    )
+
+
 def getSceneTable(exportPath):
     """Read and remove unwanted stuff from ``scene_table.h``"""
     dataList = []
@@ -22,13 +32,7 @@ def getSceneTable(exportPath):
         with open(os.path.join(exportPath, "include/tables/scene_table.h")) as fileData:
             # keep the relevant data and do some formatting
             for i, line in enumerate(fileData):
-                if (
-                    line != "\n"
-                    and '#include "config.h"\n' not in line
-                    and "#ifdef INCLUDE_TEST_SCENES" not in line
-                    and "#endif" not in line
-                    and not line.startswith("// ")
-                ):
+                if not bpy.context.scene.fast64.oot.hackerFeaturesEnabled or getHackerOoTCheck(line):
                     if not (line.startswith("/**") or line.startswith(" *")):
                         dataList.append(line[(line.find("(") + 1) :].rstrip(")\n").replace(" ", "").split(","))
                     else:
