@@ -4,7 +4,7 @@ from ....oot_constants import ootEnumSceneID, ootSceneNameToID
 from ....oot_utility import getCustomProperty, ExportInfo
 
 
-def getSceneSettingsOption(scene):
+def getSceneNameSettings(scene):
     if scene is not None:
         return bpy.context.scene.ootSceneExportSettings.option
     else:
@@ -97,7 +97,7 @@ def getInsertionIndex(scene, sceneNames, sceneName, index, mode):
             elif mode == "EXPORT":
                 return (
                     i
-                    if not sceneName in sceneNames and sceneName != getSceneSettingsOption(scene)
+                    if not sceneName in sceneNames and sceneName != getSceneNameSettings(scene)
                     else i + 1
                 )
             # same but don't check for chosen scene
@@ -114,7 +114,7 @@ def getSceneParams(scene, exportInfo, sceneNames):
     """Returns the parameters that needs to be set in ``DEFINE_SCENE()``"""
     # in order to replace the values of ``unk10``, ``unk12`` and basically every parameters from ``DEFINE_SCENE``,
     # you just have to make it return something other than None, not necessarily a string
-    sceneIndex = getSceneIndex(sceneNames, getSceneSettingsOption(scene))
+    sceneIndex = getSceneIndex(sceneNames, getSceneNameSettings(scene))
     sceneName = sceneTitle = sceneID = sceneUnk10 = sceneUnk12 = None
     name = scene.name if scene is not None else exportInfo.name
 
@@ -173,21 +173,21 @@ def getDrawConfig(sceneName: str):
 
 def addHackerOoTData(fileData: str):
     """Reads the file and adds HackerOoT's modifications to the scene table file"""
-    newFileData = '#include "config.h"\n\n'
+    newFileData = ['#include "config.h"\n\n']
 
-    for line in fileData.split("\n"):
+    for line in fileData.splitlines():
         if "// Debug-only scenes" in line:
-            newFileData += "\n#ifdef INCLUDE_TEST_SCENES\n"
+            newFileData.append("\n#ifdef INCLUDE_TEST_SCENES\n")
 
         if "// Added scenes" in line:
-            newFileData += "#endif\n\n"
+            newFileData.append("#endif\n\n")
 
-        newFileData += f"{line}\n"
+        newFileData.append(f"{line}\n")
 
     if not "// Added scenes" in fileData:
-        newFileData = newFileData[:-1] + "#endif\n\n"
+        newFileData.append("#endif\n")
 
-    return newFileData[:-1]
+    return "".join(newFileData)
 
 
 def modifySceneTable(scene, exportInfo: ExportInfo):
@@ -210,7 +210,7 @@ def modifySceneTable(scene, exportInfo: ExportInfo):
     # that means the selected scene has been removed from the table
     # however if the scene variable is not None
     # set it to "INSERT" because we need to insert the scene in the right place
-    if sceneIndex is None and getSceneSettingsOption(scene) == "Custom":
+    if sceneIndex is None and getSceneNameSettings(scene) == "Custom":
         mode = "CUSTOM"
     elif sceneIndex is None and scene is not None:
         mode = "INSERT"
@@ -261,13 +261,7 @@ def modifySceneTable(scene, exportInfo: ExportInfo):
     newFileData = sceneTableToC(fileData, header, sceneNames, scene)
 
     # apply HackerOoT changes if needed
-    isHackerOoT = False
-
-    with open(os.path.join(exportPath, "include/tables/scene_table.h"), "r") as file:
-        if '#include "config.h"' in file.read():
-            isHackerOoT = True
-
-    if isHackerOoT:
+    if bpy.context.scene.fast64.oot.hackerFeaturesEnabled:
         newFileData = addHackerOoTData(newFileData)
 
     # write the file with the final data
