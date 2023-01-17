@@ -95,11 +95,7 @@ def getInsertionIndex(scene, sceneNames, sceneName, index, mode):
                 return i + 1
             # return an index to insert a comment
             elif mode == "EXPORT":
-                return (
-                    i
-                    if not sceneName in sceneNames and sceneName != getSceneNameSettings(scene)
-                    else i + 1
-                )
+                return i if not sceneName in sceneNames and sceneName != getSceneNameSettings(scene) else i + 1
             # same but don't check for chosen scene
             elif mode == "REMOVE":
                 return i if not sceneName in sceneNames else i + 1
