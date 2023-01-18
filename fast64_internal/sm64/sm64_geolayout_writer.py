@@ -2699,6 +2699,7 @@ def saveSkinnedMeshByMaterial(
                     obj.data,
                     bufferVert.f3dVert.position,
                     bufferVert.f3dVert.uv,
+                    bufferVert.f3dVert.stOffset,
                     bufferVert.f3dVert.getColorOrNormal(),
                     texDimensions,
                     parentMatrix,
@@ -2771,11 +2772,11 @@ def saveSkinnedMeshByMaterial(
     # 		fMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
     #
     # 	convertInfo = LoopConvertInfo(uv_data, obj, exportVertexColors)
-    # 	triConverter = TriangleConverter(triConverterInfo, texDimensions, None, material,
+    # 	triConverter = TriangleConverter(triConverterInfo, texDimensions, material,
     # 		None, triGroup.triList, triGroup.vertexList, copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict))
-    # 	saveTriangleStrip(triConverter, [skinnedFace.bFace for skinnedFace in skinnedFaceArray], obj.data, True)
+    # 	saveTriangleStrip(triConverter, [skinnedFace.bFace for skinnedFace in skinnedFaceArray], None, obj.data, True)
     # 	saveTriangleStrip(triConverterClass,
-    # 		[skinnedFace.bFace for skinnedFace in skinnedFaceArray],
+    # 		[skinnedFace.bFace for skinnedFace in skinnedFaceArray], None,
     # 		convertInfo, triGroup.triList, triGroup.vertexList, fModel.f3d,
     # 		texDimensions, currentMatrix, isPointSampled, exportVertexColors,
     # 		copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict),

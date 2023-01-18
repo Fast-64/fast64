@@ -271,7 +271,7 @@ class TileLoad:
         self.texDimensions = texDimensions
         self.materialName = material.name
         self.isPointSampled = isTexturePointSampled(material)
-        self.largeEdges = material.large_edges
+        self.largeEdges = material.f3d_mat.large_edges
         
         self.faces = []
         self.offsets = []
@@ -296,8 +296,8 @@ class TileLoad:
 
     def fixRegion(self, sl, sh, tl, th):
         assert sl <= sh and tl <= th
-        soffset = int(floor(sl / self.texDimensions[0])) * self.texDimensions[0]
-        toffset = int(floor(tl / self.texDimensions[1])) * self.texDimensions[1]
+        soffset = int(math.floor(sl / self.texDimensions[0])) * self.texDimensions[0]
+        toffset = int(math.floor(tl / self.texDimensions[1])) * self.texDimensions[1]
         sl -= soffset
         sh -= soffset
         tl -= toffset
@@ -317,11 +317,9 @@ class TileLoad:
                     + f" large texture must be at least {texelsPerLine} wide."
                 )
             sl -= self.texDimensions[0]
-            sl = int(floor(sl / texelsPerLine)) * texelsPerLine
+            sl = int(math.floor(sl / texelsPerLine)) * texelsPerLine
             sl += self.texDimensions[0]
-        newWidth = new_sh - new_sl + 1
-        newHeight = new_th - new_tl + 1
-        tmemUsage = getTmemWordUsage(self.texFormat, newWidth, newHeight)
+        tmemUsage = getTmemWordUsage(self.texFormat, sh - sl + 1, th - tl + 1)
         if tmemUsage > self.tmemWordsAvail:
             ret = False
         return ret, sl, sh, tl, th, soffset, toffset
@@ -368,7 +366,7 @@ class TileLoad:
         new_sh = max(self.sh, other.sh)
         new_tl = min(self.tl, other.tl)
         new_th = max(self.th, other.th)
-        ret, new_sl, new_sh, new_tl, new_th, soffset, toffset = fixRegion(
+        ret, new_sl, new_sh, new_tl, new_th, soffset, toffset = self.fixRegion(
             new_sl, new_sh, new_tl, new_th)
         if not ret:
             return False
@@ -385,27 +383,81 @@ def maybeSaveSingleLargeTextureSetup(
     fImage: FImage,
     gfxOut: GfxList,
     texProp: TextureProperty,
+    texDimensions: tuple[int, int],
     tileSettings: TileLoad,
     curImgSet: Union[None, int],
     curTileLines: list[int]
 ):
     if fMaterial.isTexLarge[i]:
-        line = getTileLine(
-            fImage, tileSettings.sl, tileSettings.sh, texBitSizeF3D[texProp.tex_format], fModel.f3d)
-        print(f"Tile: {tileSettings.sl}-{tileSettings.sh} x {tileSettings.tl}-{tileSettings.th}")
-        saveTextureLoadOnly(
-            fImage,
-            gfxOut,
-            texProp,
-            tileSettings,
-            7 - i,
-            fMaterial.largeTexAddr[i],
-            fModel.f3d,
-            curImgSet == i,
-            line == curTileLines[7 - i],
-        )
+        wrapS = tileSettings.sh >= texDimensions[0]
+        wrapT = tileSettings.th >= texDimensions[1]
+        assert 0 <= tileSettings.sl < texDimensions[0]
+        assert 0 <= tileSettings.tl < texDimensions[1]
+        siz = texBitSizeF3D[texProp.tex_format]
+        line = getTileLine(fImage, tileSettings.sl, tileSettings.sh, siz, fModel.f3d)
+        tmem = fMaterial.largeTexAddr[i]
+        if wrapS or wrapT:
+            fmt = texFormatOf[texProp.tex_format]
+            texelsPerLine = 64 / texBitSizeInt[fmt]
+            wid = texDimensions[0]
+            is4bit = siz == "G_IM_SIZ_4b"
+            if is4bit:
+                siz = "G_IM_SIZ_8b"
+                wid >>= 1
+                assert (tileSettings.sl & 1) == 0
+                assert (tileSettings.sh & 1) == 1
+            # TL, TH is always * 4 because tile values are 10.2 fixed.
+            # SL, SH is * 2 for 4 bit and * 4 otherwise, because actually loading
+            # 8 bit pairs of texels. Also written using f3d.G_TEXTURE_IMAGE_FRAC.
+            sm = 2 if is4bit else 4
+            nocm = ["G_TX_WRAP", "G_TX_NOMIRROR"]
+            if curImgSet != i:
+                gfxOut.commands.append(DPSetTextureImage(fmt, siz, wid, fImage))
+            def loadOneOrTwoS(tmemBase, tidxBase, TL, TH):
+                if line != curTileLines[tidxBase]:
+                    gfxOut.commands.append(DPSetTile(
+                        fmt, siz, line, tmemBase, tidxBase, 0, nocm, 0, 0, nocm, 0, 0))
+                    curTileLines[tidxBase] = line
+                if wrapS:
+                    # Break up at the wrap boundary into two tile loads.
+                    # The first load must occupy a whole number of lines.
+                    assert (texDimensions[0] - tileSettings.sl) % texelsPerLine == 0
+                    sLineOfs = (texDimensions[0] - tileSettings.sl) // texelsPerLine
+                    gfxOut.commands.append(DPLoadTile(
+                        tidxBase, tileSettings.sl * sm, TL*4, (texDimensions[0] - 1) * sm, TH*4))
+                    gfxOut.commands.append(DPSetTile(
+                        fmt, siz, line, tmemBase + sLineOfs, tidxBase-1, 0, nocm, 0, 0, nocm, 0, 0))
+                    curTileLines[tidxBase-1] = -1
+                    gfxOut.commands.append(DPLoadTile(
+                        tidxBase-1, 0, TL*4, (tileSettings.sh - texDimensions[0]) * sm, TH*4))
+                else:
+                    gfxOut.commands.append(DPLoadTile(
+                        tidxBase, tileSettings.sl * sm, TL*4, tileSettings.sh * sm, TH*4))
+            if wrapT:
+                # Break up at the wrap boundary into two loads. No special restrictions.
+                tLineOfs = line * (texDimensions[1] - tileSettings.tl)
+                loadOneOrTwoS(tmem, 7, tileSettings.tl, texDimensions[1] - 1)
+                loadOneOrTwoS(tmem + tLineOfs, 5, 0, tileSettings.th - texDimensions[1])
+            else:
+                loadOneOrTwoS(tmem, 7, tileSettings.tl, tileSettings.th)
+            if fMaterial.isTexLarge[i^1]:
+                # May reuse any of the above tiles for the other large texture.
+                gfxOut.commands.append(DPTileSync())
+        else:
+            print(f"Tile: {tileSettings.sl}-{tileSettings.sh} x {tileSettings.tl}-{tileSettings.th}")
+            saveTextureLoadOnly(
+                fImage,
+                gfxOut,
+                texProp,
+                tileSettings,
+                7 - i,
+                tmem,
+                fModel.f3d,
+                curImgSet == i,
+                line == curTileLines[7 - i],
+            )
+            curTileLines[7 - i] = line
         curImgSet = i
-        curTileLines[7 - i] = line
         saveTextureTile(
             fImage,
             fMaterial,
@@ -413,7 +465,7 @@ def maybeSaveSingleLargeTextureSetup(
             texProp,
             tileSettings,
             i,
-            fMaterial.largeTexAddr[i],
+            tmem,
             fMaterial.texPaletteIndex[i],
             fModel.f3d,
             line == curTileLines[i],
@@ -483,16 +535,17 @@ def saveMeshWithLargeTexturesByFaces(
         # potentially corrupting TMEM
         triGroup.triList.commands.append(DPLoadSync())
         curImgSet = maybeSaveSingleLargeTextureSetup(
-            0, fMaterial, fModel, fImage0, triGroup.triList, f3dMat.tex0, tileLoad, curImgSet, curTileLines
+            0, fMaterial, fModel, fImage0, triGroup.triList, f3dMat.tex0,
+            texDimensions, tileLoad, curImgSet, curTileLines
         )
         curImgSet = maybeSaveSingleLargeTextureSetup(
-            1, fMaterial, fModel, fImage1, triGroup.triList, f3dMat.tex1, tileLoad, curImgSet, curTileLines
+            1, fMaterial, fModel, fImage1, triGroup.triList, f3dMat.tex1,
+            texDimensions, tileLoad, curImgSet, curTileLines
         )
 
         triConverter = TriangleConverter(
             triConverterInfo,
             texDimensions,
-            tileLoad.offsets, # TODO
             material,
             currentGroupIndex,
             triGroup.triList,
@@ -501,7 +554,13 @@ def saveMeshWithLargeTexturesByFaces(
             copy.deepcopy(matRegionDict),
         )
 
-        currentGroupIndex = saveTriangleStrip(triConverter, tileLoad.faces, obj.data, False)
+        currentGroupIndex = saveTriangleStrip(
+            triConverter,
+            tileLoad.faces,
+            tileLoad.offsets,
+            obj.data,
+            False
+        )
 
         if len(revertCommands.commands) > 0:
             fMesh.draw.commands.extend(revertCommands.commands)
@@ -605,9 +664,9 @@ def addCullCommand(obj, fMesh, transformMatrix, matWriteMethod):
                 obj.data,
                 mathutils.Vector(vertexPos),
                 [0, 0],
+                None,
                 mathutils.Vector([0, 0, 0, 0]),
                 [32, 32],
-                None,
                 transformMatrix,
                 False,
                 False,
@@ -749,7 +808,7 @@ def getNextNeighborFace(faces, face, lastEdgeKey, visitedFaces, possibleFaces, i
     return nextFaceAndEdge
 
 
-def saveTriangleStrip(triConverter, faces, mesh, terminateDL):
+def saveTriangleStrip(triConverter, faces, faceSTOffsets, mesh, terminateDL):
     visitedFaces = []
     unvisitedFaces = copy.copy(faces)
     possibleFaces = []
@@ -770,7 +829,8 @@ def saveTriangleStrip(triConverter, faces, mesh, terminateDL):
                 neighborFace = getLowestUnvisitedNeighborCountFace(unvisitedFaces, infoDict)
                 lastEdgeKey = None
 
-        triConverter.addFace(neighborFace)
+        stOffset = None if faceSTOffsets is None else faceSTOffsets[faces.index(neighborFace)]
+        triConverter.addFace(neighborFace, stOffset)
         if neighborFace in visitedFaces:
             raise PluginError("Repeated face")
         visitedFaces.append(neighborFace)
@@ -840,7 +900,6 @@ def saveMeshByFaces(
     triConverter = TriangleConverter(
         triConverterInfo,
         texDimensions,
-        None,
         material,
         currentGroupIndex,
         triGroup.triList,
@@ -849,7 +908,7 @@ def saveMeshByFaces(
         copy.deepcopy(matRegionDict),
     )
 
-    currentGroupIndex = saveTriangleStrip(triConverter, faces, obj.data, True)
+    currentGroupIndex = saveTriangleStrip(triConverter, faces, None, obj.data, True)
 
     if fMaterial.revert is not None:
         fMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
@@ -905,6 +964,7 @@ class F3DVert:
     ):
         self.position: mathutils.Vector = position
         self.uv: mathutils.Vector = uv
+        self.stOffset: tuple(int, int) | None = None
         self.color: mathutils.Vector | None = color
         self.normal: mathutils.Vector | None = normal
 
@@ -914,6 +974,7 @@ class F3DVert:
         return (
             self.position == other.position
             and self.uv == other.uv
+            and self.stOffset == other.stOffset
             and self.color == other.color
             and self.normal == other.normal
         )
@@ -984,7 +1045,6 @@ class TriangleConverter:
         self,
         triConverterInfo: TriangleConverterInfo,
         texDimensions: tuple[int, int],
-        stOffset: Union[None, tuple[int, int]],
         material: bpy.types.Material,
         currentGroupIndex,
         triList,
@@ -1011,7 +1071,6 @@ class TriangleConverter:
         uv_data = triConverterInfo.obj.data.uv_layers["UVMap"].data
         self.convertInfo = LoopConvertInfo(uv_data, triConverterInfo.obj, exportVertexColors)
         self.texDimensions = texDimensions
-        self.stOffset = stOffset
         self.isPointSampled = isTexturePointSampled(material)
         self.exportVertexColors = exportVertexColors
         self.tex_scale = material.f3d_mat.tex_scale
@@ -1058,9 +1117,9 @@ class TriangleConverter:
                         self.triConverterInfo.mesh,
                         bufferVert.f3dVert.position,
                         bufferVert.f3dVert.uv,
+                        bufferVert.f3dVert.stOffset,
                         bufferVert.f3dVert.getColorOrNormal(),
                         self.texDimensions,
-                        self.stOffset,
                         self.triConverterInfo.getTransformMatrix(bufferVert.groupIndex),
                         self.isPointSampled,
                         self.exportVertexColors,
@@ -1093,9 +1152,9 @@ class TriangleConverter:
                         self.triConverterInfo.mesh,
                         bufferVert.f3dVert.position,
                         bufferVert.f3dVert.uv,
+                        bufferVert.f3dVert.stOffset,
                         bufferVert.f3dVert.getColorOrNormal(),
                         self.texDimensions,
-                        self.stOffset,
                         self.triConverterInfo.getTransformMatrix(bufferVert.groupIndex),
                         self.isPointSampled,
                         self.exportVertexColors,
@@ -1110,7 +1169,7 @@ class TriangleConverter:
             createTriangleCommands(self.vertexBufferTriangles, self.vertBuffer, self.triConverterInfo.f3d.F3DEX_GBI)
         )
 
-    def addFace(self, face):
+    def addFace(self, face, stOffset):
         triIndices = []
         addedVerts = []  # verts added to existing vertexBuffer
         allVerts = []  # all verts not in 'untouched' buffer region
@@ -1125,6 +1184,7 @@ class TriangleConverter:
             bufferVert = BufferVertex(
                 getF3DVert(loop, face, self.convertInfo, self.triConverterInfo.mesh), vertexGroup, face.material_index
             )
+            bufferVert.f3dVert.stOffset = stOffset
             triIndices.append(bufferVert)
             if not self.vertInBuffer(bufferVert, face.material_index):
                 addedVerts.append(bufferVert)
@@ -1298,9 +1358,9 @@ def convertVertexData(
     mesh,
     loopPos,
     loopUV,
+    stOffset,
     loopColorOrNormal,
     texDimensions,
-    stOffset,
     transformMatrix,
     isPointSampled,
     exportVertexColors,
@@ -2220,7 +2280,7 @@ def getAndCheckTexInfo(
     if imageWidth > 1024 or imageHeight > 1024:
         raise PluginError(f'Error in "{material.name}": Image size (even with large textures) limited to 1024 in either dimension.')
     
-    if texBitSizeInt[texFmt] == 4 and (imageWidth & 1) != 0:
+    if texBitSizeInt[texFormat] == 4 and (imageWidth & 1) != 0:
         raise PluginError(f'Error in "{material.name}": A 4-bit image must have a width which is even.')
 
     pal = None
