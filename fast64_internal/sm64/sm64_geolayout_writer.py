@@ -2524,6 +2524,8 @@ def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, dr
                             commandIdx -= 1
                     # We found what this current command is, so we can skip checking other materials
                     break
+                if not command.displayList.tag == GfxListTag.Geometry:
+                    continue
                 # Check if the previous command was a revert we added, as a revert must be followed by a load for it to
                 # be valid. This command is confirmed to not be a material load, so remove the previous command if it is
                 # an added revert.
@@ -2538,7 +2540,7 @@ def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, dr
                 # If the override material has a revert and the original material didn't, insert a revert after this command.
                 # This is needed to ensure that override materials that need a revert get them.
                 # Reverts are only needed if the next command is a different material load
-                if fMaterial.revert is None and fOverrideMat.revert is not None:
+                if fMaterial.revert is None and fOverrideMat.revert is not None and prevMaterial == fOverrideMat:
                     nextCommand = meshMatOverride.commands[commandIdx + 1]
                     if isinstance(nextCommand, SPDisplayList) and nextCommand.displayList.tag == GfxListTag.Material and nextCommand.displayList != prevMaterial.material:
                         # Insert the new command
