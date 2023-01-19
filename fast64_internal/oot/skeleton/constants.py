@@ -1,7 +1,5 @@
-import bpy, mathutils
 from collections import OrderedDict
-from ..utility import PluginError, raisePluginError
-from .oot_utility import getStartBone, getNextBone
+
 
 # Adding new rest pose entry:
 # 1. Import a generic skeleton
@@ -11,34 +9,7 @@ from .oot_utility import getStartBone, getNextBone
 #       - list of tuples, first is root position, rest are euler XYZ rotations
 # 5. Add object to ootSkeletonImportDict
 
-
-def applySkeletonRestPose(boneData: list[tuple[float, float, float]], armatureObj: bpy.types.Object):
-    if bpy.context.mode != "OBJECT":
-        bpy.ops.object.mode_set(mode="OBJECT")
-    bpy.ops.object.select_all(action="DESELECT")
-    armatureObj.select_set(True)
-
-    bpy.ops.object.mode_set(mode="POSE")
-
-    startBoneName = getStartBone(armatureObj)
-    boneStack = [startBoneName]
-
-    index = 0
-    while len(boneStack) > 0:
-        bone, boneStack = getNextBone(boneStack, armatureObj)
-        poseBone = armatureObj.pose.bones[bone.name]
-        if index == 0:
-            poseBone.location = mathutils.Vector(boneData[index])
-
-        poseBone.rotation_mode = "XYZ"
-        poseBone.rotation_euler = mathutils.Euler(boneData[index + 1])
-        index += 1
-
-    bpy.ops.object.mode_set(mode="OBJECT")
-    bpy.ops.object.armature_apply_w_mesh()
-
-
-# Link overlay will be "", since link texture array data is handled as a special case.
+# Link overlay will be "", since Link texture array data is handled as a special case.
 class OOTSkeletonImportInfo:
     def __init__(
         self,

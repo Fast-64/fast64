@@ -6,7 +6,8 @@ from mathutils import Matrix
 from ...f3d.f3d_gbi import DLFormat
 from ...utility import PluginError, raisePluginError
 from ..oot_utility import getStartBone, getNextBone, getOOTScale
-from ..oot_skeleton import ootImportSkeletonC, ootConvertArmatureToC
+from .exporter import ootConvertArmatureToC
+from .importer import ootImportSkeletonC
 from .properties import OOTSkeletonImportSettings, OOTSkeletonExportSettings
 
 

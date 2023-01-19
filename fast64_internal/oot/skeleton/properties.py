@@ -3,7 +3,7 @@ from bpy.props import EnumProperty, PointerProperty, StringProperty, FloatProper
 from bpy.utils import register_class, unregister_class
 from ...f3d.f3d_material import ootEnumDrawLayers
 from ...utility import prop_split
-from ..oot_skeleton_import_data import ootEnumSkeletonImportMode
+from .constants import ootEnumSkeletonImportMode
 
 
 ootEnumBoneType = [
