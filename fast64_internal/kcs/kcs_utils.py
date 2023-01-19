@@ -50,6 +50,11 @@ class KCS_Cdata(CData):
     def tell(self):
         return 0
 
+    def extend(self, iterable: Sequence):
+        for val in iterable:
+            self.source += val.source
+            self.header += val.header
+
     def write(self, content: str):
         self.source += content
 
@@ -70,13 +75,15 @@ class PointerManager:
             return id(obj)
 
     # add a pointer target obj to self.ptr_targets, and then return a placeholder object which is filled in after first pass writing
-    def add_target(self, obj: object, multi: object = None):
+    def add_target(self, obj: object, multi: object = None, cast: str = ""):
         # you can have multiple targets to the same object, so check before making a new Pointer obj
         # though you can also write something multiple times, and only want a pointer to one of those locations
         # so an optional argument is added to bind the specific call to the multi use owner (usually a gfxList)
+
+        # cast is bound by the caller, because it is specific to the struct/arr not where it is going
         ptr = self.ptr_targets.get(self.resolve_obj_id(obj, multi), None)
         if not ptr or multi:
-            ptr = Pointer(obj)
+            ptr = Pointer(obj, cast=cast)
             self.ptr_targets[self.resolve_obj_id(obj, multi)] = ptr
         return ptr
 
@@ -93,22 +100,31 @@ class PointerManager:
         return obj
 
 
-# generic container for structs
-class StructContainer:
-    def __init__(self, data):
-        self.dat = data
-
-
 # Placeholder pointer values
 class Pointer:
-    def __init__(self, obj: object):
+    def __init__(self, obj: object, cast: str = ""):
         self.obj = obj
         self.value = 0
         self.location = 0
         self.symbol = "NULL_ptr"
+        self.cast = cast
+
+    @property
+    def export_sym(self):
+        if self.cast:
+            cast = f"({self.cast}) "
+        else:
+            cast = ""
+        return f"{cast}{self.symbol}"
 
     def __str__(self):
         return f"Pointer_Type.{id(self)}"
+
+
+# generic container for structs
+class StructContainer:
+    def __init__(self, data):
+        self.dat = data
 
 
 # just a base class that holds some binary processing
@@ -163,12 +179,12 @@ class BinWrite:
     # now that things are written, find the replacement data for all the pointers
     def resolve_ptrs_c(self, file: KCS_Cdata):
         for obj, ptr in self.ptrManager.ptr_targets.items():
-            file.source = file.source.replace(str(ptr), ptr.symbol)
-    
-    # given a symbol with a data type, make an extern and add it 
+            file.source = file.source.replace(str(ptr), ptr.export_sym)
+
+    # given a symbol with a data type, make an extern and add it
     def add_header(self, file: KCS_Cdata, datType: str, label: str):
         file.header += f"extern {datType} {label};\n"
-    
+
     # format arr data
     def format_arr(self, vals: Union[Sequence, Str], name: str, file: KCS_Cdata):
         # infer type from first item of each array
@@ -188,7 +204,7 @@ class BinWrite:
         vals = []
         for j, a in enumerate(arr):
             # set symbol if obj is a ptr target
-            self.ptr_obj(arr, file, f"{name} + j")
+            self.ptr_obj(arr, file, f"&{name}[{j}]")
             if a == 0x99999999 or a == (0x9999, 0x9999):
                 vals.append(f"ARR_TERMINATOR")
             elif BI:
@@ -211,22 +227,43 @@ class BinWrite:
         return func(arr, name, file, **kwargs)
 
     # write generic array, use recursion to unroll all loops
-    def write_arr(self, file: KCS_Cdata, arrFormat: str, name: str, arr: Sequence, func: callable, **kwargs):
+    def write_arr(
+        self, file: KCS_Cdata, arr_format: str, name: str, arr: Sequence, func: callable, length=None, **kwargs
+    ):
         # set symbol if obj is a ptr target
-        self.ptr_obj(arr, file, name)
-        self.add_header(file, arrFormat, f"{name}[{len(arr)}]")
-        file.write(f"{arrFormat} {name}[{len(arr)}] = {{\n\t")
+        self.ptr_obj(arr, file, f"&{name}")
+        self.add_header(file, arr_format, f"{name}[{self.write_truthy(length)}]")
+        file.write(f"{arr_format} {name}[{self.write_truthy(length)}] = {{\n\t")
         # use array formatter func
         file.write(self.format_iter(arr, func, name, file, **kwargs))
         file.write("\n};\n\n")
 
+    # write if val exists else return nothing
+    def write_truthy(self, val):
+        if val:
+            return val
+        return ""
+
+    # sort a dict by keys, useful for making sure DLs are in mem order
+    # instead of being in referenced order
+    def SortDict(self, dictionary):
+        return {k: dictionary[k] for k in sorted(dictionary.keys())}
+
     # write a struct from a python dictionary
-    def write_dict_struct(self, structDat: object, structFormat: dict, file: KCS_Cdata, prototype: str, name: str):
+    def write_dict_struct(
+        self,
+        struct_dat: object,
+        struct_format: dict,
+        file: "filestream write",
+        prototype: str,
+        name: str,
+        align="",
+    ):
         # set symbol if obj is a ptr target
-        self.ptr_obj(structDat, file, f"&{name}")
+        self.ptr_obj(struct_dat, file, f"&{name}")
         self.add_header(file, f"struct {prototype}", name)
-        file.write(f"struct {prototype} {name} = {{\n")
-        for x, y, z in zip(structFormat.values(), structDat.dat, structFormat.keys()):
+        file.write(f"{align + ' '* bool(align)}struct {prototype} {name} = {{\n")
+        for x, y, z in zip(struct_format.values(), struct_dat.dat, struct_format.keys()):
             # x is (data type, string name, is arr/ptr etc.)
             # y is the actual variable value
             # z is the struct hex offset
@@ -234,13 +271,31 @@ class BinWrite:
                 arr = "arr" in x[2] and hasattr(y, "__iter__")
             except:
                 arr = 0
+            try:
+                ptrs = "ptr" in x[2]
+            except:
+                ptrs = 0
+            if ptrs:
+                value = y if y else "NULL"
+                # ptr targets that are arrays don't need &
+                # screen via no& in formatting dict, complicated by different ptr system in bpy
+                # ampersand = "&" * ("no&" not in x[2])
+                # mutli dim arrays sometimes want a target, screen same as above
+                index = "[0]" * ("[0]" in x[2])
+                if value == "NULL":
+                    file.write(f"\t/* 0x{z:X} {x[1]}*/\t{value},\n")
+                else:
+                    if arr and is_arr(value):
+                        value = ", ".join(y)
+                        file.write(f"\t/* 0x{z:X} {x[1]}*/\t{{{value}}},\n")
+                    else:
+                        file.write(f"\t/* 0x{z:X} {x[1]}*/\t{y}{index},\n")
+                continue
             if "f32" in x[0] and arr:
-                value = ", ".join([f"{a:f}" for a in y])
+                value = ", ".join([f"{a}" for a in y])
                 file.write(f"\t/* 0x{z:X} {x[1]}*/\t{{{value}}},\n")
                 continue
             if "f32" in x[0]:
-                file.write(f"\t/* 0x{z:X} {x[1]}*/\t{y:f},\n")
-            if "ptr" in x[2]:
                 file.write(f"\t/* 0x{z:X} {x[1]}*/\t{y},\n")
             elif arr:
                 value = ", ".join([hex(a) for a in y])
@@ -414,6 +469,14 @@ def BANK_INDEX(args: any):
 # ------------------------------------------------------------------------
 #    Helper Functions
 # ------------------------------------------------------------------------
+
+
+def is_arr(val):
+    if type(val) == str:
+        return False
+    if hasattr(val, "__iter__"):
+        return True
+    return False
 
 
 def apply_rotation_n64_to_bpy(obj: bpy.types.Object):

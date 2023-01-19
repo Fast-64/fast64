@@ -460,12 +460,18 @@ class Layout(BinProcess, BinWrite):
     rotation: Vector
     scale: Vector
     index: int = 0
+    # a manual DL stop
+    stop = None
 
     def __post_init__(self):
         self.symbol_init()
 
     def __hash__(self):
         return id(self)
+
+    @property
+    def is_vfx(self):
+        return (self.ptr >> 24) == 0x80
 
     @property
     def dat(self):
@@ -489,6 +495,8 @@ class Layout(BinProcess, BinWrite):
 class FauxLayout:
     ptr: int
     index: int = 0
+    # a manual DL stop
+    stop = None
 
     def __hash__(self):
         return id(self)
@@ -559,9 +567,7 @@ class GeoBinary(BinProcess):
 
     # layouts point to DL
     def decode_layout_17(self):
-        self.layouts = [
-            self.decode_layout(self.main_header[0] + 0x2C * i, index=i) for i in range(self.main_header[-1])
-        ]
+        self.get_layouts()
         starts = []
         for l in self.layouts:
             if l.ptr:
@@ -573,9 +579,7 @@ class GeoBinary(BinProcess):
 
     # layouts point to entry point
     def decode_layout_18(self):
-        self.layouts = [
-            self.decode_layout(self.main_header[0] + 0x2C * i, index=i) for i in range(self.main_header[-1])
-        ]
+        self.get_layouts()
         starts = []
         for l in self.layouts:
             if l.ptr:
@@ -587,9 +591,7 @@ class GeoBinary(BinProcess):
 
     # layout points to pair of DLs
     def decode_layout_1B(self):
-        self.layouts = [
-            self.decode_layout(self.main_header[0] + 0x2C * i, index=i) for i in range(self.main_header[-1])
-        ]
+        self.get_layouts()
         starts = []
         for l in self.layouts:
             if l.ptr:
@@ -601,9 +603,7 @@ class GeoBinary(BinProcess):
 
     # layout points to entry point with pair of DL
     def decode_layout_1C(self):
-        self.layouts = [
-            self.decode_layout(self.main_header[0] + 0x2C * i, index=i) for i in range(self.main_header[-1])
-        ]
+        self.get_layouts()
         starts = []
         for l in self.layouts:
             if l.ptr:
@@ -618,6 +618,21 @@ class GeoBinary(BinProcess):
         LY = self.upt(start, ">2HL9f", 0x2C)
         v = self._Vec3._make
         return Layout(*LY[0:3], v(LY[3:6]), v(LY[6:9]), v(LY[9:12]), index=index)
+
+    def get_layouts(self):
+        self.layouts = [
+            self.decode_layout(self.main_header[0] + 0x2C * i, index=i) for i in range(self.main_header[-1] + 1)
+        ]
+        # env vfx exists
+        if self.layouts[-1].is_vfx:
+            start = len(self.layouts)
+            x = 0
+            while True:
+                new_ly = self.decode_layout(self.main_header[0] + 0x2C * (start + x), index=(start + x))
+                self.layouts.append(new_ly)
+                x += 1
+                if new_ly.flag & 0x8000:
+                    break
 
     # has to be after func declarations
     _render_mode_map = {
@@ -709,6 +724,17 @@ class GeoBinary(BinProcess):
             if not cmd:
                 continue
             name, args = self.split_args(cmd)
+            # check for multi length cmd (branchZ and tex rect generally)
+            extra = f3dex2.check_double_cmd(name)
+            if extra:
+                name, args = f3dex2.fix_multi_cmd(self.file[start + x : start + x + extra], name, args)
+                x += extra
+            # adjust vertex pointer so it is an index into vert arr
+            if name == "gsSPVertex":
+                args[0] = self.seg2phys(int(args[0]) - 0x20) // 0x10
+                if (args[0] + int(args[1])) > self.max_vert:
+                    self.max_vert = args[0] + int(args[1])
+            # check for flow control
             if name == "gsSPEndDisplayList":
                 break
             elif name == "gsSPDisplayList":
@@ -717,8 +743,7 @@ class GeoBinary(BinProcess):
                     ly.eval_dl_segptrs.append(ptr)
                 DL.append((name, args))
                 continue
-            # this LoD info will probably just stay destroyed for now
-            elif name == "gsSPBranchLessZ":
+            elif name == "gsSPBranchLessZraw":
                 ptr = self.eval_dl_segptr(int(args[0]))
                 if ptr:
                     ly.eval_dl_segptrs.append(ptr)
@@ -729,6 +754,9 @@ class GeoBinary(BinProcess):
                 if ptr:
                     ly.eval_dl_segptrs.append(ptr)
                 DL.append((name, args))
+                break
+            # check for manual stop
+            if ly.stop and start + x + 8 > ly.stop:
                 break
             DL.append((name, args))
         DL.append((name, args))
@@ -876,7 +904,14 @@ class BpyGeo:
                 infoDict = getInfoDict(tempObj)
                 triConverterInfo = TriangleConverterInfo(tempObj, None, fModel.f3d, transformMatrix, infoDict)
                 fMeshes = saveStaticModel(
-                    triConverterInfo, fModel, tempObj, transformMatrix, fModel.name, False, False, None
+                    triConverterInfo,
+                    fModel,
+                    tempObj,
+                    transformMatrix,
+                    fModel.name,
+                    True,  # convert textures to byte arrays
+                    False,
+                    None,
                 )
             except Exception as e:
                 self.cleanup_fModel(fModel)
@@ -907,19 +942,22 @@ class EntryEnums(enum.Enum):
 
 # holds a list of DL ptrs
 class EntryPoint(BinWrite):
-    def __init__(self, fMeshes: list[FMesh]):
+    def __init__(self, fMeshes: list[FMesh], index: int = 0):
         self.fMeshes = fMeshes
         self.targets = []
         self.symbol_init()
-        self.index = 0
+        self.index = index
         for fMesh in fMeshes:
             if fMesh.draw:
                 # first member is enumerated 0, others are enumerated 1
                 self.targets.append(
-                    [EntryEnums.Continue if self.targets else EntryEnums.Start, self.add_target(fMesh.draw)]
+                    [
+                        EntryEnums.Continue if self.targets else EntryEnums.Start,
+                        self.add_target(fMesh.draw, cast="Gfx *"),
+                    ]
                 )
         if self.targets:
-            self.targets.append([EntryEnums.End, 0])
+            self.targets.append([EntryEnums.End, "NULL"])
 
     def to_c(self):
         CData = KCS_Cdata()
@@ -973,55 +1011,72 @@ class KCS_fModel(FModel, BinWrite):
         self.symbol_init()
         self.main_header = StructContainer(
             (
-                self.add_target(self.layouts[0]),  # *layout[]
+                self.add_target(self.layouts[0], cast="struct Layout *"),  # *layout[]
                 0,  # *tex_scroll[]
                 self.render_mode,
-                self.add_target(self.img_refs),  # *img_refs[]
+                self.add_target(self.img_refs, cast="Gfx **"),  # *img_refs[]
                 0,  # *vtx_refs[]
                 0,  # Num_Anims
                 0,  # *Anims[]
                 len(self.layouts),  # num layouts
             )
         )
-        for ly in self.layouts:
+        for j, ly in enumerate(self.layouts):
+            ly.index = j
             if not ly.ptr:
                 continue
-            ly.entry = EntryPoint(ly.ptr)
-            ly.ptr = ly.add_target(ly.entry)
+            ly.entry = EntryPoint(ly.ptr, j)
+            ly.ptr = ly.add_target(ly.entry, cast="struct EntryPoint *")
 
     # output methods
     def save_binary(self, file: BinaryIO):
         print(file)
 
-    def to_c(self):
-        structData = KCS_Cdata()
-        vertexData = KCS_Cdata()
-        graphicsData = KCS_Cdata()
-        layoutData = KCS_Cdata()
-        entryPointData = KCS_Cdata()
-        # img ref data is inside each individual fMesh
-        imgRefData = KCS_Cdata()
+    def layout_data_to_c(self):
+        gfx_data = KCS_Cdata()
+        vtx_data = KCS_Cdata()
+        layout_data = KCS_Cdata()
+        raw_data = KCS_Cdata()
+        entry_data = KCS_Cdata()
         for ly in self.layouts:
             if ly.ptr:
                 entryPoint = ly.entry
                 for fMesh in entryPoint.fMeshes:
-                    GfxDat, VtxDat = fMesh.to_c(self.f3d, self.gfxFormatter)
-                    graphicsData.append(GfxDat)
-                    vertexData.append(VtxDat)
+                    fMesh_gfx_data, fMesh_vtx_data = fMesh.to_c(self.f3d, self.gfxFormatter)
+                    gfx_data.append(fMesh_gfx_data)
+                    vtx_data.append(fMesh_vtx_data)
                     self.img_refs.extend(fMesh.img_refs)
+                entry_data.append(entryPoint.to_c())
+            layout_data.append(ly.to_c())
+        return (vtx_data, gfx_data, raw_data, entry_data, layout_data)
 
-                entryPointData.append(entryPoint.to_c())
-            layoutData.append(ly.to_c())
-        structData.source += geo_block_includes
-        self.write_dict_struct(self.main_header, geo_block_header_struct, structData, "GeoBlockHeader", "Geo_Header Header")
-        self.write_arr(imgRefData, "Gfx *", f"img_refs", self.img_refs, self.format_arr)
-        # combine cDatas into one
-        cData = (vertexData, graphicsData, imgRefData, entryPointData, layoutData)
-        for data in cData:
-            structData.append(data)
+    # this will try to export in a similar manner as the original format because it looks
+    # better, it has no functional use except that the GeoBlockHeader is at the start
+    def to_c(self):
+        header_data = KCS_Cdata()
+        header_data.source += geo_block_includes
+        self.write_dict_struct(self.main_header, geo_block_header_struct, header_data, "GeoBlockHeader", "Header")
+        c_data_containers = self.layout_data_to_c()
+        # add raw graphics data (images, lights etc.), item 2 for ordering
+        raw_data = c_data_containers[2]
+        # img refs
+        self.write_arr(raw_data, "Gfx", "img_refs", self.img_refs, self.format_arr)
+        # add images
+        raw_data.append(
+            self.to_c_textures(
+                0,
+                0,  # savePNG, hardcoded for now until I figure out a way for image filesystem to work
+                "",  # texDir, no way for this to work currently, will need custom fImage class
+                8,  # bitSize
+            )
+        )
+        # add lights
+        raw_data.append(self.to_c_lights())
+        # combine containers into one
+        header_data.extend(c_data_containers)
         # replace plcaeholder pointers in file with real symbols
-        self.resolve_ptrs_c(structData)
-        return structData
+        self.resolve_ptrs_c(header_data)
+        return header_data
 
 
 # subclassed to manage pointers when writing, and for dynamic DLs with scrolls
@@ -1077,6 +1132,7 @@ def export_geo_bin(name: str, obj: bpy.types.Object, context: bpy.types.Context)
     fModel.process_layouts()
     with open(f"{name}.bin", "w") as file:
         fModel.save_binary(file)
+
 
 @time_func
 def export_geo_c(name: str, obj: bpy.types.Object, context: bpy.types.Context):

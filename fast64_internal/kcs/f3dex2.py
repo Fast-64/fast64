@@ -3,6 +3,19 @@ from bitstring import *
 import math
 import time
 
+# some utility stuff to help create the funcs
+
+# this doesn't work on multi line defines
+def define_to_dictionary(defines):
+    lines = defines.split("\n")
+    res = dict()
+    for line in lines:
+        if "#define" not in line:
+            continue
+        words = re.split("\s+", line)
+        res[words[1]] = words[2]
+    return res
+
 
 # start f3dex2 words to binary
 EncodeFmtEx2 = {
@@ -156,6 +169,9 @@ Render_Modes = {
     0x0C080000: "G_RM_PASS",  # anything at the tail end is fine
     0xC8000000: "G_RM_FOG_SHADE_A",  # anything at the tail end is fine
     0xC4000000: "G_RM_FOG_PRIM_A",  # anything at the tail end is fine
+}
+
+"""
     # ones I didn't get from GBI
     # OPA / TEX_EDGE stuff
     # same as OPA_DECAL but has Z_UPD and CVG_DST_CLAMP instead of CVG_DST_WRAP, aka a TERR mode
@@ -222,6 +238,7 @@ Render_Modes = {
     0x08802078: "G_RM_AA_ZB_OPA_BLEND_SURF",  # AA_EN | Z_CMP | Z_UPD | IM_RD | CVG_DST_CLAMP | ZMODE_OPA | ALPHA_CVG_SEL | FORCE_BL | (CLR, SHD, BLND, 1-A)
     0x08004DD8: "G_RM_AA_ZB_DECAL_FOG_ALPHA",  # AA_EN | Z_CMP | IM_RD | CVG_DST_WRAP | ZMODE_DEC | FORCE_BL | (CLR, SHD, CLR, 1-A)
 }
+"""
 
 Mode_Bits = {
     "G_RM_AA_ZB_OPA_SURF": "0x00552078",
@@ -284,14 +301,37 @@ EncodeMacro = {
     # type, depth, BankID, width, height, Tflags, Sflags
     "G_LoadTextureBlock": [
         (lambda x: ("G_SETTIMG", (x[0], x[1], x[2]))),
-        (lambda x: ("G_SETTILE", (x[0], x[1], 0, 0, 7, 0, x[6], x[4], 0, x[5], x[3], 0))),
+        (
+            lambda x: (
+                "G_SETTILE",
+                (x[0], x[1], 0, 0, 7, 0, x[6], x[4], 0, x[5], x[3], 0),
+            )
+        ),
         (lambda x: ("G_RDPLOADSYNC", ())),
-        (lambda x: ("G_LOADBLOCK", (0, 0, 7, x[4] * x[3], CalcDxT(x[3], int(math.log(x[1] // 4, 2)))))),
+        (
+            lambda x: (
+                "G_LOADBLOCK",
+                (0, 0, 7, x[4] * x[3], CalcDxT(x[3], int(math.log(x[1] // 4, 2)))),
+            )
+        ),
         (lambda x: ("G_RDPPIPESYNC", ())),
         (
             lambda x: (
                 "G_SETTILE",
-                (x[0], x[1], ((int(math.log(x[1] // 4, 2)) * x[3]) + 7) >> 3, 0, 0, 0, x[6], x[4], 0, x[5], x[3], 0),
+                (
+                    x[0],
+                    x[1],
+                    ((int(math.log(x[1] // 4, 2)) * x[3]) + 7) >> 3,
+                    0,
+                    0,
+                    0,
+                    x[6],
+                    x[4],
+                    0,
+                    x[5],
+                    x[3],
+                    0,
+                ),
             )
         ),
         (lambda x: ("G_SETTILESIZE", (0, 0, 0, x[3], x[4]))),
@@ -301,9 +341,32 @@ EncodeMacro = {
         (lambda x: ("G_SETTIMG", (x[0], 16, x[1]))),
         (lambda x: ("G_SETTILE", (x[0], 16, 0, 0, 7, 0, x[5], x[3], 0, x[4], x[2], 0))),
         (lambda x: ("G_RDPLOADSYNC", ())),
-        (lambda x: ("G_LOADBLOCK", (0, 0, 7, (((x[2] * x[3]) + 3) >> 2), CalcDxT(x[2], 0.5)))),
+        (
+            lambda x: (
+                "G_LOADBLOCK",
+                (0, 0, 7, (((x[2] * x[3]) + 3) >> 2), CalcDxT(x[2], 0.5)),
+            )
+        ),
         (lambda x: ("G_RDPPIPESYNC", ())),
-        (lambda x: ("G_SETTILE", (x[0], 4, (((x[2] >> 1) + 7) >> 3), 0, 0, 0, x[5], x[3], 0, x[4], x[2], 0))),
+        (
+            lambda x: (
+                "G_SETTILE",
+                (
+                    x[0],
+                    4,
+                    (((x[2] >> 1) + 7) >> 3),
+                    0,
+                    0,
+                    0,
+                    x[5],
+                    x[3],
+                    0,
+                    x[4],
+                    x[2],
+                    0,
+                ),
+            )
+        ),
         (lambda x: ("G_SETTILESIZE", (0, 0, 0, x[2], x[3]))),
     ],
     # type, BankID, width, height, Tflags, Sflags
@@ -311,15 +374,30 @@ EncodeMacro = {
         (lambda x: ("G_SETTIMG", (x[0], 16, x[1]))),
         (lambda x: ("G_SETTILE", (x[0], 16, 0, 0, 7, 0, x[5], x[3], 0, x[4], x[2], 0))),
         (lambda x: ("G_RDPLOADSYNC", ())),
-        (lambda x: ("G_LOADBLOCK", (0, 0, 7, (((x[2] * x[3]) + 1) >> 1), CalcDxT(x[2], 1)))),
+        (
+            lambda x: (
+                "G_LOADBLOCK",
+                (0, 0, 7, (((x[2] * x[3]) + 1) >> 1), CalcDxT(x[2], 1)),
+            )
+        ),
         (lambda x: ("G_RDPPIPESYNC", ())),
-        (lambda x: ("G_SETTILE", (x[0], 8, ((x[2] + 7) >> 3), 0, 0, 0, x[5], x[3], 0, x[4], x[2], 0))),
+        (
+            lambda x: (
+                "G_SETTILE",
+                (x[0], 8, ((x[2] + 7) >> 3), 0, 0, 0, x[5], x[3], 0, x[4], x[2], 0),
+            )
+        ),
         (lambda x: ("G_SETTILESIZE", (0, 0, 0, x[2], x[3]))),
     ],
     # type, BankID, width, height, Tflags, Sflags, PaletteBankID
     "G_LoadTextureBlock4BCI": [
         (lambda x: ("G_RDPTILESYNC", ())),
-        (lambda x: ("G_SETTILE", ("RGBA", 4, 0, 256, 5, 0, "wrap", 1, 0, "wrap", 1, 0))),
+        (
+            lambda x: (
+                "G_SETTILE",
+                ("RGBA", 4, 0, 256, 5, 0, "wrap", 1, 0, "wrap", 1, 0),
+            )
+        ),
         (lambda x: ("G_SETTILE", ("CI", 16, 0, 0, 7, 0, x[5], x[3], 0, x[4], x[2], 0))),
         (lambda x: ("G_SETTIMG", ("RGBA", 16, x[6]))),
         (lambda x: ("G_RDPLOADSYNC", ())),
@@ -327,37 +405,126 @@ EncodeMacro = {
         (lambda x: ("G_RDPPIPESYNC", ())),
         (lambda x: ("G_SETTIMG", ("CI", 16, x[1]))),
         (lambda x: ("G_RDPLOADSYNC", ())),
-        (lambda x: ("G_LOADBLOCK", (0, 0, 7, (((x[2] * x[3]) + 3) >> 2), CalcDxT(x[2], 0.5)))),
+        (
+            lambda x: (
+                "G_LOADBLOCK",
+                (0, 0, 7, (((x[2] * x[3]) + 3) >> 2), CalcDxT(x[2], 0.5)),
+            )
+        ),
         (lambda x: ("G_RDPPIPESYNC", ())),
-        (lambda x: ("G_SETTILE", ("CI", 4, (((x[2] >> 1) + 7) >> 3), 0, 0, 0, x[5], x[3], 0, x[4], x[2], 0))),
+        (
+            lambda x: (
+                "G_SETTILE",
+                (
+                    "CI",
+                    4,
+                    (((x[2] >> 1) + 7) >> 3),
+                    0,
+                    0,
+                    0,
+                    x[5],
+                    x[3],
+                    0,
+                    x[4],
+                    x[2],
+                    0,
+                ),
+            )
+        ),
         (lambda x: ("G_SETTILESIZE", (0, 0, 0, x[2], x[3]))),
     ],
     # fmt, T addr, width, height, T flags, S flags, tile, mem offset
     "G_LoadTextureBlock4B_Tile": [
         (lambda x: ("G_SETTIMG", (x[0], 16, x[1]))),
-        (lambda x: ("G_SETTILE", (x[0], 16, 0, x[7], 7, 0, x[5], x[3], 0, x[4], x[2], 0))),
+        (
+            lambda x: (
+                "G_SETTILE",
+                (x[0], 16, 0, x[7], 7, 0, x[5], x[3], 0, x[4], x[2], 0),
+            )
+        ),
         (lambda x: ("G_RDPLOADSYNC", ())),
-        (lambda x: ("G_LOADBLOCK", (0, 0, 7, (((x[2] * x[3]) + 3) >> 2), CalcDxT(x[2], 0.5)))),
+        (
+            lambda x: (
+                "G_LOADBLOCK",
+                (0, 0, 7, (((x[2] * x[3]) + 3) >> 2), CalcDxT(x[2], 0.5)),
+            )
+        ),
         (lambda x: ("G_RDPPIPESYNC", ())),
-        (lambda x: ("G_SETTILE", (x[0], 4, (((x[2] >> 1) + 7) >> 3), x[7], x[6], 0, x[5], x[3], 0, x[4], x[2], 0))),
+        (
+            lambda x: (
+                "G_SETTILE",
+                (
+                    x[0],
+                    4,
+                    (((x[2] >> 1) + 7) >> 3),
+                    x[7],
+                    x[6],
+                    0,
+                    x[5],
+                    x[3],
+                    0,
+                    x[4],
+                    x[2],
+                    0,
+                ),
+            )
+        ),
         (lambda x: ("G_SETTILESIZE", (0, 0, x[6], x[2], x[3]))),
     ],
     # fmt, T addr, width, height, T flags, S flags, tile, mem offset
     "G_LoadTextureBlock8B_Tile": [
         (lambda x: ("G_SETTIMG", (x[0], 16, x[1]))),
-        (lambda x: ("G_SETTILE", (x[0], 16, 0, x[7], 7, 0, x[5], x[3], 0, x[4], x[2], 0))),
+        (
+            lambda x: (
+                "G_SETTILE",
+                (x[0], 16, 0, x[7], 7, 0, x[5], x[3], 0, x[4], x[2], 0),
+            )
+        ),
         (lambda x: ("G_RDPLOADSYNC", ())),
-        (lambda x: ("G_LOADBLOCK", (0, 0, 7, (((x[2] * x[3]) + 1) >> 1), CalcDxT(x[2], 1)))),
+        (
+            lambda x: (
+                "G_LOADBLOCK",
+                (0, 0, 7, (((x[2] * x[3]) + 1) >> 1), CalcDxT(x[2], 1)),
+            )
+        ),
         (lambda x: ("G_RDPPIPESYNC", ())),
-        (lambda x: ("G_SETTILE", (x[0], 8, ((x[2] + 7) >> 3), x[7], x[6], 0, x[5], x[3], 0, x[4], x[2], 0))),
+        (
+            lambda x: (
+                "G_SETTILE",
+                (
+                    x[0],
+                    8,
+                    ((x[2] + 7) >> 3),
+                    x[7],
+                    x[6],
+                    0,
+                    x[5],
+                    x[3],
+                    0,
+                    x[4],
+                    x[2],
+                    0,
+                ),
+            )
+        ),
         (lambda x: ("G_SETTILESIZE", (0, 0, x[6], x[2], x[3]))),
     ],
     # fmt, depth, T addr, width, height, T flags, S flags, tile, mem offset
     "G_LoadTextureBlock_Tile": [
         (lambda x: ("G_SETTIMG", (x[0], x[1], x[2]))),
-        (lambda x: ("G_SETTILE", (x[0], x[1], 0, x[8], 7, 0, x[6], x[4], 0, x[5], x[3], 0))),
+        (
+            lambda x: (
+                "G_SETTILE",
+                (x[0], x[1], 0, x[8], 7, 0, x[6], x[4], 0, x[5], x[3], 0),
+            )
+        ),
         (lambda x: ("G_RDPLOADSYNC", ())),
-        (lambda x: ("G_LOADBLOCK", (0, 0, 7, x[3] * x[4], CalcDxT(x[3], int(math.log(x[1] // 4, 2)))))),
+        (
+            lambda x: (
+                "G_LOADBLOCK",
+                (0, 0, 7, x[3] * x[4], CalcDxT(x[3], int(math.log(x[1] // 4, 2)))),
+            )
+        ),
         (lambda x: ("G_RDPPIPESYNC", ())),
         (
             lambda x: (
@@ -442,7 +609,12 @@ def G_VTX_Encode(num, start, segment):
 
 
 def G_MODIFYVTX_Encode(param, buffer, value):
-    enum = {"G_MWO_POINT_RGBA": 0x10, "G_MWO_POINT_ST": 0x14, "G_MWO_POINT_XYSCREEN": 0x18, "G_MWO_POINT_ZSCREEN": 0x1C}
+    enum = {
+        "G_MWO_POINT_RGBA": 0x10,
+        "G_MWO_POINT_ST": 0x14,
+        "G_MWO_POINT_XYSCREEN": 0x18,
+        "G_MWO_POINT_ZSCREEN": 0x1C,
+    }
     try:
         param = enum[param]
     except:
@@ -604,7 +776,7 @@ def G_SETOTHERMODE_L_Encode(clr, value):
         "FORCE_BL": 1 << 14,
     }
     AC_Values = {"G_AC_NONE": 0, "G_AC_THRESHOLD": 1, "G_AC_DITHER": 3}
-    ZSRC = {"Z_SEL_PRIMITIVE": 0, "Z_SEL_PIXEL": 4}
+    ZSRC = {"G_ZS_PRIM": 0, "G_ZS_PIXEL": 4}
     ORs = clr.split("|")
     mask = 0
     for a in ORs:
@@ -722,7 +894,11 @@ def G_SETCONVERT_Encode(*arg):
 
 def G_SETSCISSOR_Encode(Xstart, Ystart, mode, Xend, Yend):
     try:
-        modes = {"G_SC_NON_INTERLACE": 0, "G_SC_EVEN_INTERLACE": 2, "G_SC_ODD_INTERLACE": 3}
+        modes = {
+            "G_SC_NON_INTERLACE": 0,
+            "G_SC_EVEN_INTERLACE": 2,
+            "G_SC_ODD_INTERLACE": 3,
+        }
         mode = modes[mode]
     except:
         pass
@@ -757,7 +933,20 @@ def G_LOADTILE_Encode(Sstart, Tstart, tile, Send, Tend):
     return (Sstart * 4, Tstart * 4, tile, Send * 4, Tend * 4)
 
 
-def G_SETTILE_Encode(fmt, bitsize, numrows, offset, tile, palette, Tflag, Tmask, Tshift, Sflag, Smask, Sshift):
+def G_SETTILE_Encode(
+    fmt,
+    bitsize,
+    numrows,
+    offset,
+    tile,
+    palette,
+    Tflag,
+    Tmask,
+    Tshift,
+    Sflag,
+    Smask,
+    Sshift,
+):
     flags = {"wrap": 0, "clamp": 2, "mirror": 1, "clamp & mirror": 3}
     fmts = {"RGBA": 0, "YUV": 1, "CI": 2, "IA": 3, "I": 4}
     try:
@@ -833,7 +1022,13 @@ def G_SETCOMBINE_Encode(a, g, b, k, c, l, d, m, e, h, f, n, i, o, j, p):
     }
     Noise = {"Noise": 7}
     Key = {"Key: Center": 6, "Key: 4": 7}
-    BasicA = {"Texel 0 Alpha": 1, "Texel 1 Alpha": 2, "Primitive Alpha": 3, "Shade Alpha": 4, "Environment Alpha": 5}
+    BasicA = {
+        "Texel 0 Alpha": 1,
+        "Texel 1 Alpha": 2,
+        "Primitive Alpha": 3,
+        "Shade Alpha": 4,
+        "Environment Alpha": 5,
+    }
     LoD = {"LoD Fraction": 0}
     # a color = basic+one+combined+7as noise
     # b color = basic+combined+6 as key center+7 as key4
@@ -922,6 +1117,30 @@ class F3DEX2_decode:
         return f"{self.fmt}{','.join([str(a) for a in args])}".replace("'", "")
 
 
+# some cmds are two cmds in one, if this is one of those
+# then return num extra bytes
+def check_double_cmd(name):
+    multi_cmds = ["gsSPLightColor", "G_RDPHALF_1"]
+    if name in multi_cmds:
+        return 8
+    return None
+
+
+# fixes a multi name given the amount of extra bytes given
+def fix_multi_cmd(cmd_extras, name, args):
+    cmd = BitArray(cmd_extras)
+    # just manually call stuff currently to make it easier to edit
+    if cmd[0:8].uint == 0x04:
+        c = F3DEX2_decode(cmd[0:8].uint)
+        V = c.func(cmd[8:])
+        # for branch Z, rdphalf_1 has the DL target
+        V = [f"{args[0]}", *V]
+        c = c.decode("gsSPBranchLessZraw", V)
+        return "gsSPBranchLessZraw", [str(a) for a in V]
+    # print(name, args)
+    return name, args
+
+
 # give cmd as binary.
 # should return cmd as string, and args as tuple
 def Ex2String(cmd):
@@ -947,8 +1166,10 @@ def MoveWd(args):
     value = args[0][2]
     if enum == "gsSPLightColor":
         num = offset // 0x18 + 1
-        b = (offset % 0x18) == 4
-        return f"{enum}(G_MWO_{'a'*(not b) + 'b'*b}LIGHT_{num}, 0x{value:02X})"
+        # this is technically used, but the macro abstracts this away
+        # so I don't need to calculate it: {G_MWO_{'a'*(not b) + 'b'*b}}
+        # b = (offset % 0x18) == 4
+        return f"{enum}(LIGHT_{num}, 0x{value:02X})"
     if enum == "gsSPSegment":
         return f"{enum}(G_MWO_SEGMENT_{offset//4}, 0x{value:02X})"
     if enum == "gsSPFogPosition":
@@ -961,7 +1182,7 @@ def MoveWd(args):
         diff = 128000 / high
         minn = 500 - (low * diff / 256)
         maxx = diff + minn
-        return f"{enum}({int(minn)}, {int(maxx)})"
+        return f"{enum}({math.ceil(minn)}, {math.ceil(maxx)})"
     if enum == "gsSPNumLights":
         return f"{enum}(G_MWO_NUMLIGHT, 0x{value // 24:02X})"
     # tbh the rest are probably not used, so just return the gsMoveWd
@@ -987,6 +1208,7 @@ def OtherModeH(args):
                 0 << 6: "G_CD_MAGICSQ",
                 1 << 6: "G_CD_BAYER",
                 2 << 6: "G_CD_NOISE",
+                3 << 6: "G_CD_NOISE | G_CD_BAYER",  # legal? HAL seems to think so
             },
         ),
         "G_MDSFT_COMBKEY": (
@@ -1051,11 +1273,17 @@ def OtherModeH(args):
                 3 << 20: "G_CYC_FILL",
             },
         ),
+        "G_MDSFT_COLORDITHER": (
+            "gsDPSetColorDither",
+            {
+                1 << 22: "G_CD_ENABLE",
+            },
+        ),
         "G_MDSFT_PIPELINE": (
             "gsDPPipelineMode",
             {
-                0 << 23: "G_PM_1PRIMITIVE",
-                1 << 23: "G_PM_NPRIMITIVE",
+                1 << 23: "G_PM_1PRIMITIVE",
+                0 << 23: "G_PM_NPRIMITIVE",
             },
         ),
     }
@@ -1072,8 +1300,8 @@ def OtherModeH(args):
         num = math.ceil(math.log2(affect >> shift))
         return f"gsSPSetOtherMode(G_SETOTHERMODE_H, {shift}, {num}, {arg})"
     name = gbi[0]
-    arg = gbi[1].get(arg)
-    return f"{name}({arg})"
+    gbi_arg = gbi[1].get(arg)
+    return f"{name}({gbi_arg})"
 
 
 # take argument bits and make tuple of args
@@ -1090,12 +1318,17 @@ def G_VTX_Decode(bin):
 
 def G_MODIFYVTX_Decode(bin):
     param, buffer, value = bin.unpack("uint:8, uint:16, uint:32")
-    enum = {0x10: "G_MWO_POINT_RGBA", 0x14: "G_MWO_POINT_ST", 0x18: "G_MWO_POINT_XYSCREEN", 0x1C: "G_MWO_POINT_ZSCREEN"}
+    enum = {
+        0x10: "G_MWO_POINT_RGBA",
+        0x14: "G_MWO_POINT_ST",
+        0x18: "G_MWO_POINT_XYSCREEN",
+        0x1C: "G_MWO_POINT_ZSCREEN",
+    }
     try:
         param = enum[param]
     except:
         pass
-    return (param, int(buffer / 2), value)
+    return (int(buffer / 2), param, value)
 
 
 def G_CULLDL_Decode(bin):
@@ -1104,23 +1337,31 @@ def G_CULLDL_Decode(bin):
 
 
 def G_BRANCH_Z_Decode(bin):
-    seg, t1, t2, zval = bin.unpack("4*int:4")
-    return (seg, t1 * 5, t2 * 2, zval)
+    t1, t2, zval = bin.unpack("2*uint:12, uint: 32")
+    return (t2 // 2, f"0x{zval:X}")
 
 
 def G_TRI1_Decode(bin):
     v = bin.unpack("3*uint:8")
-    return (*(a // 2 for a in v), 1)
+    return (*(a // 2 for a in v), 0)
 
 
 def G_TRI2_Decode(bin):
     v = bin.unpack("7*uint:8")
-    return (*(a // 2 for a in v[0:3]), 1, *(a // 2 for a in v[4:7]), 1)
+    return (*(a // 2 for a in v[0:3]), 0, *(a // 2 for a in v[4:7]), 0)
 
 
 def G_QUAD_Decode(bin):
     v1, v2, v3, pad, v4, v5, v6 = bin.unpack("7*uint:8")
-    return (int(v1 / 2), int(v2 / 2), int(v3 / 2), int(v4 / 2), int(v5 / 2), int(v6 / 2), 1)
+    return (
+        int(v1 / 2),
+        int(v2 / 2),
+        int(v3 / 2),
+        int(v4 / 2),
+        int(v5 / 2),
+        int(v6 / 2),
+        1,
+    )
 
 
 def G_DMA_IO_Decode(bin):
@@ -1135,7 +1376,11 @@ def G_DMA_IO_Decode(bin):
 
 def G_TEXTURE_Decode(bin):
     pad, mip, tile, state, Sscale, Tscale = bin.unpack("int:10, 2*uint:3, uint:8, 2*int:16")
-    return (Sscale, Tscale, mip, tile, state)
+    macros = {
+        2: "G_ON",
+        0: "G_OFF",
+    }
+    return (Sscale, Tscale, mip, tile, macros.get(state, state))
 
 
 def G_POPMTX_Decode(bin):
@@ -1151,13 +1396,12 @@ def G_GEOMETRYMODE_Decode(bin):
         4: "G_SHADE",
         0x200: "G_CULL_FRONT",
         0x400: "G_CULL_BACK",
-        65536: "G_FOG",
-        131072: "G_LIGHTING",
-        262144: "G_TEXTURE_GEN",
-        524288: "G_TEXTURE_GEN_LINEAR",
-        2097152: "G_SHADING_SMOOTH",
-        8388608: "G_CLIPPING",
-        0xFFFFFF: "All",
+        0x10000: "G_FOG",
+        0x20000: "G_LIGHTING",
+        0x40000: "G_TEXTURE_GEN",
+        0x80000: "G_TEXTURE_GEN_LINEAR",
+        0x200000: "G_SHADING_SMOOTH",
+        0x800000: "G_CLIPPING",
     }
     clr = []
     st = []
@@ -1240,32 +1484,118 @@ def G_RDPHALF_1_Decode(bin):
     return (bits,)
 
 
+# render mode dict data
+gbl_cyc_bits = {
+    8: "AA_EN",
+    0x10: "Z_CMP",
+    0x20: "Z_UPD",
+    0x40: "IM_RD",
+    0x80: "CLR_ON_CVG",
+    0x1000: "CVG_X_ALPHA",
+    0x2000: "ALPHA_CVG_SEL",
+    0x4000: "FORCE_BL",
+}
+
+cvg_dst_bits = {
+    0: "CVG_DST_CLAMP",
+    256: "CVG_DST_WRAP",
+    512: "CVG_DST_FULL",
+    768: "CVG_DST_SAVE",
+}
+
+z_mode_bits = {
+    0: "ZMODE_OPA",
+    1024: "ZMODE_INTER",
+    2048: "ZMODE_XLU",
+    3072: "ZMODE_DEC",
+}
+
+gbl_clk_a = {
+    0: "G_BL_A_IN",
+    1: "G_BL_A_FOG",
+    2: "G_BL_A_SHADE",
+    3: "G_BL_0",
+}
+gbl_clk_b = {
+    0: "G_BL_1MA",
+    1: "G_BL_A_MEM",
+    2: "G_BL_1",
+    3: "G_BL_0",
+}
+# also p
+gbl_clk_m = {
+    0: "G_BL_CLR_IN",
+    1: "G_BL_CLR_MEM",
+    2: "G_BL_CLR_BL",
+    3: "G_BL_CLR_FOG",
+}
+
+
+def gbl_shiftL_get(val, shift, macros, mask=3):
+    return macros.get((val << shift) & mask)
+
+
+def gbl_shiftR_get(val, shift, macros, mask=3):
+    return macros.get((val >> shift) & mask)
+
+
+def GBL_c1_decode(clk1):
+    return (
+        gbl_shiftR_get(clk1, 30, gbl_clk_m),
+        gbl_shiftR_get(clk1, 26, gbl_clk_a),
+        gbl_shiftR_get(clk1, 22, gbl_clk_m),
+        gbl_shiftR_get(clk1, 18, gbl_clk_b),
+    )
+
+
+def GBL_c2_decode(clk2):
+    return (
+        gbl_shiftR_get(clk2, 28, gbl_clk_m),
+        gbl_shiftR_get(clk2, 24, gbl_clk_a),
+        gbl_shiftR_get(clk2, 20, gbl_clk_m),
+        gbl_shiftR_get(clk2, 16, gbl_clk_b),
+    )
+
+
 def G_SETOTHERMODE_L_Decode(bin):
     pad, shift, bits, value = bin.unpack("3*uint:8, uint:32")
     mask = ((1 << (bits + 1)) - 1) << (32 - shift - bits - 1)
     skip = 0xFFFFFFF8
     all = 0xFFFFFFFF
     none = 0
-    # if not a and mask==skip:
-    # print(Macro)
-    # time.sleep(1)
     if mask == skip:
+        # cycle 1 value for the blender
         clk1 = value & (((3 << 12) + (3 << 8) + (3 << 4) + 3) << 18) + (0x1FFF << 3)
         # if pass, don't take cycle dependent args for 1 cycle, same with fog shade
-        if clk1 & 0x0C080000 == 0x0C080000:
+        if clk1 & 0xFFFF0000 == 0x0C080000:
             clk1 = 0x0C080000
         # fog shade surf
-        if clk1 & 0xC8000000 == 0xC8000000:
+        if clk1 & 0xFFFF0000 == 0xC8000000:
             clk1 = 0xC8000000
         # fog shade prim
-        if clk1 & 0xC4000000 == 0xC4000000:
+        if clk1 & 0xFFFF0000 == 0xC4000000:
             clk1 = 0xC4000000
+        # cycle 2 value for the blender
         clk2 = value & (((3 << 12) + (3 << 8) + (3 << 4) + 3) << 16) + (0x1FFF << 3)
-        # print(f"0x{clk1:08X} cycle 1 - 0x{clk2:08X} cycle 2  - 0x{value:08X} value")
         a, b = Render_Modes.get(clk1, f"0x{clk1:08X}"), Render_Modes.get(clk2, f"0x{clk2:08X}")
+        # manually make render mode if it isn't found in the preset table
         if a not in Render_Modes.values() or b not in Render_Modes.values():
-            print(f"{a} - cycle 1 {b} - cycle 2")
-        return ("gsDPSetRenderMode", a, b)
+            # a list of masks for each the independent bits, single state only, unshifted
+            other_bits = (0x8, 0x10, 0x20, 0x40, 0x80, 0x1000, 0x2000, 0x4000)
+
+            # manually compose the render mode macro
+            manual = [gbl_cyc_bits.get(value & bit) for bit in other_bits if gbl_cyc_bits.get(value & bit)]
+            # add in multiplexed modes
+            manual.append(cvg_dst_bits.get(value & (3 << 8)))
+            manual.append(z_mode_bits.get(value & (3 << 10)))
+            # add in cycle 1 and cycle 2 values
+            cyc_1 = f"GBL_c1({', '.join(GBL_c1_decode(clk1))})"
+            cyc_2 = f"GBL_c2({', '.join(GBL_c2_decode(clk2))})"
+            # turn it into single string
+            manual = " | ".join(manual)
+            return ("gsDPSetRenderMode", f"{manual} | {cyc_1}", f"{manual} | {cyc_2}")
+        else:
+            return ("gsDPSetRenderMode", a, b)
     if mask == all and a:
         return ("All", a)
     if mask == none:
@@ -1278,7 +1608,12 @@ def G_SETOTHERMODE_L_Decode(bin):
         3 << 10: "ZMODE_DEC",
     }
 
-    CVG_Values = {0: "CVG_DST_CLAMP", 1 << 8: "CVG_DST_WRAP", 2 << 8: "CVG_DST_FULL", 3 << 8: "CVG_DST_SAVE"}
+    CVG_Values = {
+        0: "CVG_DST_CLAMP",
+        1 << 8: "CVG_DST_WRAP",
+        2 << 8: "CVG_DST_FULL",
+        3 << 8: "CVG_DST_SAVE",
+    }
 
     Ind_Clr = {
         1 << 3: ["AA_EN", 0],
@@ -1295,7 +1630,7 @@ def G_SETOTHERMODE_L_Decode(bin):
 
     AC_Values = {3: ["G_AC_DITHER", 0], 0: ["G_AC_NONE", 0], 1: ["G_AC_THRESHOLD", 0]}
 
-    ZSRC = {4: ["Z_SEL_PIXEL", 0], 0: ["Z_SEL_PRIMITIVE", 0]}
+    ZSRC = {0: ["G_ZS_PIXEL", 0], 4: ["G_ZS_PRIM", 0]}
     empty = {}
     Fields = {
         3: ["gsDPSetAlphaCompare", AC_Values],
@@ -1391,9 +1726,20 @@ def G_SETOTHERMODE_H_Decode(bin):
 
 
 def G_TEXRECT_Decode(bin):
-    Xstart, Ystart, pad, tile, Xend, Yend, pad1, Sstart, Tstart, pad2, dsdx, dtdy = bin.unpack(
-        "2*uint:12,2*int:4,2*uint:12,uint:32,2*uint:16,uint:32,2*uint:16"
-    )
+    (
+        Xstart,
+        Ystart,
+        pad,
+        tile,
+        Xend,
+        Yend,
+        pad1,
+        Sstart,
+        Tstart,
+        pad2,
+        dsdx,
+        dtdy,
+    ) = bin.unpack("2*uint:12,2*int:4,2*uint:12,uint:32,2*uint:16,uint:32,2*uint:16")
     return (Xstart, Ystart, Xend, Yend, tile, Sstart, Tstart, dsdx, dtdy)
 
 
@@ -1415,7 +1761,11 @@ def G_SETCONVERT_Decode(bin):
 def G_SETSCISSOR_Decode(bin):
     Xstart, Ystart, pad, mode, Xend, Yend = bin.unpack("2*uint:12,2*uint:4,2*uint:12")
     try:
-        modes = {0: "G_SC_NON_INTERLACE", 2: "G_SC_EVEN_INTERLACE", 3: "G_SC_ODD_INTERLACE"}
+        modes = {
+            0: "G_SC_NON_INTERLACE",
+            2: "G_SC_EVEN_INTERLACE",
+            3: "G_SC_ODD_INTERLACE",
+        }
         mode = modes[mode]
     except:
         mode = "invalid mode"
@@ -1433,8 +1783,8 @@ def G_RDPSETOTHERMODE_Decode(bin):
 
 
 def G_LOADTLUT_Decode(bin):
-    pad, tile, color, pad1 = bin.unpack("int:28,uint:4,2*uint:12")
-    return (tile, (((color >> 2) & 0x3FF) + 1))
+    pad, tile, color, pad1 = bin.unpack("int:28, uint:4, uint:10, uint: 14")
+    return (tile, color)
 
 
 def G_RDPHALF_2_Decode(bin):
@@ -1442,26 +1792,63 @@ def G_RDPHALF_2_Decode(bin):
     return (bits,)
 
 
+def apply_format(num, f_str):
+    # if there are sub pixel values, just use raw value
+    if num & 3:
+        return f"0x{num:03X}"
+    num = (num >> 2) + 1
+    return f_str.format(num) if (num - 1) else "0"
+
+
+TEX_FRAC_APP = "({} - 1) << G_TEXTURE_IMAGE_FRAC"
+
+
 def G_SETTILESIZE_Decode(bin):
     Sstart, Tstart, pad, tile, width, height = bin.unpack("2*uint:12,2*uint:4,2*uint:12")
-    return (tile, Sstart, Tstart, (width >> 2) + 1, (height >> 2) + 1)
+    Sstart = apply_format(Sstart, TEX_FRAC_APP)
+    Tstart = apply_format(Tstart, TEX_FRAC_APP)
+    width = apply_format(width, TEX_FRAC_APP)
+    height = apply_format(height, TEX_FRAC_APP)
+    return (tile, Sstart, Tstart, width, height)
 
 
 def G_LOADBLOCK_Decode(bin):
     Sstart, Tstart, pad, tile, texels, dxt = bin.unpack("2*uint:12,2*uint:4,2*uint:12")
-    return (tile, Sstart, Tstart, texels + 1, dxt)
+    return (tile, Sstart, Tstart, texels, dxt)
 
 
 def G_LOADTILE_Decode(bin):
     Sstart, Tstart, pad, tile, Send, Tend = bin.unpack("2*uint:12,2*uint:4,2*uint:12")
-    return (tile, Sstart >> 2, Tstart >> 2, Send >> 2, Tend >> 2)
+    Sstart = apply_format(Sstart, TEX_FRAC_APP)
+    Tstart = apply_format(Tstart, TEX_FRAC_APP)
+    Send = apply_format(Send, TEX_FRAC_APP)
+    Tend = apply_format(Tend, TEX_FRAC_APP)
+    return (tile, Sstart, Tstart, Send, Tend)
 
 
 def G_SETTILE_Decode(bin):
-    fmt, bitsize, pad, numrows, offset, pad1, tile, palette, Tflag, Tmask, Tshift, Sflag, Smask, Sshift = bin.unpack(
-        "uint:3,uint:2,int:1,2*uint:9,int:5,uint:3,uint:4,uint:2,2*uint:4,uint:2,2*uint:4"
-    )
-    flags = {0: "G_TX_WRAP", 2: "G_TX_CLAMP", 1: "G_TX_MIRROR", 3: "G_TX_CLAMP | G_TX_MIRROR"}
+    (
+        fmt,
+        bitsize,
+        pad,
+        numrows,
+        offset,
+        pad1,
+        tile,
+        palette,
+        Tflag,
+        Tmask,
+        Tshift,
+        Sflag,
+        Smask,
+        Sshift,
+    ) = bin.unpack("uint:3,uint:2,int:1,2*uint:9,int:5,uint:3,uint:4,uint:2,2*uint:4,uint:2,2*uint:4")
+    flags = {
+        0: "G_TX_WRAP",
+        2: "G_TX_CLAMP",
+        1: "G_TX_MIRROR",
+        3: "G_TX_CLAMP | G_TX_MIRROR",
+    }
     try:
         Tflag = flags[Tflag]
         Sflag = flags[Sflag]
@@ -1469,7 +1856,20 @@ def G_SETTILE_Decode(bin):
         bitsize = bits_dec[bitsize]
     except:
         pass
-    return (fmt, bitsize, numrows, offset, tile, palette, Tflag, Tmask, Tshift, Sflag, Smask, Sshift)
+    return (
+        fmt,
+        bitsize,
+        numrows,
+        offset,
+        tile,
+        palette,
+        Tflag,
+        Tmask,
+        Tshift,
+        Sflag,
+        Smask,
+        Sshift,
+    )
 
 
 def G_FILLRECT_Decode(bin):
@@ -1523,7 +1923,7 @@ def G_SETCOMBINE_Decode(bin):
 
     # a alpha = basicA+one+combined
     # b alpha = a alpha
-    # c alpha = basic+one+0 asLoD fraction
+    # c alpha = basic+one+0 as LoD fraction
     # d alpha = a alpha
     # zero will be default, aka out of range
     ACmode = {**Basic, **Noise, **Combined, **One}
@@ -1533,7 +1933,7 @@ def G_SETCOMBINE_Decode(bin):
 
     AAmode = {**BasicA, **Combined, **One}
     BAmode = {**BasicA, **One, **Combined}
-    CAmode = {**BasicA, **LoD}
+    CAmode = {**BasicA, **LoD, **One}
     DAmode = {**BasicA, **One, **Combined}
 
     Acolor = (a, e)
@@ -1559,13 +1959,13 @@ def G_SETCOMBINE_Decode(bin):
 
 
 def G_SETTIMG_Decode(bin):
-    fmt, bit, pad, seg = bin.unpack("uint:3,uint:2,uint:19,uint:32")
+    fmt, bit, width, seg = bin.unpack("uint:3,uint:2,uint:19,uint:32")
     try:
         fmt = fmts_dec[fmt]
         bit = bits_dec[bit]
     except:
         pass
-    return ("G_SETTIMG", fmt, bit, seg)
+    return (fmt, bit, width + 1, seg)
 
 
 def G_SETZIMG_Decode(bin):
@@ -1578,16 +1978,28 @@ def G_SETCIMG_Decode(bin):
     return ("G_SETCIMG", fmt, bit, width, addr)
 
 
-fmts_dec = {0: "G_IM_FMT_RGBA", 1: "G_IM_FMT_YUV", 2: "G_IM_FMT_CI", 3: "G_IM_FMT_IA", 4: "G_IM_FMT_I"}
+fmts_dec = {
+    0: "G_IM_FMT_RGBA",
+    1: "G_IM_FMT_YUV",
+    2: "G_IM_FMT_CI",
+    3: "G_IM_FMT_IA",
+    4: "G_IM_FMT_I",
+}
 
-bits_dec = {0: "G_IM_SIZ_4b", 1: "G_IM_SIZ_8b", 2: "G_IM_SIZ_16b", 3: "G_IM_SIZ_32b", 5: "G_IM_SIZ_DD"}
+bits_dec = {
+    0: "G_IM_SIZ_4b",
+    1: "G_IM_SIZ_8b",
+    2: "G_IM_SIZ_16b",
+    3: "G_IM_SIZ_32b",
+    5: "G_IM_SIZ_DD",
+}
 
 DecodeFmtEx2 = {
     0x0: ("gsSPNoOp", G_SNOOP_Decode),
     0x01: ("gsSPVertex", G_VTX_Decode),
     0x02: ("gsSPModifyVertex", G_MODIFYVTX_Decode),
     0x03: ("gsSPCullDisplayList", G_CULLDL_Decode),
-    0x04: ("gsSPBranchLessZ", G_BRANCH_Z_Decode),
+    0x04: ("gsSPBranchLessZraw", G_BRANCH_Z_Decode),
     0x05: ("gsSP1Triangle", G_TRI1_Decode),
     0x06: ("gsSP2Triangles", G_TRI2_Decode),
     0x07: ("gsSP1Quadrangle", G_QUAD_Decode),
@@ -1617,7 +2029,7 @@ DecodeFmtEx2 = {
     0xED: ("gsDPScissor", G_SETSCISSOR_Decode),
     0xEE: ("gsDPSetPrimDepth", G_SETPRIMDEPTH_Decode),
     0xEF: ("gsSPSetOtherMode", G_RDPSETOTHERMODE_Decode),
-    0xF0: ("gsDPLoadTLUT", G_LOADTLUT_Decode),
+    0xF0: ("gsDPLoadTLUTCmd", G_LOADTLUT_Decode),
     0xF1: ("G_RDPHALF_2", G_RDPHALF_2_Decode),
     0xF2: ("gsDPSetTileSize", G_SETTILESIZE_Decode),
     0xF3: ("gsDPLoadBlock", G_LOADBLOCK_Decode),
