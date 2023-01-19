@@ -886,9 +886,7 @@ def exportLevelC(
     dynamicData = exportData.dynamicData
     texC = exportData.textureData
 
-    scrollData, hasScrolling = fModel.to_c_vertex_scroll(levelName, gfxFormatter)
-    scroll_data = scrollData.source
-    headerScroll = scrollData.header
+    scrollData = fModel.to_c_scroll(levelName, gfxFormatter)
 
     if fModel.texturesSavedLastExport > 0:
         levelDataString = '#include "levels/' + levelName + '/texture_include.inc.c"\n' + levelDataString
@@ -897,7 +895,7 @@ def exportLevelC(
         texFile.write(texC.source)
         texFile.close()
 
-    modifyTexScrollFiles(exportDir, levelDir, headerScroll, scroll_data, hasScrolling)
+    modifyTexScrollFiles(exportDir, levelDir, scrollData)
 
     # Write materials
     if DLFormat == DLFormat.Static:
@@ -1067,9 +1065,9 @@ def exportLevelC(
             texscrollIncludeC,
             texscrollIncludeH,
             texscrollGroup,
-            headerScroll,
+            scrollData.topLevelScrollFunc,
             texscrollGroupInclude,
-            hasScrolling,
+            scrollData.hasScrolling(),
         )
 
         if texScrollFileStatus is not None:
