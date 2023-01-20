@@ -276,22 +276,22 @@ class TileLoad:
         self.faces = []
         self.offsets = []
 
-    def getLow(self, value):
+    def getLow(self, value, field):
         value = int(math.floor(value))
         if self.largeEdges == "Clamp":
-            value = max(value, 0)
-        if self.is4bit and (value & 1) != 0:
-            # Must start on an even texel
-            value -= 1
+            value = min(max(value, 0), self.texDimensions[field] - 1)
+        if self.is4bit:
+            # Must start on an even texel (round down)
+            value &= ~1
         return value
 
     def getHigh(self, value, field):
         value = int(math.ceil(value)) - (1 if self.isPointSampled else 0)
         if self.largeEdges == "Clamp":
-            value = min(value, self.texDimensions[field] - 1)
-        if self.is4bit and (value & 1) == 0:
-            # Must end on an odd texel
-            value += 1
+            value = min(max(value, 0), self.texDimensions[field] - 1)
+        if self.is4bit:
+            # Must end on an odd texel (round up)
+            value |= 1
         return value
 
     def fixRegion(self, sl, sh, tl, th):
@@ -302,16 +302,16 @@ class TileLoad:
         sh -= soffset
         tl -= toffset
         th -= toffset
-        assert sl >= 0 and tl >= 0
+        assert 0 <= sl < self.texDimensions[0] and 0 <= tl < self.texDimensions[1]
         ret = True
         if sh >= 1024 or th >= 1024:
             ret = False
         if sh >= self.texDimensions[0]:
-            # Load wraps. Load must start a multiple of a TMEM line from the end
-            # of the texture, in order for the second load (beginning of image)
-            # to start at a whole line.
-            texelsPerLine = 64 / texBitSizeInt[self.texFormat]
-            if texelsPerLine < self.texDimensions[0]:
+            # Load wraps in S. Load must start a multiple of a TMEM line from
+            # the end of the texture, in order for the second load (beginning of
+            # image) to start at a whole line.
+            texelsPerLine = 64 // texBitSizeInt[self.texFormat]
+            if texelsPerLine > self.texDimensions[0]:
                 raise PluginError(
                     f"In large texture material {self.materialName}:"
                     + f" large texture must be at least {texelsPerLine} wide."
@@ -319,6 +319,14 @@ class TileLoad:
             sl -= self.texDimensions[0]
             sl = int(math.floor(sl / texelsPerLine)) * texelsPerLine
             sl += self.texDimensions[0]
+        if th >= self.texDimensions[1]:
+            # Load wraps in T. Load must start a multiple of 2 TMEM lines from
+            # the end of the texture, in order for the second load to have the
+            # same odd/even line parity as the first (because texels are
+            # interleaved in TMEM every other line).
+            tl -= self.texDimensions[1]
+            tl = int(math.floor(tl / 2.0)) * 2
+            tl += self.texDimensions[1]
         tmemUsage = getTmemWordUsage(self.texFormat, sh - sl + 1, th - tl + 1)
         if tmemUsage > self.tmemWordsAvail:
             ret = False
@@ -332,9 +340,9 @@ class TileLoad:
             return True
 
         for point in faceUVs:
-            self.sl = min(self.sl, self.getLow(point[0]))
+            self.sl = min(self.sl, self.getLow(point[0], 0))
             self.sh = max(self.sh, self.getHigh(point[0], 0))
-            self.tl = min(self.tl, self.getLow(point[1]))
+            self.tl = min(self.tl, self.getLow(point[1], 0))
             self.th = max(self.th, self.getHigh(point[1], 1))
             
         ret, self.sl, self.sh, self.tl, self.th, soffset, toffset = self.fixRegion(
@@ -396,9 +404,12 @@ def maybeSaveSingleLargeTextureSetup(
         siz = texBitSizeF3D[texProp.tex_format]
         line = getTileLine(fImage, tileSettings.sl, tileSettings.sh, siz, fModel.f3d)
         tmem = fMaterial.largeTexAddr[i]
+        print(
+            f"Tile: {tileSettings.sl}-{tileSettings.sh} x {tileSettings.tl}-{tileSettings.th} "
+            + f"tmem {tmem} line {line}")
         if wrapS or wrapT:
             fmt = texFormatOf[texProp.tex_format]
-            texelsPerLine = 64 / texBitSizeInt[fmt]
+            texelsPerLine = 64 // texBitSizeInt[texProp.tex_format]
             wid = texDimensions[0]
             is4bit = siz == "G_IM_SIZ_4b"
             if is4bit:
@@ -423,6 +434,7 @@ def maybeSaveSingleLargeTextureSetup(
                     # The first load must occupy a whole number of lines.
                     assert (texDimensions[0] - tileSettings.sl) % texelsPerLine == 0
                     sLineOfs = (texDimensions[0] - tileSettings.sl) // texelsPerLine
+                    print(f"-- Wrap at S={texDimensions[0]}, offset {sLineOfs}")
                     gfxOut.commands.append(DPLoadTile(
                         tidxBase, tileSettings.sl * sm, TL*4, (texDimensions[0] - 1) * sm, TH*4))
                     gfxOut.commands.append(DPSetTile(
@@ -434,8 +446,11 @@ def maybeSaveSingleLargeTextureSetup(
                     gfxOut.commands.append(DPLoadTile(
                         tidxBase, tileSettings.sl * sm, TL*4, tileSettings.sh * sm, TH*4))
             if wrapT:
-                # Break up at the wrap boundary into two loads. No special restrictions.
+                # Break up at the wrap boundary into two loads.
+                # The first load must be even in size (even number of texture rows).
+                assert (texDimensions[1] - tileSettings.tl) % 2 == 0
                 tLineOfs = line * (texDimensions[1] - tileSettings.tl)
+                print(f"-- Wrap at T={texDimensions[1]}, offset {tLineOfs}")
                 loadOneOrTwoS(tmem, 7, tileSettings.tl, texDimensions[1] - 1)
                 loadOneOrTwoS(tmem + tLineOfs, 5, 0, tileSettings.th - texDimensions[1])
             else:
@@ -444,7 +459,6 @@ def maybeSaveSingleLargeTextureSetup(
                 # May reuse any of the above tiles for the other large texture.
                 gfxOut.commands.append(DPTileSync())
         else:
-            print(f"Tile: {tileSettings.sl}-{tileSettings.sh} x {tileSettings.tl}-{tileSettings.th}")
             saveTextureLoadOnly(
                 fImage,
                 gfxOut,
@@ -2349,7 +2363,7 @@ def getTileSizeSettings(texProp: TextureProperty, tileSettings: Union[None, Tile
 
 
 def getTileLine(fImage: FImage, SL: int, SH: int, siz: str, f3d: F3D):
-    width = int(SH - SL) if fImage.isLargeTexture else int(fImage.width)
+    width = int(SH - SL + 1) if fImage.isLargeTexture else int(fImage.width)
     if siz == "G_IM_SIZ_4b":
         line = (((width + 1) >> 1) + 7) >> 3
     else:

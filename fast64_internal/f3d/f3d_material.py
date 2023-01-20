@@ -220,7 +220,7 @@ class DrawLayerProperty(bpy.types.PropertyGroup):
 
 def getTmemWordUsage(texFormat, width, height):
     texelsPerLine = 64 / texBitSizeInt[texFormat]
-    return math.ceil(width / texelsPerLine) * height
+    return int(math.ceil(width / texelsPerLine)) * height
 
 
 def getTmemMax(texFormat):
