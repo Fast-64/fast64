@@ -189,6 +189,7 @@ ootEnumAudioSessionPreset = [
 ]
 
 ootEnumMusicSeq = [
+    # see https://github.com/zeldaret/oot/blob/9f09505d34619883748a7dab05071883281c14fd/include/sequence.h#L4-L118
     ("Custom", "Custom", "Custom"),
     ("NA_BGM_GENERAL_SFX", "General Sound Effects", "General Sound Effects"),
     ("NA_BGM_NATURE_AMBIENCE", "Nature Ambiance", "Nature Ambiance"),

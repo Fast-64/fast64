@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from bpy.types import Object, CollectionProperty
 from .data import OoT_ObjectData
 from .oot_utility import getEvalParams
@@ -52,7 +53,14 @@ def upgradeRoomHeaders(roomObj: Object, objData: OoT_ObjectData):
 #####################################
 # Cutscene
 #####################################
-def transferOldDataToNew(data, oldDataToNewData: dict):
+@dataclass
+class Cutscene_UpgradeData:
+    oldPropName: str
+    newPropName: str
+    enumData: list[tuple[str, str, str]] # this is the list used for enum properties
+
+
+def transferOldDataToNew(data, oldDataToNewData: dict[str, str]):
     # conversion to the same prop type
     # simply transfer the old data to the new one
     # special case for rumble subprops where it's a string to int conversion
@@ -69,12 +77,12 @@ def transferOldDataToNew(data, oldDataToNewData: dict):
             del data[oldName]
 
 
-def convertOldDataToEnumData(data, oldDataToEnumData: list[tuple[str, str, list[tuple[str, str, str]]]]):
+def convertOldDataToEnumData(data, oldDataToEnumData: list[Cutscene_UpgradeData]):
     # conversion to another prop type
-    for (oldName, newName, enumList) in oldDataToEnumData:
-        if oldName in data:
+    for csUpgradeData in oldDataToEnumData:
+        if csUpgradeData.oldPropName in data:
             # get the old data
-            oldData = data[oldName]
+            oldData = data[csUpgradeData.oldPropName]
 
             # if anything goes wrong there set the value to custom to avoid any data loss
             try:
@@ -85,7 +93,7 @@ def convertOldDataToEnumData(data, oldDataToEnumData: list[tuple[str, str, list[
 
                     # special cases for ocarina action enum
                     # since we don't have everything the value need to be shifted
-                    if newName == "ocarinaAction":
+                    if csUpgradeData.newPropName == "ocarinaAction":
                         if value in [0x00, 0x01, 0x0E] or value > 0x1A:
                             raise IndexError
 
@@ -94,7 +102,7 @@ def convertOldDataToEnumData(data, oldDataToEnumData: list[tuple[str, str, list[
 
                         value -= 2
 
-                    if newName == "csSeqID":
+                    if csUpgradeData.newPropName == "csSeqID":
                         # the old fade out value is wrong, it assumes it's a seq id
                         # but it's not, it's a seq player id,
                         # hence why we raise an error so it defaults to "custom" to avoid any data loss
@@ -105,7 +113,7 @@ def convertOldDataToEnumData(data, oldDataToEnumData: list[tuple[str, str, list[
                     value = oldData + 1
 
                     # another special case, this time for the misc enum
-                    if newName == "csMiscType":
+                    if csUpgradeData.newPropName == "csMiscType":
                         if value in [0x00, 0x04, 0x05]:
                             raise IndexError
 
@@ -117,21 +125,21 @@ def convertOldDataToEnumData(data, oldDataToEnumData: list[tuple[str, str, list[
                     raise NotImplementedError
 
                 # if the value is in the list find the identifier
-                if value < len(enumList):
-                    setattr(data, newName, enumList[value][0])
+                if value < len(csUpgradeData.enumData):
+                    setattr(data, csUpgradeData.newPropName, csUpgradeData.enumData[value][0])
                 else:
                     # else raise an error to default to custom
                     raise IndexError
             except:
-                setattr(data, newName, "Custom")
-                setattr(data, f"{newName}Custom", str(oldData))
+                setattr(data, csUpgradeData.newPropName, "Custom")
+                setattr(data, f"{csUpgradeData.newPropName}Custom", str(oldData))
 
                 # @TODO: find a way to check properly which seq command it is
-                if newName == "csSeqID":
+                if csUpgradeData.newPropName == "csSeqID":
                     setattr(data, "csSeqPlayer", "Custom")
                     setattr(data, "csSeqPlayerCustom", str(oldData))
 
-            del data[oldName]
+            del data[csUpgradeData.oldPropName]
 
 
 def upgradeCutsceneSubProps(csListSubProp):
@@ -168,12 +176,12 @@ def upgradeCutsceneSubProps(csListSubProp):
 
     subPropsToEnum = [
         # TextBox
-        ("ocarinaSongAction", "ocarinaAction", ootEnumOcarinaAction),
-        ("type", "csTextType", ootEnumTextType),
+        Cutscene_UpgradeData("ocarinaSongAction", "ocarinaAction", ootEnumOcarinaAction),
+        Cutscene_UpgradeData("type", "csTextType", ootEnumTextType),
         # Seq
-        ("value", "csSeqID", ootEnumMusicSeq),
+        Cutscene_UpgradeData("value", "csSeqID", ootEnumMusicSeq),
         # Misc
-        ("operation", "csMiscType", ootEnumCSMiscType),
+        Cutscene_UpgradeData("operation", "csMiscType", ootEnumCSMiscType),
     ]
 
     transferOldDataToNew(csListSubProp, subPropsOldToNew)
@@ -197,7 +205,7 @@ def upgradeCSListProps(csListProp):
     transferOldDataToNew(csListProp, csListPropOldToNew)
 
     # both are enums but the item list is different (the old one doesn't have a "custom" entry)
-    convertOldDataToEnumData(csListProp, [("fxType", "transitionType", ootEnumCSTransitionType)])
+    convertOldDataToEnumData(csListProp, [Cutscene_UpgradeData("fxType", "transitionType", ootEnumCSTransitionType)])
 
 
 def upgradeCutsceneProperty(csProp):
@@ -210,4 +218,4 @@ def upgradeCutsceneProperty(csProp):
     }
 
     transferOldDataToNew(csProp, csPropOldToNew)
-    convertOldDataToEnumData(csProp, [("csTermIdx", "csDestination", ootEnumCSDestinationType)])
+    convertOldDataToEnumData(csProp, [Cutscene_UpgradeData("csTermIdx", "csDestination", ootEnumCSDestinationType)])

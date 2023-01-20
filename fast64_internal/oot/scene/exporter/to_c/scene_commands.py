@@ -77,7 +77,7 @@ def getCutsceneDataCmd(outScene: OOTScene, headerIndex: int):
 
 def getSceneCommandList(outScene: OOTScene, headerIndex: int):
     cmdListData = CData()
-    listName = f"SceneCmd {outScene.sceneName()}_header{headerIndex:02}"
+    declarationBase = f"SceneCmd {outScene.sceneName()}_header{headerIndex:02}"
 
     getCmdFunc1ArgList = [
         getSoundSettingsCmd,
@@ -110,9 +110,9 @@ def getSceneCommandList(outScene: OOTScene, headerIndex: int):
     )
 
     # .h
-    cmdListData.header = f"extern {listName}[]" + ";\n"
+    cmdListData.header = f"extern {declarationBase}[]" + ";\n"
 
     # .c
-    cmdListData.source = f"{listName}[]" + " = {\n" + sceneCmdData + "};\n\n"
+    cmdListData.source = f"{declarationBase}[]" + " = {\n" + sceneCmdData + "};\n\n"
 
     return cmdListData

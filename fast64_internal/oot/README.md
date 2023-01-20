@@ -179,4 +179,4 @@ Note that you can have the actual address of your cutscene if you use ``sym_info
 
 If you have a softlock in-game then you probably did something wrong when creating the cutscene. Make sure you set up the bones properly. The softlock means the game is playing a cutscene but it's probably reading wrong data. Make sure the cutscene is exported, if it's not export it again.
 
-If the game crash check the transitions if you use the transition command (check both the ones from the entrance table and your cutscene script), also it will crash if you try to use the map select without having a 5th entrance (or more depending on the number of cutscenes you have) in the group for your scene.
+If the game crashes check the transitions if you use the transition command (check both the ones from the entrance table and your cutscene script), also it will crash if you try to use the map select without having a 5th entrance (or more depending on the number of cutscenes you have) in the group for your scene.

@@ -6,15 +6,15 @@ from ....cutscene.exporter import OOTCutscene
 
 def ootCutsceneDataToC(csParent: OOTCutscene | OOTScene, csName: str):
     csData = CData()
-    arrayName = f"CutsceneData {csName}[]"
+    declarationBase = f"CutsceneData {csName}[]"
     nentries = len(csParent.csLists) + (1 if csParent.csUseDestination else 0)
 
     # .h
-    csData.header = f"extern {arrayName};\n"
+    csData.header = f"extern {declarationBase};\n"
 
     # .c
     csData.source = (
-        arrayName
+        declarationBase
         + " = {\n"
         + (indent + f"CS_BEGIN_CUTSCENE({nentries}, {csParent.csEndFrame}),\n")
         + (
@@ -61,7 +61,7 @@ def ootCutsceneDataToC(csParent: OOTCutscene | OOTScene, csName: str):
                     csData.source += f"{e.ocarinaAction}, {e.startFrame}, {e.endFrame}, {e.ocarinaMessageId}"
 
             elif list.listType == "LightSettingsList":
-                # the endFrame variable is not used in the implementation of the commend
+                # the endFrame variable is not used in the implementation of the command
                 # so the value doesn't matter
                 csData.source += f"{e.lightSettingsIndex}, {e.startFrame}" + (", 0" * 9)
 
