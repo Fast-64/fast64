@@ -325,6 +325,27 @@ class CData:
         self.header += other.header
 
 
+class CScrollData(CData):
+    """This class contains a list of function names, so that the top level scroll function can call all of them."""
+
+    def __init__(self):
+        self.functionCalls: list[str] = []
+        """These function names are all called in one top level scroll function."""
+
+        self.topLevelScrollFunc: str = ""
+        """This function is the final one that calls all the others."""
+
+        CData.__init__(self)
+
+    def append(self, other):
+        if isinstance(other, CScrollData):
+            self.functionCalls.extend(other.functionCalls)
+        CData.append(self, other)
+
+    def hasScrolling(self):
+        return len(self.functionCalls) > 0
+
+
 def getObjectFromData(data):
     for obj in bpy.data.objects:
         if obj.data == data:
@@ -816,6 +837,7 @@ def get_obj_temp_mesh(obj):
         if o.get("temp_export") and o.get("instanced_mesh_name") == obj.get("instanced_mesh_name"):
             return o
 
+
 def apply_objects_modifiers_and_transformations(allObjs: Iterable[bpy.types.Object]):
     # first apply modifiers so that any objects that affect each other are taken into consideration
     for selectedObj in allObjs:
@@ -833,6 +855,7 @@ def apply_objects_modifiers_and_transformations(allObjs: Iterable[bpy.types.Obje
         bpy.context.view_layer.objects.active = selectedObj
 
         bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
+
 
 def duplicateHierarchy(obj, ignoreAttr, includeEmpties, areaIndex):
     # Duplicate objects to apply scale / modifiers / linked data
