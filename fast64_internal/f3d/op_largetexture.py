@@ -1,7 +1,8 @@
 import bpy, mathutils, math
 from bpy.utils import register_class, unregister_class
-from .utility import *
+from ..utility import *
 from .f3d_writer import getTexInfoFromMat
+
 
 def getTexInfoForLarge(material):
     f3dMat = material.f3d_mat
@@ -10,6 +11,8 @@ def getTexInfoForLarge(material):
     if not f3dMat.use_large_textures:
         return "This is not a large texture material.", None
     largeEdges = f3dMat.large_edges
+    if f3dMat.rdp_settings.g_mdsft_text_filt == "G_TF_AVERAGE":
+        return 'Texture filter "Average" not supported.', None
     bilinear = f3dMat.rdp_settings.g_mdsft_text_filt == "G_TF_BILERP"
     err0, info0 = getTexInfoFromMat(0, f3dMat)
     err1, info1 = getTexInfoFromMat(1, f3dMat)
@@ -45,14 +48,14 @@ def getTexInfoForLarge(material):
         largeFmt = tex1Fmt
         largeWords = tmemSize
     return None, (largeDims, largeFmt, largeWords, largeEdges, bilinear)
-    
+
 
 class OpLargeTextureProperty(bpy.types.PropertyGroup):
     mat: bpy.props.PointerProperty(type=bpy.types.Material)
     clamp_border: bpy.props.FloatProperty(
         name="Extra border",
         description="Amount to extend mesh outwards with clamping from image. Set to 0 for no clamping, "
-            + "or 0.5 for fast64 classic half-texel offset",
+        + "or 0.5 for fast64 classic half-texel offset",
         default=0.5,
         min=0.0,
     )
@@ -71,7 +74,7 @@ class OpLargeTextureProperty(bpy.types.PropertyGroup):
     lose_pixels: bpy.props.BoolProperty(
         name="Lose pixels (drop thin tris at edges)",
         description="Discard thin tris, only a few pixels wide or high, at the edges of the image, "
-            + "which are needed because bilinear interpolation requires loads to overlap by at least 1 pixel",
+        + "which are needed because bilinear interpolation requires loads to overlap by at least 1 pixel",
         default=False,
     )
     horizontal: bpy.props.BoolProperty(
@@ -88,7 +91,7 @@ class OpLargeTextureProperty(bpy.types.PropertyGroup):
 
 
 def ui_oplargetexture(layout, context):
-    layout = layout.box()
+    layout = layout.box().column()
     prop = context.scene.opLargeTextureProperty
     layout.box().label(text="Create Large Texture Mesh:")
     prop_split(layout.row(), prop, "mat", "Large tex material:")
@@ -97,28 +100,30 @@ def ui_oplargetexture(layout, context):
         return
     err, info = getTexInfoForLarge(prop.mat)
     if err is not None:
-        layout.row().label(icon='WARNING', text=err)
+        layout.row().label(icon="ERROR", text=err)
         return
     (largeDims, largeFmt, largeWords, largeEdges, bilinear) = info
-    layout.row().label(text=f"{largeFmt}, {largeEdges} edges, {'bilinear' if bilinear else 'point sampled'}")
+    bilinInfo = "bilinear" if bilinear else "point sampled"
+    sizeInfo = f", {largeDims[0]}x{largeDims[1]}" if largeEdges == "Clamp" else ""
+    infoStr = f"{largeFmt}, {largeEdges} edges, {bilinInfo}{sizeInfo}"
+    layout.row().label(icon="IMAGE", text=infoStr)
     if largeEdges == "Clamp":
-        layout.row().label(text=f"{largeDims[0]}x{largeDims[1]}")
         prop_split(layout.row(), prop, "clamp_border", "Extra border")
     else:
         prop_split(layout.row(), prop, "total_size_s", f"S: {largeDims[0]} / total:")
         prop_split(layout.row(), prop, "total_size_t", f"T: {largeDims[1]} / total:")
     if bilinear:
-        layout.row().prop(prop.lose_pixels)
-    layout.row().prop(prop.horizontal)
+        layout.row().prop(prop, "lose_pixels")
+    layout.row().prop(prop, "horizontal")
     prop_split(layout.row(), prop, "scale", "Scale (texel size)")
-    layout.row().operator(CreateLargeTextureMesh)
-    
+    layout.row().operator("scene.create_large_texture_mesh")
+
 
 class CreateLargeTextureMesh(bpy.types.Operator):
-	bl_idname = 'object.create_large_texture_mesh'
-	bl_label = "Create Large Texture Mesh"
-	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
-    
+    bl_idname = "scene.create_large_texture_mesh"
+    bl_label = "Create Large Texture Mesh"
+    bl_options = {"REGISTER", "UNDO", "PRESET"}
+
     def execute(self, context):
         return {"CANCELLED"}
 

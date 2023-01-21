@@ -458,6 +458,7 @@ def register():
     f3d_writer_register()
     flipbook_register()
     f3d_parser_register()
+    op_largetexture_register()
 
     # ROM
 
@@ -484,6 +485,7 @@ def register():
 # called on add-on disabling
 def unregister():
     utility_anim_unregister()
+    op_largetexture_unregister()
     flipbook_unregister()
     f3d_writer_unregister()
     f3d_parser_unregister()

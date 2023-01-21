@@ -262,8 +262,8 @@ def findUVBounds(polygon, uv_data):
 
 class TileLoad:
     def __init__(self, material, fMaterial, texDimensions):
-        self.sl = self.tl = 1000000 # above any actual value
-        self.sh = self.th = -1 # below any actual value
+        self.sl = self.tl = 1000000  # above any actual value
+        self.sh = self.th = -1  # below any actual value
 
         self.texFormat = fMaterial.largeTexFmt
         self.is4bit = texBitSizeInt[self.texFormat] == 4
@@ -272,7 +272,7 @@ class TileLoad:
         self.materialName = material.name
         self.isPointSampled = isTexturePointSampled(material)
         self.largeEdges = material.f3d_mat.large_edges
-        
+
         self.faces = []
         self.offsets = []
 
@@ -334,8 +334,7 @@ class TileLoad:
 
     def initWithFace(self, obj, face):
         uv_data = obj.data.uv_layers["UVMap"].data
-        faceUVs = [UVtoSTLarge(obj, loopIndex, uv_data, self.texDimensions)
-            for loopIndex in face.loops]
+        faceUVs = [UVtoSTLarge(obj, loopIndex, uv_data, self.texDimensions) for loopIndex in face.loops]
         if len(faceUVs) == 0:
             return True
 
@@ -344,9 +343,8 @@ class TileLoad:
             self.sh = max(self.sh, self.getHigh(point[0], 0))
             self.tl = min(self.tl, self.getLow(point[1], 0))
             self.th = max(self.th, self.getHigh(point[1], 1))
-            
-        ret, self.sl, self.sh, self.tl, self.th, soffset, toffset = self.fixRegion(
-            self.sl, self.sh, self.tl, self.th)
+
+        ret, self.sl, self.sh, self.tl, self.th, soffset, toffset = self.fixRegion(self.sl, self.sh, self.tl, self.th)
         if not ret:
             if self.sh >= 1024 or self.th >= 1024:
                 raise PluginError(
@@ -374,8 +372,7 @@ class TileLoad:
         new_sh = max(self.sh, other.sh)
         new_tl = min(self.tl, other.tl)
         new_th = max(self.th, other.th)
-        ret, new_sl, new_sh, new_tl, new_th, soffset, toffset = self.fixRegion(
-            new_sl, new_sh, new_tl, new_th)
+        ret, new_sl, new_sh, new_tl, new_th, soffset, toffset = self.fixRegion(new_sl, new_sh, new_tl, new_th)
         if not ret:
             return False
         self.sl, self.sh, self.tl, self.th = new_sl, new_sh, new_tl, new_th
@@ -394,7 +391,7 @@ def maybeSaveSingleLargeTextureSetup(
     texDimensions: tuple[int, int],
     tileSettings: TileLoad,
     curImgSet: Union[None, int],
-    curTileLines: list[int]
+    curTileLines: list[int],
 ):
     if fMaterial.isTexLarge[i]:
         wrapS = tileSettings.sh >= texDimensions[0]
@@ -406,7 +403,8 @@ def maybeSaveSingleLargeTextureSetup(
         tmem = fMaterial.largeTexAddr[i]
         print(
             f"Tile: {tileSettings.sl}-{tileSettings.sh} x {tileSettings.tl}-{tileSettings.th} "
-            + f"tmem {tmem} line {line}")
+            + f"tmem {tmem} line {line}"
+        )
         if wrapS or wrapT:
             fmt = texFormatOf[texProp.tex_format]
             texelsPerLine = 64 // texBitSizeInt[texProp.tex_format]
@@ -424,10 +422,10 @@ def maybeSaveSingleLargeTextureSetup(
             nocm = ["G_TX_WRAP", "G_TX_NOMIRROR"]
             if curImgSet != i:
                 gfxOut.commands.append(DPSetTextureImage(fmt, siz, wid, fImage))
+
             def loadOneOrTwoS(tmemBase, tidxBase, TL, TH):
                 if line != curTileLines[tidxBase]:
-                    gfxOut.commands.append(DPSetTile(
-                        fmt, siz, line, tmemBase, tidxBase, 0, nocm, 0, 0, nocm, 0, 0))
+                    gfxOut.commands.append(DPSetTile(fmt, siz, line, tmemBase, tidxBase, 0, nocm, 0, 0, nocm, 0, 0))
                     curTileLines[tidxBase] = line
                 if wrapS:
                     # Break up at the wrap boundary into two tile loads.
@@ -435,16 +433,21 @@ def maybeSaveSingleLargeTextureSetup(
                     assert (texDimensions[0] - tileSettings.sl) % texelsPerLine == 0
                     sLineOfs = (texDimensions[0] - tileSettings.sl) // texelsPerLine
                     print(f"-- Wrap at S={texDimensions[0]}, offset {sLineOfs}")
-                    gfxOut.commands.append(DPLoadTile(
-                        tidxBase, tileSettings.sl * sm, TL*4, (texDimensions[0] - 1) * sm, TH*4))
-                    gfxOut.commands.append(DPSetTile(
-                        fmt, siz, line, tmemBase + sLineOfs, tidxBase-1, 0, nocm, 0, 0, nocm, 0, 0))
-                    curTileLines[tidxBase-1] = -1
-                    gfxOut.commands.append(DPLoadTile(
-                        tidxBase-1, 0, TL*4, (tileSettings.sh - texDimensions[0]) * sm, TH*4))
+                    gfxOut.commands.append(
+                        DPLoadTile(tidxBase, tileSettings.sl * sm, TL * 4, (texDimensions[0] - 1) * sm, TH * 4)
+                    )
+                    gfxOut.commands.append(
+                        DPSetTile(fmt, siz, line, tmemBase + sLineOfs, tidxBase - 1, 0, nocm, 0, 0, nocm, 0, 0)
+                    )
+                    curTileLines[tidxBase - 1] = -1
+                    gfxOut.commands.append(
+                        DPLoadTile(tidxBase - 1, 0, TL * 4, (tileSettings.sh - texDimensions[0]) * sm, TH * 4)
+                    )
                 else:
-                    gfxOut.commands.append(DPLoadTile(
-                        tidxBase, tileSettings.sl * sm, TL*4, tileSettings.sh * sm, TH*4))
+                    gfxOut.commands.append(
+                        DPLoadTile(tidxBase, tileSettings.sl * sm, TL * 4, tileSettings.sh * sm, TH * 4)
+                    )
+
             if wrapT:
                 # Break up at the wrap boundary into two loads.
                 # The first load must be even in size (even number of texture rows).
@@ -455,7 +458,7 @@ def maybeSaveSingleLargeTextureSetup(
                 loadOneOrTwoS(tmem + tLineOfs, 5, 0, tileSettings.th - texDimensions[1])
             else:
                 loadOneOrTwoS(tmem, 7, tileSettings.tl, tileSettings.th)
-            if fMaterial.isTexLarge[i^1]:
+            if fMaterial.isTexLarge[i ^ 1]:
                 # May reuse any of the above tiles for the other large texture.
                 gfxOut.commands.append(DPTileSync())
         else:
@@ -549,12 +552,28 @@ def saveMeshWithLargeTexturesByFaces(
         # potentially corrupting TMEM
         triGroup.triList.commands.append(DPLoadSync())
         curImgSet = maybeSaveSingleLargeTextureSetup(
-            0, fMaterial, fModel, fImage0, triGroup.triList, f3dMat.tex0,
-            texDimensions, tileLoad, curImgSet, curTileLines
+            0,
+            fMaterial,
+            fModel,
+            fImage0,
+            triGroup.triList,
+            f3dMat.tex0,
+            texDimensions,
+            tileLoad,
+            curImgSet,
+            curTileLines,
         )
         curImgSet = maybeSaveSingleLargeTextureSetup(
-            1, fMaterial, fModel, fImage1, triGroup.triList, f3dMat.tex1,
-            texDimensions, tileLoad, curImgSet, curTileLines
+            1,
+            fMaterial,
+            fModel,
+            fImage1,
+            triGroup.triList,
+            f3dMat.tex1,
+            texDimensions,
+            tileLoad,
+            curImgSet,
+            curTileLines,
         )
 
         triConverter = TriangleConverter(
@@ -568,17 +587,11 @@ def saveMeshWithLargeTexturesByFaces(
             copy.deepcopy(matRegionDict),
         )
 
-        currentGroupIndex = saveTriangleStrip(
-            triConverter,
-            tileLoad.faces,
-            tileLoad.offsets,
-            obj.data,
-            False
-        )
+        currentGroupIndex = saveTriangleStrip(triConverter, tileLoad.faces, tileLoad.offsets, obj.data, False)
 
         if len(revertCommands.commands) > 0:
             fMesh.draw.commands.extend(revertCommands.commands)
-        
+
         firstFace = False
 
     triGroup.triList.commands.append(SPEndDisplayList())
@@ -1647,9 +1660,11 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     (useTex0, isTex0Ref, isTex0CI, tex0Fmt, pal0Fmt, imageDims0, tex0Tmem) = info0
     (useTex1, isTex1Ref, isTex1CI, tex1Fmt, pal1Fmt, imageDims1, tex1Tmem) = info1
     tex0Name, pal0, pal0Len, im0Use, tex0Flipbook = getTexInfoAdvanced(
-        0, material, fMaterial, fModel, isTex0Ref, isTex0CI, tex0Fmt, pal0Fmt)
+        0, material, fMaterial, fModel, isTex0Ref, isTex0CI, tex0Fmt, pal0Fmt
+    )
     tex1Name, pal1, pal1Len, im1Use, tex1Flipbook = getTexInfoAdvanced(
-        0, material, fMaterial, fModel, isTex1Ref, isTex1CI, tex1Fmt, pal1Fmt)
+        0, material, fMaterial, fModel, isTex1Ref, isTex1CI, tex1Fmt, pal1Fmt
+    )
 
     isCI = (useTex0 and isTex0CI) or (useTex1 and isTex1CI)
 
@@ -1920,9 +1935,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             else:
                 # Both textures large
                 raise PluginError(
-                    'Error in "'
-                    + material.name
-                    + '": Multitexture with two large textures is not currently supported.'
+                    'Error in "' + material.name + '": Multitexture with two large textures is not currently supported.'
                 )
                 # Limited cases of 2x large textures could be supported in the
                 # future. However, these cases are either of questionable
@@ -2245,18 +2258,18 @@ def getTexInfoFromMat(
     f3dMat: F3DMaterialProperty,
 ):
     texProp = getattr(f3dMat, "tex" + str(index))
-    
+
     useDict = all_combiner_uses(f3dMat)
     if not useDict["Texture " + str(index)]:
         return None, (False, False, False, "", "", (0, 0), 0)
-    
+
     return getTexInfoFromProp(texProp)
 
 
 def getTexInfoFromProp(texProp: TextureProperty):
     if not texProp.tex_set:
         return None, (False, False, False, "", "", (0, 0), 0)
-    
+
     tex = texProp.tex
     isTexRef = texProp.use_tex_reference
     texFormat = texProp.tex_format
@@ -2281,10 +2294,10 @@ def getTexInfoFromProp(texProp: TextureProperty):
 
     if width > 1024 or height > 1024:
         return f"Image size (even large textures) limited to 1024 in each dimension.", None
-    
+
     if texBitSizeInt[texFormat] == 4 and (width & 1) != 0:
         return f"A 4-bit image must have a width which is even.", None
-        
+
     info = (True, isTexRef, isCITexture, texFormat, palFormat, (width, height), tmemSize)
     return None, info
 
@@ -2297,13 +2310,13 @@ def getTexInfoAdvanced(
     isTexRef: bool,
     isCITexture: bool,
     texFormat: str,
-    palFormat: str
+    palFormat: str,
 ):
     f3dMat = material.f3dMat
     texProp = getattr(f3dMat, "tex" + str(index))
-    
+
     texName = getTextureName(texProp, fModel.name, None)
-    
+
     pal = None
     palLen = 0
     if isCITexture:
@@ -2369,8 +2382,8 @@ def saveTextureLoadOnly(
     loadtile: int,
     tmem: int,
     f3d: F3D,
-    omitSetTextureImage = False,
-    omitSetTile = False,
+    omitSetTextureImage=False,
+    omitSetTile=False,
 ):
     fmt = texFormatOf[texProp.tex_format]
     siz = texBitSizeF3D[texProp.tex_format]
@@ -2406,12 +2419,11 @@ def saveTextureLoadOnly(
             loadCommand = DPLoadBlock(loadtile, 0, 0, dxs, dxt)
         else:
             loadCommand = DPLoadTile(loadtile, sl, tl, sh, th)
-    
+
     if not omitSetTextureImage:
         gfxOut.commands.append(DPSetTextureImage(fmt, siz, wid, fImage))
     if not omitSetTile:
-        gfxOut.commands.append(DPSetTile(
-            fmt, siz, line, tmem, loadtile, 0, nocm, 0, 0, nocm, 0, 0))
+        gfxOut.commands.append(DPSetTile(fmt, siz, line, tmem, loadtile, 0, nocm, 0, 0, nocm, 0, 0))
     gfxOut.commands.append(loadCommand)
 
 
@@ -2425,7 +2437,7 @@ def saveTextureTile(
     tmem: int,
     pal: int,
     f3d: F3D,
-    omitSetTile = False,
+    omitSetTile=False,
 ):
     if tileSettings is not None:
         clamp_S = True
