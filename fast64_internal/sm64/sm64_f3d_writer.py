@@ -5,7 +5,7 @@ from mathutils import Matrix, Vector
 from bpy.utils import register_class, unregister_class
 from ..panels import SM64_Panel
 from ..f3d.f3d_writer import (
-    getAndCheckTexInfo,
+    getTexInfoFromProp,
     saveOrGetTextureDefinition,
     saveTextureLoadOnly,
     saveTextureTile,
@@ -364,7 +364,7 @@ def exportTexRectCommon(texProp, f3dType, isHWv1, name, convertTextureData):
 
     drawEndCommands = GfxList("temp", GfxListTag.Draw, DLFormat.Dynamic)
 
-    useTex, isTexRef, isTexCI, texFmt, _, texName, imageDims, texTmem, _, _ = getAndCheckTexInfo(0, name, texProp, True)
+    useTex, isTexRef, isTexCI, texFmt, _, imageDims, texTmem = getTexInfoFromProp(texProp)
     if not useTex:
         raise PluginError("In " + name + ": texture disabled.")
     if isTexCI:

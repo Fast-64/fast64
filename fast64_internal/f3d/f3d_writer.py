@@ -1638,34 +1638,18 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     useDict = all_combiner_uses(f3dMat)
 
     # Get texture info, needed for othermode; also check some texture props
-    (
-        useTex0,
-        isTex0Ref,
-        isTex0CI,
-        tex0Fmt,
-        pal0Fmt,
-        tex0Name,
-        imageDims0,
-        tex0Tmem,
-        pal0,
-        pal0Len,
-        im0Use,
-        tex0Flipbook,
-    ) = getAndCheckTexInfo(0, fModel, fMaterial, material, f3dMat.tex0, useDict["Texture 0"])
-    (
-        useTex1,
-        isTex1Ref,
-        isTex1CI,
-        tex1Fmt,
-        pal1Fmt,
-        tex1Name,
-        imageDims1,
-        tex1Tmem,
-        pal1,
-        pal1Len,
-        im1Use,
-        tex1Flipbook,
-    ) = getAndCheckTexInfo(1, fModel, fMaterial, material, f3dMat.tex1, useDict["Texture 1"])
+    err0, info0 = getTexInfoFromMat(0, f3dMat)
+    err1, info1 = getTexInfoFromMat(1, f3dMat)
+    if err0 is not None:
+        raise PluginError(f"In {material.name} tex0: {err0}")
+    if err1 is not None:
+        raise PluginError(f"In {material.name} tex1: {err1}")
+    (useTex0, isTex0Ref, isTex0CI, tex0Fmt, pal0Fmt, imageDims0, tex0Tmem) = info0
+    (useTex1, isTex1Ref, isTex1CI, tex1Fmt, pal1Fmt, imageDims1, tex1Tmem) = info1
+    tex0Name, pal0, pal0Len, im0Use, tex0Flipbook = getTexInfoAdvanced(
+        0, material, fMaterial, fModel, isTex0Ref, isTex0CI, tex0Fmt, pal0Fmt)
+    tex1Name, pal1, pal1Len, im1Use, tex1Flipbook = getTexInfoAdvanced(
+        0, material, fMaterial, fModel, isTex1Ref, isTex1CI, tex1Fmt, pal1Fmt)
 
     isCI = (useTex0 and isTex0CI) or (useTex1 and isTex1CI)
 
@@ -1935,6 +1919,17 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
                 tex1Addr = tmemSize - tex1Tmem
             else:
                 # Both textures large
+                raise PluginError(
+                    'Error in "'
+                    + material.name
+                    + '": Multitexture with two large textures is not currently supported.'
+                )
+                # Limited cases of 2x large textures could be supported in the
+                # future. However, these cases are either of questionable
+                # utility or have substantial restrictions. Most cases could be
+                # premixed into one texture, or would run out of UV space for
+                # tiling (1024x1024 in the space of whichever texture had
+                # smaller pixels), or one of the textures could be non-large.
                 if f3dMat.uv_basis == "TEXEL0":
                     texDimensions = imageDims0
                     fMaterial.largeTexFmt = tex0Fmt
@@ -1950,26 +1945,20 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         elif useTex0:
             texDimensions = imageDims0
             fMaterial.largeTexFmt = tex0Fmt
-            if tex0Tmem > tmemSize:
-                fMaterial.isTexLarge[0] = True
-                fMaterial.largeTexAddr[0] = 0
-                fMaterial.largeTexWords = tmemSize
-                doTex0Load = doTex0Tile = False
-                tmemOccupied = tmemSize
-            else:
-                tmemOccupied = tex0Tmem
+            fMaterial.isTexLarge[0] = True
+            fMaterial.largeTexAddr[0] = 0
+            fMaterial.largeTexWords = tmemSize
+            doTex0Load = doTex0Tile = False
+            tmemOccupied = tmemSize
         elif useTex1:
             tex1Addr = 0
             texDimensions = imageDims1
             fMaterial.largeTexFmt = tex1Fmt
-            if tex1Tmem > tmemSize:
-                fMaterial.isTexLarge[1] = True
-                fMaterial.largeTexAddr[1] = 0
-                fMaterial.largeTexWords = tmemSize
-                doTex1Load = doTex1Tile = False
-                tmemOccupied = tmemSize
-            else:
-                tmemOccupied = tex1Tmem
+            fMaterial.isTexLarge[1] = True
+            fMaterial.largeTexAddr[1] = 0
+            fMaterial.largeTexWords = tmemSize
+            doTex1Load = doTex1Tile = False
+            tmemOccupied = tmemSize
     if tmemOccupied > tmemSize:
         if sameTextures and useLargeTextures:
             raise PluginError(
@@ -2251,52 +2240,70 @@ def saveOrGetTextureDefinition(
     return imageKey, fImage
 
 
-def getAndCheckTexInfo(
+def getTexInfoFromMat(
     index: int,
-    fModel: FModel,
-    fMaterial: FMaterial,
-    material: bpy.types.Material,
-    texProp: TextureProperty,
-    useDictEntry,
+    f3dMat: F3DMaterialProperty,
 ):
-    if not useDictEntry or not texProp.tex_set:
-        return False, False, False, "", "", "", (0, 0), 0, None, 0, None, None
+    texProp = getattr(f3dMat, "tex" + str(index))
+    
+    useDict = all_combiner_uses(f3dMat)
+    if not useDict["Texture " + str(index)]:
+        return None, (False, False, False, "", "", (0, 0), 0)
+    
+    return getTexInfoFromProp(texProp)
 
+
+def getTexInfoFromProp(texProp: TextureProperty):
+    if not texProp.tex_set:
+        return None, (False, False, False, "", "", (0, 0), 0)
+    
     tex = texProp.tex
     isTexRef = texProp.use_tex_reference
     texFormat = texProp.tex_format
     isCITexture = texFormat[:2] == "CI"
     palFormat = texProp.ci_format if isCITexture else ""
-    texName = getTextureName(texProp, fModel.name, None)
 
     if tex is not None and (tex.size[0] == 0 or tex.size[1] == 0):
-        raise PluginError(
-            "Image " + tex.name + " has either a 0 width or height; image may have been removed from original location."
-        )
+        return f"Image {tex.name} has 0 size; may have been deleted/moved.", None
 
     if not isTexRef:
         if tex is None:
-            raise PluginError(f"In {material.name}, no texture is selected.")
+            return f"No texture is selected.", None
         elif len(tex.pixels) == 0:
-            raise PluginError(
-                "Could not load missing texture: "
-                + tex.name
-                + ". Make sure this texture has not been deleted or moved on disk."
-            )
+            return f"Image {tex.name} is missing on disk.", None
 
     if isTexRef:
-        imageWidth, imageHeight = texProp.tex_reference_size
+        width, height = texProp.tex_reference_size
     else:
-        imageWidth, imageHeight = tex.size
+        width, height = tex.size
 
-    tmemSize = getTmemWordUsage(texFormat, imageWidth, imageHeight)
+    tmemSize = getTmemWordUsage(texFormat, width, height)
 
-    if imageWidth > 1024 or imageHeight > 1024:
-        raise PluginError(f'Error in "{material.name}": Image size (even with large textures) limited to 1024 in either dimension.')
+    if width > 1024 or height > 1024:
+        return f"Image size (even large textures) limited to 1024 in each dimension.", None
     
-    if texBitSizeInt[texFormat] == 4 and (imageWidth & 1) != 0:
-        raise PluginError(f'Error in "{material.name}": A 4-bit image must have a width which is even.')
+    if texBitSizeInt[texFormat] == 4 and (width & 1) != 0:
+        return f"A 4-bit image must have a width which is even.", None
+        
+    info = (True, isTexRef, isCITexture, texFormat, palFormat, (width, height), tmemSize)
+    return None, info
 
+
+def getTexInfoAdvanced(
+    index: int,
+    material: bpy.types.Material,
+    fMaterial: FMaterial,
+    fModel: FModel,
+    isTexRef: bool,
+    isCITexture: bool,
+    texFormat: str,
+    palFormat: str
+):
+    f3dMat = material.f3dMat
+    texProp = getattr(f3dMat, "tex" + str(index))
+    
+    texName = getTextureName(texProp, fModel.name, None)
+    
     pal = None
     palLen = 0
     if isCITexture:
@@ -2313,32 +2320,14 @@ def getAndCheckTexInfo(
             palLen = len(pal)
         if palLen > (16 if texFormat == "CI4" else 256):
             raise PluginError(
-                "In "
-                + propName
-                + ", texture "
-                + texName
+                f"Error in {material.name}: {texName}"
                 + (" (all flipbook textures)" if flipbook is not None else "")
-                + " uses too many unique colors to fit in format"
-                + texFormat
-                + "."
+                + f" uses too many unique colors to fit in format {texFormat}."
             )
     else:
         imUse, flipbook = fModel.processTexRefNonCITextures(fMaterial, material, index)
 
-    return (
-        True,
-        isTexRef,
-        isCITexture,
-        texFormat,
-        palFormat,
-        texName,
-        (imageWidth, imageHeight),
-        tmemSize,
-        pal,
-        palLen,
-        imUse,
-        flipbook,
-    )
+    return texName, pal, palLen, imUse, flipbook
 
 
 # Functions for writing texture and palette DLs

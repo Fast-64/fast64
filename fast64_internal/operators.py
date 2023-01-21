@@ -73,4 +73,3 @@ class ObjectDataExporter(WarningOperator):
 
 	def cleanup_temp_object_data(self):
 		cleanupTempMeshes()
-
