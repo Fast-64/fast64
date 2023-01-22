@@ -1,6 +1,8 @@
-import bpy, mathutils, math
+import bpy, mathutils, math, bmesh
+from mathutils import Vector
 from bpy.utils import register_class, unregister_class
 from ..utility import *
+from .f3d_enums import texBitSizeInt
 from .f3d_writer import getTexInfoFromMat
 
 
@@ -119,12 +121,78 @@ def ui_oplargetexture(layout, context):
     layout.row().operator("scene.create_large_texture_mesh")
 
 
+def createLargeTextureMeshInternal(bm, prop):
+    # Parameters setup
+    err, info = getTexInfoForLarge(prop.mat)
+    if err is not None:
+        raise PluginError(err)
+    (largeDims, largeFmt, largeWords, largeEdges, bilinear) = info
+    texelsPerLine = 64 // texBitSizeInt[largeFmt]
+    baseTileS, baseTileT = 128, 64
+    while True:
+        if getTmemWordUsage(largeFmt, baseTileS, baseTileT) <= largeWords:
+            break
+        baseTileS >>= 1
+        if getTmemWordUsage(largeFmt, baseTileS, baseTileT) <= largeWords:
+            break
+        baseTileT >>= 1
+    if prop.horizontal and baseTileS == baseTileT:
+        baseTileS <<= 1
+        baseTileT >>= 1
+    if bilinear:
+        baseTileS -= 1
+        baseTileT -= 1
+    # Mesh setup
+    bm.clear()
+    uvlayer = bm.loops.layers.uv.new("UVMap")
+    def addGrid(svals, tvals):
+        ns, nt = len(svals), len(tvals)
+        verts = []
+        for t in tvals:
+            for s in svals:
+                verts.append(bm.verts.new((s * prop.scale, 0.0, -t * prop.scale)))
+        bm.verts.index_update()
+        faces = []
+        for ti in range(nt-1):
+            for si in range(ns-1):
+                faces.append(bm.faces.new((
+                    verts[ti*ns+(si+1)],
+                    verts[ti*ns+si],
+                    verts[(ti+1)*ns+si],
+                    verts[(ti+1)*ns+(si+1)],
+                )))
+        bm.faces.index_update()
+        for ti in range(nt-1):
+            for si in range(ns-1):
+                f = faces[ti*(ns-1)+si]
+                f.loops[0][uvlayer].uv = Vector((svals[si+1], tvals[ti]))
+                f.loops[1][uvlayer].uv = Vector((svals[si], tvals[ti]))
+                f.loops[2][uvlayer].uv = Vector((svals[si], tvals[ti+1]))
+                f.loops[3][uvlayer].uv = Vector((svals[si+1], tvals[ti+1]))
+    TODO()
+
+
 class CreateLargeTextureMesh(bpy.types.Operator):
     bl_idname = "scene.create_large_texture_mesh"
     bl_label = "Create Large Texture Mesh"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
 
     def execute(self, context):
+        bpy.ops.object.select_all(action='DESELECT')
+        prop = context.scene.opLargeTextureProperty
+        assert prop.mat is not None
+        mesh = context.blend_data.meshes.new(prop.mat.name + "Mesh")
+        obj = context.blend_data.objects.new(prop.mat.name + "Mesh", mesh)
+        mesh.materials.append(prop.mat)
+        bm = bmesh.new()
+        bm.from_mesh(mesh)
+        createLargeTextureMeshInternal(bm, prop)
+        bm.to_mesh(mesh)
+        bm.free()
+        bpy.context.collection.objects.link(obj)
+        bpy.context.view_layer.objects.active = obj
+        obj.select_set(True)
+        bpy.ops.view3d.view_selected()
         return {"CANCELLED"}
 
 
