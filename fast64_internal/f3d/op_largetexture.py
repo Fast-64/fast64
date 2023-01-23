@@ -3,6 +3,7 @@ from mathutils import Vector
 from bpy.utils import register_class, unregister_class
 from ..utility import *
 from .f3d_enums import texBitSizeInt
+from .f3d_material import getTmemWordUsage
 from .f3d_writer import getTexInfoFromMat
 
 
@@ -52,10 +53,19 @@ def getTexInfoForLarge(material):
     return None, (largeDims, largeFmt, largeWords, largeEdges, bilinear)
 
 
+enumOpLTBias = [
+    ("Square", "Square (~1x1)", "Almost square loads, rounded up to nearest line. For meshes which will be deformed (e.g. circular) if results with Weak are not acceptable"),
+    ("Weak", "Weak (1x1/2x1)", "Square or twice-width loads, depending on format and free memory, e.g. 32x32 or 64x32"),
+    ("Moderate", "Moderate (4x1/2x1)", "Width 4x or 2x height, e.g. 64x16 or 64x32. Good efficiency balance"),
+    ("Strong", "Strong (4x1/8x1)", "Width 4x or 8x height, e.g. 64x16 or 128x16. More efficient than Moderate if geometry usually viewed roughly straight-on"),
+    ("Extreme", "Extreme (ortho+point only)", "Maximum width, up to full texture rows. Maximum efficiency if geometry always aligned to camera (orthographic) and point sampled. Inefficient otherwise"),
+]
+
+
 class OpLargeTextureProperty(bpy.types.PropertyGroup):
     mat: bpy.props.PointerProperty(type=bpy.types.Material)
     clamp_border: bpy.props.FloatProperty(
-        name="Extra border",
+        name="Extra clamped border",
         description="Amount to extend mesh outwards with clamping from image. Set to 0 for no clamping, "
         + "or 0.5 for fast64 classic half-texel offset",
         default=0.5,
@@ -79,10 +89,11 @@ class OpLargeTextureProperty(bpy.types.PropertyGroup):
         + "which are needed because bilinear interpolation requires loads to overlap by at least 1 pixel",
         default=False,
     )
-    horizontal: bpy.props.BoolProperty(
-        name="Horizontal Bias (faster)",
+    bias: bpy.props.EnumProperty(
+        items=enumOpLTBias,
+        name="Bias (see tooltips)",
         description="Generate more horizontal loads and tris, which requires fewer memory transactions",
-        default=True,
+        default="Moderate",
     )
     scale: bpy.props.FloatProperty(
         name="Scale (texel size)",
@@ -108,15 +119,15 @@ def ui_oplargetexture(layout, context):
     bilinInfo = "bilinear" if bilinear else "point sampled"
     sizeInfo = f", {largeDims[0]}x{largeDims[1]}" if largeEdges == "Clamp" else ""
     infoStr = f"{largeFmt}, {largeEdges} edges, {bilinInfo}{sizeInfo}"
-    layout.row().label(icon="IMAGE", text=infoStr)
+    layout.row().label(icon="TEXTURE", text=infoStr)
     if largeEdges == "Clamp":
-        prop_split(layout.row(), prop, "clamp_border", "Extra border")
+        prop_split(layout.row(), prop, "clamp_border", "Extra clamped border")
+        if bilinear:
+            layout.row().prop(prop, "lose_pixels")
     else:
         prop_split(layout.row(), prop, "total_size_s", f"S: {largeDims[0]} / total:")
         prop_split(layout.row(), prop, "total_size_t", f"T: {largeDims[1]} / total:")
-    if bilinear:
-        layout.row().prop(prop, "lose_pixels")
-    layout.row().prop(prop, "horizontal")
+    prop_split(layout.row(), prop, "bias", "Bias (see tooltips)")
     prop_split(layout.row(), prop, "scale", "Scale (texel size)")
     layout.row().operator("scene.create_large_texture_mesh")
 
@@ -127,21 +138,50 @@ def createLargeTextureMeshInternal(bm, prop):
     if err is not None:
         raise PluginError(err)
     (largeDims, largeFmt, largeWords, largeEdges, bilinear) = info
+    is4bit = texBitSizeInt[largeFmt] == 4
     texelsPerLine = 64 // texBitSizeInt[largeFmt]
-    baseTileS, baseTileT = 128, 64
-    while True:
-        if getTmemWordUsage(largeFmt, baseTileS, baseTileT) <= largeWords:
-            break
-        baseTileS >>= 1
-        if getTmemWordUsage(largeFmt, baseTileS, baseTileT) <= largeWords:
-            break
-        baseTileT >>= 1
-    if prop.horizontal and baseTileS == baseTileT:
-        baseTileS <<= 1
-        baseTileT >>= 1
+    uvScale = [1.0 / largeDims[0], 1.0 / largeDims[1]]
+    wrapSize = [prop.total_size_s, prop.total_size_t]
+    # Set up base tile size
+    if prop.bias == "Square":
+        maxTexelsInTMEM = largeWords * texelsPerLine
+        tileSLines = int(math.ceil(math.sqrt(maxTexelsInTMEM) / texelsPerLine))
+    elif prop.bias == "Extreme":
+        targetRows = 4 if bilinear else 2
+        # Start with just loading full texture rows, rounded up to lines
+        tileSLines = int(math.ceil(largeDims[0] / texelsPerLine))
+        if largeWords // tileSLines < targetRows:
+            # If that doesn't give us enough rows, reduce to next power of 2
+            d = 1 << int(math.floor(math.log2(largeDims[0])))
+            tileSLines = d // texelsPerLine
+            while largeWords // tileSLines < targetRows:
+                tileSLines >>= 1
+    else:
+        baseTile = [128, 64]
+        while True:
+            if getTmemWordUsage(largeFmt, baseTile[0], baseTile[1]) <= largeWords:
+                break
+            baseTile[0] >>= 1
+            if getTmemWordUsage(largeFmt, baseTile[0], baseTile[1]) <= largeWords:
+                break
+            baseTile[1] >>= 1
+        if baseTile[0] == baseTile[1]:
+            shift = 0 if prop.bias == "Weak" else 1
+        else:
+            assert baseTile[0] == baseTile[1] << 1
+            shift = 1 if prop.bias == "Strong" else 0
+        baseTile[0] <<= shift
+        # Even though we have baseTile already, convert back to this format,
+        # in case available TMEM is not a power of 2 we might get a larger T value.
+        # (Currently the plugin will always assign a power of 2 size)
+        tileSLines = baseTile[0] // texelsPerLine
+    baseTile = [tileSLines * texelsPerLine, largeWords // tileSLines]
     if bilinear:
-        baseTileS -= 1
-        baseTileT -= 1
+        baseTile[0] -= 1
+        if is4bit:
+            baseTile[0] &= ~1
+        baseTile[1] -= 1
+    print(f"Base tile size: {baseTile[0]}x{baseTile[1]}")
     # Mesh setup
     bm.clear()
     uvlayer = bm.loops.layers.uv.new("UVMap")
@@ -165,11 +205,66 @@ def createLargeTextureMeshInternal(bm, prop):
         for ti in range(nt-1):
             for si in range(ns-1):
                 f = faces[ti*(ns-1)+si]
-                f.loops[0][uvlayer].uv = Vector((svals[si+1], tvals[ti]))
-                f.loops[1][uvlayer].uv = Vector((svals[si], tvals[ti]))
-                f.loops[2][uvlayer].uv = Vector((svals[si], tvals[ti+1]))
-                f.loops[3][uvlayer].uv = Vector((svals[si+1], tvals[ti+1]))
-    TODO()
+                def getUV(ds, dt):
+                    return Vector((svals[si+ds] * uvScale[0], 1.0 - tvals[ti+dt] * uvScale[1]))
+                f.loops[0][uvlayer].uv = getUV(1, 0)
+                f.loops[1][uvlayer].uv = getUV(0, 0)
+                f.loops[2][uvlayer].uv = getUV(0, 1)
+                f.loops[3][uvlayer].uv = getUV(1, 1)
+    def clampGridDim(dim):
+        vals = [-prop.clamp_border]
+        d = baseTile[dim]
+        imHi = largeDims[dim] - (1 if bilinear else 0)
+        while d < imHi:
+            vals.append(d)
+            d += baseTile[dim]
+        if not bilinear or not prop.lose_pixels or d == imHi:
+            vals.append(imHi + prop.clamp_border)
+        return vals
+    def wrapGridDim(dim):
+        # Could create a new grid for wrap tris at the edges, because their loads
+        # can often be combined due to their smaller sizes. However, this would
+        # produce a mesh with verts on other edges, and the N64 does not guarantee
+        # that these meshes won't have holes in them. Prefer correct seamless results
+        # over saving a few tri draws (the loads will still be combined).
+        distFromWrap = (texelsPerLine, 2)[dim]
+        # Number of texels such that if a wrap load could reach the end of the drawn
+        # region by continuing to load this many texels into the image after wrapping,
+        # it's worth it to do so (as opposed to only loading row/col 0, and drawing
+        # the rest with a new tri which shares the load at the beginning of the image).
+        worthItExtraEnd = max(baseTile[dim] // 8, distFromWrap) if bilinear else 0
+        vals = [0]
+        d = 0
+        while True:
+            assert d <= wrapSize[dim]
+            if d == wrapSize[dim]:
+                break
+            nextWrapBdry = (int(math.floor(d / largeDims[dim])) + 1) * largeDims[dim]
+            if wrapSize[dim] < nextWrapBdry:
+                nextWrapBdry = 1000000
+            if nextWrapBdry - d <= baseTile[dim]:
+                # Wrap/edge tile
+                if (nextWrapBdry - d) % distFromWrap != 0:
+                    raise PluginError("Bug: nextWrapBdry constraint violated")
+                if wrapSize[dim] - d <= baseTile[dim] and wrapSize[dim] - baseTile[dim] <= worthItExtraEnd:
+                    d = wrapSize[dim]
+                else:
+                    d = nextWrapBdry
+            elif wrapSize[dim] - d <= baseTile[dim]:
+                # Final tile, not at the edge
+                d = wrapSize[dim]
+            else:
+                # Normal tile
+                d += baseTile[dim]
+                if nextWrapBdry - d <= baseTile[dim]:
+                    # Round up next wrap/edge tile to its constraint, so round down this
+                    d -= nextWrapBdry
+                    d = int(math.floor(d / distFromWrap)) * distFromWrap
+                    d += nextWrapBdry
+            vals.append(d)
+        return vals
+    func = clampGridDim if largeEdges == "Clamp" else wrapGridDim
+    addGrid(func(0), func(1))
 
 
 class CreateLargeTextureMesh(bpy.types.Operator):
@@ -181,8 +276,9 @@ class CreateLargeTextureMesh(bpy.types.Operator):
         bpy.ops.object.select_all(action='DESELECT')
         prop = context.scene.opLargeTextureProperty
         assert prop.mat is not None
-        mesh = context.blend_data.meshes.new(prop.mat.name + "Mesh")
-        obj = context.blend_data.objects.new(prop.mat.name + "Mesh", mesh)
+        name = prop.mat.name + "Mesh"
+        mesh = context.blend_data.meshes.new(name)
+        obj = context.blend_data.objects.new(name, mesh)
         mesh.materials.append(prop.mat)
         bm = bmesh.new()
         bm.from_mesh(mesh)
@@ -190,10 +286,16 @@ class CreateLargeTextureMesh(bpy.types.Operator):
         bm.to_mesh(mesh)
         bm.free()
         bpy.context.collection.objects.link(obj)
+        obj.parent_type = 'OBJECT'
+        for o in context.scene.objects:
+            if o.name.startswith("Room"):
+                obj.parent = o
+                break
         bpy.context.view_layer.objects.active = obj
         obj.select_set(True)
         bpy.ops.view3d.view_selected()
-        return {"CANCELLED"}
+        self.report({"INFO"}, f"Created large texture mesh {name}.")
+        return {"FINISHED"}  # must return a set
 
 
 op_largetexture_classes = (

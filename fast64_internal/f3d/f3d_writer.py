@@ -280,7 +280,7 @@ class TileLoad:
         value = int(math.floor(value))
         if self.largeEdges == "Clamp":
             value = min(max(value, 0), self.texDimensions[field] - 1)
-        if self.is4bit:
+        if self.is4bit and field == 0:
             # Must start on an even texel (round down)
             value &= ~1
         return value
@@ -289,7 +289,7 @@ class TileLoad:
         value = int(math.ceil(value)) - (1 if self.isPointSampled else 0)
         if self.largeEdges == "Clamp":
             value = min(max(value, 0), self.texDimensions[field] - 1)
-        if self.is4bit:
+        if self.is4bit and field == 0:
             # Must end on an odd texel (round up)
             value |= 1
         return value
@@ -341,7 +341,7 @@ class TileLoad:
         for point in faceUVs:
             self.sl = min(self.sl, self.getLow(point[0], 0))
             self.sh = max(self.sh, self.getHigh(point[0], 0))
-            self.tl = min(self.tl, self.getLow(point[1], 0))
+            self.tl = min(self.tl, self.getLow(point[1], 1))
             self.th = max(self.th, self.getHigh(point[1], 1))
 
         ret, self.sl, self.sh, self.tl, self.th, soffset, toffset = self.fixRegion(self.sl, self.sh, self.tl, self.th)
@@ -1660,10 +1660,10 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     (useTex0, isTex0Ref, isTex0CI, tex0Fmt, pal0Fmt, imageDims0, tex0Tmem) = info0
     (useTex1, isTex1Ref, isTex1CI, tex1Fmt, pal1Fmt, imageDims1, tex1Tmem) = info1
     tex0Name, pal0, pal0Len, im0Use, tex0Flipbook = getTexInfoAdvanced(
-        0, material, fMaterial, fModel, isTex0Ref, isTex0CI, tex0Fmt, pal0Fmt
+        0, material, fMaterial, fModel, useTex0, isTex0Ref, isTex0CI, tex0Fmt, pal0Fmt
     )
     tex1Name, pal1, pal1Len, im1Use, tex1Flipbook = getTexInfoAdvanced(
-        0, material, fMaterial, fModel, isTex1Ref, isTex1CI, tex1Fmt, pal1Fmt
+        1, material, fMaterial, fModel, useTex1, isTex1Ref, isTex1CI, tex1Fmt, pal1Fmt
     )
 
     isCI = (useTex0 and isTex0CI) or (useTex1 and isTex1CI)
@@ -2307,12 +2307,16 @@ def getTexInfoAdvanced(
     material: bpy.types.Material,
     fMaterial: FMaterial,
     fModel: FModel,
+    useTex: bool,
     isTexRef: bool,
     isCITexture: bool,
     texFormat: str,
     palFormat: str,
 ):
-    f3dMat = material.f3dMat
+    if not useTex:
+        return "", None, 0, [], None
+    
+    f3dMat = material.f3d_mat
     texProp = getattr(f3dMat, "tex" + str(index))
 
     texName = getTextureName(texProp, fModel.name, None)
@@ -2329,7 +2333,7 @@ def getTexInfoAdvanced(
                 palLen = texProp.pal_reference_size
         else:
             assert flipbook is None
-            pal = getColorsUsedInImage(tex, palFormat)
+            pal = getColorsUsedInImage(texProp.tex, palFormat)
             palLen = len(pal)
         if palLen > (16 if texFormat == "CI4" else 256):
             raise PluginError(
@@ -2567,6 +2571,8 @@ def getColorIndicesOfTexture(image, palette, palFormat):
     for j in reversed(range(image.size[1])):
         for i in range(image.size[0]):
             pixelColor = extractConvertCIPixel(image, pixels, i, j, palFormat)
+            if pixelColor not in palette:
+                raise PluginError(f"Bug: {image.name} palette len {len(palette)} missing CI")
             texture.append(palette.index(pixelColor))
     return texture
 
