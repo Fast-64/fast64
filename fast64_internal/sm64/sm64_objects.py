@@ -1,6 +1,6 @@
 import math, bpy, mathutils
 from bpy.utils import register_class, unregister_class
-from re import findall
+from typing import Iterable, Callable
 from .sm64_function_map import func_map
 
 from ..utility import (
@@ -44,7 +44,6 @@ from .sm64_geolayout_classes import (
     ScaleNode,
 )
 
-from .sm64_utility import check_obj_is_room
 from ..util.collection_list_base import get_collection_classes
 
 
@@ -1387,8 +1386,9 @@ class SM64ObjectPanel(bpy.types.Panel):
 
         elif obj.sm64_obj_type == "None":
             if not obj.fast64.sm64.room.draw(box.box(), context):
+                b2.label(text="This can be used in a geolayout hierarchy. To force geo transformations,")
+                b2.label(text="instead use an Inline Geolayout Command object type")
                 b2 = box.box()
-                b2.label(text="This can be used as an empty transform node in a geolayout hierarchy.")
                 b2.prop(obj, "ignore_render", text="Ignore heirarchy in geolayout.")
 
     def draw_acts(self, obj, layout):
@@ -1875,6 +1875,8 @@ def poll_room_child(self: "SM64_RoomChildObject", obj: bpy.types.Object):
         and check_obj_or_any_child_has_cond(obj, check_object_has_mesh)
     )
 
+def check_obj_is_room(obj: bpy.types.Object):
+    return bool(obj.parent and obj.parent.sm64_obj_type == "Area Root" and obj.parent.enableRoomSwitch)
 
 class SM64_RoomChildObject(bpy.types.PropertyGroup):
     obj: bpy.props.PointerProperty(type=bpy.types.Object, name="Export object", poll=poll_room_child)
@@ -1940,6 +1942,22 @@ class SM64_RoomObjectProperties(bpy.types.PropertyGroup):
         layout.label(text="After hierarchy")
         draw_after_room_prop_list(layout, context)
         return True
+
+    def extract_valid_rooms_render_objects(self, room_objects: Iterable[SM64_RoomChildObject]):
+        """Iterate through objects in room.objects_render_before or objects_render_after and group them together"""
+        objs: list[bpy.types.Object] = []
+        for room_obj in room_objects:
+            if not room_obj.obj:
+                continue
+            # If any of those objects are rooms themselves, the children are extracted from the room.
+            if check_obj_is_room(room_obj.obj):
+                objs.extend(sorted(room_obj.obj.children, key=lambda childObj: childObj.original_name.lower()))
+            else:
+                objs.append(room_obj.obj)
+        return objs
+
+    def get_room_objects(self):
+        return self.extract_valid_rooms_render_objects(self.objects_render_before), self.extract_valid_rooms_render_objects(self.objects_render_after)
 
 
 SM64RoomClasses = (

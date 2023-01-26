@@ -819,6 +819,7 @@ def store_original_meshes(add_warning: Callable[[str], None]):
                     instanced_meshes.add(obj.data.name)
                     copy_object_and_apply(obj)
             else:
+                obj["instanced_mesh_name"] = None
                 if shares_mesh and has_modifiers:
                     add_warning(
                         f'Object "{obj.name}" cannot be instanced due to having modifiers so an extra displaylist will be created. Remove modifiers to allow instancing.'

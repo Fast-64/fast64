@@ -248,31 +248,6 @@ class SM64CollisionPanel(bpy.types.Panel):
         # infoBox.label(text = 'The red value 0-1 will be converted to 0-65535.')
 
 
-"""
-class SM64ObjectPanel(bpy.types.Panel):
-	bl_label = "Object Inspector"
-	bl_idname = "SM64_Object_Inspector"
-	bl_space_type = 'PROPERTIES'
-	bl_region_type = 'WINDOW'
-	bl_context = "object"
-	bl_options = {'HIDE_HEADER'}
-
-	@classmethod
-	def poll(cls, context):
-		return (context.object is not None)
-
-	def draw(self, context):
-		box = self.layout.box()
-		box.label(text = 'SM64 Object Inspector')
-		obj = context.object
-		prop_split(box, obj, 'sm64_obj_type', 'Special Preset')
-		if obj.sm64_obj_type == 'Special':
-			prop_split(box, obj, 'sm64_special_preset', 'Special Preset')
-		elif obj.sm64_obj_type == 'Water Box':
-			prop_split(box, obj, 'sm64_water_box', 'Water Box Type')
-"""
-
-
 def exportCollisionBinary(obj, transformMatrix, romfile, startAddress, endAddress, includeSpecials, includeChildren):
     collision = exportCollisionCommon(obj, transformMatrix, includeSpecials, includeChildren, obj.name, None)
     start, end = collision.set_addr(startAddress)

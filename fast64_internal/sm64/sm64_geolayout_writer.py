@@ -11,7 +11,7 @@ from .sm64_f3d_writer import SM64Model, SM64GfxFormatter
 from .sm64_texscroll import modifyTexScrollFiles, modifyTexScrollHeadersGroup
 from .sm64_level_parser import parseLevelAtPointer
 from .sm64_rom_tweaks import ExtendBank0x04
-from .sm64_utility import starSelectWarning, check_obj_is_room
+from .sm64_utility import starSelectWarning, check_obj_is_room, duplicate_and_create_initial_geolayout_hierarchy, ProcessGeolayoutContext, process_geolayout
 
 from ..utility import (
     PluginError,
@@ -438,25 +438,29 @@ def convertObjectToGeolayout(
         rootObj = obj
 
     # Duplicate objects to apply scale / modifiers / linked data
-    tempObj, allObjs = duplicateHierarchy(
-        rootObj, "ignore_render", True, None if areaObj is None else areaObj.areaIndex
-    )
+    # tempObj, allObjs = duplicateHierarchy(
+    #     rootObj, "ignore_render", True, None if areaObj is None else areaObj.areaIndex
+    # )
     try:
-        processMesh(
-            fModel,
-            tempObj,
-            convertTransformMatrix,
-            meshGeolayout.nodes[0],
-            geolayoutGraph.startGeolayout,
-            geolayoutGraph,
-            True,
-            convertTextureData,
-        )
-        cleanupDuplicatedObjects(allObjs)
-        rootObj.select_set(True)
-        bpy.context.view_layer.objects.active = rootObj
+        geo_root = duplicate_and_create_initial_geolayout_hierarchy(rootObj, "ignore_render")
+        process_context = ProcessGeolayoutContext(fModel, geolayoutGraph.startGeolayout, geolayoutGraph, convertTextureData, convertTransformMatrix)
+        process_geolayout(process_context, geo_root, meshGeolayout.nodes[0])
+    # try:
+        # processMesh(
+        #     fModel,
+        #     tempObj,
+        #     convertTransformMatrix,
+        #     meshGeolayout.nodes[0],
+        #     geolayoutGraph.startGeolayout,
+        #     geolayoutGraph,
+        #     True,
+        #     convertTextureData,
+        # )
+        # cleanupDuplicatedObjects(allObjs)
+        # rootObj.select_set(True)
+        # bpy.context.view_layer.objects.active = rootObj
     except Exception as e:
-        cleanupDuplicatedObjects(allObjs)
+        # cleanupDuplicatedObjects(allObjs)
         rootObj.select_set(True)
         bpy.context.view_layer.objects.active = rootObj
         raise Exception(str(e))

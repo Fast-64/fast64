@@ -12,8 +12,9 @@ def addMaterialByName(obj, matName, preset):
 		material.name = matName
 
 class AddWaterBox(bpy.types.Operator):
+	"""Base class for adding water boxes for OOT and SM64"""  
 	# set bl_ properties
-	bl_idname = 'object.add_water_box'
+	# bl_idname = 'object.add_water_box'
 	bl_label = "Add Water Box"
 	bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
