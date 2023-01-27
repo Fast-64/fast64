@@ -14,6 +14,7 @@ from ...render_settings import on_update_oot_render_settings
 from ...utility import prop_split, customExportWarning
 from ..cutscene.properties import OOTCSListProperty
 from ..cutscene.operators import drawCSListAddOp
+from ..cutscene.constants import ootEnumCSWriteType
 
 from ..oot_utility import (
     onMenuTabChange,
@@ -39,7 +40,6 @@ from ..oot_constants import (
     ootEnumCameraMode,
     ootEnumNightSeq,
     ootEnumAudioSessionPreset,
-    ootEnumCSWriteType,
     ootEnumSceneMenu,
     ootEnumSceneMenuAlternate,
     ootEnumHeaderMenu,

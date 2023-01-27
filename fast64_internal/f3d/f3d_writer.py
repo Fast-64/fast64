@@ -24,43 +24,6 @@ from .f3d_gbi import _DPLoadTextureBlock
 from ..utility import *
 
 
-class FImageKey:
-    def __init__(
-        self, image: bpy.types.Image, texFormat: str, palFormat: str, imagesSharingPalette: list[bpy.types.Image] = []
-    ):
-        self.image = image
-        self.texFormat = texFormat
-        self.palFormat = palFormat
-        self.imagesSharingPalette = tuple(imagesSharingPalette)
-
-    def __hash__(self) -> int:
-        return hash((self.image, self.texFormat, self.palFormat, self.imagesSharingPalette))
-
-    def __eq__(self, __o: object) -> bool:
-        if not isinstance(__o, FImageKey):
-            return False
-        return (
-            self.image == __o.image
-            and self.texFormat == __o.texFormat
-            and self.palFormat == __o.palFormat
-            and self.imagesSharingPalette == __o.imagesSharingPalette
-        )
-
-
-class FPaletteKey:
-    def __init__(self, palFormat: str, imagesSharingPalette: list[bpy.types.Image] = []):
-        self.palFormat = palFormat
-        self.imagesSharingPalette = tuple(imagesSharingPalette)
-
-    def __hash__(self) -> int:
-        return hash((self.palFormat, self.imagesSharingPalette))
-
-    def __eq__(self, __o: object) -> bool:
-        if not isinstance(__o, FPaletteKey):
-            return False
-        return self.palFormat == __o.palFormat and self.imagesSharingPalette == __o.imagesSharingPalette
-
-
 def getColorLayer(mesh: bpy.types.Mesh, layer="Col"):
     if layer in mesh.attributes and getattr(mesh.attributes[layer], "data", None):
         return mesh.attributes[layer].data
@@ -2152,7 +2115,11 @@ def saveTextureLoading(
                 ]
             )  # added in
 
+    # Tag tile size command for tile scrolling
     tileSizeCommand = DPSetTileSize(f3d.G_TX_RENDERTILE + texIndex, sl, tl, sh, th)
+    tileSizeCommand.tags |= GfxTag.TileScroll0 if texIndex == 0 else GfxTag.TileScroll1
+    tileSizeCommand.fMaterial = fMaterial
+
     loadTexGfx.commands.extend(
         [
             DPSetTile(
@@ -2979,7 +2946,7 @@ def exportF3DtoC(
     if not os.path.exists(modelDirPath):
         os.makedirs(modelDirPath)
 
-    gfxFormatter = GfxFormatter(ScrollMethod.Vertex, 64)
+    gfxFormatter = GfxFormatter(ScrollMethod.Vertex, 64, None)
     exportData = fModel.to_c(TextureExportSettings(texSeparate, savePNG, texDir, modelDirPath), gfxFormatter)
     staticData = exportData.staticData
     dynamicData = exportData.dynamicData

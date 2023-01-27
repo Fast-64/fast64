@@ -3,7 +3,7 @@ from ..f3d.f3d_gbi import TextureExportSettings
 from ..f3d.f3d_writer import TriangleConverterInfo, saveStaticModel, getInfoDict
 from .room.properties import OOTRoomHeaderProperty, OOTAlternateRoomHeaderProperty
 from .oot_constants import ootData
-from .oot_cutscene import convertCutsceneObject, readCutsceneData
+from .cutscene.exporter import convertCutsceneObject, readCutsceneData
 from .oot_spline import assertCurveValid, ootConvertPath
 from .oot_model_classes import OOTModel
 from .oot_collision import OOTCameraData, exportCollisionCommon
@@ -15,8 +15,8 @@ from ..utility import (
     PluginError,
     CData,
     checkIdentityRotation,
-    hideObjsInList,
-    unhideAllAndGetHiddenList,
+    restoreHiddenState,
+    unhideAllAndGetHiddenState,
     ootGetBaseOrCustomLight,
     exportColor,
     toAlnum,
@@ -501,13 +501,13 @@ def ootConvertScene(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneNam
         raise PluginError(originalSceneObj.name + ' is not an empty with the "Scene" empty type.')
 
     if bpy.context.scene.exportHiddenGeometry:
-        hiddenObjs = unhideAllAndGetHiddenList(bpy.context.scene)
+        hiddenState = unhideAllAndGetHiddenState(bpy.context.scene)
 
     # Don't remove ignore_render, as we want to reuse this for collision
     sceneObj, allObjs = ootDuplicateHierarchy(originalSceneObj, None, True, OOTObjectCategorizer())
 
     if bpy.context.scene.exportHiddenGeometry:
-        hideObjsInList(hiddenObjs)
+        restoreHiddenState(hiddenState)
 
     roomObjs = [child for child in sceneObj.children_recursive if child.data is None and child.ootEmptyType == "Room"]
     if len(roomObjs) == 0:
