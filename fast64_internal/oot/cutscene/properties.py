@@ -2,9 +2,9 @@ from bpy.types import PropertyGroup, Object, UILayout
 from bpy.props import StringProperty, EnumProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
 from bpy.utils import register_class, unregister_class
 from ...utility import PluginError, prop_split
-from ..oot_constants import ootEnumCSTextboxType, ootEnumCSListType, ootEnumCSTransitionType, ootEnumCSTextboxTypeIcons
 from ..oot_utility import OOTCollectionAdd, drawCollectionOps
 from .operators import OOTCSTextboxAdd, drawCSListAddOp
+from .constants import ootEnumCSTextboxType, ootEnumCSListType, ootEnumCSTransitionType, ootEnumCSTextboxTypeIcons
 
 
 # Perhaps this should have been called something like OOTCSParentPropertyType,
@@ -236,7 +236,7 @@ class OOTCutsceneProperty(PropertyGroup):
             r.prop(self, "csTermStart")
             r.prop(self, "csTermEnd")
         for i, p in enumerate(self.csLists):
-            p.draw_props(layout, p, i, obj.name, "Cutscene")
+            p.draw_props(layout, i, obj.name, "Cutscene")
 
         drawCSListAddOp(layout, obj.name, "Cutscene")
 
