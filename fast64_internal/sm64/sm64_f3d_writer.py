@@ -179,8 +179,8 @@ def exportTexRectToC(dirPath, texProp, f3dType, isHWv1, texDir, savePNG, name, e
         fTexRect.save_textures(seg2TexDir, not savePNG)
 
         textures = []
-        for info, texture in fTexRect.textures.items():
-            textures.append(texture)
+        for _, fImage in fTexRect.textures.items():
+            textures.append(fImage)
 
         # Append/Overwrite texture definition to segment2.c
         overwriteData("const\s*u8\s*", textures[0].name, data, seg2CPath, None, False)

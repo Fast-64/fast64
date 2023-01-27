@@ -2331,8 +2331,8 @@ def compactNibbleArray(texture, width, height):
 
 def checkDuplicateTextureName(fModelOrTexRect, name):
     names = []
-    for info, texture in fModelOrTexRect.textures.items():
-        names.append(texture.name)
+    for _, fImage in fModelOrTexRect.textures.items():
+        names.append(fImage.name)
     while name in names:
         name = name + "_copy"
     return name

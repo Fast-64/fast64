@@ -2440,8 +2440,8 @@ class FModel:
             if not startAddrSet:
                 startAddrSet = True
                 startAddress = addrRange[0]
-        for info, texture in self.textures.items():
-            addrRange = texture.set_addr(addrRange[1])
+        for _, fImage in self.textures.items():
+            addrRange = fImage.set_addr(addrRange[1])
             if not startAddrSet:
                 startAddrSet = True
                 startAddress = addrRange[0]
@@ -2465,8 +2465,8 @@ class FModel:
     def save_binary(self, romfile, segments):
         for name, light in self.lights.items():
             light.save_binary(romfile)
-        for info, texture in self.textures.items():
-            texture.save_binary(romfile)
+        for _, fImage in self.textures.items():
+            fImage.save_binary(romfile)
         for materialKey, (fMaterial, texDimensions) in self.materials.items():
             fMaterial.save_binary(romfile, self.f3d, segments)
         for name, mesh in self.meshes.items():
@@ -2490,11 +2490,11 @@ class FModel:
         if len(texDir) > 0 and texDir[-1] != "/":
             texDir += "/"
         data = CData()
-        for info, texture in self.textures.items():
+        for _, fImage in self.textures.items():
             if savePNG:
-                data.append(texture.to_c_tex_separate(texDir, texArrayBitSize))
+                data.append(fImage.to_c_tex_separate(texDir, texArrayBitSize))
             else:
-                data.append(texture.to_c(texArrayBitSize))
+                data.append(fImage.to_c(texArrayBitSize))
         return data
 
     def to_c_materials(self, gfxFormatter):
@@ -2595,13 +2595,15 @@ class FModel:
     def save_textures(self, exportPath):
         # TODO: Saving texture should come from FImage
         texturesSaved = 0
-        for (image, texInfo), texture in self.textures.items():
-            if texInfo[1] == "PAL":
+        for imageKey, fImage in self.textures.items():
+            if isinstance(imageKey, FPaletteKey):
                 continue
+            imageKey: FImageKey
 
             # remove '.inc.c'
-            imageFileName = texture.filename[:-6] + ".png"
+            imageFileName = fImage.filename[:-6] + ".png"
 
+            image = imageKey.image
             isPacked = image.packed_file is not None
             if not isPacked:
                 image.pack()
@@ -2634,11 +2636,11 @@ class FTexRect(FModel):
         # on windows this results in '\', which is incorrect (should be '/')
         if texDir[-1] != "/":
             texDir += "/"
-        for info, texture in self.textures.items():
+        for _, fImage in self.textures.items():
             if savePNG:
-                staticData.append(texture.to_c_tex_separate(texDir, gfxFormatter.texArrayBitSize))
+                staticData.append(fImage.to_c_tex_separate(texDir, gfxFormatter.texArrayBitSize))
             else:
-                staticData.append(texture.to_c(gfxFormatter.texArrayBitSize))
+                staticData.append(fImage.to_c(gfxFormatter.texArrayBitSize))
         dynamicData.append(self.draw.to_c(self.f3d))
         return ExportCData(staticData, dynamicData, CData())
 
