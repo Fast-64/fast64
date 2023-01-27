@@ -224,14 +224,12 @@ class KCS_F3d(DL):
             if LsW("gsSPVertex"):
                 # fill virtual buffer
                 args = [int(a) for a in args]
-                addr = Geo.seg2phys(args[0]) - 32
-                start = int(addr // 16)
                 for i in range(args[2], args[2] + args[1], 1):
                     self.VertBuff[i] = len(self.Verts) + i - args[2]
                 # verts are pre processed
-                self.Verts.extend(Geo.vertices.Pos[start : start + args[1]])
-                self.UVs.extend(Geo.vertices.UVs[start : start + args[1]])
-                self.VCs.extend(Geo.vertices.VCs[start : start + args[1]])
+                self.Verts.extend(Geo.vertices.Pos[args[0] : args[0] + args[1]])
+                self.UVs.extend(Geo.vertices.UVs[args[0] : args[0] + args[1]])
+                self.VCs.extend(Geo.vertices.VCs[args[0] : args[0] + args[1]])
             # tri and mat DL cmds will be called via parent class
             func = getattr(self, cmd, None)
             if func:
@@ -453,12 +451,12 @@ class KCS_F3d(DL):
 
 @dataclass
 class Layout(BinProcess, BinWrite):
-    flag: int
-    depth: int
-    ptr: int
-    translation: Vector
-    rotation: Vector
-    scale: Vector
+    flag: int = 0
+    depth: int = 0
+    ptr: int = 0
+    translation: Vector = (0, 0, 0)
+    rotation: Vector = (0, 0, 0)
+    scale: Vector = (0, 0, 0)
     index: int = 0
     # a manual DL stop
     stop = None
@@ -570,7 +568,7 @@ class GeoBinary(BinProcess):
         self.get_layouts()
         starts = []
         for l in self.layouts:
-            if l.ptr:
+            if l.ptr and (l.ptr >> 24) == 0x04:
                 l.eval_dl_segptrs = [l.ptr]
                 starts.extend(self.decode_f3d_bin(l))
         if starts:
@@ -582,7 +580,7 @@ class GeoBinary(BinProcess):
         self.get_layouts()
         starts = []
         for l in self.layouts:
-            if l.ptr:
+            if l.ptr and (l.ptr >> 24) == 0x04:
                 self.decode_entry(l)
                 starts.extend(self.decode_f3d_bin(l))
         if starts:
@@ -594,7 +592,7 @@ class GeoBinary(BinProcess):
         self.get_layouts()
         starts = []
         for l in self.layouts:
-            if l.ptr:
+            if l.ptr and (l.ptr >> 24) == 0x04:
                 self.decode_dl_pair(l)
                 starts.extend(self.decode_f3d_bin(l))
         if starts:
@@ -606,7 +604,7 @@ class GeoBinary(BinProcess):
         self.get_layouts()
         starts = []
         for l in self.layouts:
-            if l.ptr:
+            if l.ptr and (l.ptr >> 24) == 0x04:
                 self.decode_entry_dbl(l)
                 starts.extend(self.decode_f3d_bin(l))
         if starts:
@@ -732,8 +730,6 @@ class GeoBinary(BinProcess):
             # adjust vertex pointer so it is an index into vert arr
             if name == "gsSPVertex":
                 args[0] = self.seg2phys(int(args[0]) - 0x20) // 0x10
-                if (args[0] + int(args[1])) > self.max_vert:
-                    self.max_vert = args[0] + int(args[1])
             # check for flow control
             if name == "gsSPEndDisplayList":
                 break
@@ -836,38 +832,48 @@ class BpyGeo:
             if (layout.depth & 0xFF) + 1 > len(stack) - 1:
                 stack.append(obj)
             loc = layout.translation
-            obj.location += Vector(self.vec3s_translate(loc)) / self.scale
+            obj.location += Vector(self.vec3s_translate_to_bpy(loc)) / self.scale
             obj.scale = Vector([1 / a for a in layout.scale])
             apply_rotation_n64_to_bpy(obj)
 
+    # I'm not really certain about these two transforms, but I like the results they give
     @staticmethod
-    def vec3s_translate(vec3):
+    def vec3s_translate_to_bpy(vec3):
         return (vec3.x, -vec3.z, vec3.y)
+
+    @staticmethod
+    def vec3s_translate_to_n64(vec3):
+        return (vec3.x, vec3.z, -vec3.y)
 
     # create the fModel cls and populate it with layouts based on child objects
     def init_fModel_from_bpy(self):
-        fModel = KCS_fModel(self.rt)
+        fModel = KCS_fModel(self.rt, bpy.context.scene.saveTextures)
         depth = 0
         fModel.layouts = []
         # create duplicate objects to work on
         fModel.tempObj, fModel.allObjs = duplicateHierarchy(self.rt, None, True, 0)
+        # make root location 0 so that area is centered on root
+        fModel.tempObj.location = (0, 0, 0)
         # get all child layouts first
         def loop_children(obj, fModel, depth):
             for child in obj.children:
                 if self.is_kcs_gfx(child):
                     # each layout contains fMesh data, which holds triangle, and material info
-                    fModel.layouts.append(self.create_layout(child, depth, fModel))
+                    fModel.layouts.append(self.create_layout(apply_rotation_bpy_to_n64(child), depth, fModel))
                     if child.children:
                         loop_children(child, fModel, depth + 1)
 
         loop_children(fModel.tempObj, fModel, 1)
+        
         # add the root as a layout, though if there are no children, set the render mode to 14
         if not fModel.layouts:
             fModel.render_mode = 0x14  # list of DLs (entry point)
             fModel.layouts.append(FauxLayout(self.export_f3d_from_obj(fModel.tempObj, fModel, Matrix.Identity)))
         else:
-            fModel.render_mode = 0x17  # list of layouts
+            fModel.render_mode = 0x18  # list of layouts pointing to entry points
             fModel.layouts.insert(0, self.create_layout(fModel.tempObj, 0, fModel))
+            # create final layout
+            fModel.layouts.append(Layout(depth = 0x12))
         return fModel
 
     def cleanup_fModel(self, fModel):
@@ -880,7 +886,7 @@ class BpyGeo:
         # transform layout values to match N64 specs
         # only location needs to be transformed here, because rotation in the mesh data
         # will change the scale and rot
-        loc = self.vec3s_translate(obj.location)
+        loc = self.vec3s_translate_to_n64(obj.location * self.scale)
         rot = tuple(obj.rotation_euler)
         scale = tuple(obj.scale)
         finalTransform = Matrix.Diagonal(
@@ -894,12 +900,13 @@ class BpyGeo:
             rot,
             scale,
         )
-        ly.name = obj.name  # for debug
+        if obj:
+            ly.name = obj.name  # for debug
         return ly
 
     # creates a list of KCS_fMesh objects with their bpy data processed and stored
     def export_f3d_from_obj(self, tempObj, fModel, transformMatrix):
-        if tempObj.type == "MESH":
+        if tempObj and tempObj.type == "MESH":
             try:
                 infoDict = getInfoDict(tempObj)
                 triConverterInfo = TriangleConverterInfo(tempObj, None, fModel.f3d, transformMatrix, infoDict)
@@ -909,7 +916,7 @@ class BpyGeo:
                     tempObj,
                     transformMatrix,
                     fModel.name,
-                    True,  # convert textures to byte arrays
+                    not fModel.write_tex_to_png,
                     False,
                     None,
                 )
@@ -987,12 +994,13 @@ class KCS_GFXList(GfxList, BinWrite):
 # a data class that will hold various primitive geo classes and then write them out to files
 # population of the classes will be done by BpyGeo or GeoBinary
 class KCS_fModel(FModel, BinWrite):
-    def __init__(self, rt: bpy.types.Object, name="Kirby"):
+    def __init__(self, rt: bpy.types.Object, write_tex_to_png: bool, name="Kirby"):
         super().__init__("F3DEX2/LX2", False, name, DLFormat.Static, GfxMatWriteMethod.WriteAll, inline=True)
         self.rt = rt
         self.gfxFormatter = GfxFormatter(None, 2)
         self.ptrManager = PointerManager()
         self.img_refs = []
+        self.write_tex_to_png = write_tex_to_png
 
     # overrides of base class
     def addMesh(self, name, namePrefix, drawLayer, isSkinned, contextObj):
@@ -1014,7 +1022,7 @@ class KCS_fModel(FModel, BinWrite):
                 self.add_target(self.layouts[0], cast="struct Layout *"),  # *layout[]
                 0,  # *tex_scroll[]
                 self.render_mode,
-                self.add_target(self.img_refs, cast="Gfx **"),  # *img_refs[]
+                self.pointer_truty(self.img_refs, cast="Gfx **"),  # *img_refs[]
                 0,  # *vtx_refs[]
                 0,  # Num_Anims
                 0,  # *Anims[]
@@ -1027,10 +1035,6 @@ class KCS_fModel(FModel, BinWrite):
                 continue
             ly.entry = EntryPoint(ly.ptr, j)
             ly.ptr = ly.add_target(ly.entry, cast="struct EntryPoint *")
-
-    # output methods
-    def save_binary(self, file: BinaryIO):
-        print(file)
 
     def layout_data_to_c(self):
         gfx_data = KCS_Cdata()
@@ -1060,12 +1064,13 @@ class KCS_fModel(FModel, BinWrite):
         # add raw graphics data (images, lights etc.), item 2 for ordering
         raw_data = c_data_containers[2]
         # img refs
-        self.write_arr(raw_data, "Gfx", "img_refs", self.img_refs, self.format_arr)
+        if self.write_tex_to_png:
+            self.write_arr(raw_data, "Gfx", "img_refs", self.img_refs, self.format_arr)
         # add images
         raw_data.append(
             self.to_c_textures(
                 0,
-                0,  # savePNG, hardcoded for now until I figure out a way for image filesystem to work
+                self.write_tex_to_png,
                 "",  # texDir, no way for this to work currently, will need custom fImage class
                 8,  # bitSize
             )
@@ -1122,19 +1127,6 @@ class KCS_fMaterial(FMaterial):
 # ------------------------------------------------------------------------
 
 
-@time_func
-def export_geo_bin(name: str, obj: bpy.types.Object, context: bpy.types.Context):
-    scale = context.scene.KCS_scene.Scale
-    blend_geo = BpyGeo(obj, scale)
-    # create writer class using blender data, with layouts that have fMesh data
-    fModel = blend_geo.init_fModel_from_bpy()
-    blend_geo.cleanup_fModel(fModel)  # processing of bpy data is done
-    fModel.process_layouts()
-    with open(f"{name}.bin", "w") as file:
-        fModel.save_binary(file)
-
-
-@time_func
 def export_geo_c(name: str, obj: bpy.types.Object, context: bpy.types.Context):
     scale = context.scene.KCS_scene.Scale
     blend_geo = BpyGeo(obj, scale)

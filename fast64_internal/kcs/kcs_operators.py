@@ -7,8 +7,8 @@ from bpy.utils import register_class, unregister_class
 
 from pathlib import Path
 
-from .kcs_gfx import import_geo_bin, export_geo_bin, export_geo_c
-from .kcs_col import add_node, import_col_bin
+from .kcs_gfx import import_geo_bin, export_geo_c
+from .kcs_col import add_node, import_col_bin, export_col_c
 from .kcs_utils import parse_stage_table
 
 from ..utility import PluginError
@@ -117,6 +117,9 @@ class KCS_Export_Gfx(Operator):
     bl_idname = "kcs.export_gfx"
 
     def execute(self, context: bpy.types.Context):
+        scene = context.scene.KCS_scene
+        if scene.Format == "binary":
+            raise PluginError('Binary exports are not supported')
         # need a KCS object
         obj = context.selected_objects[0]
         while obj:
@@ -126,15 +129,38 @@ class KCS_Export_Gfx(Operator):
                 break
         if not obj:
             raise PluginError('Obj is not Empty with type "Graphics"')
-        scene = context.scene.KCS_scene
+        
         BankID = scene.ExpBankID.BankID()
         file = Path(scene.Decomp_path) / "assets" / "geo" / ("bank_%d" % BankID[0]) / ("%d" % BankID[1])
+        file.mkdir(exist_ok = True, parents = True)
+        name = file / "geo"
+        export_geo_c(name, obj, context)
+        return {"FINISHED"}
+
+
+# export a misc file
+class KCS_Export_Col(Operator):
+    bl_label = "Export Col"
+    bl_idname = "kcs.export_col"
+
+    def execute(self, context: bpy.types.Context):
+        scene = context.scene.KCS_scene
         if scene.Format == "binary":
-            name = file / "geo"
-            export_geo_bin(name, obj, context)
-        elif scene.Format == "C":
-            name = file / "geo"
-            export_geo_c(name, obj, context)
+            raise PluginError('Binary exports are not supported')
+        # need a KCS object
+        obj = context.selected_objects[0]
+        while obj:
+            if not obj.KCS_obj.KCS_obj_type == "Collision":
+                obj = obj.parent
+            else:
+                break
+        if not obj:
+            raise PluginError('Obj is not Empty with type "Collision"')
+        BankID = scene.ExpBankID.BankID()
+        file = Path(scene.Decomp_path) / "assets" / "misc" / ("bank_%d" % BankID[0]) / ("%d" % BankID[1])
+        file.mkdir(exist_ok = True, parents = True)
+        name = file / "level"
+        export_col_c(name, obj, context)
         return {"FINISHED"}
 
 
@@ -281,6 +307,7 @@ class KCS_Add_Pal(Operator):
 kcs_operators = (
     KCS_Export,
     KCS_Export_Gfx,
+    KCS_Export_Col,
     KCS_Import_Stage,
     KCS_Add_Level,
     KCS_Add_Block,

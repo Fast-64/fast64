@@ -42,7 +42,7 @@ def time_func(func: callable):
 # ------------------------------------------------------------------------
 
 
-# maintain duality with file objects, and CData objects
+# maintain parity with file objects, and CData objects
 class KCS_Cdata(CData):
     def __init__(self):
         super().__init__()
@@ -243,6 +243,12 @@ class BinWrite:
         if val:
             return val
         return ""
+    
+    # create pointer only if val exists
+    def pointer_truty(self, val, **kwargs):
+        if val:
+            return self.add_target(val, **kwargs)
+        return 0
 
     # sort a dict by keys, useful for making sure DLs are in mem order
     # instead of being in referenced order
@@ -277,11 +283,6 @@ class BinWrite:
                 ptrs = 0
             if ptrs:
                 value = y if y else "NULL"
-                # ptr targets that are arrays don't need &
-                # screen via no& in formatting dict, complicated by different ptr system in bpy
-                # ampersand = "&" * ("no&" not in x[2])
-                # mutli dim arrays sometimes want a target, screen same as above
-                index = "[0]" * ("[0]" in x[2])
                 if value == "NULL":
                     file.write(f"\t/* 0x{z:X} {x[1]}*/\t{value},\n")
                 else:
@@ -289,7 +290,7 @@ class BinWrite:
                         value = ", ".join(y)
                         file.write(f"\t/* 0x{z:X} {x[1]}*/\t{{{value}}},\n")
                     else:
-                        file.write(f"\t/* 0x{z:X} {x[1]}*/\t{y}{index},\n")
+                        file.write(f"\t/* 0x{z:X} {x[1]}*/\t{y},\n")
                 continue
             if "f32" in x[0] and arr:
                 value = ", ".join([f"{a}" for a in y])
@@ -484,6 +485,15 @@ def apply_rotation_n64_to_bpy(obj: bpy.types.Object):
     rot[0] += math.radians(90)
     obj.rotation_euler = rotate_quat_n64_to_blender(rot.to_quaternion()).to_euler("XYZ")
     apply_objects_modifiers_and_transformations([obj])
+    return obj
+
+
+def apply_rotation_bpy_to_n64(obj: bpy.types.Object):
+    rot = obj.rotation_euler
+    rot[0] -= math.radians(90)
+    obj.rotation_euler = rotate_quat_blender_to_n64(rot.to_quaternion()).to_euler("XYZ")
+    apply_objects_modifiers_and_transformations([obj])
+    return obj
 
 
 def make_empty(name: str, displayEnum: str, collection: bpy.types.Collection):

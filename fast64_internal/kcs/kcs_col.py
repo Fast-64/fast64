@@ -12,8 +12,15 @@ from collections import namedtuple
 from dataclasses import dataclass
 from typing import BinaryIO, TextIO
 
+from .kcs_data import *
 from .kcs_utils import *
-from ..utility import parentObject
+from ..utility import (
+    propertyGroupGetEnums,
+    duplicateHierarchy,
+    cleanupDuplicatedObjects,
+    parentObject,
+    PluginError,
+)
 
 # ------------------------------------------------------------------------
 #    Classes
@@ -224,6 +231,7 @@ class BpyNode:
         pass
 
 
+# interim between bpy props and misc blocks, used for importing and exporting
 class BpyCollision:
     # given a class full of formatted data, writes
     # data to blender. also gets data from blender
@@ -232,6 +240,53 @@ class BpyCollision:
         self.rt = rt  # this is an empty with kcs object type collision
         self.collection = collection
 
+    # creates a KCS_Level class which is used to export C data
+    def init_kcs_col_from_bpy(self, scale: float):
+        kcs_level = KCS_Level()
+        # create duplicate objects to work on
+        tempObj, kcs_level.allObjs = duplicateHierarchy(self.rt, None, True, 0)
+        # make root location 0 so that area is centered on root
+        tempObj.location = (0, 0, 0)
+        root_transform = Matrix.Diagonal(Vector((scale, scale, scale))).to_4x4()
+        
+        # get all child meshes
+        def loop_children(obj, kcs_level, transform):
+            for child in obj.children:
+                if self.is_kcs_col(child):
+                    # depending on the type of object, allocate to a different list
+                    if child.type == "MESH":
+                        self.create_col_mesh(apply_rotation_bpy_to_n64(child), transform @ child.matrix_local, kcs_level)
+                    if child.children:
+                        loop_children(child, kcs_level, transform @ child.matrix_local)
+        
+        loop_children(tempObj, kcs_level, root_transform)
+        
+        # now add the root if it is a mesh
+        if tempObj.type == "MESH":
+            kcs_level.mesh_data.append(self.create_col_mesh(apply_rotation_bpy_to_n64(tempObj), root_transform))
+        return kcs_level
+    
+    def create_col_mesh(self, obj: bpy.types.Object, transform: Matrix, kcs_level: KCS_Level):
+        # generate mesh data and store in parent
+        kcs_mesh = KCS_Mesh(obj)
+        vertices, triangles, normals = kcs_mesh.calc_mesh_data(transform, len(kcs_level.vertices) + 1)
+        kcs_level.vertices.extend(vertices)
+        kcs_level.triangles.extend(triangles)
+        kcs_level.normals.extend(normals)
+        kcs_level.mesh_data.append(kcs_mesh)
+        return kcs_mesh
+    
+    def is_kcs_col(self, obj: bpy.types.Object):
+        if obj.type == "MESH":
+            return obj.KCS_mesh.MeshType == "Collision"
+        if obj.type == "EMPTY":
+            return obj.KCS_obj.KCS_obj_type == "Collision"
+
+    def cleanup_collision(self, kcs_level: KCS_Level):
+        cleanupDuplicatedObjects(kcs_level.allObjs)
+        self.rt.select_set(True)
+        bpy.context.view_layer.objects.active = self.rt
+    
     def write_bpy_col(self, cls: Union[MiscBinary, MiscText], scene: bpy.types.Scene, scale: float):
         # start by formatting tri/vert data
         collection = self.rt.users_collection[0]
@@ -337,10 +392,200 @@ class BpyCollision:
             p.material_index = mat_dict[mat][1]
 
 
+# The entire export, says level but could be a full misc block or just a collision block
+class KCS_Level(BinWrite):
+    def __init__(self):
+        self.ptrManager = PointerManager()
+        self.symbol_init()
+        # child classes
+        self.mesh_data = []
+        self.node_data = []
+        self.entities = []
+        # raw data
+        self.node_header = None
+        self.collision_header = None
+        self.vertices = []
+        self.triangles = []
+        self.normals = []
+        self.tri_cells = []
+        self.norm_cells = []
+        self.dyn_geo_groups = []
+        self.dyn_geo_indices = []
+        self.water_boxes = []
+        self.water_normals = []
+    
+    def process_meshes_and_nodes(self):
+        self.create_collision_header()
+        
+        self.level_header = StructContainer(
+            (
+                self.pointer_truty(self.collision_header, cast="struct CollisionHeader *"),
+                self.pointer_truty(self.node_header, cast="struct NodeHeader *"),
+                self.pointer_truty(self.entities, cast="struct Entity *"),
+            )
+        )
+    
+    def create_collision_header(self):
+        if not self.vertices or not self.triangles or not self.normals:
+            return
+        self.collision_header = StructContainer(
+            (
+                self.pointer_truty(self.triangles),
+                len(self.triangles),
+                self.pointer_truty(self.vertices),
+                len(self.vertices),
+                self.pointer_truty(self.normals),
+                len(self.normals),
+                self.pointer_truty(self.tri_cells),
+                len(self.tri_cells),
+                self.pointer_truty(self.norm_cells),
+                len(self.norm_cells),
+                len(self.norm_cells) - 1,  # This is the root, which implicitly is always the last norm cell
+                self.pointer_truty(self.dyn_geo_groups),
+                self.pointer_truty(self.dyn_geo_indices),
+                self.pointer_truty(self.water_boxes),
+                len(self.water_boxes),
+                self.pointer_truty(self.water_normals),
+                len(self.water_normals),
+            )
+        )
+
+    # this should try to export in the same order as a default level.c file
+    # though I will not explicitly add padding like the OG
+    def to_c(self):
+        col_data = KCS_Cdata()
+        # export data
+        self.write_arr(
+            col_data,
+            "s16",
+            f"Vertices",
+            self.vertices,
+            self.format_arr,
+            length=3,
+        )
+        # triangles, each class has its own export func
+        [tri.to_c(col_data) for tri in self.triangles]
+        self.write_arr(col_data, "struct Normal", "Normals", self.normals, self.format_arr)
+        # tri cells
+        # norml cells
+        # dyn geo groups
+        # dyn geo indices
+        # water data
+        # water normals
+        if self.collision_header:
+            self.write_dict_struct(
+                self.collision_header,
+                CollisionHeader,
+                col_data,
+                "CollisionHeader",
+                "Col_Header",
+            )
+        # nodes
+        for node in self.node_data:
+            node.to_c(col_data)
+        # node header
+        if self.node_header:
+            self.write_dict_struct(
+                self.node_header,
+                NodeHeader,
+                col_data,
+                "NodeHeader",
+                "NodeHdr",
+            )
+        
+        # entities
+        for ent in self.entities:
+            ent.to_c(col_data)
+        
+        # replace plcaeholder pointers in file with real symbols
+        self.resolve_ptrs_c(col_data)
+        return col_data
+
+
+# One mesh from bpy point of view
+class KCS_Mesh(BinWrite):
+    def __init__(self, obj: bpy.types.Object):
+        self.symbol_init()
+        self.mesh = obj
+    
+    def calc_vertices(self, transform: Matrix, coords: Vector):
+        # le tuple comprehension
+        return *(int(vert) for vert in transform @ coords),
+    
+    def calc_mesh_data(self, transform: Matrix, vertex_offset: int):
+        obj = self.mesh
+        obj.data.calc_loop_triangles()
+        triangles = []
+        vertices = []
+        normals = set()
+        for face in obj.data.loop_triangles:
+            material = obj.material_slots[face.material_index].material
+
+            v1 = (x1, y1, z1) = self.calc_vertices(transform, obj.data.vertices[face.vertices[0]].co)
+            v2 = (x2, y2, z2) = self.calc_vertices(transform, obj.data.vertices[face.vertices[1]].co)
+            v3 = (x3, y3, z3) = self.calc_vertices(transform, obj.data.vertices[face.vertices[2]].co)
+
+            nx = (y2 - y1) * (z3 - z2) - (z2 - z1) * (y3 - y2) * 1.0
+            ny = (z2 - z1) * (x3 - x2) - (x2 - x1) * (z3 - z2) * 1.0
+            nz = (x2 - x1) * (y3 - y2) - (y2 - y1) * (x3 - x2) * 1.0
+            # normalize
+            magnitude = math.sqrt(nx * nx + ny * ny + nz * nz)
+            if magnitude <= 0:
+                print("Ignore denormalized triangle.")
+                continue
+            nx = nx / magnitude
+            ny = ny / magnitude
+            nz = nz / magnitude
+            offset = -(x1*nx + y1*ny + z1*nz)
+            vert_index = len(vertices) + vertex_offset
+            vertices.extend((v1, v2, v3))
+            normals.add((nx, ny, nz, offset))
+            triangles.append(
+                KCS_Triangle(
+                    (vert_index, vert_index + 1, vert_index + 2),
+                    material.KCS_col.params,
+                    len(normals)
+                )
+            )
+        return vertices, triangles, normals
+
+
+# One triangle
+@dataclass
+class KCS_Triangle(BinWrite):
+    vertices: tuple[int] #indices into vert array
+    params: tuple[int]
+    normal: int
+    
+    def to_c(self, file: KCS_Cdata):
+        return
+
+
+# One node from bpy point of view
+class KCS_Node(BinWrite):
+    def __init__(self):
+        self.symbol_init()
+
+
 # ------------------------------------------------------------------------
 #    Exorter Functions
 # ------------------------------------------------------------------------
 
+
+def export_col_c(name: str, obj: bpy.types.Object, context: bpy.types.Context):
+    scale = context.scene.KCS_scene.Scale
+    # create writer class using blender data, class should
+    # have all context needed for export from obj hierarchy
+    bpy_col = BpyCollision(obj, None)
+    kcs_level = bpy_col.init_kcs_col_from_bpy(scale)
+    bpy_col.cleanup_collision(kcs_level)  # processing of bpy data is done
+    # process and export cData from writer class
+    kcs_level.process_meshes_and_nodes()
+    cData = kcs_level.to_c()
+    with open(f"{name}.c", "w") as file:
+        file.write(cData.source)
+    with open(f"{name}.h", "w") as file:
+        file.write(cData.header)
 
 # ------------------------------------------------------------------------
 #    Importer

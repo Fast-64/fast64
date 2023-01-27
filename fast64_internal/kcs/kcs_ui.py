@@ -74,6 +74,7 @@ class KCS_IO_PT_Panel(Panel):
         layout.label(text="Export Selected Geo")
         KCS_scene.ExpBankID.draw(layout)
         layout.operator("kcs.export_gfx")
+        layout.operator("kcs.export_col")
         layout.separator()
         layout.label(text="Import Area")
         KCS_scene.ImpStage.draw(layout)

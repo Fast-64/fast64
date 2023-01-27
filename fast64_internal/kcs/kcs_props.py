@@ -216,6 +216,10 @@ class ColProp(PropertyGroup):
         name="Col Param/Break Condition", description="Collision Param for certain ColTypes", default=0
     )
     WarpNum: IntProperty(name="WarpNum", description="Number of Node warp is on", min=1)
+    
+    @property
+    def params(self):
+        return self.NormType, self.ColType, self.ColParam, self.WarpNum
 
 
 # col obj

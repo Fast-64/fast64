@@ -511,7 +511,7 @@ class DL:
         self.LastMat.tex_scale = [
             ((0x10000 * (hexOrDecInt(a) < 0)) + hexOrDecInt(a)) / 0xFFFF for a in args[0:2]
         ]  # signed half to unsigned half
-        self.LastMat.tile_root = self.EvalTile(args[-2].strip())  # I don't think I'll actually use this
+        self.LastMat.tile_root = self.eval_tile_macros(args[-2].strip())  # I don't think I'll actually use this
 
     # last tex is a palette
     def gsDPLoadTLUT(self, args):
@@ -533,7 +533,7 @@ class DL:
             # these values aren't necessary when the texture is already in png format
             # tex.dxt = hexOrDecInt(args[4])
             # tex.texels = hexOrDecInt(args[3])
-            tile = self.EvalTile(args[0])
+            tile = self.eval_tile_macros(args[0])
             tex.tile = tile
             if tile == 7:
                 self.LastMat.tex0 = tex

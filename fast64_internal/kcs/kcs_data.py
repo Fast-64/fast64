@@ -32,7 +32,7 @@ geo_block_header_struct = {
 
 layout_struct = {
     0x00: ("u16", "Flag", ""),
-    0x02: ("u16", "Command", ""),
+    0x02: ("u16", "Depth", ""),
     0x04: ("struct Entry_Point", "Entry Points", "ptr"),
     0x08: ("f32", "Translation[3]", "arr"),
     0x14: ("f32", "Rotation[3]", "arr"),
