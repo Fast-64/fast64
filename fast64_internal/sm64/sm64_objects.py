@@ -45,6 +45,7 @@ from .sm64_constants import (
     behaviorPresetContents,
     groupsSeg5,
     groupsSeg6,
+    groups_obj_export,
 )
 
 from .sm64_spline import (
@@ -1604,12 +1605,12 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
             PluginError("could not find model_ids.h")
         model_id_lines = open(model_ids, "r").readlines()
         # if model ID is already in the file, replace it, else add it in predictable location
-        export_model_id = f"#define {props.model_id: <34}{toAlnum(props.object_name)}_geo\n"
+        export_model_id = f"#define {props.model_id_define: <34}{props.model_id}\n"
         model_none = ["#define MODEL_NONE", 0]
         fast64_sig = ["// fast64 object exports get inserted here", 0]
         for j, line in enumerate(model_id_lines):
             # replace line and end func
-            if props.model_id in line:
+            if props.model_id_define in line:
                 model_id_lines[j] = export_model_id
                 self.write_file_lines(model_ids, model_id_lines)
                 return
@@ -1622,24 +1623,112 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
                 continue
         export_line = fast64_sig[1]
         # add under #define MODEL_NONE if no fast64_sig, if both are gone, add at end of file
-        if not exportLine:
+        if not export_line:
             export_line = model_none[1] + 1 if model_none[1] else len(model_id_lines)
             model_id_lines.insert(export_line, f"\n{fast64_sig[0]}\n")
         model_id_lines.insert(export_line + 1, export_model_id)
         self.write_file_lines(model_ids, model_id_lines)
 
-    # exports the model ID load into the appropriate script location
+    # exports the model ID load into the appropriate script.c location
     def export_script_load(self, context, props):
         # check if model_ids.h exists
         decomp_path = Path(bpy.path.abspath(bpy.context.scene.decompPath))
-        props.export_header_type.lower() == "Level":
+        if props.export_header_type == "Level":
             script_path = decomp_path / "levels" / f"{props.export_level_name}" / "script.c"
+            self.export_level_specific_load(script_path, props)
         else:
             script_path = decomp_path / "levels" /  "scripts.c"
+            self.export_group_script_load(script_path, props)
+
+    def export_group_script_load(self, script_path, props):
         if not script_path.exists():
-            PluginError("could not find {script_path.stem}")
+            PluginError(f"could not find {script_path.stem}")
         script_lines = open(script_path, "r").readlines()
+        script_load = f"    LOAD_MODEL_FROM_GEO({props.model_id_define}, {props.geo_name}),\n"
+        if props.group_num == "Do Not Write":
+            return
+        if props.group_num != "group0":
+            script_start = f"const LevelScript script_func_global_{props.group_num}[]"
+        else:
+            script_start = f"const LevelScript level_main_scripts_entry[]"
+        # place load after script_start, and before first load found
+        load_sig = ['LOAD_MODEL_FROM_GEO', 0, False]
+        for j, line in enumerate(script_lines):
+            # replace line and end func
+            if props.model_id_define in line:
+                script_lines[j] = script_load
+                self.write_file_lines(script_path, script_lines)
+                return
+            # check for jump link conditionally based on if cmds start or end
+            # could potentially need something smarter?? Time will tell
+            if script_start in line:
+                load_sig[2] = True
+                continue
+            if "};" in line:
+                load_sig[2] = False
+                continue
+            if load_sig[0] in line and load_sig[2]:
+                load_sig[1] = j
+                continue
+        # if the load didn't already exist, add in new load
+        export_line = load_sig[1]
+        # if fast64 sig doesn't exist, create it
+        if not export_line:
+            PluginError(f"could not find {script_start} in {script_path}")
+        script_lines.insert(export_line, script_load)
+        self.write_file_lines(script_path, script_lines)
+    
+    def export_level_specific_load(self, script_path, props):
+        if not script_path.exists():
+            PluginError(f"could not find {script_path.stem}")
+        script_lines = open(script_path, "r").readlines()
+        script_load = f"    LOAD_MODEL_FROM_GEO({props.model_id_define}, {props.geo_name}),\n"
         # if model is already loaded in the file, replace it, else add it in predictable location
+        header_top = ['#include ', 0]
+        fast64_sig_script_name = f"fast64_{props.export_level_name}_loads"
+        fast64_sig = [f"const LevelScript {fast64_sig_script_name}[]", 0]
+        for j, line in enumerate(script_lines):
+            # replace line and end func
+            if props.model_id_define in line:
+                script_lines[j] = script_load
+                self.write_file_lines(script_path, script_lines)
+                break
+            # mark preferred writing locations
+            if fast64_sig[0] in line:
+                fast64_sig[1] = j
+                continue
+            if header_top[0] in line:
+                header_top[1] = j
+                continue
+        else:
+            # if the load didn't already exist, add in new load
+            export_line = fast64_sig[1]
+            # if fast64 sig doesn't exist, create it
+            if not export_line:
+                export_line = header_top[1] + 1 if header_top[1] else len(script_lines)
+                script_lines.insert(export_line, f"\n{fast64_sig[0]} = {{\n")
+                script_lines.insert(export_line + 1, "};\n")
+            script_lines.insert(export_line + 1, script_load)
+        # add in JUMP_LINK directly after alloc
+        # has to be after ALLOC_LEVEL_POOL but before AREA
+        # set jump_link[2] based on condition above
+        jump_link = ['JUMP_LINK', 0, False]
+        for j, line in enumerate(script_lines):
+            # check for jump link conditionally based on if cmds start or end
+            # could potentially need something smarter?? Time will tell
+            if "ALLOC_LEVEL_POOL(" in line:
+                jump_link[2] = True
+                continue
+            if "AREA(" in line:
+                jump_link[2] = False
+                continue
+            if jump_link[0] in line and jump_link[2]:
+                jump_link[1] = j
+                continue
+        if not jump_link[1]:
+            PluginError(f"could not find ALLOC_LEVEL_POOL in {script_path}")
+        script_lines.insert(jump_link[1] + 1, f"    JUMP_LINK({fast64_sig_script_name}),\n")
+        self.write_file_lines(script_path, script_lines)
 
     def export_behavior_header(self, context, props):
         # check if behavior_header.h exists
@@ -1658,7 +1747,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
             if props.bhv_name in line:
                 bhv_header_lines[j] = export_bhv_include
                 self.write_file_lines(behavior_header, bhv_header_lines)
-                break
+                return
             # mark preferred writing locations
             if fast64_sig[0] in line:
                 fast64_sig[1] = j
@@ -1667,14 +1756,13 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
                 header_top[1] = j
                 continue
         # for loop was not broken, file was not written to
-        else:
-            export_line = fast64_sig[1]
-            # add under #include "types.h" if no fast64_sig, if both are gone, add at end of file
-            if not export_line:
-                export_line = header_top[1] + 1 if header_top[1] else len(bhv_header_lines)
-                bhv_header_lines.insert(export_line, f"\n{fast64_sig[0]}\n")
-            bhv_header_lines.insert(export_line + 1, export_bhv_include)
-            self.write_file_lines(behavior_header, bhv_header_lines)
+        export_line = fast64_sig[1]
+        # add under #include "types.h" if no fast64_sig, if both are gone, add at end of file
+        if not export_line:
+            export_line = header_top[1] + 1 if header_top[1] else len(bhv_header_lines)
+            bhv_header_lines.insert(export_line, f"\n{fast64_sig[0]}\n")
+        bhv_header_lines.insert(export_line + 1, export_bhv_include)
+        self.write_file_lines(behavior_header, bhv_header_lines)
 
     # export the behavior script, edits /data/behaviour_data.c and /include/behaviour_data.h
     def export_behavior_script(self, context, props):
@@ -1787,6 +1875,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
             return {"CANCELLED"}
         # write model ID, behavior, and level script load
         self.export_model_id(context, props)
+        self.export_script_load(context, props)
         if props.export_bhv:
             self.export_behavior_script(context, props)
         # you've done it!~
@@ -1818,9 +1907,10 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
     level_name: bpy.props.EnumProperty(items=enumLevelNames, name="Level", default="bob")
     custom_level_name: bpy.props.StringProperty(name="Custom Level")
     # actor export opts
-    group_name: bpy.props.StringProperty(name="Group Name", default="common0")
+    group_name: bpy.props.EnumProperty(name="Group Name", default="common0", items = groups_obj_export)
 
     # common export opts
+    model_id: bpy.props.IntProperty(name="Model ID Num", default=0xFF, min = 0)
     object_name: bpy.props.StringProperty(name="Actor Name", default="test_box")
     use_custom_path: bpy.props.BoolProperty(name="Use Custom Path")
     custom_export_path: bpy.props.StringProperty(name="Custom Path", subtype="FILE_PATH")
@@ -1840,6 +1930,13 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
     graphics_object: bpy.props.PointerProperty(type=bpy.types.Object)
 
     @property
+    def group_num(self):
+        if self.group_name == "common0":
+            return 1
+        else:
+            return int(self.group_name.removeprefix("group")) + 1
+    
+    @property
     def bhv_name(self):
         return "bhv" + "".join([word.title() for word in toAlnum(self.object_name).split("_")])
 
@@ -1852,7 +1949,7 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         return f"{toAlnum(self.object_name)}_collision"
         
     @property
-    def model_id(self):
+    def model_id_define(self):
         return f"MODEL_{toAlnum(self.object_name)}".upper()
         
     @property
@@ -1886,6 +1983,7 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         # object linking
         prop_split(col, self, "collision_object", "Collision Obj")
         prop_split(col, self, "graphics_object", "Geo Layout Obj")
+        prop_split(col, self, "model_id", "Model ID Num")
 
         # behavior options
         if self.export_bhv:
@@ -1909,7 +2007,7 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         infoBox.label(text=f"Collision name will be: {self.collision_name}")
         infoBox.label(text=f"Geo Layout name will be: {self.geo_name}")
         infoBox.label(text=f"Behavior name will be: {self.bhv_name}")
-        infoBox.label(text=f"Model ID will be: {self.model_id}")
+        infoBox.label(text=f"Model ID will be: {self.model_id_define}")
 
         infoBox = col.box()
         infoBox.label(text="If a geolayout file contains multiple actors,")
