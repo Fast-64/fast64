@@ -133,6 +133,12 @@ TextureScrollW = {
 # Level Settings Structs/data
 # -------------------------------------------------------------------------------
 
+level_block_includes = """#include <ultra64.h>
+#include "level_settings_structs.h"
+#include "stages.h"
+#include "level.h"
+
+"""
 
 LevelHeader = {
     0x0: ("u32", "*CollisionHeader", "ptr"),

@@ -238,16 +238,18 @@ class BinWrite:
         func: callable,
         length=None,
         outer_only=False,
+        ampersand="&",
+        index="",
         **kwargs,
     ):
         # use array formatter func
         arr_insides, depth = self.format_iter(arr, func, name, file, **kwargs)
         # set symbol if obj is a ptr target
-        self.ptr_obj(arr, file, f"&{name}")
+        self.ptr_obj(arr, file, f"{ampersand}{name}{index}")
         # create array size initializer, handles everything but outermost dimension
-        arr_size_init = "".join([f"[{length}]" for length in depth]) * (not outer_only)
-        self.add_header(file, arr_format, f"{name}{arr_size_init}[{self.write_truthy(length)}]")
-        file.write(f"{arr_format} {name}{arr_size_init}[{self.write_truthy(length)}] = {{\n\t")
+        arr_size_init = "".join([f"[{length}]" for length in reversed(depth)]) * (not outer_only)
+        self.add_header(file, arr_format, f"{name}[{self.write_truthy(length)}]{arr_size_init}")
+        file.write(f"{arr_format} {name}[{self.write_truthy(length)}]{arr_size_init} = {{\n\t")
         file.write(arr_insides)
         file.write("\n};\n\n")
 
@@ -270,15 +272,10 @@ class BinWrite:
 
     # write an array of a class with its own to_c method
     def write_class_arr(
-        self,
-        file: "filestream write",
-        class_arr: object,
-        prototype: str,
-        name: str,
-        length=None,
+        self, file: "filestream write", class_arr: object, prototype: str, name: str, length=None, ampersand="&"
     ):
         # set symbol if obj is a ptr target
-        self.ptr_obj(class_arr, file, f"&{name}")
+        self.ptr_obj(class_arr, file, f"{ampersand}{name}")
         self.add_header(file, f"struct {prototype}", f"{name}[{self.write_truthy(length)}]")
         file.write(f"struct {prototype} {name}[{self.write_truthy(length)}] = {{\n")
         [cls.to_c(file) for cls in class_arr]
@@ -293,9 +290,10 @@ class BinWrite:
         prototype: str,
         name: str,
         align="",
+        ampersand="&",
     ):
         # set symbol if obj is a ptr target
-        self.ptr_obj(struct_dat, file, f"&{name}")
+        self.ptr_obj(struct_dat, file, f"{ampersand}{name}")
         self.add_header(file, f"struct {prototype}", name)
         file.write(f"{self.write_truthy(align)}struct {prototype} {name} = {{\n")
         for x, y, z in zip(struct_format.values(), struct_dat.dat, struct_format.keys()):

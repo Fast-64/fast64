@@ -141,12 +141,12 @@ class COL_PT_Panel(Panel):
             col = mat.KCS_col
             box = layout.box()
             box.label(text="KCS Collision Type Info")
-            box.prop(col, "NormType")
+            box.prop(col, "norm_type")
             if KCSmesh.col_mesh_type == "Breakable":
                 box.label(text="Collision Type must be brekaable (9)")
-            box.prop(col, "ColType")
-            box.prop(col, "ColParam")
-            box.prop(col, "WarpNum")
+            box.prop(col, "col_type")
+            box.prop(col, "col_param")
+            box.prop(col, "warp_num")
 
 
 # path node settings, goes on curve/path

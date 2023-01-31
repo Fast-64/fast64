@@ -69,7 +69,7 @@ class KCS_Import_Stage(Operator):
     def execute(self, context: bpy.types.Context):
         scene = context.scene.KCS_scene
         stage_table = Path(scene.decomp_path) / "data" / "misc" / "kirby.066630.2.c"  # this will probably change later
-        stage = parse_stage_table(*scene.import_stage.stage(), stage_table)
+        stage = parse_stage_table(*scene.import_stage.stage, stage_table)
 
         gfx_bank, gfx_ID = [eval(a) for a in stage["geo"]]
         col_bank, col_ID = [eval(a) for a in stage["level_block"]]
@@ -87,7 +87,7 @@ class KCS_Import_Stage(Operator):
             import_geo_bin(
                 name,
                 context,
-                "KCS Level {}-{}-{}".format(*scene.import_stage.stage()),
+                "KCS Level {}-{}-{}".format(*scene.import_stage.stage),
                 Path(scene.decomp_path) / "assets" / "image",
             )
             # import collision
@@ -96,7 +96,7 @@ class KCS_Import_Stage(Operator):
                 name = file_col / "misc.bin"
             if not name.exists():
                 raise PluginError(f"Could not find file {name}, misc Bank/ID selected is not a level")
-            import_col_bin(name, context, "KCS Col {}-{}-{}".format(*scene.import_stage.stage()))
+            import_col_bin(name, context, "KCS Col {}-{}-{}".format(*scene.import_stage.stage))
 
         else:
             raise PluginError("C importing is not supported yet")

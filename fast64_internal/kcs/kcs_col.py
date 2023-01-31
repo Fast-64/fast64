@@ -16,6 +16,7 @@ from .kcs_data import *
 from .kcs_utils import *
 from ..utility import (
     propertyGroupGetEnums,
+    transform_mtx_blender_to_n64,
     duplicateHierarchy,
     cleanupDuplicatedObjects,
     parentObject,
@@ -220,9 +221,9 @@ class BpyNode:
             10: "jumping (unk)",
             11: "fall from air",
         }
-        kcs_node.entrance_location = Locations.get(self.kirb_node.EnterEnum >> 0xFF)
-        kcs_node.entrance_action = Actions.get(self.kirb_node.EnterEnum & 0xFF)
-        kcs_node.stage_dest = warp[0:3]
+        # kcs_node.entrance_location = Locations.get(self.kirb_node.EnterEnum >> 0xFF)
+        # kcs_node.entrance_action = Actions.get(self.kirb_node.EnterEnum & 0xFF)
+        # kcs_node.stage_dest = warp[0:3]
         kcs_node.warp_node = self.kirb_node.DestNode
         kcs_node.enable_warp = self.kirb_node.WarpFlag & 1
 
@@ -242,8 +243,7 @@ class BpyCollision:
         # create duplicate objects to work on
         tempObj, kcs_level.allObjs = duplicateHierarchy(self.rt, None, True, 0, include_curves=1, include_cameras=1)
         # make root location 0 so that area is centered on root
-        tempObj.location = (0, 0, 0)
-        root_transform = Matrix.Diagonal(Vector((scale, scale, scale))).to_4x4()
+        root_transform = (transform_mtx_blender_to_n64() @ tempObj.matrix_local) * scale
 
         # get all child meshes
         def loop_children(obj, kcs_level, transform):
@@ -253,15 +253,11 @@ class BpyCollision:
                     # curves aka nodes should only be the single node
                     # other objects in hierarchy are ignored
                     if child.type == "CURVE":
-                        self.create_node(
-                            apply_rotation_bpy_to_n64(child), transform @ child.matrix_local, scale, kcs_level
-                        )
+                        self.create_node(child, transform @ child.matrix_local, scale, kcs_level)
                         # do not loop over children for paths
                         continue
                     if child.type == "MESH":
-                        self.create_col_mesh(
-                            apply_rotation_bpy_to_n64(child), transform @ child.matrix_local, kcs_level
-                        )
+                        self.create_col_mesh(child, transform @ child.matrix_local, kcs_level)
                     if child.children:
                         loop_children(child, kcs_level, transform @ child.matrix_local)
 
@@ -269,7 +265,7 @@ class BpyCollision:
 
         # now add the root if it is a mesh
         if tempObj.type == "MESH":
-            kcs_level.mesh_data.append(self.create_col_mesh(apply_rotation_bpy_to_n64(tempObj), root_transform))
+            kcs_level.mesh_data.append(self.create_col_mesh(tempObj, root_transform))
         return kcs_level
 
     def create_node(self, obj: bpy.types.Object, transform: Matrix, scale: float, kcs_level: KCS_Level):
@@ -417,7 +413,7 @@ class KCS_Level(BinWrite):
         self.collision_header = None
         self.vertices = [(0x270F, 0x270F, 0x270F)]
         self.triangles = []
-        self.normals = []
+        self.normals = [(-1.0, -2.0, -3.0, -4.0)]
         self.tri_cells = []
         self.norm_cells = []
         self.norm_root = -1
@@ -509,14 +505,13 @@ class KCS_Level(BinWrite):
                 if not in_front:
                     kcs_cell.right_children.append(tri)
             if kcs_cell.left_children:
-                child_cell = create_norm_pool(self, kcs_cell.right_children, kcs_cell)
+                child_cell = create_norm_pool(self, kcs_cell.left_children, kcs_cell)
                 kcs_cell.left = child_cell
             if kcs_cell.right_children:
-                child_cell = create_norm_pool(self, kcs_cell.left_children, kcs_cell)
+                child_cell = create_norm_pool(self, kcs_cell.right_children, kcs_cell)
                 kcs_cell.right = child_cell
             return kcs_cell
 
-        root = self.triangles[-1]
         kcs_cell_root = create_norm_pool(self, self.triangles)
 
         # create list of cells
@@ -527,12 +522,18 @@ class KCS_Level(BinWrite):
                 find_child(seq, cell.right)
             seq.append(cell)
 
-        find_child(self.norm_cells, kcs_cell_root)
         # create tri cells as list, add data to norm cells
-        self.norm_cells.insert(0, KCS_Cell(0, 1, 2, 3))
+        # insert pads so 0 index can be interpreted as NULL
+        self.norm_cells.append(KCS_Cell(0, 1, 2, 3))
+        find_child(self.norm_cells, kcs_cell_root)
+        self.tri_cells.append(0x8192)
+        self.triangles.insert(0, KCS_Triangle(destructable_index=5, particle_index=6))
         tri_indices = 1
         for cell in self.norm_cells[1:]:
-            self.tri_cells.append([self.triangles.index(tri) for tri in cell.triangle_cell])
+            # mark the end of each tri cell with msb
+            tri_cell = [self.triangles.index(tri) for tri in cell.triangle_cell]
+            tri_cell[-1] = tri_cell[-1] | 0x8000
+            self.tri_cells.extend(tri_cell)
             if cell.left:
                 cell.left = self.norm_cells.index(cell.left)
             if cell.right:
@@ -584,6 +585,7 @@ class KCS_Level(BinWrite):
     def to_c(self):
         # export data
         col_data = KCS_Cdata()
+        col_data.write(level_block_includes)
         # level header
         if self.level_header:
             self.write_dict_struct(
@@ -601,14 +603,29 @@ class KCS_Level(BinWrite):
             self.vertices,
             self.format_arr,
             length=len(self.vertices),
+            ampersand="",
+            index="[0]",
         )
         # triangles, each class has its own export func
-        self.write_class_arr(col_data, self.triangles, "CollisionTriangle", "Triangles", len(self.triangles))
-        self.write_arr(
-            col_data, "struct Normal", "Normals", self.normals, self.format_arr, length=len(self.normals), outer_only=1
+        self.write_class_arr(
+            col_data, self.triangles, "CollisionTriangle", "Triangles", length=len(self.triangles), ampersand=""
         )
-        self.write_arr(col_data, "u16", "Tri_Cells", self.tri_cells, self.format_arr, length=len(self.tri_cells))
-        self.write_class_arr(col_data, self.norm_cells, "NormalGroup", "Norm_Cells", length=len(self.norm_cells))
+        self.write_arr(
+            col_data,
+            "struct Normal",
+            "Normals",
+            self.normals,
+            self.format_arr,
+            length=len(self.normals),
+            outer_only=1,
+            ampersand="",
+        )
+        self.write_arr(
+            col_data, "u16", "Tri_Cells", self.tri_cells, self.format_arr, length=len(self.tri_cells), ampersand=""
+        )
+        self.write_class_arr(
+            col_data, self.norm_cells, "NormalGroup", "Norm_Cells", length=len(self.norm_cells), ampersand=""
+        )
         # norml cells
         # dyn geo groups
         # dyn geo indices
@@ -860,13 +877,13 @@ class KCS_Node(BinWrite):
         )
         self.node_connector = (
             (
-                int(path_dat.lock_backward),
+                2 * int(path_dat.lock_backward),
                 0,
                 path_dat.prev_node,
-                0,
+                2 * int(not path_dat.lock_forward),
             ),
             (
-                int(path_dat.lock_forward),
+                2 * int(not path_dat.lock_forward),
                 0,
                 path_dat.next_node,
                 0,
@@ -874,7 +891,13 @@ class KCS_Node(BinWrite):
         )
         # if there are no splines in this obj, then raise error
         spline = path_obj.data.splines[0]
-        self.path_matrix = (*(tuple((transform @ point.co).xyz) for point in spline.points),)
+        # I need to set W to 1 so translation is applied during transform, but normal curves
+        # use W for twist or something, so I need to override that, forcing this to be ugly
+        self.path_matrix = []
+        for point in spline.points:
+            point = point.co
+            point[3] = 1
+            self.path_matrix.append(tuple((transform @ point).xyz))
         # path relative coords are basis invariant, no transform needed
         spline_length = spline.calc_length()
         first_point = spline.points[0].co
@@ -886,7 +909,7 @@ class KCS_Node(BinWrite):
                 len(self.path_matrix),
                 0,  # force, not implemented
                 self.pointer_truty(self.path_matrix),
-                self.node_length,
+                self.node_length / 10,
                 self.pointer_truty(self.path_bounds),
                 0,  # pointer to path curl, not implemented
             )
@@ -913,6 +936,8 @@ class KCS_Node(BinWrite):
             self.path_matrix,
             self.format_arr,
             length=len(self.path_matrix),
+            ampersand="",
+            index="[0]",
         )
         self.write_arr(
             path_data,
@@ -921,6 +946,7 @@ class KCS_Node(BinWrite):
             self.path_bounds,
             self.format_arr,
             length=len(self.path_bounds),
+            ampersand="",
         )
         self.write_dict_struct(
             self.path_footer,
@@ -955,6 +981,7 @@ class KCS_Node(BinWrite):
             self.format_arr,
             length=len(self.node_connector),
             outer_only=1,
+            ampersand="",
         )
         # path headers
         header_data = KCS_Cdata()
