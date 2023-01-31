@@ -9,7 +9,7 @@ import os, struct, math
 from pathlib import Path
 from mathutils import Vector, Euler, Matrix
 from collections import namedtuple
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import BinaryIO, TextIO
 
 from .kcs_data import *
@@ -146,43 +146,45 @@ class BpyNode:
     def cam_imp(self, cam: bpy.types.Camera, vol: bpy.types.Object, scale: float):
         Null = lambda x, y: x * (x != y)
         kcs_cam = cam.data.KCS_cam
-        cn = self.cam_node
-        kcs_cam.AxisLocks = [cn.LockX != 0, cn.LockY != 0, cn.LockZ != 0]
-        kcs_cam.ProfileView = cn.Profile
-        kcs_cam.PanH, kcs_cam.PanUPDown, kcs_cam.PanDown = (cn.PanYaw, cn.PanHiLo, cn.PanLo)
-        kcs_cam.Yaw = (cn.CamYaw1, cn.CamYaw2)
-        kcs_cam.Radius = (cn.CamRadius1, cn.CamRadius2)
-        kcs_cam.Pitch = (cn.CamPhi1, cn.CamPhi2)
-        kcs_cam.Clips = (cn.NearClip, cn.FarClip)
-        kcs_cam.Foc = (cn.FocusX, cn.FocusY, cn.FocusZ)
-        kcs_cam.CamPitchBound = (cn.CamYawLock1, cn.CamYawLock2)
-        kcs_cam.CamYawhBound = (cn.CamPitchLock1, cn.CamPitchLock2)
+        camera_node = self.cam_node
+        kcs_cam.axis_locks = [camera_node.LockX != 0, camera_node.LockY != 0, camera_node.LockZ != 0]
+        kcs_cam.profile_view = camera_node.Profile
+        kcs_cam.pan_ahead, kcs_cam.pan_vertical, kcs_cam.pan_below = (
+            camera_node.PanYaw,
+            camera_node.PanHiLo,
+            camera_node.PanLo,
+        )
+        kcs_cam.follow_yaw = (camera_node.CamYaw1, camera_node.CamYaw2)
+        kcs_cam.follow_radius = (camera_node.CamRadius1, camera_node.CamRadius2)
+        kcs_cam.follow_pitch = (camera_node.CamPhi1, camera_node.CamPhi2)
+        kcs_cam.clip_planes = (camera_node.NearClip, camera_node.FarClip)
+        kcs_cam.focus_location = (camera_node.FocusX, camera_node.FocusY, camera_node.FocusZ)
+        kcs_cam.cam_bounds_pitch = (camera_node.CamYawLock1, camera_node.CamYawLock2)
+        kcs_cam.cam_bounds_yaw = (camera_node.CamPitchLock1, camera_node.CamPitchLock2)
+        kcs_cam.cam_bounds_x = (camera_node.CamXLock1, camera_node.CamXLock2)
+        kcs_cam.cam_bounds_y = (camera_node.CamYLock1, camera_node.CamYLock2)
+        kcs_cam.cam_bounds_z = (camera_node.CamZLock1, camera_node.CamZLock2)
         x, y, z = (
-            (Null(cn.CamXLock1, -9999) + Null(cn.CamXLock2, 9999)) / (2 * scale),
-            (Null(cn.CamYLock1, -9999) + Null(cn.CamYLock2, 9999)) / (2 * scale),
-            (Null(cn.CamZLock1, -9999) + Null(cn.CamZLock2, 9999)) / (2 * scale),
+            (Null(camera_node.CamXLock1, 9999) + Null(camera_node.CamXLock2, -9999)) / (2 * scale),
+            (Null(camera_node.CamYLock1, 9999) + Null(camera_node.CamYLock2, -9999)) / (2 * scale),
+            (Null(camera_node.CamZLock1, 9999) + Null(camera_node.CamZLock2, -9999)) / (2 * scale),
         )
         cam.location = Vector((x, y, z)) - cam.parent.location
-        x, y, z = (
-            (Null(cn.CamXLock2, 9999) - Null(cn.CamXLock1, -9999)) / (2 * scale),
-            (Null(cn.CamYLock2, 9999) - Null(cn.CamYLock1, -9999)) / (2 * scale),
-            (Null(cn.CamZLock2, 9999) - Null(cn.CamZLock1, -9999)) / (2 * scale),
-        )
         vol.scale = (x, z, y)
 
     def path_imp(self, path: bpy.types.Object, scale: float):
         kcs_node = path.data.KCS_node
-        kcs_node.NodeNum = self.index + 1
+        kcs_node.node_num = self.index + 1
         if self.num_connections == 1:
-            kcs_node.NextNode = self.node_connections[2] + 1
-            kcs_node.PrevNode = self.node_connections[2] + 1
-            kcs_node.LockBackward = self.node_connections[0] != 0
-            kcs_node.LockForward = self.node_connections[3] == 0
+            kcs_node.next_node = self.node_connections[2] + 1
+            kcs_node.prev_node = self.node_connections[2] + 1
+            kcs_node.lock_backward = self.node_connections[0] != 0
+            kcs_node.lock_forward = self.node_connections[3] == 0
         elif self.num_connections == 2:
-            kcs_node.NextNode = self.node_connections[2] + 1
-            kcs_node.PrevNode = self.node_connections[6] + 1
-            kcs_node.LockBackward = self.node_connections[0] != 0
-            kcs_node.LockForward = self.node_connections[4] == 0
+            kcs_node.next_node = self.node_connections[2] + 1
+            kcs_node.prev_node = self.node_connections[6] + 1
+            kcs_node.lock_backward = self.node_connections[0] != 0
+            kcs_node.lock_forward = self.node_connections[4] == 0
         num_pts = self.path_footer[1]
         path.data.splines.remove(path.data.splines[0])
         sp = path.data.splines.new("POLY")
@@ -218,17 +220,11 @@ class BpyNode:
             10: "jumping (unk)",
             11: "fall from air",
         }
-        kcs_node.EntranceLocation = Locations.get(self.kirb_node.EnterEnum >> 0xFF)
-        kcs_node.EntranceAction = Actions.get(self.kirb_node.EnterEnum & 0xFF)
-        kcs_node.Warp = warp[0:3]
-        kcs_node.WarpDir = self.kirb_node.DestNode
-        kcs_node.EnWarp = self.kirb_node.WarpFlag & 1
-
-    def cam_out(self, cam: bpy.types.Camera, vol: bpy.types.Object):
-        pass
-
-    def path_out(self, path: bpy.types.Object):
-        pass
+        kcs_node.entrance_location = Locations.get(self.kirb_node.EnterEnum >> 0xFF)
+        kcs_node.entrance_action = Actions.get(self.kirb_node.EnterEnum & 0xFF)
+        kcs_node.stage_dest = warp[0:3]
+        kcs_node.warp_node = self.kirb_node.DestNode
+        kcs_node.enable_warp = self.kirb_node.WarpFlag & 1
 
 
 # interim between bpy props and misc blocks, used for importing and exporting
@@ -244,41 +240,57 @@ class BpyCollision:
     def init_kcs_col_from_bpy(self, scale: float):
         kcs_level = KCS_Level()
         # create duplicate objects to work on
-        tempObj, kcs_level.allObjs = duplicateHierarchy(self.rt, None, True, 0)
+        tempObj, kcs_level.allObjs = duplicateHierarchy(self.rt, None, True, 0, include_curves=1, include_cameras=1)
         # make root location 0 so that area is centered on root
         tempObj.location = (0, 0, 0)
         root_transform = Matrix.Diagonal(Vector((scale, scale, scale))).to_4x4()
-        
+
         # get all child meshes
         def loop_children(obj, kcs_level, transform):
             for child in obj.children:
                 if self.is_kcs_col(child):
                     # depending on the type of object, allocate to a different list
+                    # curves aka nodes should only be the single node
+                    # other objects in hierarchy are ignored
+                    if child.type == "CURVE":
+                        self.create_node(
+                            apply_rotation_bpy_to_n64(child), transform @ child.matrix_local, scale, kcs_level
+                        )
+                        # do not loop over children for paths
+                        continue
                     if child.type == "MESH":
-                        self.create_col_mesh(apply_rotation_bpy_to_n64(child), transform @ child.matrix_local, kcs_level)
+                        self.create_col_mesh(
+                            apply_rotation_bpy_to_n64(child), transform @ child.matrix_local, kcs_level
+                        )
                     if child.children:
                         loop_children(child, kcs_level, transform @ child.matrix_local)
-        
+
         loop_children(tempObj, kcs_level, root_transform)
-        
+
         # now add the root if it is a mesh
         if tempObj.type == "MESH":
             kcs_level.mesh_data.append(self.create_col_mesh(apply_rotation_bpy_to_n64(tempObj), root_transform))
         return kcs_level
-    
+
+    def create_node(self, obj: bpy.types.Object, transform: Matrix, scale: float, kcs_level: KCS_Level):
+        kcs_node = KCS_Node(obj, transform, scale)
+        kcs_level.node_data.append(kcs_node)
+        return kcs_node
+
     def create_col_mesh(self, obj: bpy.types.Object, transform: Matrix, kcs_level: KCS_Level):
         # generate mesh data and store in parent
         kcs_mesh = KCS_Mesh(obj)
-        vertices, triangles, normals = kcs_mesh.calc_mesh_data(transform, len(kcs_level.vertices) + 1)
+        vertices, triangles = kcs_mesh.calc_mesh_data(transform, len(kcs_level.vertices), kcs_level.normals)
         kcs_level.vertices.extend(vertices)
         kcs_level.triangles.extend(triangles)
-        kcs_level.normals.extend(normals)
         kcs_level.mesh_data.append(kcs_mesh)
         return kcs_mesh
-    
+
     def is_kcs_col(self, obj: bpy.types.Object):
+        if obj.type == "CURVE":
+            return True
         if obj.type == "MESH":
-            return obj.KCS_mesh.MeshType == "Collision"
+            return obj.KCS_mesh.mesh_type == "Collision"
         if obj.type == "EMPTY":
             return obj.KCS_obj.KCS_obj_type == "Collision"
 
@@ -286,7 +298,7 @@ class BpyCollision:
         cleanupDuplicatedObjects(kcs_level.allObjs)
         self.rt.select_set(True)
         bpy.context.view_layer.objects.active = self.rt
-    
+
     def write_bpy_col(self, cls: Union[MiscBinary, MiscText], scene: bpy.types.Scene, scale: float):
         # start by formatting tri/vert data
         collection = self.rt.users_collection[0]
@@ -300,14 +312,14 @@ class BpyCollision:
             self.write_mats(dyn_obj, dynamic[geo][3])
             parentObject(self.rt, dyn_obj, 0)
             dyn_obj.rotation_euler = rotate_quat_n64_to_blender(dyn_obj.rotation_quaternion).to_euler("XYZ")
-            dyn_obj.KCS_mesh.MeshType = "Collision"
-            dyn_obj.KCS_mesh.ColMeshType = "Breakable"
+            dyn_obj.KCS_mesh.mesh_type = "Collision"
+            dyn_obj.KCS_mesh.col_mesh_type = "Breakable"
         # make objs and link
         main_mesh = make_mesh_data("kcs level mesh", main[0:3])
         main_obj = make_mesh_obj("kcs level obj col", main_mesh, collection)
         parentObject(self.rt, main_obj, 0)  # get col rt from rt
         apply_rotation_n64_to_bpy(main_obj)
-        main_obj.KCS_mesh.MeshType = "Collision"
+        main_obj.KCS_mesh.mesh_type = "Collision"
         self.write_mats(main_obj, main[3])
         # format node data
         for num, node in cls.path_nodes.items():
@@ -385,10 +397,10 @@ class BpyCollision:
                 mat_dict[mat] = (len(bpy.data.materials), len(mat_dict))
                 material = bpy.data.materials[-1]
                 obj.data.materials.append(material)
-                material.KCS_col.NormType = t[4]
-                material.KCS_col.ColType = t[9]
-                material.KCS_col.ColParam = t[8]
-                material.KCS_col.WarpNum = warp
+                material.KCS_col.norm_type = t[4]
+                material.KCS_col.col_type = t[9]
+                material.KCS_col.col_param = t[8]
+                material.KCS_col.warp_num = warp
             p.material_index = mat_dict[mat][1]
 
 
@@ -402,21 +414,36 @@ class KCS_Level(BinWrite):
         self.node_data = []
         self.entities = []
         # raw data
-        self.node_header = None
         self.collision_header = None
-        self.vertices = []
+        self.vertices = [(0x270F, 0x270F, 0x270F)]
         self.triangles = []
         self.normals = []
         self.tri_cells = []
         self.norm_cells = []
+        self.norm_root = -1
         self.dyn_geo_groups = []
         self.dyn_geo_indices = []
         self.water_boxes = []
         self.water_normals = []
-    
+        # node data
+        self.node_header = None
+        self.node_traversals = []
+        self.node_distances = []
+
     def process_meshes_and_nodes(self):
+        self.create_node_relations()
+        self.create_binary_space_partition()
         self.create_collision_header()
-        
+
+        if self.node_data:
+            self.node_header = StructContainer(
+                (
+                    len(self.node_data),
+                    self.pointer_truty(self.node_data[0].path_header),
+                    self.pointer_truty(self.node_traversals),
+                    self.pointer_truty(self.node_distances),
+                )
+            )
         self.level_header = StructContainer(
             (
                 self.pointer_truty(self.collision_header, cast="struct CollisionHeader *"),
@@ -424,7 +451,7 @@ class KCS_Level(BinWrite):
                 self.pointer_truty(self.entities, cast="struct Entity *"),
             )
         )
-    
+
     def create_collision_header(self):
         if not self.vertices or not self.triangles or not self.normals:
             return
@@ -440,7 +467,7 @@ class KCS_Level(BinWrite):
                 len(self.tri_cells),
                 self.pointer_truty(self.norm_cells),
                 len(self.norm_cells),
-                len(self.norm_cells) - 1,  # This is the root, which implicitly is always the last norm cell
+                self.norm_root,
                 self.pointer_truty(self.dyn_geo_groups),
                 self.pointer_truty(self.dyn_geo_indices),
                 self.pointer_truty(self.water_boxes),
@@ -450,23 +477,138 @@ class KCS_Level(BinWrite):
             )
         )
 
+    # a BSP is used for collision triangles
+    # BSP uses normal planes to rough in hits, then iterates over
+    # a list of triangles with that normal to do mesh detection
+    def create_binary_space_partition(self):
+        # each cell will have a left and right child.
+        # a left child means the children are in front this plane
+        # a right child means they're behind the plane
+        # intersections become both left and right children
+        # each cell consists of a list of triangles, called a tri cell
+        # the optimal root(?) is a triangle with the min right children
+
+        # method is simple, starting at the root, find tris in the left/right pool
+        # add those tris to the cell attributes pools
+        # and make the tris of that norm into a cell
+        # then for each pool, pick a norm of one tri in that pool
+        # this becomes the left/right child of the last normal
+        # repeat the steps, but with the tris in the cell removed from the pool
+        def create_norm_pool(self, tri_pool, parent_cell=None):
+            # deal with NULL case
+            if not tri_pool:
+                return 0
+            # just pick a random normal
+            norm = tri_pool[-1].normal
+            kcs_cell = KCS_Cell(norm, parent=parent_cell)
+            tri_pool = kcs_cell.create_tri_cell(tri_pool)
+            for tri in tri_pool:
+                in_front = tri.direction_towards_normal(self.vertices, norm)
+                if in_front or in_front is None:
+                    kcs_cell.left_children.append(tri)
+                if not in_front:
+                    kcs_cell.right_children.append(tri)
+            if kcs_cell.left_children:
+                child_cell = create_norm_pool(self, kcs_cell.right_children, kcs_cell)
+                kcs_cell.left = child_cell
+            if kcs_cell.right_children:
+                child_cell = create_norm_pool(self, kcs_cell.left_children, kcs_cell)
+                kcs_cell.right = child_cell
+            return kcs_cell
+
+        root = self.triangles[-1]
+        kcs_cell_root = create_norm_pool(self, self.triangles)
+
+        # create list of cells
+        def find_child(seq, cell):
+            if cell.left:
+                find_child(seq, cell.left)
+            if cell.right:
+                find_child(seq, cell.right)
+            seq.append(cell)
+
+        find_child(self.norm_cells, kcs_cell_root)
+        # create tri cells as list, add data to norm cells
+        self.norm_cells.insert(0, KCS_Cell(0, 1, 2, 3))
+        tri_indices = 1
+        for cell in self.norm_cells[1:]:
+            self.tri_cells.append([self.triangles.index(tri) for tri in cell.triangle_cell])
+            if cell.left:
+                cell.left = self.norm_cells.index(cell.left)
+            if cell.right:
+                cell.right = self.norm_cells.index(cell.right)
+            cell.tri_index = tri_indices
+            tri_indices += len(cell.triangle_cell)
+            cell.normal = self.normals.index(cell.normal)
+        self.norm_root = self.norm_cells.index(kcs_cell_root)
+
+    def create_node_relations(self):
+        # sort nodes by node number
+        self.node_data = sorted(self.node_data, key=lambda x: x.node_num)
+        # node relations show the distance it takes to get from each node to another node
+        # relation index can therefore be found by using the binomial coefficient of (n - 1, k)
+        def walk_node(self, kcs_node: KCS_Node, target: int, distance: float):
+            if (
+                (kcs_node.node.lock_forward and kcs_node.node.next_node == target)
+                or (kcs_node.node.lock_backward and kcs_node.node.prev_node == target)
+                or (kcs_node.node.lock_backward and kcs_node.node.lock_forward)
+            ):
+                return (0, 9999.0)
+            if kcs_node.node.prev_node == target:
+                return (0x80, distance)
+            if kcs_node.node.next_node == target:
+                return (0, distance + kcs_node.node_length)
+            if kcs_node.node.next_node != target and not kcs_node.node.lock_forward:
+                return walk_node(self, self.node_data[kcs_node.node.next_node], target, distance + kcs_node.node_length)
+            if kcs_node.node.prev_node != target and not kcs_node.node.lock_backward:
+                return walk_node(self, self.node_data[kcs_node.node.prev_node], target, distance + kcs_node.node_length)
+
+        def app_unique_list(seq, value):
+            if value in seq:
+                return seq.index(value)
+            seq.append(value)
+            return len(seq) - 1
+
+        self.node_distances.append(9999.0)
+        for node in self.node_data:
+            for j, other in enumerate(self.node_data):
+                if other is node:
+                    self.node_traversals.append(0)
+                # travel across nodes starting at "node" until "other" is found
+                # if it is not connected, then use 0 as NULL connection
+                direction, distance = walk_node(self, node, j, 0)
+                self.node_traversals.append(direction + app_unique_list(self.node_distances, distance))
+
     # this should try to export in the same order as a default level.c file
     # though I will not explicitly add padding like the OG
     def to_c(self):
-        col_data = KCS_Cdata()
         # export data
+        col_data = KCS_Cdata()
+        # level header
+        if self.level_header:
+            self.write_dict_struct(
+                self.level_header,
+                LevelHeader,
+                col_data,
+                "LevelHeader",
+                "LvlHeader",
+            )
+        # collision data
         self.write_arr(
             col_data,
             "s16",
             f"Vertices",
             self.vertices,
             self.format_arr,
-            length=3,
+            length=len(self.vertices),
         )
         # triangles, each class has its own export func
-        [tri.to_c(col_data) for tri in self.triangles]
-        self.write_arr(col_data, "struct Normal", "Normals", self.normals, self.format_arr)
-        # tri cells
+        self.write_class_arr(col_data, self.triangles, "CollisionTriangle", "Triangles", len(self.triangles))
+        self.write_arr(
+            col_data, "struct Normal", "Normals", self.normals, self.format_arr, length=len(self.normals), outer_only=1
+        )
+        self.write_arr(col_data, "u16", "Tri_Cells", self.tri_cells, self.format_arr, length=len(self.tri_cells))
+        self.write_class_arr(col_data, self.norm_cells, "NormalGroup", "Norm_Cells", length=len(self.norm_cells))
         # norml cells
         # dyn geo groups
         # dyn geo indices
@@ -480,9 +622,34 @@ class KCS_Level(BinWrite):
                 "CollisionHeader",
                 "Col_Header",
             )
-        # nodes
+        # node data, this is done to preserve ordering as the original files are done
+        node_c_data = (
+            path_data := KCS_Cdata(),
+            kirb_data := KCS_Cdata(),
+            connector_data := KCS_Cdata(),
+            traversal_data := KCS_Cdata(),  # this isn't exported per node
+            header_data := KCS_Cdata(),
+        )
         for node in self.node_data:
-            node.to_c(col_data)
+            [aggr.append(dat) for aggr, dat in zip(node_c_data, node.to_c())]
+        # add in traversal data
+        self.write_arr(
+            traversal_data,
+            "u8",
+            f"NodeTraversals",
+            self.node_traversals,
+            self.format_arr,
+            length=len(self.node_traversals),
+        )
+        self.write_arr(
+            traversal_data,
+            "f32",
+            f"NodeDistances",
+            self.node_distances,
+            self.format_arr,
+            length=len(self.node_distances),
+        )
+        [col_data.append(dat) for dat in node_c_data]
         # node header
         if self.node_header:
             self.write_dict_struct(
@@ -492,11 +659,10 @@ class KCS_Level(BinWrite):
                 "NodeHeader",
                 "NodeHdr",
             )
-        
+
         # entities
         for ent in self.entities:
             ent.to_c(col_data)
-        
         # replace plcaeholder pointers in file with real symbols
         self.resolve_ptrs_c(col_data)
         return col_data
@@ -507,17 +673,16 @@ class KCS_Mesh(BinWrite):
     def __init__(self, obj: bpy.types.Object):
         self.symbol_init()
         self.mesh = obj
-    
+
     def calc_vertices(self, transform: Matrix, coords: Vector):
         # le tuple comprehension
-        return *(int(vert) for vert in transform @ coords),
-    
-    def calc_mesh_data(self, transform: Matrix, vertex_offset: int):
+        return (*(int(vert) for vert in transform @ coords),)
+
+    def calc_mesh_data(self, transform: Matrix, vertex_offset: int, normals: list[float]):
         obj = self.mesh
         obj.data.calc_loop_triangles()
         triangles = []
         vertices = []
-        normals = set()
         for face in obj.data.loop_triangles:
             material = obj.material_slots[face.material_index].material
 
@@ -536,35 +701,271 @@ class KCS_Mesh(BinWrite):
             nx = nx / magnitude
             ny = ny / magnitude
             nz = nz / magnitude
-            offset = -(x1*nx + y1*ny + z1*nz)
+            offset = -(x1 * nx + y1 * ny + z1 * nz)
             vert_index = len(vertices) + vertex_offset
             vertices.extend((v1, v2, v3))
-            normals.add((nx, ny, nz, offset))
+            normal = (nx, ny, nz, offset)
+            if normal not in normals:
+                normals.append(normal)
             triangles.append(
                 KCS_Triangle(
                     (vert_index, vert_index + 1, vert_index + 2),
-                    material.KCS_col.params,
-                    len(normals)
+                    *material.KCS_col.params,
+                    normals.index(normal),
+                    normal,
                 )
             )
-        return vertices, triangles, normals
+        return vertices, triangles
 
 
 # One triangle
 @dataclass
 class KCS_Triangle(BinWrite):
-    vertices: tuple[int] #indices into vert array
-    params: tuple[int]
-    normal: int
-    
+    vertices: tuple[int] = (0, 1, 2)  # indices into vert array
+    norm_type: int = 4
+    col_type: int = 9
+    col_param: int = 8
+    stop_flag: int = 7
+    normal_index: int = 3
+    normal: tuple[float] = (1, 2, 3, 4)
+    destructable_index: int = 0
+    particle_index: int = 0
+
+    def dot_product(self, vector_1, vector_2):
+        return sum(a * b for a, b in zip(vector_1, vector_2))
+
+    def direction_towards_normal(self, verts: list[int], normal: tuple[float]):
+        vert_coords = [verts[v] for v in self.vertices]
+        # solve the plane equation for the verts in tri
+        in_front = [None, None, None]
+        for i, vertex in enumerate(vert_coords):
+            plane_eq = self.dot_product(vertex, normal[:-1]) + normal[-1]
+            # if less than 1 unit away, count as in front
+            if plane_eq > 0.5:
+                in_front[i] = True
+                continue
+            if plane_eq < -0.5:
+                in_front[i] = False
+        if all(in_front):
+            return True
+        if in_front == [False, False, False]:
+            return False
+        return None  # intersection
+
     def to_c(self, file: KCS_Cdata):
-        return
+        args = (
+            self.normal_index,
+            self.norm_type,
+            self.destructable_index,
+            self.particle_index,
+            self.stop_flag,
+            self.col_param,
+            self.col_type,
+        )
+        args = f"{{{', '.join(hex(v) for v in self.vertices)}}}, {', '.join(str(a) for a in args)}"
+        file.write(f"\t{{{args}}},\n")
+
+
+# a cell for sorting BSP
+@dataclass
+class KCS_Cell:
+    normal: tuple
+    left: KCS_Cell = 0
+    right: KCS_Cell = 0
+    tri_index: int = 0
+    parent: KCS_Cell = None
+    left_children: list[tuple] = field(default_factory=list)
+    right_children: list[tuple] = field(default_factory=list)
+    triangle_cell: list[KCS_Triangle] = field(default_factory=list)
+
+    def create_tri_cell(self, triangles: list[KCS_Triangle]):
+        leftovers = []
+        for tri in triangles:
+            if tri.normal == self.normal:
+                self.triangle_cell.append(tri)
+            else:
+                leftovers.append(tri)
+        return leftovers
+
+    def to_c(self, file: KCS_Cdata):
+        args = (self.normal, self.left, self.right, self.tri_index)
+        file.write(f"\t{{{', '.join([str(a) for a in args])}}},\n")
 
 
 # One node from bpy point of view
 class KCS_Node(BinWrite):
-    def __init__(self):
+    def __init__(self, path_obj: bpy.types.Object, transform: Matrix, scale: float):
         self.symbol_init()
+        self.node = path_obj.data.KCS_node
+        self.node_num = self.node.node_num
+        for child in path_obj.children:
+            if child.type == "CAMERA":
+                self.init_camera(child)
+                break
+        else:
+            PluginError(f"no camera object detected in node {path_obj}")
+        self.init_path(path_obj, transform, scale)
+
+    def init_camera(self, camera_obj: bpy.types.Object):
+        for child in camera_obj.children:
+            if child.type == "EMPTY":
+                camera_volume = child
+        cam_node = camera_obj.data.KCS_cam
+        # init props here
+        self.camera_node = StructContainer(
+            (
+                cam_node.profile_view,
+                0xA,
+                *cam_node.axis_locks,
+                0,
+                not cam_node.pan_vertical,
+                not cam_node.pan_below,
+                not cam_node.pan_ahead,
+                0,
+                64,
+                *cam_node.focus_location,
+                *cam_node.clip_planes,
+                (100.0, 100.0),  # radius scale in %
+                cam_node.follow_yaw,
+                cam_node.follow_radius,
+                (30.0, 30.0),  # FOV
+                cam_node.follow_pitch,
+                cam_node.cam_bounds_x,
+                cam_node.cam_bounds_y,
+                cam_node.cam_bounds_z,
+                cam_node.cam_bounds_yaw,
+                cam_node.cam_bounds_pitch,
+            )
+        )
+        # if there is a volume, use that for bounds
+        # though for now, it is not incorporated
+
+    def init_path(self, path_obj: bpy.types.Object, transform: Matrix, scale: float):
+        path_dat = self.node
+        self.kirby_node = StructContainer(
+            (
+                path_dat.node_num,
+                path_dat.entrance_int,
+                (*path_dat.stage_dest.stage, path_dat.warp_node),
+                0,  # pad
+                (0, 0, 0),  # node shading
+                0,  # pad
+                0x20 + path_dat.enable_warp,  # idk what 0x20 reps
+                0,  # following are unused? or maybe hyper specific
+                0,
+                0.0,
+                0.0,
+                0.0,
+            )
+        )
+        self.node_connector = (
+            (
+                int(path_dat.lock_backward),
+                0,
+                path_dat.prev_node,
+                0,
+            ),
+            (
+                int(path_dat.lock_forward),
+                0,
+                path_dat.next_node,
+                0,
+            ),
+        )
+        # if there are no splines in this obj, then raise error
+        spline = path_obj.data.splines[0]
+        self.path_matrix = (*(tuple((transform @ point.co).xyz) for point in spline.points),)
+        # path relative coords are basis invariant, no transform needed
+        spline_length = spline.calc_length()
+        first_point = spline.points[0].co
+        self.path_bounds = (*((point.co - first_point).length / spline_length for point in spline.points),)
+        self.node_length = spline_length * scale
+        self.path_footer = StructContainer(
+            (
+                0,  # has path curl, not implemented
+                len(self.path_matrix),
+                0,  # force, not implemented
+                self.pointer_truty(self.path_matrix),
+                self.node_length,
+                self.pointer_truty(self.path_bounds),
+                0,  # pointer to path curl, not implemented
+            )
+        )
+        self.path_header = StructContainer(
+            (
+                self.pointer_truty(self.kirby_node),
+                self.pointer_truty(self.path_footer),
+                self.pointer_truty(self.node_connector),
+                2,  # num connections, rework later
+                0,  # self connected, rework later
+            )
+        )
+
+    # write node data, in same order as original file, so multiple data objects
+    # are used to preserve the ordering
+    def to_c(self):
+        # path data
+        path_data = KCS_Cdata()
+        self.write_arr(
+            path_data,
+            "f32",
+            f"PathMatrix_{self.node_num}",
+            self.path_matrix,
+            self.format_arr,
+            length=len(self.path_matrix),
+        )
+        self.write_arr(
+            path_data,
+            "f32",
+            f"PathBounds_{self.node_num}",
+            self.path_bounds,
+            self.format_arr,
+            length=len(self.path_bounds),
+        )
+        self.write_dict_struct(
+            self.path_footer,
+            Path_Footer,
+            path_data,
+            "PathNodeFooter",
+            f"PathFooter_{self.node_num}",
+        )
+        # kirb data
+        kirb_data = KCS_Cdata()
+        self.write_dict_struct(
+            self.kirby_node,
+            Kirby_Settings_Node,
+            kirb_data,
+            "KirbyNode",
+            f"KirbyNode_{self.node_num}",
+        )
+        self.write_dict_struct(
+            self.camera_node,
+            Camera_Node,
+            kirb_data,
+            "CameraNode",
+            f"CamNode_{self.node_num}",
+        )
+        # connectors
+        connector_data = KCS_Cdata()
+        self.write_arr(
+            connector_data,
+            "struct Node_Connectors",
+            f"NodeConnector_{self.node_num}",
+            self.node_connector,
+            self.format_arr,
+            length=len(self.node_connector),
+            outer_only=1,
+        )
+        # path headers
+        header_data = KCS_Cdata()
+        self.write_dict_struct(
+            self.path_header,
+            PathHeader,
+            header_data,
+            "PathNodeHeader",
+            f"PathHeader_{self.node_num}",
+        )
+        return (path_data, kirb_data, connector_data, KCS_Cdata(), header_data)
 
 
 # ------------------------------------------------------------------------
@@ -573,7 +974,7 @@ class KCS_Node(BinWrite):
 
 
 def export_col_c(name: str, obj: bpy.types.Object, context: bpy.types.Context):
-    scale = context.scene.KCS_scene.Scale
+    scale = context.scene.KCS_scene.scale
     # create writer class using blender data, class should
     # have all context needed for export from obj hierarchy
     bpy_col = BpyCollision(obj, None)
@@ -586,6 +987,7 @@ def export_col_c(name: str, obj: bpy.types.Object, context: bpy.types.Context):
         file.write(cData.source)
     with open(f"{name}.h", "w") as file:
         file.write(cData.header)
+
 
 # ------------------------------------------------------------------------
 #    Importer
@@ -600,7 +1002,7 @@ def import_col_bin(bin_file: BinaryIO, context: bpy.types.Context, name: str):
     rt.KCS_obj.KCS_obj_type = "Collision"
     LS_Block = MiscBinary(LS.read())
     write = BpyCollision(rt, collection)
-    write.write_bpy_col(LS_Block, context.scene, context.scene.KCS_scene.Scale)
+    write.write_bpy_col(LS_Block, context.scene, context.scene.KCS_scene.scale)
 
 
 def add_node(Rt: bpy.types.Object, collection: bpy.types.Collection):

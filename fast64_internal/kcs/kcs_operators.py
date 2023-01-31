@@ -24,15 +24,15 @@ class KCS_Import_Col(Operator):
 
     def execute(self, context: bpy.types.Context):
         scene = context.scene.KCS_scene
-        BankID = scene.ImpBankID.BankID()
-        file = Path(scene.Decomp_path) / "assets" / "misc" / ("bank_%d" % BankID[0]) / ("%d" % BankID[1])
-        if scene.Format == "binary":
+        bank_id = scene.import_bank_id.bank_id()
+        file = Path(scene.decomp_path) / "assets" / "misc" / ("bank_%d" % bank_id[0]) / ("%d" % bank_id[1])
+        if scene.file_format == "binary":
             name = file / "level.bin"
             if not name.exists():
                 name = file / "misc.bin"
             if not name.exists():
                 raise PluginError(f"Could not find file {name}, geo Bank/ID does not exist")
-            import_col_bin(name, context, "KCS Col {}-{}".format(*BankID))
+            import_col_bin(name, context, "KCS Col {}-{}".format(*bank_id))
         else:
             raise PluginError("C importing is not supported yet")
         return {"FINISHED"}
@@ -45,15 +45,17 @@ class KCS_Import_NLD_Gfx(Operator):
 
     def execute(self, context: bpy.types.Context):
         scene = context.scene.KCS_scene
-        BankID = scene.ImpBankID.BankID()
-        file = Path(scene.Decomp_path) / "assets" / "geo" / ("bank_%d" % BankID[0]) / ("%d" % BankID[1])
-        if scene.Format == "binary":
+        bank_id = scene.import_bank_id.bank_id()
+        file = Path(scene.decomp_path) / "assets" / "geo" / ("bank_%d" % bank_id[0]) / ("%d" % bank_id[1])
+        if scene.file_format == "binary":
             name = file / "geo.bin"
             if not name.exists():
                 name = file / "block.bin"
             if not name.exists():
                 raise PluginError(f"Could not find file {name}, geo Bank/ID does not exist")
-            import_geo_bin(name, context, "KCS Gfx {}-{}".format(*BankID), Path(scene.Decomp_path) / "assets" / "image")
+            import_geo_bin(
+                name, context, "KCS Gfx {}-{}".format(*bank_id), Path(scene.decomp_path) / "assets" / "image"
+            )
         else:
             raise PluginError("C importing is not supported yet")
         return {"FINISHED"}
@@ -66,17 +68,16 @@ class KCS_Import_Stage(Operator):
 
     def execute(self, context: bpy.types.Context):
         scene = context.scene.KCS_scene
-        stage_table = Path(scene.Decomp_path) / "data" / "misc" / "kirby.066630.2.c"  # this will probably change later
-        stage = parse_stage_table(*scene.ImpStage.stage(), stage_table)
+        stage_table = Path(scene.decomp_path) / "data" / "misc" / "kirby.066630.2.c"  # this will probably change later
+        stage = parse_stage_table(*scene.import_stage.stage(), stage_table)
 
         gfx_bank, gfx_ID = [eval(a) for a in stage["geo"]]
         col_bank, col_ID = [eval(a) for a in stage["level_block"]]
 
-        file_gfx = Path(scene.Decomp_path) / "assets" / "geo" / ("bank_%d" % gfx_bank) / ("%d" % gfx_ID)
-        file_col = Path(scene.Decomp_path) / "assets" / "misc" / ("bank_%d" % col_bank) / ("%d" % col_ID)
+        file_gfx = Path(scene.decomp_path) / "assets" / "geo" / ("bank_%d" % gfx_bank) / ("%d" % gfx_ID)
+        file_col = Path(scene.decomp_path) / "assets" / "misc" / ("bank_%d" % col_bank) / ("%d" % col_ID)
 
-        BankID = scene
-        if scene.Format == "binary":
+        if scene.file_format == "binary":
             # import gfx
             name = file_gfx / "geo.bin"
             if not name.exists():
@@ -86,8 +87,8 @@ class KCS_Import_Stage(Operator):
             import_geo_bin(
                 name,
                 context,
-                "KCS Level {}-{}-{}".format(*scene.ImpStage.stage()),
-                Path(scene.Decomp_path) / "assets" / "image",
+                "KCS Level {}-{}-{}".format(*scene.import_stage.stage()),
+                Path(scene.decomp_path) / "assets" / "image",
             )
             # import collision
             name = file_col / "level.bin"
@@ -95,7 +96,7 @@ class KCS_Import_Stage(Operator):
                 name = file_col / "misc.bin"
             if not name.exists():
                 raise PluginError(f"Could not find file {name}, misc Bank/ID selected is not a level")
-            import_col_bin(name, context, "KCS Col {}-{}-{}".format(*scene.ImpStage.stage()))
+            import_col_bin(name, context, "KCS Col {}-{}-{}".format(*scene.import_stage.stage()))
 
         else:
             raise PluginError("C importing is not supported yet")
@@ -118,8 +119,8 @@ class KCS_Export_Gfx(Operator):
 
     def execute(self, context: bpy.types.Context):
         scene = context.scene.KCS_scene
-        if scene.Format == "binary":
-            raise PluginError('Binary exports are not supported')
+        if scene.file_format == "binary":
+            raise PluginError("Binary exports are not supported")
         # need a KCS object
         obj = context.selected_objects[0]
         while obj:
@@ -129,10 +130,10 @@ class KCS_Export_Gfx(Operator):
                 break
         if not obj:
             raise PluginError('Obj is not Empty with type "Graphics"')
-        
-        BankID = scene.ExpBankID.BankID()
-        file = Path(scene.Decomp_path) / "assets" / "geo" / ("bank_%d" % BankID[0]) / ("%d" % BankID[1])
-        file.mkdir(exist_ok = True, parents = True)
+
+        bank_id = scene.export_bank_id.bank_id()
+        file = Path(scene.decomp_path) / "assets" / "geo" / ("bank_%d" % bank_id[0]) / ("%d" % bank_id[1])
+        file.mkdir(exist_ok=True, parents=True)
         name = file / "geo"
         export_geo_c(name, obj, context)
         return {"FINISHED"}
@@ -145,8 +146,8 @@ class KCS_Export_Col(Operator):
 
     def execute(self, context: bpy.types.Context):
         scene = context.scene.KCS_scene
-        if scene.Format == "binary":
-            raise PluginError('Binary exports are not supported')
+        if scene.file_format == "binary":
+            raise PluginError("Binary exports are not supported")
         # need a KCS object
         obj = context.selected_objects[0]
         while obj:
@@ -156,9 +157,9 @@ class KCS_Export_Col(Operator):
                 break
         if not obj:
             raise PluginError('Obj is not Empty with type "Collision"')
-        BankID = scene.ExpBankID.BankID()
-        file = Path(scene.Decomp_path) / "assets" / "misc" / ("bank_%d" % BankID[0]) / ("%d" % BankID[1])
-        file.mkdir(exist_ok = True, parents = True)
+        bank_id = scene.export_bank_id.bank_id()
+        file = Path(scene.decomp_path) / "assets" / "misc" / ("bank_%d" % bank_id[0]) / ("%d" % bank_id[1])
+        file.mkdir(exist_ok=True, parents=True)
         name = file / "level"
         export_col_c(name, obj, context)
         return {"FINISHED"}
@@ -179,7 +180,7 @@ class KCS_Add_Block(Operator):
 
     def execute(self, context: bpy.types.Context):
         # context vars
-        scale = bpy.context.scene.KCS_scene.Scale
+        scale = bpy.context.scene.KCS_scene.scale
         Rt = context.object
         collection = context.object.users_collection[0]
         # get singleton instance of block data
@@ -255,7 +256,7 @@ class KCS_Add_Node(Operator):
     def execute(self, context: bpy.types.Context):
         Rt = context.object
         collection = context.object.users_collection[0]
-        AddNode(Rt, collection)
+        add_node(Rt, collection)
         return {"FINISHED"}
 
 

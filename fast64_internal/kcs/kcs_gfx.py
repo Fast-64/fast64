@@ -806,13 +806,13 @@ class BpyGeo:
                 obj = bpy.data.objects.new(f"{name} {layout.depth&0xFF} {i}", mesh)
                 collection.objects.link(obj)
                 # set KCS props of obj
-                obj.KCS_mesh.MeshType = "Graphics"
+                obj.KCS_mesh.mesh_type = "Graphics"
                 # apply dat
                 ModelDat.apply_f3d_mesh_dat(obj, mesh, tex_path)
                 # cleanup
                 mesh.validate()
                 mesh.update(calc_edges=True)
-                if bpy.context.scene.KCS_scene.CleanUp:
+                if bpy.context.scene.KCS_scene.clean_up:
                     # shade smooth
                     obj.select_set(True)
                     bpy.context.view_layer.objects.active = obj
@@ -824,7 +824,7 @@ class BpyGeo:
             else:
                 obj = make_empty(f"{name} {layout.depth} {i}", "PLAIN_AXES", collection)
                 # set KCS props of obj
-                obj.KCS_mesh.MeshType = "Graphics"
+                obj.KCS_mesh.mesh_type = "Graphics"
             # now that obj is created, parent and add transforms to it
             if (layout.depth & 0xFF) < len(stack) - 1:
                 stack = stack[: (layout.depth & 0xFF) + 1]
@@ -864,7 +864,7 @@ class BpyGeo:
                         loop_children(child, fModel, depth + 1)
 
         loop_children(fModel.tempObj, fModel, 1)
-        
+
         # add the root as a layout, though if there are no children, set the render mode to 14
         if not fModel.layouts:
             fModel.render_mode = 0x14  # list of DLs (entry point)
@@ -873,7 +873,7 @@ class BpyGeo:
             fModel.render_mode = 0x18  # list of layouts pointing to entry points
             fModel.layouts.insert(0, self.create_layout(fModel.tempObj, 0, fModel))
             # create final layout
-            fModel.layouts.append(Layout(depth = 0x12))
+            fModel.layouts.append(Layout(depth=0x12))
         return fModel
 
     def cleanup_fModel(self, fModel):
@@ -930,7 +930,7 @@ class BpyGeo:
     # given an obj, eval if it is a kcs gfx export
     def is_kcs_gfx(self, obj):
         if obj.type == "MESH":
-            return obj.KCS_mesh.MeshType == "Graphics"
+            return obj.KCS_mesh.mesh_type == "Graphics"
         if obj.type == "EMPTY":
             return obj.KCS_obj.KCS_obj_type == "Graphics"
 
@@ -1128,7 +1128,7 @@ class KCS_fMaterial(FMaterial):
 
 
 def export_geo_c(name: str, obj: bpy.types.Object, context: bpy.types.Context):
-    scale = context.scene.KCS_scene.Scale
+    scale = context.scene.KCS_scene.scale
     blend_geo = BpyGeo(obj, scale)
     # create writer class using blender data, with layouts that have fMesh data
     fModel = blend_geo.init_fModel_from_bpy()
@@ -1153,6 +1153,6 @@ def import_geo_bin(bin_file: BinaryIO, context: bpy.types.Context, name: str, pa
     collection = context.scene.collection
     rt = make_empty(name, "PLAIN_AXES", collection)
     rt.KCS_obj.KCS_obj_type = "Graphics"
-    Geo_Block = GeoBinary(Geo.read(), context.scene.KCS_scene.Scale)
-    write = BpyGeo(rt, context.scene.KCS_scene.Scale)
+    Geo_Block = GeoBinary(Geo.read(), context.scene.KCS_scene.scale)
+    write = BpyGeo(rt, context.scene.KCS_scene.scale)
     write.write_bpy_gfx_from_geo("geo", Geo_Block, path, collection)

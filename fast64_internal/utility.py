@@ -847,12 +847,19 @@ def apply_objects_modifiers_and_transformations(allObjs: Iterable[bpy.types.Obje
         selectedObj.select_set(True)
         bpy.context.view_layer.objects.active = selectedObj
 
-        bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
+        # cameras have no data to transform
+        if selectedObj.type == "CAMERA":
+            continue
+        # 2D curves can only have scale applied
+        if selectedObj.type == "CURVE":
+            bpy.ops.object.transform_apply(location=False, rotation=False, scale=True, properties=False)
+        else:
+            bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
 
-def duplicateHierarchy(obj, ignoreAttr, includeEmpties, areaIndex):
+def duplicateHierarchy(obj, ignoreAttr, includeEmpties, areaIndex, include_curves = 0, include_cameras = 0):
     # Duplicate objects to apply scale / modifiers / linked data
     bpy.ops.object.select_all(action="DESELECT")
-    selectMeshChildrenOnly(obj, None, includeEmpties, areaIndex)
+    selectMeshChildrenOnly(obj, None, includeEmpties, areaIndex, include_curves, include_cameras)
     obj.select_set(True)
     bpy.context.view_layer.objects.active = obj
     bpy.ops.object.duplicate()
@@ -914,21 +921,23 @@ def checkSM64EmptyUsesGeoLayout(sm64_obj_type):
     return sm64_obj_type in enumSM64EmptyWithGeolayout or checkIsSM64InlineGeoLayout(sm64_obj_type)
 
 
-def selectMeshChildrenOnly(obj, ignoreAttr, includeEmpties, areaIndex):
+def selectMeshChildrenOnly(obj, ignoreAttr, includeEmpties, areaIndex, include_curves = 0, include_cameras = 0):
     checkArea = areaIndex is not None and obj.data is None
     if checkArea and obj.sm64_obj_type == "Area Root" and obj.areaIndex != areaIndex:
         return
     ignoreObj = ignoreAttr is not None and getattr(obj, ignoreAttr)
     isMesh = isinstance(obj.data, bpy.types.Mesh)
+    is_curve = obj.type == "CURVE" and include_curves
+    is_camera = obj.type == "CAMERA" and include_cameras
     isEmpty = obj.data is None and includeEmpties and checkSM64EmptyUsesGeoLayout(obj.sm64_obj_type)
-    if (isMesh or isEmpty) and not ignoreObj:
+    if (isMesh or isEmpty or is_curve or is_camera) and not ignoreObj:
         obj.select_set(True)
         obj.original_name = obj.name
     for child in obj.children:
         if checkArea and obj.sm64_obj_type == "Level Root":
             if not (child.data is None and child.sm64_obj_type == "Area Root"):
                 continue
-        selectMeshChildrenOnly(child, ignoreAttr, includeEmpties, areaIndex)
+        selectMeshChildrenOnly(child, ignoreAttr, includeEmpties, areaIndex, include_curves, include_cameras)
 
 
 def cleanupDuplicatedObjects(selected_objects):

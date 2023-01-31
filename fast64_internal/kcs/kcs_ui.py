@@ -39,13 +39,12 @@ class KCS_PROP_PT_Panel(Panel):
     def draw(self, context: bpy.types.Context):
         layout = self.layout
         KCS_scene = context.scene.KCS_scene
-        layout.prop(KCS_scene, "Scale")
-        layout.prop(KCS_scene, "Decomp_path")
-        layout.prop(KCS_scene, "Format")
+        layout.prop(KCS_scene, "scale")
+        layout.prop(KCS_scene, "decomp_path")
+        layout.prop(KCS_scene, "file_format")
         layout.label(text="Import Options")
         row = layout.row()
-        row.prop(KCS_scene, "CleanUp")
-        #        row.prop(KCS_scene, "IgnoreAdHoc")
+        row.prop(KCS_scene, "clean_up")
         layout.operator("kcs.add_kcslevel")
 
 
@@ -69,19 +68,19 @@ class KCS_IO_PT_Panel(Panel):
         scene = context.scene
         KCS_scene = scene.KCS_scene
         layout.label(text="Export Selected Level")
-        KCS_scene.ExpStage.draw(layout)
+        KCS_scene.export_stage.draw(layout)
         layout.operator("kcs.export_area")
         layout.label(text="Export Selected Geo")
-        KCS_scene.ExpBankID.draw(layout)
+        KCS_scene.export_bank_id.draw(layout)
         layout.operator("kcs.export_gfx")
         layout.operator("kcs.export_col")
         layout.separator()
         layout.label(text="Import Area")
-        KCS_scene.ImpStage.draw(layout)
+        KCS_scene.import_stage.draw(layout)
         layout.operator("kcs.import_stage")
         layout.separator()
         layout.label(text="Import Bank Data")
-        KCS_scene.ImpBankID.draw(layout)
+        KCS_scene.import_bank_id.draw(layout)
         layout.operator("kcs.import_nld_gfx")
         layout.operator("kcs.import_col")
 
@@ -103,7 +102,7 @@ class SCROLL_PT_Panel(Panel):
 
     def draw(self, context: bpy.types.Context):
         KCSmesh = context.object.KCS_mesh
-        if KCSmesh.MeshType == "Graphics":
+        if KCSmesh.mesh_type == "Graphics":
             layout = self.layout
             mat = context.material
             scroll = mat.KCS_tx_scroll
@@ -136,14 +135,14 @@ class COL_PT_Panel(Panel):
 
     def draw(self, context: bpy.types.Context):
         KCSmesh = context.object.KCS_mesh
-        if KCSmesh.MeshType == "Collision":
+        if KCSmesh.mesh_type == "Collision":
             layout = self.layout
             mat = context.material
             col = mat.KCS_col
             box = layout.box()
             box.label(text="KCS Collision Type Info")
             box.prop(col, "NormType")
-            if KCSmesh.ColMeshType == "Breakable":
+            if KCSmesh.col_mesh_type == "Breakable":
                 box.label(text="Collision Type must be brekaable (9)")
             box.prop(col, "ColType")
             box.prop(col, "ColParam")
@@ -167,8 +166,8 @@ class NODE_PT_Panel(Panel):
 
     def draw(self, context: bpy.types.Context):
         layout = self.layout
-        obj = context.object.data
-        nodeprop = obj.KCS_node
+        curve = context.object.data
+        node_props = curve.KCS_node
         box = layout.box()
         box.label(text="KCS Node Path/Container")
 
@@ -178,30 +177,32 @@ class NODE_PT_Panel(Panel):
 
         box.separator()
         row = box.row()
-        row.prop(nodeprop, "NodeNum")
-        row.prop(nodeprop, "EnWarp")
+        row.prop(node_props, "node_num")
+        row.prop(node_props, "enable_warp")
 
-        row = box.row()
-        row.label(text="Warp Settings")
-        col = row.column()
-        col.alignment = "LEFT"
-        col.prop(nodeprop, "EntranceLocation")
-        col.prop(nodeprop, "EntranceAction")
+        if node_props.enable_warp:
+            new_box = box.box()
+            row = new_box.box()
+            row.label(text="Warp Settings")
+            col = row.column()
+            col.alignment = "LEFT"
+            col.prop(node_props, "entrance_location")
+            col.prop(node_props, "entrance_action")
 
-        row = box.row()
-        row.prop(nodeprop, "Warp")
-        row.prop(nodeprop, "WarpNode")
-
-        box.separator()
-        row = box.row()
-        row.prop(nodeprop, "LockForward")
-        row.prop(nodeprop, "LockBackward")
-        row.prop(nodeprop, "Looping")
+            row = box.row()
+            node_props.stage_dest.draw(row.column())
+            row.prop(node_props, "warp_node")
 
         box.separator()
         row = box.row()
-        row.prop(nodeprop, "NextNode")
-        row.prop(nodeprop, "PrevNode")
+        row.prop(node_props, "lock_forward")
+        row.prop(node_props, "lock_backward")
+        row.prop(node_props, "looping")
+
+        box.separator()
+        row = box.row()
+        row.prop(node_props, "next_node")
+        row.prop(node_props, "prev_node")
 
 
 # camera settings, goes on camera object
@@ -221,35 +222,42 @@ class CAM_PT_Panel(Panel):
 
     def draw(self, context: bpy.types.Context):
         layout = self.layout
-        obj = context.object.data
-        camprop = obj.KCS_cam
+        camera = context.object.data
+        camera_prop = camera.KCS_cam
         box = layout.box()
-        box.label(text="Locks will make camera stay inside cam bounds while following kirby.")
-        row = box.row()
-        row.prop(camprop, "ProfileView")
-        row.prop(camprop, "AxisLocks")
-        box.separator()
+
+        new_box = box.box()
+        row = new_box.row()
+        new_box.label(text="Locks will make camera stay inside cam bounds while following kirby.")
+        row.prop(camera_prop, "profile_view")
+        row.prop(camera_prop, "axis_locks")
+        if any(camera_prop.axis_locks):
+            new_box.label(text="Bounds only used while axis is locked.")
+        if not camera_prop.axis_locks[0]:
+            new_box.prop(camera_prop, "cam_bounds_x")
+        if not camera_prop.axis_locks[1]:
+            new_box.prop(camera_prop, "cam_bounds_y")
+        if not camera_prop.axis_locks[2]:
+            new_box.prop(camera_prop, "cam_bounds_z")
+        new_box.label(text="Yaw and pitch bounds always in affect unless camera is fully locked.")
+        new_box.prop(camera_prop, "cam_bounds_pitch")
+        new_box.prop(camera_prop, "cam_bounds_yaw")
+
         box.label(text="Pans begin when camera hits bounds.")
         row = box.row()
-        row.prop(camprop, "PanH")
-        row.prop(camprop, "PanUpDown")
-        row.prop(camprop, "PanDown")
-        box.separator()
+        row.prop(camera_prop, "pan_ahead")
+        row.prop(camera_prop, "pan_vertical")
+        row.prop(camera_prop, "pan_below")
+
         box.label(text="Camera position while following kirby.")
         grid = box.column_flow()
-        grid.prop(camprop, "Yaw")
-        grid.prop(camprop, "Pitch")
-        grid.prop(camprop, "Radius")
-        grid.prop(camprop, "Clips")
-        box.separator()
+        grid.prop(camera_prop, "follow_yaw")
+        grid.prop(camera_prop, "follow_pitch")
+        grid.prop(camera_prop, "follow_radius")
+
+        box.prop(camera_prop, "clip_planes")
         box.label(text="Position to focus camera. 9999 focuses on kirby.")
-        box.separator()
-        row = box.row()
-        row.prop(camprop, "Foc")
-        box.label(text="Camera Bound Pairs Determined by Camera Volume.")
-        box.label(text="Bounds only used while axis is locked.")
-        box.prop(camprop, "CamPitchBound")
-        box.prop(camprop, "CamYawBound")
+        box.prop(camera_prop, "focus_location")
 
 
 # generic object settings. Has switch(haha) so it can choose the correct
@@ -317,10 +325,10 @@ class MESH_PT_Panel(Panel):
         meshprop = obj.KCS_mesh
         layout.prop(context.scene, "gameEditorMode")
         box = self.layout.box().column()
-        box.prop(meshprop, "MeshType")
-        if meshprop.MeshType == "Gfx":
+        box.prop(meshprop, "mesh_type")
+        if meshprop.mesh_type == "Gfx":
             draw_Gfx(box, context)
-        elif meshprop.MeshType == "Collision":
+        elif meshprop.mesh_type == "Collision":
             draw_Col(box, context)
         else:
             draw_Gfx(box, context)
@@ -385,14 +393,14 @@ def draw_Col(box: bpy.types.UILayout, context: bpy.types.Context):
     box = box.box()
     box.label(text="KCS Col Properties")
     row = box.row()
-    row.prop(colprop, "ColMeshType", expand=True)
-    if colprop.MeshType == "Default":
+    row.prop(colprop, "col_mesh_type", expand=True)
+    if colprop.mesh_type == "Default":
         box.label(text="Make mesh a child of level collision empty.")
         box.label(text="Use materials to select different collision types.")
-    elif colprop.MeshType == "Water":
+    elif colprop.mesh_type == "Water":
         box.label(text="Make mesh a child of level collision empty.")
         box.label(text="Water is formed by the inner surface of planes and has no collision types.")
-    elif colprop.MeshType == "Breakable":
+    elif colprop.mesh_type == "Breakable":
         box.label(text="Make mesh a child of linked graphics mesh.")
         box.label(text="Must use only one material with collision type breakable.")
 

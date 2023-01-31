@@ -19,6 +19,7 @@ from bpy.props import (
 from bpy.types import PropertyGroup
 from bpy.utils import register_class, unregister_class
 
+
 # ------------------------------------------------------------------------
 #    UI Callbacks
 # ------------------------------------------------------------------------
@@ -38,63 +39,58 @@ def UpdateEnt(objprop: EntProp, context: bpy.types.Context):
 
 # World
 class StageProp(PropertyGroup):
-    World: IntProperty(name="World", description="World to place level in", default=1, min=1, max=7)
-    Level: IntProperty(name="Level", description="Which level in selected world to overwrite", default=1, min=1, max=5)
-    Area: IntProperty(name="Area", description="Area", default=1, min=1, max=10)
+    world: IntProperty(name="World", description="World to place level in", default=1, min=1, max=7)
+    level: IntProperty(name="Level", description="Which level in selected world to overwrite", default=1, min=1, max=5)
+    area: IntProperty(name="Area", description="Area", default=1, min=1, max=10)
 
     def draw(self, layout: bpy.types.UILayout):
-        layout.prop(self, "World")
-        layout.prop(self, "Level")
-        layout.prop(self, "Area")
+        layout.prop(self, "world")
+        layout.prop(self, "level")
+        layout.prop(self, "area")
 
+    @property
     def stage(self):
-        return (self.World, self.Level, self.Area)
+        return (self.world, self.level, self.area)
 
 
 # generic bank / ID for various ops
 class BankIndex(PropertyGroup):
-    Bank: IntProperty(name="Bank", description="Bank for Data", default=0, min=0, max=7)
-    ID: IntProperty(name="ID", description="ID for Data", default=1, min=1, max=1200)
+    bank: IntProperty(name="Bank", description="Bank for Data", default=0, min=0, max=7)
+    id: IntProperty(name="ID", description="ID for Data", default=1, min=1, max=1200)
 
     def draw(self, layout: bpy.types.UILayout):
-        layout.prop(self, "Bank")
-        layout.prop(self, "ID")
+        layout.prop(self, "bank")
+        layout.prop(self, "id")
 
-    def BankID(self):
-        return (self.Bank, self.ID)
+    def bank_id(self):
+        return (self.bank, self.id)
 
 
 # importing / exporting
 class KCS_Scene_Props(PropertyGroup):
-    Scale: FloatProperty(
+    scale: FloatProperty(
         name="Scale",
         description="Level Scale",
         default=100,
         min=0.0001,
     )
-    Decomp_path: StringProperty(
+    decomp_path: StringProperty(
         name="Decomp Folder", description="Choose a directory:", default="", maxlen=1024, subtype="DIR_PATH"
     )
-    ExpStage: PointerProperty(type=StageProp, description="Stage to export area into")
-    ImpStage: PointerProperty(type=StageProp, description="Stage to import area into")
-    ImpScale: FloatProperty(name="Scale", description="Level Scale", default=100, min=0.0001, max=5000)
-    ExpBankID: PointerProperty(
+    export_stage: PointerProperty(type=StageProp, description="Stage to export area into")
+    import_stage: PointerProperty(type=StageProp, description="Stage to import area into")
+    export_bank_id: PointerProperty(
         type=BankIndex,
         description="Bank/Index for Non Level Data",
     )
-    ImpBankID: PointerProperty(
+    import_bank_id: PointerProperty(
         type=BankIndex,
         description="Bank/Index for Non Level Data",
     )
-    Format: EnumProperty(
+    file_format: EnumProperty(
         name="Format", description="The file format for data", items=[("binary", "binary", ""), ("C", "C", "")]
     )
-    CleanUp: BoolProperty(name="Clean Up", description="Post process imports to be cleaner", default=True)
-    IgnoreAdHoc: BoolProperty(
-        name="Ignore Ad Hoc Bhv",
-        description="Ignores certain properties that add bloat and are for optimzation, but aren't needed in fast64",
-        default=True,
-    )
+    clean_up: BoolProperty(name="Clean Up", description="Post process imports to be cleaner", default=True)
 
 
 # ------------------------------------------------------------------------
@@ -103,9 +99,10 @@ class KCS_Scene_Props(PropertyGroup):
 
 # on a path
 class NodeProp(PropertyGroup):
-    EntranceLocation: EnumProperty(
+    entrance_location: EnumProperty(
         name="Entrance Location",
         description="Where you start on node after warp",
+        default="walk start",
         items=[
             ("walk start", "walk start", ""),
             ("walk end", "walk end", ""),
@@ -113,9 +110,10 @@ class NodeProp(PropertyGroup):
             ("appear end", "appear end", ""),
         ],
     )
-    EntranceAction: EnumProperty(
+    entrance_action: EnumProperty(
         name="Entrance Action",
         description="Action when entering node after warp",
+        default="walk",
         items=[
             ("walk", "walk", ""),
             ("stand", "stand", ""),
@@ -130,72 +128,78 @@ class NodeProp(PropertyGroup):
             ("fall from air", "fall from air", ""),
         ],
     )
-    LockForward: BoolProperty(name="Lock Forward", description="Stop Going Forward")
-    LockBackward: BoolProperty(name="Lock Backward", description="Stop Going Backwards")
-    EnWarp: BoolProperty(name="Enable Warp", description="Warps kirby if you walk past warp col type in this node")
-    Looping: BoolProperty(name="Looping", description="Used in Boss Stages")
-    NodeNum: IntProperty(name="Node Number", description="Number of Curr Node", default=1, min=1)
-    PrevNode: IntProperty(name="Prev Node", description="Dest Node When Walking Back", default=1, min=1)
-    NextNode: IntProperty(name="Next Node", description="Dest Node When Walking Forward", default=2, min=1)
-    Warp: IntVectorProperty(name="Warp Dest", description="Area Warp Dest", default=(1, 1, 1), min=1, max=9)
-    WarpNode: IntProperty(name="Dest Node", description="Node of Warp Dest", default=1, min=1)
+    lock_forward: BoolProperty(name="Lock Forward", description="Stop Going Forward")
+    lock_backward: BoolProperty(name="Lock Backward", description="Stop Going Backwards")
+    enable_warp: BoolProperty(name="Enable Warp", description="Warps kirby if you walk past warp col type in this node")
+    looping: BoolProperty(name="Looping", description="Used in Boss Stages")
+    node_num: IntProperty(name="Node Number", description="Number of Curr Node", default=0, min=0)
+    prev_node: IntProperty(name="Prev Node", description="Dest Node When Walking Back", default=1, min=0)
+    next_node: IntProperty(name="Next Node", description="Dest Node When Walking Forward", default=2, min=0)
+    stage_dest: PointerProperty(type=StageProp, name="Stage Dest", description="Stage destination to warp to")
+    warp_node: IntProperty(name="Dest Node", description="Node of warp destination", default=1, min=0)
+
+    @property
+    def entrance_int(self):
+        return (self.get("entrance_location") << 8) + self.get("entrance_action")
 
 
 # camera
 class CamProp(PropertyGroup):
-    AxisLocks: BoolVectorProperty(name="Locks", default=(1, 1, 1), description="Stops Cam From Moving", subtype="XYZ")
-    PanH: BoolProperty(name="Pan Horizontal", description="Pans Camera in X/Z plane ahead of kirby")
-    PanUpDown: BoolProperty(name="Pan Up/Down", description="Pans Camera in Y axis to follow kirby")
-    PanDown: BoolProperty(name="Pan Down", description="Pans Camera in Y axis to follow kirby while falling only")
-    ProfileView: BoolProperty(name="ProfileView", description="View Kirby From Side")
-    NodeNum: IntProperty(name="Node Number", description="Number of Curr Node", default=1, min=1)
-    CamXBound: FloatVectorProperty(
-        name="X",
-        description="Follows Kirby in this range, Locks at Bound otherwise",
-        max=9999.0,
-        min=-9999.0,
-        default=(-9999.0, 9999.0),
-        size=2,
-    )
-    CamYBound: FloatVectorProperty(
-        name="Y",
-        size=2,
-        description="Follows Kirby in this range, Locks at Bound otherwise",
-        max=9999.0,
-        min=-9999.0,
-        default=(-9999.0, 9999.0),
-    )
-    Yaw: FloatVectorProperty(
+    axis_locks: BoolVectorProperty(name="Locks", default=(1, 1, 1), description="Stops Cam From Moving", subtype="XYZ")
+    pan_ahead: BoolProperty(name="Pan Ahead", description="Pans Camera in X/Z plane ahead of kirby")
+    pan_vertical: BoolProperty(name="Pan Vertical", description="Pans Camera in Y axis to follow kirby")
+    pan_below: BoolProperty(name="Pan Below", description="Pans Camera in Y axis to follow kirby while falling only")
+    profile_view: BoolProperty(name="ProfileView", description="View Kirby From Side")
+    node_num: IntProperty(name="Node Number", description="Number of Curr Node", default=1, min=1)
+    follow_yaw: FloatVectorProperty(
         name="Yaw", description="The Theta Rotation from kirby to cam while following", size=2, default=(90.0, 90.0)
     )
-    Pitch: FloatVectorProperty(
+    follow_pitch: FloatVectorProperty(
         name="Pitch", description="The Phi Rotation from kirby to cam while following", size=2, default=(120.0, 120.0)
     )
-    Radius: FloatVectorProperty(
+    follow_radius: FloatVectorProperty(
         name="Radius", description="How far the camera is from kirby while following", size=2, default=(600.0, 600.0)
     )
-    Clips: FloatVectorProperty(name="Near/Far Clip", description="Camera Clip Planes", size=2, default=(128.0, 12800.0))
-    Foc: FloatVectorProperty(
+    clip_planes: FloatVectorProperty(
+        name="Near/Far Clip", description="Camera Clip Planes", size=2, default=(128.0, 12800.0)
+    )
+    focus_location: FloatVectorProperty(
         name="Focus position", description="9999 to not use", size=3, default=(9999.0, 9999.0, 9999.0), max=9999.0
     )
-    CamZBound: FloatVectorProperty(
-        name="Z",
+    cam_bounds_x: FloatVectorProperty(
+        name="X bounds",
+        description="Follows Kirby in this range, Locks at Bound otherwise",
+        max=9999.0,
+        min=-9999.0,
+        default=(-9999.0, 9999.0),
+        size=2,
+    )
+    cam_bounds_y: FloatVectorProperty(
+        name="Y bounds",
+        size=2,
+        description="Follows Kirby in this range, Locks at Bound otherwise",
+        max=9999.0,
+        min=-9999.0,
+        default=(-9999.0, 9999.0),
+    )
+    cam_bounds_z: FloatVectorProperty(
+        name="Z bounds",
         description="Follows Kirby in this range, Locks at Bound otherwise",
         size=2,
         default=(-9999.0, 9999.0),
         max=9999.0,
         min=-9999.0,
     )
-    CamPitchBound: FloatVectorProperty(
-        name="Cam Pitch Bound",
+    cam_bounds_pitch: FloatVectorProperty(
+        name="Pitch bounds",
         description="Follows Kirby in this range, Locks at Bound otherwise",
         size=2,
         default=(0.0, 359.0),
         max=359.0,
         min=0.0,
     )
-    CamYawBound: FloatVectorProperty(
-        name="Cam Yaw Bound",
+    cam_bounds_yaw: FloatVectorProperty(
+        name="Yaw bounds",
         description="Follows Kirby in this range, Locks at Bound otherwise",
         size=2,
         default=(10, 170),
@@ -210,24 +214,24 @@ class CamProp(PropertyGroup):
 
 # col tri material
 class ColProp(PropertyGroup):
-    NormType: IntProperty(name="Norm Type", description="Bitwise Normal Type", default=1, min=0)
-    ColType: IntProperty(name="Col Type", description="Collision Type", default=0, min=0)
-    ColParam: IntProperty(
+    norm_type: IntProperty(name="Norm Type", description="Bitwise Normal Type", default=1, min=0)
+    col_type: IntProperty(name="Col Type", description="Collision Type", default=0, min=0)
+    col_param: IntProperty(
         name="Col Param/Break Condition", description="Collision Param for certain ColTypes", default=0
     )
-    WarpNum: IntProperty(name="WarpNum", description="Number of Node warp is on", min=1)
-    
+    warp_num: IntProperty(name="WarpNum", description="Number of Node warp is on", min=1)
+
     @property
     def params(self):
-        return self.NormType, self.ColType, self.ColParam, self.WarpNum
+        return self.norm_type, self.col_type, self.col_param, self.warp_num
 
 
 # col obj
 class MeshProp(PropertyGroup):
-    MeshType: EnumProperty(
+    mesh_type: EnumProperty(
         name="Mesh Type", items=[("None", "None", ""), ("Collision", "Collision", ""), ("Graphics", "Graphics", "")]
     )
-    ColMeshType: EnumProperty(
+    col_mesh_type: EnumProperty(
         name="Type of Mesh",
         description="Type of Col Mesh",
         items=[

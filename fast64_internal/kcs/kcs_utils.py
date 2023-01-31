@@ -221,21 +221,34 @@ class BinWrite:
 
     # given an array, create a recursive set of lines until no more
     # iteration is possible
-    def format_iter(self, arr: Sequence, func: callable, name: str, file: KCS_Cdata, **kwargs):
+    def format_iter(self, arr: Sequence, func: callable, name: str, file: KCS_Cdata, depth=(), **kwargs):
         if hasattr(arr[0], "__iter__"):
-            arr = [f"{{{self.format_iter(a, func, name, file, **kwargs)}}}" for a in arr]
-        return func(arr, name, file, **kwargs)
+            arr = [self.format_iter(a, func, name, file, depth=(*depth, len(a)), **kwargs) for a in arr]
+            depth = arr[0][1]
+            arr = [f"{{{a[0]}}}" for a in arr]
+        return func(arr, name, file, **kwargs), depth
 
     # write generic array, use recursion to unroll all loops
     def write_arr(
-        self, file: KCS_Cdata, arr_format: str, name: str, arr: Sequence, func: callable, length=None, **kwargs
+        self,
+        file: KCS_Cdata,
+        arr_format: str,
+        name: str,
+        arr: Sequence,
+        func: callable,
+        length=None,
+        outer_only=False,
+        **kwargs,
     ):
+        # use array formatter func
+        arr_insides, depth = self.format_iter(arr, func, name, file, **kwargs)
         # set symbol if obj is a ptr target
         self.ptr_obj(arr, file, f"&{name}")
-        self.add_header(file, arr_format, f"{name}[{self.write_truthy(length)}]")
-        file.write(f"{arr_format} {name}[{self.write_truthy(length)}] = {{\n\t")
-        # use array formatter func
-        file.write(self.format_iter(arr, func, name, file, **kwargs))
+        # create array size initializer, handles everything but outermost dimension
+        arr_size_init = "".join([f"[{length}]" for length in depth]) * (not outer_only)
+        self.add_header(file, arr_format, f"{name}{arr_size_init}[{self.write_truthy(length)}]")
+        file.write(f"{arr_format} {name}{arr_size_init}[{self.write_truthy(length)}] = {{\n\t")
+        file.write(arr_insides)
         file.write("\n};\n\n")
 
     # write if val exists else return nothing
@@ -243,7 +256,7 @@ class BinWrite:
         if val:
             return val
         return ""
-    
+
     # create pointer only if val exists
     def pointer_truty(self, val, **kwargs):
         if val:
@@ -254,6 +267,22 @@ class BinWrite:
     # instead of being in referenced order
     def SortDict(self, dictionary):
         return {k: dictionary[k] for k in sorted(dictionary.keys())}
+
+    # write an array of a class with its own to_c method
+    def write_class_arr(
+        self,
+        file: "filestream write",
+        class_arr: object,
+        prototype: str,
+        name: str,
+        length=None,
+    ):
+        # set symbol if obj is a ptr target
+        self.ptr_obj(class_arr, file, f"&{name}")
+        self.add_header(file, f"struct {prototype}", f"{name}[{self.write_truthy(length)}]")
+        file.write(f"struct {prototype} {name}[{self.write_truthy(length)}] = {{\n")
+        [cls.to_c(file) for cls in class_arr]
+        file.write("};\n\n")
 
     # write a struct from a python dictionary
     def write_dict_struct(
@@ -268,7 +297,7 @@ class BinWrite:
         # set symbol if obj is a ptr target
         self.ptr_obj(struct_dat, file, f"&{name}")
         self.add_header(file, f"struct {prototype}", name)
-        file.write(f"{align + ' '* bool(align)}struct {prototype} {name} = {{\n")
+        file.write(f"{self.write_truthy(align)}struct {prototype} {name} = {{\n")
         for x, y, z in zip(struct_format.values(), struct_dat.dat, struct_format.keys()):
             # x is (data type, string name, is arr/ptr etc.)
             # y is the actual variable value

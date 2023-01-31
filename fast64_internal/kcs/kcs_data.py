@@ -134,11 +134,10 @@ TextureScrollW = {
 # -------------------------------------------------------------------------------
 
 
-MainHeader = {
+LevelHeader = {
     0x0: ("u32", "*CollisionHeader", "ptr"),
     0x4: ("u32", "*NodeHeader", "ptr"),
     0x8: ("u32", "*Entities[]", "ptr"),
-    0xC: ("u32", "Pad", ""),
 }
 
 
@@ -198,7 +197,7 @@ NodeHeader = {
 
 
 PathHeader = {
-    0x0: ["u32", "Camera_Node", "ptr"],
+    0x0: ["u32", "Kirby_Node", "ptr"],
     0x4: ["u32", "Path_Footer", "ptr"],
     0x8: ["u32", "Node_Connector", "ptr"],
     0xC: ["u16", "Num Connections", ""],
