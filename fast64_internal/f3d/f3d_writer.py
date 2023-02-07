@@ -2176,7 +2176,7 @@ def saveOrGetTextureDefinition(
     images: list[bpy.types.Image],
     imageName: str,
     isLarge: bool,
-) -> tuple[FImageKey, FImage, FImage]:
+) -> tuple[FImageKey, FImage]:
 
     image = texProp.tex
     texFmt = texProp.tex_format

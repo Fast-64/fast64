@@ -19,13 +19,13 @@ class TextureFlipbook:
 def flipbook_data_to_c(flipbook: TextureFlipbook):
     newArrayData = ""
     for textureName in flipbook.textureNames:
-        newArrayData += textureName + ",\n"
+        newArrayData += "    " + textureName + ",\n"
     return newArrayData
 
 
 def flipbook_to_c(flipbook: TextureFlipbook, isStatic: bool):
     newArrayData = "void* " if not isStatic else "static void* "
-    newArrayData += f"{flipbook.name}[]" + " = { "
+    newArrayData += f"{flipbook.name}[]" + " = {\n"
     newArrayData += flipbook_data_to_c(flipbook)
     newArrayData += "};"
     return newArrayData
@@ -33,7 +33,7 @@ def flipbook_to_c(flipbook: TextureFlipbook, isStatic: bool):
 
 def flipbook_2d_to_c(flipbook: TextureFlipbook, isStatic: bool, count: int):
     newArrayData = "void* " if not isStatic else "static void* "
-    newArrayData += f"{flipbook.name}[][{len(flipbook.textureNames)}] = {{ "
+    newArrayData += f"{flipbook.name}[][{len(flipbook.textureNames)}] = {{\n"
     newArrayData += ("{ " + flipbook_data_to_c(flipbook) + " },\n") * count
     newArrayData += " };"
     return newArrayData

@@ -1,8 +1,8 @@
 import bpy, os, re, mathutils
 from typing import Union
 from ..f3d.f3d_parser import F3DContext, F3DTextureReference, getImportData
-from ..f3d.f3d_material import TextureProperty, createF3DMat
-from ..utility import PluginError, CData, hexOrDecInt
+from ..f3d.f3d_material import TextureProperty, createF3DMat, texFormatOf, texBitSizeF3D
+from ..utility import PluginError, CData, hexOrDecInt, getNameFromPath, getTextureSuffixFromFormat, toAlnum
 from ..f3d.flipbook import TextureFlipbook, FlipbookProperty, usesFlipbook, ootFlipbookReferenceIsValid
 
 from ..f3d.f3d_writer import (
@@ -13,10 +13,12 @@ from ..f3d.f3d_writer import (
     DPSetTile,
     FImageKey,
     FPaletteKey,
+    getColorsUsedInImage,
     mergePalettes,
     saveOrGetTextureDefinition,
     writeCITextureData,
     writeNonCITextureData,
+    checkDuplicateTextureName,
 )
 
 from ..f3d.f3d_gbi import (
@@ -153,7 +155,7 @@ class OOTModel(FModel):
         if len(flipbookProp.textures) == 0:
             raise PluginError(f"{str(material)} cannot have a flipbook material with no flipbook textures.")
 
-        flipbook = TextureFlipbook(flipbookProp.name, flipbookProp.exportMode, [])
+        flipbook = TextureFlipbook(flipbookProp.name, flipbookProp.exportMode, [], [])
 
         palName = model.name + "_" + flipbookProp.textures[0].image.name
         pal = []
@@ -174,7 +176,7 @@ class OOTModel(FModel):
             name = (
                 flipbookTexture.image.name if flipbookTexture.image.filepath == "" else flipbookTexture.image.filepath
             )
-            filename = getNameFromPath(name, True) + "." + getTextureSuffixFromFormat(texFmt) + ".inc.c"
+            filename = getNameFromPath(name, True) + "." + getTextureSuffixFromFormat(texProp.tex_format) + ".inc.c"
 
             # We don't know yet if this already exists, cause we need the full set
             # of images which contribute to the palette, which we don't get until
@@ -191,7 +193,7 @@ class OOTModel(FModel):
 
             pal = mergePalettes(pal, getColorsUsedInImage(flipbookTexture.image, texProp.ci_format))
 
-            flipbook.textureNames.append(fImage.name)
+            flipbook.textureNames.append(fImage_temp.name)
             flipbook.images.append((flipbookTexture.image, fImage_temp))
 
         # print(f"Palette length for {palName}: {len(pal)}") # Checked in getAndCheckTexInfo
@@ -220,7 +222,7 @@ class OOTModel(FModel):
             else:
                 fImage = fImage_temp
                 model.addTexture(imageKey, fImage, fMaterial)
-            writeCITextureData(image, fImage, pal, texFmt, palFmt)
+            writeCITextureData(image, fImage, pal, palFmt, texFmt)
 
     def processTexRefNonCITextures(self, fMaterial: FMaterial, material: bpy.types.Material, index: int):
         model = self.getFlipbookOwner()
@@ -242,7 +244,7 @@ class OOTModel(FModel):
                 if flipbookProp.exportMode == "Individual"
                 else model.name + "_" + flipbookTexture.image.name + "_" + texProp.tex_format.lower()
             )
-            _, fImage, _ = saveOrGetTextureDefinition(
+            _, fImage = saveOrGetTextureDefinition(
                 fMaterial,
                 model,
                 texProp,

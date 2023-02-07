@@ -316,7 +316,7 @@ def exportTexRectCommon(texProp, f3dType, isHWv1, name, convertTextureData):
         raise PluginError("In " + name + ": texture is too big (> 4 KiB).")
     if texFmt != "RGBA16":
         raise PluginError("In " + name + ": texture format must be RGBA16 (b/c copy mode).")
-    imageKey, fImage, _ = saveOrGetTextureDefinition(fMaterial, fTexRect, texProp, [tex], texName, False)
+    imageKey, fImage = saveOrGetTextureDefinition(fMaterial, fTexRect, texProp, [tex], texName, False)
     saveTextureLoadOnly(fImage, fTexRect.draw, texProp, None, 7, 0, fTexRect.f3d)
     saveTextureTile(fImage, fMaterial, fTexRect.draw, texProp, None, 0, 0, 0, fTexRect.f3d)
     if convertTextureData:
