@@ -1,5 +1,5 @@
 # Macros are all copied over from gbi.h
-from typing import Sequence
+from typing import Sequence, Union, Tuple
 from dataclasses import dataclass, fields
 import bpy, os, enum, copy
 from ..utility import *
@@ -21,6 +21,11 @@ class GfxListTag(enum.Enum):
     Material = 2
     MaterialRevert = 3
     Draw = 3
+
+
+class GfxTag(enum.Flag):
+    TileScroll0 = enum.auto()
+    TileScroll1 = enum.auto()
 
 
 class GfxMatWriteMethod(enum.Enum):
@@ -1756,7 +1761,9 @@ def get_sts_interval_vars(tex_num: str):
     return f"intervalTex{tex_num}", f"curInterval{tex_num}"
 
 
-def get_tex_sts_code(tex: FSetTileSizeScrollField, tex_num: int, cmd_num: int):
+def get_tex_sts_code(
+    tex: FSetTileSizeScrollField, tex_num: int, cmd_num: int
+) -> Tuple[list[str], list[Tuple[str, float]]]:
     variables = []
     # create func calls
     lines = [
@@ -1784,181 +1791,198 @@ def get_tex_sts_code(tex: FSetTileSizeScrollField, tex_num: int, cmd_num: int):
     return variables, lines
 
 
-def mat_tile_scroll(
-    mat: str, tex0: FSetTileSizeScrollField, tex1: FSetTileSizeScrollField, cmd_num0: int, cmd_num1: int
+def get_tile_scroll_code(scrollData: "FScrollData", textureIndex: int, commandIndex: int) -> Tuple[str, str]:
+    scrollInfo: FSetTileSizeScrollField = getattr(scrollData, f"tile_scroll_tex{textureIndex}")
+    if scrollInfo.s or scrollInfo.t:
+        variables = []
+        lines = []
+        static_variables, tex_lines = get_tex_sts_code(scrollInfo, textureIndex, commandIndex)
+
+        for variable, val in static_variables:
+            variables.append(f"\tstatic int {variable} = {val};")
+
+        lines.extend(tex_lines)
+
+        variables_str = "\n".join([line for line in variables if line]) + "\n"
+        lines_str = "\n".join([line for line in lines if line]) + "\n"
+
+        return variables_str, lines_str
+    else:
+        return "", ""
+
+
+def vertexScrollTemplate(
+    fScrollData, name, count, absFunc, signFunc, cosFunc, randomFloatFunc, randomSignFunc, segToVirtualFunc
 ):
-    func = f"void scroll_sts_{mat}()"
-    lines = [func + " {"]
-
-    tex0_variables, tex0_lines = get_tex_sts_code(tex0, 0, cmd_num0)
-    tex1_variables, tex1_lines = get_tex_sts_code(tex1, 1, cmd_num1)
-    static_variables = [*tex0_variables, *tex1_variables]
-
-    for variable, val in static_variables:
-        lines.append(f"\tstatic int {variable} = {val};")
-
-    lines.append(f"\tGfx *mat = segmented_to_virtual({mat});")
-    lines.extend(tex0_lines)
-    lines.extend(tex1_lines)
-    lines.append("};\n\n")
-
-    return func, "\n".join([line for line in lines if line])
-
-
-class GfxFormatter:
-    def __init__(self, scrollMethod: ScrollMethod, texArrayBitSize: int):
-        self.scrollMethod: ScrollMethod = scrollMethod
-        self.texArrayBitSize = texArrayBitSize
-        self.tileScrollFunc = None  # Used to add tile scroll func to headers
-
-    def vertexScrollTemplate(
-        self, fScrollData, name, count, absFunc, signFunc, cosFunc, randomFloatFunc, randomSignFunc, segToVirtualFunc
-    ):
-        scrollDataFields = fScrollData.fields[0]
-        if scrollDataFields[0].animType == "None" and scrollDataFields[1].animType == "None":
-            return ""
-
-        data = [
-            "void scroll_" + name + "() {",
-            "\tint i = 0;",
-            f"\tint count = {count};",
-        ]
-
-        variables = ""
-        currentVars = ""
-        deltaCalculate = ""
-        checkOverflow = ""
-        scrolling = ""
-        increaseCurrentDelta = ""
-        for i in range(2):
-            field = "XYZ"[i]
-            axis = ["width", "height"][i]
-            if scrollDataFields[i].animType != "None":
-                data.append(f"\tint {axis} = {fScrollData.dimensions[i]} * 0x20;")
-                currentVars += "\tstatic int current" + field + " = 0;\n\tint delta" + field + ";\n"
-                checkOverflow += "\n".join(
+    scrollDataFields = fScrollData.fields[0]
+    if scrollDataFields[0].animType == "None" and scrollDataFields[1].animType == "None":
+        return ""
+    data = [
+        "void scroll_" + name + "() {",
+        "\tint i = 0;",
+        f"\tint count = {count};",
+    ]
+    variables = ""
+    currentVars = ""
+    deltaCalculate = ""
+    checkOverflow = ""
+    scrolling = ""
+    increaseCurrentDelta = ""
+    for i in range(2):
+        field = "XYZ"[i]
+        axis = ["width", "height"][i]
+        if scrollDataFields[i].animType != "None":
+            data.append(f"\tint {axis} = {fScrollData.dimensions[i]} * 0x20;")
+            currentVars += "\tstatic int current" + field + " = 0;\n\tint delta" + field + ";\n"
+            checkOverflow += "\n".join(
+                (
+                    "\tif (" + absFunc + "(current" + field + ") > " + axis + ") {",
                     (
-                        "\tif (" + absFunc + "(current" + field + ") > " + axis + ") {",
-                        (
-                            f"\t\tdelta{field} -= (int)(absi(current{field}) / {axis}) "
-                            f"* {axis} * {signFunc}(delta{field});"
-                        ),
-                        "\t}",
+                        f"\t\tdelta{field} -= (int)(absi(current{field}) / {axis}) "
+                        f"* {axis} * {signFunc}(delta{field});"
+                    ),
+                    "\t}",
+                    "",
+                )
+            )
+            scrolling += f"\t\tvertices[i].n.tc[{i}] += delta{field};\n"
+            increaseCurrentDelta += f"\tcurrent{field} += delta{field};"
+            if scrollDataFields[i].animType == "Linear":
+                deltaCalculate += f"\tdelta{field} = (int)({scrollDataFields[i].speed} * 0x20) % {axis};\n"
+            elif scrollDataFields[i].animType == "Sine":
+                currentVars += "\n".join(
+                    (
+                        "\tstatic int time" + field + ";",
+                        "\tfloat amplitude" + field + " = " + str(scrollDataFields[i].amplitude) + ";",
+                        "\tfloat frequency" + field + " = " + str(scrollDataFields[i].frequency) + ";",
+                        "\tfloat offset" + field + " = " + str(scrollDataFields[i].offset) + ";",
                         "",
                     )
                 )
-                scrolling += f"\t\tvertices[i].n.tc[{i}] += delta{field};\n"
-                increaseCurrentDelta += f"\tcurrent{field} += delta{field};"
-
-                if scrollDataFields[i].animType == "Linear":
-                    deltaCalculate += f"\tdelta{field} = (int)({scrollDataFields[i].speed} * 0x20) % {axis};\n"
-                elif scrollDataFields[i].animType == "Sine":
-                    currentVars += "\n".join(
-                        (
-                            "\tstatic int time" + field + ";",
-                            "\tfloat amplitude" + field + " = " + str(scrollDataFields[i].amplitude) + ";",
-                            "\tfloat frequency" + field + " = " + str(scrollDataFields[i].frequency) + ";",
-                            "\tfloat offset" + field + " = " + str(scrollDataFields[i].offset) + ";",
-                            "",
-                        )
-                    )
-
-                    deltaCalculate += (
-                        "\tdelta"
-                        + field
-                        + " = (int)(amplitude"
-                        + field
-                        + " * frequency"
-                        + field
-                        + " * "
-                        + cosFunc
-                        + "((frequency"
-                        + field
-                        + " * time"
-                        + field
-                        + " + offset"
-                        + field
-                        + ") * (1024 * 16 - 1) / 6.28318530718) * 0x20);\n"
-                    )
-                    # Conversion from s10.5 to u16
-                    # checkOverflow += '\tif (frequency' + field + ' * current' + field + ' / 2 > 6.28318530718) {\n' +\
-                    # 	'\t\tcurrent' + field + ' -= 6.28318530718 * 2 / frequency' + field + ';\n\t}\n'
-                    increaseCurrentDelta += "\ttime" + field + " += 1;"
-                elif scrollDataFields[i].animType == "Noise":
-                    deltaCalculate += (
-                        "\tdelta"
-                        + field
-                        + " = (int)("
-                        + str(scrollDataFields[i].noiseAmplitude)
-                        + " * 0x20 * "
-                        + randomFloatFunc
-                        + "() * "
-                        + randomSignFunc
-                        + "()) % "
-                        + axis
-                        + ";\n"
-                    )
-                else:
-                    raise PluginError("Unhandled scroll type: " + str(scrollDataFields[i].animType))
-
-        return "\n".join(
-            (
-                "\n".join(data),
-                variables,
-                currentVars + "\tVtx *vertices = " + segToVirtualFunc + "(" + name + ");",
-                "",
-                deltaCalculate,
-                checkOverflow,
-                "\tfor (i = 0; i < count; i++) {",
-                scrolling + "\t}",
-                increaseCurrentDelta,
-                "}",
-                "",
-                "",
-            )
+                deltaCalculate += (
+                    "\tdelta"
+                    + field
+                    + " = (int)(amplitude"
+                    + field
+                    + " * frequency"
+                    + field
+                    + " * "
+                    + cosFunc
+                    + "((frequency"
+                    + field
+                    + " * time"
+                    + field
+                    + " + offset"
+                    + field
+                    + ") * (1024 * 16 - 1) / 6.28318530718) * 0x20);\n"
+                )
+                # Conversion from s10.5 to u16
+                # checkOverflow += '\tif (frequency' + field + ' * current' + field + ' / 2 > 6.28318530718) {\n' +\
+                # 	'\t\tcurrent' + field + ' -= 6.28318530718 * 2 / frequency' + field + ';\n\t}\n'
+                increaseCurrentDelta += "\ttime" + field + " += 1;"
+            elif scrollDataFields[i].animType == "Noise":
+                deltaCalculate += (
+                    "\tdelta"
+                    + field
+                    + " = (int)("
+                    + str(scrollDataFields[i].noiseAmplitude)
+                    + " * 0x20 * "
+                    + randomFloatFunc
+                    + "() * "
+                    + randomSignFunc
+                    + "()) % "
+                    + axis
+                    + ";\n"
+                )
+            else:
+                raise PluginError("Unhandled scroll type: " + str(scrollDataFields[i].animType))
+    return "\n".join(
+        (
+            "\n".join(data),
+            variables,
+            currentVars + "\tVtx *vertices = " + segToVirtualFunc + "(" + name + ");",
+            "",
+            deltaCalculate,
+            checkOverflow,
+            "\tfor (i = 0; i < count; i++) {",
+            scrolling + "\t}",
+            increaseCurrentDelta,
+            "}",
+            "",
+            "",
         )
+    )
 
-    # Called for handling vertex texture scrolling.
-    def vertexScrollToC(self, fScrollData, name, vertexCount):
-        raise PluginError("Use of unimplemented GfxFormatter function vertexScrollToC.")
 
-    # Called for building the entry point DL for drawing a model.
-    def drawToC(self, f3d, gfxList):
-        return gfxList.to_c(f3d)
+class GfxFormatter:
+    def __init__(self, scrollMethod: ScrollMethod, texArrayBitSize: int, seg2virtFuncName: Union[str, None]):
+        self.scrollMethod: ScrollMethod = scrollMethod
+        self.texArrayBitSize = texArrayBitSize
+        self.seg2virtFuncName = seg2virtFuncName
 
-    # Called for creating a dynamic material using tile texture scrolling.
-    # ScrollMethod and DLFormat checks are already handled.
-    def tileScrollMaterialToC(self, f3d, fMaterial):
-        raise PluginError("No tile scroll implementation specified.")
+    def gfxScrollToC(self, gfxList: "GfxList", f3d: F3D) -> CScrollData:
+        """
+        Handles writing code that executes static Gfx scrolling (ex. tile scrolling.)
+        If you want a game-specific formatter that ignores all static gfx scrolling,
+        simply leaving processGfxScrollCommand() un-overriden will achieve this.
+        Don't override this directly, see processGfxScrollCommand().
+        If you do, make sure to add function names to returned CScrollData.functionCalls.
+        """
+        funcName = f"scroll_gfx_{gfxList.name}"
+        func = f"void {funcName}()"
 
-    # Modify static material using tile texture scrolling.
-    def tileScrollStaticMaterialToC(self, fMaterial):
-        setTileSizeIndex0 = -1
-        setTileSizeIndex1 = -1
+        data = CScrollData()
+        data.functionCalls.append(funcName)
+        data.header += f"extern {func};\n"
+        data.source += f"{func} {{\n"
 
-        # Find index of SetTileSize commands
-        for i, c in enumerate(fMaterial.material.commands):
-            if isinstance(c, DPSetTileSize):
-                if setTileSizeIndex0 >= 0:
-                    setTileSizeIndex1 = i
-                    break
-                else:
-                    setTileSizeIndex0 = i
-        mat_name = fMaterial.material.name
+        variables = ""
+        code = ""
+        dataIndex = 0
 
-        tile_scroll_tex0 = fMaterial.scrollData.tile_scroll_tex0
-        tile_scroll_tex1 = fMaterial.scrollData.tile_scroll_tex1
-        if fMaterial.scrollData.tile_scroll_exported:
-            return None
-        if tile_scroll_tex0.s or tile_scroll_tex0.t or tile_scroll_tex1.s or tile_scroll_tex1.t:
-            func, data = mat_tile_scroll(
-                mat_name, tile_scroll_tex0, tile_scroll_tex1, setTileSizeIndex0, setTileSizeIndex1
-            )
-            self.tileScrollFunc = f"extern {func};"  # save for later
-            fMaterial.scrollData.tile_scroll_exported = True
+        # Since some commands are actually multiple commands in one, we have to use the command size and divide by GFX_SIZE.
+        for command in gfxList.commands:
+            gfxVariables, gfxCode = self.processGfxScrollCommand(dataIndex // GFX_SIZE, command, gfxList.name)
+            variables += gfxVariables
+            code += gfxCode
+            dataIndex += command.size(f3d)
+        gfxScrollCode = variables + code
+
+        if gfxScrollCode == "":
+            return CScrollData()
+        else:
+            if self.seg2virtFuncName is not None:
+                data.source += f"\tGfx *mat = {self.seg2virtFuncName}({gfxList.name});\n"
+            else:
+                data.source += f"\tGfx *mat = {gfxList.name};\n"
+            data.source += gfxScrollCode
+            data.source += f"\n}};\n\n"
             return data
 
-        return None
+    def processGfxScrollCommand(self, commandIndex: int, command: "GbiMacro", gfxListName: str) -> Tuple[str, str]:
+        """
+        Returns a tuple of [variable declarations, code], since in C all variables must be declared at the top.
+        Handles a single command for Gfx scrolling.
+        Override this per game to handle/filter specific scrolling methods.
+        Note that the display list pointer to reference is named "mat", as seen in GfxFormatter.gfxScrollToC().
+        This is because the segmented_to_virtual() function is called on the actual DL pointer, as defined in self.seg2virtFuncName.
+        """
+        tags: GfxTag = command.tags
+        fMaterial: FMaterial = command.fMaterial
+        return "", ""
+
+    def vertexScrollToC(self, fMaterial: "FMaterial", vtxListName: str, vtxCount: int) -> CScrollData:
+        """
+        Handles writing code that executes vertex scrolling.
+        Make sure to add function names to returned CScrollData.functionCalls.
+        """
+        return CScrollData()
+
+    def drawToC(self, f3d: F3D, gfxList: "GfxList") -> CData:
+        """
+        Called for building the entry point DL for drawing a model.
+        """
+        return gfxList.to_c(f3d)
 
 
 class Vtx:
@@ -2025,11 +2049,11 @@ class VtxList:
 
 class GfxList:
     def __init__(self, name, tag, DLFormat):
-        self.commands = []
-        self.name = name
-        self.startAddress = 0
-        self.tag = tag
-        self.DLFormat = DLFormat
+        self.commands: list[GbiMacro] = []
+        self.name: str = name
+        self.startAddress: int = 0
+        self.tag: GfxListTag = tag
+        self.DLFormat: "DLFormat" = DLFormat
 
     def set_addr(self, startAddress, f3d):
         startAddress = get64bitAlignedAddr(startAddress)
@@ -2158,31 +2182,73 @@ class FGlobalData:
             return self.area_data[self.current_area_index].makeKey()
 
 
+class FImageKey:
+    def __init__(
+        self, image: bpy.types.Image, texFormat: str, palFormat: str, imagesSharingPalette: list[bpy.types.Image] = []
+    ):
+        self.image = image
+        self.texFormat = texFormat
+        self.palFormat = palFormat
+        self.imagesSharingPalette = tuple(imagesSharingPalette)
+
+    def __hash__(self) -> int:
+        return hash((self.image, self.texFormat, self.palFormat, self.imagesSharingPalette))
+
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, FImageKey):
+            return False
+        return (
+            self.image == __o.image
+            and self.texFormat == __o.texFormat
+            and self.palFormat == __o.palFormat
+            and self.imagesSharingPalette == __o.imagesSharingPalette
+        )
+
+
+def getImageKey(texProp: "TextureProperty", useList) -> FImageKey:
+    return FImageKey(texProp.tex, texProp.tex_format, texProp.ci_format, useList)
+
+
+class FPaletteKey:
+    def __init__(self, palFormat: str, imagesSharingPalette: list[bpy.types.Image] = []):
+        self.palFormat = palFormat
+        self.imagesSharingPalette = tuple(imagesSharingPalette)
+
+    def __hash__(self) -> int:
+        return hash((self.palFormat, self.imagesSharingPalette))
+
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, FPaletteKey):
+            return False
+        return self.palFormat == __o.palFormat and self.imagesSharingPalette == __o.imagesSharingPalette
+
+
 class FModel:
-    def __init__(self, f3dType, isHWv1, name, DLFormat, matWriteMethod):
+    def __init__(self, f3dType: F3D, isHWv1: bool, name: str, DLFormat: "DLFormat", matWriteMethod: GfxMatWriteMethod):
         self.name = name  # used for texture prefixing
         # dict of light name : Lights
-        self.lights = {}
+        self.lights: dict[str, Lights] = {}
         # dict of (texture, (texture format, palette format)) : FImage
-        self.textures = {}
+        self.textures: dict[Union[FImageKey, FPaletteKey], FImage] = {}
         # dict of (material, drawLayer, FAreaData): (FMaterial, (width, height))
-        self.materials = {}
+        self.materials: dict[Tuple[bpy.types.Material, str, FAreaData], Tuple[FMaterial, Tuple[int, int]]] = {}
         # dict of body part name : FMesh
-        self.meshes = {}
+        self.meshes: dict[str, FMesh] = {}
         # GfxList
-        self.materialRevert = None
+        self.materialRevert: Union[GfxList, None] = None
         # F3D library
-        self.f3d = F3D(f3dType, isHWv1)
+        self.f3d: F3D = F3D(f3dType, isHWv1)
         # array of FModel
-        self.subModels = []
-        self.parentModel = None
+        self.subModels: list[FModel] = []
+        self.parentModel: Union[FModel, None] = None
 
         # dict of name : FLODGroup
-        self.LODGroups = {}
-        self.DLFormat = DLFormat
-        self.matWriteMethod = matWriteMethod
-        self.global_data = FGlobalData()
-        self.texturesSavedLastExport = 0  # hacky
+        self.LODGroups: dict[str, FLODGroup] = {}
+        self.DLFormat: "DLFormat" = DLFormat
+        self.matWriteMethod: GfxMatWriteMethod = matWriteMethod
+        self.global_data: FGlobalData = FGlobalData()
+        self.texturesSavedLastExport: int = 0  # hacky
+        self.inline: bool = False
 
     def processTexRefNonCITextures(self, fMaterial: "FMaterial", material: bpy.types.Material, index: int):
         """
@@ -2449,12 +2515,7 @@ class FModel:
     def to_c_materials(self, gfxFormatter):
         data = CData()
         for materialKey, (fMaterial, texDimensions) in self.materials.items():
-            if gfxFormatter.scrollMethod == ScrollMethod.Tile:
-                if fMaterial.material.DLFormat == DLFormat.Static:
-                    raise PluginError("Tile scrolling cannot be done with static DLs.")
-                data.append(gfxFormatter.tileScrollMaterialToC(self.f3d, fMaterial))
-            else:
-                data.append(fMaterial.to_c(self.f3d))
+            data.append(fMaterial.to_c(self.f3d))
         return data
 
     def to_c_material_revert(self, gfxFormatter):
@@ -2502,23 +2563,49 @@ class FModel:
         self.freePalettes()
         return ExportCData(staticData, dynamicData, texC)
 
-    def to_c_vertex_scroll(self, scrollName, gfxFormatter):
-        scrollData = CData()
-        for name, mesh in self.meshes.items():
-            scrollData.append(mesh.to_c_vertex_scroll(gfxFormatter))
+    def to_c_scroll(self, funcName: str, gfxFormatter: GfxFormatter) -> CScrollData:
+        data = CScrollData()
+        vertexScrollData = self.to_c_vertex_scroll(gfxFormatter)
+        if len(vertexScrollData.functionCalls) > 0:
+            data.append(vertexScrollData)
 
-        hasScrolling = len(scrollData.header) > 0
+        gfxScrollData = self.to_c_gfx_scroll(gfxFormatter)
+        if len(gfxScrollData.functionCalls) > 0:
+            data.append(gfxScrollData)
 
-        scrollDefinesSplit = scrollData.header.split("extern void ")
-        scrollData.source += "void scroll_" + scrollName + "() {\n"
-        for scrollFunc in scrollDefinesSplit:
-            if scrollFunc == "":
-                continue
-            scrollData.source += "\t" + scrollFunc
-        scrollData.source += "}\n"
+        data.topLevelScrollFunc = f"scroll_{funcName}"
+        data.source += f"void {data.topLevelScrollFunc}() {{\n"
+        for scrollFunc in data.functionCalls:
+            data.source += f"\t{scrollFunc}();\n"
+        data.source += f"}};\n"
 
-        scrollData.header += "extern void scroll_" + scrollName + "();\n"
-        return scrollData, hasScrolling
+        data.header += f"extern void {data.topLevelScrollFunc}();\n"
+        return data
+
+    def to_c_vertex_scroll(self, gfxFormatter: GfxFormatter) -> CScrollData:
+        data = CScrollData()
+        for _, mesh in self.meshes.items():
+            mesh: FMesh
+            for triGroup in mesh.triangleGroups:
+                data.append(
+                    gfxFormatter.vertexScrollToC(
+                        triGroup.fMaterial, triGroup.vertexList.name, len(triGroup.vertexList.vertices)
+                    )
+                )
+
+        return data
+
+    def to_c_gfx_scroll(self, gfxFormatter: GfxFormatter) -> CScrollData:
+        data = CScrollData()
+        if not self.inline:
+            for _, (fMaterial, _) in self.materials.items():
+                fMaterial: FMaterial
+                data.append(gfxFormatter.gfxScrollToC(fMaterial.material, self.f3d))
+        else:
+            for _, fMesh in self.meshes.items():
+                fMesh: FMesh
+                data.append(gfxFormatter.gfxScrollToC(fMesh.draw, self.f3d))
+        return data
 
     def save_textures(self, exportPath):
         # TODO: Saving texture should come from FImage
@@ -2748,33 +2835,6 @@ class FMesh:
             dynamicData.append(drawOverride.to_c(f3d))
         return staticData, dynamicData
 
-    def to_c_vertex_scroll(self, gfxFormatter):
-        cData = CData()
-        scrollData = []
-        stsScrollData = []
-        for triGroup in self.triangleGroups:
-            data, sts_data = triGroup.to_c_vertex_scroll(gfxFormatter)
-            cData.append(data)
-            if sts_data is not None:
-                stsScrollData.append(sts_data)
-
-        filtered_sts: list[CData] = []
-        for d in stsScrollData:
-            if not d.header or not d.source:
-                continue
-            new_one = True
-            for stsd in filtered_sts:
-                if stsd.header == d.header or stsd.source == d.source:
-                    new_one = False
-                    break
-            if new_one:
-                filtered_sts.append(d)
-
-        for fsts in filtered_sts:
-            cData.append(fsts)
-
-        return cData
-
 
 class FTriGroup:
     def __init__(self, name, index, fMaterial):
@@ -2800,12 +2860,6 @@ class FTriGroup:
         data.append(self.triList.to_c(f3d))
         return data
 
-    def to_c_vertex_scroll(self, gfxFormatter: GfxFormatter):
-        if self.fMaterial.scrollData is not None:
-            return gfxFormatter.vertexScrollToC(self.fMaterial, self.vertexList.name, len(self.vertexList.vertices))
-        else:
-            return CData(), CData()
-
 
 class FScrollDataField:
     def __init__(self):
@@ -2825,7 +2879,6 @@ class FScrollData:
         self.dimensions = [0, 0]
         self.tile_scroll_tex0 = FSetTileSizeScrollField()
         self.tile_scroll_tex1 = FSetTileSizeScrollField()
-        self.tile_scroll_exported = False
 
 
 def get_f3d_mat_from_version(material: bpy.types.Material):
@@ -3179,6 +3232,21 @@ def gsSPNoOp(f3d):
 class GbiMacro:
     _segptrs = False
     _ptr_amp = False
+
+    tags = GfxTag(0)
+    """
+    Type: GfxTag. The tags' current use is to determine how to write gfx scrolling code for this given command.
+    This is an enum flag, so it can be composed of multiple tag values. Use "|=" when adding flags.
+    This is unannotated and will not be considered when calculating the hash.
+    """
+
+    fMaterial = None
+    """
+    Type: FMaterial. The material that contains scroll info for this command. This member exists in case a material command is moved out of its original display list.
+    That would cause an issue for scrolling that modifies static DLs, which requires the command's index into its current display list.
+    For example, inling material commands.
+    This is unannotated and will not be considered when calculating the hash.
+    """
 
     def get_ptr_offsets(self, f3d):
         return [4]

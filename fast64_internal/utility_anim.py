@@ -23,6 +23,9 @@ class ArmatureApplyWithMeshOperator(bpy.types.Operator):
     # Called on demand (i.e. button press, menu item)
     # Can also be called from operator search menu (Spacebar)
     def execute(self, context):
+
+        from .utility import PluginError, raisePluginError
+
         try:
             if context.mode != "OBJECT":
                 bpy.ops.object.mode_set(mode="OBJECT")
