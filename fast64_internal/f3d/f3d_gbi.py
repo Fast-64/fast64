@@ -2277,11 +2277,10 @@ class FModel:
               image), for creating image / palette keys
             - an object containing info about the additional textures, or None
             - the palette to use (or None)
-            - the palette name (or None)
         """
         texProp = getattr(material.f3d_mat, f"tex{index}")
         imUse = [] if texProp.tex is None else [texProp.tex]
-        return imUse, None, None, None
+        return imUse, None, None
 
     def writeTexRefCITextures(
         self,

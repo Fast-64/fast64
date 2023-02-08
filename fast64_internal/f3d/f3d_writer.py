@@ -1618,14 +1618,16 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         raise PluginError(f"In {material.name} tex1: {err1}")
     (useTex0, isTex0Ref, isTex0CI, tex0Fmt, pal0Fmt, imageDims0, tex0Tmem) = info0
     (useTex1, isTex1Ref, isTex1CI, tex1Fmt, pal1Fmt, imageDims1, tex1Tmem) = info1
-    tex0Name, pal0, pal0Len, im0Use, tex0Flipbook = getTexInfoAdvanced(
+    pal0, pal0Len, im0Use, tex0Flipbook = getTexInfoAdvanced(
         0, material, fMaterial, fModel, useTex0, isTex0Ref, isTex0CI, tex0Fmt, pal0Fmt
     )
-    tex1Name, pal1, pal1Len, im1Use, tex1Flipbook = getTexInfoAdvanced(
+    pal1, pal1Len, im1Use, tex1Flipbook = getTexInfoAdvanced(
         1, material, fMaterial, fModel, useTex1, isTex1Ref, isTex1CI, tex1Fmt, pal1Fmt
     )
 
     isCI = (useTex0 and isTex0CI) or (useTex1 and isTex1CI)
+    isPal0Ref = isTex0Ref and tex0Flipbook is None
+    isPal1Ref = isTex1Ref and tex1Flipbook is None
 
     if useTex0 and useTex1:
         if isTex0CI != isTex1CI:
@@ -1826,14 +1828,11 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
                         # CIs in both im0 and im1 are the same as if there was no shared palette.
                         pal0Use = im0Use + im1Use
     fMaterial.texPaletteIndex = [tex0PaletteIndex, tex1PaletteIndex]
-    pal0Name, pal1Name = tex0Name, tex1Name
+    pal0BaseName = getPaletteName(useTex0, isPal0Ref, f3dMat.tex0, tex0Flipbook)
+    pal1BaseName = getPaletteName(useTex1, isPal1Ref, f3dMat.tex1, tex1Flipbook)
     if isCI and useTex0 and useTex1 and not loadPal1:
-        if tex0Flipbook is not None or tex1Flipbook is not None:
-            raise PluginError("TODO: getSharedPaletteName is not correct for flipbooks")
-        pal0Name = getSharedPaletteName(f3dMat)
+        pal0BaseName = pal0BaseName + "_x_" + pal1BaseName
         pal1 = pal0
-    writePal0 = loadPal0 and ((not isTex0Ref) or (tex0Flipbook is not None))
-    writePal1 = loadPal1 and ((not isTex1Ref) or (tex1Flipbook is not None))
 
     # Assign TMEM addresses
     sameTextures = (
@@ -1950,18 +1949,18 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     fImage0 = fImage1 = fPalette0 = fPalette1 = None
     if useTex0:
         imageKey0, fImage0 = saveOrGetTextureDefinition(
-            fMaterial, fModel, f3dMat.tex0, im0Use, tex0Name, fMaterial.isTexLarge[0]
+            fMaterial, fModel, f3dMat.tex0, im0Use, fMaterial.isTexLarge[0]
         )
         fMaterial.imageKey[0] = imageKey0
     if loadPal0:
-        paletteKey0, fPalette0 = saveOrGetPaletteDefinition(fMaterial, fModel, f3dMat.tex0, pal0Use, pal0Name, pal0Len)
+        paletteKey0, fPalette0 = saveOrGetPaletteDefinition(fMaterial, fModel, f3dMat.tex0, isPal0Ref, pal0Use, pal0BaseName, pal0Len)
     if useTex1:
         imageKey1, fImage1 = saveOrGetTextureDefinition(
-            fMaterial, fModel, f3dMat.tex1, im1Use, tex1Name, fMaterial.isTexLarge[1]
+            fMaterial, fModel, f3dMat.tex1, im1Use, fMaterial.isTexLarge[1]
         )
         fMaterial.imageKey[1] = imageKey1
     if loadPal1:
-        paletteKey1, fPalette1 = saveOrGetPaletteDefinition(fMaterial, fModel, f3dMat.tex1, pal1Use, pal1Name, pal1Len)
+        paletteKey1, fPalette1 = saveOrGetPaletteDefinition(fMaterial, fModel, f3dMat.tex1, isPal1Ref, pal1Use, pal1BaseName, pal1Len)
 
     # Write DL entries to load textures and palettes
     loadGfx = fMaterial.material
@@ -1980,7 +1979,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 
     # Write texture and palette data, unless exporting textures as PNGs.
     if convertTextureData:
-        if writePal0:
+        if loadPal0 and not isPal0Ref:
             writePaletteData(fPalette0, pal0)
         if useTex0:
             if isTex0Ref:
@@ -1993,7 +1992,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
                     writeCITextureData(f3dMat.tex0.tex, fImage0, pal0, pal0Fmt, tex0Fmt)
                 else:
                     writeNonCITextureData(f3dMat.tex0.tex, fImage0, tex0Fmt)
-        if writePal1:
+        if loadPal1 and not isPal1Ref:
             writePaletteData(fPalette1, pal1)
         if useTex1:
             if isTex1Ref:
@@ -2092,32 +2091,59 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 # Functions for texture and palette definitions
 
 
-def getTextureName(texProp: TextureProperty, fModelName: str, overrideName: str) -> str:
-    tex = texProp.tex
-    texFormat = texProp.tex_format
-    if not texProp.use_tex_reference:
-        if tex.filepath == "":
-            name = tex.name
-        else:
-            name = tex.filepath
+def getTextureNamesFromBasename(
+    baseName: str,
+    texOrPalFormat: str,
+    parent: Union[FModel, FTexRect],
+    isPalette: bool
+):
+    suffix = getTextureSuffixFromFormat(texOrPalFormat)
+    imageName = parent.name + "_" + baseName + "_"
+    if isPalette:
+        imageName += "pal_"
+    imageName += suffix
+    imageName = checkDuplicateTextureName(parent, toAlnum(imageName))
+    filename = baseName + "." + suffix + (".pal" if isPalette else ".inc.c")
+    return imageName, filename
+
+
+def getImageName(image: bpy.types.Image):
+    if image is None:
+        raise PluginError("No image set in material!")
+    elif image.filepath == "":
+        return image.name
     else:
-        name = texProp.tex_reference
-    texName = (
-        fModelName
-        + "_"
-        + (getNameFromPath(name, True) + "_" + texFormat.lower() if overrideName is None else overrideName)
-    )
-
-    return texName
+        return getNameFromPath(image.filepath, True)
 
 
-def getSharedPaletteName(f3dMat: F3DMaterialProperty):
-    image0 = f3dMat.tex0.tex
-    image1 = f3dMat.tex1.tex
-    texFormat = f3dMat.tex0.tex_format.lower()
-    tex0Name = getNameFromPath(image0.filepath if image0.filepath != "" else image0.name, True)
-    tex1Name = getNameFromPath(image1.filepath if image1.filepath != "" else image1.name, True)
-    return f"{tex0Name}_x_{tex1Name}_{texFormat}"
+def getTextureNamesFromImage(
+    image: bpy.types.Image,
+    texFormat: str,
+    parent: Union[FModel, FTexRect]
+):
+    return getTextureNamesFromBasename(getImageName(image), texFormat, parent, False)
+
+
+def getTextureNamesFromProp(
+    texProp: TextureProperty,
+    parent: Union[FModel, FTexRect]
+):
+    if texProp.use_tex_reference:
+        raise PluginError("Internal error, invalid use of getTextureNamesFromProp")
+    return getTextureNamesFromImage(texProp.tex, texProp.tex_format, parent)
+
+
+def getPaletteName(
+    useTex: bool,
+    isPalRef: bool,
+    texProp: TextureProperty,
+    flipbook: Union[None, "TextureFlipbook"],
+):
+    if not useTex or isPalRef:
+        return None
+    if flipbook is not None:
+        return flipbook.name
+    return getImageName(texProp.tex)
 
 
 def checkDuplicateTextureName(parent: Union[FModel, FTexRect], name):
@@ -2133,8 +2159,9 @@ def saveOrGetPaletteDefinition(
     fMaterial: FMaterial,
     parent: Union[FModel, FTexRect],
     texProp: TextureProperty,
+    isPalRef: bool,
     images: list[bpy.types.Image],
-    imageName: str,
+    palBaseName: str,
     palLen: int,
 ) -> tuple[FPaletteKey, FImage]:
 
@@ -2149,21 +2176,12 @@ def saveOrGetPaletteDefinition(
         # print(f"Palette already exists")
         return paletteKey, fPalette
 
-    if texProp.use_tex_reference:
+    if isPalRef:
         fPalette = FImage(texProp.pal_reference, None, None, 1, palLen, None)
         return paletteKey, fPalette
 
-    paletteName = checkDuplicateTextureName(parent, toAlnum(imageName) + "_pal_" + palFmt.lower())
-    paletteFilename = getNameFromPath(imageName, True) + "." + getTextureSuffixFromFormat(texFmt) + ".pal"
-
-    fPalette = FImage(
-        paletteName,
-        palFormat,
-        "G_IM_SIZ_16b",
-        1,
-        palLen,
-        paletteFilename,
-    )
+    paletteName, filename = getTextureNamesFromBasename(palBaseName, palFmt, parent, True)
+    fPalette = FImage(paletteName, palFormat, "G_IM_SIZ_16b", 1, palLen, filename)
 
     parent.addTexture(paletteKey, fPalette, fMaterial)
     return paletteKey, fPalette
@@ -2174,7 +2192,6 @@ def saveOrGetTextureDefinition(
     parent: Union[FModel, FTexRect],
     texProp: TextureProperty,
     images: list[bpy.types.Image],
-    imageName: str,
     isLarge: bool,
 ) -> tuple[FImageKey, FImage]:
 
@@ -2195,17 +2212,8 @@ def saveOrGetTextureDefinition(
         fImage = FImage(texProp.tex_reference, None, None, width, height, None)
         return imageKey, fImage
 
-    name = image.name if image.filepath == "" else image.filepath
-    filename = getNameFromPath(name, True) + "." + getTextureSuffixFromFormat(texFmt) + ".inc.c"
-
-    fImage = FImage(
-        checkDuplicateTextureName(parent, toAlnum(imageName)),
-        texFormat,
-        bitSize,
-        image.size[0],
-        image.size[1],
-        filename,
-    )
+    imageName, filename = getTextureNamesFromProp(texProp, parent)
+    fImage = FImage(imageName, texFormat, bitSize, image.size[0], image.size[1], filename)
     fImage.isLargeTexture = isLarge
 
     parent.addTexture(imageKey, fImage, fMaterial)
@@ -2273,21 +2281,18 @@ def getTexInfoAdvanced(
     palFormat: str,
 ):
     if not useTex:
-        return "", None, 0, [], None
+        return None, 0, [], None
     
     f3dMat = material.f3d_mat
     texProp = getattr(f3dMat, "tex" + str(index))
 
-    texName = getTextureName(texProp, fModel.name, None)
-
     pal = None
     palLen = 0
     if isCITexture:
-        imUse, flipbook, pal, palName = fModel.processTexRefCITextures(fMaterial, material, index)
+        imUse, flipbook, pal = fModel.processTexRefCITextures(fMaterial, material, index)
         if isTexRef:
             if flipbook is not None:
                 palLen = len(pal)
-                texName = palName
             else:
                 palLen = texProp.pal_reference_size
         else:
@@ -2296,14 +2301,14 @@ def getTexInfoAdvanced(
             palLen = len(pal)
         if palLen > (16 if texFormat == "CI4" else 256):
             raise PluginError(
-                f"Error in {material.name}: {texName}"
+                f"Error in {material.name}: texture {index}"
                 + (" (all flipbook textures)" if flipbook is not None else "")
                 + f" uses too many unique colors to fit in format {texFormat}."
             )
     else:
         imUse, flipbook = fModel.processTexRefNonCITextures(fMaterial, material, index)
 
-    return texName, pal, palLen, imUse, flipbook
+    return pal, palLen, imUse, flipbook
 
 
 # Functions for writing texture and palette DLs

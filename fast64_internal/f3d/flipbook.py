@@ -218,7 +218,7 @@ def drawFlipbookGroupProperty(
         if usesFlipbook(material, flipbook, i, False, checkFlipbookReference):
             drawFlipbookProperty(layout.column(), flipbook, i)
             if getattr(material.f3d_mat, "tex" + str(i)).tex_format[:2] == "CI":
-                layout.label(text="New shared CI palette will be generated.", icon="ERROR")
+                layout.label(text="New shared CI palette will be generated.", icon="RENDERLAYERS")
 
 
 # START GAME SPECIFIC CALLBACKS

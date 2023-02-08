@@ -11,20 +11,19 @@ from ..f3d.f3d_writer import (
     DPLoadTLUTCmd,
     DPSetTextureLUT,
     DPSetTile,
-    FImageKey,
-    FPaletteKey,
     getColorsUsedInImage,
     mergePalettes,
-    saveOrGetTextureDefinition,
     writeCITextureData,
     writeNonCITextureData,
-    checkDuplicateTextureName,
+    getTextureNamesFromImage,
 )
 
 from ..f3d.f3d_gbi import (
     FModel,
     FMaterial,
     FImage,
+    FImageKey,
+    FPaletteKey,
     GfxMatWriteMethod,
     SPDisplayList,
     GfxList,
@@ -157,7 +156,6 @@ class OOTModel(FModel):
 
         flipbook = TextureFlipbook(flipbookProp.name, flipbookProp.exportMode, [], [])
 
-        palName = model.name + "_" + flipbookProp.textures[0].image.name
         pal = []
         allImages = []
         for flipbookTexture in flipbookProp.textures:
@@ -168,22 +166,16 @@ class OOTModel(FModel):
             if flipbookTexture.image is None:
                 raise PluginError(f"Flipbook for {fMaterial.name} has a texture array item that has not been set.")
             # print(f"Texture: {str(flipbookTexture.image)}")
-            imageName = (
-                flipbookTexture.name
-                if flipbookProp.exportMode == "Individual"
-                else model.name + "_" + flipbookTexture.image.name + "_" + texProp.tex_format.lower()
-            )
-            name = (
-                flipbookTexture.image.name if flipbookTexture.image.filepath == "" else flipbookTexture.image.filepath
-            )
-            filename = getNameFromPath(name, True) + "." + getTextureSuffixFromFormat(texProp.tex_format) + ".inc.c"
-
+            imageName, filename = getTextureNamesFromImage(flipbookTexture.image, texProp.tex_format, model)
+            if flipbookProp.exportMode == "Individual":
+                imageName = flipbookTexture.name
+            
             # We don't know yet if this already exists, cause we need the full set
             # of images which contribute to the palette, which we don't get until
             # writeTexRefCITextures (in case the other texture in multitexture contributes).
             # So these get created but may get dropped later.
             fImage_temp = FImage(
-                checkDuplicateTextureName(model, toAlnum(imageName)),
+                imageName,
                 texFormatOf[texProp.tex_format],
                 texBitSizeF3D[texProp.tex_format],
                 texProp.tex_reference_size[0],
@@ -196,10 +188,10 @@ class OOTModel(FModel):
             flipbook.textureNames.append(fImage_temp.name)
             flipbook.images.append((flipbookTexture.image, fImage_temp))
 
-        # print(f"Palette length for {palName}: {len(pal)}") # Checked in getAndCheckTexInfo
+        # print(f"Palette length: {len(pal)}") # Checked in getAndCheckTexInfo
 
         model.addFlipbookWithRepeatCheck(flipbook)
-        return allImages, flipbook, pal, palName
+        return allImages, flipbook, pal
 
     def writeTexRefCITextures(
         self,
@@ -239,19 +231,24 @@ class OOTModel(FModel):
             if flipbookTexture.image is None:
                 raise PluginError(f"Flipbook for {fMaterial.name} has a texture array item that has not been set.")
             # print(f"Texture: {str(flipbookTexture.image)}")
-            imageName = (
-                flipbookTexture.name
-                if flipbookProp.exportMode == "Individual"
-                else model.name + "_" + flipbookTexture.image.name + "_" + texProp.tex_format.lower()
-            )
-            _, fImage = saveOrGetTextureDefinition(
-                fMaterial,
-                model,
-                texProp,
-                [flipbookTexture.image],
-                imageName,
-                False,
-            )
+            # Can't use saveOrGetTextureDefinition because the way it gets the
+            # image key and the name from the texture property won't work here.
+            imageKey = FImageKey(flipbookTexture.image, texProp.tex_format, texProp.ci_format, [flipbookTexture.image])
+            fImage = model.getTextureAndHandleShared(imageKey)
+            if fImage is None:
+                imageName, filename = getTextureNamesFromImage(flipbookTexture.image, texProp.tex_format, model)
+                if flipbookProp.exportMode == "Individual":
+                    imageName = flipbookTexture.name
+                fImage = FImage(
+                    imageName,
+                    texFormatOf[texProp.tex_format],
+                    texBitSizeF3D[texProp.tex_format],
+                    flipbookTexture.image.size[0],
+                    flipbookTexture.image.size[1],
+                    filename,
+                )
+                model.addTexture(imageKey, fImage, fMaterial)
+            
             flipbook.textureNames.append(fImage.name)
             flipbook.images.append((flipbookTexture.image, fImage))
 

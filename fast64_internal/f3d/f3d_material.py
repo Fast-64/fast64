@@ -787,10 +787,10 @@ class F3DPanel(bpy.types.Panel):
         self.checkDrawMixedCIWarning(inputCol, useDict, f3dMat)
         canUseLargeTextures = material.mat_ver > 3 and material.f3d_mat.use_large_textures
         if useDict["Texture 0"] and f3dMat.tex0.tex_set:
-            ui_image(canUseLargeTextures, inputCol, f3dMat.tex0, "Texture 0", False)
+            ui_image(canUseLargeTextures, inputCol, material, f3dMat.tex0, "Texture 0", False)
 
         if useDict["Texture 1"] and f3dMat.tex1.tex_set:
-            ui_image(canUseLargeTextures, inputCol, f3dMat.tex1, "Texture 1", False)
+            ui_image(canUseLargeTextures, inputCol, material, f3dMat.tex1, "Texture 1", False)
 
         if useMultitexture:
             inputCol.prop(f3dMat, "uv_basis", text="UV Basis")
@@ -889,10 +889,10 @@ class F3DPanel(bpy.types.Panel):
             self.checkDrawMixedCIWarning(inputCol, useDict, f3dMat)
             canUseLargeTextures = material.mat_ver > 3 and material.f3d_mat.use_large_textures
             if useDict["Texture 0"]:
-                ui_image(canUseLargeTextures, inputCol, f3dMat.tex0, "Texture 0", True)
+                ui_image(canUseLargeTextures, inputCol, material, f3dMat.tex0, "Texture 0", True)
 
             if useDict["Texture 1"]:
-                ui_image(canUseLargeTextures, inputCol, f3dMat.tex1, "Texture 1", True)
+                ui_image(canUseLargeTextures, inputCol, material, f3dMat.tex1, "Texture 1", True)
 
             if useMultitexture:
                 inputCol.prop(f3dMat, "uv_basis", text="UV Basis")
@@ -2238,7 +2238,9 @@ def update_combiner_connections_and_preset(self, context: bpy.types.Context):
 
 
 def ui_image(
-    canUseLargeTextures: bool, layout: bpy.types.UILayout, textureProp: TextureProperty, name: str, showCheckBox: bool
+    canUseLargeTextures: bool, layout: bpy.types.UILayout,
+    material: bpy.types.Material,
+    textureProp: TextureProperty, name: str, showCheckBox: bool
 ):
     inputGroup = layout.box().column()
 
@@ -2261,8 +2263,10 @@ def ui_image(
             prop_split(prop_input, textureProp, "tex_reference", "Texture Reference")
             prop_split(prop_input, textureProp, "tex_reference_size", "Texture Size")
             if textureProp.tex_format[:2] == "CI":
-                prop_split(prop_input, textureProp, "pal_reference", "Palette Reference")
-                prop_split(prop_input, textureProp, "pal_reference_size", "Palette Size")
+                flipbook = getattr(material.flipbookGroup, "flipbook" + texIndex)
+                if flipbook is None or not flipbook.enable:
+                    prop_split(prop_input, textureProp, "pal_reference", "Palette Reference")
+                    prop_split(prop_input, textureProp, "pal_reference_size", "Palette Size")
 
         else:
             prop_input.template_ID(
