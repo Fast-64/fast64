@@ -144,6 +144,22 @@ class OOTModel(FModel):
                         )
         model.flipbooks.append(flipbook)
 
+    def validateImages(self, material: bpy.types.Material, index: int):
+        flipbookProp = getattr(material.flipbookGroup, f"flipbook{index}")
+        texProp = getattr(material.f3d_mat, f"tex{index}")
+        allImages = []
+        refSize = (texProp.tex_reference_size[0], texProp.tex_reference_size[1])
+        for flipbookTexture in flipbookProp.textures:
+            if flipbookTexture.image is None:
+                raise PluginError(f"Flipbook for {material.name} has a texture array item that has not been set.")
+            imSize = (flipbookTexture.image.size[0], flipbookTexture.image.size[1])
+            if imSize != refSize:
+                raise PluginError(f"In {material.name}: texture reference size is {refSize}, "
+                    + f"but flipbook image {flipbookTexture.image.filepath} size is {imSize}.")
+            if flipbookTexture.image not in allImages:
+                allImages.append(flipbookTexture.image)
+        return allImages
+
     def processTexRefCITextures(self, fMaterial: FMaterial, material: bpy.types.Material, index: int) -> FImage:
         # print("Processing flipbook...")
         model = self.getFlipbookOwner()
@@ -157,14 +173,8 @@ class OOTModel(FModel):
         flipbook = TextureFlipbook(flipbookProp.name, flipbookProp.exportMode, [], [])
 
         pal = []
-        allImages = []
+        allImages = self.validateImages(material, index)
         for flipbookTexture in flipbookProp.textures:
-            if flipbookTexture.image not in allImages:
-                allImages.append(flipbookTexture.image)
-
-        for flipbookTexture in flipbookProp.textures:
-            if flipbookTexture.image is None:
-                raise PluginError(f"Flipbook for {fMaterial.name} has a texture array item that has not been set.")
             # print(f"Texture: {str(flipbookTexture.image)}")
             imageName, filename = getTextureNamesFromImage(flipbookTexture.image, texProp.tex_format, model)
             if flipbookProp.exportMode == "Individual":
@@ -178,8 +188,8 @@ class OOTModel(FModel):
                 imageName,
                 texFormatOf[texProp.tex_format],
                 texBitSizeF3D[texProp.tex_format],
-                texProp.tex_reference_size[0],
-                texProp.tex_reference_size[1],
+                flipbookTexture.image.size[0],
+                flipbookTexture.image.size[1],
                 filename,
             )
 
@@ -226,10 +236,8 @@ class OOTModel(FModel):
             raise PluginError(f"{str(material)} cannot have a flipbook material with no flipbook textures.")
 
         flipbook = TextureFlipbook(flipbookProp.name, flipbookProp.exportMode, [], [])
-        allImages = [flipbookTexture.image for flipbookTexture in flipbookProp.textures]
+        allImages = self.validateImages(material, index)
         for flipbookTexture in flipbookProp.textures:
-            if flipbookTexture.image is None:
-                raise PluginError(f"Flipbook for {fMaterial.name} has a texture array item that has not been set.")
             # print(f"Texture: {str(flipbookTexture.image)}")
             # Can't use saveOrGetTextureDefinition because the way it gets the
             # image key and the name from the texture property won't work here.
