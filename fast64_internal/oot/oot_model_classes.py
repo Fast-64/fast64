@@ -129,19 +129,22 @@ class OOTModel(FModel):
 
     def addFlipbookWithRepeatCheck(self, flipbook: TextureFlipbook):
         model = self.getFlipbookOwner()
+        def raiseErr(submsg):
+            raise PluginError(
+                f"There are two flipbooks {subMsg} trying to write to the same texture array "
+                + f"named: {flipbook.name}.\nMake sure that this flipbook name is unique, or "
+                + "that repeated uses of this name use the same textures in the same order/format."
+            )
         for existingFlipbook in model.flipbooks:
             if existingFlipbook.name == flipbook.name:
                 if len(existingFlipbook.textureNames) != len(flipbook.textureNames):
-                    raise PluginError(
-                        f"There are two flipbooks with differing elements trying to write to the same texture array name: {flipbook.name}."
-                        + f"\nMake sure that this flipbook name is unique, or that repeated uses of this name use the same textures is the same order/format."
-                    )
+                    raiseErr(f"of different lengths ({len(existingFlipbook.textureNames)} "
+                        + f"vs. {len(flipbook.textureNames)})")
                 for i in range(len(flipbook.textureNames)):
                     if existingFlipbook.textureNames[i] != flipbook.textureNames[i]:
-                        raise PluginError(
-                            f"There are two flipbooks with differing elements trying to write to the same texture array name: {flipbook.name}."
-                            + f"\nMake sure that this flipbook name is unique, or that repeated uses of this name use the same textures is the same order/format."
-                        )
+                        raiseErr(f"with differing elements (elem {i} = "
+                            + f"{existingFlipbook.textureNames[i]} vs. "
+                            + f"{flipbook.textureNames[i]})")
         model.flipbooks.append(flipbook)
 
     def validateImages(self, material: bpy.types.Material, index: int):
@@ -199,8 +202,6 @@ class OOTModel(FModel):
             flipbook.images.append((flipbookTexture.image, fImage_temp))
 
         # print(f"Palette length: {len(pal)}") # Checked in getAndCheckTexInfo
-
-        model.addFlipbookWithRepeatCheck(flipbook)
         return allImages, flipbook, pal
 
     def writeTexRefCITextures(
@@ -220,11 +221,14 @@ class OOTModel(FModel):
             imageKey = FImageKey(image, texFmt, palFmt, imagesSharingPalette)
             fImage = model.getTextureAndHandleShared(imageKey)
             if fImage is not None:
+                flipbook.textureNames[i] = fImage.name
                 flipbook.images[i] = (image, fImage)
             else:
                 fImage = fImage_temp
                 model.addTexture(imageKey, fImage, fMaterial)
             writeCITextureData(image, fImage, pal, palFmt, texFmt)
+        # Have to delay this until here because texture names may have changed
+        model.addFlipbookWithRepeatCheck(flipbook)
 
     def processTexRefNonCITextures(self, fMaterial: FMaterial, material: bpy.types.Material, index: int):
         model = self.getFlipbookOwner()

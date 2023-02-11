@@ -360,10 +360,10 @@ def maybeSaveSingleLargeTextureSetup(
         siz = texBitSizeF3D[texProp.tex_format]
         line = getTileLine(fImage, tileSettings.sl, tileSettings.sh, siz, fModel.f3d)
         tmem = fMaterial.largeTexAddr[i]
-        print(
-            f"Tile: {tileSettings.sl}-{tileSettings.sh} x {tileSettings.tl}-{tileSettings.th} "
-            + f"tmem {tmem} line {line}"
-        )
+        # print(
+        #     f"Tile: {tileSettings.sl}-{tileSettings.sh} x {tileSettings.tl}-{tileSettings.th} "
+        #     + f"tmem {tmem} line {line}"
+        # )
         if wrapS or wrapT:
             fmt = texFormatOf[texProp.tex_format]
             texelsPerLine = 64 // texBitSizeInt[texProp.tex_format]
@@ -391,7 +391,7 @@ def maybeSaveSingleLargeTextureSetup(
                     # The first load must occupy a whole number of lines.
                     assert (texDimensions[0] - tileSettings.sl) % texelsPerLine == 0
                     sLineOfs = (texDimensions[0] - tileSettings.sl) // texelsPerLine
-                    print(f"-- Wrap at S={texDimensions[0]}, offset {sLineOfs}")
+                    # print(f"-- Wrap at S={texDimensions[0]}, offset {sLineOfs}")
                     gfxOut.commands.append(
                         DPLoadTile(tidxBase, tileSettings.sl * sm, TL * 4, (texDimensions[0] - 1) * sm, TH * 4)
                     )
@@ -412,7 +412,7 @@ def maybeSaveSingleLargeTextureSetup(
                 # The first load must be even in size (even number of texture rows).
                 assert (texDimensions[1] - tileSettings.tl) % 2 == 0
                 tLineOfs = line * (texDimensions[1] - tileSettings.tl)
-                print(f"-- Wrap at T={texDimensions[1]}, offset {tLineOfs}")
+                # print(f"-- Wrap at T={texDimensions[1]}, offset {tLineOfs}")
                 loadOneOrTwoS(tmem, 7, tileSettings.tl, texDimensions[1] - 1)
                 loadOneOrTwoS(tmem + tLineOfs, 5, 0, tileSettings.th - texDimensions[1])
             else:
@@ -2170,14 +2170,14 @@ def saveOrGetPaletteDefinition(
     palFormat = texFormatOf[palFmt]
     paletteKey = FPaletteKey(palFmt, images)
 
+    if isPalRef:
+        fPalette = FImage(texProp.pal_reference, None, None, 1, palLen, None)
+        return paletteKey, fPalette
+
     # If palette already loaded, return that data.
     fPalette = parent.getTextureAndHandleShared(paletteKey)
     if fPalette is not None:
         # print(f"Palette already exists")
-        return paletteKey, fPalette
-
-    if isPalRef:
-        fPalette = FImage(texProp.pal_reference, None, None, 1, palLen, None)
         return paletteKey, fPalette
 
     paletteName, filename = getTextureNamesFromBasename(palBaseName, palFmt, parent, True)
@@ -2201,15 +2201,15 @@ def saveOrGetTextureDefinition(
     bitSize = texBitSizeF3D[texFmt]
     imageKey = getImageKey(texProp, images)
 
+    if texProp.use_tex_reference:
+        width, height = texProp.tex_reference_size
+        fImage = FImage(texProp.tex_reference, None, None, width, height, None)
+        return imageKey, fImage
+
     # If image already loaded, return that data.
     fImage = parent.getTextureAndHandleShared(imageKey)
     if fImage is not None:
         # print(f"Image already exists")
-        return imageKey, fImage
-
-    if texProp.use_tex_reference:
-        width, height = texProp.tex_reference_size
-        fImage = FImage(texProp.tex_reference, None, None, width, height, None)
         return imageKey, fImage
 
     imageName, filename = getTextureNamesFromProp(texProp, parent)
