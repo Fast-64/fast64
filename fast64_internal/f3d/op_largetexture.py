@@ -139,23 +139,23 @@ def createLargeTextureMeshInternal(bm, prop):
         raise PluginError(err)
     (largeDims, largeFmt, largeWords, largeEdges, bilinear) = info
     is4bit = texBitSizeInt[largeFmt] == 4
-    texelsPerLine = 64 // texBitSizeInt[largeFmt]
+    texelsPerWord = 64 // texBitSizeInt[largeFmt]
     uvScale = [1.0 / largeDims[0], 1.0 / largeDims[1]]
     wrapSize = [prop.total_size_s, prop.total_size_t]
     # Set up base tile size
     if prop.bias == "Square":
-        maxTexelsInTMEM = largeWords * texelsPerLine
-        tileSLines = int(math.ceil(math.sqrt(maxTexelsInTMEM) / texelsPerLine))
+        maxTexelsInTMEM = largeWords * texelsPerWord
+        tileSWords = int(math.ceil(math.sqrt(maxTexelsInTMEM) / texelsPerWord))
     elif prop.bias == "Extreme":
         targetRows = 4 if bilinear else 2
         # Start with just loading full texture rows, rounded up to lines
-        tileSLines = int(math.ceil(largeDims[0] / texelsPerLine))
-        if largeWords // tileSLines < targetRows:
+        tileSWords = int(math.ceil(largeDims[0] / texelsPerWord))
+        if largeWords // tileSWords < targetRows:
             # If that doesn't give us enough rows, reduce to next power of 2
             d = 1 << int(math.floor(math.log2(largeDims[0])))
-            tileSLines = d // texelsPerLine
-            while largeWords // tileSLines < targetRows:
-                tileSLines >>= 1
+            tileSWords = d // texelsPerWord
+            while largeWords // tileSWords < targetRows:
+                tileSWords >>= 1
     else:
         baseTile = [128, 64]
         while True:
@@ -174,8 +174,8 @@ def createLargeTextureMeshInternal(bm, prop):
         # Even though we have baseTile already, convert back to this format,
         # in case available TMEM is not a power of 2 we might get a larger T value.
         # (Currently the plugin will always assign a power of 2 size)
-        tileSLines = baseTile[0] // texelsPerLine
-    baseTile = [tileSLines * texelsPerLine, largeWords // tileSLines]
+        tileSWords = baseTile[0] // texelsPerWord
+    baseTile = [tileSWords * texelsPerWord, largeWords // tileSWords]
     if bilinear:
         baseTile[0] -= 1
         if is4bit:
@@ -227,7 +227,7 @@ def createLargeTextureMeshInternal(bm, prop):
         # produce a mesh with verts on other edges, and the N64 does not guarantee
         # that these meshes won't have holes in them. Prefer correct seamless results
         # over saving a few tri draws (the loads will still be combined).
-        distFromWrap = (texelsPerLine, 2)[dim]
+        distFromWrap = (texelsPerWord, 2)[dim]
         # Number of texels such that if a wrap load could reach the end of the drawn
         # region by continuing to load this many texels into the image after wrapping,
         # it's worth it to do so (as opposed to only loading row/col 0, and drawing

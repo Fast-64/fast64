@@ -266,23 +266,23 @@ class TileLoad:
         if sh >= 1024 or th >= 1024:
             ret = False
         if sh >= self.texDimensions[0]:
-            # Load wraps in S. Load must start a multiple of a TMEM line from
+            # Load wraps in S. Load must start a multiple of a TMEM word from
             # the end of the texture, in order for the second load (beginning of
-            # image) to start at a whole line.
-            texelsPerLine = 64 // texBitSizeInt[self.texFormat]
-            if texelsPerLine > self.texDimensions[0]:
+            # image) to start at a whole word.
+            texelsPerWord = 64 // texBitSizeInt[self.texFormat]
+            if texelsPerWord > self.texDimensions[0]:
                 raise PluginError(
                     f"In large texture material {self.materialName}:"
-                    + f" large texture must be at least {texelsPerLine} wide."
+                    + f" large texture must be at least {texelsPerWord} wide."
                 )
             sl -= self.texDimensions[0]
-            sl = int(math.floor(sl / texelsPerLine)) * texelsPerLine
+            sl = int(math.floor(sl / texelsPerWord)) * texelsPerWord
             sl += self.texDimensions[0]
         if th >= self.texDimensions[1]:
-            # Load wraps in T. Load must start a multiple of 2 TMEM lines from
+            # Load wraps in T. Load must start a multiple of 2 texture rows from
             # the end of the texture, in order for the second load to have the
-            # same odd/even line parity as the first (because texels are
-            # interleaved in TMEM every other line).
+            # same odd/even row parity as the first (because texels are
+            # interleaved in TMEM every other row).
             tl -= self.texDimensions[1]
             tl = int(math.floor(tl / 2.0)) * 2
             tl += self.texDimensions[1]
@@ -366,7 +366,7 @@ def maybeSaveSingleLargeTextureSetup(
         # )
         if wrapS or wrapT:
             fmt = texFormatOf[texProp.tex_format]
-            texelsPerLine = 64 // texBitSizeInt[texProp.tex_format]
+            texelsPerWord = 64 // texBitSizeInt[texProp.tex_format]
             wid = texDimensions[0]
             is4bit = siz == "G_IM_SIZ_4b"
             if is4bit:
@@ -389,8 +389,8 @@ def maybeSaveSingleLargeTextureSetup(
                 if wrapS:
                     # Break up at the wrap boundary into two tile loads.
                     # The first load must occupy a whole number of lines.
-                    assert (texDimensions[0] - tileSettings.sl) % texelsPerLine == 0
-                    sLineOfs = (texDimensions[0] - tileSettings.sl) // texelsPerLine
+                    assert (texDimensions[0] - tileSettings.sl) % texelsPerWord == 0
+                    sLineOfs = (texDimensions[0] - tileSettings.sl) // texelsPerWord
                     # print(f"-- Wrap at S={texDimensions[0]}, offset {sLineOfs}")
                     gfxOut.commands.append(
                         DPLoadTile(tidxBase, tileSettings.sl * sm, TL * 4, (texDimensions[0] - 1) * sm, TH * 4)
@@ -2342,6 +2342,23 @@ def getTileLine(fImage: FImage, SL: int, SH: int, siz: str, f3d: F3D):
     return line
 
 
+def canUseLoadBlock(fImage: FImage, tex_format: str, f3d: F3D):
+    if fImage.isLargeTexture:
+        return False
+    width, height = fImage.width, fImage.height
+    texelsPerWord = 64 // texBitSizeInt[tex_format]
+    if width % texelsPerWord != 0:
+        return False
+    wordsperrow = width // texelsPerWord
+    dxt = ((1 << f3d.G_TX_DXT_FRAC) + wordsperrow - 1) // wordsperrow
+    error = (dxt * wordsperrow) - (1 << f3d.G_TX_DXT_FRAC)
+    assert error >= 0
+    if error == 0:
+        return True
+    rowsWhenCorruptionHappens = (dxt + error - 1) // error
+    return height < rowsWhenCorruptionHappens
+
+
 def saveTextureLoadOnly(
     fImage: FImage,
     gfxOut: GfxList,
@@ -2360,7 +2377,7 @@ def saveTextureLoadOnly(
 
     # LoadTile will pad rows to 64 bit word alignment, while
     # LoadBlock assumes this is already done.
-    useLoadBlock = not fImage.isLargeTexture and isPowerOf2(fImage.width)
+    useLoadBlock = canUseLoadBlock(fImage, texProp.tex_format, f3d)
     line = 0 if useLoadBlock else getTileLine(fImage, SL, SH, siz, f3d)
     wid = 1 if useLoadBlock else fImage.width
 

@@ -219,8 +219,8 @@ class DrawLayerProperty(bpy.types.PropertyGroup):
 
 
 def getTmemWordUsage(texFormat, width, height):
-    texelsPerLine = 64 / texBitSizeInt[texFormat]
-    return int(math.ceil(width / texelsPerLine)) * height
+    texelsPerWord = 64 // texBitSizeInt[texFormat]
+    return (width + texelsPerWord - 1) // texelsPerWord * height
 
 
 def getTmemMax(texFormat):
@@ -2277,9 +2277,28 @@ def ui_image(
             if tex is not None:
                 prop_input.label(text="Size: " + str(tex.size[0]) + " x " + str(tex.size[1]))
 
+        if textureProp.use_tex_reference:
+            width, height = textureProp.tex_reference_size[0], textureProp.tex_reference_size[1]
+        elif tex is not None:
+            width, height = tex.size[0], tex.size[1]
+        else:
+            width = height = 0
+            
         if canUseLargeTextures:
-            prop_input.row().label(text="Large texture mode enabled.")
-            prop_input.row().label(text="Recommend using Create Large Texture Mesh tool.")
+            availTmem = 512
+            if textureProp.tex_format[:2] == "CI":
+                availTmem /= 2
+            useDict = all_combiner_uses(material.f3d_mat)
+            if useDict["Texture 0"] and useDict["Texture 1"]:
+                availTmem /= 2
+            isLarge = getTmemWordUsage(textureProp.tex_format, width, height) > availTmem
+        else:
+            isLarge = False
+
+        if isLarge:
+            msg = prop_input.box().column()
+            msg.label(text="This is a large texture.", icon="INFO")
+            msg.label(text="Recommend using Create Large Texture Mesh tool.")
         else:
             tmemUsageUI(prop_input, textureProp)
 
@@ -2287,7 +2306,20 @@ def ui_image(
         if textureProp.tex_format[:2] == "CI":
             prop_split(prop_input, textureProp, "ci_format", name="CI Format")
 
-        if not (canUseLargeTextures):
+        if not isLarge:
+            if width > 0 and height > 0:
+                texelsPerWord = 64 // texBitSizeInt[textureProp.tex_format]
+                if width % texelsPerWord != 0:
+                    msg = prop_input.box().column()
+                    msg.label(text=f"Suggest {textureProp.tex_format} tex be multiple ", icon="INFO")
+                    msg.label(text=f"of {texelsPerWord} pixels wide for fast loading.")
+                warnClampS = not isPowerOf2(width) and not textureProp.S.clamp and (not textureProp.autoprop or textureProp.S.mask != 0)
+                warnClampT = not isPowerOf2(height) and not textureProp.T.clamp and (not textureProp.autoprop or textureProp.T.mask != 0)
+                if warnClampS or warnClampT:
+                    msg = prop_input.box().column()
+                    msg.label(text=f"Clamping required for non-power-of-2 image", icon="ERROR")
+                    msg.label(text=f"dimensions. Enable clamp or set mask to 0.")
+            
             texFieldSettings = prop_input.column()
             clampSettings = texFieldSettings.row()
             clampSettings.prop(textureProp.S, "clamp", text="Clamp S")
@@ -2315,16 +2347,6 @@ def ui_image(
                 high = prop_input.row()
                 high.prop(textureProp.S, "high", text="S High")
                 high.prop(textureProp.T, "high", text="T High")
-
-            if (
-                tex is not None
-                and tex.size[0] > 0
-                and tex.size[1] > 0
-                and (math.log(tex.size[0], 2) % 1 > 0.000001 or math.log(tex.size[1], 2) % 1 > 0.000001)
-            ):
-                warnBox = layout.box()
-                warnBox.label(text="Warning: Texture dimensions are not power of 2.")
-                warnBox.label(text="Wrapping only occurs on power of 2 bounds.")
 
 
 class CombinerProperty(bpy.types.PropertyGroup):
