@@ -2323,6 +2323,8 @@ class FModel:
         fMesh.draw.commands.append(SPEndDisplayList())
     
     def bleed(self, fMesh, contextObj, drawLayer = None):
+        if not fMesh.inline:
+            return
         fMesh.bleed(self.f3d)
         defaultRM = self.getRenderMode(drawLayer)
         if defaultRM:
@@ -2837,14 +2839,16 @@ class FMesh:
             # bleed mat and tex
             if triGroup.fMaterial:
                 bleed_mat = self.bleed_mat(triGroup.fMaterial, lastMat)
-                bleed_tex, bleed_scr = self.bleed_textures(triGroup.fMaterial, lastMat)
+                if not triGroup.fMaterial.useLargeTextures:
+                    bleed_tex = self.bleed_textures(triGroup.fMaterial, lastMat)
+                else:
+                    bleed_tex = []
             else:
                 bleed_mat = []
                 bleed_tex = []
-                bleed_scr = None
             # set bled props to _mesh_desc, update lastMat
             lastMat = triGroup.fMaterial
-            bleed = BleedGfx(bleed_mat, bleed_tex, bleed_scr)
+            bleed = BleedGfx(bleed_mat, bleed_tex)
             # remove SPEndDisplayList from triGroup
             while SPEndDisplayList() in triGroup.triList.commands:
                 triGroup.triList.commands.remove(SPEndDisplayList())
@@ -2854,16 +2858,9 @@ class FMesh:
         return lastMat
 
     def bleed_textures(self, curMat: "FMaterial", lastMat: "FMaterial"):
-        # check if material is scrolling
-        tile_scroll_tex0 = curMat.scrollData.tile_scroll_tex0
-        tile_scroll_tex1 = curMat.scrollData.tile_scroll_tex1
-        if tile_scroll_tex0.s or tile_scroll_tex0.t or tile_scroll_tex1.s or tile_scroll_tex1.t:
-            bleed_scroll = True
-        else:
-            bleed_scroll = None
         if lastMat:
-            # bleed cmds if matching tile has duplicate cmds
             bled_tex = []
+            # bleed cmds if matching tile has duplicate cmds
             for j, (LastTex, TexCmds) in enumerate(zip(lastMat.textureDLs, curMat.textureDLs)):
                 # deep copy breaks on Image objects so I will only copy the levels needed
                 commands_bled = copy.copy(TexCmds)
@@ -2895,7 +2892,7 @@ class FMesh:
                 bled_tex.append(commands_bled)
         else:
             bled_tex = curMat.textureDLs
-        return bled_tex, bleed_scroll
+        return bled_tex
 
     def bleed_mat(self, curMat: "FMaterial", lastMat: "FMaterial"):
         if lastMat:
@@ -2921,23 +2918,29 @@ class FMesh:
     def inline_triGroup(self, f3d: F3D, triGroup: "FTriGroup", bleed: "BleedGfx"):
         # add material
         self.draw.commands.extend(bleed.bled_mats.commands)
+        # bleed tri group (for large textures)
+        self.processInlineTriGroup(f3d, triGroup, bleed)
         # add textures
         for tile, texGfx in enumerate(bleed.bled_tex):
-            # update bleed_tile_scroll to be dict[tile]: GfxList size
-            if bleed.bleed_tile_scroll is not None:
-                self.processInlineTriGroup(f3d, triGroup, tile, texGfx, bleed)
             self.draw.commands.extend(texGfx.commands)
         # add in triangles
         self.draw.commands.extend(triGroup.triList.commands)
         
-
-    # process the tile DL and add references to specific cmds to triGroup data
-    def processInlineTriGroup(
-        self, f3d: F3D, triGroup: "FTriGroup", tile: int, tileGfx: list[GfxList], bleed: "BleedGfx"
-    ):
-        for index, gfxCommand in enumerate(tileGfx.commands):
-            if isinstance(gfxCommand, DPSetTileSize):
-                triGroup.bleedTiles[tile] = index + (self.draw.size(f3d) // 8)
+    # process the triGroup cmds
+    def processInlineTriGroup(self, f3d: F3D, triGroup: "FTriGroup", bleed: "BleedGfx"):
+        if triGroup.fMaterial.useLargeTextures:
+            usage_dict = dict()
+            cnt = 0
+            tri_commands = copy.copy(triGroup.triList.commands)  # copy the commands
+            for j, cmd in enumerate(tri_commands):
+                if not cmd.bleed([], [], 0):
+                    continue
+                last_use = usage_dict.get((type(cmd), getattr(cmd, "tile", None)), None)
+                usage_dict[(type(cmd), getattr(cmd, "tile", None))] = cmd
+                if last_use == cmd:
+                    triGroup.triList.commands.pop(j - cnt)  # list gets smaller as I pop, so modify index by num popped
+                    cnt += 1
+        return
 
     def onBleedStart(self, f3d: F3D, lastMat: "FMaterial" = None):
         # remove SPDisplayList from FMesh.draw
@@ -2986,7 +2989,6 @@ class FTriGroup:
         self.fMaterial = fMaterial
         self.vertexList = VtxList(name + "_vtx_" + str(index))
         self.triList = GfxList(name + "_tri_" + str(index), GfxListTag.Geometry, DLFormat.Static)
-        self.bleedTiles = dict()
         self.name = name
 
     def get_ptr_addresses(self, f3d):
@@ -3139,7 +3141,6 @@ class FMaterial:
 class BleedGfx:
     bled_mats: GfxList
     bled_tex: list[GfxList]  # list of GfxList
-    bleed_tile_scroll: bool
 
 
 # viewport
@@ -4685,7 +4686,7 @@ def gsDPLoadTileGeneric(c, tile, uls, ult, lrs, lrt):
 
 @dataclass(unsafe_hash=True)
 class DPSetTileSize(GbiMacro):
-    t: int
+    tile: int
     uls: int
     ult: int
     lrs: int
@@ -4693,7 +4694,7 @@ class DPSetTileSize(GbiMacro):
     _bleed = False
 
     def to_binary(self, f3d, segments):
-        return gsDPLoadTileGeneric(f3d.G_SETTILESIZE, self.t, self.uls, self.ult, self.lrs, self.lrt)
+        return gsDPLoadTileGeneric(f3d.G_SETTILESIZE, self.tile, self.uls, self.ult, self.lrs, self.lrt)
 
     def is_LOADTILE(self, f3d):
         return self.t == f3d.G_TX_LOADTILE
@@ -4705,14 +4706,14 @@ class DPSetTileSize(GbiMacro):
 
 @dataclass(unsafe_hash=True)
 class DPLoadTile(GbiMacro):
-    t: int
+    tile: int
     uls: int
     ult: int
     lrs: int
     lrt: int
 
     def to_binary(self, f3d, segments):
-        return gsDPLoadTileGeneric(f3d.G_LOADTILE, self.t, self.uls, self.ult, self.lrs, self.lrt)
+        return gsDPLoadTileGeneric(f3d.G_LOADTILE, self.tile, self.uls, self.ult, self.lrs, self.lrt)
 
 
 @dataclass(unsafe_hash=True)
