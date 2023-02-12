@@ -13,7 +13,7 @@ from .fast64_internal.sm64.sm64_geolayout_parser import generateMetarig
 from .fast64_internal.sm64.sm64_level_importer import sm64_import_register, sm64_import_unregister
 
 from .fast64_internal.oot import OOT_Properties, oot_register, oot_unregister
-from .fast64_internal.oot.oot_level import OOT_ObjectProperties
+from .fast64_internal.oot.props_panel_main import OOT_ObjectProperties
 
 from .fast64_internal.kcs import kcs_register, kcs_unregister
 
@@ -43,7 +43,7 @@ from .fast64_internal.render_settings import (
 # info about add on
 bl_info = {
     "name": "Fast64",
-    "version": (2, 0, 0),
+    "version": (2, 1, 0),
     "author": "kurethedead",
     "location": "3DView",
     "description": "Plugin for exporting F3D display lists and other game data related to Nintendo 64 games.",

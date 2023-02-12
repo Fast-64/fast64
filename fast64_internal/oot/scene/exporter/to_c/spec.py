@@ -101,7 +101,7 @@ def editSpecFile(scene: OOTScene, exportInfo: ExportInfo, sceneC: OOTSceneC):
 
                 if sceneC.sceneCutscenesIsUsed():
                     for i in range(len(sceneC.sceneCutscenesC)):
-                        sceneSegInclude += indent + f'include "{includeDir}_cs_{i}.o"\n'
+                        sceneSegInclude += indent + f'include "{includeDir}_scene_cs_{i}.o"\n'
 
             sceneSegInclude += indent + "number 2\n"
             specEntries.insert(firstIndex, sceneSegInclude)

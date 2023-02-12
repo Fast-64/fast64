@@ -1,6 +1,6 @@
 import os, bpy
 from .....utility import PluginError, writeFile
-from ....oot_constants import ootEnumSceneID
+from ....oot_constants import ootEnumSceneID, ootSceneNameToID
 from ....oot_utility import getCustomProperty, ExportInfo
 
 
@@ -65,7 +65,7 @@ def getInsertionIndex(sceneNames, sceneName, index, mode):
     """Returns the index to know where to insert data"""
     # special case where the scene is "Inside the Great Deku Tree"
     # since it's the first scene simply return 0
-    if sceneName == "SCENE_YDAN":
+    if sceneName == "SCENE_DEKU_TREE":
         return 0
 
     # if index is None this means this is looking for ``original_scene_index - 1``
@@ -103,12 +103,13 @@ def getSceneParams(scene, exportInfo, sceneNames):
     # you just have to make it return something other than None, not necessarily a string
     sceneIndex = getSceneIndex(sceneNames, bpy.context.scene.ootSceneExportSettings.option)
     sceneName = sceneTitle = sceneID = sceneUnk10 = sceneUnk12 = None
+    name = scene.name if scene is not None else exportInfo.name
 
     # if the index is None then this is a custom scene
     if sceneIndex is None and scene is not None:
         sceneName = scene.name.lower() + "_scene"
         sceneTitle = "none"
-        sceneID = "SCENE_" + (scene.name.upper() if scene is not None else exportInfo.name.upper())
+        sceneID = ootSceneNameToID.get(name, f"SCENE_{name.upper()}")
         sceneUnk10 = sceneUnk12 = 0
 
     return sceneName, sceneTitle, sceneID, sceneUnk10, sceneUnk12, sceneIndex
@@ -123,7 +124,7 @@ def sceneTableToC(data, header, sceneNames, scene):
     mode = "EXPORT" if scene is not None else "REMOVE"
 
     # get the index of the last non-debug scene
-    lastNonDebugSceneIdx = getInsertionIndex(sceneNames, "SCENE_GANON_TOU", None, mode)
+    lastNonDebugSceneIdx = getInsertionIndex(sceneNames, "SCENE_OUTSIDE_GANONS_CASTLE", None, mode)
     lastSceneIdx = getInsertionIndex(sceneNames, "SCENE_TESTROOM", None, mode)
 
     # add the actual lines with the same formatting

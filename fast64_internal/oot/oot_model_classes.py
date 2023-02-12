@@ -328,43 +328,7 @@ class OOTDynamicMaterialDrawLayer:
 
 class OOTGfxFormatter(GfxFormatter):
     def __init__(self, scrollMethod):
-        GfxFormatter.__init__(self, scrollMethod, 64)
-
-    # This code is not functional, only used for an example
-    def drawToC(self, f3d, gfxList):
-        return gfxList.to_c(f3d)
-
-    # This code is not functional, only used for an example
-    def tileScrollMaterialToC(self, f3d, fMaterial):
-        materialGfx = fMaterial.material
-        scrollDataFields = fMaterial.scrollData.fields
-
-        # Set tile scrolling
-        for texIndex in range(2):  # for each texture
-            for axisIndex in range(2):  # for each axis
-                scrollField = scrollDataFields[texIndex][axisIndex]
-                if scrollField.animType != "None":
-                    if scrollField.animType == "Linear":
-                        if axisIndex == 0:
-                            fMaterial.tileSizeCommands[texIndex].uls = (
-                                str(fMaterial.tileSizeCommands[0].uls) + " + s * " + str(scrollField.speed)
-                            )
-                        else:
-                            fMaterial.tileSizeCommands[texIndex].ult = (
-                                str(fMaterial.tileSizeCommands[0].ult) + " + s * " + str(scrollField.speed)
-                            )
-
-        # Build commands
-        data = CData()
-        data.header = "Gfx* " + fMaterial.material.name + "(Gfx* glistp, int s, int t);\n"
-        data.source = "Gfx* " + materialGfx.name + "(Gfx* glistp, int s, int t) {\n"
-        for command in materialGfx.commands:
-            data.source += "\t" + command.to_c(False) + ";\n"
-        data.source += "\treturn glistp;\n}" + "\n\n"
-
-        if fMaterial.revert is not None:
-            data.append(fMaterial.revert.to_c(f3d))
-        return data
+        GfxFormatter.__init__(self, scrollMethod, 64, None)
 
 
 class OOTTriangleConverterInfo(TriangleConverterInfo):
@@ -570,7 +534,3 @@ def clearOOTFlipbookProperty(flipbookProp):
 def clearOOTMaterialDrawLayerProperty(matDrawLayerProp):
     for i in range(0x08, 0x0E):
         setattr(matDrawLayerProp, "segment" + format(i, "X"), False)
-
-
-class OOTDynamicTransformProperty(bpy.types.PropertyGroup):
-    billboard: bpy.props.BoolProperty(name="Billboard")

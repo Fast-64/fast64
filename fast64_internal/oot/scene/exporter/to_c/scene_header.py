@@ -1,6 +1,6 @@
 from .....utility import CData, indent
 from .....f3d.f3d_gbi import ScrollMethod, TextureExportSettings
-from ....oot_f3d_writer import OOTGfxFormatter
+from ....oot_model_classes import OOTGfxFormatter
 from ....oot_level_classes import OOTScene, OOTLight
 from .scene_pathways import getPathData
 from .actor import getTransitionActorList, getSpawnActorList, getSpawnList
@@ -59,7 +59,7 @@ def getLightSettingsEntry(light: OOTLight, lightMode: str, isLightingCustom: boo
 
 def getLightSettings(outScene: OOTScene, headerIndex: int):
     lightSettingsData = CData()
-    lightName = f"LightSettings {outScene.lightListName(headerIndex)}[{len(outScene.lights)}]"
+    lightName = f"EnvLightSettings {outScene.lightListName(headerIndex)}[{len(outScene.lights)}]"
 
     # .h
     lightSettingsData.header = f"extern {lightName};\n"

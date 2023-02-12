@@ -1769,6 +1769,37 @@ enumMacrosNames = [
     ("macro_yellow_coin_2", "Yellow Coin 2", "Yellow Coin 2"),
 ]
 
+
+# groups you can select for levels
+groupsSeg5 = [
+    ("group1", "group1", "Ground objects (Thwomp, Heave-Ho, Hoot etc.)"),
+    ("group2", "group2", "Bully/Blargg"),
+    ("group3", "group3", "King Bob-Omb"),
+    ("group4", "group4", "Water Objects (Unagi, Manta, Clam)"),
+    ("group5", "group5", "Sand Objects (Pokey, Eyerock, klepto)"),
+    ("group6", "group6", "TTM Objects (Monty Mole, uUkiki, Fwoosh)"),
+    ("group7", "group7", "Snow Objects (Mr Blizzard, Spindrift etc.)"),
+    ("group8", "group8", "Cap Switch"),
+    ("group9", "group9", "Haunted Objects (Boo, Mad Piano etc.)"),
+    ("group10", "group10", "Peach/Yoshi"),
+    ("group11", "group11", "THI Ojbects (Lakitu, Wiggler, Bubba)"),
+    ("Do Not Write", "Do Not Write", "Do Not Write"),
+    ("Custom", "Custom", "Custom"),
+]
+
+
+groupsSeg6 = [
+    ("group12", "group12", "Bowser/Bowser Bomb"),
+    ("group13", "group13", "Water Objects (Skeeter, Treasure Chest etc.)"),
+    ("group14", "group14", "Ground Objects (Piranha Plant, Chain Chomp etc.)"),
+    ("group15", "group15", "Castle Objects (MIPS, Toad etc.)"),
+    ("group16", "group16", "Ice Objects (Chill Bully, Moneybags)"),
+    ("group17", "group17", "Cave Objects (Swoop, Scuttlebug, Dorrie etc.)"),
+    ("Do Not Write", "Do Not Write", "Do Not Write"),
+    ("Custom", "Custom", "Custom"),
+]
+
+
 marioAnimations = [
 #   ( Adress, "Animation name" ),
     ( 5162640, "0 - Climb up ledge (right leg going up)"),

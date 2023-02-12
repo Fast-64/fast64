@@ -81,7 +81,7 @@ def getOrMakeVertexGroup(obj, groupName):
     return obj.vertex_groups.new(name=groupName)
 
 
-def unhideAllAndGetHiddenList(scene):
+def unhideAllAndGetHiddenState(scene):
     hiddenObjs = []
     for obj in scene.objects:
         if obj.hide_get():
@@ -90,12 +90,32 @@ def unhideAllAndGetHiddenList(scene):
     if bpy.context.mode != "OBJECT":
         bpy.ops.object.mode_set(mode="OBJECT")
     bpy.ops.object.hide_view_clear()
-    return hiddenObjs
+
+    hiddenLayerCols = []
+
+    layerColStack = [bpy.context.view_layer.layer_collection]
+    while layerColStack:
+        layerCol = layerColStack.pop(0)
+        layerColStack.extend(layerCol.children)
+
+        if layerCol.hide_viewport:
+            hiddenLayerCols.append(layerCol)
+            layerCol.hide_viewport = False
+
+    hiddenState = (hiddenObjs, hiddenLayerCols)
+
+    return hiddenState
 
 
-def hideObjsInList(hiddenObjs):
+def restoreHiddenState(hiddenState):
+    # as returned by unhideAllAndGetHiddenState
+    (hiddenObjs, hiddenLayerCols) = hiddenState
+
     for obj in hiddenObjs:
         obj.hide_set(True)
+
+    for layerCol in hiddenLayerCols:
+        layerCol.hide_viewport = True
 
 
 def readFile(filepath):
@@ -338,6 +358,27 @@ class CData:
     def append(self, other):
         self.source += other.source
         self.header += other.header
+
+
+class CScrollData(CData):
+    """This class contains a list of function names, so that the top level scroll function can call all of them."""
+
+    def __init__(self):
+        self.functionCalls: list[str] = []
+        """These function names are all called in one top level scroll function."""
+
+        self.topLevelScrollFunc: str = ""
+        """This function is the final one that calls all the others."""
+
+        CData.__init__(self)
+
+    def append(self, other):
+        if isinstance(other, CScrollData):
+            self.functionCalls.extend(other.functionCalls)
+        CData.append(self, other)
+
+    def hasScrolling(self):
+        return len(self.functionCalls) > 0
 
 
 def getObjectFromData(data):
@@ -831,6 +872,7 @@ def get_obj_temp_mesh(obj):
         if o.get("temp_export") and o.get("instanced_mesh_name") == obj.get("instanced_mesh_name"):
             return o
 
+
 def apply_objects_modifiers_and_transformations(allObjs: Iterable[bpy.types.Object]):
     # first apply modifiers so that any objects that affect each other are taken into consideration
     for selectedObj in allObjs:
@@ -855,6 +897,7 @@ def apply_objects_modifiers_and_transformations(allObjs: Iterable[bpy.types.Obje
             bpy.ops.object.transform_apply(location=False, rotation=False, scale=True, properties=False)
         else:
             bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
+
 
 def duplicateHierarchy(obj, ignoreAttr, includeEmpties, areaIndex, include_curves = 0, include_cameras = 0):
     # Duplicate objects to apply scale / modifiers / linked data
