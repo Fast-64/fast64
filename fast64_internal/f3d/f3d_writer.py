@@ -2772,7 +2772,7 @@ def saveOtherModeLDefinition(fMaterial, settings, defaults, defaultRenderMode, m
 
 
 def saveOtherModeLDefinitionAll(fMaterial: FMaterial, settings, defaults, defaultRenderMode):
-    if not settings.set_rendermode and defaultRenderMode is None:
+    if not settings.set_rendermode:
         cmd = SPSetOtherMode("G_SETOTHERMODE_L", 0, 3, [])
         cmd.flagList.append(settings.g_mdsft_alpha_compare)
         cmd.flagList.append(settings.g_mdsft_zsrcsel)
