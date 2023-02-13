@@ -2471,7 +2471,7 @@ def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, dr
     # Scan the displaylist to look for material loads and reverts
     # Use a while instead of a for to be able to insert into the list during iteration
     commandIdx = 0
-    
+
     while commandIdx < len(meshMatOverride.commands):
         # Get the command at the current index
         command = meshMatOverride.commands[commandIdx]
@@ -2543,12 +2543,17 @@ def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, dr
                 # Reverts are only needed if the next command is a different material load
                 if fMaterial.revert is None and fOverrideMat.revert is not None:
                     nextCommand = meshMatOverride.commands[commandIdx + 1]
-                    if isinstance(nextCommand, SPDisplayList) and nextCommand.displayList.tag == GfxListTag.Material and nextCommand.displayList != prevMaterial.material:
+                    if (
+                        isinstance(nextCommand, SPDisplayList)
+                        and nextCommand.displayList.tag == GfxListTag.Material
+                        and nextCommand.displayList != prevMaterial.material
+                    ):
                         # Insert the new command
                         meshMatOverride.commands.insert(commandIdx + 1, SPDisplayList(fOverrideMat.revert))
                         commandIdx += 1
         # iterate to the next cmd
         commandIdx += 1
+
 
 def findVertIndexInBuffer(loop, buffer, loopDict):
     i = 0

@@ -51,11 +51,23 @@ def getLargeTextureInfo(material):
 
 
 enumOpLTBias = [
-    ("Square", "Square (~1x1)", "Almost square loads, rounded up to nearest line. For meshes which will be deformed (e.g. circular) if results with Weak are not acceptable"),
+    (
+        "Square",
+        "Square (~1x1)",
+        "Almost square loads, rounded up to nearest line. For meshes which will be deformed (e.g. circular) if results with Weak are not acceptable",
+    ),
     ("Weak", "Weak (1x1/2x1)", "Square or twice-width loads, depending on format and free memory, e.g. 32x32 or 64x32"),
     ("Moderate", "Moderate (4x1/2x1)", "Width 4x or 2x height, e.g. 64x16 or 64x32. Good efficiency balance"),
-    ("Strong", "Strong (4x1/8x1)", "Width 4x or 8x height, e.g. 64x16 or 128x16. More efficient than Moderate if geometry usually viewed roughly straight-on"),
-    ("Extreme", "Extreme (ortho+point only)", "Maximum width, up to full texture rows. Maximum efficiency if geometry always aligned to camera (orthographic) and point sampled. Inefficient otherwise"),
+    (
+        "Strong",
+        "Strong (4x1/8x1)",
+        "Width 4x or 8x height, e.g. 64x16 or 128x16. More efficient than Moderate if geometry usually viewed roughly straight-on",
+    ),
+    (
+        "Extreme",
+        "Extreme (ortho+point only)",
+        "Maximum width, up to full texture rows. Maximum efficiency if geometry always aligned to camera (orthographic) and point sampled. Inefficient otherwise",
+    ),
 ]
 
 
@@ -182,6 +194,7 @@ def createLargeTextureMeshInternal(bm, prop):
     # Mesh setup
     bm.clear()
     uvlayer = bm.loops.layers.uv.new("UVMap")
+
     def addGrid(svals, tvals):
         ns, nt = len(svals), len(tvals)
         verts = []
@@ -190,24 +203,31 @@ def createLargeTextureMeshInternal(bm, prop):
                 verts.append(bm.verts.new((s * prop.scale, 0.0, -t * prop.scale)))
         bm.verts.index_update()
         faces = []
-        for ti in range(nt-1):
-            for si in range(ns-1):
-                faces.append(bm.faces.new((
-                    verts[ti*ns+(si+1)],
-                    verts[ti*ns+si],
-                    verts[(ti+1)*ns+si],
-                    verts[(ti+1)*ns+(si+1)],
-                )))
+        for ti in range(nt - 1):
+            for si in range(ns - 1):
+                faces.append(
+                    bm.faces.new(
+                        (
+                            verts[ti * ns + (si + 1)],
+                            verts[ti * ns + si],
+                            verts[(ti + 1) * ns + si],
+                            verts[(ti + 1) * ns + (si + 1)],
+                        )
+                    )
+                )
         bm.faces.index_update()
-        for ti in range(nt-1):
-            for si in range(ns-1):
-                f = faces[ti*(ns-1)+si]
+        for ti in range(nt - 1):
+            for si in range(ns - 1):
+                f = faces[ti * (ns - 1) + si]
+
                 def getUV(ds, dt):
-                    return Vector((svals[si+ds] * uvScale[0], 1.0 - tvals[ti+dt] * uvScale[1]))
+                    return Vector((svals[si + ds] * uvScale[0], 1.0 - tvals[ti + dt] * uvScale[1]))
+
                 f.loops[0][uvlayer].uv = getUV(1, 0)
                 f.loops[1][uvlayer].uv = getUV(0, 0)
                 f.loops[2][uvlayer].uv = getUV(0, 1)
                 f.loops[3][uvlayer].uv = getUV(1, 1)
+
     def clampGridDim(dim):
         vals = [-prop.clamp_border]
         d = baseTile[dim]
@@ -218,6 +238,7 @@ def createLargeTextureMeshInternal(bm, prop):
         if not bilinear or not prop.lose_pixels or d == imHi:
             vals.append(imHi + prop.clamp_border)
         return vals
+
     def wrapGridDim(dim):
         # Could create a new grid for wrap tris at the edges, because their loads
         # can often be combined due to their smaller sizes. However, this would
@@ -260,6 +281,7 @@ def createLargeTextureMeshInternal(bm, prop):
                     d += nextWrapBdry
             vals.append(d)
         return vals
+
     func = clampGridDim if largeEdges == "Clamp" else wrapGridDim
     addGrid(func(0), func(1))
 
@@ -270,7 +292,7 @@ class CreateLargeTextureMesh(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO", "PRESET"}
 
     def execute(self, context):
-        bpy.ops.object.select_all(action='DESELECT')
+        bpy.ops.object.select_all(action="DESELECT")
         prop = context.scene.opLargeTextureProperty
         assert prop.mat is not None
         name = prop.mat.name + "Mesh"
@@ -283,7 +305,7 @@ class CreateLargeTextureMesh(bpy.types.Operator):
         bm.to_mesh(mesh)
         bm.free()
         bpy.context.collection.objects.link(obj)
-        obj.parent_type = 'OBJECT'
+        obj.parent_type = "OBJECT"
         for o in context.scene.objects:
             if o.name.startswith("Room"):
                 obj.parent = o

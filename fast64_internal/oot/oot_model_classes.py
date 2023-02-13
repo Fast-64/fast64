@@ -125,22 +125,28 @@ class OOTModel(FModel):
 
     def addFlipbookWithRepeatCheck(self, flipbook: TextureFlipbook):
         model = self.getFlipbookOwner()
+
         def raiseErr(submsg):
             raise PluginError(
                 f"There are two flipbooks {subMsg} trying to write to the same texture array "
                 + f"named: {flipbook.name}.\nMake sure that this flipbook name is unique, or "
                 + "that repeated uses of this name use the same textures in the same order/format."
             )
+
         for existingFlipbook in model.flipbooks:
             if existingFlipbook.name == flipbook.name:
                 if len(existingFlipbook.textureNames) != len(flipbook.textureNames):
-                    raiseErr(f"of different lengths ({len(existingFlipbook.textureNames)} "
-                        + f"vs. {len(flipbook.textureNames)})")
+                    raiseErr(
+                        f"of different lengths ({len(existingFlipbook.textureNames)} "
+                        + f"vs. {len(flipbook.textureNames)})"
+                    )
                 for i in range(len(flipbook.textureNames)):
                     if existingFlipbook.textureNames[i] != flipbook.textureNames[i]:
-                        raiseErr(f"with differing elements (elem {i} = "
+                        raiseErr(
+                            f"with differing elements (elem {i} = "
                             + f"{existingFlipbook.textureNames[i]} vs. "
-                            + f"{flipbook.textureNames[i]})")
+                            + f"{flipbook.textureNames[i]})"
+                        )
         model.flipbooks.append(flipbook)
 
     def validateImages(self, material: bpy.types.Material, index: int):
@@ -153,8 +159,10 @@ class OOTModel(FModel):
                 raise PluginError(f"Flipbook for {material.name} has a texture array item that has not been set.")
             imSize = (flipbookTexture.image.size[0], flipbookTexture.image.size[1])
             if imSize != refSize:
-                raise PluginError(f"In {material.name}: texture reference size is {refSize}, "
-                    + f"but flipbook image {flipbookTexture.image.filepath} size is {imSize}.")
+                raise PluginError(
+                    f"In {material.name}: texture reference size is {refSize}, "
+                    + f"but flipbook image {flipbookTexture.image.filepath} size is {imSize}."
+                )
             if flipbookTexture.image not in allImages:
                 allImages.append(flipbookTexture.image)
         return allImages
@@ -178,7 +186,7 @@ class OOTModel(FModel):
             imageName, filename = getTextureNamesFromImage(flipbookTexture.image, texProp.tex_format, model)
             if flipbookProp.exportMode == "Individual":
                 imageName = flipbookTexture.name
-            
+
             # We don't know yet if this already exists, cause we need the full set
             # of images which contribute to the palette, which we don't get until
             # writeTexRefCITextures (in case the other texture in multitexture contributes).
@@ -256,7 +264,7 @@ class OOTModel(FModel):
                     filename,
                 )
                 model.addTexture(imageKey, fImage, fMaterial)
-            
+
             flipbook.textureNames.append(fImage.name)
             flipbook.images.append((flipbookTexture.image, fImage))
 

@@ -268,12 +268,7 @@ def maybeSaveSingleLargeTextureSetup(
 # Functions for texture and palette definitions
 
 
-def getTextureNamesFromBasename(
-    baseName: str,
-    texOrPalFormat: str,
-    parent: Union[FModel, FTexRect],
-    isPalette: bool
-):
+def getTextureNamesFromBasename(baseName: str, texOrPalFormat: str, parent: Union[FModel, FTexRect], isPalette: bool):
     suffix = getTextureSuffixFromFormat(texOrPalFormat)
     imageName = parent.name + "_" + baseName + "_"
     if isPalette:
@@ -293,22 +288,14 @@ def getImageName(image: bpy.types.Image):
         return getNameFromPath(image.filepath, True)
 
 
-def getTextureNamesFromImage(
-    image: bpy.types.Image,
-    texFormat: str,
-    parent: Union[FModel, FTexRect]
-):
+def getTextureNamesFromImage(image: bpy.types.Image, texFormat: str, parent: Union[FModel, FTexRect]):
     return getTextureNamesFromBasename(getImageName(image), texFormat, parent, False)
 
 
-def getTextureNamesFromProp(
-    texProp: TextureProperty,
-    parent: Union[FModel, FTexRect]
-):
+def getTextureNamesFromProp(texProp: TextureProperty, parent: Union[FModel, FTexRect]):
     if texProp.use_tex_reference:
         raise PluginError("Internal error, invalid use of getTextureNamesFromProp")
     return getTextureNamesFromImage(texProp.tex, texProp.tex_format, parent)
-
 
 
 def checkDuplicateTextureName(parent: Union[FModel, FTexRect], name):
@@ -386,7 +373,7 @@ def saveOrGetTextureDefinition(
 
 
 @dataclass
-class TexInfo():
+class TexInfo:
     # Main parameters
     useTex: bool = False
     isTexRef: bool = False
@@ -396,14 +383,14 @@ class TexInfo():
     imageDims: tuple[int, int] = (0, 0)
     tmemSize: int = 0
     errorMsg: str = ""
-    
+
     # Parameters from moreSetupFromModel
     pal: Optional[list[int]] = None
     palLen: int = 0
     imUse: Optional[list[bpy.types.Image]] = None
     flipbook: Optional["TextureFlipbook"] = None
     isPalRef: bool = False
-    
+
     # Parameters computed by MultitexManager.writeAll
     texAddr: int = 0
     palAddr: int = 0
@@ -413,7 +400,7 @@ class TexInfo():
     loadPal: bool = False
     doTexLoad: bool = True
     doTexTile: bool = True
-    
+
     # Internal parameters--copies of passed parameters
     texProp: Optional[TextureProperty] = None
     indexInMat: int = -1
@@ -431,7 +418,7 @@ class TexInfo():
         self.texProp = texProp
         if not texProp.tex_set:
             return True
-        
+
         self.useTex = True
         tex = texProp.tex
         self.isTexRef = texProp.use_tex_reference
@@ -466,7 +453,7 @@ class TexInfo():
         if texBitSizeInt[self.texFormat] == 4 and (width & 1) != 0:
             self.errorMsg = f"A 4-bit image must have a width which is even."
             return False
-        
+
         return True
 
     def moreSetupFromModel(
@@ -477,10 +464,9 @@ class TexInfo():
     ) -> None:
         if not self.useTex:
             return
-        
+
         if self.isTexCI:
-            self.imUse, self.flipbook, self.pal = fModel.processTexRefCITextures(
-                fMaterial, material, self.indexInMat)
+            self.imUse, self.flipbook, self.pal = fModel.processTexRefCITextures(fMaterial, material, self.indexInMat)
             if self.isTexRef:
                 if self.flipbook is not None:
                     self.palLen = len(self.pal)
@@ -497,9 +483,8 @@ class TexInfo():
                     + f" uses too many unique colors to fit in format {self.texFormat}."
                 )
         else:
-            self.imUse, self.flipbook = fModel.processTexRefNonCITextures(
-                fMaterial, material, self.indexInMat)
-        
+            self.imUse, self.flipbook = fModel.processTexRefNonCITextures(fMaterial, material, self.indexInMat)
+
         self.isPalRef = self.isTexRef and self.flipbook is None
         self.palUse = self.imUse
 
@@ -509,8 +494,9 @@ class TexInfo():
         if self.flipbook is not None:
             return self.flipbook.name
         return getImageName(self.texProp.tex)
-    
-    def writeAll(self,
+
+    def writeAll(
+        self,
         loadGfx: GfxList,
         fMaterial: FMaterial,
         fModel: Union[FModel, FTexRect],
@@ -518,8 +504,8 @@ class TexInfo():
     ):
         if not self.useTex:
             return
-        assert self.imUse is not None # Must be set manually if didn't use moreSetupFromModel, e.g. ti.imUse = [tex]
-        
+        assert self.imUse is not None  # Must be set manually if didn't use moreSetupFromModel, e.g. ti.imUse = [tex]
+
         # Get definitions
         imageKey, fImage = saveOrGetTextureDefinition(
             fMaterial, fModel, self.texProp, self.imUse, fMaterial.isTexLarge[self.indexInMat]
@@ -529,27 +515,28 @@ class TexInfo():
             _, fPalette = saveOrGetPaletteDefinition(
                 fMaterial, fModel, self.texProp, self.isPalRef, self.palUse, self.palBaseName, self.palLen
             )
-        
+
         # Write loads
         loadGfx = fMaterial.material
         f3d = fModel.f3d
         if self.loadPal:
-            savePaletteLoad(
-                loadGfx, fPalette, self.palFormat, self.palAddr, self.palLen, 5 - self.indexInMat, f3d)
+            savePaletteLoad(loadGfx, fPalette, self.palFormat, self.palAddr, self.palLen, 5 - self.indexInMat, f3d)
         if self.doTexLoad:
-            saveTextureLoadOnly(
-                fImage, loadGfx, self.texProp, None, 7 - self.indexInMat, self.texAddr, f3d)
+            saveTextureLoadOnly(fImage, loadGfx, self.texProp, None, 7 - self.indexInMat, self.texAddr, f3d)
         if self.doTexTile:
             saveTextureTile(
-                fImage, fMaterial, loadGfx, self.texProp, None, self.indexInMat, self.texAddr, self.palIndex, f3d)
-        
+                fImage, fMaterial, loadGfx, self.texProp, None, self.indexInMat, self.texAddr, self.palIndex, f3d
+            )
+
         # Write texture data
         if convertTextureData:
             if self.loadPal and not self.isPalRef:
                 writePaletteData(fPalette, self.pal)
             if self.isTexRef:
                 if self.isTexCI:
-                    fModel.writeTexRefCITextures(self.flipbook, fMaterial, self.imUse, self.pal, self.texFormat, self.palFormat)
+                    fModel.writeTexRefCITextures(
+                        self.flipbook, fMaterial, self.imUse, self.pal, self.texFormat, self.palFormat
+                    )
                 else:
                     fModel.writeTexRefNonCITextures(self.flipbook, self.texFormat)
             else:
@@ -559,8 +546,9 @@ class TexInfo():
                     writeNonCITextureData(self.texProp.tex, fImage, self.texFormat)
 
 
-class MultitexManager():
-    def __init__(self,
+class MultitexManager:
+    def __init__(
+        self,
         material: bpy.types.Material,
         fMaterial: FMaterial,
         fModel: FModel,
@@ -617,11 +605,8 @@ class MultitexManager():
     def getTT(self) -> str:
         return "G_TT_NONE" if not self.isCI else ("G_TT_" + self.palFormat)
 
-    def writeAll(self,
-        material: bpy.types.Material,
-        fMaterial: FMaterial,
-        fModel: FModel,
-        convertTextureData: bool
+    def writeAll(
+        self, material: bpy.types.Material, fMaterial: FMaterial, fModel: FModel, convertTextureData: bool
     ) -> None:
         f3dMat = material.f3d_mat
         # Determine how to arrange / load palette entries into upper half of tmem
@@ -674,8 +659,14 @@ class MultitexManager():
                         # would be if im0 was alone. But im1 and self.ti0.pal depend on both.
                         self.ti1.imUse = self.ti0.palUse = self.ti0.imUse + self.ti1.imUse
                 elif self.ti0.texFormat != self.ti1.texFormat:  # One CI8, one CI4
-                    ci8Pal, ci4Pal = (self.ti0.pal, self.ti1.pal) if self.ti0.texFormat == "CI8" else (self.ti1.pal, self.ti0.pal)
-                    ci8PalLen, ci4PalLen = (self.ti0.palLen, self.ti1.palLen) if self.ti0.texFormat == "CI8" else (self.ti1.palLen, self.ti0.palLen)
+                    ci8Pal, ci4Pal = (
+                        (self.ti0.pal, self.ti1.pal) if self.ti0.texFormat == "CI8" else (self.ti1.pal, self.ti0.pal)
+                    )
+                    ci8PalLen, ci4PalLen = (
+                        (self.ti0.palLen, self.ti1.palLen)
+                        if self.ti0.texFormat == "CI8"
+                        else (self.ti1.palLen, self.ti0.palLen)
+                    )
                     if self.ti0.pal is None or self.ti1.pal is None:
                         if ci8PalLen > 256 - 16:
                             raise PluginError(
@@ -713,7 +704,11 @@ class MultitexManager():
                         else:
                             self.ti1.imUse = self.ti0.palUse
                 else:  # both CI4 textures
-                    if self.ti0.pal is None and self.ti1.pal is None and self.ti0.texProp.pal_reference == self.ti1.texProp.pal_reference:
+                    if (
+                        self.ti0.pal is None
+                        and self.ti1.pal is None
+                        and self.ti0.texProp.pal_reference == self.ti1.texProp.pal_reference
+                    ):
                         self.ti0.loadPal = True
                     elif self.ti0.pal is None or self.ti1.pal is None:
                         self.ti0.loadPal = self.ti1.loadPal = True
@@ -761,7 +756,11 @@ class MultitexManager():
             and self.ti1.useTex
             and (
                 (not self.ti0.isTexRef and not self.ti1.isTexRef and self.ti0.texProp.tex == self.ti1.texProp.tex)
-                or (self.ti0.isTexRef and self.ti1.isTexRef and self.ti0.texProp.tex_reference == self.ti1.texProp.tex_reference)
+                or (
+                    self.ti0.isTexRef
+                    and self.ti1.isTexRef
+                    and self.ti0.texProp.tex_reference == self.ti1.texProp.tex_reference
+                )
             )
         )
         useLargeTextures = material.mat_ver > 3 and f3dMat.use_large_textures
@@ -813,7 +812,9 @@ class MultitexManager():
                 else:
                     # Both textures large
                     raise PluginError(
-                        'Error in "' + material.name + '": Multitexture with two large textures is not currently supported.'
+                        'Error in "'
+                        + material.name
+                        + '": Multitexture with two large textures is not currently supported.'
                     )
                     # Limited cases of 2x large textures could be supported in the
                     # future. However, these cases are either of questionable

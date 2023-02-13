@@ -840,7 +840,6 @@ class F3DPanel(bpy.types.Panel):
             self.ui_fog(f3dMat, inputCol, False)
 
     def draw_full(self, f3dMat, material, layout: bpy.types.UILayout, context):
-
         layout.row().prop(material, "menu_tab", expand=True)
         menuTab = material.menu_tab
         useDict = all_combiner_uses(f3dMat)
@@ -1568,7 +1567,7 @@ def toggle_texture_node_muting(material: bpy.types.Material, texIndex: int, isUs
 
 def set_texture_nodes_settings(
     material: bpy.types.Material, texProperty: "TextureProperty", texIndex: int, isUsed: bool
-) -> (list[int] | None):
+) -> list[int] | None:
     node_tree = material.node_tree
     f3dMat: "F3DMaterialProperty" = material.f3d_mat
 
@@ -1815,7 +1814,6 @@ def load_handler(dummy):
 
         # detect if this is one your addon's libraries here
         if "f3d_material_library.blend" in lib_path:
-
             addon_dir = os.path.dirname(os.path.abspath(__file__))
             new_lib_path = os.path.join(addon_dir, "f3d_material_library.blend")
 
@@ -2259,9 +2257,12 @@ def update_combiner_connections_and_preset(self, context: bpy.types.Context):
 
 
 def ui_image(
-    canUseLargeTextures: bool, layout: bpy.types.UILayout,
+    canUseLargeTextures: bool,
+    layout: bpy.types.UILayout,
     material: bpy.types.Material,
-    textureProp: TextureProperty, name: str, showCheckBox: bool
+    textureProp: TextureProperty,
+    name: str,
+    showCheckBox: bool,
 ):
     inputGroup = layout.box().column()
 
@@ -2304,7 +2305,7 @@ def ui_image(
             width, height = tex.size[0], tex.size[1]
         else:
             width = height = 0
-            
+
         if canUseLargeTextures:
             availTmem = 512
             if textureProp.tex_format[:2] == "CI":
@@ -2334,13 +2335,21 @@ def ui_image(
                     msg = prop_input.box().column()
                     msg.label(text=f"Suggest {textureProp.tex_format} tex be multiple ", icon="INFO")
                     msg.label(text=f"of {texelsPerWord} pixels wide for fast loading.")
-                warnClampS = not isPowerOf2(width) and not textureProp.S.clamp and (not textureProp.autoprop or textureProp.S.mask != 0)
-                warnClampT = not isPowerOf2(height) and not textureProp.T.clamp and (not textureProp.autoprop or textureProp.T.mask != 0)
+                warnClampS = (
+                    not isPowerOf2(width)
+                    and not textureProp.S.clamp
+                    and (not textureProp.autoprop or textureProp.S.mask != 0)
+                )
+                warnClampT = (
+                    not isPowerOf2(height)
+                    and not textureProp.T.clamp
+                    and (not textureProp.autoprop or textureProp.T.mask != 0)
+                )
                 if warnClampS or warnClampT:
                     msg = prop_input.box().column()
                     msg.label(text=f"Clamping required for non-power-of-2 image", icon="ERROR")
                     msg.label(text=f"dimensions. Enable clamp or set mask to 0.")
-            
+
             texFieldSettings = prop_input.column()
             clampSettings = texFieldSettings.row()
             clampSettings.prop(textureProp.S, "clamp", text="Clamp S")

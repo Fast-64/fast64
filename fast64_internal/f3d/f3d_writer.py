@@ -1353,7 +1353,12 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     else:
         saveGeoModeDefinition(fMaterial, f3dMat.rdp_settings, defaults, fModel.matWriteMethod)
     saveOtherModeHDefinition(
-        fMaterial, f3dMat.rdp_settings, multitexManager.getTT(), defaults, fModel.f3d._HW_VERSION_1, fModel.matWriteMethod
+        fMaterial,
+        f3dMat.rdp_settings,
+        multitexManager.getTT(),
+        defaults,
+        fModel.f3d._HW_VERSION_1,
+        fModel.matWriteMethod,
     )
     saveOtherModeLDefinition(fMaterial, f3dMat.rdp_settings, defaults, defaultRM, fModel.matWriteMethod)
     saveOtherDefinition(fMaterial, f3dMat, defaults)
@@ -1370,7 +1375,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 
     # Write textures
     multitexManager.writeAll(material, fMaterial, fModel, convertTextureData)
-    
+
     # Write colors
     nodes = material.node_tree.nodes
     if useDict["Primitive"] and f3dMat.set_prim:
