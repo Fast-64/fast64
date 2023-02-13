@@ -2946,18 +2946,21 @@ class FMesh:
             cmd_list.commands.extend(texGfx.commands)
         # add in triangles
         cmd_list.commands.extend(triGroup.triList.commands)
-        if triGroup.triList.commands:
+        # skinned meshes don't draw tris sometimes, use this opportunity to save a sync
+        tri_cmds = [c for c in triGroup.triList.commands if type(c) == SP1Triangle or type(c) == SP2Triangles]
+        if tri_cmds:
             bleed.reset_cmds.add(DPPipeSync)
         cmd_list.bled = BleedTags.MiddleBleed
         
     # process the triGroup cmds
     def processInlineTriGroup(self, f3d: F3D, triGroup: "FTriGroup", bleed: "BleedGfx"):
         if triGroup.fMaterial.useLargeTextures:
+            dummylist = GfxList(self.draw.name, GfxListTag.Draw, self.DLFormat)
             usage_dict = dict()
             cnt = 0
             tri_commands = copy.copy(triGroup.triList.commands)  # copy the commands
             for j, cmd in enumerate(tri_commands):
-                if not cmd.bleed([], [], 0):
+                if not cmd.bleed([], triGroup.triList, len(tri_commands)):
                     continue
                 last_use = usage_dict.get((type(cmd), getattr(cmd, "tile", None)), None)
                 usage_dict[(type(cmd), getattr(cmd, "tile", None))] = cmd
@@ -4725,7 +4728,7 @@ class DPSetTileSize(GbiMacro):
         return self.t == f3d.G_TX_LOADTILE
 
     def bleed(self, lastGfxList: GfxList, curList: GfxList, curIndex: int):
-        return self.tags
+        return self.tags != GfxTag.TileScroll0 and self.tags != GfxTag.TileScroll1
 
 
 @dataclass(unsafe_hash=True)
