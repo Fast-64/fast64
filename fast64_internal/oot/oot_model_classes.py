@@ -5,19 +5,14 @@ from ..f3d.f3d_material import TextureProperty, createF3DMat, texFormatOf, texBi
 from ..utility import PluginError, CData, hexOrDecInt, getNameFromPath, getTextureSuffixFromFormat, toAlnum
 from ..f3d.flipbook import TextureFlipbook, FlipbookProperty, usesFlipbook, ootFlipbookReferenceIsValid
 
-from ..f3d.f3d_writer import (
-    VertexGroupInfo,
-    TriangleConverterInfo,
-    DPLoadTLUTCmd,
-    DPSetTextureLUT,
-    DPSetTile,
+from ..f3d.f3d_writer import VertexGroupInfo, TriangleConverterInfo
+from ..f3d.f3d_texture_writer import (
     getColorsUsedInImage,
     mergePalettes,
     writeCITextureData,
     writeNonCITextureData,
     getTextureNamesFromImage,
 )
-
 from ..f3d.f3d_gbi import (
     FModel,
     FMaterial,
@@ -32,6 +27,7 @@ from ..f3d.f3d_gbi import (
     SPMatrix,
     GfxFormatter,
     MTX_SIZE,
+    DPSetTile,
 )
 
 
@@ -201,7 +197,7 @@ class OOTModel(FModel):
             flipbook.textureNames.append(fImage_temp.name)
             flipbook.images.append((flipbookTexture.image, fImage_temp))
 
-        # print(f"Palette length: {len(pal)}") # Checked in getAndCheckTexInfo
+        # print(f"Palette length: {len(pal)}") # Checked in moreSetupFromModel
         return allImages, flipbook, pal
 
     def writeTexRefCITextures(

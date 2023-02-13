@@ -4,14 +4,8 @@ from math import ceil, log, radians
 from mathutils import Matrix, Vector
 from bpy.utils import register_class, unregister_class
 from ..panels import SM64_Panel
-from ..f3d.f3d_writer import (
-    getTexInfoFromProp,
-    saveOrGetTextureDefinition,
-    saveTextureLoadOnly,
-    saveTextureTile,
-    writeNonCITextureData,
-    exportF3DCommon,
-)
+from ..f3d.f3d_writer import exportF3DCommon
+from ..f3d.f3d_texture_writer import TexInfo
 from ..f3d.f3d_material import TextureProperty, tmemUsageUI, all_combiner_uses, ui_procAnim
 from .sm64_texscroll import modifyTexScrollFiles, modifyTexScrollHeadersGroup
 from .sm64_utility import starSelectWarning
@@ -307,20 +301,19 @@ def exportTexRectCommon(texProp, f3dType, isHWv1, name, convertTextureData):
 
     drawEndCommands = GfxList("temp", GfxListTag.Draw, DLFormat.Dynamic)
 
-    useTex, isTexRef, isTexCI, texFmt, _, imageDims, texTmem = getTexInfoFromProp(texProp)
-    if not useTex:
-        raise PluginError("In " + name + ": texture disabled.")
-    if isTexCI:
-        raise PluginError("In " + name + ": CI textures not compatible with exportTexRectCommon (b/c copy mode).")
-    if texTmem > 512:
-        raise PluginError("In " + name + ": texture is too big (> 4 KiB).")
-    if texFmt != "RGBA16":
-        raise PluginError("In " + name + ": texture format must be RGBA16 (b/c copy mode).")
-    imageKey, fImage = saveOrGetTextureDefinition(fMaterial, fTexRect, texProp, [tex], texName, False)
-    saveTextureLoadOnly(fImage, fTexRect.draw, texProp, None, 7, 0, fTexRect.f3d)
-    saveTextureTile(fImage, fMaterial, fTexRect.draw, texProp, None, 0, 0, 0, fTexRect.f3d)
-    if convertTextureData:
-        writeNonCITextureData(tex, fImage, texFmt)
+    ti = TexInfo()
+    if not ti.fromProp(texProp, 0):
+        raise PluginError(f"In {name}: {texProp.errorMsg}.")
+    if not ti.useTex:
+        raise PluginError(f"In {name}: texture disabled.")
+    if ti.isTexCI:
+        raise PluginError(f"In {name}: CI textures not compatible with exportTexRectCommon (b/c copy mode).")
+    if ti.tmemSize > 512:
+        raise PluginError(f"In {name}: texture is too big (> 4 KiB).")
+    if ti.texFormat != "RGBA16":
+        raise PluginError(f"In {name}: texture format must be RGBA16 (b/c copy mode).")
+    ti.imUse = [tex]
+    ti.writeAll(fTexRect.draw, fMaterial, fTexRect, convertTextureData)
 
     fTexRect.draw.commands.append(
         SPScisTextureRectangle(0, 0, (texDimensions[0] - 1) << 2, (texDimensions[1] - 1) << 2, 0, 0, 0)

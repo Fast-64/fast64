@@ -4,10 +4,10 @@ from bpy.utils import register_class, unregister_class
 from ..utility import *
 from .f3d_enums import texBitSizeInt
 from .f3d_material import getTmemWordUsage
-from .f3d_writer import getTexInfoFromMat
+from .f3d_writer import TexInfo
 
 
-def getTexInfoForLarge(material):
+def getLargeTextureInfo(material):
     f3dMat = material.f3d_mat
     if f3dMat is None:
         return "This is not a Fast3D material.", None
@@ -17,38 +17,35 @@ def getTexInfoForLarge(material):
     if f3dMat.rdp_settings.g_mdsft_text_filt == "G_TF_AVERAGE":
         return 'Texture filter "Average" not supported.', None
     bilinear = f3dMat.rdp_settings.g_mdsft_text_filt == "G_TF_BILERP"
-    err0, info0 = getTexInfoFromMat(0, f3dMat)
-    err1, info1 = getTexInfoFromMat(1, f3dMat)
-    if err0 is not None:
-        return err0, None
-    if err1 is not None:
-        return err1, None
-    (useTex0, isTex0Ref, isTex0CI, tex0Fmt, _, imageDims0, tex0Tmem) = info0
-    (useTex1, isTex1Ref, isTex1CI, tex1Fmt, _, imageDims1, tex1Tmem) = info1
-    isCI = (useTex0 and isTex0CI) or (useTex1 and isTex1CI)
+    ti0, ti1 = TexInfo(), TexInfo()
+    if not ti0.fromMat(0, f3dMat):
+        return ti0.errorMsg, None
+    if not ti1.fromMat(1, f3dMat):
+        return ti1.errorMsg, None
+    isCI = ti0.isTexCI or ti1.isTexCI
     tmemSize = 256 if isCI else 512
-    if not useTex0 and not useTex1:
+    if not ti0.useTex and not ti1.useTex:
         return "Material does not use textures.", None
-    if tex0Tmem + tex1Tmem <= tmemSize:
+    if ti0.tmemSize + ti1.tmemSize <= tmemSize:
         return "Texture(s) fit in TMEM; not large.", None
-    if useTex0 and useTex1:
-        if tex0Tmem <= tmemSize // 2:
-            largeDims = imageDims1
-            largeFmt = tex1Fmt
-            largeWords = tmemSize - tex0Tmem
-        elif tex1Tmem <= tmemSize // 2:
-            largeDims = imageDims0
-            largeFmt = tex0Fmt
-            largeWords = tmemSize - tex1Tmem
+    if ti0.useTex and ti1.useTex:
+        if ti0.tmemSize <= tmemSize // 2:
+            largeDims = ti1.imageDims
+            largeFmt = ti1.texFormat
+            largeWords = tmemSize - ti0.tmemSize
+        elif ti1.tmemSize <= tmemSize // 2:
+            largeDims = ti0.imageDims
+            largeFmt = ti0.texFormat
+            largeWords = tmemSize - ti1.tmemSize
         else:
             return "Two large textures not supported.", None
-    elif useTex0:
-        largeDims = imageDims0
-        largeFmt = tex0Fmt
+    elif ti0.useTex:
+        largeDims = ti0.imageDims
+        largeFmt = ti0.texFormat
         largeWords = tmemSize
     else:
-        largeDims = imageDims1
-        largeFmt = tex1Fmt
+        largeDims = ti1.imageDims
+        largeFmt = ti1.texFormat
         largeWords = tmemSize
     return None, (largeDims, largeFmt, largeWords, largeEdges, bilinear)
 
@@ -111,7 +108,7 @@ def ui_oplargetexture(layout, context):
     if prop.mat is None:
         layout.row().label(text="Please select a material.")
         return
-    err, info = getTexInfoForLarge(prop.mat)
+    err, info = getLargeTextureInfo(prop.mat)
     if err is not None:
         layout.row().label(icon="ERROR", text=err)
         return
@@ -134,7 +131,7 @@ def ui_oplargetexture(layout, context):
 
 def createLargeTextureMeshInternal(bm, prop):
     # Parameters setup
-    err, info = getTexInfoForLarge(prop.mat)
+    err, info = getLargeTextureInfo(prop.mat)
     if err is not None:
         raise PluginError(err)
     (largeDims, largeFmt, largeWords, largeEdges, bilinear) = info
