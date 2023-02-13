@@ -1,5 +1,5 @@
 from typing import Union, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import bpy
 from math import ceil, floor
 
@@ -12,11 +12,26 @@ from .f3d_material import (
     texFormatOf,
     TextureProperty,
     F3DMaterialProperty,
+    isTexturePointSampled,
 )
 from .f3d_gbi import *
 from .f3d_gbi import _DPLoadTextureBlock
 
 from ..utility import *
+
+
+def UVtoSTLarge(obj, loopIndex, uv_data, texDimensions):
+    uv = uv_data[loopIndex].uv.copy()
+    uv[1] = 1 - uv[1]
+    loopUV = uv.freeze()
+
+    # Represent the -0.5 texel offset in the UVs themselves in clamping mode
+    # if desired, rather than here at export
+    pixelOffset = 0
+    return [
+        convertFloatToFixed16(loopUV[0] * texDimensions[0] - pixelOffset) / 32,
+        convertFloatToFixed16(loopUV[1] * texDimensions[1] - pixelOffset) / 32,
+    ]
 
 
 class TileLoad:
@@ -383,17 +398,17 @@ class TexInfo():
     errorMsg: str = ""
     
     # Parameters from moreSetupFromModel
-    pal: Optional[TODO] = None
+    pal: Optional[list[int]] = None
     palLen: int = 0
-    imUse: list[bpy.types.Image] = []
-    flipbook: Optional[TODO] = None
+    imUse: Optional[list[bpy.types.Image]] = None
+    flipbook: Optional["TextureFlipbook"] = None
     isPalRef: bool = False
     
     # Parameters computed by MultitexManager.writeAll
     texAddr: int = 0
     palAddr: int = 0
     palIndex: int = 0
-    palUse: list[bpy.types.Image] = []
+    palUse: list[bpy.types.Image] = field(default_factory=list)
     palBaseName: str = ""
     loadPal: bool = False
     doTexLoad: bool = True
@@ -455,6 +470,7 @@ class TexInfo():
         return True
 
     def moreSetupFromModel(
+        self,
         material: bpy.types.Material,
         fMaterial: FMaterial,
         fModel: FModel,
@@ -502,13 +518,13 @@ class TexInfo():
     ):
         if not self.useTex:
             return
-        assert len(self.imUse) > 0 # Must be set manually if didn't use moreSetupFromModel, e.g. ti.imUse = [tex]
+        assert self.imUse is not None # Must be set manually if didn't use moreSetupFromModel, e.g. ti.imUse = [tex]
         
         # Get definitions
         imageKey, fImage = saveOrGetTextureDefinition(
             fMaterial, fModel, self.texProp, self.imUse, fMaterial.isTexLarge[self.indexInMat]
         )
-        fMaterial.imageKey[indexInMat] = imageKey
+        fMaterial.imageKey[self.indexInMat] = imageKey
         if self.loadPal:
             _, fPalette = saveOrGetPaletteDefinition(
                 fMaterial, fModel, self.texProp, self.isPalRef, self.palUse, self.palBaseName, self.palLen

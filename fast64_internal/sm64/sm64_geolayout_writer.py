@@ -58,6 +58,11 @@ from ..utility import (
     geoNodeRotateOrder,
 )
 
+from ..f3d.f3d_material import (
+    isTexturePointSampled,
+    isLightingDisabled,
+)
+
 from ..f3d.f3d_writer import (
     TriangleConverterInfo,
     LoopConvertInfo,
@@ -70,9 +75,7 @@ from ..f3d.f3d_writer import (
     saveOrGetF3DMaterial,
     saveMeshWithLargeTexturesByFaces,
     saveMeshByFaces,
-    isLightingDisabled,
     getF3DVert,
-    isTexturePointSampled,
     convertVertexData,
 )
 

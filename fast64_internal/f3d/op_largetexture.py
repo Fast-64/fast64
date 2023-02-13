@@ -4,7 +4,7 @@ from bpy.utils import register_class, unregister_class
 from ..utility import *
 from .f3d_enums import texBitSizeInt
 from .f3d_material import getTmemWordUsage
-from .f3d_writer import TexInfo
+from .f3d_texture_writer import TexInfo
 
 
 def getLargeTextureInfo(material):

@@ -227,6 +227,27 @@ def getTmemMax(texFormat):
     return 4096 if texFormat[:2] != "CI" else 2048
 
 
+# Necessary for UV half pixel offset (see 13.7.5.3)
+def isTexturePointSampled(material):
+    f3dMat = material.f3d_mat
+
+    return f3dMat.rdp_settings.g_mdsft_text_filt == "G_TF_POINT"
+
+
+def isLightingDisabled(material):
+    f3dMat = material.f3d_mat
+    return not f3dMat.rdp_settings.g_lighting
+
+
+# Necessary as G_SHADE_SMOOTH actually does nothing
+def checkIfFlatShaded(material):
+    if material.mat_ver > 3:
+        f3dMat = material.f3d_mat
+    else:
+        f3dMat = material
+    return not f3dMat.rdp_settings.g_shade_smooth
+
+
 def F3DOrganizeLights(self, context):
     # Flag to prevent infinite recursion on update callback
     with F3DMaterial_UpdateLock(get_material_from_context(context)) as material:

@@ -6,8 +6,14 @@ from bpy.utils import register_class, unregister_class
 
 from .f3d_enums import *
 from .f3d_constants import *
-from .f3d_material import all_combiner_uses, getMaterialScrollDimensions
-from .f3d_texture_writer import MultitexManager
+from .f3d_material import (
+    all_combiner_uses,
+    getMaterialScrollDimensions,
+    isTexturePointSampled,
+    isLightingDisabled,
+    checkIfFlatShaded,
+)
+from .f3d_texture_writer import MultitexManager, TileLoad, maybeSaveSingleLargeTextureSetup
 from .f3d_gbi import *
 
 from ..utility import *
@@ -593,27 +599,6 @@ def saveTriangleStrip(triConverter, faces, faceSTOffsets, mesh, terminateDL):
     return triConverter.currentGroupIndex
 
 
-# Necessary for UV half pixel offset (see 13.7.5.3)
-def isTexturePointSampled(material):
-    f3dMat = material.f3d_mat
-
-    return f3dMat.rdp_settings.g_mdsft_text_filt == "G_TF_POINT"
-
-
-def isLightingDisabled(material):
-    f3dMat = material.f3d_mat
-    return not f3dMat.rdp_settings.g_lighting
-
-
-# Necessary as G_SHADE_SMOOTH actually does nothing
-def checkIfFlatShaded(material):
-    if material.mat_ver > 3:
-        f3dMat = material.f3d_mat
-    else:
-        f3dMat = material
-    return not f3dMat.rdp_settings.g_shade_smooth
-
-
 def saveMeshByFaces(
     material,
     faces,
@@ -1085,20 +1070,6 @@ def getHighestFaceWeight(faceWeights):
 """
 
 
-def UVtoSTLarge(obj, loopIndex, uv_data, texDimensions):
-    uv = uv_data[loopIndex].uv.copy()
-    uv[1] = 1 - uv[1]
-    loopUV = uv.freeze()
-
-    # Represent the -0.5 texel offset in the UVs themselves in clamping mode
-    # if desired, rather than here at export
-    pixelOffset = 0
-    return [
-        convertFloatToFixed16(loopUV[0] * texDimensions[0] - pixelOffset) / 32,
-        convertFloatToFixed16(loopUV[1] * texDimensions[1] - pixelOffset) / 32,
-    ]
-
-
 def convertVertexData(
     mesh,
     loopPos,
@@ -1270,6 +1241,7 @@ def getTexDimensions(material):
 
 
 def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
+    print(f"Writing material {material.name}")
     if material.mat_ver > 3:
         f3dMat = material.f3d_mat
     else:
