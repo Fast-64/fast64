@@ -1442,7 +1442,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         + (("_area" + str(areaIndex)) if f3dMat.set_fog and f3dMat.use_global_fog and areaKey is not None else "")
     )
     fMaterial = fModel.addMaterial(materialName)
-    fMaterial.material.commands.append(DPPipeSync())
+    fMaterial.mat_only_DL.commands.append(DPPipeSync())
     fMaterial.revert.commands.append(DPPipeSync())
 
     if not material.is_f3d:
@@ -1452,7 +1452,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 
     if f3dMat.set_combiner:
         if f3dMat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE":
-            fMaterial.material.commands.append(
+            fMaterial.mat_only_DL.commands.append(
                 DPSetCombineMode(
                     f3dMat.combiner1.A,
                     f3dMat.combiner1.B,
@@ -1473,7 +1473,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
                 )
             )
         else:
-            fMaterial.material.commands.append(
+            fMaterial.mat_only_DL.commands.append(
                 DPSetCombineMode(
                     f3dMat.combiner1.A,
                     f3dMat.combiner1.B,
@@ -1504,7 +1504,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             fog_color = f3dMat.fog_color
         # TODO: (V5) update fog color to reverse gamma corrected for V3/V4 upgrades
         corrected_color = exportColor(fog_color[0:3]) + [scaleToU8(fog_color[3])]
-        fMaterial.material.commands.extend(
+        fMaterial.mat_only_DL.commands.extend(
             [
                 DPSetFogColor(*corrected_color),
                 SPFogPosition(fog_position[0], fog_position[1]),
@@ -1531,11 +1531,11 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     s = int(min(round(f3dMat.tex_scale[0] * 0x10000), 0xFFFF))
     t = int(min(round(f3dMat.tex_scale[1] * 0x10000), 0xFFFF))
     if f3dMat.rdp_settings.g_mdsft_textlod == "G_TL_LOD":
-        fMaterial.material.commands.append(
+        fMaterial.mat_only_DL.commands.append(
             SPTexture(s, t, f3dMat.rdp_settings.num_textures_mipmapped - 1, fModel.f3d.G_TX_RENDERTILE, 1)
         )
     else:
-        fMaterial.material.commands.append(SPTexture(s, t, 0, fModel.f3d.G_TX_RENDERTILE, 1))
+        fMaterial.mat_only_DL.commands.append(SPTexture(s, t, 0, fModel.f3d.G_TX_RENDERTILE, 1))
 
     # Save textures
     texDimensions0 = None
@@ -1646,7 +1646,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             sharedPalette.palette,
         )
         savePaletteLoading(
-            fMaterial.material,
+            fMaterial.mat_only_DL,
             fMaterial.revert,
             fPalette,
             palFormat,
@@ -1685,19 +1685,19 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     nodes = material.node_tree.nodes
     if useDict["Primitive"] and f3dMat.set_prim:
         color = exportColor(f3dMat.prim_color[0:3]) + [scaleToU8(f3dMat.prim_color[3])]
-        fMaterial.material.commands.append(
+        fMaterial.mat_only_DL.commands.append(
             DPSetPrimColor(scaleToU8(f3dMat.prim_lod_min), scaleToU8(f3dMat.prim_lod_frac), *color)
         )
 
     if useDict["Environment"] and f3dMat.set_env:
         color = exportColor(f3dMat.env_color[0:3]) + [scaleToU8(f3dMat.env_color[3])]
-        fMaterial.material.commands.append(DPSetEnvColor(*color))
+        fMaterial.mat_only_DL.commands.append(DPSetEnvColor(*color))
 
     # Checking for f3dMat.rdp_settings.g_lighting here will prevent accidental exports,
     # There may be some edge case where this isn't desired.
     if useDict["Shade"] and f3dMat.set_lights and f3dMat.rdp_settings.g_lighting:
         fLights = saveLightsDefinition(fModel, fMaterial, f3dMat, materialName + "_lights")
-        fMaterial.material.commands.extend([SPSetLights(fLights)])  # TODO: handle synching: NO NEED?
+        fMaterial.mat_only_DL.commands.extend([SPSetLights(fLights)])  # TODO: handle synching: NO NEED?
 
     if useDict["Key"] and f3dMat.set_key:
         if material.mat_ver == 4:
@@ -1706,7 +1706,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             center = nodes["Chroma Key Center"].outputs[0].default_value
         scale = f3dMat.key_scale
         width = f3dMat.key_width
-        fMaterial.material.commands.extend(
+        fMaterial.mat_only_DL.commands.extend(
             [
                 DPSetCombineKey("G_CK_KEY"),
                 # TODO: Add UI handling width
@@ -1726,7 +1726,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     # make sure to handle this in node shader
     # or don't, who cares
     if useDict["Convert"] and f3dMat.set_k0_5:
-        fMaterial.material.commands.extend(
+        fMaterial.mat_only_DL.commands.extend(
             [
                 DPSetTextureConvert("G_TC_FILTCONV"),  # TODO: allow filter option
                 DPSetConvert(
@@ -2653,9 +2653,9 @@ def saveGeoModeDefinitionF3DEX2(fMaterial, settings, defaults, matWriteMethod):
             geo.setFlagList.append("0")
 
         if matWriteMethod == GfxMatWriteMethod.WriteAll:
-            fMaterial.material.commands.append(SPLoadGeometryMode(geo.setFlagList))
+            fMaterial.mat_only_DL.commands.append(SPLoadGeometryMode(geo.setFlagList))
         else:
-            fMaterial.material.commands.append(geo)
+            fMaterial.mat_only_DL.commands.append(geo)
             fMaterial.revert.commands.append(SPGeometryMode(geo.setFlagList, geo.clearFlagList))
 
 
@@ -2688,18 +2688,18 @@ def saveGeoModeDefinition(fMaterial, settings, defaults, matWriteMethod):
         saveBitGeo(settings.g_clipping, defaults.g_clipping, "G_CLIPPING", setGeo, clearGeo, matWriteMethod)
 
     if len(setGeo.flagList) > 0:
-        fMaterial.material.commands.append(setGeo)
+        fMaterial.mat_only_DL.commands.append(setGeo)
         if matWriteMethod == GfxMatWriteMethod.WriteDifferingAndRevert:
             fMaterial.revert.commands.append(SPClearGeometryMode(setGeo.flagList))
     if len(clearGeo.flagList) > 0:
-        fMaterial.material.commands.append(clearGeo)
+        fMaterial.mat_only_DL.commands.append(clearGeo)
         if matWriteMethod == GfxMatWriteMethod.WriteDifferingAndRevert:
             fMaterial.revert.commands.append(SPSetGeometryMode(clearGeo.flagList))
 
 
 def saveModeSetting(fMaterial, value, defaultValue, cmdClass):
     if value != defaultValue:
-        fMaterial.material.commands.append(cmdClass(value))
+        fMaterial.mat_only_DL.commands.append(cmdClass(value))
         fMaterial.revert.commands.append(cmdClass(defaultValue))
 
 
@@ -2728,7 +2728,7 @@ def saveOtherModeHDefinitionAll(fMaterial, settings, defaults, isHWv1):
         cmd.flagList.append(settings.g_mdsft_color_dither)
     cmd.flagList.append(settings.g_mdsft_pipeline)
 
-    fMaterial.material.commands.append(cmd)
+    fMaterial.mat_only_DL.commands.append(cmd)
 
 
 def saveOtherModeHDefinitionIndividual(fMaterial, settings, defaults, isHWv1):
@@ -2809,10 +2809,10 @@ def saveOtherModeLDefinitionAll(fMaterial: FMaterial, settings, defaults, defaul
         else:
             cmd.flagList.extend(defaultRenderMode)
 
-    fMaterial.material.commands.append(cmd)
+    fMaterial.mat_only_DL.commands.append(cmd)
 
     if settings.g_mdsft_zsrcsel == "G_ZS_PRIM":
-        fMaterial.material.commands.append(DPSetPrimDepth(z=settings.prim_depth.z, dz=settings.prim_depth.dz))
+        fMaterial.mat_only_DL.commands.append(DPSetPrimDepth(z=settings.prim_depth.z, dz=settings.prim_depth.dz))
         fMaterial.revert.commands.append(DPSetPrimDepth())
 
 
@@ -2822,14 +2822,14 @@ def saveOtherModeLDefinitionIndividual(fMaterial, settings, defaults, defaultRen
     saveModeSetting(fMaterial, settings.g_mdsft_zsrcsel, defaults.g_mdsft_zsrcsel, DPSetDepthSource)
 
     if settings.g_mdsft_zsrcsel == "G_ZS_PRIM":
-        fMaterial.material.commands.append(DPSetPrimDepth(z=settings.prim_depth.z, dz=settings.prim_depth.dz))
+        fMaterial.mat_only_DL.commands.append(DPSetPrimDepth(z=settings.prim_depth.z, dz=settings.prim_depth.dz))
         fMaterial.revert.commands.append(DPSetPrimDepth())
 
     if settings.set_rendermode:
         flagList, blendList = getRenderModeFlagList(settings, fMaterial)
         renderModeSet = DPSetRenderMode(flagList, blendList)
 
-        fMaterial.material.commands.append(renderModeSet)
+        fMaterial.mat_only_DL.commands.append(renderModeSet)
         if defaultRenderMode is not None:
             fMaterial.revert.commands.append(DPSetRenderMode(defaultRenderMode, None))
 
@@ -2903,11 +2903,11 @@ def getRenderModeFlagList(settings, fMaterial):
 def saveOtherDefinition(fMaterial, material, defaults):
     settings = material.rdp_settings
     if settings.clip_ratio != defaults.clip_ratio:
-        fMaterial.material.commands.append(SPClipRatio(settings.clip_ratio))
+        fMaterial.mat_only_DL.commands.append(SPClipRatio(settings.clip_ratio))
         fMaterial.revert.commands.append(SPClipRatio(defaults.clip_ratio))
 
     if material.set_blend:
-        fMaterial.material.commands.append(
+        fMaterial.mat_only_DL.commands.append(
             DPSetBlendColor(
                 int(material.blend_color[0] * 255),
                 int(material.blend_color[1] * 255),
