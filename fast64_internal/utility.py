@@ -54,6 +54,24 @@ def isPowerOf2(n):
     return (n & (n - 1) == 0) and n != 0
 
 
+def log2iRoundDown(n):
+    assert n > 0
+    return int(math.floor(math.log2(n)))
+
+
+def log2iRoundUp(n):
+    assert n > 0
+    return int(math.ceil(math.log2(n)))
+
+
+def roundDownToPowerOf2(n):
+    return 1 << log2iRoundDown(n)
+
+
+def roundUpToPowerOf2(n):
+    return 1 << log2iRoundUp(n)
+
+
 def getDeclaration(data, name):
     matchResult = re.search("extern\s*[A-Za-z0-9\_]*\s*" + re.escape(name) + "\s*(\[[^;\]]*\])?;\s*", data, re.DOTALL)
     return matchResult
@@ -1300,6 +1318,7 @@ def convertEulerFloatToShort(value):
 
 
 # Rotation
+
 
 # Rotation is stored as a short.
 # Zero rotation starts at Z+ on an XZ plane and goes counterclockwise.

@@ -307,11 +307,11 @@ def exportTexRectCommon(texProp, f3dType, isHWv1, name, convertTextureData):
     if not ti.useTex:
         raise PluginError(f"In {name}: texture disabled.")
     if ti.isTexCI:
-        raise PluginError(f"In {name}: CI textures not compatible with exportTexRectCommon (b/c copy mode).")
+        raise PluginError(f"In {name}: CI textures not compatible with exportTexRectCommon (because copy mode).")
     if ti.tmemSize > 512:
         raise PluginError(f"In {name}: texture is too big (> 4 KiB).")
     if ti.texFormat != "RGBA16":
-        raise PluginError(f"In {name}: texture format must be RGBA16 (b/c copy mode).")
+        raise PluginError(f"In {name}: texture format must be RGBA16 (because copy mode).")
     ti.imUse = [tex]
     ti.writeAll(fTexRect.draw, fMaterial, fTexRect, convertTextureData)
 
@@ -470,7 +470,6 @@ def sm64ExportF3DtoC(
 
 
 def exportF3DtoBinary(romfile, exportRange, transformMatrix, obj, f3dType, isHWv1, segmentData, includeChildren):
-
     fModel = SM64Model(f3dType, isHWv1, obj.name, DLFormat)
     fMesh = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, obj.name, DLFormat.Static, True)
     fModel.freePalettes()
@@ -490,7 +489,6 @@ def exportF3DtoBinary(romfile, exportRange, transformMatrix, obj, f3dType, isHWv
 
 
 def exportF3DtoBinaryBank0(romfile, exportRange, transformMatrix, obj, f3dType, isHWv1, RAMAddr, includeChildren):
-
     fModel = SM64Model(f3dType, isHWv1, obj.name, DLFormat)
     fMesh = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, obj.name, DLFormat.Static, True)
     segmentData = copy.copy(bank0Segment)
@@ -510,7 +508,6 @@ def exportF3DtoBinaryBank0(romfile, exportRange, transformMatrix, obj, f3dType, 
 
 
 def exportF3DtoInsertableBinary(filepath, transformMatrix, obj, f3dType, isHWv1, includeChildren):
-
     fModel = SM64Model(f3dType, isHWv1, obj.name, DLFormat)
     fMesh = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, obj.name, DLFormat.Static, True)
 
@@ -674,7 +671,6 @@ class SM64_ExportDL(bpy.types.Operator):
                         + hex(startAddress + 0x80000000),
                     )
                 else:
-
                     self.report(
                         {"INFO"},
                         "Success! DL at ("

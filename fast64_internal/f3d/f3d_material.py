@@ -1468,7 +1468,7 @@ def set_texture_settings_node(material: bpy.types.Material):
 
 
 def setAutoProp(fieldProperty, pixelLength):
-    fieldProperty.mask = math.ceil(math.log(pixelLength, 2) - 0.001)
+    fieldProperty.mask = log2iRoundUp(pixelLength)
     fieldProperty.shift = 0
     fieldProperty.low = 0
     fieldProperty.high = pixelLength

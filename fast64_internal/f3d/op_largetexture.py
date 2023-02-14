@@ -161,7 +161,7 @@ def createLargeTextureMeshInternal(bm, prop):
         tileSWords = int(math.ceil(largeDims[0] / texelsPerWord))
         if largeWords // tileSWords < targetRows:
             # If that doesn't give us enough rows, reduce to next power of 2
-            d = 1 << int(math.floor(math.log2(largeDims[0])))
+            d = roundDownToPowerOf2(largeDims[0])
             tileSWords = d // texelsPerWord
             while largeWords // tileSWords < targetRows:
                 tileSWords >>= 1

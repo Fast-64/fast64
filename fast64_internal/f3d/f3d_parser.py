@@ -68,7 +68,6 @@ def getExportRotation(forwardAxisEnum, convertTransformMatrix):
 
 
 def F3DtoBlenderObject(romfile, startAddress, scene, newname, transformMatrix, segmentData, shadeSmooth):
-
     mesh = bpy.data.meshes.new(newname + "-mesh")
     obj = bpy.data.objects.new(newname, mesh)
     scene.collection.objects.link(obj)
@@ -271,7 +270,6 @@ def interpretLoadVertices(romfile, vertexBuffer, transformMatrix, command, segme
 # Note the divided by 0x0A, which is due to the way BF command stores indices.
 # Without this the triangles are drawn incorrectly.
 def interpretDrawTriangle(command, vertexBuffer, faceSeq, vertSeq, uv_layer, deform_layer, groupIndex):
-
     verts = [None, None, None]
 
     index0 = int(command[5] / 0x0A)
@@ -742,7 +740,6 @@ class F3DContext:
         return material.f3d_mat.key()
 
     def getMaterialIndex(self):
-
         key = self.getMaterialKey(self.materialContext)
         if key in self.materialDict:
             material = self.materialDict[key]
@@ -1000,17 +997,17 @@ class F3DContext:
         mat = self.mat()
         if not isinstance(flags, int):
             flags = math_eval(flags, self.f3d)
-        else:
-            flags &= 3 << self.f3d.G_MDSFT_TEXTLUT
+        tlut_mode = flags & (0b11 << self.f3d.G_MDSFT_TEXTLUT)
         for index in range(2):
             texProp = getattr(mat, "tex" + str(index))
-            if flags == self.f3d.G_TT_IA16:
+            if tlut_mode == self.f3d.G_TT_IA16:
                 texProp.ci_format = "IA16"
-            elif flags == self.f3d.G_TT_RGBA16:
+            elif tlut_mode == self.f3d.G_TT_RGBA16:
                 texProp.ci_format = "RGBA16"
             else:  # self.f3d.G_TT_NONE or the unsupported value of 1
+                # Othermode is set to disable palette/CI; make sure the texture format is not CI
                 if texProp.tex_format[:2] == "CI":
-                    texProp.tex_format = "RGBA16"
+                    texProp.tex_format = texProp.tex_format[1:]  # Cut off the C, so CI4->I4 and CI8->I8
 
     def setOtherModeFlags(self, command):
         mat = self.mat()
@@ -1028,12 +1025,14 @@ class F3DContext:
 
         for field, fieldData in database.items():
             fieldShift = getattr(self.f3d, field)
-            if fieldShift >= shift and fieldShift < shift + mask:
+            if shift <= fieldShift < shift + mask:
                 if isinstance(fieldData, list):
-                    value = (flags >> fieldShift) & ((1 << int(ceil(math.log(len(fieldData), 2)))) - 1)
+                    value = (flags >> fieldShift) & (roundUpToPowerOf2(len(fieldData)) - 1)
                     setattr(mat.rdp_settings, field.lower(), fieldData[value])
-                else:
+                elif callable(fieldData):
                     fieldData(flags)
+                else:
+                    raise PluginError(f"Internal error in setFlagsAttrs, type(fieldData) == {type(fieldData)}")
 
     def setOtherModeFlagsH(self, command):
         otherModeH = {
@@ -1812,6 +1811,7 @@ class ParsedMacro:
 
 # Static DLs only
 
+
 # limbName = c variable name (for parsing text)
 # boneName = blender bone name (for assigning vertex groups)
 # we distinguish these because there is no guarantee of bone order in blender,
@@ -1828,7 +1828,6 @@ def parseF3D(
     f3dContext: F3DContext,
     callClearMaterial: bool,
 ):
-
     f3dContext.matrixData[limbName] = transformMatrix
     f3dContext.setCurrentTransform(limbName)
     f3dContext.limbToBoneName[limbName] = boneName
@@ -1983,7 +1982,6 @@ def CI4toRGBA32(value):
 
 
 def parseTextureData(dlData, textureName, f3dContext, imageFormat, imageSize, width, isLUT, f3d):
-
     matchResult = re.search(
         r"([A-Za-z0-9\_]+)\s*" + re.escape(textureName) + r"\s*\[\s*[0-9a-fA-Fx]*\s*\]\s*=\s*\{([^\}]*)\s*\}\s*;\s*",
         dlData,
@@ -2189,7 +2187,6 @@ def importMeshC(
     f3dContext: F3DContext,
     callClearMaterial: bool = True,
 ) -> bpy.types.Object:
-
     # Create new skinned mesh
     mesh = bpy.data.meshes.new(name + "_mesh")
     obj = bpy.data.objects.new(name + "_mesh", mesh)
