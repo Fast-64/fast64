@@ -437,7 +437,7 @@ def saveMeshWithLargeTexturesByFaces(
 
         currentGroupIndex = saveTriangleStrip(triConverter, tileFaces, obj.data, False)
 
-        if len(revertCommands.commands) > 0 and not fMesh.inline:
+        if len(revertCommands.commands) > 0:
             fMesh.draw.commands.extend(revertCommands.commands)
 
     triGroup.triList.commands.append(SPEndDisplayList())
@@ -520,10 +520,9 @@ def saveStaticModel(
 
     for drawLayer, fMesh in fMeshes.items():
         if revertMatAtEnd:
-            fModel.bleed(fMesh, obj, drawLayer)
             revertMatAndEndDraw(fMesh.draw, [])
         else:
-            fModel.endDraw(fMesh, obj, drawLayer)
+            fModel.endDraw(fMesh, obj)
     return fMeshes
 
 
@@ -571,12 +570,11 @@ def addCullCommand(obj, fMesh, transformMatrix, matWriteMethod):
 def exportF3DCommon(obj, fModel, transformMatrix, includeChildren, name, DLFormat, convertTextureData):
     tempObj, meshList = combineObjects(obj, includeChildren, None, None)
     try:
-        drawLayer = fModel.getDrawLayerV3(tempObj)
         infoDict = getInfoDict(tempObj)
         triConverterInfo = TriangleConverterInfo(tempObj, None, fModel.f3d, transformMatrix, infoDict)
-        fMesh = saveStaticModel(
+        fMeshes = saveStaticModel(
             triConverterInfo, fModel, tempObj, transformMatrix, name, convertTextureData, True, None
-        )[drawLayer]
+        )
         cleanupCombineObj(tempObj, meshList)
         obj.select_set(True)
         bpy.context.view_layer.objects.active = obj
@@ -586,7 +584,7 @@ def exportF3DCommon(obj, fModel, transformMatrix, includeChildren, name, DLForma
         bpy.context.view_layer.objects.active = obj
         raise Exception(str(e))
 
-    return fMesh
+    return fMeshes
 
 
 def checkForF3dMaterialInFaces(obj, material):
@@ -2939,7 +2937,10 @@ def exportF3DtoC(
 ):
 
     fModel = FModel(f3dType, isHWv1, name, DLFormat, matWriteMethod, inline = bpy.context.scene.exportInlineF3D)
-    fMesh = exportF3DCommon(obj, fModel, transformMatrix, True, name, DLFormat, not savePNG)
+    fMeshes = exportF3DCommon(obj, fModel, transformMatrix, True, name, DLFormat, not savePNG)
+
+    bleed_gfx = BleedGraphics()
+    bleed_gfx.bleed_fModel(fModel, fMeshes)
 
     modelDirPath = os.path.join(dirPath, toAlnum(name))
 

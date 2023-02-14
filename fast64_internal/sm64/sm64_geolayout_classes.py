@@ -17,6 +17,7 @@ from ..utility import (
     radians_to_s16,
     geoNodeRotateOrder,
 )
+from ..f3d.f3d_gbi import BleedGraphics
 
 from .sm64_geolayout_constants import (
     nodeGroupCmds,
@@ -147,31 +148,6 @@ class GeolayoutGraph:
     def generateSortedList(self):
         self.sortedList = self.sortGeolayouts([self.startGeolayout], self.startGeolayout, [self.startGeolayout])
         self.sortedListGenerated = True
-
-    def bleed(self, fModel):
-        if not fModel.inline:
-            return
-        
-        last_materials = dict()  # last used material should be kept track of per layer
-        
-        def walk(node, last_materials):
-            base_node = node.node
-            fMesh = getattr(base_node, "fMesh", None)
-            if fMesh:
-                cmd_list = fMesh.drawMatOverrides.get(base_node.override_hash, None) or fMesh.draw
-                lastMat = last_materials.get(base_node.drawLayer, None)
-                lastMat = fModel.endDraw(base_node.fMesh, None, drawLayer = base_node.drawLayer, lastMat = lastMat, cmd_list = cmd_list)
-                # don't carry over lastmat if it is a switch node or geo asm node
-                if type(base_node) is SwitchNode or type(base_node) is FunctionNode:
-                    lastMat = None
-                last_materials[base_node.drawLayer] = lastMat
-            for child in node.children:
-                last_materials = walk(child, last_materials)
-            return last_materials
-        
-        for geolayout in self.sortedList:
-            for node in geolayout.nodes:
-                walk(node, last_materials)
 
     def set_addr(self, address):
         self.checkListSorted()
@@ -470,6 +446,34 @@ class JumpNode:
     def to_c(self):
         geo_name = self.geoRef or self.geolayout.name
         return "GEO_BRANCH(" + ("1, " if self.storeReturn else "0, ") + geo_name + "),"
+
+
+class GeoLayoutBleed(BleedGraphics):
+    def bleed_geo_layout_graph(self, fModel, geo_layout_graph):
+        if not fModel.inline:
+            return
+        
+        last_materials = dict()  # last used material should be kept track of per layer
+        
+        def walk(node, last_materials):
+            base_node = node.node
+            fMesh = getattr(base_node, "fMesh", None)
+            if fMesh:
+                cmd_list = fMesh.drawMatOverrides.get(base_node.override_hash, None) or fMesh.draw
+                lastMat = last_materials.get(base_node.drawLayer, None)
+                default_render_mode = fModel.getRenderMode(base_node.drawLayer)
+                lastMat = self.bleed_cmd_list(fModel.f3d, fMesh, lastMat, cmd_list, default_render_mode)
+                last_materials[base_node.drawLayer] = lastMat
+            # don't carry over lastmat if it is a switch node or geo asm node
+            if type(base_node) in [SwitchNode, FunctionNode, JumpNode]:
+                last_materials = dict()
+            for child in node.children:
+                last_materials = walk(child, last_materials)
+            return last_materials
+        
+        for geolayout in geo_layout_graph.sortedList:
+            for node in geolayout.nodes:
+                walk(node, last_materials)
 
 
 def convertAddrToFunc(addr):

@@ -2328,25 +2328,8 @@ class FModel:
     def onMaterialAdd(self, fMaterial):
         return
 
-    def endDraw(self, fMesh, contextObj, drawLayer = None, lastMat = None, cmd_list = None):
-        if fMesh.inline:
-            lastMat = self.bleed(fMesh, contextObj, drawLayer, lastMat, cmd_list)
-        cmd_list = cmd_list or fMesh.draw
-        if cmd_list.bled != BleedTags.BleedFinished:
-            cmd_list.commands.append(SPEndDisplayList())
-            cmd_list.bledMaterial = lastMat
-            cmd_list.bled = BleedTags.BleedFinished
-        return lastMat
-    
-    def bleed(self, fMesh, contextObj, drawLayer = None, lastMat = None, cmd_list = None):
-        if not fMesh.inline:
-            return
-        cmd_list = cmd_list or fMesh.draw
-        defaultRM = self.getRenderMode(drawLayer)
-        if cmd_list.bled != BleedTags.BleedFinished:
-            return fMesh.bleed(self.f3d, lastMat, cmd_list, defaultRM)
-        else:
-            return cmd_list.bledMaterial
+    def endDraw(self, fMesh, contextObj):
+        fMesh.draw.commands.append(SPEndDisplayList())
 
     def getTextureAndHandleShared(self, imageKey):
         # Check if texture is in self
@@ -2802,9 +2785,6 @@ class FMesh:
         self.currentFMaterial = None
 
     def add_material_call(self, fMaterial):
-        # inline materials are post processed raw during bleed, leave them as is
-        if self.inline:
-            return
         sameMaterial = self.currentFMaterial is fMaterial
         if not sameMaterial:
             self.currentFMaterial = fMaterial
@@ -2851,9 +2831,38 @@ class FMesh:
         for materialTuple, drawOverride in self.drawMatOverrides.items():
             drawOverride.save_binary(romfile, f3d, segments)
 
-    def bleed(self, f3d: F3D, lastMat: "FMaterial" = None, cmd_list = None, default_render_mode = None):
-        self.onBleedStart(f3d, lastMat, cmd_list)
-        for triGroup in self.triangleGroups:
+    def to_c(self, f3d, gfxFormatter):
+        staticData = CData()
+        if self.cullVertexList is not None:
+            staticData.append(self.cullVertexList.to_c())
+        if self.inline:
+            for triGroup in self.triangleGroups:
+                # add in vertex data
+                staticData.append(triGroup.vertexList.to_c())
+            staticData.append(gfxFormatter.drawToC(f3d, self.draw))
+            dynamicData = CData()
+        else:
+            for triGroup in self.triangleGroups:
+                staticData.append(triGroup.to_c(f3d, gfxFormatter))
+            dynamicData = gfxFormatter.drawToC(f3d, self.draw)
+        for materialTuple, drawOverride in self.drawMatOverrides.items():
+            dynamicData.append(drawOverride.to_c(f3d))
+        return staticData, dynamicData
+
+
+class BleedGraphics:
+    def bleed_fModel(self, fModel, fMeshes):
+        if not fModel.inline:
+            return
+        # walk fModel, no order to drawing is observed, so lastMat is not kept track of
+        for drawLayer, fMesh in fMeshes.items():
+            self.bleed_cmd_list(fModel.f3d, fMesh, None, fMesh.draw, drawLayer)
+        
+    def bleed_cmd_list(self, f3d: F3D, fMesh: FMesh, lastMat: FMaterial, cmd_list, default_render_mode = None):
+        if cmd_list.bledMaterial:
+            return cmd_list.bledMaterial
+        self.on_bleed_start(f3d, lastMat, cmd_list)
+        for triGroup in fMesh.triangleGroups:
             # bleed mat and tex
             if triGroup.fMaterial:
                 bleed_mat = self.bleed_mat(triGroup.fMaterial, lastMat, cmd_list)
@@ -2867,12 +2876,11 @@ class FMesh:
             # set bled props to _mesh_desc, update lastMat
             lastMat = triGroup.fMaterial
             bleed = BleedGfx(bleed_mat, bleed_tex, set())
-            # remove SPEndDisplayList from triGroup
-            while SPEndDisplayList() in triGroup.triList.commands:
-                triGroup.triList.commands.remove(SPEndDisplayList())
+            # bleed tri group (for large textures) and to remove other unnecessary cmds
+            self.bleed_tri_group(f3d, triGroup, bleed, cmd_list)
             self.inline_triGroup(f3d, triGroup, bleed, cmd_list)
-            self.onTriGroupBleedEnd(f3d, triGroup, lastMat, bleed)
-        self.onBleedEnd(f3d, lastMat, bleed, cmd_list, default_render_mode)
+            self.on_tri_group_bleed_end(f3d, triGroup, lastMat, bleed)
+        self.on_bleed_end(f3d, lastMat, bleed, cmd_list, default_render_mode)
         return lastMat
 
     def bleed_textures(self, curMat: "FMaterial", lastMat: "FMaterial", cmd_list: GfxList):
@@ -2933,29 +2941,13 @@ class FMesh:
         while SPEndDisplayList() in commands_bled.commands:
             commands_bled.commands.remove(SPEndDisplayList())
         return commands_bled
-
-    # Put triGroup bleed gfx in the FMesh.draw object
-    def inline_triGroup(self, f3d: F3D, triGroup: "FTriGroup", bleed: "BleedGfx", cmd_list = None):
-        cmd_list = cmd_list or self.draw
-        # add material
-        cmd_list.commands.extend(bleed.bled_mats.commands)
-        # bleed tri group (for large textures)
-        self.processInlineTriGroup(f3d, triGroup, bleed)
-        # add textures
-        for tile, texGfx in enumerate(bleed.bled_tex):
-            cmd_list.commands.extend(texGfx.commands)
-        # add in triangles
-        cmd_list.commands.extend(triGroup.triList.commands)
-        # skinned meshes don't draw tris sometimes, use this opportunity to save a sync
-        tri_cmds = [c for c in triGroup.triList.commands if type(c) == SP1Triangle or type(c) == SP2Triangles]
-        if tri_cmds:
-            bleed.reset_cmds.add(DPPipeSync)
-        cmd_list.bled = BleedTags.MiddleBleed
         
-    # process the triGroup cmds
-    def processInlineTriGroup(self, f3d: F3D, triGroup: "FTriGroup", bleed: "BleedGfx"):
+    def bleed_tri_group(self, f3d: F3D, triGroup: "FTriGroup", bleed: "BleedGfx", cmd_list: GfxList):
+        # remove SPEndDisplayList from triGroup
+        while SPEndDisplayList() in triGroup.triList.commands:
+            triGroup.triList.commands.remove(SPEndDisplayList())
         if triGroup.fMaterial.useLargeTextures:
-            dummylist = GfxList(self.draw.name, GfxListTag.Draw, self.DLFormat)
+            dummylist = GfxList(cmd_list.name, GfxListTag.Draw, cmd_list.DLFormat)
             usage_dict = dict()
             cnt = 0
             tri_commands = copy.copy(triGroup.triList.commands)  # copy the commands
@@ -2968,9 +2960,23 @@ class FMesh:
                     triGroup.triList.commands.pop(j - cnt)  # list gets smaller as I pop, so modify index by num popped
                     cnt += 1
         return
+        
+    # Put triGroup bleed gfx in the FMesh.draw object
+    def inline_triGroup(self, f3d: F3D, triGroup: "FTriGroup", bleed: "BleedGfx", cmd_list):
+        # add material
+        cmd_list.commands.extend(bleed.bled_mats.commands)
+        # add textures
+        for tile, texGfx in enumerate(bleed.bled_tex):
+            cmd_list.commands.extend(texGfx.commands)
+        # add in triangles
+        cmd_list.commands.extend(triGroup.triList.commands)
+        # skinned meshes don't draw tris sometimes, use this opportunity to save a sync
+        tri_cmds = [c for c in triGroup.triList.commands if type(c) == SP1Triangle or type(c) == SP2Triangles]
+        if tri_cmds:
+            bleed.reset_cmds.add(DPPipeSync)
+        cmd_list.bled = BleedTags.MiddleBleed
 
-    def onBleedStart(self, f3d: F3D, lastMat: "FMaterial" = None, cmd_list = None):
-        cmd_list = cmd_list or self.draw
+    def on_bleed_start(self, f3d: F3D, lastMat: "FMaterial", cmd_list):
         cmd_list.bled = BleedTags.FirstBleed
         # remove SPDisplayList and SPEndDisplayList from FMesh.draw
         iter_cmds = copy.copy(cmd_list.commands)
@@ -2981,38 +2987,28 @@ class FMesh:
         for spEnd in spEndCmds:
             cmd_list.commands.remove(spEnd)
 
-    def onTriGroupBleedEnd(self, f3d: F3D, triGroup: "FTriGroup", lastMat: "FMaterial", bleed: "BleedGfx"):
+    def on_tri_group_bleed_end(self, f3d: F3D, triGroup: "FTriGroup", lastMat: "FMaterial", bleed: "BleedGfx"):
         return
 
-    def onBleedEnd(self, f3d: F3D, lastMat: "FMaterial", bleed: "BleedGfx", cmd_list = None, default_render_mode = None):
-        cmd_list = cmd_list or self.draw
+    def on_bleed_end(self, f3d: F3D, lastMat: "FMaterial", bleed: "BleedGfx", cmd_list, default_render_mode = None):
         [bleed.add_reset_cmd(cmd) for cmd in cmd_list.commands]
         # revert certain cmds for extra safety
         reset_cmds = [cmd(*bleed.reset_command_dict.get(cmd, [])) for cmd in bleed.reset_cmds]
         # add in default render mode if in resets
+        pipe_sync = None
         for cmd in reset_cmds:
             if type(cmd) is DPSetRenderMode:
                 cmd.flagList = default_render_mode
-                break
+                continue
+            if type(cmd) is DPPipeSync:
+                pipe_sync = cmd
+        # if pipe sync in rest list, make sure it is the first cmd
+        if pipe_sync:
+            reset_cmds.remove(pipe_sync)
+            reset_cmds.insert(0, pipe_sync)
         cmd_list.commands.extend(reset_cmds)
-
-    def to_c(self, f3d, gfxFormatter):
-        staticData = CData()
-        if self.cullVertexList is not None:
-            staticData.append(self.cullVertexList.to_c())
-        if self.inline:
-            for triGroup in self.triangleGroups:
-                # add in vertex data
-                staticData.append(triGroup.vertexList.to_c())
-            staticData.append(gfxFormatter.drawToC(f3d, self.draw))
-            dynamicData = CData()
-        else:
-            for triGroup in self.triangleGroups:
-                staticData.append(triGroup.to_c(f3d, gfxFormatter))
-            dynamicData = gfxFormatter.drawToC(f3d, self.draw)
-        for materialTuple, drawOverride in self.drawMatOverrides.items():
-            dynamicData.append(drawOverride.to_c(f3d))
-        return staticData, dynamicData
+        cmd_list.commands.append(SPEndDisplayList())
+        cmd_list.bledMaterial = lastMat
 
 
 class FTriGroup:
@@ -3020,7 +3016,6 @@ class FTriGroup:
         self.fMaterial = fMaterial
         self.vertexList = VtxList(name + "_vtx_" + str(index))
         self.triList = GfxList(name + "_tri_" + str(index), GfxListTag.Geometry, DLFormat.Static)
-        self.name = name
 
     def get_ptr_addresses(self, f3d):
         return self.triList.get_ptr_addresses(f3d)

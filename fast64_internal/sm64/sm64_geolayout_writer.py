@@ -99,6 +99,7 @@ from .sm64_geolayout_classes import (
     StartNode,
     StartRenderAreaNode,
     GeolayoutGraph,
+    GeoLayoutBleed,
     JumpNode,
     SwitchOverrideNode,
     SwitchNode,
@@ -401,7 +402,8 @@ def convertArmatureToGeolayout(
     generateSwitchOptions(meshGeolayout.nodes[0], meshGeolayout, geolayoutGraph, name)
     appendRevertToGeolayout(geolayoutGraph, fModel)
     geolayoutGraph.generateSortedList()
-    geolayoutGraph.bleed(fModel)
+    bleed_gfx = GeoLayoutBleed()
+    bleed_gfx.bleed_geo_layout_graph(fModel, geolayoutGraph)
     # if DLFormat == DLFormat.GameSpecific:
     # 	geolayoutGraph.convertToDynamic()
     return geolayoutGraph, fModel
@@ -464,6 +466,8 @@ def convertObjectToGeolayout(
 
     appendRevertToGeolayout(geolayoutGraph, fModel)
     geolayoutGraph.generateSortedList()
+    bleed_gfx = GeoLayoutBleed()
+    bleed_gfx.bleed_geo_layout_graph(fModel, geolayoutGraph)
     # if DLFormat == DLFormat.GameSpecific:
     # 	geolayoutGraph.convertToDynamic()
     return geolayoutGraph, fModel
