@@ -12,12 +12,13 @@ from .sm64_level_parser import parseLevelAtPointer
 from .sm64_rom_tweaks import ExtendBank0x04
 from typing import Tuple, Union, Iterable
 
+from ..f3d.f3d_bleed import BleedGraphics
+
 from ..f3d.f3d_gbi import (
     GbiMacro,
     GfxTag,
     FMaterial,
     FModel,
-    BleedGraphics,
     GfxFormatter,
     GfxMatWriteMethod,
     ScrollMethod,
@@ -97,7 +98,7 @@ enumHUDPaths = {
 
 class SM64Model(FModel):
     def __init__(self, f3dType, isHWv1, name, DLFormat, inline = False):
-        FModel.__init__(self, f3dType, isHWv1, name, DLFormat, GfxMatWriteMethod.WriteDifferingAndRevert, inline = inline)
+        FModel.__init__(self, f3dType, isHWv1, name, DLFormat, GfxMatWriteMethod.WriteDifferingAndRevert  if not inline else GfxMatWriteMethod.WriteAll, inline = inline)
 
     def getDrawLayerV3(self, obj):
         return int(obj.draw_layer_static)

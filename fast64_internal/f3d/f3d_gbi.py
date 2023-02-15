@@ -2056,7 +2056,6 @@ class GfxList:
         self.startAddress: int = 0
         self.tag: GfxListTag = tag
         self.DLFormat: "DLFormat" = DLFormat
-        self.bledMaterial = None
 
     def set_addr(self, startAddress, f3d):
         startAddress = get64bitAlignedAddr(startAddress)
@@ -2116,8 +2115,6 @@ class GfxList:
 
     def to_c(self, f3d):
         data = CData()
-        if not self.commands:
-            return data
         if self.DLFormat == DLFormat.Static:
             data.header = f"extern Gfx {self.name}[];\n"
             data.source = self.to_c_static()
@@ -2254,7 +2251,7 @@ class FModel:
         # dict of name : FLODGroup
         self.LODGroups: dict[str, FLODGroup] = {}
         self.DLFormat: "DLFormat" = DLFormat
-        self.matWriteMethod: GfxMatWriteMethod = matWriteMethod if not inline else GfxMatWriteMethod.WriteAll
+        self.matWriteMethod: GfxMatWriteMethod = matWriteMethod
         self.global_data: FGlobalData = FGlobalData()
         self.texturesSavedLastExport: int = 0  # hacky
         self.inline: bool = inline
@@ -2840,289 +2837,6 @@ class FMesh:
         return staticData, dynamicData
 
 
-class BleedGraphics:
-    def __init__(self):
-        self.bleed_state = self.BleedTag.BleedNone
-
-    def bleed_fModel(self, fModel, fMeshes):
-        if not fModel.inline:
-            return
-        # walk fModel, no order to drawing is observed, so lastMat is not kept track of
-        for drawLayer, fMesh in fMeshes.items():
-            self.bleed_fmesh(fModel.f3d, fMesh, None, fMesh.draw, drawLayer)
-        self.clear_gfx_lists(fModel)
-
-    # clear the gfx lists so they don't export
-    def clear_gfx_lists(self, fModel):
-        for (fMaterial, texDimensions) in fModel.materials.values():
-            fMaterial.material.commands = None
-            fMaterial.revert = None
-        for fMesh in fModel.meshes.values():
-            for tri_list in fMesh.triangleGroups:
-                tri_list.triList.commands = None
-
-    def bleed_fmesh(self, f3d: F3D, fMesh: FMesh, lastMat: FMaterial, cmd_list, default_render_mode=None):
-        if cmd_list.bledMaterial:
-            return cmd_list.bledMaterial
-        self.on_bleed_start(f3d, lastMat, cmd_list)
-        for triGroup in fMesh.triangleGroups:
-            # bleed mat and tex
-            if triGroup.fMaterial:
-                bleed_mat = self.bleed_mat(triGroup.fMaterial, lastMat, cmd_list)
-                if not triGroup.fMaterial.useLargeTextures:
-                    bleed_tex = self.bleed_textures(triGroup.fMaterial, lastMat, cmd_list)
-                else:
-                    bleed_tex = []
-            else:
-                bleed_mat = []
-                bleed_tex = []
-            # set bled props to _mesh_desc, update lastMat
-            lastMat = triGroup.fMaterial
-            bleed = self.BleedGfxLists(bleed_mat, bleed_tex, set())
-            # bleed tri group (for large textures) and to remove other unnecessary cmds
-            self.bleed_tri_group(f3d, triGroup, bleed, cmd_list)
-            self.inline_triGroup(f3d, triGroup, bleed, cmd_list)
-            self.on_tri_group_bleed_end(f3d, triGroup, lastMat, bleed)
-            self.bleed_state = self.BleedTag.BleedInProgress
-        self.on_bleed_end(f3d, lastMat, bleed, cmd_list, default_render_mode)
-        return lastMat
-
-    def bleed_textures(self, curMat: FMaterial, lastMat: FMaterial, cmd_list: GfxList):
-        if lastMat:
-            bled_tex = []
-            # bleed cmds if matching tile has duplicate cmds
-            for j, (LastTex, TexCmds) in enumerate(zip(lastMat.texture_DLs, curMat.texture_DLs)):
-                # deep copy breaks on Image objects so I will only copy the levels needed
-                commands_bled = copy.copy(TexCmds)
-                commands_bled.commands = copy.copy(TexCmds.commands)  # copy the commands also
-                lastList = LastTex.commands
-                # eliminate set tex images
-                set_tex = (c for c in TexCmds.commands if type(c) == DPSetTextureImage)
-                removed_tex = [c for c in set_tex if c in lastList]  # needs to be a list to check "in" multiple times
-                rm_load = None  # flag to elim loads once
-                for j, cmd in enumerate(TexCmds.commands):
-                    # remove set tex explicitly
-                    if cmd in removed_tex:
-                        commands_bled.commands.remove(cmd)
-                        rm_load = True
-                        continue
-                    if rm_load and type(cmd) in (DPLoadTLUTCmd, DPLoadTile, DPLoadBlock):
-                        commands_bled.commands.remove(cmd)
-                        rm_load = None
-                        continue
-                # now eval as normal conditionals
-                iter_cmds = copy.copy(commands_bled.commands)  # need extra list to iterate with
-                for j, cmd in enumerate(iter_cmds):
-                    if self.bleed_individual_cmd(commands_bled, cmd):
-                        if cmd in lastList:
-                            commands_bled.commands[j] = None
-                # remove Nones from list
-                while None in commands_bled.commands:
-                    commands_bled.commands.remove(None)
-                bled_tex.append(commands_bled)
-        else:
-            bled_tex = curMat.texture_DLs
-        return bled_tex
-
-    def bleed_mat(self, curMat: FMaterial, lastMat: FMaterial, cmd_list: GfxList):
-        if lastMat:
-            gfx = curMat.mat_only_DL
-            # deep copy breaks on Image objects so I will only copy the levels needed
-            commands_bled = copy.copy(gfx)
-            commands_bled.commands = copy.copy(gfx.commands)  # copy the commands also
-            LastList = lastMat.mat_only_DL.commands
-            for j, cmd in enumerate(gfx.commands):
-                if self.bleed_individual_cmd(commands_bled, cmd):
-                    if cmd in LastList:
-                        commands_bled.commands[j] = None
-            # remove Nones from list
-            while None in commands_bled.commands:
-                commands_bled.commands.remove(None)
-        else:
-            commands_bled = curMat.mat_only_DL
-        # remove SPEndDisplayList
-        while SPEndDisplayList() in commands_bled.commands:
-            commands_bled.commands.remove(SPEndDisplayList())
-        return commands_bled
-
-    def bleed_tri_group(self, f3d: F3D, triGroup: FTriGroup, bleed: BleedGfxLists, cmd_list: GfxList):
-        # remove SPEndDisplayList from triGroup
-        while SPEndDisplayList() in triGroup.triList.commands:
-            triGroup.triList.commands.remove(SPEndDisplayList())
-        if triGroup.fMaterial.useLargeTextures:
-            triGroup.triList = self.bleed_cmd_list(triGroup.triList)
-
-    # this is a little less versatile than comparing by last used material
-    def bleed_cmd_list(self, target_cmd_list: GfxList):
-        usage_dict = dict()
-        commands_bled = copy.copy(target_cmd_list)  # copy the commands
-        commands_bled.commands = copy.copy(target_cmd_list.commands)  # copy the commands
-        for j, cmd in enumerate(target_cmd_list.commands):
-            if not self.bleed_individual_cmd(commands_bled, cmd):
-                continue
-            last_use = usage_dict.get((type(cmd), getattr(cmd, "tile", None)), None)
-            usage_dict[(type(cmd), getattr(cmd, "tile", None))] = cmd
-            if last_use == cmd:
-                commands_bled.commands[j] = None
-        # remove Nones from list
-        while None in commands_bled.commands:
-            commands_bled.commands.remove(None)
-        return commands_bled
-
-    # Put triGroup bleed gfx in the FMesh.draw object
-    def inline_triGroup(self, f3d: F3D, triGroup: FTriGroup, bleed: BleedGfxLists, cmd_list: GfxList):
-        # add material
-        cmd_list.commands.extend(bleed.bled_mats.commands)
-        # add textures
-        for tile, texGfx in enumerate(bleed.bled_tex):
-            cmd_list.commands.extend(texGfx.commands)
-        # add in triangles
-        cmd_list.commands.extend(triGroup.triList.commands)
-        # skinned meshes don't draw tris sometimes, use this opportunity to save a sync
-        tri_cmds = [c for c in triGroup.triList.commands if type(c) == SP1Triangle or type(c) == SP2Triangles]
-        if tri_cmds:
-            bleed.reset_cmds.add(DPPipeSync)
-
-    def on_bleed_start(self, f3d: F3D, lastMat: FMaterial, cmd_list: GfxList):
-        self.bleed_state = self.BleedTag.BleedStart
-        # remove SPDisplayList and SPEndDisplayList from FMesh.draw
-        iter_cmds = copy.copy(cmd_list.commands)
-        spDLCmds = (c for c in iter_cmds if type(c) == SPDisplayList)
-        spEndCmds = (c for c in iter_cmds if type(c) == SPEndDisplayList)
-        for spDL in spDLCmds:
-            cmd_list.commands.remove(spDL)
-        for spEnd in spEndCmds:
-            cmd_list.commands.remove(spEnd)
-
-    def on_tri_group_bleed_end(self, f3d: F3D, triGroup: FTriGroup, lastMat: FMaterial, bleed: BleedGfxLists):
-        return
-
-    def on_bleed_end(
-        self, f3d: F3D, lastMat: FMaterial, bleed: BleedGfxLists, cmd_list: GfxList, default_render_mode=None
-    ):
-        self.bleed_state = self.BleedTag.BleedEnd
-        [bleed.add_reset_cmd(cmd) for cmd in cmd_list.commands]
-        # revert certain cmds for extra safety
-        reset_cmds = [cmd(*bleed.reset_command_dict.get(cmd, [])) for cmd in bleed.reset_cmds]
-        # add in default render mode if in resets
-        pipe_sync = None
-        for cmd in reset_cmds:
-            if type(cmd) is DPSetRenderMode:
-                cmd.flagList = default_render_mode
-                continue
-            if type(cmd) is DPPipeSync:
-                pipe_sync = cmd
-        # if pipe sync in rest list, make sure it is the first cmd
-        if pipe_sync:
-            reset_cmds.remove(pipe_sync)
-            reset_cmds.insert(0, pipe_sync)
-        cmd_list.commands.extend(reset_cmds)
-        cmd_list.commands.append(SPEndDisplayList())
-        cmd_list.bledMaterial = lastMat
-
-    def bleed_individual_cmd(self, cmd_list: GfxList, cmd: GbiMacro):
-        if type(cmd) in [
-            SPMatrix,
-            SPVertex,
-            SPViewport,
-            SPDisplayList,
-            SPBranchList,
-            SP1Triangle,
-            SPLine3D,
-            SPLineW3D,
-            SP2Triangles,
-            SPCullDisplayList,
-            SPSegment,
-            SPBranchLessZraw,
-            SPModifyVertex,
-            SPEndDisplayList,
-            DPLoadBlock,
-            DPLoadTLUTCmd,
-            DPFullSync,
-        ]:
-            return False
-
-        bleed_func = getattr(self, (f"bleed_{type(cmd).__name__}"), None)
-        if bleed_func:
-            return bleed_func(cmd_list, cmd)
-
-        return True
-
-    def bleed_SPSetOtherMode(self, cmd_list: GfxList, cmd: GbiMacro):
-        if self.bleed_state != self.BleedTag.BleedStart:
-            return True
-
-    def bleed_DPSetTileSize(self, cmd_list: GfxList, cmd: GbiMacro):
-        return cmd.tags != GfxTag.TileScroll0 and cmd.tags != GfxTag.TileScroll1
-
-    def bleed_DPSetTile(self, cmd_list: GfxList, cmd: GbiMacro):
-        # should only be removed if there is no other set tile in this list
-        # that is on the same tile, and has different settings
-        for parse_cmd in cmd_list.commands:
-            if type(parse_cmd) is DPSetTile and parse_cmd is not cmd:
-                if cmd != self:
-                    return False
-        return True
-
-    def bleed_DPTileSync(self, cmd_list: GfxList, cmd: GbiMacro):
-        # will be bled if there are two of these syncs, at most only one tilesync
-        # is ever required after rendering triangles, and before subsequent cmds rdp attr changes
-        for parse_cmd in cmd_list.commands:
-            if type(parse_cmd) is DPTileSync and parse_cmd is not cmd:
-                return True
-        return False
-
-    def bleed_DPPipeSync(self, cmd_list: GfxList, cmd: GbiMacro):
-        # will be bled if there are two of these syncs, at most only one pipesync
-        # is ever required after rendering triangles, and before subsequent cmds rdp attr changes
-        for parse_cmd in cmd_list.commands:
-            if type(parse_cmd) is DPPipeSync and parse_cmd is not cmd:
-                return True
-        return False
-
-    def bleed_DPLoadSync(self, cmd_list: GfxList, cmd: GbiMacro):
-        # will be bled if there are two of these syncs, at most only one pipesync
-        # is ever required after rendering triangles, and before subsequent cmds rdp attr changes
-        for parse_cmd in cmd_list.commands:
-            if type(parse_cmd) is DPLoadSync and parse_cmd is not cmd:
-                return True
-        return False
-
-    # only really used for bleed_SPSetOtherMode, has potential for using during inheritance maybe?
-    class BleedTag(enum.Enum):
-        BleedNone = 0
-        BleedStart = 1
-        BleedInProgress = 2
-        BleedEnd = 3
-
-    # small containers for data used in inline Gfx
-    @dataclass
-    class BleedGfxLists:
-        bled_mats: GfxList
-        bled_tex: list[GfxList]  # list of GfxList
-        reset_cmds: set[GbiMacro]  # list of cmds to reset
-
-        def __post_init__(self):
-            # this cmds always reset
-            self.reset_cmds.add(DPSetCycleType)
-
-        @property
-        def reset_command_dict(self):
-            return {
-                SPGeometryMode: (["G_TEXTURE_GEN"], ["G_LIGHTING"]),
-                DPSetCycleType: ("G_CYC_1CYCLE",),
-                DPSetTextureLUT: ("G_TT_NONE",),
-                DPSetRenderMode: (None, None),
-            }
-
-        def add_reset_cmd(self, cmd: GbiMacro):
-            if type(cmd) in self.reset_command_dict.keys():
-                self.reset_cmds.add(type(cmd))
-            if type(cmd) is SPSetOtherMode:
-                if any(["G_RM" in flag for flag in cmd.flagList]):
-                    self.reset_cmds.add(DPSetRenderMode)
-
-
 class FTriGroup:
     def __init__(self, name, index, fMaterial):
         self.fMaterial = fMaterial
@@ -3144,7 +2858,8 @@ class FTriGroup:
     def to_c(self, f3d, gfxFormatter):
         data = CData()
         data.append(self.vertexList.to_c())
-        data.append(self.triList.to_c(f3d))
+        if self.triList:
+            data.append(self.triList.to_c(f3d))
         return data
 
 
@@ -3260,7 +2975,8 @@ class FMaterial:
 
     def to_c(self, f3d):
         data = CData()
-        data.append(self.material.to_c(f3d))
+        if self.material:
+            data.append(self.material.to_c(f3d))
         if self.revert is not None:
             data.append(self.revert.to_c(f3d))
         return data
