@@ -20,6 +20,7 @@ from .f3d_material import (
 )
 from .f3d_gbi import *
 from .f3d_gbi import _DPLoadTextureBlock
+from .f3d_bleed import BleedGraphics
 
 from ..utility import *
 
