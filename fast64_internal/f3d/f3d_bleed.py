@@ -49,7 +49,7 @@ class BleedGraphics:
             return
         # walk fModel, no order to drawing is observed, so lastMat is not kept track of
         for drawLayer, fMesh in fMeshes.items():
-            self.bleed_fmesh(fModel.f3d, fMesh, None, fMesh.draw, drawLayer)
+            self.bleed_fmesh(fModel.f3d, fMesh, None, fMesh.draw, fModel.getRenderMode(drawLayer))
         self.clear_gfx_lists(fModel)
 
     # clear the gfx lists so they don't export
@@ -198,19 +198,11 @@ class BleedGraphics:
     ):
         [bleed_gfx_lists.add_reset_cmd(cmd) for cmd in cmd_list.commands]
         # revert certain cmds for extra safety
-        reset_cmds = [cmd(*bleed_gfx_lists.reset_command_dict.get(cmd, [])) for cmd in bleed_gfx_lists.reset_cmds]
-        # add in default render mode if in resets
-        pipe_sync = None
-        for cmd in reset_cmds:
-            if type(cmd) is DPSetRenderMode:
-                cmd.flagList = default_render_mode
-                continue
-            if type(cmd) is DPPipeSync:
-                pipe_sync = cmd
+        reset_cmds = [reset_cmd for cmd in bleed_gfx_lists.reset_cmds if (reset_cmd := bleed_gfx_lists.create_reset_cmd(cmd, default_render_mode))]
         # if pipe sync in rest list, make sure it is the first cmd
-        if pipe_sync:
-            reset_cmds.remove(pipe_sync)
-            reset_cmds.insert(0, pipe_sync)
+        if DPPipeSync in reset_cmds:
+            reset_cmds.remove(DPPipeSync)
+            reset_cmds.insert(0, DPPipeSync)
         cmd_list.commands.extend(reset_cmds)
         cmd_list.commands.append(SPEndDisplayList())
         self.bled_gfx_lists[cmd_list] = lastMat
@@ -295,6 +287,14 @@ class BleedGfxLists:
         # this cmds always reset
         self.reset_cmds.add(DPSetCycleType)
 
+    def create_reset_cmd(self, cmd, default_render_mode):
+        if cmd == DPSetRenderMode:
+            if not default_render_mode:
+                return
+            else:
+                return cmd(default_render_mode, None)
+        return cmd(*self.reset_command_dict.get(cmd, []))
+    
     @property
     def reset_command_dict(self):
         return {
