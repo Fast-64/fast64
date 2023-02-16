@@ -17,6 +17,7 @@ from ..utility import (
     radians_to_s16,
     geoNodeRotateOrder,
 )
+from ..f3d.f3d_bleed import BleedGraphics
 
 from .sm64_geolayout_constants import (
     nodeGroupCmds,
@@ -447,6 +448,37 @@ class JumpNode:
         return "GEO_BRANCH(" + ("1, " if self.storeReturn else "0, ") + geo_name + "),"
 
 
+class GeoLayoutBleed(BleedGraphics):
+    def bleed_geo_layout_graph(self, fModel, geo_layout_graph):
+        if not fModel.inline:
+            return
+        
+        last_materials = dict()  # last used material should be kept track of per layer
+        
+        def walk(node, last_materials):
+            base_node = node.node
+            fMesh = getattr(base_node, "fMesh", None)
+            if fMesh:
+                cmd_list = fMesh.drawMatOverrides.get(base_node.override_hash, None) or fMesh.draw
+                lastMat = last_materials.get(base_node.drawLayer, None)
+                default_render_mode = fModel.getRenderMode(base_node.drawLayer)
+                lastMat = self.bleed_fmesh(fModel.f3d, fMesh, lastMat, cmd_list, default_render_mode)
+                # if the mesh has culling, it can be culled, and create invalid combinations of f3d to represent the current full DL
+                if not fMesh.cullVertexList:
+                    last_materials[base_node.drawLayer] = lastMat
+            # don't carry over lastmat if it is a switch node or geo asm node
+            if type(base_node) in [SwitchNode, FunctionNode, JumpNode]:
+                last_materials = dict()
+            for child in node.children:
+                last_materials = walk(child, last_materials)
+            return last_materials
+        
+        for geolayout in geo_layout_graph.sortedList:
+            for node in geolayout.nodes:
+                walk(node, last_materials)
+        self.clear_gfx_lists(fModel)
+
+
 def convertAddrToFunc(addr):
     if addr == "":
         raise PluginError("Geolayout node cannot have an empty function name/address.")
@@ -578,6 +610,8 @@ class TranslateRotateNode(BaseDisplayListNode):
         self.fMesh = None
         self.DLmicrocode = None
         self.dlRef = dlRef
+        # exists to get the override DL from an fMesh
+        self.override_hash = None
 
     def get_ptr_offsets(self):
         if self.hasDL:
@@ -676,6 +710,8 @@ class TranslateNode(BaseDisplayListNode):
         self.fMesh = None
         self.DLmicrocode = None
         self.dlRef = dlRef
+        # exists to get the override DL from an fMesh
+        self.override_hash = None
 
     def get_ptr_offsets(self):
         return [8] if self.hasDL else []
@@ -718,6 +754,8 @@ class RotateNode(BaseDisplayListNode):
         self.fMesh = None
         self.DLmicrocode = None
         self.dlRef = dlRef
+        # exists to get the override DL from an fMesh
+        self.override_hash = None
 
     def get_ptr_offsets(self):
         return [8] if self.hasDL else []
@@ -758,6 +796,8 @@ class BillboardNode(BaseDisplayListNode):
         self.fMesh = None
         self.DLmicrocode = None
         self.dlRef = dlRef
+        # exists to get the override DL from an fMesh
+        self.override_hash = None
 
     def get_ptr_offsets(self):
         return [8] if self.hasDL else []
@@ -795,6 +835,8 @@ class DisplayListNode(BaseDisplayListNode):
         self.fMesh = None
         self.DLmicrocode = None
         self.dlRef = dlRef
+        # exists to get the override DL from an fMesh
+        self.override_hash = None
 
     def get_ptr_offsets(self):
         return [4]
@@ -849,6 +891,8 @@ class ScaleNode(BaseDisplayListNode):
         self.fMesh = None
         self.DLmicrocode = None
         self.dlRef = dlRef
+        # exists to get the override DL from an fMesh
+        self.override_hash = None
 
     def get_ptr_offsets(self):
         return [8] if self.hasDL else []
@@ -926,6 +970,8 @@ class DisplayListWithOffsetNode(BaseDisplayListNode):
         self.fMesh = None
         self.DLmicrocode = None
         self.dlRef = dlRef
+        # exists to get the override DL from an fMesh
+        self.override_hash = None
 
     def size(self):
         return 12
@@ -1182,6 +1228,8 @@ class CustomAnimatedNode(BaseDisplayListNode):
         self.fMesh = None
         self.DLmicrocode = None
         self.dlRef = dlRef
+        # exists to get the override DL from an fMesh
+        self.override_hash = None
 
     def size(self):
         return 16

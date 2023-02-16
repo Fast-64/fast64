@@ -99,6 +99,7 @@ from .sm64_geolayout_classes import (
     StartNode,
     StartRenderAreaNode,
     GeolayoutGraph,
+    GeoLayoutBleed,
     JumpNode,
     SwitchOverrideNode,
     SwitchNode,
@@ -351,7 +352,7 @@ def convertArmatureToGeolayout(
     armatureObj, obj, convertTransformMatrix, f3dType, isHWv1, camera, name, DLFormat, convertTextureData
 ):
 
-    fModel = SM64Model(f3dType, isHWv1, name, DLFormat)
+    fModel = SM64Model(f3dType, isHWv1, name, DLFormat, inline = bpy.context.scene.exportInlineF3D)
 
     if len(armatureObj.children) == 0:
         raise PluginError("No mesh parented to armature.")
@@ -401,6 +402,8 @@ def convertArmatureToGeolayout(
     generateSwitchOptions(meshGeolayout.nodes[0], meshGeolayout, geolayoutGraph, name)
     appendRevertToGeolayout(geolayoutGraph, fModel)
     geolayoutGraph.generateSortedList()
+    bleed_gfx = GeoLayoutBleed()
+    bleed_gfx.bleed_geo_layout_graph(fModel, geolayoutGraph)
     # if DLFormat == DLFormat.GameSpecific:
     # 	geolayoutGraph.convertToDynamic()
     return geolayoutGraph, fModel
@@ -463,6 +466,8 @@ def convertObjectToGeolayout(
 
     appendRevertToGeolayout(geolayoutGraph, fModel)
     geolayoutGraph.generateSortedList()
+    bleed_gfx = GeoLayoutBleed()
+    bleed_gfx.bleed_geo_layout_graph(fModel, geolayoutGraph)
     # if DLFormat == DLFormat.GameSpecific:
     # 	geolayoutGraph.convertToDynamic()
     return geolayoutGraph, fModel
@@ -1155,6 +1160,7 @@ def generateOverrideHierarchy(
     elif not isinstance(copyNode.node, SwitchOverrideNode) and copyNode.node.hasDL:
         if material is not None:
             copyNode.node.DLmicrocode = copyNode.node.fMesh.drawMatOverrides[(material, specificMat, overrideType)]
+            copyNode.node.override_hash = (material, specificMat, overrideType)
         if drawLayer is not None:
             copyNode.node.drawLayer = drawLayer
 

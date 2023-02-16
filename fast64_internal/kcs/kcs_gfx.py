@@ -33,6 +33,7 @@ from ..utility import (
     parentObject,
     PluginError,
 )
+from ..f3d.f3d_bleed import BleedGraphics
 from ..f3d.f3d_import import Tile, Texture, Mat, DL
 from ..f3d.f3d_writer import (
     getInfoDict,
@@ -997,7 +998,7 @@ class KCS_fModel(FModel, BinWrite):
     def __init__(self, rt: bpy.types.Object, write_tex_to_png: bool, name="Kirby"):
         super().__init__("F3DEX2/LX2", False, name, DLFormat.Static, GfxMatWriteMethod.WriteAll, inline=True)
         self.rt = rt
-        self.gfxFormatter = GfxFormatter(None, 2)
+        self.gfxFormatter = GfxFormatter(None, 2, None)
         self.ptrManager = PointerManager()
         self.img_refs = []
         self.write_tex_to_png = write_tex_to_png
@@ -1035,6 +1036,10 @@ class KCS_fModel(FModel, BinWrite):
                 continue
             ly.entry = EntryPoint(ly.ptr, j)
             ly.ptr = ly.add_target(ly.entry, cast="struct EntryPoint *")
+        
+        # bleed data
+        bleed_gfx = BleedGraphics()
+        bleed_gfx.bleed_fModel(self, self.meshes)
 
     def layout_data_to_c(self):
         gfx_data = KCS_Cdata()
@@ -1118,7 +1123,7 @@ class KCS_fMesh(FMesh, BinWrite):
 # subclassed to manage pointers when writing, and for dynamic DLs with scrolls
 class KCS_fMaterial(FMaterial):
     def __init__(self, name: str, dlFormat: DLFormat):
-        super().__init__(name, dlFormat, inline=True)
+        super().__init__(name, dlFormat)
         self.name = name
 
 
