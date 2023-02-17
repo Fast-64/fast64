@@ -450,9 +450,6 @@ class JumpNode:
 
 class GeoLayoutBleed(BleedGraphics):
     def bleed_geo_layout_graph(self, fModel, geo_layout_graph):
-        if not fModel.inline:
-            return
-        
         last_materials = dict()  # last used material should be kept track of per layer
         
         def walk(node, last_materials):

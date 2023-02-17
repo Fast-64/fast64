@@ -35,6 +35,7 @@ from ..utility import (
 
 from ..f3d.f3d_gbi import (
     ScrollMethod,
+    GfxMatWriteMethod,
     TextureExportSettings,
     DLFormat,
 )
@@ -723,7 +724,8 @@ def exportLevelC(
     cameraVolumeString = "struct CameraTrigger " + levelCameraVolumeName + "[] = {\n"
     puppycamVolumeString = ""
 
-    fModel = SM64Model(f3dType, isHWv1, levelName + "_dl", DLFormat, inline = bpy.context.scene.exportInlineF3D)
+    inline = bpy.context.scene.exportInlineF3D
+    fModel = SM64Model(f3dType, isHWv1, levelName + "_dl", DLFormat, GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll)
     childAreas = [child for child in obj.children if child.data is None and child.sm64_obj_type == "Area Root"]
     if len(childAreas) == 0:
         raise PluginError("The level root has no child empties with the 'Area Root' object type.")
@@ -886,7 +888,7 @@ def exportLevelC(
     dynamicData = exportData.dynamicData
     texC = exportData.textureData
 
-    scrollData = fModel.to_c_scroll(levelName, gfxFormatter)
+    scrollData = fModel.to_c_scroll(levelName, gfxFormatter, inline)
 
     if fModel.texturesSavedLastExport > 0:
         levelDataString = '#include "levels/' + levelName + '/texture_include.inc.c"\n' + levelDataString

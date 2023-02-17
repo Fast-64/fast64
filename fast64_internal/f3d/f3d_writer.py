@@ -2938,11 +2938,12 @@ def exportF3DtoC(
 ):
 
     inline = bpy.context.scene.exportInlineF3D
-    fModel = FModel(f3dType, isHWv1, name, DLFormat, matWriteMethod if not inline else GfxMatWriteMethod.WriteAll, inline = inline)
+    fModel = FModel(f3dType, isHWv1, name, DLFormat, matWriteMethod if not inline else GfxMatWriteMethod.WriteAll)
     fMeshes = exportF3DCommon(obj, fModel, transformMatrix, True, name, DLFormat, not savePNG)
 
-    bleed_gfx = BleedGraphics()
-    bleed_gfx.bleed_fModel(fModel, fMeshes)
+    if inline:
+        bleed_gfx = BleedGraphics()
+        bleed_gfx.bleed_fModel(fModel, fMeshes)
 
     modelDirPath = os.path.join(dirPath, toAlnum(name))
 

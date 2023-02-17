@@ -79,6 +79,7 @@ from ..f3d.f3d_writer import (
 from ..f3d.f3d_gbi import (
     GfxList,
     GfxListTag,
+    GfxMatWriteMethod,
     DPSetAlphaCompare,
     FModel,
     FMesh,
@@ -352,7 +353,8 @@ def convertArmatureToGeolayout(
     armatureObj, obj, convertTransformMatrix, f3dType, isHWv1, camera, name, DLFormat, convertTextureData
 ):
 
-    fModel = SM64Model(f3dType, isHWv1, name, DLFormat, inline = bpy.context.scene.exportInlineF3D)
+    inline = bpy.context.scene.exportInlineF3D
+    fModel = SM64Model(f3dType, isHWv1, name, DLFormat, GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll)
 
     if len(armatureObj.children) == 0:
         raise PluginError("No mesh parented to armature.")
@@ -402,8 +404,9 @@ def convertArmatureToGeolayout(
     generateSwitchOptions(meshGeolayout.nodes[0], meshGeolayout, geolayoutGraph, name)
     appendRevertToGeolayout(geolayoutGraph, fModel)
     geolayoutGraph.generateSortedList()
-    bleed_gfx = GeoLayoutBleed()
-    bleed_gfx.bleed_geo_layout_graph(fModel, geolayoutGraph)
+    if inline:
+        bleed_gfx = GeoLayoutBleed()
+        bleed_gfx.bleed_geo_layout_graph(fModel, geolayoutGraph)
     # if DLFormat == DLFormat.GameSpecific:
     # 	geolayoutGraph.convertToDynamic()
     return geolayoutGraph, fModel
@@ -414,8 +417,9 @@ def convertObjectToGeolayout(
     obj, convertTransformMatrix, f3dType, isHWv1, camera, name, fModel: FModel, areaObj, DLFormat, convertTextureData
 ):
 
+    inline = bpy.context.scene.exportInlineF3D
     if fModel is None:
-        fModel = SM64Model(f3dType, isHWv1, name, DLFormat, inline = bpy.context.scene.exportInlineF3D)
+        fModel = SM64Model(f3dType, isHWv1, name, DLFormat, GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll)
 
     # convertTransformMatrix = convertTransformMatrix @ \
     # 	mathutils.Matrix.Diagonal(obj.scale).to_4x4()
@@ -466,8 +470,9 @@ def convertObjectToGeolayout(
 
     appendRevertToGeolayout(geolayoutGraph, fModel)
     geolayoutGraph.generateSortedList()
-    bleed_gfx = GeoLayoutBleed()
-    bleed_gfx.bleed_geo_layout_graph(fModel, geolayoutGraph)
+    if inline:
+        bleed_gfx = GeoLayoutBleed()
+        bleed_gfx.bleed_geo_layout_graph(fModel, geolayoutGraph)
     # if DLFormat == DLFormat.GameSpecific:
     # 	geolayoutGraph.convertToDynamic()
     return geolayoutGraph, fModel
@@ -592,7 +597,7 @@ def saveGeolayoutC(
     dynamicData = exportData.dynamicData
     texC = exportData.textureData
 
-    scrollData = fModel.to_c_scroll(scrollName, gfxFormatter)
+    scrollData = fModel.to_c_scroll(scrollName, gfxFormatter, inline = bpy.context.scene.exportInlineF3D)
     geolayoutGraph.startGeolayout.name = geoName
 
     # Handle cases where geolayout name != folder name + _geo

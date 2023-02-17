@@ -2229,7 +2229,6 @@ class FModel:
         name: str,
         DLFormat: "DLFormat",
         matWriteMethod: GfxMatWriteMethod,
-        inline=False,
     ):
         self.name = name  # used for texture prefixing
         # dict of light name : Lights
@@ -2254,7 +2253,6 @@ class FModel:
         self.matWriteMethod: GfxMatWriteMethod = matWriteMethod
         self.global_data: FGlobalData = FGlobalData()
         self.texturesSavedLastExport: int = 0  # hacky
-        self.inline: bool = inline
 
     def processTexRefNonCITextures(self, fMaterial: FMaterial, material: bpy.types.Material, index: int):
         """
@@ -2564,13 +2562,13 @@ class FModel:
         self.freePalettes()
         return ExportCData(staticData, dynamicData, texC)
 
-    def to_c_scroll(self, funcName: str, gfxFormatter: GfxFormatter) -> CScrollData:
+    def to_c_scroll(self, funcName: str, gfxFormatter: GfxFormatter, inline: bool = False) -> CScrollData:
         data = CScrollData()
         vertexScrollData = self.to_c_vertex_scroll(gfxFormatter)
         if len(vertexScrollData.functionCalls) > 0:
             data.append(vertexScrollData)
 
-        gfxScrollData = self.to_c_gfx_scroll(gfxFormatter)
+        gfxScrollData = self.to_c_gfx_scroll(gfxFormatter, inline)
         if len(gfxScrollData.functionCalls) > 0:
             data.append(gfxScrollData)
 
@@ -2596,9 +2594,9 @@ class FModel:
 
         return data
 
-    def to_c_gfx_scroll(self, gfxFormatter: GfxFormatter) -> CScrollData:
+    def to_c_gfx_scroll(self, gfxFormatter: GfxFormatter, inline: bool = False) -> CScrollData:
         data = CScrollData()
-        if not self.inline:
+        if not inline:
             for _, (fMaterial, _) in self.materials.items():
                 fMaterial: FMaterial
                 data.append(gfxFormatter.gfxScrollToC(fMaterial.material, self.f3d))
