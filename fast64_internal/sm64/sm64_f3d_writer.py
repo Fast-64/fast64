@@ -385,7 +385,7 @@ def sm64ExportF3DtoC(
     dynamicData = exportData.dynamicData
     texC = exportData.textureData
 
-    scrollData = fModel.to_c_scroll(scrollName, gfxFormatter, inline)
+    scrollData = fModel.to_c_scroll(scrollName, gfxFormatter)
     modifyTexScrollFiles(basePath, modelDirPath, scrollData)
 
     if DLFormat == DLFormat.Static:

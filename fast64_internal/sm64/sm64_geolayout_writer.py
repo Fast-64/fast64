@@ -597,7 +597,7 @@ def saveGeolayoutC(
     dynamicData = exportData.dynamicData
     texC = exportData.textureData
 
-    scrollData = fModel.to_c_scroll(scrollName, gfxFormatter, inline = bpy.context.scene.exportInlineF3D)
+    scrollData = fModel.to_c_scroll(scrollName, gfxFormatter)
     geolayoutGraph.startGeolayout.name = geoName
 
     # Handle cases where geolayout name != folder name + _geo

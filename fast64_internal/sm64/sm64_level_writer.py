@@ -888,7 +888,7 @@ def exportLevelC(
     dynamicData = exportData.dynamicData
     texC = exportData.textureData
 
-    scrollData = fModel.to_c_scroll(levelName, gfxFormatter, inline)
+    scrollData = fModel.to_c_scroll(levelName, gfxFormatter)
 
     if fModel.texturesSavedLastExport > 0:
         levelDataString = '#include "levels/' + levelName + '/texture_include.inc.c"\n' + levelDataString

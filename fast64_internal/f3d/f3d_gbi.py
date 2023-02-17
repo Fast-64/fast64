@@ -2562,13 +2562,13 @@ class FModel:
         self.freePalettes()
         return ExportCData(staticData, dynamicData, texC)
 
-    def to_c_scroll(self, funcName: str, gfxFormatter: GfxFormatter, inline: bool = False) -> CScrollData:
+    def to_c_scroll(self, funcName: str, gfxFormatter: GfxFormatter) -> CScrollData:
         data = CScrollData()
         vertexScrollData = self.to_c_vertex_scroll(gfxFormatter)
         if len(vertexScrollData.functionCalls) > 0:
             data.append(vertexScrollData)
 
-        gfxScrollData = self.to_c_gfx_scroll(gfxFormatter, inline)
+        gfxScrollData = self.to_c_gfx_scroll(gfxFormatter)
         if len(gfxScrollData.functionCalls) > 0:
             data.append(gfxScrollData)
 
@@ -2594,16 +2594,15 @@ class FModel:
 
         return data
 
-    def to_c_gfx_scroll(self, gfxFormatter: GfxFormatter, inline: bool = False) -> CScrollData:
+    def to_c_gfx_scroll(self, gfxFormatter: GfxFormatter) -> CScrollData:
         data = CScrollData()
-        if not inline:
-            for _, (fMaterial, _) in self.materials.items():
-                fMaterial: FMaterial
+        for (fMaterial, _) in self.materials.values():
+            fMaterial: FMaterial
+            if fMaterial.material:
                 data.append(gfxFormatter.gfxScrollToC(fMaterial.material, self.f3d))
-        else:
-            for _, fMesh in self.meshes.items():
-                fMesh: FMesh
-                data.append(gfxFormatter.gfxScrollToC(fMesh.draw, self.f3d))
+        for fMesh in self.meshes.values():
+            fMesh: FMesh
+            data.append(gfxFormatter.gfxScrollToC(fMesh.draw, self.f3d))
         return data
 
     def save_textures(self, exportPath):
