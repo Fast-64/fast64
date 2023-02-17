@@ -19,6 +19,7 @@ from bpy.props import (
 from bpy.types import PropertyGroup
 from bpy.utils import register_class, unregister_class
 
+from .kcs_data import entity_enum
 
 # ------------------------------------------------------------------------
 #    UI Callbacks
@@ -264,131 +265,18 @@ class ObjProp(PropertyGroup):
 
 # entities
 class EntProp(PropertyGroup):
-    Entity: EnumProperty(
+    entity: EnumProperty(
         name="Entity ID",
         description="Name of Entity",
-        items=[
-            ("0,0", "N-Z", ""),
-            ("0,1", "Rocky", ""),
-            ("0,2", "Bronto Burt", ""),
-            ("0,3", "Skud", ""),
-            ("0,4", "Gordo", ""),
-            ("0,5", "Shotzo", ""),
-            ("0,6", "Spark-i", ""),
-            ("0,7", "Bouncy", ""),
-            ("0,8", "Glunk", ""),
-            ("0,9", "?? explodes]", ""),
-            ("0,10", "Chilly", ""),
-            ("0,11", "Propeller", ""),
-            ("0,12", "Glom", ""),
-            ("0,13", "Mahall", ""),
-            ("0,14", "Poppy Bros. Jr.", ""),
-            ("0,19", "Bivolt", ""),
-            ("0,16", "Splinter", ""),
-            ("0,17", "Gobblin", ""),
-            ("0,18", "Kany", ""),
-            ("0,19", "Bivolt again?", ""),
-            ("0,20", "Sirkibble", ""),
-            ("0,21", "Gabon", ""),
-            ("0,22", "Mariel", ""),
-            ("0,23", "Large I3", ""),
-            ("0,24", "Snipper", ""),
-            ("0,25", "?? explodes again?]", ""),
-            ("0,26", "Bonehead", ""),
-            ("0,27", "Squibbly", ""),
-            ("0,28", "Bobo", ""),
-            ("0,29", "Bo", ""),
-            ("0,30", "Punc", ""),
-            ("0,31", "Mite", ""),
-            ("0,32", "Sandman", ""),
-            ("0,33", "Flopper", ""),
-            ("0,34", "Kapar", ""),
-            ("0,35", "Maw", ""),
-            ("0,36", "Drop", ""),
-            ("0,37", "Pedo", ""),
-            ("0,38", "Noo", ""),
-            ("0,39", "Tick", ""),
-            ("0,40", "Cairn", ""),
-            ("0,41", "?? invisible]", ""),
-            ("0,42", "Pompey", ""),
-            ("0,43", "Hack", ""),
-            ("0,44", "Burnis", ""),
-            ("0,45", "Fishbone", ""),
-            ("0,46", "Frigis", ""),
-            ("0,47", "Sawyer", ""),
-            ("0,48", "Turbite", ""),
-            ("0,49", "Plugg", ""),
-            ("0,50", "Ghost knight", ""),
-            ("0,51", "Zoos", ""),
-            ("0,52", "Kakti", ""),
-            ("0,53", "Rockn", ""),
-            ("0,54", "Chacha", ""),
-            ("0,55", "Galbo", ""),
-            ("0,56", "Bumber", ""),
-            ("0,57", "Scarfy", ""),
-            ("0,58", "Nruff", ""),
-            ("0,59", "Emp", ""),
-            ("0,60", "Magoo", ""),
-            ("0,61", "Yariko", ""),
-            ("0,62", "invisible?", ""),
-            ("0,63", "Wall Shotzo", ""),
-            ("0,64", "Keke", ""),
-            ("0,65", "Sparky", ""),
-            ("0,66", "Ignus", ""),
-            ("0,67", "Flora", ""),
-            ("0,68", "Putt", ""),
-            ("0,69", "Pteran", ""),
-            ("0,70", "Mumbies", ""),
-            ("0,71", "Pupa", ""),
-            ("0,72", "Mopoo", ""),
-            ("0,73", "Zebon", ""),
-            ("0,74", "invisible?]", ""),
-            ("0,75", "falling rocks sometimes blue]", ""),
-            ("0,76", "falling rocks sometimes blue bigger?]", ""),
-            ("1,0", "Waddle Dee Boss", ""),
-            ("1,1", "Ado Boss", ""),
-            ("1,2", "DeeDeeDee Boss", ""),
-            ("2,0", "Whispy Woods", ""),
-            ("2,1", "Waddle Dee Boss)", ""),
-            ("3,0", "Maxim Tomato", ""),
-            ("3,1", "Sandwich", ""),
-            ("3,2", "Cake", ""),
-            ("3,3", "Steak", ""),
-            ("3,4", "Ice Cream Bar", ""),
-            ("3,5", "Invinsible Candy", ""),
-            ("3,6", "Yellow Star", ""),
-            ("3,7", "Blue Star", ""),
-            ("3,10", "crashes]", ""),
-            ("3,9", "1up", ""),
-            ("3,11", "Flower", ""),
-            ("3,12", "School of fish", ""),
-            ("3,13", "Butterfly", ""),
-            ("5,0", "warps", ""),
-            ("5,31", "Door", ""),
-            ("5,32", "Door 2", ""),
-            ("7,1", "Ado (Gives maxim tomato)", ""),
-            ("8,0", "N-Z Boss", ""),
-            ("8,1", "Bouncy Boss", ""),
-            ("8,2", "Kakti Boss", ""),
-            ("8,3", "?", ""),
-            ("8,4", "Spark-i Boss", ""),
-            ("8,5", "Tick Boss", ""),
-            ("8,6", "Kany Boss", ""),
-            ("8,7", "Kapar Boss", ""),
-            ("8,8", "Blowfish boss", ""),
-            ("8,9", "Galbo boss", ""),
-            ("8,10", "drop monster room", ""),
-            ("8,15", "Sawyer Boss", ""),
-        ],
+        items=entity_enum,
         update=UpdateEnt,
     )
-    NodeNum: IntProperty(name="NodeNum", description="The node that this entity spawns on", default=1, min=1)
-    BankNum: IntProperty(name="BankNum", description="The bank the entity is from", default=0, min=0)
-    IndexNum: IntProperty(name="IndexNum", description="The index the entity is from", default=0, min=0)
-    Action: IntProperty(name="Action", description="The action of this specific entity", default=0, min=0)
-    Flags: IntProperty(name="Flags", description="Flags for spawning or other conditions", default=0, min=0, max=255)
-    Respawn: IntProperty(name="Respawn", description="Respawn after killing", default=0)
-    Eep: IntProperty(name="Eep", description="An eep flag to check, if true spawn", default=0, min=0)
+    bank_num: IntProperty(name="BankNum", description="The bank the entity is from", default=0, min=0)
+    index_num: IntProperty(name="IndexNum", description="The index the entity is from", default=0, min=0)
+    action: IntProperty(name="Action", description="The action of this specific entity", default=0, min=0)
+    flags: IntProperty(name="Flags", description="Flags for spawning or other conditions", default=0, min=0, max=255)
+    respawn: IntProperty(name="Respawn", description="Respawn after killing", default=0)
+    eeprom_data: IntProperty(name="Eep", description="An eep flag to check, if true spawn", default=0, min=0)
 
 
 # level base object properties (used for exporting/ID on import)

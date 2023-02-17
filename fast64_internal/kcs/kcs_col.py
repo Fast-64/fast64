@@ -268,9 +268,33 @@ class BpyCollision:
             kcs_level.mesh_data.append(self.create_col_mesh(tempObj, root_transform))
         return kcs_level
 
+    def create_entity(self, obj: bpy.types.Object, transform: Matrix, scale: float, kcs_level: KCS_Level, node_num: int):
+        ent_matrix = transform @ obj.matrix_local
+        ent_data = obj.KCS_ent
+        kcs_entity = StructContainer(
+            (
+                node_num,
+                ent_data.bank_num,
+                ent_data.index_num,
+                ent_data.action,
+                ent_data.flags,
+                ent_data.respawn,
+                ent_data.eeprom_data,
+                tuple(ent_matrix.translation),
+                tuple(ent_matrix.to_euler("XYZ")),
+                tuple(ent_matrix.to_scale())
+            )
+        )
+        kcs_level.entities.append(kcs_entity)
+        return kcs_entity
+        
     def create_node(self, obj: bpy.types.Object, transform: Matrix, scale: float, kcs_level: KCS_Level):
         kcs_node = KCS_Node(obj, transform, scale)
         kcs_level.node_data.append(kcs_node)
+        # grab entities
+        for child in obj.children:
+            if child.type == "EMPTY" and child.KCS_obj.KCS_obj_type == "Entity":
+                self.create_entity(child, transform @ child.matrix_local, scale, kcs_level, obj.data.KCS_node.node_num)
         return kcs_node
 
     def create_col_mesh(self, obj: bpy.types.Object, transform: Matrix, kcs_level: KCS_Level):
@@ -288,7 +312,7 @@ class BpyCollision:
         if obj.type == "MESH":
             return obj.KCS_mesh.mesh_type == "Collision"
         if obj.type == "EMPTY":
-            return obj.KCS_obj.KCS_obj_type == "Collision"
+            return obj.KCS_obj.KCS_obj_type == "Collision" or obj.KCS_obj.KCS_obj_type == "Entity"
 
     def cleanup_collision(self, kcs_level: KCS_Level):
         cleanupDuplicatedObjects(kcs_level.allObjs)
@@ -345,12 +369,12 @@ class BpyCollision:
             o.location += Vector([loc[0], loc[1], loc[2]])
             o.scale = e.scale
 
-            ent.BankNum = e.bank
-            ent.IndexNum = e.id
-            ent.Action = e.action
-            ent.Respawn = e.res_flag
-            ent.Eep = e.eep
-            ent.Flags = e.spawn_flag
+            ent.bank_num = e.bank
+            ent.index_num = e.id
+            ent.action = e.action
+            ent.flags = e.spawn_flag
+            ent.respawn = e.res_flag
+            ent.eeprom_data = e.eep
 
     def scale_verts(self, verts: tuple, scale: float):
         scaled = []
@@ -594,6 +618,7 @@ class KCS_Level(BinWrite):
                 col_data,
                 "LevelHeader",
                 "LvlHeader",
+                static=True
             )
         # collision data
         self.write_arr(
@@ -605,10 +630,11 @@ class KCS_Level(BinWrite):
             length=len(self.vertices),
             ampersand="",
             index="[0]",
+            static=True
         )
         # triangles, each class has its own export func
         self.write_class_arr(
-            col_data, self.triangles, "CollisionTriangle", "Triangles", length=len(self.triangles), ampersand=""
+            col_data, self.triangles, "CollisionTriangle", "Triangles", length=len(self.triangles), ampersand="", static=True
         )
         self.write_arr(
             col_data,
@@ -619,12 +645,13 @@ class KCS_Level(BinWrite):
             length=len(self.normals),
             outer_only=1,
             ampersand="",
+            static=True
         )
         self.write_arr(
-            col_data, "u16", "Tri_Cells", self.tri_cells, self.format_arr, length=len(self.tri_cells), ampersand=""
+            col_data, "u16", "Tri_Cells", self.tri_cells, self.format_arr, length=len(self.tri_cells), ampersand="", static=True
         )
         self.write_class_arr(
-            col_data, self.norm_cells, "NormalGroup", "Norm_Cells", length=len(self.norm_cells), ampersand=""
+            col_data, self.norm_cells, "NormalGroup", "Norm_Cells", length=len(self.norm_cells), ampersand="", static=True
         )
         # norml cells
         # dyn geo groups
@@ -638,6 +665,7 @@ class KCS_Level(BinWrite):
                 col_data,
                 "CollisionHeader",
                 "Col_Header",
+                static=True
             )
         # node data, this is done to preserve ordering as the original files are done
         node_c_data = (
@@ -657,6 +685,7 @@ class KCS_Level(BinWrite):
             self.node_traversals,
             self.format_arr,
             length=len(self.node_traversals),
+            static=True
         )
         self.write_arr(
             traversal_data,
@@ -665,6 +694,7 @@ class KCS_Level(BinWrite):
             self.node_distances,
             self.format_arr,
             length=len(self.node_distances),
+            static=True
         )
         [col_data.append(dat) for dat in node_c_data]
         # node header
@@ -675,11 +705,19 @@ class KCS_Level(BinWrite):
                 col_data,
                 "NodeHeader",
                 "NodeHdr",
+                static=True
             )
 
         # entities
-        for ent in self.entities:
-            ent.to_c(col_data)
+        self.write_dict_struct_array(
+            self.entities,
+            EntityStruct,
+            col_data,
+            "Entity",
+            f"Entities",
+            ampersand="",
+            static = True
+        )
         # replace plcaeholder pointers in file with real symbols
         self.resolve_ptrs_c(col_data)
         return col_data
@@ -938,6 +976,7 @@ class KCS_Node(BinWrite):
             length=len(self.path_matrix),
             ampersand="",
             index="[0]",
+            static=True
         )
         self.write_arr(
             path_data,
@@ -947,6 +986,7 @@ class KCS_Node(BinWrite):
             self.format_arr,
             length=len(self.path_bounds),
             ampersand="",
+            static=True
         )
         self.write_dict_struct(
             self.path_footer,
@@ -954,6 +994,7 @@ class KCS_Node(BinWrite):
             path_data,
             "PathNodeFooter",
             f"PathFooter_{self.node_num}",
+            static=True
         )
         # kirb data
         kirb_data = KCS_Cdata()
@@ -963,6 +1004,7 @@ class KCS_Node(BinWrite):
             kirb_data,
             "KirbyNode",
             f"KirbyNode_{self.node_num}",
+            static=True
         )
         self.write_dict_struct(
             self.camera_node,
@@ -970,6 +1012,7 @@ class KCS_Node(BinWrite):
             kirb_data,
             "CameraNode",
             f"CamNode_{self.node_num}",
+            static=True
         )
         # connectors
         connector_data = KCS_Cdata()
@@ -982,6 +1025,7 @@ class KCS_Node(BinWrite):
             length=len(self.node_connector),
             outer_only=1,
             ampersand="",
+            static=True
         )
         # path headers
         header_data = KCS_Cdata()
@@ -991,6 +1035,7 @@ class KCS_Node(BinWrite):
             header_data,
             "PathNodeHeader",
             f"PathHeader_{self.node_num}",
+            static=True
         )
         return (path_data, kirb_data, connector_data, KCS_Cdata(), header_data)
 

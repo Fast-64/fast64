@@ -267,7 +267,7 @@ class KCS_Add_Ent(Operator):
 
     def execute(self, context: bpy.types.Context):
         node = context.object.data.KCS_node
-        obj = bpy.data.objects.new("Entity %d" % node.NodeNum, None)
+        obj = bpy.data.objects.new(f"Entity {node.node_num}", None)
         collection = context.object.users_collection[0]
         collection.objects.link(obj)
         obj.KCS_obj.KCS_obj_type = "Entity"

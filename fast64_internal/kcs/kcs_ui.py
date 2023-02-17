@@ -345,19 +345,19 @@ def draw_Ent_empty(box: bpy.types.UILayout, context: bpy.types.Context):
     box.separator()
     box = box.box()
     box.label(text="KCS Entity Properties")
-    box.prop(entprop, "Entity")
+    box.prop(entprop, "entity")
     box.separator()
 
     row = box.row()
-    row.prop(entprop, "BankNum")
-    row.prop(entprop, "IndexNum")
-    box.prop(entprop, "Action")
+    row.prop(entprop, "bank_num")
+    row.prop(entprop, "index_num")
+    box.prop(entprop, "action")
     box.separator()
 
     row = box.row()
-    row.prop(entprop, "Flags")
-    row.prop(entprop, "Respawn")
-    row.prop(entprop, "Eep")
+    row.prop(entprop, "flags")
+    row.prop(entprop, "respawn")
+    row.prop(entprop, "eeprom_data")
 
 
 def draw_Lvl_empty(box: bpy.types.UILayout, context: bpy.types.Context):

@@ -182,8 +182,9 @@ class BinWrite:
             file.source = file.source.replace(str(ptr), ptr.export_sym)
 
     # given a symbol with a data type, make an extern and add it
-    def add_header(self, file: KCS_Cdata, datType: str, label: str):
-        file.header += f"extern {datType} {label};\n"
+    def add_header(self, file: KCS_Cdata, datType: str, label: str, static=False):
+        var_type = "extern"*(not static) + "static"*(static)
+        file.header += f"{var_type} {datType} {label};\n"
 
     # format arr data
     def format_arr(self, vals: Union[Sequence, Str], name: str, file: KCS_Cdata):
@@ -240,6 +241,7 @@ class BinWrite:
         outer_only=False,
         ampersand="&",
         index="",
+        static: bool = False,
         **kwargs,
     ):
         # use array formatter func
@@ -248,15 +250,15 @@ class BinWrite:
         self.ptr_obj(arr, file, f"{ampersand}{name}{index}")
         # create array size initializer, handles everything but outermost dimension
         arr_size_init = "".join([f"[{length}]" for length in reversed(depth)]) * (not outer_only)
-        self.add_header(file, arr_format, f"{name}[{self.write_truthy(length)}]{arr_size_init}")
-        file.write(f"{arr_format} {name}[{self.write_truthy(length)}]{arr_size_init} = {{\n\t")
+        self.add_header(file, arr_format, f"{name}[{self.write_truthy(length)}]{arr_size_init}", static = static)
+        file.write(f"{arr_format} {self.write_truthy('static '*static)}{name}[{self.write_truthy(length)}]{arr_size_init} = {{\n\t")
         file.write(arr_insides)
         file.write("\n};\n\n")
 
     # write if val exists else return nothing
     def write_truthy(self, val):
         if val:
-            return val
+            return f"{val}"
         return ""
 
     # create pointer only if val exists
@@ -272,12 +274,12 @@ class BinWrite:
 
     # write an array of a class with its own to_c method
     def write_class_arr(
-        self, file: "filestream write", class_arr: object, prototype: str, name: str, length=None, ampersand="&"
+        self, file: "filestream write", class_arr: object, prototype: str, name: str, length=None, ampersand="&", static: bool = False
     ):
         # set symbol if obj is a ptr target
         self.ptr_obj(class_arr, file, f"{ampersand}{name}")
-        self.add_header(file, f"struct {prototype}", f"{name}[{self.write_truthy(length)}]")
-        file.write(f"struct {prototype} {name}[{self.write_truthy(length)}] = {{\n")
+        self.add_header(file, f"struct {prototype}", f"{name}[{self.write_truthy(length)}]", static = static)
+        file.write(f"{self.write_truthy('static '*static)}struct {prototype} {name}[{self.write_truthy(length)}] = {{\n")
         [cls.to_c(file) for cls in class_arr]
         file.write("};\n\n")
 
@@ -291,11 +293,48 @@ class BinWrite:
         name: str,
         align="",
         ampersand="&",
+        static: bool = False
     ):
         # set symbol if obj is a ptr target
         self.ptr_obj(struct_dat, file, f"{ampersand}{name}")
-        self.add_header(file, f"struct {prototype}", name)
-        file.write(f"{self.write_truthy(align)}struct {prototype} {name} = {{\n")
+        self.add_header(file, f"struct {prototype}", name, static = static)
+        file.write(f"{self.write_truthy(align)}{self.write_truthy('static '*static)}struct {prototype} {name} = {{\n")
+        self.write_dict_struct_contents(struct_dat, struct_format, file, prototype, name, align, ampersand, static)
+        file.write("};\n\n")
+        
+    # write a struct from a python dictionary as an array
+    def write_dict_struct_array(
+        self,
+        arr_struct_dat: object,
+        struct_format: dict,
+        file: "filestream write",
+        prototype: str,
+        name: str,
+        align="",
+        ampersand="&",
+        length: int = 0,
+        static: bool = False
+    ):
+        self.ptr_obj(arr_struct_dat, file, f"{ampersand}{name}")
+        self.add_header(file, f"struct {prototype}", f"{name}[{self.write_truthy(length)}]", static = static)
+        file.write(f"{self.write_truthy(align)}{self.write_truthy('static '*static)}struct {prototype} {name}[{self.write_truthy(length)}] = {{\n")
+        for struct_dat in arr_struct_dat:
+            file.write("{")
+            self.write_dict_struct_contents(struct_dat, struct_format, file, prototype, name, align, ampersand, static)
+            file.write("},\n")
+        file.write("};\n\n")
+    
+    def write_dict_struct_contents(
+        self,
+        struct_dat: object,
+        struct_format: dict,
+        file: "filestream write",
+        prototype: str,
+        name: str,
+        align="",
+        ampersand="&",
+        static: bool = False
+    ):
         for x, y, z in zip(struct_format.values(), struct_dat.dat, struct_format.keys()):
             # x is (data type, string name, is arr/ptr etc.)
             # y is the actual variable value
@@ -330,7 +369,7 @@ class BinWrite:
                 file.write(f"\t/* 0x{z:X} {x[1]}*/\t{{{value}}},\n")
             else:
                 file.write(f"\t/* 0x{z:X} {x[1]}*/\t0x{y:X},\n")
-        file.write("};\n\n")
+
 
 
 # singleton for breakable block, I don't think this actually works across sessions
