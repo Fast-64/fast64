@@ -472,7 +472,7 @@ def convertObjectToGeolayout(
     geolayoutGraph.generateSortedList()
     if inline:
         bleed_gfx = GeoLayoutBleed()
-        bleed_gfx.bleed_geo_layout_graph(fModel, geolayoutGraph)
+        bleed_gfx.bleed_geo_layout_graph(fModel, geolayoutGraph, use_rooms = areaObj.enableRoomSwitch)
     # if DLFormat == DLFormat.GameSpecific:
     # 	geolayoutGraph.convertToDynamic()
     return geolayoutGraph, fModel
