@@ -1760,11 +1760,12 @@ def tile_func(direction: str, speed: int, cmd_num: int):
 
 
 def get_sts_interval_vars(tex_num: str):
-    return f"intervalTex{tex_num}", f"curInterval{tex_num}"
+    return f"interval_{tex_num}", f"cur_interval_{tex_num}"
 
 
 def get_tex_sts_code(
-    tex: FSetTileSizeScrollField, tex_num: int, cmd_num: int
+    variableName : str,
+    tex: FSetTileSizeScrollField, cmd_num: int
 ) -> Tuple[list[str], list[Tuple[str, float]]]:
     variables = []
     # create func calls
@@ -1777,7 +1778,7 @@ def get_tex_sts_code(
     # add interval logic if needed
     if len(lines) and tex.interval > 1:
         # get interval and variable for tracking interval
-        interval, cur_interval = get_sts_interval_vars(tex_num)
+        interval, cur_interval = get_sts_interval_vars(variableName)
         # pass each var and its value to variables
         variables.extend([(interval, tex.interval), (cur_interval, tex.interval)])
 
@@ -1793,12 +1794,12 @@ def get_tex_sts_code(
     return variables, lines
 
 
-def get_tile_scroll_code(scrollData: "FScrollData", textureIndex: int, commandIndex: int) -> Tuple[str, str]:
+def get_tile_scroll_code(variableName : str, scrollData: "FScrollData", textureIndex: int, commandIndex: int) -> Tuple[str, str]:
     scrollInfo: FSetTileSizeScrollField = getattr(scrollData, f"tile_scroll_tex{textureIndex}")
     if scrollInfo.s or scrollInfo.t:
         variables = []
         lines = []
-        static_variables, tex_lines = get_tex_sts_code(scrollInfo, textureIndex, commandIndex)
+        static_variables, tex_lines = get_tex_sts_code(variableName, scrollInfo, commandIndex)
 
         for variable, val in static_variables:
             variables.append(f"\tstatic int {variable} = {val};")

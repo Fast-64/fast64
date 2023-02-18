@@ -122,7 +122,7 @@ class SM64GfxFormatter(GfxFormatter):
             return "", ""
         elif tags & (GfxTag.TileScroll0 | GfxTag.TileScroll1):
             textureIndex = 0 if tags & GfxTag.TileScroll0 else 1
-            return get_tile_scroll_code(fMaterial.scrollData, textureIndex, commandIndex)
+            return get_tile_scroll_code(fMaterial.texture_DLs[textureIndex].name, fMaterial.scrollData, textureIndex, commandIndex)
         else:
             return "", ""
 
