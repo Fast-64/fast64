@@ -1,4 +1,6 @@
 # Macros are all copied over from gbi.h
+from __future__ import annotations
+
 from typing import Sequence, Union, Tuple
 from dataclasses import dataclass, fields
 import bpy, os, enum, copy
@@ -1758,11 +1760,12 @@ def tile_func(direction: str, speed: int, cmd_num: int):
 
 
 def get_sts_interval_vars(tex_num: str):
-    return f"intervalTex{tex_num}", f"curInterval{tex_num}"
+    return f"interval_{tex_num}", f"cur_interval_{tex_num}"
 
 
 def get_tex_sts_code(
-    tex: FSetTileSizeScrollField, tex_num: int, cmd_num: int
+    variableName : str,
+    tex: FSetTileSizeScrollField, cmd_num: int
 ) -> Tuple[list[str], list[Tuple[str, float]]]:
     variables = []
     # create func calls
@@ -1775,7 +1778,7 @@ def get_tex_sts_code(
     # add interval logic if needed
     if len(lines) and tex.interval > 1:
         # get interval and variable for tracking interval
-        interval, cur_interval = get_sts_interval_vars(tex_num)
+        interval, cur_interval = get_sts_interval_vars(variableName)
         # pass each var and its value to variables
         variables.extend([(interval, tex.interval), (cur_interval, tex.interval)])
 
@@ -1791,12 +1794,12 @@ def get_tex_sts_code(
     return variables, lines
 
 
-def get_tile_scroll_code(scrollData: "FScrollData", textureIndex: int, commandIndex: int) -> Tuple[str, str]:
+def get_tile_scroll_code(variableName : str, scrollData: "FScrollData", textureIndex: int, commandIndex: int) -> Tuple[str, str]:
     scrollInfo: FSetTileSizeScrollField = getattr(scrollData, f"tile_scroll_tex{textureIndex}")
     if scrollInfo.s or scrollInfo.t:
         variables = []
         lines = []
-        static_variables, tex_lines = get_tex_sts_code(scrollInfo, textureIndex, commandIndex)
+        static_variables, tex_lines = get_tex_sts_code(variableName, scrollInfo, commandIndex)
 
         for variable, val in static_variables:
             variables.append(f"\tstatic int {variable} = {val};")
@@ -1971,7 +1974,7 @@ class GfxFormatter:
         fMaterial: FMaterial = command.fMaterial
         return "", ""
 
-    def vertexScrollToC(self, fMaterial: "FMaterial", vtxListName: str, vtxCount: int) -> CScrollData:
+    def vertexScrollToC(self, fMaterial: FMaterial, vtxListName: str, vtxCount: int) -> CScrollData:
         """
         Handles writing code that executes vertex scrolling.
         Make sure to add function names to returned CScrollData.functionCalls.
@@ -2220,7 +2223,14 @@ class FPaletteKey:
 
 
 class FModel:
-    def __init__(self, f3dType: F3D, isHWv1: bool, name: str, DLFormat: "DLFormat", matWriteMethod: GfxMatWriteMethod):
+    def __init__(
+        self,
+        f3dType: F3D,
+        isHWv1: bool,
+        name: str,
+        DLFormat: "DLFormat",
+        matWriteMethod: GfxMatWriteMethod,
+    ):
         self.name = name  # used for texture prefixing
         # dict of light name : Lights
         self.lights: dict[str, Lights] = {}
@@ -2244,16 +2254,15 @@ class FModel:
         self.matWriteMethod: GfxMatWriteMethod = matWriteMethod
         self.global_data: FGlobalData = FGlobalData()
         self.texturesSavedLastExport: int = 0  # hacky
-        self.inline: bool = False
 
-    def processTexRefNonCITextures(self, fMaterial: "FMaterial", material: bpy.types.Material, index: int):
+    def processTexRefNonCITextures(self, fMaterial: FMaterial, material: bpy.types.Material, index: int):
         """
         For non CI textures that use a texture reference, process additional textures that will possibly be loaded here.
         This doesn't return anything.
         """
         pass
 
-    def processTexRefCITextures(self, fMaterial: "FMaterial", material: bpy.types.Material, index: int) -> "FImage":
+    def processTexRefCITextures(self, fMaterial: FMaterial, material: bpy.types.Material, index: int) -> "FImage":
         """
         For CI textures that use a texture reference, process additional textures that will possibly be loaded here.
         This returns a palette FImage that is shared between all processed textures.
@@ -2263,6 +2272,8 @@ class FModel:
 
     # Called before SPEndDisplayList
     def onMaterialCommandsBuilt(self, fMaterial, material, drawLayer):
+        fMaterial.material.commands.extend(fMaterial.mat_only_DL.commands)
+        [fMaterial.material.commands.extend(tile_gfx_list.commands) for tile_gfx_list in fMaterial.texture_DLs]
         return
 
     def getTextureSuffixFromFormat(self, texFmt):
@@ -2306,12 +2317,16 @@ class FModel:
     def onAddMesh(self, fMesh, contextObj):
         return
 
-    def endDraw(self, fMesh, contextObj):
-        self.onEndDraw(fMesh, contextObj)
-        fMesh.draw.commands.append(SPEndDisplayList())
+    def addMaterial(self, materialName):
+        fMaterial = FMaterial(materialName, self.DLFormat)
+        self.onMaterialAdd(fMaterial)
+        return fMaterial
 
-    def onEndDraw(self, fMesh, contextObj):
+    def onMaterialAdd(self, fMaterial):
         return
+
+    def endDraw(self, fMesh, contextObj):
+        fMesh.draw.commands.append(SPEndDisplayList())
 
     def getTextureAndHandleShared(self, imageKey):
         # Check if texture is in self
@@ -2582,14 +2597,13 @@ class FModel:
 
     def to_c_gfx_scroll(self, gfxFormatter: GfxFormatter) -> CScrollData:
         data = CScrollData()
-        if not self.inline:
-            for _, (fMaterial, _) in self.materials.items():
-                fMaterial: FMaterial
+        for (fMaterial, _) in self.materials.values():
+            fMaterial: FMaterial
+            if fMaterial.material:
                 data.append(gfxFormatter.gfxScrollToC(fMaterial.material, self.f3d))
-        else:
-            for _, fMesh in self.meshes.items():
-                fMesh: FMesh
-                data.append(gfxFormatter.gfxScrollToC(fMesh.draw, self.f3d))
+        for fMesh in self.meshes.values():
+            fMesh: FMesh
+            data.append(gfxFormatter.gfxScrollToC(fMesh.draw, self.f3d))
         return data
 
     def save_textures(self, exportPath):
@@ -2842,7 +2856,8 @@ class FTriGroup:
     def to_c(self, f3d, gfxFormatter):
         data = CData()
         data.append(self.vertexList.to_c())
-        data.append(self.triList.to_c(f3d))
+        if self.triList:
+            data.append(self.triList.to_c(f3d))
         return data
 
 
@@ -2873,6 +2888,8 @@ def get_f3d_mat_from_version(material: bpy.types.Material):
 class FMaterial:
     def __init__(self, name, DLFormat):
         self.material = GfxList("mat_" + name, GfxListTag.Material, DLFormat)
+        self.mat_only_DL = GfxList("mat_only_" + name, GfxListTag.Material, DLFormat)
+        self.texture_DLs = [GfxList(f"tex_{i}_" + name, GfxListTag.Material, DLFormat.Static) for i in range(2)]
         self.revert = GfxList("mat_revert_" + name, GfxListTag.MaterialRevert, DLFormat.Static)
         self.DLFormat = DLFormat
         self.scrollData = FScrollData()
@@ -2886,6 +2903,9 @@ class FMaterial:
         self.useLargeTextures = False
         self.largeTextureIndex = None
         self.texturesLoaded = [False, False]
+
+    def getTexturesGfxList(self, tile):
+        return self.texture_DLs[tile]
 
     def getScrollData(self, material, dimensions):
         self.getScrollDataField(material, 0, 0)
@@ -2953,7 +2973,8 @@ class FMaterial:
 
     def to_c(self, f3d):
         data = CData()
-        data.append(self.material.to_c(f3d))
+        if self.material:
+            data.append(self.material.to_c(f3d))
         if self.revert is not None:
             data.append(self.revert.to_c(f3d))
         return data
@@ -4463,14 +4484,14 @@ def gsDPLoadTileGeneric(c, tile, uls, ult, lrs, lrt):
 
 @dataclass(unsafe_hash=True)
 class DPSetTileSize(GbiMacro):
-    t: int
+    tile: int
     uls: int
     ult: int
     lrs: int
     lrt: int
 
     def to_binary(self, f3d, segments):
-        return gsDPLoadTileGeneric(f3d.G_SETTILESIZE, self.t, self.uls, self.ult, self.lrs, self.lrt)
+        return gsDPLoadTileGeneric(f3d.G_SETTILESIZE, self.tile, self.uls, self.ult, self.lrs, self.lrt)
 
     def is_LOADTILE(self, f3d):
         return self.t == f3d.G_TX_LOADTILE
@@ -4478,14 +4499,14 @@ class DPSetTileSize(GbiMacro):
 
 @dataclass(unsafe_hash=True)
 class DPLoadTile(GbiMacro):
-    t: int
+    tile: int
     uls: int
     ult: int
     lrs: int
     lrt: int
 
     def to_binary(self, f3d, segments):
-        return gsDPLoadTileGeneric(f3d.G_LOADTILE, self.t, self.uls, self.ult, self.lrs, self.lrt)
+        return gsDPLoadTileGeneric(f3d.G_LOADTILE, self.tile, self.uls, self.ult, self.lrs, self.lrt)
 
 
 @dataclass(unsafe_hash=True)
