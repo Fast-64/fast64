@@ -469,7 +469,9 @@ class GeoLayoutBleed(BleedGraphics):
                 default_render_mode = fModel.getRenderMode(base_node.drawLayer)
                 lastMat = self.bleed_fmesh(fModel.f3d, fMesh, lastMat, cmd_list, default_render_mode)
                 # if the mesh has culling, it can be culled, and create invalid combinations of f3d to represent the current full DL
-                if not fMesh.cullVertexList:
+                if fMesh.cullVertexList:
+                    last_materials[base_node.drawLayer] = None
+                else:
                     last_materials[base_node.drawLayer] = lastMat
             # don't carry over lastmat if it is a switch node or geo asm node
             if type(base_node) in [SwitchNode, FunctionNode]:
