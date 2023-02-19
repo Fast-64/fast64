@@ -68,14 +68,14 @@ class KCS_Import_Stage(Operator):
 
     def execute(self, context: bpy.types.Context):
         scene = context.scene.KCS_scene
-        stage_table = Path(scene.decomp_path) / "data" / "misc" / "kirby.066630.2.c"  # this will probably change later
+        stage_table = Path(scene.decomp_path) / "data" / "kirby.066630.2.c"  # this will probably change later
         stage = parse_stage_table(*scene.import_stage.stage, stage_table)
 
         gfx_bank, gfx_ID = [eval(a) for a in stage["geo"]]
         col_bank, col_ID = [eval(a) for a in stage["level_block"]]
 
-        file_gfx = Path(scene.decomp_path) / "assets" / "geo" / ("bank_%d" % gfx_bank) / ("%d" % gfx_ID)
-        file_col = Path(scene.decomp_path) / "assets" / "misc" / ("bank_%d" % col_bank) / ("%d" % col_ID)
+        file_gfx = Path(scene.decomp_path) / "assets" / "geo" / (f"bank_{gfx_bank}") / (f"{gfx_ID}")
+        file_col = Path(scene.decomp_path) / "assets" / "misc" / (f"bank_{col_bank}") / (f"{col_ID}")
 
         if scene.file_format == "binary":
             # import gfx
@@ -109,6 +109,53 @@ class KCS_Export(Operator):
     bl_idname = "kcs.export_area"
 
     def execute(self, context: bpy.types.Context):
+        scene = context.scene.KCS_scene
+        if scene.file_format == "binary":
+            raise PluginError("Binary exports are not supported")
+        
+        stage_table = Path(scene.decomp_path) / "data" / "kirby.066630.2.c"  # this will probably change later
+        stage = parse_stage_table(*scene.export_stage.stage, stage_table)
+
+        gfx_bank, gfx_ID = [eval(a) for a in stage["geo"]]
+        col_bank, col_ID = [eval(a) for a in stage["level_block"]]
+
+        # need a KCS object
+        level_obj = context.selected_objects[0]
+        while level_obj:
+            if not level_obj.KCS_obj.KCS_obj_type == "Level":
+                level_obj = level_obj.parent
+            else:
+                break
+        if not level_obj:
+            raise PluginError('Obj is not Empty with type "Level"')
+        
+        geo_obj, col_obj = None, None
+        
+        for child in level_obj.children:
+            if child.KCS_obj.KCS_obj_type == "Graphics":
+                geo_obj = child
+            if child.KCS_obj.KCS_obj_type == "Collision":
+                col_obj = child
+        
+        if not col_obj:
+            raise PluginError('Object with type "Collision" not a child of Level Root')
+        if not geo_obj:
+            raise PluginError('Object with type "Graphics" not a child of Level Root')
+        
+        # export geo
+        file_gfx = Path(scene.decomp_path) / "assets" / "geo" / (f"bank_{gfx_bank}") / (f"{gfx_ID}")
+        file_gfx.mkdir(exist_ok=True, parents=True)
+        name = file_gfx / "geo"
+        export_geo_c(name, geo_obj, context)
+        
+        # export col
+        file_col = Path(scene.decomp_path) / "assets" / "misc" / (f"bank_{col_bank}") / (f"{col_ID}")
+        file_col.mkdir(exist_ok=True, parents=True)
+        name = file_col / "level"
+        export_col_c(name, col_obj, context)
+        
+        level_obj.select_set(True)
+        bpy.context.view_layer.objects.active = level_obj
         return {"FINISHED"}
 
 
@@ -132,7 +179,7 @@ class KCS_Export_Gfx(Operator):
             raise PluginError('Obj is not Empty with type "Graphics"')
 
         bank_id = scene.export_bank_id.bank_id()
-        file = Path(scene.decomp_path) / "assets" / "geo" / ("bank_%d" % bank_id[0]) / ("%d" % bank_id[1])
+        file = Path(scene.decomp_path) / "assets" / "geo" / (f"bank_{bank_id[0]}") / (f"{bank_id[1]}")
         file.mkdir(exist_ok=True, parents=True)
         name = file / "geo"
         export_geo_c(name, obj, context)
@@ -158,7 +205,7 @@ class KCS_Export_Col(Operator):
         if not obj:
             raise PluginError('Obj is not Empty with type "Collision"')
         bank_id = scene.export_bank_id.bank_id()
-        file = Path(scene.decomp_path) / "assets" / "misc" / ("bank_%d" % bank_id[0]) / ("%d" % bank_id[1])
+        file = Path(scene.decomp_path) / "assets" / "misc" / (f"bank_{bank_id[0]}") / (f"{bank_id[1]}")
         file.mkdir(exist_ok=True, parents=True)
         name = file / "level"
         export_col_c(name, obj, context)

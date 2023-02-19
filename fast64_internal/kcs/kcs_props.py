@@ -282,7 +282,6 @@ class EntProp(PropertyGroup):
 # level base object properties (used for exporting/ID on import)
 class LvlProp(PropertyGroup):
     Skybox_ID: IntProperty(name="Skybox_ID", description="ID of level's skybox", default=13, min=0, max=72)
-
     Music_ID: IntProperty(name="Music_ID", description="ID of level's music", default=0, min=0, max=64)
 
 

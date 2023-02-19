@@ -29,6 +29,7 @@ from ..utility import (
     checkUniqueBoneNames,
     duplicateHierarchy,
     cleanupDuplicatedObjects,
+    transform_mtx_blender_to_n64,
     getFMeshName,
     parentObject,
     PluginError,
@@ -854,42 +855,43 @@ class BpyGeo:
         # create duplicate objects to work on
         fModel.tempObj, fModel.allObjs = duplicateHierarchy(self.rt, None, True, 0)
         # make root location 0 so that area is centered on root
-        fModel.tempObj.location = (0, 0, 0)
+        root_transform = transform_mtx_blender_to_n64()
+        
         # get all child layouts first
-        def loop_children(obj, fModel, depth):
+        def loop_children(obj, fModel, depth, transform):
             for child in obj.children:
                 if self.is_kcs_gfx(child):
                     # each layout contains fMesh data, which holds triangle, and material info
-                    fModel.layouts.append(self.create_layout(apply_rotation_bpy_to_n64(child), depth, fModel))
+                    fModel.layouts.append(self.create_layout(child, depth, fModel, transform @ child.matrix_local))
                     if child.children:
-                        loop_children(child, fModel, depth + 1)
+                        loop_children(child, fModel, depth + 1, transform @ child.matrix_local)
 
-        loop_children(fModel.tempObj, fModel, 1)
+        loop_children(fModel.tempObj, fModel, 1, root_transform)
 
         # add the root as a layout, though if there are no children, set the render mode to 14
         if not fModel.layouts:
             fModel.render_mode = 0x14  # list of DLs (entry point)
-            fModel.layouts.append(FauxLayout(self.export_f3d_from_obj(fModel.tempObj, fModel, Matrix.Identity)))
+            fModel.layouts.append(FauxLayout(self.export_f3d_from_obj(fModel.tempObj, fModel, Matrix.Identity(4))))
         else:
             fModel.render_mode = 0x18  # list of layouts pointing to entry points
-            fModel.layouts.insert(0, self.create_layout(fModel.tempObj, 0, fModel))
+            fModel.layouts.insert(0, self.create_layout(fModel.tempObj, 0, fModel, Matrix.Identity(4)))
             # create final layout
             fModel.layouts.append(Layout(depth=0x12))
         return fModel
 
-    def cleanup_fModel(self, fModel):
+    def cleanup_fModel(self, fModel: KCS_fModel):
         cleanupDuplicatedObjects(fModel.allObjs)
         self.rt.select_set(True)
         bpy.context.view_layer.objects.active = fModel.rt
 
     # create a layout for an obj given its depth and the obj props
-    def create_layout(self, obj, depth, fModel):
+    def create_layout(self, obj: bpy.types.Object, depth: int, fModel: KCS_fModel, transform: Matrix):
         # transform layout values to match N64 specs
         # only location needs to be transformed here, because rotation in the mesh data
         # will change the scale and rot
-        loc = self.vec3s_translate_to_n64(obj.location * self.scale)
-        rot = tuple(obj.rotation_euler)
-        scale = tuple(obj.scale)
+        loc = tuple(transform.translation * self.scale)
+        rot = tuple(transform.to_euler("XYZ"))
+        scale = tuple(transform.to_scale())
         finalTransform = Matrix.Diagonal(
             Vector((self.scale, self.scale, self.scale))
         ).to_4x4()  # just use the blender scale, other obj transforms can be
@@ -906,7 +908,7 @@ class BpyGeo:
         return ly
 
     # creates a list of KCS_fMesh objects with their bpy data processed and stored
-    def export_f3d_from_obj(self, tempObj, fModel, transformMatrix):
+    def export_f3d_from_obj(self, tempObj: bpy.types.Object, fModel: KCS_fModel, transformMatrix: Matrix):
         if tempObj and tempObj.type == "MESH":
             try:
                 infoDict = getInfoDict(tempObj)
@@ -929,7 +931,7 @@ class BpyGeo:
             return 0
 
     # given an obj, eval if it is a kcs gfx export
-    def is_kcs_gfx(self, obj):
+    def is_kcs_gfx(self, obj: bpy.types.Object):
         if obj.type == "MESH":
             return obj.KCS_mesh.mesh_type == "Graphics"
         if obj.type == "EMPTY":
@@ -996,7 +998,7 @@ class KCS_GFXList(GfxList, BinWrite):
 # population of the classes will be done by BpyGeo or GeoBinary
 class KCS_fModel(FModel, BinWrite):
     def __init__(self, rt: bpy.types.Object, write_tex_to_png: bool, name="Kirby"):
-        super().__init__("F3DEX2/LX2", False, name, DLFormat.Static, GfxMatWriteMethod.WriteAll, inline=True)
+        super().__init__("F3DEX2/LX2", False, name, DLFormat.Static, GfxMatWriteMethod.WriteAll)
         self.rt = rt
         self.gfxFormatter = GfxFormatter(None, 2, None)
         self.ptrManager = PointerManager()
@@ -1007,7 +1009,7 @@ class KCS_fModel(FModel, BinWrite):
     def addMesh(self, name, namePrefix, drawLayer, isSkinned, contextObj):
         meshName = getFMeshName(name, namePrefix, drawLayer, isSkinned)
         checkUniqueBoneNames(self, meshName, name)
-        self.meshes[meshName] = KCS_fMesh(meshName, self.DLFormat, inline=self.inline)
+        self.meshes[meshName] = KCS_fMesh(meshName, self.DLFormat)
         self.onAddMesh(self.meshes[meshName], contextObj)
         return self.meshes[meshName]
 
@@ -1027,7 +1029,7 @@ class KCS_fModel(FModel, BinWrite):
                 0,  # *vtx_refs[]
                 0,  # Num_Anims
                 0,  # *Anims[]
-                len(self.layouts),  # num layouts
+                len(self.layouts) - 1,  # num layouts
             )
         )
         for j, ly in enumerate(self.layouts):
@@ -1091,9 +1093,8 @@ class KCS_fModel(FModel, BinWrite):
 
 # subclassed to manage pointers when writing, and for dynamic DLs with scrolls
 class KCS_fMesh(FMesh, BinWrite):
-    def __init__(self, name, dlFormat: DLFormat, inline: bool = False):
+    def __init__(self, name, dlFormat: DLFormat):
         self.name = name
-        self.inline = inline
         # GfxList
         self.draw = KCS_GFXList(name, GfxListTag.Draw, dlFormat)
         # list of FTriGroup

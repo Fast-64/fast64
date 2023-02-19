@@ -269,6 +269,8 @@ class BpyCollision:
         return kcs_level
 
     def create_entity(self, obj: bpy.types.Object, transform: Matrix, scale: float, kcs_level: KCS_Level, node_num: int):
+        # entities don't need to be rotated to N64 coords
+        transform = transform_mtx_blender_to_n64().inverted() @ transform
         ent_matrix = transform @ obj.matrix_local
         ent_data = obj.KCS_ent
         kcs_entity = StructContainer(
@@ -282,7 +284,7 @@ class BpyCollision:
                 ent_data.eeprom_data,
                 tuple(ent_matrix.translation),
                 tuple(ent_matrix.to_euler("XYZ")),
-                tuple(ent_matrix.to_scale())
+                tuple(ent_matrix.to_scale() / scale)
             )
         )
         kcs_level.entities.append(kcs_entity)
@@ -718,6 +720,8 @@ class KCS_Level(BinWrite):
             ampersand="",
             static = True
         )
+        if self.entities:
+            col_data.write("u32 ent_term = ARR_TERMINATOR;")
         # replace plcaeholder pointers in file with real symbols
         self.resolve_ptrs_c(col_data)
         return col_data

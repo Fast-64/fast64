@@ -2780,16 +2780,16 @@ def saveOtherModeLDefinitionAll(fMaterial: FMaterial, settings, defaults, defaul
     is_f3d_old = all((not f3d.F3DEX_GBI, not f3d.F3DEX_GBI_2, not f3d.F3DLP_GBI))
     if not render_mode.set_rendermode:
         cmd = SPSetOtherMode("G_SETOTHERMODE_L", 0, 3 - is_f3d_old, [])
-        cmd.flagList.append(render_mode.g_mdsft_alpha_compare)
-        cmd.flagList.append(render_mode.g_mdsft_zsrcsel)
+        cmd.flagList.append(settings.g_mdsft_alpha_compare)
+        cmd.flagList.append(settings.g_mdsft_zsrcsel)
 
     else:
         cmd = SPSetOtherMode("G_SETOTHERMODE_L", 0, 32 - is_f3d_old, [])
-        cmd.flagList.append(render_mode.g_mdsft_alpha_compare)
-        cmd.flagList.append(render_mode.g_mdsft_zsrcsel)
+        cmd.flagList.append(settings.g_mdsft_alpha_compare)
+        cmd.flagList.append(settings.g_mdsft_zsrcsel)
 
         if render_mode.set_rendermode:
-            flagList, blendList = getRenderModeFlagList(render_mode, fMaterial)
+            flagList, blendList = getRenderModeFlagList(settings, fMaterial)
             cmd.flagList.extend(flagList)
             if blendList is not None:
                 cmd.flagList.extend(
@@ -2819,8 +2819,8 @@ def saveOtherModeLDefinitionAll(fMaterial: FMaterial, settings, defaults, defaul
 
     fMaterial.mat_only_DL.commands.append(cmd)
 
-    if render_mode.g_mdsft_zsrcsel == "G_ZS_PRIM":
-        fMaterial.mat_only_DL.commands.append(DPSetPrimDepth(z=render_mode.prim_depth.z, dz=render_mode.prim_depth.dz))
+    if settings.g_mdsft_zsrcsel == "G_ZS_PRIM":
+        fMaterial.mat_only_DL.commands.append(DPSetPrimDepth(z=settings.prim_depth.z, dz=settings.prim_depth.dz))
         fMaterial.revert.commands.append(DPSetPrimDepth())
 
 
