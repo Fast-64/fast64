@@ -69,7 +69,7 @@ class BleedGraphics:
             bleed_gfx_lists = BleedGfxLists()
             if triGroup.fMaterial:
                 bleed_gfx_lists.bled_mats = self.bleed_mat(triGroup.fMaterial, lastMat, cmd_list, bleed_state)
-                if not triGroup.fMaterial.largeTexFmt:
+                if not (triGroup.fMaterial.isTexLarge[0] or triGroup.fMaterial.isTexLarge[1]):
                     bleed_gfx_lists.bled_tex = self.bleed_textures(triGroup.fMaterial, lastMat, cmd_list, bleed_state)
             lastMat = triGroup.fMaterial
             # bleed tri group (for large textures) and to remove other unnecessary cmds
@@ -144,7 +144,7 @@ class BleedGraphics:
         # remove SPEndDisplayList from triGroup
         while SPEndDisplayList() in triGroup.triList.commands:
             triGroup.triList.commands.remove(SPEndDisplayList())
-        if triGroup.fMaterial.largeTexFmt:
+        if (triGroup.fMaterial.isTexLarge[0] or triGroup.fMaterial.isTexLarge[1]):
             triGroup.triList = self.bleed_cmd_list(triGroup.triList, bleed_state)
 
     # this is a little less versatile than comparing by last used material
