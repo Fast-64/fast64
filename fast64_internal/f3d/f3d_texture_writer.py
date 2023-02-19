@@ -517,7 +517,7 @@ class TexInfo:
             )
 
         # Write loads
-        loadGfx = fMaterial.material
+        loadGfx = fMaterial.mat_only_DL
         f3d = fModel.f3d
         if self.loadPal:
             savePaletteLoad(loadGfx, fPalette, self.palFormat, self.palAddr, self.palLen, 5 - self.indexInMat, f3d)
@@ -866,8 +866,8 @@ class MultitexManager:
                     + "bytes, ex. 2 32x32 RGBA 16 bit textures.\nNote that texture width will be internally padded to 64 bit boundaries."
                 )
 
-        self.ti0.writeAll(fMaterial.material, fMaterial, fModel, convertTextureData)
-        self.ti1.writeAll(fMaterial.material, fMaterial, fModel, convertTextureData)
+        self.ti0.writeAll(fMaterial.getTexturesGfxList(0), fMaterial, fModel, convertTextureData)
+        self.ti1.writeAll(fMaterial.getTexturesGfxList(1), fMaterial, fModel, convertTextureData)
 
     def getTexDimensions(self):
         return self.texDimensions
