@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import bpy
 from struct import pack
 from copy import copy
@@ -449,14 +451,17 @@ class JumpNode:
 
 
 class GeoLayoutBleed(BleedGraphics):
-    def bleed_geo_layout_graph(self, fModel, geo_layout_graph):
-        if not fModel.inline:
-            return
-        
+    def bleed_geo_layout_graph(self, fModel: FModel, geo_layout_graph: GeolayoutGraph, use_rooms: bool = False):
         last_materials = dict()  # last used material should be kept track of per layer
         
         def walk(node, last_materials):
             base_node = node.node
+            if type(base_node) == JumpNode:
+                if base_node.geolayout:
+                    for node in base_node.geolayout.nodes:
+                        last_materials = walk(node, last_materials if not use_rooms else dict()) if not use_rooms else dict()
+                else:
+                    last_materials = dict()
             fMesh = getattr(base_node, "fMesh", None)
             if fMesh:
                 cmd_list = fMesh.drawMatOverrides.get(base_node.override_hash, None) or fMesh.draw
@@ -464,18 +469,19 @@ class GeoLayoutBleed(BleedGraphics):
                 default_render_mode = fModel.getRenderMode(base_node.drawLayer)
                 lastMat = self.bleed_fmesh(fModel.f3d, fMesh, lastMat, cmd_list, default_render_mode)
                 # if the mesh has culling, it can be culled, and create invalid combinations of f3d to represent the current full DL
-                if not fMesh.cullVertexList:
+                if fMesh.cullVertexList:
+                    last_materials[base_node.drawLayer] = None
+                else:
                     last_materials[base_node.drawLayer] = lastMat
             # don't carry over lastmat if it is a switch node or geo asm node
-            if type(base_node) in [SwitchNode, FunctionNode, JumpNode]:
+            if type(base_node) in [SwitchNode, FunctionNode]:
                 last_materials = dict()
             for child in node.children:
                 last_materials = walk(child, last_materials)
             return last_materials
         
-        for geolayout in geo_layout_graph.sortedList:
-            for node in geolayout.nodes:
-                walk(node, last_materials)
+        for node in geo_layout_graph.startGeolayout.nodes:
+            last_materials = walk(node, last_materials)
         self.clear_gfx_lists(fModel)
 
 

@@ -45,8 +45,6 @@ class BleedGraphics:
         self.bled_gfx_lists = dict()
 
     def bleed_fModel(self, fModel: FModel, fMeshes: dict[FMesh]):
-        if not fModel.inline:
-            return
         # walk fModel, no order to drawing is observed, so lastMat is not kept track of
         for drawLayer, fMesh in fMeshes.items():
             self.bleed_fmesh(fModel.f3d, fMesh, None, fMesh.draw, fModel.getRenderMode(drawLayer))

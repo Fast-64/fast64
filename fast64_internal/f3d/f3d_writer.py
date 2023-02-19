@@ -1528,8 +1528,8 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         saveGeoModeDefinitionF3DEX2(fMaterial, f3dMat.rdp_settings, defaults, fModel.matWriteMethod)
     else:
         saveGeoModeDefinition(fMaterial, f3dMat.rdp_settings, defaults, fModel.matWriteMethod)
-    saveOtherModeHDefinition(fMaterial, f3dMat.rdp_settings, defaults, fModel.f3d._HW_VERSION_1, fModel.matWriteMethod)
-    saveOtherModeLDefinition(fMaterial, f3dMat.rdp_settings, defaults, defaultRM, fModel.matWriteMethod)
+    saveOtherModeHDefinition(fMaterial, f3dMat.rdp_settings, defaults, fModel.f3d._HW_VERSION_1, fModel.matWriteMethod, fModel.f3d)
+    saveOtherModeLDefinition(fMaterial, f3dMat.rdp_settings, defaults, defaultRM, fModel.matWriteMethod, fModel.f3d)
     saveOtherDefinition(fMaterial, f3dMat, defaults)
 
     # Set scale
@@ -2708,17 +2708,18 @@ def saveModeSetting(fMaterial, value, defaultValue, cmdClass):
         fMaterial.revert.commands.append(cmdClass(defaultValue))
 
 
-def saveOtherModeHDefinition(fMaterial, settings, defaults, isHWv1, matWriteMethod):
+def saveOtherModeHDefinition(fMaterial, settings, defaults, isHWv1, matWriteMethod, f3d):
     if matWriteMethod == GfxMatWriteMethod.WriteAll:
-        saveOtherModeHDefinitionAll(fMaterial, settings, defaults, isHWv1)
+        saveOtherModeHDefinitionAll(fMaterial, settings, defaults, isHWv1, f3d)
     elif matWriteMethod == GfxMatWriteMethod.WriteDifferingAndRevert:
         saveOtherModeHDefinitionIndividual(fMaterial, settings, defaults, isHWv1)
     else:
         raise PluginError("Unhandled material write method: " + str(matWriteMethod))
 
 
-def saveOtherModeHDefinitionAll(fMaterial, settings, defaults, isHWv1):
-    cmd = SPSetOtherMode("G_SETOTHERMODE_H", 4, 20, [])
+def saveOtherModeHDefinitionAll(fMaterial, settings, defaults, isHWv1, f3d):
+    is_f3d_old = all((not f3d.F3DEX_GBI, not f3d.F3DEX_GBI_2, not f3d.F3DLP_GBI))
+    cmd = SPSetOtherMode("G_SETOTHERMODE_H", 4, 20 - is_f3d_old, [])
     cmd.flagList.append(settings.g_mdsft_alpha_dither)
     if not isHWv1:
         cmd.flagList.append(settings.g_mdsft_rgb_dither)
@@ -2765,29 +2766,30 @@ def saveOtherModeHDefinitionIndividual(fMaterial, settings, defaults, isHWv1):
     saveModeSetting(fMaterial, settings.g_mdsft_pipeline, defaults.g_mdsft_pipeline, DPPipelineMode)
 
 
-def saveOtherModeLDefinition(fMaterial, settings, defaults, defaultRenderMode, matWriteMethod):
+def saveOtherModeLDefinition(fMaterial, settings, defaults, defaultRenderMode, matWriteMethod, f3d):
     if matWriteMethod == GfxMatWriteMethod.WriteAll:
-        saveOtherModeLDefinitionAll(fMaterial, settings, defaults, defaultRenderMode)
+        saveOtherModeLDefinitionAll(fMaterial, settings, defaults, defaultRenderMode, f3d)
     elif matWriteMethod == GfxMatWriteMethod.WriteDifferingAndRevert:
         saveOtherModeLDefinitionIndividual(fMaterial, settings, defaults, defaultRenderMode)
     else:
         raise PluginError("Unhandled material write method: " + str(matWriteMethod))
 
 
-def saveOtherModeLDefinitionAll(fMaterial: FMaterial, settings, defaults, defaultRenderMode):
+def saveOtherModeLDefinitionAll(fMaterial: FMaterial, settings, defaults, defaultRenderMode, f3d):
     render_mode = settings.render_mode
+    is_f3d_old = all((not f3d.F3DEX_GBI, not f3d.F3DEX_GBI_2, not f3d.F3DLP_GBI))
     if not render_mode.set_rendermode:
-        cmd = SPSetOtherMode("G_SETOTHERMODE_L", 0, 3, [])
-        cmd.flagList.append(settings.g_mdsft_alpha_compare)
-        cmd.flagList.append(settings.g_mdsft_zsrcsel)
+        cmd = SPSetOtherMode("G_SETOTHERMODE_L", 0, 3 - is_f3d_old, [])
+        cmd.flagList.append(render_mode.g_mdsft_alpha_compare)
+        cmd.flagList.append(render_mode.g_mdsft_zsrcsel)
 
     else:
-        cmd = SPSetOtherMode("G_SETOTHERMODE_L", 0, 32, [])
-        cmd.flagList.append(settings.g_mdsft_alpha_compare)
-        cmd.flagList.append(settings.g_mdsft_zsrcsel)
+        cmd = SPSetOtherMode("G_SETOTHERMODE_L", 0, 32 - is_f3d_old, [])
+        cmd.flagList.append(render_mode.g_mdsft_alpha_compare)
+        cmd.flagList.append(render_mode.g_mdsft_zsrcsel)
 
         if render_mode.set_rendermode:
-            flagList, blendList = getRenderModeFlagList(settings, fMaterial)
+            flagList, blendList = getRenderModeFlagList(render_mode, fMaterial)
             cmd.flagList.extend(flagList)
             if blendList is not None:
                 cmd.flagList.extend(
@@ -2817,8 +2819,8 @@ def saveOtherModeLDefinitionAll(fMaterial: FMaterial, settings, defaults, defaul
 
     fMaterial.mat_only_DL.commands.append(cmd)
 
-    if settings.g_mdsft_zsrcsel == "G_ZS_PRIM":
-        fMaterial.mat_only_DL.commands.append(DPSetPrimDepth(z=settings.prim_depth.z, dz=settings.prim_depth.dz))
+    if render_mode.g_mdsft_zsrcsel == "G_ZS_PRIM":
+        fMaterial.mat_only_DL.commands.append(DPSetPrimDepth(z=render_mode.prim_depth.z, dz=render_mode.prim_depth.dz))
         fMaterial.revert.commands.append(DPSetPrimDepth())
 
 
@@ -2938,11 +2940,12 @@ def exportF3DtoC(
 ):
 
     inline = bpy.context.scene.exportInlineF3D
-    fModel = FModel(f3dType, isHWv1, name, DLFormat, matWriteMethod if not inline else GfxMatWriteMethod.WriteAll, inline = inline)
+    fModel = FModel(f3dType, isHWv1, name, DLFormat, matWriteMethod if not inline else GfxMatWriteMethod.WriteAll)
     fMeshes = exportF3DCommon(obj, fModel, transformMatrix, True, name, DLFormat, not savePNG)
 
-    bleed_gfx = BleedGraphics()
-    bleed_gfx.bleed_fModel(fModel, fMeshes)
+    if inline:
+        bleed_gfx = BleedGraphics()
+        bleed_gfx.bleed_fModel(fModel, fMeshes)
 
     modelDirPath = os.path.join(dirPath, toAlnum(name))
 
