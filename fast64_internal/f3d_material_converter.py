@@ -117,6 +117,9 @@ def set_best_draw_layer_for_materials():
             # default to object's draw layer
             mat.f3d_mat.draw_layer.sm64 = obj.draw_layer_static
 
+            if len(obj.vertex_groups) == 0:
+                continue # object doesn't have vertex groups
+
             # get vertex group in the polygon
             group = get_group_from_polygon(obj, p)
             if isinstance(group, bpy.types.VertexGroup):
