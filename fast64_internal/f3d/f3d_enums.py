@@ -189,13 +189,13 @@ enumTextLUT = [
 
 enumTextLOD = [
     ("G_TL_TILE", "Tile", "Shows selected color combiner tiles"),
-    ("G_TL_LOD", "LoD", "Enables LoD calculations, LoD tile is base tile + log2(texel/pixel) ratio"),
+    ("G_TL_LOD", "LoD", "Enables LoD calculations, LoD tile is base tile + clamp(log2(texel/pixel)), remainder of log2(texel/pixel) ratio gets stored to LoD Fraction in the color combiner"),
 ]
 
 enumTextDetail = [
     ("G_TD_CLAMP", "Clamp", "Shows base tile for texel0 and texel 1 when magnifying (>1 texel/pixel), else shows LoD tiles"),
     ("G_TD_SHARPEN", "Sharpen", "Sharpens pixel colors when magnifying (>1 texel/pixel), always shows LoD tiles"),
-    ("G_TD_DETAIL", "Detail", "Shows base tile when magnifying (>1 texel/pixel), else shows base tile+1 as LoD tiles"),
+    ("G_TD_DETAIL", "Detail", "Shows base tile when magnifying (>1 texel/pixel), else shows LoD tiles + 1"),
 ]
 
 enumTextPersp = [
