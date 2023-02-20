@@ -2507,7 +2507,7 @@ class RDPSettings(bpy.types.PropertyGroup):
         name="Smooth Shading",
         default=True,
         update=update_node_values_with_preset,
-        description="Shades primitive smoothly using interpolation between shade values for each vertex(Gouraud shading)"
+        description="Shades primitive smoothly using interpolation between shade values for each vertex (Gouraud shading)"
     )
     # f3dlx2 only
     g_clipping: bpy.props.BoolProperty(

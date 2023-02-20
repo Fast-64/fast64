@@ -176,9 +176,9 @@ enumTextConv = [
 ]
 
 enumTextFilt = [
-    ("G_TF_POINT", "Point", "Point filtering."),
-    ("G_TF_AVERAGE", "Average", "Average filter, not recommended except for pixel aligned texrects."),
-    ("G_TF_BILERP", "Bilinear", "Bilinear, standard N64 filtering with 3 point sample."),
+    ("G_TF_POINT", "Point", "Point filtering"),
+    ("G_TF_AVERAGE", "Average", "Average filter, not recommended except for pixel aligned texrects"),
+    ("G_TF_BILERP", "Bilinear", "Bilinear, standard N64 filtering with 3 point sample"),
 ]
 
 enumTextLUT = [
@@ -189,13 +189,13 @@ enumTextLUT = [
 
 enumTextLOD = [
     ("G_TL_TILE", "Tile", "Shows selected color combiner tiles"),
-    ("G_TL_LOD", "LoD", "Enables LoD calculations"),
+    ("G_TL_LOD", "LoD", "Enables LoD calculations, LoD tile is base tile + log2(texel/pixel) ratio"),
 ]
 
 enumTextDetail = [
-    ("G_TD_CLAMP", "Clamp", "Clamp, shows base tile for texel0 and texel 1 when magnifying (>1 texel/pixel)"),
-    ("G_TD_SHARPEN", "Sharpen", "Sharpen, sharpens pixel colors when magnifying (>1 texel/pixel)"),
-    ("G_TD_DETAIL", "Detail", "Detail, shows base tile when magnifying (>1 texel/pixel), else shows base tile+1"),
+    ("G_TD_CLAMP", "Clamp", "Shows base tile for texel0 and texel 1 when magnifying (>1 texel/pixel), else shows LoD tiles"),
+    ("G_TD_SHARPEN", "Sharpen", "Sharpens pixel colors when magnifying (>1 texel/pixel), always shows LoD tiles"),
+    ("G_TD_DETAIL", "Detail", "Shows base tile when magnifying (>1 texel/pixel), else shows base tile+1 as LoD tiles"),
 ]
 
 enumTextPersp = [
