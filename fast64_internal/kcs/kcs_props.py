@@ -40,9 +40,9 @@ def UpdateEnt(objprop: EntProp, context: bpy.types.Context):
 
 # World
 class StageProp(PropertyGroup):
-    world: IntProperty(name="World", description="World to place level in", default=1, min=1, max=7)
-    level: IntProperty(name="Level", description="Which level in selected world to overwrite", default=1, min=1, max=5)
-    area: IntProperty(name="Area", description="Area", default=1, min=1, max=10)
+    world: IntProperty(name="World", description="World to place level in", default=0, min=0, max=6)
+    level: IntProperty(name="Level", description="Which level in selected world to overwrite", default=0, min=0, max=4)
+    area: IntProperty(name="Area", description="Area", default=0, min=0, max=10)
 
     def draw(self, layout: bpy.types.UILayout):
         layout.prop(self, "world")
@@ -103,7 +103,7 @@ class NodeProp(PropertyGroup):
     entrance_location: EnumProperty(
         name="Entrance Location",
         description="Where you start on node after warp",
-        default="walk start",
+        default="appear start",
         items=[
             ("walk start", "walk start", ""),
             ("walk end", "walk end", ""),
@@ -114,7 +114,7 @@ class NodeProp(PropertyGroup):
     entrance_action: EnumProperty(
         name="Entrance Action",
         description="Action when entering node after warp",
-        default="walk",
+        default="stand",
         items=[
             ("walk", "walk", ""),
             ("stand", "stand", ""),
@@ -141,7 +141,7 @@ class NodeProp(PropertyGroup):
 
     @property
     def entrance_int(self):
-        return (self.get("entrance_location") << 8) + self.get("entrance_action")
+        return (self.get("entrance_location", 2) << 8) + self.get("entrance_action", 1)
 
 
 # camera
@@ -220,7 +220,8 @@ class ColProp(PropertyGroup):
     col_param: IntProperty(
         name="Col Param/Break Condition", description="Collision Param for certain ColTypes", default=0
     )
-    warp_num: IntProperty(name="WarpNum", description="Number of Node warp is on", min=1)
+    warp_num: IntProperty(name="WarpNum", description="Flag for warping", min=0)
+    linked_index: IntProperty(name="Linked Index", description="Used for destructable geometry or other stuff idk", min=0)
 
     @property
     def params(self):

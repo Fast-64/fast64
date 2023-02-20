@@ -1005,6 +1005,9 @@ class KCS_fModel(FModel, BinWrite):
         self.img_refs = []
         self.write_tex_to_png = write_tex_to_png
 
+    def getRenderMode(self, draw_layer):
+        return ("G_RM_AA_ZB_OPA_SURF", "G_RM_AA_ZB_OPA_SURF2")
+    
     # overrides of base class
     def addMesh(self, name, namePrefix, drawLayer, isSkinned, contextObj):
         meshName = getFMeshName(name, namePrefix, drawLayer, isSkinned)

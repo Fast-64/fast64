@@ -468,7 +468,7 @@ def parse_stage_table(world: int, level: int, area: int, path: Path):
         raise PluginError("Could not find level stage table")
     for a, w in enumerate(levels):
         levels = w.split(",")
-        if a != world - 1:
+        if a != world:
             continue
         cnt = 0  # use a counter becuase I don't trust that each line is actually a ptr
         for l in levels:
@@ -476,14 +476,14 @@ def parse_stage_table(world: int, level: int, area: int, path: Path):
             end = l.find("]")  # if it returns -1 array slicing still work
             ptr = l[start : end + 1]
             if ptr:
-                cnt += 1
                 if cnt == level:
                     break
+                cnt += 1
         else:
             raise PluginError("could not find level selected")
         break
     # ptr is now going to tell me what var I need
-    index = int(ptr[ptr.find("[") + 1 : ptr.find("]")]) + area - 1
+    index = int(ptr[ptr.find("[") + 1 : ptr.find("]")]) + area
     ptr = ptr[1 : ptr.find("[")]
 
     # I don't check for STAGE_TERMINATOR, so insert that now

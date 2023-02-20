@@ -146,7 +146,9 @@ class COL_PT_Panel(Panel):
                 box.label(text="Collision Type must be brekaable (9)")
             box.prop(col, "col_type")
             box.prop(col, "col_param")
+            # idk how to handle these properly
             box.prop(col, "warp_num")
+            box.prop(col, "linked_index")
 
 
 # path node settings, goes on curve/path

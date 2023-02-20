@@ -268,10 +268,10 @@ class BpyCollision:
             kcs_level.mesh_data.append(self.create_col_mesh(tempObj, root_transform))
         return kcs_level
 
-    def create_entity(self, obj: bpy.types.Object, transform: Matrix, scale: float, kcs_level: KCS_Level, node_num: int):
+    def create_entity(self, obj: bpy.types.Object, ent_matrix: Matrix, scale: float, kcs_level: KCS_Level, node_num: int):
         # entities don't need to be rotated to N64 coords
-        transform = transform_mtx_blender_to_n64().inverted() @ transform
-        ent_matrix = transform @ obj.matrix_local
+        ent_rotation = ent_matrix.to_euler("XYZ")
+        ent_rotation.rotate_axis("X", math.radians(90))
         ent_data = obj.KCS_ent
         kcs_entity = StructContainer(
             (
@@ -283,7 +283,7 @@ class BpyCollision:
                 ent_data.respawn,
                 ent_data.eeprom_data,
                 tuple(ent_matrix.translation),
-                tuple(ent_matrix.to_euler("XYZ")),
+                tuple(ent_rotation),
                 tuple(ent_matrix.to_scale() / scale)
             )
         )
@@ -453,9 +453,9 @@ class KCS_Level(BinWrite):
         self.node_distances = []
 
     def process_meshes_and_nodes(self):
-        self.create_node_relations()
         self.create_binary_space_partition()
         self.create_collision_header()
+        self.create_node_relations()
 
         if self.node_data:
             self.node_header = StructContainer(
@@ -574,22 +574,23 @@ class KCS_Level(BinWrite):
         self.node_data = sorted(self.node_data, key=lambda x: x.node_num)
         # node relations show the distance it takes to get from each node to another node
         # relation index can therefore be found by using the binomial coefficient of (n - 1, k)
-        def walk_node(self, kcs_node: KCS_Node, target: int, distance: float):
-            if (
-                (kcs_node.node.lock_forward and kcs_node.node.next_node == target)
-                or (kcs_node.node.lock_backward and kcs_node.node.prev_node == target)
-                or (kcs_node.node.lock_backward and kcs_node.node.lock_forward)
-            ):
+        def walk_node_backwards(self, kcs_node: KCS_Node, target: int, distance: float):
+            if kcs_node.node.lock_backward:
                 return (0, 9999.0)
+            if kcs_node.node.prev_node != target and not kcs_node.node.lock_backward:
+                return walk_node_backwards(self, self.node_data[kcs_node.node.prev_node], target, distance + kcs_node.node_length)
             if kcs_node.node.prev_node == target:
                 return (0x80, distance)
+        
+        def walk_node_forwards(self, kcs_node: KCS_Node, target: int, distance: float):
+            if kcs_node.node.lock_forward:
+                return (0, 9999.0)
+            if kcs_node.node.next_node != target and not kcs_node.node.lock_forward:
+                return walk_node_forwards(self, self.node_data[kcs_node.node.next_node], target, distance + kcs_node.node_length)
             if kcs_node.node.next_node == target:
                 return (0, distance + kcs_node.node_length)
-            if kcs_node.node.next_node != target and not kcs_node.node.lock_forward:
-                return walk_node(self, self.node_data[kcs_node.node.next_node], target, distance + kcs_node.node_length)
-            if kcs_node.node.prev_node != target and not kcs_node.node.lock_backward:
-                return walk_node(self, self.node_data[kcs_node.node.prev_node], target, distance + kcs_node.node_length)
-
+        
+        # I need ordering so I can't use a set
         def app_unique_list(seq, value):
             if value in seq:
                 return seq.index(value)
@@ -603,7 +604,7 @@ class KCS_Level(BinWrite):
                     self.node_traversals.append(0)
                 # travel across nodes starting at "node" until "other" is found
                 # if it is not connected, then use 0 as NULL connection
-                direction, distance = walk_node(self, node, j, 0)
+                direction, distance = res_forward if (res_forward := walk_node_forwards(self, node, j, 0))[1] != 9999.0 else walk_node_backwards(self, node, j, 0)
                 self.node_traversals.append(direction + app_unique_list(self.node_distances, distance))
 
     # this should try to export in the same order as a default level.c file
@@ -817,7 +818,7 @@ class KCS_Triangle(BinWrite):
             self.norm_type,
             self.destructable_index,
             self.particle_index,
-            self.stop_flag,
+            1 if self.col_type == 8 else 0,
             self.col_param,
             self.col_type,
         )
@@ -903,7 +904,7 @@ class KCS_Node(BinWrite):
         path_dat = self.node
         self.kirby_node = StructContainer(
             (
-                path_dat.node_num,
+                path_dat.node_num << 8,
                 path_dat.entrance_int,
                 (*path_dat.stage_dest.stage, path_dat.warp_node),
                 0,  # pad
