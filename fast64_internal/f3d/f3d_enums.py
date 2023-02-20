@@ -165,20 +165,20 @@ enumRGBDither = [
 ]
 
 enumCombKey = [
-    ("G_CK_NONE", "None", "None"),
-    ("G_CK_KEY", "Key", "Key"),
+    ("G_CK_NONE", "None", "Disables chroma key."),
+    ("G_CK_KEY", "Key", "Enables chroma key."),
 ]
 
 enumTextConv = [
-    ("G_TC_CONV", "Convert", "Convert"),
-    ("G_TC_FILTCONV", "Filter And Convert", "Filter And Convert"),
-    ("G_TC_FILT", "Filter", "Filter"),
+    ("G_TC_CONV", "Convert", "Convert, used for YUV to RGB conversion."),
+    ("G_TC_FILTCONV", "Filter And Convert", "Filter And Convert, used for YUV to RGB conversion."),
+    ("G_TC_FILT", "Filter", "Filter, used for default textures."),
 ]
 
 enumTextFilt = [
-    ("G_TF_POINT", "Point", "Point"),
-    ("G_TF_AVERAGE", "Average", "Average"),
-    ("G_TF_BILERP", "Bilinear", "Bilinear"),
+    ("G_TF_POINT", "Point", "Point filtering."),
+    ("G_TF_AVERAGE", "Average", "Average filter, not recommended except for pixel aligned texrects."),
+    ("G_TF_BILERP", "Bilinear", "Bilinear, standard N64 filtering with 3 point sample."),
 ]
 
 enumTextLUT = [
@@ -188,14 +188,14 @@ enumTextLUT = [
 ]
 
 enumTextLOD = [
-    ("G_TL_TILE", "Tile", "Tile"),
-    ("G_TL_LOD", "LOD", "LOD"),
+    ("G_TL_TILE", "Tile", "Shows selected color combiner tiles"),
+    ("G_TL_LOD", "LoD", "Enables LoD calculations"),
 ]
 
 enumTextDetail = [
-    ("G_TD_CLAMP", "Clamp", "Clamp"),
-    ("G_TD_SHARPEN", "Sharpen", "Sharpen"),
-    ("G_TD_DETAIL", "Detail", "Detail"),
+    ("G_TD_CLAMP", "Clamp", "Clamp, shows base tile for texel0 and texel 1 when magnifying (>1 texel/pixel)"),
+    ("G_TD_SHARPEN", "Sharpen", "Sharpen, sharpens pixel colors when magnifying (>1 texel/pixel)"),
+    ("G_TD_DETAIL", "Detail", "Detail, shows base tile when magnifying (>1 texel/pixel), else shows base tile+1"),
 ]
 
 enumTextPersp = [
@@ -206,8 +206,8 @@ enumTextPersp = [
 enumCycleType = [
     ("G_CYC_1CYCLE", "1 Cycle", "1 Cycle"),
     ("G_CYC_2CYCLE", "2 Cycle", "2 Cycle"),
-    ("G_CYC_COPY", "Copy", "Copy"),
-    ("G_CYC_FILL", "Fill", "Fill"),
+    ("G_CYC_COPY", "Copy", "Copies texture values to framebuffer with no perspective correction or blending"),
+    ("G_CYC_FILL", "Fill", "Uses blend color to fill primitve"),
 ]
 
 enumColorDither = [("G_CD_DISABLE", "Disable", "Disable"), ("G_CD_ENABLE", "Enable", "Enable")]
@@ -219,20 +219,20 @@ enumPipelineMode = [
 
 enumAlphaCompare = [
     ("G_AC_NONE", "None", "None"),
-    ("G_AC_THRESHOLD", "Threshold", "Threshold"),
-    ("G_AC_DITHER", "Dither", "Dither"),
+    ("G_AC_THRESHOLD", "Threshold", "Threshold, writes if alpha is greater than blend color alpha"),
+    ("G_AC_DITHER", "Dither", "Dither, writes if alpha is greater than random value"),
 ]
 
 enumDepthSource = [
-    ("G_ZS_PIXEL", "Pixel", "Pixel"),
-    ("G_ZS_PRIM", "Primitive", "Primitive"),
+    ("G_ZS_PIXEL", "Pixel", "Z value is calculated per primitive pixel"),
+    ("G_ZS_PRIM", "Primitive", "Primitive, use prim depth to set Z value"),
 ]
 
 enumCoverage = [
-    ("CVG_DST_CLAMP", "Clamp", "Clamp"),
-    ("CVG_DST_WRAP", "Wrap", "Wrap"),
-    ("CVG_DST_FULL", "Full", "Full"),
-    ("CVG_DST_SAVE", "Save", "Save"),
+    ("CVG_DST_CLAMP", "Clamp", "Clamp if blending, else use new pixel coverage"),
+    ("CVG_DST_WRAP", "Wrap", "Wrap coverage"),
+    ("CVG_DST_FULL", "Full", "Force to full coverage"),
+    ("CVG_DST_SAVE", "Save", "Don't overwrite previous framebuffer coverage value"),
 ]
 
 enumZMode = [
