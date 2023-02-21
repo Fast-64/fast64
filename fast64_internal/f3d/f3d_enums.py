@@ -170,15 +170,15 @@ enumCombKey = [
 ]
 
 enumTextConv = [
-    ("G_TC_CONV", "Convert", "Convert, used for YUV to RGB conversion."),
-    ("G_TC_FILTCONV", "Filter And Convert", "Filter And Convert, used for YUV to RGB conversion."),
-    ("G_TC_FILT", "Filter", "Filter, used for default textures."),
+    ("G_TC_CONV", "Convert", "Convert YUV to RGB"),
+    ("G_TC_FILTCONV", "Filter And Convert", "Applies chosen filter on cycle 1 and converts YUB to RGB in the second cycle"),
+    ("G_TC_FILT", "Filter", "Applies chosen filter on textures with no color conversion"),
 ]
 
 enumTextFilt = [
     ("G_TF_POINT", "Point", "Point filtering"),
-    ("G_TF_AVERAGE", "Average", "Average filter, not recommended except for pixel aligned texrects"),
-    ("G_TF_BILERP", "Bilinear", "Bilinear, standard N64 filtering with 3 point sample"),
+    ("G_TF_AVERAGE", "Average", "Four sample filter, not recommended except for pixel aligned texrects"),
+    ("G_TF_BILERP", "Bilinear", "Standard N64 filtering with 3 point sample"),
 ]
 
 enumTextLUT = [
@@ -194,8 +194,8 @@ enumTextLOD = [
 
 enumTextDetail = [
     ("G_TD_CLAMP", "Clamp", "Shows base tile for texel0 and texel 1 when magnifying (>1 texel/pixel), else shows LoD tiles"),
-    ("G_TD_SHARPEN", "Sharpen", "Sharpens pixel colors when magnifying (>1 texel/pixel), always shows LoD tiles"),
-    ("G_TD_DETAIL", "Detail", "Shows base tile when magnifying (>1 texel/pixel), else shows LoD tiles + 1"),
+    ("G_TD_SHARPEN", "Sharpen", "Sharpens pixel colors when magnifying (<1 texel/pixel), always shows LoD tiles"),
+    ("G_TD_DETAIL", "Detail", "Shows base tile when magnifying (<1 texel/pixel), else shows LoD tiles + 1"),
 ]
 
 enumTextPersp = [
@@ -207,25 +207,25 @@ enumCycleType = [
     ("G_CYC_1CYCLE", "1 Cycle", "1 Cycle"),
     ("G_CYC_2CYCLE", "2 Cycle", "2 Cycle"),
     ("G_CYC_COPY", "Copy", "Copies texture values to framebuffer with no perspective correction or blending"),
-    ("G_CYC_FILL", "Fill", "Uses blend color to fill primitve"),
+    ("G_CYC_FILL", "Fill", "Uses fill color to fill primitve"),
 ]
 
 enumColorDither = [("G_CD_DISABLE", "Disable", "Disable"), ("G_CD_ENABLE", "Enable", "Enable")]
 
 enumPipelineMode = [
-    ("G_PM_1PRIMITIVE", "1 Primitive", "1 Primitive"),
-    ("G_PM_NPRIMITIVE", "N Primitive", "N Primitive"),
+    ("G_PM_1PRIMITIVE", "1 Primitive", "Adds in pipe sync after every tri draw. Adds significant amounts of lag. Only use in vanilla SM64 hacking projects"),
+    ("G_PM_NPRIMITIVE", "N Primitive", "No additional syncs are added after tri draws. Default option for every game but vanilla SM64"),
 ]
 
 enumAlphaCompare = [
-    ("G_AC_NONE", "None", "None"),
-    ("G_AC_THRESHOLD", "Threshold", "Threshold, writes if alpha is greater than blend color alpha"),
-    ("G_AC_DITHER", "Dither", "Dither, writes if alpha is greater than random value"),
+    ("G_AC_NONE", "None", "No alpha comparison is made, writing is based on coverage"),
+    ("G_AC_THRESHOLD", "Threshold", "Writes if alpha is greater than blend color alpha"),
+    ("G_AC_DITHER", "Dither", "Writes if alpha is greater than random value"),
 ]
 
 enumDepthSource = [
     ("G_ZS_PIXEL", "Pixel", "Z value is calculated per primitive pixel"),
-    ("G_ZS_PRIM", "Primitive", "Primitive, use prim depth to set Z value"),
+    ("G_ZS_PRIM", "Primitive", "Uses prim depth to set Z value, does not work on HLE emulation"),
 ]
 
 enumCoverage = [

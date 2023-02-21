@@ -2460,26 +2460,26 @@ class RDPSettings(bpy.types.PropertyGroup):
         name="Z Buffer",
         default=True,
         update=update_node_values_with_preset,
-        description="Turns on/off Z-Buffer.  Z-Buffer set to 0 if disabled."
+        description="Enables calculation of Z value for primitives. Disable if not reading or writing Z-Buffer in the blender"
     )
     g_shade: bpy.props.BoolProperty(
         name="Shading",
         default=True,
         update=update_node_values_with_preset,
-        description="Turns on/off shading. Shade register set to 0 if disabled."
+        description="Computes shade coordinates for primitives. Disable if not using lighting, vertex colors or fog"
     )
     # v1/2 difference
     g_cull_front: bpy.props.BoolProperty(
         name="Cull Front",
         update=update_node_values_with_preset,
-        description="Turns on/off drawing of front faces"
+        description="Disables drawing of front faces"
     )
     # v1/2 difference
     g_cull_back: bpy.props.BoolProperty(
         name="Cull Back",
         default=True,
         update=update_node_values_with_preset,
-        description="Turns on/off drawing of back faces"
+        description="Disables drawing of back faces"
     )
     g_fog: bpy.props.BoolProperty(
         name="Fog",
@@ -2490,17 +2490,17 @@ class RDPSettings(bpy.types.PropertyGroup):
         name="Lighting",
         default=True,
         update=update_node_values_with_preset,
-        description="Enables calculation of shade values from lights and vertex normals. Turn off for vertex colors"
+        description="Enables calculation shade color using lights. Turn off for vertex colors as shade color"
     )
     g_tex_gen: bpy.props.BoolProperty(
         name="Texture UV Generate",
         update=update_node_values_with_preset,
-        description="Generates texture coordinates that maps from norm x/y to [0-1]x/y"
+        description="Generates texture coordinates for reflection mapping based on vertex normals and lookat direction. On a skybox texture, maps the sky to the center of the texture and the ground to a cirlce inscribed in the border. Requires lighting enabled to use"
     )
     g_tex_gen_linear: bpy.props.BoolProperty(
         name="Texture UV Generate Linear",
         update=update_node_values_with_preset,
-        description="Generates texture coordinates that linearly maps from cos/sin(norm) to [0-1]x/y"
+        description="Modifies the texgen mapping; enable with texgen. Use a normal panorama image for the texture, with the sky at the top and the ground at the bottom. Requires lighting enabled to use"
     )
     # v1/2 difference
     g_shade_smooth: bpy.props.BoolProperty(
@@ -2522,7 +2522,7 @@ class RDPSettings(bpy.types.PropertyGroup):
         items=enumAlphaDither,
         default="G_AD_NOISE",
         update=update_node_values_with_preset,
-        description="Applies your choice dithering type to output frambuffer alpha"
+        description="Applies your choice dithering type to output framebuffer alpha. Dithering is used to convert high precision source colors into lower precision framebuffer values"
     )
     # v2 only
     g_mdsft_rgb_dither: bpy.props.EnumProperty(
@@ -2530,7 +2530,7 @@ class RDPSettings(bpy.types.PropertyGroup):
         items=enumRGBDither,
         default="G_CD_MAGICSQ",
         update=update_node_values_with_preset,
-        description="Applies your choice dithering type to output frambuffer color"
+        description="Applies your choice dithering type to output framebuffer color. Dithering is used to convert high precision source colors into lower precision framebuffer values"
     )
     g_mdsft_combkey: bpy.props.EnumProperty(
         name="Chroma Key",
@@ -2544,7 +2544,7 @@ class RDPSettings(bpy.types.PropertyGroup):
         items=enumTextConv,
         default="G_TC_FILT",
         update=update_node_values_with_preset,
-        description="Turns on/off the converter for texture color. Can convert color space from YUV into RGB"
+        description="Sets the function of the texture convert unit, to do texture filtering, YUV to RGB conversion, or both"
     )
     g_mdsft_text_filt: bpy.props.EnumProperty(
         name="Texture Filter",
@@ -2607,7 +2607,7 @@ class RDPSettings(bpy.types.PropertyGroup):
         items=enumPipelineMode,
         default="G_PM_1PRIMITIVE",
         update=update_node_values_with_preset,
-        description="Changes primitive rasterization timing. For games besides SM64, N-prim is optimal"
+        description="Changes primitive rasterization timing by adding syncs after tri draws. Vanilla SM64 has synchronization issues which could cause a crash if not using 1 prim. For any modern SM64 hacking project or other game N-prim should always be used"
     )
 
     # lower half mode
@@ -2702,7 +2702,7 @@ class RDPSettings(bpy.types.PropertyGroup):
     )
     force_bl: bpy.props.BoolProperty(
         update=update_node_values_with_preset,
-        description="Always uses blending on. Default blending is conditionally based on depth. Always used when Z Buffering is off"
+        description="Always uses blending on. Default blending is conditionally only applied during partial coverage. Forcing blending will disable division step of the blender, so B input must be 1-A or there may be rendering issues. Always use this option when Z Buffering is off"
     )
 
     # cycle dependent - (P * A + M - B) / (A + B)
