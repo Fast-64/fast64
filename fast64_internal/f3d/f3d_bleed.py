@@ -130,7 +130,7 @@ class BleedGraphics:
     def bleed_fmesh(self, f3d: F3D, fMesh: FMesh, lastMat: FMaterial, cmd_list: GfxList, default_render_mode: list[str] = None):
         if bled_mat := self.bled_gfx_lists.get(cmd_list, None):
             return bled_mat
-        self.on_bleed_start(f3d, lastMat, cmd_list)
+        fmesh_static_cmds = self.on_bleed_start(f3d, lastMat, cmd_list)
         bleed_state = self.bleed_start
         for triGroup in fMesh.triangleGroups:
             # bleed mat and tex
@@ -145,7 +145,7 @@ class BleedGraphics:
             self.inline_triGroup(f3d, triGroup, bleed_gfx_lists, cmd_list)
             self.on_tri_group_bleed_end(f3d, triGroup, lastMat, bleed_gfx_lists)
             bleed_state = self.bleed_in_progress
-        self.on_bleed_end(f3d, lastMat, bleed_gfx_lists, cmd_list, default_render_mode)
+        self.on_bleed_end(f3d, lastMat, bleed_gfx_lists, cmd_list, fmesh_static_cmds, default_render_mode)
         return lastMat
 
     def bleed_textures(self, curMat: FMaterial, lastMat: FMaterial, cmd_list: GfxList, bleed_state: int):
@@ -248,21 +248,40 @@ class BleedGraphics:
         if tri_cmds:
             bleed_gfx_lists.reset_cmds[DPPipeSync] = DPPipeSync()
 
+    # pre processes cmd_list and removes cmds deemed useless. subclass and override if this causes a game specific issue
     def on_bleed_start(self, f3d: F3D, lastMat: FMaterial, cmd_list: GfxList):
         # remove SPDisplayList and SPEndDisplayList from FMesh.draw
-        iter_cmds = copy.copy(cmd_list.commands)
-        spDLCmds = (c for c in iter_cmds if type(c) == SPDisplayList)
-        spEndCmds = (c for c in iter_cmds if type(c) == SPEndDisplayList)
-        for spDL in spDLCmds:
-            cmd_list.commands.remove(spDL)
-        for spEnd in spEndCmds:
-            cmd_list.commands.remove(spEnd)
+        # place static cmds after SPDisplay lists aside and append them to the end after inline
+        sp_dl_start = False
+        non_jump_dl_cmds = []
+        for j, cmd in enumerate(cmd_list.commands):
+            if type(cmd) == SPEndDisplayList:
+                cmd_list.commands[j] = None
+            # get rid of geo mode cmds those will all be reset via bleed
+            elif type(cmd) == SPClearGeometryMode and sp_dl_start:
+                cmd_list.commands[j] = None
+            elif type(cmd) == SPSetGeometryMode and sp_dl_start:
+                cmd_list.commands[j] = None
+            # bleed will handle all syncs after inlining starts, but won't destroy syncs at gfxList start
+            elif type(cmd) == DPPipeSync and sp_dl_start:
+                cmd_list.commands[j] = None
+            elif type(cmd) == SPDisplayList:
+                cmd_list.commands[j] = None
+                sp_dl_start = True
+                continue
+            elif sp_dl_start and cmd is not None:
+                cmd_list.commands[j] = None
+                non_jump_dl_cmds.append(cmd)
+        # remove Nones from list
+        while None in cmd_list.commands:
+            cmd_list.commands.remove(None)
+        return non_jump_dl_cmds
 
     def on_tri_group_bleed_end(self, f3d: F3D, triGroup: FTriGroup, lastMat: FMaterial, bleed_gfx_lists: BleedGfxLists):
         return
 
     def on_bleed_end(
-        self, f3d: F3D, lastMat: FMaterial, bleed_gfx_lists: BleedGfxLists, cmd_list: GfxList, default_render_mode: list[str] = None
+        self, f3d: F3D, lastMat: FMaterial, bleed_gfx_lists: BleedGfxLists, cmd_list: GfxList, fmesh_static_cmds: list[GbiMacro], default_render_mode: list[str] = None
     ):
         [bleed_gfx_lists.add_reset_cmd(cmd) for cmd in cmd_list.commands]
         # revert certain cmds for extra safety
@@ -272,6 +291,7 @@ class BleedGraphics:
             reset_cmds.remove(DPPipeSync)
             reset_cmds.insert(0, DPPipeSync)
         cmd_list.commands.extend(reset_cmds)
+        cmd_list.commands.extend(fmesh_static_cmds) # this is troublesome
         cmd_list.commands.append(SPEndDisplayList())
         self.bled_gfx_lists[cmd_list] = lastMat
 
