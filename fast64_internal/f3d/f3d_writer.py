@@ -573,8 +573,9 @@ def exportF3DCommon(obj, fModel, transformMatrix, includeChildren, name, DLForma
     try:
         infoDict = getInfoDict(tempObj)
         triConverterInfo = TriangleConverterInfo(tempObj, None, fModel.f3d, transformMatrix, infoDict)
+        revert_materials = fModel.matWriteMethod == GfxMatWriteMethod.WriteDifferingAndRevert
         fMeshes = saveStaticModel(
-            triConverterInfo, fModel, tempObj, transformMatrix, name, convertTextureData, True, None
+            triConverterInfo, fModel, tempObj, transformMatrix, name, convertTextureData, revert_materials, None
         )
         cleanupCombineObj(tempObj, meshList)
         obj.select_set(True)
@@ -2716,18 +2717,18 @@ def saveOtherModeHDefinition(fMaterial, settings, defaults, isHWv1, matWriteMeth
 def saveOtherModeHDefinitionAll(fMaterial, settings, defaults, isHWv1, f3d):
     is_f3d_old = all((not f3d.F3DEX_GBI, not f3d.F3DEX_GBI_2, not f3d.F3DLP_GBI))
     cmd = SPSetOtherMode("G_SETOTHERMODE_H", 4, 20 - is_f3d_old, [])
-    cmd.flagList.append(settings.g_mdsft_alpha_dither)
     if not isHWv1:
         cmd.flagList.append(settings.g_mdsft_rgb_dither)
-        cmd.flagList.append(settings.g_mdsft_combkey)
+        cmd.flagList.append(settings.g_mdsft_alpha_dither)
+    else:
+        cmd.flagList.append(settings.g_mdsft_color_dither)
+    cmd.flagList.append(settings.g_mdsft_combkey)
     cmd.flagList.append(settings.g_mdsft_textconv)
     cmd.flagList.append(settings.g_mdsft_text_filt)
     cmd.flagList.append(settings.g_mdsft_textlod)
     cmd.flagList.append(settings.g_mdsft_textdetail)
     cmd.flagList.append(settings.g_mdsft_textpersp)
     cmd.flagList.append(settings.g_mdsft_cycletype)
-    if isHWv1:
-        cmd.flagList.append(settings.g_mdsft_color_dither)
     cmd.flagList.append(settings.g_mdsft_pipeline)
 
     fMaterial.mat_only_DL.commands.append(cmd)
