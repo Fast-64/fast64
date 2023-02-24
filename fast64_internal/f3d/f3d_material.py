@@ -2495,7 +2495,7 @@ class RDPSettings(bpy.types.PropertyGroup):
     g_tex_gen: bpy.props.BoolProperty(
         name="Texture UV Generate",
         update=update_node_values_with_preset,
-        description="Generates texture coordinates for reflection mapping based on vertex normals and lookat direction. On a skybox texture, maps the sky to the center of the texture and the ground to a cirlce inscribed in the border. Requires lighting enabled to use"
+        description="Generates texture coordinates for reflection mapping based on vertex normals and lookat direction. On a skybox texture, maps the sky to the center of the texture and the ground to a circle inscribed in the border. Requires lighting enabled to use"
     )
     g_tex_gen_linear: bpy.props.BoolProperty(
         name="Texture UV Generate Linear",
