@@ -2460,45 +2460,54 @@ class RDPSettings(bpy.types.PropertyGroup):
         name="Z Buffer",
         default=True,
         update=update_node_values_with_preset,
+        description="Enables calculation of Z value for primitives. Disable if not reading or writing Z-Buffer in the blender"
     )
     g_shade: bpy.props.BoolProperty(
         name="Shading",
         default=True,
         update=update_node_values_with_preset,
+        description="Computes shade coordinates for primitives. Disable if not using lighting, vertex colors or fog"
     )
     # v1/2 difference
     g_cull_front: bpy.props.BoolProperty(
         name="Cull Front",
         update=update_node_values_with_preset,
+        description="Disables drawing of front faces"
     )
     # v1/2 difference
     g_cull_back: bpy.props.BoolProperty(
         name="Cull Back",
         default=True,
         update=update_node_values_with_preset,
+        description="Disables drawing of back faces"
     )
     g_fog: bpy.props.BoolProperty(
         name="Fog",
         update=update_node_values_with_preset,
+        description="Turns on/off fog calculation. Fog variable gets stored into shade alpha"
     )
     g_lighting: bpy.props.BoolProperty(
         name="Lighting",
         default=True,
         update=update_node_values_with_preset,
+        description="Enables calculation shade color using lights. Turn off for vertex colors as shade color"
     )
     g_tex_gen: bpy.props.BoolProperty(
         name="Texture UV Generate",
         update=update_node_values_with_preset,
+        description="Generates texture coordinates for reflection mapping based on vertex normals and lookat direction. On a skybox texture, maps the sky to the center of the texture and the ground to a circle inscribed in the border. Requires lighting enabled to use"
     )
     g_tex_gen_linear: bpy.props.BoolProperty(
         name="Texture UV Generate Linear",
         update=update_node_values_with_preset,
+        description="Modifies the texgen mapping; enable with texgen. Use a normal panorama image for the texture, with the sky at the top and the ground at the bottom. Requires lighting enabled to use"
     )
     # v1/2 difference
     g_shade_smooth: bpy.props.BoolProperty(
         name="Smooth Shading",
         default=True,
         update=update_node_values_with_preset,
+        description="Shades primitive smoothly using interpolation between shade values for each vertex (Gouraud shading)"
     )
     # f3dlx2 only
     g_clipping: bpy.props.BoolProperty(
@@ -2513,6 +2522,7 @@ class RDPSettings(bpy.types.PropertyGroup):
         items=enumAlphaDither,
         default="G_AD_NOISE",
         update=update_node_values_with_preset,
+        description="Applies your choice dithering type to output framebuffer alpha. Dithering is used to convert high precision source colors into lower precision framebuffer values"
     )
     # v2 only
     g_mdsft_rgb_dither: bpy.props.EnumProperty(
@@ -2520,35 +2530,41 @@ class RDPSettings(bpy.types.PropertyGroup):
         items=enumRGBDither,
         default="G_CD_MAGICSQ",
         update=update_node_values_with_preset,
+        description="Applies your choice dithering type to output framebuffer color. Dithering is used to convert high precision source colors into lower precision framebuffer values"
     )
     g_mdsft_combkey: bpy.props.EnumProperty(
         name="Chroma Key",
         items=enumCombKey,
         default="G_CK_NONE",
         update=update_node_values_with_preset,
+        description="Turns on/off the chroma key. Chroma key requires a special setup to work properly"
     )
     g_mdsft_textconv: bpy.props.EnumProperty(
         name="Texture Convert",
         items=enumTextConv,
         default="G_TC_FILT",
         update=update_node_values_with_preset,
+        description="Sets the function of the texture convert unit, to do texture filtering, YUV to RGB conversion, or both"
     )
     g_mdsft_text_filt: bpy.props.EnumProperty(
         name="Texture Filter",
         items=enumTextFilt,
         default="G_TF_BILERP",
         update=update_node_values_without_preset,
+        description="Applies your choice of filtering to texels"
     )
     g_mdsft_textlut: bpy.props.EnumProperty(
         name="Texture LUT",
         items=enumTextLUT,
         default="G_TT_NONE",
+        description="Changes texture look up table (LUT) behavior. This property is auto set if you choose a CI texture"
     )
     g_mdsft_textlod: bpy.props.EnumProperty(
         name="Texture LOD",
         items=enumTextLOD,
         default="G_TL_TILE",
         update=update_node_values_with_preset,
+        description="Turns on/off the use of LoD on textures. LoD textures change the used tile based on the texel/pixel ratio"
     )
     num_textures_mipmapped: bpy.props.IntProperty(
         name="Number of Mipmaps",
@@ -2562,18 +2578,21 @@ class RDPSettings(bpy.types.PropertyGroup):
         items=enumTextDetail,
         default="G_TD_CLAMP",
         update=update_node_values_with_preset,
+        description="Changes type of LoD usage. Affects how tiles are selected based on texel magnification. Only works when G_TL_LOD is selected"
     )
     g_mdsft_textpersp: bpy.props.EnumProperty(
         name="Texture Perspective Correction",
         items=enumTextPersp,
         default="G_TP_PERSP",
         update=update_node_values_with_preset,
+        description="Turns on/off texture perspective correction"
     )
     g_mdsft_cycletype: bpy.props.EnumProperty(
         name="Cycle Type",
         items=enumCycleType,
         default="G_CYC_1CYCLE",
         update=update_node_values_with_preset,
+        description="Changes RDP pipeline configuration. For normal textured triangles use one or two cycle mode"
     )
     # v1 only
     g_mdsft_color_dither: bpy.props.EnumProperty(
@@ -2581,12 +2600,14 @@ class RDPSettings(bpy.types.PropertyGroup):
         items=enumColorDither,
         default="G_CD_ENABLE",
         update=update_node_values_with_preset,
+        description="Applies your choice dithering type to output frambuffer"
     )
     g_mdsft_pipeline: bpy.props.EnumProperty(
         name="Pipeline Span Buffer Coherency",
         items=enumPipelineMode,
         default="G_PM_1PRIMITIVE",
         update=update_node_values_with_preset,
+        description="Changes primitive rasterization timing by adding syncs after tri draws. Vanilla SM64 has synchronization issues which could cause a crash if not using 1 prim. For any modern SM64 hacking project or other game N-prim should always be used"
     )
 
     # lower half mode
@@ -2595,12 +2616,14 @@ class RDPSettings(bpy.types.PropertyGroup):
         items=enumAlphaCompare,
         default="G_AC_NONE",
         update=update_node_values_with_preset,
+        description="Uses alpha comparisons to decide if a pixel should be written. Applies before blending"
     )
     g_mdsft_zsrcsel: bpy.props.EnumProperty(
         name="Z Source Selection",
         items=enumDepthSource,
         default="G_ZS_PIXEL",
         update=update_node_values_with_preset,
+        description="Changes screen-space Z value source used for Z-Buffer calculations"
     )
 
     prim_depth: bpy.props.PointerProperty(
@@ -2639,37 +2662,47 @@ class RDPSettings(bpy.types.PropertyGroup):
     )
     aa_en: bpy.props.BoolProperty(
         update=update_node_values_with_preset,
+        description="Enables anti-aliasing to rasterized primitive edges. Uses coverage to determine edges"
     )
     z_cmp: bpy.props.BoolProperty(
         update=update_node_values_with_preset,
+        description="Checks pixel Z value against Z-Buffer to test writing"
     )
     z_upd: bpy.props.BoolProperty(
         update=update_node_values_with_preset,
+        description="Updates the Z-Buffer with the most recently written pixel Z value"
     )
     im_rd: bpy.props.BoolProperty(
         update=update_node_values_with_preset,
+        description="Enables reading from framebuffer for blending calculations"
     )
     clr_on_cvg: bpy.props.BoolProperty(
         update=update_node_values_with_preset,
+        description="Only draw on coverage (amount primitive covers target pixel) overflow"
     )
     cvg_dst: bpy.props.EnumProperty(
         name="Coverage Destination",
         items=enumCoverage,
         update=update_node_values_with_preset,
+        description="Changes how coverage (amount primitive covers target pixel) gets retrieved/stored"
     )
     zmode: bpy.props.EnumProperty(
         name="Z Mode",
         items=enumZMode,
         update=update_node_values_with_preset,
+        description="Changes Z calculation for different types of primitives"
     )
     cvg_x_alpha: bpy.props.BoolProperty(
         update=update_node_values_with_preset,
+        description="Multiply coverage (amount primitive covers target pixel) with alpha and store result as coverage"
     )
     alpha_cvg_sel: bpy.props.BoolProperty(
         update=update_node_values_with_preset,
+        description="Use coverage (amount primitive covers target pixel) as alpha instead of color combiner alpha"
     )
     force_bl: bpy.props.BoolProperty(
         update=update_node_values_with_preset,
+        description="Always uses blending on. Default blending is conditionally only applied during partial coverage. Forcing blending will disable division step of the blender, so B input must be 1-A or there may be rendering issues. Always use this option when Z Buffering is off"
     )
 
     # cycle dependent - (P * A + M - B) / (A + B)
