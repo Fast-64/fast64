@@ -2309,7 +2309,7 @@ class FModel:
     # Called before SPEndDisplayList
     def onMaterialCommandsBuilt(self, fMaterial, material, drawLayer):
         fMaterial.material.commands.extend(fMaterial.mat_only_DL.commands)
-        [fMaterial.material.commands.extend(tile_gfx_list.commands) for tile_gfx_list in fMaterial.texture_DLs]
+        fMaterial.material.commands.extend(fMaterial.texture_DL.commands)
         return
 
     def getDrawLayerV3(self, obj):
@@ -2903,10 +2903,10 @@ def get_f3d_mat_from_version(material: bpy.types.Material):
 
 class FMaterial:
     def __init__(self, name, DLFormat):
-        self.material = GfxList("mat_" + name, GfxListTag.Material, DLFormat)
-        self.mat_only_DL = GfxList("mat_only_" + name, GfxListTag.Material, DLFormat)
-        self.texture_DLs = [GfxList(f"tex_{i}_" + name, GfxListTag.Material, DLFormat.Static) for i in range(2)]
-        self.revert = GfxList("mat_revert_" + name, GfxListTag.MaterialRevert, DLFormat.Static)
+        self.material = GfxList(f"mat_{name}", GfxListTag.Material, DLFormat)
+        self.mat_only_DL = GfxList(f"mat_only_{name}", GfxListTag.Material, DLFormat)
+        self.texture_DL = GfxList(f"tex_{name}", GfxListTag.Material, DLFormat.Static)
+        self.revert = GfxList(f"mat_revert_{name}", GfxListTag.MaterialRevert, DLFormat.Static)
         self.DLFormat = DLFormat
         self.scrollData = FScrollData()
 
@@ -2923,9 +2923,6 @@ class FMaterial:
         self.largeTexWords = 0
         self.imageKey = [None, None]
         self.texPaletteIndex = [0, 0]
-
-    def getTexturesGfxList(self, tile):
-        return self.texture_DLs[tile]
 
     def getScrollData(self, material, dimensions):
         self.getScrollDataField(material, 0, 0)
@@ -4328,8 +4325,8 @@ class DPSetTextureImage(GbiMacro):
     siz: str
     width: int
     image: FImage
-    _segptrs = True  # calls segmented_to_virtualon name when needed
-
+    _segptrs = True  # calls segmented_to_virtual on name when needed
+    
     def to_binary(self, f3d, segments):
         fmt = f3d.G_IM_FMT_VARS[self.fmt]
         siz = f3d.G_IM_SIZ_VARS[self.siz]

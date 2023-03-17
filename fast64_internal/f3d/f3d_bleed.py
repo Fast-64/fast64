@@ -80,42 +80,63 @@ class BleedGraphics:
         self.on_bleed_end(f3d, lastMat, bleed_gfx_lists, cmd_list, default_render_mode)
         return lastMat
 
+    def build_tmem_dict(self, cmd_list: GfxList):
+        im_buffer = None
+        tmem_dict = dict()
+        tile_dict = {i:0 for i in range(8)} # an assumption that hopefully never needs correction
+        for cmd in cmd_list.commands:
+            if type(cmd) == DPSetTextureImage:
+                im_buffer = cmd
+                continue
+            if type(cmd) == DPSetTile:
+                tile_dict[cmd.tile] = cmd.tmem
+            if type(cmd) in (DPLoadTLUTCmd, DPLoadTile, DPLoadBlock):
+                tmem_dict[tile_dict[cmd.tile]] = im_buffer
+                continue
+        return tmem_dict
+    
     def bleed_textures(self, curMat: FMaterial, lastMat: FMaterial, cmd_list: GfxList, bleed_state: int):
         if lastMat:
-            bled_tex = []
             # bleed cmds if matching tile has duplicate cmds
-            for j, (LastTex, TexCmds) in enumerate(zip(lastMat.texture_DLs, curMat.texture_DLs)):
-                # deep copy breaks on Image objects so I will only copy the levels needed
-                commands_bled = copy.copy(TexCmds)
-                commands_bled.commands = copy.copy(TexCmds.commands)  # copy the commands also
-                lastList = LastTex.commands
-                # eliminate set tex images
-                set_tex = (c for c in TexCmds.commands if type(c) == DPSetTextureImage)
-                removed_tex = [c for c in set_tex if c in lastList]  # needs to be a list to check "in" multiple times
-                rm_load = None  # flag to elim loads once
-                for j, cmd in enumerate(TexCmds.commands):
-                    # remove set tex explicitly
-                    if cmd in removed_tex:
-                        commands_bled.commands.remove(cmd)
-                        rm_load = True
-                        continue
-                    if rm_load and type(cmd) in (DPLoadTLUTCmd, DPLoadTile, DPLoadBlock):
-                        commands_bled.commands.remove(cmd)
-                        rm_load = None
-                        continue
-                # now eval as normal conditionals
-                iter_cmds = copy.copy(commands_bled.commands)  # need extra list to iterate with
-                for j, cmd in enumerate(iter_cmds):
-                    if self.bleed_individual_cmd(commands_bled, cmd, bleed_state):
-                        if cmd in lastList:
-                            commands_bled.commands[j] = None
-                # remove Nones from list
-                while None in commands_bled.commands:
-                    commands_bled.commands.remove(None)
-                bled_tex.append(commands_bled)
+            # deep copy breaks on Image objects so I will only copy the levels needed
+            commands_bled = copy.copy(curMat.texture_DL)
+            commands_bled.commands = copy.copy(curMat.texture_DL.commands)  # copy the commands also
+            # eliminate set tex images, but only if there is an overlap of the same image at the same tmem location
+            last_im_loads = self.build_tmem_dict(lastMat.texture_DL)
+            new_im_loads = self.build_tmem_dict(commands_bled)
+            removable_images = []
+            for tmem, image in new_im_loads.items():
+                if tmem in last_im_loads and last_im_loads[tmem] == image:
+                    removable_images.append(image)
+            # now go through list and cull out loads for the specific cmds
+            # this will be the set tex image, and the loading cmds
+            rm_load = False
+            for j, cmd in enumerate(curMat.texture_DL.commands):
+                # remove set tex explicitly
+                if cmd in removable_images:
+                    commands_bled.commands[j] = None
+                    rm_load = True
+                    continue
+                if rm_load and type(cmd) == DPSetTile:
+                    commands_bled.commands[j] = None
+                if rm_load and type(cmd) in (DPLoadTLUTCmd, DPLoadTile, DPLoadBlock):
+                    commands_bled.commands[j] = None
+                    rm_load = None
+                    continue
+            # now eval as normal conditionals
+            for j, cmd in enumerate(curMat.texture_DL.commands):
+                if not cmd:
+                    continue # some cmds are None from previous step
+                if self.bleed_individual_cmd(commands_bled, cmd, bleed_state):
+                    if cmd in lastMat.texture_DL.commands:
+                        commands_bled.commands[j] = None
+            # remove Nones from list
+            while None in commands_bled.commands:
+                commands_bled.commands.remove(None)
+            bled_tex = commands_bled
         else:
-            bled_tex = curMat.texture_DLs
-        return bled_tex
+            bled_tex = curMat.texture_DL
+        return bled_tex.commands
 
     def bleed_mat(self, curMat: FMaterial, lastMat: FMaterial, cmd_list: GfxList, bleed_state: int):
         if lastMat:
@@ -136,7 +157,7 @@ class BleedGraphics:
         # remove SPEndDisplayList
         while SPEndDisplayList() in commands_bled.commands:
             commands_bled.commands.remove(SPEndDisplayList())
-        return commands_bled
+        return commands_bled.commands
 
     def bleed_tri_group(
         self, f3d: F3D, triGroup: FTriGroup, bleed_gfx_lists: BleedGfxLists, cmd_list: GfxList, bleed_state: int
@@ -167,10 +188,9 @@ class BleedGraphics:
     # Put triGroup bleed gfx in the FMesh.draw object
     def inline_triGroup(self, f3d: F3D, triGroup: FTriGroup, bleed_gfx_lists: BleedGfxLists, cmd_list: GfxList):
         # add material
-        cmd_list.commands.extend(bleed_gfx_lists.bled_mats.commands)
+        cmd_list.commands.extend(bleed_gfx_lists.bled_mats)
         # add textures
-        for tile, texGfx in enumerate(bleed_gfx_lists.bled_tex):
-            cmd_list.commands.extend(texGfx.commands)
+        cmd_list.commands.extend(bleed_gfx_lists.bled_tex)
         # add in triangles
         cmd_list.commands.extend(triGroup.triList.commands)
         # skinned meshes don't draw tris sometimes, use this opportunity to save a sync
@@ -221,7 +241,9 @@ class BleedGraphics:
             SPBranchLessZraw,
             SPModifyVertex,
             SPEndDisplayList,
+            DPSetTextureImage,
             DPLoadBlock,
+            DPLoadTile,
             DPLoadTLUTCmd,
             DPFullSync,
         ]:
@@ -238,6 +260,7 @@ class BleedGraphics:
             return True
 
     def bleed_DPSetTileSize(self, cmd_list: GfxList, cmd: GbiMacro, bleed_state: int):
+        print(cmd.tags, cmd.tags != GfxTag.TileScroll0 and cmd.tags != GfxTag.TileScroll1)
         return cmd.tags != GfxTag.TileScroll0 and cmd.tags != GfxTag.TileScroll1
 
     def bleed_DPSetTile(self, cmd_list: GfxList, cmd: GbiMacro, bleed_state: int):
@@ -278,7 +301,7 @@ class BleedGraphics:
 @dataclass
 class BleedGfxLists:
     bled_mats: GfxList = field(default_factory=list)
-    bled_tex: list[GfxList] = field(default_factory=list)  # list of GfxList
+    bled_tex: GfxList = field(default_factory=list)
     reset_cmds: set[GbiMacro] = field(default_factory=set)  # set of cmds to reset
 
     def __post_init__(self):
