@@ -260,7 +260,6 @@ class BleedGraphics:
             return True
 
     def bleed_DPSetTileSize(self, cmd_list: GfxList, cmd: GbiMacro, bleed_state: int):
-        print(cmd.tags, cmd.tags != GfxTag.TileScroll0 and cmd.tags != GfxTag.TileScroll1)
         return cmd.tags != GfxTag.TileScroll0 and cmd.tags != GfxTag.TileScroll1
 
     def bleed_DPSetTile(self, cmd_list: GfxList, cmd: GbiMacro, bleed_state: int):

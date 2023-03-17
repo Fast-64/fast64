@@ -1017,7 +1017,11 @@ def saveTextureTile(
 
     tileCommand = DPSetTile(fmt, siz, line, tmem, rendertile, pal, cmt, maskt, shiftt, cms, masks, shifts)
     tileSizeCommand = DPSetTileSize(rendertile, sl, tl, sh, th)
-    tileSizeCommand.tags |= GfxTag.TileScroll0 if rendertile == 0 else GfxTag.TileScroll1
+    
+    scrollInfo = getattr(fMaterial.scrollData, f"tile_scroll_tex{rendertile}")
+    if scrollInfo.s or scrollInfo.t:
+        tileSizeCommand.tags |= GfxTag.TileScroll0 if rendertile == 0 else GfxTag.TileScroll1
+    
     tileSizeCommand.fMaterial = fMaterial
     if not omitSetTile:
         gfxOut.commands.append(tileCommand)
