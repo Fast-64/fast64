@@ -497,7 +497,6 @@ class TexInfo:
 
     def writeAll(
         self,
-        loadGfx: GfxList,
         fMaterial: FMaterial,
         fModel: Union[FModel, FTexRect],
         convertTextureData: bool,
@@ -517,7 +516,7 @@ class TexInfo:
             )
 
         # Write loads
-        # loadGfx = fMaterial.mat_only_DL # I don't know what the point of this was
+        loadGfx = fMaterial.texture_DL
         f3d = fModel.f3d
         if self.loadPal:
             savePaletteLoad(loadGfx, fPalette, self.palFormat, self.palAddr, self.palLen, 5 - self.indexInMat, f3d)
@@ -866,8 +865,8 @@ class MultitexManager:
                     + "bytes, ex. 2 32x32 RGBA 16 bit textures.\nNote that texture width will be internally padded to 64 bit boundaries."
                 )
 
-        self.ti0.writeAll(fMaterial.texture_DL, fMaterial, fModel, convertTextureData)
-        self.ti1.writeAll(fMaterial.texture_DL, fMaterial, fModel, convertTextureData)
+        self.ti0.writeAll(fMaterial, fModel, convertTextureData)
+        self.ti1.writeAll(fMaterial, fModel, convertTextureData)
 
     def getTexDimensions(self):
         return self.texDimensions
