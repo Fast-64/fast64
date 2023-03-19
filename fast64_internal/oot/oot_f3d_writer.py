@@ -158,7 +158,7 @@ def ootProcessVertexGroup(
             material, fModel, meshObj, drawLayerOverride, convertTextureData
         )
 
-        if fMaterial.useLargeTextures:
+        if fMaterial.isTexLarge[0] or fMaterial.isTexLarge[1]:
             currentGroupIndex = saveMeshWithLargeTexturesByFaces(
                 material,
                 faces,

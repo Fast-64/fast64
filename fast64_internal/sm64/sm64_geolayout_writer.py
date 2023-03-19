@@ -82,6 +82,7 @@ from ..f3d.f3d_writer import (
 from ..f3d.f3d_gbi import (
     GfxList,
     GfxListTag,
+    GfxMatWriteMethod,
     DPSetAlphaCompare,
     FModel,
     FMesh,
@@ -102,6 +103,7 @@ from .sm64_geolayout_classes import (
     StartNode,
     StartRenderAreaNode,
     GeolayoutGraph,
+    GeoLayoutBleed,
     JumpNode,
     SwitchOverrideNode,
     SwitchNode,
@@ -354,7 +356,8 @@ def convertArmatureToGeolayout(
     armatureObj, obj, convertTransformMatrix, f3dType, isHWv1, camera, name, DLFormat, convertTextureData
 ):
 
-    fModel = SM64Model(f3dType, isHWv1, name, DLFormat)
+    inline = bpy.context.scene.exportInlineF3D
+    fModel = SM64Model(f3dType, isHWv1, name, DLFormat, GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll)
 
     if len(armatureObj.children) == 0:
         raise PluginError("No mesh parented to armature.")
@@ -404,6 +407,9 @@ def convertArmatureToGeolayout(
     generateSwitchOptions(meshGeolayout.nodes[0], meshGeolayout, geolayoutGraph, name)
     appendRevertToGeolayout(geolayoutGraph, fModel)
     geolayoutGraph.generateSortedList()
+    if inline:
+        bleed_gfx = GeoLayoutBleed()
+        bleed_gfx.bleed_geo_layout_graph(fModel, geolayoutGraph)
     # if DLFormat == DLFormat.GameSpecific:
     # 	geolayoutGraph.convertToDynamic()
     return geolayoutGraph, fModel
@@ -414,8 +420,9 @@ def convertObjectToGeolayout(
     obj, convertTransformMatrix, f3dType, isHWv1, camera, name, fModel: FModel, areaObj, DLFormat, convertTextureData
 ):
 
+    inline = bpy.context.scene.exportInlineF3D
     if fModel is None:
-        fModel = SM64Model(f3dType, isHWv1, name, DLFormat)
+        fModel = SM64Model(f3dType, isHWv1, name, DLFormat, GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll)
 
     # convertTransformMatrix = convertTransformMatrix @ \
     # 	mathutils.Matrix.Diagonal(obj.scale).to_4x4()
@@ -466,6 +473,9 @@ def convertObjectToGeolayout(
 
     appendRevertToGeolayout(geolayoutGraph, fModel)
     geolayoutGraph.generateSortedList()
+    if inline:
+        bleed_gfx = GeoLayoutBleed()
+        bleed_gfx.bleed_geo_layout_graph(fModel, geolayoutGraph, use_rooms = None if areaObj is None else areaObj.enableRoomSwitch)
     # if DLFormat == DLFormat.GameSpecific:
     # 	geolayoutGraph.convertToDynamic()
     return geolayoutGraph, fModel
@@ -1158,6 +1168,7 @@ def generateOverrideHierarchy(
     elif not isinstance(copyNode.node, SwitchOverrideNode) and copyNode.node.hasDL:
         if material is not None:
             copyNode.node.DLmicrocode = copyNode.node.fMesh.drawMatOverrides[(material, specificMat, overrideType)]
+            copyNode.node.override_hash = (material, specificMat, overrideType)
         if drawLayer is not None:
             copyNode.node.drawLayer = drawLayer
 
@@ -2405,7 +2416,7 @@ def saveModelGivenVertexGroup(
             material = obj.material_slots[material_index].material
             checkForF3dMaterialInFaces(obj, material)
             fMaterial, texDimensions = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
-            if fMaterial.useLargeTextures:
+            if fMaterial.isTexLarge[0] or fMaterial.isTexLarge[1]:
                 currentGroupIndex = saveMeshWithLargeTexturesByFaces(
                     material,
                     bFaces,
@@ -2725,7 +2736,7 @@ def saveSkinnedMeshByMaterial(
         material = obj.material_slots[material_index].material
         faces = [skinnedFace.bFace for skinnedFace in skinnedFaceArray]
         fMaterial, texDimensions = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
-        if fMaterial.useLargeTextures:
+        if fMaterial.isTexLarge[0] or fMaterial.isTexLarge[1]:
             saveMeshWithLargeTexturesByFaces(
                 material,
                 faces,

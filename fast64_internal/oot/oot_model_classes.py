@@ -278,6 +278,7 @@ class OOTModel(FModel):
             writeNonCITextureData(image, fImage, texFmt)
 
     def onMaterialCommandsBuilt(self, fMaterial, material, drawLayer):
+        super().onMaterialCommandsBuilt(fMaterial, material, drawLayer)
         # handle dynamic material calls
         gfxList = fMaterial.material
         matDrawLayer = getattr(material.ootMaterial, drawLayer.lower())
