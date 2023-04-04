@@ -71,6 +71,8 @@ class BleedGraphics:
                 bleed_gfx_lists.bled_mats = self.bleed_mat(triGroup.fMaterial, lastMat, cmd_list, bleed_state)
                 if not (triGroup.fMaterial.isTexLarge[0] or triGroup.fMaterial.isTexLarge[1]):
                     bleed_gfx_lists.bled_tex = self.bleed_textures(triGroup.fMaterial, lastMat, cmd_list, bleed_state)
+                else:
+                    bleed_gfx_lists.bled_tex = triGroup.fMaterial.texture_DL.commands
             lastMat = triGroup.fMaterial
             # bleed tri group (for large textures) and to remove other unnecessary cmds
             self.bleed_tri_group(f3d, triGroup, bleed_gfx_lists, cmd_list, bleed_state)
