@@ -313,7 +313,7 @@ def exportTexRectCommon(texProp, f3dType, isHWv1, name, convertTextureData):
         raise PluginError(f"In {name}: texture is too big (> 4 KiB).")
     if ti.texFormat != "RGBA16":
         raise PluginError(f"In {name}: texture format must be RGBA16 (because copy mode).")
-    ti.imUse = [tex]
+    ti.imDependencies = [tex]
     ti.writeAll(fTexRect.draw, fMaterial, fTexRect, convertTextureData)
 
     fTexRect.draw.commands.append(
@@ -358,13 +358,19 @@ def sm64ExportF3DtoC(
     dirPath, texDir = getExportDir(customExport, basePath, headerType, levelName, texDir, name)
 
     inline = bpy.context.scene.exportInlineF3D
-    fModel = SM64Model(f3dType, isHWv1, name, DLFormat, GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll)
+    fModel = SM64Model(
+        f3dType,
+        isHWv1,
+        name,
+        DLFormat,
+        GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll,
+    )
     fMeshes = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, name, DLFormat, not savePNG)
 
     if inline:
         bleed_gfx = BleedGraphics()
         bleed_gfx.bleed_fModel(fModel, fMeshes)
-    
+
     modelDirPath = os.path.join(dirPath, toAlnum(name))
 
     if not os.path.exists(modelDirPath):

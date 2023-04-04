@@ -138,6 +138,16 @@ class TileLoad:
         self.offsets.append((soffset, toffset))
 
     def trySubsume(self, other):
+        """
+        Attempts to enlarge the self TileLoad to cover both itself and the other
+        TileLoad. If this succeeds, self is modified and True is returned. If it
+        fails (because it would be too large or the other constraints from
+        fixRegion would be violated), self is not modified and False is returned.
+        A large texture mesh is built by, for each triangle, trying to subsume
+        it into each of the existing loads. If it succeeds on one of them, it
+        moves on to the next triangle. If it fails on all of them, a new load is
+        created for that triangle and added to the list.
+        """
         # Could do fancier logic checking across borders, for example if we have
         # one loading 60-68 (size 64) and another 0-8, that could be merged to
         # one load 60-72. But this is likely to be uncommon and won't be generated
@@ -167,6 +177,11 @@ def maybeSaveSingleLargeTextureSetup(
     curImgSet: Optional[int],
     curTileLines: list[int],
 ):
+    """
+    Checks whether a particular texture is large and if so, writes the loads for
+    that large texture. "maybe" is to bring the if statement into the function
+    instead of checking whether the texture is large before calling it.
+    """
     if fMaterial.isTexLarge[i]:
         wrapS = tileSettings.sh >= texDimensions[0]
         wrapT = tileSettings.th >= texDimensions[1]
@@ -175,10 +190,6 @@ def maybeSaveSingleLargeTextureSetup(
         siz = texBitSizeF3D[texProp.tex_format]
         line = getTileLine(fImage, tileSettings.sl, tileSettings.sh, siz, fModel.f3d)
         tmem = fMaterial.largeTexAddr[i]
-        # print(
-        #     f"Tile: {tileSettings.sl}-{tileSettings.sh} x {tileSettings.tl}-{tileSettings.th} "
-        #     + f"tmem {tmem} line {line}"
-        # )
         if wrapS or wrapT:
             fmt = texFormatOf[texProp.tex_format]
             texelsPerWord = 64 // texBitSizeInt[texProp.tex_format]
@@ -206,7 +217,6 @@ def maybeSaveSingleLargeTextureSetup(
                     # The first load must occupy a whole number of lines.
                     assert (texDimensions[0] - tileSettings.sl) % texelsPerWord == 0
                     sLineOfs = (texDimensions[0] - tileSettings.sl) // texelsPerWord
-                    # print(f"-- Wrap at S={texDimensions[0]}, offset {sLineOfs}")
                     gfxOut.commands.append(
                         DPLoadTile(tidxBase, tileSettings.sl * sm, TL * 4, (texDimensions[0] - 1) * sm, TH * 4)
                     )
@@ -227,7 +237,6 @@ def maybeSaveSingleLargeTextureSetup(
                 # The first load must be even in size (even number of texture rows).
                 assert (texDimensions[1] - tileSettings.tl) % 2 == 0
                 tLineOfs = line * (texDimensions[1] - tileSettings.tl)
-                # print(f"-- Wrap at T={texDimensions[1]}, offset {tLineOfs}")
                 loadOneOrTwoS(tmem, 7, tileSettings.tl, texDimensions[1] - 1)
                 loadOneOrTwoS(tmem + tLineOfs, 5, 0, tileSettings.th - texDimensions[1])
             else:
@@ -316,7 +325,6 @@ def saveOrGetPaletteDefinition(
     palBaseName: str,
     palLen: int,
 ) -> tuple[FPaletteKey, FImage]:
-
     texFmt = texProp.tex_format
     palFmt = texProp.ci_format
     palFormat = texFormatOf[palFmt]
@@ -346,7 +354,6 @@ def saveOrGetTextureDefinition(
     images: list[bpy.types.Image],
     isLarge: bool,
 ) -> tuple[FImageKey, FImage]:
-
     image = texProp.tex
     texFmt = texProp.tex_format
     texFormat = texFormatOf[texFmt]
@@ -387,7 +394,7 @@ class TexInfo:
     # Parameters from moreSetupFromModel
     pal: Optional[list[int]] = None
     palLen: int = 0
-    imUse: Optional[list[bpy.types.Image]] = None
+    imDependencies: Optional[list[bpy.types.Image]] = None
     flipbook: Optional["TextureFlipbook"] = None
     isPalRef: bool = False
 
@@ -395,7 +402,7 @@ class TexInfo:
     texAddr: int = 0
     palAddr: int = 0
     palIndex: int = 0
-    palUse: list[bpy.types.Image] = field(default_factory=list)
+    palDependencies: list[bpy.types.Image] = field(default_factory=list)
     palBaseName: str = ""
     loadPal: bool = False
     doTexLoad: bool = True
@@ -466,7 +473,9 @@ class TexInfo:
             return
 
         if self.isTexCI:
-            self.imUse, self.flipbook, self.pal = fModel.processTexRefCITextures(fMaterial, material, self.indexInMat)
+            self.imDependencies, self.flipbook, self.pal = fModel.processTexRefCITextures(
+                fMaterial, material, self.indexInMat
+            )
             if self.isTexRef:
                 if self.flipbook is not None:
                     self.palLen = len(self.pal)
@@ -483,10 +492,10 @@ class TexInfo:
                     + f" uses too many unique colors to fit in format {self.texFormat}."
                 )
         else:
-            self.imUse, self.flipbook = fModel.processTexRefNonCITextures(fMaterial, material, self.indexInMat)
+            self.imDependencies, self.flipbook = fModel.processTexRefNonCITextures(fMaterial, material, self.indexInMat)
 
         self.isPalRef = self.isTexRef and self.flipbook is None
-        self.palUse = self.imUse
+        self.palDependencies = self.imDependencies
 
     def getPaletteName(self):
         if not self.useTex or self.isPalRef:
@@ -503,16 +512,18 @@ class TexInfo:
     ):
         if not self.useTex:
             return
-        assert self.imUse is not None  # Must be set manually if didn't use moreSetupFromModel, e.g. ti.imUse = [tex]
+        assert (
+            self.imDependencies is not None
+        )  # Must be set manually if didn't use moreSetupFromModel, e.g. ti.imDependencies = [tex]
 
         # Get definitions
         imageKey, fImage = saveOrGetTextureDefinition(
-            fMaterial, fModel, self.texProp, self.imUse, fMaterial.isTexLarge[self.indexInMat]
+            fMaterial, fModel, self.texProp, self.imDependencies, fMaterial.isTexLarge[self.indexInMat]
         )
         fMaterial.imageKey[self.indexInMat] = imageKey
         if self.loadPal:
             _, fPalette = saveOrGetPaletteDefinition(
-                fMaterial, fModel, self.texProp, self.isPalRef, self.palUse, self.palBaseName, self.palLen
+                fMaterial, fModel, self.texProp, self.isPalRef, self.palDependencies, self.palBaseName, self.palLen
             )
 
         # Write loads
@@ -534,7 +545,7 @@ class TexInfo:
             if self.isTexRef:
                 if self.isTexCI:
                     fModel.writeTexRefCITextures(
-                        self.flipbook, fMaterial, self.imUse, self.pal, self.texFormat, self.palFormat
+                        self.flipbook, fMaterial, self.imDependencies, self.pal, self.texFormat, self.palFormat
                     )
                 else:
                     fModel.writeTexRefNonCITextures(self.flipbook, self.texFormat)
@@ -654,9 +665,11 @@ class MultitexManager:
                                 + str(self.ti0.palLen)
                                 + " colors, which can't fit in a CI8 palette (256)."
                             )
-                        # self.ti0.imUse remains what it was; the CIs in im0 are the same as they
+                        # self.ti0.imDependencies remains what it was; the CIs in im0 are the same as they
                         # would be if im0 was alone. But im1 and self.ti0.pal depend on both.
-                        self.ti1.imUse = self.ti0.palUse = self.ti0.imUse + self.ti1.imUse
+                        self.ti1.imDependencies = self.ti0.palDependencies = (
+                            self.ti0.imDependencies + self.ti1.imDependencies
+                        )
                 elif self.ti0.texFormat != self.ti1.texFormat:  # One CI8, one CI4
                     ci8Pal, ci4Pal = (
                         (self.ti0.pal, self.ti1.pal) if self.ti0.texFormat == "CI8" else (self.ti1.pal, self.ti0.pal)
@@ -697,11 +710,11 @@ class MultitexManager:
                             )
                         # The use for the CI4 texture remains what it was; its CIs are the
                         # same as if it was alone. But both the palette and the CI8 CIs are affected.
-                        self.ti0.palUse = self.ti0.imUse + self.ti1.imUse
+                        self.ti0.palDependencies = self.ti0.imDependencies + self.ti1.imDependencies
                         if self.ti0.texFormat == "CI8":
-                            self.ti0.imUse = self.ti0.palUse
+                            self.ti0.imDependencies = self.ti0.palDependencies
                         else:
-                            self.ti1.imUse = self.ti0.palUse
+                            self.ti1.imDependencies = self.ti0.palDependencies
                 else:  # both CI4 textures
                     if (
                         self.ti0.pal is None
@@ -722,9 +735,11 @@ class MultitexManager:
                             # Share palette 0
                             self.ti0.pal = tempPal
                             self.ti0.palLen = tempPalLen
-                            # self.ti0.imUse remains what it was; the CIs in im0 are the same as they
+                            # self.ti0.imDependencies remains what it was; the CIs in im0 are the same as they
                             # would be if im0 was alone. But im1 and self.ti0.pal depend on both.
-                            self.ti1.imUse = self.ti0.palUse = self.ti0.imUse + self.ti1.imUse
+                            self.ti1.imDependencies = self.ti0.palDependencies = (
+                                self.ti0.imDependencies + self.ti1.imDependencies
+                            )
                         else:
                             # Load one palette across 0-1. Put the longer in slot 0
                             if self.ti0.palLen >= self.ti1.palLen:
@@ -741,7 +756,7 @@ class MultitexManager:
                                 self.ti0.palIndex = 1
                             # The up-to-32 entries in self.ti0.pal depend on both images. But the
                             # CIs in both im0 and im1 are the same as if there was no shared palette.
-                            self.ti0.palUse = self.ti0.imUse + self.ti1.imUse
+                            self.ti0.palDependencies = self.ti0.imDependencies + self.ti1.imDependencies
         fMaterial.texPaletteIndex = [self.ti0.palIndex, self.ti1.palIndex]
         self.ti0.palBaseName = self.ti0.getPaletteName()
         self.ti1.palBaseName = self.ti1.getPaletteName()
@@ -1016,11 +1031,11 @@ def saveTextureTile(
 
     tileCommand = DPSetTile(fmt, siz, line, tmem, rendertile, pal, cmt, maskt, shiftt, cms, masks, shifts)
     tileSizeCommand = DPSetTileSize(rendertile, sl, tl, sh, th)
-    
+
     scrollInfo = getattr(fMaterial.scrollData, f"tile_scroll_tex{rendertile}")
     if scrollInfo.s or scrollInfo.t:
         tileSizeCommand.tags |= GfxTag.TileScroll0 if rendertile == 0 else GfxTag.TileScroll1
-    
+
     tileSizeCommand.fMaterial = fMaterial
     if not omitSetTile:
         gfxOut.commands.append(tileCommand)
@@ -1220,7 +1235,7 @@ def writeNonCITextureData(image: bpy.types.Image, fImage: FImage, texFmt: str):
             raise PluginError("Invalid combo: " + fmt + ", " + bitSize)
 
     elif fmt == "G_IM_FMT_CI":
-        raise PluginError("CI not yet implemented.")
+        raise PluginError("Internal error, writeNonCITextureData called for CI image.")
 
     elif fmt == "G_IM_FMT_IA":
         if bitSize == "G_IM_SIZ_4b":

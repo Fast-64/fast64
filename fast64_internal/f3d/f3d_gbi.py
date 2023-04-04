@@ -1764,8 +1764,7 @@ def get_sts_interval_vars(tex_num: str):
 
 
 def get_tex_sts_code(
-    variableName : str,
-    tex: FSetTileSizeScrollField, cmd_num: int
+    variableName: str, tex: FSetTileSizeScrollField, cmd_num: int
 ) -> Tuple[list[str], list[Tuple[str, float]]]:
     variables = []
     # create func calls
@@ -1794,7 +1793,9 @@ def get_tex_sts_code(
     return variables, lines
 
 
-def get_tile_scroll_code(variableName : str, scrollData: "FScrollData", textureIndex: int, commandIndex: int) -> Tuple[str, str]:
+def get_tile_scroll_code(
+    variableName: str, scrollData: "FScrollData", textureIndex: int, commandIndex: int
+) -> Tuple[str, str]:
     scrollInfo: FSetTileSizeScrollField = getattr(scrollData, f"tile_scroll_tex{textureIndex}")
     if scrollInfo.s or scrollInfo.t:
         variables = []
@@ -2268,8 +2269,8 @@ class FModel:
             - an object containing info about the additional textures, or None
         """
         texProp = getattr(material.f3d_mat, f"tex{index}")
-        imUse = [] if texProp.tex is None else [texProp.tex]
-        return imUse, None
+        imDependencies = [] if texProp.tex is None else [texProp.tex]
+        return imDependencies, None
 
     def writeTexRefNonCITextures(self, obj, texFmt: str):
         """
@@ -2288,8 +2289,8 @@ class FModel:
             - the palette to use (or None)
         """
         texProp = getattr(material.f3d_mat, f"tex{index}")
-        imUse = [] if texProp.tex is None else [texProp.tex]
-        return imUse, None, None
+        imDependencies = [] if texProp.tex is None else [texProp.tex]
+        return imDependencies, None, None
 
     def writeTexRefCITextures(
         self,
@@ -2611,7 +2612,7 @@ class FModel:
 
     def to_c_gfx_scroll(self, gfxFormatter: GfxFormatter) -> CScrollData:
         data = CScrollData()
-        for (fMaterial, _) in self.materials.values():
+        for fMaterial, _ in self.materials.values():
             fMaterial: FMaterial
             if fMaterial.material:
                 data.append(gfxFormatter.gfxScrollToC(fMaterial.material, self.f3d))
@@ -2745,7 +2746,6 @@ class FLODGroup:
         sortedList = sorted(self.lodEntries, key=lambda tup: tup[0])
         hasAnyDLs = False
         for item in sortedList:
-
             # If no DLs are called, we still need an empty DL to preserve LOD.
             if len(item[1].commands) < 2:
                 DL = item[1]
@@ -3396,6 +3396,7 @@ class SPBranchList(GbiMacro):
 
 
 # SPSprite2DBase
+
 
 # RSP short command (no DMA required) macros
 def gsImmp0(c):
@@ -4326,7 +4327,7 @@ class DPSetTextureImage(GbiMacro):
     width: int
     image: FImage
     _segptrs = True  # calls segmented_to_virtual on name when needed
-    
+
     def to_binary(self, f3d, segments):
         fmt = f3d.G_IM_FMT_VARS[self.fmt]
         siz = f3d.G_IM_SIZ_VARS[self.siz]
