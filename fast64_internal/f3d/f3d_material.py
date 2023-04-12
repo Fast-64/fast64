@@ -3167,13 +3167,13 @@ def convertToNewMat(material, oldMat):
     recursiveCopyOldPropertyGroup(oldMat["tex1"], material.f3d_mat.tex1)
 
     # Should Set?
-    material.f3d_mat.set_prim = oldMat["set_prim"]
-    material.f3d_mat.set_lights = oldMat["set_lights"]
-    material.f3d_mat.set_env = oldMat["set_env"]
-    material.f3d_mat.set_blend = oldMat["set_blend"]
-    material.f3d_mat.set_key = oldMat["set_key"]
-    material.f3d_mat.set_k0_5 = oldMat["set_k0_5"]
-    material.f3d_mat.set_combiner = oldMat["set_combiner"]
+    material.f3d_mat.set_prim = oldMat.get("set_prim", material.f3d_mat.set_prim)
+    material.f3d_mat.set_lights = oldMat.get("set_lights", material.f3d_mat.set_lights)
+    material.f3d_mat.set_env = oldMat.get("set_env", material.f3d_mat.set_env)
+    material.f3d_mat.set_blend = oldMat.get("set_blend", material.f3d_mat.set_blend)
+    material.f3d_mat.set_key = oldMat.get("set_key", material.f3d_mat.set_key)
+    material.f3d_mat.set_k0_5 = oldMat.get("set_k0_5", material.f3d_mat.set_k0_5)
+    material.f3d_mat.set_combiner = oldMat.get("set_combiner", material.f3d_mat.set_combiner)
     material.f3d_mat.use_default_lighting = oldMat.get("use_default_lighting", material.f3d_mat.use_default_lighting)
 
     # Colors
@@ -3210,18 +3210,17 @@ def convertToNewMat(material, oldMat):
     # lights
     material.f3d_mat.default_light_color = oldMat.get("default_light_color", material.f3d_mat.default_light_color)
     material.f3d_mat.ambient_light_color = oldMat.get("ambient_light_color", material.f3d_mat.ambient_light_color)
-    material.f3d_mat.f3d_light1 = oldMat.get("f3d_light1", material.f3d_mat.f3d_light1)
-    material.f3d_mat.f3d_light2 = oldMat.get("f3d_light2", material.f3d_mat.f3d_light2)
-    material.f3d_mat.f3d_light3 = oldMat.get("f3d_light3", material.f3d_mat.f3d_light3)
-    material.f3d_mat.f3d_light4 = oldMat.get("f3d_light4", material.f3d_mat.f3d_light4)
-    material.f3d_mat.f3d_light5 = oldMat.get("f3d_light5", material.f3d_mat.f3d_light5)
-    material.f3d_mat.f3d_light6 = oldMat.get("f3d_light6", material.f3d_mat.f3d_light6)
-    material.f3d_mat.f3d_light7 = oldMat.get("f3d_light7", material.f3d_mat.f3d_light7)
+    for i in range(1, 8):
+        old_light = oldMat.get(f"f3d_light{str(i)}")
+        # can be a broken property with V1 materials (IDPropertyGroup), thankfully this isnt typical to see when upgrading but
+        # this method is safer
+        if type(old_light) is bpy.types.Light:
+            setattr(material.f3d_mat, f"f3d_light{str(i)}", old_light)
 
     # Fog Properties
     material.f3d_mat.fog_color = oldMat.get("fog_color", material.f3d_mat.fog_color)
     material.f3d_mat.fog_position = oldMat.get("fog_position", material.f3d_mat.fog_position)
-    material.f3d_mat.set_fog = oldMat["set_fog"]
+    material.f3d_mat.set_fog = oldMat.get("set_fog", material.f3d_mat.set_fog)
     material.f3d_mat.use_global_fog = oldMat.get("use_global_fog", material.f3d_mat.use_global_fog)
 
     # geometry mode
