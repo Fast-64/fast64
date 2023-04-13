@@ -26,7 +26,7 @@ bitSizeDict = {
     "G_IM_SIZ_32b": 32,
 }
 
-texBitSizeOf = {
+texBitSizeF3D = {
     "I4": "G_IM_SIZ_4b",
     "IA4": "G_IM_SIZ_4b",
     "CI4": "G_IM_SIZ_4b",
@@ -219,12 +219,33 @@ class DrawLayerProperty(bpy.types.PropertyGroup):
 
 
 def getTmemWordUsage(texFormat, width, height):
-    texelsPerLine = 64 / bitSizeDict[texBitSizeOf[texFormat]]
-    return math.ceil(width / texelsPerLine) * height
+    texelsPerWord = 64 // texBitSizeInt[texFormat]
+    return (width + texelsPerWord - 1) // texelsPerWord * height
 
 
 def getTmemMax(texFormat):
     return 4096 if texFormat[:2] != "CI" else 2048
+
+
+# Necessary for UV half pixel offset (see 13.7.5.3)
+def isTexturePointSampled(material):
+    f3dMat = material.f3d_mat
+
+    return f3dMat.rdp_settings.g_mdsft_text_filt == "G_TF_POINT"
+
+
+def isLightingDisabled(material):
+    f3dMat = material.f3d_mat
+    return not f3dMat.rdp_settings.g_lighting
+
+
+# Necessary as G_SHADE_SMOOTH actually does nothing
+def checkIfFlatShaded(material):
+    if material.mat_ver > 3:
+        f3dMat = material.f3d_mat
+    else:
+        f3dMat = material
+    return not f3dMat.rdp_settings.g_shade_smooth
 
 
 def F3DOrganizeLights(self, context):
@@ -518,6 +539,13 @@ class F3DPanel(bpy.types.Panel):
         prop_input.enabled = setProp
         return inputGroup
 
+    def ui_large(self, material, layout):
+        layout.prop(material, "use_large_textures")
+        if material.use_large_textures:
+            inputGroup = layout.row().split(factor=0.5)
+            inputGroup.label(text="Large texture edges:")
+            inputGroup.prop(material, "large_edges", text="")
+
     def ui_scale(self, material, layout):
         inputGroup = layout.row().split(factor=0.5)
         prop_input = inputGroup.column()
@@ -752,6 +780,18 @@ class F3DPanel(bpy.types.Panel):
     def drawShadeAlphaNotice(self, layout):
         layout.box().column().label(text='There must be a vertex color layer called "Alpha".', icon="IMAGE_ALPHA")
 
+    def checkDrawMixedCIWarning(self, layout, useDict, f3dMat):
+        useTex0 = useDict["Texture 0"] and f3dMat.tex0.tex_set
+        useTex1 = useDict["Texture 1"] and f3dMat.tex1.tex_set
+        if not useTex0 or not useTex1:
+            return
+        isTex0CI = f3dMat.tex0.tex_format[:2] == "CI"
+        isTex1CI = f3dMat.tex1.tex_format[:2] == "CI"
+        if isTex0CI != isTex1CI:
+            layout.box().column().label(text="Can't have one CI tex and one non-CI.", icon="ERROR")
+        if isTex0CI and isTex1CI and (f3dMat.tex0.ci_format != f3dMat.tex1.ci_format):
+            layout.box().column().label(text="Two CI textures must use the same CI format.", icon="ERROR")
+
     def draw_simple(self, f3dMat, material, layout, context):
         self.ui_uvCheck(layout, context)
 
@@ -765,18 +805,19 @@ class F3DPanel(bpy.types.Panel):
 
         useMultitexture = useDict["Texture 0"] and useDict["Texture 1"] and f3dMat.tex0.tex_set and f3dMat.tex1.tex_set
 
+        self.checkDrawMixedCIWarning(inputCol, useDict, f3dMat)
         canUseLargeTextures = material.mat_ver > 3 and material.f3d_mat.use_large_textures
         if useDict["Texture 0"] and f3dMat.tex0.tex_set:
-            ui_image(canUseLargeTextures, inputCol, f3dMat.tex0, "Texture 0", False)
+            ui_image(canUseLargeTextures, inputCol, material, f3dMat.tex0, "Texture 0", False)
 
         if useDict["Texture 1"] and f3dMat.tex1.tex_set:
-            ui_image(canUseLargeTextures, inputCol, f3dMat.tex1, "Texture 1", False)
+            ui_image(canUseLargeTextures, inputCol, material, f3dMat.tex1, "Texture 1", False)
 
         if useMultitexture:
             inputCol.prop(f3dMat, "uv_basis", text="UV Basis")
 
         if useDict["Texture"]:
-            inputCol.prop(f3dMat, "use_large_textures")
+            self.ui_large(f3dMat, inputCol)
             self.ui_scale(f3dMat, inputCol)
 
         if useDict["Primitive"] and f3dMat.set_prim:
@@ -799,7 +840,6 @@ class F3DPanel(bpy.types.Panel):
             self.ui_fog(f3dMat, inputCol, False)
 
     def draw_full(self, f3dMat, material, layout: bpy.types.UILayout, context):
-
         layout.row().prop(material, "menu_tab", expand=True)
         menuTab = material.menu_tab
         useDict = all_combiner_uses(f3dMat)
@@ -866,18 +906,19 @@ class F3DPanel(bpy.types.Panel):
 
             useMultitexture = useDict["Texture 0"] and useDict["Texture 1"]
 
+            self.checkDrawMixedCIWarning(inputCol, useDict, f3dMat)
             canUseLargeTextures = material.mat_ver > 3 and material.f3d_mat.use_large_textures
             if useDict["Texture 0"]:
-                ui_image(canUseLargeTextures, inputCol, f3dMat.tex0, "Texture 0", True)
+                ui_image(canUseLargeTextures, inputCol, material, f3dMat.tex0, "Texture 0", True)
 
             if useDict["Texture 1"]:
-                ui_image(canUseLargeTextures, inputCol, f3dMat.tex1, "Texture 1", True)
+                ui_image(canUseLargeTextures, inputCol, material, f3dMat.tex1, "Texture 1", True)
 
             if useMultitexture:
                 inputCol.prop(f3dMat, "uv_basis", text="UV Basis")
 
             if useDict["Texture"]:
-                inputCol.prop(f3dMat, "use_large_textures")
+                self.ui_large(f3dMat, inputCol)
                 self.ui_scale(f3dMat, inputCol)
 
             if useDict["Primitive"]:
@@ -1427,7 +1468,7 @@ def set_texture_settings_node(material: bpy.types.Material):
 
 
 def setAutoProp(fieldProperty, pixelLength):
-    fieldProperty.mask = math.ceil(math.log(pixelLength, 2) - 0.001)
+    fieldProperty.mask = log2iRoundUp(pixelLength)
     fieldProperty.shift = 0
     fieldProperty.low = 0
     fieldProperty.high = pixelLength
@@ -1526,7 +1567,7 @@ def toggle_texture_node_muting(material: bpy.types.Material, texIndex: int, isUs
 
 def set_texture_nodes_settings(
     material: bpy.types.Material, texProperty: "TextureProperty", texIndex: int, isUsed: bool
-) -> (list[int] | None):
+) -> list[int] | None:
     node_tree = material.node_tree
     f3dMat: "F3DMaterialProperty" = material.f3d_mat
 
@@ -1773,7 +1814,6 @@ def load_handler(dummy):
 
         # detect if this is one your addon's libraries here
         if "f3d_material_library.blend" in lib_path:
-
             addon_dir = os.path.dirname(os.path.abspath(__file__))
             new_lib_path = os.path.join(addon_dir, "f3d_material_library.blend")
 
@@ -2145,7 +2185,7 @@ class TextureProperty(bpy.types.PropertyGroup):
         default="0x08000000",
     )
     pal_reference_size: bpy.props.IntProperty(
-        name="Texture Reference Size",
+        name="Palette Reference Size",
         min=1,
         default=16,
     )
@@ -2217,7 +2257,12 @@ def update_combiner_connections_and_preset(self, context: bpy.types.Context):
 
 
 def ui_image(
-    canUseLargeTextures: bool, layout: bpy.types.UILayout, textureProp: TextureProperty, name: str, showCheckBox: bool
+    canUseLargeTextures: bool,
+    layout: bpy.types.UILayout,
+    material: bpy.types.Material,
+    textureProp: TextureProperty,
+    name: str,
+    showCheckBox: bool,
 ):
     inputGroup = layout.box().column()
 
@@ -2240,8 +2285,10 @@ def ui_image(
             prop_split(prop_input, textureProp, "tex_reference", "Texture Reference")
             prop_split(prop_input, textureProp, "tex_reference_size", "Texture Size")
             if textureProp.tex_format[:2] == "CI":
-                prop_split(prop_input, textureProp, "pal_reference", "Palette Reference")
-                prop_split(prop_input, textureProp, "pal_reference_size", "Palette Size")
+                flipbook = getattr(material.flipbookGroup, "flipbook" + texIndex)
+                if flipbook is None or not flipbook.enable:
+                    prop_split(prop_input, textureProp, "pal_reference", "Palette Reference")
+                    prop_split(prop_input, textureProp, "pal_reference_size", "Palette Size")
 
         else:
             prop_input.template_ID(
@@ -2252,10 +2299,28 @@ def ui_image(
             if tex is not None:
                 prop_input.label(text="Size: " + str(tex.size[0]) + " x " + str(tex.size[1]))
 
+        if textureProp.use_tex_reference:
+            width, height = textureProp.tex_reference_size[0], textureProp.tex_reference_size[1]
+        elif tex is not None:
+            width, height = tex.size[0], tex.size[1]
+        else:
+            width = height = 0
+
         if canUseLargeTextures:
-            prop_input.label(text="Large texture mode enabled.")
-            prop_input.label(text="Each triangle must fit in a single tile load.")
-            prop_input.label(text="UVs must be in the [0, 1024] pixel range.")
+            availTmem = 512
+            if textureProp.tex_format[:2] == "CI":
+                availTmem /= 2
+            useDict = all_combiner_uses(material.f3d_mat)
+            if useDict["Texture 0"] and useDict["Texture 1"]:
+                availTmem /= 2
+            isLarge = getTmemWordUsage(textureProp.tex_format, width, height) > availTmem
+        else:
+            isLarge = False
+
+        if isLarge:
+            msg = prop_input.box().column()
+            msg.label(text="This is a large texture.", icon="INFO")
+            msg.label(text="Recommend using Create Large Texture Mesh tool.")
         else:
             tmemUsageUI(prop_input, textureProp)
 
@@ -2263,7 +2328,28 @@ def ui_image(
         if textureProp.tex_format[:2] == "CI":
             prop_split(prop_input, textureProp, "ci_format", name="CI Format")
 
-        if not (canUseLargeTextures):
+        if not isLarge:
+            if width > 0 and height > 0:
+                texelsPerWord = 64 // texBitSizeInt[textureProp.tex_format]
+                if width % texelsPerWord != 0:
+                    msg = prop_input.box().column()
+                    msg.label(text=f"Suggest {textureProp.tex_format} tex be multiple ", icon="INFO")
+                    msg.label(text=f"of {texelsPerWord} pixels wide for fast loading.")
+                warnClampS = (
+                    not isPowerOf2(width)
+                    and not textureProp.S.clamp
+                    and (not textureProp.autoprop or textureProp.S.mask != 0)
+                )
+                warnClampT = (
+                    not isPowerOf2(height)
+                    and not textureProp.T.clamp
+                    and (not textureProp.autoprop or textureProp.T.mask != 0)
+                )
+                if warnClampS or warnClampT:
+                    msg = prop_input.box().column()
+                    msg.label(text=f"Clamping required for non-power-of-2 image", icon="ERROR")
+                    msg.label(text=f"dimensions. Enable clamp or set mask to 0.")
+
             texFieldSettings = prop_input.column()
             clampSettings = texFieldSettings.row()
             clampSettings.prop(textureProp.S, "clamp", text="Clamp S")
@@ -2291,16 +2377,6 @@ def ui_image(
                 high = prop_input.row()
                 high.prop(textureProp.S, "high", text="S High")
                 high.prop(textureProp.T, "high", text="T High")
-
-            if (
-                tex is not None
-                and tex.size[0] > 0
-                and tex.size[1] > 0
-                and (math.log(tex.size[0], 2) % 1 > 0.000001 or math.log(tex.size[1], 2) % 1 > 0.000001)
-            ):
-                warnBox = layout.box()
-                warnBox.label(text="Warning: Texture dimensions are not power of 2.")
-                warnBox.label(text="Wrapping only occurs on power of 2 bounds.")
 
 
 class CombinerProperty(bpy.types.PropertyGroup):
@@ -3481,6 +3557,7 @@ class F3DMaterialProperty(bpy.types.PropertyGroup):
 
     draw_layer: bpy.props.PointerProperty(type=DrawLayerProperty)
     use_large_textures: bpy.props.BoolProperty(name="Large Texture Mode")
+    large_edges: bpy.props.EnumProperty(items=enumLargeEdges, default="Clamp")
 
     def key(self) -> F3DMaterialHash:
         useDefaultLighting = self.set_lights and self.use_default_lighting
