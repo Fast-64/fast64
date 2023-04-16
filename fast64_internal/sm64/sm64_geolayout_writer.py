@@ -2502,16 +2502,17 @@ def saveOverrideDraw(
     last_replaced = None
     command_index = 0
 
-    def find_material_from_jump_cmd(material_list: Tuple[FMaterial, Tuple[int, int]], dl_jump: SPDisplayList):
+    def find_material_from_jump_cmd(material_list: tuple[tuple[bpy.types.Material, str, FAreaData], tuple[FMaterial, Tuple[int, int]]], dl_jump: SPDisplayList):
         if dl_jump.displayList.tag == GfxListTag.Geometry:
-            return None
+            return None, None
         for mat in material_list:
-            mat = mat[0]
-            if dl_jump.displayList.tag == GfxListTag.MaterialRevert and mat.revert == dl_jump.displayList:
-                return mat
-            elif mat.material == dl_jump.displayList:
-                return mat
-        return None
+            fmaterial = mat[1][0]
+            bpy_material = mat[0][0]
+            if dl_jump.displayList.tag == GfxListTag.MaterialRevert and fmaterial.revert == dl_jump.displayList:
+                return bpy_material, fmaterial
+            elif fmaterial.material == dl_jump.displayList:
+                return bpy_material, fmaterial
+        return None, None
 
     while command_index < len(meshMatOverride.commands):
         command = meshMatOverride.commands[command_index]
@@ -2520,17 +2521,17 @@ def saveOverrideDraw(
             continue
         # get the material referenced, and then check if it should be overriden
         # a material override will either have a list of mats it overrides, or a mask of mats it doesn't based on type
-        mat_in_cmd = find_material_from_jump_cmd(fModel.getAllMaterials().values(), command)
-        shouldModify = (overrideType == "Specific" and mat_in_cmd in specificMat) or (
-            overrideType == "All" and mat_in_cmd not in specificMat
+        bpy_material, fmaterial = find_material_from_jump_cmd(fModel.getAllMaterials().items(), command)
+        shouldModify = (overrideType == "Specific" and bpy_material in specificMat) or (
+            overrideType == "All" and bpy_material not in specificMat
         )
 
         # replace the material load if necessary
         # if we replaced the previous load with the same override, then remove the cmd to optimize DL
         if command.displayList.tag == GfxListTag.Material:
-            curMaterial = mat_in_cmd
+            curMaterial = fmaterial
             if shouldModify:
-                last_replaced = mat_in_cmd
+                last_replaced = fmaterial
                 curMaterial = fOverrideMat
                 command.displayList = fOverrideMat.material
             # remove cmd if it is a repeat load
