@@ -54,6 +54,24 @@ def isPowerOf2(n):
     return (n & (n - 1) == 0) and n != 0
 
 
+def log2iRoundDown(n):
+    assert n > 0
+    return int(math.floor(math.log2(n)))
+
+
+def log2iRoundUp(n):
+    assert n > 0
+    return int(math.ceil(math.log2(n)))
+
+
+def roundDownToPowerOf2(n):
+    return 1 << log2iRoundDown(n)
+
+
+def roundUpToPowerOf2(n):
+    return 1 << log2iRoundUp(n)
+
+
 def getDeclaration(data, name):
     matchResult = re.search("extern\s*[A-Za-z0-9\_]*\s*" + re.escape(name) + "\s*(\[[^;\]]*\])?;\s*", data, re.DOTALL)
     return matchResult
@@ -81,7 +99,7 @@ def getOrMakeVertexGroup(obj, groupName):
     return obj.vertex_groups.new(name=groupName)
 
 
-def unhideAllAndGetHiddenList(scene):
+def unhideAllAndGetHiddenState(scene):
     hiddenObjs = []
     for obj in scene.objects:
         if obj.hide_get():
@@ -90,12 +108,32 @@ def unhideAllAndGetHiddenList(scene):
     if bpy.context.mode != "OBJECT":
         bpy.ops.object.mode_set(mode="OBJECT")
     bpy.ops.object.hide_view_clear()
-    return hiddenObjs
+
+    hiddenLayerCols = []
+
+    layerColStack = [bpy.context.view_layer.layer_collection]
+    while layerColStack:
+        layerCol = layerColStack.pop(0)
+        layerColStack.extend(layerCol.children)
+
+        if layerCol.hide_viewport:
+            hiddenLayerCols.append(layerCol)
+            layerCol.hide_viewport = False
+
+    hiddenState = (hiddenObjs, hiddenLayerCols)
+
+    return hiddenState
 
 
-def hideObjsInList(hiddenObjs):
+def restoreHiddenState(hiddenState):
+    # as returned by unhideAllAndGetHiddenState
+    (hiddenObjs, hiddenLayerCols) = hiddenState
+
     for obj in hiddenObjs:
         obj.hide_set(True)
+
+    for layerCol in hiddenLayerCols:
+        layerCol.hide_viewport = True
 
 
 def readFile(filepath):
@@ -1281,6 +1319,7 @@ def convertEulerFloatToShort(value):
 
 # Rotation
 
+
 # Rotation is stored as a short.
 # Zero rotation starts at Z+ on an XZ plane and goes counterclockwise.
 # 2**16 - 1 is the last value before looping around again.
@@ -1506,6 +1545,12 @@ def ootGetBaseOrCustomLight(prop, idx, toExport: bool, errIfMissing: bool):
     if toExport:
         col, dir = exportColor(col), normToSigned8Vector(dir)
     return col, dir
+
+
+def getTextureSuffixFromFormat(texFmt):
+    # if texFmt == "RGBA16":
+    #     return "rgb5a1"
+    return texFmt.lower()
 
 
 binOps = {

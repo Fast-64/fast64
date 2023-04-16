@@ -2,3 +2,6 @@ __pycache__/
 .vscode
 *.blend1
 /.venv
+fast64_updater/
+.python-version
+

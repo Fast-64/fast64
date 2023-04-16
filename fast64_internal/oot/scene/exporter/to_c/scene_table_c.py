@@ -4,6 +4,23 @@ from ....oot_constants import ootEnumSceneID, ootSceneNameToID
 from ....oot_utility import getCustomProperty, ExportInfo
 
 
+def getSceneNameSettings(scene):
+    if scene is not None:
+        return bpy.context.scene.ootSceneExportSettings.option
+    else:
+        return bpy.context.scene.ootSceneRemoveSettings.option
+
+
+def getHackerOoTCheck(line: str):
+    return (
+        line != "\n"
+        and '#include "config.h"\n' not in line
+        and "#ifdef INCLUDE_TEST_SCENES" not in line
+        and "#endif" not in line
+        and not line.startswith("// ")
+    )
+
+
 def getSceneTable(exportPath):
     """Read and remove unwanted stuff from ``scene_table.h``"""
     dataList = []
@@ -15,7 +32,7 @@ def getSceneTable(exportPath):
         with open(os.path.join(exportPath, "include/tables/scene_table.h")) as fileData:
             # keep the relevant data and do some formatting
             for i, line in enumerate(fileData):
-                if not line.startswith("// "):
+                if not bpy.context.scene.fast64.oot.hackerFeaturesEnabled or getHackerOoTCheck(line):
                     if not (line.startswith("/**") or line.startswith(" *")):
                         dataList.append(line[(line.find("(") + 1) :].rstrip(")\n").replace(" ", "").split(","))
                     else:
@@ -61,7 +78,7 @@ def getOriginalIndex(sceneName):
     raise PluginError("ERROR: Scene Index not found!")
 
 
-def getInsertionIndex(sceneNames, sceneName, index, mode):
+def getInsertionIndex(scene, sceneNames, sceneName, index, mode):
     """Returns the index to know where to insert data"""
     # special case where the scene is "Inside the Great Deku Tree"
     # since it's the first scene simply return 0
@@ -82,11 +99,7 @@ def getInsertionIndex(sceneNames, sceneName, index, mode):
                 return i + 1
             # return an index to insert a comment
             elif mode == "EXPORT":
-                return (
-                    i
-                    if not sceneName in sceneNames and sceneName != bpy.context.scene.ootSceneExportSettings.option
-                    else i + 1
-                )
+                return i if not sceneName in sceneNames and sceneName != getSceneNameSettings(scene) else i + 1
             # same but don't check for chosen scene
             elif mode == "REMOVE":
                 return i if not sceneName in sceneNames else i + 1
@@ -94,14 +107,14 @@ def getInsertionIndex(sceneNames, sceneName, index, mode):
                 raise NotImplementedError
 
     # if the index hasn't been found yet, do it again but decrement the index
-    return getInsertionIndex(sceneNames, sceneName, currentIndex - 1, mode)
+    return getInsertionIndex(scene, sceneNames, sceneName, currentIndex - 1, mode)
 
 
 def getSceneParams(scene, exportInfo, sceneNames):
     """Returns the parameters that needs to be set in ``DEFINE_SCENE()``"""
     # in order to replace the values of ``unk10``, ``unk12`` and basically every parameters from ``DEFINE_SCENE``,
     # you just have to make it return something other than None, not necessarily a string
-    sceneIndex = getSceneIndex(sceneNames, bpy.context.scene.ootSceneExportSettings.option)
+    sceneIndex = getSceneIndex(sceneNames, getSceneNameSettings(scene))
     sceneName = sceneTitle = sceneID = sceneUnk10 = sceneUnk12 = None
     name = scene.name if scene is not None else exportInfo.name
 
@@ -124,8 +137,8 @@ def sceneTableToC(data, header, sceneNames, scene):
     mode = "EXPORT" if scene is not None else "REMOVE"
 
     # get the index of the last non-debug scene
-    lastNonDebugSceneIdx = getInsertionIndex(sceneNames, "SCENE_OUTSIDE_GANONS_CASTLE", None, mode)
-    lastSceneIdx = getInsertionIndex(sceneNames, "SCENE_TESTROOM", None, mode)
+    lastNonDebugSceneIdx = getInsertionIndex(scene, sceneNames, "SCENE_OUTSIDE_GANONS_CASTLE", None, mode)
+    lastSceneIdx = getInsertionIndex(scene, sceneNames, "SCENE_TESTROOM", None, mode)
 
     # add the actual lines with the same formatting
     for i in range(len(data)):
@@ -158,6 +171,25 @@ def getDrawConfig(sceneName: str):
     raise PluginError(f"Scene name {sceneName} not found in scene table.")
 
 
+def addHackerOoTData(fileData: str):
+    """Reads the file and adds HackerOoT's modifications to the scene table file"""
+    newFileData = ['#include "config.h"\n\n']
+
+    for line in fileData.splitlines():
+        if "// Debug-only scenes" in line:
+            newFileData.append("\n#ifdef INCLUDE_TEST_SCENES\n")
+
+        if "// Added scenes" in line:
+            newFileData.append("#endif\n\n")
+
+        newFileData.append(f"{line}\n")
+
+    if not "// Added scenes" in fileData:
+        newFileData.append("#endif\n")
+
+    return "".join(newFileData)
+
+
 def modifySceneTable(scene, exportInfo: ExportInfo):
     """Edit the scene table with the new data"""
     exportPath = exportInfo.exportPath
@@ -178,7 +210,7 @@ def modifySceneTable(scene, exportInfo: ExportInfo):
     # that means the selected scene has been removed from the table
     # however if the scene variable is not None
     # set it to "INSERT" because we need to insert the scene in the right place
-    if sceneIndex is None and bpy.context.scene.ootSceneExportSettings.option == "Custom":
+    if sceneIndex is None and getSceneNameSettings(scene) == "Custom":
         mode = "CUSTOM"
     elif sceneIndex is None and scene is not None:
         mode = "INSERT"
@@ -213,7 +245,7 @@ def modifySceneTable(scene, exportInfo: ExportInfo):
             # if this the user chose a vanilla scene, removed it and want to export
             # insert the data in the normal location
             # shifted index = vanilla index - (vanilla last scene index - new last scene index)
-            index = getInsertionIndex(sceneNames, sceneID, None, mode)
+            index = getInsertionIndex(scene, sceneNames, sceneID, None, mode)
             sceneNames.insert(index, sceneParams[2])
             fileData.insert(index, sceneParams)
 
@@ -225,7 +257,12 @@ def modifySceneTable(scene, exportInfo: ExportInfo):
         else:
             raise PluginError("ERROR: Scene not found in ``scene_table.h``!")
 
+    # get the new file data
+    newFileData = sceneTableToC(fileData, header, sceneNames, scene)
+
+    # apply HackerOoT changes if needed
+    if bpy.context.scene.fast64.oot.hackerFeaturesEnabled:
+        newFileData = addHackerOoTData(newFileData)
+
     # write the file with the final data
-    writeFile(
-        os.path.join(exportPath, "include/tables/scene_table.h"), sceneTableToC(fileData, header, sceneNames, scene)
-    )
+    writeFile(os.path.join(exportPath, "include/tables/scene_table.h"), newFileData)
