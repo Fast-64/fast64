@@ -103,6 +103,7 @@ class BleedGraphics:
         othermode_H.flagList.append(defaults.g_mdsft_combkey)
         othermode_H.flagList.append(defaults.g_mdsft_textconv)
         othermode_H.flagList.append(defaults.g_mdsft_text_filt)
+        othermode_H.flagList.append("G_TT_NONE")
         othermode_H.flagList.append(defaults.g_mdsft_textlod)
         othermode_H.flagList.append(defaults.g_mdsft_textdetail)
         othermode_H.flagList.append(defaults.g_mdsft_textpersp)
@@ -319,6 +320,9 @@ class BleedGraphics:
     def create_reset_cmds(self, reset_cmd_dict: dict[GbiMacro], default_render_mode: list[str]):
         reset_cmds = []
         for cmd_type, cmd_use in reset_cmd_dict.items():
+            
+            print(cmd_type, cmd_use)
+            
             if cmd_type == DPPipeSync:
                 reset_cmds.append(DPPipeSync())
 
@@ -337,12 +341,13 @@ class BleedGraphics:
                 if cmd_use.mode != "G_TT_NONE":
                     reset_cmds.append(cmd_type("G_TT_NONE"))
 
-            elif cmd_type == SPSetOtherMode and cmd_use.cmd == "G_SETOTHERMODE_H":
+            elif cmd_type == "G_SETOTHERMODE_H":
+                print(self.default_othermode_H)
                 if cmd_use != self.default_othermode_H:
                     reset_cmds.append(self.default_othermode_H)
 
             # render mode takes up most bits of the lower half, so seeing high bit usage is enough to determine render mode was used
-            elif cmd_type == DPSetRenderMode or (cmd_type == SPSetOtherMode and cmd_use.length >= 31):
+            elif cmd_type == DPSetRenderMode or (cmd_type == "G_SETOTHERMODE_L" and cmd_use.length >= 31):
                 if default_render_mode:
                     reset_cmds.append(
                         SPSetOtherMode(
@@ -353,7 +358,7 @@ class BleedGraphics:
                         )
                     )
 
-            elif cmd_type == SPSetOtherMode and cmd_use.cmd == "G_SETOTHERMODE_L":
+            elif cmd_type == "G_SETOTHERMODE_L":
                 if cmd_use != self.default_othermode_L:
                     reset_cmds.append(self.default_othermode_L)
         return reset_cmds
@@ -483,8 +488,11 @@ class BleedGfxLists:
             SPSetGeometryMode,
             SPClearGeometryMode,
             DPSetTextureLUT,
-            SPSetOtherMode,
             DPSetRenderMode,
         )
+        # separate other mode H and othermode L
+        if type(cmd) == SPSetOtherMode:
+            self.reset_cmds[cmd.cmd] = cmd
+            
         if type(cmd) in reset_cmds:
             self.reset_cmds[type(cmd)] = cmd
