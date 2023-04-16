@@ -137,8 +137,10 @@ class BleedGraphics:
             bleed_gfx_lists = BleedGfxLists()
             if triGroup.fMaterial:
                 bleed_gfx_lists.bled_mats = self.bleed_mat(triGroup.fMaterial, lastMat, cmd_list, bleed_state)
-                if not triGroup.fMaterial.useLargeTextures:
+                if not (triGroup.fMaterial.isTexLarge[0] or triGroup.fMaterial.isTexLarge[1]):
                     bleed_gfx_lists.bled_tex = self.bleed_textures(triGroup.fMaterial, lastMat, cmd_list, bleed_state)
+                else:
+                    bleed_gfx_lists.bled_tex = triGroup.fMaterial.texture_DL.commands
             lastMat = triGroup.fMaterial
             # bleed tri group (for large textures) and to remove other unnecessary cmds
             self.bleed_tri_group(f3d, triGroup, bleed_gfx_lists, cmd_list, bleed_state)
@@ -148,43 +150,63 @@ class BleedGraphics:
         self.on_bleed_end(f3d, lastMat, bleed_gfx_lists, cmd_list, fmesh_static_cmds, default_render_mode)
         return lastMat
 
+    def build_tmem_dict(self, cmd_list: GfxList):
+        im_buffer = None
+        tmem_dict = dict()
+        tile_dict = {i:0 for i in range(8)} # an assumption that hopefully never needs correction
+        for cmd in cmd_list.commands:
+            if type(cmd) == DPSetTextureImage:
+                im_buffer = cmd
+                continue
+            if type(cmd) == DPSetTile:
+                tile_dict[cmd.tile] = cmd.tmem
+            if type(cmd) in (DPLoadTLUTCmd, DPLoadTile, DPLoadBlock):
+                tmem_dict[tile_dict[cmd.tile]] = im_buffer
+                continue
+        return tmem_dict
+    
     def bleed_textures(self, curMat: FMaterial, lastMat: FMaterial, cmd_list: GfxList, bleed_state: int):
         if lastMat:
-            bled_tex = []
             # bleed cmds if matching tile has duplicate cmds
-            for j, (LastTex, TexCmds) in enumerate(zip(lastMat.texture_DLs, curMat.texture_DLs)):
-                # deep copy breaks on Image objects so I will only copy the levels needed
-                commands_bled = copy.copy(TexCmds)
-                commands_bled.commands = copy.copy(TexCmds.commands)  # copy the commands also
-                last_cmd_list = LastTex.commands
-                # eliminate set tex images
-                set_tex = (c for c in TexCmds.commands if type(c) == DPSetTextureImage)
-                removed_tex = [
-                    c for c in set_tex if c in last_cmd_list
-                ]  # needs to be a list to check "in" multiple times
-                rm_load = None  # flag to elim loads once
-                for j, cmd in enumerate(TexCmds.commands):
-                    # remove set tex explicitly
-                    if cmd in removed_tex:
-                        commands_bled.commands.remove(cmd)
-                        rm_load = True
-                        continue
-                    if rm_load and type(cmd) in (DPLoadTLUTCmd, DPLoadTile, DPLoadBlock):
-                        commands_bled.commands.remove(cmd)
-                        rm_load = None
-                        continue
-                # now eval as normal conditionals
-                iter_cmds = copy.copy(commands_bled.commands)  # need extra list to iterate with
-                for j, cmd in enumerate(iter_cmds):
-                    if self.bleed_individual_cmd(commands_bled, cmd, bleed_state, last_cmd_list):
+            # deep copy breaks on Image objects so I will only copy the levels needed
+            commands_bled = copy.copy(curMat.texture_DL)
+            commands_bled.commands = copy.copy(curMat.texture_DL.commands)  # copy the commands also
+            # eliminate set tex images, but only if there is an overlap of the same image at the same tmem location
+            last_im_loads = self.build_tmem_dict(lastMat.texture_DL)
+            new_im_loads = self.build_tmem_dict(commands_bled)
+            removable_images = []
+            for tmem, image in new_im_loads.items():
+                if tmem in last_im_loads and last_im_loads[tmem] == image:
+                    removable_images.append(image)
+            # now go through list and cull out loads for the specific cmds
+            # this will be the set tex image, and the loading cmds
+            rm_load = False
+            for j, cmd in enumerate(curMat.texture_DL.commands):
+                # remove set tex explicitly
+                if cmd in removable_images:
+                    commands_bled.commands[j] = None
+                    rm_load = True
+                    continue
+                if rm_load and type(cmd) == DPSetTile:
+                    commands_bled.commands[j] = None
+                if rm_load and type(cmd) in (DPLoadTLUTCmd, DPLoadTile, DPLoadBlock):
+                    commands_bled.commands[j] = None
+                    rm_load = None
+                    continue
+            # now eval as normal conditionals
+            for j, cmd in enumerate(curMat.texture_DL.commands):
+                if not cmd:
+                    continue # some cmds are None from previous step
+                if self.bleed_individual_cmd(commands_bled, cmd, bleed_state):
+                    if cmd in lastMat.texture_DL.commands:
                         commands_bled.commands[j] = None
-                # remove Nones from list
-                while None in commands_bled.commands:
-                    commands_bled.commands.remove(None)
-                bled_tex.append(commands_bled)
+            # remove Nones from list
+            while None in commands_bled.commands:
+                commands_bled.commands.remove(None)
+            bled_tex = commands_bled
         else:
-            bled_tex = [self.bleed_cmd_list(tex_list, bleed_state) for tex_list in curMat.texture_DLs]
-        return bled_tex
+            bled_tex = curMat.texture_DL
+        return bled_tex.commands
 
     def bleed_mat(self, curMat: FMaterial, lastMat: FMaterial, cmd_list: GfxList, bleed_state: int):
         if lastMat:
@@ -204,7 +226,7 @@ class BleedGraphics:
         # remove SPEndDisplayList
         while SPEndDisplayList() in commands_bled.commands:
             commands_bled.commands.remove(SPEndDisplayList())
-        return commands_bled
+        return commands_bled.commands
 
     def bleed_tri_group(
         self, f3d: F3D, triGroup: FTriGroup, bleed_gfx_lists: BleedGfxLists, cmd_list: GfxList, bleed_state: int
@@ -212,7 +234,7 @@ class BleedGraphics:
         # remove SPEndDisplayList from triGroup
         while SPEndDisplayList() in triGroup.triList.commands:
             triGroup.triList.commands.remove(SPEndDisplayList())
-        if triGroup.fMaterial.useLargeTextures:
+        if (triGroup.fMaterial.isTexLarge[0] or triGroup.fMaterial.isTexLarge[1]):
             triGroup.triList = self.bleed_cmd_list(triGroup.triList, bleed_state)
 
     # this is a little less versatile than comparing by last used material
@@ -237,10 +259,9 @@ class BleedGraphics:
     # Put triGroup bleed gfx in the FMesh.draw object
     def inline_triGroup(self, f3d: F3D, triGroup: FTriGroup, bleed_gfx_lists: BleedGfxLists, cmd_list: GfxList):
         # add material
-        cmd_list.commands.extend(bleed_gfx_lists.bled_mats.commands)
+        cmd_list.commands.extend(bleed_gfx_lists.bled_mats)
         # add textures
-        for tile, texGfx in enumerate(bleed_gfx_lists.bled_tex):
-            cmd_list.commands.extend(texGfx.commands)
+        cmd_list.commands.extend(bleed_gfx_lists.bled_tex)
         # add in triangles
         cmd_list.commands.extend(triGroup.triList.commands)
         # skinned meshes don't draw tris sometimes, use this opportunity to save a sync
@@ -283,7 +304,7 @@ class BleedGraphics:
     def on_bleed_end(
         self, f3d: F3D, lastMat: FMaterial, bleed_gfx_lists: BleedGfxLists, cmd_list: GfxList, fmesh_static_cmds: list[GbiMacro], default_render_mode: list[str] = None
     ):
-        [bleed_gfx_lists.add_reset_cmd(cmd) for cmd in cmd_list.commands]
+        [bleed_gfx_lists.add_reset_cmd(cmd) for cmd in bleed_gfx_lists.bled_mats]
         # revert certain cmds for extra safety
         reset_cmds = self.create_reset_cmds(bleed_gfx_lists.reset_cmds, default_render_mode)
         # if pipe sync in reset list, make sure it is the first cmd
@@ -301,11 +322,16 @@ class BleedGraphics:
             if cmd_type == DPPipeSync:
                 reset_cmds.append(DPPipeSync())
 
-            elif cmd_type == SPLoadGeometryMode:
-                if self.is_f3dex2 and cmd_use != self.default_load_geo:
-                    reset_cmds.append(self.default_load_geo)
-                else:
-                    reset_cmds.extend([self.default_set_geo, self.default_clear_geo])
+            # generally either loadgeo, or a combo of set/clear is used based on microcode selected
+            # if you are in f3d, any selection different from the default will add a set/clear
+            if cmd_type == SPLoadGeometryMode and cmd_use != self.default_load_geo:
+                reset_cmds.append(self.default_load_geo)
+
+            elif cmd_type == SPSetGeometryMode and cmd_use != self.default_set_geo:
+                reset_cmds.append(self.default_set_geo)
+
+            elif cmd_type == SPClearGeometryMode and cmd_use != self.default_clear_geo:
+                reset_cmds.append(self.default_clear_geo)
 
             elif cmd_type == DPSetTextureLUT:
                 if cmd_use.mode != "G_TT_NONE":
@@ -349,7 +375,9 @@ class BleedGraphics:
             SPBranchLessZraw,
             SPModifyVertex,
             SPEndDisplayList,
+            DPSetTextureImage,
             DPLoadBlock,
+            DPLoadTile,
             DPLoadTLUTCmd,
             DPFullSync,
         ]:
@@ -418,18 +446,18 @@ class BleedGraphics:
         return self.bleed_between_tris(cmd_list, cmd, bleed_state, [DPLoadSync, DPPipeSync, DPTileSync])
 
     def bleed_between_tris(self, cmd_list: GfxList, cmd: GbiMacro, bleed_state: int, conflict_cmds: list[GbiMacro]):
-        tri_flag = True
+        tri_buffered = False
         for parse_cmd in cmd_list.commands:
             if parse_cmd is cmd:
-                return False
+                return tri_buffered
             if type(parse_cmd) in [SP2Triangles, SP1Triangle, SPLine3D, SPLineW3D]:
-                tri_flag = True
+                tri_buffered = False
                 continue
             if type(parse_cmd) in conflict_cmds:
-                if not tri_flag:
-                    tri_flag = False
-                    continue
-                return True
+                if not tri_buffered:
+                    tri_buffered = True
+                else:
+                    return True
         return False
 
 
@@ -437,17 +465,26 @@ class BleedGraphics:
 @dataclass
 class BleedGfxLists:
     bled_mats: GfxList = field(default_factory=list)
-    bled_tex: list[GfxList] = field(default_factory=list)  # list of GfxList
-    reset_cmds: dict[GbiMacro] = field(default_factory=dict)  # set of cmds to reset
+    bled_tex: GfxList = field(default_factory=list)
+    reset_cmds: dict[GbiMacro] = field(default_factory=dict)  # dict of cmds to reset
+    
+    @property
+    def reset_command_dict(self):
+        return {
+            SPGeometryMode: (["G_TEXTURE_GEN"], ["G_LIGHTING"]),
+            DPSetCycleType: ("G_CYC_1CYCLE",),
+            DPSetTextureLUT: ("G_TT_NONE",),
+            DPSetRenderMode: (None, None),
+        }
 
     def add_reset_cmd(self, cmd: GbiMacro):
-        reset_geo_cmds = (
+        reset_cmds = (
             SPLoadGeometryMode,
             SPSetGeometryMode,
             SPClearGeometryMode,
+            DPSetTextureLUT,
+            SPSetOtherMode,
+            DPSetRenderMode,
         )
-        reset_other_cmds = (DPSetTextureLUT, SPSetOtherMode, DPSetRenderMode)
-        if type(cmd) in reset_geo_cmds:
-            self.reset_cmds[SPLoadGeometryMode] = cmd
-        if type(cmd) in reset_other_cmds:
+        if type(cmd) in reset_cmds:
             self.reset_cmds[type(cmd)] = cmd

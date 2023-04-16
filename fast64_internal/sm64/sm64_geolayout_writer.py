@@ -58,6 +58,11 @@ from ..utility import (
     geoNodeRotateOrder,
 )
 
+from ..f3d.f3d_material import (
+    isTexturePointSampled,
+    isLightingDisabled,
+)
+
 from ..f3d.f3d_writer import (
     TriangleConverterInfo,
     LoopConvertInfo,
@@ -70,9 +75,7 @@ from ..f3d.f3d_writer import (
     saveOrGetF3DMaterial,
     saveMeshWithLargeTexturesByFaces,
     saveMeshByFaces,
-    isLightingDisabled,
     getF3DVert,
-    isTexturePointSampled,
     convertVertexData,
 )
 
@@ -2429,7 +2432,7 @@ def saveModelGivenVertexGroup(
             material = obj.material_slots[material_index].material
             checkForF3dMaterialInFaces(obj, material)
             fMaterial, texDimensions = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
-            if fMaterial.useLargeTextures:
+            if fMaterial.isTexLarge[0] or fMaterial.isTexLarge[1]:
                 currentGroupIndex = saveMeshWithLargeTexturesByFaces(
                     material,
                     bFaces,
@@ -2495,7 +2498,7 @@ def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, dr
     # Scan the displaylist to look for material loads and reverts
     # Use a while instead of a for to be able to insert into the list during iteration
     commandIdx = 0
-    
+
     while commandIdx < len(meshMatOverride.commands):
         # Get the command at the current index
         command = meshMatOverride.commands[commandIdx]
@@ -2567,12 +2570,17 @@ def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, dr
                 # Reverts are only needed if the next command is a different material load
                 if fMaterial.revert is None and fOverrideMat.revert is not None:
                     nextCommand = meshMatOverride.commands[commandIdx + 1]
-                    if isinstance(nextCommand, SPDisplayList) and nextCommand.displayList.tag == GfxListTag.Material and nextCommand.displayList != prevMaterial.material:
+                    if (
+                        isinstance(nextCommand, SPDisplayList)
+                        and nextCommand.displayList.tag == GfxListTag.Material
+                        and nextCommand.displayList != prevMaterial.material
+                    ):
                         # Insert the new command
                         meshMatOverride.commands.insert(commandIdx + 1, SPDisplayList(fOverrideMat.revert))
                         commandIdx += 1
         # iterate to the next cmd
         commandIdx += 1
+
 
 def findVertIndexInBuffer(loop, buffer, loopDict):
     i = 0
@@ -2719,6 +2727,7 @@ def saveSkinnedMeshByMaterial(
                     obj.data,
                     bufferVert.f3dVert.position,
                     bufferVert.f3dVert.uv,
+                    bufferVert.f3dVert.stOffset,
                     bufferVert.f3dVert.getColorOrNormal(),
                     texDimensions,
                     parentMatrix,
@@ -2743,7 +2752,7 @@ def saveSkinnedMeshByMaterial(
         material = obj.material_slots[material_index].material
         faces = [skinnedFace.bFace for skinnedFace in skinnedFaceArray]
         fMaterial, texDimensions = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
-        if fMaterial.useLargeTextures:
+        if fMaterial.isTexLarge[0] or fMaterial.isTexLarge[1]:
             saveMeshWithLargeTexturesByFaces(
                 material,
                 faces,
@@ -2793,9 +2802,9 @@ def saveSkinnedMeshByMaterial(
     # 	convertInfo = LoopConvertInfo(uv_data, obj, exportVertexColors)
     # 	triConverter = TriangleConverter(triConverterInfo, texDimensions, material,
     # 		None, triGroup.triList, triGroup.vertexList, copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict))
-    # 	saveTriangleStrip(triConverter, [skinnedFace.bFace for skinnedFace in skinnedFaceArray], obj.data, True)
+    # 	saveTriangleStrip(triConverter, [skinnedFace.bFace for skinnedFace in skinnedFaceArray], None, obj.data, True)
     # 	saveTriangleStrip(triConverterClass,
-    # 		[skinnedFace.bFace for skinnedFace in skinnedFaceArray],
+    # 		[skinnedFace.bFace for skinnedFace in skinnedFaceArray], None,
     # 		convertInfo, triGroup.triList, triGroup.vertexList, fModel.f3d,
     # 		texDimensions, currentMatrix, isPointSampled, exportVertexColors,
     # 		copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict),
