@@ -359,7 +359,13 @@ def convertArmatureToGeolayout(
 ):
 
     inline = bpy.context.scene.exportInlineF3D
-    fModel = SM64Model(f3dType, isHWv1, name, DLFormat, GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll)
+    fModel = SM64Model(
+        f3dType,
+        isHWv1,
+        name,
+        DLFormat,
+        GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll,
+    )
 
     if len(armatureObj.children) == 0:
         raise PluginError("No mesh parented to armature.")
@@ -424,7 +430,13 @@ def convertObjectToGeolayout(
 
     inline = bpy.context.scene.exportInlineF3D
     if fModel is None:
-        fModel = SM64Model(f3dType, isHWv1, name, DLFormat, GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll)
+        fModel = SM64Model(
+            f3dType,
+            isHWv1,
+            name,
+            DLFormat,
+            GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll,
+        )
 
     # convertTransformMatrix = convertTransformMatrix @ \
     # 	mathutils.Matrix.Diagonal(obj.scale).to_4x4()
@@ -477,7 +489,9 @@ def convertObjectToGeolayout(
     geolayoutGraph.generateSortedList()
     if inline:
         bleed_gfx = GeoLayoutBleed()
-        bleed_gfx.bleed_geo_layout_graph(fModel, geolayoutGraph, use_rooms = None if areaObj is None else areaObj.enableRoomSwitch)
+        bleed_gfx.bleed_geo_layout_graph(
+            fModel, geolayoutGraph, use_rooms=None if areaObj is None else areaObj.enableRoomSwitch
+        )
     # if DLFormat == DLFormat.GameSpecific:
     # 	geolayoutGraph.convertToDynamic()
     return geolayoutGraph, fModel
@@ -2465,7 +2479,16 @@ def saveModelGivenVertexGroup(
     return fMeshes, fSkinnedMeshes, usedDrawLayers
 
 
-def saveOverrideDraw(obj: bpy.types.Object, fModel: FModel, material: bpy.types.Material, specificMat: tuple[bpy.types.Material], overrideType: str, fMesh: FMesh, drawLayer: int, convertTextureData: bool):
+def saveOverrideDraw(
+    obj: bpy.types.Object,
+    fModel: FModel,
+    material: bpy.types.Material,
+    specificMat: tuple[bpy.types.Material],
+    overrideType: str,
+    fMesh: FMesh,
+    drawLayer: int,
+    convertTextureData: bool,
+):
     fOverrideMat, texDimensions = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
     overrideIndex = str(len(fMesh.drawMatOverrides))
     if (material, specificMat, overrideType) in fMesh.drawMatOverrides:
@@ -2478,7 +2501,7 @@ def saveOverrideDraw(obj: bpy.types.Object, fModel: FModel, material: bpy.types.
     prev_material = None
     last_replaced = None
     command_index = 0
-    
+
     def find_material_from_jump_cmd(material_list: Tuple[FMaterial, Tuple[int, int]], dl_jump: SPDisplayList):
         if dl_jump.displayList.tag == GfxListTag.Geometry:
             return None
@@ -2492,72 +2515,80 @@ def saveOverrideDraw(obj: bpy.types.Object, fModel: FModel, material: bpy.types.
 
     while command_index < len(meshMatOverride.commands):
         command = meshMatOverride.commands[command_index]
-        if isinstance(command, SPDisplayList):
-            # get the material referenced, and then check if it should be overriden
-            # a material override will either have a list of mats it overrides, or a mask of mats it doesn't based on type
-            mat_in_cmd = find_material_from_jump_cmd(fModel.getAllMaterials().values(), command)
-            shouldModify = (overrideType == "Specific" and mat_in_cmd in specificMat) or (overrideType == "All" and mat_in_cmd not in specificMat)
-            
-            # replace the material load if necessary
-            # if we replaced the previous load with the same override, then remove the cmd to optimize DL
-            if command.displayList.tag == GfxListTag.Material:
-                curMaterial = mat_in_cmd
-                if shouldModify:
-                    last_replaced = mat_in_cmd
-                    curMaterial = fOverrideMat
-                    command.displayList = fOverrideMat.material
-                # remove cmd if it is a repeat load
-                if prev_material == curMaterial:
-                    meshMatOverride.commands.pop(command_index)
-                    command_index -= 1
-                    # if we added a revert for our material redundant load, remove that as well
-                    prevIndex = command_index - 1
-                    while prevIndex >= 0:
-                        prev_command = meshMatOverride.commands[prevIndex]
-                        if isinstance(prev_command, SPDisplayList) and prev_command.displayList == curMaterial.revert:
-                            meshMatOverride.commands.pop(prevIndex)
-                            prevIndex -= 1
-                            command_index -= 1
-                        else:
-                            break
-                # update the last loaded material
-                prev_material = curMaterial
-                command_index += 1
-                continue
-                
-            # replace the revert if the override has a revert, otherwise remove the command
-            if command.displayList.tag == GfxListTag.MaterialRevert:
-                if shouldModify:
-                    if fOverrideMat.revert is not None:
-                        command.displayList = fOverrideMat.revert
-                    else:
-                        meshMatOverride.commands.pop(command_index)
-                        command_index -= 1
-                command_index += 1
-                continue
-            
-            if not command.displayList.tag == GfxListTag.Geometry:
-                command_index += 1
-                continue
-            # If the previous command was a revert we added, remove it. All reverts must be followed by a load
-            prev_index = command_index - 1
-            if prev_index > 0:
-                prev_command = meshMatOverride.commands[prev_index]
-                if isinstance(prev_command, SPDisplayList) and prev_command.displayList == fOverrideMat.revert:
-                    meshMatOverride.commands.pop(prev_index)
-                    command_index -= 1
-            # If the override material has a revert and the original material didn't, insert a revert after this command.
-            # This is needed to ensure that override materials that need a revert get them.
-            # Reverts are only needed if the next command is a different material load
-            if last_replaced and last_replaced.revert is None and fOverrideMat.revert is not None and prev_material == fOverrideMat:
-                next_command = meshMatOverride.commands[command_index + 1]
+        if not isinstance(command, SPDisplayList):
+            command_index += 1
+            continue
+        # get the material referenced, and then check if it should be overriden
+        # a material override will either have a list of mats it overrides, or a mask of mats it doesn't based on type
+        mat_in_cmd = find_material_from_jump_cmd(fModel.getAllMaterials().values(), command)
+        shouldModify = (overrideType == "Specific" and mat_in_cmd in specificMat) or (
+            overrideType == "All" and mat_in_cmd not in specificMat
+        )
+
+        # replace the material load if necessary
+        # if we replaced the previous load with the same override, then remove the cmd to optimize DL
+        if command.displayList.tag == GfxListTag.Material:
+            curMaterial = mat_in_cmd
+            if shouldModify:
+                last_replaced = mat_in_cmd
+                curMaterial = fOverrideMat
+                command.displayList = fOverrideMat.material
+            # remove cmd if it is a repeat load
+            if prev_material == curMaterial:
+                meshMatOverride.commands.pop(command_index)
+                command_index -= 1
+                # if we added a revert for our material redundant load, remove that as well
+                prevIndex = command_index - 1
+                prev_command = meshMatOverride.commands[prevIndex]
                 if (
-                    isinstance(next_command, SPDisplayList)
-                    and next_command.displayList.tag == GfxListTag.Material
-                    and next_command.displayList != prev_material.material
-                ) or (isinstance(next_command, SPEndDisplayList)):
-                    meshMatOverride.commands.insert(command_index + 1, SPDisplayList(fOverrideMat.revert))
-                    command_index += 1
+                    prevIndex > 0
+                    and isinstance(prev_command, SPDisplayList)
+                    and prev_command.displayList == curMaterial.revert
+                ):
+                    meshMatOverride.commands.pop(prevIndex)
+                    command_index -= 1
+            # update the last loaded material
+            prev_material = curMaterial
+
+        # replace the revert if the override has a revert, otherwise remove the command
+        if command.displayList.tag == GfxListTag.MaterialRevert and shouldModify:
+            if fOverrideMat.revert is not None:
+                command.displayList = fOverrideMat.revert
+            else:
+                meshMatOverride.commands.pop(command_index)
+                command_index -= 1
+
+        if not command.displayList.tag == GfxListTag.Geometry:
+            command_index += 1
+            continue
+        # If the previous command was a revert we added, remove it. All reverts must be followed by a load
+        prev_index = command_index - 1
+        prev_command = meshMatOverride.commands[prev_index]
+        if (
+            prev_index > 0
+            and isinstance(prev_command, SPDisplayList)
+            and prev_command.displayList == fOverrideMat.revert
+        ):
+            meshMatOverride.commands.pop(prev_index)
+            command_index -= 1
+        # If the override material has a revert and the original material didn't, insert a revert after this command.
+        # This is needed to ensure that override materials that need a revert get them.
+        # Reverts are only needed if the next command is a different material load
+        if (
+            last_replaced
+            and last_replaced.revert is None
+            and fOverrideMat.revert is not None
+            and prev_material == fOverrideMat
+        ):
+            next_command = meshMatOverride.commands[command_index + 1]
+            if (
+                isinstance(next_command, SPDisplayList)
+                and next_command.displayList.tag == GfxListTag.Material
+                and next_command.displayList != prev_material.material
+            ) or (isinstance(next_command, SPEndDisplayList)):
+                meshMatOverride.commands.insert(command_index + 1, SPDisplayList(fOverrideMat.revert))
+                command_index += 1
+        # iterate to the next cmd
         command_index += 1
 
 
