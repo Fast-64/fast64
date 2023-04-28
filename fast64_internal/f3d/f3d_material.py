@@ -3223,12 +3223,14 @@ class AddPresetF3D(AddPresetBase, Operator):
 def convertToNewMat(material, oldMat):
     material.f3d_mat.presetName = oldMat.get("presetName", "Custom")
 
-    material.f3d_mat.scale_autoprop = oldMat["scale_autoprop"]
+    material.f3d_mat.scale_autoprop = oldMat.get("scale_autoprop", material.f3d_mat.scale_autoprop)
     material.f3d_mat.uv_basis = oldMat.get("uv_basis", material.f3d_mat.uv_basis)
 
     # Combiners
-    recursiveCopyOldPropertyGroup(oldMat["combiner1"], material.f3d_mat.combiner1)
-    recursiveCopyOldPropertyGroup(oldMat["combiner2"], material.f3d_mat.combiner2)
+    if "combiner1" in oldMat:
+        recursiveCopyOldPropertyGroup(oldMat["combiner1"], material.f3d_mat.combiner1)
+    if "combiner2" in oldMat:
+        recursiveCopyOldPropertyGroup(oldMat["combiner2"], material.f3d_mat.combiner2)
 
     # Texture animation
     material.f3d_mat.menu_procAnim = oldMat.get("menu_procAnim", material.f3d_mat.menu_procAnim)
@@ -3238,7 +3240,7 @@ def convertToNewMat(material, oldMat):
         recursiveCopyOldPropertyGroup(oldMat["UVanim_tex1"], material.f3d_mat.UVanim1)
 
     # material textures
-    material.f3d_mat.tex_scale = oldMat["tex_scale"]
+    material.f3d_mat.tex_scale = oldMat.get("tex_scale", material.f3d_mat.tex_scale)
     recursiveCopyOldPropertyGroup(oldMat["tex0"], material.f3d_mat.tex0)
     recursiveCopyOldPropertyGroup(oldMat["tex1"], material.f3d_mat.tex1)
 
@@ -3265,7 +3267,8 @@ def convertToNewMat(material, oldMat):
     material.f3d_mat.blend_color = oldMat.get("blend_color", material.f3d_mat.blend_color)
     material.f3d_mat.prim_color = prim
     material.f3d_mat.env_color = env
-    material.f3d_mat.key_center = nodes["Chroma Key Center"].outputs[0].default_value
+    if "Chroma Key Center" in nodes:
+        material.f3d_mat.key_center = nodes["Chroma Key Center"].outputs[0].default_value
 
     # Chroma
     material.f3d_mat.key_scale = oldMat.get("key_scale", material.f3d_mat.key_scale)
@@ -3305,7 +3308,8 @@ def convertToNewMat(material, oldMat):
     material.f3d_mat.menu_lower = oldMat.get("menu_lower", material.f3d_mat.menu_lower)
     material.f3d_mat.menu_other = oldMat.get("menu_other", material.f3d_mat.menu_other)
     material.f3d_mat.menu_lower_render = oldMat.get("menu_lower_render", material.f3d_mat.menu_lower_render)
-    recursiveCopyOldPropertyGroup(oldMat["rdp_settings"], material.f3d_mat.rdp_settings)
+    if "rdp_settings" in oldMat:
+        recursiveCopyOldPropertyGroup(oldMat["rdp_settings"], material.f3d_mat.rdp_settings)
 
 
 class F3DMaterialProperty(bpy.types.PropertyGroup):
