@@ -1748,7 +1748,7 @@ class F3DContext:
         print("Vertices: " + str(len(self.verts)) + ", Triangles: " + str(triangleCount))
 
         mesh.from_pydata(vertices=verts, edges=[], faces=faces)
-        uv_layer = mesh.uv_layers.new().data
+        uv_layer_name = mesh.uv_layers.new().name
         # if self.materialContext.f3d_mat.rdp_settings.g_lighting:
         alpha_layer = mesh.vertex_colors.new(name="Alpha").data
         color_layer = mesh.vertex_colors.new(name="Col").data
@@ -1764,6 +1764,10 @@ class F3DContext:
 
         for i in range(len(mesh.polygons)):
             mesh.polygons[i].material_index = self.triMatIndices[i]
+
+        # Workaround for an issue in Blender 3.5 where putting this above the `if importNormals` block
+        # causes wrong uvs/normals and sometimes crashes.
+        uv_layer = mesh.uv_layers[uv_layer_name].data
 
         for i in range(len(mesh.loops)):
             # This should be okay, since we aren't trying to optimize vertices

@@ -6,6 +6,7 @@ from .f3d_gbi import FImage
 from .f3d_material import all_combiner_uses, update_tex_values_manual, iter_tex_nodes, TextureProperty
 from ..utility import prop_split, CollectionProperty
 from dataclasses import dataclass
+import dataclasses
 
 
 @dataclass
@@ -13,7 +14,7 @@ class TextureFlipbook:
     name: str
     exportMode: str
     textureNames: list[str]
-    images: list[tuple[bpy.types.Image, FImage]]
+    images: list[tuple[bpy.types.Image, FImage]] = dataclasses.field(default_factory=list)
 
 
 def flipbook_data_to_c(flipbook: TextureFlipbook):
