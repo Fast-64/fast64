@@ -131,6 +131,7 @@ class BleedGraphics:
     def bleed_fmesh(self, f3d: F3D, fMesh: FMesh, lastMat: FMaterial, cmd_list: GfxList, default_render_mode: list[str] = None):
         if bled_mat := self.bled_gfx_lists.get(cmd_list, None):
             return bled_mat
+        reset_cmd_dict = dict()
         fmesh_static_cmds = self.on_bleed_start(f3d, lastMat, cmd_list)
         bleed_state = self.bleed_start
         for triGroup in fMesh.triangleGroups:
@@ -145,10 +146,10 @@ class BleedGraphics:
             lastMat = triGroup.fMaterial
             # bleed tri group (for large textures) and to remove other unnecessary cmds
             self.bleed_tri_group(f3d, triGroup, bleed_gfx_lists, cmd_list, bleed_state)
-            self.inline_triGroup(f3d, triGroup, bleed_gfx_lists, cmd_list)
+            self.inline_triGroup(f3d, triGroup, bleed_gfx_lists, cmd_list, reset_cmd_dict)
             self.on_tri_group_bleed_end(f3d, triGroup, lastMat, bleed_gfx_lists)
             bleed_state = self.bleed_in_progress
-        self.on_bleed_end(f3d, lastMat, bleed_gfx_lists, cmd_list, fmesh_static_cmds, default_render_mode)
+        self.on_bleed_end(f3d, lastMat, bleed_gfx_lists, cmd_list, fmesh_static_cmds, reset_cmd_dict, default_render_mode)
         return lastMat
 
     def build_tmem_dict(self, cmd_list: GfxList):
@@ -258,7 +259,7 @@ class BleedGraphics:
         return commands_bled
 
     # Put triGroup bleed gfx in the FMesh.draw object
-    def inline_triGroup(self, f3d: F3D, triGroup: FTriGroup, bleed_gfx_lists: BleedGfxLists, cmd_list: GfxList):
+    def inline_triGroup(self, f3d: F3D, triGroup: FTriGroup, bleed_gfx_lists: BleedGfxLists, cmd_list: GfxList, reset_cmd_dict: dict[GbiMacro]):
         # add material
         cmd_list.commands.extend(bleed_gfx_lists.bled_mats)
         # add textures
@@ -268,7 +269,8 @@ class BleedGraphics:
         # skinned meshes don't draw tris sometimes, use this opportunity to save a sync
         tri_cmds = [c for c in triGroup.triList.commands if type(c) == SP1Triangle or type(c) == SP2Triangles]
         if tri_cmds:
-            bleed_gfx_lists.reset_cmds[DPPipeSync] = DPPipeSync()
+            reset_cmd_dict[DPPipeSync] = DPPipeSync()
+        [bleed_gfx_lists.add_reset_cmd(cmd, reset_cmd_dict) for cmd in bleed_gfx_lists.bled_mats]
 
     # pre processes cmd_list and removes cmds deemed useless. subclass and override if this causes a game specific issue
     def on_bleed_start(self, f3d: F3D, lastMat: FMaterial, cmd_list: GfxList):
@@ -303,11 +305,10 @@ class BleedGraphics:
         return
 
     def on_bleed_end(
-        self, f3d: F3D, lastMat: FMaterial, bleed_gfx_lists: BleedGfxLists, cmd_list: GfxList, fmesh_static_cmds: list[GbiMacro], default_render_mode: list[str] = None
+        self, f3d: F3D, lastMat: FMaterial, bleed_gfx_lists: BleedGfxLists, cmd_list: GfxList, fmesh_static_cmds: list[GbiMacro], reset_cmd_dict: dict[GbiMacro], default_render_mode: list[str] = None
     ):
-        [bleed_gfx_lists.add_reset_cmd(cmd) for cmd in bleed_gfx_lists.bled_mats]
         # revert certain cmds for extra safety
-        reset_cmds = self.create_reset_cmds(bleed_gfx_lists.reset_cmds, default_render_mode)
+        reset_cmds = self.create_reset_cmds(reset_cmd_dict, default_render_mode)
         # if pipe sync in reset list, make sure it is the first cmd
         if DPPipeSync in reset_cmds:
             reset_cmds.remove(DPPipeSync)
@@ -320,8 +321,6 @@ class BleedGraphics:
     def create_reset_cmds(self, reset_cmd_dict: dict[GbiMacro], default_render_mode: list[str]):
         reset_cmds = []
         for cmd_type, cmd_use in reset_cmd_dict.items():
-            
-            print(cmd_type, cmd_use)
             
             if cmd_type == DPPipeSync:
                 reset_cmds.append(DPPipeSync())
@@ -342,7 +341,6 @@ class BleedGraphics:
                     reset_cmds.append(cmd_type("G_TT_NONE"))
 
             elif cmd_type == "G_SETOTHERMODE_H":
-                print(self.default_othermode_H)
                 if cmd_use != self.default_othermode_H:
                     reset_cmds.append(self.default_othermode_H)
 
@@ -471,7 +469,6 @@ class BleedGraphics:
 class BleedGfxLists:
     bled_mats: GfxList = field(default_factory=list)
     bled_tex: GfxList = field(default_factory=list)
-    reset_cmds: dict[GbiMacro] = field(default_factory=dict)  # dict of cmds to reset
     
     @property
     def reset_command_dict(self):
@@ -482,8 +479,8 @@ class BleedGfxLists:
             DPSetRenderMode: (None, None),
         }
 
-    def add_reset_cmd(self, cmd: GbiMacro):
-        reset_cmds = (
+    def add_reset_cmd(self, cmd: GbiMacro, reset_cmd_dict: dict[GbiMacro]):
+        reset_cmd_list = (
             SPLoadGeometryMode,
             SPSetGeometryMode,
             SPClearGeometryMode,
@@ -492,7 +489,7 @@ class BleedGfxLists:
         )
         # separate other mode H and othermode L
         if type(cmd) == SPSetOtherMode:
-            self.reset_cmds[cmd.cmd] = cmd
+            reset_cmd_dict[cmd.cmd] = cmd
             
-        if type(cmd) in reset_cmds:
-            self.reset_cmds[type(cmd)] = cmd
+        if type(cmd) in reset_cmd_list:
+            reset_cmd_dict[type(cmd)] = cmd
