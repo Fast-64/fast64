@@ -252,6 +252,8 @@ class GeolayoutObjectPanel(Panel):
         col.prop(obj, "ignore_render")
         col.prop(obj, "ignore_collision")
         col.prop(obj, "use_f3d_culling")
+        if context.scene.exportInlineF3D:
+            col.prop(obj, "bleed_independently")
         if obj_scale_is_unified(obj) and len(obj.modifiers) == 0:
             col.prop(obj, "scaleFromGeolayout")
         # prop_split(col, obj, 'room_num', 'Room')

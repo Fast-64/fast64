@@ -1571,6 +1571,7 @@ def processMesh(
                 if not firstNodeProcessed:
                     node.DLmicrocode = fMesh.draw
                     node.fMesh = fMesh
+                    node.bleed_independently = obj.bleed_independently
                     node.drawLayer = drawLayer  # previous drawLayer assigments useless?
                     firstNodeProcessed = True
                 else:
@@ -1581,6 +1582,7 @@ def processMesh(
                     )
                     additionalNode.DLmicrocode = fMesh.draw
                     additionalNode.fMesh = fMesh
+                    additionalNode.bleed_independently = obj.bleed_independently
                     additionalTransformNode = TransformNode(additionalNode)
                     transformNode.children.append(additionalTransformNode)
                     additionalTransformNode.parent = transformNode

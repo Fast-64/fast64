@@ -262,6 +262,7 @@ class BaseDisplayListNode:
     """Base displaylist node with common helper functions dealing with displaylists"""
 
     dl_ext = "WITH_DL"  # add dl_ext to geo command if command has a displaylist
+    bleed_independently = None # base behavior, can be changed with obj boolProp
 
     def get_dl_address(self):
         if self.hasDL and (self.dlRef or self.DLmicrocode is not None):
@@ -467,7 +468,7 @@ class GeoLayoutBleed(BleedGraphics):
                 cmd_list = fMesh.drawMatOverrides.get(base_node.override_hash, None) or fMesh.draw
                 lastMat = last_materials.get(base_node.drawLayer, None)
                 default_render_mode = fModel.getRenderMode(base_node.drawLayer)
-                lastMat = self.bleed_fmesh(fModel.f3d, fMesh, lastMat, cmd_list, default_render_mode)
+                lastMat = self.bleed_fmesh(fModel.f3d, fMesh, lastMat if not base_node.bleed_independently else None, cmd_list, default_render_mode)
                 # if the mesh has culling, it can be culled, and create invalid combinations of f3d to represent the current full DL
                 if fMesh.cullVertexList:
                     last_materials[base_node.drawLayer] = None
