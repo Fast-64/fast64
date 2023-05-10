@@ -1,191 +1,30 @@
-import bpy, os, math, mathutils
-from bpy.utils import register_class, unregister_class
-from ..panels import OOT_Panel
-from .oot_constants import ootEnumSceneID
+import bpy, mathutils
 
 from ..utility import (
     PluginError,
     CData,
     prop_split,
-    unhideAllAndGetHiddenList,
-    hideObjsInList,
-    writeCData,
-    raisePluginError,
 )
 
 from .oot_collision_classes import (
     OOTCollisionVertex,
     OOTCollisionPolygon,
-    OOTCollision,
     OOTCameraData,
     OOTCameraPosData,
     OOTCrawlspaceData,
     getPolygonType,
-    ootEnumFloorSetting,
-    ootEnumWallSetting,
-    ootEnumFloorProperty,
-    ootEnumConveyer,
-    ootEnumConveyorSpeed,
-    ootEnumCollisionTerrain,
-    ootEnumCollisionSound,
-    ootEnumCameraSType,
 )
 
 from .oot_utility import (
-    OOTObjectCategorizer,
-    ootGetObjectPath,
     convertIntTo2sComplement,
-    addIncludeFiles,
     drawCollectionOps,
-    drawEnumWithCustom,
-    ootDuplicateHierarchy,
-    ootCleanupScene,
-    ootGetPath,
-    getOOTScale,
 )
-
-
-class OOTCameraPositionProperty(bpy.types.PropertyGroup):
-    index: bpy.props.IntProperty(min=0)
-    bgImageOverrideIndex: bpy.props.IntProperty(default=-1, min=-1)
-    camSType: bpy.props.EnumProperty(items=ootEnumCameraSType, default="CAM_SET_NONE")
-    camSTypeCustom: bpy.props.StringProperty(default="CAM_SET_NONE")
-    hasPositionData: bpy.props.BoolProperty(default=True, name="Has Position Data")
-
-
-class OOTCameraPositionPropertyRef(bpy.types.PropertyGroup):
-    camera: bpy.props.PointerProperty(type=bpy.types.Camera)
-
-
-class OOTMaterialCollisionProperty(bpy.types.PropertyGroup):
-    expandTab: bpy.props.BoolProperty()
-
-    ignoreCameraCollision: bpy.props.BoolProperty()
-    ignoreActorCollision: bpy.props.BoolProperty()
-    ignoreProjectileCollision: bpy.props.BoolProperty()
-
-    eponaBlock: bpy.props.BoolProperty()
-    decreaseHeight: bpy.props.BoolProperty()
-    floorSettingCustom: bpy.props.StringProperty(default="0x00")
-    floorSetting: bpy.props.EnumProperty(items=ootEnumFloorSetting, default="0x00")
-    wallSettingCustom: bpy.props.StringProperty(default="0x00")
-    wallSetting: bpy.props.EnumProperty(items=ootEnumWallSetting, default="0x00")
-    floorPropertyCustom: bpy.props.StringProperty(default="0x00")
-    floorProperty: bpy.props.EnumProperty(items=ootEnumFloorProperty, default="0x00")
-    exitID: bpy.props.IntProperty(default=0, min=0)
-    cameraID: bpy.props.IntProperty(default=0, min=0)
-    isWallDamage: bpy.props.BoolProperty()
-    conveyorOption: bpy.props.EnumProperty(items=ootEnumConveyer)
-    conveyorRotation: bpy.props.FloatProperty(min=0, max=2 * math.pi, subtype="ANGLE")
-    conveyorSpeed: bpy.props.EnumProperty(items=ootEnumConveyorSpeed, default="0x00")
-    conveyorSpeedCustom: bpy.props.StringProperty(default="0x00")
-    conveyorKeepMomentum: bpy.props.BoolProperty()
-    hookshotable: bpy.props.BoolProperty()
-    echo: bpy.props.StringProperty(default="0x00")
-    lightingSetting: bpy.props.IntProperty(default=0, min=0)
-    terrainCustom: bpy.props.StringProperty(default="0x00")
-    terrain: bpy.props.EnumProperty(items=ootEnumCollisionTerrain, default="0x00")
-    soundCustom: bpy.props.StringProperty(default="0x00")
-    sound: bpy.props.EnumProperty(items=ootEnumCollisionSound, default="0x00")
-
-
-class OOTWaterBoxProperty(bpy.types.PropertyGroup):
-    lighting: bpy.props.IntProperty(name="Lighting", min=0)
-    camera: bpy.props.IntProperty(name="Camera", min=0)
-    flag19: bpy.props.BoolProperty(name="Flag 19", default=False)
-
-
-def drawWaterBoxProperty(layout, waterBoxProp):
-    box = layout.column()
-    # box.box().label(text = "Properties")
-    prop_split(box, waterBoxProp, "lighting", "Lighting")
-    prop_split(box, waterBoxProp, "camera", "Camera")
-    box.prop(waterBoxProp, "flag19")
-    box.label(text="Defined by top face of box empty.")
-    box.label(text="No rotation allowed.")
 
 
 def drawCameraPosProperty(layout, cameraRefProp, index, headerIndex, objName):
     camBox = layout.box().column()
     prop_split(camBox, cameraRefProp, "camera", "Camera " + str(index))
     drawCollectionOps(camBox, index, "Camera Position", headerIndex, objName)
-
-
-class OOT_CameraPosPanel(bpy.types.Panel):
-    bl_label = "Camera Position Inspector"
-    bl_idname = "OBJECT_PT_OOT_Camera_Position_Inspector"
-    bl_space_type = "PROPERTIES"
-    bl_region_type = "WINDOW"
-    bl_context = "object"
-    bl_options = {"HIDE_HEADER"}
-
-    @classmethod
-    def poll(cls, context):
-        return context.scene.gameEditorMode == "OOT" and isinstance(context.object.data, bpy.types.Camera)
-
-    def draw(self, context):
-        box = self.layout.box().column()
-        obj = context.object
-
-        box.box().label(text="Camera Data")
-        drawEnumWithCustom(box, obj.ootCameraPositionProperty, "camSType", "Camera S Type", "")
-        prop_split(box, obj.ootCameraPositionProperty, "index", "Camera Index")
-        box.prop(obj.ootCameraPositionProperty, "hasPositionData")
-        if obj.ootCameraPositionProperty.hasPositionData:
-            prop_split(box, obj.data, "angle", "Field Of View")
-            prop_split(box, obj.ootCameraPositionProperty, "bgImageOverrideIndex", "BG Index Override")
-
-        # drawParentSceneRoom(box, context.object)
-
-
-class OOT_CollisionPanel(bpy.types.Panel):
-    bl_label = "Collision Inspector"
-    bl_idname = "MATERIAL_PT_OOT_Collision_Inspector"
-    bl_space_type = "PROPERTIES"
-    bl_region_type = "WINDOW"
-    bl_context = "material"
-    bl_options = {"HIDE_HEADER"}
-
-    @classmethod
-    def poll(cls, context):
-        return context.scene.gameEditorMode == "OOT" and context.material is not None
-
-    def draw(self, context):
-        box = self.layout.box().column()
-        collisionProp = context.material.ootCollisionProperty
-
-        box.prop(
-            collisionProp,
-            "expandTab",
-            text="OOT Collision Properties",
-            icon="TRIA_DOWN" if collisionProp.expandTab else "TRIA_RIGHT",
-        )
-        if collisionProp.expandTab:
-            prop_split(box, collisionProp, "exitID", "Exit ID")
-            prop_split(box, collisionProp, "cameraID", "Camera ID")
-            prop_split(box, collisionProp, "echo", "Echo")
-            prop_split(box, collisionProp, "lightingSetting", "Lighting")
-            drawEnumWithCustom(box, collisionProp, "terrain", "Terrain", "")
-            drawEnumWithCustom(box, collisionProp, "sound", "Sound", "")
-
-            box.prop(collisionProp, "eponaBlock", text="Blocks Epona")
-            box.prop(collisionProp, "decreaseHeight", text="Decrease Height 1 Unit")
-            box.prop(collisionProp, "isWallDamage", text="Is Wall Damage")
-            box.prop(collisionProp, "hookshotable", text="Hookshotable")
-
-            drawEnumWithCustom(box, collisionProp, "floorSetting", "Floor Setting", "")
-            drawEnumWithCustom(box, collisionProp, "wallSetting", "Wall Setting", "")
-            drawEnumWithCustom(box, collisionProp, "floorProperty", "Floor Property", "")
-
-            box.prop(collisionProp, "ignoreCameraCollision", text="Ignore Camera Collision")
-            box.prop(collisionProp, "ignoreActorCollision", text="Ignore Actor Collision")
-            box.prop(collisionProp, "ignoreProjectileCollision", text="Ignore Projectile Collision")
-            prop_split(box, collisionProp, "conveyorOption", "Conveyor Option")
-            if collisionProp.conveyorOption != "None":
-                prop_split(box, collisionProp, "conveyorRotation", "Conveyor Rotation")
-                drawEnumWithCustom(box, collisionProp, "conveyorSpeed", "Conveyor Speed", "")
-                if collisionProp.conveyorSpeed != "Custom":
-                    box.prop(collisionProp, "conveyorKeepMomentum", text="Keep Momentum")
 
 
 # water boxes handled by level writer
@@ -236,44 +75,6 @@ def exportCollisionCommon(collision, obj, transformMatrix, includeChildren, name
                 indices[1], indices[2] = indices[2], indices[1]
 
             collision.polygonGroups[polygonType].append(OOTCollisionPolygon(indices, normal, distance))
-
-
-def exportCollisionToC(originalObj, transformMatrix, includeChildren, name, isCustomExport, folderName, exportPath):
-    collision = OOTCollision(name)
-    collision.cameraData = OOTCameraData(name)
-
-    if bpy.context.scene.exportHiddenGeometry:
-        hiddenObjs = unhideAllAndGetHiddenList(bpy.context.scene)
-
-    # Don't remove ignore_render, as we want to resuse this for collision
-    obj, allObjs = ootDuplicateHierarchy(originalObj, None, True, OOTObjectCategorizer())
-
-    if bpy.context.scene.exportHiddenGeometry:
-        hideObjsInList(hiddenObjs)
-
-    try:
-        exportCollisionCommon(collision, obj, transformMatrix, includeChildren, name)
-        ootCleanupScene(originalObj, allObjs)
-    except Exception as e:
-        ootCleanupScene(originalObj, allObjs)
-        raise Exception(str(e))
-
-    collisionC = ootCollisionToC(collision)
-
-    data = CData()
-    data.source += '#include "ultra64.h"\n#include "z64.h"\n#include "macros.h"\n'
-    if not isCustomExport:
-        data.source += '#include "' + folderName + '.h"\n\n'
-    else:
-        data.source += "\n"
-
-    data.append(collisionC)
-
-    path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, False)
-    writeCData(data, os.path.join(path, name + ".h"), os.path.join(path, name + ".c"))
-
-    if not isCustomExport:
-        addIncludeFiles(folderName, path, name)
 
 
 def updateBounds(position, bounds):
@@ -403,7 +204,7 @@ def ootCameraDataToC(camData):
     camC = CData()
     if len(camData.camPosDict) > 0:
 
-        camDataName = "CamData " + camData.camDataName() + "[" + str(len(camData.camPosDict)) + "]"
+        camDataName = "BgCamInfo " + camData.camDataName() + "[" + str(len(camData.camPosDict)) + "]"
 
         camC.source = camDataName + " = {\n"
         camC.header = "extern " + camDataName + ";\n"
@@ -591,117 +392,3 @@ def ootCollisionToC(collision):
     )
 
     return data
-
-
-class OOT_ExportCollision(bpy.types.Operator):
-    # set bl_ properties
-    bl_idname = "object.oot_export_collision"
-    bl_label = "Export Collision"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
-
-    def execute(self, context):
-        obj = None
-        if context.mode != "OBJECT":
-            bpy.ops.object.mode_set(mode="OBJECT")
-        if len(context.selected_objects) == 0:
-            raise PluginError("No object selected.")
-        obj = context.active_object
-        if type(obj.data) is not bpy.types.Mesh:
-            raise PluginError("No mesh object selected.")
-
-        finalTransform = mathutils.Matrix.Scale(getOOTScale(obj.ootActorScale), 4)
-
-        try:
-            includeChildren = context.scene.ootColIncludeChildren
-            name = context.scene.ootColName
-            isCustomExport = context.scene.ootColCustomExport
-            folderName = context.scene.ootColFolder
-            exportPath = bpy.path.abspath(context.scene.ootColExportPath)
-
-            filepath = ootGetObjectPath(isCustomExport, exportPath, folderName)
-            exportCollisionToC(obj, finalTransform, includeChildren, name, isCustomExport, folderName, filepath)
-
-            self.report({"INFO"}, "Success!")
-            return {"FINISHED"}
-
-        except Exception as e:
-            if context.mode != "OBJECT":
-                bpy.ops.object.mode_set(mode="OBJECT")
-            raisePluginError(self, e)
-            return {"CANCELLED"}  # must return a set
-
-
-class OOT_ExportCollisionPanel(OOT_Panel):
-    bl_idname = "OOT_PT_export_collision"
-    bl_label = "OOT Collision Exporter"
-
-    # called every frame
-    def draw(self, context):
-        col = self.layout.column()
-        col.operator(OOT_ExportCollision.bl_idname)
-
-        prop_split(col, context.scene, "ootColName", "Name")
-        if context.scene.ootColCustomExport:
-            prop_split(col, context.scene, "ootColExportPath", "Custom Folder")
-        else:
-            prop_split(col, context.scene, "ootColFolder", "Object")
-        col.prop(context.scene, "ootColCustomExport")
-        col.prop(context.scene, "ootColIncludeChildren")
-
-
-oot_col_classes = (
-    OOT_ExportCollision,
-    OOTWaterBoxProperty,
-    OOTCameraPositionPropertyRef,
-    OOTCameraPositionProperty,
-    OOTMaterialCollisionProperty,
-)
-
-oot_col_panel_classes = (
-    OOT_CollisionPanel,
-    OOT_CameraPosPanel,
-    OOT_ExportCollisionPanel,
-)
-
-
-def oot_col_panel_register():
-    for cls in oot_col_panel_classes:
-        register_class(cls)
-
-
-def oot_col_panel_unregister():
-    for cls in oot_col_panel_classes:
-        unregister_class(cls)
-
-
-def oot_col_register():
-    for cls in oot_col_classes:
-        register_class(cls)
-
-    # Collision
-    bpy.types.Scene.ootColExportPath = bpy.props.StringProperty(name="Directory", subtype="FILE_PATH")
-    bpy.types.Scene.ootColExportLevel = bpy.props.EnumProperty(
-        items=ootEnumSceneID, name="Level Used By Collision", default="SCENE_YDAN"
-    )
-    bpy.types.Scene.ootColIncludeChildren = bpy.props.BoolProperty(name="Include child objects", default=True)
-    bpy.types.Scene.ootColName = bpy.props.StringProperty(name="Name", default="collision")
-    bpy.types.Scene.ootColLevelName = bpy.props.StringProperty(name="Name", default="SCENE_YDAN")
-    bpy.types.Scene.ootColCustomExport = bpy.props.BoolProperty(name="Custom Export Path")
-    bpy.types.Scene.ootColFolder = bpy.props.StringProperty(name="Object Name", default="gameplay_keep")
-
-    bpy.types.Object.ootCameraPositionProperty = bpy.props.PointerProperty(type=OOTCameraPositionProperty)
-    bpy.types.Material.ootCollisionProperty = bpy.props.PointerProperty(type=OOTMaterialCollisionProperty)
-
-
-def oot_col_unregister():
-    # Collision
-    del bpy.types.Scene.ootColExportPath
-    del bpy.types.Scene.ootColExportLevel
-    del bpy.types.Scene.ootColName
-    del bpy.types.Scene.ootColLevelName
-    del bpy.types.Scene.ootColIncludeChildren
-    del bpy.types.Scene.ootColCustomExport
-    del bpy.types.Scene.ootColFolder
-
-    for cls in reversed(oot_col_classes):
-        unregister_class(cls)

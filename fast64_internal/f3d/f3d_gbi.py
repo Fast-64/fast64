@@ -1,5 +1,7 @@
 # Macros are all copied over from gbi.h
-from typing import Sequence
+from __future__ import annotations
+
+from typing import Sequence, Union, Tuple
 from dataclasses import dataclass, fields
 import bpy, os, enum, copy
 from ..utility import *
@@ -21,6 +23,11 @@ class GfxListTag(enum.Enum):
     Material = 2
     MaterialRevert = 3
     Draw = 3
+
+
+class GfxTag(enum.Flag):
+    TileScroll0 = enum.auto()
+    TileScroll1 = enum.auto()
 
 
 class GfxMatWriteMethod(enum.Enum):
@@ -1753,10 +1760,12 @@ def tile_func(direction: str, speed: int, cmd_num: int):
 
 
 def get_sts_interval_vars(tex_num: str):
-    return f"intervalTex{tex_num}", f"curInterval{tex_num}"
+    return f"interval_{tex_num}", f"cur_interval_{tex_num}"
 
 
-def get_tex_sts_code(tex: FSetTileSizeScrollField, tex_num: int, cmd_num: int):
+def get_tex_sts_code(
+    variableName: str, tex: FSetTileSizeScrollField, cmd_num: int
+) -> Tuple[list[str], list[Tuple[str, float]]]:
     variables = []
     # create func calls
     lines = [
@@ -1768,7 +1777,7 @@ def get_tex_sts_code(tex: FSetTileSizeScrollField, tex_num: int, cmd_num: int):
     # add interval logic if needed
     if len(lines) and tex.interval > 1:
         # get interval and variable for tracking interval
-        interval, cur_interval = get_sts_interval_vars(tex_num)
+        interval, cur_interval = get_sts_interval_vars(variableName)
         # pass each var and its value to variables
         variables.extend([(interval, tex.interval), (cur_interval, tex.interval)])
 
@@ -1784,181 +1793,200 @@ def get_tex_sts_code(tex: FSetTileSizeScrollField, tex_num: int, cmd_num: int):
     return variables, lines
 
 
-def mat_tile_scroll(
-    mat: str, tex0: FSetTileSizeScrollField, tex1: FSetTileSizeScrollField, cmd_num0: int, cmd_num1: int
+def get_tile_scroll_code(
+    variableName: str, scrollData: "FScrollData", textureIndex: int, commandIndex: int
+) -> Tuple[str, str]:
+    scrollInfo: FSetTileSizeScrollField = getattr(scrollData, f"tile_scroll_tex{textureIndex}")
+    if scrollInfo.s or scrollInfo.t:
+        variables = []
+        lines = []
+        static_variables, tex_lines = get_tex_sts_code(variableName, scrollInfo, commandIndex)
+
+        for variable, val in static_variables:
+            variables.append(f"\tstatic int {variable} = {val};")
+
+        lines.extend(tex_lines)
+
+        variables_str = "\n".join([line for line in variables if line]) + "\n"
+        lines_str = "\n".join([line for line in lines if line]) + "\n"
+
+        return variables_str, lines_str
+    else:
+        return "", ""
+
+
+def vertexScrollTemplate(
+    fScrollData, name, count, absFunc, signFunc, cosFunc, randomFloatFunc, randomSignFunc, segToVirtualFunc
 ):
-    func = f"void scroll_sts_{mat}()"
-    lines = [func + " {"]
-
-    tex0_variables, tex0_lines = get_tex_sts_code(tex0, 0, cmd_num0)
-    tex1_variables, tex1_lines = get_tex_sts_code(tex1, 1, cmd_num1)
-    static_variables = [*tex0_variables, *tex1_variables]
-
-    for variable, val in static_variables:
-        lines.append(f"\tstatic int {variable} = {val};")
-
-    lines.append(f"\tGfx *mat = segmented_to_virtual({mat});")
-    lines.extend(tex0_lines)
-    lines.extend(tex1_lines)
-    lines.append("};\n\n")
-
-    return func, "\n".join([line for line in lines if line])
-
-
-class GfxFormatter:
-    def __init__(self, scrollMethod: ScrollMethod, texArrayBitSize: int):
-        self.scrollMethod: ScrollMethod = scrollMethod
-        self.texArrayBitSize = texArrayBitSize
-        self.tileScrollFunc = None  # Used to add tile scroll func to headers
-
-    def vertexScrollTemplate(
-        self, fScrollData, name, count, absFunc, signFunc, cosFunc, randomFloatFunc, randomSignFunc, segToVirtualFunc
-    ):
-        scrollDataFields = fScrollData.fields[0]
-        if scrollDataFields[0].animType == "None" and scrollDataFields[1].animType == "None":
-            return ""
-
-        data = [
-            "void scroll_" + name + "() {",
-            "\tint i = 0;",
-            f"\tint count = {count};",
-        ]
-
-        variables = ""
-        currentVars = ""
-        deltaCalculate = ""
-        checkOverflow = ""
-        scrolling = ""
-        increaseCurrentDelta = ""
-        for i in range(2):
-            field = "XYZ"[i]
-            axis = ["width", "height"][i]
-            if scrollDataFields[i].animType != "None":
-                data.append(f"\tint {axis} = {fScrollData.dimensions[i]} * 0x20;")
-                currentVars += "\tstatic int current" + field + " = 0;\n\tint delta" + field + ";\n"
-                checkOverflow += "\n".join(
+    scrollDataFields = fScrollData.fields[0]
+    if scrollDataFields[0].animType == "None" and scrollDataFields[1].animType == "None":
+        return ""
+    data = [
+        "void scroll_" + name + "() {",
+        "\tint i = 0;",
+        f"\tint count = {count};",
+    ]
+    variables = ""
+    currentVars = ""
+    deltaCalculate = ""
+    checkOverflow = ""
+    scrolling = ""
+    increaseCurrentDelta = ""
+    for i in range(2):
+        field = "XYZ"[i]
+        axis = ["width", "height"][i]
+        if scrollDataFields[i].animType != "None":
+            data.append(f"\tint {axis} = {fScrollData.dimensions[i]} * 0x20;")
+            currentVars += "\tstatic int current" + field + " = 0;\n\tint delta" + field + ";\n"
+            checkOverflow += "\n".join(
+                (
+                    "\tif (" + absFunc + "(current" + field + ") > " + axis + ") {",
                     (
-                        "\tif (" + absFunc + "(current" + field + ") > " + axis + ") {",
-                        (
-                            f"\t\tdelta{field} -= (int)(absi(current{field}) / {axis}) "
-                            f"* {axis} * {signFunc}(delta{field});"
-                        ),
-                        "\t}",
+                        f"\t\tdelta{field} -= (int)(absi(current{field}) / {axis}) "
+                        f"* {axis} * {signFunc}(delta{field});"
+                    ),
+                    "\t}",
+                    "",
+                )
+            )
+            scrolling += f"\t\tvertices[i].n.tc[{i}] += delta{field};\n"
+            increaseCurrentDelta += f"\tcurrent{field} += delta{field};"
+            if scrollDataFields[i].animType == "Linear":
+                deltaCalculate += f"\tdelta{field} = (int)({scrollDataFields[i].speed} * 0x20) % {axis};\n"
+            elif scrollDataFields[i].animType == "Sine":
+                currentVars += "\n".join(
+                    (
+                        "\tstatic int time" + field + ";",
+                        "\tfloat amplitude" + field + " = " + str(scrollDataFields[i].amplitude) + ";",
+                        "\tfloat frequency" + field + " = " + str(scrollDataFields[i].frequency) + ";",
+                        "\tfloat offset" + field + " = " + str(scrollDataFields[i].offset) + ";",
                         "",
                     )
                 )
-                scrolling += f"\t\tvertices[i].n.tc[{i}] += delta{field};\n"
-                increaseCurrentDelta += f"\tcurrent{field} += delta{field};"
-
-                if scrollDataFields[i].animType == "Linear":
-                    deltaCalculate += f"\tdelta{field} = (int)({scrollDataFields[i].speed} * 0x20) % {axis};\n"
-                elif scrollDataFields[i].animType == "Sine":
-                    currentVars += "\n".join(
-                        (
-                            "\tstatic int time" + field + ";",
-                            "\tfloat amplitude" + field + " = " + str(scrollDataFields[i].amplitude) + ";",
-                            "\tfloat frequency" + field + " = " + str(scrollDataFields[i].frequency) + ";",
-                            "\tfloat offset" + field + " = " + str(scrollDataFields[i].offset) + ";",
-                            "",
-                        )
-                    )
-
-                    deltaCalculate += (
-                        "\tdelta"
-                        + field
-                        + " = (int)(amplitude"
-                        + field
-                        + " * frequency"
-                        + field
-                        + " * "
-                        + cosFunc
-                        + "((frequency"
-                        + field
-                        + " * time"
-                        + field
-                        + " + offset"
-                        + field
-                        + ") * (1024 * 16 - 1) / 6.28318530718) * 0x20);\n"
-                    )
-                    # Conversion from s10.5 to u16
-                    # checkOverflow += '\tif (frequency' + field + ' * current' + field + ' / 2 > 6.28318530718) {\n' +\
-                    # 	'\t\tcurrent' + field + ' -= 6.28318530718 * 2 / frequency' + field + ';\n\t}\n'
-                    increaseCurrentDelta += "\ttime" + field + " += 1;"
-                elif scrollDataFields[i].animType == "Noise":
-                    deltaCalculate += (
-                        "\tdelta"
-                        + field
-                        + " = (int)("
-                        + str(scrollDataFields[i].noiseAmplitude)
-                        + " * 0x20 * "
-                        + randomFloatFunc
-                        + "() * "
-                        + randomSignFunc
-                        + "()) % "
-                        + axis
-                        + ";\n"
-                    )
-                else:
-                    raise PluginError("Unhandled scroll type: " + str(scrollDataFields[i].animType))
-
-        return "\n".join(
-            (
-                "\n".join(data),
-                variables,
-                currentVars + "\tVtx *vertices = " + segToVirtualFunc + "(" + name + ");",
-                "",
-                deltaCalculate,
-                checkOverflow,
-                "\tfor (i = 0; i < count; i++) {",
-                scrolling + "\t}",
-                increaseCurrentDelta,
-                "}",
-                "",
-                "",
-            )
+                deltaCalculate += (
+                    "\tdelta"
+                    + field
+                    + " = (int)(amplitude"
+                    + field
+                    + " * frequency"
+                    + field
+                    + " * "
+                    + cosFunc
+                    + "((frequency"
+                    + field
+                    + " * time"
+                    + field
+                    + " + offset"
+                    + field
+                    + ") * (1024 * 16 - 1) / 6.28318530718) * 0x20);\n"
+                )
+                # Conversion from s10.5 to u16
+                # checkOverflow += '\tif (frequency' + field + ' * current' + field + ' / 2 > 6.28318530718) {\n' +\
+                # 	'\t\tcurrent' + field + ' -= 6.28318530718 * 2 / frequency' + field + ';\n\t}\n'
+                increaseCurrentDelta += "\ttime" + field + " += 1;"
+            elif scrollDataFields[i].animType == "Noise":
+                deltaCalculate += (
+                    "\tdelta"
+                    + field
+                    + " = (int)("
+                    + str(scrollDataFields[i].noiseAmplitude)
+                    + " * 0x20 * "
+                    + randomFloatFunc
+                    + "() * "
+                    + randomSignFunc
+                    + "()) % "
+                    + axis
+                    + ";\n"
+                )
+            else:
+                raise PluginError("Unhandled scroll type: " + str(scrollDataFields[i].animType))
+    return "\n".join(
+        (
+            "\n".join(data),
+            variables,
+            currentVars + "\tVtx *vertices = " + segToVirtualFunc + "(" + name + ");",
+            "",
+            deltaCalculate,
+            checkOverflow,
+            "\tfor (i = 0; i < count; i++) {",
+            scrolling + "\t}",
+            increaseCurrentDelta,
+            "}",
+            "",
+            "",
         )
+    )
 
-    # Called for handling vertex texture scrolling.
-    def vertexScrollToC(self, fScrollData, name, vertexCount):
-        raise PluginError("Use of unimplemented GfxFormatter function vertexScrollToC.")
 
-    # Called for building the entry point DL for drawing a model.
-    def drawToC(self, f3d, gfxList):
-        return gfxList.to_c(f3d)
+class GfxFormatter:
+    def __init__(self, scrollMethod: ScrollMethod, texArrayBitSize: int, seg2virtFuncName: Union[str, None]):
+        self.scrollMethod: ScrollMethod = scrollMethod
+        self.texArrayBitSize = texArrayBitSize
+        self.seg2virtFuncName = seg2virtFuncName
 
-    # Called for creating a dynamic material using tile texture scrolling.
-    # ScrollMethod and DLFormat checks are already handled.
-    def tileScrollMaterialToC(self, f3d, fMaterial):
-        raise PluginError("No tile scroll implementation specified.")
+    def gfxScrollToC(self, gfxList: "GfxList", f3d: F3D) -> CScrollData:
+        """
+        Handles writing code that executes static Gfx scrolling (ex. tile scrolling.)
+        If you want a game-specific formatter that ignores all static gfx scrolling,
+        simply leaving processGfxScrollCommand() un-overriden will achieve this.
+        Don't override this directly, see processGfxScrollCommand().
+        If you do, make sure to add function names to returned CScrollData.functionCalls.
+        """
+        funcName = f"scroll_gfx_{gfxList.name}"
+        func = f"void {funcName}()"
 
-    # Modify static material using tile texture scrolling.
-    def tileScrollStaticMaterialToC(self, fMaterial):
-        setTileSizeIndex0 = -1
-        setTileSizeIndex1 = -1
+        data = CScrollData()
+        data.functionCalls.append(funcName)
+        data.header += f"extern {func};\n"
+        data.source += f"{func} {{\n"
 
-        # Find index of SetTileSize commands
-        for i, c in enumerate(fMaterial.material.commands):
-            if isinstance(c, DPSetTileSize):
-                if setTileSizeIndex0 >= 0:
-                    setTileSizeIndex1 = i
-                    break
-                else:
-                    setTileSizeIndex0 = i
-        mat_name = fMaterial.material.name
+        variables = ""
+        code = ""
+        dataIndex = 0
 
-        tile_scroll_tex0 = fMaterial.scrollData.tile_scroll_tex0
-        tile_scroll_tex1 = fMaterial.scrollData.tile_scroll_tex1
-        if fMaterial.scrollData.tile_scroll_exported:
-            return None
-        if tile_scroll_tex0.s or tile_scroll_tex0.t or tile_scroll_tex1.s or tile_scroll_tex1.t:
-            func, data = mat_tile_scroll(
-                mat_name, tile_scroll_tex0, tile_scroll_tex1, setTileSizeIndex0, setTileSizeIndex1
-            )
-            self.tileScrollFunc = f"extern {func};"  # save for later
-            fMaterial.scrollData.tile_scroll_exported = True
+        # Since some commands are actually multiple commands in one, we have to use the command size and divide by GFX_SIZE.
+        for command in gfxList.commands:
+            gfxVariables, gfxCode = self.processGfxScrollCommand(dataIndex // GFX_SIZE, command, gfxList.name)
+            variables += gfxVariables
+            code += gfxCode
+            dataIndex += command.size(f3d)
+        gfxScrollCode = variables + code
+
+        if gfxScrollCode == "":
+            return CScrollData()
+        else:
+            if self.seg2virtFuncName is not None:
+                data.source += f"\tGfx *mat = {self.seg2virtFuncName}({gfxList.name});\n"
+            else:
+                data.source += f"\tGfx *mat = {gfxList.name};\n"
+            data.source += gfxScrollCode
+            data.source += f"\n}};\n\n"
             return data
 
-        return None
+    def processGfxScrollCommand(self, commandIndex: int, command: "GbiMacro", gfxListName: str) -> Tuple[str, str]:
+        """
+        Returns a tuple of [variable declarations, code], since in C all variables must be declared at the top.
+        Handles a single command for Gfx scrolling.
+        Override this per game to handle/filter specific scrolling methods.
+        Note that the display list pointer to reference is named "mat", as seen in GfxFormatter.gfxScrollToC().
+        This is because the segmented_to_virtual() function is called on the actual DL pointer, as defined in self.seg2virtFuncName.
+        """
+        tags: GfxTag = command.tags
+        fMaterial: FMaterial = command.fMaterial
+        return "", ""
+
+    def vertexScrollToC(self, fMaterial: FMaterial, vtxListName: str, vtxCount: int) -> CScrollData:
+        """
+        Handles writing code that executes vertex scrolling.
+        Make sure to add function names to returned CScrollData.functionCalls.
+        """
+        return CScrollData()
+
+    def drawToC(self, f3d: F3D, gfxList: "GfxList") -> CData:
+        """
+        Called for building the entry point DL for drawing a model.
+        """
+        return gfxList.to_c(f3d)
 
 
 class Vtx:
@@ -2025,11 +2053,11 @@ class VtxList:
 
 class GfxList:
     def __init__(self, name, tag, DLFormat):
-        self.commands = []
-        self.name = name
-        self.startAddress = 0
-        self.tag = tag
-        self.DLFormat = DLFormat
+        self.commands: list[GbiMacro] = []
+        self.name: str = name
+        self.startAddress: int = 0
+        self.tag: GfxListTag = tag
+        self.DLFormat: "DLFormat" = DLFormat
 
     def set_addr(self, startAddress, f3d):
         startAddress = get64bitAlignedAddr(startAddress)
@@ -2158,55 +2186,132 @@ class FGlobalData:
             return self.area_data[self.current_area_index].makeKey()
 
 
+class FImageKey:
+    def __init__(
+        self, image: bpy.types.Image, texFormat: str, palFormat: str, imagesSharingPalette: list[bpy.types.Image] = []
+    ):
+        self.image = image
+        self.texFormat = texFormat
+        self.palFormat = palFormat
+        self.imagesSharingPalette = tuple(imagesSharingPalette)
+
+    def __hash__(self) -> int:
+        return hash((self.image, self.texFormat, self.palFormat, self.imagesSharingPalette))
+
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, FImageKey):
+            return False
+        return (
+            self.image == __o.image
+            and self.texFormat == __o.texFormat
+            and self.palFormat == __o.palFormat
+            and self.imagesSharingPalette == __o.imagesSharingPalette
+        )
+
+
+def getImageKey(texProp: "TextureProperty", useList) -> FImageKey:
+    return FImageKey(texProp.tex, texProp.tex_format, texProp.ci_format, useList)
+
+
+class FPaletteKey:
+    def __init__(self, palFormat: str, imagesSharingPalette: list[bpy.types.Image] = []):
+        self.palFormat = palFormat
+        self.imagesSharingPalette = tuple(imagesSharingPalette)
+
+    def __hash__(self) -> int:
+        return hash((self.palFormat, self.imagesSharingPalette))
+
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, FPaletteKey):
+            return False
+        return self.palFormat == __o.palFormat and self.imagesSharingPalette == __o.imagesSharingPalette
+
+
 class FModel:
-    def __init__(self, f3dType, isHWv1, name, DLFormat, matWriteMethod):
+    def __init__(
+        self,
+        f3dType: F3D,
+        isHWv1: bool,
+        name: str,
+        DLFormat: "DLFormat",
+        matWriteMethod: GfxMatWriteMethod,
+    ):
         self.name = name  # used for texture prefixing
         # dict of light name : Lights
-        self.lights = {}
+        self.lights: dict[str, Lights] = {}
         # dict of (texture, (texture format, palette format)) : FImage
-        self.textures = {}
+        self.textures: dict[Union[FImageKey, FPaletteKey], FImage] = {}
         # dict of (material, drawLayer, FAreaData): (FMaterial, (width, height))
-        self.materials = {}
+        self.materials: dict[Tuple[bpy.types.Material, str, FAreaData], Tuple[FMaterial, Tuple[int, int]]] = {}
         # dict of body part name : FMesh
-        self.meshes = {}
+        self.meshes: dict[str, FMesh] = {}
         # GfxList
-        self.materialRevert = None
+        self.materialRevert: Union[GfxList, None] = None
         # F3D library
-        self.f3d = F3D(f3dType, isHWv1)
+        self.f3d: F3D = F3D(f3dType, isHWv1)
         # array of FModel
-        self.subModels = []
-        self.parentModel = None
+        self.subModels: list[FModel] = []
+        self.parentModel: Union[FModel, None] = None
 
         # dict of name : FLODGroup
-        self.LODGroups = {}
-        self.DLFormat = DLFormat
-        self.matWriteMethod = matWriteMethod
-        self.global_data = FGlobalData()
-        self.texturesSavedLastExport = 0  # hacky
+        self.LODGroups: dict[str, FLODGroup] = {}
+        self.DLFormat: "DLFormat" = DLFormat
+        self.matWriteMethod: GfxMatWriteMethod = matWriteMethod
+        self.global_data: FGlobalData = FGlobalData()
+        self.texturesSavedLastExport: int = 0  # hacky
 
-    def processTexRefNonCITextures(
-        self, fMaterial: "FMaterial", material: bpy.types.Material, index: int
-    ):
+    def processTexRefNonCITextures(self, fMaterial: FMaterial, material: bpy.types.Material, index: int):
         """
         For non CI textures that use a texture reference, process additional textures that will possibly be loaded here.
-        This doesn't return anything.
+        Returns:
+            - a list of images which are referenced (normally just the texture
+              image), for creating image / palette keys
+            - an object containing info about the additional textures, or None
+        """
+        texProp = getattr(material.f3d_mat, f"tex{index}")
+        imDependencies = [] if texProp.tex is None else [texProp.tex]
+        return imDependencies, None
+
+    def writeTexRefNonCITextures(self, obj, texFmt: str):
+        """
+        Write data for non-CI textures which were previously processed.
+        obj is the object returned by processTexRefNonCITextures.
         """
         pass
 
-    def processTexRefCITextures(self, fMaterial: "FMaterial", material: bpy.types.Material, index: int) -> "FImage":
+    def processTexRefCITextures(self, fMaterial: FMaterial, material: bpy.types.Material, index: int) -> "FImage":
         """
         For CI textures that use a texture reference, process additional textures that will possibly be loaded here.
-        This returns a palette FImage that is shared between all processed textures.
+        Returns:
+            - a list of images which are referenced (normally just the texture
+              image), for creating image / palette keys
+            - an object containing info about the additional textures, or None
+            - the palette to use (or None)
         """
-        texProp = getattr(material.f3dMat, f"tex{index}")
-        return FImage(texProp.pal_reference, None, None, 1, texProp.pal_reference_size, None, False)
+        texProp = getattr(material.f3d_mat, f"tex{index}")
+        imDependencies = [] if texProp.tex is None else [texProp.tex]
+        return imDependencies, None, None
+
+    def writeTexRefCITextures(
+        self,
+        obj,
+        fMaterial: "FMaterial",
+        imagesSharingPalette: list[bpy.types.Image],
+        pal: list[int],
+        texFmt: str,
+        palFmt: str,
+    ):
+        """
+        Write data for CI textures which were previously processed.
+        obj is the object returned by processTexRefCITextures.
+        """
+        pass
 
     # Called before SPEndDisplayList
     def onMaterialCommandsBuilt(self, fMaterial, material, drawLayer):
+        fMaterial.material.commands.extend(fMaterial.mat_only_DL.commands)
+        fMaterial.material.commands.extend(fMaterial.texture_DL.commands)
         return
-
-    def getTextureSuffixFromFormat(self, texFmt):
-        return texFmt.lower()
 
     def getDrawLayerV3(self, obj):
         return None
@@ -2246,51 +2351,36 @@ class FModel:
     def onAddMesh(self, fMesh, contextObj):
         return
 
-    def endDraw(self, fMesh, contextObj):
-        self.onEndDraw(fMesh, contextObj)
-        fMesh.draw.commands.append(SPEndDisplayList())
+    def addMaterial(self, materialName):
+        fMaterial = FMaterial(materialName, self.DLFormat)
+        self.onMaterialAdd(fMaterial)
+        return fMaterial
 
-    def onEndDraw(self, fMesh, contextObj):
+    def onMaterialAdd(self, fMaterial):
         return
+
+    def endDraw(self, fMesh, contextObj):
+        fMesh.draw.commands.append(SPEndDisplayList())
 
     def getTextureAndHandleShared(self, imageKey):
         # Check if texture is in self
         if imageKey in self.textures:
-            fImage = self.textures[imageKey]
-            if fImage.paletteKey is not None:
-                if fImage.paletteKey in self.textures:
-                    fPalette = self.textures[fImage.paletteKey]
-                else:
-                    print(f"Can't find {str(fImage.paletteKey)}")
-                    fPalette = None
-            else:
-                # print("Palette key is None")
-                fPalette = None
-
-            return fImage, fPalette
+            return self.textures[imageKey]
 
         if self.parentModel is not None:
             # Check if texture is in parent
             if imageKey in self.parentModel.textures:
-                fImage = self.parentModel.textures[imageKey]
-                fPalette = self.parentModel.textures[fImage.paletteKey] if fImage.paletteKey is not None else None
-                return fImage, fPalette
+                return self.parentModel.textures[imageKey]
 
             # Check if texture is in siblings
             for subModel in self.parentModel.subModels:
                 if imageKey in subModel.textures:
                     fImage = subModel.textures.pop(imageKey)
                     self.parentModel.textures[imageKey] = fImage
-
-                    paletteKey = fImage.paletteKey
-                    fPalette = None
-                    if paletteKey is not None:
-                        fPalette = subModel.textures.pop(paletteKey)
-                        self.parentModel.textures[paletteKey] = fPalette
-                    return fImage, fPalette
-            return None, None
+                    return fImage
+            return None
         else:
-            return None, None
+            return None
 
     def getLightAndHandleShared(self, lightName):
         # Check if light is in self
@@ -2329,7 +2419,7 @@ class FModel:
 
                     # If material is in sibling, handle the material's textures as well.
                     for imageKey in materialItem[0].usedImages:
-                        fImage, fPalette = self.getTextureAndHandleShared(imageKey)
+                        fImage = self.getTextureAndHandleShared(imageKey)
                         if fImage is None:
                             raise PluginError("Error: If a material exists, its textures should exist too.")
 
@@ -2380,8 +2470,8 @@ class FModel:
             if not startAddrSet:
                 startAddrSet = True
                 startAddress = addrRange[0]
-        for info, texture in self.textures.items():
-            addrRange = texture.set_addr(addrRange[1])
+        for _, fImage in self.textures.items():
+            addrRange = fImage.set_addr(addrRange[1])
             if not startAddrSet:
                 startAddrSet = True
                 startAddress = addrRange[0]
@@ -2405,8 +2495,8 @@ class FModel:
     def save_binary(self, romfile, segments):
         for name, light in self.lights.items():
             light.save_binary(romfile)
-        for info, texture in self.textures.items():
-            texture.save_binary(romfile)
+        for _, fImage in self.textures.items():
+            fImage.save_binary(romfile)
         for materialKey, (fMaterial, texDimensions) in self.materials.items():
             fMaterial.save_binary(romfile, self.f3d, segments)
         for name, mesh in self.meshes.items():
@@ -2430,22 +2520,17 @@ class FModel:
         if len(texDir) > 0 and texDir[-1] != "/":
             texDir += "/"
         data = CData()
-        for info, texture in self.textures.items():
+        for _, fImage in self.textures.items():
             if savePNG:
-                data.append(texture.to_c_tex_separate(texDir, texArrayBitSize))
+                data.append(fImage.to_c_tex_separate(texDir, texArrayBitSize))
             else:
-                data.append(texture.to_c(texArrayBitSize))
+                data.append(fImage.to_c(texArrayBitSize))
         return data
 
     def to_c_materials(self, gfxFormatter):
         data = CData()
         for materialKey, (fMaterial, texDimensions) in self.materials.items():
-            if gfxFormatter.scrollMethod == ScrollMethod.Tile:
-                if fMaterial.material.DLFormat == DLFormat.Static:
-                    raise PluginError("Tile scrolling cannot be done with static DLs.")
-                data.append(gfxFormatter.tileScrollMaterialToC(self.f3d, fMaterial))
-            else:
-                data.append(fMaterial.to_c(self.f3d))
+            data.append(fMaterial.to_c(self.f3d))
         return data
 
     def to_c_material_revert(self, gfxFormatter):
@@ -2493,34 +2578,61 @@ class FModel:
         self.freePalettes()
         return ExportCData(staticData, dynamicData, texC)
 
-    def to_c_vertex_scroll(self, scrollName, gfxFormatter):
-        scrollData = CData()
-        for name, mesh in self.meshes.items():
-            scrollData.append(mesh.to_c_vertex_scroll(gfxFormatter))
+    def to_c_scroll(self, funcName: str, gfxFormatter: GfxFormatter) -> CScrollData:
+        data = CScrollData()
+        vertexScrollData = self.to_c_vertex_scroll(gfxFormatter)
+        if len(vertexScrollData.functionCalls) > 0:
+            data.append(vertexScrollData)
 
-        hasScrolling = len(scrollData.header) > 0
+        gfxScrollData = self.to_c_gfx_scroll(gfxFormatter)
+        if len(gfxScrollData.functionCalls) > 0:
+            data.append(gfxScrollData)
 
-        scrollDefinesSplit = scrollData.header.split("extern void ")
-        scrollData.source += "void scroll_" + scrollName + "() {\n"
-        for scrollFunc in scrollDefinesSplit:
-            if scrollFunc == "":
-                continue
-            scrollData.source += "\t" + scrollFunc
-        scrollData.source += "}\n"
+        data.topLevelScrollFunc = f"scroll_{funcName}"
+        data.source += f"void {data.topLevelScrollFunc}() {{\n"
+        for scrollFunc in data.functionCalls:
+            data.source += f"\t{scrollFunc}();\n"
+        data.source += f"}};\n"
 
-        scrollData.header += "extern void scroll_" + scrollName + "();\n"
-        return scrollData, hasScrolling
+        data.header += f"extern void {data.topLevelScrollFunc}();\n"
+        return data
+
+    def to_c_vertex_scroll(self, gfxFormatter: GfxFormatter) -> CScrollData:
+        data = CScrollData()
+        for _, mesh in self.meshes.items():
+            mesh: FMesh
+            for triGroup in mesh.triangleGroups:
+                data.append(
+                    gfxFormatter.vertexScrollToC(
+                        triGroup.fMaterial, triGroup.vertexList.name, len(triGroup.vertexList.vertices)
+                    )
+                )
+
+        return data
+
+    def to_c_gfx_scroll(self, gfxFormatter: GfxFormatter) -> CScrollData:
+        data = CScrollData()
+        for fMaterial, _ in self.materials.values():
+            fMaterial: FMaterial
+            if fMaterial.material:
+                data.append(gfxFormatter.gfxScrollToC(fMaterial.material, self.f3d))
+        for fMesh in self.meshes.values():
+            fMesh: FMesh
+            data.append(gfxFormatter.gfxScrollToC(fMesh.draw, self.f3d))
+        return data
 
     def save_textures(self, exportPath):
         # TODO: Saving texture should come from FImage
         texturesSaved = 0
-        for (image, texInfo), texture in self.textures.items():
-            if texInfo[1] == "PAL":
+        for imageKey, fImage in self.textures.items():
+            if isinstance(imageKey, FPaletteKey):
                 continue
+            imageKey: FImageKey
 
             # remove '.inc.c'
-            imageFileName = texture.filename[:-6] + ".png"
+            imageFileName = fImage.filename[:-6] + ".png"
 
+            image = imageKey.image
             isPacked = image.packed_file is not None
             if not isPacked:
                 image.pack()
@@ -2553,11 +2665,11 @@ class FTexRect(FModel):
         # on windows this results in '\', which is incorrect (should be '/')
         if texDir[-1] != "/":
             texDir += "/"
-        for info, texture in self.textures.items():
+        for _, fImage in self.textures.items():
             if savePNG:
-                staticData.append(texture.to_c_tex_separate(texDir, gfxFormatter.texArrayBitSize))
+                staticData.append(fImage.to_c_tex_separate(texDir, gfxFormatter.texArrayBitSize))
             else:
-                staticData.append(texture.to_c(gfxFormatter.texArrayBitSize))
+                staticData.append(fImage.to_c(gfxFormatter.texArrayBitSize))
         dynamicData.append(self.draw.to_c(self.f3d))
         return ExportCData(staticData, dynamicData, CData())
 
@@ -2634,7 +2746,6 @@ class FLODGroup:
         sortedList = sorted(self.lodEntries, key=lambda tup: tup[0])
         hasAnyDLs = False
         for item in sortedList:
-
             # If no DLs are called, we still need an empty DL to preserve LOD.
             if len(item[1].commands) < 2:
                 DL = item[1]
@@ -2739,33 +2850,6 @@ class FMesh:
             dynamicData.append(drawOverride.to_c(f3d))
         return staticData, dynamicData
 
-    def to_c_vertex_scroll(self, gfxFormatter):
-        cData = CData()
-        scrollData = []
-        stsScrollData = []
-        for triGroup in self.triangleGroups:
-            data, sts_data = triGroup.to_c_vertex_scroll(gfxFormatter)
-            cData.append(data)
-            if sts_data is not None:
-                stsScrollData.append(sts_data)
-
-        filtered_sts: list[CData] = []
-        for d in stsScrollData:
-            if not d.header or not d.source:
-                continue
-            new_one = True
-            for stsd in filtered_sts:
-                if stsd.header == d.header or stsd.source == d.source:
-                    new_one = False
-                    break
-            if new_one:
-                filtered_sts.append(d)
-
-        for fsts in filtered_sts:
-            cData.append(fsts)
-
-        return cData
-
 
 class FTriGroup:
     def __init__(self, name, index, fMaterial):
@@ -2788,14 +2872,9 @@ class FTriGroup:
     def to_c(self, f3d, gfxFormatter):
         data = CData()
         data.append(self.vertexList.to_c())
-        data.append(self.triList.to_c(f3d))
+        if self.triList:
+            data.append(self.triList.to_c(f3d))
         return data
-
-    def to_c_vertex_scroll(self, gfxFormatter: GfxFormatter):
-        if self.fMaterial.scrollData is not None:
-            return gfxFormatter.vertexScrollToC(self.fMaterial, self.vertexList.name, len(self.vertexList.vertices))
-        else:
-            return CData(), CData()
 
 
 class FScrollDataField:
@@ -2816,7 +2895,6 @@ class FScrollData:
         self.dimensions = [0, 0]
         self.tile_scroll_tex0 = FSetTileSizeScrollField()
         self.tile_scroll_tex1 = FSetTileSizeScrollField()
-        self.tile_scroll_exported = False
 
 
 def get_f3d_mat_from_version(material: bpy.types.Material):
@@ -2825,8 +2903,10 @@ def get_f3d_mat_from_version(material: bpy.types.Material):
 
 class FMaterial:
     def __init__(self, name, DLFormat):
-        self.material = GfxList("mat_" + name, GfxListTag.Material, DLFormat)
-        self.revert = GfxList("mat_revert_" + name, GfxListTag.MaterialRevert, DLFormat.Static)
+        self.material = GfxList(f"mat_{name}", GfxListTag.Material, DLFormat)
+        self.mat_only_DL = GfxList(f"mat_only_{name}", GfxListTag.Material, DLFormat)
+        self.texture_DL = GfxList(f"tex_{name}", GfxListTag.Material, DLFormat.Static)
+        self.revert = GfxList(f"mat_revert_{name}", GfxListTag.MaterialRevert, DLFormat.Static)
         self.DLFormat = DLFormat
         self.scrollData = FScrollData()
 
@@ -2836,9 +2916,13 @@ class FMaterial:
         # Used for tile scrolling
         self.tileSizeCommands = {}  # dict of {texIndex : DPSetTileSize}
 
-        self.useLargeTextures = False
-        self.largeTextureIndex = None
-        self.texturesLoaded = [False, False]
+        # For saveMeshWithLargeTexturesByFaces
+        self.largeTexFmt = None
+        self.isTexLarge = [False, False]
+        self.largeTexAddr = [0, 0]
+        self.largeTexWords = 0
+        self.imageKey = [None, None]
+        self.texPaletteIndex = [0, 0]
 
     def getScrollData(self, material, dimensions):
         self.getScrollDataField(material, 0, 0)
@@ -2906,7 +2990,8 @@ class FMaterial:
 
     def to_c(self, f3d):
         data = CData()
-        data.append(self.material.to_c(f3d))
+        if self.material:
+            data.append(self.material.to_c(f3d))
         if self.revert is not None:
             data.append(self.revert.to_c(f3d))
         return data
@@ -3059,7 +3144,7 @@ class LookAt:
 
 # A palette is just a RGBA16 texture with width = 1.
 class FImage:
-    def __init__(self, name, fmt, bitSize, width, height, filename, converted):
+    def __init__(self, name, fmt, bitSize, width, height, filename):
         self.name = name
         self.fmt = fmt
         self.bitSize = bitSize
@@ -3068,9 +3153,8 @@ class FImage:
         self.startAddress = 0
         self.data = bytearray(0)
         self.filename = filename
-        self.converted = converted
+        self.converted = False
         self.isLargeTexture = False
-        self.paletteKey = None  # another FImage reference
 
     def size(self):
         return len(self.data)
@@ -3163,10 +3247,25 @@ def gsSPNoOp(f3d):
 
 
 # base class for gbi macros
-@dataclass
+@dataclass(unsafe_hash=True)
 class GbiMacro:
     _segptrs = False
     _ptr_amp = False
+
+    tags = GfxTag(0)
+    """
+    Type: GfxTag. The tags' current use is to determine how to write gfx scrolling code for this given command.
+    This is an enum flag, so it can be composed of multiple tag values. Use "|=" when adding flags.
+    This is unannotated and will not be considered when calculating the hash.
+    """
+
+    fMaterial = None
+    """
+    Type: FMaterial. The material that contains scroll info for this command. This member exists in case a material command is moved out of its original display list.
+    That would cause an issue for scrolling that modifies static DLs, which requires the command's index into its current display list.
+    For example, inling material commands.
+    This is unannotated and will not be considered when calculating the hash.
+    """
 
     def get_ptr_offsets(self, f3d):
         return [4]
@@ -3196,7 +3295,7 @@ class GbiMacro:
         return GFX_SIZE
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class SPMatrix(GbiMacro):
     matrix: int
     param: int
@@ -3213,7 +3312,7 @@ class SPMatrix(GbiMacro):
 # Divide mesh drawing by materials into separate gfx
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class SPVertex(GbiMacro):
     # v = seg pointer, n = count, v0  = ?
     vertList: VtxList
@@ -3250,7 +3349,7 @@ class SPVertex(GbiMacro):
         return header + ", " + str(self.count) + ", " + str(self.index) + ")"
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class SPViewport(GbiMacro):
     # v = seg pointer, n = count, v0  = ?
     viewport: Vp
@@ -3265,7 +3364,7 @@ class SPViewport(GbiMacro):
             return gsDma1p(f3d.G_MOVEMEM, vpPtr, VP_SIZE, f3d.G_MV_VIEWPORT)
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class SPDisplayList(GbiMacro):
     displayList: GfxList
 
@@ -3286,7 +3385,7 @@ class SPDisplayList(GbiMacro):
             return "glistp = " + self.displayList.name + "(glistp)"
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class SPBranchList(GbiMacro):
     displayList: GfxList
     _ptr_amp = True  # add an ampersand to names
@@ -3297,6 +3396,7 @@ class SPBranchList(GbiMacro):
 
 
 # SPSprite2DBase
+
 
 # RSP short command (no DMA required) macros
 def gsImmp0(c):
@@ -3391,7 +3491,7 @@ def _gsSP1Quadrangle_w2f(v0, v1, v2, v3, flag):
         return _gsSP1Triangle_w1(v3, v1, v2)
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class SP1Triangle(GbiMacro):
     v0: int
     v1: int
@@ -3407,7 +3507,7 @@ class SP1Triangle(GbiMacro):
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class SPLine3D(GbiMacro):
     v0: int
     v1: int
@@ -3421,7 +3521,7 @@ class SPLine3D(GbiMacro):
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class SPLineW3D(GbiMacro):
     v0: int
     v1: int
@@ -3439,7 +3539,7 @@ class SPLineW3D(GbiMacro):
 # SP1Quadrangle
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class SP2Triangles(GbiMacro):
     v00: int
     v01: int
@@ -3461,7 +3561,7 @@ class SP2Triangles(GbiMacro):
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class SPCullDisplayList(GbiMacro):
     vstart: int
     vend: int
@@ -3474,7 +3574,7 @@ class SPCullDisplayList(GbiMacro):
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class SPSegment(GbiMacro):
     segment: int
     base: int
@@ -3487,7 +3587,7 @@ class SPSegment(GbiMacro):
         return header + str(self.segment) + ", " + "0x" + format(self.base, "X") + ")"
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class SPClipRatio(GbiMacro):
     ratio: int
 
@@ -3511,7 +3611,7 @@ class SPClipRatio(GbiMacro):
 # SPForceMatrix
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class SPModifyVertex(GbiMacro):
     vtx: int
     where: int
@@ -3532,7 +3632,7 @@ class SPModifyVertex(GbiMacro):
 # SPBranchLessZ
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class SPBranchLessZraw(GbiMacro):
     dl: GfxList
     vtx: int
@@ -3567,7 +3667,7 @@ class SPBranchLessZraw(GbiMacro):
 # SPDmaWrite
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class SPNumLights(GbiMacro):
     # n is macro name (string)
     n: str
@@ -3576,7 +3676,7 @@ class SPNumLights(GbiMacro):
         return gsMoveWd(f3d.G_MW_NUMLIGHT, f3d.G_MWO_NUMLIGHT, f3d.NUML(self.n), f3d)
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class SPLight(GbiMacro):
     # n is macro name (string)
     light: int  # start address of light
@@ -3592,7 +3692,7 @@ class SPLight(GbiMacro):
         return data
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class SPLightColor(GbiMacro):
     # n is macro name (string)
     n: str
@@ -3608,7 +3708,7 @@ class SPLightColor(GbiMacro):
         return header + str(self.n) + ", 0x" + format(self.col, "08X") + ")"
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class SPSetLights(GbiMacro):
     lights: Lights
 
@@ -3671,7 +3771,7 @@ def gsSPLookAtY(l, f3d):
         return gsDma1p(f3d.G_MOVEMEM, l, LIGHT_SIZE, f3d.G_MV_LOOKATY)
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class SPLookAt(GbiMacro):
     la: LookAt
     _ptr_amp = True  # add an ampersand to names
@@ -3681,7 +3781,7 @@ class SPLookAt(GbiMacro):
         return gsSPLookAtX(light0Ptr, f3d) + gsSPLookAtY(light0Ptr + 16, f3d)
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPSetHilite1Tile(GbiMacro):
     tile: int
     hilite: Hilite
@@ -3699,7 +3799,7 @@ class DPSetHilite1Tile(GbiMacro):
         ).to_binary(f3d, segments)
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPSetHilite2Tile(GbiMacro):
     tile: int
     hilite: Hilite
@@ -3717,7 +3817,7 @@ class DPSetHilite2Tile(GbiMacro):
         ).to_binary(f3d, segments)
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class SPFogFactor(GbiMacro):
     fm: int
     fo: int
@@ -3747,7 +3847,7 @@ class SPFogPosition(GbiMacro):
         return header + str(self.minVal) + ", " + str(self.maxVal) + ")"
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class SPTexture(GbiMacro):
     s: int
     t: int
@@ -3779,7 +3879,7 @@ class SPTexture(GbiMacro):
 # SPTextureL
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class SPPerspNormalize(GbiMacro):
     s: int
 
@@ -3791,7 +3891,7 @@ class SPPerspNormalize(GbiMacro):
 # SPPopMatrix
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class SPEndDisplayList(GbiMacro):
     def to_binary(self, f3d, segments):
         words = _SHIFTL(f3d.G_ENDDL, 24, 8), 0
@@ -3843,7 +3943,7 @@ def geoFlagListToWord(flagList, f3d):
     return word
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class SPGeometryMode(GbiMacro):
     clearFlagList: list
     setFlagList: list
@@ -3858,7 +3958,7 @@ class SPGeometryMode(GbiMacro):
             raise PluginError("GeometryMode only available in F3DEX_GBI_2.")
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class SPSetGeometryMode(GbiMacro):
     flagList: list
 
@@ -3871,7 +3971,7 @@ class SPSetGeometryMode(GbiMacro):
             return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class SPClearGeometryMode(GbiMacro):
     flagList: list
 
@@ -3884,7 +3984,7 @@ class SPClearGeometryMode(GbiMacro):
             return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class SPLoadGeometryMode(GbiMacro):
     flagList: list
 
@@ -3904,7 +4004,7 @@ def gsSPSetOtherMode(cmd, sft, length, data, f3d):
     return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class SPSetOtherMode(GbiMacro):
     cmd: str
     sft: int
@@ -3920,7 +4020,7 @@ class SPSetOtherMode(GbiMacro):
         return gsSPSetOtherMode(cmd, sft, self.length, data, f3d)
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPPipelineMode(GbiMacro):
     # mode is a string
     mode: str
@@ -3933,7 +4033,7 @@ class DPPipelineMode(GbiMacro):
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_PIPELINE, 1, modeVal, f3d)
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPSetCycleType(GbiMacro):
     # mode is a string
     mode: str
@@ -3950,7 +4050,7 @@ class DPSetCycleType(GbiMacro):
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_CYCLETYPE, 2, modeVal, f3d)
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPSetTexturePersp(GbiMacro):
     # mode is a string
     mode: str
@@ -3963,7 +4063,7 @@ class DPSetTexturePersp(GbiMacro):
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_TEXTPERSP, 1, modeVal, f3d)
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPSetTextureDetail(GbiMacro):
     # mode is a string
     mode: str
@@ -3978,7 +4078,7 @@ class DPSetTextureDetail(GbiMacro):
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_TEXTDETAIL, 2, modeVal, f3d)
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPSetTextureLOD(GbiMacro):
     # mode is a string
     mode: str
@@ -3991,7 +4091,7 @@ class DPSetTextureLOD(GbiMacro):
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_TEXTLOD, 1, modeVal, f3d)
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPSetTextureLUT(GbiMacro):
     # mode is a string
     mode: str
@@ -4008,7 +4108,7 @@ class DPSetTextureLUT(GbiMacro):
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_TEXTLUT, 2, modeVal, f3d)
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPSetTextureFilter(GbiMacro):
     # mode is a string
     mode: str
@@ -4023,7 +4123,7 @@ class DPSetTextureFilter(GbiMacro):
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_TEXTFILT, 2, modeVal, f3d)
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPSetTextureConvert(GbiMacro):
     # mode is a string
     mode: str
@@ -4038,7 +4138,7 @@ class DPSetTextureConvert(GbiMacro):
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_TEXTCONV, 3, modeVal, f3d)
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPSetCombineKey(GbiMacro):
     # mode is a string
     mode: str
@@ -4051,7 +4151,7 @@ class DPSetCombineKey(GbiMacro):
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_COMBKEY, 1, modeVal, f3d)
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPSetColorDither(GbiMacro):
     # mode is a string
     mode: str
@@ -4077,7 +4177,7 @@ class DPSetColorDither(GbiMacro):
             return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_COLORDITHER, 1, modeVal, f3d)
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPSetAlphaDither(GbiMacro):
     # mode is a string
     mode: str
@@ -4097,7 +4197,7 @@ class DPSetAlphaDither(GbiMacro):
             raise PluginError("SetAlphaDither not available in HW v1.")
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPSetAlphaCompare(GbiMacro):
     # mask is a string
     mode: str
@@ -4112,7 +4212,7 @@ class DPSetAlphaCompare(GbiMacro):
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_L, f3d.G_MDSFT_ALPHACOMPARE, 2, maskVal, f3d)
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPSetDepthSource(GbiMacro):
     # src is a string
     src: str
@@ -4141,7 +4241,7 @@ def GBL_c2(m1a, m1b, m2a, m2b):
     return (m1a) << 28 | (m1b) << 24 | (m2a) << 20 | (m2b) << 16
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPSetRenderMode(GbiMacro):
     # bl0-3 are string for each blender enum
     def __init__(self, flagList, blendList):
@@ -4220,13 +4320,13 @@ def gsSetImage(cmd, fmt, siz, width, i):
 # DPSetDepthImage
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPSetTextureImage(GbiMacro):
     fmt: str
     siz: str
     width: int
     image: FImage
-    _segptrs = True  # calls segmented_to_virtualon name when needed
+    _segptrs = True  # calls segmented_to_virtual on name when needed
 
     def to_binary(self, f3d, segments):
         fmt = f3d.G_IM_FMT_VARS[self.fmt]
@@ -4263,7 +4363,7 @@ def GCCc1w1(sbRGB1, saA1, mA1, aRGB1, sbA1, aA1):
     )
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPSetCombineMode(GbiMacro):
     # all strings
     a0: str
@@ -4316,7 +4416,7 @@ def sDPRGBColor(cmd, r, g, b, a):
     return gsDPSetColor(cmd, (_SHIFTL(r, 24, 8) | _SHIFTL(g, 16, 8) | _SHIFTL(b, 8, 8) | _SHIFTL(a, 0, 8)))
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPSetEnvColor(GbiMacro):
     r: int
     g: int
@@ -4327,7 +4427,7 @@ class DPSetEnvColor(GbiMacro):
         return sDPRGBColor(f3d.G_SETENVCOLOR, self.r, self.g, self.b, self.a)
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPSetBlendColor(GbiMacro):
     r: int
     g: int
@@ -4338,7 +4438,7 @@ class DPSetBlendColor(GbiMacro):
         return sDPRGBColor(f3d.G_SETBLENDCOLOR, self.r, self.g, self.b, self.a)
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPSetFogColor(GbiMacro):
     r: int
     g: int
@@ -4349,7 +4449,7 @@ class DPSetFogColor(GbiMacro):
         return sDPRGBColor(f3d.G_SETFOGCOLOR, self.r, self.g, self.b, self.a)
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPSetFillColor(GbiMacro):
     d: int
 
@@ -4357,7 +4457,7 @@ class DPSetFillColor(GbiMacro):
         return gsDPSetColor(f3d.G_SETFILLCOLOR, self.d)
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPSetPrimDepth(GbiMacro):
     z: int = 0
     dz: int = 0
@@ -4366,7 +4466,7 @@ class DPSetPrimDepth(GbiMacro):
         return gsDPSetColor(f3d.G_SETPRIMDEPTH, _SHIFTL(self.z, 16, 16) | _SHIFTL(self.dz, 0, 16))
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPSetPrimColor(GbiMacro):
     m: int
     l: int
@@ -4382,7 +4482,7 @@ class DPSetPrimColor(GbiMacro):
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPSetOtherMode(GbiMacro):
     mode0: list
     mode1: list
@@ -4399,34 +4499,34 @@ def gsDPLoadTileGeneric(c, tile, uls, ult, lrs, lrt):
     return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPSetTileSize(GbiMacro):
-    t: int
+    tile: int
     uls: int
     ult: int
     lrs: int
     lrt: int
 
     def to_binary(self, f3d, segments):
-        return gsDPLoadTileGeneric(f3d.G_SETTILESIZE, self.t, self.uls, self.ult, self.lrs, self.lrt)
+        return gsDPLoadTileGeneric(f3d.G_SETTILESIZE, self.tile, self.uls, self.ult, self.lrs, self.lrt)
 
     def is_LOADTILE(self, f3d):
         return self.t == f3d.G_TX_LOADTILE
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPLoadTile(GbiMacro):
-    t: int
+    tile: int
     uls: int
     ult: int
     lrs: int
     lrt: int
 
     def to_binary(self, f3d, segments):
-        return gsDPLoadTileGeneric(f3d.G_LOADTILE, self.t, self.uls, self.ult, self.lrs, self.lrt)
+        return gsDPLoadTileGeneric(f3d.G_LOADTILE, self.tile, self.uls, self.ult, self.lrs, self.lrt)
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPSetTile(GbiMacro):
     fmt: str
     siz: str
@@ -4467,7 +4567,7 @@ class DPSetTile(GbiMacro):
         return self.tile == f3d.G_TX_LOADTILE
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPLoadBlock(GbiMacro):
     tile: int
     uls: int
@@ -4484,7 +4584,7 @@ class DPLoadBlock(GbiMacro):
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPLoadTLUTCmd(GbiMacro):
     tile: int
     count: int
@@ -4494,7 +4594,7 @@ class DPLoadTLUTCmd(GbiMacro):
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPLoadTextureBlock(GbiMacro):
     timg: FImage
     fmt: str
@@ -4567,7 +4667,7 @@ class DPLoadTextureBlock(GbiMacro):
         return GFX_SIZE * 7
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPLoadTextureBlockYuv(GbiMacro):
     timg: FImage
     fmt: str
@@ -4645,7 +4745,7 @@ class DPLoadTextureBlockYuv(GbiMacro):
 # gsDPLoadTextureBlockYuvS
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class _DPLoadTextureBlock(GbiMacro):
     timg: FImage
     tmem: int
@@ -4724,7 +4824,7 @@ class _DPLoadTextureBlock(GbiMacro):
 # gsDPLoadMultiBlockS
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPLoadTextureBlock_4b(GbiMacro):
     timg: FImage
     fmt: str
@@ -4795,7 +4895,7 @@ class DPLoadTextureBlock_4b(GbiMacro):
 # _gsDPLoadTextureBlock_4b
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPLoadTextureTile(GbiMacro):
     timg: FImage
     fmt: str
@@ -4871,7 +4971,7 @@ class DPLoadTextureTile(GbiMacro):
 # gsDPLoadMultiTile
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPLoadTextureTile_4b(GbiMacro):
     timg: FImage
     fmt: str
@@ -4947,7 +5047,7 @@ class DPLoadTextureTile_4b(GbiMacro):
 # gsDPLoadMultiTile_4b
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPLoadTLUT_pal16(GbiMacro):
     pal: int
     dram: FImage  # pallete object
@@ -4989,7 +5089,7 @@ class DPLoadTLUT_pal16(GbiMacro):
             return GFX_SIZE * 7
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPLoadTLUT_pal256(GbiMacro):
     dram: FImage  # pallete object
     _ptr_amp = True  # adds & to name of image
@@ -5028,7 +5128,7 @@ class DPLoadTLUT_pal256(GbiMacro):
             return GFX_SIZE * 7
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPLoadTLUT(GbiMacro):
     count: int
     tmemaddr: int
@@ -5075,7 +5175,7 @@ class DPLoadTLUT(GbiMacro):
 # gsDPFillRectangle
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPSetConvert(GbiMacro):
     k0: int
     k1: int
@@ -5091,7 +5191,7 @@ class DPSetConvert(GbiMacro):
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPSetKeyR(GbiMacro):
     cR: int
     sR: int
@@ -5104,7 +5204,7 @@ class DPSetKeyR(GbiMacro):
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPSetKeyGB(GbiMacro):
     cG: int
     sG: int
@@ -5134,7 +5234,7 @@ def gsDPParam(cmd, param):
 # gsDPTextureRectangleFlip
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class SPTextureRectangle(GbiMacro):
     xl: int
     yl: int
@@ -5165,7 +5265,7 @@ class SPTextureRectangle(GbiMacro):
         return GFX_SIZE * 2
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class SPScisTextureRectangle(GbiMacro):
     xl: int
     yl: int
@@ -5188,25 +5288,25 @@ class SPScisTextureRectangle(GbiMacro):
 # gsDPWord
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPFullSync(GbiMacro):
     def to_binary(self, f3d, segments):
         return gsDPNoParam(f3d.G_RDPFULLSYNC)
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPTileSync(GbiMacro):
     def to_binary(self, f3d, segments):
         return gsDPNoParam(f3d.G_RDPTILESYNC)
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPPipeSync(GbiMacro):
     def to_binary(self, f3d, segments):
         return gsDPNoParam(f3d.G_RDPPIPESYNC)
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class DPLoadSync(GbiMacro):
     def to_binary(self, f3d, segments):
         return gsDPNoParam(f3d.G_RDPLOADSYNC)
