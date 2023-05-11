@@ -4203,11 +4203,11 @@ class DPSetAlphaCompare(GbiMacro):
     mode: str
 
     def to_binary(self, f3d, segments):
-        if self.mask == "G_AC_NONE":
+        if self.mode == "G_AC_NONE":
             maskVal = f3d.G_AC_NONE
-        elif self.mask == "G_AC_THRESHOLD":
+        elif self.mode == "G_AC_THRESHOLD":
             maskVal = f3d.G_AC_THRESHOLD
-        elif self.mask == "G_AC_DITHER":
+        elif self.mode == "G_AC_DITHER":
             maskVal = f3d.G_AC_DITHER
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_L, f3d.G_MDSFT_ALPHACOMPARE, 2, maskVal, f3d)
 
