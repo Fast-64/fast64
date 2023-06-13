@@ -1184,11 +1184,11 @@ def prop_split(layout, data, field, name, **prop_kwargs):
     split.prop(data, field, text="", **prop_kwargs)
 
 
-def toAlnum(name):
+def toAlnum(name, exceptions=[]):
     if name is None or name == "":
         return None
     for i in range(len(name)):
-        if not name[i].isalnum():
+        if not name[i].isalnum() and not name[i] in exceptions:
             name = name[:i] + "_" + name[i + 1 :]
     if name[0].isdigit():
         name = "_" + name
@@ -1208,7 +1208,7 @@ def getNameFromPath(path, removeExtension=False):
     name = os.path.basename(path)
     if removeExtension:
         name = os.path.splitext(name)[0]
-    return toAlnum(name)
+    return toAlnum(name, ["-", "."])
 
 
 def gammaCorrect(linearColor):
