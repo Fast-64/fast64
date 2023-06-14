@@ -1915,7 +1915,7 @@ marioAnimations = [
     ( 5497072, "110 - Place light object"),
     ( 5498484, "111 - Foward spinning"),
     ( 5498508, "112 - Backward spinning"),
-    ( 5498884, "113 - Breakdamce"),
+    ( 5498884, "113 - Breakdance"),
     ( 5501240, "114 - Running"),
     ( 5501264, "115 - Running (unused)"),
     ( 5505884, "116 - Soft back kb"),
