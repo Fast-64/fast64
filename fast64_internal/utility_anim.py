@@ -206,6 +206,7 @@ def utility_anim_register():
     for cls in classes:
         register_class(cls)
 
+
 # called on add-on disabling
 def utility_anim_unregister():
 
