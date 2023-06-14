@@ -33,6 +33,7 @@ from ..utility import (
     decompFolderMessage,
     makeWriteInfoBox,
     writeBoxExportType,
+    stashActionInArmature,
     enumExportHeaderType,
 )
 
@@ -348,7 +349,10 @@ def exportAnimationInsertableBinary(filepath, armatureObj, isDMA, loopAnim):
 def exportAnimationCommon(armatureObj, loopAnim, name):
     if armatureObj.animation_data is None or armatureObj.animation_data.action is None:
         raise PluginError("No active animation selected.")
+
     anim = armatureObj.animation_data.action
+    stashActionInArmature(armatureObj, anim)
+
     sm64_anim = SM64_Animation(toAlnum(name + "_" + anim.name))
 
     nodeCount = len(armatureObj.data.bones)
@@ -544,8 +548,9 @@ def importAnimationToBlender(romfile, startAddress, armatureObj, segmentData, is
 
     if armatureObj.animation_data is None:
         armatureObj.animation_data_create()
-    armatureObj.animation_data.action = anim
 
+    stashActionInArmature(armatureObj, anim)
+    armatureObj.animation_data.action = anim
 
 def readAnimation(name, romfile, startAddress, segmentData, isDMA):
     animationHeader = readAnimHeader(name, romfile, startAddress, segmentData, isDMA)
