@@ -284,7 +284,7 @@ def getTextureNamesFromBasename(baseName: str, texOrPalFormat: str, parent: Unio
         imageName += "pal_"
     imageName += suffix
     imageName = checkDuplicateTextureName(parent, toAlnum(imageName))
-    filename = baseName + "." + suffix + (".pal" if isPalette else ".inc.c")
+    filename = baseName + (f"" if (baseName.endswith(suffix)) else f".{suffix}") + (".pal" if isPalette else ".inc.c")
     return imageName, filename
 
 
