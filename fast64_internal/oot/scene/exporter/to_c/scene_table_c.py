@@ -32,10 +32,13 @@ def getSceneTable(exportPath):
         with open(os.path.join(exportPath, "include/tables/scene_table.h")) as fileData:
             # keep the relevant data and do some formatting
             for i, line in enumerate(fileData):
+                if not line.strip():
+                    continue
+
                 if not bpy.context.scene.fast64.oot.hackerFeaturesEnabled or getHackerOoTCheck(line):
-                    if not (line.startswith("/**") or line.startswith(" *")):
+                    if not (line.startswith("/**") or line.startswith(" *") or line.startswith("//")):
                         dataList.append(line[(line.find("(") + 1) :].rstrip(")\n").replace(" ", "").split(","))
-                    else:
+                    elif not dataList: # only keep comments before data to avoid duplication on save
                         fileHeader += line
                 if line.startswith("/* 0x"):
                     startIndex = line.find("SCENE_")
