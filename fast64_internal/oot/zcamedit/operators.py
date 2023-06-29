@@ -5,13 +5,11 @@ from bpy.utils import register_class, unregister_class
 from bpy.props import FloatProperty, EnumProperty, StringProperty, BoolProperty
 from .ActionData import (
     IsActionPoint,
-    IsActionList,
     CreateDefaultActionPoint,
-    CreateOrInitPreview,
     CreateDefaultActorAction,
 )
 from .CamData import CreateShot
-from .utility import initCS, CheckGetCSObj
+from .utility import initCS, CheckGetCSObj, IsActionList, CreateOrInitPreview
 from .importer import ImportCFile
 from .exporter import ExportCFile
 

@@ -1,16 +1,6 @@
 import random
 from mathutils import Vector
-from .utility import MetersToBlend, CreateObject
-
-
-def IsActionList(obj):
-    if obj is None or obj.type != "EMPTY":
-        return False
-    if not any(obj.name.startswith(s) for s in ["Path.", "ActionList."]):
-        return False
-    if obj.parent is None or obj.parent.type != "EMPTY" or not obj.parent.name.startswith("Cutscene."):
-        return False
-    return True
+from .utility import GetActorName, CreateObject, IsActionList
 
 
 def IsActionPoint(obj):
@@ -19,16 +9,6 @@ def IsActionPoint(obj):
     if not any(obj.name.startswith(s) for s in ["Point.", "Action."]):
         return False
     if not IsActionList(obj.parent):
-        return False
-    return True
-
-
-def IsPreview(obj):
-    if obj is None or obj.type != "EMPTY":
-        return False
-    if not obj.name.startswith("Preview."):
-        return False
-    if obj.parent is None or obj.parent.type != "EMPTY" or not obj.parent.name.startswith("Cutscene."):
         return False
     return True
 
@@ -109,10 +89,6 @@ def CreateDefaultActionPoint(context, al_object, select):
     CreateActionPoint(context, al_object, select, pos, start_frame, action_id)
 
 
-def GetActorName(actor_id):
-    return "Link" if actor_id < 0 else "Actor" + str(actor_id)
-
-
 def CreateActorAction(context, actor_id, cs_object):
     al_object = CreateObject(context, "ActionList." + GetActorName(actor_id) + ".001", None, True)
     al_object.parent = cs_object
@@ -124,21 +100,3 @@ def CreateDefaultActorAction(context, actor_id, cs_object):
     al_object = CreateActorAction(context, actor_id, cs_object)
     CreateDefaultActionPoint(context, al_object, False)
     CreateDefaultActionPoint(context, al_object, False)
-
-
-def CreateOrInitPreview(context, cs_object, actor_id, select=False):
-    for o in context.blend_data.objects:
-        if IsPreview(o) and o.parent == cs_object and o.zc_alist.actor_id == actor_id:
-            preview = o
-            break
-    else:
-        preview = CreateObject(context, "Preview." + GetActorName(actor_id) + ".001", None, select)
-        preview.parent = cs_object
-    
-    actorHeight = 1.5
-    if actor_id < 0:
-        actorHeight = 1.7 if context.scene.zc_previewlinkage == "link_adult" else 1.3
-
-    preview.empty_display_type = "SINGLE_ARROW"
-    preview.empty_display_size = MetersToBlend(context, actorHeight)
-    preview.zc_alist.actor_id = actor_id

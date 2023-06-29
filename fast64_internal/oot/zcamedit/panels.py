@@ -1,8 +1,8 @@
 from bpy.types import Panel, Bone, Armature
 from bpy.utils import register_class, unregister_class
 from bpy.props import FloatProperty, IntProperty, EnumProperty
-from .utility import CheckGetCSObj
-from .ActionData import IsActionPoint, IsActionList, IsPreview
+from .utility import CheckGetCSObj, IsActionList, IsPreview
+from .ActionData import IsActionPoint
 from .CamData import EditBoneToBone
 
 

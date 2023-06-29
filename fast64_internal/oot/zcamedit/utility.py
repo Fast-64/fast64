@@ -1,7 +1,5 @@
 import math
 from struct import pack, unpack
-from .CamData import GetCSFakeEnd
-from .ActionData import IsActionList, CreateOrInitPreview
 
 
 class CFileIO:
@@ -521,6 +519,26 @@ class CFileIO:
             raise RuntimeError("Unexpected EOF!")
 
 
+class PropsBone:
+    def __init__(self, armo, b):
+        eb = BoneToEditBone(armo, b) if armo.mode == "EDIT" else None
+        self.name = b.name
+        self.head = eb.head if eb is not None else b.head
+        self.tail = eb.tail if eb is not None else b.tail
+        self.frames = eb["frames"] if eb is not None and "frames" in eb else b.frames
+        self.fov = eb["fov"] if eb is not None and "fov" in eb else b.fov
+        self.camroll = eb["camroll"] if eb is not None and "camroll" in eb else b.camroll
+
+
+def BoneToEditBone(armo, b):
+    for eb in armo.data.edit_bones:
+        if eb.name == b.name:
+            return eb
+    else:
+        print("Could not find corresponding bone")
+        return b
+
+
 def MetersToBlend(context, v):
     return v * 56.0 / context.scene.ootBlenderScale
 
@@ -552,6 +570,103 @@ def CheckGetCSObj(op, context):
             op.report({"WARNING"}, 'Cutscene empty object must be named "Cutscene.<YourCutsceneName>"')
         return None
     return cs_object
+
+
+# action data
+def IsActionList(obj):
+    if obj is None or obj.type != "EMPTY":
+        return False
+    if not any(obj.name.startswith(s) for s in ["Path.", "ActionList."]):
+        return False
+    if obj.parent is None or obj.parent.type != "EMPTY" or not obj.parent.name.startswith("Cutscene."):
+        return False
+    return True
+
+
+def IsPreview(obj):
+    if obj is None or obj.type != "EMPTY":
+        return False
+    if not obj.name.startswith("Preview."):
+        return False
+    if obj.parent is None or obj.parent.type != "EMPTY" or not obj.parent.name.startswith("Cutscene."):
+        return False
+    return True
+
+
+def GetActorName(actor_id):
+    return "Link" if actor_id < 0 else "Actor" + str(actor_id)
+
+
+def CreateOrInitPreview(context, cs_object, actor_id, select=False):
+    for o in context.blend_data.objects:
+        if IsPreview(o) and o.parent == cs_object and o.zc_alist.actor_id == actor_id:
+            preview = o
+            break
+    else:
+        preview = CreateObject(context, "Preview." + GetActorName(actor_id) + ".001", None, select)
+        preview.parent = cs_object
+
+    actorHeight = 1.5
+    if actor_id < 0:
+        actorHeight = 1.7 if context.scene.zc_previewlinkage == "link_adult" else 1.3
+
+    preview.empty_display_type = "SINGLE_ARROW"
+    preview.empty_display_size = MetersToBlend(context, actorHeight)
+    preview.zc_alist.actor_id = actor_id
+
+
+# camdata
+def GetCamBones(armo):
+    bones = []
+    for b in armo.data.bones:
+        if b.parent is not None:
+            print("Camera armature bones are not allowed to have parent bones")
+            return None
+        bones.append(PropsBone(armo, b))
+    bones.sort(key=lambda b: b.name)
+    return bones
+
+
+def GetCamBonesChecked(cmd):
+    bones = GetCamBones(cmd)
+    if bones is None:
+        raise RuntimeError("Error in bone properties")
+    if len(bones) < 4:
+        raise RuntimeError("Only {} bones in {}".format(len(bones), cmd.name))
+    return bones
+
+
+def GetCamCommands(scene, cso):
+    ret = []
+    for o in scene.objects:
+        if o.type != "ARMATURE":
+            continue
+        if o.parent is None:
+            continue
+        if o.parent != cso:
+            continue
+        ret.append(o)
+    ret.sort(key=lambda o: o.name)
+    return ret
+
+
+def GetFakeCamCmdLength(armo, at):
+    bones = GetCamBonesChecked(armo)
+    base = max(2, sum(b.frames for b in bones))
+    # Seems to be the algorithm which was used in the canon tool: the at list
+    # counts the extra point (same frames as the last real point), and the pos
+    # list doesn't count the extra point but adds 1. Of course, neither of these
+    # values is actually the number of frames the camera motion lasts for.
+    return base + (bones[-1].frames if at else 1)
+
+
+def GetCSFakeEnd(context, cs_object):
+    cmdlists = GetCamCommands(context.scene, cs_object)
+    cs_endf = -1
+    for c in cmdlists:
+        end_frame = c.data.start_frame + GetFakeCamCmdLength(c, False) + 1
+        cs_endf = max(cs_endf, end_frame)
+    return cs_endf
 
 
 def initCS(context, cs_object):

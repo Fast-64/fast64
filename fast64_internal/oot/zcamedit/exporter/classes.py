@@ -1,7 +1,6 @@
 import os, shutil, math, traceback
 from struct import pack, unpack
-from ..utility import CFileIO
-from ..CamData import GetCamCommands, GetCSFakeEnd, GetCamBonesChecked, GetFakeCamCmdLength
+from ..utility import CFileIO, GetCamCommands, GetCSFakeEnd, GetCamBonesChecked, GetFakeCamCmdLength
 from ..ActionData import GetActionLists, GetActionListPoints
 
 
