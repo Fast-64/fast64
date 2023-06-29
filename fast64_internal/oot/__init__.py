@@ -55,7 +55,7 @@ from .tools import (
 from .zcamedit.operators import zcamedit_ops_register, zcamedit_ops_unregister
 from .zcamedit.properties import zcamedit_props_register, zcamedit_props_unregister
 from .zcamedit.panels import zcamedit_panels_register, zcamedit_panels_unregister
-from .zcamedit.Preview import Preview_register, Preview_unregister
+from .zcamedit.preview import zcamedit_preview_register, zcamedit_preview_unregister
 
 
 class OOT_Properties(bpy.types.PropertyGroup):
@@ -129,7 +129,7 @@ def oot_register(registerPanels):
     zcamedit_ops_register()
     zcamedit_props_register()
     zcamedit_panels_register()
-    Preview_register()
+    zcamedit_preview_register()
 
     for cls in oot_classes:
         register_class(cls)
@@ -164,7 +164,7 @@ def oot_unregister(unregisterPanels):
     file_unregister()
     anim_props_unregister()
 
-    Preview_unregister()
+    zcamedit_preview_unregister()
     zcamedit_panels_unregister()
     zcamedit_props_unregister()
     zcamedit_ops_unregister()

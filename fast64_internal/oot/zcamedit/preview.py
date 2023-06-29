@@ -59,37 +59,6 @@ def Z64SplineInterpolate(bones, frame):
     return (eye, at, roll, fov)
 
 
-def DummyLinearInterpolate(bones, frame):
-    if len(bones) == 0:
-        return UndefinedCamPosAt()
-    f = 0
-    last_bone = None
-    next_bone = bones[0]
-    for b in bones[1:]:
-        last_bone = next_bone
-        next_bone = b
-        frames = last_bone.frames
-        if frame >= f and frame < f + frames:
-            fade = float(frame - f) / frames
-            break
-        f += frames
-    else:
-        last_bone = bones[-1]
-        fade = 0.0
-    if last_bone is None or next_bone is None:
-        print("Internal error in linear interpolate algorithm")
-        return UndefinedCamPosAt()
-    last_eye, next_eye = last_bone.head, next_bone.head
-    last_at, next_at = last_bone.tail, next_bone.tail  # "At" == "look at"
-    last_roll, next_roll = last_bone.camroll, next_bone.camroll
-    last_fov, next_fov = last_bone.fov, next_bone.fov
-    eye = last_eye * (1.0 - fade) + next_eye * fade
-    at = last_at * (1.0 - fade) + next_at * fade
-    roll = last_roll * (1.0 - fade) + next_roll * fade
-    fov = last_fov * (1.0 - fade) + next_fov * fade
-    return (eye, at, roll, fov)
-
-
 def GetCmdCamState(cmd, frame):
     frame -= cmd.data.start_frame + 1
     if frame < 0:
@@ -184,10 +153,10 @@ def PreviewFrameHandler(scene):
             o.rotation_euler = rot
 
 
-def Preview_register():
+def zcamedit_preview_register():
     bpy.app.handlers.frame_change_pre.append(PreviewFrameHandler)
 
 
-def Preview_unregister():
+def zcamedit_preview_unregister():
     if PreviewFrameHandler in bpy.app.handlers.frame_change_pre:
         bpy.app.handlers.frame_change_pre.remove(PreviewFrameHandler)
