@@ -1,17 +1,25 @@
 import random
+import bpy
+from mathutils import Vector
 from bpy_extras.io_utils import ImportHelper, ExportHelper
 from bpy.types import Operator, Scene, TOPBAR_MT_file_import, TOPBAR_MT_file_export
 from bpy.utils import register_class, unregister_class
 from bpy.props import FloatProperty, EnumProperty, StringProperty, BoolProperty
-from .ActionData import (
-    IsActionPoint,
-    CreateDefaultActionPoint,
-    CreateDefaultActorAction,
-)
-from .CamData import CreateShot
-from .utility import initCS, CheckGetCSObj, IsActionList, CreateOrInitPreview
 from .importer import ImportCFile
 from .exporter import ExportCFile
+
+from .utility import (
+    initCS,
+    CheckGetCSObj,
+    IsActionList,
+    CreateOrInitPreview,
+    CreateObject,
+    MetersToBlend,
+    IsActionPoint,
+    CreateActorAction,
+    GetActionListPoints,
+    CreateActionPoint,
+)
 
 
 def CheckGetActionList(op, context):
@@ -22,6 +30,45 @@ def CheckGetActionList(op, context):
         op.report({"WARNING"}, "Select an action list or action point.")
         return None
     return obj
+
+
+def CreateShot(context, cs_object):
+    arm = context.blend_data.armatures.new("Shot")
+    arm.display_type = "STICK"
+    arm.show_names = True
+    armo = CreateObject(context, arm.name, arm, True)
+    armo.parent = cs_object
+    for i in range(4):
+        bpy.ops.object.mode_set(mode="EDIT")
+        bone = arm.edit_bones.new("K{:02}".format(i + 1))
+        bname = bone.name
+        x = MetersToBlend(context, float(i + 1))
+        bone.head = [x, 0.0, 0.0]
+        bone.tail = [x, MetersToBlend(context, 1.0), 0.0]
+        bpy.ops.object.mode_set(mode="OBJECT")
+        bone = arm.bones[bname]
+        bone.frames = 20
+        bone.fov = 60.0
+        bone.camroll = 0
+
+
+def CreateDefaultActionPoint(context, al_object, select):
+    points = GetActionListPoints(context.scene, al_object)
+    if len(points) == 0:
+        pos = Vector((random.random() * 40.0 - 20.0, -10.0, 0.0))
+        start_frame = 0
+        action_id = "0x0001"
+    else:
+        pos = points[-1].location + Vector((0.0, 10.0, 0.0))
+        start_frame = points[-1].zc_apoint.start_frame + 20
+        action_id = points[-1].zc_apoint.action_id
+    CreateActionPoint(context, al_object, select, pos, start_frame, action_id)
+
+
+def CreateDefaultActorAction(context, actor_id, cs_object):
+    al_object = CreateActorAction(context, actor_id, cs_object)
+    CreateDefaultActionPoint(context, al_object, False)
+    CreateDefaultActionPoint(context, al_object, False)
 
 
 class ZCAMEDIT_OT_add_action_point(Operator):

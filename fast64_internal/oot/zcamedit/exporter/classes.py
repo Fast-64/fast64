@@ -1,7 +1,14 @@
 import os, shutil, math, traceback
 from struct import pack, unpack
-from ..utility import CFileIO, GetCamCommands, GetCSFakeEnd, GetCamBonesChecked, GetFakeCamCmdLength
-from ..ActionData import GetActionLists, GetActionListPoints
+from ..utility import (
+    CFileIO,
+    GetCamCommands,
+    GetCSFakeEnd,
+    GetCamBonesChecked,
+    GetFakeCamCmdLength,
+    GetActionLists,
+    GetActionListPoints,
+)
 
 
 def floatBitsAsInt(f):

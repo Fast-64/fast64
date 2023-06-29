@@ -701,3 +701,52 @@ def initCS(context, cs_object):
     context.scene.render.fps = 20
     context.scene.render.resolution_x = 320
     context.scene.render.resolution_y = 240
+
+
+# action data leftovers
+def IsActionPoint(obj):
+    if obj is None or obj.type != "EMPTY":
+        return False
+    if not any(obj.name.startswith(s) for s in ["Point.", "Action."]):
+        return False
+    if not IsActionList(obj.parent):
+        return False
+    return True
+
+
+def GetActionListPoints(scene, al_object):
+    ret = []
+    for o in scene.objects:
+        if IsActionPoint(o) and o.parent == al_object:
+            ret.append(o)
+    ret.sort(key=lambda o: o.zc_apoint.start_frame)
+    return ret
+
+
+def GetActionLists(scene, cs_object, actorid):
+    ret = []
+    for o in scene.objects:
+        if IsActionList(o) and o.parent == cs_object and (actorid is None or o.zc_alist.actor_id == actorid):
+            ret.append(o)
+
+    points = GetActionListPoints(scene, o)
+    ret.sort(key=lambda o: 1000000 if len(points) < 2 else points[0].zc_apoint.start_frame)
+    return ret
+
+
+def CreateActionPoint(context, al_object, select, pos, start_frame, action_id):
+    point = CreateObject(context, "Point.001", None, select)
+    point.parent = al_object
+    point.empty_display_type = "ARROWS"
+    point.location = pos
+    point.rotation_mode = "XZY"
+    point.zc_apoint.start_frame = start_frame
+    point.zc_apoint.action_id = action_id
+    return point
+
+
+def CreateActorAction(context, actor_id, cs_object):
+    al_object = CreateObject(context, "ActionList." + GetActorName(actor_id) + ".001", None, True)
+    al_object.parent = cs_object
+    al_object.zc_alist.actor_id = actor_id
+    return al_object

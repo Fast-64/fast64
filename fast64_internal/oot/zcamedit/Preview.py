@@ -1,7 +1,6 @@
 import bpy, math, mathutils
 from bpy.app.handlers import persistent
-from .utility import GetCamBones, GetCamCommands, IsPreview
-from .ActionData import GetActorState
+from .utility import GetCamBones, GetCamCommands, IsPreview, GetActionLists, GetActionListPoints
 
 
 def UndefinedCamPos():
@@ -130,6 +129,33 @@ def GetCutsceneCamState(scene, cso, frame):
     if cur_cmd is None:
         return UndefinedCamPos()
     return GetCmdCamState(cur_cmd, frame)
+
+
+def GetActorState(scene, cs_object, actorid, frame):
+    actionlists = GetActionLists(scene, cs_object, actorid)
+    pos = mathutils.Vector((0.0, 0.0, 0.0))
+    rot = mathutils.Vector((0.0, 0.0, 0.0))
+    for al in actionlists:
+        points = GetActionListPoints(scene, al)
+        if len(points) < 2:
+            continue
+        for i in range(len(points) - 1):
+            s = points[i].zc_apoint.start_frame
+            e = points[i + 1].zc_apoint.start_frame
+            if e <= s:
+                continue
+            if frame <= s:
+                continue
+            if frame <= e:
+                pos = points[i].location * (e - frame) + points[i + 1].location * (frame - s)
+                pos /= e - s
+                rot = points[i].rotation_euler
+                return pos, rot
+            elif i == len(points) - 2:
+                # If went off the end, use last position
+                pos = points[i + 1].location
+                rot = points[i].rotation_euler
+    return pos, rot
 
 
 @persistent

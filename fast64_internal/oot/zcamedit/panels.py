@@ -1,9 +1,16 @@
 from bpy.types import Panel, Bone, Armature
 from bpy.utils import register_class, unregister_class
 from bpy.props import FloatProperty, IntProperty, EnumProperty
-from .utility import CheckGetCSObj, IsActionList, IsPreview
-from .ActionData import IsActionPoint
-from .CamData import EditBoneToBone
+from .utility import CheckGetCSObj, IsActionList, IsPreview, IsActionPoint
+
+
+def EditBoneToBone(armo, eb):
+    for b in armo.data.bones:
+        if b.name == eb.name:
+            return b
+    else:
+        print("Could not find corresponding bone")
+        return eb
 
 
 class ZCAMEDIT_PT_action_controls_panel(Panel):
