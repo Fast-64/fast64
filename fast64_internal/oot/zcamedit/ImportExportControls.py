@@ -1,12 +1,11 @@
-import bpy
 from bpy_extras.io_utils import ImportHelper, ExportHelper
-from bpy.props import StringProperty, BoolProperty, FloatProperty
-
-from .Common import *
+from bpy.types import Operator, TOPBAR_MT_file_import, TOPBAR_MT_file_export
+from bpy.props import StringProperty, BoolProperty
+from bpy.utils import register_class, unregister_class
 from .CFile import ImportCFile, ExportCFile
 
 
-class ZCAMEDIT_OT_import_c(bpy.types.Operator, ImportHelper):
+class ZCAMEDIT_OT_import_c(Operator, ImportHelper):
     """Import cutscene camera data from a Zelda 64 scene C source file."""
 
     bl_idname = "zcamedit.import_c"
@@ -24,7 +23,7 @@ class ZCAMEDIT_OT_import_c(bpy.types.Operator, ImportHelper):
         return {"FINISHED"}
 
 
-class ZCAMEDIT_OT_export_c(bpy.types.Operator, ExportHelper):
+class ZCAMEDIT_OT_export_c(Operator, ExportHelper):
     """Export cutscene camera into a Zelda 64 scene C source file."""
 
     bl_idname = "zcamedit.export_c"
@@ -67,14 +66,14 @@ def menu_func_export(self, context):
 
 
 def ImportExportControls_register():
-    bpy.utils.register_class(ZCAMEDIT_OT_import_c)
-    bpy.utils.register_class(ZCAMEDIT_OT_export_c)
-    bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
-    bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
+    register_class(ZCAMEDIT_OT_import_c)
+    register_class(ZCAMEDIT_OT_export_c)
+    TOPBAR_MT_file_import.append(menu_func_import)
+    TOPBAR_MT_file_export.append(menu_func_export)
 
 
 def ImportExportControls_unregister():
-    bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
-    bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
-    bpy.utils.unregister_class(ZCAMEDIT_OT_export_c)
-    bpy.utils.unregister_class(ZCAMEDIT_OT_import_c)
+    TOPBAR_MT_file_export.remove(menu_func_export)
+    TOPBAR_MT_file_import.remove(menu_func_import)
+    unregister_class(ZCAMEDIT_OT_export_c)
+    unregister_class(ZCAMEDIT_OT_import_c)

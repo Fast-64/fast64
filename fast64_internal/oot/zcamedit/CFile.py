@@ -1,10 +1,7 @@
-import bpy
-import os, shutil, copy, math
-import traceback
-
-from .Common import *
-from .CamData import *
-from .ActionData import *
+import os, shutil, math, traceback, bpy
+from .Common import intBitsAsFloat, floatBitsAsInt, CreateObject
+from .CamData import GetCamCommands, GetCSFakeEnd, GetCamBonesChecked, GetFakeCamCmdLength
+from .ActionData import CreateActorAction, CreateActionPoint, GetActionLists, GetActionListPoints
 from .InitCS import InitCS
 
 

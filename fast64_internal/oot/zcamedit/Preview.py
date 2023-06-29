@@ -1,10 +1,7 @@
-import bpy
-import math, mathutils
+import bpy, math, mathutils
 from bpy.app.handlers import persistent
-
-from .Common import *
-from .CamData import *
-from .ActionData import *
+from .CamData import GetCamBones, GetCamCommands
+from .ActionData import IsPreview, GetActorState
 
 
 def UndefinedCamPos():

@@ -1,11 +1,9 @@
-import bpy
 import random
-
+from bpy.types import Operator, Panel, Scene
 from bpy.props import FloatProperty, EnumProperty
-
-from .Common import *
-from .CamData import *
-from .ActionData import *
+from bpy.utils import register_class, unregister_class
+from .CamData import CreateShot
+from .ActionData import CreateDefaultActorAction
 from .InitCS import InitCS
 
 
@@ -23,7 +21,7 @@ def CheckGetCSObj(op, context):
     return cs_object
 
 
-class ZCAMEDIT_OT_init_cs(bpy.types.Operator):
+class ZCAMEDIT_OT_init_cs(Operator):
     """Click here after adding an empty Cutscene.YourCutsceneName"""
 
     bl_idname = "zcamedit.init_cs"
@@ -37,7 +35,7 @@ class ZCAMEDIT_OT_init_cs(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class ZCAMEDIT_OT_create_shot(bpy.types.Operator):
+class ZCAMEDIT_OT_create_shot(Operator):
     """Create and initialize a camera shot armature"""
 
     bl_idname = "zcamedit.create_shot"
@@ -51,7 +49,7 @@ class ZCAMEDIT_OT_create_shot(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class ZCAMEDIT_OT_create_link_action(bpy.types.Operator):
+class ZCAMEDIT_OT_create_link_action(Operator):
     """Create a cutscene action list for Link"""
 
     bl_idname = "zcamedit.create_link_action"
@@ -65,7 +63,7 @@ class ZCAMEDIT_OT_create_link_action(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class ZCAMEDIT_OT_create_actor_action(bpy.types.Operator):
+class ZCAMEDIT_OT_create_actor_action(Operator):
     """Create a cutscene action list for an actor (NPC)"""
 
     bl_idname = "zcamedit.create_actor_action"
@@ -79,7 +77,7 @@ class ZCAMEDIT_OT_create_actor_action(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class ZCAMEDIT_PT_cs_controls_panel(bpy.types.Panel):
+class ZCAMEDIT_PT_cs_controls_panel(Panel):
     bl_label = "zcamedit Cutscene Controls"
     bl_idname = "ZCAMEDIT_PT_cs_controls_panel"
     bl_space_type = "PROPERTIES"
@@ -99,13 +97,13 @@ class ZCAMEDIT_PT_cs_controls_panel(bpy.types.Panel):
 
 
 def CSControls_register():
-    bpy.utils.register_class(ZCAMEDIT_OT_init_cs)
-    bpy.utils.register_class(ZCAMEDIT_OT_create_shot)
-    bpy.utils.register_class(ZCAMEDIT_OT_create_link_action)
-    bpy.utils.register_class(ZCAMEDIT_OT_create_actor_action)
-    bpy.utils.register_class(ZCAMEDIT_PT_cs_controls_panel)
-    if not hasattr(bpy.types.Scene, "ootBlenderScale"):
-        bpy.types.Scene.ootBlenderScale = FloatProperty(
+    register_class(ZCAMEDIT_OT_init_cs)
+    register_class(ZCAMEDIT_OT_create_shot)
+    register_class(ZCAMEDIT_OT_create_link_action)
+    register_class(ZCAMEDIT_OT_create_actor_action)
+    register_class(ZCAMEDIT_PT_cs_controls_panel)
+    if not hasattr(Scene, "ootBlenderScale"):
+        Scene.ootBlenderScale = FloatProperty(
             name="Scale",
             description="All stair steps in game are 10 units high. Assuming Hylian "
             + "carpenters follow US building codes, that's about 17 cm or a scale of about "
@@ -114,7 +112,7 @@ def CSControls_register():
             soft_max=1000.0,
             default=56.0,
         )
-    bpy.types.Scene.zc_previewlinkage = EnumProperty(
+    Scene.zc_previewlinkage = EnumProperty(
         items=[("link_adult", "Adult", "Adult Link (170 cm)", 0), ("link_child", "Child", "Child Link (130 cm)", 1)],
         name="Link age for preview",
         description="For setting Link's height for preview",
@@ -123,9 +121,9 @@ def CSControls_register():
 
 
 def CSControls_unregister():
-    del bpy.types.Scene.zc_previewlinkage
-    bpy.utils.unregister_class(ZCAMEDIT_PT_cs_controls_panel)
-    bpy.utils.unregister_class(ZCAMEDIT_OT_create_actor_action)
-    bpy.utils.unregister_class(ZCAMEDIT_OT_create_link_action)
-    bpy.utils.unregister_class(ZCAMEDIT_OT_create_shot)
-    bpy.utils.unregister_class(ZCAMEDIT_OT_init_cs)
+    del Scene.zc_previewlinkage
+    unregister_class(ZCAMEDIT_PT_cs_controls_panel)
+    unregister_class(ZCAMEDIT_OT_create_actor_action)
+    unregister_class(ZCAMEDIT_OT_create_link_action)
+    unregister_class(ZCAMEDIT_OT_create_shot)
+    unregister_class(ZCAMEDIT_OT_init_cs)

@@ -1,11 +1,10 @@
-import bpy
+from bpy.types import Panel, Bone, Armature
 from bpy.props import FloatProperty, IntProperty, EnumProperty
+from bpy.utils import register_class, unregister_class
+from .CamData import EditBoneToBone
 
-from .Common import *
-from .CamData import *
 
-
-class ZCAMEDIT_PT_cam_panel(bpy.types.Panel):
+class ZCAMEDIT_PT_cam_panel(Panel):
     bl_label = "zcamedit Cutscene Camera Controls"
     bl_idname = "ZCAMEDIT_PT_cam_panel"
     bl_space_type = "PROPERTIES"
@@ -46,24 +45,18 @@ class ZCAMEDIT_PT_cam_panel(bpy.types.Panel):
 
 
 def CamControls_register():
-    bpy.utils.register_class(ZCAMEDIT_PT_cam_panel)
-    bpy.types.Bone.frames = bpy.props.IntProperty(
-        name="Frames", description="Key point frames value", default=1234, min=0
-    )
-    bpy.types.Bone.fov = bpy.props.FloatProperty(
-        name="FoV", description="Field of view (degrees)", default=179.76, min=0.01, max=179.99
-    )
-    bpy.types.Bone.camroll = bpy.props.IntProperty(
+    register_class(ZCAMEDIT_PT_cam_panel)
+    Bone.frames = IntProperty(name="Frames", description="Key point frames value", default=1234, min=0)
+    Bone.fov = FloatProperty(name="FoV", description="Field of view (degrees)", default=179.76, min=0.01, max=179.99)
+    Bone.camroll = IntProperty(
         name="Roll",
         description="Camera roll (degrees), positive turns image clockwise",
         default=-0x7E,
         min=-0x80,
         max=0x7F,
     )
-    bpy.types.Armature.start_frame = bpy.props.IntProperty(
-        name="Start Frame", description="Shot start frame", default=0, min=0
-    )
-    bpy.types.Armature.cam_mode = bpy.props.EnumProperty(
+    Armature.start_frame = IntProperty(name="Start Frame", description="Shot start frame", default=0, min=0)
+    Armature.cam_mode = EnumProperty(
         items=[
             ("normal", "Normal", "Normal (0x1 / 0x2)"),
             ("rel_link", "Rel. Link", "Relative to Link (0x5 / 0x6)"),
@@ -76,9 +69,9 @@ def CamControls_register():
 
 
 def CamControls_unregister():
-    del bpy.types.Armature.cam_mode
-    del bpy.types.Armature.start_frame
-    del bpy.types.Bone.camroll
-    del bpy.types.Bone.fov
-    del bpy.types.Bone.frames
-    bpy.utils.unregister_class(ZCAMEDIT_PT_cam_panel)
+    del Armature.cam_mode
+    del Armature.start_frame
+    del Bone.camroll
+    del Bone.fov
+    del Bone.frames
+    unregister_class(ZCAMEDIT_PT_cam_panel)

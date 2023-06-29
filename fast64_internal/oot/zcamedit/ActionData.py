@@ -1,7 +1,6 @@
-import bpy, mathutils
 import random
-
-from .Common import *
+from mathutils import Vector
+from .Common import CreateObject, MetersToBlend, ActorHeightMeters
 
 
 def IsActionList(obj):
@@ -61,8 +60,8 @@ def GetActionLists(scene, cs_object, actorid):
 
 def GetActorState(scene, cs_object, actorid, frame):
     actionlists = GetActionLists(scene, cs_object, actorid)
-    pos = mathutils.Vector((0.0, 0.0, 0.0))
-    rot = mathutils.Vector((0.0, 0.0, 0.0))
+    pos = Vector((0.0, 0.0, 0.0))
+    rot = Vector((0.0, 0.0, 0.0))
     for al in actionlists:
         points = GetActionListPoints(scene, al)
         if len(points) < 2:
@@ -100,11 +99,11 @@ def CreateActionPoint(context, al_object, select, pos, start_frame, action_id):
 def CreateDefaultActionPoint(context, al_object, select):
     points = GetActionListPoints(context.scene, al_object)
     if len(points) == 0:
-        pos = mathutils.Vector((random.random() * 40.0 - 20.0, -10.0, 0.0))
+        pos = Vector((random.random() * 40.0 - 20.0, -10.0, 0.0))
         start_frame = 0
         action_id = "0x0001"
     else:
-        pos = points[-1].location + mathutils.Vector((0.0, 10.0, 0.0))
+        pos = points[-1].location + Vector((0.0, 10.0, 0.0))
         start_frame = points[-1].zc_apoint.start_frame + 20
         action_id = points[-1].zc_apoint.action_id
     CreateActionPoint(context, al_object, select, pos, start_frame, action_id)

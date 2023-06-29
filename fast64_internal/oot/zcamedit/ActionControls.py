@@ -1,10 +1,10 @@
-import bpy
+from bpy.types import PropertyGroup, Operator, Panel, Object
 from bpy.props import IntProperty, StringProperty, PointerProperty
+from bpy.utils import register_class, unregister_class
+from .ActionData import IsActionPoint, IsActionList, CreateDefaultActionPoint, CreateOrInitPreview, IsPreview
 
-from .ActionData import *
 
-
-class ActionListProps(bpy.types.PropertyGroup):
+class ActionListProps(PropertyGroup):
     actor_id: IntProperty(
         name="Actor ID",
         description="Cutscene actor ID. Use -1 for Link. Not the same as actor number.",
@@ -13,7 +13,7 @@ class ActionListProps(bpy.types.PropertyGroup):
     )
 
 
-class ActionPointProps(bpy.types.PropertyGroup):
+class ActionPointProps(PropertyGroup):
     start_frame: IntProperty(name="Start Frame", description="Key point start frame within cutscene", default=0, min=0)
     action_id: StringProperty(
         name="Action ID", default="0x0001", description="Actor action. Meaning is unique for each different actor."
@@ -30,7 +30,7 @@ def CheckGetActionList(op, context):
     return obj
 
 
-class ZCAMEDIT_OT_add_action_point(bpy.types.Operator):
+class ZCAMEDIT_OT_add_action_point(Operator):
     """Add a point to a Link or actor action list"""
 
     bl_idname = "zcamedit.add_action_point"
@@ -44,7 +44,7 @@ class ZCAMEDIT_OT_add_action_point(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class ZCAMEDIT_OT_create_action_preview(bpy.types.Operator):
+class ZCAMEDIT_OT_create_action_preview(Operator):
     """Create a preview empty object for a Link or actor action list"""
 
     bl_idname = "zcamedit.create_action_preview"
@@ -58,7 +58,7 @@ class ZCAMEDIT_OT_create_action_preview(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class ZCAMEDIT_PT_action_controls_panel(bpy.types.Panel):
+class ZCAMEDIT_PT_action_controls_panel(Panel):
     bl_label = "zcamedit Action Controls"
     bl_idname = "ZCAMEDIT_PT_action_controls_panel"
     bl_space_type = "PROPERTIES"
@@ -88,20 +88,20 @@ class ZCAMEDIT_PT_action_controls_panel(bpy.types.Panel):
 
 
 def ActionControls_register():
-    bpy.utils.register_class(ZCAMEDIT_OT_add_action_point)
-    bpy.utils.register_class(ZCAMEDIT_OT_create_action_preview)
-    bpy.utils.register_class(ZCAMEDIT_PT_action_controls_panel)
-    bpy.utils.register_class(ActionListProps)
-    bpy.utils.register_class(ActionPointProps)
-    bpy.types.Object.zc_alist = PointerProperty(type=ActionListProps)
-    bpy.types.Object.zc_apoint = PointerProperty(type=ActionPointProps)
+    register_class(ZCAMEDIT_OT_add_action_point)
+    register_class(ZCAMEDIT_OT_create_action_preview)
+    register_class(ZCAMEDIT_PT_action_controls_panel)
+    register_class(ActionListProps)
+    register_class(ActionPointProps)
+    Object.zc_alist = PointerProperty(type=ActionListProps)
+    Object.zc_apoint = PointerProperty(type=ActionPointProps)
 
 
 def ActionControls_unregister():
-    del bpy.types.Object.zc_apoint
-    del bpy.types.Object.zc_alist
-    bpy.utils.unregister_class(ActionPointProps)
-    bpy.utils.unregister_class(ActionListProps)
-    bpy.utils.unregister_class(ZCAMEDIT_PT_action_controls_panel)
-    bpy.utils.unregister_class(ZCAMEDIT_OT_create_action_preview)
-    bpy.utils.unregister_class(ZCAMEDIT_OT_add_action_point)
+    del Object.zc_apoint
+    del Object.zc_alist
+    unregister_class(ActionPointProps)
+    unregister_class(ActionListProps)
+    unregister_class(ZCAMEDIT_PT_action_controls_panel)
+    unregister_class(ZCAMEDIT_OT_create_action_preview)
+    unregister_class(ZCAMEDIT_OT_add_action_point)

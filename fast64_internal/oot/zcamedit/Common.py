@@ -1,5 +1,5 @@
-import bpy
-import struct, re
+from struct import pack, unpack
+from re import search
 
 
 def MetersToBlend(context, v):
@@ -19,20 +19,20 @@ def ActorHeightMeters(context, actor_id):
 
 
 def intBitsAsFloat(i):
-    s = struct.pack(">l", i)
-    return struct.unpack(">f", s)[0]
+    s = pack(">l", i)
+    return unpack(">f", s)[0]
 
 
 def floatBitsAsInt(f):
-    s = struct.pack(">f", f)
-    return struct.unpack(">l", s)[0]
+    s = pack(">f", f)
+    return unpack(">l", s)[0]
 
 
 """From https://stackoverflow.com/questions/7085512/check-what-number-a-string-ends-with-in-python/7085715"""
 
 
 def GetTrailingNumber(s):
-    m = re.search(r"\d+$", s)
+    m = search(r"\d+$", s)
     return int(m.group()) if m else None
 
 
