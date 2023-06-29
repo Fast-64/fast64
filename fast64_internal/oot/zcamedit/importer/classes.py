@@ -1,4 +1,7 @@
-import math, traceback, bpy
+import math
+import traceback
+import bpy
+
 from ..utility import CFileIO, CreateObject, CreateActorAction, CreateActionPoint, initCS
 
 

@@ -1,4 +1,7 @@
-import bpy, math, mathutils
+import bpy
+import math
+import mathutils
+
 from bpy.app.handlers import persistent
 from .utility import GetCamBones, GetCamCommands, IsPreview, GetActionLists, GetActionListPoints
 

@@ -1,4 +1,8 @@
-import os, shutil, math, traceback
+import os
+import shutil
+import math
+import traceback
+
 from struct import pack, unpack
 from ..utility import (
     CFileIO,
