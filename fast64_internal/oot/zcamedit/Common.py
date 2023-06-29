@@ -15,10 +15,8 @@ def ActorHeightMeters(context, actor_id):
         return 1.5
 
 
-"""From https://stackoverflow.com/questions/14431170/get-the-bits-of-a-float-in-python"""
-
-
 def intBitsAsFloat(i):
+    """From https://stackoverflow.com/questions/14431170/get-the-bits-of-a-float-in-python"""
     s = pack(">l", i)
     return unpack(">f", s)[0]
 
@@ -28,10 +26,8 @@ def floatBitsAsInt(f):
     return unpack(">l", s)[0]
 
 
-"""From https://stackoverflow.com/questions/7085512/check-what-number-a-string-ends-with-in-python/7085715"""
-
-
 def GetTrailingNumber(s):
+    """From https://stackoverflow.com/questions/7085512/check-what-number-a-string-ends-with-in-python/7085715"""
     m = search(r"\d+$", s)
     return int(m.group()) if m else None
 
@@ -57,3 +53,17 @@ def CreateObject(context, name, data, select):
         obj.select_set(True)
         context.view_layer.objects.active = obj
     return obj
+
+
+def CheckGetCSObj(op, context):
+    """Check if we are editing a cutscene."""
+    cs_object = context.view_layer.objects.active
+    if cs_object is None or cs_object.type != "EMPTY":
+        if op:
+            op.report({"WARNING"}, "Must have an empty object active (selected)")
+        return None
+    if not cs_object.name.startswith("Cutscene."):
+        if op:
+            op.report({"WARNING"}, 'Cutscene empty object must be named "Cutscene.<YourCutsceneName>"')
+        return None
+    return cs_object

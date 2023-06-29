@@ -52,11 +52,10 @@ from .tools import (
     oot_operator_unregister,
 )
 
-from .zcamedit.CSControls import CSControls_register, CSControls_unregister
-from .zcamedit.CamControls import CamControls_register, CamControls_unregister
-from .zcamedit.ActionControls import ActionControls_register, ActionControls_unregister
+from .zcamedit.operators import zcamedit_ops_register, zcamedit_ops_unregister
+from .zcamedit.properties import zcamedit_props_register, zcamedit_props_unregister
+from .zcamedit.panels import zcamedit_panels_register, zcamedit_panels_unregister
 from .zcamedit.Preview import Preview_register, Preview_unregister
-from .zcamedit.ImportExportControls import ImportExportControls_register, ImportExportControls_unregister
 
 
 class OOT_Properties(bpy.types.PropertyGroup):
@@ -127,10 +126,9 @@ def oot_register(registerPanels):
     file_register()
     anim_props_register()
 
-    CSControls_register()
-    CamControls_register()
-    ActionControls_register()
-    ImportExportControls_register()
+    zcamedit_ops_register()
+    zcamedit_props_register()
+    zcamedit_panels_register()
     Preview_register()
 
     for cls in oot_classes:
@@ -167,10 +165,9 @@ def oot_unregister(unregisterPanels):
     anim_props_unregister()
 
     Preview_unregister()
-    ImportExportControls_unregister()
-    ActionControls_unregister()
-    CamControls_unregister()
-    CSControls_unregister()
+    zcamedit_panels_unregister()
+    zcamedit_props_unregister()
+    zcamedit_ops_unregister()
 
     if unregisterPanels:
         oot_panel_unregister()

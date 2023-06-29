@@ -1,7 +1,38 @@
 from bpy.types import Panel, Bone, Armature
-from bpy.props import FloatProperty, IntProperty, EnumProperty
 from bpy.utils import register_class, unregister_class
+from bpy.props import FloatProperty, IntProperty, EnumProperty
+from .Common import CheckGetCSObj
+from .ActionData import IsActionPoint, IsActionList, IsPreview
 from .CamData import EditBoneToBone
+
+
+class ZCAMEDIT_PT_action_controls_panel(Panel):
+    bl_label = "zcamedit Action Controls"
+    bl_idname = "ZCAMEDIT_PT_action_controls_panel"
+    bl_space_type = "PROPERTIES"
+    bl_region_type = "WINDOW"
+    bl_context = "object"
+    bl_options = {"HIDE_HEADER"}
+
+    def draw(self, context):
+        layout = self.layout
+        obj = context.view_layer.objects.active
+        if IsActionPoint(obj):
+            r = layout.row()
+            r.label(text="Action point:")
+            r.prop(obj.zc_apoint, "start_frame")
+            r.prop(obj.zc_apoint, "action_id")
+            obj = obj.parent
+        if IsActionList(obj):
+            r = layout.row()
+            r.label(text="Action list:")
+            r.prop(obj.zc_alist, "actor_id")
+            layout.operator("zcamedit.add_action_point")
+            layout.operator("zcamedit.create_action_preview")
+        if IsPreview(obj):
+            r = layout.row()
+            r.label(text="Preview:")
+            r.prop(obj.zc_alist, "actor_id")
 
 
 class ZCAMEDIT_PT_cam_panel(Panel):
@@ -44,8 +75,33 @@ class ZCAMEDIT_PT_cam_panel(Panel):
         bprop("camroll")
 
 
-def CamControls_register():
-    register_class(ZCAMEDIT_PT_cam_panel)
+class ZCAMEDIT_PT_cs_controls_panel(Panel):
+    bl_label = "zcamedit Cutscene Controls"
+    bl_idname = "ZCAMEDIT_PT_cs_controls_panel"
+    bl_space_type = "PROPERTIES"
+    bl_region_type = "WINDOW"
+    bl_context = "object"
+    bl_options = {"HIDE_HEADER"}
+
+    def draw(self, context):
+        layout = self.layout
+        if CheckGetCSObj(None, context):
+            layout.prop(context.scene, "ootBlenderScale")
+            layout.prop(context.scene, "zc_previewlinkage")
+            layout.operator("zcamedit.init_cs")
+            layout.operator("zcamedit.create_shot")
+            layout.operator("zcamedit.create_link_action")
+            layout.operator("zcamedit.create_actor_action")
+
+
+classes = (ZCAMEDIT_PT_action_controls_panel, ZCAMEDIT_PT_cam_panel, ZCAMEDIT_PT_cs_controls_panel)
+
+
+def zcamedit_panels_register():
+    for cls in classes:
+        register_class(cls)
+
+    # cam control
     Bone.frames = IntProperty(name="Frames", description="Key point frames value", default=1234, min=0)
     Bone.fov = FloatProperty(name="FoV", description="Field of view (degrees)", default=179.76, min=0.01, max=179.99)
     Bone.camroll = IntProperty(
@@ -68,10 +124,12 @@ def CamControls_register():
     )
 
 
-def CamControls_unregister():
+def zcamedit_panels_unregister():
     del Armature.cam_mode
     del Armature.start_frame
     del Bone.camroll
     del Bone.fov
     del Bone.frames
-    unregister_class(ZCAMEDIT_PT_cam_panel)
+
+    for cls in reversed(classes):
+        unregister_class(cls)

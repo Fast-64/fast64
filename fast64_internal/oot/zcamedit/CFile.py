@@ -2,7 +2,7 @@ import os, shutil, math, traceback, bpy
 from .Common import intBitsAsFloat, floatBitsAsInt, CreateObject
 from .CamData import GetCamCommands, GetCSFakeEnd, GetCamBonesChecked, GetFakeCamCmdLength
 from .ActionData import CreateActorAction, CreateActionPoint, GetActionLists, GetActionListPoints
-from .InitCS import InitCS
+from .InitCS import initCS
 
 
 class CFileIO:
@@ -604,7 +604,7 @@ class CFileImport(CFileIO):
                 self.context, al_object, False, self.ImportPos([lastx, lasty, lastz]), lastf, "0x0000"
             )
         # Init at end to get timing info and set up action previewers
-        InitCS(self.context, cs_object)
+        initCS(self.context, cs_object)
         return True
 
     def OnCutsceneStart(self, csname):
@@ -708,11 +708,6 @@ class CFileImport(CFileIO):
             return str(e)
         self.context.scene.frame_set(self.context.scene.frame_start)
         return None
-
-
-def ImportCFile(context, filename):
-    im = CFileImport(context)
-    return im.ImportCFile(filename)
 
 
 class CFileExport(CFileIO):
@@ -946,6 +941,11 @@ class CFileExport(CFileIO):
         if tmpfile is not None:
             os.remove(tmpfile)
         return ret
+
+
+def ImportCFile(context, filename):
+    im = CFileImport(context)
+    return im.ImportCFile(filename)
 
 
 def ExportCFile(context, filename, use_floats, use_tabs, use_cscmd):

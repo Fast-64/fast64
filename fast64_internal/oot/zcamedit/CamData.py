@@ -2,6 +2,17 @@ import bpy
 from .Common import CreateObject, MetersToBlend
 
 
+class PropsBone:
+    def __init__(self, armo, b):
+        eb = BoneToEditBone(armo, b) if armo.mode == "EDIT" else None
+        self.name = b.name
+        self.head = eb.head if eb is not None else b.head
+        self.tail = eb.tail if eb is not None else b.tail
+        self.frames = eb["frames"] if eb is not None and "frames" in eb else b.frames
+        self.fov = eb["fov"] if eb is not None and "fov" in eb else b.fov
+        self.camroll = eb["camroll"] if eb is not None and "camroll" in eb else b.camroll
+
+
 def GetCamCommands(scene, cso):
     ret = []
     for o in scene.objects:
@@ -32,17 +43,6 @@ def EditBoneToBone(armo, eb):
     else:
         print("Could not find corresponding bone")
         return eb
-
-
-class PropsBone:
-    def __init__(self, armo, b):
-        eb = BoneToEditBone(armo, b) if armo.mode == "EDIT" else None
-        self.name = b.name
-        self.head = eb.head if eb is not None else b.head
-        self.tail = eb.tail if eb is not None else b.tail
-        self.frames = eb["frames"] if eb is not None and "frames" in eb else b.frames
-        self.fov = eb["fov"] if eb is not None and "fov" in eb else b.fov
-        self.camroll = eb["camroll"] if eb is not None and "camroll" in eb else b.camroll
 
 
 def GetCamBones(armo):

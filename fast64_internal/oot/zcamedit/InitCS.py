@@ -3,7 +3,7 @@ from .CamData import GetCSFakeEnd
 from .ActionData import IsActionList, CreateOrInitPreview
 
 
-def InitCS(context, cs_object):
+def initCS(context, cs_object):
     # Add or move camera
     camo = None
     nocam = True
