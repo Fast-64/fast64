@@ -12,8 +12,9 @@ from .ActionData import (
     CreateDefaultActorAction,
 )
 from .CamData import CreateShot
-from .InitCS import initCS
-from .CFile import ImportCFile, ExportCFile
+from .utility import initCS
+from .importer import ImportCFile
+from .exporter import ExportCFile
 
 
 def CheckGetActionList(op, context):
@@ -172,6 +173,7 @@ classes = (
     ZCAMEDIT_OT_import_c,
     ZCAMEDIT_OT_export_c,
 )
+
 
 def menu_func_import(self, context):
     self.layout.operator(ZCAMEDIT_OT_import_c.bl_idname, text="Z64 cutscene C source (.c)")
