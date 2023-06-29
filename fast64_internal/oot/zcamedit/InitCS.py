@@ -4,20 +4,23 @@ from .Common import *
 from .CamData import *
 from .ActionData import *
 
+
 def InitCS(context, cs_object):
     # Add or move camera
     camo = None
     nocam = True
     for o in context.blend_data.objects:
-        if o.type != 'CAMERA': continue
+        if o.type != "CAMERA":
+            continue
         nocam = False
-        if o.parent is not None and o.parent != cs_object: continue
+        if o.parent is not None and o.parent != cs_object:
+            continue
         camo = o
         break
     if nocam:
-        cam = context.blend_data.cameras.new('Camera')
-        camo = CreateObject(context, 'Camera', cam, False)
-        print('Created new camera')
+        cam = context.blend_data.cameras.new("Camera")
+        camo = CreateObject(context, "Camera", cam, False)
+        print("Created new camera")
     if camo is not None:
         camo.parent = cs_object
         camo.data.display_size = MetersToBlend(context, 0.25)
