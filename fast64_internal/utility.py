@@ -54,6 +54,24 @@ def isPowerOf2(n):
     return (n & (n - 1) == 0) and n != 0
 
 
+def log2iRoundDown(n):
+    assert n > 0
+    return int(math.floor(math.log2(n)))
+
+
+def log2iRoundUp(n):
+    assert n > 0
+    return int(math.ceil(math.log2(n)))
+
+
+def roundDownToPowerOf2(n):
+    return 1 << log2iRoundDown(n)
+
+
+def roundUpToPowerOf2(n):
+    return 1 << log2iRoundUp(n)
+
+
 def getDeclaration(data, name):
     matchResult = re.search("extern\s*[A-Za-z0-9\_]*\s*" + re.escape(name) + "\s*(\[[^;\]]*\])?;\s*", data, re.DOTALL)
     return matchResult
@@ -1166,11 +1184,11 @@ def prop_split(layout, data, field, name, **prop_kwargs):
     split.prop(data, field, text="", **prop_kwargs)
 
 
-def toAlnum(name):
+def toAlnum(name, exceptions=[]):
     if name is None or name == "":
         return None
     for i in range(len(name)):
-        if not name[i].isalnum():
+        if not name[i].isalnum() and not name[i] in exceptions:
             name = name[:i] + "_" + name[i + 1 :]
     if name[0].isdigit():
         name = "_" + name
@@ -1190,7 +1208,7 @@ def getNameFromPath(path, removeExtension=False):
     name = os.path.basename(path)
     if removeExtension:
         name = os.path.splitext(name)[0]
-    return toAlnum(name)
+    return toAlnum(name, ["-", "."])
 
 
 def gammaCorrect(linearColor):
@@ -1300,6 +1318,7 @@ def convertEulerFloatToShort(value):
 
 
 # Rotation
+
 
 # Rotation is stored as a short.
 # Zero rotation starts at Z+ on an XZ plane and goes counterclockwise.
@@ -1526,6 +1545,12 @@ def ootGetBaseOrCustomLight(prop, idx, toExport: bool, errIfMissing: bool):
     if toExport:
         col, dir = exportColor(col), normToSigned8Vector(dir)
     return col, dir
+
+
+def getTextureSuffixFromFormat(texFmt):
+    # if texFmt == "RGBA16":
+    #     return "rgb5a1"
+    return texFmt.lower()
 
 
 binOps = {

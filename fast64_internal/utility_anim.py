@@ -179,6 +179,25 @@ def getFrameInterval(action: bpy.types.Action):
 
     return range_get_by_choice[anim_range_choice]()
 
+def stashActionInArmature(armatureObj: bpy.types.Object, action: bpy.types.Action):
+    """
+    Stashes an animation (action) into an armature´s nla tracks.
+    This prevents animations from being deleted by blender or
+    purged by the user on accident.
+    """
+
+    for track in armatureObj.animation_data.nla_tracks:
+        for strip in track.strips:
+            if strip.action is None:
+                continue
+
+            if strip.action.name == action.name:
+                return
+
+    print(f"Stashing \"{action.name}\" in the object \"{armatureObj.name}\".")
+
+    track = armatureObj.animation_data.nla_tracks.new()
+    track.strips.new(action.name, int(action.frame_range[0]), action)
 
 classes = (ArmatureApplyWithMeshOperator,)
 
