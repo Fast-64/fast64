@@ -1,5 +1,5 @@
 import bpy
-from .Common import CreateObject, MetersToBlend
+from .utility import MetersToBlend, CreateObject
 
 
 class PropsBone:

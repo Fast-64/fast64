@@ -1,8 +1,13 @@
 import os, shutil, math, traceback
-from ..constants import CFileIO
-from ..Common import floatBitsAsInt
+from struct import pack, unpack
+from ..utility import CFileIO
 from ..CamData import GetCamCommands, GetCSFakeEnd, GetCamBonesChecked, GetFakeCamCmdLength
 from ..ActionData import GetActionLists, GetActionListPoints
+
+
+def floatBitsAsInt(f):
+    s = pack(">f", f)
+    return unpack(">l", s)[0]
 
 
 class CFileExport(CFileIO):

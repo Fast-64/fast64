@@ -1,6 +1,6 @@
 import random
 from mathutils import Vector
-from .Common import CreateObject, MetersToBlend, ActorHeightMeters
+from .utility import MetersToBlend, CreateObject
 
 
 def IsActionList(obj):
@@ -134,6 +134,11 @@ def CreateOrInitPreview(context, cs_object, actor_id, select=False):
     else:
         preview = CreateObject(context, "Preview." + GetActorName(actor_id) + ".001", None, select)
         preview.parent = cs_object
+    
+    actorHeight = 1.5
+    if actor_id < 0:
+        actorHeight = 1.7 if context.scene.zc_previewlinkage == "link_adult" else 1.3
+
     preview.empty_display_type = "SINGLE_ARROW"
-    preview.empty_display_size = MetersToBlend(context, ActorHeightMeters(context, actor_id))
+    preview.empty_display_size = MetersToBlend(context, actorHeight)
     preview.zc_alist.actor_id = actor_id

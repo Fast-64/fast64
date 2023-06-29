@@ -1,6 +1,5 @@
 import math, traceback, bpy
-from ..constants import CFileIO
-from ..Common import CreateObject
+from ..utility import CFileIO, CreateObject
 from ..ActionData import CreateActorAction, CreateActionPoint
 from ..utility import initCS
 
