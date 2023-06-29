@@ -15,6 +15,7 @@ from copy import deepcopy
 from re import findall
 
 from ..utility import hexOrDecInt
+from ..utility_importer import *
 
 # ------------------------------------------------------------------------
 #    Classes
@@ -160,11 +161,12 @@ class Mat:
         if not pbsdf:
             return
         tex = nodes.new("ShaderNodeTexImage")
-        links.new(pbsdf.inputs[0], tex.outputs[0])
-        links.new(pbsdf.inputs[19], tex.outputs[1])
-        i = self.LoadTexture(0, path)
+        links.new(pbsdf.inputs[0], tex.outputs[0])  # base color
+        i = self.LoadTexture(bpy.context.scene.LevelImp.ForceNewTex, textures, path, tex0)
         if i:
             tex.image = i
+        if int(layer) > 4:
+            mat.blend_method == "BLEND"
 
     def ApplyMatSettings(self, mat, tex_path):
         #        if bpy.context.scene.LevelImp.AsObj:
@@ -383,96 +385,183 @@ class Mat:
 # handles DL import processing, specifically built to process each cmd into the mat class
 # should be inherited into a larger F3d class which wraps DL processing
 # does not deal with flow control or gathering the data containers (VB, Geo cls etc.)
-class DL:
+class DL(DataParser):
     # the min needed for this class to work for importing
     def __init__(self, lastmat=None):
-        self.VB = {}  # vertex buffers
-        self.Gfx = {}  # ptrs: display lists
-        self.diff = {}  # diffuse lights
-        self.amb = {}  # ambient lights
-        self.Lights = {}  # lights
+        self.Vtx = {}
+        self.Gfx = {}
+        self.Light_t = {}
+        self.Ambient_t = {}
+        self.Lights1 = {}
+        self.Textures = {}
         if not lastmat:
             self.LastMat = Mat()
             self.LastMat.name = 0
         else:
             self.LastMat = lastmat
+        super().__init__()
 
-    # DL cmds that control the flow of a DL cannot be handled within a independent	#class method without larger context of the total DL
-    # def gsSPEndDisplayList():
-    # return
-    # def gsSPBranchList():
-    # break
-    # def gsSPDisplayList():
-    # continue
-    # Vertices are not currently handled in the base class
-    # Triangles
-    def gsSP2Triangles(self, args):
+    def gsSPEndDisplayList(self, macro: Macro):
+        return self.break_parse
+        
+    def gsSPBranchList(self, macro: Macro):
+        NewDL = self.Gfx.get(branched_dl := macro.args[0])
+        if not NewDL:
+            raise Exception(
+                "Could not find DL {} in levels/{}/{}leveldata.inc.c".format(
+                    NewDL, self.scene.LevelImp.Level, self.scene.LevelImp.Prefix
+                )
+            )
+        self.parse_stream(NewDL, branched_dl)
+        return self.break_parse
+        
+    def gsSPDisplayList(self, macro: Macro):
+        NewDL = self.Gfx.get(branched_dl := macro.args[0])
+        if not NewDL:
+            raise Exception(
+                "Could not find DL {} in levels/{}/{}leveldata.inc.c".format(
+                    NewDL, self.scene.LevelImp.Level, self.scene.LevelImp.Prefix
+                )
+            )
+        self.parse_stream(NewDL, branched_dl)
+        return self.continue_parse
+        
+    def gsSPEndDisplayList(self, macro: Macro):
+        return self.break_parse
+    
+    def gsSPVertex(self, macro: Macro):
+         # vertex references commonly use pointer arithmatic. I will deal with that case here, but not for other things unless it somehow becomes a problem later
+        if "+" in macro.args[0]:
+            ref, offset = macro.args[0].split("+")
+            offset = hexOrDecInt(offset)
+        else:
+            ref = macro.args[0]
+            offset = 0
+        VB = self.Vtx.get(ref)
+        if not VB:
+            raise Exception(
+                "Could not find VB {} in levels/{}/{}leveldata.inc.c".format(
+                    ref, self.scene.LevelImp.Level, self.scene.LevelImp.Prefix
+                )
+            )
+        vertex_load_start = hexOrDecInt(macro.args[2])
+        vertex_load_length = hexOrDecInt(macro.args[1])
+        Verts = VB[
+            offset : offset + vertex_load_length
+        ]  # If you use array indexing here then you deserve to have this not work
+        Verts = [self.ParseVert(v) for v in Verts]
+        for k, i in enumerate(range(vertex_load_start, vertex_load_length, 1)):
+            self.VertBuff[i] = [Verts[k], vertex_load_start]
+        # These are all independent data blocks in blender
+        self.Verts.extend([v[0] for v in Verts])
+        self.UVs.extend([v[1] for v in Verts])
+        self.VCs.extend([v[2] for v in Verts])
+        self.LastLoad = vertex_load_length
+        return self.continue_parse
+        
+    def gsSP2Triangles(self, macro: Macro):
         self.MakeNewMat()
-        args = [hexOrDecInt(a) for a in args]
+        args = [hexOrDecInt(a) for a in macro.args]
         Tri1 = self.ParseTri(args[:3])
         Tri2 = self.ParseTri(args[4:7])
         self.Tris.append(Tri1)
         self.Tris.append(Tri2)
+        return self.continue_parse
 
-    def gsSP1Triangle(self, args):
+    def gsSP1Triangle(self, macro: Macro):
         self.MakeNewMat()
-        args = [hexOrDecInt(a) for a in args]
+        args = [hexOrDecInt(a) for a in macro.args]
         Tri = self.ParseTri(args[:3])
         self.Tris.append(Tri)
+        return self.continue_parse
 
     # materials
     # Mats will be placed sequentially. The first item of the list is the triangle number
     # The second is the material class
-    def gsDPSetRenderMode(self, args):
+    def gsDPSetRenderMode(self, macro: Macro):
         self.NewMat = 1
-        self.LastMat.RenderMode = [a.strip() for a in args]
+        self.LastMat.RenderMode = [a.strip() for a in macro.args]
+        return self.continue_parse
 
-    def gsDPSetFogColor(self, args):
+    # not finished yet
+    def gsSPLight(self, macro: Macro):
+        return self.continue_parse
+    def gsSPLightColor(self, macro: Macro):
+        return self.continue_parse
+    def gsSPSetLights0(self, macro: Macro):
+        return self.continue_parse
+    def gsSPSetLights1(self, macro: Macro):
+        return self.continue_parse
+    def gsSPSetLights2(self, macro: Macro):
+        return self.continue_parse
+    def gsSPSetLights3(self, macro: Macro):
+        return self.continue_parse
+    def gsSPSetLights4(self, macro: Macro):
+        return self.continue_parse
+    def gsSPSetLights5(self, macro: Macro):
+        return self.continue_parse
+    def gsSPSetLights6(self, macro: Macro):
+        return self.continue_parse
+    def gsSPSetLights7(self, macro: Macro):
+        return self.continue_parse
+    def gsDPSetDepthSource(self, macro: Macro):
+        return self.continue_parse
+    def gsSPFogFactor(self, macro: Macro):
+        return self.continue_parse
+    
+    def gsDPSetFogColor(self, macro: Macro):
         self.NewMat = 1
-        self.LastMat.fog_color = args
+        self.LastMat.fog_color = macro.args
+        return self.continue_parse
 
-    def gsSPFogPosition(self, args):
+    def gsSPFogPosition(self, macro: Macro):
         self.NewMat = 1
-        self.LastMat.fog_pos = args
+        self.LastMat.fog_pos = macro.args
+        return self.continue_parse
 
-    def gsSPLightColor(self, args):
+    def gsSPLightColor(self, macro: Macro):
         self.NewMat = 1
         if not hasattr(self.LastMat, "light_col"):
             self.LastMat.light_col = {}
-        num = re.search("_\d", args[0]).group()[1]
-        self.LastMat.light_col[num] = args[-1]
+        num = re.search("_\d", macro.args[0]).group()[1]
+        self.LastMat.light_col[num] = macro.args[-1]
+        return self.continue_parse
 
-    def gsDPSetPrimColor(self, args):
+    def gsDPSetPrimColor(self, macro: Macro):
         self.NewMat = 1
-        self.LastMat.prim_color = args
+        self.LastMat.prim_color = macro.args
+        return self.continue_parse
 
-    def gsDPSetEnvColor(self, args):
+    def gsDPSetEnvColor(self, macro: Macro):
         self.NewMat = 1
-        self.LastMat.env_color = args
+        self.LastMat.env_color = macro.args
+        return self.continue_parse
 
     # multiple geo modes can happen in a row that contradict each other
     # this is mostly due to culling wanting diff geo modes than drawing
     # but sometimes using the same vertices
-    def gsSPClearGeometryMode(self, args):
+    def gsSPClearGeometryMode(self, macro: Macro):
         self.NewMat = 1
-        args = [a.strip() for a in args[0].split("|")]
+        args = [a.strip() for a in macro.args[0].split("|")]
         for a in args:
             if a in self.LastMat.GeoSet:
                 self.LastMat.GeoSet.remove(a)
         self.LastMat.GeoClear.extend(args)
+        return self.continue_parse
 
-    def gsSPSetGeometryMode(self, args):
+    def gsSPSetGeometryMode(self, macro: Macro):
         self.NewMat = 1
-        args = [a.strip() for a in args[0].split("|")]
+        args = [a.strip() for a in macro.args[0].split("|")]
         for a in args:
             if a in self.LastMat.GeoClear:
                 self.LastMat.GeoClear.remove(a)
         self.LastMat.GeoSet.extend(args)
+        return self.continue_parse
 
-    def gsSPGeometryMode(self, args):
+    def gsSPGeometryMode(self, macro: Macro):
         self.NewMat = 1
-        argsC = [a.strip() for a in args[0].split("|")]
-        argsS = [a.strip() for a in args[1].split("|")]
+        argsC = [a.strip() for a in macro.args[0].split("|")]
+        argsS = [a.strip() for a in macro.args[1].split("|")]
         for a in argsC:
             if a in self.LastMat.GeoSet:
                 self.LastMat.GeoSet.remove(a)
@@ -481,39 +570,44 @@ class DL:
                 self.LastMat.GeoClear.remove(a)
         self.LastMat.GeoClear.extend(argsC)
         self.LastMat.GeoSet.extend(argsS)
+        return self.continue_parse
 
-    def gsDPSetCycleType(self, args):
-        if "G_CYC_1CYCLE" in args[0]:
+    def gsDPSetCycleType(self, macro: Macro):
+        if "G_CYC_1CYCLE" in macro.args[0]:
             self.LastMat.TwoCycle = False
-        if "G_CYC_2CYCLE" in args[0]:
+        if "G_CYC_2CYCLE" in macro.args[0]:
             self.LastMat.TwoCycle = True
+        return self.continue_parse
 
-    def gsDPSetCombineMode(self, args):
+    def gsDPSetCombineMode(self, macro: Macro):
         self.NewMat = 1
-        self.LastMat.Combiner = self.EvalCombiner(args)
+        self.LastMat.Combiner = self.EvalCombiner(macro.args)
+        return self.continue_parse
 
-    def gsDPSetCombineLERP(self, args):
+    def gsDPSetCombineLERP(self, macro: Macro):
         self.NewMat = 1
-        self.LastMat.Combiner = [a.strip() for a in args]
+        self.LastMat.Combiner = [a.strip() for a in macro.args]
+        return self.continue_parse
 
     # root tile, scale and set tex
-    def gsSPTexture(self, args):
+    def gsSPTexture(self, macro: Macro):
         self.NewMat = 1
         macros = {
             "G_ON": 2,
             "G_OFF": 0,
         }
-        set_tex = macros.get(args[-1].strip())
+        set_tex = macros.get(macro.args[-1].strip())
         if set_tex == None:
-            set_tex = hexOrDecInt(args[-1].strip())
+            set_tex = hexOrDecInt(macro.args[-1].strip())
         self.LastMat.set_tex = set_tex == 2
         self.LastMat.tex_scale = [
-            ((0x10000 * (hexOrDecInt(a) < 0)) + hexOrDecInt(a)) / 0xFFFF for a in args[0:2]
+            ((0x10000 * (hexOrDecInt(a) < 0)) + hexOrDecInt(a)) / 0xFFFF for a in macro.args[0:2]
         ]  # signed half to unsigned half
-        self.LastMat.tile_root = self.EvalTile(args[-2].strip())  # I don't think I'll actually use this
+        self.LastMat.tile_root = self.EvalTile(macro.args[-2].strip())  # I don't think I'll actually use this
+        return self.continue_parse
 
     # last tex is a palette
-    def gsDPLoadTLUT(self, args):
+    def gsDPLoadTLUT(self, macro: Macro):
         try:
             tex = self.LastMat.loadtex
             self.LastMat.pal = tex
@@ -524,15 +618,16 @@ class DL:
                 "No interpretation on file possible**--"
             )
             return None
+        return self.continue_parse
 
     # tells us what tile the last loaded mat goes into
-    def gsDPLoadBlock(self, args):
+    def gsDPLoadBlock(self, macro: Macro):
         try:
             tex = self.LastMat.loadtex
             # these values aren't necessary when the texture is already in png format
             # tex.dxt = hexOrDecInt(args[4])
             # tex.texels = hexOrDecInt(args[3])
-            tile = self.EvalTile(args[0])
+            tile = self.EvalTile(macro.args[0])
             tex.tile = tile
             if tile == 7:
                 self.LastMat.tex0 = tex
@@ -545,34 +640,50 @@ class DL:
                 "No interpretation on file possible**--"
             )
             return None
+        return self.continue_parse
 
-    def gsDPSetTextureImage(self, args):
+    def gsDPSetTextureImage(self, macro: Macro):
         self.NewMat = 1
-        Timg = args[3].strip()
-        Fmt = args[1].strip()
-        Siz = args[2].strip()
+        Timg = macro.args[3].strip()
+        Fmt = macro.args[1].strip()
+        Siz = macro.args[2].strip()
         loadtex = Texture(Timg, Fmt, Siz)
         self.LastMat.loadtex = loadtex
+        return self.continue_parse
 
-    def gsDPSetTileSize(self, args):
+    def gsDPSetTileSize(self, macro: Macro):
         self.NewMat = 1
-        tile = self.LastMat.tiles[self.EvalTile(args[0])]
-        tile.Slow = self.EvalImFrac(args[1].strip())
-        tile.Tlow = self.EvalImFrac(args[2].strip())
-        tile.Shigh = self.EvalImFrac(args[3].strip())
-        tile.Thigh = self.EvalImFrac(args[4].strip())
+        tile = self.LastMat.tiles[self.EvalTile(macro.args[0])]
+        tile.Slow = self.EvalImFrac(macro.args[1].strip())
+        tile.Tlow = self.EvalImFrac(macro.args[2].strip())
+        tile.Shigh = self.EvalImFrac(macro.args[3].strip())
+        tile.Thigh = self.EvalImFrac(macro.args[4].strip())
+        return self.continue_parse
 
-    def gsDPSetTile(self, args):
+    def gsDPSetTile(self, macro: Macro):
         self.NewMat = 1
-        tile = self.LastMat.tiles[self.EvalTile(args[4].strip())]
-        tile.Fmt = args[0].strip()
-        tile.Siz = args[1].strip()
-        tile.Tflags = args[6].strip()
-        tile.TMask = self.EvalTile(args[7].strip())
-        tile.TShift = self.EvalTile(args[8].strip())
-        tile.Sflags = args[9].strip()
-        tile.SMask = self.EvalTile(args[10].strip())
-        tile.SShift = self.EvalTile(args[11].strip())
+        tile = self.LastMat.tiles[self.EvalTile(macro.args[4].strip())]
+        tile.Fmt = macro.args[0].strip()
+        tile.Siz = macro.args[1].strip()
+        tile.Tflags = macro.args[6].strip()
+        tile.TMask = self.EvalTile(macro.args[7].strip())
+        tile.TShift = self.EvalTile(macro.args[8].strip())
+        tile.Sflags = macro.args[9].strip()
+        tile.SMask = self.EvalTile(macro.args[10].strip())
+        tile.SShift = self.EvalTile(macro.args[11].strip())
+        return self.continue_parse
+
+    #syncs need no processing
+    def gsDPPipeSync(self, macro: Macro):
+        return self.continue_parse
+    def gsDPLoadSync(self, macro: Macro):
+        return self.continue_parse
+    def gsDPTileSync(self, macro: Macro):
+        return self.continue_parse
+    def gsDPFullSync(self, macro: Macro):
+        return self.continue_parse
+    def gsDPNoOp(self, macro: Macro):
+        return self.continue_parse
 
     def MakeNewMat(self):
         if self.NewMat:

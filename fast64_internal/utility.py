@@ -210,6 +210,12 @@ def getGroupNameFromIndex(obj, index):
             return group.name
     return None
 
+# creates a new collection and links it to parent
+def create_collection(parent: bpy.types.Collection, name: str):
+    col = bpy.data.collections.new(name)
+    parent.children.link(col)
+    return col
+
 
 def copyPropertyCollection(oldProp, newProp):
     newProp.clear()
@@ -1148,6 +1154,18 @@ def applyRotation(objList, angle, axis):
 def doRotation(angle, axis):
     direction = getDirectionGivenAppVersion()
     bpy.ops.transform.rotate(value=direction * angle, orient_axis=axis, orient_type="GLOBAL")
+
+# consider checking redundancy of this with above functions?
+def rotate_object(deg: float, obj: bpy.types.Object, world: bool = 0):
+    deg = Euler((math.radians(-deg), 0, 0))
+    deg = deg.to_quaternion().to_matrix().to_4x4()
+    if world:
+        obj.matrix_world = obj.matrix_world @ deg
+        obj.select_set(True)
+        bpy.context.view_layer.objects.active = obj
+        bpy.ops.object.transform_apply(rotation=True)
+    else:
+        obj.matrix_basis = obj.matrix_basis @ deg
 
 
 def getAddressFromRAMAddress(RAMAddress):

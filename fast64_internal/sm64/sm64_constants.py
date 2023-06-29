@@ -1768,7 +1768,12 @@ enumMacrosNames = [
     ("macro_yellow_coin", "Yellow Coin", "Yellow Coin"),
     ("macro_yellow_coin_2", "Yellow Coin 2", "Yellow Coin 2"),
 ]
-
+enumVersionDefs = [
+    ("VERSION_US", "VERSION_US", ""),
+    ("VERSION_JP", "VERSION_JP", ""),
+    ("VERSION_EU", "VERSION_EU", ""),
+    ("VERSION_SH", "VERSION_SH", ""),
+]
 
 # groups you can select for levels
 groupsSeg5 = [
