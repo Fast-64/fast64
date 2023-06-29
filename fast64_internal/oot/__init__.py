@@ -52,6 +52,12 @@ from .tools import (
     oot_operator_unregister,
 )
 
+from .zcamedit.CSControls import CSControls_register, CSControls_unregister
+from .zcamedit.CamControls import CamControls_register, CamControls_unregister
+from .zcamedit.ActionControls import ActionControls_register, ActionControls_unregister
+from .zcamedit.Preview import Preview_register, Preview_unregister
+from .zcamedit.ImportExportControls import ImportExportControls_register, ImportExportControls_unregister
+
 
 class OOT_Properties(bpy.types.PropertyGroup):
     """Global OOT Scene Properties found under scene.fast64.oot"""
@@ -121,6 +127,12 @@ def oot_register(registerPanels):
     file_register()
     anim_props_register()
 
+    CSControls_register()
+    CamControls_register()
+    ActionControls_register()
+    ImportExportControls_register()
+    Preview_register()
+
     for cls in oot_classes:
         register_class(cls)
 
@@ -153,6 +165,12 @@ def oot_unregister(unregisterPanels):
     f3d_ops_unregister()
     file_unregister()
     anim_props_unregister()
+
+    Preview_unregister()
+    ImportExportControls_unregister()
+    ActionControls_unregister()
+    CamControls_unregister()
+    CSControls_unregister()
 
     if unregisterPanels:
         oot_panel_unregister()
