@@ -3,6 +3,7 @@ import traceback
 import bpy
 
 from ..utility import CFileIO, CreateObject, CreateActorAction, CreateActionPoint, initCS
+from ..constants import CAM_TYPE_TO_TYPE, CAM_TYPE_TO_MODE
 
 
 class CFileImport(CFileIO):
@@ -116,10 +117,10 @@ class CFileImport(CFileIO):
             self.listtype = "action"
             self.actor_id = cmd["cmdType"]
         else:
-            self.listtype = self.CAM_TYPE_TO_TYPE.get(cmd["name"], None)
+            self.listtype = CAM_TYPE_TO_TYPE.get(cmd["name"], None)
             if self.listtype is None:
                 return
-            self.listmode = self.CAM_TYPE_TO_MODE[cmd["name"]]
+            self.listmode = CAM_TYPE_TO_MODE[cmd["name"]]
             self.list_startFrame = cmd["startFrame"]
             self.list_endFrame = cmd["endFrame"]
             if self.listtype == "at":

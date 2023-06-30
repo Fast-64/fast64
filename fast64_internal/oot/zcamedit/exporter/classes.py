@@ -4,6 +4,7 @@ import math
 import traceback
 
 from struct import pack, unpack
+from ..constants import CAM_TYPE_LISTS, ACTION_LISTS, ATMODE_TO_CMD
 from ..utility import (
     CFileIO,
     GetCamCommands,
@@ -45,7 +46,7 @@ class CFileExport(CFileIO):
         return self.tabstr + "CS_END(),\n"
 
     def CreateCamListCmd(self, start, end, at, mode):
-        return self.tabstr + self.ATMODE_TO_CMD[at][mode] + "_LIST(" + str(start) + ", " + str(end) + "),\n"
+        return self.tabstr + ATMODE_TO_CMD[at][mode] + "_LIST(" + str(start) + ", " + str(end) + "),\n"
 
     def WritePos(self, pos):
         x, y, z = int(round(pos[0] * self.scale)), int(round(pos[2] * self.scale)), int(round(-pos[1] * self.scale))
@@ -70,7 +71,7 @@ class CFileExport(CFileIO):
             c_continue = "CS_CMD_CONTINUE" if c_continue else "CS_CMD_STOP"
         else:
             c_continue = "0" if c_continue else "-1"
-        cmd = self.tabstr * 2 + self.ATMODE_TO_CMD[at][mode] + "(" + c_continue + ", "
+        cmd = self.tabstr * 2 + ATMODE_TO_CMD[at][mode] + "(" + c_continue + ", "
         cmd += str(c_roll) + ", "
         cmd += str(c_frames) + ", "
         cmd += (str(c_fov) + "f" if self.use_floats else hex(floatBitsAsInt(c_fov))) + ", "
@@ -154,11 +155,11 @@ class CFileExport(CFileIO):
 
     def OnListStart(self, l, cmd):
         super().OnListStart(l, cmd)
-        if cmd["name"] in self.CAM_TYPE_LISTS:
+        if cmd["name"] in CAM_TYPE_LISTS:
             if self.cs_object is not None and not self.wrote_cam_lists:
                 self.WriteCamMotion(self.cs_object)
                 self.wrote_cam_lists = True
-        elif cmd["name"] in self.ACTION_LISTS:
+        elif cmd["name"] in ACTION_LISTS:
             if self.cs_object is not None and not self.wrote_action_lists:
                 self.WriteActionLists(self.cs_object)
                 self.wrote_action_lists = True
