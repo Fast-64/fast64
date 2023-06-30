@@ -29,7 +29,7 @@ class OOTCutsceneMotionIOBase:
                     value = int(cmdArg, base=0)
                 except ValueError:
                     raise RuntimeError("Invalid numeric value for " + paramList["name"] + " in " + line)
-                
+
                 width = paramList.get("width", 16)
 
                 if width == 16 and value >= 0xFFFF8000 and value <= 0xFFFFFFFF:
@@ -61,7 +61,7 @@ class OOTCutsceneMotionIOBase:
                 value = cmdArg
             else:
                 raise RuntimeError("Invalid command parameter type: " + paramList["type"])
-            
+
             if ("min" in paramList and value < paramList["min"]) or ("max" in paramList and value >= paramList["max"]):
                 raise RuntimeError("Value out of range for " + paramList["name"] + " in " + line)
 
@@ -74,20 +74,20 @@ class OOTCutsceneMotionIOBase:
 
         if not line.endswith("),"):
             raise RuntimeError(f"Syntax error: `{line}`")
-        
+
         if curListName is not None:
             curCmdDef = next((cmdDef for cmdDef in LISTS_DEF if cmdDef["name"] == curListName), None)
 
             if curCmdDef is None:
                 raise RuntimeError("Invalid current list: " + curListName)
-            
+
             for listEntryCmdDef in curCmdDef["commands"]:
                 if line.startswith(listEntryCmdDef["name"] + "("):
                     if not line.startswith("\t\t") and not line.startswith(indent * 2):
                         print(f"Warning, invalid indentation in {curListName}: `{line}`")
 
                     return self.parseParams(listEntryCmdDef, line), "same"
-                
+
         if not (line.startswith("\t") and len(line) > 1 and line[1] != "\t") and not (
             line.startswith(indent) and len(line) > 4 and line[4] != " "
         ):
@@ -98,7 +98,7 @@ class OOTCutsceneMotionIOBase:
 
         if curCmdDef is not None:
             return self.parseParams(curCmdDef, line), curCmdDef["name"]
-        
+
         curCmdDef = next((cmdDef for cmdDef in NONLISTS_DEF if line.startswith(cmdDef["name"] + "(")), None)
 
         if curCmdDef is not None:
@@ -110,10 +110,15 @@ class OOTCutsceneMotionIOBase:
         # list of the different words of the array name, looking for "CutsceneData csName[] = {"
         arrayNameElems = line.strip().split(" ")
 
-        if (len(arrayNameElems) != 4 or arrayNameElems[0] != "CutsceneData"
-            or not arrayNameElems[1].endswith("[]") or arrayNameElems[2] != "=" or arrayNameElems[3] != "{"):
+        if (
+            len(arrayNameElems) != 4
+            or arrayNameElems[0] != "CutsceneData"
+            or not arrayNameElems[1].endswith("[]")
+            or arrayNameElems[2] != "="
+            or arrayNameElems[3] != "{"
+        ):
             return None
-        
+
         return arrayNameElems[1][:-2]
 
     def onLineOutsideCS(self, line: str):
@@ -152,7 +157,7 @@ class OOTCutsceneMotionIOBase:
         if self.in_cam_list:
             if self.cam_list_last:
                 raise RuntimeError(f"More camera commands after last cmd! `{line}`")
-            
+
             self.cam_list_last = not cmd["continueFlag"]
 
     def onListEnd(self):
@@ -161,18 +166,16 @@ class OOTCutsceneMotionIOBase:
                 f"List `{self.curlist}` was supposed to have {self.list_nentries} entries "
                 + f"but actually had {self.list_entrycount}!"
             )
-        
+
         if self.in_cam_list and not self.cam_list_last:
             raise RuntimeError("Camera list terminated without stop marker!")
-        
+
         self.in_cam_list = False
         self.in_action_list = False
-    
+
     def onCutsceneEnd(self):
         if self.nentries != self.entrycount:
-            raise RuntimeError(
-                f"Cutscene header claimed {self.nentries} entries but only {self.entrycount} found!"
-            )
+            raise RuntimeError(f"Cutscene header claimed {self.nentries} entries but only {self.entrycount} found!")
 
     def processInputFile(self, filename: str):
         state = "OutsideCS"
@@ -194,7 +197,7 @@ class OOTCutsceneMotionIOBase:
 
             if parenOpen != 0:
                 raise RuntimeError("Unbalanced parentheses by end of file")
-            
+
             for line in lines:
                 if state == "OutsideCS":
                     csName = self.getCutsceneArrayName(line)
@@ -213,7 +216,7 @@ class OOTCutsceneMotionIOBase:
                 if self.first_cs_cmd or curCmdDef["name"] == "CS_BEGIN_CUTSCENE":
                     if not self.first_cs_cmd or not curCmdDef["name"] == "CS_BEGIN_CUTSCENE":
                         raise RuntimeError("First command in cutscene must be only CS_BEGIN_CUTSCENE! " + line)
-                    
+
                     self.nentries = curCmdDef["totalEntries"]
                     self.first_cs_cmd = False
 
