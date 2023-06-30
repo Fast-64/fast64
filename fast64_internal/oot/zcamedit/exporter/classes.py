@@ -6,7 +6,7 @@ import traceback
 from struct import pack, unpack
 from ..constants import CAM_TYPE_LISTS, ACTION_LISTS, ATMODE_TO_CMD
 from ..utility import (
-    CFileIO,
+    OOTCutsceneMotionIOBase,
     GetCamCommands,
     GetCSFakeEnd,
     GetCamBonesChecked,
@@ -21,7 +21,7 @@ def floatBitsAsInt(f):
     return unpack(">l", s)[0]
 
 
-class CFileExport(CFileIO):
+class OOTCutsceneMotionExport(OOTCutsceneMotionIOBase):
     def __init__(self, context, use_floats, use_tabs, use_cscmd):
         super().__init__(context)
         self.use_floats, self.use_tabs, self.use_cscmd = use_floats, use_tabs, use_cscmd
@@ -105,24 +105,24 @@ class CFileExport(CFileIO):
                 continue
             self.cs_objects.append(o)
 
-    def OnCutsceneStart(self, csname):
-        super().OnCutsceneStart(csname)
+    def onCutsceneStart(self, csName: str):
+        super().onCutsceneStart(csName)
         self.wrote_cam_lists = False
         self.wrote_action_lists = False
         for o in self.cs_objects:
-            if o.name == "Cutscene." + csname:
+            if o.name == "Cutscene." + csName:
                 self.cs_object = o
                 self.cs_objects.remove(o)
-                print("Replacing camera commands in cutscene " + csname)
+                print("Replacing camera commands in cutscene " + csName)
                 break
         else:
             self.cs_object = None
-            print("Scene does not contain cutscene " + csname + " in file, skipping")
-        self.outfile.write(self.CreateCutsceneStartCmd(csname))
+            print("Scene does not contain cutscene " + csName + " in file, skipping")
+        self.outfile.write(self.CreateCutsceneStartCmd(csName))
         self.cs_text = ""
 
-    def OnCutsceneEnd(self):
-        super().OnCutsceneEnd()
+    def onCutsceneEnd(self):
+        super().onCutsceneEnd()
         if self.cs_object is not None:
             if not self.wrote_cam_lists:
                 print("Cutscene did not contain any existing camera commands, adding at end")
@@ -135,12 +135,12 @@ class CFileExport(CFileIO):
         self.outfile.write(self.CreateCutsceneBeginCmdRaw(self.entrycount_write, self.cs_end_frame))
         self.outfile.write(self.cs_text)
 
-    def OnLineOutsideCS(self, l):
-        super().OnLineOutsideCS(l)
+    def onLineOutsideCS(self, l):
+        super().onLineOutsideCS(l)
         self.outfile.write(l)
 
-    def OnNonListCmd(self, l, cmd):
-        super().OnNonListCmd(l, cmd)
+    def onNonListCmd(self, l, cmd):
+        super().onNonListCmd(l, cmd)
         if cmd["name"] == "CS_BEGIN_CUTSCENE":
             self.cs_end_frame = cmd["endFrame"]
             self.entrycount_write = 0
@@ -148,13 +148,13 @@ class CFileExport(CFileIO):
             self.cs_text += l
             self.entrycount_write += 1
 
-    def OnListCmd(self, l, cmd):
-        super().OnListCmd(l, cmd)
+    def onListCmd(self, l, cmd):
+        super().onListCmd(l, cmd)
         if not self.in_cam_list and not self.in_action_list:
             self.cs_text += l
 
-    def OnListStart(self, l, cmd):
-        super().OnListStart(l, cmd)
+    def onListStart(self, l, cmd):
+        super().onListStart(l, cmd)
         if cmd["name"] in CAM_TYPE_LISTS:
             if self.cs_object is not None and not self.wrote_cam_lists:
                 self.WriteCamMotion(self.cs_object)
@@ -228,7 +228,7 @@ class CFileExport(CFileIO):
         try:
             with open(filename, "w") as self.outfile:
                 if tmpfile is not None:
-                    self.TraverseInputFile(tmpfile)
+                    self.processInputFile(tmpfile)
                 for o in self.cs_objects:
                     print(
                         o.name + " not found in C file, appending to end. This may require manual editing afterwards."

@@ -2,11 +2,11 @@ import math
 import traceback
 import bpy
 
-from ..utility import CFileIO, CreateObject, CreateActorAction, CreateActionPoint, initCS
+from ..utility import OOTCutsceneMotionIOBase, CreateObject, CreateActorAction, CreateActionPoint, initCS
 from ..constants import CAM_TYPE_TO_TYPE, CAM_TYPE_TO_MODE
 
 
-class CFileImport(CFileIO):
+class OOTCutsceneMotionImport(OOTCutsceneMotionIOBase):
     def __init__(self, context):
         super().__init__(context)
 
@@ -91,15 +91,15 @@ class CFileImport(CFileIO):
         initCS(self.context, cs_object)
         return True
 
-    def OnCutsceneStart(self, csname):
-        super().OnCutsceneStart(csname)
-        self.csname = csname
+    def onCutsceneStart(self, csName: str):
+        super().onCutsceneStart(csName)
+        self.csname = csName
         self.poslists = []
         self.atlists = []
         self.actionlists = []
 
-    def OnCutsceneEnd(self):
-        super().OnCutsceneEnd()
+    def onCutsceneEnd(self):
+        super().onCutsceneEnd()
         if len(self.poslists) != len(self.atlists):
             raise RuntimeError(
                 "Found " + str(len(self.poslists)) + " pos lists but " + str(len(self.atlists)) + " at lists!"
@@ -107,8 +107,8 @@ class CFileImport(CFileIO):
         if not self.CSToBlender(self.csname, self.poslists, self.atlists, self.actionlists):
             raise RuntimeError("CSToBlender failed")
 
-    def OnListStart(self, l, cmd):
-        super().OnListStart(l, cmd)
+    def onListStart(self, l, cmd):
+        super().onListStart(l, cmd)
         self.listdata = []
         if cmd["name"] == "CS_PLAYER_ACTION_LIST":
             self.listtype = "action"
@@ -146,8 +146,8 @@ class CFileImport(CFileIO):
                         + ", but there's no pos list with this start frame!"
                     )
 
-    def OnListEnd(self):
-        super().OnListEnd()
+    def onListEnd(self):
+        super().onListEnd()
         if self.listtype == "action":
             if len(self.listdata) < 1:
                 raise RuntimeError("No action list entries!")
@@ -176,8 +176,8 @@ class CFileImport(CFileIO):
                 }
             )
 
-    def OnListCmd(self, l, cmd):
-        super().OnListCmd(l, cmd)
+    def onListCmd(self, l, cmd):
+        super().onListCmd(l, cmd)
         if self.listtype is None:
             return
         self.listdata.append(cmd)
@@ -186,7 +186,7 @@ class CFileImport(CFileIO):
         if self.context.view_layer.objects.active is not None:
             bpy.ops.object.mode_set(mode="OBJECT")
         try:
-            self.TraverseInputFile(filename)
+            self.processInputFile(filename)
         except Exception as e:
             print("".join(traceback.TracebackException.from_exception(e).format()))
             return str(e)

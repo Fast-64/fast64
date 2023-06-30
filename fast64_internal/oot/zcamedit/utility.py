@@ -1,211 +1,238 @@
 import math
 from struct import pack, unpack
+from ...utility import indent
 from .constants import LISTS_DEF, NONLISTS_DEF, CAM_TYPE_LISTS, ACTION_LISTS
 
 
-class CFileIO:
+class OOTCutsceneMotionIOBase:
     def __init__(self, context):
-        self.context, self.scale = context, context.scene.ootBlenderScale
+        self.context = context
+        self.scale = context.scene.ootBlenderScale
 
-    def ParseParams(self, cmddef, l):
-        assert l.startswith(cmddef["name"] + "(")
-        assert l.endswith("),")
-        toks = [t.strip() for t in l[len(cmddef["name"]) + 1 : -2].split(",") if t.strip()]
-        if len(toks) != len(cmddef["params"]):
+    def parseParams(self, cmdDef: dict, line: str):
+        assert line.startswith(cmdDef["name"] + "(")
+        assert line.endswith("),")
+
+        cmdArgs = [cmdArg.strip() for cmdArg in line[len(cmdDef["name"]) + 1 : -2].split(",") if cmdArg.strip()]
+
+        if len(cmdArgs) != len(cmdDef["params"]):
             raise RuntimeError(
-                "Command "
-                + cmddef["name"]
-                + " requires "
-                + str(len(cmddef["params"]))
-                + " params but only "
-                + str(len(toks))
-                + " found in file"
+                f"Command: `{cmdDef['name']}` requires {len(cmdDef['params'])} parameters "
+                + f"but only {len(cmdArgs)} found in file"
             )
-        ret = {"name": cmddef["name"]}
-        for t, p in zip(toks, cmddef["params"]):
-            if p["type"] in ("int", "hex"):
+
+        ret = {"name": cmdDef["name"]}
+
+        for cmdArg, paramList in zip(cmdArgs, cmdDef["params"]):
+            if paramList["type"] in ("int", "hex"):
                 try:
-                    value = int(t, 0)
+                    value = int(cmdArg, base=0)
                 except ValueError:
-                    raise RuntimeError("Invalid numeric value for " + p["name"] + " in " + l)
-                width = p.get("width", 16)
+                    raise RuntimeError("Invalid numeric value for " + paramList["name"] + " in " + line)
+                
+                width = paramList.get("width", 16)
+
                 if width == 16 and value >= 0xFFFF8000 and value <= 0xFFFFFFFF:
                     value -= 0x100000000
                 elif width == 8 and value >= 0xFFFFFF80 and value <= 0xFFFFFFFF:
                     value -= 0x100000000
                 elif value >= (1 << width) or value < -(1 << (width - 1)):
-                    raise RuntimeError("Value out of range for " + p["name"] + " in " + l)
+                    raise RuntimeError("Value out of range for " + paramList["name"] + " in " + line)
                 elif value >= (1 << (width - 1)):
                     value -= 1 << width
-            elif p["type"] == "continueFlag":
-                if t in ["0", "CS_CMD_CONTINUE"]:
+            elif paramList["type"] == "continueFlag":
+                if cmdArg in ["0", "CS_CMD_CONTINUE"]:
                     value = True
-                elif t in ["-1", "CS_CMD_STOP"]:
+                elif cmdArg in ["-1", "CS_CMD_STOP"]:
                     value = False
                 else:
-                    raise RuntimeError("Invalid continueFlag value for " + p["name"] + " in " + l)
-            elif p["type"] == "int_or_float":
-                if t.startswith("0x"):
-                    value = intBitsAsFloat(int(t, 16))
-                elif t.endswith("f"):
-                    value = float(t[:-1])
+                    raise RuntimeError("Invalid continueFlag value for " + paramList["name"] + " in " + line)
+            elif paramList["type"] == "int_or_float":
+                if cmdArg.startswith("0x"):
+                    value = intBitsAsFloat(int(cmdArg, base=16))
+                elif cmdArg.endswith("f"):
+                    value = float(cmdArg[:-1])
+
                     if not math.isfinite(value):
-                        raise RuntimeError("Invalid float value for " + p["name"] + " in " + l)
+                        raise RuntimeError("Invalid float value for " + paramList["name"] + " in " + line)
                 else:
-                    raise RuntimeError("Invalid int_or_float value for " + p["name"] + " in " + l)
-            elif p["type"] == "string":
-                value = t
+                    raise RuntimeError("Invalid int_or_float value for " + paramList["name"] + " in " + line)
+            elif paramList["type"] == "string":
+                value = cmdArg
             else:
-                raise RuntimeError("Invalid command parameter type: " + p["type"])
-            if ("min" in p and value < p["min"]) or ("max" in p and value >= p["max"]):
-                raise RuntimeError("Value out of range for " + p["name"] + " in " + l)
-            ret[p["name"]] = value
+                raise RuntimeError("Invalid command parameter type: " + paramList["type"])
+            
+            if ("min" in paramList and value < paramList["min"]) or ("max" in paramList and value >= paramList["max"]):
+                raise RuntimeError("Value out of range for " + paramList["name"] + " in " + line)
+
+            ret[paramList["name"]] = value
+
         return ret
 
-    def ParseCommand(self, l, curlist):
-        sl = l.strip()
-        if not sl.endswith("),"):
-            raise RuntimeError("Syntax error: " + sl)
-        if curlist is not None:
-            ldef = next((c for c in LISTS_DEF if c["name"] == curlist), None)
-            if ldef is None:
-                raise RuntimeError("Invalid current list: " + curlist)
-            for lcmd in ldef["commands"]:
-                if sl.startswith(lcmd["name"] + "("):
-                    if not l.startswith("\t\t") and not l.startswith("        "):
-                        print("Warning, invalid indentation in " + curlist + ": " + sl)
-                    return self.ParseParams(lcmd, sl), "same"
-        if not (l.startswith("\t") and len(l) > 1 and l[1] != "\t") and not (
-            l.startswith("    ") and len(l) > 4 and l[4] != " "
+    def parseCommand(self, line: str, curListName: str):
+        line = line.strip()
+
+        if not line.endswith("),"):
+            raise RuntimeError(f"Syntax error: `{line}`")
+        
+        if curListName is not None:
+            curCmdDef = next((cmdDef for cmdDef in LISTS_DEF if cmdDef["name"] == curListName), None)
+
+            if curCmdDef is None:
+                raise RuntimeError("Invalid current list: " + curListName)
+            
+            for listEntryCmdDef in curCmdDef["commands"]:
+                if line.startswith(listEntryCmdDef["name"] + "("):
+                    if not line.startswith("\t\t") and not line.startswith(indent * 2):
+                        print(f"Warning, invalid indentation in {curListName}: `{line}`")
+
+                    return self.parseParams(listEntryCmdDef, line), "same"
+                
+        if not (line.startswith("\t") and len(line) > 1 and line[1] != "\t") and not (
+            line.startswith(indent) and len(line) > 4 and line[4] != " "
         ):
-            print("Warning, invalid indentation: " + sl)
-        ldef = next((c for c in LISTS_DEF if sl.startswith(c["name"] + "(")), None)
-        if ldef is not None:
-            return self.ParseParams(ldef, sl), ldef["name"]
-        ldef = next((c for c in NONLISTS_DEF if sl.startswith(c["name"] + "(")), None)
-        if ldef is not None:
-            return self.ParseParams(ldef, sl), None
-        raise RuntimeError("Invalid command: " + l)
+            # this warning seems glitched for some reasons with the changes
+            print(f"Warning, invalid indentation: `{line}`")
 
-    def IsGetCutsceneStart(self, l):
-        toks = [t for t in l.strip().split(" ") if t]
-        if len(toks) != 4:
-            return None
-        if toks[0] not in ["s32", "CutsceneData"]:
-            return None
-        if not toks[1].endswith("[]"):
-            return None
-        if toks[2] != "=" or toks[3] != "{":
-            return None
-        return toks[1][:-2]
+        curCmdDef = next((cmdDef for cmdDef in LISTS_DEF if line.startswith(cmdDef["name"] + "(")), None)
 
-    def OnLineOutsideCS(self, l):
+        if curCmdDef is not None:
+            return self.parseParams(curCmdDef, line), curCmdDef["name"]
+        
+        curCmdDef = next((cmdDef for cmdDef in NONLISTS_DEF if line.startswith(cmdDef["name"] + "(")), None)
+
+        if curCmdDef is not None:
+            return self.parseParams(curCmdDef, line), None
+
+        raise RuntimeError(f"Invalid command: {line}")
+
+    def getCutsceneArrayName(self, line: str):
+        # list of the different words of the array name, looking for "CutsceneData csName[] = {"
+        arrayNameElems = line.strip().split(" ")
+
+        if (len(arrayNameElems) != 4 or arrayNameElems[0] != "CutsceneData"
+            or not arrayNameElems[1].endswith("[]") or arrayNameElems[2] != "=" or arrayNameElems[3] != "{"):
+            return None
+        
+        return arrayNameElems[1][:-2]
+
+    def onLineOutsideCS(self, line: str):
         pass
 
-    def OnCutsceneStart(self, csname):
+    def onCutsceneStart(self, csName: str):
         self.first_cs_cmd = True
         self.curlist = None
         self.in_cam_list = False
         self.in_action_list = False
         self.entrycount = 0
 
-    def OnNonListCmd(self, l, cmd):
+    def onNonListCmd(self, line: str, cmd):
         if cmd["name"] != "CS_BEGIN_CUTSCENE":
             self.entrycount += 1
 
-    def OnListStart(self, l, cmd):
+    def onListStart(self, line: str, cmd):
         self.entrycount += 1
+
         if cmd["name"] in CAM_TYPE_LISTS:
             self.in_cam_list = True
             self.cam_list_last = False
         elif cmd["name"] in ACTION_LISTS:
             self.in_action_list = True
+
         if "entries" in cmd:
             self.list_nentries = cmd["entries"]
             self.list_entrycount = 0
         else:
             self.list_nentries = None
 
-    def OnListCmd(self, l, cmd):
+    def onListCmd(self, line: str, cmd):
         if self.list_nentries is not None:
             self.list_entrycount += 1
+
         if self.in_cam_list:
             if self.cam_list_last:
-                raise RuntimeError("More camera commands after last cmd! " + l)
+                raise RuntimeError(f"More camera commands after last cmd! `{line}`")
+            
             self.cam_list_last = not cmd["continueFlag"]
 
-    def OnListEnd(self):
+    def onListEnd(self):
         if self.list_nentries is not None and self.list_nentries != self.list_entrycount:
             raise RuntimeError(
-                "List "
-                + self.curlist
-                + " was supposed to have "
-                + str(self.list_nentries)
-                + " entries but actually had "
-                + str(self.list_entrycount)
-                + "!"
+                f"List `{self.curlist}` was supposed to have {self.list_nentries} entries "
+                + f"but actually had {self.list_entrycount}!"
             )
+        
         if self.in_cam_list and not self.cam_list_last:
             raise RuntimeError("Camera list terminated without stop marker!")
+        
         self.in_cam_list = False
         self.in_action_list = False
-
-    def OnCutsceneEnd(self):
+    
+    def onCutsceneEnd(self):
         if self.nentries != self.entrycount:
             raise RuntimeError(
-                "Cutscene header claimed "
-                + str(self.nentries)
-                + " entries but only "
-                + str(self.entrycount)
-                + " found!"
+                f"Cutscene header claimed {self.nentries} entries but only {self.entrycount} found!"
             )
 
-    def TraverseInputFile(self, filename):
+    def processInputFile(self, filename: str):
         state = "OutsideCS"
+
         with open(filename, "r") as infile:
             # Merge lines which were broken as long lines
             lines = []
-            parenopen = 0
-            for l in infile:
-                if parenopen < 0 or parenopen > 5:
-                    raise RuntimeError("Parentheses parsing failed near line: " + l)
-                elif parenopen > 0:
-                    lines[-1] += " " + l
+            parenOpen = 0
+
+            for line in infile:
+                if parenOpen < 0 or parenOpen > 5:
+                    raise RuntimeError(f"Parentheses parsing failed near line: {line}")
+                elif parenOpen > 0:
+                    lines[-1] += " " + line
                 else:
-                    lines.append(l)
-                parenopen += l.count("(")
-                parenopen -= l.count(")")
-            if parenopen != 0:
+                    lines.append(line)
+
+                parenOpen += line.count("(") - line.count(")")
+
+            if parenOpen != 0:
                 raise RuntimeError("Unbalanced parentheses by end of file")
-            for l in lines:
+            
+            for line in lines:
                 if state == "OutsideCS":
-                    csname = self.IsGetCutsceneStart(l)
-                    if csname is not None:
-                        print("Found cutscene " + csname)
-                        self.OnCutsceneStart(csname)
+                    csName = self.getCutsceneArrayName(line)
+
+                    if csName is not None:
+                        print(f"Found cutscene {csName}")
+                        self.onCutsceneStart(csName)
                         state = "InsideCS"
                     else:
-                        self.OnLineOutsideCS(l)
+                        self.onLineOutsideCS(line)
+
                     continue
-                cmd, newlist = self.ParseCommand(l, self.curlist)
-                if self.first_cs_cmd or cmd["name"] == "CS_BEGIN_CUTSCENE":
-                    if not self.first_cs_cmd or not cmd["name"] == "CS_BEGIN_CUTSCENE":
-                        raise RuntimeError("First command in cutscene must be only CS_BEGIN_CUTSCENE! " + l)
-                    self.nentries = cmd["totalEntries"]
+
+                curCmdDef, newCmdDef = self.parseCommand(line, self.curlist)
+
+                if self.first_cs_cmd or curCmdDef["name"] == "CS_BEGIN_CUTSCENE":
+                    if not self.first_cs_cmd or not curCmdDef["name"] == "CS_BEGIN_CUTSCENE":
+                        raise RuntimeError("First command in cutscene must be only CS_BEGIN_CUTSCENE! " + line)
+                    
+                    self.nentries = curCmdDef["totalEntries"]
                     self.first_cs_cmd = False
-                if newlist == "same":
-                    self.OnListCmd(l, cmd)
+
+                if newCmdDef == "same":
+                    self.onListCmd(line, curCmdDef)
                 else:
                     if self.curlist is not None:
-                        self.OnListEnd()
-                    self.curlist = newlist
-                    if cmd["name"] == "CS_END":
-                        self.OnCutsceneEnd()
+                        self.onListEnd()
+
+                    self.curlist = newCmdDef
+
+                    if curCmdDef["name"] == "CS_END":
+                        self.onCutsceneEnd()
                         state = "OutsideCS"
-                    elif newlist is None:
-                        self.OnNonListCmd(l, cmd)
+                    elif newCmdDef is None:
+                        self.onNonListCmd(line, curCmdDef)
                     else:
-                        self.OnListStart(l, cmd)
+                        self.onListStart(line, curCmdDef)
+
         if state != "OutsideCS":
             raise RuntimeError("Unexpected EOF!")
 
