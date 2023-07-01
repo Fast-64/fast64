@@ -342,28 +342,28 @@ def CreateOrInitPreview(context, cs_object, actor_id, select=False):
 
 
 # camdata
-def GetCamBones(camShotObj: Object):
+def GetCamBones(shotObj: Object):
     bones: list[Bone] = []
 
-    for bone in camShotObj.data.bones:
+    for bone in shotObj.data.bones:
         if bone.parent is not None:
             print("Camera armature bones are not allowed to have parent bones")
             return None
 
-        bones.append(PropsBone(camShotObj, bone))
+        bones.append(PropsBone(shotObj, bone))
 
     bones.sort(key=lambda b: b.name)
     return bones
 
 
-def GetCamBonesChecked(camShotObj: Object):
-    bones = GetCamBones(camShotObj)
+def GetCamBonesChecked(shotObj: Object):
+    bones = GetCamBones(shotObj)
 
     if bones is None:
         raise RuntimeError("Error in bone properties")
 
     if len(bones) < 4:
-        raise RuntimeError(f"Only {len(bones)} bones in `{camShotObj.name}`")
+        raise RuntimeError(f"Only {len(bones)} bones in `{shotObj.name}`")
 
     return bones
 
