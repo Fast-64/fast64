@@ -1,5 +1,7 @@
 import math
+
 from struct import pack, unpack
+from bpy.types import Scene, Object, Bone
 from ...utility import indent
 from .constants import LISTS_DEF, NONLISTS_DEF, CAM_TYPE_LISTS, ACTION_LISTS
 
@@ -131,8 +133,8 @@ class OOTCutsceneMotionIOBase:
         self.in_action_list = False
         self.entrycount = 0
 
-    def onNonListCmd(self, line: str, cmd):
-        if cmd["name"] != "CS_BEGIN_CUTSCENE":
+    def onNonListCmd(self, line: str, cmdDef):
+        if cmdDef["name"] != "CS_BEGIN_CUTSCENE":
             self.entrycount += 1
 
     def onListStart(self, line: str, cmd):
@@ -150,7 +152,7 @@ class OOTCutsceneMotionIOBase:
         else:
             self.list_nentries = None
 
-    def onListCmd(self, line: str, cmd):
+    def onListCmd(self, line: str, cmdDef):
         if self.list_nentries is not None:
             self.list_entrycount += 1
 
@@ -158,7 +160,7 @@ class OOTCutsceneMotionIOBase:
             if self.cam_list_last:
                 raise RuntimeError(f"More camera commands after last cmd! `{line}`")
 
-            self.cam_list_last = not cmd["continueFlag"]
+            self.cam_list_last = not cmdDef["continueFlag"]
 
     def onListEnd(self):
         if self.list_nentries is not None and self.list_nentries != self.list_entrycount:
@@ -337,37 +339,38 @@ def CreateOrInitPreview(context, cs_object, actor_id, select=False):
 
 
 # camdata
-def GetCamBones(armo):
-    bones = []
-    for b in armo.data.bones:
-        if b.parent is not None:
+def GetCamBones(camShotObj: Object):
+    bones: list[Bone] = []
+
+    for bone in camShotObj.data.bones:
+        if bone.parent is not None:
             print("Camera armature bones are not allowed to have parent bones")
             return None
-        bones.append(PropsBone(armo, b))
+
+        bones.append(PropsBone(camShotObj, bone))
+
     bones.sort(key=lambda b: b.name)
     return bones
 
 
-def GetCamBonesChecked(cmd):
-    bones = GetCamBones(cmd)
+def GetCamBonesChecked(camShotObj: Object):
+    bones = GetCamBones(camShotObj)
+
     if bones is None:
         raise RuntimeError("Error in bone properties")
+
     if len(bones) < 4:
-        raise RuntimeError("Only {} bones in {}".format(len(bones), cmd.name))
+        raise RuntimeError(f"Only {len(bones)} bones in `{camShotObj.name}`")
+
     return bones
 
 
-def GetCamCommands(scene, cso):
-    ret = []
-    for o in scene.objects:
-        if o.type != "ARMATURE":
-            continue
-        if o.parent is None:
-            continue
-        if o.parent != cso:
-            continue
-        ret.append(o)
-    ret.sort(key=lambda o: o.name)
+def GetCamCommands(scene: Scene, csObj: Object):
+    ret: list[Object] = [
+        obj for obj in scene.objects if obj.type == "ARMATURE" and obj.parent is not None and obj.parent == csObj
+    ]
+    ret.sort(key=lambda obj: obj.name)
+
     return ret
 
 
@@ -425,32 +428,33 @@ def initCS(context, cs_object):
 
 
 # action data leftovers
-def IsActionPoint(obj):
-    if obj is None or obj.type != "EMPTY":
+def IsActionPoint(cuePointObj: Object):
+    if (
+        cuePointObj is None
+        or cuePointObj.type != "EMPTY"
+        or not any(cuePointObj.name.startswith(s) for s in ["Point.", "Action."])
+        or not IsActionList(cuePointObj.parent)
+    ):
         return False
-    if not any(obj.name.startswith(s) for s in ["Point.", "Action."]):
-        return False
-    if not IsActionList(obj.parent):
-        return False
+
     return True
 
 
-def GetActionListPoints(scene, al_object):
-    ret = []
-    for o in scene.objects:
-        if IsActionPoint(o) and o.parent == al_object:
-            ret.append(o)
+def GetActionListPoints(scene: Scene, cueObj: Object):
+    ret: list[Object] = [obj for obj in scene.objects if IsActionPoint(obj) and obj.parent == cueObj]
     ret.sort(key=lambda o: o.zc_apoint.start_frame)
     return ret
 
 
-def GetActionLists(scene, cs_object, actorid):
-    ret = []
-    for o in scene.objects:
-        if IsActionList(o) and o.parent == cs_object and (actorid is None or o.zc_alist.actor_id == actorid):
-            ret.append(o)
+def GetActionLists(scene: Scene, csObj: Object, actorid: int):
+    ret: list[Object] = []
 
-    points = GetActionListPoints(scene, o)
+    for obj in scene.objects:
+        if IsActionList(obj) and obj.parent == csObj and (actorid is None or obj.zc_alist.actor_id == actorid):
+            ret.append(obj)
+
+    points = GetActionListPoints(scene, obj)
+
     ret.sort(key=lambda o: 1000000 if len(points) < 2 else points[0].zc_apoint.start_frame)
     return ret
 
