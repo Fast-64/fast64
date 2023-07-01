@@ -11,7 +11,7 @@ class OOTCutsceneMotionIOBase:
     def __init__(self, context):
         self.context = context
         self.scale = context.scene.ootBlenderScale
-    
+
     def intBitsAsFloat(self, value: int):
         """From https://stackoverflow.com/questions/14431170/get-the-bits-of-a-float-in-python"""
         s = pack(">l", value)
@@ -280,7 +280,7 @@ def CheckGetCSObj(operator: Operator, context: Context):
         if operator is not None:
             operator.report({"WARNING"}, "Must have an empty object active (selected)")
         return None
-    
+
     if not csObj.name.startswith("Cutscene."):
         if operator is not None:
             operator.report({"WARNING"}, 'Cutscene empty object must be named "Cutscene.<YourCutsceneName>"')
@@ -293,26 +293,26 @@ def CheckGetCSObj(operator: Operator, context: Context):
 def IsActionList(obj: Object):
     if obj is None or obj.type != "EMPTY":
         return False
-    
+
     if not any(obj.name.startswith(s) for s in ["Path.", "ActionList."]):
         return False
-    
+
     if obj.parent is None or obj.parent.type != "EMPTY" or not obj.parent.name.startswith("Cutscene."):
         return False
-    
+
     return True
 
 
 def IsPreview(obj: Object):
     if obj is None or obj.type != "EMPTY":
         return False
-    
+
     if not obj.name.startswith("Preview."):
         return False
-    
+
     if obj.parent is None or obj.parent.type != "EMPTY" or not obj.parent.name.startswith("Cutscene."):
         return False
-    
+
     return True
 
 
