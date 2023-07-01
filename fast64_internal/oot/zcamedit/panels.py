@@ -73,7 +73,7 @@ class ZCAMEDIT_PT_cam_panel(Panel):
 
                 if editBone is None:
                     return
-                
+
                 activeBone = EditBoneToBone(obj, editBone)
 
             def drawBoneProp(prop):
@@ -129,7 +129,7 @@ def zcamedit_panels_register():
     )
 
     Armature.start_frame = IntProperty(name="Start Frame", description="Shot start frame", default=0, min=0)
-    
+
     Armature.cam_mode = EnumProperty(
         items=[
             ("normal", "Normal", "Normal (0x1 / 0x2)"),

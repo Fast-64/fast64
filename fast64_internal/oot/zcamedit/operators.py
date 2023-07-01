@@ -156,7 +156,7 @@ class ZCAMEDIT_OT_create_link_action(Operator):
             return {"FINISHED"}
         else:
             return {"CANCELLED"}
-        
+
 
 class ZCAMEDIT_OT_create_actor_action(Operator):
     """Create a cutscene action list for an actor (NPC)"""
@@ -189,7 +189,7 @@ class ZCAMEDIT_OT_import_c(Operator, ImportHelper):
         if ret is not None:
             self.report({"WARNING"}, ret)
             return {"CANCELLED"}
-        
+
         self.report({"INFO"}, "Import successful")
         return {"FINISHED"}
 
@@ -227,7 +227,7 @@ class ZCAMEDIT_OT_export_c(Operator, ExportHelper):
         if ret is not None:
             self.report({"WARNING"}, ret)
             return {"CANCELLED"}
-        
+
         self.report({"INFO"}, "Export successful")
         return {"FINISHED"}
 

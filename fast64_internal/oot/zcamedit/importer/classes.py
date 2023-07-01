@@ -39,7 +39,7 @@ class OOTCutsceneMotionImport(OOTCutsceneMotionIOBase):
             if al is None or len(eyePoint["data"]) != len(al["data"]) or eyePoint["mode"] != al["mode"]:
                 print("Internal error!")
                 return False
-            
+
             if eyePoint["endFrame"] < eyePoint["startFrame"] + 2 or al["endFrame"] < al["startFrame"] + 2:
                 print("Cam cmd has nonstandard end frames!")
 
@@ -79,10 +79,10 @@ class OOTCutsceneMotionImport(OOTCutsceneMotionIOBase):
                 if lastFrame is not None:
                     if lastFrame != cueData["startFrame"]:
                         raise RuntimeError("Action list path is not temporally continuous!")
-                    
+
                     if lastPosX != cueData["startX"] or lastPosY != cueData["startY"] or lastPosZ != cueData["startZ"]:
                         raise RuntimeError("Action list path is not spatially continuous!")
-                    
+
                 cuePoint = CreateActionPoint(
                     self.context,
                     cueObj,
@@ -120,9 +120,7 @@ class OOTCutsceneMotionImport(OOTCutsceneMotionIOBase):
         super().onCutsceneEnd()
 
         if len(self.poslists) != len(self.atlists):
-            raise RuntimeError(
-                f"Found {len(self.poslists)} pos lists but {len(self.atlists)} AT lists!"
-            )
+            raise RuntimeError(f"Found {len(self.poslists)} pos lists but {len(self.atlists)} AT lists!")
 
         if not self.CSToBlender(self.csname, self.poslists, self.atlists, self.actionlists):
             raise RuntimeError("CSToBlender failed")
@@ -142,7 +140,7 @@ class OOTCutsceneMotionImport(OOTCutsceneMotionIOBase):
 
             if self.listtype is None:
                 return
-            
+
             self.listmode = CAM_TYPE_TO_MODE[cmdDef["name"]]
             self.list_startFrame = cmdDef["startFrame"]
             self.list_endFrame = cmdDef["endFrame"]
@@ -171,17 +169,17 @@ class OOTCutsceneMotionImport(OOTCutsceneMotionIOBase):
         if self.listtype == "action":
             if len(self.listdata) < 1:
                 raise RuntimeError("No action list entries!")
-            
+
             self.actionlists.append({"actor_id": self.actor_id, "data": self.listdata})
         elif self.listtype in ["pos", "at"]:
             if len(self.listdata) < 4:
                 raise RuntimeError(f"Only {len(self.listdata)} key points in camera command!")
-            
+
             if len(self.listdata) > 4:
                 # Extra dummy point at end if there's 5 or more points--remove
                 # at import and re-add at export
                 del self.listdata[-1]
-            
+
             if self.listtype == "at" and len(self.listdata) != len(self.corresponding_poslist):
                 raise RuntimeError(
                     f"At list contains {len(self.listdata)} commands, "
@@ -202,7 +200,6 @@ class OOTCutsceneMotionImport(OOTCutsceneMotionIOBase):
         if self.listtype is not None:
             self.listdata.append(cmdDef)
 
-
     def importCutsceneMotion(self, filename: str):
         if self.context.view_layer.objects.active is not None:
             bpy.ops.object.mode_set(mode="OBJECT")
@@ -212,7 +209,7 @@ class OOTCutsceneMotionImport(OOTCutsceneMotionIOBase):
         except Exception as e:
             print("".join(traceback.TracebackException.from_exception(e).format()))
             return str(e)
-        
+
         self.context.scene.frame_set(self.context.scene.frame_start)
 
         return None

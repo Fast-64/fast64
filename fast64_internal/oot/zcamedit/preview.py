@@ -47,7 +47,7 @@ def Z64SplineInterpolate(bones: list[Bone], frame: int):
         framesPoint2 = bones[p + 2].frames
         denomPoint2 = 1.0 / framesPoint2 if framesPoint2 != 0 else 0.0
         dt = max(t * (denomPoint2 - denomPoint1) + denomPoint1, 0.0)
-        
+
         # Different from in game; we remove the extra dummy point at import
         # and add it at export.
         if t + dt >= 1.0:
@@ -65,7 +65,7 @@ def Z64SplineInterpolate(bones: list[Bone], frame: int):
             print("Internal error in spline algorithm")
 
         return UndefinedCamPosAt()
-    
+
     s1, s2, s3, s4 = GetSplineCoeffs(t)
     eye = s1 * bones[p].head + s2 * bones[p + 1].head + s3 * bones[p + 2].head + s4 * bones[p + 3].head
     at = s1 * bones[p].tail + s2 * bones[p + 1].tail + s3 * bones[p + 2].tail + s4 * bones[p + 3].tail
@@ -81,19 +81,19 @@ def GetCmdCamState(shotObj: Object, frame: int):
     if frame < 0:
         print(f"Warning, camera command evaluated for frame {frame}")
         return UndefinedCamPos()
-        
+
     bones = GetCamBones(shotObj)
 
     if bones is None:
         return UndefinedCamPos()
-    
+
     eye, at, roll, fov = Z64SplineInterpolate(bones, frame)
     # TODO handle cam_mode (relativeToLink)
     lookvec = at - eye
 
     if lookvec.length < 1e-6:
         return UndefinedCamPos()
-    
+
     lookvec.normalize()
     ux = Vector((1.0, 0.0, 0.0))
     uy = Vector((0.0, 1.0, 0.0))
@@ -110,7 +110,7 @@ def GetCutsceneCamState(scene: Scene, csObj: Object, frame: int):
 
     shotObjects = GetCamCommands(scene, csObj)
 
-    if len(shotObjects) > 0:    
+    if len(shotObjects) > 0:
         shotObj = None
         startFrame = -1
 
