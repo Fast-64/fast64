@@ -2,7 +2,7 @@ import math
 import traceback
 import bpy
 
-from ..utility import OOTCutsceneMotionIOBase, CreateObject, CreateActorAction, CreateActionPoint, initCS
+from ..utility import OOTCutsceneMotionIOBase, createNewObject, createActorCueList, createActorCuePoint, initCutscene
 from ..constants import CAM_TYPE_TO_TYPE, CAM_TYPE_TO_MODE
 
 
@@ -10,21 +10,21 @@ class OOTCutsceneMotionImport(OOTCutsceneMotionIOBase):
     def __init__(self, context):
         super().__init__(context)
 
-    def ImportPos(self, pos):
+    def importPosition(self, pos):
         # OoT: +X right, +Y up, -Z forward
         # Blender: +X right, +Z up, +Y forward
         return [float(pos[0]) / self.scale, -float(pos[2]) / self.scale, float(pos[1]) / self.scale]
 
-    def ImportRot(self, rot):
+    def importRotation(self, rot):
         def conv(r):
             assert r >= -0x8000 and r <= 0x7FFF
             return 2.0 * math.pi * float(r) / 0x10000
 
         return [conv(rot[0]), conv(rot[2]), conv(rot[1])]
 
-    def CSToBlender(self, csName: str, camEyePoints: list, camATPoints: list, actorCueList: list):
+    def convertCutsceneToBlender(self, csName: str, camEyePoints: list, camATPoints: list, actorCueList: list):
         # Create empty cutscene object
-        csObj = CreateObject(self.context, f"Cutscene.{csName}", None, False)
+        csObj = createNewObject(self.context, f"Cutscene.{csName}", None, False)
 
         # Camera import
         for i, eyePoint in enumerate(camEyePoints):
@@ -49,7 +49,7 @@ class OOTCutsceneMotionImport(OOTCutsceneMotionIOBase):
             shotArmature.show_names = True
             shotArmature.start_frame = eyePoint["startFrame"]
             shotArmature.cam_mode = eyePoint["mode"]
-            shotObj = CreateObject(self.context, name, shotArmature, True)
+            shotObj = createNewObject(self.context, name, shotArmature, True)
             shotObj.parent = csObj
 
             for i in range(len(eyePoint["data"])):
@@ -58,8 +58,8 @@ class OOTCutsceneMotionImport(OOTCutsceneMotionIOBase):
                 bpy.ops.object.mode_set(mode="EDIT")
                 newBone = shotArmature.edit_bones.new(f"K{i + 1:02}")
                 boneName = newBone.name
-                newBone.head = self.ImportPos([camEyeData["xPos"], camEyeData["yPos"], camEyeData["zPos"]])
-                newBone.tail = self.ImportPos([camATData["xPos"], camATData["yPos"], camATData["zPos"]])
+                newBone.head = self.importPosition([camEyeData["xPos"], camEyeData["yPos"], camEyeData["zPos"]])
+                newBone.tail = self.importPosition([camATData["xPos"], camATData["yPos"], camATData["zPos"]])
                 bpy.ops.object.mode_set(mode="OBJECT")
                 newBone = shotArmature.bones[boneName]
 
@@ -72,7 +72,7 @@ class OOTCutsceneMotionImport(OOTCutsceneMotionIOBase):
 
         # Action import
         for cueDef in actorCueList:
-            cueObj = CreateActorAction(self.context, cueDef["actor_id"], csObj)
+            cueObj = createActorCueList(self.context, cueDef["actor_id"], csObj)
             lastFrame = lastPosX = lastPosY = lastPosZ = None
 
             for cueData in cueDef["data"]:
@@ -83,15 +83,15 @@ class OOTCutsceneMotionImport(OOTCutsceneMotionIOBase):
                     if lastPosX != cueData["startX"] or lastPosY != cueData["startY"] or lastPosZ != cueData["startZ"]:
                         raise RuntimeError("Action list path is not spatially continuous!")
 
-                cuePoint = CreateActionPoint(
+                cuePoint = createActorCuePoint(
                     self.context,
                     cueObj,
                     False,
-                    self.ImportPos([cueData["startX"], cueData["startY"], cueData["startZ"]]),
+                    self.importPosition([cueData["startX"], cueData["startY"], cueData["startZ"]]),
                     cueData["startFrame"],
                     cueData["action"],
                 )
-                cuePoint.rotation_euler = self.ImportRot([cueData["rotX"], cueData["rotY"], cueData["rotZ"]])
+                cuePoint.rotation_euler = self.importRotation([cueData["rotX"], cueData["rotY"], cueData["rotZ"]])
                 lastFrame = cueData["endFrame"]
                 lastPosX = cueData["endX"]
                 lastPosY = cueData["endY"]
@@ -100,12 +100,12 @@ class OOTCutsceneMotionImport(OOTCutsceneMotionIOBase):
             if lastFrame is None:
                 raise RuntimeError("Action list path did not have any points!")
 
-            cuePoint = CreateActionPoint(
-                self.context, cueObj, False, self.ImportPos([lastPosX, lastPosY, lastPosZ]), lastFrame, "0x0000"
+            cuePoint = createActorCuePoint(
+                self.context, cueObj, False, self.importPosition([lastPosX, lastPosY, lastPosZ]), lastFrame, "0x0000"
             )
 
         # Init at end to get timing info and set up action previewers
-        initCS(self.context, csObj)
+        initCutscene(self.context, csObj)
 
         return True
 
@@ -122,8 +122,8 @@ class OOTCutsceneMotionImport(OOTCutsceneMotionIOBase):
         if len(self.poslists) != len(self.atlists):
             raise RuntimeError(f"Found {len(self.poslists)} pos lists but {len(self.atlists)} AT lists!")
 
-        if not self.CSToBlender(self.csname, self.poslists, self.atlists, self.actionlists):
-            raise RuntimeError("CSToBlender failed")
+        if not self.convertCutsceneToBlender(self.csname, self.poslists, self.atlists, self.actionlists):
+            raise RuntimeError("convertCutsceneToBlender failed")
 
     def onListStart(self, line: str, cmdDef):
         super().onListStart(line, cmdDef)
@@ -200,7 +200,7 @@ class OOTCutsceneMotionImport(OOTCutsceneMotionIOBase):
         if self.listtype is not None:
             self.listdata.append(cmdDef)
 
-    def importCutsceneMotion(self, filename: str):
+    def importFromC(self, filename: str):
         if self.context.view_layer.objects.active is not None:
             bpy.ops.object.mode_set(mode="OBJECT")
 

@@ -9,46 +9,46 @@ from bpy.props import FloatProperty, EnumProperty, StringProperty, BoolProperty
 from .importer import importCutsceneMotion
 from .exporter import exportCutsceneMotion
 from .utility import (
-    initCS,
-    CheckGetCSObj,
-    IsActionList,
-    CreateOrInitPreview,
-    CreateObject,
-    MetersToBlend,
-    IsActionPoint,
-    CreateActorAction,
-    GetActionListPoints,
-    CreateActionPoint,
+    initCutscene,
+    getCSObj,
+    isActorCueList,
+    createOrInitPreview,
+    createNewObject,
+    metersToBlend,
+    isActorCuePoint,
+    createActorCueList,
+    getActorCuePointObjects,
+    createActorCuePoint,
 )
 
 
-def CheckGetActionList(operator: Operator, context: Context) -> Object | None:
+def getActorCueList(operator: Operator, context: Context) -> Object | None:
     obj = context.view_layer.objects.active
 
-    if IsActionPoint(obj):
+    if isActorCuePoint(obj):
         obj = obj.parent
 
-    if not IsActionList(obj):
+    if not isActorCueList(obj):
         operator.report({"WARNING"}, "Select an action list or action point.")
         return None
 
     return obj
 
 
-def CreateShot(context: Context, csObj: Object):
+def createCameraShot(context: Context, csObj: Object):
     shotArmature = context.blend_data.armatures.new("Shot")
     shotArmature.display_type = "STICK"
     shotArmature.show_names = True
-    shotObj = CreateObject(context, shotArmature.name, shotArmature, True)
+    shotObj = createNewObject(context, shotArmature.name, shotArmature, True)
     shotObj.parent = csObj
 
     for i in range(4):
         bpy.ops.object.mode_set(mode="EDIT")
         bone = shotArmature.edit_bones.new(f"K{i + 1:02}")
         boneName = bone.name
-        x = MetersToBlend(context, float(i + 1))
+        x = metersToBlend(context, float(i + 1))
         bone.head = [x, 0.0, 0.0]
-        bone.tail = [x, MetersToBlend(context, 1.0), 0.0]
+        bone.tail = [x, metersToBlend(context, 1.0), 0.0]
         bpy.ops.object.mode_set(mode="OBJECT")
         bone = shotArmature.bones[boneName]
         bone.frames = 20
@@ -56,8 +56,8 @@ def CreateShot(context: Context, csObj: Object):
         bone.camroll = 0
 
 
-def CreateDefaultActionPoint(context: Context, actorCueObj: Object, selectObj: bool):
-    points = GetActionListPoints(context.scene, actorCueObj)
+def createBasicActorCuePoint(context: Context, actorCueObj: Object, selectObj: bool):
+    points = getActorCuePointObjects(context.scene, actorCueObj)
 
     if len(points) == 0:
         pos = Vector((random.random() * 40.0 - 20.0, -10.0, 0.0))
@@ -68,116 +68,116 @@ def CreateDefaultActionPoint(context: Context, actorCueObj: Object, selectObj: b
         startFrame = points[-1].zc_apoint.start_frame + 20
         action_id = points[-1].zc_apoint.action_id
 
-    CreateActionPoint(context, actorCueObj, selectObj, pos, startFrame, action_id)
+    createActorCuePoint(context, actorCueObj, selectObj, pos, startFrame, action_id)
 
 
-def CreateDefaultActorAction(context: Context, actor_id: int, csObj: Object):
-    actorCueObj = CreateActorAction(context, actor_id, csObj)
+def createBasicActorCueList(context: Context, actor_id: int, csObj: Object):
+    actorCueObj = createActorCueList(context, actor_id, csObj)
 
     for _ in range(2):
-        CreateDefaultActionPoint(context, actorCueObj, False)
+        createBasicActorCuePoint(context, actorCueObj, False)
 
 
-class ZCAMEDIT_OT_add_action_point(Operator):
-    """Add a point to a Link or actor action list"""
+class OOTCSMotionAddActorCuePoint(Operator):
+    """Add an entry to a player or actor cue list"""
 
-    bl_idname = "zcamedit.add_action_point"
+    bl_idname = "object.add_actor_cue_point"
     bl_label = "Add point to current action"
 
     def execute(self, context):
-        actorCueObj = CheckGetActionList(self, context)
+        actorCueObj = getActorCueList(self, context)
 
         if actorCueObj is not None:
-            CreateDefaultActionPoint(context, actorCueObj, True)
+            createBasicActorCuePoint(context, actorCueObj, True)
             return {"FINISHED"}
         else:
             return {"CANCELLED"}
 
 
-class ZCAMEDIT_OT_create_action_preview(Operator):
-    """Create a preview empty object for a Link or actor action list"""
+class OOTCSMotionCreateActorCuePreview(Operator):
+    """Create a preview empty object for a player or an actor cue list"""
 
-    bl_idname = "zcamedit.create_action_preview"
+    bl_idname = "object.create_actor_cue_preview"
     bl_label = "Create preview object for action"
 
     def execute(self, context):
-        actorCueObj = CheckGetActionList(self, context)
+        actorCueObj = getActorCueList(self, context)
 
         if actorCueObj is not None:
-            CreateOrInitPreview(context, actorCueObj.parent, actorCueObj.zc_alist.actor_id, True)
+            createOrInitPreview(context, actorCueObj.parent, actorCueObj.zc_alist.actor_id, True)
             return {"FINISHED"}
         else:
             return {"CANCELLED"}
 
 
-class ZCAMEDIT_OT_init_cs(Operator):
+class OOTCSMotionInitCutscene(Operator):
     """Click here after adding an empty Cutscene.YourCutsceneName"""
 
-    bl_idname = "zcamedit.init_cs"
+    bl_idname = "object.init_cutscene"
     bl_label = "Init Cutscene Empty"
 
     def execute(self, context):
-        csObj = CheckGetCSObj(self, context)
+        csObj = getCSObj(self, context)
 
         if csObj is not None:
-            initCS(context, csObj)
+            initCutscene(context, csObj)
             return {"FINISHED"}
         else:
             return {"CANCELLED"}
 
 
-class ZCAMEDIT_OT_create_shot(Operator):
+class OOTCSMotionCreateCameraShot(Operator):
     """Create and initialize a camera shot armature"""
 
-    bl_idname = "zcamedit.create_shot"
-    bl_label = "Create camera shot"
+    bl_idname = "object.create_camera_shot"
+    bl_label = "Create Camera Shot"
 
     def execute(self, context):
-        csObj = CheckGetCSObj(self, context)
+        csObj = getCSObj(self, context)
 
         if csObj is not None:
-            CreateShot(context, csObj)
+            createCameraShot(context, csObj)
             return {"FINISHED"}
         else:
             return {"CANCELLED"}
 
 
-class ZCAMEDIT_OT_create_link_action(Operator):
-    """Create a cutscene action list for Link"""
+class OOTCSMotionCreatePlayerCueList(Operator):
+    """Create a cutscene player cue list"""
 
-    bl_idname = "zcamedit.create_link_action"
-    bl_label = "Create Link action list"
+    bl_idname = "object.create_player_cue_list"
+    bl_label = "Create Player Cue List"
 
     def execute(self, context):
-        csObj = CheckGetCSObj(self, context)
+        csObj = getCSObj(self, context)
 
         if csObj is not None:
-            CreateDefaultActorAction(context, -1, csObj)
+            createBasicActorCueList(context, -1, csObj)
             return {"FINISHED"}
         else:
             return {"CANCELLED"}
 
 
-class ZCAMEDIT_OT_create_actor_action(Operator):
-    """Create a cutscene action list for an actor (NPC)"""
+class OOTCSMotionCreateActorCueList(Operator):
+    """Create a cutscene actor cue list"""
 
-    bl_idname = "zcamedit.create_actor_action"
-    bl_label = "Create actor (NPC) action list"
+    bl_idname = "object.create_actor_cue_list"
+    bl_label = "Create Actor Cue list"
 
     def execute(self, context):
-        csObj = CheckGetCSObj(self, context)
+        csObj = getCSObj(self, context)
 
         if csObj is not None:
-            CreateDefaultActorAction(context, random.randint(1, 100), csObj)
+            createBasicActorCueList(context, random.randint(1, 100), csObj)
             return {"FINISHED"}
         else:
             return {"CANCELLED"}
 
 
-class ZCAMEDIT_OT_import_c(Operator, ImportHelper):
+class OOTCSMotionImportFromC(Operator, ImportHelper):
     """Import cutscene camera data from a Zelda 64 scene C source file."""
 
-    bl_idname = "zcamedit.import_c"
+    bl_idname = "object.import_c"
     bl_label = "Import From C"
 
     filename_ext = ".c"
@@ -194,10 +194,10 @@ class ZCAMEDIT_OT_import_c(Operator, ImportHelper):
         return {"FINISHED"}
 
 
-class ZCAMEDIT_OT_export_c(Operator, ExportHelper):
+class OOTCSMotionExportToC(Operator, ExportHelper):
     """Export cutscene camera into a Zelda 64 scene C source file."""
 
-    bl_idname = "zcamedit.export_c"
+    bl_idname = "object.export_c"
     bl_label = "Export Into C"
 
     filename_ext = ".c"
@@ -209,12 +209,6 @@ class ZCAMEDIT_OT_export_c(Operator, ExportHelper):
         default=False,
     )
 
-    use_tabs: BoolProperty(
-        name="Use Tabs",
-        description="Indent commands with tabs rather than 4 spaces. For decomp toolchain compatibility",
-        default=True,
-    )
-
     use_cscmd: BoolProperty(
         name="Use CS_CMD defines",
         description="Write first parameter as CS_CMD_CONTINUE or CS_CMD_STOP vs. 0 or -1",
@@ -222,7 +216,7 @@ class ZCAMEDIT_OT_export_c(Operator, ExportHelper):
     )
 
     def execute(self, context):
-        ret = exportCutsceneMotion(context, self.filepath, self.use_floats, self.use_tabs, self.use_cscmd)
+        ret = exportCutsceneMotion(context, self.filepath, self.use_floats, self.use_cscmd)
 
         if ret is not None:
             self.report({"WARNING"}, ret)
@@ -233,26 +227,26 @@ class ZCAMEDIT_OT_export_c(Operator, ExportHelper):
 
 
 classes = (
-    ZCAMEDIT_OT_add_action_point,
-    ZCAMEDIT_OT_create_action_preview,
-    ZCAMEDIT_OT_init_cs,
-    ZCAMEDIT_OT_create_shot,
-    ZCAMEDIT_OT_create_link_action,
-    ZCAMEDIT_OT_create_actor_action,
-    ZCAMEDIT_OT_import_c,
-    ZCAMEDIT_OT_export_c,
+    OOTCSMotionAddActorCuePoint,
+    OOTCSMotionCreateActorCuePreview,
+    OOTCSMotionInitCutscene,
+    OOTCSMotionCreateCameraShot,
+    OOTCSMotionCreatePlayerCueList,
+    OOTCSMotionCreateActorCueList,
+    OOTCSMotionImportFromC,
+    OOTCSMotionExportToC,
 )
 
 
 def menu_func_import(self, context: Context):
-    self.layout.operator(ZCAMEDIT_OT_import_c.bl_idname, text="Z64 cutscene C source (.c)")
+    self.layout.operator(OOTCSMotionImportFromC.bl_idname, text="Z64 cutscene C source (.c)")
 
 
 def menu_func_export(self, context: Context):
-    self.layout.operator(ZCAMEDIT_OT_export_c.bl_idname, text="Z64 cutscene C source (.c)")
+    self.layout.operator(OOTCSMotionExportToC.bl_idname, text="Z64 cutscene C source (.c)")
 
 
-def zcamedit_ops_register():
+def csMotion_ops_register():
     for cls in classes:
         register_class(cls)
 
@@ -280,7 +274,7 @@ def zcamedit_ops_register():
     TOPBAR_MT_file_export.append(menu_func_export)
 
 
-def zcamedit_ops_unregister():
+def csMotion_ops_unregister():
     del Scene.zc_previewlinkage
 
     # import export controls

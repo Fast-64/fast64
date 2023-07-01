@@ -10,12 +10,12 @@ from ....utility import indent
 from ..constants import CAM_TYPE_LISTS, ACTION_LISTS, ATMODE_TO_CMD
 from ..utility import (
     OOTCutsceneMotionIOBase,
-    GetCamCommands,
-    GetCSFakeEnd,
-    GetCamBonesChecked,
-    GetFakeCamCmdLength,
-    GetActionLists,
-    GetActionListPoints,
+    getShotObjects,
+    getFakeCSEndFrame,
+    getShotPropBonesChecked,
+    getFakeCamCmdsLength,
+    getActorCueListObjects,
+    getActorCuePointObjects,
 )
 
 
@@ -25,32 +25,31 @@ def floatBitsAsInt(f):
 
 
 class OOTCutsceneMotionExport(OOTCutsceneMotionIOBase):
-    def __init__(self, context, use_floats, use_tabs, use_cscmd):
+    def __init__(self, context, use_floats, use_cscmd):
         super().__init__(context)
         self.use_floats = use_floats
-        self.use_tabs = use_tabs
         self.use_cscmd = use_cscmd
-        self.tabstr = "\t" if self.use_tabs else indent
-        self.cs_object = None
+        self.csObj = None
         self.cs_objects = [obj for obj in bpy.data.objects if obj.type == "EMPTY" and obj.name.startswith("Cutscene.")]
 
     def getCutsceneArrayName(self, csName: str):
         return f"CutsceneData {csName}[]" + " = {\n"
 
     def getCutsceneBeginCmdRaw(self, entriesTotal: int, endFrame: int):
-        return self.tabstr + f"CS_BEGIN_CUTSCENE({entriesTotal}, {endFrame}),\n"
+        return indent + f"CS_BEGIN_CUTSCENE({entriesTotal}, {endFrame}),\n"
 
     def getCutsceneBeginCmd(self, csObj: Object):
         return self.getCutsceneBeginCmdRaw(
-            len(GetCamCommands(self.context.scene, csObj)) * 2 + len(GetActionLists(self.context.scene, csObj, None)),
-            GetCSFakeEnd(self.context, csObj),
+            len(getShotObjects(self.context.scene, csObj)) * 2
+            + len(getActorCueListObjects(self.context.scene, csObj, None)),
+            getFakeCSEndFrame(self.context, csObj),
         )
 
     def getCutsceneEndCmd(self):
-        return self.tabstr + "CS_END(),\n"
+        return indent + "CS_END(),\n"
 
     def getCamListCmd(self, startFrame: int, endFrame: int, useAT: bool, mode: str):
-        return self.tabstr + f"{ATMODE_TO_CMD[useAT][mode]}_LIST({startFrame}, {endFrame}),\n"
+        return indent + f"{ATMODE_TO_CMD[useAT][mode]}_LIST({startFrame}, {endFrame}),\n"
 
     def getPositionString(self, pos):
         x = int(round(pos[0] * self.scale))
@@ -85,19 +84,19 @@ class OOTCutsceneMotionExport(OOTCutsceneMotionIOBase):
             contFlag = "0" if continueFlag else "-1"
 
         return (
-            self.tabstr * 2 + f"{ATMODE_TO_CMD[useAT][mode]}({contFlag}"
+            indent * 2 + f"{ATMODE_TO_CMD[useAT][mode]}({contFlag}"
         ) + f"{camRoll}, {camFrame}, {camViewAngle}f, {self.getPositionString(camPos)}, 0),\n"
 
     def getActorCueListCmd(self, actor_id: int, entriesTotal: int):
         return (
-            self.tabstr + "CS_PLAYER_ACTION_LIST("
+            indent + "CS_PLAYER_ACTION_LIST("
             if actor_id < 0
             else f"CS_NPC_ACTION_LIST({actor_id}, " + f"{entriesTotal}),\n"
         )
 
     def getActorCueCmd(self, actor_id: int, action_id: str, start_frame: int, end_frame: int, rot, start_pos, end_pos):
         return (
-            self.tabstr * 2
+            indent * 2
             + ("CS_PLAYER_ACTION" if actor_id < 0 else "CS_NPC_ACTION")
             + f"({action_id}, {start_frame}, {end_frame}, {self.getRotationString(rot)}"
             + f"{self.getPositionString(start_pos)}, {self.getPositionString(end_pos)}, 0, 0, 0),\n"
@@ -110,12 +109,12 @@ class OOTCutsceneMotionExport(OOTCutsceneMotionIOBase):
 
         for csObj in self.cs_objects:
             if csObj.name == f"Cutscene.{csName}":
-                self.cs_object = csObj
+                self.csObj = csObj
                 self.cs_objects.remove(csObj)
                 print("Replacing camera commands in cutscene " + csName)
                 break
         else:
-            self.cs_object = None
+            self.csObj = None
             print("Scene does not contain cutscene " + csName + " in file, skipping")
 
         self.outfile.write(self.getCutsceneArrayName(csName))
@@ -124,16 +123,16 @@ class OOTCutsceneMotionExport(OOTCutsceneMotionIOBase):
     def onCutsceneEnd(self):
         super().onCutsceneEnd()
 
-        if self.cs_object is not None:
+        if self.csObj is not None:
             if not self.wrote_cam_lists:
                 print("Cutscene did not contain any existing camera commands, adding at end")
-                self.processCamMotionLists(self.cs_object)
+                self.processCamMotionLists(self.csObj)
 
             if not self.wrote_action_lists:
                 print("Cutscene did not contain any existing action lists, adding at end")
-                self.processActorCueLists(self.cs_object)
+                self.processActorCueLists(self.csObj)
 
-        self.cs_object = None
+        self.csObj = None
         self.cs_text += self.getCutsceneEndCmd()
         self.outfile.write(self.getCutsceneBeginCmdRaw(self.entrycount_write, self.cs_end_frame))
         self.outfile.write(self.cs_text)
@@ -162,28 +161,28 @@ class OOTCutsceneMotionExport(OOTCutsceneMotionIOBase):
         super().onListStart(line, cmdDef)
 
         if cmdDef["name"] in CAM_TYPE_LISTS:
-            if self.cs_object is not None and not self.wrote_cam_lists:
-                self.processCamMotionLists(self.cs_object)
+            if self.csObj is not None and not self.wrote_cam_lists:
+                self.processCamMotionLists(self.csObj)
                 self.wrote_cam_lists = True
         elif cmdDef["name"] in ACTION_LISTS:
-            if self.cs_object is not None and not self.wrote_action_lists:
-                self.processActorCueLists(self.cs_object)
+            if self.csObj is not None and not self.wrote_action_lists:
+                self.processActorCueLists(self.csObj)
                 self.wrote_action_lists = True
         else:
             self.cs_text += line
             self.entrycount_write += 1
 
     def processCamMotionLists(self, csObj: Object):
-        camShotObjects = GetCamCommands(self.context.scene, csObj)
+        camShotObjects = getShotObjects(self.context.scene, csObj)
 
         if len(camShotObjects) == 0:
             raise RuntimeError(f"No camera command lists in cutscene `{csObj.name}`")
 
         def processLists(useAT: bool):
             for obj in camShotObjects:
-                propBones = GetCamBonesChecked(obj)
+                propBones = getShotPropBonesChecked(obj)
                 startFrame = obj.data.start_frame
-                endFrame = startFrame + GetFakeCamCmdLength(obj, useAT)
+                endFrame = startFrame + getFakeCamCmdsLength(obj, useAT)
                 mode = obj.data.cam_mode
                 self.cs_text += self.getCamListCmd(startFrame, endFrame, useAT, mode)
                 self.entrycount_write += 1
@@ -202,7 +201,7 @@ class OOTCutsceneMotionExport(OOTCutsceneMotionIOBase):
         processLists(True)
 
     def processActorCueLists(self, csObj: Object):
-        cueObjects = GetActionLists(self.context.scene, csObj, None)
+        cueObjects = getActorCueListObjects(self.context.scene, csObj, None)
 
         if len(cueObjects) == 0:
             print("No player or NPC action lists in cutscene")
@@ -210,7 +209,7 @@ class OOTCutsceneMotionExport(OOTCutsceneMotionIOBase):
 
         for cueObj in cueObjects:
             actor_id = cueObj.zc_alist.actor_id
-            cuePoints = GetActionListPoints(self.context.scene, cueObj)
+            cuePoints = getActorCuePointObjects(self.context.scene, cueObj)
 
             if len(cuePoints) < 2:
                 raise RuntimeError(f"Action {cueObj.name} does not have at least 2 key points!")
@@ -229,7 +228,7 @@ class OOTCutsceneMotionExport(OOTCutsceneMotionIOBase):
                     cuePoints[i + 1].location,
                 )
 
-    def exportCutsceneMotion(self, filename: str):
+    def exportToC(self, filename: str):
         if os.path.isfile(filename):
             tmpfile = f"{filename}.tmp"
 

@@ -52,10 +52,10 @@ from .tools import (
     oot_operator_unregister,
 )
 
-from .zcamedit.operators import zcamedit_ops_register, zcamedit_ops_unregister
-from .zcamedit.properties import zcamedit_props_register, zcamedit_props_unregister
-from .zcamedit.panels import zcamedit_panels_register, zcamedit_panels_unregister
-from .zcamedit.preview import zcamedit_preview_register, zcamedit_preview_unregister
+from .zcamedit.operators import csMotion_ops_register, csMotion_ops_unregister
+from .zcamedit.properties import csMotion_props_register, csMotion_props_unregister
+from .zcamedit.panels import csMotion_panels_register, csMotion_panels_unregister
+from .zcamedit.preview import csMotion_preview_register, csMotion_preview_unregister
 
 
 class OOT_Properties(bpy.types.PropertyGroup):
@@ -126,10 +126,10 @@ def oot_register(registerPanels):
     file_register()
     anim_props_register()
 
-    zcamedit_ops_register()
-    zcamedit_props_register()
-    zcamedit_panels_register()
-    zcamedit_preview_register()
+    csMotion_ops_register()
+    csMotion_props_register()
+    csMotion_panels_register()
+    csMotion_preview_register()
 
     for cls in oot_classes:
         register_class(cls)
@@ -164,10 +164,10 @@ def oot_unregister(unregisterPanels):
     file_unregister()
     anim_props_unregister()
 
-    zcamedit_preview_unregister()
-    zcamedit_panels_unregister()
-    zcamedit_props_unregister()
-    zcamedit_ops_unregister()
+    csMotion_preview_unregister()
+    csMotion_panels_unregister()
+    csMotion_props_unregister()
+    csMotion_ops_unregister()
 
     if unregisterPanels:
         oot_panel_unregister()

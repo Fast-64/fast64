@@ -4,18 +4,25 @@ import math
 from mathutils import Vector, Quaternion
 from bpy.app.handlers import persistent
 from bpy.types import Bone, Object, Scene
-from .utility import PropsBone, GetCamBones, GetCamCommands, IsPreview, GetActionLists, GetActionListPoints
+from .utility import (
+    PropsBone,
+    getShotPropBones,
+    getShotObjects,
+    isPreview,
+    getActorCueListObjects,
+    getActorCuePointObjects,
+)
 
 
-def UndefinedCamPos():
+def getUndefinedCamPos():
     return (Vector((0.0, 0.0, 0.0)), Quaternion(), 45.0)
 
 
-def UndefinedCamPosAt():
+def getUndefinedCamPosAT():
     return (Vector((0.0, 0.0, 0.0)), Vector((0.0, 0.0, -1.0)), 0.0, 45.0)
 
 
-def GetSplineCoeffs(t: float):
+def getSplineCoeffs(t: float):
     # Reverse engineered from func_800BB0A0 in Debug ROM
 
     t = min(t, 1.0)  # no check for t < 0
@@ -30,7 +37,7 @@ def GetSplineCoeffs(t: float):
     return oneminustcube6, spline2, spline3, tcube6
 
 
-def Z64SplineInterpolate(bones: list[PropsBone], frame: int):
+def getZ64SplineInterpolate(bones: list[PropsBone], frame: int):
     # Reverse engineered from func_800BB2B4 in Debug ROM
 
     p = 0  # keyframe
@@ -40,7 +47,7 @@ def Z64SplineInterpolate(bones: list[PropsBone], frame: int):
     for f in range(frame):
         if p + 2 >= len(bones) - 1:
             # Camera position is uninitialized
-            return UndefinedCamPosAt()
+            return getUndefinedCamPosAT()
 
         framesPoint1 = bones[p + 1].frames
         denomPoint1 = 1.0 / framesPoint1 if framesPoint1 != 0 else 0.0
@@ -64,9 +71,9 @@ def Z64SplineInterpolate(bones: list[PropsBone], frame: int):
         if frame > 0:
             print("Internal error in spline algorithm")
 
-        return UndefinedCamPosAt()
+        return getUndefinedCamPosAT()
 
-    s1, s2, s3, s4 = GetSplineCoeffs(t)
+    s1, s2, s3, s4 = getSplineCoeffs(t)
     eye = s1 * bones[p].head + s2 * bones[p + 1].head + s3 * bones[p + 2].head + s4 * bones[p + 3].head
     at = s1 * bones[p].tail + s2 * bones[p + 1].tail + s3 * bones[p + 2].tail + s4 * bones[p + 3].tail
     roll = s1 * bones[p].camroll + s2 * bones[p + 1].camroll + s3 * bones[p + 2].camroll + s4 * bones[p + 3].camroll
@@ -75,24 +82,24 @@ def Z64SplineInterpolate(bones: list[PropsBone], frame: int):
     return (eye, at, roll, fov)
 
 
-def GetCmdCamState(shotObj: Object, frame: int):
+def getCmdCamState(shotObj: Object, frame: int):
     frame -= shotObj.data.start_frame + 1
 
     if frame < 0:
         print(f"Warning, camera command evaluated for frame {frame}")
-        return UndefinedCamPos()
+        return getUndefinedCamPos()
 
-    bones = GetCamBones(shotObj)
+    bones = getShotPropBones(shotObj)
 
     if bones is None:
-        return UndefinedCamPos()
+        return getUndefinedCamPos()
 
-    eye, at, roll, fov = Z64SplineInterpolate(bones, frame)
+    eye, at, roll, fov = getZ64SplineInterpolate(bones, frame)
     # TODO handle cam_mode (relativeToLink)
     lookvec = at - eye
 
     if lookvec.length < 1e-6:
-        return UndefinedCamPos()
+        return getUndefinedCamPos()
 
     lookvec.normalize()
     ux = Vector((1.0, 0.0, 0.0))
@@ -105,10 +112,10 @@ def GetCmdCamState(shotObj: Object, frame: int):
     return (eye, qyaw @ qpitch @ qroll, fov)
 
 
-def GetCutsceneCamState(scene: Scene, csObj: Object, frame: int):
+def getCutsceneCamState(scene: Scene, csObj: Object, frame: int):
     """Returns (pos, rot_quat, fov)"""
 
-    shotObjects = GetCamCommands(scene, csObj)
+    shotObjects = getShotObjects(scene, csObj)
 
     if len(shotObjects) > 0:
         shotObj = None
@@ -120,18 +127,18 @@ def GetCutsceneCamState(scene: Scene, csObj: Object, frame: int):
                 startFrame = obj.data.start_frame
 
     if shotObj is None or len(shotObjects) == 0:
-        return UndefinedCamPos()
+        return getUndefinedCamPos()
 
-    return GetCmdCamState(shotObj, frame)
+    return getCmdCamState(shotObj, frame)
 
 
-def GetActorState(scene: Scene, csObj: Object, actorid: int, frame: int):
-    cueObjects = GetActionLists(scene, csObj, actorid)
+def getActorCueState(scene: Scene, csObj: Object, actorid: int, frame: int):
+    cueObjects = getActorCueListObjects(scene, csObj, actorid)
     pos = Vector((0.0, 0.0, 0.0))
     rot = Vector((0.0, 0.0, 0.0))
 
     for cueObj in cueObjects:
-        points = GetActionListPoints(scene, cueObj)
+        points = getActorCuePointObjects(scene, cueObj)
 
         if len(points) >= 2:
             for i in range(len(points) - 1):
@@ -152,19 +159,19 @@ def GetActorState(scene: Scene, csObj: Object, actorid: int, frame: int):
 
 
 @persistent
-def PreviewFrameHandler(scene: Scene):
+def previewFrameHandler(scene: Scene):
     for obj in scene.objects:
         if obj.parent is not None and obj.parent.type == "EMPTY" and obj.parent.name.startswith("Cutscene."):
             if obj.type == "CAMERA":
-                pos, rot_quat, fov = GetCutsceneCamState(scene, obj.parent, scene.frame_current)
+                pos, rot_quat, fov = getCutsceneCamState(scene, obj.parent, scene.frame_current)
 
                 if pos is not None:
                     obj.location = pos
                     obj.rotation_mode = "QUATERNION"
                     obj.rotation_quaternion = rot_quat
                     obj.data.angle = math.pi * fov / 180.0
-            elif IsPreview(obj):
-                pos, rot = GetActorState(scene, obj.parent, obj.zc_alist.actor_id, scene.frame_current)
+            elif isPreview(obj):
+                pos, rot = getActorCueState(scene, obj.parent, obj.zc_alist.actor_id, scene.frame_current)
 
                 if pos is not None:
                     obj.location = pos
@@ -172,10 +179,10 @@ def PreviewFrameHandler(scene: Scene):
                     obj.rotation_euler = rot
 
 
-def zcamedit_preview_register():
-    bpy.app.handlers.frame_change_pre.append(PreviewFrameHandler)
+def csMotion_preview_register():
+    bpy.app.handlers.frame_change_pre.append(previewFrameHandler)
 
 
-def zcamedit_preview_unregister():
-    if PreviewFrameHandler in bpy.app.handlers.frame_change_pre:
-        bpy.app.handlers.frame_change_pre.remove(PreviewFrameHandler)
+def csMotion_preview_unregister():
+    if previewFrameHandler in bpy.app.handlers.frame_change_pre:
+        bpy.app.handlers.frame_change_pre.remove(previewFrameHandler)

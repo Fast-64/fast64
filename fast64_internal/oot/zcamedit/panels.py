@@ -1,10 +1,10 @@
 from bpy.types import Panel, Bone, Armature, Object, EditBone
 from bpy.utils import register_class, unregister_class
 from bpy.props import FloatProperty, IntProperty, EnumProperty
-from .utility import CheckGetCSObj, IsActionList, IsPreview, IsActionPoint
+from .utility import getCSObj, isActorCueList, isPreview, isActorCuePoint
 
 
-def EditBoneToBone(shotObject: Object, editBone: EditBone) -> Bone:
+def getBoneFromEditBone(shotObject: Object, editBone: EditBone) -> Bone:
     for bone in shotObject.data.bones:
         if bone.name == editBone.name:
             return bone
@@ -13,9 +13,9 @@ def EditBoneToBone(shotObject: Object, editBone: EditBone) -> Bone:
         return editBone
 
 
-class ZCAMEDIT_PT_action_controls_panel(Panel):
-    bl_label = "zcamedit Action Controls"
-    bl_idname = "ZCAMEDIT_PT_action_controls_panel"
+class OOT_CSMotionActorCuePanel(Panel):
+    bl_label = "Cutscene Motion Actor Cue Controls"
+    bl_idname = "OOT_CSMotionActorCuePanel"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "object"
@@ -25,29 +25,29 @@ class ZCAMEDIT_PT_action_controls_panel(Panel):
         layout = self.layout
         obj = context.view_layer.objects.active
 
-        if IsActionPoint(obj):
+        if isActorCuePoint(obj):
             r = layout.row()
             r.label(text="Action point:")
             r.prop(obj.zc_apoint, "start_frame")
             r.prop(obj.zc_apoint, "action_id")
             obj = obj.parent
 
-        if IsActionList(obj):
+        if isActorCueList(obj):
             r = layout.row()
             r.label(text="Action list:")
             r.prop(obj.zc_alist, "actor_id")
             layout.operator("zcamedit.add_action_point")
             layout.operator("zcamedit.create_action_preview")
 
-        if IsPreview(obj):
+        if isPreview(obj):
             r = layout.row()
             r.label(text="Preview:")
             r.prop(obj.zc_alist, "actor_id")
 
 
-class ZCAMEDIT_PT_cam_panel(Panel):
-    bl_label = "zcamedit Cutscene Camera Controls"
-    bl_idname = "ZCAMEDIT_PT_cam_panel"
+class OOT_CSMotionCameraShotPanel(Panel):
+    bl_label = "Cutscene Motion Camera Shot Controls"
+    bl_idname = "OOT_CSMotionCameraShotPanel"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "object"
@@ -74,7 +74,7 @@ class ZCAMEDIT_PT_cam_panel(Panel):
                 if editBone is None:
                     return
 
-                activeBone = EditBoneToBone(obj, editBone)
+                activeBone = getBoneFromEditBone(obj, editBone)
 
             def drawBoneProp(prop):
                 if editBone is not None and prop in editBone:
@@ -89,9 +89,9 @@ class ZCAMEDIT_PT_cam_panel(Panel):
             drawBoneProp("camroll")
 
 
-class ZCAMEDIT_PT_cs_controls_panel(Panel):
-    bl_label = "zcamedit Cutscene Controls"
-    bl_idname = "ZCAMEDIT_PT_cs_controls_panel"
+class OOT_CutsceneMotionPanel(Panel):
+    bl_label = "Cutscene Motion Controls"
+    bl_idname = "OOT_CutsceneMotionPanel"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "object"
@@ -100,7 +100,7 @@ class ZCAMEDIT_PT_cs_controls_panel(Panel):
     def draw(self, context):
         layout = self.layout
 
-        if CheckGetCSObj(None, context):
+        if getCSObj(None, context) is not None:
             layout.prop(context.scene, "ootBlenderScale")
             layout.prop(context.scene, "zc_previewlinkage")
             layout.operator("zcamedit.init_cs")
@@ -109,10 +109,10 @@ class ZCAMEDIT_PT_cs_controls_panel(Panel):
             layout.operator("zcamedit.create_actor_action")
 
 
-classes = (ZCAMEDIT_PT_action_controls_panel, ZCAMEDIT_PT_cam_panel, ZCAMEDIT_PT_cs_controls_panel)
+classes = (OOT_CSMotionActorCuePanel, OOT_CSMotionCameraShotPanel, OOT_CutsceneMotionPanel)
 
 
-def zcamedit_panels_register():
+def csMotion_panels_register():
     for cls in classes:
         register_class(cls)
 
@@ -142,7 +142,7 @@ def zcamedit_panels_register():
     )
 
 
-def zcamedit_panels_unregister():
+def csMotion_panels_unregister():
     del Armature.cam_mode
     del Armature.start_frame
     del Bone.camroll
