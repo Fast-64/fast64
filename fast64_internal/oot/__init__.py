@@ -38,6 +38,11 @@ from .cutscene.operators import cutscene_ops_register, cutscene_ops_unregister
 from .cutscene.properties import cutscene_props_register, cutscene_props_unregister
 from .cutscene.panels import cutscene_panels_register, cutscene_panels_unregister
 
+from .cutscene.motion.operators import csMotion_ops_register, csMotion_ops_unregister
+from .cutscene.motion.properties import csMotion_props_register, csMotion_props_unregister
+from .cutscene.motion.panels import csMotion_panels_register, csMotion_panels_unregister
+from .cutscene.motion.preview import csMotion_preview_register, csMotion_preview_unregister
+
 from .skeleton.operators import skeleton_ops_register, skeleton_ops_unregister
 from .skeleton.properties import skeleton_props_register, skeleton_props_unregister
 from .skeleton.panels import skeleton_panels_register, skeleton_panels_unregister
@@ -51,11 +56,6 @@ from .tools import (
     oot_operator_register,
     oot_operator_unregister,
 )
-
-from .zcamedit.operators import csMotion_ops_register, csMotion_ops_unregister
-from .zcamedit.properties import csMotion_props_register, csMotion_props_unregister
-from .zcamedit.panels import csMotion_panels_register, csMotion_panels_unregister
-from .zcamedit.preview import csMotion_preview_register, csMotion_preview_unregister
 
 
 class OOT_Properties(bpy.types.PropertyGroup):

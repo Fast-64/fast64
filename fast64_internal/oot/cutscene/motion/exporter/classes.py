@@ -6,7 +6,7 @@ import bpy
 
 from struct import pack, unpack
 from bpy.types import Object
-from ....utility import indent
+from .....utility import indent
 from ..constants import CAM_TYPE_LISTS, ACTION_LISTS, ATMODE_TO_CMD
 from ..utility import (
     OOTCutsceneMotionIOBase,
