@@ -229,7 +229,7 @@ class OOTCutsceneMotionExport(OOTCutsceneMotionIOBase):
                     cuePoints[i + 1].location,
                 )
 
-    def ExportCFile(self, filename: str):
+    def exportCutsceneMotion(self, filename: str):
         if os.path.isfile(filename):
             tmpfile = f"{filename}.tmp"
 

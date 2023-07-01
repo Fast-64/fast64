@@ -1,7 +1,8 @@
 import math
+import bpy
 
 from struct import pack, unpack
-from bpy.types import Scene, Object, Bone
+from bpy.types import Scene, Object, Bone, Context
 from ...utility import indent
 from .constants import LISTS_DEF, NONLISTS_DEF, CAM_TYPE_LISTS, ACTION_LISTS
 
@@ -272,13 +273,15 @@ def intBitsAsFloat(i):
     return unpack(">f", s)[0]
 
 
-def CreateObject(context, name, data, select):
-    obj = context.blend_data.objects.new(name=name, object_data=data)
-    context.view_layer.active_layer_collection.collection.objects.link(obj)
-    if select:
-        obj.select_set(True)
-        context.view_layer.objects.active = obj
-    return obj
+def CreateObject(context: Context, name: str, data, selectObject: bool) -> Object:
+    newObj = bpy.data.objects.new(name=name, object_data=data)
+    context.view_layer.active_layer_collection.collection.objects.link(newObj)
+
+    if selectObject:
+        newObj.select_set(True)
+        context.view_layer.objects.active = newObj
+
+    return newObj
 
 
 def CheckGetCSObj(op, context):
@@ -393,35 +396,39 @@ def GetCSFakeEnd(context, cs_object):
     return cs_endf
 
 
-def initCS(context, cs_object):
+def initCS(context: Context, csObj: Object):
     # Add or move camera
-    camo = None
-    nocam = True
-    for o in context.blend_data.objects:
-        if o.type != "CAMERA":
-            continue
-        nocam = False
-        if o.parent is not None and o.parent != cs_object:
-            continue
-        camo = o
+    camObj = None
+    hasNoCam = True
+
+    for o in bpy.data.objects:
+        if o.type == "CAMERA":
+            hasNoCam = False
+
+            if o.parent is not None and o.parent == csObj:
+                camObj = o
         break
-    if nocam:
-        cam = context.blend_data.cameras.new("Camera")
-        camo = CreateObject(context, "Camera", cam, False)
+
+    if hasNoCam:
+        cam = bpy.data.cameras.new("Camera")
+        camObj = CreateObject(context, "Camera", cam, False)
         print("Created new camera")
-    if camo is not None:
-        camo.parent = cs_object
-        camo.data.display_size = MetersToBlend(context, 0.25)
-        camo.data.passepartout_alpha = 0.95
-        camo.data.clip_start = MetersToBlend(context, 1e-3)
-        camo.data.clip_end = MetersToBlend(context, 200.0)
+
+    if camObj is not None:
+        camObj.parent = csObj
+        camObj.data.display_size = MetersToBlend(context, 0.25)
+        camObj.data.passepartout_alpha = 0.95
+        camObj.data.clip_start = MetersToBlend(context, 1e-3)
+        camObj.data.clip_end = MetersToBlend(context, 200.0)
+
     # Preview actions
-    for o in context.blend_data.objects:
-        if IsActionList(o):
-            CreateOrInitPreview(context, o.parent, o.zc_alist.actor_id, False)
+    for obj in bpy.data.objects:
+        if IsActionList(obj):
+            CreateOrInitPreview(context, obj.parent, obj.zc_alist.actor_id, False)
+
     # Other setup
     context.scene.frame_start = 0
-    context.scene.frame_end = max(GetCSFakeEnd(context, cs_object), context.scene.frame_end)
+    context.scene.frame_end = max(GetCSFakeEnd(context, csObj), context.scene.frame_end)
     context.scene.render.fps = 20
     context.scene.render.resolution_x = 320
     context.scene.render.resolution_y = 240
@@ -459,19 +466,21 @@ def GetActionLists(scene: Scene, csObj: Object, actorid: int):
     return ret
 
 
-def CreateActionPoint(context, al_object, select, pos, start_frame, action_id):
-    point = CreateObject(context, "Point.001", None, select)
-    point.parent = al_object
-    point.empty_display_type = "ARROWS"
-    point.location = pos
-    point.rotation_mode = "XZY"
-    point.zc_apoint.start_frame = start_frame
-    point.zc_apoint.action_id = action_id
-    return point
+def CreateActionPoint(context: Context, actorCueObj: Object, selectObj: bool, pos, startFrame: int, action_id: str):
+    newCuePoint = CreateObject(context, "Point.001", None, selectObj)
+    newCuePoint.parent = actorCueObj
+    newCuePoint.empty_display_type = "ARROWS"
+    newCuePoint.location = pos
+    newCuePoint.rotation_mode = "XZY"
+    newCuePoint.zc_apoint.start_frame = startFrame
+    newCuePoint.zc_apoint.action_id = action_id
+
+    return newCuePoint
 
 
-def CreateActorAction(context, actor_id, cs_object):
-    al_object = CreateObject(context, "ActionList." + GetActorName(actor_id) + ".001", None, True)
-    al_object.parent = cs_object
-    al_object.zc_alist.actor_id = actor_id
-    return al_object
+def CreateActorAction(context: Context, actor_id: int, csObj: Object):
+    actorCueObj = CreateObject(context, f"ActionList.{GetActorName(actor_id)}.001", None, True)
+    actorCueObj.parent = csObj
+    actorCueObj.zc_alist.actor_id = actor_id
+
+    return actorCueObj

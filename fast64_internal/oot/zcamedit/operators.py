@@ -5,8 +5,8 @@ from bpy_extras.io_utils import ImportHelper, ExportHelper
 from bpy.types import Operator, Scene, TOPBAR_MT_file_import, TOPBAR_MT_file_export
 from bpy.utils import register_class, unregister_class
 from bpy.props import FloatProperty, EnumProperty, StringProperty, BoolProperty
-from .importer import ImportCFile
-from .exporter import ExportCFile
+from .importer import importCutsceneMotion
+from .exporter import exportCutsceneMotion
 
 from .utility import (
     initCS,
@@ -165,7 +165,7 @@ class ZCAMEDIT_OT_import_c(Operator, ImportHelper):
     filter_glob: StringProperty(default="*.c", options={"HIDDEN"}, maxlen=4096)
 
     def execute(self, context):
-        ret = ImportCFile(context, self.filepath)
+        ret = importCutsceneMotion(context, self.filepath)
         if ret is not None:
             self.report({"WARNING"}, ret)
             return {"CANCELLED"}
@@ -199,7 +199,7 @@ class ZCAMEDIT_OT_export_c(Operator, ExportHelper):
     )
 
     def execute(self, context):
-        ret = ExportCFile(context, self.filepath, self.use_floats, self.use_tabs, self.use_cscmd)
+        ret = exportCutsceneMotion(context, self.filepath, self.use_floats, self.use_tabs, self.use_cscmd)
         if ret is not None:
             self.report({"WARNING"}, ret)
             return {"CANCELLED"}

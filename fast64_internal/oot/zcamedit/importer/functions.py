@@ -1,6 +1,6 @@
 from .classes import OOTCutsceneMotionImport
 
 
-def ImportCFile(context, filename):
+def importCutsceneMotion(context, filename):
     im = OOTCutsceneMotionImport(context)
-    return im.ImportCFile(filename)
+    return im.importCutsceneMotion(filename)
