@@ -4,7 +4,7 @@ import math
 from mathutils import Vector, Quaternion
 from bpy.app.handlers import persistent
 from bpy.types import Bone, Object, Scene
-from .utility import GetCamBones, GetCamCommands, IsPreview, GetActionLists, GetActionListPoints
+from .utility import PropsBone, GetCamBones, GetCamCommands, IsPreview, GetActionLists, GetActionListPoints
 
 
 def UndefinedCamPos():
@@ -30,7 +30,7 @@ def GetSplineCoeffs(t: float):
     return oneminustcube6, spline2, spline3, tcube6
 
 
-def Z64SplineInterpolate(bones: list[Bone], frame: int):
+def Z64SplineInterpolate(bones: list[PropsBone], frame: int):
     # Reverse engineered from func_800BB2B4 in Debug ROM
 
     p = 0  # keyframe
@@ -126,12 +126,12 @@ def GetCutsceneCamState(scene: Scene, csObj: Object, frame: int):
 
 
 def GetActorState(scene: Scene, csObj: Object, actorid: int, frame: int):
-    actionlists = GetActionLists(scene, csObj, actorid)
+    cueObjects = GetActionLists(scene, csObj, actorid)
     pos = Vector((0.0, 0.0, 0.0))
     rot = Vector((0.0, 0.0, 0.0))
 
-    for al in actionlists:
-        points = GetActionListPoints(scene, al)
+    for cueObj in cueObjects:
+        points = GetActionListPoints(scene, cueObj)
 
         if len(points) >= 2:
             for i in range(len(points) - 1):

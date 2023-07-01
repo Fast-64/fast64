@@ -2,7 +2,7 @@ import math
 import bpy
 
 from struct import pack, unpack
-from bpy.types import Scene, Object, Bone, Context
+from bpy.types import Scene, Object, Bone, Context, EditBone, Operator
 from ...utility import indent
 from .constants import LISTS_DEF, NONLISTS_DEF, CAM_TYPE_LISTS, ACTION_LISTS
 
@@ -11,6 +11,11 @@ class OOTCutsceneMotionIOBase:
     def __init__(self, context):
         self.context = context
         self.scale = context.scene.ootBlenderScale
+    
+    def intBitsAsFloat(self, value: int):
+        """From https://stackoverflow.com/questions/14431170/get-the-bits-of-a-float-in-python"""
+        s = pack(">l", value)
+        return unpack(">f", s)[0]
 
     def parseParams(self, cmdDef: dict, line: str):
         assert line.startswith(cmdDef["name"] + "(")
@@ -52,7 +57,7 @@ class OOTCutsceneMotionIOBase:
                     raise RuntimeError("Invalid continueFlag value for " + paramList["name"] + " in " + line)
             elif paramList["type"] == "int_or_float":
                 if cmdArg.startswith("0x"):
-                    value = intBitsAsFloat(int(cmdArg, base=16))
+                    value = self.intBitsAsFloat(int(cmdArg, base=16))
                 elif cmdArg.endswith("f"):
                     value = float(cmdArg[:-1])
 
@@ -243,34 +248,17 @@ class OOTCutsceneMotionIOBase:
             raise RuntimeError("Unexpected EOF!")
 
 
-class PropsBone:
-    def __init__(self, armo, b):
-        eb = BoneToEditBone(armo, b) if armo.mode == "EDIT" else None
-        self.name = b.name
-        self.head = eb.head if eb is not None else b.head
-        self.tail = eb.tail if eb is not None else b.tail
-        self.frames = eb["frames"] if eb is not None and "frames" in eb else b.frames
-        self.fov = eb["fov"] if eb is not None and "fov" in eb else b.fov
-        self.camroll = eb["camroll"] if eb is not None and "camroll" in eb else b.camroll
-
-
-def BoneToEditBone(armo, b):
-    for eb in armo.data.edit_bones:
-        if eb.name == b.name:
-            return eb
+def BoneToEditBone(shotObj: Object, bone: Bone) -> EditBone | Bone:
+    for editBone in shotObj.data.edit_bones:
+        if editBone.name == bone.name:
+            return editBone
     else:
         print("Could not find corresponding bone")
-        return b
+        return bone
 
 
-def MetersToBlend(context, v):
-    return v * 56.0 / context.scene.ootBlenderScale
-
-
-def intBitsAsFloat(i):
-    """From https://stackoverflow.com/questions/14431170/get-the-bits-of-a-float-in-python"""
-    s = pack(">l", i)
-    return unpack(">f", s)[0]
+def MetersToBlend(context: Context, value: float):
+    return value * 56.0 / context.scene.ootBlenderScale
 
 
 def CreateObject(context: Context, name: str, data, selectObject: bool) -> Object:
@@ -284,66 +272,87 @@ def CreateObject(context: Context, name: str, data, selectObject: bool) -> Objec
     return newObj
 
 
-def CheckGetCSObj(op, context):
+def CheckGetCSObj(operator: Operator, context: Context):
     """Check if we are editing a cutscene."""
-    cs_object = context.view_layer.objects.active
-    if cs_object is None or cs_object.type != "EMPTY":
-        if op:
-            op.report({"WARNING"}, "Must have an empty object active (selected)")
+    csObj = context.view_layer.objects.active
+
+    if csObj is None or csObj.type != "EMPTY":
+        if operator is not None:
+            operator.report({"WARNING"}, "Must have an empty object active (selected)")
         return None
-    if not cs_object.name.startswith("Cutscene."):
-        if op:
-            op.report({"WARNING"}, 'Cutscene empty object must be named "Cutscene.<YourCutsceneName>"')
+    
+    if not csObj.name.startswith("Cutscene."):
+        if operator is not None:
+            operator.report({"WARNING"}, 'Cutscene empty object must be named "Cutscene.<YourCutsceneName>"')
         return None
-    return cs_object
+
+    return csObj
 
 
 # action data
-def IsActionList(obj):
+def IsActionList(obj: Object):
     if obj is None or obj.type != "EMPTY":
         return False
+    
     if not any(obj.name.startswith(s) for s in ["Path.", "ActionList."]):
         return False
+    
     if obj.parent is None or obj.parent.type != "EMPTY" or not obj.parent.name.startswith("Cutscene."):
         return False
+    
     return True
 
 
-def IsPreview(obj):
+def IsPreview(obj: Object):
     if obj is None or obj.type != "EMPTY":
         return False
+    
     if not obj.name.startswith("Preview."):
         return False
+    
     if obj.parent is None or obj.parent.type != "EMPTY" or not obj.parent.name.startswith("Cutscene."):
         return False
+    
     return True
 
 
-def GetActorName(actor_id):
-    return "Link" if actor_id < 0 else "Actor" + str(actor_id)
+def GetActorName(actor_id: int):
+    return "Link" if actor_id < 0 else f"Actor{actor_id}"
 
 
-def CreateOrInitPreview(context, cs_object, actor_id, select=False):
-    for o in context.blend_data.objects:
-        if IsPreview(o) and o.parent == cs_object and o.zc_alist.actor_id == actor_id:
-            preview = o
+def CreateOrInitPreview(context: Context, csObj: Object, actor_id: int, selectObject=False):
+    for obj in bpy.data.objects:
+        if IsPreview(obj) and obj.parent == csObj and obj.zc_alist.actor_id == actor_id:
+            previewObj = obj
             break
     else:
-        preview = CreateObject(context, "Preview." + GetActorName(actor_id) + ".001", None, select)
-        preview.parent = cs_object
+        previewObj = CreateObject(context, f"Preview.{GetActorName(actor_id)}.001", None, selectObject)
+        previewObj.parent = csObj
 
     actorHeight = 1.5
+
     if actor_id < 0:
         actorHeight = 1.7 if context.scene.zc_previewlinkage == "link_adult" else 1.3
 
-    preview.empty_display_type = "SINGLE_ARROW"
-    preview.empty_display_size = MetersToBlend(context, actorHeight)
-    preview.zc_alist.actor_id = actor_id
+    previewObj.empty_display_type = "SINGLE_ARROW"
+    previewObj.empty_display_size = MetersToBlend(context, actorHeight)
+    previewObj.zc_alist.actor_id = actor_id
+
+
+class PropsBone:
+    def __init__(self, shotObj: Object, bone: Bone):
+        editBone = BoneToEditBone(shotObj, bone) if shotObj.mode == "EDIT" else None
+        self.name = bone.name
+        self.head = editBone.head if editBone is not None else bone.head
+        self.tail = editBone.tail if editBone is not None else bone.tail
+        self.frames = editBone["frames"] if editBone is not None and "frames" in editBone else bone.frames
+        self.fov = editBone["fov"] if editBone is not None and "fov" in editBone else bone.fov
+        self.camroll = editBone["camroll"] if editBone is not None and "camroll" in editBone else bone.camroll
 
 
 # camdata
 def GetCamBones(shotObj: Object):
-    bones: list[Bone] = []
+    bones: list[PropsBone] = []
 
     for bone in shotObj.data.bones:
         if bone.parent is not None:
@@ -357,43 +366,45 @@ def GetCamBones(shotObj: Object):
 
 
 def GetCamBonesChecked(shotObj: Object):
-    bones = GetCamBones(shotObj)
+    propBones = GetCamBones(shotObj)
 
-    if bones is None:
+    if propBones is None:
         raise RuntimeError("Error in bone properties")
 
-    if len(bones) < 4:
-        raise RuntimeError(f"Only {len(bones)} bones in `{shotObj.name}`")
+    if len(propBones) < 4:
+        raise RuntimeError(f"Only {len(propBones)} bones in `{shotObj.name}`")
 
-    return bones
+    return propBones
 
 
 def GetCamCommands(scene: Scene, csObj: Object):
-    ret: list[Object] = [
+    shotObjects: list[Object] = [
         obj for obj in scene.objects if obj.type == "ARMATURE" and obj.parent is not None and obj.parent == csObj
     ]
-    ret.sort(key=lambda obj: obj.name)
+    shotObjects.sort(key=lambda obj: obj.name)
 
-    return ret
+    return shotObjects
 
 
-def GetFakeCamCmdLength(armo, at):
-    bones = GetCamBonesChecked(armo)
-    base = max(2, sum(b.frames for b in bones))
+def GetFakeCamCmdLength(shotObj: Object, useAT: bool):
+    propBones = GetCamBonesChecked(shotObj)
+    base = max(2, sum(b.frames for b in propBones))
     # Seems to be the algorithm which was used in the canon tool: the at list
     # counts the extra point (same frames as the last real point), and the pos
     # list doesn't count the extra point but adds 1. Of course, neither of these
     # values is actually the number of frames the camera motion lasts for.
-    return base + (bones[-1].frames if at else 1)
+    return base + (propBones[-1].frames if useAT else 1)
 
 
-def GetCSFakeEnd(context, cs_object):
-    cmdlists = GetCamCommands(context.scene, cs_object)
-    cs_endf = -1
-    for c in cmdlists:
-        end_frame = c.data.start_frame + GetFakeCamCmdLength(c, False) + 1
-        cs_endf = max(cs_endf, end_frame)
-    return cs_endf
+def GetCSFakeEnd(context: Context, csObj: Object):
+    shotObjects = GetCamCommands(context.scene, csObj)
+    csEndFrame = -1
+
+    for shotObj in shotObjects:
+        endFrame = shotObj.data.start_frame + GetFakeCamCmdLength(shotObj, False) + 1
+        csEndFrame = max(csEndFrame, endFrame)
+
+    return csEndFrame
 
 
 def initCS(context: Context, csObj: Object):
@@ -401,12 +412,12 @@ def initCS(context: Context, csObj: Object):
     camObj = None
     hasNoCam = True
 
-    for o in bpy.data.objects:
-        if o.type == "CAMERA":
+    for obj in bpy.data.objects:
+        if obj.type == "CAMERA":
             hasNoCam = False
 
-            if o.parent is not None and o.parent == csObj:
-                camObj = o
+            if obj.parent is not None and obj.parent == csObj:
+                camObj = obj
         break
 
     if hasNoCam:
@@ -439,7 +450,7 @@ def IsActionPoint(cuePointObj: Object):
     if (
         cuePointObj is None
         or cuePointObj.type != "EMPTY"
-        or not any(cuePointObj.name.startswith(s) for s in ["Point.", "Action."])
+        or not ["Point.", "Action."] in cuePointObj.name
         or not IsActionList(cuePointObj.parent)
     ):
         return False
@@ -448,22 +459,22 @@ def IsActionPoint(cuePointObj: Object):
 
 
 def GetActionListPoints(scene: Scene, cueObj: Object):
-    ret: list[Object] = [obj for obj in scene.objects if IsActionPoint(obj) and obj.parent == cueObj]
-    ret.sort(key=lambda o: o.zc_apoint.start_frame)
-    return ret
+    cuePoints: list[Object] = [obj for obj in scene.objects if IsActionPoint(obj) and obj.parent == cueObj]
+    cuePoints.sort(key=lambda o: o.zc_apoint.start_frame)
+    return cuePoints
 
 
 def GetActionLists(scene: Scene, csObj: Object, actorid: int):
-    ret: list[Object] = []
+    cueObjects: list[Object] = []
 
     for obj in scene.objects:
         if IsActionList(obj) and obj.parent == csObj and (actorid is None or obj.zc_alist.actor_id == actorid):
-            ret.append(obj)
+            cueObjects.append(obj)
 
     points = GetActionListPoints(scene, obj)
 
-    ret.sort(key=lambda o: 1000000 if len(points) < 2 else points[0].zc_apoint.start_frame)
-    return ret
+    cueObjects.sort(key=lambda o: 1000000 if len(points) < 2 else points[0].zc_apoint.start_frame)
+    return cueObjects
 
 
 def CreateActionPoint(context: Context, actorCueObj: Object, selectObj: bool, pos, startFrame: int, action_id: str):

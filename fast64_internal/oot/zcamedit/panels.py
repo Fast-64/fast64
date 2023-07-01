@@ -1,10 +1,10 @@
-from bpy.types import Panel, Bone, Armature, Object
+from bpy.types import Panel, Bone, Armature, Object, EditBone
 from bpy.utils import register_class, unregister_class
 from bpy.props import FloatProperty, IntProperty, EnumProperty
 from .utility import CheckGetCSObj, IsActionList, IsPreview, IsActionPoint
 
 
-def EditBoneToBone(shotObject: Object, editBone: Bone) -> Bone:
+def EditBoneToBone(shotObject: Object, editBone: EditBone) -> Bone:
     for bone in shotObject.data.bones:
         if bone.name == editBone.name:
             return bone

@@ -181,18 +181,18 @@ class OOTCutsceneMotionExport(OOTCutsceneMotionIOBase):
 
         def processLists(useAT: bool):
             for obj in camShotObjects:
-                bones = GetCamBonesChecked(obj)
+                propBones = GetCamBonesChecked(obj)
                 startFrame = obj.data.start_frame
                 endFrame = startFrame + GetFakeCamCmdLength(obj, useAT)
                 mode = obj.data.cam_mode
                 self.cs_text += self.getCamListCmd(startFrame, endFrame, useAT, mode)
                 self.entrycount_write += 1
 
-                for i, bone in enumerate(bones):
-                    camRoll = bone.camroll if useAT else 0
-                    camFrame = bone.frames if useAT else 0
-                    camViewAngle = bone.fov
-                    camPos = bone.tail if useAT else bone.head
+                for i, propBone in enumerate(propBones):
+                    camRoll = propBone.camroll if useAT else 0
+                    camFrame = propBone.frames if useAT else 0
+                    camViewAngle = propBone.fov
+                    camPos = propBone.tail if useAT else propBone.head
                     self.cs_text += self.getCamCmd(True, camRoll, camFrame, camViewAngle, camPos, useAT, mode)
 
                 # Extra dummy point
