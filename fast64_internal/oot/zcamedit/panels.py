@@ -1,16 +1,16 @@
-from bpy.types import Panel, Bone, Armature
+from bpy.types import Panel, Bone, Armature, Object
 from bpy.utils import register_class, unregister_class
 from bpy.props import FloatProperty, IntProperty, EnumProperty
 from .utility import CheckGetCSObj, IsActionList, IsPreview, IsActionPoint
 
 
-def EditBoneToBone(armo, eb):
-    for b in armo.data.bones:
-        if b.name == eb.name:
-            return b
+def EditBoneToBone(shotObject: Object, editBone: Bone) -> Bone:
+    for bone in shotObject.data.bones:
+        if bone.name == editBone.name:
+            return bone
     else:
         print("Could not find corresponding bone")
-        return eb
+        return editBone
 
 
 class ZCAMEDIT_PT_action_controls_panel(Panel):
@@ -24,18 +24,21 @@ class ZCAMEDIT_PT_action_controls_panel(Panel):
     def draw(self, context):
         layout = self.layout
         obj = context.view_layer.objects.active
+
         if IsActionPoint(obj):
             r = layout.row()
             r.label(text="Action point:")
             r.prop(obj.zc_apoint, "start_frame")
             r.prop(obj.zc_apoint, "action_id")
             obj = obj.parent
+
         if IsActionList(obj):
             r = layout.row()
             r.label(text="Action list:")
             r.prop(obj.zc_alist, "actor_id")
             layout.operator("zcamedit.add_action_point")
             layout.operator("zcamedit.create_action_preview")
+
         if IsPreview(obj):
             r = layout.row()
             r.label(text="Preview:")
@@ -52,34 +55,38 @@ class ZCAMEDIT_PT_cam_panel(Panel):
 
     def draw(self, context):
         obj = context.view_layer.objects.active
-        if obj is None or obj.type != "ARMATURE":
-            return
-        box = self.layout.box()
-        box.label(text=self.bl_label)
-        box.prop(obj.data, "start_frame")
-        box.row().prop(obj.data, "cam_mode", expand=True)
-        active_bone = edit_bone = None
-        if obj.mode == "OBJECT":
-            active_bone = obj.data.bones.active
-            if active_bone is None:
-                return
-        elif obj.mode == "EDIT":
-            edit_bone = obj.data.edit_bones.active
-            if edit_bone is None:
-                return
-            active_bone = EditBoneToBone(obj, edit_bone)
 
-        def bprop(prop):
-            if edit_bone is not None and prop in edit_bone:
-                r.prop(edit_bone, '["' + prop + '"]')
-            else:
-                r.prop(active_bone, prop)
+        if obj is None or obj.type == "ARMATURE":
+            box = self.layout.box()
+            box.label(text=self.bl_label)
+            box.prop(obj.data, "start_frame")
+            box.row().prop(obj.data, "cam_mode", expand=True)
+            activeBone = editBone = None
 
-        box.label(text="Bone / Key point:")
-        r = box.row()
-        bprop("frames")
-        bprop("fov")
-        bprop("camroll")
+            if obj.mode == "OBJECT":
+                activeBone = obj.data.bones.active
+
+                if activeBone is None:
+                    return
+            elif obj.mode == "EDIT":
+                editBone = obj.data.edit_bones.active
+
+                if editBone is None:
+                    return
+                
+                activeBone = EditBoneToBone(obj, editBone)
+
+            def drawBoneProp(prop):
+                if editBone is not None and prop in editBone:
+                    r.prop(editBone, '["' + prop + '"]')
+                else:
+                    r.prop(activeBone, prop)
+
+            box.label(text="Bone / Key point:")
+            r = box.row()
+            drawBoneProp("frames")
+            drawBoneProp("fov")
+            drawBoneProp("camroll")
 
 
 class ZCAMEDIT_PT_cs_controls_panel(Panel):
@@ -92,6 +99,7 @@ class ZCAMEDIT_PT_cs_controls_panel(Panel):
 
     def draw(self, context):
         layout = self.layout
+
         if CheckGetCSObj(None, context):
             layout.prop(context.scene, "ootBlenderScale")
             layout.prop(context.scene, "zc_previewlinkage")
@@ -111,6 +119,7 @@ def zcamedit_panels_register():
     # cam control
     Bone.frames = IntProperty(name="Frames", description="Key point frames value", default=1234, min=0)
     Bone.fov = FloatProperty(name="FoV", description="Field of view (degrees)", default=179.76, min=0.01, max=179.99)
+
     Bone.camroll = IntProperty(
         name="Roll",
         description="Camera roll (degrees), positive turns image clockwise",
@@ -118,7 +127,9 @@ def zcamedit_panels_register():
         min=-0x80,
         max=0x7F,
     )
+
     Armature.start_frame = IntProperty(name="Start Frame", description="Shot start frame", default=0, min=0)
+    
     Armature.cam_mode = EnumProperty(
         items=[
             ("normal", "Normal", "Normal (0x1 / 0x2)"),
