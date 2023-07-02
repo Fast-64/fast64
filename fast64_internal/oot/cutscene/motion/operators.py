@@ -5,7 +5,8 @@ from mathutils import Vector
 from bpy_extras.io_utils import ImportHelper, ExportHelper
 from bpy.types import Object, Operator, Context, TOPBAR_MT_file_import, TOPBAR_MT_file_export
 from bpy.utils import register_class, unregister_class
-from bpy.props import StringProperty, BoolProperty
+from bpy.props import StringProperty, BoolProperty, EnumProperty
+from .constants import ootEnumCSActorCueListCommandType
 from .importer import importCutsceneMotion
 from .exporter import exportCutsceneMotion
 from .utility import (
@@ -228,6 +229,28 @@ class OOTCSMotionExportToC(Operator, ExportHelper):
         return {"FINISHED"}
 
 
+class OOT_SearchActorCueCmdTypeEnumOperator(Operator):
+    bl_idname = "object.oot_search_actorcue_cmdtype_enum_operator"
+    bl_label = "Select Command Type"
+    bl_property = "commandType"
+    bl_options = {"REGISTER", "UNDO"}
+
+    commandType: EnumProperty(items=ootEnumCSActorCueListCommandType, default="0x000F")
+    objName: StringProperty()
+
+    def execute(self, context):
+        obj = bpy.data.objects[self.objName]
+        obj.ootCSMotionProperty.actorCueListProp.commandType = self.commandType
+
+        context.region.tag_redraw()
+        self.report({"INFO"}, "Selected: " + self.commandType)
+        return {"FINISHED"}
+
+    def invoke(self, context, event):
+        context.window_manager.invoke_search_popup(self)
+        return {"RUNNING_MODAL"}
+
+
 classes = (
     OOTCSMotionAddActorCuePoint,
     OOTCSMotionCreateActorCuePreview,
@@ -237,6 +260,7 @@ classes = (
     OOTCSMotionCreateActorCueList,
     OOTCSMotionImportFromC,
     OOTCSMotionExportToC,
+    OOT_SearchActorCueCmdTypeEnumOperator,
 )
 
 

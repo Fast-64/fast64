@@ -149,7 +149,7 @@ class OOTObjectPanel(bpy.types.Panel):
         elif obj.ootEmptyType in ["CS Actor Cue List", "CS Player Cue List", "CS Actor Cue Preview"]:
             labelPrefix = "Player" if obj.ootEmptyType == "CS Player Cue List" else "Actor"
             actorCueListProp: OOTCSMotionActorCueListProperty = obj.ootCSMotionProperty.actorCueListProp
-            actorCueListProp.draw_props(box, obj.ootEmptyType == "CS Actor Cue Preview", labelPrefix)
+            actorCueListProp.draw_props(box, obj.ootEmptyType == "CS Actor Cue Preview", labelPrefix, obj.name)
 
         elif obj.ootEmptyType == "CS Actor Cue":
             labelPrefix = "Player" if obj.parent.ootEmptyType == "CS Player Cue List" else "Actor"

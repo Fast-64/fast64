@@ -3,7 +3,7 @@ import math
 
 from mathutils import Vector, Quaternion
 from bpy.app.handlers import persistent
-from bpy.types import Bone, Object, Scene
+from bpy.types import Object, Scene
 from .utility import (
     PropsBone,
     getShotPropBones,

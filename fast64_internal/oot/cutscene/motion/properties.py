@@ -2,9 +2,14 @@ from bpy.types import PropertyGroup, Object, UILayout, Armature, Bone, Scene
 from bpy.props import IntProperty, StringProperty, PointerProperty, EnumProperty, FloatProperty
 from bpy.utils import register_class, unregister_class
 from ...oot_upgrade import upgradeCutsceneMotion
-from ...oot_utility import drawEnumWithCustom
+from ...oot_utility import getEnumName
 from .constants import ootEnumCSMotionCamMode, ootEnumCSActorCueListCommandType
-from .operators import OOTCSMotionAddActorCuePoint, OOTCSMotionCreateActorCuePreview
+
+from .operators import (
+    OOTCSMotionAddActorCuePoint, 
+    OOTCSMotionCreateActorCuePreview, 
+    OOT_SearchActorCueCmdTypeEnumOperator,
+)
 
 
 class OOTCSMotionActorCueListProperty(PropertyGroup):
@@ -21,13 +26,21 @@ class OOTCSMotionActorCueListProperty(PropertyGroup):
     )
     commandTypeCustom: StringProperty(name="CS Actor Cue Command Type Custom")
 
-    def draw_props(self, layout: UILayout, isPreview: bool, labelPrefix: str):
+    def draw_props(self, layout: UILayout, isPreview: bool, labelPrefix: str, objName: str):
         box = layout.box()
         box.box().label(text=f"{labelPrefix} Cue List")
 
+        # Player Cue has only one command type
         if labelPrefix != "Player":
-            # Player Cue has only one command type
-            drawEnumWithCustom(box, self, "commandType", "Actor Cue Command Type:", "Command Type Custom:")
+            searchBox = box.row()
+            searchOp = searchBox.operator(OOT_SearchActorCueCmdTypeEnumOperator.bl_idname, icon="VIEWZOOM", text="Command Type:")
+            searchOp.objName = objName
+            searchBox.label(text=getEnumName(ootEnumCSActorCueListCommandType, self.commandType))
+
+            if self.commandType == "Custom":
+                split = box.split(factor=0.5)
+                split.label(text="Command Type Custom:")
+                split.prop(self, "commandTypeCustom", text="")
 
         if not isPreview:
             split = box.split(factor=0.5)
