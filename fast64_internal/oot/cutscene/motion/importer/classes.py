@@ -47,8 +47,8 @@ class OOTCutsceneMotionImport(OOTCutsceneMotionIOBase):
             shotArmature = bpy.data.armatures.new(name)
             shotArmature.display_type = "STICK"
             shotArmature.show_names = True
-            shotArmature.start_frame = eyePoint["startFrame"]
-            shotArmature.cam_mode = eyePoint["mode"]
+            shotArmature.ootCamShotProp.start_frame = eyePoint["startFrame"]
+            shotArmature.ootCamShotProp.cam_mode = eyePoint["mode"]
             shotObj = createNewObject(self.context, name, shotArmature, True)
             shotObj.parent = csObj
 
@@ -66,9 +66,9 @@ class OOTCutsceneMotionImport(OOTCutsceneMotionIOBase):
                 if camEyeData["frame"] != 0:
                     print("Frames must be 0 in cam pos command!")
 
-                newBone.frames = camATData["frame"]
-                newBone.fov = camATData["viewAngle"]
-                newBone.camroll = camATData["roll"]
+                newBone.ootCamShotPointProp.frames = camATData["frame"]
+                newBone.ootCamShotPointProp.fov = camATData["viewAngle"]
+                newBone.ootCamShotPointProp.camroll = camATData["roll"]
 
         # Action import
         for cueDef in actorCueList:

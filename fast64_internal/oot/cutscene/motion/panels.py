@@ -67,13 +67,16 @@ class OOT_CSMotionCameraShotPanel(Panel):
 
     def draw(self, context):
         obj = context.view_layer.objects.active
-        layout = self.layout.box()
+        layout = self.layout
 
         if obj.type == "ARMATURE":
             camShotProp: OOTCSMotionCameraShotProperty = obj.data.ootCamShotProp
             camShotPointProp: OOTCSMotionCameraShotPointProperty = None
-            activeBone = editBone = None
 
+            box = layout.box()
+            camShotProp.draw_props(box, self.bl_label)
+
+            activeBone = editBone = None
             if obj.mode == "OBJECT":
                 activeBone = obj.data.bones.active
 
@@ -92,8 +95,7 @@ class OOT_CSMotionCameraShotPanel(Panel):
                 if "frames" in editBone or "fov" in editBone or "camroll" in editBone:
                     camShotPointProp = editBone.ootCamShotPointProp
 
-            camShotProp.draw_props(layout, self.bl_label)
-            camShotPointProp.draw_props(layout)
+            camShotPointProp.draw_props(box)
 
 
 class OOT_CutsceneMotionPanel(Panel):

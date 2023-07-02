@@ -51,9 +51,9 @@ def createCameraShot(context: Context, csObj: Object):
         bone.tail = [x, metersToBlend(context, 1.0), 0.0]
         bpy.ops.object.mode_set(mode="OBJECT")
         bone = shotArmature.bones[boneName]
-        bone.frames = 20
-        bone.fov = 60.0
-        bone.camroll = 0
+        bone.ootCamShotPointProp.frames = 20
+        bone.ootCamShotPointProp.fov = 60.0
+        bone.ootCamShotPointProp.camroll = 0
 
 
 def createBasicActorCuePoint(context: Context, actorCueObj: Object, selectObj: bool):
@@ -65,8 +65,8 @@ def createBasicActorCuePoint(context: Context, actorCueObj: Object, selectObj: b
         action_id = "0x0001"
     else:
         pos = points[-1].location + Vector((0.0, 10.0, 0.0))
-        startFrame = points[-1].zc_apoint.start_frame + 20
-        action_id = points[-1].zc_apoint.action_id
+        startFrame = points[-1].ootCSMotionProperty.actorCueProp.start_frame + 20
+        action_id = points[-1].ootCSMotionProperty.actorCueProp.action_id
 
     createActorCuePoint(context, actorCueObj, selectObj, pos, startFrame, action_id)
 
@@ -104,7 +104,7 @@ class OOTCSMotionCreateActorCuePreview(Operator):
         actorCueObj = getActorCueList(self, context)
 
         if actorCueObj is not None:
-            createOrInitPreview(context, actorCueObj.parent, actorCueObj.zc_alist.actor_id, True)
+            createOrInitPreview(context, actorCueObj.parent, actorCueObj.ootCSMotionProperty.actorCueListProp.actor_id, True)
             return {"FINISHED"}
         else:
             return {"CANCELLED"}

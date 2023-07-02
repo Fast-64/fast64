@@ -83,7 +83,7 @@ def getZ64SplineInterpolate(bones: list[PropsBone], frame: int):
 
 
 def getCmdCamState(shotObj: Object, frame: int):
-    frame -= shotObj.data.start_frame + 1
+    frame -= shotObj.data.ootCamShotProp.start_frame + 1
 
     if frame < 0:
         print(f"Warning, camera command evaluated for frame {frame}")
@@ -122,9 +122,9 @@ def getCutsceneCamState(scene: Scene, csObj: Object, frame: int):
         startFrame = -1
 
         for obj in shotObjects:
-            if obj.data.start_frame < frame and obj.data.start_frame > startFrame:
+            if obj.data.ootCamShotProp.start_frame < frame and obj.data.ootCamShotProp.start_frame > startFrame:
                 shotObj = obj
-                startFrame = obj.data.start_frame
+                startFrame = obj.data.ootCamShotProp.start_frame
 
     if shotObj is None or len(shotObjects) == 0:
         return getUndefinedCamPos()
@@ -142,8 +142,8 @@ def getActorCueState(scene: Scene, csObj: Object, actorid: int, frame: int):
 
         if len(points) >= 2:
             for i in range(len(points) - 1):
-                startFrame = points[i].zc_apoint.start_frame
-                endFrame = points[i + 1].zc_apoint.start_frame
+                startFrame = points[i].ootCSMotionProperty.actorCueProp.start_frame
+                endFrame = points[i + 1].ootCSMotionProperty.actorCueProp.start_frame
 
                 if endFrame > startFrame and frame > startFrame:
                     if frame <= endFrame:
@@ -171,7 +171,7 @@ def previewFrameHandler(scene: Scene):
                     obj.rotation_quaternion = rot_quat
                     obj.data.angle = math.pi * fov / 180.0
             elif isPreview(obj):
-                pos, rot = getActorCueState(scene, obj.parent, obj.zc_alist.actor_id, scene.frame_current)
+                pos, rot = getActorCueState(scene, obj.parent, obj.ootCSMotionProperty.actorCueListProp.actor_id, scene.frame_current)
 
                 if pos is not None:
                     obj.location = pos
