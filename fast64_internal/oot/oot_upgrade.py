@@ -1,5 +1,6 @@
 from bpy.types import Object, CollectionProperty
 from .data import OoT_ObjectData
+from .cutscene.motion.constants import ootEnumCSMotionCamMode
 
 
 def upgradeObjectList(objList: CollectionProperty, objData: OoT_ObjectData):
@@ -35,3 +36,46 @@ def upgradeRoomHeaders(roomObj: Object, objData: OoT_ObjectData):
             upgradeObjectList(sceneLayer.objectList, objData)
     for i in range(len(altHeaders.cutsceneHeaders)):
         upgradeObjectList(altHeaders.cutsceneHeaders[i].objectList, objData)
+
+
+def upgradeCutsceneMotion(csMotionObj: Object):
+    objName = csMotionObj.name
+
+    if csMotionObj.type == "EMPTY":
+        csMotionProp = csMotionObj.ootCSMotionProperty
+
+        if "Preview." in objName or "ActionList." in objName and "zc_alist" in csMotionObj:
+            csMotionProp.actorCueListProp.actor_id = csMotionObj["zc_alist"]["actor_id"]
+            del csMotionObj["zc_alist"]
+
+        if "Point." in objName and "zc_apoint" in csMotionObj:
+            legacyData = csMotionObj["zc_apoint"]
+            csMotionProp.actorCueProp.start_frame = legacyData["start_frame"]
+            csMotionProp.actorCueProp.action_id = legacyData["action_id"]
+            del csMotionObj["zc_apoint"]
+
+    if csMotionObj.type == "ARMATURE":
+        camShotProp = csMotionObj.data.ootCamShotProp
+
+        if "start_frame" in csMotionObj.data:
+            camShotProp.start_frame = csMotionObj.data["start_frame"]
+            del csMotionObj.data["start_frame"]
+        
+        if "cam_mode" in csMotionObj.data:
+            camShotProp.cam_mode = ootEnumCSMotionCamMode[csMotionObj.data["cam_mode"]][0]
+            del csMotionObj.data["cam_mode"]
+
+        for bone in csMotionObj.data.bones:
+            camShotPointProp = bone.ootCamShotPointProp
+
+            if "frames" in bone:
+                camShotPointProp.frames = bone["frames"]
+                del bone["frames"]
+                
+            if "fov" in bone:
+                camShotPointProp.fov = bone["fov"]
+                del bone["fov"]
+                
+            if "camroll" in bone:
+                camShotPointProp.camroll = bone["camroll"]
+                del bone["camroll"]

@@ -450,7 +450,7 @@ def isActorCuePoint(cuePointObj: Object):
     if (
         cuePointObj is None
         or cuePointObj.type != "EMPTY"
-        or not cuePointObj.name in ["Point.", "Action."]
+        or not any(cuePointObj.name.startswith(elem) for elem in ["Point.", "Action."])
         or not isActorCueList(cuePointObj.parent)
     ):
         return False

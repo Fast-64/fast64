@@ -7,6 +7,7 @@ from .scene.properties import OOTSceneProperties
 from .room.properties import OOTObjectProperty, OOTRoomHeaderProperty, OOTAlternateRoomHeaderProperty
 from .collision.properties import OOTWaterBoxProperty
 from .cutscene.properties import OOTCutsceneProperty
+from .cutscene.motion.properties import OOTCutsceneMotionProperty
 
 from .actor.properties import (
     OOTActorProperty,
@@ -154,9 +155,14 @@ class OOT_ObjectProperties(bpy.types.PropertyGroup):
     @staticmethod
     def upgrade_changed_props():
         for obj in bpy.data.objects:
-            if obj.data is None:
+            if obj.type == "EMPTY":
                 if obj.ootEmptyType == "Room":
                     OOTObjectProperty.upgrade_object(obj)
+                if any(obj.name.startswith(elem) for elem in ["ActionList.", "Point.", "Preview."]):
+                    OOTCutsceneMotionProperty.upgrade_object(obj)
+            elif obj.type == "ARMATURE":
+                if obj.parent.name.startswith("Cutscene.") or obj.parent.ootEmptyType == "Cutscene":
+                    OOTCutsceneMotionProperty.upgrade_object(obj)
 
 
 class OOTCullGroupProperty(bpy.types.PropertyGroup):

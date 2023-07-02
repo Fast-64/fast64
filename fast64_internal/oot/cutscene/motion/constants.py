@@ -1,3 +1,9 @@
+ootEnumCSMotionCamMode = [
+    ("normal", "Normal", "Normal (0x1 / 0x2)"),
+    ("rel_link", "Rel. Link", "Relative to Link (0x5 / 0x6)"),
+    ("0708", "0x7/0x8", "Not Yet Understood Mode (0x7 / 0x8)"),
+]
+
 # Default width is 16
 
 CAM_LIST_PARAMS = [

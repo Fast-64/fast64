@@ -56,7 +56,6 @@ def drawCSListAddOp(layout: UILayout, objName: str, collectionType):
         row = box.row(align=True)
         for _ in range(3):
             addButton(row)
-    box.label(text="Install zcamedit for camera/actor motion.")
 
 
 class OOTCSTextboxAdd(Operator):
