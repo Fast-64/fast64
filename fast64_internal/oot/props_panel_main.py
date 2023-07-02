@@ -7,7 +7,8 @@ from .scene.properties import OOTSceneProperties
 from .room.properties import OOTObjectProperty, OOTRoomHeaderProperty, OOTAlternateRoomHeaderProperty
 from .collision.properties import OOTWaterBoxProperty
 from .cutscene.properties import OOTCutsceneProperty
-from .cutscene.motion.properties import OOTCutsceneMotionProperty
+from .cutscene.motion.properties import OOTCutsceneMotionProperty, OOTCSMotionActorCueListProperty, OOTCSMotionActorCuePointProperty
+from .cutscene.motion.operators import OOTCSMotionAddActorCuePoint, OOTCSMotionCreateActorCuePreview
 
 from .actor.properties import (
     OOTActorProperty,
@@ -144,6 +145,16 @@ class OOTObjectPanel(bpy.types.Panel):
         elif obj.ootEmptyType == "Cutscene":
             csProp: OOTCutsceneProperty = obj.ootCutsceneProperty
             csProp.draw_props(box, obj)
+
+        elif obj.ootEmptyType in ["CS Actor Cue List", "CS Player Cue List", "CS Actor Cue Preview"]:
+            labelPrefix = "Player" if obj.ootEmptyType == "CS Player Cue List" else "Actor"
+            actorCueListProp: OOTCSMotionActorCueListProperty = obj.ootCSMotionProperty.actorCueListProp
+            actorCueListProp.draw_props(box, obj.ootEmptyType == "CS Actor Cue Preview", labelPrefix)
+
+        elif obj.ootEmptyType == "CS Actor Cue":
+            labelPrefix = "Player" if obj.parent.ootEmptyType == "CS Player Cue List" else "Actor"
+            actorCueProp: OOTCSMotionActorCuePointProperty = obj.ootCSMotionProperty.actorCueProp
+            actorCueProp.draw_props(box, labelPrefix)
 
         elif obj.ootEmptyType == "None":
             box.label(text="Geometry can be parented to this.")

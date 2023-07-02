@@ -1,3 +1,4 @@
+import bpy
 from bpy.types import PropertyGroup, Object, UILayout
 from bpy.props import StringProperty, EnumProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
 from bpy.utils import register_class, unregister_class
@@ -5,6 +6,13 @@ from ...utility import PluginError, prop_split
 from ..oot_utility import OOTCollectionAdd, drawCollectionOps
 from .operators import OOTCSTextboxAdd, drawCSListAddOp
 from .constants import ootEnumCSTextboxType, ootEnumCSListType, ootEnumCSTransitionType, ootEnumCSTextboxTypeIcons
+
+from .motion.operators import (
+    OOTCSMotionInitCutscene,
+    OOTCSMotionCreateCameraShot,
+    OOTCSMotionCreatePlayerCueList,
+    OOTCSMotionCreateActorCueList,
+)
 
 
 # Perhaps this should have been called something like OOTCSParentPropertyType,
@@ -228,6 +236,18 @@ class OOTCutsceneProperty(PropertyGroup):
     csLists: CollectionProperty(type=OOTCSListProperty, name="Cutscene Lists")
 
     def draw_props(self, layout: UILayout, obj: Object):
+        split = layout.split(factor=0.5)
+        split.label(text="Player Age for Preview")
+        split.prop(bpy.context.scene, "previewPlayerAge", text="")
+
+        split = layout.split(factor=0.5)
+        split.operator(OOTCSMotionInitCutscene.bl_idname)
+        split.operator(OOTCSMotionCreateCameraShot.bl_idname)
+
+        split = layout.split(factor=0.5)
+        split.operator(OOTCSMotionCreatePlayerCueList.bl_idname)
+        split.operator(OOTCSMotionCreateActorCueList.bl_idname)
+         
         layout.prop(self, "csEndFrame")
         layout.prop(self, "csWriteTerminator")
         if self.csWriteTerminator:

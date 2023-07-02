@@ -83,7 +83,7 @@ def getZ64SplineInterpolate(bones: list[PropsBone], frame: int):
 
 
 def getCmdCamState(shotObj: Object, frame: int):
-    frame -= shotObj.data.ootCamShotProp.start_frame + 1
+    frame -= shotObj.data.ootCamShotProp.shotStartFrame + 1
 
     if frame < 0:
         print(f"Warning, camera command evaluated for frame {frame}")
@@ -122,9 +122,9 @@ def getCutsceneCamState(scene: Scene, csObj: Object, frame: int):
         startFrame = -1
 
         for obj in shotObjects:
-            if obj.data.ootCamShotProp.start_frame < frame and obj.data.ootCamShotProp.start_frame > startFrame:
+            if obj.data.ootCamShotProp.shotStartFrame < frame and obj.data.ootCamShotProp.shotStartFrame > startFrame:
                 shotObj = obj
-                startFrame = obj.data.ootCamShotProp.start_frame
+                startFrame = obj.data.ootCamShotProp.shotStartFrame
 
     if shotObj is None or len(shotObjects) == 0:
         return getUndefinedCamPos()
@@ -142,8 +142,8 @@ def getActorCueState(scene: Scene, csObj: Object, actorid: int, frame: int):
 
         if len(points) >= 2:
             for i in range(len(points) - 1):
-                startFrame = points[i].ootCSMotionProperty.actorCueProp.start_frame
-                endFrame = points[i + 1].ootCSMotionProperty.actorCueProp.start_frame
+                startFrame = points[i].ootCSMotionProperty.actorCueProp.cueStartFrame
+                endFrame = points[i + 1].ootCSMotionProperty.actorCueProp.cueStartFrame
 
                 if endFrame > startFrame and frame > startFrame:
                     if frame <= endFrame:
@@ -172,7 +172,7 @@ def previewFrameHandler(scene: Scene):
                     obj.data.angle = math.pi * fov / 180.0
             elif isPreview(obj):
                 pos, rot = getActorCueState(
-                    scene, obj.parent, obj.ootCSMotionProperty.actorCueListProp.actor_id, scene.frame_current
+                    scene, obj.parent, obj.ootCSMotionProperty.actorCueListProp.actorCueSlot, scene.frame_current
                 )
 
                 if pos is not None:

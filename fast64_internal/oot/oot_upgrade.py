@@ -1,6 +1,6 @@
 from bpy.types import Object, CollectionProperty
 from .data import OoT_ObjectData
-from .cutscene.motion.constants import ootEnumCSMotionCamMode
+from .cutscene.motion.constants import ootEnumCSMotionCamMode, ootEnumCSActorCueListCommandType
 
 
 def upgradeObjectList(objList: CollectionProperty, objData: OoT_ObjectData):
@@ -46,22 +46,28 @@ def upgradeCutsceneMotion(csMotionObj: Object):
 
         if "zc_alist" in csMotionObj and ("Preview." in objName or "ActionList." in objName):
             legacyData = csMotionObj["zc_alist"]
+            emptyTypeSuffix = "List" if "ActionList." in objName else "Preview"
+            print(objName, 'Link' in objName)
+            csMotionObj.ootEmptyType = f"CS {'Player' if 'Link' in objName else 'Actor'} Cue {emptyTypeSuffix}"
 
             if "actor_id" in legacyData:
-                csMotionProp.actorCueListProp.actor_id = legacyData["actor_id"]
+                index = legacyData["actor_id"]
+                if index >= 0:
+                    csMotionProp.actorCueListProp.commandType = ootEnumCSActorCueListCommandType[index][0]
                 del legacyData["actor_id"]
 
             del csMotionObj["zc_alist"]
 
         if "zc_apoint" in csMotionObj and "Point." in objName:
             legacyData = csMotionObj["zc_apoint"]
+            csMotionObj.ootEmptyType = "CS Actor Cue"
 
             if "start_frame" in legacyData:
-                csMotionProp.actorCueProp.start_frame = legacyData["start_frame"]
+                csMotionProp.actorCueProp.cueStartFrame = legacyData["start_frame"]
                 del legacyData["start_frame"]
 
             if "action_id" in legacyData:
-                csMotionProp.actorCueProp.action_id = legacyData["action_id"]
+                csMotionProp.actorCueProp.cueActionID = legacyData["action_id"]
                 del legacyData["action_id"]
 
             del csMotionObj["zc_apoint"]
@@ -70,24 +76,24 @@ def upgradeCutsceneMotion(csMotionObj: Object):
         camShotProp = csMotionObj.data.ootCamShotProp
 
         if "start_frame" in csMotionObj.data:
-            camShotProp.start_frame = csMotionObj.data["start_frame"]
+            camShotProp.shotStartFrame = csMotionObj.data["start_frame"]
             del csMotionObj.data["start_frame"]
         
         if "cam_mode" in csMotionObj.data:
-            camShotProp.cam_mode = ootEnumCSMotionCamMode[csMotionObj.data["cam_mode"]][0]
+            camShotProp.shotCamMode = ootEnumCSMotionCamMode[csMotionObj.data["cam_mode"]][0]
             del csMotionObj.data["cam_mode"]
 
         for bone in csMotionObj.data.bones:
             camShotPointProp = bone.ootCamShotPointProp
 
             if "frames" in bone:
-                camShotPointProp.frames = bone["frames"]
+                camShotPointProp.shotPointFrame = bone["frames"]
                 del bone["frames"]
                 
             if "fov" in bone:
-                camShotPointProp.fov = bone["fov"]
+                camShotPointProp.shotPointViewAngle = bone["fov"]
                 del bone["fov"]
                 
             if "camroll" in bone:
-                camShotPointProp.camroll = bone["camroll"]
+                camShotPointProp.shotPointRoll = bone["camroll"]
                 del bone["camroll"]

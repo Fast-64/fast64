@@ -322,7 +322,7 @@ def getActorName(actor_id: int):
 
 def createOrInitPreview(context: Context, csObj: Object, actor_id: int, selectObject=False):
     for obj in bpy.data.objects:
-        if isPreview(obj) and obj.parent == csObj and obj.ootCSMotionProperty.actorCueListProp.actor_id == actor_id:
+        if isPreview(obj) and obj.parent == csObj and obj.ootCSMotionProperty.actorCueListProp.actorCueSlot == actor_id:
             previewObj = obj
             break
     else:
@@ -336,7 +336,8 @@ def createOrInitPreview(context: Context, csObj: Object, actor_id: int, selectOb
 
     previewObj.empty_display_type = "SINGLE_ARROW"
     previewObj.empty_display_size = metersToBlend(context, actorHeight)
-    previewObj.ootCSMotionProperty.actorCueListProp.actor_id = actor_id
+    previewObj.ootCSMotionProperty.actorCueListProp.actorCueSlot = actor_id
+    previewObj.ootEmptyType = "CS Actor Cue Preview"
 
 
 class PropsBone:
@@ -346,11 +347,19 @@ class PropsBone:
         self.head = editBone.head if editBone is not None else bone.head
         self.tail = editBone.tail if editBone is not None else bone.tail
         self.frames = (
-            editBone["frames"] if editBone is not None and "frames" in editBone else bone.ootCamShotPointProp.frames
+            editBone["shotPointFrame"]
+            if editBone is not None and "shotPointFrame" in editBone
+            else bone.ootCamShotPointProp.shotPointFrame
         )
-        self.fov = editBone["fov"] if editBone is not None and "fov" in editBone else bone.ootCamShotPointProp.fov
+        self.fov = (
+            editBone["shotPointViewAngle"]
+            if editBone is not None and "shotPointViewAngle" in editBone
+            else bone.ootCamShotPointProp.shotPointViewAngle
+        )
         self.camroll = (
-            editBone["camroll"] if editBone is not None and "camroll" in editBone else bone.ootCamShotPointProp.camroll
+            editBone["shotPointRoll"]
+            if editBone is not None and "shotPointRoll" in editBone
+            else bone.ootCamShotPointProp.shotPointRoll
         )
 
 
@@ -405,7 +414,7 @@ def getFakeCSEndFrame(context: Context, csObj: Object):
     csEndFrame = -1
 
     for shotObj in shotObjects:
-        endFrame = shotObj.data.ootCamShotProp.start_frame + getFakeCamCmdsLength(shotObj, False) + 1
+        endFrame = shotObj.data.ootCamShotProp.shotStartFrame + getFakeCamCmdsLength(shotObj, False) + 1
         csEndFrame = max(csEndFrame, endFrame)
 
     return csEndFrame
@@ -439,7 +448,7 @@ def initCutscene(context: Context, csObj: Object):
     # Preview actions
     for obj in bpy.data.objects:
         if isActorCueList(obj):
-            createOrInitPreview(context, obj.parent, obj.ootCSMotionProperty.actorCueListProp.actor_id, False)
+            createOrInitPreview(context, obj.parent, obj.ootCSMotionProperty.actorCueListProp.actorCueSlot, False)
 
     # Other setup
     context.scene.frame_start = 0
@@ -464,7 +473,7 @@ def isActorCuePoint(cuePointObj: Object):
 
 def getActorCuePointObjects(scene: Scene, cueObj: Object):
     cuePoints: list[Object] = [obj for obj in scene.objects if isActorCuePoint(obj) and obj.parent == cueObj]
-    cuePoints.sort(key=lambda o: o.ootCSMotionProperty.actorCueProp.start_frame)
+    cuePoints.sort(key=lambda o: o.ootCSMotionProperty.actorCueProp.cueStartFrame)
     return cuePoints
 
 
@@ -475,14 +484,14 @@ def getActorCueListObjects(scene: Scene, csObj: Object, actorid: int):
         if (
             isActorCueList(obj)
             and obj.parent == csObj
-            and (actorid is None or obj.ootCSMotionProperty.actorCueListProp.actor_id == actorid)
+            and (actorid is None or obj.ootCSMotionProperty.actorCueListProp.actorCueSlot == actorid)
         ):
             cueObjects.append(obj)
 
     points = getActorCuePointObjects(scene, obj)
 
     cueObjects.sort(
-        key=lambda o: 1000000 if len(points) < 2 else points[0].ootCSMotionProperty.actorCueProp.start_frame
+        key=lambda o: 1000000 if len(points) < 2 else points[0].ootCSMotionProperty.actorCueProp.cueStartFrame
     )
     return cueObjects
 
@@ -493,8 +502,9 @@ def createActorCuePoint(context: Context, actorCueObj: Object, selectObj: bool, 
     newCuePoint.empty_display_type = "ARROWS"
     newCuePoint.location = pos
     newCuePoint.rotation_mode = "XZY"
-    newCuePoint.ootCSMotionProperty.actorCueProp.start_frame = startFrame
-    newCuePoint.ootCSMotionProperty.actorCueProp.action_id = action_id
+    newCuePoint.ootCSMotionProperty.actorCueProp.cueStartFrame = startFrame
+    newCuePoint.ootCSMotionProperty.actorCueProp.cueActionID = action_id
+    newCuePoint.ootEmptyType = "CS Actor Cue"
 
     return newCuePoint
 
@@ -502,6 +512,7 @@ def createActorCuePoint(context: Context, actorCueObj: Object, selectObj: bool, 
 def createActorCueList(context: Context, actor_id: int, csObj: Object):
     actorCueObj = createNewObject(context, f"ActionList.{getActorName(actor_id)}.001", None, True)
     actorCueObj.parent = csObj
-    actorCueObj.ootCSMotionProperty.actorCueListProp.actor_id = actor_id
+    actorCueObj.ootCSMotionProperty.actorCueListProp.actorCueSlot = actor_id
+    actorCueObj.ootEmptyType = f"CS {'Player' if actor_id == -1 else 'Actor'} Cue List"
 
     return actorCueObj

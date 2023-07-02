@@ -1,23 +1,6 @@
 from bpy.types import Panel, Object, EditBone, Bone
 from bpy.utils import register_class, unregister_class
-from .utility import getCSObj, isActorCueList, isPreview, isActorCuePoint
-
-from .properties import (
-    OOTCutsceneMotionProperty,
-    OOTCSMotionActorCueListProperty,
-    OOTCSMotionActorCuePointProperty,
-    OOTCSMotionCameraShotProperty,
-    OOTCSMotionCameraShotPointProperty,
-)
-
-from .operators import (
-    OOTCSMotionCreateActorCuePreview,
-    OOTCSMotionAddActorCuePoint,
-    OOTCSMotionInitCutscene,
-    OOTCSMotionCreateCameraShot,
-    OOTCSMotionCreatePlayerCueList,
-    OOTCSMotionCreateActorCueList,
-)
+from .properties import OOTCSMotionCameraShotProperty, OOTCSMotionCameraShotPointProperty
 
 
 def getBoneFromEditBone(shotObject: Object, editBone: EditBone) -> Bone:
@@ -27,34 +10,6 @@ def getBoneFromEditBone(shotObject: Object, editBone: EditBone) -> Bone:
     else:
         print("Could not find corresponding bone")
         return editBone
-
-
-class OOT_CSMotionActorCuePanel(Panel):
-    bl_label = "Cutscene Motion Actor Cue Controls"
-    bl_idname = "OOT_PT_actor_cue_panel"
-    bl_space_type = "PROPERTIES"
-    bl_region_type = "WINDOW"
-    bl_context = "object"
-    bl_options = {"HIDE_HEADER"}
-
-    def draw(self, context):
-        layout = self.layout
-        obj = context.view_layer.objects.active
-        csMotionProp: OOTCutsceneMotionProperty = obj.ootCSMotionProperty
-        actorCueProp: OOTCSMotionActorCuePointProperty = csMotionProp.actorCueProp
-        actorCueListProp: OOTCSMotionActorCueListProperty = csMotionProp.actorCueListProp
-
-        if isActorCuePoint(obj):
-            actorCueProp.draw_props(layout)
-            obj = obj.parent
-
-        if isActorCueList(obj):
-            actorCueListProp.draw_props(layout, False)
-            layout.operator(OOTCSMotionAddActorCuePoint.bl_idname)
-            layout.operator(OOTCSMotionCreateActorCuePreview.bl_idname)
-
-        if isPreview(obj):
-            actorCueListProp.draw_props(layout, True)
 
 
 class OOT_CSMotionCameraShotPanel(Panel):
@@ -92,32 +47,13 @@ class OOT_CSMotionCameraShotPanel(Panel):
 
             camShotPointProp = activeBone.ootCamShotPointProp
             if editBone is not None:
-                if "frames" in editBone or "fov" in editBone or "camroll" in editBone:
+                if "shotPointFrame" in editBone or "shotPointViewAngle" in editBone or "shotPointRoll" in editBone:
                     camShotPointProp = editBone.ootCamShotPointProp
 
             camShotPointProp.draw_props(box)
 
 
-class OOT_CutsceneMotionPanel(Panel):
-    bl_label = "Cutscene Motion Controls"
-    bl_idname = "OOT_PT_cutscene_motion_panel"
-    bl_space_type = "PROPERTIES"
-    bl_region_type = "WINDOW"
-    bl_context = "object"
-    bl_options = {"HIDE_HEADER"}
-
-    def draw(self, context):
-        layout = self.layout
-
-        if getCSObj(None, context) is not None:
-            layout.prop(context.scene, "previewPlayerAge")
-            layout.operator(OOTCSMotionInitCutscene.bl_idname)
-            layout.operator(OOTCSMotionCreateCameraShot.bl_idname)
-            layout.operator(OOTCSMotionCreatePlayerCueList.bl_idname)
-            layout.operator(OOTCSMotionCreateActorCueList.bl_idname)
-
-
-classes = (OOT_CSMotionActorCuePanel, OOT_CSMotionCameraShotPanel, OOT_CutsceneMotionPanel)
+classes = (OOT_CSMotionCameraShotPanel,)
 
 
 def csMotion_panels_register():

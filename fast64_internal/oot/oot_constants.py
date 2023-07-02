@@ -98,7 +98,11 @@ ootEnumEmptyType = [
     ("Water Box", "Water Box", "Water Box"),
     ("Cull Group", "Custom Cull Group", "Cull Group"),
     ("LOD", "LOD Group", "LOD Group"),
-    ("Cutscene", "Cutscene", "Cutscene"),
+    ("Cutscene", "Cutscene Main", "Cutscene"),
+    ("CS Actor Cue List", "CS Actor Cue List", "CS Actor Cue List"),
+    ("CS Player Cue List", "CS Player Cue List", "CS Player Cue List"),
+    ("CS Actor Cue", "CS Actor Cue", "CS Actor Cue"),
+    ("CS Actor Cue Preview", "CS Actor Cue Preview", "CS Actor Cue Preview"),
     # ('Camera Volume', 'Camera Volume', 'Camera Volume'),
 ]
 

@@ -3,9 +3,9 @@ import bpy
 
 from mathutils import Vector
 from bpy_extras.io_utils import ImportHelper, ExportHelper
-from bpy.types import Object, Operator, Scene, Context, UILayout, TOPBAR_MT_file_import, TOPBAR_MT_file_export
+from bpy.types import Object, Operator, Context, TOPBAR_MT_file_import, TOPBAR_MT_file_export
 from bpy.utils import register_class, unregister_class
-from bpy.props import FloatProperty, EnumProperty, StringProperty, BoolProperty
+from bpy.props import StringProperty, BoolProperty
 from .importer import importCutsceneMotion
 from .exporter import exportCutsceneMotion
 from .utility import (
@@ -51,9 +51,9 @@ def createCameraShot(context: Context, csObj: Object):
         bone.tail = [x, metersToBlend(context, 1.0), 0.0]
         bpy.ops.object.mode_set(mode="OBJECT")
         bone = shotArmature.bones[boneName]
-        bone.ootCamShotPointProp.frames = 20
-        bone.ootCamShotPointProp.fov = 60.0
-        bone.ootCamShotPointProp.camroll = 0
+        bone.ootCamShotPointProp.shotPointFrame = 20
+        bone.ootCamShotPointProp.shotPointViewAngle = 60.0
+        bone.ootCamShotPointProp.shotPointRoll = 0
 
 
 def createBasicActorCuePoint(context: Context, actorCueObj: Object, selectObj: bool):
@@ -65,8 +65,8 @@ def createBasicActorCuePoint(context: Context, actorCueObj: Object, selectObj: b
         action_id = "0x0001"
     else:
         pos = points[-1].location + Vector((0.0, 10.0, 0.0))
-        startFrame = points[-1].ootCSMotionProperty.actorCueProp.start_frame + 20
-        action_id = points[-1].ootCSMotionProperty.actorCueProp.action_id
+        startFrame = points[-1].ootCSMotionProperty.actorCueProp.cueStartFrame + 20
+        action_id = points[-1].ootCSMotionProperty.actorCueProp.cueActionID
 
     createActorCuePoint(context, actorCueObj, selectObj, pos, startFrame, action_id)
 
@@ -82,7 +82,7 @@ class OOTCSMotionAddActorCuePoint(Operator):
     """Add an entry to a player or actor cue list"""
 
     bl_idname = "object.add_actor_cue_point"
-    bl_label = "Add point to current action"
+    bl_label = "Add Actor Cue"
 
     def execute(self, context):
         actorCueObj = getActorCueList(self, context)
@@ -98,14 +98,14 @@ class OOTCSMotionCreateActorCuePreview(Operator):
     """Create a preview empty object for a player or an actor cue list"""
 
     bl_idname = "object.create_actor_cue_preview"
-    bl_label = "Create preview object for action"
+    bl_label = "Create Preview Object"
 
     def execute(self, context):
         actorCueObj = getActorCueList(self, context)
 
         if actorCueObj is not None:
             createOrInitPreview(
-                context, actorCueObj.parent, actorCueObj.ootCSMotionProperty.actorCueListProp.actor_id, True
+                context, actorCueObj.parent, actorCueObj.ootCSMotionProperty.actorCueListProp.actorCueSlot, True
             )
             return {"FINISHED"}
         else:

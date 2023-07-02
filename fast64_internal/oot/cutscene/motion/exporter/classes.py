@@ -181,9 +181,9 @@ class OOTCutsceneMotionExport(OOTCutsceneMotionIOBase):
         def processLists(useAT: bool):
             for obj in camShotObjects:
                 propBones = getShotPropBonesChecked(obj)
-                startFrame = obj.data.ootCamShotProp.start_frame
+                startFrame = obj.data.ootCamShotProp.shotStartFrame
                 endFrame = startFrame + getFakeCamCmdsLength(obj, useAT)
-                mode = obj.data.ootCamShotProp.cam_mode
+                mode = obj.data.ootCamShotProp.shotCamMode
                 self.cs_text += self.getCamListCmd(startFrame, endFrame, useAT, mode)
                 self.entrycount_write += 1
 
@@ -208,7 +208,7 @@ class OOTCutsceneMotionExport(OOTCutsceneMotionIOBase):
             return
 
         for cueObj in cueObjects:
-            actor_id = cueObj.ootCSMotionProperty.actorCueListProp.actor_id
+            actor_id = cueObj.ootCSMotionProperty.actorCueListProp.actorCueSlot
             cuePoints = getActorCuePointObjects(self.context.scene, cueObj)
 
             if len(cuePoints) < 2:
@@ -220,9 +220,9 @@ class OOTCutsceneMotionExport(OOTCutsceneMotionIOBase):
             for i in range(len(cuePoints) - 1):
                 self.cs_text += self.getActorCueCmd(
                     actor_id,
-                    cuePoints[i].ootCSMotionProperty.actorCueProp.action_id,
-                    cuePoints[i].ootCSMotionProperty.actorCueProp.start_frame,
-                    cuePoints[i + 1].ootCSMotionProperty.actorCueProp.start_frame,
+                    cuePoints[i].ootCSMotionProperty.actorCueProp.cueActionID,
+                    cuePoints[i].ootCSMotionProperty.actorCueProp.cueStartFrame,
+                    cuePoints[i + 1].ootCSMotionProperty.actorCueProp.cueStartFrame,
                     cuePoints[i].rotation_euler,
                     cuePoints[i].location,
                     cuePoints[i + 1].location,
