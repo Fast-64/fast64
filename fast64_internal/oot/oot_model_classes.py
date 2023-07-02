@@ -126,7 +126,7 @@ class OOTModel(FModel):
     def addFlipbookWithRepeatCheck(self, flipbook: TextureFlipbook):
         model = self.getFlipbookOwner()
 
-        def raiseErr(submsg):
+        def raiseErr(subMsg):
             raise PluginError(
                 f"There are two flipbooks {subMsg} trying to write to the same texture array "
                 + f"named: {flipbook.name}.\nMake sure that this flipbook name is unique, or "
