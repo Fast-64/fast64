@@ -3,8 +3,8 @@ from bpy.utils import register_class, unregister_class
 from .utility import getCSObj, isActorCueList, isPreview, isActorCuePoint
 
 from .properties import (
-    OOTCutsceneMotionProperty, 
-    OOTCSMotionActorCueListProperty, 
+    OOTCutsceneMotionProperty,
+    OOTCSMotionActorCueListProperty,
     OOTCSMotionActorCuePointProperty,
     OOTCSMotionCameraShotProperty,
     OOTCSMotionCameraShotPointProperty,
@@ -27,7 +27,7 @@ def getBoneFromEditBone(shotObject: Object, editBone: EditBone) -> Bone:
     else:
         print("Could not find corresponding bone")
         return editBone
-    
+
 
 class OOT_CSMotionActorCuePanel(Panel):
     bl_label = "Cutscene Motion Actor Cue Controls"

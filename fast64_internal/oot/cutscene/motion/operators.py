@@ -104,7 +104,9 @@ class OOTCSMotionCreateActorCuePreview(Operator):
         actorCueObj = getActorCueList(self, context)
 
         if actorCueObj is not None:
-            createOrInitPreview(context, actorCueObj.parent, actorCueObj.ootCSMotionProperty.actorCueListProp.actor_id, True)
+            createOrInitPreview(
+                context, actorCueObj.parent, actorCueObj.ootCSMotionProperty.actorCueListProp.actor_id, True
+            )
             return {"FINISHED"}
         else:
             return {"CANCELLED"}

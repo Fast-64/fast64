@@ -345,9 +345,13 @@ class PropsBone:
         self.name = bone.name
         self.head = editBone.head if editBone is not None else bone.head
         self.tail = editBone.tail if editBone is not None else bone.tail
-        self.frames = editBone["frames"] if editBone is not None and "frames" in editBone else bone.ootCamShotPointProp.frames
+        self.frames = (
+            editBone["frames"] if editBone is not None and "frames" in editBone else bone.ootCamShotPointProp.frames
+        )
         self.fov = editBone["fov"] if editBone is not None and "fov" in editBone else bone.ootCamShotPointProp.fov
-        self.camroll = editBone["camroll"] if editBone is not None and "camroll" in editBone else bone.ootCamShotPointProp.camroll
+        self.camroll = (
+            editBone["camroll"] if editBone is not None and "camroll" in editBone else bone.ootCamShotPointProp.camroll
+        )
 
 
 # camdata
@@ -468,12 +472,18 @@ def getActorCueListObjects(scene: Scene, csObj: Object, actorid: int):
     cueObjects: list[Object] = []
 
     for obj in scene.objects:
-        if isActorCueList(obj) and obj.parent == csObj and (actorid is None or obj.ootCSMotionProperty.actorCueListProp.actor_id == actorid):
+        if (
+            isActorCueList(obj)
+            and obj.parent == csObj
+            and (actorid is None or obj.ootCSMotionProperty.actorCueListProp.actor_id == actorid)
+        ):
             cueObjects.append(obj)
 
     points = getActorCuePointObjects(scene, obj)
 
-    cueObjects.sort(key=lambda o: 1000000 if len(points) < 2 else points[0].ootCSMotionProperty.actorCueProp.start_frame)
+    cueObjects.sort(
+        key=lambda o: 1000000 if len(points) < 2 else points[0].ootCSMotionProperty.actorCueProp.start_frame
+    )
     return cueObjects
 
 

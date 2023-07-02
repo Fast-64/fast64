@@ -171,7 +171,9 @@ def previewFrameHandler(scene: Scene):
                     obj.rotation_quaternion = rot_quat
                     obj.data.angle = math.pi * fov / 180.0
             elif isPreview(obj):
-                pos, rot = getActorCueState(scene, obj.parent, obj.ootCSMotionProperty.actorCueListProp.actor_id, scene.frame_current)
+                pos, rot = getActorCueState(
+                    scene, obj.parent, obj.ootCSMotionProperty.actorCueListProp.actor_id, scene.frame_current
+                )
 
                 if pos is not None:
                     obj.location = pos
