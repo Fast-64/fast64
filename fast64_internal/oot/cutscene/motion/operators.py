@@ -252,33 +252,12 @@ def csMotion_ops_register():
     for cls in classes:
         register_class(cls)
 
-    # cs control
-    if not hasattr(Scene, "ootBlenderScale"):
-        Scene.ootBlenderScale = FloatProperty(
-            name="Scale",
-            description="All stair steps in game are 10 units high. Assuming Hylian "
-            + "carpenters follow US building codes, that's about 17 cm or a scale of about "
-            + "56 if your scene is in meters.",
-            soft_min=1.0,
-            soft_max=1000.0,
-            default=56.0,
-        )
-
-    Scene.zc_previewlinkage = EnumProperty(
-        items=[("link_adult", "Adult", "Adult Link (170 cm)", 0), ("link_child", "Child", "Child Link (130 cm)", 1)],
-        name="Link age for preview",
-        description="For setting Link's height for preview",
-        default="link_adult",
-    )
-
     # import export controls
     TOPBAR_MT_file_import.append(menu_func_import)
     TOPBAR_MT_file_export.append(menu_func_export)
 
 
 def csMotion_ops_unregister():
-    del Scene.zc_previewlinkage
-
     # import export controls
     TOPBAR_MT_file_export.remove(menu_func_export)
     TOPBAR_MT_file_import.remove(menu_func_import)

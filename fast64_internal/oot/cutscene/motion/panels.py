@@ -110,7 +110,7 @@ class OOT_CutsceneMotionPanel(Panel):
         layout = self.layout
 
         if getCSObj(None, context) is not None:
-            layout.prop(context.scene, "zc_previewlinkage")
+            layout.prop(context.scene, "previewPlayerAge")
             layout.operator(OOTCSMotionInitCutscene.bl_idname)
             layout.operator(OOTCSMotionCreateCameraShot.bl_idname)
             layout.operator(OOTCSMotionCreatePlayerCueList.bl_idname)

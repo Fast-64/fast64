@@ -1,4 +1,4 @@
-from bpy.types import PropertyGroup, Object, UILayout, Armature, Bone
+from bpy.types import PropertyGroup, Object, UILayout, Armature, Bone, Scene
 from bpy.props import IntProperty, StringProperty, PointerProperty, EnumProperty, FloatProperty
 from bpy.utils import register_class, unregister_class
 from ...oot_upgrade import upgradeCutsceneMotion
@@ -96,9 +96,16 @@ def csMotion_props_register():
     Object.ootCSMotionProperty = PointerProperty(type=OOTCutsceneMotionProperty)
     Armature.ootCamShotProp = PointerProperty(type=OOTCSMotionCameraShotProperty)
     Bone.ootCamShotPointProp = PointerProperty(type=OOTCSMotionCameraShotPointProperty)
+    Scene.previewPlayerAge = EnumProperty(
+        items=[("link_adult", "Adult", "Adult Link (170 cm)", 0), ("link_child", "Child", "Child Link (130 cm)", 1)],
+        name="Link age for preview",
+        description="For setting Link's height for preview",
+        default="link_adult",
+    )
 
 
 def csMotion_props_unregister():
+    del Scene.previewPlayerAge
     del Bone.ootCamShotPointProp
     del Armature.ootCamShotProp
     del Object.ootCSMotionProperty

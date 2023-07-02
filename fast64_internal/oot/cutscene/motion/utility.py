@@ -332,7 +332,7 @@ def createOrInitPreview(context: Context, csObj: Object, actor_id: int, selectOb
     actorHeight = 1.5
 
     if actor_id < 0:
-        actorHeight = 1.7 if context.scene.zc_previewlinkage == "link_adult" else 1.3
+        actorHeight = 1.7 if context.scene.previewPlayerAge == "link_adult" else 1.3
 
     previewObj.empty_display_type = "SINGLE_ARROW"
     previewObj.empty_display_size = metersToBlend(context, actorHeight)
