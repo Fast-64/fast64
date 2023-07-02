@@ -44,14 +44,26 @@ def upgradeCutsceneMotion(csMotionObj: Object):
     if csMotionObj.type == "EMPTY":
         csMotionProp = csMotionObj.ootCSMotionProperty
 
-        if "Preview." in objName or "ActionList." in objName and "zc_alist" in csMotionObj:
-            csMotionProp.actorCueListProp.actor_id = csMotionObj["zc_alist"]["actor_id"]
+        if "zc_alist" in csMotionObj and ("Preview." in objName or "ActionList." in objName):
+            legacyData = csMotionObj["zc_alist"]
+
+            if "actor_id" in legacyData:
+                csMotionProp.actorCueListProp.actor_id = legacyData["actor_id"]
+                del legacyData["actor_id"]
+
             del csMotionObj["zc_alist"]
 
-        if "Point." in objName and "zc_apoint" in csMotionObj:
+        if "zc_apoint" in csMotionObj and "Point." in objName:
             legacyData = csMotionObj["zc_apoint"]
-            csMotionProp.actorCueProp.start_frame = legacyData["start_frame"]
-            csMotionProp.actorCueProp.action_id = legacyData["action_id"]
+
+            if "start_frame" in legacyData:
+                csMotionProp.actorCueProp.start_frame = legacyData["start_frame"]
+                del legacyData["start_frame"]
+
+            if "action_id" in legacyData:
+                csMotionProp.actorCueProp.action_id = legacyData["action_id"]
+                del legacyData["action_id"]
+
             del csMotionObj["zc_apoint"]
 
     if csMotionObj.type == "ARMATURE":
