@@ -47,7 +47,6 @@ def upgradeCutsceneMotion(csMotionObj: Object):
         if "zc_alist" in csMotionObj and ("Preview." in objName or "ActionList." in objName):
             legacyData = csMotionObj["zc_alist"]
             emptyTypeSuffix = "List" if "ActionList." in objName else "Preview"
-            print(objName, 'Link' in objName)
             csMotionObj.ootEmptyType = f"CS {'Player' if 'Link' in objName else 'Actor'} Cue {emptyTypeSuffix}"
 
             if "actor_id" in legacyData:
