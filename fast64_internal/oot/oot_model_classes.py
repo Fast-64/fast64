@@ -490,7 +490,6 @@ class OOTF3DContext(F3DContext):
         tlut: bpy.types.Image,
         index: int,
     ):
-
         flipbook = getattr(material.flipbookGroup, "flipbook" + str(index))
         if usesFlipbook(material, flipbook, index, True, ootFlipbookReferenceIsValid):
             # Don't apply TLUT to texProp.tex, as it is the same texture as the first flipbook texture.

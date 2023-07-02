@@ -331,7 +331,7 @@ def ootConvertLinkAnimationData(anim, armatureObj, convertTransformMatrix, *, fr
 def ootExportNonLinkAnimation(armatureObj, convertTransformMatrix, skeletonName):
     if armatureObj.animation_data is None or armatureObj.animation_data.action is None:
         raise PluginError("No active animation selected.")
-    
+
     anim = armatureObj.animation_data.action
     stashActionInArmature(armatureObj, anim)
 
@@ -448,7 +448,6 @@ def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale, isCu
             for frame in range(frameCount):
                 rawTranslation = mathutils.Vector((0, 0, 0))
                 for propertyIndex in range(3):
-
                     if jointIndex[propertyIndex] < staticIndexMax:
                         value = ootTranslationValue(frameData[jointIndex[propertyIndex]], actorScale)
                     else:
