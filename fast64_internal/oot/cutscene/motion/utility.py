@@ -276,53 +276,32 @@ def getCSObj(operator: Operator, context: Context):
     """Check if we are editing a cutscene."""
     csObj = context.view_layer.objects.active
 
-    if csObj is None or csObj.type != "EMPTY":
+    if csObj.ootEmptyType != "Cutscene":
         if operator is not None:
-            operator.report({"WARNING"}, "Must have an empty object active (selected)")
+            operator.report({"WARNING"}, "You need to select the Cutscene Empty Object")
         return None
 
     if not csObj.name.startswith("Cutscene."):
         if operator is not None:
-            operator.report({"WARNING"}, 'Cutscene empty object must be named "Cutscene.<YourCutsceneName>"')
+            operator.report({"WARNING"}, 'Cutscene Empty Object must be named "Cutscene.YourCutsceneName"')
         return None
 
     return csObj
 
 
 # action data
-def isActorCueList(obj: Object):
-    if obj is None or obj.type != "EMPTY":
-        return False
-
-    if not any(obj.name.startswith(s) for s in ["Path.", "ActionList."]):
-        return False
-
-    if obj.parent is None or obj.parent.type != "EMPTY" or not obj.parent.name.startswith("Cutscene."):
-        return False
-
-    return True
-
-
-def isPreview(obj: Object):
-    if obj is None or obj.type != "EMPTY":
-        return False
-
-    if not obj.name.startswith("Preview."):
-        return False
-
-    if obj.parent is None or obj.parent.type != "EMPTY" or not obj.parent.name.startswith("Cutscene."):
-        return False
-
-    return True
-
-
 def getActorName(actor_id: int):
     return "Link" if actor_id < 0 else f"Actor{actor_id}"
 
 
 def createOrInitPreview(context: Context, csObj: Object, actor_id: int, selectObject=False):
     for obj in bpy.data.objects:
-        if isPreview(obj) and obj.parent == csObj and obj.ootCSMotionProperty.actorCueListProp.actorCueSlot == actor_id:
+        if (
+            obj.ootEmptyType == "CS Actor Cue Preview"
+            and obj.parent.ootEmptyType == "Cutscene"
+            and obj.parent == csObj
+            and obj.ootCSMotionProperty.actorCueListProp.actorCueSlot == actor_id
+        ):
             previewObj = obj
             break
     else:
@@ -346,16 +325,19 @@ class PropsBone:
         self.name = bone.name
         self.head = editBone.head if editBone is not None else bone.head
         self.tail = editBone.tail if editBone is not None else bone.tail
+
         self.frames = (
             editBone["shotPointFrame"]
             if editBone is not None and "shotPointFrame" in editBone
             else bone.ootCamShotPointProp.shotPointFrame
         )
+
         self.fov = (
             editBone["shotPointViewAngle"]
             if editBone is not None and "shotPointViewAngle" in editBone
             else bone.ootCamShotPointProp.shotPointViewAngle
         )
+
         self.camroll = (
             editBone["shotPointRoll"]
             if editBone is not None and "shotPointRoll" in editBone
@@ -421,33 +403,19 @@ def getFakeCSEndFrame(context: Context, csObj: Object):
 
 
 def initCutscene(context: Context, csObj: Object):
-    # Add or move camera
-    camObj = None
-    hasNoCam = True
+    camName = f"{csObj.name}.Camera"
+    camera = bpy.data.cameras.new(camName)
+    camObj = createNewObject(context, camName, camera, False)
+    camObj.parent = csObj
+    camObj.data.display_size = metersToBlend(context, 0.25)
+    camObj.data.passepartout_alpha = 0.95
+    camObj.data.clip_start = metersToBlend(context, 1e-3)
+    camObj.data.clip_end = metersToBlend(context, 200.0)
+    print("Created New Camera!")
 
+    # Preview setup, used when importing cutscenes
     for obj in bpy.data.objects:
-        if obj.type == "CAMERA":
-            hasNoCam = False
-
-            if obj.parent is not None and obj.parent == csObj:
-                camObj = obj
-        break
-
-    if hasNoCam:
-        cam = bpy.data.cameras.new("Camera")
-        camObj = createNewObject(context, "Camera", cam, False)
-        print("Created new camera")
-
-    if camObj is not None:
-        camObj.parent = csObj
-        camObj.data.display_size = metersToBlend(context, 0.25)
-        camObj.data.passepartout_alpha = 0.95
-        camObj.data.clip_start = metersToBlend(context, 1e-3)
-        camObj.data.clip_end = metersToBlend(context, 200.0)
-
-    # Preview actions
-    for obj in bpy.data.objects:
-        if isActorCueList(obj):
+        if obj.ootEmptyType == "CS Actor Cue List" and obj.parent.ootEmptyType == "Cutscene":
             createOrInitPreview(context, obj.parent, obj.ootCSMotionProperty.actorCueListProp.actorCueSlot, False)
 
     # Other setup
@@ -459,20 +427,14 @@ def initCutscene(context: Context, csObj: Object):
 
 
 # action data leftovers
-def isActorCuePoint(cuePointObj: Object):
-    if (
-        cuePointObj is None
-        or cuePointObj.type != "EMPTY"
-        or not any(cuePointObj.name.startswith(elem) for elem in ["Point.", "Action."])
-        or not isActorCueList(cuePointObj.parent)
-    ):
-        return False
-
-    return True
-
-
 def getActorCuePointObjects(scene: Scene, cueObj: Object):
-    cuePoints: list[Object] = [obj for obj in scene.objects if isActorCuePoint(obj) and obj.parent == cueObj]
+    cuePoints: list[Object] = [
+        obj
+        for obj in scene.objects
+        if obj.ootEmptyType == "CS Actor Cue"
+        and obj.parent.ootEmptyType == "CS Actor Cue List"
+        and obj.parent == cueObj
+    ]
     cuePoints.sort(key=lambda o: o.ootCSMotionProperty.actorCueProp.cueStartFrame)
     return cuePoints
 
@@ -482,7 +444,8 @@ def getActorCueListObjects(scene: Scene, csObj: Object, actorid: int):
 
     for obj in scene.objects:
         if (
-            isActorCueList(obj)
+            obj.ootEmptyType == "CS Actor Cue List"
+            and obj.parent.ootEmptyType == "Cutscene"
             and obj.parent == csObj
             and (actorid is None or obj.ootCSMotionProperty.actorCueListProp.actorCueSlot == actorid)
         ):

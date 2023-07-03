@@ -11,11 +11,9 @@ from .importer import importCutsceneMotion
 from .exporter import exportCutsceneMotion
 from .utility import (
     getCSObj,
-    isActorCueList,
     createOrInitPreview,
     createNewObject,
     metersToBlend,
-    isActorCuePoint,
     createActorCueList,
     getActorCuePointObjects,
     createActorCuePoint,
@@ -23,16 +21,16 @@ from .utility import (
 
 
 def getActorCueList(operator: Operator, context: Context) -> Object | None:
-    obj = context.view_layer.objects.active
+    cueListObj = activeObj = context.view_layer.objects.active
 
-    if isActorCuePoint(obj):
-        obj = obj.parent
+    if activeObj.ootEmptyType == "CS Actor Cue" and activeObj.parent.ootEmptyType == "CS Actor Cue List":
+        cueListObj = activeObj.parent
 
-    if not isActorCueList(obj):
+    if not cueListObj.ootEmptyType == "CS Actor Cue List" and cueListObj.parent.ootEmptyType == "Cutscene":
         operator.report({"WARNING"}, "Select an action list or action point.")
         return None
 
-    return obj
+    return cueListObj
 
 
 def createCameraShot(context: Context, csObj: Object):

@@ -8,7 +8,6 @@ from .utility import (
     PropsBone,
     getShotPropBones,
     getShotObjects,
-    isPreview,
     getActorCueListObjects,
     getActorCuePointObjects,
 )
@@ -170,7 +169,7 @@ def previewFrameHandler(scene: Scene):
                     obj.rotation_mode = "QUATERNION"
                     obj.rotation_quaternion = rot_quat
                     obj.data.angle = math.pi * fov / 180.0
-            elif isPreview(obj):
+            elif obj.ootEmptyType == "CS Actor Cue Preview" and obj.parent.ootEmptyType == "Cutscene":
                 pos, rot = getActorCueState(
                     scene, obj.parent, obj.ootCSMotionProperty.actorCueListProp.actorCueSlot, scene.frame_current
                 )
