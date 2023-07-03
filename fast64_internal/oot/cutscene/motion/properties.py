@@ -6,7 +6,7 @@ from ...oot_utility import getEnumName
 from .constants import ootEnumCSMotionCamMode, ootEnumCSActorCueListCommandType
 
 from .operators import (
-    OOTCSMotionAddActorCuePoint,
+    OOTCSMotionAddActorCue,
     OOTCSMotionCreateActorCuePreview,
     OOT_SearchActorCueCmdTypeEnumOperator,
 )
@@ -46,11 +46,11 @@ class OOTCSMotionActorCueListProperty(PropertyGroup):
 
         if not isPreview:
             split = box.split(factor=0.5)
-            split.operator(OOTCSMotionAddActorCuePoint.bl_idname)
+            split.operator(OOTCSMotionAddActorCue.bl_idname)
             split.operator(OOTCSMotionCreateActorCuePreview.bl_idname)
 
 
-class OOTCSMotionActorCuePointProperty(PropertyGroup):
+class OOTCSMotionActorCueProperty(PropertyGroup):
     cueStartFrame: IntProperty(name="Start Frame", description="Start frame of the Actor Cue", default=0, min=0)
     cueEndFrame: IntProperty(name="End Frame", description="End Frame of the Actor Cue", default=0, min=0)
     cueActionID: StringProperty(
@@ -111,7 +111,7 @@ class OOTCSMotionCameraShotPointProperty(PropertyGroup):
 
 class OOTCutsceneMotionProperty(PropertyGroup):
     actorCueListProp: PointerProperty(type=OOTCSMotionActorCueListProperty)
-    actorCueProp: PointerProperty(type=OOTCSMotionActorCuePointProperty)
+    actorCueProp: PointerProperty(type=OOTCSMotionActorCueProperty)
 
     @staticmethod
     def upgrade_object(csObj: Object):
@@ -126,7 +126,7 @@ class OOTCutsceneMotionProperty(PropertyGroup):
 
 classes = (
     OOTCSMotionActorCueListProperty,
-    OOTCSMotionActorCuePointProperty,
+    OOTCSMotionActorCueProperty,
     OOTCSMotionCameraShotProperty,
     OOTCSMotionCameraShotPointProperty,
     OOTCutsceneMotionProperty,

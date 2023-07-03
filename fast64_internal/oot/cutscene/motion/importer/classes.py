@@ -2,7 +2,7 @@ import math
 import traceback
 import bpy
 
-from ..utility import OOTCutsceneMotionIOBase, createNewObject, createActorCueList, createActorCuePoint, initCutscene
+from ..utility import OOTCutsceneMotionIOBase, createNewObject, createActorCueList, createActorCue, initCutscene
 from ..constants import CAM_TYPE_TO_TYPE, CAM_TYPE_TO_MODE
 
 
@@ -83,7 +83,7 @@ class OOTCutsceneMotionImport(OOTCutsceneMotionIOBase):
                     if lastPosX != cueData["startX"] or lastPosY != cueData["startY"] or lastPosZ != cueData["startZ"]:
                         raise RuntimeError("Action list path is not spatially continuous!")
 
-                cuePoint = createActorCuePoint(
+                cueList = createActorCue(
                     self.context,
                     cueObj,
                     False,
@@ -91,7 +91,7 @@ class OOTCutsceneMotionImport(OOTCutsceneMotionIOBase):
                     cueData["startFrame"],
                     cueData["action"],
                 )
-                cuePoint.rotation_euler = self.importRotation([cueData["rotX"], cueData["rotY"], cueData["rotZ"]])
+                cueList.rotation_euler = self.importRotation([cueData["rotX"], cueData["rotY"], cueData["rotZ"]])
                 lastFrame = cueData["endFrame"]
                 lastPosX = cueData["endX"]
                 lastPosY = cueData["endY"]
@@ -100,7 +100,7 @@ class OOTCutsceneMotionImport(OOTCutsceneMotionIOBase):
             if lastFrame is None:
                 raise RuntimeError("Action list path did not have any points!")
 
-            cuePoint = createActorCuePoint(
+            cueList = createActorCue(
                 self.context, cueObj, False, self.importPosition([lastPosX, lastPosY, lastPosZ]), lastFrame, "0x0000"
             )
 

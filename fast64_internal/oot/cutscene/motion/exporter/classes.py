@@ -15,7 +15,7 @@ from ..utility import (
     getShotPropBonesChecked,
     getFakeCamCmdsLength,
     getActorCueListObjects,
-    getActorCuePointObjects,
+    getActorCueObjects,
 )
 
 
@@ -209,23 +209,23 @@ class OOTCutsceneMotionExport(OOTCutsceneMotionIOBase):
 
         for cueObj in cueObjects:
             actor_id = cueObj.ootCSMotionProperty.actorCueListProp.actorCueSlot
-            cuePoints = getActorCuePointObjects(self.context.scene, cueObj)
+            cueList = getActorCueObjects(self.context.scene, cueObj)
 
-            if len(cuePoints) < 2:
+            if len(cueList) < 2:
                 raise RuntimeError(f"Action {cueObj.name} does not have at least 2 key points!")
 
-            self.cs_text += self.getActorCueListCmd(actor_id, len(cuePoints) - 1)
+            self.cs_text += self.getActorCueListCmd(actor_id, len(cueList) - 1)
             self.entrycount_write += 1
 
-            for i in range(len(cuePoints) - 1):
+            for i in range(len(cueList) - 1):
                 self.cs_text += self.getActorCueCmd(
                     actor_id,
-                    cuePoints[i].ootCSMotionProperty.actorCueProp.cueActionID,
-                    cuePoints[i].ootCSMotionProperty.actorCueProp.cueStartFrame,
-                    cuePoints[i + 1].ootCSMotionProperty.actorCueProp.cueStartFrame,
-                    cuePoints[i].rotation_euler,
-                    cuePoints[i].location,
-                    cuePoints[i + 1].location,
+                    cueList[i].ootCSMotionProperty.actorCueProp.cueActionID,
+                    cueList[i].ootCSMotionProperty.actorCueProp.cueStartFrame,
+                    cueList[i + 1].ootCSMotionProperty.actorCueProp.cueStartFrame,
+                    cueList[i].rotation_euler,
+                    cueList[i].location,
+                    cueList[i + 1].location,
                 )
 
     def exportToC(self, filename: str):

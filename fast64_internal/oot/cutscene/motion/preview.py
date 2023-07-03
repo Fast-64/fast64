@@ -9,7 +9,7 @@ from .utility import (
     getShotPropBones,
     getShotObjects,
     getActorCueListObjects,
-    getActorCuePointObjects,
+    getActorCueObjects,
 )
 
 
@@ -137,7 +137,7 @@ def getActorCueState(scene: Scene, csObj: Object, actorid: int, frame: int):
     rot = Vector((0.0, 0.0, 0.0))
 
     for cueObj in cueObjects:
-        points = getActorCuePointObjects(scene, cueObj)
+        points = getActorCueObjects(scene, cueObj)
 
         if len(points) >= 2:
             for i in range(len(points) - 1):

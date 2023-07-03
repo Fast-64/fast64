@@ -427,16 +427,16 @@ def initCutscene(context: Context, csObj: Object):
 
 
 # action data leftovers
-def getActorCuePointObjects(scene: Scene, cueObj: Object):
-    cuePoints: list[Object] = [
+def getActorCueObjects(scene: Scene, cueObj: Object):
+    cueList: list[Object] = [
         obj
         for obj in scene.objects
         if obj.ootEmptyType == "CS Actor Cue"
         and obj.parent.ootEmptyType == "CS Actor Cue List"
         and obj.parent == cueObj
     ]
-    cuePoints.sort(key=lambda o: o.ootCSMotionProperty.actorCueProp.cueStartFrame)
-    return cuePoints
+    cueList.sort(key=lambda o: o.ootCSMotionProperty.actorCueProp.cueStartFrame)
+    return cueList
 
 
 def getActorCueListObjects(scene: Scene, csObj: Object, actorid: int):
@@ -451,7 +451,7 @@ def getActorCueListObjects(scene: Scene, csObj: Object, actorid: int):
         ):
             cueObjects.append(obj)
 
-    points = getActorCuePointObjects(scene, obj)
+    points = getActorCueObjects(scene, obj)
 
     cueObjects.sort(
         key=lambda o: 1000000 if len(points) < 2 else points[0].ootCSMotionProperty.actorCueProp.cueStartFrame
@@ -459,17 +459,17 @@ def getActorCueListObjects(scene: Scene, csObj: Object, actorid: int):
     return cueObjects
 
 
-def createActorCuePoint(context: Context, actorCueObj: Object, selectObj: bool, pos, startFrame: int, action_id: str):
-    newCuePoint = createNewObject(context, "ActorCue.001", None, selectObj)
-    newCuePoint.parent = actorCueObj
-    newCuePoint.empty_display_type = "ARROWS"
-    newCuePoint.location = pos
-    newCuePoint.rotation_mode = "XZY"
-    newCuePoint.ootCSMotionProperty.actorCueProp.cueStartFrame = startFrame
-    newCuePoint.ootCSMotionProperty.actorCueProp.cueActionID = action_id
-    newCuePoint.ootEmptyType = "CS Actor Cue"
+def createActorCue(context: Context, actorCueObj: Object, selectObj: bool, pos, startFrame: int, action_id: str):
+    newCue = createNewObject(context, "ActorCue.001", None, selectObj)
+    newCue.parent = actorCueObj
+    newCue.empty_display_type = "ARROWS"
+    newCue.location = pos
+    newCue.rotation_mode = "XZY"
+    newCue.ootCSMotionProperty.actorCueProp.cueStartFrame = startFrame
+    newCue.ootCSMotionProperty.actorCueProp.cueActionID = action_id
+    newCue.ootEmptyType = "CS Actor Cue"
 
-    return newCuePoint
+    return newCue
 
 
 def createActorCueList(context: Context, actor_id: int, csObj: Object):

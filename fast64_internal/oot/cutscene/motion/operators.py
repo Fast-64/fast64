@@ -15,8 +15,8 @@ from .utility import (
     createNewObject,
     metersToBlend,
     createActorCueList,
-    getActorCuePointObjects,
-    createActorCuePoint,
+    getActorCueObjects,
+    createActorCue,
 )
 
 
@@ -54,8 +54,8 @@ def createCameraShot(context: Context, csObj: Object):
         bone.ootCamShotPointProp.shotPointRoll = 0
 
 
-def createBasicActorCuePoint(context: Context, actorCueObj: Object, selectObj: bool):
-    points = getActorCuePointObjects(context.scene, actorCueObj)
+def createBasicActorCue(context: Context, actorCueObj: Object, selectObj: bool):
+    points = getActorCueObjects(context.scene, actorCueObj)
 
     if len(points) == 0:
         pos = Vector((random.random() * 40.0 - 20.0, -10.0, 0.0))
@@ -66,17 +66,17 @@ def createBasicActorCuePoint(context: Context, actorCueObj: Object, selectObj: b
         startFrame = points[-1].ootCSMotionProperty.actorCueProp.cueStartFrame + 20
         action_id = points[-1].ootCSMotionProperty.actorCueProp.cueActionID
 
-    createActorCuePoint(context, actorCueObj, selectObj, pos, startFrame, action_id)
+    createActorCue(context, actorCueObj, selectObj, pos, startFrame, action_id)
 
 
 def createBasicActorCueList(context: Context, actor_id: int, csObj: Object):
     actorCueObj = createActorCueList(context, actor_id, csObj)
 
     for _ in range(2):
-        createBasicActorCuePoint(context, actorCueObj, False)
+        createBasicActorCue(context, actorCueObj, False)
 
 
-class OOTCSMotionAddActorCuePoint(Operator):
+class OOTCSMotionAddActorCue(Operator):
     """Add an entry to a player or actor cue list"""
 
     bl_idname = "object.add_actor_cue_point"
@@ -86,7 +86,7 @@ class OOTCSMotionAddActorCuePoint(Operator):
         actorCueObj = getActorCueList(self, context)
 
         if actorCueObj is not None:
-            createBasicActorCuePoint(context, actorCueObj, True)
+            createBasicActorCue(context, actorCueObj, True)
             return {"FINISHED"}
         else:
             return {"CANCELLED"}
@@ -233,7 +233,7 @@ class OOT_SearchActorCueCmdTypeEnumOperator(Operator):
 
 
 classes = (
-    OOTCSMotionAddActorCuePoint,
+    OOTCSMotionAddActorCue,
     OOTCSMotionCreateActorCuePreview,
     OOTCSMotionCreateCameraShot,
     OOTCSMotionCreatePlayerCueList,

@@ -3,7 +3,7 @@ import bpy
 from bpy.types import Object, CollectionProperty
 from .data import OoT_ObjectData
 from .cutscene.motion.constants import ootEnumCSMotionCamMode, ootEnumCSActorCueListCommandType
-from .cutscene.motion.utility import getActorCuePointObjects
+from .cutscene.motion.utility import getActorCueObjects
 
 
 def upgradeObjectList(objList: CollectionProperty, objData: OoT_ObjectData):

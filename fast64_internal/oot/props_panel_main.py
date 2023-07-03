@@ -7,8 +7,7 @@ from .scene.properties import OOTSceneProperties
 from .room.properties import OOTObjectProperty, OOTRoomHeaderProperty, OOTAlternateRoomHeaderProperty
 from .collision.properties import OOTWaterBoxProperty
 from .cutscene.properties import OOTCutsceneProperty
-from .cutscene.motion.properties import OOTCutsceneMotionProperty, OOTCSMotionActorCueListProperty, OOTCSMotionActorCuePointProperty
-from .cutscene.motion.operators import OOTCSMotionAddActorCuePoint, OOTCSMotionCreateActorCuePreview
+from .cutscene.motion.properties import OOTCutsceneMotionProperty, OOTCSMotionActorCueListProperty, OOTCSMotionActorCueProperty
 
 from .actor.properties import (
     OOTActorProperty,
@@ -153,7 +152,7 @@ class OOTObjectPanel(bpy.types.Panel):
 
         elif obj.ootEmptyType == "CS Actor Cue" or obj.ootEmptyType == "CS Player Cue":
             labelPrefix = "Player" if obj.parent.ootEmptyType == "CS Player Cue List" else "Actor"
-            actorCueProp: OOTCSMotionActorCuePointProperty = obj.ootCSMotionProperty.actorCueProp
+            actorCueProp: OOTCSMotionActorCueProperty = obj.ootCSMotionProperty.actorCueProp
             actorCueProp.draw_props(box, labelPrefix)
 
         elif obj.ootEmptyType == "None":
