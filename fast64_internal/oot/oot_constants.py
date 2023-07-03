@@ -100,8 +100,9 @@ ootEnumEmptyType = [
     ("LOD", "LOD Group", "LOD Group"),
     ("Cutscene", "Cutscene Main", "Cutscene"),
     ("CS Actor Cue List", "CS Actor Cue List", "CS Actor Cue List"),
-    ("CS Player Cue List", "CS Player Cue List", "CS Player Cue List"),
     ("CS Actor Cue", "CS Actor Cue", "CS Actor Cue"),
+    ("CS Player Cue List", "CS Player Cue List", "CS Player Cue List"),
+    ("CS Player Cue", "CS Player Cue", "CS Player Cue"),
     ("CS Actor Cue Preview", "CS Actor Cue Preview", "CS Actor Cue Preview"),
     # ('Camera Volume', 'Camera Volume', 'Camera Volume'),
 ]

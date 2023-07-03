@@ -1,7 +1,7 @@
 from bpy.types import PropertyGroup, Object, UILayout, Armature, Bone, Scene
 from bpy.props import IntProperty, StringProperty, PointerProperty, EnumProperty, FloatProperty
 from bpy.utils import register_class, unregister_class
-from ...oot_upgrade import upgradeCutsceneMotion
+from ...oot_upgrade import upgradeCutsceneMotion, postUpgradeCSMotion
 from ...oot_utility import getEnumName
 from .constants import ootEnumCSMotionCamMode, ootEnumCSActorCueListCommandType
 
@@ -51,9 +51,8 @@ class OOTCSMotionActorCueListProperty(PropertyGroup):
 
 
 class OOTCSMotionActorCuePointProperty(PropertyGroup):
-    cueStartFrame: IntProperty(
-        name="Start Frame", description="Key point start frame within cutscene", default=0, min=0
-    )
+    cueStartFrame: IntProperty(name="Start Frame", description="Start frame of the Actor Cue", default=0, min=0)
+    cueEndFrame: IntProperty(name="End Frame", description="End Frame of the Actor Cue", default=0, min=0)
     cueActionID: StringProperty(
         name="Action ID", default="0x0001", description="Actor action. Meaning is unique for each different actor."
     )
@@ -61,7 +60,10 @@ class OOTCSMotionActorCuePointProperty(PropertyGroup):
     def draw_props(self, layout: UILayout, labelPrefix: str):
         box = layout.box()
         box.box().label(text=f"{labelPrefix} Cue")
-        box.prop(self, "cueStartFrame")
+
+        split = box.split(factor=0.5)
+        split.prop(self, "cueStartFrame")
+        split.prop(self, "cueEndFrame")
 
         split = box.split(factor=0.5)
         split.label(text=f"{labelPrefix} Cue (Action) ID")
@@ -115,6 +117,10 @@ class OOTCutsceneMotionProperty(PropertyGroup):
     def upgrade_object(csObj: Object):
         print(f"Processing '{csObj.name}'...")
         upgradeCutsceneMotion(csObj)
+
+        if csObj.ootEmptyType == "CS Actor Cue" or csObj.ootEmptyType == "CS Player Cue":
+            postUpgradeCSMotion(csObj, csObj.ootEmptyType)
+
         print("Done!")
 
 

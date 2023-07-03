@@ -151,7 +151,7 @@ class OOTObjectPanel(bpy.types.Panel):
             actorCueListProp: OOTCSMotionActorCueListProperty = obj.ootCSMotionProperty.actorCueListProp
             actorCueListProp.draw_props(box, obj.ootEmptyType == "CS Actor Cue Preview", labelPrefix, obj.name)
 
-        elif obj.ootEmptyType == "CS Actor Cue":
+        elif obj.ootEmptyType == "CS Actor Cue" or obj.ootEmptyType == "CS Player Cue":
             labelPrefix = "Player" if obj.parent.ootEmptyType == "CS Player Cue List" else "Actor"
             actorCueProp: OOTCSMotionActorCuePointProperty = obj.ootCSMotionProperty.actorCueProp
             actorCueProp.draw_props(box, labelPrefix)

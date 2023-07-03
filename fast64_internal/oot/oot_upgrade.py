@@ -1,6 +1,9 @@
+import bpy
+
 from bpy.types import Object, CollectionProperty
 from .data import OoT_ObjectData
 from .cutscene.motion.constants import ootEnumCSMotionCamMode, ootEnumCSActorCueListCommandType
+from .cutscene.motion.utility import getActorCuePointObjects
 
 
 def upgradeObjectList(objList: CollectionProperty, objData: OoT_ObjectData):
@@ -59,7 +62,7 @@ def upgradeCutsceneMotion(csMotionObj: Object):
 
         if "zc_apoint" in csMotionObj and "Point." in objName:
             legacyData = csMotionObj["zc_apoint"]
-            csMotionObj.ootEmptyType = "CS Actor Cue"
+            csMotionObj.ootEmptyType = f"CS {'Player' if 'Link' in csMotionObj.parent.name else 'Actor'} Cue"
 
             if "start_frame" in legacyData:
                 csMotionProp.actorCueProp.cueStartFrame = legacyData["start_frame"]
@@ -96,3 +99,18 @@ def upgradeCutsceneMotion(csMotionObj: Object):
             if "camroll" in bone:
                 camShotPointProp.shotPointRoll = bone["camroll"]
                 del bone["camroll"]
+
+
+def postUpgradeCSMotion(cueObj: Object, emptyType: str):
+    cueObjects: list[Object] = [
+        obj for obj in bpy.data.objects if obj.type == "EMPTY" and obj.ootEmptyType == emptyType
+    ]
+
+    cueObjects.sort(key=lambda o: o.ootCSMotionProperty.actorCueProp.cueStartFrame)
+    nextObj = None
+    for prevObj, nextObj in zip(cueObjects, cueObjects[1:]):
+        prevObj.ootCSMotionProperty.actorCueProp.cueEndFrame = nextObj.ootCSMotionProperty.actorCueProp.cueStartFrame
+
+    # idk how to get the end frame properly
+    if nextObj is not None:
+        nextObj.ootCSMotionProperty.actorCueProp.cueEndFrame = nextObj.ootCSMotionProperty.actorCueProp.cueStartFrame + 1
