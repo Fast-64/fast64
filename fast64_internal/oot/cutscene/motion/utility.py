@@ -460,7 +460,7 @@ def getActorCueListObjects(scene: Scene, csObj: Object, actorid: int):
 
 
 def createActorCuePoint(context: Context, actorCueObj: Object, selectObj: bool, pos, startFrame: int, action_id: str):
-    newCuePoint = createNewObject(context, "Point.001", None, selectObj)
+    newCuePoint = createNewObject(context, "ActorCue.001", None, selectObj)
     newCuePoint.parent = actorCueObj
     newCuePoint.empty_display_type = "ARROWS"
     newCuePoint.location = pos
@@ -473,7 +473,7 @@ def createActorCuePoint(context: Context, actorCueObj: Object, selectObj: bool, 
 
 
 def createActorCueList(context: Context, actor_id: int, csObj: Object):
-    actorCueObj = createNewObject(context, f"ActionList.{getActorName(actor_id)}.001", None, True)
+    actorCueObj = createNewObject(context, f"ActorCueList.{getActorName(actor_id)}.001", None, True)
     actorCueObj.parent = csObj
     actorCueObj.ootCSMotionProperty.actorCueListProp.actorCueSlot = actor_id
     actorCueObj.ootEmptyType = f"CS {'Player' if actor_id == -1 else 'Actor'} Cue List"
