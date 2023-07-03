@@ -4,6 +4,7 @@ import math
 import traceback
 import bpy
 
+from dataclasses import dataclass
 from struct import pack, unpack
 from bpy.types import Object
 from .....utility import indent
@@ -275,3 +276,68 @@ class OOTCutsceneMotionExport(OOTCutsceneMotionIOBase):
             os.remove(tmpfile)
 
         return ret
+
+
+# Cutscene IO Classes
+
+
+# See ``motion_commands.py`` for the exporter implementation
+@dataclass
+class OOTCSMotionBase:
+    startFrame: int
+    endFrame: int
+
+
+@dataclass
+class OOTCSMotionActorCueList:
+    commandType: str
+    entryTotal: int
+
+
+@dataclass
+class OOTCSMotionActorCue(OOTCSMotionBase):
+    actionID: str
+    rot: list[str, str, str]
+    startPos: list[int, int, int]
+    endPos: list[int, int, int]
+
+
+@dataclass
+class OOTCSMotionCamEyeSpline(OOTCSMotionBase):
+    pass
+
+
+@dataclass
+class OOTCSMotionCamATSpline(OOTCSMotionBase):
+    pass
+
+
+@dataclass
+class OOTCSMotionCamEyeSplineRelToPlayer(OOTCSMotionBase):
+    pass
+
+
+@dataclass
+class OOTCSMotionCamATSplineRelToPlayer(OOTCSMotionBase):
+    pass
+
+
+@dataclass
+class OOTCSMotionCamEye(OOTCSMotionBase):
+    # This feature is not used in the final game and lacks polish, it is recommended to use splines in all cases.
+    pass
+
+
+@dataclass
+class OOTCSMotionCamAT(OOTCSMotionBase):
+    # This feature is not used in the final game and lacks polish, it is recommended to use splines in all cases.
+    pass
+
+
+@dataclass
+class OOTCSMotionCamPoint:
+    continueFlag: str
+    camRoll: int
+    frame: int
+    viewAngle: float
+    pos: list[int, int, int]
