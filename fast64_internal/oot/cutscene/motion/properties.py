@@ -6,8 +6,8 @@ from ...oot_utility import getEnumName
 from .constants import ootEnumCSMotionCamMode, ootEnumCSActorCueListCommandType
 
 from .operators import (
-    OOTCSMotionAddActorCuePoint, 
-    OOTCSMotionCreateActorCuePreview, 
+    OOTCSMotionAddActorCuePoint,
+    OOTCSMotionCreateActorCuePreview,
     OOT_SearchActorCueCmdTypeEnumOperator,
 )
 
@@ -33,7 +33,9 @@ class OOTCSMotionActorCueListProperty(PropertyGroup):
         # Player Cue has only one command type
         if labelPrefix != "Player":
             searchBox = box.row()
-            searchOp = searchBox.operator(OOT_SearchActorCueCmdTypeEnumOperator.bl_idname, icon="VIEWZOOM", text="Command Type:")
+            searchOp = searchBox.operator(
+                OOT_SearchActorCueCmdTypeEnumOperator.bl_idname, icon="VIEWZOOM", text="Command Type:"
+            )
             searchOp.objName = objName
             searchBox.label(text=getEnumName(ootEnumCSActorCueListCommandType, self.commandType))
 

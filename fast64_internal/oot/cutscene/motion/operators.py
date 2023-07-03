@@ -10,7 +10,6 @@ from .constants import ootEnumCSActorCueListCommandType
 from .importer import importCutsceneMotion
 from .exporter import exportCutsceneMotion
 from .utility import (
-    initCutscene,
     getCSObj,
     isActorCueList,
     createOrInitPreview,
@@ -108,22 +107,6 @@ class OOTCSMotionCreateActorCuePreview(Operator):
             createOrInitPreview(
                 context, actorCueObj.parent, actorCueObj.ootCSMotionProperty.actorCueListProp.actorCueSlot, True
             )
-            return {"FINISHED"}
-        else:
-            return {"CANCELLED"}
-
-
-class OOTCSMotionInitCutscene(Operator):
-    """Click here after adding an empty Cutscene.YourCutsceneName"""
-
-    bl_idname = "object.init_cutscene"
-    bl_label = "Init Cutscene Empty"
-
-    def execute(self, context):
-        csObj = getCSObj(self, context)
-
-        if csObj is not None:
-            initCutscene(context, csObj)
             return {"FINISHED"}
         else:
             return {"CANCELLED"}
@@ -254,7 +237,6 @@ class OOT_SearchActorCueCmdTypeEnumOperator(Operator):
 classes = (
     OOTCSMotionAddActorCuePoint,
     OOTCSMotionCreateActorCuePreview,
-    OOTCSMotionInitCutscene,
     OOTCSMotionCreateCameraShot,
     OOTCSMotionCreatePlayerCueList,
     OOTCSMotionCreateActorCueList,

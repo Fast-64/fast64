@@ -8,7 +8,6 @@ from .operators import OOTCSTextboxAdd, drawCSListAddOp
 from .constants import ootEnumCSTextboxType, ootEnumCSListType, ootEnumCSTransitionType, ootEnumCSTextboxTypeIcons
 
 from .motion.operators import (
-    OOTCSMotionInitCutscene,
     OOTCSMotionCreateCameraShot,
     OOTCSMotionCreatePlayerCueList,
     OOTCSMotionCreateActorCueList,
@@ -240,9 +239,7 @@ class OOTCutsceneProperty(PropertyGroup):
         split.label(text="Player Age for Preview")
         split.prop(bpy.context.scene, "previewPlayerAge", text="")
 
-        split = layout.split(factor=0.5)
-        split.operator(OOTCSMotionInitCutscene.bl_idname)
-        split.operator(OOTCSMotionCreateCameraShot.bl_idname)
+        layout.operator(OOTCSMotionCreateCameraShot.bl_idname, icon="VIEW_CAMERA")
 
         split = layout.split(factor=0.5)
         split.operator(OOTCSMotionCreatePlayerCueList.bl_idname)
