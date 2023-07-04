@@ -137,7 +137,7 @@ def ootCutsceneDataToC(csParent, csName):
             else:
                 raise PluginError("Internal error: invalid cutscene list type " + list.listType)
             data.source += "),\n"
-    data.source += getCutsceneMotionData(True)
+    data.source += getCutsceneMotionData()
     data.source += "\tCS_END(),\n"
     data.source += "};\n\n"
     return data

@@ -83,7 +83,7 @@ def getOoTPosition(pos):
     return [x, y, z]
 
 
-def getActorCueListData(actorCueListObjects: list[Object], actorCueObjects: list[Object]):
+def getActorCueListData(actorCueListObjects: list[Object], actorCueObjects: list[Object], useDecomp: bool):
     actorCueData = ""
 
     if len(actorCueObjects) > 0:
@@ -93,7 +93,7 @@ def getActorCueListData(actorCueListObjects: list[Object], actorCueObjects: list
 
             if commandType == "Custom":
                 commandType = obj.ootCSMotionProperty.actorCueListProp.commandTypeCustom
-            else:
+            elif useDecomp:
                 commandType = ootCSMotionCommandTypeRawToEnum[commandType]
 
             actorCueList = OOTCSMotionActorCueList(commandType, entryTotal)
@@ -127,7 +127,7 @@ def getShotObjectsSort(shotObjects: list[Object]):
     return sortedObjects
 
 
-def getCameraShotPointData(bones, useAT: bool, useFlagMacro: bool):
+def getCameraShotPointData(bones, useAT: bool, useDecomp: bool):
     shotPoints: list[OOTCSMotionCamPoint] = []
 
     if len(bones) < 4:
@@ -140,9 +140,9 @@ def getCameraShotPointData(bones, useAT: bool, useFlagMacro: bool):
         posBlend = bone.head if not useAT else bone.tail
         shotPoints.append(
             OOTCSMotionCamPoint(
-                ("CS_CAM_CONTINUE" if useFlagMacro else "0")
+                ("CS_CAM_CONTINUE" if useDecomp else "0")
                 if bone != bones[-1]
-                else ("CS_CAM_STOP" if useFlagMacro else "-1"),
+                else ("CS_CAM_STOP" if useDecomp else "-1"),
                 bone.ootCamShotPointProp.shotPointRoll,
                 bone.ootCamShotPointProp.shotPointFrame,
                 bone.ootCamShotPointProp.shotPointViewAngle,
@@ -173,8 +173,8 @@ def getCamClass(camMode: str, useAT: bool):
     return camCmdFuncMap[camMode]
 
 
-def getCamListData(obj: Object, useAT: bool, useFlagMacro: bool):
-    splineData = getCameraShotPointData(obj.data.bones, useAT, useFlagMacro)
+def getCamListData(obj: Object, useAT: bool, useDecomp: bool):
+    splineData = getCameraShotPointData(obj.data.bones, useAT, useDecomp)
 
     startFrame = obj.data.ootCamShotProp.shotStartFrame
     endFrame = startFrame + max(2, sum(point.frame for point in splineData)) + (splineData[-1].frame if useAT else 1)
@@ -186,7 +186,7 @@ def getCamListData(obj: Object, useAT: bool, useFlagMacro: bool):
     )
 
 
-def getCameraShotData(shotObjects: list[Object], useFlagMacro: bool):
+def getCameraShotData(shotObjects: list[Object], useDecomp: bool):
     cameraShotData = ""
 
     if len(shotObjects) == 0:
@@ -197,21 +197,22 @@ def getCameraShotData(shotObjects: list[Object], useFlagMacro: bool):
     for listName, objList in shotObjectsSorted.items():
         for obj in objList:
             continueFlag = (
-                ("CS_CAM_CONTINUE" if useFlagMacro else "0")
+                ("CS_CAM_CONTINUE" if useDecomp else "0")
                 if obj != shotObjectsSorted[obj.data.ootCamShotProp.shotCamMode][-1]
-                else ("CS_CAM_STOP" if useFlagMacro else "-1")
+                else ("CS_CAM_STOP" if useDecomp else "-1")
             )
 
-            cameraShotData += getCamListData(obj, False, useFlagMacro) + getCamListData(obj, True, useFlagMacro)
+            cameraShotData += getCamListData(obj, False, useDecomp) + getCamListData(obj, True, useDecomp)
 
     return cameraShotData
 
 
-def getCutsceneMotionData(useFlagMacro: bool):
+def getCutsceneMotionData():
     csMotionObjects = getCSMotionObjects()
+    useDecomp = bpy.context.scene.fast64.oot.hackerFeaturesEnabled or bpy.context.scene.useDecompFeatures
 
     return (
-        getActorCueListData(csMotionObjects["CS Actor Cue List"], csMotionObjects["CS Actor Cue"])
-        + getActorCueListData(csMotionObjects["CS Player Cue List"], csMotionObjects["CS Player Cue"])
-        + getCameraShotData(csMotionObjects["camShot"], useFlagMacro)
+        getActorCueListData(csMotionObjects["CS Actor Cue List"], csMotionObjects["CS Actor Cue"], useDecomp)
+        + getActorCueListData(csMotionObjects["CS Player Cue List"], csMotionObjects["CS Player Cue"], useDecomp)
+        + getCameraShotData(csMotionObjects["camShot"], useDecomp)
     )
