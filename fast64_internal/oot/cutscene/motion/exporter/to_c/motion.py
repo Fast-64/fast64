@@ -61,15 +61,15 @@ def getOoTRotation(obj: Object):
 
         assert r >= 0 and r <= 0xFFFFFFFF and (r <= 0x7FFF or r >= 0xFFFF8000)
 
-        return hex(r)
+        return hex(r & 0xFFFF)
 
     rotXYZ = [conv(obj.rotation_euler[0]), conv(obj.rotation_euler[2]), conv(obj.rotation_euler[1])]
+    print(rotXYZ)
     return [f"DEG_TO_BINANG({(int(rot, base=16) * (180 / 0x8000)):.3f})" for rot in rotXYZ]
 
 
-def getOoTPosition(obj: Object):
+def getOoTPosition(pos):
     scale = bpy.context.scene.ootBlenderScale
-    pos = obj.location
 
     x = int(round(pos[0] * scale))
     y = int(round(pos[2] * scale))
@@ -84,22 +84,23 @@ def getOoTPosition(obj: Object):
 def getActorCueListData(actorCueListObjects: list[Object], actorCueObjects: list[Object]):
     actorCueData = ""
 
-    for obj in actorCueListObjects:
-        entryTotal = len(actorCueObjects) - 1
-        actorCueList = OOTCSMotionActorCueList(obj.ootCSMotionProperty.actorCueListProp.commandType, entryTotal)
-        actorCueData += getActorCueListCmd(actorCueList, isPlayerActor(obj))
+    if len(actorCueObjects) > 0:
+        for obj in actorCueListObjects:
+            entryTotal = len(actorCueObjects) - 1
+            actorCueList = OOTCSMotionActorCueList(obj.ootCSMotionProperty.actorCueListProp.commandType, entryTotal)
+            actorCueData += getActorCueListCmd(actorCueList, isPlayerActor(obj))
 
-        for i in range(len(actorCueObjects) - 1):
-            objElem = actorCueObjects[i]
-            actorCue = OOTCSMotionActorCue(
-                objElem.ootCSMotionProperty.actorCueProp.cueStartFrame,
-                objElem.ootCSMotionProperty.actorCueProp.cueEndFrame,
-                objElem.ootCSMotionProperty.actorCueProp.cueActionID,
-                getOoTRotation(objElem),
-                getOoTPosition(objElem),
-                getOoTPosition(actorCueObjects[i + 1]),
-            )
-            actorCueData += getActorCueCmd(actorCue, isPlayerActor(objElem))
+            for i in range(len(actorCueObjects) - 1):
+                objElem = actorCueObjects[i]
+                actorCue = OOTCSMotionActorCue(
+                    objElem.ootCSMotionProperty.actorCueProp.cueStartFrame,
+                    objElem.ootCSMotionProperty.actorCueProp.cueEndFrame,
+                    objElem.ootCSMotionProperty.actorCueProp.cueActionID,
+                    getOoTRotation(objElem),
+                    getOoTPosition(objElem.location),
+                    getOoTPosition(actorCueObjects[i + 1].location),
+                )
+                actorCueData += getActorCueCmd(actorCue, isPlayerActor(objElem))
 
     return actorCueData
 
@@ -120,8 +121,14 @@ def getShotObjectsSort(shotObjects: list[Object]):
 def getCameraShotPointData(bones, useAT: bool, useFlagMacro: bool):
     shotPoints: list[OOTCSMotionCamPoint] = []
 
+    if len(bones) < 4:
+        raise RuntimeError("Camera Armature needs at least 4 bones!")
+
     for bone in bones:
-        posXYZ = bone.head if not useAT else bone.tail
+        if bone.parent is not None:
+            raise RuntimeError("Camera Armature bones are not allowed to have parent bones!")
+
+        posBlend = bone.head if not useAT else bone.tail
         shotPoints.append(
             OOTCSMotionCamPoint(
                 ("CS_CAM_CONTINUE" if useFlagMacro else "0")
@@ -130,7 +137,7 @@ def getCameraShotPointData(bones, useAT: bool, useFlagMacro: bool):
                 bone.ootCamShotPointProp.shotPointRoll,
                 bone.ootCamShotPointProp.shotPointFrame,
                 bone.ootCamShotPointProp.shotPointViewAngle,
-                [int(posXYZ[0]), int(posXYZ[1]), int(posXYZ[2])],
+                getOoTPosition([int(posBlend[0]), int(posBlend[2]), int(posBlend[1])]),
             )
         )
 

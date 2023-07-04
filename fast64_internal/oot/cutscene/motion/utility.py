@@ -467,7 +467,7 @@ def createActorCue(context: Context, actorCueObj: Object, selectObj: bool, pos, 
     newCue.rotation_mode = "XZY"
     newCue.ootCSMotionProperty.actorCueProp.cueStartFrame = startFrame
     newCue.ootCSMotionProperty.actorCueProp.cueActionID = action_id
-    newCue.ootEmptyType = "CS Actor Cue"
+    newCue.ootEmptyType = f"CS {'Player' if 'Player' in actorCueObj.ootEmptyType else 'Actor'} Cue"
 
     return newCue
 
