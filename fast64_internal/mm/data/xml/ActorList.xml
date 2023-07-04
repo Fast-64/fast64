@@ -47,25 +47,74 @@ for each sub element (of <Actor>) mentioned below:
   <Actor ID="ACTOR_EN_TEST" ObjectKey="GAMEPLAY_KEEP" Name="En_Test" Category=""></Actor>
   <Actor ID="ACTOR_EN_GIRLA" ObjectKey="GAMEPLAY_KEEP" Name="En_GirlA" Category=""></Actor>
   <Actor ID="ACTOR_EN_PART" ObjectKey="GAMEPLAY_KEEP" Name="En_Part" Category=""></Actor>
-  <Actor ID="ACTOR_EN_LIGHT" ObjectKey="GAMEPLAY_KEEP" Name="Flame" Category=""></Actor>
+
+  <Actor ID="ACTOR_EN_LIGHT" ObjectKey="GAMEPLAY_KEEP" Name="Flame" Category="">
+    <Type Index="1" Mask="0x000F">
+      <Item Params="0000">Large Orange Flame</Items>
+      <Item Params="0001">Large Orange Flame</Items>
+      <Item Params="0002">Large Blue Flame</Items>
+      <Item Params="0003">Large Green Flame</Items>
+      <Item Params="0004">Small Orange Flame</Items>
+      <Item Params="0005">Large Orange Flame</Items>
+      <Item Params="0006">Large Green Flame</Items>
+      <Item Params="0007">Large Blue Flame</Items>
+      <Item Params="0008">Large Magenta Flame</Items>
+      <Item Params="0009">Large Pale Orange Flame</Items>
+      <Item Params="000A">Large Pale Yellow Flame</Items>
+      <Item Params="000B">Large Pale Green Flame</Items>
+      <Item Params="000C">Large Pale Pink Flame</Items>
+      <Item Params="000D">Large Pale Purple Flame</Items>
+      <Item Params="000E">Large Pale Indigo Flame</Items>
+      <Item Params="000F">Large Pale Blue Flame</Items>
+      <!--Item Params="83F0">Candle Flame</Items-->
+      <!--Item Params="FFFF">Faint Blue Aura</Items-->
+    </Type>
+  </Actor>
+
   <Actor ID="ACTOR_EN_DOOR" ObjectKey="GAMEPLAY_KEEP" Name="Wooden Door" Category=""></Actor>
   
-  <Actor ID="ACTOR_EN_BOX" ObjectKey="OBJECT_BOX" Name="Treasure Chest" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BOX" ObjectKey="OBJECT_BOX" Name="Treasure Chest" Category="">
+    <Type Index="1" Mask="0xF000">
+      <Item Params="0000">Golden</Item>
+      <Item Params="1000">Golden - Appears - Clear Flag</Item>
+      <Item Params="2000">Boss Key Chest</Item>
+      <Item Params="3000">Golden - Falls - Switch Flag</Item>
+      <Item Params="4000">Golden - Invisible</Item>
+      <Item Params="5000">Wooden</Item>
+      <Item Params="6000">Wooden - Invisible</Item>
+      <Item Params="7000">Wooden - Clear Flag</Item>
+      <Item Params="8000">Wooden - Falls - Switch Flag</Item>
+      <Item Params="9000">Crash</Item>
+      <Item Params="A000">Crash</Item>
+      <Item Params="B000">Golden - Appears - Switch Flag</Item>
+    </Type>
+    <Flag Index="1" Mask="0x1FF" Target="ZRot" Type="Switch"/>
+    <Flag Index="2" Mask="0x001F" Target="Params" Type="Chest"/>
+    <ChestContent Mask="0x0FE0" Target="Params"/>
+  </Actor>
   <!-- this->collectableFlag = (this->dyna.actor.world.rot.x & 0x7F); -->
 
   <Actor ID="ACTOR_EN_PAMETFROG" ObjectKey="OBJECT_BIGSLIME" Name="Gekko and Snapper Miniboss" Category=""></Actor>
   <Actor ID="ACTOR_EN_OKUTA" ObjectKey="OBJECT_OKUTA" Name="Octorok" Category=""></Actor>
   <Actor ID="ACTOR_EN_BOM" ObjectKey="GAMEPLAY_KEEP" Name="Powder Keg" Category=""></Actor>
   <Actor ID="ACTOR_EN_WALLMAS" ObjectKey="OBJECT_WALLMASTER" Name="Wallmaster" Category=""></Actor>
+  
   <Actor ID="ACTOR_EN_DODONGO" ObjectKey="OBJECT_DODONGO" Name="Dodongo" Category="">
     <Type Index="1">
       <Item Params="0000">Regular</Item>
       <Item Params="0001">Large</Item>
     </Type>
   </Actor>
+
   <Actor ID="ACTOR_EN_FIREFLY" ObjectKey="OBJECT_FIREFLY" Name="Keese" Category=""></Actor>
   <Actor ID="ACTOR_EN_HORSE" ObjectKey="GAMEPLAY_KEEP" Name="Child Epona (Cutscenes)" Category=""></Actor>
-  <Actor ID="ACTOR_EN_ITEM00" ObjectKey="OBJECT_UNSET_0" Name="Collectable Items" Category=""></Actor>
+  
+  <Actor ID="ACTOR_EN_ITEM00" ObjectKey="OBJECT_UNSET_0" Name="Collectible Items" Category="">
+    <Collectible Index="1" Mask="0x00FF" Name="CItem" Target="Params" Type="Drop"/>
+    <Flag Index="1" Mask="0x7F00" Name="Collectible Flag" Type="Collectible"/>
+    <Bool Index="1" Mask="0x8000" Name="Obtain on Load"/>
+  </Actor>
+
   <Actor ID="ACTOR_EN_ARROW" ObjectKey="GAMEPLAY_KEEP" Name="Arrow" Category=""></Actor>
   <Actor ID="ACTOR_EN_ELF" ObjectKey="GAMEPLAY_KEEP" Name="Healing Fairy and Tatl (Gameplay)" Category=""></Actor>
   <Actor ID="ACTOR_EN_NIW" ObjectKey="OBJECT_NIW" Name="Cucco" Category=""></Actor>
@@ -84,6 +133,7 @@ for each sub element (of <Actor>) mentioned below:
   <Actor ID="ACTOR_EN_BOOM" ObjectKey="GAMEPLAY_KEEP" Name="Zora Fins" Category=""></Actor>
   <Actor ID="ACTOR_EN_TORCH2" ObjectKey="GAMEPLAY_KEEP" Name="Elegy Statues" Category=""></Actor>
   <Actor ID="ACTOR_EN_MINIFROG" ObjectKey="OBJECT_FR" Name="Frog" Category=""></Actor>
+
   <Actor ID="ACTOR_EN_ST" ObjectKey="OBJECT_ST" Name="Skulltula" Category="">
     <Type Index="1" Mask="0x0040">
       <Item Params="0000">Default</Item>
@@ -91,6 +141,7 @@ for each sub element (of <Actor>) mentioned below:
     </Type>
     <Flag Index="1" Mask="0x003F" Type="Switch"/>
   </Actor>
+
   <Actor ID="ACTOR_EN_A_OBJ" ObjectKey="OBJECT_UNSET_0" Name="Directional Sign and Square Sign [Early]" Category=""></Actor>
   <Actor ID="ACTOR_OBJ_WTURN" ObjectKey="GAMEPLAY_KEEP" Name="Stone Tower Temple Inverter" Category=""></Actor>
   <Actor ID="ACTOR_EN_RIVER_SOUND" ObjectKey="GAMEPLAY_KEEP" Name="Sound Effects I" Category=""></Actor>
@@ -101,9 +152,9 @@ for each sub element (of <Actor>) mentioned below:
   <Actor ID="ACTOR_EN_DEKUBABA" ObjectKey="OBJECT_DEKUBABA" Name="Deku Baba" Category=""></Actor>
   <Actor ID="ACTOR_EN_M_FIRE1" ObjectKey="GAMEPLAY_KEEP" Name="Deku Nut Effect" Category=""></Actor>
   <Actor ID="ACTOR_EN_M_THUNDER" ObjectKey="GAMEPLAY_KEEP" Name="Spin Attack and Sword Beam Effects" Category=""></Actor>
-  <Actor ID="ACTOR_BG_BREAKWALL" ObjectKey="GAMEPLAY_KEEP" Name="Bg_Breakwall" Category=""></Actor>
+  <Actor ID="ACTOR_BG_BREAKWALL" ObjectKey="GAMEPLAY_KEEP" Name="Post Office Objects" Category=""></Actor>
   <Actor ID="ACTOR_DOOR_WARP1" ObjectKey="OBJECT_WARP1" Name="Blue Warp" Category=""></Actor>
-  <Actor ID="ACTOR_OBJ_SYOKUDAI" ObjectKey="OBJECT_SYOKUDAI" Name="Torch Stand" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_SYOKUDAI" ObjectKey="OBJECT_SYOKUDAI" Name="Torch" Category=""></Actor>
   <Actor ID="ACTOR_ITEM_B_HEART" ObjectKey="OBJECT_GI_HEARTS" Name="Heart Container (Boss Lairs)" Category=""></Actor>
   <Actor ID="ACTOR_EN_DEKUNUTS" ObjectKey="OBJECT_DEKUNUTS" Name="Mad Scrub" Category=""></Actor>
   <Actor ID="ACTOR_EN_BBFALL" ObjectKey="OBJECT_BB" Name="Red Bubble" Category=""></Actor>
@@ -121,7 +172,7 @@ for each sub element (of <Actor>) mentioned below:
   <Actor ID="ACTOR_BG_F40_FLIFT" ObjectKey="OBJECT_F40_OBJ" Name="Stone Tower Temple Elevator [Early]" Category=""></Actor>
   <Actor ID="ACTOR_UNSET_4E" ObjectKey="OBJECT_UNSET_0" Name="Golden Gauntlets Rock (JP 1.0 Only)" Category=""></Actor>
   <Actor ID="ACTOR_OBJ_MURE" ObjectKey="GAMEPLAY_KEEP" Name="Fish, Bugs, Butterflies" Category=""></Actor>
-  <Actor ID="ACTOR_EN_SW" ObjectKey="OBJECT_ST" Name="Skullwalltula" Category=""></Actor>
+  <Actor ID="ACTOR_EN_SW" ObjectKey="OBJECT_ST" Name="(Golden) Skulltula" Category=""></Actor>
   <Actor ID="ACTOR_OBJECT_KANKYO" ObjectKey="GAMEPLAY_KEEP" Name="Environment Effects 2?" Category=""></Actor>
   <Actor ID="ACTOR_EN_HORSE_LINK_CHILD" ObjectKey="OBJECT_HORSE_LINK_CHILD" Name="Child Epona (Gameplay)" Category=""></Actor>
   <Actor ID="ACTOR_DOOR_ANA" ObjectKey="GAMEPLAY_FIELD_KEEP" Name="Grotto Hole" Category=""></Actor>
