@@ -117,14 +117,16 @@ def getShotObjectsSort(shotObjects: list[Object]):
     return sortedObjects
 
 
-def getCameraShotPointData(bones, useAT: bool, continueFlag: str):
+def getCameraShotPointData(bones, useAT: bool, useFlagMacro: bool):
     shotPoints: list[OOTCSMotionCamPoint] = []
 
     for bone in bones:
         posXYZ = bone.head if not useAT else bone.tail
         shotPoints.append(
             OOTCSMotionCamPoint(
-                continueFlag,
+                ("CS_CAM_CONTINUE" if useFlagMacro else "0")
+                if bone != bones[-1]
+                else ("CS_CAM_STOP" if useFlagMacro else "-1"),
                 bone.ootCamShotPointProp.shotPointRoll,
                 bone.ootCamShotPointProp.shotPointFrame,
                 bone.ootCamShotPointProp.shotPointViewAngle,
@@ -133,10 +135,6 @@ def getCameraShotPointData(bones, useAT: bool, continueFlag: str):
         )
 
     return shotPoints
-
-
-def getShotFrameCount(pointData: list[OOTCSMotionCamPoint], useAT):
-    return max(2, sum(point.frame for point in pointData)) + (pointData[-1].frame if useAT else 1)
 
 
 def getCamCmdFunc(camMode: str, useAT: bool):
@@ -159,11 +157,11 @@ def getCamClass(camMode: str, useAT: bool):
     return camCmdFuncMap[camMode]
 
 
-def getCamListData(obj: Object, useAT: bool, continueFlag: str):
-    splineData = getCameraShotPointData(obj.data.bones, useAT, continueFlag)
+def getCamListData(obj: Object, useAT: bool, useFlagMacro: bool):
+    splineData = getCameraShotPointData(obj.data.bones, useAT, useFlagMacro)
 
     startFrame = obj.data.ootCamShotProp.shotStartFrame
-    endFrame = startFrame + getShotFrameCount(splineData, useAT)
+    endFrame = startFrame + max(2, sum(point.frame for point in splineData)) + (splineData[-1].frame if useAT else 1)
 
     camData = getCamClass(obj.data.ootCamShotProp.shotCamMode, useAT)(startFrame, endFrame)
 
@@ -188,7 +186,7 @@ def getCameraShotData(shotObjects: list[Object], useFlagMacro: bool):
                 else ("CS_CAM_STOP" if useFlagMacro else "-1")
             )
 
-            cameraShotData += getCamListData(obj, False, continueFlag) + getCamListData(obj, True, continueFlag)
+            cameraShotData += getCamListData(obj, False, useFlagMacro) + getCamListData(obj, True, useFlagMacro)
 
     return cameraShotData
 
