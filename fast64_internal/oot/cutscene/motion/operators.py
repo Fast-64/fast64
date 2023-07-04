@@ -2,13 +2,12 @@ import random
 import bpy
 
 from mathutils import Vector
-from bpy_extras.io_utils import ImportHelper, ExportHelper
-from bpy.types import Object, Operator, Context, TOPBAR_MT_file_import, TOPBAR_MT_file_export
+from bpy_extras.io_utils import ImportHelper
+from bpy.types import Object, Operator, Context, TOPBAR_MT_file_import
 from bpy.utils import register_class, unregister_class
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 from .constants import ootEnumCSActorCueListCommandType
 from .importer import importCutsceneMotion
-from .exporter import exportCutsceneMotion
 from .utility import (
     getCSObj,
     createOrInitPreview,
@@ -178,38 +177,6 @@ class OOTCSMotionImportFromC(Operator, ImportHelper):
         return {"FINISHED"}
 
 
-class OOTCSMotionExportToC(Operator, ExportHelper):
-    """Export cutscene camera into a Zelda 64 scene C source file."""
-
-    bl_idname = "object.export_c"
-    bl_label = "Export Into C"
-
-    filename_ext = ".c"
-    filter_glob: StringProperty(default="*.c", options={"HIDDEN"}, maxlen=4096)
-
-    use_floats: BoolProperty(
-        name="Use Floats",
-        description="Write FOV value as floating point (e.g. 45.0f). If False, write as integer (e.g. 0x42340000)",
-        default=False,
-    )
-
-    use_cscmd: BoolProperty(
-        name="Use CS_CMD defines",
-        description="Write first parameter as CS_CMD_CONTINUE or CS_CMD_STOP vs. 0 or -1",
-        default=False,
-    )
-
-    def execute(self, context):
-        ret = exportCutsceneMotion(context, self.filepath, self.use_floats, self.use_cscmd)
-
-        if ret is not None:
-            self.report({"WARNING"}, ret)
-            return {"CANCELLED"}
-
-        self.report({"INFO"}, "Export successful")
-        return {"FINISHED"}
-
-
 class OOT_SearchActorCueCmdTypeEnumOperator(Operator):
     bl_idname = "object.oot_search_actorcue_cmdtype_enum_operator"
     bl_label = "Select Command Type"
@@ -239,7 +206,6 @@ classes = (
     OOTCSMotionCreatePlayerCueList,
     OOTCSMotionCreateActorCueList,
     OOTCSMotionImportFromC,
-    OOTCSMotionExportToC,
     OOT_SearchActorCueCmdTypeEnumOperator,
 )
 
@@ -248,22 +214,16 @@ def menu_func_import(self, context: Context):
     self.layout.operator(OOTCSMotionImportFromC.bl_idname, text="Z64 cutscene C source (.c)")
 
 
-def menu_func_export(self, context: Context):
-    self.layout.operator(OOTCSMotionExportToC.bl_idname, text="Z64 cutscene C source (.c)")
-
-
 def csMotion_ops_register():
     for cls in classes:
         register_class(cls)
 
     # import export controls
     TOPBAR_MT_file_import.append(menu_func_import)
-    TOPBAR_MT_file_export.append(menu_func_export)
 
 
 def csMotion_ops_unregister():
     # import export controls
-    TOPBAR_MT_file_export.remove(menu_func_export)
     TOPBAR_MT_file_import.remove(menu_func_import)
 
     for cls in reversed(classes):

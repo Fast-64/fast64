@@ -1,7 +1,7 @@
 from .....utility import CData, PluginError
 from ....oot_level_classes import OOTScene
 from ....cutscene.constants import ootEnumCSTextboxTypeEntryC, ootEnumCSListTypeListC, ootEnumCSListTypeEntryC
-from ....cutscene.motion.exporter.to_c import getCutsceneMotionData
+from ....cutscene.motion.exporter import getCutsceneMotionData
 
 
 def ootCutsceneDataToC(csParent, csName):

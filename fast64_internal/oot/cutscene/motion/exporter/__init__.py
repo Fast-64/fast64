@@ -1,1 +1,1 @@
-from .functions import exportCutsceneMotion
+from .functions import getCutsceneMotionData
