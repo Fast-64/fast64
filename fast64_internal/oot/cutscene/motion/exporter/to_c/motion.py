@@ -112,17 +112,16 @@ def getActorCueListData(actorCueListObjects: list[Object], actorCueObjects: list
                 objElem.ootCSMotionProperty.actorCueProp.cueActionID,
                 getOoTRotation(objElem),
                 getOoTPosition(objElem),
-                getOoTPosition(actorCueObjects[i + 1])
+                getOoTPosition(actorCueObjects[i + 1]),
             )
             actorCueData += getActorCueCmd(actorCue, isPlayerActor(objElem))
-    
+
     return actorCueData
 
 
 def getCutsceneMotionData():
     csMotionObjects = getCSMotionObjects()
 
-    return (
-        getActorCueListData(csMotionObjects["actorCueList"], csMotionObjects["actorCue"])
-        + getActorCueListData(csMotionObjects["playerCueList"], csMotionObjects["playerCue"])
+    return getActorCueListData(csMotionObjects["actorCueList"], csMotionObjects["actorCue"]) + getActorCueListData(
+        csMotionObjects["playerCueList"], csMotionObjects["playerCue"]
     )
