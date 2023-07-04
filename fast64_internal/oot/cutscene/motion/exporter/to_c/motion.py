@@ -1,5 +1,7 @@
 import bpy, math
+
 from bpy.types import Object
+from ...constants import ootCSMotionCommandTypeRawToEnum
 
 from ..classes import (
     OOTCSMotionActorCueList,
@@ -87,7 +89,14 @@ def getActorCueListData(actorCueListObjects: list[Object], actorCueObjects: list
     if len(actorCueObjects) > 0:
         for obj in actorCueListObjects:
             entryTotal = len(actorCueObjects) - 1
-            actorCueList = OOTCSMotionActorCueList(obj.ootCSMotionProperty.actorCueListProp.commandType, entryTotal)
+            commandType = obj.ootCSMotionProperty.actorCueListProp.commandType
+
+            if commandType == "Custom":
+                commandType = obj.ootCSMotionProperty.actorCueListProp.commandTypeCustom
+            else:
+                commandType = ootCSMotionCommandTypeRawToEnum[commandType]
+
+            actorCueList = OOTCSMotionActorCueList(commandType, entryTotal)
             actorCueData += getActorCueListCmd(actorCueList, isPlayerActor(obj))
 
             for i in range(len(actorCueObjects) - 1):

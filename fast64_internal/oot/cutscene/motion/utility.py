@@ -4,7 +4,7 @@ import bpy
 from struct import pack, unpack
 from bpy.types import Scene, Object, Bone, Context, EditBone, Operator
 from ....utility import indent
-from .constants import LISTS_DEF, NONLISTS_DEF, CAM_TYPE_LISTS, ACTION_LISTS
+from .constants import ootEnumCSActorCueListCommandType, LISTS_DEF, NONLISTS_DEF, CAM_TYPE_LISTS, ACTION_LISTS
 
 
 class OOTCutsceneMotionIOBase:
@@ -477,5 +477,8 @@ def createActorCueList(context: Context, actor_id: int, csObj: Object):
     actorCueObj.parent = csObj
     actorCueObj.ootCSMotionProperty.actorCueListProp.actorCueSlot = actor_id
     actorCueObj.ootEmptyType = f"CS {'Player' if actor_id == -1 else 'Actor'} Cue List"
+
+    if actor_id > -1:
+        actorCueObj.ootCSMotionProperty.actorCueListProp.commandType = ootEnumCSActorCueListCommandType[actor_id][0]
 
     return actorCueObj

@@ -63,7 +63,7 @@ class OOTCSMotionActorCueProperty(PropertyGroup):
 
         split = box.split(factor=0.5)
         split.prop(self, "cueStartFrame")
-        split.prop(self, "cueEndFrame")
+        split.label(text=f"End Frame: {self.cueEndFrame}")
 
         split = box.split(factor=0.5)
         split.label(text=f"{labelPrefix} Cue (Action) ID")
