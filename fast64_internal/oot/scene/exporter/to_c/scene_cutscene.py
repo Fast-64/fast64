@@ -1,6 +1,7 @@
 from .....utility import CData, PluginError
 from ....oot_level_classes import OOTScene
 from ....cutscene.constants import ootEnumCSTextboxTypeEntryC, ootEnumCSListTypeListC, ootEnumCSListTypeEntryC
+from ....cutscene.motion.exporter.to_c import getCutsceneMotionData
 
 
 def ootCutsceneDataToC(csParent, csName):
@@ -136,6 +137,7 @@ def ootCutsceneDataToC(csParent, csName):
             else:
                 raise PluginError("Internal error: invalid cutscene list type " + list.listType)
             data.source += "),\n"
+    data.source += getCutsceneMotionData(True)
     data.source += "\tCS_END(),\n"
     data.source += "};\n\n"
     return data

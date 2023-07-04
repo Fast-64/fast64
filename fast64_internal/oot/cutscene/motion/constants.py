@@ -1,7 +1,7 @@
 ootEnumCSMotionCamMode = [
-    ("normal", "Normal", "Normal (0x1 / 0x2)"),
-    ("rel_link", "Rel. Link", "Relative to Link (0x5 / 0x6)"),
-    ("0708", "0x7/0x8", "Not Yet Understood Mode (0x7 / 0x8)"),  # remove?
+    ("splineEyeOrAT", "Normal", "Normal (0x1 / 0x2)"),
+    ("splineEyeOrATRelPlayer", "Rel. Link", "Relative to Link (0x5 / 0x6)"),
+    ("eyeOrAT", "0x7/0x8", "Not Yet Understood Mode (0x7 / 0x8)"),  # remove?
 ]
 
 # Default width is 16
@@ -68,17 +68,21 @@ CAM_TYPE_TO_TYPE = {
 }
 
 CAM_TYPE_TO_MODE = {
-    "CS_CAM_POS_LIST": "normal",
-    "CS_CAM_FOCUS_POINT_LIST": "normal",
-    "CS_CAM_POS_PLAYER_LIST": "rel_link",
-    "CS_CAM_FOCUS_POINT_PLAYER_LIST": "rel_link",
-    "CS_CMD_07_LIST": "0708",
-    "CS_CMD_08_LIST": "0708",
+    "CS_CAM_POS_LIST": "splineEyeOrAT",
+    "CS_CAM_FOCUS_POINT_LIST": "splineEyeOrAT",
+    "CS_CAM_POS_PLAYER_LIST": "splineEyeOrATRelPlayer",
+    "CS_CAM_FOCUS_POINT_PLAYER_LIST": "splineEyeOrATRelPlayer",
+    "CS_CMD_07_LIST": "eyeOrAT",
+    "CS_CMD_08_LIST": "eyeOrAT",
 }
 
 ATMODE_TO_CMD = {
-    False: {"normal": "CS_CAM_POS", "rel_link": "CS_CAM_POS_PLAYER", "0708": "CS_CMD_07"},
-    True: {"normal": "CS_CAM_FOCUS_POINT", "rel_link": "CS_CAM_FOCUS_POINT_PLAYER", "0708": "CS_CMD_08"},
+    False: {"splineEyeOrAT": "CS_CAM_POS", "splineEyeOrATRelPlayer": "CS_CAM_POS_PLAYER", "eyeOrAT": "CS_CMD_07"},
+    True: {
+        "splineEyeOrAT": "CS_CAM_FOCUS_POINT",
+        "splineEyeOrATRelPlayer": "CS_CAM_FOCUS_POINT_PLAYER",
+        "eyeOrAT": "CS_CMD_08",
+    },
 }
 
 ACTION_LISTS = ["CS_PLAYER_ACTION_LIST", "CS_NPC_ACTION_LIST"]

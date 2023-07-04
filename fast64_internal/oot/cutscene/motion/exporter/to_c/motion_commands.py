@@ -62,7 +62,7 @@ def getCamATCmd(camAT: OOTCSMotionCamAT):
 def getCamPointCmd(camPoint: OOTCSMotionCamPoint):
     return indent * 2 + (
         f"CS_CAM_POINT("
-        + f"{camPoint.continueFlag}, {camPoint.camRoll}, {camPoint.frame}, {camPoint.viewAngle}, "
+        + f"{camPoint.continueFlag}, {camPoint.camRoll}f, {camPoint.frame}, {camPoint.viewAngle}, "
         + "".join(f"{pos}, " for pos in camPoint.pos)
         + "0),\n"
     )

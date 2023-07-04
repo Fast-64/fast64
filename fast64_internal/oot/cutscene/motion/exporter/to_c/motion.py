@@ -1,6 +1,5 @@
 import bpy, math
 from bpy.types import Object
-from ......utility import indent
 
 from ..classes import (
     OOTCSMotionActorCueList,
@@ -17,7 +16,6 @@ from ..classes import (
 from .motion_commands import (
     getActorCueListCmd,
     getActorCueCmd,
-    getCamListCmd,
     getCamEyeSplineCmd,
     getCamATSplineCmd,
     getCamEyeSplineRelToPlayerCmd,
@@ -34,30 +32,17 @@ def isPlayerActor(obj: Object):
 
 def getCSMotionObjects():
     csMotionObjects: dict[str, list[Object]] = {
-        "csMain": [],
-        "actorCueList": [],
-        "playerCueList": [],
-        "actorCue": [],
-        "playerCue": [],
+        "Cutscene": [],
+        "CS Actor Cue List": [],
+        "CS Player Cue List": [],
+        "CS Actor Cue": [],
+        "CS Player Cue": [],
         "camShot": [],
     }
 
     for obj in bpy.data.objects:
-        if obj.type == "EMPTY":
-            if obj.ootEmptyType == "Cutscene":
-                csMotionObjects["csMain"].append(obj)
-
-            if obj.ootEmptyType == "CS Actor Cue List":
-                csMotionObjects["actorCueList"].append(obj)
-
-            if obj.ootEmptyType == "CS Player Cue List":
-                csMotionObjects["playerCueList"].append(obj)
-
-            if obj.ootEmptyType == "CS Actor Cue":
-                csMotionObjects["actorCue"].append(obj)
-
-            if obj.ootEmptyType == "CS Player Cue":
-                csMotionObjects["playerCue"].append(obj)
+        if obj.type == "EMPTY" and obj.ootEmptyType in csMotionObjects.keys():
+            csMotionObjects[obj.ootEmptyType].append(obj)
 
         if obj.type == "ARMATURE" and obj.parent.ootEmptyType == "Cutscene":
             csMotionObjects["camShot"].append(obj)
@@ -119,9 +104,100 @@ def getActorCueListData(actorCueListObjects: list[Object], actorCueObjects: list
     return actorCueData
 
 
-def getCutsceneMotionData():
+def getShotObjectsSort(shotObjects: list[Object]):
+    sortedObjects: dict[str, list[Object]] = {
+        "splineEyeOrAT": [],
+        "splineEyeOrATRelPlayer": [],
+        "eyeOrAT": [],
+    }
+
+    for obj in shotObjects:
+        sortedObjects[obj.data.ootCamShotProp.shotCamMode].append(obj)
+
+    return sortedObjects
+
+
+def getCameraShotPointData(bones, useAT: bool, continueFlag: str):
+    shotPoints: list[OOTCSMotionCamPoint] = []
+
+    for bone in bones:
+        posXYZ = bone.head if not useAT else bone.tail
+        shotPoints.append(
+            OOTCSMotionCamPoint(
+                continueFlag,
+                bone.ootCamShotPointProp.shotPointRoll,
+                bone.ootCamShotPointProp.shotPointFrame,
+                bone.ootCamShotPointProp.shotPointViewAngle,
+                [int(posXYZ[0]), int(posXYZ[1]), int(posXYZ[2])],
+            )
+        )
+
+    return shotPoints
+
+
+def getShotFrameCount(pointData: list[OOTCSMotionCamPoint], useAT):
+    return max(2, sum(point.frame for point in pointData)) + (pointData[-1].frame if useAT else 1)
+
+
+def getCamCmdFunc(camMode: str, useAT: bool):
+    camCmdFuncMap = {
+        "splineEyeOrAT": getCamATSplineCmd if useAT else getCamEyeSplineCmd,
+        "splineEyeOrATRelPlayer": getCamATSplineRelToPlayerCmd if useAT else getCamEyeSplineRelToPlayerCmd,
+        "eyeOrAT": getCamATCmd if useAT else getCamEyeCmd,
+    }
+
+    return camCmdFuncMap[camMode]
+
+
+def getCamClass(camMode: str, useAT: bool):
+    camCmdFuncMap = {
+        "splineEyeOrAT": OOTCSMotionCamATSpline if useAT else OOTCSMotionCamEyeSpline,
+        "splineEyeOrATRelPlayer": OOTCSMotionCamATSplineRelToPlayer if useAT else OOTCSMotionCamEyeSplineRelToPlayer,
+        "eyeOrAT": OOTCSMotionCamAT if useAT else OOTCSMotionCamEye,
+    }
+
+    return camCmdFuncMap[camMode]
+
+
+def getCamListData(obj: Object, useAT: bool, continueFlag: str):
+    splineData = getCameraShotPointData(obj.data.bones, useAT, continueFlag)
+
+    startFrame = obj.data.ootCamShotProp.shotStartFrame
+    endFrame = startFrame + getShotFrameCount(splineData, useAT)
+
+    camData = getCamClass(obj.data.ootCamShotProp.shotCamMode, useAT)(startFrame, endFrame)
+
+    return getCamCmdFunc(obj.data.ootCamShotProp.shotCamMode, useAT)(camData) + "".join(
+        getCamPointCmd(pointData) for pointData in splineData
+    )
+
+
+def getCameraShotData(shotObjects: list[Object], useFlagMacro: bool):
+    cameraShotData = ""
+
+    if len(shotObjects) == 0:
+        raise RuntimeError(f"Found no camera commands!")
+
+    shotObjectsSorted = getShotObjectsSort(shotObjects)
+
+    for listName, objList in shotObjectsSorted.items():
+        for obj in objList:
+            continueFlag = (
+                ("CS_CAM_CONTINUE" if useFlagMacro else "0")
+                if obj != shotObjectsSorted[obj.data.ootCamShotProp.shotCamMode][-1]
+                else ("CS_CAM_STOP" if useFlagMacro else "-1")
+            )
+
+            cameraShotData += getCamListData(obj, False, continueFlag) + getCamListData(obj, True, continueFlag)
+
+    return cameraShotData
+
+
+def getCutsceneMotionData(useFlagMacro: bool):
     csMotionObjects = getCSMotionObjects()
 
-    return getActorCueListData(csMotionObjects["actorCueList"], csMotionObjects["actorCue"]) + getActorCueListData(
-        csMotionObjects["playerCueList"], csMotionObjects["playerCue"]
+    return (
+        getActorCueListData(csMotionObjects["CS Actor Cue List"], csMotionObjects["CS Actor Cue"])
+        + getActorCueListData(csMotionObjects["CS Player Cue List"], csMotionObjects["CS Player Cue"])
+        + getCameraShotData(csMotionObjects["camShot"], useFlagMacro)
     )

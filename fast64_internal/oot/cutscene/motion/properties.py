@@ -77,7 +77,7 @@ class OOTCSMotionCameraShotProperty(PropertyGroup):
         items=ootEnumCSMotionCamMode,
         name="Mode",
         description="Camera command mode",
-        default="normal",
+        default="splineEyeOrAT",
     )
 
     def draw_props(self, layout: UILayout, label: str):
