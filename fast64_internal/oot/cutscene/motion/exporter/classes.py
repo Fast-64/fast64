@@ -6,66 +6,17 @@ from bpy.types import Object
 from .....utility import indent
 from ..constants import ootCSMotionCommandTypeRawToEnum
 
-
-@dataclass
-class OOTCSMotionBase:
-    startFrame: int
-    endFrame: int
-
-
-@dataclass
-class OOTCSMotionActorCueList:
-    commandType: str
-    entryTotal: int
-
-
-@dataclass
-class OOTCSMotionActorCue(OOTCSMotionBase):
-    actionID: str
-    rot: list[str, str, str]
-    startPos: list[int, int, int]
-    endPos: list[int, int, int]
-
-
-@dataclass
-class OOTCSMotionCamEyeSpline(OOTCSMotionBase):
-    pass
-
-
-@dataclass
-class OOTCSMotionCamATSpline(OOTCSMotionBase):
-    pass
-
-
-@dataclass
-class OOTCSMotionCamEyeSplineRelToPlayer(OOTCSMotionBase):
-    pass
-
-
-@dataclass
-class OOTCSMotionCamATSplineRelToPlayer(OOTCSMotionBase):
-    pass
-
-
-@dataclass
-class OOTCSMotionCamEye(OOTCSMotionBase):
-    # This feature is not used in the final game and lacks polish, it is recommended to use splines in all cases.
-    pass
-
-
-@dataclass
-class OOTCSMotionCamAT(OOTCSMotionBase):
-    # This feature is not used in the final game and lacks polish, it is recommended to use splines in all cases.
-    pass
-
-
-@dataclass
-class OOTCSMotionCamPoint:
-    continueFlag: str
-    camRoll: int
-    frame: int
-    viewAngle: float
-    pos: list[int, int, int]
+from ..io_classes import (
+    OOTCSMotionActorCueList,
+    OOTCSMotionActorCue,
+    OOTCSMotionCamEyeSpline,
+    OOTCSMotionCamATSpline,
+    OOTCSMotionCamEyeSplineRelToPlayer,
+    OOTCSMotionCamATSplineRelToPlayer,
+    OOTCSMotionCamEye,
+    OOTCSMotionCamAT,
+    OOTCSMotionCamPoint,
+)
 
 
 class OOTCSMotionExportCommands:
@@ -271,7 +222,7 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
 
         shotObjectsSorted = self.getShotObjectsSort(shotObjects)
 
-        for listName, objList in shotObjectsSorted.items():
+        for objList in shotObjectsSorted.values():
             for obj in objList:
                 cameraShotData += self.getCamListData(obj, False) + self.getCamListData(obj, True)
 
