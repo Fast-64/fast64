@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -28,39 +28,39 @@ class OOTCSMotionActorCue(OOTCSMotionBase):
 class OOTCSMotionActorCueList:
     commandType: str
     entryTotal: int
-    entries: list[OOTCSMotionActorCue]
+    entries: list[OOTCSMotionActorCue] = field(default_factory=list)
 
 
 @dataclass
 class OOTCSMotionCamEyeSpline(OOTCSMotionBase):
-    entries: list[OOTCSMotionCamPoint]
+    entries: list[OOTCSMotionCamPoint] = field(default_factory=list)
 
 
 @dataclass
 class OOTCSMotionCamATSpline(OOTCSMotionBase):
-    entries: list[OOTCSMotionCamPoint]
+    entries: list[OOTCSMotionCamPoint] = field(default_factory=list)
 
 
 @dataclass
 class OOTCSMotionCamEyeSplineRelToPlayer(OOTCSMotionBase):
-    entries: list[OOTCSMotionCamPoint]
+    entries: list[OOTCSMotionCamPoint] = field(default_factory=list)
 
 
 @dataclass
 class OOTCSMotionCamATSplineRelToPlayer(OOTCSMotionBase):
-    entries: list[OOTCSMotionCamPoint]
+    entries: list[OOTCSMotionCamPoint] = field(default_factory=list)
 
 
 @dataclass
 class OOTCSMotionCamEye(OOTCSMotionBase):
     # This feature is not used in the final game and lacks polish, it is recommended to use splines in all cases.
-    entries: list
+    entries: list = field(default_factory=list)
 
 
 @dataclass
 class OOTCSMotionCamAT(OOTCSMotionBase):
     # This feature is not used in the final game and lacks polish, it is recommended to use splines in all cases.
-    entries: list
+    entries: list = field(default_factory=list)
 
 
 @dataclass
@@ -69,11 +69,11 @@ class OOTCSMotionCutscene:
     totalEntries: int
     frameCount: int
 
-    actorCueList: list[OOTCSMotionActorCueList]
-    playerCueList: list[OOTCSMotionActorCueList]
-    camEyeSplineList: list[OOTCSMotionCamEyeSpline]
-    camATSplineList: list[OOTCSMotionCamATSpline]
-    camEyeSplineRelPlayerList: list[OOTCSMotionCamEyeSplineRelToPlayer]
-    camATSplineRelPlayerList: list[OOTCSMotionCamATSplineRelToPlayer]
-    camEyeList: list[OOTCSMotionCamEye]
-    camATList: list[OOTCSMotionCamAT]
+    actorCueList: list[OOTCSMotionActorCueList] = field(default_factory=list)
+    playerCueList: list[OOTCSMotionActorCueList] = field(default_factory=list)
+    camEyeSplineList: list[OOTCSMotionCamEyeSpline] = field(default_factory=list)
+    camATSplineList: list[OOTCSMotionCamATSpline] = field(default_factory=list)
+    camEyeSplineRelPlayerList: list[OOTCSMotionCamEyeSplineRelToPlayer] = field(default_factory=list)
+    camATSplineRelPlayerList: list[OOTCSMotionCamATSplineRelToPlayer] = field(default_factory=list)
+    camEyeList: list[OOTCSMotionCamEye] = field(default_factory=list)
+    camATList: list[OOTCSMotionCamAT] = field(default_factory=list)

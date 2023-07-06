@@ -491,6 +491,13 @@ def getEnumName(enumItems, value):
     raise PluginError("Could not find enum value " + str(value))
 
 
+def getEnumIndex(enumItems, value):
+    for i, enumTuple in enumerate(enumItems):
+        if enumTuple[0] == value or enumTuple[1] == value:
+            return i
+    return None
+
+
 def ootConvertTranslation(translation):
     return [int(round(value)) for value in translation]
 

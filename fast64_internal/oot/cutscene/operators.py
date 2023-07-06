@@ -9,6 +9,7 @@ from ..oot_utility import getCollection
 from ..scene.exporter.to_c import ootCutsceneDataToC
 from .exporter import convertCutsceneObject
 from .constants import ootEnumCSTextboxType, ootEnumCSListType, ootEnumCSListTypeIcons
+from .motion.importer.new_importer import setCutsceneMotionData
 
 
 def checkGetFilePaths(context: Context):
@@ -91,6 +92,30 @@ class OOTCSListAdd(Operator):
         return {"FINISHED"}
 
 
+class OOT_ImportCutscene(Operator):
+    bl_idname = "object.oot_import_cutscene"
+    bl_label = "Import Cutscene"
+    bl_options = {"REGISTER", "UNDO", "PRESET"}
+
+    def execute(self, context):
+        try:
+            if context.mode != "OBJECT":
+                object.mode_set(mode="OBJECT")
+
+            path = abspath(context.scene.ootCutsceneImportPath)
+
+            try:
+                setCutsceneMotionData(path)
+            except:
+                raise PluginError("Something went wrong...")
+
+            self.report({"INFO"}, "Successfully imported cutscene")
+            return {"FINISHED"}
+        except Exception as e:
+            raisePluginError(self, e)
+            return {"CANCELLED"}
+
+
 class OOT_ExportCutscene(Operator):
     bl_idname = "object.oot_export_cutscene"
     bl_label = "Export Cutscene"
@@ -155,6 +180,7 @@ class OOT_ExportAllCutscenes(Operator):
 oot_cutscene_classes = (
     OOTCSTextboxAdd,
     OOTCSListAdd,
+    OOT_ImportCutscene,
     OOT_ExportCutscene,
     OOT_ExportAllCutscenes,
 )
@@ -165,10 +191,12 @@ def cutscene_ops_register():
         register_class(cls)
 
     Scene.ootCutsceneExportPath = StringProperty(name="File", subtype="FILE_PATH")
+    Scene.ootCutsceneImportPath = StringProperty(name="File", subtype="FILE_PATH")
 
 
 def cutscene_ops_unregister():
     for cls in reversed(oot_cutscene_classes):
         unregister_class(cls)
 
+    del Scene.ootCutsceneImportPath
     del Scene.ootCutsceneExportPath
