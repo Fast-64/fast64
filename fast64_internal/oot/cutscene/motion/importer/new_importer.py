@@ -2,7 +2,7 @@
 import bpy
 
 from dataclasses import dataclass
-from struct import pack, unpack
+from struct import unpack
 from bpy.types import Object, Armature
 from mathutils import Vector
 from .....utility import PluginError, indent, yUpToZUp
@@ -33,11 +33,9 @@ class OOTCSMotionObjectFactory:
     def getNewObject(self, name: str, data, selectObject: bool) -> Object:
         newObj = bpy.data.objects.new(name=name, object_data=data)
         bpy.context.scene.collection.objects.link(newObj)
-
         if selectObject:
             newObj.select_set(True)
             bpy.context.view_layer.objects.active = newObj
-
         return newObj
 
     def getNewEmptyObject(self, name: str, selectObject: bool):
@@ -102,11 +100,6 @@ class OOTCSMotionImportCommands:
             return unpack("!i", bytes.fromhex("0" * (8 - len(number)) + number))[0]
         else:
             return int(number)
-
-    def getFloat(self, number: str):
-        """From https://stackoverflow.com/questions/14431170/get-the-bits-of-a-float-in-python"""
-        s = pack(">l", self.getInteger(number))
-        return unpack(">f", s)[0]
 
     def getNewCutscene(self, csData: str, name: str):
         params = self.getCmdParams(csData, "CS_BEGIN_CUTSCENE")
@@ -196,7 +189,6 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
         oldNames = list(ootCSMotionLegacyToNewCmdNames.keys())
         for i in range(len(fileLines)):
             fileLines[i] = fileLines[i].replace("\t", indent)
-
             for oldName in oldNames:
                 fileLines[i] = fileLines[i].replace(oldName, ootCSMotionLegacyToNewCmdNames[oldName])
 
@@ -245,20 +237,15 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                         # we're reading next line to see if it's a new list declaration
                         index = i + 1
                         if index < len(fileLines):
-                            nextLine = fileLines[index]
-
                             # checking for commands on two lines
                             if not line.endswith("),\n") and line.endswith(",\n"):
                                 cmdListLines = cmdListLines[:-1]
 
                             if not "CS_UNK_DATA" in cmdListLines:
-                                nextLineIsStandaloneCmd = (
-                                    "CS_END" in nextLine or "CS_TRANSITION" in nextLine or "CS_DESTINATION" in nextLine
-                                )
                                 cmdList = ["CS_END", "CS_TRANSITION", "CS_DESTINATION"]
                                 cmdList.extend(ootCSMotionListCommands)
                                 for cmd in cmdList:
-                                    if cmd in nextLine:
+                                    if cmd in fileLines[index]:
                                         parsedCommands.append(cmdListLines)
                                         cmdListLines = ""
                                         break
@@ -270,13 +257,32 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
 
         parsedCutscenes = self.getParsedCutscenes(filePath)
         cutsceneList: list[OOTCSMotionCutscene] = []
+        cmdDataList = [
+            ("ACTOR_CUE_LIST", self.getNewActorCueList, self.getNewActorCue, "actorCue"),
+            ("PLAYER_CUE_LIST", self.getNewActorCueList, self.getNewActorCue, "playerCue"),
+            ("CAM_EYE_SPLINE", self.getNewCamEyeSpline, self.getNewCamPoint, "camEyeSpline"),
+            ("CAM_AT_SPLINE", self.getNewCamATSpline, self.getNewCamPoint, "camATSpline"),
+            (
+                "CAM_EYE_SPLINE_REL_TO_PLAYER",
+                self.getNewCamEyeSplineRelToPlayer,
+                self.getNewCamPoint,
+                "camEyeSplineRelPlayer",
+            ),
+            (
+                "CAM_AT_SPLINE_REL_TO_PLAYER",
+                self.getNewCamATSplineRelToPlayer,
+                self.getNewCamPoint,
+                "camATSplineRelPlayer",
+            ),
+            ("CAM_EYE", self.getNewCamEye, self.getNewCamPoint, "camEye"),
+            ("CAM_AT", self.getNewCamAT, self.getNewCamPoint, "camAT"),
+        ]
 
         # for each cutscene from the list returned by getParsedCutscenes(),
         # create classes containing the cutscene's informations
         # that will be used later when creating Blender objects to complete the import
         for parsedCS in parsedCutscenes:
             cutscene = None
-
             for data in parsedCS.csData:
                 # create a new cutscene data
                 if "CS_BEGIN_CUTSCENE(" in data:
@@ -284,74 +290,30 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
 
                 # if we have a cutscene, create and add the commands data in it
                 if cutscene is not None:
-                    isPlayer = "CS_PLAYER_CUE_LIST(" in data
                     cmdData = data.removesuffix("\n").split("\n")
+                    for cmd, getListFunc, getFunc, listName in cmdDataList:
+                        isPlayer = cmd == "PLAYER_CUE_LIST"
 
-                    if "CS_ACTOR_CUE_LIST(" in data or isPlayer:
-                        actorCueList = self.getNewActorCueList(cmdData.pop(0), isPlayer)
+                        if f"CS_{cmd}(" in data:
+                            cmdList = getattr(cutscene, f"{listName}List")
 
-                        for data in cmdData:
-                            actorCueList.entries.append(self.getNewActorCue(data, isPlayer))
+                            if not isPlayer and not cmd == "ACTOR_CUE_LIST":
+                                commandData = getListFunc(cmdData.pop(0))
+                            else:
+                                commandData = getListFunc(cmdData.pop(0), isPlayer)
 
-                        if isPlayer:
-                            cutscene.playerCueList.append(actorCueList)
-                        else:
-                            cutscene.actorCueList.append(actorCueList)
+                            for data in cmdData:
+                                if not isPlayer and not cmd == "ACTOR_CUE_LIST":
+                                    listEntry = getFunc(data)
+                                else:
+                                    listEntry = getFunc(data, isPlayer)
+                                commandData.entries.append(listEntry)
 
-                    # note: camera commands are basically the same but there's all separate on purpose
-                    # in order to make editing easier if the user change something in decomp that need to be ported there
-                    if "CS_CAM_EYE_SPLINE(" in data:
-                        camEyeSpline = self.getNewCamEyeSpline(cmdData.pop(0))
-
-                        for data in cmdData:
-                            camEyeSpline.entries.append(self.getNewCamPoint(data))
-
-                        cutscene.camEyeSplineList.append(camEyeSpline)
-
-                    if "CS_CAM_AT_SPLINE(" in data:
-                        camATSpline = self.getNewCamATSpline(cmdData.pop(0))
-
-                        for data in cmdData:
-                            camATSpline.entries.append(self.getNewCamPoint(data))
-
-                        cutscene.camATSplineList.append(camATSpline)
-
-                    if "CS_CAM_EYE_SPLINE_REL_TO_PLAYER(" in data:
-                        camEyeSplineRelToPlayer = self.getNewCamEyeSplineRelToPlayer(cmdData.pop(0))
-
-                        for data in cmdData:
-                            camEyeSplineRelToPlayer.entries.append(self.getNewCamPoint(data))
-
-                        cutscene.camEyeSplineRelPlayerList.append(camEyeSplineRelToPlayer)
-
-                    if "CS_CAM_AT_SPLINE_REL_TO_PLAYER(" in data:
-                        camATSplineRelToPlayer = self.getNewCamATSplineRelToPlayer(cmdData.pop(0))
-
-                        for data in cmdData:
-                            camATSplineRelToPlayer.entries.append(self.getNewCamPoint(data))
-
-                        cutscene.camATSplineRelPlayerList.append(camATSplineRelToPlayer)
-
-                    if "CS_CAM_EYE(" in data:
-                        camEye = self.getNewCamEye(cmdData.pop(0))
-
-                        for data in cmdData:
-                            camEye.entries.append(self.getNewCamPoint(data))
-
-                        cutscene.camEyeList.append(camEye)
-
-                    if "CS_CAM_AT(" in data:
-                        camAT = self.getNewCamAT(cmdData.pop(0))
-
-                        for data in cmdData:
-                            camAT.entries.append(self.getNewCamPoint(data))
-
-                        cutscene.camATList.append(camAT)
+                            cmdList.append(commandData)
 
             # after processing the commands we can add the cutscene to the cutscene list
             if cutscene is not None:
                 cutsceneList.append(cutscene)
-
         return cutsceneList
 
     def importActorCues(self, csObj: Object, actorCueList: list[OOTCSMotionActorCueList], cueName: str, csNbr: int):
@@ -409,10 +371,6 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                     del eyeListEntry.entries[-1]
                     del atListEntry.entries[-1]
 
-    def getBoneData(self, eyeCamPoints: list[OOTCSMotionCamPoint], atCamPoints: list[OOTCSMotionCamPoint]):
-        # Eye -> Head, AT -> Tail
-        return [(eyePoint, atPoint) for eyePoint, atPoint in zip(eyeCamPoints, atCamPoints)]
-
     def importBoneData(
         self, cameraShotObj: Object, boneData: list[tuple[OOTCSMotionCamPoint, OOTCSMotionCamPoint]], csNbr: int
     ):
@@ -451,7 +409,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
 
             cameraShotObj.data.ootCamShotProp.shotStartFrame = camEyeSpline.startFrame
             cameraShotObj.data.ootCamShotProp.shotCamMode = camMode
-            boneData = self.getBoneData(camEyeSpline.entries, camATSpline.entries)
+            boneData = [(eyePoint, atPoint) for eyePoint, atPoint in zip(camEyeSpline.entries, camATSpline.entries)]
             self.importBoneData(cameraShotObj, boneData, csNbr)
             endIndex = i
 
