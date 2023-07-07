@@ -1,11 +1,11 @@
 # temp file while creating the new importer
-import bpy, math
+import bpy
 
 from dataclasses import dataclass
 from struct import pack, unpack
-from bpy.types import Object, Bone, Armature
+from bpy.types import Object, Armature
 from mathutils import Vector
-from .....utility import indent, yUpToZUp
+from .....utility import PluginError, indent, yUpToZUp
 from ....oot_utility import getEnumIndex, ootParseRotation
 from ..constants import ootCSMotionLegacyToNewCmdNames, ootEnumCSActorCueListCommandType, ootCSMotionListCommands
 
@@ -97,7 +97,11 @@ class OOTCSMotionImportCommands:
             return data
 
     def getInteger(self, number: str):
-        return int(number, base=16 if number.startswith("0x") else 10)
+        if number.startswith("0x"):
+            number = number.removeprefix("0x")
+            return unpack("!i", bytes.fromhex("0" * (8 - len(number)) + number))[0]
+        else:
+            return int(number)
 
     def getFloat(self, number: str):
         """From https://stackoverflow.com/questions/14431170/get-the-bits-of-a-float-in-python"""
@@ -248,8 +252,13 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                                 cmdListLines = cmdListLines[:-1]
 
                             if not "CS_UNK_DATA" in cmdListLines:
-                                for cmd in ootCSMotionListCommands:
-                                    if cmd in nextLine or "CS_END" in nextLine:
+                                nextLineIsStandaloneCmd = (
+                                    "CS_END" in nextLine or "CS_TRANSITION" in nextLine or "CS_DESTINATION" in nextLine
+                                )
+                                cmdList = ["CS_END", "CS_TRANSITION", "CS_DESTINATION"]
+                                cmdList.extend(ootCSMotionListCommands)
+                                for cmd in cmdList:
+                                    if cmd in nextLine:
                                         parsedCommands.append(cmdListLines)
                                         cmdListLines = ""
                                         break
@@ -345,16 +354,18 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
 
         return cutsceneList
 
-    def importActorCues(self, csObj: Object, actorCueList: list[OOTCSMotionActorCueList], cueName: str):
+    def importActorCues(self, csObj: Object, actorCueList: list[OOTCSMotionActorCueList], cueName: str, csNbr: int):
         for i, entry in enumerate(actorCueList, 1):
-            actorCueListObj = self.getNewActorCueListObject(f"{cueName} Cue List {i:02}", entry.commandType)
+            actorCueListObj = self.getNewActorCueListObject(
+                f"CS_{csNbr:02}.{cueName} Cue List {i:02}", entry.commandType
+            )
             actorCueListObj.parent = csObj
 
             for j, actorCue in enumerate(entry.entries, 1):
                 objPos = [actorCue.startPos, actorCue.endPos]
                 for k in range(2):
                     actorCueObj = self.getNewActorCueObject(
-                        f"{cueName} Cue {i}.{j:02} - Point {k + 1:02}",
+                        f"CS_{csNbr:02}.{cueName} Cue {i}.{j:02} - Point {k + 1:02}",
                         actorCue.startFrame,
                         actorCue.endFrame,
                         actorCue.actionID,
@@ -364,19 +375,116 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
 
                     actorCueObj.parent = actorCueListObj
 
+    def validateCameraData(self, cutscene: OOTCSMotionCutscene):
+        isValid = True
+        camType = ""
 
-def setCutsceneMotionData(filePath: str):
+        if len(cutscene.camEyeSplineList) != len(cutscene.camATSplineList):
+            isValid = False
+            camType = "Eye and AT Spline Lists"
+
+        if len(cutscene.camEyeSplineRelPlayerList) != len(cutscene.camATSplineRelPlayerList):
+            isValid = False
+            camType = "Eye and AT Spline Rel to Player Lists"
+
+        if len(cutscene.camEyeList) != len(cutscene.camATList):
+            isValid = False
+            camType = "Eye and AT Lists"
+
+        if not isValid:
+            raise PluginError(f"ERROR: Camera {camType} don't have the same length!")
+
+    def getBoneData(self, eyeCamPoints: list[OOTCSMotionCamPoint], atCamPoints: list[OOTCSMotionCamPoint]):
+        # Eye -> Head, AT -> Tail
+        return [(eyePoint, atPoint) for eyePoint, atPoint in zip(eyeCamPoints, atCamPoints)]
+
+    def importBoneData(
+        self, cameraShotObj: Object, boneData: list[tuple[OOTCSMotionCamPoint, OOTCSMotionCamPoint]], csNbr: int
+    ):
+        scale = bpy.context.scene.ootBlenderScale
+        for j, (eyePoint, atPoint) in enumerate(boneData, 1):
+            if eyePoint.frame != atPoint.frame:
+                print("WARNING: frame value between Eye and AT points is not the same!")
+
+            if eyePoint.viewAngle != atPoint.viewAngle:
+                print("WARNING: view angle value between Eye and AT points is not the same!")
+
+            if eyePoint.camRoll != atPoint.camRoll:
+                print("WARNING: roll value between Eye and AT points is not the same!")
+
+            bpy.ops.object.mode_set(mode="EDIT")
+            armatureData: Armature = cameraShotObj.data
+            boneName = f"CS_{csNbr:02}.Camera Point {j:02}"
+            newEditBone = armatureData.edit_bones.new(boneName)
+            newEditBone.head = self.getBlenderPosition(eyePoint.pos, scale)
+            newEditBone.tail = self.getBlenderPosition(atPoint.pos, scale)
+            bpy.ops.object.mode_set(mode="OBJECT")
+            newBone = armatureData.bones[boneName]
+            newBone.ootCamShotPointProp.shotPointFrame = eyePoint.frame
+            newBone.ootCamShotPointProp.shotPointViewAngle = eyePoint.viewAngle
+            newBone.ootCamShotPointProp.shotPointRoll = eyePoint.camRoll
+
+    def importCameraShots(
+        self, csObj: Object, eyePoints: list, atPoints: list, camMode: str, startIndex: int, csNbr: int
+    ):
+        endIndex = 0
+
+        if bpy.context.mode != "OBJECT":
+            bpy.ops.object.mode_set(mode="OBJECT")
+
+        for i, (camEyeSpline, camATSpline) in enumerate(zip(eyePoints, atPoints), startIndex):
+            cameraShotObj = self.getNewArmatureObject(f"CS_{csNbr:02}.Camera Shot {i:02}", True)
+            cameraShotObj.parent = csObj
+
+            if camEyeSpline.startFrame != camATSpline.startFrame:
+                print("WARNING: frame value between Eye and AT spline is not the same!")
+
+            cameraShotObj.data.ootCamShotProp.shotStartFrame = camEyeSpline.startFrame
+            cameraShotObj.data.ootCamShotProp.shotCamMode = camMode
+            boneData = self.getBoneData(camEyeSpline.entries, camATSpline.entries)
+            self.importBoneData(cameraShotObj, boneData, csNbr)
+            endIndex = i
+
+        return endIndex + 1
+
+
+def setCutsceneMotionData(filePath: str, csNumber):
     csImport = OOTCSMotionImport()
     cutsceneList = csImport.getCutsceneList(filePath)
 
-    for cutscene in cutsceneList:
+    for i, cutscene in enumerate(cutsceneList, csNumber):
         print(f'Found Cutscene "{cutscene.name}"!')
-        csObj = csImport.getNewCutsceneObject(f"Cutscene.{cutscene.name}", cutscene.frameCount)
+        csImport.validateCameraData(cutscene)
+        csName = f"Cutscene.{cutscene.name}"
+        csObj = csImport.getNewCutsceneObject(csName, cutscene.frameCount)
+        csNumber = i
 
         print("Importing Actor Cues...")
-        csImport.importActorCues(csObj, cutscene.actorCueList, "Actor")
+        csImport.importActorCues(csObj, cutscene.actorCueList, "Actor", i)
+        csImport.importActorCues(csObj, cutscene.playerCueList, "Player", i)
         print("Done!")
 
-        print("Importing Player Cues...")
-        csImport.importActorCues(csObj, cutscene.playerCueList, "Player")
+        print("Importing Camera Shots...")
+        if len(cutscene.camEyeSplineList) > 0:
+            lastIndex = csImport.importCameraShots(
+                csObj, cutscene.camEyeSplineList, cutscene.camATSplineList, "splineEyeOrAT", 1, i
+            )
+
+        if len(cutscene.camEyeSplineRelPlayerList) > 0:
+            lastIndex = csImport.importCameraShots(
+                csObj,
+                cutscene.camEyeSplineRelPlayerList,
+                cutscene.camATSplineRelPlayerList,
+                "splineEyeOrATRelPlayer",
+                lastIndex,
+                i,
+            )
+
+        if len(cutscene.camEyeList) > 0:
+            lastIndex = csImport.importCameraShots(
+                csObj, cutscene.camEyeList, cutscene.camATList, "eyeOrAT", lastIndex, i
+            )
         print("Done!")
+        bpy.ops.object.select_all(action="DESELECT")
+
+    return csNumber + 1

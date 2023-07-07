@@ -105,7 +105,7 @@ class OOT_ImportCutscene(Operator):
             path = abspath(context.scene.ootCutsceneImportPath)
 
             try:
-                setCutsceneMotionData(path)
+                context.scene.ootCSNumber = setCutsceneMotionData(path, context.scene.ootCSNumber)
             except:
                 raise PluginError("Something went wrong...")
 
@@ -192,11 +192,13 @@ def cutscene_ops_register():
 
     Scene.ootCutsceneExportPath = StringProperty(name="File", subtype="FILE_PATH")
     Scene.ootCutsceneImportPath = StringProperty(name="File", subtype="FILE_PATH")
+    Scene.ootCSNumber = IntProperty(default=1, min=0)
 
 
 def cutscene_ops_unregister():
     for cls in reversed(oot_cutscene_classes):
         unregister_class(cls)
 
+    del Scene.ootCSNumber
     del Scene.ootCutsceneImportPath
     del Scene.ootCutsceneExportPath
