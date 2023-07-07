@@ -356,12 +356,22 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
 
     def importActorCues(self, csObj: Object, actorCueList: list[OOTCSMotionActorCueList], cueName: str, csNbr: int):
         for i, entry in enumerate(actorCueList, 1):
+            if len(entry.entries) == 0:
+                raise PluginError("ERROR: Actor Cue List does not have any Actor Cue!")
+
+            lastFrame = lastPos = None
             actorCueListObj = self.getNewActorCueListObject(
                 f"CS_{csNbr:02}.{cueName} Cue List {i:02}", entry.commandType
             )
             actorCueListObj.parent = csObj
 
             for j, actorCue in enumerate(entry.entries, 1):
+                if lastFrame is not None and lastFrame != actorCue.startFrame:
+                    raise PluginError("ERROR: Actor Cues are not temporally continuous!")
+
+                if lastPos is not None and lastPos != actorCue.startPos:
+                    raise PluginError("ERROR: Actor Cues are not spatially continuous!")
+
                 objPos = [actorCue.startPos, actorCue.endPos]
                 for k in range(2):
                     actorCueObj = self.getNewActorCueObject(
@@ -374,25 +384,31 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                     )
 
                     actorCueObj.parent = actorCueListObj
+                lastFrame = actorCue.endFrame
+                lastPos = actorCue.endPos
 
     def validateCameraData(self, cutscene: OOTCSMotionCutscene):
-        isValid = True
-        camType = ""
+        camLists: list[tuple[str, list, list]] = [
+            ("Eye and AT Spline", cutscene.camEyeSplineList, cutscene.camATSplineList),
+            ("Eye and AT Spline Rel to Player", cutscene.camEyeSplineRelPlayerList, cutscene.camATSplineRelPlayerList),
+            ("Eye and AT", cutscene.camEyeList, cutscene.camATList),
+        ]
 
-        if len(cutscene.camEyeSplineList) != len(cutscene.camATSplineList):
-            isValid = False
-            camType = "Eye and AT Spline Lists"
+        for camType, eyeList, atList in camLists:
+            for eyeListEntry, atListEntry in zip(eyeList, atList):
+                if len(eyeListEntry.entries) != len(atListEntry.entries):
+                    raise PluginError(f"ERROR: Found {len(eyeList)} Eye lists but {len(atList)} AT lists in {camType}!")
 
-        if len(cutscene.camEyeSplineRelPlayerList) != len(cutscene.camATSplineRelPlayerList):
-            isValid = False
-            camType = "Eye and AT Spline Rel to Player Lists"
+                if len(eyeListEntry.entries) < 4:
+                    raise PluginError(f"ERROR: Only {len(eyeList)} cam point in this command!")
 
-        if len(cutscene.camEyeList) != len(cutscene.camATList):
-            isValid = False
-            camType = "Eye and AT Lists"
-
-        if not isValid:
-            raise PluginError(f"ERROR: Camera {camType} don't have the same length!")
+                if len(eyeListEntry.entries) > 4:
+                    # NOTE: there is a bug in the game where when incrementing to the next set of key points,
+                    # the key point which checked for whether it's the last point or not is the last point
+                    # of the next set, not the last point of the old set. This means we need to remove 
+                    # the extra point at the end  that will only tell the game that this camera shot stops
+                    del eyeListEntry.entries[-1]
+                    del atListEntry.entries[-1]
 
     def getBoneData(self, eyeCamPoints: list[OOTCSMotionCamPoint], atCamPoints: list[OOTCSMotionCamPoint]):
         # Eye -> Head, AT -> Tail
@@ -402,27 +418,22 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
         self, cameraShotObj: Object, boneData: list[tuple[OOTCSMotionCamPoint, OOTCSMotionCamPoint]], csNbr: int
     ):
         scale = bpy.context.scene.ootBlenderScale
-        for j, (eyePoint, atPoint) in enumerate(boneData, 1):
-            if eyePoint.frame != atPoint.frame:
-                print("WARNING: frame value between Eye and AT points is not the same!")
-
-            if eyePoint.viewAngle != atPoint.viewAngle:
-                print("WARNING: view angle value between Eye and AT points is not the same!")
-
-            if eyePoint.camRoll != atPoint.camRoll:
-                print("WARNING: roll value between Eye and AT points is not the same!")
-
+        for i, (eyePoint, atPoint) in enumerate(boneData, 1):
             bpy.ops.object.mode_set(mode="EDIT")
             armatureData: Armature = cameraShotObj.data
-            boneName = f"CS_{csNbr:02}.Camera Point {j:02}"
+            boneName = f"CS_{csNbr:02}.Camera Point {i:02}"
             newEditBone = armatureData.edit_bones.new(boneName)
             newEditBone.head = self.getBlenderPosition(eyePoint.pos, scale)
             newEditBone.tail = self.getBlenderPosition(atPoint.pos, scale)
             bpy.ops.object.mode_set(mode="OBJECT")
             newBone = armatureData.bones[boneName]
-            newBone.ootCamShotPointProp.shotPointFrame = eyePoint.frame
-            newBone.ootCamShotPointProp.shotPointViewAngle = eyePoint.viewAngle
-            newBone.ootCamShotPointProp.shotPointRoll = eyePoint.camRoll
+
+            if eyePoint.frame != 0:
+                print("WARNING: Frames must be 0!")
+
+            newBone.ootCamShotPointProp.shotPointFrame = atPoint.frame
+            newBone.ootCamShotPointProp.shotPointViewAngle = atPoint.viewAngle
+            newBone.ootCamShotPointProp.shotPointRoll = atPoint.camRoll
 
     def importCameraShots(
         self, csObj: Object, eyePoints: list, atPoints: list, camMode: str, startIndex: int, csNbr: int
@@ -436,8 +447,8 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
             cameraShotObj = self.getNewArmatureObject(f"CS_{csNbr:02}.Camera Shot {i:02}", True)
             cameraShotObj.parent = csObj
 
-            if camEyeSpline.startFrame != camATSpline.startFrame:
-                print("WARNING: frame value between Eye and AT spline is not the same!")
+            if camEyeSpline.endFrame < camEyeSpline.startFrame + 2 or camATSpline.endFrame < camATSpline.startFrame + 2:
+                print("WARNING: Non-standard end frame")
 
             cameraShotObj.data.ootCamShotProp.shotStartFrame = camEyeSpline.startFrame
             cameraShotObj.data.ootCamShotProp.shotCamMode = camMode
