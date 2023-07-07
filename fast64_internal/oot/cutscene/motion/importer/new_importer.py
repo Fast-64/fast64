@@ -77,7 +77,7 @@ class OOTCSMotionObjectFactory:
         newActorCueObj.empty_display_type = "ARROWS"
         newActorCueObj.rotation_mode = "XZY"
         newActorCueObj.rotation_euler = self.getBlenderRotation(rot)
-        newActorCueObj.ootEmptyType = "CS Actor Cue"
+        newActorCueObj.ootEmptyType = f"CS {'Actor' if 'Actor' in name else 'Player'} Cue"
         newActorCueObj.ootCSMotionProperty.actorCueProp.cueStartFrame = startFrame
         newActorCueObj.ootCSMotionProperty.actorCueProp.cueEndFrame = endFrame
         newActorCueObj.ootCSMotionProperty.actorCueProp.cueActionID = actionID
@@ -382,7 +382,6 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                         objPos[k],
                         actorCue.rot,
                     )
-
                     actorCueObj.parent = actorCueListObj
                 lastFrame = actorCue.endFrame
                 lastPos = actorCue.endPos
@@ -405,7 +404,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                 if len(eyeListEntry.entries) > 4:
                     # NOTE: there is a bug in the game where when incrementing to the next set of key points,
                     # the key point which checked for whether it's the last point or not is the last point
-                    # of the next set, not the last point of the old set. This means we need to remove 
+                    # of the next set, not the last point of the old set. This means we need to remove
                     # the extra point at the end  that will only tell the game that this camera shot stops
                     del eyeListEntry.entries[-1]
                     del atListEntry.entries[-1]

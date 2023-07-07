@@ -9,8 +9,6 @@ def getCSMotionObjects():
         "Cutscene": [],
         "CS Actor Cue List": [],
         "CS Player Cue List": [],
-        "CS Actor Cue": [],
-        "CS Player Cue": [],
         "camShot": [],
     }
 

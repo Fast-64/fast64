@@ -3,7 +3,7 @@ import bpy
 
 from dataclasses import dataclass
 from bpy.types import Object
-from .....utility import indent
+from .....utility import PluginError, indent
 from ..constants import ootCSMotionCommandTypeRawToEnum
 
 from ..io_classes import (
@@ -76,9 +76,6 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
     csMotionObjects: dict[str, list[Object]]
     useDecomp: bool
 
-    def isPlayerActor(self, obj: Object):
-        return "Player" in obj.ootEmptyType
-
     def getOoTRotation(self, obj: Object):
         def conv(r):
             r /= 2.0 * math.pi
@@ -110,12 +107,14 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
     def getActorCueListData(self, isPlayer: bool):
         playerOrActor = f"{'Player' if isPlayer else 'Actor'}"
         actorCueListObjects = self.csMotionObjects[f"CS {playerOrActor} Cue List"]
-        actorCueObjects = self.csMotionObjects[f"CS {playerOrActor} Cue"]
         actorCueData = ""
 
-        if len(actorCueObjects) > 0:
-            for obj in actorCueListObjects:
-                entryTotal = len(actorCueObjects) - 1
+        for obj in actorCueListObjects:
+            if obj.children is None:
+                raise PluginError("ERROR: The Actor Cue List does not contain any child Actor Cue objects")
+
+            entryTotal = len(obj.children)
+            if entryTotal > 0:
                 commandType = obj.ootCSMotionProperty.actorCueListProp.commandType
 
                 if commandType == "Custom":
@@ -123,20 +122,20 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
                 elif self.useDecomp:
                     commandType = ootCSMotionCommandTypeRawToEnum[commandType]
 
-                actorCueList = OOTCSMotionActorCueList(commandType, entryTotal)
-                actorCueData += self.getActorCueListCmd(actorCueList, self.isPlayerActor(obj))
+                actorCueList = OOTCSMotionActorCueList(commandType, int(entryTotal / 2))  # 2 points objects per cue
+                actorCueData += self.getActorCueListCmd(actorCueList, isPlayer)
 
-                for i in range(len(actorCueObjects) - 1):
-                    objElem = actorCueObjects[i]
-                    actorCue = OOTCSMotionActorCue(
-                        objElem.ootCSMotionProperty.actorCueProp.cueStartFrame,
-                        objElem.ootCSMotionProperty.actorCueProp.cueEndFrame,
-                        objElem.ootCSMotionProperty.actorCueProp.cueActionID,
-                        self.getOoTRotation(objElem),
-                        self.getOoTPosition(objElem.location),
-                        self.getOoTPosition(actorCueObjects[i + 1].location),
-                    )
-                    actorCueData += self.getActorCueCmd(actorCue, self.isPlayerActor(objElem))
+                for i, childObj in enumerate(obj.children):
+                    if i % 2 == 0:
+                        actorCue = OOTCSMotionActorCue(
+                            childObj.ootCSMotionProperty.actorCueProp.cueStartFrame,
+                            childObj.ootCSMotionProperty.actorCueProp.cueEndFrame,
+                            childObj.ootCSMotionProperty.actorCueProp.cueActionID,
+                            self.getOoTRotation(childObj),
+                            self.getOoTPosition(childObj.location),
+                            self.getOoTPosition(obj.children[i + 1].location),
+                        )
+                        actorCueData += self.getActorCueCmd(actorCue, isPlayer)
 
         return actorCueData
 
@@ -165,9 +164,7 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
             posBlend = bone.head if not useAT else bone.tail
             shotPoints.append(
                 OOTCSMotionCamPoint(
-                    ("CS_CAM_CONTINUE" if self.useDecomp else "0")
-                    if bone != bones[-1]
-                    else ("CS_CAM_STOP" if self.useDecomp else "-1"),
+                    ("CS_CAM_CONTINUE" if self.useDecomp else "0"),
                     bone.ootCamShotPointProp.shotPointRoll,
                     bone.ootCamShotPointProp.shotPointFrame,
                     bone.ootCamShotPointProp.shotPointViewAngle,
@@ -175,6 +172,8 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
                 )
             )
 
+        # NOTE: because of the game's bug explained in the importer we need to add an extra dummy point when exporting
+        shotPoints.append(OOTCSMotionCamPoint("CS_CAM_STOP" if self.useDecomp else "-1", 0, 0, 0.0, [0, 0, 0]))
         return shotPoints
 
     def getCamCmdFunc(self, camMode: str, useAT: bool):
