@@ -33,7 +33,11 @@ class OOTCSMotionImportCommands:
         return data.strip().removeprefix(f"{cmdName}(").removesuffix("),").replace(" ", "").split(",")
 
     def getRotation(self, data: str):
-        return data.split("(")[1].removesuffix(")") if "DEG_TO_BINANG" in data else data
+        if "DEG_TO_BINANG" in data or not "0x" in data:
+            angle = float(data.split('(')[1].removesuffix(')') if "DEG_TO_BINANG" in data else data)
+            return f"0x{int(angle * (0x8000 / 180.0)):04X}"
+        else:
+            return data
 
     def getInteger(self, number: str):
         return int(number, base=16 if number.startswith("0x") else 10)
@@ -253,15 +257,15 @@ class OOTCSMotionImport(OOTCSMotionImportCommands):
 
             for data in parsedCS.csData:
                 # create a new cutscene data
-                if "CS_BEGIN_CUTSCENE" in data:
+                if "CS_BEGIN_CUTSCENE(" in data:
                     cutscene = self.getNewCutscene(data, parsedCS.csName)
 
                 # if we have a cutscene, create and add the commands data in it
                 if cutscene is not None:
-                    isPlayer = "CS_PLAYER_CUE_LIST" in data
+                    isPlayer = "CS_PLAYER_CUE_LIST(" in data
                     cmdData = data.removesuffix("\n").split("\n")
 
-                    if "CS_ACTOR_CUE_LIST" in data or isPlayer:
+                    if "CS_ACTOR_CUE_LIST(" in data or isPlayer:
                         actorCueList = self.getNewActorCueList(cmdData.pop(0), isPlayer)
 
                         for data in cmdData:
@@ -274,7 +278,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands):
 
                     # note: camera commands are basically the same but there's all separate on purpose
                     # in order to make editing easier if the user change something in decomp that need to be ported there
-                    if "CS_CAM_EYE_SPLINE" in data:
+                    if "CS_CAM_EYE_SPLINE(" in data:
                         camEyeSpline = self.getNewCamEyeSpline(cmdData.pop(0))
 
                         for data in cmdData:
@@ -282,7 +286,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands):
 
                         cutscene.camEyeSplineList.append(camEyeSpline)
 
-                    if "CS_CAM_AT_SPLINE" in data:
+                    if "CS_CAM_AT_SPLINE(" in data:
                         camATSpline = self.getNewCamATSpline(cmdData.pop(0))
 
                         for data in cmdData:
@@ -290,7 +294,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands):
 
                         cutscene.camATSplineList.append(camATSpline)
 
-                    if "CS_CAM_EYE_SPLINE_REL_TO_PLAYER" in data:
+                    if "CS_CAM_EYE_SPLINE_REL_TO_PLAYER(" in data:
                         camEyeSplineRelToPlayer = self.getNewCamEyeSplineRelToPlayer(cmdData.pop(0))
 
                         for data in cmdData:
@@ -298,7 +302,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands):
 
                         cutscene.camEyeSplineRelPlayerList.append(camEyeSplineRelToPlayer)
 
-                    if "CS_CAM_AT_SPLINE_REL_TO_PLAYER" in data:
+                    if "CS_CAM_AT_SPLINE_REL_TO_PLAYER(" in data:
                         camATSplineRelToPlayer = self.getNewCamATSplineRelToPlayer(cmdData.pop(0))
 
                         for data in cmdData:
@@ -306,7 +310,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands):
 
                         cutscene.camATSplineRelPlayerList.append(camATSplineRelToPlayer)
 
-                    if "CS_CAM_EYE" in data:
+                    if "CS_CAM_EYE(" in data:
                         camEye = self.getNewCamEye(cmdData.pop(0))
 
                         for data in cmdData:
@@ -314,7 +318,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands):
 
                         cutscene.camEyeList.append(camEye)
 
-                    if "CS_CAM_AT" in data:
+                    if "CS_CAM_AT(" in data:
                         camAT = self.getNewCamAT(cmdData.pop(0))
 
                         for data in cmdData:
