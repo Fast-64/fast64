@@ -4,9 +4,10 @@ import bpy, math
 from dataclasses import dataclass
 from struct import pack, unpack
 from bpy.types import Object, Bone, Armature
-from .....utility import indent
-from ....oot_utility import getEnumIndex
-from ..constants import ootCSMotionLegacyToNewCmdNames, ootEnumCSActorCueListCommandType
+from mathutils import Vector
+from .....utility import indent, yUpToZUp
+from ....oot_utility import getEnumIndex, ootParseRotation
+from ..constants import ootCSMotionLegacyToNewCmdNames, ootEnumCSActorCueListCommandType, ootCSMotionListCommands
 
 from ..io_classes import (
     OOTCSMotionActorCueList,
@@ -28,14 +29,70 @@ class ParsedCutscene:
     csData: list[str]
 
 
+class OOTCSMotionObjectFactory:
+    def getNewObject(self, name: str, data, selectObject: bool) -> Object:
+        newObj = bpy.data.objects.new(name=name, object_data=data)
+        bpy.context.scene.collection.objects.link(newObj)
+
+        if selectObject:
+            newObj.select_set(True)
+            bpy.context.view_layer.objects.active = newObj
+
+        return newObj
+
+    def getNewEmptyObject(self, name: str, selectObject: bool):
+        return self.getNewObject(name, None, selectObject)
+
+    def getNewArmatureObject(self, name: str, selectObject: bool):
+        newArmatureData = bpy.data.armatures.new(name)
+        newArmatureData.display_type = "STICK"
+        newArmatureData.show_names = True
+        return self.getNewObject(name, newArmatureData, selectObject)
+
+    def getNewCutsceneObject(self, name: str, frameCount: int):
+        newCSObj = self.getNewEmptyObject(name, True)
+        newCSObj.ootEmptyType = "Cutscene"
+        newCSObj.ootCutsceneProperty.csEndFrame = frameCount
+        return newCSObj
+
+    def getNewActorCueListObject(self, name: str, commandType: str):
+        newActorCueListObj = self.getNewEmptyObject(name, False)
+        newActorCueListObj.ootEmptyType = f"CS {'Player' if 'Player' in name else 'Actor'} Cue List"
+        index = getEnumIndex(ootEnumCSActorCueListCommandType, commandType)
+
+        if index is not None:
+            cmdType = ootEnumCSActorCueListCommandType[index][0]
+            newActorCueListObj.ootCSMotionProperty.actorCueListProp.commandType = cmdType
+        else:
+            newActorCueListObj.ootCSMotionProperty.actorCueListProp.commandType = "Custom"
+            newActorCueListObj.ootCSMotionProperty.actorCueListProp.commandTypeCustom = commandType
+
+        return newActorCueListObj
+
+    def getNewActorCueObject(
+        self, name: str, startFrame: int, endFrame: int, actionID: str, location: list[int], rot: list[str]
+    ):
+        newActorCueObj = self.getNewEmptyObject(name, False)
+        newActorCueObj.location = self.getBlenderPosition(location, bpy.context.scene.ootBlenderScale)
+        newActorCueObj.empty_display_type = "ARROWS"
+        newActorCueObj.rotation_mode = "XZY"
+        newActorCueObj.rotation_euler = self.getBlenderRotation(rot)
+        newActorCueObj.ootEmptyType = "CS Actor Cue"
+        newActorCueObj.ootCSMotionProperty.actorCueProp.cueStartFrame = startFrame
+        newActorCueObj.ootCSMotionProperty.actorCueProp.cueEndFrame = endFrame
+        newActorCueObj.ootCSMotionProperty.actorCueProp.cueActionID = actionID
+        return newActorCueObj
+
+
 class OOTCSMotionImportCommands:
     def getCmdParams(self, data: str, cmdName: str):
         return data.strip().removeprefix(f"{cmdName}(").removesuffix("),").replace(" ", "").split(",")
 
     def getRotation(self, data: str):
         if "DEG_TO_BINANG" in data or not "0x" in data:
-            angle = float(data.split('(')[1].removesuffix(')') if "DEG_TO_BINANG" in data else data)
-            return f"0x{int(angle * (0x8000 / 180.0)):04X}"
+            angle = float(data.split("(")[1].removesuffix(")") if "DEG_TO_BINANG" in data else data)
+            binang = int(angle * (0x8000 / 180.0))
+            return f"0x{0xFFFF if binang > 0xFFFF else binang:04X}"
         else:
             return data
 
@@ -109,20 +166,15 @@ class OOTCSMotionImportCommands:
         )
 
 
-class OOTCSMotionImport(OOTCSMotionImportCommands):
+class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
     def getBlenderPosition(self, pos: list[int], scale: int):
         # OoT: +X right, +Y up, -Z forward
         # Blender: +X right, +Z up, +Y forward
         return [float(pos[0]) / scale, -float(pos[2]) / scale, float(pos[1]) / scale]
 
     def getBlenderRotation(self, rotation: list[str]):
-        rot = [self.getFloat(r) for r in rotation]
-
-        def conv(r):
-            assert r >= -0x8000 and r <= 0x7FFF
-            return 2.0 * math.pi * float(r) / 0x10000
-
-        return [conv(rot[0]), conv(rot[2]), conv(rot[1])]
+        rot = [int(self.getRotation(r), base=16) for r in rotation]
+        return yUpToZUp @ Vector(ootParseRotation(rot))
 
     def getParsedCutscenes(self, filePath: str):
         """Returns a list of cutscenes in the file with commands parsed"""
@@ -144,45 +196,6 @@ class OOTCSMotionImport(OOTCSMotionImportCommands):
             for oldName in oldNames:
                 fileLines[i] = fileLines[i].replace(oldName, ootCSMotionLegacyToNewCmdNames[oldName])
 
-        csListCmds = [
-            "CS_ACTOR_CUE_LIST",
-            "CS_PLAYER_CUE_LIST",
-            "CS_CAM_EYE_SPLINE",
-            "CS_CAM_AT_SPLINE",
-            "CS_CAM_EYE_SPLINE_REL_TO_PLAYER",
-            "CS_CAM_AT_SPLINE_REL_TO_PLAYER",
-            "CS_CAM_EYE",
-            "CS_CAM_AT",
-            "CS_MISC_LIST",
-            "CS_LIGHT_SETTING_LIST",
-            "CS_RUMBLE_CONTROLLER_LIST",
-            "CS_TEXT_LIST",
-            "CS_START_SEQ_LIST",
-            "CS_STOP_SEQ_LIST",
-            "CS_FADE_OUT_SEQ_LIST",
-            "CS_TIME_LIST",
-            "CS_UNK_DATA_LIST",
-        ]
-
-        csCommands = [
-            "CS_ACTOR_CUE",
-            "CS_CAM_POINT",
-            "CS_MISC",
-            "CS_LIGHT_SETTING",
-            "CS_RUMBLE_CONTROLLER",
-            "CS_TEXT",
-            "CS_TEXT_NONE",
-            "CS_TEXT_OCARINA_ACTION",
-            "CS_TRANSITION",
-            "CS_START_SEQ",
-            "CS_STOP_SEQ",
-            "CS_FADE_OUT_SEQ",
-            "CS_TIME",
-            "CS_DESTINATION",
-            "CS_UNK_DATA",
-        ]
-
-        csCommands.extend(csListCmds)
         parsedCutscenes: list[ParsedCutscene] = []
         parsedCommands = []
         cmdListLines = ""
@@ -219,7 +232,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands):
                             cmdListLines += f" {line.strip()}"
 
                         # if the current line is a new cmd list declaration, reset the content
-                        for cmd in csListCmds:
+                        for cmd in ootCSMotionListCommands:
                             if cmd in line:
                                 cmdListLines = line
                                 break
@@ -235,7 +248,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands):
                                 cmdListLines = cmdListLines[:-1]
 
                             if not "CS_UNK_DATA" in cmdListLines:
-                                for cmd in csListCmds:
+                                for cmd in ootCSMotionListCommands:
                                     if cmd in nextLine or "CS_END" in nextLine:
                                         parsedCommands.append(cmdListLines)
                                         cmdListLines = ""
@@ -331,57 +344,6 @@ class OOTCSMotionImport(OOTCSMotionImportCommands):
                 cutsceneList.append(cutscene)
 
         return cutsceneList
-
-    def getNewObject(self, name: str, data, selectObject: bool) -> Object:
-        newObj = bpy.data.objects.new(name=name, object_data=data)
-        bpy.context.scene.collection.objects.link(newObj)
-
-        if selectObject:
-            newObj.select_set(True)
-            bpy.context.view_layer.objects.active = newObj
-
-        return newObj
-
-    def getNewEmptyObject(self, name: str, selectObject: bool):
-        return self.getNewObject(name, None, selectObject)
-
-    def getNewArmatureObject(self, name: str, selectObject: bool):
-        newArmatureData = bpy.data.armatures.new(name)
-        newArmatureData.display_type = "STICK"
-        newArmatureData.show_names = True
-        return self.getNewObject(name, newArmatureData, selectObject)
-
-    def getNewCutsceneObject(self, name: str, frameCount: int):
-        newCSObj = self.getNewEmptyObject(name, True)
-        newCSObj.ootEmptyType = "Cutscene"
-        newCSObj.ootCutsceneProperty.csEndFrame = frameCount
-        return newCSObj
-
-    def getNewActorCueListObject(self, name: str, commandType: str):
-        newActorCueListObj = self.getNewEmptyObject(name, False)
-        newActorCueListObj.ootEmptyType = f"CS {'Player' if 'Player' in name else 'Actor'} Cue List"
-        index = getEnumIndex(ootEnumCSActorCueListCommandType, commandType)
-
-        if index is not None:
-            cmdType = ootEnumCSActorCueListCommandType[index][0]
-            newActorCueListObj.ootCSMotionProperty.actorCueListProp.commandType = cmdType
-        else:
-            newActorCueListObj.ootCSMotionProperty.actorCueListProp.commandType = "Custom"
-            newActorCueListObj.ootCSMotionProperty.actorCueListProp.commandTypeCustom = commandType
-
-        return newActorCueListObj
-
-    def getNewActorCueObject(
-        self, name: str, startFrame: int, endFrame: int, actionID: str, location: list[int], rot: list[str]
-    ):
-        newActorCueObj = self.getNewEmptyObject(name, False)
-        newActorCueObj.location = self.getBlenderPosition(location, bpy.context.scene.ootBlenderScale)
-        newActorCueObj.rotation_euler = self.getBlenderRotation(rot)
-        newActorCueObj.ootEmptyType = "CS Actor Cue"
-        newActorCueObj.ootCSMotionProperty.actorCueProp.cueStartFrame = startFrame
-        newActorCueObj.ootCSMotionProperty.actorCueProp.cueEndFrame = endFrame
-        newActorCueObj.ootCSMotionProperty.actorCueProp.cueActionID = actionID
-        return newActorCueObj
 
     def importActorCues(self, csObj: Object, actorCueList: list[OOTCSMotionActorCueList], cueName: str):
         for i, entry in enumerate(actorCueList, 1):

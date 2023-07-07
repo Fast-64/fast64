@@ -508,7 +508,7 @@ def ootConvertRotation(rotation):
 
 
 # parse rotaion in Vec3s format
-def ootParseRotation(values):
+def ootParseRotation(values: list[int]):
     return [
         math.radians(
             (int.from_bytes(value.to_bytes(2, "big", signed=value < 0x8000), "big", signed=False) / 2**16) * 360

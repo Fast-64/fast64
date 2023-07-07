@@ -546,3 +546,43 @@ ootCSMotionLegacyToNewCmdNames = {
     "CS_FADE_BGM": "CS_FADE_OUT_SEQ",
     "CS_TERMINATOR": "CS_DESTINATION",
 }
+
+ootCSMotionListCommands = [
+    "CS_ACTOR_CUE_LIST",
+    "CS_PLAYER_CUE_LIST",
+    "CS_CAM_EYE_SPLINE",
+    "CS_CAM_AT_SPLINE",
+    "CS_CAM_EYE_SPLINE_REL_TO_PLAYER",
+    "CS_CAM_AT_SPLINE_REL_TO_PLAYER",
+    "CS_CAM_EYE",
+    "CS_CAM_AT",
+    "CS_MISC_LIST",
+    "CS_LIGHT_SETTING_LIST",
+    "CS_RUMBLE_CONTROLLER_LIST",
+    "CS_TEXT_LIST",
+    "CS_START_SEQ_LIST",
+    "CS_STOP_SEQ_LIST",
+    "CS_FADE_OUT_SEQ_LIST",
+    "CS_TIME_LIST",
+    "CS_UNK_DATA_LIST",
+]
+
+ootCSMotionCSCommands = [
+    "CS_ACTOR_CUE",
+    "CS_CAM_POINT",
+    "CS_MISC",
+    "CS_LIGHT_SETTING",
+    "CS_RUMBLE_CONTROLLER",
+    "CS_TEXT",
+    "CS_TEXT_NONE",
+    "CS_TEXT_OCARINA_ACTION",
+    "CS_TRANSITION",
+    "CS_START_SEQ",
+    "CS_STOP_SEQ",
+    "CS_FADE_OUT_SEQ",
+    "CS_TIME",
+    "CS_DESTINATION",
+    "CS_UNK_DATA",
+]
+
+ootCSMotionCSCommands.extend(ootCSMotionListCommands)
