@@ -16,11 +16,7 @@ from re import findall
 from numbers import Number
 from collections.abc import Sequence
 
-from ..f3d.f3d_material import (
-    F3DMaterialProperty,
-    RDPSettings,
-    TextureProperty
-)
+from ..f3d.f3d_material import F3DMaterialProperty, RDPSettings, TextureProperty
 
 from ..utility import hexOrDecInt
 from ..utility_importer import *
@@ -28,6 +24,15 @@ from ..utility_importer import *
 # ------------------------------------------------------------------------
 #    Classes
 # ------------------------------------------------------------------------
+
+# will format light struct data passed
+class Lights1:
+    def __init__(self, name: str, data_str: str):
+        self.name = name
+        data = [eval(dat.strip()) for dat in data_str.split(",")]
+        self.ambient = [*data[0:3], 0xFF]
+        self.diffuse = [*data[3:6], 0xFF]
+        self.direction = data[9:12]
 
 
 # this will hold tile properties
@@ -72,6 +77,9 @@ class Mat:
         self.tiles = [Tile() for a in range(8)]
         self.tex0 = None
         self.tex1 = None
+        self.num_lights = 1
+        self.light_col = {}
+        self.ambient_light = tuple()
 
     # calc the hash for an f3d mat and see if its equal to this mats hash
     def mat_hash_f3d(self, f3d: F3DMaterialProperty):
@@ -169,6 +177,7 @@ class Mat:
             return
         tex_node = nodes.new("ShaderNodeTexImage")
         links.new(pbsdf.inputs[0], tex_node.outputs[0])  # base color
+        links.new(pbsdf.inputs[21], tex_node.outputs[1])  # alpha color
         image = self.LoadTexture(0, tex_path, tex)
         if image:
             tex_node.image = image
@@ -178,7 +187,7 @@ class Mat:
 
         self.set_register_settings(mat, f3d)
         self.set_textures(f3d)
-        
+
         with bpy.context.temp_override(material=mat):
             bpy.ops.material.update_f3d_nodes()
 
@@ -188,14 +197,14 @@ class Mat:
         self.set_geo_mode(f3d.rdp_settings, mat)
         self.set_combiner(f3d)
         self.set_render_mode(f3d)
-    
+
     def set_textures(self, f3d: F3DMaterialProperty, tex_path: Path):
         self.set_tex_scale(f3d)
         if self.tex0 and self.set_tex:
             self.set_tex_settings(f3d.tex0, self.load_texture(0, tex_path, self.tex0), self.tiles[0], self.tex0.Timg)
         if self.tex1 and self.set_tex:
             self.set_tex_settings(f3d.tex1, self.load_texture(0, tex_path, self.tex1), self.tiles[1], self.tex1.Timg)
-            
+
     def set_fog(self, f3d: F3DMaterialProperty):
         if hasattr(self, "fog_position"):
             f3d.set_fog = True
@@ -208,11 +217,14 @@ class Mat:
             f3d.fog_color = self.convert_color(self.fog_color)
 
     def set_color_registers(self, f3d: F3DMaterialProperty):
-        if hasattr(self, "light_col"):
+        if self.ambient_light:
+            f3d.set_ambient_from_light = False
+            f3d.ambient_light_color = self.convert_color(self.ambient_light)
+        if self.light_col:
             # this is a dict but I'll only use the first color for now
             f3d.set_lights = True
             if self.light_col.get(1):
-                f3d.default_light_color = self.convert_color(eval(self.light_col[1]).to_bytes(4, "big"))
+                f3d.default_light_color = self.convert_color(self.light_col[1])
         if hasattr(self, "env_color"):
             f3d.set_env = True
             f3d.env_color = self.convert_color(self.env_color[-4:])
@@ -235,7 +247,9 @@ class Mat:
                 f3d.scale_autoprop = False
                 f3d.tex_scale = self.tex_scale
 
-    def set_tex_settings(self, tex_prop: TextureProperty, image: bpy.types.Image, tile: Tile, tex_img: Union[Sequence, str]):
+    def set_tex_settings(
+        self, tex_prop: TextureProperty, image: bpy.types.Image, tile: Tile, tex_img: Union[Sequence, str]
+    ):
         tex_prop.tex_reference = str(tex_img)  # setting prop for hash purposes
         tex_prop.tex_set = True
         tex_prop.tex = image
@@ -366,6 +380,7 @@ class DL(DataParser):
         self.Ambient_t = {}
         self.Lights1 = {}
         self.Textures = {}
+        self.NewMat = 1
         if not lastmat:
             self.LastMat = Mat()
             self.LastMat.name = 0
@@ -384,6 +399,7 @@ class DL(DataParser):
                     NewDL, self.scene.LevelImp.Level, self.scene.LevelImp.Prefix
                 )
             )
+        self.reset_parser(branched_dl)
         self.parse_stream(NewDL, branched_dl)
         return self.break_parse
 
@@ -395,6 +411,7 @@ class DL(DataParser):
                     NewDL, self.scene.LevelImp.Level, self.scene.LevelImp.Prefix
                 )
             )
+        self.reset_parser(branched_dl)
         self.parse_stream(NewDL, branched_dl)
         return self.continue_parse
 
@@ -455,16 +472,41 @@ class DL(DataParser):
         self.LastMat.RenderMode = [a.strip() for a in macro.args]
         return self.continue_parse
 
-    # not finished yet
+    # The highest numbered light is always the ambient light
     def gsSPLight(self, macro: Macro):
+        self.NewMat = 1
+        light = re.search("&.+\.", macro.args[0]).group()[1:-1]
+        light = Lights1(light, self.Lights1.get(light)[0])
+        if ".a" in macro.args[0]:
+            self.LastMat.ambient_light = light.ambient
+        else:
+            num = re.search("_\d", macro.args[0]).group()[1]
+            if not num:
+                num = 1
+            self.LastMat.light_col[num] = light.diffuse
+        return self.continue_parse
+
+    # numlights0 still gives one ambient and diffuse light
+    def gsSPNumLights(self, macro: Macro):
+        self.NewMat = 1
+        num = re.search("_\d", macro.args[0]).group()[1]
+        if not num:
+            num = 1
+        self.LastMat.num_lights = num
         return self.continue_parse
 
     def gsSPLightColor(self, macro: Macro):
+        self.NewMat = 1
+        num = re.search("_\d", macro.args[0]).group()[1]
+        if not num:
+            num = 1
+        self.LastMat.light_col[num] = eval(macro.args[-1]).to_bytes(4, "big")
         return self.continue_parse
 
     def gsSPSetLights0(self, macro: Macro):
         return self.continue_parse
 
+    # not finished yet
     def gsSPSetLights1(self, macro: Macro):
         return self.continue_parse
 
@@ -500,14 +542,6 @@ class DL(DataParser):
     def gsSPFogPosition(self, macro: Macro):
         self.NewMat = 1
         self.LastMat.fog_pos = macro.args
-        return self.continue_parse
-
-    def gsSPLightColor(self, macro: Macro):
-        self.NewMat = 1
-        if not hasattr(self.LastMat, "light_col"):
-            self.LastMat.light_col = {}
-        num = re.search("_\d", macro.args[0]).group()[1]
-        self.LastMat.light_col[num] = macro.args[-1]
         return self.continue_parse
 
     def gsDPSetPrimColor(self, macro: Macro):
@@ -677,8 +711,6 @@ class DL(DataParser):
             self.NewMat = 0
             self.Mats.append([len(self.Tris) - 1, self.LastMat])
             self.LastMat = deepcopy(self.LastMat)  # for safety
-            self.LastMat.name = self.num + 1
-            self.num += 1
 
     def parse_tri(self, Tri: Sequence[int]):
         return [self.VertBuff[a] for a in Tri]

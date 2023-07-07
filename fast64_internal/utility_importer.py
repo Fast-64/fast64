@@ -5,7 +5,10 @@ import bpy
 from functools import partial
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TextIO, Any, Sequence, Union
+from typing import TextIO, Any, Union
+from numbers import Number
+from collections.abc import Sequence
+from .utility import transform_mtx_blender_to_n64
 
 
 @dataclass
@@ -18,6 +21,7 @@ class Macro:
         self.args = [arg.strip() for arg in self.args]
         self.cmd = self.cmd.strip()
 
+
 @dataclass
 class Parser:
     cur_stream: Sequence[Any]
@@ -27,6 +31,7 @@ class Parser:
         while self.head < len(self.cur_stream) - 1:
             self.head += 1
             yield self.cur_stream[self.head]
+
 
 # basic methods and utility to parse scripts or data streams of bytecode
 class DataParser:
@@ -55,16 +60,22 @@ class DataParser:
                 flow_status = func(cur_macro, *args, **kwargs)
             if flow_status == self.break_parse:
                 return
-    
+
+    def reset_parser(self, entry_id: Any):
+        self.parsed_streams[entry_id] = None
+
     def get_parser(self, entry_id: Any, relative_offset: int = 0):
         parser = self.parsed_streams[entry_id]
         parser.head += relative_offset
-        return parser.cur_stream
-        
+        return parser
 
     def c_macro_split(self, macro: str) -> list[str]:
         args_start = macro.find("(")
         return Macro(macro[:args_start], macro[args_start + 1 : macro.rfind(")")].split(","))
+
+
+def transform_matrix_to_bpy(transform: Matrix) -> Matrix:
+    return transform_mtx_blender_to_n64().inverted() @ transform @ transform_mtx_blender_to_n64()
 
 
 def evaluate_macro(line: str):
@@ -85,7 +96,7 @@ def pre_parse_file(file: TextIO) -> list[str]:
     for line in file.splitlines():
         # remove line comment
         if (comment := line.rfind("//")) > 0:
-            line = line[: comment]
+            line = line[:comment]
         # check for macro
         if "#ifdef" in line:
             skip_macro = evaluate_macro(line)
@@ -128,20 +139,24 @@ def get_data_types_from_file(file: TextIO, type_dict, collated=False):
     # from a raw file, create a dict of types. Types should all be arrays
     file_lines = pre_parse_file(file)
     array_bounds_regx = "\[[0-9a-fx]*\]"  # basically [] with any valid number in it
+    equality_regx = "\s*="  # finds the first char before the equals sign
     output_variables = {type_name: dict() for type_name in type_dict.keys()}
     type_found = None
     var_dat_buffer = []
     for line in file_lines:
         if type_found:
             # Check for end of array
-            if "};" in line:
+            if ";" in line:
                 output_variables[type_found[0]][type_found[1]] = "".join(var_dat_buffer)
                 type_found = None
                 var_dat_buffer = []
             else:
                 var_dat_buffer.append(line)
             continue
+        # name ends at the array bounds, or the equals sign
         match = re.search(array_bounds_regx, line, flags=re.IGNORECASE)
+        if not match:
+            match = re.search(equality_regx, line, flags=re.IGNORECASE)
         type_collisions = [type_name for type_name in type_dict.keys() if type_name in line]
         if match and type_collisions:
             # there should ideally only be one collision
@@ -155,7 +170,11 @@ def get_data_types_from_file(file: TextIO, type_dict, collated=False):
             output_variables[data_type][variable] = format_data_arr(data, delimiters)
 
     # if collated, organize by data type, otherwise just take the various dicts raw
-    return output_variables if collated else {vd_key:vd_value for var_dict in output_variables.values() for vd_key, vd_value in var_dict.items() }
+    return (
+        output_variables
+        if collated
+        else {vd_key: vd_value for var_dict in output_variables.values() for vd_key, vd_value in var_dict.items()}
+    )
 
 
 # takes a raw string representing data and then formats it into an array
