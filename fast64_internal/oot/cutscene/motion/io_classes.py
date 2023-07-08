@@ -19,6 +19,7 @@ class OOTCSMotionCamPoint:
     frame: int
     viewAngle: float
     pos: list[int, int, int]
+    paramNumber: int = 8
 
 
 @dataclass
@@ -27,6 +28,7 @@ class OOTCSMotionActorCue(OOTCSMotionBase):
     rot: list[str, str, str]
     startPos: list[int, int, int]
     endPos: list[int, int, int]
+    paramNumber: int = 15
 
 
 @dataclass
@@ -34,38 +36,45 @@ class OOTCSMotionActorCueList:
     commandType: str
     entryTotal: int
     entries: list[OOTCSMotionActorCue] = field(default_factory=list)
+    paramNumber: int = 2
 
 
 @dataclass
 class OOTCSMotionCamEyeSpline(OOTCSMotionBase):
     entries: list[OOTCSMotionCamPoint] = field(default_factory=list)
+    paramNumber: int = 2
 
 
 @dataclass
 class OOTCSMotionCamATSpline(OOTCSMotionBase):
     entries: list[OOTCSMotionCamPoint] = field(default_factory=list)
+    paramNumber: int = 2
 
 
 @dataclass
 class OOTCSMotionCamEyeSplineRelToPlayer(OOTCSMotionBase):
     entries: list[OOTCSMotionCamPoint] = field(default_factory=list)
+    paramNumber: int = 2
 
 
 @dataclass
 class OOTCSMotionCamATSplineRelToPlayer(OOTCSMotionBase):
     entries: list[OOTCSMotionCamPoint] = field(default_factory=list)
+    paramNumber: int = 2
 
 
 @dataclass
 class OOTCSMotionCamEye(OOTCSMotionBase):
     # This feature is not used in the final game and lacks polish, it is recommended to use splines in all cases.
     entries: list = field(default_factory=list)
+    paramNumber: int = 2
 
 
 @dataclass
 class OOTCSMotionCamAT(OOTCSMotionBase):
     # This feature is not used in the final game and lacks polish, it is recommended to use splines in all cases.
     entries: list = field(default_factory=list)
+    paramNumber: int = 2
 
 
 @dataclass
@@ -73,6 +82,7 @@ class OOTCSMotionCutscene:
     name: str
     totalEntries: int
     frameCount: int
+    paramNumber: int = 2
 
     actorCueList: list[OOTCSMotionActorCueList] = field(default_factory=list)
     playerCueList: list[OOTCSMotionActorCueList] = field(default_factory=list)

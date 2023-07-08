@@ -31,8 +31,14 @@ class ParsedCutscene:
 
 
 class OOTCSMotionImportCommands:
-    def getCmdParams(self, data: str, cmdName: str):
-        return data.strip().removeprefix(f"{cmdName}(").removesuffix("),").replace(" ", "").split(",")
+    def getCmdParams(self, data: str, cmdName: str, paramNumber: int):
+        params = data.strip().removeprefix(f"{cmdName}(").removesuffix(",").replace(" ", "").split(",")
+        if len(params) != paramNumber:
+            raise PluginError(
+                f"ERROR: The number of expected parameters for `{cmdName}` "
+                + "and the number of found ones is not the same!"
+            )
+        return params
 
     def getRotation(self, data: str):
         if "DEG_TO_BINANG" in data or not "0x" in data:
@@ -50,11 +56,15 @@ class OOTCSMotionImportCommands:
             return int(number)
 
     def getNewCutscene(self, csData: str, name: str):
-        params = self.getCmdParams(csData, "CS_BEGIN_CUTSCENE")
+        params = self.getCmdParams(csData, "CS_BEGIN_CUTSCENE", OOTCSMotionCutscene.paramNumber)
         return OOTCSMotionCutscene(name, self.getInteger(params[0]), self.getInteger(params[1]))
 
     def getNewActorCueList(self, cmdData: str, isPlayer: bool):
-        params = self.getCmdParams(cmdData, f"CS_{'PLAYER' if isPlayer else 'ACTOR'}_CUE_LIST")
+        paramNumber = OOTCSMotionActorCueList.paramNumber
+        paramNumber = paramNumber - 1 if isPlayer else paramNumber
+        params = self.getCmdParams(
+            cmdData, f"CS_{'PLAYER' if isPlayer else 'ACTOR'}_CUE_LIST", paramNumber
+        )
 
         if isPlayer:
             actorCueList = OOTCSMotionActorCueList("Player", params[0])
@@ -69,31 +79,37 @@ class OOTCSMotionImportCommands:
         return actorCueList
 
     def getNewCamEyeSpline(self, cmdData: str):
-        params = self.getCmdParams(cmdData, "CS_CAM_EYE_SPLINE")
+        params = self.getCmdParams(cmdData, "CS_CAM_EYE_SPLINE", OOTCSMotionCamEyeSpline.paramNumber)
         return OOTCSMotionCamEyeSpline(self.getInteger(params[0]), self.getInteger(params[1]))
 
     def getNewCamATSpline(self, cmdData: str):
-        params = self.getCmdParams(cmdData, "CS_CAM_AT_SPLINE")
+        params = self.getCmdParams(cmdData, "CS_CAM_AT_SPLINE", OOTCSMotionCamATSpline.paramNumber)
         return OOTCSMotionCamATSpline(self.getInteger(params[0]), self.getInteger(params[1]))
 
     def getNewCamEyeSplineRelToPlayer(self, cmdData: str):
-        params = self.getCmdParams(cmdData, "CS_CAM_EYE_SPLINE_REL_TO_PLAYER")
+        params = self.getCmdParams(
+            cmdData, "CS_CAM_EYE_SPLINE_REL_TO_PLAYER", OOTCSMotionCamEyeSplineRelToPlayer.paramNumber
+        )
         return OOTCSMotionCamEyeSplineRelToPlayer(self.getInteger(params[0]), self.getInteger(params[1]))
 
     def getNewCamATSplineRelToPlayer(self, cmdData: str):
-        params = self.getCmdParams(cmdData, "CS_CAM_AT_SPLINE_REL_TO_PLAYER")
+        params = self.getCmdParams(
+            cmdData, "CS_CAM_AT_SPLINE_REL_TO_PLAYER", OOTCSMotionCamATSplineRelToPlayer.paramNumber
+        )
         return OOTCSMotionCamATSplineRelToPlayer(self.getInteger(params[0]), self.getInteger(params[1]))
 
     def getNewCamEye(self, cmdData: str):
-        params = self.getCmdParams(cmdData, "CS_CAM_EYE")
+        params = self.getCmdParams(cmdData, "CS_CAM_EYE", OOTCSMotionCamEye.paramNumber)
         return OOTCSMotionCamEye(self.getInteger(params[0]), self.getInteger(params[1]))
 
     def getNewCamAT(self, cmdData: str):
-        params = self.getCmdParams(cmdData, "CS_CAM_AT")
+        params = self.getCmdParams(cmdData, "CS_CAM_AT", OOTCSMotionCamAT.paramNumber)
         return OOTCSMotionCamAT(self.getInteger(params[0]), self.getInteger(params[1]))
 
     def getNewActorCue(self, cmdData: str, isPlayer: bool):
-        params = self.getCmdParams(cmdData, f"CS_{'PLAYER' if isPlayer else 'ACTOR'}_CUE")
+        params = self.getCmdParams(
+            cmdData, f"CS_{'PLAYER' if isPlayer else 'ACTOR'}_CUE", OOTCSMotionActorCue.paramNumber
+        )
 
         return OOTCSMotionActorCue(
             self.getInteger(params[1]),
@@ -105,7 +121,7 @@ class OOTCSMotionImportCommands:
         )
 
     def getNewCamPoint(self, cmdData: str):
-        params = self.getCmdParams(cmdData, "CS_CAM_POINT")
+        params = self.getCmdParams(cmdData, "CS_CAM_POINT", OOTCSMotionCamPoint.paramNumber)
 
         return OOTCSMotionCamPoint(
             params[0],
@@ -175,13 +191,13 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                     elif "CS_TRANSITION" in line or "CS_DESTINATION" in line:
                         parsedCommands.append(line)
                     else:
-                        # adds list entries
-                        if cmdListLines.endswith("),"):
-                            if not cmdListLines.endswith("\n"):
-                                cmdListLines = f"{cmdListLines}\n"
-                            cmdListLines += line
-                        else:
-                            cmdListLines += f" {line.strip()}"
+                        # checking for commands on two lines
+                        line = line.strip()
+                        if not line.endswith("),\n") and line.endswith(",\n"):
+                            line = line[:-1]
+
+                        # add list entries
+                        cmdListLines += line
 
                         # if the current line is a new cmd list declaration, reset the content
                         for cmd in ootCSMotionListCommands:
@@ -193,10 +209,6 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                         # we're reading next line to see if it's a new list declaration
                         index = i + 1
                         if index < len(fileLines):
-                            # checking for commands on two lines
-                            if not line.endswith("),\n") and line.endswith(",\n"):
-                                cmdListLines = cmdListLines[:-1]
-
                             if not "CS_UNK_DATA" in cmdListLines:
                                 cmdList = ["CS_END", "CS_TRANSITION", "CS_DESTINATION"]
                                 cmdList.extend(ootCSMotionListCommands)
@@ -240,6 +252,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
         for parsedCS in parsedCutscenes:
             cutscene = None
             for data in parsedCS.csData:
+                data = data.replace("),", ",\n")
                 # create a new cutscene data
                 if "CS_BEGIN_CUTSCENE(" in data:
                     cutscene = self.getNewCutscene(data, parsedCS.csName)
@@ -258,11 +271,11 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                             else:
                                 commandData = getListFunc(cmdData.pop(0), isPlayer)
 
-                            for data in cmdData:
+                            for d in cmdData:
                                 if not isPlayer and not cmd == "ACTOR_CUE_LIST":
-                                    listEntry = getFunc(data)
+                                    listEntry = getFunc(d)
                                 else:
-                                    listEntry = getFunc(data, isPlayer)
+                                    listEntry = getFunc(d, isPlayer)
                                 commandData.entries.append(listEntry)
 
                             cmdList.append(commandData)
