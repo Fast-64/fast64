@@ -390,8 +390,6 @@ def convertArmatureToGeolayout(
         meshGeolayout = geolayoutGraph.startGeolayout
 
     for i, startBoneName in enumerate(startBoneNames):
-        # if i > 0:
-            # meshGeolayout.nodes.append(TransformNode(StartNode()))
         materialOverrides = processBone(
             fModel,
             startBoneName,
@@ -1047,179 +1045,145 @@ def geoWriteTextDump(textDumpFilePath, geolayoutGraph, levelData):
 
 # Afterward, the node hierarchy is traversed again, and any SwitchOverride
 # nodes are converted to actual geolayout node hierarchies.
-def generateSwitchOptions(transformNode, geolayout, geolayoutGraph, prefix):
-    if isinstance(transformNode.node, JumpNode):
-        for node in transformNode.node.geolayout.nodes:
-            generateSwitchOptions(node, transformNode.node.geolayout, geolayoutGraph, prefix)
+def generateSwitchOptions(transform_node, geolayout, geolayoutGraph, prefix):
+    if isinstance(transform_node.node, JumpNode):
+        for node in transform_node.node.geolayout.nodes:
+            generateSwitchOptions(node, transform_node.node.geolayout, geolayoutGraph, prefix)
+    
     overrideNodes = []
-    if isinstance(transformNode.node, SwitchNode):
-        switchName = transformNode.node.name
-        prefix += "_" + switchName
-        # prefix = switchName
+    if isinstance(transform_node.node, SwitchNode):
+        switchName = transform_node.node.name
+        prefix = f"{prefix}_{switchName}"
 
         materialOverrideTexDimensions = None
 
-        i = 0
-        while i < len(transformNode.children):
-            prefixName = prefix + "_opt" + str(i)
-            childNode = transformNode.children[i]
-            if isinstance(childNode.node, SwitchOverrideNode):
-                drawLayer = childNode.node.drawLayer
-                material = childNode.node.material
-                specificMat = childNode.node.specificMat
-                overrideType = childNode.node.overrideType
-                texDimensions = childNode.node.texDimensions
-                if (
-                    texDimensions is not None
-                    and materialOverrideTexDimensions is not None
-                    and materialOverrideTexDimensions != tuple(texDimensions)
-                ):
-                    raise PluginError(
-                        'In switch bone "'
-                        + switchName
-                        + '", some material '
-                        + "overrides \nhave textures with dimensions differing from the original material.\n"
-                        + "UV coordinates are in pixel units, so there will be UV errors in those overrides.\n "
-                        + "Make sure that all overrides have the same texture dimensions as the original material.\n"
-                        + "Note that materials with no textures default to dimensions of 32x32."
-                    )
+        for child_index, child_node in enumerate(transform_node.children):
+            # first child
+            if not isinstance(child_node.node, SwitchOverrideNode):
+                continue
+            
+            prefix_name = f"{prefix}_opt{child_index}"
+            child_node_tex_dimensions = child_node.node.texDimensions
+            if (
+                child_node_tex_dimensions is not None
+                and materialOverrideTexDimensions is not None
+                and materialOverrideTexDimensions != tuple(child_node_tex_dimensions)
+            ):
+                raise PluginError(
+                    'In switch bone "'
+                    + switchName
+                    + '", some material '
+                    + "overrides \nhave textures with dimensions differing from the original material.\n"
+                    + "UV coordinates are in pixel units, so there will be UV errors in those overrides.\n "
+                    + "Make sure that all overrides have the same texture dimensions as the original material.\n"
+                    + "Note that materials with no textures default to dimensions of 32x32."
+                )
 
-                if texDimensions is not None:
-                    materialOverrideTexDimensions = tuple(texDimensions)
+            if child_node_tex_dimensions is not None:
+                materialOverrideTexDimensions = tuple(child_node_tex_dimensions)
 
-                # This should be a 0xB node
-                # copyNode = duplicateNode(transformNode.children[0],
-                # 	transformNode, transformNode.children.index(childNode))
-                index = transformNode.children.index(childNode)
-                transformNode.children.remove(childNode)
+            # Switch option bones should have unique names across all armatures.
+            transform_node.children.remove(child_node) # remove child node aka switch override node
+            option_geo_layout = geolayoutGraph.addGeolayout(child_node, prefix_name) # add geo layout starting from child node
+            geolayoutGraph.addJumpNode(transform_node, geolayout, option_geo_layout, child_index) # replace switch override with jump node to override GL
 
-                # Switch option bones should have unique names across all
-                # armatures.
-                optionGeolayout = geolayoutGraph.addGeolayout(childNode, prefixName)
-                geolayoutGraph.addJumpNode(transformNode, geolayout, optionGeolayout, index)
-                optionGeolayout.nodes.append(TransformNode(StartNode()))
-                copyNode = optionGeolayout.nodes[0]
-
-                # i -= 1
-                # Assumes first child is a start node, where option 0 is
-                # assumes overrideChild starts with a Start node
-                option0Nodes = [transformNode.children[0]]
-                if len(option0Nodes) == 1 and isinstance(option0Nodes[0].node, StartNode):
-                    for startChild in option0Nodes[0].children:
-                        generateOverrideHierarchy(
-                            copyNode,
-                            startChild,
-                            material,
-                            specificMat,
-                            overrideType,
-                            drawLayer,
-                            option0Nodes[0].children.index(startChild),
-                            optionGeolayout,
-                            geolayoutGraph,
-                            optionGeolayout.name,
-                        )
-                else:
-                    for overrideChild in option0Nodes:
-                        generateOverrideHierarchy(
-                            copyNode,
-                            overrideChild,
-                            material,
-                            specificMat,
-                            overrideType,
-                            drawLayer,
-                            option0Nodes.index(overrideChild),
-                            optionGeolayout,
-                            geolayoutGraph,
-                            optionGeolayout.name,
-                        )
-                if material is not None:
-                    overrideNodes.append(copyNode)
-            i += 1
-    for i in range(len(transformNode.children)):
-        childNode = transformNode.children[i]
-        if isinstance(transformNode.node, SwitchNode):
-            prefixName = prefix + "_opt" + str(i)
+            # for switch overrides, each one is a copy of the first child, which is the default option, so iterate the first childs
+            # hierarchy and create a copy of that and place it in the option_geo_layout
+            generateOverrideHierarchy(
+                None,
+                transform_node.children[0],
+                child_node.node.material,
+                child_node.node.specificMat,
+                child_node.node.overrideType,
+                child_node.node.drawLayer,
+                0,
+                option_geo_layout,
+                geolayoutGraph,
+                option_geo_layout.name,
+            )
+            
+            # if this is a material override, add to the list
+            # if child_node.node.material is not None:
+                # overrideNodes.append(optionGeolayout.nodes[0])
+    
+    for i, child_node in enumerate(transform_node.children):
+        if isinstance(transform_node.node, SwitchNode):
+            prefix_name = f"{prefix}_opt{i}"
         else:
-            prefixName = prefix
+            prefix_name = prefix
 
-        if childNode not in overrideNodes:
-            generateSwitchOptions(childNode, geolayout, geolayoutGraph, prefixName)
+        if child_node not in overrideNodes:
+            generateSwitchOptions(child_node, geolayout, geolayoutGraph, prefix_name)
 
 
 def generateOverrideHierarchy(
-    parentCopyNode,
-    transformNode,
+    parent_node,
+    transform_node,
     material,
     specificMat,
     overrideType,
     drawLayer,
     index,
     geolayout,
-    geolayoutGraph,
+    geolayout_graph,
     switchOptionName,
 ):
-    # print(transformNode.node)
-    if isinstance(transformNode.node, SwitchOverrideNode) and material is not None:
+    if isinstance(transform_node.node, SwitchOverrideNode) and material is not None:
         return
 
-    copyNode = TransformNode(copy.copy(transformNode.node))
-    copyNode.parent = parentCopyNode
-    parentCopyNode.children.insert(index, copyNode)
-    if isinstance(transformNode.node, JumpNode):
-        jumpName = switchOptionName + "_jump_" + transformNode.node.geolayout.name
-        jumpGeolayout = geolayoutGraph.addGeolayout(transformNode, jumpName)
-        oldGeolayout = copyNode.node.geolayout
-        copyNode.node.geolayout = jumpGeolayout
-        geolayoutGraph.addGeolayoutCall(geolayout, jumpGeolayout)
-        startNode = TransformNode(StartNode())
-        jumpGeolayout.nodes.append(startNode)
-        if len(oldGeolayout.nodes) == 1 and isinstance(oldGeolayout.nodes[0].node, StartNode):
-            for node in oldGeolayout.nodes[0].children:
-                generateOverrideHierarchy(
-                    startNode,
-                    node,
-                    material,
-                    specificMat,
-                    overrideType,
-                    drawLayer,
-                    oldGeolayout.nodes[0].children.index(node),
-                    jumpGeolayout,
-                    geolayoutGraph,
-                    jumpName,
-                )
-        else:
-            for node in oldGeolayout.nodes:
-                generateOverrideHierarchy(
-                    startNode,
-                    node,
-                    material,
-                    specificMat,
-                    overrideType,
-                    drawLayer,
-                    oldGeolayout.nodes.index(node),
-                    jumpGeolayout,
-                    geolayoutGraph,
-                    jumpName,
-                )
-
-    elif not isinstance(copyNode.node, SwitchOverrideNode) and copyNode.node.hasDL:
+    # copy the node hierarchy, append transform_node to root if no parent
+    if parent_node:
+        copy_node = TransformNode(copy.copy(transform_node.node))
+        copy_node.parent = parent_node
+        parent_node.children.insert(index, copy_node)
+    else:
+        copy_node = TransformNode(copy.copy(transform_node.node))
+        geolayout.nodes.append(copy_node)
+    
+    # if you have a jump node, create a full copy by parsing through that geo layout
+    if isinstance(transform_node.node, JumpNode):
+        jump_name = f"{switchOptionName}_jump_{transform_node.node.geolayout.name}"
+        jump_geo_layout = geolayout_graph.addGeolayout(transform_node, jump_name)
+        original_geo_layout = copy_node.node.geolayout
+        copy_node.node.geolayout = jump_geo_layout
+        geolayout_graph.addGeolayoutCall(geolayout, jump_geo_layout)
+        
+        # iterate starting with the first nodes children
+        for index, node in enumerate(original_geo_layout.nodes):
+            print("jump geo", type(node.node))
+            generateOverrideHierarchy(
+                None,
+                node,
+                material,
+                specificMat,
+                overrideType,
+                drawLayer,
+                index,
+                jump_geo_layout,
+                geolayout_graph,
+                jump_name,
+            )
+    
+    # replace the DL with the override DL
+    elif not isinstance(copy_node.node, SwitchOverrideNode) and copy_node.node.hasDL:
         if material is not None:
-            copyNode.node.DLmicrocode = copyNode.node.fMesh.drawMatOverrides[(material, specificMat, overrideType)]
-            copyNode.node.override_hash = (material, specificMat, overrideType)
+            copy_node.node.DLmicrocode = copy_node.node.fMesh.drawMatOverrides[(material, specificMat, overrideType)]
+            copy_node.node.override_hash = (material, specificMat, overrideType)
         if drawLayer is not None:
-            copyNode.node.drawLayer = drawLayer
+            copy_node.node.drawLayer = drawLayer
 
-    for child in transformNode.children:
+    # recurse
+    for index, child in enumerate(transform_node.children):
         generateOverrideHierarchy(
-            copyNode,
+            copy_node,
             child,
             material,
             specificMat,
             overrideType,
             drawLayer,
-            transformNode.children.index(child),
+            index,
             geolayout,
-            geolayoutGraph,
+            geolayout_graph,
             switchOptionName,
         )
 
@@ -1925,10 +1889,7 @@ def processBone(
     # see generateSwitchOptions() for explanation.
     else:
         if len(bone.children) > 0:
-            # nextStartNode = None
-            nextStartNode = TransformNode(StartNode())
-            transformNode.children.append(nextStartNode)
-            nextStartNode.parent = transformNode
+            nextStartNode = transformNode
 
             childrenNames = sorted([bone.name for bone in bone.children])
             for name in childrenNames:
@@ -1989,7 +1950,6 @@ def processBone(
                     optionGeolayout.nodes.append(startNode)
                 else:
                     startNode = switchIndex
-                    # startNode = TransformNode(StartNode())
 
                 childrenNames = sorted([bone.name for bone in optionBone.children])
                 for name in childrenNames:
@@ -2057,11 +2017,8 @@ def processBone(
                         material, specificMat, drawLayer, switchOption.materialOverrideType, texDimensions
                     )
                 )
-                if parentTransformNode:
-                    overrideNode.parent = transformNode
-                    transformNode.children.append(overrideNode)
-                else:
-                    geolayout.nodes.append(transformNode)
+                overrideNode.parent = transformNode
+                transformNode.children.append(overrideNode)
 
     return materialOverrides
 
