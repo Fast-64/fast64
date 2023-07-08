@@ -59,7 +59,12 @@ class OOTCSMotionImportCommands:
         if isPlayer:
             actorCueList = OOTCSMotionActorCueList("Player", params[0])
         else:
-            actorCueList = OOTCSMotionActorCueList(params[0], self.getInteger(params[1].strip()))
+            commandType = params[0]
+            if commandType.startswith("0x"):
+                # make it a 4 digit hex
+                commandType = commandType.removeprefix("0x")
+                commandType = "0x" + "0" * (4 - len(commandType)) + commandType
+            actorCueList = OOTCSMotionActorCueList(commandType, self.getInteger(params[1].strip()))
 
         return actorCueList
 

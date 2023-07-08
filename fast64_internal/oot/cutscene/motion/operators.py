@@ -2,12 +2,10 @@ import random
 import bpy
 
 from mathutils import Vector
-from bpy_extras.io_utils import ImportHelper
-from bpy.types import Object, Operator, Context, TOPBAR_MT_file_import
+from bpy.types import Object, Operator, Context
 from bpy.utils import register_class, unregister_class
-from bpy.props import StringProperty, BoolProperty, EnumProperty
+from bpy.props import StringProperty, EnumProperty
 from .constants import ootEnumCSActorCueListCommandType
-from .importer import importCutsceneMotion
 from .utility import (
     getCSObj,
     createOrInitPreview,
@@ -157,26 +155,6 @@ class OOTCSMotionCreateActorCueList(Operator):
             return {"CANCELLED"}
 
 
-class OOTCSMotionImportFromC(Operator, ImportHelper):
-    """Import cutscene camera data from a Zelda 64 scene C source file."""
-
-    bl_idname = "object.import_c"
-    bl_label = "Import From C"
-
-    filename_ext = ".c"
-    filter_glob: StringProperty(default="*.c", options={"HIDDEN"}, maxlen=4096)
-
-    def execute(self, context):
-        ret = importCutsceneMotion(context, self.filepath)
-
-        if ret is not None:
-            self.report({"WARNING"}, ret)
-            return {"CANCELLED"}
-
-        self.report({"INFO"}, "Import successful")
-        return {"FINISHED"}
-
-
 class OOT_SearchActorCueCmdTypeEnumOperator(Operator):
     bl_idname = "object.oot_search_actorcue_cmdtype_enum_operator"
     bl_label = "Select Command Type"
@@ -205,26 +183,15 @@ classes = (
     OOTCSMotionCreateCameraShot,
     OOTCSMotionCreatePlayerCueList,
     OOTCSMotionCreateActorCueList,
-    OOTCSMotionImportFromC,
     OOT_SearchActorCueCmdTypeEnumOperator,
 )
-
-
-def menu_func_import(self, context: Context):
-    self.layout.operator(OOTCSMotionImportFromC.bl_idname, text="Z64 cutscene C source (.c)")
 
 
 def csMotion_ops_register():
     for cls in classes:
         register_class(cls)
 
-    # import export controls
-    TOPBAR_MT_file_import.append(menu_func_import)
-
 
 def csMotion_ops_unregister():
-    # import export controls
-    TOPBAR_MT_file_import.remove(menu_func_import)
-
     for cls in reversed(classes):
         unregister_class(cls)
