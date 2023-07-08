@@ -386,16 +386,13 @@ def convertArmatureToGeolayout(
         geolayoutGraph = GeolayoutGraph(name + "_geo")
         if armatureObj.use_render_area:
             rootNode = TransformNode(StartRenderAreaNode(armatureObj.culling_radius))
-        else:
-            rootNode = TransformNode(StartNode())
-        geolayoutGraph.startGeolayout.nodes.append(rootNode)
+            geolayoutGraph.startGeolayout.nodes.append(rootNode)
         meshGeolayout = geolayoutGraph.startGeolayout
 
-    for i in range(len(startBoneNames)):
-        startBoneName = startBoneNames[i]
-        if i > 0:
-            meshGeolayout.nodes.append(TransformNode(StartNode()))
-        processBone(
+    for i, startBoneName in enumerate(startBoneNames):
+        # if i > 0:
+            # meshGeolayout.nodes.append(TransformNode(StartNode()))
+        materialOverrides = processBone(
             fModel,
             startBoneName,
             obj,
@@ -404,7 +401,7 @@ def convertArmatureToGeolayout(
             None,
             None,
             None,
-            meshGeolayout.nodes[i],
+            i,
             [],
             name,
             meshGeolayout,
@@ -412,14 +409,38 @@ def convertArmatureToGeolayout(
             infoDict,
             convertTextureData,
         )
+    
+    def walk(node, fMeshes):
+        base_node = node.node
+        if type(base_node) == JumpNode:
+            if base_node.geolayout:
+                for node in base_node.geolayout.nodes:
+                    fMeshes = walk(node, fMeshes)
+        fMesh = getattr(base_node, "fMesh", None)
+        if fMesh:
+            if fMeshes.get(base_node.drawLayer, None):
+                fMeshes[base_node.drawLayer].append(fMesh)
+            else:
+                fMeshes[base_node.drawLayer] = [fMesh]
+        for child in node.children:
+            fMeshes = walk(child, fMeshes)
+        return fMeshes
+    
+    fMeshes = dict()
+    for node in geolayoutGraph.startGeolayout.nodes:
+        fMeshes = walk(node, fMeshes)
+    
+    # Must be done after all geometry saved and skinned meshes parented
+    for (material, specificMat, overrideType) in materialOverrides:
+        for drawLayer, fMesh_list in fMeshes.items():
+            [saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, drawLayer, convertTextureData) for fMesh in fMesh_list]
+    
     generateSwitchOptions(meshGeolayout.nodes[0], meshGeolayout, geolayoutGraph, name)
     appendRevertToGeolayout(geolayoutGraph, fModel)
     geolayoutGraph.generateSortedList()
     if inline:
         bleed_gfx = GeoLayoutBleed()
         bleed_gfx.bleed_geo_layout_graph(fModel, geolayoutGraph)
-    # if DLFormat == DLFormat.GameSpecific:
-    # 	geolayoutGraph.convertToDynamic()
     return geolayoutGraph, fModel
 
 
@@ -1620,7 +1641,7 @@ def processBone(
     lastTranslateName,
     lastRotateName,
     lastDeformName,
-    parentTransformNode,
+    parentTransformNode: Union[int, TransformNode],
     materialOverrides,
     namePrefix,
     geolayout,
@@ -1635,7 +1656,7 @@ def processBone(
     materialOverrides = copy.copy(materialOverrides)
 
     if bone.geo_cmd == "Ignore":
-        return
+        return materialOverrides
 
     # Get translate
     if lastTranslateName is not None:
@@ -1658,7 +1679,14 @@ def processBone(
     zeroTranslation = isZeroTranslation(translate)
     zeroRotation = isZeroRotation(rotate)
 
-    # hasDL = bone.use_deform
+    # true when this is the start of the geo layout
+    # if there is no parent, then instead set the node to be the root of our geo layout
+    if type(parentTransformNode) == int:
+        if len(geolayout.nodes) > parentTransformNode:
+            parentTransformNode = geolayout.nodes[parentTransformNode]
+        else:
+            parentTransformNode = None
+        
     hasDL = True
     if bone.geo_cmd in animatableBoneTypes:
         if bone.geo_cmd == "CustomAnimated":
@@ -1671,9 +1699,12 @@ def processBone(
             if not zeroRotation:
                 node = DisplayListWithOffsetNode(int(bone.draw_layer), hasDL, mathutils.Vector((0, 0, 0)))
 
-                parentTransformNode = addParentNode(
-                    parentTransformNode, TranslateRotateNode(1, 0, False, translate, rotate)
-                )
+                if parentTransformNode:
+                    parentTransformNode = addParentNode(
+                        parentTransformNode, TranslateRotateNode(1, 0, False, translate, rotate)
+                    )
+                else:
+                    geolayout.nodes.append(TranslateRotateNode(1, 0, False, translate, rotate))
 
                 lastTranslateName = boneName
                 lastRotateName = boneName
@@ -1795,8 +1826,12 @@ def processBone(
             # bone.use_deform = False
             if usedDrawLayers is not None:
                 lastDeformName = boneName
-            parentTransformNode.children.append(transformNode)
-            transformNode.parent = parentTransformNode
+            
+            if parentTransformNode:
+                parentTransformNode.children.append(transformNode)
+                transformNode.parent = parentTransformNode
+            else:
+                geolayout.nodes.append(transformNode)
         else:
             lastDeformName = boneName
             if not bone.use_deform:
@@ -1824,8 +1859,11 @@ def processBone(
                     node.DLmicrocode = fMesh.draw
                     node.fMesh = fMesh  # Used for material override switches
 
-                    parentTransformNode.children.append(transformNode)
-                    transformNode.parent = parentTransformNode
+                    if parentTransformNode:
+                        parentTransformNode.children.append(transformNode)
+                        transformNode.parent = parentTransformNode
+                    else:
+                        geolayout.nodes.append(transformNode)
 
             if (
                 lastDeformName is not None
@@ -1845,15 +1883,16 @@ def processBone(
             for additionalTransformNode in additionalNodes:
                 transformNode.children.append(additionalTransformNode)
                 additionalTransformNode.parent = transformNode
-            # print(boneName)
+    
     else:
-        parentTransformNode.children.append(transformNode)
-        transformNode.parent = parentTransformNode
+        if parentTransformNode:
+            parentTransformNode.children.append(transformNode)
+            transformNode.parent = parentTransformNode
+        else:
+            geolayout.nodes.append(transformNode)
 
     if not isinstance(transformNode.node, SwitchNode):
-        # print(boneGroup.name if boneGroup is not None else "Offset")
         if len(bone.children) > 0:
-            # print("\tHas Children")
             if bone.geo_cmd == "Function":
                 raise PluginError(
                     "Function bones cannot have children. They instead affect the next sibling bone in alphabetical order."
@@ -1865,7 +1904,7 @@ def processBone(
             # This is so it can be used for siblings.
             childrenNames = sorted([bone.name for bone in bone.children])
             for name in childrenNames:
-                processBone(
+                materialOverrides = processBone(
                     fModel,
                     name,
                     obj,
@@ -1882,26 +1921,18 @@ def processBone(
                     infoDict,
                     convertTextureData,
                 )
-                # transformNode.children.append(childNode)
-                # childNode.parent = transformNode
 
     # see generateSwitchOptions() for explanation.
     else:
-        # print(boneGroup.name if boneGroup is not None else "Offset")
         if len(bone.children) > 0:
-            # optionGeolayout = \
-            # 	geolayoutGraph.addGeolayout(
-            # 		transformNode, boneName + '_opt0')
-            # geolayoutGraph.addJumpNode(transformNode, geolayout,
-            # 	optionGeolayout)
-            # optionGeolayout.nodes.append(TransformNode(StartNode()))
+            # nextStartNode = None
             nextStartNode = TransformNode(StartNode())
             transformNode.children.append(nextStartNode)
             nextStartNode.parent = transformNode
 
             childrenNames = sorted([bone.name for bone in bone.children])
             for name in childrenNames:
-                processBone(
+                materialOverrides = processBone(
                     fModel,
                     name,
                     obj,
@@ -1918,14 +1949,11 @@ def processBone(
                     infoDict,
                     convertTextureData,
                 )
-                # transformNode.children.append(childNode)
-                # childNode.parent = transformNode
         else:
             raise PluginError('Switch bone "' + bone.name + '" must have child bones with geometry attached.')
 
         bone = armatureObj.data.bones[boneName]
-        for switchIndex in range(len(bone.switch_options)):
-            switchOption = bone.switch_options[switchIndex]
+        for switchIndex, switchOption in enumerate(bone.switch_options):
             if switchOption.switchType == "Mesh":
                 optionArmature = switchOption.optionArmature
                 if optionArmature is None:
@@ -1949,8 +1977,6 @@ def processBone(
                     geolayoutGraph.addJumpNode(transformNode, geolayout, optionGeolayout)
                     continue
 
-                # optionNode = addParentNode(switchTransformNode, StartNode())
-
                 optionBoneName = getSwitchOptionBone(optionArmature)
                 optionBone = optionArmature.data.bones[optionBoneName]
 
@@ -1960,9 +1986,10 @@ def processBone(
 
                 if not zeroRotation or not zeroTranslation:
                     startNode = TransformNode(TranslateRotateNode(1, 0, False, translate, rotate))
+                    optionGeolayout.nodes.append(startNode)
                 else:
-                    startNode = TransformNode(StartNode())
-                optionGeolayout.nodes.append(startNode)
+                    startNode = switchIndex
+                    # startNode = TransformNode(StartNode())
 
                 childrenNames = sorted([bone.name for bone in optionBone.children])
                 for name in childrenNames:
@@ -1991,7 +2018,7 @@ def processBone(
                         )
                     optionObj = optionObjs[0]
                     optionInfoDict = getInfoDict(optionObj)
-                    processBone(
+                    materialOverrides = processBone(
                         fModel,
                         name,
                         optionObj,
@@ -2030,8 +2057,13 @@ def processBone(
                         material, specificMat, drawLayer, switchOption.materialOverrideType, texDimensions
                     )
                 )
-                overrideNode.parent = transformNode
-                transformNode.children.append(overrideNode)
+                if parentTransformNode:
+                    overrideNode.parent = transformNode
+                    transformNode.children.append(overrideNode)
+                else:
+                    geolayout.nodes.append(transformNode)
+
+    return materialOverrides
 
 
 def processSwitchBoneMatOverrides(materialOverrides, switchBone):
@@ -2147,10 +2179,8 @@ def checkIfFirstNonASMNode(childNode):
 # they precede them
 def addSkinnedMeshNode(armatureObj, boneName, skinnedMesh, transformNode, parentNode, drawLayer):
     # Add node to its immediate parent
-    # print(str(type(parentNode.node)) + str(type(transformNode.node)))
 
     transformNode.skinned = True
-    # print("Skinned mesh exists.")
 
     # Get skinned node
     bone = armatureObj.data.bones[boneName]
@@ -2170,7 +2200,7 @@ def addSkinnedMeshNode(armatureObj, boneName, skinnedMesh, transformNode, parent
     acrossSwitchNode = False
     while highestChildNode.parent is not None and not (
         highestChildNode.parent.node.hasDL or highestChildNode.parent.skinnedWithoutDL
-    ):  # empty 0x13 command?
+    ):
         isFirstChild &= checkIfFirstNonASMNode(highestChildNode)
         hasNonDeform0x13Command |= isinstance(highestChildNode.parent.node, DisplayListWithOffsetNode)
 
@@ -2180,12 +2210,9 @@ def addSkinnedMeshNode(armatureObj, boneName, skinnedMesh, transformNode, parent
         highestChildCopyParent = TransformNode(copy.copy(highestChildNode.node))
         highestChildCopyParent.children = [highestChildCopy]
         highestChildCopy.parent = highestChildCopyParent
-        # print(str(highestChildCopy.node) + " " + str(isFirstChild))
         highestChildCopy = highestChildCopyParent
-    # isFirstChild &= checkIfFirstNonASMNode(highestChildNode)
     if highestChildNode.parent is None:
         raise PluginError('Issue with "' + boneName + '": Deform parent bone not found for skinning.')
-        # raise PluginError("There shouldn't be a skinned mesh section if there is no deform parent. This error may have ocurred if a switch option node is trying to skin to a parent but no deform parent exists.")
 
     # Otherwise, remove the transformNode from the parent and
     # duplicate the node heirarchy up to the last deform parent.
@@ -2193,7 +2220,6 @@ def addSkinnedMeshNode(armatureObj, boneName, skinnedMesh, transformNode, parent
     # then add the duplicated node hierarchy afterward.
     if highestChildNode != transformNode:
         if not isFirstChild:
-            # print("Hierarchy but not first child.")
             if hasNonDeform0x13Command:
                 raise PluginError(
                     "Error with "
@@ -2220,7 +2246,7 @@ def addSkinnedMeshNode(armatureObj, boneName, skinnedMesh, transformNode, parent
 
                 precedingFunctionCmds.insert(0, copy.deepcopy(highestChildNode.parent.children[highestChildIndex - 1]))
                 highestChildIndex -= 1
-            # _____________
+
             # add skinned mesh node
             highestChildCopy.parent = highestChildNode.parent
             highestChildCopy.parent.children.append(skinnedTransformNode)
@@ -2235,19 +2261,39 @@ def addSkinnedMeshNode(armatureObj, boneName, skinnedMesh, transformNode, parent
 
             transformNode = transformNodeCopy
         else:
-            # print("Hierarchy with first child.")
             nodeIndex = highestChildNode.parent.children.index(highestChildNode)
             while nodeIndex > 0 and type(highestChildNode.parent.children[nodeIndex - 1].node) is FunctionNode:
                 nodeIndex -= 1
             highestChildNode.parent.children.insert(nodeIndex, skinnedTransformNode)
             skinnedTransformNode.parent = highestChildNode.parent
     else:
-        # print("Immediate child.")
-        nodeIndex = parentNode.children.index(transformNode)
-        parentNode.children.insert(nodeIndex, skinnedTransformNode)
-        skinnedTransformNode.parent = parentNode
+        # if the skinned mesh is the first child, you can append that DL to that parent
+        # instead of requiring a new node, because there will be nothing in between them
+        # to interrupt the skinning
+        add_skinned_mesh_to_parent_fMesh(skinnedTransformNode, highestChildNode.parent)
 
     return transformNode
+
+
+def add_skinned_mesh_to_parent_fMesh(skinned_transform_node, parent_node):
+    parent_fMesh = parent_node.node.fMesh
+    skinned_fMesh = skinned_transform_node.node.fMesh
+    if not parent_fMesh:
+        parent_node.node.fMesh = skinned_transform_node.node.fMesh
+    else:
+        while SPEndDisplayList() in parent_fMesh.draw.commands:
+            parent_fMesh.draw.commands.remove(SPEndDisplayList())
+        # remove repeat material calls
+        first_mat_call = 0
+        first_mat_index = None
+        for index, command in enumerate(skinned_fMesh.draw.commands):
+            if isinstance(command, SPDisplayList) and command.displayList.tag == GfxListTag.Material:
+                first_mat_call = command
+                first_mat_index = index
+                break
+        if first_mat_call.displayList == parent_fMesh.currentFMaterial.material:
+            skinned_fMesh.draw.commands.pop(first_mat_index)
+        parent_fMesh.draw.commands.extend(skinned_fMesh.draw.commands)
 
 
 def getAncestorGroups(parentGroup, vertexGroup, armatureObj, obj):
@@ -2468,13 +2514,6 @@ def saveModelGivenVertexGroup(
                 SPEndDisplayList(),
             ]
         )
-
-    # Must be done after all geometry saved
-    for (material, specificMat, overrideType) in materialOverrides:
-        for drawLayer, fMesh in fMeshes.items():
-            saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, drawLayer, convertTextureData)
-        for drawLayer, fMesh in fSkinnedMeshes.items():
-            saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, drawLayer, convertTextureData)
 
     return fMeshes, fSkinnedMeshes, usedDrawLayers
 
