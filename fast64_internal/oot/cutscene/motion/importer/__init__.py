@@ -1,1 +1,1 @@
-from .functions import importCutsceneMotion
+from .functions import importCutsceneData

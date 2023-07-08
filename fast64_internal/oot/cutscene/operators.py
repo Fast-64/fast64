@@ -9,7 +9,7 @@ from ..oot_utility import getCollection
 from ..scene.exporter.to_c import ootCutsceneDataToC
 from .exporter import convertCutsceneObject
 from .constants import ootEnumCSTextboxType, ootEnumCSListType, ootEnumCSListTypeIcons
-from .motion.importer.new_importer import setCutsceneMotionData
+from .motion.importer import importCutsceneData
 
 
 def checkGetFilePaths(context: Context):
@@ -93,8 +93,8 @@ class OOTCSListAdd(Operator):
 
 
 class OOT_ImportCutscene(Operator):
-    bl_idname = "object.oot_import_cutscene"
-    bl_label = "Import Cutscene"
+    bl_idname = "object.oot_import_cutscenes"
+    bl_label = "Import All Cutscenes"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
 
     def execute(self, context):
@@ -105,11 +105,11 @@ class OOT_ImportCutscene(Operator):
             path = abspath(context.scene.ootCutsceneImportPath)
 
             try:
-                context.scene.ootCSNumber = setCutsceneMotionData(path, context.scene.ootCSNumber)
+                context.scene.ootCSNumber = importCutsceneData(path)
             except:
                 raise PluginError("Something went wrong...")
 
-            self.report({"INFO"}, "Successfully imported cutscene")
+            self.report({"INFO"}, "Successfully imported cutscenes")
             return {"FINISHED"}
         except Exception as e:
             raisePluginError(self, e)

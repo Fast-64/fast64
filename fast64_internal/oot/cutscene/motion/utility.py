@@ -427,6 +427,7 @@ def initCutscene(csObj: Object):
     context.scene.render.fps = 20
     context.scene.render.resolution_x = 320
     context.scene.render.resolution_y = 240
+    context.scene.frame_set(context.scene.frame_start)
     context.scene.camera = camObj
 
 
