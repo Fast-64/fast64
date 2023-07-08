@@ -5,6 +5,7 @@ from struct import pack, unpack
 from bpy.types import Scene, Object, Bone, Context, EditBone, Operator
 from ....utility import indent
 from .constants import ootEnumCSActorCueListCommandType, LISTS_DEF, NONLISTS_DEF, CAM_TYPE_LISTS, ACTION_LISTS
+from .io_classes import OOTCSMotionObjectFactory
 
 
 class OOTCutsceneMotionIOBase:
@@ -402,20 +403,22 @@ def getFakeCSEndFrame(context: Context, csObj: Object):
     return csEndFrame
 
 
-def initCutscene(context: Context, csObj: Object):
-    camName = f"{csObj.name}.Camera"
-    camera = bpy.data.cameras.new(camName)
-    camObj = createNewObject(context, camName, camera, False)
-    camObj.parent = csObj
-    camObj.data.display_size = metersToBlend(context, 0.25)
-    camObj.data.passepartout_alpha = 0.95
-    camObj.data.clip_start = metersToBlend(context, 1e-3)
-    camObj.data.clip_end = metersToBlend(context, 200.0)
+def initCutscene(csObj: Object):
+    objFactory = OOTCSMotionObjectFactory()
+    context = bpy.context
+    camObj = objFactory.getNewCameraObject(
+        f"{csObj.name}.Camera",
+        metersToBlend(context, 0.25),
+        metersToBlend(context, 1e-3),
+        metersToBlend(context, 200.0),
+        0.95,
+        csObj,
+    )
     print("Created New Camera!")
 
     # Preview setup, used when importing cutscenes
-    for obj in bpy.data.objects:
-        if obj.ootEmptyType == "CS Actor Cue List" and obj.parent.ootEmptyType == "Cutscene":
+    for obj in csObj.children:
+        if obj.ootEmptyType == "CS Actor Cue List":
             createOrInitPreview(context, obj.parent, obj.ootCSMotionProperty.actorCueListProp.actorCueSlot, False)
 
     # Other setup
@@ -424,6 +427,7 @@ def initCutscene(context: Context, csObj: Object):
     context.scene.render.fps = 20
     context.scene.render.resolution_x = 320
     context.scene.render.resolution_y = 240
+    context.scene.camera = camObj
 
 
 # action data leftovers

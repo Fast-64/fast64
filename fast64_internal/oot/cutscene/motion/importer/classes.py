@@ -105,7 +105,7 @@ class OOTCutsceneMotionImport(OOTCutsceneMotionIOBase):
             )
 
         # Init at end to get timing info and set up action previewers
-        initCutscene(self.context, csObj)
+        initCutscene(csObj)
 
         return True
 

@@ -155,7 +155,7 @@ class OOT_AddCutscene(Operator):
         csObj = context.view_layer.objects.active
         csObj.ootEmptyType = "Cutscene"
         csObj.name = "Cutscene.Something"
-        initCutscene(context, csObj)
+        initCutscene(csObj)
 
         object.select_all(action="DESELECT")
         csObj.select_set(True)
